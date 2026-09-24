@@ -3,17 +3,18 @@
 
 local Builder = {}
 
--- Crea un Part anclado. Acepta cualquier propiedad de Part, más:
+-- Crea una pieza anclada. Acepta cualquier propiedad, más:
+--   ClassName = "WedgePart" / "CornerWedgePart"... (por defecto "Part")
 --   Tags = { "Tag1", ... }         -> etiquetas de CollectionService
 --   Attributes = { Clave = valor } -> atributos
-function Builder.part(props: { [string]: any }): Part
-	local p = Instance.new("Part")
+function Builder.part(props: { [string]: any }): BasePart
+	local p = Instance.new(props.ClassName or "Part") :: BasePart
 	p.Anchored = true
 	p.TopSurface = Enum.SurfaceType.Smooth
 	p.BottomSurface = Enum.SurfaceType.Smooth
 	p.Material = Enum.Material.SmoothPlastic
 	for key, value in props do
-		if key ~= "Parent" and key ~= "Tags" and key ~= "Attributes" then
+		if key ~= "Parent" and key ~= "Tags" and key ~= "Attributes" and key ~= "ClassName" then
 			(p :: any)[key] = value
 		end
 	end
@@ -31,6 +32,21 @@ function Builder.part(props: { [string]: any }): Part
 	return p
 end
 
+-- Pieza decorativa: sin colisiones ni consultas (más barata para el motor)
+function Builder.decor(props: { [string]: any }): BasePart
+	props.CanCollide = false
+	props.CanQuery = false
+	props.CanTouch = false
+	return Builder.part(props)
+end
+
+-- CFrame en "position" mirando en horizontal hacia "direction".
+-- (Usamos un giro en Y en vez de CFrame.lookAt: da el mismo resultado en Roblox
+-- y también en Lune, que tiene un fallo con lookAt hacia +Z.)
+function Builder.facing(position: Vector3, direction: Vector3): CFrame
+	return CFrame.new(position) * CFrame.Angles(0, math.atan2(-direction.X, -direction.Z), 0)
+end
+
 function Builder.model(name: string, parent: Instance): Model
 	local m = Instance.new("Model")
 	m.Name = name
@@ -38,7 +54,7 @@ function Builder.model(name: string, parent: Instance): Model
 	return m
 end
 
--- Cartel con texto pegado a una cara del Part.
+-- Cartel con texto pegado a una cara de la pieza.
 function Builder.sign(
 	target: BasePart,
 	text: string,
@@ -82,125 +98,6 @@ function Builder.prompt(parent: Instance, action: string, object: string?, hold:
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = parent
 	return prompt
-end
-
-export type BuildingParams = {
-	Name: string,
-	Parent: Instance,
-	-- Centro del edificio a nivel del suelo. La puerta mira hacia LookVector.
-	CFrame: CFrame,
-	Size: Vector3, -- X = ancho, Y = alto, Z = fondo
-	WallColor: Color3,
-	WallMaterial: Enum.Material?,
-	RoofColor: Color3?,
-	FloorColor: Color3?,
-	FloorMaterial: Enum.Material?,
-	Sign: string?,
-	SignColor: Color3?,
-	LightColor: Color3?,
-}
-
--- Construye un edificio hueco (4 paredes con puerta, suelo, techo, luz y cartel).
--- Devuelve el Model y una función at(x, y, z) para colocar cosas dentro
--- usando coordenadas locales: -Z es la fachada (puerta), +Z el fondo.
-function Builder.building(params: BuildingParams): (Model, (number, number, number) -> CFrame)
-	local model = Builder.model(params.Name, params.Parent)
-	local origin = params.CFrame
-	local W, H, D = params.Size.X, params.Size.Y, params.Size.Z
-	local T = 1 -- grosor de pared
-	local doorW, doorH = 8, 10
-
-	local function at(x: number, y: number, z: number): CFrame
-		return origin * CFrame.new(x, y, z)
-	end
-
-	local wall = {
-		Color = params.WallColor,
-		Material = params.WallMaterial or Enum.Material.SmoothPlastic,
-		Parent = model,
-	}
-	local function wallPart(name: string, size: Vector3, cf: CFrame)
-		local props = table.clone(wall)
-		props.Name = name
-		props.Size = size
-		props.CFrame = cf
-		return Builder.part(props)
-	end
-
-	-- Suelo
-	Builder.part({
-		Name = "Floor",
-		Size = Vector3.new(W, 0.4, D),
-		CFrame = at(0, 0.2, 0),
-		Color = params.FloorColor or Color3.fromRGB(190, 170, 140),
-		Material = params.FloorMaterial or Enum.Material.WoodPlanks,
-		Parent = model,
-	})
-
-	-- Paredes
-	wallPart("WallBack", Vector3.new(W, H, T), at(0, H / 2, D / 2 - T / 2))
-	wallPart("WallLeft", Vector3.new(T, H, D), at(-W / 2 + T / 2, H / 2, 0))
-	wallPart("WallRight", Vector3.new(T, H, D), at(W / 2 - T / 2, H / 2, 0))
-	local sideW = (W - doorW) / 2
-	wallPart("WallFrontL", Vector3.new(sideW, H, T), at(-(doorW / 2 + sideW / 2), H / 2, -D / 2 + T / 2))
-	wallPart("WallFrontR", Vector3.new(sideW, H, T), at(doorW / 2 + sideW / 2, H / 2, -D / 2 + T / 2))
-	wallPart("WallFrontTop", Vector3.new(doorW, H - doorH, T), at(0, doorH + (H - doorH) / 2, -D / 2 + T / 2))
-
-	-- Ventanas decorativas en la fachada
-	for _, side in { -1, 1 } do
-		Builder.part({
-			Name = "Window",
-			Size = Vector3.new(math.min(sideW * 0.6, 10), H * 0.35, T + 0.3),
-			CFrame = at(side * (doorW / 2 + sideW / 2), H * 0.5, -D / 2 + T / 2),
-			Color = Color3.fromRGB(150, 200, 230),
-			Material = Enum.Material.Glass,
-			Transparency = 0.2,
-			Reflectance = 0.2,
-			CanCollide = false,
-			Parent = model,
-		})
-	end
-
-	-- Techo
-	local roof = Builder.part({
-		Name = "Roof",
-		Size = Vector3.new(W + 2, 1, D + 2),
-		CFrame = at(0, H + 0.5, 0),
-		Color = params.RoofColor or Color3.fromRGB(80, 80, 90),
-		Parent = model,
-	})
-
-	-- Luz interior
-	local light = Instance.new("PointLight")
-	light.Range = math.max(W, D) * 0.9
-	light.Brightness = 1.2
-	light.Color = params.LightColor or Color3.fromRGB(255, 236, 205)
-	light.Shadows = true
-	light.Parent = Builder.part({
-		Name = "CeilingLamp",
-		Size = Vector3.new(3, 0.3, 3),
-		CFrame = at(0, H - 0.2, 0),
-		Color = Color3.fromRGB(255, 245, 220),
-		Material = Enum.Material.Neon,
-		CanCollide = false,
-		Parent = model,
-	})
-
-	-- Cartel sobre la puerta
-	if params.Sign then
-		local signPart = Builder.part({
-			Name = "Sign",
-			Size = Vector3.new(math.min(W * 0.7, 30), 3.5, 0.4),
-			CFrame = at(0, doorH + 2.5, -D / 2 - 0.3),
-			Color = params.SignColor or Color3.fromRGB(30, 34, 46),
-			CanCollide = false,
-			Parent = model,
-		})
-		Builder.sign(signPart, params.Sign, Enum.NormalId.Front)
-	end
-
-	model.PrimaryPart = roof
-	return model, at
 end
 
 return Builder

@@ -8,6 +8,7 @@ local Services = script.Parent.Services
 if not workspace:FindFirstChild("Town") then
 	require(script.Parent.World.TownBuilder).build()
 end
+require(script.Parent.World.TerrainBuilder).build()
 
 local order = {
 	"DataService",

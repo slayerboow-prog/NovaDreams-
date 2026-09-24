@@ -22,9 +22,39 @@ if existing then
 	existing:Destroy()
 end
 
+-- Imitamos "script.Parent.X" y "require" de Roblox sobre las carpetas de src/server
 local baseEnv = getfenv(1)
-local function loadModule(path: string, extra: { [string]: any }): any
+local cache: { [string]: any } = {}
+local requireModule
+
+-- Árbol de carpetas y módulos, leído por adelantado (Lune no permite esperar dentro de __index)
+local function node(path: string, parent: any?): any
+	local self = { __path = path, Parent = parent }
+	if fs.isDir(path) then
+		for _, name in fs.readDir(path) do
+			local child = path .. "/" .. name
+			if fs.isDir(child) then
+				self[name] = node(child, self)
+			elseif name:match("%.luau$") and not name:match("%.server%.luau$") and not name:match("%.client%.luau$") then
+				self[name:gsub("%.luau$", "")] = node(child, self)
+			end
+		end
+	end
+	return setmetatable(self, {
+		__index = function(_, name)
+			error(("No existe '%s' dentro de %s"):format(tostring(name), path))
+		end,
+	})
+end
+
+function requireModule(target: any): any
+	local path = rawget(target, "__path")
+	if cache[path] ~= nil then
+		return cache[path]
+	end
 	local env = setmetatable({
+		script = target,
+		require = requireModule,
 		workspace = workspace,
 		Instance = roblox.Instance,
 		Vector3 = roblox.Vector3,
@@ -35,24 +65,17 @@ local function loadModule(path: string, extra: { [string]: any }): any
 		UDim2 = roblox.UDim2,
 		Font = roblox.Font,
 	}, { __index = baseEnv })
-	for key, value in extra do
-		env[key] = value
-	end
 	local chunk = luau.load(fs.readFile(path), { debugName = path, environment = env })
-	return chunk()
+	local result = chunk()
+	cache[path] = result
+	return result
 end
 
--- Semilla fija: el mapa sale igual en cada build (árboles y colores)
+-- Semilla fija: el mapa sale igual en cada build (árboles, colores, alturas)
 math.randomseed(2026)
 
-local Builder = loadModule("src/server/World/Builder.luau", {})
-local TownBuilder = loadModule("src/server/World/TownBuilder.luau", {
-	script = { Parent = { Builder = Builder } },
-	require = function(module)
-		return module
-	end,
-})
-
+local world = node("src/server/World", nil)
+local TownBuilder = requireModule(world.TownBuilder)
 local town = TownBuilder.build()
 town.Parent = workspace
 

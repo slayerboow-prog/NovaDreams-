@@ -1,123 +1,61 @@
--- TownBuilder: construye la ciudad de Real Life Simulator al arrancar el servidor.
+-- TownBuilder: construye la ciudad de Valmar (prototipo) con los kits de /Kit.
 --
 -- Mapa (vista desde arriba, el norte es -Z):
 --
---          Punto Limpio   Hamburguesería   PLAZA   |   Cafetería   Supermercado   Correos
---   ================================ AVENIDA (z = 0) ===============================
---          Casas 1-8 (fila 1)                       |
---   ================================ CALLE (z = 120) ===============================
---          Casas 9-16 (fila 2)                      |
---                                            CALLE (x = 0)
+--   Punto Limpio · edificios · Mega Burger · PLAZA | edificios · Cafetería · Supermercado · Correos
+--   ========================== AVENIDA (z = 0) ===========================================
+--   Casas 1-8 (fila 1)                             |
+--   ========================== CALLE RESIDENCIAL (z = 120) ===============================
+--   Casas 9-16 (fila 2)                            |
+--                                           CALLE N-S (x = 0)
 --
--- Todo lo que el resto del código necesita se marca con tags (CollectionService):
+-- Todo lo que usa la jugabilidad se marca con tags (CollectionService):
 --   JobBoard (+JobId), Pickup_<Trabajo>, Dropoff_<Trabajo>, FoodStand (+FoodId),
---   StreetLamp, Plot (+PlotId), PlotSign (+PlotId)
+--   StreetLamp, NightWindow, Plot (+PlotId), PlotSign (+PlotId)
 
 local Builder = require(script.Parent.Builder)
+local Kit = script.Parent.Kit
+local Palette = require(Kit.Palette)
+local Street = require(Kit.Street)
+local Building = require(Kit.Building)
+local Nature = require(Kit.Nature)
+local Props = require(Kit.Props)
 
 local TownBuilder = {}
 
-local ROAD_WIDTH = 24
+local WALK = Street.WALK_TOP
 local PLOT_SIZE = 50
+local rgb = Color3.fromRGB
 
-local Colors = {
-	Grass = Color3.fromRGB(96, 150, 72),
-	Asphalt = Color3.fromRGB(45, 47, 52),
-	Sidewalk = Color3.fromRGB(175, 172, 165),
-	Line = Color3.fromRGB(240, 240, 235),
-	Wood = Color3.fromRGB(120, 85, 55),
-	DarkWood = Color3.fromRGB(80, 55, 40),
-	Metal = Color3.fromRGB(90, 95, 105),
-	Leaves = Color3.fromRGB(62, 120, 58),
-}
-
-local function facing(position: Vector3, direction: Vector3): CFrame
-	return CFrame.lookAt(position, position + direction)
-end
 local NORTH = Vector3.new(0, 0, -1)
 local SOUTH = Vector3.new(0, 0, 1)
+local EAST = Vector3.new(1, 0, 0)
+local WEST = Vector3.new(-1, 0, 0)
+
+local function facing(position: Vector3, direction: Vector3): CFrame
+	return Builder.facing(position, direction)
+end
+
+local ROADS = {
+	Avenue = { Axis = "X", At = 0, From = -340, To = 340, Lamps = true, Trees = false },
+	Residential = { Axis = "X", At = 120, From = -340, To = 340, Lamps = true, Trees = true },
+	NorthSouth = { Axis = "Z", At = 0, From = -190, To = 260, Lamps = true, Trees = false },
+}
+
+-- Fachada a ras de la acera norte de la avenida: devuelve el CFrame del edificio
+local function northOfAvenue(x: number, depth: number): CFrame
+	return facing(Vector3.new(x, 0, -Street.HALF - depth / 2), SOUTH)
+end
 
 ---------------------------------------------------------------------
--- Elementos pequeños
+-- Mobiliario interior de los negocios
 ---------------------------------------------------------------------
 
-local function tree(parent: Instance, position: Vector3)
-	local m = Builder.model("Tree", parent)
-	local height = 10 + math.random() * 6
-	Builder.part({
-		Name = "Trunk",
-		Shape = Enum.PartType.Cylinder,
-		Size = Vector3.new(height, 1.6, 1.6),
-		CFrame = CFrame.new(position + Vector3.new(0, height / 2, 0)) * CFrame.Angles(0, 0, math.rad(90)),
-		Color = Colors.Wood,
-		Material = Enum.Material.Wood,
-		Parent = m,
-	})
-	local crown = 9 + math.random() * 4
-	Builder.part({
-		Name = "Leaves",
-		Shape = Enum.PartType.Ball,
-		Size = Vector3.new(crown, crown, crown),
-		CFrame = CFrame.new(position + Vector3.new(0, height + crown * 0.25, 0)),
-		Color = Colors.Leaves:Lerp(Color3.fromRGB(90, 140, 60), math.random()),
-		Material = Enum.Material.Grass,
-		Parent = m,
-	})
+local function counter(parent: Instance, cf: CFrame, width: number, color: Color3)
+	Builder.part({ Name = "Counter", Size = Vector3.new(width, 3.6, 3), CFrame = cf * CFrame.new(0, 1.8, 0), Color = color, Material = Enum.Material.Wood, Parent = parent })
+	Builder.part({ Name = "CounterTop", Size = Vector3.new(width + 0.4, 0.3, 3.4), CFrame = cf * CFrame.new(0, 3.75, 0), Color = rgb(236, 234, 228), Material = Enum.Material.Marble, Parent = parent })
 end
 
-local function streetLamp(parent: Instance, position: Vector3)
-	local m = Builder.model("StreetLamp", parent)
-	Builder.part({
-		Name = "Pole",
-		Size = Vector3.new(0.6, 14, 0.6),
-		CFrame = CFrame.new(position + Vector3.new(0, 7, 0)),
-		Color = Colors.Metal,
-		Material = Enum.Material.Metal,
-		Parent = m,
-	})
-	local bulb = Builder.part({
-		Name = "Bulb",
-		Size = Vector3.new(1.6, 0.8, 1.6),
-		CFrame = CFrame.new(position + Vector3.new(0, 14.2, 0)),
-		Color = Color3.fromRGB(255, 230, 170),
-		Material = Enum.Material.SmoothPlastic,
-		Tags = { "StreetLamp" },
-		Parent = m,
-	})
-	local light = Instance.new("PointLight")
-	light.Range = 40
-	light.Brightness = 1.5
-	light.Color = Color3.fromRGB(255, 214, 150)
-	light.Enabled = false
-	light.Parent = bulb
-end
-
-local function bench(parent: Instance, cf: CFrame)
-	local m = Builder.model("Bench", parent)
-	Builder.part({ Name = "Seat", Size = Vector3.new(6, 0.5, 2), CFrame = cf * CFrame.new(0, 1.8, 0), Color = Colors.Wood, Material = Enum.Material.Wood, Parent = m })
-	Builder.part({ Name = "Back", Size = Vector3.new(6, 2, 0.4), CFrame = cf * CFrame.new(0, 3, 0.9), Color = Colors.Wood, Material = Enum.Material.Wood, Parent = m })
-	for _, x in { -2.5, 2.5 } do
-		Builder.part({ Name = "Leg", Size = Vector3.new(0.4, 1.6, 1.8), CFrame = cf * CFrame.new(x, 0.8, 0), Color = Colors.Metal, Parent = m })
-	end
-end
-
-local function jobBoard(parent: Instance, cf: CFrame, jobId: string, title: string)
-	local m = Builder.model("JobBoard_" .. jobId, parent)
-	Builder.part({ Name = "Post", Size = Vector3.new(0.5, 4, 0.5), CFrame = cf * CFrame.new(0, 2, 0), Color = Colors.Metal, Parent = m })
-	local board = Builder.part({
-		Name = "Board",
-		Size = Vector3.new(4.5, 3, 0.3),
-		CFrame = cf * CFrame.new(0, 5, 0),
-		Color = Color3.fromRGB(40, 110, 200),
-		Tags = { "JobBoard" },
-		Attributes = { JobId = jobId },
-		Parent = m,
-	})
-	Builder.sign(board, "SE BUSCA\n" .. title, Enum.NormalId.Front)
-	Builder.sign(board, "SE BUSCA\n" .. title, Enum.NormalId.Back)
-end
-
--- Mostrador de venta. El FoodId debe existir en Config.Foods.
 local function foodStand(parent: Instance, cf: CFrame, foodId: string, color: Color3)
 	Builder.part({
 		Name = "Food_" .. foodId,
@@ -130,154 +68,28 @@ local function foodStand(parent: Instance, cf: CFrame, foodId: string, color: Co
 	})
 end
 
----------------------------------------------------------------------
--- Terreno y calles
----------------------------------------------------------------------
-
-local function buildGround(world: Instance)
+local function cafeTable(parent: Instance, cf: CFrame, tag: string?)
+	local m = Builder.model("Table", parent)
 	Builder.part({
-		Name = "Ground",
-		Size = Vector3.new(900, 2, 900),
-		CFrame = CFrame.new(0, -1, 0),
-		Color = Colors.Grass,
-		Material = Enum.Material.Grass,
-		Parent = world,
+		Name = "Top",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(0.3, 4.4, 4.4),
+		CFrame = cf * CFrame.new(0, 3, 0) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = rgb(236, 232, 224),
+		Material = Enum.Material.Marble,
+		Tags = if tag then { tag } else nil,
+		Parent = m,
 	})
-end
-
-local function road(parent: Instance, from: Vector3, to: Vector3, lampStart: number)
-	local length = (to - from).Magnitude
-	local cf = CFrame.lookAt((from + to) / 2, to)
-	-- Acera
-	Builder.part({
-		Name = "Sidewalk",
-		Size = Vector3.new(ROAD_WIDTH + 8, 0.4, length + 8),
-		CFrame = cf * CFrame.new(0, 0.2, 0),
-		Color = Colors.Sidewalk,
-		Material = Enum.Material.Concrete,
-		Parent = parent,
-	})
-	-- Asfalto
-	Builder.part({
-		Name = "Road",
-		Size = Vector3.new(ROAD_WIDTH, 0.4, length),
-		CFrame = cf * CFrame.new(0, 0.3, 0),
-		Color = Colors.Asphalt,
-		Material = Enum.Material.Asphalt,
-		Parent = parent,
-	})
-	-- Línea discontinua central
-	local step = 12
-	for d = -length / 2 + step / 2, length / 2 - step / 2, step do
-		Builder.part({
-			Name = "Line",
-			Size = Vector3.new(0.5, 0.05, 5),
-			CFrame = cf * CFrame.new(0, 0.52, d),
-			Color = Colors.Line,
-			Material = Enum.Material.SmoothPlastic,
-			CanCollide = false,
-			Parent = parent,
-		})
-	end
-	-- Farolas a ambos lados
-	for d = -length / 2 + lampStart, length / 2 - 20, 60 do
-		for _, side in { -1, 1 } do
-			local pos = cf * CFrame.new(side * (ROAD_WIDTH / 2 + 2.5), 0.4, d)
-			streetLamp(parent, pos.Position)
+	Builder.decor({ Name = "Leg", Size = Vector3.new(0.4, 2.8, 0.4), CFrame = cf * CFrame.new(0, 1.5, 0), Color = Palette.Street.Metal, Material = Enum.Material.Metal, Parent = m })
+	for _, dir in { -1, 1 } do
+		local chair = cf * CFrame.new(dir * 3.4, 0, 0) * CFrame.Angles(0, if dir > 0 then math.rad(90) else math.rad(-90), 0)
+		Builder.part({ Name = "Seat", Size = Vector3.new(2, 0.3, 2), CFrame = chair * CFrame.new(0, 1.9, 0), Color = rgb(150, 100, 64), Material = Enum.Material.Wood, Parent = m })
+		Builder.decor({ Name = "Back", Size = Vector3.new(2, 2, 0.25), CFrame = chair * CFrame.new(0, 3, -0.9), Color = rgb(150, 100, 64), Material = Enum.Material.Wood, Parent = m })
+		for _, lx in { -0.8, 0.8 } do
+			for _, lz in { -0.8, 0.8 } do
+				Builder.decor({ Name = "ChairLeg", Size = Vector3.new(0.2, 1.8, 0.2), CFrame = chair * CFrame.new(lx, 0.9, lz), Color = Palette.Street.Metal, Parent = m })
+			end
 		end
-	end
-end
-
-local function buildRoads(world: Instance)
-	local roads = Builder.model("Roads", world)
-	road(roads, Vector3.new(-340, 0, 0), Vector3.new(340, 0, 0), 20) -- Avenida principal
-	road(roads, Vector3.new(-340, 0, 120), Vector3.new(340, 0, 120), 20) -- Calle residencial
-	road(roads, Vector3.new(0, 0, -140), Vector3.new(0, 0, 260), 50) -- Calle norte-sur (farolas fuera de los cruces)
-end
-
----------------------------------------------------------------------
--- Plaza central (punto de aparición)
----------------------------------------------------------------------
-
-local function buildPlaza(world: Instance)
-	local plaza = Builder.model("Plaza", world)
-	local center = Vector3.new(-60, 0, -55)
-
-	Builder.part({
-		Name = "PlazaFloor",
-		Size = Vector3.new(60, 0.4, 60),
-		CFrame = CFrame.new(center + Vector3.new(0, 0.2, 0)),
-		Color = Color3.fromRGB(205, 195, 180),
-		Material = Enum.Material.Pavement,
-		Parent = plaza,
-	})
-
-	local spawn = Instance.new("SpawnLocation")
-	spawn.Name = "Spawn"
-	spawn.Anchored = true
-	spawn.Size = Vector3.new(12, 0.4, 12)
-	spawn.CFrame = CFrame.new(center + Vector3.new(0, 0.5, 18))
-	spawn.Color = Color3.fromRGB(205, 195, 180)
-	spawn.Material = Enum.Material.Pavement
-	spawn.Transparency = 0
-	spawn.Duration = 0 -- sin campo de fuerza
-	spawn.Neutral = true
-	spawn.Parent = plaza
-	local decal = spawn:FindFirstChildOfClass("Decal")
-	if decal then
-		decal:Destroy()
-	end
-
-	-- Fuente
-	Builder.part({
-		Name = "FountainBase",
-		Shape = Enum.PartType.Cylinder,
-		Size = Vector3.new(2, 18, 18),
-		CFrame = CFrame.new(center + Vector3.new(0, 1, -5)) * CFrame.Angles(0, 0, math.rad(90)),
-		Color = Color3.fromRGB(220, 220, 215),
-		Material = Enum.Material.Marble,
-		Parent = plaza,
-	})
-	Builder.part({
-		Name = "FountainWater",
-		Shape = Enum.PartType.Cylinder,
-		Size = Vector3.new(0.4, 16, 16),
-		CFrame = CFrame.new(center + Vector3.new(0, 2, -5)) * CFrame.Angles(0, 0, math.rad(90)),
-		Color = Color3.fromRGB(80, 160, 220),
-		Material = Enum.Material.Glass,
-		Transparency = 0.3,
-		CanCollide = false,
-		Parent = plaza,
-	})
-	Builder.part({
-		Name = "FountainPillar",
-		Shape = Enum.PartType.Cylinder,
-		Size = Vector3.new(6, 2, 2),
-		CFrame = CFrame.new(center + Vector3.new(0, 4, -5)) * CFrame.Angles(0, 0, math.rad(90)),
-		Color = Color3.fromRGB(220, 220, 215),
-		Material = Enum.Material.Marble,
-		Parent = plaza,
-	})
-
-	-- Cartel de bienvenida
-	local welcome = Builder.part({
-		Name = "WelcomeSign",
-		Size = Vector3.new(20, 5, 0.6),
-		CFrame = facing(center + Vector3.new(0, 9, 28), NORTH),
-		Color = Color3.fromRGB(30, 34, 46),
-		Parent = plaza,
-	})
-	Builder.sign(welcome, "Bienvenido a VALMAR", Enum.NormalId.Front)
-	Builder.sign(welcome, "Bienvenido a VALMAR", Enum.NormalId.Back)
-	for _, x in { -9, 9 } do
-		Builder.part({ Name = "SignPost", Size = Vector3.new(0.8, 9, 0.8), CFrame = CFrame.new(center + Vector3.new(x, 4.5, 28)), Color = Colors.Metal, Parent = plaza })
-	end
-
-	for _, offset in { Vector3.new(-18, 0, -5), Vector3.new(18, 0, -5) } do
-		bench(plaza, facing(center + offset, if offset.X < 0 then Vector3.new(1, 0, 0) else Vector3.new(-1, 0, 0)))
-	end
-	for _, offset in { Vector3.new(-25, 0, -25), Vector3.new(25, 0, -25), Vector3.new(-25, 0, 25), Vector3.new(25, 0, 25) } do
-		tree(plaza, center + offset)
 	end
 end
 
@@ -285,216 +97,256 @@ end
 -- Negocios
 ---------------------------------------------------------------------
 
-local function table4(parent: Instance, cf: CFrame, tag: string?)
-	local m = Builder.model("Table", parent)
-	Builder.part({
-		Name = "Top",
-		Shape = Enum.PartType.Cylinder,
-		Size = Vector3.new(0.4, 5, 5),
-		CFrame = cf * CFrame.new(0, 3, 0) * CFrame.Angles(0, 0, math.rad(90)),
-		Color = Colors.DarkWood,
-		Material = Enum.Material.Wood,
-		Tags = if tag then { tag } else nil,
-		Parent = m,
-	})
-	Builder.part({ Name = "Leg", Size = Vector3.new(0.6, 2.8, 0.6), CFrame = cf * CFrame.new(0, 1.6, 0), Color = Colors.Metal, Parent = m })
-	for _, dir in { Vector3.new(1, 0, 0), Vector3.new(-1, 0, 0) } do
-		Builder.part({ Name = "Chair", Size = Vector3.new(2, 2, 2), CFrame = cf * CFrame.new(dir * 3.8) * CFrame.new(0, 1.2, 0), Color = Color3.fromRGB(170, 60, 50), Parent = m })
-	end
-end
-
-local function counter(parent: Instance, cf: CFrame, width: number, color: Color3)
-	Builder.part({ Name = "Counter", Size = Vector3.new(width, 3.6, 3), CFrame = cf * CFrame.new(0, 1.8, 0), Color = color, Parent = parent })
-	Builder.part({ Name = "CounterTop", Size = Vector3.new(width + 0.4, 0.3, 3.4), CFrame = cf * CFrame.new(0, 3.75, 0), Color = Color3.fromRGB(235, 235, 235), Material = Enum.Material.Marble, Parent = parent })
-end
-
 local function buildCafe(world: Instance)
-	local pos = Vector3.new(70, 0, -55)
-	local model, at = Builder.building({
-		Name = "Cafeteria",
-		Parent = world,
-		CFrame = facing(pos, SOUTH),
-		Size = Vector3.new(44, 14, 34),
-		WallColor = Color3.fromRGB(230, 205, 170),
-		WallMaterial = Enum.Material.Brick,
-		RoofColor = Color3.fromRGB(110, 70, 45),
-		Sign = "CAFETERÍA CENTRAL",
-		SignColor = Color3.fromRGB(110, 70, 45),
+	local W, D = 44, 34
+	local model, at = Building.build({
+		Name = "Cafeteria", Parent = world, CFrame = northOfAvenue(70, D),
+		Width = W, Depth = D, Floors = 4, Style = "Clasico", GroundFloor = "Shop",
+		WindowFaces = { Front = true, Left = true, Right = true },
+		Sign = "CAFETERÍA CENTRAL", SignColor = rgb(96, 60, 38), Awning = rgb(110, 66, 40),
+		FloorMaterial = Enum.Material.WoodPlanks, FloorColor = rgb(150, 108, 72),
 	})
-	counter(model, at(0, 0.4, 9), 26, Color3.fromRGB(110, 70, 45))
+	counter(model, at(0, 0, 11), 26, rgb(96, 60, 38))
 	Builder.part({
-		Name = "CoffeeMachine",
-		Size = Vector3.new(3, 3, 2),
-		CFrame = at(-9, 5.6, 9),
-		Color = Color3.fromRGB(60, 60, 65),
-		Material = Enum.Material.Metal,
-		Tags = { "Pickup_Barista" },
-		Parent = model,
+		Name = "CoffeeMachine", Size = Vector3.new(3, 3, 2), CFrame = at(-9, 5.4, 11),
+		Color = rgb(60, 60, 66), Material = Enum.Material.Metal, Tags = { "Pickup_Barista" }, Parent = model,
 	})
-	foodStand(model, at(4, 4.5, 8.5), "Cafe", Color3.fromRGB(110, 70, 45))
-	foodStand(model, at(9, 4.5, 8.5), "Croissant", Color3.fromRGB(220, 170, 90))
+	foodStand(model, at(4, 4.5, 10.5), "Cafe", rgb(96, 60, 38))
+	foodStand(model, at(9, 4.5, 10.5), "Croissant", rgb(222, 170, 90))
 	for _, p in { { -12, -8 }, { 0, -8 }, { 12, -8 }, { -12, 1 }, { 12, 1 } } do
-		table4(model, at(p[1], 0.4, p[2]), "Dropoff_Barista")
+		cafeTable(model, at(p[1], 0, p[2]), "Dropoff_Barista")
 	end
-	jobBoard(world, at(8, 0, -20), "Barista", "BARISTA")
+	Props.jobBoard(world, at(10, 0, -D / 2 - 3.5) * CFrame.Angles(0, math.pi, 0), "Barista", "BARISTA")
+	-- Terraza en la acera
+	cafeTable(world, at(-14, 0, -D / 2 - 4), nil)
 end
 
 local function buildSupermarket(world: Instance)
-	local pos = Vector3.new(160, 0, -62)
-	local model, at = Builder.building({
-		Name = "Supermercado",
-		Parent = world,
-		CFrame = facing(pos, SOUTH),
-		Size = Vector3.new(60, 16, 48),
-		WallColor = Color3.fromRGB(235, 235, 235),
-		RoofColor = Color3.fromRGB(40, 140, 80),
-		FloorColor = Color3.fromRGB(220, 220, 220),
-		FloorMaterial = Enum.Material.Marble,
-		Sign = "SUPERMERCADO",
-		SignColor = Color3.fromRGB(40, 140, 80),
-		LightColor = Color3.fromRGB(240, 250, 255),
+	local W, D = 60, 48
+	local model, at = Building.build({
+		Name = "Supermercado", Parent = world, CFrame = northOfAvenue(160, D),
+		Width = W, Depth = D, Floors = 2, Style = "Moderno", GroundFloor = "Shop", Balconies = false,
+		WindowFaces = { Front = true, Left = true, Right = true },
+		Sign = "SUPERMERCADO", SignColor = rgb(36, 132, 76), Awning = rgb(36, 132, 76),
+		FloorMaterial = Enum.Material.CeramicTiles, FloorColor = rgb(226, 226, 222),
+		LightColor = rgb(240, 248, 255),
 	})
-	-- Estanterías (destino del reponedor)
 	for i, x in { -20, -8, 4 } do
 		for j, z in { -6, 8 } do
 			local shelf = Builder.part({
-				Name = "Shelf" .. i .. j,
-				Size = Vector3.new(3, 7, 10),
-				CFrame = at(x, 3.9, z),
-				Color = Color3.fromRGB(200, 200, 205),
-				Material = Enum.Material.Metal,
-				Tags = { "Dropoff_Reponedor" },
-				Parent = model,
+				Name = "Shelf" .. i .. j, Size = Vector3.new(3, 7, 10), CFrame = at(x, 3.5, z),
+				Color = rgb(206, 206, 210), Material = Enum.Material.Metal, Tags = { "Dropoff_Reponedor" }, Parent = model,
 			})
-			-- Productos de colores para que parezca lleno
 			for k = 0, 2 do
-				Builder.part({
-					Name = "Products",
-					Size = Vector3.new(3.4, 1, 9),
-					CFrame = shelf.CFrame * CFrame.new(0, -2 + k * 2.2, 0),
-					Color = Color3.fromHSV(math.random(), 0.6, 0.9),
-					CanCollide = false,
-					Parent = model,
+				Builder.decor({
+					Name = "Products", Size = Vector3.new(3.4, 1, 9), CFrame = shelf.CFrame * CFrame.new(0, -2 + k * 2.2, 0),
+					Color = Color3.fromHSV(math.random(), 0.55, 0.9), Parent = model,
 				})
 			end
 		end
 	end
-	-- Almacén (origen de las cajas)
 	for _, x in { 20, 25 } do
 		Builder.part({
-			Name = "StockBoxes",
-			Size = Vector3.new(4, 4, 4),
-			CFrame = at(x, 2.4, 18),
-			Color = Color3.fromRGB(190, 150, 90),
-			Material = Enum.Material.Cardboard,
-			Tags = { "Pickup_Reponedor" },
-			Parent = model,
+			Name = "StockBoxes", Size = Vector3.new(4, 4, 4), CFrame = at(x, 2, 18),
+			Color = rgb(190, 150, 90), Material = Enum.Material.Cardboard, Tags = { "Pickup_Reponedor" }, Parent = model,
 		})
 	end
-	-- Caja registradora
-	counter(model, at(20, 0.4, -12), 10, Color3.fromRGB(40, 140, 80))
-	foodStand(model, at(17, 4.5, -12), "Fruta", Color3.fromRGB(230, 60, 60))
-	foodStand(model, at(22, 4.5, -12), "Bocadillo", Color3.fromRGB(230, 190, 120))
-	jobBoard(world, at(10, 0, -28), "Reponedor", "REPONEDOR")
+	counter(model, at(20, 0, -12), 10, rgb(36, 132, 76))
+	foodStand(model, at(17, 4.5, -12), "Fruta", rgb(226, 60, 60))
+	foodStand(model, at(22, 4.5, -12), "Bocadillo", rgb(226, 190, 120))
+	Props.jobBoard(world, at(-22, 0, -D / 2 - 3.5) * CFrame.Angles(0, math.pi, 0), "Reponedor", "REPONEDOR")
 end
 
 local function buildPostOffice(world: Instance)
-	local pos = Vector3.new(255, 0, -55)
-	local model, at = Builder.building({
-		Name = "Correos",
-		Parent = world,
-		CFrame = facing(pos, SOUTH),
-		Size = Vector3.new(40, 14, 30),
-		WallColor = Color3.fromRGB(245, 210, 60),
-		RoofColor = Color3.fromRGB(30, 60, 140),
-		Sign = "CORREOS",
-		SignColor = Color3.fromRGB(30, 60, 140),
+	local W, D = 40, 30
+	local model, at = Building.build({
+		Name = "Correos", Parent = world, CFrame = northOfAvenue(255, D),
+		Width = W, Depth = D, Floors = 3, Style = "Clasico", GroundFloor = "Shop", WallColor = rgb(238, 204, 96),
+		WindowFaces = { Front = true, Left = true, Right = true },
+		Sign = "CORREOS", SignColor = rgb(30, 60, 140), Awning = rgb(30, 60, 140),
 	})
-	counter(model, at(0, 0.4, 2), 20, Color3.fromRGB(30, 60, 140))
+	counter(model, at(0, 0, 3), 20, rgb(30, 60, 140))
 	Builder.part({
-		Name = "Parcels",
-		Size = Vector3.new(10, 5, 4),
-		CFrame = at(0, 2.9, 11),
-		Color = Color3.fromRGB(170, 120, 70),
-		Material = Enum.Material.Cardboard,
-		Tags = { "Pickup_Repartidor" },
-		Parent = model,
+		Name = "Parcels", Size = Vector3.new(10, 5, 4), CFrame = at(0, 2.5, 11),
+		Color = rgb(170, 120, 70), Material = Enum.Material.Cardboard, Tags = { "Pickup_Repartidor" }, Parent = model,
 	})
-	jobBoard(world, at(8, 0, -18), "Repartidor", "REPARTIDOR")
+	Props.jobBoard(world, at(10, 0, -D / 2 - 3.5) * CFrame.Angles(0, math.pi, 0), "Repartidor", "REPARTIDOR")
 end
 
 local function buildBurger(world: Instance)
-	local pos = Vector3.new(-150, 0, -55)
-	local model, at = Builder.building({
-		Name = "Hamburgueseria",
-		Parent = world,
-		CFrame = facing(pos, SOUTH),
-		Size = Vector3.new(40, 14, 32),
-		WallColor = Color3.fromRGB(200, 50, 45),
-		RoofColor = Color3.fromRGB(245, 190, 40),
-		Sign = "MEGA BURGER",
-		SignColor = Color3.fromRGB(245, 190, 40),
+	local W, D = 40, 32
+	local model, at = Building.build({
+		Name = "MegaBurger", Parent = world, CFrame = northOfAvenue(-150, D),
+		Width = W, Depth = D, Floors = 2, Style = "Popular", GroundFloor = "Shop", WallColor = rgb(196, 58, 48),
+		WindowFaces = { Front = true, Left = true, Right = true },
+		Sign = "MEGA BURGER", SignColor = rgb(240, 186, 40), Awning = rgb(240, 186, 40),
+		FloorMaterial = Enum.Material.CeramicTiles, FloorColor = rgb(230, 222, 206),
 	})
-	counter(model, at(0, 0.4, 9), 22, Color3.fromRGB(245, 190, 40))
-	foodStand(model, at(-4, 4.5, 8.5), "Hamburguesa", Color3.fromRGB(170, 100, 50))
-	foodStand(model, at(4, 4.5, 8.5), "Menu", Color3.fromRGB(230, 60, 50))
-	for _, p in { { -10, -6 }, { 10, -6 }, { 0, -2 } } do
-		table4(model, at(p[1], 0.4, p[2]), nil)
+	counter(model, at(0, 0, 10), 22, rgb(240, 186, 40))
+	foodStand(model, at(-4, 4.5, 9.5), "Hamburguesa", rgb(170, 100, 50))
+	foodStand(model, at(4, 4.5, 9.5), "Menu", rgb(226, 60, 50))
+	for _, p in { { -11, -6 }, { 11, -6 }, { 0, -1 } } do
+		cafeTable(model, at(p[1], 0, p[2]), nil)
 	end
 end
 
-local function buildRecycling(world: Instance)
-	local center = Vector3.new(-240, 0, -55)
-	local area = Builder.model("PuntoLimpio", world)
-	Builder.part({
-		Name = "Yard",
-		Size = Vector3.new(40, 0.4, 36),
-		CFrame = CFrame.new(center + Vector3.new(0, 0.2, 0)),
-		Color = Color3.fromRGB(120, 120, 115),
-		Material = Enum.Material.Concrete,
-		Parent = area,
+---------------------------------------------------------------------
+-- Edificios de viviendas y comercios cerrados (relleno urbano)
+---------------------------------------------------------------------
+
+local SHOP_NAMES = { "FARMACIA", "PANADERÍA", "ZAPATERÍA", "BANCO VALMAR", "INMOBILIARIA", "FLORISTERÍA", "LIBRERÍA", "PELUQUERÍA", "FERRETERÍA", "ÓPTICA" }
+local AWNINGS = { rgb(170, 40, 40), rgb(40, 90, 150), rgb(40, 120, 70), rgb(200, 150, 40), rgb(90, 60, 110) }
+local STYLES = { "Clasico", "Popular", "Moderno", "Clasico", "Popular" }
+
+local function filler(world: Instance, cf: CFrame, width: number, index: number)
+	local style = STYLES[(index - 1) % #STYLES + 1]
+	local isShop = math.random() < 0.55
+	Building.build({
+		Name = "Edificio_" .. index,
+		Parent = world,
+		CFrame = cf,
+		Width = width,
+		Depth = 28,
+		Floors = math.random(3, 6),
+		Style = style,
+		GroundFloor = if isShop then "Shop" else "Closed",
+		Interior = false,
+		WindowFaces = { Front = true, Left = true, Right = true },
+		Sign = if isShop then SHOP_NAMES[math.random(1, #SHOP_NAMES)] else nil,
+		Awning = if isShop then Palette.pick(AWNINGS) else nil,
 	})
-	for i, x in { -10, 0, 10 } do
+end
+
+local function buildFillers(world: Instance)
+	local folder = Builder.model("Edificios", world)
+	local index = 0
+	-- Acera norte de la avenida (x, ancho)
+	for _, spec in { { -310, 36 }, { -199, 34 }, { -111, 30 }, { 34, 24 }, { 111, 34 }, { 212, 38 }, { 306, 56 } } do
+		index += 1
+		filler(folder, northOfAvenue(spec[1], 28), spec[2], index)
+	end
+	-- Calle N-S, tramo norte (fachadas mirando a la calle)
+	for _, spec in { { 1, -86, 34 }, { 1, -126, 34 }, { 1, -164, 30 }, { -1, -104, 34 }, { -1, -144, 34 } } do
+		index += 1
+		local side, z, width = spec[1], spec[2], spec[3]
+		local pos = Vector3.new(side * (Street.HALF + 14), 0, z)
+		filler(folder, facing(pos, if side > 0 then WEST else EAST), width, index)
+	end
+end
+
+---------------------------------------------------------------------
+-- Plaza mayor (punto de aparición)
+---------------------------------------------------------------------
+
+local function buildPlaza(world: Instance)
+	local plaza = Builder.model("Plaza", world)
+	local cx, cz = -60, -52
+	local x0, x1, z0, z1 = -90, -30, -82, -20
+	Builder.part({
+		Name = "PlazaFloor",
+		Size = Vector3.new(x1 - x0, WALK, z1 - z0),
+		CFrame = CFrame.new((x0 + x1) / 2, WALK / 2, (z0 + z1) / 2),
+		Color = Palette.Ground.Plaza,
+		Material = Enum.Material.Pavement,
+		Parent = plaza,
+	})
+
+	local spawn = Instance.new("SpawnLocation")
+	spawn.Name = "Spawn"
+	spawn.Anchored = true
+	spawn.Size = Vector3.new(10, 0.2, 10)
+	spawn.CFrame = CFrame.new(cx, WALK + 0.1, -32)
+	spawn.Color = Palette.Ground.Plaza
+	spawn.Material = Enum.Material.Pavement
+	spawn.Duration = 0
+	spawn.Neutral = true
+	spawn.Parent = plaza
+
+	-- Fuente de dos pisos
+	local f = Vector3.new(cx, WALK, cz - 4)
+	local stone = rgb(226, 222, 212)
+	local function disc(name: string, height: number, diameter: number, y: number, color: Color3, material: Enum.Material, transparency: number?)
 		Builder.part({
-			Name = "Container" .. i,
-			Size = Vector3.new(8, 6, 5),
-			CFrame = CFrame.new(center + Vector3.new(x, 3.4, -8)),
-			Color = ({ Color3.fromRGB(40, 120, 60), Color3.fromRGB(40, 80, 160), Color3.fromRGB(220, 180, 40) })[i],
-			Material = Enum.Material.Metal,
-			Tags = { "Dropoff_Basurero" },
-			Parent = area,
+			Name = name,
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(height, diameter, diameter),
+			CFrame = CFrame.new(f + Vector3.new(0, y, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+			Color = color,
+			Material = material,
+			Transparency = transparency or 0,
+			CanCollide = transparency == nil,
+			Parent = plaza,
 		})
 	end
-	local sign = Builder.part({
-		Name = "Sign",
-		Size = Vector3.new(16, 3, 0.4),
-		CFrame = facing(center + Vector3.new(0, 9, -11), SOUTH),
-		Color = Color3.fromRGB(40, 120, 60),
-		Parent = area,
-	})
-	Builder.sign(sign, "PUNTO LIMPIO", Enum.NormalId.Front)
-	jobBoard(world, facing(center + Vector3.new(8, 0, 14), SOUTH), "Basurero", "BASURERO")
+	disc("FountainRim", 2.2, 22, 1.1, stone, Enum.Material.Limestone)
+	disc("FountainWater", 0.3, 20.4, 1.9, rgb(70, 150, 210), Enum.Material.Glass, 0.25)
+	disc("FountainColumn", 6, 2.4, 4, stone, Enum.Material.Limestone)
+	disc("FountainBowl", 1, 9, 6.8, stone, Enum.Material.Limestone)
+	disc("FountainBowlWater", 0.2, 8, 7.35, rgb(70, 150, 210), Enum.Material.Glass, 0.25)
+	disc("FountainTop", 2.4, 1.2, 8.4, stone, Enum.Material.Limestone)
 
-	-- Bolsas de basura repartidas por la ciudad (origen del basurero)
+	-- Palmeras, bancos y parterres
+	for _, p in { { -84, -76 }, { -36, -76 }, { -84, -30 }, { -36, -30 }, { -84, -53 }, { -36, -53 } } do
+		Nature.palm(plaza, Vector3.new(p[1], WALK, p[2]))
+	end
+	for _, b in { { -74, -56, EAST }, { -46, -56, WEST }, { -60, -70, SOUTH } } do
+		Props.bench(plaza, facing(Vector3.new(b[1], WALK, b[2]), b[3]))
+	end
+	Nature.flowerBed(plaza, CFrame.new(-74, WALK, -40), 8, 4)
+	Nature.flowerBed(plaza, CFrame.new(-46, WALK, -40), 8, 4)
+	Nature.flowerBed(plaza, CFrame.new(-60, WALK, -78), 16, 3)
+
+	-- Cartel de bienvenida (mira hacia el punto de aparición)
+	local welcome = Builder.part({
+		Name = "WelcomeSign",
+		Size = Vector3.new(22, 4.5, 0.6),
+		CFrame = facing(Vector3.new(cx, WALK + 8, -80), SOUTH),
+		Color = rgb(28, 34, 48),
+		Parent = plaza,
+	})
+	Builder.sign(welcome, "Bienvenido a VALMAR", Enum.NormalId.Front)
+	for _, x in { -10, 10 } do
+		Builder.part({ Name = "SignPost", Size = Vector3.new(0.8, 10, 0.8), CFrame = CFrame.new(cx + x, WALK + 5, -80), Color = Palette.Street.Metal, Material = Enum.Material.Metal, Parent = plaza })
+	end
+end
+
+---------------------------------------------------------------------
+-- Punto Limpio y bolsas de basura
+---------------------------------------------------------------------
+
+local function buildRecycling(world: Instance)
+	local area = Builder.model("PuntoLimpio", world)
+	local cx = -240
+	Builder.part({
+		Name = "Yard", Size = Vector3.new(40, WALK, 38), CFrame = CFrame.new(cx, WALK / 2, -39),
+		Color = rgb(128, 128, 124), Material = Enum.Material.Concrete, Parent = area,
+	})
+	local colors = { rgb(40, 120, 60), rgb(40, 80, 160), rgb(220, 180, 40) }
+	for i, x in { -12, 0, 12 } do
+		Builder.part({
+			Name = "Container" .. i, Size = Vector3.new(9, 6, 5), CFrame = CFrame.new(cx + x, WALK + 3, -50),
+			Color = colors[i], Material = Enum.Material.Metal, Tags = { "Dropoff_Basurero" }, Parent = area,
+		})
+	end
+	for _, x in { -20, 20 } do
+		Builder.part({ Name = "Fence", Size = Vector3.new(0.4, 5, 36), CFrame = CFrame.new(cx + x, WALK + 2.5, -40), Color = Palette.Street.Metal, Material = Enum.Material.DiamondPlate, Parent = area })
+	end
+	local sign = Builder.part({ Name = "Sign", Size = Vector3.new(16, 3, 0.4), CFrame = facing(Vector3.new(cx, WALK + 9.5, -53), SOUTH), Color = rgb(40, 120, 60), Parent = area })
+	Builder.sign(sign, "PUNTO LIMPIO", Enum.NormalId.Front)
+	Props.jobBoard(world, facing(Vector3.new(cx + 12, WALK, -24), SOUTH), "Basurero", "BASURERO")
+
 	local bags = Builder.model("TrashBags", world)
 	local spots = {
-		Vector3.new(-300, 0, 18), Vector3.new(-200, 0, -18), Vector3.new(-100, 0, 18),
-		Vector3.new(40, 0, -18), Vector3.new(120, 0, 18), Vector3.new(220, 0, -18),
-		Vector3.new(300, 0, 18), Vector3.new(-250, 0, 102), Vector3.new(-60, 0, 138),
-		Vector3.new(90, 0, 102), Vector3.new(260, 0, 138), Vector3.new(18, 0, 200),
-		Vector3.new(-18, 0, -110),
+		Vector3.new(-300, 0, 16), Vector3.new(-200, 0, 16), Vector3.new(-100, 0, 16), Vector3.new(120, 0, 16),
+		Vector3.new(300, 0, 16), Vector3.new(40, 0, -16), Vector3.new(220, 0, -16), Vector3.new(-250, 0, 104),
+		Vector3.new(-60, 0, 136), Vector3.new(90, 0, 104), Vector3.new(260, 0, 136), Vector3.new(16, 0, 200),
+		Vector3.new(-16, 0, -70),
 	}
 	for i, spot in spots do
 		Builder.part({
-			Name = "TrashBag" .. i,
-			Shape = Enum.PartType.Ball,
-			Size = Vector3.new(2.4, 2.4, 2.4),
-			CFrame = CFrame.new(spot + Vector3.new(0, 1.6, 0)),
-			Color = Color3.fromRGB(25, 25, 28),
-			Material = Enum.Material.Plastic,
-			CanCollide = false,
-			Tags = { "Pickup_Basurero" },
-			Parent = bags,
+			Name = "TrashBag" .. i, Shape = Enum.PartType.Ball, Size = Vector3.new(2.4, 2.4, 2.4),
+			CFrame = CFrame.new(spot + Vector3.new(0, WALK + 1.1, 0)), Color = rgb(24, 24, 28),
+			Material = Enum.Material.Plastic, CanCollide = false, Tags = { "Pickup_Basurero" }, Parent = bags,
 		})
 	end
 end
@@ -503,57 +355,72 @@ end
 -- Parcelas residenciales
 ---------------------------------------------------------------------
 
+-- Tamaños de las casas de muestra (los mismos que los dos primeros niveles de Config.HouseTiers)
+local SHOW_HOUSES = { Vector3.new(24, 12, 20), Vector3.new(32, 14, 28) }
+
+function TownBuilder.showHouse(plot: Instance, origin: CFrame): Model
+	local size = SHOW_HOUSES[math.random(1, #SHOW_HOUSES)]
+	local model = Building.build({
+		Name = "House",
+		Parent = plot,
+		CFrame = origin * CFrame.new(0, 0, PLOT_SIZE / 2 - size.Z / 2 - 3),
+		Width = size.X,
+		Depth = size.Z,
+		Floors = 1,
+		Style = "Casa",
+		GroundFloor = "House",
+		Interior = false,
+	})
+	model:SetAttribute("ShowHouse", true)
+	return model
+end
+
 local function buildPlot(parent: Instance, plotId: number, center: Vector3)
 	local cf = facing(center, NORTH) -- todas las casas miran a la calle del norte
 	local plot = Builder.model("Plot_" .. plotId, parent)
 	plot:SetAttribute("PlotId", plotId)
 	plot:SetAttribute("Origin", cf)
 	plot:AddTag("Plot")
+	local half = PLOT_SIZE / 2
 
 	Builder.part({
-		Name = "Lawn",
-		Size = Vector3.new(PLOT_SIZE, 0.3, PLOT_SIZE),
-		CFrame = cf * CFrame.new(0, 0.15, 0),
-		Color = Color3.fromRGB(110, 165, 80),
-		Material = Enum.Material.Grass,
-		Parent = plot,
+		Name = "Lawn", Size = Vector3.new(PLOT_SIZE, 0.3, PLOT_SIZE), CFrame = cf * CFrame.new(0, 0.15, 0),
+		Color = Palette.Ground.Lawn, Material = Enum.Material.Grass, Parent = plot,
 	})
-	-- Camino hasta la acera
+	-- Camino desde la acera hasta la puerta
 	Builder.part({
-		Name = "Path",
-		Size = Vector3.new(5, 0.35, 14),
-		CFrame = cf * CFrame.new(0, 0.2, -PLOT_SIZE / 2 + 2),
-		Color = Colors.Sidewalk,
-		Material = Enum.Material.Concrete,
-		Parent = plot,
+		Name = "Path", Size = Vector3.new(5, 0.4, 36), CFrame = cf * CFrame.new(0, 0.2, -half - 2),
+		Color = rgb(200, 190, 172), Material = Enum.Material.Pavement, Parent = plot,
 	})
+	-- Setos en los laterales y al fondo
+	Nature.hedge(plot, (cf * CFrame.new(-half + 0.8, 0, -half + 4)).Position, (cf * CFrame.new(-half + 0.8, 0, half - 0.8)).Position)
+	Nature.hedge(plot, (cf * CFrame.new(half - 0.8, 0, -half + 4)).Position, (cf * CFrame.new(half - 0.8, 0, half - 0.8)).Position)
+	Nature.hedge(plot, (cf * CFrame.new(-half + 1.6, 0, half - 0.8)).Position, (cf * CFrame.new(half - 1.6, 0, half - 0.8)).Position)
+
 	-- Buzón (destino del repartidor)
-	Builder.part({ Name = "MailboxPost", Size = Vector3.new(0.4, 3.5, 0.4), CFrame = cf * CFrame.new(5, 1.75, -PLOT_SIZE / 2 + 1), Color = Colors.Wood, Parent = plot })
+	Builder.part({ Name = "MailboxPost", Size = Vector3.new(0.4, 3.5, 0.4), CFrame = cf * CFrame.new(5, 1.75, -half + 1), Color = Palette.Street.Wood, Parent = plot })
 	Builder.part({
-		Name = "Mailbox",
-		Size = Vector3.new(1.2, 1.2, 2),
-		CFrame = cf * CFrame.new(5, 4, -PLOT_SIZE / 2 + 1),
-		Color = Color3.fromRGB(200, 50, 50),
-		Tags = { "Dropoff_Repartidor" },
-		Parent = plot,
+		Name = "Mailbox", Size = Vector3.new(1.2, 1.2, 2), CFrame = cf * CFrame.new(5, 4, -half + 1),
+		Color = rgb(196, 48, 48), Tags = { "Dropoff_Repartidor" }, Parent = plot,
 	})
 	-- Cartel de la parcela (reclamar / mejorar casa)
-	Builder.part({ Name = "SignPost", Size = Vector3.new(0.4, 4, 0.4), CFrame = cf * CFrame.new(-6, 2, -PLOT_SIZE / 2 + 1), Color = Colors.Wood, Parent = plot })
+	Builder.part({ Name = "SignPost", Size = Vector3.new(0.4, 4, 0.4), CFrame = cf * CFrame.new(-6, 2, -half + 1), Color = Palette.Street.Wood, Parent = plot })
 	local sign = Builder.part({
-		Name = "PlotSign",
-		Size = Vector3.new(5, 2.6, 0.3),
-		CFrame = cf * CFrame.new(-6, 4.8, -PLOT_SIZE / 2 + 1),
-		Color = Color3.fromRGB(245, 245, 240),
-		Tags = { "PlotSign" },
-		Attributes = { PlotId = plotId },
-		Parent = plot,
+		Name = "PlotSign", Size = Vector3.new(5, 2.6, 0.3), CFrame = cf * CFrame.new(-6, 4.8, -half + 1),
+		Color = rgb(246, 246, 240), Tags = { "PlotSign" }, Attributes = { PlotId = plotId }, Parent = plot,
 	})
-	local label = Builder.sign(sign, "SE VENDE\nLibre", Enum.NormalId.Front, Color3.fromRGB(30, 30, 30))
+	local label = Builder.sign(sign, "SE VENDE\nLibre", Enum.NormalId.Front, rgb(30, 30, 30))
 	label.Name = "Label"
 
-	-- Árboles en el jardín trasero
-	tree(plot, (cf * CFrame.new(-PLOT_SIZE / 2 + 4, 0, PLOT_SIZE / 2 - 4)).Position)
-	tree(plot, (cf * CFrame.new(PLOT_SIZE / 2 - 4, 0, PLOT_SIZE / 2 - 4)).Position)
+	-- Casa "en venta" hasta que alguien reclama la parcela (HouseService la sustituye)
+	TownBuilder.showHouse(plot, cf)
+
+	-- Jardín
+	Nature.tree(plot, (cf * CFrame.new(-half + 6, 0, half - 6)).Position)
+	Nature.cypress(plot, (cf * CFrame.new(half - 5, 0, half - 5)).Position)
+	for _, x in { -12, 12 } do
+		Nature.bush(plot, (cf * CFrame.new(x, 0.3, -half + 5)).Position)
+	end
 end
 
 local function buildPlots(world: Instance)
@@ -571,6 +438,48 @@ local function buildPlots(world: Instance)
 end
 
 ---------------------------------------------------------------------
+-- Vida en la calle: coches aparcados y paradas de autobús
+---------------------------------------------------------------------
+
+local function buildStreetLife(world: Instance)
+	local folder = Builder.model("StreetLife", world)
+	local H = Street.HALF
+	Street.parkCars(folder, ROADS.Residential, -336, -H - 4, 1, 0.3)
+	Street.parkCars(folder, ROADS.Residential, H + 4, 336, 1, 0.3)
+	Street.parkCars(folder, ROADS.Residential, -336, -H - 4, -1, 0.2)
+	Street.parkCars(folder, ROADS.Residential, H + 4, 336, -1, 0.2)
+	Street.parkCars(folder, ROADS.Avenue, -336, -H - 4, 1, 0.25)
+	Street.parkCars(folder, ROADS.Avenue, H + 4, 336, 1, 0.25)
+	for _, x in { -130, 86 } do
+		Props.busStop(folder, facing(Vector3.new(x, WALK, 17.4), NORTH))
+	end
+end
+
+---------------------------------------------------------------------
+
+local function buildGround(world: Instance)
+	-- En el juego se sustituye por terreno real (TerrainBuilder); aquí sirve para verlo en Studio
+	Builder.part({
+		Name = "Ground", Size = Vector3.new(1000, 2, 1000), CFrame = CFrame.new(0, -1, 0),
+		Color = Palette.Ground.Grass, Material = Enum.Material.Grass, Parent = world,
+	})
+end
+
+local function buildOutskirts(world: Instance)
+	local folder = Builder.model("Afueras", world)
+	for _ = 1, 70 do
+		local x = math.random(-470, 470)
+		local z = math.random(-470, 470)
+		local inTown = math.abs(x) < 350 and z > -200 and z < 225
+		if not inTown and math.abs(x) > 25 then
+			if math.random() < 0.3 then
+				Nature.cypress(folder, Vector3.new(x, 0, z))
+			else
+				Nature.tree(folder, Vector3.new(x, 0, z), 1 + math.random() * 0.4)
+			end
+		end
+	end
+end
 
 function TownBuilder.build(): Folder
 	local world = Instance.new("Folder")
@@ -578,23 +487,17 @@ function TownBuilder.build(): Folder
 	world.Parent = workspace
 
 	buildGround(world)
-	buildRoads(world)
+	Street.build(world, { ROADS.Avenue, ROADS.Residential, ROADS.NorthSouth })
 	buildPlaza(world)
 	buildCafe(world)
 	buildSupermarket(world)
 	buildPostOffice(world)
 	buildBurger(world)
+	buildFillers(world)
 	buildRecycling(world)
 	buildPlots(world)
-
-	-- Unos cuantos árboles por las afueras
-	for _ = 1, 40 do
-		local x = math.random(-420, 420)
-		local z = math.random(-420, 420)
-		if math.abs(x) > 25 and (math.abs(z) > 250 or z < -110) then
-			tree(world, Vector3.new(x, 0, z))
-		end
-	end
+	buildStreetLife(world)
+	buildOutskirts(world)
 
 	return world
 end

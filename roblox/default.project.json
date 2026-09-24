@@ -2,25 +2,28 @@
   "name": "RealLifeSimulator",
   "tree": {
     "$className": "DataModel",
-
     "ReplicatedStorage": {
       "Shared": {
         "$path": "src/shared"
       },
       "Remotes": {
         "$className": "Folder",
-        "Notify": { "$className": "RemoteEvent" },
-        "QuitJob": { "$className": "RemoteEvent" },
-        "GoHome": { "$className": "RemoteEvent" }
+        "Notify": {
+          "$className": "RemoteEvent"
+        },
+        "QuitJob": {
+          "$className": "RemoteEvent"
+        },
+        "GoHome": {
+          "$className": "RemoteEvent"
+        }
       }
     },
-
     "ServerScriptService": {
       "Server": {
         "$path": "src/server"
       }
     },
-
     "StarterPlayer": {
       "StarterPlayerScripts": {
         "Client": {
@@ -28,15 +31,82 @@
         }
       }
     },
-
     "Lighting": {
       "$properties": {
         "Technology": "Future",
-        "ClockTime": 8,
-        "Brightness": 2.5,
+        "ClockTime": 14.5,
+        "Brightness": 2.6,
         "EnvironmentDiffuseScale": 1,
         "EnvironmentSpecularScale": 1,
-        "GlobalShadows": true
+        "GlobalShadows": true,
+        "Ambient": [
+          0.2745,
+          0.2745,
+          0.3059
+        ],
+        "OutdoorAmbient": [
+          0.502,
+          0.502,
+          0.5333
+        ],
+        "ExposureCompensation": 0.15,
+        "ShadowSoftness": 0.3,
+        "GeographicLatitude": 38
+      },
+      "Atmosphere": {
+        "$className": "Atmosphere",
+        "$properties": {
+          "Density": 0.28,
+          "Offset": 0.2,
+          "Color": [
+            0.8078,
+            0.8392,
+            0.8784
+          ],
+          "Decay": [
+            0.4314,
+            0.4706,
+            0.5412
+          ],
+          "Glare": 0.25,
+          "Haze": 1.4
+        }
+      },
+      "Bloom": {
+        "$className": "BloomEffect",
+        "$properties": {
+          "Intensity": 0.5,
+          "Size": 22,
+          "Threshold": 1.7
+        }
+      },
+      "SunRays": {
+        "$className": "SunRaysEffect",
+        "$properties": {
+          "Intensity": 0.04,
+          "Spread": 0.7
+        }
+      },
+      "ColorCorrection": {
+        "$className": "ColorCorrectionEffect",
+        "$properties": {
+          "Brightness": 0.02,
+          "Contrast": 0.1,
+          "Saturation": 0.14,
+          "TintColor": [
+            1.0,
+            0.9804,
+            0.949
+          ]
+        }
+      },
+      "Sky": {
+        "$className": "Sky"
+      }
+    },
+    "Workspace": {
+      "$properties": {
+        "StreamingEnabled": true
       }
     }
   }

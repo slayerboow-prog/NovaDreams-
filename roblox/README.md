@@ -8,11 +8,11 @@ falta construir nada a mano en Roblox Studio.
 
 | Sistema | Qué hace |
 |---|---|
-| 🏙️ Ciudad | Plaza con fuente, 2 avenidas, farolas, árboles, cafetería, supermercado, Correos, hamburguesería, Punto Limpio y 16 parcelas para casas |
+| 🏙️ Ciudad (Valmar) | Estilo mediterráneo: edificios de varias plantas con balcones, contraventanas, escaparates y toldos; avenida con semáforos, pasos de cebra, farolas y paradas de bus; plaza con fuente y palmeras; coches aparcados; terreno real con colinas; 16 parcelas con casas de muestra |
 | 💼 Trabajos | Barista, Reponedor, Basurero y Repartidor. Coges algo, lo llevas al punto marcado con una línea azul y cobras |
 | 🍔 Necesidades | Hambre y energía bajan con el tiempo. Si están bajas caminas más lento y no puedes trabajar |
 | 🏠 Casas | Reclamas una parcela gratis. Mejoras de Estudio → Casa familiar → Chalet → Mansión. Cama para dormir y nevera gratis |
-| 🌗 Día y noche | Un día dura 20 minutos. Las farolas se encienden por la noche. Iluminación "Future" con niebla, brillo y color |
+| 🌗 Día y noche | Un día dura 20 minutos. De noche se encienden las farolas y las ventanas de los edificios. Iluminación "Future" con atmósfera, brillo y color |
 | 💾 Guardado | Dinero, nivel de casa, hambre, energía y estadísticas. Con protección contra duplicar dinero entre servidores |
 | 💰 Monetización | Tienda con Game Passes (VIP = doble sueldo, Metabolismo Pro) y paquetes de dinero con Robux |
 | 📱 Interfaz | Dinero, reloj, barras de necesidades, panel del trabajo, avisos y tienda. Se adapta a móvil y PC |

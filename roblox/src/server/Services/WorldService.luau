@@ -19,22 +19,43 @@ end
 
 local function setupLighting()
 	Lighting.ClockTime = Config.StartClockTime
-	ensure("Atmosphere", { Density = 0.3, Offset = 0.25, Color = Color3.fromRGB(199, 199, 199), Decay = Color3.fromRGB(106, 112, 125), Glare = 0.2, Haze = 1.5 })
-	ensure("BloomEffect", { Intensity = 0.6, Size = 24, Threshold = 1.6 })
-	ensure("SunRaysEffect", { Intensity = 0.05, Spread = 0.8 })
-	ensure("ColorCorrectionEffect", { Brightness = 0.02, Contrast = 0.08, Saturation = 0.12 })
+	-- Los valores base vienen del archivo del juego (default.project.json); esto asegura que existen
+	ensure("Atmosphere", {})
+	ensure("BloomEffect", {})
+	ensure("SunRaysEffect", {})
+	ensure("ColorCorrectionEffect", {})
 	ensure("Sky", {})
 end
 
-local function setLamps(on: boolean)
+local NIGHT_WINDOW_COLOR = Color3.fromRGB(255, 208, 140)
+local night = false
+
+local function applyLamp(bulb: Instance)
+	local light = bulb:FindFirstChildWhichIsA("Light")
+	if light then
+		light.Enabled = night
+	end
+	if bulb:IsA("BasePart") then
+		bulb.Material = if night then Enum.Material.Neon else Enum.Material.SmoothPlastic
+	end
+end
+
+-- Ventanas que se iluminan de noche (las marca el generador de edificios)
+local function applyWindow(window: Instance)
+	if not window:IsA("BasePart") then
+		return
+	end
+	window.Material = if night then Enum.Material.Neon else Enum.Material.Glass
+	window.Color = if night then NIGHT_WINDOW_COLOR else (window:GetAttribute("DayColor") or window.Color)
+end
+
+local function setNight(on: boolean)
+	night = on
 	for _, bulb in CollectionService:GetTagged("StreetLamp") do
-		local light = bulb:FindFirstChildOfClass("PointLight")
-		if light then
-			light.Enabled = on
-		end
-		if bulb:IsA("BasePart") then
-			bulb.Material = if on then Enum.Material.Neon else Enum.Material.SmoothPlastic
-		end
+		applyLamp(bulb)
+	end
+	for _, window in CollectionService:GetTagged("NightWindow") do
+		applyWindow(window)
 	end
 end
 
@@ -45,6 +66,10 @@ function WorldService.init()
 	workspace:SetAttribute("Day", day)
 	local hoursPerSecond = 24 / (Config.DayLengthMinutes * 60)
 	local lampsOn: boolean? = nil
+
+	-- Lo que se construya después (casas de jugadores) respeta la hora actual
+	CollectionService:GetInstanceAddedSignal("StreetLamp"):Connect(applyLamp)
+	CollectionService:GetInstanceAddedSignal("NightWindow"):Connect(applyWindow)
 
 	RunService.Heartbeat:Connect(function(dt)
 		local previous = Lighting.ClockTime
@@ -58,7 +83,7 @@ function WorldService.init()
 		local shouldBeOn = clock >= Config.LampsOnAt or clock < Config.LampsOffAt
 		if shouldBeOn ~= lampsOn then
 			lampsOn = shouldBeOn
-			setLamps(shouldBeOn)
+			setNight(shouldBeOn)
 		end
 	end)
 end

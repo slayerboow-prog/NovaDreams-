@@ -10,6 +10,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Format = require(ReplicatedStorage.Shared.Format)
 local Builder = require(script.Parent.Parent.World.Builder)
+local Building = require(script.Parent.Parent.World.Kit.Building)
+local TownBuilder = require(script.Parent.Parent.World.TownBuilder)
 local DataService = require(script.Parent.DataService)
 local NeedsService = require(script.Parent.NeedsService)
 
@@ -37,53 +39,71 @@ end
 -- Construcción de la casa
 ---------------------------------------------------------------------
 
+local WOOD = Color3.fromRGB(96, 66, 48)
+
 local function furnish(model: Model, at: (number, number, number) -> CFrame, size: Vector3, plotId: number)
+	-- "at" usa coordenadas interiores: y = 0 es el suelo, -Z es la fachada (puerta)
 	local W, D = size.X, size.Z
 
-	-- Cama (al fondo a la derecha)
-	local bedCf = at(W / 2 - 5, 0.4, D / 2 - 6)
-	Builder.part({ Name = "BedFrame", Size = Vector3.new(6, 1.4, 8), CFrame = bedCf * CFrame.new(0, 0.7, 0), Color = Color3.fromRGB(90, 60, 45), Material = Enum.Material.Wood, Parent = model })
+	-- DORMITORIO: cama al fondo a la derecha
+	local bedCf = at(W / 2 - 4.5, 0, D / 2 - 5.5)
+	Builder.part({ Name = "BedFrame", Size = Vector3.new(6, 1.4, 8), CFrame = bedCf * CFrame.new(0, 0.7, 0), Color = WOOD, Material = Enum.Material.Wood, Parent = model })
 	local mattress = Builder.part({
 		Name = "Bed",
 		Size = Vector3.new(5.6, 0.8, 7.6),
 		CFrame = bedCf * CFrame.new(0, 1.8, 0),
-		Color = Color3.fromRGB(235, 235, 240),
+		Color = Color3.fromRGB(238, 238, 242),
 		Material = Enum.Material.Fabric,
 		Tags = { "Bed" },
 		Attributes = { PlotId = plotId },
 		Parent = model,
 	})
-	Builder.part({ Name = "Blanket", Size = Vector3.new(5.8, 0.3, 4.5), CFrame = bedCf * CFrame.new(0, 2.3, -1.4), Color = Color3.fromRGB(70, 110, 180), Material = Enum.Material.Fabric, CanCollide = false, Parent = model })
-	Builder.part({ Name = "Pillow", Size = Vector3.new(4, 0.6, 1.6), CFrame = bedCf * CFrame.new(0, 2.5, 2.8), Color = Color3.new(1, 1, 1), Material = Enum.Material.Fabric, CanCollide = false, Parent = model })
-	Builder.part({ Name = "Headboard", Size = Vector3.new(6, 4, 0.5), CFrame = bedCf * CFrame.new(0, 2, 4.1), Color = Color3.fromRGB(90, 60, 45), Material = Enum.Material.Wood, Parent = model })
+	Builder.decor({ Name = "Blanket", Size = Vector3.new(5.8, 0.3, 4.6), CFrame = bedCf * CFrame.new(0, 2.3, -1.4), Color = Color3.fromRGB(70, 110, 180), Material = Enum.Material.Fabric, Parent = model })
+	Builder.decor({ Name = "Pillow", Size = Vector3.new(4, 0.6, 1.6), CFrame = bedCf * CFrame.new(0, 2.5, 2.8), Color = Color3.new(1, 1, 1), Material = Enum.Material.Fabric, Parent = model })
+	Builder.part({ Name = "Headboard", Size = Vector3.new(6, 4, 0.5), CFrame = bedCf * CFrame.new(0, 2, 4.1), Color = WOOD, Material = Enum.Material.Wood, Parent = model })
+	Builder.part({ Name = "Nightstand", Size = Vector3.new(2, 2.2, 2), CFrame = at(W / 2 - 9, 1.1, D / 2 - 2.2), Color = WOOD, Material = Enum.Material.Wood, Parent = model })
+	local lamp = Builder.decor({ Name = "BedLamp", Shape = Enum.PartType.Ball, Size = Vector3.new(1.2, 1.2, 1.2), CFrame = at(W / 2 - 9, 2.9, D / 2 - 2.2), Color = Color3.fromRGB(255, 236, 200), Material = Enum.Material.Neon, Parent = model })
+	local lampLight = Instance.new("PointLight")
+	lampLight.Range = 10
+	lampLight.Brightness = 0.8
+	lampLight.Color = Color3.fromRGB(255, 214, 160)
+	lampLight.Parent = lamp
 
 	local sleep = Builder.prompt(mattress, "Dormir", "Cama", 0.5)
 	sleep.Triggered:Connect(function(player)
 		HouseService.sleep(player, plotId)
 	end)
 
-	-- Nevera (al fondo a la izquierda)
-	Builder.part({ Name = "FridgeBody", Size = Vector3.new(3.2, 7, 3), CFrame = at(-W / 2 + 2.6, 3.9, D / 2 - 2.5), Color = Color3.fromRGB(225, 228, 232), Material = Enum.Material.Metal, Parent = model })
+	-- COCINA: nevera y encimera al fondo a la izquierda
+	Builder.part({ Name = "FridgeBody", Size = Vector3.new(3.2, 7, 3), CFrame = at(-W / 2 + 2.6, 3.5, D / 2 - 2.5), Color = Color3.fromRGB(226, 229, 233), Material = Enum.Material.Metal, Parent = model })
 	Builder.part({
 		Name = "Fridge",
-		Size = Vector3.new(0.3, 1.2, 0.3),
-		CFrame = at(-W / 2 + 3.6, 4.5, D / 2 - 4.1),
-		Color = Color3.fromRGB(90, 90, 95),
+		Size = Vector3.new(0.3, 1.4, 0.3),
+		CFrame = at(-W / 2 + 3.6, 4.2, D / 2 - 4.15),
+		Color = Color3.fromRGB(90, 90, 96),
 		Tags = { "FoodStand" },
 		Attributes = { FoodId = "Nevera", PlotId = plotId },
 		Parent = model,
 	})
+	Builder.part({ Name = "KitchenCounter", Size = Vector3.new(6, 3.6, 2.6), CFrame = at(-W / 2 + 7.4, 1.8, D / 2 - 2.3), Color = Color3.fromRGB(240, 238, 232), Material = Enum.Material.Plaster, Parent = model })
+	Builder.decor({ Name = "Worktop", Size = Vector3.new(6.2, 0.3, 2.8), CFrame = at(-W / 2 + 7.4, 3.75, D / 2 - 2.3), Color = Color3.fromRGB(60, 62, 66), Material = Enum.Material.Granite, Parent = model })
 
-	-- Sofá, alfombra y mesa baja en el salón
-	local sofaCf = at(-W / 2 + 6, 0.4, 0) * CFrame.Angles(0, math.rad(-90), 0)
-	local sofaColor = Color3.fromRGB(120, 130, 140)
+	-- SALÓN: sofá mirando a la tele, alfombra y mesa baja
+	local sofaCf = at(-W / 2 + 3, 0, -2) * CFrame.Angles(0, math.rad(-90), 0)
+	local sofaColor = Color3.fromRGB(116, 128, 140)
 	Builder.part({ Name = "SofaSeat", Size = Vector3.new(9, 1.6, 3.4), CFrame = sofaCf * CFrame.new(0, 1, 0), Color = sofaColor, Material = Enum.Material.Fabric, Parent = model })
 	Builder.part({ Name = "SofaBack", Size = Vector3.new(9, 3, 1), CFrame = sofaCf * CFrame.new(0, 2.2, 1.6), Color = sofaColor, Material = Enum.Material.Fabric, Parent = model })
 	for _, x in { -4.8, 4.8 } do
 		Builder.part({ Name = "SofaArm", Size = Vector3.new(0.8, 2.4, 3.4), CFrame = sofaCf * CFrame.new(x, 1.6, 0), Color = sofaColor, Material = Enum.Material.Fabric, Parent = model })
 	end
-	Builder.part({ Name = "Rug", Size = Vector3.new(8, 0.1, 10), CFrame = at(-W / 2 + 12, 0.45, 0), Color = Color3.fromRGB(180, 90, 70), Material = Enum.Material.Fabric, CanCollide = false, Parent = model })
-	Builder.part({ Name = "CoffeeTable", Size = Vector3.new(3, 1.6, 5), CFrame = at(-W / 2 + 11, 1.2, 0), Color = Color3.fromRGB(90, 60, 45), Material = Enum.Material.Wood, Parent = model })
+	Builder.decor({ Name = "Rug", Size = Vector3.new(6, 0.1, 8), CFrame = at(-W / 2 + 8.5, 0.05, -2), Color = Color3.fromRGB(176, 88, 68), Material = Enum.Material.Fabric, Parent = model })
+	Builder.part({ Name = "CoffeeTable", Size = Vector3.new(2.5, 1.4, 4), CFrame = at(-W / 2 + 8, 0.7, -2), Color = WOOD, Material = Enum.Material.Wood, Parent = model })
+	Builder.part({ Name = "TVStand", Size = Vector3.new(1.6, 2, 5), CFrame = at(2, 1, -2), Color = WOOD, Material = Enum.Material.Wood, Parent = model })
+	Builder.decor({ Name = "TV", Size = Vector3.new(0.3, 3, 5), CFrame = at(2, 3.6, -2), Color = Color3.fromRGB(18, 18, 22), Material = Enum.Material.Glass, Parent = model })
+
+	-- Planta junto a la entrada
+	Builder.part({ Name = "Pot", Size = Vector3.new(1.6, 1.6, 1.6), CFrame = at(W / 2 - 2, 0.8, -D / 2 + 2), Color = Color3.fromRGB(170, 90, 60), Material = Enum.Material.Plaster, Parent = model })
+	Builder.decor({ Name = "Plant", Shape = Enum.PartType.Ball, Size = Vector3.new(2.6, 2.6, 2.6), CFrame = at(W / 2 - 2, 2.6, -D / 2 + 2), Color = Color3.fromRGB(70, 124, 58), Material = Enum.Material.LeafyGrass, Parent = model })
 end
 
 local function buildHouse(plot: Plot, tier: number)
@@ -95,15 +115,17 @@ local function buildHouse(plot: Plot, tier: number)
 	local size = info.Size
 	-- Colocamos la casa hacia el fondo de la parcela (50x50), dejando jardín delante
 	local offsetZ = 25 - size.Z / 2 - 3
-	local model, at = Builder.building({
+	local model, at = Building.build({
 		Name = "House",
 		Parent = plot.Model,
-		CFrame = plot.Origin * CFrame.new(0, 0.3, offsetZ),
-		Size = size,
+		CFrame = plot.Origin * CFrame.new(0, 0, offsetZ),
+		Width = size.X,
+		Depth = size.Z,
+		Floors = if size.Y >= 16 then 2 else 1,
+		Style = "Casa",
+		GroundFloor = "House",
 		WallColor = info.Color,
-		RoofColor = Color3.fromRGB(120, 60, 50),
-		Sign = if plot.Owner then ("Casa de %s"):format(plot.Owner.DisplayName) else nil,
-		SignColor = Color3.fromRGB(60, 45, 40),
+		FloorColor = Color3.fromRGB(176, 136, 98),
 	})
 	furnish(model, at, size, plot.Id)
 	plot.House = model
@@ -177,8 +199,8 @@ function HouseService.release(player: Player)
 	end
 	if plot.House then
 		plot.House:Destroy()
-		plot.House = nil
 	end
+	plot.House = TownBuilder.showHouse(plot.Model, plot.Origin)
 	plot.Owner = nil
 	player:SetAttribute("PlotId", nil)
 	refreshSign(plot)
@@ -228,6 +250,7 @@ function HouseService.init()
 			Origin = model:GetAttribute("Origin"),
 			SignLabel = label,
 			Prompt = prompt,
+			House = model:FindFirstChild("House") :: Model?, -- casa de muestra "en venta"
 		}
 		plots[id] = plot
 		refreshSign(plot)
