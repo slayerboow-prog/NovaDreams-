@@ -36,3 +36,17 @@ Tag `Shop` + atributo `ShopId` en una parte `ShopEntrance` delante de la puerta 
 también lleva `ShopId`). El id es la primera palabra del rótulo sin tildes:
 `Cafeteria`, `Supermercado`, `Hamburgueseria`, `Panaderia`, `Banco`, `CentroComercial`,
 `Gasolinera`, `Cine`, `Recreativos`, `Gimnasio`…
+
+## Vehículos, autoescuela, recreativos y restaurante
+| Tag | Atributos | Dónde |
+|---|---|---|
+| `RentalStation` | — | Bici pública junto a cada parada de bus y en la plaza (9) |
+| `DrivingSchool` | `Town` | Autoescuela de cada calle de ocio (8) |
+| `ArcadeMachine` | `GameId` = `Bolas` / `Canasta` | Dentro de los recreativos (3 por local) |
+| `PrizeCounter`, `ArcadeScoreboard` | — | Recreativos |
+| `RestaurantBoard`, `RestaurantBar`, `RestaurantPass`, `RestaurantDoor`, `RestaurantWaiterSpot`, `RestaurantBarmanSpot` | — | Restaurante Valmar (Valmar Centro, avenida) |
+| `RestaurantTable`, `RestaurantSeat` | `TableId` | 6 mesas con 2 sillas |
+
+Eventos nuevos para la historia (`StoryEvents`): `VehicleMounted`, `VehicleBought`, `LicenseEarned`,
+`LicenseFailed`, `ArcadePlayed`, `PrizeRedeemed` y `JobTaskDone` con `JobId` = `Camarero` / `Barman`.
+Atributos del jugador: `Riding`, `OwnedVehicles`, `Licenses`, `Tickets`.

@@ -16,6 +16,7 @@ local Kit = script.Parent.Kit
 local Blocks = require(Kit.Blocks)
 local Civic = require(Kit.Civic)
 local Props = require(Kit.Props)
+local Rides = require(Kit.Rides)
 local Street = require(Kit.Street)
 
 local Region = {}
@@ -180,8 +181,10 @@ local function roadSides(i: number, j: number): { string }
 end
 
 -- Parada de autobús interurbano (TravelService la usa para viajar entre ciudades)
+-- con una estación de bici pública al lado (VehicleService)
 function Region.travelStop(parent: Instance, cf: CFrame, townName: string)
 	Props.busStop(parent, cf)
+	Rides.station(parent, cf * CFrame.new(11, 0, 0))
 	Builder.part({
 		Name = "TravelPoint",
 		Size = Vector3.new(2, 2, 2),

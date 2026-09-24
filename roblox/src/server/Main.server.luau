@@ -39,6 +39,10 @@ local order = {
 	"FoodService",
 	"HouseService",
 	"TravelService",
+	"VehicleService", -- bicis, monopatines, motos y coches
+	"RestaurantService", -- camarero + barman (con NPC si falta alguien)
+	"DrivingSchoolService", -- autoescuela: carnet de moto y de coche
+	"ArcadeService", -- recreativos: juegos de bolas, tickets y premios
 	"LocationService",
 	"CinematicService",
 	"ShopService", -- tiendas donde se hacen los recados

@@ -21,6 +21,7 @@ local Building = require(Kit.Building)
 local Nature = require(Kit.Nature)
 local Props = require(Kit.Props)
 local AssetLibrary = require(Kit.AssetLibrary)
+local Rides = require(Kit.Rides)
 local Region = require(script.Parent.Region)
 
 local TownBuilder = {}
@@ -86,7 +87,7 @@ local function cafeTable(parent: Instance, cf: CFrame, tag: string?)
 	for _, dir in { -1, 1 } do
 		local chair = cf * CFrame.new(dir * 3.4, 0, 0) * CFrame.Angles(0, if dir > 0 then math.rad(90) else math.rad(-90), 0)
 		Builder.part({ Name = "Seat", Size = Vector3.new(2, 0.3, 2), CFrame = chair * CFrame.new(0, 1.9, 0), Color = rgb(150, 100, 64), Material = Enum.Material.Wood, Parent = m })
-		Builder.decor({ Name = "Back", Size = Vector3.new(2, 2, 0.25), CFrame = chair * CFrame.new(0, 3, -0.9), Color = rgb(150, 100, 64), Material = Enum.Material.Wood, Parent = m })
+		Builder.decor({ Name = "Back", Size = Vector3.new(2, 2, 0.25), CFrame = chair * CFrame.new(0, 3, 0.9), Color = rgb(150, 100, 64), Material = Enum.Material.Wood, Parent = m })
 		for _, lx in { -0.8, 0.8 } do
 			for _, lz in { -0.8, 0.8 } do
 				Builder.decor({ Name = "ChairLeg", Size = Vector3.new(0.2, 1.8, 0.2), CFrame = chair * CFrame.new(lx, 0.9, lz), Color = Palette.Street.Metal, Parent = m })
@@ -192,6 +193,93 @@ local function buildBurger(world: Instance)
 	end
 end
 
+
+-- Restaurante con servicio de mesas (RestaurantService): camarero de sala + barman.
+-- Etiquetas: RestaurantBoard, RestaurantBar, RestaurantPass, RestaurantTable (+TableId), RestaurantSeat (+TableId),
+-- RestaurantDoor, RestaurantWaiterSpot, RestaurantBarmanSpot
+local function restaurantTable(parent: Instance, cf: CFrame, tableId: number)
+	local m = Builder.model("Mesa_" .. tableId, parent)
+	Builder.part({
+		Name = "Top", Size = Vector3.new(4, 0.3, 4), CFrame = cf * CFrame.new(0, 3, 0),
+		Color = rgb(236, 232, 224), Material = Enum.Material.Marble,
+		Tags = { "RestaurantTable" }, Attributes = { TableId = tableId }, Parent = m,
+	})
+	Builder.decor({ Name = "Cloth", Size = Vector3.new(4.2, 0.05, 1.2), CFrame = cf * CFrame.new(0, 3.17, 0), Color = rgb(170, 40, 50), Material = Enum.Material.Fabric, Parent = m })
+	Builder.decor({ Name = "Leg", Size = Vector3.new(0.5, 2.8, 0.5), CFrame = cf * CFrame.new(0, 1.5, 0), Color = Palette.Street.Metal, Material = Enum.Material.Metal, Parent = m })
+	for i, dir in { -1, 1 } do
+		-- La silla mira hacia la mesa; el respaldo queda detrás de quien se sienta
+		local chair = cf * CFrame.new(dir * 3.4, 0, 0) * CFrame.Angles(0, if dir > 0 then math.rad(90) else math.rad(-90), 0)
+		Builder.part({
+			ClassName = "Seat", Name = "Seat" .. i, Size = Vector3.new(2, 0.3, 2), CFrame = chair * CFrame.new(0, 1.9, 0),
+			Color = rgb(110, 70, 44), Material = Enum.Material.Wood,
+			Tags = { "RestaurantSeat" }, Attributes = { TableId = tableId }, Parent = m,
+		})
+		Builder.decor({ Name = "Back", Size = Vector3.new(2, 2.2, 0.25), CFrame = chair * CFrame.new(0, 3.1, 0.9), Color = rgb(110, 70, 44), Material = Enum.Material.Wood, Parent = m })
+		for _, lx in { -0.8, 0.8 } do
+			for _, lz in { -0.8, 0.8 } do
+				Builder.decor({ Name = "ChairLeg", Size = Vector3.new(0.2, 1.8, 0.2), CFrame = chair * CFrame.new(lx, 0.9, lz), Color = Palette.Street.Metal, Parent = m })
+			end
+		end
+	end
+end
+
+local function marker(parent: Instance, name: string, cf: CFrame, tag: string)
+	return Builder.part({
+		Name = name, Size = Vector3.new(2, 2, 2), CFrame = cf, Transparency = 1,
+		CanCollide = false, CanQuery = false, CanTouch = false, Tags = { tag }, Parent = parent,
+	})
+end
+
+local function buildRestaurant(world: Instance)
+	local W, D = 56, 36
+	local model, at = Building.build({
+		Name = "Restaurante", Parent = world, CFrame = northOfAvenue(306, D),
+		Width = W, Depth = D, Floors = 3, Style = "Clasico", GroundFloor = "Shop",
+		WindowFaces = { Front = true, Left = true, Right = true },
+		Sign = "RESTAURANTE VALMAR", SignColor = rgb(120, 30, 40), Awning = rgb(150, 36, 48), ShopId = "Restaurante",
+		FloorMaterial = Enum.Material.WoodPlanks, FloorColor = rgb(132, 92, 60), LightColor = rgb(255, 228, 190),
+	})
+	-- Barra, estanterías con botellas y el hueco donde salen los platos (pase)
+	counter(model, at(4, 0, 9), 28, rgb(96, 50, 34))
+	for i = 0, 5 do
+		Builder.decor({ Name = "Shelf", Size = Vector3.new(4, 0.3, 1.2), CFrame = at(-6 + i * 4.4, 6, 16.6), Color = rgb(96, 50, 34), Parent = model })
+		for k = 0, 2 do
+			Builder.decor({
+				Name = "Bottle", Size = Vector3.new(0.5, 1.4, 0.5), CFrame = at(-7.2 + i * 4.4 + k * 1.2, 6.85, 16.6),
+				Color = Color3.fromHSV(math.random(), 0.6, 0.7), Material = Enum.Material.Glass, Parent = model,
+			})
+		end
+	end
+	Builder.part({ Name = "CoffeeMachine", Size = Vector3.new(3, 3, 2), CFrame = at(14, 5.4, 16.4), Color = rgb(60, 60, 66), Material = Enum.Material.Metal, Parent = model })
+	Builder.part({
+		Name = "Pass", Size = Vector3.new(4, 0.2, 2.6), CFrame = at(-8, 4, 9), Color = rgb(200, 204, 210), Material = Enum.Material.Metal,
+		Tags = { "RestaurantPass" }, Parent = model,
+	})
+	marker(model, "BarStation", at(4, 3, 13), "RestaurantBar")
+	marker(model, "BarmanSpot", at(8, 3, 13.5), "RestaurantBarmanSpot")
+	marker(model, "WaiterSpot", at(-4, 3, 4), "RestaurantWaiterSpot")
+	marker(model, "Door", at(0, 3, -D / 2 - 4), "RestaurantDoor")
+	-- Mesas
+	for i, p in { { -21, -9 }, { -11, -9 }, { 11, -9 }, { 21, -9 }, { -21, 1 }, { 21, 1 } } do
+		restaurantTable(model, at(p[1], 0, p[2]), i)
+	end
+	-- Plantas en las esquinas
+	for _, x in { -25.5, 25.5 } do
+		Builder.part({ Name = "Pot", Size = Vector3.new(1.6, 1.6, 1.6), CFrame = at(x, 1.8, 15.5), Color = rgb(170, 90, 60), Material = Enum.Material.Plaster, Parent = model })
+		Builder.decor({ Name = "Plant", Shape = Enum.PartType.Ball, Size = Vector3.new(3, 3, 3), CFrame = at(x, 3.8, 15.5), Color = rgb(70, 124, 58), Material = Enum.Material.LeafyGrass, Parent = model })
+	end
+	-- Tablón de empleo del restaurante (dos puestos)
+	local board = Builder.part({
+		Name = "Board", Size = Vector3.new(5.4, 3.4, 0.3), CFrame = at(-16, 4.8, -D / 2 - 3.5) * CFrame.Angles(0, math.pi, 0),
+		Color = rgb(150, 36, 48), Tags = { "RestaurantBoard" }, Parent = model,
+	})
+	Builder.sign(board, "SE BUSCA\nCAMARERO Y BARMAN", Enum.NormalId.Front)
+	Builder.sign(board, "SE BUSCA\nCAMARERO Y BARMAN", Enum.NormalId.Back)
+	for _, x in { -2.3, 2.3 } do
+		Builder.part({ Name = "Post", Size = Vector3.new(0.3, 6.5, 0.3), CFrame = at(-16 + x, 3.25, -D / 2 - 3.5), Color = Palette.Street.Metal, Material = Enum.Material.Metal, Parent = model })
+	end
+end
+
 ---------------------------------------------------------------------
 -- Edificios de viviendas y comercios cerrados (relleno urbano)
 ---------------------------------------------------------------------
@@ -225,7 +313,7 @@ local function buildFillers(world: Instance)
 	local folder = Builder.model("Edificios", world)
 	local index = 0
 	-- Acera norte de la avenida (x, ancho)
-	for _, spec in { { -310, 36 }, { -199, 34 }, { -111, 30 }, { 34, 24 }, { 111, 34 }, { 212, 38 }, { 306, 56 } } do
+	for _, spec in { { -310, 36 }, { -199, 34 }, { -111, 30 }, { 34, 24 }, { 111, 34 }, { 212, 38 } } do
 		index += 1
 		filler(folder, northOfAvenue(spec[1], 28), spec[2], index)
 	end
@@ -299,6 +387,7 @@ local function buildPlaza(world: Instance)
 	Nature.flowerBed(plaza, CFrame.new(-74, WALK, -40), 8, 4)
 	Nature.flowerBed(plaza, CFrame.new(-46, WALK, -40), 8, 4)
 	Nature.flowerBed(plaza, CFrame.new(-60, WALK, -78), 16, 3)
+	Rides.station(plaza, facing(Vector3.new(-47, WALK, -24), SOUTH))
 
 	-- Cartel de bienvenida (mira hacia el punto de aparición)
 	local welcome = Builder.part({
@@ -542,6 +631,7 @@ function TownBuilder.build(): Folder
 	buildSupermarket(world)
 	buildPostOffice(world)
 	buildBurger(world)
+	buildRestaurant(world)
 	buildFillers(world)
 	buildRecycling(world)
 	buildPlots(world)
