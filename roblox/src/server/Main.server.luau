@@ -3,7 +3,11 @@
 
 local Services = script.Parent.Services
 
-require(script.Parent.World.TownBuilder).build()
+-- La ciudad ya viene construida dentro de NovaLife.rbxlx (la genera scripts/build-place.luau).
+-- Si no está (por ejemplo, al usar "rojo serve"), se construye ahora.
+if not workspace:FindFirstChild("Town") then
+	require(script.Parent.World.TownBuilder).build()
+end
 
 local order = {
 	"DataService",

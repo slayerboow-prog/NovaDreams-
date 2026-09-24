@@ -508,7 +508,7 @@ local function buildPlot(parent: Instance, plotId: number, center: Vector3)
 	local plot = Builder.model("Plot_" .. plotId, parent)
 	plot:SetAttribute("PlotId", plotId)
 	plot:SetAttribute("Origin", cf)
-	game:GetService("CollectionService"):AddTag(plot, "Plot")
+	plot:AddTag("Plot")
 
 	Builder.part({
 		Name = "Lawn",

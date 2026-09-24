@@ -1,8 +1,6 @@
 -- Builder: pequeñas herramientas para construir el mundo con Parts desde código.
 -- Así el mapa entero vive en GitHub y no hace falta construirlo a mano en Studio.
 
-local CollectionService = game:GetService("CollectionService")
-
 local Builder = {}
 
 -- Crea un Part anclado. Acepta cualquier propiedad de Part, más:
@@ -21,7 +19,7 @@ function Builder.part(props: { [string]: any }): Part
 	end
 	if props.Tags then
 		for _, tag in props.Tags do
-			CollectionService:AddTag(p, tag)
+			p:AddTag(tag)
 		end
 	end
 	if props.Attributes then
@@ -60,7 +58,7 @@ function Builder.sign(
 	label.BackgroundColor3 = background or Color3.fromRGB(20, 24, 32)
 	label.BackgroundTransparency = if background then 0 else 1
 	label.TextColor3 = textColor or Color3.new(1, 1, 1)
-	label.Font = Enum.Font.GothamBlack
+	label.FontFace = Font.fromEnum(Enum.Font.GothamBlack)
 	label.TextScaled = true
 	label.Text = text
 	label.Parent = gui

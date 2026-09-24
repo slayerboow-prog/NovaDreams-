@@ -27,7 +27,7 @@ falta construir nada a mano en Roblox Studio.
 
 ### 2. Abre el juego
 1. En esta carpeta de GitHub descarga **`NovaLife.rbxlx`**: pulsa sobre el archivo y luego en el botón de descarga (⬇).
-2. Haz doble clic en el archivo descargado. Se abre en Roblox Studio.
+2. Haz doble clic en el archivo descargado. Se abre en Roblox Studio y ya verás la ciudad.
    También puedes abrir Studio y usar **File → Open from File**.
 
 ### 3. Pruébalo
@@ -87,6 +87,7 @@ Los scripts viven en esta carpeta y se sincronizan con Studio usando [Rojo](http
 
 ```bash
 rojo build default.project.json -o NovaLife.rbxlx   # genera el archivo del juego
+lune run scripts/build-place.luau NovaLife.rbxlx    # mete la ciudad ya construida dentro (para verla en Studio)
 rojo serve                                          # sincroniza en vivo con el plugin de Rojo en Studio
 ```
 
