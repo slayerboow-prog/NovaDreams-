@@ -55,7 +55,7 @@ function Blocks.lot(rect: Rect, side: string): Civic.Lot
 	}
 end
 
-local SHOP_NAMES = { "FARMACIA", "PANADERÍA", "ZAPATERÍA", "BANCO", "INMOBILIARIA", "FLORISTERÍA", "LIBRERÍA", "PELUQUERÍA", "FERRETERÍA", "ÓPTICA", "BAR", "PIZZERÍA", "HELADERÍA", "GIMNASIO", "FRUTERÍA", "ROPA" }
+local SHOP_NAMES = { "FARMACIA", "PANADERÍA", "ZAPATERÍA", "BANCO", "INMOBILIARIA", "FLORISTERÍA", "LIBRERÍA", "PELUQUERÍA", "FERRETERÍA", "ÓPTICA", "BAR", "PIZZERÍA", "HELADERÍA", "GIMNASIO", "FRUTERÍA", "ROPA", "ACADEMIA DE INGLÉS", "ACADEMIA DE MÚSICA", "ESCUELA DE BAILE" }
 local AWNINGS = { rgb(170, 40, 40), rgb(40, 90, 150), rgb(40, 120, 70), rgb(200, 150, 40), rgb(90, 60, 110), rgb(220, 110, 40) }
 
 -- Tramo de edificios en hilera a lo largo de un lado (u0..u1)

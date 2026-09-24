@@ -715,9 +715,8 @@ function Civic.business(parent: Instance, lotFront: Lot, lotBack: Lot)
 end
 
 ---------------------------------------------------------------------
--- Calle de ocio: cine, recreativos, gimnasio y academia
+-- Calle de ocio: cine, recreativos, gimnasio y autoescuela
 ---------------------------------------------------------------------
-local ACADEMIES = { "ACADEMIA DE IDIOMAS", "AUTOESCUELA", "ACADEMIA DE MÚSICA", "ESCUELA DE BAILE", "ACADEMIA DE CÓDIGO" }
 
 local function neonStrip(parent: Instance, cf: CFrame, width: number, color: Color3)
 	Builder.decor({ Name = "Neon", Size = Vector3.new(width, 0.35, 0.3), CFrame = cf, Color = color, Material = Enum.Material.Neon, Parent = parent })
@@ -741,16 +740,97 @@ function Civic.cinema(parent: Instance, lot: Lot, u: number, townName: string)
 	return W
 end
 
+-- Recreativos con interior jugable (ArcadeService):
+--   ArcadeMachine (+GameId = "Bolas" | "Canasta"), PrizeCounter, ArcadeScoreboard
+local function arcadeLabel(part: BasePart, text: string, color: Color3)
+	Builder.sign(part, text, Enum.NormalId.Front, color)
+end
+
 function Civic.arcade(parent: Instance, lot: Lot, u: number)
 	local W, D = 30, 30
 	local model, at = Building.build({
 		Name = "Recreativos", Parent = parent, CFrame = lot.facing(u + W / 2, 8 + D / 2, 0),
 		Width = W, Depth = D, Floors = 1, GroundHeight = 16, Style = "Moderno", GroundFloor = "Shop",
-		WallColor = rgb(36, 30, 56), Interior = false, Balconies = false, WindowFaces = { Front = true },
+		WallColor = rgb(36, 30, 56), Balconies = false, WindowFaces = { Front = true },
 		Sign = "RECREATIVOS", SignColor = rgb(200, 40, 160), ShopId = "Recreativos",
+		FloorMaterial = Enum.Material.Carpet, FloorColor = rgb(40, 34, 70), LightColor = rgb(230, 200, 255),
 	})
 	for i, color in { rgb(255, 60, 200), rgb(60, 220, 255), rgb(255, 230, 60) } do
 		neonStrip(model, at(0, 15 - i * 0.9, -D / 2 - 0.4), W - 2, color)
+	end
+	local F = FT -- suelo interior
+
+	-- Dos pistas de lanzabolas al fondo a la izquierda
+	for i, x in { -10, -5 } do
+		local color = if i == 1 then rgb(255, 60, 200) else rgb(60, 220, 255)
+		Builder.part({ Name = "Lane", Size = Vector3.new(3.4, 0.4, 11), CFrame = at(x, F + 1.2, 4) * CFrame.Angles(math.rad(6), 0, 0), Color = rgb(150, 108, 72), Material = Enum.Material.WoodPlanks, Parent = model })
+		for _, side in { -1, 1 } do
+			Builder.part({ Name = "Rail", Size = Vector3.new(0.3, 2.4, 13), CFrame = at(x + side * 1.85, F + 1.6, 4), Color = color, Parent = model })
+		end
+		local target = Builder.part({ Name = "Target", Size = Vector3.new(3.4, 4.2, 0.4), CFrame = at(x, F + 3.4, 10.4), Color = rgb(20, 18, 30), Parent = model })
+		arcadeLabel(target, "100\n50 · 30\n10", color)
+		neonStrip(model, at(x, F + 5.7, 10.2), 3.6, color)
+		local console = Builder.part({
+			Name = "Console", Size = Vector3.new(3.4, 3, 1.4), CFrame = at(x, F + 1.5, -2.6), Color = rgb(30, 26, 48),
+			Tags = { "ArcadeMachine" }, Attributes = { GameId = "Bolas" }, Parent = model,
+		})
+		local screen = Builder.decor({ Name = "Screen", Size = Vector3.new(3, 1, 0.1), CFrame = at(x, F + 3.4, -2.2), Color = rgb(20, 18, 30), Parent = model })
+		arcadeLabel(screen, "LANZABOLAS", color)
+		for k = 0, 2 do
+			Builder.decor({ Name = "Ball", Shape = Enum.PartType.Ball, Size = Vector3.new(0.9, 0.9, 0.9), CFrame = at(x - 0.9 + k * 0.9, F + 3.25, -2.6), Color = rgb(250, 240, 220), Parent = model })
+		end
+		arcadeLabel(console, "5 $", rgb(255, 230, 60))
+	end
+
+	-- Máquina de canastas
+	local hx = 3.5
+	Builder.part({ Name = "CageFloor", Size = Vector3.new(5, 0.4, 10), CFrame = at(hx, F + 0.2, 5), Color = rgb(60, 50, 90), Parent = model })
+	for _, side in { -1, 1 } do
+		Builder.part({ Name = "CageNet", Size = Vector3.new(0.2, 8, 10), CFrame = at(hx + side * 2.5, F + 4, 5), Color = rgb(200, 200, 220), Material = Enum.Material.Glass, Transparency = 0.6, Parent = model })
+	end
+	local backboard = Builder.part({ Name = "Backboard", Size = Vector3.new(4.4, 3, 0.3), CFrame = at(hx, F + 7.4, 9.9), Color = rgb(240, 240, 245), Parent = model })
+	arcadeLabel(backboard, "CANASTAS", rgb(230, 90, 30))
+	Builder.part({ Name = "Hoop", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.2, 2.2, 2.2), CFrame = at(hx, F + 6.2, 8.9) * CFrame.Angles(0, 0, math.rad(90)), Color = rgb(240, 110, 30), Material = Enum.Material.Metal, Transparency = 0, Parent = model })
+	Builder.decor({ Name = "Net", Size = Vector3.new(1.6, 1.4, 1.6), CFrame = at(hx, F + 5.4, 8.9), Color = rgb(250, 250, 250), Material = Enum.Material.Fabric, Transparency = 0.4, Parent = model })
+	for k = 0, 3 do
+		Builder.decor({ Name = "Basketball", Shape = Enum.PartType.Ball, Size = Vector3.new(1.2, 1.2, 1.2), CFrame = at(hx - 1.5 + k, F + 1, 1.6), Color = rgb(230, 110, 40), Parent = model })
+	end
+	local hoopConsole = Builder.part({
+		Name = "Console", Size = Vector3.new(4.4, 3, 1.4), CFrame = at(hx, F + 1.5, -2.6), Color = rgb(30, 26, 48),
+		Tags = { "ArcadeMachine" }, Attributes = { GameId = "Canasta" }, Parent = model,
+	})
+	arcadeLabel(hoopConsole, "5 $", rgb(255, 230, 60))
+
+	-- Mostrador de premios a la derecha
+	local counterPart = Builder.part({
+		Name = "PrizeCounter", Size = Vector3.new(3, 3.6, 12), CFrame = at(10.5, F + 1.8, 2), Color = rgb(250, 200, 40),
+		Tags = { "PrizeCounter" }, Parent = model,
+	})
+	Builder.sign(counterPart, "PREMIOS", Enum.NormalId.Left, rgb(120, 30, 90))
+	for k = 0, 4 do
+		for level = 0, 2 do
+			Builder.decor({
+				Name = "Prize", Shape = if (k + level) % 2 == 0 then Enum.PartType.Ball else Enum.PartType.Block,
+				Size = Vector3.new(1.2, 1.2, 1.2), CFrame = at(13.6, F + 2 + level * 2.4, -3 + k * 2.6),
+				Color = Color3.fromHSV(((k * 3 + level) % 10) / 10, 0.6, 0.95), Parent = model,
+			})
+		end
+	end
+	for level = 0, 2 do
+		Builder.decor({ Name = "PrizeShelf", Size = Vector3.new(1.6, 0.2, 13), CFrame = at(13.6, F + 1.3 + level * 2.4, 2), Color = rgb(200, 200, 210), Parent = model })
+	end
+
+	-- Marcador de récords (ArcadeService escribe los nombres)
+	Builder.part({
+		Name = "Scoreboard", Size = Vector3.new(12, 4.6, 0.3), CFrame = at(-4.5, F + 10, 14.2), Color = rgb(12, 10, 20),
+		Tags = { "ArcadeScoreboard" }, Parent = model,
+	})
+
+	-- Máquinas decorativas en la pared izquierda
+	for k = 0, 2 do
+		local cf = at(-13.2, F, -11 + k * 3.4) * CFrame.Angles(0, math.rad(-90), 0)
+		Builder.part({ Name = "Cabinet", Size = Vector3.new(2.6, 6, 2.2), CFrame = cf * CFrame.new(0, 3, 0), Color = rgb(30, 26, 48), Parent = model })
+		Builder.decor({ Name = "CabinetScreen", Size = Vector3.new(2, 1.6, 0.1), CFrame = cf * CFrame.new(0, 4.2, -1.12), Color = Color3.fromHSV(k / 3, 0.7, 1), Material = Enum.Material.Neon, Parent = model })
 	end
 	return W
 end
@@ -775,14 +855,41 @@ function Civic.gym(parent: Instance, lot: Lot, u: number)
 	return W
 end
 
-function Civic.academy(parent: Instance, lot: Lot, u: number)
+-- Autoescuela: aquí se saca el carnet de moto (A) y de coche (B) (DrivingSchoolService)
+function Civic.drivingSchool(parent: Instance, lot: Lot, u: number, townName: string)
 	local W, D = 30, 26
-	Building.build({
-		Name = "Academia", Parent = parent, CFrame = lot.facing(u + W / 2, 8 + D / 2, 0),
-		Width = W, Depth = D, Floors = 3, Style = "Clasico", GroundFloor = "Lobby", Interior = false,
+	local model, at = Building.build({
+		Name = "Autoescuela", Parent = parent, CFrame = lot.facing(u + W / 2, 8 + D / 2, 0),
+		Width = W, Depth = D, Floors = 2, Style = "Clasico", GroundFloor = "Shop", Balconies = false,
 		WindowFaces = { Front = true, Left = true, Right = true },
-		Sign = ACADEMIES[math.random(1, #ACADEMIES)], SignColor = rgb(40, 90, 150),
+		Sign = "AUTOESCUELA", SignColor = rgb(40, 90, 150), Awning = rgb(40, 90, 150), ShopId = "Autoescuela",
+		FloorMaterial = Enum.Material.CeramicTiles, FloorColor = rgb(226, 226, 222),
 	})
+	-- Aula de teoría: pizarra con señales y pupitres
+	local board = Builder.part({ Name = "Board", Size = Vector3.new(10, 4, 0.3), CFrame = at(0, FT + 5, D / 2 - 1.4), Color = rgb(245, 245, 245), Parent = model })
+	Builder.sign(board, "STOP · CEDA EL PASO · 50", Enum.NormalId.Front, rgb(200, 30, 30))
+	for _, x in { -7, 0, 7 } do
+		for _, z in { 0, 5 } do
+			Builder.part({ Name = "Desk", Size = Vector3.new(4, 0.3, 2), CFrame = at(x, FT + 2.6, z), Color = rgb(190, 150, 100), Material = Enum.Material.Wood, Parent = model })
+			Builder.part({ Name = "Chair", Size = Vector3.new(1.6, 1.6, 1.6), CFrame = at(x, FT + 0.8, z - 1.8), Color = rgb(40, 90, 150), Parent = model })
+		end
+	end
+	-- Punto para apuntarse (en la acera, delante de la puerta)
+	local desk = Builder.part({
+		Name = "Signup", Size = Vector3.new(4, 3.4, 0.4), CFrame = at(-9, FT + 3.2, -D / 2 - 2.5), Color = rgb(40, 90, 150),
+		Tags = { "DrivingSchool" }, Attributes = { Town = townName }, Parent = model,
+	})
+	Builder.sign(desk, "CARNET\nMOTO · COCHE", Enum.NormalId.Front)
+	Builder.sign(desk, "CARNET\nMOTO · COCHE", Enum.NormalId.Back)
+	Builder.part({ Name = "SignupPost", Size = Vector3.new(0.3, FT + 1.5, 0.3), CFrame = at(-9, (FT + 1.5) / 2, -D / 2 - 2.5), Color = rgb(60, 64, 70), Parent = model })
+	-- Coche de prácticas con la "L"
+	local carCf = lot.along(u + W + 8, 4, FT)
+	local car = Props.car(model, carCf, rgb(245, 245, 245))
+	if car and car:IsA("Model") and car.Name == "ParkedCar" then
+		local plate = Builder.decor({ Name = "LPlate", Size = Vector3.new(1.6, 1.6, 0.1), CFrame = carCf * CFrame.new(0, 5.8, 0.6), Color = rgb(40, 90, 200), Parent = car })
+		Builder.sign(plate, "L", Enum.NormalId.Front)
+		Builder.sign(plate, "L", Enum.NormalId.Back)
+	end
 	return W
 end
 
@@ -800,7 +907,7 @@ function Civic.leisure(parent: Instance, lot: Lot, townName: string)
 			return Civic.gym(m, lot, u)
 		end,
 		function(u)
-			return Civic.academy(m, lot, u)
+			return Civic.drivingSchool(m, lot, u, townName)
 		end,
 	}
 	local widths = { 52, 30, 40, 30 }

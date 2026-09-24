@@ -1,0 +1,160 @@
+-- Gameplay: números y textos de los sistemas de juego nuevos
+-- (vehículos, carnet de conducir, recreativos y restaurante).
+-- Va aparte de Config para que cada parte del juego tenga su sitio y sea fácil de equilibrar.
+
+local Gameplay = {}
+
+---------------------------------------------------------------------
+-- Vehículos
+-- Speed = velocidad al montar (andando son 16). Stage = etapa mínima. License = carnet necesario.
+-- Se compran desde el botón "🚲 Vehículos" y se sacan en cualquier sitio.
+-- Las bicis y monopatines públicos (junto a las paradas de autobús) son gratis.
+---------------------------------------------------------------------
+Gameplay.Vehicles = {
+	Monopatin = { Name = "Monopatín", Icon = "🛹", Price = 150, Speed = 26, Stage = "Adolescente", Order = 1 },
+	Bici = { Name = "Bicicleta", Icon = "🚲", Price = 350, Speed = 34, Stage = "Adolescente", Order = 2 },
+	Moto = { Name = "Moto", Icon = "🛵", Price = 3500, Speed = 58, Stage = "AdultoJoven", License = "A", Order = 3 },
+	Coche = { Name = "Coche", Icon = "🚗", Price = 9000, Speed = 72, Stage = "AdultoJoven", License = "B", Order = 4 },
+}
+Gameplay.RentalVehicles = { "Bici", "Monopatin" } -- los que se cogen gratis en las estaciones públicas
+
+---------------------------------------------------------------------
+-- Carnet de conducir (autoescuela)
+---------------------------------------------------------------------
+Gameplay.Licenses = {
+	A = { Name = "Carnet de moto (A)", Price = 250, Vehicle = "Moto" },
+	B = { Name = "Carnet de coche (B)", Price = 400, Vehicle = "Coche" },
+}
+Gameplay.LicenseStage = "AdultoJoven"
+Gameplay.Theory = { Questions = 5, ToPass = 4 }
+Gameplay.Practical = { Checkpoints = 5, Seconds = 100, ReachDistance = 16 }
+
+-- Preguntas del examen teórico: la primera respuesta es la correcta (se barajan al preguntar)
+Gameplay.TheoryQuestions = {
+	{ "El semáforo está en ámbar fijo. ¿Qué haces?", { "Paro si puedo hacerlo con seguridad", "Acelero para pasar", "Toco el claxon" } },
+	{ "¿Qué significa una señal de STOP?", { "Detenerse por completo y ceder el paso", "Reducir un poco la velocidad", "Prohibido aparcar" } },
+	{ "¿Cuál es la velocidad máxima normal en ciudad?", { "50 km/h", "80 km/h", "100 km/h" } },
+	{ "Un peatón está cruzando por un paso de cebra. ¿Qué haces?", { "Paro y le dejo pasar", "Paso rápido por detrás", "Le pito para que corra" } },
+	{ "¿Es obligatorio el cinturón en los asientos de atrás?", { "Sí, siempre", "Solo en autopista", "No" } },
+	{ "¿Cuándo hay que usar el intermitente?", { "Antes de girar o cambiar de carril", "Solo de noche", "Solo en rotondas" } },
+	{ "En una rotonda, ¿quién tiene preferencia?", { "Los que ya circulan por la rotonda", "Los que entran", "El vehículo más grande" } },
+	{ "¿Se puede usar el móvil en la mano mientras conduces?", { "No, nunca", "Sí, en los semáforos", "Sí, si vas despacio" } },
+	{ "¿Qué debes llevar en la moto siempre?", { "Casco abrochado", "Gafas de sol", "Guantes de lana" } },
+	{ "Oyes la sirena de una ambulancia detrás. ¿Qué haces?", { "Me aparto con cuidado para dejarla pasar", "Acelero para no molestar", "Freno en seco en medio del carril" } },
+	{ "¿Qué significa una línea continua en el centro de la calzada?", { "Prohibido cruzarla para adelantar", "Se puede adelantar con cuidado", "Zona de aparcamiento" } },
+	{ "Si has bebido alcohol…", { "No conduzco", "Conduzco despacio", "Abro la ventanilla y conduzco" } },
+}
+
+---------------------------------------------------------------------
+-- Recreativos: juegos de bolas, puntuaciones, tickets y premios
+---------------------------------------------------------------------
+Gameplay.Arcade = {
+	Stage = "Nino", -- desde niño se puede jugar
+	Games = {
+		Bolas = {
+			Name = "Lanzabolas",
+			Price = 5,
+			Balls = 6,
+			MaxScore = 600, -- 6 bolas × 100
+			TicketsPer = 10, -- 1 ticket por cada 10 puntos
+			MinSeconds = 5, -- una partida no puede durar menos (anti-trampas)
+		},
+		Canasta = {
+			Name = "Canastas",
+			Price = 5,
+			Seconds = 20,
+			MaxScore = 50, -- canastas como máximo en 20 s
+			TicketsPer = 1, -- 1 ticket por canasta
+			MinSeconds = 19,
+		},
+	},
+	TopSize = 5, -- récords que se ven en el marcador
+}
+
+-- Puntos de una bola del Lanzabolas según la fuerza del lanzamiento (0 a 1).
+-- Lo usan el cliente (para enseñarlo) y el servidor (para dar los tickets).
+function Gameplay.bolasScore(power: number): number
+	if power >= 0.86 and power <= 0.94 then
+		return 100
+	elseif power >= 0.74 and power < 0.86 then
+		return 50
+	elseif power >= 0.6 and power < 0.74 then
+		return 30
+	elseif power > 0.94 then
+		return 20 -- demasiado fuerte: rebota
+	end
+	return 10
+end
+
+Gameplay.Prizes = {
+	Peluche = { Name = "Osito de peluche", Icon = "🧸", Tickets = 40, Kind = "Collect", Order = 1 },
+	Gafas = { Name = "Gafas de sol", Icon = "🕶", Tickets = 80, Kind = "Wear", Order = 2 },
+	Gorra = { Name = "Gorra", Icon = "🧢", Tickets = 150, Kind = "Wear", Order = 3 },
+	Monopatin = { Name = "Monopatín", Icon = "🛹", Tickets = 300, Kind = "Vehicle", Order = 4 },
+	Bici = { Name = "Bicicleta", Icon = "🚲", Tickets = 600, Kind = "Vehicle", Order = 5 },
+}
+
+---------------------------------------------------------------------
+-- Restaurante: trabajo en pareja (camarero de sala + barman)
+-- Si falta uno de los dos jugadores, ese puesto lo hace un NPC.
+---------------------------------------------------------------------
+Gameplay.Jobs = {
+	Camarero = { DisplayName = "Camarero (sala)", Pay = 35 },
+	Barman = { DisplayName = "Barman (barra)", Pay = 30 },
+}
+
+Gameplay.Restaurant = {
+	MaxCustomers = 5, -- clientes sentados a la vez
+	SpawnEvery = { 10, 18 }, -- segundos entre clientes nuevos
+	Patience = 150, -- segundos que espera un cliente antes de irse enfadado
+	EatSeconds = 12,
+	SpeakSeconds = 4, -- lo que tarda el cliente en decir lo que quiere
+	NpcWaiterSeconds = 6, -- lo que tarda el camarero NPC en tomar nota
+	NpcBarmanSeconds = 7, -- lo que tarda el barman NPC en preparar un plato
+	MaxTip = 15,
+	OrderOptions = 4, -- opciones que ve el camarero
+	IngredientOptions = 8, -- ingredientes que ve el barman
+}
+
+Gameplay.Ingredients = {
+	"Café", "Leche", "Pan", "Tomate", "Aceite", "Jamón", "Naranja", "Lechuga",
+	"Carne", "Queso", "Huevo", "Patata", "Chocolate", "Churros", "Cacao", "Azúcar",
+}
+
+Gameplay.Menu = {
+	{ Id = "CafeLeche", Name = "Café con leche", Ingredients = { "Café", "Leche" } },
+	{ Id = "Tostada", Name = "Tostada con tomate", Ingredients = { "Pan", "Tomate", "Aceite" } },
+	{ Id = "BocataJamon", Name = "Bocadillo de jamón", Ingredients = { "Pan", "Jamón" } },
+	{ Id = "Zumo", Name = "Zumo de naranja", Ingredients = { "Naranja", "Azúcar" } },
+	{ Id = "Ensalada", Name = "Ensalada", Ingredients = { "Lechuga", "Tomate", "Aceite" } },
+	{ Id = "Hamburguesa", Name = "Hamburguesa", Ingredients = { "Pan", "Carne", "Queso", "Lechuga" } },
+	{ Id = "Mixto", Name = "Sándwich mixto", Ingredients = { "Pan", "Jamón", "Queso" } },
+	{ Id = "Tortilla", Name = "Tortilla de patatas", Ingredients = { "Huevo", "Patata", "Aceite" } },
+	{ Id = "Churros", Name = "Chocolate con churros", Ingredients = { "Chocolate", "Churros" } },
+	{ Id = "ColaCao", Name = "Vaso de cacao", Ingredients = { "Leche", "Cacao", "Azúcar" } },
+}
+
+function Gameplay.dish(id: string)
+	for _, dish in Gameplay.Menu do
+		if dish.Id == id then
+			return dish
+		end
+	end
+	return nil
+end
+
+-- Texto de una comanda: "Bocadillo de jamón y zumo de naranja"
+function Gameplay.orderText(items: { string }): string
+	local names = {}
+	for i, id in items do
+		local dish = Gameplay.dish(id)
+		local name = if dish then dish.Name else id
+		table.insert(names, if i == 1 then name else string.lower(string.sub(name, 1, 1)) .. string.sub(name, 2))
+	end
+	if #names <= 1 then
+		return names[1] or ""
+	end
+	return table.concat(names, ", ", 1, #names - 1) .. " y " .. names[#names]
+end
+
+return Gameplay

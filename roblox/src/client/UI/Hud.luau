@@ -9,6 +9,7 @@ local TweenService = game:GetService("TweenService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Format = require(ReplicatedStorage.Shared.Format)
+local Gameplay = require(ReplicatedStorage.Shared.Gameplay)
 local Theme = require(script.Parent.Theme)
 
 local create = Theme.create
@@ -22,6 +23,7 @@ local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 local gui: ScreenGui
 local toastList: Frame
 local sleepOverlay: Frame
+local buttonColumn: Frame
 
 ---------------------------------------------------------------------
 -- Piezas
@@ -59,6 +61,61 @@ local function buildMoney(parent: Instance)
 			label.Text = Format.money(math.floor(shown + 0.5))
 		end
 	end)
+end
+
+-- Tickets de los recreativos (solo se ve si tienes alguno)
+local function buildTickets(parent: Instance)
+	local panel = Theme.panel({
+		Name = "Tickets",
+		Size = UDim2.fromOffset(120, 30),
+		Position = UDim2.fromOffset(16, 66),
+		Visible = false,
+		Parent = parent,
+	})
+	local label = Theme.label({
+		Size = UDim2.fromScale(1, 1),
+		Font = Theme.FontBold,
+		TextSize = 16,
+		TextColor3 = C.Gold,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Parent = panel,
+	})
+	local function update()
+		local tickets = player:GetAttribute("Tickets") or 0
+		panel.Visible = tickets > 0
+		label.Text = "🎟 " .. tostring(tickets)
+	end
+	player:GetAttributeChangedSignal("Tickets"):Connect(update)
+	update()
+end
+
+-- Aviso fijo bajo el reloj (examen de conducir, etc.)
+local function buildActivity(parent: Instance)
+	local panel = Theme.panel({
+		Name = "Activity",
+		AnchorPoint = Vector2.new(0.5, 0),
+		Size = UDim2.fromOffset(0, 34),
+		AutomaticSize = Enum.AutomaticSize.X,
+		Position = UDim2.new(0.5, 0, 0, 66),
+		Visible = false,
+		Parent = parent,
+	})
+	Theme.padding(8).Parent = panel
+	local label = Theme.label({
+		Size = UDim2.fromScale(0, 1),
+		AutomaticSize = Enum.AutomaticSize.X,
+		Font = Theme.FontBold,
+		TextSize = 16,
+		TextColor3 = C.Gold,
+		Parent = panel,
+	})
+	local function update()
+		local text = player:GetAttribute("ActivityText")
+		panel.Visible = typeof(text) == "string" and text ~= ""
+		label.Text = if typeof(text) == "string" then text else ""
+	end
+	player:GetAttributeChangedSignal("ActivityText"):Connect(update)
+	update()
 end
 
 local function buildClock(parent: Instance)
@@ -185,7 +242,7 @@ local function buildJob(parent: Instance)
 
 	local function update()
 		local jobId = player:GetAttribute("Job")
-		local job = jobId and Config.Jobs[jobId]
+		local job = jobId and (Config.Jobs[jobId] or Gameplay.Jobs[jobId])
 		panel.Visible = job ~= nil
 		if job then
 			title.Text = "💼 " .. job.DisplayName .. "  ·  " .. Format.money(job.Pay)
@@ -201,13 +258,14 @@ local function buildButtons(parent: Instance, openStore: () -> ())
 	local column = create("Frame", {
 		Name = "Buttons",
 		AnchorPoint = Vector2.new(0, 0.5),
-		Size = UDim2.fromOffset(110, 110),
+		Size = UDim2.fromOffset(110, 170),
 		Position = UDim2.new(0, 16, 0.5, 0),
 		BackgroundTransparency = 1,
 		Parent = parent,
 	})
-	create("UIListLayout", { Padding = UDim.new(0, 8), Parent = column })
-	local home = Theme.button({ Size = UDim2.fromOffset(110, 44), Text = "🏠 Casa", Parent = column })
+	create("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder, Parent = column })
+	buttonColumn = column
+	local home = Theme.button({ Size = UDim2.fromOffset(110, 44), Text = "🏠 Casa", LayoutOrder = 1, Parent = column })
 	home.Activated:Connect(function()
 		(Remotes:WaitForChild("GoHome") :: RemoteEvent):FireServer()
 	end)
@@ -215,9 +273,23 @@ local function buildButtons(parent: Instance, openStore: () -> ())
 		Size = UDim2.fromOffset(110, 44),
 		Text = "🛒 Tienda",
 		BackgroundColor3 = Color3.fromRGB(150, 110, 20),
+		LayoutOrder = 2,
 		Parent = column,
 	})
 	store.Activated:Connect(openStore)
+end
+
+-- Añade un botón a la columna de la izquierda (lo usan otros controladores)
+function Hud.addButton(text: string, color: Color3?, order: number, callback: () -> ()): TextButton
+	local button = Theme.button({
+		Size = UDim2.fromOffset(110, 44),
+		Text = text,
+		BackgroundColor3 = color or C.PanelLight,
+		LayoutOrder = order,
+		Parent = buttonColumn,
+	})
+	button.Activated:Connect(callback)
+	return button
 end
 
 ---------------------------------------------------------------------
@@ -311,7 +383,9 @@ function Hud.init(openStore: () -> ()): ScreenGui
 	rescale()
 
 	buildMoney(gui)
+	buildTickets(gui)
 	buildClock(gui)
+	buildActivity(gui)
 	buildNeeds(gui)
 	buildJob(gui)
 	buildButtons(gui, openStore)

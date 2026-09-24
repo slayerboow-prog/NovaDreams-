@@ -22,6 +22,18 @@
         },
         "Baby": {
           "$className": "RemoteEvent"
+        },
+        "Vehicle": {
+          "$className": "RemoteEvent"
+        },
+        "DrivingSchool": {
+          "$className": "RemoteEvent"
+        },
+        "Arcade": {
+          "$className": "RemoteEvent"
+        },
+        "Restaurant": {
+          "$className": "RemoteEvent"
         }
       }
     },
