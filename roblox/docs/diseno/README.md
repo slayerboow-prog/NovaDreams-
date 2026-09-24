@@ -1,4 +1,4 @@
-# Nova Life — Documento de diseño (GDD técnico)
+# Real Life Simulator — Documento de diseño (GDD técnico)
 
 > *"Una segunda vida dentro de Roblox."*
 
@@ -7,7 +7,7 @@ Cualquier sistema nuevo debe encajar aquí. Si cambia una decisión, se actualiz
 
 ## Resumen ejecutivo
 
-**Nova Life** es un simulador de vida persistente para Roblox. Cada jugador vive una vida completa (bebé → mayor → legado) en una región de ~3,4 × 3,4 km con varias ciudades, distritos con identidad, profesiones jugables, educación con consecuencias, economía con decisiones, viviendas y negocios de jugadores y una población NPC que mantiene el mundo vivo.
+**Real Life Simulator** es un simulador de vida persistente para Roblox. Cada jugador vive una vida completa (bebé → mayor → legado) en una región de ~3,4 × 3,4 km con varias ciudades, distritos con identidad, profesiones jugables, educación con consecuencias, economía con decisiones, viviendas y negocios de jugadores y una población NPC que mantiene el mundo vivo.
 
 Las cinco decisiones de arquitectura que hacen posible la escala:
 
@@ -56,7 +56,7 @@ Lo que obligaría a rehacer el proyecto si se hace mal (formato de los datos, re
 | D1 | Idiomas | ✅ **Español + inglés** desde el inicio (`LocalizationService`, ningún texto escrito directamente en el código) |
 | D2 | Inicio de la vida | ✅ **Siempre se nace bebé** y se viven todas las etapas (colegio, universidad, empleo…). Infancia corta y muy jugable (ver Fase 6) |
 | D3 | Arte | ✅ **Sin contratar.** Arte generado por código siguiendo los [estándares de arte](../arte/ESTANDARES-ARTE.md), más mallas simples importadas y modelos puntuales de la Tienda de creadores |
-| D4 | Nombre | ⏳ **Pendiente.** "Nova Life" ya existe (juego de PC de 2019 con el mismo concepto): hay que cambiarlo. "Nova Life" queda como nombre de trabajo |
+| D4 | Nombre | ✅ **Real Life Simulator.** Región y ciudad principal: **Valmar**. Sin la palabra "Nova" |
 | D5 | Jugadores por servidor | Empezar con 30–40 y ajustar midiendo |
 | D6 | Pareja y matrimonio | Solo como rol de hogar, sin mecánicas de romance, sujeto a las normas de Roblox (ver Fase 12) |
 | D7 | La v0.1 | Sirvió de prototipo. En M0 se reorganiza según esta arquitectura, reaprovechando lo útil |

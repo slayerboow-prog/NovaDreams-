@@ -20,7 +20,7 @@ Así el mundo se ve coherente y va bien en móvil.
 | Colinas del Mirador (lujo) | Blanco, madera, piedra, piscinas, vistas | Villas modernas de la costa |
 | Universitario | Ladrillo rojo, zonas verdes, arquitectura académica | Campus europeo |
 | Polígono / Puerto | Naves de chapa, hormigón, grúas, contenedores | Polígono industrial |
-| Playa Nova | Blanco y azul, madera clara, toldos | Paseo marítimo mediterráneo |
+| Playa Dorada | Blanco y azul, madera clara, toldos | Paseo marítimo mediterráneo |
 | Valle Verde / Villaverde | Piedra, teja, campos, granjas | Pueblo rural de interior |
 
 ---

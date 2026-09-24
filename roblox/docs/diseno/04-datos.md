@@ -2,7 +2,7 @@
 
 ## 4.1 Qué servicio de Roblox se usa para qué
 
-| Servicio | Características | Uso en Nova Life |
+| Servicio | Características | Uso en Real Life Simulator |
 |---|---|---|
 | **DataStoreService** | Persistente, lento (~100-500 ms), con cuotas por minuto, máx. 4 MB por clave, historial de versiones | Perfiles, propiedades, familias, negocios, contratos |
 | **OrderedDataStore** | Clasificaciones numéricas | Rankings (más rico, más ascensos, familia más grande) |

@@ -1,4 +1,4 @@
--- TownBuilder: construye la ciudad de Nova Life al arrancar el servidor.
+-- TownBuilder: construye la ciudad de Real Life Simulator al arrancar el servidor.
 --
 -- Mapa (vista desde arriba, el norte es -Z):
 --
@@ -267,8 +267,8 @@ local function buildPlaza(world: Instance)
 		Color = Color3.fromRGB(30, 34, 46),
 		Parent = plaza,
 	})
-	Builder.sign(welcome, "Bienvenido a NOVA LIFE", Enum.NormalId.Front)
-	Builder.sign(welcome, "Bienvenido a NOVA LIFE", Enum.NormalId.Back)
+	Builder.sign(welcome, "Bienvenido a VALMAR", Enum.NormalId.Front)
+	Builder.sign(welcome, "Bienvenido a VALMAR", Enum.NormalId.Back)
 	for _, x in { -9, 9 } do
 		Builder.part({ Name = "SignPost", Size = Vector3.new(0.8, 9, 0.8), CFrame = CFrame.new(center + Vector3.new(x, 4.5, 28)), Color = Colors.Metal, Parent = plaza })
 	end
@@ -318,7 +318,7 @@ local function buildCafe(world: Instance)
 		WallColor = Color3.fromRGB(230, 205, 170),
 		WallMaterial = Enum.Material.Brick,
 		RoofColor = Color3.fromRGB(110, 70, 45),
-		Sign = "CAFETERÍA NOVA",
+		Sign = "CAFETERÍA CENTRAL",
 		SignColor = Color3.fromRGB(110, 70, 45),
 	})
 	counter(model, at(0, 0.4, 9), 26, Color3.fromRGB(110, 70, 45))
@@ -350,7 +350,7 @@ local function buildSupermarket(world: Instance)
 		RoofColor = Color3.fromRGB(40, 140, 80),
 		FloorColor = Color3.fromRGB(220, 220, 220),
 		FloorMaterial = Enum.Material.Marble,
-		Sign = "SUPERMERCADO NOVA",
+		Sign = "SUPERMERCADO",
 		SignColor = Color3.fromRGB(40, 140, 80),
 		LightColor = Color3.fromRGB(240, 250, 255),
 	})
@@ -407,7 +407,7 @@ local function buildPostOffice(world: Instance)
 		Size = Vector3.new(40, 14, 30),
 		WallColor = Color3.fromRGB(245, 210, 60),
 		RoofColor = Color3.fromRGB(30, 60, 140),
-		Sign = "CORREOS NOVA",
+		Sign = "CORREOS",
 		SignColor = Color3.fromRGB(30, 60, 140),
 	})
 	counter(model, at(0, 0.4, 2), 20, Color3.fromRGB(30, 60, 140))
@@ -432,7 +432,7 @@ local function buildBurger(world: Instance)
 		Size = Vector3.new(40, 14, 32),
 		WallColor = Color3.fromRGB(200, 50, 45),
 		RoofColor = Color3.fromRGB(245, 190, 40),
-		Sign = "NOVA BURGER",
+		Sign = "MEGA BURGER",
 		SignColor = Color3.fromRGB(245, 190, 40),
 	})
 	counter(model, at(0, 0.4, 9), 22, Color3.fromRGB(245, 190, 40))

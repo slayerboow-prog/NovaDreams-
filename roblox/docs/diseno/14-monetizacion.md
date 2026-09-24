@@ -9,11 +9,11 @@
 
 ## 14.2 Fuentes de ingresos
 
-| Fuente | Qué es | Ejemplos en Nova Life |
+| Fuente | Qué es | Ejemplos en Real Life Simulator |
 |---|---|---|
 | **Game Passes** | Pago único y permanente | VIP, Garaje ampliado, Huecos de personaje extra, Coches premium, Constructor Pro (más objetos por parcela y herramientas avanzadas), Radio en el coche, Pack de mascotas |
 | **Developer Products** | Consumibles, se pueden comprar muchas veces | Dinero del juego (limitado), cambio de nombre, cambio de apariencia instantáneo, acelerar una obra |
-| **Suscripciones** de la experiencia | Pago mensual recurrente | "Nova Plus": sueldo diario, descuentos, ropa exclusiva mensual, bonus de XP |
+| **Suscripciones** de la experiencia | Pago mensual recurrente | "Club Plus": sueldo diario, descuentos, ropa exclusiva mensual, bonus de XP |
 | **Servidores privados** | Servidor propio mensual | Familias y grupos de rol |
 | **Premium Payouts** | Automático por tiempo jugado de usuarios Premium | — |
 | **Colaboraciones** (futuro) | Marcas dentro del juego | Muebles **NovaDreams**, eventos patrocinados |
@@ -27,7 +27,7 @@
 | Hueco de personaje extra | Pass | 99 | Otra vida en paralelo |
 | Constructor Pro | Pass | 349 | +100% de objetos por parcela y herramientas avanzadas |
 | Coche premium (cada uno) | Pass | 199–499 | Vehículos exclusivos (no mucho más rápidos: estéticos o de estatus) |
-| Nova Plus | Suscripción | ~ equivalente a 3–5 € al mes | Ver arriba |
+| Club Plus | Suscripción | ~ equivalente a 3–5 € al mes | Ver arriba |
 | Paquetes de dinero | Producto | 25–799 | Cantidades moderadas y equilibradas con la economía |
 | Servidor privado | Servidor privado | 100–200 al mes | — |
 

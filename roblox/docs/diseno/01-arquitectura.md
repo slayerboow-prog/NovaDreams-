@@ -15,11 +15,11 @@ Una experiencia de Roblox puede tener varios *places* (mundos) conectados con `T
 
 | Place | Función | Cuándo |
 |---|---|---|
-| **Región Nova** (principal) | El mundo persistente: ciudades, distritos, toda la vida diaria | Desde el inicio |
+| **Región de Valmar** (principal) | El mundo persistente: ciudades, distritos, toda la vida diaria | Desde el inicio |
 | **Destinos de viaje** (ej. Isla Resort) | Vacaciones, eventos especiales. Se llega desde el aeropuerto o el puerto | Fase de expansión |
-| **Segunda región** (ej. "Capital") | Nueva ciudad grande cuando la Región Nova esté llena | Largo plazo |
+| **Segunda región** (ej. "Capital") | Nueva ciudad grande cuando la Región de Valmar esté llena | Largo plazo |
 
-No habrá lobby separado. El jugador entra directamente en la Región Nova y elige su personaje en una pantalla superpuesta. Cada teletransporte cuesta 5–15 segundos de carga y hace perder jugadores, así que solo se usa cuando tiene sentido narrativo (viajar).
+No habrá lobby separado. El jugador entra directamente en la Región de Valmar y elige su personaje en una pantalla superpuesta. Cada teletransporte cuesta 5–15 segundos de carga y hace perder jugadores, así que solo se usa cuando tiene sentido narrativo (viajar).
 
 ## 1.3 Capas del código
 

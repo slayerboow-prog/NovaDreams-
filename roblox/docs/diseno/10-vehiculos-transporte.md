@@ -29,7 +29,7 @@ Vehicle = {
 
 ## 10.3 Ciclo de vida
 
-- **Compra:** concesionarios por gama (económico en San Roque, familiar en Nova Norte, lujo en Colinas). Prueba de conducción antes de comprar. Financiación con préstamo.
+- **Compra:** concesionarios por gama (económico en San Roque, familiar en Valmar Norte, lujo en Colinas). Prueba de conducción antes de comprar. Financiación con préstamo.
 - **Garaje:** tu vivienda tiene X plazas según el tipo. Se puede alquilar una plaza en un parking.
 - **Sacar el coche:** en tu garaje o en cualquier **parking público** (con coste). No aparece en cualquier sitio, por realismo, pero hay parkings cerca de todo.
 - **Combustible:** se gasta al conducir y se reposta en gasolineras (o se carga el eléctrico en puntos de carga).

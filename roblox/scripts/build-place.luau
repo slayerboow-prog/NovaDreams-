@@ -1,9 +1,9 @@
--- Genera NovaLife.rbxlx con la ciudad YA construida dentro, para que se vea
+-- Genera RealLifeSimulator.rbxlx con la ciudad YA construida dentro, para que se vea
 -- al abrir el archivo en Studio (sin tener que pulsar Play).
 --
 -- Uso (desde la carpeta roblox/):
---   rojo build default.project.json -o NovaLife.rbxlx
---   lune run scripts/build-place.luau NovaLife.rbxlx
+--   rojo build default.project.json -o RealLifeSimulator.rbxlx
+--   lune run scripts/build-place.luau RealLifeSimulator.rbxlx
 --
 -- Ejecuta el mismo TownBuilder que usa el servidor, pero con las APIs de
 -- Instance de Lune, y guarda el resultado en el Workspace del archivo.
@@ -13,7 +13,7 @@ local luau = require("@lune/luau")
 local process = require("@lune/process")
 local roblox = require("@lune/roblox")
 
-local placePath = process.args[1] or "NovaLife.rbxlx"
+local placePath = process.args[1] or "RealLifeSimulator.rbxlx"
 local game = roblox.deserializePlace(fs.readFile(placePath))
 local workspace = game:GetService("Workspace")
 

@@ -1,4 +1,4 @@
-# Nova Life — simulador de vida para Roblox
+# Real Life Simulator — simulador de vida para Roblox
 
 Juego de vida real: trabaja, gana dinero, come, duerme, compra y mejora tu casa.
 Todo el juego (mapa, sistemas e interfaz) está hecho con código, así que no hace
@@ -26,7 +26,7 @@ falta construir nada a mano en Roblox Studio.
 2. Descárgalo, instálalo e inicia sesión con tu cuenta de Roblox.
 
 ### 2. Abre el juego
-1. En esta carpeta de GitHub descarga **`NovaLife.rbxlx`**: pulsa sobre el archivo y luego en el botón de descarga (⬇).
+1. En esta carpeta de GitHub descarga **`RealLifeSimulator.rbxlx`**: pulsa sobre el archivo y luego en el botón de descarga (⬇).
 2. Haz doble clic en el archivo descargado. Se abre en Roblox Studio y ya verás la ciudad.
    También puedes abrir Studio y usar **File → Open from File**.
 
@@ -44,7 +44,7 @@ falta construir nada a mano en Roblox Studio.
 
 ### 4. Activa el guardado (cuando quieras probarlo)
 El guardado solo funciona en un juego **publicado**:
-1. **File → Publish to Roblox**. Ponle nombre (por ejemplo *Nova Life*).
+1. **File → Publish to Roblox**. Ponle nombre (por ejemplo *Real Life Simulator*).
 2. **Home → Game Settings → Security → Enable Studio Access to API Services** → ON.
 
 Hasta que lo hagas, el juego funciona igual pero no guarda nada (te avisa en Output).
@@ -64,7 +64,7 @@ Hasta que lo hagas, el juego funciona igual pero no guarda nada (te avisa en Out
 ```
 roblox/
 ├── default.project.json      ← describe cómo se monta el juego (lo usa Rojo)
-├── NovaLife.rbxlx            ← el juego listo para abrir en Studio
+├── RealLifeSimulator.rbxlx            ← el juego listo para abrir en Studio
 └── src/
     ├── shared/               ← lo usan servidor y cliente
     │   ├── Config.luau       ← ⭐ TODOS los números del juego (sueldos, precios, IDs de Robux…)
@@ -86,12 +86,12 @@ El cliente solo dibuja. Así los tramposos no pueden darse dinero.
 Los scripts viven en esta carpeta y se sincronizan con Studio usando [Rojo](https://rojo.space):
 
 ```bash
-rojo build default.project.json -o NovaLife.rbxlx   # genera el archivo del juego
-lune run scripts/build-place.luau NovaLife.rbxlx    # mete la ciudad ya construida dentro (para verla en Studio)
+rojo build default.project.json -o RealLifeSimulator.rbxlx   # genera el archivo del juego
+lune run scripts/build-place.luau RealLifeSimulator.rbxlx    # mete la ciudad ya construida dentro (para verla en Studio)
 rojo serve                                          # sincroniza en vivo con el plugin de Rojo en Studio
 ```
 
 > ⚠️ Si editas scripts **dentro de Studio**, esos cambios no llegan a GitHub.
-> Lo ideal es pedirme los cambios a mí (o editar los `.luau`) y regenerar `NovaLife.rbxlx`.
+> Lo ideal es pedirme los cambios a mí (o editar los `.luau`) y regenerar `RealLifeSimulator.rbxlx`.
 
 Ver el [documento de diseño](docs/diseno/README.md) y la [hoja de ruta](ROADMAP.md) para lo que viene después.

@@ -16,7 +16,7 @@ Un NPC con `Humanoid` completo cuesta mucho (físicas, animación, red). Un serv
 ## 11.3 Cómo se conectan (la ilusión de sociedad)
 
 1. **Los ciudadanos virtuales (D) tienen horarios:** a las 8:00 del juego "van" a trabajar o al colegio, a las 14:00 comen, por la tarde compran y el fin de semana van a la playa o al estadio.
-2. Ese horario genera un **mapa de densidad** por distrito y hora: por la mañana el Centro está lleno, de noche la zona de discotecas de Playa Nova.
+2. Ese horario genera un **mapa de densidad** por distrito y hora: por la mañana el Centro está lleno, de noche la zona de discotecas de Playa Dorada.
 3. Cada cliente genera **peatones (C)** según esa densidad alrededor del jugador. La ciudad "cambia" durante el día sin coste de red.
 4. Cuando un ciudadano virtual "entra" en un negocio (la cafetería de un jugador, el súper), se convierte en un **cliente real (A)** que camina hasta el mostrador y hace un pedido. Esto genera la **actividad económica** de los negocios aunque no haya jugadores comprando.
 5. Los ciudadanos virtuales también **enferman, tienen accidentes o sufren incendios en casa.** Eso alimenta el director de emergencias (policía, bomberos, hospital).

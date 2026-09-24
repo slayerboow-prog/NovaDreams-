@@ -19,7 +19,7 @@ Las duraciones son orientativas (semanas de trabajo conjunto: yo programo y tú 
 - Panel de administrador y comandos de depuración.
 - **Resultado:** una base vacía pero sólida. Se reaprovecha lo útil de la v0.1.
 
-### M1 — Esqueleto del mundo: Nova City núcleo (3–4 semanas)
+### M1 — Esqueleto del mundo: Valmar núcleo (3–4 semanas)
 - Layout en datos de la región completa (distritos marcados) y **generación en gris** de Centro, Los Pinos y San Roque.
 - Grafo de carreteras y aceras. Terreno, costa y montes lejanos.
 - Parcelas estándar, zonas ("Estás en: San Roque") y streaming configurado.
@@ -66,18 +66,18 @@ Las duraciones son orientativas (semanas de trabajo conjunto: yo programo y tú 
 - Terrenos urbanizables, compraventa y alquiler entre jugadores (contratos).
 - Hipotecas y préstamos completos.
 - Arquitecto, Constructor y Agente inmobiliario.
-- Colinas del Mirador (lujo) y Nova Norte.
+- Colinas del Mirador (lujo) y Valmar Norte.
 
 ### M7 — Negocios (5–6 semanas)
 - Crear empresa, local, empleados (jugadores y NPC) y clientes.
 - Contabilidad, reputación y beneficios pasivos con tope.
-- Polígono Industrial y Playa Nova.
+- Polígono Industrial y Playa Dorada.
 - Resto de profesiones de servicios.
 
 ### M8 — Legado y profundidad (5 semanas)
 - Envejecimiento completo hasta adulto mayor, jubilación y pensión.
 - Legado, herencia, árbol genealógico y generaciones.
-- Bolsa Nova e inversiones.
+- Bolsa de Valmar e inversiones.
 - Valle Verde, Villaverde y granjas (Agricultor, Veterinario).
 
 ### M9+ — Operación continua

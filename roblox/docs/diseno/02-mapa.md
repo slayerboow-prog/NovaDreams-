@@ -1,4 +1,4 @@
-# Fase 2 — Diseño del mapa: Región Nova
+# Fase 2 — Diseño del mapa: Región de Valmar
 
 ## 2.1 Límites reales de Roblox que condicionan el mapa
 
@@ -37,7 +37,7 @@ Cada casilla es un `Model` independiente (`World/Districts/<Distrito>/<Casilla>`
   N ↑                     (cada carácter ≈ 1 casilla de 512 studs)
       A   B   C   D   E   F   G   H   I   J   K   L   M   N   O   P   Q   R   S   T   U   V   W   X
   1   ~~~~~~~~ MONTES (límite visual) ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  2   ·   VALLE VERDE (rural) ········  ·   NOVA NORTE (suburbios) ······  ·   [RESERVA: AEROPUERTO]
+  2   ·   VALLE VERDE (rural) ········  ·   VALMAR NORTE (suburbios) ····  ·   [RESERVA: AEROPUERTO]
   3   ·   granjas · campos · establos   ·   casas unifamiliares · colegios ·   ·
   4   ·   ┌ VILLAVERDE ┐ (pueblo)       ·   centro comercial · parque     ·   ·
   5   ·   └ plaza, iglesia, tienda ┘    ═══════════════ A-1 AUTOPISTA (circunvalación) ════════════
@@ -52,7 +52,7 @@ Cada casilla es un `Model` independiente (`World/Districts/<Distrito>/<Casilla>`
  14   ·   grúas · contenedores       ║  casas · colegio · instituto    ║  (lujo, en la colina)
  15   ·   ·   ·   ·   ·   ·   ·   ·  ║  hospital · parque · súper      ║  mansiones · club de golf
  16   ═══════════════════════════════╩═════ A-1 ═══════════════════════╩═══════════════════════════
- 17   ·   ·   PLAYA NOVA · paseo marítimo · hoteles · discotecas · puerto deportivo · chiringuitos
+ 17   ·   ·   PLAYA DORADA · paseo marítimo · hoteles · discotecas · puerto deportivo · chiringuitos
  18   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ MAR ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  19-24 ~~~~ mar abierto (agua de Terrain, barcos, futura isla vía teletransporte) ~~~~~~~~~~~~~~~
 ```
@@ -61,7 +61,7 @@ La costa al sur y los montes al norte cierran el mundo de forma natural, sin mur
 
 ## 2.4 Ciudades y distritos
 
-**Ciudad principal: Nova City.** Pueblo rural: **Villaverde.** Zona costera: **Playa Nova.**
+**Ciudad principal: Valmar.** Pueblo rural: **Villaverde.** Zona costera: **Playa Dorada.**
 
 | Distrito | Identidad | Contenido clave | Tipo de vida | Fase |
 |---|---|---|---|---|
@@ -72,8 +72,8 @@ La costa al sur y los montes al norte cierran el mundo de forma natural, sin mur
 | **Distrito Universitario** | Campus, juventud | Universidad (facultades), FP, biblioteca, residencias, pisos de estudiantes, estadio, cafeterías | Estudiante | M3 |
 | **Colinas del Mirador** (lujo) | Vistas al mar, verjas, silencio | Mansiones P-XL, club de golf, restaurante exclusivo, concesionario de lujo, helipuerto | Rico, famoso | M5 |
 | **Polígono Industrial + Puerto** | Grúas, camiones, humo | Fábricas, almacenes, obras, talleres, desguace, puerto de carga, estación de mercancías | Obrero, camionero, industrial | M5 |
-| **Playa Nova** (costa) | Verano, ocio, noche | Paseo marítimo, hoteles, discotecas, puerto deportivo, chiringuitos, deportes de agua | Ocio, turismo, hostelería | M5 |
-| **Nova Norte** (suburbios) | Chalets, jardines, centros comerciales | Parcelas P-L, colegios, centro comercial grande, parque deportivo | Familia acomodada | M6 |
+| **Playa Dorada** (costa) | Verano, ocio, noche | Paseo marítimo, hoteles, discotecas, puerto deportivo, chiringuitos, deportes de agua | Ocio, turismo, hostelería | M5 |
+| **Valmar Norte** (suburbios) | Chalets, jardines, centros comerciales | Parcelas P-L, colegios, centro comercial grande, parque deportivo | Familia acomodada | M6 |
 | **Valle Verde + Villaverde** (rural) | Campos, animales, calma | Granjas P-FARM, terrenos baratos, pueblo con plaza, veterinario, cooperativa agrícola | Agricultor, vida sencilla | M6 |
 | **Reservas de expansión** | — | Aeropuerto (NE), parque natural, segundo barrio residencial | — | Futuro |
 
@@ -101,7 +101,7 @@ Por eso el grafo debe existir antes que los NPCs y los vehículos: es una depend
 
 | Medio | Recorrido | Implementación |
 |---|---|---|
-| **Tren ligero L1** | Villaverde → Polígono → San Roque → **Centro** → Universitario → Nova Norte | Tren movido por código sobre raíles (sin físicas). Los pasajeros viajan sentados en asientos soldados al tren |
+| **Tren ligero L1** | Villaverde → Polígono → San Roque → **Centro** → Universitario → Valmar Norte | Tren movido por código sobre raíles (sin físicas). Los pasajeros viajan sentados en asientos soldados al tren |
 | **Autobús** L2, L3, L4 | Circuitos por distritos | Conducidos por NPC por el grafo, o por jugadores con la profesión de conductor de autobús |
 | **Taxi** | Cualquier punto | Taxista jugador (profesión) o taxi NPC que te "teletransporta" con una escena corta |
 | **Ferry** (futuro) | Puerto → Isla Resort | Teletransporte a otro place |

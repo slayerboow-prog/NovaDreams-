@@ -4,7 +4,7 @@
 
 Que ganar dinero tenga sentido porque hay que **tomar decisiones**: vivir cerca del trabajo o pagar transporte, alquilar o comprar, estudiar (sin ganar dinero) o trabajar ya, ahorrar o invertir.
 
-Moneda: **Nova Dólar (N$)**.
+Moneda: **Dólar de Valmar ($)**.
 
 ## 5.2 El libro contable (Ledger): la pieza central
 
@@ -94,7 +94,7 @@ Regla de diseño: **el alquiler de la vivienda "normal" de cada nivel ≈ 35–4
 ## 5.9 Mercado e inversiones (fase avanzada)
 
 - **Mercado inmobiliario:** precio base por distrito y tipo de parcela, más un índice de demanda global (se recalcula cada hora de juego con las compraventas reales entre servidores).
-- **Bolsa Nova:** empresas ficticias y un índice de los negocios de jugadores. Precios simulados por un único servidor "líder" (cerrojo en MemoryStore) cada pocos minutos. El resto de servidores solo los lee.
+- **Bolsa de Valmar:** empresas ficticias y un índice de los negocios de jugadores. Precios simulados por un único servidor "líder" (cerrojo en MemoryStore) cada pocos minutos. El resto de servidores solo los lee.
 - **Nada de azar con dinero comprado con Robux:** no hay casino ni tragaperras. Las inversiones son riesgo económico, no azar puro.
 
 ## 5.10 Anti-exploit específico de la economía

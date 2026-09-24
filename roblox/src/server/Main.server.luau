@@ -3,7 +3,7 @@
 
 local Services = script.Parent.Services
 
--- La ciudad ya viene construida dentro de NovaLife.rbxlx (la genera scripts/build-place.luau).
+-- La ciudad ya viene construida dentro de RealLifeSimulator.rbxlx (la genera scripts/build-place.luau).
 -- Si no está (por ejemplo, al usar "rojo serve"), se construye ahora.
 if not workspace:FindFirstChild("Town") then
 	require(script.Parent.World.TownBuilder).build()
@@ -28,4 +28,4 @@ for _, name in order do
 	end
 end
 
-print("[Nova Life] Servidor listo ✅")
+print("[Real Life Simulator] Servidor listo ✅")

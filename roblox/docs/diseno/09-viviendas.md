@@ -8,8 +8,8 @@
 | Habitación en piso compartido | Alquiler | San Roque, Universitario | Solo tu cuarto | Muy barata. Otros jugadores o NPCs de compañeros |
 | Residencia de estudiantes | Alquiler (estudiantes) | Universitario | Tu cuarto | Incluye comida |
 | Estudio / apartamento | Alquiler o compra | Centro, San Roque, Playa | Decorar | **Interior instanciado** en torres |
-| Casa adosada / casa | Alquiler o compra | Los Pinos, Nova Norte | Sí | Parcela P-S / P-M |
-| Chalet | Compra | Nova Norte, Colinas | Sí | P-L |
+| Casa adosada / casa | Alquiler o compra | Los Pinos, Valmar Norte | Sí | Parcela P-S / P-M |
+| Chalet | Compra | Valmar Norte, Colinas | Sí | P-L |
 | Mansión | Compra | Colinas del Mirador | Sí | P-XL |
 | Granja | Compra | Valle Verde | Sí + cultivos y animales | P-FARM |
 | Terreno vacío | Compra | Todos los distritos | Construir desde cero | Base del mercado inmobiliario |

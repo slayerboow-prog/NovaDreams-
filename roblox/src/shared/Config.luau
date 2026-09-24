@@ -3,12 +3,12 @@
 
 local Config = {}
 
-Config.GameName = "Nova Life"
+Config.GameName = "Real Life Simulator"
 
 ---------------------------------------------------------------------
 -- Guardado de datos
 ---------------------------------------------------------------------
-Config.DataStoreName = "NovaLife_PlayerData_v1"
+Config.DataStoreName = "RealLifeSim_PlayerData_v1"
 Config.AutosaveSeconds = 120
 Config.StartingMoney = 500
 
@@ -41,7 +41,7 @@ Config.TiredWalkSpeed = 10
 Config.Jobs = {
 	Barista = {
 		DisplayName = "Barista",
-		Place = "Cafetería Nova",
+		Place = "Cafetería Central",
 		Pay = 25,
 		EnergyCost = 2,
 		PickupText = "Prepara un café en la cafetera",
@@ -51,7 +51,7 @@ Config.Jobs = {
 	},
 	Reponedor = {
 		DisplayName = "Reponedor",
-		Place = "Supermercado Nova",
+		Place = "Supermercado",
 		Pay = 30,
 		EnergyCost = 3,
 		PickupText = "Coge una caja del almacén",
@@ -71,7 +71,7 @@ Config.Jobs = {
 	},
 	Repartidor = {
 		DisplayName = "Repartidor",
-		Place = "Correos Nova",
+		Place = "Correos",
 		Pay = 70,
 		EnergyCost = 5,
 		PickupText = "Recoge un paquete en Correos",

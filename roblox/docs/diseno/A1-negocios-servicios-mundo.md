@@ -14,7 +14,7 @@ Estos pilares del concepto se apoyan en los sistemas de las fases anteriores. Aq
 | **Dueño desconectado** | El negocio sigue funcionando con NPCs mientras el dueño juega en otro servidor o no está. Los beneficios pasivos se calculan con un tope por semana (para no romper la economía) |
 | **En qué servidor existe** | Como las casas: se instancia en un local libre de su tipo y distrito en cada servidor donde estén el dueño o un empleado. En los demás servidores existe como cadena NPC genérica |
 | **Contabilidad** | Cuenta propia en el libro contable, ingresos, gastos (sueldos, suministros, alquiler, impuesto de sociedades), reputación con reseñas de NPCs y jugadores |
-| **Crecimiento** | Mejoras del local, más empleados, franquicias en otros distritos y salida a la Bolsa Nova (fase avanzada) |
+| **Crecimiento** | Mejoras del local, más empleados, franquicias en otros distritos y salida a la Bolsa de Valmar (fase avanzada) |
 | **Economía entre jugadores** | Negocios que venden a otros negocios (la granja vende al restaurante, la constructora construye para el inversor) mediante contratos |
 
 ## A1.2 Servicios públicos
@@ -45,7 +45,7 @@ La salud del jugador conecta con el hospital: accidentes de coche, enfermedades 
 | Qué | Cómo |
 |---|---|
 | **Apariencia** | Se parte del avatar de Roblox o de uno creado en el juego (elegible). Tono de piel, cara y cuerpo |
-| **Ropa, pelo, accesorios** | Tiendas del juego (catálogo propio con precios en N$), vestuario en casa, trajes guardados. Por etapa de edad |
+| **Ropa, pelo, accesorios** | Tiendas del juego (catálogo propio con precios en $), vestuario en casa, trajes guardados. Por etapa de edad |
 | **Evolución visual** | Escala por edad, canas y ropa según la etapa, uniformes por profesión, más estilo según el patrimonio (sin obligar) |
 | **Casa** | Modo construcción y decoración (Fase 9) |
 | **Vehículos** | Talleres de tuning (Fase 10) |

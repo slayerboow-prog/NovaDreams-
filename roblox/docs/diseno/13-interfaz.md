@@ -12,7 +12,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ N$ 12.450          ☀ 14:35 · Lun · Día 12          🔔        │
+│ $12.450            ☀ 14:35 · Lun · Día 12          🔔        │
 │                                                             │
 │                                                             │
 │                                         ┌─────────────────┐ │
@@ -49,7 +49,7 @@ Pantalla de inicio con apps (se desbloquean según la etapa: un niño tiene un t
 | 💬 **Mensajes / Contactos** | Chat con amigos y familia entre servidores (filtrado) |
 | 📰 **Noticias** | Noticias del mundo (eventos, emergencias, festivales, artículos de periodistas jugadores) |
 | 🏢 **Empresa** | Gestión de tu negocio (si tienes) |
-| 🛒 **Tienda Nova** | Pases y productos con Robux |
+| 🛒 **Tienda** | Pases y productos con Robux |
 | ⚙️ **Ajustes** | Gráficos, sonido, idioma, pausar edad, privacidad, controles |
 
 ## 13.4 Otras pantallas

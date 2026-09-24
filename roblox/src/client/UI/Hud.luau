@@ -286,7 +286,7 @@ end
 
 function Hud.init(openStore: () -> ()): ScreenGui
 	gui = create("ScreenGui", {
-		Name = "NovaHud",
+		Name = "MainHud",
 		ResetOnSpawn = false,
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 		Parent = player:WaitForChild("PlayerGui"),
@@ -323,7 +323,7 @@ function Hud.init(openStore: () -> ()): ScreenGui
 
 	-- La pantalla negra de dormir va en su propio ScreenGui (sin UIScale) para cubrirlo todo
 	local overlayGui = create("ScreenGui", {
-		Name = "NovaSleep",
+		Name = "SleepOverlay",
 		ResetOnSpawn = false,
 		IgnoreGuiInset = true,
 		DisplayOrder = 10,

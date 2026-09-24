@@ -87,7 +87,7 @@ function Store.init(parent: ScreenGui)
 	})
 	Theme.padding(16).Parent = window
 
-	Theme.label({ Size = UDim2.new(1, -40, 0, 30), Text = "🛒 Tienda Nova", Font = Theme.FontBold, TextSize = 24, Parent = window })
+	Theme.label({ Size = UDim2.new(1, -40, 0, 30), Text = "🛒 Tienda", Font = Theme.FontBold, TextSize = 24, Parent = window })
 	local close = Theme.button({
 		AnchorPoint = Vector2.new(1, 0),
 		Size = UDim2.fromOffset(32, 32),
