@@ -519,6 +519,13 @@ local function buildOutskirts(world: Instance)
 	end
 end
 
+-- Todas las calles del mapa (las usan el tráfico y los peatones del cliente)
+function TownBuilder.roads()
+	local roads = Region.roads()
+	table.insert(roads, ROADS.Residential)
+	return roads
+end
+
 function TownBuilder.build(): Folder
 	local world = Instance.new("Folder")
 	world.Name = "Town"
@@ -527,9 +534,7 @@ function TownBuilder.build(): Folder
 	world.Parent = workspace
 
 	buildGround(world)
-	local roads = Region.roads() -- carreteras y calles de todas las ciudades (incluye Avenue y NorthSouth)
-	table.insert(roads, ROADS.Residential)
-	Street.build(world, roads)
+	Street.build(world, TownBuilder.roads()) -- carreteras y calles de todas las ciudades
 	buildPlaza(world)
 	buildCafe(world)
 	buildSupermarket(world)

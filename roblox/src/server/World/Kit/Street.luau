@@ -238,7 +238,7 @@ function Street.parkCars(parent: Instance, road: Road, u0: number, u1: number, s
 	local u = u0 + 8
 	while u <= u1 - 8 do
 		if math.random() < (chance or 0.6) then
-			local pos = Street.point(road, u, side * (RW / 2 - 3.6), ROAD_TOP)
+			local pos = Street.point(road, u, side * (RW / 2 - 3.1), ROAD_TOP) -- carril de aparcamiento (el tráfico va por dentro)
 			local heading = Street.along(road, if side > 0 then 1 else -1)
 			Props.car(parent, Builder.facing(pos, heading))
 		end

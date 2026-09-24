@@ -37,7 +37,23 @@ function Builder.decor(props: { [string]: any }): BasePart
 	props.CanCollide = false
 	props.CanQuery = false
 	props.CanTouch = false
+	-- Los detalles pequeños o planos no proyectan sombra: se nota poco y ahorra mucho
+	local size = props.Size
+	if size and (math.max(size.X, size.Y, size.Z) < 4 or math.min(size.X, size.Y, size.Z) < 0.2) then
+		props.CastShadow = false
+	end
 	return Builder.part(props)
+end
+
+-- Optimiza un edificio para StreamingEnabled: se carga entero (sin medias fachadas)
+-- y de lejos se ve una versión simplificada, lo que crea el horizonte urbano.
+function Builder.streamable(model: Model)
+	pcall(function()
+		(model :: any).ModelStreamingMode = Enum.ModelStreamingMode.Atomic
+	end)
+	pcall(function()
+		(model :: any).LevelOfDetail = Enum.ModelLevelOfDetail.StreamingMesh
+	end)
 end
 
 -- CFrame en "position" mirando en horizontal hacia "direction".

@@ -30,6 +30,8 @@ end
 
 local Props = {}
 
+local lampCount = 0
+
 local S = Palette.Street
 
 -- Farola con brazo. El CFrame mira hacia la calzada (el brazo sale hacia delante).
@@ -61,15 +63,19 @@ function Props.lamp(parent: Instance, cf: CFrame)
 		Tags = { "StreetLamp" },
 		Parent = m,
 	})
-	local light = Instance.new("SpotLight")
-	light.Face = Enum.NormalId.Bottom
-	light.Angle = 110
-	light.Range = 36
-	light.Brightness = 2.2
-	light.Color = S.LampLight
-	light.Shadows = false
-	light.Enabled = false
-	light.Parent = lens
+	-- Solo 1 de cada 2 farolas lleva luz real (las demás brillan): la mitad de coste de iluminación
+	lampCount += 1
+	if lampCount % 2 == 0 then
+		local light = Instance.new("SpotLight")
+		light.Face = Enum.NormalId.Bottom
+		light.Angle = 120
+		light.Range = 44
+		light.Brightness = 2.4
+		light.Color = S.LampLight
+		light.Shadows = false
+		light.Enabled = false
+		light.Parent = lens
+	end
 	return m
 end
 

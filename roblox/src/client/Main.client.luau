@@ -5,12 +5,14 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Hud = require(script.Parent.UI.Hud)
 local Store = require(script.Parent.UI.Store)
 local TaskMarker = require(script.Parent.Controllers.TaskMarker)
+local Ambient = require(script.Parent.Controllers.Ambient)
 
 local gui = Hud.init(function()
 	Store.open()
 end)
 Store.init(gui)
 TaskMarker.init()
+task.spawn(Ambient.init) -- tráfico y peatones
 
 local Notify = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Notify") :: RemoteEvent
 Notify.OnClientEvent:Connect(function(kind: string, text: string)

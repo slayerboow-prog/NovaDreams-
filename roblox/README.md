@@ -9,6 +9,7 @@ falta construir nada a mano en Roblox Studio.
 | Sistema | Qué hace |
 |---|---|
 | 🗺️ Región de Valmar | **6 ciudades** unidas por carreteras: Valmar Centro, Valmar Norte, San Roque (barrio popular), Playa Dorada (costa con playa y mar), Los Pinos (residencial) y Villaverde (rural, con granjas). Cada una tiene **hospital o centro de salud, colegio, bomberos, policía, centro comercial, gasolinera y parque**, además de manzanas de edificios y casas con jardín |
+| 🚗 Ciudad viva | Coches circulando por su carril (frenan si hay alguien delante) y peatones caminando por las aceras alrededor del jugador. De noche hay menos gente. Se simulan en cada dispositivo, sin coste para el servidor |
 | 🚌 Viajes | Autobús interurbano: en la parada del centro de cada ciudad, teclas 1-5 para ir a las demás |
 | 💼 Trabajos | Barista, Reponedor, Basurero y Repartidor. Coges algo, lo llevas al punto marcado con una línea azul y cobras |
 | 🍔 Necesidades | Hambre y energía bajan con el tiempo. Si están bajas caminas más lento y no puedes trabajar |

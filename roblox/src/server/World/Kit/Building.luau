@@ -478,6 +478,7 @@ function Building.build(spec: Spec): (Model, (number, number, number) -> CFrame,
 	end
 
 	model.PrimaryPart = model:FindFirstChild("Floor") :: BasePart
+	Builder.streamable(model)
 	return model, at, { Top = top, GroundTop = Y1 }
 end
 

@@ -19,10 +19,14 @@ if town and packs > 0 and not town:GetAttribute("BuiltWithAssets") then
 	town:Destroy()
 	town = nil
 end
+local TownBuilder = require(World.TownBuilder)
 if not town then
-	require(World.TownBuilder).build()
+	TownBuilder.build()
 end
 TerrainBuilder.removeGroundPart()
+
+-- 4) Datos para el tráfico y los peatones que simula cada cliente
+require(World.Ambient).publish(TownBuilder.roads())
 
 local order = {
 	"DataService",
