@@ -2,6 +2,7 @@
 
 local Builder = require(script.Parent.Parent.Builder)
 local Palette = require(script.Parent.Palette)
+local AssetLibrary = require(script.Parent.AssetLibrary)
 
 local Nature = {}
 
@@ -13,6 +14,10 @@ end
 
 -- Árbol de hoja ancha: tronco + copa de varias esferas
 function Nature.tree(parent: Instance, base: Vector3, scale: number?)
+	local asset = AssetLibrary.spawn("Tree", parent, CFrame.new(base) * CFrame.Angles(0, math.random() * math.pi * 2, 0), scale)
+	if asset then
+		return asset
+	end
 	local s = scale or (0.85 + math.random() * 0.4)
 	local m = Builder.model("Tree", parent)
 	local height = 9 * s
@@ -51,6 +56,10 @@ end
 
 -- Ciprés mediterráneo: alto y estrecho
 function Nature.cypress(parent: Instance, base: Vector3)
+	local asset = AssetLibrary.spawn("Pine", parent, CFrame.new(base) * CFrame.Angles(0, math.random() * math.pi * 2, 0))
+	if asset then
+		return asset
+	end
 	local m = Builder.model("Cypress", parent)
 	local s = 0.9 + math.random() * 0.3
 	Builder.part({ Name = "Trunk", Size = Vector3.new(0.8, 2, 0.8), CFrame = CFrame.new(base + Vector3.new(0, 1, 0)), Color = C.Trunk, Material = Enum.Material.Wood, Parent = m })
@@ -71,6 +80,10 @@ end
 
 -- Palmera: tronco curvado en segmentos + hojas colgantes
 function Nature.palm(parent: Instance, base: Vector3)
+	local asset = AssetLibrary.spawn("Palm", parent, CFrame.new(base) * CFrame.Angles(0, math.random() * math.pi * 2, 0))
+	if asset then
+		return asset
+	end
 	local m = Builder.model("Palm", parent)
 	local lean = math.rad(math.random(-8, 8))
 	local yaw = math.rad(math.random(0, 359))
@@ -115,6 +128,9 @@ function Nature.palm(parent: Instance, base: Vector3)
 end
 
 function Nature.bush(parent: Instance, base: Vector3, size: number?)
+	if AssetLibrary.spawn("Bush", parent, CFrame.new(base) * CFrame.Angles(0, math.random() * math.pi * 2, 0)) then
+		return
+	end
 	local d = size or (2.5 + math.random() * 1.5)
 	Builder.decor({
 		Name = "Bush",

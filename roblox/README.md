@@ -57,6 +57,17 @@ Hasta que lo hagas, el juego funciona igual pero no guarda nada (te avisa en Out
    Me los puedes pasar y lo hago yo.
 4. Mientras el ID sea `0`, el artículo sale en la tienda como "Próximamente".
 
+
+### 6. Importar los packs gratuitos de Synty (mejora visual)
+La ciudad usa automáticamente modelos profesionales gratuitos si están en el proyecto.
+1. Abre `RealLifeSimulator.rbxlx` en Studio.
+2. **Vista → Caja de herramientas**. Busca **Synty City Pack** y comprueba que es el oficial (creado por Roblox / Synty).
+   Haz clic para insertarlo.
+3. En el **Explorador**, clic derecho sobre el pack insertado → **Guardar en archivo…** → `SyntyCity.rbxm`.
+4. Repite con **Synty Nature Pack** → `SyntyNature.rbxm`.
+5. Pásame los dos archivos (adjuntos en el chat o subidos a la carpeta `roblox/assets/` del repositorio).
+   Yo los catalogo y construyo el distrito con ellos.
+
 ---
 
 ## Cómo está organizado el código

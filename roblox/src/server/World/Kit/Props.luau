@@ -3,6 +3,30 @@
 
 local Builder = require(script.Parent.Parent.Builder)
 local Palette = require(script.Parent.Palette)
+local AssetLibrary = require(script.Parent.AssetLibrary)
+local Place = require(script.Parent.Place)
+
+-- Luz invisible en lo alto de una farola importada (la enciende WorldService de noche)
+local function addLampLight(model: Instance)
+	local minV, maxV = Place.bounds(model)
+	local lens = Builder.decor({
+		Name = "Lens",
+		Size = Vector3.new(0.4, 0.1, 0.4),
+		CFrame = CFrame.new((minV.X + maxV.X) / 2, maxV.Y - 0.8, (minV.Z + maxV.Z) / 2),
+		Transparency = 1,
+		Tags = { "StreetLamp" },
+		Parent = model,
+	})
+	local light = Instance.new("SpotLight")
+	light.Face = Enum.NormalId.Bottom
+	light.Angle = 110
+	light.Range = 36
+	light.Brightness = 2.2
+	light.Color = Palette.Street.LampLight
+	light.Shadows = false
+	light.Enabled = false
+	light.Parent = lens
+end
 
 local Props = {}
 
@@ -10,6 +34,11 @@ local S = Palette.Street
 
 -- Farola con brazo. El CFrame mira hacia la calzada (el brazo sale hacia delante).
 function Props.lamp(parent: Instance, cf: CFrame)
+	local asset = AssetLibrary.spawn("Lamp", parent, cf)
+	if asset then
+		addLampLight(asset)
+		return asset
+	end
 	local m = Builder.model("StreetLamp", parent)
 	Builder.part({ Name = "Base", Size = Vector3.new(1.2, 1, 1.2), CFrame = cf * CFrame.new(0, 0.5, 0), Color = S.Metal, Material = Enum.Material.Metal, Parent = m })
 	Builder.part({
@@ -46,6 +75,10 @@ end
 
 -- Semáforo: poste en la esquina con brazo sobre la calzada (hacia delante)
 function Props.trafficLight(parent: Instance, cf: CFrame, armLength: number)
+	local asset = AssetLibrary.spawn("TrafficLight", parent, cf)
+	if asset then
+		return asset
+	end
 	local m = Builder.model("TrafficLight", parent)
 	Builder.part({
 		Name = "Pole",
@@ -82,6 +115,10 @@ function Props.trafficLight(parent: Instance, cf: CFrame, armLength: number)
 end
 
 function Props.bench(parent: Instance, cf: CFrame)
+	local asset = AssetLibrary.spawn("Bench", parent, cf)
+	if asset then
+		return asset
+	end
 	local m = Builder.model("Bench", parent)
 	Builder.part({ Name = "Seat", Size = Vector3.new(6, 0.4, 1.8), CFrame = cf * CFrame.new(0, 1.9, 0), Color = S.Wood, Material = Enum.Material.Wood, Parent = m })
 	Builder.decor({ Name = "Back", Size = Vector3.new(6, 1.6, 0.3), CFrame = cf * CFrame.new(0, 3, 0.95) * CFrame.Angles(math.rad(-10), 0, 0), Color = S.Wood, Material = Enum.Material.Wood, Parent = m })
@@ -92,6 +129,9 @@ function Props.bench(parent: Instance, cf: CFrame)
 end
 
 function Props.bin(parent: Instance, cf: CFrame)
+	if AssetLibrary.spawn("Bin", parent, cf) then
+		return
+	end
 	Builder.part({
 		Name = "Bin",
 		Shape = Enum.PartType.Cylinder,
@@ -105,6 +145,10 @@ end
 
 -- Marquesina de autobús (la parte abierta mira hacia la calzada)
 function Props.busStop(parent: Instance, cf: CFrame)
+	local asset = AssetLibrary.spawn("BusStop", parent, cf)
+	if asset then
+		return asset
+	end
 	local m = Builder.model("BusStop", parent)
 	Builder.decor({ Name = "Roof", Size = Vector3.new(10, 0.3, 4), CFrame = cf * CFrame.new(0, 8.2, 0), Color = S.Metal, Material = Enum.Material.Metal, Parent = m })
 	Builder.part({ Name = "BackGlass", Size = Vector3.new(10, 6.5, 0.2), CFrame = cf * CFrame.new(0, 4.6, 1.8), Color = S.Glass, Material = Enum.Material.Glass, Transparency = 0.5, Parent = m })
@@ -122,6 +166,10 @@ end
 -- Coche aparcado decorativo. El CFrame es el centro del coche a nivel de la calzada;
 -- LookVector = morro.
 function Props.car(parent: Instance, cf: CFrame, color: Color3?)
+	local asset = AssetLibrary.spawn("Car", parent, cf)
+	if asset then
+		return asset
+	end
 	local m = Builder.model("ParkedCar", parent)
 	local paint = color or Palette.pick(Palette.CarColors)
 	local r = 1.3 -- radio de rueda

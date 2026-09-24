@@ -56,6 +56,7 @@ function requireModule(target: any): any
 		script = target,
 		require = requireModule,
 		workspace = workspace,
+		game = game,
 		Instance = roblox.Instance,
 		Vector3 = roblox.Vector3,
 		CFrame = roblox.CFrame,

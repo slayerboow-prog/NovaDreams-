@@ -77,7 +77,7 @@ local function trim(ctx: Ctx, face: CFrame, size: Vector3, x: number, y: number,
 	})
 end
 
-local function glass(ctx: Ctx, face: CFrame, o: Opening, transparency: number, nightWindow: boolean)
+local function glass(ctx: Ctx, face: CFrame, o: Opening, transparency: number, nightChance: number)
 	local h = o.Top - o.Bottom
 	local color = if transparency > 0 then Color3.fromRGB(176, 206, 220) else ctx.Style.Glass
 	local pane = Builder.part({
@@ -90,7 +90,7 @@ local function glass(ctx: Ctx, face: CFrame, o: Opening, transparency: number, n
 		Reflectance = 0.15,
 		Parent = ctx.Model,
 	})
-	if nightWindow and math.random() < NIGHT_WINDOW_CHANCE then
+	if math.random() < nightChance then
 		pane:AddTag("NightWindow")
 		pane:SetAttribute("DayColor", color)
 	end
@@ -101,7 +101,7 @@ local function fillOpening(ctx: Ctx, face: CFrame, o: Opening)
 	local style = ctx.Style
 	if o.Kind == "Window" or o.Kind == "Balcony" or o.Kind == "GroundWindow" then
 		local isGround = o.Kind == "GroundWindow"
-		glass(ctx, face, o, if isGround then ctx.GroundGlassTransparency else 0, not isGround)
+		glass(ctx, face, o, if isGround then ctx.GroundGlassTransparency else 0, if isGround then 0 else NIGHT_WINDOW_CHANCE)
 		if o.Kind ~= "Balcony" then
 			trim(ctx, face, Vector3.new(o.W + 0.6, 0.3, 0.7), o.X, o.Bottom - 0.15, -0.15) -- alféizar
 		end
@@ -159,7 +159,8 @@ local function fillOpening(ctx: Ctx, face: CFrame, o: Opening)
 		end
 	elseif o.Kind == "Shop" then
 		-- Sin interior jugable: cristal reflectante en vez de ver una sala vacía
-		glass(ctx, face, o, if ctx.GroundGlassTransparency > 0 then 0.55 else 0, false)
+		-- Los escaparates se iluminan de noche (comercios abiertos)
+		glass(ctx, face, o, if ctx.GroundGlassTransparency > 0 then 0.55 else 0, 1)
 		trim(ctx, face, Vector3.new(o.W, 0.3, T + 0.3), o.X, o.Bottom - 0.15, T / 2 - 0.15)
 	elseif o.Kind == "Door" or o.Kind == "FakeDoor" then
 		for _, side in { -1, 1 } do

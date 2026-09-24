@@ -108,6 +108,11 @@
       "$properties": {
         "StreamingEnabled": true
       }
+    },
+    "ServerStorage": {
+      "AssetLibrary": {
+        "$path": "assets"
+      }
     }
   }
 }

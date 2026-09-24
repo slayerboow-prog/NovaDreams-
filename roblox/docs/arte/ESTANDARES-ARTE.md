@@ -88,7 +88,8 @@ El código busca estos elementos por **nombre + etiqueta (Tag)**. Cada modelo ll
 
 | Vía | Qué aporta | Límites |
 |---|---|---|
-| **Generado por código** (principal) | Calles, aceras, fachadas modulares, casas, interiores, terreno, vegetación e iluminación, todo coherente y ampliable a todo el mapa | Estilo de piezas geométricas cuidadas. No llega a mallas orgánicas muy detalladas |
+| **Packs gratuitos de Synty** (principal) | Edificios modulares, calles, props, vehículos y naturaleza de un mismo estudio profesional: estilo coherente | Estilo low-poly estilizado (no fotorrealista) |
+| **Generado por código** (complemento) | Calles, aceras, fachadas modulares, casas, interiores, terreno, vegetación e iluminación, todo coherente y ampliable a todo el mapa | Estilo de piezas geométricas cuidadas. No llega a mallas orgánicas muy detalladas |
 | **Mallas 3D generadas por mí** (más adelante) | Archivos `.obj`/`.fbx` sencillos (farolas, mobiliario, carrocerías) que tú importas en Studio con **Importar** una sola vez | Requiere un paso manual tuyo por cada lote |
 | **Tienda de creadores** (opcional, puntual) | Detalles concretos (plantas, objetos) cuando convenga | Hay que revisarlos (ver abajo) |
 
