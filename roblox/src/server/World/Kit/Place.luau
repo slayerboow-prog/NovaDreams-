@@ -66,6 +66,10 @@ function Place.scale(model: Instance, factor: number, around: Vector3)
 	for _, d in model:GetDescendants() do
 		if d:IsA("PointLight") or d:IsA("SpotLight") or d:IsA("SurfaceLight") then
 			d.Range *= factor
+		elseif d:IsA("SpecialMesh") then
+			-- En las piezas con malla especial el tamaño visible lo da Scale, no Size
+			d.Scale *= factor
+			d.Offset *= factor
 		end
 	end
 end

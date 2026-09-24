@@ -13,12 +13,13 @@ function TerrainBuilder.build()
 	terrain:SetMaterialColor(Enum.Material.Grass, Color3.fromRGB(98, 146, 70))
 	terrain:SetMaterialColor(Enum.Material.Rock, Color3.fromRGB(128, 122, 112))
 
-	-- Llanura de la región: la superficie queda justo en Y = 0
-	terrain:FillBlock(CFrame.new(-380, -4, 0), Vector3.new(4040, 8, 4800), Enum.Material.Grass)
+	-- Llanura de la región: la superficie queda en Y = -1, un poco por DEBAJO de las calles
+	-- (que empiezan en Y = 0). Si quedara justo en 0, el césped asoma y tapa calles y suelos.
+	terrain:FillBlock(CFrame.new(-380, -5, 0), Vector3.new(4040, 8, 4800), Enum.Material.Grass)
 
 	-- Mar al este de Playa Dorada (fondo de arena y agua)
 	terrain:SetMaterialColor(Enum.Material.Sand, Color3.fromRGB(226, 206, 160))
-	terrain:FillBlock(CFrame.new(1700, -3, 0), Vector3.new(120, 6, 4800), Enum.Material.Sand)
+	terrain:FillBlock(CFrame.new(1700, -4, 0), Vector3.new(120, 6, 4800), Enum.Material.Sand)
 	terrain:FillBlock(CFrame.new(2100, -14, 0), Vector3.new(800, 8, 4800), Enum.Material.Sand)
 	terrain:FillBlock(CFrame.new(2100, -5.5, 0), Vector3.new(800, 9, 4800), Enum.Material.Water)
 

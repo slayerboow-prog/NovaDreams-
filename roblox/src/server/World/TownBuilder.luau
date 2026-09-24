@@ -601,9 +601,9 @@ local function buildOutskirts(world: Instance)
 			local x, z = cx + math.random(-30, 30), cz + math.random(-30, 30)
 			if not blocked(x, z) then
 				if math.random() < 0.3 then
-					Nature.cypress(folder, Vector3.new(x, 0, z))
+					Nature.cypress(folder, Vector3.new(x, -1, z)) -- el terreno del campo está en Y = -1
 				else
-					Nature.tree(folder, Vector3.new(x, 0, z), 1 + math.random() * 0.5)
+					Nature.tree(folder, Vector3.new(x, -1, z), 1 + math.random() * 0.5)
 				end
 			end
 		end
