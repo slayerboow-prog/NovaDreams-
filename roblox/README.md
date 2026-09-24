@@ -58,8 +58,11 @@ Hasta que lo hagas, el juego funciona igual pero no guarda nada (te avisa en Out
 4. Mientras el ID sea `0`, el artículo sale en la tienda como "Próximamente".
 
 
-### 6. Importar los packs gratuitos de Synty (mejora visual)
-La ciudad usa automáticamente modelos profesionales gratuitos si están en el proyecto.
+### 6. Packs gratuitos de Synty (mejora visual)
+Al pulsar **Play**, el juego descarga solo los packs gratuitos y oficiales de Synty (City y Nature)
+y reconstruye la ciudad con ellos. En **Output** verás una línea `[Assets] Packs disponibles: 2/2 …`.
+
+Si pone `0/2`, la descarga automática no funcionó y hay que importarlos a mano (solo una vez):
 1. Abre `RealLifeSimulator.rbxlx` en Studio.
 2. **Vista → Caja de herramientas**. Busca **Synty City Pack** y comprueba que es el oficial (creado por Roblox / Synty).
    Haz clic para insertarlo.

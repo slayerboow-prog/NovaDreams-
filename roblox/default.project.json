@@ -113,6 +113,11 @@
       "AssetLibrary": {
         "$path": "assets"
       }
+    },
+    "AssetService": {
+      "$properties": {
+        "AllowInsertFreeAssets": true
+      }
     }
   }
 }

@@ -25,8 +25,10 @@ function TerrainBuilder.build()
 		local center = Vector3.new(math.cos(angle) * distance, -radius * 0.45, math.sin(angle) * distance)
 		terrain:FillBall(center, radius, if math.random() < 0.2 then Enum.Material.Rock else Enum.Material.Grass)
 	end
+end
 
-	-- El suelo de piezas solo servía para verlo en Studio
+-- El suelo de piezas de la ciudad solo sirve para verla en Studio: en el juego se quita
+function TerrainBuilder.removeGroundPart()
 	local town = workspace:FindFirstChild("Town")
 	local ground = town and town:FindFirstChild("Ground")
 	if ground then

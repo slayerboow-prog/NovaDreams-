@@ -20,6 +20,7 @@ local Street = require(Kit.Street)
 local Building = require(Kit.Building)
 local Nature = require(Kit.Nature)
 local Props = require(Kit.Props)
+local AssetLibrary = require(Kit.AssetLibrary)
 
 local TownBuilder = {}
 
@@ -484,6 +485,8 @@ end
 function TownBuilder.build(): Folder
 	local world = Instance.new("Folder")
 	world.Name = "Town"
+	-- Recuerda si se construyó con modelos importados (packs de Synty) o solo por código
+	world:SetAttribute("BuiltWithAssets", AssetLibrary.has("Tree") or AssetLibrary.has("Lamp") or AssetLibrary.has("Car"))
 	world.Parent = workspace
 
 	buildGround(world)

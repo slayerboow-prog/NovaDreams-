@@ -3,12 +3,26 @@
 
 local Services = script.Parent.Services
 
--- La ciudad ya viene construida dentro de RealLifeSimulator.rbxlx (la genera scripts/build-place.luau).
--- Si no está (por ejemplo, al usar "rojo serve"), se construye ahora.
-if not workspace:FindFirstChild("Town") then
-	require(script.Parent.World.TownBuilder).build()
+local World = script.Parent.World
+local TerrainBuilder = require(World.TerrainBuilder)
+
+-- 1) Terreno primero, para que nadie caiga al vacío mientras se prepara la ciudad
+TerrainBuilder.build()
+
+-- 2) Packs gratuitos de Synty desde la Creator Store (si se pueden descargar)
+local packs = require(World.AssetLoader).load()
+
+-- 3) La ciudad viene construida dentro del archivo (scripts/build-place.luau).
+--    Si ahora hay packs y la ciudad del archivo se hizo sin ellos, se reconstruye con los modelos.
+local town = workspace:FindFirstChild("Town")
+if town and packs > 0 and not town:GetAttribute("BuiltWithAssets") then
+	town:Destroy()
+	town = nil
 end
-require(script.Parent.World.TerrainBuilder).build()
+if not town then
+	require(World.TownBuilder).build()
+end
+TerrainBuilder.removeGroundPart()
 
 local order = {
 	"DataService",
