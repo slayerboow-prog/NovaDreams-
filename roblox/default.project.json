@@ -22,6 +22,9 @@
         },
         "Baby": {
           "$className": "RemoteEvent"
+        },
+        "Class": {
+          "$className": "RemoteEvent"
         }
       }
     },

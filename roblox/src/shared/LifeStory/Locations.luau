@@ -43,6 +43,33 @@ Locations.Places = {
 	PuntoLimpio = { NameKey = "PLACE.PUNTO_LIMPIO", Model = "PuntoLimpio" },
 	ParadaBus = { NameKey = "PLACE.PARADA_BUS", Tag = "TravelStop" },
 	Colegio = { NameKey = "PLACE.COLEGIO", Model = "Colegio", Zone = "Home" },
+
+	-- Dentro del colegio (Civic.school del mapa, ver docs/mapa/ETIQUETAS.md)
+	EntradaColegio = { NameKey = "PLACE.ENTRADA_COLEGIO", Tag = "SchoolEntrance", Zone = "Home" },
+	Aula = { NameKey = "PLACE.AULA", Tag = "Classroom", Zone = "Home", Inside = true },
+	AulaMusica = { NameKey = "PLACE.AULA_MUSICA", Tag = "MusicRoom", Zone = "Home", Inside = true },
+	Patio = { NameKey = "PLACE.PATIO", Tag = "RecessArea", Zone = "Home", Inside = true },
+	Pista = { NameKey = "PLACE.PISTA", Tag = "PEArea", Zone = "Home" },
+
+	-- Instituto (el colegio grande de Campus Valmar)
+	Instituto = { NameKey = "PLACE.INSTITUTO", Model = "Colegio", Zone = "Campus Valmar" },
+	AulaInstituto = { NameKey = "PLACE.AULA_INSTITUTO", Tag = "Classroom", Zone = "Campus Valmar", Inside = true },
+	PatioInstituto = { NameKey = "PLACE.PATIO", Tag = "RecessArea", Zone = "Campus Valmar", Inside = true },
+	PistaInstituto = { NameKey = "PLACE.PISTA", Tag = "PEArea", Zone = "Campus Valmar" },
+
+	-- Universidad
+	FacultadMedicina = { NameKey = "PLACE.FACULTAD_MEDICINA", Model = "Facultad", Attribute = { Faculty = "Medicina" }, Zone = "Campus Valmar" },
+	FacultadIngenieria = { NameKey = "PLACE.FACULTAD_INGENIERIA", Model = "Facultad", Attribute = { Faculty = "Ingenieria" }, Zone = "Campus Valmar" },
+	FacultadDerecho = { NameKey = "PLACE.FACULTAD_DERECHO", Model = "Facultad", Attribute = { Faculty = "Derecho" }, Zone = "Campus Valmar" },
+	FacultadEconomia = { NameKey = "PLACE.FACULTAD_ECONOMIA", Model = "Facultad", Attribute = { Faculty = "Economia" }, Zone = "Campus Valmar" },
+	Biblioteca = { NameKey = "PLACE.BIBLIOTECA", Tag = "Library", Zone = "Campus Valmar" },
+	OficinasFinanciero = { NameKey = "PLACE.OFICINAS", Model = "Torres", Zone = "Distrito Financiero" },
+
+	-- Tiendas (tag Shop + ShopId)
+	Libreria = { NameKey = "PLACE.LIBRERIA", Tag = "Shop", Attribute = { ShopId = "Libreria" }, Zone = "Home" },
+	Farmacia = { NameKey = "PLACE.FARMACIA", Tag = "Shop", Attribute = { ShopId = "Farmacia" }, Zone = "Home" },
+	Heladeria = { NameKey = "PLACE.HELADERIA", Tag = "Shop", Attribute = { ShopId = "Heladeria" }, Zone = "Home" },
+	Banco = { NameKey = "PLACE.BANCO", Tag = "Shop", Attribute = { ShopId = "Banco" } },
 	Parque = { NameKey = "PLACE.PARQUE", Model = "Parque", Zone = "Home" },
 	Columpios = { NameKey = "PLACE.COLUMPIOS", Model = "Playground", Zone = "Home" },
 	CentroSalud = { NameKey = "PLACE.CENTRO_SALUD", Model = "CentroSalud", Zone = "Home" },

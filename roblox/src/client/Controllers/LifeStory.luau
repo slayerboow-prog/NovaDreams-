@@ -49,6 +49,12 @@ local function text(key: string?, args: { [string]: any }?): string
 	if resolved.placeKey then
 		resolved.place = Strings.get(resolved.placeKey)
 	end
+	if resolved.subjectKey then
+		resolved.subject = Strings.get(resolved.subjectKey)
+	end
+	if resolved.degreeKey then
+		resolved.degree = Strings.get(resolved.degreeKey)
+	end
 	return Strings.get(key, resolved)
 end
 

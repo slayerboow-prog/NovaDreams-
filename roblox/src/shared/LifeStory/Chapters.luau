@@ -21,6 +21,8 @@ export type Chapter = {
 	OutroKey: string,
 	Main: { string },
 	Next: string?,
+	Requires: { [string]: any }?, -- requisitos (decisiones, marcas) además de la etapa
+	Loop: string?, -- día normal que se repite entre los grandes momentos (misión con DayPlan)
 	IntroCinematic: string?,
 	OutroCinematic: string?,
 	Music: string?,
@@ -42,25 +44,68 @@ local Chapters: { [string]: Chapter } = {
 		Music = "Nacimiento",
 	},
 
-	-- FASE 4 · Niño. Se activa cuando exista el sistema de clases (fase 5).
+	-- Niño: el colegio (unas 5 horas, de 6 a 12 años). Grandes momentos repartidos y, entre ellos,
+	-- días de cole generados (DayPlans): clases jugables, recreo, recados, excursiones, exámenes.
 	Nino_ElColegio = {
 		Id = "Nino_ElColegio",
 		Order = 20,
 		Stage = { Min = "Nino", Max = "Nino" },
-		Enabled = false,
+		Enabled = true,
 		TitleKey = "CHAPTER.NINO.TITLE",
 		IntroKey = "CHAPTER.NINO.INTRO",
 		OutroKey = "CHAPTER.NINO.OUTRO",
-		Main = { "Nino_PrimerDiaColegio" },
+		Main = {
+			"Nino_PrimerDiaColegio",
+			"Nino_MiSemana",
+			"Nino_Recados",
+			"Nino_PrimerExamen",
+			"Nino_Excursion",
+			"Nino_SegundoTrimestre",
+			"Nino_FinDePrimaria",
+		},
+		Next = "Adolescente_Instituto",
+		Loop = "Nino_Jornada",
+		IntroCinematic = "Nino_PrimerDia",
+		Music = "TemaValmar",
 	},
 
-	-- PUENTE TEMPORAL (mientras no esté la infancia completa, fases 4-8): un vistazo al barrio de niño
-	-- y un salto en el tiempo hasta la vida adulta. Se desactiva cuando se active Nino_ElColegio.
+	-- Adolescente: el instituto (unas 5 horas) y la gran decisión: universidad o trabajar.
+	Adolescente_Instituto = {
+		Id = "Adolescente_Instituto",
+		Order = 30,
+		Stage = { Min = "Adolescente", Max = "Adolescente" },
+		Enabled = true,
+		TitleKey = "CHAPTER.INSTITUTO.TITLE",
+		IntroKey = "CHAPTER.INSTITUTO.INTRO",
+		OutroKey = "CHAPTER.INSTITUTO.OUTRO",
+		Main = { "Adol_NuevoInstituto", "Adol_PrimerTrabajo", "Adol_ElFuturo" },
+		Next = "Joven_Universidad",
+		Loop = "Adol_Jornada",
+	},
+
+	-- Adulto joven: la universidad (unas 5 horas), solo si elegiste una carrera.
+	Joven_Universidad = {
+		Id = "Joven_Universidad",
+		Order = 40,
+		Stage = { Min = "AdultoJoven", Max = "Adulto" },
+		Requires = { Flags = { "VaALaUniversidad" } },
+		Enabled = true,
+		TitleKey = "CHAPTER.UNIVERSIDAD.TITLE",
+		IntroKey = "CHAPTER.UNIVERSIDAD.INTRO",
+		OutroKey = "CHAPTER.UNIVERSIDAD.OUTRO",
+		Main = { "Uni_PrimerDia", "Uni_PrimerSemestre", "Uni_SegundoSemestre", "Uni_Practicas", "Uni_TercerSemestre", "Uni_Graduacion" },
+		Next = "Adulto_NuevaVida",
+		Loop = "Uni_Jornada",
+		IntroCinematic = "Uni_PrimerDia",
+		Music = "VidaAdulta",
+	},
+
+	-- Puente antiguo (de niño a adulto en dos minutos). Desactivado: ahora hay colegio e instituto de verdad.
 	Nino_Puente = {
 		Id = "Nino_Puente",
 		Order = 25,
 		Stage = { Min = "Nino", Max = "Adolescente" },
-		Enabled = true,
+		Enabled = false,
 		TitleKey = "CHAPTER.NINO_PUENTE.TITLE",
 		IntroKey = "CHAPTER.NINO_PUENTE.INTRO",
 		OutroKey = "CHAPTER.NINO_PUENTE.OUTRO",

@@ -114,6 +114,108 @@ local Cinematics: { [string]: Cinematic } = {
 		},
 	},
 
+	-- Primer día de colegio: el colegio desde el cielo y bajada hasta la entrada.
+	Nino_PrimerDia = {
+		Duration = 10,
+		FadeIn = true,
+		Music = "TemaValmar",
+		Anchors = { Colegio = "Place:Colegio", Entrada = "Place:EntradaColegio" },
+		Shots = {
+			{ From = { "Colegio", V(-120, 90, 120) }, To = { "Colegio", V(-40, 35, 60) }, Look = { "Colegio", V(0, 5, 0) }, Duration = 5.5 },
+			{ Orbit = "Entrada", Radius = 22, Height = 8, FromAngle = 60, ToAngle = 110, Duration = 4.5 },
+		},
+		Titles = {
+			{ At = 1, TextKey = "CHAPTER.NINO.TITLE", SubKey = "CHAPTER.NINO.INTRO", Duration = 4.5 },
+		},
+		Lines = {
+			{ At = 6, Speaker = "Profe", TextKey = "DLG.LUCIA.COLE1.01" },
+		},
+	},
+
+	-- Fin de primaria: fiesta en el patio, foto de clase.
+	Nino_FinPrimaria = {
+		Duration = 10,
+		Music = "TemaValmar",
+		Anchors = { Patio = "Place:Patio", Yo = "Player" },
+		Shots = {
+			{ Orbit = "Yo", Radius = 12, Height = 5, FromAngle = 0, ToAngle = 90, Duration = 5 },
+			{ From = { "Patio", V(0, 12, 30) }, To = { "Patio", V(0, 40, 60) }, Look = { "Patio", V(0, 2, 0) }, Duration = 5 },
+		},
+		Lines = {
+			{ At = 0.8, Speaker = "Profe", TextKey = "DLG.LUCIA.GRADUA.01" },
+		},
+		Titles = {
+			{ At = 5.5, TextKey = "CINE.FIN_PRIMARIA.TITULO", SubKey = "CINE.FIN_PRIMARIA.FOTO", Duration = 4 },
+		},
+	},
+
+	-- De niño a adolescente: vuelo de Los Pinos al Campus Valmar (el instituto).
+	Nino_AInstituto = {
+		Duration = 10,
+		FadeOut = true,
+		Music = "PasanLosAnos",
+		Anchors = { Pinos = "Zone:Los Pinos", Campus = "Zone:Campus Valmar" },
+		Shots = {
+			{ From = { "Pinos", V(-150, 80, 60) }, To = { "Pinos", V(0, 180, -300) }, Look = { "Pinos", V(0, 0, -150) }, Duration = 5 },
+			{ From = { "Campus", V(-200, 150, 150) }, To = { "Campus", V(-60, 60, 60) }, Look = { "Campus", V(0, 10, 0) }, Duration = 5 },
+		},
+		Titles = {
+			{ At = 0.8, TextKey = "TRANSITION.INSTITUTO", Duration = 4 },
+			{ At = 5.3, TextKey = "CINE.INSTITUTO.LLEGA", Duration = 4 },
+		},
+	},
+
+	-- Del instituto a los 18: elegir camino.
+	Adol_Selectividad = {
+		Duration = 10,
+		FadeOut = true,
+		Music = "PasanLosAnos",
+		Anchors = { Campus = "Zone:Campus Valmar", Centro = "Zone:Valmar Centro" },
+		Shots = {
+			{ Orbit = "Campus", Radius = 180, Height = 90, FromAngle = 120, ToAngle = 170, Duration = 5 },
+			{ From = { "Centro", V(150, 120, 200) }, To = { "Centro", V(40, 50, 80) }, Look = { "Centro", V(0, 5, 0) }, Duration = 5 },
+		},
+		Titles = {
+			{ At = 0.8, TextKey = "CINE.SELECTIVIDAD.ANOS", Duration = 4 },
+			{ At = 5.3, TextKey = "TRANSITION.MAYOR_EDAD", Duration = 4 },
+		},
+	},
+
+	-- Primer día de universidad: el campus y la rectora.
+	Uni_PrimerDia = {
+		Duration = 11,
+		FadeIn = true,
+		Music = "VidaAdulta",
+		Anchors = { Uni = "Place:Universidad", Campus = "Zone:Campus Valmar" },
+		Shots = {
+			{ From = { "Campus", V(-220, 120, 180) }, To = { "Uni", V(-60, 30, 60) }, Look = { "Uni", V(0, 10, 0) }, Duration = 6 },
+			{ Orbit = "Uni", Radius = 55, Height = 18, FromAngle = 200, ToAngle = 240, Duration = 5 },
+		},
+		Titles = {
+			{ At = 1, TextKey = "CHAPTER.UNIVERSIDAD.TITLE", SubKey = "CHAPTER.UNIVERSIDAD.INTRO", Duration = 5 },
+		},
+		Lines = {
+			{ At = 6.5, Speaker = "Rectora", TextKey = "DLG.AMAIA.CITA.01" },
+		},
+	},
+
+	-- Graduación: vuelta alrededor del graduado, la rectora da el discurso.
+	Uni_Graduacion = {
+		Duration = 13,
+		Music = "TemaValmar",
+		Anchors = { Yo = "Player", Uni = "Place:Universidad" },
+		Shots = {
+			{ Orbit = "Yo", Radius = 10, Height = 3, FromAngle = 30, ToAngle = 150, Duration = 7 },
+			{ From = { "Yo", V(8, 6, 8) }, To = { "Uni", V(40, 60, 90) }, Look = { "Yo", V(0, 2, 0) }, LookTo = { "Uni", V(0, 10, 0) }, Duration = 6 },
+		},
+		Lines = {
+			{ At = 0.8, Speaker = "Rectora", TextKey = "DLG.AMAIA.GRADUA.01" },
+		},
+		Titles = {
+			{ At = 7.5, TextKey = "CINE.GRADUACION.TITULO", SubKey = "CINE.GRADUACION.SUB", Duration = 5 },
+		},
+	},
+
 	-- Una nueva vida en Valmar: vuelta alrededor de la Plaza Mayor.
 	Adulto_Llegada = {
 		Duration = 11,

@@ -106,7 +106,24 @@ local function candidates(place: Locations.Place): { Spot }
 		if not indexed or (byModelName[place.Model] and not stillValid(byModelName[place.Model])) then
 			buildIndex()
 		end
-		return byModelName[place.Model] or {}
+		local list = byModelName[place.Model] or {}
+		if place.Attribute then
+			local filtered = {}
+			for _, spot in list do
+				local ok = true
+				for name, value in place.Attribute do
+					if spot.Instance:GetAttribute(name) ~= value then
+						ok = false
+						break
+					end
+				end
+				if ok then
+					table.insert(filtered, spot)
+				end
+			end
+			list = filtered
+		end
+		return list
 	end
 	if place.Tag then
 		local list = {}
@@ -135,6 +152,19 @@ local function homeSpot(player: Player): Spot?
 	local town = workspace:FindFirstChild("Town")
 	local plot = plotId and town and town:FindFirstChild("Plot_" .. plotId, true)
 	return if plot then spotFor(plot) else nil
+end
+
+local function familyHomeSpot(player: Player): Spot?
+	local homeId = player:GetAttribute("FamilyHomeId")
+	if not homeId then
+		return nil
+	end
+	for _, model in CollectionService:GetTagged("FamilyHome") do
+		if model:GetAttribute("HomeId") == homeId then
+			return spotFor(model)
+		end
+	end
+	return nil
 end
 
 local function playerPosition(player: Player): Vector3?
@@ -192,7 +222,8 @@ function LocationService.resolve(player: Player, placeId: string): Spot?
 	end
 	local from = playerPosition(player) or Vector3.zero
 	if zone == "Home" then
-		local home = homeSpot(player)
+		-- Su casa; si aún no tiene (niños), la casa familiar donde vive
+		local home = homeSpot(player) or familyHomeSpot(player)
 		from = if home then home.Position else from
 	end
 	local spot = nearest(list, from)
@@ -223,8 +254,28 @@ function LocationService.positionOf(player: Player): Vector3?
 	return playerPosition(player)
 end
 
+-- Publica las zonas para el mapa del cliente: ReplicatedStorage.MapZones (una Configuration por zona)
+local function publishZones()
+	local ReplicatedStorage = game:GetService("ReplicatedStorage")
+	local old = ReplicatedStorage:FindFirstChild("MapZones")
+	if old then
+		old:Destroy()
+	end
+	local folder = Instance.new("Folder")
+	folder.Name = "MapZones"
+	for i, zone in zoneCenters do
+		local config = Instance.new("Configuration")
+		config.Name = "Zone" .. i
+		config:SetAttribute("ZoneName", zone.Name)
+		config:SetAttribute("Center", zone.Center)
+		config.Parent = folder
+	end
+	folder.Parent = ReplicatedStorage
+end
+
 function LocationService.init()
 	buildIndex()
+	publishZones()
 end
 
 return LocationService

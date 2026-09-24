@@ -10,6 +10,8 @@ local StoryAudio = require(script.Parent.Controllers.StoryAudio)
 local DayLight = require(script.Parent.Controllers.DayLight)
 local LifeStory = require(script.Parent.Controllers.LifeStory)
 local Baby = require(script.Parent.Controllers.Baby)
+local ClassUI = require(script.Parent.Controllers.ClassUI)
+local MapUI = require(script.Parent.Controllers.MapUI)
 
 local gui = Hud.init(function()
 	Store.open()
@@ -20,6 +22,8 @@ DayLight.init() -- luz realista según la hora (amanecer, mediodía, atardecer, 
 StoryAudio.init() -- música, efectos y voces de la historia (botón 🔊)
 task.spawn(LifeStory.init) -- historia de vida (tarjeta "Tu vida", momentos, decisiones)
 task.spawn(Baby.init) -- tutorial de bebé (botón de levantarse, familia, vista de la ciudad)
+task.spawn(ClassUI.init) -- clases y exámenes que se juegan
+task.spawn(MapUI.init) -- minimapa y mapa grande (tecla M)
 task.spawn(Ambient.init) -- tráfico y peatones
 
 local Notify = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Notify") :: RemoteEvent

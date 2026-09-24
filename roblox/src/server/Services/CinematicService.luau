@@ -58,6 +58,8 @@ function CinematicService.play(player: Player, id: string): number
 		Names = {
 			Abu = player:GetAttribute("AbuKey") or "NPC.ABU_ROSA",
 			Familia = player:GetAttribute("FamilyKey") or "NPC.MAMA",
+			Profe = "NPC.PROFE_LUCIA",
+			Rectora = "NPC.AMAIA",
 		},
 		Args = { nombre = player.DisplayName },
 	})

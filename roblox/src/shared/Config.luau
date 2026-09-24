@@ -45,6 +45,22 @@ Config.LifeStory = {
 	DeclineCooldown = 600, -- segundos reales antes de volver a ofrecer una secundaria rechazada
 	MaxLifeEvents = 200, -- acontecimientos guardados en la biografía
 	ReachPadding = 14, -- studs de margen alrededor de un edificio para contar como "has llegado"
+	-- Horas de juego que dura cada etapa. Los grandes momentos se reparten por esas horas y entre
+	-- ellos se viven días normales generados (DayPlans). El bebé es un tutorial corto (sin horas).
+	StageHours = {
+		Nino = 5, -- el colegio
+		Adolescente = 5, -- el instituto
+		AdultoJoven = 5, -- la universidad (o los primeros años de trabajo)
+	},
+	-- Edad al empezar y al terminar cada etapa (un cumpleaños cada StageHours / años)
+	AgeRange = {
+		Bebe = { 0, 3 },
+		Nino = { 6, 12 },
+		Adolescente = { 13, 17 },
+		AdultoJoven = { 18, 22 },
+		Adulto = { 30, 64 },
+		Mayor = { 65, 90 },
+	},
 }
 
 -- Cómo es el cuerpo en cada etapa (tamaño del personaje, velocidad al andar, altura del salto)
@@ -104,6 +120,9 @@ Config.Audio = {
 			Abu = { VoiceId = "", Pitch = 0.95, Speed = 0.92 },
 			Familia = { VoiceId = "", Pitch = 1.05, Speed = 1 },
 			Narrador = { VoiceId = "", Pitch = 1, Speed = 0.9 },
+			Profe = { VoiceId = "", Pitch = 1.05, Speed = 0.95 },
+			Nino = { VoiceId = "", Pitch = 1.25, Speed = 1.05 },
+			Rectora = { VoiceId = "", Pitch = 0.95, Speed = 0.9 },
 		},
 		-- Voces grabadas (opcional): clave del texto = ID del audio. Si existe, se usa en vez de la sintetizada.
 		Lines = {

@@ -20,6 +20,24 @@ local ROOT = "src"
 ---------------------------------------------------------------------
 -- Cargador de módulos: imita script.Parent.X y require() de Roblox
 ---------------------------------------------------------------------
+-- Random de Roblox (Lune no lo trae): misma interfaz, resultados repetibles
+local TestRandom = {}
+TestRandom.__index = TestRandom
+function TestRandom.new(seed: number?)
+	return setmetatable({ s = seed or 12345 }, TestRandom)
+end
+function TestRandom:NextNumber(a: number?, b: number?)
+	self.s = (self.s * 1103515245 + 12345) % 2147483648
+	local x = self.s / 2147483648
+	if a and b then
+		return a + x * (b - a)
+	end
+	return x
+end
+function TestRandom:NextInteger(a: number, b: number)
+	return a + math.floor(self:NextNumber() * (b - a + 1))
+end
+
 local mocks: { [string]: any } = {}
 local cache: { [string]: any } = {}
 local fakeGame: any
@@ -59,6 +77,7 @@ local function loadModule(path: string): any
 		Vector3 = roblox.Vector3,
 		Color3 = roblox.Color3,
 		CFrame = roblox.CFrame,
+		Random = TestRandom,
 		warn = function(...)
 			print("[warn]", ...)
 		end,
@@ -168,6 +187,22 @@ mocks[ROOT .. "/server/Services/LocationService"] = {
 	end,
 }
 
+-- Clases: el doble "aprueba" al momento con un 8 (la clase de verdad necesita un jugador)
+local classCalls = {}
+mocks[ROOT .. "/server/Services/ClassService"] = {
+	isRunning = function()
+		return false
+	end,
+	start = function(player, spec, onDone)
+		table.insert(classCalls, { Player = player, Subject = spec.Subject, Mode = spec.Mode })
+		task.delay(0.05, function()
+			loadModule(ROOT .. "/server/LifeStory/StoryEvents").emit(player, "LessonCompleted", { Subject = spec.Subject, Mode = spec.Mode, Grade = 8 })
+			onDone({ Grade = 8, Correct = 4, Total = 5 })
+		end)
+		return true
+	end,
+}
+
 ---------------------------------------------------------------------
 -- Utilidades de la prueba
 ---------------------------------------------------------------------
@@ -193,7 +228,8 @@ local function newPlayer(name: string, stage: string?, playSeconds: number?)
 	profiles[player] = {
 		Money = 0,
 		Stats = { PlaySeconds = playSeconds or 0 },
-		Life = { Stage = stage, AgeYears = 0 },
+		Life = { Stage = stage, AgeYears = 0, StageSeconds = 0 },
+		Education = { Subjects = {}, Exams = {}, Degrees = {}, Attendance = 0 },
 		Story = {
 			Version = 1,
 			Chapters = {},
@@ -265,6 +301,25 @@ for _, problem in problems do
 	print("    " .. problem)
 end
 check(#problems == 0, "Validate no encuentra errores")
+
+-- Una clave repetida en una tabla de Luau no da error: la segunda borra a la primera sin avisar
+local duplicated = {}
+for _, name in { "Quests", "Chapters", "Locations", "Cinematics", "Subjects", "Strings", "ShopItems" } do
+	local seen = {}
+	for line in fs.readFile(ROOT .. "/shared/LifeStory/" .. name .. ".luau"):gmatch("[^\n]+") do
+		local key = line:match("^\t([%w_]+) = ") or line:match('^\t%["([^"]+)"%] = ')
+		if key then
+			if seen[key] then
+				table.insert(duplicated, name .. "." .. key)
+			end
+			seen[key] = true
+		end
+	end
+end
+for _, key in duplicated do
+	print("    repetida: " .. key)
+end
+check(#duplicated == 0, "Ninguna misión, capítulo, lugar ni texto está repetido")
 
 local GameClock = loadModule(ROOT .. "/shared/GameClock")
 local date = GameClock.fromDay(30, 13.5)
@@ -397,27 +452,152 @@ task.wait(0.3)
 check(cinematic(leo, "Bebe_AnosDespues"), "Mirar por el ventanal lleva a la cinemática 'Han pasado varios años…'")
 check(leoData.Life.Stage == "Nino" and leo:GetAttribute("LifeStage") == "Nino", "Ahora es niño")
 check(leoData.Story.Chapters.Bebe_PrimerosPasos ~= nil, "Capítulo de bebé terminado")
-check(leoData.Story.Active.Nino_TuBarrio ~= nil, "Empieza el puente de niño: 'Tu barrio'")
-leo.At = "Parque"
-task.wait(0.7)
-leo.At = "Colegio"
-task.wait(0.8)
-check(cinematic(leo, "Nino_Creces") and leoData.Life.Stage == "AdultoJoven", "Salto en el tiempo hasta la vida adulta (cinemática por la región)")
-check(leoData.Story.Active.Adulto_LlegadaValmar ~= nil, "Y empieza 'Una nueva vida en Valmar'")
+check(cinematic(leo, "Nino_PrimerDia") and leoData.Story.Active.Nino_PrimerDiaColegio ~= nil, "Empieza el colegio: 'Tu primer día de cole' (ya no salta a buscar trabajo)")
+check(leoData.Life.AgeYears == 6 and leo:GetAttribute("AgeYears") == 6, "Tiene 6 años")
 check(pcall(serde.encode, "json", leoData), "Los datos del bebé se pueden guardar (JSON válido)")
 
-print("\n▶ Primer día de colegio (fase 4, activado solo para la prueba): espera al horario")
-local Chapters = loadModule(ROOT .. "/shared/LifeStory/Chapters")
-Chapters.Nino_ElColegio.Enabled = true
-Chapters.Nino_Puente.Enabled = false
-lighting.ClockTime = 20 -- fuera del horario del colegio
-local mia = newPlayer("Mia", "Nino")
-task.wait(0.2)
-state = lastState(mia)
-check(state and state.Waiting and state.Waiting.Reason == "Hours", "A las 20:00 el primer día de colegio espera a mañana")
-lighting.ClockTime = 8
-task.wait(5.5)
-check(profiles[mia].Story.Active.Nino_PrimerDiaColegio ~= nil, "A las 8:00 empieza el primer día de colegio")
+---------------------------------------------------------------------
+-- Jugador automático: hace lo que pide el paso actual de la misión principal
+---------------------------------------------------------------------
+local Quests = loadModule(ROOT .. "/shared/LifeStory/Quests")
+local Subjects = loadModule(ROOT .. "/shared/LifeStory/Subjects")
+local HOURS = Config.LifeStory.StageHours
+
+local function mainStep(player)
+	local story = profiles[player].Story
+	for id, prog in story.Active do
+		if Quests[id] and Quests[id].Kind == "Main" then
+			local steps = prog.Steps or Quests[id].Steps
+			return id, prog, steps[prog.Step]
+		end
+	end
+	return nil
+end
+
+local function doStep(player, questId, step, choice)
+	local story = profiles[player].Story
+	local degree = story.Choices.Estudios and story.Choices.Estudios.V
+	local function place(value)
+		return Subjects.resolve(value, degree)
+	end
+	if step.Type == "Reach" or step.Type == "Class" then
+		player.At = place(step.Place)
+	elseif step.Type == "Talk" then
+		StoryEvents.emit(player, "Talk", { Npc = step.Npc })
+	elseif step.Type == "Event" then
+		StoryEvents.emit(player, step.Event, table.clone(step.Match or {}))
+	elseif step.Type == "Group" then
+		for _, child in step.Steps do
+			doStep(player, questId, child, choice)
+		end
+	elseif step.Type == "Wait" then
+		day += 1 -- pasa un día de juego
+	elseif step.Type == "Choice" then
+		fromClient(player, "Choose", questId, choice)
+	end
+end
+
+-- Juega hasta que se cumpla la condición (o se rinde tras muchos intentos)
+local function playUntil(player, done: () -> boolean, choice: string?, maxSteps: number?): boolean
+	for _ = 1, maxSteps or 250 do
+		if done() then
+			return true
+		end
+		local id, _, step = mainStep(player)
+		if id and step then
+			doStep(player, id, step, choice)
+		end
+		task.wait(0.6)
+	end
+	return done()
+end
+
+local function classesOf(player)
+	local list = {}
+	for _, call in classCalls do
+		if call.Player == player then
+			table.insert(list, call.Subject)
+		end
+	end
+	return list
+end
+
+print("\n▶ El colegio (5 horas): clases que se juegan, días normales y cumpleaños")
+lighting.ClockTime = 9
+check(playUntil(leo, function()
+	return leoData.Story.Completed.Nino_PrimerDiaColegio ~= nil
+end), "Primer día: entrada, profe Lucía, clase, recreo con Nico, Sara y Omar, y vuelta a casa")
+local leoClasses = classesOf(leo)
+check(leoClasses[1] == "Matematicas" and leoClasses[2] == "Lengua", "Las clases del primer día son Matemáticas y Lengua")
+check(leoData.Story.LastGrade == 8, "La nota de la clase queda guardada")
+task.wait(0.8)
+local jornada = leoData.Story.Active.Nino_Jornada
+check(jornada ~= nil and jornada.Steps and #jornada.Steps >= 4, "Mientras no toca el siguiente gran momento, se vive un día de cole normal")
+check(leoData.Story.Active.Nino_MiSemana == nil, "'Mi primera semana' todavía espera (5 horas de etapa, no se corre)")
+state = lastState(leo)
+check(state and state.Tracked and state.Tracked.TitleKey:sub(1, 10) == "QUEST.DIA_", "La tarjeta muestra el día de hoy")
+
+leoData.Life.StageSeconds = 0.05 * HOURS.Nino * 3600
+check(playUntil(leo, function()
+	return leoData.Story.Active.Nino_MiSemana ~= nil
+end), "Pasado un rato de la etapa, llega 'Mi primera semana'")
+check(received(leo, "Moment", "MOMENT.DIA_COLE"), "Cada día de cole terminado queda como momento")
+
+leoData.Life.StageSeconds = 0.36 * HOURS.Nino * 3600
+task.wait(0.8)
+check(leoData.Life.AgeYears == 8 and received(leo, "Moment", "MOMENT.CUMPLEANOS"), "El tiempo jugado hace crecer: cumple 8 años")
+
+leoData.Life.StageSeconds = HOURS.Nino * 3600
+check(playUntil(leo, function()
+	return leoData.Life.Stage == "Adolescente"
+end), "Toda la primaria: recados, examen, excursión, trimestre y fin de primaria")
+for _, questId in { "Nino_MiSemana", "Nino_Recados", "Nino_PrimerExamen", "Nino_Excursion", "Nino_SegundoTrimestre", "Nino_FinDePrimaria" } do
+	check(leoData.Story.Completed[questId] ~= nil, "  hecha: " .. questId)
+end
+check(cinematic(leo, "Nino_FinPrimaria") and cinematic(leo, "Nino_AInstituto"), "Cinemáticas de fin de primaria y paso al instituto")
+task.wait(0.8)
+check(leoData.Life.AgeYears == 13 and leoData.Story.Active.Adol_NuevoInstituto ~= nil, "Con 13 años empieza el instituto")
+
+print("\n▶ El instituto: primer trabajo y decidir el futuro")
+leoData.Life.StageSeconds = HOURS.Adolescente * 3600
+check(playUntil(leo, function()
+	return leoData.Life.Stage == "AdultoJoven"
+end, "Ingenieria"), "Instituto terminado")
+check(leoData.Story.Choices.Estudios and leoData.Story.Choices.Estudios.V == "Ingenieria" and leoData.Story.Flags.VaALaUniversidad, "Elige estudiar Ingeniería")
+check(cinematic(leo, "Adol_Selectividad"), "Cinemática de selectividad")
+task.wait(0.8)
+check(leoData.Story.Active.Uni_PrimerDia ~= nil and cinematic(leo, "Uni_PrimerDia"), "Empieza la universidad con su cinemática")
+state = lastState(leo)
+check(state.Tracked.Args.placeKey ~= nil and state.Tracked.Args.placeKey:find("INGENIERIA") ~= nil, "La tarjeta manda a la Facultad de Ingeniería")
+
+print("\n▶ La universidad: carrera elegida y graduación")
+leoData.Life.StageSeconds = HOURS.AdultoJoven * 3600
+check(playUntil(leo, function()
+	return leoData.Story.Completed.Uni_Graduacion ~= nil
+end), "Semestres, prácticas y graduación")
+local degreeSubjects = Subjects.Degrees.Ingenieria
+local uniClasses = {}
+for _, subject in classesOf(leo) do
+	uniClasses[subject] = true
+end
+check(uniClasses[degreeSubjects.Asignatura1] and uniClasses[degreeSubjects.Asignatura2], "Las clases son las de Ingeniería")
+check(leoData.Story.Flags.Graduado and leoData.Education.Degrees[degreeSubjects.Titulo] ~= nil, "Título guardado: graduado en Ingeniería")
+check(cinematic(leo, "Uni_Graduacion"), "Cinemática de graduación")
+task.wait(1)
+check(leoData.Story.Active.Adulto_LlegadaValmar ~= nil or leoData.Story.Chapter == "Adulto_NuevaVida", "Después empieza la vida profesional")
+check(pcall(serde.encode, "json", leoData), "Toda una vida se puede guardar (JSON válido)")
+
+print("\n▶ Otra rama: dejar de estudiar y ponerse a trabajar")
+local eva = newPlayer("Eva", "Adolescente")
+local evaData = profiles[eva]
+task.wait(0.3)
+evaData.Life.StageSeconds = HOURS.Adolescente * 3600
+check(playUntil(eva, function()
+	return evaData.Life.Stage == "AdultoJoven"
+end, "Trabajar"), "Instituto terminado")
+task.wait(1)
+check(evaData.Story.Flags.EmpiezaATrabajar and not evaData.Story.Flags.VaALaUniversidad, "Elige trabajar")
+check(evaData.Story.Active.Uni_PrimerDia == nil and evaData.Story.Active.Adulto_LlegadaValmar ~= nil, "No va a la universidad: empieza directamente la vida adulta")
 
 print(("\n%s"):format(if failures == 0 then "✅ Todo correcto" else ("❌ %d fallos"):format(failures)))
 process.exit(if failures == 0 then 0 else 1)
