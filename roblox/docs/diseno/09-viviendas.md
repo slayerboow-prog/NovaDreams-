@@ -47,7 +47,7 @@ Cuando entras en un servidor, tu casa se coloca en una **parcela libre del mismo
 ## 9.4 Construcción y decoración
 
 - **Modo construcción** en tu parcela: paredes, suelos, techos, puertas, ventanas, escaleras y pisos, sobre una rejilla de 1 stud (con giro de 15°).
-- **Catálogo de muebles** (Registro de Items) con precios, categorías y estilos. Incluye la línea **NovaDreams** con muebles reales de la tienda (sofás KOKE y EGEO…).
+- **Catálogo de muebles** (Registro de Items) con precios, categorías y estilos.
 - **Límites:** número de objetos por tamaño de parcela (ej. P-M: 1.500) para el rendimiento y el tamaño de los datos.
 - **Guardado comprimido:** lista de `{ItemId, posición, giro, color}` codificada en un store propio por propiedad.
 - **Planos:** un arquitecto jugador puede diseñar un plano y venderlo. El comprador lo construye pagando materiales o contratando a un constructor jugador o NPC.

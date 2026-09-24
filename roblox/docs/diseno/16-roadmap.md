@@ -62,7 +62,7 @@ Las duraciones son orientativas (semanas de trabajo conjunto: yo programo y tú 
 - Arte final del Centro y Los Pinos.
 
 ### M6 — Construcción y mercado (5–6 semanas)
-- Modo construcción y catálogo de muebles (con la línea NovaDreams).
+- Modo construcción y catálogo de muebles.
 - Terrenos urbanizables, compraventa y alquiler entre jugadores (contratos).
 - Hipotecas y préstamos completos.
 - Arquitecto, Constructor y Agente inmobiliario.

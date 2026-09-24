@@ -56,7 +56,7 @@ Lo que obligaría a rehacer el proyecto si se hace mal (formato de los datos, re
 | D1 | Idiomas | ✅ **Español + inglés** desde el inicio (`LocalizationService`, ningún texto escrito directamente en el código) |
 | D2 | Inicio de la vida | ✅ **Siempre se nace bebé** y se viven todas las etapas (colegio, universidad, empleo…). Infancia corta y muy jugable (ver Fase 6) |
 | D3 | Arte | ✅ **Sin contratar.** Arte generado por código siguiendo los [estándares de arte](../arte/ESTANDARES-ARTE.md), más mallas simples importadas y modelos puntuales de la Tienda de creadores |
-| D4 | Nombre | ✅ **Real Life Simulator.** Región y ciudad principal: **Valmar**. Sin la palabra "Nova" |
+| D4 | Nombre | ✅ **Real Life Simulator.** Región y ciudad principal: **Valmar** |
 | D5 | Jugadores por servidor | Empezar con 30–40 y ajustar midiendo |
 | D6 | Pareja y matrimonio | Solo como rol de hogar, sin mecánicas de romance, sujeto a las normas de Roblox (ver Fase 12) |
 | D7 | La v0.1 | Sirvió de prototipo. En M0 se reorganiza según esta arquitectura, reaprovechando lo útil |

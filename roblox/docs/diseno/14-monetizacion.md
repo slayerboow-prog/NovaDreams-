@@ -16,7 +16,7 @@
 | **Suscripciones** de la experiencia | Pago mensual recurrente | "Club Plus": sueldo diario, descuentos, ropa exclusiva mensual, bonus de XP |
 | **Servidores privados** | Servidor propio mensual | Familias y grupos de rol |
 | **Premium Payouts** | Automático por tiempo jugado de usuarios Premium | — |
-| **Colaboraciones** (futuro) | Marcas dentro del juego | Muebles **NovaDreams**, eventos patrocinados |
+| **Colaboraciones** (futuro) | Marcas dentro del juego | Eventos patrocinados |
 
 ## 14.3 Catálogo inicial propuesto (precios orientativos)
 

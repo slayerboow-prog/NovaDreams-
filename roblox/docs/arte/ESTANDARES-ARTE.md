@@ -98,7 +98,7 @@ El código busca estos elementos por **nombre + etiqueta (Tag)**. Cada modelo ll
 3. **Generador de fachadas por distrito:** plantas, ventanas con marco y cristal, balcones, cornisas, tejados de teja o planos y toldos.
 4. **Generador de viviendas por tamaño de parcela**, con interiores amueblados.
 5. **Edificios singulares:** hospital, colegio, estación, ayuntamiento, comisaría, bomberos, súper…
-6. **Muebles y props** del catálogo (incluida la línea NovaDreams).
+6. **Muebles y props** del catálogo.
 7. **Vehículos.**
 
 ### Reglas para modelos de la Tienda de creadores
