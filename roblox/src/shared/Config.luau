@@ -45,6 +45,22 @@ Config.LifeStory = {
 	DeclineCooldown = 600, -- segundos reales antes de volver a ofrecer una secundaria rechazada
 	MaxLifeEvents = 200, -- acontecimientos guardados en la biografía
 	ReachPadding = 14, -- studs de margen alrededor de un edificio para contar como "has llegado"
+	-- Horas de juego que dura cada etapa. Los grandes momentos se reparten por esas horas y entre
+	-- ellos se viven días normales generados (DayPlans). El bebé es un tutorial corto (sin horas).
+	StageHours = {
+		Nino = 5, -- el colegio
+		Adolescente = 5, -- el instituto
+		AdultoJoven = 5, -- la universidad (o los primeros años de trabajo)
+	},
+	-- Edad al empezar y al terminar cada etapa (un cumpleaños cada StageHours / años)
+	AgeRange = {
+		Bebe = { 0, 3 },
+		Nino = { 6, 12 },
+		Adolescente = { 13, 17 },
+		AdultoJoven = { 18, 22 },
+		Adulto = { 30, 64 },
+		Mayor = { 65, 90 },
+	},
 }
 
 -- Cómo es el cuerpo en cada etapa (tamaño del personaje, velocidad al andar, altura del salto)
@@ -69,8 +85,50 @@ Config.Baby = {
 	CrawlSpeed = 4, -- velocidad gateando, antes de levantarse
 	StepStuds = 4, -- cada cuántos studs andados cuenta un "paso"
 	HungryAfterFirstSteps = 35, -- el hambre baja a este valor para enseñar las necesidades
-	CinematicSeconds = 6, -- lo que dura mirar por la ventana
 	MaxDistanceFromHome = 6, -- margen fuera de la casa antes de volver a entrar (un bebé no sale solo)
+}
+
+---------------------------------------------------------------------
+-- MÚSICA Y VOCES de la historia (cinemáticas y momentos clave)
+-- La música es original y está en roblox/audio/. Para que suene:
+-- 1. En Studio: Window > Asset Manager > Bulk Import (o create.roblox.com > Creations > Audio)
+--    y sube los .ogg de roblox/audio/.
+-- 2. Copia el ID de cada audio aquí (campo Id). Mientras sea 0, ese audio no suena
+--    (todo lo demás funciona igual). También me los puedes pasar y los pongo yo.
+---------------------------------------------------------------------
+Config.Audio = {
+	Music = {
+		Nacimiento = { Id = 0, File = "nacimiento.ogg", Volume = 0.4, Looped = true },
+		TemaValmar = { Id = 0, File = "tema_valmar.ogg", Volume = 0.45, Looped = true },
+		PasanLosAnos = { Id = 0, File = "pasan_los_anos.ogg", Volume = 0.5, Looped = false },
+		VidaAdulta = { Id = 0, File = "vida_adulta.ogg", Volume = 0.4, Looped = true },
+	},
+	Stings = {
+		Momento = { Id = 0, File = "sting_momento.ogg", Volume = 0.55 },
+		Capitulo = { Id = 0, File = "sting_capitulo.ogg", Volume = 0.55 },
+		PrimerosPasos = { Id = 0, File = "sting_primeros_pasos.ogg", Volume = 0.6 },
+	},
+	AmbientVolume = 0.2, -- música de fondo de un capítulo (más baja que en las cinemáticas)
+	DuckVolume = 0.45, -- la música baja a este porcentaje mientras alguien habla
+	Voices = {
+		-- Voz sintetizada de Roblox (AudioTextToSpeech) para los personajes, si el motor la tiene.
+		-- Si no está disponible, se ven los subtítulos igual.
+		TextToSpeech = true,
+		Volume = 1,
+		-- Cómo suena cada personaje (VoiceId: una de las voces de Roblox; vacío = la voz por defecto)
+		Speakers = {
+			Abu = { VoiceId = "", Pitch = 0.95, Speed = 0.92 },
+			Familia = { VoiceId = "", Pitch = 1.05, Speed = 1 },
+			Narrador = { VoiceId = "", Pitch = 1, Speed = 0.9 },
+			Profe = { VoiceId = "", Pitch = 1.05, Speed = 0.95 },
+			Nino = { VoiceId = "", Pitch = 1.25, Speed = 1.05 },
+			Rectora = { VoiceId = "", Pitch = 0.95, Speed = 0.9 },
+		},
+		-- Voces grabadas (opcional): clave del texto = ID del audio. Si existe, se usa en vez de la sintetizada.
+		Lines = {
+			-- ["DLG.ABU.NACER.01"] = 0,
+		},
+	},
 }
 
 ---------------------------------------------------------------------

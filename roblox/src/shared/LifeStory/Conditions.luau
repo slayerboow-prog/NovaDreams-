@@ -12,6 +12,7 @@
 --   Choices     = { EstudiosElegidos = "Medicina" }   decisiones tomadas antes
 --   Discovered  = { "Colegio", ... }             lugares ya visitados
 --   OnDuty      = "Profesor"                     (para misiones de profesión) el jugador está de servicio en ese rol
+--   StageProgress = 0.5                          haber jugado la mitad de la etapa (Config.LifeStory.StageHours)
 
 local Stages = require(script.Parent.Stages)
 local GameClock = require(script.Parent.Parent.GameClock)
@@ -27,6 +28,7 @@ export type Context = {
 	Choices: { [string]: { V: string } },
 	Discovered: { [string]: any },
 	Duties: { [string]: boolean }?,
+	StageProgress: number?,
 }
 
 -- Devuelve true, o false y el motivo ("Stage", "Hours", "Weekdays", "Completed"...).
@@ -71,6 +73,9 @@ function Conditions.check(req: { [string]: any }?, ctx: Context): (boolean, stri
 	end
 	if req.OnDuty and not (ctx.Duties and ctx.Duties[req.OnDuty]) then
 		return false, "OnDuty"
+	end
+	if req.StageProgress and (ctx.StageProgress or 0) < req.StageProgress then
+		return false, "StageProgress"
 	end
 	-- La hora y el día van al final: si solo falla esto, la misión está "a la espera" (no bloqueada)
 	if req.Weekdays and not table.find(req.Weekdays, ctx.Weekday) then

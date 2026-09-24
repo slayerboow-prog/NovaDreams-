@@ -8,6 +8,10 @@ local Locations = require(script.Parent.Locations)
 local Stages = require(script.Parent.Stages)
 local Strings = require(script.Parent.Strings)
 local Roles = require(script.Parent.Parent.Roles)
+local Cinematics = require(script.Parent.Cinematics)
+local Config = require(script.Parent.Parent.Config)
+local Subjects = require(script.Parent.Subjects)
+local DayPlans = require(script.Parent.DayPlans)
 
 local Validate = {}
 
@@ -20,13 +24,25 @@ local STEP_TYPES = {
 	Group = { "Steps" },
 	Moment = {},
 	Transition = {},
+	Cinematic = { "Id" },
+	Class = { "Subject", "Mode", "Place" },
 }
+local function isRef(value: any): boolean
+	return type(value) == "string" and value:sub(1, 9) == "$Carrera."
+end
 local GROUP_CHILD = { Reach = true, Event = true, Talk = true }
 
 function Validate.run(): { string }
 	local errors = {}
+	local seen = {}
 	local function err(fmt: string, ...)
-		table.insert(errors, fmt:format(...))
+		local message = fmt:format(...)
+		-- Los días generados repiten los mismos textos: cada problema se cuenta una vez
+		local key = message:gsub("%.dia%d+", "")
+		if not seen[key] then
+			seen[key] = true
+			table.insert(errors, key)
+		end
 	end
 	local function text(where: string, key: string?)
 		if key and not Strings.has(key) then
@@ -65,11 +81,25 @@ function Validate.run(): { string }
 			end
 		end
 		text(where, s.TextKey)
-		if s.Type ~= "Moment" and s.Type ~= "Transition" and not s.TextKey then
+		if s.Type ~= "Moment" and s.Type ~= "Transition" and s.Type ~= "Cinematic" and not s.TextKey then
 			err("%s: el paso %s necesita TextKey", where, s.Type)
 		end
-		if (s.Type == "Reach" or s.Place ~= nil) and not Locations.Places[s.Place] then
+		if (s.Type == "Reach" or s.Place ~= nil) and not isRef(s.Place) and not Locations.Places[s.Place] then
 			err("%s: lugar desconocido '%s'", where, tostring(s.Place))
+		end
+		if s.Type == "Class" then
+			if not isRef(s.Subject) and not Subjects.List[s.Subject] then
+				err("%s: asignatura desconocida '%s'", where, tostring(s.Subject))
+			end
+			if not Subjects.Modes[s.Mode] then
+				err("%s: modo de clase desconocido '%s'", where, tostring(s.Mode))
+			end
+		end
+		if s.Type == "Cinematic" and not Cinematics[s.Id] then
+			err("%s: cinemática desconocida '%s'", where, tostring(s.Id))
+		end
+		if s.Cinematic and not Cinematics[s.Cinematic] then
+			err("%s: cinemática desconocida '%s'", where, tostring(s.Cinematic))
 		end
 		if s.Type == "Choice" then
 			text(where, s.PromptKey)
@@ -102,7 +132,23 @@ function Validate.run(): { string }
 		elseif quest.Kind ~= "Main" then
 			err("%s: Kind debe ser Main o Side", id)
 		end
-		if #quest.Steps == 0 then
+		if quest.DayPlan then
+			if not DayPlans.Plans[quest.DayPlan] then
+				err("%s: DayPlan desconocido '%s'", id, quest.DayPlan)
+			else
+				-- Se generan muchos días de prueba y se revisa cada paso
+				local rng = Random.new(1)
+				for day = 1, 150 do
+					local plan = DayPlans.generate(quest.DayPlan, rng)
+					if plan then
+						text(id .. ".dia" .. day, plan.TitleKey)
+						for i, s in plan.Steps do
+							step(id .. ".dia" .. day .. ".s" .. i, s, false)
+						end
+					end
+				end
+			end
+		elseif #quest.Steps == 0 then
 			err("%s: no tiene pasos", id)
 		end
 		for i, s in quest.Steps do
@@ -129,6 +175,17 @@ function Validate.run(): { string }
 				err("capítulo %s: '%s' no es Main", id, questId)
 			end
 		end
+		if chapter.Loop and not (Quests[chapter.Loop] and Quests[chapter.Loop].DayPlan) then
+			err("capítulo %s: Loop debe ser una misión con DayPlan ('%s')", id, chapter.Loop)
+		end
+		for _, field in { "IntroCinematic", "OutroCinematic" } do
+			if chapter[field] and not Cinematics[chapter[field]] then
+				err("capítulo %s: %s desconocida '%s'", id, field, chapter[field])
+			end
+		end
+		if chapter.Music and not Config.Audio.Music[chapter.Music] then
+			err("capítulo %s: música desconocida '%s'", id, chapter.Music)
+		end
 		if chapter.Next and not Chapters[chapter.Next] then
 			err("capítulo %s: Next inexistente '%s'", id, chapter.Next)
 		end
@@ -139,6 +196,71 @@ function Validate.run(): { string }
 		if not (place.Model or place.Tag or place.Special) then
 			err("lugar %s: necesita Model, Tag o Special", id)
 		end
+	end
+
+	for id, cine in Cinematics do
+		local where = "cinemática " .. id
+		if type(cine.Duration) ~= "number" or cine.Duration <= 0 then
+			err("%s: falta Duration", where)
+		end
+		for name, anchor in cine.Anchors or {} do
+			local kind, value = anchor:match("^(%a+):(.+)$")
+			if anchor ~= "Player" and not (kind == "Place" and Locations.Places[value]) and not (kind == "Zone" and table.find(Locations.Zones, value)) then
+				err("%s: ancla %s no válida '%s'", where, name, anchor)
+			end
+		end
+		local function point(p: any)
+			if p and not (cine.Anchors or {})[p[1]] then
+				err("%s: plano con ancla sin definir '%s'", where, tostring(p[1]))
+			end
+		end
+		for _, shot in cine.Shots or {} do
+			if shot.Orbit then
+				point({ shot.Orbit })
+			else
+				point(shot.From)
+				point(shot.To)
+				point(shot.Look)
+				point(shot.LookTo)
+			end
+		end
+		for _, line in cine.Lines or {} do
+			text(where, line.TextKey)
+		end
+		for _, title in cine.Titles or {} do
+			text(where, title.TextKey)
+			text(where, title.SubKey)
+		end
+		if cine.Music and not Config.Audio.Music[cine.Music] then
+			err("%s: música desconocida '%s'", where, cine.Music)
+		end
+		if cine.Sting and not Config.Audio.Stings[cine.Sting] then
+			err("%s: efecto desconocido '%s'", where, cine.Sting)
+		end
+	end
+
+	for id, subject in Subjects.List do
+		text("asignatura " .. id, subject.NameKey)
+		text("asignatura " .. id, subject.Teacher)
+	end
+	for id, mode in Subjects.Modes do
+		text("modo " .. id, mode.NameKey)
+	end
+	for id, degree in Subjects.Degrees do
+		text("carrera " .. id, degree.NameKey)
+		for _, field in { "Facultad", "LugarPracticas" } do
+			if not Locations.Places[degree[field]] then
+				err("carrera %s: lugar desconocido '%s'", id, tostring(degree[field]))
+			end
+		end
+		for _, field in { "Asignatura1", "Asignatura2", "Practica" } do
+			if not Subjects.List[degree[field]] then
+				err("carrera %s: asignatura desconocida '%s'", id, tostring(degree[field]))
+			end
+		end
+	end
+	for _, grade in { 10, 8, 6.5, 5, 2 } do
+		text("nota", Subjects.gradeKey(grade))
 	end
 
 	for id, role in Roles do

@@ -33,6 +33,14 @@ local DEFAULT_DATA = {
 	-- (Stage no va en la plantilla: LifeStoryService decide si un personaje nuevo nace bebé)
 	Life = {
 		AgeYears = Config.LifeStory.DefaultAge,
+		StageSeconds = 0, -- tiempo jugado en la etapa actual
+	},
+	-- Estudios: notas por asignatura, exámenes, títulos y asistencia (ClassService)
+	Education = {
+		Subjects = {},
+		Exams = {},
+		Degrees = {},
+		Attendance = 0,
 	},
 	-- Historia de vida (LifeStoryService): capítulos, misiones, decisiones, memoria de NPC y biografía
 	Story = {
@@ -46,6 +54,7 @@ local DEFAULT_DATA = {
 		Discovered = {},
 		NpcMemory = {},
 		Events = {},
+		Counters = {}, -- cuántos días de cole, de instituto… se han vivido
 	},
 }
 

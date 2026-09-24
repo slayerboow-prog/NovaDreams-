@@ -34,6 +34,9 @@
         },
         "Restaurant": {
           "$className": "RemoteEvent"
+        },
+        "Class": {
+          "$className": "RemoteEvent"
         }
       }
     },
@@ -53,7 +56,7 @@
       "$properties": {
         "Technology": "Future",
         "ClockTime": 14.5,
-        "Brightness": 2.6,
+        "Brightness": 3,
         "EnvironmentDiffuseScale": 1,
         "EnvironmentSpecularScale": 1,
         "GlobalShadows": true,
@@ -68,7 +71,7 @@
           0.5333
         ],
         "ExposureCompensation": 0.15,
-        "ShadowSoftness": 0.3,
+        "ShadowSoftness": 0.12,
         "GeographicLatitude": 38
       },
       "Atmosphere": {

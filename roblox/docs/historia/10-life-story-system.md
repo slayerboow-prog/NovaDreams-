@@ -120,21 +120,16 @@ Grade, Attendance, Knowledge, XP } }, Courses, Degrees }`, `Relationships = { [p
 
 | Capítulo (Id) | Etapa | Contenido | Fase |
 |---|---|---|---|
-| `Bebe_PrimerosPasos` | Bebé | Aprende a caminar → explora tu casa → conoce a tu familia → asómate a la ventana → *"Han pasado varios años…"* | 2–3 (datos listos) |
-| `Nino_ElColegio` | Niño | Primer día de colegio → clases → recreo → amigos → primer examen | 4–8 (primer día listo en datos) |
-| `Nino_Aventuras` | Niño | Excursiones, deporte, música, recados por el barrio (material escolar, farmacia, parque) | 7–8 |
-| `Adolescente_Instituto` | Adolescente | Nuevo instituto, compañeros, equipo, primer examen importante, torneo | 9–10 |
-| `Adolescente_Futuro` | Adolescente | Primer trabajo de verano, visita a la universidad, carnet, **decidir qué estudiar** | 9–11 |
-| `Joven_Universidad` / `Joven_FP` | Adulto joven | Facultad, asignaturas, biblioteca, clubes, residencia, exámenes, proyectos | 12 |
-| `Joven_Practicas` | Adulto joven | Prácticas según la carrera: hospital, empresa, despacho… | 13 |
-| `Joven_Graduacion` | Adulto joven | Ceremonia con compañeros, profesores, familia, fotos, diploma, música | 14 |
-| `Adulto_QueHarasAhora` | Adulto joven | *"¿Qué harás ahora?"*: buscar trabajo, seguir estudiando, emprender, viajar, mudarse | 15 |
-| `Nino_Puente` | Niño | **Puente temporal, jugable ya**: salir al parque, ver tu futuro colegio y salto en el tiempo hasta la vida adulta ("Pasan los años…") | 2 ✅ (se retira al llegar la fase 4) |
-| `Adulto_NuevaVida` | Adulto joven | **Capítulo puente, jugable ya**: llegar a Valmar, conseguir casa, primer sueldo, elegir excursión | 1 ✅ |
+| `Bebe_PrimerosPasos` | Bebé | Aprende a caminar → explora tu casa → conoce a tu familia → asómate a la ventana → *"Han pasado varios años…"* | 2 ✅ |
+| `Nino_ElColegio` | Niño (6–12 años, **~5 h**) | Primer día → primera semana (música, Educación Física) → recados (librería, farmacia) → primer examen → excursión → segundo trimestre → fin de primaria. Entre medias, **días de cole generados** | ✅ |
+| `Adolescente_Instituto` | Adolescente (13–17, **~5 h**) | Nuevo instituto en Campus Valmar → primer trabajo → examen de Tecnología, visita a la universidad y **decidir el futuro** (4 carreras o ponerse a trabajar) | ✅ |
+| `Joven_Universidad` | Adulto joven (18–22, **~5 h**) | Solo si eliges carrera. Facultad, biblioteca, 3 semestres, prácticas (hospital, Tecnoval, bufete, banco) y **graduación** con título | ✅ |
+| `Adulto_NuevaVida` | Adulto | Llegar a tu nueva vida en Valmar: casa, primer sueldo, excursión. También es el capítulo de quien ya jugaba antes | 1 ✅ |
+| `Nino_Puente` | — | Puente temporal de la fase 2 (niño → adulto en 2 minutos). **Desactivado**: lo sustituye la infancia completa | retirado |
 
 Desde la fase 2, **todo personaje nuevo nace bebé** (`Config.LifeStory.NewCharacterStage`). Quien ya jugaba antes de la
-historia de vida (tiene tiempo jugado guardado) sigue de adulto (`VeteranStage`). Mientras no exista la infancia
-completa, la vida jugable hoy es: **bebé → un vistazo de niño → salto en el tiempo → vida adulta**.
+historia de vida (tiene tiempo jugado guardado) sigue de adulto (`VeteranStage`). La vida jugable hoy es:
+**bebé → colegio (5 h) → instituto (5 h) → universidad (5 h) o trabajo → vida adulta**.
 
 **Nada bloquea para siempre:** las decisiones abren caminos pero no cierran otros (se puede volver a estudiar de adulto,
 [Fase 8.2](../diseno/08-educacion.md)); si una misión necesita a otra persona y no hay jugadores, lo cubre un NPC.
@@ -225,12 +220,13 @@ diálogos y el **rol** que cubre (`Profesor`, `Medico`…) para ser el respaldo 
 | Etapa | Duración objetivo | Cómo |
 |---|---|---|
 | Bebé | **5–10 min** (decidido; sustituye la propuesta de 18 min de [04](04-primeros-30-minutos.md)) | Capítulo corto de 3 misiones + transición |
-| Niño | 3–5 sesiones | ~2 jornadas escolares por sesión, cursos resumidos con "Han pasado los meses…" |
-| Adolescente | 3–5 sesiones | Instituto + primer trabajo + decisión |
-| Universidad / FP | 4–6 sesiones | Semestres de pocas clases, exámenes, prácticas, graduación |
+| Niño | **~5 h jugadas** (`Config.LifeStory.StageHours.Nino`) | 7 grandes momentos repartidos por la etapa + días de cole generados entre ellos |
+| Adolescente | **~5 h** (`StageHours.Adolescente`) | 3 grandes momentos + días de instituto generados |
+| Universidad | **~5 h** (`StageHours.AdultoJoven`) | 6 grandes momentos + días de universidad generados |
 
-La edad avanza con los capítulos (transiciones), no con horas de espera: coherente con la regla del diseño de que la
-edad solo avanza jugando ([Fase 6.2](../diseno/06-edades-progresion.md)), pero más rápida en la campaña inicial.
+La edad avanza **con el tiempo jugado en la etapa**: un cumpleaños cada `StageHours / años` (de 6 a 12 en el
+colegio, un cumpleaños cada ~43 min). Coherente con la regla del diseño de que la edad solo avanza jugando
+([Fase 6.2](../diseno/06-edades-progresion.md)). Para cambiar la duración basta con tocar `StageHours`.
 
 ## 10.11 Integración con la educación
 
@@ -270,13 +266,13 @@ Alumno necesita clase de Matemáticas
 | **1** | **LifeStorySystem base**: motor de capítulos y misiones por datos, secundarias, decisiones con ramas, momentos, biografía, memoria de NPC, GameClock, LocationService, RoleService, tarjeta "Tu vida", pantallas, línea guía, validador y pruebas. Capítulo puente jugable | ✅ **Hecho** |
 | **2** | **Tutorial de bebé (5–10 min)**: nacer en una casa familiar de Los Pinos, gatear, levantarse, primeros pasos, Abu y la familia (NPC con diálogos), explorar la casa, primera necesidad (el biberón), mirar la ciudad por el ventanal y "Han pasado varios años…" | ✅ **Hecho** (ver 10.16) |
 | 3 | Transición a niño: ~~escala del personaje~~ ✅ (LifeService), ropa por etapa, edad por tiempo jugado y cumpleaños | Escala, velocidad y límites por edad ya hechos |
-| 4 | Primer día de colegio (aula, profesor, compañero) | Datos listos |
-| 5 | Sistema de clases (actividades por asignatura) | — |
-| 6 | Profesores jugadores + NPC de respaldo | RoleService listo |
-| 7 | Recreo y relaciones (secundarias sociales, RelationshipService, EventDirector) | — |
-| 8 | Exámenes y calificaciones | — |
-| 9–11 | Adolescencia, instituto, elección educativa | — |
-| 12–14 | Universidad, prácticas, graduación | — |
+| 4 | Primer día de colegio (aula, profesora Lucía, compañeros) | ✅ Hecho (ver 10.18) |
+| 5 | Sistema de clases (preguntas y circuito de Educación Física) | ✅ Hecho (`ClassService`) |
+| 6 | Profesores jugadores + NPC de respaldo | ✅ Las clases piden profesor a `RoleService`; falta el turno completo del profesor jugador |
+| 7 | Recreo y relaciones (secundarias sociales, RelationshipService, EventDirector) | Compañeros NPC con memoria ✅; relaciones completas — |
+| 8 | Exámenes y calificaciones | ✅ Notas 0–10 guardadas en `Education` |
+| 9–11 | Adolescencia, instituto, elección educativa | ✅ Hecho |
+| 12–14 | Universidad, prácticas, graduación | ✅ Hecho (4 carreras) |
 | 15 | Transición a la vida profesional ("¿Qué harás ahora?") | — |
 
 ## 10.14 Normas de Roblox que afectan a la campaña
@@ -293,8 +289,9 @@ Alumno necesita clase de Matemáticas
 ## 10.15 Cómo probarlo
 
 - **Prueba automática** (programador): `lune run scripts/test-lifestory.luau` desde `roblox/`. Simula el capítulo
-  puente, una secundaria, una decisión con ramas, el tutorial de bebé completo (nacer → niño → adulto) y la espera al
-  horario del colegio. Resultado actual: todas las comprobaciones en verde.
+  puente, una secundaria, una decisión con ramas, el tutorial de bebé y **una vida entera**: colegio con días
+  generados y cumpleaños, instituto, elegir Ingeniería, universidad y graduación, y la rama de ponerse a trabajar.
+  También comprueba que no haya misiones ni textos repetidos. Resultado actual: todas las comprobaciones en verde.
 - **En Roblox Studio:** el archivo `RealLifeSimulator.rbxl` hay que regenerarlo con los scripts nuevos
   (`rojo build` + `build-place`, ver el README). Esta sesión no lo toca porque el mapa y ese archivo los lleva otra
   sesión. Al pulsar Play en Studio (sin guardado activado, cada prueba es un personaje nuevo) naces bebé junto a la
@@ -326,3 +323,79 @@ Un bebé no puede salir solo de casa (si se aleja, vuelve junto a la cuna), ni t
 **Piezas nuevas:** `BabyService` (casa, familia NPC, eventos del bebé), `LifeService` (tamaño, velocidad y límites por
 etapa), `client/Controllers/Baby.luau` (botón, globos de diálogo, vista de la ciudad), lugares de la casa en
 `Locations.luau` ("estar dentro" de una habitación), y la línea guía también para pasos de hablar o mirar.
+
+## 10.17 Cinemáticas, voces y música
+
+Los momentos clave de la vida tienen **escena de cámara, subtítulos con voz y música**. Todo son datos
+(`src/shared/LifeStory/Cinematics.luau` y `Config.Audio`), así que añadir una escena nueva no requiere programar.
+
+| Momento | Cinemática | Música | Voz |
+|---|---|---|---|
+| Nacer | `Bebe_Nacimiento`: Los Pinos desde el cielo → tu casa → la cuna. Rótulo "Valmar · Un día de primavera" | Nana (`nacimiento`) | Abu: *"Te damos la bienvenida al mundo, {nombre}…"* |
+| Mientras eres bebé | — | La nana, bajita, de fondo en casa | Abu y tu familia en cada conversación |
+| Primeros pasos | `Bebe_PrimerosPasos`: la cámara da una vuelta alrededor del bebé | Efecto *primeros pasos* | Abu: *"¡Has llegado hasta aquí sin ayuda!"* |
+| Mirar por el ventanal | `Bebe_Ventanal`: la cámara sale por la ventana y sube sobre Valmar. Rótulo "Valmar · Donde el valle se encuentra con el mar" | Tema de Valmar | Abu: *"Algún día lo recorrerás entero."* |
+| Han pasado varios años | `Bebe_AnosDespues`: la cámara sube desde la casa hasta el cielo | *Pasan los años* | Rótulos |
+| De niño a adulto | `Nino_Creces`: vuelo por Los Pinos, Campus Valmar, Distrito Financiero y el Centro ("El colegio…", "El instituto…", "…ya has crecido") | *Pasan los años* | Rótulos |
+| Llegar a Valmar de adulto | `Adulto_Llegada`: vuelta sobre la Plaza Mayor | *Vida adulta* | Narrador: *"Aquí empieza tu vida adulta. ¿Qué harás con ella?"* |
+| Valmar ya es tu ciudad | `Adulto_TuCiudad`: la cámara se aleja de ti hacia el centro | Tema de Valmar | Rótulo |
+| Cada momento de vida | — | Efecto *momento* | — |
+
+**Cómo se ven:** bandas negras de cine, se ocultan los menús, el personaje se queda quieto y hay un botón **Saltar**.
+La historia sigue igual aunque se salte. Si una ancla (tu casa, tu ventanal…) no existe en el mapa, la cámara usa al
+jugador, así nunca queda mirando al vacío. El servidor pide al mapa que cargue las zonas que va a enseñar la cámara.
+
+**Música:** original, compuesta por código (`scripts/audio/compose.py` → `roblox/audio/`). Hay que subirla a Roblox una
+vez y pegar sus IDs en `Config.Audio` (instrucciones en [`roblox/audio/README.md`](../../audio/README.md)). Con `Id = 0`
+no suena y todo lo demás funciona.
+
+**Voces:** siempre hay subtítulos. Además:
+- **Voces grabadas** (opcional): `Config.Audio.Voices.Lines["DLG.ABU.NACER.01"] = <ID del audio>` y esa frase suena
+  con la grabación.
+- **Voz sintetizada de Roblox** (`AudioTextToSpeech`): si el motor la tiene, los personajes leen sus frases con el
+  tono de cada uno (`Config.Audio.Voices.Speakers`: Abu, Familia, Narrador). Es una función reciente de Roblox: puede
+  que no esté disponible en todas las cuentas o que lea el español con acento. Si falla, se desactiva sola y quedan los
+  subtítulos. Se puede apagar con `Voices.TextToSpeech = false`.
+
+**Silenciar:** botón 🔊/🔇 junto al dinero.
+
+**Piezas:** `CinematicService` (servidor: anclas y carga del mapa), `Controllers/Cinematics.luau` (cámara, bandas,
+rótulos, subtítulos, saltar), `Controllers/StoryAudio.luau` (música con fundidos, efectos, voces y silencio). En los
+datos: `Transition.Cinematic`, el paso `Cinematic`, `Chapter.IntroCinematic/OutroCinematic/Music` y
+`Quest.MomentSting`.
+
+## 10.18 Colegio, instituto y universidad jugables (5 horas por etapa)
+
+**Problema que resolvía:** tras el bebé, el puente temporal saltaba en 2 minutos a la vida adulta ("buscar trabajo").
+Ahora cada etapa dura unas **5 horas de juego** y se vive de verdad.
+
+**Cómo funciona:**
+
+- **Grandes momentos** (`Quests.luau`): cada uno tiene `Requires.StageProgress` (0–1), la parte de la etapa que hay
+  que haber jugado. Ejemplo: `Nino_Excursion` pide 0.5 = a mitad del colegio.
+- **Días normales** (`DayPlans.luau`): si el siguiente gran momento aún no toca, el capítulo lanza su `Loop`
+  (`Nino_Jornada`, `Adol_Jornada`, `Uni_Jornada`). Cada día se genera al azar: entrada, 2–3 clases, recreo con un
+  amigo y vuelta a casa; a veces día de deporte, examen sorpresa, excursión por el barrio o recado en una tienda.
+- **Clases que se juegan** (`ClassService` + cliente `ClassUI`): paso `{ Type = "Class", Subject, Mode, Place }`.
+  Al llegar al aula empieza sola (si el aula no existe en el mapa, empieza igual a los 8 s: nunca bloquea).
+  Modos: Clase (8 preguntas), Estudio, Examen (10), Prácticas y Circuito (Educación Física: correr a aros en la pista).
+  334 preguntas escritas (`QuestionBank.luau`) + preguntas generadas que no se repiten (`QuestionGen.luau`:
+  aritmética, álgebra, cálculo, contabilidad). El servidor guarda la respuesta buena: no se puede hacer trampa.
+  Nota de 0 a 10 guardada en `data.Education`, con eventos `LessonCompleted`, `ExamGraded`, `Studied`, `PracticeDone`.
+- **Carreras** (`Subjects.Degrees`): Medicina, Ingeniería, Derecho y Economía. Las misiones de universidad usan
+  `$Carrera.Facultad`, `$Carrera.Asignatura1`… que se resuelven con la decisión `Choices.Estudios`.
+  Quien elige "ponerse a trabajar" salta la universidad (`Requires.Flags = { "VaALaUniversidad" }`).
+- **Gente del colegio** (`SchoolService`): Nico, Sara y Omar en cada patio (tag `RecessArea`) y la profe Lucía junto a
+  la pizarra (`TeacherSpot`). Recuerdan si ya os conocéis (memoria de NPC).
+- **Tiendas** (`ShopService`, `ShopItems.luau`): librería, farmacia, heladería… en las partes con tag `Shop` + `ShopId`.
+  Comprar emite `BoughtItem` (sirve para los recados).
+
+**Mapa estilo MMO** (cliente `MapUI`): minimapa redondo arriba a la derecha (baja si hay panel de trabajo) con calles,
+tu flecha, tu objetivo ★ (en el borde si está lejos), los demás jugadores y el nombre de la zona. Tecla **M** o botón 🗺️:
+mapa grande de toda la región. Lee las calles de `ReplicatedStorage.Ambient.Roads` y las zonas de
+`ReplicatedStorage.MapZones` (las publica `LocationService`), así que se adapta si el mapa cambia.
+
+**Lo que necesita del mapa** (lo pone la sesión del mapa, ver `docs/mapa/ETIQUETAS.md`): `SchoolEntrance`, `Classroom`,
+`MusicRoom`, `RecessArea`, `PEArea`, `TeacherSpot`, modelos `Facultad` con atributo `Faculty`, `Library`, `Shop` + `ShopId`.
+Si falta alguno, la historia sigue igual (la clase empieza donde estés).
+

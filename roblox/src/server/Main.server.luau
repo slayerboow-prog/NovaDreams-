@@ -44,8 +44,12 @@ local order = {
 	"DrivingSchoolService", -- autoescuela: carnet de moto y de coche
 	"ArcadeService", -- recreativos: juegos de bolas, tickets y premios
 	"LocationService",
+	"CinematicService",
+	"ShopService", -- tiendas donde se hacen los recados
+	"ClassService", -- clases y exámenes que se juegan (lo usa la historia)
 	"LifeStoryService", -- la historia de vida escucha a todos los anteriores
 	"BabyService", -- tutorial de bebé (fase 2)
+	"SchoolService", -- compañeros y profe en cada colegio
 }
 
 for _, name in order do

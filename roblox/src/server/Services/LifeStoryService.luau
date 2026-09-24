@@ -25,10 +25,14 @@ local Locations = require(LifeStory.Locations)
 local Conditions = require(LifeStory.Conditions)
 local Stages = require(LifeStory.Stages)
 local Validate = require(LifeStory.Validate)
+local Subjects = require(LifeStory.Subjects)
+local DayPlans = require(LifeStory.DayPlans)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 local DataService = require(script.Parent.DataService)
 local LocationService = require(script.Parent.LocationService)
 local RoleService = require(script.Parent.RoleService)
+local CinematicService = require(script.Parent.CinematicService)
+local ClassService = require(script.Parent.ClassService)
 
 local LifeStoryService = {}
 
@@ -53,9 +57,13 @@ type Runtime = {
 	Waiting: { QuestId: string, Reason: string }?,
 	LastPublished: string?,
 	LastRemote: number,
-	Ready: boolean, -- el cliente ya escucha (si no, los avisos de capítulo se perderían)
+	Ready: boolean,
+	ClassFor: string?, -- paso de clase que se está jugando ahora
+	ClassWaitSince: { [string]: number }, -- desde cuándo se espera un aula que no aparece en el mapa -- el cliente ya escucha (si no, los avisos de capítulo se perderían)
 }
 local runtime: { [Player]: Runtime } = {}
+local dayRng = Random.new()
+local growUp -- se define más abajo
 
 local chapterOrder: { string } = {}
 for id in Chapters do
@@ -77,6 +85,28 @@ local function storyOf(data: Data): Data
 	return data.Story
 end
 
+-- Pasos de una misión: los días generados (DayPlans) guardan los suyos en el progreso
+local function stepsOf(questId: string, prog: Progress?): { { [string]: any } }
+	if prog and (prog :: any).Steps then
+		return (prog :: any).Steps
+	end
+	local quest = Quests[questId]
+	return if quest then quest.Steps else {}
+end
+
+local function titleOf(questId: string, prog: Progress?): string
+	return (prog and (prog :: any).TitleKey) or Quests[questId].TitleKey
+end
+
+-- Cuánto de la etapa actual se ha jugado (0 = recién empezada, 1 = su duración completa)
+local function stageProgress(data: Data): number
+	local hours = Config.LifeStory.StageHours[data.Life.Stage]
+	if not hours or hours <= 0 then
+		return 1
+	end
+	return (data.Life.StageSeconds or 0) / (hours * 3600)
+end
+
 local function contextFor(player: Player, data: Data): Conditions.Context
 	local now = GameClock.now()
 	local story = storyOf(data)
@@ -89,6 +119,7 @@ local function contextFor(player: Player, data: Data): Conditions.Context
 		Choices = story.Choices,
 		Discovered = story.Discovered,
 		Duties = RoleService.dutiesOf(player),
+		StageProgress = stageProgress(data),
 	}
 end
 
@@ -121,8 +152,8 @@ function LifeStoryService.logEvent(player: Player, key: string, args: { [string]
 	end
 end
 
-local function moment(player: Player, key: string, args: { [string]: any }?)
-	send(player, "Moment", { TextKey = key, Args = args })
+local function moment(player: Player, key: string, args: { [string]: any }?, sting: string?)
+	send(player, "Moment", { TextKey = key, Args = args, Sting = sting })
 	LifeStoryService.logEvent(player, key, args, "Moment")
 end
 
@@ -173,7 +204,13 @@ function LifeStoryService.setStage(player: Player, stage: string)
 		return
 	end
 	data.Life.Stage = stage
+	data.Life.StageSeconds = 0
+	local ages = Config.LifeStory.AgeRange[stage]
+	if ages then
+		data.Life.AgeYears = ages[1]
+	end
 	player:SetAttribute("LifeStage", stage)
+	player:SetAttribute("AgeYears", data.Life.AgeYears)
 	LifeStoryService.logEvent(player, "STAGE." .. stage, nil, "Stage")
 	task.defer(refresh, player)
 end
@@ -182,11 +219,30 @@ end
 -- Publicar el estado al cliente (tarjeta "Tu vida" y línea guía)
 ---------------------------------------------------------------------
 
-local function placeArgs(step: { [string]: any }, prog: Progress?): { [string]: any }
+-- La carrera que eligió el jugador (para "$Carrera.Facultad", "$Carrera.Asignatura1"…)
+local function degreeOf(story: Data): string?
+	local choice = story.Choices.Estudios
+	return choice and choice.V
+end
+
+local function stepPlace(step: { [string]: any }, story: Data): string?
+	return Subjects.resolve(step.Place, degreeOf(story))
+end
+
+local function placeArgs(step: { [string]: any }, prog: Progress?, story: Data): { [string]: any }
 	local args: { [string]: any } = {}
-	if step.Place then
-		local place = Locations.Places[step.Place]
+	local placeId = stepPlace(step, story)
+	if placeId then
+		local place = Locations.Places[placeId]
 		args.placeKey = place and place.NameKey
+	end
+	local subjectId = Subjects.resolve(step.Subject, degreeOf(story))
+	if subjectId and Subjects.List[subjectId] then
+		args.subjectKey = Subjects.List[subjectId].NameKey
+	end
+	local degree = Subjects.Degrees[degreeOf(story) or ""]
+	if degree then
+		args.degreeKey = degree.NameKey
 	end
 	if step.Type == "Event" and (step.Count or 1) > 1 then
 		args.count = if prog then prog.Count else 0
@@ -221,6 +277,7 @@ local function publish(player: Player, force: boolean?)
 	local chapter = story.Chapter and Chapters[story.Chapter]
 	local state: { [string]: any } = {
 		ChapterTitleKey = chapter and chapter.TitleKey,
+		ChapterMusic = chapter and chapter.Music,
 		Stage = data.Life.Stage,
 		Others = {},
 	}
@@ -230,16 +287,16 @@ local function publish(player: Player, force: boolean?)
 	if trackedId then
 		local quest = Quests[trackedId]
 		local prog: Progress = story.Active[trackedId]
-		local step = quest.Steps[prog.Step]
-		local tracked: { [string]: any } = { QuestId = trackedId, Kind = quest.Kind, TitleKey = quest.TitleKey }
+		local step = stepsOf(trackedId, prog)[prog.Step]
+		local tracked: { [string]: any } = { QuestId = trackedId, Kind = quest.Kind, TitleKey = titleOf(trackedId, prog) }
 		if step then
 			tracked.TextKey = step.TextKey
-			tracked.Args = placeArgs(step, prog)
+			tracked.Args = placeArgs(step, prog, story)
 			if step.Type == "Group" then
 				tracked.Children = {}
 				for i, child in step.Steps do
 					local done = prog.Sub ~= nil and prog.Sub[tostring(i)] == true
-					table.insert(tracked.Children, { TextKey = child.TextKey, Args = placeArgs(child), Done = done })
+					table.insert(tracked.Children, { TextKey = child.TextKey, Args = placeArgs(child, nil, story), Done = done })
 					if not done and child.Type == "Reach" and not target then
 						local spot = rt.Spots[spotKey(trackedId, prog, i)]
 						target = spot and spot.Position
@@ -264,7 +321,7 @@ local function publish(player: Player, force: boolean?)
 	end
 	for id in story.Active do
 		if id ~= trackedId then
-			table.insert(state.Others, { QuestId = id, TitleKey = Quests[id].TitleKey })
+			table.insert(state.Others, { QuestId = id, TitleKey = titleOf(id, story.Active[id]) })
 		end
 	end
 	table.sort(state.Others, function(a, b)
@@ -284,6 +341,7 @@ end
 ---------------------------------------------------------------------
 
 local completeQuest -- se define más abajo
+local advance -- se define más abajo
 
 local function sendChoice(player: Player, questId: string, step: { [string]: any })
 	local options = {}
@@ -304,7 +362,7 @@ local function enterStep(player: Player, data: Data, questId: string)
 		if not prog then
 			return
 		end
-		local step = quest.Steps[prog.Step]
+		local step = stepsOf(questId, prog)[prog.Step]
 		if not step then
 			completeQuest(player, data, questId)
 			return
@@ -321,7 +379,11 @@ local function enterStep(player: Player, data: Data, questId: string)
 			prog.Step += 1
 			continue
 		elseif step.Type == "Transition" then
-			send(player, "Transition", { TextKey = step.TextKey, Seconds = step.Seconds or 4 })
+			if step.Cinematic then
+				CinematicService.play(player, step.Cinematic)
+			else
+				send(player, "Transition", { TextKey = step.TextKey, Seconds = step.Seconds or 4 })
+			end
 			if step.SetStage then
 				LifeStoryService.setStage(player, step.SetStage)
 			end
@@ -333,6 +395,17 @@ local function enterStep(player: Player, data: Data, questId: string)
 			prog.Sub = {}
 		elseif step.Type == "Choice" then
 			sendChoice(player, questId, step)
+		elseif step.Type == "Cinematic" then
+			-- La escena se ve en el cliente; la historia sigue cuando termina
+			local duration = CinematicService.play(player, step.Id)
+			local index = prog.Step
+			task.delay(duration, function()
+				local current = DataService.get(player)
+				local now = current and storyOf(current).Active[questId]
+				if now and now.Step == index then
+					advance(player, current, questId)
+				end
+			end)
 		end
 		break
 	end
@@ -347,7 +420,7 @@ local function enterStep(player: Player, data: Data, questId: string)
 	publish(player)
 end
 
-local function advance(player: Player, data: Data, questId: string)
+function advance(player: Player, data: Data, questId: string)
 	local prog = storyOf(data).Active[questId]
 	if prog then
 		prog.Step += 1
@@ -361,7 +434,18 @@ local function startQuest(player: Player, data: Data, questId: string)
 		return
 	end
 	local quest = Quests[questId]
-	story.Active[questId] = { Step = 1, Count = 0, Started = os.time(), Kind = quest.Kind }
+	local prog: any = { Step = 1, Count = 0, Started = os.time(), Kind = quest.Kind }
+	if quest.DayPlan then
+		-- Día generado: cada vez con asignaturas y sorpresas distintas
+		local plan = DayPlans.generate(quest.DayPlan, dayRng)
+		if plan then
+			prog.Steps = plan.Steps
+			prog.TitleKey = plan.TitleKey
+		end
+		story.Counters = story.Counters or {}
+		story.Counters[questId] = (story.Counters[questId] or 0) + 1
+	end
+	story.Active[questId] = prog
 	if quest.Kind == "Main" then
 		story.Tracked = questId
 	end
@@ -383,6 +467,18 @@ local function giveRewards(player: Player, data: Data, rewards: { [string]: any 
 		LifeStoryService.remember(player, entry.Npc, entry.Fact)
 		LifeStoryService.addAffinity(player, entry.Npc, 1)
 	end
+	if rewards.Degree then
+		-- Título conseguido ("$Carrera.Titulo" -> "Grado_Medicina") con la nota media de la carrera
+		local title = Subjects.resolve(rewards.Degree, degreeOf(story))
+		if title then
+			local sum, count = 0, 0
+			for _, entry in data.Education.Subjects do
+				sum += entry.Avg
+				count += 1
+			end
+			data.Education.Degrees[title] = { Grade = if count > 0 then math.round(sum / count * 10) / 10 else 5, At = os.time() }
+		end
+	end
 	if rewards.SetStage then
 		LifeStoryService.setStage(player, rewards.SetStage)
 	end
@@ -398,7 +494,9 @@ function completeQuest(player: Player, data: Data, questId: string)
 	end
 	giveRewards(player, data, quest.Rewards)
 	if quest.MomentKey then
-		moment(player, quest.MomentKey)
+		local sting = if quest.MomentSting == false then nil else (quest.MomentSting or "Momento")
+		local args = if quest.DayPlan then { n = story.Counters[questId] or 1 } else nil
+		moment(player, quest.MomentKey, args, sting :: string?)
 	end
 	refresh(player)
 end
@@ -407,13 +505,25 @@ end
 -- Capítulos y misiones principales: qué toca ahora en tu vida
 ---------------------------------------------------------------------
 
-local function chapterFits(chapter: Chapters.Chapter, stage: string): boolean
-	return chapter.Enabled and Stages.inRange(stage, chapter.Stage.Min, chapter.Stage.Max)
+local function chapterFits(chapter: Chapters.Chapter, stage: string, story: Data): boolean
+	if not chapter.Enabled or not Stages.inRange(stage, chapter.Stage.Min, chapter.Stage.Max) then
+		return false
+	end
+	-- Requisitos del capítulo (decisiones y marcas: "fue a la universidad"…); la hora no cuenta aquí
+	return (Conditions.check(chapter.Requires, {
+		Stage = stage,
+		ClockTime = 12,
+		Weekday = 1,
+		Completed = story.Completed,
+		Flags = story.Flags,
+		Choices = story.Choices,
+		Discovered = story.Discovered,
+	}))
 end
 
 local function pickChapter(story: Data, stage: string): string?
 	for _, id in chapterOrder do
-		if not story.Chapters[id] and chapterFits(Chapters[id], stage) then
+		if not story.Chapters[id] and chapterFits(Chapters[id], stage, story) then
 			return id
 		end
 	end
@@ -432,7 +542,11 @@ function refresh(player: Player)
 	local function enterChapter(id: string)
 		story.Chapter = id
 		local chapter = Chapters[id]
-		send(player, "Chapter", { TitleKey = chapter.TitleKey, TextKey = chapter.IntroKey, Phase = "Intro" })
+		if chapter.IntroCinematic then
+			CinematicService.play(player, chapter.IntroCinematic)
+		else
+			send(player, "Chapter", { TitleKey = chapter.TitleKey, TextKey = chapter.IntroKey, Phase = "Intro" })
+		end
 		LifeStoryService.logEvent(player, chapter.TitleKey, nil, "Chapter")
 	end
 
@@ -440,7 +554,7 @@ function refresh(player: Player)
 		local chapter = story.Chapter and Chapters[story.Chapter]
 		-- Si el capítulo terminó justo cuando cambió la etapa (la última misión hace crecer al
 		-- personaje), se da por terminado aquí; la pantalla de cambio de etapa ya lo ha contado.
-		if chapter and not story.Chapters[chapter.Id] and not chapterFits(chapter, stage) then
+		if chapter and not story.Chapters[chapter.Id] and not chapterFits(chapter, stage, story) then
 			local allDone = true
 			for _, questId in chapter.Main do
 				allDone = allDone and story.Completed[questId] ~= nil
@@ -449,7 +563,7 @@ function refresh(player: Player)
 				story.Chapters[chapter.Id] = os.time()
 			end
 		end
-		if not chapter or story.Chapters[chapter.Id] or not chapterFits(chapter, stage) then
+		if not chapter or story.Chapters[chapter.Id] or not chapterFits(chapter, stage, story) then
 			local nextId = pickChapter(story, stage)
 			if not nextId then
 				story.Chapter = nil
@@ -484,9 +598,13 @@ function refresh(player: Player)
 		if not pending then
 			-- Capítulo terminado
 			story.Chapters[chapter.Id] = os.time()
-			send(player, "Chapter", { TitleKey = chapter.TitleKey, TextKey = chapter.OutroKey, Phase = "Outro" })
+			if chapter.OutroCinematic then
+				CinematicService.play(player, chapter.OutroCinematic)
+			else
+				send(player, "Chapter", { TitleKey = chapter.TitleKey, TextKey = chapter.OutroKey, Phase = "Outro" })
+			end
 			local nextChapter = chapter.Next and Chapters[chapter.Next]
-			if nextChapter and not story.Chapters[nextChapter.Id] and chapterFits(nextChapter, stage) then
+			if nextChapter and not story.Chapters[nextChapter.Id] and chapterFits(nextChapter, stage, story) then
 				enterChapter(nextChapter.Id)
 			else
 				story.Chapter = nil
@@ -497,6 +615,10 @@ function refresh(player: Player)
 		if ok then
 			startQuest(player, data, pending)
 			return -- startQuest ya publica
+		elseif reason == "StageProgress" and chapter.Loop and Quests[chapter.Loop] then
+			-- Aún no toca el siguiente gran momento: se vive un día normal (colegio, instituto, universidad)
+			startQuest(player, data, chapter.Loop)
+			return
 		elseif Conditions.isWaitOnly(reason) then
 			rt.Waiting = { QuestId = pending, Reason = reason :: string }
 		end
@@ -574,7 +696,7 @@ local function onStoryEvent(player: Player, name: string, payload: { [string]: a
 	end
 	for _, questId in ids do
 		local prog: Progress? = story.Active[questId]
-		local step = prog and Quests[questId].Steps[prog.Step]
+		local step = prog and stepsOf(questId, prog)[prog.Step]
 		if not prog or not step then
 			continue
 		end
@@ -633,14 +755,14 @@ local function checkReach(player: Player, data: Data, questId: string, prog: Pro
 	local key = spotKey(questId, prog, child)
 	local spot = rt.Spots[key]
 	if not spot or not spot.Instance:IsDescendantOf(workspace) then
-		spot = LocationService.resolve(player, step.Place)
+		spot = LocationService.resolve(player, stepPlace(step, storyOf(data)) or "")
 		rt.Spots[key] = spot
 		if spot then
 			publish(player)
 		end
 	end
 	if spot and LocationService.isAt(player, spot) then
-		storyOf(data).Discovered[step.Place] = true
+		storyOf(data).Discovered[stepPlace(step, storyOf(data)) or "?"] = true
 		return true
 	end
 	return false
@@ -654,7 +776,7 @@ local function tickPlayer(player: Player, data: Data)
 	end
 	for _, questId in ids do
 		local prog: Progress? = story.Active[questId]
-		local step = prog and Quests[questId].Steps[prog.Step]
+		local step = prog and stepsOf(questId, prog)[prog.Step]
 		if not prog or not step then
 			continue
 		end
@@ -683,6 +805,35 @@ local function tickPlayer(player: Player, data: Data)
 			elseif changed then
 				publish(player)
 			end
+		elseif step.Type == "Class" then
+			-- Clase: al llegar al aula empieza sola; si el aula no existe en el mapa, empieza igual a los 8 s
+			local rt = runtime[player]
+			local key = spotKey(questId, prog)
+			if rt.ClassFor == nil and not ClassService.isRunning(player) then
+				local arrived = checkReach(player, data, questId, prog, step)
+				if not arrived and not rt.Spots[key] then
+					rt.ClassWaitSince[key] = rt.ClassWaitSince[key] or os.clock()
+					arrived = os.clock() - rt.ClassWaitSince[key] > 8
+				end
+				if arrived then
+					local subjectId = Subjects.resolve(step.Subject, degreeOf(story))
+					local index = prog.Step
+					rt.ClassFor = key
+					local started = ClassService.start(player, { Subject = subjectId, Mode = step.Mode or "Clase" }, function(result)
+						rt.ClassFor = nil
+						local current = DataService.get(player)
+						local now = current and storyOf(current).Active[questId]
+						if now and now.Step == index then
+							storyOf(current).LastGrade = result.Grade
+							advance(player, current, questId)
+						end
+					end)
+					if not started then
+						rt.ClassFor = nil
+						advance(player, data, questId) -- nunca bloquear la historia
+					end
+				end
+			end
 		elseif step.Place then
 			-- Paso que se completa con un evento, pero con lugar: solo se busca para la línea guía
 			checkReach(player, data, questId, prog, step)
@@ -705,6 +856,25 @@ local function discoverZone(player: Player, data: Data)
 		story.Discovered[key] = true
 		send(player, "Discover", { Zone = zone })
 		LifeStoryService.logEvent(player, "STORY.DISCOVER.ZONE", { zone = zone }, "Place")
+	end
+end
+
+-- El tiempo jugado en la etapa hace crecer al personaje: un cumpleaños cada cierto tiempo
+-- (de 6 a 12 años en el colegio, de 13 a 17 en el instituto, de 18 a 22 en la universidad…)
+function growUp(player: Player, data: Data, seconds: number)
+	local life = data.Life
+	life.StageSeconds = (life.StageSeconds or 0) + seconds
+	local ages = CFG.AgeRange[life.Stage]
+	local hours = CFG.StageHours[life.Stage]
+	if not ages or not hours or hours <= 0 then
+		return
+	end
+	local years = ages[2] - ages[1] + 1
+	local age = math.min(ages[2], ages[1] + math.floor(life.StageSeconds / (hours * 3600 / years)))
+	if age > (life.AgeYears or 0) then
+		life.AgeYears = age
+		player:SetAttribute("AgeYears", age)
+		moment(player, "MOMENT.CUMPLEANOS", { edad = age }, "Momento")
 	end
 end
 
@@ -742,13 +912,16 @@ local function onRemote(player: Player, kind: any, questId: any, value: any)
 		publish(player, true)
 	elseif kind == "Choose" and type(questId) == "string" and type(value) == "string" then
 		local prog = story.Active[questId]
-		local step = prog and Quests[questId] and Quests[questId].Steps[prog.Step]
+		local step = prog and Quests[questId] and stepsOf(questId, prog)[prog.Step]
 		if not step or step.Type ~= "Choice" then
 			return
 		end
 		for _, option in step.Options do
 			if option.Id == value then
 				story.Choices[step.Key] = { V = value, D = GameClock.now().Day }
+				for _, flag in option.Flags or {} do
+					story.Flags[flag] = true
+				end
 				LifeStoryService.logEvent(player, option.TextKey, nil, "Choice")
 				advance(player, data, questId)
 				return
@@ -779,7 +952,8 @@ local function onLoaded(player: Player, data: Data)
 		LifeStoryService.logEvent(player, "STAGE." .. data.Life.Stage, nil, "Stage")
 	end
 	player:SetAttribute("LifeStage", data.Life.Stage)
-	runtime[player] = { Spots = {}, OfferedAt = 0, LastRemote = 0, Ready = false }
+	player:SetAttribute("AgeYears", data.Life.AgeYears)
+	runtime[player] = { Spots = {}, OfferedAt = 0, LastRemote = 0, Ready = false, ClassWaitSince = {} }
 
 	local story = storyOf(data)
 	-- Quitar misiones que ya no existen (por si se borran de los datos en una actualización)
@@ -788,12 +962,21 @@ local function onLoaded(player: Player, data: Data)
 		local quest = Quests[id]
 		if not quest then
 			story.Active[id] = nil
-		elseif quest.Steps[prog.Step] and quest.Steps[prog.Step].Type == "Wait" then
-			prog.WaitUntil = GameClock.now().TotalMinutes + quest.Steps[prog.Step].GameMinutes
-		elseif quest.Steps[prog.Step] and quest.Steps[prog.Step].Type == "Choice" then
+		elseif stepsOf(id, prog)[prog.Step] and stepsOf(id, prog)[prog.Step].Type == "Wait" then
+			prog.WaitUntil = GameClock.now().TotalMinutes + stepsOf(id, prog)[prog.Step].GameMinutes
+		elseif stepsOf(id, prog)[prog.Step] and stepsOf(id, prog)[prog.Step].Type == "Cinematic" then
+			-- Se fue en mitad de una escena: al volver, la historia sigue desde el paso siguiente
+			local index = prog.Step
+			task.delay(4, function()
+				local now = story.Active[id]
+				if player.Parent and now and now.Step == index then
+					advance(player, data, id)
+				end
+			end)
+		elseif stepsOf(id, prog)[prog.Step] and stepsOf(id, prog)[prog.Step].Type == "Choice" then
 			task.delay(4, function()
 				if player.Parent and story.Active[id] and story.Active[id].Step == prog.Step then
-					sendChoice(player, id, quest.Steps[prog.Step])
+					sendChoice(player, id, stepsOf(id, prog)[prog.Step])
 				end
 			end)
 		end
@@ -841,6 +1024,7 @@ function LifeStoryService.init()
 				local data = DataService.get(player)
 				if data and runtime[player].Ready then
 					local ok, err = pcall(function()
+						growUp(player, data, CFG.TickSeconds)
 						tickPlayer(player, data)
 						if slow then
 							slowTick(player, data)
