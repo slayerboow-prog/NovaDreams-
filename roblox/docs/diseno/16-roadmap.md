@@ -5,9 +5,9 @@
 - **Hitos jugables.** Cada hito termina con algo que se puede jugar y probar, no con "código a medias".
 - **Cimientos primero, contenido después.** Los hitos M0–M2 construyen la base sobre la que todo lo demás crece sin rehacer.
 - **Lanzar pronto y mejorar con datos.** Una alfa pública con la vida adulta nos dirá qué gusta antes de invertir meses en lo demás.
-- **El arte va en paralelo.** El mapa se juega en gris y se sustituye por arte final distrito a distrito.
+- **El arte va en paralelo, hecho por código.** Kits de calle, fachadas y viviendas generados siguiendo los estándares de arte, mejorados distrito a distrito.
 
-Las duraciones son orientativas (semanas de trabajo conjunto: yo programo y tú pruebas en Studio y decides). El arte de los edificios puede ir más lento si no hay artistas.
+Las duraciones son orientativas (semanas de trabajo conjunto: yo programo y tú pruebas en Studio y decides). El arte se hace por código a la vez que los sistemas.
 
 ## 16.2 Hitos
 
@@ -27,8 +27,8 @@ Las duraciones son orientativas (semanas de trabajo conjunto: yo programo y tú 
 - Teléfono v1 (estructura y app Mapa/GPS).
 - **Resultado:** puedes recorrer una ciudad grande en gris con GPS.
 
-### M2 — Rebanada vertical: "Vida adulta" (5–6 semanas) → **ALFA**
-- Vida: empezar a los 18 con un pasado, edad por tiempo jugado y etapas adultas.
+### M2 — Rebanada vertical: "Una vida" (6–7 semanas) → **ALFA**
+- Vida: nacer en una familia NPC, etapas con edad por tiempo jugado. Infancia y adolescencia en versión **simplificada** (colegio e instituto básicos) para llegar a la vida adulta, que es el foco de este hito.
 - Necesidades (hambre, energía, higiene, diversión) y habilidades.
 - Economía: libro contable, banco, tarjeta, facturas semanales e impuesto simple.
 - Motor de actividades con 4 módulos: Ruta, Atención al cliente, Cocina y Reparación.
@@ -39,11 +39,11 @@ Las duraciones son orientativas (semanas de trabajo conjunto: yo programo y tú 
 - Monetización básica (VIP rebalanceado, garaje).
 - **Resultado:** primer juego publicable. Alfa con amigos y probadores.
 
-### M3 — Educación, infancia y adolescencia (4–5 semanas)
+### M3 — Educación, infancia y adolescencia completas (4–5 semanas)
 - Sistema de cursos completo: primaria, instituto, bachilleratos, FP y 4 grados universitarios.
 - Carnets y cursos especiales. Distrito Universitario en gris.
 - Etapas bebé, niño y adolescente con escala, límites y colegio jugable.
-- Nacer en una familia NPC.
+- Nacer en una familia de jugadores (con el sistema de hogares básico).
 - Profesiones con título: Enfermero, Médico, Profesor, Programador.
 
 ### M4 — Ciudad viva (5–6 semanas) → **BETA PÚBLICA**
@@ -109,4 +109,4 @@ Aproximadamente **un año hasta una 1.0 completa**, con juego público desde la 
 - **Probar** cada entrega en Studio y contarme qué falla o qué no te gusta.
 - **Decidir** en los puntos de diseño abiertos (ver el índice).
 - **Publicar** y gestionar la experiencia en Roblox (cuenta, grupo, monetización).
-- **Arte:** decidir si contratar constructores o modeladores (Talent Hub de Roblox, Fiverr, etc.), usar recursos del Creator Store o avanzar en gris más tiempo.
+- **Arte:** importar en Studio las mallas 3D que te prepare (un clic por lote) y darme tu opinión sobre el aspecto visual.

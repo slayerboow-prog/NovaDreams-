@@ -26,13 +26,18 @@ Una vida completa dura unas **100 horas jugadas** (valores de configuración aju
 
 ## 6.3 Cómo empezar una vida
 
-| Opción | Para quién |
-|---|---|
-| **Nacer** en una familia (de jugadores o NPC) | La experiencia completa |
-| **Empezar a los 18** con un pasado elegido (ej. "terminó el instituto", "creció en San Roque") | Quien quiere ir directo a la vida adulta |
-| **Continuar el linaje** como hijo de tu personaje anterior (heredero) | Generaciones |
+**Decisión:** todos los personajes **nacen como bebé** y viven todas las etapas: escuela, instituto, universidad o FP, empleo y más allá.
 
-**Recomendación firme:** ofrecer las tres. Obligar a todos a nacer bebé hará perder a muchos jugadores nuevos en los primeros 10 minutos, que es cuando más se pierden. Quien nace bebé recibe ventajas a cambio (habilidades de base más altas, becas…) para que valga la pena.
+| Forma de nacer | Detalle |
+|---|---|
+| En una **familia de jugadores** | Un hogar invita y el nuevo jugador nace como su hijo (ver Fase 12) |
+| En una **familia NPC** | Si no hay familia de jugadores, se nace en un hogar NPC con padres que cuidan de lo básico |
+| Como **heredero** de tu personaje anterior | Generaciones: continúas el linaje (ver Fase 12) |
+
+Para que los primeros minutos enganchen (es cuando más jugadores se pierden):
+- **Bebé e infancia son cortos y muy jugables** (ver la tabla de 6.2: ~45 min de bebé y ~4,5 h de niño). Nada de "esperar a crecer".
+- **Tutorial integrado en la infancia:** los primeros pasos, el colegio y los recados enseñan a moverse, usar el teléfono y el dinero.
+- **Objetivos cortos desde el minuto 1:** primer amigo, primera bici, primer cumpleaños con recompensa.
 
 ## 6.4 Qué desbloquea cada etapa
 

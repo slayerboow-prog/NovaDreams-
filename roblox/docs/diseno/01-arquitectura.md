@@ -117,7 +117,7 @@ roblox/
 | **Selene + StyLua** | Revisión de errores y formato automático |
 | **Tests** (Jest-Lua) | Tests automáticos de la lógica pura: economía, edades, requisitos |
 | **GitHub Actions** | En cada cambio: revisar el código, pasar los tests y generar el `.rbxlx` automáticamente |
-| **Studio** | Construcción visual de edificios (artistas), pruebas y publicación |
+| **Studio** | Pruebas, importar mallas y publicación |
 
 ## 1.7 Qué pasa con la versión 0.1 que ya existe
 

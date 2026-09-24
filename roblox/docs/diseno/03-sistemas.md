@@ -95,7 +95,7 @@ Lo que obliga a rehacer trabajo son los **cimientos mal puestos**: el formato de
 | **Tren con pasajeros** | 🟠 Media | Los jugadores de pie resbalan en plataformas que se mueven por código | Viajar sentado, con puertas cerradas en marcha |
 | **Construcción libre** | 🟠 Media | Tamaño de los datos y validación | Colocación en rejilla, límite de objetos por parcela y guardado comprimido en un store propio |
 | **Economía entre jugadores** | 🟠 Media | Estafas, duplicación de dinero en transferencias entre servidores | Operaciones atómicas con `UpdateAsync` (depósito de garantía), confirmaciones y límites diarios |
-| **Arte del mapa** | 🟠 Media (por volumen) | Cientos de edificios de calidad | Mapa en gris primero y arte por fases con artistas o recursos del Creator Store |
+| **Arte del mapa** | 🟠 Media (por volumen) | Cientos de edificios de calidad | Mapa en gris primero y arte por código por fases (kits de calle, fachadas y viviendas), más mallas importadas |
 | **Rendimiento en móvil** | 🟠 Media | Mapa grande y muchos sistemas | Streaming, presupuestos por casilla, mallas reutilizadas, NPCs en el cliente con niveles de detalle (Fase 15) |
 | **Normas de Roblox** | 🟠 Media (riesgo) | Roblox prohíbe experiencias de citas o romance entre usuarios y regula alcohol, violencia y azar | Pareja y familia como **rol de hogar** sin mecánicas de "ligar". Discotecas sin alcohol. Nada de azar con Robux. Revisar la normativa vigente y el cuestionario de madurez antes de cada sistema sensible |
 | **Límites de DataStore** | 🟡 Media | Máx. 4 MB por clave y cuotas de peticiones por minuto | Datos repartidos en varios stores, guardado por lotes, caché y MemoryStore para lo muy frecuente |

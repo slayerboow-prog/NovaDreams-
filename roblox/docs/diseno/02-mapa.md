@@ -8,7 +8,7 @@
 | La memoria en móvil es limitada | **StreamingEnabled obligatorio.** El cliente solo carga lo que tiene cerca |
 | Cada Part y cada script cuesta rendimiento | Edificios con mallas reutilizadas, interiores cargados bajo demanda y un número de piezas por casilla limitado |
 | Pocos jugadores por servidor (ver Fase 12) | Mapa grande + pocos jugadores = mundo vacío. Los NPCs (Fase 11) y la densidad por zonas lo compensan |
-| Construir el arte a mano es lo más caro del proyecto | El mapa se genera primero en **"gris"** (volúmenes simples) desde datos. Luego se sustituye edificio a edificio por arte final |
+| El arte es lo más costoso del proyecto | El mapa se genera primero en **"gris"** (volúmenes simples) desde datos. Luego se sustituye edificio a edificio por arte final |
 
 Escala: 1 stud ≈ 0,28 m. Un personaje adulto mide ~5 studs.
 
@@ -118,7 +118,7 @@ Estaciones: Central (Centro), una por distrito en L1, y paradas de autobús cada
 
 1. **Layout como datos:** distritos, casillas, calles, parcelas y ubicación de cada servicio (`Registry/World/*`).
 2. **Generador en gris:** el servidor, o un plugin en Studio, genera terreno, carreteras, aceras y volúmenes grises de cada edificio con su nombre. El juego ya es 100% jugable en gris.
-3. **Arte:** los artistas construyen cada edificio en Studio como **Package** (`assets/`) respetando la huella de su parcela y los puntos de interacción marcados (puertas, mostradores, camas…).
+3. **Arte:** generadores de código (kits de calle, fachadas, viviendas) y modelos importados sustituyen cada volumen gris, respetando la huella de su parcela y los puntos de interacción marcados (puertas, mostradores, camas…). Ver [estándares de arte](../arte/ESTANDARES-ARTE.md).
 4. **Sustitución:** el edificio gris se cambia por el Package final sin tocar ningún sistema, porque los sistemas solo buscan etiquetas y puntos de interacción.
 
 Así se puede lanzar pronto con partes en gris, se trabaja el arte en paralelo al código y nunca hace falta rehacer el mapa.
