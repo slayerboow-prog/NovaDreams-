@@ -23,7 +23,7 @@ export type Spec = {
 	Depth: number,
 	Floors: number, -- plantas totales (incluida la baja)
 	Style: string, -- clave de Palette.Styles
-	GroundFloor: "Shop" | "Lobby" | "House" | "Closed",
+	GroundFloor: "Shop" | "Lobby" | "House" | "Closed" | "Garage",
 	GroundHeight: number?,
 	FloorHeight: number?,
 	WallColor: Color3?,
@@ -162,6 +162,25 @@ local function fillOpening(ctx: Ctx, face: CFrame, o: Opening)
 		-- Los escaparates se iluminan de noche (comercios abiertos)
 		glass(ctx, face, o, if ctx.GroundGlassTransparency > 0 then 0.55 else 0, 1)
 		trim(ctx, face, Vector3.new(o.W, 0.3, T + 0.3), o.X, o.Bottom - 0.15, T / 2 - 0.15)
+	elseif o.Kind == "GarageDoor" then
+		Builder.part({
+			Name = "GarageDoor",
+			Size = Vector3.new(o.W, h, 0.3),
+			CFrame = face * CFrame.new(o.X, o.Bottom + h / 2, T * 0.6),
+			Color = Color3.fromRGB(214, 216, 220),
+			Material = Enum.Material.Metal,
+			Parent = ctx.Model,
+		})
+		for k = 1, 4 do
+			Builder.decor({
+				Name = "Slat",
+				Size = Vector3.new(o.W, 0.15, 0.1),
+				CFrame = face * CFrame.new(o.X, o.Bottom + k * h / 5, T * 0.6 - 0.2),
+				Color = Color3.fromRGB(170, 172, 178),
+				Parent = ctx.Model,
+			})
+		end
+		trim(ctx, face, Vector3.new(o.W + 1, 0.6, T + 0.4), o.X, o.Top + 0.3, T / 2)
 	elseif o.Kind == "Door" or o.Kind == "FakeDoor" then
 		for _, side in { -1, 1 } do
 			trim(ctx, face, Vector3.new(0.5, h + 0.5, T + 0.4), o.X + side * (o.W / 2 + 0.25), o.Bottom + (h + 0.5) / 2, T / 2)
@@ -223,13 +242,13 @@ end
 -- Edificio completo
 ---------------------------------------------------------------------
 
-function Building.build(spec: Spec): (Model, (number, number, number) -> CFrame)
+function Building.build(spec: Spec): (Model, (number, number, number) -> CFrame, { Top: number, GroundTop: number })
 	local style: Palette.Style = Palette.Styles[spec.Style] or Palette.Styles.Clasico
 	local model = Builder.model(spec.Name, spec.Parent)
 	local O = spec.CFrame
 	local W, D = spec.Width, spec.Depth
 	local floors = math.max(1, spec.Floors)
-	local G = spec.GroundHeight or (if spec.GroundFloor == "Shop" then 15 elseif spec.GroundFloor == "House" then 11 else 13)
+	local G = spec.GroundHeight or (if spec.GroundFloor == "Shop" then 15 elseif spec.GroundFloor == "House" then 11 elseif spec.GroundFloor == "Garage" then 16 else 13)
 	local FH = spec.FloorHeight or (if spec.GroundFloor == "House" then 10 else 12)
 	local Y1 = FT + G -- techo de la planta baja
 	local top = Y1 + (floors - 1) * FH
@@ -277,7 +296,13 @@ function Building.build(spec: Spec): (Model, (number, number, number) -> CFrame)
 		local ground: { Opening } = {}
 		if isFront then
 			local kind = spec.GroundFloor
-			if kind == "Shop" then
+			if kind == "Garage" then
+				-- Portones grandes (parque de bomberos, talleres)
+				local n = math.clamp(math.floor((L - 6) / 14), 1, 4)
+				for i = 1, n do
+					table.insert(ground, { X = (i - (n + 1) / 2) * 14, W = 10, Bottom = FT, Top = FT + 12, Kind = "GarageDoor" })
+				end
+			elseif kind == "Shop" then
 				table.insert(ground, { X = 0, W = 8, Bottom = FT, Top = FT + 10, Kind = "Door" })
 				local winW = L / 2 - 8
 				if winW >= 4 then
@@ -453,7 +478,7 @@ function Building.build(spec: Spec): (Model, (number, number, number) -> CFrame)
 	end
 
 	model.PrimaryPart = model:FindFirstChild("Floor") :: BasePart
-	return model, at
+	return model, at, { Top = top, GroundTop = Y1 }
 end
 
 return Building

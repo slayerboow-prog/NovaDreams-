@@ -116,7 +116,7 @@ roblox/
 | **Wally** | Librerías de la comunidad: ProfileStore (guardado), una librería de UI declarativa, utilidades de tipos y señales |
 | **Selene + StyLua** | Revisión de errores y formato automático |
 | **Tests** (Jest-Lua) | Tests automáticos de la lógica pura: economía, edades, requisitos |
-| **GitHub Actions** | En cada cambio: revisar el código, pasar los tests y generar el `.rbxlx` automáticamente |
+| **GitHub Actions** | En cada cambio: revisar el código, pasar los tests y generar el `.rbxl` automáticamente |
 | **Studio** | Pruebas, importar mallas y publicación |
 
 ## 1.7 Qué pasa con la versión 0.1 que ya existe

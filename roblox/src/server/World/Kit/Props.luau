@@ -218,4 +218,57 @@ function Props.jobBoard(parent: Instance, cf: CFrame, jobId: string, title: stri
 	return m
 end
 
+-- Vehículos de servicio (decorativos, aparcados). kind: "Police" | "Ambulance" | "FireTruck" | "Bus"
+function Props.vehicle(parent: Instance, cf: CFrame, kind: string)
+	if kind == "Police" then
+		local car = Props.car(parent, cf, Color3.fromRGB(240, 242, 246))
+		if car and car:IsA("Model") and car.Name == "ParkedCar" then
+			Builder.decor({ Name = "Stripe", Size = Vector3.new(6.3, 0.7, 13.6), CFrame = cf * CFrame.new(0, 2.2, 0), Color = Color3.fromRGB(30, 70, 170), Parent = car })
+			Builder.decor({ Name = "LightBarRed", Size = Vector3.new(1.6, 0.5, 1), CFrame = cf * CFrame.new(-0.9, 5.6, 0.6), Color = Color3.fromRGB(230, 40, 40), Material = Enum.Material.Neon, Parent = car })
+			Builder.decor({ Name = "LightBarBlue", Size = Vector3.new(1.6, 0.5, 1), CFrame = cf * CFrame.new(0.9, 5.6, 0.6), Color = Color3.fromRGB(40, 90, 255), Material = Enum.Material.Neon, Parent = car })
+			car.Name = "PoliceCar"
+		end
+		return car
+	end
+
+	local m = Builder.model(kind, parent)
+	local specs = {
+		Ambulance = { Length = 16, Height = 7.5, Color = Color3.fromRGB(244, 244, 240), Stripe = Color3.fromRGB(210, 40, 40) },
+		FireTruck = { Length = 26, Height = 8, Color = Color3.fromRGB(196, 30, 30), Stripe = Color3.fromRGB(240, 240, 240) },
+		Bus = { Length = 34, Height = 9, Color = Color3.fromRGB(40, 110, 200), Stripe = Color3.fromRGB(240, 240, 240) },
+	}
+	local spec = specs[kind] or specs.Ambulance
+	local L, Hh = spec.Length, spec.Height
+	local r = 1.5
+	Builder.part({ Name = "Body", Size = Vector3.new(7, Hh - r, L - 4), CFrame = cf * CFrame.new(0, r + (Hh - r) / 2 + 0.3, 2), Color = spec.Color, Parent = m })
+	Builder.part({ Name = "Cab", Size = Vector3.new(7, Hh - r - 1, 4), CFrame = cf * CFrame.new(0, r + (Hh - r - 1) / 2 + 0.3, -L / 2 + 2), Color = spec.Color, Parent = m })
+	Builder.decor({ Name = "Windshield", Size = Vector3.new(6.2, 2, 0.2), CFrame = cf * CFrame.new(0, Hh - 2.2, -L / 2 - 0.05), Color = Color3.fromRGB(40, 52, 62), Material = Enum.Material.Glass, Parent = m })
+	Builder.decor({ Name = "Stripe", Size = Vector3.new(7.1, 0.8, L - 4), CFrame = cf * CFrame.new(0, r + 2.2, 2), Color = spec.Stripe, Parent = m })
+	if kind == "Bus" then
+		Builder.decor({ Name = "Windows", Size = Vector3.new(7.1, 2.4, L - 8), CFrame = cf * CFrame.new(0, Hh - 2.4, 3), Color = Color3.fromRGB(40, 52, 62), Material = Enum.Material.Glass, Parent = m })
+	end
+	if kind == "FireTruck" then
+		Builder.decor({ Name = "Ladder", Size = Vector3.new(2.4, 0.6, L - 6), CFrame = cf * CFrame.new(0, Hh + 0.6, 3), Color = Color3.fromRGB(200, 202, 206), Material = Enum.Material.Metal, Parent = m })
+	end
+	if kind == "Ambulance" then
+		for _, side in { -1, 1 } do
+			local crossCf = cf * CFrame.new(side * 3.56, r + 4.4, 3)
+			Builder.decor({ Name = "Cross", Size = Vector3.new(0.1, 2.4, 0.8), CFrame = crossCf, Color = spec.Stripe, Parent = m })
+			Builder.decor({ Name = "Cross", Size = Vector3.new(0.1, 0.8, 2.4), CFrame = crossCf, Color = spec.Stripe, Parent = m })
+		end
+	end
+	if kind ~= "Bus" then
+		Builder.decor({ Name = "LightBar", Size = Vector3.new(4, 0.5, 1), CFrame = cf * CFrame.new(0, Hh - 0.45, -L / 2 + 2), Color = if kind == "FireTruck" then Color3.fromRGB(255, 60, 40) else Color3.fromRGB(60, 110, 255), Material = Enum.Material.Neon, Parent = m })
+	end
+	for _, z in { -L / 2 + 3, L / 2 - 4 } do
+		for _, x in { -3.2, 3.2 } do
+			Builder.decor({
+				Name = "Wheel", Shape = Enum.PartType.Cylinder, Size = Vector3.new(1.2, r * 2, r * 2),
+				CFrame = cf * CFrame.new(x, r, z), Color = Color3.fromRGB(26, 26, 28), Material = Enum.Material.Rubber, Parent = m,
+			})
+		end
+	end
+	return m
+end
+
 return Props

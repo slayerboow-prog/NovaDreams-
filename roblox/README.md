@@ -8,7 +8,8 @@ falta construir nada a mano en Roblox Studio.
 
 | Sistema | Qué hace |
 |---|---|
-| 🏙️ Ciudad (Valmar) | Estilo mediterráneo: edificios de varias plantas con balcones, contraventanas, escaparates y toldos; avenida con semáforos, pasos de cebra, farolas y paradas de bus; plaza con fuente y palmeras; coches aparcados; terreno real con colinas; 16 parcelas con casas de muestra |
+| 🗺️ Región de Valmar | **6 ciudades** unidas por carreteras: Valmar Centro, Valmar Norte, San Roque (barrio popular), Playa Dorada (costa con playa y mar), Los Pinos (residencial) y Villaverde (rural, con granjas). Cada una tiene **hospital o centro de salud, colegio, bomberos, policía, centro comercial, gasolinera y parque**, además de manzanas de edificios y casas con jardín |
+| 🚌 Viajes | Autobús interurbano: en la parada del centro de cada ciudad, teclas 1-5 para ir a las demás |
 | 💼 Trabajos | Barista, Reponedor, Basurero y Repartidor. Coges algo, lo llevas al punto marcado con una línea azul y cobras |
 | 🍔 Necesidades | Hambre y energía bajan con el tiempo. Si están bajas caminas más lento y no puedes trabajar |
 | 🏠 Casas | Reclamas una parcela gratis. Mejoras de Estudio → Casa familiar → Chalet → Mansión. Cama para dormir y nevera gratis |
@@ -26,7 +27,7 @@ falta construir nada a mano en Roblox Studio.
 2. Descárgalo, instálalo e inicia sesión con tu cuenta de Roblox.
 
 ### 2. Abre el juego
-1. En esta carpeta de GitHub descarga **`RealLifeSimulator.rbxlx`**: pulsa sobre el archivo y luego en el botón de descarga (⬇).
+1. En esta carpeta de GitHub descarga **`RealLifeSimulator.rbxl`**: pulsa sobre el archivo y luego en el botón de descarga (⬇).
 2. Haz doble clic en el archivo descargado. Se abre en Roblox Studio y ya verás la ciudad.
    También puedes abrir Studio y usar **File → Open from File**.
 
@@ -63,7 +64,7 @@ Al pulsar **Play**, el juego descarga solo los packs gratuitos y oficiales de Sy
 y reconstruye la ciudad con ellos. En **Output** verás una línea `[Assets] Packs disponibles: 2/2 …`.
 
 Si pone `0/2`, la descarga automática no funcionó y hay que importarlos a mano (solo una vez):
-1. Abre `RealLifeSimulator.rbxlx` en Studio.
+1. Abre `RealLifeSimulator.rbxl` en Studio.
 2. **Vista → Caja de herramientas**. Busca **Synty City Pack** y comprueba que es el oficial (creado por Roblox / Synty).
    Haz clic para insertarlo.
 3. En el **Explorador**, clic derecho sobre el pack insertado → **Guardar en archivo…** → `SyntyCity.rbxm`.
@@ -78,7 +79,7 @@ Si pone `0/2`, la descarga automática no funcionó y hay que importarlos a mano
 ```
 roblox/
 ├── default.project.json      ← describe cómo se monta el juego (lo usa Rojo)
-├── RealLifeSimulator.rbxlx            ← el juego listo para abrir en Studio
+├── RealLifeSimulator.rbxl            ← el juego listo para abrir en Studio
 └── src/
     ├── shared/               ← lo usan servidor y cliente
     │   ├── Config.luau       ← ⭐ TODOS los números del juego (sueldos, precios, IDs de Robux…)
@@ -100,12 +101,12 @@ El cliente solo dibuja. Así los tramposos no pueden darse dinero.
 Los scripts viven en esta carpeta y se sincronizan con Studio usando [Rojo](https://rojo.space):
 
 ```bash
-rojo build default.project.json -o RealLifeSimulator.rbxlx   # genera el archivo del juego
-lune run scripts/build-place.luau RealLifeSimulator.rbxlx    # mete la ciudad ya construida dentro (para verla en Studio)
+rojo build default.project.json -o RealLifeSimulator.rbxl   # genera el archivo del juego
+lune run scripts/build-place.luau RealLifeSimulator.rbxl    # mete la ciudad ya construida dentro (para verla en Studio)
 rojo serve                                          # sincroniza en vivo con el plugin de Rojo en Studio
 ```
 
 > ⚠️ Si editas scripts **dentro de Studio**, esos cambios no llegan a GitHub.
-> Lo ideal es pedirme los cambios a mí (o editar los `.luau`) y regenerar `RealLifeSimulator.rbxlx`.
+> Lo ideal es pedirme los cambios a mí (o editar los `.luau`) y regenerar `RealLifeSimulator.rbxl`.
 
 Ver el [documento de diseño](docs/diseno/README.md) y la [hoja de ruta](ROADMAP.md) para lo que viene después.

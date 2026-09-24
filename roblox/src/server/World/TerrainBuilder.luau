@@ -13,26 +13,33 @@ function TerrainBuilder.build()
 	terrain:SetMaterialColor(Enum.Material.Grass, Color3.fromRGB(98, 146, 70))
 	terrain:SetMaterialColor(Enum.Material.Rock, Color3.fromRGB(128, 122, 112))
 
-	-- Llanura: la superficie queda justo en Y = 0
-	terrain:FillBlock(CFrame.new(0, -4, 0), Vector3.new(1200, 8, 1200), Enum.Material.Grass)
+	-- Llanura de la región: la superficie queda justo en Y = 0
+	terrain:FillBlock(CFrame.new(-380, -4, 0), Vector3.new(4040, 8, 4800), Enum.Material.Grass)
 
-	-- Colinas en el horizonte (cierran el mapa sin muros invisibles)
-	local count = 44
+	-- Mar al este de Playa Dorada (fondo de arena y agua)
+	terrain:SetMaterialColor(Enum.Material.Sand, Color3.fromRGB(226, 206, 160))
+	terrain:FillBlock(CFrame.new(1700, -3, 0), Vector3.new(120, 6, 4800), Enum.Material.Sand)
+	terrain:FillBlock(CFrame.new(2100, -14, 0), Vector3.new(800, 8, 4800), Enum.Material.Sand)
+	terrain:FillBlock(CFrame.new(2100, -5.5, 0), Vector3.new(800, 9, 4800), Enum.Material.Water)
+
+	-- Colinas en el horizonte (menos en el lado del mar)
+	local count = 60
 	for i = 1, count do
 		local angle = i / count * math.pi * 2
-		local distance = 560 + math.random(0, 90)
-		local radius = 70 + math.random(0, 60)
-		local center = Vector3.new(math.cos(angle) * distance, -radius * 0.45, math.sin(angle) * distance)
-		terrain:FillBall(center, radius, if math.random() < 0.2 then Enum.Material.Rock else Enum.Material.Grass)
+		if math.cos(angle) < 0.55 then
+			local distance = 2300 + math.random(0, 200)
+			local radius = 90 + math.random(0, 70)
+			local center = Vector3.new(math.cos(angle) * distance - 300, -radius * 0.45, math.sin(angle) * distance)
+			terrain:FillBall(center, radius, if math.random() < 0.2 then Enum.Material.Rock else Enum.Material.Grass)
+		end
 	end
 end
 
--- El suelo de piezas de la ciudad solo sirve para verla en Studio: en el juego se quita
+-- Quita el suelo y el mar de piezas (solo servían para verlo en Studio)
 function TerrainBuilder.removeGroundPart()
-	local town = workspace:FindFirstChild("Town")
-	local ground = town and town:FindFirstChild("Ground")
-	if ground then
-		ground:Destroy()
+	local CollectionService = game:GetService("CollectionService")
+	for _, part in CollectionService:GetTagged("EditOnly") do
+		part:Destroy()
 	end
 end
 

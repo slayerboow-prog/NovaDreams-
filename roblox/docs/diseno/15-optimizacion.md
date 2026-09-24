@@ -52,6 +52,6 @@ Ver Fases 10 y 11: peatones en el cliente con LOD, tráfico cinemático sin fís
 ## 15.7 Calidad
 
 - **Tests automáticos** de la lógica pura (economía, requisitos, edades, migraciones de datos).
-- **GitHub Actions:** revisión de código, tests y generación del `.rbxlx` en cada cambio.
+- **GitHub Actions:** revisión de código, tests y generación del `.rbxl` en cada cambio.
 - **Entorno de pruebas:** un place de pruebas separado del de producción, con su propio DataStore. Nunca se prueba con los datos reales de los jugadores.
 - **Actualizaciones seguras:** migraciones de datos probadas y "feature flags" (activar o desactivar sistemas sin publicar de nuevo) para poder apagar algo que falla.

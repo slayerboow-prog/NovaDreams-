@@ -1,9 +1,9 @@
--- Genera RealLifeSimulator.rbxlx con la ciudad YA construida dentro, para que se vea
+-- Genera RealLifeSimulator.rbxl con la ciudad YA construida dentro, para que se vea
 -- al abrir el archivo en Studio (sin tener que pulsar Play).
 --
 -- Uso (desde la carpeta roblox/):
---   rojo build default.project.json -o RealLifeSimulator.rbxlx
---   lune run scripts/build-place.luau RealLifeSimulator.rbxlx
+--   rojo build default.project.json -o RealLifeSimulator.rbxl
+--   lune run scripts/build-place.luau RealLifeSimulator.rbxl
 --
 -- Ejecuta el mismo TownBuilder que usa el servidor, pero con las APIs de
 -- Instance de Lune, y guarda el resultado en el Workspace del archivo.
@@ -13,7 +13,7 @@ local luau = require("@lune/luau")
 local process = require("@lune/process")
 local roblox = require("@lune/roblox")
 
-local placePath = process.args[1] or "RealLifeSimulator.rbxlx"
+local placePath = process.args[1] or "RealLifeSimulator.rbxl"
 local game = roblox.deserializePlace(fs.readFile(placePath))
 local workspace = game:GetService("Workspace")
 
@@ -87,5 +87,6 @@ for _, d in town:GetDescendants() do
 	end
 end
 
-fs.writeFile(placePath, roblox.serializePlace(game, true))
+-- .rbxlx = texto (XML); .rbxl = binario (mucho más ligero)
+fs.writeFile(placePath, roblox.serializePlace(game, placePath:match("%.rbxlx$") ~= nil))
 print(("Ciudad construida en %s (%d piezas)"):format(placePath, count))

@@ -15,7 +15,7 @@ Las duraciones son orientativas (semanas de trabajo conjunto: yo programo y tú 
 - Núcleo: ServiceLoader, Net (validación y límites), EventBus, GameClock, Localización ES/EN.
 - Datos: ProfileStore, esquema de Cuenta y Personaje v1, migraciones, admin de datos.
 - Registros de contenido con validación.
-- Herramientas: Wally, Selene, StyLua, tests y GitHub Actions que genera el `.rbxlx`.
+- Herramientas: Wally, Selene, StyLua, tests y GitHub Actions que genera el `.rbxl`.
 - Panel de administrador y comandos de depuración.
 - **Resultado:** una base vacía pero sólida. Se reaprovecha lo útil de la v0.1.
 

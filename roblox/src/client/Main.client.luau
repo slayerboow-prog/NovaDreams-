@@ -16,6 +16,8 @@ local Notify = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Notify") 
 Notify.OnClientEvent:Connect(function(kind: string, text: string)
 	if kind == "Sleep" then
 		Hud.sleep()
+	elseif kind == "Travel" then
+		Hud.fade(text, 2)
 	else
 		Hud.toast(kind, text)
 	end

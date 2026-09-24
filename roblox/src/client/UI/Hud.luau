@@ -270,16 +270,25 @@ function Hud.toast(kind: string, text: string)
 	end)
 end
 
-function Hud.sleep()
+-- Pantalla en negro con un texto (dormir, viajar…)
+function Hud.fade(text: string, seconds: number)
+	local caption = sleepOverlay:FindFirstChild("Caption") :: TextLabel?
+	if caption then
+		caption.Text = text
+	end
 	sleepOverlay.Visible = true
 	sleepOverlay.BackgroundTransparency = 1
-	TweenService:Create(sleepOverlay, TweenInfo.new(0.8), { BackgroundTransparency = 0 }):Play()
-	task.delay(Config.SleepSeconds - 0.8, function()
-		local tween = TweenService:Create(sleepOverlay, TweenInfo.new(0.8), { BackgroundTransparency = 1 })
+	TweenService:Create(sleepOverlay, TweenInfo.new(0.6), { BackgroundTransparency = 0 }):Play()
+	task.delay(math.max(seconds - 0.6, 0.6), function()
+		local tween = TweenService:Create(sleepOverlay, TweenInfo.new(0.6), { BackgroundTransparency = 1 })
 		tween:Play()
 		tween.Completed:Wait()
 		sleepOverlay.Visible = false
 	end)
+end
+
+function Hud.sleep()
+	Hud.fade("Zzz...", Config.SleepSeconds)
 end
 
 ---------------------------------------------------------------------
@@ -337,6 +346,7 @@ function Hud.init(openStore: () -> ()): ScreenGui
 		Parent = overlayGui,
 	})
 	Theme.label({
+		Name = "Caption",
 		Size = UDim2.fromScale(1, 1),
 		Text = "Zzz...",
 		Font = Theme.FontBold,

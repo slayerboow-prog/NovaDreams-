@@ -21,6 +21,7 @@ local Building = require(Kit.Building)
 local Nature = require(Kit.Nature)
 local Props = require(Kit.Props)
 local AssetLibrary = require(Kit.AssetLibrary)
+local Region = require(script.Parent.Region)
 
 local TownBuilder = {}
 
@@ -38,9 +39,9 @@ local function facing(position: Vector3, direction: Vector3): CFrame
 end
 
 local ROADS = {
-	Avenue = { Axis = "X", At = 0, From = -340, To = 340, Lamps = true, Trees = false },
+	Avenue = Region.Highways.Avenue, -- la avenida sigue hasta San Roque y Playa Dorada
 	Residential = { Axis = "X", At = 120, From = -340, To = 340, Lamps = true, Trees = true },
-	NorthSouth = { Axis = "Z", At = 0, From = -190, To = 260, Lamps = true, Trees = false },
+	NorthSouth = Region.Highways.NorthSouth, -- sigue hasta Valmar Norte y Los Pinos
 }
 
 -- Fachada a ras de la acera norte de la avenida: devuelve el CFrame del edificio
@@ -451,32 +452,68 @@ local function buildStreetLife(world: Instance)
 	Street.parkCars(folder, ROADS.Residential, H + 4, 336, -1, 0.2)
 	Street.parkCars(folder, ROADS.Avenue, -336, -H - 4, 1, 0.25)
 	Street.parkCars(folder, ROADS.Avenue, H + 4, 336, 1, 0.25)
-	for _, x in { -130, 86 } do
-		Props.busStop(folder, facing(Vector3.new(x, WALK, 17.4), NORTH))
-	end
+	Region.travelStop(folder, facing(Vector3.new(-130, WALK, 17.4), NORTH), "Valmar Centro")
+	Props.busStop(folder, facing(Vector3.new(86, WALK, 17.4), NORTH))
 end
 
 ---------------------------------------------------------------------
 
 local function buildGround(world: Instance)
-	-- En el juego se sustituye por terreno real (TerrainBuilder); aquí sirve para verlo en Studio
-	Builder.part({
-		Name = "Ground", Size = Vector3.new(1000, 2, 1000), CFrame = CFrame.new(0, -1, 0),
-		Color = Palette.Ground.Grass, Material = Enum.Material.Grass, Parent = world,
-	})
+	-- Solo para verlo en Studio: en el juego se sustituye por terreno real (TerrainBuilder)
+	local x0, x1, z0, z1 = -2400, 1640, -2400, 2400
+	for i = 0, 2 do
+		for j = 0, 2 do
+			local w, d = (x1 - x0) / 3, (z1 - z0) / 3
+			Builder.part({
+				Name = "Ground", Size = Vector3.new(w, 2, d),
+				CFrame = CFrame.new(x0 + w * (i + 0.5), -1, z0 + d * (j + 0.5)),
+				Color = Palette.Ground.Grass, Material = Enum.Material.Grass, Tags = { "EditOnly" }, Parent = world,
+			})
+		end
+	end
+	for j = 0, 2 do
+		local d = (z1 - z0) / 3
+		Builder.part({
+			Name = "Sea", Size = Vector3.new(2400 - x1, 2, d),
+			CFrame = CFrame.new((x1 + 2400) / 2, -1.6, z0 + d * (j + 0.5)),
+			Color = Color3.fromRGB(46, 120, 170), Material = Enum.Material.Glass, Reflectance = 0.2, Tags = { "EditOnly" }, Parent = world,
+		})
+	end
 end
 
+-- Arboledas en el campo entre ciudades (lejos de calles y manzanas)
 local function buildOutskirts(world: Instance)
-	local folder = Builder.model("Afueras", world)
+	local folder = Builder.model("Campo", world)
+	local roads = Region.roads()
+	table.insert(roads, ROADS.Residential)
+	local function blocked(x: number, z: number): boolean
+		if math.abs(x) < 380 and z > -220 and z < 240 then
+			return true -- Valmar Centro
+		end
+		for _, town in Region.Towns do
+			if math.abs(x - town.Center.X) < 390 and math.abs(z - town.Center.Z) < 390 then
+				return true
+			end
+		end
+		for _, road in roads do
+			local along, across = if road.Axis == "X" then x else z, if road.Axis == "X" then z else x
+			if along >= road.From - 30 and along <= road.To + 30 and math.abs(across - road.At) < 34 then
+				return true
+			end
+		end
+		return x > 1600
+	end
+	-- Grupos de árboles (bosquecillos) en vez de árboles sueltos al azar
 	for _ = 1, 70 do
-		local x = math.random(-470, 470)
-		local z = math.random(-470, 470)
-		local inTown = math.abs(x) < 350 and z > -200 and z < 225
-		if not inTown and math.abs(x) > 25 then
-			if math.random() < 0.3 then
-				Nature.cypress(folder, Vector3.new(x, 0, z))
-			else
-				Nature.tree(folder, Vector3.new(x, 0, z), 1 + math.random() * 0.4)
+		local cx, cz = math.random(-2200, 1550), math.random(-2200, 2200)
+		for _ = 1, math.random(3, 7) do
+			local x, z = cx + math.random(-30, 30), cz + math.random(-30, 30)
+			if not blocked(x, z) then
+				if math.random() < 0.3 then
+					Nature.cypress(folder, Vector3.new(x, 0, z))
+				else
+					Nature.tree(folder, Vector3.new(x, 0, z), 1 + math.random() * 0.5)
+				end
 			end
 		end
 	end
@@ -490,7 +527,9 @@ function TownBuilder.build(): Folder
 	world.Parent = workspace
 
 	buildGround(world)
-	Street.build(world, { ROADS.Avenue, ROADS.Residential, ROADS.NorthSouth })
+	local roads = Region.roads() -- carreteras y calles de todas las ciudades (incluye Avenue y NorthSouth)
+	table.insert(roads, ROADS.Residential)
+	Street.build(world, roads)
 	buildPlaza(world)
 	buildCafe(world)
 	buildSupermarket(world)
@@ -500,6 +539,7 @@ function TownBuilder.build(): Folder
 	buildRecycling(world)
 	buildPlots(world)
 	buildStreetLife(world)
+	Region.build(world)
 	buildOutskirts(world)
 
 	return world

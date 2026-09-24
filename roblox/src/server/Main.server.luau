@@ -32,6 +32,7 @@ local order = {
 	"JobService",
 	"FoodService",
 	"HouseService",
+	"TravelService",
 }
 
 for _, name in order do
