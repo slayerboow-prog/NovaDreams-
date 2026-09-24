@@ -28,10 +28,11 @@ Region.Highways = {
 	Avenue = { Axis = "X", At = 0, From = -1610, To = 1610, Lamps = true, Trees = false },
 	NorthSouth = { Axis = "Z", At = 0, From = -920, To = 1460, Lamps = true, Trees = false },
 	Coast = { Axis = "Z", At = 1250, From = -1460, To = 360, Lamps = true, Trees = false },
+	West = { Axis = "Z", At = -1250, From = -1460, To = 1460, Lamps = true, Trees = false },
 }
 
-local function T(kind: string, side: string?)
-	return { Kind = kind, Side = side }
+local function T(kind: string, side: string?, title: string?)
+	return { Kind = kind, Side = side, Title = title }
 end
 
 Region.Towns = {
@@ -45,7 +46,7 @@ Region.Towns = {
 		Plan = {
 			{ T("Houses"), T("Downtown"), T("Downtown"), T("Houses") },
 			{ T("FirePolice", "E"), T("Hospital", "S"), T("Mall", "S"), T("Gas", "W") },
-			{ T("Downtown"), T("School", "N"), T("Park", "N"), T("Downtown") },
+			{ T("Downtown"), T("School", "N"), T("Park", "N"), T("Leisure", "W") },
 			{ T("Houses"), T("Downtown"), T("Downtown"), T("Park", "N") },
 		},
 	},
@@ -55,10 +56,11 @@ Region.Towns = {
 		Styles = { "Popular" },
 		Floors = { 3, 5 },
 		SkipX = true, -- su calle central E-O es la avenida
+		SkipZ = true, -- su calle central N-S es la carretera del oeste
 		Entry = { Offset = Vector3.new(380, 0, 30), Facing = Vector3.new(1, 0, 0) },
 		Plan = {
 			{ T("Houses"), T("Downtown"), T("Downtown"), T("Gas", "W") },
-			{ T("FirePolice", "E"), T("Mall", "S"), T("Downtown"), T("Houses") },
+			{ T("FirePolice", "E"), T("Mall", "S"), T("Leisure", "S"), T("Houses") },
 			{ T("Clinic", "E"), T("Downtown"), T("School", "N"), T("Houses") },
 			{ T("Houses"), T("Park", "N"), T("Downtown"), T("Houses") },
 		},
@@ -75,7 +77,7 @@ Region.Towns = {
 			{ T("Houses"), T("Downtown"), T("Downtown"), T("Beach", "W") },
 			{ T("FirePolice", "E"), T("Mall", "S"), T("Downtown"), T("Beach", "W") },
 			{ T("Clinic", "E"), T("School", "N"), T("Park", "N"), T("Beach", "W") },
-			{ T("Gas", "E"), T("Downtown"), T("Houses"), T("Beach", "W") },
+			{ T("Gas", "E"), T("Leisure", "N"), T("Houses"), T("Beach", "W") },
 		},
 	},
 	{
@@ -89,7 +91,7 @@ Region.Towns = {
 			{ T("Houses"), T("Houses"), T("Houses"), T("Houses") },
 			{ T("FirePolice", "E"), T("School", "S"), T("Park", "S"), T("Houses") },
 			{ T("Clinic", "E"), T("Houses"), T("Mall", "N"), T("Gas", "W") },
-			{ T("Houses"), T("Houses"), T("Downtown"), T("Houses") },
+			{ T("Houses"), T("Houses"), T("Leisure", "N"), T("Houses") },
 		},
 	},
 	{
@@ -103,7 +105,37 @@ Region.Towns = {
 			{ T("Farm", "S"), T("Farm", "S"), T("Farm", "S"), T("Farm", "S") },
 			{ T("FirePolice", "E"), T("Downtown"), T("School", "S"), T("Farm", "W") },
 			{ T("Clinic", "E"), T("Park", "N"), T("Mall", "N"), T("Farm", "W") },
-			{ T("Gas", "E"), T("Houses"), T("Houses"), T("Farm", "W") },
+			{ T("Gas", "E"), T("Houses"), T("Leisure", "N"), T("Farm", "W") },
+		},
+	},
+	{
+		Name = "Campus Valmar",
+		Center = Vector3.new(-1250, 0, -1100),
+		Styles = { "Clasico", "Popular" },
+		Floors = { 3, 5 },
+		SkipZ = true, -- su calle central N-S es la carretera del oeste
+		TeamColor = Color3.fromRGB(150, 30, 40),
+		Entry = { Offset = Vector3.new(30, 0, 380), Facing = Vector3.new(0, 0, 1) },
+		Plan = {
+			{ T("Residence"), T("Faculty", "S", "FACULTAD DE MEDICINA"), T("Faculty", "S", "FACULTAD DE INGENIERÍA"), T("Residence") },
+			{ T("Gas", "E"), T("Stadium", "S"), T("Faculty", "S", "BIBLIOTECA UNIVERSITARIA"), T("Houses") },
+			{ T("Clinic", "E"), T("Park", "N"), T("Faculty", "N", "FACULTAD DE DERECHO"), T("Leisure", "W") },
+			{ T("Residence"), T("Leisure", "N"), T("School", "N"), T("Faculty", "N", "FACULTAD DE ECONOMÍA") },
+		},
+	},
+	{
+		Name = "Distrito Financiero",
+		Center = Vector3.new(-1250, 0, 1100),
+		Styles = { "Moderno", "Oficina" },
+		Floors = { 6, 12 },
+		SkipZ = true,
+		TeamColor = Color3.fromRGB(30, 90, 170),
+		Entry = { Offset = Vector3.new(30, 0, -380), Facing = Vector3.new(0, 0, -1) },
+		Plan = {
+			{ T("Towers", "S"), T("Towers", "S"), T("Towers", "S"), T("Towers", "S") },
+			{ T("Towers", "E"), T("Business"), T("Leisure", "S"), T("Towers", "W") },
+			{ T("FirePolice", "E"), T("Mall", "N"), T("Stadium", "N"), T("Gas", "W") },
+			{ T("Towers", "N"), T("Downtown"), T("Park", "N"), T("Towers", "N") },
 		},
 	},
 }
@@ -181,6 +213,8 @@ function Region.build(world: Instance)
 					TownName = town.Name,
 					Styles = town.Styles,
 					Floors = town.Floors,
+					Title = cell.Title,
+					TeamColor = town.TeamColor,
 				})
 			end
 		end

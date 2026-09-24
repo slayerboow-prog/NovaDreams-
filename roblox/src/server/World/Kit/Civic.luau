@@ -446,4 +446,283 @@ function Civic.welcome(parent: Instance, cf: CFrame, townName: string)
 	return m
 end
 
+---------------------------------------------------------------------
+-- Estadio de fútbol (necesita una manzana grande, 200 × 200)
+---------------------------------------------------------------------
+function Civic.stadium(parent: Instance, lot: Lot, name: string, teamColor: Color3)
+	local m = Builder.model("Estadio", parent)
+	local cv = lot.Depth / 2
+	local center = lot.point(0, cv, 0)
+	-- Explanada de acceso
+	slab(m, lot, -lot.Length / 2 + 2, lot.Length / 2 - 2, 0, lot.Depth - 2, FT, rgb(196, 192, 184), Enum.Material.Pavement, "Esplanade")
+	-- Terreno de juego (110 × 70) con líneas
+	local pitch = lot.facing(0, cv, FT)
+	Builder.part({ Name = "Pitch", Size = Vector3.new(110, 0.3, 70), CFrame = pitch * CFrame.new(0, 0.15, 0), Color = rgb(70, 146, 66), Material = Enum.Material.Grass, Parent = m })
+	for i = -5, 5 do
+		if i % 2 == 0 then
+			Builder.decor({ Name = "Stripe", Size = Vector3.new(10, 0.05, 70), CFrame = pitch * CFrame.new(i * 10, 0.31, 0), Color = rgb(80, 160, 74), Parent = m })
+		end
+	end
+	local white = rgb(245, 245, 245)
+	for _, l in { { 110, 0.5, 0, -34.6 }, { 110, 0.5, 0, 34.6 }, { 0.5, 70, -54.6, 0 }, { 0.5, 70, 54.6, 0 }, { 0.5, 70, 0, 0 },
+		{ 0.5, 40, -38, 0 }, { 0.5, 40, 38, 0 }, { 16.6, 0.5, -46.4, -20 }, { 16.6, 0.5, -46.4, 20 }, { 16.6, 0.5, 46.4, -20 }, { 16.6, 0.5, 46.4, 20 } } do
+		Builder.decor({ Name = "Line", Size = Vector3.new(l[1], 0.06, l[2]), CFrame = pitch * CFrame.new(l[3], 0.33, l[4]), Color = white, Parent = m })
+	end
+	Builder.decor({ Name = "CenterCircle", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.06, 18, 18), CFrame = pitch * CFrame.new(0, 0.32, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = white, Parent = m })
+	Builder.decor({ Name = "CenterCircleIn", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.07, 17, 17), CFrame = pitch * CFrame.new(0, 0.33, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = rgb(70, 146, 66), Parent = m })
+	for _, side in { -1, 1 } do
+		local goal = pitch * CFrame.new(side * 55, 0, 0)
+		Builder.part({ Name = "Crossbar", Size = Vector3.new(0.4, 0.4, 14), CFrame = goal * CFrame.new(0, 7.5, 0), Color = white, Parent = m })
+		for _, z in { -7, 7 } do
+			Builder.part({ Name = "Post", Size = Vector3.new(0.4, 7.5, 0.4), CFrame = goal * CFrame.new(0, 3.75, z), Color = white, Parent = m })
+		end
+		Builder.decor({ Name = "Net", Size = Vector3.new(3, 7.5, 14), CFrame = goal * CFrame.new(side * 1.6, 3.75, 0), Color = white, Transparency = 0.7, Parent = m })
+	end
+	-- Gradas: cuña de asientos + muro trasero, mirando al campo
+	local stands = {
+		{ Offset = Vector3.new(0, 0, 0), Along = 0, Across = 50, Length = 124, Depth = 24, Height = 18 },
+		{ Along = 0, Across = -50, Length = 124, Depth = 20, Height = 14 },
+		{ Along = 70, Across = 0, Length = 84, Depth = 18, Height = 14 },
+		{ Along = -70, Across = 0, Length = 84, Depth = 18, Height = 14 },
+	}
+	for i, st in stands do
+		local pos = lot.point(st.Along, cv + st.Across, FT)
+		local toCenter = Vector3.new(center.X, pos.Y, center.Z) - pos
+		local cf = Builder.facing(pos, toCenter)
+		Builder.part({ ClassName = "WedgePart", Name = "Stand", Size = Vector3.new(st.Length, st.Height, st.Depth), CFrame = cf * CFrame.new(0, st.Height / 2, 0), Color = if i % 2 == 1 then teamColor else rgb(236, 236, 236), Material = Enum.Material.SmoothPlastic, Parent = m })
+		Builder.part({ Name = "StandBack", Size = Vector3.new(st.Length, st.Height + 4, 1.5), CFrame = cf * CFrame.new(0, (st.Height + 4) / 2, st.Depth / 2 + 0.75), Color = rgb(210, 212, 216), Material = Enum.Material.Concrete, Parent = m })
+		if i == 1 then
+			-- Cubierta de la tribuna principal
+			Builder.part({ Name = "Roof", Size = Vector3.new(st.Length, 1, st.Depth + 6), CFrame = cf * CFrame.new(0, st.Height + 8, -2), Color = rgb(236, 238, 242), Material = Enum.Material.Metal, Parent = m })
+		end
+		if i == 3 then
+			local board = Builder.decor({ Name = "Scoreboard", Size = Vector3.new(26, 8, 0.6), CFrame = cf * CFrame.new(0, st.Height + 6, st.Depth / 2), Color = rgb(20, 20, 24), Parent = m })
+			Builder.sign(board, "VALMAR  2 - 1  VISITANTE", Enum.NormalId.Front, rgb(255, 210, 60))
+		end
+	end
+	-- Torres de focos en las esquinas
+	for _, sx in { -1, 1 } do
+		for _, sz in { -1, 1 } do
+			local base = lot.point(sx * 72, cv + sz * 58, FT)
+			local toCenter = Vector3.new(center.X, base.Y, center.Z) - base
+			local cf = Builder.facing(base, toCenter)
+			Builder.part({ Name = "LightPole", Size = Vector3.new(1.2, 44, 1.2), CFrame = cf * CFrame.new(0, 22, 0), Color = rgb(190, 192, 196), Material = Enum.Material.Metal, Parent = m })
+			Builder.decor({ Name = "Floodlights", Size = Vector3.new(8, 4, 0.6), CFrame = cf * CFrame.new(0, 44, -0.8) * CFrame.Angles(math.rad(-20), 0, 0), Color = rgb(255, 252, 235), Material = Enum.Material.Neon, Parent = m })
+		end
+	end
+	-- Rótulo de entrada hacia la calle
+	signBoard(m, lot.facing(0, 6, FT + 10), "ESTADIO " .. string.upper(name), 34, teamColor)
+	for _, du in { -18, 18 } do
+		Builder.part({ Name = "SignPost", Size = Vector3.new(0.8, 10, 0.8), CFrame = lot.facing(du, 6, FT + 5), Color = Palette.Street.Metal, Parent = m })
+	end
+	return m
+end
+
+---------------------------------------------------------------------
+-- Facultad universitaria / biblioteca con pórtico de columnas
+---------------------------------------------------------------------
+function Civic.faculty(parent: Instance, lot: Lot, title: string)
+	local m = Builder.model("Facultad", parent)
+	local W = math.min(lot.Length - 30, 120)
+	local D = math.min(lot.Depth - 30, 40)
+	local setback = 18
+	slab(m, lot, -lot.Length / 2 + 2, lot.Length / 2 - 2, 0, setback, FT, rgb(222, 214, 196), Enum.Material.Limestone, "Plaza")
+	Building.build({
+		Name = "Edificio", Parent = m, CFrame = lot.facing(0, setback + D / 2, 0),
+		Width = W, Depth = D, Floors = 4, Style = "Clasico", GroundFloor = "Lobby",
+		WallColor = rgb(232, 222, 200), Balconies = false,
+		WindowFaces = { Front = true, Left = true, Right = true, Back = true },
+		Sign = title, SignColor = rgb(110, 30, 40),
+	})
+	-- Pórtico: 6 columnas, arquitrabe y frontón
+	local stone = rgb(240, 234, 222)
+	for i = 0, 5 do
+		local u = -15 + i * 6
+		Builder.part({ Name = "Column", Shape = Enum.PartType.Cylinder, Size = Vector3.new(16, 2, 2), CFrame = lot.facing(u, setback - 5, FT + 8) * CFrame.Angles(0, 0, math.rad(90)), Color = stone, Material = Enum.Material.Marble, Parent = m })
+	end
+	Builder.part({ Name = "Architrave", Size = Vector3.new(36, 2, 8), CFrame = lot.facing(0, setback - 4, FT + 17), Color = stone, Material = Enum.Material.Limestone, Parent = m })
+	Builder.part({ ClassName = "WedgePart", Name = "Pediment", Size = Vector3.new(8, 6, 18), CFrame = lot.along(-9, setback - 4, FT + 21) * CFrame.Angles(0, math.pi, 0), Color = stone, Material = Enum.Material.Limestone, Parent = m })
+	Builder.part({ ClassName = "WedgePart", Name = "Pediment", Size = Vector3.new(8, 6, 18), CFrame = lot.along(9, setback - 4, FT + 21), Color = stone, Material = Enum.Material.Limestone, Parent = m })
+	-- Jardín con árboles a los lados
+	for _, u in { -lot.Length / 2 + 10, lot.Length / 2 - 10 } do
+		Nature.tree(m, lot.point(u, 8, FT))
+	end
+	-- Patio universitario detrás (césped, paseo y alineaciones de árboles)
+	local back = setback + D + 8
+	if lot.Depth - back > 40 then
+		slab(m, lot, -lot.Length / 2 + 4, lot.Length / 2 - 4, back, lot.Depth - 4, 0.3, Palette.Ground.Lawn, Enum.Material.Grass, "Quad")
+		slab(m, lot, -3, 3, back, lot.Depth - 4, 0.45, rgb(222, 212, 190), Enum.Material.Pavement, "Walk")
+		for v = back + 10, lot.Depth - 12, 20 do
+			for _, u in { -lot.Length / 2 + 14, -20, 20, lot.Length / 2 - 14 } do
+				Nature.tree(m, lot.point(u, v, 0.3))
+			end
+		end
+		for v = back + 20, lot.Depth - 20, 40 do
+			Props.bench(m, lot.facing(-6, v, 0.45) * CFrame.Angles(0, math.rad(90), 0))
+		end
+	end
+	return m
+end
+
+---------------------------------------------------------------------
+-- Rascacielos de oficinas con el nombre de la empresa en lo alto
+---------------------------------------------------------------------
+local COMPANIES = { "TECNOVAL", "BANCO VALMAR", "SEGUROS ALBA", "ENERGÍA COSTA", "LOGÍSTICA RUTA", "GRUPO ALTAMAR", "SOLENA", "MEDIA SUR", "CONSTRUCTORA NORTE", "ÓPTIMA SOFT" }
+
+function Civic.officeTower(parent: Instance, lot: Lot, u: number, width: number, depth: number, setback: number)
+	local company = COMPANIES[math.random(1, #COMPANIES)]
+	local model, at, info = Building.build({
+		Name = "Torre", Parent = parent, CFrame = lot.facing(u, setback + depth / 2, 0),
+		Width = width, Depth = depth, Floors = math.random(10, 20), GroundHeight = 16, Style = "Oficina", GroundFloor = "Lobby",
+		WindowFaces = { Front = true, Left = true, Right = true, Back = true },
+		Sign = company, SignColor = rgb(24, 30, 44),
+	})
+	-- Letrero luminoso en la azotea
+	local board = Builder.decor({ Name = "RoofSign", Size = Vector3.new(width * 0.8, 5, 0.6), CFrame = at(0, info.Top - FT + 5.5, -depth / 2 + 2), Color = rgb(20, 24, 34), Parent = model })
+	Builder.sign(board, company, Enum.NormalId.Front, rgb(120, 220, 255))
+	return model
+end
+
+-- Manzana de torres en un lado (1 o 2 torres según el largo) con plaza delante
+function Civic.towers(parent: Instance, lot: Lot)
+	local m = Builder.model("Torres", parent)
+	local setback = 14
+	slab(m, lot, -lot.Length / 2 + 2, lot.Length / 2 - 2, 0, setback, FT, rgb(214, 214, 210), Enum.Material.Pavement, "Plaza")
+	local depth = math.min(lot.Depth - setback - 8, 40)
+	if lot.Length >= 150 then
+		for _, u in { -lot.Length / 4, lot.Length / 4 } do
+			Civic.officeTower(m, lot, u, 44, depth, setback)
+		end
+	else
+		Civic.officeTower(m, lot, 0, math.min(lot.Length - 16, 50), depth, setback)
+	end
+	for u = -lot.Length / 2 + 10, lot.Length / 2 - 10, 30 do
+		Nature.flowerBed(m, lot.facing(u, 5, FT), 6, 3)
+	end
+	return m
+end
+
+-- Distrito financiero: torres a ambos lados de una plaza central con fuente
+function Civic.business(parent: Instance, lotFront: Lot, lotBack: Lot)
+	local m = Builder.model("PlazaFinanciera", parent)
+	local depth = 40
+	for _, lot in { lotFront, lotBack } do
+		for _, u in { -lot.Length / 4, lot.Length / 4 } do
+			Civic.officeTower(m, lot, u, 46, depth, 10)
+		end
+	end
+	-- Plaza central entre las torres
+	local cv = lotFront.Depth / 2
+	slab(m, lotFront, -lotFront.Length / 2 + 4, lotFront.Length / 2 - 4, 10 + depth + 2, lotFront.Depth - 10 - depth - 2, FT, rgb(218, 212, 200), Enum.Material.Pavement, "Plaza")
+	local f = lotFront.point(0, cv, FT)
+	Builder.part({ Name = "Fountain", Shape = Enum.PartType.Cylinder, Size = Vector3.new(1.6, 24, 24), CFrame = CFrame.new(f + Vector3.new(0, 0.8, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color = rgb(200, 204, 210), Material = Enum.Material.Granite, Parent = m })
+	Builder.decor({ Name = "Water", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.3, 22, 22), CFrame = CFrame.new(f + Vector3.new(0, 1.5, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color = rgb(70, 150, 210), Material = Enum.Material.Glass, Transparency = 0.25, Parent = m })
+	for _, du in { -60, -30, 30, 60 } do
+		Nature.tree(m, lotFront.point(du, cv, FT))
+	end
+	return m
+end
+
+---------------------------------------------------------------------
+-- Calle de ocio: cine, recreativos, gimnasio y academia
+---------------------------------------------------------------------
+local ACADEMIES = { "ACADEMIA DE IDIOMAS", "AUTOESCUELA", "ACADEMIA DE MÚSICA", "ESCUELA DE BAILE", "ACADEMIA DE CÓDIGO" }
+
+local function neonStrip(parent: Instance, cf: CFrame, width: number, color: Color3)
+	Builder.decor({ Name = "Neon", Size = Vector3.new(width, 0.35, 0.3), CFrame = cf, Color = color, Material = Enum.Material.Neon, Parent = parent })
+end
+
+function Civic.cinema(parent: Instance, lot: Lot, u: number, townName: string)
+	local W, D = 52, 44
+	local model, at = Building.build({
+		Name = "Cine", Parent = parent, CFrame = lot.facing(u + W / 2, 8 + D / 2, 0),
+		Width = W, Depth = D, Floors = 1, GroundHeight = 22, Style = "Moderno", GroundFloor = "Shop",
+		WallColor = rgb(52, 40, 62), Interior = false, Balconies = false, WindowFaces = { Front = true },
+	})
+	-- Marquesina luminosa con carteles de películas
+	local marquee = Builder.decor({ Name = "Marquee", Size = Vector3.new(30, 6, 0.8), CFrame = at(0, 17, -D / 2 - 0.5), Color = rgb(18, 16, 24), Parent = model })
+	Builder.sign(marquee, "CINE " .. string.upper(townName), Enum.NormalId.Front, rgb(255, 214, 90))
+	neonStrip(model, at(0, 20.2, -D / 2 - 1), 31, rgb(255, 200, 60))
+	neonStrip(model, at(0, 13.8, -D / 2 - 1), 31, rgb(255, 200, 60))
+	for i, color in { rgb(200, 50, 60), rgb(40, 110, 200) } do
+		Builder.decor({ Name = "Poster", Size = Vector3.new(5, 7, 0.2), CFrame = at(if i == 1 then -16 else 16, 6, -D / 2 - 0.3), Color = color, Parent = model })
+	end
+	return W
+end
+
+function Civic.arcade(parent: Instance, lot: Lot, u: number)
+	local W, D = 30, 30
+	local model, at = Building.build({
+		Name = "Recreativos", Parent = parent, CFrame = lot.facing(u + W / 2, 8 + D / 2, 0),
+		Width = W, Depth = D, Floors = 1, GroundHeight = 16, Style = "Moderno", GroundFloor = "Shop",
+		WallColor = rgb(36, 30, 56), Interior = false, Balconies = false, WindowFaces = { Front = true },
+		Sign = "RECREATIVOS", SignColor = rgb(200, 40, 160),
+	})
+	for i, color in { rgb(255, 60, 200), rgb(60, 220, 255), rgb(255, 230, 60) } do
+		neonStrip(model, at(0, 15 - i * 0.9, -D / 2 - 0.4), W - 2, color)
+	end
+	return W
+end
+
+function Civic.gym(parent: Instance, lot: Lot, u: number)
+	local W, D = 40, 36
+	local model, at = Building.build({
+		Name = "Gimnasio", Parent = parent, CFrame = lot.facing(u + W / 2, 8 + D / 2, 0),
+		Width = W, Depth = D, Floors = 2, Style = "Moderno", GroundFloor = "Shop", Balconies = false,
+		WallColor = rgb(230, 232, 236), WindowFaces = { Front = true, Left = true, Right = true },
+		Sign = "GIMNASIO", SignColor = rgb(230, 110, 30), FloorMaterial = Enum.Material.Rubber, FloorColor = rgb(50, 52, 58),
+	})
+	-- Máquinas visibles desde el escaparate
+	for i = 0, 3 do
+		local cf = at(-12 + i * 8, 0, -6)
+		Builder.part({ Name = "Treadmill", Size = Vector3.new(2.6, 1, 6), CFrame = cf * CFrame.new(0, 0.5, 0), Color = rgb(30, 30, 34), Parent = model })
+		Builder.decor({ Name = "Console", Size = Vector3.new(2.6, 3.6, 0.4), CFrame = cf * CFrame.new(0, 2.4, -2.8), Color = rgb(70, 72, 80), Parent = model })
+	end
+	for i = 0, 2 do
+		Builder.part({ Name = "Bench", Size = Vector3.new(1.4, 1.6, 5), CFrame = at(-10 + i * 10, 0.8, 8), Color = rgb(200, 60, 40), Parent = model })
+	end
+	return W
+end
+
+function Civic.academy(parent: Instance, lot: Lot, u: number)
+	local W, D = 30, 26
+	Building.build({
+		Name = "Academia", Parent = parent, CFrame = lot.facing(u + W / 2, 8 + D / 2, 0),
+		Width = W, Depth = D, Floors = 3, Style = "Clasico", GroundFloor = "Lobby", Interior = false,
+		WindowFaces = { Front = true, Left = true, Right = true },
+		Sign = ACADEMIES[math.random(1, #ACADEMIES)], SignColor = rgb(40, 90, 150),
+	})
+	return W
+end
+
+function Civic.leisure(parent: Instance, lot: Lot, townName: string)
+	local m = Builder.model("Ocio", parent)
+	slab(m, lot, -lot.Length / 2 + 2, lot.Length / 2 - 2, 0, 8, FT, rgb(206, 200, 190), Enum.Material.Pavement, "Frontage")
+	local builders = {
+		function(u)
+			return Civic.cinema(m, lot, u, townName)
+		end,
+		function(u)
+			return Civic.arcade(m, lot, u)
+		end,
+		function(u)
+			return Civic.gym(m, lot, u)
+		end,
+		function(u)
+			return Civic.academy(m, lot, u)
+		end,
+	}
+	local widths = { 52, 30, 40, 30 }
+	local u = -lot.Length / 2 + 4
+	for i, build in builders do
+		if u + widths[i] <= lot.Length / 2 - 4 then
+			u += build(u) + 4
+		end
+	end
+	if lot.Depth - 56 > 30 then
+		Civic.parkingLot(m, lot, -lot.Length / 2 + 6, lot.Length / 2 - 6, 56, lot.Depth - 4, 0.5)
+	end
+	return m
+end
+
 return Civic

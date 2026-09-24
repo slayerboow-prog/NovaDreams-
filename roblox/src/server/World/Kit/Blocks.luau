@@ -217,6 +217,19 @@ function Blocks.fill(parent: Instance, rect: Rect, kind: string, opts: { [string
 		return Civic.farm(parent, lot)
 	elseif kind == "Beach" then
 		return Civic.beach(parent, lot)
+	elseif kind == "Stadium" then
+		return Civic.stadium(parent, lot, opts.TownName, opts.TeamColor or rgb(30, 90, 170))
+	elseif kind == "Faculty" then
+		return Civic.faculty(parent, lot, opts.Title or "UNIVERSIDAD")
+	elseif kind == "Towers" then
+		return Civic.towers(parent, lot)
+	elseif kind == "Business" then
+		return Civic.business(parent, Blocks.lot(rect, "S"), Blocks.lot(rect, "N"))
+	elseif kind == "Leisure" then
+		return Civic.leisure(parent, lot, opts.TownName)
+	elseif kind == "Residence" then
+		-- Residencias de estudiantes: manzana de edificios de ladrillo
+		return Blocks.downtown(parent, rect, opts.Sides, { "Popular", "Clasico" }, { 4, 6 })
 	end
 	warn("[Blocks] Tipo de manzana desconocido:", kind)
 	return nil

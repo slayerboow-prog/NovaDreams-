@@ -50,6 +50,7 @@ export type Style = {
 	Shutters: { Color3 }?,
 	Balconies: "None" | "Iron" | "Glass",
 	Roof: "Flat" | "Gable",
+	Curtain: boolean?, -- plantas superiores con muro cortina de cristal (rascacielos)
 	RoofColor: Color3?,
 	RoofMaterial: Enum.Material?,
 }
@@ -99,6 +100,22 @@ Palette.Styles = {
 		Shutters = { rgb(70, 112, 80), rgb(60, 92, 134), rgb(112, 78, 52) },
 		Balconies = "Iron",
 		Roof = "Flat",
+	},
+	-- Rascacielos de oficinas: muro cortina de cristal con líneas de planta
+	Oficina = {
+		Wall = { rgb(206, 210, 214), rgb(190, 194, 200), rgb(222, 222, 218) },
+		WallMaterial = Enum.Material.Concrete,
+		Trim = rgb(58, 62, 70),
+		TrimMaterial = Enum.Material.Metal,
+		Glass = rgb(78, 118, 148),
+		Bay = 7,
+		WindowW = 6,
+		WindowH = 9,
+		Lintels = false,
+		Shutters = nil,
+		Balconies = "None",
+		Roof = "Flat",
+		Curtain = true,
 	},
 	-- Casas: blanco o crema con tejado de teja
 	Casa = {

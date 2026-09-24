@@ -88,6 +88,7 @@ local function glass(ctx: Ctx, face: CFrame, o: Opening, transparency: number, n
 		Material = Enum.Material.Glass,
 		Transparency = transparency,
 		Reflectance = 0.15,
+		CastShadow = false,
 		Parent = ctx.Model,
 	})
 	if math.random() < nightChance then
@@ -336,6 +337,44 @@ function Building.build(spec: Spec): (Model, (number, number, number) -> CFrame,
 			wallPiece(ctx, face.CF, 0, top / 2, L, top)
 		else
 			wallWithOpenings(ctx, face.CF, L, 0, Y1, ground)
+
+			if style.Curtain and floors > 1 then
+				-- MURO CORTINA: un cristal por fachada + líneas de planta + montantes (muy pocas piezas)
+				local h = top - Y1
+				local length = if face.Name == "Front" or face.Name == "Back" then face.Full else face.Full - 1.2
+				Builder.part({
+					Name = "CurtainWall",
+					Size = Vector3.new(length, h, 0.6),
+					CFrame = face.CF * CFrame.new(0, Y1 + h / 2, 0.3),
+					Color = style.Glass,
+					Material = Enum.Material.Glass,
+					Reflectance = 0.25,
+					Parent = model,
+				})
+				for f = 1, floors - 1 do
+					trim(ctx, face.CF, Vector3.new(length + 0.3, 0.5, 0.35), 0, Y1 + (f - 1) * FH, -0.15)
+				end
+				for _, x in columns(length, style.Bay, 0) do
+					trim(ctx, face.CF, Vector3.new(0.3, h, 0.3), x + style.Bay / 2, Y1 + h / 2, -0.15)
+				end
+				-- Algunas plantas con luz de noche
+				for _ = 1, math.min(3, floors - 1) do
+					local f = math.random(1, floors - 1)
+					local strip = Builder.decor({
+						Name = "OfficeLights",
+						Size = Vector3.new(length - 2, FH * 0.55, 0.1),
+						CFrame = face.CF * CFrame.new(0, Y1 + (f - 1) * FH + FH * 0.5, -0.06),
+						Color = style.Glass,
+						Material = Enum.Material.Glass,
+						Reflectance = 0.25,
+						Tags = { "NightWindow" },
+						Attributes = { DayColor = style.Glass },
+						Parent = model,
+					})
+					strip.CastShadow = false
+				end
+				continue
+			end
 
 			-- PLANTAS SUPERIORES
 			local wantBalconies = isFront and (if spec.Balconies ~= nil then spec.Balconies else style.Balconies ~= "None")

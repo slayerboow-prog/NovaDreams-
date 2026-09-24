@@ -8,9 +8,12 @@ falta construir nada a mano en Roblox Studio.
 
 | Sistema | Qué hace |
 |---|---|
-| 🗺️ Región de Valmar | **6 ciudades** unidas por carreteras: Valmar Centro, Valmar Norte, San Roque (barrio popular), Playa Dorada (costa con playa y mar), Los Pinos (residencial) y Villaverde (rural, con granjas). Cada una tiene **hospital o centro de salud, colegio, bomberos, policía, centro comercial, gasolinera y parque**, además de manzanas de edificios y casas con jardín |
+| 🗺️ Región de Valmar | **8 zonas** unidas por carreteras: Valmar Centro, Valmar Norte, San Roque, Playa Dorada (playa y mar), Los Pinos (residencial), Villaverde (rural, granjas), **Campus Valmar** (universidad) y **Distrito Financiero** (rascacielos). Cada ciudad tiene hospital o centro de salud, colegio, bomberos, policía, centro comercial, gasolinera y parque |
+| 🎓 Universidad | Facultades de Medicina, Ingeniería, Derecho y Economía, biblioteca, residencias, instituto y patios universitarios |
+| 🏢 Empresas | Rascacielos de oficinas con el nombre de cada empresa, plaza financiera con fuente |
+| ⚽ Ocio | 2 estadios de fútbol; en cada ciudad, cine, recreativos, gimnasio y academias (idiomas, autoescuela, música, baile…) |
 | 🚗 Ciudad viva | Coches circulando por su carril (frenan si hay alguien delante) y peatones caminando por las aceras alrededor del jugador. De noche hay menos gente. Se simulan en cada dispositivo, sin coste para el servidor |
-| 🚌 Viajes | Autobús interurbano: en la parada del centro de cada ciudad, teclas 1-5 para ir a las demás |
+| 🚌 Viajes | Autobús interurbano: en la parada del centro de cada ciudad, teclas 1-7 para ir a las demás |
 | 💼 Trabajos | Barista, Reponedor, Basurero y Repartidor. Coges algo, lo llevas al punto marcado con una línea azul y cobras |
 | 🍔 Necesidades | Hambre y energía bajan con el tiempo. Si están bajas caminas más lento y no puedes trabajar |
 | 🏠 Casas | Reclamas una parcela gratis. Mejoras de Estudio → Casa familiar → Chalet → Mansión. Cama para dormir y nevera gratis |

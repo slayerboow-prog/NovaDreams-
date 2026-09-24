@@ -10,7 +10,7 @@ local Builder = require(script.Parent.Parent.World.Builder)
 local TravelService = {}
 
 local Notify = ReplicatedStorage.Remotes.Notify :: RemoteEvent
-local KEYS = { Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three, Enum.KeyCode.Four, Enum.KeyCode.Five, Enum.KeyCode.Six }
+local KEYS = { Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three, Enum.KeyCode.Four, Enum.KeyCode.Five, Enum.KeyCode.Six, Enum.KeyCode.Seven, Enum.KeyCode.Eight }
 local TRAVEL_SECONDS = 2
 
 local stops: { [string]: BasePart } = {}
@@ -67,7 +67,7 @@ function TravelService.init()
 				local prompt = Builder.prompt(stop, "Bus a " .. destination, "Autobús interurbano", 0.3)
 				prompt.KeyboardKeyCode = KEYS[key] or Enum.KeyCode.E
 				prompt.MaxActivationDistance = 12
-				prompt.UIOffset = Vector2.new(0, (key - 1) * 72)
+				prompt.UIOffset = Vector2.new(0, (key - 1) * 58)
 				prompt.Triggered:Connect(function(player)
 					TravelService.travel(player, destination)
 				end)
