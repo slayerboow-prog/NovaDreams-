@@ -1,0 +1,22 @@
+-- Punto de entrada del cliente: crea la interfaz y escucha los avisos del servidor.
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Hud = require(script.Parent.UI.Hud)
+local Store = require(script.Parent.UI.Store)
+local TaskMarker = require(script.Parent.Controllers.TaskMarker)
+
+local gui = Hud.init(function()
+	Store.open()
+end)
+Store.init(gui)
+TaskMarker.init()
+
+local Notify = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Notify") :: RemoteEvent
+Notify.OnClientEvent:Connect(function(kind: string, text: string)
+	if kind == "Sleep" then
+		Hud.sleep()
+	else
+		Hud.toast(kind, text)
+	end
+end)

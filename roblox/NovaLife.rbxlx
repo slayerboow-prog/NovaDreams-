@@ -1,0 +1,3059 @@
+<roblox version="4">
+  <Item class="Lighting" referent="0">
+    <Properties>
+      <string name="Name">Lighting</string>
+      <float name="Brightness">2.5</float>
+      <float name="ClockTime">8</float>
+      <float name="EnvironmentDiffuseScale">1</float>
+      <float name="EnvironmentSpecularScale">1</float>
+      <bool name="GlobalShadows">true</bool>
+      <token name="Technology">4</token>
+    </Properties>
+  </Item>
+  <Item class="ReplicatedStorage" referent="1">
+    <Properties>
+      <string name="Name">ReplicatedStorage</string>
+    </Properties>
+    <Item class="Folder" referent="2">
+      <Properties>
+        <string name="Name">Remotes</string>
+      </Properties>
+      <Item class="RemoteEvent" referent="3">
+        <Properties>
+          <string name="Name">GoHome</string>
+        </Properties>
+      </Item>
+      <Item class="RemoteEvent" referent="4">
+        <Properties>
+          <string name="Name">Notify</string>
+        </Properties>
+      </Item>
+      <Item class="RemoteEvent" referent="5">
+        <Properties>
+          <string name="Name">QuitJob</string>
+        </Properties>
+      </Item>
+    </Item>
+    <Item class="Folder" referent="6">
+      <Properties>
+        <string name="Name">Shared</string>
+      </Properties>
+      <Item class="ModuleScript" referent="7">
+        <Properties>
+          <string name="Name">Config</string>
+          <string name="Source"><![CDATA[-- Config: TODOS los números del juego en un solo sitio.
+-- Si quieres equilibrar la economía (sueldos, precios, etc.) cambia los valores aquí.
+
+local Config = {}
+
+Config.GameName = "Nova Life"
+
+---------------------------------------------------------------------
+-- Guardado de datos
+---------------------------------------------------------------------
+Config.DataStoreName = "NovaLife_PlayerData_v1"
+Config.AutosaveSeconds = 120
+Config.StartingMoney = 500
+
+---------------------------------------------------------------------
+-- Ciclo día / noche
+---------------------------------------------------------------------
+Config.DayLengthMinutes = 20 -- minutos reales que dura un día completo
+Config.StartClockTime = 8 -- hora a la que empieza el servidor
+Config.LampsOnAt = 18 -- las farolas se encienden a esta hora...
+Config.LampsOffAt = 6.5 -- ...y se apagan a esta
+
+---------------------------------------------------------------------
+-- Necesidades (hambre y energía, de 0 a 100)
+---------------------------------------------------------------------
+Config.Needs = {
+	Max = 100,
+	HungerPerMinute = 2.5, -- cuánto baja el hambre por minuto real
+	EnergyPerMinute = 1.2, -- cuánto baja la energía por minuto real
+	LowThreshold = 15, -- por debajo de esto el personaje camina más lento
+	CantWorkThreshold = 5, -- por debajo de esto no se puede trabajar
+}
+Config.WalkSpeed = 16
+Config.TiredWalkSpeed = 10
+
+---------------------------------------------------------------------
+-- Trabajos
+-- Cada trabajo es un circuito: recoger algo en un punto (Pickup)
+-- y llevarlo a otro (Dropoff). Los puntos se marcan con tags en el mapa.
+---------------------------------------------------------------------
+Config.Jobs = {
+	Barista = {
+		DisplayName = "Barista",
+		Place = "Cafetería Nova",
+		Pay = 25,
+		EnergyCost = 2,
+		PickupText = "Prepara un café en la cafetera",
+		DropoffText = "Sirve el café en la mesa marcada",
+		CarryColor = Color3.fromRGB(110, 70, 40),
+		CarrySize = Vector3.new(0.8, 1, 0.8),
+	},
+	Reponedor = {
+		DisplayName = "Reponedor",
+		Place = "Supermercado Nova",
+		Pay = 30,
+		EnergyCost = 3,
+		PickupText = "Coge una caja del almacén",
+		DropoffText = "Coloca la caja en la estantería marcada",
+		CarryColor = Color3.fromRGB(190, 150, 90),
+		CarrySize = Vector3.new(2, 1.6, 1.6),
+	},
+	Basurero = {
+		DisplayName = "Basurero",
+		Place = "Punto Limpio",
+		Pay = 45,
+		EnergyCost = 4,
+		PickupText = "Recoge la bolsa de basura marcada",
+		DropoffText = "Tira la bolsa en el contenedor del Punto Limpio",
+		CarryColor = Color3.fromRGB(30, 30, 30),
+		CarrySize = Vector3.new(1.6, 2, 1.6),
+	},
+	Repartidor = {
+		DisplayName = "Repartidor",
+		Place = "Correos Nova",
+		Pay = 70,
+		EnergyCost = 5,
+		PickupText = "Recoge un paquete en Correos",
+		DropoffText = "Entrega el paquete en el buzón marcado",
+		CarryColor = Color3.fromRGB(170, 120, 70),
+		CarrySize = Vector3.new(1.8, 1.4, 1.8),
+	},
+}
+Config.TaskReachDistance = 7 -- a cuántos studs del objetivo cuenta como "llegado"
+
+---------------------------------------------------------------------
+-- Comida (se compra en los mostradores con ProximityPrompt)
+---------------------------------------------------------------------
+Config.Foods = {
+	Cafe = { Name = "Café", Price = 8, Hunger = 5, Energy = 20 },
+	Croissant = { Name = "Croissant", Price = 12, Hunger = 25, Energy = 0 },
+	Fruta = { Name = "Fruta", Price = 6, Hunger = 15, Energy = 0 },
+	Bocadillo = { Name = "Bocadillo", Price = 15, Hunger = 35, Energy = 0 },
+	Hamburguesa = { Name = "Hamburguesa", Price = 25, Hunger = 55, Energy = 0 },
+	Menu = { Name = "Menú completo", Price = 45, Hunger = 100, Energy = 10 },
+	-- La nevera de tu casa es gratis, pero tiene tiempo de espera
+	Nevera = { Name = "Algo de la nevera", Price = 0, Hunger = 20, Energy = 0, Cooldown = 180 },
+}
+
+Config.SleepSeconds = 4 -- lo que dura la animación de dormir
+
+---------------------------------------------------------------------
+-- Casas: cada jugador reclama una parcela gratis y puede mejorarla.
+-- El nivel de casa se GUARDA entre partidas.
+---------------------------------------------------------------------
+Config.HouseTiers = {
+	{ Name = "Estudio", Price = 0, Size = Vector3.new(24, 12, 20), Color = Color3.fromRGB(214, 196, 168) },
+	{ Name = "Casa familiar", Price = 5000, Size = Vector3.new(32, 14, 28), Color = Color3.fromRGB(180, 205, 225) },
+	{ Name = "Chalet", Price = 25000, Size = Vector3.new(40, 16, 34), Color = Color3.fromRGB(235, 235, 230) },
+	{ Name = "Mansión", Price = 100000, Size = Vector3.new(46, 22, 44), Color = Color3.fromRGB(245, 240, 225) },
+}
+
+---------------------------------------------------------------------
+-- MONETIZACIÓN (Robux)
+-- 1. Publica el juego en Roblox.
+-- 2. En create.roblox.com > tu experiencia > Monetización crea los
+--    Game Passes y Developer Products.
+-- 3. Copia aquí sus IDs. Mientras el ID sea 0, el artículo aparece
+--    en la tienda como "Próximamente" y no se puede comprar.
+---------------------------------------------------------------------
+Config.GamePasses = {
+	VIP = {
+		Id = 0,
+		Name = "VIP",
+		Description = "Cobras el DOBLE en todos los trabajos.",
+		Robux = 199,
+		PayMultiplier = 2,
+	},
+	Metabolismo = {
+		Id = 0,
+		Name = "Metabolismo Pro",
+		Description = "El hambre y el cansancio bajan a la mitad de velocidad.",
+		Robux = 99,
+		NeedsMultiplier = 0.5,
+	},
+}
+
+Config.DevProducts = {
+	-- Paquetes de dinero del juego (se pueden comprar muchas veces)
+	{ Key = "Cash1", Id = 0, Name = "Bolsa de dinero", Cash = 1000, Robux = 25 },
+	{ Key = "Cash2", Id = 0, Name = "Maletín de dinero", Cash = 6000, Robux = 99 },
+	{ Key = "Cash3", Id = 0, Name = "Caja fuerte", Cash = 35000, Robux = 399 },
+}
+
+return Config
+]]></string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="8">
+        <Properties>
+          <string name="Name">Format</string>
+          <string name="Source"><![CDATA[-- Format: funciones para mostrar números y horas bonitos en pantalla.
+
+local Format = {}
+
+-- 1234567 -> "$1.234.567"
+function Format.money(amount: number): string
+	local negative = amount < 0
+	local digits = tostring(math.floor(math.abs(amount)))
+	local withDots = digits:reverse():gsub("(%d%d%d)", "%1."):reverse()
+	if withDots:sub(1, 1) == "." then
+		withDots = withDots:sub(2)
+	end
+	return (if negative then "-$" else "$") .. withDots
+end
+
+-- 13.5 -> "13:30"
+function Format.clock(clockTime: number): string
+	local hours = math.floor(clockTime) % 24
+	local minutes = math.floor((clockTime - math.floor(clockTime)) * 60)
+	return string.format("%02d:%02d", hours, minutes)
+end
+
+return Format
+]]></string>
+        </Properties>
+      </Item>
+    </Item>
+  </Item>
+  <Item class="ServerScriptService" referent="9">
+    <Properties>
+      <string name="Name">ServerScriptService</string>
+    </Properties>
+    <Item class="Folder" referent="10">
+      <Properties>
+        <string name="Name">Server</string>
+      </Properties>
+      <Item class="Script" referent="11">
+        <Properties>
+          <string name="Name">Main</string>
+          <token name="RunContext">0</token>
+          <string name="Source"><![CDATA[-- Punto de entrada del servidor. Construye la ciudad y arranca todos los sistemas.
+-- El orden importa: primero el mapa (los servicios buscan sus tags en él).
+
+local Services = script.Parent.Services
+
+require(script.Parent.World.TownBuilder).build()
+
+local order = {
+	"DataService",
+	"MonetizationService",
+	"NeedsService",
+	"WorldService",
+	"JobService",
+	"FoodService",
+	"HouseService",
+}
+
+for _, name in order do
+	local ok, err = pcall(function()
+		require(Services[name]).init()
+	end)
+	if not ok then
+		warn(("[Main] Error iniciando %s: %s"):format(name, tostring(err)))
+	end
+end
+
+print("[Nova Life] Servidor listo ✅")
+]]></string>
+        </Properties>
+      </Item>
+      <Item class="Folder" referent="12">
+        <Properties>
+          <string name="Name">Services</string>
+        </Properties>
+        <Item class="ModuleScript" referent="13">
+          <Properties>
+            <string name="Name">DataService</string>
+            <string name="Source"><![CDATA[-- DataService: carga y guarda los datos de cada jugador (dinero, casa, estadísticas...)
+--
+-- Detalles importantes para que NUNCA se pierda ni se duplique dinero:
+--  * "Session lock": mientras un servidor tiene cargados tus datos, ningún otro
+--    servidor puede sobrescribirlos (evita duplicar dinero saltando de servidor).
+--  * Autoguardado cada Config.AutosaveSeconds y al salir / cerrar el servidor.
+--  * En Roblox Studio, si no has activado "Enable Studio Access to API Services",
+--    el juego funciona igual pero sin guardar (te avisa en la consola).
+
+local DataStoreService = game:GetService("DataStoreService")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
+
+local DataService = {}
+
+local LOCK_TIMEOUT = Config.AutosaveSeconds * 3
+local MAX_RECEIPTS = 50
+
+local DEFAULT_DATA = {
+	Money = Config.StartingMoney,
+	HouseTier = 1,
+	Hunger = Config.Needs.Max,
+	Energy = Config.Needs.Max,
+	Stats = {
+		TasksDone = 0,
+		MoneyEarned = 0,
+		PlaySeconds = 0,
+	},
+	ProcessedReceipts = {},
+}
+
+local profiles: { [Player]: { [string]: any } } = {}
+local loadedCallbacks: { (Player, { [string]: any }) -> () } = {}
+local savingEnabled = true
+local store: DataStore? = nil
+
+local function deepCopy(value: any): any
+	if type(value) ~= "table" then
+		return value
+	end
+	local copy = {}
+	for k, v in value do
+		copy[k] = deepCopy(v)
+	end
+	return copy
+end
+
+-- Añade los campos nuevos que falten (para cuando actualices el juego).
+local function reconcile(data: { [string]: any }, template: { [string]: any })
+	for key, value in template do
+		if data[key] == nil then
+			data[key] = deepCopy(value)
+		elseif type(value) == "table" and type(data[key]) == "table" and next(value) ~= nil then
+			reconcile(data[key], value)
+		end
+	end
+end
+
+local function keyFor(player: Player): string
+	return "Player_" .. player.UserId
+end
+
+do
+	local ok, result = pcall(function()
+		return DataStoreService:GetDataStore(Config.DataStoreName)
+	end)
+	if ok then
+		store = result
+	else
+		savingEnabled = false
+		warn("[DataService] DataStore no disponible, los datos NO se guardarán:", result)
+	end
+end
+
+-- Devuelve la tabla de datos o nil si no se pudo cargar.
+local function loadFromStore(player: Player): { [string]: any }?
+	if not savingEnabled or not store then
+		return deepCopy(DEFAULT_DATA)
+	end
+
+	for attempt = 1, 5 do
+		local loaded: { [string]: any }? = nil
+		local locked = false
+		local ok, err = pcall(function()
+			(store :: DataStore):UpdateAsync(keyFor(player), function(old)
+				local data = if type(old) == "table" then old else deepCopy(DEFAULT_DATA)
+				local lock = data.SessionLock
+				if lock and lock.JobId ~= game.JobId and os.time() - (lock.Time or 0) < LOCK_TIMEOUT then
+					locked = true
+					return nil -- no escribir nada, otro servidor tiene los datos
+				end
+				locked = false
+				data.SessionLock = { JobId = game.JobId, Time = os.time() }
+				loaded = data
+				return data
+			end)
+		end)
+
+		if ok and loaded then
+			return loaded
+		end
+
+		if not ok then
+			warn(("[DataService] Error cargando %s (intento %d): %s"):format(player.Name, attempt, tostring(err)))
+			if RunService:IsStudio() then
+				savingEnabled = false
+				warn("[DataService] Estás en Studio sin acceso a la API. Activa 'Enable Studio Access to API Services' en Game Settings > Security para probar el guardado.")
+				return deepCopy(DEFAULT_DATA)
+			end
+		elseif locked then
+			warn(("[DataService] Datos de %s bloqueados por otro servidor, reintentando..."):format(player.Name))
+		end
+
+		if not player.Parent then
+			return nil
+		end
+		task.wait(attempt * 2)
+	end
+	return nil
+end
+
+-- Guarda los datos. release = true suelta el session lock (al salir).
+function DataService.save(player: Player, release: boolean?): boolean
+	local data = profiles[player]
+	if not data then
+		return false
+	end
+	if not savingEnabled or not store then
+		return true -- en Studio sin API damos el guardado por bueno
+	end
+
+	local ok, err = pcall(function()
+		(store :: DataStore):UpdateAsync(keyFor(player), function(old)
+			if type(old) == "table" and old.SessionLock and old.SessionLock.JobId ~= game.JobId then
+				return nil -- otro servidor se ha quedado los datos: no pisarlos
+			end
+			local toSave = deepCopy(data)
+			toSave.SessionLock = if release then nil else { JobId = game.JobId, Time = os.time() }
+			return toSave
+		end)
+	end)
+	if not ok then
+		warn(("[DataService] Error guardando %s: %s"):format(player.Name, tostring(err)))
+	end
+	return ok
+end
+
+-- Devuelve los datos del jugador (nil si todavía no han cargado).
+function DataService.get(player: Player): { [string]: any }?
+	return profiles[player]
+end
+
+-- Espera a que carguen los datos (máx. timeout segundos).
+function DataService.waitFor(player: Player, timeout: number?): { [string]: any }?
+	local deadline = os.clock() + (timeout or 15)
+	while not profiles[player] and player.Parent and os.clock() < deadline do
+		task.wait(0.1)
+	end
+	return profiles[player]
+end
+
+-- Registra una función que se llama cuando los datos de un jugador están listos.
+function DataService.onLoaded(callback: (Player, { [string]: any }) -> ())
+	table.insert(loadedCallbacks, callback)
+	for player, data in profiles do
+		task.spawn(callback, player, data)
+	end
+end
+
+---------------------------------------------------------------------
+-- Dinero
+---------------------------------------------------------------------
+
+local function syncMoney(player: Player, data: { [string]: any })
+	player:SetAttribute("Money", data.Money)
+	local leaderstats = player:FindFirstChild("leaderstats")
+	local money = leaderstats and leaderstats:FindFirstChild("Dinero")
+	if money then
+		(money :: IntValue).Value = data.Money
+	end
+end
+
+-- Suma (o resta, si amount es negativo) dinero. Devuelve false si no hay datos.
+function DataService.addMoney(player: Player, amount: number, isEarning: boolean?): boolean
+	local data = profiles[player]
+	if not data then
+		return false
+	end
+	data.Money = math.max(0, math.floor(data.Money + amount))
+	if isEarning and amount > 0 then
+		data.Stats.MoneyEarned += amount
+	end
+	syncMoney(player, data)
+	return true
+end
+
+-- Cobra un precio si hay dinero suficiente. Devuelve true si se ha pagado.
+function DataService.spend(player: Player, price: number): boolean
+	local data = profiles[player]
+	if not data or data.Money < price then
+		return false
+	end
+	data.Money -= price
+	syncMoney(player, data)
+	return true
+end
+
+function DataService.hasProcessedReceipt(player: Player, purchaseId: string): boolean
+	local data = profiles[player]
+	return data ~= nil and table.find(data.ProcessedReceipts, purchaseId) ~= nil
+end
+
+function DataService.markReceipt(player: Player, purchaseId: string)
+	local data = profiles[player]
+	if not data then
+		return
+	end
+	table.insert(data.ProcessedReceipts, purchaseId)
+	while #data.ProcessedReceipts > MAX_RECEIPTS do
+		table.remove(data.ProcessedReceipts, 1)
+	end
+end
+
+---------------------------------------------------------------------
+-- Ciclo de vida
+---------------------------------------------------------------------
+
+local function onPlayerAdded(player: Player)
+	local leaderstats = Instance.new("Folder")
+	leaderstats.Name = "leaderstats"
+	local money = Instance.new("IntValue")
+	money.Name = "Dinero"
+	money.Parent = leaderstats
+	leaderstats.Parent = player
+
+	local data = loadFromStore(player)
+	if not player.Parent then
+		return -- se fue mientras cargaba
+	end
+	if not data then
+		player:Kick("No hemos podido cargar tus datos. Vuelve a entrar en unos segundos.")
+		return
+	end
+
+	reconcile(data, DEFAULT_DATA)
+	profiles[player] = data
+	syncMoney(player, data)
+
+	for _, callback in loadedCallbacks do
+		task.spawn(callback, player, data)
+	end
+end
+
+local function onPlayerRemoving(player: Player)
+	if profiles[player] then
+		DataService.save(player, true)
+		profiles[player] = nil
+	end
+end
+
+function DataService.init()
+	Players.PlayerAdded:Connect(onPlayerAdded)
+	Players.PlayerRemoving:Connect(onPlayerRemoving)
+	for _, player in Players:GetPlayers() do
+		task.spawn(onPlayerAdded, player)
+	end
+
+	-- Autoguardado + contador de tiempo jugado
+	task.spawn(function()
+		while true do
+			task.wait(Config.AutosaveSeconds)
+			for player, data in profiles do
+				data.Stats.PlaySeconds += Config.AutosaveSeconds
+				task.spawn(DataService.save, player)
+			end
+		end
+	end)
+
+	-- Al cerrar el servidor, guardar a todos
+	game:BindToClose(function()
+		local pending = 0
+		for player in profiles do
+			pending += 1
+			task.spawn(function()
+				DataService.save(player, true)
+				pending -= 1
+			end)
+		end
+		local deadline = os.clock() + 25
+		while pending > 0 and os.clock() < deadline do
+			task.wait(0.1)
+		end
+	end)
+end
+
+return DataService
+]]></string>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="14">
+          <Properties>
+            <string name="Name">FoodService</string>
+            <string name="Source"><![CDATA[-- FoodService: comprar comida en los mostradores (tag "FoodStand" + atributo FoodId).
+
+local CollectionService = game:GetService("CollectionService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Config = require(ReplicatedStorage.Shared.Config)
+local Format = require(ReplicatedStorage.Shared.Format)
+local Builder = require(script.Parent.Parent.World.Builder)
+local DataService = require(script.Parent.DataService)
+local NeedsService = require(script.Parent.NeedsService)
+
+local FoodService = {}
+
+local Notify = ReplicatedStorage.Remotes.Notify :: RemoteEvent
+local lastUse: { [Player]: { [string]: number } } = {}
+
+function FoodService.eat(player: Player, foodId: string, stand: BasePart?)
+	local food = Config.Foods[foodId]
+	if not food or not DataService.get(player) then
+		return
+	end
+
+	-- La nevera solo funciona en tu propia casa
+	if stand and stand:GetAttribute("PlotId") and stand:GetAttribute("PlotId") ~= player:GetAttribute("PlotId") then
+		Notify:FireClient(player, "Error", "Esta nevera no es tuya.")
+		return
+	end
+
+	if food.Cooldown then
+		lastUse[player] = lastUse[player] or {}
+		local last = lastUse[player][foodId]
+		if last and os.clock() - last < food.Cooldown then
+			local left = math.ceil(food.Cooldown - (os.clock() - last))
+			Notify:FireClient(player, "Error", ("La nevera está vacía. Vuelve en %d s."):format(left))
+			return
+		end
+	end
+
+	if food.Price > 0 and not DataService.spend(player, food.Price) then
+		Notify:FireClient(player, "Error", "No tienes suficiente dinero.")
+		return
+	end
+
+	if food.Cooldown then
+		lastUse[player][foodId] = os.clock()
+	end
+	NeedsService.change(player, food.Hunger, food.Energy or 0)
+	Notify:FireClient(player, "Food", ("¡Ñam! %s"):format(food.Name))
+end
+
+local function setupStand(stand: Instance)
+	if not stand:IsA("BasePart") then
+		return
+	end
+	local foodId = stand:GetAttribute("FoodId")
+	local food = Config.Foods[foodId]
+	if not food then
+		warn("[FoodService] FoodStand con FoodId desconocido:", foodId)
+		return
+	end
+	local action = if food.Price > 0 then "Comprar" else "Comer"
+	local object = if food.Price > 0 then ("%s · %s"):format(food.Name, Format.money(food.Price)) else food.Name
+	local prompt = Builder.prompt(stand, action, object, 0.3)
+	prompt.Triggered:Connect(function(player)
+		FoodService.eat(player, foodId, stand)
+	end)
+end
+
+function FoodService.init()
+	for _, stand in CollectionService:GetTagged("FoodStand") do
+		setupStand(stand)
+	end
+	CollectionService:GetInstanceAddedSignal("FoodStand"):Connect(setupStand)
+
+	game:GetService("Players").PlayerRemoving:Connect(function(player)
+		lastUse[player] = nil
+	end)
+end
+
+return FoodService
+]]></string>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="15">
+          <Properties>
+            <string name="Name">HouseService</string>
+            <string name="Source"><![CDATA[-- HouseService: parcelas y casas.
+--  * Cada jugador puede reclamar UNA parcela libre del servidor (gratis).
+--  * El nivel de su casa (Config.HouseTiers) se guarda y se puede mejorar con dinero.
+--  * Dentro hay cama (dormir = recuperar energía) y nevera (comida gratis con espera).
+
+local CollectionService = game:GetService("CollectionService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Config = require(ReplicatedStorage.Shared.Config)
+local Format = require(ReplicatedStorage.Shared.Format)
+local Builder = require(script.Parent.Parent.World.Builder)
+local DataService = require(script.Parent.DataService)
+local NeedsService = require(script.Parent.NeedsService)
+
+local HouseService = {}
+
+local Notify = ReplicatedStorage.Remotes.Notify :: RemoteEvent
+
+type Plot = {
+	Id: number,
+	Model: Model,
+	Origin: CFrame,
+	SignLabel: TextLabel,
+	Prompt: ProximityPrompt,
+	Owner: Player?,
+	House: Model?,
+}
+local plots: { [number]: Plot } = {}
+
+local function plotOf(player: Player): Plot?
+	local id = player:GetAttribute("PlotId")
+	return if id then plots[id] else nil
+end
+
+---------------------------------------------------------------------
+-- Construcción de la casa
+---------------------------------------------------------------------
+
+local function furnish(model: Model, at: (number, number, number) -> CFrame, size: Vector3, plotId: number)
+	local W, D = size.X, size.Z
+
+	-- Cama (al fondo a la derecha)
+	local bedCf = at(W / 2 - 5, 0.4, D / 2 - 6)
+	Builder.part({ Name = "BedFrame", Size = Vector3.new(6, 1.4, 8), CFrame = bedCf * CFrame.new(0, 0.7, 0), Color = Color3.fromRGB(90, 60, 45), Material = Enum.Material.Wood, Parent = model })
+	local mattress = Builder.part({
+		Name = "Bed",
+		Size = Vector3.new(5.6, 0.8, 7.6),
+		CFrame = bedCf * CFrame.new(0, 1.8, 0),
+		Color = Color3.fromRGB(235, 235, 240),
+		Material = Enum.Material.Fabric,
+		Tags = { "Bed" },
+		Attributes = { PlotId = plotId },
+		Parent = model,
+	})
+	Builder.part({ Name = "Blanket", Size = Vector3.new(5.8, 0.3, 4.5), CFrame = bedCf * CFrame.new(0, 2.3, -1.4), Color = Color3.fromRGB(70, 110, 180), Material = Enum.Material.Fabric, CanCollide = false, Parent = model })
+	Builder.part({ Name = "Pillow", Size = Vector3.new(4, 0.6, 1.6), CFrame = bedCf * CFrame.new(0, 2.5, 2.8), Color = Color3.new(1, 1, 1), Material = Enum.Material.Fabric, CanCollide = false, Parent = model })
+	Builder.part({ Name = "Headboard", Size = Vector3.new(6, 4, 0.5), CFrame = bedCf * CFrame.new(0, 2, 4.1), Color = Color3.fromRGB(90, 60, 45), Material = Enum.Material.Wood, Parent = model })
+
+	local sleep = Builder.prompt(mattress, "Dormir", "Cama", 0.5)
+	sleep.Triggered:Connect(function(player)
+		HouseService.sleep(player, plotId)
+	end)
+
+	-- Nevera (al fondo a la izquierda)
+	Builder.part({ Name = "FridgeBody", Size = Vector3.new(3.2, 7, 3), CFrame = at(-W / 2 + 2.6, 3.9, D / 2 - 2.5), Color = Color3.fromRGB(225, 228, 232), Material = Enum.Material.Metal, Parent = model })
+	Builder.part({
+		Name = "Fridge",
+		Size = Vector3.new(0.3, 1.2, 0.3),
+		CFrame = at(-W / 2 + 3.6, 4.5, D / 2 - 4.1),
+		Color = Color3.fromRGB(90, 90, 95),
+		Tags = { "FoodStand" },
+		Attributes = { FoodId = "Nevera", PlotId = plotId },
+		Parent = model,
+	})
+
+	-- Sofá, alfombra y mesa baja en el salón
+	local sofaCf = at(-W / 2 + 6, 0.4, 0) * CFrame.Angles(0, math.rad(-90), 0)
+	local sofaColor = Color3.fromRGB(120, 130, 140)
+	Builder.part({ Name = "SofaSeat", Size = Vector3.new(9, 1.6, 3.4), CFrame = sofaCf * CFrame.new(0, 1, 0), Color = sofaColor, Material = Enum.Material.Fabric, Parent = model })
+	Builder.part({ Name = "SofaBack", Size = Vector3.new(9, 3, 1), CFrame = sofaCf * CFrame.new(0, 2.2, 1.6), Color = sofaColor, Material = Enum.Material.Fabric, Parent = model })
+	for _, x in { -4.8, 4.8 } do
+		Builder.part({ Name = "SofaArm", Size = Vector3.new(0.8, 2.4, 3.4), CFrame = sofaCf * CFrame.new(x, 1.6, 0), Color = sofaColor, Material = Enum.Material.Fabric, Parent = model })
+	end
+	Builder.part({ Name = "Rug", Size = Vector3.new(8, 0.1, 10), CFrame = at(-W / 2 + 12, 0.45, 0), Color = Color3.fromRGB(180, 90, 70), Material = Enum.Material.Fabric, CanCollide = false, Parent = model })
+	Builder.part({ Name = "CoffeeTable", Size = Vector3.new(3, 1.6, 5), CFrame = at(-W / 2 + 11, 1.2, 0), Color = Color3.fromRGB(90, 60, 45), Material = Enum.Material.Wood, Parent = model })
+end
+
+local function buildHouse(plot: Plot, tier: number)
+	if plot.House then
+		plot.House:Destroy()
+		plot.House = nil
+	end
+	local info = Config.HouseTiers[tier]
+	local size = info.Size
+	-- Colocamos la casa hacia el fondo de la parcela (50x50), dejando jardín delante
+	local offsetZ = 25 - size.Z / 2 - 3
+	local model, at = Builder.building({
+		Name = "House",
+		Parent = plot.Model,
+		CFrame = plot.Origin * CFrame.new(0, 0.3, offsetZ),
+		Size = size,
+		WallColor = info.Color,
+		RoofColor = Color3.fromRGB(120, 60, 50),
+		Sign = if plot.Owner then ("Casa de %s"):format(plot.Owner.DisplayName) else nil,
+		SignColor = Color3.fromRGB(60, 45, 40),
+	})
+	furnish(model, at, size, plot.Id)
+	plot.House = model
+end
+
+local function refreshSign(plot: Plot)
+	local owner = plot.Owner
+	if not owner then
+		plot.SignLabel.Text = "SE VENDE\nLibre"
+		plot.Prompt.ActionText = "Reclamar casa"
+		plot.Prompt.ObjectText = "Parcela " .. plot.Id .. " · Gratis"
+		return
+	end
+	local data = DataService.get(owner)
+	local tier = if data then data.HouseTier else 1
+	local nextTier = Config.HouseTiers[tier + 1]
+	plot.SignLabel.Text = ("%s\n%s"):format(owner.DisplayName, Config.HouseTiers[tier].Name)
+	if nextTier then
+		plot.Prompt.ActionText = "Mejorar a " .. nextTier.Name
+		plot.Prompt.ObjectText = Format.money(nextTier.Price)
+	else
+		plot.Prompt.ActionText = "Casa al máximo"
+		plot.Prompt.ObjectText = Config.HouseTiers[tier].Name
+	end
+end
+
+---------------------------------------------------------------------
+-- Acciones
+---------------------------------------------------------------------
+
+function HouseService.claim(player: Player, plot: Plot)
+	local data = DataService.get(player)
+	if not data then
+		return
+	end
+	if plotOf(player) then
+		Notify:FireClient(player, "Error", "Ya tienes una casa en este servidor.")
+		return
+	end
+	plot.Owner = player
+	player:SetAttribute("PlotId", plot.Id)
+	buildHouse(plot, data.HouseTier)
+	refreshSign(plot)
+	Notify:FireClient(player, "Success", "¡Bienvenido a tu nueva casa! Pulsa 'Casa' para volver cuando quieras.")
+end
+
+function HouseService.upgrade(player: Player, plot: Plot)
+	local data = DataService.get(player)
+	if not data then
+		return
+	end
+	local nextTier = Config.HouseTiers[data.HouseTier + 1]
+	if not nextTier then
+		Notify:FireClient(player, "Info", "Tu casa ya es la mejor de la ciudad.")
+		return
+	end
+	if not DataService.spend(player, nextTier.Price) then
+		Notify:FireClient(player, "Error", ("Necesitas %s para mejorar tu casa."):format(Format.money(nextTier.Price)))
+		return
+	end
+	data.HouseTier += 1
+	buildHouse(plot, data.HouseTier)
+	refreshSign(plot)
+	Notify:FireClient(player, "Success", ("¡Enhorabuena! Ahora vives en: %s"):format(nextTier.Name))
+end
+
+function HouseService.release(player: Player)
+	local plot = plotOf(player)
+	if not plot then
+		return
+	end
+	if plot.House then
+		plot.House:Destroy()
+		plot.House = nil
+	end
+	plot.Owner = nil
+	player:SetAttribute("PlotId", nil)
+	refreshSign(plot)
+end
+
+function HouseService.sleep(player: Player, plotId: number)
+	if player:GetAttribute("PlotId") ~= plotId then
+		Notify:FireClient(player, "Error", "Esta cama no es tuya.")
+		return
+	end
+	if player:GetAttribute("Sleeping") then
+		return
+	end
+	player:SetAttribute("Sleeping", true)
+	Notify:FireClient(player, "Sleep", "Zzz...")
+	task.wait(Config.SleepSeconds)
+	if player.Parent then
+		player:SetAttribute("Sleeping", nil)
+		NeedsService.change(player, 0, Config.Needs.Max)
+		Notify:FireClient(player, "Success", "Has dormido genial. ¡Energía al máximo!")
+	end
+end
+
+function HouseService.goHome(player: Player)
+	local plot = plotOf(player)
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if not plot then
+		Notify:FireClient(player, "Error", "Aún no tienes casa. Busca un cartel de SE VENDE en la zona residencial.")
+		return
+	end
+	if root then
+		player.Character:PivotTo(plot.Origin * CFrame.new(0, 4, -23.5) * CFrame.Angles(0, math.pi, 0))
+	end
+end
+
+---------------------------------------------------------------------
+
+function HouseService.init()
+	for _, model in CollectionService:GetTagged("Plot") do
+		local id = model:GetAttribute("PlotId")
+		local sign = model:FindFirstChild("PlotSign") :: BasePart
+		local label = sign:FindFirstChild("Label", true) :: TextLabel
+		local prompt = Builder.prompt(sign, "Reclamar casa", "", 0.5)
+		local plot: Plot = {
+			Id = id,
+			Model = model,
+			Origin = model:GetAttribute("Origin"),
+			SignLabel = label,
+			Prompt = prompt,
+		}
+		plots[id] = plot
+		refreshSign(plot)
+
+		prompt.Triggered:Connect(function(player)
+			if plot.Owner == nil then
+				HouseService.claim(player, plot)
+			elseif plot.Owner == player then
+				HouseService.upgrade(player, plot)
+			else
+				Notify:FireClient(player, "Info", ("Esta es la casa de %s."):format(plot.Owner.DisplayName))
+			end
+		end)
+	end
+
+	local GoHome = ReplicatedStorage.Remotes.GoHome :: RemoteEvent
+	GoHome.OnServerEvent:Connect(HouseService.goHome)
+
+	Players.PlayerRemoving:Connect(HouseService.release)
+end
+
+return HouseService
+]]></string>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="16">
+          <Properties>
+            <string name="Name">JobService</string>
+            <string name="Source"><![CDATA[-- JobService: trabajos. Cada trabajo es un bucle:
+--   1) ir al punto de recogida (Pickup_<Trabajo>)  -> el personaje coge el objeto
+--   2) llevarlo al punto de entrega (Dropoff_<Trabajo>) -> cobras
+--
+-- El servidor comprueba la distancia (no se fía del cliente) y le pasa al
+-- cliente el objetivo actual con atributos: "Job", "TaskTarget", "TaskText".
+
+local CollectionService = game:GetService("CollectionService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Config = require(ReplicatedStorage.Shared.Config)
+local Format = require(ReplicatedStorage.Shared.Format)
+local Builder = require(script.Parent.Parent.World.Builder)
+local DataService = require(script.Parent.DataService)
+local NeedsService = require(script.Parent.NeedsService)
+local MonetizationService = require(script.Parent.MonetizationService)
+
+local JobService = {}
+
+local Notify = ReplicatedStorage.Remotes.Notify :: RemoteEvent
+
+type Shift = {
+	JobId: string,
+	Phase: "Pickup" | "Dropoff",
+	Target: BasePart,
+	Carry: BasePart?,
+}
+local shifts: { [Player]: Shift } = {}
+
+local function pickTarget(tag: string, avoid: BasePart?): BasePart?
+	local options = CollectionService:GetTagged(tag)
+	if #options == 0 then
+		warn("[JobService] No hay partes con el tag", tag)
+		return nil
+	end
+	if #options > 1 and avoid then
+		local index = table.find(options, avoid)
+		if index then
+			table.remove(options, index)
+		end
+	end
+	return options[math.random(1, #options)]
+end
+
+local function removeCarry(shift: Shift)
+	if shift.Carry then
+		shift.Carry:Destroy()
+		shift.Carry = nil
+	end
+end
+
+-- Pone un objeto (caja, café, bolsa...) en las manos del personaje.
+local function giveCarry(player: Player, shift: Shift)
+	removeCarry(shift)
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if not root then
+		return
+	end
+	local job = Config.Jobs[shift.JobId]
+	local item = Instance.new("Part")
+	item.Name = "CarriedItem"
+	item.Size = job.CarrySize
+	item.Color = job.CarryColor
+	item.Material = Enum.Material.SmoothPlastic
+	item.CanCollide = false
+	item.CanQuery = false
+	item.Massless = true
+	item.CFrame = root.CFrame * CFrame.new(0, 0, -1.8)
+	local weld = Instance.new("WeldConstraint")
+	weld.Part0 = root
+	weld.Part1 = item
+	weld.Parent = item
+	item.Parent = character
+	shift.Carry = item
+end
+
+local function publish(player: Player, shift: Shift)
+	local job = Config.Jobs[shift.JobId]
+	player:SetAttribute("TaskTarget", shift.Target.Position)
+	player:SetAttribute("TaskText", if shift.Phase == "Pickup" then job.PickupText else job.DropoffText)
+end
+
+local function nextTask(player: Player, shift: Shift, lastTarget: BasePart?)
+	local target = pickTarget("Pickup_" .. shift.JobId, lastTarget)
+	if not target then
+		return
+	end
+	shift.Phase = "Pickup"
+	shift.Target = target
+	publish(player, shift)
+end
+
+function JobService.quit(player: Player, silent: boolean?)
+	local shift = shifts[player]
+	if not shift then
+		return
+	end
+	removeCarry(shift)
+	shifts[player] = nil
+	player:SetAttribute("Job", nil)
+	player:SetAttribute("TaskTarget", nil)
+	player:SetAttribute("TaskText", nil)
+	if not silent then
+		Notify:FireClient(player, "Info", "Has dejado el trabajo.")
+	end
+end
+
+function JobService.start(player: Player, jobId: string)
+	local job = Config.Jobs[jobId]
+	if not job or not DataService.get(player) then
+		return
+	end
+	if not NeedsService.canWork(player) then
+		Notify:FireClient(player, "Error", "Estás demasiado cansado o hambriento para trabajar.")
+		return
+	end
+	JobService.quit(player, true)
+
+	local target = pickTarget("Pickup_" .. jobId)
+	if not target then
+		return
+	end
+	local shift: Shift = { JobId = jobId, Phase = "Pickup", Target = target }
+	shifts[player] = shift
+	player:SetAttribute("Job", jobId)
+	publish(player, shift)
+	Notify:FireClient(player, "Success", ("¡Contratado como %s! Sigue la línea azul."):format(job.DisplayName))
+end
+
+local function reached(player: Player, shift: Shift)
+	local job = Config.Jobs[shift.JobId]
+	if shift.Phase == "Pickup" then
+		giveCarry(player, shift)
+		local target = pickTarget("Dropoff_" .. shift.JobId, shift.Target)
+		if not target then
+			return
+		end
+		shift.Phase = "Dropoff"
+		shift.Target = target
+		publish(player, shift)
+		return
+	end
+
+	-- Entrega completada: cobrar
+	removeCarry(shift)
+	local pay = math.floor(job.Pay * MonetizationService.payMultiplier(player))
+	DataService.addMoney(player, pay, true)
+	local data = DataService.get(player)
+	if data then
+		data.Stats.TasksDone += 1
+	end
+	NeedsService.change(player, 0, -job.EnergyCost)
+	Notify:FireClient(player, "Money", "+" .. Format.money(pay))
+
+	if not NeedsService.canWork(player) then
+		JobService.quit(player, true)
+		Notify:FireClient(player, "Error", "Estás agotado. Come algo o duerme antes de seguir trabajando.")
+		return
+	end
+	nextTask(player, shift, shift.Target)
+end
+
+local function setupBoard(board: Instance)
+	if not board:IsA("BasePart") then
+		return
+	end
+	local jobId = board:GetAttribute("JobId")
+	local job = Config.Jobs[jobId]
+	if not job then
+		warn("[JobService] JobBoard con JobId desconocido:", jobId)
+		return
+	end
+	local prompt = Builder.prompt(board, "Trabajar", ("%s · %s/entrega"):format(job.DisplayName, Format.money(job.Pay)), 0.5)
+	prompt.Triggered:Connect(function(player)
+		if player:GetAttribute("Job") == jobId then
+			JobService.quit(player)
+		else
+			JobService.start(player, jobId)
+		end
+	end)
+end
+
+function JobService.init()
+	for _, board in CollectionService:GetTagged("JobBoard") do
+		setupBoard(board)
+	end
+	CollectionService:GetInstanceAddedSignal("JobBoard"):Connect(setupBoard)
+
+	local QuitJob = ReplicatedStorage.Remotes.QuitJob :: RemoteEvent
+	QuitJob.OnServerEvent:Connect(function(player)
+		JobService.quit(player)
+	end)
+
+	Players.PlayerRemoving:Connect(function(player)
+		JobService.quit(player, true)
+	end)
+
+	-- Si el jugador muere, pierde lo que llevaba y vuelve a la fase de recogida
+	Players.PlayerAdded:Connect(function(player)
+		player.CharacterAdded:Connect(function()
+			local shift = shifts[player]
+			if shift then
+				removeCarry(shift)
+				nextTask(player, shift, nil)
+			end
+		end)
+	end)
+
+	-- Comprobar llegadas 4 veces por segundo
+	task.spawn(function()
+		while true do
+			task.wait(0.25)
+			for player, shift in shifts do
+				local character = player.Character
+				local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+				if root and shift.Target.Parent then
+					local offset = root.Position - shift.Target.Position
+					local flat = Vector3.new(offset.X, 0, offset.Z).Magnitude
+					if flat <= Config.TaskReachDistance and math.abs(offset.Y) < 12 then
+						reached(player, shift)
+					end
+				end
+			end
+		end
+	end)
+end
+
+return JobService
+]]></string>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="17">
+          <Properties>
+            <string name="Name">MonetizationService</string>
+            <string name="Source"><![CDATA[-- MonetizationService: Game Passes y Developer Products (compras con Robux).
+--
+-- Game Pass  = se compra UNA vez y es para siempre (ej. VIP).
+-- Dev Product = se puede comprar muchas veces (ej. paquetes de dinero).
+--
+-- Los IDs se configuran en Shared/Config.luau.
+
+local MarketplaceService = game:GetService("MarketplaceService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Config = require(ReplicatedStorage.Shared.Config)
+local DataService = require(script.Parent.DataService)
+
+local MonetizationService = {}
+
+local Notify = ReplicatedStorage.Remotes.Notify :: RemoteEvent
+
+local function passAttribute(key: string): string
+	return "Pass_" .. key
+end
+
+function MonetizationService.hasPass(player: Player, key: string): boolean
+	return player:GetAttribute(passAttribute(key)) == true
+end
+
+-- Multiplicador de sueldo (VIP cobra el doble)
+function MonetizationService.payMultiplier(player: Player): number
+	if MonetizationService.hasPass(player, "VIP") then
+		return Config.GamePasses.VIP.PayMultiplier
+	end
+	return 1
+end
+
+-- Multiplicador de gasto de hambre/energía (Metabolismo Pro gasta la mitad)
+function MonetizationService.needsMultiplier(player: Player): number
+	if MonetizationService.hasPass(player, "Metabolismo") then
+		return Config.GamePasses.Metabolismo.NeedsMultiplier
+	end
+	return 1
+end
+
+local function checkPasses(player: Player)
+	for key, pass in Config.GamePasses do
+		if pass.Id ~= 0 then
+			local ok, owns = pcall(MarketplaceService.UserOwnsGamePassAsync, MarketplaceService, player.UserId, pass.Id)
+			if ok and owns then
+				player:SetAttribute(passAttribute(key), true)
+			end
+		end
+	end
+end
+
+local function processReceipt(receipt): Enum.ProductPurchaseDecision
+	local player = Players:GetPlayerByUserId(receipt.PlayerId)
+	if not player then
+		-- El jugador se fue: Roblox lo volverá a intentar cuando vuelva
+		return Enum.ProductPurchaseDecision.NotProcessedYet
+	end
+
+	local data = DataService.waitFor(player, 20)
+	if not data then
+		return Enum.ProductPurchaseDecision.NotProcessedYet
+	end
+
+	-- ¿Ya lo habíamos entregado? (Roblox puede repetir el aviso)
+	if DataService.hasProcessedReceipt(player, receipt.PurchaseId) then
+		return Enum.ProductPurchaseDecision.PurchaseGranted
+	end
+
+	local product = nil
+	for _, p in Config.DevProducts do
+		if p.Id ~= 0 and p.Id == receipt.ProductId then
+			product = p
+			break
+		end
+	end
+	if not product then
+		warn("[Monetization] Producto desconocido:", receipt.ProductId)
+		return Enum.ProductPurchaseDecision.NotProcessedYet
+	end
+
+	DataService.addMoney(player, product.Cash)
+	DataService.markReceipt(player, receipt.PurchaseId)
+
+	-- Guardamos YA. Si falla, devolvemos NotProcessedYet y Roblox reintentará
+	-- (el recibo queda marcado en memoria, así que en esta sesión no se duplica).
+	if not DataService.save(player) then
+		return Enum.ProductPurchaseDecision.NotProcessedYet
+	end
+
+	Notify:FireClient(player, "Money", ("¡Gracias por tu compra! +%d"):format(product.Cash))
+	return Enum.ProductPurchaseDecision.PurchaseGranted
+end
+
+function MonetizationService.init()
+	Players.PlayerAdded:Connect(checkPasses)
+	for _, player in Players:GetPlayers() do
+		task.spawn(checkPasses, player)
+	end
+
+	MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player, passId, purchased)
+		if not purchased then
+			return
+		end
+		for key, pass in Config.GamePasses do
+			if pass.Id == passId then
+				player:SetAttribute(passAttribute(key), true)
+				Notify:FireClient(player, "Success", ("¡Ya tienes %s!"):format(pass.Name))
+			end
+		end
+	end)
+
+	MarketplaceService.ProcessReceipt = processReceipt
+end
+
+return MonetizationService
+]]></string>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="18">
+          <Properties>
+            <string name="Name">NeedsService</string>
+            <string name="Source"><![CDATA[-- NeedsService: hambre y energía. Bajan con el tiempo; se recuperan comiendo y durmiendo.
+-- Los valores se envían al cliente como atributos del jugador ("Hunger", "Energy").
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Config = require(ReplicatedStorage.Shared.Config)
+local DataService = require(script.Parent.DataService)
+local MonetizationService = require(script.Parent.MonetizationService)
+
+local NeedsService = {}
+
+local TICK = 1 -- segundos entre actualizaciones
+local MAX = Config.Needs.Max
+
+local function clamp(value: number): number
+	return math.clamp(value, 0, MAX)
+end
+
+local function applyWalkSpeed(player: Player)
+	local data = DataService.get(player)
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if not data or not humanoid then
+		return
+	end
+	local tired = data.Hunger <= Config.Needs.LowThreshold or data.Energy <= Config.Needs.LowThreshold
+	humanoid.WalkSpeed = if tired then Config.TiredWalkSpeed else Config.WalkSpeed
+end
+
+local function sync(player: Player, data: { [string]: any })
+	-- Redondeamos para no mandar un cambio de atributo por cada décima
+	player:SetAttribute("Hunger", math.floor(data.Hunger + 0.5))
+	player:SetAttribute("Energy", math.floor(data.Energy + 0.5))
+	applyWalkSpeed(player)
+end
+
+-- Suma (o resta) hambre y energía.
+function NeedsService.change(player: Player, hunger: number, energy: number)
+	local data = DataService.get(player)
+	if not data then
+		return
+	end
+	data.Hunger = clamp(data.Hunger + hunger)
+	data.Energy = clamp(data.Energy + energy)
+	sync(player, data)
+end
+
+function NeedsService.canWork(player: Player): boolean
+	local data = DataService.get(player)
+	return data ~= nil
+		and data.Hunger > Config.Needs.CantWorkThreshold
+		and data.Energy > Config.Needs.CantWorkThreshold
+end
+
+function NeedsService.init()
+	DataService.onLoaded(function(player, data)
+		sync(player, data)
+		player.CharacterAdded:Connect(function()
+			task.defer(applyWalkSpeed, player)
+		end)
+		if player.Character then
+			applyWalkSpeed(player)
+		end
+	end)
+
+	task.spawn(function()
+		while true do
+			task.wait(TICK)
+			for _, player in Players:GetPlayers() do
+				local data = DataService.get(player)
+				if data and not player:GetAttribute("Sleeping") then
+					local multiplier = MonetizationService.needsMultiplier(player)
+					data.Hunger = clamp(data.Hunger - Config.Needs.HungerPerMinute / 60 * TICK * multiplier)
+					data.Energy = clamp(data.Energy - Config.Needs.EnergyPerMinute / 60 * TICK * multiplier)
+					sync(player, data)
+				end
+			end
+		end
+	end)
+end
+
+return NeedsService
+]]></string>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="19">
+          <Properties>
+            <string name="Name">WorldService</string>
+            <string name="Source"><![CDATA[-- WorldService: ciclo día/noche, farolas y efectos de iluminación para dar ambiente.
+
+local CollectionService = game:GetService("CollectionService")
+local Lighting = game:GetService("Lighting")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Config = require(ReplicatedStorage.Shared.Config)
+
+local WorldService = {}
+
+local function ensure(className: string, props: { [string]: any })
+	local instance = Lighting:FindFirstChildOfClass(className) or Instance.new(className)
+	for key, value in props do
+		(instance :: any)[key] = value
+	end
+	instance.Parent = Lighting
+end
+
+local function setupLighting()
+	Lighting.ClockTime = Config.StartClockTime
+	ensure("Atmosphere", { Density = 0.3, Offset = 0.25, Color = Color3.fromRGB(199, 199, 199), Decay = Color3.fromRGB(106, 112, 125), Glare = 0.2, Haze = 1.5 })
+	ensure("BloomEffect", { Intensity = 0.6, Size = 24, Threshold = 1.6 })
+	ensure("SunRaysEffect", { Intensity = 0.05, Spread = 0.8 })
+	ensure("ColorCorrectionEffect", { Brightness = 0.02, Contrast = 0.08, Saturation = 0.12 })
+	ensure("Sky", {})
+end
+
+local function setLamps(on: boolean)
+	for _, bulb in CollectionService:GetTagged("StreetLamp") do
+		local light = bulb:FindFirstChildOfClass("PointLight")
+		if light then
+			light.Enabled = on
+		end
+		if bulb:IsA("BasePart") then
+			bulb.Material = if on then Enum.Material.Neon else Enum.Material.SmoothPlastic
+		end
+	end
+end
+
+function WorldService.init()
+	setupLighting()
+
+	local day = 1
+	workspace:SetAttribute("Day", day)
+	local hoursPerSecond = 24 / (Config.DayLengthMinutes * 60)
+	local lampsOn: boolean? = nil
+
+	RunService.Heartbeat:Connect(function(dt)
+		local previous = Lighting.ClockTime
+		local clock = (previous + dt * hoursPerSecond) % 24
+		Lighting.ClockTime = clock
+		if clock < previous then
+			day += 1
+			workspace:SetAttribute("Day", day)
+		end
+
+		local shouldBeOn = clock >= Config.LampsOnAt or clock < Config.LampsOffAt
+		if shouldBeOn ~= lampsOn then
+			lampsOn = shouldBeOn
+			setLamps(shouldBeOn)
+		end
+	end)
+end
+
+return WorldService
+]]></string>
+          </Properties>
+        </Item>
+      </Item>
+      <Item class="Folder" referent="20">
+        <Properties>
+          <string name="Name">World</string>
+        </Properties>
+        <Item class="ModuleScript" referent="21">
+          <Properties>
+            <string name="Name">Builder</string>
+            <string name="Source"><![CDATA[-- Builder: pequeñas herramientas para construir el mundo con Parts desde código.
+-- Así el mapa entero vive en GitHub y no hace falta construirlo a mano en Studio.
+
+local CollectionService = game:GetService("CollectionService")
+
+local Builder = {}
+
+-- Crea un Part anclado. Acepta cualquier propiedad de Part, más:
+--   Tags = { "Tag1", ... }         -> etiquetas de CollectionService
+--   Attributes = { Clave = valor } -> atributos
+function Builder.part(props: { [string]: any }): Part
+	local p = Instance.new("Part")
+	p.Anchored = true
+	p.TopSurface = Enum.SurfaceType.Smooth
+	p.BottomSurface = Enum.SurfaceType.Smooth
+	p.Material = Enum.Material.SmoothPlastic
+	for key, value in props do
+		if key ~= "Parent" and key ~= "Tags" and key ~= "Attributes" then
+			(p :: any)[key] = value
+		end
+	end
+	if props.Tags then
+		for _, tag in props.Tags do
+			CollectionService:AddTag(p, tag)
+		end
+	end
+	if props.Attributes then
+		for name, value in props.Attributes do
+			p:SetAttribute(name, value)
+		end
+	end
+	p.Parent = props.Parent
+	return p
+end
+
+function Builder.model(name: string, parent: Instance): Model
+	local m = Instance.new("Model")
+	m.Name = name
+	m.Parent = parent
+	return m
+end
+
+-- Cartel con texto pegado a una cara del Part.
+function Builder.sign(
+	target: BasePart,
+	text: string,
+	face: Enum.NormalId?,
+	textColor: Color3?,
+	background: Color3?
+): TextLabel
+	local gui = Instance.new("SurfaceGui")
+	gui.Face = face or Enum.NormalId.Front
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 40
+	gui.LightInfluence = 0
+	gui.Parent = target
+
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.fromScale(1, 1)
+	label.BackgroundColor3 = background or Color3.fromRGB(20, 24, 32)
+	label.BackgroundTransparency = if background then 0 else 1
+	label.TextColor3 = textColor or Color3.new(1, 1, 1)
+	label.Font = Enum.Font.GothamBlack
+	label.TextScaled = true
+	label.Text = text
+	label.Parent = gui
+
+	local padding = Instance.new("UIPadding")
+	padding.PaddingLeft = UDim.new(0.05, 0)
+	padding.PaddingRight = UDim.new(0.05, 0)
+	padding.PaddingTop = UDim.new(0.1, 0)
+	padding.PaddingBottom = UDim.new(0.1, 0)
+	padding.Parent = label
+
+	return label
+end
+
+function Builder.prompt(parent: Instance, action: string, object: string?, hold: number?): ProximityPrompt
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.ActionText = action
+	prompt.ObjectText = object or ""
+	prompt.HoldDuration = hold or 0
+	prompt.MaxActivationDistance = 10
+	prompt.RequiresLineOfSight = false
+	prompt.Parent = parent
+	return prompt
+end
+
+export type BuildingParams = {
+	Name: string,
+	Parent: Instance,
+	-- Centro del edificio a nivel del suelo. La puerta mira hacia LookVector.
+	CFrame: CFrame,
+	Size: Vector3, -- X = ancho, Y = alto, Z = fondo
+	WallColor: Color3,
+	WallMaterial: Enum.Material?,
+	RoofColor: Color3?,
+	FloorColor: Color3?,
+	FloorMaterial: Enum.Material?,
+	Sign: string?,
+	SignColor: Color3?,
+	LightColor: Color3?,
+}
+
+-- Construye un edificio hueco (4 paredes con puerta, suelo, techo, luz y cartel).
+-- Devuelve el Model y una función at(x, y, z) para colocar cosas dentro
+-- usando coordenadas locales: -Z es la fachada (puerta), +Z el fondo.
+function Builder.building(params: BuildingParams): (Model, (number, number, number) -> CFrame)
+	local model = Builder.model(params.Name, params.Parent)
+	local origin = params.CFrame
+	local W, H, D = params.Size.X, params.Size.Y, params.Size.Z
+	local T = 1 -- grosor de pared
+	local doorW, doorH = 8, 10
+
+	local function at(x: number, y: number, z: number): CFrame
+		return origin * CFrame.new(x, y, z)
+	end
+
+	local wall = {
+		Color = params.WallColor,
+		Material = params.WallMaterial or Enum.Material.SmoothPlastic,
+		Parent = model,
+	}
+	local function wallPart(name: string, size: Vector3, cf: CFrame)
+		local props = table.clone(wall)
+		props.Name = name
+		props.Size = size
+		props.CFrame = cf
+		return Builder.part(props)
+	end
+
+	-- Suelo
+	Builder.part({
+		Name = "Floor",
+		Size = Vector3.new(W, 0.4, D),
+		CFrame = at(0, 0.2, 0),
+		Color = params.FloorColor or Color3.fromRGB(190, 170, 140),
+		Material = params.FloorMaterial or Enum.Material.WoodPlanks,
+		Parent = model,
+	})
+
+	-- Paredes
+	wallPart("WallBack", Vector3.new(W, H, T), at(0, H / 2, D / 2 - T / 2))
+	wallPart("WallLeft", Vector3.new(T, H, D), at(-W / 2 + T / 2, H / 2, 0))
+	wallPart("WallRight", Vector3.new(T, H, D), at(W / 2 - T / 2, H / 2, 0))
+	local sideW = (W - doorW) / 2
+	wallPart("WallFrontL", Vector3.new(sideW, H, T), at(-(doorW / 2 + sideW / 2), H / 2, -D / 2 + T / 2))
+	wallPart("WallFrontR", Vector3.new(sideW, H, T), at(doorW / 2 + sideW / 2, H / 2, -D / 2 + T / 2))
+	wallPart("WallFrontTop", Vector3.new(doorW, H - doorH, T), at(0, doorH + (H - doorH) / 2, -D / 2 + T / 2))
+
+	-- Ventanas decorativas en la fachada
+	for _, side in { -1, 1 } do
+		Builder.part({
+			Name = "Window",
+			Size = Vector3.new(math.min(sideW * 0.6, 10), H * 0.35, T + 0.3),
+			CFrame = at(side * (doorW / 2 + sideW / 2), H * 0.5, -D / 2 + T / 2),
+			Color = Color3.fromRGB(150, 200, 230),
+			Material = Enum.Material.Glass,
+			Transparency = 0.2,
+			Reflectance = 0.2,
+			CanCollide = false,
+			Parent = model,
+		})
+	end
+
+	-- Techo
+	local roof = Builder.part({
+		Name = "Roof",
+		Size = Vector3.new(W + 2, 1, D + 2),
+		CFrame = at(0, H + 0.5, 0),
+		Color = params.RoofColor or Color3.fromRGB(80, 80, 90),
+		Parent = model,
+	})
+
+	-- Luz interior
+	local light = Instance.new("PointLight")
+	light.Range = math.max(W, D) * 0.9
+	light.Brightness = 1.2
+	light.Color = params.LightColor or Color3.fromRGB(255, 236, 205)
+	light.Shadows = true
+	light.Parent = Builder.part({
+		Name = "CeilingLamp",
+		Size = Vector3.new(3, 0.3, 3),
+		CFrame = at(0, H - 0.2, 0),
+		Color = Color3.fromRGB(255, 245, 220),
+		Material = Enum.Material.Neon,
+		CanCollide = false,
+		Parent = model,
+	})
+
+	-- Cartel sobre la puerta
+	if params.Sign then
+		local signPart = Builder.part({
+			Name = "Sign",
+			Size = Vector3.new(math.min(W * 0.7, 30), 3.5, 0.4),
+			CFrame = at(0, doorH + 2.5, -D / 2 - 0.3),
+			Color = params.SignColor or Color3.fromRGB(30, 34, 46),
+			CanCollide = false,
+			Parent = model,
+		})
+		Builder.sign(signPart, params.Sign, Enum.NormalId.Front)
+	end
+
+	model.PrimaryPart = roof
+	return model, at
+end
+
+return Builder
+]]></string>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="22">
+          <Properties>
+            <string name="Name">TownBuilder</string>
+            <string name="Source"><![CDATA[-- TownBuilder: construye la ciudad de Nova Life al arrancar el servidor.
+--
+-- Mapa (vista desde arriba, el norte es -Z):
+--
+--          Punto Limpio   Hamburguesería   PLAZA   |   Cafetería   Supermercado   Correos
+--   ================================ AVENIDA (z = 0) ===============================
+--          Casas 1-8 (fila 1)                       |
+--   ================================ CALLE (z = 120) ===============================
+--          Casas 9-16 (fila 2)                      |
+--                                            CALLE (x = 0)
+--
+-- Todo lo que el resto del código necesita se marca con tags (CollectionService):
+--   JobBoard (+JobId), Pickup_<Trabajo>, Dropoff_<Trabajo>, FoodStand (+FoodId),
+--   StreetLamp, Plot (+PlotId), PlotSign (+PlotId)
+
+local Builder = require(script.Parent.Builder)
+
+local TownBuilder = {}
+
+local ROAD_WIDTH = 24
+local PLOT_SIZE = 50
+
+local Colors = {
+	Grass = Color3.fromRGB(96, 150, 72),
+	Asphalt = Color3.fromRGB(45, 47, 52),
+	Sidewalk = Color3.fromRGB(175, 172, 165),
+	Line = Color3.fromRGB(240, 240, 235),
+	Wood = Color3.fromRGB(120, 85, 55),
+	DarkWood = Color3.fromRGB(80, 55, 40),
+	Metal = Color3.fromRGB(90, 95, 105),
+	Leaves = Color3.fromRGB(62, 120, 58),
+}
+
+local function facing(position: Vector3, direction: Vector3): CFrame
+	return CFrame.lookAt(position, position + direction)
+end
+local NORTH = Vector3.new(0, 0, -1)
+local SOUTH = Vector3.new(0, 0, 1)
+
+---------------------------------------------------------------------
+-- Elementos pequeños
+---------------------------------------------------------------------
+
+local function tree(parent: Instance, position: Vector3)
+	local m = Builder.model("Tree", parent)
+	local height = 10 + math.random() * 6
+	Builder.part({
+		Name = "Trunk",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(height, 1.6, 1.6),
+		CFrame = CFrame.new(position + Vector3.new(0, height / 2, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = Colors.Wood,
+		Material = Enum.Material.Wood,
+		Parent = m,
+	})
+	local crown = 9 + math.random() * 4
+	Builder.part({
+		Name = "Leaves",
+		Shape = Enum.PartType.Ball,
+		Size = Vector3.new(crown, crown, crown),
+		CFrame = CFrame.new(position + Vector3.new(0, height + crown * 0.25, 0)),
+		Color = Colors.Leaves:Lerp(Color3.fromRGB(90, 140, 60), math.random()),
+		Material = Enum.Material.Grass,
+		Parent = m,
+	})
+end
+
+local function streetLamp(parent: Instance, position: Vector3)
+	local m = Builder.model("StreetLamp", parent)
+	Builder.part({
+		Name = "Pole",
+		Size = Vector3.new(0.6, 14, 0.6),
+		CFrame = CFrame.new(position + Vector3.new(0, 7, 0)),
+		Color = Colors.Metal,
+		Material = Enum.Material.Metal,
+		Parent = m,
+	})
+	local bulb = Builder.part({
+		Name = "Bulb",
+		Size = Vector3.new(1.6, 0.8, 1.6),
+		CFrame = CFrame.new(position + Vector3.new(0, 14.2, 0)),
+		Color = Color3.fromRGB(255, 230, 170),
+		Material = Enum.Material.SmoothPlastic,
+		Tags = { "StreetLamp" },
+		Parent = m,
+	})
+	local light = Instance.new("PointLight")
+	light.Range = 40
+	light.Brightness = 1.5
+	light.Color = Color3.fromRGB(255, 214, 150)
+	light.Enabled = false
+	light.Parent = bulb
+end
+
+local function bench(parent: Instance, cf: CFrame)
+	local m = Builder.model("Bench", parent)
+	Builder.part({ Name = "Seat", Size = Vector3.new(6, 0.5, 2), CFrame = cf * CFrame.new(0, 1.8, 0), Color = Colors.Wood, Material = Enum.Material.Wood, Parent = m })
+	Builder.part({ Name = "Back", Size = Vector3.new(6, 2, 0.4), CFrame = cf * CFrame.new(0, 3, 0.9), Color = Colors.Wood, Material = Enum.Material.Wood, Parent = m })
+	for _, x in { -2.5, 2.5 } do
+		Builder.part({ Name = "Leg", Size = Vector3.new(0.4, 1.6, 1.8), CFrame = cf * CFrame.new(x, 0.8, 0), Color = Colors.Metal, Parent = m })
+	end
+end
+
+local function jobBoard(parent: Instance, cf: CFrame, jobId: string, title: string)
+	local m = Builder.model("JobBoard_" .. jobId, parent)
+	Builder.part({ Name = "Post", Size = Vector3.new(0.5, 4, 0.5), CFrame = cf * CFrame.new(0, 2, 0), Color = Colors.Metal, Parent = m })
+	local board = Builder.part({
+		Name = "Board",
+		Size = Vector3.new(4.5, 3, 0.3),
+		CFrame = cf * CFrame.new(0, 5, 0),
+		Color = Color3.fromRGB(40, 110, 200),
+		Tags = { "JobBoard" },
+		Attributes = { JobId = jobId },
+		Parent = m,
+	})
+	Builder.sign(board, "SE BUSCA\n" .. title, Enum.NormalId.Front)
+	Builder.sign(board, "SE BUSCA\n" .. title, Enum.NormalId.Back)
+end
+
+-- Mostrador de venta. El FoodId debe existir en Config.Foods.
+local function foodStand(parent: Instance, cf: CFrame, foodId: string, color: Color3)
+	Builder.part({
+		Name = "Food_" .. foodId,
+		Size = Vector3.new(1.6, 1.2, 1.6),
+		CFrame = cf,
+		Color = color,
+		Tags = { "FoodStand" },
+		Attributes = { FoodId = foodId },
+		Parent = parent,
+	})
+end
+
+---------------------------------------------------------------------
+-- Terreno y calles
+---------------------------------------------------------------------
+
+local function buildGround(world: Instance)
+	Builder.part({
+		Name = "Ground",
+		Size = Vector3.new(900, 2, 900),
+		CFrame = CFrame.new(0, -1, 0),
+		Color = Colors.Grass,
+		Material = Enum.Material.Grass,
+		Parent = world,
+	})
+end
+
+local function road(parent: Instance, from: Vector3, to: Vector3, lampStart: number)
+	local length = (to - from).Magnitude
+	local cf = CFrame.lookAt((from + to) / 2, to)
+	-- Acera
+	Builder.part({
+		Name = "Sidewalk",
+		Size = Vector3.new(ROAD_WIDTH + 8, 0.4, length + 8),
+		CFrame = cf * CFrame.new(0, 0.2, 0),
+		Color = Colors.Sidewalk,
+		Material = Enum.Material.Concrete,
+		Parent = parent,
+	})
+	-- Asfalto
+	Builder.part({
+		Name = "Road",
+		Size = Vector3.new(ROAD_WIDTH, 0.4, length),
+		CFrame = cf * CFrame.new(0, 0.3, 0),
+		Color = Colors.Asphalt,
+		Material = Enum.Material.Asphalt,
+		Parent = parent,
+	})
+	-- Línea discontinua central
+	local step = 12
+	for d = -length / 2 + step / 2, length / 2 - step / 2, step do
+		Builder.part({
+			Name = "Line",
+			Size = Vector3.new(0.5, 0.05, 5),
+			CFrame = cf * CFrame.new(0, 0.52, d),
+			Color = Colors.Line,
+			Material = Enum.Material.SmoothPlastic,
+			CanCollide = false,
+			Parent = parent,
+		})
+	end
+	-- Farolas a ambos lados
+	for d = -length / 2 + lampStart, length / 2 - 20, 60 do
+		for _, side in { -1, 1 } do
+			local pos = cf * CFrame.new(side * (ROAD_WIDTH / 2 + 2.5), 0.4, d)
+			streetLamp(parent, pos.Position)
+		end
+	end
+end
+
+local function buildRoads(world: Instance)
+	local roads = Builder.model("Roads", world)
+	road(roads, Vector3.new(-340, 0, 0), Vector3.new(340, 0, 0), 20) -- Avenida principal
+	road(roads, Vector3.new(-340, 0, 120), Vector3.new(340, 0, 120), 20) -- Calle residencial
+	road(roads, Vector3.new(0, 0, -140), Vector3.new(0, 0, 260), 50) -- Calle norte-sur (farolas fuera de los cruces)
+end
+
+---------------------------------------------------------------------
+-- Plaza central (punto de aparición)
+---------------------------------------------------------------------
+
+local function buildPlaza(world: Instance)
+	local plaza = Builder.model("Plaza", world)
+	local center = Vector3.new(-60, 0, -55)
+
+	Builder.part({
+		Name = "PlazaFloor",
+		Size = Vector3.new(60, 0.4, 60),
+		CFrame = CFrame.new(center + Vector3.new(0, 0.2, 0)),
+		Color = Color3.fromRGB(205, 195, 180),
+		Material = Enum.Material.Pavement,
+		Parent = plaza,
+	})
+
+	local spawn = Instance.new("SpawnLocation")
+	spawn.Name = "Spawn"
+	spawn.Anchored = true
+	spawn.Size = Vector3.new(12, 0.4, 12)
+	spawn.CFrame = CFrame.new(center + Vector3.new(0, 0.5, 18))
+	spawn.Color = Color3.fromRGB(205, 195, 180)
+	spawn.Material = Enum.Material.Pavement
+	spawn.Transparency = 0
+	spawn.Duration = 0 -- sin campo de fuerza
+	spawn.Neutral = true
+	spawn.Parent = plaza
+	local decal = spawn:FindFirstChildOfClass("Decal")
+	if decal then
+		decal:Destroy()
+	end
+
+	-- Fuente
+	Builder.part({
+		Name = "FountainBase",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(2, 18, 18),
+		CFrame = CFrame.new(center + Vector3.new(0, 1, -5)) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = Color3.fromRGB(220, 220, 215),
+		Material = Enum.Material.Marble,
+		Parent = plaza,
+	})
+	Builder.part({
+		Name = "FountainWater",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(0.4, 16, 16),
+		CFrame = CFrame.new(center + Vector3.new(0, 2, -5)) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = Color3.fromRGB(80, 160, 220),
+		Material = Enum.Material.Glass,
+		Transparency = 0.3,
+		CanCollide = false,
+		Parent = plaza,
+	})
+	Builder.part({
+		Name = "FountainPillar",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(6, 2, 2),
+		CFrame = CFrame.new(center + Vector3.new(0, 4, -5)) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = Color3.fromRGB(220, 220, 215),
+		Material = Enum.Material.Marble,
+		Parent = plaza,
+	})
+
+	-- Cartel de bienvenida
+	local welcome = Builder.part({
+		Name = "WelcomeSign",
+		Size = Vector3.new(20, 5, 0.6),
+		CFrame = facing(center + Vector3.new(0, 9, 28), NORTH),
+		Color = Color3.fromRGB(30, 34, 46),
+		Parent = plaza,
+	})
+	Builder.sign(welcome, "Bienvenido a NOVA LIFE", Enum.NormalId.Front)
+	Builder.sign(welcome, "Bienvenido a NOVA LIFE", Enum.NormalId.Back)
+	for _, x in { -9, 9 } do
+		Builder.part({ Name = "SignPost", Size = Vector3.new(0.8, 9, 0.8), CFrame = CFrame.new(center + Vector3.new(x, 4.5, 28)), Color = Colors.Metal, Parent = plaza })
+	end
+
+	for _, offset in { Vector3.new(-18, 0, -5), Vector3.new(18, 0, -5) } do
+		bench(plaza, facing(center + offset, if offset.X < 0 then Vector3.new(1, 0, 0) else Vector3.new(-1, 0, 0)))
+	end
+	for _, offset in { Vector3.new(-25, 0, -25), Vector3.new(25, 0, -25), Vector3.new(-25, 0, 25), Vector3.new(25, 0, 25) } do
+		tree(plaza, center + offset)
+	end
+end
+
+---------------------------------------------------------------------
+-- Negocios
+---------------------------------------------------------------------
+
+local function table4(parent: Instance, cf: CFrame, tag: string?)
+	local m = Builder.model("Table", parent)
+	Builder.part({
+		Name = "Top",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(0.4, 5, 5),
+		CFrame = cf * CFrame.new(0, 3, 0) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = Colors.DarkWood,
+		Material = Enum.Material.Wood,
+		Tags = if tag then { tag } else nil,
+		Parent = m,
+	})
+	Builder.part({ Name = "Leg", Size = Vector3.new(0.6, 2.8, 0.6), CFrame = cf * CFrame.new(0, 1.6, 0), Color = Colors.Metal, Parent = m })
+	for _, dir in { Vector3.new(1, 0, 0), Vector3.new(-1, 0, 0) } do
+		Builder.part({ Name = "Chair", Size = Vector3.new(2, 2, 2), CFrame = cf * CFrame.new(dir * 3.8) * CFrame.new(0, 1.2, 0), Color = Color3.fromRGB(170, 60, 50), Parent = m })
+	end
+end
+
+local function counter(parent: Instance, cf: CFrame, width: number, color: Color3)
+	Builder.part({ Name = "Counter", Size = Vector3.new(width, 3.6, 3), CFrame = cf * CFrame.new(0, 1.8, 0), Color = color, Parent = parent })
+	Builder.part({ Name = "CounterTop", Size = Vector3.new(width + 0.4, 0.3, 3.4), CFrame = cf * CFrame.new(0, 3.75, 0), Color = Color3.fromRGB(235, 235, 235), Material = Enum.Material.Marble, Parent = parent })
+end
+
+local function buildCafe(world: Instance)
+	local pos = Vector3.new(70, 0, -55)
+	local model, at = Builder.building({
+		Name = "Cafeteria",
+		Parent = world,
+		CFrame = facing(pos, SOUTH),
+		Size = Vector3.new(44, 14, 34),
+		WallColor = Color3.fromRGB(230, 205, 170),
+		WallMaterial = Enum.Material.Brick,
+		RoofColor = Color3.fromRGB(110, 70, 45),
+		Sign = "CAFETERÍA NOVA",
+		SignColor = Color3.fromRGB(110, 70, 45),
+	})
+	counter(model, at(0, 0.4, 9), 26, Color3.fromRGB(110, 70, 45))
+	Builder.part({
+		Name = "CoffeeMachine",
+		Size = Vector3.new(3, 3, 2),
+		CFrame = at(-9, 5.6, 9),
+		Color = Color3.fromRGB(60, 60, 65),
+		Material = Enum.Material.Metal,
+		Tags = { "Pickup_Barista" },
+		Parent = model,
+	})
+	foodStand(model, at(4, 4.5, 8.5), "Cafe", Color3.fromRGB(110, 70, 45))
+	foodStand(model, at(9, 4.5, 8.5), "Croissant", Color3.fromRGB(220, 170, 90))
+	for _, p in { { -12, -8 }, { 0, -8 }, { 12, -8 }, { -12, 1 }, { 12, 1 } } do
+		table4(model, at(p[1], 0.4, p[2]), "Dropoff_Barista")
+	end
+	jobBoard(world, at(8, 0, -20), "Barista", "BARISTA")
+end
+
+local function buildSupermarket(world: Instance)
+	local pos = Vector3.new(160, 0, -62)
+	local model, at = Builder.building({
+		Name = "Supermercado",
+		Parent = world,
+		CFrame = facing(pos, SOUTH),
+		Size = Vector3.new(60, 16, 48),
+		WallColor = Color3.fromRGB(235, 235, 235),
+		RoofColor = Color3.fromRGB(40, 140, 80),
+		FloorColor = Color3.fromRGB(220, 220, 220),
+		FloorMaterial = Enum.Material.Marble,
+		Sign = "SUPERMERCADO NOVA",
+		SignColor = Color3.fromRGB(40, 140, 80),
+		LightColor = Color3.fromRGB(240, 250, 255),
+	})
+	-- Estanterías (destino del reponedor)
+	for i, x in { -20, -8, 4 } do
+		for j, z in { -6, 8 } do
+			local shelf = Builder.part({
+				Name = "Shelf" .. i .. j,
+				Size = Vector3.new(3, 7, 10),
+				CFrame = at(x, 3.9, z),
+				Color = Color3.fromRGB(200, 200, 205),
+				Material = Enum.Material.Metal,
+				Tags = { "Dropoff_Reponedor" },
+				Parent = model,
+			})
+			-- Productos de colores para que parezca lleno
+			for k = 0, 2 do
+				Builder.part({
+					Name = "Products",
+					Size = Vector3.new(3.4, 1, 9),
+					CFrame = shelf.CFrame * CFrame.new(0, -2 + k * 2.2, 0),
+					Color = Color3.fromHSV(math.random(), 0.6, 0.9),
+					CanCollide = false,
+					Parent = model,
+				})
+			end
+		end
+	end
+	-- Almacén (origen de las cajas)
+	for _, x in { 20, 25 } do
+		Builder.part({
+			Name = "StockBoxes",
+			Size = Vector3.new(4, 4, 4),
+			CFrame = at(x, 2.4, 18),
+			Color = Color3.fromRGB(190, 150, 90),
+			Material = Enum.Material.Cardboard,
+			Tags = { "Pickup_Reponedor" },
+			Parent = model,
+		})
+	end
+	-- Caja registradora
+	counter(model, at(20, 0.4, -12), 10, Color3.fromRGB(40, 140, 80))
+	foodStand(model, at(17, 4.5, -12), "Fruta", Color3.fromRGB(230, 60, 60))
+	foodStand(model, at(22, 4.5, -12), "Bocadillo", Color3.fromRGB(230, 190, 120))
+	jobBoard(world, at(10, 0, -28), "Reponedor", "REPONEDOR")
+end
+
+local function buildPostOffice(world: Instance)
+	local pos = Vector3.new(255, 0, -55)
+	local model, at = Builder.building({
+		Name = "Correos",
+		Parent = world,
+		CFrame = facing(pos, SOUTH),
+		Size = Vector3.new(40, 14, 30),
+		WallColor = Color3.fromRGB(245, 210, 60),
+		RoofColor = Color3.fromRGB(30, 60, 140),
+		Sign = "CORREOS NOVA",
+		SignColor = Color3.fromRGB(30, 60, 140),
+	})
+	counter(model, at(0, 0.4, 2), 20, Color3.fromRGB(30, 60, 140))
+	Builder.part({
+		Name = "Parcels",
+		Size = Vector3.new(10, 5, 4),
+		CFrame = at(0, 2.9, 11),
+		Color = Color3.fromRGB(170, 120, 70),
+		Material = Enum.Material.Cardboard,
+		Tags = { "Pickup_Repartidor" },
+		Parent = model,
+	})
+	jobBoard(world, at(8, 0, -18), "Repartidor", "REPARTIDOR")
+end
+
+local function buildBurger(world: Instance)
+	local pos = Vector3.new(-150, 0, -55)
+	local model, at = Builder.building({
+		Name = "Hamburgueseria",
+		Parent = world,
+		CFrame = facing(pos, SOUTH),
+		Size = Vector3.new(40, 14, 32),
+		WallColor = Color3.fromRGB(200, 50, 45),
+		RoofColor = Color3.fromRGB(245, 190, 40),
+		Sign = "NOVA BURGER",
+		SignColor = Color3.fromRGB(245, 190, 40),
+	})
+	counter(model, at(0, 0.4, 9), 22, Color3.fromRGB(245, 190, 40))
+	foodStand(model, at(-4, 4.5, 8.5), "Hamburguesa", Color3.fromRGB(170, 100, 50))
+	foodStand(model, at(4, 4.5, 8.5), "Menu", Color3.fromRGB(230, 60, 50))
+	for _, p in { { -10, -6 }, { 10, -6 }, { 0, -2 } } do
+		table4(model, at(p[1], 0.4, p[2]), nil)
+	end
+end
+
+local function buildRecycling(world: Instance)
+	local center = Vector3.new(-240, 0, -55)
+	local area = Builder.model("PuntoLimpio", world)
+	Builder.part({
+		Name = "Yard",
+		Size = Vector3.new(40, 0.4, 36),
+		CFrame = CFrame.new(center + Vector3.new(0, 0.2, 0)),
+		Color = Color3.fromRGB(120, 120, 115),
+		Material = Enum.Material.Concrete,
+		Parent = area,
+	})
+	for i, x in { -10, 0, 10 } do
+		Builder.part({
+			Name = "Container" .. i,
+			Size = Vector3.new(8, 6, 5),
+			CFrame = CFrame.new(center + Vector3.new(x, 3.4, -8)),
+			Color = ({ Color3.fromRGB(40, 120, 60), Color3.fromRGB(40, 80, 160), Color3.fromRGB(220, 180, 40) })[i],
+			Material = Enum.Material.Metal,
+			Tags = { "Dropoff_Basurero" },
+			Parent = area,
+		})
+	end
+	local sign = Builder.part({
+		Name = "Sign",
+		Size = Vector3.new(16, 3, 0.4),
+		CFrame = facing(center + Vector3.new(0, 9, -11), SOUTH),
+		Color = Color3.fromRGB(40, 120, 60),
+		Parent = area,
+	})
+	Builder.sign(sign, "PUNTO LIMPIO", Enum.NormalId.Front)
+	jobBoard(world, facing(center + Vector3.new(8, 0, 14), SOUTH), "Basurero", "BASURERO")
+
+	-- Bolsas de basura repartidas por la ciudad (origen del basurero)
+	local bags = Builder.model("TrashBags", world)
+	local spots = {
+		Vector3.new(-300, 0, 18), Vector3.new(-200, 0, -18), Vector3.new(-100, 0, 18),
+		Vector3.new(40, 0, -18), Vector3.new(120, 0, 18), Vector3.new(220, 0, -18),
+		Vector3.new(300, 0, 18), Vector3.new(-250, 0, 102), Vector3.new(-60, 0, 138),
+		Vector3.new(90, 0, 102), Vector3.new(260, 0, 138), Vector3.new(18, 0, 200),
+		Vector3.new(-18, 0, -110),
+	}
+	for i, spot in spots do
+		Builder.part({
+			Name = "TrashBag" .. i,
+			Shape = Enum.PartType.Ball,
+			Size = Vector3.new(2.4, 2.4, 2.4),
+			CFrame = CFrame.new(spot + Vector3.new(0, 1.6, 0)),
+			Color = Color3.fromRGB(25, 25, 28),
+			Material = Enum.Material.Plastic,
+			CanCollide = false,
+			Tags = { "Pickup_Basurero" },
+			Parent = bags,
+		})
+	end
+end
+
+---------------------------------------------------------------------
+-- Parcelas residenciales
+---------------------------------------------------------------------
+
+local function buildPlot(parent: Instance, plotId: number, center: Vector3)
+	local cf = facing(center, NORTH) -- todas las casas miran a la calle del norte
+	local plot = Builder.model("Plot_" .. plotId, parent)
+	plot:SetAttribute("PlotId", plotId)
+	plot:SetAttribute("Origin", cf)
+	game:GetService("CollectionService"):AddTag(plot, "Plot")
+
+	Builder.part({
+		Name = "Lawn",
+		Size = Vector3.new(PLOT_SIZE, 0.3, PLOT_SIZE),
+		CFrame = cf * CFrame.new(0, 0.15, 0),
+		Color = Color3.fromRGB(110, 165, 80),
+		Material = Enum.Material.Grass,
+		Parent = plot,
+	})
+	-- Camino hasta la acera
+	Builder.part({
+		Name = "Path",
+		Size = Vector3.new(5, 0.35, 14),
+		CFrame = cf * CFrame.new(0, 0.2, -PLOT_SIZE / 2 + 2),
+		Color = Colors.Sidewalk,
+		Material = Enum.Material.Concrete,
+		Parent = plot,
+	})
+	-- Buzón (destino del repartidor)
+	Builder.part({ Name = "MailboxPost", Size = Vector3.new(0.4, 3.5, 0.4), CFrame = cf * CFrame.new(5, 1.75, -PLOT_SIZE / 2 + 1), Color = Colors.Wood, Parent = plot })
+	Builder.part({
+		Name = "Mailbox",
+		Size = Vector3.new(1.2, 1.2, 2),
+		CFrame = cf * CFrame.new(5, 4, -PLOT_SIZE / 2 + 1),
+		Color = Color3.fromRGB(200, 50, 50),
+		Tags = { "Dropoff_Repartidor" },
+		Parent = plot,
+	})
+	-- Cartel de la parcela (reclamar / mejorar casa)
+	Builder.part({ Name = "SignPost", Size = Vector3.new(0.4, 4, 0.4), CFrame = cf * CFrame.new(-6, 2, -PLOT_SIZE / 2 + 1), Color = Colors.Wood, Parent = plot })
+	local sign = Builder.part({
+		Name = "PlotSign",
+		Size = Vector3.new(5, 2.6, 0.3),
+		CFrame = cf * CFrame.new(-6, 4.8, -PLOT_SIZE / 2 + 1),
+		Color = Color3.fromRGB(245, 245, 240),
+		Tags = { "PlotSign" },
+		Attributes = { PlotId = plotId },
+		Parent = plot,
+	})
+	local label = Builder.sign(sign, "SE VENDE\nLibre", Enum.NormalId.Front, Color3.fromRGB(30, 30, 30))
+	label.Name = "Label"
+
+	-- Árboles en el jardín trasero
+	tree(plot, (cf * CFrame.new(-PLOT_SIZE / 2 + 4, 0, PLOT_SIZE / 2 - 4)).Position)
+	tree(plot, (cf * CFrame.new(PLOT_SIZE / 2 - 4, 0, PLOT_SIZE / 2 - 4)).Position)
+end
+
+local function buildPlots(world: Instance)
+	local plots = Instance.new("Folder")
+	plots.Name = "Plots"
+	plots.Parent = world
+	local xs = { -270, -200, -130, -60, 60, 130, 200, 270 }
+	local id = 0
+	for _, rowZ in { 65, 185 } do
+		for _, x in xs do
+			id += 1
+			buildPlot(plots, id, Vector3.new(x, 0, rowZ))
+		end
+	end
+end
+
+---------------------------------------------------------------------
+
+function TownBuilder.build(): Folder
+	local world = Instance.new("Folder")
+	world.Name = "Town"
+	world.Parent = workspace
+
+	buildGround(world)
+	buildRoads(world)
+	buildPlaza(world)
+	buildCafe(world)
+	buildSupermarket(world)
+	buildPostOffice(world)
+	buildBurger(world)
+	buildRecycling(world)
+	buildPlots(world)
+
+	-- Unos cuantos árboles por las afueras
+	for _ = 1, 40 do
+		local x = math.random(-420, 420)
+		local z = math.random(-420, 420)
+		if math.abs(x) > 25 and (math.abs(z) > 250 or z < -110) then
+			tree(world, Vector3.new(x, 0, z))
+		end
+	end
+
+	return world
+end
+
+return TownBuilder
+]]></string>
+          </Properties>
+        </Item>
+      </Item>
+    </Item>
+  </Item>
+  <Item class="StarterPlayer" referent="23">
+    <Properties>
+      <string name="Name">StarterPlayer</string>
+    </Properties>
+    <Item class="StarterPlayerScripts" referent="24">
+      <Properties>
+        <string name="Name">StarterPlayerScripts</string>
+      </Properties>
+      <Item class="Folder" referent="25">
+        <Properties>
+          <string name="Name">Client</string>
+        </Properties>
+        <Item class="Folder" referent="26">
+          <Properties>
+            <string name="Name">Controllers</string>
+          </Properties>
+          <Item class="ModuleScript" referent="27">
+            <Properties>
+              <string name="Name">TaskMarker</string>
+              <string name="Source"><![CDATA[-- TaskMarker: dibuja una línea (Beam) desde tu personaje hasta el objetivo del trabajo
+-- y un marcador flotante con la distancia. Solo lo ve el jugador local.
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local TaskMarker = {}
+
+local player = Players.LocalPlayer
+
+local COLOR = Color3.fromRGB(64, 156, 255)
+
+local anchor: Part
+local targetAttachment: Attachment
+local beam: Beam
+local distanceLabel: TextLabel
+
+local function build()
+	anchor = Instance.new("Part")
+	anchor.Name = "TaskMarker"
+	anchor.Anchored = true
+	anchor.CanCollide = false
+	anchor.CanQuery = false
+	anchor.CanTouch = false
+	anchor.Transparency = 1
+	anchor.Size = Vector3.new(1, 1, 1)
+
+	targetAttachment = Instance.new("Attachment")
+	targetAttachment.Parent = anchor
+
+	local billboard = Instance.new("BillboardGui")
+	billboard.Size = UDim2.fromOffset(120, 60)
+	billboard.StudsOffset = Vector3.new(0, 5, 0)
+	billboard.AlwaysOnTop = true
+	billboard.Parent = anchor
+
+	local arrow = Instance.new("TextLabel")
+	arrow.Size = UDim2.fromScale(1, 0.6)
+	arrow.BackgroundTransparency = 1
+	arrow.Text = "▼"
+	arrow.TextColor3 = COLOR
+	arrow.TextStrokeTransparency = 0.4
+	arrow.TextScaled = true
+	arrow.Font = Enum.Font.GothamBlack
+	arrow.Parent = billboard
+
+	distanceLabel = Instance.new("TextLabel")
+	distanceLabel.Size = UDim2.fromScale(1, 0.4)
+	distanceLabel.Position = UDim2.fromScale(0, 0.6)
+	distanceLabel.BackgroundTransparency = 1
+	distanceLabel.TextColor3 = Color3.new(1, 1, 1)
+	distanceLabel.TextStrokeTransparency = 0.4
+	distanceLabel.TextScaled = true
+	distanceLabel.Font = Enum.Font.GothamBold
+	distanceLabel.Parent = billboard
+
+	beam = Instance.new("Beam")
+	beam.Attachment1 = targetAttachment
+	beam.Color = ColorSequence.new(COLOR)
+	beam.Transparency = NumberSequence.new(0.35)
+	beam.LightEmission = 1
+	beam.FaceCamera = true
+	beam.Width0 = 0.6
+	beam.Width1 = 0.6
+	beam.Segments = 1
+	beam.Parent = anchor
+end
+
+local function characterAttachment(): Attachment?
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	if not root then
+		return nil
+	end
+	local attachment = root:FindFirstChild("TaskBeamAttachment") :: Attachment?
+	if not attachment then
+		attachment = Instance.new("Attachment")
+		attachment.Name = "TaskBeamAttachment"
+		attachment.Position = Vector3.new(0, -2, 0) -- a la altura de los pies
+		attachment.Parent = root
+	end
+	return attachment
+end
+
+local function update()
+	local target = player:GetAttribute("TaskTarget")
+	if typeof(target) ~= "Vector3" then
+		anchor.Parent = nil
+		return
+	end
+	anchor.Position = target
+	anchor.Parent = workspace
+end
+
+function TaskMarker.init()
+	build()
+	player:GetAttributeChangedSignal("TaskTarget"):Connect(update)
+	update()
+
+	RunService.RenderStepped:Connect(function()
+		if not anchor.Parent then
+			return
+		end
+		local attachment = characterAttachment()
+		beam.Attachment0 = attachment
+		if attachment then
+			local distance = (attachment.WorldPosition - anchor.Position).Magnitude
+			distanceLabel.Text = ("%d m"):format(math.floor(distance / 3.5))
+		end
+	end)
+end
+
+return TaskMarker
+]]></string>
+            </Properties>
+          </Item>
+        </Item>
+        <Item class="LocalScript" referent="28">
+          <Properties>
+            <string name="Name">Main</string>
+            <string name="Source"><![CDATA[-- Punto de entrada del cliente: crea la interfaz y escucha los avisos del servidor.
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Hud = require(script.Parent.UI.Hud)
+local Store = require(script.Parent.UI.Store)
+local TaskMarker = require(script.Parent.Controllers.TaskMarker)
+
+local gui = Hud.init(function()
+	Store.open()
+end)
+Store.init(gui)
+TaskMarker.init()
+
+local Notify = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Notify") :: RemoteEvent
+Notify.OnClientEvent:Connect(function(kind: string, text: string)
+	if kind == "Sleep" then
+		Hud.sleep()
+	else
+		Hud.toast(kind, text)
+	end
+end)
+]]></string>
+          </Properties>
+        </Item>
+        <Item class="Folder" referent="29">
+          <Properties>
+            <string name="Name">UI</string>
+          </Properties>
+          <Item class="ModuleScript" referent="30">
+            <Properties>
+              <string name="Name">Hud</string>
+              <string name="Source"><![CDATA[-- Hud: la interfaz principal (dinero, hora, necesidades, trabajo, avisos, botones).
+-- Todo se crea por código, así que no hace falta diseñar nada en Studio.
+
+local Lighting = game:GetService("Lighting")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+
+local Config = require(ReplicatedStorage.Shared.Config)
+local Format = require(ReplicatedStorage.Shared.Format)
+local Theme = require(script.Parent.Theme)
+
+local create = Theme.create
+local C = Theme.Colors
+
+local Hud = {}
+
+local player = Players.LocalPlayer
+local Remotes = ReplicatedStorage:WaitForChild("Remotes")
+
+local gui: ScreenGui
+local toastList: Frame
+local sleepOverlay: Frame
+
+---------------------------------------------------------------------
+-- Piezas
+---------------------------------------------------------------------
+
+local function buildMoney(parent: Instance)
+	local panel = Theme.panel({
+		Name = "Money",
+		Size = UDim2.fromOffset(200, 48),
+		Position = UDim2.fromOffset(16, 12),
+		Parent = parent,
+	})
+	local label = Theme.label({
+		Size = UDim2.fromScale(1, 1),
+		Text = "$0",
+		Font = Theme.FontBold,
+		TextSize = 24,
+		TextColor3 = C.Money,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Parent = panel,
+	})
+
+	-- El número "sube" poco a poco en vez de saltar de golpe
+	local shown = 0
+	local target = 0
+	local function update()
+		target = player:GetAttribute("Money") or 0
+	end
+	player:GetAttributeChangedSignal("Money"):Connect(update)
+	update()
+	RunService.RenderStepped:Connect(function(dt)
+		if shown ~= target then
+			local step = (target - shown) * math.min(1, dt * 8)
+			shown = if math.abs(target - shown) < 1 then target else shown + step
+			label.Text = Format.money(math.floor(shown + 0.5))
+		end
+	end)
+end
+
+local function buildClock(parent: Instance)
+	local panel = Theme.panel({
+		Name = "Clock",
+		AnchorPoint = Vector2.new(0.5, 0),
+		Size = UDim2.fromOffset(170, 48),
+		Position = UDim2.new(0.5, 0, 0, 12),
+		Parent = parent,
+	})
+	local time = Theme.label({
+		Size = UDim2.new(1, 0, 0.62, 0),
+		Font = Theme.FontBold,
+		TextSize = 22,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Parent = panel,
+	})
+	local day = Theme.label({
+		Size = UDim2.new(1, 0, 0.38, 0),
+		Position = UDim2.fromScale(0, 0.58),
+		TextSize = 12,
+		TextColor3 = C.Muted,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Parent = panel,
+	})
+	RunService.RenderStepped:Connect(function()
+		local clock = Lighting.ClockTime
+		local icon = if clock >= 6.5 and clock < 19 then "☀" else "☾"
+		time.Text = icon .. "  " .. Format.clock(clock)
+		day.Text = "DÍA " .. tostring(workspace:GetAttribute("Day") or 1)
+	end)
+end
+
+local function bar(parent: Instance, name: string, icon: string, color: Color3, order: number): (number) -> ()
+	local row = create("Frame", {
+		Name = name,
+		Size = UDim2.new(1, 0, 0, 22),
+		BackgroundTransparency = 1,
+		LayoutOrder = order,
+		Parent = parent,
+	})
+	Theme.label({ Size = UDim2.fromOffset(24, 22), Text = icon, TextSize = 16, Parent = row })
+	local track = create("Frame", {
+		Size = UDim2.new(1, -70, 0, 10),
+		Position = UDim2.new(0, 26, 0.5, -5),
+		BackgroundColor3 = C.PanelLight,
+		BorderSizePixel = 0,
+		Parent = row,
+	}, { Theme.corner(5) })
+	local fill = create("Frame", {
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = color,
+		BorderSizePixel = 0,
+		Parent = track,
+	}, { Theme.corner(5) })
+	local value = Theme.label({
+		Size = UDim2.fromOffset(40, 22),
+		Position = UDim2.new(1, -40, 0, 0),
+		TextSize = 14,
+		TextXAlignment = Enum.TextXAlignment.Right,
+		Parent = row,
+	})
+	return function(amount: number)
+		local ratio = math.clamp(amount / Config.Needs.Max, 0, 1)
+		TweenService:Create(fill, TweenInfo.new(0.4), { Size = UDim2.fromScale(ratio, 1) }):Play()
+		fill.BackgroundColor3 = if amount <= Config.Needs.LowThreshold then C.Error else color
+		value.Text = tostring(math.floor(amount))
+	end
+end
+
+local function buildNeeds(parent: Instance)
+	local panel = Theme.panel({
+		Name = "Needs",
+		AnchorPoint = Vector2.new(0, 1),
+		Size = UDim2.fromOffset(230, 76),
+		Position = UDim2.new(0, 16, 1, -16),
+		Parent = parent,
+	})
+	Theme.padding(12).Parent = panel
+	create("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder, Parent = panel })
+
+	local setHunger = bar(panel, "Hunger", "🍔", C.Hunger, 1)
+	local setEnergy = bar(panel, "Energy", "⚡", C.Energy, 2)
+	local function update()
+		setHunger(player:GetAttribute("Hunger") or Config.Needs.Max)
+		setEnergy(player:GetAttribute("Energy") or Config.Needs.Max)
+	end
+	player:GetAttributeChangedSignal("Hunger"):Connect(update)
+	player:GetAttributeChangedSignal("Energy"):Connect(update)
+	update()
+end
+
+local function buildJob(parent: Instance)
+	local panel = Theme.panel({
+		Name = "Job",
+		AnchorPoint = Vector2.new(1, 0),
+		Size = UDim2.fromOffset(280, 100),
+		Position = UDim2.new(1, -16, 0, 12),
+		Visible = false,
+		Parent = parent,
+	})
+	Theme.padding(12).Parent = panel
+	local title = Theme.label({ Size = UDim2.new(1, 0, 0, 20), Font = Theme.FontBold, TextSize = 18, Parent = panel })
+	local taskLabel = Theme.label({
+		Size = UDim2.new(1, 0, 0, 34),
+		Position = UDim2.fromOffset(0, 22),
+		TextSize = 14,
+		TextColor3 = C.Muted,
+		TextWrapped = true,
+		TextYAlignment = Enum.TextYAlignment.Top,
+		Parent = panel,
+	})
+	local quit = Theme.button({
+		Size = UDim2.fromOffset(120, 22),
+		Position = UDim2.new(0, 0, 1, -22),
+		Text = "Dejar trabajo",
+		TextSize = 13,
+		BackgroundColor3 = Color3.fromRGB(120, 40, 40),
+		Parent = panel,
+	})
+	quit.Activated:Connect(function()
+		(Remotes:WaitForChild("QuitJob") :: RemoteEvent):FireServer()
+	end)
+
+	local function update()
+		local jobId = player:GetAttribute("Job")
+		local job = jobId and Config.Jobs[jobId]
+		panel.Visible = job ~= nil
+		if job then
+			title.Text = "💼 " .. job.DisplayName .. "  ·  " .. Format.money(job.Pay)
+			taskLabel.Text = player:GetAttribute("TaskText") or ""
+		end
+	end
+	player:GetAttributeChangedSignal("Job"):Connect(update)
+	player:GetAttributeChangedSignal("TaskText"):Connect(update)
+	update()
+end
+
+local function buildButtons(parent: Instance, openStore: () -> ())
+	local column = create("Frame", {
+		Name = "Buttons",
+		AnchorPoint = Vector2.new(0, 0.5),
+		Size = UDim2.fromOffset(110, 110),
+		Position = UDim2.new(0, 16, 0.5, 0),
+		BackgroundTransparency = 1,
+		Parent = parent,
+	})
+	create("UIListLayout", { Padding = UDim.new(0, 8), Parent = column })
+	local home = Theme.button({ Size = UDim2.fromOffset(110, 44), Text = "🏠 Casa", Parent = column })
+	home.Activated:Connect(function()
+		(Remotes:WaitForChild("GoHome") :: RemoteEvent):FireServer()
+	end)
+	local store = Theme.button({
+		Size = UDim2.fromOffset(110, 44),
+		Text = "🛒 Tienda",
+		BackgroundColor3 = Color3.fromRGB(150, 110, 20),
+		Parent = column,
+	})
+	store.Activated:Connect(openStore)
+end
+
+---------------------------------------------------------------------
+-- Avisos
+---------------------------------------------------------------------
+
+local TOAST_COLORS = {
+	Success = C.Accent,
+	Money = C.Money,
+	Error = C.Error,
+	Food = C.Hunger,
+	Info = C.Muted,
+	Sleep = C.Muted,
+}
+
+function Hud.toast(kind: string, text: string)
+	local color = TOAST_COLORS[kind] or C.Muted
+	local toast = Theme.panel({
+		Size = UDim2.fromOffset(0, 40),
+		AutomaticSize = Enum.AutomaticSize.X,
+		BackgroundTransparency = 1,
+		Parent = toastList,
+	})
+	Theme.padding(10).Parent = toast
+	local stroke = toast:FindFirstChildOfClass("UIStroke") :: UIStroke
+	stroke.Color = color
+	stroke.Transparency = 1
+	local label = Theme.label({
+		Size = UDim2.fromScale(0, 1),
+		AutomaticSize = Enum.AutomaticSize.X,
+		Text = text,
+		Font = Theme.FontBold,
+		TextColor3 = color,
+		TextTransparency = 1,
+		Parent = toast,
+	})
+
+	local fadeIn = TweenInfo.new(0.25)
+	TweenService:Create(toast, fadeIn, { BackgroundTransparency = 0.1 }):Play()
+	TweenService:Create(stroke, fadeIn, { Transparency = 0.3 }):Play()
+	TweenService:Create(label, fadeIn, { TextTransparency = 0 }):Play()
+
+	task.delay(3, function()
+		local fadeOut = TweenInfo.new(0.4)
+		TweenService:Create(toast, fadeOut, { BackgroundTransparency = 1 }):Play()
+		TweenService:Create(stroke, fadeOut, { Transparency = 1 }):Play()
+		TweenService:Create(label, fadeOut, { TextTransparency = 1 }):Play()
+		task.wait(0.45)
+		toast:Destroy()
+	end)
+end
+
+function Hud.sleep()
+	sleepOverlay.Visible = true
+	sleepOverlay.BackgroundTransparency = 1
+	TweenService:Create(sleepOverlay, TweenInfo.new(0.8), { BackgroundTransparency = 0 }):Play()
+	task.delay(Config.SleepSeconds - 0.8, function()
+		local tween = TweenService:Create(sleepOverlay, TweenInfo.new(0.8), { BackgroundTransparency = 1 })
+		tween:Play()
+		tween.Completed:Wait()
+		sleepOverlay.Visible = false
+	end)
+end
+
+---------------------------------------------------------------------
+
+function Hud.init(openStore: () -> ()): ScreenGui
+	gui = create("ScreenGui", {
+		Name = "NovaHud",
+		ResetOnSpawn = false,
+		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+		Parent = player:WaitForChild("PlayerGui"),
+	})
+
+	-- Escala la interfaz según el tamaño de pantalla (móvil / PC)
+	local scale = create("UIScale", { Parent = gui })
+	local camera = workspace.CurrentCamera
+	local function rescale()
+		scale.Scale = math.clamp(camera.ViewportSize.Y / 850, 0.65, 1.25)
+	end
+	camera:GetPropertyChangedSignal("ViewportSize"):Connect(rescale)
+	rescale()
+
+	buildMoney(gui)
+	buildClock(gui)
+	buildNeeds(gui)
+	buildJob(gui)
+	buildButtons(gui, openStore)
+
+	toastList = create("Frame", {
+		Name = "Toasts",
+		AnchorPoint = Vector2.new(0.5, 0),
+		Size = UDim2.fromOffset(600, 200),
+		Position = UDim2.new(0.5, 0, 0, 72),
+		BackgroundTransparency = 1,
+		Parent = gui,
+	})
+	create("UIListLayout", {
+		Padding = UDim.new(0, 6),
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		Parent = toastList,
+	})
+
+	-- La pantalla negra de dormir va en su propio ScreenGui (sin UIScale) para cubrirlo todo
+	local overlayGui = create("ScreenGui", {
+		Name = "NovaSleep",
+		ResetOnSpawn = false,
+		IgnoreGuiInset = true,
+		DisplayOrder = 10,
+		Parent = gui.Parent,
+	})
+	sleepOverlay = create("Frame", {
+		Name = "Sleep",
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = Color3.new(0, 0, 0),
+		Visible = false,
+		Parent = overlayGui,
+	})
+	Theme.label({
+		Size = UDim2.fromScale(1, 1),
+		Text = "Zzz...",
+		Font = Theme.FontBold,
+		TextSize = 40,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Parent = sleepOverlay,
+	})
+
+	return gui
+end
+
+return Hud
+]]></string>
+            </Properties>
+          </Item>
+          <Item class="ModuleScript" referent="31">
+            <Properties>
+              <string name="Name">Store</string>
+              <string name="Source"><![CDATA[-- Store: ventana de la tienda (Game Passes y paquetes de dinero con Robux).
+
+local MarketplaceService = game:GetService("MarketplaceService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Config = require(ReplicatedStorage.Shared.Config)
+local Format = require(ReplicatedStorage.Shared.Format)
+local Theme = require(script.Parent.Theme)
+
+local create = Theme.create
+local C = Theme.Colors
+
+local Store = {}
+
+local player = Players.LocalPlayer
+local window: Frame
+
+local function card(parent: Instance, order: number, title: string, description: string, robux: number, id: number, owned: () -> boolean, buy: () -> ())
+	local frame = Theme.panel({
+		Size = UDim2.new(1, 0, 0, 74),
+		BackgroundColor3 = C.PanelLight,
+		BackgroundTransparency = 0,
+		LayoutOrder = order,
+		Parent = parent,
+	})
+	Theme.padding(10).Parent = frame
+	Theme.label({ Size = UDim2.new(1, -120, 0, 22), Text = title, Font = Theme.FontBold, TextSize = 18, Parent = frame })
+	Theme.label({
+		Size = UDim2.new(1, -120, 0, 32),
+		Position = UDim2.fromOffset(0, 22),
+		Text = description,
+		TextSize = 13,
+		TextColor3 = C.Muted,
+		TextWrapped = true,
+		TextYAlignment = Enum.TextYAlignment.Top,
+		Parent = frame,
+	})
+	local button = Theme.button({
+		AnchorPoint = Vector2.new(1, 0.5),
+		Size = UDim2.fromOffset(110, 38),
+		Position = UDim2.fromScale(1, 0.5),
+		BackgroundColor3 = Color3.fromRGB(0, 170, 90),
+		Parent = frame,
+	})
+
+	local function refresh()
+		if id == 0 then
+			button.Text = "Próximamente"
+			button.BackgroundColor3 = C.PanelLight
+			button.AutoButtonColor = false
+		elseif owned() then
+			button.Text = "✓ Tuyo"
+			button.BackgroundColor3 = C.PanelLight
+			button.AutoButtonColor = false
+		else
+			button.Text = "R$ " .. robux
+		end
+	end
+	refresh()
+	button.Activated:Connect(function()
+		if id ~= 0 and not owned() then
+			buy()
+		end
+	end)
+	return refresh
+end
+
+function Store.open()
+	window.Visible = true
+end
+
+function Store.close()
+	window.Visible = false
+end
+
+function Store.init(parent: ScreenGui)
+	window = Theme.panel({
+		Name = "Store",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Size = UDim2.fromOffset(460, 440),
+		Position = UDim2.fromScale(0.5, 0.5),
+		BackgroundTransparency = 0.05,
+		Visible = false,
+		ZIndex = 10,
+		Parent = parent,
+	})
+	Theme.padding(16).Parent = window
+
+	Theme.label({ Size = UDim2.new(1, -40, 0, 30), Text = "🛒 Tienda Nova", Font = Theme.FontBold, TextSize = 24, Parent = window })
+	local close = Theme.button({
+		AnchorPoint = Vector2.new(1, 0),
+		Size = UDim2.fromOffset(32, 32),
+		Position = UDim2.fromScale(1, 0),
+		Text = "✕",
+		Parent = window,
+	})
+	close.Activated:Connect(Store.close)
+
+	local list = create("ScrollingFrame", {
+		Size = UDim2.new(1, 0, 1, -44),
+		Position = UDim2.fromOffset(0, 44),
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		ScrollBarThickness = 4,
+		AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		CanvasSize = UDim2.new(),
+		Parent = window,
+	})
+	create("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder, Parent = list })
+	create("UIPadding", { PaddingRight = UDim.new(0, 8), Parent = list })
+
+	local order = 0
+	local function section(text: string)
+		order += 1
+		Theme.label({ Size = UDim2.new(1, 0, 0, 22), Text = text, Font = Theme.FontBold, TextColor3 = C.Gold, LayoutOrder = order, Parent = list })
+	end
+
+	section("PASES (para siempre)")
+	local passKeys = {}
+	for key in Config.GamePasses do
+		table.insert(passKeys, key)
+	end
+	table.sort(passKeys)
+	for _, key in passKeys do
+		local pass = Config.GamePasses[key]
+		order += 1
+		local refresh = card(list, order, pass.Name, pass.Description, pass.Robux, pass.Id, function()
+			return player:GetAttribute("Pass_" .. key) == true
+		end, function()
+			MarketplaceService:PromptGamePassPurchase(player, pass.Id)
+		end)
+		player:GetAttributeChangedSignal("Pass_" .. key):Connect(refresh)
+	end
+
+	section("DINERO")
+	for _, product in Config.DevProducts do
+		order += 1
+		card(list, order, product.Name, "+" .. Format.money(product.Cash) .. " para gastar en la ciudad.", product.Robux, product.Id, function()
+			return false
+		end, function()
+			MarketplaceService:PromptProductPurchase(player, product.Id)
+		end)
+	end
+end
+
+return Store
+]]></string>
+            </Properties>
+          </Item>
+          <Item class="ModuleScript" referent="32">
+            <Properties>
+              <string name="Name">Theme</string>
+              <string name="Source"><![CDATA[-- Theme: colores, fuentes y pequeñas funciones para crear la interfaz por código.
+
+local Theme = {}
+
+Theme.Colors = {
+	Panel = Color3.fromRGB(16, 20, 28),
+	PanelLight = Color3.fromRGB(32, 38, 50),
+	Stroke = Color3.fromRGB(255, 255, 255),
+	Text = Color3.fromRGB(245, 247, 250),
+	Muted = Color3.fromRGB(160, 170, 185),
+	Accent = Color3.fromRGB(64, 156, 255),
+	Money = Color3.fromRGB(90, 220, 120),
+	Hunger = Color3.fromRGB(255, 150, 60),
+	Energy = Color3.fromRGB(255, 215, 70),
+	Error = Color3.fromRGB(255, 90, 90),
+	Gold = Color3.fromRGB(255, 196, 60),
+}
+
+Theme.Font = Enum.Font.GothamMedium
+Theme.FontBold = Enum.Font.GothamBold
+
+function Theme.create(className: string, props: { [string]: any }, children: { Instance }?): any
+	local instance = Instance.new(className)
+	for key, value in props do
+		if key ~= "Parent" then
+			(instance :: any)[key] = value
+		end
+	end
+	if children then
+		for _, child in children do
+			child.Parent = instance
+		end
+	end
+	if props.Parent then
+		instance.Parent = props.Parent
+	end
+	return instance
+end
+
+function Theme.corner(radius: number?): UICorner
+	return Theme.create("UICorner", { CornerRadius = UDim.new(0, radius or 12) })
+end
+
+function Theme.stroke(transparency: number?): UIStroke
+	return Theme.create("UIStroke", {
+		Color = Theme.Colors.Stroke,
+		Transparency = transparency or 0.88,
+		Thickness = 1,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+	})
+end
+
+function Theme.padding(px: number): UIPadding
+	return Theme.create("UIPadding", {
+		PaddingLeft = UDim.new(0, px),
+		PaddingRight = UDim.new(0, px),
+		PaddingTop = UDim.new(0, px),
+		PaddingBottom = UDim.new(0, px),
+	})
+end
+
+-- Panel oscuro semitransparente con esquinas redondeadas
+function Theme.panel(props: { [string]: any }): Frame
+	local defaults = {
+		BackgroundColor3 = Theme.Colors.Panel,
+		BackgroundTransparency = 0.15,
+		BorderSizePixel = 0,
+	}
+	for key, value in props do
+		defaults[key] = value
+	end
+	return Theme.create("Frame", defaults, { Theme.corner(), Theme.stroke() })
+end
+
+function Theme.label(props: { [string]: any }): TextLabel
+	local defaults = {
+		BackgroundTransparency = 1,
+		Font = Theme.Font,
+		TextColor3 = Theme.Colors.Text,
+		TextSize = 16,
+		TextXAlignment = Enum.TextXAlignment.Left,
+	}
+	for key, value in props do
+		defaults[key] = value
+	end
+	return Theme.create("TextLabel", defaults)
+end
+
+function Theme.button(props: { [string]: any }): TextButton
+	local defaults = {
+		BackgroundColor3 = Theme.Colors.PanelLight,
+		BackgroundTransparency = 0.1,
+		BorderSizePixel = 0,
+		AutoButtonColor = true,
+		Font = Theme.FontBold,
+		TextColor3 = Theme.Colors.Text,
+		TextSize = 16,
+	}
+	for key, value in props do
+		defaults[key] = value
+	end
+	return Theme.create("TextButton", defaults, { Theme.corner(10), Theme.stroke() })
+end
+
+return Theme
+]]></string>
+            </Properties>
+          </Item>
+        </Item>
+      </Item>
+    </Item>
+  </Item>
+</roblox>
