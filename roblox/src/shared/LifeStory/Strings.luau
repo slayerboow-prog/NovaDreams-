@@ -227,6 +227,8 @@ function Strings.get(key: string, args: { [string]: any }?): string
 			local value = args[name]
 			return if value ~= nil then tostring(value) else "{" .. name .. "}"
 		end)
+		-- Contracciones del español al rellenar variables: "a el parque" -> "al parque", "de el" -> "del"
+		text = text:gsub("%f[%a]([Aa]) el ", "%1l "):gsub("%f[%a]([Dd])e el ", "%1el ")
 	end
 	return text
 end

@@ -29,6 +29,12 @@ local cardTitle: TextLabel
 local cardText: TextLabel
 local cardList: Frame
 local switchButton: TextButton
+local tab: TextButton
+local tabArrow: TextLabel
+local newDot: Frame
+local expanded = true
+local hasContent = false
+local lastSeen: string? = nil -- último objetivo que el jugador ha visto (para el aviso de "nuevo")
 local lastState: { [string]: any }? = nil
 
 -- Resuelve el texto de una clave. Los lugares llegan como clave (placeKey) y se traducen aquí.
@@ -47,39 +53,69 @@ local function text(key: string?, args: { [string]: any }?): string
 end
 
 ---------------------------------------------------------------------
--- Tarjeta "Tu vida"
+-- Tarjeta "Tu vida": pestaña vertical en el borde derecho que despliega un panel pequeño
 ---------------------------------------------------------------------
 
+local function refreshVisibility()
+	card.Visible = expanded and hasContent
+	tab.Visible = hasContent
+	tabArrow.Text = if expanded then "▶" else "◀"
+	if expanded then
+		newDot.Visible = false
+	end
+end
+
 local function buildCard()
-	card = Theme.panel({
-		Name = "LifeStoryCard",
-		AnchorPoint = Vector2.new(1, 0),
-		Size = UDim2.fromOffset(280, 0),
-		AutomaticSize = Enum.AutomaticSize.Y,
-		Position = UDim2.new(1, -16, 0, 12),
-		Visible = false,
+	-- Contenedor pegado al borde derecho, a media altura: [panel][pestaña]
+	local dock = create("Frame", {
+		Name = "LifeStoryDock",
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -6, 0.5, 0),
+		Size = UDim2.fromOffset(0, 0),
+		AutomaticSize = Enum.AutomaticSize.XY,
+		BackgroundTransparency = 1,
 		Parent = gui,
 	})
-	Theme.padding(12).Parent = card
-	create("UIListLayout", { Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder, Parent = card })
+	create("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		HorizontalAlignment = Enum.HorizontalAlignment.Right,
+		VerticalAlignment = Enum.VerticalAlignment.Center,
+		Padding = UDim.new(0, 4),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Parent = dock,
+	})
+
+	card = Theme.panel({
+		Name = "LifeStoryCard",
+		Size = UDim2.fromOffset(200, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		LayoutOrder = 1,
+		Visible = false,
+		Parent = dock,
+	})
+	Theme.padding(8).Parent = card
+	create("UIListLayout", { Padding = UDim.new(0, 2), SortOrder = Enum.SortOrder.LayoutOrder, Parent = card })
 	cardHeader = Theme.label({
-		Size = UDim2.new(1, 0, 0, 16),
-		TextSize = 12,
+		Size = UDim2.new(1, 0, 0, 13),
+		TextSize = 11,
 		TextColor3 = C.Accent,
+		TextTruncate = Enum.TextTruncate.AtEnd,
 		LayoutOrder = 1,
 		Parent = card,
 	})
 	cardTitle = Theme.label({
-		Size = UDim2.new(1, 0, 0, 20),
+		Size = UDim2.new(1, 0, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
 		Font = Theme.FontBold,
-		TextSize = 17,
+		TextSize = 14,
+		TextWrapped = true,
 		LayoutOrder = 2,
 		Parent = card,
 	})
 	cardText = Theme.label({
 		Size = UDim2.new(1, 0, 0, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
-		TextSize = 14,
+		TextSize = 12,
 		TextColor3 = C.Muted,
 		TextWrapped = true,
 		LayoutOrder = 3,
@@ -92,10 +128,11 @@ local function buildCard()
 		LayoutOrder = 4,
 		Parent = card,
 	})
-	create("UIListLayout", { Padding = UDim.new(0, 2), SortOrder = Enum.SortOrder.LayoutOrder, Parent = cardList })
+	create("UIListLayout", { Padding = UDim.new(0, 1), SortOrder = Enum.SortOrder.LayoutOrder, Parent = cardList })
 	switchButton = Theme.button({
-		Size = UDim2.fromOffset(150, 22),
-		TextSize = 12,
+		Size = UDim2.new(1, 0, 0, 20),
+		TextSize = 11,
+		TextTruncate = Enum.TextTruncate.AtEnd,
 		LayoutOrder = 5,
 		Visible = false,
 		Parent = card,
@@ -107,13 +144,53 @@ local function buildCard()
 		end
 	end)
 
-	-- Si el jugador está trabajando, la tarjeta baja para no tapar el panel del trabajo
-	local function place()
-		local working = player:GetAttribute("Job") ~= nil
-		card.Position = UDim2.new(1, -16, 0, if working then 120 else 12)
-	end
-	player:GetAttributeChangedSignal("Job"):Connect(place)
-	place()
+	-- Pestaña vertical: pulsar para ocultar o desplegar
+	tab = Theme.button({
+		Name = "LifeStoryTab",
+		Size = UDim2.fromOffset(28, 104),
+		Text = "",
+		LayoutOrder = 2,
+		Visible = false,
+		Parent = dock,
+	})
+	tabArrow = Theme.label({
+		Size = UDim2.new(1, 0, 0, 18),
+		Position = UDim2.fromOffset(0, 4),
+		Text = "▶",
+		TextSize = 12,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		TextColor3 = C.Accent,
+		Parent = tab,
+	})
+	Theme.label({
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0.5, 0, 0.5, 8),
+		Size = UDim2.fromOffset(76, 20),
+		Rotation = -90,
+		Text = Strings.get("STORY.CARD.HEADER"),
+		Font = Theme.FontBold,
+		TextSize = 13,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Parent = tab,
+	})
+	newDot = create("Frame", {
+		Size = UDim2.fromOffset(9, 9),
+		Position = UDim2.fromOffset(-3, -3),
+		BackgroundColor3 = C.Gold,
+		BorderSizePixel = 0,
+		Visible = false,
+		Parent = tab,
+	})
+	create("UICorner", { CornerRadius = UDim.new(1, 0), Parent = newDot })
+	tab.Activated:Connect(function()
+		expanded = not expanded
+		refreshVisibility()
+	end)
+
+	-- En pantallas pequeñas (móvil, ventana de Studio) empieza plegada
+	local camera = workspace.CurrentCamera
+	expanded = camera.ViewportSize.Y >= 700
+	refreshVisibility()
 end
 
 local function renderCard(state: { [string]: any })
@@ -123,11 +200,7 @@ local function renderCard(state: { [string]: any })
 			child:Destroy()
 		end
 	end
-	local header = Strings.get("STORY.CARD.HEADER")
-	if state.ChapterTitleKey then
-		header ..= "  ·  " .. Strings.get(state.ChapterTitleKey)
-	end
-	cardHeader.Text = header
+	cardHeader.Text = if state.ChapterTitleKey then Strings.get(state.ChapterTitleKey) else Strings.get("STORY.CARD.HEADER")
 
 	local tracked = state.Tracked
 	if tracked then
@@ -135,8 +208,10 @@ local function renderCard(state: { [string]: any })
 		cardText.Text = text(tracked.TextKey, tracked.Args)
 		for i, child in tracked.Children or {} do
 			Theme.label({
-				Size = UDim2.new(1, 0, 0, 18),
-				TextSize = 13,
+				Size = UDim2.new(1, 0, 0, 0),
+				AutomaticSize = Enum.AutomaticSize.Y,
+				TextSize = 12,
+				TextWrapped = true,
 				TextColor3 = if child.Done then C.Money else C.Text,
 				Text = (if child.Done then "✓ " else "• ") .. text(child.TextKey, child.Args),
 				LayoutOrder = i,
@@ -153,7 +228,17 @@ local function renderCard(state: { [string]: any })
 	local others = state.Others or {}
 	switchButton.Visible = tracked ~= nil and #others > 0
 	switchButton.Text = Strings.get("STORY.CARD.SWITCH", { title = if others[1] then Strings.get(others[1].TitleKey) else "" })
-	card.Visible = tracked ~= nil or state.Waiting ~= nil
+	hasContent = tracked ~= nil or state.Waiting ~= nil
+
+	-- Si está plegada y hay un objetivo nuevo, un puntito dorado en la pestaña lo avisa
+	local current = cardTitle.Text .. "|" .. cardText.Text
+	if current ~= lastSeen then
+		lastSeen = current
+		if not expanded then
+			newDot.Visible = true
+		end
+	end
+	refreshVisibility()
 end
 
 ---------------------------------------------------------------------
