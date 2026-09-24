@@ -68,7 +68,7 @@ function Validate.run(): { string }
 		if s.Type ~= "Moment" and s.Type ~= "Transition" and not s.TextKey then
 			err("%s: el paso %s necesita TextKey", where, s.Type)
 		end
-		if s.Type == "Reach" and not Locations.Places[s.Place] then
+		if (s.Type == "Reach" or s.Place ~= nil) and not Locations.Places[s.Place] then
 			err("%s: lugar desconocido '%s'", where, tostring(s.Place))
 		end
 		if s.Type == "Choice" then

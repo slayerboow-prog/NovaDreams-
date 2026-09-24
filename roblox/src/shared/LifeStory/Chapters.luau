@@ -22,12 +22,12 @@ export type Chapter = {
 }
 
 local Chapters: { [string]: Chapter } = {
-	-- FASE 2 · Bebé (5-10 min). Se activa cuando exista la casa de bebé y sus habitaciones.
+	-- FASE 2 · Bebé (5-10 min) en la casa familiar de Los Pinos.
 	Bebe_PrimerosPasos = {
 		Id = "Bebe_PrimerosPasos",
 		Order = 10,
 		Stage = { Min = "Bebe", Max = "Bebe" },
-		Enabled = false,
+		Enabled = true,
 		TitleKey = "CHAPTER.BEBE.TITLE",
 		IntroKey = "CHAPTER.BEBE.INTRO",
 		OutroKey = "CHAPTER.BEBE.OUTRO",
@@ -45,6 +45,19 @@ local Chapters: { [string]: Chapter } = {
 		IntroKey = "CHAPTER.NINO.INTRO",
 		OutroKey = "CHAPTER.NINO.OUTRO",
 		Main = { "Nino_PrimerDiaColegio" },
+	},
+
+	-- PUENTE TEMPORAL (mientras no esté la infancia completa, fases 4-8): un vistazo al barrio de niño
+	-- y un salto en el tiempo hasta la vida adulta. Se desactiva cuando se active Nino_ElColegio.
+	Nino_Puente = {
+		Id = "Nino_Puente",
+		Order = 25,
+		Stage = { Min = "Nino", Max = "Adolescente" },
+		Enabled = true,
+		TitleKey = "CHAPTER.NINO_PUENTE.TITLE",
+		IntroKey = "CHAPTER.NINO_PUENTE.INTRO",
+		OutroKey = "CHAPTER.NINO_PUENTE.OUTRO",
+		Main = { "Nino_TuBarrio" },
 	},
 
 	-- Capítulo puente, jugable YA en el mapa actual: mientras no exista la infancia,

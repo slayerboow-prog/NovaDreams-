@@ -25,7 +25,9 @@ local function applyWalkSpeed(player: Player)
 		return
 	end
 	local tired = data.Hunger <= Config.Needs.LowThreshold or data.Energy <= Config.Needs.LowThreshold
-	humanoid.WalkSpeed = if tired then Config.TiredWalkSpeed else Config.WalkSpeed
+	-- La velocidad base depende de la etapa de vida (LifeService); si estás agotado, vas más lento
+	local base = player:GetAttribute("StageWalkSpeed") or Config.WalkSpeed
+	humanoid.WalkSpeed = if tired then math.min(base, Config.TiredWalkSpeed) else base
 end
 
 local function sync(player: Player, data: { [string]: any })

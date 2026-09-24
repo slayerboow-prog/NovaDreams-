@@ -34,16 +34,43 @@ Config.Calendar = {
 -- Historia de vida (LifeStoryService)
 ---------------------------------------------------------------------
 Config.LifeStory = {
-	-- Etapa con la que empieza un personaje nuevo. Pasará a "Bebe" cuando el tutorial de bebé
-	-- (fase 2) esté construido; mientras tanto se empieza de adulto, como en la v0.1.
-	DefaultStage = "Adulto",
-	DefaultAge = 22,
+	-- Un personaje NUEVO nace bebé (tutorial de bebé, fase 2). Quien ya jugaba antes de la
+	-- historia de vida (tiene tiempo jugado guardado) sigue siendo adulto.
+	NewCharacterStage = "Bebe",
+	VeteranStage = "Adulto",
+	DefaultAge = 0,
 	TickSeconds = 0.5, -- cada cuánto se comprueban llegadas y esperas
 	RefreshSeconds = 5, -- cada cuánto se revisan misiones que dependen de la hora
 	MaxActiveSide = 3, -- misiones secundarias a la vez
 	DeclineCooldown = 600, -- segundos reales antes de volver a ofrecer una secundaria rechazada
 	MaxLifeEvents = 200, -- acontecimientos guardados en la biografía
 	ReachPadding = 14, -- studs de margen alrededor de un edificio para contar como "has llegado"
+}
+
+-- Cómo es el cuerpo en cada etapa (tamaño del personaje, velocidad al andar, altura del salto)
+Config.StageBody = {
+	Bebe = { Scale = 0.45, WalkSpeed = 8, JumpHeight = 1.5 },
+	Nino = { Scale = 0.65, WalkSpeed = 14, JumpHeight = 6 },
+	Adolescente = { Scale = 0.85, WalkSpeed = 16, JumpHeight = 7.2 },
+	AdultoJoven = { Scale = 1, WalkSpeed = 16, JumpHeight = 7.2 },
+	Adulto = { Scale = 1, WalkSpeed = 16, JumpHeight = 7.2 },
+	Mayor = { Scale = 1, WalkSpeed = 13, JumpHeight = 5 },
+}
+
+-- Qué etapa mínima hace falta para cada cosa (el servidor lo comprueba siempre)
+Config.StageLimits = {
+	Work = "Adolescente", -- trabajar (a los adolescentes solo trabajos sencillos)
+	ClaimHome = "AdultoJoven", -- tener casa propia
+	Travel = "Nino", -- coger el autobús entre zonas
+}
+
+-- Tutorial de bebé (fase 2)
+Config.Baby = {
+	CrawlSpeed = 4, -- velocidad gateando, antes de levantarse
+	StepStuds = 4, -- cada cuántos studs andados cuenta un "paso"
+	HungryAfterFirstSteps = 35, -- el hambre baja a este valor para enseñar las necesidades
+	CinematicSeconds = 6, -- lo que dura mirar por la ventana
+	MaxDistanceFromHome = 6, -- margen fuera de la casa antes de volver a entrar (un bebé no sale solo)
 }
 
 ---------------------------------------------------------------------

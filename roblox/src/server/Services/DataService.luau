@@ -30,8 +30,8 @@ local DEFAULT_DATA = {
 	},
 	ProcessedReceipts = {},
 	-- Etapa de vida (la edad real llegará con el sistema de vida)
+	-- (Stage no va en la plantilla: LifeStoryService decide si un personaje nuevo nace bebé)
 	Life = {
-		Stage = Config.LifeStory.DefaultStage,
 		AgeYears = Config.LifeStory.DefaultAge,
 	},
 	-- Historia de vida (LifeStoryService): capítulos, misiones, decisiones, memoria de NPC y biografía

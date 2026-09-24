@@ -14,6 +14,7 @@ local Building = require(script.Parent.Parent.World.Kit.Building)
 local TownBuilder = require(script.Parent.Parent.World.TownBuilder)
 local DataService = require(script.Parent.DataService)
 local NeedsService = require(script.Parent.NeedsService)
+local LifeService = require(script.Parent.LifeService)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 
 local HouseService = {}
@@ -164,6 +165,9 @@ function HouseService.claim(player: Player, plot: Plot)
 	end
 	if plotOf(player) then
 		Notify:FireClient(player, "Error", "Ya tienes una casa en este servidor.")
+		return
+	end
+	if not LifeService.allows(player, "ClaimHome") then
 		return
 	end
 	plot.Owner = player

@@ -16,6 +16,7 @@ local DataService = require(script.Parent.DataService)
 local NeedsService = require(script.Parent.NeedsService)
 local MonetizationService = require(script.Parent.MonetizationService)
 local RoleService = require(script.Parent.RoleService)
+local LifeService = require(script.Parent.LifeService)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 
 local JobService = {}
@@ -113,6 +114,9 @@ end
 function JobService.start(player: Player, jobId: string)
 	local job = Config.Jobs[jobId]
 	if not job or not DataService.get(player) then
+		return
+	end
+	if not LifeService.allows(player, "Work") then
 		return
 	end
 	if not NeedsService.canWork(player) then

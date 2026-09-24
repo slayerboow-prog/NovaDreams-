@@ -12,7 +12,7 @@
 --   Steps      pasos en orden. Tipos:
 --     Reach      { Place }                         ir a un lugar de Locations
 --     Event      { Event, Match?, Count? }         que ocurra algo en otro sistema (trabajar, comer, dormir...)
---     Talk       { Npc }                           hablar con un personaje (lo emite el futuro sistema de NPC)
+--     Talk       { Npc, Place? }                   hablar con un personaje (Place: la línea guía lleva hasta él)
 --     Choice     { Key, PromptKey, Options }       una decisión; se guarda en Choices[Key]
 --     Wait       { GameMinutes }                   dejar pasar tiempo de juego
 --     Group      { Steps }                         varios objetivos en cualquier orden
@@ -38,8 +38,8 @@ export type Quest = {
 
 local Quests: { [string]: Quest } = {
 	-----------------------------------------------------------------
-	-- FASE 2 · BEBÉ (datos listos; el capítulo está desactivado hasta tener la casa de bebé)
-	-- Los eventos "BabyStood", "RoomVisited"... los emitirá el controlador de bebé.
+	-- FASE 2 · BEBÉ (5-10 min) en la casa familiar. Los eventos Baby* los emite BabyService.
+	-- Enseña: moverse, interactuar, la línea guía, las necesidades, la familia y la ciudad.
 	-----------------------------------------------------------------
 	Bebe_AprendeACaminar = {
 		Kind = "Main",
@@ -47,7 +47,7 @@ local Quests: { [string]: Quest } = {
 		Steps = {
 			{ Type = "Event", Event = "BabyStood", TextKey = "QUEST.BEBE_CAMINAR.S1" },
 			{ Type = "Event", Event = "BabySteps", Count = 5, TextKey = "QUEST.BEBE_CAMINAR.S2" },
-			{ Type = "Talk", Npc = "Familia_Abu", TextKey = "QUEST.BEBE_CAMINAR.S3" },
+			{ Type = "Talk", Npc = "Familia_Abu", Place = "FamiliaAbu", TextKey = "QUEST.BEBE_CAMINAR.S3" },
 		},
 		MomentKey = "MOMENT.PRIMEROS_PASOS",
 	},
@@ -60,12 +60,12 @@ local Quests: { [string]: Quest } = {
 				Type = "Group",
 				TextKey = "QUEST.BEBE_CASA.S1",
 				Steps = {
-					{ Type = "Event", Event = "RoomVisited", Match = { Room = "Salon" }, TextKey = "QUEST.BEBE_CASA.SALON" },
-					{ Type = "Event", Event = "RoomVisited", Match = { Room = "Cocina" }, TextKey = "QUEST.BEBE_CASA.COCINA" },
-					{ Type = "Event", Event = "RoomVisited", Match = { Room = "Dormitorio" }, TextKey = "QUEST.BEBE_CASA.DORMITORIO" },
+					{ Type = "Reach", Place = "HomeCocina", TextKey = "QUEST.BEBE_CASA.COCINA" },
+					{ Type = "Event", Event = "BabyInteract", Match = { Object = "Tele" }, TextKey = "QUEST.BEBE_CASA.TELE" },
+					{ Type = "Event", Event = "BabyInteract", Match = { Object = "Juguetes" }, TextKey = "QUEST.BEBE_CASA.JUGUETES" },
 				},
 			},
-			{ Type = "Talk", Npc = "Familia_Padre", TextKey = "QUEST.BEBE_CASA.S2" },
+			{ Type = "Talk", Npc = "Familia_Padre", Place = "FamiliaPadre", TextKey = "QUEST.BEBE_CASA.S2" },
 		},
 		MomentKey = "MOMENT.CONOCES_FAMILIA",
 	},
@@ -74,10 +74,25 @@ local Quests: { [string]: Quest } = {
 		TitleKey = "QUEST.BEBE_SALIR.TITLE",
 		Requires = { Completed = { "Bebe_ExploraLaCasa" } },
 		Steps = {
-			{ Type = "Event", Event = "LookedOutside", TextKey = "QUEST.BEBE_SALIR.S1" },
+			{ Type = "Event", Event = "LookedOutside", Place = "Ventanal", TextKey = "QUEST.BEBE_SALIR.S1" },
 			{ Type = "Transition", Seconds = 5, SetStage = "Nino", TextKey = "TRANSITION.ANOS_DESPUES" },
 		},
 		MomentKey = "MOMENT.YA_ERES_NINO",
+	},
+
+	-----------------------------------------------------------------
+	-- PUENTE TEMPORAL DE NIÑO (hasta que existan las fases 4-8)
+	-----------------------------------------------------------------
+	Nino_TuBarrio = {
+		Kind = "Main",
+		TitleKey = "QUEST.BARRIO.TITLE",
+		Steps = {
+			{ Type = "Reach", Place = "Parque", TextKey = "QUEST.BARRIO.PARQUE" },
+			{ Type = "Reach", Place = "Colegio", TextKey = "QUEST.BARRIO.COLEGIO" },
+			{ Type = "Moment", TextKey = "MOMENT.TU_COLEGIO" },
+			{ Type = "Transition", Seconds = 6, SetStage = "AdultoJoven", TextKey = "TRANSITION.CRECES" },
+		},
+		MomentKey = "MOMENT.YA_ERES_ADULTO",
 	},
 
 	-----------------------------------------------------------------

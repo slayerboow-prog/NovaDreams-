@@ -1,0 +1,197 @@
+-- Baby (cliente): lo que se ve durante el tutorial de bebé.
+--   * Botón grande "¡Levántate!" (también con la barra espaciadora) mientras el bebé gatea.
+--   * Lo que dicen Abu y la familia, en un globo abajo de la pantalla.
+--   * Al mirar por el ventanal, la cámara sale por la ventana y enseña la ciudad.
+-- El servidor (BabyService) decide todo; aquí solo se dibuja y se envía "Stand".
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+
+local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
+local Theme = require(script.Parent.Parent.UI.Theme)
+
+local C = Theme.Colors
+
+local Baby = {}
+
+local player = Players.LocalPlayer
+local Remote: RemoteEvent
+local gui: ScreenGui
+local standButton: TextButton
+
+---------------------------------------------------------------------
+-- Botón de levantarse
+---------------------------------------------------------------------
+
+local function buildStandButton()
+	standButton = Theme.button({
+		Name = "Stand",
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -140),
+		Size = UDim2.fromOffset(260, 64),
+		Text = "🧸 " .. Strings.get("BABY.STAND_BUTTON"),
+		TextSize = 26,
+		BackgroundColor3 = C.Accent,
+		Visible = false,
+		Parent = gui,
+	})
+	standButton.Activated:Connect(function()
+		Remote:FireServer("Stand")
+	end)
+
+	-- Latido suave para que se note que hay que pulsarlo
+	task.spawn(function()
+		while true do
+			if standButton.Visible then
+				local grow = TweenService:Create(standButton, TweenInfo.new(0.6, Enum.EasingStyle.Sine), { Size = UDim2.fromOffset(276, 70) })
+				grow:Play()
+				grow.Completed:Wait()
+				local shrink = TweenService:Create(standButton, TweenInfo.new(0.6, Enum.EasingStyle.Sine), { Size = UDim2.fromOffset(260, 64) })
+				shrink:Play()
+				shrink.Completed:Wait()
+			else
+				task.wait(0.5)
+			end
+		end
+	end)
+
+	local function update()
+		standButton.Visible = player:GetAttribute("BabyCanStand") == true
+	end
+	player:GetAttributeChangedSignal("BabyCanStand"):Connect(update)
+	update()
+
+	UserInputService.InputBegan:Connect(function(input, processed)
+		if not processed and input.KeyCode == Enum.KeyCode.Space and standButton.Visible then
+			Remote:FireServer("Stand")
+		end
+	end)
+end
+
+---------------------------------------------------------------------
+-- Globos de diálogo
+---------------------------------------------------------------------
+
+local sayQueue: { { SpeakerKey: string?, TextKey: string } } = {}
+local saying = false
+
+local function showLine(line: { SpeakerKey: string?, TextKey: string })
+	local panel = Theme.panel({
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -220),
+		Size = UDim2.fromOffset(460, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		BackgroundTransparency = 1,
+		Parent = gui,
+	})
+	Theme.padding(12).Parent = panel
+	Theme.create("UIListLayout", { Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder, Parent = panel })
+	local labels = {}
+	if line.SpeakerKey then
+		table.insert(labels, Theme.label({
+			Size = UDim2.new(1, 0, 0, 18),
+			Text = Strings.get(line.SpeakerKey),
+			Font = Theme.FontBold,
+			TextSize = 15,
+			TextColor3 = C.Gold,
+			TextTransparency = 1,
+			LayoutOrder = 1,
+			Parent = panel,
+		}))
+	end
+	table.insert(labels, Theme.label({
+		Size = UDim2.new(1, 0, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		Text = Strings.get(line.TextKey),
+		TextSize = 17,
+		TextWrapped = true,
+		TextTransparency = 1,
+		LayoutOrder = 2,
+		Parent = panel,
+	}))
+
+	local fadeIn = TweenInfo.new(0.3)
+	TweenService:Create(panel, fadeIn, { BackgroundTransparency = 0.15 }):Play()
+	for _, label in labels do
+		TweenService:Create(label, fadeIn, { TextTransparency = 0 }):Play()
+	end
+	task.wait(3.6)
+	local fadeOut = TweenInfo.new(0.3)
+	TweenService:Create(panel, fadeOut, { BackgroundTransparency = 1 }):Play()
+	for _, label in labels do
+		TweenService:Create(label, fadeOut, { TextTransparency = 1 }):Play()
+	end
+	task.wait(0.35)
+	panel:Destroy()
+end
+
+local function say(line: { SpeakerKey: string?, TextKey: string })
+	table.insert(sayQueue, line)
+	if saying then
+		return
+	end
+	saying = true
+	task.spawn(function()
+		while #sayQueue > 0 do
+			showLine(table.remove(sayQueue, 1) :: any)
+		end
+		saying = false
+	end)
+end
+
+---------------------------------------------------------------------
+-- Mirar por el ventanal: la cámara sale por la ventana y enseña Valmar
+---------------------------------------------------------------------
+
+local function cinematic(from: CFrame, seconds: number)
+	local camera = workspace.CurrentCamera
+	local previousType = camera.CameraType
+	camera.CameraType = Enum.CameraType.Scriptable
+
+	local origin = from.Position + Vector3.new(0, 1, 0)
+	local outward = from.LookVector
+	local cityCenter = Vector3.zero -- Valmar Centro
+	local toCity = Vector3.new(cityCenter.X - origin.X, 0, cityCenter.Z - origin.Z)
+	toCity = if toCity.Magnitude > 1 then toCity.Unit else outward
+
+	local shots = {
+		CFrame.lookAt(origin - outward * 4, origin + outward * 20),
+		CFrame.lookAt(origin + outward * 30 + Vector3.new(0, 25, 0), origin + toCity * 400),
+		CFrame.lookAt(origin + toCity * 120 + Vector3.new(0, 140, 0), cityCenter),
+	}
+	camera.CFrame = shots[1]
+	local legs = #shots - 1
+	local legTime = math.max(1, (seconds - 1) / legs)
+	for i = 2, #shots do
+		local tween = TweenService:Create(camera, TweenInfo.new(legTime, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), { CFrame = shots[i] })
+		tween:Play()
+		tween.Completed:Wait()
+	end
+	task.wait(1)
+	camera.CameraType = if previousType == Enum.CameraType.Scriptable then Enum.CameraType.Custom else previousType
+end
+
+---------------------------------------------------------------------
+
+function Baby.init()
+	gui = Theme.create("ScreenGui", {
+		Name = "Baby",
+		ResetOnSpawn = false,
+		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+		Parent = player:WaitForChild("PlayerGui"),
+	})
+	Remote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Baby") :: RemoteEvent
+	buildStandButton()
+
+	Remote.OnClientEvent:Connect(function(kind: string, payload: { [string]: any })
+		if kind == "Say" then
+			say({ SpeakerKey = payload.SpeakerKey, TextKey = payload.TextKey })
+		elseif kind == "Cinematic" then
+			task.spawn(cinematic, payload.From, payload.Seconds or 6)
+		end
+	end)
+end
+
+return Baby

@@ -19,6 +19,9 @@
         },
         "LifeStory": {
           "$className": "RemoteEvent"
+        },
+        "Baby": {
+          "$className": "RemoteEvent"
         }
       }
     },

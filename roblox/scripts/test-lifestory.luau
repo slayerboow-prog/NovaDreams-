@@ -174,7 +174,8 @@ local function check(condition: any, message: string)
 	end
 end
 
-local function newPlayer(name: string, stage: string)
+-- stage = nil: personaje recién creado (playSeconds 0 -> nace bebé; > 0 -> jugador veterano, adulto)
+local function newPlayer(name: string, stage: string?, playSeconds: number?)
 	local player = { Name = name, Parent = true, Inbox = {}, Attributes = {} }
 	function player:SetAttribute(key, value)
 		self.Attributes[key] = value
@@ -184,6 +185,7 @@ local function newPlayer(name: string, stage: string)
 	end
 	profiles[player] = {
 		Money = 0,
+		Stats = { PlaySeconds = playSeconds or 0 },
 		Life = { Stage = stage, AgeYears = 0 },
 		Story = {
 			Version = 1,
@@ -263,9 +265,10 @@ RoleService.release(real)
 RoleService.offDuty(teacher)
 
 print("\n▶ Capítulo puente: una nueva vida en Valmar")
-local ana = newPlayer("Ana", "Adulto")
+local ana = newPlayer("Ana", nil, 3600) -- ya jugaba antes de la historia de vida
 task.wait(0.2)
 local data = profiles[ana]
+check(data.Life.Stage == "Adulto", "Un jugador veterano sigue siendo adulto")
 check(received(ana, "Chapter", "CHAPTER.NUEVA_VIDA.TITLE"), "Empieza el capítulo con su pantalla")
 check(data.Story.Active.Adulto_LlegadaValmar ~= nil, "Primera misión principal en marcha")
 local state = lastState(ana)
@@ -326,38 +329,69 @@ end
 check(table.find(biography, "MOMENT.PRIMER_SUELDO") ~= nil and table.find(biography, "QUEST.REGION.OPT_PLAYA") ~= nil, "La biografía guarda momentos y decisiones")
 check(pcall(serde.encode, "json", data), "Los datos se pueden guardar (JSON válido)")
 
-print("\n▶ Bebé → niño (capítulos de las fases 2 y 4 activados solo para la prueba)")
-local Chapters = loadModule(ROOT .. "/shared/LifeStory/Chapters")
-Chapters.Bebe_PrimerosPasos.Enabled = true
-Chapters.Nino_ElColegio.Enabled = true
-lighting.ClockTime = 20 -- fuera del horario del colegio
-local leo = newPlayer("Leo", "Bebe")
+print("\n▶ Fase 2: nacer, aprender a caminar, explorar la casa y crecer")
+local leo = newPlayer("Leo") -- personaje nuevo
 task.wait(0.2)
 local leoData = profiles[leo]
-check(leoData.Story.Active.Bebe_AprendeACaminar ~= nil, "El bebé empieza aprendiendo a caminar")
+check(leoData.Life.Stage == "Bebe" and leo:GetAttribute("LifeStage") == "Bebe", "Un personaje nuevo nace bebé")
+check(received(leo, "Chapter", "CHAPTER.BEBE.TITLE"), "Empieza el capítulo 'Primeros pasos'")
+check(leoData.Story.Active.Bebe_AprendeACaminar ~= nil, "Primera misión: aprende a caminar")
 StoryEvents.emit(leo, "BabyStood", {})
-for _ = 1, 5 do
+for _ = 1, 4 do
 	StoryEvents.emit(leo, "BabySteps", {})
 end
+task.wait(0.1)
+state = lastState(leo)
+check(state.Tracked.Args.count == 4 and state.Tracked.Args.total == 5, "La tarjeta cuenta los pasos (4/5)")
+StoryEvents.emit(leo, "BabySteps", {})
+task.wait(0.7)
+state = lastState(leo)
+check(state.Tracked.TextKey == "QUEST.BEBE_CAMINAR.S3" and leo:GetAttribute("StoryTarget") ~= nil, "Toca llegar hasta Abu, con línea guía hasta él")
+StoryEvents.emit(leo, "Talk", { Npc = "Familia_Padre" })
+task.wait(0.1)
+check(leoData.Story.Active.Bebe_AprendeACaminar ~= nil, "Hablar con otra persona no cuenta como llegar hasta Abu")
 StoryEvents.emit(leo, "Talk", { Npc = "Familia_Abu" })
 task.wait(0.1)
-check(leoData.Story.Completed.Bebe_AprendeACaminar ~= nil, "Primeros pasos completados")
-StoryEvents.emit(leo, "RoomVisited", { Room = "Cocina" })
-StoryEvents.emit(leo, "RoomVisited", { Room = "Salon" })
-task.wait(0.1)
+check(leoData.Story.Completed.Bebe_AprendeACaminar ~= nil and received(leo, "Moment", "MOMENT.PRIMEROS_PASOS"), "Momento: 'Has dado tus primeros pasos'")
+
+StoryEvents.emit(leo, "BabyInteract", { Object = "Tele" })
+leo.At = "HomeCocina"
+task.wait(0.7)
 state = lastState(leo)
-check(state.Tracked.Children and state.Tracked.Children[1].Done and state.Tracked.Children[2].Done and not state.Tracked.Children[3].Done, "Explorar la casa: 2 de 3 habitaciones, en cualquier orden")
-StoryEvents.emit(leo, "RoomVisited", { Room = "Dormitorio" })
+check(state.Tracked.Children and state.Tracked.Children[1].Done and state.Tracked.Children[2].Done and not state.Tracked.Children[3].Done, "Explorar la casa: cocina y tele sí, bloques todavía no (en cualquier orden)")
+StoryEvents.emit(leo, "BabyInteract", { Object = "Juguetes" })
+task.wait(0.7)
+state = lastState(leo)
+check(state.Tracked.TextKey == "QUEST.BEBE_CASA.S2", "Después: pedir el biberón a la familia")
 StoryEvents.emit(leo, "Talk", { Npc = "Familia_Padre" })
+task.wait(0.1)
+check(leoData.Story.Completed.Bebe_ExploraLaCasa ~= nil, "Casa explorada y familia conocida")
 StoryEvents.emit(leo, "LookedOutside", {})
-task.wait(0.2)
-check(received(leo, "Transition", "TRANSITION.ANOS_DESPUES"), "Pantalla 'Han pasado varios años…'")
+task.wait(0.3)
+check(received(leo, "Transition", "TRANSITION.ANOS_DESPUES"), "Mirar por el ventanal lleva a 'Han pasado varios años…'")
 check(leoData.Life.Stage == "Nino" and leo:GetAttribute("LifeStage") == "Nino", "Ahora es niño")
-state = lastState(leo)
+check(leoData.Story.Chapters.Bebe_PrimerosPasos ~= nil, "Capítulo de bebé terminado")
+check(leoData.Story.Active.Nino_TuBarrio ~= nil, "Empieza el puente de niño: 'Tu barrio'")
+leo.At = "Parque"
+task.wait(0.7)
+leo.At = "Colegio"
+task.wait(0.8)
+check(received(leo, "Transition", "TRANSITION.CRECES") and leoData.Life.Stage == "AdultoJoven", "Salto en el tiempo hasta la vida adulta")
+check(leoData.Story.Active.Adulto_LlegadaValmar ~= nil, "Y empieza 'Una nueva vida en Valmar'")
+check(pcall(serde.encode, "json", leoData), "Los datos del bebé se pueden guardar (JSON válido)")
+
+print("\n▶ Primer día de colegio (fase 4, activado solo para la prueba): espera al horario")
+local Chapters = loadModule(ROOT .. "/shared/LifeStory/Chapters")
+Chapters.Nino_ElColegio.Enabled = true
+Chapters.Nino_Puente.Enabled = false
+lighting.ClockTime = 20 -- fuera del horario del colegio
+local mia = newPlayer("Mia", "Nino")
+task.wait(0.2)
+state = lastState(mia)
 check(state and state.Waiting and state.Waiting.Reason == "Hours", "A las 20:00 el primer día de colegio espera a mañana")
 lighting.ClockTime = 8
 task.wait(5.5)
-check(leoData.Story.Active.Nino_PrimerDiaColegio ~= nil, "A las 8:00 empieza el primer día de colegio")
+check(profiles[mia].Story.Active.Nino_PrimerDiaColegio ~= nil, "A las 8:00 empieza el primer día de colegio")
 
 print(("\n%s"):format(if failures == 0 then "✅ Todo correcto" else ("❌ %d fallos"):format(failures)))
 process.exit(if failures == 0 then 0 else 1)

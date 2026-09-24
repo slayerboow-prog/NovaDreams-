@@ -38,6 +38,12 @@ Strings.es = {
 
 	-- Lugares
 	["PLACE.HOME"] = "tu casa",
+	["PLACE.HOME_SALON"] = "el salón",
+	["PLACE.HOME_COCINA"] = "la cocina",
+	["PLACE.HOME_DORMITORIO"] = "tu habitación",
+	["PLACE.FAMILIA_ABU"] = "Abu",
+	["PLACE.FAMILIA_PADRE"] = "tu familia",
+	["PLACE.VENTANAL"] = "el ventanal",
 	["PLACE.PLAZA_CENTRO"] = "la Plaza Mayor",
 	["PLACE.CAFETERIA_CENTRAL"] = "la Cafetería Central",
 	["PLACE.CORREOS"] = "Correos",
@@ -68,15 +74,19 @@ Strings.es = {
 	["CHAPTER.NINO.TITLE"] = "El colegio",
 	["CHAPTER.NINO.INTRO"] = "Hoy empieza algo grande: el colegio.",
 	["CHAPTER.NINO.OUTRO"] = "Has crecido mucho.",
+	["CHAPTER.NINO_PUENTE.TITLE"] = "Tu barrio",
+	["CHAPTER.NINO_PUENTE.INTRO"] = "Ya eres mayor para salir a jugar. Los Pinos te espera.",
+	["CHAPTER.NINO_PUENTE.OUTRO"] = "Pasan los años…",
 	["CHAPTER.NUEVA_VIDA.TITLE"] = "Una nueva vida en Valmar",
 	["CHAPTER.NUEVA_VIDA.INTRO"] = "Valmar: donde el valle se encuentra con el mar. Aquí empieza tu historia.",
 	["CHAPTER.NUEVA_VIDA.OUTRO"] = "Valmar ya es tu ciudad.",
 
 	["TRANSITION.ANOS_DESPUES"] = "Han pasado varios años…",
+	["TRANSITION.CRECES"] = "Pasan los años: el colegio, el instituto, los amigos… Y un día, sin darte cuenta, ya has crecido.",
 
 	-- Bebé
 	["QUEST.BEBE_CAMINAR.TITLE"] = "Aprende a caminar",
-	["QUEST.BEBE_CAMINAR.S1"] = "Intenta levantarte",
+	["QUEST.BEBE_CAMINAR.S1"] = "Intenta levantarte (pulsa «¡Levántate!»)",
 	["QUEST.BEBE_CAMINAR.S2"] = "Da tus primeros pasos",
 	["QUEST.BEBE_CAMINAR.S3"] = "Llega hasta Abu",
 	["QUEST.BEBE_CASA.TITLE"] = "Explora tu casa",
@@ -84,9 +94,50 @@ Strings.es = {
 	["QUEST.BEBE_CASA.SALON"] = "Entra en el salón",
 	["QUEST.BEBE_CASA.COCINA"] = "Mira la cocina",
 	["QUEST.BEBE_CASA.DORMITORIO"] = "Ve a tu habitación",
-	["QUEST.BEBE_CASA.S2"] = "Saluda a tu familia",
+	["QUEST.BEBE_CASA.TELE"] = "Mira la tele del salón",
+	["QUEST.BEBE_CASA.JUGUETES"] = "Juega con tus bloques en tu habitación",
+	["QUEST.BEBE_CASA.S2"] = "Tienes hambre: pide el biberón a tu familia en la cocina",
 	["QUEST.BEBE_SALIR.TITLE"] = "Es hora de salir",
-	["QUEST.BEBE_SALIR.S1"] = "Asómate a la ventana",
+	["QUEST.BEBE_SALIR.S1"] = "Asómate al ventanal del salón",
+
+	-- Puente de niño
+	["QUEST.BARRIO.TITLE"] = "Tu barrio",
+	["QUEST.BARRIO.PARQUE"] = "Sal a jugar a {place}",
+	["QUEST.BARRIO.COLEGIO"] = "Asómate a {place}: pronto será tu colegio",
+
+	-- Tutorial de bebé: interfaz, objetos y personas
+	["BABY.STAND_BUTTON"] = "¡Levántate!",
+	["BABY.TOO_SMALL_OUT"] = "Aún no tienes edad para salir de casa sin tu familia.",
+	["BABY.PROMPT.TALK"] = "Hablar",
+	["BABY.PROMPT.PLAY"] = "Jugar",
+	["BABY.PROMPT.TV"] = "Mirar la tele",
+	["BABY.PROMPT.WINDOW"] = "Mirar por la ventana",
+	["BABY.OBJECT.TOYS"] = "Bloques",
+	["BABY.OBJECT.TV"] = "Tele",
+	["BABY.OBJECT.WINDOW"] = "Ventanal",
+	["BABY.TOYS"] = "¡Una torre de bloques! ¡Y se cae! Otra vez…",
+	["BABY.TV"] = "En la tele salen dibujos del Faro de la Punta.",
+	["NPC.ABU_ROSA"] = "Abu Rosa",
+	["NPC.ABU_TOMAS"] = "Abu Tomás",
+	["NPC.MAMA"] = "Mamá",
+	["NPC.PAPA"] = "Papá",
+
+	-- Diálogos del tutorial de bebé (ver docs/historia/08-dialogos.md)
+	["DLG.ABU.BEBE.LEVANTATE"] = "Vamos, tesoro. Intenta levantarte.",
+	["DLG.ABU.BEBE.VEN"] = "Agárrate bien… ¡eso es! Ahora, ven con Abu al salón.",
+	["DLG.ABU.BEBE.PASOS"] = "¡Has llegado hasta aquí sin ayuda! Esto hay que celebrarlo con una foto.",
+	["DLG.ABU.BEBE.EXPLORA"] = "¿Por qué no exploras la casa? La cocina, la tele del salón, tus bloques…",
+	["DLG.ABU.BEBE.BARRIGA"] = "Uy, esa barriguita… Ve a la cocina, que te preparan el biberón.",
+	["DLG.ABU.BEBE.VENTANA"] = "¿Ves el ventanal? Asómate: ahí fuera está Valmar.",
+	["DLG.ABU.BEBE.CIUDAD"] = "Eso de ahí es Valmar. Algún día lo recorrerás entero.",
+	["DLG.ABU.BEBE.GENERICO"] = "Qué ganas tienes de explorar, ¿eh?",
+	["DLG.FAMILIA.BIBERON"] = "¡Aquí está tu biberón! Qué bien comes.",
+	["DLG.FAMILIA.GENERICO"] = "¿Me ayudas a cocinar? Bueno… cuando seas un poco mayor.",
+
+	-- Límites por edad
+	["LIMIT.Work"] = "Aún no tienes edad para trabajar.",
+	["LIMIT.ClaimHome"] = "Para tener casa propia tienes que ser mayor de edad.",
+	["LIMIT.Travel"] = "Aún no tienes edad para coger el autobús sin compañía.",
 
 	-- Niño
 	["QUEST.PRIMER_DIA.TITLE"] = "Tu primer día de colegio",
@@ -134,6 +185,8 @@ Strings.es = {
 	["MOMENT.PRIMEROS_PASOS"] = "Has dado tus primeros pasos.",
 	["MOMENT.CONOCES_FAMILIA"] = "Has conocido a tu familia.",
 	["MOMENT.YA_ERES_NINO"] = "Ya no eres un bebé.",
+	["MOMENT.TU_COLEGIO"] = "Has visto tu futuro colegio.",
+	["MOMENT.YA_ERES_ADULTO"] = "Empieza tu vida adulta.",
 	["MOMENT.PRIMER_DIA_COLEGIO"] = "Has terminado tu primer día de colegio.",
 	["MOMENT.PRIMER_HOGAR"] = "Ya tienes un hogar en Valmar.",
 	["MOMENT.PRIMER_SUELDO"] = "Has cobrado tu primer sueldo en Valmar.",

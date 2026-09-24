@@ -32,6 +32,7 @@ local order = {
 	"DataService",
 	"MonetizationService",
 	"RoleService",
+	"LifeService",
 	"NeedsService",
 	"WorldService",
 	"JobService",
@@ -40,6 +41,7 @@ local order = {
 	"TravelService",
 	"LocationService",
 	"LifeStoryService", -- la historia de vida escucha a todos los anteriores
+	"BabyService", -- tutorial de bebé (fase 2)
 }
 
 for _, name in order do

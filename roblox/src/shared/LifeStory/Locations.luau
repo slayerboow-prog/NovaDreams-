@@ -8,6 +8,8 @@
 --   "Nearest" (por defecto)  -> el más cercano al jugador
 --   "Home"                   -> el más cercano a su casa (su colegio, su parque, su centro de salud)
 --   "San Roque"              -> el de esa zona
+--   "FamilyHome"             -> el de la casa familiar donde vive el jugador (atributo HomeId)
+-- Inside = true: hay que estar DENTRO del volumen (habitaciones), no solo cerca.
 
 local Locations = {}
 
@@ -18,10 +20,20 @@ export type Place = {
 	Attribute: { [string]: any }?,
 	Special: string?,
 	Zone: string?,
+	Inside: boolean?,
 }
 
 Locations.Places = {
 	Home = { NameKey = "PLACE.HOME", Special = "Home" },
+
+	-- Casa familiar donde nace el bebé (Kit/Home del mapa, ver docs/mapa/ETIQUETAS.md)
+	HomeSalon = { NameKey = "PLACE.HOME_SALON", Tag = "Room", Attribute = { Room = "Salon" }, Zone = "FamilyHome", Inside = true },
+	HomeCocina = { NameKey = "PLACE.HOME_COCINA", Tag = "Room", Attribute = { Room = "Cocina" }, Zone = "FamilyHome", Inside = true },
+	HomeDormitorio = { NameKey = "PLACE.HOME_DORMITORIO", Tag = "Room", Attribute = { Room = "Dormitorio" }, Zone = "FamilyHome", Inside = true },
+	FamiliaAbu = { NameKey = "PLACE.FAMILIA_ABU", Tag = "FamilySpot", Attribute = { Npc = "Familia_Abu" }, Zone = "FamilyHome" },
+	FamiliaPadre = { NameKey = "PLACE.FAMILIA_PADRE", Tag = "FamilySpot", Attribute = { Npc = "Familia_Padre" }, Zone = "FamilyHome" },
+	Ventanal = { NameKey = "PLACE.VENTANAL", Tag = "LookOutside", Zone = "FamilyHome" },
+
 	PlazaCentro = { NameKey = "PLACE.PLAZA_CENTRO", Model = "Plaza", Zone = "Valmar Centro" },
 	CafeteriaCentral = { NameKey = "PLACE.CAFETERIA_CENTRAL", Tag = "JobBoard", Attribute = { JobId = "Barista" } },
 	Correos = { NameKey = "PLACE.CORREOS", Tag = "JobBoard", Attribute = { JobId = "Repartidor" } },

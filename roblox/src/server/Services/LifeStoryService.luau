@@ -245,7 +245,8 @@ local function publish(player: Player, force: boolean?)
 						target = spot and spot.Position
 					end
 				end
-			elseif step.Type == "Reach" then
+			elseif step.Place then
+				-- Reach, o un Talk/Event con lugar: la línea guía lleva hasta allí
 				local spot = rt.Spots[spotKey(trackedId, prog)]
 				target = spot and spot.Position
 			end
@@ -437,6 +438,17 @@ function refresh(player: Player)
 
 	for _ = 1, #chapterOrder + 1 do -- como mucho, recorrer todos los capítulos una vez
 		local chapter = story.Chapter and Chapters[story.Chapter]
+		-- Si el capítulo terminó justo cuando cambió la etapa (la última misión hace crecer al
+		-- personaje), se da por terminado aquí; la pantalla de cambio de etapa ya lo ha contado.
+		if chapter and not story.Chapters[chapter.Id] and not chapterFits(chapter, stage) then
+			local allDone = true
+			for _, questId in chapter.Main do
+				allDone = allDone and story.Completed[questId] ~= nil
+			end
+			if allDone then
+				story.Chapters[chapter.Id] = os.time()
+			end
+		end
 		if not chapter or story.Chapters[chapter.Id] or not chapterFits(chapter, stage) then
 			local nextId = pickChapter(story, stage)
 			if not nextId then
@@ -671,11 +683,17 @@ local function tickPlayer(player: Player, data: Data)
 			elseif changed then
 				publish(player)
 			end
+		elseif step.Place then
+			-- Paso que se completa con un evento, pero con lugar: solo se busca para la línea guía
+			checkReach(player, data, questId, prog, step)
 		end
 	end
 end
 
 local function discoverZone(player: Player, data: Data)
+	if data.Life.Stage == "Bebe" then
+		return -- el bebé todavía no ha salido de casa
+	end
 	local position = LocationService.positionOf(player)
 	if not position then
 		return
@@ -755,7 +773,10 @@ end
 
 local function onLoaded(player: Player, data: Data)
 	if not Stages.isValid(data.Life.Stage) then
-		data.Life.Stage = CFG.DefaultStage
+		-- Personaje nuevo: nace bebé. Quien ya había jugado antes de la historia de vida sigue adulto.
+		local veteran = data.Stats and data.Stats.PlaySeconds and data.Stats.PlaySeconds > 0
+		data.Life.Stage = if veteran then CFG.VeteranStage else CFG.NewCharacterStage
+		LifeStoryService.logEvent(player, "STAGE." .. data.Life.Stage, nil, "Stage")
 	end
 	player:SetAttribute("LifeStage", data.Life.Stage)
 	runtime[player] = { Spots = {}, OfferedAt = 0, LastRemote = 0, Ready = false }

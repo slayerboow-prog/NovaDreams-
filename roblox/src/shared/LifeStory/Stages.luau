@@ -28,4 +28,14 @@ function Stages.inRange(stage: string, min: string?, max: string?): boolean
 	return true
 end
 
+-- ¿Puede alguien de esta etapa hacer esta acción? (Config.StageLimits: Work, ClaimHome, Travel...)
+-- Devuelve también la etapa mínima, para explicárselo al jugador.
+function Stages.allows(stage: string?, action: string, limits: { [string]: string }): (boolean, string?)
+	local min = limits[action]
+	if not min then
+		return true
+	end
+	return stage ~= nil and Stages.inRange(stage, min, nil), min
+end
+
 return Stages

@@ -5,7 +5,7 @@
 > sistemas con los que se juega: el reloj, los lugares, los trabajos, las personas y las decisiones.
 
 Este documento analiza el proyecto actual, define la arquitectura del sistema y el plan por fases.
-La **fase 1 ya está programada** (ver 10.13). Complementa a [04 — Primeros 30 minutos](04-primeros-30-minutos.md),
+Las **fases 1 y 2 ya están programadas** (ver 10.13 y 10.16). Complementa a [04 — Primeros 30 minutos](04-primeros-30-minutos.md),
 [05 — Misiones y eventos](05-misiones-eventos.md) y a la [Fase 8 — Educación](../diseno/08-educacion.md) del diseño.
 
 > **Nombre.** El encargo habla de *NovaLife*; en el código y en los documentos el juego se llama *Real Life Simulator*
@@ -129,10 +129,12 @@ Grade, Attendance, Knowledge, XP } }, Courses, Degrees }`, `Relationships = { [p
 | `Joven_Practicas` | Adulto joven | Prácticas según la carrera: hospital, empresa, despacho… | 13 |
 | `Joven_Graduacion` | Adulto joven | Ceremonia con compañeros, profesores, familia, fotos, diploma, música | 14 |
 | `Adulto_QueHarasAhora` | Adulto joven | *"¿Qué harás ahora?"*: buscar trabajo, seguir estudiando, emprender, viajar, mudarse | 15 |
-| `Adulto_NuevaVida` | Adulto | **Capítulo puente, jugable ya**: llegar a Valmar, conseguir casa, primer sueldo, elegir excursión | 1 ✅ |
+| `Nino_Puente` | Niño | **Puente temporal, jugable ya**: salir al parque, ver tu futuro colegio y salto en el tiempo hasta la vida adulta ("Pasan los años…") | 2 ✅ (se retira al llegar la fase 4) |
+| `Adulto_NuevaVida` | Adulto joven | **Capítulo puente, jugable ya**: llegar a Valmar, conseguir casa, primer sueldo, elegir excursión | 1 ✅ |
 
-El capítulo puente existe porque hoy los personajes empiezan de adultos (v0.1). Cuando la infancia esté lista,
-`Config.LifeStory.DefaultStage` pasará a `"Bebe"` y los personajes nuevos vivirán la campaña desde el principio.
+Desde la fase 2, **todo personaje nuevo nace bebé** (`Config.LifeStory.NewCharacterStage`). Quien ya jugaba antes de la
+historia de vida (tiene tiempo jugado guardado) sigue de adulto (`VeteranStage`). Mientras no exista la infancia
+completa, la vida jugable hoy es: **bebé → un vistazo de niño → salto en el tiempo → vida adulta**.
 
 **Nada bloquea para siempre:** las decisiones abren caminos pero no cierran otros (se puede volver a estudiar de adulto,
 [Fase 8.2](../diseno/08-educacion.md)); si una misión necesita a otra persona y no hay jugadores, lo cubre un NPC.
@@ -266,8 +268,8 @@ Alumno necesita clase de Matemáticas
 | Fase | Contenido | Estado |
 |---|---|---|
 | **1** | **LifeStorySystem base**: motor de capítulos y misiones por datos, secundarias, decisiones con ramas, momentos, biografía, memoria de NPC, GameClock, LocationService, RoleService, tarjeta "Tu vida", pantallas, línea guía, validador y pruebas. Capítulo puente jugable | ✅ **Hecho** |
-| 2 | Tutorial de bebé (5–10 min): casa de bebé con habitaciones, cámara y movimiento de bebé, NPC familia con diálogos | Datos de misiones listos |
-| 3 | Transición a niño: escala del personaje, ropa, pantalla y LifeService (edad/etapa) | Transición lista en el motor |
+| **2** | **Tutorial de bebé (5–10 min)**: nacer en una casa familiar de Los Pinos, gatear, levantarse, primeros pasos, Abu y la familia (NPC con diálogos), explorar la casa, primera necesidad (el biberón), mirar la ciudad por el ventanal y "Han pasado varios años…" | ✅ **Hecho** (ver 10.16) |
+| 3 | Transición a niño: ~~escala del personaje~~ ✅ (LifeService), ropa por etapa, edad por tiempo jugado y cumpleaños | Escala, velocidad y límites por edad ya hechos |
 | 4 | Primer día de colegio (aula, profesor, compañero) | Datos listos |
 | 5 | Sistema de clases (actividades por asignatura) | — |
 | 6 | Profesores jugadores + NPC de respaldo | RoleService listo |
@@ -291,9 +293,36 @@ Alumno necesita clase de Matemáticas
 ## 10.15 Cómo probarlo
 
 - **Prueba automática** (programador): `lune run scripts/test-lifestory.luau` desde `roblox/`. Simula el capítulo
-  puente, una secundaria, una decisión con ramas, el paso de bebé a niño y la espera al horario del colegio.
-  Resultado actual: todas las comprobaciones en verde.
+  puente, una secundaria, una decisión con ramas, el tutorial de bebé completo (nacer → niño → adulto) y la espera al
+  horario del colegio. Resultado actual: todas las comprobaciones en verde.
 - **En Roblox Studio:** el archivo `RealLifeSimulator.rbxl` hay que regenerarlo con los scripts nuevos
   (`rojo build` + `build-place`, ver el README). Esta sesión no lo toca porque el mapa y ese archivo los lleva otra
-  sesión. Al pulsar Play, un personaje nuevo verá la pantalla *"Una nueva vida en Valmar"* y la tarjeta *Tu vida*
-  arriba a la derecha con la línea guía hacia la Plaza Mayor.
+  sesión. Al pulsar Play en Studio (sin guardado activado, cada prueba es un personaje nuevo) naces bebé junto a la
+  cuna: pantalla *"Primeros pasos"*, botón *¡Levántate!* y la tarjeta *Tu vida* arriba a la derecha.
+
+## 10.16 Fase 2 hecha: el tutorial de bebé
+
+**Dónde:** una de las 8 casas familiares de Los Pinos que ha preparado el mapa (`CasaFamiliar`, ver
+[`docs/mapa/ETIQUETAS.md`](../mapa/ETIQUETAS.md)). Si hay más bebés que casas, comparten casa.
+
+**Cómo se juega (5–10 minutos):**
+
+| # | Qué pasa | Qué enseña |
+|---|---|---|
+| 1 | Pantalla *"Primeros pasos — Acabas de llegar al mundo"*. Apareces junto a la cuna, **gateando** (pequeñito y lento) | — |
+| 2 | Abu: *"Vamos, tesoro. Intenta levantarte."* Botón grande **¡Levántate!** (o la barra espaciadora) | Botones e interfaz |
+| 3 | "Da tus primeros pasos (0/5)": cada pocos pasos andados suma uno | Moverse |
+| 4 | "Llega hasta Abu": la **línea azul** lleva hasta Abu, en el salón. *Hablar* con él o ella | Línea guía, interactuar |
+| 5 | Momento: *"Has dado tus primeros pasos."* La barriguita empieza a sonar (baja el hambre) | Necesidades |
+| 6 | "Explora tu casa", en cualquier orden: la cocina, la tele del salón, tus bloques | Explorar, objetos |
+| 7 | "Tienes hambre: pide el biberón a tu familia en la cocina" → el hambre se llena | Cuidar las necesidades |
+| 8 | Momento: *"Has conocido a tu familia."* | — |
+| 9 | "Asómate al ventanal": la cámara sale por la ventana y enseña Valmar. Abu: *"Algún día lo recorrerás entero."* | Presentar la ciudad |
+| 10 | *"Han pasado varios años…"* → **ya eres niño** (el personaje crece) | — |
+
+Un bebé no puede salir solo de casa (si se aleja, vuelve junto a la cuna), ni trabajar, ni coger el autobús
+(`Config.StageLimits`). Todos los números están en `Config.Baby` y `Config.StageBody`.
+
+**Piezas nuevas:** `BabyService` (casa, familia NPC, eventos del bebé), `LifeService` (tamaño, velocidad y límites por
+etapa), `client/Controllers/Baby.luau` (botón, globos de diálogo, vista de la ciudad), lugares de la casa en
+`Locations.luau` ("estar dentro" de una habitación), y la línea guía también para pasos de hablar o mirar.

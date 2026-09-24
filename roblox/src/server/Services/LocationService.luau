@@ -16,6 +16,9 @@ export type Spot = {
 	Position: Vector3, -- centro, a la altura del suelo
 	Radius: number, -- distancia (en planta) a la que ya "has llegado"
 	Zone: string,
+	CFrame: CFrame, -- caja del lugar (para Inside)
+	Size: Vector3,
+	Inside: boolean?, -- hay que estar DENTRO de la caja (habitaciones)
 }
 
 -- Centros de las 8 zonas (Valmar Centro está en el origen; las demás vienen del mapa)
@@ -54,6 +57,8 @@ local function spotFor(instance: Instance): Spot?
 		Position = ground,
 		Radius = math.max(size.X, size.Z) / 2 + Config.LifeStory.ReachPadding,
 		Zone = LocationService.zoneAt(ground),
+		CFrame = cf,
+		Size = size,
 	}
 end
 
@@ -153,7 +158,20 @@ function LocationService.resolve(player: Player, placeId: string): Spot?
 		return nil
 	end
 	local zone = place.Zone or "Nearest"
-	if zone ~= "Nearest" and zone ~= "Home" then
+	if zone == "FamilyHome" then
+		-- Solo los de la casa familiar donde vive el jugador (la asigna BabyService)
+		local homeId = player:GetAttribute("FamilyHomeId")
+		local mine = {}
+		for _, spot in list do
+			if homeId ~= nil and spot.Instance:GetAttribute("HomeId") == homeId then
+				table.insert(mine, spot)
+			end
+		end
+		list = mine
+		if #list == 0 then
+			return nil
+		end
+	elseif zone ~= "Nearest" and zone ~= "Home" then
 		local inZone = {}
 		for _, spot in list do
 			if spot.Zone == zone then
@@ -167,7 +185,13 @@ function LocationService.resolve(player: Player, placeId: string): Spot?
 		local home = homeSpot(player)
 		from = if home then home.Position else from
 	end
-	return nearest(list, from)
+	local spot = nearest(list, from)
+	if spot and place.Inside then
+		-- Copia: el mismo lugar puede servir a la vez para "estar cerca" y "estar dentro"
+		spot = table.clone(spot)
+		spot.Inside = true
+	end
+	return spot
 end
 
 -- ¿Está el jugador en ese lugar?
@@ -175,6 +199,11 @@ function LocationService.isAt(player: Player, spot: Spot): boolean
 	local position = playerPosition(player)
 	if not position then
 		return false
+	end
+	if spot.Inside then
+		local rel = spot.CFrame:PointToObjectSpace(position)
+		local half = spot.Size / 2
+		return math.abs(rel.X) <= half.X and math.abs(rel.Z) <= half.Z and math.abs(rel.Y) <= half.Y + 3
 	end
 	local offset = position - spot.Position
 	return Vector3.new(offset.X, 0, offset.Z).Magnitude <= spot.Radius and math.abs(offset.Y) < 60

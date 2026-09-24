@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Builder = require(script.Parent.Parent.World.Builder)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
+local LifeService = require(script.Parent.LifeService)
 
 local TravelService = {}
 
@@ -21,6 +22,9 @@ function TravelService.travel(player: Player, destination: string)
 	local target = stops[destination]
 	local character = player.Character
 	if not target or not character or traveling[player] then
+		return
+	end
+	if not LifeService.allows(player, "Travel") then
 		return
 	end
 	traveling[player] = true
