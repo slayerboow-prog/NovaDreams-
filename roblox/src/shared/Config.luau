@@ -69,8 +69,47 @@ Config.Baby = {
 	CrawlSpeed = 4, -- velocidad gateando, antes de levantarse
 	StepStuds = 4, -- cada cuántos studs andados cuenta un "paso"
 	HungryAfterFirstSteps = 35, -- el hambre baja a este valor para enseñar las necesidades
-	CinematicSeconds = 6, -- lo que dura mirar por la ventana
 	MaxDistanceFromHome = 6, -- margen fuera de la casa antes de volver a entrar (un bebé no sale solo)
+}
+
+---------------------------------------------------------------------
+-- MÚSICA Y VOCES de la historia (cinemáticas y momentos clave)
+-- La música es original y está en roblox/audio/. Para que suene:
+-- 1. En Studio: Window > Asset Manager > Bulk Import (o create.roblox.com > Creations > Audio)
+--    y sube los .ogg de roblox/audio/.
+-- 2. Copia el ID de cada audio aquí (campo Id). Mientras sea 0, ese audio no suena
+--    (todo lo demás funciona igual). También me los puedes pasar y los pongo yo.
+---------------------------------------------------------------------
+Config.Audio = {
+	Music = {
+		Nacimiento = { Id = 0, File = "nacimiento.ogg", Volume = 0.4, Looped = true },
+		TemaValmar = { Id = 0, File = "tema_valmar.ogg", Volume = 0.45, Looped = true },
+		PasanLosAnos = { Id = 0, File = "pasan_los_anos.ogg", Volume = 0.5, Looped = false },
+		VidaAdulta = { Id = 0, File = "vida_adulta.ogg", Volume = 0.4, Looped = true },
+	},
+	Stings = {
+		Momento = { Id = 0, File = "sting_momento.ogg", Volume = 0.55 },
+		Capitulo = { Id = 0, File = "sting_capitulo.ogg", Volume = 0.55 },
+		PrimerosPasos = { Id = 0, File = "sting_primeros_pasos.ogg", Volume = 0.6 },
+	},
+	AmbientVolume = 0.2, -- música de fondo de un capítulo (más baja que en las cinemáticas)
+	DuckVolume = 0.45, -- la música baja a este porcentaje mientras alguien habla
+	Voices = {
+		-- Voz sintetizada de Roblox (AudioTextToSpeech) para los personajes, si el motor la tiene.
+		-- Si no está disponible, se ven los subtítulos igual.
+		TextToSpeech = true,
+		Volume = 1,
+		-- Cómo suena cada personaje (VoiceId: una de las voces de Roblox; vacío = la voz por defecto)
+		Speakers = {
+			Abu = { VoiceId = "", Pitch = 0.95, Speed = 0.92 },
+			Familia = { VoiceId = "", Pitch = 1.05, Speed = 1 },
+			Narrador = { VoiceId = "", Pitch = 1, Speed = 0.9 },
+		},
+		-- Voces grabadas (opcional): clave del texto = ID del audio. Si existe, se usa en vez de la sintetizada.
+		Lines = {
+			-- ["DLG.ABU.NACER.01"] = 0,
+		},
+	},
 }
 
 ---------------------------------------------------------------------

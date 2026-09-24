@@ -29,6 +29,7 @@ local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 local DataService = require(script.Parent.DataService)
 local LocationService = require(script.Parent.LocationService)
 local RoleService = require(script.Parent.RoleService)
+local CinematicService = require(script.Parent.CinematicService)
 
 local LifeStoryService = {}
 
@@ -121,8 +122,8 @@ function LifeStoryService.logEvent(player: Player, key: string, args: { [string]
 	end
 end
 
-local function moment(player: Player, key: string, args: { [string]: any }?)
-	send(player, "Moment", { TextKey = key, Args = args })
+local function moment(player: Player, key: string, args: { [string]: any }?, sting: string?)
+	send(player, "Moment", { TextKey = key, Args = args, Sting = sting })
 	LifeStoryService.logEvent(player, key, args, "Moment")
 end
 
@@ -221,6 +222,7 @@ local function publish(player: Player, force: boolean?)
 	local chapter = story.Chapter and Chapters[story.Chapter]
 	local state: { [string]: any } = {
 		ChapterTitleKey = chapter and chapter.TitleKey,
+		ChapterMusic = chapter and chapter.Music,
 		Stage = data.Life.Stage,
 		Others = {},
 	}
@@ -284,6 +286,7 @@ end
 ---------------------------------------------------------------------
 
 local completeQuest -- se define más abajo
+local advance -- se define más abajo
 
 local function sendChoice(player: Player, questId: string, step: { [string]: any })
 	local options = {}
@@ -321,7 +324,11 @@ local function enterStep(player: Player, data: Data, questId: string)
 			prog.Step += 1
 			continue
 		elseif step.Type == "Transition" then
-			send(player, "Transition", { TextKey = step.TextKey, Seconds = step.Seconds or 4 })
+			if step.Cinematic then
+				CinematicService.play(player, step.Cinematic)
+			else
+				send(player, "Transition", { TextKey = step.TextKey, Seconds = step.Seconds or 4 })
+			end
 			if step.SetStage then
 				LifeStoryService.setStage(player, step.SetStage)
 			end
@@ -333,6 +340,17 @@ local function enterStep(player: Player, data: Data, questId: string)
 			prog.Sub = {}
 		elseif step.Type == "Choice" then
 			sendChoice(player, questId, step)
+		elseif step.Type == "Cinematic" then
+			-- La escena se ve en el cliente; la historia sigue cuando termina
+			local duration = CinematicService.play(player, step.Id)
+			local index = prog.Step
+			task.delay(duration, function()
+				local current = DataService.get(player)
+				local now = current and storyOf(current).Active[questId]
+				if now and now.Step == index then
+					advance(player, current, questId)
+				end
+			end)
 		end
 		break
 	end
@@ -347,7 +365,7 @@ local function enterStep(player: Player, data: Data, questId: string)
 	publish(player)
 end
 
-local function advance(player: Player, data: Data, questId: string)
+function advance(player: Player, data: Data, questId: string)
 	local prog = storyOf(data).Active[questId]
 	if prog then
 		prog.Step += 1
@@ -398,7 +416,8 @@ function completeQuest(player: Player, data: Data, questId: string)
 	end
 	giveRewards(player, data, quest.Rewards)
 	if quest.MomentKey then
-		moment(player, quest.MomentKey)
+		local sting = if quest.MomentSting == false then nil else (quest.MomentSting or "Momento")
+		moment(player, quest.MomentKey, nil, sting :: string?)
 	end
 	refresh(player)
 end
@@ -432,7 +451,11 @@ function refresh(player: Player)
 	local function enterChapter(id: string)
 		story.Chapter = id
 		local chapter = Chapters[id]
-		send(player, "Chapter", { TitleKey = chapter.TitleKey, TextKey = chapter.IntroKey, Phase = "Intro" })
+		if chapter.IntroCinematic then
+			CinematicService.play(player, chapter.IntroCinematic)
+		else
+			send(player, "Chapter", { TitleKey = chapter.TitleKey, TextKey = chapter.IntroKey, Phase = "Intro" })
+		end
 		LifeStoryService.logEvent(player, chapter.TitleKey, nil, "Chapter")
 	end
 
@@ -484,7 +507,11 @@ function refresh(player: Player)
 		if not pending then
 			-- Capítulo terminado
 			story.Chapters[chapter.Id] = os.time()
-			send(player, "Chapter", { TitleKey = chapter.TitleKey, TextKey = chapter.OutroKey, Phase = "Outro" })
+			if chapter.OutroCinematic then
+				CinematicService.play(player, chapter.OutroCinematic)
+			else
+				send(player, "Chapter", { TitleKey = chapter.TitleKey, TextKey = chapter.OutroKey, Phase = "Outro" })
+			end
 			local nextChapter = chapter.Next and Chapters[chapter.Next]
 			if nextChapter and not story.Chapters[nextChapter.Id] and chapterFits(nextChapter, stage) then
 				enterChapter(nextChapter.Id)
@@ -790,6 +817,15 @@ local function onLoaded(player: Player, data: Data)
 			story.Active[id] = nil
 		elseif quest.Steps[prog.Step] and quest.Steps[prog.Step].Type == "Wait" then
 			prog.WaitUntil = GameClock.now().TotalMinutes + quest.Steps[prog.Step].GameMinutes
+		elseif quest.Steps[prog.Step] and quest.Steps[prog.Step].Type == "Cinematic" then
+			-- Se fue en mitad de una escena: al volver, la historia sigue desde el paso siguiente
+			local index = prog.Step
+			task.delay(4, function()
+				local now = story.Active[id]
+				if player.Parent and now and now.Step == index then
+					advance(player, data, id)
+				end
+			end)
 		elseif quest.Steps[prog.Step] and quest.Steps[prog.Step].Type == "Choice" then
 			task.delay(4, function()
 				if player.Parent and story.Active[id] and story.Active[id].Step == prog.Step then

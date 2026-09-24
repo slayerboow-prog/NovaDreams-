@@ -40,6 +40,7 @@ local order = {
 	"HouseService",
 	"TravelService",
 	"LocationService",
+	"CinematicService",
 	"LifeStoryService", -- la historia de vida escucha a todos los anteriores
 	"BabyService", -- tutorial de bebé (fase 2)
 }

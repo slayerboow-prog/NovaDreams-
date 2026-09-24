@@ -8,6 +8,8 @@
 --   IntroKey/OutroKey-> texto al empezar y al terminar (pantalla de capítulo)
 --   Main             -> misiones principales, en orden
 --   Next             -> capítulo siguiente (si la etapa lo permite)
+--   IntroCinematic / OutroCinematic -> escena de cámara en lugar de la pantalla de texto (Cinematics.luau)
+--   Music            -> música de fondo mientras dura el capítulo (Config.Audio.Music)
 
 export type Chapter = {
 	Id: string,
@@ -19,6 +21,9 @@ export type Chapter = {
 	OutroKey: string,
 	Main: { string },
 	Next: string?,
+	IntroCinematic: string?,
+	OutroCinematic: string?,
+	Music: string?,
 }
 
 local Chapters: { [string]: Chapter } = {
@@ -33,6 +38,8 @@ local Chapters: { [string]: Chapter } = {
 		OutroKey = "CHAPTER.BEBE.OUTRO",
 		Main = { "Bebe_AprendeACaminar", "Bebe_ExploraLaCasa", "Bebe_HoraDeSalir" },
 		Next = "Nino_ElColegio",
+		IntroCinematic = "Bebe_Nacimiento",
+		Music = "Nacimiento",
 	},
 
 	-- FASE 4 · Niño. Se activa cuando exista el sistema de clases (fase 5).
@@ -58,6 +65,7 @@ local Chapters: { [string]: Chapter } = {
 		IntroKey = "CHAPTER.NINO_PUENTE.INTRO",
 		OutroKey = "CHAPTER.NINO_PUENTE.OUTRO",
 		Main = { "Nino_TuBarrio" },
+		Music = "TemaValmar",
 	},
 
 	-- Capítulo puente, jugable YA en el mapa actual: mientras no exista la infancia,
@@ -71,6 +79,8 @@ local Chapters: { [string]: Chapter } = {
 		IntroKey = "CHAPTER.NUEVA_VIDA.INTRO",
 		OutroKey = "CHAPTER.NUEVA_VIDA.OUTRO",
 		Main = { "Adulto_LlegadaValmar", "Adulto_PrimerSueldo", "Adulto_ConoceLaRegion" },
+		IntroCinematic = "Adulto_Llegada",
+		OutroCinematic = "Adulto_TuCiudad",
 	},
 }
 

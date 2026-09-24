@@ -19,6 +19,7 @@ local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 local DataService = require(script.Parent.DataService)
 local NeedsService = require(script.Parent.NeedsService)
+local CinematicService = require(script.Parent.CinematicService)
 
 local BabyService = {}
 
@@ -49,8 +50,22 @@ local babies: { [Player]: Baby } = {}
 -- Utilidades
 ---------------------------------------------------------------------
 
-local function say(player: Player, speakerKey: string?, textKey: string)
-	Remote:FireClient(player, "Say", { SpeakerKey = speakerKey, TextKey = textKey })
+-- Role: quién habla ("Abu", "Familia" o nil = narrador), para ponerle su voz
+local function say(player: Player, speakerKey: string?, textKey: string, delay: number?)
+	local role = if speakerKey == "NPC.ABU_ROSA" or speakerKey == "NPC.ABU_TOMAS"
+		then "Abu"
+		elseif speakerKey then "Familia"
+		else nil
+	local function fire()
+		if player.Parent then
+			Remote:FireClient(player, "Say", { SpeakerKey = speakerKey, TextKey = textKey, Role = role })
+		end
+	end
+	if delay then
+		task.delay(delay, fire)
+	else
+		fire()
+	end
 end
 
 local function rootOf(player: Player): BasePart?
@@ -203,13 +218,9 @@ local function setupHome(home: Home)
 				return
 			end
 			baby.Busy = true
-			-- Cargar la ciudad para que se vea desde la ventana (el mapa se carga por zonas)
-			pcall(function()
-				player:RequestStreamAroundAsync(Vector3.zero, 5)
-			end)
-			Remote:FireClient(player, "Cinematic", { From = window.CFrame, Seconds = BABY.CinematicSeconds })
-			say(player, abuKey, "DLG.ABU.BEBE.CIUDAD")
-			task.delay(BABY.CinematicSeconds, function()
+			-- Escena de cámara: sale por el ventanal y enseña Valmar (Cinematics.Bebe_Ventanal)
+			local duration = CinematicService.play(player, "Bebe_Ventanal")
+			task.delay(duration, function()
 				if babies[player] then
 					babies[player].Busy = false
 				end
@@ -233,8 +244,8 @@ function onTalk(player: Player, home: Home, npc: string, nameKey: string)
 		if not baby.Stood then
 			say(player, nameKey, "DLG.ABU.BEBE.LEVANTATE")
 		elseif questStep(player, "Bebe_AprendeACaminar") == 3 then
-			say(player, nameKey, "DLG.ABU.BEBE.PASOS")
-			say(player, nameKey, "DLG.ABU.BEBE.EXPLORA")
+			-- "¡Has llegado hasta aquí!" lo dice Abu en la cinemática de primeros pasos; después, esto:
+			say(player, nameKey, "DLG.ABU.BEBE.EXPLORA", 7)
 			-- Primera vez que se ven las necesidades: la barriguita empieza a sonar
 			if data and data.Hunger > BABY.HungryAfterFirstSteps then
 				NeedsService.change(player, BABY.HungryAfterFirstSteps - data.Hunger, 0)
@@ -341,6 +352,8 @@ local function start(player: Player)
 	local baby: Baby = { HomeId = home.Id, Stood = stood, Walked = 0, Busy = false, LastWarn = 0 }
 	babies[player] = baby
 	player:SetAttribute("FamilyHomeId", home.Id)
+	player:SetAttribute("AbuKey", if home.Index % 2 == 1 then "NPC.ABU_ROSA" else "NPC.ABU_TOMAS")
+	player:SetAttribute("FamilyKey", if home.Index % 2 == 1 then "NPC.PAPA" else "NPC.MAMA")
 	player:SetAttribute("Crawling", if stood then nil else true)
 	player:SetAttribute("BabyCanStand", if stood then nil else true)
 	spawnAtCrib(player, baby)

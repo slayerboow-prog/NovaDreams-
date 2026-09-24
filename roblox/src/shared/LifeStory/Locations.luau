@@ -33,6 +33,8 @@ Locations.Places = {
 	FamiliaAbu = { NameKey = "PLACE.FAMILIA_ABU", Tag = "FamilySpot", Attribute = { Npc = "Familia_Abu" }, Zone = "FamilyHome" },
 	FamiliaPadre = { NameKey = "PLACE.FAMILIA_PADRE", Tag = "FamilySpot", Attribute = { Npc = "Familia_Padre" }, Zone = "FamilyHome" },
 	Ventanal = { NameKey = "PLACE.VENTANAL", Tag = "LookOutside", Zone = "FamilyHome" },
+	CasaFamiliar = { NameKey = "PLACE.CASA_FAMILIAR", Tag = "FamilyHome", Zone = "FamilyHome" },
+	Cuna = { NameKey = "PLACE.CUNA", Tag = "BabySpawn", Zone = "FamilyHome" },
 
 	PlazaCentro = { NameKey = "PLACE.PLAZA_CENTRO", Model = "Plaza", Zone = "Valmar Centro" },
 	CafeteriaCentral = { NameKey = "PLACE.CAFETERIA_CENTRAL", Tag = "JobBoard", Attribute = { JobId = "Barista" } },

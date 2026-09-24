@@ -326,3 +326,43 @@ Un bebé no puede salir solo de casa (si se aleja, vuelve junto a la cuna), ni t
 **Piezas nuevas:** `BabyService` (casa, familia NPC, eventos del bebé), `LifeService` (tamaño, velocidad y límites por
 etapa), `client/Controllers/Baby.luau` (botón, globos de diálogo, vista de la ciudad), lugares de la casa en
 `Locations.luau` ("estar dentro" de una habitación), y la línea guía también para pasos de hablar o mirar.
+
+## 10.17 Cinemáticas, voces y música
+
+Los momentos clave de la vida tienen **escena de cámara, subtítulos con voz y música**. Todo son datos
+(`src/shared/LifeStory/Cinematics.luau` y `Config.Audio`), así que añadir una escena nueva no requiere programar.
+
+| Momento | Cinemática | Música | Voz |
+|---|---|---|---|
+| Nacer | `Bebe_Nacimiento`: Los Pinos desde el cielo → tu casa → la cuna. Rótulo "Valmar · Un día de primavera" | Nana (`nacimiento`) | Abu: *"Te damos la bienvenida al mundo, {nombre}…"* |
+| Mientras eres bebé | — | La nana, bajita, de fondo en casa | Abu y tu familia en cada conversación |
+| Primeros pasos | `Bebe_PrimerosPasos`: la cámara da una vuelta alrededor del bebé | Efecto *primeros pasos* | Abu: *"¡Has llegado hasta aquí sin ayuda!"* |
+| Mirar por el ventanal | `Bebe_Ventanal`: la cámara sale por la ventana y sube sobre Valmar. Rótulo "Valmar · Donde el valle se encuentra con el mar" | Tema de Valmar | Abu: *"Algún día lo recorrerás entero."* |
+| Han pasado varios años | `Bebe_AnosDespues`: la cámara sube desde la casa hasta el cielo | *Pasan los años* | Rótulos |
+| De niño a adulto | `Nino_Creces`: vuelo por Los Pinos, Campus Valmar, Distrito Financiero y el Centro ("El colegio…", "El instituto…", "…ya has crecido") | *Pasan los años* | Rótulos |
+| Llegar a Valmar de adulto | `Adulto_Llegada`: vuelta sobre la Plaza Mayor | *Vida adulta* | Narrador: *"Aquí empieza tu vida adulta. ¿Qué harás con ella?"* |
+| Valmar ya es tu ciudad | `Adulto_TuCiudad`: la cámara se aleja de ti hacia el centro | Tema de Valmar | Rótulo |
+| Cada momento de vida | — | Efecto *momento* | — |
+
+**Cómo se ven:** bandas negras de cine, se ocultan los menús, el personaje se queda quieto y hay un botón **Saltar**.
+La historia sigue igual aunque se salte. Si una ancla (tu casa, tu ventanal…) no existe en el mapa, la cámara usa al
+jugador, así nunca queda mirando al vacío. El servidor pide al mapa que cargue las zonas que va a enseñar la cámara.
+
+**Música:** original, compuesta por código (`scripts/audio/compose.py` → `roblox/audio/`). Hay que subirla a Roblox una
+vez y pegar sus IDs en `Config.Audio` (instrucciones en [`roblox/audio/README.md`](../../audio/README.md)). Con `Id = 0`
+no suena y todo lo demás funciona.
+
+**Voces:** siempre hay subtítulos. Además:
+- **Voces grabadas** (opcional): `Config.Audio.Voices.Lines["DLG.ABU.NACER.01"] = <ID del audio>` y esa frase suena
+  con la grabación.
+- **Voz sintetizada de Roblox** (`AudioTextToSpeech`): si el motor la tiene, los personajes leen sus frases con el
+  tono de cada uno (`Config.Audio.Voices.Speakers`: Abu, Familia, Narrador). Es una función reciente de Roblox: puede
+  que no esté disponible en todas las cuentas o que lea el español con acento. Si falla, se desactiva sola y quedan los
+  subtítulos. Se puede apagar con `Voices.TextToSpeech = false`.
+
+**Silenciar:** botón 🔊/🔇 junto al dinero.
+
+**Piezas:** `CinematicService` (servidor: anclas y carga del mapa), `Controllers/Cinematics.luau` (cámara, bandas,
+rótulos, subtítulos, saltar), `Controllers/StoryAudio.luau` (música con fundidos, efectos, voces y silencio). En los
+datos: `Transition.Cinematic`, el paso `Cinematic`, `Chapter.IntroCinematic/OutroCinematic/Music` y
+`Quest.MomentSting`.

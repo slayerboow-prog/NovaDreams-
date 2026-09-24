@@ -30,6 +30,16 @@ end
 local byModelName: { [string]: { Spot } } = {}
 local indexed = false
 
+-- Centro de una zona por su nombre (o nil si no existe)
+function LocationService.zoneCenter(name: string): Vector3?
+	for _, zone in zoneCenters do
+		if zone.Name == name then
+			return zone.Center
+		end
+	end
+	return nil
+end
+
 function LocationService.zoneAt(position: Vector3): string
 	local best, bestDistance = "Valmar Centro", math.huge
 	for _, zone in zoneCenters do

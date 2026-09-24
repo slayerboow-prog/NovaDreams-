@@ -11,6 +11,8 @@ local TweenService = game:GetService("TweenService")
 
 local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 local Theme = require(script.Parent.Parent.UI.Theme)
+local StoryAudio = require(script.Parent.StoryAudio)
+local Cinematics = require(script.Parent.Cinematics)
 
 local create = Theme.create
 local C = Theme.Colors
@@ -308,14 +310,22 @@ end
 local handlers: { [string]: (payload: { [string]: any }) -> () } = {
 	State = function(payload)
 		renderCard(payload)
+		StoryAudio.setAmbient(payload.ChapterMusic)
 	end,
 	Moment = function(payload)
 		queue(function()
+			StoryAudio.sting(payload.Sting)
 			showMoment(text(payload.TextKey, payload.Args))
+		end)
+	end,
+	Cinematic = function(payload)
+		queue(function()
+			Cinematics.play(payload)
 		end)
 	end,
 	Chapter = function(payload)
 		queue(function()
+			StoryAudio.sting("Capitulo")
 			local small = if payload.Phase == "Intro" then Strings.get("STORY.CHAPTER.LABEL") else nil
 			showScreen(small, Strings.get(payload.TitleKey), Strings.get(payload.TextKey), 3.5)
 		end)

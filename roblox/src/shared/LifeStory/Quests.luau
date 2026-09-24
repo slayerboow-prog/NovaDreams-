@@ -17,10 +17,13 @@
 --     Wait       { GameMinutes }                   dejar pasar tiempo de juego
 --     Group      { Steps }                         varios objetivos en cualquier orden
 --     Moment     { }                               un momento narrativo que se muestra y sigue
---     Transition { Seconds?, SetStage? }           pantalla "Han pasado varios años…" (y cambio de etapa)
+--     Transition { Seconds?, SetStage?, Cinematic? } pantalla "Han pasado varios años…" (y cambio de etapa);
+--                                                  con Cinematic, en vez de la pantalla se ve esa escena de cámara
+--     Cinematic  { Id }                            una escena de cámara (Cinematics.luau); la historia sigue al acabar
 --   Cada paso puede llevar If = { requisitos } para saltarse si no se cumplen (ramas por decisiones).
 --   Rewards    { Money?, Flags?, Remember? = { { Npc, Fact } }, SetStage? }
 --   MomentKey  el acontecimiento de vida que se muestra y se guarda en la biografía al terminar
+--   MomentSting efecto de sonido del momento (Config.Audio.Stings); por defecto "Momento", false = ninguno
 
 export type Step = { [string]: any }
 export type Quest = {
@@ -34,6 +37,7 @@ export type Quest = {
 	Steps: { Step },
 	Rewards: { [string]: any }?,
 	MomentKey: string?,
+	MomentSting: (string | boolean)?,
 }
 
 local Quests: { [string]: Quest } = {
@@ -48,8 +52,10 @@ local Quests: { [string]: Quest } = {
 			{ Type = "Event", Event = "BabyStood", TextKey = "QUEST.BEBE_CAMINAR.S1" },
 			{ Type = "Event", Event = "BabySteps", Count = 5, TextKey = "QUEST.BEBE_CAMINAR.S2" },
 			{ Type = "Talk", Npc = "Familia_Abu", Place = "FamiliaAbu", TextKey = "QUEST.BEBE_CAMINAR.S3" },
+			{ Type = "Cinematic", Id = "Bebe_PrimerosPasos" },
 		},
 		MomentKey = "MOMENT.PRIMEROS_PASOS",
+		MomentSting = false, -- la cinemática ya tiene su música
 	},
 	Bebe_ExploraLaCasa = {
 		Kind = "Main",
@@ -75,7 +81,7 @@ local Quests: { [string]: Quest } = {
 		Requires = { Completed = { "Bebe_ExploraLaCasa" } },
 		Steps = {
 			{ Type = "Event", Event = "LookedOutside", Place = "Ventanal", TextKey = "QUEST.BEBE_SALIR.S1" },
-			{ Type = "Transition", Seconds = 5, SetStage = "Nino", TextKey = "TRANSITION.ANOS_DESPUES" },
+			{ Type = "Transition", Seconds = 5, SetStage = "Nino", TextKey = "TRANSITION.ANOS_DESPUES", Cinematic = "Bebe_AnosDespues" },
 		},
 		MomentKey = "MOMENT.YA_ERES_NINO",
 	},
@@ -90,7 +96,7 @@ local Quests: { [string]: Quest } = {
 			{ Type = "Reach", Place = "Parque", TextKey = "QUEST.BARRIO.PARQUE" },
 			{ Type = "Reach", Place = "Colegio", TextKey = "QUEST.BARRIO.COLEGIO" },
 			{ Type = "Moment", TextKey = "MOMENT.TU_COLEGIO" },
-			{ Type = "Transition", Seconds = 6, SetStage = "AdultoJoven", TextKey = "TRANSITION.CRECES" },
+			{ Type = "Transition", Seconds = 6, SetStage = "AdultoJoven", TextKey = "TRANSITION.CRECES", Cinematic = "Nino_Creces" },
 		},
 		MomentKey = "MOMENT.YA_ERES_ADULTO",
 	},

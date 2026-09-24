@@ -58,6 +58,7 @@ local function loadModule(path: string): any
 		task = task,
 		Vector3 = roblox.Vector3,
 		Color3 = roblox.Color3,
+		CFrame = roblox.CFrame,
 		warn = function(...)
 			print("[warn]", ...)
 		end,
@@ -98,6 +99,9 @@ end
 local replicatedStorage = { Shared = node(ROOT .. "/shared"), Remotes = remotes }
 function replicatedStorage:WaitForChild(name)
 	return self[name]
+end
+function replicatedStorage:FindFirstChild(name)
+	return rawget(self, name)
 end
 
 local lighting = { ClockTime = 14 }
@@ -148,13 +152,16 @@ function fakeInstance:IsDescendantOf()
 end
 mocks[ROOT .. "/server/Services/LocationService"] = {
 	resolve = function(_, placeId)
-		return { Instance = fakeInstance, Position = roblox.Vector3.new(0, 0, 0), Radius = 10, Zone = "Valmar Centro", PlaceId = placeId }
+		return { Instance = fakeInstance, Position = roblox.Vector3.new(0, 0, 0), CFrame = roblox.CFrame.new(), Radius = 10, Zone = "Valmar Centro", PlaceId = placeId }
 	end,
 	isAt = function(player, spot)
 		return player.At == spot.PlaceId
 	end,
 	zoneAt = function()
 		return "Valmar Centro"
+	end,
+	zoneCenter = function()
+		return roblox.Vector3.new(0, 0, 0)
 	end,
 	positionOf = function()
 		return roblox.Vector3.new(0, 0, 0)
@@ -176,7 +183,7 @@ end
 
 -- stage = nil: personaje recién creado (playSeconds 0 -> nace bebé; > 0 -> jugador veterano, adulto)
 local function newPlayer(name: string, stage: string?, playSeconds: number?)
-	local player = { Name = name, Parent = true, Inbox = {}, Attributes = {} }
+	local player = { Name = name, DisplayName = name, Parent = true, Inbox = {}, Attributes = {} }
 	function player:SetAttribute(key, value)
 		self.Attributes[key] = value
 	end
@@ -215,6 +222,24 @@ local function received(player, kind: string, key: string?): boolean
 		end
 	end
 	return false
+end
+
+local function cinematic(player, id: string): boolean
+	for _, message in player.Inbox do
+		if message.Kind == "Cinematic" and message.Payload.Id == id then
+			return true
+		end
+	end
+	return false
+end
+
+local function momentSting(player, key: string): any
+	for _, message in player.Inbox do
+		if message.Kind == "Moment" and message.Payload.TextKey == key then
+			return message.Payload.Sting or "ninguno"
+		end
+	end
+	return nil
 end
 
 local function lastState(player)
@@ -269,7 +294,7 @@ local ana = newPlayer("Ana", nil, 3600) -- ya jugaba antes de la historia de vid
 task.wait(0.2)
 local data = profiles[ana]
 check(data.Life.Stage == "Adulto", "Un jugador veterano sigue siendo adulto")
-check(received(ana, "Chapter", "CHAPTER.NUEVA_VIDA.TITLE"), "Empieza el capítulo con su pantalla")
+check(cinematic(ana, "Adulto_Llegada"), "Empieza el capítulo con su cinemática")
 check(data.Story.Active.Adulto_LlegadaValmar ~= nil, "Primera misión principal en marcha")
 local state = lastState(ana)
 check(state and state.Tracked and state.Tracked.TextKey == "QUEST.LLEGADA.PLAZA" and state.Tracked.Args.placeKey == "PLACE.PLAZA_CENTRO", "La tarjeta dice 'Ve a la Plaza Mayor'")
@@ -283,6 +308,7 @@ task.wait(0.1)
 check(data.Story.Completed.Adulto_LlegadaValmar ~= nil, "Conseguir casa y comer completa 'Llegar a Valmar'")
 check(data.Money == 100 and data.Story.Flags.TieneHogar, "Recompensa: dinero y marca TieneHogar")
 check(received(ana, "Moment", "MOMENT.PRIMER_HOGAR"), "Momento de vida: 'Ya tienes un hogar en Valmar'")
+check(momentSting(ana, "MOMENT.PRIMER_HOGAR") == "Momento", "El momento suena con su efecto")
 check(data.Story.Active.Adulto_PrimerSueldo ~= nil, "Empieza 'Ganarte la vida'")
 
 StoryEvents.emit(ana, "JobTaskDone", { JobId = "Barista" })
@@ -316,11 +342,7 @@ check(step == 4, "La rama 'campus' se salta: toca ir a la playa (paso 4)")
 ana.At = "Playa"
 task.wait(0.7)
 check(data.Story.Completed.Adulto_ConoceLaRegion ~= nil, "Llegar a la playa completa la excursión")
-local outro = false
-for _, message in ana.Inbox do
-	outro = outro or (message.Kind == "Chapter" and message.Payload.Phase == "Outro" and message.Payload.TextKey == "CHAPTER.NUEVA_VIDA.OUTRO")
-end
-check(data.Story.Chapters.Adulto_NuevaVida ~= nil and outro, "Capítulo terminado con su pantalla de cierre")
+check(data.Story.Chapters.Adulto_NuevaVida ~= nil and cinematic(ana, "Adulto_TuCiudad"), "Capítulo terminado con su cinemática de cierre")
 check(data.Story.Discovered.Playa and data.Story.Discovered.PlazaCentro, "Los lugares visitados quedan descubiertos")
 local biography = {}
 for _, event in data.Story.Events do
@@ -334,7 +356,8 @@ local leo = newPlayer("Leo") -- personaje nuevo
 task.wait(0.2)
 local leoData = profiles[leo]
 check(leoData.Life.Stage == "Bebe" and leo:GetAttribute("LifeStage") == "Bebe", "Un personaje nuevo nace bebé")
-check(received(leo, "Chapter", "CHAPTER.BEBE.TITLE"), "Empieza el capítulo 'Primeros pasos'")
+check(cinematic(leo, "Bebe_Nacimiento"), "Empieza con la cinemática del nacimiento")
+check(lastState(leo).ChapterMusic == "Nacimiento", "Suena la nana de fondo en casa")
 check(leoData.Story.Active.Bebe_AprendeACaminar ~= nil, "Primera misión: aprende a caminar")
 StoryEvents.emit(leo, "BabyStood", {})
 for _ = 1, 4 do
@@ -352,7 +375,10 @@ task.wait(0.1)
 check(leoData.Story.Active.Bebe_AprendeACaminar ~= nil, "Hablar con otra persona no cuenta como llegar hasta Abu")
 StoryEvents.emit(leo, "Talk", { Npc = "Familia_Abu" })
 task.wait(0.1)
+check(cinematic(leo, "Bebe_PrimerosPasos") and leoData.Story.Active.Bebe_AprendeACaminar ~= nil, "Cinemática de primeros pasos (la historia espera a que acabe)")
+task.wait(6.3)
 check(leoData.Story.Completed.Bebe_AprendeACaminar ~= nil and received(leo, "Moment", "MOMENT.PRIMEROS_PASOS"), "Momento: 'Has dado tus primeros pasos'")
+check(momentSting(leo, "MOMENT.PRIMEROS_PASOS") == "ninguno", "Sin efecto repetido (la cinemática ya tiene su música)")
 
 StoryEvents.emit(leo, "BabyInteract", { Object = "Tele" })
 leo.At = "HomeCocina"
@@ -368,7 +394,7 @@ task.wait(0.1)
 check(leoData.Story.Completed.Bebe_ExploraLaCasa ~= nil, "Casa explorada y familia conocida")
 StoryEvents.emit(leo, "LookedOutside", {})
 task.wait(0.3)
-check(received(leo, "Transition", "TRANSITION.ANOS_DESPUES"), "Mirar por el ventanal lleva a 'Han pasado varios años…'")
+check(cinematic(leo, "Bebe_AnosDespues"), "Mirar por el ventanal lleva a la cinemática 'Han pasado varios años…'")
 check(leoData.Life.Stage == "Nino" and leo:GetAttribute("LifeStage") == "Nino", "Ahora es niño")
 check(leoData.Story.Chapters.Bebe_PrimerosPasos ~= nil, "Capítulo de bebé terminado")
 check(leoData.Story.Active.Nino_TuBarrio ~= nil, "Empieza el puente de niño: 'Tu barrio'")
@@ -376,7 +402,7 @@ leo.At = "Parque"
 task.wait(0.7)
 leo.At = "Colegio"
 task.wait(0.8)
-check(received(leo, "Transition", "TRANSITION.CRECES") and leoData.Life.Stage == "AdultoJoven", "Salto en el tiempo hasta la vida adulta")
+check(cinematic(leo, "Nino_Creces") and leoData.Life.Stage == "AdultoJoven", "Salto en el tiempo hasta la vida adulta (cinemática por la región)")
 check(leoData.Story.Active.Adulto_LlegadaValmar ~= nil, "Y empieza 'Una nueva vida en Valmar'")
 check(pcall(serde.encode, "json", leoData), "Los datos del bebé se pueden guardar (JSON válido)")
 

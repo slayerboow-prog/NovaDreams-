@@ -44,6 +44,8 @@ Strings.es = {
 	["PLACE.FAMILIA_ABU"] = "Abu",
 	["PLACE.FAMILIA_PADRE"] = "tu familia",
 	["PLACE.VENTANAL"] = "el ventanal",
+	["PLACE.CASA_FAMILIAR"] = "tu casa familiar",
+	["PLACE.CUNA"] = "la cuna",
 	["PLACE.PLAZA_CENTRO"] = "la Plaza Mayor",
 	["PLACE.CAFETERIA_CENTRAL"] = "la Cafetería Central",
 	["PLACE.CORREOS"] = "Correos",
@@ -133,6 +135,23 @@ Strings.es = {
 	["DLG.ABU.BEBE.GENERICO"] = "Qué ganas tienes de explorar, ¿eh?",
 	["DLG.FAMILIA.BIBERON"] = "¡Aquí está tu biberón! Qué bien comes.",
 	["DLG.FAMILIA.GENERICO"] = "¿Me ayudas a cocinar? Bueno… cuando seas un poco mayor.",
+
+	-- Cinemáticas (docs/historia/10, apartado 10.17)
+	["CINE.SKIP"] = "Saltar ▶▶",
+	["CINE.NACIMIENTO.LUGAR"] = "Valmar",
+	["CINE.NACIMIENTO.CUANDO"] = "Un día de primavera, en Los Pinos",
+	["CINE.VALMAR.TITULO"] = "Valmar",
+	["CINE.VALMAR.LEMA"] = "Donde el valle se encuentra con el mar",
+	["CINE.ANOS.RECUERDOS"] = "El parque, las bicis, los primeros amigos…",
+	["CINE.CRECES.COLEGIO"] = "El colegio…",
+	["CINE.CRECES.ESTUDIOS"] = "El instituto, los exámenes, los primeros sueños…",
+	["CINE.CRECES.SUENOS"] = "Los amigos, los veranos, las grandes decisiones…",
+	["CINE.CRECES.FINAL"] = "…y un día, sin darte cuenta, ya has crecido.",
+	["CINE.LLEGADA.NARRADOR"] = "Aquí empieza tu vida adulta. ¿Qué harás con ella?",
+	["DLG.ABU.NACER.01"] = "Te damos la bienvenida al mundo, {nombre}. Valmar te estaba esperando.",
+	["DLG.ABU.NACER.02"] = "Mira qué manitas tan pequeñas… ¡y qué ganas de explorar!",
+	["STORY.AUDIO.ON"] = "🔊",
+	["STORY.AUDIO.OFF"] = "🔇",
 
 	-- Límites por edad
 	["LIMIT.Work"] = "Aún no tienes edad para trabajar.",

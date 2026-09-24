@@ -1,7 +1,7 @@
 -- Baby (cliente): lo que se ve durante el tutorial de bebé.
 --   * Botón grande "¡Levántate!" (también con la barra espaciadora) mientras el bebé gatea.
---   * Lo que dicen Abu y la familia, en un globo abajo de la pantalla.
---   * Al mirar por el ventanal, la cámara sale por la ventana y enseña la ciudad.
+--   * Lo que dicen Abu y la familia, en un globo abajo de la pantalla, con su voz.
+--   (La vista de la ciudad desde el ventanal es una cinemática: Controllers/Cinematics.luau.)
 -- El servidor (BabyService) decide todo; aquí solo se dibuja y se envía "Stand".
 
 local Players = game:GetService("Players")
@@ -11,6 +11,7 @@ local UserInputService = game:GetService("UserInputService")
 
 local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 local Theme = require(script.Parent.Parent.UI.Theme)
+local StoryAudio = require(script.Parent.StoryAudio)
 
 local C = Theme.Colors
 
@@ -74,10 +75,11 @@ end
 -- Globos de diálogo
 ---------------------------------------------------------------------
 
-local sayQueue: { { SpeakerKey: string?, TextKey: string } } = {}
+local sayQueue: { { SpeakerKey: string?, TextKey: string, Role: string? } } = {}
 local saying = false
 
-local function showLine(line: { SpeakerKey: string?, TextKey: string })
+local function showLine(line: { SpeakerKey: string?, TextKey: string, Role: string? })
+	StoryAudio.speak(line.Role, line.TextKey)
 	local panel = Theme.panel({
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, -220),
@@ -127,7 +129,7 @@ local function showLine(line: { SpeakerKey: string?, TextKey: string })
 	panel:Destroy()
 end
 
-local function say(line: { SpeakerKey: string?, TextKey: string })
+local function say(line: { SpeakerKey: string?, TextKey: string, Role: string? })
 	table.insert(sayQueue, line)
 	if saying then
 		return
@@ -139,38 +141,6 @@ local function say(line: { SpeakerKey: string?, TextKey: string })
 		end
 		saying = false
 	end)
-end
-
----------------------------------------------------------------------
--- Mirar por el ventanal: la cámara sale por la ventana y enseña Valmar
----------------------------------------------------------------------
-
-local function cinematic(from: CFrame, seconds: number)
-	local camera = workspace.CurrentCamera
-	local previousType = camera.CameraType
-	camera.CameraType = Enum.CameraType.Scriptable
-
-	local origin = from.Position + Vector3.new(0, 1, 0)
-	local outward = from.LookVector
-	local cityCenter = Vector3.zero -- Valmar Centro
-	local toCity = Vector3.new(cityCenter.X - origin.X, 0, cityCenter.Z - origin.Z)
-	toCity = if toCity.Magnitude > 1 then toCity.Unit else outward
-
-	local shots = {
-		CFrame.lookAt(origin - outward * 4, origin + outward * 20),
-		CFrame.lookAt(origin + outward * 30 + Vector3.new(0, 25, 0), origin + toCity * 400),
-		CFrame.lookAt(origin + toCity * 120 + Vector3.new(0, 140, 0), cityCenter),
-	}
-	camera.CFrame = shots[1]
-	local legs = #shots - 1
-	local legTime = math.max(1, (seconds - 1) / legs)
-	for i = 2, #shots do
-		local tween = TweenService:Create(camera, TweenInfo.new(legTime, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), { CFrame = shots[i] })
-		tween:Play()
-		tween.Completed:Wait()
-	end
-	task.wait(1)
-	camera.CameraType = if previousType == Enum.CameraType.Scriptable then Enum.CameraType.Custom else previousType
 end
 
 ---------------------------------------------------------------------
@@ -187,9 +157,7 @@ function Baby.init()
 
 	Remote.OnClientEvent:Connect(function(kind: string, payload: { [string]: any })
 		if kind == "Say" then
-			say({ SpeakerKey = payload.SpeakerKey, TextKey = payload.TextKey })
-		elseif kind == "Cinematic" then
-			task.spawn(cinematic, payload.From, payload.Seconds or 6)
+			say({ SpeakerKey = payload.SpeakerKey, TextKey = payload.TextKey, Role = payload.Role })
 		end
 	end)
 end
