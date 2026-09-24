@@ -24,6 +24,10 @@ Los primeros minutos deciden si un jugador de Roblox se queda o se va. En 30 min
 
 ## 4.2 🔶 Propuesta de ajuste: la etapa de bebé en la primera vida
 
+> **Actualización:** decidido que el tutorial de bebé dure **5–10 minutos** y termine con una transición narrativa
+> ("Han pasado varios años…") en lugar de cumpleaños sucesivos. Ver [10 — LifeStorySystem](10-life-story-system.md), apartado 10.10.
+> El contenido de este documento (escenas, primera palabra, primer amigo) se reparte entre ese tutorial corto y el primer capítulo de niño.
+
 El diseño ([Fase 6.2](../diseno/06-edades-progresion.md)) da **15 minutos por año** al bebé (45 min en total).
 Para los primeros 30 minutos proponemos un valor distinto **solo en la primera vida de cada cuenta**:
 

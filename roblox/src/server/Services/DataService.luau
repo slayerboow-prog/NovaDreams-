@@ -29,6 +29,24 @@ local DEFAULT_DATA = {
 		PlaySeconds = 0,
 	},
 	ProcessedReceipts = {},
+	-- Etapa de vida (la edad real llegará con el sistema de vida)
+	Life = {
+		Stage = Config.LifeStory.DefaultStage,
+		AgeYears = Config.LifeStory.DefaultAge,
+	},
+	-- Historia de vida (LifeStoryService): capítulos, misiones, decisiones, memoria de NPC y biografía
+	Story = {
+		Version = 1,
+		Chapters = {},
+		Active = {},
+		Completed = {},
+		Declined = {},
+		Choices = {},
+		Flags = {},
+		Discovered = {},
+		NpcMemory = {},
+		Events = {},
+	},
 }
 
 local profiles: { [Player]: { [string]: any } } = {}

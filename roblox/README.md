@@ -114,3 +114,9 @@ rojo serve                                          # sincroniza en vivo con el 
 > Lo ideal es pedirme los cambios a mí (o editar los `.luau`) y regenerar `RealLifeSimulator.rbxl`.
 
 Ver el [documento de diseño](docs/diseno/README.md), la [historia y jugabilidad](docs/historia/README.md) y la [hoja de ruta](ROADMAP.md) para lo que viene después.
+
+### Pruebas automáticas
+
+```bash
+lune run scripts/test-lifestory.luau   # simula vidas completas con la historia de vida (LifeStoryService)
+```

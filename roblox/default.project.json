@@ -16,6 +16,9 @@
         },
         "GoHome": {
           "$className": "RemoteEvent"
+        },
+        "LifeStory": {
+          "$className": "RemoteEvent"
         }
       }
     },

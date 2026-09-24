@@ -14,6 +14,7 @@ local Building = require(script.Parent.Parent.World.Kit.Building)
 local TownBuilder = require(script.Parent.Parent.World.TownBuilder)
 local DataService = require(script.Parent.DataService)
 local NeedsService = require(script.Parent.NeedsService)
+local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 
 local HouseService = {}
 
@@ -170,6 +171,7 @@ function HouseService.claim(player: Player, plot: Plot)
 	buildHouse(plot, data.HouseTier)
 	refreshSign(plot)
 	Notify:FireClient(player, "Success", "¡Bienvenido a tu nueva casa! Pulsa 'Casa' para volver cuando quieras.")
+	StoryEvents.emit(player, "HomeClaimed", { PlotId = plot.Id })
 end
 
 function HouseService.upgrade(player: Player, plot: Plot)
@@ -221,6 +223,7 @@ function HouseService.sleep(player: Player, plotId: number)
 		player:SetAttribute("Sleeping", nil)
 		NeedsService.change(player, 0, Config.Needs.Max)
 		Notify:FireClient(player, "Success", "Has dormido genial. ¡Energía al máximo!")
+		StoryEvents.emit(player, "Slept", {})
 	end
 end
 

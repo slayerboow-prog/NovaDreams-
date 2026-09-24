@@ -22,6 +22,7 @@ se marca con **🔶 Propuesta** para que se decida y, si se aprueba, se actualic
 | 07 | [Progresión, logros y legado](07-progresion-logros-legado.md) | Hitos de vida, logros, títulos, recuerdos y legado |
 | 08 | [Diálogos de ejemplo](08-dialogos.md) | Diálogos de los NPC principales, con clave de traducción |
 | 09 | [Textos y traducción](09-textos-traduccion.md) | Reglas para que todo se pueda traducir al inglés, y la tabla de textos lista para Roblox |
+| 10 | [LifeStorySystem (técnico)](10-life-story-system.md) | La vida como campaña: arquitectura, datos, misiones, NPC, tiempo, educación, profesiones jugador/NPC y plan por fases. **Fase 1 programada** |
 
 ## Los cinco principios de la historia
 

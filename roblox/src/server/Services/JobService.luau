@@ -15,6 +15,8 @@ local Builder = require(script.Parent.Parent.World.Builder)
 local DataService = require(script.Parent.DataService)
 local NeedsService = require(script.Parent.NeedsService)
 local MonetizationService = require(script.Parent.MonetizationService)
+local RoleService = require(script.Parent.RoleService)
+local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 
 local JobService = {}
 
@@ -99,6 +101,7 @@ function JobService.quit(player: Player, silent: boolean?)
 	end
 	removeCarry(shift)
 	shifts[player] = nil
+	RoleService.offDuty(player, shift.JobId)
 	player:SetAttribute("Job", nil)
 	player:SetAttribute("TaskTarget", nil)
 	player:SetAttribute("TaskText", nil)
@@ -124,6 +127,7 @@ function JobService.start(player: Player, jobId: string)
 	end
 	local shift: Shift = { JobId = jobId, Phase = "Pickup", Target = target }
 	shifts[player] = shift
+	RoleService.setOnDuty(player, jobId)
 	player:SetAttribute("Job", jobId)
 	publish(player, shift)
 	Notify:FireClient(player, "Success", ("¡Contratado como %s! Sigue la línea azul."):format(job.DisplayName))
@@ -153,6 +157,7 @@ local function reached(player: Player, shift: Shift)
 	end
 	NeedsService.change(player, 0, -job.EnergyCost)
 	Notify:FireClient(player, "Money", "+" .. Format.money(pay))
+	StoryEvents.emit(player, "JobTaskDone", { JobId = shift.JobId, Pay = pay })
 
 	if not NeedsService.canWork(player) then
 		JobService.quit(player, true)

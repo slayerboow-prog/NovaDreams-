@@ -31,12 +31,15 @@ require(World.Ambient).publish(TownBuilder.roads())
 local order = {
 	"DataService",
 	"MonetizationService",
+	"RoleService",
 	"NeedsService",
 	"WorldService",
 	"JobService",
 	"FoodService",
 	"HouseService",
 	"TravelService",
+	"LocationService",
+	"LifeStoryService", -- la historia de vida escucha a todos los anteriores
 }
 
 for _, name in order do

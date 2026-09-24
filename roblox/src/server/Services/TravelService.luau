@@ -6,6 +6,7 @@ local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Builder = require(script.Parent.Parent.World.Builder)
+local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 
 local TravelService = {}
 
@@ -35,6 +36,9 @@ function TravelService.travel(player: Player, destination: string)
 	end
 	task.wait(TRAVEL_SECONDS / 2)
 	traveling[player] = nil
+	if player.Parent then
+		StoryEvents.emit(player, "Traveled", { Town = destination })
+	end
 end
 
 local function setupStop(stop: Instance)

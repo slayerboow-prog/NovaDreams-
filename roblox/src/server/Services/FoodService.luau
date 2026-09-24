@@ -8,6 +8,7 @@ local Format = require(ReplicatedStorage.Shared.Format)
 local Builder = require(script.Parent.Parent.World.Builder)
 local DataService = require(script.Parent.DataService)
 local NeedsService = require(script.Parent.NeedsService)
+local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 
 local FoodService = {}
 
@@ -46,6 +47,7 @@ function FoodService.eat(player: Player, foodId: string, stand: BasePart?)
 	end
 	NeedsService.change(player, food.Hunger, food.Energy or 0)
 	Notify:FireClient(player, "Food", ("¡Ñam! %s"):format(food.Name))
+	StoryEvents.emit(player, "Ate", { FoodId = foodId })
 end
 
 local function setupStand(stand: Instance)

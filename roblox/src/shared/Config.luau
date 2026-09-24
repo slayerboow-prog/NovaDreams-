@@ -21,6 +21,32 @@ Config.LampsOnAt = 18 -- las farolas se encienden a esta hora...
 Config.LampsOffAt = 6.5 -- ...y se apagan a esta
 
 ---------------------------------------------------------------------
+-- Calendario del juego (lo usan GameClock y la historia de vida)
+-- El día 1 es lunes del mes 1 del año 1.
+---------------------------------------------------------------------
+Config.Calendar = {
+	DaysPerWeek = 7,
+	DaysPerMonth = 28, -- 4 semanas por mes
+	MonthsPerYear = 12,
+}
+
+---------------------------------------------------------------------
+-- Historia de vida (LifeStoryService)
+---------------------------------------------------------------------
+Config.LifeStory = {
+	-- Etapa con la que empieza un personaje nuevo. Pasará a "Bebe" cuando el tutorial de bebé
+	-- (fase 2) esté construido; mientras tanto se empieza de adulto, como en la v0.1.
+	DefaultStage = "Adulto",
+	DefaultAge = 22,
+	TickSeconds = 0.5, -- cada cuánto se comprueban llegadas y esperas
+	RefreshSeconds = 5, -- cada cuánto se revisan misiones que dependen de la hora
+	MaxActiveSide = 3, -- misiones secundarias a la vez
+	DeclineCooldown = 600, -- segundos reales antes de volver a ofrecer una secundaria rechazada
+	MaxLifeEvents = 200, -- acontecimientos guardados en la biografía
+	ReachPadding = 14, -- studs de margen alrededor de un edificio para contar como "has llegado"
+}
+
+---------------------------------------------------------------------
 -- Necesidades (hambre y energía, de 0 a 100)
 ---------------------------------------------------------------------
 Config.Needs = {

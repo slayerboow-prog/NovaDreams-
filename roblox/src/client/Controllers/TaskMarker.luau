@@ -1,5 +1,6 @@
 -- TaskMarker: dibuja una línea (Beam) desde tu personaje hasta el objetivo del trabajo
 -- y un marcador flotante con la distancia. Solo lo ve el jugador local.
+-- Si no estás trabajando, guía hacia el siguiente paso de tu historia de vida (StoryTarget).
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -85,6 +86,9 @@ end
 local function update()
 	local target = player:GetAttribute("TaskTarget")
 	if typeof(target) ~= "Vector3" then
+		target = player:GetAttribute("StoryTarget")
+	end
+	if typeof(target) ~= "Vector3" then
 		anchor.Parent = nil
 		return
 	end
@@ -95,6 +99,7 @@ end
 function TaskMarker.init()
 	build()
 	player:GetAttributeChangedSignal("TaskTarget"):Connect(update)
+	player:GetAttributeChangedSignal("StoryTarget"):Connect(update)
 	update()
 
 	RunService.RenderStepped:Connect(function()

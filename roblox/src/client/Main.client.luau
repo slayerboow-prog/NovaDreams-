@@ -6,12 +6,14 @@ local Hud = require(script.Parent.UI.Hud)
 local Store = require(script.Parent.UI.Store)
 local TaskMarker = require(script.Parent.Controllers.TaskMarker)
 local Ambient = require(script.Parent.Controllers.Ambient)
+local LifeStory = require(script.Parent.Controllers.LifeStory)
 
 local gui = Hud.init(function()
 	Store.open()
 end)
 Store.init(gui)
 TaskMarker.init()
+task.spawn(LifeStory.init) -- historia de vida (tarjeta "Tu vida", momentos, decisiones)
 task.spawn(Ambient.init) -- tráfico y peatones
 
 local Notify = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Notify") :: RemoteEvent
