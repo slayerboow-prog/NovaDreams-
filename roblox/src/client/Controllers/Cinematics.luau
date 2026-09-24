@@ -13,6 +13,7 @@ local Definitions = require(ReplicatedStorage.Shared.LifeStory.Cinematics)
 local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local StoryAudio = require(script.Parent.StoryAudio)
+local DayLight = require(script.Parent.DayLight)
 
 local C = Theme.Colors
 local Cinematics = {}
@@ -226,7 +227,8 @@ function Cinematics.play(payload: { [string]: any })
 		skipped = true
 	end)
 
-	-- Audio
+	-- Audio y "modo cine" en la luz (fondo algo desenfocado, más contraste)
+	DayLight.setCinematic(true)
 	StoryAudio.cinematicStart(def.Music)
 	StoryAudio.sting(def.Sting)
 
@@ -327,6 +329,7 @@ function Cinematics.play(payload: { [string]: any })
 	restoreGuis()
 	setControls(true)
 	StoryAudio.cinematicEnd()
+	DayLight.setCinematic(false)
 	skip.Visible = false
 	fadeLabel(caption, false, 0.3)
 	fadeLabel(title, false, 0.3)
