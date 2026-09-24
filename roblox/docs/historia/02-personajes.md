@@ -37,7 +37,7 @@ hay un pequeño reparto de **NPC con nombre**. Son NPC de servicio (nivel A) esp
 - **Edad y aspecto:** 71 años. Delantal, bigote blanco, gafas en la frente, trapo en el hombro.
 - **Personalidad:** gruñón por fuera, blando por dentro. Exigente con el café ("¡la leche no se quema!"), orgulloso de su
   cafetería de 90 años. Cuenta historias de la ciudad antigua. Tiene un gato, **Canela**, que duerme en el escaparate.
-- **Cómo habla:** frases cortas, refranes, llama a todo el mundo "chaval" o "criatura" (neutro para cualquier jugador).
+- **Cómo habla:** frases cortas, refranes, llama a todo el mundo "criatura" (sirve igual para cualquier jugador).
 - **Qué quiere:** encontrar a alguien digno de heredar su cafetería.
 - **Función en el juego:** **primer trabajo** de muchos jugadores (Barista), tutorial de la actividad "Atención al cliente".
   Da misiones de hostelería y cuenta la historia de Valmar en conversaciones de afinidad.
@@ -99,7 +99,7 @@ hay un pequeño reparto de **NPC con nombre**. Son NPC de servicio (nivel A) esp
 - **Qué quiere:** formar a los mejores médicos de la región.
 - **Función en el juego:** **mentor** de médicos y enfermeros (MIR, prácticas), primeros auxilios en el instituto,
   organiza la asistencia médica del Maratón.
-- **Frase típica:** *"Respira. El paciente necesita que tú estés tranquilo antes que él."*
+- **Frase típica:** *"Respira. El paciente necesita que tú mantengas la calma antes que él."*
 
 ### 🎓 Amaia Soler — rectora de la Universidad
 

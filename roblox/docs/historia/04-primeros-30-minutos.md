@@ -72,7 +72,7 @@ Botón grande **"¡Empezar a vivir!"**. Todo se puede dejar por defecto: con 3 c
 ### 1:30 – 2:30 · El nacimiento (escena de 30 s, se puede saltar)
 
 - Pantalla en blanco, sonido suave de latido. La imagen se enfoca poco a poco: caras de la familia inclinadas sobre la cuna.
-- Abu: *"Bienvenido al mundo, {nombre}. Valmar te estaba esperando."* (`TUTO.NACER.01`)
+- Abu: *"Te damos la bienvenida al mundo, {nombre}. Valmar te estaba esperando."* (`DLG.ABU.NACER.01`)
 - Radio Valmar suena bajito en la habitación: *"…y hoy damos la bienvenida a los nuevos vecinos de Valmar…"*
 - Aparece el **Álbum** con la primera foto: **Recuerdo "Bienvenida al mundo"**.
 - Fundido: *"Unas semanas después…"* → el bebé en la alfombra del salón de su casa.
@@ -101,7 +101,7 @@ El bebé **gatea**. La casa es el primer escenario: pequeña, segura y llena de 
 - El bebé **crece un poco** (animación de escala).
 - **Regalo:** el jugador **elige** entre 3 juguetes. Cada uno da un empujoncito de habilidad:
   - ⚽ Pelota → Deporte · 🎨 Ceras de colores → Creatividad · 🧱 Bloques → Lógica.
-- Recuerdo "1 añito". Abu: *"¿Un año ya? ¡Si ayer eras así de pequeñito!"*
+- Recuerdo "1 añito". Abu: *"¿Un año ya? ¡Si ayer cabías en una mano!"*
 
 ### 8:30 – 14:00 · Bebé (1 año): primeros pasos y primera palabra
 
