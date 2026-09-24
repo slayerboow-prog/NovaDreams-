@@ -93,4 +93,4 @@ rojo serve                                          # sincroniza en vivo con el 
 > ⚠️ Si editas scripts **dentro de Studio**, esos cambios no llegan a GitHub.
 > Lo ideal es pedirme los cambios a mí (o editar los `.luau`) y regenerar `NovaLife.rbxlx`.
 
-Ver [ROADMAP.md](ROADMAP.md) para lo que viene después.
+Ver el [documento de diseño](docs/diseno/README.md) y la [hoja de ruta](ROADMAP.md) para lo que viene después.
