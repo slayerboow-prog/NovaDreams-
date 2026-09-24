@@ -33,6 +33,7 @@ export type Spec = {
 	Sign: string?,
 	SignColor: Color3?,
 	Awning: Color3?,
+	ShopId: string?, -- comercio: crea un punto de entrada con la etiqueta Shop
 	FloorMaterial: Enum.Material?,
 	FloorColor: Color3?,
 	LightColor: Color3?,
@@ -242,6 +243,17 @@ end
 ---------------------------------------------------------------------
 -- Edificio completo
 ---------------------------------------------------------------------
+
+-- "PANADERÍA" -> "Panaderia", "BANCO VALMAR" -> "Banco": identificador de comercio sin tildes
+local ACCENTS = { ["Á"] = "A", ["É"] = "E", ["Í"] = "I", ["Ó"] = "O", ["Ú"] = "U", ["Ü"] = "U", ["Ñ"] = "N", ["á"] = "a", ["é"] = "e", ["í"] = "i", ["ó"] = "o", ["ú"] = "u", ["ü"] = "u", ["ñ"] = "n" }
+function Building.shopIdFor(name: string): string
+	local word = string.match(name, "^%S+") or name
+	for accented, plain in ACCENTS do
+		word = string.gsub(word, accented, plain)
+	end
+	word = string.lower(word)
+	return string.upper(string.sub(word, 1, 1)) .. string.sub(word, 2)
+end
 
 function Building.build(spec: Spec): (Model, (number, number, number) -> CFrame, { Top: number, GroundTop: number })
 	local style: Palette.Style = Palette.Styles[spec.Style] or Palette.Styles.Clasico
@@ -498,6 +510,22 @@ function Building.build(spec: Spec): (Model, (number, number, number) -> CFrame,
 			Parent = model,
 		})
 		Builder.sign(signPart, spec.Sign, Enum.NormalId.Front)
+	end
+	if spec.ShopId then
+		-- Punto de entrada invisible delante de la puerta (la historia lo usa: "ve a la librería")
+		model:SetAttribute("ShopId", spec.ShopId)
+		Builder.part({
+			Name = "ShopEntrance",
+			Size = Vector3.new(4, 5, 2),
+			CFrame = at(0, 2.5, -D / 2 - 2),
+			Transparency = 1,
+			CanCollide = false,
+			CanQuery = false,
+			CastShadow = false,
+			Tags = { "Shop" },
+			Attributes = { ShopId = spec.ShopId },
+			Parent = model,
+		})
 	end
 	if spec.Awning and spec.GroundFloor == "Shop" then
 		local winW = W / 2 - 8

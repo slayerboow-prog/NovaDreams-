@@ -105,7 +105,7 @@ local function buildCafe(world: Instance)
 		Name = "Cafeteria", Parent = world, CFrame = northOfAvenue(70, D),
 		Width = W, Depth = D, Floors = 4, Style = "Clasico", GroundFloor = "Shop",
 		WindowFaces = { Front = true, Left = true, Right = true },
-		Sign = "CAFETERÍA CENTRAL", SignColor = rgb(96, 60, 38), Awning = rgb(110, 66, 40),
+		Sign = "CAFETERÍA CENTRAL", SignColor = rgb(96, 60, 38), Awning = rgb(110, 66, 40), ShopId = "Cafeteria",
 		FloorMaterial = Enum.Material.WoodPlanks, FloorColor = rgb(150, 108, 72),
 	})
 	counter(model, at(0, 0, 11), 26, rgb(96, 60, 38))
@@ -129,7 +129,7 @@ local function buildSupermarket(world: Instance)
 		Name = "Supermercado", Parent = world, CFrame = northOfAvenue(160, D),
 		Width = W, Depth = D, Floors = 2, Style = "Moderno", GroundFloor = "Shop", Balconies = false,
 		WindowFaces = { Front = true, Left = true, Right = true },
-		Sign = "SUPERMERCADO", SignColor = rgb(36, 132, 76), Awning = rgb(36, 132, 76),
+		Sign = "SUPERMERCADO", SignColor = rgb(36, 132, 76), Awning = rgb(36, 132, 76), ShopId = "Supermercado",
 		FloorMaterial = Enum.Material.CeramicTiles, FloorColor = rgb(226, 226, 222),
 		LightColor = rgb(240, 248, 255),
 	})
@@ -181,7 +181,7 @@ local function buildBurger(world: Instance)
 		Name = "MegaBurger", Parent = world, CFrame = northOfAvenue(-150, D),
 		Width = W, Depth = D, Floors = 2, Style = "Popular", GroundFloor = "Shop", WallColor = rgb(196, 58, 48),
 		WindowFaces = { Front = true, Left = true, Right = true },
-		Sign = "MEGA BURGER", SignColor = rgb(240, 186, 40), Awning = rgb(240, 186, 40),
+		Sign = "MEGA BURGER", SignColor = rgb(240, 186, 40), Awning = rgb(240, 186, 40), ShopId = "Hamburgueseria",
 		FloorMaterial = Enum.Material.CeramicTiles, FloorColor = rgb(230, 222, 206),
 	})
 	counter(model, at(0, 0, 10), 22, rgb(240, 186, 40))
@@ -203,6 +203,7 @@ local STYLES = { "Clasico", "Popular", "Moderno", "Clasico", "Popular" }
 local function filler(world: Instance, cf: CFrame, width: number, index: number)
 	local style = STYLES[(index - 1) % #STYLES + 1]
 	local isShop = math.random() < 0.55
+	local shopName = SHOP_NAMES[math.random(1, #SHOP_NAMES)]
 	Building.build({
 		Name = "Edificio_" .. index,
 		Parent = world,
@@ -214,7 +215,8 @@ local function filler(world: Instance, cf: CFrame, width: number, index: number)
 		GroundFloor = if isShop then "Shop" else "Closed",
 		Interior = false,
 		WindowFaces = { Front = true, Left = true, Right = true },
-		Sign = if isShop then SHOP_NAMES[math.random(1, #SHOP_NAMES)] else nil,
+		Sign = if isShop then shopName else nil,
+		ShopId = if isShop then Building.shopIdFor(shopName) else nil,
 		Awning = if isShop then Palette.pick(AWNINGS) else nil,
 	})
 end

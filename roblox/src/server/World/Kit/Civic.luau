@@ -160,13 +160,15 @@ function Civic.school(parent: Instance, lot: Lot, townName: string)
 	local D = 28
 	local setback = 12
 	slab(m, lot, -W / 2, W / 2, 0, setback, FT, rgb(214, 206, 190), Enum.Material.Pavement, "Entrance")
-	Building.build({
+	local building, at = Building.build({
 		Name = "Edificio", Parent = m, CFrame = lot.facing(0, setback + D / 2, 0),
 		Width = W, Depth = D, Floors = 2, Style = "Clasico", GroundFloor = "Lobby",
 		WallColor = rgb(196, 112, 84), Balconies = false,
 		WindowFaces = { Front = true, Left = true, Right = true, Back = true },
 		Sign = "COLEGIO " .. string.upper(townName), SignColor = rgb(30, 90, 160),
+		FloorMaterial = Enum.Material.WoodPlanks, FloorColor = rgb(196, 160, 118),
 	})
+	Civic.schoolInterior(building, at, W, D)
 	-- Mástil con bandera
 	Builder.part({ Name = "Flagpole", Size = Vector3.new(0.4, 20, 0.4), CFrame = lot.facing(-W / 2 + 6, 5, 10), Color = rgb(220, 220, 224), Material = Enum.Material.Metal, Parent = m })
 	Builder.decor({ Name = "Flag", Size = Vector3.new(5, 3, 0.1), CFrame = lot.facing(-W / 2 + 8.6, 5, 18.5), Color = rgb(40, 110, 200), Material = Enum.Material.Fabric, Parent = m })
@@ -174,19 +176,24 @@ function Civic.school(parent: Instance, lot: Lot, townName: string)
 	local courtV = setback + D + 24
 	if lot.Depth > courtV + 20 then
 		local court = lot.facing(-12, courtV, 0)
-		Builder.part({ Name = "Court", Size = Vector3.new(60, 0.4, 32), CFrame = court * CFrame.new(0, 0.2, 0), Color = rgb(56, 128, 96), Material = Enum.Material.Concrete, Parent = m })
+		Builder.part({ Name = "Court", Size = Vector3.new(60, 0.4, 32), CFrame = court * CFrame.new(0, 0.2, 0), Color = rgb(56, 128, 96), Material = Enum.Material.Concrete, Tags = { "PEArea" }, Parent = m })
 		for _, line in { { 60, 0.5, 0, -15.6 }, { 60, 0.5, 0, 15.6 }, { 0.5, 32, -29.6, 0 }, { 0.5, 32, 29.6, 0 }, { 0.5, 32, 0, 0 } } do
 			Builder.decor({ Name = "CourtLine", Size = Vector3.new(line[1], 0.05, line[2]), CFrame = court * CFrame.new(line[3], 0.42, line[4]), Color = rgb(240, 240, 240), Parent = m })
 		end
 		hoop(m, court * CFrame.new(-31, 0, 0) * CFrame.Angles(0, math.rad(-90), 0))
 		hoop(m, court * CFrame.new(31, 0, 0) * CFrame.Angles(0, math.rad(90), 0))
 		Civic.playground(m, lot.facing(math.min(W / 2 - 14, 34), courtV, 0))
+		-- Patio del recreo (volumen invisible: la historia sabe cuándo estás en el recreo)
+		Builder.part({
+			Name = "RecessArea", Size = Vector3.new(lot.Length - 10, 10, 44), CFrame = lot.facing(0, courtV, 5),
+			Transparency = 1, CanCollide = false, CanQuery = false, CastShadow = false, Tags = { "RecessArea" }, Parent = m,
+		})
 	end
 	-- Campo de fútbol y gimnasio al fondo del recinto
 	local fieldV = courtV + 40 + 30
 	if lot.Depth > fieldV + 32 then
 		local field = lot.facing(-12, fieldV, 0)
-		Builder.part({ Name = "Pitch", Size = Vector3.new(80, 0.35, 50), CFrame = field * CFrame.new(0, 0.18, 0), Color = rgb(74, 148, 70), Material = Enum.Material.Grass, Parent = m })
+		Builder.part({ Name = "Pitch", Size = Vector3.new(80, 0.35, 50), CFrame = field * CFrame.new(0, 0.18, 0), Color = rgb(74, 148, 70), Material = Enum.Material.Grass, Tags = { "PEArea" }, Parent = m })
 		for _, line in { { 80, 0.5, 0, -24.6 }, { 80, 0.5, 0, 24.6 }, { 0.5, 50, -39.6, 0 }, { 0.5, 50, 39.6, 0 }, { 0.5, 50, 0, 0 } } do
 			Builder.decor({ Name = "PitchLine", Size = Vector3.new(line[1], 0.05, line[2]), CFrame = field * CFrame.new(line[3], 0.37, line[4]), Color = rgb(245, 245, 245), Parent = m })
 		end
@@ -213,6 +220,79 @@ function Civic.school(parent: Instance, lot: Lot, townName: string)
 		Nature.tree(m, lot.point(u, lot.Depth - 10, 0))
 	end
 	return m
+end
+
+---------------------------------------------------------------------
+-- Interior del colegio (para las clases de la historia):
+--   [ Aula A | Entrada | Aula B | Música ]   dentro del edificio de una planta jugable
+-- Etiquetas: Classroom / Desk / Board / TeacherSpot (atributo ClassroomId), MusicRoom, SchoolEntrance.
+-- Los tabiques caen entre ventanas para no cortarlas.
+---------------------------------------------------------------------
+local SCHOOL_G = 13 -- altura interior de la planta baja "Lobby"
+
+local function invisible(props: { [string]: any }): BasePart
+	props.Transparency = 1
+	props.CanCollide = false
+	props.CanQuery = false
+	props.CastShadow = false
+	return Builder.part(props)
+end
+
+-- Tabique a lo ancho (eje Z) en x, con puerta centrada
+local function schoolPartition(model: Model, at: (number, number, number) -> CFrame, x: number, halfD: number)
+	local wallColor = rgb(242, 236, 222)
+	for _, seg in { { -halfD, -2.5 }, { 2.5, halfD } } do
+		Builder.part({ Name = "Partition", Size = Vector3.new(0.6, SCHOOL_G, seg[2] - seg[1]), CFrame = at(x, SCHOOL_G / 2, (seg[1] + seg[2]) / 2), Color = wallColor, Material = Enum.Material.Plaster, Parent = model })
+	end
+	Builder.part({ Name = "Lintel", Size = Vector3.new(0.6, SCHOOL_G - 8, 5), CFrame = at(x, 8 + (SCHOOL_G - 8) / 2, 0), Color = wallColor, Material = Enum.Material.Plaster, Parent = model })
+end
+
+local function classroom(model: Model, at: (number, number, number) -> CFrame, id: string, x0: number, x1: number, boardX: number, facing: number, deskXs: { number })
+	local halfD = 13
+	invisible({ Name = "Classroom_" .. id, Size = Vector3.new(x1 - x0, 10, halfD * 2), CFrame = at((x0 + x1) / 2, 5, 0), Tags = { "Classroom" }, Attributes = { ClassroomId = id }, Parent = model })
+	-- Pizarra y mesa del profesor
+	Builder.part({ Name = "Board", Size = Vector3.new(0.2, 4.5, 11), CFrame = at(boardX, 5.8, 0), Color = rgb(34, 70, 52), Material = Enum.Material.Slate, Tags = { "Board" }, Attributes = { ClassroomId = id }, Parent = model })
+	Builder.decor({ Name = "BoardFrame", Size = Vector3.new(0.3, 5, 11.6), CFrame = at(boardX - facing * 0.05, 5.8, 0), Color = rgb(150, 110, 70), Material = Enum.Material.Wood, Parent = model })
+	local teacherX = boardX + facing * 3.5
+	invisible({ Name = "TeacherSpot_" .. id, Size = Vector3.new(2, 5, 2), CFrame = at(teacherX, 2.5, 0), Tags = { "TeacherSpot" }, Attributes = { ClassroomId = id }, Parent = model })
+	Builder.part({ Name = "TeacherDesk", Size = Vector3.new(2.6, 2.8, 5), CFrame = at(teacherX + facing * 2.6, 1.4, 5), Color = rgb(130, 92, 60), Material = Enum.Material.Wood, Parent = model })
+	-- Pupitres mirando a la pizarra
+	for _, x in deskXs do
+		for _, z in { -9, -3, 3, 9 } do
+			Builder.part({ Name = "Desk", Size = Vector3.new(2.6, 2.6, 3.2), CFrame = at(x, 1.3, z), Color = rgb(206, 170, 120), Material = Enum.Material.Wood, Tags = { "Desk" }, Attributes = { ClassroomId = id }, Parent = model })
+			Builder.part({ Name = "Chair", Size = Vector3.new(1.8, 1.6, 1.8), CFrame = at(x + facing * 2.4, 0.8, z), Color = rgb(60, 110, 180), Parent = model })
+		end
+	end
+end
+
+function Civic.schoolInterior(model: Model, at: (number, number, number) -> CFrame, W: number, D: number)
+	local half = W / 2 - 1
+	local halfD = D / 2 - 1
+	-- Entrada (fuera, delante de la puerta) y vestíbulo
+	invisible({ Name = "SchoolEntrance", Size = Vector3.new(4, 5, 2), CFrame = at(0, 2.5, -D / 2 - 2), Tags = { "SchoolEntrance" }, Parent = model })
+	if W < 100 then
+		classroom(model, at, "A", -half, half, -half + 0.6, 1, { -half + 10, -half + 18, -half + 26 })
+		return
+	end
+	schoolPartition(model, at, -11.8, halfD)
+	schoolPartition(model, at, 11.8, halfD)
+	schoolPartition(model, at, 35.8, halfD)
+	classroom(model, at, "A", -half, -11.8, -half + 0.6, 1, { -44, -36, -28, -20 })
+	classroom(model, at, "B", 11.8, 35.8, 35.2, -1, { 17, 25 })
+	-- Sala de música
+	invisible({ Name = "MusicRoom", Size = Vector3.new(half - 35.8, 10, halfD * 2), CFrame = at((35.8 + half) / 2, 5, 0), Tags = { "MusicRoom" }, Parent = model })
+	Builder.part({ Name = "Piano", Size = Vector3.new(5, 3.4, 2), CFrame = at(46, 1.7, halfD - 1.5), Color = rgb(24, 22, 26), Parent = model })
+	Builder.decor({ Name = "PianoKeys", Size = Vector3.new(4.6, 0.2, 0.8), CFrame = at(46, 3.5, halfD - 3), Color = rgb(245, 245, 245), Parent = model })
+	for i, color in { rgb(200, 40, 40), rgb(220, 220, 224), rgb(220, 220, 224) } do
+		Builder.part({ Name = "Drum", Shape = Enum.PartType.Cylinder, Size = Vector3.new(2, 2.4, 2.4), CFrame = at(40 + i * 2.6, 1, -halfD + 3) * CFrame.Angles(0, 0, math.rad(90)), Color = color, Parent = model })
+	end
+	for _, z in { -4, 0, 4 } do
+		Builder.part({ Name = "MusicChair", Size = Vector3.new(1.8, 1.6, 1.8), CFrame = at(44, 0.8, z), Color = rgb(230, 150, 40), Parent = model })
+	end
+	-- Corcho con dibujos en el vestíbulo
+	for i, color in { rgb(240, 200, 60), rgb(90, 170, 230), rgb(230, 100, 120) } do
+		Builder.decor({ Name = "Drawing", Size = Vector3.new(2.4, 2, 0.1), CFrame = at(-6 + i * 3, 6, halfD - 0.1), Color = color, Parent = model })
+	end
 end
 
 ---------------------------------------------------------------------
@@ -280,7 +360,7 @@ function Civic.mall(parent: Instance, lot: Lot, townName: string)
 		Width = W, Depth = D, Floors = 2, GroundHeight = 18, FloorHeight = 14, Style = "Moderno", GroundFloor = "Shop",
 		WallColor = rgb(238, 238, 234), Balconies = false,
 		WindowFaces = { Front = true, Left = true, Right = true },
-		Sign = "CENTRO COMERCIAL " .. string.upper(townName), SignColor = rgb(120, 40, 140),
+		Sign = "CENTRO COMERCIAL " .. string.upper(townName), SignColor = rgb(120, 40, 140), ShopId = "CentroComercial",
 		FloorMaterial = Enum.Material.Marble, FloorColor = rgb(236, 232, 226), LightColor = rgb(255, 244, 228),
 	})
 	-- Atrio de cristal sobre la entrada
@@ -320,7 +400,7 @@ function Civic.gasStation(parent: Instance, lot: Lot)
 	Building.build({
 		Name = "Tienda", Parent = m, CFrame = lot.facing(0, 36, 0),
 		Width = 26, Depth = 14, Floors = 1, Style = "Moderno", GroundFloor = "Shop", Balconies = false,
-		WallColor = rgb(240, 240, 238), WindowFaces = { Front = true }, Sign = "24H", SignColor = rgb(30, 150, 80),
+		WallColor = rgb(240, 240, 238), WindowFaces = { Front = true }, Sign = "24H", SignColor = rgb(30, 150, 80), ShopId = "Gasolinera",
 	})
 	-- Tótem de precios
 	local pylon = lot.facing(L / 2 - 4, 3, 0)
@@ -521,8 +601,19 @@ end
 ---------------------------------------------------------------------
 -- Facultad universitaria / biblioteca con pórtico de columnas
 ---------------------------------------------------------------------
+local FACULTY_IDS = { { "MEDICINA", "Medicina" }, { "INGENIER", "Ingenieria" }, { "DERECHO", "Derecho" }, { "ECONOM", "Economia" } }
+
 function Civic.faculty(parent: Instance, lot: Lot, title: string)
 	local m = Builder.model("Facultad", parent)
+	-- La historia identifica cada facultad por su atributo Faculty; la biblioteca lleva la etiqueta Library
+	for _, pair in FACULTY_IDS do
+		if string.find(title, pair[1], 1, true) then
+			m:SetAttribute("Faculty", pair[2])
+		end
+	end
+	if string.find(title, "BIBLIOTECA", 1, true) then
+		m:AddTag("Library")
+	end
 	local W = math.min(lot.Length - 30, 120)
 	local D = math.min(lot.Depth - 30, 40)
 	local setback = 18
@@ -637,7 +728,7 @@ function Civic.cinema(parent: Instance, lot: Lot, u: number, townName: string)
 	local model, at = Building.build({
 		Name = "Cine", Parent = parent, CFrame = lot.facing(u + W / 2, 8 + D / 2, 0),
 		Width = W, Depth = D, Floors = 1, GroundHeight = 22, Style = "Moderno", GroundFloor = "Shop",
-		WallColor = rgb(52, 40, 62), Interior = false, Balconies = false, WindowFaces = { Front = true },
+		WallColor = rgb(52, 40, 62), Interior = false, Balconies = false, WindowFaces = { Front = true }, ShopId = "Cine",
 	})
 	-- Marquesina luminosa con carteles de películas
 	local marquee = Builder.decor({ Name = "Marquee", Size = Vector3.new(30, 6, 0.8), CFrame = at(0, 17, -D / 2 - 0.5), Color = rgb(18, 16, 24), Parent = model })
@@ -656,7 +747,7 @@ function Civic.arcade(parent: Instance, lot: Lot, u: number)
 		Name = "Recreativos", Parent = parent, CFrame = lot.facing(u + W / 2, 8 + D / 2, 0),
 		Width = W, Depth = D, Floors = 1, GroundHeight = 16, Style = "Moderno", GroundFloor = "Shop",
 		WallColor = rgb(36, 30, 56), Interior = false, Balconies = false, WindowFaces = { Front = true },
-		Sign = "RECREATIVOS", SignColor = rgb(200, 40, 160),
+		Sign = "RECREATIVOS", SignColor = rgb(200, 40, 160), ShopId = "Recreativos",
 	})
 	for i, color in { rgb(255, 60, 200), rgb(60, 220, 255), rgb(255, 230, 60) } do
 		neonStrip(model, at(0, 15 - i * 0.9, -D / 2 - 0.4), W - 2, color)
@@ -670,7 +761,7 @@ function Civic.gym(parent: Instance, lot: Lot, u: number)
 		Name = "Gimnasio", Parent = parent, CFrame = lot.facing(u + W / 2, 8 + D / 2, 0),
 		Width = W, Depth = D, Floors = 2, Style = "Moderno", GroundFloor = "Shop", Balconies = false,
 		WallColor = rgb(230, 232, 236), WindowFaces = { Front = true, Left = true, Right = true },
-		Sign = "GIMNASIO", SignColor = rgb(230, 110, 30), FloorMaterial = Enum.Material.Rubber, FloorColor = rgb(50, 52, 58),
+		Sign = "GIMNASIO", SignColor = rgb(230, 110, 30), ShopId = "Gimnasio", FloorMaterial = Enum.Material.Rubber, FloorColor = rgb(50, 52, 58),
 	})
 	-- Máquinas visibles desde el escaparate
 	for i = 0, 3 do

@@ -8,7 +8,8 @@
 --
 -- Cada ciudad es una cuadrícula de 4 × 4 manzanas separadas por calles cada 240 studs.
 -- El plano (Plan) dice qué va en cada manzana. Filas de norte a sur, columnas de oeste a este.
--- Tipos: Downtown, Houses, Hospital, Clinic, School, FirePolice, Mall, Gas, Park, Farm, Beach.
+-- Tipos: Downtown, Houses, FamilyHomes, Hospital, Clinic, School, FirePolice, Mall, Gas, Park, Farm, Beach,
+-- Stadium, Faculty, Towers, Business, Leisure, Residence.
 
 local Builder = require(script.Parent.Builder)
 local Kit = script.Parent.Kit
@@ -88,7 +89,7 @@ Region.Towns = {
 		SkipZ = true,
 		Entry = { Offset = Vector3.new(30, 0, -380), Facing = Vector3.new(0, 0, -1) },
 		Plan = {
-			{ T("Houses"), T("Houses"), T("Houses"), T("Houses") },
+			{ T("Houses"), T("FamilyHomes", "S"), T("FamilyHomes", "S"), T("Houses") },
 			{ T("FirePolice", "E"), T("School", "S"), T("Park", "S"), T("Houses") },
 			{ T("Clinic", "E"), T("Houses"), T("Mall", "N"), T("Gas", "W") },
 			{ T("Houses"), T("Houses"), T("Leisure", "N"), T("Houses") },

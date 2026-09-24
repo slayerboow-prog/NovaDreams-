@@ -6,6 +6,7 @@ local Palette = require(script.Parent.Palette)
 local Building = require(script.Parent.Building)
 local Nature = require(script.Parent.Nature)
 local Civic = require(script.Parent.Civic)
+local Home = require(script.Parent.Home)
 
 local Blocks = {}
 
@@ -66,6 +67,7 @@ local function row(parent: Instance, lot: Civic.Lot, u0: number, u1: number, sty
 			width = u1 - u
 		end
 		local isShop = math.random() < 0.6
+		local shopName = SHOP_NAMES[math.random(1, #SHOP_NAMES)]
 		Building.build({
 			Name = "Edificio",
 			Parent = parent,
@@ -77,7 +79,8 @@ local function row(parent: Instance, lot: Civic.Lot, u0: number, u1: number, sty
 			GroundFloor = if isShop then "Shop" else "Closed",
 			Interior = false,
 			WindowFaces = { Front = true },
-			Sign = if isShop then SHOP_NAMES[math.random(1, #SHOP_NAMES)] else nil,
+			Sign = if isShop then shopName else nil,
+			ShopId = if isShop then Building.shopIdFor(shopName) else nil,
 			Awning = if isShop then Palette.pick(AWNINGS) else nil,
 		})
 		u += width
@@ -227,6 +230,9 @@ function Blocks.fill(parent: Instance, rect: Rect, kind: string, opts: { [string
 		return Civic.business(parent, Blocks.lot(rect, "S"), Blocks.lot(rect, "N"))
 	elseif kind == "Leisure" then
 		return Civic.leisure(parent, lot, opts.TownName)
+	elseif kind == "FamilyHomes" then
+		-- Casas familiares con interior (donde nacen los jugadores)
+		return Home.familyRow(parent, lot, string.gsub(opts.TownName, " ", "") .. "_" .. math.floor(rect.X0) .. "_" .. math.floor(rect.Z0))
 	elseif kind == "Residence" then
 		-- Residencias de estudiantes: manzana de edificios de ladrillo
 		return Blocks.downtown(parent, rect, opts.Sides, { "Popular", "Clasico" }, { 4, 6 })
