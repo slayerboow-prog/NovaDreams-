@@ -88,11 +88,8 @@ function Home.familyHouse(parent: Instance, cf: CFrame, homeId: string): Model
 		FloorColor = rgb(186, 146, 104),
 		LightColor = rgb(255, 226, 186),
 	})
-	-- Los muebles se colocan sobre el suelo interior (a FLOOR_TOP del terreno); los tabiques, desde el terreno
+	-- at() de Building ya mide desde el suelo interior: los muebles con y = 0 quedan apoyados en él
 	local ground = at
-	at = function(x: number, y: number, z: number): CFrame
-		return ground(x, y + Building.FLOOR_TOP, z)
-	end
 	model:AddTag("FamilyHome")
 	model:SetAttribute("HomeId", homeId)
 

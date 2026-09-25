@@ -557,7 +557,7 @@ local function buildGround(world: Instance)
 			local w, d = (x1 - x0) / 3, (z1 - z0) / 3
 			Builder.part({
 				Name = "Ground", Size = Vector3.new(w, 2, d),
-				CFrame = CFrame.new(x0 + w * (i + 0.5), -1, z0 + d * (j + 0.5)),
+				CFrame = CFrame.new(x0 + w * (i + 0.5), -2, z0 + d * (j + 0.5)), -- debajo del suelo de las manzanas (Y = 0) para que no parpadee
 				Color = Palette.Ground.Grass, Material = Enum.Material.Grass, Tags = { "EditOnly" }, Parent = world,
 			})
 		end
