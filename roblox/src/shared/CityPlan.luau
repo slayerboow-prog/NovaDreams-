@@ -118,12 +118,12 @@ CityPlan.Roads = {
 	{ Name = "Calle de las Torres Este", Kind = "Calle", Points = { { 360, -800 }, { 625, -800 } } },
 	{ Name = "Calle de la Playa", Kind = "Calle", Points = { { 3550, 0 }, { 3550, -640 } } },
 	{ Name = "Calle de San Roque", Kind = "Calle", Points = { { -290, 2250 }, { 0, 2250 } } },
-	{ Name = "Carretera de la Costa Oeste", Kind = "Avenida", Points = { { -1250, 1250 }, { -2000, 1900 }, { -2700, 2300 } } },
+	{ Name = "Carretera de la Costa Oeste", Kind = "Avenida", Points = { { -1250, 1250 }, { -2000, 1900 }, { -2700, 2300 }, { -2700, 2125 } } },
 	-- Carreteras de la costa y del puerto
-	{ Name = "Paseo de Poniente", Kind = "Calle", Points = { { -3500, 150 }, { -3550, -1100 }, { -3350, -1900 } } },
-	{ Name = "Paseo de Levante", Kind = "Calle", Points = { { 3850, 0 }, { 3750, 900 }, { 3450, 1900 } } },
-	{ Name = "Calle del Puerto", Kind = "Calle", Points = { { 0, 3150 }, { 1100, 3150 } } },
-	{ Name = "Carretera de los Montes", Kind = "Calle", Points = { { 0, -2750 }, { -900, -2750 }, { -1400, -2650 } } },
+	{ Name = "Paseo de Poniente", Kind = "Calle", Points = { { -3500, 150 }, { -3550, -1100 }, { -3350, -1900 }, { -3080, -1900 } } }, -- hasta Villaverde
+	{ Name = "Paseo de Levante", Kind = "Calle", Points = { { 3850, 0 }, { 3750, 900 }, { 3450, 1900 }, { 3125, 1900 } } },
+	{ Name = "Calle del Puerto", Kind = "Calle", Points = { { 0, 3150 }, { 1137, 3150 } } },
+	{ Name = "Carretera de los Montes", Kind = "Calle", Points = { { 0, -2750 }, { -900, -2750 }, { -1400, -2650 }, { -1400, -2375 } } },
 }
 
 -- Rotondas (en estos puntos)

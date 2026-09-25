@@ -44,7 +44,7 @@ end
 
 local ROADS = {
 	Avenue = Region.Highways.Avenue, -- la avenida sigue hasta San Roque y Playa Dorada
-	Residential = { Axis = "X", At = 120, From = -340, To = 340, Lamps = true, Trees = true },
+	Residential = Region.Residential,
 	NorthSouth = Region.Highways.NorthSouth, -- sigue hasta Valmar Norte y Los Pinos
 }
 
@@ -596,7 +596,6 @@ end
 -- ¿Hay algo construido aquí? (barrios, calles, manzanas, puerto…)
 local function builtAt(): (x: number, z: number) -> boolean
 	local roads = Region.roads()
-	table.insert(roads, ROADS.Residential)
 	local Districts = require(Kit.Districts)
 	local centers = Region.centers()
 	return function(x: number, z: number): boolean
@@ -665,9 +664,7 @@ end
 
 -- Todas las calles del mapa (las usan el tráfico y los peatones del cliente)
 function TownBuilder.roads()
-	local roads = Region.roads()
-	table.insert(roads, ROADS.Residential)
-	return roads
+	return Region.roads() -- (ya incluye la calle residencial de Valmar Centro)
 end
 
 function TownBuilder.build(): Folder

@@ -23,6 +23,7 @@ local Street = require(Kit.Street)
 local Region = {}
 
 local SPAN = 360 -- media anchura de cada ciudad
+local RING = 380 -- calle de circunvalación de cada barrio (cierra todas sus calles)
 local OFFSETS = { -240, 0, 240 } -- calles relativas al centro
 local CELLS = { { -360, -260 }, { -220, -20 }, { 20, 220 }, { 260, 360 } }
 
@@ -150,27 +151,55 @@ function Region.centers(): { Vector3 }
 	return centers
 end
 
+-- Calle residencial de Valmar Centro (al sur de la avenida, delante de las parcelas)
+Region.Residential = { Axis = "X", At = 120, From = -340, To = 340, Lamps = true, Trees = true }
+
+local roadsCache: { Street.Road }? = nil
 function Region.roads(): { Street.Road }
+	if roadsCache then
+		return table.clone(roadsCache)
+	end
 	local list = {}
 	for _, road in Region.Highways do
 		table.insert(list, road)
 	end
+	table.insert(list, Region.Residential)
 	for _, town in Region.Towns do
 		local c = town.Center
+		local trees = town.Name == "Los Pinos"
+		-- Calles del barrio: llegan hasta la circunvalación
 		for _, o in OFFSETS do
 			if not (o == 0 and town.SkipX) then
-				table.insert(list, { Axis = "X", At = c.Z + o, From = c.X - SPAN, To = c.X + SPAN, Lamps = true, Trees = town.Name == "Los Pinos" })
+				table.insert(list, { Axis = "X", At = c.Z + o, From = c.X - RING, To = c.X + RING, Lamps = true, Trees = trees })
 			end
 			if not (o == 0 and town.SkipZ) then
-				table.insert(list, { Axis = "Z", At = c.X + o, From = c.Z - SPAN, To = c.Z + SPAN, Lamps = true, Trees = town.Name == "Los Pinos" })
+				table.insert(list, { Axis = "Z", At = c.X + o, From = c.Z - RING, To = c.Z + RING, Lamps = true, Trees = trees })
 			end
+		end
+		-- Circunvalación: un cuadrado alrededor del barrio
+		for _, side in { -RING, RING } do
+			table.insert(list, { Axis = "X", At = c.Z + side, From = c.X - RING, To = c.X + RING, Lamps = true })
+			table.insert(list, { Axis = "Z", At = c.X + side, From = c.Z - RING, To = c.Z + RING, Lamps = true })
 		end
 	end
 	-- Calles secundarias por todos los distritos (Kit/Grid)
 	for _, road in require(Kit.Grid).roads(Region.centers(), table.clone(list)) do
 		table.insert(list, road)
 	end
-	return list
+	-- Que ninguna calle acabe en la nada (Kit/Connect): se alargan hasta otra o se recortan
+	local blocked = {}
+	for _, town in Region.Towns do
+		local c = town.Center
+		table.insert(blocked, { X0 = c.X - SPAN - 4, X1 = c.X + SPAN + 4, Z0 = c.Z - SPAN - 4, Z1 = c.Z + SPAN + 4 })
+	end
+	table.insert(blocked, { X0 = -360, X1 = 360, Z0 = -198, Z1 = -24 }) -- Valmar Centro (plaza y tiendas)
+	table.insert(blocked, { X0 = -360, X1 = 360, Z0 = 24, Z1 = 100 }) -- Valmar Centro (parcelas)
+	table.insert(blocked, { X0 = -360, X1 = 360, Z0 = 140, Z1 = 240 })
+	for _, cell in require(Kit.Districts).cells(Region.centers()) do
+		table.insert(blocked, cell)
+	end
+	roadsCache = require(Kit.Connect).fix(list, blocked)
+	return table.clone(roadsCache :: { Street.Road })
 end
 
 -- Lados de la manzana (i, j) que dan a una calle
@@ -268,7 +297,8 @@ function Region.build(world: Instance)
 			end
 		end
 		-- Cartel de bienvenida en la carretera de entrada y parada de autobús en el centro
-		local entry = c + town.Entry.Offset
+		-- (fuera de la circunvalación, junto a la calle que entra al barrio)
+		local entry = c + town.Entry.Offset + town.Entry.Facing * (RING + 32 - town.Entry.Offset:Dot(town.Entry.Facing))
 		Civic.welcome(model, Builder.facing(entry, town.Entry.Facing), town.Name)
 		local stop = Vector3.new(c.X - 60, Street.WALK_TOP, c.Z - 16) -- acera norte de la calle central
 		Region.travelStop(model, Builder.facing(stop, Vector3.new(0, 0, 1)), town.Name)
