@@ -852,6 +852,7 @@ function InventoryUI.init()
 
 	gui = create("ScreenGui", {
 		Name = "InventoryUI",
+		IgnoreGuiInset = true, -- el oscurecido cubre toda la pantalla
 		ResetOnSpawn = false,
 		DisplayOrder = 3,
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,

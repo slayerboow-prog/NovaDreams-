@@ -82,8 +82,10 @@ local function show(prompt: ProximityPrompt, inputType: Enum.ProximityPromptInpu
 		create("UIGradient", { Rotation = 90, Color = ColorSequence.new(rgb(26, 44, 80), rgb(10, 18, 34)) }),
 		create("UIPadding", { PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 16) }),
 	})
-	local scale = create("UIScale", { Scale = 0.8, Parent = card })
-	TweenService:Create(scale, TweenInfo.new(0.15, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
+	-- Más pequeño en pantallas bajas (móvil)
+	local size = math.clamp(workspace.CurrentCamera.ViewportSize.Y / 850, 0.6, 1)
+	local scale = create("UIScale", { Scale = size * 0.8, Parent = card })
+	TweenService:Create(scale, TweenInfo.new(0.15, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = size }):Play()
 
 	local key = create("Frame", {
 		Size = UDim2.fromOffset(42, 42),

@@ -10,11 +10,13 @@
 -- Otros sistemas se enganchan con Hud.setAction (botones de arriba) y Hud.addButton (apps del teléfono).
 
 local CollectionService = game:GetService("CollectionService")
+local GuiService = game:GetService("GuiService")
 local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Format = require(ReplicatedStorage.Shared.Format)
@@ -154,8 +156,8 @@ local function buildTopButtons(parent: Instance)
 			LayoutOrder = i,
 			Parent = bar,
 		}, { Theme.corner(12), Theme.stroke(), create("UIGradient", { Rotation = 90, Color = ColorSequence.new(rgb(26, 44, 80), rgb(10, 18, 34)) }) })
-		Theme.label({ Size = UDim2.new(1, 0, 0, 38), Position = UDim2.fromOffset(0, 6), Text = def.Icon, TextSize = 28, TextXAlignment = Enum.TextXAlignment.Center, Parent = button })
-		Theme.label({ Size = UDim2.new(1, 0, 0, 18), Position = UDim2.fromOffset(0, 46), Text = def.Text, TextSize = 13, Font = Theme.FontBold, TextXAlignment = Enum.TextXAlignment.Center, Parent = button })
+		Theme.label({ Name = "Icon", Size = UDim2.new(1, 0, 0, 38), Position = UDim2.fromOffset(0, 6), Text = def.Icon, TextSize = 28, TextXAlignment = Enum.TextXAlignment.Center, Parent = button })
+		Theme.label({ Name = "Caption", Size = UDim2.new(1, 0, 0, 18), Position = UDim2.fromOffset(0, 46), Text = def.Text, TextSize = 13, Font = Theme.FontBold, TextXAlignment = Enum.TextXAlignment.Center, Parent = button })
 		button.Activated:Connect(function()
 			local action = actions[def.Id]
 			if action then
@@ -236,6 +238,8 @@ local function storyText(key: string?, args: { [string]: any }?): string
 end
 
 local objectivesList: Frame
+local objectivesWanted = true -- el botón Misiones los muestra u oculta
+local busy = false -- en una conversación o cinemática
 local jobBox: Frame
 
 local function objectiveRow(parent: Instance, order: number, text: string, done: boolean?, strong: boolean?)
@@ -387,7 +391,8 @@ local function buildObjectives(parent: Instance)
 	end)
 
 	actions.Misiones = function()
-		objectivesPanel.Visible = not objectivesPanel.Visible
+		objectivesWanted = not objectivesWanted
+		objectivesPanel.Visible = objectivesWanted and not busy
 		questBadge.Visible = false
 	end
 end
@@ -738,6 +743,58 @@ function Hud.init(openStore: () -> ()): ScreenGui
 	buildPhone(popupGui)
 	buildMenu(popupGui)
 
+	-- Colocación según la pantalla: en móvil y pantallas estrechas todo se recoloca
+	--   * la columna izquierda empieza debajo de la barra de Roblox (menú y chat)
+	--   * los botones de arriba se hacen pequeños y sin texto si no caben junto al reloj
+	--   * en táctil: las barras de vida suben (abajo a la izquierda está el joystick)
+	--     y el cartel de "dónde estás" se quita (abajo a la derecha está el botón de saltar;
+	--     el nombre de la zona ya sale bajo el minimapa)
+	local touch = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+	local objectivesLimit = create("UISizeConstraint", { Parent = objectivesPanel })
+	objectivesPanel.ClipsDescendants = true
+	local function layout()
+		local s = scale.Scale
+		local canvas = camera.ViewportSize / s
+		local inset = GuiService:GetGuiInset()
+		local top = math.max(76, inset.Y / s + 8)
+		local narrow = canvas.X < 1500
+		local bar = gui:FindFirstChild("TopButtons") :: Frame
+		local w, h = if narrow then 58 else 80, if narrow then 58 else 70
+		bar.Size = UDim2.fromOffset(#TOP_BUTTONS * w + (#TOP_BUTTONS - 1) * 6, h)
+		for _, button in bar:GetChildren() do
+			if button:IsA("TextButton") then
+				button.Size = UDim2.fromOffset(w, h)
+				local caption = button:FindFirstChild("Caption") :: TextLabel
+				local iconLabel = button:FindFirstChild("Icon") :: TextLabel
+				caption.Visible = not narrow
+				iconLabel.Position = UDim2.fromOffset(0, if narrow then 10 else 6)
+			end
+		end
+		local clock = gui:FindFirstChild("Clock") :: Frame
+		clock.Size = UDim2.fromOffset(if narrow then 400 else 470, 58)
+		local card = gui:FindFirstChild("PlayerCard") :: Frame
+		local vitals = gui:FindFirstChild("Vitals") :: Frame
+		local location = gui:FindFirstChild("Location") :: Frame
+		card.Position = UDim2.fromOffset(12, top)
+		local y = top + 112
+		if touch then
+			vitals.AnchorPoint = Vector2.new(0, 0)
+			vitals.Position = UDim2.fromOffset(12, y)
+			y += 158
+			location.Visible = false
+		else
+			vitals.AnchorPoint = Vector2.new(0, 1)
+			vitals.Position = UDim2.new(0, 12, 1, -12)
+		end
+		objectivesPanel.Position = UDim2.fromOffset(12, y)
+		local room = canvas.Y - y - (if touch then 16 else 176)
+		objectivesLimit.MaxSize = Vector2.new(math.huge, math.max(120, room))
+	end
+	camera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
+		task.defer(layout)
+	end)
+	layout()
+
 	-- Apps del teléfono que pone el propio HUD
 	Hud.addButton("🏠 Ir a casa", rgb(40, 110, 200), 1, function()
 		(Remotes:WaitForChild("GoHome") :: RemoteEvent):FireServer()
@@ -774,6 +831,14 @@ function Hud.init(openStore: () -> ()): ScreenGui
 	stage()
 
 	return gui
+end
+
+-- Mientras hablas con alguien o ves una cinemática, los objetivos no tapan la escena
+function Hud.setBusy(value: boolean)
+	busy = value
+	if objectivesPanel then
+		objectivesPanel.Visible = objectivesWanted and not busy
+	end
 end
 
 return Hud

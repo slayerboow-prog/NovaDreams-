@@ -621,8 +621,9 @@ local function buildMini()
 	zoneLabel = Theme.label({
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.new(0.5, 0, 1, 6),
-		Size = UDim2.new(1, 60, 0, 18),
+		Size = UDim2.new(1, 20, 0, 18),
 		TextSize = 13,
+		TextTruncate = Enum.TextTruncate.AtEnd,
 		Font = Theme.FontBold,
 		TextStrokeTransparency = 0.3,
 		TextXAlignment = Enum.TextXAlignment.Center,
@@ -633,7 +634,7 @@ local function buildMini()
 		Name = "Expand",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.new(0.12, 0, 0.88, 0),
-		Size = UDim2.fromOffset(36, 36),
+		Size = UDim2.fromOffset(44, 44),
 		BackgroundColor3 = rgb(20, 40, 80),
 		Text = "⤢",
 		TextSize = 22,
@@ -729,6 +730,12 @@ local function buildBig()
 		Parent = player:WaitForChild("PlayerGui"),
 	})
 	bigScale = create("UIScale", { Parent = bigGui })
+	-- Las cinemáticas apagan y vuelven a encender todas las pantallas: el mapa solo se enciende si está abierto
+	bigGui:GetPropertyChangedSignal("Enabled"):Connect(function()
+		if bigGui.Enabled ~= bigOpen then
+			bigGui.Enabled = bigOpen
+		end
+	end)
 	-- Fondo oscuro: pulsar fuera del mapa lo cierra
 	local shade = create("TextButton", {
 		Name = "Shade",
@@ -888,7 +895,7 @@ local function buildBig()
 	local camera = workspace.CurrentCamera
 	local function resize()
 		local v = camera.ViewportSize
-		local s = math.clamp(math.min(v.X / 1500, v.Y / 900), 0.5, 1.15)
+		local s = math.clamp(math.min(v.X / 1500, v.Y / 900), 0.65, 1.15)
 		bigScale.Scale = s
 		local w, h = v.X * 0.96 / s, v.Y * 0.92 / s
 		big.Size = UDim2.fromOffset(w, h)

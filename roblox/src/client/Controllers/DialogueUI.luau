@@ -199,7 +199,7 @@ local function build()
 		TextSize = 12,
 		TextColor3 = C.Muted,
 		TextXAlignment = Enum.TextXAlignment.Right,
-		Text = "▼  Clic o Espacio",
+		Text = if game:GetService("UserInputService").TouchEnabled then "▼  Toca para seguir" else "▼  Clic o Espacio",
 		LayoutOrder = 3,
 		Parent = box,
 	})

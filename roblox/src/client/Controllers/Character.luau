@@ -79,7 +79,6 @@ local function setSprint(on: boolean)
 end
 
 function Character.init()
-	local gui = player:WaitForChild("PlayerGui"):WaitForChild("MainHud")
 	Hud.setAction("Personaje", openSheet)
 
 	-- Teclado: mantener Shift. Mando: pulsar el stick izquierdo.
@@ -93,14 +92,16 @@ function Character.init()
 	end, false, Enum.KeyCode.LeftShift, Enum.KeyCode.RightShift, Enum.KeyCode.ButtonL3)
 
 	-- Móvil: botón redondo que se enciende y se apaga
+	-- (en su propia pantalla, sin la escala del HUD: así tiene el mismo tamaño que el botón de saltar)
 	if UserInputService.TouchEnabled then
+		local gui = Theme.create("ScreenGui", { Name = "SprintGui", ResetOnSpawn = false, Parent = player:WaitForChild("PlayerGui") })
 		local button = Theme.button({
 			Name = "SprintButton",
 			AnchorPoint = Vector2.new(1, 1),
-			Size = UDim2.fromOffset(70, 70),
-			Position = UDim2.new(1, -24, 1, -96), -- encima del cartel de "dónde estás"
+			Size = UDim2.fromOffset(64, 64),
+			Position = UDim2.new(1, -180, 1, -24), -- a la izquierda del botón de saltar
 			Text = "🏃",
-			TextSize = 30,
+			TextSize = 28,
 			BackgroundTransparency = 0.3,
 			Parent = gui,
 		})

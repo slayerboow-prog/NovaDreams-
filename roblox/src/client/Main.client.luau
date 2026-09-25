@@ -101,12 +101,66 @@ end)
 -- se apagan los carteles de "pulsa E" (y el mapa grande se cierra)
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local localPlayer = game:GetService("Players").LocalPlayer
+local StarterGui = game:GetService("StarterGui")
+local function coreGuis()
+	-- Lo que el juego ya dibuja a su manera (las cinemáticas encienden todo lo de Roblox al acabar)
+	pcall(function()
+		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false) -- mochila propia
+		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false) -- tapaba los botones de arriba a la derecha
+	end)
+end
+coreGuis()
+-- El chat de Roblox, a la derecha a media altura (arriba a la izquierda tapaba la ficha y los objetivos)
+pcall(function()
+	local TextChatService = game:GetService("TextChatService")
+	local window = TextChatService:WaitForChild("ChatWindowConfiguration", 10) :: any
+	if window then
+		window.HorizontalAlignment = Enum.HorizontalAlignment.Right
+		window.VerticalAlignment = Enum.VerticalAlignment.Center
+	end
+end)
+
+local wasBusy = false
 game:GetService("RunService").Heartbeat:Connect(function()
-	local busy = Cinematics.isPlaying() or localPlayer:GetAttribute("InDialogue") == true
-	if ProximityPromptService.Enabled == busy then
+	local cinematic = Cinematics.isPlaying()
+	local busy = cinematic or localPlayer:GetAttribute("InDialogue") == true
+	if busy ~= wasBusy then
+		wasBusy = busy
 		ProximityPromptService.Enabled = not busy
+		TaskMarker.setHidden(busy)
+		Hud.setBusy(busy)
 		if busy and MapUI.isOpen() then
 			MapUI.toggleBig()
 		end
+		if not busy then
+			task.defer(coreGuis)
+		end
 	end
 end)
+
+-- De bebé sobran el minimapa, el tiempo y el botón de correr
+local function babyMode()
+	local baby = localPlayer:GetAttribute("LifeStage") == "Bebe"
+	local playerGui = localPlayer:FindFirstChild("PlayerGui")
+	if not playerGui then
+		return
+	end
+	for _, path in { { "MapUI", "Minimap" }, { "WeatherChip" }, { "SprintGui", "SprintButton" } } do
+		local target = playerGui:FindFirstChild(path[1])
+		if target and path[2] then
+			target = target:FindFirstChild(path[2])
+		end
+		if target and target:IsA("GuiObject") then
+			target.Visible = not baby
+		elseif target and target:IsA("ScreenGui") then
+			for _, child in target:GetChildren() do
+				if child:IsA("GuiObject") then
+					child.Visible = not baby
+				end
+			end
+		end
+	end
+end
+localPlayer:GetAttributeChangedSignal("LifeStage"):Connect(babyMode)
+task.delay(3, babyMode)
+task.delay(12, babyMode)

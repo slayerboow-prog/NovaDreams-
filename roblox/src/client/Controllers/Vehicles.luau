@@ -45,8 +45,9 @@ local function open()
 	create("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder, Parent = list })
 
 	local licenses = Theme.label({
-		Size = UDim2.new(1, 0, 0, 22),
-		TextSize = 14,
+		Size = UDim2.new(1, 0, 0, 36),
+		TextSize = 13,
+		TextWrapped = true,
 		TextColor3 = C.Muted,
 		LayoutOrder = 0,
 		Parent = list,

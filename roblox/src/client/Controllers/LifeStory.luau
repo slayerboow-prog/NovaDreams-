@@ -382,7 +382,7 @@ local function dialog(title: string?, message: string, options: { { Text: string
 	Theme.label({
 		Size = UDim2.new(1, 0, 0, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
-		Text = message,
+		Text = message or "",
 		TextSize = 15,
 		TextWrapped = true,
 		LayoutOrder = 2,
@@ -392,6 +392,8 @@ local function dialog(title: string?, message: string, options: { { Text: string
 	for i, option in options do
 		local button = Theme.button({
 			Size = UDim2.new(1, 0, 0, 34),
+			AutomaticSize = Enum.AutomaticSize.Y, -- las opciones largas pasan a dos líneas
+			TextWrapped = true,
 			Text = option.Text,
 			TextSize = 15,
 			LayoutOrder = 2 + i,
@@ -481,6 +483,8 @@ function LifeStory.init()
 	gui = create("ScreenGui", {
 		Name = "LifeStory",
 		ResetOnSpawn = false,
+		DisplayOrder = 8, -- encima del HUD y del minimapa (pantallas de capítulo, decisiones)
+		IgnoreGuiInset = true, -- el fundido cubre también la franja de arriba
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 		Parent = player:WaitForChild("PlayerGui"),
 	})

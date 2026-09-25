@@ -83,7 +83,13 @@ local function characterAttachment(): Attachment?
 	return attachment
 end
 
+local hidden = false -- durante cinemáticas y conversaciones
+
 local function update()
+	if hidden then
+		anchor.Parent = nil
+		return
+	end
 	local target = player:GetAttribute("TaskTarget")
 	if typeof(target) ~= "Vector3" then
 		target = player:GetAttribute("StoryTarget")
@@ -94,6 +100,15 @@ local function update()
 	end
 	anchor.Position = target
 	anchor.Parent = workspace
+end
+
+function TaskMarker.setHidden(value: boolean)
+	if hidden ~= value then
+		hidden = value
+		if anchor then
+			update()
+		end
+	end
 end
 
 function TaskMarker.init()

@@ -525,7 +525,7 @@ local function sendChoice(player: Player, questId: string, step: { [string]: any
 	for _, option in step.Options do
 		table.insert(options, { Id = option.Id, TextKey = option.Text or option.TextKey })
 	end
-	send(player, "Choice", { QuestId = questId, PromptKey = step.Prompt or step.PromptKey, Options = options })
+	send(player, "Choice", { QuestId = questId, PromptKey = step.Prompt or step.PromptKey or step.Text or step.TextKey, Options = options })
 end
 
 -- ¿Se elige en el mundo (hablar con alguien, tocar un objeto) en vez de con una ventana?
