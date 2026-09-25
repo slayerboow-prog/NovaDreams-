@@ -14,6 +14,7 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 local MapInfo = require(ReplicatedStorage.Shared.MapInfo)
+local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
 local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 local Theme = require(script.Parent.Parent.UI.Theme)
 
@@ -45,7 +46,7 @@ local LEFT_W = 250
 local RIGHT_W = 270
 local GAP = 12
 
-type Road = { Axis: string, At: number, From: number, To: number }
+type Road = { A: Vector3, B: Vector3, Width: number }
 type Zone = { Name: string, Center: Vector3 }
 type Landmark = { Kind: MapInfo.Kind, Position: Vector3, District: string }
 type Layer = {
@@ -93,9 +94,9 @@ local function loadData()
 	local roadFolder = ambient and ambient:FindFirstChild("Roads")
 	if roadFolder then
 		for _, config in roadFolder:GetChildren() do
-			local axis, at, from, to = config:GetAttribute("Axis"), config:GetAttribute("At"), config:GetAttribute("From"), config:GetAttribute("To")
-			if type(at) == "number" and type(from) == "number" and type(to) == "number" then
-				table.insert(roads, { Axis = axis, At = at, From = math.min(from, to), To = math.max(from, to) })
+			local a, b = config:GetAttribute("A"), config:GetAttribute("B")
+			if typeof(a) == "Vector3" and typeof(b) == "Vector3" then
+				table.insert(roads, { A = a, B = b, Width = config:GetAttribute("Width") or ROAD_WIDTH })
 			end
 		end
 	end
@@ -120,9 +121,9 @@ local function loadData()
 	end
 end
 
--- Zona más cercana a una posición
+-- Barrio más cercano a una posición (si estás a menos de 650 studs de él)
 local function zoneAt(position: Vector3): string?
-	local best, bestDistance = nil, math.huge
+	local best, bestDistance = nil, 650
 	for _, zone in zones do
 		local d = Vector2.new(position.X - zone.Center.X, position.Z - zone.Center.Z).Magnitude
 		if d < bestDistance then
@@ -281,56 +282,89 @@ local function buildLayer(parent: Instance, scale: number, detailed: boolean): L
 		Icons = {},
 		Scalers = {},
 	}
-	local coast = MapInfo.CoastX
-	-- Tierra (todo lo que queda al oeste de la costa), con playa a lo largo del mar
-	rect(layer, "Land", boundsMin.X - 50, boundsMin.Y - 50, coast, boundsMax.Y + 50, LAND, 1)
-	rect(layer, "Shore", coast - 34, boundsMin.Y - 50, coast + 6, boundsMax.Y + 50, SAND, 1)
-	rect(layer, "Beach", 1500, -380, coast + 6, 380, SAND, 1, 6)
-	-- Isla del faro y colina del mirador
-	local islandPlace, hillPlace
-	for _, place in landmarks do
-		if place.Kind.Model == "Faro" then
-			islandPlace = place.Position
-		elseif place.Kind.Model == "Mirador" then
-			hillPlace = place.Position
+	-- Isla: arena en la orilla y hierba dentro (franjas horizontales del polígono de la costa)
+	-- (en el minimapa, franjas más gruesas: menos piezas que redibujar al moverse)
+	local stripe = if detailed then math.max(24, scale * 3) else 64
+	local b = CityPlan.Bounds
+	local function fill(poly: { { number } }, color: Color3, inset: number, transparency: number, z: number)
+		for zz = b.MinZ, b.MaxZ, stripe do
+			for _, span in CityPlan.spans(poly, zz + stripe / 2) do
+				local x0, x1 = span[1] + inset, span[2] - inset
+				if x1 > x0 then
+					rect(layer, "Fill", x0, zz, x1, zz + stripe + 0.5 * scale, color, z).BackgroundTransparency = transparency
+				end
+			end
 		end
 	end
-	if islandPlace then
-		circle(layer, "Island", islandPlace.X, islandPlace.Z, 66, SAND, 1)
-		circle(layer, "IslandGrass", islandPlace.X, islandPlace.Z, 46, LAND, 1)
-	end
-	if hillPlace then
-		circle(layer, "Hill", hillPlace.X, hillPlace.Z + 20, 75, rgb(80, 132, 70), 1)
-	end
-	-- Distritos de colores
-	for _, d in MapInfo.Districts do
-		local area = rect(layer, d.Name, d.Min.X, d.Min.Y, d.Max.X, d.Max.Y, d.Color, 1, if detailed then 16 else 10)
-		area.BackgroundTransparency = 0.55
-		create("UIStroke", { Color = d.Color, Thickness = if detailed then 3 else 2, Transparency = 0.1, Parent = area })
-	end
-	-- Calles
-	local width = math.max(2, ROAD_WIDTH / scale)
-	for _, road in roads do
-		local a = if road.Axis == "X" then toPixel(layer, road.From, road.At) else toPixel(layer, road.At, road.From)
-		local b = if road.Axis == "X" then toPixel(layer, road.To, road.At) else toPixel(layer, road.At, road.To)
+	local function line(a: Vector2, c: Vector2, width: number, color: Color3, z: number, transparency: number?)
+		local pa, pc = toPixel(layer, a.X, a.Y), toPixel(layer, c.X, c.Y)
+		local d = pc - pa
 		create("Frame", {
 			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromOffset((a.X + b.X) / 2, (a.Y + b.Y) / 2),
-			Size = if road.Axis == "X" then UDim2.fromOffset(b.X - a.X + width, width) else UDim2.fromOffset(width, b.Y - a.Y + width),
-			BackgroundColor3 = ROAD,
+			Position = UDim2.fromOffset((pa.X + pc.X) / 2, (pa.Y + pc.Y) / 2),
+			Size = UDim2.fromOffset(d.Magnitude + width, width),
+			Rotation = math.deg(math.atan2(d.Y, d.X)),
+			BackgroundColor3 = color,
+			BackgroundTransparency = transparency or 0,
 			BorderSizePixel = 0,
-			ZIndex = 2,
+			ZIndex = z,
 			Parent = frame,
 		})
+	end
+	if detailed then
+		fill(CityPlan.Coast, SAND, 0, 0, 1)
+		fill(CityPlan.Coast, LAND, 70, 0, 1)
+	else
+		fill(CityPlan.Coast, LAND, 0, 0, 1)
+	end
+	for _, island in CityPlan.Islands do
+		circle(layer, "Island", island.X, island.Z, island.R, SAND, 1)
+		circle(layer, "IslandGrass", island.X, island.Z, island.R - 30, LAND, 1)
+	end
+	-- Montañas (más oscuras, con la cima gris si es de roca)
+	for _, m in CityPlan.Mountains do
+		local ground = math.sqrt(math.max(0, m.R * m.R - (m.R - m.H) ^ 2))
+		circle(layer, "Mountain", m.X, m.Z, ground, rgb(80, 128, 70), 1).BackgroundTransparency = 0.1
+		if m.Rock then
+			circle(layer, "Peak", m.X, m.Z, ground * 0.4, rgb(150, 144, 132), 1)
+		end
+	end
+	-- Distritos: color suave y borde
+	for _, d in MapInfo.Districts do
+		if detailed then
+			fill(d.Poly, d.Color, 0, 0.72, 1)
+		end
+		for k = 1, #d.Poly do
+			local p1, p2 = d.Poly[k], d.Poly[k % #d.Poly + 1]
+			line(Vector2.new(p1[1], p1[2]), Vector2.new(p2[1], p2[2]), if detailed then 3 else 2, d.Color, 2, 0.15)
+		end
+	end
+	-- Río y lagos
+	local riverWidth = math.max(3, CityPlan.River.Width / scale)
+	local pts = CityPlan.River.Points
+	for k = 1, #pts - 1 do
+		line(Vector2.new(pts[k][1], pts[k][2]), Vector2.new(pts[k + 1][1], pts[k + 1][2]), riverWidth, SEA_TOP, 2)
+	end
+	for _, lake in CityPlan.Lakes do
+		circle(layer, "Lake", lake.X, lake.Z, lake.R, SEA_TOP, 2)
+	end
+	-- Calles (en cualquier ángulo) y rotondas
+	for _, road in roads do
+		local width = math.max(2, road.Width / scale)
+		line(Vector2.new(road.A.X, road.A.Z), Vector2.new(road.B.X, road.B.Z), width, if road.Width > 30 then rgb(250, 214, 120) else ROAD, 3)
+	end
+	for _, r in CityPlan.Roundabouts do
+		circle(layer, "Roundabout", r[1], r[2], 56, ROAD, 3)
+		circle(layer, "RoundaboutIsland", r[1], r[2], 22, LAND, 3)
 	end
 	-- Nombre de cada distrito (solo en el mapa grande)
 	if detailed then
 		for _, d in MapInfo.Districts do
-			local p = toPixel(layer, (d.Min.X + d.Max.X) / 2, d.Min.Y)
+			local p = toPixel(layer, d.Center.X, d.Center.Y)
 			local pill = create("Frame", {
 				Name = "Label",
-				AnchorPoint = Vector2.new(0.5, 0),
-				Position = UDim2.fromOffset(p.X, p.Y + 6),
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.fromOffset(p.X, p.Y),
 				Size = UDim2.fromOffset(0, 40),
 				AutomaticSize = Enum.AutomaticSize.X,
 				BackgroundColor3 = d.Color,
@@ -358,7 +392,7 @@ local function buildLayer(parent: Instance, scale: number, detailed: boolean): L
 				Position = UDim2.fromOffset(30, 21),
 				Size = UDim2.fromOffset(0, 16),
 				AutomaticSize = Enum.AutomaticSize.X,
-				Text = d.Town .. " · " .. d.Theme,
+				Text = d.Theme,
 				TextSize = 11,
 				TextStrokeTransparency = 0.7,
 				ZIndex = 6,
@@ -367,7 +401,7 @@ local function buildLayer(parent: Instance, scale: number, detailed: boolean): L
 			keepSize(layer, pill)
 		end
 		-- El mar tiene nombre
-		local sea = toPixel(layer, (MapInfo.CoastX + boundsMax.X) / 2 + 60, 900)
+		local sea = toPixel(layer, 4600, -300)
 		local seaLabel = Theme.label({
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.fromOffset(sea.X, sea.Y),
@@ -794,9 +828,9 @@ local function buildBig()
 	local left = column(big, "Districts", UDim.new(0, 0), LEFT_W)
 	sectionTitle(left, "Distritos", 0)
 	for i, d in MapInfo.Districts do
-		local row = listRow(left, i, d.Icon, d.Color, d.Name, d.Town .. " · " .. d.Theme)
+		local row = listRow(left, i, d.Icon, d.Color, d.Name, d.Theme)
 		row.Activated:Connect(function()
-			centerOn(Vector3.new((d.Min.X + d.Max.X) / 2, 0, (d.Min.Y + d.Max.Y) / 2), 2.2)
+			centerOn(Vector3.new(d.Center.X, 0, d.Center.Y), 1.8)
 		end)
 	end
 
@@ -1003,7 +1037,8 @@ function MapUI.init()
 			end
 			if not waypoint then
 				local district = MapInfo.districtAt(root.Position.X, root.Position.Z)
-				zoneLabel.Text = if district then district.Name .. " · " .. district.Town else (zoneAt(root.Position) or "Valmar")
+				local zone = zoneAt(root.Position)
+				zoneLabel.Text = if district and zone then zone .. " · " .. district.Name elseif district then district.Name else (zone or "Valmar")
 			end
 		end
 		updateLayer(miniLayer, root, inner / 2 - 12)

@@ -15,7 +15,7 @@ local Builder = require(script.Parent.Builder)
 local Kit = script.Parent.Kit
 local Blocks = require(Kit.Blocks)
 local Civic = require(Kit.Civic)
-local Barrios = require(Kit.Barrios)
+local CityPlan = require(game:GetService("ReplicatedStorage").Shared.CityPlan)
 local Props = require(Kit.Props)
 local Rides = require(Kit.Rides)
 local Street = require(Kit.Street)
@@ -26,13 +26,18 @@ local SPAN = 360 -- media anchura de cada ciudad
 local OFFSETS = { -240, 0, 240 } -- calles relativas al centro
 local CELLS = { { -360, -260 }, { -220, -20 }, { 20, 220 }, { 260, 360 } }
 
--- Carreteras que unen las ciudades (también son la calle central de algunas)
+-- Las dos calles grandes del centro (se cruzan en la plaza y llegan a las rotondas de la Ronda).
+-- El resto de carreteras principales (Ronda, avenidas, diagonales) está en CityPlan.Roads (Kit/Roads).
 Region.Highways = {
-	Avenue = { Axis = "X", At = 0, From = -1610, To = 1610, Lamps = true, Trees = false },
-	NorthSouth = { Axis = "Z", At = 0, From = -920, To = 1460, Lamps = true, Trees = false },
-	Coast = { Axis = "Z", At = 1250, From = -1460, To = 360, Lamps = true, Trees = false },
-	West = { Axis = "Z", At = -1250, From = -1460, To = 1460, Lamps = true, Trees = false },
+	Avenue = { Axis = "X", At = 0, From = -1205, To = 1205, Lamps = true, Trees = false },
+	NorthSouth = { Axis = "Z", At = 0, From = -1205, To = 1205, Lamps = true, Trees = false },
 }
+
+-- Centro de una zona según el plano
+local function at(name: string): Vector3
+	local p = CityPlan.Towns[name]
+	return Vector3.new(p[1], 0, p[2])
+end
 
 local function T(kind: string, side: string?, title: string?)
 	return { Kind = kind, Side = side, Title = title }
@@ -41,10 +46,9 @@ end
 Region.Towns = {
 	{
 		Name = "Valmar Norte",
-		Center = Vector3.new(0, 0, -560),
+		Center = at("Valmar Norte"),
 		Styles = { "Clasico", "Moderno" },
 		Floors = { 4, 8 },
-		SkipZ = true, -- su calle central N-S es la carretera NorthSouth
 		Entry = { Offset = Vector3.new(30, 0, 350), Facing = Vector3.new(0, 0, 1) },
 		Plan = {
 			{ T("Houses"), T("Downtown"), T("Downtown"), T("Houses") },
@@ -55,11 +59,9 @@ Region.Towns = {
 	},
 	{
 		Name = "San Roque",
-		Center = Vector3.new(-1250, 0, 0),
+		Center = at("San Roque"),
 		Styles = { "Popular" },
 		Floors = { 3, 5 },
-		SkipX = true, -- su calle central E-O es la avenida
-		SkipZ = true, -- su calle central N-S es la carretera del oeste
 		Entry = { Offset = Vector3.new(380, 0, 30), Facing = Vector3.new(1, 0, 0) },
 		Plan = {
 			{ T("Houses"), T("Downtown"), T("Downtown"), T("Gas", "W") },
@@ -70,11 +72,9 @@ Region.Towns = {
 	},
 	{
 		Name = "Playa Dorada",
-		Center = Vector3.new(1250, 0, 0),
+		Center = at("Playa Dorada"),
 		Styles = { "Moderno", "Clasico" },
 		Floors = { 4, 9 },
-		SkipX = true,
-		SkipZ = true, -- su calle central N-S es la carretera de la costa
 		Entry = { Offset = Vector3.new(-380, 0, 30), Facing = Vector3.new(-1, 0, 0) },
 		Plan = {
 			{ T("Houses"), T("Downtown"), T("Downtown"), T("Beach", "W") },
@@ -85,10 +85,9 @@ Region.Towns = {
 	},
 	{
 		Name = "Los Pinos",
-		Center = Vector3.new(0, 0, 1100),
+		Center = at("Los Pinos"),
 		Styles = { "Clasico", "Popular" },
 		Floors = { 2, 4 },
-		SkipZ = true,
 		Entry = { Offset = Vector3.new(30, 0, -380), Facing = Vector3.new(0, 0, -1) },
 		Plan = {
 			{ T("Houses"), T("FamilyHomes", "S"), T("FamilyHomes", "S"), T("Houses") },
@@ -99,10 +98,9 @@ Region.Towns = {
 	},
 	{
 		Name = "Villaverde",
-		Center = Vector3.new(1250, 0, -1100),
+		Center = at("Villaverde"),
 		Styles = { "Popular" },
 		Floors = { 2, 3 },
-		SkipZ = true,
 		Entry = { Offset = Vector3.new(30, 0, 380), Facing = Vector3.new(0, 0, 1) },
 		Plan = {
 			{ T("Farm", "S"), T("Farm", "S"), T("Farm", "S"), T("Farm", "S") },
@@ -113,10 +111,9 @@ Region.Towns = {
 	},
 	{
 		Name = "Campus Valmar",
-		Center = Vector3.new(-1250, 0, -1100),
+		Center = at("Campus Valmar"),
 		Styles = { "Clasico", "Popular" },
 		Floors = { 3, 5 },
-		SkipZ = true, -- su calle central N-S es la carretera del oeste
 		TeamColor = Color3.fromRGB(150, 30, 40),
 		Entry = { Offset = Vector3.new(30, 0, 380), Facing = Vector3.new(0, 0, 1) },
 		Plan = {
@@ -128,7 +125,7 @@ Region.Towns = {
 	},
 	{
 		Name = "Distrito Financiero",
-		Center = Vector3.new(-1250, 0, 1100),
+		Center = at("Distrito Financiero"),
 		Styles = { "Moderno", "Oficina" },
 		Floors = { 6, 12 },
 		SkipZ = true,
@@ -159,10 +156,6 @@ function Region.roads(): { Street.Road }
 				table.insert(list, { Axis = "Z", At = c.X + o, From = c.Z - SPAN, To = c.Z + SPAN, Lamps = true, Trees = town.Name == "Los Pinos" })
 			end
 		end
-	end
-	-- Calles de los barrios nuevos entre las ciudades
-	for _, road in Barrios.roads() do
-		table.insert(list, road)
 	end
 	return list
 end
@@ -196,9 +189,6 @@ function Region.blockRects(): { { X0: number, X1: number, Z0: number, Z1: number
 				table.insert(list, { X0 = c.X + CELLS[i][1], X1 = c.X + CELLS[i][2], Z0 = c.Z + CELLS[j][1], Z1 = c.Z + CELLS[j][2] })
 			end
 		end
-	end
-	for _, cell in Barrios.cells() do
-		table.insert(list, { X0 = cell.X0, X1 = cell.X1, Z0 = cell.Z0, Z1 = cell.Z1 })
 	end
 	return list
 end

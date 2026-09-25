@@ -16,10 +16,8 @@ local player = Players.LocalPlayer
 local CAR_COUNT = 16
 local PED_COUNT = 20
 local ROAD_TOP, WALK_TOP = 0.4, 1.0
-local LANE = 2.9 -- distancia del centro de la calzada al centro del carril
-local SIDEWALK = 15.5 -- distancia del centro de la calzada al centro de la acera
-
-type Road = { Axis: string, At: number, From: number, To: number }
+-- Cada calle es un tramo recto en cualquier ángulo: A + Dir·u (u de From a To) + Perp·v
+type Road = { A: Vector3, Dir: Vector3, Perp: Vector3, From: number, To: number, Lane: number, Walk: number? }
 type Agent = {
 	Model: Model,
 	Parts: { BasePart },
@@ -40,14 +38,12 @@ local peds: { Agent } = {}
 local folder: Folder
 
 local function point(road: Road, u: number, v: number, y: number): Vector3
-	if road.Axis == "X" then
-		return Vector3.new(u, y, road.At + v)
-	end
-	return Vector3.new(road.At + v, y, u)
+	local p = road.A + road.Dir * u + road.Perp * v
+	return Vector3.new(p.X, y, p.Z)
 end
 
 local function heading(road: Road, dir: number): CFrame
-	local d = if road.Axis == "X" then Vector3.new(dir, 0, 0) else Vector3.new(0, 0, dir)
+	local d = road.Dir * dir
 	return CFrame.Angles(0, math.atan2(-d.X, -d.Z), 0)
 end
 
@@ -65,9 +61,9 @@ end
 local function spawnPoint(center: Vector3, minDist: number, maxDist: number): (Road?, number)
 	for _ = 1, 12 do
 		local road = roads[math.random(1, #roads)]
-		local along = if road.Axis == "X" then center.X else center.Z
-		local across = if road.Axis == "X" then center.Z else center.X
-		local offset = math.abs(across - road.At)
+		local rel = center - road.A
+		local along = rel:Dot(road.Dir)
+		local offset = math.abs(rel:Dot(road.Perp))
 		if offset < maxDist then
 			local reach = math.sqrt(maxDist * maxDist - offset * offset)
 			local u0 = math.max(road.From + 10, along - reach)
@@ -164,13 +160,13 @@ local function updateCars(dt: number, center: Vector3)
 			respawnCar(car, center, false)
 			continue
 		end
-		local pos = point(road, car.U, car.Dir * LANE, ROAD_TOP)
+		local pos = point(road, car.U, car.Dir * road.Lane, ROAD_TOP)
 		-- ¿Hay algo delante en el carril? (el jugador u otro coche)
 		local blocked = false
 		if me then
 			local rel = me.Position - pos
-			local ahead = if road.Axis == "X" then rel.X * car.Dir else rel.Z * car.Dir
-			local lateral = if road.Axis == "X" then math.abs(rel.Z) else math.abs(rel.X)
+			local ahead = rel:Dot(road.Dir) * car.Dir
+			local lateral = math.abs(rel:Dot(road.Perp))
 			blocked = ahead > 0 and ahead < 16 and lateral < 5 and math.abs(rel.Y) < 8
 		end
 		if not blocked then
@@ -245,6 +241,9 @@ end
 
 local function respawnPed(agent: Agent, center: Vector3, initial: boolean)
 	local road, u = spawnPoint(center, if initial then 10 else 90, 200)
+	if road and not road.Walk then
+		road = nil -- las autovías no tienen acera
+	end
 	agent.Road = road
 	if not road then
 		setActive(agent, false)
@@ -292,7 +291,7 @@ local function updatePeds(dt: number, center: Vector3)
 		end
 		ped.U += ped.Dir * ped.Speed * dt
 		ped.Phase += dt * ped.Speed * 1.5
-		local pos = point(road, ped.U, ped.Side * SIDEWALK, WALK_TOP)
+		local pos = point(road, ped.U, ped.Side * (road.Walk or 15.5), WALK_TOP)
 		if ped.U < road.From or ped.U > road.To or (pos - center).Magnitude > 240 then
 			respawnPed(ped, center, false)
 		else
@@ -310,12 +309,21 @@ function Ambient.init()
 		return
 	end
 	for _, config in data:WaitForChild("Roads"):GetChildren() do
-		table.insert(roads, {
-			Axis = config:GetAttribute("Axis"),
-			At = config:GetAttribute("At"),
-			From = config:GetAttribute("From"),
-			To = config:GetAttribute("To"),
-		})
+		local a, b = config:GetAttribute("A"), config:GetAttribute("B")
+		if typeof(a) == "Vector3" and typeof(b) == "Vector3" and (b - a).Magnitude > 20 then
+			local dir = (b - a).Unit
+			local width = config:GetAttribute("Width") or 24
+			local kind = config:GetAttribute("Kind")
+			table.insert(roads, {
+				A = a,
+				Dir = dir,
+				Perp = Vector3.new(-dir.Z, 0, dir.X),
+				From = 0,
+				To = (b - a).Magnitude,
+				Lane = if width > 30 then width * 0.2 else 2.9,
+				Walk = if kind == "Autovia" then nil else width / 2 + 3.5, -- centro de la acera
+			})
+		end
 	end
 	if #roads == 0 then
 		return

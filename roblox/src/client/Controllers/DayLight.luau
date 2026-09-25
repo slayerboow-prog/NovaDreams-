@@ -26,15 +26,16 @@ type Key = { [string]: any }
 -- amaneceres rosados, mediodía blanco y limpio, atardeceres naranjas, hora azul y noche de luna.
 local KEYS: { { Hour: number, Key: Key } } = {
 	{ Hour = 0, Key = { -- noche de luna
-		Ambient = rgb(20, 22, 32), Outdoor = rgb(40, 46, 70), Brightness = 0.7, Exposure = -0.15,
-		EnvDiffuse = 0.35, EnvSpecular = 0.5, Shadow = 0.4,
+		-- (más clara que antes: de noche se tiene que poder jugar y ver la ciudad, con luz de luna azulada)
+		Ambient = rgb(62, 68, 94), Outdoor = rgb(104, 116, 160), Brightness = 1.25, Exposure = 0.12,
+		EnvDiffuse = 0.55, EnvSpecular = 0.6, Shadow = 0.3,
 		Density = 0.33, Offset = 0.1, AtmColor = rgb(60, 72, 102), Decay = rgb(22, 26, 44), Glare = 0, Haze = 1,
-		Tint = rgb(192, 206, 255), Saturation = -0.15, Contrast = 0.12, CCBright = -0.02,
+		Tint = rgb(206, 216, 255), Saturation = -0.1, Contrast = 0.06, CCBright = 0.03,
 		Bloom = 0.9, BloomSize = 28, Threshold = 1.2, Rays = 0, RaysSpread = 0.5,
 		Cover = 0.5, CloudDensity = 0.28, CloudColor = rgb(66, 74, 98),
 	} },
 	{ Hour = 4.9, Key = { -- antes del alba (azul)
-		Ambient = rgb(28, 30, 44), Outdoor = rgb(70, 78, 110), Brightness = 0.9, Exposure = -0.1,
+		Ambient = rgb(64, 68, 94), Outdoor = rgb(110, 118, 160), Brightness = 1.3, Exposure = 0.1,
 		EnvDiffuse = 0.5, EnvSpecular = 0.6, Shadow = 0.35,
 		Density = 0.36, Offset = 0.1, AtmColor = rgb(110, 120, 162), Decay = rgb(60, 60, 96), Glare = 0, Haze = 1.5,
 		Tint = rgb(206, 212, 252), Saturation = -0.08, Contrast = 0.1, CCBright = 0,

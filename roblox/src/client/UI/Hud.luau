@@ -465,7 +465,7 @@ local function inside(part: Instance, position: Vector3): boolean
 	return math.abs(p.X) <= h.X and math.abs(p.Y) <= h.Y + 2 and math.abs(p.Z) <= h.Z
 end
 
-local function nearestZone(position: Vector3): string?
+local function nearestZone(position: Vector3): (string?, number)
 	local zones = ReplicatedStorage:FindFirstChild("MapZones")
 	local best, bestDistance = nil, math.huge
 	for _, zone in if zones then zones:GetChildren() else {} do
@@ -477,7 +477,7 @@ local function nearestZone(position: Vector3): string?
 			end
 		end
 	end
-	return best
+	return best, bestDistance
 end
 
 local function buildLocation(parent: Instance)
@@ -491,12 +491,12 @@ local function buildLocation(parent: Instance)
 			local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
 			if root then
 				local position = root.Position
-				local zone = nearestZone(position) or "Valmar"
+				-- Título: el barrio (si estás cerca de uno); debajo, el distrito
+				local zone, zoneDistance = nearestZone(position)
 				local district = MapInfo.districtAt(position.X, position.Z)
-				if district then
-					zone = district.Name
-				end
-				local t, s, e = if district then district.Town else zone, if district then district.Name else "Afueras de Valmar", "🏙"
+				local districtName = if district then district.Name else "Naturaleza de Valmar"
+				local t, s, e = if zone and zoneDistance < 650 then zone else districtName, if zone and zoneDistance < 650 then districtName else (if district then district.Theme else "Montes y costa"), "🏙"
+				zone = districtName
 				local homeId = player:GetAttribute("FamilyHomeId")
 				for _, room in CollectionService:GetTagged("Room") do
 					if inside(room, position) then

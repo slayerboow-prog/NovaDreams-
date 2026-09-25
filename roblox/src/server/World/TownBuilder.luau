@@ -23,6 +23,8 @@ local Props = require(Kit.Props)
 local AssetLibrary = require(Kit.AssetLibrary)
 local Rides = require(Kit.Rides)
 local Landmarks = require(Kit.Landmarks)
+local Roads = require(Kit.Roads)
+local CityPlan = require(game:GetService("ReplicatedStorage").Shared.CityPlan)
 local Region = require(script.Parent.Region)
 
 local TownBuilder = {}
@@ -551,39 +553,60 @@ end
 ---------------------------------------------------------------------
 
 local function buildGround(world: Instance)
-	-- Solo para verlo en Studio: en el juego se sustituye por terreno real (TerrainBuilder)
-	local x0, x1, z0, z1 = -2400, 1640, -2400, 2400
-	for i = 0, 2 do
-		for j = 0, 2 do
-			local w, d = (x1 - x0) / 3, (z1 - z0) / 3
+	-- Solo para verlo en Studio: en el juego se sustituye por terreno real (TerrainBuilder).
+	-- Franjas de hierba con la forma de la isla, el río y los lagos, y un mar alrededor.
+	local b = CityPlan.Bounds
+	local stripe = 96
+	for z = b.MinZ, b.MaxZ, stripe do
+		for _, span in CityPlan.spans(CityPlan.Coast, z + stripe / 2) do
 			Builder.part({
-				Name = "Ground", Size = Vector3.new(w, 2, d),
-				CFrame = CFrame.new(x0 + w * (i + 0.5), -2, z0 + d * (j + 0.5)), -- debajo del suelo de las manzanas (Y = 0) para que no parpadee
+				Name = "Ground", Size = Vector3.new(span[2] - span[1], 2, stripe),
+				CFrame = CFrame.new((span[1] + span[2]) / 2, -2, z + stripe / 2), -- debajo del suelo de las manzanas (Y = 0)
 				Color = Palette.Ground.Grass, Material = Enum.Material.Grass, Tags = { "EditOnly" }, Parent = world,
 			})
 		end
 	end
-	for j = 0, 2 do
-		local d = (z1 - z0) / 3
+	local water = Color3.fromRGB(46, 120, 170)
+	local pts = CityPlan.River.Points
+	for k = 1, #pts - 1 do
+		local a, c = Vector3.new(pts[k][1], -0.9, pts[k][2]), Vector3.new(pts[k + 1][1], -0.9, pts[k + 1][2])
 		Builder.part({
-			Name = "Sea", Size = Vector3.new(2400 - x1, 2, d),
-			CFrame = CFrame.new((x1 + 2400) / 2, -1.6, z0 + d * (j + 0.5)),
-			Color = Color3.fromRGB(46, 120, 170), Material = Enum.Material.Glass, Reflectance = 0.2, Tags = { "EditOnly" }, Parent = world,
+			Name = "River", Size = Vector3.new(CityPlan.River.Width, 0.4, (c - a).Magnitude + CityPlan.River.Width),
+			CFrame = Builder.facing((a + c) / 2, c - a), Color = water, Material = Enum.Material.Glass,
+			Tags = { "EditOnly" }, Parent = world,
 		})
+	end
+	for _, lake in CityPlan.Lakes do
+		Builder.part({
+			Name = "Lake", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.4, lake.R * 2, lake.R * 2),
+			CFrame = CFrame.new(lake.X, -0.9, lake.Z) * CFrame.Angles(0, 0, math.rad(90)), Color = water,
+			Material = Enum.Material.Glass, Tags = { "EditOnly" }, Parent = world,
+		})
+	end
+	for x = b.MinX - 1000, b.MaxX + 999, 2000 do
+		for z = b.MinZ - 1000, b.MaxZ + 999, 2000 do
+			Builder.part({
+				Name = "Sea", Size = Vector3.new(2000, 1, 2000), CFrame = CFrame.new(x + 1000, -3, z + 1000),
+				Color = water, Material = Enum.Material.Glass, Reflectance = 0.2, Tags = { "EditOnly" }, Parent = world,
+			})
+		end
 	end
 end
 
--- Arboledas en el campo entre ciudades (lejos de calles y manzanas)
+-- Bosques y arboledas en el campo (lejos de calles, manzanas, agua y montañas)
 local function buildOutskirts(world: Instance)
 	local folder = Builder.model("Campo", world)
 	local roads = Region.roads()
 	table.insert(roads, ROADS.Residential)
 	local function blocked(x: number, z: number): boolean
-		if math.abs(x) < 380 and z > -220 and z < 240 then
+		if not CityPlan.inside(CityPlan.Coast, x, z) then
+			return true
+		end
+		if math.abs(x) < 400 and z > -240 and z < 280 then
 			return true -- Valmar Centro
 		end
 		for _, town in Region.Towns do
-			if math.abs(x - town.Center.X) < 390 and math.abs(z - town.Center.Z) < 390 then
+			if math.abs(x - town.Center.X) < 400 and math.abs(z - town.Center.Z) < 400 then
 				return true
 			end
 		end
@@ -593,11 +616,31 @@ local function buildOutskirts(world: Instance)
 				return true
 			end
 		end
-		return x > 1600 or Landmarks.blocked(x, z) or require(Kit.Barrios).blocked(x, z)
+		if CityPlan.riverDistance(x, z) < CityPlan.River.Width / 2 + 40 then
+			return true
+		end
+		for _, lake in CityPlan.Lakes do
+			if math.sqrt((x - lake.X) ^ 2 + (z - lake.Z) ^ 2) < lake.R + 40 then
+				return true
+			end
+		end
+		for _, m in CityPlan.Mountains do
+			if math.sqrt((x - m.X) ^ 2 + (z - m.Z) ^ 2) < m.R then
+				return true -- en las laderas el suelo no está a nivel
+			end
+		end
+		-- Playa: franja de arena junto al mar
+		for _, span in CityPlan.spans(CityPlan.Coast, z) do
+			if x > span[1] and x < span[2] and (x - span[1] < 90 or span[2] - x < 90) then
+				return true
+			end
+		end
+		return Landmarks.blocked(x, z) or Roads.near(x, z, 16)
 	end
 	-- Grupos de árboles (bosquecillos) en vez de árboles sueltos al azar
-	for _ = 1, 70 do
-		local cx, cz = math.random(-2200, 1550), math.random(-2200, 2200)
+	local b = CityPlan.Bounds
+	for _ = 1, 260 do
+		local cx, cz = math.random(b.MinX, b.MaxX), math.random(b.MinZ, b.MaxZ)
 		for _ = 1, math.random(3, 7) do
 			local x, z = cx + math.random(-30, 30), cz + math.random(-30, 30)
 			if not blocked(x, z) then
@@ -642,8 +685,8 @@ function TownBuilder.build(): Folder
 	buildPlots(world)
 	buildStreetLife(world)
 	Region.build(world)
+	Roads.build(world) -- Ronda, avenidas, diagonales, rotondas y puentes (CityPlan.Roads)
 	Landmarks.build(world) -- puerto, isla del faro y mirador
-	require(Kit.Barrios).build(world) -- barrios nuevos entre las ciudades (casas, zona industrial, oficinas, huertas)
 	buildOutskirts(world)
 	-- Repaso final: que ninguna moldura, bordillo o cristalera parpadee contra la pared de detrás
 	-- (varias pasadas: al crecer una pieza puede quedar a ras de otra)

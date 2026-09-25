@@ -194,17 +194,19 @@ local function snapToSidewalk(point: Vector3): Vector3
 	end
 	local best, bestDistance = point, math.huge
 	for _, road in roads:GetChildren() do
-		local axis, at, from, to = road:GetAttribute("Axis"), road:GetAttribute("At"), road:GetAttribute("From"), road:GetAttribute("To")
-		if type(at) == "number" and type(from) == "number" and type(to) == "number" then
-			local lo, hi = math.min(from, to), math.max(from, to)
-			local candidate: Vector3
-			if axis == "X" then
-				local side = if point.Z >= at then 1 else -1
-				candidate = Vector3.new(math.clamp(point.X, lo, hi), point.Y, at + side * SIDEWALK)
-			else
-				local side = if point.X >= at then 1 else -1
-				candidate = Vector3.new(at + side * SIDEWALK, point.Y, math.clamp(point.Z, lo, hi))
-			end
+		-- Cada calle es un tramo A-B en cualquier ángulo
+		local a, b = road:GetAttribute("A"), road:GetAttribute("B")
+		if typeof(a) == "Vector3" and typeof(b) == "Vector3" and (b - a).Magnitude > 1 then
+			local flat = Vector3.new(point.X, 0, point.Z)
+			local dir = (b - a).Unit
+			local t = math.clamp((flat - a):Dot(dir), 0, (b - a).Magnitude)
+			local onRoad = a + dir * t
+			local perp = Vector3.new(-dir.Z, 0, dir.X)
+			local side = if (flat - onRoad):Dot(perp) >= 0 then 1 else -1
+			local width = road:GetAttribute("Width") or 24
+			local offset = if width == 24 then SIDEWALK else width / 2 + 3.5
+			local p = onRoad + perp * side * offset
+			local candidate = Vector3.new(p.X, point.Y, p.Z)
 			local distance = (candidate - point).Magnitude
 			if distance < bestDistance then
 				best, bestDistance = candidate, distance
@@ -214,7 +216,6 @@ local function snapToSidewalk(point: Vector3): Vector3
 	return best
 end
 
--- Un punto concreto como lugar (para "a mitad de camino", "delante de ti", desplazamientos…)
 local function pointSpot(instance: Instance, position: Vector3, rotation: CFrame?, radius: number?): Spot
 	return {
 		Instance = instance,

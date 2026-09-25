@@ -19,12 +19,20 @@ local WHITE = rgb(240, 240, 236)
 local RED = rgb(200, 40, 44)
 
 -- Posiciones (X, Z) de cada sitio
-Landmarks.Port = Vector3.new(1600, 0, 560)
-Landmarks.Island = Vector3.new(2060, 0, -420)
-Landmarks.Hill = Vector3.new(0, 0, -1220)
+-- (según el plano de la ciudad, CityPlan.Places)
+local CityPlan = require(game:GetService("ReplicatedStorage").Shared.CityPlan)
+local function place(name: string): Vector3
+	local p = CityPlan.Places[name]
+	return Vector3.new(p[1], 0, p[2])
+end
+-- El puerto se construye "de lado" (mar hacia +X) y luego se gira para que mire al mar del sur
+Landmarks.Port = place("PuertoMercancias")
+local PORT_CF = CFrame.new(Landmarks.Port) * CFrame.Angles(0, -math.pi / 2, 0)
+Landmarks.Island = place("Faro")
+Landmarks.Hill = place("Mirador")
 Landmarks.HillTop = 29.5 -- altura del suelo de la plataforma del mirador
 local HILL_RADIUS = 100 -- esfera de terreno: centro 70 studs bajo tierra
-local ISLAND_RADIUS = 64
+local ISLAND_RADIUS = 140 -- hasta donde llega la hierba de la isla (CityPlan.Islands)
 
 local function board(parent: Instance, cf: CFrame, width: number, height: number, text: string, color: Color3)
 	local part = Builder.part({ Name = "Sign", Size = Vector3.new(width, height, 0.4), CFrame = cf, Color = color, Parent = parent })
@@ -78,7 +86,7 @@ end
 
 local function buildPort(world: Instance)
 	local m = Builder.model("Puerto", world)
-	local x0, z0 = Landmarks.Port.X, Landmarks.Port.Z
+	local x0, z0 = 0, 0 -- se construye en el origen y al final se lleva a su sitio
 	-- Muelle de piedra en la orilla y pantalán de madera hacia el mar
 	Builder.part({ Name = "Quay", Size = Vector3.new(90, 3, 150), CFrame = CFrame.new(x0 - 10, -0.5, z0 + 20), Color = rgb(170, 166, 158), Material = Enum.Material.Concrete, Parent = m })
 	Builder.part({ Name = "Pier", Size = Vector3.new(230, 1, 14), CFrame = CFrame.new(x0 + 150, 0.5, z0), Color = WOOD, Material = Enum.Material.WoodPlanks, Parent = m })
@@ -124,7 +132,13 @@ local function buildPort(world: Instance)
 	local kiosk = Builder.part({ Name = "Taquilla", Size = Vector3.new(6, 6, 6), CFrame = CFrame.new(x0 + 258, 4, z0), Color = WHITE, Parent = m })
 	Builder.decor({ Name = "Roof", Size = Vector3.new(7, 0.6, 7), CFrame = CFrame.new(x0 + 258, 7.3, z0), Color = RED, Parent = m })
 	board(m, Builder.facing(Vector3.new(x0 + 254.8, 5, z0), Vector3.new(-1, 0, 0)), 5.4, 1.6, "BARCA AL FARO", rgb(20, 70, 130))
-	ferryPrompt(kiosk, "Ir a la Isla del Faro", Landmarks.Island + Vector3.new(-50, 5, 0))
+	ferryPrompt(kiosk, "Ir a la Isla del Faro", Landmarks.Island + Vector3.new(-ISLAND_RADIUS + 14, 5, 0))
+	-- Llevar el puerto a la costa sur, mirando al mar
+	for _, part in m:GetDescendants() do
+		if part:IsA("BasePart") then
+			part.CFrame = PORT_CF * part.CFrame
+		end
+	end
 	return m
 end
 
@@ -186,7 +200,7 @@ local function buildIsland(world: Instance)
 	for _, dz in { -6, 6 } do
 		Builder.part({ Name = "SignPost", Size = Vector3.new(0.5, 7, 0.5), CFrame = CFrame.new(c.X - 44, 1.5, c.Z + 6 + dz), Color = DARK_WOOD, Parent = m })
 	end
-	ferryPrompt(dock, "Volver al puerto", Landmarks.Port + Vector3.new(230, 4, 0))
+	ferryPrompt(dock, "Volver al puerto", PORT_CF * Vector3.new(230, 4, 0))
 	-- Unas palmeras y rocas
 	for i = 0, 5 do
 		local a = i / 6 * math.pi * 2 + 0.4
@@ -247,7 +261,7 @@ local function buildLookout(world: Instance)
 	for _, dx in { -7, 7 } do
 		Builder.part({ Name = "SignPost", Size = Vector3.new(0.5, 6, 0.5), CFrame = CFrame.new(c.X + 10 + dx, 3, c.Z + 96), Color = DARK_WOOD, Parent = m })
 	end
-	local pathStart, pathEnd = -925, c.Z + 72
+	local pathStart, pathEnd = c.Z + 190, c.Z + 72 -- desde la rotonda del final de la Avenida del Norte
 	Builder.decor({
 		Name = "Path",
 		Size = Vector3.new(9, 0.2, pathStart - pathEnd),
@@ -284,10 +298,7 @@ end
 
 -- Terreno de la isla y de la colina (lo llama TerrainBuilder al arrancar el servidor)
 function Landmarks.terrain(terrain: Terrain)
-	local c = Landmarks.Island
-	local flat = CFrame.Angles(0, 0, 0)
-	terrain:FillCylinder(CFrame.new(c.X, -6, c.Z) * flat, 12, ISLAND_RADIUS, Enum.Material.Sand)
-	terrain:FillCylinder(CFrame.new(c.X, -4, c.Z) * flat, 10, ISLAND_RADIUS - 16, Enum.Material.Grass)
+	-- La isla del faro la pone TerrainBuilder (CityPlan.Islands); aquí solo la colina del mirador
 	local h = Landmarks.Hill
 	terrain:FillBall(Vector3.new(h.X, Landmarks.HillTop - 1 - HILL_RADIUS, h.Z), HILL_RADIUS, Enum.Material.Grass)
 end
@@ -295,11 +306,11 @@ end
 -- Zonas donde no se plantan árboles del campo
 function Landmarks.blocked(x: number, z: number): boolean
 	local h = Landmarks.Hill
-	if math.abs(x - h.X) < 90 and z > h.Z - 90 and z < -900 then
+	if math.abs(x - h.X) < 90 and z > h.Z - 90 and z < h.Z + 200 then
 		return true -- colina y camino del mirador
 	end
 	local p = Landmarks.Port
-	return x > p.X - 70 and math.abs(z - p.Z - 40) < 130
+	return math.abs(x - p.X) < 160 and z > p.Z - 140
 end
 
 return Landmarks
