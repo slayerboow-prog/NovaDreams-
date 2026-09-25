@@ -183,6 +183,9 @@ local function buildIsland(world: Instance)
 	local dock = Builder.part({ Name = "Dock", Size = Vector3.new(30, 1, 10), CFrame = CFrame.new(c.X - ISLAND_RADIUS + 6, 1.5, c.Z), Color = WOOD, Material = Enum.Material.WoodPlanks, Parent = m })
 	boat(m, CFrame.new(c.X - ISLAND_RADIUS - 16, 0, c.Z - 12) * CFrame.Angles(0, math.rad(90), 0), rgb(40, 90, 170))
 	board(m, Builder.facing(Vector3.new(c.X - 44, 6, c.Z + 6), Vector3.new(-1, 0, 0)), 14, 3, "ISLA DEL FARO", rgb(20, 70, 130))
+	for _, dz in { -6, 6 } do
+		Builder.part({ Name = "SignPost", Size = Vector3.new(0.5, 7, 0.5), CFrame = CFrame.new(c.X - 44, 1.5, c.Z + 6 + dz), Color = DARK_WOOD, Parent = m })
+	end
 	ferryPrompt(dock, "Volver al puerto", Landmarks.Port + Vector3.new(230, 4, 0))
 	-- Unas palmeras y rocas
 	for i = 0, 5 do

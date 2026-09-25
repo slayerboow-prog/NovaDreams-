@@ -501,6 +501,9 @@ function Civic.schoolCanteen(parent: Instance, cf: CFrame, townName: string)
 	end
 	for _, x in { -6, 6 } do
 		Builder.part({ Name = "ReadingTable", Size = Vector3.new(6, 0.3, 3), CFrame = at(x, 2.6, 13), Color = rgb(170, 120, 80), Material = Enum.Material.Wood, Parent = model })
+		for _, leg in { { -2.7, -1.2 }, { 2.7, -1.2 }, { -2.7, 1.2 }, { 2.7, 1.2 } } do
+			Builder.decor({ Name = "TableLeg", Size = Vector3.new(0.3, 2.45, 0.3), CFrame = at(x + leg[1], 1.225, 13 + leg[2]), Color = rgb(120, 82, 52), Material = Enum.Material.Wood, Parent = model })
+		end
 		Builder.decor({ Name = "Lamp", Size = Vector3.new(0.5, 1.2, 0.5), CFrame = at(x + 2, 3.35, 13), Color = rgb(60, 140, 90), Parent = model })
 		for _, dz in { -2.2, 2.2 } do
 			Builder.part({ Name = "Chair", Size = Vector3.new(1.6, 1.6, 1.6), CFrame = at(x, 0.8, 13 + dz), Color = rgb(60, 110, 180), Parent = model })
@@ -1123,11 +1126,14 @@ function Civic.drivingSchool(parent: Instance, lot: Lot, u: number, townName: st
 		FloorMaterial = Enum.Material.CeramicTiles, FloorColor = rgb(226, 226, 222),
 	})
 	-- Aula de teoría: pizarra con señales y pupitres
-	local board = Builder.part({ Name = "Board", Size = Vector3.new(10, 4, 0.3), CFrame = at(0, 5, D / 2 - 1.4), Color = rgb(245, 245, 245), Parent = model })
+	local board = Builder.part({ Name = "Board", Size = Vector3.new(10, 4, 0.3), CFrame = at(0, 5, D / 2 - 2.95), Color = rgb(245, 245, 245), Parent = model }) -- pegada a la pared de dentro
 	Builder.sign(board, "STOP · CEDA EL PASO · 50", Enum.NormalId.Front, rgb(200, 30, 30))
 	for _, x in { -7, 0, 7 } do
 		for _, z in { 0, 5 } do
 			Builder.part({ Name = "Desk", Size = Vector3.new(4, 0.3, 2), CFrame = at(x, 2.6, z), Color = rgb(190, 150, 100), Material = Enum.Material.Wood, Parent = model })
+			for _, leg in { { -1.8, -0.8 }, { 1.8, -0.8 }, { -1.8, 0.8 }, { 1.8, 0.8 } } do
+				Builder.decor({ Name = "DeskLeg", Size = Vector3.new(0.2, 2.45, 0.2), CFrame = at(x + leg[1], 1.225, z + leg[2]), Color = rgb(60, 60, 64), Material = Enum.Material.Metal, Parent = model })
+			end
 			Builder.part({ Name = "Chair", Size = Vector3.new(1.6, 1.6, 1.6), CFrame = at(x, 0.8, z - 1.8), Color = rgb(40, 90, 150), Parent = model })
 		end
 	end

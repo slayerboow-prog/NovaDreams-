@@ -266,8 +266,8 @@ local function buildRestaurant(world: Instance)
 	end
 	-- Plantas en las esquinas
 	for _, x in { -25.5, 25.5 } do
-		Builder.part({ Name = "Pot", Size = Vector3.new(1.6, 1.6, 1.6), CFrame = at(x, 1.8, 15.5), Color = rgb(170, 90, 60), Material = Enum.Material.Plaster, Parent = model })
-		Builder.decor({ Name = "Plant", Shape = Enum.PartType.Ball, Size = Vector3.new(3, 3, 3), CFrame = at(x, 3.8, 15.5), Color = rgb(70, 124, 58), Material = Enum.Material.LeafyGrass, Parent = model })
+		Builder.part({ Name = "Pot", Size = Vector3.new(1.6, 1.6, 1.6), CFrame = at(x, 0.8, 15.5), Color = rgb(170, 90, 60), Material = Enum.Material.Plaster, Parent = model })
+		Builder.decor({ Name = "Plant", Shape = Enum.PartType.Ball, Size = Vector3.new(3, 3, 3), CFrame = at(x, 2.8, 15.5), Color = rgb(70, 124, 58), Material = Enum.Material.LeafyGrass, Parent = model })
 	end
 	-- Tablón de empleo del restaurante (dos puestos)
 	local board = Builder.part({
@@ -644,6 +644,13 @@ function TownBuilder.build(): Folder
 	Region.build(world)
 	Landmarks.build(world) -- puerto, isla del faro y mirador
 	buildOutskirts(world)
+	-- Repaso final: que ninguna moldura, bordillo o cristalera parpadee contra la pared de detrás
+	-- (varias pasadas: al crecer una pieza puede quedar a ras de otra)
+	for _ = 1, 4 do
+		if require(Kit.Polish).fixCoplanar(world) == 0 then
+			break
+		end
+	end
 
 	return world
 end
