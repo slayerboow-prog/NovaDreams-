@@ -61,7 +61,7 @@ return {
 	Requires = { Completed = { "Uni05_PrimerPiso" }, StageProgress = 0.93 },
 	Npcs = { "Beltran", "Julia", "Adrian", "Carla", "Pablo", "Luca", "Familia", "Abu", "Mateo", "Lola", "Omar", "Sara", "Nico", "Leire", "Hugo", "Bruno" },
 	Locations = { "Biblioteca", "$Carrera.Facultad", "CercaDeTi", "CafeteriaCentral" },
-	Next = { "Adulto_LlegadaValmar" },
+	Next = { "Adu01_PrimerContrato" },
 	Outcomes = { "Tu nota media", "Qué te pones", "El brindis: los recuerdos de toda tu vida" },
 
 	Moment = "Te graduaste",

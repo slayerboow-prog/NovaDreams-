@@ -38,6 +38,9 @@ local Memories: { [string]: Memory } = {
 	Practicas = { Text = "Tus primeras prácticas (y aquel error en el informe)", Icon = "🩺" },
 	PrimerPiso = { Text = "Tu primer piso: las llaves, las cajas y la primera noche", Icon = "🔑" },
 	Graduacion = { Text = "Tu graduación y el brindis con todos los de siempre", Icon = "🎓" },
+	PrimerContrato = { Text = "Tu primer contrato de verdad (y tus primeras facturas)", Icon = "✍️" },
+	AtardecerConAbu = { Text = "El atardecer junto al mar con tu abu", Icon = "🌅" },
+	ElReencuentro = { Text = "La inauguración de Omar y la noche en el banco del parque", Icon = "🪑" },
 }
 
 return Memories

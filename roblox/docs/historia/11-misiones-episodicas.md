@@ -277,7 +277,7 @@ misión nueva se rellena la ficha de 12 puntos de 11.7.
 
 ## 11.13 Estado, pruebas y lo que falta
 
-**Hecho y probado** (prueba automática `scripts/test-lifestory.luau`, 277 comprobaciones en verde):
+**Hecho y probado** (prueba automática `scripts/test-lifestory.luau`, 293 comprobaciones en verde):
 
 - Instituto 01–06 (ver 11.23–11.29): primer día, clubes, profesiones, primer empleo con el sistema de
   trabajos de verdad, el rumor en el grupo de clase y la gran decisión (con la selectividad y el paso a
@@ -337,8 +337,12 @@ antiguas «El segundo trimestre» y «Fin de primaria»: el paso al instituto lo
 
 **Capítulo de la universidad completo (01–06, ver 11.30–11.36).** Sustituye a todas las misiones
 antiguas de la universidad. Con esto, **la campaña escolar y universitaria del encargo está terminada**:
-colegio (12), instituto (6) y universidad (6), con sus consecuencias diferidas. Después sigue la vida
-adulta (`Adulto_NuevaVida`), que todavía usa misiones sencillas.
+colegio (12), instituto (6) y universidad (6), con sus consecuencias diferidas.
+
+**Vida adulta (en marcha, ver 11.37–11.40):** capítulo nuevo `Adulto_VolarDelNido` (01–03) para quien
+ha vivido el instituto, con carrera o trabajando. `Adulto_NuevaVida` queda solo para los veteranos (quien ya
+jugaba antes de la historia de vida). **Siguiente:** el capítulo «Construir» (30–64 años, ver
+[05](05-misiones-eventos.md)): la casa de verdad, llegar a jefe, emprender, familia, dejar huella, mentor.
 
 ---
 
@@ -773,3 +777,50 @@ Leire y Hugo).
    Leire, el rumor, Bruno, el primer sueldo, {abu}) → «Has terminado tu etapa universitaria».
 10. **Consecuencias:** título de tu carrera con tu nota media (`Degree`), marca `Graduado`.
 11. **Recompensas:** *Graduacion*, orla de la universidad, 500 $. 12. **Conexión:** la vida adulta.
+
+## 11.37 El capítulo «Volar del nido» (diseño general)
+
+Continúa la vida del jugador después del instituto, por los dos caminos: con carrera (`Graduado`) o
+trabajando (`EmpiezaATrabajar`). Tono: adulto pero cálido; lo importante sigue siendo la gente. Recoge lo
+que el encargo pedía para esta edad ([05](05-misiones-eventos.md): primer contrato, facturas, carnet) y
+cierra los arcos de {abu} y del grupo.
+
+| # | Misión | Duración | Núcleo | Estado |
+|---|---|---|---|---|
+| 01 | Mi primer contrato | 20–30 | Trabajo de tu carrera (o ascenso en tu trabajo del instituto), primer caso o turno de responsable, primeras facturas | Hecha |
+| 02 | Un atardecer junto al mar | 20–30 | {abu} en el hospital, el carnet de coche (o el bus), la playa, una promesa | Hecha |
+| 03 | El reencuentro | 25–35 | Lola se jubila y Omar reabre la cafetería: invitar al grupo, Lucía directora, la tortilla, el banco del parque | Hecha |
+
+## 11.38 Vida adulta 01 — «Mi primer contrato» (implementada)
+
+1. **Objetivo:** el primer trabajo de verdad y el primer contacto con las facturas.
+2. **Duración:** 20–30 min. 3. **NPC:** tu tutor de prácticas (Nuria, Sofía, Montse, Ignacio) o tu jefe del primer verano (Lola, Paco, Ernesto), Omar, Ignacio, familia.
+4. **Lugares:** `$Carrera.LugarPracticas` o la cafetería / supermercado / Correos; el banco.
+5. **Objetivos:** (sin carrera y sin casa: buscar casa) → primer día → **con carrera**: primer caso propio
+   (pedir consejo o lanzarte) / **sin carrera**: te ascienden a encargado/a y haces el turno (JobService) →
+   final de mes: **las facturas** (pagar, dejarlo para luego o hacer un presupuesto con Ignacio) → llamada:
+   {abu} no está bien.
+10. **Consecuencias:** si dejas las facturas, **2 h después llega un aviso con recargo** (`Eco_Factura`).
+11. **Recompensas:** *PrimerContrato*, la primera nómina, 200 $, `TieneHogar`.
+
+## 11.39 Vida adulta 02 — «Un atardecer junto al mar» (implementada)
+
+1. **Objetivo:** devolver a {abu} lo que te dio; un capítulo tranquilo y emotivo (sin dramas: una caída sin gravedad).
+2. **Duración:** 20–30 min. 3. **NPC:** {abu}, Nuria, familia. 4. **Lugares:** hospital, autoescuela o parada de bus, Playa Dorada.
+5. **Objetivos:** la llamada → el hospital → **cómo le llevas al mar**: sacarte el carnet (`LicenseEarned`) y
+   que tu familia te preste el coche, o en autobús como hacía {abu} (`Traveled`) → la playa ({abu} recuerda
+   tu vida; si llueve o es invierno, lo dice) → una concha → **la promesa** → cinemática del atardecer.
+7. **Mecánicas:** conecta con la autoescuela o el autobús; líneas según el tiempo y la estación.
+11. **Recompensas:** *AtardecerConAbu*, la concha. 12. **Conexión:** Omar tiene una noticia.
+
+## 11.40 Vida adulta 03 — «El reencuentro» (implementada)
+
+1. **Objetivo:** ver en qué se ha convertido cada uno y cerrar la promesa del último día de colegio.
+2. **Duración:** 25–35 min. 3. **NPC:** Omar, Lola, Nico (futbolista), Sara (bióloga), Bruno (policía), Leire (cineasta), Hugo (escritor), Mateo (ingeniero), Lucía (directora), familia.
+4. **Lugares:** Cafetería Central, estadio de Altamar, universidad, comisaría, cine, biblioteca, distrito financiero, colegio, parque.
+5. **Objetivos:** Lola se jubila y le deja la cafetería a Omar → **invitar al grupo** (3 de hasta 6, cada uno
+   en su sitio de la ciudad) → **Lucía**: si tu carrera coincide con tu sueño de niño, se lo cuentas → la
+   tortilla perfecta (minijuego) → inauguración y discurso de Lola → foto → **el banco del parque** (la
+   promesa del último día, cumplida) → una promesa nueva.
+10. **Consecuencias:** `PromesaAdulta`, `CharlaColegio` (para una misión futura en el colegio).
+11. **Recompensas:** *ElReencuentro*, la foto del reencuentro.

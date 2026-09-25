@@ -164,6 +164,7 @@ Locations.Places = {
 	Hospital = { NameKey = "PLACE.HOSPITAL", Model = "Hospital" },
 	Bomberos = { NameKey = "PLACE.BOMBEROS", Model = "Bomberos" },
 	Policia = { NameKey = "PLACE.POLICIA", Model = "Policia" },
+	Autoescuela = { NameKey = "Autoescuela", Tag = "DrivingSchool" },
 	CentroComercial = { NameKey = "PLACE.CENTRO_COMERCIAL", Model = "CentroComercial" },
 	Gasolinera = { NameKey = "PLACE.GASOLINERA", Model = "Gasolinera" },
 	Ocio = { NameKey = "PLACE.OCIO", Model = "Ocio" },

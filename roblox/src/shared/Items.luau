@@ -185,6 +185,9 @@ local KEEPSAKES = {
 	{ "InformePracticas", "Informe de prácticas", "📋", "Firmado por tu tutor. Con una nota al margen: «Buen trabajo»." },
 	{ "LlavesPiso", "Las llaves de tu primer piso", "🔑", "Con un llavero del número 13 al lado, si lo guardaste." },
 	{ "OrlaUniversidad", "Orla de la universidad", "🎓", "Birretes al aire. Todos a la vez. La foto que más vas a enseñar." },
+	{ "PrimeraNomina", "Tu primera nómina completa", "💶", "Con tu nombre, tu puesto y, ay, las retenciones." },
+	{ "ConchaAbu", "Una concha de Playa Dorada", "🐚", "«Para que vuelvas aquí. Con quien tú quieras.»" },
+	{ "FotoReencuentro", "Foto del reencuentro", "📸", "Todo el grupo en la cafetería de Omar. Más altos, igual de ruidosos." },
 	{ "CuadernoProfesiones", "Cuaderno de profesiones", "📓", "Lo que viste en la semana de las profesiones. «Dentro de unos años lo leerás y te reirás. O no.»" },
 }
 for _, entry in KEEPSAKES do
