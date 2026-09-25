@@ -100,7 +100,7 @@ local Chapters: { [string]: Chapter } = {
 		IntroKey = "CHAPTER.UNIVERSIDAD.INTRO",
 		OutroKey = "CHAPTER.UNIVERSIDAD.OUTRO",
 		Main = { "Uni01_PrimerDia", "Uni02_ElProyecto", "Uni03_PrimerTrabajo", "Uni04_Practicas", "Uni05_PrimerPiso", "Uni06_Graduacion" },
-		Next = "Adulto_NuevaVida",
+		Next = "Adulto_VolarDelNido",
 		Loop = "Uni_Jornada",
 		IntroCinematic = "Uni_PrimerDia",
 		Music = "VidaAdulta",
@@ -121,10 +121,24 @@ local Chapters: { [string]: Chapter } = {
 
 	-- Capítulo puente, jugable YA en el mapa actual: mientras no exista la infancia,
 	-- los personajes empiezan de adultos (como en la v0.1) y esta es su primera historia.
+	-- Adulto joven: después del instituto (con carrera o trabajando). Primer contrato, {abu} y el reencuentro.
+	Adulto_VolarDelNido = {
+		Id = "Adulto_VolarDelNido",
+		Order = 45,
+		Stage = { Min = "AdultoJoven" },
+		Requires = { Completed = { "Ins06_LaGranDecision" } },
+		Enabled = true,
+		TitleKey = "Volar del nido",
+		IntroKey = "Tu vida adulta empieza de verdad: trabajo, facturas… y la gente que te importa.",
+		OutroKey = "Has volado del nido. Y el nido sigue ahí cuando vuelves.",
+		Main = { "Adu01_PrimerContrato", "Adu02_Atardecer", "Adu03_Reencuentro" },
+		Music = "VidaAdulta",
+	},
 	Adulto_NuevaVida = {
 		Id = "Adulto_NuevaVida",
 		Order = 50,
 		Stage = { Min = "AdultoJoven" },
+		Requires = { NotCompleted = { "Ins06_LaGranDecision" } }, -- quien ya jugaba antes (sin infancia jugada)
 		Enabled = true,
 		TitleKey = "CHAPTER.NUEVA_VIDA.TITLE",
 		IntroKey = "CHAPTER.NUEVA_VIDA.INTRO",

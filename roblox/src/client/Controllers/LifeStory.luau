@@ -52,6 +52,7 @@ local function text(key: string?, args: { [string]: any }?): string
 	-- Los textos de las misiones hablan de ti y de tu familia: "Dile a {familia} que ya estás listo"
 	resolved.nombre = resolved.nombre or player.DisplayName
 	resolved.familia = resolved.familia or Strings.get(player:GetAttribute("FamilyKey") or "NPC.MAMA")
+	resolved.abu = resolved.abu or Strings.get(player:GetAttribute("AbuKey") or "NPC.ABU_ROSA")
 	if resolved.subjectKey then
 		resolved.subject = Strings.get(resolved.subjectKey)
 	end

@@ -283,6 +283,32 @@ local Cinematics: { [string]: Cinematic } = {
 	},
 
 	-- Graduación: vuelta alrededor del graduado, la rectora da el discurso.
+	-- Vida adulta: el atardecer en Playa Dorada con {abu} (Adu02) y la foto del reencuentro (Adu03)
+	Adu02_Atardecer = {
+		Duration = 9,
+		Sting = "Momento",
+		Music = "TemaValmar",
+		Anchors = { Yo = "Player" },
+		Shots = {
+			{ Orbit = "Yo", Radius = 10, Height = 3, FromAngle = 160, ToAngle = 200, Duration = 5 },
+			{ Orbit = "Yo", Radius = 24, Height = 8, FromAngle = 200, ToAngle = 230, Duration = 4 },
+		},
+		Titles = {
+			{ At = 3, TextKey = "🌅 El mar", SubKey = "Con tu abu, como cuando era joven", Duration = 5 },
+		},
+	},
+	Adu03_Foto = {
+		Duration = 7,
+		Sting = "Momento",
+		Anchors = { Yo = "Player" },
+		Shots = {
+			{ Orbit = "Yo", Radius = 13, Height = 4, FromAngle = -30, ToAngle = 30, Duration = 7 },
+		},
+		Titles = {
+			{ At = 2.5, TextKey = "📸 Todos otra vez", SubKey = "La Cafetería de Omar", Duration = 4 },
+		},
+	},
+
 	Uni_Graduacion = {
 		Duration = 13,
 		Music = "TemaValmar",
