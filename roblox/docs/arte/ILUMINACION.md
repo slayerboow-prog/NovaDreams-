@@ -37,3 +37,14 @@ en `setupLighting` de `src/server/Services/WorldService.luau`.
 | **Tu coche y tu moto** | Faro delantero con sombras, encendido de noche | `addHeadlight` en `Services/VehicleService.luau` |
 
 Horario: `OnAt` / `OffAt` son horas del juego; 25 = la 1 de la madrugada, 30 = las 6 de la mañana.
+
+## Realismo: materiales 2022 y equilibrio de luz
+
+- **Materiales de 2022 (PBR)**: `MaterialService.Use2022Materials = true` en `default.project.json`. Asfalto, ladrillo,
+  hormigón, madera, metal y cristal con relieve, rugosidad y reflejos reales. Antes el archivo usaba los materiales
+  antiguos (planos).
+- **Estilo de luz**: `Lighting.LightingStyle = Realistic` y `PrioritizeLightingQuality = true` en el archivo
+  (antes solo se intentaba desde un script al arrancar).
+- **Equilibrio de día** (`KEYS` de `DayLight.luau`): luz ambiente baja y sol fuerte, para que las sombras tengan
+  cuerpo; la luz del cielo la pone `EnvironmentDiffuseScale`. Bruma más ligera (no lava los colores) y algo más de
+  contraste. Los valores base del archivo coinciden con el mediodía, así Studio se ve igual que el juego.

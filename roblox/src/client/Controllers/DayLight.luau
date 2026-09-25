@@ -21,6 +21,8 @@ local UPDATE_EVERY = 0.1 -- segundos entre actualizaciones (10 veces por segundo
 type Key = { [string]: any }
 
 -- Cómo es la luz a cada hora. Los colores imitan la luz real de la costa mediterránea:
+-- (De día la luz ambiente es baja y el sol fuerte: así las sombras tienen cuerpo y la ciudad no se ve plana.
+--  La luz del cielo la pone EnvironmentDiffuse; la bruma es la justa para dar distancia sin lavar los colores.)
 -- amaneceres rosados, mediodía blanco y limpio, atardeceres naranjas, hora azul y noche de luna.
 local KEYS: { { Hour: number, Key: Key } } = {
 	{ Hour = 0, Key = { -- noche de luna
@@ -40,58 +42,58 @@ local KEYS: { { Hour: number, Key: Key } } = {
 		Cover = 0.5, CloudDensity = 0.3, CloudColor = rgb(120, 126, 162),
 	} },
 	{ Hour = 6.0, Key = { -- amanecer
-		Ambient = rgb(72, 56, 56), Outdoor = rgb(162, 122, 112), Brightness = 1.8, Exposure = 0.05,
+		Ambient = rgb(43, 34, 34), Outdoor = rgb(130, 98, 90), Brightness = 2, Exposure = 0.05,
 		EnvDiffuse = 0.8, EnvSpecular = 0.9, Shadow = 0.25,
-		Density = 0.38, Offset = 0.15, AtmColor = rgb(255, 190, 150), Decay = rgb(172, 102, 92), Glare = 0.6, Haze = 2.2,
-		Tint = rgb(255, 226, 206), Saturation = 0.1, Contrast = 0.12, CCBright = 0,
+		Density = 0.38, Offset = 0.15, AtmColor = rgb(255, 190, 150), Decay = rgb(172, 102, 92), Glare = 0.6, Haze = 1.65,
+		Tint = rgb(255, 226, 206), Saturation = 0.1, Contrast = 0.16, CCBright = 0,
 		Bloom = 0.55, BloomSize = 26, Threshold = 1.7, Rays = 0.12, RaysSpread = 0.8,
 		Cover = 0.5, CloudDensity = 0.34, CloudColor = rgb(255, 198, 170),
 	} },
 	{ Hour = 6.9, Key = { -- mañana dorada
-		Ambient = rgb(72, 64, 62), Outdoor = rgb(160, 140, 126), Brightness = 2.4, Exposure = 0.1,
+		Ambient = rgb(36, 32, 31), Outdoor = rgb(115, 101, 91), Brightness = 2.7, Exposure = 0.1,
 		EnvDiffuse = 1, EnvSpecular = 1, Shadow = 0.18,
-		Density = 0.32, Offset = 0.2, AtmColor = rgb(250, 216, 186), Decay = rgb(152, 122, 110), Glare = 0.35, Haze = 1.6,
-		Tint = rgb(255, 238, 220), Saturation = 0.12, Contrast = 0.1, CCBright = 0,
+		Density = 0.32, Offset = 0.2, AtmColor = rgb(250, 216, 186), Decay = rgb(152, 122, 110), Glare = 0.35, Haze = 1.12,
+		Tint = rgb(255, 238, 220), Saturation = 0.12, Contrast = 0.15, CCBright = 0,
 		Bloom = 0.4, BloomSize = 22, Threshold = 2, Rays = 0.08, RaysSpread = 0.7,
 		Cover = 0.45, CloudDensity = 0.32, CloudColor = rgb(255, 236, 222),
 	} },
 	{ Hour = 8.5, Key = { -- mañana
-		Ambient = rgb(66, 68, 76), Outdoor = rgb(128, 132, 142), Brightness = 3, Exposure = 0.08,
+		Ambient = rgb(30, 31, 34), Outdoor = rgb(90, 92, 99), Brightness = 3.4, Exposure = 0.08,
 		EnvDiffuse = 1, EnvSpecular = 1, Shadow = 0.12,
-		Density = 0.28, Offset = 0.25, AtmColor = rgb(200, 212, 228), Decay = rgb(100, 120, 146), Glare = 0.1, Haze = 1.2,
-		Tint = rgb(255, 250, 245), Saturation = 0.1, Contrast = 0.08, CCBright = 0,
+		Density = 0.28, Offset = 0.25, AtmColor = rgb(200, 212, 228), Decay = rgb(100, 120, 146), Glare = 0.1, Haze = 0.78,
+		Tint = rgb(255, 250, 245), Saturation = 0.1, Contrast = 0.14, CCBright = 0,
 		Bloom = 0.3, BloomSize = 20, Threshold = 2.4, Rays = 0.05, RaysSpread = 0.6,
 		Cover = 0.42, CloudDensity = 0.3, CloudColor = rgb(255, 255, 255),
 	} },
 	{ Hour = 12.5, Key = { -- mediodía
-		Ambient = rgb(70, 70, 76), Outdoor = rgb(132, 134, 140), Brightness = 3.2, Exposure = 0,
+		Ambient = rgb(32, 32, 34), Outdoor = rgb(92, 94, 98), Brightness = 3.6, Exposure = 0,
 		EnvDiffuse = 1, EnvSpecular = 1, Shadow = 0.1,
-		Density = 0.26, Offset = 0.25, AtmColor = rgb(199, 213, 230), Decay = rgb(106, 125, 150), Glare = 0, Haze = 1,
-		Tint = rgb(255, 252, 248), Saturation = 0.08, Contrast = 0.08, CCBright = 0,
+		Density = 0.26, Offset = 0.25, AtmColor = rgb(199, 213, 230), Decay = rgb(106, 125, 150), Glare = 0, Haze = 0.6,
+		Tint = rgb(255, 252, 248), Saturation = 0.08, Contrast = 0.14, CCBright = 0,
 		Bloom = 0.25, BloomSize = 18, Threshold = 2.6, Rays = 0.04, RaysSpread = 0.5,
 		Cover = 0.4, CloudDensity = 0.3, CloudColor = rgb(255, 255, 255),
 	} },
 	{ Hour = 15.5, Key = { -- tarde
-		Ambient = rgb(72, 70, 74), Outdoor = rgb(136, 132, 134), Brightness = 3, Exposure = 0.05,
+		Ambient = rgb(32, 32, 33), Outdoor = rgb(95, 92, 94), Brightness = 3.4, Exposure = 0.05,
 		EnvDiffuse = 1, EnvSpecular = 1, Shadow = 0.12,
-		Density = 0.27, Offset = 0.25, AtmColor = rgb(210, 214, 222), Decay = rgb(115, 120, 138), Glare = 0.1, Haze = 1.1,
-		Tint = rgb(255, 248, 238), Saturation = 0.1, Contrast = 0.09, CCBright = 0,
+		Density = 0.27, Offset = 0.25, AtmColor = rgb(210, 214, 222), Decay = rgb(115, 120, 138), Glare = 0.1, Haze = 0.72,
+		Tint = rgb(255, 248, 238), Saturation = 0.1, Contrast = 0.15, CCBright = 0,
 		Bloom = 0.28, BloomSize = 20, Threshold = 2.4, Rays = 0.05, RaysSpread = 0.6,
 		Cover = 0.42, CloudDensity = 0.31, CloudColor = rgb(255, 252, 246),
 	} },
 	{ Hour = 17.2, Key = { -- hora dorada
-		Ambient = rgb(86, 70, 62), Outdoor = rgb(170, 138, 112), Brightness = 2.6, Exposure = 0.15,
+		Ambient = rgb(43, 35, 31), Outdoor = rgb(122, 99, 81), Brightness = 2.9, Exposure = 0.15,
 		EnvDiffuse = 1, EnvSpecular = 1, Shadow = 0.18,
-		Density = 0.3, Offset = 0.2, AtmColor = rgb(255, 205, 160), Decay = rgb(170, 120, 96), Glare = 0.5, Haze = 1.8,
-		Tint = rgb(255, 228, 196), Saturation = 0.18, Contrast = 0.12, CCBright = 0,
+		Density = 0.3, Offset = 0.2, AtmColor = rgb(255, 205, 160), Decay = rgb(170, 120, 96), Glare = 0.5, Haze = 1.26,
+		Tint = rgb(255, 228, 196), Saturation = 0.18, Contrast = 0.17, CCBright = 0,
 		Bloom = 0.45, BloomSize = 24, Threshold = 1.9, Rays = 0.12, RaysSpread = 0.8,
 		Cover = 0.46, CloudDensity = 0.34, CloudColor = rgb(255, 222, 190),
 	} },
 	{ Hour = 18.0, Key = { -- puesta de sol
-		Ambient = rgb(90, 62, 62), Outdoor = rgb(170, 110, 100), Brightness = 1.8, Exposure = 0.2,
+		Ambient = rgb(54, 37, 37), Outdoor = rgb(136, 88, 80), Brightness = 2, Exposure = 0.2,
 		EnvDiffuse = 0.85, EnvSpecular = 0.9, Shadow = 0.25,
-		Density = 0.36, Offset = 0.15, AtmColor = rgb(255, 160, 120), Decay = rgb(180, 90, 92), Glare = 0.9, Haze = 2.6,
-		Tint = rgb(255, 210, 186), Saturation = 0.22, Contrast = 0.14, CCBright = 0,
+		Density = 0.36, Offset = 0.15, AtmColor = rgb(255, 160, 120), Decay = rgb(180, 90, 92), Glare = 0.9, Haze = 1.95,
+		Tint = rgb(255, 210, 186), Saturation = 0.22, Contrast = 0.18, CCBright = 0,
 		Bloom = 0.6, BloomSize = 28, Threshold = 1.6, Rays = 0.18, RaysSpread = 0.9,
 		Cover = 0.5, CloudDensity = 0.38, CloudColor = rgb(255, 168, 140),
 	} },

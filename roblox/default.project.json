@@ -74,29 +74,31 @@
       "$properties": {
         "Technology": "Future",
         "ClockTime": 14.5,
-        "Brightness": 3,
+        "Brightness": 3.6,
         "EnvironmentDiffuseScale": 1,
         "EnvironmentSpecularScale": 1,
         "GlobalShadows": true,
         "Ambient": [
-          0.2745,
-          0.2745,
-          0.3059
+          0.1255,
+          0.1255,
+          0.1333
         ],
         "OutdoorAmbient": [
-          0.502,
-          0.502,
-          0.5333
+          0.3608,
+          0.3686,
+          0.3843
         ],
-        "ExposureCompensation": 0.15,
-        "ShadowSoftness": 0.12,
-        "GeographicLatitude": 38
+        "ExposureCompensation": 0,
+        "ShadowSoftness": 0.1,
+        "GeographicLatitude": 38,
+        "LightingStyle": "Realistic",
+        "PrioritizeLightingQuality": true
       },
       "Atmosphere": {
         "$className": "Atmosphere",
         "$properties": {
-          "Density": 0.28,
-          "Offset": 0.2,
+          "Density": 0.26,
+          "Offset": 0.25,
           "Color": [
             0.8078,
             0.8392,
@@ -108,7 +110,7 @@
             0.5412
           ],
           "Glare": 0.25,
-          "Haze": 1.4
+          "Haze": 0.6
         }
       },
       "Bloom": {
@@ -165,6 +167,12 @@
     "AssetService": {
       "$properties": {
         "AllowInsertFreeAssets": true
+      }
+    },
+    "MaterialService": {
+      "$className": "MaterialService",
+      "$properties": {
+        "Use2022Materials": true
       }
     }
   }
