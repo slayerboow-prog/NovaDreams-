@@ -10,6 +10,7 @@
 local Builder = require(script.Parent.Parent.Builder)
 local Nature = require(script.Parent.Nature)
 local Props = require(script.Parent.Props)
+local HouseKit = require(script.Parent.HouseKit)
 
 local Lite = {}
 
@@ -174,60 +175,15 @@ end
 ---------------------------------------------------------------------
 -- Casas
 ---------------------------------------------------------------------
-local HOUSE_WALLS = {
-	rgb(244, 238, 226), rgb(236, 220, 190), rgb(214, 190, 160), rgb(200, 216, 226), rgb(226, 206, 206),
-	rgb(206, 222, 196), rgb(250, 240, 210), rgb(180, 150, 130), rgb(170, 90, 70), rgb(236, 236, 236),
-}
-local ROOFS = { rgb(160, 60, 44), rgb(120, 60, 48), rgb(80, 84, 92), rgb(60, 64, 70), rgb(140, 100, 70), rgb(40, 70, 110) }
-
--- Casa unifamiliar. opts: Floors (1-2), Garage, Porch, Flat (tejado plano)
+-- Casa unifamiliar con todos los detalles (ver HouseKit). opts: Floors (1-2), Garage, Porch, Flat (tejado plano)
 function Lite.house(parent: Instance, cf: CFrame, w: number, d: number, opts: { [string]: any }?): Model
 	opts = opts or {}
-	local m = Builder.model("Casa", parent)
-	local floors = opts.Floors or math.random(1, 2)
-	local h = floors * 10
-	local wall = pick(HOUSE_WALLS)
-	local roof = pick(ROOFS)
-	part(m, "Body", cf * CFrame.new(0, h / 2, 0), Vector3.new(w, h, d), wall, if math.random() < 0.2 then Enum.Material.Brick else Enum.Material.Plaster)
-	local flat = opts.Flat or math.random() < 0.25
-	if flat then
-		part(m, "Roof", cf * CFrame.new(0, h + 0.5, 0), Vector3.new(w + 1.4, 1, d + 1.4), rgb(236, 234, 228), Enum.Material.Concrete)
-	else
-		local rh = math.min(w, d) * 0.35
-		-- Tejado a dos aguas: dos cuñas que suben hacia el centro
-		Builder.part({ ClassName = "WedgePart", Name = "Roof", Size = Vector3.new(w + 1.6, rh, d / 2 + 0.8), CFrame = cf * CFrame.new(0, h + rh / 2, -d / 4 - 0.2), Color = roof, Material = Enum.Material.Slate, Parent = m })
-		Builder.part({ ClassName = "WedgePart", Name = "Roof", Size = Vector3.new(w + 1.6, rh, d / 2 + 0.8), CFrame = cf * CFrame.new(0, h + rh / 2, d / 4 + 0.2) * CFrame.Angles(0, math.pi, 0), Color = roof, Material = Enum.Material.Slate, Parent = m })
-		if math.random() < 0.5 then
-			part(m, "Chimney", cf * CFrame.new(w / 3, h + rh * 0.7, d / 5), Vector3.new(2, rh + 2, 2), rgb(140, 90, 70), Enum.Material.Brick, true)
-		end
-	end
-	-- Puerta y ventanas de la fachada
-	part(m, "Door", cf * CFrame.new(-w / 5, 3.5, -d / 2 - 0.2), Vector3.new(3.6, 7, 0.4), rgb(90, 60, 40), Enum.Material.Wood, true)
-	local glass = rgb(90, 120, 150)
-	for f = 1, floors do
-		part(m, "Window", cf * CFrame.new(w / 5, (f - 1) * 10 + 5.5, -d / 2 - 0.15), Vector3.new(w * 0.35, 4, 0.3), glass, Enum.Material.Glass, true)
-	end
-	if floors == 2 then
-		part(m, "Window", cf * CFrame.new(-w / 5, 15.5, -d / 2 - 0.15), Vector3.new(w * 0.25, 4, 0.3), glass, Enum.Material.Glass, true)
-	end
-	-- Porche o garaje
-	if opts.Porch or (opts.Porch == nil and math.random() < 0.4) then
-		part(m, "Porch", cf * CFrame.new(-w / 5, 8, -d / 2 - 3), Vector3.new(8, 0.6, 6), rgb(236, 232, 224), Enum.Material.Wood, true)
-		for _, x in { -3.6, 3.6 } do
-			part(m, "PorchPost", cf * CFrame.new(-w / 5 + x, 4, -d / 2 - 5.6), Vector3.new(0.6, 8, 0.6), rgb(236, 232, 224), Enum.Material.Wood, true)
-		end
-	end
-	if opts.Garage or (opts.Garage == nil and math.random() < 0.45) then
-		part(m, "Garage", cf * CFrame.new(w / 2 + 6, 4.5, 0), Vector3.new(12, 9, d * 0.7), wall, Enum.Material.Plaster)
-		part(m, "GarageDoor", cf * CFrame.new(w / 2 + 6, 4, -d * 0.35 - 0.2), Vector3.new(10, 7.5, 0.3), rgb(220, 220, 216), Enum.Material.DiamondPlate, true)
-		part(m, "Drive", cf * CFrame.new(w / 2 + 6, 0.1, -d * 0.35 - 7), Vector3.new(10, 0.2, 14), rgb(170, 168, 164), Enum.Material.Pavement, true)
-	end
-	-- Camino a la puerta y un arbusto
-	part(m, "Path", cf * CFrame.new(-w / 5, 0.1, -d / 2 - 7), Vector3.new(3.4, 0.2, 14), rgb(206, 196, 178), Enum.Material.Pavement, true)
-	if math.random() < 0.6 then
-		Nature.bush(m, (cf * CFrame.new(w / 3, 0, -d / 2 - 5)).Position)
-	end
-	return m
+	return HouseKit.build(parent, cf, w, d, {
+		Floors = opts.Floors,
+		Garage = opts.Garage,
+		Porch = opts.Porch,
+		Style = if opts.Flat then "Moderna" else opts.Style,
+	})
 end
 
 -- Villa de lujo: dos volúmenes blancos, grandes cristaleras, piscina y palmeras
@@ -247,6 +203,43 @@ function Lite.villa(parent: Instance, cf: CFrame, w: number, d: number): Model
 	part(m, "PoolWater", pool * CFrame.new(0, 0.62, 0), Vector3.new(w * 0.45, 0.1, d * 0.15), rgb(60, 170, 220), Enum.Material.Glass, true)
 	for _, x in { -w * 0.4, w * 0.4 } do
 		Nature.palm(m, (cf * CFrame.new(x, 0, -d * 0.38)).Position)
+	end
+	-- Detalles: perfiles de las cristaleras, voladizo, hamacas con sombrilla, focos y muro con cancela
+	local dark = rgb(50, 52, 56)
+	local gz = d * 0.1 - d * 0.275 - 0.3
+	for k = -2, 2 do
+		part(m, "Mullion", cf * CFrame.new(-w * 0.1 + k * w * 0.15, 5, gz), Vector3.new(0.3, 8, 0.2), dark, Enum.Material.Metal, true)
+	end
+	part(m, "Transom", cf * CFrame.new(-w * 0.1, 9.1, gz), Vector3.new(w * 0.6, 0.3, 0.2), dark, Enum.Material.Metal, true)
+	part(m, "Canopy", cf * CFrame.new(-w * 0.1, 11.2, gz - 2), Vector3.new(w * 0.64, 0.4, 4), white, Enum.Material.Concrete, true)
+	local up = part(m, "UpperGlass", cf * CFrame.new(-w * 0.05, 16, d * 0.05 - d * 0.225 - 0.15), Vector3.new(w * 0.28, 5.5, 0.2), rgb(90, 130, 160), Enum.Material.Glass, true)
+	up:AddTag("NightWindow")
+	up:SetAttribute("DayColor", rgb(90, 130, 160))
+	up:SetAttribute("NightColor", rgb(255, 214, 150))
+	up:SetAttribute("OnAt", 19 + math.random())
+	up:SetAttribute("OffAt", 23 + math.random() * 1.5)
+	for i = -1, 1, 2 do
+		local l = pool * CFrame.new(i * w * 0.3, 0.6, 0) * CFrame.Angles(0, math.rad(90), 0)
+		part(m, "Lounger", l * CFrame.new(0, 0.4, 0), Vector3.new(2, 0.4, 5.5), rgb(245, 245, 242), Enum.Material.Plastic, true)
+		part(m, "LoungerBack", l * CFrame.new(0, 1.1, 2.3) * CFrame.Angles(math.rad(-35), 0, 0), Vector3.new(2, 0.3, 2), rgb(245, 245, 242), Enum.Material.Plastic, true)
+		part(m, "Towel", l * CFrame.new(0, 0.65, -0.5), Vector3.new(1.6, 0.08, 3), if i < 0 then rgb(60, 140, 200) else rgb(240, 120, 90), Enum.Material.Fabric, true)
+	end
+	local umbrella = pool * CFrame.new(w * 0.3, 0.6, d * 0.1)
+	part(m, "UmbrellaPole", umbrella * CFrame.new(0, 3.5, 0), Vector3.new(0.25, 7, 0.25), rgb(236, 236, 232), Enum.Material.Metal, true)
+	Builder.decor({ Name = "Umbrella", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.5, 8, 8), CFrame = umbrella * CFrame.new(0, 7, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = rgb(236, 226, 206), Material = Enum.Material.Fabric, Parent = m })
+	for _, x in { -w * 0.3, w * 0.1 } do
+		local lampPart = part(m, "GardenSpot", cf * CFrame.new(x, 0.6, -d * 0.46), Vector3.new(0.6, 1.2, 0.6), rgb(255, 230, 170), Enum.Material.Neon, true)
+		lampPart:AddTag("NightWindow")
+		lampPart:SetAttribute("DayColor", rgb(90, 90, 94))
+		lampPart:SetAttribute("NightColor", rgb(255, 220, 160))
+		lampPart:SetAttribute("OnAt", 19)
+		lampPart:SetAttribute("OffAt", 24)
+	end
+	for _, side in { -1, 1 } do
+		local wx, wl = (3.6 + w / 2) / 2, w / 2 - 3.6
+		part(m, "Wall", cf * CFrame.new(side * wx, 1.5, -d / 2 + 0.5), Vector3.new(wl, 3, 0.8), white, Enum.Material.Plaster)
+		part(m, "WallCap", cf * CFrame.new(side * wx, 3.1, -d / 2 + 0.5), Vector3.new(wl + 0.2, 0.25, 1.1), rgb(200, 190, 170), Enum.Material.Limestone, true)
+		part(m, "GatePillar", cf * CFrame.new(side * 3, 2, -d / 2 + 0.5), Vector3.new(1.2, 4, 1.2), white, Enum.Material.Plaster)
 	end
 	return m
 end

@@ -7,6 +7,7 @@ local Building = require(script.Parent.Building)
 local Nature = require(script.Parent.Nature)
 local Civic = require(script.Parent.Civic)
 local Home = require(script.Parent.Home)
+local HouseKit = require(script.Parent.HouseKit)
 
 local Blocks = {}
 
@@ -125,11 +126,7 @@ local function houseLot(parent: Instance, lot: Civic.Lot, u: number, width: numb
 	local m = Builder.model("Vivienda", parent)
 	local size = HOUSE_SIZES[math.random(1, #HOUSE_SIZES)]
 	local setback = 12
-	Building.build({
-		Name = "Casa", Parent = m, CFrame = lot.facing(u, setback + size.Z / 2, 0),
-		Width = math.min(size.X, width - 8), Depth = size.Z, Floors = size.Y, Style = "Casa",
-		GroundFloor = "House", Interior = false,
-	})
+	HouseKit.build(m, lot.facing(u, setback + size.Z / 2, 0), math.min(size.X, width - 8), size.Z, { Floors = size.Y, Garage = false, Yard = false })
 	-- Camino, setos y jardín
 	local path = lot.facing(u, setback / 2, 0.2)
 	Builder.part({ Name = "Path", Size = Vector3.new(4, 0.4, setback), CFrame = path, Color = rgb(206, 196, 178), Material = Enum.Material.Pavement, Parent = m })
