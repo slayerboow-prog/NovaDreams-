@@ -43,6 +43,7 @@ local order = {
 	"RestaurantService", -- camarero + barman (con NPC si falta alguien)
 	"DrivingSchoolService", -- autoescuela: carnet de moto y de coche
 	"ArcadeService", -- recreativos: juegos de bolas, tickets y premios
+	"ProgressionService", -- nivel, experiencia, estadísticas, vida y estamina
 	"LocationService",
 	"CinematicService",
 	"InventoryService", -- mochila estilo Minecraft (barra rápida + 27 casillas)

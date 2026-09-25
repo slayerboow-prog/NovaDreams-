@@ -4,6 +4,8 @@
 --   Npc.icon(npc, text?)                 -> icono pequeño sobre la cabeza (✋, ⏳, 😋…)
 --   Npc.walkTo(npc, { Vector3 }, speed)  -> camina por esos puntos (espera hasta llegar)
 --   Npc.sit(npc, seat) / Npc.stand(npc)  -> sentarse en una silla y levantarse
+--   Npc.dress(npc, look)                 -> ropa (camiseta, pantalón, zapatos), pelo y, si es niño, mochila
+--   Npc.placeFeet(npc, cf)               -> lo pone de pie con los pies justo en cf (no bajo tierra)
 -- Usa el avatar por defecto de Roblox con colores al azar; si falla, un muñeco de bloques.
 
 local Players = game:GetService("Players")
@@ -15,8 +17,10 @@ local rgb = Color3.fromRGB
 local SKINS = { rgb(255, 219, 172), rgb(241, 194, 125), rgb(224, 172, 105), rgb(198, 134, 66), rgb(141, 85, 36), rgb(92, 58, 30) }
 local SHIRTS = { rgb(200, 60, 60), rgb(60, 110, 200), rgb(60, 160, 90), rgb(240, 200, 60), rgb(150, 80, 170), rgb(240, 240, 240), rgb(40, 40, 46), rgb(230, 120, 40) }
 local PANTS = { rgb(40, 50, 80), rgb(30, 30, 34), rgb(110, 90, 70), rgb(80, 80, 90), rgb(60, 70, 110) }
+local SHOES = { rgb(245, 245, 245), rgb(30, 30, 34), rgb(120, 70, 40), rgb(200, 50, 50), rgb(40, 90, 180) }
+local HAIR = { rgb(40, 28, 20), rgb(70, 45, 25), rgb(120, 80, 40), rgb(200, 160, 90), rgb(20, 20, 22), rgb(150, 60, 30), rgb(190, 190, 195) }
 
-export type Look = { Skin: Color3?, Shirt: Color3?, Pants: Color3? }
+export type Look = { Skin: Color3?, Shirt: Color3?, Pants: Color3?, Shoes: Color3?, Hair: Color3?, LongHair: boolean?, Backpack: Color3?, LongSleeves: boolean? }
 
 local function pick<T>(list: { T }): T
 	return list[math.random(1, #list)]
@@ -59,6 +63,84 @@ local function blockRig(look: Look): Model
 	return m
 end
 
+local SKIN_PARTS = { "Head", "LeftHand", "RightHand" }
+local SHIRT_PARTS = { "UpperTorso", "LeftUpperArm", "RightUpperArm" }
+local SLEEVE_PARTS = { "LeftLowerArm", "RightLowerArm" }
+local PANTS_PARTS = { "LowerTorso", "LeftUpperLeg", "RightUpperLeg", "LeftLowerLeg", "RightLowerLeg" }
+local SHOE_PARTS = { "LeftFoot", "RightFoot" }
+
+local function paint(model: Model, names: { string }, color: Color3)
+	for _, name in names do
+		local part = model:FindFirstChild(name)
+		if part and part:IsA("BasePart") then
+			part.Color = color
+		end
+	end
+end
+
+local function attach(model: Model, to: BasePart, name: string, size: Vector3, offset: CFrame, color: Color3, material: Enum.Material?)
+	local part = Instance.new("Part")
+	part.Name = name
+	part.Size = size
+	part.Color = color
+	part.Material = material or Enum.Material.SmoothPlastic
+	part.CanCollide = false
+	part.CanQuery = false
+	part.CanTouch = false
+	part.Massless = true
+	part.CastShadow = size.Magnitude > 1
+	part.CFrame = to.CFrame * offset
+	local weld = Instance.new("WeldConstraint")
+	weld.Part0 = to
+	weld.Part1 = part
+	weld.Parent = part
+	part.Parent = model
+	return part
+end
+
+-- Viste a un personaje R15 (el de Roblox por defecto sale de un solo color, como un maniquí).
+-- Sirve para cualquier NPC: clientes, familia, compañeros de clase, profesores…
+function Npc.dress(model: Model, look: Look?)
+	local l = look or {}
+	local skin = l.Skin or pick(SKINS)
+	local shirt = l.Shirt or pick(SHIRTS)
+	paint(model, SKIN_PARTS, skin)
+	paint(model, SHIRT_PARTS, shirt)
+	paint(model, SLEEVE_PARTS, if l.LongSleeves or (l.LongSleeves == nil and math.random() < 0.4) then shirt else skin)
+	paint(model, PANTS_PARTS, l.Pants or pick(PANTS))
+	paint(model, SHOE_PARTS, l.Shoes or pick(SHOES))
+	local torso = model:FindFirstChild("UpperTorso") :: BasePart?
+	if torso then
+		-- Cuello de la camiseta un poco más oscuro: se nota que es ropa
+		attach(model, torso, "Collar", Vector3.new(torso.Size.X * 0.5, 0.12, torso.Size.Z * 1.02), CFrame.new(0, torso.Size.Y / 2 - 0.06, 0), shirt:Lerp(Color3.new(0, 0, 0), 0.25))
+	end
+	local head = model:FindFirstChild("Head") :: BasePart?
+	if head then
+		local s = head.Size
+		local hair = l.Hair or pick(HAIR)
+		attach(model, head, "Hair", Vector3.new(s.X * 1.06, s.Y * 0.36, s.Z * 1.08), CFrame.new(0, s.Y * 0.36, 0.03 * s.Z), hair, Enum.Material.Fabric)
+		attach(model, head, "HairBack", Vector3.new(s.X * 1.04, s.Y * (if l.LongHair then 0.95 else 0.55), s.Z * 0.3), CFrame.new(0, if l.LongHair then -s.Y * 0.1 else s.Y * 0.12, s.Z * 0.42), hair, Enum.Material.Fabric)
+		attach(model, head, "Fringe", Vector3.new(s.X * 0.9, s.Y * 0.14, s.Z * 0.2), CFrame.new(0, s.Y * 0.3, -s.Z * 0.48), hair, Enum.Material.Fabric)
+	end
+	if l.Backpack and torso then
+		local t = torso.Size
+		attach(model, torso, "SchoolBackpack", Vector3.new(t.X * 0.8, t.Y * 0.85, t.Z * 0.6), CFrame.new(0, -t.Y * 0.05, t.Z * 0.75), l.Backpack, Enum.Material.Fabric)
+	end
+end
+
+-- De pie con los pies en cf. La raíz de un personaje está a la altura de la cadera
+-- (HipHeight + media raíz), NO en el centro de su silueta: por eso salían bajo tierra.
+function Npc.placeFeet(model: Model, cf: CFrame)
+	local humanoid = model:FindFirstChildOfClass("Humanoid")
+	local root = model:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if humanoid and root and humanoid.RigType == Enum.HumanoidRigType.R15 then
+		model:PivotTo(cf * CFrame.new(0, humanoid.HipHeight + root.Size.Y / 2, 0))
+	else
+		local _, size = model:GetBoundingBox()
+		model:PivotTo(cf * CFrame.new(0, size.Y / 2, 0))
+	end
+end
+
 function Npc.create(name: string, parent: Instance, cf: CFrame, look: Look?): Model
 	local l: Look = {
 		Skin = (look and look.Skin) or pick(SKINS),
@@ -92,6 +174,9 @@ function Npc.create(name: string, parent: Instance, cf: CFrame, look: Look?): Mo
 	end
 	root.Anchored = true
 	model.PrimaryPart = root
+	if ok then
+		Npc.dress(model, look)
+	end
 	-- cf = pies en el suelo, mirando hacia donde mira cf
 	root.CFrame = cf * CFrame.new(0, humanoid.HipHeight + root.Size.Y / 2, 0)
 	model.Parent = parent

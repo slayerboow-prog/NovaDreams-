@@ -5,6 +5,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Gameplay = require(ReplicatedStorage.Shared.Gameplay)
 local DataService = require(script.Parent.DataService)
 local MonetizationService = require(script.Parent.MonetizationService)
 
@@ -33,6 +34,11 @@ local function applyWalkSpeed(player: Player)
 	local tired = data.Hunger <= Config.Needs.LowThreshold or data.Energy <= Config.Needs.LowThreshold
 	-- La velocidad base depende de la etapa de vida (LifeService); si estás agotado, vas más lento
 	local base = player:GetAttribute("StageWalkSpeed") or Config.WalkSpeed
+	-- Corriendo (ProgressionService): más rápido mientras dure la estamina; la Destreza suma
+	if player:GetAttribute("Sprinting") and not tired then
+		local stamina = Gameplay.Progression.Stamina
+		base *= stamina.SprintMultiplier + (player:GetAttribute("Stat_Destreza") or 0) * stamina.PerDestreza
+	end
 	humanoid.WalkSpeed = if tired then math.min(base, Config.TiredWalkSpeed) else base
 end
 
@@ -52,6 +58,11 @@ function NeedsService.change(player: Player, hunger: number, energy: number)
 	data.Hunger = clamp(data.Hunger + hunger)
 	data.Energy = clamp(data.Energy + energy)
 	sync(player, data)
+end
+
+-- Vuelve a calcular la velocidad al momento (al empezar o dejar de correr)
+function NeedsService.refreshSpeed(player: Player)
+	applyWalkSpeed(player)
 end
 
 function NeedsService.canWork(player: Player): boolean

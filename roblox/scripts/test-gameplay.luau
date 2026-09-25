@@ -247,6 +247,7 @@ local remotes = {
 	Arcade = remote(),
 	Restaurant = remote(),
 	Inventory = remote(),
+	Progression = remote(),
 }
 function remotes:WaitForChild(name)
 	return self[name]
@@ -368,12 +369,15 @@ end
 -- Dobles de servicios que dependen de Roblox de verdad
 ---------------------------------------------------------------------
 local profiles = {}
+local loadedCallbacks = {}
 local S = ROOT .. "/server/Services/"
 mocks[S .. "DataService"] = {
 	get = function(player)
 		return profiles[player]
 	end,
-	onLoaded = function() end,
+	onLoaded = function(callback)
+		table.insert(loadedCallbacks, callback)
+	end,
 	addMoney = function(player, amount)
 		profiles[player].Money = math.max(0, profiles[player].Money + amount)
 		return true
@@ -402,6 +406,7 @@ mocks[S .. "NeedsService"] = {
 	change = function(player, hunger, energy)
 		table.insert(needsChanges, { player, hunger, energy })
 	end,
+	refreshSpeed = function() end,
 }
 mocks[S .. "MonetizationService"] = { payMultiplier = function() return 1 end }
 mocks[S .. "JobService"] = { quit = function() end }
@@ -953,6 +958,52 @@ owner:SetAttribute("OwnedVehicles", "")
 InventoryService.refresh(owner)
 check(slotOf(owner, "Vehiculo_Bici") == nil, "lo que ya no tienes desaparece de la mochila")
 check(pcall(serde.encode, "json", bag), "la mochila se puede guardar (JSON válido)")
+
+
+---------------------------------------------------------------------
+print("▶ Personaje: nivel, estadísticas, vida y estamina")
+local ProgressionService = loadModule(S .. "ProgressionService")
+local StoryEventsModule = loadModule(ROOT .. "/server/LifeStory/StoryEvents")
+ProgressionService.init()
+local hero, heroRoot, heroHumanoid = newPlayer(8, "Adolescente", 0)
+for _, callback in loadedCallbacks do
+	callback(hero, profiles[hero])
+end
+check(hero:GetAttribute("Level") == 1 and hero:GetAttribute("MaxStamina") == Gameplay.Progression.Stamina.Base, "empieza en nivel 1 con la estamina llena")
+for _ = 1, 9 do
+	StoryEventsModule.emit(hero, "JobTaskDone", {})
+end
+task.wait(0.1)
+check(hero:GetAttribute("Level") == 2 and hero:GetAttribute("StatPoints") == Gameplay.Progression.PointsPerLevel, "trabajar da experiencia y sube de nivel (+3 puntos)")
+remotes.Progression.OnServerEvent:Fire(hero, "Spend", "Salud")
+check(hero:GetAttribute("Stat_Salud") == 1 and heroHumanoid.MaxHealth == 110, "un punto en Salud sube la vida máxima a 110")
+remotes.Progression.OnServerEvent:Fire(hero, "Spend", "Resistencia")
+check(hero:GetAttribute("MaxStamina") == Gameplay.Progression.Stamina.Base + Gameplay.Progression.Stamina.PerResistencia, "un punto en Resistencia da más estamina")
+remotes.Progression.OnServerEvent:Fire(hero, "Spend", "Magia")
+check(hero:GetAttribute("StatPoints") == 1, "no se puede gastar en una estadística que no existe")
+heroRoot.AssemblyLinearVelocity = Vector3.new(16, 0, 0)
+remotes.Progression.OnServerEvent:Fire(hero, "Sprint", true)
+task.wait(0.4)
+check(hero:GetAttribute("Sprinting") == true, "con Shift y moviéndose, corre")
+waitFor(function()
+	return hero:GetAttribute("Sprinting") == nil
+end, 10, "que se acabe la estamina")
+check((hero:GetAttribute("Stamina") or 99) <= 1, "corriendo se gasta la estamina hasta pararse")
+remotes.Progression.OnServerEvent:Fire(hero, "Sprint", false)
+task.wait(2)
+check((hero:GetAttribute("Stamina") or 0) > 5, "descansando, la estamina se recupera")
+hero:SetAttribute("Riding", "Bici")
+remotes.Progression.OnServerEvent:Fire(hero, "Sprint", true)
+task.wait(0.4)
+check(hero:GetAttribute("Sprinting") == nil, "en bici no se esprinta")
+hero:SetAttribute("Riding", nil)
+profiles[hero].Story = { Completed = {} }
+task.wait(3.3)
+local before = hero:GetAttribute("Xp")
+profiles[hero].Story.Completed.Mision1 = 1
+profiles[hero].Story.Completed.Mision2 = 2
+task.wait(3.3)
+check(hero:GetAttribute("Xp") == before + 2 * Gameplay.Progression.QuestXp, "cada misión completada da experiencia")
 
 end, debug.traceback)
 if not ok then

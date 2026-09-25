@@ -20,6 +20,7 @@ local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 local DataService = require(script.Parent.DataService)
 local NeedsService = require(script.Parent.NeedsService)
 local CinematicService = require(script.Parent.CinematicService)
+local Npc = require(script.Parent.Parent.World.Npc)
 
 local BabyService = {}
 
@@ -143,6 +144,7 @@ local function makeNpc(home: Home, spot: BasePart, nameKey: string, skin: Color3
 		if root then
 			root.Anchored = true
 		end
+		Npc.dress(model, { Skin = skin, LongHair = nameKey == "NPC.MAMA" or nameKey == "NPC.ABU_ROSA", Hair = if string.find(nameKey, "ABU") then Color3.fromRGB(200, 200, 205) else nil })
 	else
 		-- Si no se puede crear un personaje de Roblox, una figura sencilla hace el papel
 		model = Instance.new("Model")
@@ -156,9 +158,8 @@ local function makeNpc(home: Home, spot: BasePart, nameKey: string, skin: Color3
 	end
 	model.Name = Strings.get(nameKey)
 	-- De pie sobre el suelo, en el sitio que marca el mapa
-	local _, size = model:GetBoundingBox()
 	local floorY = spot.Position.Y - spot.Size.Y / 2
-	model:PivotTo(CFrame.new(spot.Position.X, floorY + size.Y / 2, spot.Position.Z) * spot.CFrame.Rotation)
+	Npc.placeFeet(model, CFrame.new(spot.Position.X, floorY, spot.Position.Z) * spot.CFrame.Rotation)
 	model.Parent = home.Model
 	return model
 end

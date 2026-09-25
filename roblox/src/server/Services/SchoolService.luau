@@ -10,6 +10,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
+local Npc = require(script.Parent.Parent.World.Npc)
 local LifeStoryService = require(script.Parent.LifeStoryService)
 local LocationService = require(script.Parent.LocationService)
 
@@ -54,11 +55,12 @@ local function makeNpc(parent: Instance, cf: CFrame, person: { [string]: any }, 
 	if root then
 		root.Anchored = true
 	end
+	-- Ropa, pelo y mochila (antes eran de un solo color, como maniquíes)
+	Npc.dress(model, { Skin = person.Skin, Backpack = if person.Kid then Color3.fromHSV(math.random(), 0.6, 0.8) else nil, LongHair = math.random() < 0.5 })
 	pcall(function()
 		model:ScaleTo(scale)
 	end)
-	local _, size = model:GetBoundingBox()
-	model:PivotTo(cf + Vector3.new(0, size.Y / 2, 0))
+	Npc.placeFeet(model, cf) -- pies en el suelo (antes quedaban medio enterrados)
 	model.Parent = parent
 
 	if root then
