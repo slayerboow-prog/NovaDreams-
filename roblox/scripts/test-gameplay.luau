@@ -44,8 +44,8 @@ local function signal()
 	return s
 end
 
-local EVENTS = { Triggered = true, Died = true, Destroying = true, Completed = true, CharacterRemoving = true, CharacterAdded = true, Activated = true, Event = true }
-local PARTS = { Part = true, Seat = true, WedgePart = true, CornerWedgePart = true }
+local EVENTS = { Triggered = true, Died = true, Destroying = true, Completed = true, CharacterRemoving = true, CharacterAdded = true, Activated = true, Event = true, ChildAdded = true }
+local PARTS = { Part = true, Seat = true, VehicleSeat = true, WedgePart = true, CornerWedgePart = true }
 
 local Fake = {}
 local FakeMeta = {}
@@ -96,8 +96,26 @@ function Fake.GetAttributeChangedSignal(self, name)
 	self.__attrSignals[name] = self.__attrSignals[name] or signal()
 	return self.__attrSignals[name]
 end
-function Fake.GetPropertyChangedSignal()
-	return signal()
+function Fake.GetPropertyChangedSignal(self, name)
+	local signals = rawget(self, "__propSignals")
+	if not signals then
+		signals = {}
+		rawset(self, "__propSignals", signals)
+	end
+	signals[name] = signals[name] or signal()
+	return signals[name]
+end
+-- Asientos: Seat:Sit sienta al humanoide (Occupant / SeatPart y la soldadura SeatWeld)
+function Fake.Sit(self, humanoid)
+	local weld = fakeInstance("Weld")
+	weld.Name = "SeatWeld"
+	weld.C1 = CFrame.new()
+	weld.Parent = self
+	humanoid.SeatPart = self
+	self.Occupant = humanoid
+end
+function Fake.Raycast()
+	return nil -- sin suelo de verdad: los vehículos salen a la altura del personaje
 end
 function Fake.AddTag(self, tag)
 	self.__tags[tag] = true
@@ -187,11 +205,25 @@ FakeMeta.__newindex = function(self, key, value)
 		props.Parent = value
 		if value then
 			table.insert(value.__children, self)
+			local added = rawget(value, "__props").ChildAdded
+			if added then
+				added:Fire(self)
+			end
 		end
 	elseif key == "Position" then
 		props.CFrame = CFrame.new(value) * (props.CFrame and props.CFrame.Rotation or CFrame.new())
 	else
 		props[key] = value
+		-- Bajarse del asiento (Sit = false o se quita la soldadura)
+		if key == "Sit" and value == false and props.SeatPart then
+			local seat = props.SeatPart
+			props.SeatPart = nil
+			seat.Occupant = nil
+		end
+	end
+	local signals = rawget(self, "__propSignals")
+	if signals and signals[key] then
+		signals[key]:Fire()
 	end
 end
 
@@ -354,6 +386,7 @@ local function loadModule(path: string): any
 		UDim2 = roblox.UDim2,
 		Font = roblox.Font,
 		TweenInfo = { new = function() return {} end },
+		RaycastParams = { new = function() return {} end },
 		typeof = fakeTypeof,
 		warn = function(...)
 			print("[warn]", ...)
@@ -594,9 +627,14 @@ promptOf(station, "Coger bicicleta").Triggered:Fire(kid)
 check(kid:GetAttribute("Riding") == nil, "un niño no puede coger la bici pública")
 promptOf(station, "Coger bicicleta").Triggered:Fire(teen)
 check(teen:GetAttribute("Riding") == "Bici" and teen:GetAttribute("VehicleSpeed") == Gameplay.Vehicles.Bici.Speed, "un adolescente coge la bici pública y va más rápido")
-check(teenHumanoid.HipHeight > 2, "el personaje sube al sillín")
+check(teenHumanoid.SeatPart ~= nil and teenHumanoid.SeatPart.Name == "DriverSeat", "se sienta en el asiento de conductor de la bici")
 remotes.Vehicle.OnServerEvent:Fire(teen, "Dismount")
-check(teen:GetAttribute("Riding") == nil and teenHumanoid.HipHeight == 2, "se baja y vuelve a su altura")
+check(teen:GetAttribute("Riding") == nil and teenHumanoid.SeatPart == nil, "se baja del asiento")
+check(#worldRoot:FindFirstChild("Rides"):GetChildren() == 0, "la bici pública desaparece al bajarse")
+promptOf(station, "Coger patinete eléctrico").Triggered:Fire(teen)
+check(teen:GetAttribute("Riding") == "Patinete", "coge el patinete eléctrico público")
+teenHumanoid.Sit = false
+check(teen:GetAttribute("Riding") == nil, "saltar le baja del patinete")
 remotes.Vehicle.OnServerEvent:Fire(teen, "Buy", "Coche")
 check(profiles[teen].Money == 1000, "un adolescente no puede comprarse un coche")
 remotes.Vehicle.OnServerEvent:Fire(teen, "Buy", "Monopatin")
@@ -604,11 +642,14 @@ check(profiles[teen].Money == 850 and teen:GetAttribute("OwnedVehicles") == "Mon
 remotes.Vehicle.OnServerEvent:Fire(teen, "Spawn", "Monopatin")
 check(teen:GetAttribute("Riding") == "Monopatin", "saca su monopatín en cualquier sitio")
 local rides = worldRoot:FindFirstChild("Rides")
-check(rides ~= nil and #rides:GetChildren() == 1, "hay un solo vehículo soldado al jugador")
+check(rides ~= nil and #rides:GetChildren() == 1, "hay un solo vehículo con el jugador")
 remotes.Vehicle.OnServerEvent:Fire(teen, "Spawn", "Bici")
 check(teen:GetAttribute("Riding") == "Monopatin", "no puede sacar una bici que no tiene")
 teenHumanoid.Died:Fire()
-check(teen:GetAttribute("Riding") == nil and #rides:GetChildren() == 0, "si muere, el vehículo desaparece")
+check(teen:GetAttribute("Riding") == nil and #rides:GetChildren() == 1, "si muere, su monopatín se queda aparcado")
+remotes.Vehicle.OnServerEvent:Fire(teen, "Spawn", "Monopatin")
+check(teen:GetAttribute("Riding") == "Monopatin" and #rides:GetChildren() == 1, "al sacarlo otra vez no se duplica")
+remotes.Vehicle.OnServerEvent:Fire(teen, "Dismount")
 
 ---------------------------------------------------------------------
 print("▶ Autoescuela")
@@ -662,7 +703,7 @@ check(VehicleService.hasLicense(adult, "B"), "pasa por todos los puntos y aprueb
 check(adult:GetAttribute("Riding") == nil and adult:GetAttribute("TaskTarget") == nil, "al aprobar se baja del coche de prácticas")
 remotes.Vehicle.OnServerEvent:Fire(adult, "Spawn", "Coche")
 check(adult:GetAttribute("Riding") == "Coche" and adult:GetAttribute("VehicleSpeed") == Gameplay.Vehicles.Coche.Speed, "ya puede conducir su coche")
-local carModel = worldRoot.Rides:GetChildren()[1]
+local carModel = worldRoot.Rides:FindFirstChild("Coche")
 local beam = carModel and carModel:FindFirstChild("Headlight") and carModel.Headlight:FindFirstChildOfClass("SpotLight")
 check(beam ~= nil and beam.Enabled == true, "de noche el coche lleva los faros encendidos")
 remotes.Vehicle.OnServerEvent:Fire(adult, "Dismount")

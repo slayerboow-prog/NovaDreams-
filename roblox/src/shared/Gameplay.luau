@@ -12,11 +12,23 @@ local Gameplay = {}
 ---------------------------------------------------------------------
 Gameplay.Vehicles = {
 	Monopatin = { Name = "Monopatín", Icon = "🛹", Price = 150, Speed = 26, Stage = "Adolescente", Order = 1 },
-	Bici = { Name = "Bicicleta", Icon = "🚲", Price = 350, Speed = 34, Stage = "Adolescente", Order = 2 },
-	Moto = { Name = "Moto", Icon = "🛵", Price = 3500, Speed = 58, Stage = "AdultoJoven", License = "A", Order = 3 },
-	Coche = { Name = "Coche", Icon = "🚗", Price = 9000, Speed = 72, Stage = "AdultoJoven", License = "B", Order = 4 },
+	Patinete = { Name = "Patinete eléctrico", Icon = "🛴", Price = 250, Speed = 30, Stage = "Adolescente", Order = 2 },
+	Bici = { Name = "Bicicleta", Icon = "🚲", Price = 350, Speed = 34, Stage = "Adolescente", Order = 3 },
+	Moto = { Name = "Moto", Icon = "🛵", Price = 3500, Speed = 58, Stage = "AdultoJoven", License = "A", Order = 4 },
+	Coche = { Name = "Coche", Icon = "🚗", Price = 9000, Speed = 72, Stage = "AdultoJoven", License = "B", Order = 5 },
 }
-Gameplay.RentalVehicles = { "Bici", "Monopatin" } -- los que se cogen gratis en las estaciones públicas
+Gameplay.RentalVehicles = { "Bici", "Monopatin", "Patinete" } -- los que se cogen gratis en las estaciones públicas
+
+-- Cómo se conduce cada vehículo (studs/s y radianes/s). Lo usa client/Controllers/Driving.luau.
+--   Accel: aceleración · Brake: frenada · Reverse: velocidad marcha atrás · Turn: giro máximo
+--   Lean: se inclina en las curvas (dos ruedas) · Standing: se va de pie (monopatín, patinete)
+Gameplay.Driving = {
+	Monopatin = { Accel = 12, Brake = 30, Reverse = 6, Turn = 2.4, Lean = 10, Standing = true },
+	Patinete = { Accel = 16, Brake = 34, Reverse = 5, Turn = 2.5, Lean = 12, Standing = true },
+	Bici = { Accel = 14, Brake = 36, Reverse = 5, Turn = 2.5, Lean = 16 },
+	Moto = { Accel = 26, Brake = 50, Reverse = 6, Turn = 2.2, Lean = 22 },
+	Coche = { Accel = 22, Brake = 55, Reverse = 18, Turn = 1.7, Lean = 0 },
+}
 
 ---------------------------------------------------------------------
 -- Carnet de conducir (autoescuela)

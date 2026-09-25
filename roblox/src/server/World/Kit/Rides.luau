@@ -13,8 +13,15 @@ local rgb = Color3.fromRGB
 local TIRE = rgb(26, 26, 28)
 local METAL = rgb(170, 174, 180)
 
--- Cuánto se eleva el personaje al montar (para que quede encima del monopatín o del sillín)
-Rides.Lift = { Monopatin = 0.45, Bici = 1.3, Moto = 1.2, Coche = 0 }
+-- Asiento del conductor (respecto al centro del vehículo a ras de suelo) y tamaño de la base.
+-- Standing = se va de pie (el personaje se coloca de pie encima en vez de sentado)
+Rides.Spec = {
+	Monopatin = { Seat = CFrame.new(0, 0.7, 0), Size = Vector3.new(1.4, 1, 4.2), Standing = true },
+	Patinete = { Seat = CFrame.new(0, 0.75, 0.4), Size = Vector3.new(1.4, 1, 3.8), Standing = true },
+	Bici = { Seat = CFrame.new(0, 3.2, 1), Size = Vector3.new(1.2, 1, 4.8) },
+	Moto = { Seat = CFrame.new(0, 2.55, 0.8), Size = Vector3.new(1.6, 1, 5.8) },
+	Coche = { Seat = CFrame.new(-1.4, 1.6, 0.4), Size = Vector3.new(6.2, 1, 13.5) },
+}
 
 local function wheel(m: Model, cf: CFrame, radius: number, width: number)
 	return Builder.part({
@@ -81,6 +88,18 @@ local function moto(m: Model, cf: CFrame, color: Color3)
 	box(m, "Taillight", Vector3.new(0.6, 0.3, 0.2), cf * CFrame.new(0, 2.1, 2.05), rgb(200, 30, 30), Enum.Material.Neon)
 end
 
+local function patinete(m: Model, cf: CFrame, color: Color3)
+	for _, z in { -1.5, 1.5 } do
+		wheel(m, cf * CFrame.new(0, 0.35, z), 0.35, 0.3)
+	end
+	box(m, "Deck", Vector3.new(1, 0.2, 3.2), cf * CFrame.new(0, 0.55, 0.1), rgb(40, 40, 44))
+	box(m, "Grip", Vector3.new(0.9, 0.05, 2.6), cf * CFrame.new(0, 0.67, 0.2), rgb(25, 25, 28), Enum.Material.Sand)
+	box(m, "Stem", Vector3.new(0.25, 3.6, 0.25), cf * CFrame.new(0, 2.3, -1.45) * CFrame.Angles(math.rad(-8), 0, 0), color, Enum.Material.Metal)
+	box(m, "Handlebar", Vector3.new(1.9, 0.2, 0.2), cf * CFrame.new(0, 4.05, -1.7), rgb(30, 30, 34))
+	box(m, "Headlight", Vector3.new(0.4, 0.3, 0.2), cf * CFrame.new(0, 3.5, -1.72), rgb(255, 250, 230), Enum.Material.Neon)
+	box(m, "Fender", Vector3.new(0.35, 0.15, 0.9), cf * CFrame.new(0, 0.8, 1.55), color)
+end
+
 local function coche(m: Model, cf: CFrame, color: Color3)
 	local r = 1.3
 	local glass = rgb(150, 190, 215)
@@ -106,11 +125,12 @@ local function coche(m: Model, cf: CFrame, color: Color3)
 	end
 end
 
-local BUILDERS = { Monopatin = monopatin, Bici = bici, Moto = moto, Coche = coche }
+local BUILDERS = { Monopatin = monopatin, Patinete = patinete, Bici = bici, Moto = moto, Coche = coche }
 local COLORS = {
 	Monopatin = { rgb(220, 70, 60), rgb(40, 140, 220), rgb(250, 200, 40), rgb(60, 170, 90) },
 	Bici = { rgb(30, 110, 200), rgb(210, 50, 60), rgb(40, 160, 90), rgb(240, 240, 240) },
 	Moto = { rgb(200, 30, 40), rgb(30, 30, 34), rgb(240, 240, 240), rgb(40, 90, 180) },
+	Patinete = { rgb(30, 30, 34), rgb(240, 240, 240), rgb(220, 70, 60), rgb(40, 140, 220) },
 }
 
 -- Crea el modelo del vehículo (anclado). kind: "Monopatin" | "Bici" | "Moto" | "Coche"
@@ -121,6 +141,50 @@ function Rides.build(kind: string, parent: Instance?, cf: CFrame, color: Color3?
 	BUILDERS[kind](m, cf, paint)
 	m.Parent = parent
 	return m
+end
+
+-- Convierte un modelo en un vehículo que se conduce: añade la base invisible ("Chassis", la
+-- pieza principal) y el asiento del conductor ("DriverSeat"), y suelda todo a la base.
+-- groundCf = centro del vehículo a ras de suelo, mirando hacia el morro. Queda aparcado (anclado).
+function Rides.prepare(model: Model, kind: string, groundCf: CFrame): (BasePart, VehicleSeat)
+	local spec = Rides.Spec[kind]
+	local chassis = Instance.new("Part")
+	chassis.Name = "Chassis"
+	chassis.Size = spec.Size
+	chassis.CFrame = groundCf * CFrame.new(0, spec.Size.Y / 2, 0)
+	chassis.Transparency = 1
+	chassis.CanCollide = false
+	chassis.CanTouch = false
+	chassis.CanQuery = false
+	chassis.Anchored = true
+	chassis.Parent = model
+	local seat = Instance.new("VehicleSeat")
+	seat.Name = "DriverSeat"
+	seat.Size = Vector3.new(1.6, 0.2, 1.6)
+	seat.CFrame = groundCf * spec.Seat * CFrame.new(0, -0.1, 0)
+	seat.Transparency = 1
+	seat.CanCollide = false
+	seat.CanTouch = false -- nadie se sube al tocarlo: se sube con el cartel
+	seat.CanQuery = false
+	seat.MaxSpeed = 0 -- lo mueve Driving.luau, no las ruedas de Roblox
+	seat.HeadsUpDisplay = false
+	seat.Parent = model
+	for _, part in model:GetDescendants() do
+		if part:IsA("BasePart") and part ~= chassis then
+			part:SetAttribute("Collide", part.CanCollide)
+			part.Anchored = false
+			part.Massless = true
+			part.CanTouch = false
+			local weld = Instance.new("WeldConstraint")
+			weld.Part0 = chassis
+			weld.Part1 = part
+			weld.Parent = part
+		end
+	end
+	model.PrimaryPart = chassis
+	model:SetAttribute("Drivable", true)
+	model:SetAttribute("Kind", kind)
+	return chassis, seat
 end
 
 -- Estación pública de bicis y monopatines (tag RentalStation). La usa VehicleService.

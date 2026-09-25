@@ -1,4 +1,5 @@
--- Vehicles: menú "🚲 Vehículos" (comprar y sacar tu monopatín, bici, moto o coche)
+-- Vehicles: menú "🚲 Vehículos" (comprar y sacar tu monopatín, patinete, bici, moto o coche)
+-- (la conducción en sí está en Driving.luau)
 -- y botón para bajarse (también con la tecla F).
 
 local ContextActionService = game:GetService("ContextActionService")
@@ -40,7 +41,7 @@ end
 local refresh: (() -> ())? = nil
 
 local function open()
-	local window, content = Dialog.window("Vehicles", "🚲 Mis vehículos", Vector2.new(480, 420))
+	local window, content = Dialog.window("Vehicles", "🚲 Mis vehículos", Vector2.new(480, 520))
 	local list = create("Frame", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Parent = content })
 	create("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder, Parent = list })
 
@@ -101,7 +102,7 @@ local function open()
 		end
 		local a = if has("Licenses", "A") then "✅" else "❌"
 		local b = if has("Licenses", "B") then "✅" else "❌"
-		licenses.Text = ("Carnet de moto %s   ·   Carnet de coche %s   ·   Bici pública gratis en las paradas de bus"):format(a, b)
+		licenses.Text = ("Carnet de moto %s   ·   Carnet de coche %s   ·   Bici, monopatín y patinete gratis en las paradas de bus · Los coches aparcados de la calle también se pueden conducir"):format(a, b)
 		for key, row in rows do
 			local vehicle = Gameplay.Vehicles[key]
 			local needs = STAGE_TEXT[vehicle.Stage] or vehicle.Stage
