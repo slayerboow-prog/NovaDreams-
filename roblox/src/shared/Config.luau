@@ -108,15 +108,15 @@ Config.Baby = {
 ---------------------------------------------------------------------
 Config.Audio = {
 	Music = {
-		Nacimiento = { Id = 0, File = "nacimiento.ogg", Volume = 0.4, Looped = true },
-		TemaValmar = { Id = 0, File = "tema_valmar.ogg", Volume = 0.45, Looped = true },
-		PasanLosAnos = { Id = 0, File = "pasan_los_anos.ogg", Volume = 0.5, Looped = false },
-		VidaAdulta = { Id = 0, File = "vida_adulta.ogg", Volume = 0.4, Looped = true },
+		Nacimiento = { Id = 99685990275611, File = "nacimiento.ogg", Volume = 0.4, Looped = true },
+		TemaValmar = { Id = 71915200549382, File = "tema_valmar.ogg", Volume = 0.45, Looped = true },
+		PasanLosAnos = { Id = 136669358482377, File = "pasan_los_anos.ogg", Volume = 0.5, Looped = false },
+		VidaAdulta = { Id = 90317690788724, File = "vida_adulta.ogg", Volume = 0.4, Looped = true },
 	},
 	Stings = {
-		Momento = { Id = 0, File = "sting_momento.ogg", Volume = 0.55 },
-		Capitulo = { Id = 0, File = "sting_capitulo.ogg", Volume = 0.55 },
-		PrimerosPasos = { Id = 0, File = "sting_primeros_pasos.ogg", Volume = 0.6 },
+		Momento = { Id = 107278309519549, File = "sting_momento.ogg", Volume = 0.55 },
+		Capitulo = { Id = 99594760388393, File = "sting_capitulo.ogg", Volume = 0.55 },
+		PrimerosPasos = { Id = 129269798599195, File = "sting_primeros_pasos.ogg", Volume = 0.6 },
 	},
 	AmbientVolume = 0.2, -- música de fondo de un capítulo (más baja que en las cinemáticas)
 	DuckVolume = 0.45, -- la música baja a este porcentaje mientras alguien habla
