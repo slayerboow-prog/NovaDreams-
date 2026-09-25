@@ -44,7 +44,7 @@ return {
 	Requires = { Completed = { "Uni02_ElProyecto" }, StageProgress = 0.36 },
 	Npcs = { "Familia", "Lola", "Omar", "Ernesto", "Rocio", "Alba", "Beltran" },
 	Locations = { "HomeSalon", "Biblioteca", "CafeteriaCentral", "Correos", "$Carrera.Facultad" },
-	Next = { "Uni_Practicas" },
+	Next = { "Uni04_Practicas" },
 	Outcomes = { "Cafetería, reparto o clases particulares", "Cubrir el turno o estudiar", "Tu primera nómina" },
 
 	Moment = "Tu primer trabajo de universitario",

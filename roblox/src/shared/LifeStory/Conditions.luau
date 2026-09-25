@@ -10,6 +10,7 @@
 --   Flags       = { "TieneBici", ... }           marcas que dejan otras misiones
 --   NotFlags    = { ... }
 --   Choices     = { EstudiosElegidos = "Medicina" }   decisiones tomadas antes
+--   NotChoices  = { AdiosBruno = "DeCero" }     la decisión no se tomó, o se tomó otra cosa
 --   Discovered  = { "Colegio", ... }             lugares ya visitados
 --   OnDuty      = "Profesor"                     (para misiones de profesión) el jugador está de servicio en ese rol
 --   StageProgress = 0.5                          haber jugado la mitad de la etapa (Config.LifeStory.StageHours)
@@ -86,6 +87,12 @@ function Conditions.check(req: { [string]: any }?, ctx: Context): (boolean, stri
 		local choice = ctx.Choices[key]
 		if not choice or choice.V ~= value then
 			return false, "Choices"
+		end
+	end
+	for key, value in req.NotChoices or {} do
+		local choice = ctx.Choices[key]
+		if choice and choice.V == value then
+			return false, "NotChoices"
 		end
 	end
 	for _, place in req.Discovered or {} do

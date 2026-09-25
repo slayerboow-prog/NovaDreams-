@@ -147,6 +147,9 @@ local KEEPSAKES = {
 	{ "RelojAbu", "El reloj de tu abuelo o abuela", "⌚", "Viejo, con la correa gastada. Todavía hace tic-tac muy bajito." },
 	{ "FotoEquipoUni", "Foto del grupo cuatro", "📸", "Julia, Adrián, Carla, Pablo con su guitarra… y tú." },
 	{ "ContratoTrabajo", "Tu primer contrato", "📝", "Con tu nombre, tus horas y hasta impuestos. Te hizo sentir adulto o adulta." },
+	{ "InformePracticas", "Informe de prácticas", "📋", "Firmado por tu tutor. Con una nota al margen: «Buen trabajo»." },
+	{ "LlavesPiso", "Las llaves de tu primer piso", "🔑", "Con un llavero del número 13 al lado, si lo guardaste." },
+	{ "OrlaUniversidad", "Orla de la universidad", "🎓", "Birretes al aire. Todos a la vez. La foto que más vas a enseñar." },
 	{ "CuadernoProfesiones", "Cuaderno de profesiones", "📓", "Lo que viste en la semana de las profesiones. «Dentro de unos años lo leerás y te reirás. O no.»" },
 }
 for _, entry in KEEPSAKES do

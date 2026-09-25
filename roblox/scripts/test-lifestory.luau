@@ -1266,11 +1266,39 @@ check(leoData.Story.Choices.TrabajoUni.V == "Clases" and said(leo, "¡UN SIETE!"
 check(not leoData.Story.Flags.CubristeTurno and lastExtra("Fisica", "Examen") == 5, "Dices que no a tiempo y llegas al examen con repaso (5 s más)")
 check(leoData.Items.ContratoTrabajo == 1 and leoData.Story.Memories.PrimerTrabajoUni ~= nil and said(leo, "Te he hecho un dibujo"), "Contrato, recuerdo y el dibujo de Alba")
 
-print("\n▶ La universidad: prácticas y graduación")
+print("\n▶ Universidad 04 «Las prácticas» (según tu carrera, el error del informe)")
+leo.Prefer = { "Decírselo a tu tutor" }
+leo.Picks = {}
+leoData.Life.StageSeconds = 0.56 * HOURS.AdultoJoven * 3600
+check(playUntil(leo, function()
+	return leoData.Story.Completed.Uni04_Practicas ~= nil
+end), "Universidad 04 completa")
+check(said(leo, "¡La persona de los triángulos! Ahora trabajo para TecnoVal"), "Sofía, la de la semana de las profesiones, es tu tutora de Ingeniería")
+check(said(leo, "Amortiguadores de masa") and not said(leo, "Sesenta años, fumador"), "El caso es de tu carrera (la pasarela del río), no de otra")
+check(leoData.Story.Choices.ErrorInforme.V == "Decir" and said(leo, "Así se construyen puentes que no se caen") and lastExtra("PracticaIngenieria", "Practica") == 4, "Confiesas tu error: la tutora lo valora (y tienes 4 s más)")
+check(leoData.Story.Flags.OfertaTrabajo and leoData.Items.InformePracticas == 1 and leoData.Story.Memories.Practicas ~= nil, "Oferta de trabajo para cuando termines, informe y recuerdo")
+
+print("\n▶ Universidad 05 «Tu primer piso» (independizarte, la mudanza, {abu})")
+leo.Prefer = { "Me da un poco de miedo", "Habláis y hacéis un reparto justo" }
+leo.Picks = { CompiPiso = "Luca" }
+leoData.Life.StageSeconds = 0.73 * HOURS.AdultoJoven * 3600
+check(playUntil(leo, function()
+	return leoData.Story.Completed.Uni05_PrimerPiso ~= nil
+end), "Universidad 05 completa")
+check(said(leo, "Aquí tienes siempre tu cuarto") and said(leo, "el pacto italiano"), "Te da miedo irte de casa; vives con Luca")
+check(said(leo, "una carta de tu familia") and said(leo, "Yo cocino para dos") and leoData.Story.Choices.Convivencia.V == "Hablar", "La caja de los recuerdos y un reparto justo en casa")
+check(said(leo, "Traigo una planta") and leoData.Story.Flags.TieneHogar and leoData.Items.LlavesPiso == 1 and leoData.Story.Memories.PrimerPiso ~= nil, "{abu} viene de visita; ya tienes casa propia")
+
+print("\n▶ Universidad 06 «La graduación» (ceremonia, foto, el brindis de toda una vida)")
+leo.Prefer = { "La sudadera de dinosaurios" }
+leo.Picks = {}
 leoData.Life.StageSeconds = HOURS.AdultoJoven * 3600
 check(playUntil(leo, function()
-	return leoData.Story.Completed.Uni_Graduacion ~= nil
-end), "Semestres, prácticas y graduación")
+	return leoData.Story.Completed.Uni06_Graduacion ~= nil
+end), "Universidad 06 completa")
+check(leoData.Story.Choices.LookGraduacion.V == "Dinosaurios" and said(leo, "Tienes trabajo esperando"), "La sudadera de dinosaurios bajo la toga, y la oferta de las prácticas")
+check(said(leo, "Todo empezó ahí.") and said(leo, "La final del torneo. Plata.") and said(leo, "Nunca se lo agradecí bien"), "El brindis recuerda lo que viviste: Mateo, el torneo, Leire")
+check(said(leo, "me acuerdo de que empezamos de cero") and not said(leo, "Ahora ya no me acuerdo de por qué"), "Bruno recuerda que empezasteis de cero")
 local degreeSubjects = Subjects.Degrees.Ingenieria
 local uniClasses = {}
 for _, subject in classesOf(leo) do
@@ -1278,9 +1306,12 @@ for _, subject in classesOf(leo) do
 end
 check(uniClasses[degreeSubjects.Asignatura1] and uniClasses[degreeSubjects.Asignatura2], "Las clases son las de Ingeniería")
 check(leoData.Story.Flags.Graduado and leoData.Education.Degrees[degreeSubjects.Titulo] ~= nil, "Título guardado: graduado en Ingeniería")
-check(cinematic(leo, "Uni_Graduacion"), "Cinemática de graduación")
+check(cinematic(leo, "Uni_Graduacion") and leoData.Items.OrlaUniversidad == 1 and leoData.Story.Memories.Graduacion ~= nil, "Cinemática de graduación, orla y recuerdo")
 task.wait(1)
 check(leoData.Story.Active.Adulto_LlegadaValmar ~= nil or leoData.Story.Chapter == "Adulto_NuevaVida", "Después empieza la vida profesional")
+check(playUntil(leo, function()
+	return leoData.Story.Completed.Adulto_LlegadaValmar ~= nil
+end, nil, 80), "La vida adulta no te pide buscar casa otra vez (ya tienes la tuya)")
 check(pcall(serde.encode, "json", leoData), "Toda una vida se puede guardar (JSON válido)")
 
 print("\n▶ Otra rama: dejar de estudiar y ponerse a trabajar")

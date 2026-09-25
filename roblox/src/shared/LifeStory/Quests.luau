@@ -138,46 +138,6 @@ local Quests: { [string]: Quest } = {
 	-----------------------------------------------------------------
 	-- UNIVERSIDAD (unas 5 horas). "$Carrera.X" = lo de la carrera que elegiste (Subjects.Degrees)
 	-----------------------------------------------------------------
-	Uni_Practicas = {
-		Kind = "Main",
-		TitleKey = "QUEST.UNI_PRACTICAS.TITLE",
-		Requires = { Completed = { "Uni03_PrimerTrabajo" }, StageProgress = 0.55 },
-		Steps = {
-			{ Type = "Reach", Place = "$Carrera.LugarPracticas", TextKey = "QUEST.UNI.PRACTICAS_IR" },
-			{ Type = "Class", Subject = "$Carrera.Practica", Mode = "Practica", Place = "$Carrera.LugarPracticas", TextKey = "QUEST.UNI.PRACTICAS_DIA1" },
-			{ Type = "Class", Subject = "$Carrera.Practica", Mode = "Practica", Place = "$Carrera.LugarPracticas", TextKey = "QUEST.UNI.PRACTICAS_DIA2" },
-		},
-		Rewards = { Money = 150 },
-		MomentKey = "MOMENT.UNI_PRACTICAS",
-	},
-	Uni_TercerSemestre = {
-		Kind = "Main",
-		TitleKey = "QUEST.UNI_SEM3.TITLE",
-		Requires = { Completed = { "Uni_Practicas" }, StageProgress = 0.75 },
-		Steps = {
-			{ Type = "Class", Subject = "$Carrera.Asignatura1", Mode = "Clase", Place = "$Carrera.Facultad", TextKey = "QUEST.UNI.CLASE" },
-			{ Type = "Class", Subject = "$Carrera.Asignatura2", Mode = "Clase", Place = "$Carrera.Facultad", TextKey = "QUEST.UNI.CLASE" },
-			{ Type = "Class", Subject = "$Carrera.Asignatura1", Mode = "Estudio", Place = "Biblioteca", TextKey = "QUEST.UNI.ESTUDIA" },
-			{ Type = "Class", Subject = "$Carrera.Asignatura1", Mode = "Examen", Place = "$Carrera.Facultad", TextKey = "QUEST.UNI.EXAMEN" },
-		},
-		Rewards = { Money = 100 },
-		MomentKey = "MOMENT.UNI_SEMESTRE3",
-	},
-	Uni_Graduacion = {
-		Kind = "Main",
-		TitleKey = "QUEST.UNI_GRADUACION.TITLE",
-		Requires = { Completed = { "Uni_TercerSemestre" }, StageProgress = 0.93 },
-		Steps = {
-			{ Type = "Class", Subject = "$Carrera.Asignatura2", Mode = "Estudio", Place = "Biblioteca", TextKey = "QUEST.UNI.REPASO" },
-			{ Type = "Class", Subject = "$Carrera.Asignatura2", Mode = "Examen", Place = "$Carrera.Facultad", TextKey = "QUEST.UNI.EXAMEN_FINAL" },
-			{ Type = "Reach", Place = "$Carrera.Facultad", TextKey = "QUEST.UNI.CEREMONIA" },
-			{ Type = "Cinematic", Id = "Uni_Graduacion" },
-		},
-		Rewards = { Money = 500, Degree = "$Carrera.Titulo", Flags = { "Graduado" } },
-		MomentKey = "MOMENT.GRADUADO",
-		MomentSting = false,
-	},
-
 	Uni_Jornada = {
 		Kind = "Main",
 		TitleKey = "QUEST.DIA_UNI.TITLE",
@@ -211,7 +171,7 @@ local Quests: { [string]: Quest } = {
 		TitleKey = "QUEST.LLEGADA.TITLE",
 		Steps = {
 			{ Type = "Reach", Place = "PlazaCentro", TextKey = "QUEST.LLEGADA.PLAZA" },
-			{ Type = "Event", Event = "HomeClaimed", TextKey = "QUEST.LLEGADA.CASA" },
+			{ Type = "Event", Event = "HomeClaimed", TextKey = "QUEST.LLEGADA.CASA", If = { NotFlags = { "TieneHogar" } } }, -- si ya te independizaste en la universidad, no hace falta
 			{ Type = "Event", Event = "Ate", TextKey = "QUEST.LLEGADA.COMER" },
 		},
 		Rewards = { Money = 100, Flags = { "TieneHogar" } },
