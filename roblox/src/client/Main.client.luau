@@ -24,6 +24,7 @@ local DrivingSchool = require(script.Parent.Controllers.DrivingSchool)
 local Restaurant = require(script.Parent.Controllers.Restaurant)
 local Character = require(script.Parent.Controllers.Character)
 local Prompts = require(script.Parent.Controllers.Prompts)
+local Cinematics = require(script.Parent.Controllers.Cinematics)
 
 local gui = Hud.init(function()
 	Store.open()
@@ -66,9 +67,14 @@ end)
 -- (objetivos a la izquierda y menú): se ocultan para que no salgan repetidos.
 task.spawn(function()
 	local playerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+	-- (se esconde el botón y no la pantalla entera: las cinemáticas vuelven a encender las pantallas)
 	local audioGui = playerGui:WaitForChild("StoryAudio", 30)
-	if audioGui and audioGui:IsA("ScreenGui") then
-		audioGui.Enabled = false
+	if audioGui then
+		for _, child in audioGui:GetChildren() do
+			if child:IsA("GuiObject") then
+				child.Visible = false
+			end
+		end
 	end
 	local story = playerGui:WaitForChild("LifeStory", 30)
 	local dock = story and story:WaitForChild("LifeStoryDock", 30)
@@ -88,5 +94,19 @@ Notify.OnClientEvent:Connect(function(kind: string, text: string)
 		Hud.fade(text, 2)
 	else
 		Hud.toast(kind, text)
+	end
+end)
+
+-- Durante las cinemáticas y las conversaciones no se puede interactuar con nada:
+-- se apagan los carteles de "pulsa E" (y el mapa grande se cierra)
+local ProximityPromptService = game:GetService("ProximityPromptService")
+local localPlayer = game:GetService("Players").LocalPlayer
+game:GetService("RunService").Heartbeat:Connect(function()
+	local busy = Cinematics.isPlaying() or localPlayer:GetAttribute("InDialogue") == true
+	if ProximityPromptService.Enabled == busy then
+		ProximityPromptService.Enabled = not busy
+		if busy and MapUI.isOpen() then
+			MapUI.toggleBig()
+		end
 	end
 end)
