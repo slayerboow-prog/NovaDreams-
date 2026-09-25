@@ -134,9 +134,9 @@ function Vehicles.init()
 	local gui = player:WaitForChild("PlayerGui"):WaitForChild("MainHud")
 	local getOff = Theme.button({
 		Name = "GetOff",
-		AnchorPoint = Vector2.new(0.5, 1),
+		AnchorPoint = Vector2.new(1, 1),
 		Size = UDim2.fromOffset(180, 46),
-		Position = UDim2.new(0.5, 0, 1, -124), -- encima de la barra rápida de la mochila
+		Position = UDim2.new(1, -24, 1, -180), -- abajo a la derecha: el centro es de la mochila y los diálogos
 		Text = "⬇ Bajarse (F)",
 		BackgroundColor3 = Color3.fromRGB(150, 60, 40),
 		Visible = false,

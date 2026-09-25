@@ -799,13 +799,13 @@ check(bubble ~= nil and string.find(bubble.TextLabel.Text, "Quiero", 1, true) ~=
 local said = bubble.TextLabel.Text
 waitFor(function()
 	return lastMessage(waiter, "TakeOrder") ~= nil
-end, 3, "las opciones del camarero")
+end, 8, "las opciones del camarero")
 local take = lastMessage(waiter, "TakeOrder")
 check(#take[3] == Gameplay.Restaurant.OrderOptions, "el camarero ve 4 opciones")
 local correctIndex, wrongIndex
 for i, option in take[3] do
-	local lowered = string.lower(string.sub(option, 1, 1)) .. string.sub(option, 2)
-	if string.find(said, lowered .. ", por favor", 1, true) then
+	-- Frase exacta (una opción puede ser el final de otra: "zumo de naranja")
+	if said == "¡Hola! Quiero " .. string.lower(string.sub(option, 1, 1)) .. string.sub(option, 2) .. ", por favor." then
 		correctIndex = i
 	else
 		wrongIndex = i
@@ -820,8 +820,8 @@ waitFor(function()
 end, 4, "las opciones otra vez")
 take = lastMessage(waiter, "TakeOrder")
 for i, option in take[3] do
-	local lowered = string.lower(string.sub(option, 1, 1)) .. string.sub(option, 2)
-	if string.find(said, lowered .. ", por favor", 1, true) then
+	-- Frase exacta (una opción puede ser el final de otra: "zumo de naranja")
+	if said == "¡Hola! Quiero " .. string.lower(string.sub(option, 1, 1)) .. string.sub(option, 2) .. ", por favor." then
 		correctIndex = i
 	end
 end
@@ -864,11 +864,11 @@ promptOf(customer2).Triggered:Fire(waiter)
 said = customer2.Head.Bubble.TextLabel.Text
 waitFor(function()
 	return lastMessage(waiter, "TakeOrder") ~= nil
-end, 3, "opciones")
+end, 8, "opciones")
 take = lastMessage(waiter, "TakeOrder")
 for i, option in take[3] do
-	local lowered = string.lower(string.sub(option, 1, 1)) .. string.sub(option, 2)
-	if string.find(said, lowered .. ", por favor", 1, true) then
+	-- Frase exacta (una opción puede ser el final de otra: "zumo de naranja")
+	if said == "¡Hola! Quiero " .. string.lower(string.sub(option, 1, 1)) .. string.sub(option, 2) .. ", por favor." then
 		correctIndex = i
 	end
 end
@@ -893,7 +893,7 @@ end
 check(profiles[barman].Money > moneyBefore, "el barman jugador prepara los platos")
 waitFor(function()
 	return notified(waiter, "está listo en el pase")
-end, 3, "plato listo")
+end, 10, "plato listo")
 local waiterMoney = profiles[waiter].Money
 promptOf(passPart).Triggered:Fire(waiter)
 local carried = waiter.Character:FindFirstChild("CarriedPlate")
