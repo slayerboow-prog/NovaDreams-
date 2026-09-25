@@ -20,7 +20,7 @@ local Vehicles = {}
 local player = Players.LocalPlayer
 local Remote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Vehicle") :: RemoteEvent
 
-local STAGE_TEXT = { Adolescente = "Desde adolescente", AdultoJoven = "Mayor de edad" }
+local STAGE_TEXT = { Nino = "Desde niño", Adolescente = "Desde adolescente", AdultoJoven = "Mayor de edad" }
 
 local function has(attribute: string, key: string): boolean
 	local list = player:GetAttribute(attribute)

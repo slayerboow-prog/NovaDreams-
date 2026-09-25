@@ -10,10 +10,11 @@ local Gameplay = {}
 -- Se compran desde el botón "🚲 Vehículos" y se sacan en cualquier sitio.
 -- Las bicis y monopatines públicos (junto a las paradas de autobús) son gratis.
 ---------------------------------------------------------------------
+-- Stage = etapa mínima: la bici y el patinete se pueden usar desde la infancia
 Gameplay.Vehicles = {
 	Monopatin = { Name = "Monopatín", Icon = "🛹", Price = 150, Speed = 26, Stage = "Adolescente", Order = 1 },
-	Patinete = { Name = "Patinete eléctrico", Icon = "🛴", Price = 250, Speed = 30, Stage = "Adolescente", Order = 2 },
-	Bici = { Name = "Bicicleta", Icon = "🚲", Price = 350, Speed = 34, Stage = "Adolescente", Order = 3 },
+	Patinete = { Name = "Patinete eléctrico", Icon = "🛴", Price = 250, Speed = 30, Stage = "Nino", Order = 2 },
+	Bici = { Name = "Bicicleta", Icon = "🚲", Price = 350, Speed = 34, Stage = "Nino", Order = 3 },
 	Moto = { Name = "Moto", Icon = "🛵", Price = 3500, Speed = 58, Stage = "AdultoJoven", License = "A", Order = 4 },
 	Coche = { Name = "Coche", Icon = "🚗", Price = 9000, Speed = 72, Stage = "AdultoJoven", License = "B", Order = 5 },
 	-- El autobús no se compra: lo conduce quien trabaja de conductor (BusService)
