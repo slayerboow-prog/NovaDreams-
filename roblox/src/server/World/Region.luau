@@ -15,6 +15,7 @@ local Builder = require(script.Parent.Builder)
 local Kit = script.Parent.Kit
 local Blocks = require(Kit.Blocks)
 local Civic = require(Kit.Civic)
+local Barrios = require(Kit.Barrios)
 local Props = require(Kit.Props)
 local Rides = require(Kit.Rides)
 local Street = require(Kit.Street)
@@ -159,6 +160,10 @@ function Region.roads(): { Street.Road }
 			end
 		end
 	end
+	-- Calles de los barrios nuevos entre las ciudades
+	for _, road in Barrios.roads() do
+		table.insert(list, road)
+	end
 	return list
 end
 
@@ -191,6 +196,9 @@ function Region.blockRects(): { { X0: number, X1: number, Z0: number, Z1: number
 				table.insert(list, { X0 = c.X + CELLS[i][1], X1 = c.X + CELLS[i][2], Z0 = c.Z + CELLS[j][1], Z1 = c.Z + CELLS[j][2] })
 			end
 		end
+	end
+	for _, cell in Barrios.cells() do
+		table.insert(list, { X0 = cell.X0, X1 = cell.X1, Z0 = cell.Z0, Z1 = cell.Z1 })
 	end
 	return list
 end

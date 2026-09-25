@@ -28,17 +28,17 @@ local player = Players.LocalPlayer
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 local Remote: RemoteEvent
 
--- Colores de Minecraft
+-- Colores (mismo estilo que el HUD: azul marino con bordes azules)
 local MC = {
-	Panel = Color3.fromRGB(198, 198, 198),
-	Light = Color3.fromRGB(255, 255, 255),
-	Shade = Color3.fromRGB(85, 85, 85),
-	Slot = Color3.fromRGB(139, 139, 139),
-	SlotDark = Color3.fromRGB(55, 55, 55),
-	Text = Color3.fromRGB(63, 63, 63),
-	Tooltip = Color3.fromRGB(16, 1, 16),
-	TooltipBorder = Color3.fromRGB(40, 1, 90),
-	Selected = Color3.fromRGB(255, 255, 255),
+	Panel = Color3.fromRGB(16, 28, 52),
+	Light = Color3.fromRGB(80, 140, 240),
+	Shade = Color3.fromRGB(10, 18, 34),
+	Slot = Color3.fromRGB(30, 46, 78),
+	SlotDark = Color3.fromRGB(20, 32, 58),
+	Text = Color3.fromRGB(235, 240, 250),
+	Tooltip = Color3.fromRGB(12, 22, 42),
+	TooltipBorder = Color3.fromRGB(80, 140, 240),
+	Selected = Color3.fromRGB(90, 180, 255),
 	InUse = Color3.fromRGB(255, 196, 60),
 	Food = Color3.fromRGB(255, 170, 60),
 }
@@ -135,22 +135,19 @@ local function inUse(item: Items.Item?): boolean
 end
 
 -- Borde en relieve de Minecraft: claro arriba-izquierda y oscuro abajo-derecha (o al revés = hundido)
-local function bevel(frame: GuiObject, topLeft: Color3, bottomRight: Color3, thickness: number)
-	local function edge(position: UDim2, size: UDim2, color: Color3)
-		create("Frame", {
-			Name = "Bevel",
-			Position = position,
-			Size = size,
-			BackgroundColor3 = color,
-			BorderSizePixel = 0,
-			ZIndex = frame.ZIndex + 1,
+-- Esquinas redondeadas y borde azul. (Antes eran 4 marcos de "relieve" dentro del panel: en los
+-- paneles con lista se colaban en la lista, estiraban la ventana y empujaban todo fuera de la pantalla.)
+local function bevel(frame: GuiObject, _topLeft: Color3?, _bottomRight: Color3?, radius: number?)
+	create("UICorner", { CornerRadius = UDim.new(0, (radius or 3) * 3), Parent = frame })
+	if not frame:FindFirstChildOfClass("UIStroke") then
+		create("UIStroke", {
+			Color = MC.Light,
+			Transparency = 0.55,
+			Thickness = 1.5,
+			ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 			Parent = frame,
 		})
 	end
-	edge(UDim2.fromOffset(0, 0), UDim2.new(1, 0, 0, thickness), topLeft)
-	edge(UDim2.fromOffset(0, 0), UDim2.new(0, thickness, 1, 0), topLeft)
-	edge(UDim2.new(0, 0, 1, -thickness), UDim2.new(1, 0, 0, thickness), bottomRight)
-	edge(UDim2.new(1, -thickness, 0, 0), UDim2.new(0, thickness, 1, 0), bottomRight)
 end
 
 local function makeSlot(parent: Instance, size: number, order: number, zIndex: number): SlotView
@@ -164,7 +161,7 @@ local function makeSlot(parent: Instance, size: number, order: number, zIndex: n
 		ZIndex = zIndex,
 		Parent = parent,
 	})
-	bevel(button, MC.SlotDark, MC.Light, 2)
+	create("UICorner", { CornerRadius = UDim.new(0, 8), Parent = button })
 	local icon = create("TextLabel", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
@@ -201,10 +198,10 @@ local function makeSlot(parent: Instance, size: number, order: number, zIndex: n
 		Parent = button,
 	})
 	local stroke = create("UIStroke", {
-		Color = MC.InUse,
-		Thickness = 2,
+		Color = MC.Light,
+		Transparency = 0.6,
+		Thickness = 1.5,
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-		Enabled = false,
 		Parent = button,
 	})
 	return { Button = button, Icon = icon, Count = count, Hover = hover, InUse = stroke }
@@ -215,7 +212,10 @@ local function paint(view: SlotView, index: number)
 	local hidden = held == index -- el que llevas en el ratón deja la casilla vacía
 	view.Icon.Text = if item and not hidden then item.Icon else ""
 	view.Count.Text = if item and not hidden and count > 1 then tostring(count) else ""
-	view.InUse.Enabled = not hidden and inUse(item)
+	local using = not hidden and inUse(item)
+	view.InUse.Color = if using then MC.InUse else MC.Light
+	view.InUse.Transparency = if using then 0 else 0.6
+	view.InUse.Thickness = if using then 2.5 else 1.5
 end
 
 ---------------------------------------------------------------------
@@ -267,11 +267,13 @@ local function buildHotbar()
 		Position = UDim2.new(0.5, 0, 1, -10),
 		Size = UDim2.fromOffset(0, HOTBAR_SLOT + 8),
 		AutomaticSize = Enum.AutomaticSize.X,
-		BackgroundColor3 = Color3.fromRGB(20, 20, 20),
-		BackgroundTransparency = 0.35,
+		BackgroundColor3 = MC.Panel,
+		BackgroundTransparency = 0.25,
 		BorderSizePixel = 0,
 		Parent = gui,
 	})
+	create("UICorner", { CornerRadius = UDim.new(0, 12), Parent = hotbar })
+	create("UIStroke", { Color = MC.Light, Transparency = 0.5, Thickness = 1.5, Parent = hotbar })
 	create("UIPadding", {
 		PaddingLeft = UDim.new(0, 4),
 		PaddingRight = UDim.new(0, 4),
@@ -312,6 +314,7 @@ local function buildHotbar()
 			ZIndex = 8,
 			Parent = view.Button,
 		})
+		create("UICorner", { CornerRadius = UDim.new(0, 10), Parent = selectedFrame })
 		create("UIStroke", { Color = MC.Selected, Thickness = 3, Parent = selectedFrame })
 		view.Button.Activated:Connect(function()
 			chooseSlot(i)
@@ -412,7 +415,7 @@ end
 local function mcButton(text: string, parent: Instance, order: number): TextButton
 	local button = create("TextButton", {
 		Size = UDim2.fromOffset(92, 28),
-		BackgroundColor3 = Color3.fromRGB(111, 111, 111),
+		BackgroundColor3 = Color3.fromRGB(36, 110, 230),
 		BorderSizePixel = 0,
 		AutoButtonColor = true,
 		Font = Theme.FontBold,
@@ -424,7 +427,7 @@ local function mcButton(text: string, parent: Instance, order: number): TextButt
 		ZIndex = 12,
 		Parent = parent,
 	})
-	bevel(button, Color3.fromRGB(170, 170, 170), Color3.fromRGB(40, 40, 40), 2)
+	bevel(button, nil, nil, 3)
 	return button
 end
 
@@ -548,7 +551,10 @@ local function buildWindow()
 		Parent = overlay,
 	})
 	windowScale = create("UIScale", { Parent = window })
-	bevel(window, MC.Light, MC.Shade, 3)
+	create("UICorner", { CornerRadius = UDim.new(0, 16), Parent = window })
+	create("UIStroke", { Color = MC.Light, Transparency = 0.2, Thickness = 2, Parent = window })
+	create("UIGradient", { Rotation = 90, Color = ColorSequence.new(Color3.fromRGB(24, 40, 72), Color3.fromRGB(10, 18, 34)), Parent = window })
+	window.BackgroundColor3 = Color3.new(1, 1, 1) -- el degradado pone el color
 	create("UIPadding", {
 		PaddingLeft = UDim.new(0, 14),
 		PaddingRight = UDim.new(0, 14),
@@ -559,14 +565,16 @@ local function buildWindow()
 	create("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder, Parent = window })
 
 	-- Cabecera: título y cerrar
-	local header = create("Frame", { Size = UDim2.new(1, 0, 0, 22), BackgroundTransparency = 1, LayoutOrder = 1, ZIndex = 11, Parent = window })
-	local title = label("Inventario", header, 1)
-	title.TextSize = 18
-	local close = mcButton("✕", header, 2)
+	local header = create("Frame", { Size = UDim2.new(1, 0, 0, 34), BackgroundTransparency = 1, LayoutOrder = 1, ZIndex = 11, Parent = window })
+	local title = label("🎒  Mochila", header, 1)
+	title.TextSize = 22
+	title.Size = UDim2.new(1, -130, 1, 0)
+	local close = mcButton("✕  Cerrar", header, 2)
 	close.AnchorPoint = Vector2.new(1, 0)
 	close.Position = UDim2.fromScale(1, 0)
-	close.Size = UDim2.fromOffset(34, 28)
-	close.TextSize = 18
+	close.Size = UDim2.fromOffset(116, 34)
+	close.TextSize = 16
+	close.BackgroundColor3 = Color3.fromRGB(170, 50, 64)
 	close.Activated:Connect(function()
 		InventoryUI.close()
 	end)
@@ -575,7 +583,7 @@ local function buildWindow()
 	local top = create("Frame", { Size = UDim2.new(1, 0, 0, 160), BackgroundTransparency = 1, LayoutOrder = 2, ZIndex = 11, Parent = window })
 	viewport = create("ViewportFrame", {
 		Size = UDim2.fromOffset(120, 160),
-		BackgroundColor3 = Color3.new(0, 0, 0),
+		BackgroundColor3 = Color3.fromRGB(20, 34, 62),
 		BorderSizePixel = 0,
 		Ambient = Color3.fromRGB(170, 170, 170),
 		LightColor = Color3.fromRGB(255, 250, 240),
@@ -635,7 +643,7 @@ local function buildWindow()
 	end)
 
 	-- Mochila (10-36) y, separada, la barra rápida (1-9), como en Minecraft
-	label("Mochila", window, 3)
+	label("Objetos", window, 3).TextColor3 = Color3.fromRGB(165, 178, 200)
 	row(window, 10, 18, 4)
 	row(window, 19, 27, 5)
 	row(window, 28, 36, 6)
@@ -644,7 +652,7 @@ local function buildWindow()
 	local back = mcButton("⬅  Volver al juego", window, 100)
 	back.Size = UDim2.new(1, 0, 0, 38)
 	back.TextSize = 17
-	back.BackgroundColor3 = Color3.fromRGB(70, 120, 70)
+	back.BackgroundColor3 = Color3.fromRGB(40, 150, 90)
 	back.Activated:Connect(function()
 		InventoryUI.close()
 	end)
@@ -678,7 +686,8 @@ local function buildWindow()
 		Visible = false,
 		Parent = cursorGui,
 	})
-	create("UIStroke", { Color = MC.TooltipBorder, Thickness = 2, Parent = tooltip })
+	create("UICorner", { CornerRadius = UDim.new(0, 8), Parent = tooltip })
+	create("UIStroke", { Color = MC.TooltipBorder, Thickness = 1.5, Parent = tooltip })
 	create("UIPadding", { PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8), PaddingTop = UDim.new(0, 3), Parent = tooltip })
 	create("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Parent = tooltip })
 	tooltipName = create("TextLabel", {

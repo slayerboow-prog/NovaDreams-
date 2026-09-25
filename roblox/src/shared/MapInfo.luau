@@ -46,6 +46,15 @@ MapInfo.Districts = {
 	district("Campus Valmar", "Distrito Universitario", "Estudios y juventud", "🎓", rgb(40, 200, 220), -1250, -1100),
 	district("Distrito Financiero", "Distrito Financiero", "Oficinas y rascacielos", "🏦", rgb(250, 130, 40), -1250, 1100),
 	district("Villaverde", "Villaverde", "Granjas y campo", "🚜", rgb(150, 200, 70), 1250, -1100),
+	-- Barrios nuevos entre las ciudades (World/Kit/Barrios.luau)
+	{ Town = "Zona Industrial", Name = "Zona Industrial", Theme = "Naves y puerto", Icon = "🏭", Color = rgb(150, 150, 165), Min = Vector2.new(1020, 390), Max = Vector2.new(1480, 1440) },
+	{ Town = "Zona Industrial", Name = "Zona Industrial", Theme = "Naves y puerto", Icon = "🏭", Color = rgb(150, 150, 165), Min = Vector2.new(390, 670), Max = Vector2.new(1010, 1130) },
+	{ Town = "Parque Empresarial", Name = "Parque Empresarial", Theme = "Oficinas", Icon = "🏢", Color = rgb(250, 160, 80), Min = Vector2.new(-850, 380), Max = Vector2.new(-430, 1440) },
+	{ Town = "Las Huertas", Name = "Las Huertas", Theme = "Huertas y campo", Icon = "🥕", Color = rgb(170, 200, 90), Min = Vector2.new(430, -1440), Max = Vector2.new(850, -250) },
+	{ Town = "Bosque Alto", Name = "Bosque Alto", Theme = "Urbanización", Icon = "🌲", Color = rgb(110, 170, 110), Min = Vector2.new(-850, -1440), Max = Vector2.new(-430, -250) },
+	{ Town = "El Olivar", Name = "El Olivar", Theme = "Urbanización", Icon = "🏡", Color = rgb(120, 170, 230), Min = Vector2.new(-870, -380), Max = Vector2.new(-410, 380) },
+	{ Town = "Mirasol", Name = "Mirasol", Theme = "Urbanización", Icon = "🏡", Color = rgb(120, 170, 230), Min = Vector2.new(410, -380), Max = Vector2.new(870, 380) },
+	{ Town = "Las Acacias", Name = "Las Acacias", Theme = "Urbanización", Icon = "🏡", Color = rgb(240, 200, 90), Min = Vector2.new(-370, 290), Max = Vector2.new(370, 690) },
 } :: { District }
 
 -- Límites del mapa grande (X, Z del mundo): toda la región, el mar y la isla del faro

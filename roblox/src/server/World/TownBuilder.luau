@@ -593,7 +593,7 @@ local function buildOutskirts(world: Instance)
 				return true
 			end
 		end
-		return x > 1600 or Landmarks.blocked(x, z)
+		return x > 1600 or Landmarks.blocked(x, z) or require(Kit.Barrios).blocked(x, z)
 	end
 	-- Grupos de árboles (bosquecillos) en vez de árboles sueltos al azar
 	for _ = 1, 70 do
@@ -643,6 +643,7 @@ function TownBuilder.build(): Folder
 	buildStreetLife(world)
 	Region.build(world)
 	Landmarks.build(world) -- puerto, isla del faro y mirador
+	require(Kit.Barrios).build(world) -- barrios nuevos entre las ciudades (casas, zona industrial, oficinas, huertas)
 	buildOutskirts(world)
 	-- Repaso final: que ninguna moldura, bordillo o cristalera parpadee contra la pared de detrás
 	-- (varias pasadas: al crecer una pieza puede quedar a ras de otra)
