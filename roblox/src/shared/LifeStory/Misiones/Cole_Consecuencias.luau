@@ -137,21 +137,21 @@ return {
 		Props = {
 			Huella1 = { Kind = "Huella", Name = "Huellitas de gato", Prompt = "Seguir", Place = "Patio", Offset = V(-14, 0, 4), Dialogue = "Huella1", Once = true },
 			Huella2 = { Kind = "Huella", Name = "Huellitas de gato", Prompt = "Seguir", Place = "CanchaColegio", Offset = V(20, 0, -10), Dialogue = "Huella2", Once = true },
-			Huella3 = { Kind = "Huella", Name = "Huellitas de gato", Prompt = "Seguir", Place = "GimnasioColegio", Offset = V(-14, 0, 10), Dialogue = "Huella3", Once = true },
-			Bigotes = { Kind = "Gato", Name = "Bigotes", Prompt = "Acercarte", Place = "AlmacenColegio", Offset = V(3, 0, -4) },
+			Huella3 = { Kind = "Huella", Name = "Huellitas de gato", Prompt = "Seguir", Place = "SpotGimnasioPuerta", Offset = V(3, 0, 0), Dialogue = "Huella3", Once = true },
+			Bigotes = { Kind = "Gato", Name = "Bigotes", Prompt = "Acercarte", Place = "SpotAlmacenNPC", Offset = V(-3, 0, 0) },
 		},
 		Steps = {
-			{ Type = "Reach", Place = "GimnasioColegio", Text = "Busca a Bigotes detrás del gimnasio (en el cole)",
-				Actors = { { Npc = "Omar", Place = "GimnasioColegio", Offset = V(-10, 0, 6) } } },
+			{ Type = "Reach", Place = "SpotGimnasioPuerta", Text = "Busca a Bigotes junto al gimnasio (en el cole)",
+				Actors = { { Npc = "Omar", Place = "SpotGimnasioPuerta", Offset = V(-3, 0, -2) } } },
 			{ Type = "Talk", Npc = "Omar", Dialogue = "Omar_Preocupado", Text = "Habla con Omar",
-				Actors = { { Npc = "Omar", Place = "GimnasioColegio", Offset = V(-10, 0, 6) } } },
+				Actors = { { Npc = "Omar", Place = "SpotGimnasioPuerta", Offset = V(-3, 0, -2) } } },
 			{ Type = "Group", Text = "Sigue las huellitas", Steps = {
 				{ Type = "Use", Prop = "Huella1", Text = "En el patio" },
 				{ Type = "Use", Prop = "Huella2", Text = "En la cancha" },
 				{ Type = "Use", Prop = "Huella3", Text = "Junto al gimnasio" },
 			}, Actors = { { Npc = "Omar", Mode = "Follow" } } },
 			{ Type = "Use", Prop = "Bigotes", Text = "¡Ahí está! Acércate despacio", Actors = { { Npc = "Omar", Mode = "Follow" } } },
-			{ Type = "Scene", Dialogue = "Encontrado", Actors = { { Npc = "Omar", Place = "AlmacenColegio", Offset = V(0, 0, -2) }, { Npc = "Ramon", Place = "AlmacenColegio", Offset = V(-4, 0, 2) } }, Props = { "Bigotes" } },
+			{ Type = "Scene", Dialogue = "Encontrado", Actors = { { Npc = "Omar", Place = "SpotAlmacenNPC", Offset = V(0, 0, 2) }, { Npc = "Ramon", Place = "SpotAlmacenNPC", Offset = V(3, 0, 2) } }, Props = { "Bigotes" } },
 		},
 		Dialogues = {
 			Omar_Preocupado = { Lines = {

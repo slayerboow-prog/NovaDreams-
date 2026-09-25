@@ -264,7 +264,8 @@ local function endGame(player: Player, token: any, result: any)
 		score = math.floor(result)
 	end
 	score = math.clamp(score, 0, info.MaxScore)
-	local tickets = math.floor(score / info.TicketsPer)
+	-- La Suerte del personaje da algún ticket de más
+	local tickets = math.floor(score / info.TicketsPer * (1 + 0.02 * (player:GetAttribute("Stat_Suerte") or 0)))
 	local data = DataService.get(player)
 	if data then
 		ensure(data)

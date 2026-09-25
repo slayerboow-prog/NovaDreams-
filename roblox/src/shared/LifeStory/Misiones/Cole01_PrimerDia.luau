@@ -8,27 +8,27 @@
 local V = Vector3.new
 
 -- Quién está dónde (se repite en varios pasos: así los actores no desaparecen entre escenas)
-local FAMILIA_DORMITORIO = { Npc = "Familia", Place = "HomeDormitorio", Offset = V(2, 0, 2.5) }
+local FAMILIA_DORMITORIO = { Npc = "Familia", Place = "CasaDespertar" }
 local FAMILIA_COCINA = { Npc = "Familia", Place = "HomeCocina", Offset = V(-1.5, 0, 2.5) }
 local ABU_SALON = { Npc = "Abu", Place = "HomeSalon", Offset = V(11, 0, -2.5), Talk = "Abu_Suerte" }
 local FAMILIA_CON_TIGO = { Npc = "Familia", Mode = "Follow", If = { Choices = { Acompanante = "Familia" } } }
 local DANI = { Npc = "Dani", Place = "CaminoAlCole", Offset = V(3, 0, 0) }
 
 local ENTRADA = {
-	{ Npc = "Ramon", Place = "EntradaColegio", Offset = V(-5, 0, -3), Look = V(0, 0, -1) },
+	{ Npc = "Ramon", Place = "SpotProfesorEntrada" },
 	{ Npc = "Alumno1", Place = "EntradaColegio", Offset = V(6, 0, -8), Mode = "Wander", Radius = 6, Prompt = false },
 	{ Npc = "Alumno2", Place = "EntradaColegio", Offset = V(-8, 0, -10), Mode = "Wander", Radius = 6, Prompt = false },
 	{ Npc = "Alumno3", Place = "EntradaColegio", Offset = V(10, 0, -12), Mode = "Wander", Radius = 8, Prompt = false },
 	{ Npc = "Alumno4", Place = "EntradaColegio", Offset = V(-12, 0, -6), Mode = "Wander", Radius = 6, Prompt = false },
-	{ Npc = "Mayor1", Place = "EntradaColegio", Offset = V(14, 0, -5), Mode = "Wander", Radius = 5, Prompt = false },
-	{ Npc = "Madre", Place = "EntradaColegio", Offset = V(-15, 0, -12), Mode = "Wave", Prompt = false },
-	{ Npc = "Padre", Place = "EntradaColegio", Offset = V(16, 0, -13), Bark = "Pórtate bien, ¿eh? ¡Y come la fruta!" },
+	{ Npc = "Mayor1", Place = "SpotPadres3", Offset = V(2, 0, 0), Mode = "Wander", Radius = 5, Prompt = false },
+	{ Npc = "Madre", Place = "SpotPadres1", Mode = "Wave", Prompt = false },
+	{ Npc = "Padre", Place = "SpotPadres2", Bark = "Pórtate bien, ¿eh? ¡Y come la fruta!" },
 }
 
 local PROFES = {
-	{ Npc = "Lucia", Place = "Vestibulo", Offset = V(3, 0, 3) },
-	{ Npc = "Andres", Place = "Vestibulo", Offset = V(-4, 0, 1), Talk = "Andres_Pista" },
-	{ Npc = "Marta", Place = "Vestibulo", Offset = V(-1, 0, 6), Talk = "Marta_Pista" },
+	{ Npc = "Lucia", Place = "PasilloColegio", Offset = V(3, 0, 3) },
+	{ Npc = "Andres", Place = "PasilloColegio", Offset = V(-4, 0, 1), Talk = "Andres_Pista" },
+	{ Npc = "Marta", Place = "PasilloColegio", Offset = V(-1, 0, 6), Talk = "Marta_Pista" },
 }
 
 -- La clase de 1.º A, sentada (pupitres por orden: 1-4 primera fila… la pizarra queda delante)
@@ -50,12 +50,12 @@ local CLASE = {
 }
 
 local RECREO = {
-	{ Npc = "Nico", Place = "CanchaColegio", Offset = V(-6, 0, 0) },
-	{ Npc = "Alex", Place = "CanchaColegio", Offset = V(-8, 0, 3), Talk = "Alex_Recreo" },
-	{ Npc = "Omar", Place = "JuegosColegio", Offset = V(3, 0, 5) },
-	{ Npc = "Vega", Place = "JuegosColegio", Offset = V(5, 0, 3), Talk = "Vega_Recreo" },
-	{ Npc = "Sara", Place = "Patio", Offset = V(-10, 0, -14) },
-	{ Npc = "Iker", Place = "Patio", Offset = V(-12, 0, -12), Talk = "Iker_Recreo" },
+	{ Npc = "Nico", Place = "SpotGrupoDeportistas", Offset = V(-1.5, 0, 0) },
+	{ Npc = "Alex", Place = "SpotGrupoDeportistas", Offset = V(1.5, 0, 1), Talk = "Alex_Recreo" },
+	{ Npc = "Omar", Place = "SpotGrupoArtistas", Offset = V(-1.5, 0, 0) },
+	{ Npc = "Vega", Place = "SpotGrupoArtistas", Offset = V(1.5, 0, 1), Talk = "Vega_Recreo" },
+	{ Npc = "Sara", Place = "SpotGrupoEstudiantes", Offset = V(-1.5, 0, 0) },
+	{ Npc = "Iker", Place = "SpotGrupoEstudiantes", Offset = V(1.5, 0, 1), Talk = "Iker_Recreo" },
 	{ Npc = "Bruno", Place = "Patio", Offset = V(14, 0, -8), Bark = "¿Y tú qué miras?" },
 	{ Npc = "Ruben", Place = "Patio", Offset = V(16, 0, -7), Bark = "Jejeje. Nada, nada." },
 	{ Npc = "Hugo", Place = "Patio", Offset = V(15, 0, -10), Bark = "…Hola." },
@@ -81,7 +81,7 @@ return {
 	Difficulty = 1,
 	Type = "Historia",
 	Npcs = { "Familia", "Abu", "Dani", "Ramon", "Andres", "Marta", "Lucia", "Nico", "Sara", "Omar", "Mateo", "Bruno", "Ruben", "Hugo", "Alex", "Vega", "Iker" },
-	Locations = { "HomeDormitorio", "HomeCocina", "CaminoAlCole", "EntradaColegio", "Vestibulo", "Patio", "CanchaColegio", "CampoColegio", "GimnasioColegio", "AulaA", "CasaFamiliar" },
+	Locations = { "HomeDormitorio", "HomeCocina", "CaminoAlCole", "EntradaColegio", "PasilloColegio", "BibliotecaColegio", "ComedorColegio", "Patio", "GimnasioColegio", "CampoColegio", "AulaA", "CasaFamiliar" },
 	Next = { "Cole02_Mochila" },
 	Outcomes = { "Amigo de Mateo o no", "Sitio en clase (Sara, Nico o Mateo)", "Grupo del recreo", "Llegaste tarde o a tiempo" },
 
@@ -90,13 +90,12 @@ return {
 	Rewards = { Money = 10 },
 
 	Props = {
-		Armario = { Kind = "Armario", Name = "Armario", Prompt = "Abrir", Place = "HomeDormitorio", Offset = V(-5.2, 0, 4.8), Look = V(1, 0, 0), Dialogue = "Armario" },
-		Mochila = { Kind = "Mochila", Name = "Tu mochila nueva", Prompt = "Preparar", Place = "HomeDormitorio", Offset = V(2.5, 0, 2), Dialogue = "Mochila", Once = true },
-		Desayuno = { Kind = "Desayuno", Name = "Desayuno", Prompt = "Desayunar", Place = "HomeCocina", Offset = V(-1.5, 0, -1), Dialogue = "Desayuno", Once = true },
-		Almohada = { Kind = "Almohada", Name = "Tu cama", Prompt = "Hacer la cama", Place = "HomeDormitorio", Offset = V(-3, 0, -2.5), Dialogue = "Cama", Once = true },
-		Espejo = { Kind = "Espejo", Name = "Espejo", Prompt = "Mirarte", Place = "HomeDormitorio", Offset = V(6, 0, 6.4), Look = V(0, 0, -1), Dialogue = "Espejo", Once = true },
+		Armario = { Kind = "Armario", Name = "Armario", Prompt = "Abrir", Place = "CasaArmario", Offset = V(-5.2, 0, 4.8), Look = V(1, 0, 0), Dialogue = "Armario" },
+		Mochila = { Kind = "Mochila", Name = "Tu mochila nueva", Prompt = "Preparar", Place = "CasaMochila", Offset = V(2.5, 0, 2), Dialogue = "Mochila", Once = true },
+		Desayuno = { Kind = "Desayuno", Name = "Desayuno", Prompt = "Desayunar", Place = "CasaDesayuno", Offset = V(-1.5, 0, -1), Dialogue = "Desayuno", Once = true },
+		Almohada = { Kind = "Almohada", Name = "Tu cama", Prompt = "Hacer la cama", Place = "CasaCama", Offset = V(-3, 0, -2.5), Dialogue = "Cama", Once = true },
+		Espejo = { Kind = "Espejo", Name = "Espejo", Prompt = "Mirarte", Place = "CasaEspejo", Offset = V(6, 0, 6.4), Look = V(0, 0, -1), Dialogue = "Espejo", Once = true },
 		BalonDani = { Kind = "Balon", Name = "Balón", Prompt = false, Place = "CaminoAlCole", Offset = V(-4, 0, 2), Color = Color3.fromRGB(250, 120, 40) },
-		Autobus = { Kind = "Autobus", Name = "Autobús escolar", Prompt = false, Place = "EntradaColegio", Offset = V(22, 0, -18), Look = V(1, 0, 0) },
 		AsientoSara = { Kind = "Asiento", Name = "Delante, junto a Sara", Prompt = "Sentarte aquí", Place = "PupitreA", Index = 3, Offset = V(2.4, 0, 0) },
 		AsientoNico = { Kind = "Asiento", Name = "Al fondo, junto a Nico", Prompt = "Sentarte aquí", Place = "PupitreA", Index = 14, Offset = V(2.4, 0, 0) },
 		AsientoMateo = { Kind = "Asiento", Name = "Junto al niño callado", Prompt = "Sentarte aquí", Place = "PupitreA", Index = 11, Offset = V(2.4, 0, 0) },
@@ -148,28 +147,29 @@ return {
 		-----------------------------------------------------------------
 		{ Type = "Reach", Place = "EntradaColegio", Text = "Llega a la entrada del colegio",
 			Late = { After = 200, Flags = { "LlegasTarde" } },
-			Actors = with(ENTRADA, FAMILIA_CON_TIGO), Props = { "Autobus" } },
-		{ Type = "Scene", Dialogue = "Entrada", Actors = with(ENTRADA, FAMILIA_CON_TIGO), Props = { "Autobus" } },
+			Actors = with(ENTRADA, FAMILIA_CON_TIGO) },
+		{ Type = "Scene", Dialogue = "Entrada", Actors = with(ENTRADA, FAMILIA_CON_TIGO) },
 		{ Type = "Talk", Npc = "Lucia", Dialogue = "ConoceLucia", Text = "Busca a tu tutora: lleva un jersey amarillo",
-			Actors = with(PROFES, ENTRADA[1]), Props = { "Autobus" } },
+			Actors = with(PROFES, ENTRADA[1]) },
 
 		-----------------------------------------------------------------
 		-- ESCENA 5 · Conocer el colegio (tres informantes)
 		-----------------------------------------------------------------
-		{ Type = "Group", Text = "Conoce el colegio", Need = 6,
+		{ Type = "Group", Text = "Conoce el colegio", Need = 7,
 			Steps = {
+				{ Type = "Reach", Place = "BibliotecaColegio", Text = "La biblioteca" },
+				{ Type = "Reach", Place = "ComedorColegio", Text = "El comedor" },
 				{ Type = "Reach", Place = "Patio", Text = "El patio" },
-				{ Type = "Reach", Place = "CanchaColegio", Text = "La cancha de baloncesto" },
-				{ Type = "Reach", Place = "CampoColegio", Text = "El campo de fútbol" },
 				{ Type = "Reach", Place = "GimnasioColegio", Text = "El gimnasio" },
-				{ Type = "Talk", Npc = "Iker", Dialogue = "Info_Iker", Text = "Habla con el niño de las gafas (patio)" },
-				{ Type = "Talk", Npc = "Vega", Dialogue = "Info_Vega", Text = "Habla con la niña de las pegatinas (zona de juegos)" },
-				{ Type = "Talk", Npc = "Ramon", Dialogue = "Info_Ramon", Text = "Habla con Ramón, el conserje (gimnasio)" },
+				{ Type = "Reach", Place = "CampoColegio", Text = "El campo de fútbol" },
+				{ Type = "Talk", Npc = "Iker", Dialogue = "Info_Iker", Text = "Habla con el niño de las gafas (biblioteca)" },
+				{ Type = "Talk", Npc = "Vega", Dialogue = "Info_Vega", Text = "Habla con la niña de las pegatinas (comedor)" },
+				{ Type = "Talk", Npc = "Ramon", Dialogue = "Info_Ramon", Text = "Habla con Ramón, el conserje (puerta del gimnasio)" },
 			},
 			Actors = {
-				{ Npc = "Iker", Place = "Patio", Offset = V(-6, 0, -12) },
-				{ Npc = "Vega", Place = "JuegosColegio", Offset = V(4, 0, 4) },
-				{ Npc = "Ramon", Place = "AlmacenColegio", Offset = V(-2, 0, 0) },
+				{ Npc = "Iker", Place = "SpotInformanteBiblioteca" },
+				{ Npc = "Vega", Place = "SpotInformanteComedor" },
+				{ Npc = "Ramon", Place = "SpotGimnasioPuerta" },
 			} },
 		{ Type = "Reach", Place = "AulaA", Text = "Encuentra tu aula: 1.º A (dentro del edificio)", Actors = CLASE },
 
@@ -390,8 +390,8 @@ return {
 		}, Effects = { Remember = { { Npc = "Lucia", Fact = "SeConocen" } } } },
 
 		Info_Iker = { Lines = {
-			{ S = "Iker", T = "Hola. Soy Iker. Dato curioso: este patio mide más que tres pistas de tenis." },
-			{ S = "Iker", T = "Si buscas 1.º A, está dentro del edificio, a la izquierda del vestíbulo. La otra es 1.º B. Y al fondo, la de música." },
+			{ S = "Iker", T = "Shhh… es la biblioteca. Hola. Soy Iker. Dato curioso: aquí hay más de dos mil libros. Me he leído cuarenta y siete." },
+			{ S = "Iker", T = "Si buscas 1.º A, está en el edificio principal, a la izquierda del vestíbulo. La otra es 1.º B. Y al fondo, la de música." },
 			{ Ask = "¿Qué le contestas?", Options = {
 				{ T = "¡Qué listo eres!", Effects = { Rel = { Iker = 5 } }, Then = { { S = "Iker", T = "Ya lo sé. Digo… gracias." } } },
 				{ T = "¿Y cuánto mide una pista de tenis?", Effects = { Traits = { Curiosidad = 1 }, Rel = { Iker = 3 } }, Then = {
@@ -401,10 +401,10 @@ return {
 		} },
 		Info_Vega = { Lines = {
 			{ S = "Vega", T = "¿Te gustan las pegatinas? Esta brilla en la oscuridad. Y esta huele a fresa." },
-			{ S = "Vega", T = "Consejo de experta: el tobogán quema en junio. Y los columpios siempre están ocupados por los de sexto." },
+			{ S = "Vega", T = "Consejo de experta del comedor: los jueves hay macarrones. Y NUNCA te sientes en la mesa de los de sexto." },
 		}, Effects = { Rel = { Vega = 4 } } },
 		Info_Ramon = { Lines = {
-			{ S = "Ramon", T = "¡Anda, si es la exploración oficial! Esto es el gimnasio. Y esa puerta de ahí es el almacén." },
+			{ S = "Ramon", T = "¡Anda, si es la exploración oficial! Esto es el gimnasio. Y al fondo, detrás de la canasta, está el almacén." },
 			{ S = "Ramon", T = "En el almacén no se entra sin permiso. Balones, colchonetas… y cosas que llevan AÑOS ahí dentro." },
 			{ S = "Ramon", T = "Y si alguna vez pierdes algo en este cole, pregúntame. Yo encuentro de todo." },
 		}, Effects = { Flags = { "SabeDelAlmacen" } } },

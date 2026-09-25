@@ -258,7 +258,7 @@ local function buildButtons(parent: Instance, openStore: () -> ())
 	local column = create("Frame", {
 		Name = "Buttons",
 		AnchorPoint = Vector2.new(0, 0.5),
-		Size = UDim2.fromOffset(110, 170),
+		Size = UDim2.fromOffset(110, 230),
 		Position = UDim2.new(0, 16, 0.5, 0),
 		BackgroundTransparency = 1,
 		Parent = parent,

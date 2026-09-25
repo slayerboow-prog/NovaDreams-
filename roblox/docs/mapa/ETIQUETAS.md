@@ -50,3 +50,37 @@ también lleva `ShopId`). El id es la primera palabra del rótulo sin tildes:
 Eventos nuevos para la historia (`StoryEvents`): `VehicleMounted`, `VehicleBought`, `LicenseEarned`,
 `LicenseFailed`, `ArcadePlayed`, `PrizeRedeemed` y `JobTaskDone` con `JobId` = `Camarero` / `Barman`.
 Atributos del jugador: `Riding`, `OwnedVehicles`, `Licenses`, `Tickets`.
+
+## Misiones del colegio (01 "El primer día", 02 "La mochila desaparecida", 03 "El grupo")
+Tres etiquetas genéricas (`Kit/StoryMarks.luau`), todas piezas invisibles. Con `LocationService`
+se usan así, sin tocar el mapa: `{ Tag = "StoryArea", Attribute = { AreaId = "Biblioteca" }, Zone = "Home", Inside = true }`.
+
+| Etiqueta | Atributo | Contexto |
+|---|---|---|
+| `StoryProp` (objeto con el que se interactúa) | `PropId` | `HomeId` (casa) o `School` / `Town` (nombre del pueblo) |
+| `StoryArea` (volumen de una zona) | `AreaId` | `School` / `Town` |
+| `StorySpot` (punto para un NPC o un evento; `LookVector` = hacia dónde mira) | `SpotId` | `HomeId` o `School` / `Town` |
+
+**Casa familiar** (las 8 de Los Pinos, con `HomeId`)
+- StoryProp: `Cama`, `Armario`, `Espejo`, `Mochila` (junto a la cama), `Desayuno` (mesa de la cocina)
+- StorySpot: `Despertar` (al lado de la cama, para quien te despierta), `SalirCasa` (delante de la puerta)
+
+**Colegio** (atributo `School` = pueblo; 6 colegios; el del Campus no tiene pabellón ni comedor por falta de sitio)
+- StoryArea: `Pasillo`, `Patio`, `Gimnasio`, `Almacen` (al fondo del gimnasio, poca luz), `Comedor`, `Biblioteca`
+- StoryProp: `Taquilla` (6, atributo `LockerId` 1-6, en el pasillo), `Canasta` (dentro del gimnasio, desde donde se tira),
+  `MochilaAlmacen` (5 mochilas en el almacén, atributo `Index` 1-5), `BarraComedor`, `Apuntes` (mesa de la biblioteca)
+- StorySpot:
+  - Llegada: `Balon_Camino` (acera antes del cole), `Autobus` (autobús escolar amarillo aparcado), `Padres_1..3`, `Profesor_Entrada`
+  - Dentro: `Informante_Pasillo`, `Informante_Comedor`, `Informante_Biblioteca`, `Bibliotecaria`, `Libros` (en el pasillo)
+  - Recreo: `Grupo_Deportistas` (pista), `Grupo_Artistas` (tizas y caballete), `Grupo_Estudiantes` (banco junto al edificio)
+  - Pistas de la mochila: `Pista_Papel`, `Pista_Pegatina` (patio), `Pista_Huella`, `Pista_Objeto` (camino al gimnasio)
+  - Gimnasio: `Gimnasio_Grupo`, `Gimnasio_Puerta`, `Almacen_NPC`
+  - Fútbol: `Futbol_Centro`, `Futbol_PorteriaA`, `Futbol_PorteriaB` (campo de fútbol)
+- Ya existían: `SchoolEntrance`, `Classroom`/`Desk`/`Board`/`TeacherSpot` (+`ClassroomId`), `MusicRoom`, `RecessArea`, `PEArea`
+
+**Parques** (atributo `Town`; 8 parques)
+- StoryArea: `Parque` · StoryProp: `Canasta`, `Fuente`, `Columpios` · Tienda: `Shop` con `ShopId = "Quiosco"`
+- StorySpot: `Parque_Reunion`, `Parque_Canasta`, `Parque_Fuente`, `Parque_Tienda`
+
+Ruta del primer día en Los Pinos: las casas familiares (fila norte) → cruzar la calle → colegio (fila 2, columna 2);
+el parque está justo al lado (fila 2, columna 3).

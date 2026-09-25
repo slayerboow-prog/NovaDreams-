@@ -8,6 +8,7 @@
 -- Datos guardados: data.Vehicles = { Bici = true, ... }, data.Licenses = { A = true, B = true }
 
 local CollectionService = game:GetService("CollectionService")
+local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -32,6 +33,27 @@ type Ride = { Model: Model, Kind: string, Rented: boolean, Exam: boolean, BaseHi
 local riding: { [Player]: Ride } = {}
 local dismountListeners: { (Player, string) -> () } = {}
 local folder: Folder
+
+local function isDark(): boolean
+	local clock = Lighting.ClockTime
+	return clock >= 18.3 or clock < 7.2
+end
+
+-- Faro delantero de verdad en coche y moto (se enciende de noche)
+local function addHeadlight(model: Model)
+	local lens = model:FindFirstChild("Headlight")
+	if lens and lens:IsA("BasePart") then
+		local light = Instance.new("SpotLight")
+		light.Face = Enum.NormalId.Front
+		light.Angle = 60
+		light.Range = 50
+		light.Brightness = 3.2
+		light.Color = Color3.fromRGB(255, 244, 222)
+		light.Shadows = true
+		light.Enabled = isDark()
+		light.Parent = lens
+	end
+end
 
 local function ensure(data: { [string]: any })
 	data.Vehicles = data.Vehicles or {}
@@ -179,6 +201,7 @@ function VehicleService.mount(player: Player, kind: string, opts: { Rented: bool
 			weld.Parent = part
 		end
 	end
+	addHeadlight(model)
 	model.Parent = folder
 
 	local ride: Ride = { Model = model, Kind = kind, Rented = options.Rented == true, Exam = options.Exam == true, BaseHip = baseHip }
@@ -300,7 +323,13 @@ function VehicleService.init()
 	task.spawn(function()
 		while true do
 			task.wait(2)
+			local dark = isDark()
 			for player, ride in riding do
+				for _, light in ride.Model:GetDescendants() do
+					if light:IsA("SpotLight") then
+						light.Enabled = dark
+					end
+				end
 				local vehicle = Gameplay.Vehicles[ride.Kind]
 				if player:GetAttribute("Crawling") or (vehicle and not stageAllows(player, vehicle.Stage, true)) then
 					VehicleService.dismount(player, true)

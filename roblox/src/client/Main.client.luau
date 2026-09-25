@@ -20,6 +20,7 @@ local Vehicles = require(script.Parent.Controllers.Vehicles)
 local Arcade = require(script.Parent.Controllers.Arcade)
 local DrivingSchool = require(script.Parent.Controllers.DrivingSchool)
 local Restaurant = require(script.Parent.Controllers.Restaurant)
+local Character = require(script.Parent.Controllers.Character)
 
 local gui = Hud.init(function()
 	Store.open()
@@ -41,6 +42,7 @@ task.spawn(Vehicles.init) -- bicis, monopatines, motos y coches
 task.spawn(Arcade.init) -- recreativos
 task.spawn(DrivingSchool.init) -- autoescuela
 task.spawn(Restaurant.init) -- trabajo de camarero y barman
+task.spawn(Character.init) -- vida, estamina (correr con Shift), nivel y estadísticas
 
 local Notify = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Notify") :: RemoteEvent
 Notify.OnClientEvent:Connect(function(kind: string, text: string)

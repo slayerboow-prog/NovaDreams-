@@ -215,7 +215,7 @@ function Blocks.fill(parent: Instance, rect: Rect, kind: string, opts: { [string
 	elseif kind == "Gas" then
 		return Civic.gasStation(parent, lot)
 	elseif kind == "Park" then
-		return Civic.park(parent, lot)
+		return Civic.park(parent, lot, opts.TownName)
 	elseif kind == "Farm" then
 		return Civic.farm(parent, lot)
 	elseif kind == "Beach" then

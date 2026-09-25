@@ -294,9 +294,17 @@ minijuegos; **hay que medirla jugando en Roblox Studio** y ajustar (más pistas,
 (se apoyan en el suelo con un rayo, pero un desplazamiento puede caer dentro de una pared), las
 animaciones de los NPC, la cámara de los diálogos y el tacto de los minijuegos.
 
-**Petición a la sesión del mapa** (mejoraría las misiones, no es obligatorio: sin esto funcionan con
-posiciones aproximadas): etiquetas `SchoolLibrary`, `SchoolCafeteria`, `SchoolStorage` (almacén del
-gimnasio con puerta), `Lockers` y una puerta abrible en el gimnasio.
+**Conexión con el mapa:** la sesión del mapa dejó marcas para estas tres misiones
+(`StoryProp` / `StoryArea` / `StorySpot`, ver `docs/mapa/ETIQUETAS.md`) y las misiones ya las usan
+(lugares `Casa*`, `Spot*`, `*Colegio`, `*Parque`, `MochilaAlmacen*`, `TaquillaColegio` en `Locations.luau`):
+- Un `StoryProp` es el objeto de verdad (el armario de tu casa, tu taquilla, las mochilas del almacén):
+  la misión lo marca con un contorno dorado y le pone el botón, **sin crear otro encima**.
+- Un `StorySpot` dice dónde se pone cada personaje y hacia dónde mira (grupos del recreo, informantes,
+  pistas, el gimnasio, el almacén, el campo de fútbol, el parque).
+- Cada lugar tiene un plan B (`Fallback`) con posiciones aproximadas: el colegio del Campus, que no tiene
+  gimnasio ni comedor, funciona igual.
+- Los personajes de las escenas se visten con `Npc.dress` (el mismo aspecto que el resto del juego), y cada
+  uno lleva siempre la misma ropa, pelo y mochila (`Cast.luau`).
 
 **Siguiente:** misiones 04 «Los malotes» (necesita un minijuego de persecución), 05 «La venganza de la
 mochila» y 06 «El examen imposible», con la misma ficha de 12 puntos.

@@ -28,17 +28,17 @@ local RAMON = { Npc = "Ramon", Place = "Conserjeria", Look = V(-1, 0, 0) }
 -- Tus compañeros, de pie por el colegio (cada uno vio algo distinto)
 local TESTIGOS = {
 	{ Npc = "Sara", Place = "AulaA", Offset = V(2, 0, -4) },
-	{ Npc = "Omar", Place = "Vestibulo", Offset = V(-3, 0, 2) },
-	{ Npc = "Iker", Place = "Patio", Offset = V(-8, 0, -12) },
+	{ Npc = "Omar", Place = "SpotInformantePasillo" },
+	{ Npc = "Iker", Place = "SpotInformanteBiblioteca" },
 	{ Npc = "Mateo", Place = "JuegosColegio", Offset = V(-4, 0, 2), If = { Flags = { "AyudasteAMateo" } } },
-	{ Npc = "Nico", Place = "CanchaColegio", Offset = V(8, 0, 4), Talk = "Nico_Mochila" },
+	{ Npc = "Nico", Place = "SpotGrupoDeportistas", Talk = "Nico_Mochila" },
 }
-local CANCHA = {
-	{ Npc = "Alex", Place = "CanchaColegio", Offset = V(-10, 0, 2) },
-	{ Npc = "Mayor1", Place = "CanchaColegio", Offset = V(-12, 0, -3), Bark = "¡Ni la toques, que es nuestra canasta!" },
-	{ Npc = "Mayor2", Place = "CanchaColegio", Offset = V(-7, 0, -4), Bark = "Álex siempre gana. Siempre." },
+local CANCHA = { -- el grupo del gimnasio (junto a la canasta de dentro)
+	{ Npc = "Alex", Place = "SpotGimnasioGrupo" },
+	{ Npc = "Mayor1", Place = "SpotGimnasioGrupo", Offset = V(-2.5, 0, 1), Bark = "¡Ni la toques, que es nuestra canasta!" },
+	{ Npc = "Mayor2", Place = "SpotGimnasioGrupo", Offset = V(2.5, 0, 1), Bark = "Álex siempre gana. Siempre." },
 }
-local RUBEN_ALMACEN = { Npc = "Ruben", Place = "AlmacenColegio", Offset = V(3, 0, 2) }
+local RUBEN_ALMACEN = { Npc = "Ruben", Place = "SpotAlmacenNPC" }
 local LUCIA_ALMACEN = { Npc = "Lucia", Place = "AlmacenColegio", Offset = V(-3, 0, 3) }
 
 return {
@@ -53,7 +53,7 @@ return {
 	Type = "Historia · Investigación",
 	Requires = { Completed = { "Cole01_PrimerDia" }, StageProgress = 0.08 },
 	Npcs = { "Lucia", "Ramon", "Sara", "Omar", "Iker", "Mateo", "Nico", "Alex", "Mayor1", "Mayor2", "Ruben", "Bruno", "Hugo" },
-	Locations = { "AulaA", "Conserjeria", "Vestibulo", "Patio", "JuegosColegio", "CanchaColegio", "AlmacenColegio" },
+	Locations = { "AulaA", "Conserjeria", "PasilloColegio", "BibliotecaColegio", "Patio", "JuegosColegio", "GimnasioColegio", "AlmacenColegio" },
 	Next = { "Cole03_Grupo" },
 	Outcomes = { "Enfadarte con Rubén", "Perdonarle", "Contárselo a Lucía", "Devolverle la broma" },
 
@@ -63,19 +63,19 @@ return {
 
 	Props = {
 		Pupitre = { Kind = "Marcador", Name = "Tu sitio", Prompt = "Buscar", Place = "AulaA", Offset = V(4, 0, 0), Dialogue = "Buscar_Pupitre", Once = true },
-		Perchero = { Kind = "Perchero", Name = "Perchero", Prompt = "Buscar", Place = "AulaA", Offset = V(8, 0, 10), Dialogue = "Buscar_Perchero", Once = true },
+		Taquilla = { Kind = "Caja", Name = "Tu taquilla (la 3)", Prompt = "Abrir", Place = "TaquillaColegio", Offset = V(0, 0, 4), Dialogue = "Buscar_Taquilla", Once = true },
 		Papelera = { Kind = "Papelera", Name = "Papelera", Prompt = "Buscar", Place = "AulaA", Offset = V(-6, 0, 11), Dialogue = "Buscar_Papelera", Once = true },
 
-		Papel = { Kind = "Papel", Name = "Papel arrugado", Prompt = "Examinar", Place = "Patio", Offset = V(6, 0, -8), Dialogue = "Pista_Papel", Once = true },
-		Pegatina = { Kind = "Pegatina", Name = "Algo brillante", Prompt = "Examinar", Place = "Patio", Offset = V(-4, 0, 4), Dialogue = "Pista_Pegatina", Once = true },
-		Huella = { Kind = "Huella", Name = "Huellas de barro", Prompt = "Examinar", Place = "CanchaColegio", Offset = V(12, 0, 8), Look = V(-1, 0, 0), Dialogue = "Pista_Huella", Once = true },
-		Llavero = { Kind = "Llavero", Name = "Llavero", Prompt = "Examinar", Place = "JuegosColegio", Offset = V(6, 0, -3), Dialogue = "Pista_Llavero", Once = true },
+		Papel = { Kind = "Papel", Name = "Papel arrugado", Prompt = "Examinar", Place = "SpotPistaPapel", Dialogue = "Pista_Papel", Once = true },
+		Pegatina = { Kind = "Pegatina", Name = "Algo brillante", Prompt = "Examinar", Place = "SpotPistaPegatina", Dialogue = "Pista_Pegatina", Once = true },
+		Huella = { Kind = "Huella", Name = "Huellas de barro", Prompt = "Examinar", Place = "SpotPistaHuella", Dialogue = "Pista_Huella", Once = true },
+		Llavero = { Kind = "Llavero", Name = "Llavero", Prompt = "Examinar", Place = "SpotPistaObjeto", Dialogue = "Pista_Llavero", Once = true },
 		Envoltorio = { Kind = "Envoltorio", Name = "Envoltorio rosa", Prompt = "Examinar", Place = "Patio", Offset = V(12, 0, 2), Dialogue = "Pista_Envoltorio", Once = true },
 
-		MochilaRoja = { Kind = "Mochila", Name = "Mochila roja", Prompt = "Mirar", Place = "AlmacenColegio", Offset = V(-2, 0, -2), Color = Color3.fromRGB(200, 40, 40), Dialogue = "Almacen_Roja", Once = true },
-		MochilaVerde = { Kind = "Mochila", Name = "Mochila verde", Prompt = "Mirar", Place = "AlmacenColegio", Offset = V(0, 0, -3), Color = Color3.fromRGB(40, 150, 60), Dialogue = "Almacen_Verde", Once = true },
-		MochilaGris = { Kind = "Mochila", Name = "Mochila gris", Prompt = "Mirar", Place = "AlmacenColegio", Offset = V(2, 0, -2), Color = Color3.fromRGB(120, 120, 130), Dialogue = "Almacen_Gris", Once = true },
-		TuMochila = { Kind = "Mochila", Name = "¡Tu mochila!", Prompt = false, Place = "AlmacenColegio", Offset = V(4.5, 0, 2.5) },
+		MochilaRoja = { Kind = "Mochila", Name = "Mochila roja", Prompt = "Mirar", Place = "MochilaAlmacen1", Offset = V(-2, 0, -2), Color = Color3.fromRGB(200, 40, 40), Dialogue = "Almacen_Roja" },
+		MochilaVerde = { Kind = "Mochila", Name = "Mochila verde", Prompt = "Mirar", Place = "MochilaAlmacen2", Offset = V(0, 0, -3), Color = Color3.fromRGB(40, 150, 60), Dialogue = "Almacen_Verde" },
+		MochilaGris = { Kind = "Mochila", Name = "Mochila amarilla", Prompt = "Mirar", Place = "MochilaAlmacen3", Offset = V(2, 0, -2), Color = Color3.fromRGB(240, 190, 40), Dialogue = "Almacen_Gris" },
+		TuMochila = { Kind = "Mochila", Name = "¡Tu mochila!", Prompt = false, Place = "MochilaAlmacen5", Offset = V(4.5, 0, 2.5), Color = Color3.fromRGB(40, 110, 200) },
 		GorraRuben = { Kind = "Caja", Name = "La gorra de Rubén (en una caja)", Prompt = "Esconder la gorra", Place = "AlmacenColegio", Offset = V(-4, 0, -1), Color = Color3.fromRGB(110, 60, 150), Dialogue = "Broma_Gorra", Once = true },
 	},
 
@@ -92,7 +92,7 @@ return {
 		{ Type = "Group", Text = "Busca tu mochila en el aula",
 			Steps = {
 				{ Type = "Use", Prop = "Pupitre", Text = "Tu pupitre" },
-				{ Type = "Use", Prop = "Perchero", Text = "El perchero" },
+				{ Type = "Use", Prop = "Taquilla", Text = "Tu taquilla del pasillo" },
 				{ Type = "Use", Prop = "Papelera", Text = "La papelera (por si acaso)" },
 			} },
 		{ Type = "Scene", Dialogue = "Lucia_Pregunta", Actors = { { Npc = "Lucia", Place = "AulaA", Offset = V(-2, 0, 0) } } },
@@ -103,8 +103,8 @@ return {
 				-- Si Mateo es tu amigo, va el primero: la línea guía te lleva antes a él
 				{ Type = "Talk", Npc = "Mateo", Dialogue = "Testigo_Mateo", Text = "Mateo quiere decirte algo (zona de juegos)", If = { Flags = { "AyudasteAMateo" } } },
 				{ Type = "Talk", Npc = "Sara", Dialogue = "Testigo_Sara", Text = "Sara (en el aula)" },
-				{ Type = "Talk", Npc = "Omar", Dialogue = "Testigo_Omar", Text = "Omar (en el vestíbulo)" },
-				{ Type = "Talk", Npc = "Iker", Dialogue = "Testigo_Iker", Text = "Iker (en el patio)" },
+				{ Type = "Talk", Npc = "Omar", Dialogue = "Testigo_Omar", Text = "Omar (en el pasillo)" },
+				{ Type = "Talk", Npc = "Iker", Dialogue = "Testigo_Iker", Text = "Iker (en la biblioteca)" },
 			},
 			Actors = TESTIGOS },
 
@@ -121,7 +121,7 @@ return {
 		{ Type = "Scene", Dialogue = "Deduccion" },
 
 		-- La cancha: Álex sabe algo
-		{ Type = "Reach", Place = "CanchaColegio", Text = "Sigue las huellas hasta la cancha", Actors = CANCHA },
+		{ Type = "Reach", Place = "GimnasioColegio", Text = "Sigue las huellas hasta el gimnasio", Actors = CANCHA },
 		{ Type = "Talk", Npc = "Alex", Dialogue = "Alex_Reto", Text = "Habla con Álex", Actors = CANCHA },
 		{ Type = "MiniGame", Game = "Timing", Title = "¡Mete 3 canastas!", Icon = "🏀", Hint = "Suelta cuando la aguja esté en verde. Cada canasta, más difícil.",
 			Rounds = 8, Need = 3, Zone = 0.24, Shrink = 0.035, Speed = 1.1,
@@ -137,7 +137,7 @@ return {
 			Steps = {
 				{ Type = "Use", Prop = "MochilaRoja", Text = "La roja" },
 				{ Type = "Use", Prop = "MochilaVerde", Text = "La verde" },
-				{ Type = "Use", Prop = "MochilaGris", Text = "La gris" },
+				{ Type = "Use", Prop = "MochilaGris", Text = "La amarilla" },
 			} },
 		{ Type = "Scene", Dialogue = "Ruben_Aparece", Actors = { RUBEN_ALMACEN }, Props = { "TuMochila" } },
 
@@ -180,8 +180,8 @@ return {
 		Buscar_Pupitre = { Lines = {
 			{ S = "Narrador", T = "Debajo del pupitre: una goma, dos lápices sin punta y un chicle pegado de hace años. Ni rastro." },
 		} },
-		Buscar_Perchero = { Lines = {
-			{ S = "Narrador", T = "En el perchero hay tres abrigos y una bufanda de rayas. Tu mochila, no." },
+		Buscar_Taquilla = { Lines = {
+			{ S = "Narrador", T = "Tu taquilla, la número 3. Dentro: el chándal de gimnasia y una foto de tu familia. La mochila no cabe aquí." },
 		} },
 		Buscar_Papelera = { Lines = {
 			{ S = "Narrador", T = "Miras dentro de la papelera. Solo papeles. Y una piel de plátano que te mira con pena." },
@@ -199,7 +199,7 @@ return {
 			{ S = "Sara", T = "La llevaba alguien con prisa. Y con sudadera morada. Dato importante: la sudadera era MORADA." },
 		}, Effects = { Flags = { "PistaSara" } } },
 		Testigo_Omar = { Lines = {
-			{ S = "Omar", T = "Espera, que lo tengo dibujado. Dibujo todo lo que pasa en el vestíbulo. Es mi sitio." },
+			{ S = "Omar", T = "Espera, que lo tengo dibujado. Dibujo todo lo que pasa en el pasillo. Es mi sitio." },
 			{ S = "Narrador", T = "Omar te enseña su cuaderno: un niño corriendo con una mochila azul hacia… el gimnasio." },
 			{ S = "Omar", T = "No le vi la cara. Iba muy rápido y los dibujos rápidos salen borrosos." },
 		}, Effects = { Flags = { "PistaOmar" }, Rel = { Omar = 3 } } },
@@ -251,7 +251,7 @@ return {
 			{ S = "Narrador", T = "· Un papel firmado con una «R».", If = { Flags = { "PistaR" } } },
 			{ S = "Narrador", T = "· Un llavero con una «B».", If = { Flags = { "PistaB" } } },
 			{ S = "Narrador", T = "· Huellas de barro hacia el gimnasio.", If = { Flags = { "PistaHuellas" } } },
-			{ S = "Yo", T = "Todo apunta al gimnasio. Allí, en la cancha, siempre están los mayores con Álex." },
+			{ S = "Yo", T = "Todo apunta al gimnasio. Allí, junto a la canasta, siempre están los mayores con Álex." },
 		} },
 
 		Alex_Reto = { Lines = {
@@ -280,16 +280,16 @@ return {
 			{ S = "Narrador", T = "Verde. Huele muchísimo a bocadillo de chorizo. Definitivamente, no es la tuya." },
 		} },
 		Almacen_Gris = { Lines = {
-			{ S = "Narrador", T = "Gris y gastada. Dentro, un libro de piratas con el nombre «Hugo» en la primera página." },
+			{ S = "Narrador", T = "Amarilla y gastada. Dentro, un libro de piratas con el nombre «Hugo» en la primera página." },
 			{ S = "Yo", T = "¿Hugo? ¿El amigo de Bruno lee libros de piratas?" },
 		}, Effects = { Flags = { "SabeLibroHugo" } } },
 
 		Ruben_Aparece = { Lines = {
 			{ S = "Ruben", T = "¿Buscas esto?" },
-			{ S = "Narrador", T = "Rubén está en la puerta, con tu mochila azul colgando de una mano. Sonríe… pero no mucho." },
+			{ S = "Narrador", T = "Rubén está detrás de ti. Señala la mochila azul del rincón: ¡la tuya! Sonríe… pero no mucho." },
 			{ S = "Ruben", T = "Era una BROMA. Bruno dijo que a los nuevos hay que darles la bienvenida. Es una tradición." },
 			{ S = "Yo", T = "Mateo te vio. Y Bruno te lo mandó.", If = { Flags = { "PistaMateo" } } },
-			{ S = "Ruben", T = "…Mateo es un chivato. Bueno. Da igual. Toma, tu mochila." },
+			{ S = "Ruben", T = "…Mateo es un chivato. Bueno. Da igual. Ahí la tienes, entera." },
 			{ Ask = "¿Qué haces?", Options = {
 				{ T = "¡Enfadarte! «¡No tiene gracia!»", Effects = { Choice = { MochilaRuben = "Enfado" }, Rel = { Ruben = -15, Bruno = -5 }, Traits = { Valentia = 2 }, Flags = { "Ruben_Rival" } }, Then = {
 					{ S = "Yo", T = "¡No tiene NINGUNA gracia! ¡Me he pasado la mañana buscándola!" },

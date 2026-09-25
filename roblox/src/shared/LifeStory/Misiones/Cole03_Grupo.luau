@@ -25,7 +25,7 @@ local CLASE = {
 local MATEO_AMIGO = { Flags = { "AyudasteAMateo" } }
 
 local INVITAN = {
-	{ Npc = "Nico", Place = "CanchaColegio", Offset = V(-4, 0, 0) },
+	{ Npc = "Nico", Place = "SpotGrupoDeportistas" },
 	{ Npc = "Omar", Place = "Patio", Offset = V(10, 0, -16) },
 	{ Npc = "Sara", Place = "JuegosColegio", Offset = V(-3, 0, 4) },
 }
@@ -51,16 +51,16 @@ local AMIGOS_SIGUEN = {
 	{ Npc = "Mateo", Mode = "Follow", If = MATEO_AMIGO },
 }
 local PARQUE = {
-	{ Npc = "Nico", Place = "Parque", Offset = V(8, 0, 0) },
-	{ Npc = "Sara", Place = "EstanqueParque", Offset = V(0, 0, 19) },
-	{ Npc = "Omar", Place = "JuegosParque", Offset = V(3, 0, 6) },
-	{ Npc = "Mateo", Place = "Parque", Offset = V(-6, 0, 6), If = MATEO_AMIGO },
+	{ Npc = "Nico", Place = "SpotParqueCanasta" },
+	{ Npc = "Sara", Place = "SpotParqueFuente" },
+	{ Npc = "Omar", Place = "ColumpiosParque", Offset = V(0, 0, 4) },
+	{ Npc = "Mateo", Place = "SpotParqueTienda", Offset = V(-2, 0, 0), If = MATEO_AMIGO },
 }
 local BANCO = {
-	{ Npc = "Nico", Place = "Parque", Offset = V(-2, 0, -12) },
-	{ Npc = "Sara", Place = "Parque", Offset = V(2, 0, -12) },
-	{ Npc = "Omar", Place = "Parque", Offset = V(4, 0, -10) },
-	{ Npc = "Mateo", Place = "Parque", Offset = V(-4, 0, -10), If = MATEO_AMIGO },
+	{ Npc = "Nico", Place = "SpotParqueReunion", Offset = V(-2, 0, 2) },
+	{ Npc = "Sara", Place = "SpotParqueReunion", Offset = V(2, 0, 2) },
+	{ Npc = "Omar", Place = "SpotParqueReunion", Offset = V(4, 0, 0) },
+	{ Npc = "Mateo", Place = "SpotParqueReunion", Offset = V(-4, 0, 0), If = MATEO_AMIGO },
 }
 
 return {
@@ -75,7 +75,7 @@ return {
 	Type = "Historia · Amistad",
 	Requires = { Completed = { "Cole02_Mochila" }, StageProgress = 0.13 },
 	Npcs = { "Lucia", "Nico", "Sara", "Omar", "Mateo", "Andres", "Bruno", "Ruben", "Hugo", "Alex", "Familia" },
-	Locations = { "AulaA", "Patio", "JuegosColegio", "CanchaColegio", "CampoColegio", "CasaFamiliar", "Parque", "JuegosParque", "EstanqueParque" },
+	Locations = { "AulaA", "Patio", "JuegosColegio", "CanchaColegio", "CampoColegio", "CasaFamiliar", "Parque", "CanastaParque", "ColumpiosParque", "FuenteParque" },
 	Next = { "Nino_Recados" },
 	Outcomes = { "Partido ganado, perdido o empatado", "Sueño de mayor", "Nombre del grupo", "Secundaria: el gato del colegio" },
 
@@ -90,11 +90,11 @@ return {
 		Escarabajo1 = { Kind = "Escarabajo", Name = "Escarabajo brillante", Prompt = "Observar", Place = "JuegosColegio", Offset = V(-6, 0, 6), Dialogue = "Bicho1", Once = true },
 		Escarabajo2 = { Kind = "Escarabajo", Name = "Escarabajo brillante", Prompt = "Observar", Place = "CanchaColegio", Offset = V(24, 0, 12), Dialogue = "Bicho2", Once = true },
 		Escarabajo3 = { Kind = "Escarabajo", Name = "Escarabajo brillante", Prompt = "Observar", Place = "Patio", Offset = V(-18, 0, -6), Dialogue = "Bicho3", Once = true },
-		CanastaParque = { Kind = "Canasta", Name = "Canasta del parque", Prompt = "Tirar", Place = "Parque", Offset = V(12, 0, 2), Look = V(-1, 0, 0), Dialogue = "Parque_Canasta", Once = true },
-		Columpio = { Kind = "Marcador", Name = "Columpios", Prompt = "Columpiarte", Place = "JuegosParque", Offset = V(5, 0, 2), Dialogue = "Parque_Columpio", Once = true },
-		Estanque = { Kind = "Marcador", Name = "Estanque", Prompt = "Experimentar", Place = "EstanqueParque", Offset = V(0, 0, 17.5), Dialogue = "Parque_Estanque", Once = true },
-		Kiosco = { Kind = "Kiosco", Name = "Quiosco de helados", Prompt = "Pedir helados", Place = "Parque", Offset = V(-12, 0, 4), Look = V(1, 0, 0), Dialogue = "Parque_Kiosco", Once = true },
-		Banco = { Kind = "Banco", Name = "Banco", Prompt = "Sentarse", Place = "Parque", Offset = V(0, 0, -14) },
+		CanastaParque = { Kind = "Canasta", Name = "Canasta del parque", Prompt = "Tirar", Place = "CanastaParque", Offset = V(12, 0, 2), Look = V(-1, 0, 0), Dialogue = "Parque_Canasta", Once = true },
+		Columpio = { Kind = "Marcador", Name = "Columpios", Prompt = "Columpiarte", Place = "ColumpiosParque", Offset = V(5, 0, 2), Dialogue = "Parque_Columpio", Once = true },
+		Estanque = { Kind = "Marcador", Name = "Fuente", Prompt = "Experimentar", Place = "FuenteParque", Offset = V(0, 0, 17.5), Dialogue = "Parque_Estanque", Once = true },
+		Kiosco = { Kind = "Kiosco", OnMark = "Marcador", Name = "Quiosco de helados", Prompt = "Pedir helados", Place = "SpotParqueTienda", Look = V(1, 0, 0), Dialogue = "Parque_Kiosco", Once = true },
+		Banco = { Kind = "Banco", Name = "Banco", Prompt = "Sentarse", Place = "SpotParqueReunion", Offset = V(0, 0, -3) },
 	},
 
 	Steps = {
@@ -152,13 +152,13 @@ return {
 		{ Type = "Reach", Place = "CasaFamiliar", Text = "Pide permiso en casa", If = { Choices = { Permiso = "Casa" } } },
 		{ Type = "Talk", Npc = "Familia", Dialogue = "Permiso", Text = "Habla con {familia}", If = { Choices = { Permiso = "Casa" } },
 			Actors = { { Npc = "Familia", Place = "HomeSalon", Offset = V(0, 0, -2) } } },
-		{ Type = "Scene", Dialogue = "Quedada", Teleport = { Place = "CasaFamiliar", Offset = V(0, 0, -18) }, Actors = AMIGOS_SIGUEN },
+		{ Type = "Scene", Dialogue = "Quedada", Teleport = "CasaSalida", Actors = AMIGOS_SIGUEN },
 		{ Type = "Reach", Place = "Parque", Text = "Ve al parque con tus amigos (te siguen)", Actors = AMIGOS_SIGUEN },
 		{ Type = "Group", Text = "Pasa la tarde en el parque", Need = 3,
 			Steps = {
 				{ Type = "Use", Prop = "CanastaParque", Text = "Tirar a canasta con Nico" },
 				{ Type = "Use", Prop = "Columpio", Text = "Columpios con Omar" },
-				{ Type = "Use", Prop = "Estanque", Text = "Experimento con Sara en el estanque" },
+				{ Type = "Use", Prop = "Estanque", Text = "Experimento con Sara en la fuente" },
 				{ Type = "Use", Prop = "Kiosco", Text = "Helados en el quiosco" },
 			},
 			Actors = PARQUE },
@@ -307,7 +307,7 @@ return {
 			{ S = "Omar", T = "Y tú, cuando te conozca más, también." },
 		}, Effects = { Rel = { Omar = 4 } } },
 		Parque_Estanque = { Lines = {
-			{ S = "Sara", T = "Experimento: ¿qué flota? Tenemos una hoja, una piedrecita y una piña." },
+			{ S = "Sara", T = "Experimento en la fuente: ¿qué flota? Tenemos una hoja, una piedrecita y una piña." },
 			{ Ask = "¿Qué flotará?", Options = {
 				{ T = "La hoja y la piña", Effects = { Traits = { Curiosidad = 1 }, Rel = { Sara = 4 } }, Then = {
 					{ S = "Sara", T = "¡Correcto! La piña tiene aire dentro. Serías una científica o un científico estupendo." },

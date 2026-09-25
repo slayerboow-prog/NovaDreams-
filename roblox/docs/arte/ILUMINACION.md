@@ -23,3 +23,17 @@ gráfica de cada uno. El servidor (`WorldService`) solo mueve el reloj y prepara
 Todos los valores están en la tabla `KEYS` de `DayLight.luau` (una fila por momento del día). Por ejemplo, para un
 atardecer más rojo se sube el rojo de `AtmColor` y de `Tint` en la fila de las 18:00. El agua y las nubes base están
 en `setupLighting` de `src/server/Services/WorldService.luau`.
+
+## Luces de la ciudad (mapa)
+
+| Elemento | Qué hace | Dónde se ajusta |
+|---|---|---|
+| **Farolas** | Luz LED cálida hacia abajo con sombras de verdad. No se encienden todas a la vez: cada una tarda un poco (como las fotocélulas) | `Props.lamp` (`Kit/Props.luau`) y `setNight` en `WorldService` |
+| **Ventanas de las casas** | Cada ventana tiene su color (bombilla cálida, neutra o el azul de la tele) y su horario: la ciudad se va encendiendo al anochecer y apagando de madrugada; unas pocas siguen encendidas toda la noche | `HOME_LIGHTS` y `nightSchedule` en `Kit/Building.luau` |
+| **Oficinas** | Fluorescente frío que se apaga al acabar la jornada (algunas trabajan hasta tarde) | `Kit/Building.luau` (fachadas de cristal) |
+| **Escaparates** | Luz blanca de tienda hasta la hora de cierre; algunos comercios 24 h | `glass(..., shop)` en `Kit/Building.luau` |
+| **Interiores** | Plafones en el techo que iluminan hacia abajo (charcos de luz), el principal con sombras, y una luz de relleno suave | final de `Building.build` |
+| **Tráfico** | Los coches que circulan encienden los faros al anochecer | `addHeadlight` en `client/Controllers/Ambient.luau` |
+| **Tu coche y tu moto** | Faro delantero con sombras, encendido de noche | `addHeadlight` en `Services/VehicleService.luau` |
+
+Horario: `OnAt` / `OffAt` son horas del juego; 25 = la 1 de la madrugada, 30 = las 6 de la mañana.

@@ -26,10 +26,12 @@ end
 
 -- Multiplicador de sueldo (VIP cobra el doble)
 function MonetizationService.payMultiplier(player: Player): number
+	-- La Suerte del personaje (ProgressionService) suma un 2% por punto
+	local luck = 1 + 0.02 * (player:GetAttribute("Stat_Suerte") or 0)
 	if MonetizationService.hasPass(player, "VIP") then
-		return Config.GamePasses.VIP.PayMultiplier
+		return Config.GamePasses.VIP.PayMultiplier * luck
 	end
-	return 1
+	return luck
 end
 
 -- Multiplicador de gasto de hambre/energía (Metabolismo Pro gasta la mitad)

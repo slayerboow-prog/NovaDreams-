@@ -11,12 +11,14 @@
 -- quien cambia de sitio camina hasta allí (o aparece, si está lejos), y quien sobra se va.
 -- Lo que pasa al hablar o usar algo lo decide la historia (SceneService.onInteract).
 
+local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Cast = require(ReplicatedStorage.Shared.LifeStory.Cast)
 local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 local LocationService = require(script.Parent.LocationService)
+local Npc = require(script.Parent.Parent.World.Npc) -- ropa, pelo y pies en el suelo (lo comparte todo el juego)
 
 local SceneService = {}
 
@@ -73,7 +75,8 @@ local function groundAt(position: Vector3, ignore: { Instance }): Vector3
 	end
 	params.FilterDescendantsInstances = list
 	params.IgnoreWater = true
-	local result = workspace:Raycast(position + V(0, 12, 0), V(0, -40, 0), params)
+	-- Desde un poco por encima de los pies (no desde muy arriba: dentro de un edificio daría con el techo)
+	local result = workspace:Raycast(position + V(0, 3.5, 0), V(0, -14, 0), params)
 	return if result then result.Position else position
 end
 
@@ -82,29 +85,50 @@ local function playerRoot(player: Player): BasePart?
 	return character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 end
 
--- Dónde va algo: lugar (+ n-ésimo + desplazamiento), apoyado en el suelo, mirando hacia Look
-local function placement(player: Player, spec: { [string]: any }): CFrame?
-	local spot = LocationService.resolve(player, spec.Place or "CercaDeTi", { Index = spec.Index, Offset = spec.Offset })
+-- Dónde va algo: lugar (+ n-ésimo + desplazamiento), apoyado en el suelo, mirando hacia Look.
+-- Si el lugar es una marca del mapa (StoryProp / StorySpot, docs/mapa/ETIQUETAS.md) se usa tal cual:
+-- un StoryProp ES el objeto (el armario de verdad), así que no se desplaza ni se duplica.
+-- Devuelve también la marca (si la hay) y si es un objeto del mapa.
+local function placement(player: Player, spec: { [string]: any }, forProp: boolean?): (CFrame?, BasePart?, boolean)
+	local placeId = spec.Place or "CercaDeTi"
+	local spot = LocationService.resolve(player, placeId, { Index = spec.Index })
 	if not spot then
-		return nil
+		return nil, nil, false
 	end
-	local position = groundAt(spot.Position + V(0, 1, 0), {})
+	local instance = spot.Instance
+	-- (un actor junto a un objeto del mapa se pone en el suelo a su lado, no dentro del objeto)
+	local isProp = forProp == true and instance:IsA("BasePart") and CollectionService:HasTag(instance, "StoryProp")
+	local isMark = isProp or (instance:IsA("BasePart") and CollectionService:HasTag(instance, "StorySpot"))
+	if isProp then
+		return instance.CFrame, instance :: BasePart, true
+	end
+	if spec.Offset then
+		spot = LocationService.resolve(player, placeId, { Index = spec.Index, Offset = spec.Offset }) or spot
+	end
+	local position = groundAt(spot.Position + V(0, 0.5, 0), {})
 	local rotation = spot.CFrame.Rotation
+	if isMark and not spec.Look then
+		-- Un StorySpot dice hacia dónde mira el personaje
+		local look = V(instance.CFrame.LookVector.X, 0, instance.CFrame.LookVector.Z)
+		if look.Magnitude > 0.01 then
+			return CFrame.lookAt(position, position + look), instance :: BasePart, false
+		end
+	end
 	if spec.Look then
 		local look = rotation:VectorToWorldSpace(spec.Look)
 		look = V(look.X, 0, look.Z)
 		if look.Magnitude > 0.01 then
-			return CFrame.lookAt(position, position + look)
+			return CFrame.lookAt(position, position + look), nil, false
 		end
 	end
 	local root = playerRoot(player)
 	if root then
 		local toPlayer = V(root.Position.X - position.X, 0, root.Position.Z - position.Z)
 		if toPlayer.Magnitude > 0.5 then
-			return CFrame.lookAt(position, position + toPlayer)
+			return CFrame.lookAt(position, position + toPlayer), nil, false
 		end
 	end
-	return CFrame.new(position) * rotation
+	return CFrame.new(position) * rotation, nil, false
 end
 
 ---------------------------------------------------------------------
@@ -202,6 +226,20 @@ local function buildModel(npc: string, player: Player, forcedScale: number?): Mo
 		head.Parent = model
 		model.PrimaryPart = body
 	end
+	if ok and model and person then
+		-- Siempre la misma ropa y el mismo pelo para cada personaje (Cast), en todas sus escenas
+		local familyKey = player:GetAttribute(person.NameAttr or "") :: string?
+		pcall(Npc.dress, model, {
+			Skin = person.Skin,
+			Shirt = person.Shirt,
+			Pants = person.Pants,
+			Shoes = person.Shoes or rgb(240, 240, 240),
+			Hair = person.Hair,
+			LongHair = if familyKey then (familyKey == "NPC.MAMA" or familyKey == "NPC.ABU_ROSA") else person.LongHair == true,
+			Backpack = person.Backpack,
+			LongSleeves = person.LongSleeves == true,
+		})
+	end
 	local name = Strings.get(Cast.nameOf(npc, {
 		FamilyKey = player:GetAttribute("FamilyKey"),
 		AbuKey = player:GetAttribute("AbuKey"),
@@ -237,10 +275,12 @@ local function anchorActor(actor: Actor, anchored: boolean)
 end
 
 local function standAt(actor: Actor, cf: CFrame)
-	local _, size = actor.Model:GetBoundingBox()
-	local sitting = actor.Spec.Mode == "Sit"
-	local lift = if sitting then size.Y * 0.35 else size.Y / 2
-	actor.Model:PivotTo(cf + V(0, lift, 0))
+	if actor.Spec.Mode == "Sit" and actor.Root then
+		-- Sentado: la cadera a la altura del asiento (cf ya está sobre la silla)
+		actor.Model:PivotTo(cf * CFrame.new(0, actor.Root.Size.Y / 2 + 0.3, 0))
+	else
+		Npc.placeFeet(actor.Model, cf)
+	end
 end
 
 local function applyMode(actor: Actor)
@@ -349,12 +389,12 @@ local BUILDERS: { [string]: (Model, { [string]: any }) -> () } = {
 		part(m, V(1.8, 4.2, 0.1), C(0, 3, 0.12), rgb(120, 80, 50), Enum.Material.Wood)
 	end,
 	Desayuno = function(m)
-		part(m, V(1.6, 0.1, 1.6), C(0, 3, 0), rgb(250, 250, 250), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder).CFrame = C(0, 3, 0) * CFrame.Angles(0, 0, math.rad(90))
-		part(m, V(0.9, 0.2, 0.6), C(0, 3.15, 0), rgb(220, 170, 90))
-		part(m, V(0.5, 0.7, 0.5), C(0.9, 3.35, 0.2), rgb(250, 240, 200), Enum.Material.Glass)
+		part(m, V(1.6, 0.1, 1.6), C(0, 0.05, 0), rgb(250, 250, 250), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder).CFrame = C(0, 0.05, 0) * CFrame.Angles(0, 0, math.rad(90))
+		part(m, V(0.9, 0.2, 0.6), C(0, 0.2, 0), rgb(220, 170, 90))
+		part(m, V(0.5, 0.7, 0.5), C(0.9, 0.4, 0.2), rgb(250, 240, 200), Enum.Material.Glass)
 	end,
 	Almohada = function(m)
-		part(m, V(2, 0.6, 1.2), C(0, 2.2, 0), rgb(240, 240, 255), Enum.Material.Fabric)
+		part(m, V(2, 0.6, 1.2), C(0, 0.3, 0), rgb(240, 240, 255), Enum.Material.Fabric)
 	end,
 	Perchero = function(m)
 		part(m, V(0.3, 5, 0.3), C(0, 2.5, 0), rgb(120, 90, 60), Enum.Material.Wood)
@@ -410,11 +450,15 @@ local BUILDERS: { [string]: (Model, { [string]: any }) -> () } = {
 	end,
 }
 
-local function makeProp(player: Player, questId: string, id: string, def: { [string]: any }, cf: CFrame): Prop
+local function makeProp(player: Player, questId: string, id: string, def: { [string]: any }, cf: CFrame, mark: BasePart?, isMapObject: boolean): Prop
 	local model = Instance.new("Model")
 	model.Name = def.Name or id
-	local build = BUILDERS[def.Kind or "Marcador"] or BUILDERS.Marcador
-	build(model, def)
+	if not isMapObject then
+		-- Si el lugar es un punto marcado del mapa y el mapa ya tiene el objeto (el quiosco…), basta un marcador
+		local kind = if mark and def.OnMark then def.OnMark else (def.Kind or "Marcador")
+		local build = BUILDERS[kind] or BUILDERS.Marcador
+		build(model, def)
+	end
 	-- Las piezas se construyeron en el origen: se llevan a su sitio
 	local base = Instance.new("Part")
 	base.Name = "PropBase"
@@ -429,12 +473,24 @@ local function makeProp(player: Player, questId: string, id: string, def: { [str
 	model:PivotTo(cf)
 	model:SetAttribute("PropId", id)
 	model.Parent = sceneFolder(player)
-	if def.Prompt ~= false then
+	if def.Prompt ~= false and isMapObject and mark then
+		-- El objeto de verdad del mapa (el armario, la taquilla…): se marca con un contorno dorado
+		local box = Instance.new("SelectionBox")
+		box.Adornee = mark
+		box.Color3 = rgb(255, 210, 60)
+		box.LineThickness = 0.04
+		box.SurfaceTransparency = 1
+		box.Parent = model
+		base.Size = mark.Size
+		model:PivotTo(mark.CFrame)
+	elseif def.Prompt ~= false then
 		local highlight = Instance.new("Highlight")
 		highlight.FillTransparency = 0.85
 		highlight.OutlineColor = rgb(255, 210, 60)
 		highlight.DepthMode = Enum.HighlightDepthMode.Occluded
 		highlight.Parent = model
+	end
+	if def.Prompt ~= false then
 		prompt(base, def.Prompt or "Examinar", def.Name or id, player, function()
 			if SceneService.onInteract then
 				SceneService.onInteract(player, "Prop", questId, id)
@@ -575,9 +631,9 @@ function applySet(player: Player, questId: string, actors: { { [string]: any } }
 		if not def or scene.Props[id] then
 			continue
 		end
-		local cf = placement(player, def)
+		local cf, mark, isMapObject = placement(player, def, true)
 		if cf then
-			scene.Props[id] = makeProp(player, questId, id, def, cf)
+			scene.Props[id] = makeProp(player, questId, id, def, cf, mark, isMapObject)
 		end
 	end
 end

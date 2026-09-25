@@ -524,10 +524,13 @@ local function buildWindow()
 		Parent = gui,
 	})
 	-- Clic fuera de la ventana con un objeto en la mano: se devuelve a su sitio
+	-- Clic fuera de la ventana: si no llevas nada en la mano, se cierra la mochila
 	overlay.Activated:Connect(function()
 		if held then
 			held = nil
 			refreshAll()
+		else
+			InventoryUI.close()
 		end
 	end)
 
@@ -562,7 +565,8 @@ local function buildWindow()
 	local close = mcButton("✕", header, 2)
 	close.AnchorPoint = Vector2.new(1, 0)
 	close.Position = UDim2.fromScale(1, 0)
-	close.Size = UDim2.fromOffset(26, 22)
+	close.Size = UDim2.fromOffset(34, 28)
+	close.TextSize = 18
 	close.Activated:Connect(function()
 		InventoryUI.close()
 	end)
@@ -636,6 +640,14 @@ local function buildWindow()
 	row(window, 19, 27, 5)
 	row(window, 28, 36, 6)
 	create("Frame", { Size = UDim2.new(1, 0, 0, 4), BackgroundTransparency = 1, LayoutOrder = 7, Parent = window })
+	-- Botón grande para volver al juego (en móvil no hay tecla E ni Escape)
+	local back = mcButton("⬅  Volver al juego", window, 100)
+	back.Size = UDim2.new(1, 0, 0, 38)
+	back.TextSize = 17
+	back.BackgroundColor3 = Color3.fromRGB(70, 120, 70)
+	back.Activated:Connect(function()
+		InventoryUI.close()
+	end)
 	row(window, 1, 9, 8)
 
 	-- Lo que llevas en la mano y la etiqueta al pasar el ratón (sin escala, pegados al puntero)

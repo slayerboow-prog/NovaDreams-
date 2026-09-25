@@ -103,8 +103,30 @@ end
 -- Coches
 ---------------------------------------------------------------------
 
+-- Faros: una luz por coche (en el primer faro) que se enciende de noche
+local headlights: { SpotLight } = {}
+
+local function addHeadlight(model: Model)
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") and d.Name == "Headlight" then
+			local light = Instance.new("SpotLight")
+			light.Face = Enum.NormalId.Front
+			light.Angle = 55
+			light.Range = 42
+			light.Brightness = 3
+			light.Color = Color3.fromRGB(255, 244, 222)
+			light.Shadows = false
+			light.Enabled = false
+			light.Parent = d
+			table.insert(headlights, light)
+			return
+		end
+	end
+end
+
 local function makeCar(template: Model): Agent
 	local model = template:Clone()
+	addHeadlight(model)
 	local parts, offsets = {}, {}
 	for _, d in model:GetDescendants() do
 		if d:IsA("BasePart") then
@@ -322,6 +344,22 @@ function Ambient.init()
 	for _, ped in peds do
 		respawnPed(ped, center, true)
 	end
+
+	-- Faros encendidos al anochecer (con algo de margen: primero se encienden los coches)
+	task.spawn(function()
+		local lit: boolean? = nil
+		while true do
+			local clock = Lighting.ClockTime
+			local on = clock >= 18.3 or clock < 7.2
+			if on ~= lit then
+				lit = on
+				for _, light in headlights do
+					light.Enabled = on
+				end
+			end
+			task.wait(2)
+		end
+	end)
 
 	RunService.RenderStepped:Connect(function(dt)
 		local c = focus()

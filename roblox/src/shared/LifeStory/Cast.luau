@@ -21,6 +21,11 @@ export type Person = {
 	Skin: Color3,
 	Shirt: Color3,
 	Pants: Color3,
+	Shoes: Color3?,
+	Hair: Color3?,
+	LongHair: boolean?,
+	LongSleeves: boolean?,
+	Backpack: Color3?, -- mochila a la espalda (los niños del cole)
 	Bio: string,
 }
 
@@ -29,11 +34,13 @@ local People: { [string]: Person } = {
 	Familia = {
 		Name = "NPC.MAMA", NameAttr = "FamilyKey", Voice = "Familia",
 		Skin = rgb(198, 150, 112), Shirt = rgb(70, 120, 170), Pants = rgb(50, 50, 60),
+		Hair = rgb(70, 45, 25),
 		Bio = "Cariño con prisas. Bromea para que no estés nervioso. Siempre pregunta qué tal el día.",
 	},
 	Abu = {
 		Name = "NPC.ABU_ROSA", NameAttr = "AbuKey", Voice = "Abu",
 		Skin = rgb(234, 196, 160), Shirt = rgb(150, 90, 120), Pants = rgb(90, 80, 70),
+		Hair = rgb(200, 200, 205), LongSleeves = true,
 		Bio = "Calma y refranes. Cuenta historias de cuando Valmar era un pueblo.",
 	},
 
@@ -41,21 +48,25 @@ local People: { [string]: Person } = {
 	Lucia = {
 		Name = "NPC.PROFE_LUCIA", Voice = "Profe",
 		Skin = rgb(226, 186, 150), Shirt = rgb(240, 196, 60), Pants = rgb(60, 70, 100),
+		Hair = rgb(120, 80, 40), LongHair = true, LongSleeves = true,
 		Bio = "Tutora de 1.º A. Cariñosa y exigente, frases cortas, humor seco. Estudió en este mismo colegio.",
 	},
 	Ramon = {
 		Name = "Ramón", Voice = "Abu",
 		Skin = rgb(200, 150, 110), Shirt = rgb(60, 90, 150), Pants = rgb(40, 50, 70),
+		Hair = rgb(190, 190, 195), LongSleeves = true,
 		Bio = "Conserje. Bromista, lo sabe todo del colegio, lleva un manojo enorme de llaves.",
 	},
 	Marta = {
 		Name = "Marta", Voice = "Profe",
 		Skin = rgb(236, 200, 170), Shirt = rgb(70, 160, 90), Pants = rgb(60, 50, 50),
+		Hair = rgb(20, 20, 22), LongHair = true,
 		Bio = "Profe de música. Dulce, habla cantando, siempre tararea algo.",
 	},
 	Andres = {
 		Name = "Andrés", Voice = "Profe",
 		Skin = rgb(170, 120, 86), Shirt = rgb(220, 60, 60), Pants = rgb(30, 30, 40),
+		Hair = rgb(20, 20, 22),
 		Bio = "Profe de Educación Física. Silbato, entusiasmo, frases de entrenador.",
 	},
 
@@ -63,56 +74,67 @@ local People: { [string]: Person } = {
 	Nico = {
 		Name = "NPC.NICO", Voice = "Nino", Kid = true,
 		Skin = rgb(236, 196, 160), Shirt = rgb(220, 60, 50), Pants = rgb(40, 60, 120),
+		Hair = rgb(70, 45, 25), Backpack = rgb(200, 50, 50),
 		Bio = "Deportista, impulsivo, competitivo pero generoso. Todo es un reto. Habla con exclamaciones.",
 	},
 	Sara = {
 		Name = "NPC.SARA", Voice = "Nino", Kid = true,
 		Skin = rgb(242, 214, 180), Shirt = rgb(120, 190, 90), Pants = rgb(70, 70, 90),
+		Hair = rgb(20, 20, 22), LongHair = true, Backpack = rgb(60, 160, 90),
 		Bio = "Curiosa y científica, habla rapidísimo y usa palabras largas. Perfeccionista con los deberes.",
 	},
 	Omar = {
 		Name = "NPC.OMAR", Voice = "Nino", Kid = true,
 		Skin = rgb(170, 120, 86), Shirt = rgb(250, 170, 60), Pants = rgb(60, 60, 60),
+		Hair = rgb(20, 20, 22), Backpack = rgb(230, 120, 40),
 		Bio = "Artista tranquilo, siempre tiene hambre y un lápiz. Dibuja lo que pasa (sus dibujos son pistas).",
 	},
 	Mateo = {
 		Name = "Mateo", Voice = "Nino", Kid = true,
 		Skin = rgb(230, 190, 150), Shirt = rgb(140, 140, 200), Pants = rgb(80, 70, 60),
+		Hair = rgb(120, 80, 40), Backpack = rgb(90, 90, 200),
 		Bio = "Tímido, nuevo en el barrio, colecciona cromos. Se le caen las cosas. Leal cuando confía.",
 	},
 	Dani = {
 		Name = "Dani", Voice = "Nino", Kid = true,
 		Skin = rgb(230, 190, 150), Shirt = rgb(60, 200, 200), Pants = rgb(60, 60, 120),
+		Hair = rgb(120, 80, 40), Backpack = rgb(60, 200, 200),
 		Bio = "Hermano pequeño de Mateo (5 años). Todo lo pregunta. Adora su balón.",
 	},
 	Bruno = {
 		Name = "Bruno", Voice = "Nino", Kid = true,
 		Skin = rgb(220, 180, 140), Shirt = rgb(30, 30, 30), Pants = rgb(40, 40, 60),
+		Hair = rgb(200, 160, 90), Backpack = rgb(30, 30, 34),
 		Bio = "Líder de 'los malotes'. Fanfarrón, necesita que le miren. Su hermano mayor le presiona.",
 	},
 	Ruben = {
 		Name = "Rubén", Voice = "Nino", Kid = true,
 		Skin = rgb(236, 200, 170), Shirt = rgb(110, 60, 150), Pants = rgb(40, 40, 50),
+		Hair = rgb(150, 60, 30), Backpack = rgb(120, 60, 160),
 		Bio = "El bromista de Bruno. Hace cosas para que Bruno se ría; en el fondo quiere caer bien.",
 	},
 	Hugo = {
 		Name = "Hugo", Voice = "Nino", Kid = true,
 		Skin = rgb(190, 140, 100), Shirt = rgb(90, 100, 110), Pants = rgb(50, 50, 50),
+		Hair = rgb(40, 28, 20), Backpack = rgb(240, 190, 40),
 		Bio = "Va con Bruno pero no quiere. Le encantan los libros de piratas. Habla poco y bajito.",
 	},
 	Alex = {
 		Name = "Álex", Voice = "Nino", Kid = true,
 		Skin = rgb(240, 205, 175), Shirt = rgb(250, 250, 250), Pants = rgb(30, 90, 60),
+		Hair = rgb(200, 160, 90), LongHair = true, Backpack = rgb(245, 245, 245),
 		Bio = "Deportista, portera del equipo, directa y justa. Todo lo convierte en apuesta (sin dinero).",
 	},
 	Vega = {
 		Name = "Vega", Voice = "Nino", Kid = true,
 		Skin = rgb(200, 150, 120), Shirt = rgb(200, 120, 200), Pants = rgb(70, 50, 90),
+		Hair = rgb(40, 28, 20), LongHair = true, Backpack = rgb(230, 120, 190),
 		Bio = "Artista, soñadora, colecciona pegatinas brillantes. Habla de colores.",
 	},
 	Iker = {
 		Name = "Iker", Voice = "Nino", Kid = true,
 		Skin = rgb(236, 200, 170), Shirt = rgb(60, 110, 200), Pants = rgb(90, 90, 90),
+		Hair = rgb(70, 45, 25), Backpack = rgb(60, 110, 200),
 		Bio = "El que se lo sabe todo. Gafas, datos curiosos, un poco sabelotodo pero buena gente.",
 	},
 

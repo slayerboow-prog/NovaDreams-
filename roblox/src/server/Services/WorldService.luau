@@ -49,8 +49,9 @@ local function setupLighting()
 	clouds.Parent = terrain
 end
 
-local NIGHT_WINDOW_COLOR = Color3.fromRGB(255, 208, 140)
+local NIGHT_WINDOW_COLOR = Color3.fromRGB(240, 180, 110)
 local night = false
+local windowOn: { [BasePart]: boolean } = {}
 
 local function applyLamp(bulb: Instance)
 	local light = bulb:FindFirstChildWhichIsA("Light")
@@ -62,22 +63,47 @@ local function applyLamp(bulb: Instance)
 	end
 end
 
--- Ventanas que se iluminan de noche (las marca el generador de edificios)
-local function applyWindow(window: Instance)
-	if not window:IsA("BasePart") then
+-- Ventanas que se iluminan de noche (las marca el generador de edificios).
+-- Cada una tiene su color (NightColor) y su horario (OnAt / OffAt; 25 = la 1 de la madrugada):
+-- la ciudad se va encendiendo poco a poco al anochecer y apagando de madrugada, como una de verdad.
+local function setWindow(window: BasePart, on: boolean)
+	if windowOn[window] == on then
 		return
 	end
-	window.Material = if night then Enum.Material.Neon else Enum.Material.Glass
-	window.Color = if night then NIGHT_WINDOW_COLOR else (window:GetAttribute("DayColor") or window.Color)
+	windowOn[window] = on
+	window.Material = if on then Enum.Material.Neon else Enum.Material.Glass
+	window.Color = if on then (window:GetAttribute("NightColor") or NIGHT_WINDOW_COLOR) else (window:GetAttribute("DayColor") or window.Color)
 end
 
+local function shouldBeLit(window: Instance, clock: number): boolean
+	local onAt = window:GetAttribute("OnAt") or Config.LampsOnAt
+	local offAt = window:GetAttribute("OffAt") or (Config.LampsOffAt + 24)
+	local t = if clock < 12 then clock + 24 else clock -- horas de la noche seguidas (1:00 = 25)
+	return t >= onAt and t < offAt
+end
+
+local function applyWindow(window: Instance)
+	if window:IsA("BasePart") then
+		setWindow(window, shouldBeLit(window, Lighting.ClockTime))
+		window.Destroying:Connect(function()
+			windowOn[window] = nil
+		end)
+	end
+end
+
+local function updateWindows(clock: number)
+	for _, window in CollectionService:GetTagged("NightWindow") do
+		if window:IsA("BasePart") then
+			setWindow(window, shouldBeLit(window, clock))
+		end
+	end
+end
+
+-- Las farolas no se encienden todas a la vez (cada fotocélula tarda un poco distinto)
 local function setNight(on: boolean)
 	night = on
 	for _, bulb in CollectionService:GetTagged("StreetLamp") do
-		applyLamp(bulb)
-	end
-	for _, window in CollectionService:GetTagged("NightWindow") do
-		applyWindow(window)
+		task.delay(math.random() * 6, applyLamp, bulb)
 	end
 end
 
@@ -88,6 +114,7 @@ function WorldService.init()
 	workspace:SetAttribute("Day", day)
 	local hoursPerSecond = 24 / (Config.DayLengthMinutes * 60)
 	local lampsOn: boolean? = nil
+	local windowTimer = 0
 
 	-- Lo que se construya después (casas de jugadores) respeta la hora actual
 	CollectionService:GetInstanceAddedSignal("StreetLamp"):Connect(applyLamp)
@@ -107,6 +134,12 @@ function WorldService.init()
 		if shouldBeOn ~= lampsOn then
 			lampsOn = shouldBeOn
 			setNight(shouldBeOn)
+		end
+		-- Las ventanas se revisan cada segundo real (poco más de un minuto de juego)
+		windowTimer += dt
+		if windowTimer >= 1 then
+			windowTimer = 0
+			updateWindows(clock)
 		end
 	end)
 end

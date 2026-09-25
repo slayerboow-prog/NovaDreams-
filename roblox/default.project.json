@@ -46,6 +46,9 @@
         },
         "Restaurant": {
           "$className": "RemoteEvent"
+        },
+        "Progression": {
+          "$className": "RemoteEvent"
         }
       }
     },
@@ -59,6 +62,9 @@
         "Client": {
           "$path": "src/client"
         }
+      },
+      "$properties": {
+        "EnableMouseLockOption": false
       }
     },
     "Lighting": {
@@ -140,6 +146,12 @@
         "StreamingTargetRadius": 768,
         "StreamingMinRadius": 96,
         "StreamingIntegrityMode": "MinimumRadiusPause"
+      },
+      "Terrain": {
+        "$className": "Terrain",
+        "$properties": {
+          "Decoration": false
+        }
       }
     },
     "ServerStorage": {

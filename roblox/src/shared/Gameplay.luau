@@ -134,6 +134,44 @@ Gameplay.Menu = {
 	{ Id = "ColaCao", Name = "Vaso de cacao", Ingredients = { "Leche", "Cacao", "Azúcar" } },
 }
 
+---------------------------------------------------------------------
+-- Personaje: nivel, experiencia y estadísticas (para lo que viene, también misiones de combate)
+-- Cada nivel da puntos para repartir. Vida y estamina se ven en la pantalla.
+---------------------------------------------------------------------
+Gameplay.Progression = {
+	MaxLevel = 100,
+	PointsPerLevel = 3,
+	MaxStat = 50, -- puntos máximos en una estadística
+	-- Experiencia por lo que haces en tu vida (nombres de StoryEvents)
+	Xp = {
+		JobTaskDone = 12, ArcadePlayed = 6, LicenseEarned = 150, LicenseFailed = 10, PrizeRedeemed = 5,
+		Talk = 3, Traveled = 5, VehicleBought = 25, HomeClaimed = 60, BoughtItem = 3, Ate = 1, Slept = 4,
+		BabySteps = 20, BabyStood = 20, LookedOutside = 10,
+	},
+	QuestXp = 60, -- por cada misión completada de la historia
+	Stats = {
+		{ Id = "Salud", Icon = "❤", Name = "Salud", Text = "+10 de vida máxima por punto" },
+		{ Id = "Resistencia", Icon = "🛡", Name = "Resistencia", Text = "+8 de estamina y se recupera antes" },
+		{ Id = "Fuerza", Icon = "💪", Name = "Fuerza", Text = "+4% de daño en combate" },
+		{ Id = "Destreza", Icon = "🏃", Name = "Destreza", Text = "Corres un 1% más rápido por punto" },
+		{ Id = "Suerte", Icon = "🍀", Name = "Suerte", Text = "+2% de propinas, sueldo y tickets" },
+	},
+	Health = { Base = 100, PerSalud = 10, RegenPerSecond = 1 },
+	Stamina = {
+		Base = 100, PerResistencia = 8,
+		Drain = 20, -- por segundo corriendo
+		Regen = 16, -- por segundo descansando (+2% por punto de Resistencia)
+		RegenDelay = 1.2, -- segundos sin correr antes de recuperarse
+		MinToStart = 15, -- estamina mínima para empezar a correr
+		SprintMultiplier = 1.5, PerDestreza = 0.01,
+	},
+}
+
+-- Experiencia que hace falta para pasar del nivel "level" al siguiente
+function Gameplay.xpToNext(level: number): number
+	return 100 + (level - 1) * 60
+end
+
 function Gameplay.dish(id: string)
 	for _, dish in Gameplay.Menu do
 		if dish.Id == id then
