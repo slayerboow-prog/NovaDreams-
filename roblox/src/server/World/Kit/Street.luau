@@ -29,7 +29,7 @@ local ROAD_TOP = Street.ROAD_TOP
 local WALK_TOP = Street.WALK_TOP
 local G = Palette.Ground
 
-export type Road = { Axis: string, At: number, From: number, To: number, Lamps: boolean?, Trees: boolean? }
+export type Road = { Axis: string, At: number, From: number, To: number, Lamps: boolean?, Trees: boolean?, LampEvery: number?, Solid: boolean? }
 
 ---------------------------------------------------------------------
 -- Geometría
@@ -99,11 +99,15 @@ local function segment(parent: Instance, road: Road, u0: number, u1: number)
 		local e0, e1 = s * (RW / 2 - 1.4), s * (RW / 2 - 1.0)
 		rbox(parent, road, u0, u1, math.min(e0, e1), math.max(e0, e1), ROAD_TOP, ROAD_TOP + 0.04, marking(), true)
 	end
-	-- Línea discontinua central
-	local u = u0 + 3
-	while u + 6 <= u1 - 3 do
-		rbox(parent, road, u, u + 6, -0.25, 0.25, ROAD_TOP, ROAD_TOP + 0.04, marking(), true)
-		u += 12
+	-- Línea central: discontinua (continua en las calles secundarias: una sola pieza)
+	if road.Solid then
+		rbox(parent, road, u0 + 2, u1 - 2, -0.2, 0.2, ROAD_TOP, ROAD_TOP + 0.04, marking(true), true)
+	else
+		local u = u0 + 3
+		while u + 6 <= u1 - 3 do
+			rbox(parent, road, u, u + 6, -0.25, 0.25, ROAD_TOP, ROAD_TOP + 0.04, marking(), true)
+			u += 12
+		end
 	end
 
 	-- Farolas al tresbolillo y árboles de alineación
@@ -119,7 +123,7 @@ local function segment(parent: Instance, road: Road, u0: number, u1: number)
 				Props.bin(parent, CFrame.new(binPos))
 			end
 			i += 1
-			lu += 36
+			lu += road.LampEvery or 36
 		end
 	end
 	if road.Trees then

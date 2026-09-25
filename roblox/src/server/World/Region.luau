@@ -157,6 +157,14 @@ function Region.roads(): { Street.Road }
 			end
 		end
 	end
+	-- Calles secundarias por todos los distritos (Kit/Grid)
+	local centers = {}
+	for _, town in Region.Towns do
+		table.insert(centers, town.Center)
+	end
+	for _, road in require(Kit.Grid).roads(centers, table.clone(list)) do
+		table.insert(list, road)
+	end
 	return list
 end
 
