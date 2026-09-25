@@ -180,6 +180,20 @@ local function roadSides(i: number, j: number): { string }
 	return sides
 end
 
+-- Suelo de césped de una manzana: su cara de arriba queda en Y = 0, a ras de las calles.
+-- El terreno de Roblox está 1 stud más abajo (TerrainBuilder) para que nunca asome por encima.
+function Region.groundSlab(parent: Instance, rect: { X0: number, X1: number, Z0: number, Z1: number })
+	Builder.part({
+		Name = "BlockGround",
+		Size = Vector3.new(rect.X1 - rect.X0, 1, rect.Z1 - rect.Z0),
+		CFrame = CFrame.new((rect.X0 + rect.X1) / 2, -0.5, (rect.Z0 + rect.Z1) / 2),
+		Color = Color3.fromRGB(98, 146, 70),
+		Material = Enum.Material.Grass,
+		CastShadow = false,
+		Parent = parent,
+	})
+end
+
 -- Parada de autobús interurbano (TravelService la usa para viajar entre ciudades)
 -- con una estación de bici pública al lado (VehicleService)
 function Region.travelStop(parent: Instance, cf: CFrame, townName: string)
@@ -211,6 +225,7 @@ function Region.build(world: Instance)
 					Z0 = c.Z + CELLS[j][1],
 					Z1 = c.Z + CELLS[j][2],
 				}
+				Region.groundSlab(model, rect)
 				Blocks.fill(model, rect, cell.Kind, {
 					Side = cell.Side,
 					Sides = roadSides(i, j),

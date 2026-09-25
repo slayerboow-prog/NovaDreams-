@@ -626,6 +626,10 @@ function TownBuilder.build(): Folder
 
 	buildGround(world)
 	Street.build(world, TownBuilder.roads()) -- carreteras y calles de todas las ciudades
+	-- Suelo de Valmar Centro a ras de calle (el terreno queda 1 stud por debajo)
+	for _, rect in { { X0 = -360, X1 = 360, Z0 = -198, Z1 = -20 }, { X0 = -360, X1 = 360, Z0 = 20, Z1 = 240 } } do
+		Region.groundSlab(world, rect)
+	end
 	buildPlaza(world)
 	buildCafe(world)
 	buildSupermarket(world)

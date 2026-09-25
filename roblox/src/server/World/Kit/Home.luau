@@ -5,6 +5,9 @@
 --   LookOutside -> punto junto al ventanal del salón, mirando a la ciudad (LookVector hacia fuera)
 --   BabySpawn   -> aparición del bebé, junto a la cuna
 --   FamilySpot  (atributo Npc = "Familia_Abu" | "Familia_Padre") -> dónde se colocan los NPC de la familia
+-- Para la misión "El primer día" (StoryMarks, todas con HomeId):
+--   StoryProp PropId = "Cama" | "Armario" | "Espejo" | "Mochila" | "Desayuno"
+--   StorySpot SpotId = "Despertar" (junto a la cama) | "SalirCasa" (delante de la puerta)
 --
 -- Distribución (vista desde arriba, la puerta al sur/frente):
 --   ┌───────────────────────────────┐  fondo: ventanal con vista
@@ -16,6 +19,7 @@
 local Builder = require(script.Parent.Parent.Builder)
 local Building = require(script.Parent.Building)
 local Nature = require(script.Parent.Nature)
+local StoryMarks = require(script.Parent.StoryMarks)
 
 local Home = {}
 
@@ -84,14 +88,19 @@ function Home.familyHouse(parent: Instance, cf: CFrame, homeId: string): Model
 		FloorColor = rgb(186, 146, 104),
 		LightColor = rgb(255, 226, 186),
 	})
+	-- Los muebles se colocan sobre el suelo interior (a FLOOR_TOP del terreno); los tabiques, desde el terreno
+	local ground = at
+	at = function(x: number, y: number, z: number): CFrame
+		return ground(x, y + Building.FLOOR_TOP, z)
+	end
 	model:AddTag("FamilyHome")
 	model:SetAttribute("HomeId", homeId)
 
 	-- Tabiques: dormitorio (izquierda) y cocina (derecha) delante; salón al fondo
-	partition(model, at, "Z", -4, -14, 0) -- pasillo / dormitorio
-	partition(model, at, "Z", 4, -14, 0) -- pasillo / cocina
-	partition(model, at, "X", 0, -17, -4, { -12.5, -7.5 }) -- dormitorio / salón (con puerta)
-	partition(model, at, "X", 0, 4, 17, { 7.5, 12.5 }) -- cocina / salón (con puerta)
+	partition(model, ground, "Z", -4, -14, 0) -- pasillo / dormitorio
+	partition(model, ground, "Z", 4, -14, 0) -- pasillo / cocina
+	partition(model, ground, "X", 0, -17, -4, { -12.5, -7.5 }) -- dormitorio / salón (con puerta)
+	partition(model, ground, "X", 0, 4, 17, { 7.5, 12.5 }) -- cocina / salón (con puerta)
 
 	-- Volúmenes de habitación (la historia detecta cuándo entra el jugador)
 	local rooms = {
@@ -148,6 +157,29 @@ function Home.familyHouse(parent: Instance, cf: CFrame, homeId: string): Model
 	for i, color in { rgb(230, 70, 70), rgb(60, 140, 230), rgb(250, 200, 50) } do
 		box(model, "ToyBlock", Vector3.new(0.8, 0.8, 0.8), at(-9 + i * 0.9, 0.4, -5), color, nil, true)
 	end
+	-- Mañana del primer día de cole: armario, espejo, mochila y desayuno
+	local mark = { HomeId = homeId }
+	box(model, "Wardrobe", Vector3.new(1.8, 7.2, 4.2), at(-5.2, 3.6, -2.4), WOOD, Enum.Material.Wood)
+	box(model, "WardrobeDoorLine", Vector3.new(0.1, 6.6, 0.1), at(-6.15, 3.6, -2.4), rgb(90, 64, 42), Enum.Material.Wood, true)
+	for _, z in { -2.8, -2 } do
+		box(model, "WardrobeKnob", Vector3.new(0.15, 0.4, 0.15), at(-6.2, 3.6, z), rgb(210, 180, 90), Enum.Material.Metal, true)
+	end
+	StoryMarks.prop(model, "Armario", at(-6.5, 3, -2.4), Vector3.new(2, 6, 4.4), mark)
+	box(model, "MirrorFrame", Vector3.new(2.4, 4.4, 0.15), at(-15.2, 4.4, -0.45), rgb(200, 170, 110), Enum.Material.Wood, true)
+	box(model, "Mirror", Vector3.new(2, 4, 0.1), at(-15.2, 4.4, -0.55), rgb(210, 225, 235), Enum.Material.Glass, true).Reflectance = 0.6
+	StoryMarks.prop(model, "Espejo", at(-15.2, 3.5, -1.6), Vector3.new(3, 5, 2), mark)
+	box(model, "Backpack", Vector3.new(1.4, 1.8, 0.9), at(-15.2, 0.9, -4.3), rgb(40, 110, 200), Enum.Material.Fabric)
+	box(model, "BackpackPocket", Vector3.new(1, 0.8, 0.3), at(-15.2, 0.6, -3.75), rgb(230, 180, 40), Enum.Material.Fabric, true)
+	StoryMarks.prop(model, "Mochila", at(-15.2, 1.2, -4.3), Vector3.new(2, 2.4, 2), mark)
+	StoryMarks.prop(model, "Cama", at(-13.5, 2, -9.5), Vector3.new(6, 3, 8), mark)
+	StoryMarks.spot(model, "Despertar", at(-9.5, 2.5, -8) * CFrame.Angles(0, math.rad(-90), 0), mark)
+	-- Desayuno en la mesa de la cocina
+	box(model, "BreakfastPlate", Vector3.new(1.4, 0.1, 1.4), at(9, 3.05, -8), rgb(250, 250, 250), nil, true)
+	box(model, "Toast", Vector3.new(0.9, 0.15, 0.9), at(9, 3.18, -8), rgb(220, 170, 100), nil, true)
+	box(model, "Glass", Vector3.new(0.4, 0.7, 0.4), at(10.2, 3.35, -8.3), rgb(255, 170, 60), Enum.Material.Glass, true)
+	StoryMarks.prop(model, "Desayuno", at(9, 3.5, -8), Vector3.new(3, 2, 2.4), mark)
+	StoryMarks.spot(model, "SalirCasa", at(0, 2.5, -D / 2 - 4) * CFrame.Angles(0, math.pi, 0), mark)
+
 	tagged({ Name = "BabySpawn", Size = Vector3.new(2, 1, 2), CFrame = at(-7, 0.6, -8) * CFrame.Angles(0, math.pi, 0), Tags = { "BabySpawn" }, Attributes = { HomeId = homeId }, Parent = model })
 
 	return model
