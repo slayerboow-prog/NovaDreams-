@@ -58,7 +58,7 @@ return {
 	Requires = { Completed = { "Ins05_ElRumor" }, StageProgress = 0.9 },
 	Npcs = { "Sara", "Nico", "Omar", "Leire", "Bruno", "Hugo", "Mateo", "Iker", "Carmen", "Sofia", "Familia", "Abu", "Javier" },
 	Locations = { "PatioInstituto", "AulaInstituto", "Universidad", "Biblioteca", "HomeSalon" },
-	Next = { "Uni_PrimerDia" },
+	Next = { "Uni01_PrimerDia" },
 	Outcomes = { "Medicina, Ingeniería, Derecho, Economía o trabajar", "Lo que te dice cada amigo", "La nota de selectividad" },
 
 	Moment = "Decidiste tu futuro",

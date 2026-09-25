@@ -1072,12 +1072,22 @@ end
 ---------------------------------------------------------------------
 
 -- ¿Grupo terminado? (Need = cuántas cosas de la lista hacen falta; si no, todas)
-function groupDone(step: { [string]: any }, sub: { [string]: boolean }): boolean
+function groupDone(step: { [string]: any }, sub: { [string]: boolean }, ctx: Conditions.Context?): boolean
 	local done = 0
 	for _ in sub do
 		done += 1
 	end
-	return done >= math.min(step.Need or #step.Steps, #step.Steps)
+	-- Solo cuentan las tareas que existen para este jugador (las que tienen un If que no se cumple, no)
+	local available = #step.Steps
+	if ctx then
+		available = 0
+		for _, child in step.Steps do
+			if not child.If or Conditions.check(child.If, ctx) then
+				available += 1
+			end
+		end
+	end
+	return done >= math.min(step.Need or available, available)
 end
 
 local function onStoryEvent(player: Player, name: string, payload: { [string]: any })
@@ -1120,7 +1130,7 @@ local function onStoryEvent(player: Player, name: string, payload: { [string]: a
 					applyEffects(player, data, child.Effects, questId)
 				end
 			end
-			if groupDone(step, sub) then
+			if groupDone(step, sub, contextFor(player, data)) then
 				advance(player, data, questId)
 			elseif changed then
 				updateScene(player, data, questId)
@@ -1241,7 +1251,7 @@ local function stepTimers(player: Player, data: Data, questId: string, prog: Pro
 			end
 		end
 		rt.Fallback[questId] = true
-		if changed and groupDone(step, sub) then
+		if changed and groupDone(step, sub, contextFor(player, data)) then
 			advance(player, data, questId)
 			return true
 		end
@@ -1298,7 +1308,7 @@ local function tickPlayer(player: Player, data: Data)
 					applyEffects(player, data, child.Effects, questId)
 				end
 			end
-			if groupDone(step, sub) then
+			if groupDone(step, sub, contextFor(player, data)) then
 				advance(player, data, questId)
 			elseif changed then
 				publish(player)

@@ -277,7 +277,7 @@ misión nueva se rellena la ficha de 12 puntos de 11.7.
 
 ## 11.13 Estado, pruebas y lo que falta
 
-**Hecho y probado** (prueba automática `scripts/test-lifestory.luau`, 243 comprobaciones en verde):
+**Hecho y probado** (prueba automática `scripts/test-lifestory.luau`, 277 comprobaciones en verde):
 
 - Instituto 01–06 (ver 11.23–11.29): primer día, clubes, profesiones, primer empleo con el sistema de
   trabajos de verdad, el rumor en el grupo de clase y la gran decisión (con la selectividad y el paso a
@@ -333,9 +333,12 @@ pasillo). La granja usa el modelo `Granja` (y su hijo `Granero`) que ya existe e
 **Capítulo del colegio completo (01–12).** Las misiones 10–12 (ver 11.20–11.22) sustituyen a las
 antiguas «El segundo trimestre» y «Fin de primaria»: el paso al instituto lo hace ahora «El último día».
 **Capítulo del instituto completo (01–06, ver 11.23–11.29).** Sustituye a las antiguas
-`Adol_NuevoInstituto`, `Adol_PrimerTrabajo` y `Adol_ElFuturo`. **Siguiente:** la universidad con el
-mismo formato (primer día en el campus, el proyecto de grupo, el primer trabajo, las prácticas según la
-carrera y la graduación).
+`Adol_NuevoInstituto`, `Adol_PrimerTrabajo` y `Adol_ElFuturo`.
+
+**Capítulo de la universidad completo (01–06, ver 11.30–11.36).** Sustituye a todas las misiones
+antiguas de la universidad. Con esto, **la campaña escolar y universitaria del encargo está terminada**:
+colegio (12), instituto (6) y universidad (6), con sus consecuencias diferidas. Después sigue la vida
+adulta (`Adulto_NuevaVida`), que todavía usa misiones sencillas.
 
 ---
 
@@ -675,3 +678,98 @@ reparte en clases distintas) y el futuro asomando (profesiones, campus, primer d
 10. **Consecuencias:** marca `VaALaUniversidad` o `EmpiezaATrabajar`; la universidad usa tu carrera.
 11. **Recompensas:** recuerdo *LaGranDecision*, **la orla del instituto**.
 12. **Conexión:** cinemática de selectividad y primer día de universidad (o de vida adulta).
+
+## 11.30 El capítulo de la universidad (diseño general)
+
+Todo gira alrededor de **tu carrera** (`Choices.Estudios`): los lugares y asignaturas se escriben como
+`"$Carrera.Facultad"`, `"$Carrera.Asignatura1"`… y el motor los cambia por los de tu carrera, **también
+para los personajes y objetos de las escenas**. Reparto nuevo: la profesora Beltrán, Luca (Erasmus),
+el grupo cuatro (Julia, Pablo, Adrián, Carla), Rocío y Alba. Los amigos de siempre siguen apareciendo
+(Sara en el campus, Omar en la cafetería con Lola, Mateo si estudia Ingeniería contigo, mensajes de Nico,
+Leire y Hugo).
+
+| # | Misión | Duración | Núcleo | Estado |
+|---|---|---|---|---|
+| 01 | Primer día en el campus | 20–30 | El reloj de {abu}, bus, Luca, secretaría, tu facultad, Beltrán, 1.ª clase, descubrir el campus, con quién comes | Hecha |
+| 02 | El proyecto | 25–40 | Un grupo con personalidades: gestionar, descubrir qué le pasa a cada uno, reorganizar, presentar | Hecha |
+| 03 | El primer trabajo | 20–30 | Perfil (la carta de recomendación sirve), ofertas, cafetería / reparto / clases a Alba, decir que no a tiempo | Hecha |
+| 04 | Las prácticas | 30–40 | Según la carrera: hospital, TecnoVal, bufete, banco; un caso propio y un error en tu informe | Hecha |
+| 05 | Tu primer piso | 20–30 | Independizarte con el sistema de casas real, la mudanza, la convivencia, {abu} de visita | Hecha |
+| 06 | La graduación | 25–35 | Examen final, prepararte, ceremonia, diploma, foto y un brindis con los recuerdos de toda tu vida | Hecha |
+
+## 11.31 Universidad 01 — «Primer día en el campus» (implementada)
+
+1. **Objetivo:** aprender a moverse por un campus grande y sentir que empieza otra vida.
+2. **Duración:** 20–30 min. 3. **NPC:** familia, {abu}, Luca, Sara, Beltrán, Julia, Adrián, Carla, Mateo (si estudia contigo), Álex.
+4. **Lugares:** casa, bus, universidad, **tu facultad**, biblioteca, cafetería, estadio.
+5. **Objetivos:** despedida ({abu} te da su **reloj**) → bus → Luca → **horario** en secretaría → encontrar tu
+   facultad → Beltrán y la clase → **1.ª clase** → descubrir 2 de 3 (biblioteca, cafetería, deportes) →
+   con quién comes (Luca, Sara, la clase o a tu aire) → mensajes del grupo de siempre.
+6–9. Diálogos según tu carrera y tu pasado (club, rumor, Mateo); decisiones: el abrazo, con quién comes.
+10. **Consecuencias:** relaciones con el reparto nuevo. 11. **Recompensas:** *PrimerDiaUni*, carnet universitario, el reloj.
+12. **Conexión:** Beltrán ya avisó de los trabajos en grupo.
+
+## 11.32 Universidad 02 — «El proyecto» (implementada)
+
+1. **Objetivo:** gestionar un grupo real: detrás de cada «vago» o «mandón» hay una razón.
+2. **Duración:** 25–40 min. 3. **NPC:** Beltrán, Julia (lo hace todo), Pablo (no aparece), Adrián (quiere mandar), Carla (llega tarde).
+4. **Lugares:** tu facultad, biblioteca, parque, plaza del centro.
+5. **Objetivos:** el encargo (tema según tu carrera) → primera reunión desastrosa → **cómo lo gestionas**:
+   hacerlo todo, repartir, hablar con la profesora, **pedir cambiar de grupo (no se puede: vuelves a
+   elegir)** o hablar con cada uno → **conocer a cada uno**: Julia tiene miedo a fallar, Adrián una beca,
+   Carla cuida de su hermano, Pablo quiere hacer música → **reorganizar** (la opción «cada uno en lo suyo»
+   solo aparece si ayudaste a Adrián, Carla y Pablo) → trabajar (una noche más si lo haces todo: menos
+   energía) → ensayo → presentación.
+7. **Mecánicas:** opción `Stay`, opción de diálogo que exige tres marcas, `Bonus` si `EquipoUnido`.
+10. **Consecuencias:** relaciones; `HacesTodo` o `EquipoUnido`; si animaste a Pablo, **3 h después su primer concierto** (`Eco_Concierto`).
+11. **Recompensas:** *ElProyectoUni*, foto del grupo cuatro. 12. **Conexión:** la cuesta de enero.
+
+## 11.33 Universidad 03 — «El primer trabajo» (implementada)
+
+1. **Objetivo:** trabajar y estudiar a la vez; aprender a decir que no.
+2. **Duración:** 20–30 min. 3. **NPC:** familia, Lola y Omar, Ernesto, Rocío y Alba (9 años), Beltrán.
+4. **Lugares:** casa, biblioteca del campus, Cafetería Central, Correos, tu facultad.
+5. **Objetivos:** las cuentas → **perfil de empleo** (la carta de recomendación del instituto «valía oro»)
+   → ofertas (2 de 3) → elegir (**cafetería**, **reparto** con el sistema de trabajos de verdad, o **clases
+   particulares a Alba**: fracciones con dinosaurios) → primer día (puntual) → la jornada → **el conflicto**:
+   te piden cubrir un turno la víspera de un examen → examen (5 s más si no cubriste) → primera nómina.
+9. **Decisiones:** trabajo, cómo enseñas, cubrir / decir que no / (en la cafetería) proponer a Omar.
+10. **Consecuencias:** dinero extra o mejor examen; relaciones con jefes y con Alba.
+11. **Recompensas:** *PrimerTrabajoUni*, tu primer contrato, 120 $. 12. **Conexión:** las prácticas de tu carrera.
+
+## 11.34 Universidad 04 — «Las prácticas» (implementada)
+
+1. **Objetivo:** lo que estudias, en el mundo real; y la honestidad profesional.
+2. **Duración:** 30–40 min. 3. **NPC (según carrera):** Nuria (Medicina, hospital), Sofía (Ingeniería,
+   TecnoVal), Montse (Derecho, bufete), Ignacio (Economía, banco); un paciente, un vecino o Marcos.
+4. **Lugares:** `"$Carrera.LugarPracticas"`.
+5. **Objetivos:** primer día (puntual) → primera jornada (clase de prácticas) → **el caso** (tres tareas propias
+   de cada carrera: un dolor en el pecho que es ardor, una pasarela que vibra, una multa injusta, un préstamo
+   para las bicis de Marcos) → **un error tuyo en el informe** → segunda jornada → evaluación.
+7. **Mecánicas:** objetos con `If` por carrera; `Bonus` si confiesas el error.
+9. **Decisiones:** decirlo, corregirlo en silencio o dejarlo.
+10. **Consecuencias:** si lo dices y trabajas bien, `OfertaTrabajo` (Beltrán lo menciona en la graduación).
+11. **Recompensas:** *Practicas*, informe de prácticas, 150 $. 12. **Conexión:** es hora de independizarse.
+
+## 11.35 Universidad 05 — «Tu primer piso» (implementada)
+
+1. **Objetivo:** irse de casa sin irse del todo. 2. **Duración:** 20–30 min.
+3. **NPC:** familia, {abu}, Sara o Luca (o a tu aire). 4. **Lugares:** casa familiar, campus, **tu casa nueva**.
+5. **Objetivos:** la conversación en casa → con quién vives → **quedarte una casa de verdad** (`HomeClaimed`)
+   → la mudanza (la caja «NO ABRIR» con tu primera mochila y una carta) → **primera cena** (`Ate`) → la
+   primera noche (convivencia o silencio) → {abu} trae una planta → **dormir en tu cama** (`Slept`).
+7. **Mecánicas:** conecta con el sistema de casas, la comida y el sueño. Deja `TieneHogar`: la vida adulta
+   ya no te pide buscar casa (`Adulto_LlegadaValmar` se salta ese paso).
+11. **Recompensas:** *PrimerPiso*, las llaves. 12. **Conexión:** llega junio del último curso.
+
+## 11.36 Universidad 06 — «La graduación» (implementada)
+
+1. **Objetivo:** el cierre de toda la campaña: «me acuerdo de cómo empezó mi vida».
+2. **Duración:** 25–35 min. 3. **NPC:** Beltrán, el grupo cuatro, Luca, familia, {abu}, Lola, Omar, Sara,
+   Nico, Leire, Mateo, Hugo, Bruno. 4. **Lugares:** biblioteca, tu facultad, Cafetería Central.
+5. **Objetivos:** último repaso y examen → la nota → **qué te pones** (hasta la sudadera de dinosaurios) →
+   saludar a 3 de 5 → **ceremonia y diploma** → cinemática → foto → **el brindis**: cada amigo recuerda algo
+   que viviste de verdad (primer día, Mateo, la mochila, el torneo, la sala cerrada, el festival, el examen,
+   Leire, el rumor, Bruno, el primer sueldo, {abu}) → «Has terminado tu etapa universitaria».
+10. **Consecuencias:** título de tu carrera con tu nota media (`Degree`), marca `Graduado`.
+11. **Recompensas:** *Graduacion*, orla de la universidad, 500 $. 12. **Conexión:** la vida adulta.

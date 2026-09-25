@@ -199,6 +199,11 @@ local People: { [string]: Person } = {
 	Pablo = { Name = "Pablo", Voice = "Profe", Skin = rgb(190, 140, 100), Shirt = rgb(200, 90, 40), Pants = rgb(40, 40, 40), Hair = rgb(20, 20, 22), Bio = "Del equipo del proyecto. Encantador, nunca aparece. En realidad lo que le gusta es la música." },
 	Adrian = { Name = "Adrián", Voice = "Profe", Skin = rgb(230, 195, 160), Shirt = rgb(30, 60, 120), Pants = rgb(200, 190, 170), Hair = rgb(120, 80, 40), Bio = "Del equipo del proyecto. Quiere mandar. Tiene una beca que no puede perder y eso le asusta." },
 	Carla = { Name = "Carla", Voice = "Profe", Skin = rgb(170, 120, 90), Shirt = rgb(150, 60, 150), Pants = rgb(40, 40, 60), Hair = rgb(30, 20, 15), LongHair = true, Bio = "Del equipo del proyecto. Siempre llega tarde. Por las tardes cuida de su hermano pequeño." },
+	Montse = { Name = "Montse", Voice = "Rectora", Skin = rgb(220, 180, 145), Shirt = rgb(40, 40, 60), Pants = rgb(40, 40, 60), Hair = rgb(90, 60, 40), LongHair = true, LongSleeves = true, Bio = "Abogada del bufete del distrito financiero. Tutora de prácticas. Habla despacio y nunca levanta la voz." },
+	Ignacio = { Name = "Ignacio", Voice = "Profe", Skin = rgb(200, 150, 110), Shirt = rgb(240, 240, 245), Pants = rgb(30, 40, 70), Hair = rgb(40, 30, 25), LongSleeves = true, Bio = "Director de oficina del banco. Tutor de prácticas. Corbata torcida, números perfectos." },
+	Vecino = { Name = "Un vecino", Voice = "Abu", Skin = rgb(190, 145, 110), Shirt = rgb(120, 110, 90), Pants = rgb(60, 60, 70), Hair = rgb(150, 150, 150), Bio = "" },
+	Paciente = { Name = "Un paciente", Voice = "Abu", Skin = rgb(225, 185, 150), Shirt = rgb(150, 190, 210), Pants = rgb(150, 190, 210), Hair = rgb(200, 200, 200), Bio = "" },
+	Rocio = { Name = "Rocío", Voice = "Familia", Skin = rgb(200, 150, 115), Shirt = rgb(90, 140, 190), Pants = rgb(50, 50, 60), Hair = rgb(60, 40, 25), LongHair = true, Bio = "Madre de Alba. Enfermera de noche. Siempre con prisa y siempre sonriendo." },
 	Alba = { Name = "Alba", Voice = "Nino", Kid = true, Skin = rgb(240, 205, 175), Shirt = rgb(250, 180, 60), Pants = rgb(60, 80, 140), Hair = rgb(120, 70, 30), LongHair = true, Backpack = rgb(250, 120, 160), Bio = "9 años. Odia las fracciones. Adora los dinosaurios. Pregunta «¿y por qué?» cuarenta veces por hora." },
 
 	-- Gente de fondo (entrada del colegio, calle)
