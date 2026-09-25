@@ -222,7 +222,10 @@ function HouseService.sleep(player: Player, plotId: number)
 	end
 	player:SetAttribute("Sleeping", true)
 	Notify:FireClient(player, "Sleep", "Zzz...")
-	task.wait(Config.SleepSeconds)
+	task.wait(Config.SleepSeconds * 0.6)
+	-- De noche, si todos duermen, se hace de día
+	require(script.Parent.WorldService).trySkipNight()
+	task.wait(Config.SleepSeconds * 0.4)
 	if player.Parent then
 		player:SetAttribute("Sleeping", nil)
 		NeedsService.change(player, 0, Config.Needs.Max)

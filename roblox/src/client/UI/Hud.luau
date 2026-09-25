@@ -277,6 +277,12 @@ local function section(parent: Instance, order: number, emoji: string, title: st
 	Theme.label({ Size = UDim2.new(1, -36, 1, 0), Position = UDim2.fromOffset(36, 0), Text = title, Font = Theme.FontBold, TextSize = 16, TextColor3 = color, Parent = header })
 end
 
+-- 7.5 -> "7:30"
+local function hourText(hour: number): string
+	local h = math.floor(hour)
+	return ("%d:%02d"):format(h, math.floor((hour - h) * 60 + 0.5))
+end
+
 local function renderObjectives(state: { [string]: any })
 	for _, child in objectivesList:GetChildren() do
 		if not child:IsA("UIListLayout") then
@@ -295,6 +301,11 @@ local function renderObjectives(state: { [string]: any })
 		title = Strings.get(tracked.TitleKey)
 		local titleBox = create("Frame", { Size = UDim2.new(1, 0, 0, 34), BackgroundColor3 = rgb(30, 56, 110), BackgroundTransparency = 0.3, LayoutOrder = nextOrder(), Parent = objectivesList }, { Theme.corner(8) })
 		Theme.label({ Size = UDim2.new(1, -16, 1, 0), Position = UDim2.fromOffset(10, 0), Text = "⭐ " .. title, Font = Theme.FontBold, TextSize = 15, TextTruncate = Enum.TextTruncate.AtEnd, Parent = titleBox })
+		if tracked.Closed then
+			-- El sitio al que toca ir está cerrado a esta hora
+			objectiveRow(objectivesList, nextOrder(), ("🌙 %s está cerrado · abre a las %s"):format(tracked.Closed.Name, hourText(tracked.Closed.From)), false, true)
+			objectiveRow(objectivesList, nextOrder(), "💤 Puedes dormir en tu cama para que pase antes el tiempo", false)
+		end
 		local children = tracked.Children or {}
 		if #children > 0 then
 			local firstPending = true
@@ -312,7 +323,10 @@ local function renderObjectives(state: { [string]: any })
 		section(objectivesList, nextOrder(), "★", "Objetivo principal", C.Gold)
 		title = Strings.get(waiting.TitleKey)
 		objectiveRow(objectivesList, nextOrder(), title, false, true)
-		objectiveRow(objectivesList, nextOrder(), if waiting.Reason == "Hours" then Strings.get("STORY.WAIT.HOURS", { from = waiting.From, to = waiting.To }) else Strings.get("STORY.WAIT.DAYS"), false)
+		objectiveRow(objectivesList, nextOrder(), if waiting.Reason == "Hours" and waiting.From then ("🕗 Empieza a las %s (ahora está cerrado)"):format(hourText(waiting.From)) elseif waiting.Reason == "Hours" then Strings.get("STORY.WAIT.HOURS", { from = waiting.From, to = waiting.To }) else Strings.get("STORY.WAIT.DAYS"), false)
+		if waiting.Reason == "Hours" then
+			objectiveRow(objectivesList, nextOrder(), "💤 Puedes dormir en tu cama para que pase antes el tiempo", false)
+		end
 	end
 	local others = state.Others or {}
 	if #others > 0 then

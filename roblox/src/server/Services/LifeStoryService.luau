@@ -33,6 +33,7 @@ local Stages = require(LifeStory.Stages)
 local Validate = require(LifeStory.Validate)
 local Subjects = require(LifeStory.Subjects)
 local DayPlans = require(LifeStory.DayPlans)
+local Schedules = require(LifeStory.Schedules)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 local DataService = require(script.Parent.DataService)
 local LocationService = require(script.Parent.LocationService)
@@ -64,9 +65,10 @@ type Progress = {
 -- Estado que no se guarda (se reconstruye al entrar)
 type Runtime = {
 	Spots: { [string]: LocationService.Spot }, -- lugar elegido para cada paso "Reach" en curso
+	ScheduleSpots: { [string]: any }?, -- sitios con horario ya buscados (para saber si ya estás dentro)
 	PendingOffer: string?,
 	OfferedAt: number,
-	Waiting: { QuestId: string, Reason: string }?,
+	Waiting: { QuestId: string, Reason: string, From: number?, To: number? }?,
 	LastPublished: string?,
 	LastRemote: number,
 	Ready: boolean,
@@ -391,6 +393,50 @@ local function placeArgs(step: { [string]: any }, prog: Progress?, story: Data):
 	return args
 end
 
+-- Horarios: si el paso actual te manda a un sitio con horario (colegio, instituto, universidad,
+-- oficina) y está cerrado, la misión se queda en pausa hasta que abra. Si ya estás allí, sigue.
+local function closedWindow(player: Player, data: Data, questId: string, prog: Progress): Schedules.Window?
+	local story = storyOf(data)
+	local step = stepsOf(questId, prog)[prog.Step]
+	if not step or Quests[questId].Schedule == false then
+		return nil
+	end
+	local window: Schedules.Window? = nil
+	local placeId: string? = nil
+	if step.Type == "Group" and step.Steps then
+		for i, child in step.Steps do
+			if not (prog.Sub and prog.Sub[tostring(i)]) then
+				placeId = stepPlace(child, story)
+				window = Schedules.forPlace(placeId)
+				if window then
+					break
+				end
+			end
+		end
+	else
+		placeId = stepPlace(step, story)
+		window = Schedules.forPlace(placeId)
+	end
+	if not window or Schedules.isOpen(window, GameClock.now().ClockTime) then
+		return nil
+	end
+	-- ¿Ya estás allí? (dentro del colegio cuando cierra: puedes terminar lo que hacías)
+	local rt = runtime[player]
+	local me = LocationService.positionOf(player)
+	if rt and me and placeId then
+		rt.ScheduleSpots = rt.ScheduleSpots or {}
+		local spot = rt.ScheduleSpots[placeId]
+		if spot == nil then
+			spot = LocationService.resolve(player, placeId) or false
+			rt.ScheduleSpots[placeId] = spot
+		end
+		if spot and Vector3.new(spot.Position.X - me.X, 0, spot.Position.Z - me.Z).Magnitude < 180 then
+			return nil
+		end
+	end
+	return window
+end
+
 local function trackedQuest(story: Data): string?
 	if story.Tracked and story.Active[story.Tracked] then
 		return story.Tracked
@@ -485,6 +531,12 @@ local function publish(player: Player, force: boolean?)
 				target = spot and spot.Position
 			end
 		end
+		local closed = closedWindow(player, data, trackedId, prog)
+		if closed then
+			-- Cerrado: sin línea guía; el HUD dice a qué hora abre
+			tracked.Closed = { Name = closed.Name, From = closed.From, To = closed.To }
+			target = nil
+		end
 		state.Tracked = tracked
 	elseif rt.Waiting then
 		local quest = Quests[rt.Waiting.QuestId]
@@ -492,8 +544,8 @@ local function publish(player: Player, force: boolean?)
 		state.Waiting = {
 			TitleKey = quest.TitleKey or quest.Title,
 			Reason = rt.Waiting.Reason,
-			From = req.Hours and req.Hours.From,
-			To = req.Hours and req.Hours.To,
+			From = rt.Waiting.From or (req.Hours and req.Hours.From),
+			To = rt.Waiting.To or (req.Hours and req.Hours.To),
 		}
 	end
 	for id in story.Active do
@@ -1000,13 +1052,22 @@ function refresh(player: Player)
 			continue
 		end
 		local ok, reason = Conditions.check(Quests[pending].Requires, contextFor(player, data))
-		if ok then
+		local clock = GameClock.now().ClockTime
+		local window = Schedules.forQuest(Quests[pending])
+		if ok and not Schedules.isOpen(window, clock) then
+			-- Toca, pero el sitio está cerrado a esta hora (el colegio no abre de noche)
+			rt.Waiting = { QuestId = pending, Reason = "Hours", From = window and window.From, To = window and window.To }
+		elseif ok then
 			startQuest(player, data, pending)
 			return -- startQuest ya publica
 		elseif reason == "StageProgress" and chapter.Loop and Quests[chapter.Loop] then
 			-- Aún no toca el siguiente gran momento: se vive un día normal (colegio, instituto, universidad)
-			startQuest(player, data, chapter.Loop)
-			return
+			local loopWindow = Schedules.forQuest(Quests[chapter.Loop])
+			if Schedules.isOpen(loopWindow, clock) then
+				startQuest(player, data, chapter.Loop)
+				return
+			end
+			rt.Waiting = { QuestId = chapter.Loop, Reason = "Hours", From = loopWindow and loopWindow.From, To = loopWindow and loopWindow.To }
 		elseif Conditions.isWaitOnly(reason) then
 			rt.Waiting = { QuestId = pending, Reason = reason :: string }
 		end
@@ -1043,6 +1104,9 @@ local function canOffer(player: Player, data: Data, questId: string): boolean
 	local declined = story.Declined[questId]
 	if declined and os.time() - declined < CFG.DeclineCooldown then
 		return false
+	end
+	if not Schedules.isOpen(Schedules.forQuest(quest), GameClock.now().ClockTime) then
+		return false -- no se ofrece ir al colegio de noche
 	end
 	return (Conditions.check(quest.Requires, contextFor(player, data)))
 end
@@ -1269,6 +1333,15 @@ local function tickPlayer(player: Player, data: Data)
 		local prog: Progress? = story.Active[questId]
 		local step = prog and stepsOf(questId, prog)[prog.Step]
 		if not prog or not step then
+			continue
+		end
+		if closedWindow(player, data, questId, prog) then
+			-- El sitio al que toca ir está cerrado: se sigue cuando abra (y el reloj de "llegas tarde"
+			-- no corre mientras tanto)
+			local rt = runtime[player]
+			if rt then
+				rt.StepStart[questId] = os.clock()
+			end
 			continue
 		end
 		if stepTimers(player, data, questId, prog, step) then

@@ -218,6 +218,64 @@ local function publishLandmarks()
 	folder.Parent = ReplicatedStorage
 end
 
+---------------------------------------------------------------------
+-- Dormir: si es de noche y todos los jugadores están durmiendo, se hace de día (7:00)
+---------------------------------------------------------------------
+local function isNight(clock: number): boolean
+	return clock >= 21 or clock < 6.5
+end
+
+function WorldService.trySkipNight()
+	if not isNight(Lighting.ClockTime) then
+		return false
+	end
+	for _, other in Players:GetPlayers() do
+		if not other:GetAttribute("Sleeping") then
+			return false
+		end
+	end
+	Lighting.ClockTime = 7 -- (si era antes de medianoche, el reloj da la vuelta y empieza un día nuevo)
+	return true
+end
+
+-- Camas de las casas familiares: "Dormir" (la de las casas compradas la gestiona HouseService)
+local function setupBed(mattress: Instance)
+	if not mattress:IsA("BasePart") or mattress:FindFirstChild("SleepPrompt") then
+		return
+	end
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = "SleepPrompt"
+	prompt.ActionText = "Dormir"
+	prompt.ObjectText = "Cama"
+	prompt.HoldDuration = 0.5
+	prompt.MaxActivationDistance = 9
+	prompt.RequiresLineOfSight = false
+	prompt.Parent = mattress
+	prompt.Triggered:Connect(function(player)
+		if player:GetAttribute("Sleeping") or player:GetAttribute("LifeStage") == "Bebe" then
+			return
+		end
+		player:SetAttribute("Sleeping", true)
+		local notify = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("Notify")
+		if notify then
+			(notify :: RemoteEvent):FireClient(player, "Sleep", "Zzz...")
+		end
+		task.wait(Config.SleepSeconds * 0.6)
+		local skipped = WorldService.trySkipNight()
+		task.wait(Config.SleepSeconds * 0.4)
+		if player.Parent then
+			player:SetAttribute("Sleeping", nil)
+			if notify then
+				(notify :: RemoteEvent):FireClient(player, "Success", if skipped then "☀ ¡Buenos días! Has dormido toda la noche." else "Has descansado un rato.")
+			end
+			local ok, NeedsService = pcall(require, script.Parent.NeedsService)
+			if ok then
+				NeedsService.change(player, 0, Config.Needs.Max)
+			end
+		end
+	end)
+end
+
 function WorldService.init()
 	setupLighting()
 	publishLandmarks()
@@ -229,6 +287,15 @@ function WorldService.init()
 		ferryBusy[player] = nil
 	end)
 	task.spawn(spinLighthouse)
+	task.defer(function()
+		for _, home in CollectionService:GetTagged("FamilyHome") do
+			for _, part in home:GetDescendants() do
+				if part.Name == "Mattress" then
+					setupBed(part)
+				end
+			end
+		end
+	end)
 
 	local day = 1
 	workspace:SetAttribute("Day", day)
