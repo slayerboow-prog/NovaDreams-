@@ -15,6 +15,11 @@ local Memories: { [string]: Memory } = {
 	SuenoDeMayor = { Text = "Lo que querías ser de mayor", Icon = "✨" },
 	GatoDelCole = { Text = "Bigotes, el gato del colegio", Icon = "🐈" },
 	ReencuentroRuben = { Text = "Cuando Rubén volvió a aparecer", Icon = "🔁" },
+	LosMalotes = { Text = "La persecución por el colegio y lo que te contó Hugo", Icon = "🏃" },
+	HugoAmigo = { Text = "Cuando Hugo dejó a Bruno y se vino con vosotros", Icon = "🏴‍☠️" },
+	Detective = { Text = "Descubriste quién hacía las bromas del colegio", Icon = "🔍" },
+	PrimerExamen = { Text = "Tu primer examen de verdad", Icon = "📝" },
+	CasiSuspendo = { Text = "Aquel examen que casi suspendes (y cómo lo arreglaste)", Icon = "📚" },
 }
 
 return Memories

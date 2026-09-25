@@ -277,7 +277,11 @@ misión nueva se rellena la ficha de 12 puntos de 11.7.
 
 ## 11.13 Estado, pruebas y lo que falta
 
-**Hecho y probado** (prueba automática `scripts/test-lifestory.luau`, 136 comprobaciones en verde):
+**Hecho y probado** (prueba automática `scripts/test-lifestory.luau`, 161 comprobaciones en verde):
+
+- Misiones 04, 05 y 06 (ver 11.14–11.16): persecución con personajes que huyen, escondite y atajo;
+  investigación con acusación que puede fallar; examen con estudio, bonus de tiempo y recuperación si
+  suspendes. Consecuencias nuevas: Hugo (2 h después) y la «Recuperación».
 
 - Misiones 01, 02 y 03 completas, jugadas de principio a fin por un "jugador automático" que habla, usa
   objetos, elige y juega los minijuegos, por **dos caminos distintos** (ayudar o ignorar a Mateo,
@@ -306,6 +310,76 @@ animaciones de los NPC, la cámara de los diálogos y el tacto de los minijuegos
 - Los personajes de las escenas se visten con `Npc.dress` (el mismo aspecto que el resto del juego), y cada
   uno lleva siempre la misma ropa, pelo y mochila (`Cast.luau`).
 
-**Siguiente:** misiones 04 «Los malotes» (necesita un minijuego de persecución), 05 «La venganza de la
-mochila» y 06 «El examen imposible», con la misma ficha de 12 puntos.
+**Siguiente:** 07 «La excursión», 08 «El torneo», 09 «El misterio del colegio» (la foto de Lucía: ya se
+insinúa en la misión 05), con la misma ficha de 12 puntos.
+
+---
+
+## 11.14 Misión 04 — «Los malotes» (implementada)
+
+1. **Objetivo narrativo:** el primer conflicto de verdad, sin violencia. Bruno deja de ser "el malo" y
+   Hugo se revela: va con ellos porque no sabe cómo dejarlo.
+2. **Duración:** 20–30 min.
+3. **NPC:** Bruno, Rubén, Hugo, Nico, Sara, Omar, Mateo (si es tu amigo), Lucía, Ramón.
+4. **Lugares:** patio, aula, pasillo, comedor, gimnasio, puerta del gimnasio, aula de música (atajo).
+5. **Objetivos:** recreo con tu grupo → burlas de Bruno (respondes como quieras) → vuelves a clase: **tu
+   objeto favorito ha desaparecido** (el cromo de la suerte si lo llevabas; si no, la foto del grupo) →
+   investigar (3 de 5: Nico, Sara, Omar, Lucía, Ramón; Mateo añade una pista) → los ves en el pasillo y
+   **salen corriendo** → **persecución** pasillo → patio → (¡viene Ramón, escóndete!) → gimnasio →
+   fuera; atajo opcional por el aula de música → alcanzas a Hugo (el más lento: hay que correr con
+   Shift) → Hugo te lo devuelve y te cuenta por qué → **decisión** → consecuencia.
+6. **Diálogos principales:** burlas, cada testigo, Ramón pillándote corriendo, Hugo, las cuatro ramas.
+7. **Mecánicas nuevas:** personajes que **huyen** por una ruta (`Mode = "Flee"`), paso `Chase`
+   (alcanzar a alguien), esconderse a tiempo (`Timeout` con marca), atajo (efecto `Teleport`).
+8. **Minijuegos:** la persecución misma (correr, gestionar la estamina, atajo, esconderse).
+9. **Decisión:** A) Contárselo a Lucía · B) Hablar con ellos (Bruno te cuenta lo de su hermano) ·
+   C) Pedir ayuda a tu grupo (plantaros juntos) · D) Dejarlo estar.
+10. **Consecuencias:** relación con Hugo, Bruno y Rubén; rasgos; marcas `Hugo_*`, `Bruno_*`.
+    Cambia cómo empieza M05 y los diálogos de M06. **Diferida (2 h):** Hugo vuelve (te regala su libro
+    de piratas, se une al grupo… o sigue solo, según lo que hiciste).
+11. **Recompensas:** recuerdo *LosMalotes*, tu objeto vuelve a la mochila.
+12. **Conexión:** «La venganza de la mochila» empieza con alguien haciendo bromas… y todos miran a Bruno.
+
+## 11.15 Misión 05 — «La venganza de la mochila» (implementada)
+
+1. **Objetivo narrativo:** una investigación con pistas de verdad y un culpable inesperado; la
+   solución es social. Enseña a no juzgar por la fama.
+2. **Duración:** 15–20 min.
+3. **NPC:** Lucía, Ramón, Vega, Álex, Nico, Sara, Omar, Bruno, Iker (el culpable), Hugo (si es tu amigo).
+4. **Lugares:** aula, pasillo (taquillas), comedor, biblioteca, conserjería (las "cámaras").
+5. **Objetivos:** bromas a tres alumnos (a Vega le cambian las pegatinas, a Álex le esconden los guantes, a
+   Nico le llenan la taquilla de papelitos) → todos culpan a Bruno → Lucía te pide ayuda → pistas: notas
+   (letra muy ordenada), el horario (las bromas pasan cuando Iker sale "al baño"), la "cámara" de
+   Ramón (un dibujo de Omar del pasillo), testigos → **acusar** a alguien (si te equivocas, hay
+   consecuencias y vuelves a pensar) → Iker confiesa: quería que alguien le hiciera caso → **decisión
+   social** (invitarle al grupo, pedirle que se disculpe él mismo, contárselo a Lucía).
+6. **Diálogos:** cada víctima, Bruno defendiéndose ("¡esta vez no he sido yo!"), Ramón, Iker.
+7. **Mecánicas nuevas:** acusar (opción que **no avanza** si fallas: `Stay = true`), notas con pistas.
+8. **Minijuegos:** deducción (elegir sospechoso con las pistas que tienes).
+9. **Decisiones:** a quién acusas; qué haces con Iker.
+10. **Consecuencias:** si acusas a Bruno sin pruebas, Bruno lo recuerda; relación con Iker; marca
+    `IkerEnElGrupo`. Bruno reconoce que "esta vez" lo trataste justo (o no).
+11. **Recompensas:** recuerdo *Detective*.
+12. **Conexión:** Lucía anuncia el examen de mañana.
+
+## 11.16 Misión 06 — «El examen imposible» (implementada)
+
+1. **Objetivo narrativo:** la primera presión de verdad; el esfuerzo importa más que la nota.
+2. **Duración:** 20–25 min.
+3. **NPC:** Lucía, Sara, Iker, Mateo, Nico, la bibliotecaria Marisa, la familia.
+4. **Lugares:** aula, biblioteca (apuntes), casa (estudiar por la noche), aula (examen).
+5. **Objetivos:** Lucía anuncia el examen → **conseguir apuntes** (en la biblioteca; Marisa pide que
+   los devuelvas) → **compañero de estudio** (Sara, Iker, Mateo o sin nadie) → **biblioteca**: sesión de
+   estudio (preguntas) → ejercicios en casa (opcional: más estudio = más tiempo en el examen) → dormir →
+   **examen** (10 preguntas) → la nota.
+6. **Diálogos:** anuncio, bibliotecaria, cada compañero de estudio (Sara exigente, Iker sabelotodo,
+   Mateo nervioso como tú), la familia la noche antes, el resultado.
+7. **Mecánicas:** la nota depende de tus respuestas; **estudiar da segundos extra** en el examen
+   (`Bonus`); condiciones por nota (`LastGradeBelow`, `LastGradeAtLeast`).
+8. **Minijuegos:** sesión de estudio y examen (preguntas).
+9. **Decisiones:** con quién estudias; estudiar más en casa o ver la tele.
+10. **Consecuencias:** si suspendes, empieza **«Recuperación»** (Lucía te da otra oportunidad con
+    clases de repaso); si apruebas con esfuerzo, recuerdo distinto. Relación con tu compañero de estudio.
+11. **Recompensas:** recuerdo *PrimerExamen* (o *CasiSuspendo*), 10 $.
+12. **Conexión:** después vienen los recados, la excursión y el resto del curso.
 

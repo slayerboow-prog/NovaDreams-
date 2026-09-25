@@ -17,6 +17,7 @@
 --   RelBelow    = { Ruben = 0 }                  relación por debajo de 0
 --   Traits      = { Empatia = 2 }                rasgo del jugador de al menos 2
 --   Memories    = { "PrimerAmigo" } / NotMemories   recuerdos que tiene (o no)
+--   LastGradeBelow = 5 / LastGradeAtLeast = 7    nota de la última clase o examen
 
 local Stages = require(script.Parent.Stages)
 local GameClock = require(script.Parent.Parent.GameClock)
@@ -36,6 +37,7 @@ export type Context = {
 	Rel: { [string]: number }?,
 	Traits: { [string]: number }?,
 	Memories: { [string]: any }?,
+	LastGrade: number?,
 }
 
 -- Devuelve true, o false y el motivo ("Stage", "Hours", "Weekdays", "Completed"...).
@@ -105,6 +107,12 @@ function Conditions.check(req: { [string]: any }?, ctx: Context): (boolean, stri
 		if (ctx.Memories or {})[key] then
 			return false, "Memories"
 		end
+	end
+	if req.LastGradeBelow and not (ctx.LastGrade and ctx.LastGrade < req.LastGradeBelow) then
+		return false, "Grade"
+	end
+	if req.LastGradeAtLeast and not (ctx.LastGrade and ctx.LastGrade >= req.LastGradeAtLeast) then
+		return false, "Grade"
 	end
 	if req.StageProgress and (ctx.StageProgress or 0) < req.StageProgress then
 		return false, "StageProgress"

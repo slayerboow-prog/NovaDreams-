@@ -63,6 +63,12 @@ local People: { [string]: Person } = {
 		Hair = rgb(20, 20, 22), LongHair = true,
 		Bio = "Profe de música. Dulce, habla cantando, siempre tararea algo.",
 	},
+	Marisa = {
+		Name = "Marisa", Voice = "Abu",
+		Skin = rgb(230, 190, 160), Shirt = rgb(120, 90, 150), Pants = rgb(60, 60, 70),
+		Hair = rgb(190, 190, 195), LongHair = true, LongSleeves = true,
+		Bio = "Bibliotecaria. Habla en susurros, lo presta todo, y todo lo apunta. Cree que un libro puede arreglar cualquier día malo.",
+	},
 	Andres = {
 		Name = "Andrés", Voice = "Profe",
 		Skin = rgb(170, 120, 86), Shirt = rgb(220, 60, 60), Pants = rgb(30, 30, 40),

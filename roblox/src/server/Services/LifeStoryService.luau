@@ -134,6 +134,7 @@ local function contextFor(player: Player, data: Data): Conditions.Context
 		Rel = rel,
 		Traits = story.Traits or {},
 		Memories = story.Memories or {},
+		LastGrade = story.LastGrade,
 		Stage = data.Life.Stage,
 		ClockTime = now.ClockTime,
 		Weekday = now.Weekday,
@@ -333,6 +334,9 @@ local function applyEffects(player: Player, data: Data, effects: { [string]: any
 	if effects.Say then
 		DialogueService.bark(player, effects.Say.S, effects.Say.T)
 	end
+	if effects.Teleport then
+		SceneService.teleport(player, effects.Teleport) -- un atajo, una escena que empieza en otro sitio
+	end
 	story.Later = story.Later or {}
 	for _, later in effects.Later or {} do
 		local seconds = (later.AfterHours or 0) * 3600 + (later.AfterMinutes or 0) * 60
@@ -412,7 +416,7 @@ function sceneTarget(player: Player, questId: string, step: { [string]: any }): 
 	local function propPosition(id: string?): Vector3?
 		return if id then SceneService.propPosition(player, questId, id) else nil
 	end
-	if step.Type == "Talk" then
+	if step.Type == "Talk" or step.Type == "Chase" then
 		return actorPosition(step.Npc)
 	elseif step.Type == "Use" then
 		return propPosition(step.Prop)
@@ -467,7 +471,7 @@ local function publish(player: Player, force: boolean?)
 						end
 					end
 				end
-			elseif step.Type == "Talk" or step.Type == "Use" or step.Type == "Choice" then
+			elseif step.Type == "Talk" or step.Type == "Use" or step.Type == "Choice" or step.Type == "Chase" then
 				target = sceneTarget(player, trackedId, step)
 				if not target and step.Place then
 					local spot = rt.Spots[spotKey(trackedId, prog)]
@@ -1242,6 +1246,20 @@ local function tickPlayer(player: Player, data: Data)
 			if checkReach(player, data, questId, prog, step) then
 				advance(player, data, questId)
 			end
+		elseif step.Type == "Chase" then
+			-- Persecución: alcanzar al personaje que huye (si no está en la escena, se da por alcanzado)
+			local model = SceneService.actorOf(player, step.Npc)
+			local me = LocationService.positionOf(player)
+			local rt = runtime[player]
+			local since = os.clock() - (rt.StepStart[questId] or os.clock())
+			if model and me then
+				local offset = model:GetPivot().Position - me
+				if Vector3.new(offset.X, 0, offset.Z).Magnitude <= (step.Catch or 7) then
+					advance(player, data, questId)
+				end
+			elseif since > 10 then
+				advance(player, data, questId)
+			end
 		elseif step.Type == "Wait" then
 			if prog.WaitUntil and GameClock.now().TotalMinutes >= prog.WaitUntil then
 				advance(player, data, questId)
@@ -1277,7 +1295,11 @@ local function tickPlayer(player: Player, data: Data)
 					local subjectId = Subjects.resolve(step.Subject, degreeOf(story))
 					local index = prog.Step
 					rt.ClassFor = key
-					local started = ClassService.start(player, { Subject = subjectId, Mode = step.Mode or "Clase" }, function(result)
+					local extra = nil
+					if step.Bonus and Conditions.check(step.Bonus.If, contextFor(player, data)) then
+						extra = step.Bonus.Seconds -- quien estudió tiene más tiempo por pregunta
+					end
+					local started = ClassService.start(player, { Subject = subjectId, Mode = step.Mode or "Clase", ExtraSeconds = extra }, function(result)
 						rt.ClassFor = nil
 						local current = DataService.get(player)
 						local now = current and storyOf(current).Active[questId]
@@ -1366,6 +1388,14 @@ local function chooseOption(player: Player, data: Data, questId: string, optionI
 			local function commit()
 				local now = story.Active[questId]
 				if not now or now.Step ~= index then
+					return
+				end
+				if option.Stay then
+					-- Opción que no cierra la decisión (acusar a quien no era): efectos y vuelta a pensar
+					applyEffects(player, data, option.Effects, questId)
+					if not worldChoice(step) then
+						sendChoice(player, questId, step)
+					end
 					return
 				end
 				story.Choices[step.Key] = { V = optionId, D = GameClock.now().Day }

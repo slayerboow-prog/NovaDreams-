@@ -41,7 +41,7 @@ do
 	end
 end
 
-export type Spec = { Subject: string, Mode: string }
+export type Spec = { Subject: string, Mode: string, ExtraSeconds: number? }
 export type Result = { Grade: number, Correct: number, Total: number }
 
 type Session = {
@@ -173,9 +173,10 @@ local function runQuiz(player: Player, session: Session, subject: Subjects.Subje
 			Total = #questions,
 			Q = question.Q,
 			Options = question.Options,
-			Seconds = mode.Seconds,
+			Seconds = mode.Seconds + (session.Spec.ExtraSeconds or 0),
 		})
-		local deadline = os.clock() + mode.Seconds + 1
+		-- Quien ha estudiado tiene unos segundos más por pregunta (Bonus del paso de la misión)
+		local deadline = os.clock() + mode.Seconds + (session.Spec.ExtraSeconds or 0) + 1
 		while session.Answer == nil and os.clock() < deadline and player.Parent do
 			task.wait(0.1)
 		end

@@ -47,6 +47,10 @@ type Actor = {
 	Root: BasePart?,
 	Home: CFrame, -- dónde debe estar
 	Tracks: { [string]: AnimationTrack },
+	Route: { Vector3 }?, -- Flee: puntos por los que huye
+	RouteIndex: number,
+	LastProgress: number,
+	LastPosition: Vector3?,
 	Playing: string?,
 	NextWander: number,
 	StuckSince: number?,
@@ -285,7 +289,7 @@ end
 
 local function applyMode(actor: Actor)
 	local mode = actor.Spec.Mode or "Idle"
-	local moving = mode == "Wander" or mode == "Follow"
+	local moving = mode == "Wander" or mode == "Follow" or mode == "Flee"
 	anchorActor(actor, not moving)
 	if mode == "Sit" then
 		play(actor, "Sit")
@@ -310,6 +314,10 @@ local function makeActor(player: Player, questId: string, spec: { [string]: any 
 		Home = cf,
 		Tracks = {},
 		NextWander = 0,
+		Route = nil,
+		RouteIndex = 1,
+		LastProgress = os.clock(),
+		LastPosition = nil,
 	}
 	if root then
 		root.Anchored = true
@@ -510,7 +518,7 @@ local function specKey(spec: { [string]: any }): string
 		tostring(spec.Place),
 		tostring(spec.Index),
 		if offset then ("%.1f,%.1f,%.1f"):format(offset.X, offset.Y, offset.Z) else "",
-		tostring(spec.Mode)
+		tostring(spec.Mode) .. (if spec.Route then "|route" .. #spec.Route else "")
 	)
 end
 
@@ -739,7 +747,40 @@ local function stepActor(player: Player, actor: Actor, index: number)
 	end
 	local mode = actor.Spec.Mode or "Idle"
 	local me = playerRoot(player)
-	if mode == "Follow" and me then
+	if mode == "Flee" then
+		-- Huye por su ruta (pasillo → patio → gimnasio…). Si se atasca en una pared, "atajo": aparece en el
+		-- siguiente punto. Al final de la ruta se queda escondido esperando a que llegues.
+		if not actor.Route then
+			actor.Route = {}
+			for _, stop in actor.Spec.Route or {} do
+				local placeId = if type(stop) == "table" then stop.Place else stop
+				local spot = LocationService.resolve(player, placeId, if type(stop) == "table" then { Offset = stop.Offset } else nil)
+				if spot then
+					table.insert(actor.Route :: { Vector3 }, groundAt(spot.Position + V(0, 0.5, 0), {}))
+				end
+			end
+		end
+		local route = actor.Route :: { Vector3 }
+		local target = route[actor.RouteIndex]
+		if target then
+			humanoid.WalkSpeed = actor.Spec.Speed or 16
+			local flat = V(root.Position.X - target.X, 0, root.Position.Z - target.Z)
+			if flat.Magnitude < 4 then
+				actor.RouteIndex += 1
+				actor.LastProgress = os.clock()
+			else
+				humanoid:MoveTo(target)
+				local moved = if actor.LastPosition then (root.Position - actor.LastPosition).Magnitude else 1
+				if moved > 0.5 then
+					actor.LastProgress = os.clock()
+				elseif os.clock() - actor.LastProgress > 3 then
+					actor.Model:PivotTo(CFrame.new(target + V(0, 3, 0)))
+					actor.LastProgress = os.clock()
+				end
+			end
+			actor.LastPosition = root.Position
+		end
+	elseif mode == "Follow" and me then
 		-- Detrás del jugador, cada uno a un lado
 		local side = if index % 2 == 0 then 1 else -1
 		local target = me.Position + me.CFrame.RightVector * side * (2 + index) - me.CFrame.LookVector * (3 + index)

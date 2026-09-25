@@ -324,9 +324,11 @@ mocks[ROOT .. "/server/Services/ClassService"] = {
 	end,
 	start = function(player, spec, onDone)
 		table.insert(classCalls, { Player = player, Subject = spec.Subject, Mode = spec.Mode })
+		classCalls[#classCalls].Extra = spec.ExtraSeconds
+		local grade = player.ClassGrade or 8
 		task.delay(0.05, function()
-			loadModule(ROOT .. "/server/LifeStory/StoryEvents").emit(player, "LessonCompleted", { Subject = spec.Subject, Mode = spec.Mode, Grade = 8 })
-			onDone({ Grade = 8, Correct = 4, Total = 5 })
+			loadModule(ROOT .. "/server/LifeStory/StoryEvents").emit(player, "LessonCompleted", { Subject = spec.Subject, Mode = spec.Mode, Grade = grade })
+			onDone({ Grade = grade, Correct = 4, Total = 5 })
 		end)
 		return true
 	end,
@@ -687,6 +689,9 @@ local function doStep(player, questId, step, choice)
 		day += 1 -- pasa un día de juego
 	elseif step.Type == "Choice" then
 		local pick = (player.Picks and player.Picks[step.Key]) or choice
+		if type(pick) == "function" then
+			pick = pick(profiles[player].Story)
+		end
 		local option = nil
 		for _, candidate in step.Options do
 			if candidate.Id == pick then
@@ -901,16 +906,76 @@ passTime(noa, 3700)
 check(noaData.Story.Active.Eco_MateoSolo ~= nil, "Una hora después, ves a Mateo comiendo solo")
 check(playQuest(noa, "Eco_MateoSolo") and noaData.Story.Memories.SegundaOportunidad and noaData.Story.Flags.AyudasteAMateo, "Te sientas con él: ahora sí sois amigos")
 
+print("\n▶ Misión 04 «Los malotes» (burlas, objeto robado, persecución, Hugo, decisión)")
+leo.Prefer = { "Por lo menos nosotros", "Pedir ayuda a mi grupo" }
+leo.Picks = {}
+leo.Skip = {}
+leoData.Life.StageSeconds = 0.19 * HOURS.Nino * 3600
+local cromoAntes = leoData.Items.CromoSuerte
+check(playUntil(leo, function()
+	return leoData.Story.Completed.Cole04_Malotes ~= nil
+end), "Misión 04 completa")
+check(said(leo, "¿Mi cromo? ¿Dónde está mi cromo de la suerte?") and leoData.Items.CromoSuerte == cromoAntes, "Te quitan tu cromo de la suerte (el objeto que llevabas desde el primer día) y lo recuperas")
+check(said(leo, "Salen disparados hacia el patio"), "Persecución: salen corriendo y les sigues")
+check(said(leo, "Ramón pasa de largo"), "Te escondes de Ramón a tiempo")
+check(said(leo, "Yo no quería. Bruno dijo") and said(leo, "¿«La isla de las mil llaves»?"), "Hugo no quería participar (y recuerda que viste su libro en el almacén)")
+check(leoData.Story.Choices.Malotes.V == "Grupo" and leoData.Story.Flags.HugoConElGrupo and said(leo, "Somos cinco. Y estamos hartos."), "Decisión: tu grupo se planta contigo; Hugo se queda con vosotros")
+check(leoData.Story.Memories.LosMalotes ~= nil and laterStarts(leo).Eco_Hugo ~= nil, "Recuerdo «Los malotes» y consecuencia programada con Hugo")
+leo.Prefer = { "¿Por qué no te vienes" }
+passTime(leo, 2 * 3600 + 100)
+check(leoData.Story.Active.Eco_Hugo ~= nil and playQuest(leo, "Eco_Hugo"), "Dos horas después, Hugo te busca")
+check(said(leo, "portero suplente") and leoData.Items.LibroPiratas == 1 and leoData.Story.Memories.HugoAmigo, "Te regala su libro de piratas y se une al grupo")
+
+print("\n▶ Misión 05 «La venganza de la mochila» (pistas, acusar, confesión)")
+leo.Prefer = { "Vente con nosotros" }
+leo.Picks = {
+	Culpable = function(story)
+		return if story.Flags.AcusasteABruno then "Iker" else "Bruno" -- primero se equivoca
+	end,
+}
+leoData.Life.StageSeconds = 0.25 * HOURS.Nino * 3600
+check(playUntil(leo, function()
+	return leoData.Story.Completed.Cole05_Venganza ~= nil
+end), "Misión 05 completa")
+check(said(leo, "¡Esta vez NO he sido yo!") and not said(leo, "Tú hablaste conmigo"), "Todos culpan a Bruno (y no dice «tú hablaste conmigo»: en la misión 04 fuiste con tu grupo, no a hablar con él)")
+check(said(leo, "Lunes, 11:05"), "Pistas: el registro de salidas al baño")
+check(leoData.Story.Flags.AcusasteABruno and said(leo, "¡Por una vez que no hago nada!"), "Acusar a quien no era tiene consecuencias (y la decisión sigue abierta)")
+check(leoData.Story.Choices.Culpable.V == "Iker" and said(leo, "nadie me escucha"), "Descubres a Iker y por qué lo hizo")
+check(leoData.Story.Flags.IkerEnElGrupo and leoData.Items.Lupa == 1 and said(leo, "Me acusaste sin pruebas"), "Iker entra en el grupo, Lucía te da su lupa y Bruno se acuerda")
+
+print("\n▶ Misión 06 «El examen imposible» (apuntes, estudiar, la noche antes, examen)")
+leo.Prefer = { "Pedir ayuda a Abu" }
+leo.Picks = { CompaneroEstudio = "Mateo" }
+leo.ClassGrade = 3 -- esta vez sale mal
+leoData.Life.StageSeconds = 0.31 * HOURS.Nino * 3600
+check(playUntil(leo, function()
+	return leoData.Story.Completed.Cole06_Examen ~= nil
+end), "Misión 06 completa")
+check(said(leo, "Más o menos.") and said(leo, "Eso significa que no."), "Estudias con Mateo (diálogo con personalidad)")
+check(said(leo, "contábamos con garbanzos") and leoData.Story.Flags.EstudiasteMas, "La noche antes, Abu te ayuda a repasar")
+local examExtra = nil
+for _, call in classCalls do
+	if call.Player == leo and call.Mode == "Examen" then
+		examExtra = call.Extra
+	end
+end
+check(examExtra == 6, "Haber estudiado da 6 segundos más por pregunta en el examen")
+check(leoData.Story.Flags.SuspendisteExamen and said(leo, "un examen no dice quién eres"), "Suspendes… y Lucía te ofrece otra oportunidad")
+check(leoData.Items.ApuntesBiblioteca == nil, "Devuelves los apuntes a Marisa")
+leo.ClassGrade = 7
+passTime(leo, 90)
+check(leoData.Story.Active.Cole06b_Recuperacion ~= nil and playQuest(leo, "Cole06b_Recuperacion"), "Recuperación con Lucía")
+check(said(leo, "No era que no pudieras") and leoData.Story.Memories.CasiSuspendo, "Apruebas la recuperación: recuerdo «Aquel examen que casi suspendes»")
+leo.ClassGrade = nil
+
 print("\n▶ El resto del colegio: días normales, cumpleaños y fin de primaria")
-leoData.Life.StageSeconds = 0.36 * HOURS.Nino * 3600
-task.wait(0.8)
-check(leoData.Life.AgeYears == 8 and received(leo, "Moment", "MOMENT.CUMPLEANOS"), "El tiempo jugado hace crecer: cumple 8 años")
+check(leoData.Life.AgeYears >= 8 and received(leo, "Moment", "MOMENT.CUMPLEANOS"), "El tiempo jugado hace crecer: ya tiene 8 años o más")
 
 leoData.Life.StageSeconds = HOURS.Nino * 3600
 check(playUntil(leo, function()
 	return leoData.Life.Stage == "Adolescente"
 end), "Toda la primaria: recados, examen, excursión, trimestre y fin de primaria")
-for _, questId in { "Cole01_PrimerDia", "Cole02_Mochila", "Cole03_Grupo", "Nino_Recados", "Nino_PrimerExamen", "Nino_Excursion", "Nino_SegundoTrimestre", "Nino_FinDePrimaria" } do
+for _, questId in { "Cole01_PrimerDia", "Cole02_Mochila", "Cole03_Grupo", "Cole04_Malotes", "Cole05_Venganza", "Cole06_Examen", "Nino_Recados", "Nino_Excursion", "Nino_SegundoTrimestre", "Nino_FinDePrimaria" } do
 	check(leoData.Story.Completed[questId] ~= nil, "  hecha: " .. questId)
 end
 check(received(leo, "Moment", "MOMENT.DIA_COLE"), "Los días de cole terminados quedan como momentos")

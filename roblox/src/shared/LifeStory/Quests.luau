@@ -101,7 +101,7 @@ local Quests: { [string]: Quest } = {
 	Nino_Recados = {
 		Kind = "Main",
 		TitleKey = "QUEST.RECADOS.TITLE",
-		Requires = { Completed = { "Cole03_Grupo" }, StageProgress = 0.2 },
+		Requires = { Completed = { "Cole06_Examen" }, StageProgress = 0.36 },
 		Steps = {
 			{ Type = "Event", Event = "BoughtItem", Match = { ShopId = "Libreria" }, Place = "Libreria", TextKey = "QUEST.RECADOS.MATERIAL" },
 			{ Type = "Event", Event = "BoughtItem", Match = { ShopId = "Farmacia" }, Place = "Farmacia", TextKey = "QUEST.RECADOS.MEDICINAS" },
@@ -110,21 +110,10 @@ local Quests: { [string]: Quest } = {
 		Rewards = { Money = 25 },
 		MomentKey = "MOMENT.PRIMEROS_RECADOS",
 	},
-	Nino_PrimerExamen = {
-		Kind = "Main",
-		TitleKey = "QUEST.EXAMEN.TITLE",
-		Requires = { Completed = { "Nino_Recados" }, StageProgress = 0.35 },
-		Steps = {
-			{ Type = "Class", Subject = "Matematicas", Mode = "Estudio", Place = "CasaFamiliar", TextKey = "QUEST.EXAMEN.ESTUDIA" },
-			{ Type = "Class", Subject = "Matematicas", Mode = "Examen", Place = "Aula", TextKey = "QUEST.COLE.EXAMEN" },
-		},
-		Rewards = { Money = 10 },
-		MomentKey = "MOMENT.PRIMER_EXAMEN",
-	},
 	Nino_Excursion = {
 		Kind = "Main",
 		TitleKey = "QUEST.EXCURSION.TITLE",
-		Requires = { Completed = { "Nino_PrimerExamen" }, StageProgress = 0.5 },
+		Requires = { Completed = { "Nino_Recados" }, StageProgress = 0.5 },
 		Steps = {
 			{ Type = "Reach", Place = "Bomberos", TextKey = "QUEST.EXCURSION.IR" },
 			{ Type = "Wait", GameMinutes = 45, TextKey = "QUEST.EXCURSION.MIRA" },

@@ -9,5 +9,8 @@ return {
 	require(Misiones.Cole01_PrimerDia),
 	require(Misiones.Cole02_Mochila),
 	require(Misiones.Cole03_Grupo),
+	require(Misiones.Cole04_Malotes),
+	require(Misiones.Cole05_Venganza),
+	require(Misiones.Cole06_Examen),
 	require(Misiones.Cole_Consecuencias),
 }

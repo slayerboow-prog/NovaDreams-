@@ -26,6 +26,7 @@ local STEP_TYPES = {
 	Scene = { "Dialogue" },
 	Use = { "Prop" },
 	MiniGame = { "Game" },
+	Chase = { "Npc" },
 	Wait = { "GameMinutes" },
 	Group = { "Steps" },
 	Moment = {},
@@ -49,7 +50,7 @@ local TRAITS = { Humor = true, Empatia = true, Valentia = true, Responsabilidad 
 local EFFECTS = {
 	Flags = true, Unflags = true, Rel = true, Traits = true, Memory = true, Remember = true, Items = true, Take = true,
 	Needs = true, Money = true, Spend = true, Choice = true, Gesture = true, Say = true, Later = true, After = true,
-	OnlyIfUntouched = true, Degree = true, SetStage = true,
+	OnlyIfUntouched = true, Degree = true, SetStage = true, Teleport = true,
 }
 -- Una clave de texto es MAYÚSCULAS.CON.PUNTOS; cualquier otra cosa es un texto ya escrito
 local function isKey(value: string): boolean
@@ -71,6 +72,9 @@ function Validate.mission(id: string, quest: { [string]: any }, err: (string, ..
 		end
 		if spec.Mode ~= "Follow" then
 			helpers.place(where, spec.Place or "CercaDeTi")
+		end
+		for _, stop in spec.Route or {} do
+			helpers.place(where .. ".Route", if type(stop) == "table" then stop.Place else stop)
 		end
 		dialogue(where, spec.Talk)
 		helpers.requirements(where, spec.If)
@@ -106,7 +110,7 @@ function Validate.mission(id: string, quest: { [string]: any }, err: (string, ..
 		dialogue(where, s.Dialogue)
 		if s.Type == "Use" then
 			prop(where, s.Prop)
-		elseif s.Type == "Talk" and not Cast.People[s.Npc] then
+		elseif (s.Type == "Talk" or s.Type == "Chase") and not Cast.People[s.Npc] then
 			err("%s: hablar con alguien que no está en el reparto '%s'", where, tostring(s.Npc))
 		elseif s.Type == "Choice" then
 			for _, option in s.Options or {} do

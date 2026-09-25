@@ -58,8 +58,10 @@ local Chapters: { [string]: Chapter } = {
 			"Cole01_PrimerDia", -- misiones episódicas (Misiones/, docs/historia/11)
 			"Cole02_Mochila",
 			"Cole03_Grupo",
+			"Cole04_Malotes",
+			"Cole05_Venganza",
+			"Cole06_Examen",
 			"Nino_Recados",
-			"Nino_PrimerExamen",
 			"Nino_Excursion",
 			"Nino_SegundoTrimestre",
 			"Nino_FinDePrimaria",

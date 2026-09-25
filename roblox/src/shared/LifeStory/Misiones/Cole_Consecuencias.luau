@@ -180,4 +180,73 @@ return {
 			}, Effects = { Rel = { Ramon = 5 } } },
 		},
 	},
+
+	{
+		Id = "Eco_Hugo",
+		Kind = "Side",
+		Title = "Hugo",
+		Description = "Hugo quiere hablar contigo.",
+		Type = "Consecuencia (2 h después de «Los malotes»)",
+		Duration = { 2, 4 },
+		Npcs = { "Hugo" },
+		Requires = { Stage = { Min = "Nino", Max = "Adolescente" } },
+		Moment = "Hugo volvió a buscarte",
+		Steps = {
+			{ Type = "Talk", Npc = "Hugo", Dialogue = "Vuelve", Text = "Hugo te está buscando",
+				Actors = { { Npc = "Hugo", Place = "CercaDeTi", Offset = Vector3.new(0, 0, -5), Mode = "Wave" } } },
+		},
+		Dialogues = {
+			Vuelve = { Lines = {
+				-- Si te ayudó tu grupo o hablaste con Bruno, Hugo ha dejado a Bruno
+				{ S = "Hugo", T = "Oye… ya no voy con Bruno. Desde lo del otro día. Me sentaba solo, pero…", If = { Flags = { "HugoConElGrupo" } } },
+				{ S = "Hugo", T = "Nico me ha dicho que el viernes juego de portero suplente con vosotros. ¿Es verdad?", If = { Flags = { "HugoConElGrupo" } } },
+				{ S = "Hugo", T = "Bruno está más tranquilo desde que hablaste con él. Dice que no, pero lo está.", If = { Flags = { "Bruno_HablasteConEl" } } },
+				{ S = "Hugo", T = "Lucía habló con Bruno y con mis padres. Fue horrible. Y luego… fue mejor.", If = { Flags = { "Bruno_Castigado" } } },
+				{ S = "Hugo", T = "…Hola. Sigo con Bruno. No sé hacer otra cosa. Solo quería decirte que siento lo de tus cosas.", If = { Flags = { "HugoSolo" } } },
+				{ S = "Hugo", T = "Te he traído esto. «La isla de las mil llaves». Mi libro favorito. Me lo he leído seis veces." },
+				{ Ask = "¿Qué le dices?", Options = {
+					{ T = "¿Por qué no te vienes con nosotros al recreo?", Effects = { Flags = { "HugoConElGrupo" }, Rel = { Hugo = 12 }, Memory = "HugoAmigo" }, Then = {
+						{ S = "Hugo", T = "¿De verdad puedo? …Vale. Pero no sé correr, ¿eh? Ya lo sabes." },
+					} },
+					{ T = "Gracias. Cuando lo termine, lo comentamos.", Effects = { Rel = { Hugo = 8 } }, Then = {
+						{ S = "Hugo", T = "Trato. Y no te saltes el capítulo del pulpo. Es el mejor." },
+					} },
+				} },
+			}, Effects = { Items = { LibroPiratas = 1 } } },
+		},
+	},
+
+	{
+		Id = "Cole06b_Recuperacion",
+		Kind = "Side",
+		Title = "Recuperación",
+		Description = "Lucía te da otra oportunidad con el examen de Matemáticas.",
+		Type = "Consecuencia (si suspendes «El examen imposible»)",
+		Duration = { 8, 12 },
+		Npcs = { "Lucia" },
+		Requires = { Stage = { Min = "Nino", Max = "Nino" } },
+		Moment = "Recuperaste el examen de Matemáticas",
+		Memory = "CasiSuspendo",
+		Steps = {
+			{ Type = "Reach", Place = "AulaA", Text = "Ve a la clase de repaso de Lucía",
+				Actors = { { Npc = "Lucia", Place = "PizarraA", Look = Vector3.new(1, 0, 0) } } },
+			{ Type = "Scene", Dialogue = "Repaso", Actors = { { Npc = "Lucia", Place = "PizarraA", Look = Vector3.new(1, 0, 0) } } },
+			{ Type = "Class", Subject = "Matematicas", Mode = "Estudio", Place = "AulaA", Text = "Repaso con Lucía",
+				Actors = { { Npc = "Lucia", Place = "PizarraA", Look = Vector3.new(1, 0, 0) } } },
+			{ Type = "Class", Subject = "Matematicas", Mode = "Examen", Place = "AulaA", Text = "Examen de recuperación",
+				Bonus = { Seconds = 6 }, Actors = { { Npc = "Lucia", Place = "PizarraA", Look = Vector3.new(1, 0, 0) } } },
+			{ Type = "Scene", Dialogue = "Resultado", Actors = { { Npc = "Lucia", Place = "PizarraA", Look = Vector3.new(1, 0, 0) } } },
+		},
+		Dialogues = {
+			Repaso = { Lines = {
+				{ S = "Lucia", T = "Has venido. Eso ya es la mitad del trabajo." },
+				{ S = "Lucia", T = "Vamos despacio. Sin prisa. Cuando entiendes algo de verdad, ya no se olvida." },
+			} },
+			Resultado = { Lines = {
+				{ S = "Lucia", T = "¡Aprobado! ¿Ves? No era que no pudieras. Es que aún no habías practicado lo suficiente.", If = { LastGradeAtLeast = 5 } },
+				{ S = "Lucia", T = "Todavía no… pero has mejorado muchísimo. Seguiremos practicando juntos. Eso también cuenta.", If = { LastGradeBelow = 5 } },
+				{ S = "Narrador", T = "Aquel día aprendiste que suspender no es el final de nada." },
+			} },
+		},
+	},
 }
