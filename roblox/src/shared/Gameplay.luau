@@ -33,6 +33,19 @@ Gameplay.Driving = {
 	Autobus = { Accel = 11, Brake = 34, Reverse = 6, Turn = 1.1, Lean = 0 },
 }
 
+-- Combustible y cuentakilómetros (VehicleService gasta; se reposta en las gasolineras)
+--   Tank: depósito (litros, o % de batería) · Per1000: lo que se gasta cada 1000 studs
+--   Price: € por litro (o por % de batería). Bici y monopatín no gastan nada.
+Gameplay.Fuel = {
+	Kinds = {
+		Coche = { Tank = 50, Per1000 = 2.2, Type = "Gasolina", Unit = "L", Price = 1.5 },
+		Moto = { Tank = 12, Per1000 = 0.7, Type = "Gasolina", Unit = "L", Price = 1.5 },
+		Patinete = { Tank = 100, Per1000 = 10, Type = "Bateria", Unit = "%", Price = 0.1 },
+	},
+	KmPerStud = 0.00028, -- 1 stud ≈ 28 cm (y así km/h ≈ studs/s)
+	Reserve = 0.15, -- por debajo de esto se enciende la luz de reserva
+}
+
 -- Autobús urbano (línea L1 circular por todos los barrios)
 Gameplay.Bus = {
 	Fare = 2, -- billete (lo cobra la ciudad o el conductor jugador)

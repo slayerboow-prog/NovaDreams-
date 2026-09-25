@@ -39,6 +39,12 @@ type Ride = {
 	Keep: boolean, -- se queda aparcado al bajarse
 	Died: RBXScriptConnection?,
 	Left: RBXScriptConnection?,
+	-- Combustible y cuentakilómetros (solo coche, moto y patinete)
+	Fuel: number?,
+	Odometer: number?,
+	Trip: number?,
+	Owned: boolean?,
+	LastPos: Vector3?,
 }
 local riding: { [Player]: Ride } = {}
 local dismountListeners: { (Player, string) -> () } = {}
@@ -164,12 +170,147 @@ local function park(model: Model)
 	model:SetAttribute("Driver", nil)
 end
 
+---------------------------------------------------------------------
+-- Combustible y cuentakilómetros
+---------------------------------------------------------------------
+local FUEL = Gameplay.Fuel
+
+local function publishFuel(player: Player, ride: Ride)
+	local spec = FUEL.Kinds[ride.Kind]
+	if not spec or not ride.Fuel then
+		return
+	end
+	player:SetAttribute("Fuel", math.floor(ride.Fuel / spec.Tank * 1000) / 1000)
+	player:SetAttribute("FuelType", spec.Type)
+	player:SetAttribute("Odometer", math.floor((ride.Odometer or 0) * 10) / 10)
+	player:SetAttribute("Trip", math.floor((ride.Trip or 0) * 100) / 100)
+	player:SetAttribute("OutOfFuel", ride.Fuel <= 0)
+end
+
+local function clearFuel(player: Player)
+	for _, key in { "Fuel", "FuelType", "Odometer", "Trip", "OutOfFuel" } do
+		player:SetAttribute(key, nil)
+	end
+end
+
+-- Al subir: el depósito de tu vehículo (guardado) o el del coche de la calle (en el modelo)
+local function loadFuel(player: Player, ride: Ride)
+	local spec = FUEL.Kinds[ride.Kind]
+	if not spec or ride.Exam then
+		return
+	end
+	local model = ride.Model
+	ride.Owned = model:GetAttribute("OwnerId") == player.UserId and ride.Keep
+	if ride.Owned then
+		local data = DataService.get(player)
+		if data then
+			data.Fuel = data.Fuel or {}
+			data.Odometer = data.Odometer or {}
+			ride.Fuel = data.Fuel[ride.Kind] or spec.Tank
+			ride.Odometer = data.Odometer[ride.Kind] or 0
+		end
+	end
+	if not ride.Fuel then
+		-- Coches de la calle y alquilados: cada uno con su depósito y sus kilómetros
+		ride.Fuel = model:GetAttribute("Fuel") or spec.Tank * (0.35 + math.random() * 0.6)
+		ride.Odometer = model:GetAttribute("Odometer") or math.random(3000, 140000) + math.random()
+	end
+	ride.Trip = 0
+	ride.LastPos = model.PrimaryPart and model.PrimaryPart.Position
+	publishFuel(player, ride)
+end
+
+local function saveFuel(player: Player, ride: Ride)
+	if not ride.Fuel then
+		return
+	end
+	if ride.Owned then
+		local data = DataService.get(player)
+		if data then
+			data.Fuel = data.Fuel or {}
+			data.Odometer = data.Odometer or {}
+			data.Fuel[ride.Kind] = ride.Fuel
+			data.Odometer[ride.Kind] = ride.Odometer
+		end
+	end
+	if ride.Model.Parent then
+		ride.Model:SetAttribute("Fuel", ride.Fuel)
+		ride.Model:SetAttribute("Odometer", ride.Odometer)
+	end
+end
+
+-- Cada medio segundo: gasta según la distancia recorrida
+local function burnFuel()
+	for player, ride in riding do
+		local spec = FUEL.Kinds[ride.Kind]
+		local chassis = ride.Model.PrimaryPart
+		if spec and ride.Fuel and chassis then
+			local pos = chassis.Position
+			local last = ride.LastPos or pos
+			local d = Vector3.new(pos.X - last.X, 0, pos.Z - last.Z).Magnitude
+			ride.LastPos = pos
+			if d > 0.05 and d < 200 then -- (un salto grande es un teletransporte, no un viaje)
+				ride.Fuel = math.max(0, ride.Fuel - d / 1000 * spec.Per1000)
+				local km = d * FUEL.KmPerStud
+				ride.Odometer = (ride.Odometer or 0) + km
+				ride.Trip = (ride.Trip or 0) + km
+				local wasEmpty = player:GetAttribute("OutOfFuel")
+				publishFuel(player, ride)
+				if ride.Fuel <= 0 and not wasEmpty then
+					Notify:FireClient(player, "Error", if spec.Type == "Bateria" then "🔋 ¡Sin batería! Llévalo a cargar a una gasolinera." else "⛽ ¡Sin gasolina! Empuja hasta una gasolinera y reposta.")
+				end
+			end
+		end
+	end
+end
+
+-- Surtidor: reposta (o carga la batería) del vehículo en el que vas
+local function refuel(player: Player, pump: BasePart)
+	local ride = riding[player]
+	local spec = ride and FUEL.Kinds[ride.Kind]
+	if not ride or not spec or not ride.Fuel then
+		Notify:FireClient(player, "Info", "Acércate al surtidor montado en tu coche, moto o patinete eléctrico.")
+		return
+	end
+	local chassis = ride.Model.PrimaryPart
+	if chassis and (chassis.Position - pump.Position).Magnitude > 18 then
+		Notify:FireClient(player, "Info", "Arrima el vehículo al surtidor.")
+		return
+	end
+	local missing = spec.Tank - ride.Fuel
+	if missing < 0.5 then
+		Notify:FireClient(player, "Info", if spec.Type == "Bateria" then "La batería ya está llena." else "El depósito ya está lleno.")
+		return
+	end
+	local data = DataService.get(player)
+	local money = data and data.Money or 0
+	local amount = math.min(missing, math.floor(money / spec.Price))
+	if amount < 0.5 then
+		Notify:FireClient(player, "Error", "No tienes dinero para repostar.")
+		return
+	end
+	local cost = math.max(1, math.ceil(amount * spec.Price))
+	if not DataService.spend(player, cost) then
+		Notify:FireClient(player, "Error", "No tienes dinero para repostar.")
+		return
+	end
+	ride.Fuel = math.min(spec.Tank, ride.Fuel + amount)
+	publishFuel(player, ride)
+	if spec.Type == "Bateria" then
+		Notify:FireClient(player, "Success", ("🔋 Batería cargada al %d%% (%s)"):format(math.floor(ride.Fuel / spec.Tank * 100), Format.money(cost)))
+	else
+		Notify:FireClient(player, "Success", ("⛽ Has repostado %.1f L (%s)"):format(amount, Format.money(cost)))
+	end
+end
+
 function VehicleService.dismount(player: Player, silent: boolean?)
 	local ride = riding[player]
 	if not ride then
 		return
 	end
 	riding[player] = nil
+	saveFuel(player, ride)
+	clearFuel(player)
 	if ride.Died then
 		ride.Died:Disconnect()
 	end
@@ -308,6 +449,7 @@ local function drive(player: Player, model: Model, kind: string, opts: { Rented:
 		end
 	end)
 	riding[player] = ride
+	loadFuel(player, ride)
 	player:SetAttribute("Riding", kind)
 	player:SetAttribute("VehicleSpeed", vehicle.Speed)
 	StoryEvents.emit(player, "VehicleMounted", { Vehicle = kind, Rented = ride.Rented })
@@ -547,6 +689,34 @@ function VehicleService.init()
 		if parked[player] then
 			parked[player]:Destroy()
 			parked[player] = nil
+		end
+	end)
+
+	-- Surtidores de las gasolineras
+	local function setupPump(pump: Instance)
+		if not pump:IsA("BasePart") or pump:FindFirstChild("FuelPrompt") then
+			return
+		end
+		local prompt = Instance.new("ProximityPrompt")
+		prompt.Name = "FuelPrompt"
+		prompt.ActionText = "Repostar / cargar"
+		prompt.ObjectText = "⛽ Gasolina 1,50 €/L · 🔋 carga 0,10 €/%"
+		prompt.HoldDuration = 0.8
+		prompt.MaxActivationDistance = 16
+		prompt.RequiresLineOfSight = false
+		prompt.Parent = pump
+		prompt.Triggered:Connect(function(player)
+			refuel(player, pump)
+		end)
+	end
+	for _, pump in CollectionService:GetTagged("FuelPump") do
+		setupPump(pump)
+	end
+	CollectionService:GetInstanceAddedSignal("FuelPump"):Connect(setupPump)
+	task.spawn(function()
+		while true do
+			task.wait(0.5)
+			burnFuel()
 		end
 	end)
 

@@ -615,7 +615,9 @@ function Civic.gasStation(parent: Instance, lot: Lot)
 		for _, dv in { -6, 6 } do
 			Builder.part({ Name = "Pillar", Size = Vector3.new(1, 10.5, 1), CFrame = lot.facing(du, 16 + dv, 5.5), Color = rgb(235, 235, 235), Parent = m })
 		end
-		Builder.part({ Name = "Pump", Size = Vector3.new(2, 4.5, 1.4), CFrame = lot.facing(du, 16, 2.75), Color = rgb(30, 150, 80), Parent = m })
+		Builder.part({ Name = "Pump", Size = Vector3.new(2, 4.5, 1.4), CFrame = lot.facing(du, 16, 2.75), Color = rgb(30, 150, 80), Tags = { "FuelPump" }, Parent = m })
+		Builder.decor({ Name = "Hose", Size = Vector3.new(0.2, 3, 0.2), CFrame = lot.facing(du + 1.1, 16, 2.6), Color = rgb(25, 25, 28), Parent = m })
+		Builder.decor({ Name = "Nozzle", Size = Vector3.new(0.4, 0.8, 0.3), CFrame = lot.facing(du + 1.1, 16, 4.2), Color = rgb(250, 200, 30), Parent = m })
 		Builder.decor({ Name = "PumpScreen", Size = Vector3.new(1.4, 1, 0.1), CFrame = lot.facing(du, 16 - 0.75, 3.8), Color = rgb(20, 20, 24), Material = Enum.Material.Neon, Parent = m })
 	end
 	Building.build({

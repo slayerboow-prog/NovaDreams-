@@ -7,7 +7,8 @@
 --   * Sigue el suelo con rayos: sube bordillos pequeños y cuestas, y se inclina con ellas
 --   * Choca con paredes, farolas y árboles (se para en seco) y no entra en el agua
 --   * Motos y bicis se inclinan en las curvas; en el monopatín y el patinete vas de pie
---   * Velocímetro abajo en el centro
+--   * Cuadro de mandos (VehicleHud): velocímetro de aguja, marcha, combustible y kilómetros.
+--     Sin gasolina (o batería) el vehículo apenas avanza
 -- Saltar (Espacio) o F para bajarse. El servidor (VehicleService) le da el control a tu
 -- ordenador, así que se mueve sin retraso y los demás lo ven igual.
 
@@ -16,8 +17,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Gameplay = require(ReplicatedStorage.Shared.Gameplay)
-local Theme = require(script.Parent.Parent.UI.Theme)
 local SoundFx = require(script.Parent.SoundFx)
+local VehicleHud = require(script.Parent.VehicleHud)
 
 local Driving = {}
 
@@ -37,8 +38,6 @@ type State = {
 	Pose: AnimationTrack?,
 }
 local state: State? = nil
-local gui: ScreenGui
-local speedLabel: TextLabel
 
 local function yawOf(cf: CFrame): number
 	local look = cf.LookVector
@@ -85,7 +84,7 @@ local function start(seat: VehicleSeat, humanoid: Humanoid)
 		end
 	end
 	state = s
-	gui.Enabled = true
+	VehicleHud.show(kind)
 	SoundFx.vehicleStart(kind, chassis)
 end
 
@@ -94,7 +93,7 @@ local function stop()
 		state.Pose:Stop(0.2)
 	end
 	state = nil
-	gui.Enabled = false
+	VehicleHud.hide()
 	SoundFx.vehicleStop()
 end
 
@@ -117,6 +116,9 @@ local function step(dt: number)
 	end
 	local tuning = Gameplay.Driving[s.Kind]
 	local maxSpeed = Gameplay.Vehicles[s.Kind].Speed
+	if player:GetAttribute("OutOfFuel") then
+		maxSpeed = 4 -- sin gasolina (o batería) apenas avanza: hay que llegar a una gasolinera
+	end
 	local throttle = s.Seat.ThrottleFloat
 	local steer = s.Seat.SteerFloat
 
@@ -223,35 +225,11 @@ local function step(dt: number)
 	s.Chassis.AssemblyAngularVelocity = Vector3.zero
 
 	SoundFx.vehicleSpeed(math.clamp(math.abs(s.Speed) / maxSpeed, 0, 1))
-	speedLabel.Text = ("%s  %d km/h"):format(Gameplay.Vehicles[s.Kind].Icon, math.floor(math.abs(s.Speed) + 0.5))
+	VehicleHud.update(s.Speed, dt)
 end
 
 function Driving.init()
-	gui = Theme.create("ScreenGui", { Name = "DrivingGui", ResetOnSpawn = false, Enabled = false, Parent = player:WaitForChild("PlayerGui") })
-	local panel = Theme.panel({
-		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -96),
-		Size = UDim2.fromOffset(250, 58),
-		Parent = gui,
-	})
-	speedLabel = Theme.label({
-		Size = UDim2.new(1, 0, 0, 30),
-		Position = UDim2.fromOffset(0, 4),
-		Text = "",
-		Font = Theme.FontBold,
-		TextSize = 24,
-		TextXAlignment = Enum.TextXAlignment.Center,
-		Parent = panel,
-	})
-	Theme.label({
-		Size = UDim2.new(1, 0, 0, 18),
-		Position = UDim2.fromOffset(0, 34),
-		Text = "W/S acelerar y frenar · A/D girar · H claxon · F bajarse",
-		TextSize = 12,
-		TextColor3 = Theme.Colors.Muted,
-		TextXAlignment = Enum.TextXAlignment.Center,
-		Parent = panel,
-	})
+	VehicleHud.init(player:WaitForChild("PlayerGui"))
 
 	local function watch(character: Model)
 		local humanoid = character:WaitForChild("Humanoid", 10) :: Humanoid?

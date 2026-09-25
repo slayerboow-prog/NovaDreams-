@@ -521,6 +521,7 @@ local prizeCounter = part("PrizeCounter", CFrame.new(10, 2, 500), { "PrizeCounte
 part("Scoreboard", CFrame.new(0, 10, 510), { "ArcadeScoreboard" })
 local school = part("Signup", CFrame.new(100, 3, 1000), { "DrivingSchool" }, { Town = "Los Pinos" })
 local station = part("RentalPoint", CFrame.new(-50, 3, -24), { "RentalStation" })
+local fuelPump = part("Pump", CFrame.new(-300, 3, -300), { "FuelPump" })
 
 ---------------------------------------------------------------------
 -- Jugadores
@@ -735,6 +736,24 @@ check(adult:GetAttribute("Riding") == "Coche" and adult:GetAttribute("VehicleSpe
 local carModel = worldRoot.Rides:FindFirstChild("Coche")
 local beam = carModel and carModel:FindFirstChild("Headlight") and carModel.Headlight:FindFirstChildOfClass("SpotLight")
 check(beam ~= nil and beam.Enabled == true, "de noche el coche lleva los faros encendidos")
+check(adult:GetAttribute("Fuel") == 1 and adult:GetAttribute("FuelType") == "Gasolina" and adult:GetAttribute("Odometer") == 0, "su coche nuevo sale con el depósito lleno y 0 km")
+local carChassis = carModel.PrimaryPart
+carChassis.CFrame = carChassis.CFrame * CFrame.new(0, 0, -150)
+task.wait(0.6)
+for _ = 1, 7 do
+	carChassis.CFrame = carChassis.CFrame * CFrame.new(0, 0, -150)
+	task.wait(0.55)
+end
+local fuelNow = adult:GetAttribute("Fuel")
+check(fuelNow < 1 and fuelNow > 0.9 and adult:GetAttribute("Odometer") > 0.25, "conduciendo baja el combustible y suben los kilómetros")
+carChassis.CFrame = fuelPump.CFrame * CFrame.new(0, 0, 6)
+task.wait(0.6)
+local moneyBeforeFuel = profiles[adult].Money
+promptOf(fuelPump, "Repostar / cargar").Triggered:Fire(adult)
+check(adult:GetAttribute("Fuel") == 1 and profiles[adult].Money < moneyBeforeFuel and notified(adult, "repostado"), "en la gasolinera reposta y paga los litros")
+remotes.Vehicle.OnServerEvent:Fire(adult, "Dismount")
+check(adult:GetAttribute("Fuel") == nil and profiles[adult].Fuel and profiles[adult].Fuel.Coche == 50 and profiles[adult].Odometer.Coche > 0.25, "al bajarse se guardan la gasolina y los kilómetros de su coche")
+remotes.Vehicle.OnServerEvent:Fire(adult, "Spawn", "Coche")
 remotes.Vehicle.OnServerEvent:Fire(adult, "Dismount")
 
 -- Suspender por bajarse en el práctico
