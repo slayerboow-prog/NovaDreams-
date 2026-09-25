@@ -707,6 +707,7 @@ function TownBuilder.build(): Folder
 			break
 		end
 	end
+	require(Kit.Polish).tone(world)
 	require(Kit.Polish).optimize(world)
 
 	return world

@@ -38,10 +38,12 @@ function TerrainBuilder.build()
 	pcall(function()
 		terrain.Decoration = false
 	end)
-	terrain:SetMaterialColor(Enum.Material.Grass, Color3.fromRGB(98, 146, 70))
-	terrain:SetMaterialColor(Enum.Material.Rock, Color3.fromRGB(128, 122, 112))
-	terrain:SetMaterialColor(Enum.Material.Sand, Color3.fromRGB(226, 206, 160))
-	terrain:SetMaterialColor(Enum.Material.Ground, Color3.fromRGB(96, 126, 66))
+	-- Colores de campo mediterráneo: verdes apagados, tierra seca y arena clara
+	terrain:SetMaterialColor(Enum.Material.Grass, Color3.fromRGB(108, 132, 74))
+	terrain:SetMaterialColor(Enum.Material.LeafyGrass, Color3.fromRGB(88, 114, 60))
+	terrain:SetMaterialColor(Enum.Material.Rock, Color3.fromRGB(132, 124, 112))
+	terrain:SetMaterialColor(Enum.Material.Sand, Color3.fromRGB(230, 212, 170))
+	terrain:SetMaterialColor(Enum.Material.Ground, Color3.fromRGB(138, 120, 88))
 	local b = CityPlan.Bounds
 
 	-- 1) Mar alrededor de toda la isla (fondo de arena)
@@ -120,6 +122,28 @@ function TerrainBuilder.build()
 		cylinder(terrain, lake.X, lake.Z, lake.R, -16, 20, Enum.Material.Air)
 		cylinder(terrain, lake.X, lake.Z, lake.R, -24, -16, Enum.Material.Sand)
 		cylinder(terrain, lake.X, lake.Z, lake.R, -16, -2, Enum.Material.Water)
+	end
+
+	-- 5b) Manchas en el campo: hierba más densa y trozos de tierra seca, para que el suelo no sea
+	--     una alfombra verde lisa. ReplaceMaterial solo cambia la hierba (no toca calles, arena ni agua)
+	--     y conserva la forma del terreno.
+	local rng = Random.new(20240)
+	for _ = 1, 700 do
+		local x = rng:NextInteger(b.MinX, b.MaxX)
+		local z = rng:NextInteger(b.MinZ, b.MaxZ)
+		if CityPlan.inside(CityPlan.Coast, x, z) then
+			local w, d = rng:NextInteger(6, 22) * 4, rng:NextInteger(6, 22) * 4
+			local top = 8
+			for _, m in CityPlan.Mountains do
+				if (x - m.X) ^ 2 + (z - m.Z) ^ 2 < (m.R + d) ^ 2 then
+					top = math.max(top, math.ceil((m.H + 8) / 4) * 4)
+				end
+			end
+			local x0, z0 = math.floor(x / 4) * 4, math.floor(z / 4) * 4
+			local region = Region3.new(Vector3.new(x0, -8, z0), Vector3.new(x0 + w, top, z0 + d))
+			local target = if rng:NextNumber() < 0.65 then Enum.Material.LeafyGrass else Enum.Material.Ground
+			terrain:ReplaceMaterial(region, 4, Enum.Material.Grass, target)
+		end
 	end
 
 	-- 6) Colina del mirador (Landmarks)

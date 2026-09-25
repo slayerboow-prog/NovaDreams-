@@ -20,33 +20,43 @@ function Nature.tree(parent: Instance, base: Vector3, scale: number?)
 	end
 	local s = scale or (0.85 + math.random() * 0.4)
 	local m = Builder.model("Tree", parent)
-	local height = 9 * s
+	local height = (8 + math.random() * 2.5) * s
+	-- Tronco un poco inclinado (ningún árbol crece perfectamente recto)
+	local lean = CFrame.Angles(math.rad(math.random(-5, 5)), math.random() * math.pi * 2, math.rad(math.random(-5, 5)))
+	local foot = CFrame.new(base) * lean
 	Builder.part({
 		Name = "Trunk",
 		Shape = Enum.PartType.Cylinder,
 		Size = Vector3.new(height, 1.3 * s, 1.3 * s),
-		CFrame = CFrame.new(base + Vector3.new(0, height / 2, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+		CFrame = foot * CFrame.new(0, height / 2, 0) * CFrame.Angles(0, 0, math.rad(90)),
 		Color = C.Trunk,
 		Material = Enum.Material.Wood,
 		Parent = m,
 	})
-	local crownY = base.Y + height + 1.5 * s
-	local blobs = {
-		{ Vector3.new(0, 1.5, 0), 9 },
-		{ Vector3.new(2.6, 0, 1.2), 7 },
-		{ Vector3.new(-2.4, 0.3, -1.4), 7 },
-		{ Vector3.new(0.8, -0.6, -2.6), 6.5 },
-		{ Vector3.new(-1.2, -0.4, 2.6), 6.5 },
-	}
-	local color = leafColor()
-	for _, b in blobs do
-		local d = b[2] * s
+	-- Dos ramas que salen hacia la copa
+	for i = 1, 2 do
+		local yaw = math.rad(i * 180 + math.random(-40, 40))
+		local branch = foot * CFrame.new(0, height * 0.62, 0) * CFrame.Angles(0, yaw, 0) * CFrame.Angles(0, 0, math.rad(-50)) * CFrame.new(1.6 * s, 0, 0)
+		Builder.decor({ Name = "Branch", Shape = Enum.PartType.Cylinder, Size = Vector3.new(3.4 * s, 0.6 * s, 0.6 * s), CFrame = branch, Color = C.Trunk, Material = Enum.Material.Wood, Parent = m })
+	end
+	-- Copa: bolas de distinto tamaño colocadas al azar (cada árbol es distinto). Las de abajo, más
+	-- oscuras y las de arriba, más claras: parece que les da el sol desde arriba.
+	local top = (foot * CFrame.new(0, height, 0)).Position
+	local crown = Vector3.new(top.X, top.Y + 1.2 * s, top.Z)
+	local leafTone = leafColor()
+	local blobs = math.random(5, 7)
+	for i = 1, blobs do
+		local d = (i == 1 and 9 or (5.5 + math.random() * 3)) * s
+		local a = math.random() * math.pi * 2
+		local r = i == 1 and 0 or (2 + math.random() * 1.6) * s
+		local y = i == 1 and 1.4 * s or (math.random() * 3 - 1.2) * s
+		local shade = math.clamp(0.5 + y / (4 * s), 0, 1)
 		Builder.decor({
 			Name = "Leaves",
 			Shape = Enum.PartType.Ball,
 			Size = Vector3.new(d, d, d),
-			CFrame = CFrame.new(Vector3.new(base.X, crownY, base.Z) + b[1] * s),
-			Color = color:Lerp(leafColor(), 0.4),
+			CFrame = CFrame.new(crown + Vector3.new(math.cos(a) * r, y, math.sin(a) * r)),
+			Color = leafTone:Lerp(Color3.fromRGB(34, 56, 32), 0.25 * (1 - shade)):Lerp(Color3.fromRGB(150, 168, 88), 0.18 * shade),
 			Material = Enum.Material.LeafyGrass,
 			Parent = m,
 		})
@@ -63,17 +73,21 @@ function Nature.cypress(parent: Instance, base: Vector3)
 	local m = Builder.model("Cypress", parent)
 	local s = 0.9 + math.random() * 0.3
 	Builder.part({ Name = "Trunk", Size = Vector3.new(0.8, 2, 0.8), CFrame = CFrame.new(base + Vector3.new(0, 1, 0)), Color = C.Trunk, Material = Enum.Material.Wood, Parent = m })
-	local color = Color3.fromRGB(46, 84, 48)
-	for i, d in { 4.2, 3.9, 3.4, 2.7, 1.8 } do
-		Builder.decor({
+	-- Copa en forma de llama: un elipsoide (SpecialMesh de esfera) y una punta más estrecha encima
+	local color = Color3.fromRGB(46, 78, 46):Lerp(Color3.fromRGB(64, 92, 54), math.random())
+	local tall = (9 + math.random() * 3) * s
+	for i, shape in { { 4.2, tall, 0 }, { 2.8, tall * 0.45, tall * 0.42 } } do
+		local leaves = Builder.decor({
 			Name = "Leaves",
-			Shape = Enum.PartType.Ball,
-			Size = Vector3.new(d, d, d) * s,
-			CFrame = CFrame.new(base + Vector3.new(0, (1.6 + i * 2.4) * s, 0)),
-			Color = color,
+			Size = Vector3.new(shape[1] * s, shape[2], shape[1] * s),
+			CFrame = CFrame.new(base + Vector3.new(0, 1.2 + tall / 2 + shape[3], 0)),
+			Color = if i == 1 then color else color:Lerp(Color3.fromRGB(120, 140, 80), 0.15),
 			Material = Enum.Material.LeafyGrass,
 			Parent = m,
 		})
+		local mesh = Instance.new("SpecialMesh")
+		mesh.MeshType = Enum.MeshType.Sphere -- rellena la caja de la pieza: un elipsoide
+		mesh.Parent = leaves
 	end
 	return m
 end
@@ -103,16 +117,14 @@ function Nature.palm(parent: Instance, base: Vector3)
 		cf = cf * CFrame.new(0, seg, 0)
 	end
 	local top = cf.Position
+	-- Hojas en dos tramos: suben un poco y luego caen (como una palmera de verdad)
 	for i = 1, 8 do
-		local leaf = CFrame.new(top) * CFrame.Angles(0, math.rad(i * 45 + math.random(-10, 10)), 0) * CFrame.Angles(math.rad(-28), 0, 0) * CFrame.new(0, 0, -3.8)
-		Builder.decor({
-			Name = "Frond",
-			Size = Vector3.new(1.8, 0.15, 8),
-			CFrame = leaf,
-			Color = Color3.fromRGB(78, 136, 60):Lerp(Color3.fromRGB(110, 150, 70), math.random()),
-			Material = Enum.Material.Grass,
-			Parent = m,
-		})
+		local yawLeaf = CFrame.Angles(0, math.rad(i * 45 + math.random(-12, 12)), 0)
+		local color = Color3.fromRGB(70, 118, 54):Lerp(Color3.fromRGB(116, 142, 70), math.random())
+		local inner = CFrame.new(top) * yawLeaf * CFrame.Angles(math.rad(14 + math.random(0, 10)), 0, 0)
+		Builder.decor({ Name = "Frond", Size = Vector3.new(1.9, 0.15, 4.4), CFrame = inner * CFrame.new(0, 0, -2.1), Color = color, Material = Enum.Material.Grass, Parent = m })
+		local outer = inner * CFrame.new(0, 0, -4.1) * CFrame.Angles(math.rad(-48), 0, 0)
+		Builder.decor({ Name = "Frond", Size = Vector3.new(1.4, 0.12, 4.4), CFrame = outer * CFrame.new(0, 0, -2), Color = color:Lerp(Color3.fromRGB(150, 150, 80), 0.2), Material = Enum.Material.Grass, Parent = m })
 	end
 	for i = 1, 3 do
 		Builder.decor({

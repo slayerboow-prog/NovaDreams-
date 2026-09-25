@@ -217,7 +217,7 @@ function Region.groundSlab(parent: Instance, rect: { X0: number, X1: number, Z0:
 		Name = "BlockGround",
 		Size = Vector3.new(rect.X1 - rect.X0, 1, rect.Z1 - rect.Z0),
 		CFrame = CFrame.new((rect.X0 + rect.X1) / 2, -0.5, (rect.Z0 + rect.Z1) / 2),
-		Color = Color3.fromRGB(98, 146, 70),
+		Color = require(script.Parent.Kit.Palette).Ground.Grass,
 		Material = Enum.Material.Grass,
 		CastShadow = false,
 		Parent = parent,

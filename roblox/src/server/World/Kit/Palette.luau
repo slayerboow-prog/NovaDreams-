@@ -6,8 +6,9 @@ local Palette = {}
 local rgb = Color3.fromRGB
 
 Palette.Ground = {
-	Grass = rgb(98, 146, 70),
-	Lawn = rgb(106, 158, 76),
+	-- Verdes apagados, de clima mediterráneo (los verdes chillones hacen que todo parezca de juguete)
+	Grass = rgb(108, 132, 74),
+	Lawn = rgb(104, 140, 72),
 	Asphalt = rgb(52, 54, 58),
 	Sidewalk = rgb(196, 192, 184),
 	Curb = rgb(214, 211, 204),
@@ -19,8 +20,8 @@ Palette.Ground = {
 Palette.Nature = {
 	Trunk = rgb(104, 78, 56),
 	PalmTrunk = rgb(150, 122, 88),
-	Leaves = { rgb(70, 124, 58), rgb(84, 138, 62), rgb(62, 110, 54), rgb(96, 146, 66) },
-	Hedge = rgb(58, 104, 50),
+	Leaves = { rgb(62, 98, 50), rgb(78, 112, 56), rgb(96, 124, 60), rgb(56, 88, 48), rgb(112, 130, 68), rgb(84, 106, 52) },
+	Hedge = rgb(56, 92, 48),
 	Flowers = { rgb(226, 72, 92), rgb(246, 196, 60), rgb(240, 240, 240), rgb(170, 90, 200), rgb(250, 130, 60) },
 }
 

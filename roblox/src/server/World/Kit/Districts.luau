@@ -21,6 +21,7 @@ local Icons = require(script.Parent.Icons)
 local Civic = require(script.Parent.Civic)
 local Nature = require(script.Parent.Nature)
 local Props = require(script.Parent.Props)
+local Palette = require(script.Parent.Palette)
 local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
 
 local Districts = {}
@@ -651,7 +652,7 @@ function Districts.build(world: Instance, towns: { Vector3 })
 			Name = "BlockGround",
 			Size = Vector3.new(cell.X1 - cell.X0, 1, cell.Z1 - cell.Z0),
 			CFrame = CFrame.new((cell.X0 + cell.X1) / 2, -0.5, (cell.Z0 + cell.Z1) / 2),
-			Color = if PAVED[cell.Kind] then rgb(186, 182, 174) else rgb(98, 146, 70),
+			Color = if PAVED[cell.Kind] then rgb(186, 182, 174) else Palette.Ground.Grass,
 			Material = if PAVED[cell.Kind] then Enum.Material.Pavement else Enum.Material.Grass,
 			CastShadow = false,
 			Parent = block,

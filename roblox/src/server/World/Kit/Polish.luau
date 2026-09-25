@@ -150,4 +150,23 @@ function Polish.optimize(root: Instance): (number, number)
 	return touch, shadows
 end
 
+-- Tono natural: los verdes muy saturados (césped, setos, copas) se apagan un poco y tiran a oliva.
+-- Así la ciudad deja de parecer de plástico sin perder color. Devuelve cuántas piezas cambió.
+local NATURAL = { [Enum.Material.Grass] = true, [Enum.Material.LeafyGrass] = true }
+function Polish.tone(root: Instance): number
+	local changed = 0
+	for _, part in root:GetDescendants() do
+		if part:IsA("BasePart") and NATURAL[part.Material] then
+			local h, s, v = part.Color:ToHSV()
+			if h > 0.18 and h < 0.45 and s > 0.46 then
+				s = 0.46 + (s - 0.46) * 0.35
+				h = h - (h - 0.24) * 0.25
+				part.Color = Color3.fromHSV(h, s, v * 0.96)
+				changed += 1
+			end
+		end
+	end
+	return changed
+end
+
 return Polish
