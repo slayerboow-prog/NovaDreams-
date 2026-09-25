@@ -22,6 +22,7 @@ local Civic = require(script.Parent.Civic)
 local Nature = require(script.Parent.Nature)
 local Props = require(script.Parent.Props)
 local Palette = require(script.Parent.Palette)
+local Supermarket = require(script.Parent.Supermarket)
 local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
 
 local Districts = {}
@@ -368,6 +369,24 @@ builders.ComisariaSur = civic("Policia", "Distrito Sur")
 builders.ClinicaOeste = civic("Clinica", "Poniente")
 builders.ClinicaEste = civic("Clinica", "Levante")
 
+-- Supermercados: edificio al fondo de la manzana con aparcamiento delante
+local function supermarket(size: string, name: string): (Instance, Rect) -> ()
+	return function(m, rect)
+		local lot = Blocks.lot(rect, "S")
+		local spec = Supermarket.Specs[size]
+		local parkingDepth = math.min(36, lot.Depth - spec.D - 12)
+		Supermarket.build(m, lot.facing(0, parkingDepth + 4 + spec.D / 2, 0), size, name)
+		if parkingDepth > 18 then
+			Lite.parking(m, lot.facing(0, parkingDepth / 2 + 2, 0), math.min(lot.Length - 16, spec.W + 20), parkingDepth - 2)
+		end
+	end
+end
+builders.Hipermercado = supermarket("Grande", "Hipermercado Valmar")
+builders.SupermercadoNorte = supermarket("Mediano", "Supermercado Norte")
+builders.SupermercadoOeste = supermarket("Mediano", "Supermercado Poniente")
+builders.SupermercadoSur = supermarket("Mediano", "Supermercado Sur")
+builders.SupermercadoCampus = supermarket("Mediano", "Supermercado Campus")
+
 -- Dónde va cada uno (se elige la manzana más cercana a ese punto, dentro de su distrito)
 local LANDMARKS = {
 	{ "TorreValmar", "Centro", 750, -750 },
@@ -384,6 +403,11 @@ local LANDMARKS = {
 	{ "ClinicaOeste", "Oeste", -2300, 1500 },
 	{ "Camping", "Oeste", -2400, -900 },
 	{ "GranCentroComercial", "Este", 2300, -500 },
+	{ "Hipermercado", "Este", 2700, -900 },
+	{ "SupermercadoNorte", "Norte", -300, -1500 },
+	{ "SupermercadoOeste", "Oeste", -2000, -400 },
+	{ "SupermercadoSur", "Sur", 400, 2300 },
+	{ "SupermercadoCampus", "Universitario", 2300, 800 },
 	{ "Feria", "Este", 3000, -2000 },
 	{ "InstitutoEste", "Este", 2300, -1300 },
 	{ "ClinicaEste", "Este", 3100, -1500 },
@@ -445,6 +469,7 @@ local PAVED = {
 	Towers = true, Downtown = true, Comercio = true, Industrial = true, Taller = true, Parking = true, Ocio = true, Oficinas = true,
 	TorreValmar = true, Ayuntamiento = true, EstacionCentral = true, EstacionAutobuses = true, Museo = true, Teatro = true,
 	GranCentroComercial = true, Feria = true,
+	Hipermercado = true, SupermercadoNorte = true, SupermercadoOeste = true, SupermercadoSur = true, SupermercadoCampus = true,
 }
 
 local cellsCache: { Cell }? = nil

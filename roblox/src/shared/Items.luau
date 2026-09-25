@@ -1,6 +1,7 @@
 -- Items: todo lo que puede aparecer en la mochila (inventario al estilo Minecraft).
 -- Junta en una sola lista cosas que guardan distintos sistemas:
 --   * Comida y objetos comprados en las tiendas (ShopItems.luau)   -> data.Items = { Pan = 3, ... }
+--   * Productos de los supermercados (Groceries.luau)             -> data.Items
 --   * Vehículos (Gameplay.Vehicles)                                -> data.Vehicles
 --   * Premios de los recreativos (Gameplay.Prizes)                 -> data.Prizes
 --   * Carnets de conducir (Gameplay.Licenses)                      -> data.Licenses
@@ -17,6 +18,7 @@ local Gameplay = require(script.Parent.Gameplay)
 local ShopItems = require(script.Parent.LifeStory.ShopItems)
 local Subjects = require(script.Parent.LifeStory.Subjects)
 local Strings = require(script.Parent.LifeStory.Strings)
+local Groceries = require(script.Parent.Groceries)
 
 local Items = {}
 
@@ -115,6 +117,36 @@ for _, degree in Subjects.Degrees do
 		Desc = "Tu título universitario. ¡Años de estudio en Campus Valmar!",
 		Stack = 1,
 		Ref = degree.Titulo,
+	}
+end
+
+-- Supermercado: productos de las estanterías y de la charcutería
+for _, product in Groceries.List do
+	if not list[product.Id] then
+		local food = product.Hunger ~= nil
+		local section = Groceries.Sections[product.Section]
+		list[product.Id] = {
+			Id = product.Id,
+			Name = product.Name,
+			Icon = product.Icon,
+			Kind = if food then "Food" else "Thing",
+			Desc = if food then ("Del supermercado (%s). Quita el hambre."):format(section.Name) else ("Del supermercado (%s). Para tu casa."):format(section.Name),
+			Stack = if food then 16 else 32,
+			Hunger = product.Hunger,
+			Energy = product.Energy,
+		}
+	end
+end
+for _, deli in Groceries.Deli do
+	list[deli.Id] = {
+		Id = deli.Id,
+		Name = deli.Name .. " (al corte)",
+		Icon = deli.Icon,
+		Kind = "Food",
+		Desc = "Recién cortado en la charcutería del supermercado.",
+		Stack = 16,
+		Hunger = deli.Hunger * 2,
+		Energy = 0,
 	}
 end
 

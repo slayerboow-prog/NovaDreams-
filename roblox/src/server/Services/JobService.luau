@@ -28,8 +28,26 @@ type Shift = {
 	Phase: "Pickup" | "Dropoff",
 	Target: BasePart,
 	Carry: BasePart?,
+	Context: any?, -- lo que necesite su proveedor (p. ej. en qué supermercado trabaja)
 }
 local shifts: { [Player]: Shift } = {}
+
+-- Trabajos con sus propios puntos (el reponedor repone SU supermercado, no uno al azar):
+--   Pickup(player, shift) -> BasePart?   Dropoff(player, shift) -> BasePart?   Done(player, shift)
+export type Provider = {
+	Pickup: (Player, any) -> BasePart?,
+	Dropoff: (Player, any) -> BasePart?,
+	Done: ((Player, any) -> ())?,
+}
+local providers: { [string]: Provider } = {}
+
+function JobService.setProvider(jobId: string, provider: Provider)
+	providers[jobId] = provider
+end
+
+function JobService.shiftOf(player: Player): Shift?
+	return shifts[player]
+end
 
 local function pickTarget(tag: string, avoid: BasePart?): BasePart?
 	local options = CollectionService:GetTagged(tag)
@@ -85,8 +103,16 @@ local function publish(player: Player, shift: Shift)
 	player:SetAttribute("TaskText", if shift.Phase == "Pickup" then job.PickupText else job.DropoffText)
 end
 
+local function pickupFor(player: Player, shift: Shift, lastTarget: BasePart?): BasePart?
+	local provider = providers[shift.JobId]
+	if provider then
+		return provider.Pickup(player, shift)
+	end
+	return pickTarget("Pickup_" .. shift.JobId, lastTarget)
+end
+
 local function nextTask(player: Player, shift: Shift, lastTarget: BasePart?)
-	local target = pickTarget("Pickup_" .. shift.JobId, lastTarget)
+	local target = pickupFor(player, shift, lastTarget)
 	if not target then
 		return
 	end
@@ -111,7 +137,7 @@ function JobService.quit(player: Player, silent: boolean?)
 	end
 end
 
-function JobService.start(player: Player, jobId: string)
+function JobService.start(player: Player, jobId: string, context: any?)
 	local job = Config.Jobs[jobId]
 	if not job or not DataService.get(player) then
 		return
@@ -125,11 +151,12 @@ function JobService.start(player: Player, jobId: string)
 	end
 	JobService.quit(player, true)
 
-	local target = pickTarget("Pickup_" .. jobId)
+	local shift: Shift = { JobId = jobId, Phase = "Pickup", Target = nil :: any, Context = context }
+	local target = pickupFor(player, shift, nil)
 	if not target then
 		return
 	end
-	local shift: Shift = { JobId = jobId, Phase = "Pickup", Target = target }
+	shift.Target = target
 	shifts[player] = shift
 	RoleService.setOnDuty(player, jobId)
 	player:SetAttribute("Job", jobId)
@@ -141,7 +168,8 @@ local function reached(player: Player, shift: Shift)
 	local job = Config.Jobs[shift.JobId]
 	if shift.Phase == "Pickup" then
 		giveCarry(player, shift)
-		local target = pickTarget("Dropoff_" .. shift.JobId, shift.Target)
+		local provider = providers[shift.JobId]
+		local target = if provider then provider.Dropoff(player, shift) else pickTarget("Dropoff_" .. shift.JobId, shift.Target)
 		if not target then
 			return
 		end
@@ -153,6 +181,10 @@ local function reached(player: Player, shift: Shift)
 
 	-- Entrega completada: cobrar
 	removeCarry(shift)
+	local provider = providers[shift.JobId]
+	if provider and provider.Done then
+		provider.Done(player, shift)
+	end
 	local pay = math.floor(job.Pay * MonetizationService.payMultiplier(player))
 	DataService.addMoney(player, pay, true)
 	local data = DataService.get(player)

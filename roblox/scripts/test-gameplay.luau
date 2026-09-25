@@ -126,6 +126,16 @@ end
 function Fake.GetChildren(self)
 	return table.clone(self.__children)
 end
+function Fake.IsDescendantOf(self, ancestor)
+	local p = self.__props.Parent
+	while p do
+		if p == ancestor then
+			return true
+		end
+		p = p.__props.Parent
+	end
+	return false
+end
 function Fake.GetDescendants(self)
 	local list = {}
 	local function walk(o)
@@ -280,6 +290,7 @@ local remotes = {
 	Restaurant = remote(),
 	Inventory = remote(),
 	Progression = remote(),
+	Supermarket = remote(),
 }
 function remotes:WaitForChild(name)
 	return self[name]
@@ -442,7 +453,19 @@ mocks[S .. "NeedsService"] = {
 	refreshSpeed = function() end,
 }
 mocks[S .. "MonetizationService"] = { payMultiplier = function() return 1 end }
-mocks[S .. "JobService"] = { quit = function() end }
+local jobProviders, jobStarts = {}, {}
+mocks[S .. "JobService"] = {
+	quit = function() end,
+	setProvider = function(id, provider)
+		jobProviders[id] = provider
+	end,
+	shiftOf = function()
+		return nil
+	end,
+	start = function(player, id, context)
+		table.insert(jobStarts, { player, id, context })
+	end,
+}
 mocks[ROOT .. "/server/World/Region"] = { Towns = { { Name = "Los Pinos", Center = Vector3.new(0, 0, 1100) } } }
 
 local Gameplay = loadModule(ROOT .. "/shared/Gameplay")
@@ -1046,6 +1069,120 @@ profiles[hero].Story.Completed.Mision1 = 1
 profiles[hero].Story.Completed.Mision2 = 2
 task.wait(3.3)
 check(hero:GetAttribute("Xp") == before + 2 * Gameplay.Progression.QuestXp, "cada misión completada da experiencia")
+
+---------------------------------------------------------------------
+print("▶ Supermercado: comprar, pagar, alarma, cajero, charcutería y reponedor")
+local Groceries = loadModule(ROOT .. "/shared/Groceries")
+local superModel = fakeInstance("Model")
+superModel.Name = "Supermercado"
+superModel.Parent = worldRoot
+superModel:SetAttribute("Store", "Super Prueba")
+superModel:SetAttribute("Origin", CFrame.new(500, 0, 500))
+superModel:SetAttribute("Door", Vector3.new(500, 0.4, 468))
+superModel:SetAttribute("Inside", Vector3.new(500, 0.4, 478))
+superModel:SetAttribute("FrontZ", -15)
+superModel:SetAttribute("BackZ", 15)
+superModel:SetAttribute("AisleXs", "0")
+superModel:AddTag("Supermarket")
+local function sp(name, position, tags, attrs, size)
+	local p = part(name, CFrame.new(position), tags, attrs)
+	p.Size = size or Vector3.new(4, 4, 4)
+	p.Parent = superModel
+	return p
+end
+sp("Bounds", Vector3.new(500, 8, 500), { "SuperBounds" }, nil, Vector3.new(60, 16, 60))
+local milk = sp("Section_Leche", Vector3.new(495, 4, 500), { "SuperShelf" }, { Product = "Leche" })
+for _ = 1, 4 do
+	local g = part("Good", CFrame.new(495, 4, 500))
+	g.Parent = milk
+end
+local cookies = sp("Section_Galletas", Vector3.new(490, 4, 500), { "SuperShelf" }, { Product = "Galletas" })
+local belt1 = sp("Checkout", Vector3.new(505, 2, 480), { "SuperCheckout" }, { Lane = 1, CashierSpot = Vector3.new(508, 0.4, 480), QueueSpot = Vector3.new(502, 0.4, 486), PaySpot = Vector3.new(502, 0.4, 478) })
+local belt2 = sp("Checkout", Vector3.new(514, 2, 480), { "SuperCheckout" }, { Lane = 2, CashierSpot = Vector3.new(517, 0.4, 480), QueueSpot = Vector3.new(511, 0.4, 486), PaySpot = Vector3.new(511, 0.4, 478) })
+local kiosk = sp("SelfCheckout", Vector3.new(520, 2, 482), { "SuperSelfCheckout" })
+local deli = sp("DeliCounter", Vector3.new(480, 2, 500), { "SuperDeli" }, { StaffSpot = Vector3.new(477, 0.4, 500), CustomerSpot = Vector3.new(484, 0.4, 500) })
+local stockPoint = sp("StockPoint", Vector3.new(500, 2, 525), { "SuperStock" })
+local superBoard = sp("StaffBoard", Vector3.new(495, 4, 478), { "SuperBoard" })
+
+local SupermarketService = loadModule(S .. "SupermarketService")
+SupermarketService.init()
+local shopper, shopperRoot = newPlayer(30, "Adulto", 100)
+moveTo(shopperRoot, Vector3.new(500, 0, 495))
+local startStock = milk:GetAttribute("Stock")
+check(startStock ~= nil and startStock > 0 and promptOf(milk, "Coger") ~= nil, "las estanterías tienen productos y cartel Coger")
+promptOf(milk, "Coger").Triggered:Fire(shopper)
+promptOf(milk, "Coger").Triggered:Fire(shopper)
+local function cartOf(player)
+	local raw = player:GetAttribute("Cart")
+	return raw and require("@lune/serde").decode("json", raw)
+end
+local cart = cartOf(shopper)
+check(cart ~= nil and cart.Items[1].Count == 2 and cart.Total == 2 * Groceries.byId.Leche.Price, "coge dos leches: van al carrito con su precio")
+check(milk:GetAttribute("Stock") == startStock - 2, "la estantería tiene dos menos")
+remotes.Supermarket.OnServerEvent:Fire(shopper, "Return", "Leche")
+check(cartOf(shopper).Items[1].Count == 1 and milk:GetAttribute("Stock") == startStock - 1, "devuelve una leche a su sitio")
+promptOf(kiosk, "Pagar").Triggered:Fire(shopper)
+local receiptMsg = lastMessage(shopper, "Receipt")
+check(receiptMsg ~= nil and receiptMsg[4] == Groceries.byId.Leche.Price, "el autocobro enseña el ticket con el total")
+remotes.Supermarket.OnServerEvent:Fire(shopper, "Pay", receiptMsg[2])
+check(profiles[shopper].Money == 100 - Groceries.byId.Leche.Price and InventoryService.count(shopper, "Leche") == 1, "paga y la leche va a la mochila")
+check(shopper:GetAttribute("Cart") == nil, "el carrito se vacía al pagar")
+
+-- Salir sin pagar: pita la alarma y los productos vuelven
+local cookieStock = cookies:GetAttribute("Stock")
+promptOf(cookies, "Coger").Triggered:Fire(shopper)
+moveTo(shopperRoot, Vector3.new(600, 0, 600))
+task.wait(0.8)
+check(shopper:GetAttribute("Cart") == nil and cookies:GetAttribute("Stock") == cookieStock and notified(shopper, "sin pagar"), "si sales sin pagar pita la alarma y se queda todo en la tienda")
+
+-- Cajero jugador
+local cashier = newPlayer(31, "Adulto", 0)
+promptOf(superBoard, "🧾 Cajero/a").Triggered:Fire(cashier)
+check(cashier:GetAttribute("Job") == "Cajero", "un jugador se hace cajero desde el tablón")
+moveTo(shopperRoot, Vector3.new(500, 0, 495))
+promptOf(milk, "Coger").Triggered:Fire(shopper)
+promptOf(cookies, "Coger").Triggered:Fire(shopper)
+local cashierLane = if cashier:GetAttribute("TaskTarget") == belt2:GetAttribute("CashierSpot") then belt2 else belt1
+promptOf(cashierLane, "Pagar aquí").Triggered:Fire(shopper)
+local scanMsg = lastMessage(cashier, "Scan")
+check(scanMsg ~= nil and #scanMsg[3] == 2, "el cajero recibe los dos productos del cliente para pasarlos")
+check(lastMessage(shopper, "Receipt") == receiptMsg, "el cliente espera: no paga hasta que se pasen los productos")
+remotes.Supermarket.OnServerEvent:Fire(cashier, "Scan", scanMsg[2], 1)
+remotes.Supermarket.OnServerEvent:Fire(cashier, "Scan", scanMsg[2], 2)
+local receipt2 = lastMessage(shopper, "Receipt")
+check(receipt2 ~= receiptMsg and receipt2[2] == scanMsg[2], "pasados los productos, el cliente ve el ticket")
+local cashierBefore = profiles[cashier].Money
+remotes.Supermarket.OnServerEvent:Fire(shopper, "Pay", receipt2[2])
+check(profiles[cashier].Money == cashierBefore + Groceries.Jobs.Cajero.PerCustomer + 2 * Groceries.Jobs.Cajero.PerItem, "el cajero cobra por cliente y por producto")
+check(InventoryService.count(shopper, "Galletas") == 1, "el cliente se lleva las galletas")
+
+-- Charcutería con charcutero jugador
+local butcher = newPlayer(32, "Adulto", 0)
+promptOf(superBoard, "🔪 Charcutero/a").Triggered:Fire(butcher)
+check(butcher:GetAttribute("Job") == "Charcutero", "un jugador se hace charcutero")
+moveTo(shopperRoot, Vector3.new(484, 0, 500))
+remotes.Supermarket.OnServerEvent:Fire(shopper, "DeliOrder", "JamonSerrano", 200)
+local work = lastMessage(butcher, "DeliWork")
+check(work ~= nil and string.find(work[3], "200 g") ~= nil, "el charcutero recibe el pedido: 200 g de jamón")
+remotes.Supermarket.OnServerEvent:Fire(butcher, "DeliServe", work[2], "Pavo", 200)
+check(InventoryService.count(shopper, "JamonSerrano") == 0 and notified(butcher, "no es lo que"), "si se equivoca de producto, no vale")
+local moneyBefore = profiles[shopper].Money
+remotes.Supermarket.OnServerEvent:Fire(butcher, "DeliServe", work[2], "JamonSerrano", 200)
+check(InventoryService.count(shopper, "JamonSerrano") == 2 and profiles[shopper].Money == moneyBefore - Groceries.deliPrice("JamonSerrano", 200), "bien cortado: el cliente paga y se lleva el jamón")
+check(profiles[butcher].Money == Groceries.Jobs.Charcutero.PerOrder, "el charcutero cobra el pedido")
+
+-- Reponedor
+promptOf(superBoard, "📦 Reponedor/a").Triggered:Fire(cashier)
+local startMsg = jobStarts[#jobStarts]
+check(startMsg ~= nil and startMsg[2] == "Reponedor" and startMsg[3].Store ~= nil, "el reponedor empieza en SU supermercado")
+local provider = jobProviders.Reponedor
+local shift = { Context = startMsg[3] }
+check(provider.Pickup(cashier, shift) == stockPoint, "coge las cajas en el almacén de esa tienda")
+cookies:SetAttribute("Stock", 0)
+local target = provider.Dropoff(cashier, shift)
+check(target == cookies, "le manda a la sección más vacía")
+provider.Done(cashier, shift)
+check(cookies:GetAttribute("Stock") == Groceries.StockMax, "al dejar la caja, la sección se llena")
 
 end, debug.traceback)
 if not ok then

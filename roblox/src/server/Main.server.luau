@@ -49,6 +49,7 @@ local order = {
 	"CinematicService",
 	"InventoryService", -- mochila estilo Minecraft (barra rápida + 27 casillas)
 	"ShopService", -- tiendas donde se hacen los recados
+	"SupermarketService", -- supermercados: carrito, cajas, charcutería, clientes y oficios
 	"ClassService", -- clases y exámenes que se juegan (lo usa la historia)
 	"DialogueService", -- conversaciones con respuestas (misiones episódicas)
 	"MiniGameService", -- pase, canastas, partido de fútbol…

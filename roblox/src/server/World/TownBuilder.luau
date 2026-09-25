@@ -24,6 +24,7 @@ local AssetLibrary = require(Kit.AssetLibrary)
 local Rides = require(Kit.Rides)
 local Landmarks = require(Kit.Landmarks)
 local Roads = require(Kit.Roads)
+local Supermarket = require(Kit.Supermarket)
 local CityPlan = require(game:GetService("ReplicatedStorage").Shared.CityPlan)
 local Region = require(script.Parent.Region)
 
@@ -128,39 +129,13 @@ local function buildCafe(world: Instance)
 end
 
 local function buildSupermarket(world: Instance)
-	local W, D = 60, 48
-	local model, at = Building.build({
-		Name = "Supermercado", Parent = world, CFrame = northOfAvenue(160, D),
-		Width = W, Depth = D, Floors = 2, Style = "Moderno", GroundFloor = "Shop", Balconies = false,
-		WindowFaces = { Front = true, Left = true, Right = true },
-		Sign = "SUPERMERCADO", SignColor = rgb(36, 132, 76), Awning = rgb(36, 132, 76), ShopId = "Supermercado",
-		FloorMaterial = Enum.Material.CeramicTiles, FloorColor = rgb(226, 226, 222),
-		LightColor = rgb(240, 248, 255),
-	})
-	for i, x in { -20, -8, 4 } do
-		for j, z in { -6, 8 } do
-			local shelf = Builder.part({
-				Name = "Shelf" .. i .. j, Size = Vector3.new(3, 7, 10), CFrame = at(x, 3.5, z),
-				Color = rgb(206, 206, 210), Material = Enum.Material.Metal, Tags = { "Dropoff_Reponedor" }, Parent = model,
-			})
-			for k = 0, 2 do
-				Builder.decor({
-					Name = "Products", Size = Vector3.new(3.4, 1, 9), CFrame = shelf.CFrame * CFrame.new(0, -2 + k * 2.2, 0),
-					Color = Color3.fromHSV(math.random(), 0.55, 0.9), Parent = model,
-				})
-			end
-		end
-	end
-	for _, x in { 20, 25 } do
-		Builder.part({
-			Name = "StockBoxes", Size = Vector3.new(4, 4, 4), CFrame = at(x, 2, 18),
-			Color = rgb(190, 150, 90), Material = Enum.Material.Cardboard, Tags = { "Pickup_Reponedor" }, Parent = model,
-		})
-	end
-	counter(model, at(20, 0, -12), 10, rgb(36, 132, 76))
-	foodStand(model, at(17, 4.5, -12), "Fruta", rgb(226, 60, 60))
-	foodStand(model, at(22, 4.5, -12), "Bocadillo", rgb(226, 190, 120))
-	Props.jobBoard(world, at(-22, 0, -D / 2 - 3.5) * CFrame.Angles(0, math.pi, 0), "Reponedor", "REPONEDOR")
+	-- Supermercado del centro (Kit/Supermarket): el de Paco en la historia. El tablón de
+	-- reponedor sigue fuera, en la acera, donde lo busca la historia.
+	local D = Supermarket.Specs.Compacto.D
+	local cf = northOfAvenue(160, D)
+	local model = Supermarket.build(world, cf, "Compacto", "Supermercado Valmar")
+	model:SetAttribute("ShopId", "Supermercado")
+	Props.jobBoard(world, cf * CFrame.new(-22, 0, -D / 2 - 3.5) * CFrame.Angles(0, math.pi, 0), "Reponedor", "REPONEDOR")
 end
 
 local function buildPostOffice(world: Instance)

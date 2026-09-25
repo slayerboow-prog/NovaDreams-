@@ -29,6 +29,7 @@ local NearShadows = require(script.Parent.Controllers.NearShadows)
 local Actions = require(script.Parent.Controllers.Actions)
 local Driving = require(script.Parent.Controllers.Driving)
 local SoundFx = require(script.Parent.Controllers.SoundFx)
+local SupermarketUI = require(script.Parent.Controllers.SupermarketUI)
 
 local gui = Hud.init(function()
 	Store.open()
@@ -56,6 +57,7 @@ task.spawn(Character.init) -- ficha del personaje (botón Personaje) y correr co
 task.spawn(NearShadows.init) -- sombras de las luces solo cerca de ti (mismo aspecto, mucho más fluido)
 task.spawn(Prompts.init) -- carteles de "pulsa E" con el estilo de la interfaz
 task.spawn(SoundFx.init) -- efectos de sonido: saltos, golpes, agua, botones, motor, claxon y gente hablando
+task.spawn(SupermarketUI.init) -- supermercados: carrito, ticket, cajero y charcutería
 task.spawn(Driving.init) -- conducir coches, motos, bicis, monopatines y patinetes (W/A/S/D)
 task.spawn(Actions.init) -- gestos y bailes (G), trepar muros bajos, linterna (L) y modo foto (P)
 

@@ -14,6 +14,9 @@
         "Actions": {
           "$className": "RemoteEvent"
         },
+        "Supermarket": {
+          "$className": "RemoteEvent"
+        },
         "QuitJob": {
           "$className": "RemoteEvent"
         },
