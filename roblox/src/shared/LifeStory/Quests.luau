@@ -123,44 +123,8 @@ local Quests: { [string]: Quest } = {
 	},
 
 	-----------------------------------------------------------------
-	-- ADOLESCENTE · EL INSTITUTO (unas 5 horas): nuevo instituto, primer trabajo y decidir el futuro
+	-- ADOLESCENTE · EL INSTITUTO (unas 5 horas): las misiones están en Misiones/Ins*.luau; aquí, el día normal
 	-----------------------------------------------------------------
-	Adol_PrimerTrabajo = {
-		Kind = "Main",
-		TitleKey = "QUEST.VERANO.TITLE",
-		Requires = { Completed = { "Ins03_QueQuieresSer" }, StageProgress = 0.40 },
-		Steps = {
-			{ Type = "Event", Event = "JobTaskDone", Count = 3, TextKey = "QUEST.VERANO.TRABAJA" },
-		},
-		Rewards = { Money = 50 },
-		MomentKey = "MOMENT.PRIMER_TRABAJO",
-	},
-	Adol_ElFuturo = {
-		Kind = "Main",
-		TitleKey = "QUEST.FUTURO.TITLE",
-		Requires = { Completed = { "Adol_PrimerTrabajo" }, StageProgress = 0.93 },
-		Steps = {
-			{ Type = "Class", Subject = "Tecnologia", Mode = "Examen", Place = "AulaInstituto", TextKey = "QUEST.COLE.EXAMEN" },
-			{ Type = "Reach", Place = "Universidad", TextKey = "QUEST.FUTURO.VISITA" },
-			{
-				Type = "Choice",
-				Key = "Estudios",
-				PromptKey = "QUEST.FUTURO.PREGUNTA",
-				TextKey = "QUEST.FUTURO.DECIDE",
-				Options = {
-					{ Id = "Medicina", TextKey = "QUEST.FUTURO.OPT_MEDICINA", Flags = { "VaALaUniversidad" } },
-					{ Id = "Ingenieria", TextKey = "QUEST.FUTURO.OPT_INGENIERIA", Flags = { "VaALaUniversidad" } },
-					{ Id = "Derecho", TextKey = "QUEST.FUTURO.OPT_DERECHO", Flags = { "VaALaUniversidad" } },
-					{ Id = "Economia", TextKey = "QUEST.FUTURO.OPT_ECONOMIA", Flags = { "VaALaUniversidad" } },
-					{ Id = "Trabajar", TextKey = "QUEST.FUTURO.OPT_TRABAJAR", Flags = { "EmpiezaATrabajar" } },
-				},
-			},
-			{ Type = "Transition", SetStage = "AdultoJoven", TextKey = "TRANSITION.MAYOR_EDAD", Cinematic = "Adol_Selectividad" },
-		},
-		MomentKey = "MOMENT.DECIDES_FUTURO",
-		MomentSting = false,
-	},
-
 	Adol_Jornada = {
 		Kind = "Main",
 		TitleKey = "QUEST.DIA_INSTITUTO.TITLE",

@@ -29,6 +29,9 @@ local Memories: { [string]: Memory } = {
 	PrimerDiaInstituto = { Text = "Tu primer día de instituto (y el «ascensor de alumnos»)", Icon = "🏢" },
 	PrimerClub = { Text = "Cuando te apuntaste a tu primer club", Icon = "📌" },
 	QueQuieresSer = { Text = "La semana de las profesiones", Icon = "🧭" },
+	PrimerSueldo = { Text = "Tu primer trabajo de verano y tu primer sueldo", Icon = "💶" },
+	ElRumor = { Text = "La foto de Omar, y cómo lo arreglasteis", Icon = "📱" },
+	LaGranDecision = { Text = "La noche en que decidiste tu futuro", Icon = "🎓" },
 }
 
 return Memories

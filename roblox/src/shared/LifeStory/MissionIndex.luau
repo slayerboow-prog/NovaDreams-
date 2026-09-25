@@ -21,6 +21,9 @@ return {
 	require(Misiones.Ins01_NuevoInstituto),
 	require(Misiones.Ins02_Clubes),
 	require(Misiones.Ins03_QueQuieresSer),
+	require(Misiones.Ins04_PrimerEmpleo),
+	require(Misiones.Ins05_ElRumor),
+	require(Misiones.Ins06_LaGranDecision),
 	require(Misiones.Ins_Consecuencias),
 	require(Misiones.Cole_Consecuencias),
 }

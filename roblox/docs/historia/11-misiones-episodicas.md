@@ -277,7 +277,12 @@ misión nueva se rellena la ficha de 12 puntos de 11.7.
 
 ## 11.13 Estado, pruebas y lo que falta
 
-**Hecho y probado** (prueba automática `scripts/test-lifestory.luau`, 223 comprobaciones en verde):
+**Hecho y probado** (prueba automática `scripts/test-lifestory.luau`, 243 comprobaciones en verde):
+
+- Instituto 01–06 (ver 11.23–11.29): primer día, clubes, profesiones, primer empleo con el sistema de
+  trabajos de verdad, el rumor en el grupo de clase y la gran decisión (con la selectividad y el paso a
+  la universidad o al trabajo). Consecuencias: Leire (2 h), la carta de recomendación (3 h, si no
+  mentiste en la entrevista) y Nico (3 h).
 
 - Misiones 10, 11 y 12 (ver 11.20–11.22): el festival (cinco tareas distintas, imprevistos y
   escenario), el proyecto final (tema, rol, investigación, compra real en la librería, desastre y
@@ -327,8 +332,10 @@ pasillo). La granja usa el modelo `Granja` (y su hijo `Granero`) que ya existe e
 
 **Capítulo del colegio completo (01–12).** Las misiones 10–12 (ver 11.20–11.22) sustituyen a las
 antiguas «El segundo trimestre» y «Fin de primaria»: el paso al instituto lo hace ahora «El último día».
-**Instituto (en marcha):** 01–03 hechas (ver 11.23–11.26). **Siguiente:** 04–06 (primer empleo,
-el conflicto de segundo y la gran decisión, que sustituirán a `Adol_PrimerTrabajo` y `Adol_ElFuturo`).
+**Capítulo del instituto completo (01–06, ver 11.23–11.29).** Sustituye a las antiguas
+`Adol_NuevoInstituto`, `Adol_PrimerTrabajo` y `Adol_ElFuturo`. **Siguiente:** la universidad con el
+mismo formato (primer día en el campus, el proyecto de grupo, el primer trabajo, las prácticas según la
+carrera y la graduación).
 
 ---
 
@@ -548,9 +555,9 @@ reparte en clases distintas) y el futuro asomando (profesiones, campus, primer d
 | 01 | El nuevo instituto | 20–30 | Parada con tus amigos, bus al Campus, la broma del veterano, tu aula, dónde te sientas, Leire sola | Hecha |
 | 02 | Los clubes | 20–30 | Feria, cinco clubes con prueba distinta, el sábado: club, cumpleaños o las dos cosas | Hecha |
 | 03 | ¿Qué quieres ser? | 25–35 | Ocho profesiones por la ciudad, 4 visitas, marcas `Interes_*`, orientación | Hecha |
-| 04 | El primer empleo | 20–30 | Perfil, ofertas, entrevista, primera jornada (sustituye a `Adol_PrimerTrabajo`) | Pendiente |
-| 05 | El conflicto | 25–35 | Rumor en redes sobre alguien del grupo; averiguar, defender, pedir perdón | Pendiente |
-| 06 | La gran decisión | 25–35 | Preparar la selectividad, las `Interes_*` como consejo, elegir estudios o trabajo (sustituye a `Adol_ElFuturo`) | Pendiente |
+| 04 | El primer empleo | 20–30 | Perfil, ofertas, entrevista (verdad o no), primera jornada con el sistema de trabajos, el primer sueldo | Hecha |
+| 05 | El rumor | 25–35 | Una foto trucada de Omar en el grupo de clase: frenarla, investigar, Nico y Darío, consolar a Omar | Hecha |
+| 06 | La gran decisión | 25–35 | Planes de los amigos, Carmen y tus `Interes_*`, puertas abiertas, selectividad, elegir estudios o trabajo, graduación | Hecha |
 
 ## 11.24 Instituto 01 — «El nuevo instituto» (implementada)
 
@@ -612,3 +619,59 @@ reparte en clases distintas) y el futuro asomando (profesiones, campus, primer d
 10. **Consecuencias:** Carmen repasa lo que te gustó; las `Interes_*` las leerá «La gran decisión».
 11. **Recompensas:** recuerdo *QueQuieresSer*, **cuaderno de profesiones**.
 12. **Conexión:** el primer empleo del verano.
+
+## 11.27 Instituto 04 — «El primer empleo» (implementada)
+
+1. **Objetivo narrativo:** el primer dinero ganado por ti; la honestidad en el trabajo.
+2. **Duración:** 20–30 min.
+3. **NPC:** familia y {abu}, Carmen, Omar, Lola (cafetería), Paco (supermercado), Ernesto (Correos), Bruno, Leire.
+4. **Lugares:** casa, instituto, Cafetería Central, supermercado, Correos.
+5. **Objetivos:** qué quieres conseguir (bici, cámara, ayudar en casa, ahorrar) → **perfil laboral** con
+   Carmen → **buscar ofertas** (2 de 3 carteles) → elegir → **entrevista** (decir la verdad o adornarla)
+   → primer día (llegar puntual: `Late`) → **la jornada con el sistema de trabajos real** (`JobTaskDone`,
+   2 + 2 tareas) con un **imprevisto** a mitad (la bandeja delante de Bruno, las latas, Leire en pijama)
+   → el primer sueldo y qué haces con él.
+6. **Diálogos:** cada jefe tiene su personalidad; si mentiste, el primer día te lo recuerdan.
+7. **Mecánicas:** conecta con `JobService` (tablones de trabajo) y la economía (50 $ de sueldo).
+8. **Minijuegos:** el propio trabajo (recoger y entregar).
+9. **Decisiones:** meta, perfil, empleo, verdad o mentira, cómo encajas el error, qué haces con el dinero.
+10. **Consecuencias:** si no mentiste, 3 h después llega una **carta de recomendación** (`Eco_Carta`).
+11. **Recompensas:** recuerdo *PrimerSueldo*, **el sobre del primer sueldo**, 50 $.
+12. **Conexión:** un año después, el grupo de clase se incendia.
+
+## 11.28 Instituto 05 — «El rumor» (implementada)
+
+1. **Objetivo narrativo:** el acoso en redes sin dramatizarlo: quien lo hace, quien lo comparte y quien
+   lo frena. Y que pedir ayuda a un adulto no es chivarse.
+2. **Duración:** 25–35 min.
+3. **NPC:** Javier, Sara, Leire, Nico, Bruno, Darío (de segundo), Omar.
+4. **Lugares:** aula, patio, pista del instituto, el banco del parque.
+5. **Objetivos:** la foto trucada de Omar en el grupo de clase (**frenarla, callar o reírte**) →
+   investigar (3 de 4: la captura —la compartió Nico—, Leire y el ángulo, **Bruno, a quien todos culpan**,
+   la grada) → Darío y Nico en la pista → Omar en el banco → el día después.
+6. **Diálogos:** Bruno recuerda si le acusaste sin pruebas en el colegio; Omar, si en el grupo diste la cara.
+7. **Mecánicas:** investigación; opciones de diálogo que solo aparecen si hiciste algo antes.
+8. **Minijuegos:** ninguno: es una misión de personajes.
+9. **Decisiones:** qué haces con la foto; confiar en Bruno; hablar con Nico en privado o en público;
+   Darío (pedirle que la borre, contarlo a Javier o devolvérsela: esto último sale mal).
+10. **Consecuencias:** relaciones; 3 h después, `Eco_Nico` (distinto según cómo le hablaste).
+11. **Recompensas:** recuerdo *ElRumor*, **la pulsera del grupo** de Omar.
+12. **Conexión:** dos años después, el último curso.
+
+## 11.29 Instituto 06 — «La gran decisión» (implementada)
+
+1. **Objetivo narrativo:** elegir tu camino sabiendo que nadie se queda donde empieza.
+2. **Duración:** 25–35 min.
+3. **NPC:** todo el grupo (cada uno con su plan), Carmen, Sofía, Javier, familia y {abu}.
+4. **Lugares:** patio del instituto, aula, universidad, biblioteca del campus, casa.
+5. **Objetivos:** los planes de tus amigos (3 de hasta 8) → Carmen repasa **tus `Interes_*`** y tu
+   primer trabajo → puertas abiertas → estudiar → **selectividad** (5 s más por pregunta si estudiaste)
+   → la noche en casa ({abu} cuenta lo que no pudo ser) → **LA DECISIÓN** (`Choices.Estudios`: Medicina,
+   Ingeniería, Derecho, Economía o trabajar) → graduación y orla → etapa AdultoJoven.
+6. **Diálogos:** casi todo depende de lo vivido en el instituto (rumor, clubes, profesiones, sueldo).
+7. **Mecánicas:** examen con `Bonus`; la decisión es la misma que usa la universidad (`Subjects`).
+8. **Minijuegos:** el examen de selectividad.
+9. **Decisiones:** los estudios o trabajar.
+10. **Consecuencias:** marca `VaALaUniversidad` o `EmpiezaATrabajar`; la universidad usa tu carrera.
+11. **Recompensas:** recuerdo *LaGranDecision*, **la orla del instituto**.
+12. **Conexión:** cinemática de selectividad y primer día de universidad (o de vida adulta).
