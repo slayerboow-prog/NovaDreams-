@@ -69,7 +69,7 @@ return {
 	Requires = { Completed = { "Cole11_Proyecto" }, StageProgress = 0.94 },
 	Npcs = { "Familia", "Abu", "Nico", "Sara", "Omar", "Mateo", "Hugo", "Iker", "Lucia", "Ramon", "Marisa", "Andres", "Marta", "Bruno", "Ruben", "Vega", "Alex" },
 	Locations = { "HomeSalon", "Vestibulo", "PupitreA", "TaquillaColegio", "CampoColegio", "BibliotecaColegio", "AlmacenColegio", "Patio", "SalaCerrada" },
-	Next = { "Adol_NuevoInstituto" },
+	Next = { "Ins01_NuevoInstituto" },
 	Outcomes = { "Los recuerdos que visitas", "Lo que había en tu cápsula", "Cómo te despides de Bruno", "Tu promesa al grupo" },
 
 	Moment = "Tu último día de primaria",

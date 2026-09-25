@@ -125,21 +125,10 @@ local Quests: { [string]: Quest } = {
 	-----------------------------------------------------------------
 	-- ADOLESCENTE · EL INSTITUTO (unas 5 horas): nuevo instituto, primer trabajo y decidir el futuro
 	-----------------------------------------------------------------
-	Adol_NuevoInstituto = {
-		Kind = "Main",
-		TitleKey = "QUEST.INSTITUTO.TITLE",
-		Steps = {
-			{ Type = "Event", Event = "Traveled", Match = { Town = "Campus Valmar" }, Place = "ParadaBus", TextKey = "QUEST.INSTITUTO.BUS" },
-			{ Type = "Reach", Place = "Instituto", TextKey = "QUEST.INSTITUTO.BUSCA" },
-			{ Type = "Class", Subject = "HistoriaInstituto", Mode = "Clase", Place = "AulaInstituto", TextKey = "QUEST.COLE.CLASE" },
-			{ Type = "Class", Subject = "MatematicasInstituto", Mode = "Clase", Place = "AulaInstituto", TextKey = "QUEST.COLE.CLASE" },
-		},
-		MomentKey = "MOMENT.NUEVO_INSTITUTO",
-	},
 	Adol_PrimerTrabajo = {
 		Kind = "Main",
 		TitleKey = "QUEST.VERANO.TITLE",
-		Requires = { Completed = { "Adol_NuevoInstituto" }, StageProgress = 0.35 },
+		Requires = { Completed = { "Ins03_QueQuieresSer" }, StageProgress = 0.40 },
 		Steps = {
 			{ Type = "Event", Event = "JobTaskDone", Count = 3, TextKey = "QUEST.VERANO.TRABAJA" },
 		},

@@ -136,6 +136,10 @@ local KEEPSAKES = {
 	{ "Maqueta", "Maqueta del proyecto final", "🔬", "Un poco torcida, llena de pegamento… y con mucha historia." },
 	{ "DiplomaPrimaria", "Diploma de primaria", "🎓", "Firmado por Lucía. Con una carita sonriente al lado de la firma." },
 	{ "Llavero13", "Llavero con el número 13", "🗝️", "Regalo de Ramón: las puertas cerradas a veces esconden cosas bonitas." },
+	{ "CarnetInstituto", "Carnet del instituto", "🪪", "Tu foto de carnet del primer día. Nadie sale bien en las fotos de carnet." },
+	{ "FotoDeLeire", "Foto de Leire", "📷", "Blanco y negro. Tú, el primer día de instituto, con cara de «¿dónde me he metido?»." },
+	{ "InsigniaClub", "Insignia del club", "📌", "La insignia de tu primer club del instituto." },
+	{ "CuadernoProfesiones", "Cuaderno de profesiones", "📓", "Lo que viste en la semana de las profesiones. «Dentro de unos años lo leerás y te reirás. O no.»" },
 }
 for _, entry in KEEPSAKES do
 	list[entry[1]] = { Id = entry[1], Name = entry[2], Icon = entry[3], Kind = "Keepsake", Desc = entry[4], Stack = 99 }

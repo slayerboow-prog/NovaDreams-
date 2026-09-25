@@ -277,7 +277,7 @@ misión nueva se rellena la ficha de 12 puntos de 11.7.
 
 ## 11.13 Estado, pruebas y lo que falta
 
-**Hecho y probado** (prueba automática `scripts/test-lifestory.luau`, 204 comprobaciones en verde):
+**Hecho y probado** (prueba automática `scripts/test-lifestory.luau`, 223 comprobaciones en verde):
 
 - Misiones 10, 11 y 12 (ver 11.20–11.22): el festival (cinco tareas distintas, imprevistos y
   escenario), el proyecto final (tema, rol, investigación, compra real en la librería, desastre y
@@ -327,7 +327,8 @@ pasillo). La granja usa el modelo `Granja` (y su hijo `Granero`) que ya existe e
 
 **Capítulo del colegio completo (01–12).** Las misiones 10–12 (ver 11.20–11.22) sustituyen a las
 antiguas «El segundo trimestre» y «Fin de primaria»: el paso al instituto lo hace ahora «El último día».
-**Siguiente:** el capítulo del instituto con el mismo formato (ficha de 12 puntos, un archivo por misión).
+**Instituto (en marcha):** 01–03 hechas (ver 11.23–11.26). **Siguiente:** 04–06 (primer empleo,
+el conflicto de segundo y la gran decisión, que sustituirán a `Adol_PrimerTrabajo` y `Adol_ElFuturo`).
 
 ---
 
@@ -528,3 +529,86 @@ antiguas «El segundo trimestre» y «Fin de primaria»: el paso al instituto lo
 10. **Consecuencias:** relaciones finales; `Choices.AdiosBruno` y `Choices.Promesa` las leerá el instituto.
 11. **Recompensas:** recuerdo *UltimoDiaCole*, **diploma de primaria** y **llavero 13** de Ramón, 30 $.
 12. **Conexión:** cinemáticas de fin de primaria y paso al instituto (etapa Adolescente).
+
+## 11.23 El capítulo del instituto (diseño general)
+
+**Qué cambia respecto al colegio:** las misiones maduran. Menos «encuentra el objeto», más decisiones
+con dos lados buenos (club o cumpleaños, publicar o proteger), relaciones que se estiran (el grupo se
+reparte en clases distintas) y el futuro asomando (profesiones, campus, primer dinero).
+
+- **Reparto:** el grupo del colegio sigue (ahora adolescentes: `SceneService` hace crecer a los
+  compañeros `Kid` según tu etapa) y llegan Javier (tutor), Carmen (orientadora), Leire (la nueva, con
+  su cámara), un veterano, la delegada y ocho profesionales de Valmar.
+- **Continuidad:** `Choices.Promesa` y `Choices.AdiosBruno` del último día cambian el primer día;
+  `Choices.SuenoInfancia` (misión 03) aparece en la semana de las profesiones; el torneo, el festival o
+  la sala cerrada se citan cuando toca.
+
+| # | Misión | Duración | Núcleo | Estado |
+|---|---|---|---|---|
+| 01 | El nuevo instituto | 20–30 | Parada con tus amigos, bus al Campus, la broma del veterano, tu aula, dónde te sientas, Leire sola | Hecha |
+| 02 | Los clubes | 20–30 | Feria, cinco clubes con prueba distinta, el sábado: club, cumpleaños o las dos cosas | Hecha |
+| 03 | ¿Qué quieres ser? | 25–35 | Ocho profesiones por la ciudad, 4 visitas, marcas `Interes_*`, orientación | Hecha |
+| 04 | El primer empleo | 20–30 | Perfil, ofertas, entrevista, primera jornada (sustituye a `Adol_PrimerTrabajo`) | Pendiente |
+| 05 | El conflicto | 25–35 | Rumor en redes sobre alguien del grupo; averiguar, defender, pedir perdón | Pendiente |
+| 06 | La gran decisión | 25–35 | Preparar la selectividad, las `Interes_*` como consejo, elegir estudios o trabajo (sustituye a `Adol_ElFuturo`) | Pendiente |
+
+## 11.24 Instituto 01 — «El nuevo instituto» (implementada)
+
+1. **Objetivo narrativo:** empezar de nuevo sin empezar de cero: los amigos siguen, pero ya no está todo junto.
+2. **Duración:** 20–30 min.
+3. **NPC:** familia y {abu}, Nico, Omar, Sara, Mateo, Hugo, Iker, el veterano, la delegada, Javier, Leire, Bruno.
+4. **Lugares:** casa, parada del bus, el instituto (Campus Valmar), aula de 1.º C, patio del instituto.
+5. **Objetivos:** mañana en casa → la parada (qué habéis crecido; la promesa del último día) → **viaje en
+   bus de verdad** (evento `Traveled`) → la broma del «ascensor de alumnos» (creer o preguntar a la
+   delegada) → buscar tu clase en el tablón → Javier y la clase → **dónde te sientas** (Omar, Leire o
+   Bruno si os despedisteis «de cero») → Historia → recreo: el grupo se reparte → **Leire come sola**
+   (si no te acercas en 60 s, no pasa nada… hasta dentro de 2 h) → Matemáticas → cena.
+6. **Diálogos:** familia, la parada, el veterano, Javier, cada asiento, el recreo, Leire, la cena.
+7. **Mecánicas:** viaje entre ciudades, retraso (`Late`: llegas tarde al aula), `Timeout` en Leire.
+8. **Minijuegos:** ninguno nuevo (las dos clases del día).
+9. **Decisiones:** ir con tu familia o por tu cuenta; creer al veterano; sitio; qué hacer en el recreo; Leire.
+10. **Consecuencias:** 2 h después, `Eco_Leire` (te regala una foto) o `Eco_LeireSola` (segunda oportunidad).
+11. **Recompensas:** recuerdo *PrimerDiaInstituto*, **carnet del instituto**.
+12. **Conexión:** la feria de clubes.
+
+## 11.25 Instituto 02 — «Los clubes» (implementada)
+
+1. **Objetivo narrativo:** elegir algo tuyo, no lo de tus amigos, y aprender que comprometerse cuesta.
+2. **Duración:** 20–30 min.
+3. **NPC:** Javier, Álex (baloncesto), Rubén (teatro), Sara (robótica), Hugo (periódico), Leire (fotografía),
+   Vega, el veterano, la delegada, Omar, Nico.
+4. **Lugares:** patio y pista del instituto, aula, el campus (universidad, biblioteca, estadio), el parque.
+5. **Objetivos:** feria (3 de 5 puestos) → **eliges club** → prueba distinta en cada uno: tiros (titular o
+   suplente), audición, **el robot Tornillo se escapa** y lo persigues, **¿quién pinta los murales?**
+   (pistas y un dilema periodístico), paseo fotográfico por el campus → **el sábado**: el primer evento
+   del club coincide con el cumpleaños de Nico.
+6. **Diálogos:** cada puesto, cada prueba, Vega, el dilema, el evento del club, el cumpleaños.
+7. **Mecánicas:** cinco caminos; el camino «las dos cosas» tiene un límite de tiempo (`Late`: llegas tarde a la tarta).
+8. **Minijuegos:** tiros, audición, programar el robot.
+9. **Decisiones:** club; publicar el nombre de Vega, protegerla o convencerla para pedir permiso; el sábado.
+10. **Consecuencias:** relaciones (Vega, Hugo, Nico), marcas `ClubTitular`/`ClubSuplente`, `Choices.Club`,
+    `Choices.Reportaje`, `Choices.Sabado`.
+11. **Recompensas:** recuerdo *PrimerClub*, **insignia del club**.
+12. **Conexión:** la orientadora anuncia la semana de las profesiones.
+
+## 11.26 Instituto 03 — «¿Qué quieres ser?» (implementada)
+
+1. **Objetivo narrativo:** descubrir posibilidades sin obligar a elegir (lo pedía el encargo).
+2. **Duración:** 25–35 min (cuatro trayectos por la ciudad, algunos en bus).
+3. **NPC:** Carmen, Javier, Omar, Leire, Bruno, Nico y ocho profesionales: Nuria (hospital), Sofía
+   (laboratorio de ingeniería), Inés (comisaría), Marcos (empresa), Tomás (taller), Lola (cocina),
+   Irene (estadio) y Toni (audiovisual).
+4. **Lugares:** hospital, facultad de ingeniería, comisaría, oficinas del distrito financiero,
+   gasolinera, cafetería del centro, estadio universitario, cine.
+5. **Objetivos:** Carmen explica la semana → **visitar 4 de 8** → en cada uno, una situación real del
+   trabajo (un niño asustado, un puente de palillos, dos vecinos y una maceta, cien bicis rojas, un
+   motor que no arranca, cuatro mesas a la vez, una atleta lesionada, dónde poner la cámara) → **¿te ves
+   haciendo esto?** → vuelta con Carmen.
+6. **Diálogos:** cada profesional tiene su voz; si tu **sueño de la infancia** coincide, aparece un recuerdo.
+7. **Mecánicas:** exploración de la ciudad; marcas `Interes_*` (Medicina, Ingenieria, Derecho,
+   Economia, Oficio, Cocina, Deporte, Audiovisual).
+8. **Minijuegos:** ninguno: aquí las decisiones son el juego.
+9. **Decisiones:** qué visitas; qué haces en cada situación; cómo sales (`Choices.Orientacion`).
+10. **Consecuencias:** Carmen repasa lo que te gustó; las `Interes_*` las leerá «La gran decisión».
+11. **Recompensas:** recuerdo *QueQuieresSer*, **cuaderno de profesiones**.
+12. **Conexión:** el primer empleo del verano.

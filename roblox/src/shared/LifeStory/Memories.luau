@@ -26,6 +26,9 @@ local Memories: { [string]: Memory } = {
 	ElFestival = { Text = "El festival de primavera del colegio", Icon = "🎉" },
 	ProyectoFinal = { Text = "El proyecto final de Ciencias, delante de las familias", Icon = "🔬" },
 	UltimoDiaCole = { Text = "Tu último día de primaria", Icon = "🎓" },
+	PrimerDiaInstituto = { Text = "Tu primer día de instituto (y el «ascensor de alumnos»)", Icon = "🏢" },
+	PrimerClub = { Text = "Cuando te apuntaste a tu primer club", Icon = "📌" },
+	QueQuieresSer = { Text = "La semana de las profesiones", Icon = "🧭" },
 }
 
 return Memories

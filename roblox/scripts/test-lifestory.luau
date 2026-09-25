@@ -1086,9 +1086,56 @@ end
 check(received(leo, "Moment", "MOMENT.DIA_COLE"), "Los días de cole terminados quedan como momentos")
 check(cinematic(leo, "Cole12_Foto") and cinematic(leo, "Nino_FinPrimaria") and cinematic(leo, "Nino_AInstituto"), "Cinemáticas: foto con tu grupo, fin de primaria y paso al instituto")
 task.wait(0.8)
-check(leoData.Life.AgeYears == 13 and leoData.Story.Active.Adol_NuevoInstituto ~= nil, "Con 13 años empieza el instituto")
+check(leoData.Life.AgeYears == 13 and leoData.Story.Active.Ins01_NuevoInstituto ~= nil, "Con 13 años empieza el instituto")
+leoData.Life.StageSeconds = 0
 
-print("\n▶ El instituto: primer trabajo y decidir el futuro")
+print("\n▶ Instituto 01 «El nuevo instituto» (parada, veterano, Bruno, Leire)")
+leo.Prefer = { "Puedo ir por mi cuenta", "Das una vuelta", "¿Me enseñas qué fotos" }
+leo.Picks = { Veterano = "Creer", SitioInstituto = "Bruno" }
+check(playUntil(leo, function()
+	return leoData.Story.Completed.Ins01_NuevoInstituto ~= nil
+end), "Instituto 01 completa")
+check(said(leo, "Pero en el recreo sí. ¡Lo prometimos!"), "Tus amigos recuerdan la promesa del último día")
+check(leoData.Story.Choices.Veterano.V == "Creer" and said(leo, "¡Todos los años alguien cae!"), "Caes en la broma del «ascensor de alumnos»")
+check(said(leo, "Yo también estoy en 1.º C"), "Iker (que se unió al grupo en la misión 05) está en tu clase")
+check(said(leo, "Aquí hay sitio. Si quieres. De cero") and leoData.Story.Choices.SitioInstituto.V == "Bruno", "Bruno te ofrece sitio (te despediste con «empezamos de cero») y te sientas con él")
+check(said(leo, "Leire comiendo sola") and leoData.Story.Flags.ConocesALeire and said(leo, "Esta es mi antigua calle"), "En el recreo encuentras a Leire sola y te acercas")
+check(leoData.Items.CarnetInstituto == 1 and leoData.Story.Memories.PrimerDiaInstituto ~= nil, "Carnet del instituto y recuerdo del primer día")
+passTime(leo, 2 * 3600 + 100)
+check(leoData.Story.Active.Eco_Leire ~= nil and leoData.Story.Active.Eco_LeireSola == nil and playQuest(leo, "Eco_Leire"), "Dos horas después, Leire te busca")
+check(leoData.Items.FotoDeLeire == 1, "Te regala una foto del primer día")
+
+print("\n▶ Instituto 02 «Los clubes» (feria, periódico, murales, el sábado)")
+leo.Prefer = { "Convencerla para pedir permiso", "Intentar las dos cosas" }
+leo.Picks = { Club = "Periodico" }
+leoData.Life.StageSeconds = 0.13 * HOURS.Adolescente * 3600
+check(playUntil(leo, function()
+	return leoData.Story.Completed.Ins02_Clubes ~= nil
+end), "Instituto 02 completa")
+check(said(leo, "Tu primer caso: los murales") and said(leo, "Hay purpurina pegada en la pintura") and said(leo, "Soy yo. Lo hago porque el patio era gris"), "Periódico: investigas los murales y descubres a Vega")
+check(leoData.Story.Choices.Reportaje.V == "Permiso" and said(leo, "«Una alumna pinta el instituto»"), "Convences a Vega para pedir permiso")
+check(leoData.Story.Choices.Sabado.V == "Ambas" and said(leo, "Sale el primer número de «La Voz del Campus»") and said(leo, "¡Justo a tiempo para la tarta!"), "Llegas al evento del club y al cumpleaños de Nico")
+check(leoData.Items.InsigniaClub == 1 and leoData.Story.Memories.PrimerClub ~= nil, "Insignia del club y recuerdo")
+
+print("\n▶ Instituto 03 «¿Qué quieres ser?» (ocho profesiones, tu sueño, orientación)")
+leo.Prefer = { "Sí. Me lo imagino", "Añadir triángulos", "Tengo más dudas" }
+leo.Picks = {}
+leoData.Life.StageSeconds = 0.26 * HOURS.Adolescente * 3600
+check(playUntil(leo, function()
+	return leoData.Story.Completed.Ins03_QueQuieresSer ~= nil
+end), "Instituto 03 completa")
+local visitas = 0
+for _, flag in { "Interes_Medicina", "Interes_Ingenieria", "Interes_Derecho", "Interes_Economia", "Interes_Oficio", "Interes_Cocina", "Interes_Deporte", "Interes_Audiovisual" } do
+	if leoData.Story.Flags[flag] then
+		visitas += 1
+	end
+end
+check(visitas == 4 and leoData.Story.Flags.Interes_Ingenieria, "Visitas cuatro profesiones y marcas lo que te interesa")
+check(said(leo, "querías «inventar cosas que no existen»") and not said(leo, "dijiste que querías salvar vidas"), "Tu sueño de la infancia (inventar) aparece en el laboratorio, y no en el hospital")
+check(said(leo, "Aguanta dos kilos y medio") and said(leo, "Sofía me ha dicho que tus puentes"), "El puente del laboratorio y Carmen lo comenta")
+check(leoData.Story.Choices.Orientacion.V == "Dudas" and leoData.Items.CuadernoProfesiones == 1 and leoData.Story.Memories.QueQuieresSer ~= nil, "Sales con dudas (y es bueno), cuaderno y recuerdo")
+
+print("\n▶ El resto del instituto: primer trabajo y decidir el futuro")
 leoData.Life.StageSeconds = HOURS.Adolescente * 3600
 check(playUntil(leo, function()
 	return leoData.Life.Stage == "AdultoJoven"

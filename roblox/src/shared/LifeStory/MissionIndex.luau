@@ -18,5 +18,9 @@ return {
 	require(Misiones.Cole10_Festival),
 	require(Misiones.Cole11_Proyecto),
 	require(Misiones.Cole12_UltimoDia),
+	require(Misiones.Ins01_NuevoInstituto),
+	require(Misiones.Ins02_Clubes),
+	require(Misiones.Ins03_QueQuieresSer),
+	require(Misiones.Ins_Consecuencias),
 	require(Misiones.Cole_Consecuencias),
 }

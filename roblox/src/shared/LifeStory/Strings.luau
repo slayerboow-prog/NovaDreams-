@@ -208,9 +208,6 @@ Strings.es = {
 	["QUEST.DIA.REPASO"] = "Repasa {subject} en {place}",
 
 	-- Instituto
-	["QUEST.INSTITUTO.TITLE"] = "Nuevo instituto",
-	["QUEST.INSTITUTO.BUS"] = "Coge el autobús a Campus Valmar en {place}",
-	["QUEST.INSTITUTO.BUSCA"] = "Busca {place}",
 	["QUEST.VERANO.TITLE"] = "Tu primer trabajo de verano",
 	["QUEST.VERANO.TRABAJA"] = "Busca un cartel de SE BUSCA y trabaja ({count}/{total})",
 	["QUEST.FUTURO.TITLE"] = "Decide tu futuro",
@@ -249,7 +246,6 @@ Strings.es = {
 	["MOMENT.PRIMERA_SEMANA"] = "Has terminado tu primera semana de colegio.",
 	["MOMENT.PRIMEROS_RECADOS"] = "Has hecho tus primeros recados sin ayuda.",
 	["MOMENT.PRIMER_EXAMEN"] = "Has hecho tu primer examen.",
-	["MOMENT.NUEVO_INSTITUTO"] = "Empiezas el instituto.",
 	["MOMENT.PRIMER_TRABAJO"] = "Has cobrado tu primer sueldo.",
 	["MOMENT.DECIDES_FUTURO"] = "Has decidido tu futuro.",
 	["MOMENT.UNI_EMPIEZA"] = "Has empezado la universidad.",

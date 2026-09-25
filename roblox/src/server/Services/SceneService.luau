@@ -256,7 +256,10 @@ local function buildModel(npc: string, player: Player, forcedScale: number?): Mo
 		humanoid.NameDisplayDistance = 35
 		humanoid.WalkSpeed = if person and person.Kid then 15 else 13
 	end
-	local scale = forcedScale or (if person and person.Kid then 0.65 elseif person and person.Teen then 0.85 else 1)
+	-- Los compañeros de clase (Kid) crecen contigo: niños en el colegio, adolescentes en el instituto
+	local stage = player:GetAttribute("LifeStage")
+	local kidScale = if stage == "Adolescente" then 0.85 elseif stage == "Bebe" or stage == "Nino" or stage == nil then 0.65 else 1
+	local scale = forcedScale or (if person and person.Kid then kidScale elseif person and person.Teen then 0.85 else 1)
 	if scale ~= 1 then
 		pcall(function()
 			model:ScaleTo(scale)
