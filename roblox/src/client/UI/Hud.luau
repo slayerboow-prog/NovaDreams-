@@ -605,7 +605,7 @@ local function buildMenu(parent: Instance)
 	local help = Theme.label({
 		Size = UDim2.new(1, 0, 0, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
-		Text = "Controles:\nE interactuar · Shift correr · F bajarse\nM mapa · 1-9 barra rápida",
+		Text = "Controles:\nE interactuar · Shift correr · F bajarse\nM mapa · 1-9 barra rápida\nG gestos y bailes · L linterna · P modo foto\nSalta contra un muro bajo para trepar",
 		TextSize = 13,
 		TextWrapped = true,
 		TextColor3 = C.Muted,

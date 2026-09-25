@@ -91,7 +91,14 @@ function NeedsService.init()
 				if data and not player:GetAttribute("Sleeping") then
 					local multiplier = MonetizationService.needsMultiplier(player)
 					data.Hunger = clamp(data.Hunger - Config.Needs.HungerPerMinute / 60 * TICK * multiplier)
-					data.Energy = clamp(data.Energy - Config.Needs.EnergyPerMinute / 60 * TICK * multiplier)
+					-- Sentado en un banco se descansa: la energía sube un poco en vez de bajar
+					local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+					local seat = humanoid and humanoid.SeatPart
+					if seat and seat.Parent and seat.Parent:HasTag("Bench") then
+						data.Energy = clamp(data.Energy + 3 / 60 * TICK)
+					else
+						data.Energy = clamp(data.Energy - Config.Needs.EnergyPerMinute / 60 * TICK * multiplier)
+					end
 					sync(player, data)
 				end
 			end

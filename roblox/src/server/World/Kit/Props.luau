@@ -126,7 +126,8 @@ function Props.bench(parent: Instance, cf: CFrame)
 		return asset
 	end
 	local m = Builder.model("Bench", parent)
-	Builder.part({ Name = "Seat", Size = Vector3.new(6, 0.4, 1.8), CFrame = cf * CFrame.new(0, 1.9, 0), Color = S.Wood, Material = Enum.Material.Wood, Parent = m })
+	m:AddTag("Bench") -- el jugador se puede sentar (client/Controllers/Actions.luau)
+	Builder.part({ ClassName = "Seat", Name = "Seat", Size = Vector3.new(6, 0.4, 1.8), CFrame = cf * CFrame.new(0, 1.9, 0), Color = S.Wood, Material = Enum.Material.Wood, CanTouch = false, Parent = m })
 	Builder.decor({ Name = "Back", Size = Vector3.new(6, 1.6, 0.3), CFrame = cf * CFrame.new(0, 3, 0.95) * CFrame.Angles(math.rad(-10), 0, 0), Color = S.Wood, Material = Enum.Material.Wood, Parent = m })
 	for _, x in { -2.6, 2.6 } do
 		Builder.decor({ Name = "Leg", Size = Vector3.new(0.3, 1.8, 1.8), CFrame = cf * CFrame.new(x, 0.9, 0.1), Color = S.Metal, Material = Enum.Material.Metal, Parent = m })
@@ -156,12 +157,13 @@ function Props.busStop(parent: Instance, cf: CFrame)
 		return asset
 	end
 	local m = Builder.model("BusStop", parent)
+	m:AddTag("Bench")
 	Builder.decor({ Name = "Roof", Size = Vector3.new(10, 0.3, 4), CFrame = cf * CFrame.new(0, 8.2, 0), Color = S.Metal, Material = Enum.Material.Metal, Parent = m })
 	Builder.part({ Name = "BackGlass", Size = Vector3.new(10, 6.5, 0.2), CFrame = cf * CFrame.new(0, 4.6, 1.8), Color = S.Glass, Material = Enum.Material.Glass, Transparency = 0.5, Parent = m })
 	for _, x in { -4.9, 4.9 } do
 		Builder.decor({ Name = "Post", Size = Vector3.new(0.3, 8, 0.3), CFrame = cf * CFrame.new(x, 4.1, 1.8), Color = S.Metal, Material = Enum.Material.Metal, Parent = m })
 	end
-	Builder.part({ Name = "Seat", Size = Vector3.new(6, 0.3, 1.2), CFrame = cf * CFrame.new(0, 2, 1.1), Color = S.Metal, Material = Enum.Material.Metal, Parent = m })
+	Builder.part({ ClassName = "Seat", Name = "Seat", Size = Vector3.new(6, 0.3, 1.2), CFrame = cf * CFrame.new(0, 2, 1.1), Color = S.Metal, Material = Enum.Material.Metal, CanTouch = false, Parent = m })
 	local sign = Builder.decor({ Name = "Sign", Size = Vector3.new(2.4, 2.4, 0.2), CFrame = cf * CFrame.new(-6, 8, 0), Color = Color3.fromRGB(30, 110, 200), Parent = m })
 	Builder.sign(sign, "BUS", Enum.NormalId.Front)
 	Builder.sign(sign, "BUS", Enum.NormalId.Back)

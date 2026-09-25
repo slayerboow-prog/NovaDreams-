@@ -26,6 +26,7 @@ local Character = require(script.Parent.Controllers.Character)
 local Prompts = require(script.Parent.Controllers.Prompts)
 local Cinematics = require(script.Parent.Controllers.Cinematics)
 local NearShadows = require(script.Parent.Controllers.NearShadows)
+local Actions = require(script.Parent.Controllers.Actions)
 
 local gui = Hud.init(function()
 	Store.open()
@@ -52,6 +53,7 @@ task.spawn(Restaurant.init) -- trabajo de camarero y barman
 task.spawn(Character.init) -- ficha del personaje (botón Personaje) y correr con Shift
 task.spawn(NearShadows.init) -- sombras de las luces solo cerca de ti (mismo aspecto, mucho más fluido)
 task.spawn(Prompts.init) -- carteles de "pulsa E" con el estilo de la interfaz
+task.spawn(Actions.init) -- gestos y bailes (G), trepar muros bajos, linterna (L) y modo foto (P)
 
 -- Botones de arriba a la derecha del HUD
 Hud.setAction("Mochila", InventoryUI.toggle)

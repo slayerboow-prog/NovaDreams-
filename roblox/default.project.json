@@ -11,6 +11,9 @@
         "Notify": {
           "$className": "RemoteEvent"
         },
+        "Actions": {
+          "$className": "RemoteEvent"
+        },
         "QuitJob": {
           "$className": "RemoteEvent"
         },

@@ -56,6 +56,7 @@ local order = {
 	"LifeStoryService", -- la historia de vida escucha a todos los anteriores
 	"BabyService", -- tutorial de bebé (fase 2)
 	"SchoolService", -- compañeros y profe en cada colegio
+	"ActionService", -- linterna (los gestos, trepar y sentarse van en el cliente)
 }
 
 for _, name in order do
