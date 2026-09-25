@@ -483,6 +483,7 @@ local function newPlayer(id: number, stage: string, money: number)
 	root.Name = "HumanoidRootPart"
 	root.Size = Vector3.new(2, 2, 1)
 	root.CFrame = CFrame.new(0, 3, 0)
+	root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
 	root.Parent = character
 	local head = fakeInstance("Part")
 	head.Name = "Head"

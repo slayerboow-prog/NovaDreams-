@@ -162,7 +162,8 @@ local function tickStamina(dt: number)
 	for player, runner in runners do
 		local character = player.Character
 		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
-		local moving = root ~= nil and Vector3.new(root.AssemblyLinearVelocity.X, 0, root.AssemblyLinearVelocity.Z).Magnitude > 2
+		local velocity = root and root.AssemblyLinearVelocity
+		local moving = typeof(velocity) == "Vector3" and Vector3.new(velocity.X, 0, velocity.Z).Magnitude > 2
 		local limit = maxStamina(player)
 		if runner.Sprinting then
 			if not runner.Wants or not moving or not canSprint(player) or runner.Stamina <= 0 then
@@ -231,7 +232,11 @@ function ProgressionService.init()
 		local elapsed = 0
 		while true do
 			local dt = task.wait(0.1)
-			tickStamina(dt)
+			-- Un fallo con un jugador no debe parar la estamina de todos
+			local ok, err = pcall(tickStamina, dt)
+			if not ok then
+				warn("[ProgressionService] Estamina:", err)
+			end
 			elapsed += dt
 			if elapsed >= 3 then
 				elapsed = 0
