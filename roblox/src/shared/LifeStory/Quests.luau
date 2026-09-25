@@ -110,44 +110,6 @@ local Quests: { [string]: Quest } = {
 		Rewards = { Money = 25 },
 		MomentKey = "MOMENT.PRIMEROS_RECADOS",
 	},
-	Nino_SegundoTrimestre = {
-		Kind = "Main",
-		TitleKey = "QUEST.TRIMESTRE.TITLE",
-		Requires = { Completed = { "Cole09_Misterio" }, StageProgress = 0.7 },
-		Steps = {
-			{ Type = "Class", Subject = "Historia", Mode = "Clase", Place = "Aula", TextKey = "QUEST.TRIMESTRE.HISTORIA" },
-			{ Type = "Class", Subject = "Lengua", Mode = "Clase", Place = "Aula", TextKey = "QUEST.COLE.CLASE" },
-			{ Type = "Talk", Npc = "Sara", Place = "Patio", TextKey = "QUEST.TRIMESTRE.SARA" },
-			{ Type = "Class", Subject = "Ciencias", Mode = "Estudio", Place = "Aula", TextKey = "QUEST.TRIMESTRE.PROYECTO" },
-			{ Type = "Class", Subject = "Musica", Mode = "Examen", Place = "AulaMusica", TextKey = "QUEST.TRIMESTRE.CONCIERTO" },
-		},
-		Rewards = { Money = 15 },
-		MomentKey = "MOMENT.PROYECTO_SARA",
-	},
-	Nino_FinDePrimaria = {
-		Kind = "Main",
-		TitleKey = "QUEST.FIN_PRIMARIA.TITLE",
-		Requires = { Completed = { "Nino_SegundoTrimestre" }, StageProgress = 0.94 },
-		Steps = {
-			{ Type = "Class", Subject = "Lengua", Mode = "Examen", Place = "Aula", TextKey = "QUEST.COLE.EXAMEN" },
-			{ Type = "Class", Subject = "Matematicas", Mode = "Examen", Place = "Aula", TextKey = "QUEST.COLE.EXAMEN" },
-			{ Type = "Reach", Place = "Patio", TextKey = "QUEST.FIN_PRIMARIA.FIESTA" },
-			{
-				Type = "Group",
-				TextKey = "QUEST.FIN_PRIMARIA.DESPIDE",
-				Steps = {
-					{ Type = "Talk", Npc = "Nico", TextKey = "QUEST.COLE.HABLA_NICO" },
-					{ Type = "Talk", Npc = "Sara", TextKey = "QUEST.COLE.HABLA_SARA" },
-					{ Type = "Talk", Npc = "Omar", TextKey = "QUEST.COLE.HABLA_OMAR" },
-				},
-			},
-			{ Type = "Cinematic", Id = "Nino_FinPrimaria" },
-			{ Type = "Transition", SetStage = "Adolescente", TextKey = "TRANSITION.INSTITUTO", Cinematic = "Nino_AInstituto" },
-		},
-		Rewards = { Money = 30 },
-		MomentKey = "MOMENT.FIN_PRIMARIA",
-		MomentSting = false,
-	},
 
 	-- Día normal de cole (se repite entre los grandes momentos; los pasos los genera DayPlans)
 	Nino_Jornada = {

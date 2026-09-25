@@ -277,7 +277,13 @@ misión nueva se rellena la ficha de 12 puntos de 11.7.
 
 ## 11.13 Estado, pruebas y lo que falta
 
-**Hecho y probado** (prueba automática `scripts/test-lifestory.luau`, 184 comprobaciones en verde):
+**Hecho y probado** (prueba automática `scripts/test-lifestory.luau`, 204 comprobaciones en verde):
+
+- Misiones 10, 11 y 12 (ver 11.20–11.22): el festival (cinco tareas distintas, imprevistos y
+  escenario), el proyecto final (tema, rol, investigación, compra real en la librería, desastre y
+  presentación con bonus de tiempo; si sale premiado, 1 h después sale en el periódico: `Eco_Periodico`)
+  y el último día (recuerdos que salen de lo que de verdad jugaste, la cápsula del tiempo, despedidas y
+  paso al instituto).
 
 - Misiones 07, 08 y 09 (ver 11.17–11.19): la excursión a la granja (sustituye a la antigua
   «Excursión al parque de bomberos»), el torneo con tres caminos según el deporte y el misterio de la
@@ -319,8 +325,9 @@ animaciones de los NPC, la cámara de los diálogos y el tacto de los minijuegos
 del colegio), `StoryArea` «SalaCerrada» y `StorySpot` «SalaCerrada_Puerta» (la puerta del fondo del
 pasillo). La granja usa el modelo `Granja` (y su hijo `Granero`) que ya existe en Villaverde.
 
-**Siguiente:** 10, 11 y 12 (el resto de 4.º: ver 11.2), con la misma ficha de 12 puntos. La cápsula del
-tiempo (`CapsulaDelTiempo`, `Choices.Capsula`) debe volver en «El último día».
+**Capítulo del colegio completo (01–12).** Las misiones 10–12 (ver 11.20–11.22) sustituyen a las
+antiguas «El segundo trimestre» y «Fin de primaria»: el paso al instituto lo hace ahora «El último día».
+**Siguiente:** el capítulo del instituto con el mismo formato (ficha de 12 puntos, un archivo por misión).
 
 ---
 
@@ -459,3 +466,65 @@ tiempo (`CapsulaDelTiempo`, `Choices.Capsula`) debe volver en «El último día�
 11. **Recompensas:** recuerdo *MisterioColegio*, **copia de la foto** en la mochila.
 12. **Conexión:** la cápsula del tiempo volverá en «El último día».
 
+## 11.20 Misión 10 — «El festival» (implementada)
+
+1. **Objetivo narrativo:** trabajar para los demás. Cada uno tiene una tarea y el día señalado todo se tuerce un poco.
+2. **Duración:** 30–40 min.
+3. **NPC:** Lucía, Marta (música), Andrés, Vega, Omar, Sara, Nico, Hugo, Iker, Mateo, Bruno, Rubén, Ramón,
+   una niña de 1.º, tu familia y {abu}.
+4. **Lugares:** aula, patio, aula de música, comedor, gimnasio, zona de juegos, vestíbulo.
+5. **Objetivos:** anuncio → **eliges tarea** (decoración con Vega, música con Marta, comida con Omar,
+   fotos con Sara o **teatro con Hugo**, solo si Hugo está en tu grupo) → la preparas (cada tarea tiene
+   su recorrido y su minijuego) → el día del festival: **imprevistos** (3 de 4: los farolillos, el
+   altavoz, una niña perdida, el puesto de limonada de Bruno) → tu tarea luce → concurso de talentos.
+6. **Diálogos:** cada organizador, cada imprevisto, la familia, Bruno.
+7. **Mecánicas:** cinco caminos de preparación; imprevistos en cualquier orden. El modo cooperativo con
+   otros jugadores que pedía la tabla de 11.2 **queda pendiente**: hoy cada jugador vive su propio festival.
+8. **Minijuegos:** tocar a tiempo, decorar magdalenas, decir tu frase, tu número en el escenario.
+9. **Decisiones:** tarea; cómo ayudas a la niña; **ayudar o no a Bruno**; subir al escenario o animar.
+10. **Consecuencias:** relaciones (Bruno mejora mucho si le ayudas: lo recuerda en «El último día»);
+    rasgos; marcas `TareaBrillante`, `SubesAlEscenario`, `Choices.FestivalBruno`.
+11. **Recompensas:** recuerdo *ElFestival*, **foto del festival** en la mochila, 10 $.
+12. **Conexión:** Lucía anuncia el último proyecto de primaria.
+
+## 11.21 Misión 11 — «El proyecto final» (implementada)
+
+1. **Objetivo narrativo:** trabajar en equipo de verdad: repartir, discutir y arreglar lo que se rompe.
+2. **Duración:** 25–35 min.
+3. **NPC:** Lucía, Omar (siempre en tu equipo), tu compañero elegido, Marisa, Ramón, {abu}, tu familia, Bruno.
+4. **Lugares:** aula, biblioteca, conserjería, casa, fuente del parque, almacén, **librería** (compra real).
+5. **Objetivos:** anuncio → compañero → **tema** (huerto, robot, mascotas o **museo del colegio**, este
+   solo si abriste la sala cerrada) y **rol** (organizar, investigar, construir, presentar) → investigar
+   (3 de 4 fuentes, cada una dice algo distinto según el tema) → materiales (cartón y cartulinas
+   compradas en la librería) → discusión del equipo → montar la maqueta → **la noche antes, el hermano
+   de Omar se sienta encima** → presentación delante de las familias → nota.
+6. **Diálogos:** cada compañero, cada fuente según el tema, la discusión, el desastre, el resultado.
+7. **Mecánicas:** paso `Event` de compra real; la maqueta bonita da 5 s más por pregunta (`Bonus`).
+8. **Minijuegos:** montar la maqueta; la presentación son las preguntas del jurado (examen de Ciencias).
+9. **Decisiones:** compañero, tema, rol, cómo resolver la discusión, qué hacer con la maqueta rota.
+10. **Consecuencias:** con un 8 o más, `ProyectoPremiado` y **1 h de juego después sale en el periódico
+    de Valmar** (`Eco_Periodico`, con una noticia distinta para cada tema).
+11. **Recompensas:** recuerdo *ProyectoFinal*, **la maqueta** en la mochila, 10 $.
+12. **Conexión:** «Queda una semana de colegio. La última.»
+
+## 11.22 Misión 12 — «El último día» (implementada)
+
+1. **Objetivo narrativo:** cerrar la infancia mirando atrás con lo que el jugador vivió de verdad.
+2. **Duración:** 20–30 min.
+3. **NPC:** todo el reparto del colegio y tu familia.
+4. **Lugares:** casa, vestíbulo, tu pupitre, tu taquilla, el campo, la biblioteca, el almacén, el banco
+   del patio, la sala cerrada.
+5. **Objetivos:** mañana en casa → el cole por última vez → **despedirte de 4 de 6 sitios**: cada uno
+   trae **flashbacks** que salen de tus decisiones y recuerdos (dónde te sentaste el primer día, Mateo,
+   la mochila, la nota de Lucía, el partido, el torneo, el examen, Hugo, el nombre del grupo, tu sueño,
+   Bigotes) → **se abre la cápsula del tiempo** (lo que metiste en la misión 09) → foto con tu grupo →
+   ceremonia y diplomas → despedidas (Lucía, **Bruno según toda vuestra historia**, Ramón) → promesa
+   del grupo → fin de primaria → instituto.
+6. **Diálogos:** casi todas las líneas dependen de condiciones (`Memories`, `Flags`, `Choices`).
+7. **Mecánicas:** los recuerdos como condiciones: lo que no viviste no aparece.
+8. **Minijuegos:** ninguno: es un capítulo para sentir, no para superar.
+9. **Decisiones:** qué sitios visitas; cómo te despides de Bruno (empezar de cero, suerte, seco);
+   la promesa del grupo (`Choices.Promesa`, para el instituto).
+10. **Consecuencias:** relaciones finales; `Choices.AdiosBruno` y `Choices.Promesa` las leerá el instituto.
+11. **Recompensas:** recuerdo *UltimoDiaCole*, **diploma de primaria** y **llavero 13** de Ramón, 30 $.
+12. **Conexión:** cinemáticas de fin de primaria y paso al instituto (etapa Adolescente).

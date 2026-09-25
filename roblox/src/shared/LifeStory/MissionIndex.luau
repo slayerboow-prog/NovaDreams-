@@ -15,5 +15,8 @@ return {
 	require(Misiones.Cole07_Excursion),
 	require(Misiones.Cole08_Torneo),
 	require(Misiones.Cole09_Misterio),
+	require(Misiones.Cole10_Festival),
+	require(Misiones.Cole11_Proyecto),
+	require(Misiones.Cole12_UltimoDia),
 	require(Misiones.Cole_Consecuencias),
 }

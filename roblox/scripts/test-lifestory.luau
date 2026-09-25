@@ -1030,18 +1030,61 @@ check(said(leo, "¡Ajá! ¡Os pillé!") and said(leo, "¡es LUCÍA!"), "Te cuela
 check(leoData.Story.Flags.SecretoLucia and leoData.Story.Flags.CapsulaDelTiempo and leoData.Story.Choices.Capsula.V == "Pregunta", "Guardas el secreto y metes tu pregunta en la cápsula del tiempo")
 check(leoData.Items.FotoLucia == 1 and leoData.Story.Memories.MisterioColegio ~= nil, "Copia de la foto y recuerdo del misterio")
 
-print("\n▶ El resto del colegio: días normales, cumpleaños y fin de primaria")
-check(leoData.Life.AgeYears >= 8 and received(leo, "Moment", "MOMENT.CUMPLEANOS"), "El tiempo jugado hace crecer: ya tiene 8 años o más")
+print("\n▶ Misión 10 «El festival» (tarea, imprevistos, Bruno, escenario)")
+leo.Prefer = { "Te agachas", "Le ayudas", "Subo a contar chistes" }
+leo.Picks = { Festival = "Teatro" }
+leo.Skip = { Farolillos = true } -- deja los farolillos a otros: resuelve los otros tres imprevistos
+leoData.Life.StageSeconds = 0.73 * HOURS.Nino * 3600
+check(playUntil(leo, function()
+	return leoData.Story.Completed.Cole10_Festival ~= nil
+end), "Misión 10 completa")
+check(said(leo, "Nico hará de loro") and said(leo, "La obra de Hugo arranca aplausos"), "Eliges el teatro con Hugo (solo si Hugo está en tu grupo) y la obra sale")
+check(said(leo, "Alguien ha desenchufado el cable") and leoData.Story.Choices.NinaPerdida.V == "Juntos", "Imprevistos: el altavoz y la niña perdida")
+check(leoData.Story.Choices.FestivalBruno.V == "Ayudar" and said(leo, "Gracias. En voz baja.") and said(leo, "…Casi. Gracias a"), "Ayudas a Bruno con su puesto (y lo dice delante de todos)")
+check(leoData.Story.Flags.SubesAlEscenario and said(leo, "silba con dos dedos"), "Subes al escenario con Nico y el público aplaude")
+check(cinematic(leo, "Cole10_Festival") and leoData.Items.FotoFestival == 1 and leoData.Story.Memories.ElFestival ~= nil, "Cinemática, foto del festival y recuerdo")
+leo.Skip = {}
 
-leoData.Life.StageSeconds = HOURS.Nino * 3600
+print("\n▶ Misión 11 «El proyecto final» (equipo, investigar, desastre, presentación)")
+leo.Prefer = { "Un museo del colegio", "Presento delante", "Juntar las dos ideas", "Llamar al equipo" }
+leo.Picks = { Companero = "Sara" }
+leoData.Life.StageSeconds = 0.83 * HOURS.Nino * 3600
+check(playUntil(leo, function()
+	return leoData.Story.Completed.Cole11_Proyecto ~= nil
+end), "Misión 11 completa")
+check(said(leo, "Ideas que no le he contado a nadie") and leoData.Story.Choices.Tema.V == "Museo" and leoData.Story.Choices.Rol.V == "Presentador", "Con Sara: el museo del colegio (solo si abriste la sala cerrada) y presentas tú")
+check(said(leo, "Te puedo prestar la foto de mi clase") and said(leo, "Hay que hacerlo exacto"), "Investigas (Abu fue a tu colegio) y el equipo discute")
+check(leoData.Story.Choices.Discusion.V == "Juntar" and leoData.Story.Flags.ArregloEnEquipo and said(leo, "Y… esta es la tirita"), "Juntáis ideas y arregláis la maqueta rota en equipo")
+local projectExtra = nil
+for _, call in classCalls do
+	if call.Player == leo and call.Subject == "Ciencias" and call.Mode == "Examen" then
+		projectExtra = call.Extra
+	end
+end
+check(projectExtra == 5, "La maqueta bonita da 5 segundos más por pregunta del jurado")
+check(leoData.Story.Flags.ProyectoPremiado and leoData.Items.Maqueta == 1 and leoData.Story.Memories.ProyectoFinal ~= nil, "Sobresaliente: proyecto premiado, maqueta y recuerdo")
+passTime(leo, 3700)
+check(leoData.Story.Active.Eco_Periodico ~= nil and playQuest(leo, "Eco_Periodico") and said(leo, "abrirá el museo"), "Una hora después, tu proyecto sale en el periódico")
+
+print("\n▶ Misión 12 «El último día» (recuerdos reales, cápsula, despedidas, instituto)")
+check(leoData.Life.AgeYears >= 8 and received(leo, "Moment", "MOMENT.CUMPLEANOS"), "El tiempo jugado hace crecer: ya tiene 8 años o más")
+leo.Prefer = { "¿empezamos de cero?", "seguimos juntos" }
+leo.Picks = {}
+leoData.Life.StageSeconds = 0.95 * HOURS.Nino * 3600
 check(playUntil(leo, function()
 	return leoData.Life.Stage == "Adolescente"
-end), "Toda la primaria: recados, examen, excursión, trimestre y fin de primaria")
-for _, questId in { "Cole01_PrimerDia", "Cole02_Mochila", "Cole03_Grupo", "Cole04_Malotes", "Cole05_Venganza", "Cole06_Examen", "Nino_Recados", "Cole07_Excursion", "Cole08_Torneo", "Cole09_Misterio", "Nino_SegundoTrimestre", "Nino_FinDePrimaria" } do
+end), "Misión 12 completa: fin de primaria")
+check(said(leo, "✨ Te sentaste junto a Sara") and said(leo, "Medalla de plata… y Abu"), "Los recuerdos son los de tu partida (el asiento del primer día, la plata del torneo)")
+check(said(leo, "✨ Aquel examen que casi suspendes") and not said(leo, "✨ Estudiaste con Sara"), "Solo aparecen los recuerdos que viviste")
+check(said(leo, "Tu pregunta: «¿Seguimos siendo amigos?»"), "Se abre la cápsula: tu pregunta de la misión 09")
+check(said(leo, "Y gracias por guardar mi secreto") and said(leo, "Todavía me acuerdo de cuando me acusaste"), "Lucía y Bruno se despiden según vuestra historia")
+check(leoData.Story.Choices.AdiosBruno.V == "DeCero" and leoData.Story.Choices.Promesa.V == "Juntos", "Empezar de cero con Bruno y la promesa del grupo")
+check(leoData.Items.DiplomaPrimaria == 1 and leoData.Items.Llavero13 == 1 and leoData.Story.Memories.UltimoDiaCole ~= nil, "Diploma, llavero de Ramón y recuerdo del último día")
+for _, questId in { "Cole01_PrimerDia", "Cole02_Mochila", "Cole03_Grupo", "Cole04_Malotes", "Cole05_Venganza", "Cole06_Examen", "Nino_Recados", "Cole07_Excursion", "Cole08_Torneo", "Cole09_Misterio", "Cole10_Festival", "Cole11_Proyecto", "Cole12_UltimoDia" } do
 	check(leoData.Story.Completed[questId] ~= nil, "  hecha: " .. questId)
 end
 check(received(leo, "Moment", "MOMENT.DIA_COLE"), "Los días de cole terminados quedan como momentos")
-check(cinematic(leo, "Nino_FinPrimaria") and cinematic(leo, "Nino_AInstituto"), "Cinemáticas de fin de primaria y paso al instituto")
+check(cinematic(leo, "Cole12_Foto") and cinematic(leo, "Nino_FinPrimaria") and cinematic(leo, "Nino_AInstituto"), "Cinemáticas: foto con tu grupo, fin de primaria y paso al instituto")
 task.wait(0.8)
 check(leoData.Life.AgeYears == 13 and leoData.Story.Active.Adol_NuevoInstituto ~= nil, "Con 13 años empieza el instituto")
 

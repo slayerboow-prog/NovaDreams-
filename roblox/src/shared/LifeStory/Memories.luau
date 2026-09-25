@@ -23,6 +23,9 @@ local Memories: { [string]: Memory } = {
 	PrimeraExcursion = { Text = "La excursión a la granja de Villaverde", Icon = "🚌" },
 	PrimerTorneo = { Text = "El torneo del colegio", Icon = "🏆" },
 	MisterioColegio = { Text = "El misterio de la sala cerrada y la foto de Lucía", Icon = "🗝️" },
+	ElFestival = { Text = "El festival de primavera del colegio", Icon = "🎉" },
+	ProyectoFinal = { Text = "El proyecto final de Ciencias, delante de las familias", Icon = "🔬" },
+	UltimoDiaCole = { Text = "Tu último día de primaria", Icon = "🎓" },
 }
 
 return Memories

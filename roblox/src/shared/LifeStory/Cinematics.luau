@@ -188,6 +188,33 @@ local Cinematics: { [string]: Cinematic } = {
 		},
 	},
 
+	-- El festival de primavera (misión 10)
+	Cole10_Festival = {
+		Duration = 8,
+		Sting = "Momento",
+		Anchors = { Patio = "Place:Patio", Yo = "Player" },
+		Shots = {
+			{ Orbit = "Yo", Radius = 12, Height = 4, FromAngle = -30, ToAngle = 30, Duration = 4 },
+			{ From = { "Patio", V(0, 10, 28) }, To = { "Patio", V(0, 30, 50) }, Look = { "Patio", V(0, 2, 0) }, Duration = 4 },
+		},
+		Titles = {
+			{ At = 2, TextKey = "🎉 ¡Qué festival!", SubKey = "El festival de primavera", Duration = 4 },
+		},
+	},
+
+	-- El último día: una foto con tu grupo antes de la ceremonia (misión 12)
+	Cole12_Foto = {
+		Duration = 7,
+		Sting = "Momento",
+		Anchors = { Yo = "Player" },
+		Shots = {
+			{ Orbit = "Yo", Radius = 14, Height = 4, FromAngle = -35, ToAngle = 35, Duration = 7 },
+		},
+		Titles = {
+			{ At = 2.5, TextKey = "📸 Una última foto con tu grupo", SubKey = "Último día de primaria", Duration = 4 },
+		},
+	},
+
 	-- Fin de primaria: fiesta en el patio, foto de clase.
 	Nino_FinPrimaria = {
 		Duration = 10,
