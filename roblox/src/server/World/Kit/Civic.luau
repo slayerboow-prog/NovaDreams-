@@ -330,7 +330,7 @@ function Civic.schoolInterior(model: Model, ground: (number, number, number) -> 
 	end
 	-- Corcho con dibujos en el vestíbulo
 	for i, color in { rgb(240, 200, 60), rgb(90, 170, 230), rgb(230, 100, 120) } do
-		Builder.decor({ Name = "Drawing", Size = Vector3.new(2.4, 2, 0.1), CFrame = at(-6 + i * 3, 6, halfD - 0.1), Color = color, Parent = model })
+		Builder.decor({ Name = "Drawing", Size = Vector3.new(2.4, 2, 0.1), CFrame = at(-6 + i * 3, 9.6, halfD - 0.1), Color = color, Parent = model })
 	end
 
 	-- Pasillo con taquillas (misiones "El primer día" y "La mochila desaparecida")
@@ -352,6 +352,32 @@ function Civic.schoolInterior(model: Model, ground: (number, number, number) -> 
 		Builder.decor({ Name = "BackDoor", Size = Vector3.new(3.6, 7, 0.2), CFrame = side.base(39, 3.5, side.z), Color = rgb(120, 82, 52), Material = Enum.Material.Wood, Parent = model })
 		Builder.decor({ Name = "BackDoorHandle", Size = Vector3.new(0.3, 0.3, 0.3), CFrame = side.base(40.3, 3.5, side.z + (if side.base == at then -0.15 else 0.15)), Color = rgb(210, 180, 90), Material = Enum.Material.Metal, Parent = model })
 	end
+	-- La sala cerrada (misión "El misterio del colegio"): cuarto viejo detrás del pasillo, con candado.
+	-- La puerta es decorativa: la historia lleva al jugador dentro cuando consigue abrirla.
+	Builder.decor({ Name = "OldDoor", Size = Vector3.new(3.6, 7, 0.2), CFrame = at(0, 3.5, halfD - 0.05), Color = rgb(92, 64, 44), Material = Enum.Material.WoodPlanks, Parent = model })
+	Builder.decor({ Name = "Padlock", Size = Vector3.new(0.5, 0.6, 0.3), CFrame = at(1.2, 3.4, halfD - 0.3), Color = rgb(200, 170, 60), Material = Enum.Material.Metal, Parent = model })
+	local doorSign = Builder.decor({ Name = "DoorSign", Size = Vector3.new(2.6, 0.7, 0.1), CFrame = at(0, 6.4, halfD - 0.2), Color = rgb(240, 236, 220), Parent = model })
+	Builder.sign(doorSign, "NO ENTRAR", Enum.NormalId.Front, rgb(170, 30, 30))
+	StoryMarks.spot(model, "SalaCerrada_Puerta", at(0, 2.5, halfD - 3), mark)
+	local oldWall, oldWood = rgb(176, 164, 140), rgb(96, 70, 50)
+	Builder.part({ Name = "OldRoomFloor", Size = Vector3.new(13.2, FT, 7.6), CFrame = ground(0, FT / 2, D / 2 + 3.8), Color = rgb(120, 96, 70), Material = Enum.Material.WoodPlanks, Parent = model })
+	Builder.part({ Name = "OldRoomWall", Size = Vector3.new(13.2, 9, 0.6), CFrame = ground(0, 4.5, D / 2 + 7.9), Color = oldWall, Material = Enum.Material.Plaster, Parent = model })
+	for _, x in { -6.3, 6.3 } do
+		Builder.part({ Name = "OldRoomWall", Size = Vector3.new(0.6, 9, 7.6), CFrame = ground(x, 4.5, D / 2 + 3.8), Color = oldWall, Material = Enum.Material.Plaster, Parent = model })
+	end
+	Builder.part({ Name = "OldRoomRoof", Size = Vector3.new(13.8, 0.6, 8.4), CFrame = ground(0, 9.3, D / 2 + 3.9), Color = rgb(110, 100, 90), Material = Enum.Material.Slate, Parent = model })
+	StoryMarks.area(model, "SalaCerrada", at(0, 4, D / 2 + 3.8), Vector3.new(12, 8, 7), mark)
+	StoryMarks.spot(model, "SalaCerrada_Dentro", at(0, 2.5, D / 2 + 1.5) * CFrame.Angles(0, math.pi, 0), mark)
+	for _, x in { -3.6, 0, 3.6 } do
+		Builder.part({ Name = "OldDesk", Size = Vector3.new(2.4, 2.4, 2), CFrame = at(x, 1.2, D / 2 + 3.2) * CFrame.Angles(0, math.rad(x * 3), 0), Color = oldWood, Material = Enum.Material.Wood, Parent = model })
+	end
+	Builder.part({ Name = "TrophyShelf", Size = Vector3.new(8, 6, 1), CFrame = at(0, 3, D / 2 + 7.1), Color = oldWood, Material = Enum.Material.Wood, Parent = model })
+	for k = 0, 3 do
+		Builder.decor({ Name = "OldTrophy", Size = Vector3.new(0.7, 1.3, 0.7), CFrame = at(-2.7 + k * 1.8, 6.65, D / 2 + 7.1), Color = rgb(190, 150, 60), Material = Enum.Material.Metal, Parent = model })
+	end
+	Builder.decor({ Name = "OldPhoto", Size = Vector3.new(0.1, 1.8, 2.4), CFrame = at(5.9, 4.6, D / 2 + 3.5), Color = rgb(170, 140, 100), Parent = model })
+	StoryMarks.prop(model, "FotoAntigua", at(5.4, 4.6, D / 2 + 3.5), Vector3.new(1.2, 2.4, 3), mark)
+
 	StoryMarks.spot(model, "Atajo_Musica", at(39, 2.5, halfD - 3) * CFrame.Angles(0, math.pi, 0), mark)
 	StoryMarks.spot(model, "Atajo_Musica_Salida", ground(39, 2.5, D / 2 + 4) * CFrame.Angles(0, math.pi, 0), mark)
 end
