@@ -35,7 +35,7 @@ local BusService = {}
 local Notify = ReplicatedStorage.Remotes.Notify :: RemoteEvent
 local B = Gameplay.Bus
 local LANE = 5 -- carril de la derecha
-local DOOR_Z = { -14, 4.5 }
+local DOOR_Z = { -13.4, 4.5 }
 
 type Stop = { Name: string, Point: Vector3, S: number }
 type Bus = {
@@ -235,7 +235,7 @@ local function makeBus(cf: CFrame, driver: Player?): Bus
 	model:SetAttribute("BusLine", "L1")
 	local bus: Bus = { Model = model, Driver = driver, S = 0, Yaw = 0, Wait = 0, NextStop = 1, DoorsOpen = false, Still = 0 }
 	for _, door in model:GetDescendants() do
-		if door.Name == "BusDoor" and door:IsA("BasePart") then
+		if door.Name == "BusDoor" and door:IsA("BasePart") and door:GetAttribute("Leaf") ~= 2 then
 			local prompt = Instance.new("ProximityPrompt")
 			prompt.Name = "BoardPrompt"
 			prompt.ActionText = "Subir"
@@ -253,7 +253,7 @@ local function makeBus(cf: CFrame, driver: Player?): Bus
 	for _, part in model:GetDescendants() do
 		if part.Name == "Headlight" and part:IsA("BasePart") then
 			local light = Instance.new("SpotLight")
-			light.Face = Enum.NormalId.Front
+			light.Face = Enum.NormalId.Right -- (el faro es un cilindro mirando hacia delante)
 			light.Range = 50
 			light.Angle = 70
 			light.Brightness = 2.5

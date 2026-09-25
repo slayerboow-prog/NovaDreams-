@@ -21,7 +21,7 @@ Rides.Spec = {
 	Bici = { Seat = CFrame.new(0, 3.2, 1), Size = Vector3.new(1.2, 1, 4.8) },
 	Moto = { Seat = CFrame.new(0, 2.55, 0.8), Size = Vector3.new(1.6, 1, 5.8) },
 	Coche = { Seat = CFrame.new(-1.4, 1.6, 0.4), Size = Vector3.new(6.2, 1, 13.5) },
-	Autobus = { Seat = CFrame.new(-2.4, 2.6, -13), Size = Vector3.new(8.6, 1, 34) },
+	Autobus = { Seat = CFrame.new(-2.4, 3.75, -13), Size = Vector3.new(8.6, 1, 34) },
 }
 
 local function wheel(m: Model, cf: CFrame, radius: number, width: number)
@@ -126,66 +126,310 @@ local function coche(m: Model, cf: CFrame, color: Color3)
 	end
 end
 
--- Autobús urbano (línea L1): puertas a la derecha, asientos de pasajeros de verdad (Seat)
+-- Autobús urbano (línea L1), con todo detalle: carrocería con esquinas redondeadas, franja de
+-- ventanas oscura, parabrisas con limpias, retrovisores, grupos ópticos LED, letreros luminosos
+-- de línea, puertas dobles, pasos de rueda y tapacubos, aire acondicionado en el techo y, dentro,
+-- barras, pulsadores de parada, asientos (Seat de verdad), zona de silla de ruedas, validadora,
+-- pantalla de próxima parada y puesto del conductor.
+-- Convención: cf = centro a ras de suelo; el morro mira hacia -Z; las puertas están a la derecha (+X).
 local function autobus(m: Model, cf: CFrame, color: Color3)
-	local L, Wd, Hh = 34, 8.6, 9.4
-	local glass = rgb(40, 60, 75)
-	local r = 1.6
-	box(m, "Body", Vector3.new(Wd, 3.2, L), cf * CFrame.new(0, r + 1.2, 0), color).Reflectance = 0.05
-	box(m, "Floor", Vector3.new(Wd - 0.6, 0.3, L - 1), cf * CFrame.new(0, 2.3, 0), rgb(70, 72, 78), Enum.Material.Rubber)
-	box(m, "Roof", Vector3.new(Wd, 0.5, L), cf * CFrame.new(0, Hh, 0), rgb(240, 240, 240))
-	box(m, "RoofUnit", Vector3.new(5, 0.8, 8), cf * CFrame.new(0, Hh + 0.6, 4), rgb(210, 210, 214), Enum.Material.Metal)
-	-- Ventanas (lado izquierdo entero; el derecho con huecos para las puertas)
-	box(m, "WindowLeft", Vector3.new(0.2, 3.6, L - 2), cf * CFrame.new(-Wd / 2 + 0.1, 6.6, 0), glass, Enum.Material.Glass, 0.35)
-	for _, span in { { -9.5, 1.5 }, { 7.5, 16 } } do
-		local len = span[2] - span[1]
-		box(m, "WindowRight", Vector3.new(0.2, 3.6, len), cf * CFrame.new(Wd / 2 - 0.1, 6.6, (span[1] + span[2]) / 2), glass, Enum.Material.Glass, 0.35)
+	local L, W = 34, 8.6
+	local HALF_L, HALF_W = L / 2, W / 2
+	local ROOF = 9.6
+	local FLOOR = 2.3
+	local BLACK = rgb(24, 25, 28)
+	local GLASS = rgb(30, 44, 56)
+	local WHITE = rgb(240, 240, 240)
+	local YELLOW = rgb(250, 196, 30)
+	local GREY = rgb(120, 124, 130)
+	local SEAT = rgb(40, 80, 160)
+
+	local function at(x: number, y: number, z: number): CFrame
+		return cf * CFrame.new(x, y, z)
 	end
-	box(m, "Windshield", Vector3.new(Wd - 0.4, 5, 0.2), cf * CFrame.new(0, 6.3, -L / 2 + 0.1), glass, Enum.Material.Glass, 0.3)
-	box(m, "RearWall", Vector3.new(Wd, 5.6, 0.3), cf * CFrame.new(0, 6.3, L / 2 - 0.15), color)
-	box(m, "Stripe", Vector3.new(Wd + 0.05, 0.6, L + 0.05), cf * CFrame.new(0, 4.9, 0), rgb(250, 200, 40))
-	-- Montantes entre ventanas
-	for z = -L / 2 + 1, L / 2 - 1, 5.5 do
-		box(m, "Pillar", Vector3.new(Wd + 0.1, 3.6, 0.3), cf * CFrame.new(0, 6.6, z), color)
+	-- Piezas grandes (chocan) y detalles (no chocan, más baratos)
+	local function solid(name: string, size: Vector3, c: CFrame, col: Color3, mat: Enum.Material?, tr: number?): BasePart
+		return Builder.part({ Name = name, Size = size, CFrame = c, Color = col, Material = mat or Enum.Material.SmoothPlastic, Transparency = tr or 0, Parent = m })
 	end
-	-- Puertas (delantera y central, a la derecha): se abren en las paradas (BusService)
-	for i, z in { -14, 4.5 } do
-		local door = box(m, "BusDoor", Vector3.new(0.3, 6.6, 4.6), cf * CFrame.new(Wd / 2 + 0.05, 5.4, z), glass, Enum.Material.Glass, 0.3)
-		door:SetAttribute("DoorIndex", i)
+	local function detail(name: string, size: Vector3, c: CFrame, col: Color3, mat: Enum.Material?, tr: number?): BasePart
+		return Builder.decor({ Name = name, Size = size, CFrame = c, Color = col, Material = mat or Enum.Material.SmoothPlastic, Transparency = tr or 0, Parent = m })
 	end
-	-- Letrero de línea
-	local sign = box(m, "LineSign", Vector3.new(Wd - 1.5, 1.2, 0.2), cf * CFrame.new(0, 8.5, -L / 2 - 0.05), rgb(20, 20, 24), Enum.Material.SmoothPlastic)
-	Builder.sign(sign, "L1 · CIRCULAR VALMAR", Enum.NormalId.Front, Color3.fromRGB(255, 190, 40), Color3.fromRGB(20, 20, 24))
-	-- Ruedas y luces
-	for _, z in { -11, 10 } do
-		for _, x in { -Wd / 2 + 0.4, Wd / 2 - 0.4 } do
-			wheel(m, cf * CFrame.new(x, r, z), r, 1.2)
+	-- Cilindro: eje a lo largo de la X local de c
+	local function cylinder(name: string, length: number, diameter: number, c: CFrame, col: Color3, mat: Enum.Material?): BasePart
+		return Builder.decor({ Name = name, Shape = Enum.PartType.Cylinder, Size = Vector3.new(length, diameter, diameter), CFrame = c, Color = col, Material = mat or Enum.Material.SmoothPlastic, Parent = m })
+	end
+	local UP = CFrame.Angles(0, 0, math.rad(90)) -- cilindro vertical
+	local ALONG = CFrame.Angles(0, math.rad(90), 0) -- cilindro a lo largo del autobús
+	local FORWARD = CFrame.Angles(0, math.rad(90), 0) -- (mirando hacia delante, igual que ALONG)
+
+	---------------------------------------------------------------------
+	-- Carrocería
+	---------------------------------------------------------------------
+	local R = 1.1 -- radio de las esquinas
+	local lower0, lower1 = 1.1, 4.3 -- faldón (color de la línea)
+	local win0, win1 = 4.3, 8.3 -- franja de ventanas
+	local DOORS = { { Z = -13.4, W = 4.6 }, { Z = 4.5, W = 4.6 } }
+	-- Faldones laterales (el derecho, partido por las puertas), delantero y trasero
+	local function sidePanel(s: number, z0: number, z1: number)
+		if z1 - z0 > 0.2 then
+			solid("SidePanel", Vector3.new(0.3, lower1 - lower0, z1 - z0), at(s * (HALF_W - 0.15), (lower0 + lower1) / 2, (z0 + z1) / 2), color)
 		end
 	end
-	for _, x in { -3, 3 } do
-		box(m, "Headlight", Vector3.new(1.4, 0.6, 0.2), cf * CFrame.new(x, 2.8, -L / 2 - 0.1), rgb(255, 250, 230), Enum.Material.Neon)
-		box(m, "Taillight", Vector3.new(1.2, 0.8, 0.2), cf * CFrame.new(x, 3, L / 2 + 0.1), rgb(200, 30, 30), Enum.Material.Neon)
+	local z0, z1 = -HALF_L + R, HALF_L - R
+	sidePanel(-1, z0, z1)
+	local cursor = z0
+	for _, d in DOORS do
+		sidePanel(1, cursor, d.Z - d.W / 2)
+		-- bajo la puerta, solo el zócalo hasta el escalón
+		solid("DoorSill", Vector3.new(0.3, FLOOR - 0.5 - lower0, d.W), at(HALF_W - 0.15, (lower0 + FLOOR - 0.5) / 2, d.Z), color)
+		cursor = d.Z + d.W / 2
 	end
-	-- Puesto del conductor y asientos de pasajeros (Seat de verdad; no se activan al tocarlos)
-	box(m, "Dashboard", Vector3.new(Wd - 1, 1.6, 1.2), cf * CFrame.new(0, 3.2, -L / 2 + 1.2), rgb(40, 40, 44))
-	box(m, "Steering", Vector3.new(1.4, 1.4, 0.2), cf * CFrame.new(-2.4, 4.4, -L / 2 + 2.2) * CFrame.Angles(math.rad(-50), 0, 0), rgb(30, 30, 34))
-	for z = -8, 13, 3.4 do
-		for _, x in { -2.6, 2.6 } do
-			if not (x > 0 and z > 2 and z < 7) then -- hueco en la puerta central
+	sidePanel(1, cursor, z1)
+	for _, s in { -1, 1 } do
+		solid("UpperPanel", Vector3.new(0.3, ROOF - win1, L - 2 * R), at(s * (HALF_W - 0.15), (win1 + ROOF) / 2, 0), color)
+	end
+	solid("FrontPanel", Vector3.new(W - 2 * R, lower1 - lower0, 0.3), at(0, (lower0 + lower1) / 2, -HALF_L + 0.15), color)
+	solid("RearPanel", Vector3.new(W - 2 * R, 5.2, 0.3), at(0, lower0 + 2.6, HALF_L - 0.15), color)
+	-- Esquinas redondeadas (columnas cilíndricas de arriba abajo)
+	for _, sx in { -1, 1 } do
+		for _, sz in { -1, 1 } do
+			local c = at(sx * (HALF_W - R), (lower0 + ROOF) / 2, sz * (HALF_L - R)) * UP
+			Builder.part({ Name = "Corner", Shape = Enum.PartType.Cylinder, Size = Vector3.new(ROOF - lower0, 2 * R, 2 * R), CFrame = c, Color = color, Material = Enum.Material.SmoothPlastic, Parent = m })
+		end
+	end
+	-- Relleno interior de las esquinas (tapa el hueco entre paneles y columnas)
+	solid("Frame", Vector3.new(W - 0.6, 0.4, L - 0.6), at(0, lower0 + 0.2, 0), rgb(60, 62, 66), Enum.Material.Metal)
+	-- Techo con bordes redondeados
+	solid("Roof", Vector3.new(W - 1, 0.4, L - 1), at(0, ROOF - 0.2, 0), WHITE)
+	for _, s in { -1, 1 } do
+		cylinder("RoofEdge", L - 2 * R, 0.8, at(s * (HALF_W - 0.4), ROOF - 0.4, 0) * ALONG, WHITE)
+	end
+	-- Franjas: amarilla bajo las ventanas y reflectante abajo
+	for _, s in { -1, 1 } do
+		detail("Stripe", Vector3.new(0.06, 0.5, L - 2 * R), at(s * (HALF_W + 0.02), win0 - 0.3, 0), YELLOW)
+		detail("Skirt", Vector3.new(0.08, 0.35, L - 2 * R - 1), at(s * (HALF_W + 0.02), lower0 + 0.3, 0), rgb(50, 50, 54), Enum.Material.Rubber)
+	end
+
+	---------------------------------------------------------------------
+	-- Ventanas laterales (franja oscura con montantes negros)
+	---------------------------------------------------------------------
+	local function inDoor(z: number, halfLen: number): boolean
+		for _, d in DOORS do
+			if math.abs(z - d.Z) < d.W / 2 + halfLen then
+				return true
+			end
+		end
+		return false
+	end
+	local pane = 4.2
+	for _, s in { -1, 1 } do
+		local z = -HALF_L + R + 5.3
+		while z + pane / 2 < HALF_L - R - 0.3 do
+			if not (s > 0 and inDoor(z, pane / 2)) then
+				solid("Window", Vector3.new(0.2, win1 - win0, pane - 0.3), at(s * (HALF_W - 0.1), (win0 + win1) / 2, z), GLASS, Enum.Material.Glass, 0.3)
+				detail("WindowTop", Vector3.new(0.22, 0.7, pane - 0.3), at(s * (HALF_W - 0.1), win1 - 0.5, z), rgb(18, 26, 34), Enum.Material.Glass, 0.15)
+			else
+				-- sobre las puertas: panel del color de la línea
+				solid("DoorHeader", Vector3.new(0.3, 0.8, pane), at(s * (HALF_W - 0.15), win1 - 0.4, z), color)
+			end
+			detail("Mullion", Vector3.new(0.26, win1 - win0, 0.3), at(s * (HALF_W - 0.1), (win0 + win1) / 2, z + pane / 2), BLACK)
+			z += pane
+		end
+		-- el trozo que queda hasta la esquina de atrás
+		local edge = z - pane / 2
+		if HALF_L - R - edge > 0.3 then
+			solid("Window", Vector3.new(0.2, win1 - win0, HALF_L - R - edge), at(s * (HALF_W - 0.1), (win0 + win1) / 2, (edge + HALF_L - R) / 2), GLASS, Enum.Material.Glass, 0.3)
+		end
+		-- ventana del conductor (a la izquierda; a la derecha está la puerta)
+		if s < 0 then
+			solid("Window", Vector3.new(0.2, win1 - win0, 3.2), at(s * (HALF_W - 0.1), (win0 + win1) / 2, -HALF_L + R + 1.6), GLASS, Enum.Material.Glass, 0.3)
+		end
+	end
+
+	---------------------------------------------------------------------
+	-- Frontal
+	---------------------------------------------------------------------
+	local frontZ = -HALF_L
+	local tilt = CFrame.Angles(math.rad(-6), 0, 0)
+	solid("Windshield", Vector3.new(W - 2 * R + 0.4, 4.4, 0.2), at(0, 6.4, frontZ + 0.35) * tilt, GLASS, Enum.Material.Glass, 0.25)
+	detail("WindshieldFrame", Vector3.new(W - 2 * R + 0.6, 0.25, 0.3), at(0, 4.2, frontZ + 0.2), BLACK)
+	-- Letrero de línea luminoso (naranja)
+	local destination = detail("DestinationSign", Vector3.new(W - 2.6, 1, 0.25), at(0, 9, frontZ + 0.15), rgb(10, 10, 12))
+	Builder.sign(destination, "L1  CIRCULAR VALMAR", Enum.NormalId.Front, rgb(255, 170, 30), rgb(10, 10, 12))
+	detail("SignGlow", Vector3.new(W - 2.8, 0.8, 0.05), at(0, 9, frontZ + 0.02), rgb(255, 160, 40), Enum.Material.Neon, 0.85)
+	-- Limpiaparabrisas
+	for _, s in { -1, 1 } do
+		detail("Wiper", Vector3.new(2.6, 0.12, 0.1), at(s * 1.2, 4.9, frontZ + 0.15) * CFrame.Angles(0, 0, math.rad(s * 18)), BLACK)
+	end
+	-- Retrovisores (brazo curvo + espejo)
+	for _, s in { -1, 1 } do
+		detail("MirrorArm", Vector3.new(1.6, 0.18, 0.18), at(s * (HALF_W + 0.6), 8.5, frontZ + 0.9) * CFrame.Angles(0, 0, math.rad(s * -25)), BLACK)
+		detail("MirrorArm", Vector3.new(0.18, 1.6, 0.18), at(s * (HALF_W + 1.3), 7.6, frontZ + 0.7), BLACK)
+		detail("Mirror", Vector3.new(0.9, 1.6, 0.3), at(s * (HALF_W + 1.35), 6.6, frontZ + 0.6), BLACK)
+		detail("MirrorGlass", Vector3.new(0.7, 1.4, 0.05), at(s * (HALF_W + 1.35), 6.6, frontZ + 0.78), rgb(170, 190, 200), Enum.Material.Glass, 0.2)
+	end
+	-- Parachoques, rejilla y matrícula
+	solid("Bumper", Vector3.new(W - 0.4, 1.1, 0.7), at(0, 1.6, frontZ - 0.05), BLACK, Enum.Material.Plastic)
+	for i = 0, 3 do
+		detail("Grille", Vector3.new(3.2, 0.12, 0.08), at(0, 2.5 + i * 0.3, frontZ - 0.02), BLACK)
+	end
+	local plate = detail("Plate", Vector3.new(2.2, 0.55, 0.06), at(0, 1.6, frontZ - 0.42), WHITE)
+	Builder.sign(plate, "1234 VLM", Enum.NormalId.Front, rgb(20, 20, 24), WHITE)
+	local logo = detail("Logo", Vector3.new(3, 0.5, 0.06), at(0, 3.7, frontZ - 0.02), color)
+	Builder.sign(logo, "VALMAR BUS", Enum.NormalId.Front, WHITE, color)
+	-- Grupos ópticos: carcasa negra, dos faros redondos, tira LED e intermitente
+	for _, s in { -1, 1 } do
+		local x = s * (HALF_W - 1.5)
+		detail("LampHousing", Vector3.new(2, 1, 0.2), at(x, 2.9, frontZ - 0.02), BLACK)
+		for k = 0, 1 do
+			local lamp = cylinder("Headlight", 0.2, 0.7, at(x + s * (-0.45 + k * 0.9), 2.95, frontZ - 0.1) * FORWARD, rgb(255, 250, 235), Enum.Material.Neon)
+			lamp.Name = if k == 0 then "Headlight" else "HeadlightSmall"
+		end
+		detail("LedStrip", Vector3.new(1.8, 0.12, 0.06), at(x, 3.45, frontZ - 0.12), rgb(230, 245, 255), Enum.Material.Neon)
+		detail("Indicator", Vector3.new(0.5, 0.35, 0.08), at(s * (HALF_W - 0.25), 2.9, frontZ - 0.05), rgb(255, 150, 20), Enum.Material.Neon)
+	end
+
+	---------------------------------------------------------------------
+	-- Trasera
+	---------------------------------------------------------------------
+	local backZ = HALF_L
+	solid("RearWindow", Vector3.new(W - 2 * R + 0.2, 2.6, 0.2), at(0, 7, backZ - 0.2), GLASS, Enum.Material.Glass, 0.3)
+	solid("RearUpper", Vector3.new(W - 2 * R + 0.2, ROOF - 8.3, 0.3), at(0, (8.3 + ROOF) / 2, backZ - 0.15), color)
+	local rearSign = detail("RearSign", Vector3.new(1.6, 0.8, 0.2), at(0, 8.9, backZ - 0.15), rgb(10, 10, 12))
+	Builder.sign(rearSign, "L1", Enum.NormalId.Back, rgb(255, 170, 30), rgb(10, 10, 12))
+	for i = 0, 5 do
+		detail("EngineGrille", Vector3.new(W - 3.4, 0.14, 0.08), at(0, 2.2 + i * 0.35, backZ + 0.02), BLACK)
+	end
+	solid("RearBumper", Vector3.new(W - 0.4, 1, 0.6), at(0, 1.55, backZ + 0.05), BLACK, Enum.Material.Plastic)
+	local rearPlate = detail("Plate", Vector3.new(2.2, 0.55, 0.06), at(0, 1.55, backZ + 0.38), WHITE)
+	Builder.sign(rearPlate, "1234 VLM", Enum.NormalId.Back, rgb(20, 20, 24), WHITE)
+	for _, s in { -1, 1 } do
+		detail("Taillight", Vector3.new(0.9, 2.4, 0.1), at(s * (HALF_W - 0.9), 3.4, backZ + 0.04), rgb(200, 20, 30), Enum.Material.Neon)
+		detail("Indicator", Vector3.new(0.9, 0.5, 0.1), at(s * (HALF_W - 0.9), 5, backZ + 0.04), rgb(255, 150, 20), Enum.Material.Neon)
+		detail("Reverse", Vector3.new(0.9, 0.4, 0.1), at(s * (HALF_W - 0.9), 2, backZ + 0.04), WHITE, Enum.Material.Neon)
+	end
+
+	---------------------------------------------------------------------
+	-- Puertas dobles (a la derecha): marco, dos hojas de cristal, escalón y luz
+	---------------------------------------------------------------------
+	for i, d in ipairs(DOORS) do
+		local x = HALF_W - 0.1
+		local h = win1 - FLOOR
+		detail("DoorFrame", Vector3.new(0.3, 0.3, d.W + 0.4), at(x, win1 + 0.05, d.Z), BLACK)
+		for _, sz in { -1, 1 } do
+			detail("DoorFrame", Vector3.new(0.3, h, 0.25), at(x, FLOOR + h / 2, d.Z + sz * (d.W / 2 + 0.1)), BLACK)
+			local leaf = solid("BusDoor", Vector3.new(0.2, h - 0.3, d.W / 2 - 0.1), at(x + 0.05, FLOOR + h / 2, d.Z + sz * d.W / 4), GLASS, Enum.Material.Glass, 0.35)
+			leaf:SetAttribute("DoorIndex", i)
+			leaf:SetAttribute("Leaf", if sz < 0 then 1 else 2)
+		end
+		detail("DoorSeal", Vector3.new(0.25, h - 0.3, 0.12), at(x + 0.08, FLOOR + h / 2, d.Z), BLACK, Enum.Material.Rubber)
+		detail("DoorStep", Vector3.new(1.2, 0.3, d.W), at(HALF_W - 0.7, FLOOR - 0.35, d.Z), GREY, Enum.Material.DiamondPlate)
+		detail("DoorStepEdge", Vector3.new(0.15, 0.32, d.W), at(HALF_W - 0.1, FLOOR - 0.35, d.Z), YELLOW)
+		detail("DoorLight", Vector3.new(0.2, 0.2, 0.8), at(HALF_W + 0.05, win1 + 0.4, d.Z), rgb(255, 170, 40), Enum.Material.Neon)
+	end
+	-- Letrero lateral junto a la puerta delantera
+	local sideSign = detail("SideSign", Vector3.new(0.2, 0.8, 3.2), at(HALF_W - 0.08, win1 - 0.5, -9.2), rgb(10, 10, 12))
+	Builder.sign(sideSign, "L1 CIRCULAR", Enum.NormalId.Right, rgb(255, 170, 30), rgb(10, 10, 12))
+	-- Anuncio en el lado izquierdo
+	local ad = detail("Advert", Vector3.new(0.08, 2.4, 11), at(-HALF_W - 0.02, 2.75, 5), rgb(20, 110, 190))
+	Builder.sign(ad, "🏖️ PLAYA DORADA · ¡a 20 minutos en la L1!", Enum.NormalId.Left, WHITE, rgb(20, 110, 190))
+	-- Luces de gálibo naranjas y tapa del depósito
+	for _, s in { -1, 1 } do
+		for z = -12, 12, 8 do
+			detail("SideMarker", Vector3.new(0.1, 0.25, 0.5), at(s * (HALF_W + 0.05), lower0 + 0.75, z), rgb(255, 140, 20), Enum.Material.Neon)
+		end
+	end
+	detail("FuelCap", Vector3.new(0.1, 0.8, 0.8), at(-HALF_W - 0.03, 2.4, 12.5), rgb(80, 80, 86), Enum.Material.Metal)
+
+	---------------------------------------------------------------------
+	-- Ruedas: neumático, llanta, tuercas y paso de rueda
+	---------------------------------------------------------------------
+	local rr = 1.6
+	for _, z in { -10.5, 10 } do
+		for _, s in { -1, 1 } do
+			-- hueco oscuro de la rueda (disco) y la rueda un poco por fuera
+			cylinder("WheelWell", 0.04, 4, at(s * (HALF_W + 0.01), rr + 0.15, z), rgb(14, 14, 16))
+			local x = s * (HALF_W - 0.49)
+			wheel(m, cf * CFrame.new(x, rr, z), rr, 1.1)
+			cylinder("Rim", 1.14, 1.9, at(x, rr, z), rgb(200, 204, 210), Enum.Material.Metal)
+			cylinder("Hub", 1.2, 0.6, at(x, rr, z), rgb(90, 92, 98), Enum.Material.Metal)
+			for k = 0, 4 do
+				local a = k * math.pi * 2 / 5
+				detail("Nut", Vector3.new(1.22, 0.15, 0.15), at(x, rr + math.cos(a) * 0.5, z + math.sin(a) * 0.5), rgb(60, 60, 64), Enum.Material.Metal)
+			end
+			detail("MudFlap", Vector3.new(0.9, 0.9, 0.1), at(x, 0.7, z + 2.1), BLACK, Enum.Material.Rubber)
+		end
+	end
+
+	---------------------------------------------------------------------
+	-- Techo: aire acondicionado, trampillas y antena
+	---------------------------------------------------------------------
+	solid("RoofUnit", Vector3.new(5.4, 0.9, 7), at(0, ROOF + 0.45, 3), rgb(214, 216, 220), Enum.Material.Metal)
+	for i = 0, 5 do
+		detail("Vent", Vector3.new(4.6, 0.06, 0.3), at(0, ROOF + 0.93, 0.3 + i * 1), rgb(150, 152, 158))
+	end
+	for _, z in { -8, 11 } do
+		detail("Hatch", Vector3.new(2.4, 0.25, 2.4), at(0, ROOF + 0.12, z), rgb(200, 202, 206), Enum.Material.Metal)
+	end
+	detail("Antenna", Vector3.new(0.1, 1.4, 0.1), at(-1.5, ROOF + 0.7, -12), BLACK)
+
+	---------------------------------------------------------------------
+	-- Interior
+	---------------------------------------------------------------------
+	solid("Floor", Vector3.new(W - 0.6, 0.3, L - 1), at(0, FLOOR - 0.15, 0), rgb(70, 72, 78), Enum.Material.Rubber)
+	detail("Ceiling", Vector3.new(W - 0.8, 0.2, L - 1.2), at(0, ROOF - 0.5, 0), rgb(235, 235, 232))
+	for _, s in { -1, 1 } do
+		detail("CeilingLight", Vector3.new(0.5, 0.1, L - 6), at(s * 2.6, ROOF - 0.62, 1), rgb(245, 250, 255), Enum.Material.Neon)
+		cylinder("GrabRail", L - 8, 0.2, at(s * 2.2, 7.9, 1) * ALONG, YELLOW, Enum.Material.Metal)
+	end
+	-- Barras verticales amarillas con pulsador rojo de parada
+	for _, p in { { 1, -11 }, { -1, -6 }, { 1, 1.8 }, { 1, 7.2 }, { -1, 3 }, { -1, 10 }, { 1, 13 } } do
+		cylinder("Pole", ROOF - FLOOR - 0.6, 0.25, at(p[1] * 1.3, (FLOOR + ROOF - 0.6) / 2, p[2]) * UP, YELLOW, Enum.Material.Metal)
+		detail("StopButton", Vector3.new(0.35, 0.5, 0.35), at(p[1] * 1.3, 5.2, p[2]), rgb(210, 30, 40), Enum.Material.Neon)
+	end
+	-- Asientos (los de pasajeros son Seat de verdad; delante, prioritarios en rojo)
+	for z = -8.5, 14, 3.1 do
+		for _, x in { -2.55, 2.55 } do
+			if not (x > 0 and z > 1.6 and z < 7.4) then
+				local priority = z < -2
+				local seatColor = if priority then rgb(190, 40, 50) else SEAT
 				Builder.part({
 					ClassName = "Seat",
 					Name = "PassengerSeat",
-					Size = Vector3.new(2.6, 0.5, 2),
-					CFrame = cf * CFrame.new(x, 3.2, z), -- mirando hacia delante
-					Color = rgb(30, 70, 140),
+					Size = Vector3.new(2.4, 0.45, 1.9),
+					CFrame = at(x, FLOOR + 1.3, z), -- mirando hacia delante
+					Color = seatColor,
 					Material = Enum.Material.Fabric,
 					CanTouch = false,
 					Parent = m,
 				})
-				box(m, "SeatBack", Vector3.new(2.6, 2.4, 0.4), cf * CFrame.new(x, 4.6, z + 1.1), rgb(30, 70, 140), Enum.Material.Fabric)
+				detail("SeatBack", Vector3.new(2.4, 2.2, 0.35), at(x, FLOOR + 2.45, z + 1.05) * CFrame.Angles(math.rad(8), 0, 0), seatColor, Enum.Material.Fabric)
+				detail("SeatFrame", Vector3.new(2.2, 1.1, 0.25), at(x, FLOOR + 0.55, z), GREY, Enum.Material.Metal)
+				detail("Handle", Vector3.new(0.9, 0.15, 0.15), at(x + (if x > 0 then -0.6 else 0.6), FLOOR + 3.6, z + 1.25), rgb(200, 200, 205), Enum.Material.Metal)
 			end
 		end
 	end
+	-- Zona de silla de ruedas (frente a la puerta central) con su señal
+	detail("WheelchairArea", Vector3.new(2.8, 0.02, 4.2), at(-2.6, FLOOR + 0.02, 4.5), rgb(40, 110, 200))
+	local wc = detail("WheelchairSign", Vector3.new(0.05, 1, 1), at(-HALF_W + 0.35, 5.6, 4.5), rgb(40, 110, 200))
+	Builder.sign(wc, "♿", Enum.NormalId.Right, WHITE, rgb(40, 110, 200))
+	-- Validadora de billetes junto a la puerta delantera
+	detail("ValidatorPost", Vector3.new(0.25, 3.2, 0.25), at(2.9, FLOOR + 1.6, -10.4), rgb(200, 200, 205), Enum.Material.Metal)
+	detail("Validator", Vector3.new(0.9, 1.2, 0.7), at(2.9, FLOOR + 3.5, -10.4), YELLOW)
+	detail("ValidatorScreen", Vector3.new(0.6, 0.4, 0.05), at(2.9, FLOOR + 3.7, -10.77), rgb(80, 220, 120), Enum.Material.Neon)
+	-- Pantalla de próxima parada colgada del techo
+	local screen = detail("InfoScreen", Vector3.new(3, 0.8, 0.15), at(0, ROOF - 1.1, -9), BLACK)
+	Builder.sign(screen, "PRÓXIMA PARADA ▸", Enum.NormalId.Back, rgb(255, 170, 30), BLACK)
+	-- Puesto del conductor: mampara, salpicadero con pantallas, volante y asiento
+	detail("DriverPartition", Vector3.new(0.12, 3.4, 2.4), at(-1, FLOOR + 1.7, -12.4), rgb(190, 220, 235), Enum.Material.Glass, 0.5)
+	solid("Dashboard", Vector3.new(W - 1.2, 1.6, 1.4), at(0, FLOOR + 1.4, frontZ + 1.2), BLACK, Enum.Material.Plastic)
+	for k, x in { -3, -2 } do
+		detail("DashScreen", Vector3.new(0.8, 0.5, 0.05), at(x, FLOOR + 2.25, frontZ + 1.6) * CFrame.Angles(math.rad(-30), 0, 0), if k == 1 then rgb(60, 180, 255) else rgb(80, 220, 120), Enum.Material.Neon)
+	end
+	cylinder("SteeringWheel", 0.2, 1.8, at(-2.4, FLOOR + 2.6, frontZ + 2.3) * CFrame.Angles(math.rad(-55), 0, 0) * FORWARD, BLACK)
+	cylinder("SteeringColumn", 1.2, 0.25, at(-2.4, FLOOR + 2.1, frontZ + 1.9) * CFrame.Angles(math.rad(-55), 0, 0) * FORWARD, rgb(60, 60, 64))
+	detail("DriverSeatBack", Vector3.new(1.8, 2.3, 0.4), at(-2.4, FLOOR + 2.3, -12.1), rgb(30, 30, 34), Enum.Material.Fabric)
+	detail("DriverSeatBase", Vector3.new(1.8, 0.5, 1.8), at(-2.4, FLOOR + 1.1, -13), rgb(30, 30, 34), Enum.Material.Fabric)
 end
 
 local BUILDERS = { Monopatin = monopatin, Patinete = patinete, Bici = bici, Moto = moto, Coche = coche, Autobus = autobus }
