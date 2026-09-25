@@ -141,6 +141,15 @@ Region.Towns = {
 }
 
 -- Todas las calles de la región (carreteras + calles de cada ciudad)
+-- Centros de las cuadrículas de barrio (las zonas de la historia)
+function Region.centers(): { Vector3 }
+	local centers = {}
+	for _, town in Region.Towns do
+		table.insert(centers, town.Center)
+	end
+	return centers
+end
+
 function Region.roads(): { Street.Road }
 	local list = {}
 	for _, road in Region.Highways do
@@ -158,11 +167,7 @@ function Region.roads(): { Street.Road }
 		end
 	end
 	-- Calles secundarias por todos los distritos (Kit/Grid)
-	local centers = {}
-	for _, town in Region.Towns do
-		table.insert(centers, town.Center)
-	end
-	for _, road in require(Kit.Grid).roads(centers, table.clone(list)) do
+	for _, road in require(Kit.Grid).roads(Region.centers(), table.clone(list)) do
 		table.insert(list, road)
 	end
 	return list
@@ -197,6 +202,10 @@ function Region.blockRects(): { { X0: number, X1: number, Z0: number, Z1: number
 				table.insert(list, { X0 = c.X + CELLS[i][1], X1 = c.X + CELLS[i][2], Z0 = c.Z + CELLS[j][1], Z1 = c.Z + CELLS[j][2] })
 			end
 		end
+	end
+	-- Manzanas de los distritos (Kit/Districts)
+	for _, cell in require(Kit.Districts).cells(Region.centers()) do
+		table.insert(list, { X0 = cell.X0, X1 = cell.X1, Z0 = cell.Z0, Z1 = cell.Z1 })
 	end
 	return list
 end

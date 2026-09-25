@@ -114,8 +114,8 @@ CityPlan.Roads = {
 	{ Name = "Avenida Universitaria", Kind = "Avenida", Points = { { 1250, 1250 }, { 1900, 1300 }, { 2290, 1300 } } },
 	-- Calles que unen cada barrio con la red principal
 	{ Name = "Calle Mayor del Norte", Kind = "Calle", Points = { { -340, -1900 }, { 340, -1900 } } },
-	{ Name = "Calle de las Torres Oeste", Kind = "Calle", Points = { { -1250, -800 }, { -360, -800 } } },
-	{ Name = "Calle de las Torres Este", Kind = "Calle", Points = { { 360, -800 }, { 1250, -800 } } },
+	{ Name = "Calle de las Torres Oeste", Kind = "Calle", Points = { { -625, -800 }, { -360, -800 } } },
+	{ Name = "Calle de las Torres Este", Kind = "Calle", Points = { { 360, -800 }, { 625, -800 } } },
 	{ Name = "Calle de la Playa", Kind = "Calle", Points = { { 3550, 0 }, { 3550, -640 } } },
 	{ Name = "Calle de San Roque", Kind = "Calle", Points = { { -290, 2250 }, { 0, 2250 } } },
 	{ Name = "Carretera de la Costa Oeste", Kind = "Avenida", Points = { { -1250, 1250 }, { -2000, 1900 }, { -2700, 2300 } } },

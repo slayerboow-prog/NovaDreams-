@@ -88,11 +88,18 @@ local function spans(axis: string, at: number, from: number, to: number, avoid: 
 end
 
 local cache: { Road }? = nil
+local avoidCache: { Rect }? = nil
 
--- towns: centros de las cuadrículas de barrio ya construidas (se evitan)
-function Grid.roads(towns: { Vector3 }, extra: { Road }): { Road }
-	if cache then
-		return cache
+Grid.OFFSET = OFFSET
+Grid.STEP = STEP
+Grid.STEP_CENTER = STEP_CENTER
+Grid.RING = RING
+Grid.HALF = HALF
+
+-- Zonas ya construidas que se evitan (Valmar Centro y las cuadrículas de cada barrio)
+function Grid.avoid(towns: { Vector3 }): { Rect }
+	if avoidCache then
+		return avoidCache
 	end
 	local avoid: { Rect } = {
 		{ X0 = -420, X1 = 420, Z0 = -262, Z1 = 300 }, -- Valmar Centro
@@ -100,6 +107,21 @@ function Grid.roads(towns: { Vector3 }, extra: { Road }): { Road }
 	for _, c in towns do
 		table.insert(avoid, { X0 = c.X - 400, X1 = c.X + 400, Z0 = c.Z - 400, Z1 = c.Z + 400 })
 	end
+	avoidCache = avoid
+	return avoid
+end
+
+-- ¿Se puede construir (o pasar una calle) en este punto?
+function Grid.allowed(x: number, z: number, towns: { Vector3 }): boolean
+	return allowed(x, z, Grid.avoid(towns))
+end
+
+-- towns: centros de las cuadrículas de barrio ya construidas (se evitan)
+function Grid.roads(towns: { Vector3 }, extra: { Road }): { Road }
+	if cache then
+		return cache
+	end
+	local avoid = Grid.avoid(towns)
 	local b = CityPlan.Bounds
 	local lines: { Road } = {}
 	local function addLines(axis: string, step: number, lo: number, hi: number, crossLo: number, crossHi: number, onlyInsideRing: boolean?)

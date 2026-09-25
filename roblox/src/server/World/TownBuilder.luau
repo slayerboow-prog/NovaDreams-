@@ -635,7 +635,7 @@ local function buildOutskirts(world: Instance)
 				return true
 			end
 		end
-		return Landmarks.blocked(x, z) or Roads.near(x, z, 16)
+		return Landmarks.blocked(x, z) or Roads.near(x, z, 16) or require(Kit.Districts).blocked(x, z, Region.centers())
 	end
 	-- Grupos de árboles (bosquecillos) en vez de árboles sueltos al azar
 	local b = CityPlan.Bounds
@@ -686,6 +686,7 @@ function TownBuilder.build(): Folder
 	buildStreetLife(world)
 	Region.build(world)
 	Roads.build(world) -- Ronda, avenidas, diagonales, rotondas y puentes (CityPlan.Roads)
+	require(Kit.Districts).build(world, Region.centers()) -- manzanas de los 6 distritos
 	Landmarks.build(world) -- puerto, isla del faro y mirador
 	buildOutskirts(world)
 	-- Repaso final: que ninguna moldura, bordillo o cristalera parpadee contra la pared de detrás
