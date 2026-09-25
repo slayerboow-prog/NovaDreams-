@@ -49,6 +49,9 @@ local function text(key: string?, args: { [string]: any }?): string
 	if resolved.placeKey then
 		resolved.place = Strings.get(resolved.placeKey)
 	end
+	-- Los textos de las misiones hablan de ti y de tu familia: "Dile a {familia} que ya estás listo"
+	resolved.nombre = resolved.nombre or player.DisplayName
+	resolved.familia = resolved.familia or Strings.get(player:GetAttribute("FamilyKey") or "NPC.MAMA")
 	if resolved.subjectKey then
 		resolved.subject = Strings.get(resolved.subjectKey)
 	end
@@ -212,6 +215,14 @@ local function renderCard(state: { [string]: any })
 	if tracked then
 		cardTitle.Text = (if tracked.Kind == "Side" then "✦ " else "") .. Strings.get(tracked.TitleKey)
 		cardText.Text = text(tracked.TextKey, tracked.Args)
+		if tracked.Need and tracked.Children then
+			-- "Haz 3 de estas 5 cosas": cuántas llevas
+			local done = 0
+			for _, child in tracked.Children do
+				done += if child.Done then 1 else 0
+			end
+			cardText.Text ..= ("  (%d de %d)"):format(math.min(done, tracked.Need), tracked.Need)
+		end
 		for i, child in tracked.Children or {} do
 			Theme.label({
 				Size = UDim2.new(1, 0, 0, 0),

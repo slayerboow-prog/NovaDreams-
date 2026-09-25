@@ -473,10 +473,8 @@ Strings.es = {
 -- Devuelve el texto de una clave con sus variables sustituidas. Si falta, devuelve la clave
 -- (así se ve enseguida qué texto falta en lugar de romper el juego).
 function Strings.get(key: string, args: { [string]: any }?): string
-	local text = Strings.es[key]
-	if not text then
-		return key
-	end
+	-- Si no es una clave, es un texto ya escrito (las misiones escriben sus textos directamente)
+	local text = Strings.es[key] or key
 	if args then
 		text = text:gsub("{(%w+)}", function(name)
 			local value = args[name]

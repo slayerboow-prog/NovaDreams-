@@ -39,6 +39,13 @@ export type Quest = {
 	MomentKey: string?,
 	MomentSting: (string | boolean)?,
 	DayPlan: string?, -- día generado (DayPlans.luau): los pasos se crean al empezar
+	-- Misiones episódicas (Misiones/*.luau, docs/historia/11): escenas, diálogos y minijuegos
+	Title: string?,
+	Moment: string?,
+	Memory: string?,
+	Props: { [string]: any }?,
+	Actors: { { [string]: any } }?,
+	Dialogues: { [string]: any }?,
 }
 
 local Quests: { [string]: Quest } = {
@@ -91,47 +98,10 @@ local Quests: { [string]: Quest } = {
 	-- NIÑO · EL COLEGIO (unas 5 horas: estos grandes momentos + días de cole generados). Las clases se juegan (ClassService):
 	-- preguntas, notas, Educación Física en la pista. Recreo con Nico, Sara y Omar (SchoolService).
 	-----------------------------------------------------------------
-	Nino_PrimerDiaColegio = {
-		Kind = "Main",
-		TitleKey = "QUEST.PRIMER_DIA.TITLE",
-		Steps = {
-			{ Type = "Reach", Place = "EntradaColegio", TextKey = "QUEST.PRIMER_DIA.IR" },
-			{ Type = "Talk", Npc = "Lucia", Place = "Aula", TextKey = "QUEST.PRIMER_DIA.PROFE" },
-			{ Type = "Class", Subject = "Matematicas", Mode = "Clase", Place = "Aula", TextKey = "QUEST.COLE.CLASE" },
-			{ Type = "Reach", Place = "Patio", TextKey = "QUEST.PRIMER_DIA.RECREO" },
-			{
-				Type = "Group",
-				TextKey = "QUEST.PRIMER_DIA.COMPANEROS",
-				Steps = {
-					{ Type = "Talk", Npc = "Nico", TextKey = "QUEST.COLE.HABLA_NICO" },
-					{ Type = "Talk", Npc = "Sara", TextKey = "QUEST.COLE.HABLA_SARA" },
-					{ Type = "Talk", Npc = "Omar", TextKey = "QUEST.COLE.HABLA_OMAR" },
-				},
-			},
-			{ Type = "Class", Subject = "Lengua", Mode = "Clase", Place = "Aula", TextKey = "QUEST.COLE.CLASE" },
-			{ Type = "Reach", Place = "CasaFamiliar", TextKey = "QUEST.PRIMER_DIA.VOLVER" },
-		},
-		Rewards = { Money = 10 },
-		MomentKey = "MOMENT.PRIMER_DIA_COLEGIO",
-	},
-	Nino_MiSemana = {
-		Kind = "Main",
-		TitleKey = "QUEST.SEMANA.TITLE",
-		Requires = { Completed = { "Nino_PrimerDiaColegio" }, StageProgress = 0.04 },
-		Steps = {
-			{ Type = "Class", Subject = "Ciencias", Mode = "Clase", Place = "Aula", TextKey = "QUEST.COLE.CLASE" },
-			{ Type = "Class", Subject = "Musica", Mode = "Clase", Place = "AulaMusica", TextKey = "QUEST.COLE.MUSICA" },
-			{ Type = "Class", Subject = "EducacionFisica", Mode = "Circuito", Place = "Pista", TextKey = "QUEST.COLE.EF" },
-			{ Type = "Talk", Npc = "Nico", Place = "Patio", TextKey = "QUEST.SEMANA.NICO" },
-			{ Type = "Class", Subject = "Arte", Mode = "Clase", Place = "Aula", TextKey = "QUEST.COLE.CLASE" },
-		},
-		Rewards = { Money = 10 },
-		MomentKey = "MOMENT.PRIMERA_SEMANA",
-	},
 	Nino_Recados = {
 		Kind = "Main",
 		TitleKey = "QUEST.RECADOS.TITLE",
-		Requires = { Completed = { "Nino_MiSemana" }, StageProgress = 0.2 },
+		Requires = { Completed = { "Cole03_Grupo" }, StageProgress = 0.2 },
 		Steps = {
 			{ Type = "Event", Event = "BoughtItem", Match = { ShopId = "Libreria" }, Place = "Libreria", TextKey = "QUEST.RECADOS.MATERIAL" },
 			{ Type = "Event", Event = "BoughtItem", Match = { ShopId = "Farmacia" }, Place = "Farmacia", TextKey = "QUEST.RECADOS.MEDICINAS" },
@@ -474,5 +444,15 @@ local Quests: { [string]: Quest } = {
 		MomentKey = "MOMENT.TARDE_PLAYA",
 	},
 }
+
+-- Misiones episódicas: un archivo por misión (Misiones/*.luau, listadas en MissionIndex)
+for _, entry in require(script.Parent.MissionIndex) do
+	for _, mission in (if entry.Id then { entry } else entry) do
+		mission.Kind = mission.Kind or "Main"
+		mission.TitleKey = mission.TitleKey or mission.Title
+		mission.MomentKey = mission.MomentKey or mission.Moment
+		Quests[mission.Id] = mission
+	end
+end
 
 return Quests

@@ -11,6 +11,7 @@
 --   Vehicle  te montas o te bajas
 --   Wear     te lo pones o te lo quitas
 --   Thing / Prize / Document   solo se guarda (recados, recuerdos, papeles)
+--   Keepsake  objeto de la historia (la mochila del cole, la foto del grupo…): no se tira
 
 local Gameplay = require(script.Parent.Gameplay)
 local ShopItems = require(script.Parent.LifeStory.ShopItems)
@@ -115,6 +116,18 @@ for _, degree in Subjects.Degrees do
 		Stack = 1,
 		Ref = degree.Titulo,
 	}
+end
+
+-- Objetos de la historia (las misiones los dan y los quitan con Effects.Items / Effects.Take)
+local KEEPSAKES = {
+	{ "MochilaCole", "Mochila del cole", "🎒", "Tu mochila azul del colegio, con tu nombre bordado." },
+	{ "CromoSuerte", "Cromo de la suerte", "🃏", "Un cromo brillante de un portero legendario. Da suerte (eso dices tú)." },
+	{ "DibujoMateo", "Dibujo de Mateo", "🖼️", "Mateo te dibujó pasándole el balón a Dani. Pone: «Para mi primer amigo»." },
+	{ "FotoGrupo", "Foto del grupo", "📸", "Todos en el parque, haciendo muecas. La primera foto de tu grupo." },
+	{ "CuadernoOmar", "Dibujo de Omar", "✏️", "Omar dibujó el partido. Tú sales marcando (aunque no fuera exactamente así)." },
+}
+for _, entry in KEEPSAKES do
+	list[entry[1]] = { Id = entry[1], Name = entry[2], Icon = entry[3], Kind = "Keepsake", Desc = entry[4], Stack = 99 }
 end
 
 Items.List = list

@@ -49,6 +49,7 @@ local KIND_TEXT = {
 	Thing = "Objeto",
 	Prize = "Premio",
 	Document = "Documento",
+	Keepsake = "Recuerdo de tu historia",
 }
 local NUMBER_KEYS = {
 	[Enum.KeyCode.One] = 1,
@@ -882,7 +883,7 @@ function InventoryUI.init()
 	end
 
 	UserInputService.InputBegan:Connect(function(input, processed)
-		if processed or UserInputService:GetFocusedTextBox() then
+		if processed or UserInputService:GetFocusedTextBox() or player:GetAttribute("InDialogue") or player:GetAttribute("InMiniGame") then
 			return
 		end
 		local key = input.KeyCode

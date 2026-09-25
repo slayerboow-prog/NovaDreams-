@@ -29,6 +29,12 @@
         "Inventory": {
           "$className": "RemoteEvent"
         },
+        "Dialogue": {
+          "$className": "RemoteEvent"
+        },
+        "MiniGame": {
+          "$className": "RemoteEvent"
+        },
         "Vehicle": {
           "$className": "RemoteEvent"
         },

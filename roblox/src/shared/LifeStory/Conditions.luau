@@ -13,6 +13,10 @@
 --   Discovered  = { "Colegio", ... }             lugares ya visitados
 --   OnDuty      = "Profesor"                     (para misiones de profesión) el jugador está de servicio en ese rol
 --   StageProgress = 0.5                          haber jugado la mitad de la etapa (Config.LifeStory.StageHours)
+--   Rel         = { Mateo = 10 }                 relación con ese personaje de al menos 10 (-100..100)
+--   RelBelow    = { Ruben = 0 }                  relación por debajo de 0
+--   Traits      = { Empatia = 2 }                rasgo del jugador de al menos 2
+--   Memories    = { "PrimerAmigo" } / NotMemories   recuerdos que tiene (o no)
 
 local Stages = require(script.Parent.Stages)
 local GameClock = require(script.Parent.Parent.GameClock)
@@ -29,6 +33,9 @@ export type Context = {
 	Discovered: { [string]: any },
 	Duties: { [string]: boolean }?,
 	StageProgress: number?,
+	Rel: { [string]: number }?,
+	Traits: { [string]: number }?,
+	Memories: { [string]: any }?,
 }
 
 -- Devuelve true, o false y el motivo ("Stage", "Hours", "Weekdays", "Completed"...).
@@ -73,6 +80,31 @@ function Conditions.check(req: { [string]: any }?, ctx: Context): (boolean, stri
 	end
 	if req.OnDuty and not (ctx.Duties and ctx.Duties[req.OnDuty]) then
 		return false, "OnDuty"
+	end
+	for npc, min in req.Rel or {} do
+		if ((ctx.Rel or {})[npc] or 0) < min then
+			return false, "Rel"
+		end
+	end
+	for npc, max in req.RelBelow or {} do
+		if ((ctx.Rel or {})[npc] or 0) >= max then
+			return false, "Rel"
+		end
+	end
+	for trait, min in req.Traits or {} do
+		if ((ctx.Traits or {})[trait] or 0) < min then
+			return false, "Traits"
+		end
+	end
+	for _, key in req.Memories or {} do
+		if not (ctx.Memories or {})[key] then
+			return false, "Memories"
+		end
+	end
+	for _, key in req.NotMemories or {} do
+		if (ctx.Memories or {})[key] then
+			return false, "Memories"
+		end
 	end
 	if req.StageProgress and (ctx.StageProgress or 0) < req.StageProgress then
 		return false, "StageProgress"

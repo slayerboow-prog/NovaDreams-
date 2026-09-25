@@ -55,8 +55,9 @@ local Chapters: { [string]: Chapter } = {
 		IntroKey = "CHAPTER.NINO.INTRO",
 		OutroKey = "CHAPTER.NINO.OUTRO",
 		Main = {
-			"Nino_PrimerDiaColegio",
-			"Nino_MiSemana",
+			"Cole01_PrimerDia", -- misiones episódicas (Misiones/, docs/historia/11)
+			"Cole02_Mochila",
+			"Cole03_Grupo",
 			"Nino_Recados",
 			"Nino_PrimerExamen",
 			"Nino_Excursion",
@@ -65,7 +66,7 @@ local Chapters: { [string]: Chapter } = {
 		},
 		Next = "Adolescente_Instituto",
 		Loop = "Nino_Jornada",
-		IntroCinematic = "Nino_PrimerDia",
+		IntroCinematic = "Cole01_Amanecer",
 		Music = "TemaValmar",
 	},
 

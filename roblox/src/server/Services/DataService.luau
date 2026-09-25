@@ -58,6 +58,10 @@ local DEFAULT_DATA = {
 		NpcMemory = {},
 		Events = {},
 		Counters = {}, -- cuántos días de cole, de instituto… se han vivido
+		Traits = {}, -- rasgos del jugador (humor, empatía…) que suben con sus respuestas
+		Memories = {}, -- grandes recuerdos (primer día de cole, primer amigo…)
+		Later = {}, -- consecuencias diferidas: lo que pasará dentro de X horas de juego
+		Clock = 0, -- segundos jugados con la historia (reloj de las consecuencias)
 	},
 }
 

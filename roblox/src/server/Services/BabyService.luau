@@ -180,6 +180,9 @@ local function setupHome(home: Home)
 		local spot = findTagged(home.Model, "FamilySpot", { Npc = person.Npc })
 		if spot then
 			local npc = makeNpc(home, spot, person.NameKey, person.Skin)
+			-- Id del reparto (Cast): si una escena de la historia trae a este personaje, el fijo se oculta
+			npc:SetAttribute("NpcId", if person.Npc == "Familia_Abu" then "Abu" else "Familia")
+			CollectionService:AddTag(npc, "StaticNpc")
 			local root = npc:FindFirstChild("HumanoidRootPart") :: BasePart?
 			if root then
 				prompt(root, Strings.get("BABY.PROMPT.TALK"), Strings.get(person.NameKey), function(player)
@@ -366,6 +369,25 @@ local function start(player: Player)
 	end
 end
 
+-- Niños y adolescentes siguen viviendo con su familia: su casa y los nombres de su familia
+-- (los usan las misiones del colegio: "Mamá te despierta", "Abu te da un consejo"…)
+local function ensureFamily(player: Player)
+	local stage = player:GetAttribute("LifeStage")
+	local data = DataService.get(player)
+	if stage == "Bebe" or not data or player:GetAttribute("FamilyHomeId") then
+		return
+	end
+	local home = chooseHome(data.Life.FamilyHomeId)
+	if not home then
+		return
+	end
+	data.Life.FamilyHomeId = home.Id
+	setupHome(home)
+	player:SetAttribute("FamilyHomeId", home.Id)
+	player:SetAttribute("AbuKey", if home.Index % 2 == 1 then "NPC.ABU_ROSA" else "NPC.ABU_TOMAS")
+	player:SetAttribute("FamilyKey", if home.Index % 2 == 1 then "NPC.PAPA" else "NPC.MAMA")
+end
+
 local function stand(player: Player)
 	local baby = babies[player]
 	local data = DataService.get(player)
@@ -442,6 +464,7 @@ function BabyService.init()
 				start(player)
 			else
 				release(player) -- ya es niño: la casa queda libre para otros bebés
+				ensureFamily(player)
 			end
 		end)
 		player.CharacterAdded:Connect(function(character)
@@ -454,6 +477,8 @@ function BabyService.init()
 		end)
 		if player:GetAttribute("LifeStage") == "Bebe" then
 			start(player)
+		else
+			ensureFamily(player)
 		end
 	end
 	Players.PlayerAdded:Connect(watch)

@@ -45,6 +45,8 @@ local function makeNpc(parent: Instance, cf: CFrame, person: { [string]: any }, 
 		return nil
 	end
 	model.Name = Strings.get(person.NameKey)
+	model:SetAttribute("NpcId", person.Npc) -- si una escena de la historia lo trae, este se oculta (SceneClient)
+	CollectionService:AddTag(model, "StaticNpc")
 	local humanoid = model:FindFirstChildOfClass("Humanoid")
 	if humanoid then
 		humanoid.DisplayName = Strings.get(person.NameKey)

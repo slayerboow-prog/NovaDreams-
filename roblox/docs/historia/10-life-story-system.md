@@ -399,3 +399,10 @@ mapa grande de toda la región. Lee las calles de `ReplicatedStorage.Ambient.Roa
 `MusicRoom`, `RecessArea`, `PEArea`, `TeacherSpot`, modelos `Facultad` con atributo `Faculty`, `Library`, `Shop` + `ShopId`.
 Si falta alguno, la historia sigue igual (la clase empieza donde estés).
 
+## 10.19 Misiones episódicas (colegio)
+
+Las misiones largas (15–25 min) con escenas, diálogos con respuestas, minijuegos, relaciones, recuerdos y
+consecuencias diferidas están diseñadas y documentadas en
+[11-misiones-episodicas.md](11-misiones-episodicas.md). Sustituyen al antiguo «primer día de colegio»
+y a «tu primera semana».
+

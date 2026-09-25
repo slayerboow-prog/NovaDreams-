@@ -132,6 +132,34 @@ local Cinematics: { [string]: Cinematic } = {
 		},
 	},
 
+	-- Primer día de cole: amanece en Los Pinos, la cámara baja hasta tu casa y entra por la ventana.
+	Cole01_Amanecer = {
+		Duration = 10,
+		FadeIn = true,
+		Music = "TemaValmar",
+		Anchors = { Casa = "Place:CasaFamiliar", Cuarto = "Place:HomeDormitorio" },
+		Shots = {
+			{ From = { "Casa", V(-140, 110, -140) }, To = { "Casa", V(-50, 35, -45) }, Look = { "Casa", V(0, 5, 0) }, Duration = 5.5 },
+			{ From = { "Cuarto", V(6, 7, 6) }, To = { "Cuarto", V(3, 4.5, 3) }, Look = { "Cuarto", V(-2, 1, -2) }, Duration = 4.5 },
+		},
+		Titles = {
+			{ At = 1, TextKey = "CHAPTER.NINO.TITLE", SubKey = "CHAPTER.NINO.INTRO", Duration = 4.5 },
+		},
+	},
+
+	-- La foto del grupo en el parque (misión 03)
+	Cole03_Foto = {
+		Duration = 7,
+		Sting = "Momento",
+		Anchors = { Yo = "Player" },
+		Shots = {
+			{ Orbit = "Yo", Radius = 11, Height = 3, FromAngle = -40, ToAngle = 40, Duration = 7 },
+		},
+		Titles = {
+			{ At = 2.5, TextKey = "📸 ¡Patata!", SubKey = "Tu grupo de amigos", Duration = 4 },
+		},
+	},
+
 	-- Fin de primaria: fiesta en el patio, foto de clase.
 	Nino_FinPrimaria = {
 		Duration = 10,

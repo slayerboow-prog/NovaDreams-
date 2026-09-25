@@ -10,7 +10,13 @@
 -- Lo que se guarda (data.Story y data.Life):
 --   Life   = { Stage, AgeYears }
 --   Story  = { Chapter, Chapters, Active, Completed, Declined, Choices, Flags, Discovered,
---              NpcMemory, Events (biografía), Tracked }
+--              NpcMemory (Facts, Affinity, Rel), Events (biografía), Tracked,
+--              Traits (rasgos del jugador), Memories (grandes recuerdos), Later (consecuencias diferidas),
+--              Clock (segundos jugados con la historia) }
+--
+-- Misiones episódicas (docs/historia/11): escenas con actores y objetos (SceneService), diálogos con
+-- respuestas (DialogueService) y minijuegos (MiniGameService). Hablar con un actor o usar un objeto
+-- llega aquí (LifeStoryService.interact) y la misión decide qué pasa.
 
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
@@ -33,6 +39,12 @@ local LocationService = require(script.Parent.LocationService)
 local RoleService = require(script.Parent.RoleService)
 local CinematicService = require(script.Parent.CinematicService)
 local ClassService = require(script.Parent.ClassService)
+local SceneService = require(script.Parent.SceneService)
+local DialogueService = require(script.Parent.DialogueService)
+local MiniGameService = require(script.Parent.MiniGameService)
+local InventoryService = require(script.Parent.InventoryService)
+local NeedsService = require(script.Parent.NeedsService)
+local Memories = require(LifeStory.Memories)
 
 local LifeStoryService = {}
 
@@ -60,6 +72,10 @@ type Runtime = {
 	Ready: boolean,
 	ClassFor: string?, -- paso de clase que se está jugando ahora
 	ClassWaitSince: { [string]: number }, -- desde cuándo se espera un aula que no aparece en el mapa -- el cliente ya escucha (si no, los avisos de capítulo se perderían)
+	StepStart: { [string]: number }, -- misión -> cuándo empezó su paso actual (os.clock)
+	NudgedAt: { [string]: number }, -- misión -> último "¡date prisa!"
+	Fallback: { [string]: boolean }, -- misión -> ya se lanzó el plan B de este paso
+	Busy: boolean, -- una conversación, un minijuego o una clase de la historia en marcha
 }
 local runtime: { [Player]: Runtime } = {}
 local dayRng = Random.new()
@@ -110,7 +126,14 @@ end
 local function contextFor(player: Player, data: Data): Conditions.Context
 	local now = GameClock.now()
 	local story = storyOf(data)
+	local rel = {}
+	for npc, entry in story.NpcMemory do
+		rel[npc] = entry.Rel or 0
+	end
 	return {
+		Rel = rel,
+		Traits = story.Traits or {},
+		Memories = story.Memories or {},
 		Stage = data.Life.Stage,
 		ClockTime = now.ClockTime,
 		Weekday = now.Weekday,
@@ -187,6 +210,23 @@ function LifeStoryService.addAffinity(player: Player, npcId: string, amount: num
 	memory[npcId].Affinity = math.clamp(memory[npcId].Affinity + amount, 0, 5)
 end
 
+-- Relación con un personaje (-100..100): ayudar suma, ignorar o traicionar resta
+function LifeStoryService.addRel(player: Player, npcId: string, amount: number)
+	local data = DataService.get(player)
+	if not data then
+		return
+	end
+	local memory = storyOf(data).NpcMemory
+	memory[npcId] = memory[npcId] or { Facts = {}, Affinity = 0 }
+	memory[npcId].Rel = math.clamp((memory[npcId].Rel or 0) + amount, -100, 100)
+end
+
+function LifeStoryService.getRel(player: Player, npcId: string): number
+	local data = DataService.get(player)
+	local entry = data and storyOf(data).NpcMemory[npcId]
+	return entry and entry.Rel or 0
+end
+
 ---------------------------------------------------------------------
 -- Etapa de vida
 ---------------------------------------------------------------------
@@ -216,8 +256,102 @@ function LifeStoryService.setStage(player: Player, stage: string)
 end
 
 ---------------------------------------------------------------------
+-- Efectos: lo que cambia en tu vida por una respuesta, un objeto, un paso o el final de una misión
+--   Flags, Unflags, Rel = { Mateo = 15 }, Traits = { Empatia = 1 }, Memory = "PrimerAmigo" | { … },
+--   Remember = { { Npc, Fact } }, Items = { MochilaCole = 1 }, Take = { … }, Needs = { Hunger, Energy },
+--   Money, Choice = { Key = Valor }, Gesture = { Npc, Anim }, Say = { S, T },
+--   Later = { { AfterHours | AfterMinutes, Flag?, Start?, Memory?, If? } }   (consecuencias diferidas)
+---------------------------------------------------------------------
+
+function LifeStoryService.addMemory(player: Player, key: string, questId: string?)
+	local data = DataService.get(player)
+	if not data then
+		return
+	end
+	local story = storyOf(data)
+	story.Memories = story.Memories or {}
+	if story.Memories[key] then
+		return
+	end
+	story.Memories[key] = { D = GameClock.now().Day, T = os.time(), Q = questId, S = data.Life.Stage }
+	local memory = Memories[key]
+	LifeStoryService.logEvent(player, if memory then memory.Text else key, nil, "Memory")
+end
+
+local function applyEffects(player: Player, data: Data, effects: { [string]: any }?, questId: string?)
+	if type(effects) ~= "table" then
+		return
+	end
+	local story = storyOf(data)
+	for _, flag in effects.Flags or {} do
+		story.Flags[flag] = true
+	end
+	for _, flag in effects.Unflags or {} do
+		story.Flags[flag] = nil
+	end
+	for npc, amount in effects.Rel or {} do
+		LifeStoryService.addRel(player, npc, amount)
+	end
+	story.Traits = story.Traits or {}
+	for trait, amount in effects.Traits or {} do
+		story.Traits[trait] = (story.Traits[trait] or 0) + amount
+	end
+	local memory = effects.Memory
+	if type(memory) == "string" then
+		LifeStoryService.addMemory(player, memory, questId)
+	elseif type(memory) == "table" then
+		for _, key in memory do
+			LifeStoryService.addMemory(player, key, questId)
+		end
+	end
+	for _, entry in effects.Remember or {} do
+		LifeStoryService.remember(player, entry.Npc, entry.Fact)
+		LifeStoryService.addAffinity(player, entry.Npc, 1)
+	end
+	for id, count in effects.Items or {} do
+		InventoryService.add(player, id, count)
+	end
+	for id, count in effects.Take or {} do
+		InventoryService.remove(player, id, math.min(count, InventoryService.count(player, id)))
+	end
+	if effects.Needs then
+		NeedsService.change(player, effects.Needs.Hunger or 0, effects.Needs.Energy or 0)
+	end
+	if effects.Money and effects.Money > 0 then
+		DataService.addMoney(player, effects.Money, true)
+	end
+	if effects.Spend then
+		-- Pagar algo (helados…). Si no llega, queda la marca SinDinero para que la historia lo cuente.
+		story.Flags.SinDinero = if DataService.spend(player, effects.Spend) then nil else true
+	end
+	for key, value in effects.Choice or {} do
+		story.Choices[key] = { V = value, D = GameClock.now().Day }
+	end
+	if effects.Gesture then
+		SceneService.gesture(player, effects.Gesture.Npc, effects.Gesture.Anim or "Wave")
+	end
+	if effects.Say then
+		DialogueService.bark(player, effects.Say.S, effects.Say.T)
+	end
+	story.Later = story.Later or {}
+	for _, later in effects.Later or {} do
+		local seconds = (later.AfterHours or 0) * 3600 + (later.AfterMinutes or 0) * 60
+		table.insert(story.Later, {
+			At = (story.Clock or 0) + seconds,
+			Flag = later.Flag,
+			Start = later.Start,
+			Memory = later.Memory,
+			If = later.If,
+			From = questId,
+		})
+	end
+end
+LifeStoryService.applyEffects = applyEffects
+
+---------------------------------------------------------------------
 -- Publicar el estado al cliente (tarjeta "Tu vida" y línea guía)
 ---------------------------------------------------------------------
+
 
 -- La carrera que eligió el jugador (para "$Carrera.Facultad", "$Carrera.Asignatura1"…)
 local function degreeOf(story: Data): string?
@@ -263,8 +397,34 @@ local function trackedQuest(story: Data): string?
 	return next(story.Active)
 end
 
+local sceneTarget -- se define más abajo
+
 local function spotKey(questId: string, prog: Progress, child: number?): string
 	return ("%s:%d:%d"):format(questId, prog.Step, child or 0)
+end
+
+-- La línea guía lleva hasta el personaje con el que hay que hablar o el objeto que hay que usar
+function sceneTarget(player: Player, questId: string, step: { [string]: any }): Vector3?
+	local function actorPosition(npc: string?): Vector3?
+		local model = npc and SceneService.actorOf(player, npc)
+		return model and model:GetPivot().Position
+	end
+	local function propPosition(id: string?): Vector3?
+		return if id then SceneService.propPosition(player, questId, id) else nil
+	end
+	if step.Type == "Talk" then
+		return actorPosition(step.Npc)
+	elseif step.Type == "Use" then
+		return propPosition(step.Prop)
+	elseif step.Type == "Choice" then
+		for _, option in step.Options or {} do
+			local position = actorPosition(option.Npc) or propPosition(option.Prop)
+			if position then
+				return position
+			end
+		end
+	end
+	return nil
 end
 
 local function publish(player: Player, force: boolean?)
@@ -290,17 +450,28 @@ local function publish(player: Player, force: boolean?)
 		local step = stepsOf(trackedId, prog)[prog.Step]
 		local tracked: { [string]: any } = { QuestId = trackedId, Kind = quest.Kind, TitleKey = titleOf(trackedId, prog) }
 		if step then
-			tracked.TextKey = step.TextKey
+			tracked.TextKey = step.Text or step.TextKey
 			tracked.Args = placeArgs(step, prog, story)
 			if step.Type == "Group" then
 				tracked.Children = {}
+				tracked.Need = step.Need
 				for i, child in step.Steps do
 					local done = prog.Sub ~= nil and prog.Sub[tostring(i)] == true
-					table.insert(tracked.Children, { TextKey = child.TextKey, Args = placeArgs(child, nil, story), Done = done })
-					if not done and child.Type == "Reach" and not target then
-						local spot = rt.Spots[spotKey(trackedId, prog, i)]
-						target = spot and spot.Position
+					table.insert(tracked.Children, { TextKey = child.Text or child.TextKey, Args = placeArgs(child, nil, story), Done = done })
+					if not done and not target then
+						if child.Type == "Reach" then
+							local spot = rt.Spots[spotKey(trackedId, prog, i)]
+							target = spot and spot.Position
+						else
+							target = sceneTarget(player, trackedId, child)
+						end
 					end
+				end
+			elseif step.Type == "Talk" or step.Type == "Use" or step.Type == "Choice" then
+				target = sceneTarget(player, trackedId, step)
+				if not target and step.Place then
+					local spot = rt.Spots[spotKey(trackedId, prog)]
+					target = spot and spot.Position
 				end
 			elseif step.Place then
 				-- Reach, o un Talk/Event con lugar: la línea guía lleva hasta allí
@@ -313,7 +484,7 @@ local function publish(player: Player, force: boolean?)
 		local quest = Quests[rt.Waiting.QuestId]
 		local req = quest.Requires or {}
 		state.Waiting = {
-			TitleKey = quest.TitleKey,
+			TitleKey = quest.TitleKey or quest.Title,
 			Reason = rt.Waiting.Reason,
 			From = req.Hours and req.Hours.From,
 			To = req.Hours and req.Hours.To,
@@ -346,10 +517,131 @@ local advance -- se define más abajo
 local function sendChoice(player: Player, questId: string, step: { [string]: any })
 	local options = {}
 	for _, option in step.Options do
-		table.insert(options, { Id = option.Id, TextKey = option.TextKey })
+		table.insert(options, { Id = option.Id, TextKey = option.Text or option.TextKey })
 	end
-	send(player, "Choice", { QuestId = questId, PromptKey = step.PromptKey, Options = options })
+	send(player, "Choice", { QuestId = questId, PromptKey = step.Prompt or step.PromptKey, Options = options })
 end
+
+-- ¿Se elige en el mundo (hablar con alguien, tocar un objeto) en vez de con una ventana?
+local function worldChoice(step: { [string]: any }): boolean
+	for _, option in step.Options or {} do
+		if option.Npc or option.Prop then
+			return true
+		end
+	end
+	return false
+end
+
+local function questDialogue(questId: string, name: any): { [string]: any }?
+	if type(name) == "table" then
+		return name -- diálogo escrito directamente en el paso
+	end
+	local quest = Quests[questId]
+	return quest and quest.Dialogues and quest.Dialogues[name]
+end
+
+-- Contexto de un diálogo: condiciones con lo que recuerda el personaje, efectos, cámara
+local function dialogueContext(player: Player, data: Data, questId: string): DialogueService.Context
+	local story = storyOf(data)
+	return {
+		check = function(condition)
+			return (Conditions.check(condition, contextFor(player, data)))
+		end,
+		apply = function(effects)
+			applyEffects(player, data, effects, questId)
+		end,
+		actorOf = function(npc)
+			return SceneService.actorOf(player, npc)
+		end,
+		args = function()
+			local current = story.Choices.NombreGrupo
+			return { grupo = if current then current.V else "" }
+		end,
+	}
+end
+
+-- Juega una conversación de la misión; onDone cuando termine. Si ya hay otra, se reintenta luego.
+local function playDialogue(player: Player, data: Data, questId: string, name: any, onDone: () -> ()): boolean
+	local dialogue = questDialogue(questId, name)
+	local rt = runtime[player]
+	if not dialogue then
+		warn(("[LifeStory] %s: no existe el diálogo %s"):format(questId, tostring(name)))
+		task.spawn(onDone)
+		return true
+	end
+	if not rt or rt.Busy then
+		return false
+	end
+	rt.Busy = true
+	local started = DialogueService.play(player, dialogue, dialogueContext(player, data, questId), function()
+		rt.Busy = false
+		onDone()
+	end)
+	if not started then
+		rt.Busy = false
+	end
+	return started
+end
+
+-- Actores y objetos que tiene que haber en escena en el paso actual de una misión
+local function sceneFor(player: Player, data: Data, questId: string): ({ { [string]: any } }, { string })
+	local quest = Quests[questId]
+	local prog = storyOf(data).Active[questId]
+	local step = prog and stepsOf(questId, prog)[prog.Step]
+	local ctx = contextFor(player, data)
+	local actors, props = {}, {}
+	local seenProp = {}
+	local function addActors(list: { { [string]: any } }?)
+		for _, spec in list or {} do
+			if not spec.If or Conditions.check(spec.If, ctx) then
+				table.insert(actors, spec)
+			end
+		end
+	end
+	local function addProp(id: string?)
+		local def = id and quest.Props and quest.Props[id]
+		if id and def and not seenProp[id] and not (prog and prog.Used and prog.Used[id]) then
+			if not def.If or Conditions.check(def.If, ctx) then
+				seenProp[id] = true
+				table.insert(props, id)
+			end
+		end
+	end
+	addActors(quest.Actors)
+	if step then
+		addActors(step.Actors)
+		for _, id in step.Props or {} do
+			addProp(id)
+		end
+		if step.Type == "Use" then
+			addProp(step.Prop)
+		end
+		for _, child in (if step.Type == "Group" then step.Steps else {}) do
+			if child.Type == "Use" and not (prog.Sub and prog.Sub[tostring(table.find(step.Steps, child))]) then
+				addProp(child.Prop)
+			end
+		end
+		for _, option in (if step.Type == "Choice" then step.Options else {}) do
+			addProp(option.Prop)
+		end
+	end
+	return actors, props
+end
+
+local function updateScene(player: Player, data: Data, questId: string)
+	local quest = Quests[questId]
+	if not quest or not (quest.Props or quest.Actors or quest.Dialogues) then
+		return -- misión sencilla, sin escena
+	end
+	local actors, props = sceneFor(player, data, questId)
+	SceneService.set(player, questId, actors, props, quest.Props)
+end
+
+local startInteractive -- se define más abajo
+local story_defaults -- se define más abajo
+local processLater -- se define más abajo
+local resumeAll -- se define más abajo
+local groupDone -- se define más abajo
 
 -- Prepara el paso actual de una misión. Los pasos "instantáneos" (Moment, Transition, If que no
 -- se cumple) se resuelven aquí mismo y se pasa al siguiente.
@@ -370,23 +662,33 @@ local function enterStep(player: Player, data: Data, questId: string)
 		prog.Count = 0
 		prog.Sub = nil
 		prog.WaitUntil = nil
+		if rt then
+			rt.StepStart[questId] = os.clock()
+			rt.NudgedAt[questId] = nil
+			rt.Fallback[questId] = nil
+		end
 		if step.If and not Conditions.check(step.If, contextFor(player, data)) then
 			prog.Step += 1
 			continue
 		end
+		if step.Teleport then
+			SceneService.teleport(player, step.Teleport)
+		end
 		if step.Type == "Moment" then
-			moment(player, step.TextKey or quest.MomentKey)
+			moment(player, step.Text or step.TextKey or quest.MomentKey)
+			applyEffects(player, data, step.Effects, questId)
 			prog.Step += 1
 			continue
 		elseif step.Type == "Transition" then
 			if step.Cinematic then
 				CinematicService.play(player, step.Cinematic)
 			else
-				send(player, "Transition", { TextKey = step.TextKey, Seconds = step.Seconds or 4 })
+				send(player, "Transition", { TextKey = step.Text or step.TextKey, Seconds = step.Seconds or 4 })
 			end
 			if step.SetStage then
 				LifeStoryService.setStage(player, step.SetStage)
 			end
+			applyEffects(player, data, step.Effects, questId)
 			prog.Step += 1
 			continue
 		elseif step.Type == "Wait" then
@@ -394,7 +696,9 @@ local function enterStep(player: Player, data: Data, questId: string)
 		elseif step.Type == "Group" then
 			prog.Sub = {}
 		elseif step.Type == "Choice" then
-			sendChoice(player, questId, step)
+			if not worldChoice(step) then
+				sendChoice(player, questId, step)
+			end
 		elseif step.Type == "Cinematic" then
 			-- La escena se ve en el cliente; la historia sigue cuando termina
 			local duration = CinematicService.play(player, step.Id)
@@ -417,14 +721,76 @@ local function enterStep(player: Player, data: Data, questId: string)
 			end
 		end
 	end
+	updateScene(player, data, questId)
+	startInteractive(player, data, questId)
 	publish(player)
+end
+
+-- Pasos que empiezan solos: una conversación de escena o un minijuego
+function startInteractive(player: Player, data: Data, questId: string)
+	local story = storyOf(data)
+	local prog = story.Active[questId]
+	local step = prog and stepsOf(questId, prog)[prog.Step]
+	local rt = runtime[player]
+	if not step or not rt or not rt.Ready then
+		return
+	end
+	local index = prog.Step
+	local function stillHere(): boolean
+		local current = DataService.get(player)
+		local now = current and storyOf(current).Active[questId]
+		return now ~= nil and now.Step == index
+	end
+	if step.Type == "Scene" then
+		playDialogue(player, data, questId, step.Dialogue, function()
+			if stillHere() then
+				advance(player, data, questId)
+			end
+		end)
+	elseif step.Type == "MiniGame" and not rt.Busy and not MiniGameService.isRunning(player) then
+		rt.Busy = true
+		local spec = step
+		if step.PositionFrom then
+			-- La posición que elegiste antes (delantero, defensa, portero) cambia las jugadas
+			local choice = story.Choices[step.PositionFrom]
+			spec = table.clone(step)
+			spec.Position = choice and choice.V or "Delantero"
+		end
+		local started = MiniGameService.start(player, spec, function(result)
+			rt.Busy = false
+			if not stillHere() then
+				return
+			end
+			story.LastGame = { Won = result.Won, Score = result.Score, Against = result.Against }
+			applyEffects(player, data, if result.Won then step.Win else step.Lose, questId)
+			if result.Detail and result.Detail.Draw then
+				applyEffects(player, data, step.Draw, questId)
+			end
+			advance(player, data, questId)
+		end)
+		if not started then
+			rt.Busy = false
+			advance(player, data, questId) -- nunca bloquear la historia
+		end
+	end
 end
 
 function advance(player: Player, data: Data, questId: string)
 	local prog = storyOf(data).Active[questId]
 	if prog then
-		prog.Step += 1
-		enterStep(player, data, questId)
+		local step = stepsOf(questId, prog)[prog.Step]
+		local rt = runtime[player]
+		if step then
+			-- Lo que pasa al cumplir el paso (y si tardaste demasiado: "llegaste tarde")
+			if step.Late and rt and rt.StepStart[questId] and os.clock() - rt.StepStart[questId] > step.Late.After then
+				applyEffects(player, data, step.Late, questId)
+			end
+			applyEffects(player, data, step.Effects, questId)
+		end
+		if storyOf(data).Active[questId] == prog then
+			prog.Step += 1
+			enterStep(player, data, questId)
+		end
 	end
 end
 
@@ -457,16 +823,8 @@ local function giveRewards(player: Player, data: Data, rewards: { [string]: any 
 		return
 	end
 	local story = storyOf(data)
-	if rewards.Money and rewards.Money > 0 then
-		DataService.addMoney(player, rewards.Money, true)
-	end
-	for _, flag in rewards.Flags or {} do
-		story.Flags[flag] = true
-	end
-	for _, entry in rewards.Remember or {} do
-		LifeStoryService.remember(player, entry.Npc, entry.Fact)
-		LifeStoryService.addAffinity(player, entry.Npc, 1)
-	end
+	-- Dinero, marcas, recuerdos, objetos, relaciones… (los mismos efectos que en las misiones)
+	applyEffects(player, data, rewards)
 	if rewards.Degree then
 		-- Título conseguido ("$Carrera.Titulo" -> "Grado_Medicina") con la nota media de la carrera
 		local title = Subjects.resolve(rewards.Degree, degreeOf(story))
@@ -492,7 +850,11 @@ function completeQuest(player: Player, data: Data, questId: string)
 	if story.Tracked == questId then
 		story.Tracked = nil
 	end
+	SceneService.clear(player, questId)
 	giveRewards(player, data, quest.Rewards)
+	if quest.Memory then
+		LifeStoryService.addMemory(player, quest.Memory, questId)
+	end
 	if quest.MomentKey then
 		local sting = if quest.MomentSting == false then nil else (quest.MomentSting or "Momento")
 		local args = if quest.DayPlan then { n = story.Counters[questId] or 1 } else nil
@@ -683,6 +1045,15 @@ end
 -- Eventos de otros sistemas
 ---------------------------------------------------------------------
 
+-- ¿Grupo terminado? (Need = cuántas cosas de la lista hacen falta; si no, todas)
+function groupDone(step: { [string]: any }, sub: { [string]: boolean }): boolean
+	local done = 0
+	for _ in sub do
+		done += 1
+	end
+	return done >= math.min(step.Need or #step.Steps, #step.Steps)
+end
+
 local function onStoryEvent(player: Player, name: string, payload: { [string]: any })
 	local data = DataService.get(player)
 	if not data or not runtime[player] then
@@ -704,24 +1075,29 @@ local function onStoryEvent(player: Player, name: string, payload: { [string]: a
 			if s.Type == "Event" then
 				return s.Event == name and matchesPayload(s.Match, payload)
 			elseif s.Type == "Talk" then
-				return name == "Talk" and payload.Npc == s.Npc
+				-- Con diálogo, cuenta al TERMINAR la conversación de la misión (no vale saludar de pasada)
+				return name == (if s.Dialogue then "TalkDone" else "Talk") and payload.Npc == s.Npc
+			elseif s.Type == "Use" then
+				return name == "PropUsed" and payload.Prop == s.Prop
 			end
 			return false
 		end
 		if step.Type == "Group" then
 			local sub = prog.Sub or {}
 			prog.Sub = sub
-			local all = true
+			local changed = false
 			for i, child in step.Steps do
 				local key = tostring(i)
 				if not sub[key] and hits(child) then
 					sub[key] = true
+					changed = true
+					applyEffects(player, data, child.Effects, questId)
 				end
-				all = all and sub[key] == true
 			end
-			if all then
+			if groupDone(step, sub) then
 				advance(player, data, questId)
-			else
+			elseif changed then
+				updateScene(player, data, questId)
 				publish(player)
 			end
 		elseif hits(step) then
@@ -768,6 +1144,85 @@ local function checkReach(player: Player, data: Data, questId: string, prog: Pro
 	return false
 end
 
+local interactProp -- se define más abajo
+
+-- Prisas, tiempo límite y planes B para que ningún paso se quede atascado. true = el paso cambió.
+local function stepTimers(player: Player, data: Data, questId: string, prog: Progress, step: { [string]: any }): boolean
+	local rt = runtime[player]
+	local since = os.clock() - (rt.StepStart[questId] or os.clock())
+	local busy = rt.Busy or DialogueService.isBusy(player) or MiniGameService.isRunning(player) or ClassService.isRunning(player)
+	if busy then
+		return false
+	end
+	-- "¡Vas a llegar tarde!": alguien te mete prisa (una vez, o cada Every segundos)
+	local nudge = step.Nudge
+	if nudge and since > nudge.After then
+		local last = rt.NudgedAt[questId]
+		if not last or (nudge.Every and os.clock() - last > nudge.Every) then
+			rt.NudgedAt[questId] = os.clock()
+			DialogueService.bark(player, nudge.S, nudge.T)
+		end
+	end
+	-- Si no haces nada, la historia sigue por otro camino ("no ayudaste a Mateo")
+	local touched = prog.Sub ~= nil and next(prog.Sub) ~= nil
+	if step.Timeout and since > step.Timeout.After and not (step.Timeout.OnlyIfUntouched and touched) then
+		applyEffects(player, data, step.Timeout, questId)
+		if storyOf(data).Active[questId] == prog then
+			prog.Step += 1
+			enterStep(player, data, questId)
+		end
+		return true
+	end
+	-- Escenas y minijuegos que no pudieron empezar (había otra conversación): se reintentan
+	if (step.Type == "Scene" or step.Type == "MiniGame") and since > 2 then
+		startInteractive(player, data, questId)
+		return false
+	end
+	if rt.Fallback[questId] then
+		return false
+	end
+	-- Planes B cuando el mapa no tiene el sitio del actor o del objeto
+	if step.Type == "Talk" and step.Dialogue and since > 15 and not SceneService.actorOf(player, step.Npc) then
+		rt.Fallback[questId] = true
+		playDialogue(player, data, questId, step.Dialogue, function()
+			StoryEvents.emit(player, "TalkDone", { Npc = step.Npc })
+		end)
+	elseif step.Type == "Use" and since > 20 and not SceneService.hasProp(player, questId, step.Prop) then
+		rt.Fallback[questId] = true
+		interactProp(player, data, questId, step.Prop)
+	elseif step.Type == "Choice" and worldChoice(step) and since > 20 then
+		local present = false
+		for _, option in step.Options do
+			present = present or (option.Npc and SceneService.actorOf(player, option.Npc) ~= nil) or (option.Prop and SceneService.hasProp(player, questId, option.Prop))
+		end
+		if not present then
+			rt.Fallback[questId] = true
+			sendChoice(player, questId, step)
+		end
+	elseif step.Type == "Group" and since > 25 then
+		-- Lo que no está en el mapa se da por hecho
+		local sub = prog.Sub or {}
+		prog.Sub = sub
+		local changed = false
+		for i, child in step.Steps do
+			local key = tostring(i)
+			local missing = (child.Type == "Use" and not SceneService.hasProp(player, questId, child.Prop))
+				or (child.Type == "Talk" and not SceneService.actorOf(player, child.Npc))
+			local available = not child.If or Conditions.check(child.If, contextFor(player, data))
+			if not sub[key] and missing and available then
+				sub[key] = true
+				changed = true
+			end
+		end
+		rt.Fallback[questId] = true
+		if changed and groupDone(step, sub) then
+			advance(player, data, questId)
+			return true
+		end
+	end
+	return false
+end
+
 local function tickPlayer(player: Player, data: Data)
 	local story = storyOf(data)
 	local ids = {}
@@ -780,6 +1235,9 @@ local function tickPlayer(player: Player, data: Data)
 		if not prog or not step then
 			continue
 		end
+		if stepTimers(player, data, questId, prog, step) then
+			continue -- el paso cambió (se acabó el tiempo, plan B…)
+		end
 		if step.Type == "Reach" then
 			if checkReach(player, data, questId, prog, step) then
 				advance(player, data, questId)
@@ -791,16 +1249,16 @@ local function tickPlayer(player: Player, data: Data)
 		elseif step.Type == "Group" then
 			local sub = prog.Sub or {}
 			prog.Sub = sub
-			local changed, all = false, true
+			local changed = false
 			for i, child in step.Steps do
 				local key = tostring(i)
 				if not sub[key] and child.Type == "Reach" and checkReach(player, data, questId, prog, child, i) then
 					sub[key] = true
 					changed = true
+					applyEffects(player, data, child.Effects, questId)
 				end
-				all = all and sub[key] == true
 			end
-			if all then
+			if groupDone(step, sub) then
 				advance(player, data, questId)
 			elseif changed then
 				publish(player)
@@ -864,6 +1322,7 @@ end
 function growUp(player: Player, data: Data, seconds: number)
 	local life = data.Life
 	life.StageSeconds = (life.StageSeconds or 0) + seconds
+	data.Story.Clock = (data.Story.Clock or 0) + seconds -- reloj de la historia (consecuencias diferidas)
 	local ages = CFG.AgeRange[life.Stage]
 	local hours = CFG.StageHours[life.Stage]
 	if not ages or not hours or hours <= 0 then
@@ -885,7 +1344,186 @@ local function slowTick(player: Player, data: Data)
 	end
 	discoverZone(player, data)
 	checkPlaceOffers(player, data)
+	processLater(player, data)
 	refresh(player)
+end
+
+---------------------------------------------------------------------
+-- Decidir y actuar: elegir una opción, hablar con un actor, usar un objeto
+---------------------------------------------------------------------
+
+-- Elige una opción de un paso Choice (desde la ventana, hablando con alguien o tocando un objeto)
+local function chooseOption(player: Player, data: Data, questId: string, optionId: string): boolean
+	local story = storyOf(data)
+	local prog = story.Active[questId]
+	local step = prog and Quests[questId] and stepsOf(questId, prog)[prog.Step]
+	if not step or step.Type ~= "Choice" then
+		return false
+	end
+	for _, option in step.Options do
+		if option.Id == optionId and (not option.If or Conditions.check(option.If, contextFor(player, data))) then
+			local index = prog.Step
+			local function commit()
+				local now = story.Active[questId]
+				if not now or now.Step ~= index then
+					return
+				end
+				story.Choices[step.Key] = { V = optionId, D = GameClock.now().Day }
+				for _, flag in option.Flags or {} do
+					story.Flags[flag] = true
+				end
+				applyEffects(player, data, option.Effects, questId)
+				LifeStoryService.logEvent(player, option.Text or option.TextKey, nil, "Choice")
+				advance(player, data, questId)
+			end
+			if option.Dialogue then
+				return playDialogue(player, data, questId, option.Dialogue, commit)
+			end
+			commit()
+			return true
+		end
+	end
+	return false
+end
+
+-- Usar o examinar un objeto de la escena
+function interactProp(player: Player, data: Data, questId: string, propId: string)
+	local quest = Quests[questId]
+	local story = storyOf(data)
+	local prog = story.Active[questId]
+	local def = quest and quest.Props and quest.Props[propId]
+	if not prog or not def then
+		return
+	end
+	local step = stepsOf(questId, prog)[prog.Step]
+	-- ¿Tocar este objeto ES elegir? (sentarse en un sitio, coger una mochila…)
+	if step and step.Type == "Choice" then
+		for _, option in step.Options do
+			if option.Prop == propId then
+				chooseOption(player, data, questId, option.Id)
+				return
+			end
+		end
+	end
+	local index = prog.Step
+	local function done()
+		local now = story.Active[questId]
+		if not now then
+			return
+		end
+		applyEffects(player, data, def.Effects, questId)
+		if def.Once then
+			now.Used = now.Used or {}
+			now.Used[propId] = true
+			SceneService.removeProp(player, questId, propId)
+		end
+		if now.Step == index then
+			StoryEvents.emit(player, "PropUsed", { Prop = propId, Quest = questId })
+		end
+	end
+	if def.Dialogue then
+		playDialogue(player, data, questId, def.Dialogue, done)
+	else
+		done()
+	end
+end
+
+-- El jugador ha hablado con un actor o usado un objeto de una escena (lo avisa SceneService)
+function LifeStoryService.interact(player: Player, kind: string, questId: string, id: string)
+	local data = DataService.get(player)
+	local rt = runtime[player]
+	if not data or not rt or rt.Busy or DialogueService.isBusy(player) or MiniGameService.isRunning(player) then
+		return
+	end
+	local story = storyOf(data)
+	local prog = story.Active[questId]
+	local quest = Quests[questId]
+	if not prog or not quest then
+		return
+	end
+	if kind == "Prop" then
+		interactProp(player, data, questId, id)
+		return
+	end
+	local step = stepsOf(questId, prog)[prog.Step]
+	-- 1) Hablar con este personaje ES elegir (unirte a un grupo del recreo…)
+	if step and step.Type == "Choice" then
+		for _, option in step.Options do
+			if option.Npc == id then
+				chooseOption(player, data, questId, option.Id)
+				return
+			end
+		end
+	end
+	-- 2) La misión pide hablar con él: su conversación de la misión
+	local talk: { [string]: any }? = nil
+	if step and step.Type == "Talk" and step.Npc == id then
+		talk = step
+	elseif step and step.Type == "Group" then
+		for i, child in step.Steps do
+			if child.Type == "Talk" and child.Npc == id and not (prog.Sub and prog.Sub[tostring(i)]) then
+				talk = child
+				break
+			end
+		end
+	end
+	if talk and talk.Dialogue then
+		playDialogue(player, data, questId, talk.Dialogue, function()
+			StoryEvents.emit(player, "TalkDone", { Npc = id })
+			StoryEvents.emit(player, "Talk", { Npc = id })
+		end)
+		return
+	end
+	-- 3) Si no, lo que ese actor tenga que decir en esta escena (o saluda)
+	local spec: { [string]: any }? = nil
+	for _, list in { quest.Actors or {}, (step and step.Actors) or {} } do
+		for _, candidate in list do
+			if candidate.Npc == id then
+				spec = candidate
+			end
+		end
+	end
+	if spec and spec.Talk then
+		playDialogue(player, data, questId, spec.Talk, function()
+			StoryEvents.emit(player, "Talk", { Npc = id })
+		end)
+	else
+		DialogueService.bark(player, id, spec and spec.Bark or "¡Hola!")
+		StoryEvents.emit(player, "Talk", { Npc = id })
+	end
+end
+
+-- Consecuencias diferidas: lo que decidiste hace horas vuelve ahora
+function processLater(player: Player, data: Data)
+	local story = storyOf(data)
+	local rt = runtime[player]
+	if not story.Later or #story.Later == 0 or rt.Busy or DialogueService.isBusy(player) or data.Life.Stage == "Bebe" then
+		return
+	end
+	local clock = story.Clock or 0
+	for i = #story.Later, 1, -1 do
+		local later = story.Later[i]
+		if clock >= later.At and (not later.If or Conditions.check(later.If, contextFor(player, data))) then
+			table.remove(story.Later, i)
+			if later.Flag then
+				story.Flags[later.Flag] = true
+			end
+			if later.Memory then
+				LifeStoryService.addMemory(player, later.Memory, later.From)
+			end
+			local quest = later.Start and Quests[later.Start]
+			if quest and not story.Active[later.Start] and not story.Completed[later.Start] then
+				if Conditions.check(quest.Requires, contextFor(player, data)) then
+					startQuest(player, data, later.Start)
+				else
+					-- Aún no se dan las condiciones (otra etapa, otra hora): se vuelve a mirar más tarde
+					later.At = clock + 300
+					table.insert(story.Later, later)
+				end
+			end
+			return -- una cosa cada vez
+		end
+	end
 end
 
 ---------------------------------------------------------------------
@@ -907,25 +1545,13 @@ local function onRemote(player: Player, kind: any, questId: any, value: any)
 	if kind == "Sync" then
 		if not rt.Ready then
 			rt.Ready = true
+			resumeAll(player)
 			refresh(player)
 		end
 		publish(player, true)
 	elseif kind == "Choose" and type(questId) == "string" and type(value) == "string" then
-		local prog = story.Active[questId]
-		local step = prog and Quests[questId] and stepsOf(questId, prog)[prog.Step]
-		if not step or step.Type ~= "Choice" then
-			return
-		end
-		for _, option in step.Options do
-			if option.Id == value then
-				story.Choices[step.Key] = { V = value, D = GameClock.now().Day }
-				for _, flag in option.Flags or {} do
-					story.Flags[flag] = true
-				end
-				LifeStoryService.logEvent(player, option.TextKey, nil, "Choice")
-				advance(player, data, questId)
-				return
-			end
+		if not rt.Busy then
+			chooseOption(player, data, questId, value)
 		end
 	elseif kind == "Offer" and type(questId) == "string" and rt.PendingOffer == questId then
 		rt.PendingOffer = nil
@@ -944,6 +1570,32 @@ end
 -- Arranque
 ---------------------------------------------------------------------
 
+-- Campos nuevos de la historia para personajes guardados antes de que existieran
+function story_defaults(data: Data)
+	local story = storyOf(data)
+	story.Traits = story.Traits or {}
+	story.Memories = story.Memories or {}
+	story.Later = story.Later or {}
+	story.Clock = story.Clock or 0
+	story.Counters = story.Counters or {}
+end
+
+-- Al entrar (o volver) al juego: se rehacen las escenas y lo que estuviera a medias
+function resumeAll(player: Player)
+	local data = DataService.get(player)
+	if not data then
+		return
+	end
+	for questId in storyOf(data).Active do
+		local rt = runtime[player]
+		if rt then
+			rt.StepStart[questId] = os.clock()
+		end
+		updateScene(player, data, questId)
+		startInteractive(player, data, questId)
+	end
+end
+
 local function onLoaded(player: Player, data: Data)
 	if not Stages.isValid(data.Life.Stage) then
 		-- Personaje nuevo: nace bebé. Quien ya había jugado antes de la historia de vida sigue adulto.
@@ -953,7 +1605,18 @@ local function onLoaded(player: Player, data: Data)
 	end
 	player:SetAttribute("LifeStage", data.Life.Stage)
 	player:SetAttribute("AgeYears", data.Life.AgeYears)
-	runtime[player] = { Spots = {}, OfferedAt = 0, LastRemote = 0, Ready = false, ClassWaitSince = {} }
+	runtime[player] = {
+		Spots = {},
+		OfferedAt = 0,
+		LastRemote = 0,
+		Ready = false,
+		ClassWaitSince = {},
+		StepStart = {},
+		NudgedAt = {},
+		Fallback = {},
+		Busy = false,
+	}
+	story_defaults(data)
 
 	local story = storyOf(data)
 	-- Quitar misiones que ya no existen (por si se borran de los datos en una actualización)
@@ -986,6 +1649,7 @@ local function onLoaded(player: Player, data: Data)
 		local rt = runtime[player]
 		if rt and not rt.Ready then
 			rt.Ready = true
+			resumeAll(player)
 			refresh(player)
 		end
 	end)
@@ -1007,6 +1671,7 @@ function LifeStoryService.init()
 
 	StoryEvents.connect(onStoryEvent)
 	DataService.onLoaded(onLoaded)
+	SceneService.onInteract = LifeStoryService.interact
 	Players.PlayerRemoving:Connect(function(player)
 		runtime[player] = nil
 	end)

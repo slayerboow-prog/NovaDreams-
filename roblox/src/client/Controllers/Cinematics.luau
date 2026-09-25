@@ -123,12 +123,20 @@ end
 -- Reproducir
 ---------------------------------------------------------------------
 
+local playing = 0
+
+-- ¿Se está viendo una escena? (los diálogos esperan a que termine)
+function Cinematics.isPlaying(): boolean
+	return playing > 0
+end
+
 -- Espera hasta que termina (o hasta que el jugador la salta)
 function Cinematics.play(payload: { [string]: any })
 	local def = Definitions[payload.Id]
 	if not def then
 		return
 	end
+	playing += 1
 	local anchors = payload.Anchors or {}
 	local names = payload.Names or {}
 	local args = payload.Args or {}
@@ -339,6 +347,7 @@ function Cinematics.play(payload: { [string]: any })
 	TweenService:Create(black, TweenInfo.new(0.8), { BackgroundTransparency = 1 }):Play()
 	task.wait(0.8)
 	gui:Destroy()
+	playing = math.max(0, playing - 1)
 end
 
 return Cinematics

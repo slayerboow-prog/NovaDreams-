@@ -4,6 +4,13 @@
 --   Tag = "JobBoard"         -> una pieza con esa etiqueta (CollectionService)
 --   Attribute = { ... }      -> (con Tag) que además tenga esos atributos
 --   Special = "Home"         -> la casa del jugador (su parcela)
+--   Special = "NearPlayer"   -> delante del jugador (personajes que vienen a buscarte)
+--   Between = { "A", "B" }, At = 0.5  -> un punto del camino entre dos lugares, en la acera
+--   Child = "Court"          -> (con Model) una pieza con ese nombre dentro del edificio elegido
+--   Index = 3                -> el tercero del mismo edificio (pupitres); también por actor
+--   Offset = Vector3         -> desplazado (en los ejes del lugar) desde el lugar encontrado
+--   Radius = 8               -> a qué distancia ya "has llegado"
+--   Fallback = "OtroLugar"   -> si este no existe en el mapa, se usa ese
 -- Y cuál elegir si hay varios (Zone):
 --   "Nearest" (por defecto)  -> el más cercano al jugador
 --   "Home"                   -> el más cercano a su casa (su colegio, su parque, su centro de salud)
@@ -21,6 +28,13 @@ export type Place = {
 	Special: string?,
 	Zone: string?,
 	Inside: boolean?,
+	Between: { string }?,
+	At: number?,
+	Child: string?,
+	Index: number?,
+	Offset: Vector3?,
+	Radius: number?,
+	Fallback: string?,
 }
 
 Locations.Places = {
@@ -50,6 +64,19 @@ Locations.Places = {
 	AulaMusica = { NameKey = "PLACE.AULA_MUSICA", Tag = "MusicRoom", Zone = "Home", Inside = true },
 	Patio = { NameKey = "PLACE.PATIO", Tag = "RecessArea", Zone = "Home", Inside = true },
 	Pista = { NameKey = "PLACE.PISTA", Tag = "PEArea", Zone = "Home" },
+	-- Rincones del colegio para las misiones (ver docs/historia/11). "Colegio" = el más cercano a casa.
+	Vestibulo = { NameKey = "Vestíbulo", Tag = "SchoolEntrance", Zone = "Home", Offset = Vector3.new(0, 0, 9), Radius = 7 },
+	Conserjeria = { NameKey = "Conserjería", Tag = "SchoolEntrance", Zone = "Home", Offset = Vector3.new(7, 0, 5), Radius = 6 },
+	AulaA = { NameKey = "Aula de 1.º A", Tag = "Classroom", Attribute = { ClassroomId = "A" }, Zone = "Home", Inside = true, Fallback = "Aula" },
+	PupitreA = { NameKey = "Tu pupitre", Tag = "Desk", Attribute = { ClassroomId = "A" }, Zone = "Home", Radius = 4, Fallback = "AulaA" },
+	PizarraA = { NameKey = "Pizarra", Tag = "TeacherSpot", Attribute = { ClassroomId = "A" }, Zone = "Home", Radius = 5, Fallback = "AulaA" },
+	CanchaColegio = { NameKey = "Cancha de baloncesto", Model = "Colegio", Child = "Court", Zone = "Home", Fallback = "Patio" },
+	CampoColegio = { NameKey = "Campo de fútbol", Model = "Colegio", Child = "Pitch", Zone = "Home", Fallback = "Pista" },
+	GimnasioColegio = { NameKey = "Gimnasio", Model = "Colegio", Child = "Gimnasio", Zone = "Home", Fallback = "CampoColegio" },
+	AlmacenColegio = { NameKey = "Almacén del gimnasio", Model = "Colegio", Child = "Gimnasio", Zone = "Home", Offset = Vector3.new(16, 0, 8), Radius = 7, Fallback = "GimnasioColegio" },
+	JuegosColegio = { NameKey = "Zona de juegos", Model = "Colegio", Child = "Playground", Zone = "Home", Fallback = "Patio" },
+	CaminoAlCole = { NameKey = "Camino al cole", Between = { "CasaFamiliar", "EntradaColegio" }, At = 0.5, Radius = 16, Fallback = "EntradaColegio" },
+	CercaDeTi = { NameKey = "Aquí", Special = "NearPlayer" },
 
 	-- Instituto (el colegio grande de Campus Valmar)
 	Instituto = { NameKey = "PLACE.INSTITUTO", Model = "Colegio", Zone = "Campus Valmar" },
@@ -71,6 +98,8 @@ Locations.Places = {
 	Heladeria = { NameKey = "PLACE.HELADERIA", Tag = "Shop", Attribute = { ShopId = "Heladeria" }, Zone = "Home" },
 	Banco = { NameKey = "PLACE.BANCO", Tag = "Shop", Attribute = { ShopId = "Banco" } },
 	Parque = { NameKey = "PLACE.PARQUE", Model = "Parque", Zone = "Home" },
+	EstanqueParque = { NameKey = "Estanque del parque", Model = "Parque", Child = "PondRim", Zone = "Home", Fallback = "Parque" },
+	JuegosParque = { NameKey = "Columpios del parque", Model = "Parque", Child = "Playground", Zone = "Home", Fallback = "Parque" },
 	Columpios = { NameKey = "PLACE.COLUMPIOS", Model = "Playground", Zone = "Home" },
 	CentroSalud = { NameKey = "PLACE.CENTRO_SALUD", Model = "CentroSalud", Zone = "Home" },
 	Hospital = { NameKey = "PLACE.HOSPITAL", Model = "Hospital" },

@@ -12,6 +12,9 @@ local Cinematics = require(script.Parent.Cinematics)
 local Config = require(script.Parent.Parent.Config)
 local Subjects = require(script.Parent.Subjects)
 local DayPlans = require(script.Parent.DayPlans)
+local Cast = require(script.Parent.Cast)
+local Memories = require(script.Parent.Memories)
+local Items = require(script.Parent.Parent.Items)
 
 local Validate = {}
 
@@ -19,7 +22,10 @@ local STEP_TYPES = {
 	Reach = { "Place" },
 	Event = { "Event" },
 	Talk = { "Npc" },
-	Choice = { "Key", "PromptKey", "Options" },
+	Choice = { "Key", "Options" },
+	Scene = { "Dialogue" },
+	Use = { "Prop" },
+	MiniGame = { "Game" },
 	Wait = { "GameMinutes" },
 	Group = { "Steps" },
 	Moment = {},
@@ -30,7 +36,96 @@ local STEP_TYPES = {
 local function isRef(value: any): boolean
 	return type(value) == "string" and value:sub(1, 9) == "$Carrera."
 end
-local GROUP_CHILD = { Reach = true, Event = true, Talk = true }
+local GROUP_CHILD = { Reach = true, Event = true, Talk = true, Use = true }
+local NO_TEXT = { Moment = true, Transition = true, Cinematic = true, Scene = true, MiniGame = true }
+local MINIGAMES = { Timing = true, Futbol = true }
+local PROP_KINDS = {
+	Mochila = true, Libro = true, Papel = true, Pegatina = true, Huella = true, Llavero = true, Envoltorio = true,
+	Balon = true, Armario = true, Espejo = true, Desayuno = true, Almohada = true, Perchero = true, Papelera = true,
+	Asiento = true, Canasta = true, Kiosco = true, Banco = true, Escarabajo = true, Mural = true, Gato = true,
+	Autobus = true, Caja = true, Marcador = true,
+}
+local TRAITS = { Humor = true, Empatia = true, Valentia = true, Responsabilidad = true, Curiosidad = true, Deportividad = true, Creatividad = true }
+local EFFECTS = {
+	Flags = true, Unflags = true, Rel = true, Traits = true, Memory = true, Remember = true, Items = true, Take = true,
+	Needs = true, Money = true, Spend = true, Choice = true, Gesture = true, Say = true, Later = true, After = true,
+	OnlyIfUntouched = true, Degree = true, SetStage = true,
+}
+-- Una clave de texto es MAYÚSCULAS.CON.PUNTOS; cualquier otra cosa es un texto ya escrito
+local function isKey(value: string): boolean
+	return value:match("^[%u%d_]+%.[%u%d_%.]+$") ~= nil
+end
+
+-- Revisa una misión episódica: diálogos, objetos, actores y a quién se habla en cada paso
+function Validate.mission(id: string, quest: { [string]: any }, err: (string, ...any) -> (), helpers: { [string]: any })
+	local dialogues = quest.Dialogues or {}
+	local props = quest.Props or {}
+	local function dialogue(where: string, name: any)
+		if type(name) == "string" and not dialogues[name] then
+			err("%s: diálogo inexistente '%s'", where, name)
+		end
+	end
+	local function actor(where: string, spec: { [string]: any })
+		if not Cast.People[spec.Npc] then
+			err("%s: actor que no está en el reparto '%s'", where, tostring(spec.Npc))
+		end
+		if spec.Mode ~= "Follow" then
+			helpers.place(where, spec.Place or "CercaDeTi")
+		end
+		dialogue(where, spec.Talk)
+		helpers.requirements(where, spec.If)
+	end
+	local function prop(where: string, propId: string?)
+		if propId and not props[propId] then
+			err("%s: objeto inexistente '%s'", where, propId)
+		end
+	end
+	for name, d in dialogues do
+		helpers.lines(id .. ".dlg." .. name, d.Lines)
+		helpers.effects(id .. ".dlg." .. name, d.Effects)
+	end
+	for propId, def in props do
+		local where = id .. ".prop." .. propId
+		if not PROP_KINDS[def.Kind or "Marcador"] then
+			err("%s: tipo de objeto desconocido '%s'", where, tostring(def.Kind))
+		end
+		helpers.place(where, def.Place)
+		dialogue(where, def.Dialogue)
+		helpers.effects(where, def.Effects)
+	end
+	for i, spec in quest.Actors or {} do
+		actor(id .. ".actor" .. i, spec)
+	end
+	local function checkStep(where: string, s: { [string]: any })
+		for i, spec in s.Actors or {} do
+			actor(where .. ".actor" .. i, spec)
+		end
+		for _, propId in s.Props or {} do
+			prop(where, propId)
+		end
+		dialogue(where, s.Dialogue)
+		if s.Type == "Use" then
+			prop(where, s.Prop)
+		elseif s.Type == "Talk" and not Cast.People[s.Npc] then
+			err("%s: hablar con alguien que no está en el reparto '%s'", where, tostring(s.Npc))
+		elseif s.Type == "Choice" then
+			for _, option in s.Options or {} do
+				prop(where, option.Prop)
+				dialogue(where, option.Dialogue)
+				if option.Npc and not Cast.People[option.Npc] then
+					err("%s: opción con alguien que no está en el reparto '%s'", where, option.Npc)
+				end
+			end
+		elseif s.Type == "Group" then
+			for i, child in s.Steps do
+				checkStep(where .. ".g" .. i, child)
+			end
+		end
+	end
+	for i, s in quest.Steps do
+		checkStep(id .. ".s" .. i, s)
+	end
+end
 
 function Validate.run(): { string }
 	local errors = {}
@@ -45,7 +140,7 @@ function Validate.run(): { string }
 		end
 	end
 	local function text(where: string, key: string?)
-		if key and not Strings.has(key) then
+		if key and isKey(key) and not Strings.has(key) then
 			err("%s: falta el texto '%s'", where, key)
 		end
 	end
@@ -65,6 +160,96 @@ function Validate.run(): { string }
 				err("%s: requiere una misión que no existe '%s'", where, id)
 			end
 		end
+		for npc in req.Rel or {} do
+			if not Cast.People[npc] then
+				err("%s: relación con un personaje que no existe '%s'", where, npc)
+			end
+		end
+		for trait in req.Traits or {} do
+			if not TRAITS[trait] then
+				err("%s: rasgo desconocido '%s'", where, trait)
+			end
+		end
+		for _, key in req.Memories or {} do
+			if not Memories[key] then
+				err("%s: recuerdo desconocido '%s'", where, key)
+			end
+		end
+	end
+	local startedLater: { [string]: boolean } = {}
+	local function effects(where: string, e: { [string]: any }?)
+		if type(e) ~= "table" then
+			return
+		end
+		for key in e do
+			if not EFFECTS[key] then
+				err("%s: efecto desconocido '%s'", where, tostring(key))
+			end
+		end
+		for npc in e.Rel or {} do
+			if not Cast.People[npc] then
+				err("%s: relación con un personaje que no existe '%s'", where, npc)
+			end
+		end
+		for trait in e.Traits or {} do
+			if not TRAITS[trait] then
+				err("%s: rasgo desconocido '%s'", where, trait)
+			end
+		end
+		for _, key in (if type(e.Memory) == "table" then e.Memory else { e.Memory }) do
+			if not Memories[key] then
+				err("%s: recuerdo desconocido '%s'", where, tostring(key))
+			end
+		end
+		for _, list in { e.Items or {}, e.Take or {} } do
+			for id in list do
+				if not Items.get(id) then
+					err("%s: objeto de mochila desconocido '%s'", where, id)
+				end
+			end
+		end
+		for _, later in e.Later or {} do
+			if later.Start then
+				startedLater[later.Start] = true
+				if not Quests[later.Start] then
+					err("%s: Later.Start de una misión que no existe '%s'", where, later.Start)
+				end
+			end
+			if not (later.AfterHours or later.AfterMinutes) then
+				err("%s: Later necesita AfterHours o AfterMinutes", where)
+			end
+		end
+	end
+	local function checkPlace(where: string, id: any)
+		if not isRef(id) and not Locations.Places[id] then
+			err("%s: lugar desconocido '%s'", where, tostring(id))
+		end
+	end
+	-- Diálogos: quién habla, preguntas con opciones, ramas
+	local function lines(where: string, list: { any }?)
+		for i, line in list or {} do
+			local w = where .. ".l" .. i
+			if line.S and line.S ~= "Yo" and line.S ~= "Narrador" and not Cast.People[line.S] then
+				err("%s: habla alguien que no está en el reparto '%s'", w, tostring(line.S))
+			end
+			if line.Ask then
+				if not line.Options or #line.Options == 0 then
+					err("%s: pregunta sin opciones", w)
+				end
+				for j, option in line.Options or {} do
+					if not option.T then
+						err("%s.o%d: opción sin texto", w, j)
+					end
+					effects(w .. ".o" .. j, option.Effects)
+					requirements(w .. ".o" .. j, option.If)
+					lines(w .. ".o" .. j, option.Then)
+				end
+			elseif not line.T and not line.Effects then
+				err("%s: línea sin texto", w)
+			end
+			effects(w, line.Effects)
+			requirements(w, line.If)
+		end
 	end
 	local function step(where: string, s: { [string]: any }, inGroup: boolean)
 		local fields = STEP_TYPES[s.Type]
@@ -73,7 +258,7 @@ function Validate.run(): { string }
 			return
 		end
 		if inGroup and not GROUP_CHILD[s.Type] then
-			err("%s: un Group solo admite Reach, Event o Talk", where)
+			err("%s: un Group solo admite Reach, Event, Talk o Use", where)
 		end
 		for _, field in fields do
 			if s[field] == nil then
@@ -81,11 +266,26 @@ function Validate.run(): { string }
 			end
 		end
 		text(where, s.TextKey)
-		if s.Type ~= "Moment" and s.Type ~= "Transition" and s.Type ~= "Cinematic" and not s.TextKey then
-			err("%s: el paso %s necesita TextKey", where, s.Type)
+		if not NO_TEXT[s.Type] and not s.TextKey and not s.Text then
+			err("%s: el paso %s necesita Text o TextKey", where, s.Type)
 		end
-		if (s.Type == "Reach" or s.Place ~= nil) and not isRef(s.Place) and not Locations.Places[s.Place] then
-			err("%s: lugar desconocido '%s'", where, tostring(s.Place))
+		if s.Type == "Reach" or s.Place ~= nil then
+			checkPlace(where, s.Place)
+		end
+		if s.Type == "MiniGame" and not MINIGAMES[s.Game] then
+			err("%s: minijuego desconocido '%s'", where, tostring(s.Game))
+		end
+		effects(where, s.Effects)
+		effects(where .. ".Late", s.Late)
+		effects(where .. ".Timeout", s.Timeout)
+		effects(where .. ".Win", s.Win)
+		effects(where .. ".Lose", s.Lose)
+		effects(where .. ".Draw", s.Draw)
+		if s.Nudge and not (s.Nudge.After and s.Nudge.T) then
+			err("%s: Nudge necesita After y T", where)
+		end
+		if s.Teleport then
+			checkPlace(where .. ".Teleport", if type(s.Teleport) == "table" then s.Teleport.Place else s.Teleport)
 		end
 		if s.Type == "Class" then
 			if not isRef(s.Subject) and not Subjects.List[s.Subject] then
@@ -105,6 +305,10 @@ function Validate.run(): { string }
 			text(where, s.PromptKey)
 			for _, option in s.Options or {} do
 				text(where, option.TextKey)
+				if not (option.Text or option.TextKey) then
+					err("%s: opción '%s' sin texto", where, tostring(option.Id))
+				end
+				effects(where .. "." .. tostring(option.Id), option.Effects)
 			end
 		end
 		if s.Type == "Group" then
@@ -123,9 +327,7 @@ function Validate.run(): { string }
 		text(id, quest.MomentKey)
 		requirements(id, quest.Requires)
 		if quest.Kind == "Side" then
-			if not quest.Offer then
-				err("%s: una secundaria necesita Offer", id)
-			elseif quest.Offer.Place and not Locations.Places[quest.Offer.Place] then
+			if quest.Offer and quest.Offer.Place and not Locations.Places[quest.Offer.Place] then
 				err("%s: Offer con lugar desconocido '%s'", id, quest.Offer.Place)
 			end
 			text(id, quest.OfferKey)
@@ -156,6 +358,23 @@ function Validate.run(): { string }
 		end
 		if quest.Rewards and quest.Rewards.SetStage and not Stages.isValid(quest.Rewards.SetStage) then
 			err("%s: SetStage desconocida", id)
+		end
+		effects(id .. ".Rewards", quest.Rewards)
+		if quest.Memory and not Memories[quest.Memory] then
+			err("%s: recuerdo desconocido '%s'", id, quest.Memory)
+		end
+		if quest.Dialogues or quest.Props or quest.Actors then
+			Validate.mission(id, quest, err, {
+				place = checkPlace,
+				lines = lines,
+				effects = effects,
+				requirements = requirements,
+			})
+		end
+	end
+	for id, quest in Quests do
+		if quest.Kind == "Side" and not quest.Offer and not startedLater[id] then
+			err("%s: secundaria sin Offer que nadie lanza (Later.Start)", id)
 		end
 	end
 
@@ -193,8 +412,16 @@ function Validate.run(): { string }
 
 	for id, place in Locations.Places do
 		text("lugar " .. id, place.NameKey)
-		if not (place.Model or place.Tag or place.Special) then
-			err("lugar %s: necesita Model, Tag o Special", id)
+		if not (place.Model or place.Tag or place.Special or place.Between) then
+			err("lugar %s: necesita Model, Tag, Special o Between", id)
+		end
+		for _, other in { place.Fallback, place.Between and place.Between[1], place.Between and place.Between[2] } do
+			if other and not Locations.Places[other] then
+				err("lugar %s: hace referencia a un lugar que no existe '%s'", id, other)
+			end
+		end
+		if place.Child and not place.Model then
+			err("lugar %s: Child necesita Model", id)
 		end
 	end
 

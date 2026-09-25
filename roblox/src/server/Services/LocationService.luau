@@ -184,53 +184,176 @@ local function nearest(list: { Spot }, to: Vector3): Spot?
 	return best
 end
 
--- Devuelve el lugar concreto para este jugador (o nil si ahora mismo no existe en el mapa)
-function LocationService.resolve(player: Player, placeId: string): Spot?
-	local place = Locations.Places[placeId]
-	if not place then
-		return nil
+-- La acera más cercana a un punto (las calles las publica el mapa en ReplicatedStorage.Ambient.Roads)
+local SIDEWALK = 13 -- distancia del centro de la calzada a la acera
+local function snapToSidewalk(point: Vector3): Vector3
+	local ambient = ReplicatedStorage:FindFirstChild("Ambient")
+	local roads = ambient and ambient:FindFirstChild("Roads")
+	if not roads then
+		return point
 	end
-	if place.Special == "Home" then
-		return homeSpot(player)
-	end
-	local list = candidates(place)
-	if #list == 0 then
-		return nil
-	end
-	local zone = place.Zone or "Nearest"
-	if zone == "FamilyHome" then
-		-- Solo los de la casa familiar donde vive el jugador (la asigna BabyService)
-		local homeId = player:GetAttribute("FamilyHomeId")
-		local mine = {}
-		for _, spot in list do
-			if homeId ~= nil and spot.Instance:GetAttribute("HomeId") == homeId then
-				table.insert(mine, spot)
+	local best, bestDistance = point, math.huge
+	for _, road in roads:GetChildren() do
+		local axis, at, from, to = road:GetAttribute("Axis"), road:GetAttribute("At"), road:GetAttribute("From"), road:GetAttribute("To")
+		if type(at) == "number" and type(from) == "number" and type(to) == "number" then
+			local lo, hi = math.min(from, to), math.max(from, to)
+			local candidate: Vector3
+			if axis == "X" then
+				local side = if point.Z >= at then 1 else -1
+				candidate = Vector3.new(math.clamp(point.X, lo, hi), point.Y, at + side * SIDEWALK)
+			else
+				local side = if point.X >= at then 1 else -1
+				candidate = Vector3.new(at + side * SIDEWALK, point.Y, math.clamp(point.Z, lo, hi))
+			end
+			local distance = (candidate - point).Magnitude
+			if distance < bestDistance then
+				best, bestDistance = candidate, distance
 			end
 		end
-		list = mine
+	end
+	return best
+end
+
+-- Un punto concreto como lugar (para "a mitad de camino", "delante de ti", desplazamientos…)
+local function pointSpot(instance: Instance, position: Vector3, rotation: CFrame?, radius: number?): Spot
+	return {
+		Instance = instance,
+		Position = position,
+		Radius = radius or 8,
+		Zone = LocationService.zoneAt(position),
+		CFrame = CFrame.new(position) * (rotation or CFrame.identity),
+		Size = Vector3.new(4, 4, 4),
+	}
+end
+
+export type ResolveOptions = { Index: number?, Offset: Vector3? }
+
+local resolveDepth = 0
+
+-- Devuelve el lugar concreto para este jugador (o nil si ahora mismo no existe en el mapa).
+-- options.Index = el n-ésimo del mismo edificio (pupitres); options.Offset = desplazamiento local extra.
+function LocationService.resolve(player: Player, placeId: string, options: ResolveOptions?): Spot?
+	local place = Locations.Places[placeId]
+	if not place or resolveDepth > 4 then
+		return nil
+	end
+	resolveDepth += 1
+	local ok, spot = pcall(function()
+		return LocationService._resolve(player, place, options)
+	end)
+	resolveDepth -= 1
+	if not ok then
+		warn("[LocationService] " .. tostring(spot))
+		spot = nil
+	end
+	if not spot and place.Fallback then
+		return LocationService.resolve(player, place.Fallback, options)
+	end
+	return spot
+end
+
+function LocationService._resolve(player: Player, place: Locations.Place, options: ResolveOptions?): Spot?
+	local spot: Spot? = nil
+	if place.Special == "Home" then
+		spot = homeSpot(player)
+	elseif place.Special == "NearPlayer" then
+		-- Delante del jugador (para personajes que vienen a buscarte)
+		local character = player.Character
+		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+		if root then
+			local look = Vector3.new(root.CFrame.LookVector.X, 0, root.CFrame.LookVector.Z)
+			look = if look.Magnitude > 0.1 then look.Unit else Vector3.new(0, 0, -1)
+			local ground = root.Position - Vector3.new(0, 3, 0) + look * 9
+			spot = pointSpot(root, ground, CFrame.lookAt(Vector3.zero, -look), 10)
+		end
+	elseif place.Between then
+		-- Un punto del camino entre dos lugares, en la acera
+		local a = LocationService.resolve(player, place.Between[1])
+		local b = LocationService.resolve(player, place.Between[2])
+		if a and b then
+			local point = a.Position:Lerp(b.Position, place.At or 0.5)
+			point = snapToSidewalk(point)
+			local direction = Vector3.new(b.Position.X - a.Position.X, 0, b.Position.Z - a.Position.Z)
+			local rotation = if direction.Magnitude > 1 then CFrame.lookAt(Vector3.zero, direction) else nil
+			spot = pointSpot(b.Instance, Vector3.new(point.X, math.min(a.Position.Y, b.Position.Y), point.Z), rotation, place.Radius or 16)
+		end
+	else
+		local list = candidates(place)
 		if #list == 0 then
 			return nil
 		end
-	elseif zone ~= "Nearest" and zone ~= "Home" then
-		local inZone = {}
-		for _, spot in list do
-			if spot.Zone == zone then
-				table.insert(inZone, spot)
+		local zone = place.Zone or "Nearest"
+		if zone == "FamilyHome" then
+			-- Solo los de la casa familiar donde vive el jugador (la asigna BabyService)
+			local homeId = player:GetAttribute("FamilyHomeId")
+			local mine = {}
+			for _, candidate in list do
+				if homeId ~= nil and candidate.Instance:GetAttribute("HomeId") == homeId then
+					table.insert(mine, candidate)
+				end
 			end
+			list = mine
+			if #list == 0 then
+				return nil
+			end
+		elseif zone ~= "Nearest" and zone ~= "Home" then
+			local inZone = {}
+			for _, candidate in list do
+				if candidate.Zone == zone then
+					table.insert(inZone, candidate)
+				end
+			end
+			list = if #inZone > 0 then inZone else list
 		end
-		list = if #inZone > 0 then inZone else list
+		local from = playerPosition(player) or Vector3.zero
+		if zone == "Home" then
+			-- Su casa; si aún no tiene (niños), la casa familiar donde vive
+			local home = homeSpot(player) or familyHomeSpot(player)
+			from = if home then home.Position else from
+		end
+		spot = nearest(list, from)
+		local index = (options and options.Index) or place.Index
+		if spot and index then
+			-- El n-ésimo del mismo edificio (siempre el mismo orden: por posición)
+			local group = {}
+			for _, candidate in list do
+				if candidate.Instance.Parent == spot.Instance.Parent then
+					table.insert(group, candidate)
+				end
+			end
+			-- En los ejes del edificio (no del mundo): 1-4 = primera fila, aunque la calle esté girada
+			local basis = spot.CFrame.Rotation
+			table.sort(group, function(x, y)
+				local px, py = basis:PointToObjectSpace(x.Position), basis:PointToObjectSpace(y.Position)
+				if math.abs(px.X - py.X) > 0.5 then
+					return px.X < py.X
+				end
+				return px.Z < py.Z
+			end)
+			spot = group[(index - 1) % #group + 1]
+		end
+		if spot and place.Child then
+			-- Una pieza con ese nombre dentro del edificio (la cancha del colegio, el estanque del parque…)
+			local child = spot.Instance:FindFirstChild(place.Child, true)
+			spot = if child then spotFor(child) else nil
+		end
+		if spot and place.Inside then
+			-- Copia: el mismo lugar puede servir a la vez para "estar cerca" y "estar dentro"
+			spot = table.clone(spot)
+			spot.Inside = true
+		end
 	end
-	local from = playerPosition(player) or Vector3.zero
-	if zone == "Home" then
-		-- Su casa; si aún no tiene (niños), la casa familiar donde vive
-		local home = homeSpot(player) or familyHomeSpot(player)
-		from = if home then home.Position else from
+	local offset = place.Offset
+	if options and options.Offset then
+		offset = (offset or Vector3.zero) + options.Offset
 	end
-	local spot = nearest(list, from)
-	if spot and place.Inside then
-		-- Copia: el mismo lugar puede servir a la vez para "estar cerca" y "estar dentro"
+	if spot and offset then
+		local rotation = spot.CFrame.Rotation
+		local position = spot.Position + rotation:VectorToWorldSpace(offset)
+		spot = pointSpot(spot.Instance, position, rotation, place.Radius)
+	elseif spot and place.Radius then
 		spot = table.clone(spot)
-		spot.Inside = true
+		spot.Radius = place.Radius
 	end
 	return spot
 end
