@@ -38,6 +38,18 @@ function TerrainBuilder.build()
 		terrain:FillBlock(CFrame.new(r[1], -5, r[2]), Vector3.new(r[3], 8, r[4]), Enum.Material.Ground)
 	end
 
+	-- Debajo de cada manzana (casas, colegios, tiendas…) el terreno se hunde hasta Y = -4.
+	-- El terreno de Roblox va en cubos de 4 studs y su superficie no es exacta: con la cara de arriba
+	-- en -1, en Play sus triángulos llegaban a asomar por encima de los suelos (césped dentro de casa).
+	-- Con -4 (borde exacto de un cubo) queda plano y 4 studs por debajo; las losas de césped lo tapan.
+	local sunken = Region.blockRects()
+	table.insert(sunken, { X0 = -360, X1 = 360, Z0 = -198, Z1 = -20 }) -- Valmar Centro (norte de la avenida)
+	table.insert(sunken, { X0 = -360, X1 = 360, Z0 = 20, Z1 = 240 }) -- Valmar Centro (sur: parcelas de casas)
+	for _, r in sunken do
+		local size = Vector3.new(r.X1 - r.X0, 16, r.Z1 - r.Z0)
+		terrain:FillBlock(CFrame.new((r.X0 + r.X1) / 2, 4, (r.Z0 + r.Z1) / 2), size, Enum.Material.Air)
+	end
+
 	-- Mar al este de Playa Dorada (fondo de arena y agua)
 	terrain:SetMaterialColor(Enum.Material.Sand, Color3.fromRGB(226, 206, 160))
 	terrain:FillBlock(CFrame.new(1700, -4, 0), Vector3.new(120, 6, 4800), Enum.Material.Sand)

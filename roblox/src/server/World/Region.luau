@@ -180,6 +180,21 @@ local function roadSides(i: number, j: number): { string }
 	return sides
 end
 
+-- Rectángulos (X0, X1, Z0, Z1) de todas las manzanas de las ciudades (los usa TerrainBuilder
+-- para hundir el terreno bajo ellas: así nunca asoma por los suelos de las casas)
+function Region.blockRects(): { { X0: number, X1: number, Z0: number, Z1: number } }
+	local list = {}
+	for _, town in Region.Towns do
+		local c = town.Center
+		for j = 1, 4 do
+			for i = 1, 4 do
+				table.insert(list, { X0 = c.X + CELLS[i][1], X1 = c.X + CELLS[i][2], Z0 = c.Z + CELLS[j][1], Z1 = c.Z + CELLS[j][2] })
+			end
+		end
+	end
+	return list
+end
+
 -- Suelo de césped de una manzana: su cara de arriba queda en Y = 0, a ras de las calles.
 -- El terreno de Roblox está 1 stud más abajo (TerrainBuilder) para que nunca asome por encima.
 function Region.groundSlab(parent: Instance, rect: { X0: number, X1: number, Z0: number, Z1: number })
