@@ -132,6 +132,18 @@ local KEEPSAKES = {
 	{ "MedallaOro", "Medalla de oro del torneo", "🥇", "Campeones del torneo del colegio. Pesa más de lo que parece." },
 	{ "MedallaPlata", "Medalla de plata del torneo", "🥈", "Subcampeones. Andrés dijo que la plata se gana con el mismo sudor." },
 	{ "FotoLucia", "Foto de la clase de 1998", "🖼️", "Una niña con jersey amarillo en primera fila. Detrás pone: «Algún día seré profe aquí»." },
+	{ "FotoFestival", "Foto del festival de primavera", "🎉", "Tu familia con todo tu grupo, delante del cartel lleno de purpurina." },
+	{ "Maqueta", "Maqueta del proyecto final", "🔬", "Un poco torcida, llena de pegamento… y con mucha historia." },
+	{ "DiplomaPrimaria", "Diploma de primaria", "🎓", "Firmado por Lucía. Con una carita sonriente al lado de la firma." },
+	{ "Llavero13", "Llavero con el número 13", "🗝️", "Regalo de Ramón: las puertas cerradas a veces esconden cosas bonitas." },
+	{ "CarnetInstituto", "Carnet del instituto", "🪪", "Tu foto de carnet del primer día. Nadie sale bien en las fotos de carnet." },
+	{ "FotoDeLeire", "Foto de Leire", "📷", "Blanco y negro. Tú, el primer día de instituto, con cara de «¿dónde me he metido?»." },
+	{ "InsigniaClub", "Insignia del club", "📌", "La insignia de tu primer club del instituto." },
+	{ "PrimerSobre", "Sobre de tu primer sueldo", "✉️", "Vacío. Pero lo guardas en un cajón y no sabes muy bien por qué." },
+	{ "PulseraGrupo", "Pulsera del grupo", "🧶", "La hizo Omar para todos. «Por si se nos olvida quiénes somos.»" },
+	{ "OrlaInstituto", "Orla del instituto", "🖼️", "Omar con los ojos cerrados, Nico saltando, Sara en su sitio exacto. Y tú, en medio." },
+	{ "CartaRecomendacion", "Carta de recomendación", "📄", "De tu jefe del primer verano. «Puntual, honesto y con ganas de aprender.»" },
+	{ "CuadernoProfesiones", "Cuaderno de profesiones", "📓", "Lo que viste en la semana de las profesiones. «Dentro de unos años lo leerás y te reirás. O no.»" },
 }
 for _, entry in KEEPSAKES do
 	list[entry[1]] = { Id = entry[1], Name = entry[2], Icon = entry[3], Kind = "Keepsake", Desc = entry[4], Stack = 99 }

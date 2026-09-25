@@ -30,6 +30,16 @@ Config.Calendar = {
 	MonthsPerYear = 12,
 }
 
+-- Estaciones y tiempo (shared/Seasons.luau). Un día de juego dura DayLengthMinutes minutos reales,
+-- así que con 7 días por estación cada estación dura unas dos horas y media de juego.
+Config.Seasons = {
+	DaysPerSeason = 7,
+	WeatherHours = 6, -- cada cuántas horas de juego puede cambiar el tiempo
+	Start = "Primavera", -- estación del día 1
+	-- Sonidos (opcional): pon el ID de un audio subido a Roblox. Con 0 no suena nada.
+	Sounds = { Rain = 0, Thunder = 0, Birds = 0, Wind = 0 },
+}
+
 ---------------------------------------------------------------------
 -- Historia de vida (LifeStoryService)
 ---------------------------------------------------------------------

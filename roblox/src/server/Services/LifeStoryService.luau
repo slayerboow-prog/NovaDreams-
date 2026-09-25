@@ -144,6 +144,8 @@ local function contextFor(player: Player, data: Data): Conditions.Context
 		Discovered = story.Discovered,
 		Duties = RoleService.dutiesOf(player),
 		StageProgress = stageProgress(data),
+		Season = workspace:GetAttribute("Season"),
+		Weather = workspace:GetAttribute("Weather"),
 	}
 end
 
@@ -593,11 +595,18 @@ local function sceneFor(player: Player, data: Data, questId: string): ({ { [stri
 	local prog = storyOf(data).Active[questId]
 	local step = prog and stepsOf(questId, prog)[prog.Step]
 	local ctx = contextFor(player, data)
+	local degree = degreeOf(storyOf(data))
 	local actors, props = {}, {}
 	local seenProp = {}
 	local function addActors(list: { { [string]: any } }?)
 		for _, spec in list or {} do
 			if not spec.If or Conditions.check(spec.If, ctx) then
+				-- "$Carrera.Facultad" -> la facultad de la carrera que elegiste
+				local place = Subjects.resolve(spec.Place, degree)
+				if place ~= spec.Place then
+					spec = table.clone(spec)
+					spec.Place = place
+				end
 				table.insert(actors, spec)
 			end
 		end
@@ -638,7 +647,20 @@ local function updateScene(player: Player, data: Data, questId: string)
 		return -- misión sencilla, sin escena
 	end
 	local actors, props = sceneFor(player, data, questId)
-	SceneService.set(player, questId, actors, props, quest.Props)
+	-- Objetos en "$Carrera.X": se colocan donde toca según tu carrera
+	local defs = quest.Props
+	local degree = degreeOf(storyOf(data))
+	for id, def in quest.Props or {} do
+		local place = Subjects.resolve(def.Place, degree)
+		if place ~= def.Place then
+			if defs == quest.Props then
+				defs = table.clone(quest.Props)
+			end
+			defs[id] = table.clone(def)
+			defs[id].Place = place
+		end
+	end
+	SceneService.set(player, questId, actors, props, defs)
 end
 
 local startInteractive -- se define más abajo

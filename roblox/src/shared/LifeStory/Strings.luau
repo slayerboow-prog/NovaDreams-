@@ -183,14 +183,6 @@ Strings.es = {
 	["QUEST.RECADOS.VOLVER"] = "Vuelve a {place} con todo",
 	["QUEST.EXAMEN.TITLE"] = "Tu primer examen",
 	["QUEST.EXAMEN.ESTUDIA"] = "Estudia {subject} en {place}",
-	["QUEST.TRIMESTRE.TITLE"] = "El segundo trimestre",
-	["QUEST.TRIMESTRE.HISTORIA"] = "Clase de {subject}: la historia de Valmar",
-	["QUEST.TRIMESTRE.SARA"] = "Sara quiere hacer contigo el proyecto de ciencias: búscala en {place}",
-	["QUEST.TRIMESTRE.PROYECTO"] = "Prepara el proyecto de {subject} con Sara",
-	["QUEST.TRIMESTRE.CONCIERTO"] = "Concierto de fin de trimestre en {place}",
-	["QUEST.FIN_PRIMARIA.TITLE"] = "Fin de primaria",
-	["QUEST.FIN_PRIMARIA.FIESTA"] = "Fiesta de fin de curso en {place}",
-	["QUEST.FIN_PRIMARIA.DESPIDE"] = "Despídete de tus amigos",
 
 	-- Días generados (DayPlans)
 	["QUEST.DIA_COLE.TITLE"] = "Un día de cole",
@@ -216,11 +208,6 @@ Strings.es = {
 	["QUEST.DIA.REPASO"] = "Repasa {subject} en {place}",
 
 	-- Instituto
-	["QUEST.INSTITUTO.TITLE"] = "Nuevo instituto",
-	["QUEST.INSTITUTO.BUS"] = "Coge el autobús a Campus Valmar en {place}",
-	["QUEST.INSTITUTO.BUSCA"] = "Busca {place}",
-	["QUEST.VERANO.TITLE"] = "Tu primer trabajo de verano",
-	["QUEST.VERANO.TRABAJA"] = "Busca un cartel de SE BUSCA y trabaja ({count}/{total})",
 	["QUEST.FUTURO.TITLE"] = "Decide tu futuro",
 	["QUEST.FUTURO.VISITA"] = "Jornada de puertas abiertas: visita {place}",
 	["QUEST.FUTURO.DECIDE"] = "Decide qué quieres hacer al terminar el instituto",
@@ -257,11 +244,6 @@ Strings.es = {
 	["MOMENT.PRIMERA_SEMANA"] = "Has terminado tu primera semana de colegio.",
 	["MOMENT.PRIMEROS_RECADOS"] = "Has hecho tus primeros recados sin ayuda.",
 	["MOMENT.PRIMER_EXAMEN"] = "Has hecho tu primer examen.",
-	["MOMENT.PROYECTO_SARA"] = "Tu proyecto con Sara ha quedado genial.",
-	["MOMENT.FIN_PRIMARIA"] = "Has terminado la primaria.",
-	["MOMENT.NUEVO_INSTITUTO"] = "Empiezas el instituto.",
-	["MOMENT.PRIMER_TRABAJO"] = "Has cobrado tu primer sueldo.",
-	["MOMENT.DECIDES_FUTURO"] = "Has decidido tu futuro.",
 	["MOMENT.UNI_EMPIEZA"] = "Has empezado la universidad.",
 	["MOMENT.UNI_SEMESTRE1"] = "Has aprobado tu primer semestre.",
 	["MOMENT.UNI_SEMESTRE2"] = "Segundo semestre superado.",

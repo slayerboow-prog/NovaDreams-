@@ -6,6 +6,8 @@ local Hud = require(script.Parent.UI.Hud)
 local Store = require(script.Parent.UI.Store)
 local TaskMarker = require(script.Parent.Controllers.TaskMarker)
 local Ambient = require(script.Parent.Controllers.Ambient)
+local Weather = require(script.Parent.Controllers.Weather)
+local Wildlife = require(script.Parent.Controllers.Wildlife)
 local StoryAudio = require(script.Parent.Controllers.StoryAudio)
 local DayLight = require(script.Parent.Controllers.DayLight)
 local LifeStory = require(script.Parent.Controllers.LifeStory)
@@ -38,6 +40,8 @@ task.spawn(DialogueUI.init) -- conversaciones de las misiones (con respuestas y 
 task.spawn(MiniGameUI.init) -- pase, canastas, partido de fútbol
 task.spawn(SceneClient.init) -- cada uno ve solo los personajes de su historia
 task.spawn(Ambient.init) -- tráfico y peatones
+task.spawn(Weather.init) -- estaciones y tiempo: lluvia, tormenta, nieve, hojas de otoño
+task.spawn(Wildlife.init) -- pájaros, palomas, mariposas, patos, perros, gatos y animales de granja
 task.spawn(Vehicles.init) -- bicis, monopatines, motos y coches
 task.spawn(Arcade.init) -- recreativos
 task.spawn(DrivingSchool.init) -- autoescuela

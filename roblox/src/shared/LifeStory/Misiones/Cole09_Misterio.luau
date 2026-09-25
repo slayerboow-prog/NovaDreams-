@@ -78,7 +78,7 @@ return {
 	Requires = { Completed = { "Cole08_Torneo" }, StageProgress = 0.62 },
 	Npcs = { "Nico", "Sara", "Omar", "Iker", "Mateo", "Hugo", "Marisa", "Ramon", "Lucia" },
 	Locations = { "Patio", "TaquillaColegio", "BibliotecaColegio", "Conserjeria", "AlmacenColegio", "SalaCerradaPuerta", "SalaCerrada", "AulaA" },
-	Next = { "Nino_SegundoTrimestre" },
+	Next = { "Cole10_Festival" },
 	Outcomes = { "Permiso o a escondidas", "Devolver la foto, enseñarla o guardar el secreto", "Qué metes en la cápsula" },
 
 	Moment = "El secreto de la sala cerrada",

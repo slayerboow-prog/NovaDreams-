@@ -249,4 +249,29 @@ return {
 			} },
 		},
 	},
+	{
+		Id = "Eco_Periodico",
+		Kind = "Side",
+		Title = "El periódico de Valmar",
+		Description = "Tu proyecto sale en el periódico.",
+		Type = "Consecuencia (1 h después de «El proyecto final», si sale premiado)",
+		Duration = { 2, 4 },
+		Npcs = { "Familia" },
+		Requires = { Stage = { Min = "Nino", Max = "Adolescente" } },
+		Moment = "Saliste en el periódico de Valmar",
+		Steps = {
+			{ Type = "Talk", Npc = "Familia", Dialogue = "Periodico", Text = "{familia} te busca con el periódico en la mano",
+				Actors = { { Npc = "Familia", Place = "CercaDeTi", Offset = Vector3.new(0, 0, -5), Mode = "Wave" } } },
+		},
+		Dialogues = {
+			Periodico = { Lines = {
+				{ S = "Familia", T = "¡{nombre}! ¡Mira! ¡Página cinco del periódico de Valmar! «Alumnos de 4.º A inventan…» ¡Sois vosotros!" },
+				{ S = "Familia", T = "Dicen que el ayuntamiento quiere probar el huerto en el cole de verdad. ¡En el cole de verdad!", If = { Choices = { Tema = "Huerto" } } },
+				{ S = "Familia", T = "Dicen que un taller del barrio os quiere ayudar a construir el robot de verdad.", If = { Choices = { Tema = "Robot" } } },
+				{ S = "Familia", T = "Dicen que la protectora de animales quiere poner vuestro tablón en la plaza.", If = { Choices = { Tema = "Mascotas" } } },
+				{ S = "Familia", T = "Dicen que el colegio abrirá el museo el día de las familias. Y sale la foto de Lucía de pequeña. Qué graciosa.", If = { Choices = { Tema = "Museo" } } },
+				{ S = "Familia", T = "Lo voy a recortar y lo pongo en la nevera. Al lado de la foto del festival. Esa nevera ya es un museo." },
+			}, Effects = { Traits = { Responsabilidad = 1 } } },
+		},
+	},
 }
