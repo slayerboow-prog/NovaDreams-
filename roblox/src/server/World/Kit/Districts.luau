@@ -550,6 +550,93 @@ function Districts.cells(towns: { Vector3 }): { Cell }
 	return cells
 end
 
+-- Trabajadores de los edificios importantes: aquí solo se marca dónde están (pieza invisible
+-- "WorkerSpot" con el oficio en Role); los crea WorldService al empezar la partida.
+local WORKERS: { [string]: { string } } = {
+	TorreValmar = { "Guardia", "Recepcionista" },
+	Ayuntamiento = { "Funcionario", "Guardia" },
+	EstacionCentral = { "Revisor", "Taquillero" },
+	EstacionAutobuses = { "Conductor", "Revisor" },
+	Museo = { "Guía" },
+	Teatro = { "Taquillero" },
+	GranCentroComercial = { "Dependiente", "Guardia" },
+	Feria = { "Feriante", "Feriante" },
+	Camping = { "Monitor" },
+	HospitalCentral = { "Médico", "Enfermera" },
+	ClinicaOeste = { "Médico" },
+	ClinicaEste = { "Enfermera" },
+	ComisariaCentral = { "Policía", "Policía" },
+	ComisariaSur = { "Policía" },
+	ColegioCentro = { "Conserje" },
+	ColegioNorte = { "Conserje" },
+	ColegioOeste = { "Conserje" },
+	ColegioSur = { "Conserje" },
+	InstitutoEste = { "Conserje" },
+	Hotel = { "Recepcionista" },
+}
+
+-- Busca sitios libres cerca del borde de la manzana (sin paredes ni muebles encima)
+local function workerSpots(block: Instance, cell: Rect, roles: { string })
+	local boxes = {}
+	for _, p in block:GetDescendants() do
+		if p:IsA("BasePart") and p.Name ~= "BlockGround" then
+			local cf, size = p.CFrame, p.Size
+			local ex = math.abs(cf.RightVector.X) * size.X + math.abs(cf.UpVector.X) * size.Y + math.abs(cf.LookVector.X) * size.Z
+			local ey = math.abs(cf.RightVector.Y) * size.X + math.abs(cf.UpVector.Y) * size.Y + math.abs(cf.LookVector.Y) * size.Z
+			local ez = math.abs(cf.RightVector.Z) * size.X + math.abs(cf.UpVector.Z) * size.Y + math.abs(cf.LookVector.Z) * size.Z
+			if cf.Y - ey / 2 < 6 and cf.Y + ey / 2 > 0.3 then
+				table.insert(boxes, { cf.X - ex / 2 - 2.5, cf.X + ex / 2 + 2.5, cf.Z - ez / 2 - 2.5, cf.Z + ez / 2 + 2.5 })
+			end
+		end
+	end
+	local function free(x: number, z: number): boolean
+		for _, b in boxes do
+			if x > b[1] and x < b[2] and z > b[3] and z < b[4] then
+				return false
+			end
+		end
+		return true
+	end
+	-- Candidatos a 7 studs de cada borde, empezando por el centro de cada lado; mirando hacia fuera
+	local cx, cz = (cell.X0 + cell.X1) / 2, (cell.Z0 + cell.Z1) / 2
+	local w, d = cell.X1 - cell.X0, cell.Z1 - cell.Z0
+	local candidates = {}
+	for t = 0, 0.45, 0.05 do
+		for _, sign in { 1, -1 } do
+			local o = t * sign
+			table.insert(candidates, { cx + o * w, cell.Z1 - 7, 0, 1, t })
+			table.insert(candidates, { cx + o * w, cell.Z0 + 7, 0, -1, t })
+			table.insert(candidates, { cell.X1 - 7, cz + o * d, 1, 0, t })
+			table.insert(candidates, { cell.X0 + 7, cz + o * d, -1, 0, t })
+		end
+	end
+	local placed = {}
+	for _, c in candidates do
+		if #placed >= #roles then
+			break
+		end
+		local far = true
+		for _, q in placed do
+			if (q.X - c[1]) ^ 2 + (q.Z - c[2]) ^ 2 < 14 * 14 then
+				far = false
+			end
+		end
+		if far and free(c[1], c[2]) then
+			local pos = Vector3.new(c[1], 0, c[2])
+			table.insert(placed, pos)
+			local spot = Builder.decor({
+				Name = "WorkerSpot",
+				Size = Vector3.new(1, 1, 1),
+				CFrame = Builder.facing(pos + Vector3.new(0, 0.5, 0), Vector3.new(c[3], 0, c[4])),
+				Transparency = 1,
+				Parent = block,
+			})
+			spot:SetAttribute("Role", roles[#placed])
+			spot:AddTag("WorkerSpot")
+		end
+	end
+end
+
 function Districts.build(world: Instance, towns: { Vector3 })
 	local folder = Builder.model("Distritos", world)
 	local models: { [string]: Model } = {}
@@ -572,6 +659,9 @@ function Districts.build(world: Instance, towns: { Vector3 })
 		local build = builders[cell.Kind]
 		if build then
 			build(block, cell)
+		end
+		if WORKERS[cell.Kind] then
+			workerSpots(block, cell, WORKERS[cell.Kind])
 		end
 	end
 	return folder

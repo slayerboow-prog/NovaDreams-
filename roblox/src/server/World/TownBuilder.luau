@@ -593,15 +593,13 @@ local function buildGround(world: Instance)
 	end
 end
 
--- Bosques y arboledas en el campo (lejos de calles, manzanas, agua y montañas)
-local function buildOutskirts(world: Instance)
-	local folder = Builder.model("Campo", world)
+-- ¿Hay algo construido aquí? (barrios, calles, manzanas, puerto…)
+local function builtAt(): (x: number, z: number) -> boolean
 	local roads = Region.roads()
 	table.insert(roads, ROADS.Residential)
-	local function blocked(x: number, z: number): boolean
-		if not CityPlan.inside(CityPlan.Coast, x, z) then
-			return true
-		end
+	local Districts = require(Kit.Districts)
+	local centers = Region.centers()
+	return function(x: number, z: number): boolean
 		if math.abs(x) < 400 and z > -240 and z < 280 then
 			return true -- Valmar Centro
 		end
@@ -615,6 +613,17 @@ local function buildOutskirts(world: Instance)
 			if along >= road.From - 30 and along <= road.To + 30 and math.abs(across - road.At) < 34 then
 				return true
 			end
+		end
+		return Landmarks.blocked(x, z) or Roads.near(x, z, 16) or Districts.blocked(x, z, centers)
+	end
+end
+
+-- Bosques y arboledas en el campo (lejos de calles, manzanas, agua y montañas)
+local function buildOutskirts(world: Instance, built: (number, number) -> boolean)
+	local folder = Builder.model("Campo", world)
+	local function blocked(x: number, z: number): boolean
+		if not CityPlan.inside(CityPlan.Coast, x, z) then
+			return true
 		end
 		if CityPlan.riverDistance(x, z) < CityPlan.River.Width / 2 + 40 then
 			return true
@@ -635,7 +644,7 @@ local function buildOutskirts(world: Instance)
 				return true
 			end
 		end
-		return Landmarks.blocked(x, z) or Roads.near(x, z, 16) or require(Kit.Districts).blocked(x, z, Region.centers())
+		return built(x, z)
 	end
 	-- Grupos de árboles (bosquecillos) en vez de árboles sueltos al azar
 	local b = CityPlan.Bounds
@@ -688,7 +697,9 @@ function TownBuilder.build(): Folder
 	Roads.build(world) -- Ronda, avenidas, diagonales, rotondas y puentes (CityPlan.Roads)
 	require(Kit.Districts).build(world, Region.centers()) -- manzanas de los 6 distritos
 	Landmarks.build(world) -- puerto, isla del faro y mirador
-	buildOutskirts(world)
+	local built = builtAt()
+	buildOutskirts(world, built)
+	require(Kit.Wilds).build(world, built) -- bosques de montaña, orillas del río, parque del lago y playas
 	-- Repaso final: que ninguna moldura, bordillo o cristalera parpadee contra la pared de detrás
 	-- (varias pasadas: al crecer una pieza puede quedar a ras de otra)
 	for _ = 1, 4 do
