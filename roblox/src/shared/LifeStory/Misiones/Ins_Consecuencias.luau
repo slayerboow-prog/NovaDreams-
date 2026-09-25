@@ -85,7 +85,7 @@ return {
 				{ S = "Narrador", T = "«A quien corresponda: {nombre} trabajó en este supermercado. Ni una caja mal puesta. Hmm. Recomendable.» Firma: Paco.", If = { Choices = { Empleo = "Reponedor" } } },
 				{ S = "Narrador", T = "«A quien corresponda: {nombre} repartió en Valmar todo un verano. Ni un paquete perdido. El perro del 14 lo echa de menos.» Firma: Ernesto.", If = { Choices = { Empleo = "Repartidor" } } },
 				{ S = "Familia", T = "Guárdala bien. Algún día, en tu primer trabajo de verdad, esto valdrá oro." },
-			}, Effects = { Items = { CartaRecomendacion = 1 }, Traits = { Responsabilidad = 1 } } },
+			}, Effects = { Items = { CartaRecomendacion = 1 }, Flags = { "TieneCartaRecomendacion" }, Traits = { Responsabilidad = 1 } } },
 		},
 	},
 

@@ -219,9 +219,6 @@ Strings.es = {
 	["QUEST.FUTURO.OPT_TRABAJAR"] = "Empezar a trabajar ya",
 
 	-- Universidad
-	["QUEST.UNI_DIA1.TITLE"] = "Primer día de universidad",
-	["QUEST.UNI_SEM1.TITLE"] = "El primer semestre",
-	["QUEST.UNI_SEM2.TITLE"] = "El segundo semestre",
 	["QUEST.UNI_SEM3.TITLE"] = "El tercer semestre",
 	["QUEST.UNI_PRACTICAS.TITLE"] = "Las prácticas",
 	["QUEST.UNI_GRADUACION.TITLE"] = "La graduación",
@@ -231,7 +228,6 @@ Strings.es = {
 	["QUEST.UNI.EXAMEN"] = "Examen de {subject} en {place}",
 	["QUEST.UNI.EXAMEN_FINAL"] = "Examen final de {subject}",
 	["QUEST.UNI.REPASO"] = "Repaso final de {subject} en {place}",
-	["QUEST.UNI.DESCUBRE_BIBLIOTECA"] = "Descubre {place}",
 	["QUEST.UNI.TRABAJO_PARCIAL"] = "Trabaja a tiempo parcial para pagarte los estudios ({count}/{total})",
 	["QUEST.UNI.PARTIDO"] = "Partido de los Búhos en {place}",
 	["QUEST.UNI.ANIMA"] = "¡Anima a los Búhos!",
@@ -244,9 +240,6 @@ Strings.es = {
 	["MOMENT.PRIMERA_SEMANA"] = "Has terminado tu primera semana de colegio.",
 	["MOMENT.PRIMEROS_RECADOS"] = "Has hecho tus primeros recados sin ayuda.",
 	["MOMENT.PRIMER_EXAMEN"] = "Has hecho tu primer examen.",
-	["MOMENT.UNI_EMPIEZA"] = "Has empezado la universidad.",
-	["MOMENT.UNI_SEMESTRE1"] = "Has aprobado tu primer semestre.",
-	["MOMENT.UNI_SEMESTRE2"] = "Segundo semestre superado.",
 	["MOMENT.UNI_SEMESTRE3"] = "Tercer semestre superado. ¡Ya casi!",
 	["MOMENT.UNI_PRACTICAS"] = "Has terminado tus prácticas.",
 	["MOMENT.GRADUADO"] = "Te has graduado. Tu vida profesional está a punto de comenzar.",

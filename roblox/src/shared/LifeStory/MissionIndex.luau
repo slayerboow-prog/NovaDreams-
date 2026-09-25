@@ -24,6 +24,10 @@ return {
 	require(Misiones.Ins04_PrimerEmpleo),
 	require(Misiones.Ins05_ElRumor),
 	require(Misiones.Ins06_LaGranDecision),
+	require(Misiones.Uni01_PrimerDia),
+	require(Misiones.Uni02_ElProyecto),
+	require(Misiones.Uni03_PrimerTrabajo),
+	require(Misiones.Uni_Consecuencias),
 	require(Misiones.Ins_Consecuencias),
 	require(Misiones.Cole_Consecuencias),
 }

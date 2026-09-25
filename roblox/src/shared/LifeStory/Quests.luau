@@ -138,50 +138,10 @@ local Quests: { [string]: Quest } = {
 	-----------------------------------------------------------------
 	-- UNIVERSIDAD (unas 5 horas). "$Carrera.X" = lo de la carrera que elegiste (Subjects.Degrees)
 	-----------------------------------------------------------------
-	Uni_PrimerDia = {
-		Kind = "Main",
-		TitleKey = "QUEST.UNI_DIA1.TITLE",
-		Steps = {
-			{ Type = "Reach", Place = "$Carrera.Facultad", TextKey = "QUEST.UNI.BUSCA_FACULTAD" },
-			{ Type = "Class", Subject = "$Carrera.Asignatura1", Mode = "Clase", Place = "$Carrera.Facultad", TextKey = "QUEST.UNI.CLASE" },
-			{ Type = "Reach", Place = "Biblioteca", TextKey = "QUEST.UNI.DESCUBRE_BIBLIOTECA" },
-			{ Type = "Class", Subject = "$Carrera.Asignatura1", Mode = "Estudio", Place = "Biblioteca", TextKey = "QUEST.UNI.ESTUDIA" },
-		},
-		MomentKey = "MOMENT.UNI_EMPIEZA",
-	},
-	Uni_PrimerSemestre = {
-		Kind = "Main",
-		TitleKey = "QUEST.UNI_SEM1.TITLE",
-		Requires = { Completed = { "Uni_PrimerDia" }, StageProgress = 0.15 },
-		Steps = {
-			{ Type = "Class", Subject = "$Carrera.Asignatura2", Mode = "Clase", Place = "$Carrera.Facultad", TextKey = "QUEST.UNI.CLASE" },
-			{ Type = "Class", Subject = "$Carrera.Asignatura1", Mode = "Clase", Place = "$Carrera.Facultad", TextKey = "QUEST.UNI.CLASE" },
-			{ Type = "Event", Event = "JobTaskDone", Count = 2, TextKey = "QUEST.UNI.TRABAJO_PARCIAL" },
-			{ Type = "Class", Subject = "$Carrera.Asignatura2", Mode = "Estudio", Place = "Biblioteca", TextKey = "QUEST.UNI.ESTUDIA" },
-			{ Type = "Class", Subject = "$Carrera.Asignatura1", Mode = "Examen", Place = "$Carrera.Facultad", TextKey = "QUEST.UNI.EXAMEN" },
-		},
-		Rewards = { Money = 100 },
-		MomentKey = "MOMENT.UNI_SEMESTRE1",
-	},
-	Uni_SegundoSemestre = {
-		Kind = "Main",
-		TitleKey = "QUEST.UNI_SEM2.TITLE",
-		Requires = { Completed = { "Uni_PrimerSemestre" }, StageProgress = 0.35 },
-		Steps = {
-			{ Type = "Class", Subject = "$Carrera.Asignatura2", Mode = "Clase", Place = "$Carrera.Facultad", TextKey = "QUEST.UNI.CLASE" },
-			{ Type = "Reach", Place = "EstadioUniversitario", TextKey = "QUEST.UNI.PARTIDO" },
-			{ Type = "Wait", GameMinutes = 40, TextKey = "QUEST.UNI.ANIMA" },
-			{ Type = "Class", Subject = "$Carrera.Asignatura1", Mode = "Clase", Place = "$Carrera.Facultad", TextKey = "QUEST.UNI.CLASE" },
-			{ Type = "Class", Subject = "$Carrera.Asignatura2", Mode = "Estudio", Place = "Biblioteca", TextKey = "QUEST.UNI.ESTUDIA" },
-			{ Type = "Class", Subject = "$Carrera.Asignatura2", Mode = "Examen", Place = "$Carrera.Facultad", TextKey = "QUEST.UNI.EXAMEN" },
-		},
-		Rewards = { Money = 100 },
-		MomentKey = "MOMENT.UNI_SEMESTRE2",
-	},
 	Uni_Practicas = {
 		Kind = "Main",
 		TitleKey = "QUEST.UNI_PRACTICAS.TITLE",
-		Requires = { Completed = { "Uni_SegundoSemestre" }, StageProgress = 0.55 },
+		Requires = { Completed = { "Uni03_PrimerTrabajo" }, StageProgress = 0.55 },
 		Steps = {
 			{ Type = "Reach", Place = "$Carrera.LugarPracticas", TextKey = "QUEST.UNI.PRACTICAS_IR" },
 			{ Type = "Class", Subject = "$Carrera.Practica", Mode = "Practica", Place = "$Carrera.LugarPracticas", TextKey = "QUEST.UNI.PRACTICAS_DIA1" },

@@ -1210,11 +1210,63 @@ check(leoData.Story.Choices.Estudios and leoData.Story.Choices.Estudios.V == "In
 check(said(leo, "Algunos esperasteis un ascensor") and leoData.Items.OrlaInstituto == 1 and leoData.Story.Memories.LaGranDecision ~= nil, "Graduación del instituto: orla y recuerdo")
 check(cinematic(leo, "Adol_Selectividad"), "Cinemática de selectividad")
 task.wait(0.8)
-check(leoData.Story.Active.Uni_PrimerDia ~= nil and cinematic(leo, "Uni_PrimerDia"), "Empieza la universidad con su cinemática")
-state = lastState(leo)
-check(state.Tracked.Args.placeKey ~= nil and state.Tracked.Args.placeKey:find("INGENIERIA") ~= nil, "La tarjeta manda a la Facultad de Ingeniería")
+check(leoData.Story.Active.Uni01_PrimerDia ~= nil and cinematic(leo, "Uni_PrimerDia"), "Empieza la universidad con su cinemática")
 
-print("\n▶ La universidad: carrera elegida y graduación")
+local function lastExtra(subject: string, mode: string): number?
+	local extra = nil
+	for _, call in classCalls do
+		if call.Player == leo and call.Subject == subject and call.Mode == mode then
+			extra = call.Extra
+		end
+	end
+	return extra
+end
+
+print("\n▶ Universidad 01 «Primer día en el campus» (el reloj, Luca, tu facultad, Beltrán)")
+leo.Prefer = { "Lo voy a cuidar" }
+leo.Picks = { ComidaUni = "Luca" }
+leoData.Life.StageSeconds = 0
+check(playUntil(leo, function()
+	return leoData.Story.Completed.Uni01_PrimerDia ~= nil
+end), "Universidad 01 completa")
+check(said(leo, "te da un reloj viejo") and leoData.Items.RelojAbu == 1, "{abu} te regala su reloj")
+check(said(leo, "Facultad de Ingeniería. Física el primer día") and table.find(classesOf(leo), "Fisica") ~= nil, "El horario y la clase son los de tu carrera (Ingeniería)")
+check(said(leo, "Juntos otra vez."), "Mateo (tu primer amigo) estudia Ingeniería contigo")
+check(said(leo, "me ha dado croquetas gratis") and said(leo, "Por eso me hice voluntario"), "Descubres el campus y comes con Luca")
+check(said(leo, "Me han llamado «el nuevo»") and leoData.Items.CarnetUniversitario == 1 and leoData.Story.Memories.PrimerDiaUni ~= nil, "Por la noche, el grupo de siempre por mensajes; carnet y recuerdo")
+
+print("\n▶ Universidad 02 «El proyecto» (un grupo con personalidades)")
+leo.Prefer = { "No tienes que cargar", "Coordinar no es mandar", "Hacemos las reuniones por la mañana", "¿Y si haces la música", "Cada uno en lo que se le da bien" }
+leo.Picks = {
+	Gestion = function()
+		return if said(leo, "En la vida no se eligen los compañeros") then "Hablar" else "Cambiar" -- primero pide cambiarse
+	end,
+}
+leoData.Life.StageSeconds = 0.19 * HOURS.AdultoJoven * 3600
+check(playUntil(leo, function()
+	return leoData.Story.Completed.Uni02_ElProyecto ~= nil
+end), "Universidad 02 completa")
+check(said(leo, "diseñar un puente peatonal"), "El proyecto es de tu carrera")
+check(said(leo, "En la vida no se eligen los compañeros") and leoData.Story.Choices.Gestion.V == "Hablar", "Pedir cambiar de grupo no se puede; decides hablar con cada uno")
+check(said(leo, "Tengo una beca") and said(leo, "Es mi hermano") and said(leo, "Lo mío es esto"), "Descubres qué le pasa a cada uno")
+check(leoData.Story.Flags.EquipoUnido and lastExtra("Calculo", "Examen") == 5, "Equipo unido: 5 segundos más en la presentación")
+check(said(leo, "Se nota un equipo detrás") and leoData.Items.FotoEquipoUni == 1 and leoData.Story.Memories.ElProyectoUni ~= nil, "Sobresaliente, foto del grupo cuatro y recuerdo")
+passTime(leo, 3 * 3600 + 100)
+check(leoData.Story.Active.Eco_Concierto ~= nil and playQuest(leo, "Eco_Concierto") and said(leo, "Voy a terminar la carrera"), "Tres horas después, el concierto de Pablo")
+
+print("\n▶ Universidad 03 «El primer trabajo» (perfil, ofertas, Alba, decir que no)")
+leo.Prefer = { "Las fracciones con dinosaurios", "Decir que no, con educación" }
+leo.Picks = { TrabajoUni = "Clases" }
+leoData.Life.StageSeconds = 0.37 * HOURS.AdultoJoven * 3600
+check(playUntil(leo, function()
+	return leoData.Story.Completed.Uni03_PrimerTrabajo ~= nil
+end), "Universidad 03 completa")
+check(said(leo, "Valía oro, sí."), "La carta de recomendación del instituto sirve en tu perfil")
+check(leoData.Story.Choices.TrabajoUni.V == "Clases" and said(leo, "¡UN SIETE!"), "Clases particulares: Alba aprueba fracciones con dinosaurios")
+check(not leoData.Story.Flags.CubristeTurno and lastExtra("Fisica", "Examen") == 5, "Dices que no a tiempo y llegas al examen con repaso (5 s más)")
+check(leoData.Items.ContratoTrabajo == 1 and leoData.Story.Memories.PrimerTrabajoUni ~= nil and said(leo, "Te he hecho un dibujo"), "Contrato, recuerdo y el dibujo de Alba")
+
+print("\n▶ La universidad: prácticas y graduación")
 leoData.Life.StageSeconds = HOURS.AdultoJoven * 3600
 check(playUntil(leo, function()
 	return leoData.Story.Completed.Uni_Graduacion ~= nil
@@ -1241,7 +1293,7 @@ check(playUntil(eva, function()
 end, "Trabajar"), "Instituto terminado")
 task.wait(1)
 check(evaData.Story.Flags.EmpiezaATrabajar and not evaData.Story.Flags.VaALaUniversidad, "Elige trabajar")
-check(evaData.Story.Active.Uni_PrimerDia == nil and evaData.Story.Active.Adulto_LlegadaValmar ~= nil, "No va a la universidad: empieza directamente la vida adulta")
+check(evaData.Story.Active.Uni01_PrimerDia == nil and evaData.Story.Active.Adulto_LlegadaValmar ~= nil, "No va a la universidad: empieza directamente la vida adulta")
 
 print(("\n%s"):format(if failures == 0 then "✅ Todo correcto" else ("❌ %d fallos"):format(failures)))
 process.exit(if failures == 0 then 0 else 1)

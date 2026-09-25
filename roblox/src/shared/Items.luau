@@ -143,6 +143,10 @@ local KEEPSAKES = {
 	{ "PulseraGrupo", "Pulsera del grupo", "🧶", "La hizo Omar para todos. «Por si se nos olvida quiénes somos.»" },
 	{ "OrlaInstituto", "Orla del instituto", "🖼️", "Omar con los ojos cerrados, Nico saltando, Sara en su sitio exacto. Y tú, en medio." },
 	{ "CartaRecomendacion", "Carta de recomendación", "📄", "De tu jefe del primer verano. «Puntual, honesto y con ganas de aprender.»" },
+	{ "CarnetUniversitario", "Carnet universitario", "🎫", "Tu foto de carnet de la universidad. Sales igual de mal que en la del instituto." },
+	{ "RelojAbu", "El reloj de tu abuelo o abuela", "⌚", "Viejo, con la correa gastada. Todavía hace tic-tac muy bajito." },
+	{ "FotoEquipoUni", "Foto del grupo cuatro", "📸", "Julia, Adrián, Carla, Pablo con su guitarra… y tú." },
+	{ "ContratoTrabajo", "Tu primer contrato", "📝", "Con tu nombre, tus horas y hasta impuestos. Te hizo sentir adulto o adulta." },
 	{ "CuadernoProfesiones", "Cuaderno de profesiones", "📓", "Lo que viste en la semana de las profesiones. «Dentro de unos años lo leerás y te reirás. O no.»" },
 }
 for _, entry in KEEPSAKES do
