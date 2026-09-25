@@ -246,7 +246,14 @@ local remotes = {
 	DrivingSchool = remote(),
 	Arcade = remote(),
 	Restaurant = remote(),
+	Inventory = remote(),
 }
+function remotes:WaitForChild(name)
+	return self[name]
+end
+function remotes:FindFirstChild(name)
+	return rawget(self, name)
+end
 
 local playersList = {}
 local players = { PlayerAdded = signal(), PlayerRemoving = signal() }
@@ -267,6 +274,12 @@ local services = {
 	Lighting = { ClockTime = 21 }, -- de noche: los faros se encienden
 	ReplicatedStorage = { Shared = nil, Remotes = remotes },
 	HttpService = {
+		JSONEncode = function(_, value)
+			return require("@lune/serde").encode("json", value)
+		end,
+		JSONDecode = function(_, text)
+			return require("@lune/serde").decode("json", text)
+		end,
 		GenerateGUID = function()
 			guid += 1
 			return "token-" .. guid
@@ -311,6 +324,9 @@ nodeMeta.__index = function(self, key)
 	return node(path .. "/" .. key)
 end
 services.ReplicatedStorage.Shared = node(ROOT .. "/shared")
+function services.ReplicatedStorage:WaitForChild(name)
+	return self[name]
+end
 
 local function loadModule(path: string): any
 	if mocks[path] ~= nil then
@@ -378,7 +394,15 @@ mocks[S .. "LifeService"] = {
 	end,
 	refresh = function() end,
 }
-mocks[S .. "NeedsService"] = { canWork = function() return true end, change = function() end }
+local needsChanges = {}
+mocks[S .. "NeedsService"] = {
+	canWork = function()
+		return true
+	end,
+	change = function(player, hunger, energy)
+		table.insert(needsChanges, { player, hunger, energy })
+	end,
+}
 mocks[S .. "MonetizationService"] = { payMultiplier = function() return 1 end }
 mocks[S .. "JobService"] = { quit = function() end }
 mocks[ROOT .. "/server/World/Region"] = { Towns = { { Name = "Los Pinos", Center = Vector3.new(0, 0, 1100) } } }
@@ -874,6 +898,61 @@ check(profiles[waiter].Money > waiterMoney, "y lo sirve a su mesa")
 
 remotes.QuitJob.OnServerEvent:Fire(waiter)
 check(worldRoot.RestaurantLife:FindFirstChild("Npc_Camarero") ~= nil, "si el camarero se va, entra un camarero NPC")
+
+---------------------------------------------------------------------
+print("▶ Mochila (inventario estilo Minecraft)")
+local InventoryService = loadModule(S .. "InventoryService")
+InventoryService.init()
+local serde = require("@lune/serde")
+local Items = loadModule(ROOT .. "/shared/Items")
+local owner = newPlayer(20, "AdultoJoven", 100)
+local bag = profiles[owner]
+bag.Hunger, bag.Energy = 50, 50
+bag.Vehicles = { Bici = true }
+bag.Licenses = { B = true }
+local function slotsOf(player)
+	local raw = player:GetAttribute("Inventory")
+	return if type(raw) == "string" then serde.decode("json", raw) else {}
+end
+local function slotOf(player, id)
+	for i, entry in slotsOf(player) do
+		if type(entry) == "table" and entry.i == id then
+			return i, entry.n
+		end
+	end
+	return nil
+end
+local function ask(...)
+	task.wait(0.1) -- el servidor ignora peticiones demasiado seguidas
+	remotes.Inventory.OnServerEvent:Fire(owner, ...)
+end
+InventoryService.refresh(owner)
+check(#slotsOf(owner) == Items.Slots, "la mochila tiene 36 casillas")
+check(slotOf(owner, "Vehiculo_Bici") ~= nil and slotOf(owner, "Carnet_B") ~= nil, "la bici y el carnet salen en la barra rápida")
+check(InventoryService.add(owner, "Pan", 2), "compra dos panes")
+local panSlot, panCount = slotOf(owner, "Pan")
+check(panSlot ~= nil and panSlot <= Items.Hotbar and panCount == 2, "el pan va al primer hueco de la barra rápida, ×2")
+ask("Move", panSlot, 15)
+check(slotOf(owner, "Pan") == 15, "se puede mover el pan a otra casilla de la mochila")
+table.clear(needsChanges)
+ask("Use", 15)
+check(bag.Items.Pan == 1 and #needsChanges == 1 and needsChanges[1][1] == owner and needsChanges[1][2] == Items.List.Pan.Hunger, "comer un pan quita hambre y gasta uno")
+bag.Hunger = 100
+ask("Use", 15)
+check(bag.Items.Pan == 1, "sin hambre no se lo come (como en Minecraft)")
+ask("Drop", slotOf(owner, "Vehiculo_Bici"))
+check(slotOf(owner, "Vehiculo_Bici") ~= nil, "la bici no se puede tirar")
+ask("Drop", 15)
+check(slotOf(owner, "Pan") == nil and bag.Items.Pan == nil, "tirar el último pan deja la casilla vacía")
+check(InventoryService.add(owner, "Fruta", Items.List.Fruta.Stack) and not InventoryService.canAdd(owner, "Fruta"), "cada casilla tiene su máximo")
+ask("Move", 1, 99)
+ask("Move", "1", 2)
+check(slotOf(owner, "Vehiculo_Bici") ~= nil, "las peticiones raras se ignoran")
+bag.Vehicles.Bici = nil
+owner:SetAttribute("OwnedVehicles", "")
+InventoryService.refresh(owner)
+check(slotOf(owner, "Vehiculo_Bici") == nil, "lo que ya no tienes desaparece de la mochila")
+check(pcall(serde.encode, "json", bag), "la mochila se puede guardar (JSON válido)")
 
 end, debug.traceback)
 if not ok then

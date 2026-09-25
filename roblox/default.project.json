@@ -23,6 +23,12 @@
         "Baby": {
           "$className": "RemoteEvent"
         },
+        "Class": {
+          "$className": "RemoteEvent"
+        },
+        "Inventory": {
+          "$className": "RemoteEvent"
+        },
         "Vehicle": {
           "$className": "RemoteEvent"
         },
@@ -33,9 +39,6 @@
           "$className": "RemoteEvent"
         },
         "Restaurant": {
-          "$className": "RemoteEvent"
-        },
-        "Class": {
           "$className": "RemoteEvent"
         }
       }
