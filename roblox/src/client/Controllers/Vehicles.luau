@@ -136,7 +136,7 @@ function Vehicles.init()
 		Name = "GetOff",
 		AnchorPoint = Vector2.new(1, 1),
 		Size = UDim2.fromOffset(180, 46),
-		Position = UDim2.new(1, -24, 1, -180), -- abajo a la derecha: el centro es de la mochila y los diálogos
+		Position = UDim2.new(1, -24, 1, -176), -- abajo a la derecha, encima del cartel de "dónde estás" y del botón de correr
 		Text = "⬇ Bajarse (F)",
 		BackgroundColor3 = Color3.fromRGB(150, 60, 40),
 		Visible = false,

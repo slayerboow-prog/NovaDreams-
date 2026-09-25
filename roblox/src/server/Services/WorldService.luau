@@ -5,7 +5,10 @@ local Lighting = game:GetService("Lighting")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Players = game:GetService("Players")
+
 local Config = require(ReplicatedStorage.Shared.Config)
+local MapInfo = require(ReplicatedStorage.Shared.MapInfo)
 
 local WorldService = {}
 
@@ -99,16 +102,133 @@ local function updateWindows(clock: number)
 	end
 end
 
+-- Luz del faro (se enciende con las farolas)
+local function lighthouse(on: boolean)
+	for _, lamp in CollectionService:GetTagged("FaroLuz") do
+		for _, light in lamp:GetChildren() do
+			if light:IsA("Light") then
+				light.Enabled = on
+			end
+		end
+		if lamp:IsA("BasePart") then
+			lamp.Material = if on then Enum.Material.Neon else Enum.Material.Glass
+		end
+	end
+end
+
 -- Las farolas no se encienden todas a la vez (cada fotocélula tarda un poco distinto)
 local function setNight(on: boolean)
 	night = on
+	lighthouse(on)
 	for _, bulb in CollectionService:GetTagged("StreetLamp") do
 		task.delay(math.random() * 6, applyLamp, bulb)
 	end
 end
 
+---------------------------------------------------------------------
+-- Faro (luz giratoria de noche) y barca del puerto a la isla
+---------------------------------------------------------------------
+local function spinLighthouse()
+	local angle = 0
+	while true do
+		local dt = task.wait(0.1)
+		if night then
+			angle = (angle + dt * math.pi / 4) % (math.pi * 2) -- una vuelta cada 8 segundos
+			for _, lamp in CollectionService:GetTagged("FaroLuz") do
+				if lamp:IsA("BasePart") then
+					lamp.CFrame = CFrame.new(lamp.Position) * CFrame.Angles(0, angle, 0)
+				end
+			end
+		end
+	end
+end
+
+local ferryBusy: { [Player]: boolean } = {}
+local function setupFerry(prompt: Instance)
+	if not prompt:IsA("ProximityPrompt") then
+		return
+	end
+	prompt.Triggered:Connect(function(player)
+		local target = prompt:GetAttribute("Target")
+		local character = player.Character
+		if ferryBusy[player] or typeof(target) ~= "Vector3" or not character or player:GetAttribute("Riding") then
+			return
+		end
+		ferryBusy[player] = true
+		local notify = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("Notify")
+		if notify then
+			(notify :: RemoteEvent):FireClient(player, "Travel", "⛵ " .. prompt.ActionText .. "...")
+		end
+		task.wait(0.8)
+		if character.Parent then
+			character:PivotTo(CFrame.new(target))
+		end
+		ferryBusy[player] = nil
+	end)
+end
+
+---------------------------------------------------------------------
+-- Lugares del mapa: ReplicatedStorage.MapLandmarks (lo lee el mapa de cada jugador)
+---------------------------------------------------------------------
+local function publishLandmarks()
+	local town = workspace:FindFirstChild("Town")
+	if not town then
+		return
+	end
+	type Found = { Kind: string, Position: Vector3, Count: number }
+	local found: { Found } = {}
+	for _, model in town:GetDescendants() do
+		local kind = model:IsA("Model") and MapInfo.KindByModel[model.Name]
+		if kind then
+			local ok, cf = pcall(function()
+				return (model :: Model):GetBoundingBox()
+			end)
+			if ok then
+				local position = cf.Position
+				-- Las playas y granjas son varias manzanas: se juntan en un solo punto
+				local merged = false
+				if kind.Merge then
+					for _, other in found do
+						if other.Kind == kind.Model and (other.Position - position).Magnitude < kind.Merge then
+							other.Position = (other.Position * other.Count + position) / (other.Count + 1)
+							other.Count += 1
+							merged = true
+							break
+						end
+					end
+				end
+				if not merged then
+					table.insert(found, { Kind = kind.Model, Position = position, Count = 1 })
+				end
+			end
+		end
+	end
+	local folder = ReplicatedStorage:FindFirstChild("MapLandmarks") or Instance.new("Folder")
+	folder.Name = "MapLandmarks"
+	folder:ClearAllChildren()
+	for i, place in found do
+		local config = Instance.new("Configuration")
+		config.Name = place.Kind .. i
+		config:SetAttribute("Kind", place.Kind)
+		config:SetAttribute("Position", Vector3.new(place.Position.X, 0, place.Position.Z))
+		local district = MapInfo.districtAt(place.Position.X, place.Position.Z)
+		config:SetAttribute("District", if district then district.Name else "")
+		config.Parent = folder
+	end
+	folder.Parent = ReplicatedStorage
+end
+
 function WorldService.init()
 	setupLighting()
+	publishLandmarks()
+	for _, prompt in CollectionService:GetTagged("Ferry") do
+		setupFerry(prompt)
+	end
+	CollectionService:GetInstanceAddedSignal("Ferry"):Connect(setupFerry)
+	Players.PlayerRemoving:Connect(function(player)
+		ferryBusy[player] = nil
+	end)
+	task.spawn(spinLighthouse)
 
 	local day = 1
 	workspace:SetAttribute("Day", day)

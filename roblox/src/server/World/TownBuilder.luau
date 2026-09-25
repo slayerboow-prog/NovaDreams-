@@ -22,6 +22,7 @@ local Nature = require(Kit.Nature)
 local Props = require(Kit.Props)
 local AssetLibrary = require(Kit.AssetLibrary)
 local Rides = require(Kit.Rides)
+local Landmarks = require(Kit.Landmarks)
 local Region = require(script.Parent.Region)
 
 local TownBuilder = {}
@@ -592,7 +593,7 @@ local function buildOutskirts(world: Instance)
 				return true
 			end
 		end
-		return x > 1600
+		return x > 1600 or Landmarks.blocked(x, z)
 	end
 	-- Grupos de árboles (bosquecillos) en vez de árboles sueltos al azar
 	for _ = 1, 70 do
@@ -641,6 +642,7 @@ function TownBuilder.build(): Folder
 	buildPlots(world)
 	buildStreetLife(world)
 	Region.build(world)
+	Landmarks.build(world) -- puerto, isla del faro y mirador
 	buildOutskirts(world)
 
 	return world

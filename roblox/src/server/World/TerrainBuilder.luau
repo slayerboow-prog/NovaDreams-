@@ -44,6 +44,9 @@ function TerrainBuilder.build()
 	terrain:FillBlock(CFrame.new(2100, -14, 0), Vector3.new(800, 8, 4800), Enum.Material.Sand)
 	terrain:FillBlock(CFrame.new(2100, -5.5, 0), Vector3.new(800, 9, 4800), Enum.Material.Water)
 
+	-- Isla del faro y colina del mirador
+	require(script.Parent.Kit.Landmarks).terrain(terrain)
+
 	-- Colinas en el horizonte (menos en el lado del mar)
 	local count = 60
 	for i = 1, count do

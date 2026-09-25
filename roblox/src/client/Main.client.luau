@@ -23,6 +23,7 @@ local Arcade = require(script.Parent.Controllers.Arcade)
 local DrivingSchool = require(script.Parent.Controllers.DrivingSchool)
 local Restaurant = require(script.Parent.Controllers.Restaurant)
 local Character = require(script.Parent.Controllers.Character)
+local Prompts = require(script.Parent.Controllers.Prompts)
 
 local gui = Hud.init(function()
 	Store.open()
@@ -46,7 +47,38 @@ task.spawn(Vehicles.init) -- bicis, monopatines, motos y coches
 task.spawn(Arcade.init) -- recreativos
 task.spawn(DrivingSchool.init) -- autoescuela
 task.spawn(Restaurant.init) -- trabajo de camarero y barman
-task.spawn(Character.init) -- vida, estamina (correr con Shift), nivel y estadísticas
+task.spawn(Character.init) -- ficha del personaje (botón Personaje) y correr con Shift
+task.spawn(Prompts.init) -- carteles de "pulsa E" con el estilo de la interfaz
+
+-- Botones de arriba a la derecha del HUD
+Hud.setAction("Mochila", InventoryUI.toggle)
+Hud.setAction("Mapa", MapUI.toggleBig)
+
+-- Música on/off en el menú (sustituye al botón suelto 🔊)
+local musicOn = true
+Hud.addMenuToggle("🔊 Música: sí", 1, function()
+	musicOn = not musicOn
+	StoryAudio.setMuted(not musicOn)
+	return if musicOn then "🔊 Música: sí" else "🔇 Música: no"
+end)
+
+-- La tarjeta "Tu vida" de la historia y el botón suelto de la música ya están en el HUD nuevo
+-- (objetivos a la izquierda y menú): se ocultan para que no salgan repetidos.
+task.spawn(function()
+	local playerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+	local audioGui = playerGui:WaitForChild("StoryAudio", 30)
+	if audioGui and audioGui:IsA("ScreenGui") then
+		audioGui.Enabled = false
+	end
+	local story = playerGui:WaitForChild("LifeStory", 30)
+	local dock = story and story:WaitForChild("LifeStoryDock", 30)
+	if dock and dock:IsA("GuiObject") then
+		dock.Visible = false
+		dock:GetPropertyChangedSignal("Visible"):Connect(function()
+			dock.Visible = false
+		end)
+	end
+end)
 
 local Notify = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Notify") :: RemoteEvent
 Notify.OnClientEvent:Connect(function(kind: string, text: string)

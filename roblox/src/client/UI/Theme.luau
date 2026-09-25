@@ -3,17 +3,20 @@
 local Theme = {}
 
 Theme.Colors = {
-	Panel = Color3.fromRGB(16, 20, 28),
-	PanelLight = Color3.fromRGB(32, 38, 50),
-	Stroke = Color3.fromRGB(255, 255, 255),
+	-- Paneles azul marino tipo "cristal" con borde azul (diseño de la interfaz v2)
+	Panel = Color3.fromRGB(12, 22, 42),
+	PanelLight = Color3.fromRGB(30, 46, 78),
+	Stroke = Color3.fromRGB(80, 140, 240),
 	Text = Color3.fromRGB(245, 247, 250),
-	Muted = Color3.fromRGB(160, 170, 185),
-	Accent = Color3.fromRGB(64, 156, 255),
+	Muted = Color3.fromRGB(165, 178, 200),
+	Accent = Color3.fromRGB(56, 150, 255),
 	Money = Color3.fromRGB(90, 220, 120),
-	Hunger = Color3.fromRGB(255, 150, 60),
-	Energy = Color3.fromRGB(255, 215, 70),
+	Hunger = Color3.fromRGB(70, 180, 255),
+	Energy = Color3.fromRGB(255, 196, 50),
+	Health = Color3.fromRGB(240, 60, 90),
 	Error = Color3.fromRGB(255, 90, 90),
 	Gold = Color3.fromRGB(255, 196, 60),
+	Purple = Color3.fromRGB(170, 110, 255),
 }
 
 Theme.Font = Enum.Font.GothamMedium
@@ -44,7 +47,7 @@ end
 function Theme.stroke(transparency: number?): UIStroke
 	return Theme.create("UIStroke", {
 		Color = Theme.Colors.Stroke,
-		Transparency = transparency or 0.88,
+		Transparency = transparency or 0.55,
 		Thickness = 1,
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 	})
