@@ -75,7 +75,7 @@ local function build()
 	panel = Theme.panel({
 		Name = "Class",
 		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -24),
+		Position = UDim2.new(0.5, 0, 1, -86), -- encima de la barra rápida
 		Size = UDim2.fromOffset(480, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		Visible = false,

@@ -392,7 +392,8 @@ Strings.es = {
 	-- Tiendas
 	["SHOP.BUY"] = "Comprar ({price})",
 	["SHOP.NO_MONEY"] = "No tienes suficiente dinero.",
-	["SHOP.BOUGHT"] = "Has comprado: {item}",
+	["SHOP.BOUGHT"] = "Has comprado: {item} (está en tu mochila)",
+	["SHOP.BAG_FULL"] = "No te caben más: {item}. Usa o tira alguno de tu mochila (E).",
 	["ITEM.MATERIAL_ESCOLAR"] = "Material escolar",
 	["ITEM.MEDICINAS"] = "Medicinas",
 	["ITEM.HELADO"] = "Helado",

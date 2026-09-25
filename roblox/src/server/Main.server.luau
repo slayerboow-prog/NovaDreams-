@@ -45,6 +45,7 @@ local order = {
 	"ArcadeService", -- recreativos: juegos de bolas, tickets y premios
 	"LocationService",
 	"CinematicService",
+	"InventoryService", -- mochila estilo Minecraft (barra rápida + 27 casillas)
 	"ShopService", -- tiendas donde se hacen los recados
 	"ClassService", -- clases y exámenes que se juegan (lo usa la historia)
 	"LifeStoryService", -- la historia de vida escucha a todos los anteriores

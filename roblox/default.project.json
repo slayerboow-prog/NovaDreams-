@@ -26,6 +26,9 @@
         "Class": {
           "$className": "RemoteEvent"
         },
+        "Inventory": {
+          "$className": "RemoteEvent"
+        },
         "Vehicle": {
           "$className": "RemoteEvent"
         },

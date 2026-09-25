@@ -35,6 +35,9 @@ local DEFAULT_DATA = {
 		AgeYears = Config.LifeStory.DefaultAge,
 		StageSeconds = 0, -- tiempo jugado en la etapa actual
 	},
+	-- Mochila (InventoryService): objetos que se cuentan y en qué casilla va cada cosa
+	Items = {},
+	Slots = {},
 	-- Estudios: notas por asignatura, exámenes, títulos y asistencia (ClassService)
 	Education = {
 		Subjects = {},

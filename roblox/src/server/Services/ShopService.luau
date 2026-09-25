@@ -11,7 +11,7 @@ local ShopItems = require(ReplicatedStorage.Shared.LifeStory.ShopItems)
 local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 local DataService = require(script.Parent.DataService)
-local NeedsService = require(script.Parent.NeedsService)
+local InventoryService = require(script.Parent.InventoryService)
 
 local ShopService = {}
 
@@ -35,13 +35,15 @@ local function setup(entrance: Instance)
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = entrance
 	prompt.Triggered:Connect(function(player)
+		if not InventoryService.canAdd(player, item.Id) then
+			Notify:FireClient(player, "Error", Strings.get("SHOP.BAG_FULL", { item = Strings.get(item.NameKey) }))
+			return
+		end
 		if not DataService.spend(player, item.Price) then
 			Notify:FireClient(player, "Error", Strings.get("SHOP.NO_MONEY"))
 			return
 		end
-		if item.Hunger or item.Energy then
-			NeedsService.change(player, item.Hunger or 0, item.Energy or 0)
-		end
+		InventoryService.add(player, item.Id) -- va a la mochila (se come desde la barra rápida)
 		Notify:FireClient(player, "Success", Strings.get("SHOP.BOUGHT", { item = Strings.get(item.NameKey) }))
 		StoryEvents.emit(player, "BoughtItem", { ShopId = shopId, Item = item.Id })
 	end)
