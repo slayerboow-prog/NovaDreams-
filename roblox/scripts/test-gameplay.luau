@@ -264,6 +264,7 @@ local guid = 0
 local services = {
 	CollectionService = collection,
 	Players = players,
+	Lighting = { ClockTime = 21 }, -- de noche: los faros se encienden
 	ReplicatedStorage = { Shared = nil, Remotes = remotes },
 	HttpService = {
 		GenerateGUID = function()
@@ -631,6 +632,9 @@ check(VehicleService.hasLicense(adult, "B"), "pasa por todos los puntos y aprueb
 check(adult:GetAttribute("Riding") == nil and adult:GetAttribute("TaskTarget") == nil, "al aprobar se baja del coche de prácticas")
 remotes.Vehicle.OnServerEvent:Fire(adult, "Spawn", "Coche")
 check(adult:GetAttribute("Riding") == "Coche" and adult:GetAttribute("VehicleSpeed") == Gameplay.Vehicles.Coche.Speed, "ya puede conducir su coche")
+local carModel = worldRoot.Rides:GetChildren()[1]
+local beam = carModel and carModel:FindFirstChild("Headlight") and carModel.Headlight:FindFirstChildOfClass("SpotLight")
+check(beam ~= nil and beam.Enabled == true, "de noche el coche lleva los faros encendidos")
 remotes.Vehicle.OnServerEvent:Fire(adult, "Dismount")
 
 -- Suspender por bajarse en el práctico

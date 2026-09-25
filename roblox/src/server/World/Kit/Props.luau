@@ -20,10 +20,10 @@ local function addLampLight(model: Instance)
 	local light = Instance.new("SpotLight")
 	light.Face = Enum.NormalId.Bottom
 	light.Angle = 110
-	light.Range = 36
-	light.Brightness = 2.2
+	light.Range = 40
+	light.Brightness = 3
 	light.Color = Palette.Street.LampLight
-	light.Shadows = false
+	light.Shadows = true -- con iluminación Future, las farolas dibujan sombras de noche
 	light.Enabled = false
 	light.Parent = lens
 end
@@ -69,10 +69,10 @@ function Props.lamp(parent: Instance, cf: CFrame)
 		local light = Instance.new("SpotLight")
 		light.Face = Enum.NormalId.Bottom
 		light.Angle = 120
-		light.Range = 44
-		light.Brightness = 2.4
+		light.Range = 46
+		light.Brightness = 3
 		light.Color = S.LampLight
-		light.Shadows = false
+		light.Shadows = true -- con iluminación Future, las farolas dibujan sombras de noche
 		light.Enabled = false
 		light.Parent = lens
 	end

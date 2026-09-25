@@ -78,7 +78,20 @@ local function trim(ctx: Ctx, face: CFrame, size: Vector3, x: number, y: number,
 	})
 end
 
-local function glass(ctx: Ctx, face: CFrame, o: Opening, transparency: number, nightChance: number)
+-- Luz de las ventanas de noche: cada casa con su tono (bombilla cálida, neutra o el azul de la tele)
+-- y su horario (unos encienden al anochecer, otros al volver del trabajo; unos se acuestan antes).
+local HOME_LIGHTS = {
+	Color3.fromRGB(236, 164, 92), Color3.fromRGB(242, 182, 110), Color3.fromRGB(230, 150, 80),
+	Color3.fromRGB(240, 206, 150), Color3.fromRGB(226, 214, 190), Color3.fromRGB(132, 160, 226),
+}
+local function nightSchedule(part: BasePart, color: Color3, onFrom: number, onTo: number, offFrom: number, offTo: number)
+	part:SetAttribute("NightColor", color)
+	part:SetAttribute("OnAt", onFrom + math.random() * (onTo - onFrom))
+	part:SetAttribute("OffAt", offFrom + math.random() * (offTo - offFrom)) -- 25 = la 1 de la madrugada
+end
+Building.nightSchedule = nightSchedule
+
+local function glass(ctx: Ctx, face: CFrame, o: Opening, transparency: number, nightChance: number, shop: boolean?)
 	local h = o.Top - o.Bottom
 	local color = if transparency > 0 then Color3.fromRGB(176, 206, 220) else ctx.Style.Glass
 	local pane = Builder.part({
@@ -95,6 +108,12 @@ local function glass(ctx: Ctx, face: CFrame, o: Opening, transparency: number, n
 	if math.random() < nightChance then
 		pane:AddTag("NightWindow")
 		pane:SetAttribute("DayColor", color)
+		if shop then
+			-- Escaparate: luz blanca de tienda desde que oscurece hasta la hora de cierre (algunos, 24 h)
+			nightSchedule(pane, Color3.fromRGB(250, 236, 210), 17.4, 18.2, 20.8, if math.random() < 0.1 then 31 else 22.3)
+		else
+			nightSchedule(pane, HOME_LIGHTS[math.random(1, #HOME_LIGHTS)], 17.8, 21, 22.5, if math.random() < 0.15 then 30 else 25.5)
+		end
 	end
 end
 
@@ -161,8 +180,10 @@ local function fillOpening(ctx: Ctx, face: CFrame, o: Opening)
 		end
 	elseif o.Kind == "Shop" then
 		-- Sin interior jugable: cristal reflectante en vez de ver una sala vacía
-		-- Los escaparates se iluminan de noche (comercios abiertos)
-		glass(ctx, face, o, if ctx.GroundGlassTransparency > 0 then 0.55 else 0, 1)
+		-- Los escaparates sin interior se iluminan de noche hasta que cierra la tienda
+		-- (los que tienen interior ya llevan sus plafones: se ve la tienda iluminada por dentro)
+		local seeThrough = ctx.GroundGlassTransparency > 0
+		glass(ctx, face, o, if seeThrough then 0.55 else 0, if seeThrough then 0 else 1, true)
 		trim(ctx, face, Vector3.new(o.W, 0.3, T + 0.3), o.X, o.Bottom - 0.15, T / 2 - 0.15)
 	elseif o.Kind == "GarageDoor" then
 		Builder.part({
@@ -384,6 +405,8 @@ function Building.build(spec: Spec): (Model, (number, number, number) -> CFrame,
 						Parent = model,
 					})
 					strip.CastShadow = false
+					-- Oficinas: fluorescente frío; se apagan al acabar la jornada (algunas, tarde)
+					nightSchedule(strip, Color3.fromRGB(206, 222, 240), 17, 18.5, 19.5, if math.random() < 0.3 then 24 else 21)
 				end
 				continue
 			end
@@ -418,20 +441,42 @@ function Building.build(spec: Spec): (Model, (number, number, number) -> CFrame,
 		Parent = model,
 	})
 	if interior then
-		local lamp = Builder.decor({
-			Name = "CeilingLamp",
-			Size = Vector3.new(3, 0.3, 3),
-			CFrame = O * CFrame.new(0, Y1 - 1.15, 0),
-			Color = Color3.fromRGB(255, 244, 222),
-			Material = Enum.Material.Neon,
-			Parent = model,
-		})
-		local light = Instance.new("PointLight")
-		light.Range = math.min(60, math.max(W, D) * 0.8)
-		light.Brightness = 1.1
-		light.Color = spec.LightColor or Color3.fromRGB(255, 232, 200)
-		light.Shadows = false
-		light.Parent = lamp
+		-- Plafones en el techo que iluminan hacia abajo (charcos de luz y sombras de verdad).
+		-- 1 a 4 según el tamaño; solo el primero proyecta sombras (cuesta rendimiento).
+		local cols = math.clamp(math.floor(W / 24 + 0.5), 1, 2)
+		local rows = math.clamp(math.floor(D / 24 + 0.5), 1, 2)
+		local color = spec.LightColor or Color3.fromRGB(255, 232, 200)
+		local index = 0
+		for i = 1, cols do
+			for j = 1, rows do
+				index += 1
+				local x = (i - (cols + 1) / 2) * (W / cols)
+				local z = (j - (rows + 1) / 2) * (D / rows)
+				local lamp = Builder.decor({
+					Name = "CeilingLamp",
+					Size = Vector3.new(3.2, 0.25, 3.2),
+					CFrame = O * CFrame.new(x, Y1 - 1.13, z),
+					Color = Color3.fromRGB(255, 246, 230),
+					Material = Enum.Material.Neon,
+					Parent = model,
+				})
+				local light = Instance.new("SurfaceLight")
+				light.Face = Enum.NormalId.Bottom
+				light.Angle = 80
+				light.Range = math.clamp(Y1 + 8, 16, 30)
+				light.Brightness = 1.6
+				light.Color = color
+				light.Shadows = index == 1
+				light.Parent = lamp
+			end
+		end
+		-- Relleno suave para que las esquinas no queden negras
+		local fill = Instance.new("PointLight")
+		fill.Range = math.min(40, math.max(W, D) * 0.6)
+		fill.Brightness = 0.35
+		fill.Color = color
+		fill.Shadows = false
+		fill.Parent = model:FindFirstChild("CeilingLamp")
 	end
 
 	-- CUBIERTA
