@@ -171,8 +171,34 @@ local function buildSegment(parent: Instance, s: Segment, trimA: number, trimB: 
 	local mid = (a + b) / 2
 	local base = Builder.facing(mid, dir) -- Z local = a lo largo (hacia -Z mira B)
 	local half = kind.Road / 2
-	-- Calzada
-	box(parent, "Road", base * CFrame.new(0, 0.2, 0), Vector3.new(kind.Road, 0.4, length), G.Asphalt, Enum.Material.Asphalt)
+	-- Calzada y aceras, por trozos: en tierra bajan hasta Y = -4 (ahí el terreno está hundido, así no
+	-- asoma ni queda hueco por los lados); sobre el agua son finas (puente)
+	local pieces: { { number } } = {} -- { desde, hasta, 1 = sobre agua }
+	do
+		local from, wet = 0, overWater(a)
+		for d = 5, length, 5 do
+			local w = overWater(a + dir * d)
+			if w ~= wet then
+				table.insert(pieces, { from, d, if wet then 1 else 0 })
+				from, wet = d, w
+			end
+		end
+		table.insert(pieces, { from, length, if wet then 1 else 0 })
+	end
+	for _, piece in pieces do
+		local len = piece[2] - piece[1]
+		if len > 0.5 then
+			local centre = base * CFrame.new(0, 0, length / 2 - (piece[1] + piece[2]) / 2)
+			local bottom = if piece[3] == 1 then 0 else -4
+			box(parent, "Road", centre * CFrame.new(0, (bottom + 0.4) / 2, 0), Vector3.new(kind.Road, 0.4 - bottom, len), G.Asphalt, Enum.Material.Asphalt)
+			if kind.Walk > 0 then
+				for _, side in { -1, 1 } do
+					local x = side * (half + kind.Walk / 2)
+					box(parent, "Sidewalk", centre * CFrame.new(x, (bottom + 1) / 2, 0), Vector3.new(kind.Walk, 1 - bottom, len), G.Sidewalk, Enum.Material.Pavement)
+				end
+			end
+		end
+	end
 	-- Mediana (autovía) o línea central
 	if kind.Median > 0 then
 		box(parent, "Median", base * CFrame.new(0, 0.7, 0), Vector3.new(kind.Median, 0.6, length), rgb(196, 192, 184), Enum.Material.Concrete)
@@ -182,13 +208,6 @@ local function buildSegment(parent: Instance, s: Segment, trimA: number, trimB: 
 		end
 	else
 		box(parent, "Marking", base * CFrame.new(0, 0.42, 0), Vector3.new(0.4, 0.04, length), G.MarkingYellow, Enum.Material.SmoothPlastic, true)
-	end
-	-- Aceras con bordillo
-	if kind.Walk > 0 then
-		for _, side in { -1, 1 } do
-			local x = side * (half + kind.Walk / 2)
-			box(parent, "Sidewalk", base * CFrame.new(x, 0.5, 0), Vector3.new(kind.Walk, 1, length), G.Sidewalk, Enum.Material.Pavement)
-		end
 	end
 	-- Puente: tramos sobre el agua con barandilla y pilares
 	local step = 10
@@ -249,7 +268,7 @@ end
 
 local function buildRoundabout(parent: Instance, p: Vector3)
 	local m = Builder.model("Rotonda", parent)
-	disc(m, "Road", p, ROUNDABOUT_R, 0, 0.4, G.Asphalt, Enum.Material.Asphalt)
+	disc(m, "Road", p, ROUNDABOUT_R, -4, 0.4, G.Asphalt, Enum.Material.Asphalt)
 	disc(m, "Curb", p, ISLAND_R + 1, 0, 1.1, rgb(214, 211, 204), Enum.Material.Concrete)
 	disc(m, "Island", p, ISLAND_R, 0, 1.2, rgb(98, 146, 70), Enum.Material.Grass)
 	-- Adorno central: fuente o árbol con flores
@@ -285,7 +304,7 @@ function Roads.build(world: Instance)
 		if n.Roundabout then
 			buildRoundabout(folder, n.Position)
 		elseif n.Count >= 2 then
-			disc(folder, "Junction", n.Position, n.Width + 0.5, 0, 0.4, G.Asphalt, Enum.Material.Asphalt)
+			disc(folder, "Junction", n.Position, n.Width + 0.5, -4, 0.4, G.Asphalt, Enum.Material.Asphalt)
 		end
 	end
 	-- Pasos de peatones al llegar a cada rotonda y cruce (en avenidas y calles)
@@ -302,6 +321,23 @@ function Roads.build(world: Instance)
 		end
 	end
 	return folder
+end
+
+-- Huellas de las carreteras (para hundir el terreno debajo): tramos y círculos
+function Roads.footprints(): ({ { A: Vector3, B: Vector3, Width: number } }, { { Position: Vector3, Radius: number } })
+	local strips, circles = {}, {}
+	for _, s in Roads.segments() do
+		local kind = Roads.Kinds[s.Kind]
+		table.insert(strips, { A = s.A, B = s.B, Width = kind.Road + kind.Walk * 2 })
+	end
+	for _, n in nodes(Roads.segments()) do
+		if n.Roundabout then
+			table.insert(circles, { Position = n.Position, Radius = ROUNDABOUT_R })
+		elseif n.Count >= 2 then
+			table.insert(circles, { Position = n.Position, Radius = n.Width + 0.5 })
+		end
+	end
+	return strips, circles
 end
 
 -- ¿Punto cerca de una carretera principal? (para no plantar árboles encima)

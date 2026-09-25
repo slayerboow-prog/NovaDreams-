@@ -19,6 +19,9 @@ Street.SIDEWALK = 8
 Street.HALF = Street.ROAD_WIDTH / 2 + Street.SIDEWALK -- 20: del centro al borde exterior de la acera
 Street.ROAD_TOP = 0.4
 Street.WALK_TOP = 1.0
+-- Las calzadas y aceras bajan hasta aquí: debajo de las calles el terreno está hundido (TerrainBuilder)
+-- para que nunca asome por encima del asfalto, y así no queda hueco por los lados.
+Street.BASE = -4
 
 local RW = Street.ROAD_WIDTH
 local H = Street.HALF
@@ -86,10 +89,10 @@ local function segment(parent: Instance, road: Road, u0: number, u1: number)
 	if length < 1 then
 		return
 	end
-	rbox(parent, road, u0, u1, -RW / 2, RW / 2, 0, ROAD_TOP, asphalt())
+	rbox(parent, road, u0, u1, -RW / 2, RW / 2, Street.BASE, ROAD_TOP, asphalt())
 	for _, s in { -1, 1 } do
 		local inner, outer = s * RW / 2, s * H
-		rbox(parent, road, u0, u1, math.min(inner, outer), math.max(inner, outer), 0, WALK_TOP, pavement())
+		rbox(parent, road, u0, u1, math.min(inner, outer), math.max(inner, outer), Street.BASE, WALK_TOP, pavement())
 		local c0, c1 = s * (RW / 2 - 0.05), s * (RW / 2 + 0.55)
 		rbox(parent, road, u0, u1, math.min(c0, c1), math.max(c0, c1), ROAD_TOP, WALK_TOP + 0.05, curb())
 		-- Línea continua de borde
@@ -157,7 +160,7 @@ end
 
 local function intersection(parent: Instance, cx: number, cz: number, arms: Arms)
 	local r = RW / 2
-	wbox(parent, cx - r, cx + r, cz - r, cz + r, 0, ROAD_TOP, asphalt())
+	wbox(parent, cx - r, cx + r, cz - r, cz + r, Street.BASE, ROAD_TOP, asphalt())
 
 	local strips = {
 		{ Open = arms.West, X0 = cx - H, X1 = cx - r, Z0 = cz - r, Z1 = cz + r, AlongX = true },
@@ -167,10 +170,10 @@ local function intersection(parent: Instance, cx: number, cz: number, arms: Arms
 	}
 	for _, s in strips do
 		if s.Open then
-			wbox(parent, s.X0, s.X1, s.Z0, s.Z1, 0, ROAD_TOP, asphalt())
+			wbox(parent, s.X0, s.X1, s.Z0, s.Z1, Street.BASE, ROAD_TOP, asphalt())
 			zebra(parent, s.X0, s.X1, s.Z0, s.Z1, s.AlongX)
 		else
-			wbox(parent, s.X0, s.X1, s.Z0, s.Z1, 0, WALK_TOP, pavement())
+			wbox(parent, s.X0, s.X1, s.Z0, s.Z1, Street.BASE, WALK_TOP, pavement())
 		end
 	end
 
@@ -179,7 +182,7 @@ local function intersection(parent: Instance, cx: number, cz: number, arms: Arms
 		for _, sz in { -1, 1 } do
 			local x0, x1 = math.min(cx + sx * r, cx + sx * H), math.max(cx + sx * r, cx + sx * H)
 			local z0, z1 = math.min(cz + sz * r, cz + sz * H), math.max(cz + sz * r, cz + sz * H)
-			wbox(parent, x0, x1, z0, z1, 0, WALK_TOP, pavement())
+			wbox(parent, x0, x1, z0, z1, Street.BASE, WALK_TOP, pavement())
 			local ex = cx + sx * r -- borde hacia la calle N-S
 			local ez = cz + sz * r -- borde hacia la calle E-O
 			wbox(parent, math.min(ex, ex + sx * 0.6), math.max(ex, ex + sx * 0.6), z0, z1, ROAD_TOP, WALK_TOP + 0.05, curb())

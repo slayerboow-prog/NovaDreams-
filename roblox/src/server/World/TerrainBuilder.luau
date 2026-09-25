@@ -75,6 +75,31 @@ function TerrainBuilder.build()
 		end
 	end
 
+	-- 3b) Debajo de TODAS las calles (las de los barrios y las carreteras principales) el terreno baja
+	--     a Y = -4, igual que bajo las manzanas: si no, sus cubos de 4 studs asoman por encima del
+	--     asfalto. Las calzadas y aceras bajan hasta -4, así que no queda hueco. (Antes del río, para
+	--     que el agua de debajo de los puentes se vuelva a poner después.)
+	local Region = require(script.Parent.Region)
+	local Street = require(script.Parent.Kit.Street)
+	local half = Street.HALF - 0.5
+	for _, road in Region.roads() do
+		local length, mid = road.To - road.From, (road.From + road.To) / 2
+		local size = if road.Axis == "X" then Vector3.new(length, 16, half * 2) else Vector3.new(half * 2, 16, length)
+		local center = if road.Axis == "X" then Vector3.new(mid, 4, road.At) else Vector3.new(road.At, 4, mid)
+		terrain:FillBlock(CFrame.new(center), size, Enum.Material.Air)
+	end
+	local strips, circles = require(script.Parent.Kit.Roads).footprints()
+	for _, strip in strips do
+		local a, c = strip.A, strip.B
+		local mid = (a + c) / 2
+		local dir = c - a
+		local cf = CFrame.lookAt(Vector3.new(mid.X, 4, mid.Z), Vector3.new(c.X, 4, c.Z) + Vector3.new(0.001, 0, 0.001))
+		terrain:FillBlock(cf, Vector3.new(strip.Width - 1, 16, dir.Magnitude), Enum.Material.Air)
+	end
+	for _, circle in circles do
+		cylinder(terrain, circle.Position.X, circle.Position.Z, circle.Radius - 0.5, -4, 12, Enum.Material.Air)
+	end
+
 	-- 4) Río: orillas de arena, cauce y agua (queda a Y = -2, dos studs bajo la orilla)
 	local river = CityPlan.River
 	local pts = river.Points
@@ -104,7 +129,6 @@ function TerrainBuilder.build()
 	-- El terreno de Roblox va en cubos de 4 studs y su superficie no es exacta: con la cara de arriba
 	-- en -1, sus triángulos llegaban a asomar por los suelos (césped dentro de casa).
 	-- Con -4 (borde exacto de un cubo) queda plano y 4 studs por debajo; las losas de césped lo tapan.
-	local Region = require(script.Parent.Region)
 	local sunken = Region.blockRects()
 	table.insert(sunken, { X0 = -360, X1 = 360, Z0 = -198, Z1 = -20 }) -- Valmar Centro (norte de la avenida)
 	table.insert(sunken, { X0 = -360, X1 = 360, Z0 = 20, Z1 = 240 }) -- Valmar Centro (sur: parcelas de casas)
