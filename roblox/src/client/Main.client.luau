@@ -28,6 +28,7 @@ local Cinematics = require(script.Parent.Controllers.Cinematics)
 local NearShadows = require(script.Parent.Controllers.NearShadows)
 local Actions = require(script.Parent.Controllers.Actions)
 local Driving = require(script.Parent.Controllers.Driving)
+local SoundFx = require(script.Parent.Controllers.SoundFx)
 
 local gui = Hud.init(function()
 	Store.open()
@@ -54,6 +55,7 @@ task.spawn(Restaurant.init) -- trabajo de camarero y barman
 task.spawn(Character.init) -- ficha del personaje (botón Personaje) y correr con Shift
 task.spawn(NearShadows.init) -- sombras de las luces solo cerca de ti (mismo aspecto, mucho más fluido)
 task.spawn(Prompts.init) -- carteles de "pulsa E" con el estilo de la interfaz
+task.spawn(SoundFx.init) -- efectos de sonido: saltos, golpes, agua, botones, motor, claxon y gente hablando
 task.spawn(Driving.init) -- conducir coches, motos, bicis, monopatines y patinetes (W/A/S/D)
 task.spawn(Actions.init) -- gestos y bailes (G), trepar muros bajos, linterna (L) y modo foto (P)
 
@@ -67,6 +69,12 @@ Hud.addMenuToggle("🔊 Música: sí", 1, function()
 	musicOn = not musicOn
 	StoryAudio.setMuted(not musicOn)
 	return if musicOn then "🔊 Música: sí" else "🔇 Música: no"
+end)
+local effectsOn = true
+Hud.addMenuToggle("🔔 Sonidos: sí", 2, function()
+	effectsOn = not effectsOn
+	SoundFx.setMuted(not effectsOn)
+	return if effectsOn then "🔔 Sonidos: sí" else "🔕 Sonidos: no"
 end)
 
 -- La tarjeta "Tu vida" de la historia y el botón suelto de la música ya están en el HUD nuevo

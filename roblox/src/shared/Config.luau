@@ -106,6 +106,44 @@ Config.Baby = {
 -- 2. Copia el ID de cada audio aquí (campo Id). Mientras sea 0, ese audio no suena
 --    (todo lo demás funciona igual). También me los puedes pasar y los pongo yo.
 ---------------------------------------------------------------------
+-- Efectos de sonido del juego (client/Controllers/SoundFx.luau). Cada uno puede ser:
+--   * "rbxasset://sounds/..." -> sonidos que vienen instalados con Roblox (funcionan siempre)
+--   * un número -> ID de un audio de Roblox (de la Caja de herramientas o subido por ti)
+--   * 0 -> no suena
+-- También se puede arrastrar un Sound a ReplicatedStorage > Sonidos con el mismo nombre
+-- (por ejemplo "Motor"): ese tiene preferencia.
+Config.Sounds = {
+	Salto = { Id = "rbxasset://sounds/swoosh.wav", Volume = 0.25, Pitch = 1.3 },
+	Aterrizaje = { Id = "rbxasset://sounds/action_jump_land.mp3", Volume = 0.7, Pitch = 0.8 },
+	Golpe = { Id = "rbxasset://sounds/collide.wav", Volume = 0.6, Pitch = 1 },
+	Chapuzon = { Id = "rbxasset://sounds/impact_water.mp3", Volume = 0.7, Pitch = 1 },
+	Trepar = { Id = "rbxasset://sounds/action_get_up.mp3", Volume = 0.6, Pitch = 1.1 },
+	Clic = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.3, Pitch = 1 },
+	Aviso = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.35, Pitch = 1.2 },
+	Error = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.35, Pitch = 0.6 },
+	Choque = { Id = "rbxasset://sounds/collide.wav", Volume = 1, Pitch = 0.55 },
+	Arranque = { Id = "rbxasset://sounds/switch.wav", Volume = 0.5, Pitch = 0.7 },
+	-- Estos no vienen con Roblox: pon un ID (o un Sound en ReplicatedStorage > Sonidos) para oírlos
+	Motor = { Id = 0, Volume = 0.45, Pitch = 1 }, -- en bucle mientras conduces un coche o una moto
+	Claxon = { Id = 0, Volume = 0.8, Pitch = 1 }, -- tecla H en coche o moto
+	Timbre = { Id = 0, Volume = 0.6, Pitch = 1 }, -- tecla H en bici o patinete
+	Multitud = { Id = 0, Volume = 0.25, Pitch = 1 }, -- murmullo de gente en el centro
+}
+
+-- Voces de la gente de la ciudad (voz sintetizada de Roblox, como la de la historia)
+Config.StreetVoices = {
+	Enabled = true,
+	Volume = 0.7,
+	Distance = 26, -- a cuántos studs se oye a un trabajador hablar solo
+	Every = { 18, 40 }, -- cada cuántos segundos dice algo alguien cercano
+	Lines = {
+		"¡Buenos días!", "Qué buen día hace hoy.", "¿Has visto el partido de ayer?", "Hoy hay mucho lío.",
+		"Uf, qué calor.", "¡Hola, vecino!", "Luego te llamo.", "Me voy a tomar un café.",
+		"¿Sabes dónde está la estación?", "Mañana es fiesta.", "¡Qué bonito está el mar!",
+	},
+	Emotes = { Saludar = "¡Hola!", Reir = "¡Ja, ja, ja!", Animar = "¡Vamos!", Senalar = "¡Mira allí!", NoSe = "Ni idea…" },
+}
+
 Config.Audio = {
 	Music = {
 		Nacimiento = { Id = 99685990275611, File = "nacimiento.ogg", Volume = 0.4, Looped = true },

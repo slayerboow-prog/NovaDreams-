@@ -22,6 +22,8 @@ local UserInputService = game:GetService("UserInputService")
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Hud = require(script.Parent.Parent.UI.Hud)
 local Cinematics = require(script.Parent.Cinematics)
+local SoundFx = require(script.Parent.SoundFx)
+local StreetVoices = require(ReplicatedStorage.Shared.Config).StreetVoices
 
 local Actions = {}
 
@@ -35,17 +37,17 @@ local function asset(id: number): string
 end
 
 -- Gestos: animación para R15 y para R6 (nil = ese tipo de personaje no la tiene)
-type Emote = { Name: string, Icon: string, R15: number, R6: number?, Loop: boolean? }
+type Emote = { Name: string, Icon: string, R15: number, R6: number?, Loop: boolean?, Voice: string? }
 local EMOTES: { Emote } = {
-	{ Name = "Saludar", Icon = "👋", R15 = 507770239, R6 = 128777973 },
-	{ Name = "Señalar", Icon = "👉", R15 = 507770453, R6 = 128853357 },
-	{ Name = "Animar", Icon = "🙌", R15 = 507770677, R6 = 129423030 },
-	{ Name = "Reír", Icon = "😂", R15 = 507770818, R6 = 129423131 },
+	{ Name = "Saludar", Icon = "👋", R15 = 507770239, R6 = 128777973, Voice = "Saludar" },
+	{ Name = "Señalar", Icon = "👉", R15 = 507770453, R6 = 128853357, Voice = "Senalar" },
+	{ Name = "Animar", Icon = "🙌", R15 = 507770677, R6 = 129423030, Voice = "Animar" },
+	{ Name = "Reír", Icon = "😂", R15 = 507770818, R6 = 129423131, Voice = "Reir" },
 	{ Name = "Baile 1", Icon = "💃", R15 = 507771019, R6 = 182435998, Loop = true },
 	{ Name = "Baile 2", Icon = "🕺", R15 = 507776043, R6 = 182436842, Loop = true },
 	{ Name = "Baile 3", Icon = "🪩", R15 = 507777268, R6 = 182436935, Loop = true },
 	{ Name = "Saludo militar", Icon = "🫡", R15 = 3333474484 },
-	{ Name = "No sé", Icon = "🤷", R15 = 3334392772 },
+	{ Name = "No sé", Icon = "🤷", R15 = 3334392772, Voice = "NoSe" },
 }
 local CLIMB = { R15 = 507765644, R6 = 180436334 }
 
@@ -116,6 +118,10 @@ local function playEmote(emote: Emote)
 	if track then
 		track:Play(0.2)
 		playing = track
+	end
+	local line = emote.Voice and StreetVoices.Emotes[emote.Voice]
+	if line then
+		SoundFx.voice(line, 1.05)
 	end
 end
 
@@ -214,6 +220,7 @@ local function tryClimb(humanoid: Humanoid, root: BasePart)
 	end
 	climbing = true
 	lastClimb = os.clock()
+	SoundFx.play("Trepar", 1, nil, root)
 	local track = load(humanoid, if isR15(humanoid) then CLIMB.R15 else CLIMB.R6)
 	if track then
 		track:Play(0.1, 1, 1.6)

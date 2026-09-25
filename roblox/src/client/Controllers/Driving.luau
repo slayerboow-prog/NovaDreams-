@@ -17,6 +17,7 @@ local RunService = game:GetService("RunService")
 
 local Gameplay = require(ReplicatedStorage.Shared.Gameplay)
 local Theme = require(script.Parent.Parent.UI.Theme)
+local SoundFx = require(script.Parent.SoundFx)
 
 local Driving = {}
 
@@ -85,6 +86,7 @@ local function start(seat: VehicleSeat, humanoid: Humanoid)
 	end
 	state = s
 	gui.Enabled = true
+	SoundFx.vehicleStart(kind, chassis)
 end
 
 local function stop()
@@ -93,6 +95,7 @@ local function stop()
 	end
 	state = nil
 	gui.Enabled = false
+	SoundFx.vehicleStop()
 end
 
 -- Suelo bajo un punto (ignora el vehículo, las personas y lo que no choca). nil = agua o vacío
@@ -167,6 +170,7 @@ local function step(dt: number)
 			local origin = base + Vector3.new(0, 1.6, 0) + right * size.X * side + forward * sign * (size.Z / 2 - 0.5)
 			local hit = workspace:Raycast(origin, forward * sign * (math.abs(s.Speed) * dt + 0.8), params)
 			if hit and hit.Normal.Y < 0.6 then
+				SoundFx.crash(math.abs(s.Speed), s.Chassis)
 				s.Speed = -s.Speed * 0.15 -- rebote suave
 				move = Vector3.zero
 				break
@@ -218,6 +222,7 @@ local function step(dt: number)
 	s.Chassis.AssemblyLinearVelocity = forward * s.Speed
 	s.Chassis.AssemblyAngularVelocity = Vector3.zero
 
+	SoundFx.vehicleSpeed(math.clamp(math.abs(s.Speed) / maxSpeed, 0, 1))
 	speedLabel.Text = ("%s  %d km/h"):format(Gameplay.Vehicles[s.Kind].Icon, math.floor(math.abs(s.Speed) + 0.5))
 end
 
@@ -241,7 +246,7 @@ function Driving.init()
 	Theme.label({
 		Size = UDim2.new(1, 0, 0, 18),
 		Position = UDim2.fromOffset(0, 34),
-		Text = "W/S acelerar y frenar · A/D girar · F bajarse",
+		Text = "W/S acelerar y frenar · A/D girar · H claxon · F bajarse",
 		TextSize = 12,
 		TextColor3 = Theme.Colors.Muted,
 		TextXAlignment = Enum.TextXAlignment.Center,
