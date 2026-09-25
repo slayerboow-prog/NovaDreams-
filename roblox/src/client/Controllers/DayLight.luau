@@ -240,6 +240,13 @@ end
 -- La luz calculada para una hora (la usan las pruebas)
 DayLight.sample = sample
 
+-- El tiempo (lluvia, nubes, nieve…) cambia la luz de la hora: Controllers/Weather pone aquí una función
+-- que recibe la luz calculada y devuelve la luz con el tiempo aplicado.
+local modifier: ((Key) -> Key)? = nil
+function DayLight.setModifier(fn: ((Key) -> Key)?)
+	modifier = fn
+end
+
 -- Las cinemáticas activan el "modo cine" (Controllers/Cinematics.luau)
 function DayLight.setCinematic(on: boolean)
 	cinematicTarget = if on then 1 else 0
@@ -256,7 +263,13 @@ function DayLight.init()
 		if since < UPDATE_EVERY then
 			return
 		end
-		local ok, err = pcall(apply, sample(Lighting.ClockTime), since)
+		local ok, err = pcall(function()
+			local k = sample(Lighting.ClockTime)
+			if modifier then
+				k = modifier(k)
+			end
+			apply(k, since)
+		end)
 		since = 0
 		if not ok then
 			warn("[DayLight] " .. tostring(err))

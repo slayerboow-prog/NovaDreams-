@@ -434,6 +434,29 @@ for _, problem in problems do
 end
 check(#problems == 0, "Validate no encuentra errores")
 
+print("\n▶ Estaciones y tiempo")
+local Seasons = loadModule(ROOT .. "/shared/Seasons")
+check(Seasons.seasonOf(1) == "Primavera" and Seasons.seasonOf(8) == "Verano" and Seasons.seasonOf(15) == "Otono" and Seasons.seasonOf(22) == "Invierno" and Seasons.seasonOf(29) == "Primavera", "Las estaciones van en orden, una por semana de juego")
+local seen, snowOutsideWinter, sameTwice = {}, false, true
+for dayN = 1, 112 do
+	for hour = 0, 23, 6 do
+		local w = Seasons.weatherAt(dayN, hour + 0.5)
+		seen[w] = (seen[w] or 0) + 1
+		if w == "Nieve" and Seasons.seasonOf(dayN) ~= "Invierno" then
+			snowOutsideWinter = true
+		end
+		if Seasons.weatherAt(dayN, hour + 0.5) ~= w then
+			sameTwice = false
+		end
+	end
+end
+check(seen.Despejado and seen.Nublado and seen.Lluvia and seen.Tormenta and seen.Nieve and seen.Niebla and not snowOutsideWinter, "Hay sol, nubes, lluvia, tormenta, niebla y nieve (la nieve solo en invierno)")
+check(sameTwice and seen.Despejado > seen.Tormenta, "El tiempo es igual para todos (no cambia al volver a preguntar) y hace sol más a menudo que tormenta")
+check(Seasons.label("Otono", "Lluvia") == "🍂 Otoño · 🌧️ Lluvia", "Etiqueta de la estación y el tiempo")
+local Conditions = loadModule(ROOT .. "/shared/LifeStory/Conditions")
+local ctxInvierno = { Stage = "Nino", ClockTime = 12, Weekday = 1, Completed = {}, Flags = {}, Choices = {}, Discovered = {}, Season = "Invierno", Weather = "Nieve" }
+check(Conditions.check({ Season = "Invierno", Weather = { "Nieve", "Lluvia" } }, ctxInvierno) and not Conditions.check({ Season = "Verano" }, ctxInvierno), "Las misiones pueden depender de la estación y del tiempo")
+
 -- Una clave repetida en una tabla de Luau no da error: la segunda borra a la primera sin avisar
 local duplicated = {}
 for _, name in { "Quests", "Chapters", "Locations", "Cinematics", "Subjects", "Strings", "ShopItems" } do

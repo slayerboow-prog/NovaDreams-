@@ -18,6 +18,8 @@
 --   Traits      = { Empatia = 2 }                rasgo del jugador de al menos 2
 --   Memories    = { "PrimerAmigo" } / NotMemories   recuerdos que tiene (o no)
 --   LastGradeBelow = 5 / LastGradeAtLeast = 7    nota de la última clase o examen
+--   Season      = "Invierno" o { "Otono", "Invierno" }   estación del año (shared/Seasons)
+--   Weather     = "Lluvia" o { "Lluvia", "Tormenta" }     el tiempo que hace ahora
 
 local Stages = require(script.Parent.Stages)
 local GameClock = require(script.Parent.Parent.GameClock)
@@ -38,6 +40,8 @@ export type Context = {
 	Traits: { [string]: number }?,
 	Memories: { [string]: any }?,
 	LastGrade: number?,
+	Season: string?,
+	Weather: string?,
 }
 
 -- Devuelve true, o false y el motivo ("Stage", "Hours", "Weekdays", "Completed"...).
@@ -48,6 +52,15 @@ function Conditions.check(req: { [string]: any }?, ctx: Context): (boolean, stri
 	end
 	if req.Stage and not Stages.inRange(ctx.Stage, req.Stage.Min, req.Stage.Max) then
 		return false, "Stage"
+	end
+	for _, key in { "Season", "Weather" } do
+		local wanted = req[key]
+		if wanted then
+			local list = if type(wanted) == "table" then wanted else { wanted }
+			if not table.find(list, ctx[key]) then
+				return false, key
+			end
+		end
 	end
 	for _, id in req.Completed or {} do
 		if not ctx.Completed[id] then

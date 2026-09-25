@@ -192,6 +192,15 @@ local People: { [string]: Person } = {
 	Irene = { Name = "Irene", Voice = "Profe", Skin = rgb(160, 110, 80), Shirt = rgb(240, 120, 40), Pants = rgb(30, 30, 30), Hair = rgb(20, 20, 22), Bio = "Entrenadora y fisioterapeuta. Cronómetro en una mano, bolsa de hielo en la otra." },
 	Toni = { Name = "Toni", Voice = "Profe", Skin = rgb(225, 180, 140), Shirt = rgb(20, 20, 20), Pants = rgb(20, 20, 20), Hair = rgb(90, 60, 40), Bio = "Hace vídeos y documentales. Tío de Leire. Habla en planos: «esto, en primer plano, sería precioso»." },
 
+	-- Universidad (Campus Valmar)
+	Beltran = { Name = "Profesora Beltrán", Voice = "Rectora", Skin = rgb(225, 185, 150), Shirt = rgb(70, 70, 90), Pants = rgb(40, 40, 50), Hair = rgb(180, 180, 185), LongSleeves = true, Bio = "Profesora veterana de tu facultad. Exigente, justa, con un humor tan seco que tardas en pillarlo." },
+	Luca = { Name = "Luca", Voice = "Profe", Skin = rgb(220, 180, 140), Shirt = rgb(40, 140, 90), Pants = rgb(50, 50, 70), Hair = rgb(40, 30, 20), Bio = "Estudiante de Erasmus (de Bolonia). Voluntario de bienvenida. Mezcla idiomas y lo arregla todo con comida." },
+	Julia = { Name = "Julia", Voice = "Profe", Skin = rgb(240, 210, 185), Shirt = rgb(230, 230, 240), Pants = rgb(60, 60, 90), Hair = rgb(200, 150, 80), LongHair = true, Bio = "Del equipo del proyecto. Lo hace todo, lo revisa todo, no duerme. Le da pánico fallar." },
+	Pablo = { Name = "Pablo", Voice = "Profe", Skin = rgb(190, 140, 100), Shirt = rgb(200, 90, 40), Pants = rgb(40, 40, 40), Hair = rgb(20, 20, 22), Bio = "Del equipo del proyecto. Encantador, nunca aparece. En realidad lo que le gusta es la música." },
+	Adrian = { Name = "Adrián", Voice = "Profe", Skin = rgb(230, 195, 160), Shirt = rgb(30, 60, 120), Pants = rgb(200, 190, 170), Hair = rgb(120, 80, 40), Bio = "Del equipo del proyecto. Quiere mandar. Tiene una beca que no puede perder y eso le asusta." },
+	Carla = { Name = "Carla", Voice = "Profe", Skin = rgb(170, 120, 90), Shirt = rgb(150, 60, 150), Pants = rgb(40, 40, 60), Hair = rgb(30, 20, 15), LongHair = true, Bio = "Del equipo del proyecto. Siempre llega tarde. Por las tardes cuida de su hermano pequeño." },
+	Alba = { Name = "Alba", Voice = "Nino", Kid = true, Skin = rgb(240, 205, 175), Shirt = rgb(250, 180, 60), Pants = rgb(60, 80, 140), Hair = rgb(120, 70, 30), LongHair = true, Backpack = rgb(250, 120, 160), Bio = "9 años. Odia las fracciones. Adora los dinosaurios. Pregunta «¿y por qué?» cuarenta veces por hora." },
+
 	-- Gente de fondo (entrada del colegio, calle)
 	Alumno1 = { Name = "Alumno", Voice = "Nino", Kid = true, Skin = rgb(236, 196, 160), Shirt = rgb(250, 200, 70), Pants = rgb(40, 50, 90), Bio = "" },
 	Alumno2 = { Name = "Alumna", Voice = "Nino", Kid = true, Skin = rgb(180, 130, 95), Shirt = rgb(90, 180, 220), Pants = rgb(60, 40, 70), Bio = "" },

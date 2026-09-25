@@ -35,6 +35,7 @@ local order = {
 	"LifeService",
 	"NeedsService",
 	"WorldService",
+	"WeatherService", -- estaciones y tiempo: sol, lluvia, tormenta, nieve, niebla
 	"JobService",
 	"FoodService",
 	"HouseService",
