@@ -8,24 +8,30 @@
 --   Patterns: trozos del nombre del modelo que lo identifican (sin mayúsculas)
 --   Height:   altura objetivo en studs (se escala el modelo para encajar), opcional
 --   Yaw:      giro extra si el "frente" del modelo no mira a -Z
+--   Disabled: no se usa (se queda la versión por código)
 -- También se puede forzar poniendo al modelo el atributo Asset = "Tree".
 
 local Place = require(script.Parent.Place)
 
 local AssetLibrary = {}
 
-type Entry = { Patterns: { string }, Exclude: { string }?, Height: number?, Yaw: number? }
+type Entry = { Patterns: { string }, Exclude: { string }?, Height: number?, Yaw: number?, Disabled: boolean? }
+
+-- Si para llegar a la altura objetivo hay que agrandar o encoger demasiado, el modelo elegido
+-- no es el objeto entero (p. ej. un tronco suelto que se llama "Tree_Trunk"): se descarta.
+local MAX_SCALE, MIN_SCALE = 3, 0.2
 
 AssetLibrary.Catalog = {
-	Tree = { Patterns = { "env_tree", "tree_" }, Exclude = { "palm", "pine", "dead", "stump", "log" }, Height = 16 },
-	Pine = { Patterns = { "pine" }, Exclude = { "cone" }, Height = 18 },
+	-- Árboles y semáforos desactivados: con los packs salían troncos y semáforos gigantes
+	Tree = { Patterns = { "env_tree", "tree_" }, Exclude = { "palm", "pine", "dead", "stump", "log", "trunk", "branch", "leaf", "leaves" }, Height = 16, Disabled = true },
+	Pine = { Patterns = { "pine" }, Exclude = { "cone", "trunk", "branch" }, Height = 18, Disabled = true },
 	Palm = { Patterns = { "palm" }, Height = 20 },
 	Bush = { Patterns = { "bush", "shrub" }, Height = 3.5 },
 	Lamp = { Patterns = { "streetlight", "street_light", "lamppost", "lamp_post" }, Height = 15 },
 	Bench = { Patterns = { "bench" }, Height = 3.4 },
 	Bin = { Patterns = { "bin_", "trashcan", "trash_can", "rubbish" }, Height = 3 },
 	Car = { Patterns = { "veh_car", "car_sedan", "car_hatch", "car_suv", "sedan", "hatchback" }, Exclude = { "wheel", "door", "police", "taxi" }, Height = 5.2 },
-	TrafficLight = { Patterns = { "trafficlight", "traffic_light" }, Height = 15 },
+	TrafficLight = { Patterns = { "trafficlight", "traffic_light" }, Height = 15, Disabled = true },
 	BusStop = { Patterns = { "busstop", "bus_stop", "bus_shelter" }, Height = 8.5 },
 	Hydrant = { Patterns = { "hydrant" }, Height = 2.6 },
 	Planter = { Patterns = { "planter", "flowerbed", "flower_bed" }, Height = 2.5 },
@@ -78,7 +84,7 @@ function AssetLibrary.variants(kind: string): { Instance }
 	local list = {}
 	local entry = AssetLibrary.Catalog[kind]
 	local library = root()
-	if library and entry then
+	if library and entry and not entry.Disabled then
 		for _, d in library:GetDescendants() do
 			if (d:IsA("Model") or d:IsA("BasePart")) and hasParts(d) then
 				local forced = d:GetAttribute("Asset")
@@ -119,7 +125,12 @@ function AssetLibrary.spawn(kind: string, parent: Instance, target: CFrame, scal
 	local minV, maxV = Place.bounds(copy)
 	local factor = scale or 1
 	if entry.Height and maxV.Y > minV.Y then
-		factor *= entry.Height / (maxV.Y - minV.Y)
+		local fit = entry.Height / (maxV.Y - minV.Y)
+		if fit > MAX_SCALE or fit < MIN_SCALE then
+			copy:Destroy()
+			return nil
+		end
+		factor *= fit
 	end
 	Place.scale(copy, factor, Vector3.new((minV.X + maxV.X) / 2, minV.Y, (minV.Z + maxV.Z) / 2))
 	Place.put(copy, target, entry.Yaw)
