@@ -26,8 +26,28 @@ local inCinematic = false
 local speaking = 0
 local ttsAvailable = AUDIO.Voices.TextToSpeech
 
-local function assetId(id: number?): string?
-	return if id and id > 0 then "rbxassetid://" .. id else nil
+-- ID del audio: el de Config.Audio o, si es 0, el del Sound que tenga el mismo nombre que el archivo
+-- dentro de ReplicatedStorage.Musica (basta con arrastrar ahí los audios subidos desde el Asset Manager).
+local function normalize(name: string): string
+	return (string.gsub(string.lower(name), "[%s_%-%.]", ""))
+end
+
+local function fromFolder(file: string?): string?
+	local musica = file and game:GetService("ReplicatedStorage"):FindFirstChild("Musica")
+	if not musica or not file then
+		return nil
+	end
+	local wanted = normalize((string.gsub(file, "%.%w+$", "")))
+	for _, sound in musica:GetDescendants() do
+		if sound:IsA("Sound") and sound.SoundId ~= "" and normalize(sound.Name) == wanted then
+			return sound.SoundId
+		end
+	end
+	return nil
+end
+
+local function assetId(id: number?, file: string?): string?
+	return if id and id > 0 then "rbxassetid://" .. id else fromFolder(file)
 end
 
 local function targetVolume(base: number): number
@@ -61,7 +81,7 @@ local function playMusic(cue: string?, volumeScale: number)
 		current = nil
 	end
 	local track = cue and AUDIO.Music[cue]
-	local id = track and assetId(track.Id)
+	local id = track and assetId(track.Id, track.File)
 	if not track or not id then
 		return
 	end
@@ -121,7 +141,7 @@ end
 
 function StoryAudio.sting(name: string?)
 	local sting = name and AUDIO.Stings[name]
-	local id = sting and assetId(sting.Id)
+	local id = sting and assetId(sting.Id, sting.File)
 	if muted or not id then
 		return
 	end

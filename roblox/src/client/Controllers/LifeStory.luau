@@ -284,7 +284,8 @@ local function showMoment(message: string, color: Color3?)
 	local label = Theme.label({
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.3),
-		Size = UDim2.new(0.8, 0, 0, 60),
+		Size = UDim2.new(0.8, 0, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y, -- las frases largas ocupan varias líneas sin cortarse
 		Text = message,
 		Font = Theme.FontBold,
 		TextSize = 30,
@@ -315,14 +316,15 @@ local function showScreen(small: string?, big: string, body: string?, seconds: n
 		Parent = gui,
 	})
 	local labels = {}
-	local function line(content: string?, y: number, size: number, color: Color3, bold: boolean)
+	local function line(content: string?, y: number, size: number, color: Color3, bold: boolean, top: boolean?)
 		if not content or content == "" then
 			return
 		end
 		table.insert(labels, Theme.label({
-			AnchorPoint = Vector2.new(0.5, 0.5),
+			AnchorPoint = Vector2.new(0.5, if top then 0 else 0.5), -- el texto largo crece hacia abajo
 			Position = UDim2.fromScale(0.5, y),
-			Size = UDim2.new(0.8, 0, 0, size + 16),
+			Size = UDim2.new(0.8, 0, 0, 0),
+			AutomaticSize = Enum.AutomaticSize.Y, -- un texto largo no se corta ni se monta sobre otro
 			Text = content,
 			Font = if bold then Theme.FontBold else Theme.Font,
 			TextSize = size,
@@ -336,7 +338,7 @@ local function showScreen(small: string?, big: string, body: string?, seconds: n
 	end
 	line(small, 0.4, 16, C.Accent, false)
 	line(big, 0.47, 34, C.Text, true)
-	line(body, 0.56, 18, C.Muted, false)
+	line(body, 0.53, 18, C.Muted, false, true)
 
 	local fadeIn = TweenInfo.new(0.8)
 	TweenService:Create(overlay, fadeIn, { BackgroundTransparency = 0.05 }):Play()

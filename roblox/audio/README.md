@@ -13,7 +13,15 @@ problemas de derechos.
 | `sting_capitulo.ogg` | Empieza un capítulo | `Stings.Capitulo` |
 | `sting_primeros_pasos.ogg` | ¡Primeros pasos! | `Stings.PrimerosPasos` |
 
-## Cómo ponerla en el juego (una sola vez)
+## Cómo ponerla en el juego — forma fácil (sin copiar IDs)
+
+1. Abre el juego en Roblox Studio.
+2. **Window → Asset Manager → Bulk Import** y elige los 7 archivos `.ogg` de esta carpeta.
+3. En el Asset Manager, carpeta **Audio**, arrastra cada audio al **Explorer**, dentro de
+   **ReplicatedStorage → Musica** (se crea un `Sound` con su ID).
+4. Guarda el juego. El juego reconoce cada audio por su nombre (`tema_valmar`, `nacimiento`…).
+
+## Cómo ponerla en el juego — con IDs (una sola vez)
 
 1. Abre el juego en Roblox Studio.
 2. **Ventana (Window) → Asset Manager** → botón **Bulk Import** (importar varios) y elige los 7 archivos `.ogg` de

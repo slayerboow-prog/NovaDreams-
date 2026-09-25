@@ -50,6 +50,9 @@
         "Progression": {
           "$className": "RemoteEvent"
         }
+      },
+      "Musica": {
+        "$className": "Folder"
       }
     },
     "ServerScriptService": {
