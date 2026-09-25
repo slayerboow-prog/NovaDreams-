@@ -76,6 +76,9 @@ se usan así, sin tocar el mapa: `{ Tag = "StoryArea", Attribute = { AreaId = "B
   - Pistas de la mochila: `Pista_Papel`, `Pista_Pegatina` (patio), `Pista_Huella`, `Pista_Objeto` (camino al gimnasio)
   - Gimnasio: `Gimnasio_Grupo`, `Gimnasio_Puerta`, `Almacen_NPC`
   - Fútbol: `Futbol_Centro`, `Futbol_PorteriaA`, `Futbol_PorteriaB` (campo de fútbol)
+  - Persecución: `Escondite` (muro bajo y cajas en el patio), `Atajo_Musica` (dentro del aula de música, junto a
+    su puerta trasera) y `Atajo_Musica_Salida` (fuera, en el patio, camino del gimnasio). La puerta es decorativa:
+    la historia lleva al jugador de un punto al otro.
 - Ya existían: `SchoolEntrance`, `Classroom`/`Desk`/`Board`/`TeacherSpot` (+`ClassroomId`), `MusicRoom`, `RecessArea`, `PEArea`
 
 **Parques** (atributo `Town`; 8 parques)

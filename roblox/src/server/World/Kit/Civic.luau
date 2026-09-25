@@ -203,6 +203,13 @@ function Civic.school(parent: Instance, lot: Lot, townName: string)
 		-- Sitios para las pistas de "La mochila desaparecida" (la historia pone el objeto)
 		StoryMarks.spot(m, "Pista_Papel", lot.facing(0, courtV + 21, FT + 2.5), mark)
 		StoryMarks.spot(m, "Pista_Pegatina", lot.facing(46, courtV - 6, FT + 2.5), mark)
+		-- Escondite de la persecución: muro bajo y cajas a un lado del patio
+		local hide = lot.facing(-68, courtV, 0)
+		Builder.part({ Name = "LowWall", Size = Vector3.new(10, 3.2, 1), CFrame = hide * CFrame.new(0, 1.6, 0), Color = rgb(196, 112, 84), Material = Enum.Material.Brick, Parent = m })
+		for k, offset in { { -3, 1.6 }, { 1, 1.8 }, { 3.6, 1.5 } } do
+			Builder.part({ Name = "Crate", Size = Vector3.new(2.6, 2.6, 2.6), CFrame = hide * CFrame.new(offset[1], 1.3 + (if k == 2 then 2.6 else 0), offset[2]) * CFrame.Angles(0, math.rad(k * 11), 0), Color = rgb(170, 125, 75), Material = Enum.Material.WoodPlanks, Parent = m })
+		end
+		StoryMarks.spot(m, "Escondite", hide * CFrame.new(0, FT + 2.5, 4), mark)
 	end
 	-- Campo de fútbol y gimnasio al fondo del recinto
 	local fieldV = courtV + 40 + 30
@@ -339,6 +346,14 @@ function Civic.schoolInterior(model: Model, ground: (number, number, number) -> 
 	StoryMarks.spot(model, "Informante_Pasillo", at(-6, 2.5, -6), mark)
 	StoryMarks.spot(model, "Libros", at(5, 2.5, -2), mark)
 	StoryMarks.spot(model, "Profesor_Entrada", at(4, 2.5, -D / 2 - 4), mark)
+	-- Atajo de la persecución: puerta trasera del aula de música que da al patio (hacia el gimnasio).
+	-- La historia mueve al jugador de un punto al otro con un aviso "Salir por la puerta de atrás".
+	for _, side in { { z = halfD - 0.05, base = at }, { z = D / 2 + 0.15, base = ground } } do
+		Builder.decor({ Name = "BackDoor", Size = Vector3.new(3.6, 7, 0.2), CFrame = side.base(39, 3.5, side.z), Color = rgb(120, 82, 52), Material = Enum.Material.Wood, Parent = model })
+		Builder.decor({ Name = "BackDoorHandle", Size = Vector3.new(0.3, 0.3, 0.3), CFrame = side.base(40.3, 3.5, side.z + (if side.base == at then -0.15 else 0.15)), Color = rgb(210, 180, 90), Material = Enum.Material.Metal, Parent = model })
+	end
+	StoryMarks.spot(model, "Atajo_Musica", at(39, 2.5, halfD - 3) * CFrame.Angles(0, math.pi, 0), mark)
+	StoryMarks.spot(model, "Atajo_Musica_Salida", ground(39, 2.5, D / 2 + 4) * CFrame.Angles(0, math.pi, 0), mark)
 end
 
 ---------------------------------------------------------------------
