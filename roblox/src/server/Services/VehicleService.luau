@@ -371,7 +371,10 @@ local function setupParkedCar(model: Instance)
 			return
 		end
 		prompt:Destroy()
-		Rides.prepare(model, "Coche", body.CFrame * CFrame.new(0, -2.2, 0))
+		local ground = body.CFrame * CFrame.new(0, -2.2, 0)
+		-- Al cogerlo se ve con todo detalle (interior, montantes, retrovisores…)
+		require(script.Parent.Parent.World.Kit.CarModel).upgrade(model :: Model, ground)
+		Rides.prepare(model, "Coche", ground)
 		addDrivePrompt(model, "Coche")
 		addHeadlight(model)
 		drive(player, model, "Coche", { Keep = true })

@@ -6,6 +6,7 @@
 
 local Builder = require(script.Parent.Parent.Builder)
 local Palette = require(script.Parent.Palette)
+local CarModel = require(script.Parent.CarModel)
 
 local Rides = {}
 
@@ -20,7 +21,7 @@ Rides.Spec = {
 	Patinete = { Seat = CFrame.new(0, 0.75, 0.4), Size = Vector3.new(1.4, 1, 3.8), Standing = true },
 	Bici = { Seat = CFrame.new(0, 3.2, 1), Size = Vector3.new(1.2, 1, 4.8) },
 	Moto = { Seat = CFrame.new(0, 2.55, 0.8), Size = Vector3.new(1.6, 1, 5.8) },
-	Coche = { Seat = CFrame.new(-1.4, 1.6, 0.4), Size = Vector3.new(6.2, 1, 13.5) },
+	Coche = { Seat = CFrame.new(-1.4, 1.6, -0.6), Size = Vector3.new(6.2, 1, 13.5) },
 	Autobus = { Seat = CFrame.new(-2.4, 3.75, -13), Size = Vector3.new(8.6, 1, 34) },
 }
 
@@ -48,82 +49,210 @@ local function box(m: Model, name: string, size: Vector3, cf: CFrame, color: Col
 	})
 end
 
+-- Piezas finas (no chocan) y tubos entre dos puntos del plano del vehículo (x fija)
+local function bit(m: Model, name: string, size: Vector3, cf: CFrame, color: Color3, material: Enum.Material?, transparency: number?): BasePart
+	return Builder.decor({ Name = name, Size = size, CFrame = cf, Color = color, Material = material or Enum.Material.SmoothPlastic, Transparency = transparency or 0, Parent = m })
+end
+local function cyl(m: Model, name: string, length: number, diameter: number, cf: CFrame, color: Color3, material: Enum.Material?): BasePart
+	return Builder.decor({ Name = name, Shape = Enum.PartType.Cylinder, Size = Vector3.new(length, diameter, diameter), CFrame = cf, Color = color, Material = material or Enum.Material.SmoothPlastic, Parent = m })
+end
+-- Tubo de a hasta b (puntos en coordenadas del vehículo: x, y, z)
+local function tube(m: Model, cf: CFrame, name: string, a: Vector3, b: Vector3, thickness: number, color: Color3, material: Enum.Material?)
+	local d = b - a
+	local len = d.Magnitude
+	local angle = math.atan2(-d.Y, d.Z)
+	local yaw = math.atan2(d.X, math.sqrt(d.Y * d.Y + d.Z * d.Z))
+	return bit(m, name, Vector3.new(thickness, thickness, len), cf * CFrame.new((a + b) / 2) * CFrame.Angles(angle, 0, 0) * CFrame.Angles(0, yaw, 0), color, material or Enum.Material.Metal)
+end
+-- Rueda con radios (bici): neumático, llanta, buje y radios
+local function spokedWheel(m: Model, cf: CFrame, radius: number, width: number, rimColor: Color3, spokes: number)
+	wheel(m, cf, radius, width)
+	cyl(m, "Rim", width + 0.04, radius * 1.75, cf, rimColor, Enum.Material.Metal)
+	cyl(m, "RimInner", width + 0.06, radius * 1.6, cf, rgb(40, 40, 44), Enum.Material.SmoothPlastic)
+	for k = 0, spokes - 1 do
+		local a = k * math.pi / spokes
+		bit(m, "Spoke", Vector3.new(0.05, 0.05, radius * 1.6), cf * CFrame.Angles(a, 0, 0), rgb(200, 200, 205), Enum.Material.Metal)
+	end
+	cyl(m, "Hub", width + 0.1, 0.35, cf, METAL, Enum.Material.Metal)
+end
+
 local function monopatin(m: Model, cf: CFrame, color: Color3)
-	box(m, "Deck", Vector3.new(1.3, 0.2, 4.2), cf * CFrame.new(0, 0.55, 0), color, Enum.Material.Wood)
-	box(m, "Grip", Vector3.new(1.2, 0.05, 3.8), cf * CFrame.new(0, 0.67, 0), rgb(30, 30, 34), Enum.Material.Sand)
-	for _, z in { -1.4, 1.4 } do
-		box(m, "Truck", Vector3.new(1, 0.2, 0.3), cf * CFrame.new(0, 0.38, z), METAL, Enum.Material.Metal)
-		for _, x in { -0.5, 0.5 } do
-			wheel(m, cf * CFrame.new(x, 0.25, z), 0.25, 0.25)
+	-- Tabla con morro y cola levantados, lija arriba y dibujo abajo
+	box(m, "Deck", Vector3.new(1.3, 0.16, 3.2), cf * CFrame.new(0, 0.55, 0), color, Enum.Material.Wood)
+	for _, sz in { -1, 1 } do
+		-- morro y cola levantados (el extremo de fuera sube)
+		local kick = cf * CFrame.new(0, 0.55, sz * 1.6) * CFrame.Angles(math.rad(-sz * 20), 0, 0) * CFrame.new(0, 0, sz * 0.42)
+		bit(m, "Kick", Vector3.new(1.3, 0.16, 0.9), kick, color, Enum.Material.Wood)
+		bit(m, "KickGrip", Vector3.new(1.22, 0.03, 0.85), kick * CFrame.new(0, 0.09, 0), rgb(25, 25, 28), Enum.Material.Sand)
+	end
+	bit(m, "Grip", Vector3.new(1.22, 0.03, 3.1), cf * CFrame.new(0, 0.645, 0), rgb(25, 25, 28), Enum.Material.Sand)
+	bit(m, "Graphic", Vector3.new(1.1, 0.02, 2.4), cf * CFrame.new(0, 0.46, 0), rgb(250, 250, 250))
+	for _, z in { -1.3, 1.3 } do
+		bit(m, "Baseplate", Vector3.new(0.6, 0.08, 0.6), cf * CFrame.new(0, 0.44, z), METAL, Enum.Material.Metal)
+		bit(m, "Bushing", Vector3.new(0.3, 0.12, 0.3), cf * CFrame.new(0, 0.36, z), rgb(240, 200, 40))
+		bit(m, "Hanger", Vector3.new(1.1, 0.14, 0.22), cf * CFrame.new(0, 0.27, z), METAL, Enum.Material.Metal)
+		for _, x in { -0.55, 0.55 } do
+			wheel(m, cf * CFrame.new(x, 0.22, z), 0.22, 0.22)
+			cyl(m, "Bearing", 0.24, 0.16, cf * CFrame.new(x, 0.22, z), METAL, Enum.Material.Metal)
+		end
+		for _, x in { -0.18, 0.18 } do
+			bit(m, "Bolt", Vector3.new(0.06, 0.03, 0.06), cf * CFrame.new(x, 0.665, z + 0.15), METAL, Enum.Material.Metal)
 		end
 	end
 end
 
 local function bici(m: Model, cf: CFrame, color: Color3)
 	local r = 1.3
-	for _, z in { -1.8, 1.8 } do
-		wheel(m, cf * CFrame.new(0, r, z), r, 0.25)
-		box(m, "Hub", Vector3.new(0.3, 0.4, 0.4), cf * CFrame.new(0, r, z), METAL, Enum.Material.Metal)
+	local rear, front = Vector3.new(0, r, 1.8), Vector3.new(0, r, -1.8)
+	local bb = Vector3.new(0, 1.05, 0.15) -- eje de los pedales
+	local seatTop = Vector3.new(0, 2.85, 0.75)
+	local headTop, headBottom = Vector3.new(0, 3.0, -1.3), Vector3.new(0, 2.25, -1.48)
+	for _, p in { rear, front } do
+		spokedWheel(m, cf * CFrame.new(p), r, 0.22, rgb(210, 212, 216), 8)
 	end
-	box(m, "TopTube", Vector3.new(0.25, 0.25, 2.6), cf * CFrame.new(0, 2.7, -0.1), color)
-	box(m, "DownTube", Vector3.new(0.25, 0.25, 2.6), cf * CFrame.new(0, 1.9, -0.6) * CFrame.Angles(math.rad(-30), 0, 0), color)
-	box(m, "ChainStay", Vector3.new(0.2, 0.2, 1.9), cf * CFrame.new(0, r, 0.9), color)
-	box(m, "SeatTube", Vector3.new(0.25, 1.8, 0.25), cf * CFrame.new(0, 2.1, 0.8) * CFrame.Angles(math.rad(-12), 0, 0), color)
-	box(m, "Seat", Vector3.new(0.7, 0.25, 1.1), cf * CFrame.new(0, 3.1, 1), rgb(30, 30, 34), Enum.Material.Fabric)
-	box(m, "Fork", Vector3.new(0.2, 2.2, 0.2), cf * CFrame.new(0, 2.3, -1.65) * CFrame.Angles(math.rad(10), 0, 0), METAL, Enum.Material.Metal)
-	box(m, "Handlebar", Vector3.new(2, 0.2, 0.2), cf * CFrame.new(0, 3.4, -1.45), rgb(30, 30, 34))
-	box(m, "Pedals", Vector3.new(1.4, 0.15, 0.4), cf * CFrame.new(0, 1.1, 0.1), rgb(40, 40, 44))
+	-- Cuadro (tubos entre sus puntos)
+	tube(m, cf, "TopTube", seatTop - Vector3.new(0, 0.2, 0), headTop - Vector3.new(0, 0.1, 0), 0.22, color)
+	tube(m, cf, "DownTube", bb, headBottom, 0.26, color)
+	tube(m, cf, "SeatTube", bb, seatTop, 0.24, color)
+	tube(m, cf, "HeadTube", headBottom, headTop, 0.3, color)
+	for _, x in { -0.14, 0.14 } do
+		tube(m, cf, "ChainStay", bb + Vector3.new(x, 0, 0), rear + Vector3.new(x, 0, 0), 0.14, color)
+		tube(m, cf, "SeatStay", seatTop - Vector3.new(-x, 0.35, 0), rear + Vector3.new(x, 0, 0), 0.12, color)
+		tube(m, cf, "Fork", headBottom + Vector3.new(x, 0, 0), front + Vector3.new(x, 0, 0.05), 0.14, METAL)
+	end
+	-- Manillar, potencia y puños
+	tube(m, cf, "Stem", headTop, headTop + Vector3.new(0, 0.3, -0.25), 0.14, rgb(30, 30, 34))
+	local bar = headTop + Vector3.new(0, 0.3, -0.25)
+	bit(m, "Handlebar", Vector3.new(2, 0.14, 0.14), cf * CFrame.new(bar), rgb(30, 30, 34), Enum.Material.Metal)
+	for _, x in { -0.85, 0.85 } do
+		cyl(m, "Grip", 0.5, 0.2, cf * CFrame.new(bar + Vector3.new(x, 0, 0)), rgb(20, 20, 22), Enum.Material.Rubber)
+		bit(m, "BrakeLever", Vector3.new(0.5, 0.06, 0.08), cf * CFrame.new(bar + Vector3.new(x * 0.8, -0.05, -0.2)), rgb(30, 30, 34), Enum.Material.Metal)
+	end
+	cyl(m, "Bell", 0.12, 0.3, cf * CFrame.new(bar + Vector3.new(-0.45, 0.12, 0)) * CFrame.Angles(0, 0, math.rad(90)), rgb(220, 220, 225), Enum.Material.Metal)
+	-- Sillín y tija
+	tube(m, cf, "SeatPost", seatTop, seatTop + Vector3.new(0, 0.3, 0.06), 0.12, METAL)
+	box(m, "Seat", Vector3.new(0.7, 0.22, 1.1), cf * CFrame.new(seatTop + Vector3.new(0, 0.38, 0.1)), rgb(28, 28, 32), Enum.Material.Fabric)
+	-- Transmisión: plato, bielas, pedales, cadena y cambio
+	cyl(m, "Chainring", 0.08, 0.95, cf * CFrame.new(bb + Vector3.new(0.22, 0, 0)), rgb(170, 172, 178), Enum.Material.Metal)
+	cyl(m, "Cog", 0.08, 0.45, cf * CFrame.new(rear + Vector3.new(0.22, 0, 0)), rgb(170, 172, 178), Enum.Material.Metal)
+	for _, dy in { 0.44, -0.44 } do
+		tube(m, cf, "Chain", bb + Vector3.new(0.24, dy, 0), rear + Vector3.new(0.24, dy * 0.5, 0), 0.07, rgb(50, 50, 54))
+	end
+	bit(m, "Derailleur", Vector3.new(0.12, 0.45, 0.3), cf * CFrame.new(rear + Vector3.new(0.3, -0.35, 0.05)), rgb(40, 40, 44), Enum.Material.Metal)
+	for _, sx in { -1, 1 } do
+		local foot = bb + Vector3.new(sx * 0.35, sx * 0.55, sx * 0.25)
+		tube(m, cf, "Crank", bb + Vector3.new(sx * 0.3, 0, 0), foot, 0.1, rgb(160, 162, 168))
+		bit(m, "Pedal", Vector3.new(0.5, 0.1, 0.35), cf * CFrame.new(foot + Vector3.new(sx * 0.25, 0, 0)), rgb(30, 30, 34))
+	end
+	-- Guardabarros y luces
+	bit(m, "FenderRear", Vector3.new(0.3, 0.06, 1.4), cf * CFrame.new(rear + Vector3.new(0, r + 0.1, -0.1)) * CFrame.Angles(math.rad(-12), 0, 0), color)
+	bit(m, "FenderFront", Vector3.new(0.3, 0.06, 1.2), cf * CFrame.new(front + Vector3.new(0, r + 0.1, 0.1)) * CFrame.Angles(math.rad(12), 0, 0), color)
+	bit(m, "Headlight", Vector3.new(0.3, 0.25, 0.15), cf * CFrame.new(bar + Vector3.new(0, -0.25, -0.12)), rgb(255, 250, 230), Enum.Material.Neon)
+	bit(m, "Taillight", Vector3.new(0.25, 0.18, 0.08), cf * CFrame.new(seatTop + Vector3.new(0, -0.1, 0.25)), rgb(220, 30, 30), Enum.Material.Neon)
+	bit(m, "Reflector", Vector3.new(0.05, 0.3, 0.3), cf * CFrame.new(front + Vector3.new(0.14, 0.6, 0)), rgb(255, 150, 20), Enum.Material.Neon)
+	-- Bidón
+	cyl(m, "Bottle", 0.6, 0.28, cf * CFrame.new((bb + headBottom) / 2 + Vector3.new(0, 0.25, 0)) * CFrame.Angles(0, 0, math.rad(90)) * CFrame.Angles(math.rad(55), 0, 0), rgb(60, 160, 220))
 end
 
 local function moto(m: Model, cf: CFrame, color: Color3)
+	local CH = rgb(210, 212, 218)
+	local DARK = rgb(28, 28, 32)
+	-- Ruedas con llanta, buje y disco de freno
 	for _, z in { -2.3, 2.3 } do
-		wheel(m, cf * CFrame.new(0, 1, z), 1, 0.6)
+		local c = cf * CFrame.new(0, 1, z)
+		wheel(m, c, 1, 0.6)
+		cyl(m, "Rim", 0.64, 1.3, c, CH, Enum.Material.Metal)
+		cyl(m, "Hub", 0.7, 0.4, c, rgb(90, 92, 98), Enum.Material.Metal)
+		cyl(m, "BrakeDisc", 0.06, 1.05, c * CFrame.new(-0.38, 0, 0), rgb(160, 162, 168), Enum.Material.Metal)
+		bit(m, "Caliper", Vector3.new(0.14, 0.4, 0.3), c * CFrame.new(-0.42, 0.35, 0.3), rgb(200, 40, 40), Enum.Material.Metal)
 	end
-	box(m, "Body", Vector3.new(1.4, 1.2, 3.4), cf * CFrame.new(0, 1.5, 0.3), color)
-	box(m, "Floor", Vector3.new(1.4, 0.3, 1.6), cf * CFrame.new(0, 1.05, -0.8), rgb(40, 40, 44))
-	box(m, "Seat", Vector3.new(1.2, 0.45, 2), cf * CFrame.new(0, 2.35, 0.8), rgb(30, 30, 34), Enum.Material.Fabric)
-	box(m, "Shield", Vector3.new(1.5, 2.4, 0.4), cf * CFrame.new(0, 2.1, -1.8) * CFrame.Angles(math.rad(-15), 0, 0), color)
-	box(m, "Stem", Vector3.new(0.3, 1.2, 0.3), cf * CFrame.new(0, 3.4, -2.05), METAL, Enum.Material.Metal)
-	box(m, "Handlebar", Vector3.new(2.2, 0.25, 0.25), cf * CFrame.new(0, 3.9, -2), rgb(30, 30, 34))
-	box(m, "Headlight", Vector3.new(0.7, 0.4, 0.2), cf * CFrame.new(0, 3.3, -2.2), rgb(255, 250, 230), Enum.Material.Neon)
-	box(m, "Taillight", Vector3.new(0.6, 0.3, 0.2), cf * CFrame.new(0, 2.1, 2.05), rgb(200, 30, 30), Enum.Material.Neon)
+	-- Horquilla y guardabarros delantero
+	for _, x in { -0.28, 0.28 } do
+		tube(m, cf, "Fork", Vector3.new(x, 1, -2.3), Vector3.new(x, 3.2, -2.0), 0.18, CH)
+	end
+	bit(m, "FenderFront", Vector3.new(0.75, 0.12, 1.5), cf * CFrame.new(0, 2.15, -2.3) * CFrame.Angles(math.rad(8), 0, 0), color)
+	-- Escudo delantero, plataforma y carrocería trasera redondeada
+	box(m, "Shield", Vector3.new(1.5, 2.4, 0.35), cf * CFrame.new(0, 2.05, -1.75) * CFrame.Angles(math.rad(-15), 0, 0), color)
+	bit(m, "ShieldTrim", Vector3.new(1.55, 0.1, 0.4), cf * CFrame.new(0, 3.25, -2.05) * CFrame.Angles(math.rad(-15), 0, 0), CH, Enum.Material.Metal)
+	box(m, "Floor", Vector3.new(1.3, 0.25, 1.7), cf * CFrame.new(0, 1.05, -0.75), DARK, Enum.Material.Rubber)
+	for _, x in { -0.62, 0.62 } do
+		bit(m, "FloorTrim", Vector3.new(0.08, 0.28, 1.7), cf * CFrame.new(x, 1.08, -0.75), CH, Enum.Material.Metal)
+	end
+	box(m, "Body", Vector3.new(1.4, 1.1, 2.4), cf * CFrame.new(0, 1.65, 0.9), color)
+	cyl(m, "Tail", 1.4, 1.1, cf * CFrame.new(0, 1.65, 2.1), color)
+	bit(m, "SidePanelLine", Vector3.new(1.44, 0.06, 2.2), cf * CFrame.new(0, 1.55, 0.9), DARK)
+	-- Sillín con asidero cromado
+	box(m, "Seat", Vector3.new(1.2, 0.4, 2), cf * CFrame.new(0, 2.35, 0.8), DARK, Enum.Material.Fabric)
+	bit(m, "SeatPiping", Vector3.new(1.22, 0.06, 2.02), cf * CFrame.new(0, 2.2, 0.8), rgb(150, 30, 30))
+	tube(m, cf, "GrabRail", Vector3.new(-0.55, 2.35, 1.8), Vector3.new(0.55, 2.35, 1.8), 0.12, CH)
+	-- Dirección: columna, manillar, puños, maneta y cuadro de mandos
+	tube(m, cf, "Stem", Vector3.new(0, 3.1, -2.05), Vector3.new(0, 3.75, -2.0), 0.3, color)
+	bit(m, "Handlebar", Vector3.new(2.2, 0.18, 0.18), cf * CFrame.new(0, 3.85, -1.98), DARK, Enum.Material.Metal)
+	for _, x in { -1, 1 } do
+		cyl(m, "Grip", 0.45, 0.24, cf * CFrame.new(x * 0.95, 3.85, -1.98), rgb(20, 20, 22), Enum.Material.Rubber)
+		bit(m, "Lever", Vector3.new(0.6, 0.06, 0.1), cf * CFrame.new(x * 0.8, 3.8, -2.2), CH, Enum.Material.Metal)
+		-- Retrovisores
+		tube(m, cf, "MirrorStalk", Vector3.new(x * 0.6, 3.9, -1.98), Vector3.new(x * 0.85, 4.6, -1.9), 0.07, CH)
+		bit(m, "Mirror", Vector3.new(0.45, 0.3, 0.1), cf * CFrame.new(x * 0.87, 4.68, -1.9), DARK)
+		-- Intermitentes delante y detrás
+		bit(m, "Indicator", Vector3.new(0.2, 0.15, 0.2), cf * CFrame.new(x * 0.6, 3.35, -2.25), rgb(255, 150, 20), Enum.Material.Neon)
+		bit(m, "Indicator", Vector3.new(0.2, 0.15, 0.2), cf * CFrame.new(x * 0.5, 1.9, 2.65), rgb(255, 150, 20), Enum.Material.Neon)
+	end
+	bit(m, "Dash", Vector3.new(0.7, 0.35, 0.1), cf * CFrame.new(0, 3.95, -1.85) * CFrame.Angles(math.rad(-30), 0, 0), rgb(60, 180, 255), Enum.Material.Neon)
+	-- Faro redondo (la luz sale del bloque "Headlight") y piloto
+	box(m, "Headlight", Vector3.new(0.55, 0.45, 0.2), cf * CFrame.new(0, 3.4, -2.28), rgb(255, 250, 230), Enum.Material.Neon)
+	cyl(m, "HeadlightRing", 0.12, 0.8, cf * CFrame.new(0, 3.4, -2.24) * CFrame.Angles(0, math.rad(90), 0), CH, Enum.Material.Metal)
+	box(m, "Taillight", Vector3.new(0.6, 0.3, 0.2), cf * CFrame.new(0, 2.1, 2.65), rgb(200, 30, 30), Enum.Material.Neon)
+	bit(m, "Plate", Vector3.new(0.9, 0.5, 0.06), cf * CFrame.new(0, 1.55, 2.68) * CFrame.Angles(math.rad(10), 0, 0), rgb(240, 240, 240))
+	-- Escape cromado y caballete
+	tube(m, cf, "Exhaust", Vector3.new(0.6, 0.9, -0.2), Vector3.new(0.65, 1.2, 1.9), 0.3, CH)
+	cyl(m, "ExhaustTip", 0.3, 0.35, cf * CFrame.new(0.65, 1.22, 2.05) * CFrame.Angles(0, math.rad(90), 0), rgb(60, 60, 64), Enum.Material.Metal)
+	tube(m, cf, "Kickstand", Vector3.new(-0.5, 0.9, 0.2), Vector3.new(-0.9, 0.1, 0.4), 0.1, DARK)
 end
 
 local function patinete(m: Model, cf: CFrame, color: Color3)
+	local DARK = rgb(28, 28, 32)
 	for _, z in { -1.5, 1.5 } do
-		wheel(m, cf * CFrame.new(0, 0.35, z), 0.35, 0.3)
+		local c = cf * CFrame.new(0, 0.38, z)
+		wheel(m, c, 0.38, 0.3)
+		cyl(m, "Rim", 0.34, 0.5, c, rgb(60, 60, 64), Enum.Material.Metal)
 	end
-	box(m, "Deck", Vector3.new(1, 0.2, 3.2), cf * CFrame.new(0, 0.55, 0.1), rgb(40, 40, 44))
-	box(m, "Grip", Vector3.new(0.9, 0.05, 2.6), cf * CFrame.new(0, 0.67, 0.2), rgb(25, 25, 28), Enum.Material.Sand)
-	box(m, "Stem", Vector3.new(0.25, 3.6, 0.25), cf * CFrame.new(0, 2.3, -1.45) * CFrame.Angles(math.rad(-8), 0, 0), color, Enum.Material.Metal)
-	box(m, "Handlebar", Vector3.new(1.9, 0.2, 0.2), cf * CFrame.new(0, 4.05, -1.7), rgb(30, 30, 34))
+	-- Plataforma con batería debajo y lija
+	box(m, "Deck", Vector3.new(1, 0.2, 2.9), cf * CFrame.new(0, 0.58, 0.1), DARK)
+	bit(m, "Battery", Vector3.new(0.8, 0.22, 2.4), cf * CFrame.new(0, 0.38, 0.1), color)
+	bit(m, "Grip", Vector3.new(0.9, 0.04, 2.5), cf * CFrame.new(0, 0.7, 0.15), rgb(22, 22, 25), Enum.Material.Sand)
+	for _, x in { -0.5, 0.5 } do
+		bit(m, "DeckTrim", Vector3.new(0.06, 0.1, 2.8), cf * CFrame.new(x, 0.62, 0.1), color)
+	end
+	-- Guardabarros trasero con freno de pie y piloto
+	bit(m, "FenderRear", Vector3.new(0.4, 0.08, 1), cf * CFrame.new(0, 0.85, 1.45) * CFrame.Angles(math.rad(-10), 0, 0), color)
+	bit(m, "Taillight", Vector3.new(0.3, 0.12, 0.08), cf * CFrame.new(0, 0.8, 1.97), rgb(220, 30, 30), Enum.Material.Neon)
+	-- Horquilla, bisagra plegable, barra y manillar
+	for _, x in { -0.18, 0.18 } do
+		tube(m, cf, "Fork", Vector3.new(x, 0.38, -1.5), Vector3.new(x, 1.2, -1.42), 0.1, rgb(60, 60, 64))
+	end
+	bit(m, "FenderFront", Vector3.new(0.4, 0.06, 0.8), cf * CFrame.new(0, 0.85, -1.5), color)
+	bit(m, "Hinge", Vector3.new(0.4, 0.35, 0.4), cf * CFrame.new(0, 0.95, -1.35), DARK, Enum.Material.Metal)
+	tube(m, cf, "Stem", Vector3.new(0, 1.1, -1.38), Vector3.new(0, 4.0, -1.72), 0.25, color)
+	bit(m, "Handlebar", Vector3.new(1.9, 0.14, 0.14), cf * CFrame.new(0, 4.05, -1.72), DARK, Enum.Material.Metal)
+	for _, x in { -0.85, 0.85 } do
+		cyl(m, "Grip", 0.4, 0.2, cf * CFrame.new(x, 4.05, -1.72), rgb(20, 20, 22), Enum.Material.Rubber)
+	end
+	bit(m, "Throttle", Vector3.new(0.18, 0.1, 0.25), cf * CFrame.new(0.6, 4.05, -1.85), DARK)
+	bit(m, "Bell", Vector3.new(0.2, 0.12, 0.2), cf * CFrame.new(-0.6, 4.12, -1.72), rgb(220, 220, 225), Enum.Material.Metal)
+	bit(m, "Display", Vector3.new(0.4, 0.06, 0.3), cf * CFrame.new(0, 4.12, -1.72), rgb(60, 180, 255), Enum.Material.Neon)
 	box(m, "Headlight", Vector3.new(0.4, 0.3, 0.2), cf * CFrame.new(0, 3.5, -1.72), rgb(255, 250, 230), Enum.Material.Neon)
-	box(m, "Fender", Vector3.new(0.35, 0.15, 0.9), cf * CFrame.new(0, 0.8, 1.55), color)
+	bit(m, "Logo", Vector3.new(0.05, 0.6, 0.3), cf * CFrame.new(0.13, 2.5, -1.56), rgb(250, 250, 250))
+	tube(m, cf, "Kickstand", Vector3.new(-0.45, 0.5, 0.3), Vector3.new(-0.7, 0.05, 0.6), 0.08, DARK)
 end
 
 local function coche(m: Model, cf: CFrame, color: Color3)
-	local r = 1.3
-	local glass = rgb(150, 190, 215)
-	box(m, "Body", Vector3.new(6.2, 2.2, 13.5), cf * CFrame.new(0, r + 0.9, 0), color, nil).Reflectance = 0.08
-	box(m, "Roof", Vector3.new(5.6, 0.3, 6.6), cf * CFrame.new(0, 5.35, 0.8), color).Reflectance = 0.08
-	for _, x in { -2.65, 2.65 } do
-		for _, z in { -2.4, 4 } do
-			box(m, "Pillar", Vector3.new(0.3, 2.2, 0.3), cf * CFrame.new(x, 4.2, z), color)
-		end
-		box(m, "SideGlass", Vector3.new(0.1, 1.9, 6.1), cf * CFrame.new(x, 4.2, 0.8), glass, Enum.Material.Glass, 0.55)
+	-- El coche del jugador: el mismo modelo detallado que los de la ciudad, con interior
+	local car = CarModel.build(nil, cf, color, { Name = "Coche", Variant = "Berlina", Interior = true, Plate = ("%04d VLM"):format(math.random(0, 9999)) })
+	for _, part in car:GetChildren() do
+		part.Parent = m
 	end
-	box(m, "Windshield", Vector3.new(5.2, 1.9, 0.1), cf * CFrame.new(0, 4.2, -2.45), glass, Enum.Material.Glass, 0.5)
-	box(m, "RearGlass", Vector3.new(5.2, 1.9, 0.1), cf * CFrame.new(0, 4.2, 4.05), glass, Enum.Material.Glass, 0.5)
-	box(m, "Steering", Vector3.new(1.4, 1.4, 0.2), cf * CFrame.new(0, 3.9, -1.6) * CFrame.Angles(math.rad(-30), 0, 0), rgb(30, 30, 34))
-	for _, z in { -4.3, 4.3 } do
-		for _, x in { -2.9, 2.9 } do
-			wheel(m, cf * CFrame.new(x, r, z), r, 1.1)
-		end
-	end
-	for _, x in { -2.2, 2.2 } do
-		box(m, "Headlight", Vector3.new(1.2, 0.5, 0.2), cf * CFrame.new(x, r + 1.4, -6.8), rgb(255, 250, 230), Enum.Material.Neon)
-		box(m, "Taillight", Vector3.new(1.2, 0.5, 0.2), cf * CFrame.new(x, r + 1.4, 6.8), rgb(200, 30, 30), Enum.Material.Neon)
-	end
+	car:Destroy()
 end
 
 -- Autobús urbano (línea L1), con todo detalle: carrocería con esquinas redondeadas, franja de
