@@ -44,7 +44,7 @@ local PROP_KINDS = {
 	Mochila = true, Libro = true, Papel = true, Pegatina = true, Huella = true, Llavero = true, Envoltorio = true,
 	Balon = true, Armario = true, Espejo = true, Desayuno = true, Almohada = true, Perchero = true, Papelera = true,
 	Asiento = true, Canasta = true, Kiosco = true, Banco = true, Escarabajo = true, Mural = true, Gato = true,
-	Autobus = true, Caja = true, Marcador = true,
+	Autobus = true, Caja = true, Marcador = true, Animal = true, Trofeo = true,
 }
 local TRAITS = { Humor = true, Empatia = true, Valentia = true, Responsabilidad = true, Curiosidad = true, Deportividad = true, Creatividad = true }
 local EFFECTS = {

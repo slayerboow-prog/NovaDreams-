@@ -453,6 +453,21 @@ local BUILDERS: { [string]: (Model, { [string]: any }) -> () } = {
 	Caja = function(m, spec)
 		part(m, V(2, 2, 2), C(0, 1, 0), spec.Color or rgb(170, 130, 80), Enum.Material.Cardboard)
 	end,
+	Animal = function(m, spec)
+		local color = spec.Color or rgb(250, 250, 250)
+		part(m, V(1.6, 1.2, 2.6), C(0, 1.4, 0), color, Enum.Material.Fabric)
+		part(m, V(1, 1, 1), C(0, 2, -1.6), color, Enum.Material.Fabric)
+		for _, x in { -0.6, 0.6 } do
+			for _, z in { -0.9, 0.9 } do
+				part(m, V(0.3, 0.9, 0.3), C(x, 0.45, z), color:Lerp(Color3.new(0, 0, 0), 0.4))
+			end
+		end
+	end,
+	Trofeo = function(m)
+		part(m, V(1, 0.3, 1), C(0, 0.15, 0), rgb(120, 90, 50), Enum.Material.Wood)
+		part(m, V(0.3, 1, 0.3), C(0, 0.8, 0), rgb(220, 180, 60), Enum.Material.Metal)
+		part(m, V(1, 1, 1), C(0, 1.6, 0), rgb(230, 190, 60), Enum.Material.Metal, Enum.PartType.Ball)
+	end,
 	Marcador = function(m)
 		part(m, V(0.8, 0.8, 0.8), C(0, 1.5, 0) * CFrame.Angles(0.6, 0.6, 0), rgb(255, 210, 60), Enum.Material.Neon)
 	end,

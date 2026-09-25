@@ -128,6 +128,10 @@ local KEEPSAKES = {
 	{ "LibroPiratas", "Libro de piratas de Hugo", "🏴‍☠️", "«La isla de las mil llaves». Hugo lo ha leído seis veces. Dice que ahora te toca a ti." },
 	{ "ApuntesBiblioteca", "Apuntes de la biblioteca", "📒", "Los apuntes de Matemáticas de la biblioteca. Hay que devolverlos después del examen." },
 	{ "Lupa", "Lupa de detective", "🔍", "Lucía te la dio por resolver el misterio de las bromas." },
+	{ "FotoExcursion", "Foto de la excursión", "🐄", "Toda la clase delante del granero de Villaverde. Hay una gallina en primer plano." },
+	{ "MedallaOro", "Medalla de oro del torneo", "🥇", "Campeones del torneo del colegio. Pesa más de lo que parece." },
+	{ "MedallaPlata", "Medalla de plata del torneo", "🥈", "Subcampeones. Andrés dijo que la plata se gana con el mismo sudor." },
+	{ "FotoLucia", "Foto de la clase de 1998", "🖼️", "Una niña con jersey amarillo en primera fila. Detrás pone: «Algún día seré profe aquí»." },
 }
 for _, entry in KEEPSAKES do
 	list[entry[1]] = { Id = entry[1], Name = entry[2], Icon = entry[3], Kind = "Keepsake", Desc = entry[4], Stack = 99 }

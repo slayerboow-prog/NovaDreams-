@@ -277,7 +277,12 @@ misión nueva se rellena la ficha de 12 puntos de 11.7.
 
 ## 11.13 Estado, pruebas y lo que falta
 
-**Hecho y probado** (prueba automática `scripts/test-lifestory.luau`, 161 comprobaciones en verde):
+**Hecho y probado** (prueba automática `scripts/test-lifestory.luau`, 184 comprobaciones en verde):
+
+- Misiones 07, 08 y 09 (ver 11.17–11.19): la excursión a la granja (sustituye a la antigua
+  «Excursión al parque de bomberos»), el torneo con tres caminos según el deporte y el misterio de la
+  sala cerrada con el candado de código. La prueba juega el camino "difícil": atletismo, clasificación
+  y final perdidas (medalla de plata), código equivocado antes del bueno, colarse en el recreo.
 
 - Misiones 04, 05 y 06 (ver 11.14–11.16): persecución con personajes que huyen, escondite y atajo;
   investigación con acusación que puede fallar; examen con estudio, bonus de tiempo y recuperación si
@@ -310,8 +315,12 @@ animaciones de los NPC, la cámara de los diálogos y el tacto de los minijuegos
 - Los personajes de las escenas se visten con `Npc.dress` (el mismo aspecto que el resto del juego), y cada
   uno lleva siempre la misma ropa, pelo y mochila (`Cast.luau`).
 
-**Siguiente:** 07 «La excursión», 08 «El torneo», 09 «El misterio del colegio» (la foto de Lucía: ya se
-insinúa en la misión 05), con la misma ficha de 12 puntos.
+**Marcas de mapa opcionales para 07–09** (si no existen, se usa el plan B): `StorySpot` «Autobus» (puerta
+del colegio), `StoryArea` «SalaCerrada» y `StorySpot` «SalaCerrada_Puerta» (la puerta del fondo del
+pasillo). La granja usa el modelo `Granja` (y su hijo `Granero`) que ya existe en Villaverde.
+
+**Siguiente:** 10, 11 y 12 (el resto de 4.º: ver 11.2), con la misma ficha de 12 puntos. La cápsula del
+tiempo (`CapsulaDelTiempo`, `Choices.Capsula`) debe volver en «El último día».
 
 ---
 
@@ -382,4 +391,71 @@ insinúa en la misión 05), con la misma ficha de 12 puntos.
     clases de repaso); si apruebas con esfuerzo, recuerdo distinto. Relación con tu compañero de estudio.
 11. **Recompensas:** recuerdo *PrimerExamen* (o *CasiSuspendo*), 10 $.
 12. **Conexión:** después vienen los recados, la excursión y el resto del curso.
+
+## 11.17 Misión 07 — «La excursión» (implementada)
+
+1. **Objetivo narrativo:** el primer episodio "especial": salir de la ciudad con la clase, un lugar
+   nuevo que explorar y un susto que se resuelve en equipo.
+2. **Duración:** 25–35 min.
+3. **NPC:** Lucía, Andrés, Paula (monitora de la granja), Julián (el granjero), tu grupo, Mateo (el que
+   se pierde; si no es tu amigo, se pierde Omar), Bruno, Hugo.
+4. **Lugares:** entrada del colegio (autobús), **la Granja escuela de Villaverde** (granero, silo, corrales).
+5. **Objetivos:** subir al autobús y **elegir con quién te sientas** → viaje (conversaciones y un
+   imprevisto: Omar se come el bocadillo en el primer kilómetro) → llegada (escena aérea de Villaverde) →
+   Paula presenta la granja → 3 de 4 actividades (dar de comer a las gallinas, el huerto, los caballos,
+   subirte al tractor) → **¡falta Mateo!** → buscarle siguiendo pistas (su mochila, su botella, un mapa
+   dibujado, lo que dice Julián) → le encuentras siguiendo a un corderito → vuelta al autobús → **foto de
+   la clase**.
+6. **Diálogos:** asiento (cada compañero habla de algo distinto), viaje, Paula, cada actividad, la
+   búsqueda, Mateo encontrado, la foto.
+7. **Mecánicas:** viaje con cambio de ciudad (efecto `Teleport`), actividades en cualquier orden.
+8. **Minijuegos:** dar de comer a las gallinas (precisión: echar el grano en su sitio).
+9. **Decisiones:** con quién te sientas; qué haces al encontrar a Mateo (avisar a Lucía o traerle tú).
+10. **Consecuencias:** relaciones; Mateo (u Omar) te lo agradece siempre; marca de quién se sentó contigo.
+11. **Recompensas:** recuerdo *PrimeraExcursion*, **foto de la excursión** en la mochila.
+12. **Conexión:** en el autobús de vuelta, Andrés anuncia el torneo.
+
+## 11.18 Misión 08 — «El torneo» (implementada)
+
+1. **Objetivo narrativo:** esfuerzo, equipo y saber ganar y perder. La rivalidad con Bruno cambia según
+   todo lo que ha pasado.
+2. **Duración:** 20–30 min.
+3. **NPC:** Andrés, Nico, Sara, Omar, Álex, Mateo, Hugo (si está en tu grupo), Bruno, Rubén, alumnos de
+   otras clases, familia (grada).
+4. **Lugares:** campo de fútbol, gimnasio (canasta), pista.
+5. **Objetivos:** Andrés presenta el torneo → **eliges deporte** (fútbol, baloncesto o atletismo) →
+   entrenamiento (distinto en cada deporte) → preparación (charla del equipo: capitán y estrategia) →
+   **clasificación** (partido contra 1.º B) → descanso (tu familia en la grada) → **final contra el equipo
+   de Bruno** → entrega de medallas.
+6. **Diálogos:** Andrés, equipo, familia, Bruno antes y después de la final (según vuestra historia).
+7. **Mecánicas:** tres caminos distintos según el deporte.
+8. **Minijuegos:** fútbol (partido por jugadas), baloncesto (canastas), atletismo (circuito en la pista +
+   salida y zancadas).
+9. **Decisiones:** deporte, capitán (tú u otro), estrategia, cómo celebras o encajas el resultado.
+10. **Consecuencias:** reputación (Deportividad), relación con el equipo y con Bruno; marca
+    `TorneoGanado` / `TorneoPerdido`.
+11. **Recompensas:** recuerdo *PrimerTorneo*, **medalla** (oro o plata) en la mochila.
+12. **Conexión:** tras el torneo corre un rumor por el colegio: la sala del fondo del pasillo.
+
+## 11.19 Misión 09 — «El misterio del colegio» (implementada)
+
+1. **Objetivo narrativo:** un misterio que acaba en ternura: la profe Lucía también fue niña aquí.
+2. **Duración:** 25–35 min.
+3. **NPC:** tu grupo, Iker (si está en el grupo), Marisa, Ramón, Lucía.
+4. **Lugares:** pasillo (la puerta cerrada del fondo), biblioteca (el anuario de 1998), conserjería (el
+   tablero de llaves), almacén (el trofeo viejo), la sala cerrada.
+5. **Objetivos:** rumores del recreo → una nota en tu taquilla: **«NO ENTRES»** → investigar (anuario,
+   llaves, trofeo, inscripción de la puerta) → **el código del candado** (año + número de la llave:
+   si fallas, piensas otra vez) → pedir permiso a Ramón **o** colarte en el recreo → dentro: pupitres
+   viejos, trofeos… y **una foto de la clase de 1998 con una niña de jersey amarillo** → hablar con
+   Lucía.
+6. **Diálogos:** rumores (cada amigo tiene su teoría), Marisa, Ramón, la puerta, Lucía.
+7. **Mecánicas:** pistas que se combinan en un código (opciones que no avanzan si fallas).
+8. **Minijuegos:** el candado de números.
+9. **Decisiones:** permiso o a escondidas; qué hacer con la foto (devolvérsela a Lucía, enseñarla a la
+   clase o guardar el secreto).
+10. **Consecuencias:** relación con Lucía y Ramón; marca `CapsulaDelTiempo`: Lucía propone que la clase
+    deje su propia cápsula del tiempo en la sala, **que se abrirá el último día de colegio**.
+11. **Recompensas:** recuerdo *MisterioColegio*, **copia de la foto** en la mochila.
+12. **Conexión:** la cápsula del tiempo volverá en «El último día».
 
