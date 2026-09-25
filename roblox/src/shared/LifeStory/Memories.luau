@@ -20,6 +20,9 @@ local Memories: { [string]: Memory } = {
 	Detective = { Text = "Descubriste quién hacía las bromas del colegio", Icon = "🔍" },
 	PrimerExamen = { Text = "Tu primer examen de verdad", Icon = "📝" },
 	CasiSuspendo = { Text = "Aquel examen que casi suspendes (y cómo lo arreglaste)", Icon = "📚" },
+	PrimeraExcursion = { Text = "La excursión a la granja de Villaverde", Icon = "🚌" },
+	PrimerTorneo = { Text = "El torneo del colegio", Icon = "🏆" },
+	MisterioColegio = { Text = "El misterio de la sala cerrada y la foto de Lucía", Icon = "🗝️" },
 }
 
 return Memories

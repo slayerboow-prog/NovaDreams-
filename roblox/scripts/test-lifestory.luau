@@ -968,6 +968,68 @@ check(leoData.Story.Active.Cole06b_Recuperacion ~= nil and playQuest(leo, "Cole0
 check(said(leo, "No era que no pudieras") and leoData.Story.Memories.CasiSuspendo, "Apruebas la recuperación: recuerdo «Aquel examen que casi suspendes»")
 leo.ClassGrade = nil
 
+print("\n▶ Misión 07 «La excursión» (autobús, granja, alguien se pierde, foto)")
+leo.Prefer = { "Le das la mano" }
+leo.Picks = { AsientoBus = "Mateo" }
+leoData.Life.StageSeconds = 0.45 * HOURS.Nino * 3600
+check(playUntil(leo, function()
+	return leoData.Story.Completed.Cole07_Excursion ~= nil
+end), "Recados y misión 07 completos")
+check(leoData.Story.Completed.Nino_Recados ~= nil, "Los recados van antes de la excursión")
+check(said(leo, "Nunca he ido de excursión") and said(leo, "Mateo pega la nariz a la ventana"), "Te sientas con Mateo en el autobús (y el viaje lo recuerda)")
+check(cinematic(leo, "Cole07_Viaje") and cinematic(leo, "Cole07_Foto"), "Cinemáticas del viaje y de la foto")
+check(said(leo, "Falta Mateo") and said(leo, "«¡Le sigo!»"), "¡Falta Mateo! Las pistas llevan al granero")
+check(leoData.Story.Choices.Rescate.V == "Juntos" and said(leo, "Copito os sigue"), "Le das la mano y volvéis juntos")
+check(leoData.Items.FotoExcursion == 1 and leoData.Story.Memories.PrimeraExcursion ~= nil and said(leo, "empieza el torneo del colegio"), "Foto de la excursión, recuerdo, y Andrés anuncia el torneo")
+
+print("\n▶ Misión 08 «El torneo» (deporte, capitán, clasificación, grada, final)")
+leo.Prefer = { "Omar. Hace falta", "Que juegue todo el mundo", "Me tiemblan", "Que gane el mejor", "Dar la mano" }
+leo.Picks = { Deporte = "Atletismo" }
+leo.GameResult = { Hits = 1 } -- esta vez las carreras salen mal
+local circuitos = 0
+for _, call in classCalls do
+	if call.Player == leo and call.Mode == "Circuito" then
+		circuitos += 1
+	end
+end
+leoData.Life.StageSeconds = 0.55 * HOURS.Nino * 3600
+check(playUntil(leo, function()
+	return leoData.Story.Completed.Cole08_Torneo ~= nil
+end), "Misión 08 completa")
+local circuitosDespues = 0
+for _, call in classCalls do
+	if call.Player == leo and call.Mode == "Circuito" then
+		circuitosDespues += 1
+	end
+end
+check(said(leo, "ahora lo haremos A PROPÓSITO") and circuitosDespues == circuitos + 1, "Eliges atletismo: entrenas el circuito de la pista")
+check(not said(leo, "Entrenamiento: tiros libres") and leoData.Story.Choices.Capitan.V == "Omar" and leoData.Story.Choices.Estrategia.V == "Todos", "Omar es el capitán y juega todo el mundo")
+check(said(leo, "pasáis como mejor segundo"), "Pierdes la clasificación pero pasas como mejor segundo")
+check(said(leo, "Mira, el detective") and said(leo, "Juego con ellos. Y ya está."), "Bruno recuerda que le acusaste; Hugo se planta")
+check(leoData.Story.Flags.TorneoPerdido and leoData.Items.MedallaPlata == 1 and said(leo, "Me das la mano después de perder"), "Final perdida: medalla de plata y das la mano")
+check(leoData.Story.Memories.PrimerTorneo ~= nil and said(leo, "la puerta del fondo del pasillo"), "Recuerdo del torneo y el rumor de la sala cerrada")
+leo.GameResult = nil
+
+print("\n▶ Misión 09 «El misterio del colegio» (nota, pistas, candado, la foto, Lucía)")
+leo.Prefer = { "Guardar el secreto" }
+leo.Picks = {
+	Entrar = "Colarse",
+	Candado = function()
+		return if said(leo, "Lo has puesto al revés") then "199813" else "131998" -- primero se equivoca
+	end,
+	Capsula = "Pregunta",
+}
+leoData.Life.StageSeconds = 0.63 * HOURS.Nino * 3600
+check(playUntil(leo, function()
+	return leoData.Story.Completed.Cole09_Misterio ~= nil
+end), "Misión 09 completa")
+check(said(leo, "NO ENTRES EN LA SALA DEL FONDO") and said(leo, "Caso: la sala del fondo"), "La nota en la taquilla (e Iker abre un caso)")
+check(said(leo, "El número 13") and said(leo, "Concurso de Ciencias · 4.º A · 1998"), "Pistas: la llave 13 y el año 1998")
+check(leoData.Story.Choices.Candado.V == "199813" and said(leo, "¡CLAC!"), "Un código mal no abre; el bueno sí")
+check(said(leo, "¡Ajá! ¡Os pillé!") and said(leo, "¡es LUCÍA!"), "Te cuelas, Ramón te pilla… y encontráis la foto de Lucía")
+check(leoData.Story.Flags.SecretoLucia and leoData.Story.Flags.CapsulaDelTiempo and leoData.Story.Choices.Capsula.V == "Pregunta", "Guardas el secreto y metes tu pregunta en la cápsula del tiempo")
+check(leoData.Items.FotoLucia == 1 and leoData.Story.Memories.MisterioColegio ~= nil, "Copia de la foto y recuerdo del misterio")
+
 print("\n▶ El resto del colegio: días normales, cumpleaños y fin de primaria")
 check(leoData.Life.AgeYears >= 8 and received(leo, "Moment", "MOMENT.CUMPLEANOS"), "El tiempo jugado hace crecer: ya tiene 8 años o más")
 
@@ -975,7 +1037,7 @@ leoData.Life.StageSeconds = HOURS.Nino * 3600
 check(playUntil(leo, function()
 	return leoData.Life.Stage == "Adolescente"
 end), "Toda la primaria: recados, examen, excursión, trimestre y fin de primaria")
-for _, questId in { "Cole01_PrimerDia", "Cole02_Mochila", "Cole03_Grupo", "Cole04_Malotes", "Cole05_Venganza", "Cole06_Examen", "Nino_Recados", "Nino_Excursion", "Nino_SegundoTrimestre", "Nino_FinDePrimaria" } do
+for _, questId in { "Cole01_PrimerDia", "Cole02_Mochila", "Cole03_Grupo", "Cole04_Malotes", "Cole05_Venganza", "Cole06_Examen", "Nino_Recados", "Cole07_Excursion", "Cole08_Torneo", "Cole09_Misterio", "Nino_SegundoTrimestre", "Nino_FinDePrimaria" } do
 	check(leoData.Story.Completed[questId] ~= nil, "  hecha: " .. questId)
 end
 check(received(leo, "Moment", "MOMENT.DIA_COLE"), "Los días de cole terminados quedan como momentos")

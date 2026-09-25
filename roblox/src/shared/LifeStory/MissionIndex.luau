@@ -12,5 +12,8 @@ return {
 	require(Misiones.Cole04_Malotes),
 	require(Misiones.Cole05_Venganza),
 	require(Misiones.Cole06_Examen),
+	require(Misiones.Cole07_Excursion),
+	require(Misiones.Cole08_Torneo),
+	require(Misiones.Cole09_Misterio),
 	require(Misiones.Cole_Consecuencias),
 }

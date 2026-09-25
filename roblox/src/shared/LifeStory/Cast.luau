@@ -69,6 +69,18 @@ local People: { [string]: Person } = {
 		Hair = rgb(190, 190, 195), LongHair = true, LongSleeves = true,
 		Bio = "Bibliotecaria. Habla en susurros, lo presta todo, y todo lo apunta. Cree que un libro puede arreglar cualquier día malo.",
 	},
+	Paula = {
+		Name = "Paula", Voice = "Profe",
+		Skin = rgb(210, 160, 120), Shirt = rgb(90, 140, 60), Pants = rgb(90, 70, 50),
+		Hair = rgb(150, 60, 30), LongHair = true,
+		Bio = "Monitora de la granja escuela. Sabe el nombre de cada gallina. Muy seria con las normas de los animales.",
+	},
+	Julian = {
+		Name = "Julián", Voice = "Abu",
+		Skin = rgb(190, 140, 100), Shirt = rgb(70, 90, 140), Pants = rgb(60, 60, 60),
+		Hair = rgb(230, 230, 230), LongSleeves = true,
+		Bio = "El granjero. Habla poco, sonríe mucho, se sabe todos los caminos del campo.",
+	},
 	Andres = {
 		Name = "Andrés", Voice = "Profe",
 		Skin = rgb(170, 120, 86), Shirt = rgb(220, 60, 60), Pants = rgb(30, 30, 40),

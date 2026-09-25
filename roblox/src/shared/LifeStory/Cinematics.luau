@@ -160,6 +160,34 @@ local Cinematics: { [string]: Cinematic } = {
 		},
 	},
 
+	-- La excursión: el autobús cruza la región y llega a la granja de Villaverde (misión 07)
+	Cole07_Viaje = {
+		Duration = 9,
+		FadeIn = true,
+		Music = "TemaValmar",
+		Anchors = { Pueblo = "Zone:Villaverde", Granja = "Place:Granja" },
+		Shots = {
+			{ From = { "Pueblo", V(-160, 120, 160) }, To = { "Granja", V(-60, 45, 60) }, Look = { "Granja", V(0, 5, 0) }, Duration = 5 },
+			{ Orbit = "Granja", Radius = 50, Height = 25, FromAngle = 20, ToAngle = 80, Duration = 4 },
+		},
+		Titles = {
+			{ At = 1.2, TextKey = "Granja escuela de Villaverde", SubKey = "¡Día de excursión!", Duration = 4.5 },
+		},
+	},
+
+	-- La foto de la clase en la granja
+	Cole07_Foto = {
+		Duration = 7,
+		Sting = "Momento",
+		Anchors = { Yo = "Player" },
+		Shots = {
+			{ Orbit = "Yo", Radius = 13, Height = 4, FromAngle = 30, ToAngle = -30, Duration = 7 },
+		},
+		Titles = {
+			{ At = 2.5, TextKey = "📸 ¡Todos a decir «vaca»!", SubKey = "La excursión a Villaverde", Duration = 4 },
+		},
+	},
+
 	-- Fin de primaria: fiesta en el patio, foto de clase.
 	Nino_FinPrimaria = {
 		Duration = 10,

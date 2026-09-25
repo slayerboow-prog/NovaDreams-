@@ -113,6 +113,12 @@ Locations.Places = {
 	MochilaAlmacen3 = { NameKey = "Mochila amarilla", Tag = "StoryProp", Attribute = { PropId = "MochilaAlmacen", Index = 3 }, Zone = "Home", Fallback = "AlmacenColegio" },
 	MochilaAlmacen5 = { NameKey = "Mochila azul", Tag = "StoryProp", Attribute = { PropId = "MochilaAlmacen", Index = 5 }, Zone = "Home", Fallback = "AlmacenColegio" },
 
+	AutobusCole = { NameKey = "Autobús escolar", Tag = "StorySpot", Attribute = { SpotId = "Autobus" }, Zone = "Home", Fallback = "EntradaColegio" },
+	-- La sala cerrada del fondo del pasillo (misión 09). Si el mapa no tiene la marca, se usa el fondo del vestíbulo.
+	SalaCerrada = { NameKey = "La sala cerrada", Tag = "StoryArea", Attribute = { AreaId = "SalaCerrada" }, Zone = "Home", Inside = true, Fallback = "SalaCerradaAprox" },
+	SalaCerradaAprox = { NameKey = "La sala cerrada", Tag = "SchoolEntrance", Zone = "Home", Offset = Vector3.new(0, 0, 24), Radius = 6 },
+	SalaCerradaPuerta = { NameKey = "La puerta del fondo del pasillo", Tag = "StorySpot", Attribute = { SpotId = "SalaCerrada_Puerta" }, Zone = "Home", Fallback = "SalaCerradaAprox" },
+
 	-- Casa familiar: objetos y puntos que dejó el mapa (Kit/Home)
 	CasaCama = { NameKey = "Tu cama", Tag = "StoryProp", Attribute = { PropId = "Cama" }, Zone = "FamilyHome", Fallback = "HomeDormitorio" },
 	CasaArmario = { NameKey = "Armario", Tag = "StoryProp", Attribute = { PropId = "Armario" }, Zone = "FamilyHome", Fallback = "HomeDormitorio" },
@@ -167,6 +173,8 @@ Locations.Places = {
 	PlazaFinanciera = { NameKey = "PLACE.PLAZA_FINANCIERA", Model = "PlazaFinanciera", Zone = "Distrito Financiero" },
 	Playa = { NameKey = "PLACE.PLAYA", Model = "Playa", Zone = "Playa Dorada" },
 	Granja = { NameKey = "PLACE.GRANJA", Model = "Granja", Zone = "Villaverde" },
+	GranjaGranero = { NameKey = "Granero", Model = "Granja", Child = "Granero", Zone = "Villaverde", Fallback = "Granja" },
+	GranjaSilo = { NameKey = "Silo", Model = "Granja", Child = "Silo", Zone = "Villaverde", Fallback = "Granja" },
 } :: { [string]: Place }
 
 -- Las 8 zonas de la región (los nombres son los del mapa)

@@ -110,22 +110,10 @@ local Quests: { [string]: Quest } = {
 		Rewards = { Money = 25 },
 		MomentKey = "MOMENT.PRIMEROS_RECADOS",
 	},
-	Nino_Excursion = {
-		Kind = "Main",
-		TitleKey = "QUEST.EXCURSION.TITLE",
-		Requires = { Completed = { "Nino_Recados" }, StageProgress = 0.5 },
-		Steps = {
-			{ Type = "Reach", Place = "Bomberos", TextKey = "QUEST.EXCURSION.IR" },
-			{ Type = "Wait", GameMinutes = 45, TextKey = "QUEST.EXCURSION.MIRA" },
-			{ Type = "Moment", TextKey = "MOMENT.CAMION_BOMBEROS" },
-			{ Type = "Class", Subject = "EducacionFisica", Mode = "Circuito", Place = "Pista", TextKey = "QUEST.EXCURSION.PARTIDO" },
-		},
-		MomentKey = "MOMENT.EXCURSION",
-	},
 	Nino_SegundoTrimestre = {
 		Kind = "Main",
 		TitleKey = "QUEST.TRIMESTRE.TITLE",
-		Requires = { Completed = { "Nino_Excursion" }, StageProgress = 0.7 },
+		Requires = { Completed = { "Cole09_Misterio" }, StageProgress = 0.7 },
 		Steps = {
 			{ Type = "Class", Subject = "Historia", Mode = "Clase", Place = "Aula", TextKey = "QUEST.TRIMESTRE.HISTORIA" },
 			{ Type = "Class", Subject = "Lengua", Mode = "Clase", Place = "Aula", TextKey = "QUEST.COLE.CLASE" },
