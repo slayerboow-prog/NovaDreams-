@@ -229,17 +229,28 @@ end
 ---------------------------------------------------------------------
 
 local function buildLabel()
+	-- Debajo del minimapa (arriba a la derecha), con el mismo estilo y escala que el HUD
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "WeatherChip"
 	gui.ResetOnSpawn = false
+	gui.IgnoreGuiInset = true
 	gui.DisplayOrder = 2
 	gui.Parent = player:WaitForChild("PlayerGui")
+	local scale = Instance.new("UIScale")
+	scale.Parent = gui
+	local camera = workspace.CurrentCamera
+	local function rescale()
+		local v = camera.ViewportSize
+		scale.Scale = math.clamp(math.min(v.Y / 900, v.X / 1700), 0.55, 1.2)
+	end
+	camera:GetPropertyChangedSignal("ViewportSize"):Connect(rescale)
+	rescale()
 	label = Instance.new("TextLabel")
 	label.AnchorPoint = Vector2.new(0.5, 0)
-	label.Position = UDim2.new(0.5, 0, 0, 4)
-	label.Size = UDim2.fromOffset(210, 22)
-	label.BackgroundColor3 = Color3.new(0, 0, 0)
-	label.BackgroundTransparency = 0.55
+	label.Position = UDim2.new(1, -110, 0, 296) -- centrado bajo el minimapa (176 px, a 22 px del borde)
+	label.Size = UDim2.fromOffset(200, 26)
+	label.BackgroundColor3 = Color3.fromRGB(12, 22, 42)
+	label.BackgroundTransparency = 0.2
 	label.TextColor3 = Color3.new(1, 1, 1)
 	label.Font = Enum.Font.GothamMedium
 	label.TextSize = 13
@@ -248,6 +259,11 @@ local function buildLabel()
 	local corner = Instance.new("UICorner")
 	corner.CornerRadius = UDim.new(1, 0)
 	corner.Parent = label
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = Color3.fromRGB(80, 140, 240)
+	stroke.Transparency = 0.55
+	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	stroke.Parent = label
 end
 
 local function refreshState()
