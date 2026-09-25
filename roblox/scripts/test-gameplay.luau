@@ -126,6 +126,12 @@ end
 function Fake.GetChildren(self)
 	return table.clone(self.__children)
 end
+function Fake.PivotTo(self, cf)
+	local primary = self.__props.PrimaryPart
+	if primary then
+		primary.CFrame = cf
+	end
+end
 function Fake.IsDescendantOf(self, ancestor)
 	local p = self.__props.Parent
 	while p do
@@ -1183,6 +1189,77 @@ local target = provider.Dropoff(cashier, shift)
 check(target == cookies, "le manda a la sección más vacía")
 provider.Done(cashier, shift)
 check(cookies:GetAttribute("Stock") == Groceries.StockMax, "al dejar la caja, la sección se llena")
+
+---------------------------------------------------------------------
+print("▶ Autobús urbano L1: billete, paradas y conductor")
+services.RunService = services.RunService or { Heartbeat = signal() }
+local ambient = fakeInstance("Folder")
+local roadsFolder = fakeInstance("Folder")
+roadsFolder.Name = "Roads"
+roadsFolder.Parent = ambient
+services.ReplicatedStorage.Ambient = ambient
+local function road(a, b)
+	local c = fakeInstance("Configuration")
+	c:SetAttribute("A", a)
+	c:SetAttribute("B", b)
+	c:SetAttribute("Width", 24)
+	c.Parent = roadsFolder
+end
+road(Vector3.new(0, 0, 2000), Vector3.new(400, 0, 2000))
+road(Vector3.new(400, 0, 2000), Vector3.new(400, 0, 2400))
+road(Vector3.new(400, 0, 2400), Vector3.new(0, 0, 2400))
+road(Vector3.new(0, 0, 2400), Vector3.new(0, 0, 2000))
+local centroStop = part("TravelPoint", CFrame.new(200, 2, 1985), { "TravelStop" }, { Town = "Valmar Centro" })
+part("TravelPoint", CFrame.new(200, 2, 2415), { "TravelStop" }, { Town = "Los Pinos" })
+local BusService = loadModule(S .. "BusService")
+BusService.init()
+task.wait(0.3)
+local busesFolder = worldRoot:FindFirstChild("Buses")
+check(busesFolder ~= nil and #busesFolder:GetChildren() == Gameplay.Bus.NpcBuses, "salen los autobuses automáticos de la línea L1")
+local openBus = nil
+for _ = 1, 600 do
+	services.RunService.Heartbeat:Fire(0.1)
+	for _, m in busesFolder:GetChildren() do
+		if m:GetAttribute("DoorsOpen") then
+			openBus = m
+		end
+	end
+	if openBus then
+		break
+	end
+end
+check(openBus ~= nil and openBus:GetAttribute("CurrentStop") ~= nil, "un autobús llega a una parada y abre las puertas")
+local rider, _, riderHumanoid = newPlayer(40, "Adulto", 10)
+promptOf(openBus, "Subir").Triggered:Fire(rider)
+check(riderHumanoid.SeatPart ~= nil and riderHumanoid.SeatPart.Name == "PassengerSeat" and profiles[rider].Money == 10 - Gameplay.Bus.Fare, "paga el billete y se sienta dentro")
+riderHumanoid.Sit = false
+check(riderHumanoid.SeatPart == nil, "saltando se baja del autobús")
+local broke, _, brokeHumanoid = newPlayer(41, "Adulto", 0)
+promptOf(openBus, "Subir").Triggered:Fire(broke)
+check(brokeHumanoid.SeatPart == nil and notified(broke, "billete"), "sin dinero no se puede subir")
+promptOf(centroStop, "🚌 Trabajar de conductor").Triggered:Fire(broke)
+check(broke:GetAttribute("Job") == nil and notified(broke, "carnet"), "sin carnet no se puede ser conductor")
+local driverMoney = profiles[adult].Money
+promptOf(centroStop, "🚌 Trabajar de conductor").Triggered:Fire(adult)
+check(adult:GetAttribute("Job") == "Conductor" and adult:GetAttribute("Riding") == "Autobus", "con carnet se hace conductor y se sube a su autobús")
+local target = adult:GetAttribute("TaskTarget")
+check(typeof(target) == "Vector3", "la línea azul le lleva a la siguiente parada")
+local driverBus = nil
+for _, d in worldRoot:GetDescendants() do
+	if d.Name == "Autobus_" .. adult.Name then
+		driverBus = d
+	end
+end
+local chassis = driverBus and driverBus.PrimaryPart
+chassis.CFrame = CFrame.new(target + Vector3.new(0, 1, 0))
+chassis.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+for _ = 1, 25 do
+	services.RunService.Heartbeat:Fire(0.1)
+	task.wait(0.1)
+end
+check(profiles[adult].Money >= driverMoney + Gameplay.Bus.DriverPerStop and driverBus:GetAttribute("DoorsOpen") == true, "para en la parada: se abren las puertas y cobra")
+remotes.QuitJob.OnServerEvent:Fire(adult)
+check(adult:GetAttribute("Job") == nil and adult:GetAttribute("Riding") == nil, "deja el turno y se baja")
 
 end, debug.traceback)
 if not ok then

@@ -378,6 +378,15 @@ local function setupParkedCar(model: Instance)
 	end)
 end
 
+-- Sube al jugador a un vehículo ya preparado con Rides.prepare (lo usa BusService con el autobús).
+-- Al bajarse, el vehículo se queda aparcado donde esté.
+function VehicleService.driveModel(player: Player, model: Model, kind: string): boolean
+	if not allowed(player, kind) then
+		return false
+	end
+	return drive(player, model, kind, { Keep = true })
+end
+
 -- Tu vehículo aparcado (solo uno a la vez: al sacar otro, el anterior desaparece)
 local parked: { [Player]: Model } = {}
 
@@ -424,7 +433,7 @@ end
 function VehicleService.buy(player: Player, kind: string)
 	local vehicle = Gameplay.Vehicles[kind]
 	local data = DataService.get(player)
-	if not vehicle or not data then
+	if not vehicle or not data or vehicle.Hidden then
 		return
 	end
 	ensure(data)

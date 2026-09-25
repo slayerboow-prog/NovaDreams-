@@ -16,6 +16,8 @@ Gameplay.Vehicles = {
 	Bici = { Name = "Bicicleta", Icon = "🚲", Price = 350, Speed = 34, Stage = "Adolescente", Order = 3 },
 	Moto = { Name = "Moto", Icon = "🛵", Price = 3500, Speed = 58, Stage = "AdultoJoven", License = "A", Order = 4 },
 	Coche = { Name = "Coche", Icon = "🚗", Price = 9000, Speed = 72, Stage = "AdultoJoven", License = "B", Order = 5 },
+	-- El autobús no se compra: lo conduce quien trabaja de conductor (BusService)
+	Autobus = { Name = "Autobús", Icon = "🚌", Price = 0, Speed = 48, Stage = "AdultoJoven", License = "B", Order = 9, Hidden = true },
 }
 Gameplay.RentalVehicles = { "Bici", "Monopatin", "Patinete" } -- los que se cogen gratis en las estaciones públicas
 
@@ -28,6 +30,18 @@ Gameplay.Driving = {
 	Bici = { Accel = 14, Brake = 36, Reverse = 5, Turn = 2.5, Lean = 16 },
 	Moto = { Accel = 26, Brake = 50, Reverse = 6, Turn = 2.2, Lean = 22 },
 	Coche = { Accel = 22, Brake = 55, Reverse = 18, Turn = 1.7, Lean = 0 },
+	Autobus = { Accel = 11, Brake = 34, Reverse = 6, Turn = 1.1, Lean = 0 },
+}
+
+-- Autobús urbano (línea L1 circular por todos los barrios)
+Gameplay.Bus = {
+	Fare = 2, -- billete (lo cobra la ciudad o el conductor jugador)
+	DriverPerStop = 12, -- el conductor cobra por cada parada bien hecha
+	DriverPerPassenger = 2, -- y por cada pasajero que sube (jugadores y NPC)
+	NpcBuses = 3, -- autobuses automáticos en la línea
+	Speed = 36, -- velocidad de los autobuses automáticos (studs/s)
+	StopSeconds = 7, -- lo que esperan en cada parada con las puertas abiertas
+	StopRadius = 20, -- a qué distancia de la parada hay que parar
 }
 
 ---------------------------------------------------------------------

@@ -21,6 +21,7 @@ Rides.Spec = {
 	Bici = { Seat = CFrame.new(0, 3.2, 1), Size = Vector3.new(1.2, 1, 4.8) },
 	Moto = { Seat = CFrame.new(0, 2.55, 0.8), Size = Vector3.new(1.6, 1, 5.8) },
 	Coche = { Seat = CFrame.new(-1.4, 1.6, 0.4), Size = Vector3.new(6.2, 1, 13.5) },
+	Autobus = { Seat = CFrame.new(-2.4, 2.6, -13), Size = Vector3.new(8.6, 1, 34) },
 }
 
 local function wheel(m: Model, cf: CFrame, radius: number, width: number)
@@ -125,12 +126,75 @@ local function coche(m: Model, cf: CFrame, color: Color3)
 	end
 end
 
-local BUILDERS = { Monopatin = monopatin, Patinete = patinete, Bici = bici, Moto = moto, Coche = coche }
+-- Autobús urbano (línea L1): puertas a la derecha, asientos de pasajeros de verdad (Seat)
+local function autobus(m: Model, cf: CFrame, color: Color3)
+	local L, Wd, Hh = 34, 8.6, 9.4
+	local glass = rgb(40, 60, 75)
+	local r = 1.6
+	box(m, "Body", Vector3.new(Wd, 3.2, L), cf * CFrame.new(0, r + 1.2, 0), color).Reflectance = 0.05
+	box(m, "Floor", Vector3.new(Wd - 0.6, 0.3, L - 1), cf * CFrame.new(0, 2.3, 0), rgb(70, 72, 78), Enum.Material.Rubber)
+	box(m, "Roof", Vector3.new(Wd, 0.5, L), cf * CFrame.new(0, Hh, 0), rgb(240, 240, 240))
+	box(m, "RoofUnit", Vector3.new(5, 0.8, 8), cf * CFrame.new(0, Hh + 0.6, 4), rgb(210, 210, 214), Enum.Material.Metal)
+	-- Ventanas (lado izquierdo entero; el derecho con huecos para las puertas)
+	box(m, "WindowLeft", Vector3.new(0.2, 3.6, L - 2), cf * CFrame.new(-Wd / 2 + 0.1, 6.6, 0), glass, Enum.Material.Glass, 0.35)
+	for _, span in { { -9.5, 1.5 }, { 7.5, 16 } } do
+		local len = span[2] - span[1]
+		box(m, "WindowRight", Vector3.new(0.2, 3.6, len), cf * CFrame.new(Wd / 2 - 0.1, 6.6, (span[1] + span[2]) / 2), glass, Enum.Material.Glass, 0.35)
+	end
+	box(m, "Windshield", Vector3.new(Wd - 0.4, 5, 0.2), cf * CFrame.new(0, 6.3, -L / 2 + 0.1), glass, Enum.Material.Glass, 0.3)
+	box(m, "RearWall", Vector3.new(Wd, 5.6, 0.3), cf * CFrame.new(0, 6.3, L / 2 - 0.15), color)
+	box(m, "Stripe", Vector3.new(Wd + 0.05, 0.6, L + 0.05), cf * CFrame.new(0, 4.9, 0), rgb(250, 200, 40))
+	-- Montantes entre ventanas
+	for z = -L / 2 + 1, L / 2 - 1, 5.5 do
+		box(m, "Pillar", Vector3.new(Wd + 0.1, 3.6, 0.3), cf * CFrame.new(0, 6.6, z), color)
+	end
+	-- Puertas (delantera y central, a la derecha): se abren en las paradas (BusService)
+	for i, z in { -14, 4.5 } do
+		local door = box(m, "BusDoor", Vector3.new(0.3, 6.6, 4.6), cf * CFrame.new(Wd / 2 + 0.05, 5.4, z), glass, Enum.Material.Glass, 0.3)
+		door:SetAttribute("DoorIndex", i)
+	end
+	-- Letrero de línea
+	local sign = box(m, "LineSign", Vector3.new(Wd - 1.5, 1.2, 0.2), cf * CFrame.new(0, 8.5, -L / 2 - 0.05), rgb(20, 20, 24), Enum.Material.SmoothPlastic)
+	Builder.sign(sign, "L1 · CIRCULAR VALMAR", Enum.NormalId.Front, Color3.fromRGB(255, 190, 40), Color3.fromRGB(20, 20, 24))
+	-- Ruedas y luces
+	for _, z in { -11, 10 } do
+		for _, x in { -Wd / 2 + 0.4, Wd / 2 - 0.4 } do
+			wheel(m, cf * CFrame.new(x, r, z), r, 1.2)
+		end
+	end
+	for _, x in { -3, 3 } do
+		box(m, "Headlight", Vector3.new(1.4, 0.6, 0.2), cf * CFrame.new(x, 2.8, -L / 2 - 0.1), rgb(255, 250, 230), Enum.Material.Neon)
+		box(m, "Taillight", Vector3.new(1.2, 0.8, 0.2), cf * CFrame.new(x, 3, L / 2 + 0.1), rgb(200, 30, 30), Enum.Material.Neon)
+	end
+	-- Puesto del conductor y asientos de pasajeros (Seat de verdad; no se activan al tocarlos)
+	box(m, "Dashboard", Vector3.new(Wd - 1, 1.6, 1.2), cf * CFrame.new(0, 3.2, -L / 2 + 1.2), rgb(40, 40, 44))
+	box(m, "Steering", Vector3.new(1.4, 1.4, 0.2), cf * CFrame.new(-2.4, 4.4, -L / 2 + 2.2) * CFrame.Angles(math.rad(-50), 0, 0), rgb(30, 30, 34))
+	for z = -8, 13, 3.4 do
+		for _, x in { -2.6, 2.6 } do
+			if not (x > 0 and z > 2 and z < 7) then -- hueco en la puerta central
+				Builder.part({
+					ClassName = "Seat",
+					Name = "PassengerSeat",
+					Size = Vector3.new(2.6, 0.5, 2),
+					CFrame = cf * CFrame.new(x, 3.2, z), -- mirando hacia delante
+					Color = rgb(30, 70, 140),
+					Material = Enum.Material.Fabric,
+					CanTouch = false,
+					Parent = m,
+				})
+				box(m, "SeatBack", Vector3.new(2.6, 2.4, 0.4), cf * CFrame.new(x, 4.6, z + 1.1), rgb(30, 70, 140), Enum.Material.Fabric)
+			end
+		end
+	end
+end
+
+local BUILDERS = { Monopatin = monopatin, Patinete = patinete, Bici = bici, Moto = moto, Coche = coche, Autobus = autobus }
 local COLORS = {
 	Monopatin = { rgb(220, 70, 60), rgb(40, 140, 220), rgb(250, 200, 40), rgb(60, 170, 90) },
 	Bici = { rgb(30, 110, 200), rgb(210, 50, 60), rgb(40, 160, 90), rgb(240, 240, 240) },
 	Moto = { rgb(200, 30, 40), rgb(30, 30, 34), rgb(240, 240, 240), rgb(40, 90, 180) },
 	Patinete = { rgb(30, 30, 34), rgb(240, 240, 240), rgb(220, 70, 60), rgb(40, 140, 220) },
+	Autobus = { rgb(200, 40, 45) },
 }
 
 -- Crea el modelo del vehículo (anclado). kind: "Monopatin" | "Bici" | "Moto" | "Coche"

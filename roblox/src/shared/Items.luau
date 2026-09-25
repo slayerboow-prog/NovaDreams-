@@ -71,6 +71,9 @@ for _, shopItem in ShopItems do
 end
 
 for key, vehicle in Gameplay.Vehicles do
+	if vehicle.Hidden then
+		continue
+	end
 	list["Vehiculo_" .. key] = {
 		Id = "Vehiculo_" .. key,
 		Name = vehicle.Name,

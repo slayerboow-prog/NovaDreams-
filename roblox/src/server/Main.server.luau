@@ -43,6 +43,7 @@ local order = {
 	"VehicleService", -- bicis, monopatines, motos y coches
 	"RestaurantService", -- camarero + barman (con NPC si falta alguien)
 	"DrivingSchoolService", -- autoescuela: carnet de moto y de coche
+	"BusService", -- autobús urbano L1: pasajeros con billete y oficio de conductor
 	"ArcadeService", -- recreativos: juegos de bolas, tickets y premios
 	"ProgressionService", -- nivel, experiencia, estadísticas, vida y estamina
 	"LocationService",

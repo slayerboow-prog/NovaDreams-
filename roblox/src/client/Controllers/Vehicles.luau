@@ -29,8 +29,10 @@ end
 
 local function sorted(): { string }
 	local list = {}
-	for key in Gameplay.Vehicles do
-		table.insert(list, key)
+	for key, vehicle in Gameplay.Vehicles do
+		if not vehicle.Hidden then -- (el autobús no se compra)
+			table.insert(list, key)
+		end
 	end
 	table.sort(list, function(a, b)
 		return Gameplay.Vehicles[a].Order < Gameplay.Vehicles[b].Order
