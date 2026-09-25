@@ -68,6 +68,16 @@ MapInfo.Kinds = {
 	{ Model = "Puerto", Icon = "⚓", Name = "Puerto de Valmar", Important = true },
 	{ Model = "Faro", Icon = "🗼", Name = "Isla del Faro", Important = true },
 	{ Model = "Mirador", Icon = "🔭", Name = "Mirador", Important = true },
+	{ Model = "TorreValmar", Icon = "🏙️", Name = "Torre de Valmar", Important = true },
+	{ Model = "Ayuntamiento", Icon = "🏛️", Name = "Ayuntamiento", Important = true },
+	{ Model = "EstacionCentral", Icon = "🚆", Name = "Estación Central", Important = true },
+	{ Model = "EstacionAutobuses", Icon = "🚌", Name = "Estación de Autobuses", Important = true },
+	{ Model = "Museo", Icon = "🖼️", Name = "Museo de Valmar", Important = true },
+	{ Model = "Teatro", Icon = "🎭", Name = "Teatro Principal", Important = true },
+	{ Model = "GranCentroComercial", Icon = "🛍️", Name = "Centro Comercial Valmar", Important = true },
+	{ Model = "Feria", Icon = "🎡", Name = "Parque de Atracciones", Important = true },
+	{ Model = "Camping", Icon = "⛺", Name = "Camping Valmar", Important = true },
+	{ Model = "Marina", Icon = "⛵", Name = "Puerto Deportivo", Important = true },
 } :: { Kind }
 
 MapInfo.KindByModel = {} :: { [string]: Kind }
@@ -80,7 +90,8 @@ MapInfo.Legend = {
 	{ Name = "Salud y emergencias", Icon = "🏥", Models = { "Hospital", "CentroSalud", "Policia", "Bomberos" } },
 	{ Name = "Estudios", Icon = "🏫", Models = { "Colegio", "Facultad", "Autoescuela" } },
 	{ Name = "Tiendas y comida", Icon = "🛍️", Models = { "CentroComercial", "Restaurante", "Gasolinera", "PlazaFinanciera" } },
-	{ Name = "Ocio y naturaleza", Icon = "🌳", Models = { "Parque", "Estadio", "Playa", "Granja", "Recreativos", "Plaza", "Mirador", "Faro", "Puerto" } },
+	{ Name = "Ocio y naturaleza", Icon = "🌳", Models = { "Parque", "Estadio", "Playa", "Granja", "Recreativos", "Plaza", "Mirador", "Faro", "Puerto", "Feria", "Camping", "Marina", "Museo", "Teatro" } },
+	{ Name = "Ciudad y transporte", Icon = "🏛️", Models = { "TorreValmar", "Ayuntamiento", "EstacionCentral", "EstacionAutobuses", "GranCentroComercial" } },
 }
 
 -- Distrito en el que cae una posición (o nil si es mar o montaña)

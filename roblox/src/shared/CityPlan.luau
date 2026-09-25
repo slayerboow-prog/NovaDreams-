@@ -137,7 +137,7 @@ CityPlan.Roundabouts = {
 CityPlan.Places = {
 	Faro = { 4450, 2650 },
 	PuertoMercancias = { 700, 3300 },
-	Marina = { -3650, 1300 },
+	Marina = { -3680, 1300 }, -- el agua empieza unos 200 studs al oeste
 	Mirador = { 0, -3000 },
 	Camping = { -2400, -900 },
 }

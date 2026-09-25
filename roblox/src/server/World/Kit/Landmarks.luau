@@ -289,10 +289,40 @@ local function editOnly(world: Instance)
 	})
 end
 
+---------------------------------------------------------------------
+-- Puerto deportivo (costa oeste): pantalanes con yates y club náutico
+---------------------------------------------------------------------
+local function buildMarina(world: Instance)
+	local m = Builder.model("Marina", world)
+	local c = place("Marina")
+	local shore = c.X - 200 -- aquí empieza el agua
+	-- Muelle principal hacia el mar (oeste) y tres pantalanes
+	Builder.part({ Name = "Quay", Size = Vector3.new(70, 3, 120), CFrame = CFrame.new(shore + 20, -0.5, c.Z), Color = rgb(206, 200, 190), Material = Enum.Material.Limestone, Parent = m })
+	Builder.part({ Name = "Pier", Size = Vector3.new(220, 1, 10), CFrame = CFrame.new(shore - 110, 0.5, c.Z), Color = WOOD, Material = Enum.Material.WoodPlanks, Parent = m })
+	local yachts = { rgb(250, 250, 250), rgb(240, 240, 236), rgb(30, 40, 70), rgb(250, 250, 250) }
+	for i, x in { shore - 50, shore - 110, shore - 170 } do
+		Builder.part({ Name = "Finger", Size = Vector3.new(6, 1, 90), CFrame = CFrame.new(x, 0.5, c.Z), Color = WOOD, Material = Enum.Material.WoodPlanks, Parent = m })
+		for _, dz in { -30, 30 } do
+			for _, dx in { -11, 11 } do
+				boat(m, CFrame.new(x + dx, 0, c.Z + dz), yachts[(i + (if dx > 0 then 1 else 0)) % #yachts + 1])
+			end
+		end
+	end
+	-- Club náutico y cartel
+	Builder.part({ Name = "Club", Size = Vector3.new(30, 12, 40), CFrame = CFrame.new(shore + 60, 6, c.Z - 60), Color = WHITE, Material = Enum.Material.Plaster, Parent = m })
+	Builder.part({ Name = "ClubRoof", Size = Vector3.new(34, 1, 44), CFrame = CFrame.new(shore + 60, 12.5, c.Z - 60), Color = rgb(40, 90, 150), Material = Enum.Material.Metal, Parent = m })
+	board(m, Builder.facing(Vector3.new(shore + 44.6, 8, c.Z - 60), Vector3.new(-1, 0, 0)), 20, 3, "PUERTO DEPORTIVO", rgb(20, 70, 130))
+	for _, z in { c.Z - 40, c.Z + 40 } do
+		Props.lamp(m, Builder.facing(Vector3.new(shore - 60, 1, z / 2 + c.Z / 2), Vector3.new(0, 0, 1)))
+	end
+	return m
+end
+
 function Landmarks.build(world: Instance)
 	buildPort(world)
 	buildIsland(world)
 	buildLookout(world)
+	buildMarina(world)
 	editOnly(world)
 end
 
@@ -308,6 +338,10 @@ function Landmarks.blocked(x: number, z: number): boolean
 	local h = Landmarks.Hill
 	if math.abs(x - h.X) < 90 and z > h.Z - 90 and z < h.Z + 200 then
 		return true -- colina y camino del mirador
+	end
+	local marina = place("Marina")
+	if math.abs(x - marina.X) < 260 and math.abs(z - marina.Z) < 140 then
+		return true
 	end
 	local p = Landmarks.Port
 	return math.abs(x - p.X) < 160 and z > p.Z - 140

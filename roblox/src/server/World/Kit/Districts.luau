@@ -17,6 +17,8 @@ local Builder = require(script.Parent.Parent.Builder)
 local Blocks = require(script.Parent.Blocks)
 local Grid = require(script.Parent.Grid)
 local Lite = require(script.Parent.Lite)
+local Icons = require(script.Parent.Icons)
+local Civic = require(script.Parent.Civic)
 local Nature = require(script.Parent.Nature)
 local Props = require(script.Parent.Props)
 local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
@@ -334,6 +336,60 @@ builders.Taller = function(m, rect)
 	Lite.parking(m, lot.facing(0, 110, 0), math.min(lot.Length - 20, 130), 80)
 end
 
+-- Lugares emblemáticos y servicios (colegios, hospitales, comisarías con su interior completo)
+for _, name in { "TorreValmar", "Ayuntamiento", "EstacionCentral", "EstacionAutobuses", "Museo", "Teatro", "GranCentroComercial", "Feria", "Camping" } do
+	builders[name] = function(m, rect)
+		Icons[name](m, rect)
+	end
+end
+local function civic(kind: string, townName: string): (Instance, Rect) -> ()
+	return function(m, rect)
+		local lot = Blocks.lot(rect, "S")
+		if kind == "Colegio" then
+			Civic.school(m, lot, townName)
+		elseif kind == "Hospital" then
+			Civic.hospital(m, lot, townName, false)
+		elseif kind == "Clinica" then
+			Civic.hospital(m, lot, townName, true)
+		else
+			Civic.firePolice(m, lot)
+		end
+	end
+end
+builders.HospitalCentral = civic("Hospital", "Valmar Centro")
+builders.ComisariaCentral = civic("Policia", "Valmar Centro")
+builders.ColegioCentro = civic("Colegio", "Valmar Centro")
+builders.ColegioNorte = civic("Colegio", "Valmar Norte")
+builders.ColegioOeste = civic("Colegio", "Poniente")
+builders.ColegioSur = civic("Colegio", "Distrito Sur")
+builders.InstitutoEste = civic("Colegio", "Levante")
+builders.ComisariaSur = civic("Policia", "Distrito Sur")
+builders.ClinicaOeste = civic("Clinica", "Poniente")
+builders.ClinicaEste = civic("Clinica", "Levante")
+
+-- Dónde va cada uno (se elige la manzana más cercana a ese punto, dentro de su distrito)
+local LANDMARKS = {
+	{ "TorreValmar", "Centro", 750, -750 },
+	{ "Ayuntamiento", "Centro", -750, 375 },
+	{ "EstacionCentral", "Centro", 750, 625 },
+	{ "EstacionAutobuses", "Centro", -750, 875 },
+	{ "Museo", "Centro", -750, -375 },
+	{ "Teatro", "Centro", 750, -375 },
+	{ "HospitalCentral", "Centro", 375, 875 },
+	{ "ComisariaCentral", "Centro", -375, 625 },
+	{ "ColegioCentro", "Centro", 1000, 125 },
+	{ "ColegioNorte", "Norte", 0, -1500 },
+	{ "ColegioOeste", "Oeste", -2100, 600 },
+	{ "ClinicaOeste", "Oeste", -2300, 1500 },
+	{ "Camping", "Oeste", -2400, -900 },
+	{ "GranCentroComercial", "Este", 2300, -500 },
+	{ "Feria", "Este", 3000, -2000 },
+	{ "InstitutoEste", "Este", 2300, -1300 },
+	{ "ClinicaEste", "Este", 3100, -1500 },
+	{ "ColegioSur", "Sur", 500, 1700 },
+	{ "ComisariaSur", "Sur", 900, 2600 },
+}
+
 ---------------------------------------------------------------------
 -- Qué va en cada manzana
 ---------------------------------------------------------------------
@@ -384,7 +440,11 @@ local function kindFor(district: string, x: number, z: number, center: boolean):
 end
 
 -- Suelo: césped en zonas verdes y de casas; pavimento en las urbanas e industriales
-local PAVED = { Towers = true, Downtown = true, Comercio = true, Industrial = true, Taller = true, Parking = true, Ocio = true, Oficinas = true }
+local PAVED = {
+	Towers = true, Downtown = true, Comercio = true, Industrial = true, Taller = true, Parking = true, Ocio = true, Oficinas = true,
+	TorreValmar = true, Ayuntamiento = true, EstacionCentral = true, EstacionAutobuses = true, Museo = true, Teatro = true,
+	GranCentroComercial = true, Feria = true,
+}
 
 local cellsCache: { Cell }? = nil
 
@@ -468,6 +528,22 @@ function Districts.cells(towns: { Vector3 }): { Cell }
 					end
 				end
 			end
+		end
+	end
+	-- Colocar los lugares emblemáticos en la manzana (grande) más cercana a su sitio
+	for _, spec in LANDMARKS do
+		local best, bestDistance = nil, math.huge
+		for _, cell in cells do
+			if cell.District == spec[2] and not (cell :: any).Landmark and cell.X1 - cell.X0 > 150 and cell.Z1 - cell.Z0 > 150 then
+				local d = math.sqrt(((cell.X0 + cell.X1) / 2 - spec[3]) ^ 2 + ((cell.Z0 + cell.Z1) / 2 - spec[4]) ^ 2)
+				if d < bestDistance then
+					best, bestDistance = cell, d
+				end
+			end
+		end
+		if best then
+			best.Kind = spec[1];
+			(best :: any).Landmark = true
 		end
 	end
 	cellsCache = cells
