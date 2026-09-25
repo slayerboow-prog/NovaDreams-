@@ -86,6 +86,7 @@ function Props.trafficLight(parent: Instance, cf: CFrame, armLength: number)
 		return asset
 	end
 	local m = Builder.model("TrafficLight", parent)
+	m:AddTag("TrafficLight") -- el cliente cambia las luces y el tráfico para en rojo (Traffic.luau)
 	Builder.part({
 		Name = "Pole",
 		Shape = Enum.PartType.Cylinder,

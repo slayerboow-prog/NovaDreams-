@@ -5,8 +5,9 @@
 
 local BusRoute = {}
 
-export type Road = { A: Vector3, B: Vector3, Width: number }
-export type Graph = { Nodes: { Vector3 }, Edges: { { { To: number, Cost: number } } }, StopNodes: { number } }
+export type Road = { A: Vector3, B: Vector3, Width: number, Kind: string? }
+-- Cada arista lleva también el ancho (W) y el tipo (Kind) de su calle: lo usa el tráfico del cliente
+export type Graph = { Nodes: { Vector3 }, Edges: { { { To: number, Cost: number, W: number, Kind: string? } } }, StopNodes: { number } }
 
 local MERGE = 7 -- puntos a menos de esto son el mismo cruce
 
@@ -43,7 +44,7 @@ function BusRoute.graph(roads: { Road }, stops: { Vector3 }): Graph
 	for _, r in roads do
 		local a, b = flat(r.A), flat(r.B)
 		if (b - a).Magnitude > 1 then
-			table.insert(list, { A = a, B = b, W = r.Width or 24, Params = { 0, 1 } })
+			table.insert(list, { A = a, B = b, W = r.Width or 24, Kind = r.Kind, Params = { 0, 1 } })
 		end
 	end
 	-- Cruces entre calles (en X, en T y en esquina)
@@ -109,13 +110,18 @@ function BusRoute.graph(roads: { Road }, stops: { Vector3 }): Graph
 		table.insert(hash[key], id)
 		return id
 	end
-	local function link(x: number, y: number)
+	local function link(x: number, y: number, w: number, kind: string?)
 		if x == y then
 			return
 		end
+		for _, e in edges[x] do
+			if e.To == y then
+				return -- ya unidos (dos calles que se solapan)
+			end
+		end
 		local cost = (nodes[x] - nodes[y]).Magnitude
-		table.insert(edges[x], { To = y, Cost = cost })
-		table.insert(edges[y], { To = x, Cost = cost })
+		table.insert(edges[x], { To = y, Cost = cost, W = w, Kind = kind })
+		table.insert(edges[y], { To = x, Cost = cost, W = w, Kind = kind })
 	end
 	for _, r in list do
 		table.sort(r.Params)
@@ -125,7 +131,7 @@ function BusRoute.graph(roads: { Road }, stops: { Vector3 }): Graph
 			local id = nodeAt(r.A + (r.B - r.A) * t)
 			r.Nodes[t] = id
 			if prev and prev ~= id then
-				link(prev, id)
+				link(prev, id, r.W, r.Kind)
 			end
 			prev = id
 		end

@@ -294,8 +294,29 @@ local function onPlayerRemoving(player: Player)
 	end
 end
 
+-- "Empezar una vida nueva" (botón del Menú): borra la partida y vuelves a nacer bebé.
+-- Se conservan las compras con Robux ya cobradas (ProcessedReceipts; los Game Pass los da Roblox).
+-- Te saca del juego para que todos los sistemas empiecen de cero al volver a entrar.
+local lastNewLife: { [Player]: number } = {}
+function DataService.newLife(player: Player)
+	local data = profiles[player]
+	if not data or os.clock() - (lastNewLife[player] or -60) < 10 then
+		return
+	end
+	lastNewLife[player] = os.clock()
+	local fresh = deepCopy(DEFAULT_DATA)
+	fresh.ProcessedReceipts = data.ProcessedReceipts or {}
+	fresh.Life.Stage = Config.LifeStory.NewCharacterStage
+	profiles[player] = fresh
+	DataService.save(player, true)
+	profiles[player] = nil -- que el guardado al salir no pise la vida nueva
+	player:Kick("👶 Tu vida nueva está lista. Vuelve a entrar para nacer en Valmar.")
+end
+
 function DataService.init()
 	Players.PlayerAdded:Connect(onPlayerAdded)
+	local remote = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("NewLife") :: RemoteEvent
+	remote.OnServerEvent:Connect(DataService.newLife)
 	Players.PlayerRemoving:Connect(onPlayerRemoving)
 	for _, player in Players:GetPlayers() do
 		task.spawn(onPlayerAdded, player)

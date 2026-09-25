@@ -23,6 +23,9 @@
         "GoHome": {
           "$className": "RemoteEvent"
         },
+        "NewLife": {
+          "$className": "RemoteEvent"
+        },
         "LifeStory": {
           "$className": "RemoteEvent"
         },

@@ -81,6 +81,21 @@ Hud.addMenuToggle("🔔 Sonidos: sí", 2, function()
 	return if effectsOn then "🔔 Sonidos: sí" else "🔕 Sonidos: no"
 end)
 
+-- Empezar una vida nueva (desde bebé): hay que pulsar dos veces para confirmar
+local NEW_LIFE = "👶 Empezar una vida nueva"
+local confirmUntil = 0
+Hud.addMenuToggle(NEW_LIFE, 3, function()
+	if os.clock() < confirmUntil then
+		ReplicatedStorage.Remotes.NewLife:FireServer()
+		return "⏳ Preparando tu vida nueva…"
+	end
+	confirmUntil = os.clock() + 5
+	task.delay(5, function()
+		confirmUntil = 0
+	end)
+	return "⚠️ Se borra la partida. Pulsa otra vez"
+end)
+
 -- La tarjeta "Tu vida" de la historia y el botón suelto de la música ya están en el HUD nuevo
 -- (objetivos a la izquierda y menú): se ocultan para que no salgan repetidos.
 task.spawn(function()
