@@ -14,7 +14,6 @@ local GuiService = game:GetService("GuiService")
 local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
@@ -112,7 +111,7 @@ local function buildClock(parent: Instance)
 	icon(panel, "📅", 28, UDim2.fromOffset(164, 15))
 	local date = Theme.label({ Size = UDim2.new(1, -206, 0, 22), Position = UDim2.fromOffset(200, 8), Font = Theme.FontBold, TextSize = 16, Parent = panel })
 	local sub = Theme.label({ Size = UDim2.new(1, -206, 0, 18), Position = UDim2.fromOffset(200, 30), TextSize = 13, TextColor3 = C.Muted, TextTruncate = Enum.TextTruncate.AtEnd, Parent = panel })
-	RunService.RenderStepped:Connect(function()
+	local function tick()
 		local clock = Lighting.ClockTime
 		local day = clock >= 6.5 and clock < 19.5
 		sun.Text = if day then "☀" else "🌙"
@@ -120,6 +119,13 @@ local function buildClock(parent: Instance)
 		local now = GameClock.now()
 		date.Text = ("%s, %d de %s"):format(WEEKDAYS[now.Weekday] or "", now.DayOfMonth, MONTHS[now.Month] or "")
 		sub.Text = "Día " .. tostring(now.Day) .. (if questTitleShown ~= "" then " · " .. questTitleShown else "")
+	end
+	-- 4 veces por segundo basta (un minuto del juego dura menos de un segundo real)
+	task.spawn(function()
+		while true do
+			tick()
+			task.wait(0.25)
+		end
 	end)
 end
 

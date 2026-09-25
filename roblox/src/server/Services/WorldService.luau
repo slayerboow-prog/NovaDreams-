@@ -36,7 +36,7 @@ local function setupLighting()
 		(Lighting :: any).LightingStyle = Enum.LightingStyle.Realistic
 	end)
 	pcall(function()
-		(Lighting :: any).PrioritizeLightingQuality = true
+		(Lighting :: any).PrioritizeLightingQuality = false -- respeta la calidad gráfica de cada jugador
 	end)
 	-- Agua del mar de Playa Dorada: más transparente, con reflejos y olas suaves
 	local terrain = workspace.Terrain

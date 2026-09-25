@@ -92,7 +92,7 @@
         "ShadowSoftness": 0.1,
         "GeographicLatitude": 38,
         "LightingStyle": "Realistic",
-        "PrioritizeLightingQuality": true
+        "PrioritizeLightingQuality": false
       },
       "Atmosphere": {
         "$className": "Atmosphere",

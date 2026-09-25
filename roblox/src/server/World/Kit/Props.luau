@@ -23,7 +23,7 @@ local function addLampLight(model: Instance)
 	light.Range = 40
 	light.Brightness = 3
 	light.Color = Palette.Street.LampLight
-	light.Shadows = true -- con iluminación Future, las farolas dibujan sombras de noche
+	light.Shadows = false -- sin sombras: cientos de farolas con sombra hunden el rendimiento
 	light.Enabled = false
 	light.Parent = lens
 end
@@ -72,7 +72,7 @@ function Props.lamp(parent: Instance, cf: CFrame)
 		light.Range = 46
 		light.Brightness = 3
 		light.Color = S.LampLight
-		light.Shadows = true -- con iluminación Future, las farolas dibujan sombras de noche
+		light.Shadows = false -- sin sombras: cientos de farolas con sombra hunden el rendimiento
 		light.Enabled = false
 		light.Parent = lens
 	end

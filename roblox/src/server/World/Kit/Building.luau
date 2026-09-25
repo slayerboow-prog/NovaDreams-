@@ -466,7 +466,7 @@ function Building.build(spec: Spec): (Model, (number, number, number) -> CFrame,
 				light.Range = math.clamp(Y1 + 8, 16, 30)
 				light.Brightness = 1.6
 				light.Color = color
-				light.Shadows = index == 1
+				light.Shadows = false -- rendimiento: cientos de luces de techo con sombra
 				light.Parent = lamp
 			end
 		end

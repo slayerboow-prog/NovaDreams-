@@ -980,7 +980,7 @@ function MapUI.init()
 	local elapsed = 0
 	RunService.Heartbeat:Connect(function(dt)
 		elapsed += dt
-		if elapsed < 0.05 then
+		if elapsed < 0.1 then
 			return
 		end
 		elapsed = 0

@@ -49,7 +49,7 @@ local function addHeadlight(model: Model)
 		light.Range = 50
 		light.Brightness = 3.2
 		light.Color = Color3.fromRGB(255, 244, 222)
-		light.Shadows = true
+		light.Shadows = false
 		light.Enabled = isDark()
 		light.Parent = lens
 	end

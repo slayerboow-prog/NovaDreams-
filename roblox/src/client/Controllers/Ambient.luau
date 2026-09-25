@@ -13,8 +13,8 @@ local Ambient = {}
 
 local player = Players.LocalPlayer
 
-local CAR_COUNT = 26
-local PED_COUNT = 34
+local CAR_COUNT = 16
+local PED_COUNT = 20
 local ROAD_TOP, WALK_TOP = 0.4, 1.0
 local LANE = 2.9 -- distancia del centro de la calzada al centro del carril
 local SIDEWALK = 15.5 -- distancia del centro de la calzada al centro de la acera

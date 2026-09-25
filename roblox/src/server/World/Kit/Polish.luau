@@ -128,4 +128,26 @@ function Polish.fixCoplanar(root: Instance): number
 	return count
 end
 
+-- Ajustes de rendimiento que no se notan a la vista:
+--   * CanTouch = false en todas las piezas: ningún script usa .Touched en el mapa, y así el motor
+--     no calcula contactos para 95.000 piezas.
+--   * Sin sombra en las piezas diminutas (menos de 2 studs en todas sus medidas): su sombra no se aprecia.
+function Polish.optimize(root: Instance): (number, number)
+	local touch, shadows = 0, 0
+	for _, part in root:GetDescendants() do
+		if part:IsA("BasePart") then
+			if part.CanTouch and not part:IsA("Seat") and not part:IsA("VehicleSeat") then
+				part.CanTouch = false
+				touch += 1
+			end
+			local s = part.Size
+			if part.CastShadow and math.max(s.X, s.Y, s.Z) < 2 then
+				part.CastShadow = false
+				shadows += 1
+			end
+		end
+	end
+	return touch, shadows
+end
+
 return Polish

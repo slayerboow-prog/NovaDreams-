@@ -9,16 +9,11 @@ local TerrainBuilder = require(World.TerrainBuilder)
 -- 1) Terreno primero, para que nadie caiga al vacío mientras se prepara la ciudad
 TerrainBuilder.build()
 
--- 2) Packs gratuitos de Synty desde la Creator Store (si se pueden descargar)
-local packs = require(World.AssetLoader).load()
-
--- 3) La ciudad viene construida dentro del archivo (scripts/build-place.luau).
---    Si ahora hay packs y la ciudad del archivo se hizo sin ellos, se reconstruye con los modelos.
+-- 2) La ciudad viene construida dentro del archivo (scripts/build-place.luau) y ya optimizada.
+--    Antes, si se podían descargar los packs de Synty, se BORRABA y se volvía a construir entera
+--    al arrancar (casi 100.000 piezas): eso colgaba Studio y los PC modestos. Ya no se hace.
+--    (Solo se construye aquí si el archivo no trae la ciudad.)
 local town = workspace:FindFirstChild("Town")
-if town and packs > 0 and not town:GetAttribute("BuiltWithAssets") then
-	town:Destroy()
-	town = nil
-end
 local TownBuilder = require(World.TownBuilder)
 if not town then
 	TownBuilder.build()
