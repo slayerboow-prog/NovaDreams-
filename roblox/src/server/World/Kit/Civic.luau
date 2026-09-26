@@ -12,6 +12,7 @@ local Nature = require(script.Parent.Nature)
 local Props = require(script.Parent.Props)
 local StoryMarks = require(script.Parent.StoryMarks)
 local Clinic = require(script.Parent.Clinic)
+local PoliceStation = require(script.Parent.PoliceStation)
 
 local Civic = {}
 
@@ -553,11 +554,11 @@ function Civic.policeStation(parent: Instance, lot: Lot, u: number)
 	})
 	-- Franja azul corporativa
 	Builder.decor({ Name = "Band", Size = Vector3.new(W + 0.4, 1.4, 0.4), CFrame = at(0, info.GroundTop - FT + 0.8, -D / 2 - 0.25), Color = rgb(30, 70, 180), Parent = model })
-	for i, du in { -12, 0, 12 } do
-		if i ~= 2 then
-			Props.vehicle(m, lot.facing(u + du, setback - 7, FT), "Police")
-		end
-	end
+	-- Planta baja: mostrador, mesas, taquillas y calabozos; tablón del oficio (PoliceService)
+	PoliceStation.build(model, at, W, D)
+	Props.jobBoard(m, lot.facing(u + W / 4, setback - 3, FT), "Policia", "POLICÍA")
+	-- Un coche aparcado a un lado (al otro está el sitio del coche patrulla del oficio)
+	Props.vehicle(m, lot.facing(u - 12, setback - 7, FT), "Police")
 	return m
 end
 

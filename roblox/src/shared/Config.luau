@@ -261,6 +261,16 @@ Config.Jobs = {
 		CarryColor = Color3.fromRGB(250, 250, 250),
 		CarrySize = Vector3.new(1, 1, 1),
 	},
+	Policia = {
+		DisplayName = "Policía",
+		Place = "Comisaría",
+		Pay = 30,
+		EnergyCost = 3,
+		PickupText = "",
+		DropoffText = "",
+		CarryColor = Color3.fromRGB(250, 250, 250),
+		CarrySize = Vector3.new(1, 1, 1),
+	},
 	Repartidor = {
 		DisplayName = "Repartidor",
 		Place = "Correos",

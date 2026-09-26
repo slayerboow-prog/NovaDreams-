@@ -41,6 +41,9 @@
         "Medical": {
           "$className": "RemoteEvent"
         },
+        "Police": {
+          "$className": "RemoteEvent"
+        },
         "LifeStory": {
           "$className": "RemoteEvent"
         },

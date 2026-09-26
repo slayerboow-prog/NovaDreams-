@@ -301,6 +301,7 @@ local remotes = {
 	Post = remote(),
 	Garbage = remote(),
 	Medical = remote(),
+	Police = remote(),
 }
 function remotes:WaitForChild(name)
 	return self[name]
@@ -380,6 +381,9 @@ end
 services.ReplicatedStorage.Shared = node(ROOT .. "/shared")
 function services.ReplicatedStorage:WaitForChild(name)
 	return self[name]
+end
+function services.ReplicatedStorage:FindFirstChild(name)
+	return rawget(self, name)
 end
 
 local function loadModule(path: string): any
@@ -1618,6 +1622,82 @@ end
 check(profiles[adult].Money >= driverMoney + Gameplay.Bus.DriverPerStop and driverBus:GetAttribute("DoorsOpen") == true, "para en la parada: se abren las puertas y cobra")
 remotes.QuitJob.OnServerEvent:Fire(adult)
 check(adult:GetAttribute("Job") == nil and adult:GetAttribute("Riding") == nil, "deja el turno y se baja")
+
+---------------------------------------------------------------------
+print("▶ Policía: avisos por la ciudad (robo, multa, accidente, persona perdida)")
+-- (las calles de la prueba del autobús sirven para los avisos)
+local stationModel = fakeInstance("Model")
+stationModel.Name = "Edificio"
+stationModel.Parent = worldRoot
+local policeDesk = part("FrontDesk", CFrame.new(200, 2, 2200), { "PoliceDesk" })
+policeDesk.Parent = stationModel
+local patrolSpot = part("PolicePatrol", CFrame.new(190, 2, 2190), { "PolicePatrol" })
+patrolSpot.Parent = stationModel
+stationModel:AddTag("PoliceStation")
+local PoliceService = loadModule(S .. "PoliceService")
+PoliceService.init()
+check(jobProviders.Handler_Policia ~= nil, "el tablón de la comisaría lleva al oficio de policía")
+local cadet, cadetRoot = newPlayer(49, "Adolescente", 0)
+moveTo(cadetRoot, Vector3.new(200, 0, 2196))
+PoliceService.start(cadet)
+check(cadet:GetAttribute("Job") == nil and notified(cadet, "mayor de edad"), "un adolescente no puede ser policía")
+local officer, officerRoot = newPlayer(50, "AdultoJoven", 0)
+moveTo(officerRoot, Vector3.new(200, 0, 2196))
+local policeEvents = 0
+StoryEventsModule.connect(function(player, name, payload)
+	if player == officer and name == "JobTaskDone" and payload and payload.JobId == "Policia" then
+		policeEvents += 1
+	end
+end)
+PoliceService.start(officer)
+check(officer:GetAttribute("Job") == "Policia" and lastMessage(officer, "Incident") ~= nil, "empieza el servicio y llega el primer aviso")
+local function officerPrompts()
+	local list = {}
+	for _, d in worldRoot:GetDescendants() do
+		if d.ClassName == "ProximityPrompt" and d:GetAttribute("OwnerUserId") == officer.UserId and d.Parent then
+			table.insert(list, d)
+		end
+	end
+	return list
+end
+-- Resuelve varios avisos seguidos, sea del tipo que sea
+local solvedKinds = {}
+for round = 1, 6 do
+	local before = policeEvents
+	local msg = lastMessage(officer, "Incident")
+	local title = msg and msg[2] and msg[2].Title or "?"
+	for _ = 1, 3 do
+		for _, prompt in officerPrompts() do
+			if prompt.ActionText == "Poner conos" or prompt.ActionText == "Tomar datos" then
+				prompt.Triggered:Fire(officer)
+			end
+		end
+		for _, prompt in officerPrompts() do
+			if prompt.ActionText ~= "Poner conos" and prompt.ActionText ~= "Tomar datos" then
+				prompt.Triggered:Fire(officer)
+			end
+		end
+		if policeEvents == before then
+			promptOf(policeDesk, "Entregar informe").Triggered:Fire(officer)
+		end
+		if policeEvents > before then
+			break
+		end
+	end
+	if policeEvents > before then
+		solvedKinds[title] = true
+	end
+	task.wait(5.2)
+end
+local solvedCount = 0
+for _ in solvedKinds do
+	solvedCount += 1
+end
+check(policeEvents >= 5, "resuelve los avisos seguidos (cada uno cuenta para la historia)")
+check(solvedCount >= 2, "hay avisos de distintos tipos")
+check(profiles[officer].Money >= policeEvents * 15, "cobra por cada aviso resuelto")
+PoliceService.quit(officer)
+check(officer:GetAttribute("Job") == nil and #officerPrompts() == 0, "termina el servicio y se quitan sus avisos")
 
 end, debug.traceback)
 if not ok then

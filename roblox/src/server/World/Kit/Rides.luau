@@ -24,6 +24,7 @@ Rides.Spec = {
 	Coche = { Seat = CFrame.new(-1.4, 1.6, -0.6), Size = Vector3.new(6.2, 1, 13.5) },
 	Autobus = { Seat = CFrame.new(-2.4, 3.75, -13), Size = Vector3.new(8.6, 1, 34) },
 	Camion = { Seat = CFrame.new(-1.8, 4.2, -9.2), Size = Vector3.new(8, 1, 27) },
+	Patrulla = { Seat = CFrame.new(-1.4, 1.6, -0.6), Size = Vector3.new(6.2, 1, 13.5) },
 }
 
 local function wheel(m: Model, cf: CFrame, radius: number, width: number)
@@ -562,6 +563,32 @@ local function autobus(m: Model, cf: CFrame, color: Color3)
 	detail("DriverSeatBase", Vector3.new(1.8, 0.5, 1.8), at(-2.4, FLOOR + 1.1, -13), rgb(30, 30, 34), Enum.Material.Fabric)
 end
 
+-- Coche patrulla de la Policía (oficio de policía): el coche detallado en blanco con franja azul,
+-- rótulo POLICÍA, puente de luces (SirenBlue / SirenRed: parpadean con la sirena, cliente) y rejilla.
+local function patrulla(m: Model, cf: CFrame, _color: Color3)
+	coche(m, cf, rgb(242, 244, 248))
+	local BLUE = rgb(30, 70, 170)
+	for _, sx in { -1, 1 } do
+		local stripe = bit(m, "PoliceStripe", Vector3.new(0.06, 0.7, 12.4), cf * CFrame.new(sx * 3.13, 2.3, 0.2), BLUE)
+		Builder.sign(stripe, "POLICÍA", if sx > 0 then Enum.NormalId.Right else Enum.NormalId.Left, rgb(250, 250, 250))
+		bit(m, "PoliceCheck", Vector3.new(0.06, 0.3, 12.4), cf * CFrame.new(sx * 3.13, 2.85, 0.2), rgb(250, 200, 30))
+	end
+	local hood = bit(m, "HoodText", Vector3.new(3.4, 0.05, 1), cf * CFrame.new(0, 3.43, -5.2), rgb(242, 244, 248))
+	Builder.sign(hood, "POLICÍA", Enum.NormalId.Top, BLUE)
+	-- Puente de luces sobre el techo
+	bit(m, "LightBarBase", Vector3.new(3.6, 0.25, 0.9), cf * CFrame.new(0, 5.55, 0.6), rgb(30, 30, 34), Enum.Material.Metal)
+	for k, x in { -1.3, -0.45, 0.45, 1.3 } do
+		local blue = k % 2 == 1
+		local lamp = bit(m, if blue then "SirenBlue" else "SirenRed", Vector3.new(0.8, 0.4, 0.8), cf * CFrame.new(x, 5.85, 0.6), if blue then rgb(40, 60, 140) else rgb(140, 30, 30), Enum.Material.SmoothPlastic)
+		lamp:SetAttribute("On", if blue then Color3.fromRGB(60, 120, 255) else Color3.fromRGB(255, 40, 40))
+	end
+	-- Rejilla delantera (defensa) y antena
+	bit(m, "PushBar", Vector3.new(3.2, 1.2, 0.3), cf * CFrame.new(0, 2.1, -7.1), rgb(30, 30, 34), Enum.Material.Metal)
+	bit(m, "Antenna", Vector3.new(0.08, 2, 0.08), cf * CFrame.new(1.8, 6.2, 4.4), rgb(30, 30, 34))
+	m:SetAttribute("Siren", false)
+	m:AddTag("PoliceCar")
+end
+
 -- Camión de la basura (oficio de basurero): cabina, caja compactadora, tolva trasera con
 -- elevador de contenedores, estribos para los operarios, rotativos naranjas y franjas reflectantes.
 local function camion(m: Model, cf: CFrame, color: Color3)
@@ -657,7 +684,7 @@ local function camion(m: Model, cf: CFrame, color: Color3)
 	end
 end
 
-local BUILDERS = { Monopatin = monopatin, Patinete = patinete, Bici = bici, Moto = moto, Coche = coche, Autobus = autobus, Camion = camion }
+local BUILDERS = { Monopatin = monopatin, Patinete = patinete, Bici = bici, Moto = moto, Coche = coche, Autobus = autobus, Camion = camion, Patrulla = patrulla }
 local COLORS = {
 	Monopatin = { rgb(220, 70, 60), rgb(40, 140, 220), rgb(250, 200, 40), rgb(60, 170, 90) },
 	Bici = { rgb(30, 110, 200), rgb(210, 50, 60), rgb(40, 160, 90), rgb(240, 240, 240) },

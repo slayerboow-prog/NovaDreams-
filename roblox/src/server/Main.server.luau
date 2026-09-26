@@ -56,6 +56,7 @@ local order = {
 	"PostService", -- Correos: oficio de repartidor con rutas por las casas de Valmar
 	"GarbageService", -- Limpieza: oficio de basurero con papeleras llenas y camión de la basura
 	"MedicalService", -- hospitales: pacientes, consultas y oficio de médico/a con diagnóstico
+	"PoliceService", -- comisarías: oficio de policía con avisos, coche patrulla y sirena
 	"ClassService", -- clases y exámenes que se juegan (lo usa la historia)
 	"DialogueService", -- conversaciones con respuestas (misiones episódicas)
 	"MiniGameService", -- pase, canastas, partido de fútbol…

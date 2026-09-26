@@ -21,6 +21,7 @@ Gameplay.Vehicles = {
 	Autobus = { Name = "Autobús", Icon = "🚌", Price = 0, Speed = 48, Stage = "AdultoJoven", License = "B", Order = 9, Hidden = true },
 	-- El camión de la basura tampoco: es de los basureros (GarbageService)
 	Camion = { Name = "Camión de la basura", Icon = "🚛", Price = 0, Speed = 42, Stage = "AdultoJoven", License = "B", Order = 10, Hidden = true },
+	Patrulla = { Name = "Coche patrulla", Icon = "🚓", Price = 0, Speed = 80, Stage = "AdultoJoven", License = "B", Order = 11, Hidden = true },
 }
 Gameplay.RentalVehicles = { "Bici", "Monopatin", "Patinete" } -- los que se cogen gratis en las estaciones públicas
 
@@ -35,6 +36,7 @@ Gameplay.Driving = {
 	Coche = { Accel = 22, Brake = 55, Reverse = 18, Turn = 1.7, Lean = 0 },
 	Autobus = { Accel = 11, Brake = 34, Reverse = 6, Turn = 1.1, Lean = 0 },
 	Camion = { Accel = 10, Brake = 32, Reverse = 6, Turn = 1.2, Lean = 0 },
+	Patrulla = { Accel = 26, Brake = 60, Reverse = 18, Turn = 1.8, Lean = 0 },
 }
 
 -- Combustible y cuentakilómetros (VehicleService gasta; se reposta en las gasolineras)
@@ -271,6 +273,20 @@ Gameplay.Garbage = {
 	RouteSeconds = 420, -- descarga antes de esto: bonus doble
 	BagRespawn = 150, -- segundos hasta que vuelve a aparecer una bolsa suelta
 	EnergyCost = 2,
+}
+
+---------------------------------------------------------------------
+-- Policía (PoliceService)
+---------------------------------------------------------------------
+Gameplay.Police = {
+	MinDistance = 80, -- los avisos salen por la ciudad, a esta distancia de la comisaría
+	MaxDistance = 650,
+	Pay = { Robo = 30, Multa = 15, Accidente = 28, Perdido = 22 },
+	PerStud = 0.015, -- extra según lo lejos que esté el aviso
+	TimeLimit = 300, -- si no se atiende en este tiempo, llega otro aviso
+	FleeSpeed = 11, -- a qué velocidad huye el ladrón (un jugador corriendo le alcanza)
+	EnergyCost = 3,
+	MinStage = "AdultoJoven",
 }
 
 return Gameplay
