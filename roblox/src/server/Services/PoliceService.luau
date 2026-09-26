@@ -294,11 +294,14 @@ local function cone(parent: Instance, position: Vector3)
 	body.Anchored = true
 	body.CanCollide = false
 	body.Parent = parent
-	local band = body:Clone()
+	local band = Instance.new("Part")
 	band.Name = "ConeBand"
+	band.Shape = Enum.PartType.Cylinder
 	band.Size = Vector3.new(0.4, 0.95, 0.95)
 	band.Color = Color3.fromRGB(250, 250, 250)
 	band.CFrame = CFrame.new(position + Vector3.new(0, 1.3, 0)) * CFrame.Angles(0, 0, math.rad(90))
+	band.Anchored = true
+	band.CanCollide = false
 	band.Parent = parent
 end
 

@@ -25,6 +25,7 @@ Rides.Spec = {
 	Autobus = { Seat = CFrame.new(-2.4, 3.75, -13), Size = Vector3.new(8.6, 1, 34) },
 	Camion = { Seat = CFrame.new(-1.8, 4.2, -9.2), Size = Vector3.new(8, 1, 27) },
 	Patrulla = { Seat = CFrame.new(-1.4, 1.6, -0.6), Size = Vector3.new(6.2, 1, 13.5) },
+	Bomberos = { Seat = CFrame.new(-1.8, 4.3, -10.4), Size = Vector3.new(8, 1, 27) },
 }
 
 local function wheel(m: Model, cf: CFrame, radius: number, width: number)
@@ -684,7 +685,103 @@ local function camion(m: Model, cf: CFrame, color: Color3)
 	end
 end
 
-local BUILDERS = { Monopatin = monopatin, Patinete = patinete, Bici = bici, Moto = moto, Coche = coche, Autobus = autobus, Camion = camion, Patrulla = patrulla }
+-- Camión de bomberos (oficio de bombero): cabina doble, carrocería con persianas de los
+-- compartimentos, escalera en el techo, carrete de manguera, puente de luces (SirenBlue/SirenRed:
+-- parpadean con la sirena) y franjas reflectantes.
+local function bomberos(m: Model, cf: CFrame, color: Color3)
+	local W = 8
+	local HW = W / 2
+	local DARK = rgb(30, 30, 34)
+	local GLASS = rgb(30, 44, 56)
+	local STEEL = rgb(190, 194, 200)
+	local YELLOW = rgb(250, 210, 40)
+	local function at(x: number, y: number, z: number): CFrame
+		return cf * CFrame.new(x, y, z)
+	end
+	box(m, "Frame", Vector3.new(W - 1.4, 1, 25), at(0, 1.9, 0.5), DARK, Enum.Material.Metal)
+	for _, z in { -8.5, 6, 9.4 } do
+		for _, sx in { -1, 1 } do
+			local c = at(sx * (HW - 0.7), 1.7, z)
+			wheel(m, c, 1.7, 1.2)
+			cyl(m, "Rim", 1.26, 1.9, c, STEEL, Enum.Material.Metal)
+			cyl(m, "Hub", 1.3, 0.6, c, DARK, Enum.Material.Metal)
+		end
+	end
+	-- Cabina doble (para toda la dotación)
+	local cabZ0, cabZ1 = -13, -4.5
+	local cabMid = (cabZ0 + cabZ1) / 2
+	box(m, "Body", Vector3.new(W, 5.8, cabZ1 - cabZ0), at(0, 5.3, cabMid), color, Enum.Material.SmoothPlastic)
+	bit(m, "Windshield", Vector3.new(W - 1, 2.4, 0.15), at(0, 6.7, cabZ0 - 0.02), GLASS, Enum.Material.Glass, 0.2)
+	for _, sx in { -1, 1 } do
+		for _, z in { cabZ0 + 2, cabZ0 + 5.8 } do
+			bit(m, "SideWindow", Vector3.new(0.12, 2.1, 2.6), at(sx * (HW + 0.02), 6.7, z), GLASS, Enum.Material.Glass, 0.2)
+			bit(m, "DoorLine", Vector3.new(0.05, 4.8, 0.08), at(sx * (HW + 0.03), 5, z + 1.6), DARK)
+		end
+		bit(m, "Step", Vector3.new(1.2, 0.2, 3), at(sx * (HW - 0.2), 2.6, cabMid), STEEL, Enum.Material.DiamondPlate)
+		bit(m, "MirrorArm", Vector3.new(1.2, 0.12, 0.12), at(sx * (HW + 0.6), 7, cabZ0 + 0.3), DARK)
+		bit(m, "Mirror", Vector3.new(0.2, 1.6, 0.8), at(sx * (HW + 1.2), 6.6, cabZ0 + 0.3), DARK)
+		local head = bit(m, "Headlight", Vector3.new(1.4, 0.6, 0.2), at(sx * (HW - 1.2), 3.4, cabZ0 - 0.05), rgb(255, 250, 230), Enum.Material.Neon)
+		head.Name = if sx < 0 then "Headlight" else "HeadlightRight"
+		bit(m, "IndicatorFront", Vector3.new(0.5, 0.4, 0.15), at(sx * (HW - 0.3), 3.4, cabZ0 - 0.05), rgb(255, 150, 20), Enum.Material.Neon)
+		-- Luces azules delanteras (también parpadean)
+		local grille = bit(m, "SirenBlue", Vector3.new(0.6, 0.3, 0.1), at(sx * 1.4, 4.4, cabZ0 - 0.06), rgb(40, 60, 140))
+		grille:SetAttribute("On", Color3.fromRGB(60, 120, 255))
+	end
+	bit(m, "Grille", Vector3.new(4, 1.4, 0.15), at(0, 3.6, cabZ0 - 0.05), DARK)
+	box(m, "BumperFront", Vector3.new(W, 0.8, 0.5), at(0, 2.3, cabZ0 - 0.3), STEEL, Enum.Material.Metal)
+	local label = bit(m, "CabLabel", Vector3.new(W - 1.4, 0.8, 0.05), at(0, 8.5, cabZ0 - 0.03), color)
+	Builder.sign(label, "BOMBEROS", Enum.NormalId.Front, rgb(250, 250, 250))
+	-- Puente de luces
+	bit(m, "LightBarBase", Vector3.new(6, 0.3, 1), at(0, 8.35, cabZ0 + 1.2), DARK, Enum.Material.Metal)
+	for k, x in { -2.2, -0.75, 0.75, 2.2 } do
+		local blue = k % 2 == 1
+		local lamp = bit(m, if blue then "SirenBlue" else "SirenRed", Vector3.new(1.2, 0.45, 0.9), at(x, 8.7, cabZ0 + 1.2), if blue then rgb(40, 60, 140) else rgb(140, 30, 30))
+		lamp:SetAttribute("On", if blue then Color3.fromRGB(60, 120, 255) else Color3.fromRGB(255, 40, 40))
+	end
+
+	-- Carrocería con compartimentos (persianas metálicas)
+	local bodyZ0, bodyZ1 = -4.3, 12
+	local bodyMid = (bodyZ0 + bodyZ1) / 2
+	box(m, "Container", Vector3.new(W - 0.2, 6.4, bodyZ1 - bodyZ0), at(0, 5.6, bodyMid), color, Enum.Material.Metal)
+	for _, sx in { -1, 1 } do
+		for k = 0, 2 do
+			local z = bodyZ0 + 2.8 + k * 5.2
+			bit(m, "Shutter", Vector3.new(0.08, 4.4, 4.4), at(sx * (HW - 0.06), 5.4, z), STEEL, Enum.Material.Metal)
+			for r = 0, 5 do
+				bit(m, "ShutterLine", Vector3.new(0.1, 0.06, 4.3), at(sx * (HW - 0.02), 3.5 + r * 0.75, z), rgb(150, 154, 160))
+			end
+			bit(m, "ShutterHandle", Vector3.new(0.12, 0.2, 1.2), at(sx * (HW + 0.02), 3.4, z), DARK)
+		end
+		bit(m, "Stripe", Vector3.new(0.08, 0.5, bodyZ1 - cabZ0 - 0.4), at(sx * (HW + 0.03), 2.8, (cabZ0 + bodyZ1) / 2), YELLOW, Enum.Material.Neon)
+		bit(m, "Stripe2", Vector3.new(0.08, 0.25, bodyZ1 - cabZ0 - 0.4), at(sx * (HW + 0.03), 2.3, (cabZ0 + bodyZ1) / 2), rgb(240, 240, 240))
+	end
+	-- Escalera extensible sobre el techo y carrete de manguera detrás
+	for _, sx in { -1, 1 } do
+		bit(m, "LadderRail", Vector3.new(0.25, 0.25, 15), at(sx * 1.1, 9.2, bodyMid - 1), STEEL, Enum.Material.Metal)
+	end
+	for k = 0, 14 do
+		bit(m, "LadderRung", Vector3.new(2.2, 0.15, 0.15), at(0, 9.2, bodyMid - 8 + k), STEEL, Enum.Material.Metal)
+	end
+	bit(m, "LadderBase", Vector3.new(3, 0.8, 2), at(0, 9, bodyZ1 - 1.5), DARK, Enum.Material.Metal)
+	local reel = at(0, 6.4, bodyZ1 + 0.9)
+	cyl(m, "Hose", 3.8, 2, reel, rgb(200, 60, 40), Enum.Material.Fabric)
+	for _, x in { -2, 2 } do
+		cyl(m, "HoseReel", 0.2, 2.5, reel * CFrame.new(x, 0, 0), DARK, Enum.Material.Metal)
+	end
+	for _, sx in { -1, 1 } do
+		bit(m, "ReelBracket", Vector3.new(0.2, 2.6, 1.4), at(sx * 2.3, 6.2, bodyZ1 + 0.7), DARK, Enum.Material.Metal)
+	end
+	for _, sx in { -1, 1 } do
+		bit(m, "Taillight", Vector3.new(0.9, 0.5, 0.15), at(sx * (HW - 0.6), 3, bodyZ1 + 0.1), rgb(200, 20, 30), Enum.Material.Neon)
+		bit(m, "IndicatorRear", Vector3.new(0.5, 0.4, 0.15), at(sx * (HW - 1.5), 3, bodyZ1 + 0.1), rgb(255, 150, 20), Enum.Material.Neon)
+		bit(m, "GrabBar", Vector3.new(0.15, 3, 0.15), at(sx * (HW - 0.3), 5.4, bodyZ1 + 0.15), YELLOW, Enum.Material.Metal)
+	end
+	bit(m, "RearStep", Vector3.new(W - 1, 0.25, 1.2), at(0, 2, bodyZ1 + 0.7), STEEL, Enum.Material.DiamondPlate)
+	m:SetAttribute("Siren", false)
+	m:AddTag("SirenCar")
+end
+
+local BUILDERS = { Monopatin = monopatin, Patinete = patinete, Bici = bici, Moto = moto, Coche = coche, Autobus = autobus, Camion = camion, Patrulla = patrulla, Bomberos = bomberos }
 local COLORS = {
 	Monopatin = { rgb(220, 70, 60), rgb(40, 140, 220), rgb(250, 200, 40), rgb(60, 170, 90) },
 	Bici = { rgb(30, 110, 200), rgb(210, 50, 60), rgb(40, 160, 90), rgb(240, 240, 240) },
@@ -692,6 +789,7 @@ local COLORS = {
 	Patinete = { rgb(30, 30, 34), rgb(240, 240, 240), rgb(220, 70, 60), rgb(40, 140, 220) },
 	Autobus = { rgb(200, 40, 45) },
 	Camion = { rgb(245, 245, 242) },
+	Bomberos = { rgb(196, 30, 30) },
 }
 
 -- Crea el modelo del vehículo (anclado). kind: "Monopatin" | "Bici" | "Moto" | "Coche"

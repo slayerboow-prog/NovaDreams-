@@ -132,6 +132,16 @@ function Fake.PivotTo(self, cf)
 		primary.CFrame = cf
 	end
 end
+function Fake.FindFirstAncestorOfClass(self, className)
+	local p = self.__props.Parent
+	while p do
+		if p.ClassName == className then
+			return p
+		end
+		p = p.__props.Parent
+	end
+	return nil
+end
 function Fake.IsDescendantOf(self, ancestor)
 	local p = self.__props.Parent
 	while p do
@@ -302,6 +312,7 @@ local remotes = {
 	Garbage = remote(),
 	Medical = remote(),
 	Police = remote(),
+	Fire = remote(),
 }
 function remotes:WaitForChild(name)
 	return self[name]
@@ -649,7 +660,7 @@ DrivingSchoolService.init()
 ArcadeService.init()
 
 -- Si algo se atasca, la prueba falla en vez de quedarse colgada
-task.delay(90, function()
+task.delay(240, function()
 	print("❌ La prueba ha tardado demasiado")
 	process.exit(1)
 end)
@@ -1698,6 +1709,84 @@ check(solvedCount >= 2, "hay avisos de distintos tipos")
 check(profiles[officer].Money >= policeEvents * 15, "cobra por cada aviso resuelto")
 PoliceService.quit(officer)
 check(officer:GetAttribute("Job") == nil and #officerPrompts() == 0, "termina el servicio y se quitan sus avisos")
+
+---------------------------------------------------------------------
+-- (en su propia función: la prueba ya usa casi todas las variables locales permitidas)
+;(function()
+print("▶ Bomberos: incendios, fuego que crece y gatos en apuros")
+local fireStation = fakeInstance("Model")
+fireStation.Name = "Bomberos"
+fireStation.Parent = worldRoot
+local truckBay = part("FireTruckSpot", CFrame.new(150, 2, 2150), { "FireTruckSpot" })
+truckBay.Parent = fireStation
+fireStation:AddTag("FireStation")
+-- Una casa con su buzón, una papelera y una farola dentro del radio de los avisos
+local houseModel = fakeInstance("Model")
+houseModel.Name = "Casa"
+houseModel.Parent = worldRoot
+local houseBody = part("Body", CFrame.new(300, 5, 2300), nil)
+houseBody.Size = Vector3.new(24, 10, 20)
+houseBody.Parent = houseModel
+local houseBox = part("Mailbox", CFrame.new(300, 3.5, 2280), { "Buzon" }, { Address = "Calle del Fuego, 7", DoorSpot = Vector3.new(300, 0, 2288) })
+houseBox.Parent = houseModel
+part("Bin", CFrame.new(260, 1.3, 2250), { "Papelera" })
+local lampModel = fakeInstance("Model")
+lampModel.Name = "StreetLamp"
+lampModel.Parent = worldRoot
+local lampBase = part("Base", CFrame.new(240, 0.5, 2260), nil)
+lampBase.Size = Vector3.new(1.2, 1, 1.2)
+lampBase.Parent = lampModel
+local lampLens = part("Lens", CFrame.new(240, 13.9, 2256.6), { "StreetLamp" })
+lampLens.Parent = lampModel
+local FireService = loadModule(S .. "FireService")
+FireService.init()
+check(jobProviders.Handler_Bombero ~= nil, "el tablón del parque lleva al oficio de bombero")
+local firefighter, firefighterRoot = newPlayer(51, "Adulto", 0)
+moveTo(firefighterRoot, Vector3.new(150, 0, 2146))
+local fireEvents = 0
+StoryEventsModule.connect(function(player, name, payload)
+	if player == firefighter and name == "JobTaskDone" and payload and payload.JobId == "Bombero" then
+		fireEvents += 1
+	end
+end)
+FireService.start(firefighter)
+check(firefighter:GetAttribute("Job") == "Bombero" and lastMessage(firefighter, "Incident") ~= nil, "empieza la guardia y llega un aviso")
+local function firePrompts()
+	local list = {}
+	for _, d in worldRoot:GetDescendants() do
+		if d.ClassName == "ProximityPrompt" and d:GetAttribute("OwnerUserId") == firefighter.UserId and d.Parent then
+			table.insert(list, d)
+		end
+	end
+	return list
+end
+local fireKinds = {}
+for _ = 1, 6 do
+	local before = fireEvents
+	local msg = lastMessage(firefighter, "Incident")
+	local title = msg and msg[2] and msg[2].Title or "?"
+	for _ = 1, 12 do
+		local prompts = firePrompts()
+		if #prompts == 0 or fireEvents > before then
+			break
+		end
+		prompts[1].Triggered:Fire(firefighter)
+	end
+	if fireEvents > before then
+		fireKinds[title] = true
+	end
+	task.wait(6.2)
+end
+local fireKindCount = 0
+for _ in fireKinds do
+	fireKindCount += 1
+end
+check(fireEvents >= 5, "apaga los fuegos y resuelve los avisos (cada uno cuenta para la historia)")
+check(fireKindCount >= 2, "hay avisos de distintos tipos")
+check(profiles[firefighter].Money >= fireEvents * 15, "cobra por cada aviso")
+FireService.quit(firefighter)
+check(firefighter:GetAttribute("Job") == nil and #firePrompts() == 0, "termina la guardia y se quitan sus avisos")
+end)()
 
 end, debug.traceback)
 if not ok then

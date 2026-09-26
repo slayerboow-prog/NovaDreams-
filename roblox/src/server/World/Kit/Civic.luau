@@ -538,6 +538,26 @@ function Civic.fireStation(parent: Instance, lot: Lot, u: number)
 	-- Torre de entrenamiento
 	Builder.part({ Name = "Tower", Size = Vector3.new(8, info.Top + 8, 8), CFrame = at(W / 2 - 4, (info.Top + 8) / 2 - FT, D / 2 - 4), Color = rgb(176, 50, 42), Material = Enum.Material.Brick, Parent = model })
 	Props.vehicle(m, lot.along(u - 4, setback - 8, FT), "FireTruck")
+	-- Oficio de bombero (FireService): tablón, sitio del camión, material y boca de riego
+	Props.jobBoard(m, lot.facing(u - W / 2 + 3, setback - 3, FT), "Bombero", "BOMBEROS")
+	local bay = lot.facing(u + W / 4 + 2, setback - 7, FT)
+	Builder.decor({ Name = "TruckBay", Size = Vector3.new(10, 0.05, 12), CFrame = bay * CFrame.new(0, 0.03, 0), Color = rgb(250, 210, 40), Parent = m })
+	Builder.part({ Name = "FireTruckSpot", Size = Vector3.new(4, 3, 4), CFrame = bay * CFrame.new(0, 1.5, 3), Transparency = 1, CanCollide = false, Tags = { "FireTruckSpot" }, Parent = m })
+	local rack = lot.facing(u + W / 2 - 3, setback - 2, FT)
+	Builder.part({ Name = "GearRack", Size = Vector3.new(5, 5, 1.2), CFrame = rack * CFrame.new(0, 2.5, 0), Color = rgb(60, 60, 66), Material = Enum.Material.Metal, Parent = m })
+	for k = -1, 1 do
+		Builder.decor({ Name = "Helmet", Shape = Enum.PartType.Ball, Size = Vector3.new(1.3, 1.1, 1.3), CFrame = rack * CFrame.new(k * 1.5, 4.4, -0.7), Color = rgb(250, 210, 40), Parent = m })
+		Builder.decor({ Name = "Jacket", Size = Vector3.new(1.3, 2, 0.4), CFrame = rack * CFrame.new(k * 1.5, 2.6, -0.8), Color = rgb(200, 170, 110), Material = Enum.Material.Fabric, Parent = m })
+		Builder.decor({ Name = "JacketStripe", Size = Vector3.new(1.32, 0.2, 0.42), CFrame = rack * CFrame.new(k * 1.5, 2.2, -0.8), Color = rgb(250, 250, 200), Material = Enum.Material.Neon, Parent = m })
+	end
+	for k = 0, 2 do
+		Builder.decor({ Name = "HoseRoll", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.6, 1.8, 1.8), CFrame = rack * CFrame.new(-4 + k * 0.7, 0.9, -1) * CFrame.Angles(0, math.rad(90), 0), Color = rgb(200, 60, 40), Material = Enum.Material.Fabric, Parent = m })
+	end
+	local hydrant = lot.facing(u - W / 2 - 1, 2, FT)
+	Builder.part({ Name = "Hydrant", Shape = Enum.PartType.Cylinder, Size = Vector3.new(2.4, 0.9, 0.9), CFrame = hydrant * CFrame.new(0, 1.2, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = rgb(210, 30, 30), Material = Enum.Material.Metal, Parent = m })
+	Builder.decor({ Name = "HydrantCap", Shape = Enum.PartType.Ball, Size = Vector3.new(1, 1, 1), CFrame = hydrant * CFrame.new(0, 2.45, 0), Color = rgb(210, 30, 30), Material = Enum.Material.Metal, Parent = m })
+	Builder.decor({ Name = "HydrantOutlet", Shape = Enum.PartType.Cylinder, Size = Vector3.new(1.4, 0.4, 0.4), CFrame = hydrant * CFrame.new(0, 1.6, 0), Color = rgb(230, 230, 230), Material = Enum.Material.Metal, Parent = m })
+	m:AddTag("FireStation")
 	return m
 end
 

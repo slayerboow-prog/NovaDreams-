@@ -188,7 +188,7 @@ local lastHorn = 0
 
 function SoundFx.vehicleStart(kind: string, chassis: BasePart)
 	vehicleKind = kind
-	if kind == "Coche" or kind == "Moto" or kind == "Autobus" or kind == "Camion" or kind == "Patrulla" then
+	if kind == "Coche" or kind == "Moto" or kind == "Autobus" or kind == "Camion" or kind == "Patrulla" or kind == "Bomberos" then
 		SoundFx.play("Arranque", 1, nil, chassis)
 		engine = SoundFx.loop("Motor", chassis)
 		if engine and kind == "Moto" then
@@ -227,8 +227,8 @@ local function horn()
 	lastHorn = os.clock()
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
-	if vehicleKind == "Coche" or vehicleKind == "Moto" or vehicleKind == "Autobus" or vehicleKind == "Camion" or vehicleKind == "Patrulla" then
-		SoundFx.play("Claxon", 1, if vehicleKind == "Moto" then 1.3 elseif vehicleKind == "Autobus" or vehicleKind == "Camion" then 0.75 else 1, root)
+	if vehicleKind == "Coche" or vehicleKind == "Moto" or vehicleKind == "Autobus" or vehicleKind == "Camion" or vehicleKind == "Patrulla" or vehicleKind == "Bomberos" then
+		SoundFx.play("Claxon", 1, if vehicleKind == "Moto" then 1.3 elseif vehicleKind == "Autobus" or vehicleKind == "Camion" or vehicleKind == "Bomberos" then 0.75 else 1, root)
 	else
 		SoundFx.play("Timbre", 1, nil, root)
 	end

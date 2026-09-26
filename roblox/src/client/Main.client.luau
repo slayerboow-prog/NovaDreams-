@@ -35,6 +35,7 @@ local PostUI = require(script.Parent.Controllers.PostUI)
 local GarbageUI = require(script.Parent.Controllers.GarbageUI)
 local MedicalUI = require(script.Parent.Controllers.MedicalUI)
 local PoliceUI = require(script.Parent.Controllers.PoliceUI)
+local FireUI = require(script.Parent.Controllers.FireUI)
 local JobPrompts = require(script.Parent.Controllers.JobPrompts)
 local BusUI = require(script.Parent.Controllers.BusUI)
 local ActorLife = require(script.Parent.Controllers.ActorLife)
@@ -73,6 +74,7 @@ task.spawn(PostUI.init) -- Correos: el panel de la ruta del repartidor
 task.spawn(GarbageUI.init) -- Limpieza: el panel del basurero
 task.spawn(MedicalUI.init) -- hospital: el panel del médico/a (pruebas, diagnóstico, botiquín)
 task.spawn(PoliceUI.init) -- policía: panel del aviso y sirenas de los coches patrulla
+task.spawn(FireUI.init) -- bomberos: panel del aviso
 task.spawn(JobPrompts.init) -- los carteles de cada oficio solo los ve quien trabaja en él
 task.spawn(Driving.init) -- conducir coches, motos, bicis, monopatines y patinetes (W/A/S/D)
 task.spawn(Actions.init) -- gestos y bailes (G), trepar muros bajos, linterna (L) y modo foto (P)

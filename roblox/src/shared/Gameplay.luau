@@ -22,6 +22,7 @@ Gameplay.Vehicles = {
 	-- El camión de la basura tampoco: es de los basureros (GarbageService)
 	Camion = { Name = "Camión de la basura", Icon = "🚛", Price = 0, Speed = 42, Stage = "AdultoJoven", License = "B", Order = 10, Hidden = true },
 	Patrulla = { Name = "Coche patrulla", Icon = "🚓", Price = 0, Speed = 80, Stage = "AdultoJoven", License = "B", Order = 11, Hidden = true },
+	Bomberos = { Name = "Camión de bomberos", Icon = "🚒", Price = 0, Speed = 56, Stage = "AdultoJoven", License = "B", Order = 12, Hidden = true },
 }
 Gameplay.RentalVehicles = { "Bici", "Monopatin", "Patinete" } -- los que se cogen gratis en las estaciones públicas
 
@@ -37,6 +38,7 @@ Gameplay.Driving = {
 	Autobus = { Accel = 11, Brake = 34, Reverse = 6, Turn = 1.1, Lean = 0 },
 	Camion = { Accel = 10, Brake = 32, Reverse = 6, Turn = 1.2, Lean = 0 },
 	Patrulla = { Accel = 26, Brake = 60, Reverse = 18, Turn = 1.8, Lean = 0 },
+	Bomberos = { Accel = 13, Brake = 36, Reverse = 6, Turn = 1.2, Lean = 0 },
 }
 
 -- Combustible y cuentakilómetros (VehicleService gasta; se reposta en las gasolineras)
@@ -286,6 +288,22 @@ Gameplay.Police = {
 	TimeLimit = 300, -- si no se atiende en este tiempo, llega otro aviso
 	FleeSpeed = 11, -- a qué velocidad huye el ladrón (un jugador corriendo le alcanza)
 	EnergyCost = 3,
+	MinStage = "AdultoJoven",
+}
+
+---------------------------------------------------------------------
+-- Bomberos (FireService)
+---------------------------------------------------------------------
+Gameplay.Fire = {
+	MinDistance = 80, -- los avisos, a esta distancia del parque de bomberos
+	MaxDistance = 700,
+	Pay = { Casa = 45, Coche = 30, Papelera = 15, Gato = 25 },
+	PerStud = 0.015,
+	FlameHits = 2, -- veces que hay que echar agua a cada llama
+	GrowEvery = 35, -- si tardas, el fuego crece (una llama más fuerte) cada tantos segundos
+	MaxHits = 4,
+	TimeLimit = 360,
+	EnergyCost = 4,
 	MinStage = "AdultoJoven",
 }
 

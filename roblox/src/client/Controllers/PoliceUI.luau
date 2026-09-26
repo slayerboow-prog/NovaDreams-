@@ -1,4 +1,4 @@
--- PoliceUI (cliente): el panel del policía y las sirenas.
+-- PoliceUI (cliente): el panel del policía y las sirenas (también las del camión de bomberos).
 --   * Panel con el aviso actual: qué ha pasado, qué toca hacer y el tiempo que queda.
 --   * Tecla K (o el botón 🚨 en móvil): enciende o apaga la sirena del coche patrulla.
 --   * Las luces azules y rojas de los coches patrulla con la sirena encendida parpadean
@@ -69,9 +69,14 @@ local function animate()
 	end
 end
 
+local FireRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Fire") :: RemoteEvent
+
 local function siren()
-	if player:GetAttribute("Job") == "Policia" then
+	local job = player:GetAttribute("Job")
+	if job == "Policia" then
 		Remote:FireServer("Siren")
+	elseif job == "Bombero" then
+		FireRemote:FireServer("Siren")
 	end
 end
 
@@ -133,19 +138,21 @@ function PoliceUI.init()
 		end
 	end)
 	player:GetAttributeChangedSignal("Job"):Connect(function()
-		local on = player:GetAttribute("Job") == "Policia"
-		if not on then
+		local job = player:GetAttribute("Job")
+		if job ~= "Policia" then
 			panel.Visible = false
 		end
 		if sirenButton then
-			sirenButton.Visible = on
+			sirenButton.Visible = job == "Policia" or job == "Bombero"
 		end
 	end)
 
-	for _, model in CollectionService:GetTagged("PoliceCar") do
-		track(model)
+	for _, tag in { "PoliceCar", "SirenCar" } do
+		for _, model in CollectionService:GetTagged(tag) do
+			track(model)
+		end
+		CollectionService:GetInstanceAddedSignal(tag):Connect(track)
 	end
-	CollectionService:GetInstanceAddedSignal("PoliceCar"):Connect(track)
 	RunService.Heartbeat:Connect(animate)
 end
 

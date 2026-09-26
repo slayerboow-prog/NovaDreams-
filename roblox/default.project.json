@@ -44,6 +44,9 @@
         "Police": {
           "$className": "RemoteEvent"
         },
+        "Fire": {
+          "$className": "RemoteEvent"
+        },
         "LifeStory": {
           "$className": "RemoteEvent"
         },
