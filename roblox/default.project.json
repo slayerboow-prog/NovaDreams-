@@ -47,6 +47,9 @@
         "Fire": {
           "$className": "RemoteEvent"
         },
+        "Cinema": {
+          "$className": "RemoteEvent"
+        },
         "LifeStory": {
           "$className": "RemoteEvent"
         },

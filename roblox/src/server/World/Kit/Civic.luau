@@ -13,6 +13,7 @@ local Props = require(script.Parent.Props)
 local StoryMarks = require(script.Parent.StoryMarks)
 local Clinic = require(script.Parent.Clinic)
 local PoliceStation = require(script.Parent.PoliceStation)
+local CinemaHall = require(script.Parent.CinemaHall)
 
 local Civic = {}
 
@@ -1014,8 +1015,12 @@ function Civic.cinema(parent: Instance, lot: Lot, u: number, townName: string)
 	local model, at = Building.build({
 		Name = "Cine", Parent = parent, CFrame = lot.facing(u + W / 2, 8 + D / 2, 0),
 		Width = W, Depth = D, Floors = 1, GroundHeight = 22, Style = "Moderno", GroundFloor = "Shop",
-		WallColor = rgb(52, 40, 62), Interior = false, Balconies = false, WindowFaces = { Front = true }, ShopId = "Cine",
+		WallColor = rgb(52, 40, 62), Balconies = false, WindowFaces = { Front = true }, ShopId = "Cine",
+		FloorMaterial = Enum.Material.Carpet, FloorColor = rgb(60, 20, 30), LightColor = rgb(255, 220, 180),
 	})
+	-- Por dentro: taquilla, barra de palomitas y la sala con su pantalla (CinemaService)
+	CinemaHall.build(model, at, W, D)
+	Props.jobBoard(parent, lot.facing(u + W - 3, 3, 0), "Taquillero", "TAQUILLA")
 	-- Marquesina luminosa con carteles de películas
 	local marquee = Builder.decor({ Name = "Marquee", Size = Vector3.new(30, 6, 0.8), CFrame = at(0, 17, -D / 2 - 0.5), Color = rgb(18, 16, 24), Parent = model })
 	Builder.sign(marquee, "CINE " .. string.upper(townName), Enum.NormalId.Front, rgb(255, 214, 90))

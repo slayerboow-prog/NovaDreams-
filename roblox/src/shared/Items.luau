@@ -20,6 +20,7 @@ local Subjects = require(script.Parent.LifeStory.Subjects)
 local Strings = require(script.Parent.LifeStory.Strings)
 local Groceries = require(script.Parent.Groceries)
 local CafeMenu = require(script.Parent.CafeMenu)
+local Cinema = require(script.Parent.Cinema)
 
 local Items = {}
 
@@ -166,6 +167,28 @@ for _, product in CafeMenu.List do
 		Stack = 8,
 		Hunger = product.Hunger,
 		Energy = product.Energy,
+	}
+end
+
+-- Cine: la entrada (se gasta al entrar a la sala) y lo de la barra
+list[Cinema.TicketItem] = {
+	Id = Cinema.TicketItem,
+	Name = "Entrada de cine",
+	Icon = "🎟️",
+	Kind = "Thing",
+	Desc = "Una entrada para la próxima sesión del cine. Enséñala en la puerta de la sala.",
+	Stack = 8,
+}
+for _, snack in Cinema.Snacks do
+	list[snack.Id] = list[snack.Id] or {
+		Id = snack.Id,
+		Name = snack.Name,
+		Icon = snack.Icon,
+		Kind = "Food",
+		Desc = "De la barra del cine. Mejor durante la película.",
+		Stack = 8,
+		Hunger = snack.Hunger,
+		Energy = snack.Energy,
 	}
 end
 

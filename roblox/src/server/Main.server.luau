@@ -58,6 +58,7 @@ local order = {
 	"MedicalService", -- hospitales: pacientes, consultas y oficio de médico/a con diagnóstico
 	"PoliceService", -- comisarías: oficio de policía con avisos, coche patrulla y sirena
 	"FireService", -- bomberos: incendios en casas, coches y papeleras, gatos en apuros, camión y sirena
+	"CinemaService", -- cines: sesiones con película en pantalla y oficio de taquillero/a
 	"ClassService", -- clases y exámenes que se juegan (lo usa la historia)
 	"DialogueService", -- conversaciones con respuestas (misiones episódicas)
 	"MiniGameService", -- pase, canastas, partido de fútbol…

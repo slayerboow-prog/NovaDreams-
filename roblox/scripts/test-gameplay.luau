@@ -313,6 +313,7 @@ local remotes = {
 	Medical = remote(),
 	Police = remote(),
 	Fire = remote(),
+	Cinema = remote(),
 }
 function remotes:WaitForChild(name)
 	return self[name]
@@ -1786,6 +1787,97 @@ check(fireKindCount >= 2, "hay avisos de distintos tipos")
 check(profiles[firefighter].Money >= fireEvents * 15, "cobra por cada aviso")
 FireService.quit(firefighter)
 check(firefighter:GetAttribute("Job") == nil and #firePrompts() == 0, "termina la guardia y se quitan sus avisos")
+end)()
+;(function()
+print("▶ Cine: comprar entradas, taquillero/a y la sala")
+local Cinema = loadModule(ROOT .. "/shared/Cinema")
+local cinemaModel = fakeInstance("Model")
+cinemaModel.Name = "Cine"
+cinemaModel.Parent = worldRoot
+cinemaModel:SetAttribute("Outside", Vector3.new(1800, 0.4, 1770))
+cinemaModel:SetAttribute("Door", Vector3.new(1800, 0.4, 1780))
+for i = 1, 4 do
+	cinemaModel:SetAttribute("Queue" .. i, Vector3.new(1805, 0.4, 1786 - i * 3))
+end
+cinemaModel:SetAttribute("Staff", Vector3.new(1805, 0.4, 1792))
+cinemaModel:SetAttribute("Lobby", Vector3.new(1780, 0.4, 1795))
+cinemaModel:SetAttribute("Inside", Vector3.new(1780, 0.4, 1801))
+local function cp(name, position, tags, attrs)
+	local p = part(name, CFrame.new(position), tags, attrs)
+	p.Size = Vector3.new(3, 3, 2)
+	p.Parent = cinemaModel
+	return p
+end
+local ticketWindow = cp("TicketWindow", Vector3.new(1805, 4, 1790), { "CinemaRegister" })
+local salaDoor = cp("SalaDoor", Vector3.new(1780, 4.5, 1798), { "CinemaDoor" })
+local popcorn = cp("Station_Palomitas", Vector3.new(1811, 4.5, 1793), { "CinemaStation" }, { Station = "Palomitas" })
+cp("Station_Refresco", Vector3.new(1815, 4.5, 1793), { "CinemaStation" }, { Station = "Refresco" })
+cp("Station_Nachos", Vector3.new(1819, 4.5, 1793), { "CinemaStation" }, { Station = "Nachos" })
+cp("CinemaSeat", Vector3.new(1780, 1.7, 1810), { "CinemaSeat" })
+cinemaModel:AddTag("Cinema")
+local CinemaService = loadModule(S .. "CinemaService")
+CinemaService.init()
+check(jobProviders.Handler_Taquillero ~= nil, "el tablón del cine lleva al oficio de taquillero/a")
+local clerk, clerkRoot = newPlayer(52, "Adolescente", 0)
+moveTo(clerkRoot, Vector3.new(1805, 0, 1792))
+CinemaService.start(clerk)
+check(clerk:GetAttribute("Job") == "Taquillero", "un adolescente puede trabajar de taquillero")
+local fan, fanRoot = newPlayer(53, "Nino", 40)
+moveTo(fanRoot, Vector3.new(1805, 0, 1786))
+promptOf(ticketWindow, "Comprar entradas").Triggered:Fire(fan)
+local menuMsg = lastMessage(fan, "Menu")
+check(menuMsg ~= nil and menuMsg[2].Title ~= nil and #menuMsg[2].Snacks == 3, "la taquilla enseña la próxima película y la barra")
+remotes.Cinema.OnServerEvent:Fire(fan, "Buy", 2, { "Palomitas" })
+check(profiles[fan].Money == 40 - 2 * Cinema.TicketPrice - Cinema.snackById.Palomitas.Price, "compra 2 entradas y palomitas")
+-- Si antes había clientes NPC, se atienden en orden
+local function serveFirst()
+	local msg = lastMessage(clerk, "Work")
+	local first = msg and msg[2][1]
+	if not first then
+		return nil
+	end
+	-- Película y número, a partir del texto del pedido
+	local filmId, count = nil, tonumber(string.match(first.Text, "^(%d+)"))
+	for _, f in Cinema.Films do
+		if string.find(first.Text, f.Title, 1, true) then
+			filmId = f.Id
+		end
+	end
+	remotes.Cinema.OnServerEvent:Fire(clerk, "Print", filmId, count)
+	for _, id in { "Palomitas", "Refresco", "Nachos" } do
+		for _, d in cinemaModel:GetDescendants() do
+			if d.ClassName == "ProximityPrompt" and d.Parent and d.Parent.Name == "Station_" .. id then
+				d.Triggered:Fire(clerk)
+			end
+		end
+	end
+	promptOf(ticketWindow, "Entregar pedido").Triggered:Fire(clerk)
+	return first
+end
+local first = lastMessage(clerk, "Work")[2][1]
+remotes.Cinema.OnServerEvent:Fire(clerk, "Print", "NoExiste", 9)
+check(notified(clerk, "Eso no es lo que ha pedido"), "si imprime otra película u otro número, no vale")
+local served = serveFirst()
+local guard = 0
+while served and served.Name ~= (fan.DisplayName or fan.Name) and guard < 8 do
+	guard += 1
+	served = serveFirst()
+end
+check(InventoryService.count(fan, Cinema.TicketItem) == 2 and InventoryService.count(fan, "Palomitas") == 1, "el cliente recibe sus 2 entradas y las palomitas")
+check(profiles[clerk].Money >= Cinema.Job.PerSale + 2 * Cinema.Job.PerTicket + Cinema.Job.PerSnack, "el taquillero cobra por cliente, entradas y barra")
+-- Entrar a la sala (si no es el descanso)
+local _, phase = Cinema.session(workspace and workspace.GetServerTimeNow and workspace:GetServerTimeNow() or os.clock())
+promptOf(salaDoor, "Entrar a la sala").Triggered:Fire(fan)
+if phase ~= "Break" then
+	check(InventoryService.count(fan, Cinema.TicketItem) == 1, "al entrar a la sala se gasta una entrada")
+else
+	check(InventoryService.count(fan, Cinema.TicketItem) == 2, "en el descanso no deja entrar (y no gasta la entrada)")
+end
+local noTicket = newPlayer(54, "Adulto", 0)
+promptOf(salaDoor, "Entrar a la sala").Triggered:Fire(noTicket)
+check(notified(noTicket, "Necesitas una entrada") or notified(noTicket, "limpiando"), "sin entrada no se entra")
+CinemaService.quit(clerk)
+check(clerk:GetAttribute("Job") == nil, "cierra la taquilla")
 end)()
 
 end, debug.traceback)
