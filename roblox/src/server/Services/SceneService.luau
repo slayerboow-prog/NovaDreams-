@@ -28,15 +28,20 @@ SceneService.onInteract = nil :: ((Player, string, string, string) -> ())?
 local rgb = Color3.fromRGB
 local V = Vector3.new
 
--- Animaciones R15 de Roblox (las de siempre)
+-- Animaciones R15 de Roblox (las de siempre). Encima, el cliente (Controllers/ActorLife) les añade
+-- mirada, respiración y gestos al hablar, para que parezcan vivos.
 local ANIMS = {
 	Idle = "rbxassetid://507766666",
 	Walk = "rbxassetid://507777826",
+	Run = "rbxassetid://507767714",
 	Wave = "rbxassetid://507770239",
 	Cheer = "rbxassetid://507770677",
+	Laugh = "rbxassetid://507770818",
+	Dance = "rbxassetid://507771019",
 	Sit = "rbxassetid://2506281703",
 	Point = "rbxassetid://507770453",
 }
+local ONE_SHOT = { Wave = true, Cheer = true, Point = true, Laugh = true }
 
 type Actor = {
 	Npc: string,
@@ -185,15 +190,35 @@ local function play(actor: Actor, name: string)
 			local animation = Instance.new("Animation")
 			animation.AnimationId = ANIMS[name] or ANIMS.Idle
 			track = animator:LoadAnimation(animation)
-			track.Looped = name ~= "Wave" and name ~= "Cheer" and name ~= "Point"
+			track.Looped = not ONE_SHOT[name]
 			actor.Tracks[name] = track
 		end
 		for other, t in actor.Tracks do
-			if other ~= name then
-				t:Stop(0.2)
+			-- Un gesto corto (saludar, reír…) va encima de estar de pie: al acabar, sigue de pie
+			if other ~= name and not (ONE_SHOT[name] and other == "Idle") then
+				t:Stop(0.25)
 			end
 		end
-		track:Play(0.2)
+		if ONE_SHOT[name] then
+			local idle = actor.Tracks.Idle
+			if not idle then
+				local animation = Instance.new("Animation")
+				animation.AnimationId = ANIMS.Idle
+				idle = animator:LoadAnimation(animation)
+				idle.Looped = true
+				actor.Tracks.Idle = idle
+			end
+			if not idle.IsPlaying then
+				idle:Play(0.25)
+			end
+			track.Priority = Enum.AnimationPriority.Action
+		end
+		track:Play(0.25)
+		if name == "Idle" or name == "Dance" then
+			-- Cada uno a su ritmo: si no, toda la clase respira a la vez
+			track.TimePosition = math.random() * math.max(0.1, track.Length)
+			track:AdjustSpeed(0.9 + math.random() * 0.2)
+		end
 	end)
 	actor.Playing = name
 end
@@ -294,10 +319,13 @@ local function applyMode(actor: Actor)
 	local mode = actor.Spec.Mode or "Idle"
 	local moving = mode == "Wander" or mode == "Follow" or mode == "Flee"
 	anchorActor(actor, not moving)
+	-- Chat: charla con los de al lado (el cliente le mueve cabeza y manos como si hablara)
+	actor.Model:SetAttribute("Chat", if mode == "Chat" then true else nil)
 	if mode == "Sit" then
 		play(actor, "Sit")
-	elseif mode == "Wave" or mode == "Cheer" or mode == "Point" then
+	elseif mode == "Wave" or mode == "Cheer" or mode == "Point" or mode == "Dance" or mode == "Laugh" then
 		play(actor, mode)
+		actor.NextWander = os.clock() + math.random(40, 70) / 10
 	else
 		play(actor, "Idle")
 	end
@@ -824,6 +852,13 @@ local function stepActor(player: Player, actor: Actor, index: number)
 			actor.StuckSince = nil
 			applyMode(actor)
 		end
+	elseif ONE_SHOT[mode] then
+		-- Saluda / celebra / se ríe / señala otra vez cada pocos segundos (no se queda congelado)
+		if os.clock() > actor.NextWander then
+			actor.NextWander = os.clock() + math.random(40, 70) / 10
+			actor.Playing = nil
+			play(actor, mode)
+		end
 	elseif mode == "Idle" and me and actor.Spec.Look == nil then
 		-- Quieto: se gira hacia el jugador cuando está cerca
 		local toMe = V(me.Position.X - root.Position.X, 0, me.Position.Z - root.Position.Z)
@@ -834,10 +869,15 @@ local function stepActor(player: Player, actor: Actor, index: number)
 			end
 		end
 	end
-	-- Andar o estar quieto
+	-- Andar, correr o estar quieto (la animación va al paso de sus pies)
 	if not root.Anchored then
 		local speed = V(root.AssemblyLinearVelocity.X, 0, root.AssemblyLinearVelocity.Z).Magnitude
-		play(actor, if speed > 1 then "Walk" else "Idle")
+		local name = if speed > 17 then "Run" elseif speed > 1 then "Walk" else "Idle"
+		play(actor, name)
+		local track = actor.Tracks[name]
+		if track and name ~= "Idle" then
+			track:AdjustSpeed(math.clamp(speed / (if name == "Run" then 20 else 12), 0.6, 1.5))
+		end
 	end
 end
 

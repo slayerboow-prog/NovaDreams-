@@ -9,12 +9,14 @@
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 local Theme = require(script.Parent.Parent.UI.Theme)
 local StoryAudio = require(script.Parent.StoryAudio)
 local Cinematics = require(script.Parent.Cinematics)
+local ActorLife = require(script.Parent.ActorLife)
+local DayLight = require(script.Parent.DayLight)
 
 local create = Theme.create
 local C = Theme.Colors
@@ -72,11 +74,61 @@ local function headOf(model: Instance?): Vector3?
 	return pivot.Position + Vector3.new(0, 2, 0)
 end
 
--- Encuadre de "por encima del hombro": detrás del jugador mirando a quien habla (o al revés)
+-- Cámara de conversación, como en una película:
+--   * Cambia de plano según quién habla: por encima de tu hombro, primer plano de quien habla,
+--     plano de los dos (al empezar) y contraplano cuando hablas tú. Al cambiar de persona, corte seco;
+--     si sigue la misma, la cámara se desliza.
+--   * Durante la frase la cámara se acerca muy despacio y se mece un poco (cámara en mano).
+--   * El fondo se desenfoca y quien habla queda nítido.
+local shot: { From: CFrame, To: CFrame, Start: number, Blend: number, Focus: Vector3 }? = nil
+local shotCount = 0
+local lastActor: Instance? = nil
+local cameraConnection: RBXScriptConnection? = nil
+
+local function smoothstep(x: number): number
+	x = math.clamp(x, 0, 1)
+	return x * x * (3 - 2 * x)
+end
+
+local function startCameraLoop()
+	if cameraConnection then
+		return
+	end
+	cameraConnection = RunService.RenderStepped:Connect(function()
+		local current = shot
+		if not current then
+			return
+		end
+		local camera = workspace.CurrentCamera
+		local t = os.clock() - current.Start
+		local base = current.From:Lerp(current.To, smoothstep(t / current.Blend))
+		local push = math.min(t, 10) * 0.07 -- se acerca despacio
+		local clock = os.clock()
+		local sway = CFrame.Angles(math.sin(clock * 0.63) * 0.004, math.sin(clock * 0.47 + 1) * 0.005, math.sin(clock * 0.31) * 0.002)
+		camera.CFrame = base * CFrame.new(0, 0, -push) * sway
+		DayLight.setFocus((current.Focus - camera.CFrame.Position).Magnitude)
+	end)
+end
+
+local function stopCameraLoop()
+	if cameraConnection then
+		cameraConnection:Disconnect()
+		cameraConnection = nil
+	end
+	shot = nil
+	shotCount = 0
+	lastActor = nil
+	DayLight.setFocus(nil)
+end
+
 local function frame(line: { [string]: any })
 	local camera = workspace.CurrentCamera
 	local me = headOf(player.Character)
 	local them = headOf(line.Actor)
+	if line.Me then
+		-- Hablas tú: la cámara te mira desde el lado de con quien hablabas
+		them = headOf(lastActor) or them
+	end
 	if not me or not them or line.Narrator or (me - them).Magnitude > 60 then
 		return
 	end
@@ -84,23 +136,48 @@ local function frame(line: { [string]: any })
 		savedCamera = { Type = camera.CameraType, CFrame = camera.CFrame }
 	end
 	camera.CameraType = Enum.CameraType.Scriptable
-	local from, to = me, them
-	if line.Me then
-		-- Habla el jugador: la cámara, desde el lado del otro, le mira a la cara
-		from, to = them, me
-	end
-	local flat = Vector3.new(to.X - from.X, 0, to.Z - from.Z)
+	local flat = Vector3.new(them.X - me.X, 0, them.Z - me.Z)
 	if flat.Magnitude < 0.5 then
 		return
 	end
-	local forward = flat.Unit
+	local forward = flat.Unit -- de ti hacia el otro
 	local right = forward:Cross(Vector3.yAxis)
-	local position = from - forward * 4.5 + right * 1.8 + Vector3.new(0, 0.9, 0)
-	local goal = CFrame.lookAt(position, to + Vector3.new(0, -0.2, 0))
-	TweenService:Create(camera, TweenInfo.new(0.45, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), { CFrame = goal }):Play()
+	local distance = flat.Magnitude
+	shotCount += 1
+	local changed = line.Actor ~= lastActor
+	local goal: CFrame
+	local focus: Vector3
+	if line.Me then
+		-- Contraplano: por encima del hombro del otro, mirándote a ti
+		goal = CFrame.lookAt(them + forward * 4.2 - right * 1.6 + Vector3.new(0, 0.7, 0), me + Vector3.new(0, -0.2, 0))
+		focus = me
+	elseif shotCount == 1 then
+		-- Al empezar: los dos de perfil
+		local middle = (me + them) / 2
+		goal = CFrame.lookAt(middle + right * (distance * 0.8 + 5) + Vector3.new(0, 1.2, 0), middle + Vector3.new(0, -0.3, 0))
+		focus = middle
+	elseif changed or shotCount % 3 ~= 0 then
+		-- Por encima de tu hombro
+		goal = CFrame.lookAt(me - forward * 4.5 + right * 1.8 + Vector3.new(0, 0.9, 0), them + Vector3.new(0, -0.2, 0))
+		focus = them
+	else
+		-- Primer plano de quien habla (un poco de lado)
+		goal = CFrame.lookAt(them - forward * 3.6 + right * 1.1 + Vector3.new(0, 0.15, 0), them + Vector3.new(0, -0.1, 0))
+		focus = them
+	end
+	local from = if shot and not changed then camera.CFrame else goal
+	if shotCount == 1 then
+		from = camera.CFrame -- la primera vez la cámara viaja desde donde estaba
+	end
+	shot = { From = from, To = goal, Start = os.clock(), Blend = if from == goal then 0.01 else 0.6, Focus = focus }
+	if not line.Me then
+		lastActor = line.Actor
+	end
+	startCameraLoop()
 end
 
 local function restoreCamera()
+	stopCameraLoop()
 	local camera = workspace.CurrentCamera
 	if savedCamera then
 		camera.CameraType = if savedCamera.Type == Enum.CameraType.Scriptable then Enum.CameraType.Custom else savedCamera.Type
@@ -234,6 +311,10 @@ local function showLine(line: { [string]: any })
 	if line.Voice and not line.Me then
 		StoryAudio.speak(line.Voice, line.Text or "")
 	end
+	-- Quien habla se mueve al hablar (cabeza, manos, el gesto de la frase); los demás le miran
+	local speakingModel = if line.Narrator then nil else line.Actor
+	local plainText = line.Text or ""
+	ActorLife.speak(speakingModel, line.Emotion, (utf8.len(plainText) or #plainText) / TYPE_SPEED + 0.8)
 	-- Escribir
 	skipTyping = false
 	local plain = line.Text or ""
@@ -249,6 +330,7 @@ local function showLine(line: { [string]: any })
 	textLabel.MaxVisibleGraphemes = -1
 	hint.Visible = true
 	advanceSignal.Event:Wait()
+	ActorLife.quiet(speakingModel)
 end
 
 local function ask(prompt: string?, options: { string }): number
@@ -319,6 +401,7 @@ local function setOpen(value: boolean)
 	end
 	open = value
 	player:SetAttribute("InDialogue", if value then true else nil) -- la mochila no se abre con la E mientras hablas
+	ActorLife.conversation(value)
 	if value then
 		box.Visible = true
 		setControls(false)

@@ -118,6 +118,8 @@ function dialogueRemote:FireClient(player, kind, payload)
 	end
 	for _, line in payload.Lines do
 		table.insert(player.Said, line.Text)
+		player.Emotions = player.Emotions or {}
+		player.Emotions[line.Text] = line.Emotion or "ninguna"
 	end
 	local choice = nil
 	if payload.Options then
@@ -433,6 +435,13 @@ for _, problem in problems do
 	print("    " .. problem)
 end
 check(#problems == 0, "Validate no encuentra errores")
+
+print("\n▶ Personajes vivos: gestos y emociones al hablar")
+local Emotion = loadModule(ROOT .. "/shared/LifeStory/Emotion")
+check(Emotion.of({ S = "Nico", T = "¡Hola, {nombre}!" }) == "Wave" and Emotion.of({ S = "Nico", T = "Jajaja, qué bueno" }) == "Laugh" and Emotion.of({ S = "Omar", T = "¡Hemos ganado!" }) == "Cheer", "Saludan, se ríen y celebran según lo que dicen")
+check(Emotion.of({ S = "Abu", T = "Lo siento mucho, cariño." }) == "Sad" and Emotion.of({ S = "Sara", T = "¿Vienes?" }) == "Ask" and Emotion.of({ S = "Sara", T = "Mira, allí está." }) == "Point", "Tristes, preguntando o señalando")
+check(Emotion.of({ S = "Nico", T = "Es un día normal." }) == "Calm" and Emotion.of({ S = "Narrador", T = "¡Hola!" }) == nil and Emotion.of({ S = "Nico", T = "Hola", A = "Dance" }) == "Dance", "Tono normal, el narrador sin gestos y A = … manda sobre el texto")
+check(Emotion.valid("Cheer") and Emotion.valid("Thinking") and not Emotion.valid("Volar"), "Solo se aceptan gestos que existen")
 
 print("\n▶ Estaciones y tiempo")
 local Seasons = loadModule(ROOT .. "/shared/Seasons")
@@ -817,6 +826,7 @@ check(memories.PrimerDiaCole and memories.PrimerAmigo, "Recuerdos: «Tu primer d
 check(leoData.Items.MochilaCole == 1 and leoData.Items.CromoSuerte == 1, "La mochila del cole y el cromo de la suerte están en la mochila (inventario)")
 check(leoData.Story.Choices.Ropa.V == "Sudadera" and leoData.Story.Choices.Acompanante.V == "Familia", "Elegiste ropa y que te acompañaran")
 check(leoData.Story.Flags.PaseADani and said(leo, "¡HALA! ¡Qué pase!"), "Minijuego del balón de Dani: pase acertado y Dani lo celebra")
+check(leo.Emotions["¡HALA! ¡Qué pase! ¡Eres como los de la tele!"] == "Surprised", "Cada frase llega al cliente con su gesto (Dani, sorprendido)")
 check(said(leo, "¿Fuiste tú quien le pasó el balón a mi hermano"), "Mateo recuerda el balón de su hermano (diálogo que depende de lo que hiciste)")
 check(leoData.Story.Choices.Asiento.V == "Sara" and said(leo, "aquí delante se entiende todo"), "Te sientas junto a Sara (se elige tocando la silla)")
 check(leoData.Story.Choices.Gusto.V == "Ciencia" and said(leo, "Tenemos que hablar"), "Te presentas: te gustan los experimentos")
@@ -1158,10 +1168,30 @@ check(said(leo, "querías «inventar cosas que no existen»") and not said(leo, 
 check(said(leo, "Aguanta dos kilos y medio") and said(leo, "Sofía me ha dicho que tus puentes"), "El puente del laboratorio y Carmen lo comenta")
 check(leoData.Story.Choices.Orientacion.V == "Dudas" and leoData.Items.CuadernoProfesiones == 1 and leoData.Story.Memories.QueQuieresSer ~= nil, "Sales con dudas (y es bueno), cuaderno y recuerdo")
 
+print("\n▶ La pandilla 1 «Las malas compañías» (camino del bien: frenar a Nerea)")
+leo.Prefer = {}
+leo.Picks = { Pellas = "Nerea" }
+leoData.Life.StageSeconds = 0.31 * HOURS.Adolescente * 3600
+check(playUntil(leo, function()
+	return leoData.Story.Completed.Pan1_MalasCompanias ~= nil
+end), "La pandilla 1 completa")
+check(said(leo, "No eres como los demás pringados") and said(leo, "Nadie mira mis dibujos"), "Rayo te invita a hacer pellas; convences a Nerea de que no vaya")
+check(leoData.Story.Flags.AmigaNerea and leoData.Story.Flags.RechazasteLaPandilla and not leoData.Story.Flags.HicistePellas, "Rechazas la pandilla")
+check(leo:GetAttribute("Camino") == "Responsable" and said(leo, "Hiciste bien en volver"), "Tu reputación: persona responsable (y Bruno, que ya fue «el malo», te lo dice)")
+
+print("\n▶ La pandilla 2 «La noche del supermercado» (intentas frenarles)")
+leo.Prefer = { "No lo hagáis" }
+leoData.Life.StageSeconds = 0.37 * HOURS.Adolescente * 3600
+check(playUntil(leo, function()
+	return leoData.Story.Completed.Pan2_LaNoche ~= nil
+end), "La pandilla 2 completa")
+check(leoData.Story.Choices.Plan.V == "Frenar" and said(leo, "Esta vez me quedo en casa") and not leoData.Story.Flags.Hurto, "Intentas frenarles: Nerea se queda en casa")
+check(said(leo, "Gracias por lo de esta tarde") and said(leo, "Rayo… Rayo no está bien"), "A Rayo le pillan; Nerea te cuenta que en su casa no hay nadie")
+
 print("\n▶ Instituto 04 «El primer empleo» (perfil, ofertas, entrevista, jornada, sueldo)")
 leo.Prefer = { "Una cámara, como la de Leire", "Soy responsable", "No, pero aprendo rápido", "Le pido perdón", "Lo cuentas tal cual", "Una parte para ti" }
 leo.Picks = { Empleo = "Barista" }
-leoData.Life.StageSeconds = 0.41 * HOURS.Adolescente * 3600
+leoData.Life.StageSeconds = 0.45 * HOURS.Adolescente * 3600
 check(playUntil(leo, function()
 	return leoData.Story.Completed.Ins04_PrimerEmpleo ~= nil
 end), "Instituto 04 completa")
@@ -1173,10 +1203,22 @@ check(leoData.Items.PrimerSobre == 1 and leoData.Story.Memories.PrimerSueldo ~= 
 passTime(leo, 3 * 3600 + 100)
 check(leoData.Story.Active.Eco_Carta ~= nil and playQuest(leo, "Eco_Carta") and said(leo, "Firma: Lola") and leoData.Items.CartaRecomendacion == 1, "Tres horas después, carta de recomendación de Lola (no mentiste)")
 
+print("\n▶ La pandilla 3 «El cruce de caminos» (salvar a Rayo)")
+leo.Prefer = { "Porque eres mi amigo" }
+leo.Picks = { Camino = "Salvar" }
+leoData.Life.StageSeconds = 0.53 * HOURS.Adolescente * 3600
+check(playUntil(leo, function()
+	return leoData.Story.Completed.Pan3_Cruce ~= nil
+end), "La pandilla 3 completa")
+check(said(leo, "Cincuenta pavos por tarde") and said(leo, "Me voy de la pandilla"), "Rayo te ofrece el negocio de camisetas falsas; Nerea quiere salir")
+check(said(leo, "Que venga mañana a las ocho") and said(leo, "Eres la única persona que no me ha dejado tirado") and leoData.Story.Flags.RayoCambia, "Consigues que Tomás le dé una oportunidad a Rayo en su taller")
+check(leoData.Story.Flags.Camino_Trabajador and not leoData.Story.Flags.Camino_Delincuente and said(leo, "Nunca te dejaste arrastrar"), "Tu camino: el de una persona trabajadora (y nunca te dejaste arrastrar)")
+leo.Picks = {}
+
 print("\n▶ Instituto 05 «El rumor» (la foto de Omar, investigar, Nico, Darío)")
 leo.Prefer = { "Escribes en el grupo", "Te creo. Pero ayúdame", "Te lo llevas aparte", "Bórrala y pídele perdón", "Borré la foto del grupo" }
 leo.Picks = {}
-leoData.Life.StageSeconds = 0.59 * HOURS.Adolescente * 3600
+leoData.Life.StageSeconds = 0.63 * HOURS.Adolescente * 3600
 check(playUntil(leo, function()
 	return leoData.Story.Completed.Ins05_ElRumor ~= nil
 end), "Instituto 05 completa")
@@ -1343,11 +1385,14 @@ check(said(leo, "Perfecta según mis estándares") and said(leo, "Y aquí estamo
 check(leoData.Story.Choices.PromesaAdulta.V == "Siempre" and cinematic(leo, "Adu03_Foto") and leoData.Items.FotoReencuentro == 1 and leoData.Story.Memories.ElReencuentro ~= nil, "Promesa nueva, foto y recuerdo")
 task.wait(1)
 check(leoData.Story.Chapters.Adulto_VolarDelNido ~= nil and leoData.Story.Chapters.Adulto_NuevaVida == nil, "Capítulo «Volar del nido» terminado (el de los veteranos no se repite)")
+passTime(leo, 13 * 3600)
+check(leoData.Story.Active.Eco_RayoAdulto ~= nil and playQuest(leo, "Eco_RayoAdulto") and said(leo, "«Taller Rayo». Mío."), "Años después, Rayo tiene su propio taller gracias a ti")
 check(pcall(serde.encode, "json", leoData), "Toda una vida se puede guardar (JSON válido)")
 
 print("\n▶ Otra rama: dejar de estudiar y ponerse a trabajar")
 local eva = newPlayer("Eva", "Adolescente")
 local evaData = profiles[eva]
+eva.Picks = { Camino = "Negocio" } -- en el cruce de caminos, elige el mal camino
 task.wait(0.3)
 evaData.Life.StageSeconds = HOURS.Adolescente * 3600
 check(playUntil(eva, function()
@@ -1360,6 +1405,36 @@ check(playUntil(eva, function()
 	return evaData.Story.Completed.Adu01_PrimerContrato ~= nil
 end), "Sin carrera: busca casa y su jefe del primer verano le hace encargado o encargada")
 check(said(eva, "Encargado o encargada. ¿Te atreves?") and evaData.Story.Flags.TieneHogar, "Lola le ofrece llevar la cafetería; ya tiene casa propia")
+
+print("\n▶ El mal camino: pellas, pintada, el súper, las camisetas falsas… y las consecuencias")
+check(evaData.Story.Flags.HicistePellas and evaData.Story.Flags.Pintada and evaData.Story.Flags.MentisteFamilia, "Hace pellas, pinta el muro y miente en casa")
+check(evaData.Story.Flags.Hurto and evaData.Story.Flags.Escapaste and said(eva, "No sabe a nada."), "Roba en el súper de Paco y escapa")
+check(evaData.Story.Flags.Camino_Delincuente and said(eva, "Son de MI equipo. ¿En serio?") and (evaData.Story.Traits.Rebeldia or 0) >= 6, "Entra en el negocio de camisetas falsas; Nico le ve (Rebeldía alta)")
+check(eva:GetAttribute("Camino") == "Delincuente", "Su reputación: el mal camino")
+eva.Prefer = { "Fui yo", "Lo dejo. Todo", "Colaboro" }
+eva.Picks = { UltimoTrabajo = "Aceptar" }
+passTime(eva, 3 * 3600 + 100)
+-- Hay varias consecuencias pendientes a la vez: el juego las empieza de una en una
+for _ = 1, 8 do
+	if evaData.Story.Active.Eco_Camaras and evaData.Story.Active.Eco_Redada then
+		break
+	end
+	passTime(eva, 60)
+end
+local ecoCamaras = evaData.Story.Active.Eco_Camaras ~= nil and playQuest(eva, "Eco_Camaras")
+local ecoRedada = evaData.Story.Active.Eco_Redada ~= nil and playQuest(eva, "Eco_Redada")
+check(ecoCamaras and evaData.Story.Flags.AvisoPolicia and evaData.Story.Flags.PerdonPaco, "Las cámaras la grabaron: la policía en la puerta, servicio a la comunidad y perdón a Paco")
+check(ecoRedada and evaData.Story.Flags.Antecedentes, "La redada de las camisetas: queda en su expediente")
+passTime(eva, 13 * 3600)
+for _ = 1, 8 do
+	if evaData.Story.Active.Eco_RayoAdulto then
+		break
+	end
+	passTime(eva, 60)
+end
+check(evaData.Story.Active.Eco_RayoAdulto ~= nil and playQuest(eva, "Eco_RayoAdulto"), "Ya de adulta, Rayo vuelve con «un último trabajo»")
+check(said(eva, "Doscientos por un viaje") and said(eva, "Cajas sin papeles"), "Acepta y en el control está… Bruno, ahora policía")
+check(evaData.Story.Flags.Detenido and evaData.Story.Flags.Redimido and not evaData.Story.Flags.Camino_Delincuente and eva:GetAttribute("Camino") == "Responsable", "Detenida, colabora y cambia de camino: nunca es tarde")
 
 print(("\n%s"):format(if failures == 0 then "✅ Todo correcto" else ("❌ %d fallos"):format(failures)))
 process.exit(if failures == 0 then 0 else 1)

@@ -31,6 +31,7 @@ local Driving = require(script.Parent.Controllers.Driving)
 local SoundFx = require(script.Parent.Controllers.SoundFx)
 local SupermarketUI = require(script.Parent.Controllers.SupermarketUI)
 local BusUI = require(script.Parent.Controllers.BusUI)
+local ActorLife = require(script.Parent.Controllers.ActorLife)
 
 local gui = Hud.init(function()
 	Store.open()
@@ -47,6 +48,7 @@ task.spawn(InventoryUI.init) -- mochila estilo Minecraft (barra rápida 1-9, tec
 task.spawn(DialogueUI.init) -- conversaciones de las misiones (con respuestas y cámara)
 task.spawn(MiniGameUI.init) -- pase, canastas, partido de fútbol
 task.spawn(SceneClient.init) -- cada uno ve solo los personajes de su historia
+task.spawn(ActorLife.init) -- los personajes respiran, miran, gesticulan al hablar y andan con animación
 task.spawn(Ambient.init) -- tráfico y peatones
 task.spawn(Weather.init) -- estaciones y tiempo: lluvia, tormenta, nieve, hojas de otoño
 task.spawn(Wildlife.init) -- pájaros, palomas, mariposas, patos, perros, gatos y animales de granja

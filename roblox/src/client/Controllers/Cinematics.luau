@@ -14,6 +14,8 @@ local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local StoryAudio = require(script.Parent.StoryAudio)
 local DayLight = require(script.Parent.DayLight)
+local ActorLife = require(script.Parent.ActorLife)
+local Emotion = require(ReplicatedStorage.Shared.LifeStory.Emotion)
 
 local C = Theme.Colors
 local Cinematics = {}
@@ -37,6 +39,8 @@ local function ease(kind: string?, t: number): number
 	return 0.5 - 0.5 * math.cos(math.pi * t)
 end
 
+local baseShotCFrame: (anchors: { [string]: CFrame }, shot: { [string]: any }, u: number) -> CFrame?
+
 local function point(anchors: { [string]: CFrame }, spec: { any }?): Vector3?
 	if not spec then
 		return nil
@@ -49,7 +53,42 @@ local function point(anchors: { [string]: CFrame }, spec: { any }?): Vector3?
 	return if spec[3] then anchor:PointToWorldSpace(offset) else anchor.Position + offset
 end
 
+-- Cámara en mano: un temblor suave y orgánico (suma de senos a distintas velocidades)
+local function handheld(amount: number, t: number): CFrame
+	if amount <= 0 then
+		return CFrame.identity
+	end
+	local a = amount * 0.02
+	return CFrame.Angles(
+		(math.sin(t * 1.3) + math.sin(t * 2.9 + 1.7) * 0.5) * a,
+		(math.sin(t * 1.1 + 0.6) + math.sin(t * 2.3 + 2.1) * 0.5) * a,
+		math.sin(t * 0.7 + 0.3) * a * 0.6
+	)
+end
+
+-- El campo de visión del plano (Fov = 50, o { 60, 40 } para un zoom lento de 60 a 40)
+local function shotFov(shot: { [string]: any }, u: number): number?
+	local fov = shot.Fov
+	if type(fov) == "number" then
+		return fov
+	elseif type(fov) == "table" then
+		return fov[1] + (fov[2] - fov[1]) * ease(shot.Easing, u)
+	end
+	return nil
+end
+
 local function shotCFrame(anchors: { [string]: CFrame }, shot: { [string]: any }, u: number): CFrame?
+	local cf = baseShotCFrame(anchors, shot, u)
+	if not cf then
+		return nil
+	end
+	if shot.Roll then
+		cf *= CFrame.Angles(0, 0, math.rad(shot.Roll))
+	end
+	return cf * handheld(shot.Shake or 0, os.clock())
+end
+
+function baseShotCFrame(anchors: { [string]: CFrame }, shot: { [string]: any }, u: number): CFrame?
 	local a = ease(shot.Easing, u)
 	if shot.Orbit then
 		local anchor = anchors[shot.Orbit]
@@ -59,7 +98,7 @@ local function shotCFrame(anchors: { [string]: CFrame }, shot: { [string]: any }
 		local center = anchor.Position
 		local angle = math.rad(shot.FromAngle + (shot.ToAngle - shot.FromAngle) * a)
 		local position = center + Vector3.new(math.cos(angle) * shot.Radius, shot.Height, math.sin(angle) * shot.Radius)
-		return CFrame.lookAt(position, center + Vector3.new(0, 1, 0))
+		return CFrame.lookAt(position, center + Vector3.new(0, shot.LookHeight or 1, 0))
 	end
 	local from, to = point(anchors, shot.From), point(anchors, shot.To)
 	local look = point(anchors, shot.Look)
@@ -248,6 +287,9 @@ function Cinematics.play(payload: { [string]: any })
 	for _, t in def.Titles or {} do
 		table.insert(events, { At = t.At, Kind = "Title", Data = t })
 	end
+	for _, a in def.Anims or {} do
+		table.insert(events, { At = a.At, Kind = "Anim", Data = a })
+	end
 	table.sort(events, function(a, b)
 		return a.At < b.At
 	end)
@@ -256,11 +298,30 @@ function Cinematics.play(payload: { [string]: any })
 
 	local camera = workspace.CurrentCamera
 	local previousType = camera.CameraType
+	local previousFov = camera.FieldOfView
 	camera.CameraType = Enum.CameraType.Scriptable
+
+	-- Quién hace un gesto: "Player" (tú), "Todos" (todos los de tu escena) o alguien del reparto
+	local function actorsFor(who: string?): { Model }
+		if who == "Player" then
+			return if player.Character then { player.Character } else {}
+		elseif who == "Todos" then
+			local list = ActorLife.cast()
+			if player.Character then
+				table.insert(list, player.Character)
+			end
+			return list
+		elseif who then
+			local model = ActorLife.find(who)
+			return if model then { model } else {}
+		end
+		return {}
+	end
 
 	local shots = def.Shots or {}
 	local start = os.clock()
 	local fadeOutStarted = false
+	local currentShot: { [string]: any }? = nil
 	while not skipped do
 		local elapsed = os.clock() - start
 		if elapsed >= def.Duration then
@@ -271,10 +332,26 @@ function Cinematics.play(payload: { [string]: any })
 		local t = elapsed
 		for _, shot in shots do
 			if t <= shot.Duration then
-				local cf = shotCFrame(anchors, shot, t / shot.Duration)
+				local u = t / shot.Duration
+				if currentShot ~= shot then
+					currentShot = shot
+					if shot.Dip then
+						-- Fundido rápido a negro entre planos
+						black.BackgroundTransparency = 0
+						TweenService:Create(black, TweenInfo.new(0.45), { BackgroundTransparency = 1 }):Play()
+					end
+				end
+				local cf = shotCFrame(anchors, shot, u)
 				if cf then
 					camera.CFrame = cf
+					-- Enfoque: lo que mira el plano, nítido; el fondo, desenfocado
+					local lookAt = if shot.Orbit then anchors[shot.Orbit] and anchors[shot.Orbit].Position else nil
+					if not lookAt then
+						lookAt = point(anchors, shot.Look)
+					end
+					DayLight.setFocus(if lookAt and shot.Focus ~= false then (lookAt - cf.Position).Magnitude else nil)
 				end
+				camera.FieldOfView = shotFov(shot, u) or previousFov
 				break
 			end
 			t -= shot.Duration
@@ -291,6 +368,11 @@ function Cinematics.play(payload: { [string]: any })
 				caption.Text = if speaker then ('<font color="#FFC43C"><b>%s:</b></font> %s'):format(Strings.get(speaker), text) else text
 				fadeLabel(caption, true, 0.3)
 				StoryAudio.speak(line.Speaker or "Narrador", line.TextKey, args)
+				-- Si quien habla está en la escena, habla con el cuerpo
+				local who = line.Speaker and line.Speaker ~= "Narrador" and ActorLife.find(line.Speaker)
+				if who then
+					ActorLife.speak(who, line.A or Emotion.of({ S = line.Speaker, T = text }, text), math.max(2, #text * 0.05))
+				end
 				captionToken += 1
 				local token = captionToken
 				task.delay(math.max(3, #text * 0.06), function()
@@ -298,6 +380,11 @@ function Cinematics.play(payload: { [string]: any })
 						fadeLabel(caption, false, 0.4)
 					end
 				end)
+			elseif event.Kind == "Anim" then
+				local data = event.Data
+				for _, model in actorsFor(data.Who) do
+					ActorLife.play(model, data.Play, data.Duration)
+				end
 			else
 				local data = event.Data
 				title.Text = Strings.get(data.TextKey, args)
@@ -329,6 +416,8 @@ function Cinematics.play(payload: { [string]: any })
 		task.wait(0.35)
 	end
 	camera.CameraType = if previousType == Enum.CameraType.Scriptable then Enum.CameraType.Custom else previousType
+	camera.FieldOfView = previousFov
+	DayLight.setFocus(nil)
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	if humanoid then

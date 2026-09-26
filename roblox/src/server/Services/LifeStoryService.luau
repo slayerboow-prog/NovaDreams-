@@ -283,6 +283,36 @@ function LifeStoryService.addMemory(player: Player, key: string, questId: string
 	LifeStoryService.logEvent(player, if memory then memory.Text else key, nil, "Memory")
 end
 
+-- El camino de la vida (arco «La pandilla» del instituto): Responsable, Gamberro/a o Delincuente.
+-- Sale de la Rebeldía acumulada y de la decisión final. Se guarda como atributo "Camino" del jugador
+-- (lo pueden usar la interfaz y otros sistemas) y se avisa cuando cambia.
+local CAMINO_TEXT = {
+	Responsable = "😇 Tu reputación: persona responsable",
+	Gamberro = "😈 Tu reputación: gamberro o gamberra",
+	Delincuente = "🚨 Tu reputación: vas por el mal camino",
+}
+function LifeStoryService.updateCamino(player: Player, story: Data)
+	local flags, traits = story.Flags, story.Traits or {}
+	local rebeldia = traits.Rebeldia or 0
+	local camino: string? = nil
+	if flags.Camino_Delincuente then
+		camino = "Delincuente"
+	elseif rebeldia >= 3 and not flags.Camino_Trabajador then
+		camino = "Gamberro"
+	elseif flags.Camino_Trabajador or rebeldia > 0 or flags.RechazasteLaPandilla then
+		camino = "Responsable"
+	end
+	if camino and player:GetAttribute("Camino") ~= camino then
+		player:SetAttribute("Camino", camino)
+		pcall(function()
+			local notify = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("Notify")
+			if notify then
+				(notify :: RemoteEvent):FireClient(player, "Info", CAMINO_TEXT[camino])
+			end
+		end)
+	end
+end
+
 local function applyEffects(player: Player, data: Data, effects: { [string]: any }?, questId: string?)
 	if type(effects) ~= "table" then
 		return
@@ -301,6 +331,7 @@ local function applyEffects(player: Player, data: Data, effects: { [string]: any
 	for trait, amount in effects.Traits or {} do
 		story.Traits[trait] = (story.Traits[trait] or 0) + amount
 	end
+	LifeStoryService.updateCamino(player, story)
 	local memory = effects.Memory
 	if type(memory) == "string" then
 		LifeStoryService.addMemory(player, memory, questId)
@@ -1176,7 +1207,11 @@ local function onStoryEvent(player: Player, name: string, payload: { [string]: a
 				return s.Event == name and matchesPayload(s.Match, payload)
 			elseif s.Type == "Talk" then
 				-- Con diálogo, cuenta al TERMINAR la conversación de la misión (no vale saludar de pasada)
-				return name == (if s.Dialogue then "TalkDone" else "Talk") and payload.Npc == s.Npc
+				-- La conversación de una misión solo cuenta para esa misión (dos misiones pueden pedir hablar con la misma persona)
+				if s.Dialogue then
+					return name == "TalkDone" and payload.Npc == s.Npc and (payload.Quest == nil or payload.Quest == questId)
+				end
+				return name == "Talk" and payload.Npc == s.Npc
 			elseif s.Type == "Use" then
 				return name == "PropUsed" and payload.Prop == s.Prop
 			end
@@ -1285,7 +1320,7 @@ local function stepTimers(player: Player, data: Data, questId: string, prog: Pro
 	if step.Type == "Talk" and step.Dialogue and since > 15 and not SceneService.actorOf(player, step.Npc) then
 		rt.Fallback[questId] = true
 		playDialogue(player, data, questId, step.Dialogue, function()
-			StoryEvents.emit(player, "TalkDone", { Npc = step.Npc })
+			StoryEvents.emit(player, "TalkDone", { Npc = step.Npc, Quest = questId })
 		end)
 	elseif step.Type == "Use" and since > 20 and not SceneService.hasProp(player, questId, step.Prop) then
 		rt.Fallback[questId] = true
@@ -1604,7 +1639,7 @@ function LifeStoryService.interact(player: Player, kind: string, questId: string
 	end
 	if talk and talk.Dialogue then
 		playDialogue(player, data, questId, talk.Dialogue, function()
-			StoryEvents.emit(player, "TalkDone", { Npc = id })
+			StoryEvents.emit(player, "TalkDone", { Npc = id, Quest = questId })
 			StoryEvents.emit(player, "Talk", { Npc = id })
 		end)
 		return

@@ -1,7 +1,8 @@
 -- DialogueService: las conversaciones de la historia, por turnos y con respuestas del jugador.
 --
 -- Un diálogo es una lista de líneas (datos de las misiones, ver docs/historia/11):
---   { S = "Nico", T = "¡Tú dijiste que te gusta el fútbol!", If = {…}, Effects = {…} }
+--   { S = "Nico", T = "¡Tú dijiste que te gusta el fútbol!", If = {…}, Effects = {…}, A = "Cheer"? }
+--   (A = el gesto con que lo dice; si no se pone, se adivina por el texto: ver shared/LifeStory/Emotion)
 --   { Ask = "¿Qué le dices?", Options = { { T = "…", If = {…}, Effects = {…}, Then = { líneas… } }, … } }
 -- S = quién habla (Cast), "Yo" = el jugador, "Narrador" (o nada) = texto sin personaje.
 --
@@ -15,6 +16,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Cast = require(ReplicatedStorage.Shared.LifeStory.Cast)
+local Emotion = require(ReplicatedStorage.Shared.LifeStory.Emotion)
 local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 
 local DialogueService = {}
@@ -97,10 +99,12 @@ local function lineFor(player: Player, session: Session, line: Line): { [string]
 	elseif line.S and session.Context.actorOf then
 		actor = session.Context.actorOf(line.S)
 	end
+	local text = Strings.get(line.T or "", argsFor(player, session.Context.args))
 	return {
 		Name = name,
 		Voice = voice,
-		Text = Strings.get(line.T or "", argsFor(player, session.Context.args)),
+		Text = text,
+		Emotion = Emotion.of(line, text), -- con qué gesto lo dice (el cliente anima a quien habla)
 		Actor = actor,
 		Me = line.S == "Yo",
 		Narrator = line.S == nil or line.S == "Narrador",

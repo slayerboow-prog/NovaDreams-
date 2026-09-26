@@ -36,8 +36,8 @@ local FACULTAD = {
 local CAMPUS = {
 	{ Npc = "Luca", Mode = "Follow" },
 	{ Npc = "Sara", Place = "Biblioteca", Offset = V(3, 0, 3) },
-	{ Npc = "Julia", Place = "Universidad", Offset = V(-12, 0, 4) },
-	{ Npc = "Adrian", Place = "Universidad", Offset = V(-14, 0, 6) },
+	{ Npc = "Julia", Place = "Universidad", Offset = V(-12, 0, 4), Mode = "Chat" },
+	{ Npc = "Adrian", Place = "Universidad", Offset = V(-14, 0, 6), Mode = "Chat" },
 }
 
 return {
@@ -99,8 +99,8 @@ return {
 			Actors = {
 				{ Npc = "Luca", Place = "Universidad", Offset = V(-10, 0, -4) },
 				{ Npc = "Sara", Place = "Universidad", Offset = V(-6, 0, -6) },
-				{ Npc = "Julia", Place = "Universidad", Offset = V(-12, 0, 4) },
-				{ Npc = "Adrian", Place = "Universidad", Offset = V(-14, 0, 6) },
+				{ Npc = "Julia", Place = "Universidad", Offset = V(-12, 0, 4), Mode = "Chat" },
+				{ Npc = "Adrian", Place = "Universidad", Offset = V(-14, 0, 6), Mode = "Chat" },
 			} },
 
 		-- Por la noche

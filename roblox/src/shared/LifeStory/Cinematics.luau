@@ -4,12 +4,22 @@
 --              "Player"            el personaje
 --              "Place:Cuna"        un lugar de Locations (su casa, su ventanal, su colegio…)
 --              "Zone:Los Pinos"    el centro de una zona
+--              "Actor:Nico"        un personaje de tu escena (mirando hacia donde mira él; si no está, tú)
 --   Shots    planos de cámara, uno detrás de otro:
 --              { From = P, To = P, Look = P, LookTo = P?, Duration, Easing? }   la cámara viaja de From a To mirando a Look
 --              { Orbit = "Ancla", Radius, Height, FromAngle, ToAngle, Duration }  gira alrededor de un punto
 --            P = { "Ancla", Vector3 offset, Local? }   (Local = el offset va girado con el ancla, p. ej. "delante del ventanal")
+--            Extras de cada plano (como una cámara de cine):
+--              Shake = 0.5          cámara en mano (0 = trípode, 1 = mucho)
+--              Fov = 50 | { 60, 40 } campo de visión fijo o zoom lento (70 = el normal)
+--              Roll = -4            inclinar la cámara (grados)
+--              Dip = true           fundido rápido a negro al empezar el plano (corte suave)
+--              Focus = false        no desenfocar el fondo (por defecto se enfoca lo que se mira)
+--              LookHeight = 2       (Orbit) a qué altura del centro mira
 --   Lines    subtítulos (con voz): { At = segundo, Speaker = "Abu" | "Familia" | "Narrador" | nil, TextKey }
 --   Titles   rótulos grandes: { At, TextKey, SubKey?, Duration? }
+--   Anims    gestos: { At, Who = "Player" | "Todos" | "Nico"…, Play = "Cheer" | "Wave" | "Laugh" | "Point" | "Dance", Duration? }
+--            (quien habla en Lines también se mueve al hablar; A = "…" en la línea fija su gesto)
 --   Music    pieza de Config.Audio.Music que suena durante la escena; Sting = efecto al empezar
 --   FadeIn / FadeOut   empieza o acaba en negro
 -- Toda escena se puede saltar (botón "Saltar"). La historia avanza igual.
@@ -26,8 +36,8 @@ local Cinematics: { [string]: Cinematic } = {
 		Music = "Nacimiento",
 		Anchors = { Casa = "Place:CasaFamiliar", Cuna = "Place:Cuna" },
 		Shots = {
-			{ From = { "Casa", V(160, 130, 160) }, To = { "Casa", V(55, 38, 55) }, Look = { "Casa", V(0, 0, 0) }, Duration = 6.5 },
-			{ From = { "Cuna", V(3, 9, 5) }, To = { "Cuna", V(1.5, 5, 3) }, Look = { "Cuna", V(0, 1, 0) }, Duration = 9.5 },
+			{ From = { "Casa", V(160, 130, 160) }, To = { "Casa", V(55, 38, 55) }, Look = { "Casa", V(0, 0, 0) }, Duration = 6.5, Shake = 0.25 },
+			{ From = { "Cuna", V(3, 9, 5) }, To = { "Cuna", V(1.5, 5, 3) }, Look = { "Cuna", V(0, 1, 0) }, Duration = 9.5, Fov = { 60, 44 }, Dip = true },
 		},
 		Titles = {
 			{ At = 0.8, TextKey = "CINE.NACIMIENTO.LUGAR", SubKey = "CINE.NACIMIENTO.CUANDO", Duration = 4.5 },
@@ -45,13 +55,16 @@ local Cinematics: { [string]: Cinematic } = {
 		Sting = "PrimerosPasos",
 		Anchors = { Bebe = "Player" },
 		Shots = {
-			{ Orbit = "Bebe", Radius = 7, Height = 2.5, FromAngle = 0, ToAngle = 140, Duration = 6 },
+			{ Orbit = "Bebe", Radius = 7, Height = 2.5, FromAngle = 0, ToAngle = 140, Duration = 6, Fov = { 65, 50 }, LookHeight = 0.5 },
 		},
 		Lines = {
 			{ At = 0.6, Speaker = "Abu", TextKey = "DLG.ABU.BEBE.PASOS" },
 		},
 		Titles = {
 			{ At = 3, TextKey = "MOMENT.PRIMEROS_PASOS", Duration = 2.6 },
+		},
+		Anims = {
+			{ At = 2.8, Who = "Todos", Play = "Cheer" },
 		},
 	},
 
@@ -101,10 +114,10 @@ local Cinematics: { [string]: Cinematic } = {
 			Centro = "Zone:Valmar Centro",
 		},
 		Shots = {
-			{ From = { "Pinos", V(-180, 90, 120) }, To = { "Pinos", V(-60, 60, 40) }, Look = { "Pinos", V(0, 0, -100) }, Duration = 4.5 },
-			{ From = { "Campus", V(-160, 110, 150) }, To = { "Campus", V(-40, 70, 60) }, Look = { "Campus", V(0, 10, 0) }, Duration = 4.5 },
-			{ From = { "Financiero", V(200, 60, 160) }, To = { "Financiero", V(80, 160, 60) }, Look = { "Financiero", V(0, 60, 0) }, Duration = 4.5 },
-			{ From = { "Centro", V(120, 140, 220) }, To = { "Centro", V(20, 60, 90) }, Look = { "Centro", V(0, 5, 0) }, Duration = 4.5 },
+			{ From = { "Pinos", V(-180, 90, 120) }, To = { "Pinos", V(-60, 60, 40) }, Look = { "Pinos", V(0, 0, -100) }, Duration = 4.5, Shake = 0.35 },
+			{ From = { "Campus", V(-160, 110, 150) }, To = { "Campus", V(-40, 70, 60) }, Look = { "Campus", V(0, 10, 0) }, Duration = 4.5, Shake = 0.35, Dip = true },
+			{ From = { "Financiero", V(200, 60, 160) }, To = { "Financiero", V(80, 160, 60) }, Look = { "Financiero", V(0, 60, 0) }, Duration = 4.5, Shake = 0.35, Dip = true },
+			{ From = { "Centro", V(120, 140, 220) }, To = { "Centro", V(20, 60, 90) }, Look = { "Centro", V(0, 5, 0) }, Duration = 4.5, Shake = 0.35, Dip = true },
 		},
 		Titles = {
 			{ At = 0.8, TextKey = "CINE.CRECES.COLEGIO", Duration = 3.4 },
@@ -153,10 +166,13 @@ local Cinematics: { [string]: Cinematic } = {
 		Sting = "Momento",
 		Anchors = { Yo = "Player" },
 		Shots = {
-			{ Orbit = "Yo", Radius = 11, Height = 3, FromAngle = -40, ToAngle = 40, Duration = 7 },
+			{ Orbit = "Yo", Radius = 11, Height = 3, FromAngle = -40, ToAngle = 40, Duration = 7, Fov = { 68, 52 }, Shake = 0.2 },
 		},
 		Titles = {
 			{ At = 2.5, TextKey = "📸 ¡Patata!", SubKey = "Tu grupo de amigos", Duration = 4 },
+		},
+		Anims = {
+			{ At = 2.3, Who = "Todos", Play = "Cheer" },
 		},
 	},
 
@@ -181,10 +197,13 @@ local Cinematics: { [string]: Cinematic } = {
 		Sting = "Momento",
 		Anchors = { Yo = "Player" },
 		Shots = {
-			{ Orbit = "Yo", Radius = 13, Height = 4, FromAngle = 30, ToAngle = -30, Duration = 7 },
+			{ Orbit = "Yo", Radius = 13, Height = 4, FromAngle = 30, ToAngle = -30, Duration = 7, Fov = { 68, 52 }, Shake = 0.2 },
 		},
 		Titles = {
 			{ At = 2.5, TextKey = "📸 ¡Todos a decir «vaca»!", SubKey = "La excursión a Villaverde", Duration = 4 },
+		},
+		Anims = {
+			{ At = 2.3, Who = "Todos", Play = "Cheer" },
 		},
 	},
 
@@ -200,6 +219,9 @@ local Cinematics: { [string]: Cinematic } = {
 		Titles = {
 			{ At = 2, TextKey = "🎉 ¡Qué festival!", SubKey = "El festival de primavera", Duration = 4 },
 		},
+		Anims = {
+			{ At = 0.2, Who = "Todos", Play = "Dance", Duration = 7.5 },
+		},
 	},
 
 	-- El último día: una foto con tu grupo antes de la ceremonia (misión 12)
@@ -208,10 +230,13 @@ local Cinematics: { [string]: Cinematic } = {
 		Sting = "Momento",
 		Anchors = { Yo = "Player" },
 		Shots = {
-			{ Orbit = "Yo", Radius = 14, Height = 4, FromAngle = -35, ToAngle = 35, Duration = 7 },
+			{ Orbit = "Yo", Radius = 14, Height = 4, FromAngle = -35, ToAngle = 35, Duration = 7, Fov = { 68, 52 }, Shake = 0.2 },
 		},
 		Titles = {
 			{ At = 2.5, TextKey = "📸 Una última foto con tu grupo", SubKey = "Último día de primaria", Duration = 4 },
+		},
+		Anims = {
+			{ At = 2.3, Who = "Todos", Play = "Cheer" },
 		},
 	},
 
@@ -229,6 +254,9 @@ local Cinematics: { [string]: Cinematic } = {
 		},
 		Titles = {
 			{ At = 5.5, TextKey = "CINE.FIN_PRIMARIA.TITULO", SubKey = "CINE.FIN_PRIMARIA.FOTO", Duration = 4 },
+		},
+		Anims = {
+			{ At = 5.4, Who = "Todos", Play = "Cheer" },
 		},
 	},
 
@@ -285,13 +313,15 @@ local Cinematics: { [string]: Cinematic } = {
 	-- Graduación: vuelta alrededor del graduado, la rectora da el discurso.
 	-- Vida adulta: el atardecer en Playa Dorada con {abu} (Adu02) y la foto del reencuentro (Adu03)
 	Adu02_Atardecer = {
-		Duration = 9,
+		Duration = 11,
 		Sting = "Momento",
 		Music = "TemaValmar",
-		Anchors = { Yo = "Player" },
+		Anchors = { Yo = "Player", Abu = "Actor:Abu" },
 		Shots = {
-			{ Orbit = "Yo", Radius = 10, Height = 3, FromAngle = 160, ToAngle = 200, Duration = 5 },
-			{ Orbit = "Yo", Radius = 24, Height = 8, FromAngle = 200, ToAngle = 230, Duration = 4 },
+			{ Orbit = "Yo", Radius = 10, Height = 3, FromAngle = 160, ToAngle = 190, Duration = 4, Fov = { 58, 48 }, Shake = 0.15 },
+			-- Primer plano de {abu} mirando el mar
+			{ From = { "Abu", V(1.8, 1.4, -5), true }, To = { "Abu", V(1.2, 1.3, -4), true }, Look = { "Abu", V(0, 1.2, 0) }, Duration = 3, Fov = 42, Shake = 0.12 },
+			{ Orbit = "Yo", Radius = 24, Height = 8, FromAngle = 200, ToAngle = 230, Duration = 4, Dip = true },
 		},
 		Titles = {
 			{ At = 3, TextKey = "🌅 El mar", SubKey = "Con tu abu, como cuando era joven", Duration = 5 },
@@ -302,10 +332,13 @@ local Cinematics: { [string]: Cinematic } = {
 		Sting = "Momento",
 		Anchors = { Yo = "Player" },
 		Shots = {
-			{ Orbit = "Yo", Radius = 13, Height = 4, FromAngle = -30, ToAngle = 30, Duration = 7 },
+			{ Orbit = "Yo", Radius = 13, Height = 4, FromAngle = -30, ToAngle = 30, Duration = 7, Fov = { 68, 52 }, Shake = 0.2 },
 		},
 		Titles = {
 			{ At = 2.5, TextKey = "📸 Todos otra vez", SubKey = "La Cafetería de Omar", Duration = 4 },
+		},
+		Anims = {
+			{ At = 2.3, Who = "Todos", Play = "Cheer" },
 		},
 	},
 
@@ -314,7 +347,7 @@ local Cinematics: { [string]: Cinematic } = {
 		Music = "TemaValmar",
 		Anchors = { Yo = "Player", Uni = "Place:Universidad" },
 		Shots = {
-			{ Orbit = "Yo", Radius = 10, Height = 3, FromAngle = 30, ToAngle = 150, Duration = 7 },
+			{ Orbit = "Yo", Radius = 10, Height = 3, FromAngle = 30, ToAngle = 150, Duration = 7, Fov = { 62, 48 }, Shake = 0.15 },
 			{ From = { "Yo", V(8, 6, 8) }, To = { "Uni", V(40, 60, 90) }, Look = { "Yo", V(0, 2, 0) }, LookTo = { "Uni", V(0, 10, 0) }, Duration = 6 },
 		},
 		Lines = {
@@ -322,6 +355,9 @@ local Cinematics: { [string]: Cinematic } = {
 		},
 		Titles = {
 			{ At = 7.5, TextKey = "CINE.GRADUACION.TITULO", SubKey = "CINE.GRADUACION.SUB", Duration = 5 },
+		},
+		Anims = {
+			{ At = 7.3, Who = "Todos", Play = "Cheer" },
 		},
 	},
 

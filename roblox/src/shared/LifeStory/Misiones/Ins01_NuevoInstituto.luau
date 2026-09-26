@@ -20,14 +20,14 @@ local CASA = {
 }
 local PARADA = {
 	{ Npc = "Nico", Place = "ParadaBus", Offset = V(-3, 0, 2) },
-	{ Npc = "Omar", Place = "ParadaBus", Offset = V(3, 0, 2) },
-	{ Npc = "Sara", Place = "ParadaBus", Offset = V(0, 0, 4) },
+	{ Npc = "Omar", Place = "ParadaBus", Offset = V(3, 0, 2), Mode = "Chat" },
+	{ Npc = "Sara", Place = "ParadaBus", Offset = V(0, 0, 4), Mode = "Chat" },
 	{ Npc = "Mateo", Place = "ParadaBus", Offset = V(-5, 0, 4), If = AMIGO_MATEO },
 	{ Npc = "Hugo", Place = "ParadaBus", Offset = V(5, 0, 4), If = CON_HUGO },
 }
 local ENTRADA = {
-	{ Npc = "Veterano", Place = "Instituto", Offset = V(-4, 0, 6) },
-	{ Npc = "Delegada", Place = "Instituto", Offset = V(6, 0, 4) },
+	{ Npc = "Veterano", Place = "Instituto", Offset = V(-4, 0, 6), Mode = "Chat" },
+	{ Npc = "Delegada", Place = "Instituto", Offset = V(6, 0, 4), Mode = "Chat" },
 	{ Npc = "Iker", Place = "Instituto", Offset = V(2, 0, 8), If = CON_IKER },
 	{ Npc = "Omar", Mode = "Follow" },
 	{ Npc = "Alumno1", Place = "Instituto", Offset = V(10, 0, 10), Mode = "Wander", Radius = 10 },

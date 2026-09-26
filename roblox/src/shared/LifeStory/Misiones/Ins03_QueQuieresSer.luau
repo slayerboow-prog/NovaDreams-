@@ -57,7 +57,7 @@ return {
 	Requires = { Completed = { "Ins02_Clubes" }, StageProgress = 0.25 },
 	Npcs = { "Carmen", "Javier", "Omar", "Leire", "Bruno", "Nico", "Nuria", "Tomas", "Ines", "Marcos", "Lola", "Sofia", "Irene", "Toni" },
 	Locations = { "AulaInstituto", "Hospital", "Gasolinera", "Policia", "OficinasFinanciero", "CafeteriaCentral", "FacultadIngenieria", "EstadioUniversitario", "Ocio" },
-	Next = { "Ins04_PrimerEmpleo" },
+	Next = { "Pan1_MalasCompanias" },
 	Outcomes = { "Qué sitios visitas (4 de 8)", "Qué te interesa (marcas Interes_*)", "Cómo sales de la orientación" },
 
 	Moment = "La semana de las profesiones",

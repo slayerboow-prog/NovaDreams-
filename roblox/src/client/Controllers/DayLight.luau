@@ -149,6 +149,7 @@ local effects: { [string]: Instance? } = {}
 local indoor = 0 -- 0 = fuera, 1 = dentro (va cambiando poco a poco)
 local cinematic = 0
 local cinematicTarget = 0
+local focus: number? = nil -- enfoque de cámara de cine (distancia a lo que se mira); nil = el de siempre
 local lowQuality = false
 
 local function find(className: string): any
@@ -230,6 +231,13 @@ local function apply(k: Key, dt: number)
 		dof.FocusDistance = 60 - 30 * cinematic
 		dof.InFocusRadius = 140 - 90 * cinematic
 		dof.NearIntensity = 0
+		if focus then
+			-- Primer plano: lo enfocado nítido, el fondo desenfocado (como una cámara de cine)
+			dof.FocusDistance = focus
+			dof.InFocusRadius = math.max(3, focus * 0.45)
+			dof.FarIntensity = math.max(dof.FarIntensity, 0.32 * (1 - 0.6 * indoor))
+			dof.NearIntensity = 0.15
+		end
 	end
 	local clouds = find("Clouds")
 	if clouds then
@@ -253,6 +261,11 @@ end
 -- Las cinemáticas activan el "modo cine" (Controllers/Cinematics.luau)
 function DayLight.setCinematic(on: boolean)
 	cinematicTarget = if on then 1 else 0
+end
+
+-- Enfoque de cámara (studs hasta lo que se mira): los diálogos y las cinemáticas desenfocan el fondo
+function DayLight.setFocus(distance: number?)
+	focus = distance
 end
 
 function DayLight.init()

@@ -96,6 +96,8 @@ return {
 			{ S = "Lola", T = "Siéntate. Me jubilo el año que viene y necesito a alguien que lleve esto. Encargado o encargada. ¿Te atreves?", If = CAFE },
 			{ S = "Paco", T = "Hmm. Siéntate. Llevas años aquí. Nunca una caja mal puesta. Quiero que seas encargado o encargada. No me hagas repetirlo.", If = SUPER },
 			{ S = "Ernesto", T = "Necesito a alguien que lleve la ruta de todo Valmar. Conoces cada calle y cada perro. Jefe o jefa de ruta. ¿Aceptas?", If = CORREOS },
+			{ S = "Lola", T = "Sé lo del estadio. Y lo de la comisaría. Todo Valmar lo sabe. Aun así, confío en ti. No me hagas arrepentirme.", If = { Flags = { "Antecedentes" }, NotFlags = { "Graduado" }, Choices = { Empleo = "Barista" } } },
+			{ S = "Narrador", T = "En la entrevista te preguntaron por tu expediente de menores. Lo contaste todo. Te contrataron igual: por cómo lo contaste.", If = { Flags = { "Antecedentes", "Graduado" } } },
 			{ S = "Narrador", T = "Firmas. Es tu nombre, en un contrato de verdad. Por primera vez, sin «de prácticas», sin «de verano»." },
 		} },
 		PrimerCaso = { Lines = {
