@@ -10,7 +10,7 @@ set -euo pipefail
 FILE="${1:-RealLifeSimulator.rbxl}"
 : "${ROBLOX_API_KEY:?Falta ROBLOX_API_KEY}"
 : "${ROBLOX_UNIVERSE_ID:?Falta ROBLOX_UNIVERSE_ID}"
-: "${ROBLOX_PLACE_ID:?Falta ROBLOX_PLACE_ID}"
+ROBLOX_PLACE_ID="${ROBLOX_PLACE_ID:-113359543879512}" # Real Life Simulator (lugar de inicio)
 [ -f "$FILE" ] || { echo "No existe $FILE (constrúyelo antes)"; exit 1; }
 URL="https://apis.roblox.com/universes/v1/${ROBLOX_UNIVERSE_ID}/places/${ROBLOX_PLACE_ID}/versions?versionType=Published"
 echo "Publicando $FILE ($(du -h "$FILE" | cut -f1))…"
