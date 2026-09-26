@@ -12,6 +12,7 @@ local player = Players.LocalPlayer
 
 function BusUI.init()
 	local gui = Theme.create("ScreenGui", { Name = "BusGui", ResetOnSpawn = false, Enabled = false, Parent = player:WaitForChild("PlayerGui") })
+	Theme.fit(gui)
 	local label = Theme.label({
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, -100),

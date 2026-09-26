@@ -132,6 +132,7 @@ end
 
 function HotelUI.init()
 	local gui = create("ScreenGui", { Name = "HotelGui", ResetOnSpawn = false, DisplayOrder = 5, Parent = player:WaitForChild("PlayerGui") })
+	Theme.fit(gui)
 	fade = create("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = rgb(6, 8, 20), BackgroundTransparency = 1, Visible = false, ZIndex = 50, Parent = gui })
 	create("TextLabel", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "😴 Zzz…", TextSize = 42, Font = Enum.Font.GothamBold, TextColor3 = rgb(230, 230, 255), ZIndex = 51, Parent = fade })
 	panel = Theme.panel({

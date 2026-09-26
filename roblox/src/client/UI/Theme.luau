@@ -105,4 +105,17 @@ function Theme.button(props: { [string]: any }): TextButton
 	return Theme.create("TextButton", defaults, { Theme.corner(10), Theme.stroke() })
 end
 
+-- Encoge una pantalla en móviles pequeños (los paneles tienen tamaño fijo en píxeles)
+function Theme.fit(gui: ScreenGui)
+	local scale = Instance.new("UIScale")
+	scale.Parent = gui
+	local camera = workspace.CurrentCamera
+	local function rescale()
+		local size = camera.ViewportSize
+		scale.Scale = math.clamp(math.min(size.Y / 820, size.X / 1300), 0.6, 1)
+	end
+	camera:GetPropertyChangedSignal("ViewportSize"):Connect(rescale)
+	rescale()
+end
+
 return Theme

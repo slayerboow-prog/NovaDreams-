@@ -7,7 +7,7 @@
 
 local NearShadows = {}
 
-local MAX = 12 -- luces con sombra a la vez
+local MAX = if require(script.Parent.Parent.UI.Perf).lite then 4 else 12 -- luces con sombra a la vez (en móvil, menos)
 local RANGE = 160 -- más lejos de esto, sin sombra
 
 local tracked: { [Light]: boolean } = {}

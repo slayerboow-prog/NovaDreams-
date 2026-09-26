@@ -185,9 +185,21 @@ end
 local engine: Sound? = nil
 local vehicleKind: string? = nil
 local lastHorn = 0
+local horn: () -> () -- más abajo
+
+local function hornAction(_, state)
+	if state == Enum.UserInputState.Begin then
+		horn()
+	end
+	return Enum.ContextActionResult.Pass
+end
 
 function SoundFx.vehicleStart(kind: string, chassis: BasePart)
 	vehicleKind = kind
+	-- Móvil: botón de claxon/timbre solo mientras vas montado
+	ContextActionService:BindAction("HornTouch", hornAction, true)
+	ContextActionService:SetTitle("HornTouch", if kind == "Bici" or kind == "Patinete" then "🔔" else "📯")
+	ContextActionService:SetPosition("HornTouch", UDim2.new(1, -150, 1, -150))
 	if kind == "Coche" or kind == "Moto" or kind == "Autobus" or kind == "Camion" or kind == "Patrulla" or kind == "Bomberos" then
 		SoundFx.play("Arranque", 1, nil, chassis)
 		engine = SoundFx.loop("Motor", chassis)
@@ -202,6 +214,7 @@ function SoundFx.vehicleStop()
 		engine:Destroy()
 		engine = nil
 	end
+	ContextActionService:UnbindAction("HornTouch")
 	vehicleKind = nil
 end
 
@@ -220,7 +233,7 @@ function SoundFx.crash(speed: number, at: BasePart?)
 	end
 end
 
-local function horn()
+function horn()
 	if not vehicleKind or os.clock() - lastHorn < 0.6 then
 		return
 	end

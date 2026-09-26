@@ -120,6 +120,7 @@ end
 
 function MedicalUI.init()
 	local gui = create("ScreenGui", { Name = "MedicalGui", ResetOnSpawn = false, Parent = player:WaitForChild("PlayerGui") })
+	Theme.fit(gui)
 	panel = Theme.panel({
 		Name = "Doctor",
 		AnchorPoint = Vector2.new(1, 0.5),

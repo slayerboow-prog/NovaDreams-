@@ -82,6 +82,7 @@ end
 
 function PoliceUI.init()
 	local gui = create("ScreenGui", { Name = "PoliceGui", ResetOnSpawn = false, Parent = player:WaitForChild("PlayerGui") })
+	Theme.fit(gui)
 	panel = Theme.panel({
 		Name = "Incident",
 		AnchorPoint = Vector2.new(1, 0.5),

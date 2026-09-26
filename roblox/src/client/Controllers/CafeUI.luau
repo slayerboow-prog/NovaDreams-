@@ -160,6 +160,7 @@ end
 
 function CafeUI.init()
 	gui = create("ScreenGui", { Name = "CafeGui", ResetOnSpawn = false, Parent = player:WaitForChild("PlayerGui") })
+	Theme.fit(gui)
 	panel = Theme.panel({
 		Name = "Barista",
 		AnchorPoint = Vector2.new(1, 0.5),

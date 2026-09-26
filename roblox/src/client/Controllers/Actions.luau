@@ -280,7 +280,7 @@ local function setPhoto(on: boolean)
 	if on then
 		hidden = {}
 		for _, gui in playerGui:GetChildren() do
-			if gui:IsA("ScreenGui") and gui.Enabled and gui.Name ~= "PhotoHint" then
+			if gui:IsA("ScreenGui") and gui.Enabled and gui.Name ~= "PhotoHint" and gui.Name ~= "PhotoExit" then
 				gui.Enabled = false
 				table.insert(hidden, gui)
 			end
@@ -296,19 +296,31 @@ local function setPhoto(on: boolean)
 			AnchorPoint = Vector2.new(0.5, 0),
 			Position = UDim2.new(0.5, 0, 0, 20),
 			Size = UDim2.fromOffset(360, 34),
-			Text = "📸 Modo foto  ·  pulsa P para volver",
+			Text = if UserInputService.TouchEnabled then "📸 Modo foto  ·  toca ✖ para volver" else "📸 Modo foto  ·  pulsa P para volver",
 			TextSize = 16,
 			Font = Theme.FontBold,
 			TextXAlignment = Enum.TextXAlignment.Center,
 			TextStrokeTransparency = 0.5,
 			Parent = hint,
 		})
+		-- Móvil: botón pequeño para salir (no hay tecla P)
+		if UserInputService.TouchEnabled then
+			local exitGui = Theme.create("ScreenGui", { Name = "PhotoExit", ResetOnSpawn = false, Parent = playerGui })
+			local exit = Theme.button({ AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -12, 0, 12), Size = UDim2.fromOffset(44, 44), Text = "✖", TextSize = 22, BackgroundTransparency = 0.5, Parent = exitGui })
+			exit.Activated:Connect(function()
+				setPhoto(false)
+			end)
+		end
 		task.delay(2.5, function()
 			TweenService:Create(label, TweenInfo.new(0.8), { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
 			task.wait(0.9)
 			hint:Destroy()
 		end)
 	else
+		local exitGui = playerGui:FindFirstChild("PhotoExit")
+		if exitGui then
+			exitGui:Destroy()
+		end
 		for _, gui in hidden do
 			if gui.Parent then
 				gui.Enabled = true
@@ -363,6 +375,28 @@ function Actions.init()
 			corner.CornerRadius = UDim.new(0.5, 0)
 		end
 		button.Activated:Connect(togglePanel)
+		-- Linterna y modo foto (en el teclado son L y P), encima del de gestos
+		local function round(name: string, icon: string, position: UDim2, callback: () -> ())
+			local b = Theme.button({
+				Name = name,
+				AnchorPoint = Vector2.new(1, 1),
+				Size = UDim2.fromOffset(48, 48),
+				Position = position,
+				Text = icon,
+				TextSize = 22,
+				BackgroundTransparency = 0.3,
+				Parent = gui,
+			})
+			local c = b:FindFirstChildOfClass("UICorner")
+			if c then
+				c.CornerRadius = UDim.new(0.5, 0)
+			end
+			b.Activated:Connect(callback)
+		end
+		round("FlashlightButton", "🔦", UDim2.new(1, -256, 1, -92), toggleFlashlight)
+		round("PhotoButton", "📷", UDim2.new(1, -204, 1, -100), function()
+			setPhoto(not photo)
+		end)
 	end
 
 	-- Cada personaje nuevo empieza sin animaciones cargadas
@@ -378,7 +412,7 @@ function Actions.init()
 		local clock = Lighting.ClockTime
 		if not warned and (clock >= 20.5 or clock < 5) and not busy() and player:GetAttribute("LifeStage") ~= "Bebe" then
 			warned = true
-			Hud.toast("Info", "🌙 Es de noche: pulsa L para encender la linterna")
+			Hud.toast("Info", if UserInputService.TouchEnabled then "🌙 Es de noche: toca 🔦 para encender la linterna" else "🌙 Es de noche: pulsa L para encender la linterna")
 		end
 	end)
 

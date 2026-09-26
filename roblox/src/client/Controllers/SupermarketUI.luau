@@ -253,6 +253,7 @@ end
 ---------------------------------------------------------------------
 function SupermarketUI.init()
 	gui = create("ScreenGui", { Name = "SupermarketGui", ResetOnSpawn = false, Parent = player:WaitForChild("PlayerGui") })
+	Theme.fit(gui)
 	cartPanel = Theme.panel({
 		Name = "Cart",
 		AnchorPoint = Vector2.new(1, 0.5),

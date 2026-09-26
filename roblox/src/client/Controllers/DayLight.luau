@@ -167,7 +167,7 @@ local function readQuality()
 		return UserSettings():GetService("UserGameSettings").SavedQualityLevel
 	end)
 	-- "Automático" cuenta como calidad media; de 1 a 4, calidad baja
-	lowQuality = ok and level ~= Enum.SavedQualitySetting.Automatic and level.Value <= 4
+	lowQuality = (ok and level ~= Enum.SavedQualitySetting.Automatic and level.Value <= 4) or require(script.Parent.Parent.UI.Perf).mobile
 end
 
 -- ¿Hay techo encima de la cámara? (para simular que los ojos se acostumbran dentro de casa)

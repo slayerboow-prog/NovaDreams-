@@ -28,6 +28,7 @@ end
 
 function FireUI.init()
 	local gui = create("ScreenGui", { Name = "FireGui", ResetOnSpawn = false, Parent = player:WaitForChild("PlayerGui") })
+	Theme.fit(gui)
 	panel = Theme.panel({
 		Name = "Incident",
 		AnchorPoint = Vector2.new(1, 0.5),

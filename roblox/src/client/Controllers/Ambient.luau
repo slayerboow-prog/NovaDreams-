@@ -15,7 +15,8 @@ local Ambient = {}
 
 local player = Players.LocalPlayer
 
-local PED_COUNT = 28
+local Perf = require(script.Parent.Parent.UI.Perf)
+local PED_COUNT = Perf.count(28) -- en móvil, la mitad
 local WALK_TOP = 1.0
 -- Cada calle es un tramo recto en cualquier ángulo: A + Dir·u (u de From a To) + Perp·v
 type Road = { A: Vector3, Dir: Vector3, Perp: Vector3, From: number, To: number, Lane: number, Walk: number? }

@@ -505,7 +505,7 @@ function Wildlife.init()
 	local ok, level = pcall(function()
 		return UserSettings():GetService("UserGameSettings").SavedQualityLevel
 	end)
-	lowQuality = ok and level ~= Enum.SavedQualitySetting.Automatic and level.Value <= 3
+	lowQuality = (ok and level ~= Enum.SavedQualitySetting.Automatic and level.Value <= 3) or require(script.Parent.Parent.UI.Perf).lite
 	local zoneFolder = ReplicatedStorage:WaitForChild("MapZones", 10)
 	if zoneFolder then
 		for _, config in zoneFolder:GetChildren() do

@@ -605,7 +605,9 @@ local function buildMenu(parent: Instance)
 	local help = Theme.label({
 		Size = UDim2.new(1, 0, 0, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
-		Text = "Controles:\nE interactuar · Shift correr · F bajarse\nM mapa · 1-9 barra rápida\nG gestos y bailes · L linterna · P modo foto\nConducir: W/A/S/D · H claxon\nSalta contra un muro bajo para trepar",
+		Text = if game:GetService("UserInputService").TouchEnabled
+			then "Controles en el móvil:\nToca los botones que salen sobre las cosas para usarlas\n🏃 correr · 😀 gestos · 🔦 linterna · 📷 foto\nConduciendo: joystick para girar y acelerar · 📯 claxon\n🗺️ Mapa y 🎒 Mochila, arriba"
+			else "Controles:\nE interactuar · Shift correr · F bajarse\nM mapa · 1-9 barra rápida\nG gestos y bailes · L linterna · P modo foto\nConducir: W/A/S/D · H claxon\nSalta contra un muro bajo para trepar",
 		TextSize = 13,
 		TextWrapped = true,
 		TextColor3 = C.Muted,

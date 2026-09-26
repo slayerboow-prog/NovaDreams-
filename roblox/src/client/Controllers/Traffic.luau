@@ -16,6 +16,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local BusRoute = require(ReplicatedStorage.Shared.BusRoute)
+local Perf = require(script.Parent.Parent.UI.Perf)
 
 local Traffic = {}
 
@@ -579,7 +580,7 @@ function Traffic.init(data: Instance)
 	for kind, info in KINDS do
 		local templates = byKind[kind]
 		if templates and #templates > 0 then
-			for i = 1, info.Count do
+			for i = 1, Perf.count(info.Count) do
 				table.insert(agents, makeAgent(templates[(i - 1) % #templates + 1], kind))
 			end
 		end
