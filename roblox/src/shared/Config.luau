@@ -291,6 +291,16 @@ Config.Jobs = {
 		CarryColor = Color3.fromRGB(250, 250, 250),
 		CarrySize = Vector3.new(1, 1, 1),
 	},
+	Recepcionista = {
+		DisplayName = "Recepcionista",
+		Place = "Hotel",
+		Pay = 10,
+		EnergyCost = 2,
+		PickupText = "",
+		DropoffText = "",
+		CarryColor = Color3.fromRGB(250, 250, 250),
+		CarrySize = Vector3.new(1, 1, 1),
+	},
 	Repartidor = {
 		DisplayName = "Repartidor",
 		Place = "Correos",

@@ -50,6 +50,9 @@
         "Cinema": {
           "$className": "RemoteEvent"
         },
+        "Hotel": {
+          "$className": "RemoteEvent"
+        },
         "LifeStory": {
           "$className": "RemoteEvent"
         },

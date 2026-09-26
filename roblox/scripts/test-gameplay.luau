@@ -314,6 +314,7 @@ local remotes = {
 	Police = remote(),
 	Fire = remote(),
 	Cinema = remote(),
+	Hotel = remote(),
 }
 function remotes:WaitForChild(name)
 	return self[name]
@@ -1878,6 +1879,113 @@ promptOf(salaDoor, "Entrar a la sala").Triggered:Fire(noTicket)
 check(notified(noTicket, "Necesitas una entrada") or notified(noTicket, "limpiando"), "sin entrada no se entra")
 CinemaService.quit(clerk)
 check(clerk:GetAttribute("Job") == nil, "cierra la taquilla")
+end)()
+
+;(function()
+print("▶ Hotel: reservar habitación, recepcionista y descansar")
+local Hotel = loadModule(ROOT .. "/shared/Hotel")
+local hotelModel = fakeInstance("Model")
+hotelModel.Name = "Hotel"
+hotelModel.Parent = worldRoot
+hotelModel:SetAttribute("HotelName", "MIRAMAR")
+hotelModel:SetAttribute("Outside", Vector3.new(2000, 0.4, 1970))
+hotelModel:SetAttribute("Door", Vector3.new(2000, 0.4, 1980))
+for i = 1, 3 do
+	hotelModel:SetAttribute("Queue" .. i, Vector3.new(1997, 0.4, 1990 - i * 3))
+end
+hotelModel:SetAttribute("Staff", Vector3.new(1997, 0.4, 1996))
+hotelModel:SetAttribute("Elevator", Vector3.new(2009, 0.4, 1993))
+local desk = part("Desk", CFrame.new(1997, 2.8, 1993), { "HotelDesk" })
+desk.Size = Vector3.new(12, 3.6, 2.4)
+desk.Parent = hotelModel
+local elevator = part("HotelElevator", CFrame.new(2010, 4, 1993), { "HotelElevator" })
+elevator.Size = Vector3.new(2, 6, 9)
+elevator.Parent = hotelModel
+hotelModel:AddTag("HotelLobby")
+local HotelService = loadModule(S .. "HotelService")
+HotelService.init()
+check(jobProviders.Handler_Recepcionista ~= nil, "el tablón del hotel lleva al oficio de recepcionista")
+local clerk, clerkRoot = newPlayer(62, "AdultoJoven", 0)
+moveTo(clerkRoot, Vector3.new(1997, 0, 1996))
+HotelService.start(clerk)
+check(clerk:GetAttribute("Job") == "Recepcionista", "empieza el turno en recepción")
+local guest, guestRoot = newPlayer(63, "Adulto", 100)
+moveTo(guestRoot, Vector3.new(1997, 0, 1988))
+promptOf(desk, "Reservar habitación").Triggered:Fire(guest)
+local menuMsg = lastMessage(guest, "Menu")
+check(menuMsg ~= nil and #menuMsg[2].Types == 3, "recepción enseña los tres tipos de habitación")
+local suite = Hotel.typeById.Suite
+remotes.Hotel.OnServerEvent:Fire(guest, "Book", "Suite")
+check(profiles[guest].Money == 100 - suite.Price, "paga la suite")
+-- Atiende la cola hasta llegar a nuestro huésped
+local function work()
+	return lastMessage(clerk, "Work")
+end
+local wrongTried, freeTried = false, false
+local guard = 0
+while InventoryService.count(guest, Hotel.KeyItem) == 0 and guard < 10 do
+	guard += 1
+	local msg = work()
+	local first = msg and msg[2][1]
+	if not first then
+		break
+	end
+	local rooms = msg[3]
+	local pick = nil
+	if first.Kind == "In" then
+		if not wrongTried then
+			-- Una habitación de otro tipo no vale
+			for _, r in rooms do
+				if r.Type ~= first.Type and not r.Guest then
+					remotes.Hotel.OnServerEvent:Fire(clerk, "Assign", r.Room)
+					break
+				end
+			end
+			check(notified(clerk, "Esa no es"), "si das otro tipo de habitación, no vale")
+			wrongTried = true
+		end
+		for _, r in rooms do
+			if r.Type == first.Type and not r.Guest then
+				pick = r.Room
+				break
+			end
+		end
+	else
+		if not freeTried then
+			for _, r in rooms do
+				if not r.Guest then
+					remotes.Hotel.OnServerEvent:Fire(clerk, "Assign", r.Room)
+					break
+				end
+			end
+			check(notified(clerk, "no es la habitación"), "en una salida hay que dar SU habitación")
+			freeTried = true
+		end
+		for _, r in rooms do
+			if r.Guest == first.Name then
+				pick = r.Room
+			end
+		end
+	end
+	remotes.Hotel.OnServerEvent:Fire(clerk, "Assign", pick)
+end
+check(InventoryService.count(guest, Hotel.KeyItem) == 1, "el huésped recibe la llave")
+local roomsNow = work()[3]
+local taken = false
+for _, r in roomsNow do
+	if r.Guest == (guest.DisplayName or guest.Name) then
+		taken = Hotel.typeOfRoom[r.Room] == "Suite"
+	end
+end
+check(taken, "su suite sale ocupada con su nombre en el panel")
+check(profiles[clerk].Money >= Hotel.Job.PerCheckIn, "el recepcionista cobra por la entrada")
+local noKey = newPlayer(64, "Adulto", 0)
+promptOf(elevator, "Subir a tu habitación").Triggered:Fire(noKey)
+check(notified(noKey, "Necesitas la llave"), "sin llave no se sube")
+promptOf(elevator, "Subir a tu habitación").Triggered:Fire(guest)
+check(InventoryService.count(guest, Hotel.KeyItem) == 0, "al subir se usa la llave")
+HotelService.quit(clerk)
+check(clerk:GetAttribute("Job") == nil, "termina el turno")
 end)()
 
 end, debug.traceback)

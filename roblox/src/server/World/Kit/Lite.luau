@@ -11,6 +11,7 @@ local Builder = require(script.Parent.Parent.Builder)
 local Nature = require(script.Parent.Nature)
 local Props = require(script.Parent.Props)
 local HouseKit = require(script.Parent.HouseKit)
+local HotelLobby = require(script.Parent.HotelLobby)
 
 local Lite = {}
 
@@ -247,8 +248,12 @@ end
 -- Hotel: torre esbelta con nombre, balcones y piscina
 local HOTELS = { "HOTEL MARINA", "HOTEL VALMAR", "GRAN HOTEL", "HOTEL SOL", "HOTEL COSTA", "HOTEL MIRAMAR", "HOTEL PALACE" }
 function Lite.hotel(parent: Instance, cf: CFrame, w: number, d: number): Model
-	local m = Lite.building(parent, cf, w, d, math.random(6, 12), { Style = pick({ "Moderno", "Clasico" }), Balconies = true, Shop = pick(HOTELS) })
+	local name = pick(HOTELS)
+	local m = Lite.building(parent, cf, w, d, math.random(6, 12), { Style = pick({ "Moderno", "Clasico" }), Balconies = true, Shop = name })
 	m.Name = "Hotel"
+	-- Recepción jugable al lado (oficio de recepcionista: HotelService)
+	HotelLobby.build(m, cf * CFrame.new(-w / 2 - 13, 0, -d / 2 + 15), (string.gsub(name, "^HOTEL ", "")))
+	Props.jobBoard(m, cf * CFrame.new(-w / 2 - 22, 0, -d / 2 - 4), "Recepcionista", "RECEPCIÓN")
 	local pool = cf * CFrame.new(w / 2 + 12, 0, 0)
 	part(m, "PoolRim", pool * CFrame.new(0, 0.3, 0), Vector3.new(14, 0.6, 22), rgb(236, 232, 224), Enum.Material.Limestone)
 	part(m, "PoolWater", pool * CFrame.new(0, 0.62, 0), Vector3.new(12, 0.1, 20), rgb(60, 170, 220), Enum.Material.Glass, true)

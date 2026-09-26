@@ -21,6 +21,7 @@ local Strings = require(script.Parent.LifeStory.Strings)
 local Groceries = require(script.Parent.Groceries)
 local CafeMenu = require(script.Parent.CafeMenu)
 local Cinema = require(script.Parent.Cinema)
+local Hotel = require(script.Parent.Hotel)
 
 local Items = {}
 
@@ -191,6 +192,16 @@ for _, snack in Cinema.Snacks do
 		Energy = snack.Energy,
 	}
 end
+
+-- Hotel: la llave de tu habitación (se gasta al descansar una noche)
+list[Hotel.KeyItem] = {
+	Id = Hotel.KeyItem,
+	Name = "Llave de hotel",
+	Icon = "🗝️",
+	Kind = "Thing",
+	Desc = "La llave de tu habitación. Úsala en el ascensor del hotel para subir a descansar.",
+	Stack = 4,
+}
 
 -- Objetos de la historia (las misiones los dan y los quitan con Effects.Items / Effects.Take)
 local KEEPSAKES = {
