@@ -175,6 +175,18 @@ local People: { [string]: Person } = {
 		Hair = rgb(150, 60, 40), LongHair = true, Backpack = rgb(200, 200, 200),
 		Bio = "Nueva en Valmar (viene del norte). Siempre con una cámara vieja al cuello. Seca al principio, leal después.",
 	},
+	Rayo = {
+		Name = "Rayo", Voice = "Nino", Kid = true,
+		Skin = rgb(225, 180, 140), Shirt = rgb(30, 30, 30), Pants = rgb(40, 50, 90),
+		Hair = rgb(20, 20, 22), Backpack = rgb(200, 40, 40),
+		Bio = "De 4.º, el que manda en el muelle. Gracioso, valiente, peligroso. En casa no hay nadie casi nunca: su padre se fue y su madre trabaja de noche.",
+	},
+	Nerea = {
+		Name = "Nerea", Voice = "Nino", Kid = true,
+		Skin = rgb(200, 150, 115), Shirt = rgb(120, 40, 120), Pants = rgb(30, 30, 40),
+		Hair = rgb(60, 30, 20), LongHair = true, Backpack = rgb(60, 60, 60),
+		Bio = "De la pandilla de Rayo. Lista, sarcástica. Va con ellos porque no sabe con quién más ir. Dibuja cómics que no enseña a nadie.",
+	},
 	Veterano = { Name = "Alumno de 4.º", Voice = "Nino", Teen = true, Skin = rgb(215, 170, 130), Shirt = rgb(30, 30, 30), Pants = rgb(40, 40, 70), Hair = rgb(20, 20, 22), Bio = "Le encanta tomar el pelo a los de primero." },
 	Delegada = { Name = "Delegada de 4.º", Voice = "Nino", Teen = true, Skin = rgb(185, 135, 100), Shirt = rgb(230, 170, 60), Pants = rgb(30, 30, 30), Hair = rgb(30, 20, 15), LongHair = true, Bio = "Organizada, amable, siempre con una carpeta." },
 

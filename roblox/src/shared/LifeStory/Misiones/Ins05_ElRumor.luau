@@ -55,7 +55,7 @@ return {
 	Duration = { 25, 35 },
 	Difficulty = 3,
 	Type = "Historia · Conflicto",
-	Requires = { Completed = { "Ins04_PrimerEmpleo" }, StageProgress = 0.58 },
+	Requires = { Completed = { "Pan3_Cruce" }, StageProgress = 0.62 },
 	Npcs = { "Javier", "Sara", "Leire", "Nico", "Bruno", "Dario", "Omar" },
 	Locations = { "AulaInstituto", "PatioInstituto", "PistaInstituto", "Parque" },
 	Next = { "Ins06_LaGranDecision" },

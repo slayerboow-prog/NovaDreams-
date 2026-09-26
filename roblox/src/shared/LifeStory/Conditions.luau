@@ -17,6 +17,7 @@
 --   Rel         = { Mateo = 10 }                 relación con ese personaje de al menos 10 (-100..100)
 --   RelBelow    = { Ruben = 0 }                  relación por debajo de 0
 --   Traits      = { Empatia = 2 }                rasgo del jugador de al menos 2
+--   TraitsBelow = { Rebeldia = 2 }               rasgo por debajo de 2
 --   Memories    = { "PrimerAmigo" } / NotMemories   recuerdos que tiene (o no)
 --   LastGradeBelow = 5 / LastGradeAtLeast = 7    nota de la última clase o examen
 --   Season      = "Invierno" o { "Otono", "Invierno" }   estación del año (shared/Seasons)
@@ -116,6 +117,11 @@ function Conditions.check(req: { [string]: any }?, ctx: Context): (boolean, stri
 	for trait, min in req.Traits or {} do
 		if ((ctx.Traits or {})[trait] or 0) < min then
 			return false, "Traits"
+		end
+	end
+	for trait, max in req.TraitsBelow or {} do
+		if ((ctx.Traits or {})[trait] or 0) >= max then
+			return false, "TraitsBelow"
 		end
 	end
 	for _, key in req.Memories or {} do

@@ -124,6 +124,7 @@ return {
 		} },
 		Bruno = { Lines = {
 			{ S = "Bruno", T = "Agente Bruno, para servirle. …Sí, soy policía. Inés me enseñó todo. Me paso el día ayudando a gente mayor a cruzar y buscando gatos." },
+			{ S = "Bruno", T = "Hace un tiempo te puse las esposas. Y hoy me invitas a una fiesta. La vida es muy rara. Me alegro de que sea así.", If = { Flags = { "Detenido" } } },
 			{ S = "Bruno", T = "¿Me invitas tú? ¿Después de todo lo del colegio? …Vale. Iré. Gracias. De verdad.", If = { NotChoices = { AdiosBruno = "DeCero" } } },
 			{ S = "Bruno", T = "¿Una fiesta del grupo? Claro que voy. Empezamos de cero, ¿no? Pues esto es el diez.", If = { Choices = { AdiosBruno = "DeCero" } } },
 		} },

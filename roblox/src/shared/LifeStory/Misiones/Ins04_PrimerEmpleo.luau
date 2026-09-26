@@ -42,10 +42,10 @@ return {
 	Duration = { 20, 30 },
 	Difficulty = 2,
 	Type = "Historia · Trabajo",
-	Requires = { Completed = { "Ins03_QueQuieresSer" }, StageProgress = 0.40 },
+	Requires = { Completed = { "Pan2_LaNoche" }, StageProgress = 0.44 },
 	Npcs = { "Familia", "Abu", "Carmen", "Omar", "Lola", "Paco", "Ernesto", "Bruno", "Leire" },
 	Locations = { "HomeSalon", "AulaInstituto", "CafeteriaCentral", "Supermercado", "Correos" },
-	Next = { "Ins05_ElRumor" },
+	Next = { "Pan3_Cruce" },
 	Outcomes = { "Qué trabajo eliges", "Verdad o mentira en la entrevista", "Qué haces con tu primer sueldo" },
 
 	Moment = "Tu primer sueldo",
@@ -175,7 +175,9 @@ return {
 			{ S = "Lola", T = "Contratado o contratada, lo que te toque. Lunes, nueve en punto. Ni nueve y cinco." },
 		} },
 		Entrevista_Paco = { Lines = {
-			{ S = "Paco", T = "Hmm. Joven. Siéntate. No, ahí no, que es una caja de tomates." },
+			{ S = "Paco", T = "Hmm. Joven. Siéntate. No, ahí no, que es una caja de tomates.", If = { NotFlags = { "Hurto" } } },
+			{ S = "Paco", T = "Hmm. Tú. Te conozco: lo del almacén. Me pediste perdón mirando a los ojos. Todo el mundo merece una segunda oportunidad. Una.", If = { Flags = { "Hurto", "PerdonPaco" } } },
+			{ S = "Paco", T = "Hmm. Tú. Te llevaste mis latas y ni pediste perdón. …Te contrato igual, porque no encuentro a nadie. Pero te vigilo. Mucho.", If = { Flags = { "Hurto" }, NotFlags = { "PerdonPaco" } } },
 			{ Ask = "«¿Has trabajado antes?»", Options = {
 				{ T = "«No, pero soy de fiar»", Effects = { Traits = { Responsabilidad = 1 } }, Then = {
 					{ S = "Paco", T = "Hmm. De fiar. Eso ya lo veremos. Pero me gusta que no me cuentes historias." },

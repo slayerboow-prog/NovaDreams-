@@ -136,6 +136,7 @@ return {
 			{ S = "Bruno", T = "¿Yo? Policía. No te rías. Inés, la de la comisaría, dice que se me da bien que la gente me haga caso." },
 			{ S = "Bruno", T = "Y que ahora sé cuándo hay que usarlo y cuándo no. Eso lo aprendí con vosotros. No se lo digas a nadie." },
 			{ S = "Bruno", T = "Me creíste cuando todos decían que la foto era mía. Eso no se me olvida.", If = { Choices = { Bruno = "Confiar" } } },
+			{ S = "Bruno", T = "También por gente como Rayo. Y como tú, últimamente. No te lo tomes a mal. Quiero ser el policía que te habría gustado encontrarte.", If = { Flags = { "Camino_Delincuente" } } },
 		} },
 		Plan_Leire = { Lines = {
 			{ S = "Leire", T = "Comunicación audiovisual. En otra ciudad, probablemente. Mi tío dice que tengo que irme para volver con otra mirada." },
@@ -160,6 +161,8 @@ return {
 			{ S = "Carmen", T = "Marcos pintó las bicis de azul por tu idea. Economía, empresa… lo llevas dentro.", If = interes("Interes_Economia") },
 			{ S = "Carmen", T = "Tomás, Lola, Irene, Toni… hay profesiones que se aprenden trabajando. No son menos: son otro camino.", If = { Flags = { "Interes_Oficio" } } },
 			{ S = "Carmen", T = "Y tu primer trabajo de verano. Eso también dice mucho de ti.", If = { Memories = { "PrimerSueldo" } } },
+			{ S = "Carmen", T = "Sé lo del estadio y lo de Rayo. No te voy a sermonear. Solo te digo una cosa: todavía puedes elegir otro camino. Siempre se puede.", If = { Flags = { "Camino_Delincuente" } } },
+			{ S = "Carmen", T = "Y sé que saliste de algo difícil hace unos años. Eso dice más de ti que cualquier nota.", If = { Flags = { "Redimido" } } },
 			{ S = "Carmen", T = "Pero te voy a decir lo mismo que hace años: no tienes que acertar. Tienes que elegir. Y si te equivocas, se cambia." },
 			{ S = "Carmen", T = "Nadie se queda donde empieza. Ni siquiera yo: empecé estudiando química. Mírame." },
 		}, Effects = { Rel = { Carmen = 5 } } },

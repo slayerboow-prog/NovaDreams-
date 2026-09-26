@@ -277,7 +277,7 @@ misión nueva se rellena la ficha de 12 puntos de 11.7.
 
 ## 11.13 Estado, pruebas y lo que falta
 
-**Hecho y probado** (prueba automática `scripts/test-lifestory.luau`, 293 comprobaciones en verde):
+**Hecho y probado** (prueba automática `scripts/test-lifestory.luau`, 314 comprobaciones en verde):
 
 - Instituto 01–06 (ver 11.23–11.29): primer día, clubes, profesiones, primer empleo con el sistema de
   trabajos de verdad, el rumor en el grupo de clase y la gran decisión (con la selectividad y el paso a
@@ -824,3 +824,35 @@ cierra los arcos de {abu} y del grupo.
    promesa del último día, cumplida) → una promesa nueva.
 10. **Consecuencias:** `PromesaAdulta`, `CharlaColegio` (para una misión futura en el colegio).
 11. **Recompensas:** *ElReencuentro*, la foto del reencuentro.
+
+## 11.41 El arco «La pandilla»: el bien o el mal (adolescencia)
+
+**Por qué:** el jugador tiene que poder elegir quién quiere ser, también «el malo», y que eso tenga
+consecuencias durante toda su vida. Tres misiones insertadas en el instituto (entre «¿Qué quieres ser?» y
+«El rumor»), tres consecuencias diferidas y reacciones en misiones posteriores.
+
+**Reglas de contenido (Roblox):** delitos menores y sin violencia (hacer pellas, pintadas, un hurto en un
+súper, vender camisetas falsas, llevar una furgoneta con mercancía robada). Nunca se glorifica: el mal
+camino da dinero rápido y popularidad, pero siempre trae consecuencias (policía, familia, amigos) y
+**siempre hay salida** (redención en cualquier momento, también de adulto).
+
+**Sistema:**
+- Rasgo nuevo **`Rebeldia`** (se suma con las malas decisiones) + marcas `Camino_Delincuente`,
+  `Camino_Trabajador`, `Redimido`, `Hurto`, `AvisoPolicia`, `Antecedentes`, `Detenido`, `RayoCambia`.
+- **Reputación** (`LifeStoryService.updateCamino`): atributo del jugador `Camino` = `Responsable`,
+  `Gamberro` (Rebeldía ≥ 3) o `Delincuente`, con un aviso en pantalla cuando cambia.
+- Condiciones nuevas: `TraitsBelow`, `NotChoices`.
+
+| # | Misión | Qué pasa | Decisiones |
+|---|---|---|---|
+| P1 | Las malas compañías | Rayo (el popular de 4.º) y Nerea te invitan a hacer pellas | Ir (recreativos, pintada en el muro, mentir en casa) · volver a clase · convencer a Nerea |
+| P2 | La noche del supermercado | El plan de colarse en el almacén del súper de Paco | Ir (coger o no; si coges, alarma y **huida con tiempo límite**: si te pillan, comisaría y **servicio a la comunidad en el Punto Limpio** con el sistema de trabajos) · no ir · intentar frenarles |
+| P3 | El cruce de caminos | Rayo ofrece vender camisetas falsas; Nerea quiere salir | **Negocio** (Camino_Delincuente; en el estadio te ve Nico: aún puedes echarte atrás) · **alejarte** y llevar a Nerea a un taller de cómic · **salvar a Rayo** (Tomás le da una oportunidad en su taller) |
+
+**Consecuencias diferidas:** `Eco_Camaras` (2 h, si robaste y escapaste: la policía en tu puerta),
+`Eco_Redada` (3 h, si entraste en el negocio: multa y expediente), `Eco_RayoAdulto` (ya de adulto):
+Rayo con su propio taller si le salvaste · «un último trabajo» si seguiste en el mal camino (aceptar →
+**en el control de policía está Bruno**; colaborar te redime) · una disculpa si solo le acompañaste.
+
+**Reacciones en otras misiones:** Paco en la entrevista del primer empleo, Carmen y Bruno en «La gran
+decisión», Lola y tu primer contrato (expediente), Bruno en «El reencuentro» si te detuvo.

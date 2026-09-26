@@ -84,7 +84,7 @@ local Chapters: { [string]: Chapter } = {
 		TitleKey = "CHAPTER.INSTITUTO.TITLE",
 		IntroKey = "CHAPTER.INSTITUTO.INTRO",
 		OutroKey = "CHAPTER.INSTITUTO.OUTRO",
-		Main = { "Ins01_NuevoInstituto", "Ins02_Clubes", "Ins03_QueQuieresSer", "Ins04_PrimerEmpleo", "Ins05_ElRumor", "Ins06_LaGranDecision" },
+		Main = { "Ins01_NuevoInstituto", "Ins02_Clubes", "Ins03_QueQuieresSer", "Pan1_MalasCompanias", "Pan2_LaNoche", "Ins04_PrimerEmpleo", "Pan3_Cruce", "Ins05_ElRumor", "Ins06_LaGranDecision" },
 		Next = "Joven_Universidad",
 		Loop = "Adol_Jornada",
 	},
