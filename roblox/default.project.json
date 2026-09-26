@@ -38,6 +38,9 @@
         "Garbage": {
           "$className": "RemoteEvent"
         },
+        "Medical": {
+          "$className": "RemoteEvent"
+        },
         "LifeStory": {
           "$className": "RemoteEvent"
         },

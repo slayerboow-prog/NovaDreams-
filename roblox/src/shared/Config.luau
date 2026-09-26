@@ -250,6 +250,17 @@ Config.Jobs = {
 		CarryColor = Color3.fromRGB(30, 30, 30),
 		CarrySize = Vector3.new(1.6, 2, 1.6),
 	},
+	-- Médico/a: consultas del hospital (MedicalService: su propio sistema, no este circuito)
+	Medico = {
+		DisplayName = "Médico/a",
+		Place = "Hospital",
+		Pay = 30,
+		EnergyCost = 3,
+		PickupText = "",
+		DropoffText = "",
+		CarryColor = Color3.fromRGB(250, 250, 250),
+		CarrySize = Vector3.new(1, 1, 1),
+	},
 	Repartidor = {
 		DisplayName = "Repartidor",
 		Place = "Correos",

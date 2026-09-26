@@ -11,6 +11,7 @@ local Building = require(script.Parent.Building)
 local Nature = require(script.Parent.Nature)
 local Props = require(script.Parent.Props)
 local StoryMarks = require(script.Parent.StoryMarks)
+local Clinic = require(script.Parent.Clinic)
 
 local Civic = {}
 
@@ -95,6 +96,9 @@ function Civic.hospital(parent: Instance, lot: Lot, townName: string, small: boo
 		Sign = if small then "CENTRO DE SALUD" else "HOSPITAL " .. string.upper(townName), SignColor = rgb(200, 36, 40),
 		FloorMaterial = Enum.Material.CeramicTiles, FloorColor = rgb(232, 234, 232), LightColor = rgb(240, 248, 255),
 	})
+	-- Planta baja: admisión, sala de espera y consultas (oficio de médico/a: MedicalService)
+	Clinic.build(model, at, W, D)
+	Props.jobBoard(m, lot.facing(-W / 4, setback - 3, FT), "Medico", "MÉDICO/A")
 	-- Cruz roja en lo alto de la fachada
 	local crossCf = at(0, info.Top - FT + 5, -D / 2 + 1)
 	Builder.decor({ Name = "CrossBack", Size = Vector3.new(9, 9, 0.4), CFrame = crossCf, Color = rgb(250, 250, 250), Parent = model })

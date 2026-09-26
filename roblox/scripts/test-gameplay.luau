@@ -300,6 +300,7 @@ local remotes = {
 	Cafe = remote(),
 	Post = remote(),
 	Garbage = remote(),
+	Medical = remote(),
 }
 function remotes:WaitForChild(name)
 	return self[name]
@@ -1431,6 +1432,121 @@ local gNew = lastMessage(sweeper, "Route")[2]
 check(profiles[sweeper].Money == gMoney + Gameplay.Garbage.UnloadBonus * 2 and gNew.Phase == "Collect" and gNew.Bags == 0, "descarga en el Punto Limpio con bonus y le dan otra ruta")
 GarbageService.quit(sweeper)
 check(sweeper:GetAttribute("Job") == nil and #ownBins() == 0, "deja el trabajo y se quitan sus carteles")
+
+---------------------------------------------------------------------
+print("▶ Hospital: pacientes y oficio de médico/a con diagnóstico")
+local Medical = loadModule(ROOT .. "/shared/Medical")
+local clinicModel = fakeInstance("Model")
+clinicModel.Name = "Edificio"
+clinicModel.Parent = worldRoot
+clinicModel:SetAttribute("Outside", Vector3.new(1500, 0.4, 1470))
+clinicModel:SetAttribute("Door", Vector3.new(1500, 0.4, 1480))
+clinicModel:SetAttribute("Reception", Vector3.new(1490, 0.4, 1485))
+clinicModel:SetAttribute("Room1Door", Vector3.new(1480, 0.4, 1500))
+local function mp(name, position, tags, attrs)
+	local p = part(name, CFrame.new(position), tags, attrs)
+	p.Size = Vector3.new(3, 2, 3)
+	p.Parent = clinicModel
+	return p
+end
+local receptionDesk = mp("ReceptionDesk", Vector3.new(1490, 2, 1488), { "ClinicReception" })
+local desk1 = mp("Desk", Vector3.new(1478, 2, 1505), { "ClinicDesk" }, { RoomId = 1 })
+local bed1 = mp("Bed", Vector3.new(1484, 2.5, 1506), { "ClinicBed" }, { RoomId = 1 })
+local meds1 = mp("MedCabinet", Vector3.new(1481, 3.5, 1510), { "ClinicMeds" }, { RoomId = 1 })
+mp("Seat", Vector3.new(1505, 1.6, 1487), { "ClinicSeat" })
+clinicModel:AddTag("Clinic")
+local MedicalService = loadModule(S .. "MedicalService")
+MedicalService.init()
+check(jobProviders.Handler_Medico ~= nil, "el tablón del hospital lleva al oficio de médico/a")
+local teenDoc, teenDocRoot = newPlayer(45, "Adolescente", 0)
+moveTo(teenDocRoot, Vector3.new(1490, 0, 1484))
+MedicalService.start(teenDoc)
+check(teenDoc:GetAttribute("Job") == nil and notified(teenDoc, "mayor de edad"), "un adolescente no puede ser médico")
+local doctor, doctorRoot = newPlayer(46, "AdultoJoven", 0)
+moveTo(doctorRoot, Vector3.new(1490, 0, 1484))
+MedicalService.start(doctor)
+check(doctor:GetAttribute("Job") == "Medico" and lastMessage(doctor, "Case")[2].Phase == "Call", "un adulto empieza la guardia en la consulta 1")
+local sick, sickRoot = newPlayer(47, "Adulto", 50)
+moveTo(sickRoot, Vector3.new(1490, 0, 1484))
+promptOf(receptionDesk, "Pedir cita").Triggered:Fire(sick)
+check(notified(sick, "Tienes cita"), "un jugador pide cita en admisión y espera")
+-- Si antes llegaron pacientes NPC, se atienden en orden: los pasamos con diagnóstico
+local function treatNext()
+	promptOf(desk1, "Llamar al siguiente paciente").Triggered:Fire(doctor)
+	local case = lastMessage(doctor, "Case")[2]
+	if not case.Patient then
+		return nil
+	end
+	moveTo(doctorRoot, Vector3.new(1484, 0, 1503))
+	remotes.Medical.OnServerEvent:Fire(doctor, "Exam", "Temperatura")
+	remotes.Medical.OnServerEvent:Fire(doctor, "Exam", "Palpar")
+	case = lastMessage(doctor, "Case")[2]
+	return case
+end
+local case = treatNext()
+local guard = 0
+while case and case.Patient ~= (sick.DisplayName or sick.Name) and guard < 10 do
+	guard += 1
+	remotes.Medical.OnServerEvent:Fire(doctor, "Diagnose", case.Options[1].Id)
+	if lastMessage(doctor, "Case")[2].Phase ~= "Call" then
+		-- acertó por casualidad: cualquier medicina equivocada no cura, se termina bien igualmente
+		for _, a in Medical.Ailments do
+			remotes.Medical.OnServerEvent:Fire(doctor, "Medicine", a.Medicine)
+			promptOf(bed1, "Aplicar tratamiento").Triggered:Fire(doctor)
+			if lastMessage(doctor, "Case")[2].Phase == "Call" then
+				break
+			end
+		end
+	end
+	case = treatNext()
+end
+check(case ~= nil and case.Patient == (sick.DisplayName or sick.Name) and case.Says ~= nil, "llama al jugador enfermo, que le cuenta lo que le pasa")
+check(case.Exams[1].Result ~= nil or case.Exams[5].Result ~= nil, "las pruebas dan resultados")
+check(case.Options ~= nil and #case.Options == 4, "con dos pruebas salen cuatro diagnósticos posibles")
+-- El diagnóstico correcto (lo sabemos por el resultado de las pruebas que coinciden)
+local right = nil
+for _, option in case.Options do
+	local a = Medical.byId[option.Id]
+	if a.Results.Temperatura == case.Exams[1].Result and a.Results.Palpar == case.Exams[5].Result then
+		right = right or a
+	end
+end
+remotes.Medical.OnServerEvent:Fire(doctor, "Exam", "Auscultar")
+remotes.Medical.OnServerEvent:Fire(doctor, "Exam", "Garganta")
+remotes.Medical.OnServerEvent:Fire(doctor, "Exam", "Tension")
+case = lastMessage(doctor, "Case")[2]
+for _, option in case.Options do
+	local a = Medical.byId[option.Id]
+	local ok = true
+	for k, exam in case.Exams do
+		if exam.Result and a.Results[exam.Id] ~= exam.Result then
+			ok = false
+		end
+	end
+	if ok then
+		right = a
+	end
+end
+remotes.Medical.OnServerEvent:Fire(doctor, "Diagnose", right.Id)
+check(lastMessage(doctor, "Case")[2].Phase == "Treat", "acierta el diagnóstico con las pruebas")
+promptOf(meds1, "Coger medicina").Triggered:Fire(doctor)
+check(lastMessage(doctor, "Meds") ~= nil, "el botiquín enseña las medicinas")
+local wrong = if right.Medicine == "Venda" then "Jarabe" else "Venda"
+remotes.Medical.OnServerEvent:Fire(doctor, "Medicine", wrong)
+promptOf(bed1, "Aplicar tratamiento").Triggered:Fire(doctor)
+check(notified(doctor, "Eso no es para") and lastMessage(doctor, "Case")[2].Phase == "Treat", "con la medicina equivocada no deja tratar")
+local docMoney = profiles[doctor].Money
+remotes.Medical.OnServerEvent:Fire(doctor, "Medicine", right.Medicine)
+promptOf(bed1, "Aplicar tratamiento").Triggered:Fire(doctor)
+check(notified(sick, "Curado") and lastMessage(doctor, "Case")[2].Phase == "Call", "con la buena, el paciente se cura")
+check(profiles[doctor].Money == docMoney + Medical.Job.PerPatient + Medical.Job.RightDiagnosis, "el médico cobra por paciente y por acertar")
+MedicalService.quit(doctor)
+check(doctor:GetAttribute("Job") == nil, "termina la guardia")
+-- Sin médico jugador: consulta rápida con el médico NPC
+local walkIn, walkInRoot = newPlayer(48, "Adulto", 20)
+moveTo(walkInRoot, Vector3.new(1490, 0, 1484))
+promptOf(receptionDesk, "Pedir cita").Triggered:Fire(walkIn)
+check(profiles[walkIn].Money == 20 - Medical.QuickVisitPrice, "sin médico de guardia, la consulta rápida cuesta poco y te atiende el médico NPC")
 
 ---------------------------------------------------------------------
 print("▶ Autobús urbano L1: billete, paradas y conductor")
