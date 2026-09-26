@@ -132,6 +132,12 @@ end
 --   * CanTouch = false en todas las piezas: ningún script usa .Touched en el mapa, y así el motor
 --     no calcula contactos para 95.000 piezas.
 --   * Sin sombra en las piezas diminutas (menos de 2 studs en todas sus medidas): su sombra no se aprecia.
+--   * Sin sombra en lo que está plano en el suelo (carreteras, aceras, césped, pasos de cebra…):
+--     solo la echarían sobre el suelo de debajo, donde no se ve. Son decenas de miles de piezas.
+--   * Sin sombra en lo invisible (zonas, marcas, huecos de puertas).
+--   * Los carteles con texto (SurfaceGui) solo se dibujan cerca: de lejos no se leen y cuestan
+--     mucho en el móvil.
+local SIGN_DISTANCE = 220
 function Polish.optimize(root: Instance): (number, number)
 	local touch, shadows = 0, 0
 	for _, part in root:GetDescendants() do
@@ -140,11 +146,20 @@ function Polish.optimize(root: Instance): (number, number)
 				part.CanTouch = false
 				touch += 1
 			end
-			local s = part.Size
-			if part.CastShadow and math.max(s.X, s.Y, s.Z) < 2 then
-				part.CastShadow = false
-				shadows += 1
+			if part.CastShadow then
+				local s = part.Size
+				local off = math.max(s.X, s.Y, s.Z) < 2 or part.Transparency >= 0.9
+				if not off then
+					local lo, hi = box(part)
+					off = lo ~= nil and hi ~= nil and hi.Y - lo.Y < 1.2 and hi.Y < 1.6
+				end
+				if off then
+					part.CastShadow = false
+					shadows += 1
+				end
 			end
+		elseif part:IsA("SurfaceGui") and part.MaxDistance == 0 then
+			part.MaxDistance = SIGN_DISTANCE
 		end
 	end
 	return touch, shadows

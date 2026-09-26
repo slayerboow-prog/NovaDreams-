@@ -7,8 +7,13 @@
 
 local NearShadows = {}
 
-local MAX = if require(script.Parent.Parent.UI.Perf).lite then 4 else 12 -- luces con sombra a la vez (en móvil, menos)
+local LITE = require(script.Parent.Parent.UI.Perf).lite
+local MAX = if LITE then 4 else 12 -- luces con sombra a la vez (en móvil, menos)
 local RANGE = 160 -- más lejos de esto, sin sombra
+-- Modo ligero (móvil): de noche solo dan luz de verdad las farolas cercanas. Las lejanas siguen
+-- brillando (la bombilla es de neón), pero sin iluminar el suelo, que es lo que cuesta.
+-- El servidor dice si toca que estén encendidas con el material de la bombilla (neón = encendida).
+local LAMP_RANGE = 200
 
 local tracked: { [Light]: boolean } = {}
 
@@ -44,6 +49,17 @@ function NearShadows.init()
 		task.wait(0.5)
 		local camera = workspace.CurrentCamera
 		local eye = camera and camera.CFrame.Position
+		if eye and LITE then
+			for light in tracked do
+				local bulb = light.Parent
+				if bulb and bulb:IsA("BasePart") and bulb:HasTag("StreetLamp") then
+					local want = bulb.Material == Enum.Material.Neon and (bulb.Position - eye).Magnitude < LAMP_RANGE
+					if light.Enabled ~= want then
+						light.Enabled = want
+					end
+				end
+			end
+		end
 		if eye then
 			local near = {}
 			for light in tracked do
