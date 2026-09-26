@@ -84,6 +84,19 @@ local function pick<T>(list: { T }): T
 	return list[math.random(1, #list)]
 end
 
+-- Direcciones: cada casa tiene su calle y su número (el repartidor lleva los paquetes aquí)
+local STREETS = {
+	"Calle del Olivo", "Calle de la Luna", "Calle Mayor", "Calle de los Almendros", "Calle del Sol",
+	"Avenida de la Playa", "Calle de las Rosas", "Calle del Pino", "Calle de la Fuente", "Calle del Puerto",
+	"Calle de los Naranjos", "Paseo del Río", "Calle de la Estrella", "Calle del Molino", "Calle de las Flores",
+	"Calle de la Brisa", "Calle del Faro", "Calle de los Tilos", "Calle del Mirador", "Calle de la Alameda",
+}
+
+function HouseKit.address(): (string, number)
+	local number = math.random(1, 60)
+	return STREETS[math.random(1, #STREETS)] .. ", " .. number, number
+end
+
 export type Options = {
 	Style: string?,
 	Floors: number?,
@@ -239,7 +252,12 @@ function HouseKit.build(parent: Instance, cf: CFrame, w: number, d: number, opti
 	local door = front * CFrame.new(doorX, 0, 0)
 	bit("DoorFrame", Vector3.new(4.6, 8.2, 0.25), door * CFrame.new(0, 4.1, -0.12), style.Trim)
 	local doorColor = if shutter then shutter else pick({ rgb(90, 60, 40), rgb(40, 50, 60), rgb(150, 40, 40) })
-	solid("Door", Vector3.new(3.8, 7.4, 0.3), door * CFrame.new(0, 3.9, -0.25), doorColor, Enum.Material.Wood)
+	local doorPart = solid("Door", Vector3.new(3.8, 7.4, 0.3), door * CFrame.new(0, 3.9, -0.25), doorColor, Enum.Material.Wood)
+	-- Dirección de la casa: el buzón (o la puerta si no hay buzón) lleva la etiqueta Buzon
+	local address, number = HouseKit.address()
+	m:SetAttribute("Address", address)
+	local doorSpot = (door * CFrame.new(0, 0, -2.2)).Position
+	local deliveryPoint: BasePart = doorPart
 	for _, y in { 2.2, 5.4 } do
 		bit("DoorPanel", Vector3.new(2.6, 2.4, 0.08), door * CFrame.new(0, y, -0.44), doorColor:Lerp(Color3.new(0, 0, 0), 0.15), Enum.Material.Wood)
 	end
@@ -252,7 +270,8 @@ function HouseKit.build(parent: Instance, cf: CFrame, w: number, d: number, opti
 	lamp:SetAttribute("NightColor", rgb(255, 214, 150))
 	lamp:SetAttribute("OnAt", 19)
 	lamp:SetAttribute("OffAt", 23.5)
-	bit("HouseNumber", Vector3.new(1, 0.7, 0.08), door * CFrame.new(2.9, 6.4, -0.12), rgb(40, 40, 44))
+	local plate = bit("HouseNumber", Vector3.new(1, 0.7, 0.08), door * CFrame.new(2.9, 6.4, -0.12), rgb(40, 40, 44))
+	Builder.sign(plate, tostring(number), Enum.NormalId.Front, rgb(250, 250, 250))
 
 	---------------------------------------------------------------------
 	-- Balcón, porche, garaje y extras
@@ -322,7 +341,7 @@ function HouseKit.build(parent: Instance, cf: CFrame, w: number, d: number, opti
 		-- Buzón
 		local mailbox = front * CFrame.new(doorX + 3.6, 0, -yard - 1.8)
 		bit("MailboxPost", Vector3.new(0.3, 3.2, 0.3), mailbox * CFrame.new(0, 1.6, 0), rgb(60, 60, 64), Enum.Material.Metal)
-		bit("Mailbox", Vector3.new(1.1, 0.9, 1.5), mailbox * CFrame.new(0, 3.5, 0), pick({ rgb(200, 40, 40), rgb(40, 60, 120), rgb(40, 40, 44) }), Enum.Material.Metal)
+		deliveryPoint = bit("Mailbox", Vector3.new(1.1, 0.9, 1.5), mailbox * CFrame.new(0, 3.5, 0), pick({ rgb(200, 40, 40), rgb(40, 60, 120), rgb(40, 40, 44) }), Enum.Material.Metal)
 		-- Cubos de basura junto a la valla
 		for k, color in { rgb(40, 110, 60), rgb(60, 60, 64) } do
 			bit("Bin", Vector3.new(1.4, 2.4, 1.4), front * CFrame.new(-w / 2 + 1.2 + (k - 1) * 1.6, 1.2, -yard + 0.2), color, Enum.Material.Plastic)
@@ -340,6 +359,9 @@ function HouseKit.build(parent: Instance, cf: CFrame, w: number, d: number, opti
 			Nature.bush(m, (front * CFrame.new(w / 2 - 1.5, 0, -4)).Position)
 		end
 	end
+	deliveryPoint:AddTag("Buzon")
+	deliveryPoint:SetAttribute("Address", address)
+	deliveryPoint:SetAttribute("DoorSpot", doorSpot)
 	return m
 end
 

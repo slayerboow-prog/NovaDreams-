@@ -1,7 +1,7 @@
 -- CafeUI (cliente): la parte que ves en las cafeterías.
 --   * La carta (al pulsar "Pedir" en la caja): eliges hasta 3 cosas, ves el total y pagas.
 --   * De barista: panel con los pedidos y sus pasos (✅ hecho, ➡️ el siguiente) y el tiempo que
---     lleva esperando cada cliente. Los carteles de los puestos solo los ve quien trabaja de barista.
+--     lleva esperando cada cliente. (Los carteles de los puestos solo los ve el barista: JobPrompts.)
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -25,32 +25,8 @@ local panel: Frame
 local list: ScrollingFrame
 local hint: TextLabel
 
----------------------------------------------------------------------
--- Carteles de los puestos: solo para el barista
----------------------------------------------------------------------
-local staffPrompts: { ProximityPrompt } = {}
-
 local function isBarista(): boolean
 	return player:GetAttribute("Job") == "Barista"
-end
-
-local function trackPrompt(d: Instance)
-	if d:IsA("ProximityPrompt") and d:GetAttribute("CafeStaff") then
-		table.insert(staffPrompts, d)
-		d.Enabled = isBarista()
-	end
-end
-
-local function refreshPrompts()
-	local on = isBarista()
-	for i = #staffPrompts, 1, -1 do
-		local p = staffPrompts[i]
-		if p.Parent then
-			p.Enabled = on
-		else
-			table.remove(staffPrompts, i)
-		end
-	end
 end
 
 ---------------------------------------------------------------------
@@ -205,12 +181,7 @@ function CafeUI.init()
 	})
 	create("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder, Parent = list })
 
-	for _, d in workspace:GetDescendants() do
-		trackPrompt(d)
-	end
-	workspace.DescendantAdded:Connect(trackPrompt)
 	player:GetAttributeChangedSignal("Job"):Connect(function()
-		refreshPrompts()
 		if not isBarista() then
 			panel.Visible = false
 		end

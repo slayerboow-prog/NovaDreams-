@@ -26,6 +26,7 @@ local Landmarks = require(Kit.Landmarks)
 local Roads = require(Kit.Roads)
 local Supermarket = require(Kit.Supermarket)
 local Cafe = require(Kit.Cafe)
+local PostOffice = require(Kit.PostOffice)
 local CityPlan = require(game:GetService("ReplicatedStorage").Shared.CityPlan)
 local Region = require(script.Parent.Region)
 
@@ -147,11 +148,8 @@ local function buildPostOffice(world: Instance)
 		WindowFaces = { Front = true, Left = true, Right = true },
 		Sign = "CORREOS", SignColor = rgb(30, 60, 140), Awning = rgb(30, 60, 140),
 	})
-	counter(model, at(0, 0, 3), 20, rgb(30, 60, 140))
-	Builder.part({
-		Name = "Parcels", Size = Vector3.new(10, 5, 4), CFrame = at(0, 2.5, 11),
-		Color = rgb(170, 120, 70), Material = Enum.Material.Cardboard, Tags = { "Pickup_Repartidor" }, Parent = model,
-	})
+	-- Mostrador, clasificación y reparto (Kit/PostOffice + PostService)
+	PostOffice.build(model, at, W, D)
 	Props.jobBoard(world, at(10, 0, -D / 2 - 3.5) * CFrame.Angles(0, math.pi, 0), "Repartidor", "REPARTIDOR")
 end
 
@@ -473,7 +471,7 @@ local function buildPlot(parent: Instance, plotId: number, center: Vector3)
 	Builder.part({ Name = "MailboxPost", Size = Vector3.new(0.4, 3.5, 0.4), CFrame = cf * CFrame.new(5, 1.75, -half + 1), Color = Palette.Street.Wood, Parent = plot })
 	Builder.part({
 		Name = "Mailbox", Size = Vector3.new(1.2, 1.2, 2), CFrame = cf * CFrame.new(5, 4, -half + 1),
-		Color = rgb(196, 48, 48), Tags = { "Dropoff_Repartidor" }, Parent = plot,
+		Color = rgb(196, 48, 48), Tags = { "Dropoff_Repartidor", "Buzon" }, Attributes = { Address = "Parcela " .. plotId }, Parent = plot,
 	})
 	-- Cartel de la parcela (reclamar / mejorar casa)
 	Builder.part({ Name = "SignPost", Size = Vector3.new(0.4, 4, 0.4), CFrame = cf * CFrame.new(-6, 2, -half + 1), Color = Palette.Street.Wood, Parent = plot })

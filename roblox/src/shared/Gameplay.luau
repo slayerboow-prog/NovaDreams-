@@ -235,4 +235,24 @@ function Gameplay.orderText(items: { string }): string
 	return table.concat(names, ", ", 1, #names - 1) .. " y " .. names[#names]
 end
 
+---------------------------------------------------------------------
+-- Correos: oficio de repartidor (PostService)
+---------------------------------------------------------------------
+Gameplay.Post = {
+	Parcels = 5, -- paquetes por ruta
+	MinDistance = 120, -- las casas de la ruta, entre estas distancias de Correos
+	MaxDistance = 700,
+	PerParcel = 10, -- sueldo por paquete entregado
+	PerStud = 0.02, -- y un extra según lo lejos que esté la casa
+	RouteBonus = 25, -- al cerrar la ruta en Correos
+	RouteSeconds = 420, -- si se cierra antes de esto, bonus doble
+	EnergyCost = 3,
+	Kinds = {
+		{ Id = "Carta", Name = "Carta certificada", Icon = "✉️", Door = false, Size = Vector3.new(0.9, 0.1, 0.6) },
+		{ Id = "Paquete", Name = "Paquete pequeño", Icon = "📦", Door = false, Size = Vector3.new(1.2, 0.8, 1) },
+		{ Id = "Caja", Name = "Caja grande (en mano)", Icon = "📦", Door = true, Size = Vector3.new(2, 1.5, 1.6) },
+		{ Id = "Urgente", Name = "Urgente (en mano)", Icon = "🚨", Door = true, Size = Vector3.new(1.4, 1, 1.2) },
+	},
+}
+
 return Gameplay

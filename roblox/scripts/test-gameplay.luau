@@ -298,6 +298,7 @@ local remotes = {
 	Progression = remote(),
 	Supermarket = remote(),
 	Cafe = remote(),
+	Post = remote(),
 }
 function remotes:WaitForChild(name)
 	return self[name]
@@ -1320,6 +1321,66 @@ if first and first.Name == (coffeeFan.DisplayName or coffeeFan.Name) then
 end
 CafeService.quit(barista)
 check(barista:GetAttribute("Job") == nil and lastMessage(barista, "Stop") ~= nil, "deja el trabajo de barista")
+
+---------------------------------------------------------------------
+print("▶ Correos: oficio de repartidor con ruta por las casas")
+local postModel = fakeInstance("Model")
+postModel.Name = "Correos"
+postModel.Parent = worldRoot
+local sortTable = part("PostSort", CFrame.new(900, 3, 900), { "PostSort" })
+sortTable.Parent = postModel
+local postVehicle = part("PostVehicle", CFrame.new(890, 2, 880), { "PostVehicle" })
+postVehicle.Parent = postModel
+postModel:AddTag("PostOffice")
+for k = 1, 6 do
+	local angle = k * math.pi / 3
+	local pos = Vector3.new(900 + math.cos(angle) * (150 + k * 20), 3.5, 900 + math.sin(angle) * (150 + k * 20))
+	part("Mailbox", CFrame.new(pos), { "Buzon" }, { Address = "Calle de Prueba, " .. k, DoorSpot = pos + Vector3.new(0, -3.5, 6) })
+end
+local PostService = loadModule(S .. "PostService")
+PostService.init()
+check(jobProviders.Handler_Repartidor ~= nil, "el tablón de Correos lleva al oficio de repartidor (el mismo tablón de la historia)")
+local postie, postieRoot = newPlayer(42, "Adolescente", 0)
+moveTo(postieRoot, Vector3.new(900, 0, 896))
+local postEvents = 0
+StoryEventsModule.connect(function(player, name, payload)
+	if player == postie and name == "JobTaskDone" and payload and payload.JobId == "Repartidor" then
+		postEvents += 1
+	end
+end)
+PostService.start(postie)
+local routeMsg = lastMessage(postie, "Route")
+check(postie:GetAttribute("Job") == "Repartidor" and routeMsg ~= nil and routeMsg[2].Phase == "Load" and #routeMsg[2].Stops == Gameplay.Post.Parcels, "empieza con una ruta de 5 casas por cargar")
+check(string.find(routeMsg[2].Stops[1].Address, "Calle de Prueba") ~= nil, "cada paquete va a la dirección de una casa")
+promptOf(sortTable, "Cargar / cerrar la ruta").Triggered:Fire(postie)
+check(lastMessage(postie, "Route")[2].Phase == "Deliver", "carga los paquetes en la mesa del escáner")
+local function ownPrompt()
+	for _, d in worldRoot:GetDescendants() do
+		if d.ClassName == "ProximityPrompt" and d:GetAttribute("OwnerUserId") == postie.UserId and d.Parent then
+			return d
+		end
+	end
+	return nil
+end
+local firstPrompt = ownPrompt()
+check(firstPrompt ~= nil and firstPrompt:GetAttribute("JobOnly") == "Repartidor", "en la primera casa hay un cartel solo para su repartidor")
+local stranger = newPlayer(43, "Adulto", 0)
+firstPrompt.Triggered:Fire(stranger)
+check(lastMessage(postie, "Route")[2].Stops[1].Done == false, "otro jugador no puede entregar sus paquetes")
+for _ = 1, Gameplay.Post.Parcels do
+	local prompt = ownPrompt()
+	if prompt then
+		prompt.Triggered:Fire(postie)
+	end
+end
+local finished = lastMessage(postie, "Route")[2]
+check(finished.Phase == "Return" and postEvents == Gameplay.Post.Parcels, "entrega los 5 paquetes (cada uno cuenta para la historia)")
+check(profiles[postie].Money >= Gameplay.Post.Parcels * Gameplay.Post.PerParcel, "cobra por cada paquete, más si la casa está lejos")
+local beforeBonus = profiles[postie].Money
+promptOf(sortTable, "Cargar / cerrar la ruta").Triggered:Fire(postie)
+check(profiles[postie].Money == beforeBonus + Gameplay.Post.RouteBonus * 2 and lastMessage(postie, "Route")[2].Phase == "Load", "cierra la ruta con bonus por rapidez y le dan otra")
+PostService.quit(postie)
+check(postie:GetAttribute("Job") == nil and ownPrompt() == nil, "deja el trabajo y se quitan sus carteles")
 
 ---------------------------------------------------------------------
 print("▶ Autobús urbano L1: billete, paradas y conductor")

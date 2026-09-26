@@ -689,7 +689,7 @@ local function prompt(parent: BasePart, action: string, object: string, hold: nu
 	p.MaxActivationDistance = 8
 	p.RequiresLineOfSight = false
 	if staff then
-		p:SetAttribute("CafeStaff", true) -- el cliente solo lo enseña a quien trabaja de barista
+		p:SetAttribute("JobOnly", "Barista") -- el cliente solo lo enseña a quien trabaja de barista (JobPrompts)
 	end
 	p.Parent = parent
 	return p

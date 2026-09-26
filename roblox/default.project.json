@@ -32,6 +32,9 @@
         "Cafe": {
           "$className": "RemoteEvent"
         },
+        "Post": {
+          "$className": "RemoteEvent"
+        },
         "LifeStory": {
           "$className": "RemoteEvent"
         },
