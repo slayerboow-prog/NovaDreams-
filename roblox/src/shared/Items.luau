@@ -19,6 +19,7 @@ local ShopItems = require(script.Parent.LifeStory.ShopItems)
 local Subjects = require(script.Parent.LifeStory.Subjects)
 local Strings = require(script.Parent.LifeStory.Strings)
 local Groceries = require(script.Parent.Groceries)
+local CafeMenu = require(script.Parent.CafeMenu)
 
 local Items = {}
 
@@ -150,6 +151,21 @@ for _, deli in Groceries.Deli do
 		Stack = 16,
 		Hunger = deli.Hunger * 2,
 		Energy = 0,
+	}
+end
+
+-- Cafetería: lo que se pide en la barra (lo prepara el barista)
+for _, product in CafeMenu.List do
+	local id = CafeMenu.itemId(product.Id)
+	list[id] = {
+		Id = id,
+		Name = product.Name,
+		Icon = product.Icon,
+		Kind = "Food",
+		Desc = if product.Plate then "Recién servido en la cafetería." else "Recién hecho por el barista. Quita el sueño.",
+		Stack = 8,
+		Hunger = product.Hunger,
+		Energy = product.Energy,
 	}
 end
 

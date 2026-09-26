@@ -297,6 +297,7 @@ local remotes = {
 	Inventory = remote(),
 	Progression = remote(),
 	Supermarket = remote(),
+	Cafe = remote(),
 }
 function remotes:WaitForChild(name)
 	return self[name]
@@ -470,6 +471,9 @@ mocks[S .. "JobService"] = {
 	end,
 	start = function(player, id, context)
 		table.insert(jobStarts, { player, id, context })
+	end,
+	setHandler = function(id, handler)
+		jobProviders["Handler_" .. id] = handler
 	end,
 }
 mocks[ROOT .. "/server/World/Region"] = { Towns = { { Name = "Los Pinos", Center = Vector3.new(0, 0, 1100) } } }
@@ -1218,6 +1222,104 @@ local target = provider.Dropoff(cashier, shift)
 check(target == cookies, "le manda a la sección más vacía")
 provider.Done(cashier, shift)
 check(cookies:GetAttribute("Stock") == Groceries.StockMax, "al dejar la caja, la sección se llena")
+
+---------------------------------------------------------------------
+print("▶ Cafetería: pedir en la caja y oficio de barista paso a paso")
+local CafeMenu = loadModule(ROOT .. "/shared/CafeMenu")
+local cafeModel = fakeInstance("Model")
+cafeModel.Name = "Cafeteria"
+cafeModel.Parent = worldRoot
+cafeModel:SetAttribute("Outside", Vector3.new(700, 0.4, 670))
+cafeModel:SetAttribute("Door", Vector3.new(700, 0.4, 680))
+for i = 1, 4 do
+	cafeModel:SetAttribute("Queue" .. i, Vector3.new(702, 0.4, 690 - i * 3))
+end
+cafeModel:SetAttribute("Wait", Vector3.new(690, 0.4, 690))
+cafeModel:SetAttribute("Staff", Vector3.new(698, 0.4, 698))
+local function cp(name, position, tags, attrs)
+	local p = part(name, CFrame.new(position), tags, attrs)
+	p.Size = Vector3.new(2, 2, 2)
+	p.Parent = cafeModel
+	return p
+end
+local register = cp("Register", Vector3.new(702, 4, 694), { "CafeRegister" })
+local pickupSpot = cp("Pickup", Vector3.new(690, 4, 694), { "CafePickup" })
+local cafeStations = {}
+for id in CafeMenu.Stations do
+	cafeStations[id] = cp("Station_" .. id, Vector3.new(700, 4, 700), { "CafeStation" }, { Station = id })
+end
+cp("Seat", Vector3.new(705, 2, 680), { "CafeSeat" })
+cafeModel:AddTag("Cafe")
+local CafeService = loadModule(S .. "CafeService")
+CafeService.init()
+check(jobProviders.Handler_Barista ~= nil, "el tablón de barista lo lleva la cafetería (la historia sigue usando el mismo tablón)")
+
+local barista, baristaRoot = newPlayer(40, "Adolescente", 0)
+moveTo(baristaRoot, Vector3.new(700, 0, 698))
+CafeService.start(barista)
+check(barista:GetAttribute("Job") == "Barista" and lastMessage(barista, "Start") ~= nil, "un jugador empieza de barista")
+
+local coffeeFan, coffeeRoot = newPlayer(41, "Adulto", 20)
+moveTo(coffeeRoot, Vector3.new(702, 0, 690))
+promptOf(register, "Pedir").Triggered:Fire(coffeeFan)
+local menuMsg = lastMessage(coffeeFan, "Menu")
+check(menuMsg ~= nil and #menuMsg[2] == #CafeMenu.List and menuMsg[3] == (barista.DisplayName or barista.Name), "en la caja sale la carta y quién atiende")
+remotes.Cafe.OnServerEvent:Fire(coffeeFan, "Order", { "Capuchino", "Croissant" })
+local price = CafeMenu.byId.Capuchino.Price + CafeMenu.byId.Croissant.Price
+check(profiles[coffeeFan].Money == 20 - price, "pide un capuchino y un croissant y paga")
+local workMsg = lastMessage(barista, "Work")
+local mine = workMsg and workMsg[2][#workMsg[2]]
+check(mine ~= nil and mine.Name == (coffeeFan.DisplayName or coffeeFan.Name) and #mine.Tasks == 5, "el barista ve el pedido con sus 5 pasos")
+
+-- Si había pedidos de clientes NPC antes, se hacen en orden: los terminamos primero
+local function doSteps()
+	for _ = 1, 30 do
+		local msg = lastMessage(barista, "Work")
+		local current = msg and msg[2][1]
+		if not current then
+			return nil
+		end
+		if current.Ready then
+			return current
+		end
+		for _, t in current.Tasks do
+			if not t.Done then
+				for id, station in CafeMenu.Stations do
+					if station.Name == t.Label then
+						promptOf(cafeStations[id], station.Name).Triggered:Fire(barista)
+					end
+				end
+				break
+			end
+		end
+	end
+	return nil
+end
+local ready = doSteps()
+while ready and ready.Name ~= (coffeeFan.DisplayName or coffeeFan.Name) do
+	promptOf(pickupSpot, "Entregar pedido").Triggered:Fire(barista)
+	ready = doSteps()
+end
+check(ready ~= nil and ready.Name == (coffeeFan.DisplayName or coffeeFan.Name), "hace todos los pasos en orden y el pedido queda listo")
+check(barista:GetAttribute("TaskTarget") == pickupSpot.Position, "la línea azul le lleva a la recogida")
+promptOf(cafeStations.Grind, CafeMenu.Stations.Grind.Name).Triggered:Fire(barista)
+check(notified(barista, "ya está listo"), "no deja hacer más pasos a un pedido ya listo")
+local baristaBefore = profiles[barista].Money
+promptOf(pickupSpot, "Entregar pedido").Triggered:Fire(barista)
+check(InventoryService.count(coffeeFan, "Cafe_Capuchino") == 1 and InventoryService.count(coffeeFan, "Cafe_Croissant") == 1, "el cliente recibe el capuchino y el croissant en la mochila")
+local J = CafeMenu.Job
+check(profiles[barista].Money == baristaBefore + J.PerOrder + 5 * J.PerStep + J.TipFast, "el barista cobra por pedido, por paso y propina por ser rápido")
+
+-- Paso equivocado
+remotes.Cafe.OnServerEvent:Fire(coffeeFan, "Order", { "Espresso" })
+local espressoWork = lastMessage(barista, "Work")
+local first = espressoWork and espressoWork[2][1]
+if first and first.Name == (coffeeFan.DisplayName or coffeeFan.Name) then
+	promptOf(cafeStations.Brew, CafeMenu.Stations.Brew.Name).Triggered:Fire(barista)
+	check(notified(barista, "Ahora no toca"), "si va al puesto equivocado, le avisa del paso que toca")
+end
+CafeService.quit(barista)
+check(barista:GetAttribute("Job") == nil and lastMessage(barista, "Stop") ~= nil, "deja el trabajo de barista")
 
 ---------------------------------------------------------------------
 print("▶ Autobús urbano L1: billete, paradas y conductor")

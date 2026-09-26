@@ -29,6 +29,9 @@
         "Avatar": {
           "$className": "RemoteEvent"
         },
+        "Cafe": {
+          "$className": "RemoteEvent"
+        },
         "LifeStory": {
           "$className": "RemoteEvent"
         },

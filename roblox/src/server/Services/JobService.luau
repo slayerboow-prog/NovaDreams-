@@ -45,6 +45,15 @@ function JobService.setProvider(jobId: string, provider: Provider)
 	providers[jobId] = provider
 end
 
+-- Oficios con su propio sistema (el barista de CafeService): el tablón "Trabajar" y el botón de
+-- dejar el trabajo llaman a Start/Quit de ese sistema en vez de al circuito de recoger y entregar.
+export type Handler = { Start: (Player) -> (), Quit: (Player, boolean?) -> () }
+local handlers: { [string]: Handler } = {}
+
+function JobService.setHandler(jobId: string, handler: Handler)
+	handlers[jobId] = handler
+end
+
 function JobService.shiftOf(player: Player): Shift?
 	return shifts[player]
 end
@@ -124,6 +133,10 @@ end
 function JobService.quit(player: Player, silent: boolean?)
 	local shift = shifts[player]
 	if not shift then
+		local own = handlers[player:GetAttribute("Job") or ""]
+		if own then
+			own.Quit(player, silent)
+		end
 		return
 	end
 	removeCarry(shift)
@@ -215,6 +228,15 @@ local function setupBoard(board: Instance)
 	end
 	local prompt = Builder.prompt(board, "Trabajar", ("%s · %s/entrega"):format(job.DisplayName, Format.money(job.Pay)), 0.5)
 	prompt.Triggered:Connect(function(player)
+		local own = handlers[jobId]
+		if own then
+			if player:GetAttribute("Job") == jobId then
+				own.Quit(player)
+			else
+				own.Start(player)
+			end
+			return
+		end
 		if player:GetAttribute("Job") == jobId then
 			JobService.quit(player)
 		else

@@ -25,6 +25,7 @@ local Rides = require(Kit.Rides)
 local Landmarks = require(Kit.Landmarks)
 local Roads = require(Kit.Roads)
 local Supermarket = require(Kit.Supermarket)
+local Cafe = require(Kit.Cafe)
 local CityPlan = require(game:GetService("ReplicatedStorage").Shared.CityPlan)
 local Region = require(script.Parent.Region)
 
@@ -90,7 +91,8 @@ local function cafeTable(parent: Instance, cf: CFrame, tag: string?)
 	Builder.decor({ Name = "Leg", Size = Vector3.new(0.4, 2.8, 0.4), CFrame = cf * CFrame.new(0, 1.5, 0), Color = Palette.Street.Metal, Material = Enum.Material.Metal, Parent = m })
 	for _, dir in { -1, 1 } do
 		local chair = cf * CFrame.new(dir * 3.4, 0, 0) * CFrame.Angles(0, if dir > 0 then math.rad(90) else math.rad(-90), 0)
-		Builder.part({ Name = "Seat", Size = Vector3.new(2, 0.3, 2), CFrame = chair * CFrame.new(0, 1.9, 0), Color = rgb(150, 100, 64), Material = Enum.Material.Wood, Parent = m })
+		-- (dentro de la cafetería, los clientes NPC se sientan aquí a tomarse lo suyo: CafeSeat)
+		Builder.part({ Name = "Seat", Size = Vector3.new(2, 0.3, 2), CFrame = chair * CFrame.new(0, 1.9, 0), Color = rgb(150, 100, 64), Material = Enum.Material.Wood, Tags = if tag then { "CafeSeat" } else nil, Parent = m })
 		Builder.decor({ Name = "Back", Size = Vector3.new(2, 2, 0.25), CFrame = chair * CFrame.new(0, 3, 0.9), Color = rgb(150, 100, 64), Material = Enum.Material.Wood, Parent = m })
 		for _, lx in { -0.8, 0.8 } do
 			for _, lz in { -0.8, 0.8 } do
@@ -113,14 +115,13 @@ local function buildCafe(world: Instance)
 		Sign = "CAFETERÍA CENTRAL", SignColor = rgb(96, 60, 38), Awning = rgb(110, 66, 40), ShopId = "Cafeteria",
 		FloorMaterial = Enum.Material.WoodPlanks, FloorColor = rgb(150, 108, 72),
 	})
-	counter(model, at(0, 0, 11), 26, rgb(96, 60, 38))
-	Builder.part({
-		Name = "CoffeeMachine", Size = Vector3.new(3, 3, 2), CFrame = at(-9, 5.4, 11),
-		Color = rgb(60, 60, 66), Material = Enum.Material.Metal, Tags = { "Pickup_Barista" }, Parent = model,
-	})
-	foodStand(model, at(4, 4.5, 10.5), "Cafe", rgb(96, 60, 38))
-	foodStand(model, at(9, 4.5, 10.5), "Croissant", rgb(222, 170, 90))
-	for _, p in { { -12, -8 }, { 0, -8 }, { 12, -8 }, { -12, 1 }, { 12, 1 } } do
+	-- Barra, cafetera y puestos del barista (Kit/Cafe + CafeService)
+	Cafe.build(model, at, W, D)
+	-- Café y croissant para llevar (autoservicio junto a la puerta)
+	counter(model, at(-17, 0, -10), 4, rgb(96, 60, 38))
+	foodStand(model, at(-17.8, 4.5, -10), "Cafe", rgb(96, 60, 38))
+	foodStand(model, at(-16.2, 4.5, -10), "Croissant", rgb(222, 170, 90))
+	for _, p in { { -10, -8 }, { 0, -8 }, { 12, -8 }, { -8, 1 }, { 13, 1 } } do
 		cafeTable(model, at(p[1], 0, p[2]), "Dropoff_Barista")
 	end
 	Props.jobBoard(world, at(10, 0, -D / 2 - 3.5) * CFrame.Angles(0, math.pi, 0), "Barista", "BARISTA")
