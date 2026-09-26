@@ -9,6 +9,13 @@ local Stages = require(script.Parent.Stages)
 local Strings = require(script.Parent.Strings)
 local Roles = require(script.Parent.Parent.Roles)
 local Cinematics = require(script.Parent.Cinematics)
+local Emotion = require(script.Parent.Emotion)
+
+-- Lo que puede estar haciendo un personaje en una escena (SceneService)
+local ACTOR_MODES = {
+	Idle = true, Sit = true, Wave = true, Cheer = true, Point = true, Dance = true, Laugh = true,
+	Chat = true, Wander = true, Follow = true, Flee = true,
+}
 local Config = require(script.Parent.Parent.Config)
 local Subjects = require(script.Parent.Subjects)
 local DayPlans = require(script.Parent.DayPlans)
@@ -72,6 +79,9 @@ function Validate.mission(id: string, quest: { [string]: any }, err: (string, ..
 		end
 		if spec.Mode ~= "Follow" then
 			helpers.place(where, spec.Place or "CercaDeTi")
+		end
+		if spec.Mode ~= nil and not ACTOR_MODES[spec.Mode] then
+			err("%s: modo de actor desconocido '%s'", where, tostring(spec.Mode))
 		end
 		for _, stop in spec.Route or {} do
 			helpers.place(where .. ".Route", if type(stop) == "table" then stop.Place else stop)
@@ -235,6 +245,9 @@ function Validate.run(): { string }
 			local w = where .. ".l" .. i
 			if line.S and line.S ~= "Yo" and line.S ~= "Narrador" and not Cast.People[line.S] then
 				err("%s: habla alguien que no está en el reparto '%s'", w, tostring(line.S))
+			end
+			if line.A ~= nil and not Emotion.valid(line.A) then
+				err("%s: gesto desconocido A = '%s'", w, tostring(line.A))
 			end
 			if line.Ask then
 				if not line.Options or #line.Options == 0 then
@@ -436,7 +449,7 @@ function Validate.run(): { string }
 		end
 		for name, anchor in cine.Anchors or {} do
 			local kind, value = anchor:match("^(%a+):(.+)$")
-			if anchor ~= "Player" and not (kind == "Place" and Locations.Places[value]) and not (kind == "Zone" and table.find(Locations.Zones, value)) then
+			if anchor ~= "Player" and not (kind == "Place" and Locations.Places[value]) and not (kind == "Zone" and table.find(Locations.Zones, value)) and not (kind == "Actor" and Cast.People[value]) then
 				err("%s: ancla %s no válida '%s'", where, name, anchor)
 			end
 		end
@@ -457,6 +470,39 @@ function Validate.run(): { string }
 		end
 		for _, line in cine.Lines or {} do
 			text(where, line.TextKey)
+			if line.A ~= nil and not Emotion.valid(line.A) then
+				err("%s: gesto desconocido A = '%s'", where, tostring(line.A))
+			end
+		end
+		for _, anim in cine.Anims or {} do
+			if not Emotion.Animated[anim.Play] then
+				err("%s: gesto de animación desconocido '%s'", where, tostring(anim.Play))
+			end
+			if type(anim.At) ~= "number" or anim.At < 0 or anim.At > (cine.Duration or 0) then
+				err("%s: gesto %s fuera de la escena (At)", where, tostring(anim.Play))
+			end
+			if anim.Who ~= "Player" and anim.Who ~= "Todos" and not Cast.People[anim.Who] then
+				err("%s: gesto de alguien que no está en el reparto '%s'", where, tostring(anim.Who))
+			end
+		end
+		local total = 0
+		for _, shot in cine.Shots or {} do
+			total += shot.Duration or 0
+			if shot.Shake ~= nil and (type(shot.Shake) ~= "number" or shot.Shake < 0 or shot.Shake > 2) then
+				err("%s: Shake debe ser un número entre 0 y 2", where)
+			end
+			local fov = shot.Fov
+			if fov ~= nil then
+				local list = if type(fov) == "table" then fov else { fov }
+				for _, f in list do
+					if type(f) ~= "number" or f < 10 or f > 110 then
+						err("%s: Fov fuera de rango (10-110)", where)
+					end
+				end
+			end
+		end
+		if total + 0.01 < (cine.Duration or 0) - 1.5 then
+			err("%s: los planos duran %.1f s pero la escena %.1f s (la cámara se quedaría quieta)", where, total, cine.Duration)
 		end
 		for _, title in cine.Titles or {} do
 			text(where, title.TextKey)

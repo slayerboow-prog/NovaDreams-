@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Cinematics = require(ReplicatedStorage.Shared.LifeStory.Cinematics)
 local LocationService = require(script.Parent.LocationService)
+local SceneService = require(script.Parent.SceneService)
 
 local CinematicService = {}
 
@@ -33,9 +34,18 @@ function CinematicService.resolveAnchors(player: Player, cinematic: { [string]: 
 			elseif kind == "Zone" then
 				local center = LocationService.zoneCenter(value)
 				cf = center and CFrame.new(center)
+			elseif kind == "Actor" then
+				-- Un personaje de la escena del jugador (para primeros planos)
+				local model = SceneService.actorOf(player, value)
+				if model then
+					local ok, pivot = pcall(function()
+						return model:GetPivot()
+					end)
+					cf = if ok then pivot else nil
+				end
 			end
 		end
-		if not cf and anchor ~= "Player" then
+		if not cf and anchor ~= "Player" and not anchor:match("^Actor:") then
 			warn(("[CinematicService] Ancla '%s' (%s) no encontrada; se usa el jugador"):format(name, anchor))
 		end
 		anchors[name] = cf or fallback

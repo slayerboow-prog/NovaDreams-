@@ -118,6 +118,8 @@ function dialogueRemote:FireClient(player, kind, payload)
 	end
 	for _, line in payload.Lines do
 		table.insert(player.Said, line.Text)
+		player.Emotions = player.Emotions or {}
+		player.Emotions[line.Text] = line.Emotion or "ninguna"
 	end
 	local choice = nil
 	if payload.Options then
@@ -433,6 +435,13 @@ for _, problem in problems do
 	print("    " .. problem)
 end
 check(#problems == 0, "Validate no encuentra errores")
+
+print("\n▶ Personajes vivos: gestos y emociones al hablar")
+local Emotion = loadModule(ROOT .. "/shared/LifeStory/Emotion")
+check(Emotion.of({ S = "Nico", T = "¡Hola, {nombre}!" }) == "Wave" and Emotion.of({ S = "Nico", T = "Jajaja, qué bueno" }) == "Laugh" and Emotion.of({ S = "Omar", T = "¡Hemos ganado!" }) == "Cheer", "Saludan, se ríen y celebran según lo que dicen")
+check(Emotion.of({ S = "Abu", T = "Lo siento mucho, cariño." }) == "Sad" and Emotion.of({ S = "Sara", T = "¿Vienes?" }) == "Ask" and Emotion.of({ S = "Sara", T = "Mira, allí está." }) == "Point", "Tristes, preguntando o señalando")
+check(Emotion.of({ S = "Nico", T = "Es un día normal." }) == "Calm" and Emotion.of({ S = "Narrador", T = "¡Hola!" }) == nil and Emotion.of({ S = "Nico", T = "Hola", A = "Dance" }) == "Dance", "Tono normal, el narrador sin gestos y A = … manda sobre el texto")
+check(Emotion.valid("Cheer") and Emotion.valid("Thinking") and not Emotion.valid("Volar"), "Solo se aceptan gestos que existen")
 
 print("\n▶ Estaciones y tiempo")
 local Seasons = loadModule(ROOT .. "/shared/Seasons")
@@ -817,6 +826,7 @@ check(memories.PrimerDiaCole and memories.PrimerAmigo, "Recuerdos: «Tu primer d
 check(leoData.Items.MochilaCole == 1 and leoData.Items.CromoSuerte == 1, "La mochila del cole y el cromo de la suerte están en la mochila (inventario)")
 check(leoData.Story.Choices.Ropa.V == "Sudadera" and leoData.Story.Choices.Acompanante.V == "Familia", "Elegiste ropa y que te acompañaran")
 check(leoData.Story.Flags.PaseADani and said(leo, "¡HALA! ¡Qué pase!"), "Minijuego del balón de Dani: pase acertado y Dani lo celebra")
+check(leo.Emotions["¡HALA! ¡Qué pase! ¡Eres como los de la tele!"] == "Surprised", "Cada frase llega al cliente con su gesto (Dani, sorprendido)")
 check(said(leo, "¿Fuiste tú quien le pasó el balón a mi hermano"), "Mateo recuerda el balón de su hermano (diálogo que depende de lo que hiciste)")
 check(leoData.Story.Choices.Asiento.V == "Sara" and said(leo, "aquí delante se entiende todo"), "Te sientas junto a Sara (se elige tocando la silla)")
 check(leoData.Story.Choices.Gusto.V == "Ciencia" and said(leo, "Tenemos que hablar"), "Te presentas: te gustan los experimentos")

@@ -277,7 +277,13 @@ misión nueva se rellena la ficha de 12 puntos de 11.7.
 
 ## 11.13 Estado, pruebas y lo que falta
 
-**Hecho y probado** (prueba automática `scripts/test-lifestory.luau`, 314 comprobaciones en verde):
+**Hecho y probado** (prueba automática `scripts/test-lifestory.luau`, 319 comprobaciones en verde):
+
+- Personajes vivos y cinemáticas (ver `docs/diseno/personajes-vivos-cinematicas.md`): los personajes
+  respiran, te miran, gesticulan al hablar según la emoción de la frase (`A = "Cheer"` o se adivina
+  por el texto), charlan entre ellos (modo `Chat`) y los del mapa ya andan con animación. Cámara de
+  conversación con planos de cine; cinemáticas con cámara en mano, zoom, enfoque, cortes a negro,
+  primeros planos de personajes (`Actor:Abu`) y gestos de todos (`Anims`).
 
 - Instituto 01–06 (ver 11.23–11.29): primer día, clubes, profesiones, primer empleo con el sistema de
   trabajos de verdad, el rumor en el grupo de clase y la gran decisión (con la selectividad y el paso a

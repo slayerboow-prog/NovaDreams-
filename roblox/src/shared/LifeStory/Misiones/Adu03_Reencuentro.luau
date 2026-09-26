@@ -27,18 +27,18 @@ local AMIGOS = {
 }
 local COCINA = {
 	{ Npc = "Omar", Place = "CafeteriaCentral", Offset = V(0, 0, 4) },
-	{ Npc = "Lola", Place = "CafeteriaCentral", Offset = V(4, 0, 5) },
+	{ Npc = "Lola", Place = "CafeteriaCentral", Offset = V(4, 0, 5), Mode = "Chat" },
 }
 local FIESTA = {
 	{ Npc = "Omar", Place = "CafeteriaCentral", Offset = V(0, 0, 4) },
-	{ Npc = "Lola", Place = "CafeteriaCentral", Offset = V(4, 0, 5) },
+	{ Npc = "Lola", Place = "CafeteriaCentral", Offset = V(4, 0, 5), Mode = "Chat" },
 	{ Npc = "Nico", Place = "CafeteriaCentral", Offset = V(-4, 0, 3) },
-	{ Npc = "Sara", Place = "CafeteriaCentral", Offset = V(-2, 0, 6) },
-	{ Npc = "Bruno", Place = "CafeteriaCentral", Offset = V(6, 0, 1) },
+	{ Npc = "Sara", Place = "CafeteriaCentral", Offset = V(-2, 0, 6), Mode = "Chat" },
+	{ Npc = "Bruno", Place = "CafeteriaCentral", Offset = V(6, 0, 1), Mode = "Chat" },
 	{ Npc = "Leire", Place = "CafeteriaCentral", Offset = V(-6, 0, 1), If = CON_LEIRE },
 	{ Npc = "Hugo", Place = "CafeteriaCentral", Offset = V(2, 0, 7), If = CON_HUGO },
 	{ Npc = "Mateo", Place = "CafeteriaCentral", Offset = V(-5, 0, 6), If = AMIGO_MATEO },
-	{ Npc = "Lucia", Place = "CafeteriaCentral", Offset = V(7, 0, 5) },
+	{ Npc = "Lucia", Place = "CafeteriaCentral", Offset = V(7, 0, 5), Mode = "Chat" },
 	{ Npc = "Familia", Place = "CafeteriaCentral", Offset = V(-8, 0, -2) },
 }
 local BANCO = {
