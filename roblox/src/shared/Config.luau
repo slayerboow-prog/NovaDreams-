@@ -83,6 +83,28 @@ Config.StageBody = {
 	Mayor = { Scale = 1, WalkSpeed = 13, JumpHeight = 5 },
 }
 
+-- Aspecto por defecto del protagonista (AvatarService): sudadera negra con capucha gris abierta,
+-- camiseta blanca, pantalón cargo negro, zapatillas blancas, mochila negra, colgante con chapa
+-- y pelo castaño despeinado. Cada jugador puede cambiar a su avatar de Roblox en el Menú.
+-- Si subes una cara o ropa a Roblox (Creator Hub), pon aquí su ID (0 = no se usa):
+Config.DefaultLook = {
+	Enabled = true,
+	Skin = Color3.fromRGB(234, 190, 150),
+	Hair = Color3.fromRGB(74, 46, 30),
+	HairOld = Color3.fromRGB(196, 196, 200), -- de mayor, pelo canoso
+	Hoodie = Color3.fromRGB(26, 26, 30),
+	HoodLining = Color3.fromRGB(150, 152, 158),
+	Tee = Color3.fromRGB(236, 236, 236),
+	Pants = Color3.fromRGB(34, 36, 42),
+	Shoes = Color3.fromRGB(245, 245, 245),
+	Backpack = Color3.fromRGB(22, 22, 26),
+	Metal = Color3.fromRGB(200, 204, 210),
+	Onesie = Color3.fromRGB(170, 205, 235), -- pelele del bebé
+	FaceId = 0,
+	ShirtId = 0,
+	PantsId = 0,
+}
+
 -- Qué etapa mínima hace falta para cada cosa (el servidor lo comprueba siempre)
 Config.StageLimits = {
 	Work = "Adolescente", -- trabajar (a los adolescentes solo trabajos sencillos)

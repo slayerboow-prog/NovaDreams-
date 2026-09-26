@@ -33,6 +33,7 @@ local order = {
 	"MonetizationService",
 	"RoleService",
 	"LifeService",
+	"AvatarService", -- aspecto por defecto del protagonista (sudadera, cargo, mochila…)
 	"NeedsService",
 	"WorldService",
 	"WeatherService", -- estaciones y tiempo: sol, lluvia, tormenta, nieve, niebla

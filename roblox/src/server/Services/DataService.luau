@@ -21,6 +21,7 @@ local MAX_RECEIPTS = 50
 local DEFAULT_DATA = {
 	Money = Config.StartingMoney,
 	HouseTier = 1,
+	OwnAvatar = false, -- true = usa su avatar de Roblox en vez del aspecto de Valmar (AvatarService)
 	Hunger = Config.Needs.Max,
 	Energy = Config.Needs.Max,
 	Stats = {

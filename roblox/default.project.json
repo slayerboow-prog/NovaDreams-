@@ -26,6 +26,9 @@
         "NewLife": {
           "$className": "RemoteEvent"
         },
+        "Avatar": {
+          "$className": "RemoteEvent"
+        },
         "LifeStory": {
           "$className": "RemoteEvent"
         },

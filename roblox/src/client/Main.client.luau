@@ -81,10 +81,19 @@ Hud.addMenuToggle("🔔 Sonidos: sí", 2, function()
 	return if effectsOn then "🔔 Sonidos: sí" else "🔕 Sonidos: no"
 end)
 
+-- Ropa: el aspecto de Valmar (por defecto) o tu avatar de Roblox
+local function lookText(): string
+	return if game:GetService("Players").LocalPlayer:GetAttribute("OwnAvatar") then "👕 Ropa: mi avatar de Roblox" else "👕 Ropa: estilo Valmar"
+end
+Hud.addMenuToggle(lookText(), 3, function()
+	ReplicatedStorage.Remotes.Avatar:FireServer("Toggle")
+	return if game:GetService("Players").LocalPlayer:GetAttribute("OwnAvatar") then "👕 Ropa: estilo Valmar" else "👕 Ropa: mi avatar de Roblox"
+end)
+
 -- Empezar una vida nueva (desde bebé): hay que pulsar dos veces para confirmar
 local NEW_LIFE = "👶 Empezar una vida nueva"
 local confirmUntil = 0
-Hud.addMenuToggle(NEW_LIFE, 3, function()
+Hud.addMenuToggle(NEW_LIFE, 4, function()
 	if os.clock() < confirmUntil then
 		ReplicatedStorage.Remotes.NewLife:FireServer()
 		return "⏳ Preparando tu vida nueva…"
