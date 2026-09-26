@@ -35,6 +35,9 @@
         "Post": {
           "$className": "RemoteEvent"
         },
+        "Garbage": {
+          "$className": "RemoteEvent"
+        },
         "LifeStory": {
           "$className": "RemoteEvent"
         },

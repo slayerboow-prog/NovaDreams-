@@ -140,6 +140,7 @@ function Props.bin(parent: Instance, cf: CFrame)
 	if AssetLibrary.spawn("Bin", parent, cf) then
 		return
 	end
+	-- Papelera (el basurero las vacía: GarbageService)
 	Builder.part({
 		Name = "Bin",
 		Shape = Enum.PartType.Cylinder,
@@ -147,6 +148,7 @@ function Props.bin(parent: Instance, cf: CFrame)
 		CFrame = cf * CFrame.new(0, 1.3, 0) * CFrame.Angles(0, 0, math.rad(90)),
 		Color = Color3.fromRGB(56, 96, 70),
 		Material = Enum.Material.Metal,
+		Tags = { "Papelera" },
 		Parent = parent,
 	})
 end

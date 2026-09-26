@@ -299,6 +299,7 @@ local remotes = {
 	Supermarket = remote(),
 	Cafe = remote(),
 	Post = remote(),
+	Garbage = remote(),
 }
 function remotes:WaitForChild(name)
 	return self[name]
@@ -1381,6 +1382,55 @@ promptOf(sortTable, "Cargar / cerrar la ruta").Triggered:Fire(postie)
 check(profiles[postie].Money == beforeBonus + Gameplay.Post.RouteBonus * 2 and lastMessage(postie, "Route")[2].Phase == "Load", "cierra la ruta con bonus por rapidez y le dan otra")
 PostService.quit(postie)
 check(postie:GetAttribute("Job") == nil and ownPrompt() == nil, "deja el trabajo y se quitan sus carteles")
+
+---------------------------------------------------------------------
+print("▶ Limpieza: oficio de basurero con papeleras llenas")
+local depotModel = fakeInstance("Model")
+depotModel.Name = "PuntoLimpio"
+depotModel.Parent = worldRoot
+local unload = part("GarbageUnload", CFrame.new(1200, 2, 1200), { "GarbageUnload" })
+unload.Parent = depotModel
+local truckSpot = part("GarbageTruckSpot", CFrame.new(1190, 2, 1210), { "GarbageTruck" })
+truckSpot.Parent = depotModel
+depotModel:AddTag("GarbageDepot")
+for k = 1, 10 do
+	local bin = part("Bin", CFrame.new(1200 + k * 30, 1.3, 1250), { "Papelera" })
+	bin.Size = Vector3.new(2.6, 1.4, 1.4)
+end
+local looseBag = part("TrashBag", CFrame.new(1210, 1, 1210), { "Pickup_Basurero" })
+local GarbageService = loadModule(S .. "GarbageService")
+GarbageService.init()
+check(jobProviders.Handler_Basurero ~= nil, "el tablón del Punto Limpio lleva al oficio de basurero")
+local sweeper, sweeperRoot = newPlayer(44, "Adolescente", 0)
+moveTo(sweeperRoot, Vector3.new(1200, 0, 1205))
+GarbageService.start(sweeper)
+local gRoute = lastMessage(sweeper, "Route")
+check(sweeper:GetAttribute("Job") == "Basurero" and gRoute ~= nil and gRoute[2].Total == Gameplay.Garbage.Bins, "empieza con 8 papeleras llenas en la ruta")
+local function ownBins()
+	local list = {}
+	for _, d in worldRoot:GetDescendants() do
+		if d.ClassName == "ProximityPrompt" and d:GetAttribute("OwnerUserId") == sweeper.UserId and d.Parent then
+			table.insert(list, d)
+		end
+	end
+	return list
+end
+local bins = ownBins()
+check(#bins == Gameplay.Garbage.Bins and bins[1].Parent:FindFirstChild("Overflow") ~= nil, "las papeleras de la ruta se ven rebosando y tienen su cartel")
+promptOf(looseBag, "Recoger bolsa").Triggered:Fire(sweeper)
+check(lastMessage(sweeper, "Route")[2].Bags == 1 and looseBag.Transparency == 1, "recoge una bolsa suelta de la calle")
+for _, prompt in bins do
+	prompt.Triggered:Fire(sweeper)
+end
+local gDone = lastMessage(sweeper, "Route")[2]
+check(gDone.Phase == "Unload" and gDone.Left == 0 and gDone.Bags == Gameplay.Garbage.Bins + 1, "vacía las 8 papeleras y lleva 9 bolsas")
+local gMoney = profiles[sweeper].Money
+check(gMoney == Gameplay.Garbage.Bins * Gameplay.Garbage.PerBin + Gameplay.Garbage.PerBag, "cobra por papelera y por bolsa suelta")
+promptOf(unload, "Descargar").Triggered:Fire(sweeper)
+local gNew = lastMessage(sweeper, "Route")[2]
+check(profiles[sweeper].Money == gMoney + Gameplay.Garbage.UnloadBonus * 2 and gNew.Phase == "Collect" and gNew.Bags == 0, "descarga en el Punto Limpio con bonus y le dan otra ruta")
+GarbageService.quit(sweeper)
+check(sweeper:GetAttribute("Job") == nil and #ownBins() == 0, "deja el trabajo y se quitan sus carteles")
 
 ---------------------------------------------------------------------
 print("▶ Autobús urbano L1: billete, paradas y conductor")

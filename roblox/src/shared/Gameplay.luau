@@ -19,6 +19,8 @@ Gameplay.Vehicles = {
 	Coche = { Name = "Coche", Icon = "🚗", Price = 9000, Speed = 72, Stage = "AdultoJoven", License = "B", Order = 5 },
 	-- El autobús no se compra: lo conduce quien trabaja de conductor (BusService)
 	Autobus = { Name = "Autobús", Icon = "🚌", Price = 0, Speed = 48, Stage = "AdultoJoven", License = "B", Order = 9, Hidden = true },
+	-- El camión de la basura tampoco: es de los basureros (GarbageService)
+	Camion = { Name = "Camión de la basura", Icon = "🚛", Price = 0, Speed = 42, Stage = "AdultoJoven", License = "B", Order = 10, Hidden = true },
 }
 Gameplay.RentalVehicles = { "Bici", "Monopatin", "Patinete" } -- los que se cogen gratis en las estaciones públicas
 
@@ -32,6 +34,7 @@ Gameplay.Driving = {
 	Moto = { Accel = 26, Brake = 50, Reverse = 6, Turn = 2.2, Lean = 22 },
 	Coche = { Accel = 22, Brake = 55, Reverse = 18, Turn = 1.7, Lean = 0 },
 	Autobus = { Accel = 11, Brake = 34, Reverse = 6, Turn = 1.1, Lean = 0 },
+	Camion = { Accel = 10, Brake = 32, Reverse = 6, Turn = 1.2, Lean = 0 },
 }
 
 -- Combustible y cuentakilómetros (VehicleService gasta; se reposta en las gasolineras)
@@ -253,6 +256,21 @@ Gameplay.Post = {
 		{ Id = "Caja", Name = "Caja grande (en mano)", Icon = "📦", Door = true, Size = Vector3.new(2, 1.5, 1.6) },
 		{ Id = "Urgente", Name = "Urgente (en mano)", Icon = "🚨", Door = true, Size = Vector3.new(1.4, 1, 1.2) },
 	},
+}
+
+---------------------------------------------------------------------
+-- Limpieza: oficio de basurero (GarbageService)
+---------------------------------------------------------------------
+Gameplay.Garbage = {
+	Bins = 8, -- papeleras llenas por ruta
+	MinDistance = 60,
+	MaxDistance = 600,
+	PerBin = 7, -- por cada papelera vaciada
+	PerBag = 4, -- por cada bolsa suelta recogida de la calle
+	UnloadBonus = 20, -- al descargar en el Punto Limpio
+	RouteSeconds = 420, -- descarga antes de esto: bonus doble
+	BagRespawn = 150, -- segundos hasta que vuelve a aparecer una bolsa suelta
+	EnergyCost = 2,
 }
 
 return Gameplay

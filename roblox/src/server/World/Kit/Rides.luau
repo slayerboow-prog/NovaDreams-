@@ -23,6 +23,7 @@ Rides.Spec = {
 	Moto = { Seat = CFrame.new(0, 2.55, 0.8), Size = Vector3.new(1.6, 1, 5.8) },
 	Coche = { Seat = CFrame.new(-1.4, 1.6, -0.6), Size = Vector3.new(6.2, 1, 13.5) },
 	Autobus = { Seat = CFrame.new(-2.4, 3.75, -13), Size = Vector3.new(8.6, 1, 34) },
+	Camion = { Seat = CFrame.new(-1.8, 4.2, -9.2), Size = Vector3.new(8, 1, 27) },
 }
 
 local function wheel(m: Model, cf: CFrame, radius: number, width: number)
@@ -561,13 +562,109 @@ local function autobus(m: Model, cf: CFrame, color: Color3)
 	detail("DriverSeatBase", Vector3.new(1.8, 0.5, 1.8), at(-2.4, FLOOR + 1.1, -13), rgb(30, 30, 34), Enum.Material.Fabric)
 end
 
-local BUILDERS = { Monopatin = monopatin, Patinete = patinete, Bici = bici, Moto = moto, Coche = coche, Autobus = autobus }
+-- Camión de la basura (oficio de basurero): cabina, caja compactadora, tolva trasera con
+-- elevador de contenedores, estribos para los operarios, rotativos naranjas y franjas reflectantes.
+local function camion(m: Model, cf: CFrame, color: Color3)
+	local W = 8
+	local HW = W / 2
+	local DARK = rgb(34, 35, 38)
+	local GLASS = rgb(30, 44, 56)
+	local ORANGE = rgb(255, 140, 20)
+	local STEEL = rgb(180, 184, 190)
+	local function at(x: number, y: number, z: number): CFrame
+		return cf * CFrame.new(x, y, z)
+	end
+	-- Chasis y ruedas (tres ejes)
+	box(m, "Frame", Vector3.new(W - 1.4, 1, 25), at(0, 1.9, 0.5), DARK, Enum.Material.Metal)
+	for _, z in { -9.5, 5.5, 9 } do
+		for _, sx in { -1, 1 } do
+			local c = at(sx * (HW - 0.7), 1.7, z)
+			wheel(m, c, 1.7, 1.2)
+			cyl(m, "Rim", 1.26, 1.9, c, STEEL, Enum.Material.Metal)
+			cyl(m, "Hub", 1.3, 0.6, c, DARK, Enum.Material.Metal)
+		end
+	end
+	-- Cabina
+	local cabZ0, cabZ1 = -13, -6.2
+	local cabMid = (cabZ0 + cabZ1) / 2
+	box(m, "Body", Vector3.new(W, 5.6, cabZ1 - cabZ0), at(0, 5.2, cabMid), color, Enum.Material.SmoothPlastic)
+	box(m, "CabRoof", Vector3.new(W - 0.2, 0.4, cabZ1 - cabZ0 - 0.2), at(0, 8.2, cabMid), color, Enum.Material.SmoothPlastic)
+	bit(m, "Windshield", Vector3.new(W - 1, 2.4, 0.15), at(0, 6.6, cabZ0 - 0.02), GLASS, Enum.Material.Glass, 0.2)
+	for _, sx in { -1, 1 } do
+		bit(m, "SideWindow", Vector3.new(0.12, 2.2, 3), at(sx * (HW + 0.02), 6.6, cabMid - 0.6), GLASS, Enum.Material.Glass, 0.2)
+		bit(m, "DoorLine", Vector3.new(0.05, 4.8, 0.08), at(sx * (HW + 0.03), 5, cabZ1 - 0.6), DARK)
+		bit(m, "Handle", Vector3.new(0.12, 0.2, 0.6), at(sx * (HW + 0.08), 5.4, cabZ1 - 1.2), DARK)
+		bit(m, "Step", Vector3.new(1.2, 0.2, 1.6), at(sx * (HW - 0.2), 2.6, cabMid), DARK, Enum.Material.DiamondPlate)
+		-- Retrovisores grandes
+		bit(m, "MirrorArm", Vector3.new(1.2, 0.12, 0.12), at(sx * (HW + 0.6), 7, cabZ0 + 0.3), DARK)
+		bit(m, "Mirror", Vector3.new(0.2, 1.6, 0.8), at(sx * (HW + 1.2), 6.6, cabZ0 + 0.3), DARK)
+		-- Faros y intermitentes
+		local head = bit(m, "Headlight", Vector3.new(1.4, 0.6, 0.2), at(sx * (HW - 1.2), 3.4, cabZ0 - 0.05), rgb(255, 250, 230), Enum.Material.Neon)
+		head.Name = if sx < 0 then "Headlight" else "HeadlightRight"
+		bit(m, "IndicatorFront", Vector3.new(0.5, 0.4, 0.15), at(sx * (HW - 0.3), 3.4, cabZ0 - 0.05), rgb(255, 150, 20), Enum.Material.Neon)
+	end
+	bit(m, "Grille", Vector3.new(4, 1.4, 0.15), at(0, 3.6, cabZ0 - 0.05), DARK)
+	for k = 0, 3 do
+		bit(m, "GrilleBar", Vector3.new(3.8, 0.1, 0.05), at(0, 3.1 + k * 0.33, cabZ0 - 0.14), STEEL, Enum.Material.Metal)
+	end
+	box(m, "BumperFront", Vector3.new(W, 0.8, 0.5), at(0, 2.3, cabZ0 - 0.3), DARK, Enum.Material.Metal)
+	-- Rotativos naranjas en el techo de la cabina
+	for _, sx in { -1, 1 } do
+		cyl(m, "Beacon", 0.6, 0.6, at(sx * 2.4, 8.7, cabMid + 1) * CFrame.Angles(0, 0, math.rad(90)), ORANGE, Enum.Material.Neon)
+	end
+	bit(m, "LightBar", Vector3.new(5.6, 0.25, 0.4), at(0, 8.5, cabMid + 1), DARK)
+	-- Interior: volante y asiento del conductor (a la izquierda)
+	cyl(m, "SteeringWheel", 0.2, 1.6, at(-1.8, 5.4, cabZ0 + 1.6) * CFrame.Angles(math.rad(-50), 0, 0) * CFrame.Angles(0, math.rad(90), 0), DARK)
+	bit(m, "DriverSeatBack", Vector3.new(1.8, 2.2, 0.4), at(-1.8, 5, cabMid + 1.8), DARK, Enum.Material.Fabric)
+
+	-- Caja compactadora
+	local bodyZ0, bodyZ1 = -5.8, 9.6
+	local bodyMid = (bodyZ0 + bodyZ1) / 2
+	box(m, "Container", Vector3.new(W - 0.2, 7.4, bodyZ1 - bodyZ0), at(0, 6.2, bodyMid), color, Enum.Material.Metal)
+	box(m, "ContainerTop", Vector3.new(W - 0.6, 0.5, bodyZ1 - bodyZ0 - 0.4), at(0, 10.1, bodyMid), color, Enum.Material.Metal)
+	for k = 0, 5 do
+		-- Refuerzos verticales
+		local z = bodyZ0 + 1 + k * (bodyZ1 - bodyZ0 - 2) / 5
+		for _, sx in { -1, 1 } do
+			bit(m, "Rib", Vector3.new(0.2, 7.2, 0.4), at(sx * (HW - 0.05), 6.2, z), color:Lerp(rgb(0, 0, 0), 0.15), Enum.Material.Metal)
+		end
+	end
+	for _, sx in { -1, 1 } do
+		-- Franjas reflectantes y rótulo
+		bit(m, "Stripe", Vector3.new(0.08, 0.5, bodyZ1 - bodyZ0 - 0.4), at(sx * (HW + 0.02), 4, bodyMid), ORANGE, Enum.Material.Neon)
+		bit(m, "Stripe", Vector3.new(0.08, 0.3, bodyZ1 - bodyZ0 - 0.4), at(sx * (HW + 0.02), 3.3, bodyMid), rgb(240, 240, 240))
+		local sign = bit(m, "Logo", Vector3.new(0.06, 1.6, 9), at(sx * (HW + 0.05), 7.2, bodyMid), rgb(250, 250, 250))
+		Builder.sign(sign, "♻ LIMPIEZA VALMAR", if sx > 0 then Enum.NormalId.Right else Enum.NormalId.Left, rgb(40, 110, 60))
+	end
+	-- Tolva trasera con el elevador de contenedores
+	local hz = bodyZ1 + 1.6
+	box(m, "Hopper", Vector3.new(W - 0.4, 6, 3), at(0, 5.8, hz), rgb(70, 72, 78), Enum.Material.Metal)
+	Builder.part({ ClassName = "WedgePart", Name = "HopperTop", Size = Vector3.new(W - 0.4, 2.4, 3), CFrame = at(0, 10, hz) * CFrame.Angles(0, math.pi, 0), Color = rgb(70, 72, 78), Material = Enum.Material.Metal, Parent = m })
+	bit(m, "HopperMouth", Vector3.new(W - 1.6, 2.4, 0.1), at(0, 4.4, hz + 1.52), rgb(20, 20, 22))
+	bit(m, "Lifter", Vector3.new(W - 2, 0.4, 0.8), at(0, 2.6, hz + 1.8), STEEL, Enum.Material.DiamondPlate)
+	for _, sx in { -1, 1 } do
+		bit(m, "LifterArm", Vector3.new(0.3, 3, 0.3), at(sx * (HW - 1.4), 3.8, hz + 1.7), STEEL, Enum.Material.Metal)
+		-- Estribos y asideros de los operarios
+		bit(m, "RearStep", Vector3.new(1.4, 0.2, 1), at(sx * (HW - 0.8), 1.9, hz + 2), DARK, Enum.Material.DiamondPlate)
+		bit(m, "GrabBar", Vector3.new(0.15, 2.4, 0.15), at(sx * (HW - 0.3), 5, hz + 1.6), rgb(250, 200, 30), Enum.Material.Metal)
+		bit(m, "Taillight", Vector3.new(0.9, 0.5, 0.15), at(sx * (HW - 0.6), 3, hz + 1.55), rgb(200, 20, 30), Enum.Material.Neon)
+		bit(m, "IndicatorRear", Vector3.new(0.5, 0.4, 0.15), at(sx * (HW - 1.5), 3, hz + 1.55), rgb(255, 150, 20), Enum.Material.Neon)
+		cyl(m, "RearBeacon", 0.5, 0.5, at(sx * (HW - 0.6), 9.8, hz + 1) * CFrame.Angles(0, 0, math.rad(90)), ORANGE, Enum.Material.Neon)
+	end
+	-- Rayas de peligro en la tolva
+	for k = -3, 3 do
+		bit(m, "Hazard", Vector3.new(0.5, 1.6, 0.06), at(k * 1, 7.8, hz + 1.53) * CFrame.Angles(0, 0, math.rad(35)), if k % 2 == 0 then ORANGE else DARK)
+	end
+end
+
+local BUILDERS = { Monopatin = monopatin, Patinete = patinete, Bici = bici, Moto = moto, Coche = coche, Autobus = autobus, Camion = camion }
 local COLORS = {
 	Monopatin = { rgb(220, 70, 60), rgb(40, 140, 220), rgb(250, 200, 40), rgb(60, 170, 90) },
 	Bici = { rgb(30, 110, 200), rgb(210, 50, 60), rgb(40, 160, 90), rgb(240, 240, 240) },
 	Moto = { rgb(200, 30, 40), rgb(30, 30, 34), rgb(240, 240, 240), rgb(40, 90, 180) },
 	Patinete = { rgb(30, 30, 34), rgb(240, 240, 240), rgb(220, 70, 60), rgb(40, 140, 220) },
 	Autobus = { rgb(200, 40, 45) },
+	Camion = { rgb(245, 245, 242) },
 }
 
 -- Crea el modelo del vehículo (anclado). kind: "Monopatin" | "Bici" | "Moto" | "Coche"

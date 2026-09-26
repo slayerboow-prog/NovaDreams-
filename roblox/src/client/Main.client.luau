@@ -32,6 +32,7 @@ local SoundFx = require(script.Parent.Controllers.SoundFx)
 local SupermarketUI = require(script.Parent.Controllers.SupermarketUI)
 local CafeUI = require(script.Parent.Controllers.CafeUI)
 local PostUI = require(script.Parent.Controllers.PostUI)
+local GarbageUI = require(script.Parent.Controllers.GarbageUI)
 local JobPrompts = require(script.Parent.Controllers.JobPrompts)
 local BusUI = require(script.Parent.Controllers.BusUI)
 local ActorLife = require(script.Parent.Controllers.ActorLife)
@@ -67,6 +68,7 @@ task.spawn(BusUI.init) -- cartel de la próxima parada para los pasajeros del au
 task.spawn(SupermarketUI.init) -- supermercados: carrito, ticket, cajero y charcutería
 task.spawn(CafeUI.init) -- cafeterías: la carta y el panel del barista
 task.spawn(PostUI.init) -- Correos: el panel de la ruta del repartidor
+task.spawn(GarbageUI.init) -- Limpieza: el panel del basurero
 task.spawn(JobPrompts.init) -- los carteles de cada oficio solo los ve quien trabaja en él
 task.spawn(Driving.init) -- conducir coches, motos, bicis, monopatines y patinetes (W/A/S/D)
 task.spawn(Actions.init) -- gestos y bailes (G), trepar muros bajos, linterna (L) y modo foto (P)
