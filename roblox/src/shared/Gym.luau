@@ -101,15 +101,15 @@ Gym.Machines = {
 	Remo = M("Remo", "Máquina de remo", "🚣", "Mixto", false, true, 1.6, 0.22, 6, 1.1, { Seat = 0.9 }),
 	PressBanca = M("PressBanca", "Press de banca", "🏋️", "Fuerza", false, false, 1.5, 0.2, 8, 1.3, { Bench = 1.5 }),
 	PressHombros = M("PressHombros", "Press de hombros", "💪", "Fuerza", false, false, 1.4, 0.22, 7, 1.1, { Seat = 1.35 }),
-	Jalon = M("Jalon", "Jalón al pecho", "🦾", "Fuerza", false, false, 1.4, 0.22, 7, 1.1, { Seat = 1.35 }),
-	Prensa = M("Prensa", "Prensa de piernas", "🦵", "Fuerza", false, false, 1.6, 0.22, 8, 1.2, { Seat = 1.3 }),
+	Jalon = M("Jalon", "Jalón al pecho", "⏬", "Fuerza", false, false, 1.4, 0.22, 7, 1.1, { Seat = 1.35 }),
+	Prensa = M("Prensa", "Prensa de piernas", "🏋️", "Fuerza", false, false, 1.6, 0.22, 8, 1.2, { Seat = 1.3 }),
 	Sentadilla = M("Sentadilla", "Sentadilla con barra", "🏋️", "Fuerza", false, false, 1.7, 0.18, 9, 1.4),
 	Mancuernas = M("Mancuernas", "Mancuernas", "💪", "Fuerza", false, false, 1.3, 0.24, 6, 1.0, { Seat = 1.35 }),
 	Dominadas = M("Dominadas", "Barra de dominadas", "🧗", "Fuerza", false, false, 1.6, 0.18, 9, 1.4, { Bar = 7.4 }),
 	Saco = M("Saco", "Saco de boxeo", "🥊", "Mixto", true, true, 1.1, 0.24, 6, 1.1),
 	Abdominales = M("Abdominales", "Esterilla de abdominales", "🧘", "Fuerza", true, false, 1.3, 0.26, 5, 0.8, { Mat = 0.12 }),
 	Yoga = M("Yoga", "Esterilla de yoga", "🧘", "Cardio", true, true, 2.2, 0.3, 3, 0.7, { Mat = 0.12 }),
-	Comba = M("Comba", "Comba", "🪢", "Cardio", true, true, 1.0, 0.24, 5, 1.1),
+	Comba = M("Comba", "Comba", "🤸", "Cardio", true, true, 1.0, 0.24, 5, 1.1),
 }
 Gym.MachineOrder = { "Cinta", "Bici", "Eliptica", "Remo", "PressBanca", "PressHombros", "Jalon", "Prensa", "Sentadilla", "Mancuernas", "Dominadas", "Saco", "Abdominales", "Yoga", "Comba" }
 

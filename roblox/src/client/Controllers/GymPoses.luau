@@ -38,7 +38,7 @@ GymPoses.Joints = {
 local THIGH = 0.82 -- de la cadera a la rodilla
 local SHIN = 0.9 -- de la rodilla al tobillo
 local HALF_DEPTH = 0.5 -- medio grosor del muslo y de la espalda
-local REACH = 3.5 -- de la cadera a las manos con los brazos estirados hacia arriba
+local REACH = 3.2 -- de la cadera a las manos (su centro) con los brazos estirados hacia arriba
 
 export type Ctx = { Lift: number, Scale: number, Geo: { [string]: number } }
 export type Pose = { [string]: CFrame }

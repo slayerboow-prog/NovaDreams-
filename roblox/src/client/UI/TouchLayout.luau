@@ -26,6 +26,8 @@ local SLOTS = {
 	Claxon = { Angle = 180, Ring = 1, Size = 60 }, -- conduciendo, en el sitio de golpear
 	Bajarse = { Angle = 85, Ring = 1, Size = 56 }, -- conduciendo, en el sitio de correr
 	Sirena = { Angle = 128, Ring = 1, Size = 54 },
+	Entrenar = { Angle = 180, Ring = 1, Size = 72 }, -- en el gimnasio, en el sitio de golpear
+	Dejar = { Angle = 85, Ring = 1, Size = 56 }, -- en el gimnasio, en el sitio de correr
 }
 
 -- Centro del botón de saltar de Roblox (desde la esquina de abajo a la derecha) y su radio
@@ -77,13 +79,27 @@ function TouchLayout.riding(): boolean
 	return player:GetAttribute("Riding") ~= nil
 end
 
--- Muestra el botón solo a pie (When = "Pie") o solo conduciendo ("Vehiculo"), y además si extra() lo permite
-function TouchLayout.showWhen(button: GuiObject, when: "Pie" | "Vehiculo", extra: (() -> boolean)?)
+-- ¿Está entrenando en una máquina del gimnasio? (sus botones van en los huecos de golpear y correr)
+function TouchLayout.training(): boolean
+	return player:GetAttribute("Training") ~= nil
+end
+
+-- Muestra el botón solo a pie (When = "Pie"), solo conduciendo ("Vehiculo") o solo entrenando en el
+-- gimnasio ("Gimnasio"), y además si extra() lo permite
+function TouchLayout.showWhen(button: GuiObject, when: "Pie" | "Vehiculo" | "Gimnasio", extra: (() -> boolean)?)
 	local function update()
-		local ok = if when == "Vehiculo" then TouchLayout.riding() else not TouchLayout.riding()
+		local ok
+		if when == "Vehiculo" then
+			ok = TouchLayout.riding()
+		elseif when == "Gimnasio" then
+			ok = TouchLayout.training()
+		else
+			ok = not TouchLayout.riding() and not TouchLayout.training()
+		end
 		button.Visible = ok and (extra == nil or extra())
 	end
 	player:GetAttributeChangedSignal("Riding"):Connect(update)
+	player:GetAttributeChangedSignal("Training"):Connect(update)
 	update()
 	return update
 end
