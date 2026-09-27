@@ -18,6 +18,7 @@ local Combat = require(ReplicatedStorage.Shared.Combat)
 local Stages = require(ReplicatedStorage.Shared.LifeStory.Stages)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local ReactMotion = require(script.Parent.ReactMotion)
+local PunchAnim = require(script.Parent.PunchAnim)
 local SoundFx = require(script.Parent.SoundFx)
 local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
 
@@ -28,8 +29,22 @@ local create = Theme.create
 local rgb = Color3.fromRGB
 local Remote: RemoteEvent
 
--- Directo, cruzado y gancho: los tres golpes del combo (cuerpo R15)
+-- Directo, cruzado y patada: los tres golpes del combo (PunchAnim; si no se puede, ReactMotion
+-- con el gancho de golpe fuerte)
+local MOVES = { "Jab", "Cross", "Kick" }
 local PUNCHES = { "Jab", "Cross", "Hook" }
+
+-- Golpe número `combo` en un personaje: PunchAnim (C0, se ve siempre) o, si no, ReactMotion
+local function swingPose(character: Model?, combo: number): boolean
+	return PunchAnim.play(character, MOVES[combo] or "Jab") or ReactMotion.play(character, PUNCHES[combo] or "Jab")
+end
+
+-- Guardia: igual, PunchAnim y si no ReactMotion
+local function guardPose(character: Model?, on: boolean)
+	if not PunchAnim.hold(character, "Guard", on) then
+		ReactMotion.hold(character, "Guard", on)
+	end
+end
 
 local function isR15(model: Model?): boolean
 	local humanoid = model and model:FindFirstChildOfClass("Humanoid")
@@ -107,7 +122,7 @@ function CombatController.attack()
 		CombatController.setBlocking(false)
 	end
 	-- Puñetazo hecho con código (R15); si este cuerpo no se puede mover así, animación de Roblox
-	if not (isR15(player.Character) and ReactMotion.play(player.Character, PUNCHES[localCombo] or "Jab")) then
+	if not (isR15(player.Character) and swingPose(player.Character, localCombo)) then
 		local anim = track(if localCombo == 3 then "Heavy" else "Punch")
 		if anim then
 			anim:Play(0.05, 1, if localCombo == 3 then 1.1 else 1.6)
@@ -130,7 +145,7 @@ function CombatController.setBlocking(value: boolean)
 	end
 	blocking = value
 	-- La guardia se ve al momento en tu pantalla (sin esperar a que el servidor la confirme)
-	ReactMotion.hold(player.Character, "Guard", value or player:GetAttribute("Blocking") == true)
+	guardPose(player.Character, value or player:GetAttribute("Blocking") == true)
 	Remote:FireServer("Block", value)
 end
 
@@ -263,7 +278,7 @@ local function onSwing(attacker: Player, combo: number)
 	if root then
 		SoundFx.play("Salto", 0.7, if combo == 3 then 0.8 else 1.3, root)
 	end
-	ReactMotion.play(character, PUNCHES[combo] or "Jab")
+	swingPose(character, combo)
 end
 
 -- 🛡 encima de quien se está defendiendo
@@ -271,7 +286,7 @@ local shields: { [Player]: BillboardGui } = {}
 local function updateShield(other: Player)
 	local on = other:GetAttribute("Blocking") == true
 	-- (tu propia guardia sigue a tu dedo, aunque el servidor tarde en confirmarla)
-	ReactMotion.hold(other.Character, "Guard", on or (other == player and blocking))
+	guardPose(other.Character, on or (other == player and blocking))
 	local existing = shields[other]
 	if on and not existing then
 		local head = other.Character and other.Character:FindFirstChild("Head")
@@ -369,7 +384,7 @@ function CombatController.init()
 		local ko = player:GetAttribute("KO") == true
 		if ko then
 			blocking = false
-			ReactMotion.hold(player.Character, "Guard", false)
+			guardPose(player.Character, false)
 		end
 		showKnockOut(ko)
 	end)

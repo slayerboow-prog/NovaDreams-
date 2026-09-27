@@ -86,16 +86,29 @@ local function use(_, state: Enum.UserInputState)
 	return Enum.ContextActionResult.Sink
 end
 
+-- Móvil: botón propio en su hueco del arco (el de ContextActionService se montaba encima de otros)
+local touchButton: TextButton? = nil
 local function refreshButton()
 	local count = player:GetAttribute("Stones") or 0
 	local baby = player:GetAttribute("LifeStage") == "Bebe"
 	if baby or TouchLayout.riding() then
 		ContextActionService:UnbindAction(ACTION)
+		if touchButton then
+			touchButton.Visible = false
+		end
 		return
 	end
-	ContextActionService:BindAction(ACTION, use, true, Enum.KeyCode.B, Enum.KeyCode.ButtonY)
-	ContextActionService:SetTitle(ACTION, if count > 0 then ("🥌×%d"):format(count) else "🥌")
-	TouchLayout.placeAction(ContextActionService, ACTION, "Piedra")
+	ContextActionService:BindAction(ACTION, use, false, Enum.KeyCode.B, Enum.KeyCode.ButtonY)
+	if UserInputService.TouchEnabled then
+		if not touchButton then
+			touchButton = TouchLayout.button("Piedra", "🥌", function()
+				use(nil, Enum.UserInputState.Begin)
+			end)
+		end
+		local button = touchButton :: TextButton
+		button.Text = if count > 0 then ("🥌%d"):format(count) else "🥌"
+		button.Visible = true
+	end
 end
 
 local function newStone(): BasePart

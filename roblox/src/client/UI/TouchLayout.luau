@@ -85,6 +85,48 @@ function TouchLayout.placeAction(ContextActionService: ContextActionService, act
 	end
 end
 
+-- Botón redondo propio en su hueco (en lugar de los de ContextActionService, que Roblox crea con
+-- su propio tamaño y se montaban encima de los demás). Empieza escondido: quien lo usa pone Visible.
+local buttonsGui: ScreenGui? = nil
+function TouchLayout.button(name: string, icon: string, callback: () -> ()): TextButton
+	if not buttonsGui then
+		local gui = Instance.new("ScreenGui")
+		gui.Name = "TouchButtons"
+		gui.ResetOnSpawn = false
+		gui.DisplayOrder = 3
+		gui.Parent = player:WaitForChild("PlayerGui")
+		buttonsGui = gui
+	end
+	local button = Instance.new("TextButton")
+	button.Name = name .. "Button"
+	button.Text = icon
+	button.TextScaled = true
+	button.Font = Enum.Font.GothamBold
+	button.TextColor3 = Color3.new(1, 1, 1)
+	button.BackgroundColor3 = Color3.fromRGB(30, 40, 60)
+	button.BackgroundTransparency = 0.3
+	button.AutoButtonColor = true
+	button.Visible = false
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0.5, 0)
+	corner.Parent = button
+	local padding = Instance.new("UIPadding")
+	for _, side in { "PaddingTop", "PaddingBottom", "PaddingLeft", "PaddingRight" } do
+		(padding :: any)[side] = UDim.new(0.2, 0)
+	end
+	padding.Parent = button
+	local stroke = Instance.new("UIStroke")
+	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	stroke.Color = Color3.fromRGB(120, 170, 255)
+	stroke.Transparency = 0.4
+	stroke.Thickness = 2
+	stroke.Parent = button
+	button.Activated:Connect(callback)
+	TouchLayout.place(button, name)
+	button.Parent = buttonsGui
+	return button
+end
+
 -- ¿Va montado en un vehículo? (a pie se ven unos botones y conduciendo, otros, en los mismos huecos)
 function TouchLayout.riding(): boolean
 	return player:GetAttribute("Riding") ~= nil

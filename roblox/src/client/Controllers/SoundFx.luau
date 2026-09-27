@@ -10,6 +10,7 @@
 -- Qué sonido es cada cosa: Config.Sounds (y Config.StreetVoices para las voces).
 
 local ContextActionService = game:GetService("ContextActionService")
+local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -195,12 +196,20 @@ local function hornAction(_, state)
 	return Enum.ContextActionResult.Pass
 end
 
+-- Móvil: botón de claxon/timbre propio, en el hueco de 👊, solo mientras vas montado
+local hornButton: TextButton? = nil
 function SoundFx.vehicleStart(kind: string, chassis: BasePart)
 	vehicleKind = kind
-	-- Móvil: botón de claxon/timbre solo mientras vas montado
-	ContextActionService:BindAction("HornTouch", hornAction, true)
-	ContextActionService:SetTitle("HornTouch", if kind == "Bici" or kind == "Patinete" then "🔔" else "📯")
-	TouchLayout.placeAction(ContextActionService, "HornTouch", "Claxon")
+	if UserInputService.TouchEnabled then
+		if not hornButton then
+			hornButton = TouchLayout.button("Claxon", "📯", function()
+				hornAction(nil, Enum.UserInputState.Begin)
+			end)
+		end
+		local button = hornButton :: TextButton
+		button.Text = if kind == "Bici" or kind == "Patinete" then "🔔" else "📯"
+		button.Visible = true
+	end
 	if kind == "Coche" or kind == "Moto" or kind == "Autobus" or kind == "Camion" or kind == "Patrulla" or kind == "Bomberos" then
 		SoundFx.play("Arranque", 1, nil, chassis)
 		engine = SoundFx.loop("Motor", chassis)
@@ -215,7 +224,9 @@ function SoundFx.vehicleStop()
 		engine:Destroy()
 		engine = nil
 	end
-	ContextActionService:UnbindAction("HornTouch")
+	if hornButton then
+		hornButton.Visible = false
+	end
 	vehicleKind = nil
 end
 
