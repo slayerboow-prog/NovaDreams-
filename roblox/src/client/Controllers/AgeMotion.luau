@@ -10,6 +10,10 @@
 --   * Trabajando (jugadores): quieto en su puesto hace su oficio con las posturas de WorkAnim
 --     (el barista remueve el café, el cajero pasa productos, el bombero sujeta la manguera…) y,
 --     si lleva algo (una caja, un plato, un paquete), lo sujeta con las dos manos, también andando.
+--   * En un vehículo (cualquier edad): el conductor con las manos en el volante (que gira con las
+--     curvas) y las piernas hacia los pedales; en moto, bici o patinete agarrado al manillar y
+--     echado hacia delante; de pasajero, manos en las piernas mirando por la ventanilla; detrás
+--     en la moto, agarrado a la cintura. Entra y sale suave (al subir y al bajar).
 --
 -- Se aplica a los jugadores (según su LifeStage) y a los personajes con el atributo "Age"
 -- (compañeros de clase, la abuela…). Todo en tu pantalla, encima de sus animaciones: cada frame,
@@ -259,6 +263,12 @@ type Body = {
 	Work: number, -- 0..1: cuánto está haciendo su tarea (suave)
 	WorkPose: WorkAnim.Pose,
 	Props: { WorkAnim.HeldProp },
+	Seat: number, -- 0..1: cuánto está en la postura del vehículo (suave)
+	SeatName: string?, -- "Drive" | "Handlebar" | "Passenger" | "Pillion"
+	SeatStanding: boolean, -- de pie (patinete): no se tocan las piernas
+	SeatPose: WorkAnim.Pose,
+	Steer: number, -- -1..1: cómo gira el volante (según gira el vehículo)
+	SeatYaw: number?,
 }
 
 local bodies: { [Model]: Body } = {}
@@ -299,8 +309,15 @@ local function register(model: Model)
 		Work = 0,
 		WorkPose = {} :: any,
 		Props = {},
+		Seat = 0,
+		SeatName = nil,
+		SeatStanding = false,
+		SeatPose = {} :: any,
+		Steer = 0,
+		SeatYaw = nil,
 	}
 	WorkAnim.clear(bodies[model].WorkPose)
+	WorkAnim.clear(bodies[model].SeatPose)
 	model.AncestryChanged:Connect(function(_, parent)
 		if parent == nil then
 			bodies[model] = nil
@@ -337,6 +354,73 @@ local function busy(body: Body): boolean
 		return true
 	end
 	return false
+end
+
+---------------------------------------------------------------------
+-- En un vehículo
+---------------------------------------------------------------------
+
+local WHEEL = { Coche = true, Patrulla = true, Autobus = true, Camion = true, Bomberos = true }
+local BARS = { Moto = true, Bici = true, Patinete = true }
+local STANDING = { Patinete = true, Monopatin = true }
+
+-- Qué postura toca en ese asiento (pura, se prueba fuera de Roblox):
+--   seatName = nombre del asiento, className = su clase, kind = atributo Kind del vehículo (o nil),
+--   pose = atributo Pose del asiento (los de pasajero lo llevan), metro = es un asiento del metro.
+-- Devuelve la postura (nil = la de sentarse de siempre) y si va de pie.
+function AgeMotion.seatPoseFor(seatName: string, className: string, kind: string?, pose: any, metro: boolean): (string?, boolean)
+	if className == "VehicleSeat" and seatName == "DriverSeat" and kind then
+		if WHEEL[kind] then
+			return "Drive", false
+		elseif BARS[kind] then
+			return "Handlebar", STANDING[kind] == true
+		end
+		return nil, STANDING[kind] == true
+	end
+	if type(pose) == "string" and WorkAnim.get(pose) then
+		return pose, false
+	end
+	if metro or kind ~= nil then
+		return "Passenger", false -- (autobús, metro)
+	end
+	return nil, false
+end
+
+-- Piernas en cada postura (encima de la de sentarse): conduciendo, estiradas hacia los pedales;
+-- a horcajadas en la moto, más bajas y algo abiertas
+local SEAT_LEGS: { [string]: { Hip: number, Open: number, Knee: number } } = {
+	Drive = { Hip = 0.1, Open = 0, Knee = 0.45 },
+	Handlebar = { Hip = -0.3, Open = 0.1, Knee = 0.25 },
+	Pillion = { Hip = -0.3, Open = 0.12, Knee = 0.2 },
+}
+AgeMotion.SeatLegs = SEAT_LEGS
+
+local function seatOf(body: Body): (string?, boolean, BasePart?)
+	local seat = body.Humanoid.SeatPart
+	if not seat then
+		return nil, false, nil
+	end
+	local vehicle = seat:FindFirstAncestorOfClass("Model")
+	local kind = vehicle and vehicle:GetAttribute("Drivable") and vehicle:GetAttribute("Kind")
+	local name, standing = AgeMotion.seatPoseFor(seat.Name, seat.ClassName, if type(kind) == "string" then kind else nil, seat:GetAttribute("Pose"), seat:HasTag("MetroSeat"))
+	return name, standing, seat
+end
+
+-- Cuánto se gira el volante: lo que gira el vehículo (radianes por segundo), de -1 a 1
+local function steerFrom(body: Body, seat: BasePart?, dt: number): number
+	if not seat or dt <= 0 then
+		body.SeatYaw = nil
+		return 0
+	end
+	local look = seat.CFrame.LookVector
+	local yaw = math.atan2(-look.X, -look.Z)
+	local rate = 0
+	if body.SeatYaw then
+		rate = ((yaw - body.SeatYaw + math.pi) % (2 * math.pi) - math.pi) / dt
+	end
+	body.SeatYaw = yaw
+	-- (el vehículo gira a la derecha cuando baja el ángulo)
+	return math.clamp(-rate / 1.2, -1, 1)
 end
 
 -- Cuánto hay que bajar el cuerpo para que al gatear toque el suelo (según su tamaño)
@@ -489,9 +573,51 @@ local function update(body: Body, t: number, dt: number)
 	end
 	WorkAnim.showProps(body.Props, W > 0.5)
 
-	if body.Crawl < 0.001 and body.Style < 0.001 and W < 0.001 then
+	-- En un vehículo: su postura (entra en medio segundo, sale un poco más rápido)
+	local seatName, standing, seatPart = seatOf(body)
+	if seatName then
+		body.SeatName = seatName
+		body.SeatStanding = standing
+	end
+	body.Seat = smooth(body.Seat, if seatName then 1 else 0, if seatName then 4 else 6, dt)
+	body.Steer = smooth(body.Steer, steerFrom(body, seatPart, dt), 5, dt)
+	local S = if body.SeatName then body.Seat else 0
+
+	if body.Crawl < 0.001 and body.Style < 0.001 and W < 0.001 and S < 0.001 then
+		body.SeatName = nil
 		restore(body)
 		return
+	end
+	local seatOffsets: { [string]: CFrame }? = nil
+	if S > 0.001 and body.SeatName then
+		local p = body.SeatPose
+		WorkAnim.clear(p)
+		local seatWork = WorkAnim.get(body.SeatName)
+		if seatWork then
+			seatWork.Pose(t, body.Seed, p)
+		end
+		if body.SeatName == "Drive" or body.SeatName == "Handlebar" then
+			-- Al girar, una mano sube y la otra baja, y mira hacia la curva
+			local k = if body.SeatName == "Drive" then 0.22 else 0.08
+			p.rx -= body.Steer * k
+			p.lx += body.Steer * k
+			p.ny -= body.Steer * 0.18
+		end
+		seatOffsets = {
+			Neck = angles(p.np * S, p.ny * S, p.nr * S),
+			Waist = angles(p.wp * S, p.wy * S, p.wr * S),
+			RightShoulder = angles(p.rx * S, p.rt * S, p.rz * S),
+			LeftShoulder = angles(p.lx * S, -p.lt * S, -p.lz * S),
+			RightElbow = angles(p.re * S, 0, 0),
+			LeftElbow = angles(p.le * S, 0, 0),
+		}
+		local legs = SEAT_LEGS[body.SeatName]
+		if legs and not body.SeatStanding then
+			seatOffsets.RightHip = angles(legs.Hip * S, 0, legs.Open * S)
+			seatOffsets.LeftHip = angles(legs.Hip * S, 0, -legs.Open * S)
+			seatOffsets.RightKnee = angles(legs.Knee * S, 0, 0)
+			seatOffsets.LeftKnee = angles(legs.Knee * S, 0, 0)
+		end
 	end
 	-- La tarea, como retoque de cada articulación (los mismos ángulos que usa ActorLife en C0)
 	local workOffsets: { [string]: CFrame }? = nil
@@ -532,6 +658,16 @@ local function update(body: Body, t: number, dt: number)
 				out = scaled(out, 1 - W)
 			end
 			local offset = workOffsets[name]
+			if offset then
+				out = offset * out
+			end
+		end
+		if seatOffsets then
+			-- Los brazos van donde toca (volante, manillar, piernas), no donde los deja sentarse
+			if ARMS[name] then
+				out = scaled(out, 1 - S)
+			end
+			local offset = seatOffsets[name]
 			if offset then
 				out = offset * out
 			end
