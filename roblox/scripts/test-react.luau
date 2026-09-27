@@ -5,7 +5,8 @@
 --
 -- Comprueba que:
 --   * existen los golpes (directo, cruzado, gancho), las reacciones al recibir y los choques
---     (patada al balón, tropiezo) y las posturas mantenidas (guardia, arena, arbusto, charco)
+--     (patada al balón, tropiezo), los gestos de acciones (alcanzar, coger, comer, beber, lanzar,
+--     pescar, aterrizar) y las posturas mantenidas (guardia, arena, arbusto, charco, linterna, caña)
 --   * cada animación empieza y acaba en la postura normal (no deja el cuerpo torcido)
 --   * a mitad de animación el cuerpo se mueve de verdad y sin ángulos locos
 --   * solo se tocan articulaciones de un R15
@@ -65,7 +66,7 @@ local function sane(pose): (boolean, string?)
 end
 
 print("\n▶ Golpes y choques")
-local KINDS = { "Jab", "Cross", "Hook", "HitLight", "HitHeavy", "BlockHit", "Kick", "Trip" }
+local KINDS = { "Jab", "Cross", "Hook", "HitLight", "HitHeavy", "BlockHit", "Kick", "Trip", "Reach", "PickUp", "Eat", "Drink", "Throw", "Cast", "Reel", "Land", "Stumble" }
 for _, name in KINDS do
 	local kind = ReactMotion.Kinds[name]
 	if not kind then
@@ -114,7 +115,7 @@ check(yaw(left) * yaw(right) < 0, "Un golpe por la izquierda y otro por la derec
 check(forward(ReactMotion.Kinds.Kick.Pose(0.4, {}), "RightHip") > 0.3, "La patada al balón levanta la pierna derecha")
 
 print("\n▶ Posturas mantenidas")
-for _, name in { "Guard", "Sand", "Bush", "Splash" } do
+for _, name in { "Guard", "Sand", "Bush", "Splash", "Flashlight", "Rod" } do
 	local hold = ReactMotion.Holds[name]
 	if not hold then
 		check(false, name .. " existe")

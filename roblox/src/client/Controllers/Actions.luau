@@ -3,11 +3,13 @@
 --     comandos (delante de alguien); se corta solo al andar o saltar.
 --   * Trepar: salta contra un muro bajo, una valla o un coche (hasta unos 9 studs) y el
 --     personaje se agarra al borde y sube.
---   * Linterna (tecla L): la ven todos los jugadores. La primera noche sale un aviso.
---   * Modo foto (tecla P): esconde toda la interfaz para hacer capturas bonitas.
+--   * Linterna (tecla L, R3 en el mando): la ven todos los jugadores (y el brazo va delante,
+--     sujetándola: ReactMotion). La primera noche sale un aviso.
+--   * Modo foto (tecla P, LT en el mando): esconde toda la interfaz para hacer capturas bonitas
+--     (con un fundido corto al entrar y al salir).
 -- (Sentarse en bancos y marquesinas: cartel "Sentarse" del servidor, ActionService)
 -- Las animaciones son las de Roblox que trae cualquier personaje: las del propio personaje
--- las ven también los demás jugadores.
+-- las ven también los demás jugadores. Todas entran y salen con fundido (nada de saltos de postura).
 
 local ContextActionService = game:GetService("ContextActionService")
 local Lighting = game:GetService("Lighting")
@@ -21,6 +23,8 @@ local UserInputService = game:GetService("UserInputService")
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Hud = require(script.Parent.Parent.UI.Hud)
 local Cinematics = require(script.Parent.Cinematics)
+local FootCamera = require(script.Parent.FootCamera)
+local ReactMotion = require(script.Parent.ReactMotion)
 local SoundFx = require(script.Parent.SoundFx)
 local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
 local StreetVoices = require(ReplicatedStorage.Shared.Config).StreetVoices
@@ -92,7 +96,7 @@ end
 
 local function stopEmote()
 	if playing then
-		playing:Stop(0.25)
+		playing:Stop(0.35)
 		playing = nil
 	end
 end
@@ -114,7 +118,7 @@ local function playEmote(emote: Emote)
 	stopEmote()
 	local track = load(humanoid, id, emote.Loop)
 	if track then
-		track:Play(0.2)
+		track:Play(0.3)
 		playing = track
 	end
 	local line = emote.Voice and StreetVoices.Emotes[emote.Voice]
@@ -181,7 +185,7 @@ local function tryClimb(humanoid: Humanoid, root: BasePart)
 	SoundFx.play("Trepar", 1, nil, root)
 	local track = load(humanoid, if isR15(humanoid) then CLIMB.R15 else CLIMB.R6)
 	if track then
-		track:Play(0.1, 1, 1.6)
+		track:Play(0.15, 1, 1.6)
 	end
 	local from = root.CFrame
 	local look = CFrame.lookAlong(Vector3.zero, dir)
@@ -193,18 +197,22 @@ local function tryClimb(humanoid: Humanoid, root: BasePart)
 	local connection
 	connection = RunService.Heartbeat:Connect(function()
 		local t = math.clamp((os.clock() - start) / duration, 0, 1)
+		-- Con curva: arranca y se posa suave (sin velocidad constante de robot)
 		if t < 0.65 then
-			root.CFrame = from:Lerp(lift, t / 0.65)
+			local x = t / 0.65
+			root.CFrame = from:Lerp(lift, 1 - (1 - x) * (1 - x))
 		else
-			root.CFrame = lift:Lerp(target, (t - 0.65) / 0.35)
+			local x = (t - 0.65) / 0.35
+			root.CFrame = lift:Lerp(target, x * x * (3 - 2 * x))
 		end
 		root.AssemblyLinearVelocity = Vector3.zero
 		if t >= 1 then
 			connection:Disconnect()
 			if track then
-				track:Stop(0.2)
+				track:Stop(0.3)
 			end
 			humanoid:ChangeState(Enum.HumanoidStateType.Landed)
+			ReactMotion.play(player.Character, "Land", { Strength = 0.4 }) -- se asienta arriba
 			climbing = false
 		end
 	end)
@@ -227,7 +235,16 @@ end
 ---------------------------------------------------------------------
 local photo = false
 local hidden: { ScreenGui } = {}
-local savedZoom = 0
+
+-- Fundido corto (como el obturador de una cámara) al entrar y salir del modo foto
+local function shutter(playerGui: Instance)
+	local gui = Theme.create("ScreenGui", { Name = "PhotoShutter", ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = 20, Parent = playerGui })
+	local shade = Theme.create("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 0.35, BorderSizePixel = 0, Parent = gui })
+	TweenService:Create(shade, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundTransparency = 1 }):Play()
+	task.delay(0.35, function()
+		gui:Destroy()
+	end)
+end
 
 local function setPhoto(on: boolean)
 	if on == photo or (on and busy()) then
@@ -238,7 +255,7 @@ local function setPhoto(on: boolean)
 	if on then
 		hidden = {}
 		for _, gui in playerGui:GetChildren() do
-			if gui:IsA("ScreenGui") and gui.Enabled and gui.Name ~= "PhotoHint" and gui.Name ~= "PhotoExit" then
+			if gui:IsA("ScreenGui") and gui.Enabled and gui.Name ~= "PhotoHint" and gui.Name ~= "PhotoExit" and gui.Name ~= "PhotoShutter" then
 				gui.Enabled = false
 				table.insert(hidden, gui)
 			end
@@ -246,8 +263,8 @@ local function setPhoto(on: boolean)
 		pcall(function()
 			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false)
 		end)
-		savedZoom = player.CameraMaxZoomDistance
-		player.CameraMaxZoomDistance = math.max(savedZoom, 140)
+		FootCamera.setPhoto(true) -- la cámara se puede alejar mucho más
+		shutter(playerGui)
 		-- Aviso que se desvanece (para que la foto quede limpia)
 		local hint = Theme.create("ScreenGui", { Name = "PhotoHint", ResetOnSpawn = false, Parent = playerGui })
 		local label = Theme.label({
@@ -290,7 +307,8 @@ local function setPhoto(on: boolean)
 			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
 			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
 		end)
-		player.CameraMaxZoomDistance = savedZoom
+		FootCamera.setPhoto(false)
+		shutter(playerGui)
 	end
 end
 
@@ -323,10 +341,17 @@ function Actions.init()
 			return Enum.ContextActionResult.Pass
 		end, false, ...)
 	end
-	bind("Flashlight", toggleFlashlight, Enum.KeyCode.L)
+	bind("Flashlight", toggleFlashlight, Enum.KeyCode.L, Enum.KeyCode.ButtonR3)
 	bind("PhotoMode", function()
 		setPhoto(not photo)
 	end, Enum.KeyCode.P)
+	-- Mando: LT (fuera del agua; nadando, LT es bajar)
+	bind("PhotoModePad", function()
+		local humanoid = parts()
+		if humanoid and humanoid:GetState() ~= Enum.HumanoidStateType.Swimming then
+			setPhoto(not photo)
+		end
+	end, Enum.KeyCode.ButtonL2)
 
 	-- Móvil: botones de linterna y modo foto (los gestos y bailes son los de Roblox)
 	if UserInputService.TouchEnabled then

@@ -15,9 +15,19 @@
 --   * Arbustos y setos: brazos delante apartando ramas, el arbusto se sacude y caen hojas.
 --   * Charcos (los de la lluvia de WetWorld): se levantan más las rodillas y salpica.
 --
--- Se aplica como retoque de Motor6D.Transform después de las animaciones y de AgeMotion (mismo
--- método que AgeMotion: si la animación no ha tocado la articulación este frame, se parte de lo que
--- había debajo, así no se acumula). Las posturas son funciones puras: scripts/test-react.luau.
+-- GESTOS DE ACCIONES (los piden otros sistemas con ReactMotion.play / hold)
+--   * Alcanzar (Reach): al usar un cartel "pulsa E" la mano va hacia el objeto (alto o bajo).
+--   * Coger del suelo (PickUp): se agacha doblando las rodillas y recoge.
+--   * Comer (Eat) y beber (Drink): la mano a la boca (dos bocados / la cabeza atrás al beber).
+--   * Lanzar (Throw): piedras, con el brazo por encima del hombro.
+--   * Pescar: lanzar la caña (Cast), tirar (Reel) y sujetarla con las dos manos (hold "Rod").
+--   * Aterrizar (Land): se agacha un poco al caer; desde muy alto, traspiés (Stumble).
+--   * Linterna (hold "Flashlight"): el brazo derecho delante, a la altura del pecho.
+--   Todos entran y salen suaves (strike: subida con curva, se mantiene y baja con curva).
+--
+-- Se aplica como retoque de Motor6D.Transform después de las animaciones, de AgeMotion y de
+-- Locomotion: es la capa 30 de PoseLayers (que lleva la cuenta de qué puso la animación, así no se
+-- acumula). Las posturas son funciones puras: scripts/test-react.luau y scripts/test-motion.luau.
 --
 -- Ángulos (convención de AgeMotion/WorkAnim, R15):
 --   Neck/Waist  x > 0 hacia atrás (mirar arriba / echarse atrás), y > 0 gira a su izquierda
@@ -28,9 +38,9 @@
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
 
 local ReactMotion = {}
+local Layers: any = nil -- PoseLayers (se carga en init: las pruebas cargan este módulo sin Roblox)
 
 local sin, abs, pi = math.sin, math.abs, math.pi
 local angles = CFrame.Angles
@@ -212,7 +222,220 @@ ReactMotion.Kinds = {
 			}
 		end,
 	},
+	-- Alcanzar algo con la mano derecha (al usar un cartel). opts.Height: -1 abajo … 1 arriba
+	Reach = {
+		Duration = 0.6,
+		Pose = function(t: number, opts): Pose
+			local k = strike(t, 0.35, 0.6)
+			local h = math.clamp(opts.Height or 0, -1, 1)
+			return {
+				RightShoulder = angles((1.25 + 0.45 * h) * k, 0, 0.12 * k),
+				RightElbow = angles(0.3 * k * (1 - bell(t)) + 0.1 * k, 0, 0),
+				Waist = angles((-0.06 + 0.04 * h) * k, 0.12 * k, 0),
+				Neck = angles(0.2 * h * k, 0.1 * k, 0),
+				LeftShoulder = angles(0.12 * k, 0, -0.08 * k),
+			}
+		end,
+	},
+	-- Coger algo del suelo: se agacha (rodillas y cintura), recoge con la derecha y se levanta
+	PickUp = {
+		Duration = 0.85,
+		Pose = function(t: number): Pose
+			local k = strike(t, 0.35, 0.55)
+			return {
+				Root = CFrame.new(0, -0.95 * k, 0) * angles(-0.2 * k, 0, 0),
+				Waist = angles(-0.5 * k, 0, 0),
+				Neck = angles(-0.15 * k, 0, 0),
+				RightHip = angles(0.95 * k, 0, 0),
+				LeftHip = angles(0.75 * k, 0, 0),
+				RightKnee = angles(-1.35 * k, 0, 0),
+				LeftKnee = angles(-1.1 * k, 0, 0),
+				RightShoulder = angles(0.75 * k, 0, 0.1 * k),
+				RightElbow = angles(0.15 * k, 0, 0),
+				LeftShoulder = angles(0.3 * k, 0, -0.15 * k),
+			}
+		end,
+	},
+	-- Comer: la mano derecha a la boca, dos bocados
+	Eat = {
+		Duration = 1.3,
+		Pose = function(t: number): Pose
+			local k = strike(t, 0.2, 0.8)
+			local bite = abs(sin(t * pi * 4)) * k
+			return {
+				RightShoulder = angles((1.05 + 0.12 * bite) * k, 0, -0.35 * k),
+				RightElbow = angles(2.0 * k, 0, 0),
+				Neck = angles(-0.1 * bite, 0, 0),
+				Waist = angles(-0.04 * k, 0, 0),
+			}
+		end,
+	},
+	-- Beber: el vaso a la boca y la cabeza hacia atrás
+	Drink = {
+		Duration = 1.15,
+		Pose = function(t: number): Pose
+			local k = strike(t, 0.25, 0.75)
+			local sip = strike((t - 0.3) / 0.45, 0.3, 0.7)
+			return {
+				RightShoulder = angles((1.0 + 0.3 * sip) * k, 0, -0.3 * k),
+				RightElbow = angles(1.9 * k, 0, 0),
+				Neck = angles(0.35 * sip, 0, 0),
+				Waist = angles(0.06 * sip, 0, 0),
+			}
+		end,
+	},
+	-- Lanzar (piedras): el brazo atrás por encima del hombro y latigazo hacia delante
+	Throw = {
+		Duration = 0.6,
+		Pose = function(t: number): Pose
+			local back = strike(t, 0.3, 0.38) * (if t < 0.38 then 1 else 0)
+			local fwd = strike((t - 0.3) / 0.7, 0.25, 0.45)
+			local g = bell(t)
+			return {
+				RightShoulder = angles(2.5 * back + 1.35 * fwd, 0, 0.2 * back),
+				RightElbow = angles(1.4 * back + 0.1 * fwd, 0, 0),
+				LeftShoulder = angles(0.9 * g, 0, -0.2 * g),
+				Waist = angles(0.12 * back - 0.15 * fwd, -0.4 * back + 0.35 * fwd, 0),
+				Root = angles(-0.08 * fwd, 0, 0),
+				RightHip = angles(-0.2 * back + 0.15 * fwd, 0, 0),
+				LeftHip = angles(0.3 * back, 0, 0),
+			}
+		end,
+	},
+	-- Lanzar la caña: atrás por encima de la cabeza con las dos manos y hacia delante
+	Cast = {
+		Duration = 0.95,
+		Pose = function(t: number): Pose
+			local back = strike(t, 0.32, 0.42) * (if t < 0.42 then 1 else 0)
+			local fwd = strike((t - 0.34) / 0.66, 0.2, 0.45)
+			return {
+				RightShoulder = angles(2.3 * back + 0.5 * fwd, 0, 0),
+				LeftShoulder = angles(1.9 * back + 0.4 * fwd, 0, 0),
+				RightElbow = angles(0.9 * back, 0, 0),
+				LeftElbow = angles(1.1 * back, 0, 0),
+				Waist = angles(0.18 * back - 0.22 * fwd, 0, 0),
+				Root = angles(0.05 * back - 0.1 * fwd, 0, 0),
+			}
+		end,
+	},
+	-- Tirar de la caña: un tirón hacia atrás
+	Reel = {
+		Duration = 0.45,
+		Pose = function(t: number): Pose
+			local k = strike(t, 0.3, 0.45)
+			return {
+				RightShoulder = angles(0.45 * k, 0, 0),
+				LeftShoulder = angles(0.4 * k, 0, 0),
+				RightElbow = angles(0.6 * k, 0, 0),
+				LeftElbow = angles(0.6 * k, 0, 0),
+				Waist = angles(0.22 * k, 0, 0),
+				Root = angles(0.08 * k, 0, 0),
+			}
+		end,
+	},
+	-- Aterrizar: se agacha un poco (opts.Strength 0..1, según la altura de la caída)
+	Land = {
+		Duration = 0.45,
+		Pose = function(t: number, opts): Pose
+			local s = math.clamp(opts.Strength or 0.5, 0, 1)
+			local k = strike(t, 0.16, 0.3) * s
+			return {
+				Root = CFrame.new(0, -0.75 * k, 0) * angles(-0.12 * k, 0, 0),
+				Waist = angles(-0.2 * k, 0, 0),
+				Neck = angles(0.12 * k, 0, 0),
+				RightHip = angles(0.6 * k, 0, 0),
+				LeftHip = angles(0.6 * k, 0, 0),
+				RightKnee = angles(-1.05 * k, 0, 0),
+				LeftKnee = angles(-1.05 * k, 0, 0),
+				RightShoulder = angles(0.25 * k, 0, 0.3 * k),
+				LeftShoulder = angles(0.25 * k, 0, -0.3 * k),
+			}
+		end,
+	},
+	-- Caída desde muy alto: se dobla del todo, se va hacia delante con los brazos fuera y se recupera
+	Stumble = {
+		Duration = 1.15,
+		Pose = function(t: number): Pose
+			local k = strike(t, 0.12, 0.4)
+			local wobble = sin(t * 15) * (1 - t) * 0.35 * k
+			local step = strike((t - 0.25) / 0.6, 0.35, 0.6)
+			return {
+				Root = CFrame.new(0, -1.1 * k, 0) * angles(-0.38 * k, 0, 0.12 * wobble),
+				Waist = angles(-0.25 * k, 0, -0.1 * wobble),
+				Neck = angles(0.4 * k, 0, 0),
+				RightHip = angles(0.95 * k + 0.35 * step, 0, 0),
+				LeftHip = angles(0.8 * k, 0, 0),
+				RightKnee = angles(-1.45 * k, 0, 0),
+				LeftKnee = angles(-1.3 * k + 0.3 * step, 0, 0),
+				RightShoulder = angles(0.9 * k + wobble, 0, 0.7 * k),
+				LeftShoulder = angles(0.9 * k - wobble, 0, -0.7 * k),
+				RightElbow = angles(0.3 * k, 0, 0),
+				LeftElbow = angles(0.3 * k, 0, 0),
+			}
+		end,
+	},
 }
+
+-- ¿Qué gesto hace el cuerpo al usar un cartel "pulsa E"? (función pura)
+-- text: lo que pone el cartel ("Comer", "Recoger objeto"…); height: dónde está el objeto respecto a
+-- la cintura (-1 en el suelo … 1 por encima de la cabeza). nil = ninguno (sentarse, montar, hablar…:
+-- de esos se encarga su propia animación).
+local NO_GESTURE = {
+	"sentar", "montar", "conducir", "subir", "bajar", "hablar", "saludar", "dormir", "descansar",
+	"tumbar", "nadar", "bucear", "pescar", "bailar", "jugar", "conversar", "preguntar",
+}
+local EAT = { "comer", "desayunar", "cenar", "merendar", "almorzar", "probar", "morder" }
+local DRINK = { "beber", "tomar", "brindar" }
+-- Bebidas (palabras enteras: "agua" sí, "aguacate" no)
+local DRINKS = { "cafe", "zumo", "refresco", "batido", "leche", "agua", "cola", "limonada", "te", "infusion", "cacao", "horchata", "bebida", "cafes", "zumos", "refrescos", "batidos" }
+local PICK = { "coger", "recoger", "levantar", "agarrar" }
+local ACCENTS = { ["á"] = "a", ["é"] = "e", ["í"] = "i", ["ó"] = "o", ["ú"] = "u", ["ñ"] = "n" }
+
+local function hasWord(text: string, words: { string }): boolean
+	for _, word in words do
+		if string.find(text, word, 1, true) then
+			return true
+		end
+	end
+	return false
+end
+
+local function hasWholeWord(text: string, words: { string }): boolean
+	for _, word in words do
+		if string.find(text, "%f[%a]" .. word .. "%f[%A]") then
+			return true
+		end
+	end
+	return false
+end
+
+local function plainText(text: string?): string
+	local plain = string.lower(text or "")
+	for accented, letter in ACCENTS do
+		plain = string.gsub(plain, accented, letter)
+	end
+	return plain
+end
+
+function ReactMotion.gestureFor(text: string?, height: number?): string?
+	local plain = plainText(text)
+	local h = math.clamp(height or 0, -1, 1)
+	if hasWord(plain, NO_GESTURE) then
+		return nil
+	elseif hasWord(plain, EAT) then
+		return "Eat"
+	elseif hasWord(plain, DRINK) or hasWholeWord(plain, DRINKS) then
+		return "Drink"
+	elseif hasWord(plain, PICK) then
+		return if h < -0.35 then "PickUp" else "Reach"
+	end
+	return if h < -0.6 then "PickUp" else "Reach"
+end
+
+-- Comer algo de la mochila: ¿se bebe o se come? (por su nombre; función pura)
+function ReactMotion.foodGesture(name: string?): string
+	return if hasWholeWord(plainText(name), DRINKS) then "Drink" else "Eat"
+end
 
 -- Posturas que se mantienen mientras dure la situación (peso 0..1 y la fase del paso)
 ReactMotion.Holds = {
@@ -242,6 +465,24 @@ ReactMotion.Holds = {
 			LeftElbow = angles(0.55 * w, 0, 0),
 			Waist = angles(-0.08 * w, 0.18 * s * w, 0),
 			Neck = angles(-0.12 * w, 0, 0),
+		}
+	end,
+	-- Linterna: el brazo derecho delante, a la altura del pecho, iluminando
+	Flashlight = function(w: number, _phase: number): Pose
+		return {
+			RightShoulder = angles(1.15 * w, 0, -0.15 * w),
+			RightElbow = angles(0.75 * w, 0, 0),
+		}
+	end,
+	-- Caña de pescar: sujeta delante con las dos manos, subiendo y bajando un poco
+	Rod = function(w: number, phase: number): Pose
+		local bob = sin(phase * 0.5) * 0.04 * w
+		return {
+			RightShoulder = angles(0.95 * w + bob, 0, -0.1 * w),
+			LeftShoulder = angles(0.8 * w + bob, 0, 0.25 * w),
+			RightElbow = angles(0.7 * w, 0, 0),
+			LeftElbow = angles(1.0 * w, 0, 0),
+			Waist = angles(-0.04 * w, 0, 0),
 		}
 	end,
 	-- Charco: rodillas altas al pisar el agua, brazos un poco abiertos
@@ -305,16 +546,10 @@ type Body = {
 	Want: { [string]: boolean }, -- posturas mantenidas que tocan ahora
 	Holds: { [string]: number }, -- su peso (suavizado)
 	Phase: number,
-	Written: { [string]: CFrame },
-	Base: { [string]: CFrame },
 	Cooldown: { [string]: number },
 }
 
 local bodies: { [Model]: Body } = {}
-
-local function same(a: CFrame, b: CFrame): boolean
-	return (a.Position - b.Position).Magnitude < 1e-4 and a.LookVector:Dot(b.LookVector) > 0.99999 and a.UpVector:Dot(b.UpVector) > 0.99999
-end
 
 local function bodyOf(model: Model?): Body?
 	if not model or not model.Parent then
@@ -346,8 +581,6 @@ local function bodyOf(model: Model?): Body?
 		Want = {},
 		Holds = {},
 		Phase = 0,
-		Written = {},
-		Base = {},
 		Cooldown = {},
 	}
 	bodies[model] = body
@@ -406,29 +639,15 @@ local function apply(body: Body, now: number, dt: number)
 	end
 	local anyHold = next(body.Holds) ~= nil
 	if #active == 0 and not anyHold then
-		-- Nada que hacer: deja las articulaciones como estaban
-		for name, joint in body.Joints do
-			local written = body.Written[name]
-			if written and same(joint.Transform, written) then
-				joint.Transform = body.Base[name] or CFrame.identity
-			end
-		end
-		table.clear(body.Written)
-		table.clear(body.Base)
+		-- Nada que hacer: las articulaciones vuelven solas a la animación (PoseLayers)
 		return
 	end
 	local pose = ReactMotion.combine(active, body.Holds, body.Phase)
 	for name, joint in body.Joints do
 		local offset = pose[name]
-		local current = joint.Transform
-		local written = body.Written[name]
-		if written and same(current, written) then
-			current = body.Base[name] or CFrame.identity
+		if offset then
+			Layers.write(joint, offset * Layers.read(joint))
 		end
-		body.Base[name] = current
-		local out = if offset then offset * current else current
-		joint.Transform = out
-		body.Written[name] = out
 	end
 end
 
@@ -578,6 +797,9 @@ local function surroundings(body: Body)
 	local moving = speed > 2 and body.Humanoid.SeatPart == nil
 	local feet = root.Position - Vector3.new(0, body.Humanoid.HipHeight + root.Size.Y / 2 - 0.3, 0)
 	local now = os.clock()
+	-- Linterna encendida (se ve en todos): el brazo delante; no conduciendo ni sentado
+	local owner = Players:GetPlayerFromCharacter(body.Model)
+	body.Want.Flashlight = (owner ~= nil and owner:GetAttribute("Flashlight") == true and body.Humanoid.SeatPart == nil and owner:GetAttribute("Riding") == nil) or nil
 	-- Suelo: arena
 	downParams.FilterDescendantsInstances = { body.Model, workspace.CurrentCamera }
 	local ground = workspace:Raycast(root.Position, Vector3.new(0, -(body.Humanoid.HipHeight + root.Size.Y / 2 + 1.5), 0), downParams)
@@ -660,11 +882,9 @@ function ReactMotion.init()
 		addBush(d)
 		addStone(d)
 	end)
-	-- Se aplica después de las animaciones y de AgeMotion (que también usa PreSimulation)
-	local signal = (RunService :: any).PreSimulation or RunService.Stepped
-	signal:Connect(function(a, b)
-		local dt = if typeof(b) == "number" then b else a
-		local now = os.clock()
+	-- Se aplica después de las animaciones, de AgeMotion y de Locomotion (capa 30 de PoseLayers)
+	Layers = require(script.Parent.PoseLayers)
+	Layers.add("ReactMotion", 30, function(dt, now)
 		for model, body in bodies do
 			if not model.Parent or body.Humanoid.Health <= 0 then
 				bodies[model] = nil
