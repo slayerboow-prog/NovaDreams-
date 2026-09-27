@@ -65,6 +65,7 @@ local InteriorUI = require(script.Parent.Controllers.InteriorUI)
 local UseMotion = require(script.Parent.Controllers.UseMotion)
 local InteractClient = require(script.Parent.Controllers.InteractClient)
 local Joystick = require(script.Parent.Controllers.Joystick)
+local Gps = require(script.Parent.Controllers.Gps)
 local CommandMenu = require(script.Parent.Commands.CommandMenu)
 local DefaultCommands = require(script.Parent.Commands.DefaultCommands)
 
@@ -78,6 +79,7 @@ StoryAudio.init() -- música, efectos y voces de la historia (botón 🔊)
 task.spawn(LifeStory.init) -- historia de vida (tarjeta "Tu vida", momentos, decisiones)
 task.spawn(Baby.init) -- tutorial de bebé (botón de levantarse, familia, vista de la ciudad)
 task.spawn(ClassUI.init) -- clases y exámenes que se juegan
+task.spawn(Gps.init) -- GPS: ruta por las calles hasta tu destino (mapas, flechas en el suelo e indicación)
 task.spawn(MapUI.init) -- minimapa y mapa grande (tecla M)
 task.spawn(InventoryUI.init) -- mochila estilo Minecraft (barra rápida 1-9, tecla E)
 task.spawn(DialogueUI.init) -- conversaciones de las misiones (con respuestas y cámara)
@@ -177,6 +179,12 @@ Hud.addMenuToggle(lookText(), 3, function()
 	return if game:GetService("Players").LocalPlayer:GetAttribute("OwnAvatar") then "👕 Ropa: estilo Valmar" else "👕 Ropa: mi avatar de Roblox"
 end)
 
+-- GPS (ruta por las calles, flechas en el suelo e indicaciones): sí por defecto
+Hud.addMenuToggle("🧭 GPS: sí", 3.2, function()
+	Gps.setEnabled(not Gps.isEnabled())
+	return if Gps.isEnabled() then "🧭 GPS: sí" else "🧭 GPS: no"
+end)
+
 -- Móvil: correr al empujar el joystick hasta el borde (sí por defecto)
 local function autoRunText(): string
 	return if game:GetService("Players").LocalPlayer:GetAttribute("AutoRun") == false then "🏃 Correr al empujar el joystick: no" else "🏃 Correr al empujar el joystick: sí"
@@ -271,6 +279,7 @@ game:GetService("RunService").Heartbeat:Connect(function()
 		Hud.setBusy(busy)
 		CommandMenu.setBusy(busy)
 		Joystick.setBusy(busy)
+		Gps.setBusy(busy)
 		if busy and MapUI.isOpen() then
 			MapUI.toggleBig()
 		end
