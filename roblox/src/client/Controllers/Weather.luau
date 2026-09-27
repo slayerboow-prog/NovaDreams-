@@ -12,6 +12,7 @@ local RunService = game:GetService("RunService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Seasons = require(ReplicatedStorage.Shared.Seasons)
+local Metro = require(ReplicatedStorage.Shared.Metro)
 local DayLight = require(script.Parent.DayLight)
 local Hud = require(script.Parent.Parent.UI.Hud)
 
@@ -181,7 +182,7 @@ local function updateParticles()
 	-- La "nube" que suelta las partículas va delante y encima de la cámara
 	local ahead = camera.CFrame.LookVector * Vector3.new(1, 0, 1) * 20
 	emitterPart.CFrame = CFrame.new(position + ahead + Vector3.new(0, if info.Snow then 35 else 45, 0))
-	local underground = position.Y < -60 -- en el metro
+	local underground = position.Y < Metro.Underground -- bajando al metro (vestíbulos, escaleras, andenes)
 	local off = indoor or underground
 	rain.Rate = if off then 0 else (info.Rain or 0) * 900
 	rain.Enabled = rain.Rate > 0

@@ -451,7 +451,8 @@ function MetroDetails.lobby(m: Instance, cf: CFrame, line: Metro.Line, stationId
 	sign(m, at(23, 5.6, 12.2) * CFrame.Angles(0, math.rad(180), 0), Vector3.new(3.6, 0.9, 0.15), "🛡️ SEGURIDAD", rgb(30, 50, 90))
 	guardPost(m, at(24, 0, 10).Position, at(36, 0, -8).Position, "Guard")
 	-- Limpiador/a que pasa la fregona por el vestíbulo
-	guardPost(m, at(28, 0, 4).Position, at(40, 0, 10).Position, "Cleaner", "CleanerPost")
+	-- (en Plaza Mayor las escaleras mecánicas bajan del techo junto a la galería: allí friega más adentro)
+	guardPost(m, at(28, 0, 4).Position, at(if hub then 30 else 40, 0, if hub then -6 else 10).Position, "Cleaner", "CleanerPost")
 	-- Taquillas, cajero y papelera en la pared +Z
 	lockers(m, at(22, 0, LZ - 0.8), 3, 2)
 	atm(m, at(30.5, 0, LZ - 0.7))
@@ -467,9 +468,10 @@ function MetroDetails.lobby(m: Instance, cf: CFrame, line: Metro.Line, stationId
 	camera(m, at(X1 - 1.2, LH - 0.6, LZ - 1.2) * CFrame.Angles(0, math.rad(45), 0))
 	extinguisher(m, at(26.5, 0, LZ - 0.5))
 	advert(m, at(36, 7.5, LZ - 0.55), Vector2.new(5, 3.4))
-	part(m, "LobbyBench", Vector3.new(5, 0.4, 1.6), at(22, 1.5, -20), WOOD, Enum.Material.Wood)
-	decor(m, "BenchLeg", Vector3.new(0.3, 1.3, 1.4), at(20, 0.65, -20), DARK)
-	decor(m, "BenchLeg", Vector3.new(0.3, 1.3, 1.4), at(24, 0.65, -20), DARK)
+	-- (el banco, apartado del rellano de las escaleras mecánicas, que llegan por la pared -Z)
+	part(m, "LobbyBench", Vector3.new(5, 0.4, 1.6), at(36, 1.5, -21), WOOD, Enum.Material.Wood)
+	decor(m, "BenchLeg", Vector3.new(0.3, 1.3, 1.4), at(34, 0.65, -21), DARK)
+	decor(m, "BenchLeg", Vector3.new(0.3, 1.3, 1.4), at(38, 0.65, -21), DARK)
 	-- Planta grande en una maceta
 	part(m, "BigPot", Vector3.new(2.4, 2, 2.4), at(41.5, 1, -LZ + 2), rgb(160, 90, 60), Enum.Material.Concrete)
 	decor(m, "BigPlant", Vector3.new(3.2, 4.2, 3.2), at(41.5, 4, -LZ + 2), rgb(60, 140, 70), Enum.Material.Grass, { Shape = Enum.PartType.Ball })
@@ -620,5 +622,12 @@ function MetroDetails.galleria(m: Instance, cf: CFrame)
 	drip(m, at(142, H, -14), at(0, 0, 0).Position.Y)
 	litter(m, at(105, 0, 0), 8, Vector2.new(50, 20), 99)
 end
+
+-- Para las bocas de metro (Kit/MetroAccess): los mismos anuncios, cámaras, papeleras y extintores
+MetroDetails.advert = advert
+MetroDetails.camera = camera
+MetroDetails.bin = bin
+MetroDetails.extinguisher = extinguisher
+MetroDetails.speaker = speaker
 
 return MetroDetails

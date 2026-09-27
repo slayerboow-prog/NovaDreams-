@@ -160,6 +160,10 @@ function TerrainBuilder.build()
 		local size = Vector3.new(r.X1 - r.X0, 16, r.Z1 - r.Z0)
 		terrain:FillBlock(CFrame.new((r.X0 + r.X1) / 2, 4, (r.Z0 + r.Z1) / 2), size, Enum.Material.Air)
 	end
+
+	-- 8) Bocas de metro: se vacía la roca por donde bajan las escaleras, el vestíbulo y el pozo de las
+	--    escaleras mecánicas (lo último, para que nada lo vuelva a rellenar)
+	require(script.Parent.Kit.MetroKit).terrain(terrain)
 end
 
 -- Quita el suelo y el mar de piezas (solo servían para verlo en Studio)
