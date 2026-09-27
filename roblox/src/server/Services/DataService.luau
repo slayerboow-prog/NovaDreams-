@@ -44,6 +44,12 @@ local DEFAULT_DATA = {
 		Xp = 0,
 		Caught = {},
 	},
+	-- Campo (FarmService): experiencia, si tienes finca, lo plantado en cada bancal y tus animales
+	Farm = {
+		Xp = 0,
+		Plots = {},
+		Animals = {},
+	},
 	-- Estudios: notas por asignatura, exámenes, títulos y asistencia (ClassService)
 	Education = {
 		Subjects = {},

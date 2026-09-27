@@ -24,6 +24,7 @@ local Cinema = require(script.Parent.Cinema)
 local Hotel = require(script.Parent.Hotel)
 local Fishing = require(script.Parent.Fishing)
 local Metro = require(script.Parent.Metro)
+local Farming = require(script.Parent.Farming)
 
 local Items = {}
 
@@ -233,6 +234,34 @@ for _, s in Fishing.Species do
 		Stack = 64, -- como los demás objetos: caben muchos antes de tener que venderlos
 	}
 end
+
+-- Campo de Villaverde: cosechas, lo de los animales, lo del obrador y la cocina, semillas y pienso
+for _, id in Farming.ProductOrder do
+	local p = Farming.Products[id]
+	local food = p.Hunger ~= nil
+	list[id] = {
+		Id = id,
+		Name = p.Name,
+		Icon = p.Icon,
+		Kind = if food then "Food" else "Thing",
+		Desc = ("%s La cooperativa lo paga a %d €; el supermercado, a %d €."):format(p.Desc, Farming.sellPrice(id, "Coop"), Farming.sellPrice(id, "Super")),
+		Stack = 99,
+		Hunger = p.Hunger,
+		Energy = p.Energy,
+	}
+end
+for _, c in Farming.Crops do
+	local id = Farming.seedItem(c.Id)
+	list[id] = {
+		Id = id,
+		Name = if c.Tree then "Plantón de " .. c.Name:lower() else "Semillas de " .. c.Name:lower(),
+		Icon = "🌱",
+		Kind = "Thing",
+		Desc = ("Para plantar en un bancal de tu finca de Villaverde. Da %s %s."):format(c.Icon, Farming.Products[c.Product].Name:lower()),
+		Stack = 99,
+	}
+end
+list[Farming.Feed] = { Id = Farming.Feed, Name = "Saco de pienso", Icon = "🥣", Kind = "Thing", Desc = "Comida para tus animales de la granja (también comen trigo y maíz).", Stack = 99 }
 
 -- Metro: el billete y lo que venden las tiendas subterráneas
 list[Metro.TicketItem] = { Id = Metro.TicketItem, Name = "Billete de metro", Icon = "🎫", Kind = "Thing", Desc = "Un viaje en metro. Se gasta al pasar el torno.", Stack = 50 }

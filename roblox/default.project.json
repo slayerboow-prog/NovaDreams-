@@ -103,6 +103,12 @@
         },
         "Progression": {
           "$className": "RemoteEvent"
+        },
+        "Farm": {
+          "$className": "RemoteEvent"
+        },
+        "Business": {
+          "$className": "RemoteEvent"
         }
       },
       "Musica": {

@@ -126,6 +126,13 @@ end
 function Fake.GetChildren(self)
 	return table.clone(self.__children)
 end
+function Fake.GetPivot(self)
+	local props = self.__props
+	return props.WorldPivot or (props.PrimaryPart and props.PrimaryPart.CFrame) or props.CFrame or CFrame.new()
+end
+function Fake.GetBoundingBox(self)
+	return self:GetPivot(), self.__props.BoxSize or Vector3.new(4, 4, 4)
+end
 function Fake.PivotTo(self, cf)
 	local primary = self.__props.PrimaryPart
 	if primary then
@@ -320,6 +327,8 @@ local remotes = {
 	Metro = remote(),
 	Diving = remote(),
 	Social = remote(),
+	Farm = remote(),
+	Business = remote(),
 }
 function remotes:WaitForChild(name)
 	return self[name]
@@ -2758,6 +2767,370 @@ check(Fishing.spearable(Fishing.byId.Mero) and not Fishing.spearable(Fishing.byI
 Fishing.Dive.ShotGap = savedGap
 FishingService.isWater = realIsWater
 local _ = anaRoot
+end)()
+
+;(function()
+print("▶ Granja: fincas, bancales, corral, cooperativa, obrador y supermercado")
+local Farming = loadModule(ROOT .. "/shared/Farming")
+local town = fakeInstance("Folder")
+town.Name = "Town"
+town.Parent = worldRoot
+local farm = fakeInstance("Model")
+farm.Name = "Granja"
+farm.Parent = town
+for i = 1, 10 do
+	local row = part("Crop", CFrame.new(3000 + i * 6, 0.25, 3050))
+	row.Size = Vector3.new(5, 0.5, 64)
+	row.Parent = farm
+end
+local barn = fakeInstance("Model")
+barn.Name = "Granero"
+barn.WorldPivot = CFrame.new(3030, 0, 3000)
+barn.BoxSize = Vector3.new(26, 10, 20)
+barn.Parent = farm
+for _, p in collection:GetTagged("SuperStock") do
+	p:SetAttribute("Index", 1)
+end
+local FarmService = loadModule(S .. "FarmService")
+local clock = 100000
+FarmService._clock = function()
+	return clock
+end
+FarmService.init()
+local fincasFolder = worldRoot:FindFirstChild("Fincas")
+local signs, stakes = {}, {}
+for _, d in fincasFolder:GetDescendants() do
+	if d.Name == "CartelFinca" then
+		table.insert(signs, d)
+	elseif d.Name == "Estaca" then
+		table.insert(stakes, d)
+	end
+end
+check(#signs == 2 and #stakes == 8, ("10 filas de cultivo = 2 fincas de 4 bancales (%d carteles, %d estacas)"):format(#signs, #stakes))
+local coop = fincasFolder:FindFirstChild("Cooperativa")
+check(coop ~= nil and promptOf(coop, "Cooperativa") ~= nil and promptOf(coop, "Obrador") ~= nil and promptOf(coop, "Vender cosecha") ~= nil, "delante del granero hay una cooperativa con tienda, obrador y venta")
+local function fire(player, ...)
+	task.wait(0.16)
+	remotes.Farm.OnServerEvent:Fire(player, ...)
+end
+local farmer, farmerRoot = newPlayer(380, "Adulto", 1000)
+profiles[farmer].Items = {}
+profiles[farmer].Slots = {}
+local baby = newPlayer(381, "Bebe", 0)
+local sign = signs[1]
+promptOf(sign, "Quedarme esta finca").Triggered:Fire(baby)
+check(notified(baby, "pequeño"), "un bebé no puede quedarse una finca")
+moveTo(farmerRoot, sign.Position)
+promptOf(sign, "Quedarme esta finca").Triggered:Fire(farmer)
+check(farmer:GetAttribute("FincaAt") ~= nil and notified(farmer, "es tuya"), "un adulto se queda la finca")
+local myStakes = {}
+for _, st in stakes do
+	if st.Parent == sign.Parent then
+		table.insert(myStakes, st)
+	end
+end
+table.sort(myStakes, function(a, b)
+	return a.Position.X < b.Position.X
+end)
+local stake = myStakes[1]
+local other = newPlayer(382, "Adulto", 100)
+promptOf(stake, "Plantar").Triggered:Fire(other)
+check(notified(other, "es de"), "en una finca ajena no se puede plantar")
+moveTo(farmerRoot, stake.Position)
+promptOf(stake, "Plantar").Triggered:Fire(farmer)
+local panel = lastMessage(farmer, "Panel")
+check(panel ~= nil and panel[2].Id == "Seeds" and #panel[2].Rows >= 3, "al tocar un bancal vacío sale la lista de semillas")
+local money0 = profiles[farmer].Money
+fire(farmer, "Plant", 1, "Lechuga")
+check(profiles[farmer].Money == money0 - Farming.cropById.Lechuga.Seed and profiles[farmer].Farm.Plots["1"].Crop == "Lechuga", "sin semillas, las compra y planta al momento")
+fire(farmer, "Plant", 1, "Olivo")
+check(profiles[farmer].Farm.Plots["1"].Crop == "Lechuga", "no se planta encima de otra cosa ni sin nivel")
+local ready = profiles[farmer].Farm.Plots["1"].ReadyAt
+check(promptOf(stake, "Regar") ~= nil, "el bancal plantado pide riego")
+promptOf(stake, "Regar").Triggered:Fire(farmer)
+check(profiles[farmer].Farm.Plots["1"].Watered and profiles[farmer].Farm.Plots["1"].ReadyAt < ready, "regar hace que tarde menos")
+local plants = fincasFolder:FindFirstChild("Finca1") and fincasFolder.Finca1:FindFirstChild("Plot1")
+check(plants ~= nil and #plants:GetChildren() > 0, "en el bancal se ven las plantas")
+clock += 10000
+promptOf(stake, "Ver").Triggered:Fire(farmer) -- el aviso aún no se ha refrescado: da igual el texto
+check(InventoryService.count(farmer, "Agro_Lechuga") >= Farming.cropById.Lechuga.Yield[1] + 1 and profiles[farmer].Farm.Plots["1"] == nil, "cuando está listo, se cosecha a la mochila y el bancal queda libre")
+check((farmer:GetAttribute("FarmXp") or 0) > 0, "cosechar da experiencia de agricultor")
+-- Cooperativa
+moveTo(farmerRoot, coop.Mostrador.Position)
+promptOf(coop, "Cooperativa").Triggered:Fire(farmer)
+check(lastMessage(farmer, "Panel")[2].Id == "Coop" and lastMessage(farmer, "Panel")[2].Tab == "Semillas", "la cooperativa abre en semillas")
+fire(farmer, "BuySeed", "Trigo", 5)
+check(InventoryService.count(farmer, "Semilla_Trigo") == 5, "compra 5 de semillas de trigo")
+fire(farmer, "BuySeed", "Olivo", 1)
+check(InventoryService.count(farmer, "Semilla_Olivo") == 0, "los árboles que piden nivel no se venden")
+fire(farmer, "BuyAnimal", "Gallina")
+fire(farmer, "BuyFeed", 5)
+check(#profiles[farmer].Farm.Animals == 1 and InventoryService.count(farmer, Farming.Feed) == 5, "compra una gallina y pienso")
+fire(farmer, "BuyAnimal", "Vaca")
+check(#profiles[farmer].Farm.Animals == 1, "la vaca pide más nivel")
+-- Trigo: plantar con semilla, cosechar y hacer harina en el obrador
+moveTo(farmerRoot, myStakes[2].Position)
+local moneyBefore = profiles[farmer].Money
+fire(farmer, "Plant", 2, "Trigo")
+check(profiles[farmer].Money == moneyBefore and InventoryService.count(farmer, "Semilla_Trigo") == 4, "con semillas, planta sin pagar")
+clock += 10000
+promptOf(myStakes[2]).Triggered:Fire(farmer)
+local wheat = InventoryService.count(farmer, "Agro_Trigo")
+check(wheat >= 6, ("cosecha trigo (%d)"):format(wheat))
+-- Corral: dar de comer y recoger
+local trough = sign.Parent:FindFirstChild("Abrevadero")
+moveTo(farmerRoot, trough.Position)
+promptOf(trough, "Atender animales").Triggered:Fire(farmer)
+check(profiles[farmer].Farm.Animals[1].ReadyAt ~= nil and InventoryService.count(farmer, Farming.Feed) == 4, "atender da de comer a la gallina (1 pienso)")
+clock += 1000
+promptOf(trough, "Atender animales").Triggered:Fire(farmer)
+check(InventoryService.count(farmer, "Agro_Huevos") == 2 and profiles[farmer].Farm.Animals[1].ReadyAt ~= nil, "después recoge 2 huevos y le vuelve a dar de comer")
+local herd = fincasFolder.Finca1:FindFirstChild("Herd")
+check(herd ~= nil and herd:FindFirstChild("Gallina") ~= nil, "la gallina se ve en el corral")
+-- Obrador
+moveTo(farmerRoot, coop.Mostrador.Position)
+fire(farmer, "Make", "Harina", 2)
+check(InventoryService.count(farmer, "Agro_Harina") == 2 and InventoryService.count(farmer, "Agro_Trigo") == wheat - 6, "en el molino, 6 de trigo son 2 sacos de harina")
+fire(farmer, "Make", "Harina", 1)
+check(InventoryService.count(farmer, "Agro_Harina") == 2 and notified(farmer, "Te faltan ingredientes"), "sin trigo suficiente no hay más harina")
+fire(farmer, "Make", "Queso", 1)
+check(InventoryService.count(farmer, "Agro_Queso") == 0 and notified(farmer, "nivel 4"), "el queso pide nivel 4")
+fire(farmer, "Make", "Pizza", 1)
+check(notified(farmer, "cocina de tu restaurante"), "los platos se cocinan en un restaurante, no en el obrador")
+moveTo(farmerRoot, Vector3.new(0, 0, 0))
+fire(farmer, "Make", "Pan", 1)
+check(InventoryService.count(farmer, "Agro_Pan") == 0, "lejos de la cooperativa no se usa el obrador")
+-- Vender a la cooperativa
+moveTo(farmerRoot, coop.Mostrador.Position)
+local m1 = profiles[farmer].Money
+fire(farmer, "Sell", "Agro_Huevos", 1)
+check(profiles[farmer].Money == m1 + Farming.sellPrice("Agro_Huevos", "Coop") and InventoryService.count(farmer, "Agro_Huevos") == 1, "vende un huevo a la cooperativa")
+-- Supermercado: paga más y llena la estantería
+InventoryService.add(farmer, "Agro_Leche", 5)
+local stockPoint = collection:GetTagged("SuperStock")[1]
+local milkShelf
+for _, shelf in collection:GetTagged("SuperShelf") do
+	if shelf:GetAttribute("Product") == "Leche" then
+		milkShelf = shelf
+	end
+end
+milkShelf:SetAttribute("Stock", 0)
+moveTo(farmerRoot, stockPoint.Position)
+local m2 = profiles[farmer].Money
+local expected = 0
+for _, id in Farming.ProductOrder do
+	if Farming.Products[id].Grocery then
+		expected += InventoryService.count(farmer, id) * Farming.sellPrice(id, "Super")
+	end
+end
+promptOf(stockPoint, "Entregar productos del campo").Triggered:Fire(farmer)
+check(profiles[farmer].Money == m2 + expected and InventoryService.count(farmer, "Agro_Leche") == 0 and InventoryService.count(farmer, "Agro_Huevos") == 0, "el supermercado compra leche, huevos y lechugas, más caros")
+check(milkShelf:GetAttribute("Stock") >= 5, "la leche de la granja se pone en su estantería")
+check(InventoryService.count(farmer, "Agro_Harina") == 2, "lo que el supermercado no vende (harina) te lo quedas")
+-- Se va del juego: la finca queda libre (lo plantado sigue en sus datos)
+fire(farmer, "Plant", 3, "Trigo")
+players.PlayerRemoving:Fire(farmer)
+local label = sign:FindFirstChildOfClass("SurfaceGui"):FindFirstChildOfClass("TextLabel")
+check(label.Text == "FINCA LIBRE", "al irse, la finca queda libre")
+_G.__farmer = farmer
+end)()
+
+;(function()
+print("▶ Negocios: locales, gasolineras y hoteles")
+local Business = loadModule(ROOT .. "/shared/Business")
+local building = { Id = 7, Key = "Bloque_4000_4000", Kind = "Local", Walkable = false, Door = Vector3.new(4000, 0.4, 4000), Out = Vector3.new(0, 0, -1), Title = "🏬 Comercio y viviendas", Floors = 3 }
+local resets, left = 0, 0
+local Interior = {
+	Hooks = {},
+	all = function()
+		return { building }
+	end,
+	reset = function()
+		resets += 1
+	end,
+	leave = function()
+		left += 1
+	end,
+}
+mocks[S .. "InteriorService"] = Interior
+-- Gasolinera con su poste y surtidor
+local town = worldRoot:FindFirstChild("Town")
+local gasModel = fakeInstance("Model")
+gasModel.Name = "Gasolinera"
+gasModel.Parent = town
+local pylon = part("Pylon", CFrame.new(-290, 6, -310))
+pylon.Size = Vector3.new(2, 12, 2)
+pylon.Parent = gasModel
+fuelPump.Parent = gasModel
+local BusinessService = loadModule(S .. "BusinessService")
+local bclock = 500000
+BusinessService._clock = function()
+	return bclock
+end
+BusinessService.init()
+local keys = {}
+for key, premise in BusinessService._premises do
+	keys[premise.Kind] = key
+end
+check(keys.Local ~= nil and keys.Gas ~= nil and keys.Hotel ~= nil, "encuentra los locales, las gasolineras y los hoteles")
+local L = keys.Local
+local function fire(player, ...)
+	task.wait(0.16)
+	remotes.Business.OnServerEvent:Fire(player, ...)
+end
+local owner, ownerRoot = newPlayer(390, "Adulto", 60000)
+profiles[owner].Items = {}
+profiles[owner].Slots = {}
+owner:SetAttribute("InteriorKey", "7:0")
+local teen = newPlayer(391, "Adolescente", 99999)
+teen:SetAttribute("InteriorKey", "7:0")
+fire(teen, "BuyPremise", L)
+check(notified(teen, "mayor de edad") and BusinessService._index()[L] == nil, "un adolescente no puede comprar un local")
+local price = Business.premisePrice("Local", L)
+fire(owner, "BuyPremise", L)
+check(profiles[owner].Money == 60000 - price and BusinessService._index()[L].Owner == 390, "un adulto compra el local")
+check(lastMessage(owner, "Panel")[2].Id == "Setup", "después elige qué negocio abrir")
+fire(teen, "BuyPremise", L)
+check(profiles[teen].Money == 99999, "un local con dueño no se vende dos veces")
+fire(owner, "Open", L, "Gasolinera")
+check(BusinessService._getRecord(L, true).Type == nil, "en un local no se puede abrir una gasolinera")
+fire(owner, "Open", L, "Fruteria")
+local rec = BusinessService._getRecord(L, true)
+check(rec.Type == "Fruteria" and rec.Open and rec.Name == "Frutas " .. owner.Name, "abre una frutería con su nombre")
+check(resets > 0, "la sala del local se rehace con el negocio")
+-- Dentro del local: cartel, comprar, gestionar
+local room = fakeInstance("Model")
+room.Parent = worldRoot
+local register = part("Register", CFrame.new(4010, 4, 4020))
+register.Parent = room
+local counterPart = part("Counter", CFrame.new(4010, 2, 4020))
+counterPart.Parent = room
+Interior.Hooks.Decorate({ Floor = 0, Building = building, Room = { Model = room } })
+check(promptOf(register, "Comprar") ~= nil and promptOf(register, "Gestionar") ~= nil and room:FindFirstChild("CartelNegocio") ~= nil, "dentro hay cartel, «Comprar» y «Gestionar»")
+check(promptOf(counterPart, "Cocina") == nil, "una frutería no tiene cocina")
+-- Existencias desde la mochila y precios
+InventoryService.add(owner, "Agro_Manzana", 30)
+InventoryService.add(owner, "Agro_Pizza", 2)
+fire(owner, "Stock", L, "Agro_Manzana", 30)
+fire(owner, "Stock", L, "Agro_Pizza", 2)
+rec = BusinessService._getRecord(L, true)
+check(rec.Stock.Agro_Manzana == 30 and InventoryService.count(owner, "Agro_Manzana") == 0, "pone 30 manzanas a la venta desde la mochila")
+check(rec.Stock.Agro_Pizza == nil and InventoryService.count(owner, "Agro_Pizza") == 2, "una frutería no puede vender pizzas")
+local ref = Business.Goods.Agro_Manzana.Ref
+fire(owner, "Price", L, "Agro_Manzana", 1)
+check(Business.priceOf(BusinessService._getRecord(L, true), "Agro_Manzana") == ref + Business.priceStep(Business.Goods.Agro_Manzana), "sube el precio")
+-- Un cliente compra en el mostrador
+local buyer = newPlayer(392, "Adulto", 100)
+profiles[buyer].Items = {}
+profiles[buyer].Slots = {}
+buyer:SetAttribute("InteriorKey", "7:0")
+promptOf(register, "Comprar").Triggered:Fire(buyer)
+check(lastMessage(buyer, "Panel")[2].Id == "Shop", "«Comprar» abre la tienda")
+local unit = Business.priceOf(BusinessService._getRecord(L, true), "Agro_Manzana")
+fire(buyer, "Buy", L, "Agro_Manzana", 2)
+rec = BusinessService._getRecord(L, true)
+check(InventoryService.count(buyer, "Agro_Manzana") == 2 and profiles[buyer].Money == 100 - unit * 2, "el cliente compra 2 manzanas")
+check(rec.Stock.Agro_Manzana == 28 and rec.Till == unit * 2 and notified(owner, "ha comprado"), "el dinero va a la caja y el dueño se entera")
+local outside = newPlayer(393, "Adulto", 100)
+fire(outside, "Buy", L, "Agro_Manzana", 1)
+check(profiles[outside].Money == 100, "desde fuera del local no se compra")
+-- Los vecinos compran solos
+bclock += 3600
+local units, money = BusinessService._simulate(L)
+rec = BusinessService._getRecord(L, true)
+check(units > 0 and money > 0 and rec.Stock.Agro_Manzana == 28 - units, ("en una hora los vecinos compran %d manzanas (+$%d)"):format(units, money))
+local till = math.floor(rec.Till)
+local before = profiles[owner].Money
+fire(owner, "Collect", L)
+check(profiles[owner].Money == before + till and BusinessService._getRecord(L, true).Till < 1, "recoge la caja")
+fire(owner, "Toggle", L)
+fire(buyer, "Buy", L, "Agro_Manzana", 1)
+check(InventoryService.count(buyer, "Agro_Manzana") == 2 and notified(buyer, "cerrado"), "cerrado no se puede comprar")
+fire(owner, "Toggle", L)
+fire(outside, "Collect", L)
+check(notified(outside, "no es tuyo"), "nadie más puede recoger tu caja")
+-- Gasolinera: mayorista, precio y repostajes
+local G = keys.Gas
+local anchor = BusinessService._premises[G].Anchor
+moveTo(ownerRoot, anchor.Position)
+owner:SetAttribute("InteriorKey", nil)
+fire(owner, "BuyPremise", G)
+fire(owner, "Open", G, "Gasolinera")
+fire(owner, "Order", G, "W_Gasolina", 1)
+local grec = BusinessService._getRecord(G, true)
+check(grec.Type == "Gasolinera" and grec.Stock.W_Gasolina == Business.Goods.W_Gasolina.Lot, "compra la gasolinera y pide gasolina al mayorista")
+fire(owner, "Price", G, "W_Gasolina", 1)
+check(math.abs(Business.priceOf(BusinessService._getRecord(G, true), "W_Gasolina") - 1.6) < 0.001, "sube la gasolina a 1,60")
+remotes.Vehicle.OnServerEvent:Fire(adult, "Spawn", "Coche")
+local car = worldRoot.Rides:FindFirstChild("Coche")
+local chassis = car.PrimaryPart
+for _ = 1, 8 do
+	chassis.CFrame = chassis.CFrame * CFrame.new(0, 0, -150)
+	task.wait(0.55)
+end
+chassis.CFrame = fuelPump.CFrame * CFrame.new(0, 0, 6)
+task.wait(0.6)
+local tillBefore = BusinessService._getRecord(G, true).Till
+local litersBefore = BusinessService._getRecord(G, true).Stock.W_Gasolina
+promptOf(fuelPump, "Repostar / cargar").Triggered:Fire(adult)
+task.wait(0.1)
+grec = BusinessService._getRecord(G, true)
+check(grec.Till > tillBefore and grec.Stock.W_Gasolina < litersBefore and notified(owner, "Han repostado"), "quien reposta paga al dueño y bajan los litros")
+remotes.Vehicle.OnServerEvent:Fire(adult, "Dismount")
+-- Hotel: las reservas van a la caja
+local H = keys.Hotel
+local hotelAnchor = BusinessService._premises[H].Anchor
+local hotelier, hotelierRoot = newPlayer(394, "Adulto", 60000)
+moveTo(hotelierRoot, hotelAnchor.Position)
+fire(hotelier, "BuyPremise", H)
+fire(hotelier, "Open", H, "Hotel")
+local lobby = BusinessService._premises[H].Model
+local HotelService = loadModule(S .. "HotelService")
+HotelService.RoomSold(lobby, 50, buyer)
+task.wait(0.1)
+check(BusinessService._getRecord(H, true).Till == 50 and notified(hotelier, "se aloja"), "una reserva en su hotel va a su caja")
+-- Máximo de negocios y vender el local
+check(#(function()
+	local n = {}
+	for _, e in BusinessService._index() do
+		if e.Owner == 390 then
+			table.insert(n, e)
+		end
+	end
+	return n
+end)() == 2, "el dueño tiene 2 negocios")
+owner:SetAttribute("InteriorKey", "7:0")
+fire(owner, "Unstock", L, "Agro_Manzana")
+check(InventoryService.count(owner, "Agro_Manzana") > 0 and (BusinessService._getRecord(L, true).Stock.Agro_Manzana or 0) == 0, "retira las manzanas que quedan")
+local m3 = profiles[owner].Money
+fire(owner, "SellPremise", L)
+check(BusinessService._index()[L] == nil and profiles[owner].Money >= m3 + Business.sellBack(price), "vende el local y le devuelven una parte")
+-- Restaurante: cocina de platos
+fire(owner, "BuyPremise", L)
+fire(owner, "Open", L, "Restaurante")
+local room2 = fakeInstance("Model")
+room2.Parent = worldRoot
+local reg2 = part("Register", CFrame.new(4010, 4, 4020))
+reg2.Parent = room2
+local counter2 = part("Counter", CFrame.new(4010, 2, 4020))
+counter2.Parent = room2
+Interior.Hooks.Decorate({ Floor = 0, Building = building, Room = { Model = room2 } })
+local kitchen = promptOf(counter2, "Cocina")
+check(kitchen ~= nil, "un restaurante tiene cocina")
+kitchen.Triggered:Fire(buyer)
+check(notified(buyer, "Solo el dueño"), "la cocina es solo del dueño")
+ownerRoot.CFrame = CFrame.new(counter2.Position)
+kitchen.Triggered:Fire(owner)
+check(lastMessage(owner, "Panel")[2].Id == "Kitchen", "el dueño abre la cocina")
+InventoryService.add(owner, "Agro_Harina", 1)
+InventoryService.add(owner, "Agro_TomateFrito", 1)
+InventoryService.add(owner, "Agro_Queso", 1)
+task.wait(0.16)
+remotes.Farm.OnServerEvent:Fire(owner, "Make", "Pizza", 1)
+check(InventoryService.count(owner, "Agro_Pizza") == 4 and InventoryService.count(owner, "Agro_Queso") == 0, "cocina 2 pizzas con harina, tomate frito y queso")
+fire(owner, "Stock", L, "Agro_Pizza", 4)
+check(BusinessService._getRecord(L, true).Stock.Agro_Pizza == 4, "y las pone a la venta en su restaurante")
+local _ = left
 end)()
 
 end, debug.traceback)

@@ -68,6 +68,8 @@ local order = {
 	"TradeService", -- intercambio entre jugadores y mercadillo
 	"SocialService", -- grupos de jugadores y chat privado (menú al tocar a un jugador)
 	"FishingService", -- pesca, tienda de pesca, barco y oficio de pescador
+	"FarmService", -- agricultores y ganaderos: fincas de Villaverde, cooperativa, obrador y venta a supermercados
+	"BusinessService", -- negocios de jugadores: locales, gasolineras y hoteles con existencias, precios y clientes
 	"MetroService", -- metro subterráneo: trenes, galería, encargos y revisor
 	"DivingService", -- nadar, bucear (aire) y pesca submarina con fusil o arpón
 	"ClassService", -- clases y exámenes que se juegan (lo usa la historia)

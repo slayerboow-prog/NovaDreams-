@@ -54,6 +54,7 @@ local CombatController = require(script.Parent.Controllers.CombatController)
 local WantedUI = require(script.Parent.Controllers.WantedUI)
 local InstitutionsUI = require(script.Parent.Controllers.InstitutionsUI)
 local InteriorUI = require(script.Parent.Controllers.InteriorUI)
+local EconomyUI = require(script.Parent.Controllers.EconomyUI)
 local CommandMenu = require(script.Parent.Commands.CommandMenu)
 local DefaultCommands = require(script.Parent.Commands.DefaultCommands)
 
@@ -110,6 +111,7 @@ task.spawn(CombatController.init) -- pelear: X/RB golpear (combo de 3), Z/LB def
 task.spawn(WantedUI.init) -- estrellas de búsqueda bajo el reloj, avisos de delito, DETENIDO y hélices
 task.spawn(InstitutionsUI.init) -- instituciones: panel del juez, juicio, condena, ascensos y Hacienda
 task.spawn(InteriorUI.init) -- ascensor de los edificios (todos se pueden visitar por dentro)
+task.spawn(EconomyUI.init) -- granja (cooperativa, obrador) y negocios (gestión y mostrador)
 
 -- Menú de comandos (abajo a la izquierda): cambia según lo que tienes delante; el comando elegido
 -- es también lo que hace la tecla E, y su cartel es el único que se dibuja

@@ -32,6 +32,9 @@ local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 
 local HotelService = {}
 
+-- Hoteles de jugadores (BusinessService): se llama al reservar (modelo de la recepción, precio, huésped)
+HotelService.RoomSold = nil :: ((Model, number, Player) -> ())?
+
 local Notify = ReplicatedStorage.Remotes.Notify :: RemoteEvent
 local Remote = ReplicatedStorage.Remotes.Hotel :: RemoteEvent
 local JOB = Hotel.Job
@@ -272,6 +275,10 @@ local function onBook(player: Player, typeId: any)
 	if not DataService.spend(player, t.Price) then
 		Notify:FireClient(player, "Error", "No tienes dinero suficiente.")
 		return
+	end
+	-- Hotel de un jugador: la reserva va a su caja (BusinessService)
+	if HotelService.RoomSold then
+		pcall(HotelService.RoomSold, lobby.Model, t.Price, player)
 	end
 	nextId += 1
 	table.insert(lobby.Requests, { Id = nextId, Kind = "In", Name = player.DisplayName or player.Name, Type = t.Id, Created = os.clock(), Player = player })
