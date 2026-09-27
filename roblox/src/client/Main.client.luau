@@ -48,6 +48,8 @@ local AgeMotion = require(script.Parent.Controllers.AgeMotion)
 local ObjectMotion = require(script.Parent.Controllers.ObjectMotion)
 local WetWorld = require(script.Parent.Controllers.WetWorld)
 local StoneThrow = require(script.Parent.Controllers.StoneThrow)
+local CommandMenu = require(script.Parent.Commands.CommandMenu)
+local DefaultCommands = require(script.Parent.Commands.DefaultCommands)
 
 local gui = Hud.init(function()
 	Store.open()
@@ -96,6 +98,12 @@ task.spawn(FishingUI.init) -- pesca: sedal y corcho, ¡tirar!, tienda de pesca
 task.spawn(JobPrompts.init) -- los carteles de cada oficio solo los ve quien trabaja en él
 task.spawn(Driving.init) -- conducir coches, motos, bicis, monopatines y patinetes (W/A/S/D)
 task.spawn(Actions.init) -- gestos y bailes (G), trepar muros bajos, linterna (L) y modo foto (P)
+
+-- Menú de comandos (abajo a la izquierda): cambia según lo que tienes delante; el comando elegido
+-- es también lo que hace la tecla E, y su cartel es el único que se dibuja
+DefaultCommands.register()
+CommandMenu.onFocus(Prompts.setFocus)
+task.spawn(CommandMenu.init)
 
 -- Botones de arriba a la derecha del HUD
 Hud.setAction("Mochila", InventoryUI.toggle)
@@ -205,6 +213,7 @@ game:GetService("RunService").Heartbeat:Connect(function()
 		ProximityPromptService.Enabled = not busy
 		TaskMarker.setHidden(busy)
 		Hud.setBusy(busy)
+		CommandMenu.setBusy(busy)
 		if busy and MapUI.isOpen() then
 			MapUI.toggleBig()
 		end

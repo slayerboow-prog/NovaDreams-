@@ -131,6 +131,14 @@ local function dismount(_: string, state: Enum.UserInputState)
 	return Enum.ContextActionResult.Pass
 end
 
+-- Para el menú de comandos
+function Vehicles.dismount()
+	if player:GetAttribute("Riding") then
+		Remote:FireServer("Dismount")
+	end
+end
+Vehicles.open = open
+
 function Vehicles.init()
 	Hud.addButton("🚲 Vehículos", Color3.fromRGB(0, 120, 170), 3, open)
 

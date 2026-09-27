@@ -46,14 +46,12 @@ local toastList: Frame
 local sleepOverlay: Frame
 local actions: { [string]: () -> () } = {}
 local phoneApps: { { Text: string, Color: Color3?, Order: number, Callback: () -> () } } = {}
-local questBadges: { Frame } = {}
 local objectivesPanel: Frame
 local questTitleShown = ""
 
 local WEEKDAYS = { "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo" }
 local MONTHS = { "enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre" }
 
-local FAST = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 
 ---------------------------------------------------------------------
 -- Piezas comunes
@@ -131,120 +129,21 @@ local function buildClock(parent: Instance)
 end
 
 ---------------------------------------------------------------------
--- Comandos: Mochila, Personaje, Mapa, Misiones, Teléfono y Menú
+-- Comandos (Mochila, Personaje, Mapa, Misiones, Teléfono, Menú): los usa el menú de comandos
+-- (client/Commands), que está abajo a la izquierda en todos los dispositivos
 ---------------------------------------------------------------------
-local COMMANDS = {
-	{ Id = "Mochila", Icon = "🎒", Text = "Mochila" },
-	{ Id = "Personaje", Icon = "⭐", Text = "Personaje" },
-	{ Id = "Mapa", Icon = "🗺", Text = "Mapa" },
-	{ Id = "Misiones", Icon = "📋", Text = "Misiones" },
-	{ Id = "Telefono", Icon = "📱", Text = "Teléfono" },
-	{ Id = "Menu", Icon = "☰", Text = "Menú" },
-}
+local questPending = false
 
-local function runCommand(id: string)
+function Hud.runCommand(id: string)
 	local action = actions[id]
 	if action then
 		action()
 	end
 end
 
-local function badge(parent: Instance, position: UDim2): Frame
-	local dot = create("Frame", { Size = UDim2.fromOffset(14, 14), Position = position, BackgroundColor3 = rgb(255, 70, 90), Visible = false, ZIndex = 5, Parent = parent }, {
-		create("UICorner", { CornerRadius = UDim.new(1, 0) }),
-		create("UIStroke", { Color = Color3.new(1, 1, 1), Thickness = 1.5 }),
-	})
-	table.insert(questBadges, dot)
-	return dot
-end
-
--- En el ordenador: el menú "COMANDO" de KH3, abajo a la izquierda. La opción bajo el ratón (o la
--- elegida con el mando) se ilumina en blanco-cian, se desplaza un poco y sale el cursor ▶.
-local function buildCommandMenu(parent: Instance)
-	local menuFrame = create("Frame", {
-		Name = "Commands",
-		AnchorPoint = Vector2.new(0, 1),
-		Size = UDim2.fromOffset(230, 0),
-		AutomaticSize = Enum.AutomaticSize.Y,
-		Position = UDim2.new(0, 18, 1, -18),
-		BackgroundTransparency = 1,
-		Parent = parent,
-	})
-	create("UIListLayout", { Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder, Parent = menuFrame })
-	tab(menuFrame, "COMANDO", nil, { LayoutOrder = 0 })
-
-	local rows: { { Row: TextButton, Inner: Frame, Fill: UIGradient, Text: TextLabel, Cursor: TextLabel } } = {}
-	local function highlight(selected: TextButton?)
-		for _, r in rows do
-			local on = r.Row == selected
-			r.Row.BackgroundColor3 = if on then Color3.new(1, 1, 1) else C.Panel
-			r.Row.BackgroundTransparency = if on then 0 else 0.15
-			r.Fill.Color = if on then Theme.Selected else Theme.Sheen
-			r.Text.TextColor3 = if on then C.Ink else C.Text
-			r.Cursor.Visible = on
-			TweenService:Create(r.Inner, FAST, { Position = UDim2.fromOffset(if on then 10 else 0, 0) }):Play()
-		end
-	end
-	for i, def in COMMANDS do
-		local row = create("TextButton", {
-			Name = def.Id,
-			Size = UDim2.new(1, 0, 0, 36),
-			BackgroundColor3 = C.Panel,
-			BackgroundTransparency = 0.15,
-			AutoButtonColor = false,
-			Text = "",
-			LayoutOrder = i,
-			Parent = menuFrame,
-		}, { Theme.corner(5), Theme.stroke(0.5) })
-		local fill = create("UIGradient", { Rotation = 90, Color = Theme.Sheen, Parent = row })
-		local cursor = Theme.label({ Size = UDim2.fromOffset(16, 36), Position = UDim2.fromOffset(-14, 0), Text = "▶", TextSize = 14, TextColor3 = C.Gold, TextStrokeTransparency = 0.4, TextXAlignment = Enum.TextXAlignment.Center, Visible = false, ZIndex = 3, Parent = row })
-		local inner = create("Frame", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Parent = row })
-		icon(inner, def.Icon, 24, UDim2.fromOffset(10, 6))
-		local text = Theme.title({ Size = UDim2.new(1, -52, 1, 0), Position = UDim2.fromOffset(44, 0), Text = def.Text, TextSize = 17, Parent = inner })
-		table.insert(rows, { Row = row, Inner = inner, Fill = fill, Text = text, Cursor = cursor })
-		row.MouseEnter:Connect(function()
-			highlight(row)
-		end)
-		row.MouseLeave:Connect(function()
-			highlight(nil)
-		end)
-		row.SelectionGained:Connect(function()
-			highlight(row)
-		end)
-		row.SelectionLost:Connect(function()
-			highlight(nil)
-		end)
-		row.Activated:Connect(function()
-			runCommand(def.Id)
-		end)
-		if def.Id == "Misiones" then
-			badge(row, UDim2.new(1, -20, 0, 11))
-		end
-	end
-end
-
--- En el móvil: iconos arriba a la derecha (el minimapa va debajo)
-local ICON_SIZE = 58
-local function buildCommandIcons(parent: Instance)
-	local bar = create("Frame", {
-		Name = "CommandIcons",
-		AnchorPoint = Vector2.new(1, 0),
-		Size = UDim2.fromOffset(#COMMANDS * ICON_SIZE + (#COMMANDS - 1) * 6, ICON_SIZE),
-		Position = UDim2.new(1, -12, 0, 10),
-		BackgroundTransparency = 1,
-		Parent = parent,
-	})
-	create("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder, Parent = bar })
-	for i, def in COMMANDS do
-		local button = Theme.button({ Name = def.Id, Size = UDim2.fromOffset(ICON_SIZE, ICON_SIZE), BackgroundColor3 = C.Panel, BackgroundTransparency = 0.15, Text = "", LayoutOrder = i, Parent = bar })
-		Theme.label({ Size = UDim2.fromScale(1, 1), Text = def.Icon, TextSize = 28, TextXAlignment = Enum.TextXAlignment.Center, Parent = button })
-		button.Activated:Connect(function()
-			runCommand(def.Id)
-		end)
-		if def.Id == "Misiones" then
-			badge(button, UDim2.new(1, -16, 0, 2))
-		end
-	end
+-- ¿Hay una misión nueva sin mirar? (el menú de comandos pone un punto rojo en MISIONES)
+function Hud.questPending(): boolean
+	return questPending
 end
 
 ---------------------------------------------------------------------
@@ -621,9 +520,7 @@ local function renderObjectives(state: { [string]: any })
 	if title ~= questTitleShown then
 		questTitleShown = title
 		if not objectivesPanel.Visible and title ~= "" then
-			for _, dot in questBadges do
-				dot.Visible = true
-			end
+			questPending = true
 		end
 	end
 	objectivesList.Parent.Visible = order > 0
@@ -690,9 +587,7 @@ local function buildObjectives(parent: Instance)
 	actions.Misiones = function()
 		objectivesWanted = not objectivesWanted
 		objectivesPanel.Visible = objectivesWanted and not busy
-		for _, dot in questBadges do
-			dot.Visible = false
-		end
+		questPending = false
 	end
 end
 
@@ -1035,7 +930,7 @@ function refreshVisible()
 		return
 	end
 	local show = not busy and player:GetAttribute("LifeStage") ~= "Bebe"
-	for _, name in { "Commands", "CommandIcons", "Status" } do
+	for _, name in { "Status" } do
 		local element = gui:FindFirstChild(name)
 		if element then
 			element.Visible = show
@@ -1062,11 +957,6 @@ function Hud.init(openStore: () -> ()): ScreenGui
 
 	buildClock(gui)
 	buildActivity(gui)
-	if TOUCH then
-		buildCommandIcons(gui)
-	else
-		buildCommandMenu(gui)
-	end
 	buildStatus(gui)
 	buildObjectives(gui)
 	buildAreaBanner(gui)
@@ -1107,8 +997,8 @@ function Hud.init(openStore: () -> ()): ScreenGui
 			arrangeStatus("Right")
 		end
 		objectivesPanel.Position = UDim2.fromOffset(12, y)
-		-- En el ordenador, los objetivos no bajan hasta el menú de comandos
-		local room = canvas.Y - y - (if TOUCH then 16 else 300)
+		-- Los objetivos no bajan hasta el menú de comandos (abajo a la izquierda)
+		local room = canvas.Y - y - (if TOUCH then 420 else 300)
 		objectivesLimit.MaxSize = Vector2.new(math.huge, math.max(120, room))
 	end
 	camera:GetPropertyChangedSignal("ViewportSize"):Connect(function()

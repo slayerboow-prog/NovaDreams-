@@ -19,6 +19,11 @@ local Prompts = {}
 
 local player = Players.LocalPlayer
 
+-- Solo se dibuja el cartel del "foco": lo que hace la tecla E (lo elige el menú de comandos)
+local focus: ProximityPrompt? = nil
+local managed = false -- hasta que el menú de comandos elija, se ven todos (por si no arrancara)
+local shown: { [ProximityPrompt]: { Billboard: BillboardGui, Key: TextLabel, InputType: Enum.ProximityPromptInputType } } = {}
+
 local GAMEPAD_NAMES = {
 	[Enum.KeyCode.ButtonA] = "A",
 	[Enum.KeyCode.ButtonB] = "B",
@@ -93,7 +98,9 @@ local function show(prompt: ProximityPrompt, inputType: Enum.ProximityPromptInpu
 		BackgroundColor3 = rgb(20, 36, 70),
 		Parent = card,
 	}, { Theme.corner(10), create("UIStroke", { Color = C.Accent, Thickness = 2 }) })
-	Theme.label({ Size = UDim2.fromScale(1, 1), Text = keyText(prompt, inputType), Font = Theme.FontBold, TextSize = 20, TextXAlignment = Enum.TextXAlignment.Center, Parent = key })
+	local keyLabel = Theme.label({ Size = UDim2.fromScale(1, 1), Text = keyText(prompt, inputType), Font = Theme.FontBold, TextSize = 20, TextXAlignment = Enum.TextXAlignment.Center, Parent = key })
+	billboard.Enabled = not managed or prompt == focus
+	shown[prompt] = { Billboard = billboard, Key = keyLabel, InputType = inputType }
 	local texts = create("Frame", {
 		Position = UDim2.fromOffset(54, 0),
 		Size = UDim2.fromOffset(0, 56),
@@ -152,6 +159,7 @@ local function show(prompt: ProximityPrompt, inputType: Enum.ProximityPromptInpu
 	end)
 
 	prompt.PromptHidden:Once(function()
+		shown[prompt] = nil
 		for _, connection in connections do
 			connection:Disconnect()
 		end
@@ -162,6 +170,18 @@ end
 local function customize(instance: Instance)
 	if instance:IsA("ProximityPrompt") then
 		instance.Style = Enum.ProximityPromptStyle.Custom
+	end
+end
+
+-- El menú de comandos dice cuál es el cartel que va con la E: solo ese se ve
+function Prompts.setFocus(prompt: ProximityPrompt?)
+	focus = prompt
+	managed = true
+	for other, entry in shown do
+		entry.Billboard.Enabled = other == prompt
+		if other == prompt then
+			entry.Key.Text = keyText(other, entry.InputType)
+		end
 	end
 end
 
