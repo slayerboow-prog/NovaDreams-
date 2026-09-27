@@ -118,6 +118,17 @@ task.spawn(Actions.init) -- gestos y bailes (G), trepar muros bajos, linterna (L
 task.spawn(CombatController.init) -- pelear: X/RB golpear (combo de 3), Z/LB defenderse, 👊 y 🛡 en el móvil
 task.spawn(WantedUI.init) -- estrellas de búsqueda bajo el reloj, avisos de delito, DETENIDO y hélices
 task.spawn(DeathUI.init) -- pantalla de HAS MUERTO y despertar en el hospital
+-- Versión nueva del juego: aviso antes de pasar a un servidor nuevo (UpdateService)
+task.spawn(function()
+	local remote = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Update", 60) :: RemoteEvent?
+	if remote then
+		remote.OnClientEvent:Connect(function(kind: string, data: any)
+			if kind == "Soon" then
+				Hud.toast("Info", ("🔄 ¡Versión nueva! Te llevamos a un servidor actualizado en %d s"):format(tonumber(data and data.Seconds) or 15))
+			end
+		end)
+	end
+end)
 task.spawn(InstitutionsUI.init) -- instituciones: panel del juez, juicio, condena, ascensos y Hacienda
 task.spawn(InteriorUI.init) -- ascensor de los edificios (todos se pueden visitar por dentro)
 
