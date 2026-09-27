@@ -54,6 +54,8 @@ local KIND_TEXT = {
 	Prize = "Premio",
 	Document = "Documento",
 	Keepsake = "Recuerdo de tu historia",
+	Weapon = "Arma · elígela en la barra rápida para empuñarla",
+	Ammo = "Munición · se gasta al recargar (R)",
 }
 local NUMBER_KEYS = {
 	[Enum.KeyCode.One] = 1,
@@ -131,7 +133,9 @@ local function inUse(item: Items.Item?): boolean
 	if not item then
 		return false
 	end
-	if item.Kind == "Vehicle" then
+	if item.Kind == "Weapon" then
+		return player:GetAttribute("Weapon") == item.Ref
+	elseif item.Kind == "Vehicle" then
 		return player:GetAttribute("Riding") == item.Ref
 	elseif item.Kind == "Wear" then
 		return has("Wearing", item.Ref or "")
@@ -263,6 +267,25 @@ end
 
 local useSlot: (index: number) -> ()
 
+-- Armas: al elegir su casilla se empuña; al elegir otra, se guarda (WeaponController pone el handler)
+local weaponHandler: ((ref: string?, toggle: boolean?) -> ())? = nil
+local lastWeaponRef: string? = nil
+
+function InventoryUI.setWeaponHandler(handler: (ref: string?, toggle: boolean?) -> ())
+	weaponHandler = handler
+end
+
+local function notifyWeapon()
+	local item = itemAt(selected)
+	local ref = if item and item.Kind == "Weapon" then item.Ref else nil
+	if ref ~= lastWeaponRef then
+		lastWeaponRef = ref
+		if weaponHandler then
+			weaponHandler(ref, false)
+		end
+	end
+end
+
 local function chooseSlot(index: number)
 	if index == selected then
 		useSlot(index) -- elegir la que ya estaba elegida = usarla
@@ -271,6 +294,7 @@ local function chooseSlot(index: number)
 	selected = index
 	refreshHotbar()
 	showName(index)
+	notifyWeapon()
 end
 
 local function buildHotbar()
@@ -400,10 +424,12 @@ local function refreshDetails()
 	detailName.Text = item.Icon .. "  " .. item.Name .. (if count > 1 then "  ×" .. count else "")
 	detailKind.Text = KIND_TEXT[item.Kind] or ""
 	detailDesc.Text = item.Desc
-	local usable = item.Kind == "Food" or item.Kind == "Vehicle" or item.Kind == "Wear"
+	local usable = item.Kind == "Food" or item.Kind == "Vehicle" or item.Kind == "Wear" or item.Kind == "Weapon"
 	useButton.Visible = usable
 	if item.Kind == "Food" then
 		useButton.Text = "Comer"
+	elseif item.Kind == "Weapon" then
+		useButton.Text = if inUse(item) then "Guardar" else "Empuñar"
 	elseif item.Kind == "Vehicle" then
 		useButton.Text = if inUse(item) then "Bajarse" else "Montar"
 	else
@@ -773,7 +799,11 @@ useSlot = function(index: number)
 	if not item then
 		return
 	end
-	if item.Kind == "Food" then
+	if item.Kind == "Weapon" then
+		if weaponHandler then
+			weaponHandler(item.Ref, true)
+		end
+	elseif item.Kind == "Food" then
 		Remote:FireServer("Use", index)
 		-- La mano a la boca (o el vaso, si es una bebida)
 		ReactMotion.play(player.Character, ReactMotion.foodGesture(item.Name))
@@ -903,8 +933,9 @@ function InventoryUI.init()
 	player:GetAttributeChangedSignal("Inventory"):Connect(function()
 		readSlots()
 		refreshAll()
+		notifyWeapon()
 	end)
-	for _, attribute in { "Riding", "Wearing" } do
+	for _, attribute in { "Riding", "Wearing", "Weapon" } do
 		player:GetAttributeChangedSignal(attribute):Connect(refreshAll)
 	end
 	player:GetAttributeChangedSignal("LifeStage"):Connect(updateVisibility)

@@ -10,6 +10,8 @@
 -- hospital (HospitalService). HitSomeone lleva Killed = true (homicidio para WantedService).
 -- Para las misiones y la policía: StoryEvents "HitSomeone" (Target/Npc/Model/KO), "GotHit" y
 -- "KnockedOut". Los agentes de policía (Officer) sí reciben daño y caen (WantedService lo castiga).
+-- Las armas (WeaponService) usan el mismo camino con CombatService.applyHit: mismo K.O., misma
+-- muerte y hospital, mismos avisos (HitSomeone lleva Weapon = id del arma).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -32,7 +34,7 @@ local Remote: RemoteEvent
 local function stateOf(player: Player): State
 	local state = states[player]
 	if not state then
-		state = { Combo = 0, LastAt = 0, Blocking = false, KOUntil = 0, SpawnedAt = os.clock() }
+		state = { Combo = 0, LastAt = 0, Blocking = false, KOUntil = 0, SpawnedAt = -math.huge } -- (al aparecer se pone la hora: CharacterAdded)
 		states[player] = state
 	end
 	return state
@@ -83,15 +85,16 @@ local function npcBelongsTo(model: Model, player: Player): boolean
 	return true
 end
 
-local function knockOut(victim: Player, humanoid: Humanoid)
+local function knockOut(victim: Player, humanoid: Humanoid, seconds: number?)
 	local state = stateOf(victim)
-	state.KOUntil = os.clock() + Combat.KOSeconds
+	local duration = seconds or Combat.KOSeconds
+	state.KOUntil = os.clock() + duration
 	state.Blocking = false
 	victim:SetAttribute("Blocking", nil)
 	victim:SetAttribute("KO", true)
 	StoryEvents.emit(victim, "KnockedOut", {})
-	task.delay(Combat.KOSeconds, function()
-		if victim.Parent then
+	task.delay(duration, function()
+		if victim.Parent and os.clock() >= state.KOUntil - 0.05 then
 			victim:SetAttribute("KO", nil)
 		end
 		if humanoid.Parent and humanoid.Health > 0 then
@@ -243,6 +246,108 @@ local function setBlocking(player: Player, value: boolean)
 	end
 	state.Blocking = blocking
 	player:SetAttribute("Blocking", if blocking then true else nil)
+end
+
+export type HitInfo = {
+	Amount: number,
+	Direction: Vector3,
+	Weapon: string?,
+	Heavy: boolean?,
+	Stun: number?, -- táser: segundos en el suelo sin quitar vida
+	Toy: boolean?, -- de juguete: solo reacciona
+	At: Vector3?, -- dónde ha dado (para el número de daño)
+	Zone: string?,
+}
+export type HitResult = { Hit: boolean, Amount: number, KO: boolean, Killed: boolean, Player: Player? }
+
+-- Daño que llega de un arma (o de otra cosa que no es un puñetazo), con las mismas reglas que un golpe:
+-- K.O. al quedarse sin vida, rematar a alguien K.O. lo mata, protección al aparecer y en vehículos,
+-- agentes de policía que caen y personajes de misión que solo reaccionan.
+function CombatService.applyHit(attacker: Player, model: Model, info: HitInfo): HitResult
+	local none = { Hit = false, Amount = 0, KO = false, Killed = false, Player = nil }
+	local targetHumanoid, targetRoot = parts(model)
+	if not targetHumanoid or targetHumanoid.Health <= 0 or not targetRoot or model == attacker.Character then
+		return none
+	end
+	local victim = Players:GetPlayerFromCharacter(model)
+	local heavy = info.Heavy == true
+	local function show(amount: number, ko: boolean)
+		Remote:FireAllClients("Hit", {
+			Victim = model, Attacker = attacker, Amount = amount, Blocked = false, Combo = if heavy then 3 else 1,
+			Direction = info.Direction, Knockback = 0, KO = ko, Weapon = info.Weapon, At = info.At, Zone = info.Zone, Toy = info.Toy,
+		})
+	end
+	if victim then
+		if isProtected(victim) then
+			return none
+		end
+		if info.Toy then
+			if not canFight(victim) then
+				return none
+			end
+			show(0, false)
+			return { Hit = true, Amount = 0, KO = false, Killed = false, Player = victim }
+		end
+		if not CombatService.isKnockedOut(victim) and not canFight(victim) then
+			return none -- (bebés, en una conversación, en clase…)
+		end
+		if CombatService.isKnockedOut(victim) then
+			if (info.Stun or 0) > 0 then
+				return none -- (el táser no remata)
+			end
+			-- Rematar a alguien que está K.O.: muere
+			targetHumanoid.Health = 0
+			show(info.Amount, true)
+			StoryEvents.emit(attacker, "HitSomeone", { Target = victim.UserId, Model = model, KO = true, Killed = true, Weapon = info.Weapon })
+			StoryEvents.emit(victim, "GotHit", { By = attacker.UserId })
+			return { Hit = true, Amount = info.Amount, KO = true, Killed = true, Player = victim }
+		end
+		local amount = math.max(0, math.floor(info.Amount + 0.5))
+		local health, ko = Combat.apply(targetHumanoid.Health, amount)
+		if amount <= 0 then
+			health, ko = targetHumanoid.Health, false
+		end
+		targetHumanoid.Health = health
+		local stunned = (info.Stun or 0) > 0
+		if stunned then
+			ko = true
+		end
+		show(amount, ko)
+		StoryEvents.emit(attacker, "HitSomeone", { Target = victim.UserId, Model = model, KO = ko, Weapon = info.Weapon })
+		StoryEvents.emit(victim, "GotHit", { By = attacker.UserId })
+		if ko then
+			knockOut(victim, targetHumanoid, if stunned then info.Stun else nil)
+		end
+		return { Hit = true, Amount = amount, KO = ko, Killed = false, Player = victim }
+	elseif model:GetAttribute("Officer") then
+		if model:GetAttribute("Down") or info.Toy then
+			return none
+		end
+		local hp = (model:GetAttribute("Hp") or 0) - info.Amount
+		if (info.Stun or 0) > 0 then
+			hp = 0
+		end
+		model:SetAttribute("Hp", hp)
+		show(info.Amount, hp <= 0)
+		if hp <= 0 then
+			PoliceUnits.knockDown(model)
+		end
+		StoryEvents.emit(attacker, "HitSomeone", { Model = model, KO = hp <= 0, Weapon = info.Weapon })
+		return { Hit = true, Amount = info.Amount, KO = hp <= 0, Killed = false, Player = nil }
+	elseif npcBelongsTo(model, attacker) then
+		-- Personajes (de misión, del cole…): reaccionan pero no se hacen daño
+		show(0, false)
+		if not info.Toy then
+			StoryEvents.emit(attacker, "HitSomeone", { Npc = model:GetAttribute("NpcId") or model.Name, Model = model, Weapon = info.Weapon })
+		end
+		return { Hit = true, Amount = 0, KO = false, Killed = false, Player = nil }
+	end
+	return none
+end
+
+-- ¿Puede pelear o recibir? (para las armas: mismas condiciones que los golpes)
+function CombatService.canFight(player: Player): boolean
+	return canFight(player)
 end
 
 function CombatService.isKnockedOut(player: Player): boolean

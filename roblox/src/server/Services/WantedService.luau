@@ -5,6 +5,8 @@
 --   * Robar dinero a otro jugador (comando ROBAR del menú, junto a él)
 --   * Atracar una tienda (cartel "Atracar" en las tiendas, mantener pulsado)
 --   * Agredir a un agente de policía
+--   * Disparar a una persona o disparar en plena calle (WeaponService; la policía de servicio
+--     contra alguien buscado, no)
 -- Un delito solo suma estrellas si alguien lo ve: la policía (patrullas o jugadores policía de
 -- servicio), un testigo que llama o, en plena calle, a veces un transeúnte. En un atraco siempre
 -- salta la alarma. Mientras te buscan: más estrellas = más patrullas (PoliceUnits). Si ningún
@@ -18,6 +20,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Wanted = require(ReplicatedStorage.Shared.Wanted)
+local Movement = require(ReplicatedStorage.Shared.Movement)
 local Format = require(ReplicatedStorage.Shared.Format)
 local Stages = require(ReplicatedStorage.Shared.LifeStory.Stages)
 local Npc = require(script.Parent.Parent.World.Npc)
@@ -108,7 +111,9 @@ local function witnessNear(offender: Player, position: Vector3): Model?
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = { offender.Character :: Instance }
 	local best, bestDistance = nil, math.huge
-	for _, part in workspace:GetPartBoundsInRadius(position, Wanted.WitnessRadius, params) do
+	-- Agachado o tumbado se te ve menos: los testigos tienen que estar más cerca
+	local radius = Wanted.WitnessRadius * Movement.witnessFactor(offender:GetAttribute("Stance"))
+	for _, part in workspace:GetPartBoundsInRadius(position, radius, params) do
 		local model = part.Parent
 		if model and model:IsA("Model") and part.Name == "HumanoidRootPart" and not Players:GetPlayerFromCharacter(model) and not model:GetAttribute("Officer") then
 			local distance = (part.Position - position).Magnitude
@@ -367,12 +372,21 @@ local function onStoryEvent(player: Player, name: string, payload: { [string]: a
 	if victim and onDuty(player) and stateOf(victim).Stars > 0 then
 		return
 	end
+	if payload.Weapon then
+		WantedService.crime(player, if payload.Killed then "Homicidio" else "Disparo")
+		return
+	end
 	WantedService.crime(player, if payload.Killed then "Homicidio" elseif payload.KO then "KO" else "Agresion")
 end
 
 -- Sin estrellas (al morir)
 function WantedService.clear(player: Player)
 	setStars(player, 0)
+end
+
+-- ¿Es policía de servicio? (disparar a alguien buscado no es delito para ellos)
+function WantedService.onDuty(player: Player): boolean
+	return onDuty(player)
 end
 
 function WantedService.stars(player: Player): number

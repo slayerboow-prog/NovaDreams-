@@ -193,6 +193,8 @@ function ContextDetector.get(): { [string]: any }
 		Seated = humanoid ~= nil and humanoid.SeatPart ~= nil,
 		Money = player:GetAttribute("Money"),
 		Busy = player:GetAttribute("InDialogue") == true,
+		Weapon = player:GetAttribute("Weapon"),
+		Aiming = player:GetAttribute("Aiming") == true,
 	}
 end
 
@@ -272,7 +274,7 @@ function ContextDetector.init()
 		end
 		notify()
 	end)
-	for _, attribute in { "LifeStage", "InDialogue", "Job", "Role" } do
+	for _, attribute in { "LifeStage", "InDialogue", "Job", "Role", "Weapon", "Aiming" } do
 		player:GetAttributeChangedSignal(attribute):Connect(notify)
 	end
 end

@@ -6,6 +6,8 @@
 --   * Mapa grande (botón "Mapa", el botón del mapa del minimapa o la tecla M): toda la región con los distritos,
 --     la lista de distritos, los lugares importantes (pulsa uno para marcarlo) y la leyenda.
 --     Se mueve arrastrando y se acerca con la rueda del ratón o con los botones + y −.
+-- GPS (Controllers/Gps): la ruta hasta tu destino se dibuja en los dos mapas como una línea que brilla
+-- por las calles. En el mapa grande, mantén pulsado en cualquier sitio para "Ir aquí" y "Quitar ruta" la quita.
 -- Lee las calles de ReplicatedStorage.Ambient.Roads, las zonas de ReplicatedStorage.MapZones y los lugares
 -- de ReplicatedStorage.MapLandmarks (los publica el servidor), así que se adapta solo si el mapa cambia.
 
@@ -13,6 +15,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 
 local MapInfo = require(ReplicatedStorage.Shared.MapInfo)
 local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
@@ -20,6 +23,7 @@ local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Icons = require(script.Parent.Parent.UI.Icons)
 local HudLayout = require(script.Parent.Parent.UI.HudLayout)
+local Gps = require(script.Parent.Gps)
 
 local create = Theme.create
 local C = Theme.Colors
@@ -207,6 +211,8 @@ local function setWaypoint(place: { Position: Vector3, Name: string }?)
 	else
 		waypoint = place
 	end
+	-- El GPS lleva hasta el sitio marcado
+	Gps.setManual(if waypoint then waypoint.Position else nil, if waypoint then waypoint.Name else nil)
 	refreshWaypointList()
 end
 
@@ -426,8 +432,9 @@ local function buildLayer(parent: Instance, scale: number, detailed: boolean): L
 	end
 	layer.Waypoint = marker(layer, "📍", WAYPOINT, if detailed then 26 else 20, 7)
 	layer.Target = marker(layer, "★", TARGET, if detailed then 26 else 20, 8)
-	-- Tu flecha (dibujada: "▲" no se ve en algunos móviles)
-	local size = if detailed then 24 else 20
+	-- Tu flecha: grande, con borde blanco y sombra (se lee sobre cualquier color), y un cono suave
+	-- que enseña hacia dónde mira la cámara. Dibujada con marcos ("▲" no se ve en algunos móviles).
+	local size = if detailed then 48 else 40
 	local me = create("Frame", {
 		Name = "Me",
 		AnchorPoint = Vector2.new(0.5, 0.5),
@@ -436,15 +443,49 @@ local function buildLayer(parent: Instance, scale: number, detailed: boolean): L
 		ZIndex = 9,
 		Parent = layer.Frame,
 	})
-	create("Frame", {
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.6),
-		Size = UDim2.fromScale(0.5, 0.5),
-		BackgroundColor3 = rgb(80, 230, 120),
-		ZIndex = 9,
-		Parent = me,
-	}, { create("UICorner", { CornerRadius = UDim.new(1, 0) }), create("UIStroke", { Color = Color3.new(1, 1, 1), Thickness = 2 }) })
-	Icons.chevron({ AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.18), Size = UDim2.fromScale(0.5, 0.5), Rotation = -90, Color = Color3.new(1, 1, 1), Thickness = 3, ZIndex = 10, Parent = me })
+	-- Cono de visión (tres rayos que se abren, cada vez más transparentes hacia fuera)
+	local cone = create("Frame", { Name = "Cone", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ZIndex = 8, Parent = me })
+	for _, angle in { -22, 0, 22 } do
+		create("Frame", {
+			AnchorPoint = Vector2.new(0.5, 1),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromScale(0.34, 1.25),
+			Rotation = angle,
+			BackgroundColor3 = rgb(150, 235, 255),
+			BackgroundTransparency = 0.55,
+			BorderSizePixel = 0,
+			ZIndex = 8,
+			Parent = cone,
+		}, {
+			create("UICorner", { CornerRadius = UDim.new(0.5, 0) }),
+			create("UIGradient", { Rotation = 90, Transparency = NumberSequence.new(1, 0.35) }),
+		})
+	end
+	-- La flecha: sombra oscura detrás y dos barras gruesas con borde blanco
+	local function arrow(parent: Instance, color: Color3, grow: number, z: number, stroke: boolean)
+		for _, side in { -1, 1 } do
+			create("Frame", {
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.new(0.5 + side * 0.13, 0, 0.47, 0),
+				Size = UDim2.new(0.26, grow, 0.78, grow),
+				Rotation = -side * 28,
+				BackgroundColor3 = color,
+				BorderSizePixel = 0,
+				ZIndex = z,
+				Parent = parent,
+			}, {
+				create("UICorner", { CornerRadius = UDim.new(0.5, 0) }),
+				if stroke then create("UIStroke", { Color = Color3.new(1, 1, 1), Thickness = 2.5 }) else nil,
+			} :: any)
+		end
+	end
+	local body = create("Frame", { Name = "Arrow", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromScale(0.8, 0.8), BackgroundTransparency = 1, ZIndex = 9, Parent = me })
+	arrow(body, Color3.new(0, 0, 0), 6, 9, false)
+	for _, child in body:GetChildren() do
+		(child :: Frame).BackgroundTransparency = 0.55
+		(child :: Frame).Position += UDim2.fromOffset(1.5, 2)
+	end
+	arrow(body, rgb(70, 225, 120), 0, 10, true)
 	keepSize(layer, me)
 	layer.Me = me
 	return layer
@@ -468,13 +509,68 @@ local function place(layer: Layer, label: GuiObject, target: Vector3?, root: Bas
 	label.Visible = true
 end
 
+-- Ruta del GPS: una línea gruesa que brilla por las calles (se redibuja solo al cambiar la ruta:
+-- como el mapa se mueve debajo de ti, no hace falta tocarla al andar)
+local ROUTE = rgb(80, 210, 255)
+local ROUTE_GLOW = rgb(20, 120, 255)
+local MAX_ROUTE_PIECES = 80
+local routePath: { Vector3 }? = nil
+
+local function drawRoute(layer: Layer?)
+	if not layer then
+		return
+	end
+	local old = layer.Frame:FindFirstChild("Route")
+	if old then
+		old:Destroy()
+	end
+	local path = routePath
+	if not path or #path < 2 then
+		return
+	end
+	local holderFrame = create("Frame", { Name = "Route", Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ZIndex = 5, Parent = layer.Frame })
+	local thick = if layer == miniLayer then 6 else 5
+	for i = 1, math.min(#path - 1, MAX_ROUTE_PIECES) do
+		local a = toPixel(layer, path[i].X, path[i].Z)
+		local b = toPixel(layer, path[i + 1].X, path[i + 1].Z)
+		local d = b - a
+		local length = d.Magnitude
+		if length > 0.3 then
+			local middle = (a + b) / 2
+			for _, style in { { thick + 7, ROUTE_GLOW, 0.6, 5 }, { thick, ROUTE, 0, 6 } } do
+				create("Frame", {
+					AnchorPoint = Vector2.new(0.5, 0.5),
+					Position = UDim2.fromOffset(middle.X, middle.Y),
+					Size = UDim2.fromOffset(length + style[1], style[1]),
+					Rotation = math.deg(math.atan2(d.Y, d.X)),
+					BackgroundColor3 = style[2],
+					BackgroundTransparency = style[3],
+					BorderSizePixel = 0,
+					ZIndex = style[4],
+					Parent = holderFrame,
+				}, { create("UICorner", { CornerRadius = UDim.new(1, 0) }) })
+			end
+		end
+	end
+end
+
 local function updateLayer(layer: Layer, root: BasePart?, clampTo: number?)
 	-- Tu posición y hacia dónde miras
 	if root then
 		local p = toPixel(layer, root.Position.X, root.Position.Z)
 		layer.Me.Position = UDim2.fromOffset(p.X, p.Y)
 		local look = root.CFrame.LookVector
-		layer.Me.Rotation = math.deg(math.atan2(look.X, -look.Z))
+		local target = math.deg(math.atan2(look.X, -look.Z))
+		-- Giro suave: por el lado corto (sin dar la vuelta entera al pasar de 179° a -179°)
+		local current = layer.Me.Rotation
+		local delta = (target - current + 180) % 360 - 180
+		TweenService:Create(layer.Me, TweenInfo.new(0.1, Enum.EasingStyle.Linear), { Rotation = current + delta }):Play()
+		-- El cono mira hacia donde mira la cámara (es hijo de la flecha: se le resta su giro)
+		local cameraLook = workspace.CurrentCamera.CFrame.LookVector
+		local cone = layer.Me:FindFirstChild("Cone") :: Frame?
+		if cone then
+			cone.Rotation = math.deg(math.atan2(cameraLook.X, -cameraLook.Z)) - (current + delta)
+		end
 		layer.Me.Visible = true
 	else
 		layer.Me.Visible = false
@@ -594,6 +690,7 @@ local function ensureBigLayer()
 	bigLayer = buildLayer(holder, scale, true)
 	local layer = bigLayer :: Layer
 	create("UIScale", { Name = "Zoom", Parent = layer.Frame })
+	drawRoute(layer)
 	refreshLegend()
 	fitAll()
 end
@@ -1001,10 +1098,24 @@ local function buildBig()
 		end
 	end)
 	roundButton(holder, "⤡", 150, fitAll)
+	-- Quitar la ruta del GPS
+	local clearRoute = Theme.button({
+		Name = "ClearRoute",
+		Position = UDim2.fromOffset(10, 10),
+		Size = UDim2.fromOffset(150, 36),
+		Text = "✖  Quitar ruta",
+		TextSize = 14,
+		BackgroundColor3 = rgb(140, 40, 50),
+		ZIndex = 30,
+		Parent = holder,
+	})
+	clearRoute.Activated:Connect(function()
+		Gps.clear()
+	end)
 	Theme.label({
 		Position = UDim2.new(0, 0, 1, -FOOTER + 6),
 		Size = UDim2.new(1, 0, 0, 18),
-		Text = "Arrastra para mover · rueda o + / − para acercar · pulsa un lugar para marcarlo · " .. Strings.get("MAP.HINT"),
+		Text = "Arrastra para mover · rueda o + / - para acercar · pulsa un lugar o mantén pulsado para ir allí (GPS) · " .. Strings.get("MAP.HINT"),
 		TextSize = 12,
 		TextColor3 = C.Muted,
 		TextXAlignment = Enum.TextXAlignment.Center,
@@ -1030,6 +1141,7 @@ local function buildBig()
 
 	-- Arrastrar y rueda del ratón (solo dentro del mapa)
 	local dragging: InputObject? = nil
+	local pressedAt = 0
 	local dragStart = Vector2.zero
 	local panStart = Vector2.zero
 	local function insideHolder(screen: Vector2): boolean
@@ -1053,6 +1165,7 @@ local function buildBig()
 				dragStart = at
 				panStart = pan
 				dragMoved = false
+				pressedAt = os.clock()
 			end
 		end
 	end)
@@ -1079,6 +1192,15 @@ local function buildBig()
 	end)
 	UserInputService.InputEnded:Connect(function(input)
 		if dragging and (input == dragging or input.UserInputType == Enum.UserInputType.MouseButton1) then
+			-- Mantener pulsado (sin arrastrar) en cualquier sitio: "Ir aquí"
+			local layer = bigLayer
+			if not dragMoved and os.clock() - pressedAt > 0.5 and layer then
+				local localPoint = (dragStart - holder.AbsolutePosition) / bigScale.Scale
+				local layerPoint = (localPoint - pan) / zoom
+				local world = Vector3.new(layer.Min.X + layerPoint.X * layer.Scale, 0, layer.Min.Y + layerPoint.Y * layer.Scale)
+				waypoint = nil
+				setWaypoint({ Position = world, Name = "Punto marcado" })
+			end
 			dragging = nil
 			task.defer(function()
 				dragMoved = false
@@ -1091,6 +1213,18 @@ function MapUI.init()
 	loadData()
 	buildMini()
 	buildBig()
+	-- GPS: la línea de la ruta en los dos mapas, y el sitio marcado se quita al llegar
+	Gps.onChanged(function(path)
+		routePath = path
+		drawRoute(miniLayer)
+		drawRoute(bigLayer)
+	end)
+	Gps.onManual(function(place)
+		if not place and waypoint then
+			waypoint = nil
+			refreshWaypointList()
+		end
+	end)
 
 	UserInputService.InputBegan:Connect(function(input, processed)
 		if not processed and input.KeyCode == Enum.KeyCode.M then
@@ -1116,12 +1250,7 @@ function MapUI.init()
 			local current = waypoint
 			if current then
 				local distance = Vector3.new(current.Position.X - root.Position.X, 0, current.Position.Z - root.Position.Z).Magnitude
-				if distance < 30 then
-					waypoint = nil -- ya has llegado
-					refreshWaypointList()
-				else
-					zoneLabel.Text = ("📍 %s · %d m"):format(current.Name, math.floor(distance / 3.5))
-				end
+				zoneLabel.Text = ("📍 %s · %d m"):format(current.Name, math.floor(distance / 3.5))
 			end
 			if not waypoint then
 				local district = MapInfo.districtAt(root.Position.X, root.Position.Z)

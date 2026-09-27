@@ -25,6 +25,7 @@ local Palette = require(script.Parent.Palette)
 local Supermarket = require(script.Parent.Supermarket)
 local Building = require(script.Parent.Building)
 local FishingKit = require(script.Parent.FishingKit)
+local GunShop = require(script.Parent.GunShop)
 local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
 local Toys = require(ReplicatedStorage.Shared.Toys)
 
@@ -418,6 +419,40 @@ builders.TiendaPesca = function(m, rect)
 	Blocks.downtown(m, rect, { "N", "E", "W" }, styles, floors)
 end
 
+-- Armerías: tienda de armas con galería de tiro al fondo (GunShop), en medio de una manzana de
+-- tiendas. Una en el centro, otra en la zona comercial del este y otra junto al puerto/polígono sur.
+local function armeria(name: string, styles: { string }, floors: { number }): (Instance, Rect) -> ()
+	return function(m, rect)
+		local lot = Blocks.lot(rect, "S")
+		local W, D = 36, 34
+		local cf = lot.facing(0, D / 2, 0)
+		local shop = Building.build({
+			Name = "Armeria",
+			Parent = m,
+			CFrame = cf,
+			Width = W,
+			Depth = D,
+			Floors = 2,
+			Style = styles[1],
+			GroundFloor = "Shop",
+			WindowFaces = { Front = true },
+			Sign = "🔫 ARMERÍA",
+			SignColor = rgb(120, 24, 24),
+			ShopId = "Armeria",
+			Awning = rgb(40, 40, 44),
+		})
+		shop:SetAttribute("ShopName", name)
+		GunShop.build(shop, cf * CFrame.new(0, Building.FLOOR_TOP, 0), W, D, name)
+		GunShop.bars(shop, cf, W, D)
+		Blocks.row(m, lot, -lot.Length / 2 + 28, -W / 2, styles, floors)
+		Blocks.row(m, lot, W / 2, lot.Length / 2 - 28, styles, floors)
+		Blocks.downtown(m, rect, { "N", "E", "W" }, styles, floors)
+	end
+end
+builders.ArmeriaCentro = armeria("Armería Valmar Centro", { "Clasico", "Moderno", "Popular" }, { 3, 6 })
+builders.ArmeriaEste = armeria("Armería Levante", { "Moderno", "Popular" }, { 2, 4 })
+builders.ArmeriaSur = armeria("Armería del Puerto", { "Popular", "Moderno" }, { 2, 3 })
+
 -- Dónde va cada uno (se elige la manzana más cercana a ese punto, dentro de su distrito)
 local LANDMARKS = {
 	{ "TorreValmar", "Centro", 750, -750 },
@@ -430,6 +465,9 @@ local LANDMARKS = {
 	{ "ComisariaCentral", "Centro", -375, 625 },
 	{ "ColegioCentro", "Centro", 1000, 125 },
 	{ "TiendaPesca", "Centro", 375, 125 },
+	{ "ArmeriaCentro", "Centro", -375, -125 },
+	{ "ArmeriaEste", "Este", 2600, -250 },
+	{ "ArmeriaSur", "Sur", 1300, 2300 },
 	{ "ColegioNorte", "Norte", 0, -1500 },
 	{ "ColegioOeste", "Oeste", -2100, 600 },
 	{ "ClinicaOeste", "Oeste", -2300, 1500 },
@@ -500,7 +538,7 @@ end
 local PAVED = {
 	Towers = true, Downtown = true, Comercio = true, Industrial = true, Taller = true, Parking = true, Ocio = true, Oficinas = true,
 	TorreValmar = true, Ayuntamiento = true, EstacionCentral = true, EstacionAutobuses = true, Museo = true, Teatro = true,
-	GranCentroComercial = true, Feria = true, TiendaPesca = true,
+	GranCentroComercial = true, Feria = true, TiendaPesca = true, ArmeriaCentro = true, ArmeriaEste = true, ArmeriaSur = true,
 	Hipermercado = true, SupermercadoNorte = true, SupermercadoOeste = true, SupermercadoSur = true, SupermercadoCampus = true,
 }
 
