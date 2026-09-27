@@ -289,6 +289,7 @@ local function setPhoto(on: boolean)
 			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, true)
 			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
 			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
+			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Health, false)
 		end)
 		player.CameraMaxZoomDistance = savedZoom
 	end

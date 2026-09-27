@@ -54,6 +54,7 @@ local WetWorld = require(script.Parent.Controllers.WetWorld)
 local StoneThrow = require(script.Parent.Controllers.StoneThrow)
 local CombatController = require(script.Parent.Controllers.CombatController)
 local WantedUI = require(script.Parent.Controllers.WantedUI)
+local DeathUI = require(script.Parent.Controllers.DeathUI)
 local InstitutionsUI = require(script.Parent.Controllers.InstitutionsUI)
 local InteriorUI = require(script.Parent.Controllers.InteriorUI)
 local CommandMenu = require(script.Parent.Commands.CommandMenu)
@@ -112,6 +113,7 @@ task.spawn(Driving.init) -- conducir coches, motos, bicis, monopatines y patinet
 task.spawn(Actions.init) -- gestos y bailes (G), trepar muros bajos, linterna (L) y modo foto (P)
 task.spawn(CombatController.init) -- pelear: X/RB golpear (combo de 3), Z/LB defenderse, 👊 y 🛡 en el móvil
 task.spawn(WantedUI.init) -- estrellas de búsqueda bajo el reloj, avisos de delito, DETENIDO y hélices
+task.spawn(DeathUI.init) -- pantalla de HAS MUERTO y despertar en el hospital
 task.spawn(InstitutionsUI.init) -- instituciones: panel del juez, juicio, condena, ascensos y Hacienda
 task.spawn(InteriorUI.init) -- ascensor de los edificios (todos se pueden visitar por dentro)
 
@@ -206,6 +208,7 @@ local function coreGuis()
 	-- Lo que el juego ya dibuja a su manera (las cinemáticas encienden todo lo de Roblox al acabar)
 	pcall(function()
 		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false) -- mochila propia
+		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Health, false) -- la vida es el aro del HUD
 		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false) -- tapaba los botones de arriba a la derecha
 		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.EmotesMenu, true) -- gestos y bailes: los de Roblox
 	end)

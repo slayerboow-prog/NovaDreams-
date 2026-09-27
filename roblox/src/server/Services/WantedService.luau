@@ -367,7 +367,12 @@ local function onStoryEvent(player: Player, name: string, payload: { [string]: a
 	if victim and onDuty(player) and stateOf(victim).Stars > 0 then
 		return
 	end
-	WantedService.crime(player, if payload.KO then "KO" else "Agresion")
+	WantedService.crime(player, if payload.Killed then "Homicidio" elseif payload.KO then "KO" else "Agresion")
+end
+
+-- Sin estrellas (al morir)
+function WantedService.clear(player: Player)
+	setStars(player, 0)
 end
 
 function WantedService.stars(player: Player): number
