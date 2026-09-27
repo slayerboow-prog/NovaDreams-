@@ -59,6 +59,8 @@ local WantedUI = require(script.Parent.Controllers.WantedUI)
 local DeathUI = require(script.Parent.Controllers.DeathUI)
 local InstitutionsUI = require(script.Parent.Controllers.InstitutionsUI)
 local InteriorUI = require(script.Parent.Controllers.InteriorUI)
+local UseMotion = require(script.Parent.Controllers.UseMotion)
+local InteractClient = require(script.Parent.Controllers.InteractClient)
 local CommandMenu = require(script.Parent.Commands.CommandMenu)
 local DefaultCommands = require(script.Parent.Commands.DefaultCommands)
 
@@ -131,6 +133,8 @@ task.spawn(function()
 end)
 task.spawn(InstitutionsUI.init) -- instituciones: panel del juez, juicio, condena, ascensos y Hacienda
 task.spawn(InteriorUI.init) -- ascensor de los edificios (todos se pueden visitar por dentro)
+task.spawn(UseMotion.init) -- posturas al usar los muebles: sentado, tumbado, grifo, nevera, ducha, ordenador, piano, ventana
+task.spawn(InteractClient.init) -- tele con imagen, ordenador, piano, agua y clics de los muebles
 
 -- Menú de comandos (abajo a la izquierda): cambia según lo que tienes delante; el comando elegido
 -- es también lo que hace la tecla E, y su cartel es el único que se dibuja

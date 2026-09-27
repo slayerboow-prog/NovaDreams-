@@ -191,6 +191,21 @@ function Fake.WaitForChild(self, name)
 	return self:FindFirstChild(name)
 end
 function Fake.SetStateEnabled() end
+-- Contorno de un modelo (lo que ocupan sus piezas, sin girar): InteriorService busca los edificios
+function Fake.GetBoundingBox(self)
+	local lo, hi = nil, nil
+	for _, d in self:GetDescendants() do
+		if PARTS[d.__props.ClassName] then
+			local p, h = d.__props.CFrame.Position, d.__props.Size / 2
+			lo = if lo then Vector3.new(math.min(lo.X, p.X - h.X), math.min(lo.Y, p.Y - h.Y), math.min(lo.Z, p.Z - h.Z)) else p - h
+			hi = if hi then Vector3.new(math.max(hi.X, p.X + h.X), math.max(hi.Y, p.Y + h.Y), math.max(hi.Z, p.Z + h.Z)) else p + h
+		end
+	end
+	if not lo or not hi then
+		error("modelo vacío")
+	end
+	return CFrame.new((lo + hi) / 2), hi - lo
+end
 function Fake.SetNetworkOwner() end
 
 FakeMeta.__index = function(self, key)
@@ -320,6 +335,8 @@ local remotes = {
 	Metro = remote(),
 	Diving = remote(),
 	Social = remote(),
+	Interior = remote(),
+	Interact = remote(),
 }
 function remotes:WaitForChild(name)
 	return self[name]
@@ -468,6 +485,9 @@ local function loadModule(path: string): any
 		UDim2 = roblox.UDim2,
 		Font = roblox.Font,
 		TweenInfo = { new = function() return {} end },
+		NumberRange = roblox.NumberRange,
+		NumberSequence = roblox.NumberSequence,
+		ColorSequence = roblox.ColorSequence,
 		RaycastParams = { new = function() return {} end },
 		typeof = fakeTypeof,
 		warn = function(...)
@@ -2765,6 +2785,447 @@ check(Fishing.spearable(Fishing.byId.Mero) and not Fishing.spearable(Fishing.byI
 Fishing.Dive.ShotGap = savedGap
 FishingService.isWater = realIsWater
 local _ = anaRoot
+end)()
+
+;(function()
+print("▶ Interiores: cada tipo de sala amueblado y decorado")
+local Interiors = loadModule(ROOT .. "/server/World/Interiors")
+local Interact = loadModule(ROOT .. "/shared/Interact")
+local Properties = loadModule(ROOT .. "/shared/Properties")
+local lab = fakeInstance("Folder")
+lab.Name = "PruebasInteriores"
+lab.Parent = worldRoot
+local function countParts(model)
+	local n = 0
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") then
+			n += 1
+		end
+	end
+	return n
+end
+local function usesOf(model)
+	local set = {}
+	for _, d in model:GetDescendants() do
+		if d:HasTag("Interact") then
+			local use = d:GetAttribute("Use")
+			set[use] = (set[use] or 0) + 1
+		end
+	end
+	return set
+end
+-- Mínimo de piezas (muebles y detalles) de cada tipo
+local MIN = {
+	Casa = 350, Villa = 420, Piso = 330, Portal = 80, OficinaLobby = 150, Oficina = 300, Local = 150,
+	Nave = 150, Taller = 110, Ocio = 250, Aula = 200, Ayuntamiento = 200, Museo = 200, Teatro = 250,
+	Estacion = 150, CentroComercial = 250, Juzgado = 150, Hacienda = 120, Cuartel = 180,
+}
+local kinds = {}
+for kind in MIN do
+	table.insert(kinds, kind)
+end
+table.sort(kinds)
+for _, kind in kinds do
+	local ok, r = pcall(Interiors[kind], lab, CFrame.new(0, 5000, 0), { Seed = kind .. "_7_7:0" })
+	check(ok, kind .. " se construye" .. (if ok then "" else ": " .. tostring(r)))
+	if ok then
+		local n = countParts(r.Model)
+		local u = usesOf(r.Model)
+		check(n > MIN[kind] and n < 1800, ("%s: %d piezas (más de %d, sin pasarse)"):format(kind, n, MIN[kind]))
+		check((u.Sit or 0) > 0 and (u.Light or 0) > 0, ("%s: asientos (%d) e interruptor"):format(kind, u.Sit or 0))
+		check(r.Model:FindFirstChild("InteriorEntry") ~= nil, kind .. ": tiene sitio de entrada")
+		r.Model:Destroy()
+	end
+end
+for _, kind in { "Casa", "Villa", "Piso" } do
+	local r = Interiors[kind](lab, CFrame.new(0, 5000, 0), { Seed = kind .. "_3_9:1" })
+	local u = usesOf(r.Model)
+	check((u.TV or 0) >= 1 and (u.Bed or 0) >= 1 and u.Fridge == 1 and (u.Tap or 0) >= 2 and u.Shower == 1, kind .. ": tele, camas, nevera, grifos y ducha")
+	check(u.Door == 3 and (u.Wardrobe or 0) >= 1 and (u.Window or 0) >= 5 and (u.Light or 0) >= 5, kind .. ": puertas, armarios, ventanas e interruptor en cada habitación")
+	local rooms = {}
+	for _, d in r.Model:GetDescendants() do
+		if d:HasTag("RoomLight") then
+			rooms[d:GetAttribute("Room")] = true
+		end
+	end
+	check(rooms.Salon and rooms.Cocina and rooms.Dormitorio and rooms.Bano and rooms.Habitacion, kind .. ": luces en salón, cocina, dormitorio, baño y otra habitación")
+	check(#r.Spots >= 3, kind .. ": sitios libres para los vecinos")
+	local exitTag = false
+	for _, d in r.Model:GetDescendants() do
+		if d:HasTag("InteriorExit") then
+			exitTag = true
+		end
+	end
+	if kind == "Piso" then
+		check(not exitTag and r.Model:FindFirstChild("InteriorElevator") ~= nil, "Piso: se entra y se sale por el ascensor")
+	else
+		check(exitTag, kind .. ": puerta a la calle")
+	end
+	r.Model:Destroy()
+end
+-- La misma vivienda sale siempre igual; otras, distintas
+local function signature(model)
+	local parts = {}
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") then
+			local c = d.Color or Color3.new()
+			table.insert(parts, ("%s %d %d %d"):format(d.Name, math.floor(c.R * 255), math.floor(c.G * 255), math.floor(c.B * 255)))
+		end
+	end
+	table.sort(parts)
+	return table.concat(parts, "|")
+end
+local a = Interiors.Casa(lab, CFrame.new(0, 5000, 0), { Seed = "Casa_10_20:0" })
+local b = Interiors.Casa(lab, CFrame.new(300, 5000, 0), { Seed = "Casa_10_20:0" })
+check(signature(a.Model) == signature(b.Model), "la misma casa sale siempre igual (misma semilla)")
+local different = 0
+for i = 1, 5 do
+	local c = Interiors.Casa(lab, CFrame.new(0, 5000, 300), { Seed = "Casa_" .. i * 37 .. "_5:0" })
+	if signature(c.Model) ~= signature(a.Model) then
+		different += 1
+	end
+	c.Model:Destroy()
+end
+check(different == 5, "cada casa es distinta")
+a.Model:Destroy()
+b.Model:Destroy()
+
+print("▶ Interiores: usar los muebles (tele, luces, sentarse, nevera, cama, grifo)")
+Interact.Uses.Tap.Seconds = 0.15
+Interact.Uses.Fridge.Seconds = 0.15
+local savedSleep = Config.SleepSeconds
+Config.SleepSeconds = 0.1
+mocks[S .. "SceneService"] = {
+	teleportTo = function(player, target)
+		player.Character.HumanoidRootPart.CFrame = CFrame.new(target + Vector3.new(0, 3, 0))
+	end,
+}
+-- Un barrio de mentira: casas, un bloque de pisos y un local de ocio
+local town = fakeInstance("Folder")
+town.Name = "Town"
+town.Parent = worldRoot
+local function building(parentName, name, position, size)
+	local block = town:FindFirstChild(parentName)
+	if not block then
+		block = fakeInstance("Model")
+		block.Name = parentName
+		block.Parent = town
+	end
+	local m = fakeInstance("Model")
+	m.Name = name
+	m.Parent = block
+	local body = fakeInstance("Part")
+	body.Name = "Body"
+	body.Size = size
+	body.CFrame = CFrame.new(position)
+	body.Parent = m
+	return m
+end
+for i = 0, 5 do
+	building("Manzana_Casas", "Casa", Vector3.new(2000 + i * 60, 10, 2000), Vector3.new(40, 20, 36))
+end
+building("Manzana_Pisos", "Bloque", Vector3.new(2000, 30, 2200), Vector3.new(40, 60, 40))
+building("Ocio", "Ocio_Local", Vector3.new(2200, 10, 2200), Vector3.new(50, 20, 40))
+services.RunService = services.RunService or {
+	IsStudio = function()
+		return true
+	end,
+	Heartbeat = signal(),
+}
+local InteriorService = loadModule(S .. "InteriorService")
+local PropertyService = loadModule(S .. "PropertyService")
+local InteractService = loadModule(S .. "InteractService")
+InteriorService.init()
+PropertyService.init()
+InteractService.init()
+local casas, forSale, neighbor, ocio = {}, nil, nil, nil
+for _, b in InteriorService.all() do
+	if b.Kind == "Casa" then
+		table.insert(casas, b)
+	elseif b.Kind == "Ocio" then
+		ocio = b
+	end
+end
+check(#casas == 6 and ocio ~= nil, "se encuentran las casas y el local de ocio")
+local mine
+for _, b in casas do
+	if Properties.isNeighborHome(Properties.unitKey(b.Key, 0)) then
+		neighbor = neighbor or b
+	elseif not mine then
+		mine = b
+	else
+		forSale = forSale or b
+	end
+end
+check(mine ~= nil and forSale ~= nil and neighbor ~= nil, "hay casas en venta y casas de vecinos")
+local owner, ownerRoot, ownerHum = newPlayer(130, "Adulto", 50000)
+local stranger, strangerRoot, strangerHum = newPlayer(131, "Adulto", 500)
+local friend, friendRoot = newPlayer(132, "Adulto", 500)
+owner.DisplayName, stranger.DisplayName, friend.DisplayName = "Dueña", "Desconocido", "Amiga"
+for _, callback in loadedCallbacks do
+	for _, p in { owner, stranger, friend } do
+		pcall(callback, p, profiles[p])
+	end
+end
+profiles[owner].Properties = {}
+InteriorService.enter(owner, mine)
+local inst = InteriorService.instance(mine, 0)
+check(inst ~= nil and owner:GetAttribute("InteriorKey") == mine.Id .. ":0", "al entrar se monta la casa")
+local buyPrompt
+for _, d in inst.Room.Model:GetDescendants() do
+	if d.ClassName == "ProximityPrompt" and d.ActionText == "Comprar vivienda" then
+		buyPrompt = d
+	end
+end
+check(buyPrompt ~= nil, "la casa en venta tiene su cartel de comprar")
+buyPrompt.Triggered:Fire(owner)
+check(PropertyService.access(owner, mine, 0) == "Owner" and PropertyService.access(stranger, mine, 0) == "Stranger", "comprada: es suya; para otro, casa ajena")
+inst = InteriorService.instance(mine, 0)
+local model = inst.Room.Model
+local function partOf(use, pick)
+	local found = {}
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") and d:GetAttribute("Use") == use then
+			table.insert(found, d)
+		end
+	end
+	table.sort(found, function(x, y)
+		return x.Position.X < y.Position.X
+	end)
+	return found[pick or 1]
+end
+local function goNear(root, part)
+	root.CFrame = CFrame.new(part.Position + Vector3.new(0, 0, 1.5))
+end
+local function fire(player, root, part)
+	goNear(root, part)
+	part:FindFirstChild("InteractPrompt").Triggered:Fire(player)
+end
+local promptsOk, nearOnly = true, true
+for _, use in { "Sit", "TV", "Light", "Bed", "Fridge", "Tap", "Shower", "Door", "Wardrobe", "Window" } do
+	local part = partOf(use)
+	local prompt = part and part:FindFirstChild("InteractPrompt")
+	if not prompt then
+		promptsOk = false
+		print("    (sin cartel: " .. use .. ")")
+	elseif prompt.MaxActivationDistance > 9 then
+		nearOnly = false
+	end
+end
+check(promptsOk, "cada cosa tiene su cartel: sentarse, tele, luz, cama, nevera, grifo, ducha, puerta, armario, ventana")
+check(nearOnly, "los carteles solo salen de cerca")
+check(partOf("Tap"):FindFirstChild("InteractPrompt"):GetAttribute("NoGesture") == true and partOf("TV"):FindFirstChild("InteractPrompt"):GetAttribute("NoGesture") == nil, "los que tienen postura propia no hacen el gesto de alargar la mano")
+check(partOf("Bed"):FindFirstChild("InteractPrompt").ActionText == "Dormir", "en una casa con dueño la cama es para dormir")
+-- Tele
+local tv = partOf("TV")
+fire(owner, ownerRoot, tv)
+check(tv:GetAttribute("On") == true and tv:GetAttribute("Channel") == 1 and tv:FindFirstChild("InteractPrompt").ActionText == "Apagar la tele", "la tele se enciende (canal 1)")
+fire(owner, ownerRoot, tv)
+check(tv:GetAttribute("On") == false and tv:FindFirstChild("InteractPrompt").ActionText == "Encender la tele", "y se apaga")
+-- Luces
+local switch
+for _, d in model:GetDescendants() do
+	if d:IsA("BasePart") and d:GetAttribute("Use") == "Light" and d:GetAttribute("Room") == "Salon" then
+		switch = d
+	end
+end
+local function salonLights()
+	local on, off = 0, 0
+	for _, d in model:GetDescendants() do
+		if d:HasTag("RoomLight") and d:GetAttribute("Room") == "Salon" then
+			local light = d:FindFirstChildOfClass("PointLight")
+			if light and light.Enabled == false then
+				off += 1
+			else
+				on += 1
+			end
+		end
+	end
+	return on, off
+end
+local on0 = salonLights()
+fire(owner, ownerRoot, switch)
+local on1, off1 = salonLights()
+check(on0 > 0 and on1 == 0 and off1 == on0 and switch:GetAttribute("On") == false and switch:FindFirstChild("InteractPrompt").ActionText == "Encender la luz", "el interruptor apaga las luces del salón")
+fire(stranger, strangerRoot, switch)
+check((salonLights()) == on0, "encender la luz se puede hasta en casa ajena")
+-- Puerta
+local door = partOf("Door", 2)
+local before = door.CFrame
+local wasOpen = door:GetAttribute("Open")
+fire(owner, ownerRoot, door)
+check(door:GetAttribute("Open") == not wasOpen and door.CFrame ~= before, "la puerta gira en su bisagra")
+-- Sentarse en el sofá
+local sofaBase
+for _, d in model:GetDescendants() do
+	if d.Name == "SofaBase" then
+		sofaBase = d
+	end
+end
+fire(owner, ownerRoot, sofaBase)
+check(ownerHum.SeatPart ~= nil and ownerHum.SeatPart.Parent.Name == "Sofa" and owner:GetAttribute("UsePose") == "Sofa", "se sienta en el sofá (postura de sofá)")
+ownerHum.Sit = false
+check(owner:GetAttribute("UsePose") == nil, "al levantarse se quita la postura")
+-- Nevera: en tu casa comes sin límite (un momento entre bocado y bocado); en casa ajena, nada
+local fridge = partOf("Fridge")
+table.clear(needsChanges)
+fire(owner, ownerRoot, fridge)
+local ate = needsChanges[1]
+check(ate ~= nil and ate[1] == owner and ate[2] == Interact.Snack.Hunger, "en tu casa, la nevera quita el hambre")
+check(owner:GetAttribute("UsePose") == "Fridge", "postura de abrir la nevera")
+local fridgeDoor
+for _, d in fridge.Parent:GetDescendants() do
+	if d.Name == "FridgeDoor" then
+		fridgeDoor = d
+	end
+end
+check(fridgeDoor:GetAttribute("Open") == true, "la puerta de la nevera se abre")
+task.wait(0.3)
+check(fridgeDoor:GetAttribute("Open") == false and owner:GetAttribute("UsePose") == nil, "y se cierra sola")
+fire(owner, ownerRoot, fridge)
+check(#needsChanges == 1 and notified(owner, "masticando"), "entre bocado y bocado, un momento")
+local savedCooldown = Interact.Snack.Cooldown
+Interact.Snack.Cooldown = 0
+for _ = 1, 10 do
+	fire(owner, ownerRoot, fridge)
+end
+check(#needsChanges == 11, "en tu casa se come sin límite")
+Interact.Snack.Cooldown = savedCooldown
+table.clear(needsChanges)
+clearInbox(stranger)
+fire(stranger, strangerRoot, fridge)
+check(#needsChanges == 0 and notified(stranger, "No es tu casa"), "en casa ajena la nevera no es para ti")
+-- Invitado (mismo grupo que el dueño)
+owner:SetAttribute("GroupId", 77)
+friend:SetAttribute("GroupId", 77)
+check(PropertyService.access(friend, mine, 0) == "Guest", "alguien de tu grupo es invitado")
+fire(friend, friendRoot, fridge)
+check(#needsChanges == 1 and needsChanges[1][1] == friend, "un invitado sí puede picar algo")
+-- La casa de tus padres (casa familiar): su nevera es gratis y sin límite para la familia
+local family = fakeInstance("Model")
+family.Name = "CasaFamiliar"
+family:SetAttribute("HomeId", "Casa_Test")
+family:AddTag("FamilyHome")
+family.Parent = worldRoot
+local oldFridge = fakeInstance("Part")
+oldFridge.Name = "Fridge"
+oldFridge.Size = Vector3.new(2.8, 7, 2.8)
+oldFridge.CFrame = CFrame.new(-900, 3.5, -900)
+oldFridge.Parent = family
+InteractService.setupFamilyHome(family)
+local famPrompt = oldFridge:FindFirstChild("InteractPrompt")
+check(famPrompt ~= nil and famPrompt.ActionText == "Coger algo de comer", "la nevera de la casa familiar tiene su cartel")
+local kid, kidRoot = newPlayer(133, "Nino", 0)
+kid:SetAttribute("FamilyHomeId", "Casa_Test")
+table.clear(needsChanges)
+Interact.Snack.Cooldown = 0
+for _ = 1, 5 do
+	fire(kid, kidRoot, oldFridge)
+end
+Interact.Snack.Cooldown = savedCooldown
+check(#needsChanges == 5 and needsChanges[1][1] == kid and needsChanges[1][2] == Interact.Snack.Hunger and profiles[kid].Money == 0, "de niño comes gratis de la nevera de tus padres, las veces que quieras")
+check(kid:GetAttribute("UsePose") == "Fridge", "cogiendo la comida de la nevera")
+table.clear(needsChanges)
+fire(friend, friendRoot, oldFridge)
+check(#needsChanges == 0, "la nevera de otra familia no es tuya")
+table.clear(needsChanges)
+-- Cama: el dueño duerme; un desconocido no puede
+table.clear(needsChanges)
+clearInbox(stranger)
+local bed = partOf("Bed")
+fire(stranger, strangerRoot, bed)
+check(stranger:GetAttribute("UsePose") == nil and not stranger:GetAttribute("Sleeping") and #needsChanges == 0 and notified(stranger, "No es tu casa"), "no se puede dormir en la cama de un desconocido")
+fire(owner, ownerRoot, bed)
+check(owner:GetAttribute("UsePose") == "Lie" and ownerRoot.Anchored == true and ownerHum.PlatformStand == true, "el dueño se tumba en la cama")
+check(owner:GetAttribute("Sleeping") == true, "y se duerme")
+task.wait(0.3)
+local slept = false
+for _, change in needsChanges do
+	if change[1] == owner and change[3] >= Interact.SleepEnergy then
+		slept = true
+	end
+end
+check(slept and owner:GetAttribute("Sleeping") == nil, "al despertar, energía al máximo")
+remotes.Interact.OnServerEvent:Fire(owner, "Stop")
+task.wait(0.6)
+check(owner:GetAttribute("UsePose") == nil and ownerRoot.Anchored == false and ownerHum.PlatformStand == false, "saltar le levanta de la cama")
+-- Grifo
+local tap = partOf("Tap")
+fire(owner, ownerRoot, tap)
+local water = tap:FindFirstChild("Water")
+check(tap:GetAttribute("Running") == true and water.Enabled == true and owner:GetAttribute("UsePose") == "Tap", "el grifo echa agua (y se lava las manos)")
+task.wait(0.3)
+check(tap:GetAttribute("Running") == false and water.Enabled == false, "el grifo se cierra solo")
+-- Armario
+local wardrobe = partOf("Wardrobe")
+fire(owner, ownerRoot, wardrobe)
+local opened = 0
+for _, d in wardrobe.Parent:GetDescendants() do
+	if d:GetAttribute("Hinge") and d:GetAttribute("Open") then
+		opened += 1
+	end
+end
+check(opened == 2, "el armario abre sus dos puertas")
+-- Ducha y ventana: un desconocido no se ducha en tu casa, pero sí puede mirar por la ventana
+fire(stranger, strangerRoot, partOf("Shower"))
+check(stranger:GetAttribute("UsePose") == nil, "un desconocido no se ducha en tu casa")
+fire(stranger, strangerRoot, partOf("Window"))
+check(stranger:GetAttribute("UsePose") == "Window", "pero sí puede asomarse a la ventana")
+remotes.Interact.OnServerEvent:Fire(stranger, "Stop")
+-- En una casa en venta: te tumbas pero no duermes
+InteriorService.enter(stranger, forSale)
+local saleInst = InteriorService.instance(forSale, 0)
+table.clear(needsChanges)
+for _, d in saleInst.Room.Model:GetDescendants() do
+	if d:IsA("BasePart") and d:GetAttribute("Use") == "Bed" then
+		goNear(strangerRoot, d)
+		check(d:FindFirstChild("InteractPrompt").ActionText == "Tumbarse", "en una casa en venta la cama dice «Tumbarse»")
+		d:FindFirstChild("InteractPrompt").Triggered:Fire(stranger)
+		break
+	end
+end
+task.wait(0.3)
+check(stranger:GetAttribute("UsePose") == "Lie" and not stranger:GetAttribute("Sleeping") and #needsChanges == 0, "en una casa en venta te tumbas, pero no duermes")
+remotes.Interact.OnServerEvent:Fire(stranger, "Stop")
+-- Vecinos: sus residentes están en los sitios libres
+InteriorService.enter(friend, neighbor)
+local neighborInst = InteriorService.instance(neighbor, 0)
+local residents = 0
+for _, d in neighborInst.Room.Model:GetChildren() do
+	if d:GetAttribute("Resident") then
+		residents += 1
+	end
+end
+check(residents >= 1, "en las casas de vecinos hay vecinos")
+-- Bar: la nevera de bebidas se paga
+InteriorService.enter(stranger, ocio)
+local bar = InteriorService.instance(ocio, 0)
+local cooler
+for _, d in bar.Room.Model:GetDescendants() do
+	if d:IsA("BasePart") and d:GetAttribute("Use") == "Fridge" then
+		cooler = d
+	end
+end
+table.clear(needsChanges)
+local money = profiles[stranger].Money
+check(cooler:FindFirstChild("InteractPrompt").ActionText == "Comprar bebida", "en el bar, la nevera vende bebidas")
+goNear(strangerRoot, cooler)
+cooler:FindFirstChild("InteractPrompt").Triggered:Fire(stranger)
+check(profiles[stranger].Money == money - Interact.Drink.Price and #needsChanges == 1, "la bebida se paga y quita la sed")
+-- Piano del bar: sentarse y tocar
+local piano
+for _, d in bar.Room.Model:GetDescendants() do
+	if d:IsA("BasePart") and d:GetAttribute("Use") == "Piano" then
+		piano = d
+	end
+end
+task.wait(0.3)
+goNear(strangerRoot, piano)
+piano:FindFirstChild("InteractPrompt").Triggered:Fire(stranger)
+check(strangerHum.SeatPart ~= nil and stranger:GetAttribute("UsePose") == "Piano" and piano:GetAttribute("Playing") == true, "al piano: se sienta y toca")
+strangerHum.Sit = false
+check(piano:GetAttribute("Playing") == false and stranger:GetAttribute("UsePose") == nil, "al levantarse deja de sonar")
+Config.SleepSeconds = savedSleep
 end)()
 
 end, debug.traceback)
