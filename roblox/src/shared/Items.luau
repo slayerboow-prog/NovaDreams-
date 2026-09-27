@@ -208,6 +208,19 @@ list[Hotel.KeyItem] = {
 for _, rod in Fishing.Rods do
 	list[rod.Id] = { Id = rod.Id, Name = rod.Name, Icon = rod.Icon, Kind = "Thing", Desc = rod.Desc, Stack = 1 }
 end
+for _, tool in Fishing.Tools do
+	list[tool.Id] = { Id = tool.Id, Name = tool.Name, Icon = tool.Icon, Kind = "Thing", Desc = tool.Desc .. " (herramienta de pesca)", Stack = 1 }
+end
+for _, boss in Fishing.Bosses do
+	list[boss.Item] = {
+		Id = boss.Item,
+		Name = boss.Name,
+		Icon = boss.Icon,
+		Kind = "Thing",
+		Desc = ("¡Un trofeo legendario! La lonja de la pescadería lo compra por %d €."):format(boss.Price),
+		Stack = 5,
+	}
+end
 list[Fishing.Bait.Id] = { Id = Fishing.Bait.Id, Name = Fishing.Bait.Name, Icon = Fishing.Bait.Icon, Kind = "Thing", Desc = Fishing.Bait.Desc, Stack = 50 }
 for _, s in Fishing.Species do
 	list[s.Item] = {
@@ -215,7 +228,7 @@ for _, s in Fishing.Species do
 		Name = s.Name,
 		Icon = s.Icon,
 		Kind = "Thing",
-		Desc = ("Pescado fresco. Véndelo en la pescadería del supermercado (%d € cada uno)."):format(s.Price),
+		Desc = ("%s · pescado fresco. Véndelo en la pescadería del supermercado (%d € cada uno)."):format(s.Rarity, s.Price),
 		Stack = 64, -- como los demás objetos: caben muchos antes de tener que venderlos
 	}
 end
