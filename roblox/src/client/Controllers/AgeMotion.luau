@@ -247,7 +247,7 @@ type Body = {
 	Humanoid: Humanoid,
 	Root: BasePart,
 	Player: Player?,
-	Joints: { [string]: Motor6D },
+	Joints: { [string]: any }, -- Motor6D o AnimationConstraint
 	Active: boolean,
 	Crawl: number, -- 0..1, suave
 	Style: number, -- 0..1, suave (se quita al sentarse, conducir, dormir…)
@@ -327,7 +327,7 @@ local function findJoints(body: Body)
 	table.clear(body.Joints)
 	for _, name in JOINTS do
 		local joint = body.Model:FindFirstChild(name, true)
-		if joint and joint:IsA("Motor6D") then
+		if joint and (joint:IsA("Motor6D") or joint:IsA("AnimationConstraint")) then -- (articulaciones nuevas de Roblox)
 			body.Joints[name] = joint
 		end
 	end

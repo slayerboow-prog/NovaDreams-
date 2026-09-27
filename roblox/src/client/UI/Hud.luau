@@ -170,6 +170,18 @@ local BARS = {
 local HEALTH_GREEN = { rgb(70, 200, 50), rgb(170, 255, 110) }
 local HEALTH_YELLOW = { rgb(230, 180, 20), rgb(255, 235, 110) }
 local HEALTH_RED = { rgb(220, 40, 40), rgb(255, 120, 100) }
+
+-- Color de la vida en degradado continuo: verde (llena) → amarillo (media) → rojo (casi vacía)
+local function healthColors(ratio: number): { Color3 }
+	local function mix(a: { Color3 }, b: { Color3 }, t: number): { Color3 }
+		return { a[1]:Lerp(b[1], t), a[2]:Lerp(b[2], t) }
+	end
+	ratio = math.clamp(ratio, 0, 1)
+	if ratio >= 0.5 then
+		return mix(HEALTH_YELLOW, HEALTH_GREEN, (ratio - 0.5) / 0.5)
+	end
+	return mix(HEALTH_RED, HEALTH_YELLOW, ratio / 0.5)
+end
 local TRACK = rgb(12, 18, 32)
 
 local status: Frame
@@ -254,7 +266,7 @@ local function buildStatus(parent: Instance)
 	local shown = create("NumberValue", { Value = 1 })
 	local function paintHealth()
 		local ratio = shown.Value
-		local colors = if healthRatio > 0.5 then HEALTH_GREEN elseif healthRatio > 0.25 then HEALTH_YELLOW else HEALTH_RED
+		local colors = healthColors(ratio)
 		local filled = ratio * (ARC_LEN + HEALTH_LEN)
 		for i, seg in segs do
 			local at = (i - 0.5) / SEGMENTS * ARC_LEN

@@ -375,7 +375,11 @@ function Prison.clear(world: Instance)
 	for _, folderName in { "Naturaleza", "Campo" } do
 		local folder = world:FindFirstChild(folderName)
 		for _, d in (if folder then folder:GetDescendants() else {}) do
-			if d:IsA("BasePart") and d.Parent then
+			-- (lo que ya se ha borrado con su modelo se salta; con Lune, mirar su Parent da error)
+			local alive = pcall(function()
+				return d.Parent
+			end)
+			if alive and d:IsA("BasePart") and d.Parent then
 				local p = d.CFrame.Position -- (CFrame: así también funciona al construir el archivo con Lune)
 				if p.X > r.X0 - margin and p.X < r.X1 + margin and p.Z > r.Z0 - margin and p.Z < r.Z1 + margin then
 					local m = d:FindFirstAncestorOfClass("Model")
