@@ -85,6 +85,7 @@ local order = {
 	"LifeStoryService", -- la historia de vida escucha a todos los anteriores
 	"BabyService", -- tutorial de bebé (fase 2)
 	"SchoolService", -- compañeros y profe en cada colegio
+	"UpdateService", -- versión nueva publicada: los servidores viejos llevan a sus jugadores a uno nuevo
 	"ActionService", -- linterna (los gestos, trepar y sentarse van en el cliente)
 }
 
