@@ -848,6 +848,24 @@ check(leoData.Story.Active.Cole02_Mochila == nil, "«La mochila desaparecida» e
 print("\n▶ Consecuencia diferida: una hora después, Mateo te busca")
 passTime(leo, 3700)
 check(leoData.Story.Active.Eco_MateoDibujo ~= nil, "Pasada una hora de juego, empieza «Un regalo de Mateo»")
+state = lastState(leo)
+local function showsQuest(questId: string): boolean
+	if state.Tracked and state.Tracked.QuestId == questId then
+		return true
+	end
+	for _, other in state.Others do
+		if other.QuestId == questId then
+			return true
+		end
+	end
+	return false
+end
+check(showsQuest("Nino_Jornada") and not showsQuest("Eco_MateoDibujo"), "En horario de cole solo se ven las misiones del cole")
+lighting.ClockTime = 18
+task.wait(Config.LifeStory.RefreshSeconds + 0.6)
+state = lastState(leo)
+check(not showsQuest("Nino_Jornada") and state.Tracked and state.Tracked.QuestId == "Eco_MateoDibujo", "Al acabar el cole, el día de cole se va y aparece la misión de Mateo")
+lighting.ClockTime = 9
 check(playQuest(leo, "Eco_MateoDibujo"), "Hablas con Mateo")
 check(leoData.Items.DibujoMateo == 1, "Te regala su dibujo (va a tu mochila)")
 

@@ -107,6 +107,16 @@ function Schedules.forStep(step: { [string]: any }?, done: { [string]: boolean }
 	return Schedules.forPlace(step.Place)
 end
 
+-- ¿Es el horario del colegio o del instituto?
+function Schedules.isSchool(window: Window?): boolean
+	return window ~= nil and (window.Id == "Colegio" or window.Id == "Instituto")
+end
+
+-- ¿Es horario de cole ahora? (de que abren las puertas a que suena el último timbre)
+function Schedules.isSchoolTime(clockTime: number): boolean
+	return clockTime >= SCHOOL.Opens and clockTime < SCHOOL.End
+end
+
 -- ¿Está abierto a esta hora? (admite horarios que pasan la medianoche)
 function Schedules.isOpen(window: Window?, clockTime: number): boolean
 	if not window then

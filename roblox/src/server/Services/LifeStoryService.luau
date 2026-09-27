@@ -487,16 +487,58 @@ local function closedWindow(player: Player, data: Data, questId: string, prog: P
 	return window
 end
 
-local function trackedQuest(story: Data): string?
-	if story.Tracked and story.Active[story.Tracked] then
-		return story.Tracked
-	end
-	for id, prog in story.Active do
-		if prog.Kind == "Main" then
-			return id
+-- ¿Es una misión del cole? (el día de colegio o instituto, y las misiones que pasan en el cole)
+local function schoolQuest(questId: string): boolean
+	local quest = Quests[questId]
+	return quest ~= nil and quest.Schedule ~= false and Schedules.isSchool(Schedules.forQuest(quest))
+end
+
+-- ¿El paso actual toca hacerlo en el cole? Si te manda a un sitio del colegio o del instituto, sí;
+-- si te manda a otro sitio (volver a casa, un recado, el parque…), no; si no te manda a ningún
+-- sitio (esperar, hablar con alguien…), depende de si la misión es del cole.
+local function schoolStep(questId: string, prog: Progress): boolean
+	local step = stepsOf(questId, prog)[prog.Step]
+	if step and Quests[questId].Schedule ~= false then
+		local window = Schedules.forStep(step, prog.Sub)
+		if window then
+			return Schedules.isSchool(window)
+		end
+		local hasPlace = step.Place ~= nil
+		for _, child in step.Steps or {} do
+			hasPlace = hasPlace or child.Place ~= nil
+		end
+		if hasPlace then
+			return false
 		end
 	end
-	return next(story.Active)
+	return schoolQuest(questId)
+end
+
+-- Qué misiones se ven: en horario de cole, un niño o adolescente solo ve las misiones del cole;
+-- cuando se acaba el cole, lo que toca hacer en el cole desaparece y vuelven las demás.
+local function visibleQuest(data: Data, questId: string, prog: Progress): boolean
+	if Schedules.isSchoolTime(GameClock.now().ClockTime) then
+		local stage = data.Life.Stage
+		return schoolQuest(questId) or (stage ~= "Nino" and stage ~= "Adolescente")
+	end
+	return not schoolStep(questId, prog)
+end
+
+local function trackedQuest(data: Data): string?
+	local story = storyOf(data)
+	if story.Tracked and story.Active[story.Tracked] and visibleQuest(data, story.Tracked, story.Active[story.Tracked]) then
+		return story.Tracked
+	end
+	local first: string? = nil
+	for id, prog in story.Active do
+		if visibleQuest(data, id, prog) then
+			if prog.Kind == "Main" then
+				return id
+			end
+			first = first or id
+		end
+	end
+	return first
 end
 
 local sceneTarget -- se define más abajo
@@ -545,7 +587,7 @@ local function publish(player: Player, force: boolean?)
 	}
 
 	local target: Vector3? = nil
-	local trackedId = trackedQuest(story)
+	local trackedId = trackedQuest(data)
 	if trackedId then
 		local quest = Quests[trackedId]
 		local prog: Progress = story.Active[trackedId]
@@ -598,8 +640,8 @@ local function publish(player: Player, force: boolean?)
 			To = rt.Waiting.To or (req.Hours and req.Hours.To),
 		}
 	end
-	for id in story.Active do
-		if id ~= trackedId then
+	for id, prog in story.Active do
+		if id ~= trackedId and visibleQuest(data, id, prog) then
 			table.insert(state.Others, { QuestId = id, TitleKey = titleOf(id, story.Active[id]) })
 		end
 	end
