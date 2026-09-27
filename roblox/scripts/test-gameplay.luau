@@ -317,6 +317,7 @@ local remotes = {
 	Hotel = remote(),
 	Trade = remote(),
 	Fishing = remote(),
+	Metro = remote(),
 }
 function remotes:WaitForChild(name)
 	return self[name]
@@ -2231,6 +2232,169 @@ check(waterAt(Vector3.new(-2750 + 300, 0, -520)) == "el lago", "en la orilla del
 check(waterAt(Vector3.new(1440, 0, -400)) == "el río", "en la orilla del río, peces de río")
 check(waterAt(Vector3.new(700, 0, 3600)) == "el mar", "en la costa, peces de mar")
 FishingService.isWater = realIsWater
+end)()
+
+;(function()
+print("▶ Metro: billetes, tornos, tren, galería, músicos, encargos y revisor")
+local Metro = loadModule(ROOT .. "/shared/Metro")
+Metro.Busk.MinSeconds, Metro.Busk.Cooldown = 0, 0
+local M = remotes.Metro.OnServerEvent
+local L1 = Metro.lineById.L1
+local function mp(name, cf, tags, attrs, size)
+	local p = part(name, cf, tags, attrs)
+	p.Size = size or Vector3.new(4, 5, 2)
+	p.Parent = worldRoot
+	return p
+end
+-- Estaciones (lo mínimo de cada una)
+for id, st in Metro.Stations do
+	local c = Vector3.new(st.Surface[1], -150, st.Surface[2])
+	mp("Door", CFrame.new(st.Surface[1], 2.5, st.Surface[2]), { "MetroEntrance" }, { Station = id })
+	mp("Arrival", CFrame.new(c + Vector3.new(30, 3, 0)), { "MetroArrival" }, { Station = id, Line = "L1" })
+	mp("Alight", CFrame.new(c + Vector3.new(12, 3, 0)), { "MetroAlight" }, { Station = id, Line = "L1" })
+	local kiosk = mp("Kiosk", CFrame.new(c + Vector3.new(40, 2, 18)), { "MetroShop", "MetroDelivery" }, { ShopId = "Quiosco", Station = id })
+	local _ = kiosk
+end
+local P = Metro.Stations.Poniente
+local base = Vector3.new(P.Surface[1], -150, P.Surface[2])
+local machine = mp("TicketMachine", CFrame.new(base + Vector3.new(46, 3, -20)), { "MetroTicketMachine" })
+local gate = mp("Turnstile", CFrame.new(base + Vector3.new(19, 2, 0)), { "MetroGate" }, { Through = base + Vector3.new(14, 3, 0) })
+local board = mp("Board", CFrame.new(base + Vector3.new(7, 2.5, 0)), { "MetroBoard" }, { Station = "Poniente", Line = "L1" })
+-- Tren de la Línea 1 (3 coches con un asiento y una puerta cada uno)
+local trainModel = fakeInstance("Model")
+trainModel.Name = "Metro_L1"
+trainModel:SetAttribute("Line", "L1")
+trainModel.Parent = worldRoot
+for k = 1, 3 do
+	local carModel = fakeInstance("Model")
+	carModel.Name = "Car" .. k
+	carModel.Parent = trainModel
+	local root = part("Root", CFrame.new(base), {})
+	root.Parent = carModel
+	local seat = fakeInstance("Seat")
+	seat.Name = "Seat"
+	seat.CFrame = CFrame.new(base)
+	seat.Parent = carModel
+	local door = part("Door", CFrame.new(base), { "MetroDoor" })
+	door.Parent = carModel
+end
+trainModel:AddTag("MetroTrain")
+-- Galería
+local H = Metro.Stations.PlazaMayor
+local hub = Vector3.new(H.Surface[1], -150, H.Surface[2])
+local music = mp("Counter", CFrame.new(hub + Vector3.new(98, 2, 28)), { "MetroShop" }, { ShopId = "Musica" })
+local mic = mp("Mic", CFrame.new(hub + Vector3.new(128, 3, -16)), { "MetroStage" })
+local missionBoard = mp("MissionBoard", CFrame.new(hub + Vector3.new(80, 5, -24)), { "MetroMissionBoard" })
+local lostOffice = mp("LostOffice", CFrame.new(hub + Vector3.new(58, 2, -28)), { "MetroLostOffice" })
+local MetroService = loadModule(S .. "MetroService")
+MetroService.init()
+check(jobProviders.Handler_Revisor ~= nil, "el tablón de la galería lleva al oficio de revisor/a")
+local train = MetroService._trains.L1
+check(train ~= nil and train.Phase == "Dwell" and train.Index == 1, "el tren de la Línea 1 espera en la primera estación con las puertas abiertas")
+local rider, riderRoot, riderHumanoid = newPlayer(91, "Adulto", 100)
+profiles[rider].Items = {}
+InventoryService.refresh(rider)
+moveTo(riderRoot, Vector3.new(P.Surface[1], 0, P.Surface[2]))
+local door = nil
+for _, d in services.CollectionService:GetTagged("MetroEntrance") do
+	if d:GetAttribute("Station") == "Poniente" then
+		door = d
+	end
+end
+promptOf(door, "Bajar al metro").Triggered:Fire(rider)
+check(notified(rider, "Metro · Poniente"), "por la boca de metro se baja al vestíbulo")
+moveTo(riderRoot, base + Vector3.new(40, -2, -18))
+promptOf(gate, "Pasar (billete)").Triggered:Fire(rider)
+check(notified(rider, "Necesitas un billete"), "sin billete no se pasa el torno")
+M:Fire(rider, "BuyTicket", "Sencillo")
+check(profiles[rider].Money == 98 and InventoryService.count(rider, "BilleteMetro") == 1, "la máquina vende el billete")
+promptOf(gate, "Pasar (billete)").Triggered:Fire(rider)
+check(InventoryService.count(rider, "BilleteMetro") == 0 and rider:GetAttribute("MetroTicket") == true, "el torno gasta el billete")
+-- Subir y viajar
+moveTo(riderRoot, base + Vector3.new(8, -2, 0))
+promptOf(board, "Subir al metro").Triggered:Fire(rider)
+check(riderHumanoid.SeatPart ~= nil and MetroService._riding[rider] == train and lastMessage(rider, "Board") ~= nil, "sube al tren y se sienta")
+local guard = 0
+while not (train.Index == 2 and train.Phase == "Dwell") and guard < 400 do
+	guard += 1
+	MetroService._step(train, 0.5)
+end
+local arrive = lastMessage(rider, "Arrive")
+check(arrive ~= nil and arrive[2].Station == "Plaza Mayor", "el tren llega a Plaza Mayor y te avisa")
+local car2 = trainModel:FindFirstChild("Car2"):FindFirstChild("Root")
+check((car2.Position - Metro.center("PlazaMayor", L1)).Magnitude < 5, "el tren para con el centro en el andén")
+check(train.Cars[1].Doors[1].Transparency == 1, "con el tren parado las puertas están abiertas")
+M:Fire(rider, "Alight")
+check(MetroService._riding[rider] == nil and lastMessage(rider, "Off") ~= nil, "bajas en Plaza Mayor")
+MetroService._step(train, Metro.Dwell + 0.1)
+check(train.Phase == "Move" and train.Cars[1].Doors[1].Transparency == 0, "el tren cierra las puertas y sigue")
+-- Galería: tienda de discos y escenario
+moveTo(riderRoot, hub + Vector3.new(98, -2, 22))
+profiles[rider].Money = 30
+M:Fire(rider, "Buy", "Musica", "Guitarra")
+check(InventoryService.count(rider, "Guitarra") == 0, "sin dinero suficiente no se compra la guitarra")
+profiles[rider].Money = 200
+M:Fire(rider, "Buy", "Musica", "Guitarra")
+check(InventoryService.count(rider, "Guitarra") == 1 and profiles[rider].Money == 140, "compra una guitarra en la tienda de discos")
+moveTo(riderRoot, hub + Vector3.new(128, -2, -12))
+promptOf(mic, "Tocar música").Triggered:Fire(rider)
+local buskMsg = lastMessage(rider, "Busk")
+check(buskMsg ~= nil, "en el escenario empieza la actuación")
+M:Fire(rider, "BuskEnd", buskMsg[2].Token, 99)
+check(profiles[rider].Money == 140 + Metro.Busk.Notes * Metro.Busk.PerHit, "las propinas dependen de las notas (y no se puede hacer trampa)")
+-- Encargos
+promptOf(missionBoard, "Ver encargos").Triggered:Fire(rider)
+check(lastMessage(rider, "Missions") ~= nil and #lastMessage(rider, "Missions")[2].Offers == 3, "el tablón ofrece tres encargos")
+M:Fire(rider, "Accept", "Perdido")
+local m = MetroService._missions[rider]
+check(m ~= nil and m.Thing ~= nil, "aparece el objeto perdido en otra estación")
+promptOf(m.Thing, "Recoger").Triggered:Fire(rider)
+check(InventoryService.count(rider, "CarteraPerdida") == 1, "lo recoges")
+local before = profiles[rider].Money
+promptOf(lostOffice, "Objetos perdidos").Triggered:Fire(rider)
+check(profiles[rider].Money == before + Metro.Missions.Perdido.Reward and InventoryService.count(rider, "CarteraPerdida") == 0, "en Objetos Perdidos te pagan")
+M:Fire(rider, "Accept", "Paquete")
+m = MetroService._missions[rider]
+check(InventoryService.count(rider, "PaqueteMetro") == 1, "te dan el paquete urgente")
+local kiosk = nil
+for _, k in services.CollectionService:GetTagged("MetroDelivery") do
+	if k:GetAttribute("Station") == m.Station then
+		kiosk = k
+	end
+end
+before = profiles[rider].Money
+promptOf(kiosk, "Entregar paquete").Triggered:Fire(rider)
+check(profiles[rider].Money == before + Metro.Missions.Paquete.Reward + Metro.Missions.Paquete.Bonus, "entregado a tiempo en el quiosco: pago y propina")
+M:Fire(rider, "Accept", "Gato")
+m = MetroService._missions[rider]
+promptOf(m.Thing, "Coger al gato").Triggered:Fire(rider)
+check(rider:GetAttribute("CarryingCat") == true, "encuentras al gato del metro")
+before = profiles[rider].Money
+promptOf(missionBoard, "Ver encargos").Triggered:Fire(rider)
+check(profiles[rider].Money == before + Metro.Missions.Gato.Reward and rider:GetAttribute("CarryingCat") == nil, "lo devuelves al tablón y te pagan")
+-- Revisor
+local inspector, inspectorRoot = newPlayer(92, "Adulto", 0)
+moveTo(inspectorRoot, base + Vector3.new(12, 0, 0))
+MetroService.startRevisor(inspector)
+check(inspector:GetAttribute("Job") == "Revisor", "empieza el turno de revisor/a")
+local ask = nil
+for _, d in worldRoot:GetDescendants() do
+	if d.ClassName == "ProximityPrompt" and d.ActionText == "Pedir el billete" and d:GetAttribute("OwnerUserId") == 92 then
+		ask = d
+	end
+end
+check(ask ~= nil, "hay viajeros en el andén para revisar")
+local events = 0
+StoryEventsModule.connect(function(p, name, payload)
+	if p == inspector and name == "JobTaskDone" and payload.JobId == "Revisor" then
+		events += 1
+	end
+end)
+ask.Triggered:Fire(inspector)
+check(profiles[inspector].Money == Metro.Revisor.PerCheck or profiles[inspector].Money == Metro.Revisor.PerFine, "cobra por revisar (y más si pone una multa)")
+check(events == 1, "cada revisión cuenta para la historia")
+MetroService.quitRevisor(inspector)
+check(inspector:GetAttribute("Job") == nil, "termina el turno")
 end)()
 
 end, debug.traceback)

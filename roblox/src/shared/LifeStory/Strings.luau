@@ -31,6 +31,7 @@ Strings.es = {
 	["ROLE.TAQUILLERO"] = "Taquillero/a",
 	["ROLE.RECEPCIONISTA"] = "Recepcionista",
 	["ROLE.PESCADOR"] = "Pescador/a",
+	["ROLE.REVISOR"] = "Revisor/a",
 	["ROLE.REPARTIDOR"] = "Repartidor",
 	["ROLE.PROFESOR"] = "Profesor",
 	["ROLE.PROFESOR_UNI"] = "Profesor de universidad",

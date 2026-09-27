@@ -81,6 +81,7 @@ MapInfo.Kinds = {
 	{ Model = "Supermercado", Icon = "🛒", Name = "Supermercado", Important = true },
 	{ Model = "TiendaPesca", Icon = "🎣", Name = "Tienda de pesca", Important = true },
 	{ Model = "ZonaPesca", Icon = "🐟", Name = "Zona de pesca" },
+	{ Model = "BocaMetro", Icon = "🚇", Name = "Metro", Important = true },
 } :: { Kind }
 
 MapInfo.KindByModel = {} :: { [string]: Kind }
@@ -94,7 +95,7 @@ MapInfo.Legend = {
 	{ Name = "Estudios", Icon = "🏫", Models = { "Colegio", "Facultad", "Autoescuela" } },
 	{ Name = "Tiendas y comida", Icon = "🛍️", Models = { "CentroComercial", "Supermercado", "Restaurante", "Gasolinera", "PlazaFinanciera", "TiendaPesca" } },
 	{ Name = "Ocio y naturaleza", Icon = "🌳", Models = { "Parque", "Estadio", "Playa", "Granja", "Recreativos", "Plaza", "Mirador", "Faro", "Puerto", "Feria", "Camping", "Marina", "Museo", "Teatro", "ZonaPesca" } },
-	{ Name = "Ciudad y transporte", Icon = "🏛️", Models = { "TorreValmar", "Ayuntamiento", "EstacionCentral", "EstacionAutobuses", "GranCentroComercial" } },
+	{ Name = "Ciudad y transporte", Icon = "🏛️", Models = { "TorreValmar", "Ayuntamiento", "EstacionCentral", "EstacionAutobuses", "GranCentroComercial", "BocaMetro" } },
 }
 
 -- Distrito en el que cae una posición (o nil si es mar o montaña)

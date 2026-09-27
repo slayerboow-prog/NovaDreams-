@@ -23,6 +23,7 @@ local CafeMenu = require(script.Parent.CafeMenu)
 local Cinema = require(script.Parent.Cinema)
 local Hotel = require(script.Parent.Hotel)
 local Fishing = require(script.Parent.Fishing)
+local Metro = require(script.Parent.Metro)
 
 local Items = {}
 
@@ -217,6 +218,21 @@ for _, s in Fishing.Species do
 		Kind = "Thing",
 		Desc = ("Pescado fresco. Véndelo en la pescadería del supermercado (%d € cada uno)."):format(s.Price),
 		Stack = 20,
+	}
+end
+
+-- Metro: el billete y lo que venden las tiendas subterráneas
+list[Metro.TicketItem] = { Id = Metro.TicketItem, Name = "Billete de metro", Icon = "🎫", Kind = "Thing", Desc = "Un viaje en metro. Se gasta al pasar el torno.", Stack = 50 }
+for id, p in Metro.Products do
+	list[id] = list[id] or {
+		Id = id,
+		Name = p.Name,
+		Icon = p.Icon,
+		Kind = p.Kind,
+		Desc = p.Desc,
+		Stack = if p.Kind == "Food" then 8 else 4,
+		Hunger = p.Hunger,
+		Energy = p.Energy,
 	}
 end
 

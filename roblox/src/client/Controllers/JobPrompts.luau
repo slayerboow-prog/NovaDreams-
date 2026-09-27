@@ -13,11 +13,11 @@ local tracked: { ProximityPrompt } = {}
 local function visible(prompt: ProximityPrompt): boolean
 	local job = prompt:GetAttribute("JobOnly")
 	local owner = prompt:GetAttribute("OwnerUserId")
-	return player:GetAttribute("Job") == job and (owner == nil or owner == player.UserId)
+	return (job == nil or player:GetAttribute("Job") == job) and (owner == nil or owner == player.UserId)
 end
 
 local function track(d: Instance)
-	if d:IsA("ProximityPrompt") and d:GetAttribute("JobOnly") then
+	if d:IsA("ProximityPrompt") and (d:GetAttribute("JobOnly") or d:GetAttribute("OwnerUserId")) then
 		table.insert(tracked, d)
 		d.Enabled = visible(d)
 	end

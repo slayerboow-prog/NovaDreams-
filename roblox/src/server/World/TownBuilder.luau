@@ -676,6 +676,7 @@ function TownBuilder.build(): Folder
 	Roads.build(world) -- Ronda, avenidas, diagonales, rotondas y puentes (CityPlan.Roads)
 	require(Kit.Districts).build(world, Region.centers()) -- manzanas de los 6 distritos
 	Landmarks.build(world) -- puerto, isla del faro y mirador
+	require(Kit.MetroKit).build(world) -- metro subterráneo: bocas, estaciones, túneles, trenes y galería
 	local built = builtAt()
 	buildOutskirts(world, built)
 	require(Kit.Wilds).build(world, built) -- bosques de montaña, orillas del río, parque del lago y playas

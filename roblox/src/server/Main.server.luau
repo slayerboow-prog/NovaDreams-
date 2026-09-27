@@ -62,6 +62,7 @@ local order = {
 	"HotelService", -- hoteles: reservar habitación, descansar y oficio de recepcionista
 	"TradeService", -- intercambio entre jugadores y mercadillo
 	"FishingService", -- pesca, tienda de pesca, barco y oficio de pescador
+	"MetroService", -- metro subterráneo: trenes, galería, encargos y revisor
 	"ClassService", -- clases y exámenes que se juegan (lo usa la historia)
 	"DialogueService", -- conversaciones con respuestas (misiones episódicas)
 	"MiniGameService", -- pase, canastas, partido de fútbol…
