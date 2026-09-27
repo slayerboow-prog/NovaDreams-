@@ -95,6 +95,12 @@ local function sync()
 	local on = held or toggled or auto
 	if wants ~= on then
 		wants = on
+		if on then
+			-- Agachado o tumbado: correr te levanta (si hay sitio encima)
+			pcall(function()
+				require(script.Parent.Stances).standUp()
+			end)
+		end
 		Remote:FireServer("Sprint", on)
 	end
 	refreshButton()

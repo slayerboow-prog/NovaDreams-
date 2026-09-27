@@ -109,12 +109,13 @@ function Locomotion.cameraLook(root: CFrame, look: Vector3): (number, number, nu
 end
 
 -- Qué hace el cuerpo al tocar el suelo tras caer a `fallSpeed` (studs/s hacia abajo):
--- nil (nada), "Land" (agacharse un poco) o "Stumble" (traspiés), y la fuerza 0..1
-function Locomotion.landing(fallSpeed: number): (string?, number)
+-- nil (nada), "Land" (agacharse un poco), "Stumble" (traspiés) o "Roll" (voltereta), y la fuerza 0..1
+-- (runSpeed: velocidad al caer; corriendo, desde muy alto se rueda en lugar de tropezar)
+function Locomotion.landing(fallSpeed: number, runSpeed: number?): (string?, number)
 	if fallSpeed < 32 then
 		return nil, 0
 	elseif fallSpeed > 88 then
-		return "Stumble", 1
+		return if (runSpeed or 0) > 14 then "Roll" else "Stumble", 1
 	end
 	return "Land", clamp((fallSpeed - 32) / 50, 0.15, 1)
 end
@@ -135,6 +136,21 @@ end
 ---------------------------------------------------------------------
 -- En Roblox
 ---------------------------------------------------------------------
+
+-- Para otros sistemas (armas…): la postura de tu personaje ("Stand", "Crouch" o "Prone") y si está
+-- ocupado moviéndose (saltando un obstáculo, tumbándose o levantándose: el arma se baja). También
+-- están los atributos del jugador "Stance" (del servidor, lo ven todos) y "BusyMove" (solo tuyo).
+local StancesModule: any = nil
+function Locomotion.stance(): string
+	if StancesModule then
+		return StancesModule.current()
+	end
+	return "Stand"
+end
+function Locomotion.busyMove(): boolean
+	local Players = game:GetService("Players")
+	return Players.LocalPlayer:GetAttribute("BusyMove") == true
+end
 
 local ACTIVE_DISTANCE = 90
 local ACCEL, DECEL = 11, 15 -- ritmo de arrancar y de frenar
@@ -162,7 +178,7 @@ type Body = {
 }
 
 local bodies: { [Model]: Body } = {}
-local Layers: any, ReactMotion: any, Cinematics: any, Joystick: any
+local Layers: any, ReactMotion: any, Cinematics: any, Joystick: any, Stances: any, Parkour: any
 local player: Player
 local stumbleUntil = 0
 local faceYaw: number? = nil
@@ -267,18 +283,22 @@ local function update(body: Body, dt: number, now: number)
 	body.Sprint = Locomotion.smooth(body.Sprint, if sprinting then 1 else 0, 4, dt)
 
 	local free = FREE_STATES[state] == true and humanoid.SeatPart == nil and not humanoid.PlatformStand
+	-- Tumbado o saltando un obstáculo manda su propia postura (sin inclinarse ni girar la cabeza)
+	if (Stances and Stances.proneWeight(body.Model) > 0.3) or (Parkour and Parkour.isVaulting(body.Model)) then
+		free = false
+	end
 	if body.Player and body.Player:GetAttribute("Crawling") then
 		free = false -- gateando manda AgeMotion
 	end
 	body.Weight = Locomotion.smooth(body.Weight, if free then 1 else 0, 6, dt)
 
 	-- Aterrizar: la caída más fuerte desde que dejó el suelo
-	if state == Enum.HumanoidStateType.Swimming or humanoid.SeatPart then
+	if state == Enum.HumanoidStateType.Swimming or humanoid.SeatPart or (Parkour and Parkour.isVaulting(body.Model)) then
 		body.Fall = 0
 	elseif v.Y < -8 then
 		body.Fall = math.max(body.Fall, -v.Y)
 	elseif v.Y > -3 and body.Fall > 0 then
-		local kind, strength = Locomotion.landing(body.Fall)
+		local kind, strength = Locomotion.landing(body.Fall, speed)
 		body.Fall = 0
 		if kind and ReactMotion then
 			ReactMotion.play(body.Model, kind, { Strength = strength })
@@ -356,6 +376,7 @@ local function blockedMove(humanoid: Humanoid): boolean
 		or player:GetAttribute("Riding") ~= nil
 		or player:GetAttribute("InDialogue") == true
 		or (Cinematics ~= nil and Cinematics.isPlaying())
+		or (Parkour ~= nil and Parkour.isVaulting())
 end
 
 local function moveStep(dt: number)
@@ -406,7 +427,8 @@ local function moveStep(dt: number)
 		velocity = Vector3.zero
 		return
 	end
-	local factor = if now < stumbleUntil then 0.35 else 1
+	-- Agachado o tumbado se va más despacio (Stances); tras un traspiés, un momento más lento
+	local factor = (if now < stumbleUntil then 0.35 else 1) * (if Stances then Stances.speedFactor() else 1)
 	local target = wanted * walk * factor
 	velocity = Locomotion.approach(velocity, target, dt, ACCEL, DECEL)
 	if velocity.Magnitude > walk then
@@ -497,6 +519,9 @@ function Locomotion.init()
 	ReactMotion = require(script.Parent.ReactMotion)
 	Cinematics = require(script.Parent.Cinematics)
 	Joystick = require(script.Parent.Joystick)
+	Stances = require(script.Parent.Stances)
+	StancesModule = Stances
+	Parkour = require(script.Parent.Parkour)
 
 	-- El control de Roblox (teclado, joystick y mando): lo que pide cada frame
 	task.spawn(function()

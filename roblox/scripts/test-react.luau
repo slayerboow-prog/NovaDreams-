@@ -66,7 +66,7 @@ local function sane(pose): (boolean, string?)
 end
 
 print("\n▶ Golpes y choques")
-local KINDS = { "Jab", "Cross", "Hook", "HitLight", "HitHeavy", "BlockHit", "Kick", "Trip", "Reach", "PickUp", "Eat", "Drink", "Throw", "Cast", "Reel", "Land", "Stumble" }
+local KINDS = { "Jab", "Cross", "Hook", "HitLight", "HitHeavy", "BlockHit", "Kick", "Trip", "Reach", "PickUp", "Eat", "Drink", "Throw", "Cast", "Reel", "Land", "Stumble", "Roll" }
 for _, name in KINDS do
 	local kind = ReactMotion.Kinds[name]
 	if not kind then
