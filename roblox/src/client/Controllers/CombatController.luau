@@ -106,13 +106,17 @@ function CombatController.attack()
 	if blocking then
 		CombatController.setBlocking(false)
 	end
-	if isR15(player.Character) then
-		ReactMotion.play(player.Character, PUNCHES[localCombo] or "Jab")
-	else
+	-- Puñetazo hecho con código (R15); si este cuerpo no se puede mover así, animación de Roblox
+	if not (isR15(player.Character) and ReactMotion.play(player.Character, PUNCHES[localCombo] or "Jab")) then
 		local anim = track(if localCombo == 3 then "Heavy" else "Punch")
 		if anim then
 			anim:Play(0.05, 1, if localCombo == 3 then 1.1 else 1.6)
 		end
+	end
+	-- Sonido del golpe al aire (los demás lo oyen con "Swing")
+	local _, root = parts()
+	if root then
+		SoundFx.play("Salto", 0.7, if localCombo == 3 then 0.8 else 1.3, root)
 	end
 	Remote:FireServer("Attack")
 end

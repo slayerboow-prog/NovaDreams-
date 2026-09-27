@@ -300,7 +300,7 @@ type Body = {
 	Model: Model,
 	Humanoid: Humanoid,
 	Root: BasePart,
-	Joints: { [string]: Motor6D },
+	Joints: { [string]: any }, -- Motor6D o AnimationConstraint (los dos tienen Transform)
 	Active: { { Kind: string, Start: number, Duration: number, Opts: { [string]: any } } },
 	Want: { [string]: boolean }, -- posturas mantenidas que tocan ahora
 	Holds: { [string]: number }, -- su peso (suavizado)
@@ -333,9 +333,13 @@ local function bodyOf(model: Model?): Body?
 	for name, partName in JOINTS do
 		local p = model:FindFirstChild(partName)
 		local motor = p and p:FindFirstChild(name)
-		if motor and motor:IsA("Motor6D") then
+		-- Con las articulaciones nuevas de Roblox los Motor6D pasan a ser AnimationConstraint
+		if motor and (motor:IsA("Motor6D") or motor:IsA("AnimationConstraint")) then
 			joints[name] = motor
 		end
+	end
+	if not joints.RightShoulder or not joints.LeftShoulder then
+		return nil -- sin brazos que mover: quien llama usa una animación normal de Roblox
 	end
 	body = {
 		Model = model,
@@ -359,12 +363,13 @@ local function bodyOf(model: Model?): Body?
 	return body
 end
 
--- Reproduce una reacción corta en un personaje (se ve en tu pantalla)
-function ReactMotion.play(model: Model?, kind: string, opts: { [string]: any }?)
+-- Reproduce una reacción corta en un personaje (se ve en tu pantalla).
+-- Devuelve false si ese personaje no se puede mover así (R6 o sin articulaciones).
+function ReactMotion.play(model: Model?, kind: string, opts: { [string]: any }?): boolean
 	local body = bodyOf(model)
 	local def = ReactMotion.Kinds[kind]
 	if not body or not def then
-		return
+		return false
 	end
 	-- La misma reacción no se repite encima de sí misma: vuelve a empezar
 	for i = #body.Active, 1, -1 do
@@ -373,6 +378,7 @@ function ReactMotion.play(model: Model?, kind: string, opts: { [string]: any }?)
 		end
 	end
 	table.insert(body.Active, { Kind = kind, Start = os.clock(), Duration = def.Duration * ((opts and opts.Speed) or 1), Opts = opts or {} })
+	return true
 end
 
 function ReactMotion.hold(model: Model?, name: string, on: boolean)
