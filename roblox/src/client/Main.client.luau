@@ -41,6 +41,7 @@ local HotelUI = require(script.Parent.Controllers.HotelUI)
 local TradeUI = require(script.Parent.Controllers.TradeUI)
 local PlayerMenuUI = require(script.Parent.Controllers.PlayerMenuUI)
 local FishingUI = require(script.Parent.Controllers.FishingUI)
+local MetroUI = require(script.Parent.Controllers.MetroUI)
 local DivingUI = require(script.Parent.Controllers.DivingUI)
 local JobPrompts = require(script.Parent.Controllers.JobPrompts)
 local BusUI = require(script.Parent.Controllers.BusUI)
@@ -100,6 +101,7 @@ task.spawn(HotelUI.init) -- hoteles: reservar, descansar y panel del recepcionis
 task.spawn(TradeUI.init) -- intercambio entre jugadores y mercadillo
 task.spawn(PlayerMenuUI.init) -- al tocar a un jugador: invitar al grupo, chat y comerciar
 task.spawn(FishingUI.init) -- pesca: sedal y corcho, ¡tirar!, tienda de pesca
+task.spawn(MetroUI.init) -- metro: panel del tren, billetes, tiendas, encargos y escenario
 task.spawn(DivingUI.init) -- nadar, bucear (aire) y pesca submarina con fusil o arpón
 task.spawn(JobPrompts.init) -- los carteles de cada oficio solo los ve quien trabaja en él
 task.spawn(Driving.init) -- conducir coches, motos, bicis, monopatines y patinetes (W/A/S/D)

@@ -181,7 +181,8 @@ local function updateParticles()
 	-- La "nube" que suelta las partículas va delante y encima de la cámara
 	local ahead = camera.CFrame.LookVector * Vector3.new(1, 0, 1) * 20
 	emitterPart.CFrame = CFrame.new(position + ahead + Vector3.new(0, if info.Snow then 35 else 45, 0))
-	local off = indoor
+	local underground = position.Y < -60 -- en el metro
+	local off = indoor or underground
 	rain.Rate = if off then 0 else (info.Rain or 0) * 900
 	rain.Enabled = rain.Rate > 0
 	snow.Rate = if off then 0 else (info.Snow or 0) * 260
@@ -195,7 +196,7 @@ local function updateParticles()
 		falling.Enabled = false
 	end
 	if rainSound then
-		rainSound.Volume = if info.Rain and not off then 0.5 * info.Rain else (if info.Rain then 0.15 else 0)
+		rainSound.Volume = if info.Rain and not off then 0.5 * info.Rain else (if info.Rain and not underground then 0.15 else 0)
 	end
 end
 

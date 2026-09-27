@@ -65,6 +65,9 @@
         "Fishing": {
           "$className": "RemoteEvent"
         },
+        "Metro": {
+          "$className": "RemoteEvent"
+        },
         "Diving": {
           "$className": "RemoteEvent"
         },
