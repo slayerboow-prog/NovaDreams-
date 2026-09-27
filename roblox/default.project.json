@@ -53,6 +53,9 @@
         "Hotel": {
           "$className": "RemoteEvent"
         },
+        "Trade": {
+          "$className": "RemoteEvent"
+        },
         "LifeStory": {
           "$className": "RemoteEvent"
         },

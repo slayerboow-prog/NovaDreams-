@@ -315,6 +315,7 @@ local remotes = {
 	Fire = remote(),
 	Cinema = remote(),
 	Hotel = remote(),
+	Trade = remote(),
 }
 function remotes:WaitForChild(name)
 	return self[name]
@@ -328,6 +329,23 @@ local players = { PlayerAdded = signal(), PlayerRemoving = signal() }
 function players:GetPlayers()
 	return table.clone(playersList)
 end
+function players:GetPlayerByUserId(id)
+	for _, p in playersList do
+		if p.UserId == id then
+			return p
+		end
+	end
+	return nil
+end
+for _, r in remotes do
+	if type(r) == "table" and r.OnServerEvent then
+		function r:FireAllClients(...)
+			for _, p in playersList do
+				table.insert(p.Inbox, table.pack(...))
+			end
+		end
+	end
+end
 function players:CreateHumanoidModelFromDescription()
 	error("sin avatares en la prueba")
 end
@@ -336,6 +354,7 @@ function players:GetNameFromUserIdAsync(id)
 end
 
 local guid = 0
+policyBlocked = {}
 local services = {
 	CollectionService = collection,
 	Players = players,
@@ -362,6 +381,12 @@ local services = {
 				end
 			end
 			return tween
+		end,
+	},
+	-- Normas de Roblox por país: los UserId de esta lista no pueden intercambiar objetos de pago
+	PolicyService = {
+		GetPolicyInfoForPlayerAsync = function(_, player)
+			return { IsPaidItemTradingAllowed = not (policyBlocked :: any)[player.UserId] }
 		end,
 	},
 	DataStoreService = {
@@ -451,6 +476,9 @@ mocks[S .. "DataService"] = {
 	end,
 	addMoney = function(player, amount)
 		profiles[player].Money = math.max(0, profiles[player].Money + amount)
+		return true
+	end,
+	save = function()
 		return true
 	end,
 	spend = function(player, price)
@@ -1986,6 +2014,73 @@ promptOf(elevator, "Subir a tu habitación").Triggered:Fire(guest)
 check(InventoryService.count(guest, Hotel.KeyItem) == 0, "al subir se usa la llave")
 HotelService.quit(clerk)
 check(clerk:GetAttribute("Job") == nil, "termina el turno")
+end)()
+
+;(function()
+print("▶ Intercambio entre jugadores y mercadillo")
+local Trade = loadModule(ROOT .. "/shared/Trade")
+local TradeService = loadModule(S .. "TradeService")
+TradeService.init()
+local ana, anaRoot = newPlayer(71, "Adulto", 500)
+local ben, benRoot = newPlayer(72, "Adolescente", 100)
+profiles[ana].Items = { Pan = 5 }
+profiles[ben].Items = { Fruta = 3 }
+InventoryService.refresh(ana)
+InventoryService.refresh(ben)
+moveTo(anaRoot, Vector3.new(3000, 0, 3000))
+moveTo(benRoot, Vector3.new(3100, 0, 3000))
+local T = remotes.Trade.OnServerEvent
+T:Fire(ana, "Request", 72)
+check(notified(ana, "Acércate"), "hay que estar cerca para intercambiar")
+moveTo(benRoot, Vector3.new(3004, 0, 3000))
+T:Fire(ana, "Request", 72)
+local invite = lastMessage(ben, "Invite")
+check(invite ~= nil and invite[2].UserId == 71, "al otro le llega la invitación")
+T:Fire(ben, "Answer", 71, true)
+check(lastMessage(ana, "Session") ~= nil and lastMessage(ben, "Session") ~= nil, "se abre la ventana a los dos")
+T:Fire(ana, "Offer", { Pan = 99 }, 0)
+check(notified(ana, "No tienes tantos"), "no se puede ofrecer más de lo que tienes")
+T:Fire(ana, "Offer", { LlaveHotel = 1 }, 0)
+check(notified(ana, "no se puede intercambiar"), "hay cosas que no se intercambian")
+T:Fire(ana, "Offer", { Pan = 2 }, 50)
+T:Fire(ben, "Offer", { Fruta = 1 }, 0)
+local seen = lastMessage(ben, "Session")[2]
+check(#seen.Them.Items == 1 and seen.Them.Items[1].Id == "Pan" and seen.Them.Money == 50, "cada uno ve lo que le da el otro")
+T:Fire(ana, "Accept", true)
+T:Fire(ben, "Offer", { Fruta = 2 }, 0)
+check(lastMessage(ana, "Session")[2].Me.Accepted == false, "si el otro cambia su oferta, se quita tu Aceptar")
+T:Fire(ana, "Accept", true)
+T:Fire(ben, "Accept", true)
+check(lastMessage(ben, "Session")[2].Counting == true, "los dos aceptan: empieza la cuenta atrás")
+check(InventoryService.count(ana, "Fruta") == 0, "durante la cuenta atrás aún no se ha cambiado nada")
+task.wait(Trade.ConfirmSeconds + 0.4)
+check(InventoryService.count(ana, "Pan") == 3 and InventoryService.count(ana, "Fruta") == 2 and profiles[ana].Money == 450, "Ana da 2 panes y 50 y recibe 2 frutas")
+check(InventoryService.count(ben, "Pan") == 2 and InventoryService.count(ben, "Fruta") == 1 and profiles[ben].Money == 150, "Ben recibe 2 panes y 50 y da 2 frutas")
+check(TradeService._sessionOf[ana] == nil and lastMessage(ana, "Closed") ~= nil, "el intercambio se cierra al terminar")
+-- Si en tu país no está permitido (norma de Roblox)
+local lia, liaRoot = newPlayer(73, "Adulto", 100)
+policyBlocked[73] = true
+moveTo(liaRoot, Vector3.new(3002, 0, 3002))
+T:Fire(lia, "Request", 71)
+check(notified(lia, "En tu país"), "si Roblox no lo permite en tu país, no se puede intercambiar")
+T:Fire(lia, "List", "Pan", 1, 10)
+check(#(lastMessage(lia, "Market") or { nil, {} })[2] == 0, "ni poner cosas en el mercadillo")
+local baby = newPlayer(74, "Bebe", 0)
+T:Fire(baby, "List", "Pan", 1, 10)
+check(notified(baby, "bebés"), "los bebés no intercambian")
+-- Mercadillo
+T:Fire(ana, "List", "Pan", 1, 20)
+local market = lastMessage(ben, "Market")
+check(market ~= nil and #market[2] == 1 and market[2][1].Price == 20, "Ana pone un pan a la venta y todos lo ven")
+T:Fire(ana, "List", "Pan", 3, 20)
+check(notified(ana, "No tienes tantos"), "no se puede vender lo que ya está a la venta")
+T:Fire(ben, "Buy", market[2][1].Id)
+check(profiles[ben].Money == 130 and InventoryService.count(ben, "Pan") == 3, "Ben compra el pan")
+check(profiles[ana].Money == 450 + Trade.sellerGets(20) and InventoryService.count(ana, "Pan") == 2, "Ana cobra (menos el 5 % del mercadillo)")
+check(#lastMessage(ana, "Market")[2] == 0, "el anuncio se quita al venderse")
+T:Fire(ana, "List", "Pan", 1, 20)
+players.PlayerRemoving:Fire(ana)
+check(#lastMessage(ben, "Market")[2] == 0, "si el vendedor se va, sus anuncios se quitan")
 end)()
 
 end, debug.traceback)

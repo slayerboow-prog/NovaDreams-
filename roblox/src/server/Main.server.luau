@@ -60,6 +60,7 @@ local order = {
 	"FireService", -- bomberos: incendios en casas, coches y papeleras, gatos en apuros, camión y sirena
 	"CinemaService", -- cines: sesiones con película en pantalla y oficio de taquillero/a
 	"HotelService", -- hoteles: reservar habitación, descansar y oficio de recepcionista
+	"TradeService", -- intercambio entre jugadores y mercadillo
 	"ClassService", -- clases y exámenes que se juegan (lo usa la historia)
 	"DialogueService", -- conversaciones con respuestas (misiones episódicas)
 	"MiniGameService", -- pase, canastas, partido de fútbol…

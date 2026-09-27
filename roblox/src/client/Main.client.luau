@@ -38,6 +38,7 @@ local PoliceUI = require(script.Parent.Controllers.PoliceUI)
 local FireUI = require(script.Parent.Controllers.FireUI)
 local CinemaUI = require(script.Parent.Controllers.CinemaUI)
 local HotelUI = require(script.Parent.Controllers.HotelUI)
+local TradeUI = require(script.Parent.Controllers.TradeUI)
 local JobPrompts = require(script.Parent.Controllers.JobPrompts)
 local BusUI = require(script.Parent.Controllers.BusUI)
 local ActorLife = require(script.Parent.Controllers.ActorLife)
@@ -79,6 +80,7 @@ task.spawn(PoliceUI.init) -- policía: panel del aviso y sirenas de los coches p
 task.spawn(FireUI.init) -- bomberos: panel del aviso
 task.spawn(CinemaUI.init) -- cines: película en pantalla, taquilla y panel del taquillero
 task.spawn(HotelUI.init) -- hoteles: reservar, descansar y panel del recepcionista
+task.spawn(TradeUI.init) -- intercambio entre jugadores y mercadillo
 task.spawn(JobPrompts.init) -- los carteles de cada oficio solo los ve quien trabaja en él
 task.spawn(Driving.init) -- conducir coches, motos, bicis, monopatines y patinetes (W/A/S/D)
 task.spawn(Actions.init) -- gestos y bailes (G), trepar muros bajos, linterna (L) y modo foto (P)
