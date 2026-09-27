@@ -43,8 +43,8 @@ local EMOTES: { Emote } = {
 	{ Name = "Reír", Icon = "😂", R15 = 507770818, R6 = 129423131, Voice = "Reir" },
 	{ Name = "Baile 1", Icon = "💃", R15 = 507771019, R6 = 182435998, Loop = true },
 	{ Name = "Baile 2", Icon = "🕺", R15 = 507776043, R6 = 182436842, Loop = true },
-	{ Name = "Baile 3", Icon = "🪩", R15 = 507777268, R6 = 182436935, Loop = true },
-	{ Name = "Saludo militar", Icon = "🫡", R15 = 3333474484 },
+	{ Name = "Baile 3", Icon = "🕺", R15 = 507777268, R6 = 182436935, Loop = true },
+	{ Name = "Saludo militar", Icon = "🙋", R15 = 3333474484 },
 	{ Name = "No sé", Icon = "🤷", R15 = 3334392772, Voice = "NoSe" },
 }
 local CLIMB = { R15 = 507765644, R6 = 180436334 }

@@ -1,5 +1,5 @@
 -- StoneThrow (cliente): coger piedras del suelo y lanzarlas.
---   * Tecla B (o botón 🪨 en móvil, Y en el mando): si no llevas piedra, coges una del suelo
+--   * Tecla B (o botón 🥌 en móvil, Y en el mando): si no llevas piedra, coges una del suelo
 --     (tierra, césped, arena o roca); si llevas, la lanzas hacia donde apuntas (el ratón en el
 --     ordenador; el centro de la pantalla en móvil y mando).
 --   * Dibuja las piedras que vuelan (las tuyas y las de los demás) siguiendo el mismo camino que
@@ -119,7 +119,7 @@ function StoneThrow.init()
 		refreshButton()
 		if (player:GetAttribute("Stones") or 0) > 0 and not hinted then
 			hinted = true
-			Hud.toast("Info", "🪨 Tienes una piedra: pulsa B (o 🪨) para lanzarla donde apuntes.")
+			Hud.toast("Info", "🥌 Tienes una piedra: pulsa B (o 🥌) para lanzarla donde apuntes.")
 		end
 	end)
 

@@ -57,7 +57,7 @@ local function showCase(case: { [string]: any })
 		order += 1
 		return order
 	end
-	line(("<b>🩺 Consulta %d</b> · %d esperando"):format(case.Room, case.Waiting), nextOrder(), 15)
+	line(("<b>🏥 Consulta %d</b> · %d esperando"):format(case.Room, case.Waiting), nextOrder(), 15)
 	line(PHASE[case.Phase] or "", nextOrder(), 12, C.Muted, 30)
 	if case.Patient then
 		line(("👤 <b>%s</b>: «%s»"):format(case.Patient, case.Says or ""), nextOrder(), 13, rgb(255, 230, 170), 34)

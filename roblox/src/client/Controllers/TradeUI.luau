@@ -150,7 +150,7 @@ local function openTrade(themName: string)
 	myOffer, myMoney = {}, 0
 	local window, content, close = Dialog.window("Trade", "🤝 Intercambio con " .. themName, Vector2.new(620, 430))
 	tradeWindow = window
-	local _ = close -- la ✕ cierra la ventana y eso cancela (Destroying)
+	local _ = close -- la ✖ cierra la ventana y eso cancela (Destroying)
 	window.Destroying:Connect(function()
 		if tradeWindow == window then
 			tradeWindow = nil

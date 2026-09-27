@@ -569,7 +569,7 @@ local function buildWindow()
 	local title = label("🎒  Mochila", header, 1)
 	title.TextSize = 22
 	title.Size = UDim2.new(1, -130, 1, 0)
-	local close = mcButton("✕  Cerrar", header, 2)
+	local close = mcButton("✖  Cerrar", header, 2)
 	close.AnchorPoint = Vector2.new(1, 0)
 	close.Position = UDim2.fromScale(1, 0)
 	close.Size = UDim2.fromOffset(116, 34)

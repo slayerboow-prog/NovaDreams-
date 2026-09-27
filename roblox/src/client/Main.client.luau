@@ -79,7 +79,7 @@ task.spawn(AgeMotion.init) -- cada edad se mueve a su manera: el bebé gatea, lo
 task.spawn(ReactMotion.init) -- golpes con cuerpo y choques: balón, piedras, arena, arbustos y charcos
 task.spawn(ObjectMotion.init) -- árboles que se mecen, columpios, banderas, noria, carrusel, fuentes
 task.spawn(WetWorld.init) -- con lluvia: suelo que brilla, charcos, gente y cosas mojadas; con nieve, todo blanco
-task.spawn(StoneThrow.init) -- coger piedras del suelo y lanzarlas (tecla B o botón 🪨)
+task.spawn(StoneThrow.init) -- coger piedras del suelo y lanzarlas (tecla B o botón 🥌)
 task.spawn(Ambient.init) -- tráfico y peatones
 task.spawn(Weather.init) -- estaciones y tiempo: lluvia, tormenta, nieve, hojas de otoño
 task.spawn(Wildlife.init) -- pájaros, palomas, mariposas, patos, perros, gatos y animales de granja

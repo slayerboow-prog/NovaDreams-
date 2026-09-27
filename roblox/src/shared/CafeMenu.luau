@@ -25,7 +25,7 @@ CafeMenu.Stations = {
 	Foam = { Name = "Espumar la leche", Object = "Vaporizador", Icon = "💨", Hold = 1.6 },
 	Chocolate = { Name = "Servir chocolate", Object = "Olla de chocolate", Icon = "🍫", Hold = 1.2 },
 	Juice = { Name = "Exprimir naranjas", Object = "Exprimidor", Icon = "🍊", Hold = 1.8 },
-	Tea = { Name = "Echar agua caliente", Object = "Hervidor", Icon = "🫖", Hold = 1 },
+	Tea = { Name = "Echar agua caliente", Object = "Hervidor", Icon = "🍵", Hold = 1 },
 	Pastry = { Name = "Coger del mostrador", Object = "Vitrina de bollería", Icon = "🥐", Hold = 0.5 },
 }
 
@@ -36,7 +36,7 @@ CafeMenu.List = {
 	{ Id = "ConLeche", Name = "Café con leche", Icon = "☕", Price = 3, Hunger = 6, Energy = 18, Steps = { "Cup", "Grind", "Brew", "Milk", "Foam" }, Color = rgb(196, 150, 104) },
 	{ Id = "Capuchino", Name = "Capuchino", Icon = "☕", Price = 3, Hunger = 6, Energy = 18, Steps = { "Cup", "Grind", "Brew", "Foam" }, Color = rgb(226, 204, 170) },
 	{ Id = "Chocolate", Name = "Chocolate caliente", Icon = "🍫", Price = 3, Hunger = 14, Energy = 8, Steps = { "Cup", "Chocolate" }, Color = rgb(90, 50, 30) },
-	{ Id = "Te", Name = "Té", Icon = "🫖", Price = 2, Hunger = 2, Energy = 10, Steps = { "Cup", "Tea" }, Color = rgb(170, 110, 50) },
+	{ Id = "Te", Name = "Té", Icon = "🍵", Price = 2, Hunger = 2, Energy = 10, Steps = { "Cup", "Tea" }, Color = rgb(170, 110, 50) },
 	{ Id = "Zumo", Name = "Zumo de naranja", Icon = "🍊", Price = 3, Hunger = 8, Energy = 6, Steps = { "Cup", "Juice" }, Color = rgb(250, 160, 30) },
 	{ Id = "Croissant", Name = "Croissant", Icon = "🥐", Price = 2, Hunger = 22, Energy = 2, Steps = { "Pastry" }, Color = rgb(222, 170, 90), Plate = true },
 	{ Id = "Magdalena", Name = "Magdalena", Icon = "🧁", Price = 2, Hunger = 16, Energy = 2, Steps = { "Pastry" }, Color = rgb(230, 180, 90), Plate = true },
