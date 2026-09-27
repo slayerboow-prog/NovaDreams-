@@ -39,12 +39,14 @@ local FireUI = require(script.Parent.Controllers.FireUI)
 local CinemaUI = require(script.Parent.Controllers.CinemaUI)
 local HotelUI = require(script.Parent.Controllers.HotelUI)
 local TradeUI = require(script.Parent.Controllers.TradeUI)
+local PlayerMenuUI = require(script.Parent.Controllers.PlayerMenuUI)
 local FishingUI = require(script.Parent.Controllers.FishingUI)
 local MetroUI = require(script.Parent.Controllers.MetroUI)
 local JobPrompts = require(script.Parent.Controllers.JobPrompts)
 local BusUI = require(script.Parent.Controllers.BusUI)
 local ActorLife = require(script.Parent.Controllers.ActorLife)
 local AgeMotion = require(script.Parent.Controllers.AgeMotion)
+local ObjectMotion = require(script.Parent.Controllers.ObjectMotion)
 
 local gui = Hud.init(function()
 	Store.open()
@@ -63,6 +65,7 @@ task.spawn(MiniGameUI.init) -- pase, canastas, partido de fútbol
 task.spawn(SceneClient.init) -- cada uno ve solo los personajes de su historia
 task.spawn(ActorLife.init) -- los personajes respiran, miran, gesticulan al hablar y andan con animación
 task.spawn(AgeMotion.init) -- cada edad se mueve a su manera: el bebé gatea, los mayores van encorvados…
+task.spawn(ObjectMotion.init) -- árboles que se mecen, columpios, banderas, noria, carrusel, fuentes
 task.spawn(Ambient.init) -- tráfico y peatones
 task.spawn(Weather.init) -- estaciones y tiempo: lluvia, tormenta, nieve, hojas de otoño
 task.spawn(Wildlife.init) -- pájaros, palomas, mariposas, patos, perros, gatos y animales de granja
@@ -85,6 +88,7 @@ task.spawn(FireUI.init) -- bomberos: panel del aviso
 task.spawn(CinemaUI.init) -- cines: película en pantalla, taquilla y panel del taquillero
 task.spawn(HotelUI.init) -- hoteles: reservar, descansar y panel del recepcionista
 task.spawn(TradeUI.init) -- intercambio entre jugadores y mercadillo
+task.spawn(PlayerMenuUI.init) -- al tocar a un jugador: invitar al grupo, chat y comerciar
 task.spawn(FishingUI.init) -- pesca: sedal y corcho, ¡tirar!, tienda de pesca
 task.spawn(MetroUI.init) -- metro: panel del tren, billetes, tiendas, encargos y escenario
 task.spawn(JobPrompts.init) -- los carteles de cada oficio solo los ve quien trabaja en él

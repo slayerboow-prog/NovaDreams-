@@ -318,6 +318,7 @@ local remotes = {
 	Trade = remote(),
 	Fishing = remote(),
 	Metro = remote(),
+	Social = remote(),
 }
 function remotes:WaitForChild(name)
 	return self[name]
@@ -357,6 +358,7 @@ end
 
 local guid = 0
 policyBlocked = {}
+chatBlocked = {}
 local services = {
 	CollectionService = collection,
 	Players = players,
@@ -391,6 +393,20 @@ local services = {
 			return { IsPaidItemTradingAllowed = not (policyBlocked :: any)[player.UserId] }
 		end,
 	},
+	-- Chat de Roblox: los UserId de chatBlocked no pueden chatear en privado
+	TextChatService = (function()
+		local service = fakeInstance("TextChatService")
+		service.CanUsersDirectChatAsync = function(_, _, ids)
+			local allowed = {}
+			for _, id in ids do
+				if not (chatBlocked :: any)[id] then
+					table.insert(allowed, id)
+				end
+			end
+			return allowed
+		end
+		return service
+	end)(),
 	DataStoreService = {
 		GetOrderedDataStore = function()
 			error("sin DataStore en la prueba")
@@ -2089,6 +2105,57 @@ check(#lastMessage(ben, "Market")[2] == 0, "si el vendedor se va, sus anuncios s
 end)()
 
 ;(function()
+print("▶ Menú del jugador: grupo y chat privado")
+check(loadModule(ROOT .. "/shared/Trade").tradeable("Pez_Sardina"), "los peces se pueden comerciar")
+local Social = loadModule(ROOT .. "/shared/Social")
+local SocialService = loadModule(S .. "SocialService")
+SocialService.init()
+local G = remotes.Social.OnServerEvent
+local eva = newPlayer(81, "Adulto", 100)
+local leo = newPlayer(82, "Adulto", 100)
+local mia = newPlayer(83, "Adolescente", 100)
+G:Fire(eva, "Invite", 82)
+local invite = lastMessage(leo, "GroupInvite")
+check(invite ~= nil and invite[2].UserId == 81, "al invitar al grupo le llega la invitación")
+G:Fire(leo, "Answer", 81, true)
+local g = lastMessage(eva, "Group")
+check(g ~= nil and g[2] and #g[2].Members == 2 and g[2].Members[1].Leader == true, "se crea el grupo con los dos (el que invita es el líder)")
+check(eva:GetAttribute("GroupId") ~= nil and eva:GetAttribute("GroupId") == leo:GetAttribute("GroupId"), "los dos tienen el mismo grupo")
+local chats = services.TextChatService:FindFirstChild(Social.Folder)
+check(chats ~= nil and chats:FindFirstChild(Social.groupChannel(eva:GetAttribute("GroupId"))) ~= nil, "el grupo tiene su canal de chat")
+task.wait(0.6)
+G:Fire(leo, "Invite", 81)
+check(notified(leo, "ya está en tu grupo"), "no se invita a quien ya está en tu grupo")
+task.wait(0.6)
+G:Fire(leo, "Invite", 83)
+G:Fire(mia, "Answer", 82, false)
+check(notified(leo, "no quiere unirse"), "se puede decir que no")
+check(SocialService._groupOf[mia] == nil, "y no entra")
+task.wait(0.6)
+G:Fire(eva, "Invite", 83)
+G:Fire(mia, "Answer", 81, true)
+check(#lastMessage(leo, "Group")[2].Members == 3, "entra una tercera persona y todos lo ven")
+G:Fire(leo, "Leave")
+check(lastMessage(leo, "Group")[2] == nil and leo:GetAttribute("GroupId") == nil, "al salir del grupo se quita el panel")
+check(#lastMessage(eva, "Group")[2].Members == 2, "los demás siguen en el grupo")
+players.PlayerRemoving:Fire(mia)
+check(SocialService._groupOf[eva] == nil and lastMessage(eva, "Group")[2] == nil, "si queda uno solo, el grupo se deshace")
+-- Chat privado
+task.wait(0.6)
+G:Fire(eva, "Chat", 82)
+local open = lastMessage(eva, "ChatOpen")
+check(open ~= nil and open[2].Channel == Social.privateChannel(81, 82) and chats:FindFirstChild(open[2].Channel) ~= nil, "el chat privado abre un canal para los dos")
+local kid = newPlayer(84, "Nino", 0)
+chatBlocked[84] = true
+task.wait(0.6)
+G:Fire(eva, "Chat", 84)
+check(notified(eva, "No puedes chatear en privado"), "si Roblox no deja chatear a esos dos, no se abre")
+players.PlayerRemoving:Fire(leo)
+check(chats:FindFirstChild(Social.privateChannel(81, 82)) == nil, "al irse alguien se borran sus chats privados")
+local _ = kid
+end)()
+
+;(function()
 print("▶ Pesca: cañas, cebo, pescar, vender en la pescadería, barco y pescador")
 local Fishing = loadModule(ROOT .. "/shared/Fishing")
 Fishing.BiteMin, Fishing.BiteMax = 0.2, 0.3 -- en la prueba pican enseguida
@@ -2129,27 +2196,48 @@ check(cast ~= nil and cast[2].Bobber.Y < 0, "se lanza el sedal y el corcho cae a
 check(InventoryService.count(fisher, "Cebo") == Fishing.Bait.Pack - 1, "cada lanzamiento gasta un cebo")
 F:Fire(fisher, "Reel", cast[2].Token)
 check(lastMessage(fisher, "Result")[2].Kind == "Early", "si tiras antes de que pique, el pez se asusta")
-local caught = nil
-for _ = 1, 15 do
+local function fishInBag(who)
+	local n = 0
+	for _, sp in Fishing.Species do
+		n += InventoryService.count(who, sp.Item)
+	end
+	return n
+end
+local caught, catches, everyCatchStored = nil, 0, true
+for _ = 1, 25 do
 	F:Fire(fisher, "Again")
 	local c = lastMessage(fisher, "Cast")
 	task.wait(0.45)
 	local bite = lastMessage(fisher, "Bite")
 	if bite and bite[2].Token == c[2].Token then
+		local before = fishInBag(fisher)
 		F:Fire(fisher, "Reel", c[2].Token)
 		local r = lastMessage(fisher, "Result")[2]
 		if r.Kind == "Catch" then
 			caught = r
-			break
+			catches += 1
+			-- El pez que dice que has pescado es el que entra en la mochila
+			local species = nil
+			for _, sp in Fishing.Species do
+				if sp.Name == r.Name then
+					species = sp
+				end
+			end
+			if fishInBag(fisher) ~= before + 1 or not species or InventoryService.count(fisher, species.Item) < 1 then
+				everyCatchStored = false
+			end
+			if catches >= 3 then
+				break
+			end
 		end
 	end
 end
 check(caught ~= nil, "cuando pica y tiras a tiempo, sacas un pez")
-local fishInBag = 0
-for _, sp in Fishing.Species do
-	fishInBag += InventoryService.count(fisher, sp.Item)
-end
-check(fishInBag >= 1, "el pez va a la mochila")
+check(fishInBag(fisher) >= catches and everyCatchStored, ("cada pez pescado va a la mochila (%d de %d)"):format(fishInBag(fisher), catches))
+check(string.find(fisher:GetAttribute("Inventory") or "", "Pez_") ~= nil, "y se ve en la mochila (casillas del inventario)")
+-- Caben muchos peces iguales (antes el 21º se perdía)
+local sardines = InventoryService.count(fisher, "Pez_Sardina")
+check(InventoryService.canAdd(fisher, "Pez_Sardina", 40 - sardines), "caben 40 sardinas en la mochila")
 -- Tardar demasiado
 F:Fire(fisher, "Again")
 local slow = lastMessage(fisher, "Cast")[2].Token

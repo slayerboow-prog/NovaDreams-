@@ -37,6 +37,7 @@ local order = {
 	"NeedsService",
 	"WorldService",
 	"WeatherService", -- estaciones y tiempo: sol, lluvia, tormenta, nieve, niebla
+	"ToyService", -- balones y conos con física: se patean, botan y vuelven solos a su sitio
 	"JobService",
 	"FoodService",
 	"HouseService",
@@ -61,6 +62,7 @@ local order = {
 	"CinemaService", -- cines: sesiones con película en pantalla y oficio de taquillero/a
 	"HotelService", -- hoteles: reservar habitación, descansar y oficio de recepcionista
 	"TradeService", -- intercambio entre jugadores y mercadillo
+	"SocialService", -- grupos de jugadores y chat privado (menú al tocar a un jugador)
 	"FishingService", -- pesca, tienda de pesca, barco y oficio de pescador
 	"MetroService", -- metro subterráneo: trenes, galería, encargos y revisor
 	"ClassService", -- clases y exámenes que se juegan (lo usa la historia)

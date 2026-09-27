@@ -108,7 +108,7 @@ function Icons.Ayuntamiento(parent: Instance, rect: Rect)
 	sign(m, base * CFrame.new(0, 24, -38.3), "AYUNTAMIENTO DE VALMAR", 44, 3, rgb(120, 30, 40))
 	for _, x in { -20, 0, 20 } do
 		part(m, "Flagpole", base * CFrame.new(x, 12, -50), Vector3.new(0.5, 24, 0.5), rgb(200, 200, 204), Enum.Material.Metal, true)
-		part(m, "Flag", base * CFrame.new(x + 3, 21, -50), Vector3.new(6, 4, 0.2), if x == 0 then rgb(40, 90, 170) else rgb(200, 40, 50), Enum.Material.Fabric, true)
+		part(m, "Flag", base * CFrame.new(x + 3, 21, -50), Vector3.new(6, 4, 0.2), if x == 0 then rgb(40, 90, 170) else rgb(200, 40, 50), Enum.Material.Fabric, true):AddTag("Flag")
 	end
 	Lite.park(m, lot.facing(0, 18, 0), 120, 26, true)
 end
@@ -269,17 +269,28 @@ function Icons.Feria(parent: Instance, rect: Rect)
 		part(m, "Leg", wheel * CFrame.new(12, R / 2 + 2, dz) * CFrame.Angles(0, 0, math.rad(20)), Vector3.new(2, R + 8, 2), rgb(240, 240, 244), Enum.Material.Metal)
 	end
 	local hub = wheel * CFrame.new(0, R + 4, 0)
+	-- Lo que gira (Controllers/ObjectMotion): radios, aro y cabinas alrededor del eje de la noria
+	local function spins(p: BasePart, role: string?): BasePart
+		p:AddTag("Noria")
+		p:SetAttribute("Pivot", hub.Position)
+		p:SetAttribute("Axis", hub.LookVector)
+		if role then
+			p:SetAttribute("Role", role)
+		end
+		return p
+	end
 	part(m, "Hub", hub * CFrame.Angles(0, math.rad(90), 0), Vector3.new(10, 5, 5), rgb(200, 40, 50), Enum.Material.Metal).Shape = Enum.PartType.Cylinder
 	local cabins = { rgb(230, 70, 70), rgb(250, 200, 60), rgb(70, 160, 230), rgb(90, 200, 120) }
 	for i = 0, 15 do
 		local a = i / 16 * math.pi * 2
 		local p = hub * CFrame.new(math.cos(a) * R, math.sin(a) * R, 0)
-		part(m, "Spoke", hub * CFrame.Angles(0, 0, a) * CFrame.new(R / 2, 0, 0), Vector3.new(R, 0.6, 0.6), rgb(240, 240, 244), Enum.Material.Metal, true)
+		spins(part(m, "Spoke", hub * CFrame.Angles(0, 0, a) * CFrame.new(R / 2, 0, 0), Vector3.new(R, 0.6, 0.6), rgb(240, 240, 244), Enum.Material.Metal, true))
 		-- Tramo del aro (tangente al círculo, entre este radio y el siguiente)
 		local chord = 2 * R * math.sin(math.pi / 16)
-		part(m, "Rim", hub * CFrame.Angles(0, 0, a + math.pi / 16) * CFrame.new(R * math.cos(math.pi / 16), 0, 0), Vector3.new(0.8, chord + 0.4, 0.8), rgb(240, 240, 244), Enum.Material.Metal, true)
+		spins(part(m, "Rim", hub * CFrame.Angles(0, 0, a + math.pi / 16) * CFrame.new(R * math.cos(math.pi / 16), 0, 0), Vector3.new(0.8, chord + 0.4, 0.8), rgb(240, 240, 244), Enum.Material.Metal, true))
 		if i % 2 == 0 then
-			part(m, "Cabin", CFrame.new(p.Position - Vector3.new(0, 3, 0)), Vector3.new(4, 4, 5), cabins[(i / 2) % 4 + 1], Enum.Material.SmoothPlastic)
+			-- (la cabina cuelga: gira con el aro pero siempre derecha)
+			spins(part(m, "Cabin", CFrame.new(p.Position - Vector3.new(0, 3, 0)), Vector3.new(4, 4, 5), cabins[(i / 2) % 4 + 1], Enum.Material.SmoothPlastic), "Cabin")
 		end
 	end
 	-- Montaña rusa: vía sobre pilares que sube y baja
@@ -295,18 +306,30 @@ function Icons.Feria(parent: Instance, rect: Rect)
 			local d = p - prev
 			local yaw = math.atan2(-d.X, -d.Z)
 			local pitch = math.asin(d.Y / d.Magnitude)
-			part(m, "Track", CFrame.new(mid) * CFrame.Angles(0, yaw, 0) * CFrame.Angles(pitch, 0, 0), Vector3.new(4, 0.8, d.Magnitude + 0.4), rgb(230, 60, 60), Enum.Material.Metal)
+			local track = part(m, "Track", CFrame.new(mid) * CFrame.Angles(0, yaw, 0) * CFrame.Angles(pitch, 0, 0), Vector3.new(4, 0.8, d.Magnitude + 0.4), rgb(230, 60, 60), Enum.Material.Metal)
+			-- Por aquí pasa la vagoneta (Controllers/ObjectMotion), en orden
+			track:AddTag("CoasterTrack")
+			track:SetAttribute("Index", i)
 		end
 		prev = p
 	end
 	-- Carrusel
 	local car = CFrame.new(cx + 50, 0, cz - 50)
-	cyl(m, "CarouselBase", car * CFrame.new(0, 1, 0), 2, 26, rgb(240, 220, 160), Enum.Material.Wood)
-	cyl(m, "CarouselRoof", car * CFrame.new(0, 12, 0), 2, 28, rgb(220, 60, 80), Enum.Material.Fabric)
-	cyl(m, "CarouselPole", car * CFrame.new(0, 6, 0), 10, 3, rgb(250, 230, 150), Enum.Material.Metal)
+	-- Gira entero; los caballitos además suben y bajan (Controllers/ObjectMotion)
+	local function turns(p: BasePart, role: string?)
+		p:AddTag("Carousel")
+		p:SetAttribute("Pivot", car.Position)
+		if role then
+			p:SetAttribute("Role", role)
+		end
+	end
+	turns(cyl(m, "CarouselBase", car * CFrame.new(0, 1, 0), 2, 26, rgb(240, 220, 160), Enum.Material.Wood))
+	turns(cyl(m, "CarouselRoof", car * CFrame.new(0, 12, 0), 2, 28, rgb(220, 60, 80), Enum.Material.Fabric))
+	turns(cyl(m, "CarouselPole", car * CFrame.new(0, 6, 0), 10, 3, rgb(250, 230, 150), Enum.Material.Metal))
 	for i = 0, 5 do
 		local a = i / 6 * math.pi * 2
-		part(m, "Horse", car * CFrame.new(math.cos(a) * 9, 4, math.sin(a) * 9), Vector3.new(1.4, 3, 4), rgb(250, 250, 250), Enum.Material.SmoothPlastic, true)
+		-- Mirando hacia donde gira (tangente al círculo)
+		turns(part(m, "Horse", car * CFrame.new(math.cos(a) * 9, 4, math.sin(a) * 9) * CFrame.Angles(0, -a, 0), Vector3.new(1.4, 3, 4), rgb(250, 250, 250), Enum.Material.SmoothPlastic, true), "Horse")
 	end
 	-- Taquilla y cartel
 	local lot = Blocks.lot(rect, "S")

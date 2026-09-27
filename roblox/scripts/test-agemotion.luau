@@ -20,7 +20,17 @@ local CFrame, Vector3, Enum = roblox.CFrame, roblox.Vector3, roblox.Enum
 local fakeGame = { GetService = function(_, name)
 	return { Name = name }
 end }
-local env = setmetatable({ CFrame = CFrame, Vector3 = Vector3, Enum = Enum, game = fakeGame, workspace = {} }, { __index = getfenv(1) })
+-- WorkAnim de verdad (AgeMotion la usa para las tareas de los jugadores)
+local workEnv = setmetatable({ CFrame = CFrame, Vector3 = Vector3, Color3 = roblox.Color3, Enum = Enum }, { __index = getfenv(1) })
+local WorkAnim = luau.load(fs.readFile("src/client/Controllers/WorkAnim.luau"), { debugName = "WorkAnim", environment = workEnv })()
+local fakeScript = { Parent = { WorkAnim = "WorkAnim" } }
+local env = setmetatable({
+	CFrame = CFrame, Vector3 = Vector3, Enum = Enum, game = fakeGame, workspace = {}, script = fakeScript,
+	require = function(what)
+		assert(what == "WorkAnim", "AgeMotion solo debería pedir WorkAnim")
+		return WorkAnim
+	end,
+}, { __index = getfenv(1) })
 local AgeMotion = luau.load(fs.readFile("src/client/Controllers/AgeMotion.luau"), { debugName = "AgeMotion", environment = env })()
 
 local failures = 0
@@ -181,6 +191,26 @@ do
 		end
 	end
 	check(ok, "de pie, los pies siguen en el suelo (ni flotan ni se hunden)")
+end
+
+print("Trabajando")
+for job, work in AgeMotion.JobWork do
+	check(WorkAnim.get(work) ~= nil, job .. " hace " .. work)
+end
+check(WorkAnim.get("Carry") ~= nil and WorkAnim.get("Carry").Walk == true, "lo que se lleva en brazos se sujeta también andando")
+for _, name in { "CarriedItem", "CarriedPlate", "CafeTray", "PostParcel" } do
+	check(AgeMotion.Carried[name] == true, name .. " se lleva con las dos manos")
+end
+-- Los nombres de lo que se lleva son los que pone el servidor
+local serverNames = {}
+for _, file in fs.readDir("src/server/Services") do
+	local source = fs.readFile("src/server/Services/" .. file)
+	for name in source:gmatch('%.Name = "(%w+)"') do
+		serverNames[name] = true
+	end
+end
+for name in AgeMotion.Carried do
+	check(serverNames[name] == true, name .. " existe en el servidor")
 end
 
 print("")

@@ -7,7 +7,10 @@
 --
 -- Todos reciben un CFrame en el suelo (Y = 0) cuyo LookVector mira a la calle (la fachada).
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
 local Builder = require(script.Parent.Parent.Builder)
+local Toys = require(ReplicatedStorage.Shared.Toys)
 local Nature = require(script.Parent.Nature)
 local Props = require(script.Parent.Props)
 local HouseKit = require(script.Parent.HouseKit)
@@ -292,7 +295,7 @@ function Lite.park(parent: Instance, cf: CFrame, w: number, d: number, paved: bo
 		part(m, "Path", cf * CFrame.new(0, 0.16, 0), Vector3.new(w - 8, 0.3, 6), stone, Enum.Material.Pavement)
 	end
 	Builder.part({ Name = "Fountain", Shape = Enum.PartType.Cylinder, Size = Vector3.new(1.4, 16, 16), CFrame = cf * CFrame.new(0, 0.7, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = rgb(200, 196, 188), Material = Enum.Material.Limestone, Parent = m })
-	Builder.decor({ Name = "FountainWater", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.2, 14, 14), CFrame = cf * CFrame.new(0, 1.45, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = rgb(70, 160, 210), Material = Enum.Material.Glass, Transparency = 0.2, Parent = m })
+	Builder.decor({ Name = "FountainWater", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.2, 14, 14), CFrame = cf * CFrame.new(0, 1.45, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = rgb(70, 160, 210), Material = Enum.Material.Glass, Transparency = 0.2, Tags = { "Fountain" }, Parent = m })
 	for _ = 1, math.clamp(math.floor(w * d / 1600), 4, 30) do
 		local x, z = (math.random() - 0.5) * (w - 20), (math.random() - 0.5) * (d - 20)
 		if math.abs(x) > 8 and math.abs(z) > 8 then
@@ -301,6 +304,10 @@ function Lite.park(parent: Instance, cf: CFrame, w: number, d: number, paved: bo
 	end
 	for _, q in { { 1, 1 }, { -1, -1 }, { 1, -1 }, { -1, 1 } } do
 		Props.bench(m, cf * CFrame.new(q[1] * 12, 0, q[2] * 6) * CFrame.Angles(0, if q[2] > 0 then 0 else math.pi, 0))
+	end
+	-- Un balón en el camino, para darle patadas (ToyService)
+	if not paved and w > 40 then
+		Toys.make("Futbol", cf * CFrame.new(w * 0.25, 1.35, 0), m)
 	end
 	return m
 end

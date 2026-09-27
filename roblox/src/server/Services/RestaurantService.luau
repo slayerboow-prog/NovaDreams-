@@ -523,7 +523,7 @@ local function pickUp(player: Player)
 	part.CanCollide = false
 	part.CanQuery = false
 	part.Massless = true
-	part.CFrame = root.CFrame * CFrame.new(0, 0.2, -1.6) * CFrame.Angles(0, 0, math.rad(90))
+	part.CFrame = root.CFrame * CFrame.new(0, 0.5, -1.4) * CFrame.Angles(0, 0, math.rad(90)) -- entre las manos
 	local weld = Instance.new("WeldConstraint")
 	weld.Part0 = root
 	weld.Part1 = part

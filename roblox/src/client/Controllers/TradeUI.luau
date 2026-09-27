@@ -1,5 +1,5 @@
 -- TradeUI (cliente): intercambio entre jugadores y mercadillo.
---   * Encima de cada jugador cercano sale "Intercambiar". Si el otro acepta, se abre la ventana:
+--   * Toca a otro jugador y elige "🤝 Comerciar" en su menú (PlayerMenuUI). Si acepta, se abre la ventana:
 --     a la izquierda lo que das tú (toca tus cosas para añadirlas y pon dinero), a la derecha lo que
 --     te da. Los dos pulsan "Aceptar" y, tras una cuenta atrás corta, se hace el cambio.
 --   * App "🛍️ Mercadillo" del teléfono: comprar lo que venden otros y poner tus cosas a la venta.
@@ -70,41 +70,6 @@ local function scroller(parent: Instance, props: { [string]: any }): ScrollingFr
 	create("UIListLayout", { Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder, Parent = frame })
 	Theme.padding(4).Parent = frame
 	return frame
-end
-
----------------------------------------------------------------------
--- "Intercambiar" encima de los demás jugadores
----------------------------------------------------------------------
-local function addPrompt(other: Player, character: Model)
-	local root = character:WaitForChild("HumanoidRootPart", 10)
-	if not root or root:FindFirstChild("TradePrompt") then
-		return
-	end
-	local prompt = Instance.new("ProximityPrompt")
-	prompt.Name = "TradePrompt"
-	prompt.ActionText = "Intercambiar"
-	prompt.ObjectText = "🤝 " .. (other.DisplayName or other.Name)
-	prompt.HoldDuration = 0.4
-	prompt.MaxActivationDistance = Trade.Range - 2
-	prompt.RequiresLineOfSight = false
-	prompt.KeyboardKeyCode = Enum.KeyCode.T
-	prompt.UIOffset = Vector2.new(0, 40)
-	prompt.Parent = root
-	prompt.Triggered:Connect(function()
-		Remote:FireServer("Request", other.UserId)
-	end)
-end
-
-local function watchPlayer(other: Player)
-	if other == player then
-		return
-	end
-	if other.Character then
-		task.spawn(addPrompt, other, other.Character)
-	end
-	other.CharacterAdded:Connect(function(character)
-		addPrompt(other, character)
-	end)
 end
 
 ---------------------------------------------------------------------
@@ -399,11 +364,6 @@ end
 ---------------------------------------------------------------------
 
 function TradeUI.init()
-	for _, other in Players:GetPlayers() do
-		watchPlayer(other)
-	end
-	Players.PlayerAdded:Connect(watchPlayer)
-
 	Hud.addButton("🛍️ Mercadillo", rgb(190, 90, 150), 6, openMarket)
 
 	Remote.OnClientEvent:Connect(function(action, a)

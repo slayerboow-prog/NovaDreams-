@@ -109,10 +109,72 @@ Los trabajadores y la familia ya no esperan de pie con los brazos colgando: hace
 | `Book` | Lee y explica | Libro | La profe Lucía |
 | `Guard` | Brazos cruzados, vigilando | — | Guardia |
 | `Traffic` | Manos juntas y a ratos dirige el tráfico | — | Policía |
+| `Carry` | Lleva algo con las dos manos (también andando) | — | Jugadores con caja, plato, bandeja o paquete |
+| `Hose` | Sujeta la manguera y riega de lado a lado | Manguera | Jugador bombero |
+| `Garden` | Riega con la regadera | Regadera | Jardinero (en la mitad de los parques) |
+| `Hammer` | Martillea sujetando el clavo | Martillo | Mecánico (talleres), obrero (zona industrial) |
+| `Rake` | Rastrilla la tierra | Rastrillo | Granjero (campo) |
+| `Guitar` | Toca la guitarra moviendo la cabeza al ritmo | Guitarra | Músico callejero (ocio y algunas calles comerciales) |
+| `Mop` | Friega el suelo | Fregona | Personal de limpieza (centro) |
+
+**Los jugadores también** (en `AgeMotion`): quieto en tu puesto haces tu oficio (barista `Coffee`, cajero
+`Scan`, charcutero `Cut`, recepción y taquilla `Type`, médico `Clipboard`, policía `Traffic`, bombero
+`Hose`, camarero `Tray`, barman `Wipe`) y, si llevas algo (caja, plato, bandeja, paquete), lo sujetas con
+las dos manos, también andando. Los demás jugadores te ven igual.
 
 Para añadir una tarea: una entrada en `WorkAnim.luau` con `Pose` (y `Prop` si lleva objeto). Los ángulos
 de los brazos salen de colocar la mano donde debe ir en un R15 (delante del pecho, a la altura del
 mostrador…).
+
+### AnimalPose: cómo se mueven los animales
+
+`Wildlife` decide dónde está cada animal y qué hace; `AnimalPose` coloca sus piezas.
+
+- Las patas giran desde la cadera, y los de cuatro patas andan en diagonal: la delantera de un lado con
+  la trasera del otro. El cuerpo sube y baja con cada paso. Las palomas y las gallinas adelantan la cabeza
+  a cada paso.
+- Quietos hacen cosas:
+
+  | Animal | Qué hace |
+  |---|---|
+  | Perro | De pie, sentado u olfateando. Mueve la cola (más si estás cerca). A veces viene a verte y se sienta a tu lado. |
+  | Gato | De pie, sentado, tumbado o lamiéndose. La cola se mece despacio. |
+  | Vaca y oveja | Pastan con la cabeza en la hierba, rumiando. La cola espanta moscas. |
+  | Gallina | Picotea o escarba con una pata. |
+  | Paloma | Picotea. |
+  | Pato | Nada meciéndose y a ratos mete la cabeza en el agua con la cola hacia arriba. |
+
+- El perro, el gato, la vaca y la oveja te miran si te acercas. Las orejas se agitan de vez en cuando.
+- Antes el perro, la vaca y la oveja flotaban un poco sobre el suelo: ahora la altura sale de lo que
+  miden sus patas.
+
+### ObjectMotion: las cosas del mapa se mueven
+
+| Qué | Cómo |
+|---|---|
+| Árboles y palmeras | La copa se mece con el viento; con lluvia más, y con tormenta mucho más. Las hojas de palmera se agitan cada una a su ritmo. |
+| Columpios | Se balancean colgados de la barra. |
+| Banderas | Ondean como una tela (cada bandera se dibuja en trozos). |
+| Noria | Gira despacio; las cabinas cuelgan siempre derechas. |
+| Carrusel | Da vueltas con los caballitos subiendo y bajando. |
+| Montaña rusa | Una vagoneta recorre la vía de ida y vuelta. |
+| Fuentes | Echan un chorro de agua. |
+
+- El mapa marca las piezas con etiquetas (`Sway`, `Swing`, `Flag`, `Noria`, `Carousel`, `CoasterTrack`,
+  `Fountain`) y el punto de giro en el atributo `Pivot` (y el eje en `Axis`).
+- Se hace en cada pantalla y solo cerca (como mucho 260 hojas y 10 banderas a la vez). Al alejarte,
+  cada pieza vuelve a su sitio. La noria y el carrusel usan la hora del servidor: todos los ven igual.
+
+### ToyService: balones y conos con física
+
+- Balones de fútbol en los parques y los campos, balones de playa en la playa, y en el gimnasio del cole
+  los balones de baloncesto y los conos (antes eran decoración quieta).
+- Si pasas corriendo o les das, salen disparados hacia donde vas: más fuerte cuanto más rápido vayas.
+  Botan, ruedan y flotan en el agua. El de playa es ligero y sube mucho.
+- La física la calcula el servidor, así que todos los jugadores ven lo mismo.
+- Quietos (anclados) mientras no hay nadie cerca. Si se caen del mapa o se quedan lejos de su sitio sin
+  nadie cerca, vuelven solos.
+- Los datos de cada juguete (tamaño, peso, bote, fuerza de la patada) están en `shared/Toys.luau`.
 
 ### Emotion: el gesto de cada frase
 

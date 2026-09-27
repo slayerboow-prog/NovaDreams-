@@ -5,6 +5,8 @@
 --  * Mariposas en primavera y verano; luciérnagas en las noches de verano
 --  * Patos y gaviotas flotando en el agua (lagos, estanques y el mar)
 --  * Perros y gatos paseando por las ciudades; vacas, ovejas y gallinas en Villaverde
+--  * Cómo se mueve cada uno (patas, cabeza, cola; sentarse, pastar, olfatear…): AnimalPose.
+--    El perro a veces se acerca a ti, se sienta a tu lado y mueve la cola.
 -- Cuántos salen depende de la estación y del tiempo (shared/Seasons: Birds, Butterflies, Ground).
 
 local Lighting = game:GetService("Lighting")
@@ -13,20 +15,22 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Seasons = require(ReplicatedStorage.Shared.Seasons)
+local AnimalPose = require(script.Parent.AnimalPose)
 
 local Wildlife = {}
 
 local player = Players.LocalPlayer
-local rgb = Color3.fromRGB
-local V = Vector3.new
 
 local folder: Folder
 local lowQuality = false
 
-type Piece = { Part: BasePart, Offset: CFrame, Role: string? }
+type Piece = AnimalPose.Piece
 type Animal = {
 	Kind: string,
 	Pieces: { Piece },
+	Info: AnimalPose.Info,
+	Pose: AnimalPose.State,
+	Frames: { CFrame },
 	Root: CFrame,
 	Active: boolean,
 	State: string, -- "idle" | "walk" | "fly" | "flee" | "float"
@@ -44,141 +48,14 @@ type Animal = {
 local animals: { [string]: { Animal } } = {}
 local zones: { { Name: string, Center: Vector3 } } = {}
 
----------------------------------------------------------------------
--- Modelos hechos con piezas (sin mallas: ligeros y siempre disponibles)
----------------------------------------------------------------------
-
-local function piece(list: { Piece }, size: Vector3, color: Color3, offset: CFrame, role: string?, shape: Enum.PartType?, material: Enum.Material?)
-	local p = Instance.new("Part")
-	p.Anchored = true
-	p.CanCollide = false
-	p.CanQuery = false
-	p.CanTouch = false
-	p.CastShadow = false
-	p.Size = size
-	p.Color = color
-	p.Material = material or Enum.Material.SmoothPlastic
-	if shape then
-		p.Shape = shape
-	end
-	p.TopSurface = Enum.SurfaceType.Smooth
-	p.BottomSurface = Enum.SurfaceType.Smooth
-	p.Parent = folder
-	table.insert(list, { Part = p, Offset = offset, Role = role })
-end
-
-local BALL = Enum.PartType.Ball
-local C = CFrame.new
-
-local BUILDERS: { [string]: (list: { Piece }) -> () } = {
-	-- Pájaro pequeño (gorrión, golondrina)
-	Pajaro = function(l)
-		local body, wing = rgb(96, 74, 56), rgb(70, 54, 42)
-		piece(l, V(0.5, 0.45, 0.8), body, C(0, 0, 0), nil, BALL)
-		piece(l, V(0.36, 0.36, 0.36), body, C(0, 0.2, -0.42), nil, BALL)
-		piece(l, V(0.08, 0.08, 0.18), rgb(230, 170, 60), C(0, 0.18, -0.64))
-		piece(l, V(0.7, 0.05, 0.4), wing, C(-0.45, 0.08, 0), "WingL")
-		piece(l, V(0.7, 0.05, 0.4), wing, C(0.45, 0.08, 0), "WingR")
-		piece(l, V(0.25, 0.05, 0.4), wing, C(0, 0.05, 0.55))
-	end,
-	Gaviota = function(l)
-		local body, wing = rgb(240, 240, 240), rgb(170, 176, 186)
-		piece(l, V(0.8, 0.7, 1.4), body, C(0, 0, 0), nil, BALL)
-		piece(l, V(0.55, 0.55, 0.55), body, C(0, 0.3, -0.7), nil, BALL)
-		piece(l, V(0.12, 0.12, 0.35), rgb(240, 200, 60), C(0, 0.25, -1.05))
-		piece(l, V(1.6, 0.06, 0.6), wing, C(-0.95, 0.12, 0), "WingL")
-		piece(l, V(1.6, 0.06, 0.6), wing, C(0.95, 0.12, 0), "WingR")
-		piece(l, V(0.4, 0.06, 0.5), wing, C(0, 0.08, 0.85))
-	end,
-	Paloma = function(l)
-		local body, wing = rgb(150, 150, 160), rgb(120, 120, 132)
-		piece(l, V(0.7, 0.65, 1), body, C(0, 0, 0), nil, BALL)
-		piece(l, V(0.42, 0.42, 0.42), rgb(96, 110, 120), C(0, 0.35, -0.45), "Head", BALL)
-		piece(l, V(0.08, 0.08, 0.2), rgb(60, 60, 60), C(0, 0.32, -0.72), "Head")
-		piece(l, V(0.9, 0.05, 0.45), wing, C(-0.4, 0.15, 0.05), "WingL")
-		piece(l, V(0.9, 0.05, 0.45), wing, C(0.4, 0.15, 0.05), "WingR")
-		piece(l, V(0.06, 0.35, 0.06), rgb(220, 110, 110), C(-0.15, -0.45, 0), "Leg1")
-		piece(l, V(0.06, 0.35, 0.06), rgb(220, 110, 110), C(0.15, -0.45, 0), "Leg2")
-	end,
-	Mariposa = function(l)
-		local colors = { rgb(250, 190, 40), rgb(120, 170, 250), rgb(250, 250, 250), rgb(240, 120, 60), rgb(200, 120, 230) }
-		local color = colors[math.random(1, #colors)]
-		piece(l, V(0.06, 0.06, 0.35), rgb(40, 30, 30), C(0, 0, 0))
-		piece(l, V(0.4, 0.02, 0.35), color, C(-0.22, 0, 0), "WingL", nil, Enum.Material.Neon)
-		piece(l, V(0.4, 0.02, 0.35), color, C(0.22, 0, 0), "WingR", nil, Enum.Material.Neon)
-	end,
-	Luciernaga = function(l)
-		piece(l, V(0.15, 0.15, 0.15), rgb(220, 255, 120), C(0, 0, 0), "Glow", BALL, Enum.Material.Neon)
-	end,
-	Pato = function(l)
-		piece(l, V(0.9, 0.6, 1.4), rgb(120, 96, 70), C(0, 0, 0), nil, BALL)
-		piece(l, V(0.5, 0.5, 0.5), rgb(30, 110, 60), C(0, 0.45, -0.55), "Head", BALL)
-		piece(l, V(0.3, 0.1, 0.35), rgb(240, 190, 50), C(0, 0.4, -0.9), "Head")
-		piece(l, V(0.3, 0.1, 0.3), rgb(250, 250, 250), C(0, 0.25, -0.35))
-	end,
-	Perro = function(l)
-		local coat = ({ rgb(200, 150, 90), rgb(60, 50, 45), rgb(230, 220, 200) })[math.random(1, 3)]
-		piece(l, V(0.9, 0.8, 1.8), coat, C(0, 0, 0))
-		piece(l, V(0.7, 0.7, 0.7), coat, C(0, 0.45, -1.1), "Head")
-		piece(l, V(0.35, 0.3, 0.4), coat:Lerp(Color3.new(0, 0, 0), 0.2), C(0, 0.3, -1.55), "Head")
-		piece(l, V(0.2, 0.35, 0.15), coat:Lerp(Color3.new(0, 0, 0), 0.3), C(-0.25, 0.9, -1.05), "Head")
-		piece(l, V(0.2, 0.35, 0.15), coat:Lerp(Color3.new(0, 0, 0), 0.3), C(0.25, 0.9, -1.05), "Head")
-		piece(l, V(0.15, 0.15, 0.7), coat, C(0, 0.35, 1.1) * CFrame.Angles(math.rad(35), 0, 0), "Tail")
-		for i, pos in { V(-0.3, -0.7, -0.6), V(0.3, -0.7, -0.6), V(-0.3, -0.7, 0.6), V(0.3, -0.7, 0.6) } do
-			piece(l, V(0.22, 0.7, 0.22), coat, C(pos), "Leg" .. i)
-		end
-	end,
-	Gato = function(l)
-		local coat = ({ rgb(230, 140, 50), rgb(40, 40, 44), rgb(160, 160, 165), rgb(245, 240, 230) })[math.random(1, 4)]
-		piece(l, V(0.6, 0.55, 1.3), coat, C(0, 0, 0))
-		piece(l, V(0.55, 0.5, 0.5), coat, C(0, 0.35, -0.8), "Head")
-		piece(l, V(0.12, 0.2, 0.08), coat, C(-0.17, 0.68, -0.8), "Head")
-		piece(l, V(0.12, 0.2, 0.08), coat, C(0.17, 0.68, -0.8), "Head")
-		piece(l, V(0.1, 0.1, 0.9), coat, C(0, 0.45, 0.95) * CFrame.Angles(math.rad(-50), 0, 0), "Tail")
-		for i, pos in { V(-0.2, -0.45, -0.45), V(0.2, -0.45, -0.45), V(-0.2, -0.45, 0.45), V(0.2, -0.45, 0.45) } do
-			piece(l, V(0.14, 0.45, 0.14), coat, C(pos), "Leg" .. i)
-		end
-	end,
-	Vaca = function(l)
-		local white, black = rgb(245, 245, 240), rgb(30, 30, 32)
-		piece(l, V(2, 1.8, 3.4), white, C(0, 0, 0))
-		piece(l, V(1.2, 1.2, 0.1), black, C(0.5, 0.3, 0.2) * CFrame.Angles(0, math.rad(90), 0))
-		piece(l, V(1.2, 1.2, 1.4), white, C(0, 0.5, -2.1), "Head")
-		piece(l, V(0.9, 0.6, 0.4), rgb(240, 170, 170), C(0, 0.2, -2.85), "Head")
-		piece(l, V(0.15, 0.4, 0.15), rgb(230, 220, 190), C(-0.5, 1.25, -2), "Head")
-		piece(l, V(0.15, 0.4, 0.15), rgb(230, 220, 190), C(0.5, 1.25, -2), "Head")
-		for i, pos in { V(-0.7, -1.4, -1.2), V(0.7, -1.4, -1.2), V(-0.7, -1.4, 1.2), V(0.7, -1.4, 1.2) } do
-			piece(l, V(0.4, 1.3, 0.4), white, C(pos), "Leg" .. i)
-		end
-	end,
-	Oveja = function(l)
-		local wool, face = rgb(240, 238, 230), rgb(50, 45, 45)
-		piece(l, V(1.4, 1.2, 1.9), wool, C(0, 0, 0), nil, nil, Enum.Material.Fabric)
-		piece(l, V(0.6, 0.7, 0.7), face, C(0, 0.3, -1.2), "Head")
-		for i, pos in { V(-0.4, -0.9, -0.6), V(0.4, -0.9, -0.6), V(-0.4, -0.9, 0.6), V(0.4, -0.9, 0.6) } do
-			piece(l, V(0.2, 0.8, 0.2), face, C(pos), "Leg" .. i)
-		end
-	end,
-	Gallina = function(l)
-		local body = ({ rgb(250, 245, 235), rgb(170, 90, 40) })[math.random(1, 2)]
-		piece(l, V(0.7, 0.7, 0.9), body, C(0, 0, 0), nil, BALL)
-		piece(l, V(0.4, 0.4, 0.4), body, C(0, 0.45, -0.35), "Head", BALL)
-		piece(l, V(0.1, 0.2, 0.25), rgb(220, 40, 40), C(0, 0.72, -0.35), "Head")
-		piece(l, V(0.1, 0.1, 0.18), rgb(240, 190, 50), C(0, 0.45, -0.6), "Head")
-		piece(l, V(0.06, 0.35, 0.06), rgb(240, 190, 50), C(-0.15, -0.5, 0), "Leg1")
-		piece(l, V(0.06, 0.35, 0.06), rgb(240, 190, 50), C(0.15, -0.5, 0), "Leg2")
-	end,
-}
-
--- Altura del centro del cuerpo sobre el suelo (para que las patas toquen el suelo)
-local STAND = { Paloma = 0.62, Perro = 1.4, Gato = 0.9, Vaca = 2.7, Oveja = 1.7, Gallina = 0.85, Pato = 0.15, Gaviota = 0.25 }
-local WALK_SPEED = { Paloma = 1.2, Perro = 5, Gato = 3, Vaca = 1.6, Oveja = 2, Gallina = 2.2 }
+local STAND = AnimalPose.Stand
+local WALK_SPEED = AnimalPose.WalkSpeed
 
 local function newAnimal(kind: string): Animal
-	local list = {}
-	BUILDERS[kind](list)
+	local list, info = AnimalPose.build(kind)
 	return {
-		Kind = kind, Pieces = list, Root = CFrame.new(0, -500, 0), Active = false,
+		Kind = kind, Pieces = list, Info = info, Pose = AnimalPose.newState(kind), Frames = {},
+		Root = CFrame.new(0, -500, 0), Active = false,
 		State = "idle", Timer = 0, Phase = math.random() * 10, Speed = WALK_SPEED[kind] or 2,
 	}
 end
@@ -190,35 +67,18 @@ local function hide(a: Animal)
 	end
 end
 
--- Coloca las piezas: alas que aletean, patas que andan, cabeza que picotea
-local function render(a: Animal, t: number)
-	local flap = 0
-	if a.State == "fly" or a.State == "flee" then
-		flap = math.sin(t * (if a.Kind == "Gaviota" then 9 else 22) + a.Phase) * 0.9
-	elseif a.Kind == "Mariposa" then
-		flap = math.sin(t * 18 + a.Phase) * 1.1
-	end
-	local walking = a.State == "walk"
-	local swing = if walking then math.sin(t * a.Speed * 3 + a.Phase) * 0.6 else 0
-	local peck = if a.State == "idle" and (a.Kind == "Paloma" or a.Kind == "Gallina") then math.max(0, math.sin(t * 3 + a.Phase)) * 0.6 else 0
-	for _, p in a.Pieces do
-		local offset = p.Offset
-		local role = p.Role
-		if role == "WingL" then
-			offset = CFrame.new(offset.Position.X * 0.2, offset.Position.Y, offset.Position.Z) * CFrame.Angles(0, 0, flap) * CFrame.new(offset.Position.X * 0.8, 0, 0)
-		elseif role == "WingR" then
-			offset = CFrame.new(offset.Position.X * 0.2, offset.Position.Y, offset.Position.Z) * CFrame.Angles(0, 0, -flap) * CFrame.new(offset.Position.X * 0.8, 0, 0)
-		elseif role == "Head" and peck > 0 then
-			offset = CFrame.new(0, -peck * 0.4, -peck * 0.15) * offset
-		elseif role and role:sub(1, 3) == "Leg" and walking then
-			local sign = if (tonumber(role:sub(4)) or 1) % 2 == 0 then 1 else -1
-			offset = offset * CFrame.Angles(swing * sign, 0, 0)
-		elseif role == "Tail" and a.Kind == "Perro" then
-			offset = offset * CFrame.Angles(0, math.sin(t * 12 + a.Phase) * 0.5, 0)
-		elseif role == "Glow" then
+-- Coloca las piezas (patas, cabeza, cola, alas: AnimalPose). lookYaw: hacia el jugador, si está cerca
+local function render(a: Animal, t: number, dt: number, lookYaw: number?, near: boolean)
+	local pose = a.Pose
+	pose.State = a.State
+	pose.Phase = a.Phase
+	AnimalPose.step(pose, dt, a.Speed, lookYaw, near)
+	AnimalPose.pose(a.Pieces, a.Info, pose, t, a.Frames)
+	for i, p in a.Pieces do
+		p.Part.CFrame = a.Root * a.Frames[i]
+		if p.Role == "Glow" then
 			p.Part.Transparency = 0.2 + 0.7 * (0.5 + 0.5 * math.sin(t * 2.5 + a.Phase))
 		end
-		p.Part.CFrame = a.Root * offset
 	end
 end
 
@@ -354,6 +214,8 @@ local function spawnAnimal(a: Animal, around: Vector3, index: number): boolean
 		end
 		a.Root = CFrame.new(spot + Vector3.new(0, STAND.Pato, 0)) * CFrame.Angles(0, math.random() * 6.28, 0)
 		a.State = "float"
+		a.Pose.Action = "swim"
+		a.Timer = 3 + math.random() * 5
 		a.Active = true
 		return true
 	end
@@ -367,6 +229,7 @@ local function spawnAnimal(a: Animal, around: Vector3, index: number): boolean
 	end
 	a.Root = CFrame.new(spot + Vector3.new(0, STAND[a.Kind] or 0.5, 0)) * CFrame.Angles(0, math.random() * 6.28, 0)
 	a.State = "idle"
+	a.Pose.Action = AnimalPose.chooseAction(a.Kind)
 	a.Timer = 1 + math.random() * 4
 	a.Active = true
 	return true
@@ -415,8 +278,14 @@ local function stepWalker(a: Animal, t: number, dt: number, around: Vector3)
 	a.Timer -= dt
 	if a.State == "idle" then
 		if a.Timer <= 0 then
-			-- A andar un poco: a un sitio cercano con suelo
-			local spot = groundSpot(pos, 2, if a.Kind == "Perro" then 12 else 6)
+			-- A andar un poco: a un sitio cercano con suelo. El perro, a veces, viene a verte
+			local toPlayer = Vector3.new(around.X - pos.X, 0, around.Z - pos.Z)
+			local spot: Vector3? = nil
+			if a.Kind == "Perro" and toPlayer.Magnitude < 28 and toPlayer.Magnitude > 4 and math.random() < 0.5 then
+				local hit = ground(around.X - toPlayer.Unit.X * 3, around.Z - toPlayer.Unit.Z * 3, around.Y + 6)
+				spot = hit and hit.Position
+			end
+			spot = spot or groundSpot(pos, 2, if a.Kind == "Perro" then 12 else 6)
 			if spot then
 				a.Target = spot + Vector3.new(0, STAND[a.Kind] or 0.5, 0)
 				a.State = "walk"
@@ -430,7 +299,14 @@ local function stepWalker(a: Animal, t: number, dt: number, around: Vector3)
 		local flat = Vector3.new(target.X - pos.X, 0, target.Z - pos.Z)
 		if flat.Magnitude < 0.3 or a.Timer <= 0 then
 			a.State = "idle"
-			a.Timer = 2 + math.random() * 6
+			-- Qué hace ahora que se ha parado (sentarse, pastar, olfatear…): un rato más largo si se tumba
+			local action = AnimalPose.chooseAction(a.Kind)
+			local nearPlayer = Vector2.new(around.X - pos.X, around.Z - pos.Z).Magnitude < 6
+			if a.Kind == "Perro" and nearPlayer then
+				action = "sit" -- a tu lado, moviendo la cola
+			end
+			a.Pose.Action = action
+			a.Timer = if action == "lie" or action == "sit" or action == "graze" then 5 + math.random() * 9 else 2 + math.random() * 6
 		else
 			local stepLen = math.min(flat.Magnitude, a.Speed * dt)
 			local newPos = pos + flat.Unit * stepLen
@@ -441,6 +317,12 @@ local function stepWalker(a: Animal, t: number, dt: number, around: Vector3)
 end
 
 local function stepFloat(a: Animal, t: number, dt: number)
+	-- A ratos mete la cabeza en el agua (con la cola hacia arriba)
+	a.Timer -= dt
+	if a.Timer <= 0 then
+		a.Pose.Action = if a.Pose.Action == "dabble" then "swim" else AnimalPose.chooseAction("Pato")
+		a.Timer = if a.Pose.Action == "dabble" then 1.5 + math.random() * 1.5 else 3 + math.random() * 6
+	end
 	local pos = a.Root.Position
 	local look = a.Root.LookVector
 	local turn = math.sin(t * 0.3 + a.Phase) * 0.3 * dt
@@ -490,7 +372,17 @@ local function update(t: number, dt: number)
 						stepWalker(a, t, dt, around)
 					end
 					if a.Active then
-						render(a, t)
+						-- ¿Estás cerca? Te mira (y el perro se pone contento)
+						local lookYaw: number? = nil
+						local rel = a.Root:PointToObjectSpace(around)
+						local distance = Vector2.new(rel.X, rel.Z).Magnitude
+						if distance < 12 then
+							local yaw = math.atan2(-rel.X, -rel.Z)
+							if math.abs(yaw) < 2 then
+								lookYaw = yaw
+							end
+						end
+						render(a, t, dt, lookYaw, distance < 8)
 					end
 				end
 			end
@@ -502,6 +394,7 @@ function Wildlife.init()
 	folder = Instance.new("Folder")
 	folder.Name = "Wildlife"
 	folder.Parent = workspace.CurrentCamera -- solo existe para este jugador
+	AnimalPose.folder = folder
 	local ok, level = pcall(function()
 		return UserSettings():GetService("UserGameSettings").SavedQualityLevel
 	end)
