@@ -25,6 +25,16 @@ Combat.KOHealth = 0.35 -- vida (fracción) con la que te levantas
 Combat.SpawnProtection = 5 -- segundos sin poder recibir golpes al aparecer
 Combat.PerFuerza = 0.04
 Combat.MinStage = "Nino" -- a partir de niño (los bebés ni pegan ni reciben)
+-- Esquivar: un paso rápido con un instante en que los golpes no te dan
+Combat.DodgeSpeed = 46 -- studs/s del paso
+Combat.DodgeTime = 0.18 -- lo que dura el empujón
+Combat.DodgeInvulnerable = 0.35 -- segundos sin recibir golpes
+Combat.DodgeCooldown = 0.9 -- pausa entre dos esquivas
+
+-- ¿Esquiva este golpe? (dentro del instante de esquiva)
+function Combat.dodging(dodgeAt: number?, now: number): boolean
+	return dodgeAt ~= nil and now - dodgeAt >= 0 and now - dodgeAt <= Combat.DodgeInvulnerable
+end
 
 -- Daño de un golpe
 function Combat.damage(combo: number, fuerza: number?, blocked: boolean?): number

@@ -61,6 +61,7 @@ local WantedUI = require(script.Parent.Controllers.WantedUI)
 local DeathUI = require(script.Parent.Controllers.DeathUI)
 local InstitutionsUI = require(script.Parent.Controllers.InstitutionsUI)
 local InteriorUI = require(script.Parent.Controllers.InteriorUI)
+local Joystick = require(script.Parent.Controllers.Joystick)
 local CommandMenu = require(script.Parent.Commands.CommandMenu)
 local DefaultCommands = require(script.Parent.Commands.DefaultCommands)
 
@@ -97,6 +98,7 @@ task.spawn(Arcade.init) -- recreativos
 task.spawn(DrivingSchool.init) -- autoescuela
 task.spawn(Restaurant.init) -- trabajo de camarero y barman
 task.spawn(Character.init) -- ficha del personaje (botón Personaje) y correr con Shift
+task.spawn(Joystick.init) -- móvil: joystick fijo abajo a la izquierda (con el estilo del HUD)
 task.spawn(NearShadows.init) -- sombras de las luces solo cerca de ti (mismo aspecto, mucho más fluido)
 task.spawn(Prompts.init) -- carteles de "pulsa E" con el estilo de la interfaz
 task.spawn(SoundFx.init) -- efectos de sonido: saltos, golpes, agua, botones, motor, claxon y gente hablando
@@ -142,7 +144,7 @@ DefaultCommands.register()
 CommandMenu.onFocus(Prompts.setFocus)
 task.spawn(CommandMenu.init)
 
--- Botones de arriba a la derecha del HUD
+-- Acciones de los comandos (Objetos y Mapa)
 Hud.setAction("Mochila", InventoryUI.toggle)
 Hud.setAction("Mapa", MapUI.toggleBig)
 
@@ -167,6 +169,15 @@ end
 Hud.addMenuToggle(lookText(), 3, function()
 	ReplicatedStorage.Remotes.Avatar:FireServer("Toggle")
 	return if game:GetService("Players").LocalPlayer:GetAttribute("OwnAvatar") then "👕 Ropa: estilo Valmar" else "👕 Ropa: mi avatar de Roblox"
+end)
+
+-- Móvil: correr al empujar el joystick hasta el borde (sí por defecto)
+local function autoRunText(): string
+	return if game:GetService("Players").LocalPlayer:GetAttribute("AutoRun") == false then "🏃 Correr al empujar el joystick: no" else "🏃 Correr al empujar el joystick: sí"
+end
+Hud.addMenuToggle(autoRunText(), 3.5, function()
+	Character.setAutoRun(game:GetService("Players").LocalPlayer:GetAttribute("AutoRun") == false)
+	return autoRunText()
 end)
 
 -- Empezar una vida nueva (desde bebé): hay que pulsar dos veces para confirmar
@@ -253,6 +264,7 @@ game:GetService("RunService").Heartbeat:Connect(function()
 		TaskMarker.setHidden(busy)
 		Hud.setBusy(busy)
 		CommandMenu.setBusy(busy)
+		Joystick.setBusy(busy)
 		if busy and MapUI.isOpen() then
 			MapUI.toggleBig()
 		end
@@ -262,14 +274,14 @@ game:GetService("RunService").Heartbeat:Connect(function()
 	end
 end)
 
--- De bebé sobran el minimapa, el tiempo y el botón de correr
+-- De bebé sobra el minimapa (los botones y el resto del HUD ya se apartan solos)
 local function babyMode()
 	local baby = localPlayer:GetAttribute("LifeStage") == "Bebe"
 	local playerGui = localPlayer:FindFirstChild("PlayerGui")
 	if not playerGui then
 		return
 	end
-	for _, path in { { "MapUI", "Minimap" }, { "WeatherChip" }, { "SprintGui", "SprintButton" } } do
+	for _, path in { { "MapUI", "Minimap" } } do
 		local target = playerGui:FindFirstChild(path[1])
 		if target and path[2] then
 			target = target:FindFirstChild(path[2])

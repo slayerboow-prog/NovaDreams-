@@ -1,6 +1,7 @@
 -- CombatService: golpes entre jugadores (y a los personajes de tus misiones), siempre decidido aquí.
 --
--- El cliente solo avisa: "Attack" (he pulsado golpear) y "Block" (me defiendo / dejo de defenderme).
+-- El cliente solo avisa: "Attack" (he pulsado golpear), "Block" (me defiendo / dejo de defenderme) y
+-- "Dodge" (esquivo: un instante en que los golpes no me dan, con su pausa).
 -- El servidor comprueba todo (pausas entre golpes, distancia, que esté delante, quién puede recibir),
 -- calcula el daño (shared/Combat) y avisa a todos para que se vea y se oiga el golpe.
 --
@@ -23,7 +24,7 @@ local PoliceUnits = require(script.Parent.Parent.World.PoliceUnits)
 
 local CombatService = {}
 
-type State = { Combo: number, LastAt: number, Blocking: boolean, KOUntil: number, SpawnedAt: number }
+type State = { Combo: number, LastAt: number, Blocking: boolean, KOUntil: number, SpawnedAt: number, DodgeAt: number? }
 
 local states: { [Player]: State } = {}
 local Remote: RemoteEvent
@@ -184,6 +185,10 @@ local function attack(player: Player)
 				continue
 			end
 			local victimState = stateOf(victim)
+			-- Esquivando: el golpe no le da
+			if Combat.dodging(victimState.DodgeAt, now) then
+				continue
+			end
 			-- Defenderse solo sirve si miras hacia quien te pega
 			local facing = targetRoot.CFrame.LookVector:Dot(-direction) > 0.2
 			local blocked = victimState.Blocking and facing
@@ -257,6 +262,15 @@ function CombatService.init()
 			attack(player)
 		elseif kind == "Block" then
 			setBlocking(player, value == true)
+		elseif kind == "Dodge" then
+			-- Esquivar (con su pausa: no se puede estar esquivando siempre)
+			local state = stateOf(player)
+			local now = os.clock()
+			if canFight(player) and (state.DodgeAt == nil or now - state.DodgeAt >= Combat.DodgeCooldown * 0.8) then
+				state.DodgeAt = now
+				state.Blocking = false
+				player:SetAttribute("Blocking", nil)
+			end
 		end
 	end)
 

@@ -93,7 +93,7 @@ roblox/
     │   ├── World/            ← construcción de la ciudad
     │   └── Services/         ← Datos, Trabajos, Necesidades, Comida, Casas, Mundo, Monetización
     └── client/               ← corre en el ordenador/móvil de cada jugador
-        ├── UI/               ← interfaz (HUD, tienda)
+        ├── UI/               ← interfaz: HUD, HudLayout (dónde va cada pieza), TouchLayout (botones táctiles), Icons
         └── Controllers/      ← marcador del objetivo del trabajo
 ```
 
@@ -122,10 +122,21 @@ lune run scripts/test-lifestory.luau   # simula vidas completas con la historia 
 lune run scripts/test-workanim.luau    # tareas de los personajes (barrer, cobrar…): posturas y objetos
 lune run scripts/test-agemotion.luau   # cómo se mueve cada edad: el bebé gatea, el mayor va encorvado…
 lune run scripts/test-motion.luau      # andar fluido: arrancar y frenar, inclinarse, aterrizar, gestos y capas de posturas
-lune run scripts/test-hud.luau        # la interfaz principal (estilo KH3) en ordenador y móvil, con la API de Roblox
+lune run scripts/test-hud.luau        # el HUD en ordenador, móvil y tableta: que nada se pise, comandos, joystick y botones
 lune run scripts/test-animals.luau     # animales: patas en el suelo, sentarse, pastar, picotear…
 lune run scripts/test-objects.luau RealLifeSimulator.rbxl  # árboles, columpios, banderas, feria y balones con física
 lune run scripts/test-weather.luau     # lluvia y nieve: suelo mojado, agarre de los vehículos, gente mojada
 lune run scripts/test-ride.luau        # vehículos: cámara de viaje, posturas al volante y de pasajero, asientos
 lune run scripts/test-breakables.luau RealLifeSimulator.rbxl  # piedras: qué ventanas y puertas se rompen y la puntería
 ```
+
+### Iconos de la interfaz
+
+Los iconos de línea (blancos sobre transparente) están en `assets/icons/*.svg` y en PNG en
+`assets/icons/png`. Para usarlos en el juego hay que subirlos una vez a Roblox:
+
+```bash
+ROBLOX_API_KEY=… ROBLOX_CREATOR_USER_ID=… scripts/upload-icons.sh   # convierte, sube y escribe src/client/UI/IconIds.luau
+```
+
+Mientras no estén subidos, `UI/Icons` usa un emoji que se ve en todos los móviles.
