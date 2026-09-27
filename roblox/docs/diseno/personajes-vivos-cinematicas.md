@@ -9,6 +9,7 @@ reaccionar con el cuerpo a lo que dicen. Las escenas de cámara tienen que parec
 |---|---|---|
 | `SceneService` | servidor | Anima a los actores de las escenas con las animaciones R15 de Roblox: estar de pie, andar, **correr**, saludar, celebrar, **reírse**, **bailar**, señalar, sentarse. Cada uno respira a su ritmo (la animación de pie empieza en un punto al azar) y el paso va a la velocidad de sus pies. Quien saluda o celebra lo repite cada pocos segundos, y al acabar el gesto sigue de pie (antes se quedaba congelado). |
 | `ActorLife` | cliente | Añade la capa «viva» encima de cualquier animación. Solo trabaja con los 32 personajes más cercanos (a menos de 95 studs), así que no pesa en el móvil. |
+| `WorkAnim` | cliente | Las tareas de cada oficio (barrer, apuntar, cobrar, cocinar…) y el objeto que llevan en la mano. Las usa `ActorLife`. |
 | `Emotion` | compartido | Decide con qué gesto se dice cada frase. |
 | `DialogueUI` | cliente | Es la cámara de las conversaciones y avisa a `ActorLife` de quién habla. |
 | `Cinematics` | cliente | Es la cámara de cine: cámara en mano, zoom, enfoque, cortes a negro y gestos. |
@@ -50,6 +51,45 @@ reaccionar con el cuerpo a lo que dicen. Las escenas de cámara tienen que parec
   - Los personajes de un grupo charlan entre ellos por turnos: se miran, gesticulan, asienten y a veces se ríen.
   - Si te acercas, alguno te mira.
   - Se usa en la parada del bus del instituto, en la cafetería de la universidad y en la fiesta del reencuentro.
+
+### WorkAnim: cada uno a su oficio
+
+Los trabajadores y la familia ya no esperan de pie con los brazos colgando: hacen su tarea.
+
+- El servidor pone el atributo `Work` en el personaje (`Npc.work(npc, "Sweep")`). En las escenas de la
+  historia, el actor puede traer `Work = "Stir"` en su ficha.
+- El cliente (`ActorLife`) mueve brazos, torso y cabeza con la tarea, encima de la animación de estar de
+  pie. Todo con código: no hay que subir animaciones a Roblox.
+- El objeto de la mano (escoba, carpeta, taza…) lo crea cada jugador solo en su pantalla, y solo para los
+  personajes cercanos.
+- Dejan la tarea al hablar (también cuando sale su bocadillo de texto: entonces gesticulan), al andar o
+  al hacer un gesto, y vuelven a ella después. De vez en cuando levantan la vista, y si te acercas te miran.
+
+| Tarea | Qué hace | Objeto | Quién |
+|---|---|---|---|
+| `Sweep` | Barre de lado a lado | Escoba | Conserje |
+| `Clipboard` | Apunta y levanta la vista | Carpeta | Médico, enfermera, funcionario, recepcionista, monitor, médico del centro de salud |
+| `Phone` | Mira el móvil | Móvil | — |
+| `Type` | Escribe en el ordenador del mostrador | — | Recepción del hotel, taquilla del cine |
+| `Scan` | Pasa productos por la caja y descansa entre clientes | — | Cajero del súper |
+| `Cut` | Corta en el mostrador | Cuchillo | Charcutero |
+| `Coffee` | Remueve la taza y se gira a la cafetera | Taza | Barista |
+| `Tray` | Lleva la bandeja (también andando) | Bandeja | Camarero |
+| `Wipe` | Seca un vaso | Vaso y trapo | Barman |
+| `Count` | Cuenta entradas | Entradas | Revisor, taquillero |
+| `Call` | Llama a la gente con los brazos | — | Feriante |
+| `Present` | Enseña el sitio con el brazo | — | Guía del museo |
+| `Watch` | Mira el reloj | — | Conductor |
+| `Fold` | Dobla ropa | Ropa | Dependiente |
+| `Knit` | Teje | Ovillo y aguja | La abuela, en el salón |
+| `Stir` | Remueve en un bol | Bol y cuchara | Papá o mamá, en la cocina |
+| `Book` | Lee y explica | Libro | La profe Lucía |
+| `Guard` | Brazos cruzados, vigilando | — | Guardia |
+| `Traffic` | Manos juntas y a ratos dirige el tráfico | — | Policía |
+
+Para añadir una tarea: una entrada en `WorkAnim.luau` con `Pose` (y `Prop` si lleva objeto). Los ángulos
+de los brazos salen de colocar la mano donde debe ir en un R15 (delante del pecho, a la altura del
+mostrador…).
 
 ### Emotion: el gesto de cada frase
 

@@ -499,6 +499,7 @@ local function refreshStaff(clinic: Clinic, active: boolean)
 	if want and not clinic.NpcDoctor then
 		local spot = point(clinic, "Reception") + Vector3.new(0, 0, 5)
 		clinic.NpcDoctor = Npc.create("Npc_Medico", clinic.Folder, CFrame.new(spot), { Shirt = Color3.fromRGB(245, 245, 245), Pants = Color3.fromRGB(245, 245, 245) })
+		Npc.work(clinic.NpcDoctor :: Model, "Clipboard")
 	elseif not want and clinic.NpcDoctor then
 		clinic.NpcDoctor:Destroy()
 		clinic.NpcDoctor = nil

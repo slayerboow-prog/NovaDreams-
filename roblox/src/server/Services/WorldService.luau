@@ -279,22 +279,23 @@ end
 
 -- Trabajadores de la ciudad: una persona con su uniforme en cada edificio importante
 -- (las posiciones las marca el mapa con piezas "WorkerSpot" y el oficio en Role)
+-- Work: lo que hace mientras espera (Controllers/WorkAnim en el cliente)
 local rgb = Color3.fromRGB
-local UNIFORMS: { [string]: { Look: Npc.Look, Icon: string, Lines: { string } } } = {
-	["Médico"] = { Look = { Shirt = rgb(245, 245, 245), Pants = rgb(150, 200, 225), LongSleeves = true }, Icon = "🩺", Lines = { "¡Buenos días! ¿Todo bien?", "Recuerda beber agua.", "Hoy hay mucho trabajo en el hospital." } },
-	["Enfermera"] = { Look = { Shirt = rgb(150, 200, 225), Pants = rgb(150, 200, 225) }, Icon = "💉", Lines = { "Si te encuentras mal, entra sin miedo.", "¡Hola! ¿Vienes a ver a alguien?" } },
-	["Policía"] = { Look = { Shirt = rgb(40, 60, 110), Pants = rgb(30, 35, 60), LongSleeves = true }, Icon = "👮", Lines = { "Todo tranquilo por aquí.", "Cruza siempre por el paso de cebra.", "¡Buen día, ciudadano!" } },
-	["Guardia"] = { Look = { Shirt = rgb(55, 55, 60), Pants = rgb(35, 35, 40), LongSleeves = true }, Icon = "🛡️", Lines = { "Bienvenido.", "El horario está en la entrada." } },
-	["Recepcionista"] = { Look = { Shirt = rgb(245, 245, 245), Pants = rgb(40, 40, 50) }, Icon = "🛎️", Lines = { "¡Bienvenido! ¿En qué puedo ayudarte?", "Que tengas una buena estancia." } },
-	["Funcionario"] = { Look = { Shirt = rgb(200, 210, 225), Pants = rgb(50, 55, 70), LongSleeves = true }, Icon = "📋", Lines = { "Para los trámites, pide cita.", "¡Buenos días! El Ayuntamiento está abierto." } },
-	["Revisor"] = { Look = { Shirt = rgb(150, 30, 40), Pants = rgb(30, 30, 40), LongSleeves = true }, Icon = "🎫", Lines = { "Billetes, por favor.", "El próximo sale en diez minutos." } },
-	["Taquillero"] = { Look = { Shirt = rgb(90, 60, 110), Pants = rgb(40, 40, 50) }, Icon = "🎟️", Lines = { "¡Quedan entradas para hoy!", "¿Una entrada?" } },
-	["Conductor"] = { Look = { Shirt = rgb(60, 120, 190), Pants = rgb(40, 45, 60) }, Icon = "🚌", Lines = { "Salgo hacia el centro en un rato.", "¡Sube, que nos vamos!" } },
-	["Guía"] = { Look = { Shirt = rgb(200, 150, 60), Pants = rgb(60, 50, 40) }, Icon = "🖼️", Lines = { "El museo tiene cuadros de toda la historia de Valmar.", "¿Te hago una visita guiada?" } },
-	["Dependiente"] = { Look = { Shirt = rgb(40, 140, 110), Pants = rgb(40, 40, 50) }, Icon = "🛍️", Lines = { "¡Hoy hay rebajas!", "Pasa, pasa, que tenemos de todo." } },
-	["Feriante"] = { Look = { Shirt = rgb(230, 70, 70), Pants = rgb(250, 200, 60) }, Icon = "🎡", Lines = { "¡Pasen y vean!", "¡La noria es la mejor vista de Valmar!" } },
-	["Monitor"] = { Look = { Shirt = rgb(90, 170, 80), Pants = rgb(120, 100, 70) }, Icon = "⛺", Lines = { "¡Bienvenido al camping!", "Esta noche hay fogata." } },
-	["Conserje"] = { Look = { Shirt = rgb(110, 110, 120), Pants = rgb(60, 60, 70), LongSleeves = true }, Icon = "🔑", Lines = { "¡No corras por los pasillos!", "Buenos días." } },
+local UNIFORMS: { [string]: { Work: string, Look: Npc.Look, Icon: string, Lines: { string } } } = {
+	["Médico"] = { Work = "Clipboard", Look = { Shirt = rgb(245, 245, 245), Pants = rgb(150, 200, 225), LongSleeves = true }, Icon = "🩺", Lines = { "¡Buenos días! ¿Todo bien?", "Recuerda beber agua.", "Hoy hay mucho trabajo en el hospital." } },
+	["Enfermera"] = { Work = "Clipboard", Look = { Shirt = rgb(150, 200, 225), Pants = rgb(150, 200, 225) }, Icon = "💉", Lines = { "Si te encuentras mal, entra sin miedo.", "¡Hola! ¿Vienes a ver a alguien?" } },
+	["Policía"] = { Work = "Traffic", Look = { Shirt = rgb(40, 60, 110), Pants = rgb(30, 35, 60), LongSleeves = true }, Icon = "👮", Lines = { "Todo tranquilo por aquí.", "Cruza siempre por el paso de cebra.", "¡Buen día, ciudadano!" } },
+	["Guardia"] = { Work = "Guard", Look = { Shirt = rgb(55, 55, 60), Pants = rgb(35, 35, 40), LongSleeves = true }, Icon = "🛡️", Lines = { "Bienvenido.", "El horario está en la entrada." } },
+	["Recepcionista"] = { Work = "Clipboard", Look = { Shirt = rgb(245, 245, 245), Pants = rgb(40, 40, 50) }, Icon = "🛎️", Lines = { "¡Bienvenido! ¿En qué puedo ayudarte?", "Que tengas una buena estancia." } },
+	["Funcionario"] = { Work = "Clipboard", Look = { Shirt = rgb(200, 210, 225), Pants = rgb(50, 55, 70), LongSleeves = true }, Icon = "📋", Lines = { "Para los trámites, pide cita.", "¡Buenos días! El Ayuntamiento está abierto." } },
+	["Revisor"] = { Work = "Count", Look = { Shirt = rgb(150, 30, 40), Pants = rgb(30, 30, 40), LongSleeves = true }, Icon = "🎫", Lines = { "Billetes, por favor.", "El próximo sale en diez minutos." } },
+	["Taquillero"] = { Work = "Count", Look = { Shirt = rgb(90, 60, 110), Pants = rgb(40, 40, 50) }, Icon = "🎟️", Lines = { "¡Quedan entradas para hoy!", "¿Una entrada?" } },
+	["Conductor"] = { Work = "Watch", Look = { Shirt = rgb(60, 120, 190), Pants = rgb(40, 45, 60) }, Icon = "🚌", Lines = { "Salgo hacia el centro en un rato.", "¡Sube, que nos vamos!" } },
+	["Guía"] = { Work = "Present", Look = { Shirt = rgb(200, 150, 60), Pants = rgb(60, 50, 40) }, Icon = "🖼️", Lines = { "El museo tiene cuadros de toda la historia de Valmar.", "¿Te hago una visita guiada?" } },
+	["Dependiente"] = { Work = "Fold", Look = { Shirt = rgb(40, 140, 110), Pants = rgb(40, 40, 50) }, Icon = "🛍️", Lines = { "¡Hoy hay rebajas!", "Pasa, pasa, que tenemos de todo." } },
+	["Feriante"] = { Work = "Call", Look = { Shirt = rgb(230, 70, 70), Pants = rgb(250, 200, 60) }, Icon = "🎡", Lines = { "¡Pasen y vean!", "¡La noria es la mejor vista de Valmar!" } },
+	["Monitor"] = { Work = "Clipboard", Look = { Shirt = rgb(90, 170, 80), Pants = rgb(120, 100, 70) }, Icon = "⛺", Lines = { "¡Bienvenido al camping!", "Esta noche hay fogata." } },
+	["Conserje"] = { Work = "Sweep", Look = { Shirt = rgb(110, 110, 120), Pants = rgb(60, 60, 70), LongSleeves = true }, Icon = "🔑", Lines = { "¡No corras por los pasillos!", "Buenos días." } },
 }
 local MAX_WORKERS = 60
 
@@ -314,6 +315,7 @@ local function spawnWorkers()
 			local feet = spot.CFrame * CFrame.new(0, -spot.Size.Y / 2, 0)
 			local npc = Npc.create(role, folder, feet, uniform.Look)
 			Npc.icon(npc, uniform.Icon)
+			Npc.work(npc, uniform.Work) -- barre, apunta, dirige el tráfico… (lo anima el cliente)
 			local prompt = Instance.new("ProximityPrompt")
 			prompt.ActionText = "Hablar"
 			prompt.ObjectText = role

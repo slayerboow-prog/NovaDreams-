@@ -321,6 +321,8 @@ local function applyMode(actor: Actor)
 	anchorActor(actor, not moving)
 	-- Chat: charla con los de al lado (el cliente le mueve cabeza y manos como si hablara)
 	actor.Model:SetAttribute("Chat", if mode == "Chat" then true else nil)
+	-- Work: su tarea mientras está quieto (barrer, cocinar, apuntar…; Controllers/WorkAnim)
+	actor.Model:SetAttribute("Work", actor.Spec.Work)
 	if mode == "Sit" then
 		play(actor, "Sit")
 	elseif mode == "Wave" or mode == "Cheer" or mode == "Point" or mode == "Dance" or mode == "Laugh" then

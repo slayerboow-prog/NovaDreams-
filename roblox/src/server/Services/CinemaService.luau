@@ -395,6 +395,7 @@ local function refreshStaff(hall: Hall, active: boolean)
 	if want and not hall.NpcStaff then
 		hall.NpcStaff = Npc.create("Npc_Taquillero", hall.Folder, CFrame.new(point(hall, "Staff")), { Shirt = Color3.fromRGB(150, 24, 36), Pants = Color3.fromRGB(24, 22, 30) })
 		Npc.face(hall.NpcStaff :: Model, hall.Register.Position - Vector3.new(0, 0, 0))
+		Npc.work(hall.NpcStaff :: Model, "Type")
 	elseif not want and hall.NpcStaff then
 		hall.NpcStaff:Destroy()
 		hall.NpcStaff = nil

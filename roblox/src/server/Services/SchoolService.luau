@@ -117,7 +117,10 @@ local function populate(recess: BasePart)
 	end
 	if best and bestDistance < 250 then
 		local teacherFloor = best.CFrame * CFrame.new(0, -best.Size.Y / 2, 0)
-		makeNpc(folder, teacherFloor, TEACHER, 1)
+		local teacher = makeNpc(folder, teacherFloor, TEACHER, 1)
+		if teacher then
+			Npc.work(teacher, "Book") -- lee el libro de clase y explica
+		end
 	end
 end
 

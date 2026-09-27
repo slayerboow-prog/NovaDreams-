@@ -446,6 +446,7 @@ local function refreshStaff(cafe: Cafe, active: boolean)
 	local want = active and not cafe.Barista and isDay()
 	if want and not cafe.NpcBarista then
 		cafe.NpcBarista = Npc.create("Npc_Barista", cafe.Folder, CFrame.new(point(cafe, "Staff")), { Shirt = Color3.fromRGB(40, 40, 44), Pants = Color3.fromRGB(40, 40, 46) })
+		Npc.work(cafe.NpcBarista :: Model, "Coffee")
 		local apron = cafe.NpcBarista:FindFirstChild("UpperTorso") :: BasePart?
 		if apron then
 			-- Delantal marrón

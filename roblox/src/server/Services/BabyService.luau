@@ -173,9 +173,10 @@ local function setupHome(home: Home)
 	home.Ready = true
 	local abuKey = if home.Index % 2 == 1 then "NPC.ABU_ROSA" else "NPC.ABU_TOMAS"
 	local familyKey = if home.Index % 2 == 1 then "NPC.PAPA" else "NPC.MAMA"
+	-- Work: la abuela teje en el salón y papá/mamá cocina en la cocina (lo anima el cliente)
 	local people = {
-		{ Npc = "Familia_Abu", NameKey = abuKey, Skin = Color3.fromRGB(234, 196, 160) },
-		{ Npc = "Familia_Padre", NameKey = familyKey, Skin = Color3.fromRGB(198, 150, 112) },
+		{ Npc = "Familia_Abu", NameKey = abuKey, Skin = Color3.fromRGB(234, 196, 160), Work = "Knit" },
+		{ Npc = "Familia_Padre", NameKey = familyKey, Skin = Color3.fromRGB(198, 150, 112), Work = "Stir" },
 	}
 	for _, person in people do
 		local spot = findTagged(home.Model, "FamilySpot", { Npc = person.Npc })
@@ -183,6 +184,7 @@ local function setupHome(home: Home)
 			local npc = makeNpc(home, spot, person.NameKey, person.Skin)
 			-- Id del reparto (Cast): si una escena de la historia trae a este personaje, el fijo se oculta
 			npc:SetAttribute("NpcId", if person.Npc == "Familia_Abu" then "Abu" else "Familia")
+			Npc.work(npc, person.Work)
 			CollectionService:AddTag(npc, "StaticNpc")
 			local root = npc:FindFirstChild("HumanoidRootPart") :: BasePart?
 			if root then
