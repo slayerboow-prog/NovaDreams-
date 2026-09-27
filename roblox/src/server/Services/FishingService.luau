@@ -2,24 +2,32 @@
 --
 -- PESCAR (cualquiera con caña)
 --   * En cualquier orilla: si tienes agua delante sale "🎣 Pescar aquí" (el agua se decide por el
---     sitio: lagos y río del plano de la ciudad; lo demás es mar).
+--     sitio: lagos y río del plano de la ciudad; en el barco, alta mar; lo demás es mar).
 --   * En un sitio de pesca (muelle del puerto, pantalanes de los lagos y del río, barco de pesca)
 --     "Pescar". Se lanza el sedal y el corcho cae al agua. Cuando pica (el corcho se hunde) hay que
 --     "¡Tirar!" enseguida: si tiras antes, se asusta; si tardas, se escapa.
---   * Lo que pesca depende del agua (mar, alta mar, río, lago) y de la caña (la profesional saca
---     más peces raros). Con cebo pican antes (se gasta uno por lanzamiento).
---   * Las cañas y el cebo se compran en la tienda de pesca del centro (mostrador "Comprar").
+--   * NIVELES: cada pez da experiencia. Los peces piden nivel, caña y a veces herramienta (nasa,
+--     red, arpón, sonar). Si pica uno que no puedes sacar, rompe el sedal y te dice qué te falta.
+--   * PELEA: los grandes hay que sacarlos a tirones (varios toques seguidos antes de que se suelten).
+--   * BANCOS DE PECES: cada agua tiene un número de peces de cada especie; al pescar bajan y
+--     vuelven a salir (tras unas capturas en esa agua o al cabo de un rato). Nunca se acaban.
+--   * MONSTRUOS (Megalodón, Kraken): en alta mar, si hay bastantes pescadores preparados a la vez,
+--     a veces pica uno. Todos los del barco tiran juntos; si lo sacáis, cada uno que ha ayudado se
+--     lleva el trofeo.
+--   * Las cañas, herramientas y el cebo se compran en la tienda de pesca del centro.
 --   * El barco de pesca está fondeado en alta mar: se sube desde el amarre del puerto (gratis para
 --     los pescadores de turno; los demás pagan el alquiler).
 --
--- VENDER: en la pescadería de cualquier supermercado, "Vender pescado". Lo que vendes se pone en el
--- mostrador y los clientes lo pueden comprar. Si nadie pesca, el supermercado no tiene pescado
--- (solo lo poco que trae el pescador NPC del puerto de vez en cuando).
+-- VENDER: en la pescadería de cualquier supermercado, "Vender pescado". Lo que el supermercado
+-- vende se pone en su mostrador (si nadie pesca, no hay pescado); lo demás lo compra la lonja.
 --
 -- PESCADOR (tablón "Trabajar" en el puerto): te prestan una caña si no tienes, el supermercado te
 -- paga más y cada venta cuenta para la historia (JobTaskDone con JobId "Pescador").
+--
+-- Para el cliente: atributos FishingLevel, FishingXp y FishingCaught (JSON { [pez] = número }).
 
 local CollectionService = game:GetService("CollectionService")
+local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -49,8 +57,15 @@ local LATENCY = 0.4 -- margen por el retraso de la red al tirar
 type State = {
 	Spot: BasePart,
 	Token: number,
-	Phase: string, -- "Wait" | "Bite" | "Done"
+	Phase: string, -- "Wait" | "Bite" | "Fight" | "Done"
 	BiteAt: number,
+	Water: string,
+	Species: any?, -- lo que ha picado (nil = basura)
+	Locked: boolean?,
+	Need: number?,
+	Got: number?,
+	LastPull: number?,
+	Window: number?,
 }
 
 -- Números al azar (con math.random: funciona igual en Roblox y en las pruebas)
@@ -92,12 +107,222 @@ local function rodOf(player: Player): { [string]: any }?
 	return nil
 end
 
+local function rodTier(player: Player): number
+	local rod = rodOf(player)
+	return if rod then rod.Tier else 0
+end
+
+local function toolsOf(player: Player): { [string]: boolean }
+	local tools = {}
+	for id in Fishing.Tools do
+		if InventoryService.count(player, id) > 0 then
+			tools[id] = true
+		end
+	end
+	return tools
+end
+
 local function fishCount(player: Player): number
 	local n = 0
 	for _, s in Fishing.Species do
 		n += InventoryService.count(player, s.Item)
 	end
+	for _, b in Fishing.Bosses do
+		n += InventoryService.count(player, b.Item)
+	end
 	return n
+end
+
+---------------------------------------------------------------------
+-- Nivel de pesca
+---------------------------------------------------------------------
+
+local function fishData(player: Player): { Xp: number, Caught: { [string]: number } }?
+	local data = DataService.get(player)
+	if not data then
+		return nil
+	end
+	local fd = data.Fishing
+	if type(fd) ~= "table" then
+		fd = {}
+		data.Fishing = fd
+	end
+	fd.Xp = if type(fd.Xp) == "number" then fd.Xp else 0
+	fd.Caught = if type(fd.Caught) == "table" then fd.Caught else {}
+	return fd
+end
+
+local function levelOf(player: Player): number
+	local fd = fishData(player)
+	return Fishing.levelFor(if fd then fd.Xp else 0)
+end
+
+local function syncLevel(player: Player)
+	local fd = fishData(player)
+	if not fd then
+		return
+	end
+	player:SetAttribute("FishingLevel", Fishing.levelFor(fd.Xp))
+	player:SetAttribute("FishingXp", fd.Xp)
+	local ok, caught = pcall(HttpService.JSONEncode, HttpService, fd.Caught)
+	if ok then
+		player:SetAttribute("FishingCaught", caught)
+	end
+end
+
+-- Qué te falta para sacarlo (lista vacía = puedes)
+local function missingFor(player: Player, target: { [string]: any }): { string }
+	return Fishing.missing(target, levelOf(player), rodTier(player), toolsOf(player))
+end
+
+local function canCatch(player: Player, target: { [string]: any }): boolean
+	return #missingFor(player, target) == 0
+end
+
+-- Suma experiencia y avisa si subes de nivel (con lo nuevo que puedes pescar)
+local function addXp(player: Player, xp: number, id: string?)
+	local fd = fishData(player)
+	if not fd then
+		return
+	end
+	local before = Fishing.levelFor(fd.Xp)
+	fd.Xp += xp
+	if id then
+		fd.Caught[id] = (fd.Caught[id] or 0) + 1
+	end
+	local after = Fishing.levelFor(fd.Xp)
+	syncLevel(player)
+	if after > before then
+		local unlocked = {}
+		for _, s in Fishing.Species do
+			if s.Level > before and s.Level <= after then
+				table.insert(unlocked, s.Icon .. " " .. s.Name)
+			end
+		end
+		for _, id2 in Fishing.RodOrder do
+			local rod = Fishing.Rods[id2]
+			if rod.Level > before and rod.Level <= after then
+				table.insert(unlocked, "tienda: " .. rod.Name)
+			end
+		end
+		for _, id2 in Fishing.ToolOrder do
+			local tool = Fishing.Tools[id2]
+			if tool.Level > before and tool.Level <= after then
+				table.insert(unlocked, "tienda: " .. tool.Name)
+			end
+		end
+		local text = ("🎣 ¡Nivel de pesca %d!"):format(after)
+		if #unlocked > 0 then
+			text ..= " Nuevo: " .. table.concat(unlocked, ", ")
+		end
+		Notify:FireClient(player, "Success", text)
+		Remote:FireClient(player, "LevelUp", { Level = after })
+	end
+end
+
+---------------------------------------------------------------------
+-- Bancos de peces (vuelven siempre)
+---------------------------------------------------------------------
+
+local pop: { [string]: { [string]: number } } = {}
+local depleted: { [string]: { [string]: { Catches: number, Time: number } } } = {}
+local catchesIn: { [string]: number } = {}
+local lastRegen = os.clock()
+
+for water in Fishing.Waters do
+	pop[water] = {}
+	depleted[water] = {}
+	catchesIn[water] = 0
+	for _, s in Fishing.Species do
+		if s.Waters[water] then
+			pop[water][s.Id] = s.Pop
+		end
+	end
+end
+
+local function shoalPercent(water: string): number
+	local have, max = 0, 0
+	for _, s in Fishing.Species do
+		if s.Waters[water] then
+			have += pop[water][s.Id] or 0
+			max += s.Pop
+		end
+	end
+	return if max > 0 then math.floor(have / max * 100 + 0.5) else 100
+end
+
+local function tellWater(water: string, text: string)
+	for player, state in fishing do
+		if state.Water == water then
+			Notify:FireClient(player, "Info", text)
+		end
+	end
+end
+
+local function refill(water: string, id: string, announce: boolean)
+	local s = Fishing.byId[id]
+	if not s then
+		return
+	end
+	pop[water][id] = s.Pop
+	depleted[water][id] = nil
+	if announce then
+		tellWater(water, ("🐟 ¡Ha vuelto un banco de %s a %s!"):format(string.lower(s.Name), Fishing.Waters[water] or "el agua"))
+	end
+end
+
+-- Mira si ya toca que vuelvan los peces agotados
+local function checkRespawn(water: string)
+	local now = os.clock()
+	for id, at in depleted[water] do
+		if catchesIn[water] - at.Catches >= Fishing.Respawn.AfterCatches or now - at.Time >= Fishing.Respawn.Seconds then
+			refill(water, id, true)
+		end
+	end
+	-- Red de seguridad: si no quedara nada de nada, vuelve todo
+	local any = false
+	for _, n in pop[water] do
+		if n > 0 then
+			any = true
+			break
+		end
+	end
+	if not any then
+		for id in pop[water] do
+			refill(water, id, false)
+		end
+		tellWater(water, "🐟 ¡Han llegado peces nuevos!")
+	end
+end
+
+-- Un pez sale del agua
+local function consume(water: string, species: any)
+	local left = (pop[water][species.Id] or 0) - 1
+	pop[water][species.Id] = math.max(0, left)
+	catchesIn[water] += 1
+	if left <= 0 and not depleted[water][species.Id] then
+		depleted[water][species.Id] = { Catches = catchesIn[water], Time = os.clock() }
+	end
+	checkRespawn(water)
+end
+
+local function regenTick()
+	local now = os.clock()
+	local regen = now - lastRegen >= Fishing.Respawn.RegenSeconds
+	if regen then
+		lastRegen = now
+	end
+	for water in Fishing.Waters do
+		if regen then
+			for id, n in pop[water] do
+				local s = Fishing.byId[id]
+				if s and n < s.Pop and not depleted[water][id] then
+					pop[water][id] = n + 1
+				end
+			end
+		end
+		checkRespawn(water)
+	end
 end
 
 ---------------------------------------------------------------------
@@ -129,6 +354,189 @@ local function bobberOf(spot: BasePart): Vector3
 	return Vector3.new(p.X, WATER_Y + 0.2, p.Z)
 end
 
+---------------------------------------------------------------------
+-- Monstruos marinos (entre varios, en alta mar)
+---------------------------------------------------------------------
+
+type Boss = { Def: any, Hp: number, Until: number, Pulls: { [Player]: number }, Last: { [Player]: number }, Warned: { [Player]: boolean } }
+local boss: Boss? = nil
+local bossReadyAt = 0
+
+local function altaMarFishers(): { Player }
+	local list = {}
+	for player, state in fishing do
+		if state.Water == "AltaMar" and player.Parent then
+			table.insert(list, player)
+		end
+	end
+	return list
+end
+
+local function bossInfo(b: Boss, player: Player?): { [string]: any }
+	local helpers = 0
+	for _, n in b.Pulls do
+		if n >= b.Def.MinPulls then
+			helpers += 1
+		end
+	end
+	return {
+		Id = b.Def.Id,
+		Name = b.Def.Name,
+		Icon = b.Def.Icon,
+		Desc = b.Def.Desc,
+		Hp = math.max(0, b.Hp),
+		Max = b.Def.Hp,
+		Left = math.max(0, math.ceil(b.Until - os.clock())),
+		MinPlayers = b.Def.MinPlayers,
+		Helpers = helpers,
+		Mine = if player then b.Pulls[player] or 0 else 0,
+		CanHelp = if player then canCatch(player, b.Def) else nil,
+		Missing = if player then missingFor(player, b.Def) else nil,
+	}
+end
+
+local function bossBroadcast(kind: string)
+	local b = boss
+	if not b then
+		return
+	end
+	for _, player in altaMarFishers() do
+		Remote:FireClient(player, kind, bossInfo(b, player))
+	end
+	for player in b.Pulls do
+		if player.Parent and not (fishing[player] and fishing[player].Water == "AltaMar") then
+			Remote:FireClient(player, kind, bossInfo(b, player))
+		end
+	end
+end
+
+local function bossEnd(win: boolean)
+	local b = boss
+	if not b then
+		return
+	end
+	boss = nil
+	bossReadyAt = os.clock() + Fishing.BossCooldown
+	local def = b.Def
+	local helpers = {}
+	for player, n in b.Pulls do
+		if n >= def.MinPulls and player.Parent then
+			table.insert(helpers, player)
+		end
+	end
+	local text
+	if win and #helpers >= def.MinPlayers then
+		local kg = math.floor(rng:NextNumber(def.Kg[1], def.Kg[2]))
+		text = ("🏆 ¡Lo habéis sacado entre %d! %s %s de %d kg"):format(#helpers, def.Icon, def.Name, kg)
+		for _, player in helpers do
+			if InventoryService.add(player, def.Item, 1) then
+				Notify:FireClient(player, "Success", ("%s ¡Trofeo a la mochila: %s! (la lonja lo paga a %s)"):format(def.Icon, def.Name, Format.money(def.Price)))
+			else
+				DataService.addMoney(player, def.Price, true)
+				Notify:FireClient(player, "Money", ("+%s · no te cabía el %s y la lonja te lo ha comprado"):format(Format.money(def.Price), def.Name))
+			end
+			addXp(player, def.Xp, def.Id)
+			StoryEvents.emit(player, "CaughtFish", { Species = def.Id, Boss = true })
+		end
+	elseif win then
+		text = ("%s ¡Se ha soltado! Hacían falta al menos %d pescadores tirando fuerte."):format(def.Icon, def.MinPlayers)
+	else
+		text = ("%s ¡El %s ha roto los sedales y se ha escapado al fondo!"):format(def.Icon, def.Name)
+	end
+	local told = {}
+	for _, player in altaMarFishers() do
+		told[player] = true
+		Remote:FireClient(player, "BossEnd", { Win = win and #helpers >= def.MinPlayers, Text = text })
+	end
+	for player in b.Pulls do
+		if player.Parent and not told[player] then
+			Remote:FireClient(player, "BossEnd", { Win = win and #helpers >= def.MinPlayers, Text = text })
+		end
+	end
+end
+
+local function startBoss(def: any)
+	if boss then
+		return
+	end
+	local b: Boss = { Def = def, Hp = def.Hp, Until = os.clock() + def.Seconds, Pulls = {}, Last = {}, Warned = {} }
+	boss = b
+	bossBroadcast("Boss")
+	task.spawn(function()
+		while boss == b do
+			task.wait(0.3)
+			if boss ~= b then
+				break
+			end
+			if os.clock() >= b.Until then
+				bossEnd(false)
+				break
+			end
+			bossBroadcast("BossHp")
+		end
+	end)
+end
+
+-- ¿Aparece un monstruo? (al picar en alta mar, si hay bastantes pescadores preparados)
+local function maybeBoss(player: Player): boolean
+	if boss or os.clock() < bossReadyAt then
+		return false
+	end
+	local fishers = altaMarFishers()
+	for _, id in Fishing.BossOrder do
+		local def = Fishing.Bosses[id]
+		if canCatch(player, def) then
+			local ready = 0
+			for _, other in fishers do
+				if canCatch(other, def) then
+					ready += 1
+				end
+			end
+			if ready >= def.MinPlayers then
+				if rng:NextNumber() < Fishing.BossChance then
+					startBoss(def)
+					return true
+				end
+			elseif rng:NextNumber() < 0.1 then
+				Notify:FireClient(player, "Info", ("🌊 Algo gigantesco se mueve bajo el barco… Haced falta al menos %d pescadores preparados para el %s."):format(def.MinPlayers, def.Name))
+			end
+		end
+	end
+	return false
+end
+
+local function bossPull(player: Player)
+	local b = boss
+	if not b then
+		return
+	end
+	local state = fishing[player]
+	if not state or state.Water ~= "AltaMar" then
+		return
+	end
+	if not canCatch(player, b.Def) then
+		if not b.Warned[player] then
+			b.Warned[player] = true
+			Notify:FireClient(player, "Error", ("Tu equipo no aguanta al %s. Te falta: %s."):format(b.Def.Name, table.concat(missingFor(player, b.Def), ", ")))
+		end
+		return
+	end
+	local now = os.clock()
+	if now - (b.Last[player] or 0) < Fishing.BossPullGap then
+		return
+	end
+	b.Last[player] = now
+	b.Pulls[player] = (b.Pulls[player] or 0) + 1
+	b.Hp -= 1
+	if b.Hp <= 0 then
+		bossEnd(true)
+	end
+end
+
+---------------------------------------------------------------------
+-- Pescar
+---------------------------------------------------------------------
+
 local function cast(player: Player, spot: BasePart)
 	local rod = rodOf(player)
 	if not rod then
@@ -145,6 +553,10 @@ local function cast(player: Player, spot: BasePart)
 		return
 	end
 	spotOwner[spot] = player
+	local water = spot:GetAttribute("Water") or "Mar"
+	if not Fishing.Waters[water] then
+		water = "Mar"
+	end
 	-- Cuánto tardan en picar: caña, cebo y oficio
 	local delay = rng:NextNumber(Fishing.BiteMin, Fishing.BiteMax) * rod.Bite
 	local bait = InventoryService.count(player, Fishing.Bait.Id) > 0
@@ -157,7 +569,8 @@ local function cast(player: Player, spot: BasePart)
 	end
 	nextToken += 1
 	local token = nextToken
-	fishing[player] = { Spot = spot, Token = token, Phase = "Wait", BiteAt = 0 }
+	fishing[player] = { Spot = spot, Token = token, Phase = "Wait", BiteAt = 0, Water = water }
+	syncLevel(player)
 	-- Mirando al agua
 	local character = player.Character
 	if character and not spot:GetAttribute("Temporary") then
@@ -166,20 +579,40 @@ local function cast(player: Player, spot: BasePart)
 	Remote:FireClient(player, "Cast", {
 		Token = token,
 		Bobber = bobberOf(spot),
-		Water = Fishing.Waters[spot:GetAttribute("Water")] or "el agua",
+		Water = Fishing.Waters[water] or "el agua",
+		WaterId = water,
 		Rod = rod.Name,
 		Bait = bait,
 		BaitLeft = InventoryService.count(player, Fishing.Bait.Id),
+		Level = levelOf(player),
+		Shoal = shoalPercent(water),
 	})
+	if boss and water == "AltaMar" then
+		Remote:FireClient(player, "Boss", bossInfo(boss, player))
+	end
 	task.delay(delay, function()
 		local now = fishing[player]
 		if not now or now.Token ~= token or now.Phase ~= "Wait" then
 			return
 		end
+		if water == "AltaMar" and maybeBoss(player) then
+			now.Phase = "Done"
+			Remote:FireClient(player, "Result", { Token = token, Kind = "Boss" })
+			return
+		end
+		-- Lo que ha picado (según lo que queda en el agua; los que no puedes sacar pican menos)
+		local species, locked = Fishing.pick(water, if rod then rod.Rare else 1, rng :: any, pop[water], function(sp)
+			return canCatch(player, sp)
+		end)
+		now.Species = species
+		now.Locked = locked
 		now.Phase = "Bite"
 		now.BiteAt = os.clock()
-		Remote:FireClient(player, "Bite", { Token = token, Window = Fishing.Window })
-		task.delay(Fishing.Window + LATENCY, function()
+		local window = if species then species.Window else Fishing.Window
+		now.Window = window
+		local big = species ~= nil and (locked or Fishing.pullsFor(species, rodTier(player)) > 1)
+		Remote:FireClient(player, "Bite", { Token = token, Window = window, Big = big })
+		task.delay(window + LATENCY, function()
 			local later = fishing[player]
 			if later and later.Token == token and later.Phase == "Bite" then
 				later.Phase = "Done"
@@ -189,8 +622,41 @@ local function cast(player: Player, spot: BasePart)
 	end)
 end
 
+-- El pez sale del agua y va a la mochila
+local function land(player: Player, state: State)
+	local species = state.Species
+	state.Phase = "Done"
+	if not InventoryService.add(player, species.Item, 1) then
+		Remote:FireClient(player, "Result", { Token = state.Token, Kind = "Full", Name = species.Name, Icon = species.Icon })
+		return
+	end
+	consume(state.Water, species)
+	local before = levelOf(player)
+	addXp(player, species.Xp, species.Id)
+	local kg = math.floor(rng:NextNumber(species.Kg[1], species.Kg[2]) * 100 + 0.5) / 100
+	Remote:FireClient(player, "Result", {
+		Token = state.Token,
+		Kind = "Catch",
+		Name = species.Name,
+		Icon = species.Icon,
+		Kg = kg,
+		Rare = species.Rare == true,
+		Rarity = species.Rarity,
+		Price = species.Price,
+		Xp = species.Xp,
+		Level = levelOf(player),
+		LevelUp = levelOf(player) > before,
+		Shoal = shoalPercent(state.Water),
+	})
+	StoryEvents.emit(player, "CaughtFish", { Species = species.Id })
+end
+
 local function reel(player: Player, token: any)
 	local state = fishing[player]
+	if boss and state and state.Water == "AltaMar" and token == "Boss" then
+		bossPull(player)
+		return
+	end
 	if not state or state.Token ~= token then
 		return
 	end
@@ -199,28 +665,59 @@ local function reel(player: Player, token: any)
 		Remote:FireClient(player, "Result", { Token = token, Kind = "Early" })
 		return
 	end
+	if state.Phase == "Fight" then
+		local now = os.clock()
+		if now - (state.LastPull or 0) < 0.1 then
+			return
+		end
+		state.LastPull = now
+		state.Got = (state.Got or 0) + 1
+		Remote:FireClient(player, "Pull", { Token = token, Got = state.Got, Need = state.Need })
+		if (state.Got :: number) >= (state.Need :: number) then
+			land(player, state)
+		end
+		return
+	end
 	if state.Phase ~= "Bite" then
 		return
 	end
-	state.Phase = "Done"
-	if os.clock() - state.BiteAt > Fishing.Window + LATENCY then
+	if os.clock() - state.BiteAt > (state.Window or Fishing.Window) + LATENCY then
+		state.Phase = "Done"
 		Remote:FireClient(player, "Result", { Token = token, Kind = "Late" })
 		return
 	end
-	local rod = rodOf(player)
-	local species = Fishing.roll(state.Spot:GetAttribute("Water") or "Mar", if rod then rod.Rare else 1, rng :: any)
+	local species = state.Species
 	if not species then
+		state.Phase = "Done"
 		local junk = Fishing.Junk[rng:NextInteger(1, #Fishing.Junk)]
 		Remote:FireClient(player, "Result", { Token = token, Kind = "Junk", Name = junk.Name, Icon = junk.Icon })
 		return
 	end
-	if not InventoryService.add(player, species.Item, 1) then
-		Remote:FireClient(player, "Result", { Token = token, Kind = "Full", Name = species.Name, Icon = species.Icon })
+	if state.Locked then
+		-- Demasiado grande para ti: rompe el sedal y te dice qué te falta
+		state.Phase = "Done"
+		Remote:FireClient(player, "Result", { Token = token, Kind = "Locked", Name = species.Name, Icon = species.Icon, Missing = missingFor(player, species) })
 		return
 	end
-	local kg = math.floor(rng:NextNumber(species.Kg[1], species.Kg[2]) * 100 + 0.5) / 100
-	Remote:FireClient(player, "Result", { Token = token, Kind = "Catch", Name = species.Name, Icon = species.Icon, Kg = kg, Rare = species.Rare == true, Price = species.Price })
-	StoryEvents.emit(player, "CaughtFish", { Species = species.Id })
+	local need = Fishing.pullsFor(species, rodTier(player))
+	if need <= 1 then
+		land(player, state)
+		return
+	end
+	-- Pelea: hay que seguir tirando antes de que se suelte
+	state.Phase = "Fight"
+	state.Need = need
+	state.Got = 1
+	state.LastPull = os.clock()
+	local seconds = Fishing.fightSeconds(need)
+	Remote:FireClient(player, "Fight", { Token = token, Need = need, Got = 1, Seconds = seconds, Name = species.Name, Icon = species.Icon, Rarity = species.Rarity })
+	task.delay(seconds + LATENCY, function()
+		local later = fishing[player]
+		if later and later.Token == token and later.Phase == "Fight" then
+			later.Phase = "Done"
+			Remote:FireClient(player, "Result", { Token = token, Kind = "Escaped", Name = species.Name, Icon = species.Icon })
+		end
+	end)
 end
 
 ---------------------------------------------------------------------
@@ -305,7 +802,8 @@ local function castHere(player: Player)
 	spot.CanQuery = false
 	spot.CanTouch = false
 	spot.CFrame = CFrame.lookAt(root.Position - Vector3.new(0, 0.5, 0), root.Position - Vector3.new(0, 0.5, 0) + flat)
-	spot:SetAttribute("Water", FishingService.waterKind(root.Position + flat * distance))
+	local onBoat = player:GetAttribute("BoatReturn") ~= nil
+	spot:SetAttribute("Water", if onBoat then "AltaMar" else FishingService.waterKind(root.Position + flat * distance))
 	spot:SetAttribute("CastDistance", distance)
 	spot:SetAttribute("Temporary", true)
 	spot.Parent = workspace
@@ -333,20 +831,28 @@ end
 ---------------------------------------------------------------------
 
 local function shopList(player: Player): { any }
+	local level = levelOf(player)
 	local list = {}
-	for _, id in { "CanaPescar", "CanaPro" } do
-		local rod = Fishing.Rods[id]
-		table.insert(list, { Id = id, Name = rod.Name, Icon = rod.Icon, Price = rod.Price, Desc = rod.Desc, Owned = InventoryService.count(player, id) > 0 })
+	for i = #Fishing.RodOrder, 1, -1 do
+		local rod = Fishing.Rods[Fishing.RodOrder[i]]
+		table.insert(list, { Id = rod.Id, Name = rod.Name, Icon = rod.Icon, Price = rod.Price, Desc = rod.Desc, Level = rod.Level, Locked = level < rod.Level, Owned = InventoryService.count(player, rod.Id) > 0 })
+	end
+	for _, id in Fishing.ToolOrder do
+		local tool = Fishing.Tools[id]
+		table.insert(list, { Id = tool.Id, Name = tool.Name, Icon = tool.Icon, Price = tool.Price, Desc = tool.Desc, Level = tool.Level, Locked = level < tool.Level, Owned = InventoryService.count(player, tool.Id) > 0 })
 	end
 	local bait = Fishing.Bait
-	table.insert(list, { Id = bait.Id, Name = ("%s (x%d)"):format(bait.Name, bait.Pack), Icon = bait.Icon, Price = bait.Price, Desc = bait.Desc, Owned = false, Have = InventoryService.count(player, bait.Id) })
+	table.insert(list, { Id = bait.Id, Name = ("%s (x%d)"):format(bait.Name, bait.Pack), Icon = bait.Icon, Price = bait.Price, Desc = bait.Desc, Level = 1, Owned = false, Have = InventoryService.count(player, bait.Id) })
 	return list
 end
 
 local function onBuy(player: Player, id: any)
-	local rod = typeof(id) == "string" and Fishing.Rods[id]
+	if typeof(id) ~= "string" then
+		return
+	end
+	local gear = Fishing.Rods[id] or Fishing.Tools[id]
 	local isBait = id == Fishing.Bait.Id
-	if not rod and not isBait then
+	if not gear and not isBait then
 		return
 	end
 	local root = rootOf(player)
@@ -359,10 +865,14 @@ local function onBuy(player: Player, id: any)
 	if not near then
 		return
 	end
-	local price = if rod then rod.Price else Fishing.Bait.Price
-	local count = if rod then 1 else Fishing.Bait.Pack
-	if rod and InventoryService.count(player, rod.Id) > 0 then
-		Notify:FireClient(player, "Info", "Ya tienes una " .. string.lower(rod.Name) .. ".")
+	local price = if gear then gear.Price else Fishing.Bait.Price
+	local count = if gear then 1 else Fishing.Bait.Pack
+	if gear and InventoryService.count(player, gear.Id) > 0 then
+		Notify:FireClient(player, "Info", "Ya tienes: " .. string.lower(gear.Name) .. ".")
+		return
+	end
+	if gear and levelOf(player) < gear.Level then
+		Notify:FireClient(player, "Info", ("🔒 %s pide nivel de pesca %d (tienes el %d). ¡Sigue pescando!"):format(gear.Name, gear.Level, levelOf(player)))
 		return
 	end
 	if not InventoryService.canAdd(player, id, count) then
@@ -374,10 +884,10 @@ local function onBuy(player: Player, id: any)
 		return
 	end
 	InventoryService.add(player, id, count)
-	if rod and lentRod[player] then
+	if Fishing.Rods[id] and lentRod[player] then
 		lentRod[player] = nil -- ya tiene la suya: la prestada se queda (se devuelve al acabar el turno)
 	end
-	Notify:FireClient(player, "Success", ("🎣 Has comprado: %s."):format(if rod then rod.Name else ("%d de cebo"):format(count)))
+	Notify:FireClient(player, "Success", ("🎣 Has comprado: %s."):format(if gear then gear.Name else ("%d de cebo"):format(count)))
 	Remote:FireClient(player, "Shop", shopList(player))
 end
 
@@ -444,7 +954,7 @@ local function onSell(player: Player, counter: BasePart)
 	local bonus = if onDuty[player] then JOB.PayBonus * MonetizationService.payMultiplier(player) else 1
 	for _, species in Fishing.Species do
 		local have = InventoryService.count(player, species.Item)
-		if have > 0 then
+		if have > 0 and species.Product then
 			local n = math.min(have, SupermarketService.fishRoom(counter, species.Product))
 			if n > 0 and InventoryService.remove(player, species.Item, n) then
 				local put = SupermarketService.addFish(counter, species.Product, n)
@@ -457,6 +967,17 @@ local function onSell(player: Player, counter: BasePart)
 			if n < have then
 				table.insert(full, species.Name)
 			end
+		elseif have > 0 and InventoryService.remove(player, species.Item, have) then
+			-- La lonja compra todo lo que el supermercado no vende
+			sold += have
+			total += math.floor(species.Price * have * bonus + 0.5)
+		end
+	end
+	for _, def in Fishing.Bosses do
+		local have = InventoryService.count(player, def.Item)
+		if have > 0 and InventoryService.remove(player, def.Item, have) then
+			sold += have
+			total += def.Price * have
 		end
 	end
 	if sold == 0 then
@@ -607,7 +1128,7 @@ local function npcDelivery()
 	local counter = counters[rng:NextInteger(1, #counters)]
 	for _ = 1, Fishing.NpcDeliveryCount do
 		local species = Fishing.roll("Mar", 1, rng :: any)
-		if species then
+		if species and species.Product then
 			SupermarketService.addFish(counter, species.Product, 1)
 		end
 	end
@@ -692,6 +1213,9 @@ function FishingService.init()
 		CollectionService:GetInstanceAddedSignal(tag):Connect(fn)
 	end
 	JobService.setHandler("Pescador", { Start = FishingService.start, Quit = FishingService.quit })
+	DataService.onLoaded(function(player)
+		syncLevel(player)
+	end)
 	Remote.OnServerEvent:Connect(function(player, action, a)
 		if action == "Reel" then
 			reel(player, a)
@@ -706,6 +1230,15 @@ function FishingService.init()
 			castHere(player)
 		elseif action == "Buy" then
 			onBuy(player, a)
+		elseif action == "Shop" then
+			-- (la tienda se abre desde el mostrador; esto solo la refresca si sigues cerca)
+			local root = rootOf(player)
+			for _, counter in CollectionService:GetTagged("FishingShopCounter") do
+				if counter:IsA("BasePart") and root and (counter.Position - root.Position).Magnitude < 20 then
+					Remote:FireClient(player, "Shop", shopList(player))
+					break
+				end
+			end
 		end
 	end)
 	Players.PlayerRemoving:Connect(function(player)
@@ -729,6 +1262,7 @@ function FishingService.init()
 				for player in onDuty do
 					guide(player)
 				end
+				regenTick()
 				refreshNpc()
 				sinceDelivery += 1
 				if sinceDelivery >= Fishing.NpcDeliveryEvery then
@@ -745,5 +1279,12 @@ end
 
 -- Para las pruebas
 FishingService._fishing = fishing
+FishingService._pop = pop
+FishingService._startBoss = startBoss
+FishingService._cast = cast
+FishingService._boss = function()
+	return boss
+end
+FishingService._shoal = shoalPercent
 
 return FishingService

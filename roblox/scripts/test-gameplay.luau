@@ -2179,7 +2179,7 @@ check(notified(fisher, "Necesitas una caña"), "sin caña no se puede pescar")
 -- Tienda de pesca
 moveTo(fisherRoot, Vector3.new(4008, 0, 4000))
 promptOf(shopCounter, "Comprar").Triggered:Fire(fisher)
-check(lastMessage(fisher, "Shop") ~= nil and #lastMessage(fisher, "Shop")[2] == 3, "la tienda enseña las cañas y el cebo")
+check(lastMessage(fisher, "Shop") ~= nil and #lastMessage(fisher, "Shop")[2] == 10, "la tienda enseña las 5 cañas, 4 herramientas y el cebo")
 local F = remotes.Fishing.OnServerEvent
 F:Fire(fisher, "Buy", "CanaPescar")
 F:Fire(fisher, "Buy", "Cebo")
@@ -2289,6 +2289,190 @@ if conn and conn.Disconnect then
 end
 FishingService.quit(pro)
 check(pro:GetAttribute("Job") == nil and InventoryService.count(pro, "CanaPescar") == 0, "al acabar el turno devuelves la caña prestada")
+end)()
+
+;(function()
+print("▶ Pesca por niveles: mucha variedad, peces grandes, bancos que vuelven y monstruos entre varios")
+local Fishing = loadModule(ROOT .. "/shared/Fishing")
+local FishingService = loadModule(S .. "FishingService")
+local F = remotes.Fishing.OnServerEvent
+local pop = FishingService._pop
+check(#Fishing.Species >= 40, ("hay mucha variedad de peces (%d especies)"):format(#Fishing.Species))
+for water in Fishing.Waters do
+	local easy = false
+	for _, sp in Fishing.Species do
+		if sp.Waters[water] and sp.Level == 1 and sp.Tool == nil then
+			easy = true
+		end
+	end
+	check(easy, "en " .. Fishing.Waters[water] .. " hay peces para empezar")
+end
+local deepOnly = true
+for _, sp in Fishing.Species do
+	if sp.Level >= 24 and (sp.Waters.Mar or sp.Waters.Rio or sp.Waters.Lago) and not sp.Waters.AltaMar and sp.Level > 30 then
+		deepOnly = false
+	end
+end
+check(deepOnly and Fishing.byId.TiburonBlanco.Waters.AltaMar ~= nil and Fishing.byId.TiburonBlanco.Waters.Mar == nil, "los más grandes solo están en alta mar (hace falta el barco)")
+check(Fishing.levelFor(0) == 1 and Fishing.levelFor(Fishing.xpFor(10)) == 10 and Fishing.levelFor(Fishing.xpFor(10) - 1) == 9, "la experiencia sube el nivel")
+-- En la prueba: sin basura, los bancos no se rellenan por tiempo y las peleas duran poco
+local saved = { Junk = Fishing.JunkWeight, Regen = Fishing.Respawn.RegenSeconds, Secs = Fishing.Respawn.Seconds, Fight = Fishing.fightSeconds, Gap = Fishing.BossPullGap }
+Fishing.JunkWeight = 0
+Fishing.Respawn.RegenSeconds = 1e9
+Fishing.Respawn.Seconds = 1e9
+Fishing.fightSeconds = function()
+	return 2.5
+end
+local function onlyIn(water, counts)
+	for id in pop[water] do
+		pop[water][id] = counts[id] or 0
+	end
+end
+local spots = {}
+for i = 1, 4 do
+	local sp = part("FishingSpot", CFrame.new(5000 + i * 20, 3.5, 5000), { "FishingSpot" }, { Water = "AltaMar", CastDistance = 10 })
+	sp.Size = Vector3.new(3, 5, 3)
+	spots[i] = sp
+end
+local function fisherAt(id, i, xp, gear)
+	local p, root = newPlayer(id, "Adulto", 100)
+	profiles[p].Items = {}
+	for _, g in gear do
+		profiles[p].Items[g] = 1
+	end
+	profiles[p].Fishing = { Xp = xp, Caught = {} }
+	InventoryService.refresh(p)
+	moveTo(root, spots[i].Position - Vector3.new(0, 3, 0))
+	return p
+end
+-- Espera a que pique y tira; devuelve el mensaje que llegue (Result o Fight)
+local function hook(p, spot)
+	FishingService._cast(p, spot)
+	local c = lastMessage(p, "Cast")
+	task.wait(0.45)
+	local bite = lastMessage(p, "Bite")
+	if not bite or bite[2].Token ~= c[2].Token then
+		return nil, c
+	end
+	F:Fire(p, "Reel", c[2].Token)
+	local fight = lastMessage(p, "Fight")
+	if fight and fight[2].Token == c[2].Token then
+		return fight, c
+	end
+	return lastMessage(p, "Result"), c
+end
+-- Novato: pica un tiburón blanco y rompe el sedal (te dice qué te falta)
+local novice = fisherAt(91, 1, 0, { "CanaPescar" })
+onlyIn("AltaMar", { TiburonBlanco = 5 })
+local r = hook(novice, spots[1])
+check(r ~= nil and r[2].Kind == "Locked" and table.find(r[2].Missing, "nivel 38") ~= nil and table.find(r[2].Missing, "arpón") ~= nil, "si pica uno demasiado grande, rompe el sedal y te dice qué te falta")
+check(InventoryService.count(novice, "Pez_TiburonBlanco") == 0 and pop.AltaMar.TiburonBlanco == 5, "y no te lo llevas (sigue en el agua)")
+-- Experto: pelea a tirones y lo saca
+local expert = fisherAt(92, 2, Fishing.xpFor(45), { "CanaAbisal", "Arpon", "Sonar" })
+local xpBefore = profiles[expert].Fishing.Xp
+local fight, c = hook(expert, spots[2])
+local need = Fishing.pullsFor(Fishing.byId.TiburonBlanco, 5)
+check(fight ~= nil and fight[1] == "Fight" and fight[2].Need == need and need > 1, ("los peces grandes pelean: hay que tirar %d veces"):format(need))
+for _ = 2, need do
+	task.wait(0.12)
+	F:Fire(expert, "Reel", c[2].Token)
+end
+local res = lastMessage(expert, "Result")
+check(res ~= nil and res[2].Kind == "Catch" and res[2].Name == Fishing.byId.TiburonBlanco.Name, "a base de tirones saca el tiburón blanco")
+check(InventoryService.count(expert, "Pez_TiburonBlanco") == 1 and pop.AltaMar.TiburonBlanco == 4, "va a la mochila y queda uno menos en el agua")
+check(profiles[expert].Fishing.Xp == xpBefore + Fishing.byId.TiburonBlanco.Xp and profiles[expert].Fishing.Caught.TiburonBlanco == 1, "da experiencia y cuenta para la guía de peces")
+check(expert:GetAttribute("FishingLevel") == 45 and novice:GetAttribute("FishingLevel") == 1, "cada uno ve su nivel de pesca")
+-- Si no tiras a tiempo, se suelta
+fight, c = hook(expert, spots[2])
+task.wait(3.2)
+check(lastMessage(expert, "Result")[2].Kind == "Escaped", "si dejas de tirar, el pez grande se suelta")
+-- Subir de nivel avisa de lo nuevo
+local learner = fisherAt(93, 3, Fishing.xpFor(2) - 1, { "CanaPescar" })
+onlyIn("AltaMar", { Sardina = 30 })
+r = hook(learner, spots[3])
+check(r ~= nil and r[2].Kind == "Catch" and learner:GetAttribute("FishingLevel") >= 2 and notified(learner, "Nivel de pesca"), "al subir de nivel te avisa de lo que desbloqueas")
+-- Bancos de peces: si se acaba una especie, vuelve tras unas capturas
+onlyIn("AltaMar", { TiburonBlanco = 1, Merluza = 36 })
+for _ = 1, 30 do
+	fight, c = hook(expert, spots[2])
+	if fight and fight[1] == "Fight" then
+		for _ = 2, need do
+			task.wait(0.12)
+			F:Fire(expert, "Reel", c[2].Token)
+		end
+		break
+	end
+end
+check(pop.AltaMar.TiburonBlanco == 0, "se ha pescado el último tiburón blanco")
+for _ = 1, Fishing.Respawn.AfterCatches do
+	hook(expert, spots[2])
+end
+check(pop.AltaMar.TiburonBlanco == Fishing.byId.TiburonBlanco.Pop and notified(expert, "Ha vuelto un banco de gran tiburón blanco"), "tras unas capturas vuelven a salir (el mar no se vacía)")
+onlyIn("AltaMar", {})
+FishingService._cast(learner, spots[3])
+task.wait(1.2) -- el bucle del servicio lo nota
+check(pop.AltaMar.Sardina > 0, "aunque se pescara todo, vuelven peces nuevos")
+-- Monstruos: el Megalodón solo se saca entre varios
+Fishing.BossPullGap = 0
+local mega = Fishing.Bosses.Megalodon
+local savedHp = mega.Hp
+mega.Hp = 40
+local b1 = fisherAt(94, 1, Fishing.xpFor(45), { "CanaAbisal", "Arpon", "Sonar" })
+local b3 = fisherAt(95, 3, Fishing.xpFor(45), { "CanaAbisal", "Arpon", "Sonar" })
+local b4 = fisherAt(96, 4, Fishing.xpFor(45), { "CanaAbisal", "Arpon", "Sonar" })
+F:Fire(novice, "Stop")
+F:Fire(learner, "Stop")
+F:Fire(expert, "Stop")
+for i, p in { b1, expert, b3, b4 } do
+	FishingService._cast(p, spots[i])
+end
+FishingService._startBoss(mega)
+check(lastMessage(b1, "Boss") ~= nil and lastMessage(b3, "Boss")[2].MinPlayers == 3, "¡pica el Megalodón! A todos los del barco les sale")
+for _ = 1, 15 do
+	for _, p in { b1, expert, b3 } do
+		F:Fire(p, "Reel", "Boss")
+	end
+end
+local ended = lastMessage(b1, "BossEnd")
+check(ended ~= nil and ended[2].Win == true, "entre tres pescadores expertos lo sacan")
+check(InventoryService.count(b1, "Pez_Megalodon") == 1 and InventoryService.count(b3, "Pez_Megalodon") == 1 and InventoryService.count(b4, "Pez_Megalodon") == 0, "cada uno que ha tirado se lleva el trofeo (el que no ha tirado, no)")
+-- Uno solo no puede con el Kraken
+local kraken = Fishing.Bosses.Kraken
+local savedK = kraken.Hp
+kraken.Hp = 20
+FishingService._startBoss(kraken)
+for _ = 1, 25 do
+	F:Fire(b1, "Reel", "Boss")
+end
+check(lastMessage(b1, "BossEnd")[2].Win == false and InventoryService.count(b1, "Pez_Kraken") == 0, "el Kraken no lo saca uno solo (hacen falta 4)")
+mega.Hp, kraken.Hp = savedHp, savedK
+-- La lonja compra lo que el supermercado no vende
+local counter = nil
+for _, cc in services.CollectionService:GetTagged("SuperFish") do
+	counter = cc
+end
+local money = profiles[b1].Money
+promptOf(counter, "Vender pescado").Triggered:Fire(b1)
+check(profiles[b1].Money >= money + mega.Price and InventoryService.count(b1, "Pez_Megalodon") == 0, "la lonja paga el trofeo del Megalodón")
+-- La tienda pide nivel para el equipo bueno
+local shop = nil
+for _, cc in services.CollectionService:GetTagged("FishingShopCounter") do
+	shop = cc
+end
+local _, noviceRoot = nil, novice.Character.HumanoidRootPart
+moveTo(noviceRoot, shop.Position)
+profiles[novice].Money = 10000
+F:Fire(novice, "Buy", "CanaAbisal")
+check(InventoryService.count(novice, "CanaAbisal") == 0 and notified(novice, "pide nivel de pesca 32"), "la caña abisal pide nivel 32")
+F:Fire(novice, "Buy", "Arpon")
+check(InventoryService.count(novice, "Arpon") == 0, "el arpón también pide nivel")
+F:Fire(expert, "Buy", "Red")
+Fishing.JunkWeight, Fishing.Respawn.RegenSeconds, Fishing.Respawn.Seconds, Fishing.fightSeconds, Fishing.BossPullGap = saved.Junk, saved.Regen, saved.Secs, saved.Fight, saved.Gap
+for water, list in pop do
+	for id in list do
+		list[id] = Fishing.byId[id].Pop
+	end
+end
 end)()
 
 ;(function()

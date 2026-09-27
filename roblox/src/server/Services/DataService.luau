@@ -39,6 +39,11 @@ local DEFAULT_DATA = {
 	-- Mochila (InventoryService): objetos que se cuentan y en qué casilla va cada cosa
 	Items = {},
 	Slots = {},
+	-- Pesca (FishingService): experiencia (el nivel sale de aquí) y cuántos has pescado de cada pez
+	Fishing = {
+		Xp = 0,
+		Caught = {},
+	},
 	-- Estudios: notas por asignatura, exámenes, títulos y asistencia (ClassService)
 	Education = {
 		Subjects = {},
