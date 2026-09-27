@@ -1,7 +1,6 @@
 -- Actions (cliente): movimientos y acciones nuevas del personaje.
---   * Gestos y bailes (tecla G, app "😀 Gestos" del teléfono o botón 😀 en móvil):
---     saludar, señalar, animar, reír, tres bailes, saludo militar y "no sé".
---     Se cortan solos al andar o saltar.
+--   * Gestos: los de Roblox (su menú de gestos). Aquí solo queda "Saludar" para el menú de
+--     comandos (delante de alguien); se corta solo al andar o saltar.
 --   * Trepar: salta contra un muro bajo, una valla o un coche (hasta unos 9 studs) y el
 --     personaje se agarra al borde y sube.
 --   * Linterna (tecla L): la ven todos los jugadores. La primera noche sale un aviso.
@@ -29,8 +28,6 @@ local Actions = {}
 
 local player = Players.LocalPlayer
 local Remote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Actions") :: RemoteEvent
-local C = Theme.Colors
-local rgb = Color3.fromRGB
 
 local function asset(id: number): string
 	return "rbxassetid://" .. id
@@ -122,46 +119,6 @@ local function playEmote(emote: Emote)
 	local line = emote.Voice and StreetVoices.Emotes[emote.Voice]
 	if line then
 		SoundFx.voice(line, 1.05)
-	end
-end
-
----------------------------------------------------------------------
--- Panel de gestos
----------------------------------------------------------------------
-local panel: Frame? = nil
-
-local function buildPanel(gui: ScreenGui): Frame
-	local frame = Theme.panel({
-		Name = "Gestos",
-		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -110),
-		Size = UDim2.fromOffset(5 * 78 + 4 * 6 + 20, 2 * 70 + 6 + 20 + 26),
-		Visible = false,
-		Parent = gui,
-	})
-	Theme.padding(10).Parent = frame
-	Theme.label({ Size = UDim2.new(1, -30, 0, 20), Text = "😀 Gestos  ·  G para cerrar", Font = Theme.FontBold, TextSize = 15, Parent = frame })
-	local close = Theme.button({ AnchorPoint = Vector2.new(1, 0), Position = UDim2.fromScale(1, 0), Size = UDim2.fromOffset(24, 20), Text = "✕", TextSize = 14, Parent = frame })
-	close.Activated:Connect(function()
-		frame.Visible = false
-	end)
-	local grid = Theme.create("Frame", { Size = UDim2.new(1, 0, 1, -26), Position = UDim2.fromOffset(0, 26), BackgroundTransparency = 1, Parent = frame })
-	Theme.create("UIGridLayout", { CellSize = UDim2.fromOffset(78, 70), CellPadding = UDim2.fromOffset(6, 6), SortOrder = Enum.SortOrder.LayoutOrder, Parent = grid })
-	for i, emote in EMOTES do
-		local button = Theme.button({ Text = "", LayoutOrder = i, BackgroundColor3 = C.PanelLight, Parent = grid })
-		Theme.label({ Size = UDim2.new(1, 0, 0, 38), Text = emote.Icon, TextSize = 28, TextXAlignment = Enum.TextXAlignment.Center, Parent = button })
-		Theme.label({ Size = UDim2.new(1, 0, 0, 22), Position = UDim2.fromOffset(0, 40), Text = emote.Name, TextSize = 12, TextXAlignment = Enum.TextXAlignment.Center, TextScaled = false, Parent = button })
-		button.Activated:Connect(function()
-			playEmote(emote)
-			frame.Visible = false
-		end)
-	end
-	return frame
-end
-
-local function togglePanel()
-	if panel and not busy() then
-		panel.Visible = not panel.Visible
 	end
 end
 
@@ -337,7 +294,7 @@ local function setPhoto(on: boolean)
 end
 
 ---------------------------------------------------------------------
--- Para el menú de comandos: hacer un gesto por su nombre y abrir el panel de gestos
+-- Para el menú de comandos: hacer un gesto por su nombre (Saludar)
 function Actions.emote(name: string)
 	for _, emote in EMOTES do
 		if emote.Name == name then
@@ -353,15 +310,10 @@ function Actions.emotes(): { { Name: string, Icon: string } }
 	end
 	return list
 end
-Actions.toggleGestures = togglePanel
 
 function Actions.init()
 	local playerGui = player:WaitForChild("PlayerGui")
 	local gui = Theme.create("ScreenGui", { Name = "ActionsGui", ResetOnSpawn = false, Parent = playerGui })
-	panel = buildPanel(gui)
-
-	Hud.addButton("😀 Gestos", rgb(200, 120, 40), 4, togglePanel)
-
 	local function bind(name: string, callback: () -> (), ...: Enum.KeyCode)
 		ContextActionService:BindAction(name, function(_, state)
 			if state == Enum.UserInputState.Begin and not UserInputService:GetFocusedTextBox() then
@@ -370,30 +322,14 @@ function Actions.init()
 			return Enum.ContextActionResult.Pass
 		end, false, ...)
 	end
-	bind("Gestures", togglePanel, Enum.KeyCode.G)
 	bind("Flashlight", toggleFlashlight, Enum.KeyCode.L)
 	bind("PhotoMode", function()
 		setPhoto(not photo)
 	end, Enum.KeyCode.P)
 
-	-- Móvil: botón redondo de gestos junto al de correr
+	-- Móvil: botones de linterna y modo foto (los gestos y bailes son los de Roblox)
 	if UserInputService.TouchEnabled then
-		local button = Theme.button({
-			Name = "GesturesButton",
-			AnchorPoint = Vector2.new(1, 1),
-			Size = UDim2.fromOffset(56, 56),
-			Position = UDim2.new(1, -252, 1, -28),
-			Text = "😀",
-			TextSize = 26,
-			BackgroundTransparency = 0.3,
-			Parent = gui,
-		})
-		local corner = button:FindFirstChildOfClass("UICorner")
-		if corner then
-			corner.CornerRadius = UDim.new(0.5, 0)
-		end
-		button.Activated:Connect(togglePanel)
-		-- Linterna y modo foto (en el teclado son L y P), encima del de gestos
+		-- (en el teclado son L y P)
 		local function round(name: string, icon: string, position: UDim2, callback: () -> ())
 			local b = Theme.button({
 				Name = name,
@@ -444,9 +380,6 @@ function Actions.init()
 			stopEmote()
 		end
 		if busy() then
-			if panel then
-				panel.Visible = false
-			end
 			stopEmote()
 			setPhoto(false)
 			return

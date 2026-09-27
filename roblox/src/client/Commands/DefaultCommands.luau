@@ -238,21 +238,6 @@ function DefaultCommands.register()
 				{ Id = "Vehiculos", Label = "Vehículos", Icon = "🚲", Priority = 3, Run = function()
 					Vehicles.open()
 				end },
-				{
-					Id = "Gestos",
-					Label = "Gestos",
-					Icon = "😀",
-					Priority = 4,
-					Open = function()
-						local list = {}
-						for i, emote in Actions.emotes() do
-							table.insert(list, { Id = "Gesto" .. i, Label = emote.Name, Icon = emote.Icon, Priority = i, Run = function()
-								Actions.emote(emote.Name)
-							end })
-						end
-						return list
-					end,
-				},
 				{ Id = "Carrera", Label = "Mi carrera", Icon = "🎖", Priority = 4.5, Run = function()
 					InstitutionsUI.showCareer()
 				end },

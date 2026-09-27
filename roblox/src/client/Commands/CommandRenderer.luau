@@ -115,6 +115,19 @@ function CommandRenderer.new(parent: Instance, touch: boolean)
 		end
 	end)
 
+	-- (móvil) cuántos comandos hay y si hay más arriba o abajo
+	self.More = Theme.label({
+		Name = "More",
+		Size = UDim2.fromOffset(ROW_W, 16),
+		TextSize = 12,
+		TextColor3 = C.Muted,
+		TextStrokeTransparency = 0.5,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Text = "",
+		LayoutOrder = 3,
+		Visible = false,
+		Parent = root,
+	})
 	self.Hint = Theme.label({
 		Name = "Hint",
 		Size = UDim2.fromOffset(ROW_W + 20, 14),
@@ -254,6 +267,7 @@ function CommandRenderer:setItems(items: { Item }, selected: number, motion: str
 		end)
 	end
 	self.Selected = selected
+	self:window()
 	self:placeCursor(true)
 
 	if motion then
@@ -265,8 +279,24 @@ function CommandRenderer:setItems(items: { Item }, selected: number, motion: str
 	end
 end
 
+-- En el móvil solo se ven 3 comandos (el elegido en medio): el menú ocupa poco y no se toca sin querer
+local WINDOW = 3
+function CommandRenderer:window()
+	self.First = 1
+	if not self.Touch then
+		return
+	end
+	local n = #self.Rows
+	self.First = math.clamp(self.Selected - 1, 1, math.max(1, n - WINDOW + 1))
+	for i, row in self.Rows do
+		row.Button.Visible = i >= self.First and i < self.First + WINDOW
+	end
+	self.More.Visible = n > WINDOW
+	self.More.Text = ("%s %d/%d %s"):format(if self.First > 1 then "▲" else " ", self.Selected, n, if self.First + WINDOW <= n then "▼" else " ")
+end
+
 function CommandRenderer:placeCursor(instant: boolean?)
-	local y = 2 + (self.Selected - 1) * (ROW_H + 3) + ROW_H / 2
+	local y = 2 + (self.Selected - (self.First or 1)) * (ROW_H + 3) + ROW_H / 2
 	if self.Selected < 1 then
 		self.Cursor.Visible = false
 		return
@@ -302,6 +332,7 @@ function CommandRenderer:select(index: number)
 	if row then
 		paint(row, true)
 	end
+	self:window()
 	self:placeCursor(false)
 end
 

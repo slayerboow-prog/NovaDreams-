@@ -798,8 +798,8 @@ local function buildMenu(parent: Instance)
 		Size = UDim2.new(1, 0, 0, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		Text = if game:GetService("UserInputService").TouchEnabled
-			then "Controles en el móvil:\nToca los botones que salen sobre las cosas para usarlas\n🏃 correr · 😀 gestos · 🔦 linterna · 📷 foto\nConduciendo: joystick para girar y acelerar · 📯 claxon\n🗺️ Mapa y 🎒 Mochila, arriba"
-			else "Controles:\nE interactuar · Shift correr · F bajarse\nM mapa · 1-9 barra rápida\nG gestos y bailes · L linterna · P modo foto\nConducir: W/A/S/D · H claxon\nSalta contra un muro bajo para trepar",
+			then "Controles en el móvil:\nMenú de comandos (a la derecha): un toque elige y otro lo hace\n🏃 correr · 👊 golpear · 🛡 defenderse · 🔦 linterna · 📷 foto\nGestos y bailes: los de Roblox\nConduciendo: joystick para girar y acelerar · 📯 claxon"
+			else "Controles:\nE interactuar · ↑↓ Enter menú de comandos · Shift correr · F bajarse\nX golpear · Z defenderse · M mapa · 1-9 barra rápida\nL linterna · P modo foto · gestos: los de Roblox\nConducir: W/A/S/D · H claxon\nSalta contra un muro bajo para trepar",
 		TextSize = 13,
 		TextWrapped = true,
 		TextColor3 = C.Muted,
@@ -1004,8 +1004,9 @@ function Hud.init(openStore: () -> ()): ScreenGui
 			arrangeStatus("Right")
 		end
 		objectivesPanel.Position = UDim2.fromOffset(12, y)
-		-- Los objetivos no bajan hasta el menú de comandos (abajo a la izquierda)
-		local room = canvas.Y - y - (if TOUCH then 420 else 300)
+		-- En el ordenador los objetivos no bajan hasta el menú de comandos (abajo a la izquierda;
+		-- en el móvil el menú va a la derecha)
+		local room = canvas.Y - y - (if TOUCH then 16 else 300)
 		objectivesLimit.MaxSize = Vector2.new(math.huge, math.max(120, room))
 	end
 	camera:GetPropertyChangedSignal("ViewportSize"):Connect(function()

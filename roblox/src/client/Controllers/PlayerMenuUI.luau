@@ -1,8 +1,9 @@
--- PlayerMenuUI (cliente): menú al tocar a otro jugador, panel del grupo y ventanas de chat.
+-- PlayerMenuUI (cliente): menú al tocar a otro jugador y panel del grupo.
 --   * Toca (o haz clic) en otro jugador, o acércate y pulsa T: sale su menú con
 --     "👥 Invitar al grupo", "💬 Chat" y "🤝 Comerciar".
---   * Si estás en un grupo, a la izquierda ves quién está, el chat del grupo y "Salir".
---   * El chat usa los canales de TextChatService que crea SocialService (Roblox filtra los mensajes).
+--   * Si estás en un grupo, a la izquierda ves quién está y "Salir".
+--   * El chat (privado y de grupo) es el de Roblox: los canales los crea SocialService y los
+--     mensajes salen en la ventana del chat de Roblox (que además los filtra).
 
 local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
@@ -31,22 +32,15 @@ local function nameOf(other: Player): string
 	return other.DisplayName or other.Name
 end
 
-local function escape(text: string): string
-	return (text:gsub("&", "&amp;"):gsub("<", "&lt;"):gsub(">", "&gt;"))
-end
-
 local function busy(): boolean
 	return not ProximityPromptService.Enabled or player:GetAttribute("InDialogue") == true
 end
 
 ---------------------------------------------------------------------
--- Chat (privado y de grupo)
+-- Chat (privado y de grupo): se usa el chat de Roblox, no una ventana propia.
+-- Los mensajes de los canales privados y del grupo salen en la ventana del chat de Roblox, y
+-- "💬 Chat" hace que lo próximo que escribas vaya a ese canal (🌐 Todos vuelve al general).
 ---------------------------------------------------------------------
-local history: { [string]: { string } } = {}
-local chatWindow: Frame? = nil
-local chatChannel: string? = nil
-local chatList: ScrollingFrame? = nil
-
 local function channelNamed(name: string, wait: boolean?): TextChannel?
 	local folder = if wait then TextChatService:WaitForChild(Social.Folder, 5) else TextChatService:FindFirstChild(Social.Folder)
 	if not folder then
@@ -55,131 +49,19 @@ local function channelNamed(name: string, wait: boolean?): TextChannel?
 	return (if wait then folder:WaitForChild(name, 5) else folder:FindFirstChild(name)) :: TextChannel?
 end
 
-local function renderChat()
-	local list = chatList
-	if not list or not chatChannel then
+local function talkIn(channel: TextChannel?, title: string)
+	local config = TextChatService:FindFirstChildOfClass("ChatInputBarConfiguration")
+	if not config or not channel then
+		Hud.toast("Error", "El chat no está disponible ahora mismo.")
 		return
 	end
-	for _, child in list:GetChildren() do
-		if child:IsA("GuiObject") then
-			child:Destroy()
-		end
-	end
-	local lines = history[chatChannel] or {}
-	if #lines == 0 then
-		Theme.label({ Size = UDim2.new(1, 0, 0, 24), Text = "Escribe algo para empezar a hablar.", TextSize = 13, TextColor3 = C.Muted, Parent = list })
-	end
-	for i, line in lines do
-		Theme.label({
-			Size = UDim2.new(1, -6, 0, 0),
-			AutomaticSize = Enum.AutomaticSize.Y,
-			Text = line,
-			RichText = true,
-			TextSize = 14,
-			TextWrapped = true,
-			LayoutOrder = i,
-			Parent = list,
-		})
-	end
-	task.defer(function()
-		list.CanvasPosition = Vector2.new(0, math.max(0, list.AbsoluteCanvasSize.Y - list.AbsoluteSize.Y))
-	end)
+	config.TargetTextChannel = channel
+	Hud.toast("Info", ("💬 %s: escribe en el chat de Roblox (arriba a la izquierda)"):format(title))
 end
 
-local function openChat(name: string, title: string)
-	local window, content = Dialog.window("Chat", title, Vector2.new(400, 360))
-	chatWindow, chatChannel = window, name
-	window.Destroying:Connect(function()
-		if chatWindow == window then
-			chatWindow, chatChannel, chatList = nil, nil, nil
-		end
-	end)
-	local list = create("ScrollingFrame", {
-		Size = UDim2.new(1, 0, 1, -50),
-		BackgroundColor3 = rgb(8, 14, 28),
-		BackgroundTransparency = 0.3,
-		BorderSizePixel = 0,
-		ScrollBarThickness = 6,
-		CanvasSize = UDim2.new(),
-		AutomaticCanvasSize = Enum.AutomaticSize.Y,
-		Parent = content,
-	})
-	create("UIListLayout", { Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder, Parent = list })
-	Theme.padding(6).Parent = list
-	chatList = list
-	local box = create("TextBox", {
-		Position = UDim2.new(0, 0, 1, -42),
-		Size = UDim2.new(1, -96, 0, 40),
-		BackgroundColor3 = rgb(8, 14, 28),
-		TextColor3 = C.Text,
-		PlaceholderText = "Escribe un mensaje…",
-		Text = "",
-		Font = Theme.Font,
-		TextSize = 15,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		ClearTextOnFocus = false,
-		Parent = content,
-	}, { Theme.corner(8), Theme.padding(8) })
-	local send = Theme.button({ AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 1, -42), Size = UDim2.fromOffset(88, 40), Text = "Enviar", TextSize = 15, BackgroundColor3 = C.Accent, Parent = content })
-	local function submit()
-		local text = box.Text
-		if text:match("^%s*$") then
-			return
-		end
-		box.Text = ""
-		task.spawn(function()
-			local channel = channelNamed(name, true)
-			if not channel then
-				Hud.toast("Error", "El chat ya no está disponible.")
-				return
-			end
-			local ok = pcall(function()
-				channel:SendAsync(text)
-			end)
-			if not ok then
-				Hud.toast("Error", "No se ha podido enviar el mensaje.")
-			end
-		end)
-	end
-	send.Activated:Connect(submit)
-	box.FocusLost:Connect(function(enter)
-		if enter then
-			submit()
-		end
-	end)
-	renderChat()
-end
-
-local function onMessage(message: TextChatMessage)
-	local channel = message.TextChannel
-	if not channel or not channel.Parent or channel.Parent.Name ~= Social.Folder then
-		return
-	end
-	if message.Status ~= Enum.TextChatMessageStatus.Success then
-		return
-	end
-	local source = message.TextSource
-	local from = source and Players:GetPlayerByUserId(source.UserId)
-	local who = if from then escape(nameOf(from)) else "?"
-	local mine = from == player
-	local color = if mine then "#9fd4ff" else "#ffd166"
-	local lines = history[channel.Name] or {}
-	history[channel.Name] = lines
-	table.insert(lines, ('<font color="%s"><b>%s</b></font>: %s'):format(color, who, message.Text))
-	while #lines > Social.History do
-		table.remove(lines, 1)
-	end
-	if chatChannel == channel.Name then
-		renderChat()
-	elseif not mine then
-		local isGroup = channel.Name:sub(1, #Social.GroupPrefix) == Social.GroupPrefix
-		if not chatWindow and not busy() then
-			-- Nadie lo tenía abierto: se abre solo (como un mensaje de móvil)
-			openChat(channel.Name, if isGroup then "💬 Chat del grupo" else "💬 " .. (if from then nameOf(from) else "Chat"))
-		else
-			Hud.toast("Info", ("💬 %s: %s"):format(if from then nameOf(from) else "?", message.Text))
-		end
-	end
+local function talkToEveryone()
+	local channels = TextChatService:FindFirstChild("TextChannels")
+	talkIn(channels and channels:FindFirstChild("RBXGeneral") :: TextChannel?, "Chat con todos")
 end
 
 ---------------------------------------------------------------------
@@ -219,11 +101,13 @@ local function renderGroup(gui: ScreenGui)
 		})
 	end
 	local y = 8 + (rows + 1) * 24
-	local chat = Theme.button({ Position = UDim2.fromOffset(8, y), Size = UDim2.new(0.5, -12, 0, 30), Text = "💬 Chat", TextSize = 13, BackgroundColor3 = C.Accent, Parent = panel })
+	local chat = Theme.button({ Position = UDim2.fromOffset(8, y), Size = UDim2.new(1 / 3, -8, 0, 30), Text = "💬 Grupo", TextSize = 12, BackgroundColor3 = C.Accent, Parent = panel })
 	chat.Activated:Connect(function()
-		openChat(g.Channel, "💬 Chat del grupo")
+		talkIn(channelNamed(g.Channel), "Chat del grupo")
 	end)
-	local leave = Theme.button({ Position = UDim2.new(0.5, 4, 0, y), Size = UDim2.new(0.5, -12, 0, 30), Text = "🚪 Salir", TextSize = 13, Parent = panel })
+	local all = Theme.button({ Position = UDim2.new(1 / 3, 2, 0, y), Size = UDim2.new(1 / 3, -6, 0, 30), Text = "🌐 Todos", TextSize = 12, Parent = panel })
+	all.Activated:Connect(talkToEveryone)
+	local leave = Theme.button({ Position = UDim2.new(2 / 3, 2, 0, y), Size = UDim2.new(1 / 3, -10, 0, 30), Text = "🚪 Salir", TextSize = 12, Parent = panel })
 	leave.Activated:Connect(function()
 		Remote:FireServer("Leave")
 	end)
@@ -378,8 +262,6 @@ function PlayerMenuUI.init()
 	UserInputService.InputBegan:Connect(onPress)
 	UserInputService.InputEnded:Connect(onRelease)
 
-	TextChatService.MessageReceived:Connect(onMessage)
-
 	Remote.OnClientEvent:Connect(function(action, a)
 		if action == "Group" then
 			group = a
@@ -391,8 +273,7 @@ function PlayerMenuUI.init()
 			end)
 		elseif action == "ChatOpen" then
 			task.spawn(function()
-				channelNamed(a.Channel, true) -- espera a que llegue el canal
-				openChat(a.Channel, a.Title)
+				talkIn(channelNamed(a.Channel, true), a.Title or "Chat privado")
 			end)
 		end
 	end)
