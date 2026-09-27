@@ -17,6 +17,7 @@ local StoryMarks = require(script.Parent.StoryMarks)
 local Clinic = require(script.Parent.Clinic)
 local PoliceStation = require(script.Parent.PoliceStation)
 local CinemaHall = require(script.Parent.CinemaHall)
+local GymKit = require(script.Parent.GymKit)
 
 local Civic = {}
 
@@ -1149,23 +1150,17 @@ function Civic.arcade(parent: Instance, lot: Lot, u: number)
 	return W
 end
 
-function Civic.gym(parent: Instance, lot: Lot, u: number)
-	local W, D = 40, 36
+-- Gimnasio del barrio: se entra andando y se entrena de verdad (GymKit + GymService).
+-- (El interior no usa math.random: así el resto del mapa sale igual que antes.)
+function Civic.gym(parent: Instance, lot: Lot, u: number, townName: string?)
+	local W, D = GymKit.Width, GymKit.Depth
 	local model, at = Building.build({
-		Name = "Gimnasio", Parent = parent, CFrame = lot.facing(u + W / 2, 8 + D / 2, 0),
+		Name = "GimnasioValmar", Parent = parent, CFrame = lot.facing(u + W / 2, 8 + D / 2, 0),
 		Width = W, Depth = D, Floors = 2, Style = "Moderno", GroundFloor = "Shop", Balconies = false,
 		WallColor = rgb(230, 232, 236), WindowFaces = { Front = true, Left = true, Right = true },
 		Sign = "GIMNASIO", SignColor = rgb(230, 110, 30), ShopId = "Gimnasio", FloorMaterial = Enum.Material.Rubber, FloorColor = rgb(50, 52, 58),
 	})
-	-- Máquinas visibles desde el escaparate
-	for i = 0, 3 do
-		local cf = at(-12 + i * 8, 0, -6)
-		Builder.part({ Name = "Treadmill", Size = Vector3.new(2.6, 1, 6), CFrame = cf * CFrame.new(0, 0.5, 0), Color = rgb(30, 30, 34), Parent = model })
-		Builder.decor({ Name = "Console", Size = Vector3.new(2.6, 3.6, 0.4), CFrame = cf * CFrame.new(0, 2.4, -2.8), Color = rgb(70, 72, 80), Parent = model })
-	end
-	for i = 0, 2 do
-		Builder.part({ Name = "Bench", Size = Vector3.new(1.4, 1.6, 5), CFrame = at(-10 + i * 10, 0.8, 8), Color = rgb(200, 60, 40), Parent = model })
-	end
+	GymKit.interior(model, at(0, 0, 0), "Gimnasio " .. (townName or "Valmar"))
 	return W
 end
 
@@ -1221,7 +1216,7 @@ function Civic.leisure(parent: Instance, lot: Lot, townName: string)
 			return Civic.arcade(m, lot, u)
 		end,
 		function(u)
-			return Civic.gym(m, lot, u)
+			return Civic.gym(m, lot, u, townName)
 		end,
 		function(u)
 			return Civic.drivingSchool(m, lot, u, townName)
