@@ -71,6 +71,9 @@
         "Diving": {
           "$className": "RemoteEvent"
         },
+        "SeaEvent": {
+          "$className": "RemoteEvent"
+        },
         "LifeStory": {
           "$className": "RemoteEvent"
         },

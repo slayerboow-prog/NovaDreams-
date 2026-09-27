@@ -70,6 +70,7 @@ local order = {
 	"FishingService", -- pesca, tienda de pesca, barco y oficio de pescador
 	"MetroService", -- metro subterráneo: trenes, galería, encargos y revisor
 	"DivingService", -- nadar, bucear (aire) y pesca submarina con fusil o arpón
+	"SeaEventService", -- catástrofes marinas: tsunami, temporal, remolino, marea negra, tiburón y medusas
 	"ClassService", -- clases y exámenes que se juegan (lo usa la historia)
 	"DialogueService", -- conversaciones con respuestas (misiones episódicas)
 	"MiniGameService", -- pase, canastas, partido de fútbol…

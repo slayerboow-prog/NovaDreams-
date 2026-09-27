@@ -319,6 +319,7 @@ local remotes = {
 	Fishing = remote(),
 	Metro = remote(),
 	Diving = remote(),
+	SeaEvent = remote(),
 	Social = remote(),
 }
 function remotes:WaitForChild(name)
@@ -2765,6 +2766,112 @@ check(Fishing.spearable(Fishing.byId.Mero) and not Fishing.spearable(Fishing.byI
 Fishing.Dive.ShotGap = savedGap
 FishingService.isWater = realIsWater
 local _ = anaRoot
+end)()
+
+;(function()
+print("▶ Catástrofes marinas: tsunami, marea negra, tiburón, medusas, temporal y remolino")
+local SeaEvents = loadModule(ROOT .. "/shared/SeaEvents")
+local Fishing = loadModule(ROOT .. "/shared/Fishing")
+local FishingService = loadModule(S .. "FishingService")
+local DivingService = loadModule(S .. "DivingService")
+local SeaEventService = loadModule(S .. "SeaEventService")
+local realIsWater = FishingService.isWater
+FishingService.isWater = function(p)
+	return p.Y < -1 -- en la prueba: por debajo de la superficie siempre hay agua
+end
+for _, id in SeaEvents.Order do
+	SeaEvents.Kinds[id].Warning = 0
+end
+local savedStart = SeaEvents.WaveStart
+SeaEvents.WaveStart = 20
+local function ticks(n, gap)
+	for _ = 1, n do
+		SeaEventService._tick()
+		if gap then
+			task.wait(gap)
+		end
+	end
+end
+local function person(id, pos, items)
+	local p, root, hum = newPlayer(id, "Adulto", 100)
+	profiles[p].Items = items or {}
+	InventoryService.refresh(p)
+	root.CFrame = CFrame.new(pos)
+	p.Character.Head.CFrame = CFrame.new(pos + Vector3.new(0, 1.5, 0))
+	return p, root, hum
+end
+check(SeaEvents.pick(0) == "Tsunami" and SeaEvents.pick(0.9999) == "Medusas", "cada catástrofe tiene su probabilidad")
+-- Tsunami en Playa Dorada
+local low, _, lowHum = person(201, Vector3.new(4150, 2, -1000))
+local high, _, highHum = person(202, Vector3.new(4150, 30, -1000))
+local far, _, farHum = person(203, Vector3.new(4150, 2, 200))
+check(SeaEventService.start("Tsunami", "Playa Dorada") and worldRoot:GetAttribute("SeaEvent") == "Tsunami", "empieza el tsunami")
+check(lastMessage(low, "Start") ~= nil and notified(low, "TSUNAMI"), "llega la alerta a todos")
+check(not SeaEventService.start("Medusas"), "no hay dos catástrofes a la vez")
+ticks(25, 0.1)
+check(lowHum.Health < 100 and lastMessage(low, "Hit") ~= nil, "la ola arrastra a quien está en la playa")
+check(highHum.Health == 100 and farHum.Health == 100, "quien está en alto o lejos no sufre nada")
+SeaEventService.stop()
+check(worldRoot:GetAttribute("SeaEvent") == nil and lastMessage(high, "End") ~= nil, "al acabar se avisa y vuelve la calma")
+-- Marea negra: no se pesca y se limpia entre todos
+local cleaner = person(204, Vector3.new(4210, 3, -1000), { CanaPescar = 1 })
+check(SeaEventService.start("MareaNegra", "Playa Dorada"), "empieza la marea negra")
+local patches = SeaEventService._event().Patches
+check(#patches == SeaEvents.Kinds.MareaNegra.Patches, ("salen manchas de petróleo en el mar (%d)"):format(#patches))
+local oilSpot = part("FishingSpot", CFrame.new(4210, 3.5, -1000), { "FishingSpot" }, { Water = "Mar", CastDistance = 10 })
+FishingService._cast(cleaner, oilSpot)
+check(notified(cleaner, "petróleo") and FishingService._fishing[cleaner] == nil, "donde hay petróleo no se puede pescar")
+local money = profiles[cleaner].Money
+for _, patch in table.clone(patches) do
+	promptOf(patch, "Limpiar").Triggered:Fire(cleaner)
+end
+local mk = SeaEvents.Kinds.MareaNegra
+check(profiles[cleaner].Money == money + mk.Reward * mk.Patches + mk.Bonus, "se cobra por cada mancha limpia y un premio al acabar")
+check(SeaEventService._event() == nil and notified(cleaner, "limpiado toda la marea negra"), "limpia toda, la catástrofe se acaba")
+-- Tiburón en la playa
+local bather, _, batherHum = person(205, Vector3.new(4230, -3, -1000))
+check(SeaEventService.start("Tiburon", "Playa Dorada"), "aparece el tiburón en la playa")
+ticks(60)
+check(batherHum.Health < 100 and notified(bather, "mordido"), "si te bañas, te puede morder")
+local hunter = person(206, Vector3.new(4225, -8, -1000), { Arpon = 1, Botella = 1 })
+profiles[hunter].Fishing = { Xp = Fishing.xpFor(40), Caught = {} }
+ticks(1)
+local shark = SeaEventService._event().Shark
+check(shark ~= nil, "a un buceador con arpón le aparece el tiburón para cazarlo")
+local savedGap = Fishing.Dive.ShotGap
+Fishing.Dive.ShotGap = 0
+for _ = 1, 12 do
+	if shark.Parent then
+		hunter.Character.HumanoidRootPart.CFrame = CFrame.new(shark.Position - Vector3.new(0, 3, 0))
+		hunter.Character.Head.CFrame = CFrame.new(shark.Position - Vector3.new(0, 1.5, 0))
+		remotes.Diving.OnServerEvent:Fire(hunter, "Shoot", shark)
+	end
+end
+Fishing.Dive.ShotGap = savedGap
+ticks(1)
+check(SeaEventService._event() == nil and notified(hunter, "Recompensa por cazar al tiburón"), "si lo cazas, se acaba el peligro y te dan recompensa")
+-- Medusas: el equipo de buceo protege
+local swimmer, _, swimmerHum = person(207, Vector3.new(4230, -3, -990))
+local suited, _, suitedHum = person(208, Vector3.new(4230, -3, -1010), { Botella = 1 })
+check(SeaEventService.start("Medusas", "Playa Dorada"), "llega la plaga de medusas")
+ticks(60)
+check(swimmerHum.Health < 100 and suitedHum.Health == 100, "las medusas pican a los bañistas (con equipo de buceo no)")
+SeaEventService.stop()
+-- Temporal: rayos en alta mar
+check(SeaEventService.start("Temporal"), "empieza el temporal")
+ticks(1)
+check(lastMessage(swimmer, "Strike") ~= nil, "caen rayos en el mar")
+SeaEventService.stop()
+-- Remolino: en el centro te hace daño
+check(SeaEventService.start("Remolino"), "aparece un remolino")
+local c = worldRoot:GetAttribute("SeaEventPos")
+local diver2, _, diver2Hum = person(209, Vector3.new(c.X, -3, c.Z))
+ticks(4)
+check(diver2Hum.Health < 100 and notified(diver2, "remolino"), "si nadas en el centro del remolino te hace daño")
+SeaEventService.stop()
+SeaEvents.WaveStart = savedStart
+FishingService.isWater = realIsWater
+local _ = far
 end)()
 
 end, debug.traceback)
