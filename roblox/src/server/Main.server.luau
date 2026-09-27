@@ -78,6 +78,7 @@ local order = {
 	"JusticeService", -- juicios (jueces), condenas y prisión (presos y funcionarios)
 	"TaxService", -- Agencia Tributaria: declaración de la renta, agentes e inspecciones
 	"WantedService", -- delitos, testigos y estrellas de búsqueda: patrullas, agentes y helicópteros
+	"HospitalService", -- morir: pantalla de HAS MUERTO y reaparecer en el hospital (factura)
 	"PrisonService", -- la vida en la cárcel: trabajos, deporte, estudios, comedor, túnel y aislamiento
 	"SceneService", -- actores y objetos de cada misión (solo para su jugador)
 	"LifeStoryService", -- la historia de vida escucha a todos los anteriores
