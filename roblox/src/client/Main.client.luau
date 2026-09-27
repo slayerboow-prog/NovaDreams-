@@ -43,6 +43,7 @@ local PlayerMenuUI = require(script.Parent.Controllers.PlayerMenuUI)
 local FishingUI = require(script.Parent.Controllers.FishingUI)
 local MetroUI = require(script.Parent.Controllers.MetroUI)
 local DivingUI = require(script.Parent.Controllers.DivingUI)
+local SeaBiome = require(script.Parent.Controllers.SeaBiome)
 local JobPrompts = require(script.Parent.Controllers.JobPrompts)
 local BusUI = require(script.Parent.Controllers.BusUI)
 local ActorLife = require(script.Parent.Controllers.ActorLife)
@@ -103,6 +104,7 @@ task.spawn(PlayerMenuUI.init) -- al tocar a un jugador: invitar al grupo, chat y
 task.spawn(FishingUI.init) -- pesca: sedal y corcho, ¡tirar!, tienda de pesca
 task.spawn(MetroUI.init) -- metro: panel del tren, billetes, tiendas, encargos y escenario
 task.spawn(DivingUI.init) -- nadar, bucear (aire) y pesca submarina con fusil o arpón
+task.spawn(SeaBiome.init) -- el fondo del mar y la luz bajo el agua (solo cuando estás en el agua)
 task.spawn(JobPrompts.init) -- los carteles de cada oficio solo los ve quien trabaja en él
 task.spawn(Driving.init) -- conducir coches, motos, bicis, monopatines y patinetes (W/A/S/D)
 task.spawn(Actions.init) -- gestos y bailes (G), trepar muros bajos, linterna (L) y modo foto (P)
