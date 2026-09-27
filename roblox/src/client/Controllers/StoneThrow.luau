@@ -87,7 +87,7 @@ local function refreshButton()
 		return
 	end
 	ContextActionService:BindAction(ACTION, use, true, Enum.KeyCode.B, Enum.KeyCode.ButtonY)
-	ContextActionService:SetTitle(ACTION, if count > 0 then ("🪨×%d"):format(count) else "🪨")
+	ContextActionService:SetTitle(ACTION, if count > 0 then ("🥌×%d"):format(count) else "🥌")
 	TouchLayout.placeAction(ContextActionService, ACTION, "Piedra")
 end
 

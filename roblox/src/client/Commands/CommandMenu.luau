@@ -39,7 +39,7 @@ local busy = false
 local signature = ""
 local onFocusChanged: ((ProximityPrompt?) -> ())? = nil
 
-local BACK: Command = { Id = "_Volver", Label = "Volver", Icon = "◂", Priority = 1e9 }
+local BACK: Command = { Id = "_Volver", Label = "Volver", Icon = "⬅", Priority = 1e9 }
 
 local function current(): Level
 	return stack[#stack]
@@ -269,24 +269,19 @@ function CommandMenu.init()
 	renderer = CommandRenderer.new(gui, TOUCH)
 	local scale = Theme.create("UIScale", { Parent = renderer.Root })
 	local camera = workspace.CurrentCamera
-	-- Debajo de la barra de vida y la foto del personaje (arriba a la izquierda), más pequeño:
-	-- así no tapa el joystick ni los botones de saltar y correr del móvil
-	local hudGui = player:WaitForChild("PlayerGui"):WaitForChild("MainHud", 10)
-	local status = hudGui and hudGui:WaitForChild("Status", 10) :: GuiObject?
+	-- A la izquierda, entre tu estado (arriba) y el joystick del móvil (abajo); en el ordenador,
+	-- abajo a la izquierda. Pequeño para que no tape el mundo.
 	local function layout()
 		local view = camera.ViewportSize
 		local hud = math.clamp(math.min(view.Y / 900, view.X / 1700), 0.55, 1.2)
-		scale.Scale = if TOUCH then math.max(hud * 0.85, 0.6) else hud * 0.85
-		renderer.Root.AnchorPoint = Vector2.new(0, 0)
-		if status then
-			renderer.Root.Position = UDim2.fromOffset(status.AbsolutePosition.X + 4, status.AbsolutePosition.Y + status.AbsoluteSize.Y + 6)
+		scale.Scale = if TOUCH then math.clamp(view.Y / 700, 0.5, 0.8) else hud * 0.85
+		renderer.Root.AnchorPoint = Vector2.new(0, 1)
+		if TOUCH then
+			-- El joystick de Roblox ocupa la franja de abajo (unos 40 % de la altura en móviles)
+			renderer.Root.Position = UDim2.new(0, 14, 1, -math.max(150, view.Y * 0.38))
 		else
-			renderer.Root.Position = UDim2.fromOffset(12, 230)
+			renderer.Root.Position = UDim2.new(0, 18, 1, -16)
 		end
-	end
-	if status then
-		status:GetPropertyChangedSignal("AbsolutePosition"):Connect(layout)
-		status:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout)
 	end
 	camera:GetPropertyChangedSignal("ViewportSize"):Connect(layout)
 	layout()

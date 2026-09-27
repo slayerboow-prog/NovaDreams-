@@ -239,7 +239,7 @@ function CommandRenderer:setItems(items: { Item }, selected: number, motion: str
 			ZIndex = 2,
 			Parent = body,
 		})
-		local arrow = Theme.label({ AnchorPoint = Vector2.new(1, 0), Size = UDim2.fromOffset(18, ROW_H), Position = UDim2.new(1, -4, 0, 0), Text = if item.Group then "▸" else "", TextSize = 16, TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 2, Parent = body })
+		local arrow = Theme.label({ AnchorPoint = Vector2.new(1, 0), Size = UDim2.fromOffset(18, ROW_H), Position = UDim2.new(1, -4, 0, 0), Text = if item.Group then ">" else "", TextSize = 16, TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 2, Parent = body })
 		if item.Badge then
 			create("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Size = UDim2.fromOffset(10, 10), Position = UDim2.new(1, -30, 0.5, 0), BackgroundColor3 = rgb(255, 70, 90), ZIndex = 3, Parent = body }, {
 				create("UICorner", { CornerRadius = UDim.new(1, 0) }),
