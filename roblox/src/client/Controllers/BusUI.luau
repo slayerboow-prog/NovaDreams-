@@ -25,7 +25,14 @@ function BusUI.init()
 		Parent = gui,
 	})
 	Theme.corner(10).Parent = label
-	RunService.Heartbeat:Connect(function()
+	-- 5 veces por segundo basta (antes iba cada frame)
+	local elapsed = 0
+	RunService.Heartbeat:Connect(function(dt)
+		elapsed += dt
+		if elapsed < 0.2 then
+			return
+		end
+		elapsed = 0
 		local character = player.Character
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 		local seat = humanoid and humanoid.SeatPart
@@ -37,9 +44,9 @@ function BusUI.init()
 		gui.Enabled = true
 		local current = bus:GetAttribute("CurrentStop")
 		if current and bus:GetAttribute("DoorsOpen") then
-			label.Text = ("🚌 %s · Parada: %s · salta (Espacio) para bajarte"):format(bus:GetAttribute("BusLine"), current)
+			Theme.setText(label, ("🚌 %s · Parada: %s · salta (Espacio) para bajarte"):format(bus:GetAttribute("BusLine"), current))
 		else
-			label.Text = ("🚌 %s · Próxima parada: %s"):format(bus:GetAttribute("BusLine"), tostring(bus:GetAttribute("NextStop") or "…"))
+			Theme.setText(label, ("🚌 %s · Próxima parada: %s"):format(bus:GetAttribute("BusLine"), tostring(bus:GetAttribute("NextStop") or "…")))
 		end
 	end)
 end

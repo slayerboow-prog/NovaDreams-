@@ -221,7 +221,7 @@ local function build()
 		Text = "",
 		Visible = false,
 		Parent = gui,
-	}, { Theme.corner(14), Theme.stroke(0.7) })
+	}, { Theme.corner(10), Theme.stroke(0.35), create("UIGradient", { Rotation = 90, Color = Theme.Sheen }) })
 	create("UISizeConstraint", { MaxSize = Vector2.new(640, math.huge), Parent = box })
 	create("UIPadding", {
 		PaddingLeft = UDim.new(0, 18),
@@ -237,13 +237,18 @@ local function build()
 		Position = UDim2.fromOffset(4, -36),
 		Size = UDim2.fromOffset(0, 26),
 		AutomaticSize = Enum.AutomaticSize.X,
-		BackgroundColor3 = C.PanelLight,
-		Font = Theme.FontBold,
-		TextSize = 16,
+		BackgroundColor3 = C.Panel,
+		FontFace = Theme.TitleFace,
+		TextSize = 17,
 		TextColor3 = NAME_COLORS.Other,
 		Text = "",
 		Parent = box,
-	}, { Theme.corner(8), create("UIPadding", { PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10) }) })
+	}, {
+		Theme.corner(5),
+		Theme.stroke(0.2),
+		create("UIGradient", { Rotation = 90, Color = Theme.Sheen }),
+		create("UIPadding", { PaddingLeft = UDim.new(0, 14), PaddingRight = UDim.new(0, 18) }),
+	})
 
 	textLabel = create("TextLabel", {
 		Size = UDim2.new(1, 0, 0, 0),

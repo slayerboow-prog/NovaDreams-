@@ -79,7 +79,7 @@ local function show(prompt: ProximityPrompt, inputType: Enum.ProximityPromptInpu
 	}, {
 		Theme.corner(14),
 		create("UIStroke", { Color = C.Accent, Thickness = 2, Transparency = 0.15 }),
-		create("UIGradient", { Rotation = 90, Color = ColorSequence.new(rgb(26, 44, 80), rgb(10, 18, 34)) }),
+		create("UIGradient", { Rotation = 90, Color = Theme.Night }),
 		create("UIPadding", { PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 16) }),
 	})
 	-- Más pequeño en pantallas bajas (móvil)
