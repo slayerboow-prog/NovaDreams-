@@ -8,7 +8,8 @@
 -- Controles:
 --   Teclado:  ↑ ↓ elegir · Enter aceptar · ← o Retroceso volver · E usar lo que tienes delante
 --   Mando:    cruceta ↑ ↓ elegir · cruceta → aceptar · cruceta ← o B volver · X usar
---   Móvil:    un toque elige un comando y otro toque sobre el elegido lo hace (a la derecha)
+--   Móvil:    un toque elige un comando y otro toque sobre el elegido lo hace (abajo a la derecha,
+--             a la izquierda de los botones redondos)
 -- Mientras hablas con alguien o ves una cinemática se aparta (setBusy).
 
 local ContextActionService = game:GetService("ContextActionService")
@@ -17,6 +18,7 @@ local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 
 local Theme = require(script.Parent.Parent.UI.Theme)
+local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
 local CommandRegistry = require(script.Parent.CommandRegistry)
 local ContextDetector = require(script.Parent.ContextDetector)
 local CommandRenderer = require(script.Parent.CommandRenderer)
@@ -272,18 +274,23 @@ function CommandMenu.init()
 	local function layout()
 		local view = camera.ViewportSize
 		local hud = math.clamp(math.min(view.Y / 900, view.X / 1700), 0.55, 1.2)
-		-- En el móvil: a la derecha, entre el minimapa y los botones (abajo a la izquierda va el
-		-- joystick y el pulgar lo tocaba sin querer), un poco más grande para tocarlo bien
+		-- En el móvil: abajo, justo a la izquierda de los botones redondos (👊 🛡 🏃…), que no los
+		-- tape (antes iba encima de 👊); abajo a la izquierda va el joystick y el pulgar lo tocaba
+		-- sin querer. Un poco más grande para tocarlo bien.
 		scale.Scale = if TOUCH then math.max(hud, 0.72) else hud
 		if TOUCH then
-			renderer.Root.AnchorPoint = Vector2.new(1, 0.5)
-			renderer.Root.Position = UDim2.new(1, -8, 0.5, 0)
+			-- En pantallas estrechas, más pequeño: que no se meta en la zona del joystick (40% izquierdo)
+			local room = view.X * 0.6 - TouchLayout.clusterWidth()
+			scale.Scale = math.max(0.55, math.min(scale.Scale, room / renderer.Root.Size.X.Offset))
+			renderer.Root.AnchorPoint = Vector2.new(1, 1)
+			renderer.Root.Position = UDim2.new(1, -TouchLayout.clusterWidth(), 1, -10)
 		else
 			renderer.Root.AnchorPoint = Vector2.new(0, 1)
 			renderer.Root.Position = UDim2.new(0, 18, 1, -16)
 		end
 	end
 	camera:GetPropertyChangedSignal("ViewportSize"):Connect(layout)
+	TouchLayout.Changed:Connect(layout)
 	layout()
 
 	renderer.HoverCallback = function(index: number)

@@ -10,6 +10,7 @@ local UserInputService = game:GetService("UserInputService")
 
 local Gameplay = require(ReplicatedStorage.Shared.Gameplay)
 local Theme = require(script.Parent.Parent.UI.Theme)
+local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
 local Dialog = require(script.Parent.Parent.UI.Dialog)
 local Hud = require(script.Parent.Parent.UI.Hud)
 
@@ -94,17 +95,14 @@ function Character.init()
 	-- Móvil: botón redondo que se enciende y se apaga
 	-- (en su propia pantalla, sin la escala del HUD: así tiene el mismo tamaño que el botón de saltar)
 	if UserInputService.TouchEnabled then
-		local gui = Theme.create("ScreenGui", { Name = "SprintGui", ResetOnSpawn = false, Parent = player:WaitForChild("PlayerGui") })
+		local gui = Theme.create("ScreenGui", { Name = "SprintGui", ResetOnSpawn = false, DisplayOrder = 3, Parent = player:WaitForChild("PlayerGui") })
 		local button = Theme.button({
 			Name = "SprintButton",
-			AnchorPoint = Vector2.new(1, 1),
-			Size = UDim2.fromOffset(64, 64),
-			Position = UDim2.new(1, -180, 1, -24), -- a la izquierda del botón de saltar
 			Text = "🏃",
-			TextSize = 28,
 			BackgroundTransparency = 0.3,
 			Parent = gui,
 		})
+		TouchLayout.place(button, "Sprint") -- a la izquierda del botón de saltar
 		local corner = button:FindFirstChildOfClass("UICorner")
 		if corner then
 			corner.CornerRadius = UDim.new(0.5, 0)

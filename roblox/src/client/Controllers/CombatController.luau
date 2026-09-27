@@ -17,6 +17,7 @@ local UserInputService = game:GetService("UserInputService")
 local Combat = require(ReplicatedStorage.Shared.Combat)
 local Stages = require(ReplicatedStorage.Shared.LifeStory.Stages)
 local Theme = require(script.Parent.Parent.UI.Theme)
+local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
 local SoundFx = require(script.Parent.SoundFx)
 
 local CombatController = {}
@@ -258,20 +259,19 @@ end
 ---------------------------------------------------------------------
 -- Controles
 ---------------------------------------------------------------------
-local function roundButton(gui: ScreenGui, icon: string, size: number, position: UDim2): TextButton
+local function roundButton(gui: ScreenGui, icon: string, slot: string, color: Color3): TextButton
 	local button = Theme.button({
-		AnchorPoint = Vector2.new(1, 1),
-		Size = UDim2.fromOffset(size, size),
-		Position = position,
+		Name = slot .. "Button",
 		Text = icon,
-		TextSize = math.floor(size * 0.45),
-		BackgroundTransparency = 0.3,
+		BackgroundColor3 = color,
+		BackgroundTransparency = 0.25,
 		Parent = gui,
 	})
 	local corner = button:FindFirstChildOfClass("UICorner")
 	if corner then
 		corner.CornerRadius = UDim.new(0.5, 0)
 	end
+	TouchLayout.place(button, slot)
 	return button
 end
 
@@ -305,12 +305,13 @@ function CombatController.init()
 		return Enum.ContextActionResult.Pass
 	end, false, Enum.KeyCode.Z, Enum.KeyCode.ButtonL1)
 
-	-- Móvil: 👊 encima del botón de saltar y 🛡 encima del de correr
+	-- Móvil: 👊 encima del botón de saltar y 🛡 a su izquierda (sitios en UI/TouchLayout).
+	-- DisplayOrder 3: por encima del minimapa y del menú de comandos, que nunca los tapen.
 	if UserInputService.TouchEnabled then
-		local gui = create("ScreenGui", { Name = "CombatGui", ResetOnSpawn = false, Parent = player:WaitForChild("PlayerGui") })
-		local punch = roundButton(gui, "👊", 68, UDim2.new(1, -28, 1, -112))
+		local gui = create("ScreenGui", { Name = "CombatGui", ResetOnSpawn = false, DisplayOrder = 3, Parent = player:WaitForChild("PlayerGui") })
+		local punch = roundButton(gui, "👊", "Punch", rgb(170, 50, 45))
 		punch.Activated:Connect(CombatController.attack)
-		local guard = roundButton(gui, "🛡", 56, UDim2.new(1, -184, 1, -100))
+		local guard = roundButton(gui, "🛡", "Guard", rgb(40, 90, 170))
 		guard.InputBegan:Connect(function(input)
 			if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
 				CombatController.setBlocking(true)
@@ -321,12 +322,31 @@ function CombatController.init()
 				CombatController.setBlocking(false)
 			end
 		end)
-		-- Los bebés no pelean: sin botones
+		-- Los bebés no pelean, y montado en un vehículo tampoco (ahí va el claxon): sin botones
+		local seatConnection: RBXScriptConnection? = nil
 		local function refresh()
 			local stage = player:GetAttribute("LifeStage")
-			gui.Enabled = stage == nil or Stages.inRange(stage, Combat.MinStage, nil)
+			local humanoid = parts()
+			-- (los botones, no la pantalla: el modo foto y las cinemáticas apagan y encienden la pantalla)
+			local show = (stage == nil or Stages.inRange(stage, Combat.MinStage, nil)) and not (humanoid and humanoid.SeatPart)
+			punch.Visible = show
+			guard.Visible = show
+		end
+		local function watchSeat(character: Model)
+			if seatConnection then
+				seatConnection:Disconnect()
+			end
+			local humanoid = character:WaitForChild("Humanoid", 10) :: Humanoid?
+			if humanoid then
+				seatConnection = humanoid:GetPropertyChangedSignal("SeatPart"):Connect(refresh)
+			end
+			refresh()
 		end
 		player:GetAttributeChangedSignal("LifeStage"):Connect(refresh)
+		player.CharacterAdded:Connect(watchSeat)
+		if player.Character then
+			task.spawn(watchSeat, player.Character)
+		end
 		refresh()
 	end
 

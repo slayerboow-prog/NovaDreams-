@@ -13,6 +13,7 @@ local UserInputService = game:GetService("UserInputService")
 
 local Breakables = require(ReplicatedStorage.Shared.Breakables)
 local Hud = require(script.Parent.Parent.UI.Hud)
+local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
 
 local StoneThrow = {}
 
@@ -87,7 +88,7 @@ local function refreshButton()
 	end
 	ContextActionService:BindAction(ACTION, use, true, Enum.KeyCode.B, Enum.KeyCode.ButtonY)
 	ContextActionService:SetTitle(ACTION, if count > 0 then ("🪨×%d"):format(count) else "🪨")
-	ContextActionService:SetPosition(ACTION, UDim2.new(1, -170, 1, -210))
+	ContextActionService:SetPosition(ACTION, TouchLayout.casPosition("Stone")) -- encima de 🛡
 end
 
 local function newStone(): BasePart

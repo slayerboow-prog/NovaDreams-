@@ -19,6 +19,7 @@ local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
 local Theme = require(script.Parent.Parent.UI.Theme)
+local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
 local Hud = require(script.Parent.Parent.UI.Hud)
 local Cinematics = require(script.Parent.Cinematics)
 local SoundFx = require(script.Parent.SoundFx)
@@ -313,7 +314,7 @@ end
 
 function Actions.init()
 	local playerGui = player:WaitForChild("PlayerGui")
-	local gui = Theme.create("ScreenGui", { Name = "ActionsGui", ResetOnSpawn = false, Parent = playerGui })
+	local gui = Theme.create("ScreenGui", { Name = "ActionsGui", ResetOnSpawn = false, DisplayOrder = 3, Parent = playerGui })
 	local function bind(name: string, callback: () -> (), ...: Enum.KeyCode)
 		ContextActionService:BindAction(name, function(_, state)
 			if state == Enum.UserInputState.Begin and not UserInputService:GetFocusedTextBox() then
@@ -330,25 +331,22 @@ function Actions.init()
 	-- Móvil: botones de linterna y modo foto (los gestos y bailes son los de Roblox)
 	if UserInputService.TouchEnabled then
 		-- (en el teclado son L y P)
-		local function round(name: string, icon: string, position: UDim2, callback: () -> ())
+		local function round(name: string, icon: string, slot: string, callback: () -> ())
 			local b = Theme.button({
 				Name = name,
-				AnchorPoint = Vector2.new(1, 1),
-				Size = UDim2.fromOffset(48, 48),
-				Position = position,
 				Text = icon,
-				TextSize = 22,
 				BackgroundTransparency = 0.3,
 				Parent = gui,
 			})
+			TouchLayout.place(b, slot)
 			local c = b:FindFirstChildOfClass("UICorner")
 			if c then
 				c.CornerRadius = UDim.new(0.5, 0)
 			end
 			b.Activated:Connect(callback)
 		end
-		round("FlashlightButton", "🔦", UDim2.new(1, -256, 1, -92), toggleFlashlight)
-		round("PhotoButton", "📷", UDim2.new(1, -204, 1, -100), function()
+		round("FlashlightButton", "🔦", "Flashlight", toggleFlashlight)
+		round("PhotoButton", "📷", "Photo", function()
 			setPhoto(not photo)
 		end)
 	end
