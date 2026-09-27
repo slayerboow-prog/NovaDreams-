@@ -49,6 +49,7 @@ local SeaBiome = require(script.Parent.Controllers.SeaBiome)
 local SeaEventsUI = require(script.Parent.Controllers.SeaEventsUI)
 local JobPrompts = require(script.Parent.Controllers.JobPrompts)
 local BusUI = require(script.Parent.Controllers.BusUI)
+local BusBoards = require(script.Parent.Controllers.BusBoards)
 local ActorLife = require(script.Parent.Controllers.ActorLife)
 local AgeMotion = require(script.Parent.Controllers.AgeMotion)
 local ReactMotion = require(script.Parent.Controllers.ReactMotion)
@@ -107,7 +108,8 @@ task.spawn(Joystick.init) -- móvil: joystick fijo abajo a la izquierda (con el 
 task.spawn(NearShadows.init) -- sombras de las luces solo cerca de ti (mismo aspecto, mucho más fluido)
 task.spawn(Prompts.init) -- carteles de "pulsa E" con el estilo de la interfaz
 task.spawn(SoundFx.init) -- efectos de sonido: saltos, golpes, agua, botones, motor, claxon y gente hablando
-task.spawn(BusUI.init) -- cartel de la próxima parada para los pasajeros del autobús
+task.spawn(BusUI.init) -- pasajeros del autobús: línea, próxima parada y "Bajar en la próxima"
+task.spawn(BusBoards.init) -- paneles ámbar de las paradas: cuánto falta para cada autobús
 task.spawn(SupermarketUI.init) -- supermercados: carrito, ticket, cajero y charcutería
 task.spawn(CafeUI.init) -- cafeterías: la carta y el panel del barista
 task.spawn(PostUI.init) -- Correos: el panel de la ruta del repartidor

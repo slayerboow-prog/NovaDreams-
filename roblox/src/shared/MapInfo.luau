@@ -84,6 +84,7 @@ MapInfo.Kinds = {
 	{ Model = "GimnasioValmar", Icon = "💪", Name = "Gimnasio", Important = true },
 	{ Model = "ZonaPesca", Icon = "🐟", Name = "Zona de pesca" },
 	{ Model = "BocaMetro", Icon = "🚇", Name = "Metro", Important = true },
+	{ Model = "ParadaBus", Icon = "🚏", Name = "Parada de bus" },
 	-- Instituciones del Estado (juzgado, Hacienda y cuartel dentro de edificios de la ciudad)
 	{ Model = "PalacioJusticia", Icon = "⚖️", Name = "Palacio de Justicia", Important = true },
 	{ Model = "CentroPenitenciario", Icon = "⛓", Name = "Centro Penitenciario", Important = true },
@@ -102,7 +103,7 @@ MapInfo.Legend = {
 	{ Name = "Estudios", Icon = "🏫", Models = { "Colegio", "Facultad", "Autoescuela" } },
 	{ Name = "Tiendas y comida", Icon = "🛍️", Models = { "CentroComercial", "Supermercado", "Restaurante", "Gasolinera", "PlazaFinanciera", "TiendaPesca", "Hotel" } },
 	{ Name = "Ocio y naturaleza", Icon = "🌳", Models = { "Parque", "Estadio", "Playa", "Granja", "Recreativos", "Plaza", "Mirador", "Faro", "Puerto", "Feria", "Camping", "Marina", "Museo", "Teatro", "ZonaPesca", "GimnasioValmar" } },
-	{ Name = "Ciudad y transporte", Icon = "🏛️", Models = { "TorreValmar", "Ayuntamiento", "EstacionCentral", "EstacionAutobuses", "GranCentroComercial", "BocaMetro" } },
+	{ Name = "Ciudad y transporte", Icon = "🏛️", Models = { "TorreValmar", "Ayuntamiento", "EstacionCentral", "EstacionAutobuses", "GranCentroComercial", "BocaMetro", "ParadaBus" } },
 	{ Name = "Instituciones", Icon = "⚖️", Models = { "PalacioJusticia", "CentroPenitenciario", "CuartelEjercito", "AgenciaTributaria" } },
 }
 

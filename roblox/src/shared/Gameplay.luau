@@ -56,13 +56,20 @@ Gameplay.Fuel = {
 
 -- Autobús urbano (línea L1 circular por todos los barrios)
 Gameplay.Bus = {
-	Fare = 2, -- billete (lo cobra la ciudad o el conductor jugador)
+	Fare = 2, -- billete de adulto (lo cobra la ciudad o el conductor jugador)
+	Fares = { Bebe = 0, Nino = 0, Adolescente = 1 }, -- los niños viajan gratis y los adolescentes pagan la mitad
 	DriverPerStop = 12, -- el conductor cobra por cada parada bien hecha
 	DriverPerPassenger = 2, -- y por cada pasajero que sube (jugadores y NPC)
-	NpcBuses = 3, -- autobuses automáticos en la línea
-	Speed = 36, -- velocidad de los autobuses automáticos (studs/s)
-	StopSeconds = 7, -- lo que esperan en cada parada con las puertas abiertas
-	StopRadius = 20, -- a qué distancia de la parada hay que parar
+	Speed = 40, -- velocidad máxima de los autobuses del juego (studs/s)
+	Accel = 10, -- aceleración al arrancar (studs/s²)
+	Brake = 9, -- frenada al llegar a la parada (studs/s²)
+	AverageFactor = 0.8, -- velocidad media / máxima (curvas, arrancar y frenar): para los tiempos de los paneles
+	StopSeconds = 8, -- lo que esperan en cada parada con las puertas abiertas
+	HoldSeconds = 22, -- si hay alguien en la parada, esperan hasta esto con las puertas abiertas
+	HoldRadius = 26, -- a qué distancia de la parada cuenta que alguien espera
+	BoardDistance = 40, -- desde dónde se puede subir (cartel de la parada o de la puerta)
+	BoardEvery = 2, -- cada cuántos segundos se actualizan los paneles de las paradas
+	StopRadius = 20, -- (conductor jugador) a qué distancia de la parada hay que parar
 }
 
 ---------------------------------------------------------------------
