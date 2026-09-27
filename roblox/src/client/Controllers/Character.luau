@@ -14,6 +14,7 @@ local UserInputService = game:GetService("UserInputService")
 local TOUCH = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 
 local Gameplay = require(ReplicatedStorage.Shared.Gameplay)
+local Gym = require(ReplicatedStorage.Shared.Gym)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Dialog = require(script.Parent.Parent.UI.Dialog)
 local Hud = require(script.Parent.Parent.UI.Hud)
@@ -31,7 +32,7 @@ local P = Gameplay.Progression
 local rgb = Color3.fromRGB
 
 local function openSheet()
-	local window, content = Dialog.window("CharacterSheet", "⭐ Tu personaje", Vector2.new(470, 470))
+	local window, content = Dialog.window("CharacterSheet", "⭐ Tu personaje", Vector2.new(470, 590))
 	local list = create("Frame", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Parent = content })
 	create("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder, Parent = list })
 	local header = Theme.label({ Size = UDim2.new(1, 0, 0, 44), TextSize = 15, TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top, LayoutOrder = 0, Parent = list })
@@ -47,6 +48,18 @@ local function openSheet()
 		end)
 		rows[stat.Id] = { Name = name, Plus = plus, Stat = stat }
 	end
+	-- Gimnasio: la Fuerza que se nota en el cuerpo y la Forma física (GymService)
+	local gym = Theme.panel({ Size = UDim2.new(1, 0, 0, 104), BackgroundColor3 = C.PanelLight, BackgroundTransparency = 0, LayoutOrder = 100, Parent = list })
+	Theme.padding(8).Parent = gym
+	local gymBars = {}
+	for i, id in { "GymStrength", "GymCardio" } do
+		local y = (i - 1) * 40
+		local label = Theme.label({ Position = UDim2.fromOffset(0, y), Size = UDim2.new(1, 0, 0, 22), Font = Theme.FontBold, TextSize = 16, Parent = gym })
+		local track = create("Frame", { Position = UDim2.fromOffset(0, y + 24), Size = UDim2.new(1, 0, 0, 8), BackgroundColor3 = rgb(12, 18, 32), BorderSizePixel = 0, Parent = gym }, { Theme.corner(4) })
+		local fill = create("Frame", { Size = UDim2.fromScale(0, 1), BackgroundColor3 = if i == 1 then rgb(240, 140, 40) else rgb(90, 190, 230), BorderSizePixel = 0, Parent = track }, { Theme.corner(4) })
+		gymBars[id] = { Label = label, Fill = fill }
+	end
+	local gymNote = Theme.label({ Position = UDim2.fromOffset(0, 80), Size = UDim2.new(1, 0, 0, 16), TextSize = 12, TextColor3 = C.Muted, Parent = gym })
 	local function refresh()
 		if not window.Parent then
 			return
@@ -61,9 +74,18 @@ local function openSheet()
 			row.Plus.BackgroundColor3 = if can then rgb(0, 150, 80) else C.PanelLight
 			row.Plus.AutoButtonColor = can
 		end
+		local strength = player:GetAttribute("GymStrength") or 0
+		local cardio = player:GetAttribute("GymCardio") or 0
+		gymBars.GymStrength.Label.Text = ("💪 Fuerza  ·  %d / 100  ·  %s"):format(math.floor(strength), Gym.level(strength))
+		gymBars.GymCardio.Label.Text = ("🏃 Forma física  ·  %d / 100  ·  %s"):format(math.floor(cardio), Gym.level(cardio))
+		gymBars.GymStrength.Fill.Size = UDim2.fromScale(math.clamp(strength / Gym.MaxStat, 0, 1), 1)
+		gymBars.GymCardio.Fill.Size = UDim2.fromScale(math.clamp(cardio / Gym.MaxStat, 0, 1), 1)
+		local days = player:GetAttribute("GymPassDays") or 0
+		gymNote.Text = if days > 0 then ("🏋️ Gimnasio: te queda%s %d día%s de entrada · entrena para ponerte fuerte"):format(if days == 1 then "" else "n", days, if days == 1 then "" else "s")
+			else "🏋️ Entrena en el gimnasio (💪 en el mapa): la Fuerza se nota en el cuerpo"
 	end
 	local connections = {}
-	for _, attribute in { "StatPoints", "Level", "Xp", "XpNext", "Stat_Salud", "Stat_Resistencia", "Stat_Fuerza", "Stat_Destreza", "Stat_Suerte" } do
+	for _, attribute in { "StatPoints", "Level", "Xp", "XpNext", "Stat_Salud", "Stat_Resistencia", "Stat_Fuerza", "Stat_Destreza", "Stat_Suerte", "GymStrength", "GymCardio", "GymPassDays" } do
 		table.insert(connections, player:GetAttributeChangedSignal(attribute):Connect(refresh))
 	end
 	window.Destroying:Connect(function()

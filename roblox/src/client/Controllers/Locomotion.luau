@@ -354,6 +354,7 @@ local function blockedMove(humanoid: Humanoid): boolean
 		or state == Enum.HumanoidStateType.Climbing
 		or state == Enum.HumanoidStateType.Dead
 		or player:GetAttribute("Riding") ~= nil
+		or player:GetAttribute("Training") ~= nil
 		or player:GetAttribute("InDialogue") == true
 		or (Cinematics ~= nil and Cinematics.isPlaying())
 end
@@ -468,6 +469,9 @@ local function onPrompt(prompt: ProximityPrompt)
 	local at = promptPosition(prompt)
 	if not at then
 		return
+	end
+	if prompt:GetAttribute("NoGesture") then
+		return -- los muebles con postura propia (grifo, nevera, piano…): UseMotion
 	end
 	local kind = ReactMotion.gestureFor(prompt.ActionText, 0)
 	if kind == nil then

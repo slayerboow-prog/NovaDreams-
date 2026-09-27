@@ -42,6 +42,8 @@ local TradeUI = require(script.Parent.Controllers.TradeUI)
 local PlayerMenuUI = require(script.Parent.Controllers.PlayerMenuUI)
 local FishingUI = require(script.Parent.Controllers.FishingUI)
 local MetroUI = require(script.Parent.Controllers.MetroUI)
+local GymUI = require(script.Parent.Controllers.GymUI)
+local GymMotion = require(script.Parent.Controllers.GymMotion)
 local DivingUI = require(script.Parent.Controllers.DivingUI)
 local SeaBiome = require(script.Parent.Controllers.SeaBiome)
 local SeaEventsUI = require(script.Parent.Controllers.SeaEventsUI)
@@ -63,6 +65,8 @@ local DeathUI = require(script.Parent.Controllers.DeathUI)
 local InstitutionsUI = require(script.Parent.Controllers.InstitutionsUI)
 local InteriorUI = require(script.Parent.Controllers.InteriorUI)
 local EconomyUI = require(script.Parent.Controllers.EconomyUI)
+local UseMotion = require(script.Parent.Controllers.UseMotion)
+local InteractClient = require(script.Parent.Controllers.InteractClient)
 local Joystick = require(script.Parent.Controllers.Joystick)
 local CommandMenu = require(script.Parent.Commands.CommandMenu)
 local DefaultCommands = require(script.Parent.Commands.DefaultCommands)
@@ -118,6 +122,8 @@ task.spawn(TradeUI.init) -- intercambio entre jugadores y mercadillo
 task.spawn(PlayerMenuUI.init) -- al tocar a un jugador: invitar al grupo, chat y comerciar
 task.spawn(FishingUI.init) -- pesca: sedal y corcho, ¡tirar!, tienda de pesca
 task.spawn(MetroUI.init) -- metro: panel del tren, billetes, tiendas, encargos y escenario
+task.spawn(GymUI.init) -- gimnasio: recepción (entrada y abono) y la barra del ritmo al entrenar
+task.spawn(GymMotion.init) -- gimnasio: el cuerpo hace el ejercicio y la máquina se mueve (cinta, pesas, bici…)
 task.spawn(DivingUI.init) -- nadar, bucear (aire) y pesca submarina con fusil o arpón
 task.spawn(SeaBiome.init) -- el fondo del mar y la luz bajo el agua (solo cuando estás en el agua)
 task.spawn(SeaEventsUI.init) -- catástrofes marinas: alerta, ola del tsunami, rayos, remolino, tiburón y medusas
@@ -141,6 +147,8 @@ end)
 task.spawn(InstitutionsUI.init) -- instituciones: panel del juez, juicio, condena, ascensos y Hacienda
 task.spawn(InteriorUI.init) -- ascensor de los edificios (todos se pueden visitar por dentro)
 task.spawn(EconomyUI.init) -- granja (cooperativa, obrador) y negocios (gestión y mostrador)
+task.spawn(UseMotion.init) -- posturas al usar los muebles: sentado, tumbado, grifo, nevera, ducha, ordenador, piano, ventana
+task.spawn(InteractClient.init) -- tele con imagen, ordenador, piano, agua y clics de los muebles
 
 -- Menú de comandos (abajo a la izquierda): cambia según lo que tienes delante; el comando elegido
 -- es también lo que hace la tecla E, y su cartel es el único que se dibuja

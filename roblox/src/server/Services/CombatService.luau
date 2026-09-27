@@ -56,8 +56,8 @@ local function canFight(player: Player): boolean
 	if stage and not Stages.inRange(stage, Combat.MinStage, nil) then
 		return false
 	end
-	if player:GetAttribute("InDialogue") then
-		return false
+	if player:GetAttribute("InDialogue") or player:GetAttribute("Training") then
+		return false -- (en una conversación o entrenando en el gimnasio no se pelea)
 	end
 	local okClass, inClass = pcall(ClassService.isRunning, player)
 	local okGame, inGame = pcall(MiniGameService.isRunning, player)
@@ -192,7 +192,7 @@ local function attack(player: Player)
 			-- Defenderse solo sirve si miras hacia quien te pega
 			local facing = targetRoot.CFrame.LookVector:Dot(-direction) > 0.2
 			local blocked = victimState.Blocking and facing
-			local amount = Combat.damage(combo, ProgressionService.stat(player, "Fuerza"), blocked)
+			local amount = Combat.damage(combo, ProgressionService.stat(player, "Fuerza"), blocked, player:GetAttribute("GymStrength"))
 			local health, ko = Combat.apply(targetHumanoid.Health, amount)
 			targetHumanoid.Health = health
 			hits += 1
@@ -217,7 +217,7 @@ local function attack(player: Player)
 				continue
 			end
 			hits += 1
-			local amount = Combat.damage(combo, ProgressionService.stat(player, "Fuerza"), false)
+			local amount = Combat.damage(combo, ProgressionService.stat(player, "Fuerza"), false, player:GetAttribute("GymStrength"))
 			local hp = (model:GetAttribute("Hp") or 0) - amount
 			model:SetAttribute("Hp", hp)
 			Remote:FireAllClients("Hit", { Victim = model, Attacker = player, Amount = amount, Blocked = false, Combo = combo, Direction = direction, Knockback = 0, KO = hp <= 0 })

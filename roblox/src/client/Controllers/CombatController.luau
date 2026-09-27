@@ -87,6 +87,7 @@ function CombatController.canAttack(): boolean
 		and humanoid.SeatPart == nil
 		and not player:GetAttribute("KO")
 		and not player:GetAttribute("InDialogue")
+		and not player:GetAttribute("Training") -- (entrenando en el gimnasio)
 		and (stage == nil or Stages.inRange(stage, Combat.MinStage, nil))
 end
 

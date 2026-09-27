@@ -39,6 +39,7 @@ local order = {
 	"WorldService",
 	"InteriorService", -- todos los edificios por dentro (salas al entrar, ascensores e instituciones)
 	"PropertyService", -- casas y pisos que se compran, y los vecinos que viven en ellos
+	"InteractService", -- los muebles se usan: sentarse, dormir, tele, luces, nevera, grifos, ducha, puertas…
 	"WeatherService", -- estaciones y tiempo: sol, lluvia, tormenta, nieve, niebla
 	"ToyService", -- balones y conos con física: se patean, botan y vuelven solos a su sitio
 	"BreakService", -- piedras que se lanzan: ventanas y puertas que se rompen (y se arreglan solas)
@@ -71,6 +72,7 @@ local order = {
 	"FarmService", -- agricultores y ganaderos: fincas de Villaverde, cooperativa, obrador y venta a supermercados
 	"BusinessService", -- negocios de jugadores: locales, gasolineras y hoteles con existencias, precios y clientes
 	"MetroService", -- metro subterráneo: trenes, galería, encargos y revisor
+	"GymService", -- gimnasios: recepción, máquinas, ritmo, fuerza que se nota en el cuerpo y monitor/a
 	"MetroLifeService", -- vida del metro: guardias, ratas, aseos, taquillas, fuente, piano…
 	"DivingService", -- nadar, bucear (aire) y pesca submarina con fusil o arpón
 	"SeaEventService", -- catástrofes marinas: tsunami, temporal, remolino, marea negra, tiburón y medusas

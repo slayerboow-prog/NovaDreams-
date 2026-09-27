@@ -999,8 +999,9 @@ local function decorate(inst: any)
 		return
 	end
 	local premise = byBuilding[building.Id]
-	local register = inst.Room.Model:FindFirstChild("Register") :: BasePart?
-	local counter = inst.Room.Model:FindFirstChild("Counter") :: BasePart?
+	-- (la caja y el mostrador pueden ir dentro del grupo "Checkout" de los muebles)
+	local register = inst.Room.Model:FindFirstChild("Register", true) :: BasePart?
+	local counter = inst.Room.Model:FindFirstChild("Counter", true) :: BasePart?
 	if not premise or not register then
 		return
 	end
