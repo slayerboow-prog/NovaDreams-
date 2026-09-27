@@ -79,6 +79,7 @@ MapInfo.Kinds = {
 	{ Model = "Camping", Icon = "⛺", Name = "Camping Valmar", Important = true },
 	{ Model = "Marina", Icon = "⛵", Name = "Puerto Deportivo", Important = true },
 	{ Model = "Supermercado", Icon = "🛒", Name = "Supermercado", Important = true },
+	{ Model = "Hotel", Icon = "🏨", Name = "Hotel", Important = true },
 	{ Model = "TiendaPesca", Icon = "🎣", Name = "Tienda de pesca", Important = true },
 	{ Model = "ZonaPesca", Icon = "🐟", Name = "Zona de pesca" },
 	{ Model = "BocaMetro", Icon = "🚇", Name = "Metro", Important = true },
@@ -98,7 +99,7 @@ end
 MapInfo.Legend = {
 	{ Name = "Salud y emergencias", Icon = "🏥", Models = { "Hospital", "CentroSalud", "Policia", "Bomberos" } },
 	{ Name = "Estudios", Icon = "🏫", Models = { "Colegio", "Facultad", "Autoescuela" } },
-	{ Name = "Tiendas y comida", Icon = "🛍️", Models = { "CentroComercial", "Supermercado", "Restaurante", "Gasolinera", "PlazaFinanciera", "TiendaPesca" } },
+	{ Name = "Tiendas y comida", Icon = "🛍️", Models = { "CentroComercial", "Supermercado", "Restaurante", "Gasolinera", "PlazaFinanciera", "TiendaPesca", "Hotel" } },
 	{ Name = "Ocio y naturaleza", Icon = "🌳", Models = { "Parque", "Estadio", "Playa", "Granja", "Recreativos", "Plaza", "Mirador", "Faro", "Puerto", "Feria", "Camping", "Marina", "Museo", "Teatro", "ZonaPesca" } },
 	{ Name = "Ciudad y transporte", Icon = "🏛️", Models = { "TorreValmar", "Ayuntamiento", "EstacionCentral", "EstacionAutobuses", "GranCentroComercial", "BocaMetro" } },
 	{ Name = "Instituciones", Icon = "⚖️", Models = { "PalacioJusticia", "CentroPenitenciario", "CuartelEjercito", "AgenciaTributaria" } },

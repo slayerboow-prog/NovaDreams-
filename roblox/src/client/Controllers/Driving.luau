@@ -217,6 +217,11 @@ local function step(dt: number)
 		target = base
 		centre = ground(params, base, base.Y + 3.2)
 	end
+	-- Bajo las calles el terreno está vaciado: si el rayo atraviesa la calzada (aún sin cargar, un
+	-- hueco…) y da con el terreno muy por debajo, no se baja ahí (así nunca se queda bajo el suelo)
+	if centre and centre.Instance == workspace.Terrain and centre.Position.Y < base.Y - 2.5 then
+		centre = nil
+	end
 	local y = if centre then centre.Position.Y else target.Y
 	local front = ground(params, target + forward * (size.Z * 0.4), top)
 	local back = ground(params, target - forward * (size.Z * 0.4), top)

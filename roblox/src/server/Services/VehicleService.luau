@@ -336,8 +336,25 @@ function VehicleService.dismount(player: Player, silent: boolean?)
 	end
 	-- Se baja por el lado izquierdo (del coche, fuera de la carrocería)
 	if root and chassis and humanoid and humanoid.Health > 0 then
+		-- Al lado izquierdo, de pie sobre el suelo que haya ahí (nunca dentro ni debajo de nada)
 		local side = (Rides.Spec[ride.Kind].Size.X / 2) + 2.5
-		root.CFrame = chassis.CFrame * CFrame.new(-side, 3.5, 0)
+		local flat = chassis.CFrame.Rotation:VectorToWorldSpace(Vector3.new(-1, 0, 0))
+		flat = Vector3.new(flat.X, 0, flat.Z)
+		flat = if flat.Magnitude > 0.1 then flat.Unit else Vector3.new(-1, 0, 0)
+		local spot = chassis.Position + flat * side
+		local params = RaycastParams.new()
+		params.FilterType = Enum.RaycastFilterType.Exclude
+		params.FilterDescendantsInstances = { ride.Model, character :: Instance }
+		params.RespectCanCollide = true
+		local hit = workspace:Raycast(spot + Vector3.new(0, 12, 0), Vector3.new(0, -40, 0), params)
+		if not hit or (hit.Instance == workspace.Terrain and hit.Position.Y < chassis.Position.Y - 3) then
+			-- nada firme al lado: encima del propio vehículo
+			hit = workspace:Raycast(chassis.Position + Vector3.new(0, 12, 0), Vector3.new(0, -40, 0), params)
+			spot = chassis.Position
+		end
+		local ground = if hit then hit.Position.Y else chassis.Position.Y
+		local height = humanoid.HipHeight + root.Size.Y / 2 + 0.5
+		root.CFrame = CFrame.new(spot.X, math.max(ground, chassis.Position.Y - 2) + height, spot.Z) * CFrame.Angles(0, math.atan2(-flat.X, -flat.Z) + math.pi / 2, 0)
 		root.AssemblyLinearVelocity = Vector3.zero
 	end
 	if not ride.Keep then

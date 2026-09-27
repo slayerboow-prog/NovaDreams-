@@ -8,7 +8,7 @@
 -- Controles:
 --   Teclado:  ↑ ↓ elegir · Enter aceptar · ← o Retroceso volver · E usar lo que tienes delante
 --   Mando:    cruceta ↑ ↓ elegir · cruceta → aceptar · cruceta ← o B volver · X usar
---   Móvil:    tocar un comando lo acepta
+--   Móvil:    un toque elige un comando y otro toque sobre el elegido lo hace (a la derecha)
 -- Mientras hablas con alguien o ves una cinemática se aparta (setBusy).
 
 local ContextActionService = game:GetService("ContextActionService")
@@ -272,9 +272,16 @@ function CommandMenu.init()
 	local function layout()
 		local view = camera.ViewportSize
 		local hud = math.clamp(math.min(view.Y / 900, view.X / 1700), 0.55, 1.2)
-		-- en el móvil un poco más grande para poder tocarlo bien
+		-- En el móvil: a la derecha, entre el minimapa y los botones (abajo a la izquierda va el
+		-- joystick y el pulgar lo tocaba sin querer), un poco más grande para tocarlo bien
 		scale.Scale = if TOUCH then math.max(hud, 0.72) else hud
-		renderer.Root.Position = UDim2.new(0, if TOUCH then 10 else 18, 1, if TOUCH then -10 else -16)
+		if TOUCH then
+			renderer.Root.AnchorPoint = Vector2.new(1, 0.5)
+			renderer.Root.Position = UDim2.new(1, -8, 0.5, 0)
+		else
+			renderer.Root.AnchorPoint = Vector2.new(0, 1)
+			renderer.Root.Position = UDim2.new(0, 18, 1, -16)
+		end
 	end
 	camera:GetPropertyChangedSignal("ViewportSize"):Connect(layout)
 	layout()
@@ -290,6 +297,16 @@ function CommandMenu.init()
 		end
 	end
 	renderer.ActivateCallback = function(index: number)
+		local level = current()
+		-- En el móvil: un toque elige y otro toque sobre el elegido lo hace (nunca sin querer)
+		if TOUCH and level and level.Index ~= index then
+			lastInput = os.clock()
+			level.Index = index
+			renderer:select(index)
+			UiAudio.move()
+			updateFocus()
+			return
+		end
 		accept(index)
 	end
 	renderer:setHint(hint())

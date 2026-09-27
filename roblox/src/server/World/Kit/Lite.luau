@@ -254,6 +254,11 @@ function Lite.hotel(parent: Instance, cf: CFrame, w: number, d: number): Model
 	local name = pick(HOTELS)
 	local m = Lite.building(parent, cf, w, d, math.random(6, 12), { Style = pick({ "Moderno", "Clasico" }), Balconies = true, Shop = name })
 	m.Name = "Hotel"
+	-- (Carga normal, no en bloque: lleva dentro la recepción jugable, el tablón y la piscina, y un
+	-- modelo "atómico" tan grande y con cosas que cambian a veces no llegaba a verse)
+	pcall(function()
+		(m :: any).ModelStreamingMode = Enum.ModelStreamingMode.Default
+	end)
 	-- Recepción jugable al lado (oficio de recepcionista: HotelService)
 	HotelLobby.build(m, cf * CFrame.new(-w / 2 - 13, 0, -d / 2 + 15), (string.gsub(name, "^HOTEL ", "")))
 	Props.jobBoard(m, cf * CFrame.new(-w / 2 - 22, 0, -d / 2 - 4), "Recepcionista", "RECEPCIÓN")

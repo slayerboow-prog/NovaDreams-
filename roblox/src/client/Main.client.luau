@@ -203,6 +203,7 @@ local function coreGuis()
 	pcall(function()
 		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false) -- mochila propia
 		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false) -- tapaba los botones de arriba a la derecha
+		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.EmotesMenu, true) -- gestos y bailes: los de Roblox
 	end)
 end
 coreGuis()
