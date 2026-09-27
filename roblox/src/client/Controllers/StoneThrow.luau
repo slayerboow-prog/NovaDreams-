@@ -13,6 +13,7 @@ local UserInputService = game:GetService("UserInputService")
 
 local Breakables = require(ReplicatedStorage.Shared.Breakables)
 local Hud = require(script.Parent.Parent.UI.Hud)
+local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
 
 local StoneThrow = {}
 
@@ -81,13 +82,13 @@ end
 local function refreshButton()
 	local count = player:GetAttribute("Stones") or 0
 	local baby = player:GetAttribute("LifeStage") == "Bebe"
-	if baby then
+	if baby or TouchLayout.riding() then
 		ContextActionService:UnbindAction(ACTION)
 		return
 	end
 	ContextActionService:BindAction(ACTION, use, true, Enum.KeyCode.B, Enum.KeyCode.ButtonY)
-	ContextActionService:SetTitle(ACTION, if count > 0 then ("🪨×%d"):format(count) else "🪨")
-	ContextActionService:SetPosition(ACTION, UDim2.new(1, -170, 1, -210))
+	ContextActionService:SetTitle(ACTION, if count > 0 then ("🥌×%d"):format(count) else "🥌")
+	TouchLayout.placeAction(ContextActionService, ACTION, "Piedra")
 end
 
 local function newStone(): BasePart
@@ -113,6 +114,7 @@ function StoneThrow.init()
 
 	refreshButton()
 	player:GetAttributeChangedSignal("LifeStage"):Connect(refreshButton)
+	player:GetAttributeChangedSignal("Riding"):Connect(refreshButton)
 	player:GetAttributeChangedSignal("Stones"):Connect(function()
 		refreshButton()
 		if (player:GetAttribute("Stones") or 0) > 0 and not hinted then

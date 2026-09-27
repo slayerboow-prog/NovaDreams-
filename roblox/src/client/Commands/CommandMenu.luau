@@ -39,7 +39,7 @@ local busy = false
 local signature = ""
 local onFocusChanged: ((ProximityPrompt?) -> ())? = nil
 
-local BACK: Command = { Id = "_Volver", Label = "Volver", Icon = "◂", Priority = 1e9 }
+local BACK: Command = { Id = "_Volver", Label = "Volver", Icon = "⬅", Priority = 1e9 }
 
 local function current(): Level
 	return stack[#stack]
@@ -269,17 +269,17 @@ function CommandMenu.init()
 	renderer = CommandRenderer.new(gui, TOUCH)
 	local scale = Theme.create("UIScale", { Parent = renderer.Root })
 	local camera = workspace.CurrentCamera
+	-- A la izquierda, entre tu estado (arriba) y el joystick del móvil (abajo); en el ordenador,
+	-- abajo a la izquierda. Pequeño para que no tape el mundo.
 	local function layout()
 		local view = camera.ViewportSize
 		local hud = math.clamp(math.min(view.Y / 900, view.X / 1700), 0.55, 1.2)
-		-- En el móvil: a la derecha, entre el minimapa y los botones (abajo a la izquierda va el
-		-- joystick y el pulgar lo tocaba sin querer), un poco más grande para tocarlo bien
-		scale.Scale = if TOUCH then math.max(hud, 0.72) else hud
+		scale.Scale = if TOUCH then math.clamp(view.Y / 700, 0.5, 0.8) else hud * 0.85
+		renderer.Root.AnchorPoint = Vector2.new(0, 1)
 		if TOUCH then
-			renderer.Root.AnchorPoint = Vector2.new(1, 0.5)
-			renderer.Root.Position = UDim2.new(1, -8, 0.5, 0)
+			-- El joystick de Roblox ocupa la franja de abajo (unos 40 % de la altura en móviles)
+			renderer.Root.Position = UDim2.new(0, 14, 1, -math.max(150, view.Y * 0.38))
 		else
-			renderer.Root.AnchorPoint = Vector2.new(0, 1)
 			renderer.Root.Position = UDim2.new(0, 18, 1, -16)
 		end
 	end

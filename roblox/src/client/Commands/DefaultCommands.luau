@@ -225,7 +225,7 @@ function DefaultCommands.register()
 	local more: Command = {
 		Id = "Mas",
 		Label = "Más",
-		Icon = "✦",
+		Icon = "➕",
 		Priority = 60,
 		Open = function()
 			return {
@@ -237,6 +237,16 @@ function DefaultCommands.register()
 				end },
 				{ Id = "Vehiculos", Label = "Vehículos", Icon = "🚲", Priority = 3, Run = function()
 					Vehicles.open()
+				end },
+				{ Id = "Viviendas", Label = "Mis viviendas", Icon = "🏠", Priority = 4.4, Run = function()
+					local homes = Players.LocalPlayer:GetAttribute("Homes")
+					if homes then
+						for line in string.gmatch(homes, "[^\n]+") do
+							Hud.toast("Info", "🏠 " .. line)
+						end
+					else
+						Hud.toast("Info", "🏠 Aún no tienes vivienda. Entra en casas y pisos: los que tienen el cartel SE VENDE se pueden comprar.")
+					end
 				end },
 				{ Id = "Carrera", Label = "Mi carrera", Icon = "🎖", Priority = 4.5, Run = function()
 					InstitutionsUI.showCareer()

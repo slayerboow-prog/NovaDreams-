@@ -12,6 +12,7 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 local Theme = require(script.Parent.Parent.UI.Theme)
+local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
 
 local PoliceUI = {}
 
@@ -80,6 +81,8 @@ local function siren()
 	end
 end
 
+local updateSiren: (() -> ())?
+
 function PoliceUI.init()
 	local gui = create("ScreenGui", { Name = "PoliceGui", ResetOnSpawn = false, Parent = player:WaitForChild("PlayerGui") })
 	Theme.fit(gui)
@@ -105,22 +108,26 @@ function PoliceUI.init()
 		Parent = panel,
 	})
 	if UserInputService.TouchEnabled then
+		-- (en su propia pantalla sin escala, en el arco del botón de saltar; solo conduciendo)
+		local touchGui = create("ScreenGui", { Name = "SirenGui", ResetOnSpawn = false, Parent = player:WaitForChild("PlayerGui") })
 		sirenButton = Theme.button({
 			Name = "SirenButton",
-			AnchorPoint = Vector2.new(1, 1),
-			Size = UDim2.fromOffset(56, 56),
-			Position = UDim2.new(1, -316, 1, -28),
 			Text = "🚨",
 			TextSize = 26,
 			BackgroundTransparency = 0.3,
 			Visible = false,
-			Parent = gui,
+			Parent = touchGui,
 		})
+		TouchLayout.place(sirenButton :: TextButton, "Sirena")
 		local corner = (sirenButton :: TextButton):FindFirstChildOfClass("UICorner")
 		if corner then
 			corner.CornerRadius = UDim.new(0.5, 0)
 		end
 		(sirenButton :: TextButton).Activated:Connect(siren)
+		updateSiren = TouchLayout.showWhen(sirenButton :: TextButton, "Vehiculo", function()
+			local job = player:GetAttribute("Job")
+			return job == "Policia" or job == "Bombero"
+		end)
 	end
 	ContextActionService:BindAction("PoliceSiren", function(_, state)
 		if state == Enum.UserInputState.Begin and not UserInputService:GetFocusedTextBox() then
@@ -143,8 +150,8 @@ function PoliceUI.init()
 		if job ~= "Policia" then
 			panel.Visible = false
 		end
-		if sirenButton then
-			sirenButton.Visible = job == "Policia" or job == "Bombero"
+		if updateSiren then
+			updateSiren()
 		end
 	end)
 

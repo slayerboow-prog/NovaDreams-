@@ -7,6 +7,8 @@
 --   * Adolescente: un poco encorvado, hombros hacia delante y brazos más caídos.
 --   * Adulto: como siempre.
 --   * Mayor: espalda encorvada, rodillas algo dobladas, pasos cortos y brazos que casi no se balancean.
+--   * En el agua y pescando (jugadores): nada, bucea, apunta con el fusil, echa la caña, pelea con
+--     el pez… con las posturas de SeaMotion, y lleva sus cosas (SeaFx: caña, fusil, gafas, burbujas).
 --   * Trabajando (jugadores): quieto en su puesto hace su oficio con las posturas de WorkAnim
 --     (el barista remueve el café, el cajero pasa productos, el bombero sujeta la manguera…) y,
 --     si lleva algo (una caja, un plato, un paquete), lo sujeta con las dos manos, también andando.
@@ -23,6 +25,8 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
 local WorkAnim = require(script.Parent.WorkAnim)
+local SeaMotion = require(script.Parent.SeaMotion)
+local SeaFx = require(script.Parent.SeaFx)
 
 local AgeMotion = {}
 
@@ -242,7 +246,7 @@ type Body = {
 	Humanoid: Humanoid,
 	Root: BasePart,
 	Player: Player?,
-	Joints: { [string]: Motor6D },
+	Joints: { [string]: any }, -- Motor6D o AnimationConstraint
 	Base: { [string]: CFrame }, -- lo que puso la animación este frame
 	Written: { [string]: CFrame }, -- lo que pusimos nosotros (si sigue igual, la animación no lo tocó)
 	Active: boolean,
@@ -259,6 +263,13 @@ type Body = {
 	Work: number, -- 0..1: cuánto está haciendo su tarea (suave)
 	WorkPose: WorkAnim.Pose,
 	Props: { WorkAnim.HeldProp },
+	Sea: number, -- 0..1: cuánto manda la postura de nadar o pescar (suave)
+	SeaPose: { [string]: CFrame }?,
+	SeaPhase: number,
+	WaterAt: number, -- cuándo se miró por última vez si hay agua debajo
+	Water: boolean,
+	LastY: number?,
+	Fx: any,
 }
 
 local bodies: { [Model]: Body } = {}
@@ -299,6 +310,13 @@ local function register(model: Model)
 		Work = 0,
 		WorkPose = {} :: any,
 		Props = {},
+		Sea = 0,
+		SeaPose = nil,
+		SeaPhase = 0,
+		WaterAt = 0,
+		Water = false,
+		LastY = nil,
+		Fx = SeaFx.new(),
 	}
 	WorkAnim.clear(bodies[model].WorkPose)
 	model.AncestryChanged:Connect(function(_, parent)
@@ -312,7 +330,7 @@ local function findJoints(body: Body)
 	table.clear(body.Joints)
 	for _, name in JOINTS do
 		local joint = body.Model:FindFirstChild(name, true)
-		if joint and joint:IsA("Motor6D") then
+		if joint and (joint:IsA("Motor6D") or joint:IsA("AnimationConstraint")) then -- (articulaciones nuevas de Roblox)
 			body.Joints[name] = joint
 		end
 	end
@@ -432,6 +450,85 @@ local function release(body: Body)
 	WorkAnim.clearProps(body.Props)
 	body.WorkName = nil
 	body.Work = 0
+	SeaFx.clear(body.Fx)
+	body.Sea = 0
+	body.SeaPose = nil
+end
+
+---------------------------------------------------------------------
+-- Agua y pesca
+---------------------------------------------------------------------
+local waterParams: RaycastParams? = nil
+
+-- ¿Hay agua debajo? (se mira como mucho dos veces por segundo)
+local function waterBelow(body: Body, position: Vector3, t: number): boolean
+	if t - body.WaterAt < 0.5 then
+		return body.Water
+	end
+	body.WaterAt = t
+	if not waterParams then
+		local params = RaycastParams.new()
+		params.FilterType = Enum.RaycastFilterType.Include
+		params.FilterDescendantsInstances = { workspace.Terrain }
+		params.IgnoreWater = false
+		waterParams = params
+	end
+	local hit = workspace:Raycast(Vector3.new(position.X, SeaMotion.Surface + 14, position.Z), Vector3.new(0, -30, 0), waterParams)
+	body.Water = hit ~= nil and hit.Material == Enum.Material.Water
+	return body.Water
+end
+
+local function serverNow(): number
+	local ok, now = pcall(function()
+		return workspace:GetServerTimeNow()
+	end)
+	return if ok then now else os.clock()
+end
+
+-- Nadar, bucear o pescar: postura de SeaMotion y cosas de SeaFx
+local function seaPose(body: Body, t: number, dt: number, speed: number, vertical: number, sitting: boolean): { [string]: CFrame }?
+	local player = body.Player
+	if not player or sitting then
+		SeaFx.update(body.Fx, { Model = body.Model, Player = player, State = nil, InWater = false, Underwater = false, Vertical = 0, Fishing = false })
+		return nil
+	end
+	local position = body.Root.Position
+	local head = body.Model:FindFirstChild("Head") :: BasePart?
+	local inWater = position.Y < SeaMotion.Surface + 0.4 and waterBelow(body, position, t)
+	local underwater = inWater and head ~= nil and head.Position.Y < SeaMotion.Surface - 0.8
+	local now = serverNow()
+	local spearAt = player:GetAttribute("SpearAt")
+	local fish = player:GetAttribute("FishAnim")
+	local fishAt = player:GetAttribute("FishAnimAt")
+	local gun = player:GetAttribute("Speargun")
+	body.SeaPhase = (body.SeaPhase + dt * SeaMotion.strokeRate(speed, underwater)) % (math.pi * 200)
+	local pose, state = SeaMotion.pose({
+		InWater = inWater,
+		Underwater = underwater,
+		Speed = speed,
+		Vertical = vertical,
+		Armed = type(gun) == "string",
+		ShotAgo = if typeof(spearAt) == "number" then now - spearAt else math.huge,
+		Fish = if type(fish) == "string" then fish else nil,
+		FishAgo = if typeof(fishAt) == "number" then now - fishAt else 0,
+		Phase = body.SeaPhase,
+		Seed = body.Seed,
+	}, t)
+	local gear = player:GetAttribute("DiveGear")
+	local fishId = player:GetAttribute("FishAnimFish")
+	SeaFx.update(body.Fx, {
+		Model = body.Model,
+		Player = player,
+		State = state,
+		InWater = inWater,
+		Underwater = underwater,
+		Vertical = vertical,
+		Fishing = type(fish) == "string" and fish ~= "Reel",
+		FishId = if type(fishId) == "string" then fishId else nil,
+		Gun = if type(gun) == "string" then gun else nil,
+		Gear = if type(gear) == "string" then gear else nil,
+	})
+	return pose
 end
 
 local function update(body: Body, t: number, dt: number)
@@ -455,6 +552,11 @@ local function update(body: Body, t: number, dt: number)
 		speed = Vector3.new(v.X, 0, v.Z).Magnitude
 	end
 	body.LastPos = position
+	local vertical = 0
+	if body.LastY and dt > 0 then
+		vertical = (position.Y - body.LastY) / dt
+	end
+	body.LastY = position.Y
 	speed = math.min(speed, 30)
 	body.Move = smooth(body.Move, if speed > 0.6 then 1 else 0, 6, dt)
 	-- El paso va con la velocidad y el tamaño (un bebé da pasos cortos): andando normal, un paso
@@ -489,7 +591,15 @@ local function update(body: Body, t: number, dt: number)
 	end
 	WorkAnim.showProps(body.Props, W > 0.5)
 
-	if body.Crawl < 0.001 and body.Style < 0.001 and W < 0.001 then
+	-- Nadar, bucear o pescar
+	local sea = seaPose(body, t, dt, speed, math.clamp(vertical, -30, 30), sitting)
+	if sea then
+		body.SeaPose = sea
+	end
+	body.Sea = smooth(body.Sea, if sea then 1 else 0, if sea then 8 else 5, dt)
+	local seaTarget = if body.Sea > 0.001 then body.SeaPose else nil
+
+	if body.Crawl < 0.001 and body.Style < 0.001 and W < 0.001 and not seaTarget then
 		restore(body)
 		return
 	end
@@ -538,6 +648,10 @@ local function update(body: Body, t: number, dt: number)
 		end
 		if crawl then
 			out = out:Lerp(crawl[name] or out, body.Crawl)
+		end
+		local target = seaTarget and seaTarget[name]
+		if target then
+			out = out:Lerp(target, body.Sea)
 		end
 		joint.Transform = out
 		body.Written[name] = out

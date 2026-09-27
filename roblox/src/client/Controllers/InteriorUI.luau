@@ -1,6 +1,6 @@
 -- InteriorUI (cliente): el panel del ascensor de los edificios (InteriorService).
 -- Botones con cada planta (Planta baja, 1ª, 2ª… y la Azotea en la Torre de Valmar); la planta en la
--- que estás sale marcada. Se cierra al elegir, con ✕ o al alejarse.
+-- que estás sale marcada, y en los pisos, quién vive en cada una (🙂 vecino, 👤 jugador, 🏷 en venta). Se cierra al elegir, con ✕ o al alejarse.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -47,12 +47,13 @@ local function open(data: { [string]: any })
 		table.insert(floors, n)
 	end
 	local columns = if #floors > 12 then 3 elseif #floors > 6 then 2 else 1
+	local cell = if data.Labels and next(data.Labels) then 230 else 160
 	local rows = math.ceil(#floors / columns)
 	local frame = Theme.panel({
 		Name = "Elevator",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromOffset(40 + columns * 170, 110 + math.min(rows, 10) * 46),
+		Size = UDim2.fromOffset(40 + columns * (cell + 10), 110 + math.min(rows, 10) * 46),
 		Parent = gui,
 	})
 	panel = frame
@@ -70,12 +71,14 @@ local function open(data: { [string]: any })
 		BorderSizePixel = 0,
 		Parent = frame,
 	})
-	create("UIGridLayout", { CellSize = UDim2.fromOffset(160, 40), CellPadding = UDim2.fromOffset(8, 6), SortOrder = Enum.SortOrder.LayoutOrder, Parent = list })
+	create("UIGridLayout", { CellSize = UDim2.fromOffset(cell, 40), CellPadding = UDim2.fromOffset(8, 6), SortOrder = Enum.SortOrder.LayoutOrder, Parent = list })
 	for i, n in floors do
 		local here = n == data.Current
+		local label = data.Labels and data.Labels[tostring(n)]
 		local button = Theme.button({
-			Text = floorName(n) .. (if here then "  ◀" else ""),
-			TextSize = 16,
+			Text = floorName(n) .. (if label then "  " .. label else "") .. (if here then "  ◀" else ""),
+			TextSize = if label then 13 else 16,
+			TextTruncate = Enum.TextTruncate.AtEnd,
 			LayoutOrder = i,
 			BackgroundColor3 = if here then rgb(40, 110, 200) else C.Panel,
 			Parent = list,

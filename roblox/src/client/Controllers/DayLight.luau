@@ -7,6 +7,8 @@
 --   * Los ojos se acostumbran: dentro de casa la imagen se aclara un poco, como una cámara de verdad.
 --   * En las cinemáticas, enfoque de cine (el fondo se desenfoca un poco) y algo más de contraste.
 --   * En dispositivos con calidad gráfica baja se quitan los efectos más caros (desenfoque, rayos de sol).
+--   * Bajo el agua (SeaBiome llama a setUnderwater): bruma verde azulada, colores apagados, menos
+--     sol y el fondo desenfocado, como en el mar de verdad.
 -- El reloj lo mueve el servidor (WorldService); aquí solo se lee Lighting.ClockTime.
 
 local Lighting = game:GetService("Lighting")
@@ -151,6 +153,27 @@ local cinematic = 0
 local cinematicTarget = 0
 local focus: number? = nil -- enfoque de cámara de cine (distancia a lo que se mira); nil = el de siempre
 local lowQuality = false
+local underwater = 0 -- 0 = fuera del agua, 1 = la cámara está bajo el agua (lo pone SeaBiome)
+
+-- La luz bajo el agua: la de la hora, pero con bruma del mar, tono verde azulado y menos sol
+local function underwaterKey(k: Key): Key
+	local out = table.clone(k)
+	out.Density = 0.62
+	out.Offset = 1
+	out.AtmColor = rgb(28, 108, 128):Lerp(k.AtmColor, 0.15)
+	out.Decay = rgb(6, 38, 58)
+	out.Glare = 0
+	out.Haze = 2.6
+	out.Tint = rgb(150, 215, 228):Lerp(k.Tint, 0.2)
+	out.Saturation = k.Saturation - 0.05
+	out.Contrast = k.Contrast + 0.08
+	out.CCBright = k.CCBright - 0.03
+	out.Exposure = k.Exposure - 0.1
+	out.Bloom = k.Bloom * 0.5
+	out.Rays = math.max(k.Rays, 0.12)
+	out.RaysSpread = 0.9
+	return out
+end
 
 local function find(className: string): any
 	local found = effects[className]
@@ -224,7 +247,14 @@ local function apply(k: Key, dt: number)
 		rays.Spread = k.RaysSpread
 	end
 	local dof = find("DepthOfFieldEffect")
-	if dof then
+	if dof and underwater > 0.01 and not focus then
+		-- Bajo el agua lo lejano se ve borroso
+		dof.Enabled = true
+		dof.FarIntensity = 0.38 * underwater
+		dof.FocusDistance = 14
+		dof.InFocusRadius = 26
+		dof.NearIntensity = 0
+	elseif dof then
 		-- Un poco de desenfoque a lo lejos (como una cámara), más en las cinemáticas; nada dentro de casa
 		dof.Enabled = not lowQuality
 		dof.FarIntensity = (0.06 + 0.2 * cinematic) * (1 - indoor)
@@ -258,6 +288,11 @@ function DayLight.setModifier(fn: ((Key) -> Key)?)
 	modifier = fn
 end
 
+-- Cuánto está la cámara bajo el agua (0..1): lo pone SeaBiome
+function DayLight.setUnderwater(value: number)
+	underwater = math.clamp(value, 0, 1)
+end
+
 -- Las cinemáticas activan el "modo cine" (Controllers/Cinematics.luau)
 function DayLight.setCinematic(on: boolean)
 	cinematicTarget = if on then 1 else 0
@@ -283,6 +318,14 @@ function DayLight.init()
 			local k = sample(Lighting.ClockTime)
 			if modifier then
 				k = modifier(k)
+			end
+			if underwater > 0.001 then
+				local under = underwaterKey(k)
+				local mixed = {}
+				for name, value in k do
+					mixed[name] = lerp(value, under[name], underwater)
+				end
+				k = mixed
 			end
 			apply(k, since)
 		end)

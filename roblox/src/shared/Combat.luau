@@ -4,7 +4,8 @@
 --   * Combo de 3 golpes: puñetazo, puñetazo y golpe fuerte (empuja). Pulsar a tiempo encadena.
 --   * Defender (mantener): si miras al que te pega, recibes solo una parte del daño y no te empuja.
 --   * Fuerza (estadística del personaje): +4% de daño por punto.
---   * K.O. en vez de morir: al quedarte sin vida caes unos segundos y te levantas con algo de vida.
+--   * K.O.: al quedarte sin vida caes unos segundos y te levantas con algo de vida… salvo que
+--     alguien te remate en el suelo: entonces mueres y reapareces en el hospital (shared/Hospital).
 --   * Nadie puede pegar ni recibir golpes siendo bebé, en una conversación, en clase, en un
 --     minijuego, recién aparecido o mientras está K.O.
 

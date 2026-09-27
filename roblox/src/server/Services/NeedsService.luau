@@ -35,11 +35,13 @@ local function applyWalkSpeed(player: Player)
 	-- La velocidad base depende de la etapa de vida (LifeService); si estás agotado, vas más lento
 	local base = player:GetAttribute("StageWalkSpeed") or Config.WalkSpeed
 	-- Corriendo (ProgressionService): más rápido mientras dure la estamina; la Destreza suma
-	if player:GetAttribute("Sprinting") and not tired then
+	local sprinting = player:GetAttribute("Sprinting")
+	if sprinting and not tired then
 		local stamina = Gameplay.Progression.Stamina
 		base *= stamina.SprintMultiplier + (player:GetAttribute("Stat_Destreza") or 0) * stamina.PerDestreza
 	end
-	humanoid.WalkSpeed = if tired then math.min(base, Config.TiredWalkSpeed) else base
+	-- Con hambre o sueño se va más lento, pero se puede seguir corriendo un poco
+	humanoid.WalkSpeed = if tired then math.min(base, Config.TiredWalkSpeed) * (if sprinting then 1.35 else 1) else base
 end
 
 local function sync(player: Player, data: { [string]: any })

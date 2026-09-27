@@ -17,7 +17,9 @@ local UserInputService = game:GetService("UserInputService")
 local Combat = require(ReplicatedStorage.Shared.Combat)
 local Stages = require(ReplicatedStorage.Shared.LifeStory.Stages)
 local Theme = require(script.Parent.Parent.UI.Theme)
+local ReactMotion = require(script.Parent.ReactMotion)
 local SoundFx = require(script.Parent.SoundFx)
+local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
 
 local CombatController = {}
 
@@ -25,6 +27,14 @@ local player = Players.LocalPlayer
 local create = Theme.create
 local rgb = Color3.fromRGB
 local Remote: RemoteEvent
+
+-- Directo, cruzado y gancho: los tres golpes del combo (cuerpo R15)
+local PUNCHES = { "Jab", "Cross", "Hook" }
+
+local function isR15(model: Model?): boolean
+	local humanoid = model and model:FindFirstChildOfClass("Humanoid")
+	return humanoid ~= nil and humanoid.RigType == Enum.HumanoidRigType.R15
+end
 
 -- Animaciones de Roblox de golpear con herramienta (sirven para puñetazo y golpe fuerte)
 local ANIMS = {
@@ -96,9 +106,17 @@ function CombatController.attack()
 	if blocking then
 		CombatController.setBlocking(false)
 	end
-	local anim = track(if localCombo == 3 then "Heavy" else "Punch")
-	if anim then
-		anim:Play(0.05, 1, if localCombo == 3 then 1.1 else 1.6)
+	-- Puñetazo hecho con código (R15); si este cuerpo no se puede mover así, animación de Roblox
+	if not (isR15(player.Character) and ReactMotion.play(player.Character, PUNCHES[localCombo] or "Jab")) then
+		local anim = track(if localCombo == 3 then "Heavy" else "Punch")
+		if anim then
+			anim:Play(0.05, 1, if localCombo == 3 then 1.1 else 1.6)
+		end
+	end
+	-- Sonido del golpe al aire (los demás lo oyen con "Swing")
+	local _, root = parts()
+	if root then
+		SoundFx.play("Salto", 0.7, if localCombo == 3 then 0.8 else 1.3, root)
 	end
 	Remote:FireServer("Attack")
 end
@@ -215,6 +233,14 @@ local function onHit(data: { [string]: any })
 	local heavy = data.Combo == 3
 	SoundFx.play("Golpe", if heavy then 1.2 else 0.8, if data.Blocked then 1.6 else (if heavy then 0.8 else 1.1), root)
 	flash(model, data.Blocked)
+	-- El cuerpo reacciona: cabeza atrás, tambaleo o caída si es el gancho
+	if data.Blocked then
+		ReactMotion.play(model, "BlockHit")
+	elseif heavy then
+		ReactMotion.play(model, "HitHeavy")
+	else
+		ReactMotion.play(model, "HitLight", { Side = if math.random() < 0.5 then -1 else 1 })
+	end
 	damageNumber(model, data.Amount, data.Blocked, heavy)
 	local mine = model == player.Character
 	if mine then
@@ -235,12 +261,14 @@ local function onSwing(attacker: Player, combo: number)
 	if root then
 		SoundFx.play("Salto", 0.7, if combo == 3 then 0.8 else 1.3, root)
 	end
+	ReactMotion.play(character, PUNCHES[combo] or "Jab")
 end
 
 -- 🛡 encima de quien se está defendiendo
 local shields: { [Player]: BillboardGui } = {}
 local function updateShield(other: Player)
 	local on = other:GetAttribute("Blocking") == true
+	ReactMotion.hold(other.Character, "Guard", on)
 	local existing = shields[other]
 	if on and not existing then
 		local head = other.Character and other.Character:FindFirstChild("Head")
@@ -305,12 +333,16 @@ function CombatController.init()
 		return Enum.ContextActionResult.Pass
 	end, false, Enum.KeyCode.Z, Enum.KeyCode.ButtonL1)
 
-	-- Móvil: 👊 encima del botón de saltar y 🛡 encima del de correr
+	-- Móvil: 👊 y 🛡 en el arco del botón de saltar (TouchLayout); conduciendo no se ven
 	if UserInputService.TouchEnabled then
 		local gui = create("ScreenGui", { Name = "CombatGui", ResetOnSpawn = false, Parent = player:WaitForChild("PlayerGui") })
-		local punch = roundButton(gui, "👊", 68, UDim2.new(1, -28, 1, -112))
+		local punch = roundButton(gui, "👊", 64, UDim2.new())
+		TouchLayout.place(punch, "Golpear")
+		TouchLayout.showWhen(punch, "Pie")
 		punch.Activated:Connect(CombatController.attack)
-		local guard = roundButton(gui, "🛡", 56, UDim2.new(1, -184, 1, -100))
+		local guard = roundButton(gui, "🛡", 54, UDim2.new())
+		TouchLayout.place(guard, "Defender")
+		TouchLayout.showWhen(guard, "Pie")
 		guard.InputBegan:Connect(function(input)
 			if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
 				CombatController.setBlocking(true)

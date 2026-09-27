@@ -162,14 +162,26 @@ local SEGMENTS = 48
 local HEALTH_LEN = 240 -- largo de la barra verde (desde el centro de la foto)
 local ARC_LEN = RING_R * math.rad(ARC_TO - ARC_FROM)
 local BARS = {
-	-- Id, texto, alto, largo (desde el borde de la foto), colores del degradado
-	{ Id = "Stamina", Emoji = "🏃", Height = 9, Width = 196, From = rgb(40, 80, 230), To = rgb(110, 170, 255) },
-	{ Id = "Energy", Emoji = "⚡", Height = 8, Width = 168, From = rgb(245, 150, 30), To = rgb(255, 225, 80) },
-	{ Id = "Hunger", Emoji = "🍔", Height = 8, Width = 140, From = rgb(230, 80, 40), To = rgb(255, 160, 70) },
+	-- Id, texto, alto, largo (desde el borde del aro), colores del degradado
+	{ Id = "Stamina", Emoji = "🏃", Height = 9, Width = 170, From = rgb(40, 80, 230), To = rgb(110, 170, 255) },
+	{ Id = "Energy", Emoji = "⚡", Height = 8, Width = 150, From = rgb(245, 150, 30), To = rgb(255, 225, 80) },
+	{ Id = "Hunger", Emoji = "🍔", Height = 8, Width = 130, From = rgb(230, 80, 40), To = rgb(255, 160, 70) },
 }
 local HEALTH_GREEN = { rgb(70, 200, 50), rgb(170, 255, 110) }
 local HEALTH_YELLOW = { rgb(230, 180, 20), rgb(255, 235, 110) }
 local HEALTH_RED = { rgb(220, 40, 40), rgb(255, 120, 100) }
+
+-- Color de la vida en degradado continuo: verde (llena) → amarillo (media) → rojo (casi vacía)
+local function healthColors(ratio: number): { Color3 }
+	local function mix(a: { Color3 }, b: { Color3 }, t: number): { Color3 }
+		return { a[1]:Lerp(b[1], t), a[2]:Lerp(b[2], t) }
+	end
+	ratio = math.clamp(ratio, 0, 1)
+	if ratio >= 0.5 then
+		return mix(HEALTH_YELLOW, HEALTH_GREEN, (ratio - 0.5) / 0.5)
+	end
+	return mix(HEALTH_RED, HEALTH_YELLOW, ratio / 0.5)
+end
 local TRACK = rgb(12, 18, 32)
 
 local status: Frame
@@ -254,7 +266,7 @@ local function buildStatus(parent: Instance)
 	local shown = create("NumberValue", { Value = 1 })
 	local function paintHealth()
 		local ratio = shown.Value
-		local colors = if healthRatio > 0.5 then HEALTH_GREEN elseif healthRatio > 0.25 then HEALTH_YELLOW else HEALTH_RED
+		local colors = healthColors(ratio)
 		local filled = ratio * (ARC_LEN + HEALTH_LEN)
 		for i, seg in segs do
 			local at = (i - 0.5) / SEGMENTS * ARC_LEN
@@ -339,7 +351,7 @@ local function buildStatus(parent: Instance)
 		xpFill.Position = UDim2.fromScale(if right then 1 else 0, 0)
 
 		local y = barY - 4
-		local from = cx + PORTRAIT / 2 * 0.55 -- salen de debajo de la foto
+		local from = lane -- empiezan pasado el aro (no tapan la foto)
 		for _, def in BARS do
 			local bar = bars[def.Id]
 			y -= def.Height + 4
@@ -422,7 +434,7 @@ local function storyText(key: string?, args: { [string]: any }?): string
 end
 
 local objectivesList: Frame
-local objectivesWanted = true -- el botón Misiones los muestra u oculta
+local objectivesWanted = not TOUCH -- el botón Misiones los muestra u oculta (en el móvil empiezan ocultos: el objetivo sale bajo el reloj)
 local busy = false -- en una conversación o cinemática
 local refreshVisible: () -> () -- se define más abajo
 local jobBox: Frame
@@ -540,6 +552,7 @@ local function buildObjectives(parent: Instance)
 		AutomaticSize = Enum.AutomaticSize.Y,
 		Position = UDim2.fromOffset(12, 188),
 		BackgroundTransparency = 1,
+		Visible = objectivesWanted,
 		Parent = parent,
 	})
 	create("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder, Parent = objectivesPanel })
@@ -978,11 +991,9 @@ function Hud.init(openStore: () -> ()): ScreenGui
 	buildPhone(popupGui)
 	buildMenu(popupGui)
 
-	-- Colocación según la pantalla:
-	--   * ordenador: comandos abajo a la izquierda, tu estado abajo a la derecha y los objetivos a la
-	--     izquierda, debajo de la barra de Roblox
-	--   * táctil: abajo están el joystick y los botones, así que tu estado sube arriba a la izquierda
-	--     (al revés: la foto a la izquierda) y los objetivos van debajo
+	-- Colocación (igual en ordenador y móvil): tu estado arriba a la izquierda (la foto a la
+	-- izquierda), el menú de comandos justo debajo y los objetivos a la derecha, bajo el minimapa.
+	-- Abajo quedan libres el joystick y los botones de saltar y correr.
 	local objectivesLimit = create("UISizeConstraint", { Parent = objectivesPanel })
 	objectivesPanel.ClipsDescendants = true
 	local function layout()
@@ -992,27 +1003,52 @@ function Hud.init(openStore: () -> ()): ScreenGui
 		local top = math.max(72, inset.Y / s + 8)
 		local clock = gui:FindFirstChild("Clock") :: Frame
 		clock.Size = UDim2.fromOffset(if canvas.X < 1500 then 400 else 440, 54)
-		local y = top
-		if TOUCH then
-			status.AnchorPoint = Vector2.new(0, 0)
-			status.Position = UDim2.fromOffset(8, top)
-			arrangeStatus("Left")
-			y = top + STATUS_H + 12
-		else
+		-- Tu estado (foto y vida) arriba a la izquierda y, debajo, el menú de comandos
+		-- (CommandMenu se coloca solo bajo "Status"); los objetivos van a la derecha, bajo el minimapa
+		if not TOUCH then
+			-- Ordenador: tu estado abajo a la derecha y los objetivos arriba a la izquierda
 			status.AnchorPoint = Vector2.new(1, 1)
 			status.Position = UDim2.new(1, -18, 1, -16)
 			arrangeStatus("Right")
+			objectivesPanel.AnchorPoint = Vector2.new(0, 0)
+			objectivesPanel.Position = UDim2.fromOffset(12, top)
+			objectivesLimit.MaxSize = Vector2.new(math.huge, math.max(120, canvas.Y - top - 300))
+			return
 		end
-		objectivesPanel.Position = UDim2.fromOffset(12, y)
-		-- En el ordenador los objetivos no bajan hasta el menú de comandos (abajo a la izquierda;
-		-- en el móvil el menú va a la derecha)
-		local room = canvas.Y - y - (if TOUCH then 16 else 300)
+		status.AnchorPoint = Vector2.new(0, 0)
+		status.Position = UDim2.fromOffset(8, top)
+		arrangeStatus("Left")
+		-- Debajo del minimapa, de su cartel del barrio y del de la estación y el tiempo
+		local bottom = 0
+		local playerGui = gui.Parent
+		local mapGui = playerGui and playerGui:FindFirstChild("MapUI")
+		local weatherGui = playerGui and playerGui:FindFirstChild("WeatherChip")
+		for _, holder in { mapGui, weatherGui } do
+			for _, child in if holder then holder:GetChildren() else {} do
+				if child:IsA("GuiObject") and child.Visible and child.AbsolutePosition.X > camera.ViewportSize.X * 0.5 and child.AbsolutePosition.Y < camera.ViewportSize.Y * 0.5 then
+					bottom = math.max(bottom, child.AbsolutePosition.Y + child.AbsoluteSize.Y)
+				end
+			end
+		end
+		local y = if bottom > 0 then bottom / s + 14 else math.max(top + 250, 330)
+		objectivesPanel.AnchorPoint = Vector2.new(1, 0)
+		objectivesPanel.Position = UDim2.new(1, -12, 0, y)
+		-- En el móvil abajo a la derecha están saltar y el arco de botones (TouchLayout): los objetivos no bajan hasta ahí
+		local room = canvas.Y - y - (if TOUCH then 360 else 40)
 		objectivesLimit.MaxSize = Vector2.new(math.huge, math.max(120, room))
 	end
 	camera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
 		task.defer(layout)
 	end)
 	layout()
+	-- El minimapa lo crea MapUI un poco después: se recoloca cuando aparece
+	-- (y cada pocos segundos, por si el minimapa o el tiempo cambian de tamaño)
+	task.spawn(function()
+		while gui.Parent do
+			task.wait(4)
+			layout()
+		end
+	end)
 
 	-- Apps del teléfono que pone el propio HUD
 	Hud.addButton("🏠 Ir a casa", rgb(40, 110, 200), 1, function()
@@ -1021,13 +1057,21 @@ function Hud.init(openStore: () -> ()): ScreenGui
 	Hud.addButton("🛒 Tienda", rgb(160, 115, 20), 2, openStore)
 	refreshPhone()
 
+	-- Los avisos van en su propia capa, por encima de las ventanas (tiendas, vehículos…): si no, un
+	-- "no tienes dinero" quedaba escondido detrás de la ventana y parecía que el botón no hacía nada
+	local toastGui = create("ScreenGui", { Name = "HudToasts", ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = 9, Parent = gui.Parent })
+	local toastScale = create("UIScale", { Scale = scale.Scale, Parent = toastGui })
+	scale:GetPropertyChangedSignal("Scale"):Connect(function()
+		toastScale.Scale = scale.Scale
+	end)
 	toastList = create("Frame", {
 		Name = "Toasts",
 		AnchorPoint = Vector2.new(0.5, 0),
 		Size = UDim2.fromOffset(600, 200),
 		Position = UDim2.new(0.5, 0, 0, 112),
 		BackgroundTransparency = 1,
-		Parent = gui,
+		Active = false,
+		Parent = toastGui,
 	})
 	create("UIListLayout", { Padding = UDim.new(0, 6), HorizontalAlignment = Enum.HorizontalAlignment.Center, Parent = toastList })
 
