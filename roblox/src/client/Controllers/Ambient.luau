@@ -36,6 +36,7 @@ type Agent = {
 	Scale: number,
 	Index: { [string]: number },
 	Umbrella: boolean,
+	PanicUntil: number?,
 }
 
 local roads: { Road } = {}
@@ -317,6 +318,13 @@ local function updatePeds(dt: number, center: Vector3)
 			respawnPed(ped, center, false)
 			continue
 		end
+		if ped.PanicUntil then
+			-- Asustado por unos disparos: corre y luego vuelve a su paso
+			if os.clock() > ped.PanicUntil then
+				ped.PanicUntil = nil
+				ped.Speed = ped.Cruise
+			end
+		end
 		ped.U += ped.Dir * ped.Speed * dt
 		ped.Phase += dt * ped.Speed * (if ped.Style == "Kid" then 2.1 elseif ped.Style == "Jog" then 1.1 else 1.5)
 		local pos = point(road, ped.U, ped.Side * (road.Walk or 15.5), WALK_TOP)
@@ -329,6 +337,25 @@ local function updatePeds(dt: number, center: Vector3)
 end
 
 ---------------------------------------------------------------------
+
+-- Disparos cerca (WeaponFx): la gente de la calle huye corriendo en dirección contraria
+function Ambient.panic(position: Vector3, radius: number)
+	for _, ped in peds do
+		local road = ped.Road
+		if road and ped.Active then
+			local pos = point(road, ped.U, ped.Side * (road.Walk or 15.5), WALK_TOP)
+			local away = pos - position
+			if away.Magnitude < radius then
+				local along = road.Dir * ped.Dir
+				if along:Dot(away) < 0 then
+					ped.Dir = -ped.Dir
+				end
+				ped.Speed = math.max(ped.Cruise, 5) * 2.6
+				ped.PanicUntil = os.clock() + 4 + math.random() * 3
+			end
+		end
+	end
+end
 
 function Ambient.init()
 	local data = ReplicatedStorage:WaitForChild("Ambient", 60)

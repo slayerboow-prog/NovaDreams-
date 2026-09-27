@@ -20,6 +20,7 @@ local Roles: { [string]: Role } = {
 	Recepcionista = { NameKey = "ROLE.RECEPCIONISTA", Npc = "Npc_Recepcionista", MaxClients = 3 },
 	Pescador = { NameKey = "ROLE.PESCADOR", Npc = "Npc_Pescador", MaxClients = 1 },
 	Revisor = { NameKey = "ROLE.REVISOR", Npc = "Npc_Revisor", MaxClients = 4 },
+	Armero = { NameKey = "ROLE.ARMERO", Npc = "Npc_Armero", MaxClients = 3 },
 	MonitorGimnasio = { NameKey = "ROLE.MONITOR_GIMNASIO", Npc = "Npc_MonitorGimnasio", MaxClients = 6 },
 
 	-- Roles de la campaña (fases 6 y siguientes)

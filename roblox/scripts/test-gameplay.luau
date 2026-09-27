@@ -346,6 +346,9 @@ local remotes = {
 	Diving = remote(),
 	SeaEvent = remote(),
 	Social = remote(),
+	Weapons = remote(),
+	Wanted = remote(),
+	Combat = remote(),
 	Interior = remote(),
 	Interact = remote(),
 	Gym = remote(),
@@ -501,6 +504,7 @@ local function loadModule(path: string): any
 		NumberSequence = roblox.NumberSequence,
 		ColorSequence = roblox.ColorSequence,
 		RaycastParams = { new = function() return {} end },
+		OverlapParams = { new = function() return {} end },
 		typeof = fakeTypeof,
 		warn = function(...)
 			print("[warn]", ...)
@@ -3717,6 +3721,231 @@ SeaEventService.stop()
 SeaEvents.WaveStart = savedStart
 FishingService.isWater = realIsWater
 local _ = far
+end)()
+
+---------------------------------------------------------------------
+-- (en su propia función: la prueba ya usa casi todas las variables locales permitidas)
+;(function()
+print("▶ Armas: Armería, licencia, disparos, galería, policía y zonas seguras")
+mocks[ROOT .. "/server/World/PoliceUnits"] = {
+	init = function() end, ensure = function() end, dismiss = function() end, setTarget = function() end, knockDown = function() end,
+	sees = function() return false end, anyNear = function() return false end, officersNear = function() return 0 end,
+}
+mocks[S .. "JusticeService"] = { process = function() end }
+mocks[S .. "CareerService"] = { addPoints = function() end }
+mocks[S .. "BreakService"] = { hitStructure = function() return nil end }
+mocks[S .. "ClassService"] = { isRunning = function() return false end }
+mocks[S .. "MiniGameService"] = { isRunning = function() return false end }
+function players:GetPlayerFromCharacter(character)
+	for _, p in playersList do
+		if p.Character == character then
+			return p
+		end
+	end
+	return nil
+end
+function Fake.GetPartBoundsInRadius()
+	return {}
+end
+-- Rayos de verdad (contra cajas) para esta parte: las balas tienen que dar en algo
+local realRaycast = Fake.Raycast
+Fake.Raycast = function(_, origin, direction, params)
+	local ignored = (params and params.FilterDescendantsInstances) or {}
+	local best, bestT = nil, math.huge
+	for _, part in worldRoot:GetDescendants() do
+		local props = rawget(part, "__props")
+		if PARTS[props.ClassName] and props.CanQuery ~= false and props.Transparency ~= 1 then
+			local skip = false
+			for _, ignore in ignored do
+				if part == ignore or part:IsDescendantOf(ignore) then
+					skip = true
+					break
+				end
+			end
+			if not skip then
+				local cf, half = props.CFrame, props.Size / 2
+				local o = cf:PointToObjectSpace(origin)
+				local d = cf:VectorToObjectSpace(direction)
+				local tmin, tmax = 0, 1
+				local hit = true
+				for _, axis in { "X", "Y", "Z" } do
+					local oa, da, h = o[axis], d[axis], half[axis]
+					if math.abs(da) < 1e-9 then
+						if math.abs(oa) > h then
+							hit = false
+						end
+					else
+						local t1, t2 = (-h - oa) / da, (h - oa) / da
+						tmin = math.max(tmin, math.min(t1, t2))
+						tmax = math.min(tmax, math.max(t1, t2))
+					end
+				end
+				if hit and tmin <= tmax and tmin < bestT then
+					best, bestT = part, tmin
+				end
+			end
+		end
+	end
+	if not best then
+		return nil
+	end
+	local position = origin + direction * bestT
+	return { Instance = best, Position = position, Normal = -direction.Unit, Material = Enum.Material.Plastic, Distance = (position - origin).Magnitude }
+end
+
+-- Una Armería de prueba: mostrador, ventanilla, galería con una diana
+local shopCounter = part("GunShopCounter", CFrame.new(5020, 1.6, 5000), { "GunShop" }, { ShopName = "Armería de prueba" })
+shopCounter.Size = Vector3.new(14, 3.2, 2.4)
+local licenceDesk = part("LicenceDesk", CFrame.new(5010, 1.7, 5000), { "GunLicence" })
+licenceDesk.Size = Vector3.new(5, 3.4, 2)
+local rangeVolume = part("Galeria", CFrame.new(5000, 6, 5030), { "ShootingRange" })
+rangeVolume.Size = Vector3.new(30, 12, 24)
+rangeVolume.CanQuery = false
+local target = part("Diana", CFrame.new(5000, 4.6, 5040), { "RangeTarget" }, { Lane = 1, Score = 0 })
+target.Size = Vector3.new(3, 4, 0.1)
+local CombatService = loadModule(S .. "CombatService")
+CombatService.init()
+local WantedService = loadModule(S .. "WantedService")
+WantedService.init()
+local WeaponService = loadModule(S .. "WeaponService")
+WeaponService.init()
+-- Jugadores nuevos de esta parte: los servicios se enteran (PlayerAdded)
+local function join(id: number, stage: string, money: number)
+	local p, r, h = newPlayer(id, stage, money)
+	p.DisplayName = p.Name
+	players.PlayerAdded:Fire(p)
+	return p, r, h
+end
+local Weapons = loadModule(ROOT .. "/shared/Weapons")
+local Inv = loadModule(S .. "InventoryService")
+local Wp = remotes.Weapons.OnServerEvent
+local function act(player, ...)
+	task.wait(0.1) -- (el servidor ignora peticiones demasiado seguidas)
+	Wp:Fire(player, ...)
+end
+local function place(player, position: Vector3, facing: Vector3?)
+	local look = facing or Vector3.new(0, 0, -1)
+	player.Character.HumanoidRootPart.CFrame = CFrame.new(position + Vector3.new(0, 3, 0)) * CFrame.Angles(0, math.atan2(-look.X, -look.Z), 0)
+	player.Character.Head.CFrame = CFrame.new(position + Vector3.new(0, 4.6, 0))
+end
+
+check(promptOf(shopCounter, "Comprar") ~= nil and promptOf(licenceDesk, "Licencia de armas") ~= nil, "la Armería tiene mostrador y ventanilla de licencias")
+
+local buyer = join(301, "AdultoJoven", 20000)
+place(buyer, Vector3.new(5020, 0, 5004))
+promptOf(shopCounter, "Comprar").Triggered:Fire(buyer)
+local shop = lastMessage(buyer, "Shop")
+check(shop ~= nil and #shop[2].Items >= 9, "el menú lista las armas, la munición y la licencia")
+act(buyer, "Buy", "Pistola")
+check(Inv.count(buyer, "Arma_Pistola") == 0 and profiles[buyer].Money == 20000 and notified(buyer, "licencia"), "sin licencia no se puede comprar un arma")
+local kid = join(302, "Nino", 500)
+place(kid, Vector3.new(5022, 0, 5004))
+act(kid, "Buy", "Pistola")
+check(Inv.count(kid, "Arma_Pistola") == 0, "un niño no puede comprar una pistola")
+act(kid, "Buy", "PistolaAgua")
+check(Inv.count(kid, "Arma_PistolaAgua") == 1, "un niño sí compra la pistola de agua")
+
+-- Licencia: tasa + test (primero suspende, luego aprueba)
+local function answerQuiz(player, good: boolean)
+	local msg = lastMessage(player, "Quiz")
+	local answers = {}
+	for i, q in msg[3].Questions do
+		for _, entry in Weapons.Quiz do
+			if entry[1] == q.Text then
+				local right = table.find(q.Options, entry[2][1])
+				answers[i] = if good then right else (right % #q.Options) + 1
+			end
+		end
+	end
+	act(player, "Answers", msg[2], answers)
+end
+promptOf(licenceDesk, "Licencia de armas").Triggered:Fire(buyer)
+check(profiles[buyer].Money == 20000 - Weapons.Licence.Price and lastMessage(buyer, "Quiz") ~= nil, "se paga la tasa y empieza el test de seguridad")
+answerQuiz(buyer, false)
+check(Inv.count(buyer, Weapons.Licence.Item) == 0, "suspender el test no da la licencia")
+clearInbox(buyer)
+promptOf(licenceDesk, "Licencia de armas").Triggered:Fire(buyer)
+answerQuiz(buyer, true)
+check(Inv.count(buyer, Weapons.Licence.Item) == 1 and buyer:GetAttribute("WeaponLicence") == true, "aprobando el test se obtiene la licencia de armas")
+promptOf(licenceDesk, "Licencia de armas").Triggered:Fire(kid)
+check(Inv.count(kid, Weapons.Licence.Item) == 0, "un niño no puede sacarse la licencia")
+
+local money = profiles[buyer].Money
+act(buyer, "Buy", "Pistola")
+check(Inv.count(buyer, "Arma_Pistola") == 1 and profiles[buyer].Money == money - Weapons.List.Pistola.Price, "con licencia se compra la pistola")
+act(buyer, "Buy", "Municion_9mm")
+check(Inv.count(buyer, "Municion_9mm") == Weapons.AmmoTypes.Municion_9mm.Box, "y una caja de munición")
+
+-- Galería de tiro: practicar no es delito
+act(buyer, "Equip", "Pistola")
+check(buyer:GetAttribute("Weapon") == "Pistola" and buyer:GetAttribute("WeaponMag") == 15, "empuña la pistola con el cargador lleno")
+place(buyer, Vector3.new(5000, 0, 5025), Vector3.new(0, 0, 1))
+act(buyer, "Aim", true)
+check(buyer:GetAttribute("Aiming") == true, "apunta")
+Wp:Fire(buyer, "Fire", target.Position)
+check(buyer:GetAttribute("WeaponMag") == 14 and lastMessage(buyer, "Shot") ~= nil, "disparar gasta una bala y se ve el disparo")
+check((target:GetAttribute("Score") or 0) > 0 and (target:GetAttribute("Shots") or 0) == 1, "la diana marca el impacto y la puntuación")
+Wp:Fire(buyer, "Fire", target.Position)
+check(buyer:GetAttribute("WeaponMag") == 14, "no se puede disparar más rápido que la cadencia")
+task.wait(0.2)
+Wp:Fire(buyer, "Fire", target.Position)
+check(buyer:GetAttribute("WeaponMag") == 13, "pasada la pausa, sí")
+task.wait(0.2)
+check(WantedService.stars(buyer) == 0, "en la galería de tiro practicar no suma estrellas")
+act(buyer, "Reload")
+check(buyer:GetAttribute("Reloading") == true, "recarga")
+task.wait(Weapons.List.Pistola.Reload.Tactical + 0.2)
+check(buyer:GetAttribute("WeaponMag") == 16 and Inv.count(buyer, "Municion_9mm") == 12, "recarga táctica: 15 + 1 en la recámara, gasta munición de la mochila")
+
+-- Disparar a una persona en la calle (con un policía mirando)
+local victim, _, victimHum = join(303, "Adulto", 100)
+local cop = join(304, "Adulto", 0)
+place(buyer, Vector3.new(26000, 0, 26000))
+place(victim, Vector3.new(26000, 0, 25985))
+place(cop, Vector3.new(26030, 0, 26000))
+cop:SetAttribute("Job", "Policia")
+check(Inv.count(cop, "Arma_PistolaPolicia") == 1 and Inv.count(cop, "Arma_Taser") == 1, "la policía de servicio recibe la pistola reglamentaria y el táser")
+task.wait(0.3)
+Wp:Fire(buyer, "Fire", victim.Character.Head.Position)
+check(victimHum.Health < 100, "la bala hace daño (CombatService)")
+check(lastMessage(buyer, "Confirm") ~= nil, "el tirador ve el aspa de acierto")
+check(WantedService.stars(buyer) >= 2, "disparar a una persona suma estrellas de búsqueda")
+if WantedService.stars(buyer) < 2 then
+	print("    (avisos al policía: " .. table.concat(notifyTexts(cop), " | ") .. ")")
+end
+
+-- Policía de servicio contra un buscado: no es delito
+local suspectHum = buyer.Character:FindFirstChildOfClass("Humanoid")
+local suspectHealth = suspectHum.Health
+act(cop, "Equip", "PistolaPolicia")
+act(cop, "Aim", true)
+check(cop:GetAttribute("Weapon") == "PistolaPolicia", "el policía empuña su pistola")
+place(cop, Vector3.new(26000, 0, 26015), Vector3.new(0, 0, -1))
+Wp:Fire(cop, "Fire", buyer.Character.Head.Position)
+check(suspectHum.Health < suspectHealth, "el policía alcanza al sospechoso")
+task.wait(0.2)
+check(WantedService.stars(cop) == 0, "un policía de servicio que dispara a un buscado no comete delito")
+
+-- Zona segura: no se dispara
+local safe = part("ZonaSegura", CFrame.new(7000, 5, 7000), { "SafeZone" }, { ZoneName = "el hospital" })
+safe.Size = Vector3.new(40, 20, 40)
+safe.CanQuery = false
+place(cop, Vector3.new(7000, 0, 7000))
+local copMag = cop:GetAttribute("WeaponMag")
+task.wait(0.2)
+Wp:Fire(cop, "Fire", Vector3.new(7000, 4, 6980))
+check(cop:GetAttribute("WeaponMag") == copMag and notified(cop, "no se puede disparar"), "en una zona segura no se puede disparar")
+cop:SetAttribute("Job", nil)
+check(Inv.count(cop, "Arma_PistolaPolicia") == 0 and cop:GetAttribute("Weapon") == nil, "al acabar el turno se devuelven las armas de servicio")
+
+-- Los niños no empuñan armas de verdad
+Inv.add(kid, "Arma_Pistola", 1)
+act(kid, "Equip", "Pistola")
+check(kid:GetAttribute("Weapon") == nil, "un niño no puede empuñar un arma de verdad (aunque la tenga)")
+act(kid, "Equip", "PistolaAgua")
+check(kid:GetAttribute("Weapon") == "PistolaAgua", "sí la pistola de agua")
+
+Fake.Raycast = realRaycast
 end)()
 
 end, debug.traceback)

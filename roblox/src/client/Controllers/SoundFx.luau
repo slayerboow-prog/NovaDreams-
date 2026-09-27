@@ -374,6 +374,15 @@ local function crowd()
 	end)
 end
 
+-- ID de un sonido por su nombre (para quien lo reproduce a su manera, p. ej. WeaponFx en un punto)
+function SoundFx.id(name: string): string?
+	return soundId(name)
+end
+
+function SoundFx.isMuted(): boolean
+	return muted
+end
+
 ---------------------------------------------------------------------
 function SoundFx.setMuted(value: boolean)
 	muted = value

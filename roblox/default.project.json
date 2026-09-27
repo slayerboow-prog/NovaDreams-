@@ -15,6 +15,9 @@
         "Vandal": {
           "$className": "RemoteEvent"
         },
+        "Weapons": {
+          "$className": "RemoteEvent"
+        },
         "Actions": {
           "$className": "RemoteEvent"
         },
