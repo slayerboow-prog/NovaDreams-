@@ -2968,6 +2968,10 @@ check(herd ~= nil and herd:FindFirstChild("Gallina") ~= nil, "la gallina se ve e
 moveTo(farmerRoot, coop.Mostrador.Position)
 fire(farmer, "Make", "Harina", 2)
 check(InventoryService.count(farmer, "Agro_Harina") == 2 and InventoryService.count(farmer, "Agro_Trigo") == wheat - 6, "en el molino, 6 de trigo son 2 sacos de harina")
+local extraWheat = InventoryService.count(farmer, "Agro_Trigo") - 2
+if extraWheat > 0 then
+	InventoryService.remove(farmer, "Agro_Trigo", extraWheat) -- la cosecha es al azar: nos quedamos con 2
+end
 fire(farmer, "Make", "Harina", 1)
 check(InventoryService.count(farmer, "Agro_Harina") == 2 and notified(farmer, "Te faltan ingredientes"), "sin trigo suficiente no hay más harina")
 fire(farmer, "Make", "Queso", 1)
