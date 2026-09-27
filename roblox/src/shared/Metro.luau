@@ -64,6 +64,21 @@ Metro.Products = {
 	FotoMaton = { Name = "Tira del fotomatón", Icon = "📸", Kind = "Thing", Desc = "Cuatro fotos seguidas haciendo el tonto en el metro." },
 	PaqueteMetro = { Name = "Paquete urgente", Icon = "📦", Kind = "Thing", Desc = "Hay que llevarlo al quiosco de otra estación antes de que se acabe el tiempo." },
 	CarteraPerdida = { Name = "Objeto perdido", Icon = "👛", Kind = "Thing", Desc = "Alguien lo ha perdido en el metro. Llévalo a Objetos Perdidos." },
+	-- Puestos de la galería y de los vestíbulos
+	Donut = { Name = "Dónut glaseado", Icon = "🍩", Kind = "Food", Hunger = 12, Energy = 6, Desc = "Del puesto de dónuts del metro. Pringa los dedos." },
+	PizzaCorte = { Name = "Porción de pizza", Icon = "🍕", Kind = "Food", Hunger = 26, Energy = 2, Desc = "Pizza al corte, recién salida del horno." },
+	Kebab = { Name = "Kebab", Icon = "🌯", Kind = "Food", Hunger = 34, Energy = 0, Desc = "Enrollado, con salsa de yogur. Para comer de camino." },
+	ZumoNaranja = { Name = "Zumo de naranja", Icon = "🧃", Kind = "Food", Hunger = 4, Energy = 12, Desc = "Exprimido al momento en la frutería del metro." },
+	Ramo = { Name = "Ramo de flores", Icon = "💐", Kind = "Thing", Desc = "De la floristería del metro. Para regalar (o para ti)." },
+	Rosa = { Name = "Rosa roja", Icon = "🌹", Kind = "Thing", Desc = "Una sola rosa, envuelta en papel." },
+	Postal = { Name = "Postal de Valmar", Icon = "🖼️", Kind = "Thing", Desc = "Con la Torre Valmar y un atardecer de postal." },
+	Llavero = { Name = "Llavero del metro", Icon = "🔑", Kind = "Thing", Desc = "Un trenecito rojo de la Línea 1." },
+	Iman = { Name = "Imán de nevera", Icon = "🧲", Kind = "Thing", Desc = "Con el plano del metro de Valmar." },
+	Paraguas = { Name = "Paraguas", Icon = "☂️", Kind = "Thing", Desc = "Por si llueve al salir del metro." },
+	Tiritas = { Name = "Caja de tiritas", Icon = "🩹", Kind = "Thing", Desc = "De la farmacia de la galería." },
+	Panuelos = { Name = "Pañuelos", Icon = "🤧", Kind = "Thing", Desc = "Un paquete de pañuelos de papel." },
+	Libro = { Name = "Libro de bolsillo", Icon = "📕", Kind = "Thing", Desc = "Una novela de misterio para el trayecto." },
+	Calcetines = { Name = "Calcetines divertidos", Icon = "🧦", Kind = "Thing", Desc = "Con dibujos de trenes. Del puesto de la galería." },
 }
 
 -- Tiendas (ShopId -> lo que vende). Las de la galería están en Plaza Mayor; los quioscos, en todas.
@@ -72,7 +87,29 @@ Metro.Shops = {
 	Cafeteria = { Name = "Café Andén", Icon = "☕", Items = { { "CafeAnden", 2 }, { "Churros", 3 }, { "Refresco", 2 } } },
 	Bocateria = { Name = "Bocatas Express", Icon = "🥪", Items = { { "Bocadillo", 4 }, { "Croqueton", 3 }, { "Refresco", 2 } } },
 	Musica = { Name = "Vinilo Subterráneo", Icon = "💿", Items = { { "Vinilo", 12 }, { "Auriculares", 20 }, { "Guitarra", 60 } } },
-	Maquina = { Name = "Máquina expendedora", Icon = "🥤", Items = { { "Refresco", 2 }, { "Chuches", 2 } } },
+	Maquina = { Name = "Máquina expendedora", Icon = "🥤", Items = { { "Refresco", 2 }, { "Chuches", 2 }, { "Agua", 1 } } },
+	Donuts = { Name = "Dónuts & Co.", Icon = "🍩", Items = { { "Donut", 2 }, { "CafeAnden", 2 }, { "ZumoNaranja", 3 } } },
+	Pizza = { Name = "Pizza al Corte", Icon = "🍕", Items = { { "PizzaCorte", 3 }, { "Refresco", 2 }, { "Agua", 1 } } },
+	Kebab = { Name = "Kebab Andén 2", Icon = "🌯", Items = { { "Kebab", 5 }, { "Refresco", 2 } } },
+	Floristeria = { Name = "Floristería Raíces", Icon = "💐", Items = { { "Rosa", 3 }, { "Ramo", 10 } } },
+	Recuerdos = { Name = "Recuerdos de Valmar", Icon = "🧲", Items = { { "Postal", 1 }, { "Llavero", 4 }, { "Iman", 3 }, { "Calcetines", 5 } } },
+	Farmacia = { Name = "Farmacia del Metro", Icon = "💊", Items = { { "Tiritas", 3 }, { "Panuelos", 1 }, { "Agua", 1 } } },
+	Libreria = { Name = "Libros al Paso", Icon = "📚", Items = { { "Libro", 6 }, { "Revista", 2 }, { "Paraguas", 7 } } },
+	Palomitas = { Name = "Carrito de palomitas", Icon = "🍿", Items = { { "Palomitas", 2 }, { "Refresco", 2 } } },
+}
+
+-- Vida del metro (MetroLifeService): guardias, ratas, aseos y cacharros con los que trastear
+Metro.Life = {
+	RatBounty = 1, -- lo que paga el metro por cada rata espantada
+	RatCooldown = 8, -- segundos entre recompensas (por jugador)
+	RatsPerNest = 2,
+	PhonePrice = 1,
+	WishPrice = 1,
+	ShinePrice = 2,
+	BinCooldown = 30, -- segundos entre registrar papeleras (por jugador)
+	BinCoinChance = 0.25,
+	LockerCoinChance = 0.15,
+	ActiveRange = 150, -- las cosas se animan si hay alguien a esta distancia
 }
 Metro.PhotoPrice = 3
 
