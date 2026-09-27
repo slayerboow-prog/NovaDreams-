@@ -43,12 +43,13 @@ local function strike(t: number, peak: number, hold: number): number
 	return 1 - x * x * (3 - 2 * x)
 end
 
--- Mano en guardia delante de la cara (peso w de 0 a 1)
+-- Puño en guardia delante de la cara: el brazo sube hacia delante, se cierra hacia el centro y el
+-- antebrazo se dobla hacia arriba (peso w de 0 a 1)
 local function guardArm(side: string, w: number): Pose
-	local open = if side == "Right" then 0.25 else -0.25
+	local inward = if side == "Right" then 0.55 else -0.55 -- girar sobre la vertical: hacia el centro
 	return {
-		[side .. "Shoulder"] = angles(1.25 * w, 0, open * w),
-		[side .. "Elbow"] = angles(1.9 * w, 0, 0),
+		[side .. "Shoulder"] = angles(0, inward * w, 0) * angles(0.95 * w, 0, 0),
+		[side .. "Elbow"] = angles(1.85 * w, 0, 0),
 	}
 end
 
@@ -91,16 +92,16 @@ PunchAnim.Moves = {
 			}, guardArm("Right", g))
 		end,
 	},
-	-- Patada frontal: recoge la rodilla, estira la pierna y la vuelve a bajar
+	-- Patada frontal: sube la rodilla, estira la pierna y la vuelve a bajar
 	Kick = {
 		Duration = 0.55,
 		Pose = function(t: number): Pose
-			local chamber = bell(t) -- rodilla arriba todo el rato
-			local extend = strike((t - 0.25) / 0.6, 0.35, 0.55) -- la pierna se estira en medio
+			local chamber = strike(t, 0.22, 0.72) -- la rodilla sube pronto y se queda arriba
+			local extend = strike((t - 0.22) / 0.5, 0.4, 0.6) -- la pierna se estira en medio
 			local g = bell(t)
 			return merge({
-				RightHip = angles(1.1 * chamber + 0.4 * extend, 0, 0),
-				RightKnee = angles(-1.5 * chamber * (1 - extend), 0, 0),
+				RightHip = angles(1.2 * chamber + 0.35 * extend, 0, 0),
+				RightKnee = angles(-1.6 * chamber * (1 - extend), 0, 0),
 				LeftKnee = angles(-0.25 * g, 0, 0),
 				Waist = angles(0.25 * g, 0, 0),
 			}, guardArm("Right", g), guardArm("Left", g))
