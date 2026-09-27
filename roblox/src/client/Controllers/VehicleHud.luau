@@ -8,6 +8,7 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
 
 local Gameplay = require(ReplicatedStorage.Shared.Gameplay)
 local Theme = require(script.Parent.Parent.UI.Theme)
@@ -37,6 +38,8 @@ local maxSpeed = 72
 local blink = 0
 
 local ARC = 240 -- grados de la esfera
+-- Móvil: el cuadro va pequeño arriba, bajo el reloj, para dejar ver la calle, el personaje y los botones
+local TOUCH = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 
 local function angleFor(speed: number): number
 	return -ARC / 2 + ARC * math.clamp(speed / maxSpeed, 0, 1)
@@ -82,14 +85,34 @@ local function buildTicks()
 end
 
 function VehicleHud.init(parent: Instance)
-	gui = create("ScreenGui", { Name = "VehicleHud", ResetOnSpawn = false, Enabled = false, Parent = parent })
+	gui = create("ScreenGui", { Name = "VehicleHud", ResetOnSpawn = false, Enabled = false, IgnoreGuiInset = true, Parent = parent })
 	local panel = Theme.panel({
-		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -92),
-		Size = UDim2.fromOffset(470, 168),
+		AnchorPoint = if TOUCH then Vector2.new(0.5, 0) else Vector2.new(0.5, 1),
+		Size = UDim2.fromOffset(470, if TOUCH then 166 else 168),
 		Parent = gui,
 	})
 	Theme.padding(10).Parent = panel
+	if TOUCH then
+		panel.BackgroundTransparency = math.max(panel.BackgroundTransparency, 0.25)
+	end
+
+	-- Mismo tamaño que el resto de la interfaz (MainHud): en el móvil se encoge
+	local scale = create("UIScale", { Parent = panel })
+	local camera = workspace.CurrentCamera
+	local function rescale()
+		local view = camera.ViewportSize
+		local hud = math.clamp(math.min(view.Y / 900, view.X / 1700), 0.55, 1.2)
+		if TOUCH then
+			scale.Scale = hud * 0.85
+			-- justo debajo del reloj (arriba en el centro; mide 10 + 54 en la escala del HUD)
+			panel.Position = UDim2.new(0.5, 0, 0, math.floor((10 + 54 + 8) * hud))
+		else
+			scale.Scale = math.max(hud, 0.7)
+			panel.Position = UDim2.new(0.5, 0, 1, -math.floor(110 * hud))
+		end
+	end
+	camera:GetPropertyChangedSignal("ViewportSize"):Connect(rescale)
+	rescale()
 
 	-- Velocímetro
 	dial = create("Frame", {
@@ -161,7 +184,10 @@ function VehicleHud.init(parent: Instance)
 	-- Abajo: cuentakilómetros y ayuda
 	odoText = Theme.label({ Position = UDim2.fromOffset(158, 86), Size = UDim2.fromOffset(290, 20), Font = Enum.Font.Code, TextSize = 15, Text = "", Parent = panel })
 	tripText = Theme.label({ Position = UDim2.fromOffset(158, 106), Size = UDim2.fromOffset(290, 18), Font = Enum.Font.Code, TextSize = 13, TextColor3 = C.Muted, Text = "", Parent = panel })
-	Theme.label({ Position = UDim2.fromOffset(158, 128), Size = UDim2.fromOffset(290, 16), Text = "W/S acelerar y frenar · A/D girar · H claxon · F bajarse", TextSize = 11, TextColor3 = C.Muted, Parent = panel })
+	if not TOUCH then
+		-- (en el móvil se conduce con el joystick y los botones: no hacen falta las teclas)
+		Theme.label({ Position = UDim2.fromOffset(158, 128), Size = UDim2.fromOffset(290, 16), Text = "W/S acelerar y frenar · A/D girar · H claxon · F bajarse", TextSize = 11, TextColor3 = C.Muted, Parent = panel })
+	end
 end
 
 function VehicleHud.show(kind: string)
