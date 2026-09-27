@@ -200,7 +200,7 @@ end
 
 local function hint(): string
 	if UserInputService.GamepadEnabled and UserInputService:GetLastInputType().Name:find("Gamepad") then
-		return "✚ elegir · ✚→ aceptar · B volver · X usar"
+		return "➕ elegir · ➕→ aceptar · B volver · X usar"
 	end
 	return "↑↓ elegir · Enter aceptar · ← volver · E usar"
 end

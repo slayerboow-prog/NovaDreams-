@@ -816,7 +816,7 @@ local function buildBig()
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.fromScale(1, 0),
 		Size = UDim2.fromOffset(150, 36),
-		Text = "✕  " .. Strings.get("MAP.CLOSE") .. " (M)",
+		Text = "✖  " .. Strings.get("MAP.CLOSE") .. " (M)",
 		TextSize = 15,
 		BackgroundColor3 = rgb(40, 60, 100),
 		ZIndex = 22,
@@ -907,7 +907,7 @@ local function buildBig()
 	roundButton(holder, "−", 58, function()
 		setZoom(zoom / 1.4, holderSize / 2)
 	end)
-	roundButton(holder, "⌖", 12, function()
+	roundButton(holder, "🎯", 12, function()
 		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
 		if root then
 			centerOn(root.Position, math.max(zoom, 2))

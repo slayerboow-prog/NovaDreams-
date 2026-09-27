@@ -447,7 +447,7 @@ local function objectiveRow(parent: Instance, order: number, text: string, done:
 		create("UIStroke", { Color = if done then C.Money else C.Muted, Thickness = 1.5 }),
 	})
 	if done then
-		Theme.label({ Size = UDim2.fromScale(1, 1), Text = "✓", TextSize = 11, Font = Theme.FontBold, TextXAlignment = Enum.TextXAlignment.Center, Parent = dot })
+		Theme.label({ Size = UDim2.fromScale(1, 1), Text = "✔", TextSize = 11, Font = Theme.FontBold, TextXAlignment = Enum.TextXAlignment.Center, Parent = dot })
 	end
 	Theme.label({
 		Size = UDim2.new(1, -28, 0, 0),
@@ -524,7 +524,7 @@ local function renderObjectives(state: { [string]: any })
 	end
 	local others = state.Others or {}
 	if #others > 0 then
-		section(objectivesList, nextOrder(), "◆", "Objetivos opcionales", C.Purple)
+		section(objectivesList, nextOrder(), "🔶", "Objetivos opcionales", C.Purple)
 		for i = 1, math.min(3, #others) do
 			local other = others[i]
 			local row = objectiveRow(objectivesList, nextOrder(), Strings.get(other.TitleKey), false)

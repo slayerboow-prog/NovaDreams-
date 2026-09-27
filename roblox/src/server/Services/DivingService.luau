@@ -91,7 +91,7 @@ local function breathe(player: Player)
 			end
 			if not drowning[player] then
 				drowning[player] = true
-				Notify:FireClient(player, "Error", "🫧 ¡Te quedas sin aire! Sube a respirar.")
+				Notify:FireClient(player, "Error", "💨 ¡Te quedas sin aire! Sube a respirar.")
 			end
 		end
 	else
