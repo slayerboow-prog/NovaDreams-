@@ -24,8 +24,12 @@ local SLOTS = {
 	Foto = { Angle = 118, Ring = 2, Size = 46 },
 	Extra = { Angle = 92, Ring = 2, Size = 46 }, -- (bajarse del vehículo, claxon…)
 	Claxon = { Angle = 180, Ring = 1, Size = 60 }, -- conduciendo, en el sitio de golpear
-	Bajarse = { Angle = 85, Ring = 1, Size = 56 }, -- conduciendo, en el sitio de correr
+	Bajarse = { Angle = 85, Ring = 1, Size = 56 }, -- conduciendo (o de pasajero), en el sitio de correr
 	Sirena = { Angle = 128, Ring = 1, Size = 54 },
+	-- Pedales (conduciendo; el volante es el joystick de Roblox, a la izquierda)
+	Acelerar = { Angle = 130, Ring = 2, Size = 72 },
+	Frenar = { Angle = 170, Ring = 2, Size = 64 },
+	FrenoMano = { Angle = 215, Ring = 1, Size = 50 },
 }
 
 -- Centro del botón de saltar de Roblox (desde la esquina de abajo a la derecha) y su radio
@@ -132,13 +136,19 @@ function TouchLayout.riding(): boolean
 	return player:GetAttribute("Riding") ~= nil
 end
 
+-- ¿Va dentro de un vehículo, conduciendo o de pasajero? (entonces fuera los botones de ir a pie)
+function TouchLayout.aboard(): boolean
+	return player:GetAttribute("Riding") ~= nil or player:GetAttribute("Passenger") ~= nil
+end
+
 -- Muestra el botón solo a pie (When = "Pie") o solo conduciendo ("Vehiculo"), y además si extra() lo permite
 function TouchLayout.showWhen(button: GuiObject, when: "Pie" | "Vehiculo", extra: (() -> boolean)?)
 	local function update()
-		local ok = if when == "Vehiculo" then TouchLayout.riding() else not TouchLayout.riding()
+		local ok = if when == "Vehiculo" then TouchLayout.riding() else not TouchLayout.aboard()
 		button.Visible = ok and (extra == nil or extra())
 	end
 	player:GetAttributeChangedSignal("Riding"):Connect(update)
+	player:GetAttributeChangedSignal("Passenger"):Connect(update)
 	update()
 	return update
 end

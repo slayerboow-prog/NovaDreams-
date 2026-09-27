@@ -5,7 +5,8 @@
 --     el zoom poco a poco). Se mantiene el modo "Zoom" de Roblox: si algo tapa, la cámara se acerca.
 --   * Corriendo, el campo de visión se abre un poco (sensación de velocidad) y vuelve suave al parar.
 --   * En modo foto la cámara se puede alejar mucho más (Actions llama a FootCamera.setPhoto).
--- Conduciendo, en cinemáticas y en conversaciones no toca nada (esas cámaras son de otros sistemas).
+-- Conduciendo, de pasajero (también en el metro), en cinemáticas y en conversaciones no toca nada
+-- (esas cámaras son de otros sistemas: la de los vehículos es RideCamera).
 -- Las funciones puras (maxZoom y Locomotion.fov) se prueban en scripts/test-motion.luau.
 
 local FootCamera = {}
@@ -38,6 +39,7 @@ function FootCamera.init()
 	local RunService = game:GetService("RunService")
 	local Locomotion = require(script.Parent.Locomotion)
 	local Cinematics = require(script.Parent.Cinematics)
+	local RideCamera = require(script.Parent.RideCamera)
 	local player = Players.LocalPlayer
 
 	local params = RaycastParams.new()
@@ -60,7 +62,11 @@ function FootCamera.init()
 	local indoors = false
 	local pending, since = false, 0
 	local function busy(): boolean
-		return player:GetAttribute("Riding") ~= nil or player:GetAttribute("InDialogue") == true or Cinematics.isPlaying()
+		return player:GetAttribute("Riding") ~= nil
+			or player:GetAttribute("Passenger") ~= nil
+			or RideCamera.isActive()
+			or player:GetAttribute("InDialogue") == true
+			or Cinematics.isPlaying()
 	end
 	refresh = function()
 		if busy() then

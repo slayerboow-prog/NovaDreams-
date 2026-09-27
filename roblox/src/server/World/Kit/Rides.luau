@@ -28,6 +28,37 @@ Rides.Spec = {
 	Bomberos = { Seat = CFrame.new(-1.8, 4.3, -10.4), Size = Vector3.new(8, 1, 27) },
 }
 
+-- Asientos de pasajero ("RideSeat", Seat de verdad) de cada vehículo: dónde van (como Seat de
+-- Rides.Spec), por qué lado se baja (Side: -1 izquierda, 1 derecha), el texto del cartel y la
+-- postura (Pose, la de Controllers/WorkAnim). Bici, monopatín y patinete no llevan: no caben dos.
+-- El autobús tampoco: tiene sus propios asientos y se sube pagando el billete (BusService).
+-- Los de atrás del coche dependen de la carrocería (RearZ): en el compacto hay más sitio.
+local REAR_Z = { Berlina = 2.3, Compacto = 3.4, Todoterreno = 3.6 }
+local function carSeats(variant: string?)
+	local z = REAR_Z[variant or "Berlina"] or REAR_Z.Berlina
+	return {
+		{ Seat = CFrame.new(1.4, 1.6, -0.6), Side = 1, Label = "Subir de copiloto", Pose = "Passenger" },
+		{ Seat = CFrame.new(-1.4, 1.6, z), Side = -1, Label = "Subir detrás", Pose = "Passenger" },
+		{ Seat = CFrame.new(1.4, 1.6, z), Side = 1, Label = "Subir detrás", Pose = "Passenger" },
+	}
+end
+function Rides.passengerSeats(kind: string, variant: string?): { { Seat: CFrame, Side: number, Label: string, Pose: string } }
+	if kind == "Coche" or kind == "Patrulla" then
+		return carSeats(variant)
+	elseif kind == "Moto" then
+		return { { Seat = CFrame.new(0, 2.7, 1.95), Side = -1, Label = "Subir detrás", Pose = "Pillion" } }
+	elseif kind == "Camion" then
+		return { { Seat = CFrame.new(1.8, 4.2, -9.2), Side = 1, Label = "Subir de copiloto", Pose = "Passenger" } }
+	elseif kind == "Bomberos" then
+		return {
+			{ Seat = CFrame.new(1.8, 4.3, -10.4), Side = 1, Label = "Subir de copiloto", Pose = "Passenger" },
+			{ Seat = CFrame.new(-1.8, 4.3, -6.6), Side = -1, Label = "Subir detrás", Pose = "Passenger" },
+			{ Seat = CFrame.new(1.8, 4.3, -6.6), Side = 1, Label = "Subir detrás", Pose = "Passenger" },
+		}
+	end
+	return {}
+end
+
 local function wheel(m: Model, cf: CFrame, radius: number, width: number)
 	return Builder.part({
 		Name = "Wheel",
@@ -827,7 +858,24 @@ function Rides.prepare(model: Model, kind: string, groundCf: CFrame): (BasePart,
 	seat.CanQuery = false
 	seat.MaxSpeed = 0 -- lo mueve Driving.luau, no las ruedas de Roblox
 	seat.HeadsUpDisplay = false
+	seat:SetAttribute("Side", -1) -- el conductor se baja por la izquierda
 	seat.Parent = model
+	-- Asientos de pasajero (los carteles "Subir de copiloto" / "Subir detrás" los pone VehicleService)
+	for i, spot in Rides.passengerSeats(kind, model:GetAttribute("Variant")) do
+		local passenger = Instance.new("Seat")
+		passenger.Name = "RideSeat"
+		passenger.Size = Vector3.new(1.6, 0.2, 1.6)
+		passenger.CFrame = groundCf * spot.Seat * CFrame.new(0, -0.1, 0)
+		passenger.Transparency = 1
+		passenger.CanCollide = false
+		passenger.CanTouch = false -- nadie se sienta al rozarlo: se sube con el cartel
+		passenger.CanQuery = false
+		passenger:SetAttribute("Side", spot.Side)
+		passenger:SetAttribute("Label", spot.Label)
+		passenger:SetAttribute("Pose", spot.Pose)
+		passenger:SetAttribute("Index", i)
+		passenger.Parent = model
+	end
 	for _, part in model:GetDescendants() do
 		if part:IsA("BasePart") and part ~= chassis then
 			part:SetAttribute("Collide", part.CanCollide)
@@ -841,6 +889,9 @@ function Rides.prepare(model: Model, kind: string, groundCf: CFrame): (BasePart,
 		end
 	end
 	model.PrimaryPart = chassis
+	-- La base es siempre la raíz del conjunto (también con gente sentada): así el vehículo, el
+	-- conductor y los pasajeros los mueve un solo ordenador (el del conductor) y nadie tiembla
+	chassis.RootPriority = 127
 	model:SetAttribute("Drivable", true)
 	model:SetAttribute("Kind", kind)
 	return chassis, seat
