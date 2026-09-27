@@ -12,6 +12,7 @@ local Gameplay = require(ReplicatedStorage.Shared.Gameplay)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Dialog = require(script.Parent.Parent.UI.Dialog)
 local Hud = require(script.Parent.Parent.UI.Hud)
+local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
 
 local create = Theme.create
 local C = Theme.Colors
@@ -98,9 +99,7 @@ function Character.init()
 		local gui = Theme.create("ScreenGui", { Name = "SprintGui", ResetOnSpawn = false, DisplayOrder = 4, Parent = player:WaitForChild("PlayerGui") })
 		local button = Theme.button({
 			Name = "SprintButton",
-			AnchorPoint = Vector2.new(1, 1),
-			Size = UDim2.fromOffset(64, 64),
-			Position = UDim2.new(1, -180, 1, -24), -- a la izquierda del botón de saltar
+			Size = UDim2.fromOffset(56, 56),
 			Text = "🏃",
 			TextSize = 28,
 			BackgroundTransparency = 0.3,
@@ -110,6 +109,8 @@ function Character.init()
 		if corner then
 			corner.CornerRadius = UDim.new(0.5, 0)
 		end
+		TouchLayout.place(button, "Correr")
+		TouchLayout.showWhen(button, "Pie")
 		button.Activated:Connect(function()
 			setSprint(not wants)
 			button.BackgroundColor3 = if wants then rgb(0, 150, 80) else C.PanelLight

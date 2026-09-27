@@ -41,7 +41,7 @@ local ICONS = {
 	Food = "🍽",
 	Bed = "🛏",
 	Job = "💼",
-	Other = "✦",
+	Other = "👉",
 }
 
 -- Palabras que delatan qué es cada cosa (en el texto del cartel, sin tildes)

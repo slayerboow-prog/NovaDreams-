@@ -19,6 +19,7 @@ local Stages = require(ReplicatedStorage.Shared.LifeStory.Stages)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local ReactMotion = require(script.Parent.ReactMotion)
 local SoundFx = require(script.Parent.SoundFx)
+local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
 
 local CombatController = {}
 
@@ -328,12 +329,16 @@ function CombatController.init()
 		return Enum.ContextActionResult.Pass
 	end, false, Enum.KeyCode.Z, Enum.KeyCode.ButtonL1)
 
-	-- Móvil: 👊 encima del botón de saltar y 🛡 encima del de correr
+	-- Móvil: 👊 y 🛡 en el arco del botón de saltar (TouchLayout); conduciendo no se ven
 	if UserInputService.TouchEnabled then
 		local gui = create("ScreenGui", { Name = "CombatGui", ResetOnSpawn = false, Parent = player:WaitForChild("PlayerGui") })
-		local punch = roundButton(gui, "👊", 68, UDim2.new(1, -28, 1, -112))
+		local punch = roundButton(gui, "👊", 64, UDim2.new())
+		TouchLayout.place(punch, "Golpear")
+		TouchLayout.showWhen(punch, "Pie")
 		punch.Activated:Connect(CombatController.attack)
-		local guard = roundButton(gui, "🛡", 56, UDim2.new(1, -184, 1, -100))
+		local guard = roundButton(gui, "🛡", 54, UDim2.new())
+		TouchLayout.place(guard, "Defender")
+		TouchLayout.showWhen(guard, "Pie")
 		guard.InputBegan:Connect(function(input)
 			if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
 				CombatController.setBlocking(true)
