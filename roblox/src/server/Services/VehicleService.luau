@@ -32,6 +32,9 @@ local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 
 local VehicleService = {}
 
+-- Gasolineras de jugadores (BusinessService): precio y litros que quedan, y aviso de la venta
+VehicleService.FuelSeller = nil :: { quote: (BasePart) -> (number?, number?), sold: (BasePart, number, number) -> () }?
+
 local Notify = ReplicatedStorage.Remotes.Notify :: RemoteEvent
 local Remote = ReplicatedStorage.Remotes.Vehicle :: RemoteEvent
 
@@ -376,20 +379,32 @@ local function refuel(player: Player, pump: BasePart)
 		Notify:FireClient(player, "Info", if spec.Type == "Bateria" then "La batería ya está llena." else "El depósito ya está lleno.")
 		return
 	end
+	-- Gasolinera de un jugador: su precio, y como mucho los litros que le quedan (BusinessService)
+	local price, left = spec.Price, math.huge
+	local seller = VehicleService.FuelSeller
+	if seller and spec.Type == "Gasolina" then
+		local ok, p, stock = pcall(seller.quote, pump)
+		if ok and type(p) == "number" and type(stock) == "number" and p > 0 then
+			price, left = p, stock
+		end
+	end
 	local data = DataService.get(player)
 	local money = data and data.Money or 0
-	local amount = math.min(missing, math.floor(money / spec.Price))
+	local amount = math.min(missing, math.floor(money / price), left)
 	if amount < 0.5 then
 		Notify:FireClient(player, "Error", "No tienes dinero para repostar.")
 		return
 	end
-	local cost = math.max(1, math.ceil(amount * spec.Price))
+	local cost = math.max(1, math.ceil(amount * price))
 	if not DataService.spend(player, cost) then
 		Notify:FireClient(player, "Error", "No tienes dinero para repostar.")
 		return
 	end
 	ride.Fuel = math.min(spec.Tank, ride.Fuel + amount)
 	publishFuel(player, ride)
+	if seller and left ~= math.huge then
+		pcall(seller.sold, pump, amount, cost)
+	end
 	if spec.Type == "Bateria" then
 		Notify:FireClient(player, "Success", ("🔋 Batería cargada al %d%% (%s)"):format(math.floor(ride.Fuel / spec.Tank * 100), Format.money(cost)))
 	else
