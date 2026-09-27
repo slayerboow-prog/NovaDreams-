@@ -1,6 +1,8 @@
 -- FishingService: la pesca y el oficio de pescador.
 --
 -- PESCAR (cualquiera con caña)
+--   * En cualquier orilla: si tienes agua delante sale "🎣 Pescar aquí" (el agua se decide por el
+--     sitio: lagos y río del plano de la ciudad; lo demás es mar).
 --   * En un sitio de pesca (muelle del puerto, pantalanes de los lagos y del río, barco de pesca)
 --     "Pescar". Se lanza el sedal y el corcho cae al agua. Cuando pica (el corcho se hunde) hay que
 --     "¡Tirar!" enseguida: si tiras antes, se asusta; si tardas, se escapa.
@@ -22,6 +24,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Fishing = require(ReplicatedStorage.Shared.Fishing)
+local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
 local Format = require(ReplicatedStorage.Shared.Format)
 local Stages = require(ReplicatedStorage.Shared.LifeStory.Stages)
 local Npc = require(script.Parent.Parent.World.Npc)
@@ -110,6 +113,9 @@ local function stop(player: Player, silent: boolean?)
 	if spotOwner[state.Spot] == player then
 		spotOwner[state.Spot] = nil
 	end
+	if state.Spot:GetAttribute("Temporary") then
+		state.Spot:Destroy() -- sitio improvisado ("Pescar aquí")
+	end
 	if player.Parent then
 		Remote:FireClient(player, "Stop")
 		if not silent then
@@ -154,7 +160,7 @@ local function cast(player: Player, spot: BasePart)
 	fishing[player] = { Spot = spot, Token = token, Phase = "Wait", BiteAt = 0 }
 	-- Mirando al agua
 	local character = player.Character
-	if character then
+	if character and not spot:GetAttribute("Temporary") then
 		character:PivotTo(spot.CFrame * CFrame.new(0, 0.5, 0))
 	end
 	Remote:FireClient(player, "Cast", {
@@ -215,6 +221,98 @@ local function reel(player: Player, token: any)
 	local kg = math.floor(rng:NextNumber(species.Kg[1], species.Kg[2]) * 100 + 0.5) / 100
 	Remote:FireClient(player, "Result", { Token = token, Kind = "Catch", Name = species.Name, Icon = species.Icon, Kg = kg, Rare = species.Rare == true, Price = species.Price })
 	StoryEvents.emit(player, "CaughtFish", { Species = species.Id })
+end
+
+---------------------------------------------------------------------
+-- Pescar en cualquier agua ("Pescar aquí")
+---------------------------------------------------------------------
+
+-- Qué agua es según el sitio: lagos y río del plano de la ciudad; lo demás, mar
+local function segmentDistance(p: Vector2, a: Vector2, b: Vector2): number
+	local ab = b - a
+	local t = math.clamp((p - a):Dot(ab) / math.max(ab:Dot(ab), 1e-6), 0, 1)
+	return (p - (a + ab * t)).Magnitude
+end
+
+function FishingService.waterKind(position: Vector3): string
+	local p = Vector2.new(position.X, position.Z)
+	for _, lake in CityPlan.Lakes do
+		if (p - Vector2.new(lake.X, lake.Z)).Magnitude < lake.R + 40 then
+			return "Lago"
+		end
+	end
+	local pts = CityPlan.River.Points
+	for i = 1, #pts - 1 do
+		if segmentDistance(p, Vector2.new(pts[i][1], pts[i][2]), Vector2.new(pts[i + 1][1], pts[i + 1][2])) < CityPlan.River.Width / 2 + 40 then
+			return "Rio"
+		end
+	end
+	return "Mar"
+end
+
+-- ¿Hay agua en ese punto? (terreno de agua; se puede cambiar en las pruebas)
+function FishingService.isWater(point: Vector3): boolean
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Include
+	params.FilterDescendantsInstances = { workspace.Terrain }
+	params.IgnoreWater = false
+	local hit = workspace:Raycast(Vector3.new(point.X, 12, point.Z), Vector3.new(0, -30, 0), params)
+	return hit ~= nil and hit.Material == Enum.Material.Water
+end
+
+-- A qué distancia delante de ti hay agua (o nil)
+local function waterAhead(root: BasePart): number?
+	local look = root.CFrame.LookVector
+	local flat = Vector3.new(look.X, 0, look.Z)
+	if flat.Magnitude < 0.1 then
+		return nil
+	end
+	flat = flat.Unit
+	for _, d in { 6, 9, 12, 15 } do
+		if FishingService.isWater(root.Position + flat * d) then
+			return d + 2
+		end
+	end
+	return nil
+end
+
+local function castHere(player: Player)
+	if isBaby(player) then
+		return
+	end
+	local root = rootOf(player)
+	if not root then
+		return
+	end
+	local distance = waterAhead(root)
+	if not distance then
+		Notify:FireClient(player, "Info", "Aquí no hay agua delante. Ponte mirando al agua, en la orilla.")
+		return
+	end
+	if not rodOf(player) then
+		Notify:FireClient(player, "Info", "Necesitas una caña de pescar. Cómprala en la tienda de pesca del centro 🎣")
+		return
+	end
+	stop(player, true)
+	local look = root.CFrame.LookVector
+	local flat = Vector3.new(look.X, 0, look.Z).Unit
+	local spot = Instance.new("Part")
+	spot.Name = "FishingSpotHere"
+	spot.Size = Vector3.new(3, 5, 3)
+	spot.Transparency = 1
+	spot.Anchored = true
+	spot.CanCollide = false
+	spot.CanQuery = false
+	spot.CanTouch = false
+	spot.CFrame = CFrame.lookAt(root.Position - Vector3.new(0, 0.5, 0), root.Position - Vector3.new(0, 0.5, 0) + flat)
+	spot:SetAttribute("Water", FishingService.waterKind(root.Position + flat * distance))
+	spot:SetAttribute("CastDistance", distance)
+	spot:SetAttribute("Temporary", true)
+	spot.Parent = workspace
+	cast(player, spot)
+	if not fishing[player] then
+		spot:Destroy()
+	end
 end
 
 local function onSpot(player: Player, spot: BasePart)
@@ -604,6 +702,8 @@ function FishingService.init()
 			end
 		elseif action == "Stop" then
 			stop(player)
+		elseif action == "Here" then
+			castHere(player)
 		elseif action == "Buy" then
 			onBuy(player, a)
 		end
