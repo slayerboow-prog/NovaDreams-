@@ -303,6 +303,19 @@ local function watchWanted(player: Player, state: State)
 		return
 	end
 	local now = os.clock()
+	if player:GetAttribute("InteriorKey") then
+		-- Escondido dentro de un edificio: la policía espera en la puerta (no te ve)
+		local door = player:GetAttribute("InteriorDoor")
+		state.LastPosition = if typeof(door) == "Vector3" then door else state.LastPosition
+		player:SetAttribute("WantedSearching", true)
+		PoliceUnits.setTarget(player, state.LastPosition)
+		if now - state.LastSeen > Wanted.evadeSeconds(state.Stars) then
+			setStars(player, 0)
+			state.Crimes = {}
+			Remote:FireClient(player, "Evaded", {})
+		end
+		return
+	end
 	if PoliceUnits.sees(player) then
 		state.LastSeen = now
 		state.LastPosition = r.Position

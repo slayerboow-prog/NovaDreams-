@@ -163,7 +163,9 @@ local function paintJail()
 	jailBar.Visible = type(untilTime) == "number"
 	if type(untilTime) == "number" then
 		local left = math.max(0, untilTime - os.time())
-		jailText.Text = ("⛓ En prisión · %d:%02d · trabaja en la lavandería, la cocina o el patio para salir antes"):format(left // 60, left % 60)
+		local tunnel = player:GetAttribute("Tunnel")
+		local extra = if player:GetAttribute("Isolated") then " · 🔒 AISLAMIENTO" elseif tunnel then (" · 🕳 túnel %d%%"):format(tunnel) else ""
+		jailText.Text = ("⛓ En prisión · %d:%02d%s · trabaja, estudia o haz deporte para salir antes"):format(left // 60, left % 60, extra)
 	end
 end
 
