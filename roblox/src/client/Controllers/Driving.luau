@@ -5,8 +5,8 @@
 --   * W/S o ↑/↓: acelerar, frenar y marcha atrás · A/D o ←/→: girar · Ctrl: freno de mano
 --   * Mando: gatillo derecho acelera, gatillo izquierdo frena (los dos a medias, poco a poco),
 --     joystick izquierdo gira y LB es el freno de mano
---   * Móvil: pedales en pantalla (acelerador, freno/marcha atrás y freno de mano) a la derecha y
---     volante (◀ ▶) a la izquierda; el joystick de Roblox se esconde mientras conduces
+--   * Móvil: el joystick de Roblox es el volante y, a la derecha, pedales en pantalla (acelerador,
+--     freno / marcha atrás y freno de mano) en el arco del botón de saltar (UI/TouchLayout)
 --   * Todo entra suave: el acelerador y el volante no saltan de 0 a 1, van subiendo y bajando
 --     (y el volante vuelve solo al centro). Cuanto más rápido vas, menos y más despacio gira.
 --   * Freno de mano: frena en seco; en coche, si giras a la vez, la trasera derrapa un poco
@@ -23,7 +23,6 @@
 -- (VehicleService) le da el control a tu ordenador, así que se mueve sin retraso y los demás
 -- (también tus pasajeros) lo ven igual. La cámara la lleva RideCamera.luau.
 
-local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -34,13 +33,13 @@ local Wetness = require(ReplicatedStorage.Shared.Wetness)
 local SoundFx = require(script.Parent.SoundFx)
 local Hud = require(script.Parent.Parent.UI.Hud)
 local Theme = require(script.Parent.Parent.UI.Theme)
+local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
 local VehicleHud = require(script.Parent.VehicleHud)
 
 local Driving = {}
 
 local player = Players.LocalPlayer
 local IDLE = { R15 = 507766388, R6 = 180435571 } -- postura de pie (monopatín, patinete)
-local TOUCH = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 local MAX_TILT = math.rad(28) -- lo más que se inclina con la cuesta (así nunca vuelca)
 
 type State = {
@@ -61,10 +60,8 @@ type State = {
 local state: State? = nil
 local warnRoad: () -> ()
 
--- Pedales y volante en pantalla (móvil): qué dedo pisa cada uno
-local touch = { Gas = nil :: InputObject?, Brake = nil :: InputObject?, Left = nil :: InputObject?, Right = nil :: InputObject?, Handbrake = nil :: InputObject? }
-local touchGui: ScreenGui? = nil
-local hiddenGuis: { ScreenGui } = {}
+-- Pedales en pantalla (móvil): qué dedo pisa cada uno
+local touch = { Gas = nil :: InputObject?, Brake = nil :: InputObject?, Handbrake = nil :: InputObject? }
 
 local function yawOf(cf: CFrame): number
 	local look = cf.LookVector
@@ -145,14 +142,9 @@ local function readInput(seat: VehicleSeat): (number, number, boolean)
 	if held(touch.Brake) then
 		throttle -= 1
 	end
-	if held(touch.Right) then
-		steer += 1
-	end
-	if held(touch.Left) then
-		steer -= 1
-	end
 	handbrake = handbrake or held(touch.Handbrake)
-	-- Si nada de lo anterior, lo que diga Roblox (joystick del móvil u otros mandos)
+	-- Si nada de lo anterior, lo que diga Roblox (el joystick del móvil gira y, hacia delante o
+	-- atrás, también acelera y frena)
 	if math.abs(throttle) < 0.05 then
 		throttle = seat.ThrottleFloat
 	end
@@ -191,20 +183,24 @@ end
 -- Pedales en pantalla (móvil)
 ---------------------------------------------------------------------
 
-local function pedal(parent: Instance, name: string, text: string, size: Vector2, position: UDim2, anchor: Vector2, color: Color3, slot: string)
+-- Botón redondo que se mantiene pulsado (con varios dedos a la vez: acelerar y girar con el joystick)
+local function pedal(parent: Instance, name: string, text: string, color: Color3, slot: string, id: string)
 	local button = Theme.button({
 		Name = name,
-		AnchorPoint = anchor,
-		Size = UDim2.fromOffset(size.X, size.Y),
-		Position = position,
 		Text = text,
-		TextSize = 26,
+		TextSize = 24,
 		TextWrapped = true,
 		BackgroundColor3 = color,
 		BackgroundTransparency = 0.25,
 		AutoButtonColor = false,
 		Parent = parent,
 	})
+	local corner = button:FindFirstChildOfClass("UICorner")
+	if corner then
+		corner.CornerRadius = UDim.new(0.5, 0)
+	end
+	TouchLayout.place(button, id)
+	TouchLayout.showWhen(button, "Vehiculo")
 	button.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
 			(touch :: any)[slot] = input
@@ -213,7 +209,7 @@ local function pedal(parent: Instance, name: string, text: string, size: Vector2
 	end)
 	-- (se suelta cuando ese dedo se levanta: lo mira readInput con held)
 	RunService.RenderStepped:Connect(function()
-		if not held((touch :: any)[slot]) then
+		if (touch :: any)[slot] ~= nil and not held((touch :: any)[slot]) then
 			(touch :: any)[slot] = nil
 			button.BackgroundTransparency = 0.25
 		end
@@ -221,63 +217,23 @@ local function pedal(parent: Instance, name: string, text: string, size: Vector2
 	return button
 end
 
+-- Acelerador, freno / marcha atrás y freno de mano en el arco del botón de saltar (TouchLayout);
+-- el volante es el joystick de Roblox. Solo se ven conduciendo.
 local function buildTouch()
-	local gui = Theme.create("ScreenGui", { Name = "DrivingControls", ResetOnSpawn = false, Enabled = false, DisplayOrder = 5, IgnoreGuiInset = true, Parent = player:WaitForChild("PlayerGui") })
-	local rgb = Color3.fromRGB
-	-- Volante a la izquierda (donde suele ir el joystick)
-	pedal(gui, "SteerLeft", "◀", Vector2.new(92, 92), UDim2.new(0, 24, 1, -24), Vector2.new(0, 1), rgb(40, 60, 100), "Left")
-	pedal(gui, "SteerRight", "▶", Vector2.new(92, 92), UDim2.new(0, 128, 1, -24), Vector2.new(0, 1), rgb(40, 60, 100), "Right")
-	-- Pedales a la derecha: acelerador (alto), freno / marcha atrás y freno de mano
-	pedal(gui, "Gas", "▲", Vector2.new(84, 130), UDim2.new(1, -20, 1, -20), Vector2.new(1, 1), rgb(0, 140, 80), "Gas")
-	pedal(gui, "Brake", "▼", Vector2.new(84, 100), UDim2.new(1, -112, 1, -20), Vector2.new(1, 1), rgb(170, 60, 50), "Brake")
-	local hand = pedal(gui, "Handbrake", "Freno de mano", Vector2.new(84, 44), UDim2.new(1, -112, 1, -128), Vector2.new(1, 1), rgb(90, 90, 100), "Handbrake")
-	hand.TextSize = 13
-	touchGui = gui
-end
-
--- En el móvil: fuera el joystick y los botones de andar (correr, pelear); dentro los pedales
-local function showTouch(on: boolean)
-	if not TOUCH then
+	if not UserInputService.TouchEnabled then
 		return
 	end
-	if on and not touchGui then
-		buildTouch()
-	end
-	if touchGui then
-		touchGui.Enabled = on
-	end
+	local gui = Theme.create("ScreenGui", { Name = "DrivingControls", ResetOnSpawn = false, DisplayOrder = 4, Parent = player:WaitForChild("PlayerGui") })
+	local rgb = Color3.fromRGB
+	pedal(gui, "Gas", "⬆", rgb(0, 140, 80), "Gas", "Acelerar")
+	pedal(gui, "Brake", "🛑", rgb(170, 60, 50), "Brake", "Frenar")
+	local hand = pedal(gui, "Handbrake", "🅿", rgb(90, 90, 100), "Handbrake", "FrenoMano")
+	hand.TextSize = 20
+end
+
+local function releasePedals()
 	for slot in touch do
 		(touch :: any)[slot] = nil
-	end
-	pcall(function()
-		local module = require(player:WaitForChild("PlayerScripts"):WaitForChild("PlayerModule", 2) :: any)
-		local controls = module:GetControls()
-		if on then
-			controls:Disable()
-		else
-			controls:Enable()
-		end
-	end)
-	local playerGui = player:FindFirstChild("PlayerGui")
-	if on and playerGui then
-		for _, name in { "SprintGui", "CombatGui" } do
-			local other = playerGui:FindFirstChild(name)
-			if other and other:IsA("ScreenGui") and other.Enabled then
-				other.Enabled = false
-				table.insert(hiddenGuis, other)
-			end
-		end
-		-- El claxon, arriba del volante
-		pcall(function()
-			ContextActionService:SetPosition("HornTouch", UDim2.new(0, 24, 1, -210))
-		end)
-	elseif not on then
-		for _, other in hiddenGuis do
-			if other.Parent then
-				other.Enabled = true
-			end
-		end
-		table.clear(hiddenGuis)
 	end
 end
 
@@ -330,7 +286,7 @@ local function start(seat: VehicleSeat, humanoid: Humanoid)
 	state = s
 	VehicleHud.show(kind)
 	SoundFx.vehicleStart(kind, chassis)
-	showTouch(true)
+	releasePedals()
 	warnRoad()
 end
 
@@ -356,7 +312,7 @@ local function stop()
 	state = nil
 	VehicleHud.hide()
 	SoundFx.vehicleStop()
-	showTouch(false)
+	releasePedals()
 end
 
 -- Suelo bajo un punto (ignora el vehículo, las personas y lo que no choca). nil = agua o vacío
@@ -535,6 +491,7 @@ end
 
 function Driving.init()
 	VehicleHud.init(player:WaitForChild("PlayerGui"))
+	buildTouch()
 
 	local function watch(character: Model)
 		local humanoid = character:WaitForChild("Humanoid", 10) :: Humanoid?

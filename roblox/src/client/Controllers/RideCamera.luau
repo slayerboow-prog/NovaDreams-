@@ -14,7 +14,7 @@
 --     cabeza y la cámara, la cámara se pone delante. Distancia corta.
 -- Al bajarte vuelve la cámara normal, detrás de tu personaje y a una distancia cómoda.
 -- Las cuentas (muelle, giro, distancias) son funciones puras que se prueban fuera de Roblox:
--- scripts/test-ridecamera.luau
+-- scripts/test-ride.luau
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -77,6 +77,12 @@ function RideCamera.autoTurn(diff: number, speed: number, idle: number, dt: numb
 	end
 	local strength = math.clamp((speed - 4) / 20, 0, 1) * math.clamp((idle - 1.6) / 0.8, 0, 1)
 	return diff * strength * (1 - math.exp(-2.2 * dt))
+end
+
+-- Campo de visión según la velocidad (70 parado, hasta 78 muy rápido)
+RideCamera.BASE_FOV = 70
+function RideCamera.fov(speed: number): number
+	return RideCamera.BASE_FOV + 8 * math.clamp((speed - 10) / 60, 0, 1)
 end
 
 ---------------------------------------------------------------------
@@ -162,6 +168,9 @@ local function leave()
 	active = nil
 	local camera = workspace.CurrentCamera
 	local humanoid = humanoidOf()
+	if camera.CameraType == Enum.CameraType.Custom then
+		camera.FieldOfView = RideCamera.BASE_FOV -- (a pie lo lleva FootCamera)
+	end
 	-- La distancia: la de antes (sin quedarse lejísimos, como con el autobús)
 	local distance = (camera.CFrame.Position - camera.Focus.Position).Magnitude
 	local comfy = math.clamp(distance, math.max(a.SavedMin, 6), math.min(a.SavedMax, 16))
@@ -343,6 +352,9 @@ local function afterCamera(dt: number)
 		return
 	end
 	local speed = Vector3.new(a.Velocity.X, 0, a.Velocity.Z).Magnitude
+	-- Campo de visión un poco más abierto cuanto más rápido (sensación de velocidad)
+	local fov = RideCamera.fov(speed)
+	camera.FieldOfView += (fov - camera.FieldOfView) * (1 - math.exp(-3 * dt))
 	-- (marcha atrás: se queda mirando hacia delante, no da la vuelta)
 	if a.Velocity:Dot(forward) < 0 then
 		speed = 0
@@ -352,6 +364,11 @@ local function afterCamera(dt: number)
 		local pivot = a.Focus
 		camera.CFrame = CFrame.new(pivot) * CFrame.Angles(0, turn, 0) * CFrame.new(-pivot) * camera.CFrame
 	end
+end
+
+-- ¿Lleva ahora la cámara? (FootCamera no toca nada mientras tanto)
+function RideCamera.isActive(): boolean
+	return active ~= nil
 end
 
 function RideCamera.init()

@@ -551,11 +551,11 @@ works.Mop = {
 }
 
 ---------------------------------------------------------------------
--- En un vehículo (las pone AgeMotion según el asiento; no son oficios del servidor)
+-- En un vehículo (las pone RidePose según el asiento; no son oficios del servidor)
 ---------------------------------------------------------------------
 
 -- Conductor de coche, autobús o camión: las dos manos en el volante, con pequeñas correcciones
--- (el giro del volante lo añade AgeMotion según cómo gira el vehículo)
+-- (el giro del volante lo añade RidePose según cómo gira el vehículo)
 works.Drive = {
 	Pose = function(t, seed, out)
 		local fix = sin(t * 0.9 + seed) * 0.02

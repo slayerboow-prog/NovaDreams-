@@ -46,7 +46,7 @@ function Rides.passengerSeats(kind: string, variant: string?): { { Seat: CFrame,
 	if kind == "Coche" or kind == "Patrulla" then
 		return carSeats(variant)
 	elseif kind == "Moto" then
-		return { { Seat = CFrame.new(0, 2.65, 1.75), Side = -1, Label = "Subir detrás", Pose = "Pillion" } }
+		return { { Seat = CFrame.new(0, 2.7, 1.95), Side = -1, Label = "Subir detrás", Pose = "Pillion" } }
 	elseif kind == "Camion" then
 		return { { Seat = CFrame.new(1.8, 4.2, -9.2), Side = 1, Label = "Subir de copiloto", Pose = "Passenger" } }
 	elseif kind == "Bomberos" then
