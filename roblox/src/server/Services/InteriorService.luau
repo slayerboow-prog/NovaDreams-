@@ -39,6 +39,7 @@ export type Building = {
 	Door: Vector3, -- en la calle, delante de la puerta
 	Out: Vector3, -- hacia fuera
 	Walkable: boolean, -- la planta baja de verdad se puede recorrer (solo ascensor)
+	Shop: string?, -- comercios: lo que pone su cartel (el interior va a juego: farmacia, banco, bar…)
 	Roof: Vector3?, -- azotea de verdad (Torre de Valmar)
 	Persistent: boolean?,
 }
@@ -95,6 +96,14 @@ local function hasChild(model: Model, name: string): BasePart?
 	return if child and child:IsA("BasePart") then child else nil
 end
 
+-- Lo que pone el cartel del edificio (tiendas: su interior va a juego)
+local function signText(model: Instance): string?
+	local sign = model:FindFirstChild("Sign")
+	local gui = sign and sign:FindFirstChildOfClass("SurfaceGui")
+	local label = gui and gui:FindFirstChildOfClass("TextLabel")
+	return if label and label:IsA("TextLabel") then label.Text else nil
+end
+
 -- Tipo de interior, título y plantas de arriba (nil = este modelo no es un edificio visitable)
 local function classify(model: Model): (string?, string?, string?)
 	local name, parent = model.Name, (model.Parent and model.Parent.Name or "")
@@ -135,6 +144,11 @@ local function classify(model: Model): (string?, string?, string?)
 	elseif name == "GranCentroComercial" then
 		return "CentroComercial", "🛍 Centro Comercial Valmar", "Local"
 	elseif name == "Edificio" or name:match("^Edificio_%d+$") then
+		if hasChild(model, "ShopDoor") then
+			-- Tienda de la calle con su puerta de cristal (Kit/Decor): se entra a su interior
+			local shop = signText(model)
+			return "Local", "🏬 " .. (if shop and shop ~= "" then shop else "Comercio"), "Piso"
+		end
 		if hasChild(model, "GarageDoor") and not hasChild(model, "DoorPanel") then
 			return "Nave", "🚒 Cocheras", nil
 		elseif hasChild(model, "DoorPanel") then
@@ -199,7 +213,7 @@ end
 -- Dónde está la puerta: la pieza "Door" si la hay; si no, la fachada que da a la calle más cercana
 local function findDoor(model: Model, cf: CFrame, size: Vector3): (Vector3, Vector3)
 	local center = cf.Position
-	local doorPart = hasChild(model, "Door") or hasChild(model, "DoorPanel") or hasChild(model, "FakeDoor")
+	local doorPart = hasChild(model, "ShopDoor") or hasChild(model, "Door") or hasChild(model, "DoorPanel") or hasChild(model, "FakeDoor")
 	if doorPart then
 		local offset = Vector3.new(doorPart.Position.X - center.X, 0, doorPart.Position.Z - center.Z)
 		local out = if offset.Magnitude > 0.5 then offset.Unit else cf.LookVector
@@ -262,7 +276,7 @@ local function instanceOf(building: Building, floor: number): Instance_?
 	end
 	local slot = takeSlot()
 	-- (la semilla de los muebles: el mismo edificio y la misma planta, siempre igual)
-	local r = builder(folder, CFrame.new(slotPosition(slot)), { Seed = building.Key .. ":" .. floor, Floor = floor })
+	local r = builder(folder, CFrame.new(slotPosition(slot)), { Seed = building.Key .. ":" .. floor, Floor = floor, Shop = if floor == 0 then building.Shop else nil })
 	r.Model:SetAttribute("Key", key)
 	local inst: Instance_ = { Room = r, Slot = slot, Building = building, Floor = floor, EmptySince = nil }
 	instances[key] = inst
@@ -590,6 +604,7 @@ local function scan()
 			Door = groundAt(door + out * 2.5),
 			Out = out,
 			Walkable = entry.Kind == "Walk",
+			Shop = if entry.Kind == "Local" then signText(model) else nil,
 		}
 		if model.Name == "TorreValmar" then
 			-- Azotea: encima del bloque de cristal más alto, apartado de la aguja del centro

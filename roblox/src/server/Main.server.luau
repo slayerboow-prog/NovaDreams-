@@ -18,6 +18,19 @@ local TownBuilder = require(World.TownBuilder)
 if not town then
 	TownBuilder.build()
 end
+-- Si el archivo trae una ciudad de antes de la decoración de las plantas bajas, se decora ahora
+-- (una vez: la ciudad guarda la versión en su atributo DecorVersion)
+do
+	local built = workspace:FindFirstChild("Town")
+	if built then
+		local ok, err = pcall(function()
+			require(World.Kit.Decor).dressTown(built)
+		end)
+		if not ok then
+			warn("[Decor] " .. tostring(err))
+		end
+	end
+end
 TerrainBuilder.removeGroundPart()
 
 -- 4) Datos para el tráfico y los peatones que simula cada cliente
@@ -72,6 +85,8 @@ local order = {
 	"MetroService", -- metro subterráneo: trenes, galería, encargos y revisor
 	"GymService", -- gimnasios: recepción, máquinas, ritmo, fuerza que se nota en el cuerpo y monitor/a
 	"MetroLifeService", -- vida del metro: guardias, ratas, aseos, taquillas, fuente, piano…
+	"StaffService", -- cada sitio que atiende al público tiene a alguien (NPC si no hay jugador de ese oficio)
+	"CrowdService", -- gente en las salas, las tiendas, los parques y las plazas (aunque juegues solo)
 	"DivingService", -- nadar, bucear (aire) y pesca submarina con fusil o arpón
 	"SeaEventService", -- catástrofes marinas: tsunami, temporal, remolino, marea negra, tiburón y medusas
 	"ClassService", -- clases y exámenes que se juegan (lo usa la historia)

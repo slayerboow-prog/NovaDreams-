@@ -686,6 +686,8 @@ function TownBuilder.build(): Folder
 	-- Gimnasio grande de Valmar Centro (junto a la tienda de pesca): también al final, para que no
 	-- cambie nada más (los de los barrios ya salen con su manzana de ocio: Civic.gym)
 	require(Kit.GymKit).centro(world)
+	-- Plantas bajas bien decoradas y con sitio para su gente; tiendas vacías cerradas (Kit/Decor)
+	require(Kit.Decor).dressTown(world)
 	-- Repaso final: que ninguna moldura, bordillo o cristalera parpadee contra la pared de detrás
 	-- (varias pasadas: al crecer una pieza puede quedar a ras de otra)
 	for _ = 1, 4 do

@@ -3719,6 +3719,293 @@ FishingService.isWater = realIsWater
 local _ = far
 end)()
 
+;(function()
+print("▶ Personal y gente: cada puesto atendido, NPC que se aparta por un jugador, salas con gente y decoración")
+local StaffService = loadModule(S .. "StaffService")
+local CrowdService = loadModule(S .. "CrowdService")
+local Decor = loadModule(ROOT .. "/server/World/Kit/Decor")
+local Interiors = loadModule(ROOT .. "/server/World/Interiors")
+local lab = fakeInstance("Model")
+lab.Name = "PruebasPersonal"
+lab.Parent = worldRoot
+local BASE = Vector3.new(9000, 0, 9000)
+-- Un puesto por cada oficio que atiende al público (los de la ciudad: marcas StaffSpot de Kit/Decor)
+local ROLES = {
+	{ "Dependiente" }, { "Cajero" }, { "Cajera" }, { "Recepcionista" }, { "Informadora" }, { "Vigilante" },
+	{ "Agente de guardia", "Policia" }, { "Bombero", "Bombero" }, { "Funcionaria de Correos" }, { "Bibliotecaria" },
+	{ "Conserje" }, { "Encargado de premios" }, { "Profesor de autoescuela" }, { "Monitora", "MonitorGimnasio" },
+}
+local posts = {}
+for i, r in ROLES do
+	local p = fakeInstance("Part")
+	p.Name = "StaffSpot"
+	p.Size = Vector3.new(1, 1, 1)
+	p.CFrame = CFrame.new(BASE + Vector3.new(i * 30, 0.5, 0))
+	p:AddTag("StaffSpot")
+	p:SetAttribute("Role", r[1])
+	p:SetAttribute("Work", "Type")
+	p:SetAttribute("JobId", r[2])
+	p.Parent = lab
+	StaffService.register(p)
+	posts[r[1]] = StaffService.posts()[#StaffService.posts()]
+end
+check(#StaffService.posts() >= #ROLES, "cada oficio de cara al público tiene su puesto")
+StaffService.tick()
+task.wait(0.05)
+local anyone = false
+for _, post in StaffService.posts() do
+	anyone = anyone or StaffService.npcOf(post) ~= nil
+end
+check(not anyone, "sin jugadores cerca no se gasta nada: no hay nadie en los puestos")
+local visitor, visitorRoot = newPlayer(260, "Adulto", 100)
+moveTo(visitorRoot, BASE + Vector3.new(200, 0, 0))
+StaffService.ACTIVE = 1000
+StaffService.tick()
+task.wait(0.05)
+local staffed, working = 0, 0
+for _, r in ROLES do
+	local npc = StaffService.npcOf(posts[r[1]])
+	if npc and npc:GetAttribute("StaffRole") == r[1] then
+		staffed += 1
+		if npc:GetAttribute("Work") == "Type" then
+			working += 1
+		end
+	end
+end
+check(staffed == #ROLES, ("con un jugador cerca, todos los puestos atendidos por un NPC (%d/%d)"):format(staffed, #ROLES))
+check(working == #ROLES, "y cada uno haciendo su tarea (Npc.work)")
+local cop = posts["Agente de guardia"]
+local copNpc = StaffService.npcOf(cop)
+check(copNpc ~= nil and promptOf(copNpc, "Hablar") ~= nil, "se puede hablar con el agente del mostrador")
+promptOf(copNpc, "Hablar").Triggered:Fire(visitor)
+local bubble = copNpc:FindFirstChild("Head") and copNpc.Head:FindFirstChild("Bubble")
+check(bubble ~= nil and bubble.Enabled == true, "y te contesta con un bocadillo")
+-- Un jugador policía entra de servicio en la comisaría: el agente NPC se aparta
+local officer, officerRoot = newPlayer(261, "Adulto", 100)
+officer:SetAttribute("Job", "Policia")
+moveTo(officerRoot, cop.CFrame.Position + Vector3.new(2, 0, 0))
+StaffService.tick()
+waitFor(function()
+	return StaffService.npcOf(cop) == nil
+end, 4, "que el agente NPC se aparte")
+check(StaffService.npcOf(cop) == nil and not copNpc.Parent, "el jugador policía cubre el mostrador: el NPC se aparta y se va")
+check(StaffService.npcOf(posts["Bombero"]) ~= nil and StaffService.npcOf(posts["Cajero"]) ~= nil, "los demás puestos siguen atendidos")
+-- Un policía de patrulla lejos no cubre el mostrador
+moveTo(officerRoot, cop.CFrame.Position + Vector3.new(0, 0, 400))
+StaffService.tick()
+task.wait(0.05)
+check(StaffService.npcOf(cop) ~= nil, "si el policía se va de patrulla, vuelve el agente NPC")
+moveTo(officerRoot, cop.CFrame.Position + Vector3.new(2, 0, 0))
+StaffService.tick()
+waitFor(function()
+	return StaffService.npcOf(cop) == nil
+end, 4, "que se aparte otra vez")
+officer:SetAttribute("Job", nil)
+StaffService.tick()
+task.wait(0.05)
+local back = StaffService.npcOf(cop)
+check(back ~= nil and (back.PrimaryPart.Position - cop.CFrame.Position).Magnitude < 6, "al dejar el oficio, el NPC vuelve a su puesto")
+-- Bomberos y monitor/a igual
+local firefighter, fireRoot = newPlayer(262, "Adulto", 100)
+firefighter:SetAttribute("Job", "Bombero")
+moveTo(fireRoot, posts["Bombero"].CFrame.Position)
+StaffService.tick()
+waitFor(function()
+	return StaffService.npcOf(posts["Bombero"]) == nil
+end, 4, "que el bombero NPC se aparte")
+check(true, "un jugador bombero en el parque: el bombero NPC le deja su sitio")
+firefighter:SetAttribute("Job", nil)
+StaffService.tick()
+task.wait(0.05)
+check(StaffService.npcOf(posts["Bombero"]) ~= nil, "y vuelve cuando lo deja")
+-- Sin jugadores cerca: se van todos
+moveTo(visitorRoot, BASE + Vector3.new(0, 0, 50000))
+moveTo(officerRoot, BASE + Vector3.new(0, 0, 50000))
+moveTo(fireRoot, BASE + Vector3.new(0, 0, 50000))
+StaffService.ACTIVE = 170
+StaffService.tick()
+task.wait(0.05)
+anyone = false
+for _, post in StaffService.posts() do
+	anyone = anyone or StaffService.npcOf(post) ~= nil
+end
+check(not anyone, "cuando no queda nadie cerca, se quitan")
+
+-- Salas por dentro: gente dentro del tope de cada sala y se va con la sala
+local kinds = {}
+for kind in CrowdService.Plans do
+	table.insert(kinds, kind)
+end
+table.sort(kinds)
+local allOk, total = true, 0
+for _, kind in kinds do
+	local r = Interiors[kind](lab, CFrame.new(0, 6000, 0), { Seed = kind .. "_3_3:0", Shop = if kind == "Local" then "BAR" else nil })
+	local n = CrowdService.populate(r)
+	local inside = 0
+	for _, d in r.Model:GetDescendants() do
+		if d:IsA("Model") and d:GetAttribute("Crowd") == "Room" then
+			inside += 1
+		end
+	end
+	local plan = CrowdService.Plans[kind]
+	if not (inside == n and n >= 1 and n <= plan.Cap) then
+		allOk = false
+		print(("    (%s: %d personas, tope %d)"):format(kind, n, plan.Cap))
+	end
+	total += n
+	r.Model:Destroy()
+end
+check(allOk, ("cada sala se llena con su gente, sin pasar de su tope (%d personas en %d salas)"):format(total, #kinds))
+check(CrowdService.count("Room") == 0, "y al quitar la sala se va su gente")
+local office = Interiors.Oficina(lab, CFrame.new(0, 6000, 0), { Seed = "Oficina_9_9:0" })
+CrowdService.populate(office)
+local typing, taken = 0, 0
+for _, d in office.Model:GetDescendants() do
+	if d:IsA("Model") and d:GetAttribute("Crowd") and d:GetAttribute("Work") == "Type" then
+		typing += 1
+	end
+	if d:IsA("Seat") and d:GetAttribute("Taken") then
+		taken += 1
+	end
+end
+check(typing >= 1 and taken >= 1, "en la oficina hay gente sentada tecleando (y su silla queda ocupada)")
+office.Model:Destroy()
+local savedCap = CrowdService.ROOM_CAP
+CrowdService.ROOM_CAP = 3
+local big = Interiors.Estacion(lab, CFrame.new(0, 6000, 0), { Seed = "Estacion_1_1:0" })
+check(CrowdService.populate(big) <= 3, "con el tope global lleno, no se ponen más")
+big.Model:Destroy()
+CrowdService.ROOM_CAP = savedCap
+
+-- Plantas bajas de la ciudad: decoración y marcas (Kit/Decor)
+local function shell(parentName: string, name: string, W: number, D: number, G: number, sign: string?, lit: boolean?)
+	local holder = fakeInstance("Model")
+	holder.Name = parentName
+	holder.Parent = lab
+	local m = fakeInstance("Model")
+	m.Name = name
+	m.Parent = holder
+	local O = CFrame.new(BASE + Vector3.new(0, 0, 3000 + math.random(0, 50000)))
+	local function add(n, size, cf)
+		local p = fakeInstance("Part")
+		p.Name = n
+		p.Size = size
+		p.CFrame = cf
+		p.Parent = m
+		return p
+	end
+	add("Floor", Vector3.new(W - 2, 1, D - 2), O * CFrame.new(0, 0.5, 0))
+	add("Ceiling", Vector3.new(W - 2, 1, D - 2), O * CFrame.new(0, 1 + G - 0.5, 0))
+	add("Wall", Vector3.new(W, G + 1, 1), O * CFrame.new(0, (G + 1) / 2, D / 2 - 0.5))
+	add("Wall", Vector3.new(1, G + 1, D - 2), O * CFrame.new(-W / 2 + 0.5, (G + 1) / 2, 0))
+	add("Wall", Vector3.new(1, G + 1, D - 2), O * CFrame.new(W / 2 - 0.5, (G + 1) / 2, 0))
+	for _, sx in { -1, 1 } do
+		add("Wall", Vector3.new(W / 2 - 4, G + 1, 1), O * CFrame.new(sx * (W / 4 + 2), (G + 1) / 2, -D / 2 + 0.5))
+	end
+	if lit ~= false then
+		add("CeilingLamp", Vector3.new(3.2, 0.25, 3.2), O * CFrame.new(0, G - 0.2, 0))
+	end
+	if sign then
+		local s = add("Sign", Vector3.new(10, 2.6, 0.3), O * CFrame.new(0, G - 1, -D / 2 - 0.2))
+		local Builder = loadModule(ROOT .. "/server/World/Builder")
+		Builder.sign(s, sign, Enum.NormalId.Front)
+	end
+	local nearby = {}
+	for _, d in m:GetDescendants() do
+		if d:IsA("BasePart") then
+			table.insert(nearby, d)
+		end
+	end
+	return m, nearby
+end
+local function tagged(model, tag)
+	local list = {}
+	for _, d in model:GetDescendants() do
+		if d:HasTag(tag) then
+			table.insert(list, d)
+		end
+	end
+	return list
+end
+local MIN_CITY = { Mall = { "CentroComercial", "Edificio", 140, 80, 18, 400 }, Lobby = { "Torres", "Torre", 44, 38, 16, 50 }, Library = { "Facultad", "Edificio", 100, 38, 13, 120 }, Faculty = { "Facultad", "Edificio", 100, 38, 13, 60 }, GasShop = { "Gasolinera", "Tienda", 26, 14, 15, 50 } }
+local names = {}
+for kind in MIN_CITY do
+	table.insert(names, kind)
+end
+table.sort(names)
+local gasShop
+for _, kind in names do
+	local spec = MIN_CITY[kind]
+	local m, nearby = shell(spec[1], spec[2], spec[3], spec[4], spec[5], "SITIO")
+	if kind == "Library" then
+		m.Parent:AddTag("Library")
+	end
+	check(Decor.kindOf(m) == kind, kind .. ": se reconoce el sitio")
+	local added = Decor.dress(m, kind, nearby)
+	check(added >= spec[6], ("%s: decorado a fondo (%d piezas, mínimo %d)"):format(kind, added, spec[6]))
+	check(#tagged(m, "StaffSpot") >= 1, kind .. ": con su puesto de trabajo (StaffSpot)")
+	check(#tagged(m, "CrowdSpot") >= 1, kind .. ": y sitios para su gente (CrowdSpot)")
+	if kind == "GasShop" then
+		gasShop = m
+	end
+end
+-- Nada se pisa: la decoración no invade la entrada
+local entryFree = true
+for _, d in gasShop:GetDescendants() do
+	if d:IsA("BasePart") and d.Parent and d.Parent.Name ~= "Tienda" then
+		local l = gasShop.Floor.CFrame:PointToObjectSpace(d.Position)
+		if math.abs(l.X) < 3 and l.Z < -6 + 3 and l.Y < 8 and not d:HasTag("CrowdSpot") then
+			entryFree = false
+		end
+	end
+end
+check(entryFree, "la puerta queda libre (nada delante de la entrada)")
+-- Tienda vacía y a oscuras: se cierra con su puerta y por dentro va a juego con su cartel
+local dark, darkNearby = shell("Manzana", "Edificio", 30, 28, 15, "BANCO VALMAR", false)
+check(Decor.kindOf(dark) == "DarkShop", "una tienda vacía y a oscuras se reconoce")
+Decor.dress(dark, "DarkShop", darkNearby)
+check(dark:FindFirstChild("ShopDoor") ~= nil, "y se cierra con su puerta de cristal (se entra a su interior)")
+check(Interiors.profileFor("BANCO VALMAR").Id == "Banco" and Interiors.profileFor("PANADERÍA").Id == "Panaderia" and Interiors.profileFor("PELUQUERÍA").Layout == "Salon" and Interiors.profileFor("BAR").Layout == "Eatery", "el interior va con lo que pone el cartel (banco, panadería, peluquería, bar…)")
+local bank = Interiors.Local(lab, CFrame.new(0, 7000, 0), { Seed = "Local_5_5:0", Shop = "BANCO VALMAR" })
+check(bank.Model:GetAttribute("Shop") == "Banco" and #tagged(bank.Model, "ClerkSpot") >= 2 and bank.Model:FindFirstChild("ATM", true) ~= nil, "el banco por dentro: mostrador, empleados y cajero automático")
+bank.Model:Destroy()
+-- Clientes de la gasolinera: aparecen con un jugador cerca y se van cuando se aleja
+for _, spot in tagged(gasShop, "CrowdSpot") do
+	CrowdService.addSpot(spot)
+end
+local shopper, shopperRoot = newPlayer(263, "Adulto", 100)
+moveTo(shopperRoot, gasShop.Floor.Position)
+CrowdService.tickCity()
+check(CrowdService.count("City") >= 1 and CrowdService.count("City") <= CrowdService.GROUP_CAP, "con un jugador cerca, hay clientes en la tienda")
+moveTo(shopperRoot, gasShop.Floor.Position + Vector3.new(0, 0, 900))
+CrowdService.tickCity()
+check(CrowdService.count("City") == 0, "y al irse el jugador, se quitan")
+-- Decoración de las salas montadas (cuadros, carteles, tablones… en todas las que no son viviendas)
+local decorOk = true
+local roomKinds = {}
+for kind in Decor.RoomRecipes do
+	table.insert(roomKinds, kind)
+end
+table.sort(roomKinds)
+for _, kind in roomKinds do
+	local r = Interiors[kind](lab, CFrame.new(0, 8000, 0), { Seed = kind .. "_4_4:0" })
+	local holder = r.Model:FindFirstChild("Decor")
+	local n = 0
+	for _, d in if holder then holder:GetDescendants() else {} do
+		if d:IsA("BasePart") then
+			n += 1
+		end
+	end
+	if n < 5 then
+		decorOk = false
+		print(("    (%s: %d piezas de decoración)"):format(kind, n))
+	end
+	r.Model:Destroy()
+end
+check(decorOk, "cada sala que no es vivienda gana detalles en paredes y suelo")
+local _ = { visitorRoot, officerRoot, fireRoot }
+end)()
+
 end, debug.traceback)
 if not ok then
 	print("❌ Error en la prueba: " .. tostring(err))
