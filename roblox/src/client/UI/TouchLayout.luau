@@ -49,6 +49,19 @@ function TouchLayout.slot(name: string): { Position: UDim2, Size: number }
 	return { Position = UDim2.new(1, -x, 1, -y), Size = def.Size }
 end
 
+-- Altura (px desde abajo) hasta donde llegan los botones que se ven a pie
+function TouchLayout.top(): number
+	local _, radius = jump()
+	local center = jump()
+	local top = center.Y + radius
+	for _, name in { "Golpear", "Defender", "Correr", "Piedra", "Linterna", "Foto" } do
+		local def = SLOTS[name]
+		local ring = radius + 14 + def.Size / 2 + (def.Ring - 1) * 64
+		top = math.max(top, center.Y + math.sin(math.rad(def.Angle)) * ring + def.Size / 2)
+	end
+	return top
+end
+
 -- Coloca un botón (GuiObject o el de ContextActionService) en su hueco y lo mantiene al girar
 function TouchLayout.place(button: GuiObject, name: string)
 	local function apply()
