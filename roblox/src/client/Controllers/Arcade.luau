@@ -278,7 +278,7 @@ local function openPrizes()
 				button.Text = if has("Wearing", key) then "Quitarse" else "Ponerse"
 				button.BackgroundColor3 = rgb(0, 120, 170)
 			elseif prize.Kind == "Vehicle" and has("OwnedVehicles", key) then
-				button.Text = "✓ Ya lo tienes"
+				button.Text = "✔ Ya lo tienes"
 				button.BackgroundColor3 = C.PanelLight
 			else
 				button.Text = "Canjear"

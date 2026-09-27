@@ -1,6 +1,6 @@
 -- BreakService (servidor): piedras que se cogen del suelo y se lanzan; cristales y puertas que se rompen.
 --
---   * Coger (tecla B o botón 🪨 en móvil): de un suelo de tierra, césped, arena o roca. Llevas hasta
+--   * Coger (tecla B o botón 🥌 en móvil): de un suelo de tierra, césped, arena o roca. Llevas hasta
 --     3, y se ve la piedra en tu mano.
 --   * Lanzar (otra vez B): hacia donde apuntas. La piedra la calcula el servidor (con rayos, para no
 --     atravesar cristales finos) y cada jugador la dibuja volando (Vandal "Stone").
@@ -293,7 +293,7 @@ local function impact(stone: Stone, result: RaycastResult, velocity: Vector3)
 	if part:IsA("BasePart") then
 		local model, victim = personOf(part)
 		if victim then
-			Notify:FireClient(victim, "Error", "🪨 ¡Te han tirado una piedra!")
+			Notify:FireClient(victim, "Error", "🥌 ¡Te han tirado una piedra!")
 		elseif model and model:FindFirstChild("Head") then
 			Npc.say(model, "¡Eh! ¿Qué haces?")
 			task.delay(3, function()
@@ -401,7 +401,7 @@ local function pick(player: Player)
 	lastPick[player] = os.clock()
 	local count = player:GetAttribute("Stones") or 0
 	if count >= Breakables.MaxStones then
-		Notify:FireClient(player, "Info", ("🪨 Ya llevas %d piedras."):format(count))
+		Notify:FireClient(player, "Info", ("🥌 Ya llevas %d piedras."):format(count))
 		return
 	end
 	local root = rootOf(player)
@@ -413,7 +413,7 @@ local function pick(player: Player)
 	params.FilterDescendantsInstances = { player.Character :: Instance }
 	local ground = workspace:Raycast(root.Position, Vector3.new(0, -10, 0), params)
 	if not ground or not Breakables.canPickFrom(ground.Material) then
-		Notify:FireClient(player, "Error", "🪨 Aquí no hay piedras: busca tierra, césped, arena o roca.")
+		Notify:FireClient(player, "Error", "🥌 Aquí no hay piedras: busca tierra, césped, arena o roca.")
 		return
 	end
 	setStones(player, count + 1)

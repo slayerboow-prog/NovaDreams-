@@ -30,7 +30,7 @@ Groceries.Sections = {
 	Lacteos = { Name = "Lácteos y huevos", Icon = "🥛", Color = rgb(90, 150, 220), Where = "Fridge" },
 	Carne = { Name = "Carne", Icon = "🥩", Color = rgb(190, 60, 60), Where = "Fridge" },
 	Pescado = { Name = "Pescado", Icon = "🐟", Color = rgb(70, 140, 190), Where = "Fridge" },
-	Congelados = { Name = "Congelados", Icon = "🧊", Color = rgb(140, 200, 240), Where = "Freezer" },
+	Congelados = { Name = "Congelados", Icon = "❄️", Color = rgb(140, 200, 240), Where = "Freezer" },
 	Bebidas = { Name = "Bebidas", Icon = "🥤", Color = rgb(40, 110, 200), Where = "Aisle" },
 	Desayuno = { Name = "Desayuno", Icon = "🥣", Color = rgb(230, 170, 60), Where = "Aisle" },
 	Despensa = { Name = "Despensa", Icon = "🍝", Color = rgb(210, 120, 50), Where = "Aisle" },
@@ -65,7 +65,7 @@ Groceries.List = {
 	p("Yogur", "Yogures", "🍶", 2, "Lacteos", rgb(240, 240, 255), 10, 3, "Box"),
 	p("Queso", "Queso", "🧀", 4, "Lacteos", rgb(250, 210, 80), 18, 0, "Box"),
 	p("Huevos", "Huevos", "🥚", 2, "Lacteos", rgb(240, 225, 190), 18, 0, "Box"),
-	p("Mantequilla", "Mantequilla", "🧈", 2, "Lacteos", rgb(250, 230, 150), 10, 0, "Box"),
+	p("Mantequilla", "Mantequilla", "🧀", 2, "Lacteos", rgb(250, 230, 150), 10, 0, "Box"),
 	-- Carne y pescado (nevera)
 	p("Pollo", "Pechuga de pollo", "🍗", 5, "Carne", rgb(240, 200, 170), 30, 0, "Box"),
 	p("Filetes", "Filetes de ternera", "🥩", 7, "Carne", rgb(180, 50, 50), 35, 0, "Box"),
@@ -83,10 +83,10 @@ Groceries.List = {
 	-- Congelados
 	p("Pizza", "Pizza congelada", "🍕", 4, "Congelados", rgb(220, 60, 40), 40, 0, "Box"),
 	p("HeladoTarrina", "Tarrina de helado", "🍨", 4, "Congelados", rgb(250, 220, 230), 15, 8, "Box"),
-	p("Croquetas", "Croquetas", "🧆", 3, "Congelados", rgb(200, 140, 70), 25, 0, "Bag"),
+	p("Croquetas", "Croquetas", "🥙", 3, "Congelados", rgb(200, 140, 70), 25, 0, "Bag"),
 	-- Bebidas
 	p("Agua", "Agua", "💧", 1, "Bebidas", rgb(120, 190, 240), 2, 5, "Bottle"),
-	p("Zumo", "Zumo de naranja", "🧃", 2, "Bebidas", rgb(250, 160, 40), 6, 8, "Box"),
+	p("Zumo", "Zumo de naranja", "🥤", 2, "Bebidas", rgb(250, 160, 40), 6, 8, "Box"),
 	p("Refresco", "Refresco", "🥤", 2, "Bebidas", rgb(200, 30, 40), 3, 12, "Can"),
 	p("Batido", "Batido de chocolate", "🍫", 2, "Bebidas", rgb(120, 70, 40), 8, 8, "Bottle"),
 	p("CafeMolido", "Café molido", "☕", 4, "Bebidas", rgb(80, 50, 30), 2, 25, "Bag"),
@@ -98,10 +98,10 @@ Groceries.List = {
 	-- Despensa
 	p("Pasta", "Macarrones", "🍝", 1, "Despensa", rgb(240, 200, 90), 30, 0, "Bag"),
 	p("Arroz", "Arroz", "🍚", 1, "Despensa", rgb(245, 245, 235), 30, 0, "Bag"),
-	p("Aceite", "Aceite de oliva", "🫒", 5, "Despensa", rgb(170, 170, 40), 5, 0, "Bottle"),
+	p("Aceite", "Aceite de oliva", "🥗", 5, "Despensa", rgb(170, 170, 40), 5, 0, "Bottle"),
 	p("Atun", "Latas de atún", "🥫", 3, "Despensa", rgb(60, 120, 180), 18, 0, "Can"),
 	p("Tomatico", "Tomate frito", "🥫", 1, "Despensa", rgb(200, 40, 30), 6, 0, "Can"),
-	p("Legumbres", "Garbanzos", "🫘", 1, "Despensa", rgb(220, 190, 120), 25, 0, "Bottle"),
+	p("Legumbres", "Garbanzos", "🥫", 1, "Despensa", rgb(220, 190, 120), 25, 0, "Bottle"),
 	-- Dulces y snacks
 	p("Chocolate", "Tableta de chocolate", "🍫", 2, "Snacks", rgb(90, 50, 30), 10, 10, "Box"),
 	p("Patatillas", "Patatas fritas", "🥔", 2, "Snacks", rgb(240, 200, 50), 10, 3, "Bag"),
@@ -113,7 +113,7 @@ Groceries.List = {
 	p("Lejia", "Lejía", "🧴", 1, "Limpieza", rgb(230, 230, 240), nil, nil, "Bottle"),
 	p("PapelHigienico", "Papel higiénico", "🧻", 3, "Higiene", rgb(245, 245, 245), nil, nil, "Bag"),
 	p("Champu", "Champú", "🧴", 3, "Higiene", rgb(200, 120, 220), nil, nil, "Bottle"),
-	p("PastaDientes", "Pasta de dientes", "🪥", 2, "Higiene", rgb(80, 160, 230), nil, nil, "Box"),
+	p("PastaDientes", "Pasta de dientes", "🦷", 2, "Higiene", rgb(80, 160, 230), nil, nil, "Box"),
 	p("Gel", "Gel de ducha", "🛁", 3, "Higiene", rgb(90, 200, 200), nil, nil, "Bottle"),
 }
 

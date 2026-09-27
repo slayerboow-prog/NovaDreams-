@@ -213,7 +213,7 @@ local function bringToRoom(clinic: Clinic, room: Room, patient: any)
 			end
 		end)
 	elseif patient.Player then
-		Notify:FireClient(patient.Player, "Info", ("🩺 Te llaman a la CONSULTA %d."):format(room.Id))
+		Notify:FireClient(patient.Player, "Info", ("🏥 Te llaman a la CONSULTA %d."):format(room.Id))
 		patient.Player:SetAttribute("TaskTarget", room.Door)
 		patient.Player:SetAttribute("TaskText", ("Ve a la consulta %d"):format(room.Id))
 	end
@@ -397,7 +397,7 @@ function finishPatient(player: Player, cured: boolean)
 	if patient.Player then
 		if cured then
 			healPlayer(patient.Player)
-			Notify:FireClient(patient.Player, "Success", ("🩺 ¡Curado! Tenías %s."):format(string.lower(Medical.byId[patient.Ailment].Name)))
+			Notify:FireClient(patient.Player, "Success", ("🏥 ¡Curado! Tenías %s."):format(string.lower(Medical.byId[patient.Ailment].Name)))
 		else
 			playerPatients[patient.Player] = nil
 			patient.Player:SetAttribute("TaskTarget", nil)
@@ -438,11 +438,11 @@ local function onReception(player: Player, clinic: Clinic)
 		Notify:FireClient(player, "Error", "No tienes dinero para la consulta.")
 		return
 	end
-	Notify:FireClient(player, "Info", "🩺 El médico de guardia te atiende en un momento…")
+	Notify:FireClient(player, "Info", "🏥 El médico de guardia te atiende en un momento…")
 	task.delay(3, function()
 		if player.Parent then
 			healPlayer(player)
-			Notify:FireClient(player, "Success", "🩺 Revisión hecha: estás como nuevo.")
+			Notify:FireClient(player, "Success", "🏥 Revisión hecha: estás como nuevo.")
 		end
 	end)
 end
@@ -678,7 +678,7 @@ local function setupClinic(model: Instance)
 		onReception(player, clinic)
 	end)
 	for _, room in list do
-		jobPrompt(room.Desk, "Llamar al siguiente paciente", ("🩺 Consulta %d"):format(room.Id), 0.4).Triggered:Connect(function(player)
+		jobPrompt(room.Desk, "Llamar al siguiente paciente", ("🏥 Consulta %d"):format(room.Id), 0.4).Triggered:Connect(function(player)
 			onDesk(player, clinic, room)
 		end)
 		jobPrompt(room.Meds, "Coger medicina", "💊 Botiquín", 0.3).Triggered:Connect(function(player)

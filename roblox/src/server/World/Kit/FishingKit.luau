@@ -176,7 +176,7 @@ function FishingKit.shop(parent: Instance, cf: CFrame, W: number, D: number)
 	Builder.part({ Name = "BaitFridge", Size = Vector3.new(4, 4, 2.4), CFrame = at(W / 2 - 3, 2, -D / 2 + 8), Color = WHITE, Material = Enum.Material.Metal, Parent = parent })
 	Builder.decor({ Name = "BaitGlass", Size = Vector3.new(3.4, 0.1, 2), CFrame = at(W / 2 - 3, 4.05, -D / 2 + 8), Color = rgb(200, 225, 240), Material = Enum.Material.Glass, Transparency = 0.5, Parent = parent })
 	local baitSign = Builder.decor({ Name = "BaitSign", Size = Vector3.new(3.6, 1, 0.2), CFrame = at(W / 2 - 3, 5.2, -D / 2 + 9.1), Color = rgb(170, 110, 60), Parent = parent })
-	Builder.sign(baitSign, "🪱 CEBO VIVO", Enum.NormalId.Front)
+	Builder.sign(baitSign, "🐛 CEBO VIVO", Enum.NormalId.Front)
 	-- Estantería central: carretes, anzuelos y cajas de aparejos
 	for i = -1, 1 do
 		local shelf = at(0, 0, i * 6)
@@ -198,7 +198,7 @@ function FishingKit.shop(parent: Instance, cf: CFrame, W: number, D: number)
 	Builder.decor({ Name = "TrophyFish", Shape = Enum.PartType.Ball, Size = Vector3.new(3.2, 1, 0.5), CFrame = at(3, 7.6, D / 2 - 1.5), Color = rgb(120, 150, 170), Material = Enum.Material.Metal, Parent = parent })
 	-- Cartel de precios
 	local prices = Builder.decor({ Name = "PriceBoard", Size = Vector3.new(6, 3, 0.2), CFrame = at(W / 2 - 9, 7, D / 2 - 1.3), Color = rgb(20, 40, 60), Parent = parent })
-	Builder.sign(prices, "🎣 CAÑAS · 🪱 CEBO\n⛴️ SALIDAS EN BARCO\nDESDE EL PUERTO", Enum.NormalId.Front)
+	Builder.sign(prices, "🎣 CAÑAS · 🐛 CEBO\n⛴️ SALIDAS EN BARCO\nDESDE EL PUERTO", Enum.NormalId.Front)
 	return counter
 end
 

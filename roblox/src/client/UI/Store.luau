@@ -50,7 +50,7 @@ local function card(parent: Instance, order: number, title: string, description:
 			button.BackgroundColor3 = C.PanelLight
 			button.AutoButtonColor = false
 		elseif owned() then
-			button.Text = "✓ Tuyo"
+			button.Text = "✔ Tuyo"
 			button.BackgroundColor3 = C.PanelLight
 			button.AutoButtonColor = false
 		else
@@ -92,7 +92,7 @@ function Store.init(parent: ScreenGui)
 		AnchorPoint = Vector2.new(1, 0),
 		Size = UDim2.fromOffset(32, 32),
 		Position = UDim2.fromScale(1, 0),
-		Text = "✕",
+		Text = "✖",
 		Parent = window,
 	})
 	close.Activated:Connect(Store.close)
