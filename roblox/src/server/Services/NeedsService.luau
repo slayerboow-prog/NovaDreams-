@@ -6,6 +6,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Gameplay = require(ReplicatedStorage.Shared.Gameplay)
+local Weapons = require(ReplicatedStorage.Shared.Weapons)
 local DataService = require(script.Parent.DataService)
 local MonetizationService = require(script.Parent.MonetizationService)
 
@@ -17,6 +18,8 @@ local MAX = Config.Needs.Max
 local function clamp(value: number): number
 	return math.clamp(value, 0, MAX)
 end
+
+local AIM_WALK = Weapons.Aim.WalkFactor
 
 local function applyWalkSpeed(player: Player)
 	local data = DataService.get(player)
@@ -39,6 +42,10 @@ local function applyWalkSpeed(player: Player)
 	if sprinting and not tired then
 		local stamina = Gameplay.Progression.Stamina
 		base *= stamina.SprintMultiplier + (player:GetAttribute("Stat_Destreza") or 0) * stamina.PerDestreza
+	end
+	-- Apuntando con un arma se anda más despacio (WeaponService pone el atributo Aiming)
+	if player:GetAttribute("Aiming") then
+		base *= AIM_WALK
 	end
 	-- Con hambre o sueño se va más lento, pero se puede seguir corriendo un poco
 	humanoid.WalkSpeed = if tired then math.min(base, Config.TiredWalkSpeed) * (if sprinting then 1.35 else 1) else base

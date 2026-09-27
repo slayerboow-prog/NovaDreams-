@@ -15,6 +15,9 @@
         "Vandal": {
           "$className": "RemoteEvent"
         },
+        "Weapons": {
+          "$className": "RemoteEvent"
+        },
         "Actions": {
           "$className": "RemoteEvent"
         },
@@ -112,6 +115,12 @@
           "$className": "RemoteEvent"
         },
         "Progression": {
+          "$className": "RemoteEvent"
+        },
+        "Farm": {
+          "$className": "RemoteEvent"
+        },
+        "Business": {
           "$className": "RemoteEvent"
         }
       },

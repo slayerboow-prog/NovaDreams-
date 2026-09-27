@@ -12,6 +12,8 @@
 --   3) Cobras por aviso resuelto (más si está lejos). Cada aviso cuenta para la historia
 --      (JobTaskDone con JobId "Policia"). Si tardas mucho, el aviso se cancela y llega otro.
 -- Todo lo del aviso solo lo ve y lo usa el policía que lo tiene (JobOnly / OwnerUserId).
+-- Armas de servicio: al empezar el turno (atributo Job = "Policia") WeaponService te da la pistola
+-- reglamentaria y el táser, y al acabar se devuelven. Disparar a un buscado estando de servicio no es delito.
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")

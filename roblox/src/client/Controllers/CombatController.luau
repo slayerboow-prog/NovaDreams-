@@ -10,6 +10,7 @@
 -- (el servidor lo comprueba: CombatService).
 -- Quien decide si el golpe entra es el servidor (CombatService); aquí solo se anima y se enseña:
 -- el golpe (animación y sonido), el número de daño, el destello rojo, el empujón y el K.O.
+-- Los disparos (WeaponService) llegan por aquí también ("Hit" con Weapon): número donde da la bala.
 
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
@@ -338,15 +339,18 @@ end
 -- Lo que se ve y se oye
 ---------------------------------------------------------------------
 
--- Número de daño que sube y se desvanece sobre la cabeza
-local function damageNumber(model: Model, amount: number, blocked: boolean, heavy: boolean)
+-- Número de daño que sube y se desvanece sobre la cabeza (o, con `at`, donde ha dado la bala;
+-- zone = "Head" para los disparos a la cabeza)
+local function damageNumber(model: Model, amount: number, blocked: boolean, heavy: boolean, at: Vector3?, zone: string?)
 	local head = model:FindFirstChild("Head") or model:FindFirstChild("HumanoidRootPart")
-	if not head or amount <= 0 then
+	if not head or not head:IsA("BasePart") or amount <= 0 then
 		return
 	end
+	local shot = at ~= nil
 	local billboard = create("BillboardGui", {
 		Size = UDim2.fromOffset(90, 40),
-		StudsOffset = Vector3.new(math.random(-10, 10) / 10, 2.2, 0),
+		StudsOffset = if shot then Vector3.new(0, 0.4, 0) else Vector3.new(math.random(-10, 10) / 10, 2.2, 0),
+		StudsOffsetWorldSpace = if shot then (at :: Vector3) - head.Position else Vector3.zero,
 		AlwaysOnTop = true,
 		Adornee = head,
 		Parent = player:WaitForChild("PlayerGui"),
@@ -354,9 +358,13 @@ local function damageNumber(model: Model, amount: number, blocked: boolean, heav
 	local label = Theme.label({
 		Size = UDim2.fromScale(1, 1),
 		FontFace = Theme.TitleFace,
-		Text = (if blocked then "🛡 " else "") .. "-" .. tostring(amount),
-		TextSize = if heavy then 30 else 24,
-		TextColor3 = if blocked then rgb(160, 200, 255) elseif heavy then rgb(255, 120, 60) else rgb(255, 230, 90),
+		Text = if shot then (if zone == "Head" then "✦" else "") .. tostring(amount) else (if blocked then "🛡 " else "") .. "-" .. tostring(amount),
+		TextSize = if shot and zone == "Head" then 32 elseif heavy then 30 else 24,
+		TextColor3 = if blocked then rgb(160, 200, 255)
+			elseif shot and zone == "Head" then rgb(255, 90, 70)
+			elseif shot then rgb(255, 255, 255)
+			elseif heavy then rgb(255, 120, 60)
+			else rgb(255, 230, 90),
 		TextStrokeTransparency = 0.2,
 		TextXAlignment = Enum.TextXAlignment.Center,
 		Parent = billboard,
@@ -433,8 +441,13 @@ local function onHit(data: { [string]: any })
 	end
 	local root = model:FindFirstChild("HumanoidRootPart") :: BasePart?
 	local heavy = data.Combo == 3
-	SoundFx.play("Golpe", if heavy then 1.2 else 0.8, if data.Blocked then 1.6 else (if heavy then 0.8 else 1.1), root)
-	flash(model, data.Blocked)
+	-- Los disparos (WeaponService) tienen su propio sonido e impacto (WeaponFx)
+	if not data.Weapon then
+		SoundFx.play("Golpe", if heavy then 1.2 else 0.8, if data.Blocked then 1.6 else (if heavy then 0.8 else 1.1), root)
+	end
+	if not data.Toy then
+		flash(model, data.Blocked)
+	end
 	-- El cuerpo reacciona: cabeza atrás, tambaleo o caída si es el gancho
 	if data.Blocked then
 		ReactMotion.play(model, "BlockHit")
@@ -443,7 +456,7 @@ local function onHit(data: { [string]: any })
 	else
 		ReactMotion.play(model, "HitLight", { Side = if math.random() < 0.5 then -1 else 1 })
 	end
-	damageNumber(model, data.Amount, data.Blocked, heavy)
+	damageNumber(model, data.Amount, data.Blocked, heavy, data.At, data.Zone)
 	local mine = model == player.Character
 	if mine or data.Attacker == player then
 		lastFight = os.clock()

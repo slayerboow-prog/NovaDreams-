@@ -22,6 +22,8 @@ Wanted.Crimes = {
 	AgresionPolicia = { Stars = 2, Text = "Agresión a un agente" },
 	Fuga = { Stars = 3, Text = "Fuga de prisión" },
 	Homicidio = { Stars = 3, Text = "Homicidio" },
+	Disparo = { Stars = 2, Text = "Disparar a una persona" }, -- (WeaponService)
+	Disparos = { Stars = 1, Text = "Disparos en la vía pública" },
 }
 
 Wanted.PoliceSight = 90 -- studs a los que un agente (o un policía jugador) te ve

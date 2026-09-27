@@ -362,7 +362,7 @@ local function buildPlaza(world: Instance)
 		Props.bench(plaza, facing(Vector3.new(b[1], WALK, b[2]), b[3]))
 	end
 	Nature.flowerBed(plaza, CFrame.new(-74, WALK, -40), 8, 4)
-	Nature.flowerBed(plaza, CFrame.new(-46, WALK, -40), 8, 4)
+	Nature.flowerBed(plaza, CFrame.new(-51, WALK, -40), 8, 4) -- (apartado de la boca de metro)
 	Nature.flowerBed(plaza, CFrame.new(-60, WALK, -78), 16, 3)
 	Rides.station(plaza, facing(Vector3.new(-47, WALK, -24), SOUTH))
 
@@ -595,7 +595,7 @@ local function builtAt(): (x: number, z: number) -> boolean
 				return true
 			end
 		end
-		return Landmarks.blocked(x, z) or Roads.near(x, z, 16) or Districts.blocked(x, z, centers)
+		return Landmarks.blocked(x, z) or Roads.near(x, z, 16) or Districts.blocked(x, z, centers) or require(Kit.MetroKit).blocked(x, z)
 	end
 end
 
@@ -686,6 +686,8 @@ function TownBuilder.build(): Folder
 	-- Gimnasio grande de Valmar Centro (junto a la tienda de pesca): también al final, para que no
 	-- cambie nada más (los de los barrios ya salen con su manzana de ocio: Civic.gym)
 	require(Kit.GymKit).centro(world)
+	-- Detalles de la calle que han quedado encima de otra cosa (paradas, bancos, portales…): fuera
+	require(Kit.StreetDetail).prune(world)
 	-- Plantas bajas bien decoradas y con sitio para su gente; tiendas vacías cerradas (Kit/Decor)
 	require(Kit.Decor).dressTown(world)
 	-- Repaso final: que ninguna moldura, bordillo o cristalera parpadee contra la pared de detrás

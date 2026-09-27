@@ -8,6 +8,7 @@
 --     caen al suelo. Puertas: aguantan unos golpes y se caen. Todo se arregla solo al rato.
 --   * Consecuencias: los policías de servicio reciben el aviso («🚨 Vandalismo en …») y los
 --     personajes a los que das se quejan.
+--   * Las balas (WeaponService) rompen lo mismo con BreakService.hitStructure.
 -- Las reglas (qué se rompe, cómo vuela la piedra) están en shared/Breakables.
 
 local CollectionService = game:GetService("CollectionService")
@@ -304,6 +305,25 @@ local function impact(stone: Stone, result: RaycastResult, velocity: Vector3)
 		end
 	end
 	sound(result.Position, "rbxasset://sounds/collide.wav", 0.5, 1.3)
+end
+
+-- Otra cosa que golpea una pieza (una bala de WeaponService): rompe cristales y castiga puertas
+-- igual que una piedra. Devuelve "Glass", "Door" o nil (no era rompible).
+function BreakService.hitStructure(player: Player, part: Instance, hitAt: Vector3, velocity: Vector3): string?
+	if not part:IsA("BasePart") or not usable(part) then
+		return nil
+	end
+	if Breakables.isGlass(part.Name, part.Material, part.Size) then
+		breakGlass(part, hitAt, velocity)
+		alertPolice(player, hitAt, "han roto una ventana a tiros")
+		return "Glass"
+	elseif Breakables.isDoor(part.Name, part.Size) then
+		if hitDoor(part, hitAt, velocity) then
+			alertPolice(player, hitAt, "han tirado una puerta abajo a tiros")
+		end
+		return "Door"
+	end
+	return nil
 end
 
 -- Una piedra que ha chocado se queda en el suelo un rato

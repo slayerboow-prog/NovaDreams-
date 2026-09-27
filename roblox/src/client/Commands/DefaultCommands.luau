@@ -13,6 +13,7 @@ local Hud = require(script.Parent.Parent.UI.Hud)
 local Actions = require(script.Parent.Parent.Controllers.Actions)
 local Vehicles = require(script.Parent.Parent.Controllers.Vehicles)
 local CombatController = require(script.Parent.Parent.Controllers.CombatController)
+local WeaponController = require(script.Parent.Parent.Controllers.WeaponController)
 local InstitutionsUI = require(script.Parent.Parent.Controllers.InstitutionsUI)
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -115,12 +116,28 @@ function DefaultCommands.register()
 		if baby(ctx) or ctx.Seated then
 			return {}
 		end
-		local fighting = CombatController.inCombat()
-		local out: { Command } = {
-			{ Id = "Atacar", Label = "Atacar", Icon = "espada", Priority = if fighting then 0.1 else 7, Accent = fighting, Run = function()
+		local armed = WeaponController.armed()
+		local fighting = CombatController.inCombat() or armed
+		local out: { Command } = {}
+		if armed then
+			-- Con un arma en la mano: Disparar (en vez de Atacar), Apuntar y Recargar
+			table.insert(out, { Id = "Disparar", Label = "Disparar", Icon = "disparar", Priority = 0.1, Accent = true, Run = function()
+				WeaponController.fire()
+			end, Stay = true } :: any)
+			table.insert(out, { Id = "Apuntar", Label = if WeaponController.isAiming() then "Dejar de apuntar" else "Apuntar", Icon = "objetivo", Priority = 0.12, Run = function()
+				WeaponController.toggleAim()
+			end, Stay = true } :: any)
+			table.insert(out, { Id = "Recargar", Label = "Recargar", Icon = "recargar", Priority = 0.14, Run = function()
+				WeaponController.reload()
+			end, Stay = true } :: any)
+			table.insert(out, { Id = "GuardarArma", Label = "Guardar el arma", Icon = "bajarse", Priority = 0.35, Run = function()
+				WeaponController.holster()
+			end })
+		else
+			table.insert(out, { Id = "Atacar", Label = "Atacar", Icon = "espada", Priority = if fighting then 0.1 else 7, Accent = fighting, Run = function()
 				CombatController.attack()
-			end, Stay = true } :: any,
-		}
+			end, Stay = true } :: any)
+		end
 		if fighting then
 			table.insert(out, { Id = "Habilidades", Label = "Habilidades", Icon = "habilidades", Priority = 0.15, Run = function()
 				Hud.runCommand("Personaje")
@@ -201,7 +218,7 @@ function DefaultCommands.register()
 			return {}
 		end
 		return {
-			{ Id = "Objetos", Label = "Objetos", Icon = "mochila", Priority = if not ctx.Seated and CombatController.inCombat() then 0.18 else 50, Run = function()
+			{ Id = "Objetos", Label = "Objetos", Icon = "mochila", Priority = if not ctx.Seated and (CombatController.inCombat() or WeaponController.armed()) then 0.18 else 50, Run = function()
 				Hud.runCommand("Mochila")
 			end },
 		}

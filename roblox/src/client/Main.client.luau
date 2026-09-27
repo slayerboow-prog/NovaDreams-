@@ -62,10 +62,12 @@ local ObjectMotion = require(script.Parent.Controllers.ObjectMotion)
 local WetWorld = require(script.Parent.Controllers.WetWorld)
 local StoneThrow = require(script.Parent.Controllers.StoneThrow)
 local CombatController = require(script.Parent.Controllers.CombatController)
+local WeaponController = require(script.Parent.Controllers.WeaponController)
 local WantedUI = require(script.Parent.Controllers.WantedUI)
 local DeathUI = require(script.Parent.Controllers.DeathUI)
 local InstitutionsUI = require(script.Parent.Controllers.InstitutionsUI)
 local InteriorUI = require(script.Parent.Controllers.InteriorUI)
+local EconomyUI = require(script.Parent.Controllers.EconomyUI)
 local UseMotion = require(script.Parent.Controllers.UseMotion)
 local InteractClient = require(script.Parent.Controllers.InteractClient)
 local Joystick = require(script.Parent.Controllers.Joystick)
@@ -78,6 +80,7 @@ local gui = Hud.init(function()
 end)
 Store.init(gui)
 TaskMarker.init()
+require(script.Parent.UI.Perf).stripDetails() -- móvil: sin los detalles pequeños de la calle
 DayLight.init() -- luz realista según la hora (amanecer, mediodía, atardecer, noche)
 StoryAudio.init() -- música, efectos y voces de la historia (botón 🔊)
 task.spawn(LifeStory.init) -- historia de vida (tarjeta "Tu vida", momentos, decisiones)
@@ -136,6 +139,7 @@ task.spawn(JobPrompts.init) -- los carteles de cada oficio solo los ve quien tra
 task.spawn(Driving.init) -- conducir coches, motos, bicis, monopatines y patinetes (W/A/S/D)
 task.spawn(Actions.init) -- gestos y bailes, linterna (L) y modo foto (P)
 task.spawn(CombatController.init) -- pelear: X/RB golpear (combo de 3), Z/LB defenderse, 👊 y 🛡 en el móvil
+task.spawn(WeaponController.init) -- armas: clic dcho/LT apuntar, clic/RT disparar, R recargar; Armerías y licencia
 task.spawn(WantedUI.init) -- estrellas de búsqueda bajo el reloj, avisos de delito, DETENIDO y hélices
 task.spawn(DeathUI.init) -- pantalla de HAS MUERTO y despertar en el hospital
 -- Versión nueva del juego: aviso antes de pasar a un servidor nuevo (UpdateService)
@@ -151,6 +155,7 @@ task.spawn(function()
 end)
 task.spawn(InstitutionsUI.init) -- instituciones: panel del juez, juicio, condena, ascensos y Hacienda
 task.spawn(InteriorUI.init) -- ascensor de los edificios (todos se pueden visitar por dentro)
+task.spawn(EconomyUI.init) -- granja (cooperativa, obrador) y negocios (gestión y mostrador)
 task.spawn(UseMotion.init) -- posturas al usar los muebles: sentado, tumbado, grifo, nevera, ducha, ordenador, piano, ventana
 task.spawn(InteractClient.init) -- tele con imagen, ordenador, piano, agua y clics de los muebles
 

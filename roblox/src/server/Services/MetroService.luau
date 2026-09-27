@@ -1,7 +1,10 @@
 -- MetroService: el metro subterráneo de Valmar (Shared/Metro.luau, World/Kit/MetroKit.luau).
 --
 -- VIAJAR
---   * Boca de metro en la calle: "Bajar al metro" (bajas al vestíbulo). "Subir a la calle" para salir.
+--   * Boca de metro junto a la acera: se baja ANDANDO por las escaleras hasta el vestíbulo y de ahí
+--     por las escaleras mecánicas (llevan solas: son cintas, tag MetroEscalator) hasta los andenes.
+--     El ascensor de la boca ("Bajar en ascensor") y el del vestíbulo de andenes ("Subir en ascensor")
+--     son el único atajo.
 --   * Máquinas de billetes: billete sencillo o bonometro. El torno gasta un billete para pasar al andén.
 --   * Los trenes van y vienen solos por cada línea (paran en todas las estaciones con las puertas
 --     abiertas unos segundos). En el andén, "Subir al metro" y te sientas. En cada estación sale
@@ -166,28 +169,11 @@ local function isTrainSeat(train: Train, seat: Instance?): boolean
 end
 
 local function nextIndex(train: Train): (number, number)
-	local n = #train.Line.Stations
-	local dir = train.Dir
-	local i = train.Index + dir
-	if i < 1 or i > n then
-		dir = -dir
-		i = train.Index + dir
-	end
-	return i, dir
+	return Metro.nextStop(#train.Line.Stations, train.Index, train.Dir)
 end
 
 local function eta(train: Train, index: number): number
-	local target = train.Centers[index]
-	local lastS, firstS = train.Centers[#train.Centers], train.Centers[1]
-	local d
-	if train.Dir > 0 then
-		d = if target >= train.S then target - train.S else (lastS - train.S) + (lastS - target)
-	else
-		d = if target <= train.S then train.S - target else (train.S - firstS) + (target - firstS)
-	end
-	local stops = math.max(0, math.floor(d / 1500))
-	local wait = if train.Phase == "Dwell" then train.Timer else 0
-	return math.floor(d / Metro.Speed * 1.2 + stops * Metro.Dwell + wait)
+	return math.floor((Metro.eta(train, index)))
 end
 
 local function arrive(train: Train)
@@ -206,7 +192,10 @@ local function arrive(train: Train)
 	end
 end
 
+local boardWalkIns: (Train) -> () -- (más abajo: sienta a quien se ha metido andando en el tren)
+
 local function depart(train: Train)
+	boardWalkIns(train)
 	local i, dir = nextIndex(train)
 	train.Dir = dir
 	train.From = train.S
@@ -325,23 +314,8 @@ local function stopRiding(player: Player)
 	end
 end
 
-local function onBoard(player: Player, marker: BasePart)
-	local line = marker:GetAttribute("Line")
-	local train = trains[line]
-	local humanoid = humanoidOf(player)
-	if not train or not humanoid or humanoid.Health <= 0 then
-		return
-	end
-	local here = table.find(train.Line.Stations, marker:GetAttribute("Station"))
-	if train.Phase ~= "Dwell" or train.Index ~= here then
-		Notify:FireClient(player, "Info", ("El tren de la %s no está en el andén. Mira el panel: llega en %d s."):format(train.Line.Name, eta(train, here or 1)))
-		return
-	end
-	local seat = freeSeat(train, marker.Position)
-	if not seat then
-		Notify:FireClient(player, "Info", "El tren va lleno. Espera al siguiente.")
-		return
-	end
+-- Sienta al jugador en el tren y le enseña el panel del viaje
+local function seatPlayer(player: Player, train: Train, seat: Seat, humanoid: Humanoid)
 	seat:Sit(humanoid)
 	train.Passengers[player] = true
 	riding[player] = train
@@ -360,6 +334,46 @@ local function onBoard(player: Player, marker: BasePart)
 		Station = stationName(train.Line.Stations[train.Index]),
 		Next = stationName(train.Line.Stations[nextI]),
 	})
+end
+
+local function onBoard(player: Player, marker: BasePart)
+	local line = marker:GetAttribute("Line")
+	local train = trains[line]
+	local humanoid = humanoidOf(player)
+	if not train or not humanoid or humanoid.Health <= 0 then
+		return
+	end
+	local here = table.find(train.Line.Stations, marker:GetAttribute("Station"))
+	if train.Phase ~= "Dwell" or train.Index ~= here then
+		Notify:FireClient(player, "Info", ("El tren de la %s no está en el andén. Mira el panel: llega en %d s."):format(train.Line.Name, eta(train, here or 1)))
+		return
+	end
+	local seat = freeSeat(train, marker.Position)
+	if not seat then
+		Notify:FireClient(player, "Info", "El tren va lleno. Espera al siguiente.")
+		return
+	end
+	seatPlayer(player, train, seat, humanoid)
+end
+
+-- Al cerrar las puertas: quien se ha metido andando en un coche, se sienta y viaja
+function boardWalkIns(train: Train)
+	for _, player in Players:GetPlayers() do
+		local root = rootOf(player)
+		local humanoid = humanoidOf(player)
+		if root and humanoid and (humanoid.Health or 0) > 0 and not riding[player] then
+			for _, car in train.Cars do
+				local q = car.Root.CFrame:PointToObjectSpace(root.Position)
+				if math.abs(q.X) < 4.4 and q.Y > -1 and q.Y < 9 and math.abs(q.Z) < Metro.CarLength / 2 then
+					local seat = freeSeat(train, root.Position)
+					if seat then
+						seatPlayer(player, train, seat, humanoid)
+					end
+					break
+				end
+			end
+		end
+	end
 end
 
 local function onAlight(player: Player)
@@ -417,7 +431,7 @@ local function onEntrance(player: Player, door: BasePart)
 		return
 	end
 	teleport(player, arrival.CFrame)
-	Notify:FireClient(player, "Info", ("🚇 Metro · %s. Compra el billete en las máquinas y pasa por los tornos."):format(stationName(id)))
+	Notify:FireClient(player, "Info", ("🚇 Metro · %s. Compra el billete en las máquinas y pasa por los tornos. (Para salir: ascensor o escaleras mecánicas)"):format(stationName(id)))
 end
 
 local function onExit(player: Player, exitPart: BasePart)
@@ -437,6 +451,16 @@ local function onTransfer(player: Player, marker: BasePart)
 end
 
 local function onGate(player: Player, gate: BasePart)
+	-- Los niños viajan gratis (con un adulto o solos: en Valmar el metro es seguro)
+	if Metro.FreeStages[player:GetAttribute("LifeStage") or ""] then
+		local through = gate:GetAttribute("Through")
+		if typeof(through) == "Vector3" then
+			teleport(player, CFrame.new(through))
+		end
+		player:SetAttribute("MetroTicket", true)
+		Notify:FireClient(player, "Info", "🎫 Los niños viajan gratis en el metro. ¡Buen viaje!")
+		return
+	end
 	if InventoryService.count(player, Metro.TicketItem) < 1 then
 		Notify:FireClient(player, "Info", "Necesitas un billete: cómpralo en las máquinas azules del vestíbulo 🎫")
 		return
@@ -470,6 +494,10 @@ local function onBuyTicket(player: Player, id: any)
 	end
 	for _, t in Metro.Tickets do
 		if t.Id == id then
+			if t.Stages and not t.Stages[player:GetAttribute("LifeStage") or ""] then
+				Notify:FireClient(player, "Error", "El billete joven es para adolescentes y jóvenes. Coge el sencillo o el bonometro.")
+				return
+			end
 			if not InventoryService.canAdd(player, Metro.TicketItem, t.Count) then
 				Notify:FireClient(player, "Error", "No te caben más billetes en la mochila.")
 				return
@@ -1030,18 +1058,14 @@ local function trainArrivedAmbient(train: Train)
 	end
 end
 
--- Paneles "PRÓXIMO TREN"
+-- Paneles "PRÓXIMO TREN": "Línea 1 → Levante · 2 min", "LLEGANDO", "EN ANDÉN"
 local function updateDisplays()
 	for _, display in tagged("MetroDisplay") do
 		local train = trains[display:GetAttribute("Line")]
 		local index = train and table.find(train.Line.Stations, display:GetAttribute("Station"))
 		if train and index then
-			local text
-			if train.Phase == "Dwell" and train.Index == index then
-				text = "🚇 EN ANDÉN · SALE EN " .. math.max(0, math.ceil(train.Timer)) .. " s"
-			else
-				text = ("PRÓXIMO TREN · %d s"):format(eta(train, index))
-			end
+			local seconds, toward = Metro.eta(train, index)
+			local text = Metro.boardText(train.Line, seconds, toward, if train.Phase == "Dwell" then train.Timer else nil)
 			for _, label in display:GetDescendants() do
 				if label:IsA("TextLabel") and label.Text ~= text then
 					label.Text = text
@@ -1066,20 +1090,29 @@ local function prompt(parent: BasePart, action: string, object: string, hold: nu
 	return p
 end
 
+-- Escaleras mecánicas: su suelo invisible es una cinta transportadora (lleva a quien se sube)
+local function setupEscalator(belt: BasePart)
+	local v = belt:GetAttribute("Velocity")
+	if typeof(v) == "Vector3" then
+		belt.AssemblyLinearVelocity = v
+	end
+end
+
 local SETUP: { [string]: (BasePart) -> () } = {
 	MetroEntrance = function(door)
-		prompt(door, "Bajar al metro", "🚇 Metro · " .. stationName(door:GetAttribute("Station")), 0.4, 10).Triggered:Connect(function(player)
+		prompt(door, "Bajar en ascensor", "♿ Ascensor · Metro " .. stationName(door:GetAttribute("Station")), 0.4, 8).Triggered:Connect(function(player)
 			onEntrance(player, door)
 		end)
 	end,
 	MetroExit = function(part)
-		prompt(part, "Subir a la calle", "↑ Salida", 0.4, 10).Triggered:Connect(function(player)
+		prompt(part, "Subir en ascensor", "♿ Ascensor · calle", 0.4, 8).Triggered:Connect(function(player)
 			onExit(player, part)
 		end)
 	end,
+	MetroEscalator = setupEscalator,
 	MetroTransfer = function(part)
 		local to = part:GetAttribute("To")
-		prompt(part, if to == "Hub" then "Subir a la galería" else "Bajar a la Línea 2", if to == "Hub" then "🔴 Línea 1 · galería" else "🔵 Línea 2", 0.4, 10).Triggered:Connect(function(player)
+		prompt(part, if to == "Hub" then "Ascensor a la galería" else "Ascensor a la Línea 2", if to == "Hub" then "🔴 Línea 1 · galería" else "🔵 Línea 2", 0.4, 10).Triggered:Connect(function(player)
 			onTransfer(player, part)
 		end)
 	end,
@@ -1100,7 +1133,7 @@ local SETUP: { [string]: (BasePart) -> () } = {
 	end,
 	MetroBoard = function(marker)
 		local line = Metro.lineById[marker:GetAttribute("Line")]
-		prompt(marker, "Subir al metro", "🚇 " .. (if line then line.Name else "Metro"), 0.3, 9).Triggered:Connect(function(player)
+		prompt(marker, "Subir al metro", "🚇 " .. (if line then line.Name else "Metro"), 0.2, 7).Triggered:Connect(function(player)
 			onBoard(player, marker)
 		end)
 	end,
