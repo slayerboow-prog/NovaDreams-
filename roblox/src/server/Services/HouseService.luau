@@ -340,10 +340,15 @@ function HouseService.sleep(player: Player, plotId: number)
 end
 
 function HouseService.goHome(player: Player)
+	-- Si tienes vivienda comprada (casa o piso del mapa), vas a ella
+	local PropertyService = require(script.Parent.PropertyService) :: any
+	if PropertyService.goHome(player) then
+		return
+	end
 	local plot = plotOf(player)
 	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	if not plot then
-		Notify:FireClient(player, "Error", "Aún no tienes casa. Busca un cartel de SE VENDE en la zona residencial.")
+		Notify:FireClient(player, "Error", "Aún no tienes casa. Entra en casas y pisos: los que tienen el cartel SE VENDE se pueden comprar.")
 		return
 	end
 	if root then

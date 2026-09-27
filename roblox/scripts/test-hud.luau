@@ -525,8 +525,10 @@ localPlayer:SetAttribute("LifeStage", "Nino")
 
 -- Avisos y teléfono
 Hud.toast("Money", "+50 $")
-local toasts = hud and hud:FindFirstChild("Toasts")
+local toastGui = playerGui:FindFirstChild("HudToasts")
+local toasts = toastGui and toastGui:FindFirstChild("Toasts")
 check(toasts and textOf(toasts, "+50 $"), "Los avisos aparecen")
+check(toastGui and (toastGui.DisplayOrder or 0) > 5, "Los avisos salen por encima de las ventanas")
 local popups = playerGui:FindFirstChild("HudPopups")
 local phone = popups and popups:FindFirstChild("Phone")
 local tienda = nil

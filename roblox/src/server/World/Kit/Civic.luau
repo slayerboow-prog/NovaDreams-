@@ -739,6 +739,13 @@ function Civic.park(parent: Instance, lot: Lot, townName: string?)
 		Props.lamp(m, lot.facing(-5, v + 8, 0.45) * CFrame.Angles(0, math.rad(-90), 0))
 	end
 	Nature.flowerBed(m, lot.facing(0, Dp / 2, 0.46), 10, 10)
+	-- Unas piedras sueltas en el césped (lejos de los caminos): se puede tropezar con ellas
+	for k = 1, 4 do
+		local side = if k % 2 == 0 then 1 else -1
+		local u = side * (10 + math.random() * (L / 2 - 20))
+		local v = if k <= 2 then 14 + math.random() * (Dp / 2 - 22) else Dp / 2 + 8 + math.random() * (Dp / 2 - 22)
+		Nature.stone(m, lot.point(u, v, 0.3))
+	end
 	return m
 end
 
@@ -796,6 +803,10 @@ function Civic.beach(parent: Instance, lot: Lot)
 	end
 	for u = -L / 2 + 6, L / 2 - 6, 24 do
 		Nature.palm(m, lot.point(u, 8, FT))
+	end
+	-- Piedras y conchas sueltas en la arena
+	for _ = 1, 5 do
+		Nature.stone(m, lot.point((math.random() - 0.5) * (L - 20), 16 + math.random() * math.max(Dp - 10, 4), 0.6), 0.6 + math.random() * 0.4)
 	end
 	-- Balones de playa (ligeros: salen volando)
 	for _, u in { -L / 6, L / 6 } do

@@ -146,7 +146,9 @@ function Nature.palm(parent: Instance, base: Vector3)
 end
 
 function Nature.bush(parent: Instance, base: Vector3, size: number?)
-	if AssetLibrary.spawn("Bush", parent, CFrame.new(base) * CFrame.Angles(0, math.random() * math.pi * 2, 0)) then
+	local model = AssetLibrary.spawn("Bush", parent, CFrame.new(base) * CFrame.Angles(0, math.random() * math.pi * 2, 0))
+	if model then
+		model.Name = "Bush" -- así el cliente sabe que es un arbusto (se aparta al pasar)
 		return
 	end
 	local d = size or (2.5 + math.random() * 1.5)
@@ -157,6 +159,20 @@ function Nature.bush(parent: Instance, base: Vector3, size: number?)
 		CFrame = CFrame.new(base + Vector3.new(0, d * 0.3, 0)),
 		Color = leafColor():Lerp(C.Hedge, 0.5),
 		Material = Enum.Material.LeafyGrass,
+		Parent = parent,
+	})
+end
+
+-- Piedra pequeña en el suelo: si pasas corriendo encima, tropiezas (ReactMotion en el cliente)
+function Nature.stone(parent: Instance, base: Vector3, size: number?)
+	local d = size or (0.8 + math.random() * 0.7)
+	return Builder.part({
+		Name = "Piedra",
+		Size = Vector3.new(d * 1.3, d * 0.7, d),
+		CFrame = CFrame.new(base + Vector3.new(0, d * 0.3, 0)) * CFrame.Angles(0, math.random() * math.pi * 2, math.rad(math.random(-10, 10))),
+		Color = Color3.fromRGB(120 + math.random(-12, 12), 116 + math.random(-12, 12), 108 + math.random(-12, 12)),
+		Material = if math.random() < 0.5 then Enum.Material.Slate else Enum.Material.Rock,
+		Tags = { "Piedra" },
 		Parent = parent,
 	})
 end
