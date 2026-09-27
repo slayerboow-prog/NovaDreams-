@@ -4,6 +4,7 @@
 --   * Tienda de pesca: cañas y cebo.
 
 local ContextActionService = game:GetService("ContextActionService")
+local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -22,6 +23,7 @@ local C = Theme.Colors
 local rgb = Color3.fromRGB
 
 local panel: Frame
+local hereButton: TextButton
 local status: TextLabel
 local reelButton: TextButton
 local stopButton: TextButton
@@ -216,10 +218,53 @@ local function openShop(list: { any })
 			end
 		end)
 	end
-	Theme.label({ Size = UDim2.new(1, 0, 0, 40), Text = "Pesca en el muelle del puerto, en los lagos y en el río. Vende lo que pesques en la pescadería del supermercado.", TextSize = 12, TextColor3 = C.Muted, TextWrapped = true, LayoutOrder = 100, Parent = layout })
+	Theme.label({ Size = UDim2.new(1, 0, 0, 40), Text = "Con la caña puedes pescar en cualquier orilla (sale el botón 🎣 Pescar aquí), en los pantalanes y en el barco. Vende lo que pesques en la pescadería del supermercado.", TextSize = 12, TextColor3 = C.Muted, TextWrapped = true, LayoutOrder = 100, Parent = layout })
 	close.Activated:Connect(function()
 		window:Destroy()
 	end)
+end
+
+---------------------------------------------------------------------
+-- "Pescar aquí": si llevas caña y tienes agua delante, en cualquier orilla
+---------------------------------------------------------------------
+local function hasRod(): boolean
+	local ok, slots = pcall(function()
+		return HttpService:JSONDecode(player:GetAttribute("Inventory") or "[]")
+	end)
+	for _, slot in if ok and typeof(slots) == "table" then slots else {} do
+		if typeof(slot) == "table" and (slot.i == "CanaPescar" or slot.i == "CanaPro") then
+			return true
+		end
+	end
+	return false
+end
+
+local rayParams = RaycastParams.new()
+rayParams.FilterType = Enum.RaycastFilterType.Include
+rayParams.IgnoreWater = false
+
+local function waterAhead(): boolean
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if not root or not humanoid or humanoid.SeatPart or humanoid:GetState() == Enum.HumanoidStateType.Swimming then
+		return false
+	end
+	local look = root.CFrame.LookVector
+	local flat = Vector3.new(look.X, 0, look.Z)
+	if flat.Magnitude < 0.1 then
+		return false
+	end
+	flat = flat.Unit
+	rayParams.FilterDescendantsInstances = { workspace.Terrain }
+	for _, d in { 6, 9, 12, 15 } do
+		local p = root.Position + flat * d
+		local hit = workspace:Raycast(Vector3.new(p.X, 12, p.Z), Vector3.new(0, -30, 0), rayParams)
+		if hit and hit.Material == Enum.Material.Water then
+			return true
+		end
+	end
+	return false
 end
 
 ---------------------------------------------------------------------
@@ -240,6 +285,30 @@ function FishingUI.init()
 	reelButton = Theme.button({ Position = UDim2.fromOffset(0, 50), Size = UDim2.new(0.68, 0, 0, 46), Text = "¡TIRAR!", TextSize = 20, Parent = panel })
 	stopButton = Theme.button({ Position = UDim2.new(0.7, 0, 0, 50), Size = UDim2.new(0.3, 0, 0, 46), Text = "Recoger", TextSize = 15, BackgroundColor3 = rgb(50, 52, 60), Parent = panel })
 	reelButton.Activated:Connect(reel)
+	hereButton = Theme.button({
+		Name = "FishHere",
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -120),
+		Size = UDim2.fromOffset(190, 46),
+		Text = "🎣 Pescar aquí",
+		TextSize = 17,
+		BackgroundColor3 = rgb(30, 110, 170),
+		Visible = false,
+		Parent = gui,
+	})
+	hereButton.Activated:Connect(function()
+		hereButton.Visible = false
+		Remote:FireServer("Here")
+	end)
+	task.spawn(function()
+		while true do
+			task.wait(0.4)
+			local ok, show = pcall(function()
+				return session == nil and hasRod() and waterAhead()
+			end)
+			hereButton.Visible = ok and show == true
+		end
+	end)
 	stopButton.Activated:Connect(function()
 		Remote:FireServer("Stop")
 	end)
