@@ -1,8 +1,7 @@
 -- Actions (cliente): movimientos y acciones nuevas del personaje.
---   * Gestos: los de Roblox (su menú de gestos). Aquí solo queda "Saludar" para el menú de
---     comandos (delante de alguien); se corta solo al andar o saltar.
---   * Trepar: salta contra un muro bajo, una valla o un coche (hasta unos 9 studs) y el
---     personaje se agarra al borde y sube.
+--   * Gestos: los de Roblox (su menú de gestos: botón Gestos, app Gestos o comando Más > Gestos).
+--     Aquí queda "Saludar" para el menú de comandos (delante de alguien); se corta al andar o saltar.
+--   * Trepar y saltar vallas: ahora lo hace Controllers/Parkour (saltar vallas, muros, bordes…).
 --   * Linterna (tecla L, R3 en el mando): la ven todos los jugadores (y el brazo va delante,
 --     sujetándola: ReactMotion). La primera noche sale un aviso.
 --   * Modo foto (tecla P, LT en el mando): esconde toda la interfaz para hacer capturas bonitas
@@ -24,7 +23,6 @@ local Theme = require(script.Parent.Parent.UI.Theme)
 local Hud = require(script.Parent.Parent.UI.Hud)
 local Cinematics = require(script.Parent.Cinematics)
 local FootCamera = require(script.Parent.FootCamera)
-local ReactMotion = require(script.Parent.ReactMotion)
 local SoundFx = require(script.Parent.SoundFx)
 local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
 local StreetVoices = require(ReplicatedStorage.Shared.Config).StreetVoices
@@ -51,7 +49,6 @@ local EMOTES: { Emote } = {
 	{ Name = "Saludo militar", Icon = "🙋", R15 = 3333474484 },
 	{ Name = "No sé", Icon = "🤷", R15 = 3334392772, Voice = "NoSe" },
 }
-local CLIMB = { R15 = 507765644, R6 = 180436334 }
 
 ---------------------------------------------------------------------
 -- Personaje y animaciones
@@ -125,97 +122,6 @@ local function playEmote(emote: Emote)
 	if line then
 		SoundFx.voice(line, 1.05)
 	end
-end
-
----------------------------------------------------------------------
--- Trepar muros bajos
----------------------------------------------------------------------
-local climbing = false
-local lastClimb = 0
-
-local function tryClimb(humanoid: Humanoid, root: BasePart)
-	if climbing or os.clock() - lastClimb < 0.8 or humanoid.SeatPart then
-		return
-	end
-	local state = humanoid:GetState()
-	if state ~= Enum.HumanoidStateType.Jumping and state ~= Enum.HumanoidStateType.Freefall then
-		return
-	end
-	local move = Vector3.new(humanoid.MoveDirection.X, 0, humanoid.MoveDirection.Z)
-	if move.Magnitude < 0.5 then
-		return
-	end
-	local dir = move.Unit
-	local params = RaycastParams.new()
-	params.FilterType = Enum.RaycastFilterType.Exclude
-	params.FilterDescendantsInstances = { player.Character :: Instance }
-	params.IgnoreWater = true
-	params.RespectCanCollide = true -- hojas, carteles y adornos no cuentan
-	-- 1) ¿Hay una pared justo delante?
-	local wall = workspace:Raycast(root.Position, dir * 2.6, params)
-	if not wall or math.abs(wall.Normal.Y) > 0.3 then
-		return
-	end
-	local model = wall.Instance:FindFirstAncestorOfClass("Model")
-	if model and model:FindFirstChildOfClass("Humanoid") then
-		return -- no se trepa por encima de otras personas
-	end
-	-- 2) ¿Dónde está el borde de arriba? (se mira desde arriba, un poco detrás de la pared)
-	local feet = root.Position.Y - humanoid.HipHeight - root.Size.Y / 2
-	local probe = Vector3.new(wall.Position.X, feet + 10, wall.Position.Z) + dir * 1.4
-	-- (si el muro es más alto de lo que se alcanza, esta línea choca con él: no se trepa)
-	local over = Vector3.new(root.Position.X, probe.Y, root.Position.Z)
-	if workspace:Raycast(over, Vector3.new(probe.X, probe.Y, probe.Z) - over, params) then
-		return
-	end
-	local top = workspace:Raycast(probe, Vector3.new(0, -10, 0), params)
-	if not top or top.Normal.Y < 0.75 then
-		return
-	end
-	local rise = top.Position.Y - feet
-	if rise < 2.2 or rise > 9.5 then
-		return
-	end
-	-- 3) ¿Cabe el personaje encima?
-	if workspace:Raycast(top.Position + Vector3.new(0, 0.3, 0), Vector3.new(0, 5.5, 0), params) then
-		return
-	end
-	climbing = true
-	lastClimb = os.clock()
-	SoundFx.play("Trepar", 1, nil, root)
-	local track = load(humanoid, if isR15(humanoid) then CLIMB.R15 else CLIMB.R6)
-	if track then
-		track:Play(0.15, 1, 1.6)
-	end
-	local from = root.CFrame
-	local look = CFrame.lookAlong(Vector3.zero, dir)
-	local target = CFrame.new(top.Position + dir * 0.8 + Vector3.new(0, humanoid.HipHeight + root.Size.Y / 2 + 0.1, 0)) * look.Rotation
-	-- Primero sube (hasta la altura del borde) y luego avanza encima
-	local lift = CFrame.new(from.Position.X, target.Position.Y, from.Position.Z) * look.Rotation
-	local duration = 0.18 + rise * 0.035
-	local start = os.clock()
-	local connection
-	connection = RunService.Heartbeat:Connect(function()
-		local t = math.clamp((os.clock() - start) / duration, 0, 1)
-		-- Con curva: arranca y se posa suave (sin velocidad constante de robot)
-		if t < 0.65 then
-			local x = t / 0.65
-			root.CFrame = from:Lerp(lift, 1 - (1 - x) * (1 - x))
-		else
-			local x = (t - 0.65) / 0.35
-			root.CFrame = lift:Lerp(target, x * x * (3 - 2 * x))
-		end
-		root.AssemblyLinearVelocity = Vector3.zero
-		if t >= 1 then
-			connection:Disconnect()
-			if track then
-				track:Stop(0.3)
-			end
-			humanoid:ChangeState(Enum.HumanoidStateType.Landed)
-			ReactMotion.play(player.Character, "Land", { Strength = 0.4 }) -- se asienta arriba
-			climbing = false
-		end
-	end)
 end
 
 ---------------------------------------------------------------------
@@ -323,12 +229,39 @@ function Actions.emote(name: string)
 		end
 	end
 end
+-- Abre (o cierra) el menú de gestos y bailes de Roblox
+function Actions.openEmotes()
+	pcall(function()
+		local GuiService = game:GetService("GuiService")
+		GuiService:SetEmotesMenuOpen(not GuiService:GetEmotesMenuOpen())
+	end)
+end
+
 function Actions.emotes(): { { Name: string, Icon: string } }
 	local list = {}
 	for _, emote in EMOTES do
 		table.insert(list, { Name = emote.Name, Icon = emote.Icon })
 	end
 	return list
+end
+
+-- ¿Hay techo encima? (dentro de casa o en un túnel: la linterna sirve también de día)
+local lastRoofCheck, lastRoof = 0, false
+local function underRoof(): boolean
+	if os.clock() - lastRoofCheck < 1 then
+		return lastRoof
+	end
+	lastRoofCheck = os.clock()
+	local _, root = parts()
+	if not root then
+		lastRoof = false
+		return false
+	end
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = { player.Character :: Instance }
+	lastRoof = workspace:Raycast(root.Position, Vector3.new(0, 40, 0), params) ~= nil
+	return lastRoof
 end
 
 function Actions.init()
@@ -354,36 +287,38 @@ function Actions.init()
 		end
 	end, Enum.KeyCode.ButtonL2)
 
-	-- Móvil: botones de linterna y modo foto (los gestos y bailes son los de Roblox)
-	if UserInputService.TouchEnabled then
-		-- (en el teclado son L y P)
-		local function round(name: string, icon: string, slot: string, callback: () -> ())
-			local b = Theme.button({
-				Name = name,
-				Text = icon,
-				TextSize = 22,
-				BackgroundTransparency = 0.3,
-				Parent = gui,
-			})
-			local c = b:FindFirstChildOfClass("UICorner")
-			if c then
-				c.CornerRadius = UDim.new(0.5, 0)
-			end
-			TouchLayout.place(b, slot)
-			TouchLayout.showWhen(b, "Pie")
-			b.Activated:Connect(callback)
-		end
-		round("FlashlightButton", "🔦", "Linterna", toggleFlashlight)
-		round("PhotoButton", "📷", "Foto", function()
-			setPhoto(not photo)
-		end)
+	-- Botones del racimo (móvil) y pistas de teclas (ordenador y mando): a pie
+	local function onFoot(): boolean
+		return player:GetAttribute("LifeStage") ~= "Bebe" and not busy() and not TouchLayout.riding()
 	end
+	TouchLayout.register({ Id = "Gestos", Icon = "gestos", Label = "Gestos", Slot = "Gestos", Priority = 7, Visible = onFoot, Callback = Actions.openEmotes })
+	-- Linterna: de noche o bajo techo (o si ya la llevas encendida, para poder apagarla)
+	TouchLayout.register({
+		Id = "Linterna", Icon = "linterna", Label = "Linterna", Priority = 20, Key = "L", Pad = "R3",
+		Visible = function()
+			local clock = Lighting.ClockTime
+			local on = player:GetAttribute("Flashlight") == true
+			return onFoot() and (on or clock >= 19.5 or clock < 6.5 or underRoof())
+		end,
+		Active = function()
+			return player:GetAttribute("Flashlight") == true
+		end,
+		Callback = toggleFlashlight,
+	})
+	TouchLayout.register({
+		Id = "Foto", Icon = "camara", Label = "Foto", Priority = 40, Key = "P", Pad = "LT",
+		Visible = onFoot,
+		Callback = function()
+			setPhoto(not photo)
+		end,
+	})
+	Hud.addButton("😀 Gestos", Color3.fromRGB(200, 140, 20), 4, Actions.openEmotes)
+	local _ = gui
 
 	-- Cada personaje nuevo empieza sin animaciones cargadas
 	player.CharacterAdded:Connect(function()
 		tracks = {}
 		playing = nil
-		climbing = false
 	end)
 
 	-- La primera noche: aviso de la linterna
@@ -392,7 +327,7 @@ function Actions.init()
 		local clock = Lighting.ClockTime
 		if not warned and (clock >= 20.5 or clock < 5) and not busy() and player:GetAttribute("LifeStage") ~= "Bebe" then
 			warned = true
-			Hud.toast("Info", if UserInputService.TouchEnabled then "🌙 Es de noche: toca 🔦 para encender la linterna" else "🌙 Es de noche: pulsa L para encender la linterna")
+			Hud.toast("Info", if UserInputService.TouchEnabled then "🌙 Es de noche: toca el botón Linterna para encenderla" else "🌙 Es de noche: pulsa L para encender la linterna")
 		end
 	end)
 
@@ -409,9 +344,6 @@ function Actions.init()
 			stopEmote()
 			setPhoto(false)
 			return
-		end
-		if player:GetAttribute("LifeStage") ~= "Bebe" then
-			tryClimb(humanoid, root)
 		end
 	end)
 end

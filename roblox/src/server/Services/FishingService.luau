@@ -32,6 +32,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Fishing = require(ReplicatedStorage.Shared.Fishing)
+local SeaEvents = require(ReplicatedStorage.Shared.SeaEvents)
 local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
 local Format = require(ReplicatedStorage.Shared.Format)
 local Stages = require(ReplicatedStorage.Shared.LifeStory.Stages)
@@ -602,6 +603,13 @@ local function cast(player: Player, spot: BasePart)
 		Notify:FireClient(player, "Info", "Aquí ya está pescando " .. nameOf(spotOwner[spot] :: Player) .. ".")
 		return
 	end
+	if SeaEvents.oilAt(spot.Position) then
+		Notify:FireClient(player, "Info", "🛢️ El agua está manchada de petróleo: aquí no pica nada. ¡Ayuda a limpiar la marea negra!")
+		if spot:GetAttribute("Temporary") then
+			spot:Destroy()
+		end
+		return
+	end
 	spotOwner[spot] = player
 	local water = spot:GetAttribute("Water") or "Mar"
 	if not Fishing.Waters[water] then
@@ -651,7 +659,9 @@ local function cast(player: Player, spot: BasePart)
 			return
 		end
 		-- Lo que ha picado (según lo que queda en el agua; los que no puedes sacar pican menos)
-		local species, locked = Fishing.pick(water, if rod then rod.Rare else 1, rng :: any, pop[water], function(sp)
+		-- Con temporal en alta mar pican más peces raros
+		local storm = if water == "AltaMar" and workspace:GetAttribute("SeaEvent") == "Temporal" then SeaEvents.Kinds.Temporal.RareBoost else 1
+		local species, locked = Fishing.pick(water, (if rod then rod.Rare else 1) * storm, rng :: any, pop[water], function(sp)
 			return canCatch(player, sp)
 		end)
 		now.Species = species

@@ -160,6 +160,33 @@ Config.Sounds = {
 	MenuAbrir = { Id = "rbxasset://sounds/swoosh.wav", Volume = 0.2, Pitch = 1.8 },
 	Choque = { Id = "rbxasset://sounds/collide.wav", Volume = 1, Pitch = 0.55 },
 	Arranque = { Id = "rbxasset://sounds/switch.wav", Volume = 0.5, Pitch = 0.7 },
+	-- Armas (shared/Weapons: Sound.Shot). Suenan con sonidos de Roblox retocados; para uno de verdad,
+	-- pon un Sound con ese nombre en ReplicatedStorage > Sonidos.
+	DisparoPistola = { Id = "rbxasset://sounds/collide.wav", Volume = 1, Pitch = 1.9 },
+	DisparoRevolver = { Id = "rbxasset://sounds/collide.wav", Volume = 1, Pitch = 1.4 },
+	DisparoEscopeta = { Id = "rbxasset://sounds/collide.wav", Volume = 1, Pitch = 0.8 },
+	DisparoSubfusil = { Id = "rbxasset://sounds/collide.wav", Volume = 0.8, Pitch = 2.2 },
+	DisparoFusil = { Id = "rbxasset://sounds/collide.wav", Volume = 1, Pitch = 1.7 },
+	DisparoFrancotirador = { Id = "rbxasset://sounds/collide.wav", Volume = 1, Pitch = 1.1 },
+	DisparoTaser = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.5, Pitch = 2.5 },
+	DisparoAgua = { Id = "rbxasset://sounds/impact_water.mp3", Volume = 0.3, Pitch = 2 },
+	DisparoPaintball = { Id = "rbxasset://sounds/paintball.wav", Volume = 0.6, Pitch = 1 },
+	EcoDisparo = { Id = "rbxasset://sounds/collide.wav", Volume = 0.45, Pitch = 0.45 }, -- cola / eco del disparo
+	ArmaSeco = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.5, Pitch = 0.7 }, -- sin balas
+	CargadorFuera = { Id = "rbxasset://sounds/switch.wav", Volume = 0.5, Pitch = 1.3 },
+	CargadorDentro = { Id = "rbxasset://sounds/switch.wav", Volume = 0.6, Pitch = 0.9 },
+	Corredera = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.6, Pitch = 0.5 },
+	Casquillo = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.12, Pitch = 3.5 },
+	Rebote = { Id = "rbxasset://sounds/swoosh.wav", Volume = 0.35, Pitch = 2.5 },
+	ImpactoBala = { Id = "rbxasset://sounds/collide.wav", Volume = 0.35, Pitch = 2.6 },
+	-- Muebles de las casas y edificios (InteractClient)
+	Interruptor = { Id = "rbxasset://sounds/switch.wav", Volume = 0.35, Pitch = 1.4 },
+	Puerta = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.4, Pitch = 0.55 },
+	Nevera = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.35, Pitch = 0.8 },
+	Agua = { Id = "rbxasset://sounds/action_swim.mp3", Volume = 0.25, Pitch = 1.6 },
+	Piano = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.35, Pitch = 1 },
+	Tecla = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.12, Pitch = 1.8 },
+	Tele = { Id = 0, Volume = 0.3, Pitch = 1 }, -- (pon un ID para oír la tele encendida)
 	-- Estos no vienen con Roblox: pon un ID (o un Sound en ReplicatedStorage > Sonidos) para oírlos
 	Motor = { Id = 0, Volume = 0.45, Pitch = 1 }, -- en bucle mientras conduces un coche o una moto
 	Claxon = { Id = 0, Volume = 0.8, Pitch = 1 }, -- tecla H en coche o moto
@@ -357,11 +384,32 @@ Config.Jobs = {
 		CarryColor = Color3.fromRGB(250, 250, 250),
 		CarrySize = Vector3.new(1, 1, 1),
 	},
+	Armero = {
+		DisplayName = "Armero/a",
+		Place = "Armeria",
+		Pay = 14,
+		EnergyCost = 1,
+		PickupText = "",
+		DropoffText = "",
+		CarryColor = Color3.fromRGB(250, 250, 250),
+		CarrySize = Vector3.new(1, 1, 1),
+	},
 	Pescador = {
 		DisplayName = "Pescador",
 		Place = "Puerto",
 		Pay = 10,
 		EnergyCost = 1,
+		PickupText = "",
+		DropoffText = "",
+		CarryColor = Color3.fromRGB(250, 250, 250),
+		CarrySize = Vector3.new(1, 1, 1),
+	},
+	-- Monitor/a de gimnasio (GymService: corrige la postura de quien entrena)
+	MonitorGimnasio = {
+		DisplayName = "Monitor/a de gimnasio",
+		Place = "Gimnasio",
+		Pay = 14,
+		EnergyCost = 2,
 		PickupText = "",
 		DropoffText = "",
 		CarryColor = Color3.fromRGB(250, 250, 250),
@@ -401,7 +449,7 @@ Config.Foods = {
 	Hamburguesa = { Name = "Hamburguesa", Price = 25, Hunger = 55, Energy = 0 },
 	Menu = { Name = "Menú completo", Price = 45, Hunger = 100, Energy = 10 },
 	-- La nevera de tu casa es gratis, pero tiene tiempo de espera
-	Nevera = { Name = "Algo de la nevera", Price = 0, Hunger = 20, Energy = 0, Cooldown = 180 },
+	Nevera = { Name = "Algo de la nevera", Price = 0, Hunger = 20, Energy = 0, Cooldown = 3 }, -- (en casa se come sin límite)
 }
 
 Config.SleepSeconds = 4 -- lo que dura la animación de dormir

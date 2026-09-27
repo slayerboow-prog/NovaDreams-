@@ -29,19 +29,20 @@ local originalKeys: { [ProximityPrompt]: { Keyboard: Enum.KeyCode, Gamepad: Enum
 local focus: ProximityPrompt? = nil
 local listeners: { () -> () } = {}
 
+-- Nombre del icono de cada tipo (UI/Icons: imagen subida o emoji que se ve en todos los móviles)
 local ICONS = {
-	Npc = "💬",
-	Door = "🚪",
-	Vehicle = "🚲",
-	Car = "🚗",
-	Shop = "🛒",
-	School = "🏫",
-	Item = "✋",
-	Seat = "💺",
-	Food = "🍽",
-	Bed = "🛏",
-	Job = "💼",
-	Other = "👉",
+	Npc = "hablar",
+	Door = "puerta",
+	Vehicle = "bici",
+	Car = "coche",
+	Shop = "tienda",
+	School = "escuela",
+	Item = "interactuar",
+	Seat = "asiento",
+	Food = "comida",
+	Bed = "cama",
+	Job = "trabajo",
+	Other = "lugar",
 }
 
 -- Palabras que delatan qué es cada cosa (en el texto del cartel, sin tildes)
@@ -170,6 +171,8 @@ function ContextDetector.get(): { [string]: any }
 		Seated = humanoid ~= nil and humanoid.SeatPart ~= nil,
 		Money = player:GetAttribute("Money"),
 		Busy = player:GetAttribute("InDialogue") == true,
+		Weapon = player:GetAttribute("Weapon"),
+		Aiming = player:GetAttribute("Aiming") == true,
 	}
 end
 
@@ -237,7 +240,7 @@ function ContextDetector.init()
 		end
 		notify()
 	end)
-	for _, attribute in { "LifeStage", "InDialogue", "Job", "Role" } do
+	for _, attribute in { "LifeStage", "InDialogue", "Job", "Role", "Weapon", "Aiming" } do
 		player:GetAttributeChangedSignal(attribute):Connect(notify)
 	end
 end

@@ -352,6 +352,28 @@ ReactMotion.Kinds = {
 			}
 		end,
 	},
+	-- Voltereta al caer de alto corriendo (o tras un salto de parkour): se hace bola y rueda hacia delante
+	Roll = {
+		Duration = 0.8,
+		Pose = function(t: number): Pose
+			local k = bell(t)
+			local x = math.clamp(t, 0, 1)
+			local spin = -2 * pi * x * x * (3 - 2 * x)
+			return {
+				Root = CFrame.new(0, -1.3 * k, 0) * angles(spin, 0, 0),
+				Neck = angles(-0.6 * k, 0, 0),
+				Waist = angles(-0.4 * k, 0, 0),
+				RightShoulder = angles(1.3 * k, 0, 0.2 * k),
+				LeftShoulder = angles(1.3 * k, 0, -0.2 * k),
+				RightElbow = angles(1.2 * k, 0, 0),
+				LeftElbow = angles(1.2 * k, 0, 0),
+				RightHip = angles(1.8 * k, 0, 0),
+				LeftHip = angles(1.8 * k, 0, 0),
+				RightKnee = angles(-2.0 * k, 0, 0),
+				LeftKnee = angles(-2.0 * k, 0, 0),
+			}
+		end,
+	},
 	-- Caída desde muy alto: se dobla del todo, se va hacia delante con los brazos fuera y se recupera
 	Stumble = {
 		Duration = 1.15,

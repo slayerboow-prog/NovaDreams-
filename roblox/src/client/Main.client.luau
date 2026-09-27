@@ -42,23 +42,36 @@ local TradeUI = require(script.Parent.Controllers.TradeUI)
 local PlayerMenuUI = require(script.Parent.Controllers.PlayerMenuUI)
 local FishingUI = require(script.Parent.Controllers.FishingUI)
 local MetroUI = require(script.Parent.Controllers.MetroUI)
+local GymUI = require(script.Parent.Controllers.GymUI)
+local GymMotion = require(script.Parent.Controllers.GymMotion)
 local DivingUI = require(script.Parent.Controllers.DivingUI)
 local SeaBiome = require(script.Parent.Controllers.SeaBiome)
+local SeaEventsUI = require(script.Parent.Controllers.SeaEventsUI)
 local JobPrompts = require(script.Parent.Controllers.JobPrompts)
 local BusUI = require(script.Parent.Controllers.BusUI)
 local ActorLife = require(script.Parent.Controllers.ActorLife)
 local AgeMotion = require(script.Parent.Controllers.AgeMotion)
 local ReactMotion = require(script.Parent.Controllers.ReactMotion)
 local Locomotion = require(script.Parent.Controllers.Locomotion)
+local Stances = require(script.Parent.Controllers.Stances)
+local Parkour = require(script.Parent.Controllers.Parkour)
 local FootCamera = require(script.Parent.Controllers.FootCamera)
+local RideCamera = require(script.Parent.Controllers.RideCamera)
+local RidePose = require(script.Parent.Controllers.RidePose)
 local ObjectMotion = require(script.Parent.Controllers.ObjectMotion)
 local WetWorld = require(script.Parent.Controllers.WetWorld)
 local StoneThrow = require(script.Parent.Controllers.StoneThrow)
 local CombatController = require(script.Parent.Controllers.CombatController)
+local WeaponController = require(script.Parent.Controllers.WeaponController)
 local WantedUI = require(script.Parent.Controllers.WantedUI)
 local DeathUI = require(script.Parent.Controllers.DeathUI)
 local InstitutionsUI = require(script.Parent.Controllers.InstitutionsUI)
 local InteriorUI = require(script.Parent.Controllers.InteriorUI)
+local EconomyUI = require(script.Parent.Controllers.EconomyUI)
+local UseMotion = require(script.Parent.Controllers.UseMotion)
+local InteractClient = require(script.Parent.Controllers.InteractClient)
+local Joystick = require(script.Parent.Controllers.Joystick)
+local Gps = require(script.Parent.Controllers.Gps)
 local CommandMenu = require(script.Parent.Commands.CommandMenu)
 local DefaultCommands = require(script.Parent.Commands.DefaultCommands)
 
@@ -73,6 +86,7 @@ StoryAudio.init() -- música, efectos y voces de la historia (botón 🔊)
 task.spawn(LifeStory.init) -- historia de vida (tarjeta "Tu vida", momentos, decisiones)
 task.spawn(Baby.init) -- tutorial de bebé (botón de levantarse, familia, vista de la ciudad)
 task.spawn(ClassUI.init) -- clases y exámenes que se juegan
+task.spawn(Gps.init) -- GPS: ruta por las calles hasta tu destino (mapas, flechas en el suelo e indicación)
 task.spawn(MapUI.init) -- minimapa y mapa grande (tecla M)
 task.spawn(InventoryUI.init) -- mochila estilo Minecraft (barra rápida 1-9, tecla E)
 task.spawn(DialogueUI.init) -- conversaciones de las misiones (con respuestas y cámara)
@@ -82,7 +96,11 @@ task.spawn(ActorLife.init) -- los personajes respiran, miran, gesticulan al habl
 task.spawn(AgeMotion.init) -- cada edad se mueve a su manera: el bebé gatea, los mayores van encorvados…
 task.spawn(ReactMotion.init) -- golpes con cuerpo y choques: balón, piedras, arena, arbustos y charcos
 task.spawn(Locomotion.init) -- andar fluido: arrancar y frenar suave, inclinarse, mirar, aterrizar, sentarse y alcanzar cosas
+task.spawn(Stances.init) -- agacharse (Ctrl, cruceta abajo) y tumbarse (mantener): más bajo, más lento y más discreto
+task.spawn(Parkour.init) -- saltar vallas, muros y capós corriendo, y agarrarse a bordes para subir
 task.spawn(FootCamera.init) -- cámara a pie: zoom corto dentro de edificios y campo de visión al correr
+task.spawn(RideCamera.init) -- cámara en un vehículo, el autobús o el metro: detrás, suave y sin meterse dentro
+task.spawn(RidePose.init) -- postura en un vehículo: manos al volante o al manillar, pasajeros sentados
 task.spawn(ObjectMotion.init) -- árboles que se mecen, columpios, banderas, noria, carrusel, fuentes
 task.spawn(WetWorld.init) -- con lluvia: suelo que brilla, charcos, gente y cosas mojadas; con nieve, todo blanco
 task.spawn(StoneThrow.init) -- coger piedras del suelo y lanzarlas (tecla B o botón 🥌)
@@ -94,6 +112,7 @@ task.spawn(Arcade.init) -- recreativos
 task.spawn(DrivingSchool.init) -- autoescuela
 task.spawn(Restaurant.init) -- trabajo de camarero y barman
 task.spawn(Character.init) -- ficha del personaje (botón Personaje) y correr con Shift
+task.spawn(Joystick.init) -- móvil: joystick fijo abajo a la izquierda (con el estilo del HUD)
 task.spawn(NearShadows.init) -- sombras de las luces solo cerca de ti (mismo aspecto, mucho más fluido)
 task.spawn(Prompts.init) -- carteles de "pulsa E" con el estilo de la interfaz
 task.spawn(SoundFx.init) -- efectos de sonido: saltos, golpes, agua, botones, motor, claxon y gente hablando
@@ -111,16 +130,34 @@ task.spawn(TradeUI.init) -- intercambio entre jugadores y mercadillo
 task.spawn(PlayerMenuUI.init) -- al tocar a un jugador: invitar al grupo, chat y comerciar
 task.spawn(FishingUI.init) -- pesca: sedal y corcho, ¡tirar!, tienda de pesca
 task.spawn(MetroUI.init) -- metro: panel del tren, billetes, tiendas, encargos y escenario
+task.spawn(GymUI.init) -- gimnasio: recepción (entrada y abono) y la barra del ritmo al entrenar
+task.spawn(GymMotion.init) -- gimnasio: el cuerpo hace el ejercicio y la máquina se mueve (cinta, pesas, bici…)
 task.spawn(DivingUI.init) -- nadar, bucear (aire) y pesca submarina con fusil o arpón
 task.spawn(SeaBiome.init) -- el fondo del mar y la luz bajo el agua (solo cuando estás en el agua)
+task.spawn(SeaEventsUI.init) -- catástrofes marinas: alerta, ola del tsunami, rayos, remolino, tiburón y medusas
 task.spawn(JobPrompts.init) -- los carteles de cada oficio solo los ve quien trabaja en él
 task.spawn(Driving.init) -- conducir coches, motos, bicis, monopatines y patinetes (W/A/S/D)
-task.spawn(Actions.init) -- gestos y bailes (G), trepar muros bajos, linterna (L) y modo foto (P)
+task.spawn(Actions.init) -- gestos y bailes, linterna (L) y modo foto (P)
 task.spawn(CombatController.init) -- pelear: X/RB golpear (combo de 3), Z/LB defenderse, 👊 y 🛡 en el móvil
+task.spawn(WeaponController.init) -- armas: clic dcho/LT apuntar, clic/RT disparar, R recargar; Armerías y licencia
 task.spawn(WantedUI.init) -- estrellas de búsqueda bajo el reloj, avisos de delito, DETENIDO y hélices
 task.spawn(DeathUI.init) -- pantalla de HAS MUERTO y despertar en el hospital
+-- Versión nueva del juego: aviso antes de pasar a un servidor nuevo (UpdateService)
+task.spawn(function()
+	local remote = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Update", 60) :: RemoteEvent?
+	if remote then
+		remote.OnClientEvent:Connect(function(kind: string, data: any)
+			if kind == "Soon" then
+				Hud.toast("Info", ("🔄 ¡Versión nueva! Te llevamos a un servidor actualizado en %d s"):format(tonumber(data and data.Seconds) or 15))
+			end
+		end)
+	end
+end)
 task.spawn(InstitutionsUI.init) -- instituciones: panel del juez, juicio, condena, ascensos y Hacienda
 task.spawn(InteriorUI.init) -- ascensor de los edificios (todos se pueden visitar por dentro)
+task.spawn(EconomyUI.init) -- granja (cooperativa, obrador) y negocios (gestión y mostrador)
+task.spawn(UseMotion.init) -- posturas al usar los muebles: sentado, tumbado, grifo, nevera, ducha, ordenador, piano, ventana
+task.spawn(InteractClient.init) -- tele con imagen, ordenador, piano, agua y clics de los muebles
 
 -- Menú de comandos (abajo a la izquierda): cambia según lo que tienes delante; el comando elegido
 -- es también lo que hace la tecla E, y su cartel es el único que se dibuja
@@ -128,7 +165,7 @@ DefaultCommands.register()
 CommandMenu.onFocus(Prompts.setFocus)
 task.spawn(CommandMenu.init)
 
--- Botones de arriba a la derecha del HUD
+-- Acciones de los comandos (Objetos y Mapa)
 Hud.setAction("Mochila", InventoryUI.toggle)
 Hud.setAction("Mapa", MapUI.toggleBig)
 
@@ -153,6 +190,21 @@ end
 Hud.addMenuToggle(lookText(), 3, function()
 	ReplicatedStorage.Remotes.Avatar:FireServer("Toggle")
 	return if game:GetService("Players").LocalPlayer:GetAttribute("OwnAvatar") then "👕 Ropa: estilo Valmar" else "👕 Ropa: mi avatar de Roblox"
+end)
+
+-- GPS (ruta por las calles, flechas en el suelo e indicaciones): sí por defecto
+Hud.addMenuToggle("🧭 GPS: sí", 3.2, function()
+	Gps.setEnabled(not Gps.isEnabled())
+	return if Gps.isEnabled() then "🧭 GPS: sí" else "🧭 GPS: no"
+end)
+
+-- Móvil: correr al empujar el joystick hasta el borde (sí por defecto)
+local function autoRunText(): string
+	return if game:GetService("Players").LocalPlayer:GetAttribute("AutoRun") == false then "🏃 Correr al empujar el joystick: no" else "🏃 Correr al empujar el joystick: sí"
+end
+Hud.addMenuToggle(autoRunText(), 3.5, function()
+	Character.setAutoRun(game:GetService("Players").LocalPlayer:GetAttribute("AutoRun") == false)
+	return autoRunText()
 end)
 
 -- Empezar una vida nueva (desde bebé): hay que pulsar dos veces para confirmar
@@ -239,6 +291,8 @@ game:GetService("RunService").Heartbeat:Connect(function()
 		TaskMarker.setHidden(busy)
 		Hud.setBusy(busy)
 		CommandMenu.setBusy(busy)
+		Joystick.setBusy(busy)
+		Gps.setBusy(busy)
 		if busy and MapUI.isOpen() then
 			MapUI.toggleBig()
 		end
@@ -248,14 +302,14 @@ game:GetService("RunService").Heartbeat:Connect(function()
 	end
 end)
 
--- De bebé sobran el minimapa, el tiempo y el botón de correr
+-- De bebé sobra el minimapa (los botones y el resto del HUD ya se apartan solos)
 local function babyMode()
 	local baby = localPlayer:GetAttribute("LifeStage") == "Bebe"
 	local playerGui = localPlayer:FindFirstChild("PlayerGui")
 	if not playerGui then
 		return
 	end
-	for _, path in { { "MapUI", "Minimap" }, { "WeatherChip" }, { "SprintGui", "SprintButton" } } do
+	for _, path in { { "MapUI", "Minimap" } } do
 		local target = playerGui:FindFirstChild(path[1])
 		if target and path[2] then
 			target = target:FindFirstChild(path[2])

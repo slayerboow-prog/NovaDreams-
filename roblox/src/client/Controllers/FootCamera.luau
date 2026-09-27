@@ -5,7 +5,10 @@
 --     el zoom poco a poco). Se mantiene el modo "Zoom" de Roblox: si algo tapa, la cámara se acerca.
 --   * Corriendo, el campo de visión se abre un poco (sensación de velocidad) y vuelve suave al parar.
 --   * En modo foto la cámara se puede alejar mucho más (Actions llama a FootCamera.setPhoto).
--- Conduciendo, en cinemáticas y en conversaciones no toca nada (esas cámaras son de otros sistemas).
+--   * Apuntando con un arma el campo de visión se cierra (WeaponController llama a FootCamera.setAim)
+--     y el zoom lo lleva el arma (cámara al hombro).
+-- Conduciendo, de pasajero (también en el metro), en cinemáticas y en conversaciones no toca nada
+-- (esas cámaras son de otros sistemas: la de los vehículos es RideCamera).
 -- Las funciones puras (maxZoom y Locomotion.fov) se prueban en scripts/test-motion.luau.
 
 local FootCamera = {}
@@ -25,6 +28,13 @@ end
 
 local photo = false
 local refresh: (() -> ())? = nil
+-- Apuntando con un arma (WeaponController): cuánto (0..1), a qué campo de visión y el zoom lo lleva él
+local aimAlpha, aimFov = 0, 55
+
+function FootCamera.setAim(alpha: number, fov: number)
+	aimAlpha = math.clamp(alpha, 0, 1)
+	aimFov = fov
+end
 
 function FootCamera.setPhoto(on: boolean)
 	photo = on
@@ -38,6 +48,7 @@ function FootCamera.init()
 	local RunService = game:GetService("RunService")
 	local Locomotion = require(script.Parent.Locomotion)
 	local Cinematics = require(script.Parent.Cinematics)
+	local RideCamera = require(script.Parent.RideCamera)
 	local player = Players.LocalPlayer
 
 	local params = RaycastParams.new()
@@ -60,10 +71,14 @@ function FootCamera.init()
 	local indoors = false
 	local pending, since = false, 0
 	local function busy(): boolean
-		return player:GetAttribute("Riding") ~= nil or player:GetAttribute("InDialogue") == true or Cinematics.isPlaying()
+		return player:GetAttribute("Riding") ~= nil
+			or player:GetAttribute("Passenger") ~= nil
+			or RideCamera.isActive()
+			or player:GetAttribute("InDialogue") == true
+			or Cinematics.isPlaying()
 	end
 	refresh = function()
-		if busy() then
+		if busy() or aimAlpha > 0 then
 			return
 		end
 		local zoom = FootCamera.maxZoom(indoors, photo)
@@ -107,6 +122,9 @@ function FootCamera.init()
 			sprint = 0
 		end
 		local fov = Locomotion.fov(FootCamera.BASE_FOV, sprint)
+		if aimAlpha > 0 then
+			fov += (aimFov - fov) * aimAlpha
+		end
 		if math.abs(camera.FieldOfView - fov) > 0.001 then
 			camera.FieldOfView = fov
 		end

@@ -92,7 +92,7 @@ local function openCase(case: { [string]: any })
 		minutes = math.clamp(n, 1, case.MaxMinutes or 10)
 		value.Text = tostring(minutes)
 	end
-	Theme.button({ Position = UDim2.fromOffset(190, 0), Size = UDim2.fromOffset(44, 40), Text = "−", TextSize = 22, Parent = stepper }).Activated:Connect(function()
+	Theme.button({ Position = UDim2.fromOffset(190, 0), Size = UDim2.fromOffset(44, 40), Text = "-", TextSize = 22, Parent = stepper }).Activated:Connect(function()
 		set(minutes - 1)
 	end)
 	Theme.button({ Position = UDim2.fromOffset(306, 0), Size = UDim2.fromOffset(44, 40), Text = "+", TextSize = 22, Parent = stepper }).Activated:Connect(function()

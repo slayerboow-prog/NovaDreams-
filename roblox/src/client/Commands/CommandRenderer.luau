@@ -1,142 +1,198 @@
 -- CommandRenderer: dibuja el menú de comandos (abajo a la izquierda).
 --
---   ┌ COMANDOS ─────────┐     <- pestaña: el título (o con quién estás: "MARTA")
---   ▶ █ 💬 HABLAR   Marta  █     <- el elegido: brillante, más grande, desplazado y con el cursor ▶
---       🚪 ENTRAR   Tienda
---       🎒 OBJETOS
---       🗺 MAPA
---       ⋯  MÁS             ▸     <- grupo: abre un submenú
+--   ╔ 👑 COMANDOS ───────────── ⌃ ╗   <- pestaña con la corona y el botón para ocultarlo
+--   ║▌ 💬 Hablar          Marta   > ║   <- el elegido: azul intenso con brillo y ">" (el selector se desliza)
+--   ║▌ ✋ Interactuar              ║
+--   ║▌ 🎒 Inventario               ║
+--   ║▌ 🗺 Mapa                     ║
+--   ║            ⌄                 ║   <- desplegar: ver todos los comandos
+--   ╚═════════════════════════════╝
 --
 -- Solo dibuja; qué comandos salen y qué hacen lo decide CommandMenu.
+-- Las flechas se dibujan con marcos (UI/Icons): no dependen de la fuente del móvil.
 
 local TweenService = game:GetService("TweenService")
 
 local Theme = require(script.Parent.Parent.UI.Theme)
+local Icons = require(script.Parent.Parent.UI.Icons)
+local HudLayout = require(script.Parent.Parent.UI.HudLayout)
 
 local create = Theme.create
 local C = Theme.Colors
+local H = Theme.Hud
 local rgb = Color3.fromRGB
 
 local CommandRenderer = {}
 CommandRenderer.__index = CommandRenderer
 
-local ROW_W, ROW_H = 250, 34
-local QUICK = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-local SLIDE = TweenInfo.new(0.2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
-
--- Colores propios del menú (azul noche con filo cian y un toque violeta)
-local EDGE = rgb(110, 225, 255)
-local VIOLET = rgb(150, 110, 255)
-local IDLE = ColorSequence.new(rgb(22, 44, 96), rgb(8, 16, 40))
-local ACTIVE = ColorSequence.new({
-	ColorSequenceKeypoint.new(0, rgb(255, 255, 255)),
-	ColorSequenceKeypoint.new(0.55, rgb(200, 240, 255)),
-	ColorSequenceKeypoint.new(1, rgb(90, 190, 255)),
-})
+local S = HudLayout.Sizes
+local HEADER = S.CommandHeader
+local PITCH = S.CommandPitch
+local ROW_H = PITCH - 4
+local LEFT = 16 -- sitio para el filo de la izquierda
+local SLIDE = TweenInfo.new(0.16, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+local FADE = TweenInfo.new(0.2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 
 export type Item = { Label: string, Detail: string?, Icon: string, Group: boolean?, Accent: boolean?, Badge: boolean? }
 
 function CommandRenderer.new(parent: Instance, touch: boolean)
 	local self = setmetatable({}, CommandRenderer)
 	self.Rows = {}
+	self.Items = {}
 	self.Selected = 0
+	self.First = 1
+	self.Window = if touch then 4 else 5
+	self.Collapsed = false
+	self.Expanded = false
+	self.Visible = true
 	self.HoverCallback = nil :: ((number) -> ())?
 	self.ActivateCallback = nil :: ((number) -> ())?
+	self.ToggleCallback = nil :: (() -> ())?
+	self.ExpandCallback = nil :: (() -> ())?
 	self.Touch = touch
+	self.Width = S.CommandWidth
 
-	local root = create("Frame", {
+	local root = Theme.hudPanel({
 		Name = "CommandMenu",
 		AnchorPoint = Vector2.new(0, 1),
-		Size = UDim2.fromOffset(ROW_W + 56, 0),
-		AutomaticSize = Enum.AutomaticSize.Y,
-		BackgroundTransparency = 1,
+		Size = UDim2.fromOffset(self.Width, HEADER),
+		BackgroundTransparency = 0.38,
+		CornerRadius = 12,
+		ClipsDescendants = false,
 		Parent = parent,
 	})
+	Theme.bevel(root)
+	Theme.halo(root, H.Glow, 8, 14)
 	self.Root = root
-	create("UIListLayout", { Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder, Parent = root })
 
-	-- Pestaña del título: forma inclinada con el filo cian-violeta
-	local tab = create("Frame", {
-		Name = "Header",
-		Size = UDim2.fromOffset(0, 26),
-		AutomaticSize = Enum.AutomaticSize.X,
+	-- Filo lateral brillante (a la izquierda, a todo lo alto)
+	create("Frame", {
+		Name = "Rail",
+		Position = UDim2.fromOffset(5, HEADER + 6),
+		Size = UDim2.new(0, 4, 1, -(HEADER + 14)),
 		BackgroundColor3 = Color3.new(1, 1, 1),
-		LayoutOrder = 0,
+		BorderSizePixel = 0,
+		ZIndex = 2,
 		Parent = root,
 	}, {
-		create("UICorner", { CornerRadius = UDim.new(0, 6) }),
-		create("UIGradient", { Color = ColorSequence.new(VIOLET, rgb(40, 150, 255)), Rotation = 0 }),
-		create("UIStroke", { Color = EDGE, Thickness = 1.5, Transparency = 0.2 }),
-		create("UIPadding", { PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 16) }),
-	})
-	self.HeaderText = Theme.label({
-		Size = UDim2.fromOffset(0, 26),
-		AutomaticSize = Enum.AutomaticSize.X,
-		FontFace = Theme.TitleFace,
-		TextSize = 15,
-		TextStrokeTransparency = 0.5,
-		Text = "COMANDOS",
-		Parent = tab,
+		create("UICorner", { CornerRadius = UDim.new(1, 0) }),
+		create("UIGradient", { Rotation = 90, Color = Theme.EdgeGradient }),
 	})
 
-	-- La lista va en un CanvasGroup para poder entrar y salir con fundido
-	local list = create("CanvasGroup", {
-		Name = "List",
-		Size = UDim2.fromOffset(ROW_W + 56, 0),
-		AutomaticSize = Enum.AutomaticSize.Y,
-		BackgroundTransparency = 1,
-		LayoutOrder = 1,
+	-- Pestaña del título: corona + COMANDOS + botón de ocultar
+	local header = create("Frame", {
+		Name = "Header",
+		Size = UDim2.new(1, 0, 0, HEADER),
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		BackgroundTransparency = 0.1,
+		BorderSizePixel = 0,
+		ZIndex = 3,
 		Parent = root,
+	}, {
+		create("UICorner", { CornerRadius = UDim.new(0, 12) }),
+		create("UIGradient", { Color = ColorSequence.new(rgb(70, 60, 190), rgb(20, 90, 220)), Transparency = NumberSequence.new(0.1, 0.5) }),
 	})
-	self.List = list
-	self.Holder = create("Frame", { Size = UDim2.fromOffset(ROW_W + 56, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, Parent = list })
-	create("UIListLayout", { Padding = UDim.new(0, 3), SortOrder = Enum.SortOrder.LayoutOrder, Parent = self.Holder })
-	create("UIPadding", { PaddingLeft = UDim.new(0, 18), PaddingTop = UDim.new(0, 2), PaddingBottom = UDim.new(0, 4), Parent = self.Holder })
-
-	-- Cursor ▶ que se mueve hasta el comando elegido y late suavemente
-	self.Cursor = Theme.label({
-		Name = "Cursor",
-		AnchorPoint = Vector2.new(0, 0.5),
-		Size = UDim2.fromOffset(16, 20),
-		Text = "▶",
-		TextSize = 16,
-		TextColor3 = C.Gold,
-		TextStrokeTransparency = 0.3,
-		TextXAlignment = Enum.TextXAlignment.Center,
+	self.Header = header
+	Icons.new("corona", { Name = "Crown", Position = UDim2.fromOffset(12, 5), Size = UDim2.fromOffset(24, 24), ZIndex = 4, Parent = header })
+	self.HeaderText = Theme.title({
+		Name = "Title",
+		Position = UDim2.fromOffset(44, 0),
+		Size = UDim2.new(1, -90, 1, 0),
+		TextSize = 19,
+		TextStrokeTransparency = 0.5,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+		Text = "COMANDOS",
+		ZIndex = 4,
+		Parent = header,
+	})
+	-- Botón para ocultar / mostrar el menú (también Tab, o ← / → en la cruceta)
+	local toggle = create("TextButton", {
+		Name = "Toggle",
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -6, 0.5, 0),
+		Size = UDim2.fromOffset(30, 26),
+		BackgroundColor3 = H.Navy,
+		BackgroundTransparency = 0.3,
+		Text = "",
 		ZIndex = 5,
-		Parent = list,
-	})
-	task.spawn(function()
-		local t = 0
-		while root.Parent do
-			t += task.wait()
-			local base = self.CursorY or 0
-			self.Cursor.Position = UDim2.fromOffset(-1 + math.sin(t * 7) * 2.5, base)
+		Parent = header,
+	}, { create("UICorner", { CornerRadius = UDim.new(0, 8) }) })
+	Theme.edge(toggle, H.Glow, 1.5)
+	self.ToggleIcon = Icons.chevron({ AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(12, 14), Rotation = 90, Thickness = 2.5, ZIndex = 6, Parent = toggle })
+	self.Toggle = toggle
+	Theme.pressable(toggle)
+	toggle.Activated:Connect(function()
+		if self.ToggleCallback then
+			self.ToggleCallback()
+		end
+	end)
+	-- Tocar la pestaña cuando está oculto también lo abre
+	local headerHit = create("TextButton", { Name = "HeaderHit", Size = UDim2.new(1, -40, 1, 0), BackgroundTransparency = 1, Text = "", ZIndex = 5, Parent = header })
+	headerHit.Activated:Connect(function()
+		if self.Collapsed and self.ToggleCallback then
+			self.ToggleCallback()
 		end
 	end)
 
-	-- (móvil) cuántos comandos hay y si hay más arriba o abajo
-	self.More = Theme.label({
-		Name = "More",
-		Size = UDim2.fromOffset(ROW_W, 16),
-		TextSize = 12,
-		TextColor3 = C.Muted,
-		TextStrokeTransparency = 0.5,
-		TextXAlignment = Enum.TextXAlignment.Center,
-		Text = "",
-		LayoutOrder = 3,
-		Visible = false,
+	-- Lista (en un CanvasGroup para entrar y salir con fundido)
+	local list = create("CanvasGroup", {
+		Name = "List",
+		Position = UDim2.fromOffset(0, HEADER + 4),
+		Size = UDim2.new(1, 0, 0, 0),
+		BackgroundTransparency = 1,
+		ZIndex = 2,
 		Parent = root,
 	})
+	self.List = list
+	-- Selector: el fondo azul brillante del elegido, que se desliza de una fila a otra
+	local selector = create("Frame", {
+		Name = "Selector",
+		Position = UDim2.fromOffset(LEFT - 4, 0),
+		Size = UDim2.new(1, -(LEFT + 2), 0, ROW_H),
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		BorderSizePixel = 0,
+		Visible = false,
+		ZIndex = 2,
+		Parent = list,
+	}, {
+		create("UICorner", { CornerRadius = UDim.new(0, 9) }),
+		create("UIGradient", { Color = ColorSequence.new(rgb(40, 140, 255), rgb(22, 70, 215)) }),
+	})
+	Theme.edge(selector, H.Glow, 2)
+	Theme.halo(selector, H.Glow, 8, 12)
+	Icons.chevron({ Name = "Arrow", AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -10, 0.5, 0), Size = UDim2.fromOffset(12, 16), Thickness = 3, ZIndex = 4, Parent = selector })
+	self.Selector = selector
+	self.Holder = create("Frame", { Name = "Rows", Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ZIndex = 3, Parent = list })
+
+	-- Desplegar ⌄ (ver todos)
+	local more = create("TextButton", {
+		Name = "More",
+		AnchorPoint = Vector2.new(0.5, 1),
+		Size = UDim2.fromOffset(80, 20),
+		BackgroundTransparency = 1,
+		Text = "",
+		Visible = false,
+		ZIndex = 4,
+		Parent = root,
+	})
+	self.MoreIcon = Icons.chevron({ AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(12, 18), Rotation = 90, Color = H.Glow, Thickness = 3, ZIndex = 4, Parent = more })
+	self.More = more
+	more.Activated:Connect(function()
+		if self.ExpandCallback then
+			self.ExpandCallback()
+		end
+	end)
 	self.Hint = Theme.label({
 		Name = "Hint",
-		Size = UDim2.fromOffset(ROW_W + 20, 14),
-		TextSize = 11,
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(0, LEFT, 1, -4),
+		Size = UDim2.new(1, -LEFT - 8, 0, 14),
+		TextSize = 12,
 		TextColor3 = C.Muted,
-		TextStrokeTransparency = 0.5,
+		TextStrokeTransparency = 0.6,
 		Text = "",
-		LayoutOrder = 2,
 		Visible = not touch,
+		ZIndex = 4,
 		Parent = root,
 	})
 	return self
@@ -150,22 +206,39 @@ function CommandRenderer:setHint(text: string)
 	self.Hint.Text = text
 end
 
-local function paint(row: { [string]: any }, on: boolean, instant: boolean?)
-	local info = if instant then TweenInfo.new(0) else QUICK
-	row.Fill.Color = if on then ACTIVE else IDLE
-	row.Fill.Transparency = if on
-		then NumberSequence.new(0)
-		else NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.05), NumberSequenceKeypoint.new(0.7, 0.25), NumberSequenceKeypoint.new(1, 0.75) })
-	row.Label.TextColor3 = if on then C.Ink else C.Text
-	row.Label.TextStrokeTransparency = if on then 1 else 0.6
-	row.Detail.TextColor3 = if on then rgb(40, 70, 120) else C.Muted
-	row.Arrow.TextColor3 = if on then C.Ink else C.Muted
-	row.Stroke.Color = if on then EDGE else rgb(70, 120, 200)
-	row.Stroke.Transparency = if on then 0 else 0.55
-	row.Stroke.Thickness = if on then 2 else 1
-	TweenService:Create(row.Scale, info, { Scale = if on then 1.06 else 1 }):Play()
-	TweenService:Create(row.Inner, info, { Position = UDim2.fromOffset(if on then 12 else 0, 0) }):Play()
-	TweenService:Create(row.Glow, info, { BackgroundTransparency = if on then 0.55 else 1 }):Play()
+-- Cuántas filas se ven (sin desplegar / desplegado)
+function CommandRenderer:setWindow(rows: number)
+	self.Window = math.max(1, rows)
+	self:window()
+end
+
+-- Alto de la lista y del panel según las filas que se ven
+function CommandRenderer:resize()
+	local shown = if self.Collapsed then 0 else math.min(#self.Rows, self.Window)
+	local listH = shown * PITCH
+	local extra = #self.Rows > self.Window and not self.Collapsed
+	self.More.Visible = extra
+	local footer = if self.Collapsed then 0 else S.CommandFooter
+	local hint = if self.Touch or self.Collapsed then 0 else S.CommandHint
+	self.List.Size = UDim2.new(1, 0, 0, listH)
+	self.List.Visible = not self.Collapsed
+	self.Hint.Visible = hint > 0
+	self.More.Position = UDim2.new(0.5, 0, 1, -(hint + 4))
+	local height = HEADER + (if self.Collapsed then 0 else listH + footer + hint)
+	TweenService:Create(self.Root, FADE, { Size = UDim2.fromOffset(self.Width, height) }):Play()
+	self.ToggleIcon.Rotation = if self.Collapsed then -90 else 90
+	self.MoreIcon.Rotation = if self.Expanded then -90 else 90
+	local rail = self.Root:FindFirstChild("Rail") :: Frame?
+	if rail then
+		rail.Visible = not self.Collapsed
+	end
+end
+
+local function paintRow(row: { [string]: any }, on: boolean)
+	row.Label.TextColor3 = if on then Color3.new(1, 1, 1) else C.Text
+	row.Label.FontFace = if on then Theme.TitleFace else Font.fromEnum(Theme.FontBold)
+	row.Detail.TextColor3 = if on then rgb(200, 230, 255) else C.Muted
+	row.Body.BackgroundTransparency = if on then 1 else 0.35
 end
 
 -- items: lo que se enseña; selected: cuál va elegido; motion: "push" (entra un submenú),
@@ -175,79 +248,73 @@ function CommandRenderer:setItems(items: { Item }, selected: number, motion: str
 		row.Button:Destroy()
 	end
 	self.Rows = {}
+	self.Items = items
 	for i, item in items do
 		local button = create("TextButton", {
 			Name = "Row" .. i,
-			Size = UDim2.fromOffset(ROW_W, ROW_H),
+			Position = UDim2.fromOffset(LEFT - 4, 0),
+			Size = UDim2.new(1, -(LEFT + 2), 0, ROW_H),
 			BackgroundTransparency = 1,
 			AutoButtonColor = false,
 			Text = "",
-			LayoutOrder = i,
+			ZIndex = 3,
 			Parent = self.Holder,
 		})
-		local scale = create("UIScale", { Parent = button })
-		local inner = create("Frame", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Parent = button })
-		-- Halo detrás del elegido
-		local glow = create("Frame", {
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5, 0.5),
-			Size = UDim2.new(1, 10, 1, 10),
-			BackgroundColor3 = EDGE,
-			BackgroundTransparency = 1,
-			ZIndex = 0,
-			Parent = inner,
-		}, { create("UICorner", { CornerRadius = UDim.new(0, 12) }) })
+		-- Fondo oscuro translúcido con filo de color a la izquierda
 		local body = create("Frame", {
+			Name = "Body",
 			Size = UDim2.fromScale(1, 1),
-			BackgroundColor3 = Color3.new(1, 1, 1),
-			ZIndex = 1,
-			Parent = inner,
-		}, {
-			-- esquina izquierda recta y derecha redondeada: se lee como una lista que sale del borde
-			create("UICorner", { CornerRadius = UDim.new(0, 9) }),
-		})
-		local fill = create("UIGradient", { Rotation = 0, Parent = body })
-		local stroke = create("UIStroke", { ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = body })
-		-- Filo de color a la izquierda (dorado si es lo que tienes delante)
-		create("Frame", {
-			Size = UDim2.new(0, 4, 1, -8),
-			Position = UDim2.fromOffset(4, 4),
-			BackgroundColor3 = if item.Accent then C.Gold else VIOLET,
+			BackgroundColor3 = H.NavyLight,
+			BackgroundTransparency = 0.35,
 			BorderSizePixel = 0,
-			ZIndex = 2,
-			Parent = body,
-		}, { create("UICorner", { CornerRadius = UDim.new(0, 2) }) })
-		Theme.label({ Size = UDim2.fromOffset(26, ROW_H), Position = UDim2.fromOffset(12, 0), Text = item.Icon, TextSize = 18, TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 2, Parent = body })
+			ZIndex = 3,
+			Parent = button,
+		}, {
+			create("UICorner", { CornerRadius = UDim.new(0, 9) }),
+			create("UIGradient", { Transparency = NumberSequence.new(0, 0.6) }),
+		})
+		create("Frame", {
+			Name = "Accent",
+			Position = UDim2.fromOffset(6, 7),
+			Size = UDim2.new(0, 3, 1, -14),
+			BackgroundColor3 = if item.Accent then H.Gold else H.Violet,
+			BorderSizePixel = 0,
+			ZIndex = 4,
+			Parent = button,
+		}, { create("UICorner", { CornerRadius = UDim.new(1, 0) }) })
+		Icons.new(item.Icon, { Name = "Icon", Position = UDim2.fromOffset(16, 6), Size = UDim2.fromOffset(ROW_H - 12, ROW_H - 12), ZIndex = 4, Parent = button })
 		local label = Theme.label({
-			Size = UDim2.new(0.62, -40, 1, 0),
-			Position = UDim2.fromOffset(42, 0),
-			FontFace = Theme.ItalicFace,
-			Text = string.upper(item.Label),
-			TextSize = 16,
+			Name = "Label",
+			Position = UDim2.fromOffset(ROW_H + 12, 0),
+			Size = UDim2.new(0.62, -(ROW_H + 12), 1, 0),
+			Font = Theme.FontBold,
+			Text = item.Label,
+			TextSize = 18,
 			TextTruncate = Enum.TextTruncate.AtEnd,
-			ZIndex = 2,
-			Parent = body,
+			TextStrokeTransparency = 0.6,
+			ZIndex = 4,
+			Parent = button,
 		})
 		local detail = Theme.label({
+			Name = "Detail",
 			AnchorPoint = Vector2.new(1, 0),
-			Size = UDim2.new(0.38, 0, 1, 0),
-			Position = UDim2.new(1, -24, 0, 0),
+			Position = UDim2.new(1, -30, 0, 0),
+			Size = UDim2.new(0.38, -20, 1, 0),
 			Text = item.Detail or "",
-			TextSize = 12,
+			TextSize = 13,
 			TextXAlignment = Enum.TextXAlignment.Right,
 			TextTruncate = Enum.TextTruncate.AtEnd,
-			ZIndex = 2,
-			Parent = body,
+			ZIndex = 4,
+			Parent = button,
 		})
-		local arrow = Theme.label({ AnchorPoint = Vector2.new(1, 0), Size = UDim2.fromOffset(18, ROW_H), Position = UDim2.new(1, -4, 0, 0), Text = if item.Group then ">" else "", TextSize = 16, TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 2, Parent = body })
 		if item.Badge then
-			create("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Size = UDim2.fromOffset(10, 10), Position = UDim2.new(1, -30, 0.5, 0), BackgroundColor3 = rgb(255, 70, 90), ZIndex = 3, Parent = body }, {
+			create("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Size = UDim2.fromOffset(10, 10), Position = UDim2.new(0, 16, 0, 6), BackgroundColor3 = rgb(255, 70, 90), ZIndex = 5, Parent = button }, {
 				create("UICorner", { CornerRadius = UDim.new(1, 0) }),
 				create("UIStroke", { Color = Color3.new(1, 1, 1), Thickness = 1.5 }),
 			})
 		end
-		local row = { Button = button, Scale = scale, Inner = inner, Glow = glow, Fill = fill, Stroke = stroke, Label = label, Detail = detail, Arrow = arrow }
-		paint(row, i == selected, true)
+		local row = { Button = button, Body = body, Label = label, Detail = detail }
+		paintRow(row, i == selected)
 		table.insert(self.Rows, row)
 
 		button.MouseEnter:Connect(function()
@@ -267,55 +334,50 @@ function CommandRenderer:setItems(items: { Item }, selected: number, motion: str
 		end)
 	end
 	self.Selected = selected
-	self:window()
-	self:placeCursor(true)
+	self:window(true)
+	self:resize()
 
 	if motion then
 		-- Entrada: fundido y desplazamiento (de la derecha al abrir un submenú, de la izquierda al volver)
 		self.List.GroupTransparency = 1
 		self.Holder.Position = UDim2.fromOffset(if motion == "pop" then -26 else 26, 0)
-		TweenService:Create(self.List, SLIDE, { GroupTransparency = 0 }):Play()
-		TweenService:Create(self.Holder, SLIDE, { Position = UDim2.fromOffset(0, 0) }):Play()
+		TweenService:Create(self.List, FADE, { GroupTransparency = 0 }):Play()
+		TweenService:Create(self.Holder, FADE, { Position = UDim2.fromOffset(0, 0) }):Play()
 	end
 end
 
--- En el móvil solo se ven 3 comandos (el elegido en medio): el menú ocupa poco y no se toca sin querer
-local WINDOW = 3
-function CommandRenderer:window()
-	self.First = 1
-	if not self.Touch then
-		return
-	end
+-- Qué filas se ven (el elegido siempre dentro) y dónde va cada una
+function CommandRenderer:window(instant: boolean?)
 	local n = #self.Rows
-	self.First = math.clamp(self.Selected - 1, 1, math.max(1, n - WINDOW + 1))
-	for i, row in self.Rows do
-		row.Button.Visible = i >= self.First and i < self.First + WINDOW
+	local size = math.min(self.Window, n)
+	self.First = math.clamp(self.Selected - size + 1, 1, math.max(1, n - size + 1))
+	if self.Selected < self.First then
+		self.First = self.Selected
 	end
-	self.More.Visible = n > WINDOW
-	self.More.Text = ("%s %d/%d %s"):format(if self.First > 1 then "▲" else " ", self.Selected, n, if self.First + WINDOW <= n then "▼" else " ")
+	self.First = math.clamp(self.First, 1, math.max(1, n - size + 1))
+	for i, row in self.Rows do
+		local shown = i >= self.First and i < self.First + size
+		row.Button.Visible = shown
+		if shown then
+			row.Button.Position = UDim2.fromOffset(LEFT - 4, (i - self.First) * PITCH)
+		end
+	end
+	self:placeSelector(instant)
+	self:resize()
 end
 
-function CommandRenderer:placeCursor(instant: boolean?)
-	local y = 2 + (self.Selected - (self.First or 1)) * (ROW_H + 3) + ROW_H / 2
-	if self.Selected < 1 then
-		self.Cursor.Visible = false
+function CommandRenderer:placeSelector(instant: boolean?)
+	local selector = self.Selector
+	if self.Selected < 1 or self.Selected > #self.Rows then
+		selector.Visible = false
 		return
 	end
-	self.Cursor.Visible = true
-	if instant or not self.CursorY then
-		self.CursorY = y
+	selector.Visible = true
+	local target = UDim2.fromOffset(LEFT - 4, (self.Selected - self.First) * PITCH)
+	if instant then
+		selector.Position = target
 	else
-		-- el cursor viaja hasta su sitio
-		local from = self.CursorY
-		local started = os.clock()
-		task.spawn(function()
-			while os.clock() - started < 0.12 do
-				local a = (os.clock() - started) / 0.12
-				self.CursorY = from + (y - from) * (1 - (1 - a) ^ 3)
-				task.wait()
-			end
-			self.CursorY = y
-		end)
+		TweenService:Create(selector, SLIDE, { Position = target }):Play()
 	end
 end
 
@@ -325,15 +387,14 @@ function CommandRenderer:select(index: number)
 	end
 	local old = self.Rows[self.Selected]
 	if old then
-		paint(old, false)
+		paintRow(old, false)
 	end
 	self.Selected = index
 	local row = self.Rows[index]
 	if row then
-		paint(row, true)
+		paintRow(row, true)
 	end
-	self:window()
-	self:placeCursor(false)
+	self:window(false)
 end
 
 -- Destello al aceptar
@@ -342,10 +403,8 @@ function CommandRenderer:flash(index: number)
 	if not row then
 		return
 	end
-	row.Scale.Scale = 1.13
-	TweenService:Create(row.Scale, TweenInfo.new(0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1.06 }):Play()
-	row.Glow.BackgroundTransparency = 0.1
-	TweenService:Create(row.Glow, TweenInfo.new(0.3), { BackgroundTransparency = 0.55 }):Play()
+	Theme.pop(row.Button, 1.06)
+	Theme.pop(self.Selector, 1.06)
 end
 
 -- Sacudida suave (no se puede)
@@ -354,24 +413,36 @@ function CommandRenderer:shake(index: number)
 	if not row then
 		return
 	end
+	local start = row.Button.Position
 	task.spawn(function()
 		for _, x in { 8, -6, 4, -2, 0 } do
-			row.Inner.Position = UDim2.fromOffset(12 + x, 0)
+			row.Button.Position = start + UDim2.fromOffset(x, 0)
 			task.wait(0.03)
 		end
 	end)
 end
 
+function CommandRenderer:setCollapsed(collapsed: boolean)
+	self.Collapsed = collapsed
+	self:resize()
+end
+
+function CommandRenderer:setExpanded(expanded: boolean, rows: number)
+	self.Expanded = expanded
+	self:setWindow(rows)
+end
+
 function CommandRenderer:setVisible(visible: boolean)
-	if self.Root.Visible == visible then
+	if self.Visible == visible then
 		return
 	end
+	self.Visible = visible
 	self.Root.Visible = visible
 	if visible then
 		self.List.GroupTransparency = 1
 		self.Holder.Position = UDim2.fromOffset(-30, 0)
-		TweenService:Create(self.List, SLIDE, { GroupTransparency = 0 }):Play()
-		TweenService:Create(self.Holder, SLIDE, { Position = UDim2.fromOffset(0, 0) }):Play()
+		TweenService:Create(self.List, FADE, { GroupTransparency = 0 }):Play()
+		TweenService:Create(self.Holder, FADE, { Position = UDim2.fromOffset(0, 0) }):Play()
 	end
 end
 

@@ -1,5 +1,6 @@
 {
   "name": "RealLifeSimulator",
+  "globIgnorePaths": ["assets/icons", "assets/icons/**"],
   "tree": {
     "$className": "DataModel",
     "ReplicatedStorage": {
@@ -12,6 +13,9 @@
           "$className": "RemoteEvent"
         },
         "Vandal": {
+          "$className": "RemoteEvent"
+        },
+        "Weapons": {
           "$className": "RemoteEvent"
         },
         "Actions": {
@@ -62,13 +66,22 @@
         "Social": {
           "$className": "RemoteEvent"
         },
+        "Interact": {
+          "$className": "RemoteEvent"
+        },
         "Fishing": {
+          "$className": "RemoteEvent"
+        },
+        "Gym": {
           "$className": "RemoteEvent"
         },
         "Metro": {
           "$className": "RemoteEvent"
         },
         "Diving": {
+          "$className": "RemoteEvent"
+        },
+        "SeaEvent": {
           "$className": "RemoteEvent"
         },
         "LifeStory": {
@@ -102,6 +115,12 @@
           "$className": "RemoteEvent"
         },
         "Progression": {
+          "$className": "RemoteEvent"
+        },
+        "Farm": {
+          "$className": "RemoteEvent"
+        },
+        "Business": {
           "$className": "RemoteEvent"
         }
       },

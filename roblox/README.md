@@ -16,6 +16,8 @@ falta construir nada a mano en Roblox Studio.
 | 🚌 Viajes | Autobús interurbano: en la parada del centro de cada ciudad, teclas 1-7 para ir a las demás |
 | 💼 Trabajos | Barista, Reponedor, Basurero y Repartidor. Coges algo, lo llevas al punto marcado con una línea azul y cobras |
 | 🍔 Necesidades | Hambre y energía bajan con el tiempo. Si están bajas caminas más lento y no puedes trabajar |
+| 🌾 Campo (agricultor y ganadero) | Fincas en las granjas de Villaverde: 4 bancales y un corral. 15 cultivos y árboles, 6 animales, cooperativa (semillas, animales, pienso) y obrador (molino, horno, quesería, almazara, conservas, exprimidor, telar). Se vende a la cooperativa, en el almacén de los supermercados (pagan más y lo ponen en sus estanterías) o en tu tienda |
+| 🏪 Negocios | Compras un local (planta baja de los edificios de comercio), una gasolinera o un hotel y abres: tienda de alimentación, frutería, panadería, restaurante (con cocina), cafetería, tienda de ropa, gasolinera u hotel. Pones productos y precios, pides al mayorista, los vecinos compran solos (también sin estar conectado) y recoges la caja |
 | 🏠 Casas | Reclamas una parcela gratis. Mejoras de Estudio → Casa familiar → Chalet → Mansión. Cama para dormir y nevera gratis |
 | 🌗 Día y noche | Un día dura 20 minutos. De noche se encienden las farolas y las ventanas de los edificios. Iluminación "Future" con atmósfera, brillo y color |
 | 💾 Guardado | Dinero, nivel de casa, hambre, energía y estadísticas. Con protección contra duplicar dinero entre servidores |
@@ -93,7 +95,7 @@ roblox/
     │   ├── World/            ← construcción de la ciudad
     │   └── Services/         ← Datos, Trabajos, Necesidades, Comida, Casas, Mundo, Monetización
     └── client/               ← corre en el ordenador/móvil de cada jugador
-        ├── UI/               ← interfaz (HUD, tienda)
+        ├── UI/               ← interfaz: HUD, HudLayout (dónde va cada pieza), TouchLayout (botones táctiles), Icons
         └── Controllers/      ← marcador del objetivo del trabajo
 ```
 
@@ -122,9 +124,23 @@ lune run scripts/test-lifestory.luau   # simula vidas completas con la historia 
 lune run scripts/test-workanim.luau    # tareas de los personajes (barrer, cobrar…): posturas y objetos
 lune run scripts/test-agemotion.luau   # cómo se mueve cada edad: el bebé gatea, el mayor va encorvado…
 lune run scripts/test-motion.luau      # andar fluido: arrancar y frenar, inclinarse, aterrizar, gestos y capas de posturas
-lune run scripts/test-hud.luau        # la interfaz principal (estilo KH3) en ordenador y móvil, con la API de Roblox
+lune run scripts/test-parkour.luau     # agacharse, tumbarse y parkour: qué salto toca, el camino del salto, cuestas e IK
+lune run scripts/test-gps.luau        # GPS: grafo de calles, ruta más corta (A*), recalcular e indicaciones de giro
+lune run scripts/test-hud.luau        # el HUD en ordenador, móvil y tableta: que nada se pise, comandos, joystick y botones
 lune run scripts/test-animals.luau     # animales: patas en el suelo, sentarse, pastar, picotear…
 lune run scripts/test-objects.luau RealLifeSimulator.rbxl  # árboles, columpios, banderas, feria y balones con física
 lune run scripts/test-weather.luau     # lluvia y nieve: suelo mojado, agarre de los vehículos, gente mojada
+lune run scripts/test-ride.luau        # vehículos: cámara de viaje, posturas al volante y de pasajero, asientos
 lune run scripts/test-breakables.luau RealLifeSimulator.rbxl  # piedras: qué ventanas y puertas se rompen y la puntería
 ```
+
+### Iconos de la interfaz
+
+Los iconos de línea (blancos sobre transparente) están en `assets/icons/*.svg` y en PNG en
+`assets/icons/png`. Para usarlos en el juego hay que subirlos una vez a Roblox:
+
+```bash
+ROBLOX_API_KEY=… ROBLOX_CREATOR_USER_ID=… scripts/upload-icons.sh   # convierte, sube y escribe src/client/UI/IconIds.luau
+```
+
+Mientras no estén subidos, `UI/Icons` usa un emoji que se ve en todos los móviles.

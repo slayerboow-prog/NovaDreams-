@@ -44,6 +44,23 @@ local DEFAULT_DATA = {
 		Xp = 0,
 		Caught = {},
 	},
+	-- Campo (FarmService): experiencia, si tienes finca, lo plantado en cada bancal y tus animales
+	Farm = {
+		Xp = 0,
+		Plots = {},
+		Animals = {},
+	},
+	-- Gimnasio (GymService): Fuerza y Forma física (0..100), entrada o abono (PassUntil: hora real a
+	-- la que caduca), series hechas y último entreno (para la pérdida suave si no entrenas)
+	Gym = {
+		Strength = 0,
+		Cardio = 0,
+		Sets = 0,
+		PassUntil = 0,
+		PassKind = "",
+		LastTrain = 0,
+		DecayApplied = 0,
+	},
 	-- Estudios: notas por asignatura, exámenes, títulos y asistencia (ClassService)
 	Education = {
 		Subjects = {},

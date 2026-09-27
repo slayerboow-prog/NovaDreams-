@@ -10,6 +10,9 @@
 --     En la Torre de Valmar se puede subir a la azotea (la de verdad, con vistas).
 --   * Los edificios que ya tienen planta baja de verdad (tiendas, colegio, hospital, comisaría…)
 --     solo ganan el ascensor a sus plantas de arriba.
+--   * Cada sala sale amueblada y decorada a su manera (World/Interiors con World/Furniture), con un
+--     número fijo por edificio y planta: cada casa es distinta, pero siempre la misma. Sus muebles se
+--     usan (sentarse, camas, tele, luces, nevera, grifos, ducha, puertas…): InteractService.
 --   * Instituciones del Estado dentro de edificios que ya existen (con su cartel en la fachada):
 --     Palacio de Justicia y Agencia Tributaria en Valmar Centro, y el Cuartel del Ejército en una
 --     nave industrial. Sus salas están siempre montadas (los oficios y servicios usan sus etiquetas).
@@ -244,6 +247,7 @@ local function takeSlot(): number
 end
 
 local connectRoom -- se define más abajo
+local builtListeners: { (Instance_) -> () } = {}
 
 local function instanceOf(building: Building, floor: number): Instance_?
 	local key = building.Id .. ":" .. floor
@@ -257,7 +261,8 @@ local function instanceOf(building: Building, floor: number): Instance_?
 		return nil
 	end
 	local slot = takeSlot()
-	local r = builder(folder, CFrame.new(slotPosition(slot)))
+	-- (la semilla de los muebles: el mismo edificio y la misma planta, siempre igual)
+	local r = builder(folder, CFrame.new(slotPosition(slot)), { Seed = building.Key .. ":" .. floor, Floor = floor })
 	r.Model:SetAttribute("Key", key)
 	local inst: Instance_ = { Room = r, Slot = slot, Building = building, Floor = floor, EmptySince = nil }
 	instances[key] = inst
@@ -269,7 +274,29 @@ local function instanceOf(building: Building, floor: number): Instance_?
 			warn("[Interiores] " .. tostring(err))
 		end
 	end
+	for _, listener in builtListeners do
+		local ok, err = pcall(listener, inst)
+		if not ok then
+			warn("[Interiores] " .. tostring(err))
+		end
+	end
 	return inst
+end
+
+-- Avisa cada vez que se monta una sala (y ahora mismo, de las que ya están montadas)
+function InteriorService.onBuilt(listener: (Instance_) -> ())
+	table.insert(builtListeners, listener)
+	for _, inst in instances do
+		if inst.Room.Model.Parent then
+			task.spawn(listener, inst)
+		end
+	end
+end
+
+-- La sala montada con esa clave ("id:planta", el atributo Key de su modelo)
+function InteriorService.fromKey(key: string): Instance_?
+	local inst = instances[key]
+	return if inst and inst.Room.Model.Parent then inst else nil
 end
 
 local function entryOf(inst: Instance_): Vector3
@@ -426,23 +453,7 @@ function connectRoom(inst: Instance_)
 			end)
 		end
 	end
-	-- Cosas de casa: descansar en la cama y picar algo de la nevera
-	for _, prompt in inst.Room.Model:GetDescendants() do
-		if prompt:IsA("ProximityPrompt") and prompt.Name == "InteriorPrompt" then
-			local action = prompt:GetAttribute("Action")
-			prompt.Triggered:Connect(function(player)
-				local NeedsService = require(script.Parent.NeedsService) :: any
-				if action == "Rest" then
-					NeedsService.change(player, 0, 15)
-					Notify:FireClient(player, "Success", "🛏 Has descansado un rato: +15 de energía.")
-				elseif action == "Snack" then
-					NeedsService.change(player, 10, 0)
-					Notify:FireClient(player, "Success", "🍎 Has picado algo: +10 de hambre saciada.")
-				end
-			end)
-			prompt.MaxActivationDistance = 8
-		end
-	end
+	-- (los muebles que se usan: InteractService, con onBuilt)
 end
 
 ---------------------------------------------------------------------

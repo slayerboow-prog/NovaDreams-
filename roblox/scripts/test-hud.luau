@@ -1,17 +1,22 @@
--- Prueba de la interfaz principal (UI/Hud y UI/Theme) FUERA de Roblox, con Lune.
+-- Prueba de la interfaz principal FUERA de Roblox, con Lune.
 --
 -- Uso (desde la carpeta roblox/):
 --   lune run scripts/test-hud.luau
 --
--- Monta el HUD con un Roblox de mentira en el que cada propiedad que se escribe se comprueba contra
--- la base de datos de la API de Roblox (una propiedad mal escrita o en la clase equivocada falla).
--- Lo monta dos veces, como en el ordenador y como en el móvil, y comprueba que:
---   * en el ordenador sale el menú COMANDO abajo a la izquierda y tu estado abajo a la derecha
---   * en el móvil, iconos arriba a la derecha y tu estado arriba a la izquierda (sin menú COMANDO)
---   * las barras siguen a la salud, la energía, el hambre y la estamina
---   * los objetivos de la historia se dibujan y el botón Misiones los oculta
---   * en conversaciones y de bebé, los comandos y tu estado se apartan
---   * los avisos y las apps del teléfono funcionan
+-- Monta el HUD (UI/Hud), el menú de comandos (Commands/CommandMenu), los botones táctiles
+-- (UI/TouchLayout) y el joystick (Controllers/Joystick) con un Roblox de mentira en el que cada
+-- propiedad que se escribe se comprueba contra la base de datos de la API de Roblox. Lo monta como en
+-- el ordenador (1920x1080, 1600x900, 1366x768) y como en el móvil y la tableta (844x390, 932x430,
+-- 1024x768) y comprueba que:
+--   * tu estado va arriba a la izquierda, la hora en el centro, la misión a la derecha y el menú de
+--     comandos abajo a la izquierda (en el móvil, justo encima del joystick); la barra rápida centrada
+--   * NADA SE PISA: estado, reloj, minimapa, menú rápido, misión, comandos, barra rápida, joystick,
+--     cada botón táctil y los botones de Roblox
+--   * las barras, el dinero, la experiencia y la misión siguen a los atributos
+--   * el menú de comandos se oculta y se muestra con su botón, y ⌄ despliega todos
+--   * el menú rápido no tapa el minimapa; el joystick mueve al personaje (Humanoid:Move relativo)
+--   * en conversaciones y de bebé se aparta lo que tapa la escena
+--   * el GPS (Controllers/Gps) da la indicación bajo la reloj sin pisar nada
 
 local fs = require("@lune/fs")
 local luau = require("@lune/luau")
@@ -89,7 +94,7 @@ local function newInstance(className: string): any
 	assert(db:GetClass(className), "Clase desconocida: " .. className)
 	local data = {
 		__class = className,
-		__props = { Name = className, Visible = true },
+		__props = { Name = className, Visible = true, ZIndex = 1 },
 		__children = {},
 		__attributes = {},
 		__signals = {},
@@ -202,6 +207,14 @@ instanceMeta.__index = function(self, key)
 	if key == "Parent" then
 		return nil
 	end
+	-- Un hijo por su nombre (como en Roblox: gui.Status)
+	if typeof(key) == "string" and not hasProperty(rawget(self, "__class"), key) then
+		for _, child in rawget(self, "__children") do
+			if rawget(child, "__props").Name == key then
+				return child
+			end
+		end
+	end
 	-- Un evento (Activated, MouseEnter, HealthChanged, OnClientEvent…): empieza con mayúscula y
 	-- no es una propiedad
 	if typeof(key) == "string" and not hasProperty(rawget(self, "__class"), key) then
@@ -280,6 +293,20 @@ local replicatedStorage = service("ReplicatedStorage")
 local remotes = newInstance("Folder")
 remotes.Name = "Remotes"
 remotes.Parent = replicatedStorage
+-- Calles publicadas (para el GPS): una L, hacia el norte y luego al este
+local ambientFolder = newInstance("Folder")
+ambientFolder.Name = "Ambient"
+ambientFolder.Parent = replicatedStorage
+local roadsFolder = newInstance("Folder")
+roadsFolder.Name = "Roads"
+roadsFolder.Parent = ambientFolder
+for i, road in { { roblox.Vector3.new(0, 0, 0), roblox.Vector3.new(0, 0, -200) }, { roblox.Vector3.new(0, 0, -200), roblox.Vector3.new(200, 0, -200) } } do
+	local config = newInstance("Configuration")
+	config.Name = "Road" .. i
+	config:SetAttribute("A", road[1])
+	config:SetAttribute("B", road[2])
+	config.Parent = roadsFolder
+end
 for _, name in { "LifeStory", "QuitJob", "GoHome" } do
 	local remote = newInstance("RemoteEvent")
 	remote.Name = name
@@ -314,6 +341,16 @@ rawset(collection, "GetTagged", function()
 	return {}
 end)
 local userInput = service("UserInputService", { TouchEnabled = false, KeyboardEnabled = true, GamepadEnabled = false })
+rawset(userInput, "GetFocusedTextBox", function()
+	return nil
+end)
+rawset(userInput, "GetLastInputType", function()
+	return roblox.Enum.UserInputType.Keyboard
+end)
+local contextActions = service("ContextActionService")
+for _, name in { "BindAction", "BindActionAtPriority", "UnbindAction", "SetTitle", "SetPosition" } do
+	rawset(contextActions, name, function() end)
+end
 
 local services = {
 	TweenService = tweenService,
@@ -324,6 +361,8 @@ local services = {
 	CollectionService = collection,
 	UserInputService = userInput,
 	RunService = service("RunService"),
+	ContextActionService = contextActions,
+	ProximityPromptService = service("ProximityPromptService"),
 }
 local fakeGame = { GetService = function(_, name)
 	return services[name] or error("Servicio sin simular: " .. name)
@@ -365,8 +404,20 @@ end
 rawget(replicatedStorage, "__props").Shared = node("src/shared")
 
 local cache: { [string]: any } = {}
+-- Módulos que aquí no hacen falta (sonidos): se sustituyen por uno vacío
+local STUBS = {
+	["src/client/Controllers/SoundFx"] = function()
+		return setmetatable({}, { __index = function()
+			return function() end
+		end })
+	end,
+}
 local function loadModule(path: string): any
 	if cache[path] ~= nil then
+		return cache[path]
+	end
+	if STUBS[path] then
+		cache[path] = STUBS[path]()
 		return cache[path]
 	end
 	local file = path .. ".luau"
@@ -396,6 +447,9 @@ local function loadModule(path: string): any
 		Font = roblox.Font,
 		Enum = roblox.Enum,
 		CFrame = roblox.CFrame,
+		RaycastParams = { new = function()
+			return {}
+		end },
 		UserSettings = function()
 			return { GetService = function()
 				return { SavedQualityLevel = roblox.Enum.SavedQualitySetting.Automatic }
@@ -417,15 +471,52 @@ local function loadModule(path: string): any
 end
 
 ---------------------------------------------------------------------
--- Montar el HUD
+-- Montar el HUD (con el menú de comandos, los botones táctiles y el joystick)
 ---------------------------------------------------------------------
-local function mount(touch: boolean)
+local renderSteps: { [string]: (number) -> () } = {}
+rawset(services.RunService, "BindToRenderStep", function(_, name, _, fn)
+	renderSteps[name] = fn
+end)
+rawset(services.RunService, "UnbindFromRenderStep", function(_, name)
+	renderSteps[name] = nil
+end)
+
+-- Personaje de mentira: su Humanoid apunta lo que le piden (Move)
+local moves: { { Vector: any, Relative: boolean } } = {}
+local character = newInstance("Model")
+character.Name = "Rayo"
+local humanoid = newInstance("Humanoid")
+humanoid.Parent = character
+rawget(humanoid, "__props").Health = 100
+rawget(humanoid, "__props").MaxHealth = 100
+rawset(humanoid, "Move", function(_, vector, relative)
+	table.insert(moves, { Vector = vector, Relative = relative })
+end)
+rawget(localPlayer, "__props").Character = character
+rawget(humanoid, "__props").WalkSpeed = 16
+local rootPart = newInstance("Part")
+rootPart.Name = "HumanoidRootPart"
+rootPart.Parent = character
+rawget(rootPart, "__props").Position = roblox.Vector3.new(0, 3, -10)
+rawget(rootPart, "__props").CFrame = roblox.CFrame.new(0, 3, -10)
+rawset(fakeWorkspace, "Raycast", function()
+	return nil
+end)
+
+local function setViewport(x: number, y: number)
+	camera.ViewportSize = roblox.Vector2.new(x, y) -- (dispara el cambio: todo se recoloca)
+end
+
+local function mount(touch: boolean, x: number, y: number)
 	-- Cada montaje empieza de cero (módulos y pantalla)
 	table.clear(cache)
 	table.clear(badWrites)
+	table.clear(renderSteps)
 	for _, child in playerGui:GetChildren() do
 		child:Destroy()
 	end
+	rawget(camera, "__propSignals").ViewportSize = nil
+	rawget(camera, "__props").ViewportSize = roblox.Vector2.new(x, y)
 	rawget(userInput, "__props").TouchEnabled = touch
 	rawget(userInput, "__props").KeyboardEnabled = not touch
 	localPlayer:SetAttribute("LifeStage", "Nino")
@@ -434,7 +525,30 @@ local function mount(touch: boolean)
 	local ok, err = pcall(Hud.init, function()
 		storeOpened = true
 	end)
-	return Hud, ok, err, function()
+	local mods = {
+		Hud = Hud,
+		HudLayout = loadModule("src/client/UI/HudLayout"),
+		TouchLayout = loadModule("src/client/UI/TouchLayout"),
+		CommandMenu = loadModule("src/client/Commands/CommandMenu"),
+		CommandRegistry = loadModule("src/client/Commands/CommandRegistry"),
+		Joystick = loadModule("src/client/Controllers/Joystick"),
+		Gps = loadModule("src/client/Controllers/Gps"),
+	}
+	if ok then
+		ok, err = pcall(mods.CommandMenu.init)
+	end
+	if ok then
+		ok, err = pcall(mods.Joystick.init)
+	end
+	if ok then
+		ok, err = pcall(mods.Gps.init)
+	end
+	-- Un objetivo de misión al noreste: el GPS calcula la ruta y da la indicación
+	localPlayer:SetAttribute("StoryTarget", roblox.Vector3.new(150, 0, -200))
+	if ok then
+		ok, err = pcall(mods.Gps.update)
+	end
+	return mods, ok, err, function()
 		return storeOpened
 	end
 end
@@ -449,112 +563,339 @@ local function textOf(root, text: string): boolean
 	return false
 end
 
-print("\n▶ En el ordenador")
-local Hud, ok, err, storeOpened = mount(false)
-check(ok, "El HUD se monta sin errores" .. (if ok then "" else ": " .. tostring(err)))
+-- Rectángulo en el lienzo de un objeto que cuelga directamente de una pantalla
+local function rectOf(object, layout)
+	local size = object.Size
+	return layout.HudLayoutModule.rect({ Anchor = object.AnchorPoint, Position = object.Position, Size = roblox.Vector2.new(size.X.Offset, size.Y.Offset) }, layout.Canvas)
+end
+
+local function describe(r): string
+	return ("(%d,%d %dx%d)"):format(r.X, r.Y, r.W, r.H)
+end
+
+-- Comprueba que ningún par de rectángulos visibles se pisa
+local function noOverlaps(rects: { { Name: string, Rect: any } }, HudLayout, where: string)
+	local clashes = {}
+	for i = 1, #rects do
+		for j = i + 1, #rects do
+			if HudLayout.overlaps(rects[i].Rect, rects[j].Rect) then
+				table.insert(clashes, rects[i].Name .. describe(rects[i].Rect) .. " / " .. rects[j].Name .. describe(rects[j].Rect))
+			end
+		end
+	end
+	check(#clashes == 0, where .. ": nada se pisa (" .. #rects .. " piezas)" .. (if #clashes > 0 then ": " .. table.concat(clashes, "; ") else ""))
+end
+
+-- Todo lo que se ve del HUD (en el lienzo)
+local function hudRects(mods, withQuick: boolean?)
+	local HudLayout = mods.HudLayout
+	local layout = HudLayout.current()
+	layout.HudLayoutModule = HudLayout
+	local hud = playerGui:FindFirstChild("MainHud")
+	local popups = playerGui:FindFirstChild("HudPopups")
+	local list = {}
+	local function add(name: string, object)
+		if object and object.Visible ~= false then
+			table.insert(list, { Name = name, Rect = rectOf(object, layout) })
+		end
+	end
+	add("Estado", hud:FindFirstChild("Status"))
+	add("Reloj", hud:FindFirstChild("Clock"))
+	add("Misión", hud:FindFirstChild("Mission"))
+	table.insert(list, { Name = "Minimapa", Rect = HudLayout.rect(layout.Items.Minimap, layout.Canvas) })
+	table.insert(list, { Name = "Barra rápida", Rect = HudLayout.rect(layout.Items.Hotbar, layout.Canvas) })
+	local phone = popups:FindFirstChild("Phone")
+	local phoneButton = popups:FindFirstChild("PhoneButton")
+	if withQuick ~= false then
+		add("Menú rápido", phone)
+		add("Botón del teléfono", phoneButton)
+	end
+	local commands = playerGui:FindFirstChild("CommandMenuGui")
+	-- (el menú de comandos: su hueco entero, aunque tenga menos filas)
+	if commands then
+		table.insert(list, { Name = "Comandos", Rect = HudLayout.rect(layout.Items.Commands, layout.Canvas) })
+	end
+	local stick = playerGui:FindFirstChild("JoystickGui")
+	add("Joystick", stick and stick:FindFirstChild("Joystick"))
+	local gps = playerGui:FindFirstChild("GpsGui")
+	add("Indicación del GPS", gps and gps:FindFirstChild("GpsBanner"))
+	local touchGui = playerGui:FindFirstChild("TouchLayout")
+	for _, child in if touchGui then touchGui:GetChildren() else {} do
+		if child:IsA("TextButton") and child.Visible then
+			add("Botón " .. child.Name, child)
+		elseif child.Name == "Hints" and child.Visible then
+			add("Teclas", child)
+		end
+	end
+	-- Los botones de Roblox de arriba a la izquierda (menú, chat, voz)
+	table.insert(list, { Name = "Botones de Roblox", Rect = { X = 0, Y = 0, W = 250 / layout.Scale, H = 58 / layout.Scale } })
+	return list, layout
+end
+
+---------------------------------------------------------------------
+print("\n▶ En el ordenador (1920x1080)")
+local mods, ok, err, storeOpened = mount(false, 1920, 1080)
+local Hud, HudLayout, CommandMenu, CommandRegistry, TouchLayout = mods.Hud, mods.HudLayout, mods.CommandMenu, mods.CommandRegistry, mods.TouchLayout
+check(ok, "El HUD, los comandos y los botones se montan sin errores" .. (if ok then "" else ": " .. tostring(err)))
 check(#badWrites == 0, "Todas las propiedades existen en Roblox" .. (if #badWrites > 0 then ": " .. table.concat(badWrites, ", ") else ""))
 local hud = playerGui:FindFirstChild("MainHud")
-local commands = hud and hud:FindFirstChild("Commands")
-check(commands and commands.AnchorPoint == roblox.Vector2.new(0, 1) and commands.Position.Y.Scale == 1, "Menú COMANDO abajo a la izquierda")
-local rowCount = 0
-for _, child in if commands then commands:GetChildren() else {} do
-	if child:IsA("TextButton") then
-		rowCount += 1
-	end
-end
-check(rowCount == 6, "Con 6 comandos (Mochila, Personaje, Mapa, Misiones, Teléfono, Menú)")
-check(hud and textOf(hud, "COMANDO"), "Con la pestaña «COMANDO»")
-check(hud and hud:FindFirstChild("CommandIcons") == nil, "Sin iconos de móvil")
-local status = hud and hud:FindFirstChild("Status")
-check(status and status.AnchorPoint == roblox.Vector2.new(1, 1) and status.Position.X.Scale == 1 and status.Position.Y.Scale == 1, "Tu estado abajo a la derecha")
-local portrait = status and status:FindFirstChild("Portrait")
-check(portrait and portrait.AnchorPoint.X == 1, "La foto a la derecha y las barras hacia la izquierda")
-check(status and textOf(status, "Rayo") and textOf(status, "Nv 1"), "Con tu nombre y tu nivel")
+local layout = HudLayout.current()
+check(layout.Scale > 1 and math.abs(layout.Canvas.X - 1700) < 1, "Escala del HUD según la pantalla (lienzo de 1700 de ancho)")
 
--- Barras
+-- Arriba a la izquierda: tu estado
+local status = hud and hud:FindFirstChild("Status")
+check(status and status.AnchorPoint == roblox.Vector2.new(0, 0) and status.Position.X.Offset == 16 and status.Position.Y.Offset * layout.Scale >= 58, "Tu estado arriba a la izquierda, debajo de los botones de Roblox")
+check(status and status:FindFirstChild("Portrait") and status.Portrait:FindFirstChild("Photo").Image == "rbxthumb://test", "Con tu foto de verdad en el aro")
+check(status and status.Portrait:FindFirstChild("LevelBadge") ~= nil, "Y la corona del nivel")
+check(status and textOf(status, "Rayo") and textOf(status, "Nv. 1"), "Con tu nombre y «Nv. 1»")
+localPlayer:SetAttribute("Xp", 125)
+localPlayer:SetAttribute("XpNext", 300)
+check(status and textOf(status, "125 / 300 XP"), "Experiencia «125 / 300 XP»")
 localPlayer:SetAttribute("Energy", 25)
 local energy = status and status:FindFirstChild("Energy")
-local fill = energy and energy:FindFirstChildOfClass("Frame")
+local fill = energy and energy:FindFirstChild("Fill")
 check(fill and math.abs(fill.Size.X.Scale - 0.25) < 0.01, "La barra de energía baja al 25 %")
-check(fill and fill.AnchorPoint.X == 1, "Se vacía desde la punta lejana hacia la foto")
-check(status and textOf(status, "⚡ 25"), "Y dice «⚡ 25»")
-localPlayer:SetAttribute("Money", 1234)
-check(status and textOf(status, "1"), "El dinero se actualiza")
+check(status and status:FindFirstChild("EnergyValue") and status.EnergyValue.Text == "25", "Y su número a la derecha dice 25")
+check(status and status:FindFirstChild("Hunger") and status:FindFirstChild("Mood") and status:FindFirstChild("Health"), "Barras de energía, hambre, ánimo (o estamina) y salud")
+localPlayer:SetAttribute("Money", 510)
+localPlayer:SetAttribute("Money", 560)
+check(status and status:FindFirstChild("Money") and status.Money.Text:find("560", 1, true) ~= nil, "El dinero junto al nombre se actualiza")
+check(status and textOf(status, "+"), "Y al ganar dinero sube un «+…»")
 
--- Comandos: pulsar Misiones oculta los objetivos
+-- Arriba en el centro: la cápsula de la hora
+local clock = hud and hud:FindFirstChild("Clock")
+check(clock and clock.AnchorPoint == roblox.Vector2.new(0.5, 0) and clock.Position.X.Scale == 0.5, "Cápsula de la hora arriba en el centro")
+check(clock and clock:FindFirstChild("Time").Text == "10:00", "Con la hora («10:00»)")
+check(clock and clock:FindFirstChild("Date").Text:find(", ", 1, true) ~= nil and clock:FindFirstChild("Day").Text:find("Día", 1, true) ~= nil, "La fecha y el día de tu historia")
+check(clock and clock:FindFirstChild("Temp").Text:find("°C", 1, true) ~= nil and clock:FindFirstChild("Weather").Text == "Despejado", "Y el tiempo dentro de la cápsula («18°C», «Despejado»)")
+check(playerGui:FindFirstChild("WeatherChip") == nil, "Sin la etiqueta suelta del tiempo")
+
+-- GPS: ruta hasta el objetivo, indicación bajo la hora y la línea para los mapas
+local gpsBanner = playerGui:FindFirstChild("GpsGui") and playerGui.GpsGui:FindFirstChild("GpsBanner")
+check(gpsBanner and gpsBanner.Visible, "Indicación del GPS bajo la cápsula de la hora")
+check(gpsBanner and gpsBanner.Instruction.Text:find("Gira a la derecha", 1, true) ~= nil, "«" .. (if gpsBanner then gpsBanner.Instruction.Text else "?") .. "» (hacia el norte y luego a la derecha)")
+check(gpsBanner and gpsBanner.Distance.Text:find(" m · ", 1, true) ~= nil and gpsBanner.Distance.Text:find("min", 1, true) ~= nil, "Con la distancia y el tiempo («" .. (if gpsBanner then gpsBanner.Distance.Text else "?") .. "»)")
+local gpsPath = mods.Gps.path()
+check(gpsPath and #gpsPath >= 3, "La ruta va por las calles (gira en el cruce)")
+local camera3 = fakeWorkspace.CurrentCamera
+local arrows = camera3 and camera3:FindFirstChild("GpsRuta")
+check(arrows and #arrows:GetChildren() <= 40 and #arrows:GetChildren() > 0, "Flechas en el suelo (" .. (if arrows then #arrows:GetChildren() else 0) .. " piezas, como mucho 40)")
+gpsBanner.Clear.Activated:Fire()
+mods.Gps.update()
+check(gpsBanner.Visible == false and mods.Gps.path() == nil, "El botón ✕ quita la ruta")
+localPlayer:SetAttribute("StoryTarget", roblox.Vector3.new(150, 0, -201))
+mods.Gps.update()
+check(gpsBanner.Visible, "Un objetivo nuevo vuelve a poner la ruta")
+
+-- Derecha: la misión
 local remote = remotes:FindFirstChild("LifeStory")
 remote.OnClientEvent:Fire("State", {
 	Tracked = { QuestId = "Nino_Jornada", Kind = "Main", TitleKey = "QUEST.DIA_COLE.TITLE", TextKey = "QUEST.DIA.LLEGA_COLE", Args = {} },
 	Others = { { QuestId = "Eco_MateoDibujo", TitleKey = "QUEST.DIA_COLE.TITLE" } },
 })
-local objectives = hud and hud:FindFirstChild("Objectives")
-check(objectives and textOf(objectives, "OBJETIVO PRINCIPAL") and textOf(objectives, "OBJETIVOS OPCIONALES"), "Objetivos con sus pestañas (principal y opcionales)")
-local misiones = commands and commands:FindFirstChild("Misiones")
-if misiones then
-	misiones.Activated:Fire()
-end
-check(objectives and objectives.Visible == false, "El comando Misiones oculta los objetivos")
-if misiones then
-	misiones.Activated:Fire()
-end
-check(objectives and objectives.Visible == true, "Y los vuelve a mostrar")
+local mission = hud and hud:FindFirstChild("Mission")
+check(mission and mission.Visible and mission.Kind.Text == "MISIÓN PRINCIPAL", "Panel de la misión con «MISIÓN PRINCIPAL»")
+check(mission and mission.Title.Text ~= "" and mission.Step.Text ~= "" and mission.Count.Text == "0/1", "Con el nombre, el paso («• …») y el contador «0/1»")
+check(mission and mission:FindFirstChild("Chevron") ~= nil, "Y la flecha › para ver todas las misiones")
+local popups = playerGui:FindFirstChild("HudPopups")
+Hud.runCommand("Misiones")
+local quests = popups and popups:FindFirstChild("Quests")
+check(quests and textOf(quests, "MISIONES OPCIONALES"), "La flecha abre la lista de misiones (con las opcionales)")
+Hud.runCommand("Misiones")
+check(popups and popups:FindFirstChild("Quests") == nil, "Y se cierra otra vez")
 
--- Resaltado del comando bajo el ratón
-local mochila = commands and commands:FindFirstChild("Mochila")
-if mochila then
-	mochila.MouseEnter:Fire()
+-- Menú rápido: abierto en el ordenador, al lado del minimapa
+local phone = popups and popups:FindFirstChild("Phone")
+check(phone and phone.Visible and popups.PhoneButton.Visible == false, "Menú rápido abierto en el ordenador")
+local tienda = phone and phone:FindFirstChild("Apps"):FindFirstChild("Tienda")
+check(tienda and textOf(tienda, "Tienda"), "Con la app «Tienda» (icono y texto)")
+if tienda then
+	tienda.Activated:Fire()
 end
-check(mochila and mochila.BackgroundColor3 == roblox.Color3.new(1, 1, 1), "El comando bajo el ratón se ilumina")
-local opened = false
-Hud.setAction("Mochila", function()
-	opened = true
-end)
-if mochila then
-	mochila.Activated:Fire()
+check(storeOpened(), "La app Tienda abre la tienda")
+check(phone and phone.Visible, "En el ordenador se queda abierto al usar una app")
+
+-- Menú de comandos: abajo a la izquierda, con la pestaña COMANDOS
+for i, name in { "Atacar", "Objetos", "Mapa", "Telefono", "Mas", "Extra" } do
+	CommandRegistry.register({ Id = name, Label = name, Icon = "espada", Priority = i, Run = function() end })
 end
-check(opened, "Pulsar Mochila abre la mochila")
+CommandMenu.refresh()
+local commandGui = playerGui:FindFirstChild("CommandMenuGui")
+local commands = commandGui and commandGui:FindFirstChild("CommandMenu")
+check(commands and commands.AnchorPoint == roblox.Vector2.new(0, 1) and commands.Position.Y.Scale == 1 and commands.Position.X.Offset == 16 and commands.Position.Y.Offset == -16, "Menú de comandos abajo a la izquierda")
+check(commands and commands.Visible, "Visible con comandos")
+check(commands and commands.Header.Title.Text == "COMANDOS" and commands.Header:FindFirstChild("Crown") ~= nil, "Con la pestaña «COMANDOS» y la corona")
+local rows = commands and commands.List.Rows
+local shown = 0
+for _, row in if rows then rows:GetChildren() else {} do
+	if row.Visible then
+		shown += 1
+	end
+end
+check(shown == 5 and commands.More.Visible, "Se ven 5 comandos y el desplegable ⌄ para los demás")
+local selector = commands and commands.List.Selector
+check(selector and selector.Visible and selector.Position.Y.Offset == 0, "El elegido lleva el selector azul (primera fila)")
+if rows then
+	rows.Row3.MouseEnter:Fire()
+end
+check(selector and selector.Position.Y.Offset == 2 * HudLayout.Sizes.CommandPitch, "El selector se desliza al comando bajo el ratón")
+commands.More.Activated:Fire()
+shown = 0
+for _, row in rows:GetChildren() do
+	if row.Visible then
+		shown += 1
+	end
+end
+check(shown == 6, "⌄ despliega todos los comandos")
+commands.More.Activated:Fire()
+local fullHeight = commands.Size.Y.Offset
+commands.Header.Toggle.Activated:Fire()
+check(CommandMenu.isCollapsed() and commands.List.Visible == false and commands.Size.Y.Offset == HudLayout.Sizes.CommandHeader, "El botón de la pestaña oculta los comandos (queda solo la pestaña)")
+commands.Header.Toggle.Activated:Fire()
+check(not CommandMenu.isCollapsed() and commands.List.Visible and commands.Size.Y.Offset == fullHeight, "Y los vuelve a mostrar")
+check(commands and commands.Hint.Visible and commands.Hint.Text:find("Tab", 1, true) ~= nil, "Pista de teclas en el ordenador (Tab oculta)")
+
+-- Ordenador: sin botones táctiles ni joystick; lista de teclas
+local touchGui = playerGui:FindFirstChild("TouchLayout")
+local anyButton = false
+for _, child in if touchGui then touchGui:GetChildren() else {} do
+	if child:IsA("TextButton") then
+		anyButton = true
+	end
+end
+check(not anyButton, "Sin botones táctiles en el ordenador")
+check(playerGui:FindFirstChild("JoystickGui") == nil, "Ni joystick")
+local hints = touchGui and touchGui:FindFirstChild("Hints")
+check(hints and hints.Visible and textOf(hints, "Espacio") and textOf(hints, "Saltar"), "En su lugar, la lista de teclas («Espacio · Saltar»)")
 
 -- Conversaciones y bebé
 Hud.setBusy(true)
-check(status and status.Visible == false and commands.Visible == false and objectives.Visible == false, "En una conversación se apartan comandos, estado y objetivos")
+CommandMenu.setBusy(true)
+check(status.Visible == false and mission.Visible == false and phone.Visible == false and commands.Visible == false, "En una conversación se apartan estado, misión, menú rápido y comandos")
 Hud.setBusy(false)
-check(status and status.Visible == true and commands.Visible == true, "Y vuelven al acabar")
+CommandMenu.setBusy(false)
+check(status.Visible and mission.Visible and phone.Visible and commands.Visible, "Y vuelven al acabar")
 localPlayer:SetAttribute("LifeStage", "Bebe")
-check(status and status.Visible == false and commands.Visible == false, "De bebé no hay comandos ni estado")
+check(status.Visible == false and mission.Visible == false, "De bebé no hay estado ni misión")
 localPlayer:SetAttribute("LifeStage", "Nino")
 
--- Avisos y teléfono
+-- Avisos
 Hud.toast("Money", "+50 $")
 local toastGui = playerGui:FindFirstChild("HudToasts")
 local toasts = toastGui and toastGui:FindFirstChild("Toasts")
 check(toasts and textOf(toasts, "+50 $"), "Los avisos aparecen")
 check(toastGui and (toastGui.DisplayOrder or 0) > 5, "Los avisos salen por encima de las ventanas")
-local popups = playerGui:FindFirstChild("HudPopups")
-local phone = popups and popups:FindFirstChild("Phone")
-local tienda = nil
-for _, child in if phone then phone:GetChildren() else {} do
-	if child:IsA("TextButton") and tostring(child.Text):find("Tienda") then
-		tienda = child
-	end
-end
-if tienda then
-	tienda.Activated:Fire()
-end
-check(storeOpened(), "La app Tienda del teléfono abre la tienda")
 check(#badWrites == 0, "Ninguna propiedad inventada al usarlo" .. (if #badWrites > 0 then ": " .. table.concat(badWrites, ", ") else ""))
 
-print("\n▶ En el móvil")
-Hud, ok, err = mount(true)
-check(ok, "El HUD se monta sin errores" .. (if ok then "" else ": " .. tostring(err)))
-check(#badWrites == 0, "Todas las propiedades existen en Roblox" .. (if #badWrites > 0 then ": " .. table.concat(badWrites, ", ") else ""))
-hud = playerGui:FindFirstChild("MainHud")
-check(hud and hud:FindFirstChild("Commands") == nil, "Sin menú COMANDO (abajo va el joystick)")
-local icons = hud and hud:FindFirstChild("CommandIcons")
-check(icons and icons.AnchorPoint == roblox.Vector2.new(1, 0), "Iconos de comandos arriba a la derecha")
-status = hud and hud:FindFirstChild("Status")
-check(status and status.AnchorPoint == roblox.Vector2.new(0, 0) and status.Position.X.Scale == 0 and status.Position.Y.Scale == 0, "Tu estado arriba a la izquierda")
-portrait = status and status:FindFirstChild("Portrait")
-check(portrait and portrait.AnchorPoint.X == 0, "La foto a la izquierda y las barras hacia la derecha")
+-- Nada se pisa, en varios tamaños de ordenador
+for _, size in { { 1920, 1080 }, { 1600, 900 }, { 1366, 768 } } do
+	setViewport(size[1], size[2])
+	local list, now = hudRects(mods)
+	noOverlaps(list, HudLayout, ("%dx%d"):format(size[1], size[2]))
+	local mini = HudLayout.rect(now.Items.Minimap, now.Canvas)
+	local quick = rectOf(phone, now)
+	check(not HudLayout.overlaps(mini, quick), ("%dx%d: el menú rápido no tapa el minimapa"):format(size[1], size[2]))
+	local bar = HudLayout.rect(now.Items.Hotbar, now.Canvas)
+	check(math.abs(bar.X + bar.W / 2 - now.Canvas.X / 2) < 0.5, ("%dx%d: barra rápida centrada"):format(size[1], size[2]))
+end
+
+---------------------------------------------------------------------
+-- Móvil y tableta
+---------------------------------------------------------------------
+local function registerAll(TL)
+	-- Los botones de siempre (los registran Combate, Correr, Gestos…) y cinco de contexto a la vez
+	for _, id in { "Ataque", "Defender", "Correr", "Gestos", "Esquivar", "Fijar" } do
+		TL.register({ Id = id, Icon = "espada", Label = id, Slot = id, Priority = 5, Callback = function() end })
+	end
+	for i, id in { "Linterna", "Foto", "Piedra", "Bajarse", "Sirena" } do
+		TL.register({ Id = id, Icon = "linterna", Label = id, Priority = 10 + i, Callback = function() end, Badge = if id == "Piedra" then function()
+			return "×3"
+		end else nil })
+	end
+end
+
+for _, size in { { 844, 390 }, { 932, 430 }, { 1024, 768 } } do
+	print(("\n▶ En el móvil / tableta (%dx%d)"):format(size[1], size[2]))
+	mods, ok, err = mount(true, size[1], size[2])
+	HudLayout, TouchLayout, CommandMenu, CommandRegistry = mods.HudLayout, mods.TouchLayout, mods.CommandMenu, mods.CommandRegistry
+	check(ok, "Se monta sin errores" .. (if ok then "" else ": " .. tostring(err)))
+	check(#badWrites == 0, "Todas las propiedades existen en Roblox" .. (if #badWrites > 0 then ": " .. table.concat(badWrites, ", ") else ""))
+	registerAll(TouchLayout)
+	for i, name in { "Atacar", "Objetos", "Mapa", "Telefono", "Mas" } do
+		CommandRegistry.register({ Id = name, Label = name, Icon = "espada", Priority = i, Run = function() end })
+	end
+	CommandMenu.refresh()
+	TouchLayout.refresh()
+	local buttons = TouchLayout.buttons()
+	local visible = 0
+	for _, button in buttons do
+		if button.Visible then
+			visible += 1
+		end
+	end
+	check(visible == 13, "Racimo con Interactuar, Saltar, los 6 de siempre y 5 de contexto (" .. visible .. ")")
+	check(buttons.Saltar and buttons.Saltar.Visible and buttons.Saltar:FindFirstChild("Caption").Text == "Saltar", "Botón Saltar propio (icono y texto)")
+	check(buttons.Ataque and buttons.Ataque.Size.X.Offset > buttons.Correr.Size.X.Offset, "El Ataque es el botón grande")
+	check(buttons.Piedra and buttons.Piedra.Badge.Visible and buttons.Piedra.Badge.Text == "×3", "Numerito en la esquina (piedras «×3»)")
+	local now = HudLayout.current()
+	local stick = playerGui:FindFirstChild("JoystickGui")
+	stick = stick and stick:FindFirstChild("Joystick")
+	check(stick and stick.Visible and localPlayer.DevTouchMovementMode == roblox.Enum.DevTouchMovementMode.Scriptable, "Joystick propio (en lugar del de Roblox)")
+	local stickRect = stick and rectOf(stick, (function()
+		now.HudLayoutModule = HudLayout
+		return now
+	end)())
+	local commandRect = HudLayout.rect(now.Items.Commands, now.Canvas)
+	check(stickRect and stickRect.X < now.Canvas.X * 0.3 and stickRect.Y + stickRect.H > now.Canvas.Y * 0.9, "El joystick abajo a la izquierda")
+	check(stickRect and commandRect.Y + commandRect.H <= stickRect.Y and commandRect.X <= 20, "El menú de comandos a la izquierda, justo encima del joystick")
+	local popupsGui = playerGui:FindFirstChild("HudPopups")
+	check(popupsGui.Phone.Visible == false and popupsGui.PhoneButton.Visible, "En el móvil el menú rápido empieza cerrado (botón del teléfono)")
+	local list = hudRects(mods)
+	noOverlaps(list, HudLayout, ("%dx%d con el menú rápido cerrado"):format(size[1], size[2]))
+	-- Abrir el menú rápido con el botón del teléfono
+	popupsGui.PhoneButton.Activated:Fire()
+	check(popupsGui.Phone.Visible, "El botón del teléfono abre el menú rápido")
+	list = hudRects(mods)
+	noOverlaps(list, HudLayout, ("%dx%d con el menú rápido abierto"):format(size[1], size[2]))
+	local tile = popupsGui.Phone.Apps:FindFirstChild("Ir a casa")
+	if tile then
+		tile.Activated:Fire()
+	end
+	check(popupsGui.Phone.Visible == false, "En el móvil se cierra al usar una app (deja ver el mundo)")
+
+	-- El joystick mueve al personaje (relativo a la cámara)
+	table.clear(moves)
+	local s = now.Scale
+	local rectPx = { X = stickRect.X * s, Y = stickRect.Y * s, W = stickRect.W * s, H = stickRect.H * s }
+	rawget(stick, "__props").AbsolutePosition = roblox.Vector2.new(rectPx.X, rectPx.Y)
+	rawget(stick, "__props").AbsoluteSize = roblox.Vector2.new(rectPx.W, rectPx.H)
+	local touchInput = { UserInputType = roblox.Enum.UserInputType.Touch, Position = roblox.Vector3.new(rectPx.X + rectPx.W / 2, rectPx.Y, 0) }
+	stick.InputBegan:Fire(touchInput)
+	local step = renderSteps.ValmarJoystick
+	if step then
+		step(1 / 60)
+	end
+	local last = moves[#moves]
+	check(last and last.Relative == true and last.Vector.Z < -0.9 and math.abs(last.Vector.X) < 0.01, "Empujar el joystick hacia arriba anda hacia delante (Humanoid:Move relativo a la cámara)")
+	check(mods.Joystick.push() > 0.99, "Hasta el borde: empuje completo (para correr solo)")
+	userInput.InputEnded:Fire(touchInput)
+	last = moves[#moves]
+	check(last and last.Vector.Magnitude < 1e-6 and renderSteps.ValmarJoystick == nil, "Al soltar, se para")
+	check(mods.Joystick.vectorFrom(roblox.Vector2.new(5, 0), 100).Magnitude == 0, "Con zona muerta en el centro")
+
+	-- Conversaciones: sin botones ni joystick
+	mods.Hud.setBusy(true)
+	mods.Joystick.setBusy(true)
+	local anyVisible = false
+	for _, button in TouchLayout.buttons() do
+		anyVisible = anyVisible or button.Visible
+	end
+	check(not anyVisible and stick.Visible == false, "En una conversación se apartan los botones y el joystick")
+	mods.Hud.setBusy(false)
+	mods.Joystick.setBusy(false)
+	check(TouchLayout.buttons().Ataque.Visible and stick.Visible, "Y vuelven al acabar")
+	check(#badWrites == 0, "Ninguna propiedad inventada al usarlo" .. (if #badWrites > 0 then ": " .. table.concat(badWrites, ", ") else ""))
+end
 
 print()
 if failures > 0 then

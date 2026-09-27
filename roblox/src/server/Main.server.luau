@@ -39,6 +39,7 @@ local order = {
 	"WorldService",
 	"InteriorService", -- todos los edificios por dentro (salas al entrar, ascensores e instituciones)
 	"PropertyService", -- casas y pisos que se compran, y los vecinos que viven en ellos
+	"InteractService", -- los muebles se usan: sentarse, dormir, tele, luces, nevera, grifos, ducha, puertas…
 	"WeatherService", -- estaciones y tiempo: sol, lluvia, tormenta, nieve, niebla
 	"ToyService", -- balones y conos con física: se patean, botan y vuelven solos a su sitio
 	"BreakService", -- piedras que se lanzan: ventanas y puertas que se rompen (y se arreglan solas)
@@ -68,9 +69,13 @@ local order = {
 	"TradeService", -- intercambio entre jugadores y mercadillo
 	"SocialService", -- grupos de jugadores y chat privado (menú al tocar a un jugador)
 	"FishingService", -- pesca, tienda de pesca, barco y oficio de pescador
+	"FarmService", -- agricultores y ganaderos: fincas de Villaverde, cooperativa, obrador y venta a supermercados
+	"BusinessService", -- negocios de jugadores: locales, gasolineras y hoteles con existencias, precios y clientes
 	"MetroService", -- metro subterráneo: trenes, galería, encargos y revisor
+	"GymService", -- gimnasios: recepción, máquinas, ritmo, fuerza que se nota en el cuerpo y monitor/a
 	"MetroLifeService", -- vida del metro: guardias, ratas, aseos, taquillas, fuente, piano…
 	"DivingService", -- nadar, bucear (aire) y pesca submarina con fusil o arpón
+	"SeaEventService", -- catástrofes marinas: tsunami, temporal, remolino, marea negra, tiburón y medusas
 	"ClassService", -- clases y exámenes que se juegan (lo usa la historia)
 	"DialogueService", -- conversaciones con respuestas (misiones episódicas)
 	"MiniGameService", -- pase, canastas, partido de fútbol…
@@ -79,12 +84,14 @@ local order = {
 	"JusticeService", -- juicios (jueces), condenas y prisión (presos y funcionarios)
 	"TaxService", -- Agencia Tributaria: declaración de la renta, agentes e inspecciones
 	"WantedService", -- delitos, testigos y estrellas de búsqueda: patrullas, agentes y helicópteros
+	"WeaponService", -- armas de fuego y de juguete, Armerías, licencia de armas y galería de tiro
 	"HospitalService", -- morir: pantalla de HAS MUERTO y reaparecer en el hospital (factura)
 	"PrisonService", -- la vida en la cárcel: trabajos, deporte, estudios, comedor, túnel y aislamiento
 	"SceneService", -- actores y objetos de cada misión (solo para su jugador)
 	"LifeStoryService", -- la historia de vida escucha a todos los anteriores
 	"BabyService", -- tutorial de bebé (fase 2)
 	"SchoolService", -- compañeros y profe en cada colegio
+	"UpdateService", -- versión nueva publicada: los servidores viejos llevan a sus jugadores a uno nuevo
 	"ActionService", -- linterna (los gestos, trepar y sentarse van en el cliente)
 }
 
