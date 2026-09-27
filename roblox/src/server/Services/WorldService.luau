@@ -372,9 +372,28 @@ function WorldService.init()
 	CollectionService:GetInstanceAddedSignal("StreetLamp"):Connect(applyLamp)
 	CollectionService:GetInstanceAddedSignal("NightWindow"):Connect(applyWindow)
 
+	-- Horario de clase: si hay niños o adolescentes en el servidor, el reloj va más despacio
+	local SCHOOL = Config.SchoolDay
+	local students, studentCheck = false, 0
+	local function anyStudent(): boolean
+		for _, p in Players:GetPlayers() do
+			local stage = p:GetAttribute("LifeStage")
+			if stage == "Nino" or stage == "Adolescente" then
+				return true
+			end
+		end
+		return false
+	end
+
 	RunService.Heartbeat:Connect(function(dt)
 		local previous = Lighting.ClockTime
-		local clock = (previous + dt * hoursPerSecond) % 24
+		studentCheck -= dt
+		if studentCheck <= 0 then
+			studentCheck = 2
+			students = anyStudent()
+		end
+		local speed = if students and previous >= SCHOOL.Start and previous < SCHOOL.End then SCHOOL.ClockSpeed else 1
+		local clock = (previous + dt * hoursPerSecond * speed) % 24
 		Lighting.ClockTime = clock
 		if clock < previous then
 			day += 1

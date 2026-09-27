@@ -7,6 +7,8 @@
 
 local DayPlans = {}
 
+local SCHOOL = require(script.Parent.Parent.Config).SchoolDay
+
 type Step = { [string]: any }
 
 local function class(subject: string, mode: string, place: string, textKey: string?): Step
@@ -76,13 +78,15 @@ local function schoolDay(rng: Random)
 		table.insert(steps, class(subjects[1][1], "Clase", subjects[1][2]))
 		table.insert(steps, class(subjects[2][1], "Clase", subjects[2][2]))
 	end
-	-- Recreo con un amigo y última clase
+	-- Recreo con un amigo
 	local friend = pick(rng, FRIENDS)
 	table.insert(steps, { Type = "Reach", Place = "Patio", TextKey = "QUEST.PRIMER_DIA.RECREO" })
 	table.insert(steps, { Type = "Talk", Npc = friend, Place = "Patio", TextKey = FRIEND_TEXT[friend] })
-	if #steps < 7 then
-		table.insert(steps, class(subjects[3][1], "Clase", subjects[3][2]))
-	end
+	-- Comida en el comedor (de 14:00 a 15:00) y clases de la tarde hasta las 17:00
+	table.insert(steps, { Type = "Reach", Place = "ComedorColegio", TextKey = "QUEST.COLE.COMEDOR" })
+	table.insert(steps, { Type = "Wait", UntilHour = SCHOOL.LunchTo, GameMinutes = 60, TextKey = "QUEST.COLE.COMIENDO" })
+	table.insert(steps, class(subjects[3][1], "Clase", subjects[3][2], "QUEST.COLE.TARDE"))
+	table.insert(steps, { Type = "Wait", UntilHour = SCHOOL.End, GameMinutes = 45, TextKey = "QUEST.COLE.ULTIMA_HORA" })
 	table.insert(steps, { Type = "Reach", Place = "CasaFamiliar", TextKey = "QUEST.PRIMER_DIA.VOLVER" })
 	return { TitleKey = title, Steps = steps }
 end

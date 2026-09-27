@@ -9,14 +9,16 @@
 -- Campus Valmar, las facultades, las oficinas), así que no hace falta tocar cada misión.
 
 local Locations = require(script.Parent.Locations)
+local Config = require(script.Parent.Parent.Config)
+local SCHOOL = Config.SchoolDay
 
 local Schedules = {}
 
 export type Window = { Id: string, Name: string, From: number, To: number }
 
 Schedules.Windows = {
-	Colegio = { Id = "Colegio", Name = "El colegio", From = 7.5, To = 16 },
-	Instituto = { Id = "Instituto", Name = "El instituto", From = 7.5, To = 16 },
+	Colegio = { Id = "Colegio", Name = "El colegio", From = SCHOOL.Opens, To = SCHOOL.End },
+	Instituto = { Id = "Instituto", Name = "El instituto", From = SCHOOL.Opens, To = SCHOOL.End },
 	Universidad = { Id = "Universidad", Name = "La universidad", From = 8, To = 21 },
 	Oficina = { Id = "Oficina", Name = "La oficina", From = 8.5, To = 19 },
 } :: { [string]: Window }

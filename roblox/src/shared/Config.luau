@@ -17,6 +17,16 @@ Config.StartingMoney = 500
 ---------------------------------------------------------------------
 Config.DayLengthMinutes = 20 -- minutos reales que dura un día completo
 Config.StartClockTime = 8 -- hora a la que empieza el servidor
+-- Horario del colegio y del instituto. Mientras haya algún niño o adolescente en el servidor, de
+-- Start a End el reloj va más despacio (ClockSpeed): así un día de cole cabe en su horario de verdad.
+Config.SchoolDay = {
+	Opens = 8.5, -- se abren las puertas
+	Start = 9, -- empiezan las clases
+	LunchFrom = 14, -- comida en el comedor
+	LunchTo = 15,
+	End = 17, -- se acaban las clases y cierra
+	ClockSpeed = 0.4, -- en horario de clase, una hora de juego dura 2,5 veces más
+}
 Config.LampsOnAt = 18 -- las farolas se encienden a esta hora...
 Config.LampsOffAt = 6.5 -- ...y se apagan a esta
 

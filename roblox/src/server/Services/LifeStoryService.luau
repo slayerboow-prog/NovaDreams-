@@ -24,6 +24,25 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local GameClock = require(ReplicatedStorage.Shared.GameClock)
+
+-- Hasta cuándo dura un paso "Wait" (en minutos de juego):
+--   GameMinutes = N          -> N minutos desde ahora
+--   UntilHour = H            -> hasta las H de hoy (si ya han pasado, nada)
+--   UntilHour + GameMinutes  -> hasta las H, pero como mucho N minutos (p. ej. la comida del cole)
+local function waitTarget(step: { [string]: any }): number
+	local now = GameClock.now()
+	if step.UntilHour then
+		local target = now.TotalMinutes - now.Hour * 60 - now.Minute + math.floor(step.UntilHour * 60)
+		if target <= now.TotalMinutes then
+			return now.TotalMinutes
+		end
+		if step.GameMinutes then
+			target = math.min(target, now.TotalMinutes + step.GameMinutes)
+		end
+		return target
+	end
+	return now.TotalMinutes + (step.GameMinutes or 0)
+end
 local LifeStory = ReplicatedStorage.Shared.LifeStory
 local Chapters = require(LifeStory.Chapters)
 local Quests = require(LifeStory.Quests)
@@ -801,7 +820,7 @@ local function enterStep(player: Player, data: Data, questId: string)
 			prog.Step += 1
 			continue
 		elseif step.Type == "Wait" then
-			prog.WaitUntil = GameClock.now().TotalMinutes + step.GameMinutes
+			prog.WaitUntil = waitTarget(step)
 		elseif step.Type == "Group" then
 			prog.Sub = {}
 		elseif step.Type == "Choice" then
@@ -1796,7 +1815,7 @@ local function onLoaded(player: Player, data: Data)
 		if not quest then
 			story.Active[id] = nil
 		elseif stepsOf(id, prog)[prog.Step] and stepsOf(id, prog)[prog.Step].Type == "Wait" then
-			prog.WaitUntil = GameClock.now().TotalMinutes + stepsOf(id, prog)[prog.Step].GameMinutes
+			prog.WaitUntil = waitTarget(stepsOf(id, prog)[prog.Step])
 		elseif stepsOf(id, prog)[prog.Step] and stepsOf(id, prog)[prog.Step].Type == "Cinematic" then
 			-- Se fue en mitad de una escena: al volver, la historia sigue desde el paso siguiente
 			local index = prog.Step

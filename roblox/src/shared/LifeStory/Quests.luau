@@ -14,7 +14,7 @@
 --     Event      { Event, Match?, Count? }         que ocurra algo en otro sistema (trabajar, comer, dormir...)
 --     Talk       { Npc, Place? }                   hablar con un personaje (Place: la línea guía lleva hasta él)
 --     Choice     { Key, PromptKey, Options }       una decisión; se guarda en Choices[Key]
---     Wait       { GameMinutes }                   dejar pasar tiempo de juego
+--     Wait       { GameMinutes } o { UntilHour }  dejar pasar tiempo de juego (o esperar a una hora)
 --     Group      { Steps }                         varios objetivos en cualquier orden
 --     Moment     { }                               un momento narrativo que se muestra y sigue
 --     Transition { Seconds?, SetStage?, Cinematic? } pantalla "Han pasado varios años…" (y cambio de etapa);
