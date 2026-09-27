@@ -4,7 +4,7 @@
 -- Orden (Priority, de arriba abajo):
 --   1-3   lo que tienes delante (un comando por cada cosa cercana: hablar, entrar, montar…)
 --   4     más cosas cercanas, en un grupo "AQUÍ ▸"
---   5-9   lo que depende de la situación (saludar a alguien, bajarte del vehículo…)
+--   5-9   lo que depende de la situación (saludar a alguien, bajarte del vehículo, atacar…)
 --   50+   lo de siempre: objetos, mapa, teléfono y "MÁS ▸" (misiones, personaje, gestos, menú)
 -- La complejidad crece con la edad: de bebé solo lo que tienes delante.
 
@@ -12,6 +12,7 @@ local CommandRegistry = require(script.Parent.CommandRegistry)
 local Hud = require(script.Parent.Parent.UI.Hud)
 local Actions = require(script.Parent.Parent.Controllers.Actions)
 local Vehicles = require(script.Parent.Parent.Controllers.Vehicles)
+local CombatController = require(script.Parent.Parent.Controllers.CombatController)
 
 type Command = CommandRegistry.Command
 
@@ -102,6 +103,21 @@ function DefaultCommands.register()
 			Vehicles.dismount()
 		end,
 	})
+
+	-- Pelear (el combo sale pulsando seguido; también X / RB / 👊)
+	CommandRegistry.register({
+		Id = "Atacar",
+		Label = "Atacar",
+		Icon = "👊",
+		Priority = 7,
+		When = function(ctx)
+			return not baby(ctx) and not ctx.Seated
+		end,
+		Run = function()
+			CombatController.attack()
+		end,
+		Stay = true,
+	} :: any)
 
 	-- Lo de siempre
 	CommandRegistry.register({
