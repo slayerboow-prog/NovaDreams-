@@ -196,12 +196,76 @@ for _, rod in Fishing.Rods do
 end
 
 Fishing.Tools = {
+	Gafas = { Id = "Gafas", Name = "Gafas y tubo", Icon = "🤿", Level = 1, Price = 40, Desc = "Para bucear: aguantas más sin respirar (45 s)." },
 	Nasa = { Id = "Nasa", Name = "Nasa", Icon = "🧺", Level = 4, Price = 90, Desc = "Trampa para cangrejos y langostas." },
+	FusilSubmarino = { Id = "FusilSubmarino", Name = "Fusil submarino", Icon = "🏹", Level = 3, Price = 150, Desc = "Pesca buceando: dispara a los peces bajo el agua." },
 	Red = { Id = "Red", Name = "Red de pesca", Icon = "🕸️", Level = 8, Price = 250, Desc = "Para los bancos de calamares y bonitos." },
-	Arpon = { Id = "Arpon", Name = "Arpón", Icon = "🔱", Level = 22, Price = 1200, Desc = "Para peces espada, marlines y tiburones." },
+	Botella = { Id = "Botella", Name = "Equipo de buceo", Icon = "🫧", Level = 15, Price = 900, Desc = "Botella de aire: 150 s bajo el agua y los peces del fondo." },
+	Arpon = { Id = "Arpon", Name = "Arpón", Icon = "🔱", Level = 22, Price = 1200, Desc = "Con caña: peces espada, marlines y tiburones. Buceando: los grandes." },
 	Sonar = { Id = "Sonar", Name = "Sonar de pesca", Icon = "📡", Level = 28, Price = 2500, Desc = "Encuentra los peces del abismo (en alta mar)." },
 }
-Fishing.ToolOrder = { "Nasa", "Red", "Arpon", "Sonar" }
+Fishing.ToolOrder = { "Gafas", "FusilSubmarino", "Nasa", "Red", "Botella", "Arpon", "Sonar" }
+
+---------------------------------------------------------------------
+-- Pesca submarina: nadar, bucear y disparar con el fusil o el arpón (DivingService, DivingUI)
+---------------------------------------------------------------------
+Fishing.Dive = {
+	Surface = -2, -- altura del agua (mar, río y lagos)
+	Oxygen = { Base = 20, Gafas = 45, Botella = 150 }, -- segundos de aire
+	Refill = 10, -- aire que recuperas por segundo fuera del agua
+	DrownDamage = 15, -- vida que pierdes por segundo sin aire
+	MaxFish = 5, -- peces nadando alrededor de cada buceador
+	FishLife = 90, -- segundos que se queda un pez antes de irse
+	Range = 30, -- distancia máxima del disparo
+	ShotGap = 0.7, -- recarga entre disparos
+	BoatRadius = 400, -- cerca del barco de pesca es alta mar
+}
+local NO_SPEAR = { Gamba = true, PezLinterna = true, Boqueron = true, Sardina = true, Gobio = true }
+
+-- ¿Se puede pescar buceando? (los muy pequeños y los de nasa o red, no)
+function Fishing.spearable(s: Species): boolean
+	return not NO_SPEAR[s.Id] and s.Tool ~= "Nasa" and s.Tool ~= "Red"
+end
+
+-- Qué te falta para cazarlo buceando: nivel, fusil (o arpón para los grandes) y botella para los del fondo
+function Fishing.spearMissing(s: Species, level: number, tools: { [string]: boolean }): { string }
+	local list = {}
+	if level < s.Level then
+		table.insert(list, ("nivel %d"):format(s.Level))
+	end
+	if s.Rod >= 4 then
+		if not tools.Arpon then
+			table.insert(list, "arpón")
+		end
+	elseif not tools.Arpon and not tools.FusilSubmarino then
+		table.insert(list, "fusil submarino")
+	end
+	if (s.Tool == "Sonar" or s.Level >= 30) and not tools.Botella then
+		table.insert(list, "equipo de buceo")
+	end
+	return list
+end
+
+-- Un pez al azar para que nade cerca de un buceador (los que no puedes cazar salen menos)
+function Fishing.pickSpear(water: string, rng: Random, pop: { [string]: number }?, can: (Species) -> boolean): Species?
+	local list, total = {}, 0
+	for _, s in Fishing.Species do
+		local w = s.Waters[water]
+		if w and Fishing.spearable(s) and (not pop or (pop[s.Id] or 0) > 0) then
+			local weight = if can(s) then w else w * Fishing.LockedWeight
+			table.insert(list, { s, weight })
+			total += weight
+		end
+	end
+	local r = rng:NextNumber() * total
+	for _, e in list do
+		r -= e[2]
+		if r <= 0 then
+			return e[1]
+		end
+	end
+	return if #list > 0 then list[#list][1] else nil
+end
 
 Fishing.Bait = { Id = "Cebo", Name = "Cebo", Icon = "🪱", Price = 4, Pack = 5, Bite = 0.6, Desc = "Un cebo por lanzamiento: pican mucho antes." }
 Fishing.BoatPrice = 15 -- alquilar el barco de pesca (los pescadores de turno van gratis)

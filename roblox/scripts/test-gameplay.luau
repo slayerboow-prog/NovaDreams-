@@ -317,6 +317,7 @@ local remotes = {
 	Hotel = remote(),
 	Trade = remote(),
 	Fishing = remote(),
+	Diving = remote(),
 	Social = remote(),
 }
 function remotes:WaitForChild(name)
@@ -2179,7 +2180,7 @@ check(notified(fisher, "Necesitas una caña"), "sin caña no se puede pescar")
 -- Tienda de pesca
 moveTo(fisherRoot, Vector3.new(4008, 0, 4000))
 promptOf(shopCounter, "Comprar").Triggered:Fire(fisher)
-check(lastMessage(fisher, "Shop") ~= nil and #lastMessage(fisher, "Shop")[2] == 10, "la tienda enseña las 5 cañas, 4 herramientas y el cebo")
+check(lastMessage(fisher, "Shop") ~= nil and #lastMessage(fisher, "Shop")[2] == 13, "la tienda enseña las 5 cañas, 7 herramientas y el cebo")
 local F = remotes.Fishing.OnServerEvent
 F:Fire(fisher, "Buy", "CanaPescar")
 F:Fire(fisher, "Buy", "Cebo")
@@ -2503,6 +2504,99 @@ check(waterAt(Vector3.new(-2750 + 300, 0, -520)) == "el lago", "en la orilla del
 check(waterAt(Vector3.new(1440, 0, -400)) == "el río", "en la orilla del río, peces de río")
 check(waterAt(Vector3.new(700, 0, 3600)) == "el mar", "en la costa, peces de mar")
 FishingService.isWater = realIsWater
+end)()
+
+;(function()
+print("▶ Nadar, bucear y pesca submarina con fusil o arpón")
+local Fishing = loadModule(ROOT .. "/shared/Fishing")
+local FishingService = loadModule(S .. "FishingService")
+local DivingService = loadModule(S .. "DivingService")
+local realIsWater = FishingService.isWater
+FishingService.isWater = function(p)
+	return p.Y < Fishing.Dive.Surface + 0.5 -- en la prueba, todo es agua por debajo de la superficie
+end
+local savedGap = Fishing.Dive.ShotGap
+Fishing.Dive.ShotGap = 0
+DivingService.init()
+local D = remotes.Diving.OnServerEvent
+local function diver(id, xp, gear, at)
+	local p, root, humanoid = newPlayer(id, "Adulto", 100)
+	profiles[p].Items = {}
+	for _, g in gear do
+		profiles[p].Items[g] = 1
+	end
+	profiles[p].Fishing = { Xp = xp, Caught = {} }
+	InventoryService.refresh(p)
+	root.CFrame = CFrame.new(at)
+	p.Character.Head.CFrame = CFrame.new(at + Vector3.new(0, 1.5, 0))
+	return p, root, humanoid
+end
+local function fishesOf(p)
+	local n = 0
+	for _, f in DivingService._fishes do
+		if f.Owner == p then
+			n += 1
+		end
+	end
+	return n
+end
+local where = Vector3.new(6000, -9, 6000)
+local ana, anaRoot, anaHum = diver(101, 0, { "FusilSubmarino" }, where)
+task.wait(2.3)
+check(DivingService.underwater(ana), "bajo el agua, el buceador está sumergido")
+check(ana:GetAttribute("OxygenMax") == Fishing.Dive.Oxygen.Base and ana:GetAttribute("Oxygen") < Fishing.Dive.Oxygen.Base, "bajo el agua se gasta el aire")
+check(fishesOf(ana) >= 1, "con el fusil submarino salen peces nadando alrededor")
+-- Un pez que aún no puede cazar
+local dorada = DivingService.spawn(ana, Fishing.byId.Dorada, where + Vector3.new(6, 0, 0), "Mar")
+D:Fire(ana, "Shoot", dorada)
+check(notified(ana, "te falta nivel 3") and dorada.Parent ~= nil, "si el pez pide más nivel, no se caza (y te dice qué falta)")
+-- Uno que sí
+local popBefore = FishingService.pop.Rio.Trucha
+local trucha = DivingService.spawn(ana, Fishing.byId.Trucha, where + Vector3.new(0, 0, 8), "Rio")
+D:Fire(ana, "Shoot", trucha)
+check(InventoryService.count(ana, "Pez_Trucha") == 1 and lastMessage(ana, "Caught") ~= nil, "disparas con el fusil y la trucha va a la mochila")
+check(profiles[ana].Fishing.Xp > 0 and FishingService.pop.Rio.Trucha == popBefore - 1 and trucha.Parent == nil, "da experiencia y sale del banco de peces")
+local far = DivingService.spawn(ana, Fishing.byId.Trucha, where + Vector3.new(40, 0, 0), "Rio")
+D:Fire(ana, "Shoot", far)
+check(notified(ana, "demasiado lejos") and far.Parent ~= nil, "no se puede disparar a un pez muy lejos")
+-- Los grandes: arpón y varios disparos
+local shark = DivingService.spawn(ana, Fishing.byId.TiburonAzul, where + Vector3.new(0, 0, -8), "AltaMar")
+D:Fire(ana, "Shoot", shark)
+check(notified(ana, "arpón"), "los grandes piden arpón")
+local leo = diver(102, Fishing.xpFor(45), { "Arpon", "Botella" }, where + Vector3.new(0, 0, -4))
+local hp = shark:GetAttribute("Hp")
+check(hp > 1, ("un tiburón aguanta varios disparos (%d)"):format(hp))
+D:Fire(leo, "Shoot", shark)
+check(shark:GetAttribute("Hp") == hp - 1 and lastMessage(leo, "Hit") ~= nil and InventoryService.count(leo, "Pez_TiburonAzul") == 0, "al primer disparo queda herido y huye")
+for _ = 1, hp do
+	if shark.Parent then
+		moveTo(leo.Character.HumanoidRootPart, shark.Position - Vector3.new(0, 3 + 3, 0))
+		leo.Character.Head.CFrame = CFrame.new(shark.Position - Vector3.new(0, 1.5, 0))
+		D:Fire(leo, "Shoot", shark)
+	end
+end
+check(InventoryService.count(leo, "Pez_TiburonAzul") == 1, "a varios arponazos saca el tiburón azul")
+-- Sin estar bajo el agua no se dispara
+local t2 = DivingService.spawn(ana, Fishing.byId.Trucha, where + Vector3.new(4, 0, 0), "Rio")
+ana.Character.Head.CFrame = CFrame.new(where + Vector3.new(0, 20, 0))
+D:Fire(ana, "Shoot", t2)
+check(t2.Parent ~= nil and InventoryService.count(ana, "Pez_Trucha") == 1, "fuera del agua no se dispara")
+-- Aire: sin aire pierdes vida; al salir se recupera; con gafas aguantas más
+ana.Character.Head.CFrame = CFrame.new(where + Vector3.new(0, 1.5, 0))
+ana:SetAttribute("Oxygen", 1)
+local health = anaHum.Health
+task.wait(2.2)
+check(anaHum.Health < health and notified(ana, "sin aire"), "sin aire pierdes vida")
+ana.Character.Head.CFrame = CFrame.new(where + Vector3.new(0, 20, 0))
+task.wait(1.2)
+check(ana:GetAttribute("Oxygen") > 0, "al sacar la cabeza recuperas el aire")
+InventoryService.add(ana, "Gafas", 1)
+task.wait(1.2)
+check(ana:GetAttribute("OxygenMax") == Fishing.Dive.Oxygen.Gafas and leo:GetAttribute("OxygenMax") == Fishing.Dive.Oxygen.Botella, "con gafas y tubo o con equipo de buceo aguantas más")
+check(Fishing.spearable(Fishing.byId.Mero) and not Fishing.spearable(Fishing.byId.Gamba), "se cazan buceando los peces medianos y grandes (las gambas no)")
+Fishing.Dive.ShotGap = savedGap
+FishingService.isWater = realIsWater
+local _ = anaRoot
 end)()
 
 end, debug.traceback)
