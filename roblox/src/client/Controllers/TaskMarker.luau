@@ -125,7 +125,10 @@ function TaskMarker.init()
 		beam.Attachment0 = attachment
 		if attachment then
 			local distance = (attachment.WorldPosition - anchor.Position).Magnitude
-			distanceLabel.Text = ("%d m"):format(math.floor(distance / 3.5))
+			local text = ("%d m"):format(math.floor(distance / 3.5))
+			if distanceLabel.Text ~= text then -- solo si cambia (esto va cada frame)
+				distanceLabel.Text = text
+			end
 		end
 	end)
 end

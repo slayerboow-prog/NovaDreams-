@@ -553,7 +553,7 @@ local function buildWindow()
 	windowScale = create("UIScale", { Parent = window })
 	create("UICorner", { CornerRadius = UDim.new(0, 16), Parent = window })
 	create("UIStroke", { Color = MC.Light, Transparency = 0.2, Thickness = 2, Parent = window })
-	create("UIGradient", { Rotation = 90, Color = ColorSequence.new(Color3.fromRGB(24, 40, 72), Color3.fromRGB(10, 18, 34)), Parent = window })
+	create("UIGradient", { Rotation = 90, Color = Theme.Night, Parent = window })
 	window.BackgroundColor3 = Color3.new(1, 1, 1) -- el degradado pone el color
 	create("UIPadding", {
 		PaddingLeft = UDim.new(0, 14),

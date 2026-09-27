@@ -621,17 +621,20 @@ local function buildMini()
 	camera:GetPropertyChangedSignal("ViewportSize"):Connect(rescale)
 	rescale()
 
-	-- Minimapa redondo con aro azul, debajo de los botones de arriba a la derecha
+	-- Minimapa redondo con aro azul arriba a la derecha (en el móvil, debajo de los iconos de comandos)
+	local touchOnly = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 	miniHolder = create("Frame", {
 		Name = "Minimap",
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -22, 0, 92),
+		Position = UDim2.new(1, -22, 0, if touchOnly then 92 else 18),
 		Size = UDim2.fromOffset(MINI_SIZE, MINI_SIZE),
 		BackgroundColor3 = rgb(12, 22, 42),
 		Parent = gui,
 	}, {
 		create("UICorner", { CornerRadius = UDim.new(1, 0) }),
-		create("UIStroke", { Color = C.Accent, Thickness = 4, Transparency = 0.05 }),
+		create("UIStroke", { Color = C.Stroke, Thickness = 4, Transparency = 0.05 }, {
+			create("UIGradient", { Rotation = 90, Color = ColorSequence.new(Color3.new(1, 1, 1), rgb(60, 130, 230)) }),
+		}),
 	})
 	local mini = create("CanvasGroup", {
 		Size = UDim2.new(1, -6, 1, -6),
@@ -795,7 +798,7 @@ local function buildBig()
 	}, {
 		Theme.corner(18),
 		create("UIStroke", { Color = C.Accent, Thickness = 2, Transparency = 0.2 }),
-		create("UIGradient", { Rotation = 90, Color = ColorSequence.new(rgb(20, 34, 62), rgb(8, 14, 28)) }),
+		create("UIGradient", { Rotation = 90, Color = Theme.Night }),
 		Theme.padding(PANEL_PAD),
 	})
 
