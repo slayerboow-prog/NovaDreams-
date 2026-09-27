@@ -436,6 +436,9 @@ local function openGuide()
 		end
 		local lock = if #missing == 0 then "✅" else "🔒"
 		local got = if count and count > 0 then ("×%d"):format(count) else "❓"
+		if target.Waters and Fishing.spearable(target :: any) then
+			got ..= " · 🤿 buceando"
+		end
 		Theme.label({
 			Size = UDim2.new(1, -6, 0, 34),
 			Text = ('%s %s <font color="#%s"><b>%s</b></font> · %s\n<font color="#a5b2c8">%s · %s · %s</font>'):format(lock, target.Icon, color:ToHex(), target.Name, got, where, table.concat(needs, " · "), Format.money(target.Price)),
@@ -465,6 +468,9 @@ local function openGuide()
 			row(sp, Fishing.Waters[water], caught[sp.Id])
 		end
 	end
+	header("🤿 Pesca submarina")
+	order += 1
+	Theme.label({ Size = UDim2.new(1, -6, 0, 48), Text = "Nada y bucea (botones ⬇️ Bucear / ⬆️ Subir). Con el fusil submarino nadan peces a tu alrededor: apunta con la cámara y 🔱 Disparar. Vigila el aire: gafas y tubo (45 s) o equipo de buceo (150 s). Los grandes piden arpón y los del fondo, equipo de buceo.", TextSize = 12, TextColor3 = C.Muted, TextWrapped = true, LayoutOrder = order, Parent = list })
 	header("🌊 Monstruos marinos (alta mar, entre varios)")
 	for _, id in Fishing.BossOrder do
 		local def = Fishing.Bosses[id]
