@@ -207,6 +207,16 @@ function Fake.GetBoundingBox(self)
 	return CFrame.new((lo + hi) / 2), hi - lo
 end
 function Fake.SetNetworkOwner() end
+function Fake.RemoveTag(self, tag)
+	self.__tags[tag] = nil
+end
+-- Tamaño del personaje (Model:ScaleTo / GetScale)
+function Fake.GetScale(self)
+	return rawget(self, "__props").Scale or 1
+end
+function Fake.ScaleTo(self, scale)
+	rawget(self, "__props").Scale = scale
+end
 
 FakeMeta.__index = function(self, key)
 	if Fake[key] then
@@ -338,6 +348,7 @@ local remotes = {
 	Social = remote(),
 	Interior = remote(),
 	Interact = remote(),
+	Gym = remote(),
 }
 function remotes:WaitForChild(name)
 	return self[name]
@@ -3296,6 +3307,304 @@ check(strangerHum.SeatPart ~= nil and stranger:GetAttribute("UsePose") == "Piano
 strangerHum.Sit = false
 check(piano:GetAttribute("Playing") == false and stranger:GetAttribute("UsePose") == nil, "al levantarse deja de sonar")
 Config.SleepSeconds = savedSleep
+end)()
+
+;(function()
+print("▶ Gimnasio: recepción, máquinas, ritmo, fuerza en el cuerpo, deportistas y monitor/a")
+local Gym = loadModule(ROOT .. "/shared/Gym")
+-- Un gimnasio de verdad (el mismo interior que en el mapa: World/Kit/GymKit)
+local GymKit = loadModule(ROOT .. "/server/World/Kit/GymKit")
+local building = fakeInstance("Model")
+building.Name = "GimnasioValmar"
+building.Parent = worldRoot
+GymKit.interior(building, CFrame.new(6000, 1, 6000), "Gimnasio de Prueba")
+local tagged = services.CollectionService:GetTagged("GymMachine")
+local kinds = {}
+for _, m in tagged do
+	kinds[m:GetAttribute("Kind")] = true
+end
+local kindCount = 0
+for _ in kinds do
+	kindCount += 1
+end
+check(#tagged >= 15 and kindCount >= 14, ("el gimnasio tiene %d máquinas de %d tipos"):format(#tagged, kindCount))
+local desk = services.CollectionService:GetTagged("GymReception")[1]
+check(desk ~= nil and typeof(desk:GetAttribute("StaffSpot")) == "Vector3", "hay recepción con sitio para la recepcionista")
+check(#services.CollectionService:GetTagged("GymFountain") == 1 and #services.CollectionService:GetTagged("Bench") >= 2, "fuente de agua y bancos para descansar")
+local lockers, mirrors = 0, 0
+for _, d in building:GetDescendants() do
+	if d.Name == "Locker" then
+		lockers += 1
+	elseif d.Name == "Mirror" then
+		mirrors += 1
+	end
+end
+check(lockers >= 6 and mirrors >= 2, "vestuarios con taquillas y espejos")
+
+local GymService = loadModule(S .. "GymService")
+local clock, now = 1000, 5000000
+GymService._clock = function()
+	return clock
+end
+GymService._now = function()
+	return now
+end
+local callbacksBefore = #loadedCallbacks
+GymService.init()
+local function loaded(p)
+	for i = callbacksBefore + 1, #loadedCallbacks do
+		loadedCallbacks[i](p, profiles[p])
+	end
+end
+check(jobProviders.Handler_MonitorGimnasio ~= nil, "el tablón del gimnasio lleva al oficio de monitor/a")
+check(promptOf(desk, "Recepción") ~= nil, "la recepción tiene su cartel")
+local receptionist = nil
+for _, d in desk.Parent:GetDescendants() do
+	if d.Name == "Recepcionista" then
+		receptionist = d
+	end
+end
+check(receptionist ~= nil, "la recepcionista está detrás del mostrador")
+local function machineOf(kind)
+	for _, m in services.CollectionService:GetTagged("GymMachine") do
+		if m:GetAttribute("Kind") == kind then
+			return m
+		end
+	end
+	return nil
+end
+local cinta, banca, comba = machineOf("Cinta"), machineOf("PressBanca"), machineOf("Comba")
+check(promptOf(cinta, "Entrenar") ~= nil and promptOf(banca, "Entrenar") ~= nil, "cada máquina tiene su cartel «Entrenar»")
+check(promptOf(banca, "Entrenar"):GetAttribute("MinStage") == "Adolescente" and promptOf(cinta, "Entrenar"):GetAttribute("MinStage") == "Nino", "los niños solo ven los carteles de las máquinas ligeras")
+
+local athlete, athleteRoot = newPlayer(91, "Adulto", 200)
+profiles[athlete].Hunger, profiles[athlete].Energy = 100, 100
+loaded(athlete)
+check(athlete:GetAttribute("GymStrength") == 0 and athlete:GetAttribute("GymPass") == nil, "empieza sin fuerza y sin entrada")
+-- Sin entrada no se entrena
+promptOf(cinta, "Entrenar").Triggered:Fire(athlete)
+check(athlete:GetAttribute("Training") == nil and notified(athlete, "Necesitas entrada"), "sin entrada te mandan a la recepción")
+-- Recepción: entrada del día
+moveTo(athleteRoot, desk.Position + Vector3.new(0, 0, -3))
+promptOf(desk, "Recepción").Triggered:Fire(athlete)
+local info = lastMessage(athlete, "Reception")
+check(info ~= nil and info[2].Active == false and #info[2].Passes == 2 and info[2].Passes[1].Price == 5 and info[2].Passes[2].Price == 60, "la recepción enseña la entrada (5 €) y el abono (60 €)")
+local G = remotes.Gym.OnServerEvent
+G:Fire(athlete, "Buy", "Dia")
+check(profiles[athlete].Money == 195 and athlete:GetAttribute("GymPass") == "Dia" and GymService.data(athlete).PassUntil == now + Gym.daySeconds(Config.DayLengthMinutes), "paga la entrada del día")
+-- Lejos de la recepción no se compra nada
+moveTo(athleteRoot, Vector3.new(0, 0, 0))
+G:Fire(athlete, "Buy", "Mes")
+check(profiles[athlete].Money == 195, "lejos de la recepción no se puede comprar")
+
+-- Entrenar en el press de banca
+promptOf(banca, "Entrenar").Triggered:Fire(athlete)
+local anchor = banca:FindFirstChild("GymAnchor")
+check(athlete:GetAttribute("Training") == "PressBanca" and athleteRoot.Anchored == true, "se pone a entrenar (quieto en la máquina)")
+check((athleteRoot.Position - (anchor.Position + Vector3.new(0, 3 - anchor.Size.Y / 2, 0))).Magnitude < 0.01, "colocado justo en su sitio de la máquina")
+check(athlete.Character:GetAttribute("GymExercise") == "PressBanca" and athlete.Character:HasTag("GymTraining"), "todos lo ven entrenar (etiqueta y ejercicio en el personaje)")
+local start = lastMessage(athlete, "Start")
+check(start ~= nil and start[2].SetReps == Gym.SetReps and start[2].Kind == "PressBanca", "sale la barra del ritmo")
+G:Fire(athlete, "Rep", "Bien")
+G:Fire(athlete, "Rep", "Bien")
+check(GymService._sessions[athlete].Reps == 1, "no cuentan dos repeticiones seguidas sin darle tiempo")
+check(athlete.Character:GetAttribute("GymRep") == 1, "cada repetición se ve (GymRep)")
+table.clear(needsChanges)
+for _ = 2, Gym.SetReps do
+	clock += 1
+	G:Fire(athlete, "Rep", "Perfecto")
+end
+local set = lastMessage(athlete, "Set")
+check(set ~= nil and set[2].Sets == 1 and set[2].GainStrength > 0 and set[2].GainCardio == 0, "serie completa: sube la Fuerza")
+check((athlete:GetAttribute("GymStrength") or 0) > 0, "y se guarda (atributo GymStrength)")
+local spent = false
+for _, c in needsChanges do
+	if c[1] == athlete and c[2] < 0 and c[3] < 0 then
+		spent = true
+	end
+end
+check(spent, "entrenar gasta hambre y energía")
+-- Sin fuerzas
+local tired = false
+for _ = 1, 20 do
+	clock += 1
+	G:Fire(athlete, "Rep", "Bien")
+	if lastMessage(athlete, "Tired") then
+		tired = true
+		break
+	end
+end
+check(tired, "si no descansas, te quedas sin fuerzas")
+clock += 10
+GymService._regen(10)
+check(GymService._sessions[athlete].Effort == Gym.EffortMax, "descansando se recupera el esfuerzo")
+clock += 1
+G:Fire(athlete, "Miss")
+check(GymService._sessions[athlete].Effort == Gym.EffortMax - Gym.MissEffort, "fallar el ritmo también cansa")
+
+-- El cuerpo se ensancha (LifeService de verdad, con el tamaño de su edad)
+local savedLife = mocks[S .. "LifeService"]
+mocks[S .. "LifeService"] = nil
+local savedCache = cache[S .. "LifeService"]
+cache[S .. "LifeService"] = nil
+local RealLife = loadModule(S .. "LifeService")
+mocks[S .. "LifeService"] = savedLife
+cache[S .. "LifeService"] = savedCache
+athlete.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = 16
+athlete:SetAttribute("GymStrength", 100)
+RealLife.refresh(athlete)
+local humanoid = athlete.Character:FindFirstChildOfClass("Humanoid")
+local width = humanoid:FindFirstChild("BodyWidthScale")
+local depth = humanoid:FindFirstChild("BodyDepthScale")
+check(width ~= nil and depth ~= nil and math.abs(width.Value - 1.25) < 1e-6 and math.abs(depth.Value - 1.25) < 1e-6, "con 100 de Fuerza: un 25 % más ancho")
+athlete:SetAttribute("GymStrength", 0)
+RealLife.refresh(athlete)
+check(width ~= nil and math.abs(width.Value - 1) < 1e-6, "y vuelve a su medida si pierde la fuerza")
+-- Con otra medida de base (su avatar) y tamaño de niño: se multiplica
+local kidLook = newPlayer(95, "Nino", 0)
+local kidHumanoid = kidLook.Character:FindFirstChildOfClass("Humanoid")
+kidHumanoid.WalkSpeed = 16
+local base = FakeInstanceLib.new("NumberValue")
+base.Name = "BodyWidthScale"
+base.Value = 0.9
+base.Parent = kidHumanoid
+kidLook:SetAttribute("GymStrength", 100)
+RealLife.refresh(kidLook)
+check(math.abs(base.Value - 0.9 * 1.25) < 1e-6 and math.abs(kidLook.Character:GetScale() - Config.StageBody.Nino.Scale) < 1e-6, "se multiplica con su medida y con el tamaño de su edad")
+base.Value = 1 -- (otro sistema le cambia el aspecto)
+RealLife.refresh(kidLook)
+check(math.abs(base.Value - 1.25) < 1e-6, "si cambia de aspecto, la fuerza se aplica sobre el nuevo")
+athlete:SetAttribute("GymStrength", GymService.data(athlete).Strength)
+
+-- Dejar la máquina
+G:Fire(athlete, "Stop")
+check(athlete:GetAttribute("Training") == nil and athleteRoot.Anchored == false, "«Dejar» te baja de la máquina")
+check(athlete.Character:GetAttribute("GymExercise") == nil and not athlete.Character:HasTag("GymTraining"), "y deja de hacer el ejercicio")
+local exit = banca:GetAttribute("Exit")
+check((Vector3.new(athleteRoot.Position.X, 0, athleteRoot.Position.Z) - Vector3.new(exit.X, 0, exit.Z)).Magnitude < 0.01, "se aparta a un lado de la máquina")
+check(notified(athlete, "Buen entreno"), "te dice cómo ha ido el entreno")
+
+-- Niños y bebés
+local kid, kidRoot = newPlayer(92, "Nino", 50)
+profiles[kid].Hunger, profiles[kid].Energy = 100, 100
+loaded(kid)
+moveTo(kidRoot, desk.Position + Vector3.new(0, 0, -3))
+G:Fire(kid, "Buy", "Dia")
+check(profiles[kid].Money == 47, "los niños pagan la mitad (3 €)")
+promptOf(banca, "Entrenar").Triggered:Fire(kid)
+check(kid:GetAttribute("Training") == nil and notified(kid, "para mayores"), "un niño no puede usar el press de banca")
+promptOf(comba, "Entrenar").Triggered:Fire(kid)
+check(kid:GetAttribute("Training") == "Comba", "pero sí la comba")
+local baby, babyRoot = newPlayer(93, "Bebe", 50)
+profiles[baby].Hunger, profiles[baby].Energy = 100, 100
+loaded(baby)
+moveTo(babyRoot, desk.Position + Vector3.new(0, 0, -3))
+G:Fire(baby, "Buy", "Dia")
+check(profiles[baby].Money == 50 and notified(baby, "bebés"), "un bebé no puede apuntarse")
+promptOf(cinta, "Entrenar").Triggered:Fire(baby)
+check(baby:GetAttribute("Training") == nil, "ni entrenar")
+-- Máquina ocupada por otro jugador
+promptOf(comba, "Entrenar").Triggered:Fire(athlete)
+check(athlete:GetAttribute("Training") == nil and notified(athlete, "ocupada"), "si otro jugador está en la máquina, está ocupada")
+G:Fire(kid, "Stop")
+
+-- Cansado: no se entrena
+profiles[athlete].Energy = 5
+promptOf(cinta, "Entrenar").Triggered:Fire(athlete)
+check(athlete:GetAttribute("Training") == nil and notified(athlete, "cansado"), "con muy poca energía no se puede entrenar")
+profiles[athlete].Energy = 100
+
+-- Deportistas (NPC) cuando hay alguien cerca, y te dejan su máquina
+moveTo(athleteRoot, desk.Position + Vector3.new(0, 0, 4))
+GymService._tick()
+GymService._tick()
+local npcs = {}
+for _, d in worldRoot:FindFirstChild("Deportistas"):GetChildren() do
+	if d:HasTag("GymTraining") then
+		table.insert(npcs, d)
+	end
+end
+check(#npcs >= 2, ("hay %d deportistas entrenando"):format(#npcs))
+local npc = npcs[1]
+local npcMachine = nil
+for _, m in services.CollectionService:GetTagged("GymMachine") do
+	if npc and m:GetAttribute("MachineId") == npc:GetAttribute("GymMachine") then
+		npcMachine = m
+	end
+end
+local repBefore = npc and npc:GetAttribute("GymRep") or 0
+clock += 20
+GymService._tick()
+check(npc ~= nil and (npc:GetAttribute("GymRep") or 0) > repBefore, "los deportistas hacen sus repeticiones")
+if npcMachine then
+	promptOf(npcMachine, "Entrenar").Triggered:Fire(athlete)
+end
+check(npcMachine ~= nil and athlete:GetAttribute("Training") == npcMachine:GetAttribute("Kind") and npc.Parent == nil, "un deportista te deja su máquina")
+G:Fire(athlete, "Stop")
+
+-- Monitor/a de gimnasio
+local coach, coachRoot = newPlayer(94, "Adulto", 0)
+profiles[coach].Hunger, profiles[coach].Energy = 100, 100
+loaded(coach)
+jobProviders.Handler_MonitorGimnasio.Start(coach)
+check(coach:GetAttribute("Job") == "MonitorGimnasio", "empieza de monitor/a")
+moveTo(coachRoot, desk.Position + Vector3.new(2, 0, 4))
+for _, gymInfo in GymService._gyms do
+	gymInfo.NextRequest = 0
+end
+GymService._tick()
+local helpPrompt = nil
+for _, d in worldRoot:FindFirstChild("Deportistas"):GetDescendants() do
+	if d.ClassName == "ProximityPrompt" and d.ActionText == "Ayudar" then
+		helpPrompt = d
+	end
+end
+check(helpPrompt ~= nil and helpPrompt:GetAttribute("JobOnly") == "MonitorGimnasio", "un deportista pide ayuda (solo lo ve el monitor)")
+check(coach:GetAttribute("TaskText") ~= nil, "al monitor le marca a quién ayudar")
+local jobEvents = 0
+local conn = StoryEventsModule.connect(function(p, name, payload)
+	if p == coach and name == "JobTaskDone" and payload.JobId == "MonitorGimnasio" then
+		jobEvents += 1
+	end
+end)
+if helpPrompt then
+	helpPrompt.Triggered:Fire(coach)
+end
+check(profiles[coach].Money == Config.Jobs.MonitorGimnasio.Pay and jobEvents == 1, "ayudar le paga y cuenta para la historia")
+-- Entrenar con un monitor cerca: sube más y el monitor se lleva propina
+local moneyCoach = profiles[coach].Money
+clock += 5
+moveTo(athleteRoot, cinta:FindFirstChild("GymAnchor").Position)
+promptOf(cinta, "Entrenar").Triggered:Fire(athlete)
+for _ = 1, Gym.SetReps do
+	clock += 2
+	G:Fire(athlete, "Rep", "Bien")
+end
+check(lastMessage(athlete, "Set") ~= nil and lastMessage(athlete, "Set")[2].Monitor == true, "entrenando cerca del monitor ganas más")
+check(profiles[coach].Money > moneyCoach, "y el monitor se lleva una propina")
+G:Fire(athlete, "Stop")
+if conn and conn.Disconnect then
+	conn:Disconnect()
+end
+jobProviders.Handler_MonitorGimnasio.Quit(coach)
+check(coach:GetAttribute("Job") == nil, "acaba el turno de monitor/a")
+
+-- Fuente de agua
+table.clear(needsChanges)
+promptOf(services.CollectionService:GetTagged("GymFountain")[1], "Beber agua").Triggered:Fire(athlete)
+check(#needsChanges == 1 and needsChanges[1][3] > 0, "beber agua da un poco de energía")
+
+-- Días sin entrenar: se pierde un poco (y la entrada caduca)
+local data = GymService.data(athlete)
+local before = data.Strength
+now += Gym.daySeconds(Config.DayLengthMinutes) * 10
+GymService.applyDecay(athlete)
+check(data.Strength < before and data.Strength > before * 0.8, "tras 10 días sin entrenar pierde un poco de fuerza")
+local after = data.Strength
+GymService.applyDecay(athlete)
+check(data.Strength == after, "y no se vuelve a quitar lo mismo")
+promptOf(cinta, "Entrenar").Triggered:Fire(athlete)
+check(athlete:GetAttribute("Training") == nil, "la entrada del día ya ha caducado")
 end)()
 
 ;(function()

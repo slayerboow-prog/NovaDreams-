@@ -4,6 +4,7 @@
 --   * Combo de 3 golpes: puñetazo, puñetazo y golpe fuerte (empuja). Pulsar a tiempo encadena.
 --   * Defender (mantener): si miras al que te pega, recibes solo una parte del daño y no te empuja.
 --   * Fuerza (estadística del personaje): +4% de daño por punto.
+--   * Músculo del gimnasio (GymStrength, 0..100): hasta un +20% más de daño.
 --   * K.O.: al quedarte sin vida caes unos segundos y te levantas con algo de vida… salvo que
 --     alguien te remate en el suelo: entonces mueres y reapareces en el hospital (shared/Hospital).
 --   * Nadie puede pegar ni recibir golpes siendo bebé, en una conversación, en clase, en un
@@ -24,6 +25,7 @@ Combat.KOSeconds = 6
 Combat.KOHealth = 0.35 -- vida (fracción) con la que te levantas
 Combat.SpawnProtection = 5 -- segundos sin poder recibir golpes al aparecer
 Combat.PerFuerza = 0.04
+Combat.PerMuscle = 0.002 -- por punto de Fuerza del gimnasio (Shared/Gym: +20 % a 100)
 Combat.MinStage = "Nino" -- a partir de niño (los bebés ni pegan ni reciben)
 -- Esquivar: un paso rápido con un instante en que los golpes no te dan
 Combat.DodgeSpeed = 46 -- studs/s del paso
@@ -37,9 +39,10 @@ function Combat.dodging(dodgeAt: number?, now: number): boolean
 end
 
 -- Daño de un golpe
-function Combat.damage(combo: number, fuerza: number?, blocked: boolean?): number
+function Combat.damage(combo: number, fuerza: number?, blocked: boolean?, muscle: number?): number
 	local base = Combat.Damage[math.clamp(combo, 1, #Combat.Damage)]
 	local amount = base * (1 + math.max(0, fuerza or 0) * Combat.PerFuerza)
+	amount *= 1 + math.clamp(muscle or 0, 0, 100) * Combat.PerMuscle
 	if blocked then
 		amount *= Combat.BlockFactor
 	end

@@ -354,6 +354,7 @@ local function blockedMove(humanoid: Humanoid): boolean
 		or state == Enum.HumanoidStateType.Climbing
 		or state == Enum.HumanoidStateType.Dead
 		or player:GetAttribute("Riding") ~= nil
+		or player:GetAttribute("Training") ~= nil
 		or player:GetAttribute("InDialogue") == true
 		or (Cinematics ~= nil and Cinematics.isPlaying())
 end

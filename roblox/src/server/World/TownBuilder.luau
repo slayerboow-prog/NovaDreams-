@@ -683,6 +683,9 @@ function TownBuilder.build(): Folder
 	-- Centro Penitenciario (grande, con mucho que hacer): al final y sin azar, para no mover nada más.
 	-- (El juzgado, Hacienda y el cuartel están dentro de edificios que ya existían: InteriorService)
 	require(Kit.Prison).build(world)
+	-- Gimnasio grande de Valmar Centro (junto a la tienda de pesca): también al final, para que no
+	-- cambie nada más (los de los barrios ya salen con su manzana de ocio: Civic.gym)
+	require(Kit.GymKit).centro(world)
 	-- Repaso final: que ninguna moldura, bordillo o cristalera parpadee contra la pared de detrás
 	-- (varias pasadas: al crecer una pieza puede quedar a ras de otra)
 	for _ = 1, 4 do

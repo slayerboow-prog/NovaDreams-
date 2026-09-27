@@ -375,6 +375,17 @@ Config.Jobs = {
 		CarryColor = Color3.fromRGB(250, 250, 250),
 		CarrySize = Vector3.new(1, 1, 1),
 	},
+	-- Monitor/a de gimnasio (GymService: corrige la postura de quien entrena)
+	MonitorGimnasio = {
+		DisplayName = "Monitor/a de gimnasio",
+		Place = "Gimnasio",
+		Pay = 14,
+		EnergyCost = 2,
+		PickupText = "",
+		DropoffText = "",
+		CarryColor = Color3.fromRGB(250, 250, 250),
+		CarrySize = Vector3.new(1, 1, 1),
+	},
 	Recepcionista = {
 		DisplayName = "Recepcionista",
 		Place = "Hotel",

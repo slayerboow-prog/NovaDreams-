@@ -344,8 +344,8 @@ end
 
 -- ¿Está sentado, conduciendo o durmiendo? (entonces no se toca: manda esa postura)
 local function busy(body: Body): boolean
-	if body.Humanoid.Sit then
-		return true
+	if body.Humanoid.Sit or body.Model:GetAttribute("GymExercise") then
+		return true -- (sentado, o entrenando en el gimnasio: manda GymMotion)
 	end
 	local player = body.Player
 	-- (usando un mueble —tumbado, en el grifo, al piano…— manda la postura de UseMotion)
