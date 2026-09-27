@@ -13,6 +13,7 @@ local Hud = require(script.Parent.Parent.UI.Hud)
 local Actions = require(script.Parent.Parent.Controllers.Actions)
 local Vehicles = require(script.Parent.Parent.Controllers.Vehicles)
 local CombatController = require(script.Parent.Parent.Controllers.CombatController)
+local InstitutionsUI = require(script.Parent.Parent.Controllers.InstitutionsUI)
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Stages = require(ReplicatedStorage.Shared.LifeStory.Stages)
@@ -136,9 +137,28 @@ function DefaultCommands.register()
 		if not other or baby(ctx) or ctx.Seated then
 			return {}
 		end
-		local remote = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("Wanted") :: RemoteEvent?
+		local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+		local remote = remotes and remotes:FindFirstChild("Wanted") :: RemoteEvent?
 		local out = {}
 		local me = Players.LocalPlayer
+		local job = me:GetAttribute("Job")
+		-- Instituciones: dar la libertad a un preso (jefes) e inspeccionar a quien no ha declarado
+		if other:GetAttribute("JailUntil") and me:GetAttribute("Chief") and (job == "Funcionario" or job == "Juez") then
+			table.insert(out, { Id = "Liberar", Label = "Liberar", Detail = other.DisplayName, Icon = "🔓", Priority = 4.4, Accent = true, Run = function()
+				local justice = remotes and remotes:FindFirstChild("Justice") :: RemoteEvent?
+				if justice then
+					justice:FireServer("Release", other)
+				end
+			end })
+		end
+		if job == "Hacienda" and other:GetAttribute("TaxOverdue") then
+			table.insert(out, { Id = "Inspeccionar", Label = "Inspeccionar", Detail = other.DisplayName, Icon = "🏛", Priority = 4.6, Accent = true, Run = function()
+				local tax = remotes and remotes:FindFirstChild("Tax") :: RemoteEvent?
+				if tax then
+					tax:FireServer("Inspect", other)
+				end
+			end })
+		end
 		if me:GetAttribute("Job") == "Policia" and other:GetAttribute("Wanted") then
 			table.insert(out, { Id = "Detener", Label = "Detener", Detail = other.DisplayName, Icon = "🚔", Priority = 4.5, Accent = true, Run = function()
 				if remote then
@@ -225,6 +245,9 @@ function DefaultCommands.register()
 						return list
 					end,
 				},
+				{ Id = "Carrera", Label = "Mi carrera", Icon = "🎖", Priority = 4.5, Run = function()
+					InstitutionsUI.showCareer()
+				end },
 				{ Id = "Menu", Label = "Menú", Icon = "☰", Priority = 5, Run = function()
 					Hud.runCommand("Menu")
 				end },

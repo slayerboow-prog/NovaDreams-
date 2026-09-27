@@ -10,6 +10,7 @@
 -- salta la alarma. Mientras te buscan: más estrellas = más patrullas (PoliceUnits). Si ningún
 -- policía te ve durante Wanted.evadeSeconds, te libras. Si te alcanzan: detenido, multa y comisaría.
 -- Un policía jugador de servicio también puede detenerte (comando DETENER, junto a ti).
+-- Al detenerte pasas a disposición judicial (JusticeService): juicio o sentencia automática.
 -- Las estrellas se guardan: salir del juego no borra la búsqueda.
 
 local CollectionService = game:GetService("CollectionService")
@@ -24,11 +25,12 @@ local PoliceUnits = require(script.Parent.Parent.World.PoliceUnits)
 local Roads = require(script.Parent.Parent.World.Kit.Roads)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 local DataService = require(script.Parent.DataService)
-local SceneService = require(script.Parent.SceneService)
+local JusticeService = require(script.Parent.JusticeService)
+local CareerService = require(script.Parent.CareerService)
 
 local WantedService = {}
 
-type State = { Stars: number, LastSeen: number, LastPosition: Vector3?, CatchSince: number?, StealAt: number, Arresting: boolean }
+type State = { Stars: number, LastSeen: number, LastPosition: Vector3?, CatchSince: number?, StealAt: number, Arresting: boolean, Crimes: { string } }
 
 local states: { [Player]: State } = {}
 local Notify = ReplicatedStorage.Remotes.Notify :: RemoteEvent
@@ -37,7 +39,7 @@ local Remote: RemoteEvent
 local function stateOf(player: Player): State
 	local state = states[player]
 	if not state then
-		state = { Stars = 0, LastSeen = 0, StealAt = -math.huge, Arresting = false }
+		state = { Stars = 0, LastSeen = 0, StealAt = -math.huge, Arresting = false, Crimes = {} }
 		states[player] = state
 	end
 	return state
@@ -141,6 +143,7 @@ local function report(player: Player, crime: string, how: string)
 	local state = stateOf(player)
 	local before = state.Stars
 	local stars = Wanted.starsAfter(before, crime)
+	table.insert(state.Crimes, Wanted.Crimes[crime].Text)
 	state.LastSeen = os.clock()
 	local r = rootOf(player)
 	state.LastPosition = r and r.Position
@@ -159,6 +162,9 @@ function WantedService.crime(player: Player, crime: string, position: Vector3?, 
 	if not oldEnough(player) then
 		Notify:FireClient(player, "Error", "¡Eso no se hace! Si fueras mayor, vendría la policía.")
 		return
+	end
+	if player:GetAttribute("JailUntil") or player:GetAttribute("OnTrial") then
+		return -- dentro de la cárcel (o en un juicio) no viene la policía
 	end
 	local at = position or (rootOf(player) and (rootOf(player) :: BasePart).Position)
 	if not at then
@@ -189,19 +195,6 @@ end
 ---------------------------------------------------------------------
 -- Detención
 ---------------------------------------------------------------------
-local function nearestStation(position: Vector3): BasePart?
-	local best, bestDistance = nil, math.huge
-	for _, desk in CollectionService:GetTagged("PoliceDesk") do
-		if desk:IsA("BasePart") then
-			local distance = (desk.Position - position).Magnitude
-			if distance < bestDistance then
-				best, bestDistance = desk, distance
-			end
-		end
-	end
-	return best
-end
-
 function WantedService.arrest(player: Player, cop: Player?)
 	local state = stateOf(player)
 	if state.Stars <= 0 or state.Arresting then
@@ -209,26 +202,20 @@ function WantedService.arrest(player: Player, cop: Player?)
 	end
 	state.Arresting = true
 	local stars = state.Stars
-	local data = DataService.get(player)
-	local fine = math.min(Wanted.fine(stars), if data then data.Money else 0)
-	if fine > 0 then
-		DataService.addMoney(player, -fine)
-	end
+	local crimes = state.Crimes
+	state.Crimes = {}
 	if cop then
 		DataService.addMoney(cop, Wanted.ArrestReward * stars, true)
 		Notify:FireClient(cop, "Success", ("🚔 Has detenido a %s: +%s"):format(player.DisplayName, Format.money(Wanted.ArrestReward * stars)))
 		StoryEvents.emit(cop, "JobTaskDone", { JobId = "Policia" })
+		CareerService.addPoints(cop, "Policia", "Arrest")
 	end
 	setStars(player, 0)
-	Remote:FireClient(player, "Busted", { Fine = fine, Stars = stars, By = cop and cop.DisplayName })
+	Remote:FireClient(player, "Busted", { Stars = stars, By = cop and cop.DisplayName })
 	StoryEvents.emit(player, "Arrested", { Stars = stars })
-	-- A la comisaría (tras la pantalla de "detenido")
-	task.delay(2.5, function()
-		local r = rootOf(player)
-		local desk = r and nearestStation(r.Position)
-		if desk and player.Parent then
-			SceneService.teleportTo(player, (desk.CFrame * CFrame.new(0, 0, -6)).Position)
-		end
+	-- A disposición judicial: juicio (si hay juez de guardia) o sentencia automática
+	JusticeService.process(player, stars, if #crimes > 0 then crimes else { "Resistencia a la autoridad" })
+	task.delay(4, function()
 		state.Arresting = false
 		state.CatchSince = nil
 	end)
@@ -327,6 +314,7 @@ local function watchWanted(player: Player, state: State)
 		PoliceUnits.setTarget(player, state.LastPosition)
 		if now - state.LastSeen > Wanted.evadeSeconds(state.Stars) then
 			setStars(player, 0)
+			state.Crimes = {}
 			Remote:FireClient(player, "Evaded", {})
 			StoryEvents.emit(player, "EvadedPolice", {})
 			return

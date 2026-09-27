@@ -219,6 +219,13 @@ local function buildStatus(parent: Instance)
 	local levelText = Theme.title({ Size = UDim2.fromScale(1, 1), TextSize = 12, TextColor3 = C.Ink, TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 5, Parent = levelChip })
 
 	local name = Theme.title({ Name = "Name", Size = UDim2.fromOffset(STATUS_W - OUTER * 2 - 16, 22), Text = player.DisplayName, TextSize = 19, TextStrokeTransparency = 0.5, TextTruncate = Enum.TextTruncate.AtEnd, Parent = status })
+	-- De servicio en una institución: el rango junto al nombre ("Ana · Sargento")
+	local function nameText()
+		local rank = player:GetAttribute("Rank")
+		setText(name, if rank then ("%s · %s"):format(player.DisplayName, rank) else player.DisplayName)
+	end
+	player:GetAttributeChangedSignal("Rank"):Connect(nameText)
+	nameText()
 	local money = Theme.label({ Name = "Money", Size = UDim2.fromOffset(180, 18), Font = Theme.FontBold, TextSize = 15, TextColor3 = C.Money, TextStrokeTransparency = 0.5, Parent = status })
 	local xpText = Theme.label({ Name = "Xp", Size = UDim2.fromOffset(60, 14), Font = Theme.FontBold, TextSize = 11, TextColor3 = C.Muted, TextStrokeTransparency = 0.6, Parent = status })
 	local xpTrack = create("Frame", { Name = "XpBar", Size = UDim2.fromOffset(150, 4), BackgroundColor3 = TRACK, BackgroundTransparency = 0.2, BorderSizePixel = 0, Parent = status }, { Theme.corner(2) })

@@ -18,6 +18,9 @@ local function visible(prompt: ProximityPrompt): boolean
 	local job = prompt:GetAttribute("JobOnly")
 	local owner = prompt:GetAttribute("OwnerUserId")
 	-- MinStage: solo a partir de esa edad (p. ej. "Atracar")
+	if prompt:GetAttribute("JailedOnly") and not player:GetAttribute("JailUntil") then
+		return false -- (trabajos de los presos)
+	end
 	local minStage = prompt:GetAttribute("MinStage")
 	local stage = player:GetAttribute("LifeStage")
 	if minStage and stage and not Stages.inRange(stage, minStage, nil) then
@@ -27,7 +30,7 @@ local function visible(prompt: ProximityPrompt): boolean
 end
 
 local function track(d: Instance)
-	if d:IsA("ProximityPrompt") and (d:GetAttribute("JobOnly") or d:GetAttribute("MinStage")) then
+	if d:IsA("ProximityPrompt") and (d:GetAttribute("JobOnly") or d:GetAttribute("MinStage") or d:GetAttribute("JailedOnly")) then
 		table.insert(tracked, d)
 		d.Enabled = visible(d)
 	end
@@ -51,6 +54,7 @@ function JobPrompts.init()
 	workspace.DescendantAdded:Connect(track)
 	player:GetAttributeChangedSignal("Job"):Connect(refresh)
 	player:GetAttributeChangedSignal("LifeStage"):Connect(refresh)
+	player:GetAttributeChangedSignal("JailUntil"):Connect(refresh)
 end
 
 return JobPrompts

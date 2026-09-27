@@ -12,7 +12,6 @@ local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
 local Wanted = require(ReplicatedStorage.Shared.Wanted)
-local Format = require(ReplicatedStorage.Shared.Format)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Hud = require(script.Parent.Parent.UI.Hud)
 local SoundFx = require(script.Parent.SoundFx)
@@ -93,7 +92,7 @@ local function onEvent(kind: string, data: any)
 		Hud.toast("Success", "😎 Has despistado a la policía")
 	elseif kind == "Busted" then
 		local by = if data.By then " por " .. data.By else ""
-		bigScreen("DETENIDO", ("Te han detenido%s · multa de %s"):format(by, Format.money(data.Fine)), rgb(120, 170, 255))
+		bigScreen("DETENIDO", ("Te han detenido%s · pasas a disposición judicial"):format(by), rgb(120, 170, 255))
 	elseif kind == "Alarm" then
 		local entrance = data :: BasePart
 		if typeof(entrance) == "Instance" and entrance:IsA("BasePart") then
