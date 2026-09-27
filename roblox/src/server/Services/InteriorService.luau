@@ -25,8 +25,9 @@ local SceneService = require(script.Parent.SceneService)
 
 local InteriorService = {}
 
-type Building = {
+export type Building = {
 	Id: number,
+	Key: string, -- nombre fijo (por su posición): sirve para guardar a quién pertenece
 	Model: Model,
 	Kind: string, -- tipo de la sala de la planta baja (Interiors.X)
 	Upper: string?, -- tipo de las plantas de arriba
@@ -38,7 +39,16 @@ type Building = {
 	Roof: Vector3?, -- azotea de verdad (Torre de Valmar)
 	Persistent: boolean?,
 }
-type Instance_ = { Room: Interiors.Room, Slot: number, Building: Building, Floor: number, EmptySince: number? }
+export type Instance_ = { Room: Interiors.Room, Slot: number, Building: Building, Floor: number, EmptySince: number? }
+
+-- Enganches para las viviendas (PropertyService)
+export type Hooks = {
+	Gate: ((Player, Building, number) -> (boolean, string?))?, -- ¿puede entrar en esa planta?
+	Decorate: ((Instance_) -> ())?, -- al montar una sala (vecinos, cartel de se vende…)
+	Enter: ((Player, Instance_) -> ())?, -- al entrar alguien
+	Labels: ((Building) -> { [number]: string })?, -- qué pone en el ascensor junto a cada planta
+}
+InteriorService.Hooks = {} :: Hooks
 
 local SKY_Y = 6000 -- las salas están aquí arriba, lejos de todo
 local SLOT = 220
@@ -252,6 +262,13 @@ local function instanceOf(building: Building, floor: number): Instance_?
 	local inst: Instance_ = { Room = r, Slot = slot, Building = building, Floor = floor, EmptySince = nil }
 	instances[key] = inst
 	connectRoom(inst)
+	local decorate = InteriorService.Hooks.Decorate
+	if decorate then
+		local ok, err = pcall(decorate, inst)
+		if not ok then
+			warn("[Interiores] " .. tostring(err))
+		end
+	end
 	return inst
 end
 
@@ -285,6 +302,14 @@ local function goTo(player: Player, building: Building, floor: number)
 		SceneService.teleportTo(player, building.Door - building.Out * 6)
 		return
 	end
+	local gate = InteriorService.Hooks.Gate
+	if gate then
+		local ok, allowed, why = pcall(gate, player, building, floor)
+		if ok and allowed == false then
+			Notify:FireClient(player, "Error", why or "🔒 No puedes entrar.")
+			return
+		end
+	end
 	local inst = instanceOf(building, floor)
 	if not inst then
 		return
@@ -293,6 +318,55 @@ local function goTo(player: Player, building: Building, floor: number)
 	player:SetAttribute("InteriorKey", building.Id .. ":" .. floor)
 	player:SetAttribute("InteriorDoor", building.Door + building.Out * 3)
 	SceneService.teleportTo(player, entryOf(inst))
+	local enter = InteriorService.Hooks.Enter
+	if enter then
+		task.spawn(enter, player, inst)
+	end
+end
+
+-- Llevar a alguien a una planta de un edificio (p. ej. "Ir a casa")
+function InteriorService.goTo(player: Player, building: Building, floor: number)
+	if busy(player) then
+		return
+	end
+	goTo(player, building, floor)
+end
+
+-- La sala montada de esa planta (nil si ahora no hay nadie dentro)
+function InteriorService.instance(building: Building, floor: number): Instance_?
+	local inst = instances[building.Id .. ":" .. floor]
+	return if inst and inst.Room.Model.Parent then inst else nil
+end
+
+-- Quita la sala de esa planta (se vuelve a montar al entrar: p. ej. al cambiar de dueño)
+function InteriorService.reset(building: Building, floor: number)
+	local key = building.Id .. ":" .. floor
+	local inst = instances[key]
+	if inst then
+		inst.Room.Model:Destroy()
+		instances[key] = nil
+		table.insert(freeSlots, inst.Slot)
+	end
+end
+
+function InteriorService.all(): { Building }
+	local list = {}
+	for _, building in buildings do
+		table.insert(list, building)
+	end
+	table.sort(list, function(a, b)
+		return a.Id < b.Id
+	end)
+	return list
+end
+
+function InteriorService.byKey(key: string): Building?
+	for _, building in buildings do
+		if building.Key == key then
+			return building
+		end
+	end
+	return nil
 end
 
 function InteriorService.enter(player: Player, building: Building)
@@ -317,7 +391,18 @@ local function openElevator(player: Player, building: Building)
 		return
 	end
 	player:SetAttribute("ElevatorBuilding", building.Id)
+	local labels = {}
+	local getLabels = InteriorService.Hooks.Labels
+	if getLabels then
+		local ok, result = pcall(getLabels, building)
+		if ok and type(result) == "table" then
+			for floor, text in result do
+				labels[tostring(floor)] = text
+			end
+		end
+	end
 	Remote:FireClient(player, "Elevator", {
+		Labels = labels,
 		Title = building.Title,
 		Floors = building.Floors,
 		Roof = building.Roof ~= nil,
@@ -485,6 +570,7 @@ local function scan()
 		id += 1
 		local building: Building = {
 			Id = id,
+			Key = ("%s_%d_%d"):format(entry.Kind, math.floor(cf.Position.X + 0.5), math.floor(cf.Position.Z + 0.5)),
 			Model = model,
 			Kind = entry.Kind,
 			Upper = entry.Upper,

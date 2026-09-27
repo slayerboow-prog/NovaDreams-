@@ -30,7 +30,7 @@ local function visible(prompt: ProximityPrompt): boolean
 end
 
 local function track(d: Instance)
-	if d:IsA("ProximityPrompt") and (d:GetAttribute("JobOnly") or d:GetAttribute("MinStage") or d:GetAttribute("JailedOnly")) then
+	if d:IsA("ProximityPrompt") and (d:GetAttribute("JobOnly") or d:GetAttribute("MinStage") or d:GetAttribute("JailedOnly") or d:GetAttribute("OwnerUserId")) then
 		table.insert(tracked, d)
 		d.Enabled = visible(d)
 	end
