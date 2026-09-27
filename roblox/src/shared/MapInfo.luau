@@ -82,7 +82,7 @@ MapInfo.Kinds = {
 	{ Model = "TiendaPesca", Icon = "🎣", Name = "Tienda de pesca", Important = true },
 	{ Model = "ZonaPesca", Icon = "🐟", Name = "Zona de pesca" },
 	{ Model = "BocaMetro", Icon = "🚇", Name = "Metro", Important = true },
-	-- Ciudad de la Justicia (instituciones del Estado)
+	-- Instituciones del Estado (juzgado, Hacienda y cuartel dentro de edificios de la ciudad)
 	{ Model = "PalacioJusticia", Icon = "⚖️", Name = "Palacio de Justicia", Important = true },
 	{ Model = "CentroPenitenciario", Icon = "⛓", Name = "Centro Penitenciario", Important = true },
 	{ Model = "CuartelEjercito", Icon = "🎖", Name = "Cuartel del Ejército", Important = true },

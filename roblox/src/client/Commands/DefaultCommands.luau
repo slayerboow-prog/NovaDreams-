@@ -151,6 +151,14 @@ function DefaultCommands.register()
 				end
 			end })
 		end
+		if job == "Funcionario" and other:GetAttribute("JailUntil") then
+			table.insert(out, { Id = "Registrar", Label = "Registrar", Detail = other.DisplayName, Icon = "🔦", Priority = 4.3, Accent = true, Run = function()
+				local prison = remotes and remotes:FindFirstChild("Prison") :: RemoteEvent?
+				if prison then
+					prison:FireServer("Search", other)
+				end
+			end })
+		end
 		if job == "Hacienda" and other:GetAttribute("TaxOverdue") then
 			table.insert(out, { Id = "Inspeccionar", Label = "Inspeccionar", Detail = other.DisplayName, Icon = "🏛", Priority = 4.6, Accent = true, Run = function()
 				local tax = remotes and remotes:FindFirstChild("Tax") :: RemoteEvent?

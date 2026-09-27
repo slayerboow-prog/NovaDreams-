@@ -37,6 +37,7 @@ local order = {
 	"PositionService", -- al volver a entrar apareces donde lo dejaste
 	"NeedsService",
 	"WorldService",
+	"InteriorService", -- todos los edificios por dentro (salas al entrar, ascensores e instituciones)
 	"WeatherService", -- estaciones y tiempo: sol, lluvia, tormenta, nieve, niebla
 	"ToyService", -- balones y conos con física: se patean, botan y vuelven solos a su sitio
 	"BreakService", -- piedras que se lanzan: ventanas y puertas que se rompen (y se arreglan solas)
@@ -76,6 +77,7 @@ local order = {
 	"JusticeService", -- juicios (jueces), condenas y prisión (presos y funcionarios)
 	"TaxService", -- Agencia Tributaria: declaración de la renta, agentes e inspecciones
 	"WantedService", -- delitos, testigos y estrellas de búsqueda: patrullas, agentes y helicópteros
+	"PrisonService", -- la vida en la cárcel: trabajos, deporte, estudios, comedor, túnel y aislamiento
 	"SceneService", -- actores y objetos de cada misión (solo para su jugador)
 	"LifeStoryService", -- la historia de vida escucha a todos los anteriores
 	"BabyService", -- tutorial de bebé (fase 2)

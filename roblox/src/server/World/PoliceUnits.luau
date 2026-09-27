@@ -406,6 +406,10 @@ function PoliceUnits.ensure(player: Player, stars: number)
 			table.remove(force.Cars, i)
 		end
 	end
+	-- Dentro de un edificio (sala de InteriorService) no llegan refuerzos: te esperan fuera
+	if player:GetAttribute("InteriorKey") then
+		return
+	end
 	for _ = #force.Cars + 1, want.Cars do
 		spawnCar(player, force)
 	end

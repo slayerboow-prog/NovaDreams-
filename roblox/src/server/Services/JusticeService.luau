@@ -6,8 +6,8 @@
 --     puntos por cada caso. Si no decide a tiempo, sentencia automática.
 --   * Sin juez: sentencia automática según las estrellas.
 -- En prisión (Centro Penitenciario): la condena corre con el reloj real (también desconectado,
--- porque se guarda la hora de salida). Si sales del recinto, te devuelven a tu celda. Trabajar en
--- la lavandería, la cocina o el patio reduce la condena. El/la Director/a de la prisión o el/la
+-- porque se guarda la hora de salida). Si sales del recinto, te devuelven a tu celda. Lo que se
+-- puede hacer dentro (trabajos, deporte, estudios, túnel…) está en PrisonService. El/la Director/a de la prisión o el/la
 -- Presidente/a del Tribunal pueden dejarte en libertad (comando LIBERAR a tu lado).
 -- Cada condena queda en tus antecedentes (data.Record).
 
@@ -32,7 +32,6 @@ local Remote: RemoteEvent
 local cases: { [number]: Case } = {}
 local nextCase = 0
 local nextCell = 0
-local workAt: { [Player]: number } = {}
 
 local function rootOf(player: Player): BasePart?
 	local character = player.Character
@@ -57,6 +56,23 @@ local function anchor(player: Player, on: boolean)
 	end
 end
 
+-- Cambia lo que queda de condena (negativo = menos). Devuelve los segundos que quedan.
+function JusticeService.adjust(player: Player, seconds: number): number
+	local data = DataService.get(player)
+	local jail = data and data.Jail
+	if type(jail) ~= "table" then
+		return 0
+	end
+	jail.Until = math.max(os.time(), jail.Until + math.floor(seconds))
+	player:SetAttribute("JailUntil", jail.Until)
+	return jail.Until - os.time()
+end
+
+function JusticeService.jailData(player: Player): { [string]: any }?
+	local data = DataService.get(player)
+	return data and type(data.Jail) == "table" and data.Jail or nil
+end
+
 function JusticeService.isJailed(player: Player): boolean
 	return player:GetAttribute("JailUntil") ~= nil
 end
@@ -64,7 +80,7 @@ end
 ---------------------------------------------------------------------
 -- Prisión
 ---------------------------------------------------------------------
-local function sendToCell(player: Player)
+function JusticeService.sendToCell(player: Player)
 	local cellsList = CollectionService:GetTagged("PrisonCell")
 	if #cellsList == 0 then
 		return
@@ -74,13 +90,12 @@ local function sendToCell(player: Player)
 	SceneService.teleportTo(player, cell.Position)
 end
 
-local function release(player: Player, how: string?)
+function JusticeService.release(player: Player, how: string?)
 	local data = DataService.get(player)
 	if data then
 		data.Jail = nil
 	end
 	player:SetAttribute("JailUntil", nil)
-	workAt[player] = nil
 	local exit = tagged("PrisonExit")
 	if exit and player.Parent then
 		SceneService.teleportTo(player, exit.Position)
@@ -95,12 +110,12 @@ function JusticeService.imprison(player: Player, seconds: number, reason: string
 		return
 	end
 	local untilTime = os.time() + math.floor(seconds)
-	data.Jail = { Until = untilTime, Reason = reason }
+	data.Jail = { Until = untilTime, Reason = reason, Tunnel = 0, Course = 0 }
 	player:SetAttribute("JailUntil", untilTime)
 	if player:GetAttribute("Job") then
 		JobService.quit(player, true)
 	end
-	sendToCell(player)
+	JusticeService.sendToCell(player)
 	StoryEvents.emit(player, "Imprisoned", { Seconds = seconds })
 	-- Los funcionarios de servicio reciben al nuevo preso
 	for _, guard in Players:GetPlayers() do
@@ -109,38 +124,6 @@ function JusticeService.imprison(player: Player, seconds: number, reason: string
 			CareerService.addPoints(guard, "Prisiones", "Inmate")
 		end
 	end
-end
-
--- Trabajo dentro de la prisión: reduce la condena
-local function setupWork(station: Instance)
-	if not station:IsA("BasePart") or station:FindFirstChild("PrisonWorkPrompt") then
-		return
-	end
-	local work = station:GetAttribute("Work") or "Trabajar"
-	local prompt = Instance.new("ProximityPrompt")
-	prompt.Name = "PrisonWorkPrompt"
-	prompt.ActionText = "Trabajar"
-	prompt.ObjectText = "⛓ " .. work
-	prompt.HoldDuration = 2.5
-	prompt.MaxActivationDistance = 9
-	prompt.RequiresLineOfSight = false
-	prompt:SetAttribute("JailedOnly", true) -- (solo lo ven los presos; JobPrompts)
-	prompt.Parent = station
-	prompt.Triggered:Connect(function(player)
-		local data = DataService.get(player)
-		if not data or not data.Jail then
-			return
-		end
-		if os.clock() - (workAt[player] or -math.huge) < Justice.WorkCooldown then
-			Notify:FireClient(player, "Error", "Descansa un momento antes de seguir.")
-			return
-		end
-		workAt[player] = os.clock()
-		local remaining = Justice.afterWork(data.Jail.Until - os.time())
-		data.Jail.Until = os.time() + remaining
-		player:SetAttribute("JailUntil", data.Jail.Until)
-		Notify:FireClient(player, "Success", ("⛓ %s: -%d s de condena"):format(work, Justice.WorkReduction))
-	end)
 end
 
 ---------------------------------------------------------------------
@@ -290,7 +273,7 @@ local function grantRelease(boss: Player, target: any)
 		return
 	end
 	Notify:FireClient(boss, "Success", ("Has concedido la libertad a %s."):format(target.DisplayName))
-	release(target, "Libertad concedida por " .. boss.DisplayName)
+	JusticeService.release(target, "Libertad concedida por " .. boss.DisplayName)
 end
 
 function JusticeService.init()
@@ -312,10 +295,6 @@ function JusticeService.init()
 		end
 	end)
 
-	for _, station in CollectionService:GetTagged("PrisonWork") do
-		setupWork(station)
-	end
-	CollectionService:GetInstanceAddedSignal("PrisonWork"):Connect(setupWork)
 
 	-- Al volver al juego con condena pendiente: a tu celda
 	DataService.onLoaded(function(player, data)
@@ -332,11 +311,10 @@ function JusticeService.init()
 			task.wait(0.2)
 		end
 		if player.Parent and os.time() < jail.Until then
-			sendToCell(player)
+			JusticeService.sendToCell(player)
 		end
 	end)
 	Players.PlayerRemoving:Connect(function(player)
-		workAt[player] = nil
 		for _, case in cases do
 			if case.Accused == player then
 				-- Se fue en mitad del juicio: sentencia automática (se guarda al salir)
@@ -358,12 +336,12 @@ function JusticeService.init()
 				if type(untilTime) == "number" then
 					if os.time() >= untilTime then
 						Notify:FireClient(player, "Success", "🔓 Has cumplido tu condena. Eres libre.")
-						release(player, "Condena cumplida")
+						JusticeService.release(player, "Condena cumplida")
 					else
 						local root = rootOf(player)
 						if area and root and not insideBox(area, root.Position) and not player:GetAttribute("OnTrial") then
 							Notify:FireClient(player, "Error", "⛓ No puedes salir de la prisión hasta cumplir tu condena.")
-							sendToCell(player)
+							JusticeService.sendToCell(player)
 						end
 					end
 				end

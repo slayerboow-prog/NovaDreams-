@@ -46,6 +46,11 @@ local function record(player: Player, data: { [string]: any })
 		return
 	end
 	local position = root.Position
+	-- Dentro de un edificio (sala de InteriorService): se guarda la puerta, en la calle
+	local door = player:GetAttribute("InteriorDoor")
+	if typeof(door) == "Vector3" then
+		position = door
+	end
 	local look = root.CFrame.LookVector
 	local saved = { X = position.X, Y = position.Y, Z = position.Z, Yaw = math.atan2(-look.X, -look.Z) }
 	if valid(saved) then
