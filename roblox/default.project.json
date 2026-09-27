@@ -78,6 +78,9 @@
         "Metro": {
           "$className": "RemoteEvent"
         },
+        "Bus": {
+          "$className": "RemoteEvent"
+        },
         "Diving": {
           "$className": "RemoteEvent"
         },

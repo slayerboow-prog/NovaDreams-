@@ -265,7 +265,7 @@ FakeMeta.__newindex = function(self, key, value)
 				added:Fire(self)
 			end
 		end
-	elseif key == "Position" then
+	elseif key == "Position" and typeof(value) == "Vector3" then -- (en la interfaz, Position es un UDim2)
 		props.CFrame = CFrame.new(value) * (props.CFrame and props.CFrame.Rotation or CFrame.new())
 	else
 		props[key] = value
@@ -347,6 +347,7 @@ local remotes = {
 	Trade = remote(),
 	Fishing = remote(),
 	Metro = remote(),
+	Bus = remote(),
 	Diving = remote(),
 	SeaEvent = remote(),
 	Social = remote(),
@@ -1731,76 +1732,236 @@ promptOf(receptionDesk, "Pedir cita").Triggered:Fire(walkIn)
 check(profiles[walkIn].Money == 20 - Medical.QuickVisitPrice, "sin médico de guardia, la consulta rápida cuesta poco y te atiende el médico NPC")
 
 ---------------------------------------------------------------------
-print("▶ Autobús urbano L1: billete, paradas y conductor")
-services.RunService = services.RunService or { Heartbeat = signal() }
-local ambient = fakeInstance("Folder")
-local roadsFolder = fakeInstance("Folder")
-roadsFolder.Name = "Roads"
-roadsFolder.Parent = ambient
-services.ReplicatedStorage.Ambient = ambient
-local function road(a, b)
-	local c = fakeInstance("Configuration")
-	c:SetAttribute("A", a)
-	c:SetAttribute("B", b)
-	c:SetAttribute("Width", 24)
-	c.Parent = roadsFolder
-end
-road(Vector3.new(0, 0, 2000), Vector3.new(400, 0, 2000))
-road(Vector3.new(400, 0, 2000), Vector3.new(400, 0, 2400))
-road(Vector3.new(400, 0, 2400), Vector3.new(0, 0, 2400))
-road(Vector3.new(0, 0, 2400), Vector3.new(0, 0, 2000))
-local centroStop = part("TravelPoint", CFrame.new(200, 2, 1985), { "TravelStop" }, { Town = "Valmar Centro" })
-part("TravelPoint", CFrame.new(200, 2, 2415), { "TravelStop" }, { Town = "Los Pinos" })
-local BusService = loadModule(S .. "BusService")
-BusService.init()
-task.wait(0.3)
-local busesFolder = worldRoot:FindFirstChild("Buses")
-check(busesFolder ~= nil and #busesFolder:GetChildren() == Gameplay.Bus.NpcBuses, "salen los autobuses automáticos de la línea L1")
-local openBus = nil
-for _ = 1, 600 do
-	services.RunService.Heartbeat:Fire(0.1)
-	for _, m in busesFolder:GetChildren() do
-		if m:GetAttribute("DoorsOpen") then
-			openBus = m
+;(function() -- (en una función: sus variables no cuentan para el límite de locales del archivo)
+	print("▶ Autobuses urbanos: líneas, paradas, paneles de llegada, pasajeros y conductor")
+	services.RunService = services.RunService or { Heartbeat = signal() }
+	local ambient = fakeInstance("Folder")
+	local roadsFolder = fakeInstance("Folder")
+	roadsFolder.Name = "Roads"
+	roadsFolder.Parent = ambient
+	services.ReplicatedStorage.Ambient = ambient
+	local roadCount = 0
+	local function road(a, b, width, kind)
+		roadCount += 1
+		local c = fakeInstance("Configuration")
+		c.Name = "Road" .. roadCount
+		c:SetAttribute("A", a)
+		c:SetAttribute("B", b)
+		c:SetAttribute("Width", width or 24)
+		c:SetAttribute("Kind", kind)
+		c.Parent = roadsFolder
+		return c
+	end
+	-- Las calles de verdad de Valmar, en el mismo orden que las publica el servidor
+	local BusLinesMod = loadModule(ROOT .. "/shared/BusLines")
+	-- (la prueba usa un Region de mentira: para las calles se carga un momento el de verdad)
+	local regionPath = ROOT .. "/server/World/Region"
+	local fakeRegion = mocks[regionPath]
+	mocks[regionPath] = nil
+	local cityRoads = loadModule(ROOT .. "/server/World/Kit/BusStops").roads()
+	mocks[regionPath] = fakeRegion
+	cache[regionPath] = nil
+	local realRoads = {}
+	for _, r in cityRoads do
+		table.insert(realRoads, road(r.A, r.B, r.Width, r.Kind))
+	end
+	local centroStop = part("TravelPoint", CFrame.new(200, 2, 1985), { "TravelStop" }, { Town = "Valmar Centro" })
+	local BusService = loadModule(S .. "BusService")
+	BusService.init()
+	waitFor(function()
+		return BusService.isReady()
+	end, 120, "la red de autobuses")
+	local busLines = BusService.lines()
+	local signs = {}
+	for _, d in worldRoot:GetDescendants() do
+		if d:HasTag("BusStop") then
+			signs[d:GetAttribute("StopId")] = d
 		end
 	end
-	if openBus then
-		break
+	local signCount = 0
+	for _ in signs do
+		signCount += 1
 	end
-end
-check(openBus ~= nil and openBus:GetAttribute("CurrentStop") ~= nil, "un autobús llega a una parada y abre las puertas")
-local rider, _, riderHumanoid = newPlayer(40, "Adulto", 10)
-promptOf(openBus, "Subir").Triggered:Fire(rider)
-check(riderHumanoid.SeatPart ~= nil and riderHumanoid.SeatPart.Name == "PassengerSeat" and profiles[rider].Money == 10 - Gameplay.Bus.Fare, "paga el billete y se sienta dentro")
-riderHumanoid.Sit = false
-check(riderHumanoid.SeatPart == nil, "saltando se baja del autobús")
-local broke, _, brokeHumanoid = newPlayer(41, "Adulto", 0)
-promptOf(openBus, "Subir").Triggered:Fire(broke)
-check(brokeHumanoid.SeatPart == nil and notified(broke, "billete"), "sin dinero no se puede subir")
-promptOf(centroStop, "🚌 Trabajar de conductor").Triggered:Fire(broke)
-check(broke:GetAttribute("Job") == nil and notified(broke, "carnet"), "sin carnet no se puede ser conductor")
-local driverMoney = profiles[adult].Money
-promptOf(centroStop, "🚌 Trabajar de conductor").Triggered:Fire(adult)
-check(adult:GetAttribute("Job") == "Conductor" and adult:GetAttribute("Riding") == "Autobus", "con carnet se hace conductor y se sube a su autobús")
-local target = adult:GetAttribute("TaskTarget")
-check(typeof(target) == "Vector3", "la línea azul le lleva a la siguiente parada")
-local driverBus = nil
-for _, d in worldRoot:GetDescendants() do
-	if d.Name == "Autobus_" .. adult.Name then
-		driverBus = d
+	check(#busLines >= 5 and signCount >= 40, ("%d líneas y %d paradas con su marquesina (se construyen si el mapa no las trae)"):format(#busLines, signCount))
+	local onRoute = true
+	for _, line in busLines do
+		for _, stop in line.Stops do
+			local point = stop.Sign and stop.Sign:GetAttribute("StopPoint")
+			local p = BusLinesMod.pointAt(line.Plan, stop.S)
+			onRoute = onRoute and typeof(point) == "Vector3" and (Vector3.new(p.X, 0, p.Z) - Vector3.new(point.X, 0, point.Z)).Magnitude < 3
+		end
 	end
-end
-local chassis = driverBus and driverBus.PrimaryPart
-chassis.CFrame = CFrame.new(target + Vector3.new(0, 1, 0))
-chassis.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-for _ = 1, 25 do
-	services.RunService.Heartbeat:Fire(0.1)
-	task.wait(0.1)
-end
-check(profiles[adult].Money >= driverMoney + Gameplay.Bus.DriverPerStop and driverBus:GetAttribute("DoorsOpen") == true, "para en la parada: se abren las puertas y cobra")
-remotes.QuitJob.OnServerEvent:Fire(adult)
-check(adult:GetAttribute("Job") == nil and adult:GetAttribute("Riding") == nil, "deja el turno y se baja")
+	check(onRoute, "cada parada de cada línea está en su recorrido (el autobús para junto a la marquesina)")
+	local allBuses = BusService.buses()
+	local expected = 0
+	for _, line in busLines do
+		expected += line.Def.Buses
+	end
+	local noDriver = #allBuses == expected
+	for _, bus in allBuses do
+		noDriver = noDriver and bus.Driver == nil and bus.Model:FindFirstChild("BusDriverNpc") ~= nil
+	end
+	check(noDriver and #worldRoot:FindFirstChild("Buses"):GetChildren() == expected, ("salen %d autobuses con conductor del juego (sin ningún conductor jugador)"):format(expected))
+	local before = {}
+	for _, bus in allBuses do
+		before[bus] = bus.S
+	end
+	for _ = 1, 50 do
+		services.RunService.Heartbeat:Fire(0.1)
+	end
+	local moving = true
+	for _, bus in allBuses do
+		moving = moving and (bus.S ~= before[bus] or bus.DoorsOpen)
+	end
+	check(moving, "circulan solos por sus líneas")
 
+	-- Un autobús de la L1 llega a una parada y abre las puertas
+	local l1 = BusService.lineOf("L1")
+	local function step(times, until_)
+		for _ = 1, times do
+			services.RunService.Heartbeat:Fire(0.1)
+			if until_ and until_() then
+				return true
+			end
+		end
+		return false
+	end
+	local openBus = nil
+	step(4000, function()
+		for _, bus in allBuses do
+			if bus.Line == l1 and bus.DoorsOpen and bus.AtStop then
+				openBus = bus
+				return true
+			end
+		end
+		return false
+	end)
+	check(openBus ~= nil and openBus.Model:GetAttribute("CurrentStop") ~= nil and openBus.Model:GetAttribute("DoorsOpen") == true, "un autobús de la L1 para en una parada y abre las puertas")
+	local boardStop = openBus.Line.Stops[openBus.AtStop]
+	local boardSign = boardStop.Sign
+	services.RunService.Heartbeat:Fire(2) -- (se publican los paneles)
+	local stopPromptObj = promptOf(boardSign, nil)
+	check(stopPromptObj ~= nil and stopPromptObj.ActionText == "Subir al bus (L1)", "en la parada, el cartel del poste dice «Subir al bus (L1)»")
+
+	-- Un niño sube gratis desde la parada, pide bajar en la próxima y baja en la acera
+	local kid, kidRoot, kidHumanoid = newPlayer(60, "Nino", 0)
+	moveTo(kidRoot, boardSign.Position + Vector3.new(0, -8, 0))
+	stopPromptObj.Triggered:Fire(kid)
+	check(kidHumanoid.SeatPart ~= nil and kidHumanoid.SeatPart.Name == "PassengerSeat" and kidHumanoid.SeatPart:IsDescendantOf(openBus.Model), "un niño sube al autobús desde la parada y se sienta")
+	check(profiles[kid].Money == 0 and notified(kid, "gratis"), "los niños viajan gratis")
+	check(kid:GetAttribute("BusLine") == "L1", "el pasajero sabe en qué línea va (panel del autobús)")
+	local teen, teenRoot, teenHumanoid = newPlayer(61, "Adolescente", 10)
+	moveTo(teenRoot, boardSign.Position + Vector3.new(0, -8, 0))
+	promptOf(openBus.Model, "Subir al bus (L1)").Triggered:Fire(teen)
+	check(teenHumanoid.SeatPart ~= nil and profiles[teen].Money == 10 - Gameplay.Bus.Fares.Adolescente, "un adolescente sube por la puerta y paga medio billete")
+	local broke, brokeRoot, brokeHumanoid = newPlayer(41, "Adulto", 0)
+	moveTo(brokeRoot, boardSign.Position + Vector3.new(0, -8, 0))
+	stopPromptObj.Triggered:Fire(broke)
+	check(brokeHumanoid.SeatPart == nil and notified(broke, "billete"), "un adulto sin dinero no puede subir")
+	local rider, riderRoot, riderHumanoid = newPlayer(40, "Adulto", 10)
+	moveTo(riderRoot, boardSign.Position + Vector3.new(0, -8, 0))
+	stopPromptObj.Triggered:Fire(rider)
+	check(riderHumanoid.SeatPart ~= nil and profiles[rider].Money == 10 - Gameplay.Bus.Fare, "un adulto paga el billete entero")
+	local far, farRoot, farHumanoid = newPlayer(42, "Adulto", 10)
+	moveTo(farRoot, boardSign.Position + Vector3.new(300, -8, 0))
+	stopPromptObj.Triggered:Fire(far)
+	check(farHumanoid.SeatPart == nil and profiles[far].Money == 10, "desde lejos no se puede subir")
+	moveTo(brokeRoot, Vector3.new(9000, 0, 9000))
+	moveTo(farRoot, Vector3.new(9000, 0, 9000))
+
+	-- El autobús arranca (espera un poco si hay alguien en la parada)
+	step(400, function()
+		return not openBus.DoorsOpen
+	end)
+	check(not openBus.DoorsOpen and openBus.AtStop == nil, "cierra las puertas y sigue su ruta")
+	-- Saltar con el autobús en marcha: vuelves a tu asiento y se pide la parada
+	teenRoot.CFrame = teenHumanoid.SeatPart.CFrame -- (sentado, el personaje va pegado al asiento)
+	teenHumanoid.Sit = false
+	task.wait(0.05)
+	check(teenHumanoid.SeatPart ~= nil and openBus.Model:GetAttribute("StopRequested") == true, "si saltas en marcha no te caes: vuelves al asiento y se pide parada")
+	remotes.Bus.OnServerEvent:Fire(kid, "Request")
+	check(openBus.Model:GetAttribute("StopRequested") == true and notified(kid, "Parada solicitada"), "«Bajar en la próxima»: parada solicitada (timbre)")
+
+	-- El panel de la próxima parada: el tiempo baja a medida que se acerca
+	local nextStop = openBus.Line.Stops[openBus.NextStop]
+	local function etaAt(stopId, lineId)
+		local best = nil
+		for _, a in BusService.arrivals()[stopId] or {} do
+			if a.Line == lineId and (best == nil or a.Seconds < best) then
+				best = a.Seconds
+			end
+		end
+		return best
+	end
+	local eta1 = etaAt(nextStop.Id, "L1")
+	step(30)
+	local eta2 = etaAt(nextStop.Id, "L1")
+	check(eta1 ~= nil and eta2 ~= nil and eta2 < eta1, ("el tiempo de llegada baja a medida que se acerca (%s → %s s)"):format(tostring(eta1 and math.floor(eta1)), tostring(eta2 and math.floor(eta2))))
+	services.RunService.Heartbeat:Fire(2)
+	local boardRows = BusLinesMod.decodeBoard(nextStop.Sign:GetAttribute("Board"))
+	local hasL1 = false
+	for _, a in boardRows do
+		hasL1 = hasL1 or a.Line == "L1"
+	end
+	check(hasL1 and string.find(promptOf(nextStop.Sign, nil).ObjectText, "L", 1, true) ~= nil, "el panel de la parada y su cartel dicen cuánto falta: " .. (if boardRows[1] then BusLinesMod.boardText(boardRows[1]) else "(vacío)"))
+
+	-- Llega a la siguiente parada: el niño y el adolescente bajan en la acera, junto a la marquesina
+	step(4000, function()
+		return openBus.DoorsOpen and openBus.AtStop ~= nil
+	end)
+	task.wait(0.05)
+	local exitStop = openBus.Line.Stops[openBus.AtStop]
+	check(exitStop.Id == nextStop.Id, "para en la siguiente parada")
+	local kidPos = kidRoot.CFrame.Position
+	local signPos = exitStop.Sign.Position
+	check(kidHumanoid.SeatPart == nil and kid:GetAttribute("BusLine") == nil and notified(kid, "Has bajado"), "el niño baja en la parada que pidió")
+	local stopInfo = exitStop.Info
+	local across = (Vector3.new(kidPos.X, 0, kidPos.Z) - stopInfo.Center):Dot(stopInfo.Right)
+	check((Vector3.new(kidPos.X, 0, kidPos.Z) - Vector3.new(signPos.X, 0, signPos.Z)).Magnitude < 30 and across > stopInfo.Width / 2 and across < stopInfo.Width / 2 + stopInfo.Walk and math.abs(kidPos.Y - 4) < 0.5, "y aparece en la acera, al lado de la marquesina (no en la calzada)")
+	check(teenHumanoid.SeatPart == nil, "el que saltó en marcha también baja en esta parada")
+	check(riderHumanoid.SeatPart ~= nil, "quien no pidió parada sigue sentado")
+	riderHumanoid.Sit = false
+	task.wait(0.05)
+	check(riderHumanoid.SeatPart == nil, "con las puertas abiertas, saltando se baja")
+	for _, p in { kid, teen, rider } do
+		p.Character:FindFirstChild("HumanoidRootPart").CFrame = CFrame.new(9000, 3, 9000)
+	end
+
+	-- Oficio de conductor: con la red en marcha, un jugador conduce su autobús en la línea más cercana
+	promptOf(centroStop, "🚌 Trabajar de conductor").Triggered:Fire(broke)
+	check(broke:GetAttribute("Job") == nil and notified(broke, "carnet"), "sin carnet no se puede ser conductor")
+	local driverMoney = profiles[adult].Money
+	moveTo(adultRoot, Vector3.new(0, 0, 600))
+	promptOf(centroStop, "🚌 Trabajar de conductor").Triggered:Fire(adult)
+	check(adult:GetAttribute("Job") == "Conductor" and adult:GetAttribute("Riding") == "Autobus", "con carnet se hace conductor y se sube a su autobús")
+	local target = adult:GetAttribute("TaskTarget")
+	check(typeof(target) == "Vector3", "la línea azul le lleva a la siguiente parada")
+	local driverBus = nil
+	for _, d in worldRoot:GetDescendants() do
+		if d.Name == "Autobus_" .. adult.Name then
+			driverBus = d
+		end
+	end
+	check(#BusService.buses() == expected + 1, "los autobuses del juego siguen circulando con el conductor jugador")
+	local chassis = driverBus and driverBus.PrimaryPart
+	chassis.CFrame = CFrame.new(target + Vector3.new(0, 1, 0))
+	chassis.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+	for _ = 1, 25 do
+		services.RunService.Heartbeat:Fire(0.1)
+		task.wait(0.1)
+	end
+	check(profiles[adult].Money >= driverMoney + Gameplay.Bus.DriverPerStop and driverBus:GetAttribute("DoorsOpen") == true, "para en la parada: se abren las puertas y cobra")
+	remotes.QuitJob.OnServerEvent:Fire(adult)
+	check(adult:GetAttribute("Job") == nil and adult:GetAttribute("Riding") == nil, "deja el turno y se baja")
+	-- (para las pruebas de después: se quitan las calles de la ciudad y quedan unas pocas de prueba)
+	for _, c in realRoads do
+		c:Destroy()
+	end
+	road(Vector3.new(0, 0, 2000), Vector3.new(400, 0, 2000))
+	road(Vector3.new(400, 0, 2000), Vector3.new(400, 0, 2400))
+	road(Vector3.new(400, 0, 2400), Vector3.new(0, 0, 2400))
+	road(Vector3.new(0, 0, 2400), Vector3.new(0, 0, 2000))
+end)()
 ---------------------------------------------------------------------
 print("▶ Policía: avisos por la ciudad (robo, multa, accidente, persona perdida)")
 -- (las calles de la prueba del autobús sirven para los avisos)
