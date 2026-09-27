@@ -17,19 +17,19 @@ local player = Players.LocalPlayer
 -- Ángulo (grados: 180 = a la izquierda del botón de saltar, 90 = encima), anillo (1 o 2) y tamaño
 local SLOTS = {
 	Golpear = { Angle = 180, Ring = 1, Size = 64 },
-	Defender = { Angle = 128, Ring = 1, Size = 54 },
-	Correr = { Angle = 85, Ring = 1, Size = 56 },
+	Defender = { Angle = 132, Ring = 1, Size = 54 },
+	Correr = { Angle = 80, Ring = 1, Size = 56 },
 	Piedra = { Angle = 170, Ring = 2, Size = 48 },
 	Linterna = { Angle = 145, Ring = 2, Size = 46 },
 	Foto = { Angle = 118, Ring = 2, Size = 46 },
 	Extra = { Angle = 92, Ring = 2, Size = 46 }, -- (bajarse del vehículo, claxon…)
 	Claxon = { Angle = 180, Ring = 1, Size = 60 }, -- conduciendo, en el sitio de golpear
-	Bajarse = { Angle = 85, Ring = 1, Size = 56 }, -- conduciendo (o de pasajero), en el sitio de correr
-	Sirena = { Angle = 128, Ring = 1, Size = 54 },
+	Bajarse = { Angle = 80, Ring = 1, Size = 56 }, -- conduciendo (o de pasajero), en el sitio de correr
+	Sirena = { Angle = 132, Ring = 1, Size = 54 },
 	-- Pedales (conduciendo; el volante es el joystick de Roblox, a la izquierda)
 	Acelerar = { Angle = 130, Ring = 2, Size = 72 },
-	Frenar = { Angle = 170, Ring = 2, Size = 64 },
-	FrenoMano = { Angle = 215, Ring = 1, Size = 50 },
+	Frenar = { Angle = 160, Ring = 2, Size = 64 },
+	FrenoMano = { Angle = 105, Ring = 2, Size = 50 },
 }
 
 -- Centro del botón de saltar de Roblox (desde la esquina de abajo a la derecha) y su radio
