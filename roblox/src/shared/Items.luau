@@ -12,6 +12,8 @@
 --   Wear     te lo pones o te lo quitas
 --   Thing / Prize / Document   solo se guarda (recados, recuerdos, papeles)
 --   Keepsake  objeto de la historia (la mochila del cole, la foto del grupo…): no se tira
+--   Gadget    invento exclusivo de las misiones locas de Cosme (pistola de rayos, mando de dimensiones…):
+--             se usa desde la barra rápida y hace su efecto (server/Services/GadgetService); no se gasta
 
 local Gameplay = require(script.Parent.Gameplay)
 local ShopItems = require(script.Parent.LifeStory.ShopItems)
@@ -33,6 +35,10 @@ export type Item = {
 	Hunger: number?,
 	Energy: number?,
 	Ref: string?, -- clave en su sistema (vehículo, premio, carnet…)
+	Effect: string?, -- (Gadget) qué hace al usarlo
+	Color: { number }?,
+	Lines: string?,
+	Cooldown: number?,
 }
 
 local ICONS = {
@@ -153,10 +159,42 @@ local KEEPSAKES = {
 	{ "PrimeraNomina", "Tu primera nómina completa", "💶", "Con tu nombre, tu puesto y, ay, las retenciones." },
 	{ "ConchaAbu", "Una concha de Playa Dorada", "🐚", "«Para que vuelvas aquí. Con quien tú quieras.»" },
 	{ "FotoReencuentro", "Foto del reencuentro", "📸", "Todo el grupo en la cafetería de Omar. Más altos, igual de ruidosos." },
-	{ "CuadernoProfesiones", "Cuaderno de profesiones", "📓", "Lo que viste en la semana de las profesiones. «Dentro de unos años lo leerás y te reirás. O no.»" },
+	{ "CuadernoProfesiones", "Cuaderno de profesiones", "📓", "Lo que viste en la semana de las profesiones. «Dentro de unos años lo leerás y te reirás. O no.»" },	-- Recuerdos exclusivos de las misiones locas
+	{ "CoronaBigotes", "Corona del emperador Bigotes", "👑", "Mide dos centímetros. En Gatonia es enorme. Huele un poco a jamón." },
+	{ "FotoClones", "Foto con tus clones", "📸", "Cuatro como tú haciendo el signo de la victoria. Uno tiene plastilina en la boca." },
+	{ "MonedaPerez", "Moneda del Ratón Pérez", "🪙", "Oro de verdad, del año 1702. Un pirata la cambió por su último diente." },
+	{ "LapizDimensional", "Lápiz de la Dimensión Examen", "✏️", "Escribe solo respuestas correctas… de preguntas que nadie ha hecho." },
+	{ "FichaDorada", "Ficha dorada de Zoltán", "🟡", "La última ficha de la máquina de los deseos. Mejor no gastarla. Nunca." },
+	{ "DienteRex", "Diente de Rex", "🦖", "Rex te lo regaló al mudarse. «Me salen nuevos cada martes.»" },
+	{ "DiplomaUniverso", "Diploma del Universo", "📜", "Firmado por El Evaluador: «La Tierra aprueba. Por los pelos. Gracias a este humano.»" },
+	{ "TarjetaGalactica", "Tarjeta del Banco Galáctico", "💳", "Sin límite. En ninguna tienda de la Tierra la aceptan. En Plutón, sí." },
+	{ "GnomoAliado", "Rigoberto, gnomo aliado", "🧙", "Firmó la paz contigo. Ahora vigila tu jardín. Por la noche se mueve un poco." },
+	{ "PerillaMalvada", "La perilla de tu yo malvado", "🥸", "Postiza. Se la quitaste en el duelo. Sin ella, tu yo malvado es solo un yo triste." },
 }
 for _, entry in KEEPSAKES do
 	list[entry[1]] = { Id = entry[1], Name = entry[2], Icon = entry[3], Kind = "Keepsake", Desc = entry[4], Stack = 99 }
+end
+
+-- Gadgets: recompensas exclusivas de las misiones secundarias locas (una por misión, no se venden)
+--   Effect = Beam (rayo) | Bubbles (burbujas) | Teleport (salto de dimensión) | Message (dice algo) | Sparkle (brillo)
+local GADGETS = {
+	{ "PistolaBurbujas", "Pistola de burbujas cuánticas", "🫧", "Invento de Cosme. Las burbujas existen en tres dimensiones a la vez. Explotan en las tres.", { Effect = "Bubbles" } },
+	{ "RayoEncogedor", "Rayo encogedor", "🔬", "El rayo que convirtió un pollo de 6 metros en un pollo normal. Ahora solo hace «bzzzt» y da cosquillas.", { Effect = "Beam", Color = { 190, 90, 255 }, Cooldown = 1 } },
+	{ "MovilFuturo", "Móvil del futuro", "📱", "Recibe mensajes de ti dentro de 10 años. Casi todos son sobre qué no comer.", { Effect = "Message", Lines = "Futuro", Cooldown = 4 } },
+	{ "CascosAntiHipnosis", "Cascos anti-hipnosis", "🎧", "Suena una canción tan pegadiza que anula cualquier otra. Incluidas las de los alienígenas.", { Effect = "Sparkle", Color = { 255, 120, 220 }, Cooldown = 2 } },
+	{ "PipBolsillo", "Pip de bolsillo", "🤖", "Una copia pequeñita de Pip, el robot de Cosme. Ya ha encontrado su propósito: hablarte.", { Effect = "Message", Lines = "Pip", Cooldown = 4 } },
+	{ "PistolaRayos", "Pistola de rayos alienígena", "🔫", "Te la quedaste en el Monte del Silencio. Dispara un rayo verde que hace «piuuu». Los de la nave la echan de menos.", { Effect = "Beam", Color = { 90, 255, 120 }, Cooldown = 0.6 } },
+	{ "MandoDimensiones", "Mando de dimensiones", "🌀", "Abre un portal y te lleva a otro sitio de la región. Cosme dice que «casi nunca» te lleva a una dimensión de gatos.", { Effect = "Teleport", Cooldown = 45 } },
+	{ "GafasImpostores", "Gafas de ver impostores", "🕶️", "Todo el que las mira se siente observado. Los cambiaformas, mucho más.", { Effect = "Sparkle", Color = { 120, 255, 255 }, Cooldown = 2 } },
+	{ "TazaTiempo", "Taza del tiempo", "☕", "El café nunca se enfría porque siempre es el mismo segundo dentro de la taza.", { Effect = "Message", Lines = "Taza", Cooldown = 4 } },
+	{ "TostadoraCosme", "La tostadora de Cosme", "🍞", "Un trozo de la mente de Cosme vive aquí. Opina de todo. Tuesta regular.", { Effect = "Message", Lines = "Tostadora", Cooldown = 4 } },
+}
+for _, entry in GADGETS do
+	local item = { Id = entry[1], Name = entry[2], Icon = entry[3], Kind = "Gadget", Desc = entry[4], Stack = 1 }
+	for key, value in entry[5] do
+		item[key] = value
+	end
+	list[entry[1]] = item
 end
 
 Items.List = list

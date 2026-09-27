@@ -56,6 +56,8 @@ type Progress = {
 	Step: number,
 	Count: number,
 	Sub: { [string]: boolean }?,
+	Hits: { [string]: number }?, -- (Fight) impactos a cada enemigo
+	Caught: number?, -- (Escape/Fight) cuántas veces te han atrapado en este paso
 	WaitUntil: number?,
 	Started: number,
 	Kind: string,
@@ -76,6 +78,8 @@ type Runtime = {
 	NudgedAt: { [string]: number }, -- misión -> último "¡date prisa!"
 	Fallback: { [string]: boolean }, -- misión -> ya se lanzó el plan B de este paso
 	Busy: boolean, -- una conversación, un minijuego o una clase de la historia en marcha
+	CaughtAt: number?, -- (Escape/Fight) la última vez que te atrapó un enemigo
+	LastHit: number?, -- (Fight) último disparo (no se puede disparar más rápido que esto)
 }
 local runtime: { [Player]: Runtime } = {}
 local dayRng = Random.new()
@@ -418,6 +422,9 @@ local function placeArgs(step: { [string]: any }, prog: Progress?, story: Data):
 	if step.Type == "Event" and (step.Count or 1) > 1 then
 		args.count = if prog then prog.Count else 0
 		args.total = step.Count
+	elseif step.Type == "Fight" then
+		args.count = if prog then prog.Count else 0
+		args.total = #(step.Enemies or {})
 	end
 	return args
 end
@@ -451,6 +458,13 @@ function sceneTarget(player: Player, questId: string, step: { [string]: any }): 
 	end
 	if step.Type == "Talk" or step.Type == "Chase" then
 		return actorPosition(step.Npc)
+	elseif step.Type == "Fight" then
+		for _, enemy in step.Enemies or {} do
+			local position = actorPosition(enemy.Npc)
+			if position then
+				return position
+			end
+		end
 	elseif step.Type == "Use" then
 		return propPosition(step.Prop)
 	elseif step.Type == "Choice" then
@@ -504,7 +518,7 @@ local function publish(player: Player, force: boolean?)
 						end
 					end
 				end
-			elseif step.Type == "Talk" or step.Type == "Use" or step.Type == "Choice" or step.Type == "Chase" then
+			elseif step.Type == "Talk" or step.Type == "Use" or step.Type == "Choice" or step.Type == "Chase" or step.Type == "Fight" then
 				target = sceneTarget(player, trackedId, step)
 				if not target and step.Place then
 					local spot = rt.Spots[spotKey(trackedId, prog)]
@@ -654,6 +668,20 @@ local function sceneFor(player: Player, data: Data, questId: string): ({ { [stri
 	addActors(quest.Actors)
 	if step then
 		addActors(step.Actors)
+		if step.Type == "Fight" then
+			-- Los enemigos que quedan en pie: te persiguen y el botón es para atacar
+			local enemies = {}
+			for _, enemy in step.Enemies or {} do
+				if not (prog.Sub and prog.Sub[enemy.Npc]) then
+					local spec = table.clone(enemy)
+					spec.Mode = spec.Mode or "Hunt"
+					spec.Action = spec.Action or step.Action or "Atacar"
+					spec.Place = spec.Place or step.Place
+					table.insert(enemies, spec)
+				end
+			end
+			addActors(enemies)
+		end
 		for _, id in step.Props or {} do
 			addProp(id)
 		end
@@ -699,6 +727,7 @@ local story_defaults -- se define más abajo
 local processLater -- se define más abajo
 local resumeAll -- se define más abajo
 local groupDone -- se define más abajo
+local hitEnemy -- se define más abajo
 
 -- Prepara el paso actual de una misión. Los pasos "instantáneos" (Moment, Transition, If que no
 -- se cumple) se resuelven aquí mismo y se pasa al siguiente.
@@ -718,6 +747,7 @@ local function enterStep(player: Player, data: Data, questId: string)
 		end
 		prog.Count = 0
 		prog.Sub = nil
+		prog.Hits = nil
 		prog.WaitUntil = nil
 		if rt then
 			rt.StepStart[questId] = os.clock()
@@ -752,6 +782,9 @@ local function enterStep(player: Player, data: Data, questId: string)
 			prog.WaitUntil = GameClock.now().TotalMinutes + step.GameMinutes
 		elseif step.Type == "Group" then
 			prog.Sub = {}
+		elseif step.Type == "Fight" then
+			prog.Sub = {}
+			prog.Hits = {}
 		elseif step.Type == "Choice" then
 			if not worldChoice(step) then
 				sendChoice(player, questId, step)
@@ -1327,6 +1360,32 @@ local function tickPlayer(player: Player, data: Data)
 			elseif since > 10 then
 				advance(player, data, questId)
 			end
+		elseif step.Type == "Escape" or step.Type == "Fight" then
+			-- Te persiguen: si te atrapan, vuelves al punto de partida (y en una huida, a empezar)
+			local rt = runtime[player]
+			local busy = rt.Busy or DialogueService.isBusy(player)
+			if not busy and (not rt.CaughtAt or os.clock() - rt.CaughtAt > 3) then
+				local by = SceneService.caught(player, questId, step.Catch or 3.5)
+				if by then
+					rt.CaughtAt = os.clock()
+					prog.Caught = (prog.Caught or 0) + 1
+					DialogueService.bark(player, by, step.CaughtLine or "¡Te tengo!")
+					if step.Respawn then
+						SceneService.teleport(player, step.Respawn)
+					end
+					if step.Type == "Escape" then
+						rt.StepStart[questId] = os.clock()
+					end
+					StoryEvents.emit(player, "Caught", { Quest = questId, By = by })
+				end
+			end
+			if step.Type == "Escape" then
+				local since = os.clock() - (rt.StepStart[questId] or os.clock())
+				local reached = step.Place ~= nil and checkReach(player, data, questId, prog, step)
+				if reached or (step.Seconds and since >= step.Seconds) then
+					advance(player, data, questId)
+				end
+			end
 		elseif step.Type == "Wait" then
 			if prog.WaitUntil and GameClock.now().TotalMinutes >= prog.WaitUntil then
 				advance(player, data, questId)
@@ -1526,6 +1585,34 @@ function interactProp(player: Player, data: Data, questId: string, propId: strin
 end
 
 -- El jugador ha hablado con un actor o usado un objeto de una escena (lo avisa SceneService)
+-- Un golpe (rayo, globo de agua, lo que diga la misión) a un enemigo del combate
+function hitEnemy(player: Player, data: Data, questId: string, prog: Progress, step: { [string]: any }, enemy: { [string]: any })
+	local hits = prog.Hits or {}
+	prog.Hits = hits
+	hits[enemy.Npc] = (hits[enemy.Npc] or 0) + 1
+	SceneService.hit(player, questId, enemy.Npc, step.BeamColor)
+	if hits[enemy.Npc] < (enemy.HP or step.HP or 3) then
+		if enemy.Hurt and hits[enemy.Npc] == 1 then
+			DialogueService.bark(player, enemy.Npc, enemy.Hurt)
+		end
+		return
+	end
+	local sub = prog.Sub or {}
+	prog.Sub = sub
+	sub[enemy.Npc] = true
+	prog.Count += 1
+	SceneService.defeat(player, questId, enemy.Npc)
+	if enemy.Bye then
+		DialogueService.bark(player, enemy.Npc, enemy.Bye)
+	end
+	StoryEvents.emit(player, "EnemyDefeated", { Quest = questId, Npc = enemy.Npc })
+	if prog.Count >= #(step.Enemies or {}) then
+		advance(player, data, questId)
+	else
+		publish(player)
+	end
+end
+
 function LifeStoryService.interact(player: Player, kind: string, questId: string, id: string)
 	local data = DataService.get(player)
 	local rt = runtime[player]
@@ -1543,6 +1630,18 @@ function LifeStoryService.interact(player: Player, kind: string, questId: string
 		return
 	end
 	local step = stepsOf(questId, prog)[prog.Step]
+	-- 0) Combate: el botón del enemigo es atacar
+	if step and step.Type == "Fight" then
+		for _, enemy in step.Enemies or {} do
+			if enemy.Npc == id then
+				if not (prog.Sub and prog.Sub[id]) and (not rt.LastHit or os.clock() - rt.LastHit >= 0.25) then
+					rt.LastHit = os.clock()
+					hitEnemy(player, data, questId, prog, step, enemy)
+				end
+				return
+			end
+		end
+	end
 	-- 1) Hablar con este personaje ES elegir (unirte a un grupo del recreo…)
 	if step and step.Type == "Choice" then
 		for _, option in step.Options do

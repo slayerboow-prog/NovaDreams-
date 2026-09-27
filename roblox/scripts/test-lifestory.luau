@@ -313,6 +313,21 @@ mocks[ROOT .. "/server/Services/SceneService"] = {
 		return scene ~= nil and scene.Actors[npc] ~= nil
 	end,
 	gesture = function() end,
+	-- Combates y huidas: el jugador de prueba decide si le atrapan (player.CaughtBy)
+	caught = function(player)
+		local by = player.CaughtBy
+		player.CaughtBy = nil
+		return by
+	end,
+	hit = function(player, questId, npc)
+		player.Hits = (player.Hits or 0) + 1
+	end,
+	defeat = function(player, questId, npc)
+		local scene = scenes[player] and scenes[player][questId]
+		if scene then
+			scene.Actors[npc] = nil
+		end
+	end,
 	teleport = function(player, where)
 		player.At = if type(where) == "table" then where.Place else where
 	end,
@@ -717,6 +732,17 @@ local function doStep(player, questId, step, choice)
 				end
 			end
 		end
+	elseif step.Type == "Fight" then
+		-- Un golpe a cada enemigo que quede en pie (como un jugador pulsando el botón)
+		local prog = story.Active[questId]
+		for _, enemy in step.Enemies do
+			if not (prog and prog.Sub and prog.Sub[enemy.Npc]) then
+				Service.interact(player, "Actor", questId, enemy.Npc)
+				task.wait(0.3)
+			end
+		end
+	elseif step.Type == "Escape" then
+		player.At = place(step.Place)
 	elseif step.Type == "Wait" then
 		day += 1 -- pasa un día de juego
 	elseif step.Type == "Choice" then
@@ -1435,6 +1461,46 @@ end
 check(evaData.Story.Active.Eco_RayoAdulto ~= nil and playQuest(eva, "Eco_RayoAdulto"), "Ya de adulta, Rayo vuelve con «un último trabajo»")
 check(said(eva, "Doscientos por un viaje") and said(eva, "Cajas sin papeles"), "Acepta y en el control está… Bruno, ahora policía")
 check(evaData.Story.Flags.Detenido and evaData.Story.Flags.Redimido and not evaData.Story.Flags.Camino_Delincuente and eva:GetAttribute("Camino") == "Responsable", "Detenida, colabora y cambia de camino: nunca es tarde")
+
+---------------------------------------------------------------------
+-- Misiones locas (secundarias de cada etapa, con Cosme)
+---------------------------------------------------------------------
+local QuestsData = loadModule(ROOT .. "/shared/LifeStory/Quests")
+
+-- Ir al sitio, esperar a que te la ofrezcan, aceptarla y jugarla entera
+local function playLoco(player, questId: string): boolean
+	local quest = QuestsData[questId]
+	local story = profiles[player].Story
+	for _ = 1, 12 do
+		if story.Active[questId] or story.Completed[questId] then
+			break
+		end
+		player.At = quest.Offer.Place
+		passTime(player, 5)
+		if received(player, "Offer", quest.Title) then
+			fromClient(player, "Offer", questId, true)
+		end
+	end
+	return story.Active[questId] ~= nil and playQuest(player, questId, 200)
+end
+
+print("\n▶ Misiones locas · Infancia (Cosme, el vecino del garaje)")
+local kiko = newPlayer("Kiko", "Nino")
+local kikoData = profiles[kiko]
+kiko.Prefer = { "¡Te ayudo", "Le cambias", "Será nuestro secreto", "Un título", "¡Ha sido lo mejor", "Los ha hecho un clon", "Contrátala" }
+lighting.ClockTime = 17
+check(playLoco(kiko, "Loco_N1_Cosme") and kikoData.Items.PistolaBurbujas == 1 and kikoData.Story.Flags.SecretoCosme, "El vecino del garaje: las 3 piezas, el bocadillo del martes pasado y la pistola de burbujas")
+check(said(kiko, "Todos los gatos hablamos"), "Bigotes, el gato del cole, habla (por el chip de la abuela de Cosme)")
+local hitsBefore = kiko.Hits or 0
+check(playLoco(kiko, "Loco_N2_Bigotes") and kikoData.Items.CoronaBigotes == 1 and kikoData.Story.Flags.DuqueDeGatonia, "Bigotes, emperador de Gatonia: tres cucarachas espaciales a globazos y un título de nobleza")
+check((kiko.Hits or 0) - hitsBefore == 7, "Cada cucaracha aguanta sus globos (2 + 2 + 3)")
+kiko.CaughtBy = "PolloGigante"
+check(playLoco(kiko, "Loco_N3_Pollo") and kikoData.Items.RayoEncogedor == 1, "La gallina de seis metros: huir hasta el silo y encogerla con el rayo")
+check(said(kiko, "Te ha cogido con el pico") or kiko.CaughtBy == nil, "Si Petra te atrapa, vuelves al granero")
+check(playLoco(kiko, "Loco_N4_Clones") and kikoData.Items.FotoClones == 1 and said(kiko, "por aula es el máximo legal"), "Deberes clónicos: tres clones en el cole y la foto de los cuatro")
+lighting.ClockTime = 23
+check(playLoco(kiko, "Loco_N5_Perez") and kikoData.Items.MonedaPerez == 1 and kikoData.Story.Flags.RataContratada, "La huelga del Ratón Pérez: persecución nocturna y la moneda de 1702")
+check(kikoData.Story.Memories.ConociCosme ~= nil and kikoData.Story.Memories.GallinaGigante ~= nil and kikoData.Story.Memories.RatonPerez ~= nil, "Los recuerdos de las misiones locas quedan en su vida")
 
 print(("\n%s"):format(if failures == 0 then "✅ Todo correcto" else ("❌ %d fallos"):format(failures)))
 process.exit(if failures == 0 then 0 else 1)

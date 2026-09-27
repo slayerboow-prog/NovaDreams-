@@ -155,6 +155,12 @@ end
 local function use(player: Player, data: { [string]: any }, slot: any)
 	local id = slotId(data, slot)
 	local item = Items.get(id)
+	if item and item.Kind == "Gadget" and (data.Items and data.Items[item.Id] or 0) > 0 then
+		-- Gadgets de las misiones locas: no se gastan, hacen su efecto (GadgetService)
+		local GadgetService = require(script.Parent.GadgetService) :: any
+		GadgetService.use(player, item.Id)
+		return
+	end
 	if not item or item.Kind ~= "Food" or (data.Items and data.Items[item.Id] or 0) <= 0 then
 		return
 	end

@@ -50,6 +50,7 @@ local KIND_TEXT = {
 	Prize = "Premio",
 	Document = "Documento",
 	Keepsake = "Recuerdo de tu historia",
+	Gadget = "Gadget exclusivo · clic derecho o tecla para usarlo",
 }
 local NUMBER_KEYS = {
 	[Enum.KeyCode.One] = 1,
@@ -380,10 +381,12 @@ local function refreshDetails()
 	detailName.Text = item.Icon .. "  " .. item.Name .. (if count > 1 then "  ×" .. count else "")
 	detailKind.Text = KIND_TEXT[item.Kind] or ""
 	detailDesc.Text = item.Desc
-	local usable = item.Kind == "Food" or item.Kind == "Vehicle" or item.Kind == "Wear"
+	local usable = item.Kind == "Food" or item.Kind == "Vehicle" or item.Kind == "Wear" or item.Kind == "Gadget"
 	useButton.Visible = usable
 	if item.Kind == "Food" then
 		useButton.Text = "Comer"
+	elseif item.Kind == "Gadget" then
+		useButton.Text = "Usar"
 	elseif item.Kind == "Vehicle" then
 		useButton.Text = if inUse(item) then "Bajarse" else "Montar"
 	else
@@ -747,7 +750,7 @@ useSlot = function(index: number)
 	if not item then
 		return
 	end
-	if item.Kind == "Food" then
+	if item.Kind == "Food" or item.Kind == "Gadget" then
 		Remote:FireServer("Use", index)
 	elseif item.Kind == "Vehicle" then
 		local vehicle = Remotes:FindFirstChild("Vehicle") :: RemoteEvent?

@@ -41,4 +41,6 @@ return {
 	require(Misiones.Uni_Consecuencias),
 	require(Misiones.Ins_Consecuencias),
 	require(Misiones.Cole_Consecuencias),
+	-- Misiones locas (secundarias de cada etapa, con Cosme): docs/historia/12-misiones-locas.md
+	require(Misiones.Loco_Nino),
 }

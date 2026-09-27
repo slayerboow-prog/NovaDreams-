@@ -36,6 +36,7 @@ local order = {
 	"NeedsService",
 	"WorldService",
 	"WeatherService", -- estaciones y tiempo: sol, lluvia, tormenta, nieve, niebla
+	"GadgetService", -- inventos exclusivos de las misiones locas (pistola de rayos, mando de dimensiones…)
 	"JobService",
 	"FoodService",
 	"HouseService",
