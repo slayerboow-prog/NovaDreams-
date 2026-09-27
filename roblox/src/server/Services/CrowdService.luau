@@ -395,7 +395,7 @@ local function fillGroup(g: Group)
 			break
 		end
 		-- (no siempre están todos: unos sitios vacíos y otros no)
-		if math.random() < 0.8 then
+		if n == 0 or math.random() < 0.8 then
 			local sit = spot:GetAttribute("Pose") == "Sit"
 			local work = spot:GetAttribute("Work")
 			local cf = spot.CFrame * CFrame.new(0, -spot.Size.Y / 2, 0)

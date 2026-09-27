@@ -4550,7 +4550,10 @@ for _, spot in tagged(gasShop, "CrowdSpot") do
 end
 local shopper, shopperRoot = newPlayer(263, "Adulto", 100)
 moveTo(shopperRoot, gasShop.Floor.Position)
+local savedClock = services.Lighting.ClockTime
+services.Lighting.ClockTime = 12 -- (de día)
 CrowdService.tickCity()
+services.Lighting.ClockTime = savedClock
 check(CrowdService.count("City") >= 1 and CrowdService.count("City") <= CrowdService.GROUP_CAP, "con un jugador cerca, hay clientes en la tienda")
 moveTo(shopperRoot, gasShop.Floor.Position + Vector3.new(0, 0, 900))
 CrowdService.tickCity()
