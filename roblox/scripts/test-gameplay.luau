@@ -2203,6 +2203,36 @@ FishingService.quit(pro)
 check(pro:GetAttribute("Job") == nil and InventoryService.count(pro, "CanaPescar") == 0, "al acabar el turno devuelves la caña prestada")
 end)()
 
+;(function()
+print("▶ Pescar en cualquier agua (orillas del lago, del río y del mar)")
+local FishingService = loadModule(S .. "FishingService")
+local angler, anglerRoot = newPlayer(83, "Adulto", 0)
+profiles[angler].Items = { CanaPescar = 1 }
+InventoryService.refresh(angler)
+local F = remotes.Fishing.OnServerEvent
+local realIsWater = FishingService.isWater
+FishingService.isWater = function()
+	return false
+end
+moveTo(anglerRoot, Vector3.new(-2750 + 300, 0, -520))
+F:Fire(angler, "Here")
+check(notified(angler, "no hay agua"), "sin agua delante no se puede pescar")
+FishingService.isWater = function()
+	return true
+end
+local function waterAt(position)
+	moveTo(anglerRoot, position)
+	F:Fire(angler, "Here")
+	local cast = lastMessage(angler, "Cast")
+	F:Fire(angler, "Stop")
+	return cast and cast[2].Water
+end
+check(waterAt(Vector3.new(-2750 + 300, 0, -520)) == "el lago", "en la orilla del lago se pescan peces de lago")
+check(waterAt(Vector3.new(1440, 0, -400)) == "el río", "en la orilla del río, peces de río")
+check(waterAt(Vector3.new(700, 0, 3600)) == "el mar", "en la costa, peces de mar")
+FishingService.isWater = realIsWater
+end)()
+
 end, debug.traceback)
 if not ok then
 	print("❌ Error en la prueba: " .. tostring(err))

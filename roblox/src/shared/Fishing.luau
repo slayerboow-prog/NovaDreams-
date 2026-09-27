@@ -1,7 +1,7 @@
 -- Fishing: peces, cañas, cebo y oficio de pescador (FishingService, FishingUI, SupermarketService).
 --
--- Se pesca en los sitios de pesca (tag FishingSpot): el muelle del puerto, los pantalanes de los
--- lagos y del río, y el barco de pesca en alta mar. Cada sitio tiene su agua (Water) y en cada agua
+-- Se pesca en cualquier orilla con agua delante ("Pescar aquí") y en los sitios de pesca
+-- (tag FishingSpot): el muelle del puerto, los pantalanes de los lagos y del río, y el barco de pesca. Cada sitio tiene su agua (Water) y en cada agua
 -- pican unos peces. Lo que pescas va a la mochila y se vende en la pescadería del supermercado:
 -- así el supermercado tiene pescado para vender (si nadie pesca, no hay pescado).
 
@@ -55,7 +55,7 @@ Fishing.JunkWeight = 6
 
 -- Cañas y cebo (se compran en la tienda de pesca del centro)
 Fishing.Rods = {
-	CanaPescar = { Id = "CanaPescar", Name = "Caña de pescar", Icon = "🎣", Price = 25, Bite = 1, Rare = 1, Desc = "Para pescar en el muelle, los lagos y el río." },
+	CanaPescar = { Id = "CanaPescar", Name = "Caña de pescar", Icon = "🎣", Price = 25, Bite = 1, Rare = 1, Desc = "Para pescar en cualquier agua: mar, río, lagos, el puerto…" },
 	CanaPro = { Id = "CanaPro", Name = "Caña profesional", Icon = "🎣", Price = 120, Bite = 0.7, Rare = 1.8, Desc = "Pican antes y salen más peces raros." },
 }
 Fishing.RodOrder = { "CanaPro", "CanaPescar" } -- se usa la mejor que tengas
