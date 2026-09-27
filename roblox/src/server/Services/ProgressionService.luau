@@ -147,7 +147,9 @@ end
 ---------------------------------------------------------------------
 local function canSprint(player: Player): boolean
 	local stage = player:GetAttribute("LifeStage")
+	local stance = player:GetAttribute("Stance")
 	return stage ~= "Bebe" and not player:GetAttribute("Crawling") and not player:GetAttribute("Riding") and not player:GetAttribute("Sleeping")
+		and (stance == nil or stance == "Stand") -- agachado o tumbado no se corre
 end
 
 local function sprintBlocker(player: Player): string?

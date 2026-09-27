@@ -18,6 +18,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Wanted = require(ReplicatedStorage.Shared.Wanted)
+local Movement = require(ReplicatedStorage.Shared.Movement)
 local Format = require(ReplicatedStorage.Shared.Format)
 local Stages = require(ReplicatedStorage.Shared.LifeStory.Stages)
 local Npc = require(script.Parent.Parent.World.Npc)
@@ -108,7 +109,9 @@ local function witnessNear(offender: Player, position: Vector3): Model?
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = { offender.Character :: Instance }
 	local best, bestDistance = nil, math.huge
-	for _, part in workspace:GetPartBoundsInRadius(position, Wanted.WitnessRadius, params) do
+	-- Agachado o tumbado se te ve menos: los testigos tienen que estar más cerca
+	local radius = Wanted.WitnessRadius * Movement.witnessFactor(offender:GetAttribute("Stance"))
+	for _, part in workspace:GetPartBoundsInRadius(position, radius, params) do
 		local model = part.Parent
 		if model and model:IsA("Model") and part.Name == "HumanoidRootPart" and not Players:GetPlayerFromCharacter(model) and not model:GetAttribute("Officer") then
 			local distance = (part.Position - position).Magnitude

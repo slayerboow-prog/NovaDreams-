@@ -83,6 +83,8 @@ Icons.Fallback = {
 	timbre = "🔔",
 	volver = "⬅️",
 	habilidades = "✨",
+	agacharse = "🔽", -- (agacharse y tumbarse: Controllers/Stances)
+	tumbarse = "⏬",
 }
 
 -- Tipos del tiempo (shared/Seasons) -> icono

@@ -92,9 +92,15 @@ local function addHeadlight(model: Model)
 	end
 end
 
+-- De regalo desde el principio (se sacan en cualquier sitio desde "Vehículos"; los bebés no pueden)
+local STARTER = { "Bici", "Patinete" }
+
 local function ensure(data: { [string]: any })
 	data.Vehicles = data.Vehicles or {}
 	data.Licenses = data.Licenses or {}
+	for _, kind in STARTER do
+		data.Vehicles[kind] = true
+	end
 end
 
 local function listKeys(t: { [string]: any }): string

@@ -1,8 +1,7 @@
 -- Actions (cliente): movimientos y acciones nuevas del personaje.
 --   * Gestos: los de Roblox (su menú de gestos: botón Gestos, app Gestos o comando Más > Gestos).
 --     Aquí queda "Saludar" para el menú de comandos (delante de alguien); se corta al andar o saltar.
---   * Trepar: salta contra un muro bajo, una valla o un coche (hasta unos 9 studs) y el
---     personaje se agarra al borde y sube.
+--   * Trepar y saltar vallas: ahora lo hace Controllers/Parkour (saltar vallas, muros, bordes…).
 --   * Linterna (tecla L, R3 en el mando): la ven todos los jugadores (y el brazo va delante,
 --     sujetándola: ReactMotion). La primera noche sale un aviso.
 --   * Modo foto (tecla P, LT en el mando): esconde toda la interfaz para hacer capturas bonitas
@@ -24,7 +23,6 @@ local Theme = require(script.Parent.Parent.UI.Theme)
 local Hud = require(script.Parent.Parent.UI.Hud)
 local Cinematics = require(script.Parent.Cinematics)
 local FootCamera = require(script.Parent.FootCamera)
-local ReactMotion = require(script.Parent.ReactMotion)
 local SoundFx = require(script.Parent.SoundFx)
 local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
 local StreetVoices = require(ReplicatedStorage.Shared.Config).StreetVoices
@@ -51,7 +49,6 @@ local EMOTES: { Emote } = {
 	{ Name = "Saludo militar", Icon = "🙋", R15 = 3333474484 },
 	{ Name = "No sé", Icon = "🤷", R15 = 3334392772, Voice = "NoSe" },
 }
-local CLIMB = { R15 = 507765644, R6 = 180436334 }
 
 ---------------------------------------------------------------------
 -- Personaje y animaciones
@@ -125,97 +122,6 @@ local function playEmote(emote: Emote)
 	if line then
 		SoundFx.voice(line, 1.05)
 	end
-end
-
----------------------------------------------------------------------
--- Trepar muros bajos
----------------------------------------------------------------------
-local climbing = false
-local lastClimb = 0
-
-local function tryClimb(humanoid: Humanoid, root: BasePart)
-	if climbing or os.clock() - lastClimb < 0.8 or humanoid.SeatPart then
-		return
-	end
-	local state = humanoid:GetState()
-	if state ~= Enum.HumanoidStateType.Jumping and state ~= Enum.HumanoidStateType.Freefall then
-		return
-	end
-	local move = Vector3.new(humanoid.MoveDirection.X, 0, humanoid.MoveDirection.Z)
-	if move.Magnitude < 0.5 then
-		return
-	end
-	local dir = move.Unit
-	local params = RaycastParams.new()
-	params.FilterType = Enum.RaycastFilterType.Exclude
-	params.FilterDescendantsInstances = { player.Character :: Instance }
-	params.IgnoreWater = true
-	params.RespectCanCollide = true -- hojas, carteles y adornos no cuentan
-	-- 1) ¿Hay una pared justo delante?
-	local wall = workspace:Raycast(root.Position, dir * 2.6, params)
-	if not wall or math.abs(wall.Normal.Y) > 0.3 then
-		return
-	end
-	local model = wall.Instance:FindFirstAncestorOfClass("Model")
-	if model and model:FindFirstChildOfClass("Humanoid") then
-		return -- no se trepa por encima de otras personas
-	end
-	-- 2) ¿Dónde está el borde de arriba? (se mira desde arriba, un poco detrás de la pared)
-	local feet = root.Position.Y - humanoid.HipHeight - root.Size.Y / 2
-	local probe = Vector3.new(wall.Position.X, feet + 10, wall.Position.Z) + dir * 1.4
-	-- (si el muro es más alto de lo que se alcanza, esta línea choca con él: no se trepa)
-	local over = Vector3.new(root.Position.X, probe.Y, root.Position.Z)
-	if workspace:Raycast(over, Vector3.new(probe.X, probe.Y, probe.Z) - over, params) then
-		return
-	end
-	local top = workspace:Raycast(probe, Vector3.new(0, -10, 0), params)
-	if not top or top.Normal.Y < 0.75 then
-		return
-	end
-	local rise = top.Position.Y - feet
-	if rise < 2.2 or rise > 9.5 then
-		return
-	end
-	-- 3) ¿Cabe el personaje encima?
-	if workspace:Raycast(top.Position + Vector3.new(0, 0.3, 0), Vector3.new(0, 5.5, 0), params) then
-		return
-	end
-	climbing = true
-	lastClimb = os.clock()
-	SoundFx.play("Trepar", 1, nil, root)
-	local track = load(humanoid, if isR15(humanoid) then CLIMB.R15 else CLIMB.R6)
-	if track then
-		track:Play(0.15, 1, 1.6)
-	end
-	local from = root.CFrame
-	local look = CFrame.lookAlong(Vector3.zero, dir)
-	local target = CFrame.new(top.Position + dir * 0.8 + Vector3.new(0, humanoid.HipHeight + root.Size.Y / 2 + 0.1, 0)) * look.Rotation
-	-- Primero sube (hasta la altura del borde) y luego avanza encima
-	local lift = CFrame.new(from.Position.X, target.Position.Y, from.Position.Z) * look.Rotation
-	local duration = 0.18 + rise * 0.035
-	local start = os.clock()
-	local connection
-	connection = RunService.Heartbeat:Connect(function()
-		local t = math.clamp((os.clock() - start) / duration, 0, 1)
-		-- Con curva: arranca y se posa suave (sin velocidad constante de robot)
-		if t < 0.65 then
-			local x = t / 0.65
-			root.CFrame = from:Lerp(lift, 1 - (1 - x) * (1 - x))
-		else
-			local x = (t - 0.65) / 0.35
-			root.CFrame = lift:Lerp(target, x * x * (3 - 2 * x))
-		end
-		root.AssemblyLinearVelocity = Vector3.zero
-		if t >= 1 then
-			connection:Disconnect()
-			if track then
-				track:Stop(0.3)
-			end
-			humanoid:ChangeState(Enum.HumanoidStateType.Landed)
-			ReactMotion.play(player.Character, "Land", { Strength = 0.4 }) -- se asienta arriba
-			climbing = false
-		end
-	end)
 end
 
 ---------------------------------------------------------------------
@@ -413,7 +319,6 @@ function Actions.init()
 	player.CharacterAdded:Connect(function()
 		tracks = {}
 		playing = nil
-		climbing = false
 	end)
 
 	-- La primera noche: aviso de la linterna
@@ -439,9 +344,6 @@ function Actions.init()
 			stopEmote()
 			setPhoto(false)
 			return
-		end
-		if player:GetAttribute("LifeStage") ~= "Bebe" then
-			tryClimb(humanoid, root)
 		end
 	end)
 end
