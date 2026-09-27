@@ -11,6 +11,7 @@ local Builder = require(script.Parent.Parent.Builder)
 local Palette = require(script.Parent.Palette)
 local Props = require(script.Parent.Props)
 local Nature = require(script.Parent.Nature)
+local StreetDetail = require(script.Parent.StreetDetail)
 
 local Street = {}
 
@@ -117,7 +118,9 @@ local function segment(parent: Instance, road: Road, u0: number, u1: number)
 		while lu <= u1 - 8 do
 			local s = if i % 2 == 0 then 1 else -1
 			local pos = Street.point(road, lu, s * (RW / 2 + 1.8), WALK_TOP)
-			Props.lamp(parent, Builder.facing(pos, Street.across(road, -s)))
+			local lampCf = Builder.facing(pos, Street.across(road, -s))
+			Props.lamp(parent, lampCf)
+			StreetDetail.lampBanner(parent, lampCf, i)
 			if i % 3 == 1 then
 				local binPos = Street.point(road, lu + 3, s * (RW / 2 + 1.8), WALK_TOP)
 				Props.bin(parent, CFrame.new(binPos))
@@ -137,6 +140,13 @@ local function segment(parent: Instance, road: Road, u0: number, u1: number)
 			tu += 36
 		end
 	end
+
+	-- Detalles de la acera y de la calzada (Kit/StreetDetail)
+	StreetDetail.segment(parent, road, u0, u1, function(u, v, y)
+		return Street.point(road, u, v, y)
+	end, function(sign)
+		return Street.across(road, sign)
+	end, RW, WALK_TOP, ROAD_TOP)
 end
 
 ---------------------------------------------------------------------
@@ -162,7 +172,7 @@ local function zebra(parent: Instance, x0: number, x1: number, z0: number, z1: n
 	end
 end
 
-local function intersection(parent: Instance, cx: number, cz: number, arms: Arms)
+local function intersection(parent: Instance, cx: number, cz: number, arms: Arms, roadA: Road?, roadB: Road?)
 	local r = RW / 2
 	wbox(parent, cx - r, cx + r, cz - r, cz + r, Street.BASE, ROAD_TOP, asphalt())
 
@@ -199,6 +209,10 @@ local function intersection(parent: Instance, cx: number, cz: number, arms: Arms
 	Props.trafficLight(parent, Builder.facing(p1, Vector3.new(0, 0, -1)), 11)
 	local p2 = Vector3.new(cx - r - 1.5, WALK_TOP, cz - r - 1.5)
 	Props.trafficLight(parent, Builder.facing(p2, Vector3.new(1, 0, 0)), 11)
+	-- Poste con el nombre de las dos calles (en otra esquina)
+	if roadA and roadB then
+		StreetDetail.corner(parent, Vector3.new(cx + r + 1.4, WALK_TOP, cz - r - 1.4), roadA, roadB)
+	end
 end
 
 ---------------------------------------------------------------------
@@ -221,7 +235,7 @@ function Street.build(parent: Instance, roads: { Road })
 						East = a.To > b.At + H,
 						North = b.From < a.At - H,
 						South = b.To > a.At + H,
-					})
+					}, a, b)
 				end
 			end
 		end

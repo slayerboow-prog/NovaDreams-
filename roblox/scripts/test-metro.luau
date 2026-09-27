@@ -7,6 +7,8 @@
 --   * cada andén está girado como su línea (la vía del mapa coincide con el recorrido de los trenes)
 --   * hay aseos, guardias, ratas, taquillas, puestos… repartidos por las estaciones y la galería
 --   * nada sólido tapa los sitios por donde se pasa (tornos, escaleras, subir al tren, transbordos)
+--   * cada estación tiene su boca de metro y se baja ANDANDO de la acera al vestíbulo de andenes:
+--     siempre hay suelo debajo (sin huecos), nada sólido en medio y las escaleras mecánicas llevan
 
 local fs = require("@lune/fs")
 local luau = require("@lune/luau")
@@ -117,6 +119,85 @@ for _, p in (under :: any):GetDescendants() do
 	end
 end
 check(blocked == 0, "tornos, escaleras, andenes y transbordos libres")
+
+print("Bocas de metro que se bajan andando")
+local metroRoot = game:GetService("Workspace"):FindFirstChild("Metro", true)
+local bocas, belts, stepsModels = 0, 0, 0
+for _, d in (metroRoot :: any):GetDescendants() do
+	if d:IsA("Model") and d.Name == "BocaMetro" then
+		bocas += 1
+	elseif d:IsA("BasePart") and d:HasTag("MetroEscalator") then
+		if typeof(d:GetAttribute("Velocity")) == "Vector3" and d:GetAttribute("Velocity").Magnitude > 1 then
+			belts += 1
+		end
+	elseif d:IsA("Model") and d:HasTag("MetroEscalatorSteps") and (d:GetAttribute("Count") or 0) > 10 then
+		stepsModels += 1
+	end
+end
+local nStations = 0
+for _ in Metro.Stations do
+	nStations += 1
+end
+check(bocas == nStations, ("una boca de metro por estación (%d)"):format(bocas))
+check(belts == nStations * 2 and stepsModels == nStations * 2, "dos escaleras mecánicas por boca (una baja y otra sube) con sus peldaños")
+-- Recorrido andando: suelo debajo de cada paso y nada sólido a la altura del cuerpo
+local solid = {}
+for _, p in (metroRoot :: any):GetDescendants() do
+	if p:IsA("BasePart") and p.CanCollide then
+		table.insert(solid, p)
+	end
+end
+local function inside(p: any, q: Vector3, pad: number): boolean
+	local rel = p.CFrame:PointToObjectSpace(q)
+	local h = p.Size / 2
+	return math.abs(rel.X) <= h.X + pad and math.abs(rel.Y) <= h.Y + pad and math.abs(rel.Z) <= h.Z + pad
+end
+for id in Metro.Stations do
+	local A = Metro.access(id)
+	local lo, hi = Vector3.new(math.huge, math.huge, math.huge), Vector3.new(-math.huge, -math.huge, -math.huge)
+	for _, q in A.Route do
+		lo = Vector3.new(math.min(lo.X, q.X), math.min(lo.Y, q.Y), math.min(lo.Z, q.Z))
+		hi = Vector3.new(math.max(hi.X, q.X), math.max(hi.Y, q.Y), math.max(hi.Z, q.Z))
+	end
+	local near = {}
+	for _, p in solid do
+		local c = p.CFrame.Position
+		local r = p.Size.Magnitude / 2
+		if c.X + r > lo.X - 2 and c.X - r < hi.X + 2 and c.Y + r > lo.Y - 2 and c.Y - r < hi.Y + 8 and c.Z + r > lo.Z - 2 and c.Z - r < hi.Z + 2 then
+			table.insert(near, p)
+		end
+	end
+	local gaps, blocks = 0, 0
+	for k = 2, #A.Route do
+		local a, b = A.Route[k - 1], A.Route[k]
+		local n = math.max(1, math.ceil((b - a).Magnitude / 0.8))
+		for i = 0, n do
+			local q = a:Lerp(b, i / n)
+			local floor, blocked = false, nil
+			for _, p in near do
+				if not floor and inside(p, q - Vector3.new(0, 0.25, 0), 0.02) then
+					floor = true
+				end
+				if not blocked and inside(p, q + Vector3.new(0, 2.6, 0), 0) and inside(p, q + Vector3.new(0, 1.2, 0), 0) then
+					blocked = p
+				end
+			end
+			if not floor then
+				gaps += 1
+				if gaps <= 3 then
+					print(("     %s: sin suelo en (%.1f, %.1f, %.1f)"):format(id, q.X, q.Y, q.Z))
+				end
+			end
+			if blocked then
+				blocks += 1
+				if blocks <= 3 then
+					print(("     %s: %s estorba en (%.1f, %.1f, %.1f)"):format(id, blocked:GetFullName(), q.X, q.Y, q.Z))
+				end
+			end
+		end
+	end
+	check(gaps == 0 and blocks == 0, id .. ": de la acera al andén andando, sin huecos ni nada en medio")
+end
 
 print(if failures == 0 then "\nTodo bien ✅" else ("\n%d fallos ❌"):format(failures))
 process.exit(if failures == 0 then 0 else 1)

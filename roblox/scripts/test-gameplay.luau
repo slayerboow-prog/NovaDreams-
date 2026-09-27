@@ -2636,20 +2636,104 @@ local function mp(name, cf, tags, attrs, size)
 	p.Parent = worldRoot
 	return p
 end
+-- Bocas de metro que se bajan andando (geometría compartida: Metro.access)
+local stairsOk, landingsOk, hallsOk, shaftsOk, lobbyOk, deepOk = true, true, true, true, true, true
+for id in Metro.Stations do
+	local A = Metro.access(id)
+	local S, K, H = A.Stair, A.Shaft, A.Hall
+	local function near(a, b)
+		return (a - b).Magnitude < 0.05
+	end
+	-- De la acera, dos tramos con rellano hasta el vestíbulo; ningún peldaño más alto de la cuenta
+	local p = S.Top
+	if math.abs(p.Y - Metro.StreetY) > 0.01 then
+		stairsOk = false
+	end
+	for i, f in S.Flights do
+		local drop = f.Top.Y - f.Bottom.Y
+		local run = (Vector3.new(f.Bottom.X, 0, f.Bottom.Z) - Vector3.new(f.Top.X, 0, f.Top.Z)).Magnitude
+		if not near(f.Top, p) or f.Rise > Metro.MaxRise or math.abs(f.Steps * f.Rise - drop) > 0.01 or math.abs(f.Steps * f.Run - run) > 0.01 then
+			stairsOk = false
+		end
+		p = f.Bottom
+		local land = S.Landings[i]
+		if land then
+			if not near(land.From, p) or math.abs(land.To.Y - p.Y) > 0.01 or (land.To - land.From).Magnitude < 3 then
+				landingsOk = false
+			end
+			p = land.To
+		end
+	end
+	if not near(p, S.Bottom) or math.abs(S.Bottom.Y - Metro.HallY) > 0.01 then
+		stairsOk = false
+	end
+	-- El vestíbulo recoge el final de la escalera y el principio de las mecánicas; su techo, bajo las calles
+	local function onHall(q)
+		return q.X >= H.Min.X - 0.05 and q.X <= H.Max.X + 0.05 and q.Z >= H.Min.Z - 0.05 and q.Z <= H.Max.Z + 0.05 and math.abs(q.Y - H.Min.Y) < 0.05
+	end
+	if not onHall(S.Bottom) or not onHall(K.Top) or H.Max.Y + 0.5 > -4.2 or H.Max.Y - H.Min.Y < 7 then
+		hallsOk = false
+	end
+	-- Escaleras mecánicas (y la fija de al lado): peldaños bajos, pendiente de escalera mecánica
+	local run = (Vector3.new(K.Bottom.X, 0, K.Bottom.Z) - Vector3.new(K.Top.X, 0, K.Top.Z)).Magnitude
+	local slope = math.deg(math.atan((K.Top.Y - K.Bottom.Y) / run))
+	if K.Rise > Metro.MaxRise or math.abs(K.Steps * K.Rise - (K.Top.Y - K.Bottom.Y)) > 0.01 or slope > 35 or slope < 25 or math.abs(K.Bottom.Y - A.LowerY) > 0.01 then
+		shaftsOk = false
+	end
+	-- Y llegan al vestíbulo de andenes de su línea (donde están los tornos)
+	if not Metro.inLobby(id, A.Line, K.Bottom) or not Metro.inLobby(id, A.Line, A.Route[#A.Route]) then
+		lobbyOk = false
+	end
+	-- Al fondo del todo ya se está "bajo tierra" (no llueve); en la acera, no
+	if not (A.LowerY + 6 < Metro.Underground and Metro.StreetY + 5 > Metro.Underground) then
+		deepOk = false
+	end
+	-- Camino continuo: cada tramo empieza donde acaba el anterior y nunca sube de golpe
+	for k = 2, #A.Route do
+		local a, b = A.Route[k - 1], A.Route[k]
+		if b.Y > a.Y + 0.01 then
+			stairsOk = false
+		end
+	end
+end
+check(stairsOk, "las bocas de metro bajan de la acera con escaleras (peldaños de 1,2 como mucho y sin huecos)")
+check(landingsOk, "las escaleras de la calle tienen su rellano a mitad")
+check(hallsOk, "el vestíbulo recoge la escalera de la calle y las mecánicas, bajo el suelo de las calles")
+check(shaftsOk, "escaleras mecánicas y fija hasta el fondo, con pendiente de escalera mecánica")
+check(lobbyOk, "las escaleras mecánicas llegan al vestíbulo de andenes de cada estación")
+check(deepOk, "abajo se está bajo tierra (sin lluvia) y en la calle no")
+local off = { Metro.escalatorOffset(0, 0, 1.3, 40, 7), Metro.escalatorOffset(39, 0, 1.3, 40, 7), Metro.escalatorOffset(0, 10, 1.3, 40, -7) }
+check(off[1] > 0 and off[2] < 40 * 1.3 and off[3] >= 0 and off[3] < 40 * 1.3, "los peldaños de las escaleras mecánicas dan la vuelta sin salirse")
+-- Cuándo llega el tren: cuentas puras
+do
+	local centers = { 75, 1000, 2500 }
+	local t0 = { Centers = centers, Index = 1, Dir = 1, Phase = "Dwell", Timer = 5, Duration = 1, Elapsed = 0 }
+	local e0, to0 = Metro.eta(t0, 1)
+	local e1 = Metro.eta(t0, 2)
+	local e3, to3 = Metro.eta(t0, 3)
+	check(e0 == 0 and to0 == 3, "con el tren en el andén el panel dice EN ANDÉN (y hacia la última estación)")
+	check(math.abs(e1 - (5 + Metro.travelTime(925))) < 0.01, "llega a la siguiente: lo que le queda parado + el viaje")
+	check(math.abs(e3 - (5 + Metro.travelTime(925) + Metro.Dwell + Metro.travelTime(1500))) < 0.01 and to3 == 1, "a la última: con la parada de en medio, y luego vuelve")
+	local back = { Centers = centers, Index = 3, Dir = 1, Phase = "Move", Timer = 0, Duration = 20, Elapsed = 5 }
+	local eb = Metro.eta(back, 2)
+	check(math.abs(eb - (15 + Metro.Dwell + Metro.travelTime(1500))) < 0.01, "si va hacia la punta, primero llega allí y da la vuelta")
+	check(Metro.travelTime(10) < Metro.travelTime(100) and Metro.travelTime(5000) > 5000 / Metro.Speed, "el tren arranca y frena (tarda más que a velocidad de crucero)")
+	check(Metro.boardText(L1, 150, #L1.Stations):find("3 min") ~= nil and Metro.boardText(L1, 10, 1):find("LLEGANDO") ~= nil and Metro.boardText(L1, 0, 1, 7):find("EN ANDÉN") ~= nil, "el cartel: minutos, llegando y en andén")
+end
 -- Estaciones (lo mínimo de cada una)
 for id, st in Metro.Stations do
-	local c = Vector3.new(st.Surface[1], -150, st.Surface[2])
+	local c = Vector3.new(st.Surface[1], L1.Y, st.Surface[2])
 	mp("Door", CFrame.new(st.Surface[1], 2.5, st.Surface[2]), { "MetroEntrance" }, { Station = id })
 	mp("Arrival", CFrame.new(c + Vector3.new(30, 3, 0)), { "MetroArrival" }, { Station = id, Line = "L1" })
 	mp("Alight", CFrame.new(c + Vector3.new(12, 3, 0)), { "MetroAlight" }, { Station = id, Line = "L1" })
 	local kiosk = mp("Kiosk", CFrame.new(c + Vector3.new(40, 2, 18)), { "MetroShop", "MetroDelivery" }, { ShopId = "Quiosco", Station = id })
 	local _ = kiosk
 end
-local P = Metro.Stations.Poniente
-local base = Vector3.new(P.Surface[1], -150, P.Surface[2])
+local P = Metro.Stations[L1.Stations[1]] -- (la primera estación de la Línea 1: allí espera el tren)
+local base = Vector3.new(P.Surface[1], L1.Y, P.Surface[2])
 local machine = mp("TicketMachine", CFrame.new(base + Vector3.new(46, 3, -20)), { "MetroTicketMachine" })
 local gate = mp("Turnstile", CFrame.new(base + Vector3.new(19, 2, 0)), { "MetroGate" }, { Through = base + Vector3.new(14, 3, 0) })
-local board = mp("Board", CFrame.new(base + Vector3.new(7, 2.5, 0)), { "MetroBoard" }, { Station = "Poniente", Line = "L1" })
+local board = mp("Board", CFrame.new(base + Vector3.new(7, 2.5, 0)), { "MetroBoard" }, { Station = P.Id, Line = "L1" })
 -- Tren de la Línea 1 (3 coches con un asiento y una puerta cada uno)
 local trainModel = fakeInstance("Model")
 trainModel.Name = "Metro_L1"
@@ -2671,7 +2755,9 @@ end
 trainModel:AddTag("MetroTrain")
 -- Galería
 local H = Metro.Stations.PlazaMayor
-local hub = Vector3.new(H.Surface[1], -150, H.Surface[2])
+local hub = Vector3.new(H.Surface[1], L1.Y, H.Surface[2])
+-- Escalera mecánica: el suelo invisible lleva a quien se sube
+local belt = mp("EscalatorBelt", CFrame.new(base + Vector3.new(30, 10, -40)), { "MetroEscalator" }, { Velocity = Vector3.new(6, -3.5, 0), Down = true })
 local music = mp("Counter", CFrame.new(hub + Vector3.new(98, 2, 28)), { "MetroShop" }, { ShopId = "Musica" })
 local mic = mp("Mic", CFrame.new(hub + Vector3.new(128, 3, -16)), { "MetroStage" })
 local missionBoard = mp("MissionBoard", CFrame.new(hub + Vector3.new(80, 5, -24)), { "MetroMissionBoard" })
@@ -2679,6 +2765,7 @@ local lostOffice = mp("LostOffice", CFrame.new(hub + Vector3.new(58, 2, -28)), {
 local MetroService = loadModule(S .. "MetroService")
 MetroService.init()
 check(jobProviders.Handler_Revisor ~= nil, "el tablón de la galería lleva al oficio de revisor/a")
+check(belt.AssemblyLinearVelocity == Vector3.new(6, -3.5, 0), "las escaleras mecánicas llevan (cinta transportadora)")
 local train = MetroService._trains.L1
 check(train ~= nil and train.Phase == "Dwell" and train.Index == 1, "el tren de la Línea 1 espera en la primera estación con las puertas abiertas")
 local rider, riderRoot, riderHumanoid = newPlayer(91, "Adulto", 100)
@@ -2687,12 +2774,12 @@ InventoryService.refresh(rider)
 moveTo(riderRoot, Vector3.new(P.Surface[1], 0, P.Surface[2]))
 local door = nil
 for _, d in services.CollectionService:GetTagged("MetroEntrance") do
-	if d:GetAttribute("Station") == "Poniente" then
+	if d:GetAttribute("Station") == P.Id then
 		door = d
 	end
 end
-promptOf(door, "Bajar al metro").Triggered:Fire(rider)
-check(notified(rider, "Metro · Poniente"), "por la boca de metro se baja al vestíbulo")
+promptOf(door, "Bajar en ascensor").Triggered:Fire(rider)
+check(notified(rider, "Metro · " .. P.Name), "el ascensor de la boca de metro baja directo al vestíbulo de andenes")
 moveTo(riderRoot, base + Vector3.new(40, -2, -18))
 promptOf(gate, "Pasar (billete)").Triggered:Fire(rider)
 check(notified(rider, "Necesitas un billete"), "sin billete no se pasa el torno")
@@ -2700,15 +2787,26 @@ M:Fire(rider, "BuyTicket", "Sencillo")
 check(profiles[rider].Money == 98 and InventoryService.count(rider, "BilleteMetro") == 1, "la máquina vende el billete")
 promptOf(gate, "Pasar (billete)").Triggered:Fire(rider)
 check(InventoryService.count(rider, "BilleteMetro") == 0 and rider:GetAttribute("MetroTicket") == true, "el torno gasta el billete")
+do
+	local kid = newPlayer(93, "Nino", 0)
+	promptOf(gate, "Pasar (billete)").Triggered:Fire(kid)
+	check(kid:GetAttribute("MetroTicket") == true and notified(kid, "gratis"), "los niños pasan el torno gratis")
+end
 -- Subir y viajar
 moveTo(riderRoot, base + Vector3.new(8, -2, 0))
 promptOf(board, "Subir al metro").Triggered:Fire(rider)
 check(riderHumanoid.SeatPart ~= nil and MetroService._riding[rider] == train and lastMessage(rider, "Board") ~= nil, "sube al tren y se sienta")
 local guard = 0
-while not (train.Index == 2 and train.Phase == "Dwell") and guard < 400 do
+local hubIndex = table.find(L1.Stations, "PlazaMayor")
+-- (antes de salir: cuánto dice el panel que tarda en llegar a Plaza Mayor)
+local etaHub, towardHub = Metro.eta(train, hubIndex)
+local waited = 0
+while not (train.Index == hubIndex and train.Phase == "Dwell") and guard < 2000 do
 	guard += 1
+	waited += 0.5
 	MetroService._step(train, 0.5)
 end
+check(math.abs(waited - etaHub) <= 1.5 and towardHub == #L1.Stations, ("el panel acierta cuándo llega el tren (%.1f s dicho, %.1f s de verdad) y hacia dónde va"):format(etaHub, waited))
 local arrive = lastMessage(rider, "Arrive")
 check(arrive ~= nil and arrive[2].Station == "Plaza Mayor", "el tren llega a Plaza Mayor y te avisa")
 local car2 = trainModel:FindFirstChild("Car2"):FindFirstChild("Root")
@@ -2716,7 +2814,10 @@ check((car2.Position - Metro.center("PlazaMayor", L1)).Magnitude < 5, "el tren p
 check(train.Cars[1].Doors[1].Transparency == 1, "con el tren parado las puertas están abiertas")
 M:Fire(rider, "Alight")
 check(MetroService._riding[rider] == nil and lastMessage(rider, "Off") ~= nil, "bajas en Plaza Mayor")
+local walker, walkerRoot = newPlayer(94, "Adolescente", 0)
+moveTo(walkerRoot, train.Cars[2].Root.Position + Vector3.new(0, 3, 0))
 MetroService._step(train, Metro.Dwell + 0.1)
+check(MetroService._riding[walker] == train and lastMessage(walker, "Board") ~= nil, "quien entra andando en el tren se sienta al cerrarse las puertas")
 check(train.Phase == "Move" and train.Cars[1].Doors[1].Transparency == 0, "el tren cierra las puertas y sigue")
 -- Galería: tienda de discos y escenario
 moveTo(riderRoot, hub + Vector3.new(98, -2, 22))

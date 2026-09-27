@@ -80,6 +80,7 @@ local gui = Hud.init(function()
 end)
 Store.init(gui)
 TaskMarker.init()
+require(script.Parent.UI.Perf).stripDetails() -- móvil: sin los detalles pequeños de la calle
 DayLight.init() -- luz realista según la hora (amanecer, mediodía, atardecer, noche)
 StoryAudio.init() -- música, efectos y voces de la historia (botón 🔊)
 task.spawn(LifeStory.init) -- historia de vida (tarjeta "Tu vida", momentos, decisiones)
