@@ -22,8 +22,10 @@ local DataStoreService = game:GetService("DataStoreService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local TextService = game:GetService("TextService")
 
 local Business = require(ReplicatedStorage.Shared.Business)
+local NameFilter = require(ReplicatedStorage.Shared.NameFilter)
 local Items = require(ReplicatedStorage.Shared.Items)
 local Format = require(ReplicatedStorage.Shared.Format)
 local MapInfo = require(ReplicatedStorage.Shared.MapInfo)
@@ -74,6 +76,13 @@ local memory: { [string]: any } = {}
 local store: DataStore? = nil
 local lastRequest: { [Player]: number } = {}
 local signFolder: Folder
+
+local shifts: { [Player]: { Key: string, Since: number } } = {}
+local offers: { [Player]: { Key: string, From: Player, Wage: number, At: number } } = {}
+
+local function isWorker(rec: Record?, player: Player): boolean
+	return rec ~= nil and rec.Workers ~= nil and rec.Workers[tostring(player.UserId)] ~= nil
+end
 
 local CACHE = 30 -- segundos que vale lo leído del DataStore
 local INDEX_KEY = "Index"
@@ -227,6 +236,63 @@ local function displayName(entry: Entry?): string
 	return ("%s %s"):format(t.Icon, entry.Name or t.Name)
 end
 
+-- Cadenas: tus negocios abiertos del mismo tipo y con el mismo nombre
+local function chainOf(entry: Entry?): { string }
+	local list = {}
+	if not entry or not entry.Type then
+		return list
+	end
+	for key, other in index do
+		if other.Owner == entry.Owner and other.Type == entry.Type and other.Name == entry.Name and premises[key] then
+			table.insert(list, key)
+		end
+	end
+	table.sort(list)
+	return list
+end
+
+local function openChainCount(key: string): number
+	local n = 0
+	for _, k in chainOf(index[key]) do
+		if index[k].Open then
+			n += 1
+		end
+	end
+	return math.max(1, n)
+end
+
+-- Cadenas del jugador que se pueden abrir en este tipo de local: { { Key, Type, Name } }
+local function chainsFor(player: Player, premiseKind: string, except: string?): { any }
+	local seen, list = {}, {}
+	for _, key in ownedKeys(player) do
+		local entry = index[key]
+		local t = entry and entry.Type and Business.Types[entry.Type]
+		if key ~= except and t and t.Premise == premiseKind and entry.Name then
+			local id = t.Id .. "|" .. entry.Name
+			if not seen[id] then
+				seen[id] = true
+				table.insert(list, { Key = key, Type = t, Name = entry.Name, Count = #chainOf(entry) })
+			end
+		end
+	end
+	return list
+end
+
+-- ¿Puede tener un negocio más? (3 distintos; hasta 6 con sucursales de sus cadenas)
+local function canOwnMore(player: Player, premiseKind: string): (boolean, string?)
+	local owned = #ownedKeys(player)
+	if owned < Business.MaxOwned then
+		return true, nil
+	end
+	if owned >= Business.MaxWithBranches then
+		return false, ("Ya tienes %d negocios (el máximo)"):format(owned)
+	end
+	if #chainsFor(player, premiseKind) == 0 then
+		return false, ("Ya tienes %d negocios distintos: aquí solo podrías abrir una sucursal de uno de tus negocios"):format(owned)
+	end
+	return true, nil
+end
+
 ---------------------------------------------------------------------
 -- Utilidades
 ---------------------------------------------------------------------
@@ -288,7 +354,7 @@ end
 local function premisePanel(player: Player, premise: Premise): { [string]: any }
 	local info = Business.Premises[premise.Kind]
 	local price = Business.premisePrice(premise.Kind, premise.Key)
-	local owned = #ownedKeys(player)
+	local canMore, why = canOwnMore(player, premise.Kind)
 	local money = DataService.get(player) and (DataService.get(player) :: any).Money or 0
 	local types = {}
 	for _, t in Business.typesFor(premise.Kind) do
@@ -296,7 +362,7 @@ local function premisePanel(player: Player, premise: Premise): { [string]: any }
 	end
 	local reason = if not isAdult(player)
 		then "Hay que ser mayor de edad"
-		elseif owned >= Business.MaxOwned then ("Ya tienes %d negocios"):format(owned)
+		elseif not canMore then why
 		elseif money < price then "No te llega el dinero"
 		else nil
 	return {
@@ -322,7 +388,25 @@ end
 local function setupPanel(player: Player, key: string): { [string]: any }
 	local premise = premises[key]
 	local rows = {}
-	for _, t in Business.typesFor(premise.Kind) do
+	local chains = chainsFor(player, premise.Kind, key)
+	if #chains > 0 then
+		table.insert(rows, { Header = "🔗 Abrir una sucursal de tu cadena (mismo nombre, más clientes en todas)" })
+		for _, c in chains do
+			table.insert(rows, {
+				Icon = c.Type.Icon,
+				Title = ("Sucursal de «%s» · licencia %s"):format(c.Name, Format.money(math.floor(c.Type.License * Business.BranchLicense))),
+				Text = ("Ahora la cadena tiene %d. Cada sucursal abierta da un %d %% más de clientes a todas (hasta un %d %%)."):format(c.Count, math.floor(Business.ChainStep * 100), math.floor(Business.ChainMax * 100)),
+				Buttons = { button("Abrir sucursal", "Branch", { key, c.Key }, "Gold") },
+			})
+		end
+	end
+	local onlyBranches = #ownedKeys(player) > Business.MaxOwned
+	if onlyBranches then
+		table.insert(rows, { Header = ("Tienes más de %d negocios: aquí solo puedes abrir una sucursal."):format(Business.MaxOwned) })
+	else
+		table.insert(rows, { Header = "🏪 O un negocio nuevo" })
+	end
+	for _, t in if onlyBranches then {} else Business.typesFor(premise.Kind) do
 		local cats = {}
 		for _, c in t.Categories do
 			table.insert(cats, Business.Categories[c].Icon .. " " .. Business.Categories[c].Name)
@@ -363,6 +447,7 @@ local function manageTabs(): { any }
 		{ Id = "Existencias", Text = "📦 Existencias" },
 		{ Id = "Precios", Text = "🏷️ Precios" },
 		{ Id = "Mayorista", Text = "🚚 Mayorista" },
+		{ Id = "Personal", Text = "👥 Personal" },
 		{ Id = "Ajustes", Text = "⚙️ Ajustes" },
 	}
 end
@@ -378,7 +463,7 @@ local function managePanel(player: Player, key: string, rec: Record, tab: string
 		table.insert(rows, {
 			Icon = "💰",
 			Title = ("Caja: %s"):format(Format.money(rec.Till)),
-			Text = ("Ventas totales: %s (%d productos). Gastos: %s/h mientras está abierto."):format(Format.money(rec.Sales), rec.Units, Format.money(bizType.Upkeep)),
+			Text = ("Ventas totales: %s (%d productos). Gastos: %s/h mientras está abierto (con los sueldos de los dependientes)."):format(Format.money(rec.Sales), rec.Units, Format.money(Business.upkeep(rec))),
 			Buttons = { button("Recoger caja", "Collect", { key }, "Gold", rec.Till < 1) },
 		})
 		table.insert(rows, {
@@ -482,13 +567,74 @@ local function managePanel(player: Player, key: string, rec: Record, tab: string
 				Buttons = { button("Pedir", "Order", { key, good.Id, 1 }, "Accent"), button("Pedir ×5", "Order", { key, good.Id, 5 }) },
 			})
 		end
+	elseif tab == "Personal" then
+		local npc = rec.Npc or 0
+		table.insert(rows, {
+			Icon = "🧑‍💼",
+			Title = ("Dependientes: %d/%d"):format(npc, Business.MaxNpc),
+			Text = ("Cada uno atiende a un %d %% más de clientes y cobra %s/h de la caja."):format(math.floor(Business.NpcBoost * 100), Format.money(Business.NpcWage)),
+			Buttons = { button("Contratar", "HireNpc", { key, 1 }, "Accent", npc >= Business.MaxNpc), button("Despedir", "HireNpc", { key, -1 }, "Danger", npc <= 0) },
+		})
+		local workers = {}
+		for uid, w in rec.Workers or {} do
+			table.insert(workers, { Uid = uid, W = w })
+		end
+		table.sort(workers, function(a, b)
+			return a.W.Name < b.W.Name
+		end)
+		table.insert(rows, { Header = ("👷 Jugadores contratados: %d/%d (de turno cobran por minuto y el negocio vende más)"):format(#workers, Business.MaxWorkers) })
+		for _, entry in workers do
+			local worker = Players:GetPlayerByUserId(tonumber(entry.Uid) or 0)
+			local onShift = worker ~= nil and shifts[worker] ~= nil and shifts[worker].Key == key
+			table.insert(rows, {
+				Icon = if onShift then "🟢" else "⚪",
+				Title = ("%s · %s/min"):format(entry.W.Name, Format.money(entry.W.Wage)),
+				Text = if onShift then "De turno ahora mismo." elseif worker then "Conectado/a, fuera de turno." else "No está conectado/a.",
+				Buttons = { button("Cambiar sueldo", "Wage", { key, entry.Uid }), button("Despedir", "FireWorker", { key, entry.Uid }, "Danger") },
+			})
+		end
+		if #workers < Business.MaxWorkers then
+			local candidates = {}
+			for _, other in Players:GetPlayers() do
+				if other ~= player and isAdult(other) and not isWorker(rec, other) then
+					table.insert(candidates, other)
+				end
+			end
+			table.insert(rows, { Header = if #candidates > 0 then "📨 Ofrecer trabajo a alguien del servidor" else "No hay nadie más en el servidor a quien contratar ahora." })
+			for _, other in candidates do
+				table.insert(rows, {
+					Icon = "🙋",
+					Title = nameOf(other),
+					Text = ("Sueldo inicial: %s por minuto de turno."):format(Format.money(Business.Wages[2])),
+					Buttons = { button("Ofrecer trabajo", "Offer", { key, other.UserId }, "Accent") },
+				})
+			end
+		end
 	elseif tab == "Ajustes" then
 		table.insert(rows, {
 			Icon = "✏️",
 			Title = rec.Name or bizType.Name,
-			Text = "Elige otro nombre para el cartel.",
-			Buttons = { button("Cambiar nombre", "Rename", { key }, "Accent") },
+			Text = "Escribe el nombre que quieras (se revisa: nada de palabrotas ni insultos) o usa uno de los preparados.",
+			Buttons = { button("Otro preparado", "Rename", { key }, nil) },
 		})
+		table.insert(rows, {
+			Input = {
+				Placeholder = "Nombre del negocio (3 a 28 letras)",
+				Max = 28,
+				Button = "Poner nombre",
+				Action = "SetName",
+				Args = { key },
+			},
+		})
+		local chain = chainOf(index[key])
+		if #chain > 1 then
+			table.insert(rows, {
+				Icon = "🔗",
+				Title = ("Cadena «%s»: %d sucursales"):format(rec.Name or "", #chain),
+				Text = ("Cada sucursal abierta da un %d %% más de clientes a todas (ahora +%d %%). Cambiar el nombre las cambia todas."):format(math.floor(Business.ChainStep * 100), math.floor((math.min(Business.ChainMax, (openChainCount(key) - 1) * Business.ChainStep)) * 100 + 0.5)),
+				Buttons = {},
+			})
+		end
 		local hasStock = false
 		for _, n in rec.Stock do
 			if n > 0 then
@@ -563,10 +709,13 @@ end
 ---------------------------------------------------------------------
 -- Ventas de los vecinos (NPC)
 ---------------------------------------------------------------------
+local shiftCountOf: (string) -> number = function()
+	return 0
+end
 local function simulate(key: string): (number, number)
 	local units, money = 0, 0
 	mutate(key, function(rec)
-		local u, m, sold = Business.simulate(rec, now())
+		local u, m, sold = Business.simulate(rec, now(), { Shift = shiftCountOf(key), Chain = openChainCount(key) })
 		units, money = u, m
 		if u > 0 then
 			local parts = {}
@@ -608,8 +757,9 @@ local function buyPremise(player: Player, key: string)
 		Notify:FireClient(player, "Error", "¡Vaya! Este local ya tiene dueño.")
 		return
 	end
-	if #ownedKeys(player) >= Business.MaxOwned then
-		Notify:FireClient(player, "Error", ("Ya tienes %d negocios (el máximo). Vende uno antes."):format(Business.MaxOwned))
+	local canMore, why = canOwnMore(player, premise.Kind)
+	if not canMore then
+		Notify:FireClient(player, "Error", (why or "No puedes tener más negocios") .. ".")
 		return
 	end
 	local price = Business.premisePrice(premise.Kind, key)
@@ -634,21 +784,34 @@ local function buyPremise(player: Player, key: string)
 	send(player, setupPanel(player, key))
 end
 
-local function openBusiness(player: Player, key: string, typeId: string)
+-- Abre (o cambia) el negocio del local. branchOf = clave de un negocio tuyo del que abrir sucursal
+local function openBusiness(player: Player, key: string, typeId: string, branchOf: string?)
 	local premise = premises[key]
 	local bizType = Business.Types[typeId]
 	local rec = ownRecord(player, key, true)
 	if not premise or not bizType or not rec or bizType.Premise ~= premise.Kind then
 		return
 	end
+	local branchName: string? = nil
+	if branchOf then
+		local source = index[branchOf]
+		if not source or source.Owner ~= player.UserId or source.Type ~= typeId or not source.Name or branchOf == key then
+			return
+		end
+		branchName = source.Name
+	elseif #ownedKeys(player) > Business.MaxOwned then
+		Notify:FireClient(player, "Error", ("Con más de %d negocios, aquí solo puedes abrir una sucursal."):format(Business.MaxOwned))
+		return
+	end
+	local license = if branchName then math.floor(bizType.License * Business.BranchLicense) else bizType.License
 	for _, n in rec.Stock do
 		if n > 0 and rec.Type and rec.Type ~= typeId then
 			Notify:FireClient(player, "Error", "Vacía las existencias antes de cambiar de negocio.")
 			return
 		end
 	end
-	if not DataService.spend(player, bizType.License) then
-		Notify:FireClient(player, "Error", ("La licencia cuesta %s."):format(Format.money(bizType.License)))
+	if not DataService.spend(player, license) then
+		Notify:FireClient(player, "Error", ("La licencia cuesta %s."):format(Format.money(license)))
 		return
 	end
 	local saved, _, new = mutate(key, function(r)
@@ -656,7 +819,7 @@ local function openBusiness(player: Player, key: string, typeId: string)
 			return false, nil
 		end
 		r.Type = bizType.Id
-		r.Name = Business.nameFor(bizType, 1, nameOf(player))
+		r.Name = branchName or Business.nameFor(bizType, 1, nameOf(player))
 		r.Open = true
 		r.LastSim = now()
 		r.Stock = {}
@@ -666,12 +829,16 @@ local function openBusiness(player: Player, key: string, typeId: string)
 		return true, nil
 	end)
 	if not saved or not new then
-		DataService.addMoney(player, bizType.License)
+		DataService.addMoney(player, license)
 		Notify:FireClient(player, "Error", "No se ha podido abrir ahora. Prueba otra vez.")
 		return
 	end
 	writeIndex(key, entryOf(new), false, player.UserId)
-	Notify:FireClient(player, "Success", ("%s ¡Has abierto %s! Pon productos a la venta en «Existencias» o pídelos al mayorista."):format(bizType.Icon, new.Name))
+	if branchName then
+		Notify:FireClient(player, "Success", ("🔗 ¡Nueva sucursal de %s! Tu cadena ya tiene %d."):format(new.Name or "", #chainOf(index[key])))
+	else
+		Notify:FireClient(player, "Success", ("%s ¡Has abierto %s! Pon productos a la venta en «Existencias» o pídelos al mayorista."):format(bizType.Icon, new.Name))
+	end
 	StoryEvents.emit(player, "BusinessOpened", { Key = key, Type = bizType.Id })
 	close(player, "Setup")
 	send(player, managePanel(player, key, new, "Existencias"))
@@ -863,6 +1030,314 @@ local function rename(player: Player, key: string)
 	end
 end
 
+---------------------------------------------------------------------
+-- Nombre libre: filtro propio (palabrotas, trucos, enlaces) + filtro de Roblox (obligatorio)
+---------------------------------------------------------------------
+-- Pasa el nombre por el filtro de Roblox. Devuelve (vale, motivo si no)
+BusinessService._robloxFilter = function(text: string, userId: number): (boolean, string?)
+	local ok, result = pcall(function()
+		local filtered = TextService:FilterStringAsync(text, userId, Enum.TextFilterContext.PublicChat)
+		return filtered:GetNonChatStringForBroadcastAsync()
+	end)
+	if not ok then
+		if RunService:IsStudio() then
+			return true, nil -- (en Studio sin conexión basta con el filtro propio)
+		end
+		return false, "No se ha podido comprobar el nombre ahora. Prueba otra vez en un momento."
+	end
+	if result ~= text then
+		return false, "🚫 Roblox no permite ese nombre. Elige uno apropiado para todo el mundo."
+	end
+	return true, nil
+end
+
+local lastName: { [Player]: number } = {}
+local function setName(player: Player, key: string, text: any)
+	local rec = ownRecord(player, key, true)
+	if not rec or not rec.Type then
+		return
+	end
+	if os.clock() - (lastName[player] or -10) < 3 then
+		Notify:FireClient(player, "Info", "Espera un momento antes de probar otro nombre.")
+		return
+	end
+	lastName[player] = os.clock()
+	local ok, why, name = NameFilter.check(text)
+	if ok then
+		ok, why = BusinessService._robloxFilter(name, player.UserId)
+	end
+	if not ok then
+		Notify:FireClient(player, "Error", why or "Ese nombre no vale.")
+		return
+	end
+	-- Toda la cadena cambia de nombre a la vez (si no, las sucursales dejarían de serlo)
+	local members = chainOf(index[key])
+	if #members == 0 then
+		members = { key }
+	end
+	for _, k in members do
+		local _, _, new = mutate(k, function(r)
+			if r.Owner ~= player.UserId then
+				return false, nil
+			end
+			r.Name = name
+			Business.log(r, now(), ("Nuevo nombre: %s"):format(name))
+			return true, nil
+		end)
+		if new then
+			writeIndex(k, entryOf(new), false, player.UserId)
+		end
+	end
+	Notify:FireClient(player, "Success", ("✏️ Ahora se llama «%s»%s."):format(name, if #members > 1 then (" (las %d sucursales)"):format(#members) else ""))
+end
+
+---------------------------------------------------------------------
+-- Personal: dependientes (NPC) y jugadores contratados con turnos
+---------------------------------------------------------------------
+
+local function shiftCount(key: string): number
+	local n = 0
+	for p, shift in shifts do
+		if shift.Key == key and p.Parent then
+			n += 1
+		end
+	end
+	return n
+end
+shiftCountOf = shiftCount
+
+
+local function endShift(player: Player, why: string?)
+	local shift = shifts[player]
+	if not shift then
+		return
+	end
+	shifts[player] = nil
+	player:SetAttribute("BizShift", nil)
+	if why then
+		Notify:FireClient(player, "Info", why)
+	end
+end
+
+local function hireNpc(player: Player, key: string, dir: number)
+	mutate(key, function(rec)
+		if rec.Owner ~= player.UserId then
+			return false, nil
+		end
+		Business.simulate(rec, now(), { Shift = shiftCount(key), Chain = openChainCount(key) })
+		local n = math.clamp((rec.Npc or 0) + dir, 0, Business.MaxNpc)
+		if n == (rec.Npc or 0) then
+			return false, nil
+		end
+		rec.Npc = n
+		Business.log(rec, now(), if dir > 0 then "Nuevo dependiente contratado" else "Un dependiente se ha ido")
+		return true, nil
+	end)
+end
+
+local function offerJob(player: Player, key: string, targetId: any)
+	local rec = ownRecord(player, key, true)
+	local target = type(targetId) == "number" and Players:GetPlayerByUserId(targetId)
+	if not rec or not target or target == player then
+		return
+	end
+	if not isAdult(target) then
+		Notify:FireClient(player, "Error", "Solo se puede contratar a mayores de edad.")
+		return
+	end
+	if Business.workerCount(rec) >= Business.MaxWorkers then
+		Notify:FireClient(player, "Error", ("Ya tienes %d empleados (el máximo)."):format(Business.MaxWorkers))
+		return
+	end
+	if isWorker(rec, target) then
+		Notify:FireClient(player, "Info", ("%s ya trabaja aquí."):format(nameOf(target)))
+		return
+	end
+	offers[target] = { Key = key, From = player, Wage = Business.Wages[2], At = os.clock() }
+	send(target, {
+		Remote = "Business",
+		Id = "Offer",
+		Context = key,
+		Title = "💼 Oferta de trabajo",
+		Subtitle = ("%s te ofrece trabajo en %s"):format(nameOf(player), rec.Name or "su negocio"),
+		Rows = {
+			{
+				Icon = Business.Types[rec.Type or ""] and Business.Types[rec.Type or ""].Icon or "🏪",
+				Title = ("Sueldo: %s por minuto de turno"):format(Format.money(Business.Wages[2])),
+				Text = ("%s · %s. Ficha en el negocio («Gestionar» → Empezar turno) y cobras de la caja mientras estás allí."):format(rec.Name or "", rec.Title),
+				Buttons = { button("Aceptar", "AcceptJob", { key }, "Green"), button("No, gracias", "RejectJob", { key }, "Danger") },
+			},
+		},
+	})
+	Notify:FireClient(player, "Info", ("📨 Oferta enviada a %s."):format(nameOf(target)))
+end
+
+local function answerOffer(player: Player, key: string, accept: boolean)
+	local offer = offers[player]
+	offers[player] = nil
+	close(player, "Offer")
+	if not offer or offer.Key ~= key or os.clock() - offer.At > 180 then
+		Notify:FireClient(player, "Info", "Esa oferta ya no está disponible.")
+		return
+	end
+	local boss = offer.From
+	if not accept then
+		if boss.Parent then
+			Notify:FireClient(boss, "Info", ("%s ha dicho que no a tu oferta de trabajo."):format(nameOf(player)))
+		end
+		return
+	end
+	local saved, why = mutate(key, function(rec)
+		if rec.Owner ~= boss.UserId then
+			return false, "El negocio ha cambiado de dueño."
+		end
+		rec.Workers = rec.Workers or {}
+		if Business.workerCount(rec) >= Business.MaxWorkers then
+			return false, "Ya no quedan puestos libres."
+		end
+		rec.Workers[tostring(player.UserId)] = { Name = nameOf(player), Wage = offer.Wage }
+		Business.log(rec, now(), ("%s empieza a trabajar aquí"):format(nameOf(player)))
+		return true, nil
+	end)
+	if not saved then
+		Notify:FireClient(player, "Error", why or "No se ha podido aceptar ahora.")
+		return
+	end
+	Notify:FireClient(player, "Success", "💼 ¡Contratado/a! Ve al negocio y en «Gestionar» empieza tu turno.")
+	if boss.Parent then
+		Notify:FireClient(boss, "Success", ("🤝 %s trabaja ahora en tu negocio."):format(nameOf(player)))
+	end
+end
+
+local function fireWorker(player: Player, key: string, uid: any)
+	if type(uid) ~= "string" then
+		return
+	end
+	local saved = mutate(key, function(rec)
+		if rec.Owner ~= player.UserId or not rec.Workers or not rec.Workers[uid] then
+			return false, nil
+		end
+		Business.log(rec, now(), ("%s ya no trabaja aquí"):format(rec.Workers[uid].Name))
+		rec.Workers[uid] = nil
+		return true, nil
+	end)
+	local worker = saved and Players:GetPlayerByUserId(tonumber(uid) or 0)
+	if worker then
+		if shifts[worker] and shifts[worker].Key == key then
+			endShift(worker)
+		end
+		Notify:FireClient(worker, "Info", "💼 Ya no trabajas en ese negocio.")
+	end
+end
+
+local function setWage(player: Player, key: string, uid: any)
+	if type(uid) ~= "string" then
+		return
+	end
+	mutate(key, function(rec)
+		local w = rec.Owner == player.UserId and rec.Workers and rec.Workers[uid]
+		if not w then
+			return false, nil
+		end
+		local i = table.find(Business.Wages, w.Wage) or 1
+		w.Wage = Business.Wages[i % #Business.Wages + 1]
+		return true, nil
+	end)
+end
+
+local function quitJob(player: Player, key: string)
+	local saved = mutate(key, function(rec)
+		local uid = tostring(player.UserId)
+		if not rec.Workers or not rec.Workers[uid] then
+			return false, nil
+		end
+		rec.Workers[uid] = nil
+		Business.log(rec, now(), ("%s ha dejado el trabajo"):format(nameOf(player)))
+		return true, nil
+	end)
+	if saved then
+		endShift(player)
+		close(player, "Worker")
+		Notify:FireClient(player, "Info", "Has dejado el trabajo.")
+	end
+end
+
+local function workerPanel(player: Player, key: string, rec: Record): { [string]: any }
+	local w = (rec.Workers :: any)[tostring(player.UserId)]
+	local onShift = shifts[player] ~= nil and shifts[player].Key == key
+	return {
+		Remote = "Business",
+		Id = "Worker",
+		Context = key,
+		Title = ("💼 Trabajas en %s"):format(rec.Name or "este negocio"),
+		Subtitle = ("De %s · sueldo %s por minuto de turno"):format(rec.OwnerName, Format.money(w.Wage)),
+		Rows = {
+			{
+				Icon = if onShift then "🟢" else "⚪",
+				Title = if onShift then "Estás de turno" else "Fuera de turno",
+				Text = "De turno atiendes a los clientes: el negocio vende más y tú cobras cada minuto (de la caja). Si sales del negocio, se acaba el turno.",
+				Buttons = { button(if onShift then "Terminar turno" else "Empezar turno", "Shift", { key }, if onShift then "Danger" else "Green") },
+			},
+			{ Icon = "🚪", Title = "Dejar el trabajo", Text = "Dejas de ser empleado/a de este negocio.", Buttons = { button("Dejar", "QuitJob", { key }, "Danger") } },
+		},
+	}
+end
+
+local function toggleShift(player: Player, key: string)
+	local rec = getRecord(key, true)
+	if not rec or not isWorker(rec, player) then
+		return
+	end
+	if shifts[player] and shifts[player].Key == key then
+		endShift(player, "Turno terminado. ¡Buen trabajo!")
+	else
+		endShift(player)
+		shifts[player] = { Key = key, Since = os.clock() }
+		player:SetAttribute("BizShift", rec.Name or key)
+		Notify:FireClient(player, "Success", ("🟢 Empieza tu turno en %s. Cobras cada minuto mientras estés aquí."):format(rec.Name or "el negocio"))
+	end
+	send(player, workerPanel(player, key, rec))
+end
+
+-- Cada minuto: los que están de turno cobran de la caja (si hay dinero)
+local function payShifts()
+	for worker, shift in table.clone(shifts) do
+		local premise = premises[shift.Key]
+		if not worker.Parent or not premise then
+			shifts[worker] = nil
+		elseif not atPremise(worker, premise) then
+			endShift(worker, "Has salido del negocio: turno terminado.")
+		else
+			local saved, paid = mutate(shift.Key, function(rec)
+				local w = rec.Workers and rec.Workers[tostring(worker.UserId)]
+				if not w then
+					return false, -1
+				end
+				Business.simulate(rec, now(), { Shift = shiftCount(shift.Key), Chain = openChainCount(shift.Key) })
+				if rec.Till < w.Wage then
+					return false, 0
+				end
+				rec.Till -= w.Wage
+				return true, w.Wage
+			end)
+			if saved and paid and paid > 0 then
+				DataService.addMoney(worker, paid, true)
+				Notify:FireClient(worker, "Money", ("+%s · minuto de turno"):format(Format.money(paid)))
+				StoryEvents.emit(worker, "JobTaskDone", { JobId = "Empleado", Pay = paid })
+			elseif paid == -1 then
+				endShift(worker, "Ya no trabajas en ese negocio.")
+			else
+				endShift(worker, "💸 No queda dinero en la caja para pagarte: turno terminado.")
+				local rec = getRecord(shift.Key)
+				local owner = rec and Players:GetPlayerByUserId(rec.Owner)
+				if owner then
+					Notify:FireClient(owner, "Error", ("💸 La caja de %s no tiene dinero para pagar a tu empleado/a."):format(rec.Name or "tu negocio"))
+				end
+			end
+		end
+	end
+end
+
 local function sellPremise(player: Player, key: string)
 	local rec = ownRecord(player, key, true)
 	if not rec then
@@ -947,6 +1422,11 @@ local function onManage(player: Player, premise: Premise)
 		return
 	end
 	if entry.Owner ~= player.UserId then
+		local rec = getRecord(premise.Key, true)
+		if rec and isWorker(rec, player) then
+			send(player, workerPanel(player, premise.Key, rec))
+			return
+		end
 		Notify:FireClient(player, "Info", ("Este negocio es de %s."):format(entry.OwnerName))
 		return
 	end
@@ -1344,6 +1824,21 @@ function BusinessService.init()
 			end
 			return
 		end
+		-- Respuestas a una oferta de trabajo y dejar el trabajo: desde cualquier sitio
+		if action == "AcceptJob" or action == "RejectJob" then
+			answerOffer(player, key, action == "AcceptJob")
+			return
+		elseif action == "QuitJob" then
+			quitJob(player, key)
+			return
+		elseif action == "Shift" then
+			if atPremise(player, premise) then
+				toggleShift(player, key)
+			else
+				Notify:FireClient(player, "Info", "Para empezar el turno tienes que estar en el negocio.")
+			end
+			return
+		end
 		if not atPremise(player, premise) and action ~= "Collect" then
 			Notify:FireClient(player, "Info", "Tienes que estar en el negocio.")
 			return
@@ -1354,6 +1849,9 @@ function BusinessService.init()
 			return
 		elseif action == "Open" and type(a) == "string" then
 			openBusiness(player, key, a)
+			return
+		elseif action == "Branch" and type(a) == "string" and index[a] and index[a].Type then
+			openBusiness(player, key, index[a].Type :: string, a)
 			return
 		elseif action == "Retype" then
 			local rec = ownRecord(player, key, true)
@@ -1383,6 +1881,21 @@ function BusinessService.init()
 		elseif action == "Rename" then
 			rename(player, key)
 			tab = "Ajustes"
+		elseif action == "SetName" then
+			setName(player, key, a)
+			tab = "Ajustes"
+		elseif action == "HireNpc" and type(a) == "number" then
+			hireNpc(player, key, if a > 0 then 1 else -1)
+			tab = "Personal"
+		elseif action == "Offer" then
+			offerJob(player, key, a)
+			tab = "Personal"
+		elseif action == "FireWorker" then
+			fireWorker(player, key, a)
+			tab = "Personal"
+		elseif action == "Wage" then
+			setWage(player, key, a)
+			tab = "Personal"
 		else
 			return
 		end
@@ -1420,6 +1933,9 @@ function BusinessService.init()
 	end)
 	Players.PlayerRemoving:Connect(function(player)
 		lastRequest[player] = nil
+		lastName[player] = nil
+		shifts[player] = nil
+		offers[player] = nil
 	end)
 
 	-- Cada minuto: los vecinos compran en los negocios de los que están aquí; el índice se refresca
@@ -1428,6 +1944,20 @@ function BusinessService.init()
 			task.wait(60)
 			local ok2, err = pcall(function()
 				loadIndex(true)
+				payShifts()
+				-- Negocios donde hay alguien de turno (aunque el dueño no esté en este servidor)
+				local done = {}
+				for _, player in Players:GetPlayers() do
+					for _, key in ownedKeys(player) do
+						done[key] = true
+					end
+				end
+				for _, shift in table.clone(shifts) do
+					if not done[shift.Key] then
+						done[shift.Key] = true
+						simulate(shift.Key)
+					end
+				end
 				for _, player in Players:GetPlayers() do
 					for _, key in ownedKeys(player) do
 						local units, money = simulate(key)
@@ -1457,6 +1987,9 @@ BusinessService._index = function()
 	return index
 end
 BusinessService._simulate = simulate
+BusinessService._payShifts = function()
+	payShifts()
+end
 BusinessService._getRecord = getRecord
 
 return BusinessService

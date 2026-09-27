@@ -199,6 +199,46 @@ check(ok and math.abs(total - 15) < 0.01, "repostar 10 L a 1,50 son 15 €")
 check(not Business.sell(g, "W_Gasolina", 99999), "no se vende más de lo que hay")
 check(Business.stars(3) == "★★★☆☆", "la reputación se ve en estrellas")
 
+print("▶ Nombres de negocios (filtro de palabrotas)")
+local NameFilter = load("src/shared/NameFilter")
+local goodNames = { "Panadería La Espiga", "Computadoras Pepe", "Droguería Vergara", "Maricarmen Frutas", "Bar La Pola", "Café & Té", "Disputa de Sabores", "Hotel Mongolia", "Frutas Ñam", "Casa Lola 24" }
+local okAll = true
+for _, n in goodNames do
+	local ok, why = NameFilter.check(n)
+	if not ok then
+		okAll = false
+		print("    rechazado sin motivo: " .. n .. " (" .. tostring(why) .. ")")
+	end
+end
+check(okAll, "los nombres normales se aceptan (también «Computadoras», «Vergara», «Maricarmen», «Pola»…)")
+local badNames = { "Puta Tienda", "P.U.T.A", "put4 madre", "m i e r d a", "Mierrrrda", "Cabrones SL", "Hijo de puta", "Coño Bar", "FUCK shop", "Fuuuuck", "sh1t", "Gilipollas", "Nazi Store", "tiendaputamadre", "HIJ0PUT4" }
+local blockedAll = true
+for _, n in badNames do
+	if NameFilter.check(n) then
+		blockedAll = false
+		print("    se ha colado: " .. n)
+	end
+end
+check(blockedAll, "las palabrotas se bloquean aunque se escriban con trucos (P.U.T.A, put4, m i e r d a, puuuta…)")
+check(not NameFilter.check("www.mitienda.com") and not NameFilter.check("Llama 612345678") and not NameFilter.check("<b>Hola</b>"), "nada de enlaces, teléfonos ni símbolos raros")
+check(not NameFilter.check("ab") and not NameFilter.check(string.rep("a", 29)), "entre 3 y 28 letras")
+local _, _, cleaned = NameFilter.check("   Horno   Ana  ")
+check(cleaned == "Horno Ana", "se quitan los espacios de más")
+
+print("▶ Personal y cadenas")
+local base = Business.newRecord("L:p", "Local", "t", 1, "Ana", 1, 0)
+base.Type, base.Open = "Fruteria", true
+base.Stock = { Agro_Manzana = 500, Agro_Tomate = 500 }
+local staffed = Business.newRecord("L:q", "Local", "t", 1, "Ana", 1, 0)
+staffed.Type, staffed.Open, staffed.Npc = "Fruteria", true, 2
+staffed.Stock = { Agro_Manzana = 500, Agro_Tomate = 500 }
+local ub = Business.simulate(base, 3600)
+local us = Business.simulate(staffed, 3600, { Shift = 1, Chain = 3 })
+check(us > ub, ("con dependientes, un jugador de turno y cadena se vende más (%d frente a %d)"):format(us, ub))
+check(Business.upkeep(staffed) == Business.Types.Fruteria.Upkeep + 2 * Business.NpcWage, "los dependientes cobran de los gastos")
+check(math.abs(Business.boost(base, { Chain = 10 }) - (1 + Business.ChainMax)) < 0.001, "la cadena da como mucho un 30 % más")
+check(Business.workerCount({ Workers = { ["1"] = { Name = "A", Wage = 6 }, ["2"] = { Name = "B", Wage = 9 } } } :: any) == 2, "se cuentan los empleados")
+
 print("")
 if failures == 0 then
 	print("✅ Todo correcto")

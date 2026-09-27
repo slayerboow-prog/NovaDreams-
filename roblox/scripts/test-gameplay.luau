@@ -3797,11 +3797,22 @@ end)()
 print("▶ Negocios: locales, gasolineras y hoteles")
 local Business = loadModule(ROOT .. "/shared/Business")
 local building = { Id = 7, Key = "Bloque_4000_4000", Kind = "Local", Walkable = false, Door = Vector3.new(4000, 0.4, 4000), Out = Vector3.new(0, 0, -1), Title = "🏬 Comercio y viviendas", Floors = 3 }
+local building2 = { Id = 8, Key = "Bloque_4100_4000", Kind = "Local", Walkable = false, Door = Vector3.new(4100, 0.4, 4000), Out = Vector3.new(0, 0, -1), Title = "🏬 Comercio y viviendas", Floors = 3 }
+-- Filtro de Roblox de mentira: tapa con # lo que lleve "Prohibida"
+services.TextService = {
+	FilterStringAsync = function(_, text)
+		return {
+			GetNonChatStringForBroadcastAsync = function()
+				return (text:gsub("Prohibida", "#########"))
+			end,
+		}
+	end,
+}
 local resets, left = 0, 0
 local Interior = {
 	Hooks = {},
 	all = function()
-		return { building }
+		return { building, building2 }
 	end,
 	reset = function()
 		resets += 1
@@ -3828,7 +3839,9 @@ end
 BusinessService.init()
 local keys = {}
 for key, premise in BusinessService._premises do
-	keys[premise.Kind] = key
+	if premise.Kind ~= "Local" or premise.Building == building then
+		keys[premise.Kind] = key
+	end
 end
 check(keys.Local ~= nil and keys.Gas ~= nil and keys.Hotel ~= nil, "encuentra los locales, las gasolineras y los hoteles")
 local L = keys.Local
@@ -3988,6 +4001,84 @@ remotes.Farm.OnServerEvent:Fire(owner, "Make", "Pizza", 1)
 check(InventoryService.count(owner, "Agro_Pizza") == 4 and InventoryService.count(owner, "Agro_Queso") == 0, "cocina 2 pizzas con harina, tomate frito y queso")
 fire(owner, "Stock", L, "Agro_Pizza", 4)
 check(BusinessService._getRecord(L, true).Stock.Agro_Pizza == 4, "y las pone a la venta en su restaurante")
+
+-- Nombre libre: filtro propio y filtro de Roblox
+local function nameOfL()
+	return BusinessService._getRecord(L, true).Name
+end
+local before2 = nameOfL()
+fire(owner, "SetName", L, "P.U.T.A tienda")
+check(nameOfL() == before2 and notified(owner, "no está permitido"), "un nombre con palabrotas (aunque sea con trucos) se rechaza")
+task.wait(3.1)
+fire(owner, "SetName", L, "La Cocina Prohibida")
+check(nameOfL() == before2 and notified(owner, "Roblox no permite"), "si el filtro de Roblox tapa algo, se rechaza")
+task.wait(3.1)
+fire(owner, "SetName", L, "  Casa   Pepa  ")
+check(nameOfL() == "Casa Pepa" and BusinessService._index()[L].Name == "Casa Pepa", "un nombre normal se acepta (y sale en el cartel)")
+-- Personal: dependientes
+fire(owner, "HireNpc", L, 1)
+fire(owner, "HireNpc", L, 1)
+fire(owner, "HireNpc", L, 1)
+check(BusinessService._getRecord(L, true).Npc == 2, "contrata 2 dependientes (el máximo)")
+fire(owner, "HireNpc", L, -1)
+check(BusinessService._getRecord(L, true).Npc == 1, "despide a uno")
+-- Contratar a un jugador: oferta, aceptar y turno
+local worker, workerRoot = newPlayer(395, "Adulto", 0)
+profiles[worker].Items = {}
+profiles[worker].Slots = {}
+local kid = newPlayer(396, "Nino", 0)
+fire(owner, "Offer", L, kid.UserId)
+check(notified(owner, "mayores de edad"), "no se puede contratar a un niño")
+fire(owner, "Offer", L, worker.UserId)
+check(lastMessage(worker, "Panel")[2].Id == "Offer", "al empleado le llega la oferta de trabajo")
+fire(worker, "AcceptJob", L)
+local wrec = BusinessService._getRecord(L, true)
+check(wrec.Workers and wrec.Workers[tostring(worker.UserId)] ~= nil and notified(owner, "trabaja ahora"), "acepta y ya trabaja en el negocio")
+fire(worker, "Shift", L)
+check(notified(worker, "tienes que estar en el negocio") or notified(worker, "Tienes que estar"), "fuera del negocio no se empieza el turno")
+worker:SetAttribute("InteriorKey", "7:0")
+fire(worker, "Shift", L)
+check(worker:GetAttribute("BizShift") ~= nil, "en el negocio empieza el turno")
+local wage = BusinessService._getRecord(L, true).Workers[tostring(worker.UserId)].Wage
+local memo = BusinessService._getRecord(L, true)
+memo.Till = 100
+BusinessService._payShifts()
+check(profiles[worker].Money == wage and BusinessService._getRecord(L, true).Till == 100 - wage, "cada minuto de turno cobra su sueldo de la caja")
+memo = BusinessService._getRecord(L, true)
+memo.Till = 0
+BusinessService._payShifts()
+check(worker:GetAttribute("BizShift") == nil and notified(worker, "No queda dinero"), "sin dinero en la caja se acaba el turno")
+fire(owner, "Wage", L, tostring(worker.UserId))
+check(BusinessService._getRecord(L, true).Workers[tostring(worker.UserId)].Wage ~= wage, "el dueño cambia el sueldo")
+fire(owner, "FireWorker", L, tostring(worker.UserId))
+check(BusinessService._getRecord(L, true).Workers[tostring(worker.UserId)] == nil and notified(worker, "Ya no trabajas"), "y le despide")
+-- Sucursales: otro local con el mismo negocio y nombre
+owner:SetAttribute("InteriorKey", "8:0")
+local L2
+for key, premise in BusinessService._premises do
+	if premise.Building == building2 then
+		L2 = key
+	end
+end
+fire(owner, "BuyPremise", L2)
+local setup = lastMessage(owner, "Panel")[2]
+local hasBranch = false
+for _, row in setup.Rows do
+	for _, b in row.Buttons or {} do
+		if b.Action == "Branch" then
+			hasBranch = true
+		end
+	end
+end
+check(hasBranch, "al comprar otro local puede abrir una sucursal de su restaurante")
+local m4 = profiles[owner].Money
+fire(owner, "Branch", L2, L)
+local r2 = BusinessService._getRecord(L2, true)
+check(r2.Type == "Restaurante" and r2.Name == "Casa Pepa" and profiles[owner].Money == m4 - math.floor(Business.Types.Restaurante.License * Business.BranchLicense), "abre la sucursal con el mismo nombre y media licencia")
+task.wait(3.1)
+owner:SetAttribute("InteriorKey", "7:0")
+fire(owner, "SetName", L, "Casa Pepa Grill")
+check(BusinessService._getRecord(L2, true).Name == "Casa Pepa Grill", "al cambiar el nombre cambia en toda la cadena")
 local _ = left
 end)()
 

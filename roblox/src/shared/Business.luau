@@ -27,7 +27,19 @@ local Groceries = require(script.Parent.Groceries)
 local Business = {}
 
 Business.MinStage = "AdultoJoven"
-Business.MaxOwned = 3
+Business.MaxOwned = 3 -- negocios distintos
+Business.MaxWithBranches = 6 -- contando las sucursales de tus cadenas
+Business.BranchLicense = 0.5 -- una sucursal paga la mitad de la licencia
+
+-- Empleados
+Business.MaxNpc = 2 -- dependientes contratados (personajes del juego)
+Business.NpcWage = 12 -- lo que cobra cada dependiente por hora (sale de la caja)
+Business.NpcBoost = 0.25 -- cada dependiente atiende a un 25 % más de clientes
+Business.MaxWorkers = 3 -- jugadores contratados
+Business.Wages = { 6, 9, 12 } -- sueldo por minuto de turno de un jugador (sale de la caja)
+Business.ShiftBoost = 0.4 -- cada jugador de turno atiende a un 40 % más de clientes
+Business.ChainStep = 0.1 -- cada sucursal abierta de la misma cadena: +10 % de clientes
+Business.ChainMax = 0.3
 Business.SellShare = 0.6 -- al vender el local te devuelven un 60 %
 Business.MaxOfflineHours = 8 -- como mucho se simulan 8 horas seguidas sin que nadie mire
 Business.StockMax = 500 -- existencias máximas de cada producto (la gasolina, en litros: x20)
@@ -282,6 +294,8 @@ export type Record = {
 	Sales: number, -- total vendido (dinero)
 	Units: number,
 	Log: { { T: number, Text: string } },
+	Npc: number?, -- dependientes contratados
+	Workers: { [string]: { Name: string, Wage: number } }?, -- jugadores contratados (UserId en texto)
 }
 
 function Business.newRecord(key: string, premise: string, title: string, owner: number, ownerName: string, paid: number, now: number): Record
@@ -334,7 +348,28 @@ end
 -- Clientes NPC: lo que se vende desde la última vez (sin azar, para que sea igual en todos
 -- los servidores). Devuelve unidades, dinero y el detalle por producto; actualiza el registro.
 ---------------------------------------------------------------------
-function Business.simulate(rec: Record, now: number): (number, number, { [string]: number })
+-- Más clientes por el personal y la cadena. extra = { Shift = jugadores de turno, Chain = sucursales abiertas }
+function Business.boost(rec: Record, extra: { Shift: number?, Chain: number? }?): number
+	local staff = 1 + (rec.Npc or 0) * Business.NpcBoost + ((extra and extra.Shift) or 0) * Business.ShiftBoost
+	local chain = 1 + math.min(Business.ChainMax, math.max(0, ((extra and extra.Chain) or 1) - 1) * Business.ChainStep)
+	return staff * chain
+end
+
+-- Gastos por hora: los del local más los sueldos de los dependientes
+function Business.upkeep(rec: Record): number
+	local bizType = rec.Type and Business.Types[rec.Type]
+	return (if bizType then bizType.Upkeep else 0) + (rec.Npc or 0) * Business.NpcWage
+end
+
+function Business.workerCount(rec: Record): number
+	local n = 0
+	for _ in rec.Workers or {} do
+		n += 1
+	end
+	return n
+end
+
+function Business.simulate(rec: Record, now: number, extra: { Shift: number?, Chain: number? }?): (number, number, { [string]: number })
 	local sold: { [string]: number } = {}
 	local elapsed = math.clamp(now - (rec.LastSim or now), 0, Business.MaxOfflineHours * 3600)
 	rec.LastSim = now
@@ -343,7 +378,7 @@ function Business.simulate(rec: Record, now: number): (number, number, { [string
 		return 0, 0, sold
 	end
 	local hours = elapsed / 3600
-	local rep = Business.repFactor(rec.Rep)
+	local rep = Business.repFactor(rec.Rep) * Business.boost(rec, extra)
 
 	-- Lo que pedirían los clientes de cada producto con existencias
 	local wants: { [string]: number } = {}
@@ -390,7 +425,7 @@ function Business.simulate(rec: Record, now: number): (number, number, { [string
 	end
 
 	-- Gastos (luz, agua, impuestos): salen de la caja
-	local upkeep = bizType.Upkeep * hours
+	local upkeep = Business.upkeep(rec) * hours
 	rec.Till = math.max(0, rec.Till + money - upkeep)
 	rec.Sales += money
 	rec.Units += units
