@@ -1277,6 +1277,22 @@ function FishingService.init()
 	end)
 end
 
+-- Para la pesca submarina (DivingService)
+FishingService.levelOf = levelOf
+FishingService.toolsOf = toolsOf
+FishingService.addXp = addXp
+FishingService.consume = consume
+FishingService.pop = pop
+
+-- Qué agua hay en un sitio: cerca del barco de pesca es alta mar
+function FishingService.waterAt(position: Vector3): string
+	local deck = first("FishingBoatDeck")
+	if deck and (Vector2.new(deck.Position.X, deck.Position.Z) - Vector2.new(position.X, position.Z)).Magnitude < Fishing.Dive.BoatRadius then
+		return "AltaMar"
+	end
+	return FishingService.waterKind(position)
+end
+
 -- Para las pruebas
 FishingService._fishing = fishing
 FishingService._pop = pop

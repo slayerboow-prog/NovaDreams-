@@ -680,6 +680,8 @@ function TownBuilder.build(): Folder
 	local built = builtAt()
 	buildOutskirts(world, built)
 	require(Kit.Wilds).build(world, built) -- bosques de montaña, orillas del río, parque del lago y playas
+	-- Ciudad de la Justicia (juzgado, cárcel, cuartel y Hacienda): al final, sin azar, para no mover nada más
+	require(Kit.JusticeCity).build(world)
 	-- Repaso final: que ninguna moldura, bordillo o cristalera parpadee contra la pared de detrás
 	-- (varias pasadas: al crecer una pieza puede quedar a ras de otra)
 	for _ = 1, 4 do

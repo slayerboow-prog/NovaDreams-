@@ -67,9 +67,15 @@ local order = {
 	"SocialService", -- grupos de jugadores y chat privado (menú al tocar a un jugador)
 	"FishingService", -- pesca, tienda de pesca, barco y oficio de pescador
 	"MetroService", -- metro subterráneo: trenes, galería, encargos y revisor
+	"DivingService", -- nadar, bucear (aire) y pesca submarina con fusil o arpón
 	"ClassService", -- clases y exámenes que se juegan (lo usa la historia)
 	"DialogueService", -- conversaciones con respuestas (misiones episódicas)
 	"MiniGameService", -- pase, canastas, partido de fútbol…
+	"CombatService", -- golpes entre jugadores (combo, defenderse y K.O.) y a los personajes de tus misiones
+	"CareerService", -- carreras en las instituciones: rangos, ascensos, plus de sueldo y uniformes
+	"JusticeService", -- juicios (jueces), condenas y prisión (presos y funcionarios)
+	"TaxService", -- Agencia Tributaria: declaración de la renta, agentes e inspecciones
+	"WantedService", -- delitos, testigos y estrellas de búsqueda: patrullas, agentes y helicópteros
 	"SceneService", -- actores y objetos de cada misión (solo para su jugador)
 	"LifeStoryService", -- la historia de vida escucha a todos los anteriores
 	"BabyService", -- tutorial de bebé (fase 2)

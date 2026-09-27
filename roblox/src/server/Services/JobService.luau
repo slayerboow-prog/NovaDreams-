@@ -38,6 +38,8 @@ export type Provider = {
 	Pickup: (Player, any) -> BasePart?,
 	Dropoff: (Player, any) -> BasePart?,
 	Done: ((Player, any) -> ())?,
+	Text: ((Player, any) -> string?)?, -- (opcional) texto de la tarea en vez del fijo del oficio
+	Start: ((Player) -> boolean)?, -- (opcional) comprobaciones extra al empezar (edad…); false = no empieza
 }
 local providers: { [string]: Provider } = {}
 
@@ -108,8 +110,10 @@ end
 
 local function publish(player: Player, shift: Shift)
 	local job = Config.Jobs[shift.JobId]
+	local provider = providers[shift.JobId]
+	local custom = provider and provider.Text and provider.Text(player, shift)
 	player:SetAttribute("TaskTarget", shift.Target.Position)
-	player:SetAttribute("TaskText", if shift.Phase == "Pickup" then job.PickupText else job.DropoffText)
+	player:SetAttribute("TaskText", custom or (if shift.Phase == "Pickup" then job.PickupText else job.DropoffText))
 end
 
 local function pickupFor(player: Player, shift: Shift, lastTarget: BasePart?): BasePart?
@@ -160,6 +164,10 @@ function JobService.start(player: Player, jobId: string, context: any?)
 	end
 	if not NeedsService.canWork(player) then
 		Notify:FireClient(player, "Error", "Estás demasiado cansado o hambriento para trabajar.")
+		return
+	end
+	local custom = providers[jobId]
+	if custom and custom.Start and not custom.Start(player) then
 		return
 	end
 	JobService.quit(player, true)

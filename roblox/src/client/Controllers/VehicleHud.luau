@@ -105,13 +105,16 @@ function VehicleHud.init(parent: Instance)
 		if TOUCH then
 			scale.Scale = hud * 0.85
 			-- justo debajo del reloj (arriba en el centro; mide 10 + 54 en la escala del HUD)
-			panel.Position = UDim2.new(0.5, 0, 0, math.floor((10 + 54 + 8) * hud))
+			-- (si te busca la policía, las estrellas van justo bajo el reloj: el cuadro baja un poco)
+			local stars = if player:GetAttribute("Wanted") then 46 else 0
+			panel.Position = UDim2.new(0.5, 0, 0, math.floor((10 + 54 + 8 + stars) * hud))
 		else
 			scale.Scale = math.max(hud, 0.7)
 			panel.Position = UDim2.new(0.5, 0, 1, -math.floor(110 * hud))
 		end
 	end
 	camera:GetPropertyChangedSignal("ViewportSize"):Connect(rescale)
+	player:GetAttributeChangedSignal("Wanted"):Connect(rescale)
 	rescale()
 
 	-- Velocímetro

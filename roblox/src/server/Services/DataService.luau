@@ -74,6 +74,7 @@ local DEFAULT_DATA = {
 local profiles: { [Player]: { [string]: any } } = {}
 local loadedCallbacks: { (Player, { [string]: any }) -> () } = {}
 local beforeSaveCallbacks: { (Player, { [string]: any }) -> () } = {}
+local earningCallbacks: { (Player, number) -> () } = {}
 local savingEnabled = true
 local store: DataStore? = nil
 
@@ -216,6 +217,11 @@ function DataService.onLoaded(callback: (Player, { [string]: any }) -> ())
 	end
 end
 
+-- Registra una función que se llama cada vez que alguien gana dinero trabajando (Hacienda)
+function DataService.onEarning(callback: (Player, number) -> ())
+	table.insert(earningCallbacks, callback)
+end
+
 -- Registra una función que se llama justo antes de cada guardado (para apuntar lo último: dónde estás…)
 function DataService.beforeSave(callback: (Player, { [string]: any }) -> ())
 	table.insert(beforeSaveCallbacks, callback)
@@ -243,6 +249,9 @@ function DataService.addMoney(player: Player, amount: number, isEarning: boolean
 	data.Money = math.max(0, math.floor(data.Money + amount))
 	if isEarning and amount > 0 then
 		data.Stats.MoneyEarned += amount
+		for _, callback in earningCallbacks do
+			task.spawn(callback, player, amount)
+		end
 	end
 	syncMoney(player, data)
 	return true

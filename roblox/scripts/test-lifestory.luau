@@ -351,8 +351,7 @@ end
 
 -- stage = nil: personaje recién creado (playSeconds 0 -> nace bebé; > 0 -> jugador veterano, adulto)
 local function newPlayer(name: string, stage: string?, playSeconds: number?)
-	-- SpawnReady: en el juego lo pone PositionService cuando el jugador ya ha aparecido donde lo dejó;
-	-- la historia espera a esa señal antes de empezar
+	-- SpawnReady: ya ha aparecido donde lo dejó (en el juego lo pone PositionService)
 	local player = { Name = name, DisplayName = name, Parent = true, Inbox = {}, Attributes = { SpawnReady = true }, Said = {}, Games = {}, Barks = {} }
 	function player:SetAttribute(key, value)
 		self.Attributes[key] = value

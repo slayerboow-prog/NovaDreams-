@@ -42,6 +42,7 @@ local TradeUI = require(script.Parent.Controllers.TradeUI)
 local PlayerMenuUI = require(script.Parent.Controllers.PlayerMenuUI)
 local FishingUI = require(script.Parent.Controllers.FishingUI)
 local MetroUI = require(script.Parent.Controllers.MetroUI)
+local DivingUI = require(script.Parent.Controllers.DivingUI)
 local JobPrompts = require(script.Parent.Controllers.JobPrompts)
 local BusUI = require(script.Parent.Controllers.BusUI)
 local ActorLife = require(script.Parent.Controllers.ActorLife)
@@ -49,6 +50,11 @@ local AgeMotion = require(script.Parent.Controllers.AgeMotion)
 local ObjectMotion = require(script.Parent.Controllers.ObjectMotion)
 local WetWorld = require(script.Parent.Controllers.WetWorld)
 local StoneThrow = require(script.Parent.Controllers.StoneThrow)
+local CombatController = require(script.Parent.Controllers.CombatController)
+local WantedUI = require(script.Parent.Controllers.WantedUI)
+local InstitutionsUI = require(script.Parent.Controllers.InstitutionsUI)
+local CommandMenu = require(script.Parent.Commands.CommandMenu)
+local DefaultCommands = require(script.Parent.Commands.DefaultCommands)
 
 local gui = Hud.init(function()
 	Store.open()
@@ -95,9 +101,19 @@ task.spawn(TradeUI.init) -- intercambio entre jugadores y mercadillo
 task.spawn(PlayerMenuUI.init) -- al tocar a un jugador: invitar al grupo, chat y comerciar
 task.spawn(FishingUI.init) -- pesca: sedal y corcho, ¡tirar!, tienda de pesca
 task.spawn(MetroUI.init) -- metro: panel del tren, billetes, tiendas, encargos y escenario
+task.spawn(DivingUI.init) -- nadar, bucear (aire) y pesca submarina con fusil o arpón
 task.spawn(JobPrompts.init) -- los carteles de cada oficio solo los ve quien trabaja en él
 task.spawn(Driving.init) -- conducir coches, motos, bicis, monopatines y patinetes (W/A/S/D)
 task.spawn(Actions.init) -- gestos y bailes (G), trepar muros bajos, linterna (L) y modo foto (P)
+task.spawn(CombatController.init) -- pelear: X/RB golpear (combo de 3), Z/LB defenderse, 👊 y 🛡 en el móvil
+task.spawn(WantedUI.init) -- estrellas de búsqueda bajo el reloj, avisos de delito, DETENIDO y hélices
+task.spawn(InstitutionsUI.init) -- instituciones: panel del juez, juicio, condena, ascensos y Hacienda
+
+-- Menú de comandos (abajo a la izquierda): cambia según lo que tienes delante; el comando elegido
+-- es también lo que hace la tecla E, y su cartel es el único que se dibuja
+DefaultCommands.register()
+CommandMenu.onFocus(Prompts.setFocus)
+task.spawn(CommandMenu.init)
 
 -- Botones de arriba a la derecha del HUD
 Hud.setAction("Mochila", InventoryUI.toggle)
@@ -207,6 +223,7 @@ game:GetService("RunService").Heartbeat:Connect(function()
 		ProximityPromptService.Enabled = not busy
 		TaskMarker.setHidden(busy)
 		Hud.setBusy(busy)
+		CommandMenu.setBusy(busy)
 		if busy and MapUI.isOpen() then
 			MapUI.toggleBig()
 		end
