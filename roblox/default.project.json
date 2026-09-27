@@ -11,6 +11,9 @@
         "Notify": {
           "$className": "RemoteEvent"
         },
+        "Vandal": {
+          "$className": "RemoteEvent"
+        },
         "Actions": {
           "$className": "RemoteEvent"
         },
