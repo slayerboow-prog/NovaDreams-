@@ -163,7 +163,7 @@ local function onResult(data: { [string]: any })
 	s.Done = true
 	s.Bite = false
 	if data.Kind == "Catch" then
-		status.Text = ("%s ¡Has pescado %s de %s kg!%s  (se vende a %s)"):format(data.Icon, string.lower(data.Name), (string.gsub(tostring(data.Kg), "%.", ",")), if data.Rare then " ⭐ ¡Es raro!" else "", Format.money(data.Price))
+		status.Text = ("%s ¡Has pescado %s de %s kg!%s  🎒 A la mochila (se vende a %s)"):format(data.Icon, string.lower(data.Name), (string.gsub(tostring(data.Kg), "%.", ",")), if data.Rare then " ⭐ ¡Es raro!" else "", Format.money(data.Price))
 		status.TextColor3 = C.Money
 		pcall(SoundFx.play, "Aviso", 1, 1.8)
 	elseif data.Kind == "Junk" then

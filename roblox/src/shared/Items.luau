@@ -216,7 +216,7 @@ for _, s in Fishing.Species do
 		Icon = s.Icon,
 		Kind = "Thing",
 		Desc = ("Pescado fresco. Véndelo en la pescadería del supermercado (%d € cada uno)."):format(s.Price),
-		Stack = 20,
+		Stack = 64, -- como los demás objetos: caben muchos antes de tener que venderlos
 	}
 end
 

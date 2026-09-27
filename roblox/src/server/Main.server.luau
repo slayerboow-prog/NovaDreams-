@@ -61,6 +61,7 @@ local order = {
 	"CinemaService", -- cines: sesiones con película en pantalla y oficio de taquillero/a
 	"HotelService", -- hoteles: reservar habitación, descansar y oficio de recepcionista
 	"TradeService", -- intercambio entre jugadores y mercadillo
+	"SocialService", -- grupos de jugadores y chat privado (menú al tocar a un jugador)
 	"FishingService", -- pesca, tienda de pesca, barco y oficio de pescador
 	"ClassService", -- clases y exámenes que se juegan (lo usa la historia)
 	"DialogueService", -- conversaciones con respuestas (misiones episódicas)
