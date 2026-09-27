@@ -19,6 +19,7 @@ local UserInputService = game:GetService("UserInputService")
 local Items = require(ReplicatedStorage.Shared.Items)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Hud = require(script.Parent.Parent.UI.Hud)
+local ReactMotion = require(script.Parent.ReactMotion)
 
 local create = Theme.create
 
@@ -758,6 +759,8 @@ useSlot = function(index: number)
 	end
 	if item.Kind == "Food" then
 		Remote:FireServer("Use", index)
+		-- La mano a la boca (o el vaso, si es una bebida)
+		ReactMotion.play(player.Character, ReactMotion.foodGesture(item.Name))
 	elseif item.Kind == "Vehicle" then
 		local vehicle = Remotes:FindFirstChild("Vehicle") :: RemoteEvent?
 		if vehicle then

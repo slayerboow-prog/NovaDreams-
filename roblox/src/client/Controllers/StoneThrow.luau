@@ -4,6 +4,8 @@
 --     ordenador; el centro de la pantalla en móvil y mando).
 --   * Dibuja las piedras que vuelan (las tuyas y las de los demás) siguiendo el mismo camino que
 --     calcula el servidor (BreakService), así se ven suaves.
+--   * El cuerpo acompaña: al coger una piedra se agacha a por ella y al lanzar echa el brazo atrás
+--     por encima del hombro y lo lanza (ReactMotion: PickUp y Throw, con entrada y salida suaves).
 
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
@@ -13,6 +15,7 @@ local UserInputService = game:GetService("UserInputService")
 
 local Breakables = require(ReplicatedStorage.Shared.Breakables)
 local Hud = require(script.Parent.Parent.UI.Hud)
+local ReactMotion = require(script.Parent.ReactMotion)
 
 local StoneThrow = {}
 
@@ -50,6 +53,10 @@ local function throwGesture()
 	if not humanoid or not animator then
 		return
 	end
+	if humanoid.RigType == Enum.HumanoidRigType.R15 then
+		ReactMotion.play(character, "Throw")
+		return
+	end
 	local animation = Instance.new("Animation")
 	local r15 = humanoid.RigType == Enum.HumanoidRigType.R15
 	animation.AnimationId = "rbxassetid://" .. (if r15 then THROW_ANIM.R15 else THROW_ANIM.R6)
@@ -58,9 +65,9 @@ local function throwGesture()
 	end)
 	if ok and track then
 		track.Priority = Enum.AnimationPriority.Action
-		track:Play(0.05, 1, 1.6)
+		track:Play(0.1, 1, 1.6)
 		task.delay(0.45, function()
-			track:Stop(0.2)
+			track:Stop(0.25)
 		end)
 	end
 end
@@ -113,7 +120,13 @@ function StoneThrow.init()
 
 	refreshButton()
 	player:GetAttributeChangedSignal("LifeStage"):Connect(refreshButton)
+	local stones = player:GetAttribute("Stones") or 0
 	player:GetAttributeChangedSignal("Stones"):Connect(function()
+		local now = player:GetAttribute("Stones") or 0
+		if now > stones and player.Character then
+			ReactMotion.play(player.Character, "PickUp") -- se agacha a cogerla
+		end
+		stones = now
 		refreshButton()
 		if (player:GetAttribute("Stones") or 0) > 0 and not hinted then
 			hinted = true
@@ -124,6 +137,16 @@ function StoneThrow.init()
 	Remote.OnClientEvent:Connect(function(action, id, a, b, c, d)
 		if action == "Stone" then
 			flying[id] = { Part = newStone(), From = a, Velocity = b, Start = c, Gravity = d }
+			-- Quien la lanza (otro jugador, a su lado sale la piedra): también echa el brazo
+			if typeof(a) == "Vector3" then
+				for _, other in Players:GetPlayers() do
+					local root = other ~= player and other.Character and other.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+					if root and (root.Position - a).Magnitude < 4.5 then
+						ReactMotion.play(other.Character, "Throw")
+						break
+					end
+				end
+			end
 		elseif action == "Hit" then
 			local stone = flying[id]
 			if stone then

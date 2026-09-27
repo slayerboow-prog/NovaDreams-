@@ -14,15 +14,16 @@
 -- Se aplica a los jugadores (según su LifeStage) y a los personajes con el atributo "Age"
 -- (compañeros de clase, la abuela…). Todo en tu pantalla, encima de sus animaciones: cada frame,
 -- después de que Roblox anime (PreSimulation), se retoca Motor6D.Transform. Así no choca con
--- ActorLife, que mueve C0 (mirada, gestos, tareas).
+-- ActorLife, que mueve C0 (mirada, gestos, tareas). La cuenta de qué puso la animación y qué
+-- pusimos nosotros la lleva PoseLayers (compartida con Locomotion y ReactMotion: no se acumulan).
 --
 -- Las funciones puras (style, crawlPose, lowestPoint) se prueban fuera de Roblox:
 -- scripts/test-agemotion.luau
 
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
 
 local WorkAnim = require(script.Parent.WorkAnim)
+local Layers: any = nil -- PoseLayers (se carga en init: las pruebas cargan este módulo sin Roblox)
 
 local AgeMotion = {}
 
@@ -243,8 +244,6 @@ type Body = {
 	Root: BasePart,
 	Player: Player?,
 	Joints: { [string]: Motor6D },
-	Base: { [string]: CFrame }, -- lo que puso la animación este frame
-	Written: { [string]: CFrame }, -- lo que pusimos nosotros (si sigue igual, la animación no lo tocó)
 	Active: boolean,
 	Crawl: number, -- 0..1, suave
 	Style: number, -- 0..1, suave (se quita al sentarse, conducir, dormir…)
@@ -283,8 +282,6 @@ local function register(model: Model)
 		Root = root,
 		Player = Players:GetPlayerFromCharacter(model),
 		Joints = {},
-		Base = {},
-		Written = {},
 		Active = false,
 		Crawl = 0,
 		Style = 0,
@@ -362,11 +359,6 @@ local function crawlDrop(body: Body): number
 	return drop
 end
 
--- ¿Es la misma transformación? (casi exacta: lo que se escribe puede volver con un redondeo)
-local function same(a: CFrame, b: CFrame): boolean
-	return (a.Position - b.Position).Magnitude < 1e-4 and a.LookVector:Dot(b.LookVector) > 0.999999 and a.UpVector:Dot(b.UpVector) > 0.999999
-end
-
 -- Qué oficio hace cada trabajo cuando el jugador está quieto en su puesto
 local JOB_WORK = {
 	Barista = "Coffee",
@@ -415,20 +407,9 @@ local function gesturing(body: Body): boolean
 	return false
 end
 
-local function restore(body: Body)
-	for name, joint in body.Joints do
-		local written = body.Written[name]
-		if written and same(joint.Transform, written) then
-			joint.Transform = body.Base[name] or CFrame.identity
-		end
-	end
-	table.clear(body.Written)
-	table.clear(body.Base)
-end
-
--- Deja de animarlo (lejos o sin cuerpo): postura de la animación y fuera los objetos de la mano
+-- Deja de animarlo (lejos o sin cuerpo): fuera los objetos de la mano. (Sus articulaciones
+-- vuelven solas a la animación: lo que nadie escribe en un frame lo devuelve PoseLayers.)
 local function release(body: Body)
-	restore(body)
 	WorkAnim.clearProps(body.Props)
 	body.WorkName = nil
 	body.Work = 0
@@ -490,7 +471,6 @@ local function update(body: Body, t: number, dt: number)
 	WorkAnim.showProps(body.Props, W > 0.5)
 
 	if body.Crawl < 0.001 and body.Style < 0.001 and W < 0.001 then
-		restore(body)
 		return
 	end
 	-- La tarea, como retoque de cada articulación (los mismos ángulos que usa ActorLife en C0)
@@ -509,14 +489,8 @@ local function update(body: Body, t: number, dt: number)
 	local offsets = if style and body.Style > 0.001 then style.Offsets(t, body.Move, body.Phase) else nil
 	local crawl = if body.Crawl > 0.001 then AgeMotion.crawlPose(body.Move, body.Phase, crawlDrop(body)) else nil
 	for name, joint in body.Joints do
-		local current = joint.Transform
-		local written = body.Written[name]
-		if written and same(current, written) then
-			-- La animación no lo ha tocado este frame: partimos de lo que había debajo
-			current = body.Base[name] or CFrame.identity
-		end
-		body.Base[name] = current
-		local out = current
+		-- La animación de este frame (y lo que hayan puesto las capas de antes)
+		local out = Layers.read(joint)
 		if style and body.Style > 0.001 then
 			local k = if ARMS[name] then style.Arms elseif LEGS[name] then style.Legs else 1
 			k = 1 + (k - 1) * body.Style
@@ -539,12 +513,12 @@ local function update(body: Body, t: number, dt: number)
 		if crawl then
 			out = out:Lerp(crawl[name] or out, body.Crawl)
 		end
-		joint.Transform = out
-		body.Written[name] = out
+		Layers.write(joint, out)
 	end
 end
 
 function AgeMotion.init()
+	Layers = require(script.Parent.PoseLayers)
 	local function consider(instance: Instance)
 		if instance:IsA("Humanoid") then
 			local model = instance.Parent
@@ -610,11 +584,8 @@ function AgeMotion.init()
 		end
 	end)
 
-	-- Después de que Roblox anime y antes de dibujar
-	local signal = (RunService :: any).PreSimulation or RunService.Stepped
-	signal:Connect(function(a, b)
-		local dt = if typeof(b) == "number" then b else a -- Stepped da (tiempo, dt)
-		local t = os.clock()
+	-- Después de que Roblox anime y antes de dibujar: la primera capa de PoseLayers
+	Layers.add("AgeMotion", 10, function(dt, t)
 		for _, body in active do
 			if body.Active and body.Model.Parent then
 				local ok, err = pcall(update, body, t, dt)
