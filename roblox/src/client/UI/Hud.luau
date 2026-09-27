@@ -248,18 +248,30 @@ local function buildCommandIcons(parent: Instance)
 end
 
 ---------------------------------------------------------------------
--- Tu estado: foto en un aro y las barras saliendo de ella (Salud, Energía, Hambre, Estamina)
+-- Tu estado (estilo "aro y gancho"): la foto dentro de un aro verde de VIDA que la rodea por
+-- fuera y sigue por abajo como una barra larga. Al perder vida se vacía desde la punta de la
+-- barra hacia la foto. Encima de la barra verde salen Estamina (azul), Energía y Hambre.
 ---------------------------------------------------------------------
-local PORTRAIT = 104
-local STATUS_W, STATUS_H = 380, 134
+local PORTRAIT = 96
+local STATUS_W, STATUS_H = 380, 138
+local RING_T = 12 -- grosor del aro y de la barra de vida
+local RING_R = PORTRAIT / 2 + 4 + RING_T / 2 -- radio (línea central) del aro
+local OUTER = RING_R + RING_T / 2 + 2
+local CENTER = Vector2.new(OUTER + 2, OUTER + 2) -- centro de la foto (con la foto a la izquierda)
+local ARC_FROM, ARC_TO = -150, 90 -- el aro empieza arriba (lado de las barras), rodea por fuera y baja
+local SEGMENTS = 48
+local HEALTH_LEN = 240 -- largo de la barra verde (desde el centro de la foto)
+local ARC_LEN = RING_R * math.rad(ARC_TO - ARC_FROM)
 local BARS = {
-	-- Id, texto, alto, ancho, colores del degradado
-	{ Id = "Health", Emoji = "❤", Height = 16, Width = 196, From = rgb(60, 200, 80), To = rgb(150, 255, 120) },
-	{ Id = "Energy", Emoji = "⚡", Height = 12, Width = 178, From = rgb(40, 110, 255), To = rgb(110, 200, 255) },
-	{ Id = "Hunger", Emoji = "🍔", Height = 10, Width = 160, From = rgb(235, 160, 30), To = rgb(255, 225, 90) },
-	{ Id = "Stamina", Emoji = "🏃", Height = 10, Width = 142, From = rgb(240, 110, 30), To = rgb(255, 180, 80) },
+	-- Id, texto, alto, largo (desde el borde de la foto), colores del degradado
+	{ Id = "Stamina", Emoji = "🏃", Height = 9, Width = 196, From = rgb(40, 80, 230), To = rgb(110, 170, 255) },
+	{ Id = "Energy", Emoji = "⚡", Height = 8, Width = 168, From = rgb(245, 150, 30), To = rgb(255, 225, 80) },
+	{ Id = "Hunger", Emoji = "🍔", Height = 8, Width = 140, From = rgb(230, 80, 40), To = rgb(255, 160, 70) },
 }
-local BAR_Y = { 54, 76, 94, 110 }
+local HEALTH_GREEN = { rgb(70, 200, 50), rgb(170, 255, 110) }
+local HEALTH_YELLOW = { rgb(230, 180, 20), rgb(255, 235, 110) }
+local HEALTH_RED = { rgb(220, 40, 40), rgb(255, 120, 100) }
+local TRACK = rgb(12, 18, 32)
 
 local status: Frame
 local arrangeStatus: (side: string) -> ()
@@ -267,18 +279,31 @@ local arrangeStatus: (side: string) -> ()
 local function buildStatus(parent: Instance)
 	status = create("Frame", { Name = "Status", Size = UDim2.fromOffset(STATUS_W, STATUS_H), BackgroundTransparency = 1, Parent = parent })
 
-	-- Foto en un aro: el aro cambia de color con la salud (verde, amarillo, rojo)
-	local ring = create("Frame", { Name = "Portrait", Size = UDim2.fromOffset(PORTRAIT, PORTRAIT), BackgroundColor3 = C.Panel, Parent = status }, {
+	-- Aro de vida: trocitos que siguen la curva (borde oscuro debajo y relleno encima)
+	local rim, segs = {}, {}
+	for i = 1, SEGMENTS do
+		local chord = RING_R * math.rad((ARC_TO - ARC_FROM) / SEGMENTS)
+		rim[i] = create("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Size = UDim2.fromOffset(chord * 1.35 + 2, RING_T + 4), BackgroundColor3 = rgb(4, 8, 16), BorderSizePixel = 0, ZIndex = 1, Parent = status })
+		segs[i] = create("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Size = UDim2.fromOffset(chord * 1.3 + 1, RING_T), BackgroundColor3 = TRACK, BorderSizePixel = 0, ZIndex = 2, Parent = status })
+	end
+	-- Barra de vida (el "gancho" que sale por abajo)
+	local healthTrack = create("Frame", { Name = "Health", Size = UDim2.fromOffset(HEALTH_LEN, RING_T), BackgroundColor3 = TRACK, BorderSizePixel = 0, ZIndex = 2, Parent = status }, {
+		create("UIStroke", { Color = rgb(4, 8, 16), Thickness = 2 }),
+		create("UICorner", { CornerRadius = UDim.new(0, 3) }),
+	})
+	local healthGradient = create("UIGradient", { Rotation = 90 })
+	local healthFill = create("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.new(1, 1, 1), BorderSizePixel = 0, ZIndex = 3, Parent = healthTrack }, {
+		create("UICorner", { CornerRadius = UDim.new(0, 3) }),
+		healthGradient,
+	})
+	local healthCaption = Theme.label({ Size = UDim2.fromOffset(62, 16), Font = Theme.FontBold, TextSize = 13, TextStrokeTransparency = 0.3, ZIndex = 4, Parent = status })
+
+	-- Foto
+	local ring = create("Frame", { Name = "Portrait", AnchorPoint = Vector2.new(0.5, 0.5), Size = UDim2.fromOffset(PORTRAIT, PORTRAIT), BackgroundColor3 = C.Panel, ZIndex = 4, Parent = status }, {
 		create("UICorner", { CornerRadius = UDim.new(1, 0) }),
+		create("UIStroke", { Color = rgb(4, 8, 16), Thickness = 3 }),
 	})
-	local ringStroke = create("UIStroke", { Color = C.Health, Thickness = 5, Parent = ring }, {
-		create("UIGradient", { Rotation = 90, Color = ColorSequence.new(Color3.new(1, 1, 1), rgb(150, 170, 200)) }),
-	})
-	create("Frame", { Size = UDim2.new(1, 6, 1, 6), Position = UDim2.fromOffset(-3, -3), BackgroundTransparency = 1, Parent = ring }, {
-		create("UICorner", { CornerRadius = UDim.new(1, 0) }),
-		create("UIStroke", { Color = C.Highlight, Thickness = 1.5, Transparency = 0.3 }),
-	})
-	local photo = create("ImageLabel", { Size = UDim2.new(1, -8, 1, -8), Position = UDim2.fromOffset(4, 4), BackgroundTransparency = 1, Parent = ring }, { create("UICorner", { CornerRadius = UDim.new(1, 0) }) })
+	local photo = create("ImageLabel", { Size = UDim2.new(1, -6, 1, -6), Position = UDim2.fromOffset(3, 3), BackgroundTransparency = 1, ZIndex = 4, Parent = ring }, { create("UICorner", { CornerRadius = UDim.new(1, 0) }) })
 	task.spawn(function()
 		local ok, image = pcall(function()
 			return Players:GetUserThumbnailAsync(player.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size150x150)
@@ -287,80 +312,140 @@ local function buildStatus(parent: Instance)
 			photo.Image = image
 		end
 	end)
-	local levelChip = create("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Size = UDim2.fromOffset(70, 22), Position = UDim2.new(0.5, 0, 1, 2), BackgroundColor3 = Color3.new(1, 1, 1), ZIndex = 3, Parent = ring }, {
-		Theme.corner(11),
+	local levelChip = create("Frame", { AnchorPoint = Vector2.new(0.5, 1), Size = UDim2.fromOffset(62, 20), Position = UDim2.new(0.5, 0, 1, -4), BackgroundColor3 = Color3.new(1, 1, 1), ZIndex = 5, Parent = ring }, {
+		Theme.corner(10),
 		create("UIGradient", { Rotation = 90, Color = Theme.Selected }),
 		create("UIStroke", { Color = C.Ink, Thickness = 1, Transparency = 0.4 }),
 	})
-	local levelText = Theme.title({ Size = UDim2.fromScale(1, 1), TextSize = 13, TextColor3 = C.Ink, TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 3, Parent = levelChip })
+	local levelText = Theme.title({ Size = UDim2.fromScale(1, 1), TextSize = 12, TextColor3 = C.Ink, TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 5, Parent = levelChip })
 
-	local name = Theme.title({ Name = "Name", Size = UDim2.fromOffset(STATUS_W - PORTRAIT - 14, 24), Text = player.DisplayName, TextSize = 20, TextStrokeTransparency = 0.5, TextTruncate = Enum.TextTruncate.AtEnd, Parent = status })
-	local money = Theme.label({ Name = "Money", Size = UDim2.fromOffset(BARS[1].Width, 20), Font = Theme.FontBold, TextSize = 15, TextColor3 = C.Money, TextStrokeTransparency = 0.5, Parent = status })
+	local name = Theme.title({ Name = "Name", Size = UDim2.fromOffset(STATUS_W - OUTER * 2 - 16, 22), Text = player.DisplayName, TextSize = 19, TextStrokeTransparency = 0.5, TextTruncate = Enum.TextTruncate.AtEnd, Parent = status })
+	local money = Theme.label({ Name = "Money", Size = UDim2.fromOffset(180, 18), Font = Theme.FontBold, TextSize = 15, TextColor3 = C.Money, TextStrokeTransparency = 0.5, Parent = status })
 	local xpText = Theme.label({ Name = "Xp", Size = UDim2.fromOffset(60, 14), Font = Theme.FontBold, TextSize = 11, TextColor3 = C.Muted, TextStrokeTransparency = 0.6, Parent = status })
-	local xpTrack = create("Frame", { Name = "XpBar", Size = UDim2.fromOffset(BARS[1].Width, 4), BackgroundColor3 = rgb(6, 12, 30), BackgroundTransparency = 0.2, BorderSizePixel = 0, Parent = status }, { Theme.corner(2) })
+	local xpTrack = create("Frame", { Name = "XpBar", Size = UDim2.fromOffset(150, 4), BackgroundColor3 = TRACK, BackgroundTransparency = 0.2, BorderSizePixel = 0, Parent = status }, { Theme.corner(2) })
 	local xpFill = create("Frame", { Size = UDim2.fromScale(0, 1), BackgroundColor3 = Color3.new(1, 1, 1), BorderSizePixel = 0, Parent = xpTrack }, {
 		Theme.corner(2),
 		create("UIGradient", { Color = ColorSequence.new(rgb(90, 200, 255), rgb(230, 250, 255)) }),
 	})
 
-	-- Barras: el relleno se vacía desde la punta lejana hacia la foto (como en KH3)
+	-- Barras finas encima de la de vida: el relleno se vacía desde la punta hacia la foto
 	local bars: { [string]: { Track: Frame, Fill: Frame, Caption: TextLabel, Ratio: number } } = {}
 	for _, def in BARS do
-		local track = create("Frame", { Name = def.Id, Size = UDim2.fromOffset(def.Width, def.Height), BackgroundColor3 = rgb(6, 12, 30), BackgroundTransparency = 0.15, BorderSizePixel = 0, Parent = status }, {
-			Theme.corner(3),
-			create("UIStroke", { Color = C.Stroke, Thickness = 1, Transparency = 0.45 }),
+		local track = create("Frame", { Name = def.Id, Size = UDim2.fromOffset(def.Width, def.Height), BackgroundColor3 = TRACK, BackgroundTransparency = 0.1, BorderSizePixel = 0, ZIndex = 2, Parent = status }, {
+			Theme.corner(2),
+			create("UIStroke", { Color = rgb(4, 8, 16), Thickness = 1.5 }),
 		})
-		local fill = create("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.new(1, 1, 1), BorderSizePixel = 0, Parent = track }, {
-			Theme.corner(3),
+		local fill = create("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.new(1, 1, 1), BorderSizePixel = 0, ZIndex = 3, Parent = track }, {
+			Theme.corner(2),
 			create("UIGradient", { Rotation = 90, Color = ColorSequence.new(def.To, def.From) }),
 		})
-		local caption = Theme.label({ Size = UDim2.fromOffset(60, math.max(def.Height, 14)), Font = Theme.FontBold, TextSize = if def.Height >= 14 then 14 else 12, TextStrokeTransparency = 0.4, Parent = status })
+		local caption = Theme.label({ Size = UDim2.fromOffset(52, 12), Font = Theme.FontBold, TextSize = 11, TextStrokeTransparency = 0.3, ZIndex = 4, Parent = status })
 		bars[def.Id] = { Track = track, Fill = fill, Caption = caption, Ratio = -1 }
 	end
 
+	-- Vida: cuánto camino (aro + barra) está lleno; se anima con un NumberValue
+	local healthRatio = 1
+	local shown = create("NumberValue", { Value = 1 })
+	local function paintHealth()
+		local ratio = shown.Value
+		local colors = if healthRatio > 0.5 then HEALTH_GREEN elseif healthRatio > 0.25 then HEALTH_YELLOW else HEALTH_RED
+		local filled = ratio * (ARC_LEN + HEALTH_LEN)
+		for i, seg in segs do
+			local at = (i - 0.5) / SEGMENTS * ARC_LEN
+			seg.BackgroundColor3 = if at <= filled then colors[1]:Lerp(colors[2], 0.35) else TRACK
+		end
+		healthGradient.Color = ColorSequence.new(colors[2], colors[1])
+		healthFill.Size = UDim2.fromScale(math.clamp((filled - ARC_LEN) / HEALTH_LEN, 0, 1), 1)
+	end
+	shown.Changed:Connect(paintHealth)
+
 	local function setBar(id: string, amount: number, max: number)
-		local bar = bars[id]
 		local ratio = math.clamp(amount / math.max(max, 1), 0, 1)
-		setText(bar.Caption, (if id == "Health" then "❤ " elseif id == "Energy" then "⚡ " elseif id == "Hunger" then "🍔 " else "🏃 ") .. tostring(math.floor(amount + 0.5)))
+		if id == "Health" then
+			setText(healthCaption, "❤ " .. tostring(math.floor(amount + 0.5)))
+			healthRatio = ratio
+			TweenService:Create(shown, TweenInfo.new(0.35), { Value = ratio }):Play()
+			paintHealth()
+			return
+		end
+		local bar = bars[id]
+		local def = nil
+		for _, d in BARS do
+			if d.Id == id then
+				def = d
+			end
+		end
+		setText(bar.Caption, (if def then def.Emoji .. " " else "") .. tostring(math.floor(amount + 0.5)))
 		if math.abs(ratio - bar.Ratio) < 0.002 then
 			return
 		end
 		bar.Ratio = ratio
 		TweenService:Create(bar.Fill, TweenInfo.new(0.3), { Size = UDim2.fromScale(ratio, 1) }):Play()
-		if id == "Health" then
-			ringStroke.Color = if ratio > 0.5 then C.Health elseif ratio > 0.25 then C.Gold else C.Error
-		end
 	end
 
 	-- Colocar a un lado u otro: "Right" (la foto a la derecha y las barras hacia la izquierda) o "Left"
 	arrangeStatus = function(side: string)
 		local right = side == "Right"
 		local align = if right then Enum.TextXAlignment.Right else Enum.TextXAlignment.Left
-		local function place(object: GuiObject, fromEdge: number, y: number)
-			object.AnchorPoint = Vector2.new(if right then 1 else 0, 0)
-			object.Position = if right then UDim2.new(1, -fromEdge, 0, y) else UDim2.fromOffset(fromEdge, y)
+		-- Todo se piensa con la foto a la izquierda; a la derecha se refleja
+		local function x(value: number): number
+			return if right then STATUS_W - value else value
 		end
-		local lane = PORTRAIT + 14 -- las barras empiezan junto a la foto
-		place(ring, 4, 6)
-		place(name, lane, 0)
+		-- object se coloca con su lado cercano a la foto en fromX (y su borde superior en y)
+		local function place(object: GuiObject, fromX: number, y: number)
+			object.AnchorPoint = Vector2.new(if right then 1 else 0, 0)
+			object.Position = UDim2.fromOffset(x(fromX), y)
+		end
+		local cx, cy = CENTER.X, CENTER.Y
+		ring.Position = UDim2.fromOffset(x(cx), cy)
+		for i = 1, SEGMENTS do
+			local degrees = ARC_FROM + (ARC_TO - ARC_FROM) * (i - 0.5) / SEGMENTS
+			if not right then
+				degrees = 180 - degrees -- reflejado: rodea por la izquierda
+			end
+			local a = math.rad(degrees)
+			local px, py = CENTER.X + math.cos(a) * RING_R, cy + math.sin(a) * RING_R
+			if right then
+				px = STATUS_W - CENTER.X + math.cos(a) * RING_R
+			end
+			for _, piece in { rim[i], segs[i] } do
+				piece.Position = UDim2.fromOffset(px, py)
+				piece.Rotation = degrees + 90
+			end
+		end
+		local barY = cy + RING_R - RING_T / 2
+		place(healthTrack, cx, barY)
+		-- La vida se vacía desde la punta lejana: el relleno va pegado a la foto
+		healthFill.AnchorPoint = Vector2.new(if right then 1 else 0, 0)
+		healthFill.Position = UDim2.fromScale(if right then 1 else 0, 0)
+		place(healthCaption, cx + HEALTH_LEN + 4, barY - 2)
+		healthCaption.TextXAlignment = align
+
+		local lane = OUTER * 2 + 12 -- el texto de arriba empieza pasado el aro
+		place(name, lane, 2)
 		name.TextXAlignment = align
 		place(money, lane, 24)
 		money.TextXAlignment = align
-		place(xpText, lane + BARS[1].Width + 6, 41)
+		place(xpTrack, lane, 48)
+		place(xpText, lane + 156, 43)
 		xpText.TextXAlignment = align
-		place(xpTrack, lane, 46)
 		xpFill.AnchorPoint = Vector2.new(if right then 1 else 0, 0)
 		xpFill.Position = UDim2.fromScale(if right then 1 else 0, 0)
-		for i, def in BARS do
+
+		local y = barY - 4
+		local from = cx + PORTRAIT / 2 * 0.55 -- salen de debajo de la foto
+		for _, def in BARS do
 			local bar = bars[def.Id]
-			place(bar.Track, lane, BAR_Y[i])
+			y -= def.Height + 4
+			place(bar.Track, from, y)
 			bar.Fill.AnchorPoint = Vector2.new(if right then 1 else 0, 0)
 			bar.Fill.Position = UDim2.fromScale(if right then 1 else 0, 0)
-			place(bar.Caption, lane + def.Width + 6, BAR_Y[i] + def.Height / 2 - math.max(def.Height, 14) / 2)
-			bar.Caption.TextXAlignment = if right then Enum.TextXAlignment.Right else Enum.TextXAlignment.Left
+			place(bar.Caption, from + def.Width + 4, y + def.Height / 2 - 6)
+			bar.Caption.TextXAlignment = align
 		end
 	end
 	arrangeStatus("Right")
+	paintHealth()
 
 	local function progress()
 		local level = player:GetAttribute("Level") or 1
