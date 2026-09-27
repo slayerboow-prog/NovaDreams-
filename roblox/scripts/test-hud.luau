@@ -16,6 +16,7 @@
 --   * el menú de comandos se oculta y se muestra con su botón, y ⌄ despliega todos
 --   * el menú rápido no tapa el minimapa; el joystick mueve al personaje (Humanoid:Move relativo)
 --   * en conversaciones y de bebé se aparta lo que tapa la escena
+--   * el GPS (Controllers/Gps) da la indicación bajo la reloj sin pisar nada
 
 local fs = require("@lune/fs")
 local luau = require("@lune/luau")
@@ -292,6 +293,20 @@ local replicatedStorage = service("ReplicatedStorage")
 local remotes = newInstance("Folder")
 remotes.Name = "Remotes"
 remotes.Parent = replicatedStorage
+-- Calles publicadas (para el GPS): una L, hacia el norte y luego al este
+local ambientFolder = newInstance("Folder")
+ambientFolder.Name = "Ambient"
+ambientFolder.Parent = replicatedStorage
+local roadsFolder = newInstance("Folder")
+roadsFolder.Name = "Roads"
+roadsFolder.Parent = ambientFolder
+for i, road in { { roblox.Vector3.new(0, 0, 0), roblox.Vector3.new(0, 0, -200) }, { roblox.Vector3.new(0, 0, -200), roblox.Vector3.new(200, 0, -200) } } do
+	local config = newInstance("Configuration")
+	config.Name = "Road" .. i
+	config:SetAttribute("A", road[1])
+	config:SetAttribute("B", road[2])
+	config.Parent = roadsFolder
+end
 for _, name in { "LifeStory", "QuitJob", "GoHome" } do
 	local remote = newInstance("RemoteEvent")
 	remote.Name = name
@@ -432,6 +447,9 @@ local function loadModule(path: string): any
 		Font = roblox.Font,
 		Enum = roblox.Enum,
 		CFrame = roblox.CFrame,
+		RaycastParams = { new = function()
+			return {}
+		end },
 		UserSettings = function()
 			return { GetService = function()
 				return { SavedQualityLevel = roblox.Enum.SavedQualitySetting.Automatic }
@@ -475,6 +493,15 @@ rawset(humanoid, "Move", function(_, vector, relative)
 	table.insert(moves, { Vector = vector, Relative = relative })
 end)
 rawget(localPlayer, "__props").Character = character
+rawget(humanoid, "__props").WalkSpeed = 16
+local rootPart = newInstance("Part")
+rootPart.Name = "HumanoidRootPart"
+rootPart.Parent = character
+rawget(rootPart, "__props").Position = roblox.Vector3.new(0, 3, -10)
+rawget(rootPart, "__props").CFrame = roblox.CFrame.new(0, 3, -10)
+rawset(fakeWorkspace, "Raycast", function()
+	return nil
+end)
 
 local function setViewport(x: number, y: number)
 	camera.ViewportSize = roblox.Vector2.new(x, y) -- (dispara el cambio: todo se recoloca)
@@ -505,12 +532,21 @@ local function mount(touch: boolean, x: number, y: number)
 		CommandMenu = loadModule("src/client/Commands/CommandMenu"),
 		CommandRegistry = loadModule("src/client/Commands/CommandRegistry"),
 		Joystick = loadModule("src/client/Controllers/Joystick"),
+		Gps = loadModule("src/client/Controllers/Gps"),
 	}
 	if ok then
 		ok, err = pcall(mods.CommandMenu.init)
 	end
 	if ok then
 		ok, err = pcall(mods.Joystick.init)
+	end
+	if ok then
+		ok, err = pcall(mods.Gps.init)
+	end
+	-- Un objetivo de misión al noreste: el GPS calcula la ruta y da la indicación
+	localPlayer:SetAttribute("StoryTarget", roblox.Vector3.new(150, 0, -200))
+	if ok then
+		ok, err = pcall(mods.Gps.update)
 	end
 	return mods, ok, err, function()
 		return storeOpened
@@ -581,6 +617,8 @@ local function hudRects(mods, withQuick: boolean?)
 	end
 	local stick = playerGui:FindFirstChild("JoystickGui")
 	add("Joystick", stick and stick:FindFirstChild("Joystick"))
+	local gps = playerGui:FindFirstChild("GpsGui")
+	add("Indicación del GPS", gps and gps:FindFirstChild("GpsBanner"))
 	local touchGui = playerGui:FindFirstChild("TouchLayout")
 	for _, child in if touchGui then touchGui:GetChildren() else {} do
 		if child:IsA("TextButton") and child.Visible then
@@ -631,6 +669,23 @@ check(clock and clock:FindFirstChild("Time").Text == "10:00", "Con la hora («10
 check(clock and clock:FindFirstChild("Date").Text:find(", ", 1, true) ~= nil and clock:FindFirstChild("Day").Text:find("Día", 1, true) ~= nil, "La fecha y el día de tu historia")
 check(clock and clock:FindFirstChild("Temp").Text:find("°C", 1, true) ~= nil and clock:FindFirstChild("Weather").Text == "Despejado", "Y el tiempo dentro de la cápsula («18°C», «Despejado»)")
 check(playerGui:FindFirstChild("WeatherChip") == nil, "Sin la etiqueta suelta del tiempo")
+
+-- GPS: ruta hasta el objetivo, indicación bajo la hora y la línea para los mapas
+local gpsBanner = playerGui:FindFirstChild("GpsGui") and playerGui.GpsGui:FindFirstChild("GpsBanner")
+check(gpsBanner and gpsBanner.Visible, "Indicación del GPS bajo la cápsula de la hora")
+check(gpsBanner and gpsBanner.Instruction.Text:find("Gira a la derecha", 1, true) ~= nil, "«" .. (if gpsBanner then gpsBanner.Instruction.Text else "?") .. "» (hacia el norte y luego a la derecha)")
+check(gpsBanner and gpsBanner.Distance.Text:find(" m · ", 1, true) ~= nil and gpsBanner.Distance.Text:find("min", 1, true) ~= nil, "Con la distancia y el tiempo («" .. (if gpsBanner then gpsBanner.Distance.Text else "?") .. "»)")
+local gpsPath = mods.Gps.path()
+check(gpsPath and #gpsPath >= 3, "La ruta va por las calles (gira en el cruce)")
+local camera3 = fakeWorkspace.CurrentCamera
+local arrows = camera3 and camera3:FindFirstChild("GpsRuta")
+check(arrows and #arrows:GetChildren() <= 40 and #arrows:GetChildren() > 0, "Flechas en el suelo (" .. (if arrows then #arrows:GetChildren() else 0) .. " piezas, como mucho 40)")
+gpsBanner.Clear.Activated:Fire()
+mods.Gps.update()
+check(gpsBanner.Visible == false and mods.Gps.path() == nil, "El botón ✕ quita la ruta")
+localPlayer:SetAttribute("StoryTarget", roblox.Vector3.new(150, 0, -201))
+mods.Gps.update()
+check(gpsBanner.Visible, "Un objetivo nuevo vuelve a poner la ruta")
 
 -- Derecha: la misión
 local remote = remotes:FindFirstChild("LifeStory")

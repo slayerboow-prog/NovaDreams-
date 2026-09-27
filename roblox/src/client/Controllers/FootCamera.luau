@@ -5,6 +5,8 @@
 --     el zoom poco a poco). Se mantiene el modo "Zoom" de Roblox: si algo tapa, la cámara se acerca.
 --   * Corriendo, el campo de visión se abre un poco (sensación de velocidad) y vuelve suave al parar.
 --   * En modo foto la cámara se puede alejar mucho más (Actions llama a FootCamera.setPhoto).
+--   * Apuntando con un arma el campo de visión se cierra (WeaponController llama a FootCamera.setAim)
+--     y el zoom lo lleva el arma (cámara al hombro).
 -- Conduciendo, de pasajero (también en el metro), en cinemáticas y en conversaciones no toca nada
 -- (esas cámaras son de otros sistemas: la de los vehículos es RideCamera).
 -- Las funciones puras (maxZoom y Locomotion.fov) se prueban en scripts/test-motion.luau.
@@ -26,6 +28,13 @@ end
 
 local photo = false
 local refresh: (() -> ())? = nil
+-- Apuntando con un arma (WeaponController): cuánto (0..1), a qué campo de visión y el zoom lo lleva él
+local aimAlpha, aimFov = 0, 55
+
+function FootCamera.setAim(alpha: number, fov: number)
+	aimAlpha = math.clamp(alpha, 0, 1)
+	aimFov = fov
+end
 
 function FootCamera.setPhoto(on: boolean)
 	photo = on
@@ -69,7 +78,7 @@ function FootCamera.init()
 			or Cinematics.isPlaying()
 	end
 	refresh = function()
-		if busy() then
+		if busy() or aimAlpha > 0 then
 			return
 		end
 		local zoom = FootCamera.maxZoom(indoors, photo)
@@ -113,6 +122,9 @@ function FootCamera.init()
 			sprint = 0
 		end
 		local fov = Locomotion.fov(FootCamera.BASE_FOV, sprint)
+		if aimAlpha > 0 then
+			fov += (aimFov - fov) * aimAlpha
+		end
 		if math.abs(camera.FieldOfView - fov) > 0.001 then
 			camera.FieldOfView = fov
 		end

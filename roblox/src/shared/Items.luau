@@ -11,6 +11,8 @@
 --   Food     se come (quita hambre o da energía) y se gasta uno
 --   Vehicle  te montas o te bajas
 --   Wear     te lo pones o te lo quitas
+--   Weapon   se empuña al elegir su casilla de la barra rápida (WeaponService / WeaponController)
+--   Ammo     munición de un arma (se gasta al recargar)
 --   Thing / Prize / Document   solo se guarda (recados, recuerdos, papeles)
 --   Keepsake  objeto de la historia (la mochila del cole, la foto del grupo…): no se tira
 
@@ -24,6 +26,8 @@ local Cinema = require(script.Parent.Cinema)
 local Hotel = require(script.Parent.Hotel)
 local Fishing = require(script.Parent.Fishing)
 local Metro = require(script.Parent.Metro)
+local Weapons = require(script.Parent.Weapons)
+local Farming = require(script.Parent.Farming)
 
 local Items = {}
 
@@ -234,6 +238,34 @@ for _, s in Fishing.Species do
 	}
 end
 
+-- Campo de Villaverde: cosechas, lo de los animales, lo del obrador y la cocina, semillas y pienso
+for _, id in Farming.ProductOrder do
+	local p = Farming.Products[id]
+	local food = p.Hunger ~= nil
+	list[id] = {
+		Id = id,
+		Name = p.Name,
+		Icon = p.Icon,
+		Kind = if food then "Food" else "Thing",
+		Desc = ("%s La cooperativa lo paga a %d €; el supermercado, a %d €."):format(p.Desc, Farming.sellPrice(id, "Coop"), Farming.sellPrice(id, "Super")),
+		Stack = 99,
+		Hunger = p.Hunger,
+		Energy = p.Energy,
+	}
+end
+for _, c in Farming.Crops do
+	local id = Farming.seedItem(c.Id)
+	list[id] = {
+		Id = id,
+		Name = if c.Tree then "Plantón de " .. c.Name:lower() else "Semillas de " .. c.Name:lower(),
+		Icon = "🌱",
+		Kind = "Thing",
+		Desc = ("Para plantar en un bancal de tu finca de Villaverde. Da %s %s."):format(c.Icon, Farming.Products[c.Product].Name:lower()),
+		Stack = 99,
+	}
+end
+list[Farming.Feed] = { Id = Farming.Feed, Name = "Saco de pienso", Icon = "🥣", Kind = "Thing", Desc = "Comida para tus animales de la granja (también comen trigo y maíz).", Stack = 99 }
+
 -- Metro: el billete y lo que venden las tiendas subterráneas
 list[Metro.TicketItem] = { Id = Metro.TicketItem, Name = "Billete de metro", Icon = "🎫", Kind = "Thing", Desc = "Un viaje en metro. Se gasta al pasar el torno.", Stack = 50 }
 for id, p in Metro.Products do
@@ -248,6 +280,26 @@ for id, p in Metro.Products do
 		Energy = p.Energy,
 	}
 end
+
+-- Armas (de verdad, de la policía y de juguete), su munición y la licencia de armas
+for id, w in Weapons.List do
+	local itemId = Weapons.itemId(id)
+	local desc = if w.Kind == "Toy" then "De juguete: no hace daño. Elígelo en la barra rápida para empuñarlo."
+		elseif w.Duty then "Arma de servicio de la policía. Se devuelve al acabar el turno."
+		else "Arma de fuego (necesita licencia). Elígela en la barra rápida para empuñarla; clic derecho para apuntar."
+	list[itemId] = { Id = itemId, Name = w.Name, Icon = w.Icon, Kind = "Weapon", Desc = desc, Stack = 1, Ref = id }
+end
+for id, ammo in Weapons.AmmoTypes do
+	list[id] = { Id = id, Name = ammo.Name, Icon = ammo.Icon, Kind = "Ammo", Desc = ("Munición. Se gasta al recargar (caja de %d)."):format(ammo.Box), Stack = ammo.Stack }
+end
+list[Weapons.Licence.Item] = {
+	Id = Weapons.Licence.Item,
+	Name = "Licencia de armas",
+	Icon = "🪪",
+	Kind = "Document",
+	Desc = "Te permite comprar y llevar armas de fuego. Se retira si te condenan.",
+	Stack = 1,
+}
 
 -- Objetos de la historia (las misiones los dan y los quitan con Effects.Items / Effects.Take)
 local KEEPSAKES = {
