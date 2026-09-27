@@ -5,6 +5,8 @@
 --   * Monstruos (Megalodón, Kraken): arriba sale su barra de vida; todos los del barco tiran a la vez.
 --   * Tienda de pesca: cañas, herramientas y cebo (lo bueno pide nivel).
 --   * App "🐟 Guía de pesca" del teléfono: tu nivel, todos los peces, dónde viven y qué piden.
+--   * El cuerpo acompaña (ReactMotion): lanza la caña por encima de la cabeza, la sujeta con las dos
+--     manos mientras espera y da un tirón hacia atrás cada vez que tiras.
 
 local ContextActionService = game:GetService("ContextActionService")
 local HttpService = game:GetService("HttpService")
@@ -18,6 +20,7 @@ local Format = require(ReplicatedStorage.Shared.Format)
 local Fishing = require(ReplicatedStorage.Shared.Fishing)
 local Hud = require(script.Parent.Parent.UI.Hud)
 local SoundFx = require(script.Parent.SoundFx)
+local ReactMotion = require(script.Parent.ReactMotion)
 
 local FishingUI = {}
 
@@ -41,6 +44,7 @@ type Session = { Token: number, Bobber: BasePart?, Rod: BasePart?, Beam: Beam?, 
 local session: Session? = nil
 
 local function cleanup()
+	ReactMotion.hold(player.Character, "Rod", false)
 	if session then
 		session.Folder:Destroy()
 		if session.Rod then
@@ -67,6 +71,7 @@ local function reel()
 		Remote:FireServer("Again")
 		return
 	end
+	ReactMotion.play(player.Character, "Reel")
 	Remote:FireServer("Reel", s.Token)
 end
 
@@ -134,6 +139,8 @@ local function onCast(data: { [string]: any })
 	cleanup()
 	local rod, bobber, beam, folder = props(data.Bobber)
 	session = { Token = data.Token, Bobber = bobber, Rod = rod, Beam = beam, Base = data.Bobber, Bite = false, Done = false, Folder = folder }
+	ReactMotion.play(player.Character, "Cast")
+	ReactMotion.hold(player.Character, "Rod", true)
 	panel.Visible = true
 	status.Text = ("🎣 Nv %d · %s con tu %s%s · 🐟 banco %d%%… espera a que el corcho se hunda"):format(
 		data.Level or 1,

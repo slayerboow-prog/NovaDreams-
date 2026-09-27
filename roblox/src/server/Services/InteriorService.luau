@@ -419,7 +419,7 @@ function connectRoom(inst: Instance_)
 				InteriorService.leave(player)
 			end)
 		elseif part:IsA("BasePart") and part:HasTag("InteriorElevator") then
-			local prompt = Builder.prompt(part, "Ascensor", "🛗 Elegir planta", 0.2)
+			local prompt = Builder.prompt(part, "Ascensor", "🏢 Elegir planta", 0.2)
 			prompt.MaxActivationDistance = 9
 			prompt.Triggered:Connect(function(player)
 				openElevator(player, inst.Building)
@@ -465,7 +465,7 @@ local function addDoor(building: Building)
 		-- Ya se entra andando: el ascensor, dentro, al fondo de la planta baja
 		if building.Floors >= 2 then
 			part.CFrame = CFrame.new(groundAt(building.Door - building.Out * 8) + Vector3.new(0, 3, 0))
-			local prompt = Builder.prompt(part, "Ascensor", "🛗 " .. building.Title, 0.2)
+			local prompt = Builder.prompt(part, "Ascensor", "🏢 " .. building.Title, 0.2)
 			prompt.MaxActivationDistance = 7
 			prompt.Triggered:Connect(function(player)
 				openElevator(player, building)

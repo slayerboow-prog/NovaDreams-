@@ -9,6 +9,7 @@
 --   * Plaza Mayor (Hub): galería comercial subterránea con tiendas (MetroShop), fotomatón
 --     (MetroPhoto), escenario para músicos (MetroStage), tablón de encargos (MetroMissionBoard),
 --     Objetos Perdidos (MetroLostOffice), tablón de revisor y transbordo a la Línea 2 (MetroTransfer).
+--   * Detalles (MetroDetails): aseos, guardias, ratas, taquillas, puestos, fuente, piano, anuncios…
 --   * Trenes: 3 coches por línea (tag MetroTrain), cada coche soldado a su Root para moverlo entero.
 --
 -- Marco de cada estación: X a la derecha del sentido de la línea (el andén está en +X), Z a lo largo
@@ -17,6 +18,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Builder = require(script.Parent.Parent.Builder)
+local MetroDetails = require(script.Parent.MetroDetails)
 local Metro = require(ReplicatedStorage.Shared.Metro)
 
 local MetroKit = {}
@@ -260,7 +262,7 @@ function MetroKit.train(parent: Instance, line: Metro.Line): Model
 	for k = 1, Metro.Cars do
 		local offset = (k - (Metro.Cars + 1) / 2) * step
 		local p, t = Metro.sample(points, centers[1] - offset)
-		car(m, CFrame.lookAt(p, p + t) * CFrame.new(0, 0, 0), line, k, Metro.Cars)
+		car(m, Builder.facing(p, t), line, k, Metro.Cars)
 	end
 	return m
 end
@@ -273,7 +275,7 @@ local function tunnel(parent: Instance, a: Vector3, b: Vector3, color: Color3)
 	if len < 1 then
 		return
 	end
-	local cf0 = CFrame.lookAt(a, b)
+	local cf0 = Builder.facing(a, b - a) -- (no CFrame.lookAt: en Lune sale mal hacia +Z)
 	local pieces = math.ceil(len / 150)
 	local piece = len / pieces
 	for i = 0, pieces - 1 do
@@ -311,7 +313,7 @@ local function station(parent: Instance, line: Metro.Line, index: number): (Mode
 	m:SetAttribute("Line", line.Id)
 	local c = Metro.center(id, line)
 	local d = Metro.direction(line, index)
-	local cf = CFrame.lookAt(c, c + d)
+	local cf = Builder.facing(c, d)
 	local function at(x: number, y: number, z: number): CFrame
 		return cf * CFrame.new(x, y, z)
 	end
@@ -434,6 +436,10 @@ local function station(parent: Instance, line: Metro.Line, index: number): (Mode
 		marker(m, "Transfer", at(X1 - 3, 3, 0), "MetroTransfer", { To = "Hub", Station = id }, Vector3.new(4, 6, 8))
 		signBoard(m, at(X1 - 0.1, 8, 0) * CFrame.Angles(0, math.rad(90), 0), Vector3.new(12, 1.6, 0.2), "↑ GALERÍA · LÍNEA 1 🔴", rgb(215, 40, 50))
 	end
+	-- Detalles: columnas, cámaras, anuncios, grafitis, ratas, aseos, guardias, taquillas… (MetroDetails)
+	local seed = index + (if line.Id == "L1" then 0 else 10)
+	MetroDetails.platform(m, cf, line, id, seed)
+	MetroDetails.lobby(m, cf, line, id, st.Hub == true, seed)
 	return m, cf
 end
 
@@ -533,6 +539,7 @@ local function galleria(parent: Instance, cf: CFrame)
 	marker(m, "Transfer", at(X1 - 6, 3, 12), "MetroTransfer", { To = "L2", Station = "PlazaMayor" }, Vector3.new(6, 6, 10))
 	signBoard(m, at(X1 - 0.1, 9, 12) * CFrame.Angles(0, math.rad(90), 0), Vector3.new(12, 1.8, 0.2), "↓ LÍNEA 2 🔵 NORTE · SAN ROQUE · PUERTO", rgb(40, 110, 215))
 	marker(m, "HubArrival", at(X1 - 12, 3, 4), "MetroHubArrival", { Station = "PlazaMayor" })
+	MetroDetails.galleria(m, cf)
 	return m
 end
 

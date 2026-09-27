@@ -7,7 +7,7 @@ local Medical = {}
 
 Medical.Exams = {
 	{ Id = "Temperatura", Name = "Tomar la temperatura", Icon = "🌡️" },
-	{ Id = "Auscultar", Name = "Auscultar", Icon = "🩺" },
+	{ Id = "Auscultar", Name = "Auscultar", Icon = "🏥" },
 	{ Id = "Garganta", Name = "Mirar la garganta", Icon = "👄" },
 	{ Id = "Tension", Name = "Tomar la tensión", Icon = "💓" },
 	{ Id = "Palpar", Name = "Explorar (palpar)", Icon = "✋" },
@@ -18,7 +18,7 @@ Medical.Medicines = {
 	{ Id = "Jarabe", Name = "Jarabe para la tos y los mocos", Icon = "🧴" },
 	{ Id = "Antibiotico", Name = "Antibiótico", Icon = "💊" },
 	{ Id = "Suero", Name = "Suero oral", Icon = "🥤" },
-	{ Id = "Venda", Name = "Venda y hielo", Icon = "🩹" },
+	{ Id = "Venda", Name = "Venda y hielo", Icon = "💊" },
 	{ Id = "Antihistaminico", Name = "Antihistamínico", Icon = "🌼" },
 	{ Id = "Tension", Name = "Pastillas para la tensión", Icon = "💓" },
 	{ Id = "Inhalador", Name = "Inhalador", Icon = "💨" },
@@ -89,7 +89,7 @@ end
 
 Medical.Job = {
 	Name = "Médico/a",
-	Icon = "🩺",
+	Icon = "🏥",
 	PerPatient = 15, -- por cada paciente atendido
 	RightDiagnosis = 15, -- extra si el diagnóstico es correcto
 	DegreeMultiplier = 1.5, -- con el título de Medicina se cobra más

@@ -1,7 +1,7 @@
 -- DivingUI (cliente): nadar, bucear y pesca submarina.
 --   * Nadando salen los botones "⬇️ Bucear" y "⬆️ Subir" (mantener pulsado). En el ordenador:
 --     C para bajar y Espacio para subir.
---   * Bajo el agua sale la barra de aire (🫧). Si se acaba, pierdes vida: sube a respirar.
+--   * Bajo el agua sale la barra de aire (💨). Si se acaba, pierdes vida: sube a respirar.
 --   * Con el fusil submarino (o el arpón) nadan peces a tu alrededor. El que tienes delante se
 --     marca; "🔱 Disparar" (o la tecla F) le dispara. Los grandes aguantan varios disparos.
 
@@ -165,7 +165,7 @@ function DivingUI.init()
 	Theme.fit(gui)
 	-- Barra de aire
 	local air = Theme.panel({ Name = "Air", AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 12), Size = UDim2.fromOffset(280, 40), Visible = false, Parent = gui })
-	local airText = Theme.label({ Position = UDim2.fromOffset(10, 2), Size = UDim2.new(1, -20, 0, 18), Text = "🫧 Aire", TextSize = 13, Parent = air })
+	local airText = Theme.label({ Position = UDim2.fromOffset(10, 2), Size = UDim2.new(1, -20, 0, 18), Text = "💨 Aire", TextSize = 13, Parent = air })
 	local airBar = create("Frame", { Position = UDim2.new(0, 10, 0, 22), Size = UDim2.new(1, -20, 0, 10), BackgroundColor3 = rgb(8, 14, 28), BorderSizePixel = 0, Parent = air }, { Theme.corner(5) })
 	local airFill = create("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = rgb(90, 190, 255), BorderSizePixel = 0, Parent = airBar }, { Theme.corner(5) })
 	-- Botones de buceo (a la derecha, encima del salto)
@@ -233,7 +233,7 @@ function DivingUI.init()
 				air.Visible = true
 				airFill.Size = UDim2.fromScale(math.clamp(oxygen / max, 0, 1), 1)
 				airFill.BackgroundColor3 = if oxygen / max < 0.25 then C.Error else rgb(90, 190, 255)
-				airText.Text = ("🫧 Aire: %d s%s"):format(oxygen, if oxygen <= 0 then " · ¡SUBE A RESPIRAR!" else "")
+				airText.Text = ("💨 Aire: %d s%s"):format(oxygen, if oxygen <= 0 then " · ¡SUBE A RESPIRAR!" else "")
 			else
 				air.Visible = false
 			end

@@ -7,26 +7,27 @@
 --   * Adolescente: un poco encorvado, hombros hacia delante y brazos más caídos.
 --   * Adulto: como siempre.
 --   * Mayor: espalda encorvada, rodillas algo dobladas, pasos cortos y brazos que casi no se balancean.
+--   * En el agua y pescando (jugadores): nada, bucea, apunta con el fusil, echa la caña, pelea con
+--     el pez… con las posturas de SeaMotion, y lleva sus cosas (SeaFx: caña, fusil, gafas, burbujas).
 --   * Trabajando (jugadores): quieto en su puesto hace su oficio con las posturas de WorkAnim
 --     (el barista remueve el café, el cajero pasa productos, el bombero sujeta la manguera…) y,
 --     si lleva algo (una caja, un plato, un paquete), lo sujeta con las dos manos, también andando.
---   * En un vehículo (cualquier edad): el conductor con las manos en el volante (que gira con las
---     curvas) y las piernas hacia los pedales; en moto, bici o patinete agarrado al manillar y
---     echado hacia delante; de pasajero, manos en las piernas mirando por la ventanilla; detrás
---     en la moto, agarrado a la cintura. Entra y sale suave (al subir y al bajar).
 --
 -- Se aplica a los jugadores (según su LifeStage) y a los personajes con el atributo "Age"
 -- (compañeros de clase, la abuela…). Todo en tu pantalla, encima de sus animaciones: cada frame,
 -- después de que Roblox anime (PreSimulation), se retoca Motor6D.Transform. Así no choca con
--- ActorLife, que mueve C0 (mirada, gestos, tareas).
+-- ActorLife, que mueve C0 (mirada, gestos, tareas). La cuenta de qué puso la animación y qué
+-- pusimos nosotros la lleva PoseLayers (compartida con Locomotion y ReactMotion: no se acumulan).
 --
 -- Las funciones puras (style, crawlPose, lowestPoint) se prueban fuera de Roblox:
 -- scripts/test-agemotion.luau
 
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
 
 local WorkAnim = require(script.Parent.WorkAnim)
+local SeaMotion = require(script.Parent.SeaMotion)
+local SeaFx = require(script.Parent.SeaFx)
+local Layers: any = nil -- PoseLayers (se carga en init: las pruebas cargan este módulo sin Roblox)
 
 local AgeMotion = {}
 
@@ -246,9 +247,7 @@ type Body = {
 	Humanoid: Humanoid,
 	Root: BasePart,
 	Player: Player?,
-	Joints: { [string]: Motor6D },
-	Base: { [string]: CFrame }, -- lo que puso la animación este frame
-	Written: { [string]: CFrame }, -- lo que pusimos nosotros (si sigue igual, la animación no lo tocó)
+	Joints: { [string]: any }, -- Motor6D o AnimationConstraint
 	Active: boolean,
 	Crawl: number, -- 0..1, suave
 	Style: number, -- 0..1, suave (se quita al sentarse, conducir, dormir…)
@@ -263,12 +262,13 @@ type Body = {
 	Work: number, -- 0..1: cuánto está haciendo su tarea (suave)
 	WorkPose: WorkAnim.Pose,
 	Props: { WorkAnim.HeldProp },
-	Seat: number, -- 0..1: cuánto está en la postura del vehículo (suave)
-	SeatName: string?, -- "Drive" | "Handlebar" | "Passenger" | "Pillion"
-	SeatStanding: boolean, -- de pie (patinete): no se tocan las piernas
-	SeatPose: WorkAnim.Pose,
-	Steer: number, -- -1..1: cómo gira el volante (según gira el vehículo)
-	SeatYaw: number?,
+	Sea: number, -- 0..1: cuánto manda la postura de nadar o pescar (suave)
+	SeaPose: { [string]: CFrame }?,
+	SeaPhase: number,
+	WaterAt: number, -- cuándo se miró por última vez si hay agua debajo
+	Water: boolean,
+	LastY: number?,
+	Fx: any,
 }
 
 local bodies: { [Model]: Body } = {}
@@ -293,8 +293,6 @@ local function register(model: Model)
 		Root = root,
 		Player = Players:GetPlayerFromCharacter(model),
 		Joints = {},
-		Base = {},
-		Written = {},
 		Active = false,
 		Crawl = 0,
 		Style = 0,
@@ -309,15 +307,15 @@ local function register(model: Model)
 		Work = 0,
 		WorkPose = {} :: any,
 		Props = {},
-		Seat = 0,
-		SeatName = nil,
-		SeatStanding = false,
-		SeatPose = {} :: any,
-		Steer = 0,
-		SeatYaw = nil,
+		Sea = 0,
+		SeaPose = nil,
+		SeaPhase = 0,
+		WaterAt = 0,
+		Water = false,
+		LastY = nil,
+		Fx = SeaFx.new(),
 	}
 	WorkAnim.clear(bodies[model].WorkPose)
-	WorkAnim.clear(bodies[model].SeatPose)
 	model.AncestryChanged:Connect(function(_, parent)
 		if parent == nil then
 			bodies[model] = nil
@@ -329,7 +327,7 @@ local function findJoints(body: Body)
 	table.clear(body.Joints)
 	for _, name in JOINTS do
 		local joint = body.Model:FindFirstChild(name, true)
-		if joint and joint:IsA("Motor6D") then
+		if joint and (joint:IsA("Motor6D") or joint:IsA("AnimationConstraint")) then -- (articulaciones nuevas de Roblox)
 			body.Joints[name] = joint
 		end
 	end
@@ -356,73 +354,6 @@ local function busy(body: Body): boolean
 	return false
 end
 
----------------------------------------------------------------------
--- En un vehículo
----------------------------------------------------------------------
-
-local WHEEL = { Coche = true, Patrulla = true, Autobus = true, Camion = true, Bomberos = true }
-local BARS = { Moto = true, Bici = true, Patinete = true }
-local STANDING = { Patinete = true, Monopatin = true }
-
--- Qué postura toca en ese asiento (pura, se prueba fuera de Roblox):
---   seatName = nombre del asiento, className = su clase, kind = atributo Kind del vehículo (o nil),
---   pose = atributo Pose del asiento (los de pasajero lo llevan), metro = es un asiento del metro.
--- Devuelve la postura (nil = la de sentarse de siempre) y si va de pie.
-function AgeMotion.seatPoseFor(seatName: string, className: string, kind: string?, pose: any, metro: boolean): (string?, boolean)
-	if className == "VehicleSeat" and seatName == "DriverSeat" and kind then
-		if WHEEL[kind] then
-			return "Drive", false
-		elseif BARS[kind] then
-			return "Handlebar", STANDING[kind] == true
-		end
-		return nil, STANDING[kind] == true
-	end
-	if type(pose) == "string" and WorkAnim.get(pose) then
-		return pose, false
-	end
-	if metro or kind ~= nil then
-		return "Passenger", false -- (autobús, metro)
-	end
-	return nil, false
-end
-
--- Piernas en cada postura (encima de la de sentarse): conduciendo, estiradas hacia los pedales;
--- a horcajadas en la moto, más bajas y algo abiertas
-local SEAT_LEGS: { [string]: { Hip: number, Open: number, Knee: number } } = {
-	Drive = { Hip = 0.1, Open = 0, Knee = 0.45 },
-	Handlebar = { Hip = -0.3, Open = 0.1, Knee = 0.25 },
-	Pillion = { Hip = -0.3, Open = 0.12, Knee = 0.2 },
-}
-AgeMotion.SeatLegs = SEAT_LEGS
-
-local function seatOf(body: Body): (string?, boolean, BasePart?)
-	local seat = body.Humanoid.SeatPart
-	if not seat then
-		return nil, false, nil
-	end
-	local vehicle = seat:FindFirstAncestorOfClass("Model")
-	local kind = vehicle and vehicle:GetAttribute("Drivable") and vehicle:GetAttribute("Kind")
-	local name, standing = AgeMotion.seatPoseFor(seat.Name, seat.ClassName, if type(kind) == "string" then kind else nil, seat:GetAttribute("Pose"), seat:HasTag("MetroSeat"))
-	return name, standing, seat
-end
-
--- Cuánto se gira el volante: lo que gira el vehículo (radianes por segundo), de -1 a 1
-local function steerFrom(body: Body, seat: BasePart?, dt: number): number
-	if not seat or dt <= 0 then
-		body.SeatYaw = nil
-		return 0
-	end
-	local look = seat.CFrame.LookVector
-	local yaw = math.atan2(-look.X, -look.Z)
-	local rate = 0
-	if body.SeatYaw then
-		rate = ((yaw - body.SeatYaw + math.pi) % (2 * math.pi) - math.pi) / dt
-	end
-	body.SeatYaw = yaw
-	-- (el vehículo gira a la derecha cuando baja el ángulo)
-	return math.clamp(-rate / 1.2, -1, 1)
-end
-
 -- Cuánto hay que bajar el cuerpo para que al gatear toque el suelo (según su tamaño)
 local function crawlDrop(body: Body): number
 	local scale = body.Model:GetScale()
@@ -444,11 +375,6 @@ local function crawlDrop(body: Body): number
 	body.Drop = drop
 	body.DropScale = scale
 	return drop
-end
-
--- ¿Es la misma transformación? (casi exacta: lo que se escribe puede volver con un redondeo)
-local function same(a: CFrame, b: CFrame): boolean
-	return (a.Position - b.Position).Magnitude < 1e-4 and a.LookVector:Dot(b.LookVector) > 0.999999 and a.UpVector:Dot(b.UpVector) > 0.999999
 end
 
 -- Qué oficio hace cada trabajo cuando el jugador está quieto en su puesto
@@ -499,23 +425,91 @@ local function gesturing(body: Body): boolean
 	return false
 end
 
-local function restore(body: Body)
-	for name, joint in body.Joints do
-		local written = body.Written[name]
-		if written and same(joint.Transform, written) then
-			joint.Transform = body.Base[name] or CFrame.identity
-		end
-	end
-	table.clear(body.Written)
-	table.clear(body.Base)
-end
-
--- Deja de animarlo (lejos o sin cuerpo): postura de la animación y fuera los objetos de la mano
+-- Deja de animarlo (lejos o sin cuerpo): fuera los objetos de la mano. (Sus articulaciones
+-- vuelven solas a la animación: lo que nadie escribe en un frame lo devuelve PoseLayers.)
 local function release(body: Body)
-	restore(body)
 	WorkAnim.clearProps(body.Props)
 	body.WorkName = nil
 	body.Work = 0
+	SeaFx.clear(body.Fx)
+	body.Sea = 0
+	body.SeaPose = nil
+end
+
+---------------------------------------------------------------------
+-- Agua y pesca
+---------------------------------------------------------------------
+local waterParams: RaycastParams? = nil
+
+-- ¿Hay agua debajo? (se mira como mucho dos veces por segundo)
+local function waterBelow(body: Body, position: Vector3, t: number): boolean
+	if t - body.WaterAt < 0.5 then
+		return body.Water
+	end
+	body.WaterAt = t
+	if not waterParams then
+		local params = RaycastParams.new()
+		params.FilterType = Enum.RaycastFilterType.Include
+		params.FilterDescendantsInstances = { workspace.Terrain }
+		params.IgnoreWater = false
+		waterParams = params
+	end
+	local hit = workspace:Raycast(Vector3.new(position.X, SeaMotion.Surface + 14, position.Z), Vector3.new(0, -30, 0), waterParams)
+	body.Water = hit ~= nil and hit.Material == Enum.Material.Water
+	return body.Water
+end
+
+local function serverNow(): number
+	local ok, now = pcall(function()
+		return workspace:GetServerTimeNow()
+	end)
+	return if ok then now else os.clock()
+end
+
+-- Nadar, bucear o pescar: postura de SeaMotion y cosas de SeaFx
+local function seaPose(body: Body, t: number, dt: number, speed: number, vertical: number, sitting: boolean): { [string]: CFrame }?
+	local player = body.Player
+	if not player or sitting then
+		SeaFx.update(body.Fx, { Model = body.Model, Player = player, State = nil, InWater = false, Underwater = false, Vertical = 0, Fishing = false })
+		return nil
+	end
+	local position = body.Root.Position
+	local head = body.Model:FindFirstChild("Head") :: BasePart?
+	local inWater = position.Y < SeaMotion.Surface + 0.4 and waterBelow(body, position, t)
+	local underwater = inWater and head ~= nil and head.Position.Y < SeaMotion.Surface - 0.8
+	local now = serverNow()
+	local spearAt = player:GetAttribute("SpearAt")
+	local fish = player:GetAttribute("FishAnim")
+	local fishAt = player:GetAttribute("FishAnimAt")
+	local gun = player:GetAttribute("Speargun")
+	body.SeaPhase = (body.SeaPhase + dt * SeaMotion.strokeRate(speed, underwater)) % (math.pi * 200)
+	local pose, state = SeaMotion.pose({
+		InWater = inWater,
+		Underwater = underwater,
+		Speed = speed,
+		Vertical = vertical,
+		Armed = type(gun) == "string",
+		ShotAgo = if typeof(spearAt) == "number" then now - spearAt else math.huge,
+		Fish = if type(fish) == "string" then fish else nil,
+		FishAgo = if typeof(fishAt) == "number" then now - fishAt else 0,
+		Phase = body.SeaPhase,
+		Seed = body.Seed,
+	}, t)
+	local gear = player:GetAttribute("DiveGear")
+	local fishId = player:GetAttribute("FishAnimFish")
+	SeaFx.update(body.Fx, {
+		Model = body.Model,
+		Player = player,
+		State = state,
+		InWater = inWater,
+		Underwater = underwater,
+		Vertical = vertical,
+		Fishing = type(fish) == "string" and fish ~= "Reel",
+		FishId = if type(fishId) == "string" then fishId else nil,
+		Gun = if type(gun) == "string" then gun else nil,
+		Gear = if type(gear) == "string" then gear else nil,
+	})
+	return pose
 end
 
 local function update(body: Body, t: number, dt: number)
@@ -539,6 +533,11 @@ local function update(body: Body, t: number, dt: number)
 		speed = Vector3.new(v.X, 0, v.Z).Magnitude
 	end
 	body.LastPos = position
+	local vertical = 0
+	if body.LastY and dt > 0 then
+		vertical = (position.Y - body.LastY) / dt
+	end
+	body.LastY = position.Y
 	speed = math.min(speed, 30)
 	body.Move = smooth(body.Move, if speed > 0.6 then 1 else 0, 6, dt)
 	-- El paso va con la velocidad y el tamaño (un bebé da pasos cortos): andando normal, un paso
@@ -573,51 +572,16 @@ local function update(body: Body, t: number, dt: number)
 	end
 	WorkAnim.showProps(body.Props, W > 0.5)
 
-	-- En un vehículo: su postura (entra en medio segundo, sale un poco más rápido)
-	local seatName, standing, seatPart = seatOf(body)
-	if seatName then
-		body.SeatName = seatName
-		body.SeatStanding = standing
+	-- Nadar, bucear o pescar
+	local sea = seaPose(body, t, dt, speed, math.clamp(vertical, -30, 30), sitting)
+	if sea then
+		body.SeaPose = sea
 	end
-	body.Seat = smooth(body.Seat, if seatName then 1 else 0, if seatName then 4 else 6, dt)
-	body.Steer = smooth(body.Steer, steerFrom(body, seatPart, dt), 5, dt)
-	local S = if body.SeatName then body.Seat else 0
+	body.Sea = smooth(body.Sea, if sea then 1 else 0, if sea then 8 else 5, dt)
+	local seaTarget = if body.Sea > 0.001 then body.SeaPose else nil
 
-	if body.Crawl < 0.001 and body.Style < 0.001 and W < 0.001 and S < 0.001 then
-		body.SeatName = nil
-		restore(body)
+	if body.Crawl < 0.001 and body.Style < 0.001 and W < 0.001 and not seaTarget then
 		return
-	end
-	local seatOffsets: { [string]: CFrame }? = nil
-	if S > 0.001 and body.SeatName then
-		local p = body.SeatPose
-		WorkAnim.clear(p)
-		local seatWork = WorkAnim.get(body.SeatName)
-		if seatWork then
-			seatWork.Pose(t, body.Seed, p)
-		end
-		if body.SeatName == "Drive" or body.SeatName == "Handlebar" then
-			-- Al girar, una mano sube y la otra baja, y mira hacia la curva
-			local k = if body.SeatName == "Drive" then 0.22 else 0.08
-			p.rx -= body.Steer * k
-			p.lx += body.Steer * k
-			p.ny -= body.Steer * 0.18
-		end
-		seatOffsets = {
-			Neck = angles(p.np * S, p.ny * S, p.nr * S),
-			Waist = angles(p.wp * S, p.wy * S, p.wr * S),
-			RightShoulder = angles(p.rx * S, p.rt * S, p.rz * S),
-			LeftShoulder = angles(p.lx * S, -p.lt * S, -p.lz * S),
-			RightElbow = angles(p.re * S, 0, 0),
-			LeftElbow = angles(p.le * S, 0, 0),
-		}
-		local legs = SEAT_LEGS[body.SeatName]
-		if legs and not body.SeatStanding then
-			seatOffsets.RightHip = angles(legs.Hip * S, 0, legs.Open * S)
-			seatOffsets.LeftHip = angles(legs.Hip * S, 0, -legs.Open * S)
-			seatOffsets.RightKnee = angles(legs.Knee * S, 0, 0)
-			seatOffsets.LeftKnee = angles(legs.Knee * S, 0, 0)
-		end
 	end
 	-- La tarea, como retoque de cada articulación (los mismos ángulos que usa ActorLife en C0)
 	local workOffsets: { [string]: CFrame }? = nil
@@ -635,14 +599,8 @@ local function update(body: Body, t: number, dt: number)
 	local offsets = if style and body.Style > 0.001 then style.Offsets(t, body.Move, body.Phase) else nil
 	local crawl = if body.Crawl > 0.001 then AgeMotion.crawlPose(body.Move, body.Phase, crawlDrop(body)) else nil
 	for name, joint in body.Joints do
-		local current = joint.Transform
-		local written = body.Written[name]
-		if written and same(current, written) then
-			-- La animación no lo ha tocado este frame: partimos de lo que había debajo
-			current = body.Base[name] or CFrame.identity
-		end
-		body.Base[name] = current
-		local out = current
+		-- La animación de este frame (y lo que hayan puesto las capas de antes)
+		local out = Layers.read(joint)
 		if style and body.Style > 0.001 then
 			local k = if ARMS[name] then style.Arms elseif LEGS[name] then style.Legs else 1
 			k = 1 + (k - 1) * body.Style
@@ -662,25 +620,19 @@ local function update(body: Body, t: number, dt: number)
 				out = offset * out
 			end
 		end
-		if seatOffsets then
-			-- Los brazos van donde toca (volante, manillar, piernas), no donde los deja sentarse
-			if ARMS[name] then
-				out = scaled(out, 1 - S)
-			end
-			local offset = seatOffsets[name]
-			if offset then
-				out = offset * out
-			end
-		end
 		if crawl then
 			out = out:Lerp(crawl[name] or out, body.Crawl)
 		end
-		joint.Transform = out
-		body.Written[name] = out
+		local target = seaTarget and seaTarget[name]
+		if target then
+			out = out:Lerp(target, body.Sea)
+		end
+		Layers.write(joint, out)
 	end
 end
 
 function AgeMotion.init()
+	Layers = require(script.Parent.PoseLayers)
 	local function consider(instance: Instance)
 		if instance:IsA("Humanoid") then
 			local model = instance.Parent
@@ -746,11 +698,8 @@ function AgeMotion.init()
 		end
 	end)
 
-	-- Después de que Roblox anime y antes de dibujar
-	local signal = (RunService :: any).PreSimulation or RunService.Stepped
-	signal:Connect(function(a, b)
-		local dt = if typeof(b) == "number" then b else a -- Stepped da (tiempo, dt)
-		local t = os.clock()
+	-- Después de que Roblox anime y antes de dibujar: la primera capa de PoseLayers
+	Layers.add("AgeMotion", 10, function(dt, t)
 		for _, body in active do
 			if body.Active and body.Model.Parent then
 				local ok, err = pcall(update, body, t, dt)

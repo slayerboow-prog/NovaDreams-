@@ -1,6 +1,6 @@
 -- InteriorUI (cliente): el panel del ascensor de los edificios (InteriorService).
 -- Botones con cada planta (Planta baja, 1ª, 2ª… y la Azotea en la Torre de Valmar); la planta en la
--- que estás sale marcada, y en los pisos, quién vive en cada una (🙂 vecino, 👤 jugador, 🏷 en venta). Se cierra al elegir, con ✕ o al alejarse.
+-- que estás sale marcada, y en los pisos, quién vive en cada una (🙂 vecino, 👤 jugador, 🏷 en venta). Se cierra al elegir, con ✖ o al alejarse.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -60,8 +60,8 @@ local function open(data: { [string]: any })
 	Theme.padding(14).Parent = frame
 	local scale = create("UIScale", { Scale = 0.85, Parent = frame })
 	TweenService:Create(scale, TweenInfo.new(0.18, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
-	Theme.title({ Size = UDim2.new(1, -40, 0, 26), Text = "🛗 " .. (data.Title or "Ascensor"), TextSize = 20, TextTruncate = Enum.TextTruncate.AtEnd, Parent = frame })
-	Theme.button({ AnchorPoint = Vector2.new(1, 0), Position = UDim2.fromScale(1, 0), Size = UDim2.fromOffset(34, 30), Text = "✕", TextSize = 18, Parent = frame }).Activated:Connect(close)
+	Theme.title({ Size = UDim2.new(1, -40, 0, 26), Text = "🏢 " .. (data.Title or "Ascensor"), TextSize = 20, TextTruncate = Enum.TextTruncate.AtEnd, Parent = frame })
+	Theme.button({ AnchorPoint = Vector2.new(1, 0), Position = UDim2.fromScale(1, 0), Size = UDim2.fromOffset(34, 30), Text = "✖", TextSize = 18, Parent = frame }).Activated:Connect(close)
 	local list = create("ScrollingFrame", {
 		Position = UDim2.fromOffset(0, 40),
 		Size = UDim2.new(1, 0, 1, -40),

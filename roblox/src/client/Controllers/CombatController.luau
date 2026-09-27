@@ -19,6 +19,7 @@ local Stages = require(ReplicatedStorage.Shared.LifeStory.Stages)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local ReactMotion = require(script.Parent.ReactMotion)
 local SoundFx = require(script.Parent.SoundFx)
+local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
 
 local CombatController = {}
 
@@ -105,13 +106,17 @@ function CombatController.attack()
 	if blocking then
 		CombatController.setBlocking(false)
 	end
-	if isR15(player.Character) then
-		ReactMotion.play(player.Character, PUNCHES[localCombo] or "Jab")
-	else
+	-- Puñetazo hecho con código (R15); si este cuerpo no se puede mover así, animación de Roblox
+	if not (isR15(player.Character) and ReactMotion.play(player.Character, PUNCHES[localCombo] or "Jab")) then
 		local anim = track(if localCombo == 3 then "Heavy" else "Punch")
 		if anim then
 			anim:Play(0.05, 1, if localCombo == 3 then 1.1 else 1.6)
 		end
+	end
+	-- Sonido del golpe al aire (los demás lo oyen con "Swing")
+	local _, root = parts()
+	if root then
+		SoundFx.play("Salto", 0.7, if localCombo == 3 then 0.8 else 1.3, root)
 	end
 	Remote:FireServer("Attack")
 end
@@ -124,6 +129,8 @@ function CombatController.setBlocking(value: boolean)
 		return
 	end
 	blocking = value
+	-- La guardia se ve al momento en tu pantalla (sin esperar a que el servidor la confirme)
+	ReactMotion.hold(player.Character, "Guard", value or player:GetAttribute("Blocking") == true)
 	Remote:FireServer("Block", value)
 end
 
@@ -263,7 +270,8 @@ end
 local shields: { [Player]: BillboardGui } = {}
 local function updateShield(other: Player)
 	local on = other:GetAttribute("Blocking") == true
-	ReactMotion.hold(other.Character, "Guard", on)
+	-- (tu propia guardia sigue a tu dedo, aunque el servidor tarde en confirmarla)
+	ReactMotion.hold(other.Character, "Guard", on or (other == player and blocking))
 	local existing = shields[other]
 	if on and not existing then
 		local head = other.Character and other.Character:FindFirstChild("Head")
@@ -328,12 +336,16 @@ function CombatController.init()
 		return Enum.ContextActionResult.Pass
 	end, false, Enum.KeyCode.Z, Enum.KeyCode.ButtonL1)
 
-	-- Móvil: 👊 encima del botón de saltar y 🛡 encima del de correr
+	-- Móvil: 👊 y 🛡 en el arco del botón de saltar (TouchLayout); conduciendo no se ven
 	if UserInputService.TouchEnabled then
 		local gui = create("ScreenGui", { Name = "CombatGui", ResetOnSpawn = false, Parent = player:WaitForChild("PlayerGui") })
-		local punch = roundButton(gui, "👊", 68, UDim2.new(1, -28, 1, -112))
+		local punch = roundButton(gui, "👊", 64, UDim2.new())
+		TouchLayout.place(punch, "Golpear")
+		TouchLayout.showWhen(punch, "Pie")
 		punch.Activated:Connect(CombatController.attack)
-		local guard = roundButton(gui, "🛡", 56, UDim2.new(1, -184, 1, -100))
+		local guard = roundButton(gui, "🛡", 54, UDim2.new())
+		TouchLayout.place(guard, "Defender")
+		TouchLayout.showWhen(guard, "Pie")
 		guard.InputBegan:Connect(function(input)
 			if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
 				CombatController.setBlocking(true)
@@ -357,6 +369,7 @@ function CombatController.init()
 		local ko = player:GetAttribute("KO") == true
 		if ko then
 			blocking = false
+			ReactMotion.hold(player.Character, "Guard", false)
 		end
 		showKnockOut(ko)
 	end)

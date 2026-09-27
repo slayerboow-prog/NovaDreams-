@@ -16,6 +16,7 @@ local RunService = game:GetService("RunService")
 local SoundService = game:GetService("SoundService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
 
 local SoundFx = {}
 
@@ -199,7 +200,7 @@ function SoundFx.vehicleStart(kind: string, chassis: BasePart)
 	-- Móvil: botón de claxon/timbre solo mientras vas montado
 	ContextActionService:BindAction("HornTouch", hornAction, true)
 	ContextActionService:SetTitle("HornTouch", if kind == "Bici" or kind == "Patinete" then "🔔" else "📯")
-	ContextActionService:SetPosition("HornTouch", UDim2.new(1, -150, 1, -150))
+	TouchLayout.placeAction(ContextActionService, "HornTouch", "Claxon")
 	if kind == "Coche" or kind == "Moto" or kind == "Autobus" or kind == "Camion" or kind == "Patrulla" or kind == "Bomberos" then
 		SoundFx.play("Arranque", 1, nil, chassis)
 		engine = SoundFx.loop("Motor", chassis)

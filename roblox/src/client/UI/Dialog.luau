@@ -34,7 +34,7 @@ local function root(): ScreenGui
 	return gui :: ScreenGui
 end
 
--- Ventana centrada con título y ✕. Devuelve (ventana, contenido, botón cerrar).
+-- Ventana centrada con título y ✖. Devuelve (ventana, contenido, botón cerrar).
 function Dialog.window(name: string, title: string, size: Vector2): (Frame, Frame, TextButton)
 	local existing = root():FindFirstChild(name)
 	if existing then
@@ -63,7 +63,7 @@ function Dialog.window(name: string, title: string, size: Vector2): (Frame, Fram
 		AnchorPoint = Vector2.new(1, 0),
 		Size = UDim2.fromOffset(36, 36),
 		Position = UDim2.new(1, -10, 0, 10),
-		Text = "✕",
+		Text = "✖",
 		Parent = window,
 	})
 	local content = create("Frame", {

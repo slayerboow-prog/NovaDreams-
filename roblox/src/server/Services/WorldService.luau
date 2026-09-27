@@ -282,7 +282,7 @@ end
 -- Work: lo que hace mientras espera (Controllers/WorkAnim en el cliente)
 local rgb = Color3.fromRGB
 local UNIFORMS: { [string]: { Work: string, Look: Npc.Look, Icon: string, Lines: { string } } } = {
-	["Médico"] = { Work = "Clipboard", Look = { Shirt = rgb(245, 245, 245), Pants = rgb(150, 200, 225), LongSleeves = true }, Icon = "🩺", Lines = { "¡Buenos días! ¿Todo bien?", "Recuerda beber agua.", "Hoy hay mucho trabajo en el hospital." } },
+	["Médico"] = { Work = "Clipboard", Look = { Shirt = rgb(245, 245, 245), Pants = rgb(150, 200, 225), LongSleeves = true }, Icon = "🏥", Lines = { "¡Buenos días! ¿Todo bien?", "Recuerda beber agua.", "Hoy hay mucho trabajo en el hospital." } },
 	["Enfermera"] = { Work = "Clipboard", Look = { Shirt = rgb(150, 200, 225), Pants = rgb(150, 200, 225) }, Icon = "💉", Lines = { "Si te encuentras mal, entra sin miedo.", "¡Hola! ¿Vienes a ver a alguien?" } },
 	["Policía"] = { Work = "Traffic", Look = { Shirt = rgb(40, 60, 110), Pants = rgb(30, 35, 60), LongSleeves = true }, Icon = "👮", Lines = { "Todo tranquilo por aquí.", "Cruza siempre por el paso de cebra.", "¡Buen día, ciudadano!" } },
 	["Guardia"] = { Work = "Guard", Look = { Shirt = rgb(55, 55, 60), Pants = rgb(35, 35, 40), LongSleeves = true }, Icon = "🛡️", Lines = { "Bienvenido.", "El horario está en la entrada." } },
