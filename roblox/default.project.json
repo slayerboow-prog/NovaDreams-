@@ -1,5 +1,6 @@
 {
   "name": "RealLifeSimulator",
+  "globIgnorePaths": ["assets/icons", "assets/icons/**"],
   "tree": {
     "$className": "DataModel",
     "ReplicatedStorage": {
@@ -72,6 +73,9 @@
           "$className": "RemoteEvent"
         },
         "Diving": {
+          "$className": "RemoteEvent"
+        },
+        "SeaEvent": {
           "$className": "RemoteEvent"
         },
         "LifeStory": {

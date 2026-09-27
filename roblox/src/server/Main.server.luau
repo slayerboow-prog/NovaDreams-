@@ -72,6 +72,7 @@ local order = {
 	"GymService", -- gimnasios: recepción, máquinas, ritmo, fuerza que se nota en el cuerpo y monitor/a
 	"MetroLifeService", -- vida del metro: guardias, ratas, aseos, taquillas, fuente, piano…
 	"DivingService", -- nadar, bucear (aire) y pesca submarina con fusil o arpón
+	"SeaEventService", -- catástrofes marinas: tsunami, temporal, remolino, marea negra, tiburón y medusas
 	"ClassService", -- clases y exámenes que se juegan (lo usa la historia)
 	"DialogueService", -- conversaciones con respuestas (misiones episódicas)
 	"MiniGameService", -- pase, canastas, partido de fútbol…
@@ -86,6 +87,7 @@ local order = {
 	"LifeStoryService", -- la historia de vida escucha a todos los anteriores
 	"BabyService", -- tutorial de bebé (fase 2)
 	"SchoolService", -- compañeros y profe en cada colegio
+	"UpdateService", -- versión nueva publicada: los servidores viejos llevan a sus jugadores a uno nuevo
 	"ActionService", -- linterna (los gestos, trepar y sentarse van en el cliente)
 }
 

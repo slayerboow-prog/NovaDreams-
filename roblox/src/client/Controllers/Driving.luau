@@ -2,9 +2,16 @@
 --
 -- Cuando te sientas en el asiento de conductor ("DriverSeat") de un vehículo con el atributo
 -- Drivable, este script lo mueve cada fotograma:
---   * W/S (o el joystick / gatillos del mando): acelerar, frenar y marcha atrás
---   * A/D: girar (se gira más despacio cuanto más rápido vas, como en la realidad)
---   * Sigue el suelo con rayos: sube bordillos pequeños y cuestas, y se inclina con ellas
+--   * W/S o ↑/↓: acelerar, frenar y marcha atrás · A/D o ←/→: girar · Ctrl: freno de mano
+--   * Mando: gatillo derecho acelera, gatillo izquierdo frena (los dos a medias, poco a poco),
+--     joystick izquierdo gira y LB es el freno de mano
+--   * Móvil: el joystick de Roblox es el volante y, a la derecha, pedales en pantalla (acelerador,
+--     freno / marcha atrás y freno de mano) en el arco del botón de saltar (UI/TouchLayout)
+--   * Todo entra suave: el acelerador y el volante no saltan de 0 a 1, van subiendo y bajando
+--     (y el volante vuelve solo al centro). Cuanto más rápido vas, menos y más despacio gira.
+--   * Freno de mano: frena en seco; en coche, si giras a la vez, la trasera derrapa un poco
+--   * Sigue el suelo con rayos: sube bordillos pequeños y cuestas, y se inclina con ellas (nunca
+--     más de lo que toca: no vuelca)
 --   * Choca con paredes, farolas y árboles (se para en seco) y no entra en el agua
 --   * Motos y bicis se inclinan en las curvas; en el monopatín y el patinete vas de pie
 --   * Cuadro de mandos (VehicleHud): velocímetro de aguja, marcha, combustible y kilómetros.
@@ -12,23 +19,28 @@
 --   * Lluvia y nieve (shared/Wetness): con el suelo mojado o nevado agarra menos. Acelera y frena
 --     peor, gira menos y derrapa en las curvas (va un poco hacia donde iba, no hacia donde apunta).
 --     Las motos, bicis y patinetes resbalan más.
--- Saltar (Espacio) o F para bajarse. El servidor (VehicleService) le da el control a tu
--- ordenador, así que se mueve sin retraso y los demás lo ven igual.
+-- Saltar (Espacio) o F para bajarse (en el móvil, el botón "Bajarse"). El servidor
+-- (VehicleService) le da el control a tu ordenador, así que se mueve sin retraso y los demás
+-- (también tus pasajeros) lo ven igual. La cámara la lleva RideCamera.luau.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
 local Gameplay = require(ReplicatedStorage.Shared.Gameplay)
 local Wetness = require(ReplicatedStorage.Shared.Wetness)
 local SoundFx = require(script.Parent.SoundFx)
 local Hud = require(script.Parent.Parent.UI.Hud)
+local Theme = require(script.Parent.Parent.UI.Theme)
+local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
 local VehicleHud = require(script.Parent.VehicleHud)
 
 local Driving = {}
 
 local player = Players.LocalPlayer
 local IDLE = { R15 = 507766388, R6 = 180435571 } -- postura de pie (monopatín, patinete)
+local MAX_TILT = math.rad(28) -- lo más que se inclina con la cuesta (así nunca vuelca)
 
 type State = {
 	Model: Model,
@@ -42,14 +54,192 @@ type State = {
 	Lean: number,
 	Base: Vector3, -- dónde está (a ras de suelo) según este script, no según la física
 	Pose: AnimationTrack?,
+	Throttle: number, -- acelerador suave (-1 freno / marcha atrás .. 1)
+	Steer: number, -- volante suave (-1 izquierda .. 1 derecha)
 }
 local state: State? = nil
 local warnRoad: () -> ()
+
+-- Pedales en pantalla (móvil): qué dedo pisa cada uno
+local touch = { Gas = nil :: InputObject?, Brake = nil :: InputObject?, Handbrake = nil :: InputObject? }
 
 local function yawOf(cf: CFrame): number
 	local look = cf.LookVector
 	return math.atan2(-look.X, -look.Z)
 end
+
+-- Acerca `current` a `target` como mucho `rate` por segundo
+local function approach(current: number, target: number, rate: number, dt: number): number
+	local step = rate * dt
+	if target > current then
+		return math.min(target, current + step)
+	end
+	return math.max(target, current - step)
+end
+Driving.approach = approach
+
+---------------------------------------------------------------------
+-- Mandos: teclado, mando y pantalla
+---------------------------------------------------------------------
+
+local function held(input: InputObject?): boolean
+	return input ~= nil and input.UserInputState ~= Enum.UserInputState.End and input.UserInputState ~= Enum.UserInputState.Cancel
+end
+
+local function keyDown(...: Enum.KeyCode): boolean
+	for _, key in { ... } do
+		if UserInputService:IsKeyDown(key) then
+			return true
+		end
+	end
+	return false
+end
+
+-- Lo que pide el jugador ahora mismo (sin suavizar): acelerador, volante y freno de mano
+local function readInput(seat: VehicleSeat): (number, number, boolean)
+	local throttle, steer, handbrake = 0, 0, false
+	-- Teclado (no mientras escribe en el chat)
+	if UserInputService.KeyboardEnabled and not UserInputService:GetFocusedTextBox() then
+		if keyDown(Enum.KeyCode.W, Enum.KeyCode.Up) then
+			throttle += 1
+		end
+		if keyDown(Enum.KeyCode.S, Enum.KeyCode.Down) then
+			throttle -= 1
+		end
+		if keyDown(Enum.KeyCode.D, Enum.KeyCode.Right) then
+			steer += 1
+		end
+		if keyDown(Enum.KeyCode.A, Enum.KeyCode.Left) then
+			steer -= 1
+		end
+		handbrake = keyDown(Enum.KeyCode.LeftControl, Enum.KeyCode.RightControl)
+	end
+	-- Mando: gatillos analógicos y joystick (con zona muerta)
+	if UserInputService.GamepadEnabled then
+		local ok, states = pcall(function()
+			return UserInputService:GetGamepadState(Enum.UserInputType.Gamepad1)
+		end)
+		if ok and states then
+			for _, input in states do
+				if input.KeyCode == Enum.KeyCode.ButtonR2 then
+					throttle += math.clamp(input.Position.Z, 0, 1)
+				elseif input.KeyCode == Enum.KeyCode.ButtonL2 then
+					throttle -= math.clamp(input.Position.Z, 0, 1)
+				elseif input.KeyCode == Enum.KeyCode.Thumbstick1 then
+					local x = input.Position.X
+					if math.abs(x) > 0.15 then
+						steer += math.sign(x) * (math.abs(x) - 0.15) / 0.85
+					end
+				end
+			end
+		end
+		handbrake = handbrake or UserInputService:IsGamepadButtonDown(Enum.UserInputType.Gamepad1, Enum.KeyCode.ButtonL1)
+	end
+	-- Pantalla (móvil)
+	if held(touch.Gas) then
+		throttle += 1
+	end
+	if held(touch.Brake) then
+		throttle -= 1
+	end
+	handbrake = handbrake or held(touch.Handbrake)
+	-- Si nada de lo anterior, lo que diga Roblox (el joystick del móvil gira y, hacia delante o
+	-- atrás, también acelera y frena)
+	if math.abs(throttle) < 0.05 then
+		throttle = seat.ThrottleFloat
+	end
+	if math.abs(steer) < 0.05 then
+		steer = seat.SteerFloat
+	end
+	return math.clamp(throttle, -1, 1), math.clamp(steer, -1, 1), handbrake
+end
+
+-- Suaviza el acelerador y el volante. fast = 0..1 (lo rápido que vas respecto a su máximo)
+function Driving.smoothInputs(throttle: number, steer: number, wantThrottle: number, wantSteer: number, fast: number, dt: number): (number, number)
+	-- Pisar sube poco a poco; soltar (o cambiar de pedal) baja más rápido
+	local releasing = math.abs(wantThrottle) < math.abs(throttle) or wantThrottle * throttle < 0
+	throttle = approach(throttle, wantThrottle, if releasing then 6 else 3.2, dt)
+	-- El volante: más lento cuanto más rápido vas, y vuelve solo al centro
+	local centring = math.abs(wantSteer) < math.abs(steer) or wantSteer * steer < 0
+	local rate = if centring then 5.5 else 4.2 - 2 * fast
+	steer = approach(steer, wantSteer, rate, dt)
+	return throttle, steer
+end
+
+-- Nunca se inclina más de MAX_TILT (ni con un rayo que da en algo raro): no vuelca
+function Driving.limitTilt(up: Vector3): Vector3
+	if up.Y <= 0 then
+		return Vector3.yAxis
+	end
+	local flat = Vector3.new(up.X, 0, up.Z)
+	local limit = math.sin(MAX_TILT)
+	if flat.Magnitude > limit then
+		return (flat.Unit * limit + Vector3.new(0, math.cos(MAX_TILT), 0)).Unit
+	end
+	return up.Unit
+end
+
+---------------------------------------------------------------------
+-- Pedales en pantalla (móvil)
+---------------------------------------------------------------------
+
+-- Botón redondo que se mantiene pulsado (con varios dedos a la vez: acelerar y girar con el joystick)
+local function pedal(parent: Instance, name: string, text: string, color: Color3, slot: string, id: string)
+	local button = Theme.button({
+		Name = name,
+		Text = text,
+		TextSize = 24,
+		TextWrapped = true,
+		BackgroundColor3 = color,
+		BackgroundTransparency = 0.25,
+		AutoButtonColor = false,
+		Parent = parent,
+	})
+	local corner = button:FindFirstChildOfClass("UICorner")
+	if corner then
+		corner.CornerRadius = UDim.new(0.5, 0)
+	end
+	TouchLayout.place(button, id)
+	TouchLayout.showWhen(button, "Vehiculo")
+	button.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+			(touch :: any)[slot] = input
+			button.BackgroundTransparency = 0
+		end
+	end)
+	-- (se suelta cuando ese dedo se levanta: lo mira readInput con held)
+	RunService.RenderStepped:Connect(function()
+		if (touch :: any)[slot] ~= nil and not held((touch :: any)[slot]) then
+			(touch :: any)[slot] = nil
+			button.BackgroundTransparency = 0.25
+		end
+	end)
+	return button
+end
+
+-- Acelerador, freno / marcha atrás y freno de mano en el arco del botón de saltar (TouchLayout);
+-- el volante es el joystick de Roblox. Solo se ven conduciendo.
+local function buildTouch()
+	if not UserInputService.TouchEnabled then
+		return
+	end
+	local gui = Theme.create("ScreenGui", { Name = "DrivingControls", ResetOnSpawn = false, DisplayOrder = 4, Parent = player:WaitForChild("PlayerGui") })
+	local rgb = Color3.fromRGB
+	pedal(gui, "Gas", "⬆", rgb(0, 140, 80), "Gas", "Acelerar")
+	pedal(gui, "Brake", "🛑", rgb(170, 60, 50), "Brake", "Frenar")
+	local hand = pedal(gui, "Handbrake", "🅿", rgb(90, 90, 100), "Handbrake", "FrenoMano")
+	hand.TextSize = 20
+end
+
+local function releasePedals()
+	for slot in touch do
+		(touch :: any)[slot] = nil
+	end
+end
+
+---------------------------------------------------------------------
+-- Subir y bajar
+---------------------------------------------------------------------
 
 local function start(seat: VehicleSeat, humanoid: Humanoid)
 	local model = seat.Parent
@@ -72,6 +262,8 @@ local function start(seat: VehicleSeat, humanoid: Humanoid)
 		Up = Vector3.yAxis,
 		Lean = 0,
 		Base = chassis.Position - chassis.CFrame.UpVector * (chassis.Size.Y / 2),
+		Throttle = 0,
+		Steer = 0,
 	}
 	-- De pie: se tapa la postura de sentado con la de estar de pie
 	if Gameplay.Driving[kind].Standing then
@@ -86,7 +278,7 @@ local function start(seat: VehicleSeat, humanoid: Humanoid)
 			if ok and track then
 				track.Priority = Enum.AnimationPriority.Action
 				track.Looped = true
-				track:Play(0.2)
+				track:Play(0.3)
 				s.Pose = track
 			end
 		end
@@ -94,6 +286,7 @@ local function start(seat: VehicleSeat, humanoid: Humanoid)
 	state = s
 	VehicleHud.show(kind)
 	SoundFx.vehicleStart(kind, chassis)
+	releasePedals()
 	warnRoad()
 end
 
@@ -110,12 +303,16 @@ function warnRoad()
 end
 
 local function stop()
-	if state and state.Pose then
-		state.Pose:Stop(0.2)
+	if not state then
+		return
+	end
+	if state.Pose then
+		state.Pose:Stop(0.3)
 	end
 	state = nil
 	VehicleHud.hide()
 	SoundFx.vehicleStop()
+	releasePedals()
 end
 
 -- Suelo bajo un punto (ignora el vehículo, las personas y lo que no choca). nil = agua o vacío
@@ -135,6 +332,7 @@ local function step(dt: number)
 	if not s.Chassis.Parent or s.Chassis.Anchored then
 		return -- el servidor aún no lo ha soltado (o ya lo ha aparcado)
 	end
+	dt = math.min(dt, 1 / 15) -- (un tirón del ordenador no lanza el coche)
 	local tuning = Gameplay.Driving[s.Kind]
 	-- Lluvia y nieve: menos agarre
 	local grip = Wetness.grip(s.Kind, workspace:GetAttribute("Wet") or 0, workspace:GetAttribute("Snow") or 0)
@@ -143,35 +341,52 @@ local function step(dt: number)
 	if player:GetAttribute("OutOfFuel") then
 		maxSpeed = 4 -- sin gasolina (o batería) apenas avanza: hay que llegar a una gasolinera
 	end
-	local throttle = s.Seat.ThrottleFloat
-	local steer = s.Seat.SteerFloat
+	local wantThrottle, wantSteer, handbrake = readInput(s.Seat)
+	local fast = math.clamp(math.abs(s.Speed) / math.max(maxSpeed, 1), 0, 1)
+	s.Throttle, s.Steer = Driving.smoothInputs(s.Throttle, s.Steer, wantThrottle, wantSteer, fast, dt)
+	local throttle, steer = s.Throttle, s.Steer
 
-	-- Acelerar / frenar / marcha atrás
-	if throttle > 0.05 then
+	-- Acelerar / frenar / marcha atrás (todo en proporción a lo que pisas)
+	if handbrake then
+		local drag = tuning.Brake * road.Brake * 1.1
+		s.Speed = if s.Speed > 0 then math.max(0, s.Speed - drag * dt) else math.min(0, s.Speed + drag * dt)
+	elseif throttle > 0.02 then
 		if s.Speed < 0 then
-			s.Speed = math.min(0, s.Speed + tuning.Brake * road.Brake * dt)
+			s.Speed = math.min(0, s.Speed + tuning.Brake * road.Brake * math.max(0.35, throttle) * dt)
 		else
-			s.Speed = math.min(maxSpeed, s.Speed + tuning.Accel * road.Accel * throttle * dt)
+			-- (acelera menos cuanto más cerca de su velocidad máxima: sin tirón al llegar)
+			local push = tuning.Accel * road.Accel * throttle * (1 - 0.5 * fast * fast)
+			if s.Speed < maxSpeed then
+				s.Speed = math.min(maxSpeed, s.Speed + push * dt)
+			end
 		end
-	elseif throttle < -0.05 then
+	elseif throttle < -0.02 then
 		if s.Speed > 0 then
-			s.Speed = math.max(0, s.Speed - tuning.Brake * road.Brake * dt)
+			s.Speed = math.max(0, s.Speed - tuning.Brake * road.Brake * math.max(0.35, -throttle) * dt)
 		else
-			s.Speed = math.max(-tuning.Reverse, s.Speed - tuning.Accel * road.Accel * 0.6 * dt)
+			s.Speed = math.max(-tuning.Reverse, s.Speed + tuning.Accel * road.Accel * 0.6 * throttle * dt)
 		end
 	else
 		-- Sin pisar nada se va parando poco a poco
 		local drag = 6 + math.abs(s.Speed) * 0.12
 		s.Speed = if s.Speed > 0 then math.max(0, s.Speed - drag * dt) else math.min(0, s.Speed + drag * dt)
 	end
+	-- Por encima de su máximo (se ha quedado sin gasolina, llueve…): baja poco a poco, sin frenazo
+	if s.Speed > maxSpeed then
+		s.Speed = math.max(maxSpeed, s.Speed - 25 * dt)
+	end
 
 	-- Girar: más fácil despacio, más suave rápido (y al revés en marcha atrás)
 	local moving = math.clamp(math.abs(s.Speed) / 6, 0, 1)
-	local fast = 1 - 0.45 * math.clamp(math.abs(s.Speed) / maxSpeed, 0, 1)
+	local gentle = 1 - 0.45 * fast
 	local direction = if s.Speed >= 0 then 1 else -1
-	s.Yaw -= steer * tuning.Turn * road.Turn * moving * fast * direction * dt
+	local fourWheels = tuning.Lean == 0 and not tuning.Standing
+	-- Con el freno de mano, el coche gira más (la trasera se va) y derrapa un poco
+	local drift = handbrake and fourWheels and math.abs(s.Speed) > 8
+	local turn = tuning.Turn * road.Turn * moving * gentle * (if drift then 1.5 else 1)
+	s.Yaw -= steer * turn * direction * dt
 	-- Hacia dónde va de verdad: con buen agarre, hacia donde apunta; si resbala, se queda atrás
-	s.Travel = Wetness.slide(s.Travel, s.Yaw, road.Traction, dt)
+	s.Travel = Wetness.slide(s.Travel, s.Yaw, road.Traction * (if drift then 0.3 else 1), dt)
 
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
@@ -201,6 +416,7 @@ local function step(dt: number)
 			if hit and hit.Normal.Y < 0.6 then
 				SoundFx.crash(math.abs(s.Speed), s.Chassis)
 				s.Speed = -s.Speed * 0.15 -- rebote suave
+				s.Throttle = 0
 				move = Vector3.zero
 				break
 			end
@@ -238,11 +454,15 @@ local function step(dt: number)
 			end
 		end
 	end
-	-- Si el suelo baja mucho (un escalón hacia abajo), cae suave en vez de pegarse de golpe
+	up = Driving.limitTilt(up)
+	-- Si el suelo baja mucho (un escalón hacia abajo), cae suave en vez de pegarse de golpe;
+	-- al subir un bordillo también sube suave (sin saltito)
 	if y < target.Y - 0.5 then
 		y = math.max(y, target.Y - 60 * dt)
+	elseif y > target.Y + 0.05 then
+		y = math.min(y, target.Y + math.max(12, math.abs(s.Speed) * 0.8) * dt)
 	end
-	s.Up = s.Up:Lerp(up, math.min(1, dt * 10)).Unit
+	s.Up = Driving.limitTilt(s.Up:Lerp(up, math.min(1, dt * 8)))
 
 	-- Inclinarse en las curvas (motos, bicis, patinetes)
 	local leanTarget = -steer * math.rad(tuning.Lean) * math.clamp(math.abs(s.Speed) / (maxSpeed * 0.6), 0, 1)
@@ -260,8 +480,18 @@ local function step(dt: number)
 	VehicleHud.update(s.Speed, dt)
 end
 
+-- Para la cámara y las posturas: el volante (-1..1) y la velocidad del vehículo que conduces
+function Driving.current(): (Model?, number, number)
+	local s = state
+	if not s then
+		return nil, 0, 0
+	end
+	return s.Model, s.Steer, s.Speed
+end
+
 function Driving.init()
 	VehicleHud.init(player:WaitForChild("PlayerGui"))
+	buildTouch()
 
 	local function watch(character: Model)
 		local humanoid = character:WaitForChild("Humanoid", 10) :: Humanoid?
@@ -270,6 +500,7 @@ function Driving.init()
 		end
 		humanoid.Seated:Connect(function(active, seat)
 			if active and seat and seat:IsA("VehicleSeat") and seat.Name == "DriverSeat" then
+				stop()
 				start(seat, humanoid)
 			else
 				stop()

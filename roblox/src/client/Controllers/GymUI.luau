@@ -4,7 +4,7 @@
 --     A en el mando) cuando pasa por la zona verde. En el centro es "¡Perfecto!" (sube más); fuera,
 --     fallo (cansa un poco). La barra naranja es el esfuerzo: cada repetición gasta y descansando
 --     se recupera. Cada serie completa sube la Fuerza o la Forma física. "Dejar" (Q o B) te baja.
---   * Móvil: el botón 💪 va en el hueco de golpear y el de dejar en el de correr (TouchLayout).
+--   * Móvil: «¡YA!» va en el hueco del Ataque y «Dejar» en el de Esquivar (TouchLayout.register).
 
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
@@ -104,6 +104,7 @@ end
 local function close()
 	session = nil
 	panel.Visible = false
+	TouchLayout.refresh()
 	ContextActionService:UnbindAction("GymTap")
 	ContextActionService:UnbindAction("GymStop")
 end
@@ -125,6 +126,7 @@ local function onStart(data: { [string]: any })
 		Cardio = data.Cardio or 0,
 	}
 	panel.Visible = true
+	TouchLayout.refresh()
 	zone.Size = UDim2.fromScale(data.Zone, 1)
 	say(("Toca ¡YA! cuando el marcador pase por la zona verde · %s"):format(if data.Stat == "Cardio" then "sube tu Forma física" elseif data.Stat == "Mixto" then "Fuerza y Forma física" else "sube tu Fuerza"), C.Text)
 	refresh()
@@ -264,23 +266,14 @@ function GymUI.init()
 	local stopButton = Theme.button({ Position = UDim2.new(0.72, 0, 0, 110), Size = UDim2.new(0.28, 0, 0, 44), Text = "Dejar (Q)", TextSize = 15, BackgroundColor3 = rgb(50, 52, 60), Parent = panel })
 	stopButton.Activated:Connect(stop)
 
-	-- Móvil: el botón grande junto al de saltar (en el hueco de golpear) y el de dejar
+	-- Botones de acción (móvil: racimo de abajo a la derecha; ordenador y mando: pistas de teclas).
+	-- Entrenando, "¡YA!" ocupa el hueco del Ataque y "Dejar" el de Esquivar (Priority más baja: ganan).
+	local function training(): boolean
+		return session ~= nil
+	end
+	TouchLayout.register({ Id = "GymYa", Icon = "corazon", Label = "¡YA!", Slot = "Ataque", Priority = 1, Key = "Espacio", Pad = "A", Visible = training, Callback = tap })
+	TouchLayout.register({ Id = "GymDejar", Icon = "bajarse", Label = "Dejar", Slot = "Esquivar", Priority = 1, Key = "Q", Pad = "B", Visible = training, Callback = stop })
 	if UserInputService.TouchEnabled then
-		local touchGui = create("ScreenGui", { Name = "GymTouch", ResetOnSpawn = false, DisplayOrder = 4, Parent = player:WaitForChild("PlayerGui") })
-		local big = Theme.button({ Name = "GymTap", Text = "💪", TextSize = 32, BackgroundColor3 = rgb(200, 90, 30), BackgroundTransparency = 0.15, Parent = touchGui })
-		local small = Theme.button({ Name = "GymStop", Text = "✖", TextSize = 22, BackgroundTransparency = 0.3, Parent = touchGui })
-		for _, button in { big, small } do
-			local corner = button:FindFirstChildOfClass("UICorner")
-			if corner then
-				corner.CornerRadius = UDim.new(0.5, 0)
-			end
-		end
-		TouchLayout.place(big, "Entrenar")
-		TouchLayout.showWhen(big, "Gimnasio")
-		TouchLayout.place(small, "Dejar")
-		TouchLayout.showWhen(small, "Gimnasio")
-		big.Activated:Connect(tap)
-		small.Activated:Connect(stop)
 		tapButton.Text = "💪 ¡YA!"
 	end
 

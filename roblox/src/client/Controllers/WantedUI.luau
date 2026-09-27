@@ -13,6 +13,7 @@ local TweenService = game:GetService("TweenService")
 
 local Wanted = require(ReplicatedStorage.Shared.Wanted)
 local Theme = require(script.Parent.Parent.UI.Theme)
+local HudLayout = require(script.Parent.Parent.UI.HudLayout)
 local Hud = require(script.Parent.Parent.UI.Hud)
 local SoundFx = require(script.Parent.SoundFx)
 
@@ -121,18 +122,12 @@ end
 
 function WantedUI.init()
 	local gui = create("ScreenGui", { Name = "WantedGui", ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = 3, Parent = player:WaitForChild("PlayerGui") })
-	local scale = create("UIScale", { Parent = gui })
-	local camera = workspace.CurrentCamera
-	local function rescale()
-		scale.Scale = math.clamp(math.min(camera.ViewportSize.Y / 900, camera.ViewportSize.X / 1700), 0.55, 1.2)
-	end
-	camera:GetPropertyChangedSignal("ViewportSize"):Connect(rescale)
-	rescale()
-	-- Justo debajo del reloj (el reloj mide 10 + 54 arriba en el centro)
+	HudLayout.scaleGui(gui)
+	-- Justo debajo de la cápsula de la hora (UI/HudLayout)
 	bar = create("Frame", {
 		Name = "WantedStars",
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 70),
+		Position = UDim2.new(0.5, 0, 0, 122),
 		Size = UDim2.fromOffset(230, 40),
 		BackgroundColor3 = rgb(8, 14, 34),
 		BackgroundTransparency = 0.25,
@@ -142,6 +137,9 @@ function WantedUI.init()
 		Theme.corner(10),
 		create("UIStroke", { Color = rgb(255, 205, 60), Thickness = 1.5, Transparency = 0.3 }),
 	})
+	HudLayout.onChanged(function(layout)
+		HudLayout.apply(bar, layout.Items.Wanted)
+	end)
 	local row = create("Frame", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Parent = bar })
 	create("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Center, VerticalAlignment = Enum.VerticalAlignment.Center, Padding = UDim.new(0, 4), Parent = row })
 	for i = 1, Wanted.MaxStars do
