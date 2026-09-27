@@ -1,11 +1,13 @@
 -- CombatService: golpes entre jugadores (y a los personajes de tus misiones), siempre decidido aquí.
 --
--- El cliente solo avisa: "Attack" (he pulsado golpear) y "Block" (me defiendo / dejo de defenderme).
+-- El cliente solo avisa: "Attack" (he pulsado golpear), "Block" (me defiendo / dejo de defenderme) y
+-- "Dodge" (esquivo: un instante en que los golpes no me dan, con su pausa).
 -- El servidor comprueba todo (pausas entre golpes, distancia, que esté delante, quién puede recibir),
 -- calcula el daño (shared/Combat) y avisa a todos para que se vea y se oiga el golpe.
 --
--- K.O.: al quedarte sin vida no mueres; caes Combat.KOSeconds segundos (sin poder pegar ni recibir)
--- y te levantas con parte de la vida. Así no pierdes el sitio ni la misión en la que estabas.
+-- K.O.: al quedarte sin vida caes Combat.KOSeconds segundos (sin poder pegar) y te levantas con
+-- parte de la vida. Si alguien te golpea mientras estás K.O., te remata: mueres y reapareces en el
+-- hospital (HospitalService). HitSomeone lleva Killed = true (homicidio para WantedService).
 -- Para las misiones y la policía: StoryEvents "HitSomeone" (Target/Npc/Model/KO), "GotHit" y
 -- "KnockedOut". Los agentes de policía (Officer) sí reciben daño y caen (WantedService lo castiga).
 
@@ -22,7 +24,7 @@ local PoliceUnits = require(script.Parent.Parent.World.PoliceUnits)
 
 local CombatService = {}
 
-type State = { Combo: number, LastAt: number, Blocking: boolean, KOUntil: number, SpawnedAt: number }
+type State = { Combo: number, LastAt: number, Blocking: boolean, KOUntil: number, SpawnedAt: number, DodgeAt: number? }
 
 local states: { [Player]: State } = {}
 local Remote: RemoteEvent
@@ -171,11 +173,22 @@ local function attack(player: Player)
 		local victim = Players:GetPlayerFromCharacter(model)
 		local direction = Vector3.new(targetRoot.Position.X - root.Position.X, 0, targetRoot.Position.Z - root.Position.Z)
 		direction = if direction.Magnitude > 0.01 then direction.Unit else root.CFrame.LookVector
-		if victim then
+		if victim and CombatService.isKnockedOut(victim) and not isProtected(victim) then
+			-- Rematar a alguien que está K.O.: muere
+			hits += 1
+			targetHumanoid.Health = 0
+			Remote:FireAllClients("Hit", { Victim = model, Attacker = player, Amount = Combat.damage(combo, ProgressionService.stat(player, "Fuerza")), Blocked = false, Combo = combo, Direction = direction, Knockback = Combat.Knockback[3], KO = true })
+			StoryEvents.emit(player, "HitSomeone", { Target = victim.UserId, Model = model, KO = true, Killed = true })
+			StoryEvents.emit(victim, "GotHit", { By = player.UserId })
+		elseif victim then
 			if not canFight(victim) or isProtected(victim) then
 				continue
 			end
 			local victimState = stateOf(victim)
+			-- Esquivando: el golpe no le da
+			if Combat.dodging(victimState.DodgeAt, now) then
+				continue
+			end
 			-- Defenderse solo sirve si miras hacia quien te pega
 			local facing = targetRoot.CFrame.LookVector:Dot(-direction) > 0.2
 			local blocked = victimState.Blocking and facing
@@ -249,6 +262,15 @@ function CombatService.init()
 			attack(player)
 		elseif kind == "Block" then
 			setBlocking(player, value == true)
+		elseif kind == "Dodge" then
+			-- Esquivar (con su pausa: no se puede estar esquivando siempre)
+			local state = stateOf(player)
+			local now = os.clock()
+			if canFight(player) and (state.DodgeAt == nil or now - state.DodgeAt >= Combat.DodgeCooldown * 0.8) then
+				state.DodgeAt = now
+				state.Blocking = false
+				player:SetAttribute("Blocking", nil)
+			end
 		end
 	end)
 

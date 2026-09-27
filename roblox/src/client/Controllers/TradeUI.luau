@@ -150,7 +150,7 @@ local function openTrade(themName: string)
 	myOffer, myMoney = {}, 0
 	local window, content, close = Dialog.window("Trade", "🤝 Intercambio con " .. themName, Vector2.new(620, 430))
 	tradeWindow = window
-	local _ = close -- la ✕ cierra la ventana y eso cancela (Destroying)
+	local _ = close -- la ✖ cierra la ventana y eso cancela (Destroying)
 	window.Destroying:Connect(function()
 		if tradeWindow == window then
 			tradeWindow = nil
@@ -254,7 +254,7 @@ local function sellPanel(list: ScrollingFrame)
 		Theme.label({ Size = UDim2.new(0.42, 0, 1, 0), Text = ("%s %s (%d)"):format(it.Icon, it.Name, it.Count), TextSize = 13, TextWrapped = true, Parent = row })
 		local count = 1
 		local countLabel = Theme.label({ Position = UDim2.new(0.42, 30, 0, 0), Size = UDim2.fromOffset(28, 36), Text = "1", TextSize = 14, TextXAlignment = Enum.TextXAlignment.Center, Parent = row })
-		local minus = Theme.button({ Position = UDim2.new(0.42, 0, 0, 4), Size = UDim2.fromOffset(28, 28), Text = "−", TextSize = 16, Parent = row })
+		local minus = Theme.button({ Position = UDim2.new(0.42, 0, 0, 4), Size = UDim2.fromOffset(28, 28), Text = "-", TextSize = 16, Parent = row })
 		local plus = Theme.button({ Position = UDim2.new(0.42, 60, 0, 4), Size = UDim2.fromOffset(28, 28), Text = "+", TextSize = 16, Parent = row })
 		minus.Activated:Connect(function()
 			count = math.max(1, count - 1)

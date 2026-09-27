@@ -23,11 +23,17 @@ end }
 -- WorkAnim de verdad (AgeMotion la usa para las tareas de los jugadores)
 local workEnv = setmetatable({ CFrame = CFrame, Vector3 = Vector3, Color3 = roblox.Color3, Enum = Enum }, { __index = getfenv(1) })
 local WorkAnim = luau.load(fs.readFile("src/client/Controllers/WorkAnim.luau"), { debugName = "WorkAnim", environment = workEnv })()
-local fakeScript = { Parent = { WorkAnim = "WorkAnim" } }
+local SeaMotion = luau.load(fs.readFile("src/client/Controllers/SeaMotion.luau"), { debugName = "SeaMotion", environment = workEnv })()
+local fakeScript = { Parent = { WorkAnim = "WorkAnim", SeaMotion = "SeaMotion", SeaFx = "SeaFx" } }
 local env = setmetatable({
 	CFrame = CFrame, Vector3 = Vector3, Enum = Enum, game = fakeGame, workspace = {}, script = fakeScript,
 	require = function(what)
-		assert(what == "WorkAnim", "AgeMotion solo debería pedir WorkAnim")
+		if what == "SeaMotion" then
+			return SeaMotion
+		elseif what == "SeaFx" then
+			return { new = function() return {} end, update = function() end, clear = function() end }
+		end
+		assert(what == "WorkAnim", "AgeMotion solo debería pedir WorkAnim, SeaMotion y SeaFx")
 		return WorkAnim
 	end,
 }, { __index = getfenv(1) })

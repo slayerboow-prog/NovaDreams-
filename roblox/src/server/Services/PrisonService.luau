@@ -126,7 +126,7 @@ ACTIONS.Curarse = function(player)
 	if humanoid then
 		humanoid.Health = humanoid.MaxHealth
 	end
-	say(player, "Success", "🩺 La enfermera te ha curado.")
+	say(player, "Success", "🏥 La enfermera te ha curado.")
 end
 
 ACTIONS.Leer = function(player)

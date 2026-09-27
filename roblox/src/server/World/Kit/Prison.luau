@@ -276,7 +276,7 @@ local function services()
 	activity("Saco", "🥊 Saco de boxeo", V(2, 5, 2), h(12, 6, 6), rgb(150, 30, 30), Enum.Material.Fabric)
 	bit("GymMat", V(40, 0.2, 14), h(0, 0.95, 8), rgb(60, 80, 140), Enum.Material.Fabric)
 	h = hall("ENFERMERÍA · ECONOMATO", 360, z1, 36, 40, rgb(230, 234, 236))
-	activity("Curarse", "🩺 Camilla de la enfermería", V(4, 2, 8), h(-9, 1, 8), LIGHT, Enum.Material.Fabric)
+	activity("Curarse", "🏥 Camilla de la enfermería", V(4, 2, 8), h(-9, 1, 8), LIGHT, Enum.Material.Fabric)
 	bit("RedCross", V(3, 3, 0.2), h(-9, 9, 19.3), rgb(220, 40, 40))
 	activity("Economato", "🛒 Economato", V(12, 3.6, 2.4), h(8, 1.8, 8), rgb(60, 110, 160), Enum.Material.Wood)
 	-- Fila de en medio: talleres (de trabajo)
@@ -292,7 +292,7 @@ local function services()
 	activity("Cocina", "🍳 Preparar la comida", V(14, 3.6, 3), h(0, 1.8, 2), STEEL, Enum.Material.Metal)
 	h = hall("CARPINTERÍA", 274, z2, 44, 34, rgb(214, 200, 176))
 	bit("Planks", V(10, 2, 3), h(-10, 1, 12), WOOD, Enum.Material.WoodPlanks)
-	activity("Carpinteria", "🪚 Banco de carpintería", V(12, 3, 4), h(0, 1.5, 2), WOOD, Enum.Material.Wood)
+	activity("Carpinteria", "🔨 Banco de carpintería", V(12, 3, 4), h(0, 1.5, 2), WOOD, Enum.Material.Wood)
 	-- Huerto (al aire libre)
 	for k = 0, 3 do
 		bit("GardenBed", V(36, 1, 5), at(345, 0.9, z2 - 8 + k * 8), rgb(90, 60, 40), Enum.Material.Ground)
@@ -375,7 +375,11 @@ function Prison.clear(world: Instance)
 	for _, folderName in { "Naturaleza", "Campo" } do
 		local folder = world:FindFirstChild(folderName)
 		for _, d in (if folder then folder:GetDescendants() else {}) do
-			if d:IsA("BasePart") and d.Parent then
+			-- (lo que ya se ha borrado con su modelo se salta; con Lune, mirar su Parent da error)
+			local alive = pcall(function()
+				return d.Parent
+			end)
+			if alive and d:IsA("BasePart") and d.Parent then
 				local p = d.CFrame.Position -- (CFrame: así también funciona al construir el archivo con Lune)
 				if p.X > r.X0 - margin and p.X < r.X1 + margin and p.Z > r.Z0 - margin and p.Z < r.Z1 + margin then
 					local m = d:FindFirstAncestorOfClass("Model")

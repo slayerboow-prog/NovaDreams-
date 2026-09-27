@@ -32,6 +32,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Fishing = require(ReplicatedStorage.Shared.Fishing)
+local SeaEvents = require(ReplicatedStorage.Shared.SeaEvents)
 local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
 local Format = require(ReplicatedStorage.Shared.Format)
 local Stages = require(ReplicatedStorage.Shared.LifeStory.Stages)
@@ -82,6 +83,50 @@ local spotOwner: { [BasePart]: Player } = {}
 local onDuty: { [Player]: boolean } = {}
 local lentRod: { [Player]: boolean } = {}
 local nextToken = 0
+
+-- Animación de la pesca que ven todos (SeaMotion en cada cliente): estado, cuándo empezó y el pez
+local function serverNow(): number
+	local ok, now = pcall(function()
+		return workspace:GetServerTimeNow()
+	end)
+	return if ok and type(now) == "number" then now else os.clock()
+end
+
+local function anim(player: Player, state: string?, fishId: string?)
+	player:SetAttribute("FishAnim", state)
+	player:SetAttribute("FishAnimAt", if state then serverNow() else nil)
+	player:SetAttribute("FishAnimFish", fishId)
+end
+FishingService.anim = anim
+
+local RESULT_ANIM = { Catch = "Catch", Boss = "Heave", Full = "Lost", Early = "Lost", Late = "Lost", Junk = "Lost", Locked = "Lost", Escaped = "Lost" }
+
+-- Manda un evento de la pesca al jugador y pone su animación
+local function fire(player: Player, kind: string, data: any?)
+	if kind == "Cast" then
+		anim(player, "Cast")
+	elseif kind == "Bite" then
+		anim(player, "Bite")
+	elseif kind == "Fight" or kind == "Pull" then
+		anim(player, "Fight")
+	elseif kind == "Result" and data then
+		local species = if data.Kind == "Catch" then Fishing.byId[data.Id] else nil
+		anim(player, RESULT_ANIM[data.Kind] or "Lost", if species then species.Id else nil)
+	elseif kind == "Stop" then
+		anim(player, "Reel")
+		local at = player:GetAttribute("FishAnimAt")
+		task.delay(1.3, function()
+			if player.Parent and player:GetAttribute("FishAnim") == "Reel" and player:GetAttribute("FishAnimAt") == at then
+				anim(player, nil)
+			end
+		end)
+	end
+	if data ~= nil then
+		Remote:FireClient(player, kind, data)
+	else
+		Remote:FireClient(player, kind)
+	end
+end
 
 local function rootOf(player: Player): BasePart?
 	local character = player.Character
@@ -342,7 +387,7 @@ local function stop(player: Player, silent: boolean?)
 		state.Spot:Destroy() -- sitio improvisado ("Pescar aquí")
 	end
 	if player.Parent then
-		Remote:FireClient(player, "Stop")
+		fire(player, "Stop")
 		if not silent then
 			Notify:FireClient(player, "Info", "🎣 Recoges el sedal.")
 		end
@@ -417,6 +462,11 @@ local function bossEnd(win: boolean)
 	end
 	boss = nil
 	bossReadyAt = os.clock() + Fishing.BossCooldown
+	for player in b.Pulls do
+		if player.Parent and player:GetAttribute("FishAnim") == "Heave" then
+			anim(player, "Wait")
+		end
+	end
 	local def = b.Def
 	local helpers = {}
 	for player, n in b.Pulls do
@@ -527,6 +577,7 @@ local function bossPull(player: Player)
 	end
 	b.Last[player] = now
 	b.Pulls[player] = (b.Pulls[player] or 0) + 1
+	anim(player, "Heave")
 	b.Hp -= 1
 	if b.Hp <= 0 then
 		bossEnd(true)
@@ -550,6 +601,13 @@ local function cast(player: Player, spot: BasePart)
 	end
 	if spotOwner[spot] and spotOwner[spot] ~= player then
 		Notify:FireClient(player, "Info", "Aquí ya está pescando " .. nameOf(spotOwner[spot] :: Player) .. ".")
+		return
+	end
+	if SeaEvents.oilAt(spot.Position) then
+		Notify:FireClient(player, "Info", "🛢️ El agua está manchada de petróleo: aquí no pica nada. ¡Ayuda a limpiar la marea negra!")
+		if spot:GetAttribute("Temporary") then
+			spot:Destroy()
+		end
 		return
 	end
 	spotOwner[spot] = player
@@ -576,7 +634,7 @@ local function cast(player: Player, spot: BasePart)
 	if character and not spot:GetAttribute("Temporary") then
 		character:PivotTo(spot.CFrame * CFrame.new(0, 0.5, 0))
 	end
-	Remote:FireClient(player, "Cast", {
+	fire(player, "Cast", {
 		Token = token,
 		Bobber = bobberOf(spot),
 		Water = Fishing.Waters[water] or "el agua",
@@ -597,11 +655,13 @@ local function cast(player: Player, spot: BasePart)
 		end
 		if water == "AltaMar" and maybeBoss(player) then
 			now.Phase = "Done"
-			Remote:FireClient(player, "Result", { Token = token, Kind = "Boss" })
+			fire(player, "Result", { Token = token, Kind = "Boss" })
 			return
 		end
 		-- Lo que ha picado (según lo que queda en el agua; los que no puedes sacar pican menos)
-		local species, locked = Fishing.pick(water, if rod then rod.Rare else 1, rng :: any, pop[water], function(sp)
+		-- Con temporal en alta mar pican más peces raros
+		local storm = if water == "AltaMar" and workspace:GetAttribute("SeaEvent") == "Temporal" then SeaEvents.Kinds.Temporal.RareBoost else 1
+		local species, locked = Fishing.pick(water, (if rod then rod.Rare else 1) * storm, rng :: any, pop[water], function(sp)
 			return canCatch(player, sp)
 		end)
 		now.Species = species
@@ -611,12 +671,12 @@ local function cast(player: Player, spot: BasePart)
 		local window = if species then species.Window else Fishing.Window
 		now.Window = window
 		local big = species ~= nil and (locked or Fishing.pullsFor(species, rodTier(player)) > 1)
-		Remote:FireClient(player, "Bite", { Token = token, Window = window, Big = big })
+		fire(player, "Bite", { Token = token, Window = window, Big = big })
 		task.delay(window + LATENCY, function()
 			local later = fishing[player]
 			if later and later.Token == token and later.Phase == "Bite" then
 				later.Phase = "Done"
-				Remote:FireClient(player, "Result", { Token = token, Kind = "Late" })
+				fire(player, "Result", { Token = token, Kind = "Late" })
 			end
 		end)
 	end)
@@ -627,16 +687,17 @@ local function land(player: Player, state: State)
 	local species = state.Species
 	state.Phase = "Done"
 	if not InventoryService.add(player, species.Item, 1) then
-		Remote:FireClient(player, "Result", { Token = state.Token, Kind = "Full", Name = species.Name, Icon = species.Icon })
+		fire(player, "Result", { Token = state.Token, Kind = "Full", Name = species.Name, Icon = species.Icon })
 		return
 	end
 	consume(state.Water, species)
 	local before = levelOf(player)
 	addXp(player, species.Xp, species.Id)
 	local kg = math.floor(rng:NextNumber(species.Kg[1], species.Kg[2]) * 100 + 0.5) / 100
-	Remote:FireClient(player, "Result", {
+	fire(player, "Result", {
 		Token = state.Token,
 		Kind = "Catch",
+		Id = species.Id,
 		Name = species.Name,
 		Icon = species.Icon,
 		Kg = kg,
@@ -662,7 +723,7 @@ local function reel(player: Player, token: any)
 	end
 	if state.Phase == "Wait" then
 		state.Phase = "Done"
-		Remote:FireClient(player, "Result", { Token = token, Kind = "Early" })
+		fire(player, "Result", { Token = token, Kind = "Early" })
 		return
 	end
 	if state.Phase == "Fight" then
@@ -672,7 +733,7 @@ local function reel(player: Player, token: any)
 		end
 		state.LastPull = now
 		state.Got = (state.Got or 0) + 1
-		Remote:FireClient(player, "Pull", { Token = token, Got = state.Got, Need = state.Need })
+		fire(player, "Pull", { Token = token, Got = state.Got, Need = state.Need })
 		if (state.Got :: number) >= (state.Need :: number) then
 			land(player, state)
 		end
@@ -683,20 +744,20 @@ local function reel(player: Player, token: any)
 	end
 	if os.clock() - state.BiteAt > (state.Window or Fishing.Window) + LATENCY then
 		state.Phase = "Done"
-		Remote:FireClient(player, "Result", { Token = token, Kind = "Late" })
+		fire(player, "Result", { Token = token, Kind = "Late" })
 		return
 	end
 	local species = state.Species
 	if not species then
 		state.Phase = "Done"
 		local junk = Fishing.Junk[rng:NextInteger(1, #Fishing.Junk)]
-		Remote:FireClient(player, "Result", { Token = token, Kind = "Junk", Name = junk.Name, Icon = junk.Icon })
+		fire(player, "Result", { Token = token, Kind = "Junk", Name = junk.Name, Icon = junk.Icon })
 		return
 	end
 	if state.Locked then
 		-- Demasiado grande para ti: rompe el sedal y te dice qué te falta
 		state.Phase = "Done"
-		Remote:FireClient(player, "Result", { Token = token, Kind = "Locked", Name = species.Name, Icon = species.Icon, Missing = missingFor(player, species) })
+		fire(player, "Result", { Token = token, Kind = "Locked", Name = species.Name, Icon = species.Icon, Missing = missingFor(player, species) })
 		return
 	end
 	local need = Fishing.pullsFor(species, rodTier(player))
@@ -710,12 +771,12 @@ local function reel(player: Player, token: any)
 	state.Got = 1
 	state.LastPull = os.clock()
 	local seconds = Fishing.fightSeconds(need)
-	Remote:FireClient(player, "Fight", { Token = token, Need = need, Got = 1, Seconds = seconds, Name = species.Name, Icon = species.Icon, Rarity = species.Rarity })
+	fire(player, "Fight", { Token = token, Need = need, Got = 1, Seconds = seconds, Name = species.Name, Icon = species.Icon, Rarity = species.Rarity })
 	task.delay(seconds + LATENCY, function()
 		local later = fishing[player]
 		if later and later.Token == token and later.Phase == "Fight" then
 			later.Phase = "Done"
-			Remote:FireClient(player, "Result", { Token = token, Kind = "Escaped", Name = species.Name, Icon = species.Icon })
+			fire(player, "Result", { Token = token, Kind = "Escaped", Name = species.Name, Icon = species.Icon })
 		end
 	end)
 end

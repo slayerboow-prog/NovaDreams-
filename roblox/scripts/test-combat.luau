@@ -47,6 +47,15 @@ health, ko = Combat.apply(5, 8)
 check(health == 1 and ko, "Al quedarte sin vida no mueres: K.O. con 1 de vida")
 check(Combat.KOHealth > 0 and Combat.KOHealth < 1, "Te levantas con parte de la vida")
 
+print("▶ Morir y el hospital")
+local Hospital = luau.load(fs.readFile("src/shared/Hospital.luau"), { debugName = "Hospital" })()
+check(Hospital.bill(1000) == Hospital.Bill, "El hospital cobra su factura")
+check(Hospital.bill(40) == 40, "Si no llega, pagas lo que tengas")
+check(Hospital.bill(0) == 0, "Sin dinero no pagas nada")
+check(Hospital.RespawnSeconds > 0 and table.find(Hospital.Models, "Hospital") ~= nil, "Se reaparece en el hospital al cabo de unos segundos")
+local server = fs.readFile("src/server/Services/CombatService.luau")
+check(server:find("Killed = true", 1, true) ~= nil, "Rematar a alguien K.O. lo mata (homicidio)")
+
 print()
 if failures == 0 then
 	print("✅ Todo correcto")

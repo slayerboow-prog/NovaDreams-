@@ -638,7 +638,7 @@ local function setupLobby(model: Instance)
 			onDesk(player, lobby)
 		end
 	end)
-	prompt(elevator, "Subir a tu habitación", "🛗 Ascensor (con llave)", 0.5).Triggered:Connect(function(player)
+	prompt(elevator, "Subir a tu habitación", "🏢 Ascensor (con llave)", 0.5).Triggered:Connect(function(player)
 		onElevator(player, lobby)
 	end)
 end

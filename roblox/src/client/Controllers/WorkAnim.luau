@@ -550,6 +550,55 @@ works.Mop = {
 	Prop = PROPS.Mop,
 }
 
+---------------------------------------------------------------------
+-- En un vehículo (las pone RidePose según el asiento; no son oficios del servidor)
+---------------------------------------------------------------------
+
+-- Conductor de coche, autobús o camión: las dos manos en el volante, con pequeñas correcciones
+-- (el giro del volante lo añade RidePose según cómo gira el vehículo)
+works.Drive = {
+	Pose = function(t, seed, out)
+		local fix = sin(t * 0.9 + seed) * 0.02
+		out.wp = -0.04
+		out.np = 0.02
+		right(out, 1.0 + fix, 0.6, -0.4, 0.6)
+		left(out, 1.0 - fix, 0.6, -0.4, 0.6)
+		out.ny = sin(t * 0.21 + seed) * 0.08 -- mira un poco a los lados (retrovisores)
+	end,
+}
+
+-- Moto, bici y patinete: agarrado al manillar, un poco echado hacia delante
+works.Handlebar = {
+	Pose = function(t, seed, out)
+		out.wp = -0.12
+		out.np = 0.1 -- cabeza levantada: mira la calle
+		right(out, 1.25, 0.1, -0.1, 0.25)
+		left(out, 1.25, 0.1, -0.1, 0.25)
+		out.re += sin(t * 1.1 + seed) * 0.02
+	end,
+}
+
+-- Pasajero (copiloto, detrás, autobús, metro): manos en las piernas y mirando por la ventanilla
+works.Passenger = {
+	Pose = function(t, seed, out)
+		local look = sin(t * 0.23 + seed) * 0.5 + sin(t * 0.61 + seed * 2) * 0.15
+		out.ny = look * 0.55
+		out.np = -0.04
+		right(out, 0.45, 1.2, -0.3, 0.9)
+		left(out, 0.45, 1.2, -0.3, 0.9)
+	end,
+}
+
+-- Detrás en la moto: agarrado a la cintura de quien conduce
+works.Pillion = {
+	Pose = function(t, seed, out)
+		out.wp = -0.1
+		out.ny = sin(t * 0.3 + seed) * 0.25
+		right(out, 0.7, 0.8, -0.4, 0.8)
+		left(out, 0.7, 0.8, -0.4, 0.8)
+	end,
+}
+
 WorkAnim.Works = works
 
 ---------------------------------------------------------------------

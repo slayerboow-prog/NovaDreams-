@@ -1,13 +1,15 @@
 -- Actions (cliente): movimientos y acciones nuevas del personaje.
---   * Gestos: los de Roblox (su menú de gestos). Aquí solo queda "Saludar" para el menú de
---     comandos (delante de alguien); se corta solo al andar o saltar.
+--   * Gestos: los de Roblox (su menú de gestos: botón Gestos, app Gestos o comando Más > Gestos).
+--     Aquí queda "Saludar" para el menú de comandos (delante de alguien); se corta al andar o saltar.
 --   * Trepar: salta contra un muro bajo, una valla o un coche (hasta unos 9 studs) y el
 --     personaje se agarra al borde y sube.
---   * Linterna (tecla L): la ven todos los jugadores. La primera noche sale un aviso.
---   * Modo foto (tecla P): esconde toda la interfaz para hacer capturas bonitas.
+--   * Linterna (tecla L, R3 en el mando): la ven todos los jugadores (y el brazo va delante,
+--     sujetándola: ReactMotion). La primera noche sale un aviso.
+--   * Modo foto (tecla P, LT en el mando): esconde toda la interfaz para hacer capturas bonitas
+--     (con un fundido corto al entrar y al salir).
 -- (Sentarse en bancos y marquesinas: cartel "Sentarse" del servidor, ActionService)
 -- Las animaciones son las de Roblox que trae cualquier personaje: las del propio personaje
--- las ven también los demás jugadores.
+-- las ven también los demás jugadores. Todas entran y salen con fundido (nada de saltos de postura).
 
 local ContextActionService = game:GetService("ContextActionService")
 local Lighting = game:GetService("Lighting")
@@ -21,7 +23,10 @@ local UserInputService = game:GetService("UserInputService")
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Hud = require(script.Parent.Parent.UI.Hud)
 local Cinematics = require(script.Parent.Cinematics)
+local FootCamera = require(script.Parent.FootCamera)
+local ReactMotion = require(script.Parent.ReactMotion)
 local SoundFx = require(script.Parent.SoundFx)
+local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
 local StreetVoices = require(ReplicatedStorage.Shared.Config).StreetVoices
 
 local Actions = {}
@@ -42,8 +47,8 @@ local EMOTES: { Emote } = {
 	{ Name = "Reír", Icon = "😂", R15 = 507770818, R6 = 129423131, Voice = "Reir" },
 	{ Name = "Baile 1", Icon = "💃", R15 = 507771019, R6 = 182435998, Loop = true },
 	{ Name = "Baile 2", Icon = "🕺", R15 = 507776043, R6 = 182436842, Loop = true },
-	{ Name = "Baile 3", Icon = "🪩", R15 = 507777268, R6 = 182436935, Loop = true },
-	{ Name = "Saludo militar", Icon = "🫡", R15 = 3333474484 },
+	{ Name = "Baile 3", Icon = "🕺", R15 = 507777268, R6 = 182436935, Loop = true },
+	{ Name = "Saludo militar", Icon = "🙋", R15 = 3333474484 },
 	{ Name = "No sé", Icon = "🤷", R15 = 3334392772, Voice = "NoSe" },
 }
 local CLIMB = { R15 = 507765644, R6 = 180436334 }
@@ -91,7 +96,7 @@ end
 
 local function stopEmote()
 	if playing then
-		playing:Stop(0.25)
+		playing:Stop(0.35)
 		playing = nil
 	end
 end
@@ -113,7 +118,7 @@ local function playEmote(emote: Emote)
 	stopEmote()
 	local track = load(humanoid, id, emote.Loop)
 	if track then
-		track:Play(0.2)
+		track:Play(0.3)
 		playing = track
 	end
 	local line = emote.Voice and StreetVoices.Emotes[emote.Voice]
@@ -180,7 +185,7 @@ local function tryClimb(humanoid: Humanoid, root: BasePart)
 	SoundFx.play("Trepar", 1, nil, root)
 	local track = load(humanoid, if isR15(humanoid) then CLIMB.R15 else CLIMB.R6)
 	if track then
-		track:Play(0.1, 1, 1.6)
+		track:Play(0.15, 1, 1.6)
 	end
 	local from = root.CFrame
 	local look = CFrame.lookAlong(Vector3.zero, dir)
@@ -192,18 +197,22 @@ local function tryClimb(humanoid: Humanoid, root: BasePart)
 	local connection
 	connection = RunService.Heartbeat:Connect(function()
 		local t = math.clamp((os.clock() - start) / duration, 0, 1)
+		-- Con curva: arranca y se posa suave (sin velocidad constante de robot)
 		if t < 0.65 then
-			root.CFrame = from:Lerp(lift, t / 0.65)
+			local x = t / 0.65
+			root.CFrame = from:Lerp(lift, 1 - (1 - x) * (1 - x))
 		else
-			root.CFrame = lift:Lerp(target, (t - 0.65) / 0.35)
+			local x = (t - 0.65) / 0.35
+			root.CFrame = lift:Lerp(target, x * x * (3 - 2 * x))
 		end
 		root.AssemblyLinearVelocity = Vector3.zero
 		if t >= 1 then
 			connection:Disconnect()
 			if track then
-				track:Stop(0.2)
+				track:Stop(0.3)
 			end
 			humanoid:ChangeState(Enum.HumanoidStateType.Landed)
+			ReactMotion.play(player.Character, "Land", { Strength = 0.4 }) -- se asienta arriba
 			climbing = false
 		end
 	end)
@@ -226,7 +235,16 @@ end
 ---------------------------------------------------------------------
 local photo = false
 local hidden: { ScreenGui } = {}
-local savedZoom = 0
+
+-- Fundido corto (como el obturador de una cámara) al entrar y salir del modo foto
+local function shutter(playerGui: Instance)
+	local gui = Theme.create("ScreenGui", { Name = "PhotoShutter", ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = 20, Parent = playerGui })
+	local shade = Theme.create("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 0.35, BorderSizePixel = 0, Parent = gui })
+	TweenService:Create(shade, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundTransparency = 1 }):Play()
+	task.delay(0.35, function()
+		gui:Destroy()
+	end)
+end
 
 local function setPhoto(on: boolean)
 	if on == photo or (on and busy()) then
@@ -237,7 +255,7 @@ local function setPhoto(on: boolean)
 	if on then
 		hidden = {}
 		for _, gui in playerGui:GetChildren() do
-			if gui:IsA("ScreenGui") and gui.Enabled and gui.Name ~= "PhotoHint" and gui.Name ~= "PhotoExit" then
+			if gui:IsA("ScreenGui") and gui.Enabled and gui.Name ~= "PhotoHint" and gui.Name ~= "PhotoExit" and gui.Name ~= "PhotoShutter" then
 				gui.Enabled = false
 				table.insert(hidden, gui)
 			end
@@ -245,8 +263,8 @@ local function setPhoto(on: boolean)
 		pcall(function()
 			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false)
 		end)
-		savedZoom = player.CameraMaxZoomDistance
-		player.CameraMaxZoomDistance = math.max(savedZoom, 140)
+		FootCamera.setPhoto(true) -- la cámara se puede alejar mucho más
+		shutter(playerGui)
 		-- Aviso que se desvanece (para que la foto quede limpia)
 		local hint = Theme.create("ScreenGui", { Name = "PhotoHint", ResetOnSpawn = false, Parent = playerGui })
 		local label = Theme.label({
@@ -288,8 +306,10 @@ local function setPhoto(on: boolean)
 			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, true)
 			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
 			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
+			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Health, false)
 		end)
-		player.CameraMaxZoomDistance = savedZoom
+		FootCamera.setPhoto(false)
+		shutter(playerGui)
 	end
 end
 
@@ -303,12 +323,39 @@ function Actions.emote(name: string)
 		end
 	end
 end
+-- Abre (o cierra) el menú de gestos y bailes de Roblox
+function Actions.openEmotes()
+	pcall(function()
+		local GuiService = game:GetService("GuiService")
+		GuiService:SetEmotesMenuOpen(not GuiService:GetEmotesMenuOpen())
+	end)
+end
+
 function Actions.emotes(): { { Name: string, Icon: string } }
 	local list = {}
 	for _, emote in EMOTES do
 		table.insert(list, { Name = emote.Name, Icon = emote.Icon })
 	end
 	return list
+end
+
+-- ¿Hay techo encima? (dentro de casa o en un túnel: la linterna sirve también de día)
+local lastRoofCheck, lastRoof = 0, false
+local function underRoof(): boolean
+	if os.clock() - lastRoofCheck < 1 then
+		return lastRoof
+	end
+	lastRoofCheck = os.clock()
+	local _, root = parts()
+	if not root then
+		lastRoof = false
+		return false
+	end
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = { player.Character :: Instance }
+	lastRoof = workspace:Raycast(root.Position, Vector3.new(0, 40, 0), params) ~= nil
+	return lastRoof
 end
 
 function Actions.init()
@@ -322,36 +369,45 @@ function Actions.init()
 			return Enum.ContextActionResult.Pass
 		end, false, ...)
 	end
-	bind("Flashlight", toggleFlashlight, Enum.KeyCode.L)
+	bind("Flashlight", toggleFlashlight, Enum.KeyCode.L, Enum.KeyCode.ButtonR3)
 	bind("PhotoMode", function()
 		setPhoto(not photo)
 	end, Enum.KeyCode.P)
-
-	-- Móvil: botones de linterna y modo foto (los gestos y bailes son los de Roblox)
-	if UserInputService.TouchEnabled then
-		-- (en el teclado son L y P)
-		local function round(name: string, icon: string, position: UDim2, callback: () -> ())
-			local b = Theme.button({
-				Name = name,
-				AnchorPoint = Vector2.new(1, 1),
-				Size = UDim2.fromOffset(48, 48),
-				Position = position,
-				Text = icon,
-				TextSize = 22,
-				BackgroundTransparency = 0.3,
-				Parent = gui,
-			})
-			local c = b:FindFirstChildOfClass("UICorner")
-			if c then
-				c.CornerRadius = UDim.new(0.5, 0)
-			end
-			b.Activated:Connect(callback)
-		end
-		round("FlashlightButton", "🔦", UDim2.new(1, -256, 1, -92), toggleFlashlight)
-		round("PhotoButton", "📷", UDim2.new(1, -204, 1, -100), function()
+	-- Mando: LT (fuera del agua; nadando, LT es bajar)
+	bind("PhotoModePad", function()
+		local humanoid = parts()
+		if humanoid and humanoid:GetState() ~= Enum.HumanoidStateType.Swimming then
 			setPhoto(not photo)
-		end)
+		end
+	end, Enum.KeyCode.ButtonL2)
+
+	-- Botones del racimo (móvil) y pistas de teclas (ordenador y mando): a pie
+	local function onFoot(): boolean
+		return player:GetAttribute("LifeStage") ~= "Bebe" and not busy() and not TouchLayout.riding()
 	end
+	TouchLayout.register({ Id = "Gestos", Icon = "gestos", Label = "Gestos", Slot = "Gestos", Priority = 7, Visible = onFoot, Callback = Actions.openEmotes })
+	-- Linterna: de noche o bajo techo (o si ya la llevas encendida, para poder apagarla)
+	TouchLayout.register({
+		Id = "Linterna", Icon = "linterna", Label = "Linterna", Priority = 20, Key = "L", Pad = "R3",
+		Visible = function()
+			local clock = Lighting.ClockTime
+			local on = player:GetAttribute("Flashlight") == true
+			return onFoot() and (on or clock >= 19.5 or clock < 6.5 or underRoof())
+		end,
+		Active = function()
+			return player:GetAttribute("Flashlight") == true
+		end,
+		Callback = toggleFlashlight,
+	})
+	TouchLayout.register({
+		Id = "Foto", Icon = "camara", Label = "Foto", Priority = 40, Key = "P", Pad = "LT",
+		Visible = onFoot,
+		Callback = function()
+			setPhoto(not photo)
+		end,
+	})
+	Hud.addButton("😀 Gestos", Color3.fromRGB(200, 140, 20), 4, Actions.openEmotes)
+	local _ = gui
 
 	-- Cada personaje nuevo empieza sin animaciones cargadas
 	player.CharacterAdded:Connect(function()
@@ -366,7 +422,7 @@ function Actions.init()
 		local clock = Lighting.ClockTime
 		if not warned and (clock >= 20.5 or clock < 5) and not busy() and player:GetAttribute("LifeStage") ~= "Bebe" then
 			warned = true
-			Hud.toast("Info", if UserInputService.TouchEnabled then "🌙 Es de noche: toca 🔦 para encender la linterna" else "🌙 Es de noche: pulsa L para encender la linterna")
+			Hud.toast("Info", if UserInputService.TouchEnabled then "🌙 Es de noche: toca el botón Linterna para encenderla" else "🌙 Es de noche: pulsa L para encender la linterna")
 		end
 	end)
 

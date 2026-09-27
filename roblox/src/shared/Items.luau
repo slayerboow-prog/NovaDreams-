@@ -109,7 +109,7 @@ for key, license in Gameplay.Licenses do
 	list["Carnet_" .. key] = {
 		Id = "Carnet_" .. key,
 		Name = license.Name,
-		Icon = "🪪",
+		Icon = "💳",
 		Kind = "Document",
 		Desc = "Aprobado en la autoescuela. Te deja conducir: " .. (Gameplay.Vehicles[license.Vehicle] and Gameplay.Vehicles[license.Vehicle].Name or license.Vehicle) .. ".",
 		Stack = 1,
@@ -296,7 +296,7 @@ local KEEPSAKES = {
 	{ "Maqueta", "Maqueta del proyecto final", "🔬", "Un poco torcida, llena de pegamento… y con mucha historia." },
 	{ "DiplomaPrimaria", "Diploma de primaria", "🎓", "Firmado por Lucía. Con una carita sonriente al lado de la firma." },
 	{ "Llavero13", "Llavero con el número 13", "🗝️", "Regalo de Ramón: las puertas cerradas a veces esconden cosas bonitas." },
-	{ "CarnetInstituto", "Carnet del instituto", "🪪", "Tu foto de carnet del primer día. Nadie sale bien en las fotos de carnet." },
+	{ "CarnetInstituto", "Carnet del instituto", "💳", "Tu foto de carnet del primer día. Nadie sale bien en las fotos de carnet." },
 	{ "FotoDeLeire", "Foto de Leire", "📷", "Blanco y negro. Tú, el primer día de instituto, con cara de «¿dónde me he metido?»." },
 	{ "InsigniaClub", "Insignia del club", "📌", "La insignia de tu primer club del instituto." },
 	{ "PrimerSobre", "Sobre de tu primer sueldo", "✉️", "Vacío. Pero lo guardas en un cajón y no sabes muy bien por qué." },

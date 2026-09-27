@@ -1,14 +1,16 @@
--- CommandMenu: el menú de comandos, siempre presente abajo a la izquierda mientras juegas.
+-- CommandMenu: el menú de comandos, siempre abajo a la izquierda mientras juegas (en el móvil, justo
+-- encima del joystick; dónde exactamente lo dice UI/HudLayout).
 --
---   * Lista vertical; el comando elegido brilla, crece y lleva el cursor ▶.
+--   * Panel con la pestaña "👑 COMANDOS"; el elegido va en azul brillante y el selector se desliza.
 --   * Cambia con el contexto (ContextDetector): lo que tienes delante sale arriba del todo.
---   * Los grupos (▸) abren submenús; "◂ Volver" (o ← / Retroceso / B) regresa.
---   * El comando elegido es también lo que hace la tecla E / el botón X del mando.
+--   * Los grupos (Más…) abren submenús; "Volver" (o ← / Retroceso / B) regresa.
+--   * Se ven 4-5 comandos; ⌄ despliega todos. El botón de la pestaña lo oculta (se recuerda en la sesión).
+--   * El comando elegido es también lo que hace la tecla E / el botón X del mando / el botón Interactuar.
 --
 -- Controles:
---   Teclado:  ↑ ↓ elegir · Enter aceptar · ← o Retroceso volver · E usar lo que tienes delante
---   Mando:    cruceta ↑ ↓ elegir · cruceta → aceptar · cruceta ← o B volver · X usar
---   Móvil:    un toque elige un comando y otro toque sobre el elegido lo hace (a la derecha)
+--   Teclado:  ↑ ↓ elegir · Enter aceptar · ← o Retroceso volver · E usar lo que tienes delante · Tab ocultar
+--   Mando:    cruceta ↑ ↓ elegir · cruceta → aceptar · cruceta ← o B volver (← en la lista principal: ocultar)
+--   Móvil:    un toque elige un comando y otro toque sobre el elegido lo hace
 -- Mientras hablas con alguien o ves una cinemática se aparta (setBusy).
 
 local ContextActionService = game:GetService("ContextActionService")
@@ -17,6 +19,8 @@ local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 
 local Theme = require(script.Parent.Parent.UI.Theme)
+local HudLayout = require(script.Parent.Parent.UI.HudLayout)
+local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
 local CommandRegistry = require(script.Parent.CommandRegistry)
 local ContextDetector = require(script.Parent.ContextDetector)
 local CommandRenderer = require(script.Parent.CommandRenderer)
@@ -37,9 +41,11 @@ local stack: { Level } = {}
 local lastInput = -math.huge
 local busy = false
 local signature = ""
-local onFocusChanged: ((ProximityPrompt?) -> ())? = nil
+local focusListeners: { (ProximityPrompt?) -> () } = {}
+local collapsed = false -- oculto con el botón de la pestaña (se recuerda mientras juegas)
+local expanded = false -- desplegado con ⌄ (todos los comandos)
 
-local BACK: Command = { Id = "_Volver", Label = "Volver", Icon = "◂", Priority = 1e9 }
+local BACK: Command = { Id = "_Volver", Label = "Volver", Icon = "volver", Priority = 1e9 }
 
 local function current(): Level
 	return stack[#stack]
@@ -69,8 +75,9 @@ end
 local function updateFocus()
 	local command = selected()
 	ContextDetector.setFocus(command and command.Prompt or nil)
-	if onFocusChanged then
-		onFocusChanged(ContextDetector.getFocus())
+	local focus = ContextDetector.getFocus()
+	for _, listener in focusListeners do
+		listener(focus)
 	end
 end
 
@@ -111,8 +118,7 @@ local function refresh()
 				end
 			end
 		end
-		local target = ctx.Target
-		level.Title = if target and target.Detail ~= "" then target.Detail else "Comandos"
+		level.Title = "Comandos" -- (con quién o qué: en la segunda columna de cada fila)
 		if #stack == 1 then
 			showLevel(nil)
 		end
@@ -121,6 +127,25 @@ local function refresh()
 		updateFocus()
 	end
 	renderer:setVisible(not busy and #stack[1].Items > 0)
+end
+
+-- Filas que caben: 4-5 normalmente; desplegado, todas las que quepan hasta tu estado
+local function applyWindow()
+	local layout = HudLayout.current()
+	local rows = layout.CommandRows
+	if expanded then
+		local placement = layout.Items.Commands
+		local bottom = layout.Canvas.Y + placement.Position.Y.Offset
+		local room = bottom - layout.CommandTop - HudLayout.commandHeight(0, layout.Touch)
+		rows = math.max(rows, math.floor(room / HudLayout.Sizes.CommandPitch))
+	end
+	renderer:setExpanded(expanded, rows)
+end
+
+local function setCollapsed(value: boolean)
+	collapsed = value
+	renderer:setCollapsed(value)
+	UiAudio.move()
 end
 
 local function move(delta: number)
@@ -200,15 +225,23 @@ end
 
 local function hint(): string
 	if UserInputService.GamepadEnabled and UserInputService:GetLastInputType().Name:find("Gamepad") then
-		return "✚ elegir · ✚→ aceptar · B volver · X usar"
+		return "Cruceta elegir · → aceptar · B volver · ← ocultar"
 	end
-	return "↑↓ elegir · Enter aceptar · ← volver · E usar"
+	return "↑↓ elegir · Enter aceptar · E usar · Tab ocultar"
 end
 
 -- Enlaza las teclas y la cruceta (solo cuando el menú está a la vista y no se escribe en el chat)
 local function bindInput()
 	local function available(): boolean
 		return not busy and gui.Enabled and renderer.Root.Visible and not UserInputService:GetFocusedTextBox() and GuiService.SelectedObject == nil
+	end
+	-- Oculto: cualquier flecha lo vuelve a abrir (y no hace nada más)
+	local function openIfCollapsed(): boolean
+		if collapsed then
+			setCollapsed(false)
+			return true
+		end
+		return false
 	end
 	local function handler(callback: () -> boolean?)
 		return function(_, state: Enum.UserInputState)
@@ -220,20 +253,45 @@ local function bindInput()
 		end
 	end
 	ContextActionService:BindActionAtPriority("CommandUp", handler(function()
-		move(-1)
+		if not openIfCollapsed() then
+			move(-1)
+		end
 		return true
 	end), false, 3000, Enum.KeyCode.Up, Enum.KeyCode.DPadUp)
 	ContextActionService:BindActionAtPriority("CommandDown", handler(function()
-		move(1)
+		if not openIfCollapsed() then
+			move(1)
+		end
 		return true
 	end), false, 3000, Enum.KeyCode.Down, Enum.KeyCode.DPadDown)
 	ContextActionService:BindActionAtPriority("CommandAccept", handler(function()
+		if openIfCollapsed() then
+			return true
+		end
+		if collapsed then
+			return false
+		end
 		accept()
 		return true
 	end), false, 3000, Enum.KeyCode.Return, Enum.KeyCode.KeypadEnter, Enum.KeyCode.DPadRight)
 	ContextActionService:BindActionAtPriority("CommandBack", handler(function()
+		if collapsed then
+			return false
+		end
 		return back()
 	end), false, 3000, Enum.KeyCode.Backspace, Enum.KeyCode.Left, Enum.KeyCode.DPadLeft, Enum.KeyCode.ButtonB)
+	-- Ocultar / mostrar: Tab (o ← de la cruceta en la lista principal)
+	ContextActionService:BindActionAtPriority("CommandToggle", handler(function()
+		CommandMenu.toggle()
+		return true
+	end), false, 3000, Enum.KeyCode.Tab)
+	ContextActionService:BindActionAtPriority("CommandHide", function(_, state: Enum.UserInputState)
+		if state ~= Enum.UserInputState.Begin or not available() or collapsed or #stack > 1 then
+			return Enum.ContextActionResult.Pass
+		end
+		CommandMenu.toggle()
+		return Enum.ContextActionResult.Sink
+	end, false, 2900, Enum.KeyCode.DPadLeft)
 	UserInputService.LastInputTypeChanged:Connect(function()
 		renderer:setHint(hint())
 	end)
@@ -247,9 +305,33 @@ function CommandMenu.setBusy(value: boolean)
 	end
 end
 
--- Quien dibuja los carteles "pulsa E" se entera de cuál es el que va con la E
+-- Quien dibuja los carteles "pulsa E" (y el botón Interactuar) se entera de cuál va con la E
 function CommandMenu.onFocus(callback: (ProximityPrompt?) -> ())
-	onFocusChanged = callback
+	table.insert(focusListeners, callback)
+end
+
+-- Ocultar / mostrar el menú (botón de la pestaña, Tab, ← de la cruceta)
+function CommandMenu.toggle()
+	if renderer then
+		setCollapsed(not collapsed)
+	end
+end
+
+function CommandMenu.isCollapsed(): boolean
+	return collapsed
+end
+
+-- Botón Interactuar: usa lo que tienes delante (el cartel del foco); si no hay nada, el comando elegido
+function CommandMenu.interact()
+	local prompt = ContextDetector.getFocus()
+	if prompt then
+		ContextDetector.trigger(prompt)
+		return
+	end
+	local command = selected()
+	if command and command.Prompt then
+		ContextDetector.trigger(command.Prompt)
+	end
 end
 
 -- Vuelve a pedir la lista (p. ej. al cambiar algo que no avisa solo)
@@ -266,25 +348,19 @@ function CommandMenu.init()
 		DisplayOrder = 2,
 		Parent = player:WaitForChild("PlayerGui"),
 	})
+	HudLayout.scaleGui(gui)
 	renderer = CommandRenderer.new(gui, TOUCH)
-	local scale = Theme.create("UIScale", { Parent = renderer.Root })
-	local camera = workspace.CurrentCamera
-	local function layout()
-		local view = camera.ViewportSize
-		local hud = math.clamp(math.min(view.Y / 900, view.X / 1700), 0.55, 1.2)
-		-- En el móvil: a la derecha, entre el minimapa y los botones (abajo a la izquierda va el
-		-- joystick y el pulgar lo tocaba sin querer), un poco más grande para tocarlo bien
-		scale.Scale = if TOUCH then math.max(hud, 0.72) else hud
-		if TOUCH then
-			renderer.Root.AnchorPoint = Vector2.new(1, 0.5)
-			renderer.Root.Position = UDim2.new(1, -8, 0.5, 0)
-		else
-			renderer.Root.AnchorPoint = Vector2.new(0, 1)
-			renderer.Root.Position = UDim2.new(0, 18, 1, -16)
-		end
+	-- Abajo a la izquierda en todos los dispositivos (en el móvil, encima del joystick)
+	HudLayout.onChanged(function(layout)
+		HudLayout.apply(renderer.Root, layout.Items.Commands, true)
+		applyWindow()
+	end)
+	renderer.ToggleCallback = CommandMenu.toggle
+	renderer.ExpandCallback = function()
+		expanded = not expanded
+		applyWindow()
+		UiAudio.open()
 	end
-	camera:GetPropertyChangedSignal("ViewportSize"):Connect(layout)
-	layout()
 
 	renderer.HoverCallback = function(index: number)
 		local level = current()
@@ -312,6 +388,23 @@ function CommandMenu.init()
 	renderer:setHint(hint())
 
 	stack = { { Title = "Comandos", Items = {}, Index = 1 } }
+	renderer:setCollapsed(collapsed)
+	-- Botón Interactuar (racimo táctil): usa lo que tienes delante y dice qué es ("Hablar", "Entrar"…)
+	TouchLayout.register({
+		Id = "Interactuar",
+		Icon = "interactuar",
+		Label = "Interactuar",
+		Slot = "Interactuar",
+		Priority = 1,
+		Key = "E",
+		Pad = "X",
+		Callback = CommandMenu.interact,
+	})
+	table.insert(focusListeners, function(prompt: ProximityPrompt?)
+		local text = prompt and prompt.ActionText
+		TouchLayout.setLabel("Interactuar", if text and text ~= "" and #text <= 12 then text else nil)
+		TouchLayout.setDim("Interactuar", prompt == nil)
+	end)
 	ContextDetector.init()
 	ContextDetector.onChanged(refresh)
 	bindInput()

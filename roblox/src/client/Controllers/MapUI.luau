@@ -1,8 +1,9 @@
 -- MapUI (cliente): el mapa de Valmar, con el estilo del mapa ilustrado de la ciudad.
---   * Minimapa redondo arriba a la derecha (debajo de los botones): distritos de colores, calles, mar,
---     lugares, tu flecha, tu objetivo (★), el sitio que marques (📍) y los demás jugadores.
---     Si el objetivo está lejos, se queda en el borde señalando hacia dónde ir.
---   * Mapa grande (botón "Mapa", el botón ⤢ del minimapa o la tecla M): toda la región con los distritos,
+--   * Minimapa redondo arriba a la derecha (junto al menú rápido, UI/HudLayout): aro brillante con la N,
+--     marcas de los puntos cardinales, botones + y − para acercar, el sol (o la luna) al lado y, dentro,
+--     distritos de colores, calles, mar, lugares, tu flecha, tu objetivo (★), el sitio que marques (📍)
+--     y los demás jugadores. Si el objetivo está lejos, se queda en el borde señalando hacia dónde ir.
+--   * Mapa grande (botón "Mapa", el botón del mapa del minimapa o la tecla M): toda la región con los distritos,
 --     la lista de distritos, los lugares importantes (pulsa uno para marcarlo) y la leyenda.
 --     Se mueve arrastrando y se acerca con la rueda del ratón o con los botones + y −.
 -- Lee las calles de ReplicatedStorage.Ambient.Roads, las zonas de ReplicatedStorage.MapZones y los lugares
@@ -17,6 +18,8 @@ local MapInfo = require(ReplicatedStorage.Shared.MapInfo)
 local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
 local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 local Theme = require(script.Parent.Parent.UI.Theme)
+local Icons = require(script.Parent.Parent.UI.Icons)
+local HudLayout = require(script.Parent.Parent.UI.HudLayout)
 
 local create = Theme.create
 local C = Theme.Colors
@@ -26,7 +29,8 @@ local MapUI = {}
 
 local player = Players.LocalPlayer
 
-local MINI_SIZE = 176
+local MINI_SIZE = HudLayout.Sizes.Minimap
+local MINI_ZOOMS = { 0.55, 0.8, 1.2, 1.8 } -- acercar / alejar el minimapa (+ y −)
 local MINI_SCALE = 2.6 -- studs por píxel en el minimapa
 local ROAD_WIDTH = 22 -- ancho aproximado de una calle (studs)
 local LAND = rgb(104, 160, 88)
@@ -53,7 +57,7 @@ type Layer = {
 	Frame: Frame,
 	Scale: number,
 	Min: Vector2,
-	Me: TextLabel,
+	Me: GuiObject,
 	Target: TextLabel,
 	Waypoint: TextLabel,
 	Dots: { [Player]: Frame },
@@ -422,7 +426,27 @@ local function buildLayer(parent: Instance, scale: number, detailed: boolean): L
 	end
 	layer.Waypoint = marker(layer, "📍", WAYPOINT, if detailed then 26 else 20, 7)
 	layer.Target = marker(layer, "★", TARGET, if detailed then 26 else 20, 8)
-	layer.Me = marker(layer, "▲", Color3.new(1, 1, 1), if detailed then 22 else 16, 9)
+	-- Tu flecha (dibujada: "▲" no se ve en algunos móviles)
+	local size = if detailed then 24 else 20
+	local me = create("Frame", {
+		Name = "Me",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Size = UDim2.fromOffset(size, size),
+		BackgroundTransparency = 1,
+		ZIndex = 9,
+		Parent = layer.Frame,
+	})
+	create("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.6),
+		Size = UDim2.fromScale(0.5, 0.5),
+		BackgroundColor3 = rgb(80, 230, 120),
+		ZIndex = 9,
+		Parent = me,
+	}, { create("UICorner", { CornerRadius = UDim.new(1, 0) }), create("UIStroke", { Color = Color3.new(1, 1, 1), Thickness = 2 }) })
+	Icons.chevron({ AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.18), Size = UDim2.fromScale(0.5, 0.5), Rotation = -90, Color = Color3.new(1, 1, 1), Thickness = 3, ZIndex = 10, Parent = me })
+	keepSize(layer, me)
+	layer.Me = me
 	return layer
 end
 
@@ -598,10 +622,33 @@ end
 -- Construcción
 ---------------------------------------------------------------------
 
--- Misma escala que el HUD, para que el minimapa quede justo debajo de sus botones
-local function hudScale(): number
-	local v = workspace.CurrentCamera.ViewportSize
-	return math.clamp(math.min(v.Y / 900, v.X / 1700), 0.55, 1.2)
+local miniZoom = 2 -- índice en MINI_ZOOMS
+local miniScaler: UIScale
+
+local function roundTool(parent: Instance, name: string, position: UDim2, size: number): TextButton
+	local button = create("TextButton", {
+		Name = name,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = position,
+		Size = UDim2.fromOffset(size, size),
+		BackgroundColor3 = Theme.Hud.Navy,
+		BackgroundTransparency = 0.1,
+		Text = "",
+		ZIndex = 11,
+		Parent = parent,
+	}, { create("UICorner", { CornerRadius = UDim.new(1, 0) }) })
+	Theme.edge(button, Theme.Hud.Glow, 2)
+	Theme.pressable(button)
+	return button
+end
+
+local function setMiniZoom(index: number)
+	miniZoom = math.clamp(index, 1, #MINI_ZOOMS)
+	local zoom = MINI_ZOOMS[miniZoom]
+	miniScaler.Scale = zoom
+	for _, s in miniLayer.Scalers do
+		s.Scale = 1 / zoom -- los iconos no cambian de tamaño
+	end
 end
 
 local function buildMini()
@@ -613,73 +660,111 @@ local function buildMini()
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 		Parent = player:WaitForChild("PlayerGui"),
 	})
-	local scale = create("UIScale", { Parent = gui })
-	local camera = workspace.CurrentCamera
-	local function rescale()
-		scale.Scale = hudScale()
-	end
-	camera:GetPropertyChangedSignal("ViewportSize"):Connect(rescale)
-	rescale()
+	HudLayout.scaleGui(gui)
 
-	-- Minimapa redondo con aro azul arriba a la derecha
+	-- Hueco del minimapa (UI/HudLayout): el círculo arriba y el nombre de la zona debajo
 	miniHolder = create("Frame", {
 		Name = "Minimap",
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -22, 0, 18),
+		BackgroundTransparency = 1,
+		Parent = gui,
+	})
+	HudLayout.onChanged(function(layout)
+		HudLayout.apply(miniHolder, layout.Items.Minimap)
+	end)
+	local disc = create("Frame", {
+		Name = "Disc",
 		Size = UDim2.fromOffset(MINI_SIZE, MINI_SIZE),
 		BackgroundColor3 = rgb(12, 22, 42),
-		Parent = gui,
+		Parent = miniHolder,
 	}, {
 		create("UICorner", { CornerRadius = UDim.new(1, 0) }),
-		create("UIStroke", { Color = C.Stroke, Thickness = 4, Transparency = 0.05 }, {
-			create("UIGradient", { Rotation = 90, Color = ColorSequence.new(Color3.new(1, 1, 1), rgb(60, 130, 230)) }),
-		}),
 	})
+	-- Aro brillante (borde con degradado y halo suave por fuera)
+	Theme.edge(disc, nil, 5)
+	Theme.halo(disc, Theme.Hud.Glow, 12, 999)
 	local mini = create("CanvasGroup", {
-		Size = UDim2.new(1, -6, 1, -6),
-		Position = UDim2.fromOffset(3, 3),
+		Size = UDim2.new(1, -8, 1, -8),
+		Position = UDim2.fromOffset(4, 4),
 		BackgroundColor3 = LAND,
 		BorderSizePixel = 0,
-		Parent = miniHolder,
+		Parent = disc,
 	}, { create("UICorner", { CornerRadius = UDim.new(1, 0) }) })
 	miniLayer = buildLayer(mini, MINI_SCALE, false)
-	-- Norte arriba
+	miniScaler = create("UIScale", { Name = "Zoom", Parent = miniLayer.Frame })
+	-- Brújula: marcas de los puntos cardinales en el aro y la N arriba
+	for i, angle in { 90, 180, 270 } do
+		local a = math.rad(angle - 90)
+		create("Frame", {
+			Name = "Tick" .. i,
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.new(0.5, math.cos(a) * (MINI_SIZE / 2 - 3), 0.5, math.sin(a) * (MINI_SIZE / 2 - 3)),
+			Size = UDim2.fromOffset(4, 12),
+			Rotation = angle,
+			BackgroundColor3 = Theme.Hud.Glow,
+			BorderSizePixel = 0,
+			ZIndex = 10,
+			Parent = disc,
+		}, { create("UICorner", { CornerRadius = UDim.new(1, 0) }) })
+	end
 	local north = create("Frame", {
+		Name = "North",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.new(0.5, 0, 0, 2),
-		Size = UDim2.fromOffset(24, 24),
-		BackgroundColor3 = rgb(12, 22, 42),
+		Size = UDim2.fromOffset(30, 30),
+		BackgroundColor3 = Theme.Hud.Navy,
 		ZIndex = 10,
-		Parent = miniHolder,
-	}, { create("UICorner", { CornerRadius = UDim.new(1, 0) }), create("UIStroke", { Color = C.Accent, Thickness = 2 }) })
-	Theme.label({ Size = UDim2.fromScale(1, 1), Text = "N", Font = Theme.FontBold, TextSize = 14, TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 10, Parent = north })
+		Parent = disc,
+	}, { create("UICorner", { CornerRadius = UDim.new(1, 0) }) })
+	Theme.edge(north, Theme.Hud.Glow, 2)
+	Theme.label({ Size = UDim2.fromScale(1, 1), Text = "N", Font = Theme.FontBold, TextSize = 17, TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 11, Parent = north })
+
+	-- Acercar y alejar (en el aro, abajo a la derecha)
+	local function onRing(degrees: number): UDim2
+		local a = math.rad(degrees)
+		return UDim2.new(0.5, math.cos(a) * MINI_SIZE / 2, 0.5, math.sin(a) * MINI_SIZE / 2)
+	end
+	local plus = roundTool(disc, "ZoomIn", onRing(20), 30)
+	Icons.plus({ AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(14, 14), Thickness = 3, ZIndex = 12, Parent = plus })
+	plus.Activated:Connect(function()
+		setMiniZoom(miniZoom + 1)
+	end)
+	local minus = roundTool(disc, "ZoomOut", onRing(50), 30)
+	Icons.minus({ AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(14, 14), Thickness = 3, ZIndex = 12, Parent = minus })
+	minus.Activated:Connect(function()
+		setMiniZoom(miniZoom - 1)
+	end)
+	-- Botón para desplegar el mapa completo (abajo a la izquierda del aro)
+	local expand = roundTool(disc, "Expand", onRing(140), 38)
+	Icons.new("mapa", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(22, 22), ZIndex = 12, Parent = expand })
+	expand.Activated:Connect(MapUI.toggleBig)
+	-- El sol (o la luna) junto al minimapa, en la esquina de arriba a la derecha
+	local sky = Icons.new("sol", { Name = "Sky", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 4, 0, -4), Size = UDim2.fromOffset(34, 34), ZIndex = 12, Parent = miniHolder })
+	local function skyIcon()
+		local clock = game:GetService("Lighting").ClockTime
+		Icons.set(sky, if clock >= 6.5 and clock < 20 then "sol" else "luna")
+	end
+	game:GetService("Lighting"):GetPropertyChangedSignal("ClockTime"):Connect(function()
+		local clock = game:GetService("Lighting").ClockTime
+		local want = if clock >= 6.5 and clock < 20 then "sol" else "luna"
+		if sky:GetAttribute("Icon") ~= want then
+			skyIcon()
+		end
+	end)
+	skyIcon()
 
 	zoneLabel = Theme.label({
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 1, 6),
-		Size = UDim2.new(1, 20, 0, 18),
-		TextSize = 13,
+		Name = "Zone",
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.fromScale(0.5, 1),
+		Size = UDim2.new(1, 20, 0, 20),
+		TextSize = 15,
 		TextTruncate = Enum.TextTruncate.AtEnd,
 		Font = Theme.FontBold,
 		TextStrokeTransparency = 0.3,
 		TextXAlignment = Enum.TextXAlignment.Center,
 		Parent = miniHolder,
 	})
-	-- Botón para desplegar el mapa completo
-	local expand = create("TextButton", {
-		Name = "Expand",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0.12, 0, 0.88, 0),
-		Size = UDim2.fromOffset(44, 44),
-		BackgroundColor3 = rgb(20, 40, 80),
-		Text = "⤢",
-		TextSize = 22,
-		Font = Theme.FontBold,
-		TextColor3 = C.Text,
-		ZIndex = 10,
-		Parent = miniHolder,
-	}, { create("UICorner", { CornerRadius = UDim.new(1, 0) }), create("UIStroke", { Color = C.Accent, Thickness = 2 }) })
-	expand.Activated:Connect(MapUI.toggleBig)
+	setMiniZoom(miniZoom)
 end
 
 local function sectionTitle(parent: Instance, text: string, order: number)
@@ -816,7 +901,7 @@ local function buildBig()
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.fromScale(1, 0),
 		Size = UDim2.fromOffset(150, 36),
-		Text = "✕  " .. Strings.get("MAP.CLOSE") .. " (M)",
+		Text = "✖  " .. Strings.get("MAP.CLOSE") .. " (M)",
 		TextSize = 15,
 		BackgroundColor3 = rgb(40, 60, 100),
 		ZIndex = 22,
@@ -904,10 +989,10 @@ local function buildBig()
 	roundButton(holder, "+", 104, function()
 		setZoom(zoom * 1.4, holderSize / 2)
 	end)
-	roundButton(holder, "−", 58, function()
+	roundButton(holder, "-", 58, function()
 		setZoom(zoom / 1.4, holderSize / 2)
 	end)
-	roundButton(holder, "⌖", 12, function()
+	roundButton(holder, "🎯", 12, function()
 		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
 		if root then
 			centerOn(root.Position, math.max(zoom, 2))
@@ -1023,10 +1108,11 @@ function MapUI.init()
 		local character = player.Character
 		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 		-- El minimapa se mueve para que tú estés siempre en el centro
-		local inner = MINI_SIZE - 6
+		local inner = MINI_SIZE - 8
+		local zoom = MINI_ZOOMS[miniZoom]
 		if root then
 			local p = toPixel(miniLayer, root.Position.X, root.Position.Z)
-			miniLayer.Frame.Position = UDim2.fromOffset(inner / 2 - p.X, inner / 2 - p.Y)
+			miniLayer.Frame.Position = UDim2.fromOffset(inner / 2 - p.X * zoom, inner / 2 - p.Y * zoom)
 			local current = waypoint
 			if current then
 				local distance = Vector3.new(current.Position.X - root.Position.X, 0, current.Position.Z - root.Position.Z).Magnitude
@@ -1043,7 +1129,7 @@ function MapUI.init()
 				zoneLabel.Text = if district and zone then zone .. " · " .. district.Name elseif district then district.Name else (zone or "Valmar")
 			end
 		end
-		updateLayer(miniLayer, root, inner / 2 - 12)
+		updateLayer(miniLayer, root, (inner / 2 - 12) / zoom)
 		if bigOpen and bigLayer then
 			updateLayer(bigLayer, root, nil)
 		end

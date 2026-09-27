@@ -60,7 +60,7 @@ local function refreshCart()
 			TextTruncate = Enum.TextTruncate.AtEnd,
 			Parent = row,
 		})
-		local minus = Theme.button({ AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.fromScale(1, 0.5), Size = UDim2.fromOffset(28, 22), Text = "−", TextSize = 16, Parent = row })
+		local minus = Theme.button({ AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.fromScale(1, 0.5), Size = UDim2.fromOffset(28, 22), Text = "-", TextSize = 16, Parent = row })
 		minus.Activated:Connect(function()
 			Remote:FireServer("Return", item.Id)
 		end)

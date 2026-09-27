@@ -15,6 +15,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Gameplay = require(ReplicatedStorage.Shared.Gameplay)
+local Config = require(ReplicatedStorage.Shared.Config)
 local DataService = require(script.Parent.DataService)
 local NeedsService = require(script.Parent.NeedsService)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
@@ -149,6 +150,28 @@ local function canSprint(player: Player): boolean
 	return stage ~= "Bebe" and not player:GetAttribute("Crawling") and not player:GetAttribute("Riding") and not player:GetAttribute("Sleeping")
 end
 
+local function sprintBlocker(player: Player): string?
+	if player:GetAttribute("LifeStage") == "Bebe" or player:GetAttribute("Crawling") then
+		return "👶 Los bebés todavía no pueden correr."
+	elseif player:GetAttribute("Riding") then
+		return "🚲 Bájate del vehículo para correr."
+	elseif player:GetAttribute("Sleeping") then
+		return "😴 Estás durmiendo."
+	end
+	local runner = runners[player]
+	if runner and runner.Stamina < ST.MinToStart then
+		return "💨 Estás sin aliento: espera a recuperar la estamina."
+	end
+	local data = DataService.get(player)
+	local low = Config.Needs.LowThreshold
+	if data and (data.Hunger or 100) <= low then
+		return "🍔 Tienes mucha hambre: corres más despacio. ¡Come algo!"
+	elseif data and (data.Energy or 100) <= low then
+		return "😴 Tienes mucho sueño: corres más despacio. ¡Descansa!"
+	end
+	return nil
+end
+
 local function setSprinting(player: Player, runner: Runner, on: boolean)
 	if runner.Sprinting == on then
 		return
@@ -218,6 +241,13 @@ function ProgressionService.init()
 			local runner = runners[player]
 			if runner then
 				runner.Wants = value == true
+				if runner.Wants then
+					-- Que se sepa por qué no corre (antes el botón se encendía y no pasaba nada)
+					local why = sprintBlocker(player)
+					if why then
+						Notify:FireClient(player, "Info", why)
+					end
+				end
 			end
 		elseif action == "Spend" then
 			spend(player, value)

@@ -1,6 +1,6 @@
 -- PoliceUI (cliente): el panel del policía y las sirenas (también las del camión de bomberos).
 --   * Panel con el aviso actual: qué ha pasado, qué toca hacer y el tiempo que queda.
---   * Tecla K (o el botón 🚨 en móvil): enciende o apaga la sirena del coche patrulla.
+--   * Tecla K (o el botón Sirena en móvil): enciende o apaga la sirena del coche patrulla.
 --   * Las luces azules y rojas de los coches patrulla con la sirena encendida parpadean
 --     (lo ve todo el mundo: cada cliente las anima por su cuenta).
 
@@ -12,6 +12,7 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 local Theme = require(script.Parent.Parent.UI.Theme)
+local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
 
 local PoliceUI = {}
 
@@ -22,7 +23,6 @@ local C = Theme.Colors
 
 local panel: Frame
 local body: TextLabel
-local sirenButton: TextButton?
 
 local function show(incident: { [string]: any }?)
 	panel.Visible = true
@@ -80,6 +80,8 @@ local function siren()
 	end
 end
 
+local updateSiren: (() -> ())?
+
 function PoliceUI.init()
 	local gui = create("ScreenGui", { Name = "PoliceGui", ResetOnSpawn = false, Parent = player:WaitForChild("PlayerGui") })
 	Theme.fit(gui)
@@ -104,24 +106,21 @@ function PoliceUI.init()
 		TextColor3 = C.Text,
 		Parent = panel,
 	})
-	if UserInputService.TouchEnabled then
-		sirenButton = Theme.button({
-			Name = "SirenButton",
-			AnchorPoint = Vector2.new(1, 1),
-			Size = UDim2.fromOffset(56, 56),
-			Position = UDim2.new(1, -316, 1, -28),
-			Text = "🚨",
-			TextSize = 26,
-			BackgroundTransparency = 0.3,
-			Visible = false,
-			Parent = gui,
-		})
-		local corner = (sirenButton :: TextButton):FindFirstChildOfClass("UICorner")
-		if corner then
-			corner.CornerRadius = UDim.new(0.5, 0)
-		end
-		(sirenButton :: TextButton).Activated:Connect(siren)
-	end
+	-- Sirena: botón del racimo conduciendo (móvil) o tecla K
+	TouchLayout.register({
+		Id = "Sirena",
+		Icon = "sirena",
+		Label = "Sirena",
+		Slot = "Defender",
+		Priority = 3.5,
+		Key = "K",
+		Visible = function()
+			local job = player:GetAttribute("Job")
+			return TouchLayout.riding() and (job == "Policia" or job == "Bombero")
+		end,
+		Callback = siren,
+	})
+	updateSiren = TouchLayout.refresh
 	ContextActionService:BindAction("PoliceSiren", function(_, state)
 		if state == Enum.UserInputState.Begin and not UserInputService:GetFocusedTextBox() then
 			siren()
@@ -143,8 +142,8 @@ function PoliceUI.init()
 		if job ~= "Policia" then
 			panel.Visible = false
 		end
-		if sirenButton then
-			sirenButton.Visible = job == "Policia" or job == "Bombero"
+		if updateSiren then
+			updateSiren()
 		end
 	end)
 

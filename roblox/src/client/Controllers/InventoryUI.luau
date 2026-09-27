@@ -1,5 +1,6 @@
 -- InventoryUI (cliente): la mochila al estilo Minecraft.
---   * Barra rápida abajo en el centro: 9 casillas. Teclas 1-9 (o tocar) para elegir;
+--   * Barra rápida abajo en el centro (UI/HudLayout): marco con flechas ‹ › a los lados y 9 casillas
+--     con su número, el objeto y cuántos hay; la elegida brilla. Teclas 1-9 (o tocar, o las flechas) para elegir;
 --     pulsar otra vez la misma (o clic derecho) la usa: comer, montarte en tu bici, ponerte las gafas…
 --     Al cambiar de casilla aparece el nombre del objeto encima, y se desvanece.
 --   * Tecla E (o el botón 🎒): se abre la mochila con la pantalla oscurecida, tu personaje girando,
@@ -18,7 +19,10 @@ local UserInputService = game:GetService("UserInputService")
 
 local Items = require(ReplicatedStorage.Shared.Items)
 local Theme = require(script.Parent.Parent.UI.Theme)
+local Icons = require(script.Parent.Parent.UI.Icons)
+local HudLayout = require(script.Parent.Parent.UI.HudLayout)
 local Hud = require(script.Parent.Parent.UI.Hud)
+local ReactMotion = require(script.Parent.ReactMotion)
 
 local create = Theme.create
 
@@ -63,7 +67,7 @@ local NUMBER_KEYS = {
 	[Enum.KeyCode.Nine] = 9,
 }
 
-local HOTBAR_SLOT = 50
+local HOTBAR_SLOT = 66
 local BAG_SLOT = 44
 local GAP = 4
 
@@ -86,6 +90,7 @@ local isOpen = false
 local promptKeys: { [Enum.KeyCode]: number } = {} -- teclas que están usando los carteles de "pulsa E"
 
 local gui: ScreenGui
+local hotbarGui: ScreenGui
 local hotbar: Frame
 local nameLabel: TextLabel
 local nameToken = 0
@@ -244,7 +249,15 @@ end
 local function refreshHotbar()
 	for i, view in hotbarViews do
 		paint(view, i)
-		view.Button:FindFirstChild("SelectedFrame").Visible = i == selected
+		local on = i == selected
+		local frame = view.Button:FindFirstChild("SelectedFrame") :: Frame
+		if frame.Visible ~= on then
+			frame.Visible = on
+			if on then
+				Theme.pop(view.Button, 1.1) -- la elegida da un saltito
+			end
+		end
+		view.Button.BackgroundColor3 = if on then Color3.fromRGB(34, 78, 170) else MC.Slot
 	end
 end
 
@@ -261,61 +274,87 @@ local function chooseSlot(index: number)
 end
 
 local function buildHotbar()
-	hotbar = create("Frame", {
-		Name = "Hotbar",
-		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -10),
-		Size = UDim2.fromOffset(0, HOTBAR_SLOT + 8),
-		AutomaticSize = Enum.AutomaticSize.X,
-		BackgroundColor3 = MC.Panel,
-		BackgroundTransparency = 0.25,
-		BorderSizePixel = 0,
-		Parent = gui,
+	-- En su propia pantalla, con la escala del HUD (la ventana de la mochila tiene la suya)
+	hotbarGui = create("ScreenGui", {
+		Name = "HotbarGui",
+		IgnoreGuiInset = true,
+		ResetOnSpawn = false,
+		DisplayOrder = 3,
+		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+		Parent = player:WaitForChild("PlayerGui"),
 	})
-	create("UICorner", { CornerRadius = UDim.new(0, 12), Parent = hotbar })
-	create("UIStroke", { Color = MC.Light, Transparency = 0.5, Thickness = 1.5, Parent = hotbar })
-	create("UIPadding", {
-		PaddingLeft = UDim.new(0, 4),
-		PaddingRight = UDim.new(0, 4),
-		PaddingTop = UDim.new(0, 4),
-		PaddingBottom = UDim.new(0, 4),
+	HudLayout.scaleGui(hotbarGui)
+	hotbar = Theme.hudPanel({ Name = "Hotbar", BackgroundTransparency = 0.35, CornerRadius = 14, Parent = hotbarGui })
+	Theme.bevel(hotbar)
+	HudLayout.onChanged(function(layout)
+		HudLayout.apply(hotbar, layout.Items.Hotbar)
+	end)
+	local row = create("Frame", {
+		Name = "Slots",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(Items.Hotbar * HOTBAR_SLOT + (Items.Hotbar - 1) * 6, HOTBAR_SLOT),
+		BackgroundTransparency = 1,
 		Parent = hotbar,
 	})
 	create("UIListLayout", {
 		FillDirection = Enum.FillDirection.Horizontal,
-		Padding = UDim.new(0, GAP),
+		Padding = UDim.new(0, 6),
 		SortOrder = Enum.SortOrder.LayoutOrder,
 		VerticalAlignment = Enum.VerticalAlignment.Center,
-		Parent = hotbar,
+		Parent = row,
 	})
+	-- Flechas ‹ › a los lados: casilla anterior / siguiente
+	for _, side in { { "Prev", 0, 180, -1 }, { "Next", 1, 0, 1 } } do
+		local arrow = create("TextButton", {
+			Name = side[1],
+			AnchorPoint = Vector2.new(side[2], 0.5),
+			Position = UDim2.new(side[2], if side[2] == 0 then 4 else -4, 0.5, 0),
+			Size = UDim2.fromOffset(28, 56),
+			BackgroundTransparency = 1,
+			Text = "",
+			ZIndex = 3,
+			Parent = hotbar,
+		})
+		Icons.chevron({ AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(14, 22), Rotation = side[3], Color = Theme.Hud.Glow, Thickness = 3, ZIndex = 3, Parent = arrow })
+		Theme.pressable(arrow)
+		arrow.Activated:Connect(function()
+			selected = (selected - 1 + side[4]) % Items.Hotbar + 1
+			refreshHotbar()
+			showName(selected)
+		end)
+	end
 	for i = 1, Items.Hotbar do
-		local view = makeSlot(hotbar, HOTBAR_SLOT, i, 2)
+		local view = makeSlot(row, HOTBAR_SLOT, i, 2)
+		view.Button.BackgroundTransparency = 0.25
 		-- Número de la tecla, pequeño arriba a la izquierda
 		create("TextLabel", {
-			Position = UDim2.fromOffset(4, 2),
-			Size = UDim2.fromOffset(12, 12),
+			Position = UDim2.fromOffset(6, 3),
+			Size = UDim2.fromOffset(14, 14),
 			BackgroundTransparency = 1,
 			Font = Theme.FontBold,
-			TextSize = 11,
-			TextColor3 = Color3.fromRGB(230, 230, 230),
+			TextSize = 13,
+			TextColor3 = Color3.fromRGB(230, 236, 250),
 			TextStrokeTransparency = 0.4,
+			TextXAlignment = Enum.TextXAlignment.Left,
 			Text = tostring(i),
 			ZIndex = 6,
 			Parent = view.Button,
 		})
-		-- Marco grueso de la casilla elegida (como el de Minecraft)
+		-- Marco brillante de la casilla elegida
 		local selectedFrame = create("Frame", {
 			Name = "SelectedFrame",
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.fromScale(0.5, 0.5),
-			Size = UDim2.new(1, 6, 1, 6),
+			Size = UDim2.new(1, 4, 1, 4),
 			BackgroundTransparency = 1,
 			Visible = false,
 			ZIndex = 8,
 			Parent = view.Button,
 		})
 		create("UICorner", { CornerRadius = UDim.new(0, 10), Parent = selectedFrame })
-		create("UIStroke", { Color = MC.Selected, Thickness = 3, Parent = selectedFrame })
+		create("UIStroke", { Color = Theme.Hud.Glow, Thickness = 3, Parent = selectedFrame })
+		Theme.halo(selectedFrame, Theme.Hud.Glow, 8, 12)
 		view.Button.Activated:Connect(function()
 			chooseSlot(i)
 		end)
@@ -324,34 +363,12 @@ local function buildHotbar()
 		end)
 		hotbarViews[i] = view
 	end
-	-- Botón de la mochila al final de la barra (en móvil no hay tecla E)
-	local bag = create("TextButton", {
-		Size = UDim2.fromOffset(HOTBAR_SLOT, HOTBAR_SLOT),
-		BackgroundColor3 = MC.Panel,
-		BorderSizePixel = 0,
-		AutoButtonColor = true,
-		Font = Theme.FontBold,
-		TextScaled = true,
-		Text = "🎒",
-		LayoutOrder = 100,
-		ZIndex = 2,
-		Parent = hotbar,
-	})
-	bevel(bag, MC.Light, MC.Shade, 2)
-	create("UIPadding", {
-		PaddingLeft = UDim.new(0, 8),
-		PaddingRight = UDim.new(0, 8),
-		PaddingTop = UDim.new(0, 8),
-		PaddingBottom = UDim.new(0, 8),
-		Parent = bag,
-	})
-	bag.Activated:Connect(function()
-		InventoryUI.toggle()
-	end)
 
+	-- Nombre del objeto elegido, encima de la barra (se desvanece)
 	nameLabel = create("TextLabel", {
+		Name = "ItemName",
 		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -(HOTBAR_SLOT + 24)),
+		Position = UDim2.new(0.5, 0, 0, -6),
 		Size = UDim2.fromOffset(300, 22),
 		BackgroundTransparency = 1,
 		Font = Theme.FontBold,
@@ -361,7 +378,7 @@ local function buildHotbar()
 		TextTransparency = 1,
 		TextStrokeTransparency = 1,
 		Text = "",
-		Parent = gui,
+		Parent = hotbar,
 	})
 end
 
@@ -569,7 +586,7 @@ local function buildWindow()
 	local title = label("🎒  Mochila", header, 1)
 	title.TextSize = 22
 	title.Size = UDim2.new(1, -130, 1, 0)
-	local close = mcButton("✕  Cerrar", header, 2)
+	local close = mcButton("✖  Cerrar", header, 2)
 	close.AnchorPoint = Vector2.new(1, 0)
 	close.Position = UDim2.fromScale(1, 0)
 	close.Size = UDim2.fromOffset(116, 34)
@@ -758,6 +775,8 @@ useSlot = function(index: number)
 	end
 	if item.Kind == "Food" then
 		Remote:FireServer("Use", index)
+		-- La mano a la boca (o el vaso, si es una bebida)
+		ReactMotion.play(player.Character, ReactMotion.foodGesture(item.Name))
 	elseif item.Kind == "Vehicle" then
 		local vehicle = Remotes:FindFirstChild("Vehicle") :: RemoteEvent?
 		if vehicle then
