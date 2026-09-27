@@ -883,6 +883,7 @@ local APP_ICONS = {
 	["Gestos"] = "gestos",
 	["Mercadillo"] = "mercadillo",
 	["Guía de pesca"] = "pesca",
+	["Ruta a casa"] = "lugar",
 }
 
 -- "🏠 Ir a casa" -> ("Ir a casa", icono)
@@ -1040,7 +1041,7 @@ local function buildControls()
 end
 
 local function buildMenu()
-	local panel, content = popupPanel("Menu", "MENÚ", "menu", Vector2.new(320, 400))
+	local panel, content = popupPanel("Menu", "MENÚ", "menu", Vector2.new(340, 480))
 	menu = panel
 	create("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder, Parent = content })
 	local controls = Theme.button({ Size = UDim2.new(1, 0, 0, 36), Text = "🎮 Controles", TextSize = 15, LayoutOrder = 50, ZIndex = 31, Parent = content })
@@ -1252,7 +1253,7 @@ function Hud.init(openStore: () -> ()): ScreenGui
 		Name = "Toasts",
 		AnchorPoint = Vector2.new(0.5, 0),
 		Size = UDim2.fromOffset(600, 200),
-		Position = UDim2.new(0.5, 0, 0, 120),
+		Position = UDim2.new(0.5, 0, 0, 150),
 		BackgroundTransparency = 1,
 		Active = false,
 		Parent = toastGui,

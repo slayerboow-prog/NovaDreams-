@@ -48,6 +48,7 @@ HudLayout.Sizes = {
 	Hotbar = Vector2.new(718, 86),
 	Joystick = 210,
 	Hints = Vector2.new(300, 196),
+	Gps = Vector2.new(440, 58), -- indicación del GPS, bajo la cápsula de la hora
 }
 
 -- Racimo de botones táctiles (abajo a la derecha): centro de cada hueco respecto al de Ataque y su radio.
@@ -105,9 +106,10 @@ function HudLayout.compute(viewport: Vector2, options: Options?): Layout
 	items.Minimap = place(Vector2.new(1, 0), UDim2.new(1, -miniRight, 0, 10), Vector2.new(s.Minimap, s.Minimap + s.MinimapLabel))
 	local missionTop = 10 + s.Minimap + s.MinimapLabel + 10
 	items.Mission = place(Vector2.new(1, 0), UDim2.new(1, -MARGIN, 0, missionTop), s.Mission)
-	-- Debajo del reloj: avisos fijos (examen…) y estrellas de búsqueda
-	items.Activity = place(Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 8 + s.Clock.Y + 8), Vector2.new(0, 34))
-	items.Wanted = place(Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 8 + s.Clock.Y + 50), Vector2.new(230, 40))
+	-- Debajo del reloj: la indicación del GPS, avisos fijos (examen…) y estrellas de búsqueda
+	items.Gps = place(Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 8 + s.Clock.Y + 8), s.Gps)
+	items.Activity = place(Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 8 + s.Clock.Y + 8 + s.Gps.Y + 8), Vector2.new(0, 34))
+	items.Wanted = place(Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 8 + s.Clock.Y + 8 + s.Gps.Y + 50), Vector2.new(230, 40))
 
 	-- Abajo
 	items.Hotbar = place(Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, -MARGIN), s.Hotbar)
