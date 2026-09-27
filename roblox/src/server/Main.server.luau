@@ -34,6 +34,7 @@ local order = {
 	"RoleService",
 	"LifeService",
 	"AvatarService", -- aspecto por defecto del protagonista (sudadera, cargo, mochila…)
+	"PositionService", -- al volver a entrar apareces donde lo dejaste
 	"NeedsService",
 	"WorldService",
 	"WeatherService", -- estaciones y tiempo: sol, lluvia, tormenta, nieve, niebla

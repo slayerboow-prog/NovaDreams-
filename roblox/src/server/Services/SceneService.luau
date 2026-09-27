@@ -779,10 +779,19 @@ function SceneService.teleport(player: Player, where: any)
 	if not root or not spot then
 		return
 	end
+	SceneService.teleportTo(player, spot.Position)
+end
+
+-- Pone al jugador en un punto concreto del mapa (apoyado en el suelo)
+function SceneService.teleportTo(player: Player, target: Vector3)
+	local root = playerRoot(player)
+	if not root then
+		return
+	end
 	pcall(function()
-		player:RequestStreamAroundAsync(spot.Position, 3)
+		player:RequestStreamAroundAsync(target, 3)
 	end)
-	local position = groundAt(spot.Position + V(0, 1, 0), { player.Character :: Instance })
+	local position = groundAt(target + V(0, 1, 0), { player.Character :: Instance })
 	root.AssemblyLinearVelocity = Vector3.zero
 	;(player.Character :: Model):PivotTo(CFrame.new(position + V(0, 3, 0)) * root.CFrame.Rotation)
 end
