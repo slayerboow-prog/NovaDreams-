@@ -5,6 +5,7 @@
 --  * Van por la derecha; las bicis y los patinetes, más pegados a la acera y más despacio.
 --    Las bicis y patinetes no se meten en la autovía si pueden evitarlo.
 --  * Guardan distancia con el de delante y frenan si el jugador se pone delante.
+--  * Con lluvia o nieve van más despacio (shared/Wetness).
 --  * Semáforos: las luces cambian (verde, ámbar, rojo) igual para todos los jugadores y los
 --    vehículos paran en rojo antes del cruce.
 --  * Detalles: luces de freno al frenar, intermitentes antes de girar, faros de noche,
@@ -16,6 +17,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local BusRoute = require(ReplicatedStorage.Shared.BusRoute)
+local Wetness = require(ReplicatedStorage.Shared.Wetness)
 local Perf = require(script.Parent.Parent.UI.Perf)
 
 local Traffic = {}
@@ -489,6 +491,8 @@ local function step(dt: number, center: Vector3)
 		end
 		local edge = edgeOf(agent.From, agent.To)
 		local cruise = agent.Cruise * (if edge and edge.Kind == "Autovia" and not agent.Small then 1.5 else 1)
+		-- Con lluvia o nieve, todos más despacio
+		cruise *= Wetness.trafficSpeed(workspace:GetAttribute("Wet") or 0, workspace:GetAttribute("Snow") or 0)
 		if agent.Turn ~= 0 then
 			cruise = math.min(cruise, 24) -- más despacio al girar
 		end

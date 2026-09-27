@@ -97,6 +97,7 @@ type Runtime = {
 	NudgedAt: { [string]: number }, -- misión -> último "¡date prisa!"
 	Fallback: { [string]: boolean }, -- misión -> ya se lanzó el plan B de este paso
 	Busy: boolean, -- una conversación, un minijuego o una clase de la historia en marcha
+	Starting: boolean?, -- esperando a que el jugador aparezca para retomar la historia
 }
 local runtime: { [Player]: Runtime } = {}
 local dayRng = Random.new()
@@ -805,6 +806,105 @@ local function updateScene(player: Player, data: Data, questId: string)
 		end
 	end
 	SceneService.set(player, questId, actors, props, defs)
+end
+
+---------------------------------------------------------------------
+-- Volver a la escena al entrar: si te fuiste en mitad de una clase y apareces lejos,
+-- el profe no puede ponerse a hablar sin ti. Se te devuelve al sitio de la escena.
+---------------------------------------------------------------------
+
+-- Pasos que ocurren en un sitio concreto con gente u objetos (los "Reach" ya te guían con la luz)
+local PLACED_STEPS = { Scene = true, Class = true, Choice = true, MiniGame = true, Talk = true, Use = true, Group = true }
+local RETURN_DISTANCE = 120 -- más lejos que esto de la escena = te has perdido
+
+-- where = "Lugar" o { Place, Index?, Offset? } (un actor, un objeto, un pupitre…)
+local function placePosition(player: Player, where: any): Vector3?
+	local placeId = if type(where) == "table" then where.Place else where
+	local place = type(placeId) == "string" and Locations.Places[placeId]
+	if not place or place.Special == "NearPlayer" or (type(where) == "table" and where.Mode == "Follow") then
+		return nil
+	end
+	local spot = if type(where) == "table"
+		then LocationService.resolve(player, placeId, { Index = where.Index, Offset = where.Offset })
+		else LocationService.resolve(player, placeId)
+	return spot and spot.Position
+end
+
+-- Dónde ocurre el paso actual de una misión (nil si no está atado a un sitio)
+local function sceneAnchor(player: Player, data: Data, questId: string): Vector3?
+	local story = storyOf(data)
+	local prog = story.Active[questId]
+	local steps = prog and stepsOf(questId, prog)
+	local step = steps and steps[prog.Step]
+	if not step or not PLACED_STEPS[step.Type] then
+		return nil
+	end
+	if step.Teleport then
+		return placePosition(player, step.Teleport)
+	end
+	if step.Place then
+		return placePosition(player, Subjects.resolve(step.Place, degreeOf(story)))
+	end
+	-- El centro de la gente y los objetos de la escena (el aula, el patio…)
+	local actors, props = sceneFor(player, data, questId)
+	local quest = Quests[questId]
+	local sum, count = Vector3.zero, 0
+	local function add(spec: { [string]: any }?)
+		local position = spec and spec.Place and placePosition(player, spec)
+		if position then
+			sum += position
+			count += 1
+		end
+	end
+	for _, spec in actors do
+		add(spec)
+	end
+	for _, id in props do
+		add(quest.Props and quest.Props[id])
+	end
+	if count > 0 then
+		return sum / count
+	end
+	-- Si no, el último sitio al que te llevó la misión
+	local ctx = contextFor(player, data)
+	for i = prog.Step - 1, math.max(1, prog.Step - 6), -1 do
+		local prev = steps[i]
+		if prev and (not prev.If or Conditions.check(prev.If, ctx)) then
+			local position = (prev.Teleport and placePosition(player, prev.Teleport)) or (prev.Place and placePosition(player, prev.Place))
+			if position then
+				return position
+			end
+		end
+	end
+	return nil
+end
+
+-- Si la misión que estabas jugando pasa en otro sitio, te lleva allí (una sola vez, al entrar)
+local function returnToScene(player: Player, data: Data)
+	local story = storyOf(data)
+	local root = LocationService.positionOf(player)
+	if not root then
+		return
+	end
+	local ids = {}
+	if story.Tracked and story.Active[story.Tracked] then
+		table.insert(ids, story.Tracked)
+	end
+	for id in story.Active do
+		if id ~= story.Tracked then
+			table.insert(ids, id)
+		end
+	end
+	for _, questId in ids do
+		local anchor = sceneAnchor(player, data, questId)
+		if anchor then
+			local offset = anchor - root
+			if Vector3.new(offset.X, 0, offset.Z).Magnitude > RETURN_DISTANCE then
+				SceneService.teleportTo(player, anchor)
+			end
+			return
+		end
+	end
 end
 
 local startInteractive -- se define más abajo
@@ -1757,6 +1857,35 @@ function processLater(player: Player, data: Data)
 	end
 end
 
+-- Empieza la historia del jugador cuando ya ha aparecido donde lo dejó (PositionService):
+-- primero se le devuelve a la escena si está lejos, luego se montan actores y conversaciones.
+local function becomeReady(player: Player)
+	local rt = runtime[player]
+	if not rt or rt.Ready or rt.Starting then
+		return
+	end
+	rt.Starting = true
+	local deadline = os.clock() + 10
+	while player.Parent and not player:GetAttribute("SpawnReady") and os.clock() < deadline do
+		task.wait(0.2)
+	end
+	if runtime[player] ~= rt then
+		return -- se fue mientras tanto
+	end
+	local data = DataService.get(player)
+	if data then
+		local ok, err = pcall(returnToScene, player, data)
+		if not ok then
+			warn("[LifeStory] " .. tostring(err))
+		end
+	end
+	rt.Ready = true
+	rt.Starting = false
+	resumeAll(player)
+	refresh(player)
+	publish(player, true)
+end
+
 ---------------------------------------------------------------------
 -- Lo que pide el cliente (siempre validado)
 ---------------------------------------------------------------------
@@ -1774,12 +1903,11 @@ local function onRemote(player: Player, kind: any, questId: any, value: any)
 	local story = storyOf(data)
 
 	if kind == "Sync" then
-		if not rt.Ready then
-			rt.Ready = true
-			resumeAll(player)
-			refresh(player)
+		if rt.Ready then
+			publish(player, true)
+		else
+			task.spawn(becomeReady, player)
 		end
-		publish(player, true)
 	elseif kind == "Choose" and type(questId) == "string" and type(value) == "string" then
 		if not rt.Busy then
 			chooseOption(player, data, questId, value)
@@ -1877,12 +2005,7 @@ local function onLoaded(player: Player, data: Data)
 	end
 	-- Normalmente el cliente avisa con "Sync" en cuanto escucha; por si acaso, empezar igual a los 10 s
 	task.delay(10, function()
-		local rt = runtime[player]
-		if rt and not rt.Ready then
-			rt.Ready = true
-			resumeAll(player)
-			refresh(player)
-		end
+		becomeReady(player)
 	end)
 end
 

@@ -39,6 +39,11 @@ local DEFAULT_DATA = {
 	-- Mochila (InventoryService): objetos que se cuentan y en qué casilla va cada cosa
 	Items = {},
 	Slots = {},
+	-- Pesca (FishingService): experiencia (el nivel sale de aquí) y cuántos has pescado de cada pez
+	Fishing = {
+		Xp = 0,
+		Caught = {},
+	},
 	-- Estudios: notas por asignatura, exámenes, títulos y asistencia (ClassService)
 	Education = {
 		Subjects = {},
@@ -68,6 +73,7 @@ local DEFAULT_DATA = {
 
 local profiles: { [Player]: { [string]: any } } = {}
 local loadedCallbacks: { (Player, { [string]: any }) -> () } = {}
+local beforeSaveCallbacks: { (Player, { [string]: any }) -> () } = {}
 local savingEnabled = true
 local store: DataStore? = nil
 
@@ -162,6 +168,12 @@ function DataService.save(player: Player, release: boolean?): boolean
 	if not data then
 		return false
 	end
+	for _, callback in beforeSaveCallbacks do
+		local ok, err = pcall(callback, player, data)
+		if not ok then
+			warn("[DataService] Error antes de guardar:", err)
+		end
+	end
 	if not savingEnabled or not store then
 		return true -- en Studio sin API damos el guardado por bueno
 	end
@@ -202,6 +214,11 @@ function DataService.onLoaded(callback: (Player, { [string]: any }) -> ())
 	for player, data in profiles do
 		task.spawn(callback, player, data)
 	end
+end
+
+-- Registra una función que se llama justo antes de cada guardado (para apuntar lo último: dónde estás…)
+function DataService.beforeSave(callback: (Player, { [string]: any }) -> ())
+	table.insert(beforeSaveCallbacks, callback)
 end
 
 ---------------------------------------------------------------------

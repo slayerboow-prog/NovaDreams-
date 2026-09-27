@@ -9,6 +9,9 @@
 --   * Motos y bicis se inclinan en las curvas; en el monopatín y el patinete vas de pie
 --   * Cuadro de mandos (VehicleHud): velocímetro de aguja, marcha, combustible y kilómetros.
 --     Sin gasolina (o batería) el vehículo apenas avanza
+--   * Lluvia y nieve (shared/Wetness): con el suelo mojado o nevado agarra menos. Acelera y frena
+--     peor, gira menos y derrapa en las curvas (va un poco hacia donde iba, no hacia donde apunta).
+--     Las motos, bicis y patinetes resbalan más.
 -- Saltar (Espacio) o F para bajarse. El servidor (VehicleService) le da el control a tu
 -- ordenador, así que se mueve sin retraso y los demás lo ven igual.
 
@@ -17,7 +20,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Gameplay = require(ReplicatedStorage.Shared.Gameplay)
+local Wetness = require(ReplicatedStorage.Shared.Wetness)
 local SoundFx = require(script.Parent.SoundFx)
+local Hud = require(script.Parent.Parent.UI.Hud)
 local VehicleHud = require(script.Parent.VehicleHud)
 
 local Driving = {}
@@ -32,12 +37,14 @@ type State = {
 	Kind: string,
 	Speed: number,
 	Yaw: number,
+	Travel: number, -- hacia dónde se mueve de verdad (con poco agarre, se queda atrás: derrapa)
 	Up: Vector3,
 	Lean: number,
 	Base: Vector3, -- dónde está (a ras de suelo) según este script, no según la física
 	Pose: AnimationTrack?,
 }
 local state: State? = nil
+local warnRoad: () -> ()
 
 local function yawOf(cf: CFrame): number
 	local look = cf.LookVector
@@ -61,6 +68,7 @@ local function start(seat: VehicleSeat, humanoid: Humanoid)
 		Kind = kind,
 		Speed = 0,
 		Yaw = yawOf(chassis.CFrame),
+		Travel = yawOf(chassis.CFrame),
 		Up = Vector3.yAxis,
 		Lean = 0,
 		Base = chassis.Position - chassis.CFrame.UpVector * (chassis.Size.Y / 2),
@@ -86,6 +94,19 @@ local function start(seat: VehicleSeat, humanoid: Humanoid)
 	state = s
 	VehicleHud.show(kind)
 	SoundFx.vehicleStart(kind, chassis)
+	warnRoad()
+end
+
+-- Aviso al subir si el suelo está mojado o nevado (una vez por cada cosa)
+local warned: { [string]: boolean } = {}
+function warnRoad()
+	local snow = workspace:GetAttribute("Snow") or 0
+	local wet = workspace:GetAttribute("Wet") or 0
+	local key = if snow > 0.3 then "Nieve" elseif wet > 0.4 then "Lluvia" else nil
+	if key and not warned[key] then
+		warned[key] = true
+		Hud.toast("Info", if key == "Nieve" then "❄️ Carretera con nieve: ve despacio, frena antes y gira con cuidado." else "🌧️ Suelo mojado: frenas peor y puedes derrapar en las curvas.")
+	end
 end
 
 local function stop()
@@ -115,7 +136,10 @@ local function step(dt: number)
 		return -- el servidor aún no lo ha soltado (o ya lo ha aparcado)
 	end
 	local tuning = Gameplay.Driving[s.Kind]
-	local maxSpeed = Gameplay.Vehicles[s.Kind].Speed
+	-- Lluvia y nieve: menos agarre
+	local grip = Wetness.grip(s.Kind, workspace:GetAttribute("Wet") or 0, workspace:GetAttribute("Snow") or 0)
+	local road = Wetness.drive(grip)
+	local maxSpeed = Gameplay.Vehicles[s.Kind].Speed * road.MaxSpeed
 	if player:GetAttribute("OutOfFuel") then
 		maxSpeed = 4 -- sin gasolina (o batería) apenas avanza: hay que llegar a una gasolinera
 	end
@@ -125,15 +149,15 @@ local function step(dt: number)
 	-- Acelerar / frenar / marcha atrás
 	if throttle > 0.05 then
 		if s.Speed < 0 then
-			s.Speed = math.min(0, s.Speed + tuning.Brake * dt)
+			s.Speed = math.min(0, s.Speed + tuning.Brake * road.Brake * dt)
 		else
-			s.Speed = math.min(maxSpeed, s.Speed + tuning.Accel * throttle * dt)
+			s.Speed = math.min(maxSpeed, s.Speed + tuning.Accel * road.Accel * throttle * dt)
 		end
 	elseif throttle < -0.05 then
 		if s.Speed > 0 then
-			s.Speed = math.max(0, s.Speed - tuning.Brake * dt)
+			s.Speed = math.max(0, s.Speed - tuning.Brake * road.Brake * dt)
 		else
-			s.Speed = math.max(-tuning.Reverse, s.Speed - tuning.Accel * 0.6 * dt)
+			s.Speed = math.max(-tuning.Reverse, s.Speed - tuning.Accel * road.Accel * 0.6 * dt)
 		end
 	else
 		-- Sin pisar nada se va parando poco a poco
@@ -145,7 +169,9 @@ local function step(dt: number)
 	local moving = math.clamp(math.abs(s.Speed) / 6, 0, 1)
 	local fast = 1 - 0.45 * math.clamp(math.abs(s.Speed) / maxSpeed, 0, 1)
 	local direction = if s.Speed >= 0 then 1 else -1
-	s.Yaw -= steer * tuning.Turn * moving * fast * direction * dt
+	s.Yaw -= steer * tuning.Turn * road.Turn * moving * fast * direction * dt
+	-- Hacia dónde va de verdad: con buen agarre, hacia donde apunta; si resbala, se queda atrás
+	s.Travel = Wetness.slide(s.Travel, s.Yaw, road.Traction, dt)
 
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
@@ -162,7 +188,8 @@ local function step(dt: number)
 	local size = s.Chassis.Size
 	local base = s.Base -- punto a ras de suelo
 	local forward = Vector3.new(-math.sin(s.Yaw), 0, -math.cos(s.Yaw))
-	local move = forward * s.Speed * dt
+	local heading = Vector3.new(-math.sin(s.Travel), 0, -math.cos(s.Travel))
+	local move = heading * s.Speed * dt
 
 	-- Choques: un rayo por delante (o por detrás) a media altura, desde las dos esquinas
 	if math.abs(s.Speed) > 0.1 then
@@ -170,7 +197,7 @@ local function step(dt: number)
 		local right = Vector3.new(-forward.Z, 0, forward.X)
 		for _, side in { -0.4, 0.4 } do
 			local origin = base + Vector3.new(0, 1.6, 0) + right * size.X * side + forward * sign * (size.Z / 2 - 0.5)
-			local hit = workspace:Raycast(origin, forward * sign * (math.abs(s.Speed) * dt + 0.8), params)
+			local hit = workspace:Raycast(origin, heading * sign * (math.abs(s.Speed) * dt + 0.8), params)
 			if hit and hit.Normal.Y < 0.6 then
 				SoundFx.crash(math.abs(s.Speed), s.Chassis)
 				s.Speed = -s.Speed * 0.15 -- rebote suave
@@ -221,7 +248,7 @@ local function step(dt: number)
 	local look = (forward - s.Up * forward:Dot(s.Up)).Unit
 	local oriented = CFrame.lookAt(position, position + look, s.Up) * CFrame.Angles(0, 0, s.Lean)
 	s.Chassis.CFrame = oriented * CFrame.new(0, size.Y / 2, 0)
-	s.Chassis.AssemblyLinearVelocity = forward * s.Speed
+	s.Chassis.AssemblyLinearVelocity = heading * s.Speed
 	s.Chassis.AssemblyAngularVelocity = Vector3.zero
 
 	SoundFx.vehicleSpeed(math.clamp(math.abs(s.Speed) / maxSpeed, 0, 1))
