@@ -686,6 +686,9 @@ function TownBuilder.build(): Folder
 	-- Gimnasio grande de Valmar Centro (junto a la tienda de pesca): también al final, para que no
 	-- cambie nada más (los de los barrios ya salen con su manzana de ocio: Civic.gym)
 	require(Kit.GymKit).centro(world)
+	-- Paradas de las líneas de autobús urbano (marquesinas, postes y paneles): también al final y
+	-- sin azar; se corren por la acera si hay una farola o un árbol, y despejan su carril
+	require(Kit.BusStops).build(world)
 	-- Detalles de la calle que han quedado encima de otra cosa (paradas, bancos, portales…): fuera
 	require(Kit.StreetDetail).prune(world)
 	-- Repaso final: que ninguna moldura, bordillo o cristalera parpadee contra la pared de detrás
