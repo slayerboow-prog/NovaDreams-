@@ -29,7 +29,7 @@ function Properties.hash(text: string): number
 end
 
 -- Nombre único de una vivienda: edificio + planta
-function Properties.unitKey(buildingKey: string, floor: number): string
+function Properties.unitKey(buildingKey: string, floor: number | string): string
 	return buildingKey .. "#" .. floor
 end
 

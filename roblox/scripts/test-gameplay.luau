@@ -2948,11 +2948,7 @@ for _, kind in { "Casa", "Villa", "Piso" } do
 			exitTag = true
 		end
 	end
-	if kind == "Piso" then
-		check(not exitTag and r.Model:FindFirstChild("InteriorElevator") ~= nil, "Piso: se entra y se sale por el ascensor")
-	else
-		check(exitTag, kind .. ": puerta a la calle")
-	end
+	check(exitTag, kind .. (if kind == "Piso" then ": puerta al rellano" else ": puerta a la calle"))
 	r.Model:Destroy()
 end
 -- La misma vivienda sale siempre igual; otras, distintas
@@ -3018,6 +3014,9 @@ for i = 0, 5 do
 end
 building("Manzana_Pisos", "Bloque", Vector3.new(2000, 30, 2200), Vector3.new(40, 60, 40))
 building("Ocio", "Ocio_Local", Vector3.new(2200, 10, 2200), Vector3.new(50, 20, 40))
+building("Manzana_Downtown", "Bloque", Vector3.new(2400, 75, 2200), Vector3.new(40, 150, 40)) -- 12 plantas
+building("Manzana_Towers", "Bloque", Vector3.new(2600, 30, 2200), Vector3.new(40, 60, 40))
+building("Manzana_Campus", "Bloque", Vector3.new(2800, 30, 2200), Vector3.new(40, 60, 40))
 services.RunService = services.RunService or {
 	IsStudio = function()
 		return true
@@ -3158,12 +3157,16 @@ fire(owner, ownerRoot, sofaBase)
 check(ownerHum.SeatPart ~= nil and ownerHum.SeatPart.Parent.Name == "Sofa" and owner:GetAttribute("UsePose") == "Sofa", "se sienta en el sofá (postura de sofá)")
 ownerHum.Sit = false
 check(owner:GetAttribute("UsePose") == nil, "al levantarse se quita la postura")
--- Nevera: en tu casa comes sin límite (un momento entre bocado y bocado); en casa ajena, nada
+-- Nevera: desde la universidad se come lo que hayas comprado y guardado (FridgeService)
+local InventoryService = loadModule(S .. "InventoryService")
+local FridgeService = loadModule(S .. "FridgeService")
+local Fridge = loadModule(ROOT .. "/shared/Fridge")
+FridgeService.init()
 local fridge = partOf("Fridge")
 table.clear(needsChanges)
+clearInbox(owner)
 fire(owner, ownerRoot, fridge)
-local ate = needsChanges[1]
-check(ate ~= nil and ate[1] == owner and ate[2] == Interact.Snack.Hunger, "en tu casa, la nevera quita el hambre")
+check(#needsChanges == 0 and notified(owner, "vacía") and lastMessage(owner, "Fridge") ~= nil, "vacía: hay que comprar comida en el supermercado")
 check(owner:GetAttribute("UsePose") == "Fridge", "postura de abrir la nevera")
 local fridgeDoor
 for _, d in fridge.Parent:GetDescendants() do
@@ -3174,26 +3177,39 @@ end
 check(fridgeDoor:GetAttribute("Open") == true, "la puerta de la nevera se abre")
 task.wait(0.3)
 check(fridgeDoor:GetAttribute("Open") == false and owner:GetAttribute("UsePose") == nil, "y se cierra sola")
+-- Compra en el supermercado (a la mochila) y la guarda
+InventoryService.add(owner, "Pan", 3)
 fire(owner, ownerRoot, fridge)
-check(#needsChanges == 1 and notified(owner, "masticando"), "entre bocado y bocado, un momento")
-local savedCooldown = Interact.Snack.Cooldown
-Interact.Snack.Cooldown = 0
-for _ = 1, 10 do
-	fire(owner, ownerRoot, fridge)
-end
-check(#needsChanges == 11, "en tu casa se come sin límite")
-Interact.Snack.Cooldown = savedCooldown
+local R = remotes.Interact.OnServerEvent
+R:Fire(owner, "Fridge", "StoreAll")
+local fridgeKey = "casa:" .. mine.Key .. "#0"
+local stock = profiles[owner].Fridges[fridgeKey]
+check(stock ~= nil and stock.Pan == 3 and InventoryService.count(owner, "Pan") == 0, "guarda la compra en la nevera")
+local panel = lastMessage(owner, "Fridge")
+check(panel ~= nil and #panel[2].Inside == 1 and panel[2].Inside[1].Count == 3, "el panel enseña lo que hay dentro")
+table.clear(needsChanges)
+R:Fire(owner, "Fridge", "Eat", "Pan")
+check(#needsChanges == 1 and needsChanges[1][2] > 0 and stock.Pan == 2, "comer gasta lo guardado")
+R:Fire(owner, "Fridge", "Take", "Pan")
+check(stock.Pan == 1 and InventoryService.count(owner, "Pan") == 1, "coger algo lo lleva a la mochila")
+-- Se guarda con la partida (ida y vuelta por JSON, como en el DataStore)
+local serde = require("@lune/serde")
+local saved = serde.decode("json", serde.encode("json", profiles[owner].Fridges))
+check(saved[fridgeKey] and saved[fridgeKey].Pan == 1, "lo de la nevera se guarda con la partida")
 table.clear(needsChanges)
 clearInbox(stranger)
 fire(stranger, strangerRoot, fridge)
-check(#needsChanges == 0 and notified(stranger, "No es tu casa"), "en casa ajena la nevera no es para ti")
--- Invitado (mismo grupo que el dueño)
+R:Fire(stranger, "Fridge", "Eat", "Pan")
+check(#needsChanges == 0 and stock.Pan == 1 and notified(stranger, "No es tu casa"), "en casa ajena no se coge nada de su nevera")
+-- Invitado (mismo grupo que el dueño): come de lo del dueño
 owner:SetAttribute("GroupId", 77)
 friend:SetAttribute("GroupId", 77)
 check(PropertyService.access(friend, mine, 0) == "Guest", "alguien de tu grupo es invitado")
 fire(friend, friendRoot, fridge)
-check(#needsChanges == 1 and needsChanges[1][1] == friend, "un invitado sí puede picar algo")
--- La casa de tus padres (casa familiar): su nevera es gratis y sin límite para la familia
+R:Fire(friend, "Fridge", "Eat", "Pan")
+check(#needsChanges == 1 and needsChanges[1][1] == friend and stock.Pan == nil, "un invitado come de lo que ha guardado el dueño")
+local savedCooldown = Interact.Snack.Cooldown
+-- La casa de tus padres (casa familiar): gratis y sin límite solo en la etapa del colegio
 local family = fakeInstance("Model")
 family.Name = "CasaFamiliar"
 family:SetAttribute("HomeId", "Casa_Test")
@@ -3214,12 +3230,21 @@ Interact.Snack.Cooldown = 0
 for _ = 1, 5 do
 	fire(kid, kidRoot, oldFridge)
 end
-Interact.Snack.Cooldown = savedCooldown
 check(#needsChanges == 5 and needsChanges[1][1] == kid and needsChanges[1][2] == Interact.Snack.Hunger and profiles[kid].Money == 0, "de niño comes gratis de la nevera de tus padres, las veces que quieras")
 check(kid:GetAttribute("UsePose") == "Fridge", "cogiendo la comida de la nevera")
+local teen, teenRoot = newPlayer(134, "Adolescente", 0)
+teen:SetAttribute("FamilyHomeId", "Casa_Test")
+fire(teen, teenRoot, oldFridge)
+check(#needsChanges == 6 and needsChanges[6][1] == teen, "en el instituto, también")
+local student, studentRoot = newPlayer(135, "AdultoJoven", 0)
+student:SetAttribute("FamilyHomeId", "Casa_Test")
+fire(student, studentRoot, oldFridge)
+check(#needsChanges == 6 and notified(student, "Ya no vives con tus padres"), "desde la universidad, en casa de tus padres ya no hay comida gratis")
+Interact.Snack.Cooldown = savedCooldown
 table.clear(needsChanges)
 fire(friend, friendRoot, oldFridge)
 check(#needsChanges == 0, "la nevera de otra familia no es tuya")
+check(Fridge.freeAtFamily("Nino") and Fridge.freeAtFamily("Adolescente") and not Fridge.freeAtFamily("AdultoJoven") and not Fridge.freeAtFamily("Adulto"), "gratis solo en la etapa del colegio")
 table.clear(needsChanges)
 -- Cama: el dueño duerme; un desconocido no puede
 table.clear(needsChanges)
@@ -3317,1014 +3342,306 @@ piano:FindFirstChild("InteractPrompt").Triggered:Fire(stranger)
 check(strangerHum.SeatPart ~= nil and stranger:GetAttribute("UsePose") == "Piano" and piano:GetAttribute("Playing") == true, "al piano: se sienta y toca")
 strangerHum.Sit = false
 check(piano:GetAttribute("Playing") == false and stranger:GetAttribute("UsePose") == nil, "al levantarse deja de sonar")
+
+print("▶ Edificios de varias plantas: escalera, pasillos, puertas y dueños")
+local Floors = loadModule(ROOT .. "/shared/Floors")
+local tower, offices, residence
+for _, b in InteriorService.all() do
+	if b.Model.Parent.Name == "Manzana_Downtown" then
+		tower = b
+	elseif b.Model.Parent.Name == "Manzana_Towers" then
+		offices = b
+	elseif b.Residence then
+		residence = b
+	end
+end
+check(tower ~= nil and tower.Floors == 12 and InteriorService.isTower(tower), "el bloque del centro tiene 12 plantas y se sube por dentro")
+check(offices ~= nil and offices.Upper == "Oficina" and residence ~= nil and residence.Upper == "Dorm", "hay oficinas y una residencia universitaria en el campus")
+local walker, walkerRoot = newPlayer(140, "Adulto", 90000)
+local visitor, visitorRoot = newPlayer(141, "Adulto", 500)
+walker.DisplayName, visitor.DisplayName = "Paseante", "Visita"
+for _, callback in loadedCallbacks do
+	for _, p in { walker, visitor } do
+		pcall(callback, p, profiles[p])
+	end
+end
+profiles[walker].Properties = {}
+InteriorService.enter(walker, tower)
+check(walker:GetAttribute("InteriorKey") == tower.Id .. ":T", "al entrar se llega al portal del edificio")
+local built = InteriorService.builtFloors(tower)
+check(#built == 3 and built[1] == 0 and built[3] == 2, "solo se montan las plantas de cerca (0, 1 y 2)")
+local towerInst = InteriorService.tower(tower)
+local function floorModel(f)
+	return towerInst.Room.Model:FindFirstChild("Planta_" .. f)
+end
+local function top(p)
+	return p.CFrame.Position.Y + p.Size.Y / 2
+end
+-- La escalera: escalones de 0,75 como mucho 1 stud, descansillo y llega al suelo de la de arriba
+local stairsOk, landings = true, true
+for f = 0, 1 do
+	local m = floorModel(f)
+	local steps = {}
+	local slab, nextSlab, mid
+	for _, d in m:GetDescendants() do
+		if d:GetAttribute("Step") then
+			table.insert(steps, d)
+		elseif d.Name == "FloorSlab" then
+			slab = d
+		elseif d.Name == "MidLanding" then
+			mid = d
+		end
+	end
+	for _, d in floorModel(f + 1):GetDescendants() do
+		if d.Name == "FloorSlab" then
+			nextSlab = d
+		end
+	end
+	table.sort(steps, function(a, b)
+		return a:GetAttribute("Step") < b:GetAttribute("Step")
+	end)
+	landings = landings and slab ~= nil and mid ~= nil and nextSlab ~= nil
+	if #steps ~= 16 or not slab or not nextSlab then
+		stairsOk = false
+		continue
+	end
+	local last = top(slab)
+	for i, s in steps do
+		local h = top(s)
+		if h - last > 1.0001 or h - last <= 0 then
+			stairsOk = false
+		end
+		if i == 8 and math.abs(h - top(mid)) > 0.01 then
+			stairsOk = false
+		end
+		last = h
+	end
+	if math.abs(last - top(nextSlab)) > 0.01 then
+		stairsOk = false
+	end
+end
+check(landings, "cada planta tiene rellano, descansillo y la de arriba su suelo")
+check(stairsOk, "la escalera une las plantas: 16 escalones de 0,75 (≤ 1 stud) hasta el rellano de arriba")
+local signs = 0
+for _, d in floorModel(1):GetDescendants() do
+	if d:GetAttribute("FloorLabel") == "Planta 1" then
+		signs += 1
+	end
+end
+check(signs >= 2, "el número de la planta en el rellano y en el pasillo")
+-- Puertas: de 3 a 6 viviendas por planta, cada una con su nombre y su dueño
+local labels, perFloorOk, mapsOk = {}, true, true
+for f = 1, 11 do
+	local units = Floors.units(tower.Key, tower.Kind, tower.Upper, f)
+	if #units < 3 or #units > 6 then
+		perFloorOk = false
+	end
+	for _, u in units do
+		if labels[u.Label] then
+			perFloorOk = false
+		end
+		labels[u.Label] = true
+		local back = InteriorService.unitOf(tower, f, u.Letter)
+		local occ = InteriorService.occupant(tower, u)
+		if not back or back.Id ~= u.Id or not (occ.Type == "Owner" or occ.Type == "Neighbor" or occ.Type == "ForSale") then
+			mapsOk = false
+		end
+	end
+end
+check(perFloorOk, "cada planta de viviendas tiene de 3 a 6 puertas, con nombres distintos (1ºA, 1ºB…)")
+check(mapsOk, "cada puerta es una vivienda con su dueño (jugador, vecinos o en venta)")
+local doors1 = {}
+for _, d in floorModel(1):GetDescendants() do
+	if d:HasTag("UnitDoor") then
+		table.insert(doors1, d)
+	end
+end
+check(#doors1 == #Floors.units(tower.Key, tower.Kind, tower.Upper, 1), "en el pasillo están todas las puertas de la planta")
+-- Llamar, visitar, entrar y salir al rellano
+local function doorWith(f, kind)
+	for _, u in Floors.units(tower.Key, tower.Kind, tower.Upper, f) do
+		if InteriorService.occupant(tower, u).Type == kind then
+			for _, d in floorModel(f):GetDescendants() do
+				if d:HasTag("UnitDoor") and d:GetAttribute("UnitId") == u.Id then
+					return d, u
+				end
+			end
+		end
+	end
+	return nil
+end
+local neighborDoor, neighborUnit
+for f = 1, 2 do
+	if not neighborDoor then
+		neighborDoor, neighborUnit = doorWith(f, "Neighbor")
+	end
+end
+if neighborDoor then
+	clearInbox(walker)
+	check(neighborDoor:FindFirstChild("DoorPrompt").ActionText == "Llamar", "en casa de los vecinos se llama")
+	neighborDoor:FindFirstChild("DoorPrompt").Triggered:Fire(walker)
+	task.wait(1)
+	check(notified(walker, "Toc, toc"), "llamas y contestan (y a veces te dejan pasar)")
+	if walker:GetAttribute("InteriorKey") ~= tower.Id .. ":T" then
+		InteriorService.leave(walker)
+	end
+end
+local saleDoor, saleUnit
+for f = 1, 2 do
+	if not saleDoor then
+		saleDoor, saleUnit = doorWith(f, "ForSale")
+	end
+end
+check(saleDoor ~= nil and saleDoor:FindFirstChild("DoorPrompt").ActionText == "Visitar", "las que están en venta se visitan")
+saleDoor:FindFirstChild("DoorPrompt").Triggered:Fire(walker)
+local saleFloor = saleDoor:GetAttribute("Floor")
+check(walker:GetAttribute("InteriorKey") == tower.Id .. ":" .. saleUnit.Id, "al visitarla entras en esa vivienda (" .. saleUnit.Label .. ")")
+check(saleDoor:GetAttribute("Open") == true, "la puerta se abre")
+local flat = InteriorService.instance(tower, saleFloor, saleUnit.Letter)
+local buyFlat
+for _, d in flat.Room.Model:GetDescendants() do
+	if d.ClassName == "ProximityPrompt" and d.ActionText == "Comprar vivienda" then
+		buyFlat = d
+	end
+end
+check(buyFlat ~= nil, "dentro está el cartel de SE VENDE")
+buyFlat.Triggered:Fire(walker)
+check(PropertyService.access(walker, tower, saleFloor, saleUnit.Letter) == "Owner" and profiles[walker].Properties[1].Letter == saleUnit.Letter, "comprada: el " .. saleUnit.Label .. " es suyo")
+local plate = floorModel(saleFloor):FindFirstChild("UnitDoor_" .. saleUnit.Id)
+local plateText = plate and plate:FindFirstChild("PlateText", true)
+check(plateText ~= nil and string.find(plateText.Text, "Paseante", 1, true) ~= nil, "la placa de la puerta dice quién vive")
+InteriorService.leave(walker)
+check(walker:GetAttribute("InteriorKey") == tower.Id .. ":T" and walker:GetAttribute("TowerFloor") == saleFloor, "al salir se vuelve al pasillo de esa planta")
+-- Un desconocido llama y nadie abre; alguien del grupo entra
+local ownedDoor = floorModel(saleFloor):FindFirstChild("UnitDoor_" .. saleUnit.Id):FindFirstChild("DoorPanel")
+InteriorService.enter(visitor, tower)
+clearInbox(visitor)
+visitorRoot.CFrame = CFrame.new(ownedDoor.Position)
+ownedDoor:FindFirstChild("DoorPrompt").Triggered:Fire(visitor)
+check(notified(visitor, "Nadie te abre") and visitor:GetAttribute("InteriorKey") == tower.Id .. ":T", "en la casa de otro jugador llamas y no entras")
+walker:SetAttribute("GroupId", 91)
+visitor:SetAttribute("GroupId", 91)
+ownedDoor:FindFirstChild("DoorPrompt").Triggered:Fire(visitor)
+check(visitor:GetAttribute("InteriorKey") == tower.Id .. ":" .. saleUnit.Id, "si es de tu grupo, pasas")
+InteriorService.leave(visitor) -- al pasillo
+InteriorService.leave(visitor) -- y a la calle
+-- Subir: al ir por la escalera se montan las plantas de arriba y se quitan las de abajo
+local origin = towerInst.Tower.Origin.Position
+walkerRoot.CFrame = CFrame.new(origin + Vector3.new(0, 6 * Floors.Height + 3, 0))
+InteriorService.stepTowers()
+local nowBuilt, parts = InteriorService.builtFloors(tower)
+check(walker:GetAttribute("TowerFloor") == 6, "sabe en qué planta estás por la altura")
+local nearOk = nowBuilt[1] >= 3 and nowBuilt[#nowBuilt] <= 9
+for f = 4, 8 do
+	nearOk = nearOk and table.find(nowBuilt, f) ~= nil
+end
+check(nearOk and not table.find(nowBuilt, 0), ("en la 6ª: montadas de la 4ª a la 8ª (y las de abajo, quitadas): %s"):format(table.concat(nowBuilt, ",")))
+local perFloor = math.floor(parts / #nowBuilt)
+check(parts < 1500, ("piezas del edificio de 12 plantas: %d (unas %d por planta, tope 1500)"):format(parts, perFloor))
+-- La ascensor lleva a cualquier planta (y monta las de alrededor)
+walker:SetAttribute("ElevatorBuilding", tower.Id)
+remotes.Interior.OnServerEvent:Fire(walker, "Floor", 11)
+local after = InteriorService.builtFloors(tower)
+check(walker:GetAttribute("TowerFloor") == 11 and table.find(after, 11) ~= nil and table.find(after, 9) ~= nil, "el ascensor te deja en la 11ª (y se monta alrededor)")
+InteriorService.leave(walker)
+check(walker:GetAttribute("InteriorKey") == nil, "desde el portal se sale a la calle")
+-- Oficinas: abiertas en horario
+local officeFloor1
+InteriorService.goTo(visitor, offices, 1)
+officeFloor1 = InteriorService.tower(offices).Room.Model:FindFirstChild("Planta_1")
+local companyDoor
+for _, d in officeFloor1:GetDescendants() do
+	if d:HasTag("UnitDoor") then
+		local u = InteriorService.unitOf(offices, 1, d:GetAttribute("Letter"))
+		if InteriorService.occupant(offices, u).Type == "Company" then
+			companyDoor = d
+		end
+	end
+end
+if companyDoor then
+	services.Lighting.ClockTime = 22
+	clearInbox(visitor)
+	companyDoor:FindFirstChild("DoorPrompt").Triggered:Fire(visitor)
+	check(notified(visitor, "cerrado") and visitor:GetAttribute("InteriorKey") == offices.Id .. ":T", "de noche la oficina está cerrada")
+	services.Lighting.ClockTime = 10
+	companyDoor:FindFirstChild("DoorPrompt").Triggered:Fire(visitor)
+	check(string.find(visitor:GetAttribute("InteriorKey") or "", "^" .. offices.Id .. ":1") ~= nil, "en horario, entras en la oficina")
+	services.Lighting.ClockTime = 21
+end
+-- Casa de dos plantas: escalera por dentro y arriba pasillo con puertas
+local Interiors2 = loadModule(ROOT .. "/server/World/Interiors")
+local house = Interiors2.Casa(lab, CFrame.new(0, 5000, 0), { Seed = "Casa_2_2:0", Floors = 2 })
+local hs = {}
+local doors2 = 0
+for _, d in house.Model:GetDescendants() do
+	if d:GetAttribute("Step") then
+		table.insert(hs, d)
+	elseif d:GetAttribute("Use") == "Door" then
+		doors2 += 1
+	end
+end
+table.sort(hs, function(a, b)
+	return a:GetAttribute("Step") < b:GetAttribute("Step")
+end)
+local houseOk = #hs == 16
+local lastY = 0
+for _, s in hs do
+	local h = top(s) - 5000
+	houseOk = houseOk and h - lastY <= 1.0001
+	lastY = h
+end
+check(houseOk and math.abs(lastY - (house.H + 1)) < 0.01, "casa de dos plantas: escalera de escalones ≤ 1 stud hasta la planta de arriba")
+check(doors2 == 6 and house.Model:GetAttribute("Storeys") == 2, "arriba: pasillo y tres habitaciones con puerta (más las tres de abajo)")
+house.Model:Destroy()
+
+print("▶ Residencia universitaria: habitación y nevera propia")
+local ResidenceService = loadModule(S .. "ResidenceService")
+local uni, uniRoot = newPlayer(150, "AdultoJoven", 300)
+uni.DisplayName = "Estudiante"
+ResidenceService.assign(uni)
+local dormKey = uni:GetAttribute("DormUnit")
+check(type(dormKey) == "string" and string.find(dormKey, residence.Key, 1, true) == 1, "en la universidad te dan una habitación en la residencia")
+local kidNo = newPlayer(151, "Nino", 0)
+ResidenceService.assign(kidNo)
+check(kidNo:GetAttribute("DormUnit") == nil, "de niño no")
+local singles = 0
+for id = 1000, 1400 do
+	local room = ResidenceService.roomFor(id)
+	if room and room.Single then
+		singles += 1
+	end
+end
+check(singles > 40 and singles < 200, ("más o menos una de cada cuatro, individual (%d de 401)"):format(singles))
+local _, dormUnit = string.match(dormKey, "^(.+)#(%w+)$")
+local dFloor, dLetter = Floors.parseUnit(dormUnit)
+InteriorService.goToUnit(uni, residence, dFloor, dLetter)
+check(uni:GetAttribute("InteriorKey") == residence.Id .. ":" .. dormUnit, "entra en su habitación")
+local dorm = InteriorService.instance(residence, dFloor, dLetter)
+local dormFridge, dormBeds = nil, 0
+for _, d in dorm.Room.Model:GetDescendants() do
+	if d:IsA("BasePart") and d:GetAttribute("Use") == "Fridge" then
+		dormFridge = d
+	elseif d:IsA("BasePart") and d:GetAttribute("Use") == "Bed" then
+		dormBeds += 1
+	end
+end
+check(dormFridge ~= nil and dormBeds == (if dorm.Room.Model:GetAttribute("Single") then 1 else 2), "tiene nevera y su cama (dos si es compartida)")
+InventoryService.add(uni, "Pan", 2)
+uniRoot.CFrame = CFrame.new(dormFridge.Position + Vector3.new(0, 0, 1.5))
+dormFridge:FindFirstChild("InteractPrompt").Triggered:Fire(uni)
+remotes.Interact.OnServerEvent:Fire(uni, "Fridge", "StoreAll")
+table.clear(needsChanges)
+remotes.Interact.OnServerEvent:Fire(uni, "Fridge", "Eat", "Pan")
+local dormStock = profiles[uni].Fridges["residencia:" .. dormKey]
+check(dormStock ~= nil and dormStock.Pan == 1 and #needsChanges == 1, "guarda la compra en la nevera de la residencia y come de ella")
+local otherStudent, otherRoot = newPlayer(152, "AdultoJoven", 0)
+otherStudent:SetAttribute("DormUnit", "otra")
+otherRoot.CFrame = uniRoot.CFrame
+table.clear(needsChanges)
+dormFridge:FindFirstChild("InteractPrompt").Triggered:Fire(otherStudent)
+remotes.Interact.OnServerEvent:Fire(otherStudent, "Fridge", "Eat", "Pan")
+check(#needsChanges == 0 and dormStock.Pan == 1, "otro estudiante no coge de tu nevera")
 Config.SleepSeconds = savedSleep
-end)()
-
-;(function()
-print("▶ Gimnasio: recepción, máquinas, ritmo, fuerza en el cuerpo, deportistas y monitor/a")
-local Gym = loadModule(ROOT .. "/shared/Gym")
--- Un gimnasio de verdad (el mismo interior que en el mapa: World/Kit/GymKit)
-local GymKit = loadModule(ROOT .. "/server/World/Kit/GymKit")
-local building = fakeInstance("Model")
-building.Name = "GimnasioValmar"
-building.Parent = worldRoot
-GymKit.interior(building, CFrame.new(6000, 1, 6000), "Gimnasio de Prueba")
-local tagged = services.CollectionService:GetTagged("GymMachine")
-local kinds = {}
-for _, m in tagged do
-	kinds[m:GetAttribute("Kind")] = true
-end
-local kindCount = 0
-for _ in kinds do
-	kindCount += 1
-end
-check(#tagged >= 15 and kindCount >= 14, ("el gimnasio tiene %d máquinas de %d tipos"):format(#tagged, kindCount))
-local desk = services.CollectionService:GetTagged("GymReception")[1]
-check(desk ~= nil and typeof(desk:GetAttribute("StaffSpot")) == "Vector3", "hay recepción con sitio para la recepcionista")
-check(#services.CollectionService:GetTagged("GymFountain") == 1 and #services.CollectionService:GetTagged("Bench") >= 2, "fuente de agua y bancos para descansar")
-local lockers, mirrors = 0, 0
-for _, d in building:GetDescendants() do
-	if d.Name == "Locker" then
-		lockers += 1
-	elseif d.Name == "Mirror" then
-		mirrors += 1
-	end
-end
-check(lockers >= 6 and mirrors >= 2, "vestuarios con taquillas y espejos")
-
-local GymService = loadModule(S .. "GymService")
-local clock, now = 1000, 5000000
-GymService._clock = function()
-	return clock
-end
-GymService._now = function()
-	return now
-end
-local callbacksBefore = #loadedCallbacks
-GymService.init()
-local function loaded(p)
-	for i = callbacksBefore + 1, #loadedCallbacks do
-		loadedCallbacks[i](p, profiles[p])
-	end
-end
-check(jobProviders.Handler_MonitorGimnasio ~= nil, "el tablón del gimnasio lleva al oficio de monitor/a")
-check(promptOf(desk, "Recepción") ~= nil, "la recepción tiene su cartel")
-local receptionist = nil
-for _, d in desk.Parent:GetDescendants() do
-	if d.Name == "Recepcionista" then
-		receptionist = d
-	end
-end
-check(receptionist ~= nil, "la recepcionista está detrás del mostrador")
-local function machineOf(kind)
-	for _, m in services.CollectionService:GetTagged("GymMachine") do
-		if m:GetAttribute("Kind") == kind then
-			return m
-		end
-	end
-	return nil
-end
-local cinta, banca, comba = machineOf("Cinta"), machineOf("PressBanca"), machineOf("Comba")
-check(promptOf(cinta, "Entrenar") ~= nil and promptOf(banca, "Entrenar") ~= nil, "cada máquina tiene su cartel «Entrenar»")
-check(promptOf(banca, "Entrenar"):GetAttribute("MinStage") == "Adolescente" and promptOf(cinta, "Entrenar"):GetAttribute("MinStage") == "Nino", "los niños solo ven los carteles de las máquinas ligeras")
-
-local athlete, athleteRoot = newPlayer(91, "Adulto", 200)
-profiles[athlete].Hunger, profiles[athlete].Energy = 100, 100
-loaded(athlete)
-check(athlete:GetAttribute("GymStrength") == 0 and athlete:GetAttribute("GymPass") == nil, "empieza sin fuerza y sin entrada")
--- Sin entrada no se entrena
-promptOf(cinta, "Entrenar").Triggered:Fire(athlete)
-check(athlete:GetAttribute("Training") == nil and notified(athlete, "Necesitas entrada"), "sin entrada te mandan a la recepción")
--- Recepción: entrada del día
-moveTo(athleteRoot, desk.Position + Vector3.new(0, 0, -3))
-promptOf(desk, "Recepción").Triggered:Fire(athlete)
-local info = lastMessage(athlete, "Reception")
-check(info ~= nil and info[2].Active == false and #info[2].Passes == 2 and info[2].Passes[1].Price == 5 and info[2].Passes[2].Price == 60, "la recepción enseña la entrada (5 €) y el abono (60 €)")
-local G = remotes.Gym.OnServerEvent
-G:Fire(athlete, "Buy", "Dia")
-check(profiles[athlete].Money == 195 and athlete:GetAttribute("GymPass") == "Dia" and GymService.data(athlete).PassUntil == now + Gym.daySeconds(Config.DayLengthMinutes), "paga la entrada del día")
--- Lejos de la recepción no se compra nada
-moveTo(athleteRoot, Vector3.new(0, 0, 0))
-G:Fire(athlete, "Buy", "Mes")
-check(profiles[athlete].Money == 195, "lejos de la recepción no se puede comprar")
-
--- Entrenar en el press de banca
-promptOf(banca, "Entrenar").Triggered:Fire(athlete)
-local anchor = banca:FindFirstChild("GymAnchor")
-check(athlete:GetAttribute("Training") == "PressBanca" and athleteRoot.Anchored == true, "se pone a entrenar (quieto en la máquina)")
-check((athleteRoot.Position - (anchor.Position + Vector3.new(0, 3 - anchor.Size.Y / 2, 0))).Magnitude < 0.01, "colocado justo en su sitio de la máquina")
-check(athlete.Character:GetAttribute("GymExercise") == "PressBanca" and athlete.Character:HasTag("GymTraining"), "todos lo ven entrenar (etiqueta y ejercicio en el personaje)")
-local start = lastMessage(athlete, "Start")
-check(start ~= nil and start[2].SetReps == Gym.SetReps and start[2].Kind == "PressBanca", "sale la barra del ritmo")
-G:Fire(athlete, "Rep", "Bien")
-G:Fire(athlete, "Rep", "Bien")
-check(GymService._sessions[athlete].Reps == 1, "no cuentan dos repeticiones seguidas sin darle tiempo")
-check(athlete.Character:GetAttribute("GymRep") == 1, "cada repetición se ve (GymRep)")
-table.clear(needsChanges)
-for _ = 2, Gym.SetReps do
-	clock += 1
-	G:Fire(athlete, "Rep", "Perfecto")
-end
-local set = lastMessage(athlete, "Set")
-check(set ~= nil and set[2].Sets == 1 and set[2].GainStrength > 0 and set[2].GainCardio == 0, "serie completa: sube la Fuerza")
-check((athlete:GetAttribute("GymStrength") or 0) > 0, "y se guarda (atributo GymStrength)")
-local spent = false
-for _, c in needsChanges do
-	if c[1] == athlete and c[2] < 0 and c[3] < 0 then
-		spent = true
-	end
-end
-check(spent, "entrenar gasta hambre y energía")
--- Sin fuerzas
-local tired = false
-for _ = 1, 20 do
-	clock += 1
-	G:Fire(athlete, "Rep", "Bien")
-	if lastMessage(athlete, "Tired") then
-		tired = true
-		break
-	end
-end
-check(tired, "si no descansas, te quedas sin fuerzas")
-clock += 10
-GymService._regen(10)
-check(GymService._sessions[athlete].Effort == Gym.EffortMax, "descansando se recupera el esfuerzo")
-clock += 1
-G:Fire(athlete, "Miss")
-check(GymService._sessions[athlete].Effort == Gym.EffortMax - Gym.MissEffort, "fallar el ritmo también cansa")
-
--- El cuerpo se ensancha (LifeService de verdad, con el tamaño de su edad)
-local savedLife = mocks[S .. "LifeService"]
-mocks[S .. "LifeService"] = nil
-local savedCache = cache[S .. "LifeService"]
-cache[S .. "LifeService"] = nil
-local RealLife = loadModule(S .. "LifeService")
-mocks[S .. "LifeService"] = savedLife
-cache[S .. "LifeService"] = savedCache
-athlete.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = 16
-athlete:SetAttribute("GymStrength", 100)
-RealLife.refresh(athlete)
-local humanoid = athlete.Character:FindFirstChildOfClass("Humanoid")
-local width = humanoid:FindFirstChild("BodyWidthScale")
-local depth = humanoid:FindFirstChild("BodyDepthScale")
-check(width ~= nil and depth ~= nil and math.abs(width.Value - 1.25) < 1e-6 and math.abs(depth.Value - 1.25) < 1e-6, "con 100 de Fuerza: un 25 % más ancho")
-athlete:SetAttribute("GymStrength", 0)
-RealLife.refresh(athlete)
-check(width ~= nil and math.abs(width.Value - 1) < 1e-6, "y vuelve a su medida si pierde la fuerza")
--- Con otra medida de base (su avatar) y tamaño de niño: se multiplica
-local kidLook = newPlayer(95, "Nino", 0)
-local kidHumanoid = kidLook.Character:FindFirstChildOfClass("Humanoid")
-kidHumanoid.WalkSpeed = 16
-local base = FakeInstanceLib.new("NumberValue")
-base.Name = "BodyWidthScale"
-base.Value = 0.9
-base.Parent = kidHumanoid
-kidLook:SetAttribute("GymStrength", 100)
-RealLife.refresh(kidLook)
-check(math.abs(base.Value - 0.9 * 1.25) < 1e-6 and math.abs(kidLook.Character:GetScale() - Config.StageBody.Nino.Scale) < 1e-6, "se multiplica con su medida y con el tamaño de su edad")
-base.Value = 1 -- (otro sistema le cambia el aspecto)
-RealLife.refresh(kidLook)
-check(math.abs(base.Value - 1.25) < 1e-6, "si cambia de aspecto, la fuerza se aplica sobre el nuevo")
-athlete:SetAttribute("GymStrength", GymService.data(athlete).Strength)
-
--- Dejar la máquina
-G:Fire(athlete, "Stop")
-check(athlete:GetAttribute("Training") == nil and athleteRoot.Anchored == false, "«Dejar» te baja de la máquina")
-check(athlete.Character:GetAttribute("GymExercise") == nil and not athlete.Character:HasTag("GymTraining"), "y deja de hacer el ejercicio")
-local exit = banca:GetAttribute("Exit")
-check((Vector3.new(athleteRoot.Position.X, 0, athleteRoot.Position.Z) - Vector3.new(exit.X, 0, exit.Z)).Magnitude < 0.01, "se aparta a un lado de la máquina")
-check(notified(athlete, "Buen entreno"), "te dice cómo ha ido el entreno")
-
--- Niños y bebés
-local kid, kidRoot = newPlayer(92, "Nino", 50)
-profiles[kid].Hunger, profiles[kid].Energy = 100, 100
-loaded(kid)
-moveTo(kidRoot, desk.Position + Vector3.new(0, 0, -3))
-G:Fire(kid, "Buy", "Dia")
-check(profiles[kid].Money == 47, "los niños pagan la mitad (3 €)")
-promptOf(banca, "Entrenar").Triggered:Fire(kid)
-check(kid:GetAttribute("Training") == nil and notified(kid, "para mayores"), "un niño no puede usar el press de banca")
-promptOf(comba, "Entrenar").Triggered:Fire(kid)
-check(kid:GetAttribute("Training") == "Comba", "pero sí la comba")
-local baby, babyRoot = newPlayer(93, "Bebe", 50)
-profiles[baby].Hunger, profiles[baby].Energy = 100, 100
-loaded(baby)
-moveTo(babyRoot, desk.Position + Vector3.new(0, 0, -3))
-G:Fire(baby, "Buy", "Dia")
-check(profiles[baby].Money == 50 and notified(baby, "bebés"), "un bebé no puede apuntarse")
-promptOf(cinta, "Entrenar").Triggered:Fire(baby)
-check(baby:GetAttribute("Training") == nil, "ni entrenar")
--- Máquina ocupada por otro jugador
-promptOf(comba, "Entrenar").Triggered:Fire(athlete)
-check(athlete:GetAttribute("Training") == nil and notified(athlete, "ocupada"), "si otro jugador está en la máquina, está ocupada")
-G:Fire(kid, "Stop")
-
--- Cansado: no se entrena
-profiles[athlete].Energy = 5
-promptOf(cinta, "Entrenar").Triggered:Fire(athlete)
-check(athlete:GetAttribute("Training") == nil and notified(athlete, "cansado"), "con muy poca energía no se puede entrenar")
-profiles[athlete].Energy = 100
-
--- Deportistas (NPC) cuando hay alguien cerca, y te dejan su máquina
-moveTo(athleteRoot, desk.Position + Vector3.new(0, 0, 4))
-GymService._tick()
-GymService._tick()
-local npcs = {}
-for _, d in worldRoot:FindFirstChild("Deportistas"):GetChildren() do
-	if d:HasTag("GymTraining") then
-		table.insert(npcs, d)
-	end
-end
-check(#npcs >= 2, ("hay %d deportistas entrenando"):format(#npcs))
-local npc = npcs[1]
-local npcMachine = nil
-for _, m in services.CollectionService:GetTagged("GymMachine") do
-	if npc and m:GetAttribute("MachineId") == npc:GetAttribute("GymMachine") then
-		npcMachine = m
-	end
-end
-local repBefore = npc and npc:GetAttribute("GymRep") or 0
-clock += 20
-GymService._tick()
-check(npc ~= nil and (npc:GetAttribute("GymRep") or 0) > repBefore, "los deportistas hacen sus repeticiones")
-if npcMachine then
-	promptOf(npcMachine, "Entrenar").Triggered:Fire(athlete)
-end
-check(npcMachine ~= nil and athlete:GetAttribute("Training") == npcMachine:GetAttribute("Kind") and npc.Parent == nil, "un deportista te deja su máquina")
-G:Fire(athlete, "Stop")
-
--- Monitor/a de gimnasio
-local coach, coachRoot = newPlayer(94, "Adulto", 0)
-profiles[coach].Hunger, profiles[coach].Energy = 100, 100
-loaded(coach)
-jobProviders.Handler_MonitorGimnasio.Start(coach)
-check(coach:GetAttribute("Job") == "MonitorGimnasio", "empieza de monitor/a")
-moveTo(coachRoot, desk.Position + Vector3.new(2, 0, 4))
-for _, gymInfo in GymService._gyms do
-	gymInfo.NextRequest = 0
-end
-GymService._tick()
-local helpPrompt = nil
-for _, d in worldRoot:FindFirstChild("Deportistas"):GetDescendants() do
-	if d.ClassName == "ProximityPrompt" and d.ActionText == "Ayudar" then
-		helpPrompt = d
-	end
-end
-check(helpPrompt ~= nil and helpPrompt:GetAttribute("JobOnly") == "MonitorGimnasio", "un deportista pide ayuda (solo lo ve el monitor)")
-check(coach:GetAttribute("TaskText") ~= nil, "al monitor le marca a quién ayudar")
-local jobEvents = 0
-local conn = StoryEventsModule.connect(function(p, name, payload)
-	if p == coach and name == "JobTaskDone" and payload.JobId == "MonitorGimnasio" then
-		jobEvents += 1
-	end
-end)
-if helpPrompt then
-	helpPrompt.Triggered:Fire(coach)
-end
-check(profiles[coach].Money == Config.Jobs.MonitorGimnasio.Pay and jobEvents == 1, "ayudar le paga y cuenta para la historia")
--- Entrenar con un monitor cerca: sube más y el monitor se lleva propina
-local moneyCoach = profiles[coach].Money
-clock += 5
-moveTo(athleteRoot, cinta:FindFirstChild("GymAnchor").Position)
-promptOf(cinta, "Entrenar").Triggered:Fire(athlete)
-for _ = 1, Gym.SetReps do
-	clock += 2
-	G:Fire(athlete, "Rep", "Bien")
-end
-check(lastMessage(athlete, "Set") ~= nil and lastMessage(athlete, "Set")[2].Monitor == true, "entrenando cerca del monitor ganas más")
-check(profiles[coach].Money > moneyCoach, "y el monitor se lleva una propina")
-G:Fire(athlete, "Stop")
-if conn and conn.Disconnect then
-	conn:Disconnect()
-end
-jobProviders.Handler_MonitorGimnasio.Quit(coach)
-check(coach:GetAttribute("Job") == nil, "acaba el turno de monitor/a")
-
--- Fuente de agua
-table.clear(needsChanges)
-promptOf(services.CollectionService:GetTagged("GymFountain")[1], "Beber agua").Triggered:Fire(athlete)
-check(#needsChanges == 1 and needsChanges[1][3] > 0, "beber agua da un poco de energía")
-
--- Días sin entrenar: se pierde un poco (y la entrada caduca)
-local data = GymService.data(athlete)
-local before = data.Strength
-now += Gym.daySeconds(Config.DayLengthMinutes) * 10
-GymService.applyDecay(athlete)
-check(data.Strength < before and data.Strength > before * 0.8, "tras 10 días sin entrenar pierde un poco de fuerza")
-local after = data.Strength
-GymService.applyDecay(athlete)
-check(data.Strength == after, "y no se vuelve a quitar lo mismo")
-promptOf(cinta, "Entrenar").Triggered:Fire(athlete)
-check(athlete:GetAttribute("Training") == nil, "la entrada del día ya ha caducado")
-end)()
-
-;(function()
-print("▶ Granja: fincas, bancales, corral, cooperativa, obrador y supermercado")
-local Farming = loadModule(ROOT .. "/shared/Farming")
-local town = worldRoot:FindFirstChild("Town")
-if not town then
-	town = fakeInstance("Folder")
-	town.Name = "Town"
-	town.Parent = worldRoot
-end
-local farm = fakeInstance("Model")
-farm.Name = "Granja"
-farm.Parent = town
-for i = 1, 10 do
-	local row = part("Crop", CFrame.new(3000 + i * 6, 0.25, 3050))
-	row.Size = Vector3.new(5, 0.5, 64)
-	row.Parent = farm
-end
-local barn = fakeInstance("Model")
-barn.Name = "Granero"
-barn.WorldPivot = CFrame.new(3030, 0, 3000)
-barn.Parent = farm
-local barnWalls = part("Walls", CFrame.new(3030, 5, 3000))
-barnWalls.Size = Vector3.new(26, 10, 20)
-barnWalls.Parent = barn
-for _, p in collection:GetTagged("SuperStock") do
-	p:SetAttribute("Index", 1)
-end
-local FarmService = loadModule(S .. "FarmService")
-local clock = 100000
-FarmService._clock = function()
-	return clock
-end
-FarmService.init()
-local fincasFolder = worldRoot:FindFirstChild("Fincas")
-local signs, stakes = {}, {}
-for _, d in fincasFolder:GetDescendants() do
-	if d.Name == "CartelFinca" then
-		table.insert(signs, d)
-	elseif d.Name == "Estaca" then
-		table.insert(stakes, d)
-	end
-end
-check(#signs == 2 and #stakes == 8, ("10 filas de cultivo = 2 fincas de 4 bancales (%d carteles, %d estacas)"):format(#signs, #stakes))
-local coop = fincasFolder:FindFirstChild("Cooperativa")
-check(coop ~= nil and promptOf(coop, "Cooperativa") ~= nil and promptOf(coop, "Obrador") ~= nil and promptOf(coop, "Vender cosecha") ~= nil, "delante del granero hay una cooperativa con tienda, obrador y venta")
-local function fire(player, ...)
-	task.wait(0.16)
-	remotes.Farm.OnServerEvent:Fire(player, ...)
-end
-local farmer, farmerRoot = newPlayer(380, "Adulto", 1000)
-profiles[farmer].Items = {}
-profiles[farmer].Slots = {}
-local baby = newPlayer(381, "Bebe", 0)
-local sign = signs[1]
-promptOf(sign, "Quedarme esta finca").Triggered:Fire(baby)
-check(notified(baby, "pequeño"), "un bebé no puede quedarse una finca")
-moveTo(farmerRoot, sign.Position)
-promptOf(sign, "Quedarme esta finca").Triggered:Fire(farmer)
-check(farmer:GetAttribute("FincaAt") ~= nil and notified(farmer, "es tuya"), "un adulto se queda la finca")
-local myStakes = {}
-for _, st in stakes do
-	if st.Parent == sign.Parent then
-		table.insert(myStakes, st)
-	end
-end
-table.sort(myStakes, function(a, b)
-	return a.Position.X < b.Position.X
-end)
-local stake = myStakes[1]
-local other = newPlayer(382, "Adulto", 100)
-promptOf(stake, "Plantar").Triggered:Fire(other)
-check(notified(other, "es de"), "en una finca ajena no se puede plantar")
-moveTo(farmerRoot, stake.Position)
-promptOf(stake, "Plantar").Triggered:Fire(farmer)
-local panel = lastMessage(farmer, "Panel")
-check(panel ~= nil and panel[2].Id == "Seeds" and #panel[2].Rows >= 3, "al tocar un bancal vacío sale la lista de semillas")
-local money0 = profiles[farmer].Money
-fire(farmer, "Plant", 1, "Lechuga")
-check(profiles[farmer].Money == money0 - Farming.cropById.Lechuga.Seed and profiles[farmer].Farm.Plots["1"].Crop == "Lechuga", "sin semillas, las compra y planta al momento")
-fire(farmer, "Plant", 1, "Olivo")
-check(profiles[farmer].Farm.Plots["1"].Crop == "Lechuga", "no se planta encima de otra cosa ni sin nivel")
-local ready = profiles[farmer].Farm.Plots["1"].ReadyAt
-check(promptOf(stake, "Regar") ~= nil, "el bancal plantado pide riego")
-promptOf(stake, "Regar").Triggered:Fire(farmer)
-check(profiles[farmer].Farm.Plots["1"].Watered and profiles[farmer].Farm.Plots["1"].ReadyAt < ready, "regar hace que tarde menos")
-local plants = fincasFolder:FindFirstChild("Finca1") and fincasFolder.Finca1:FindFirstChild("Plot1")
-check(plants ~= nil and #plants:GetChildren() > 0, "en el bancal se ven las plantas")
-clock += 10000
-promptOf(stake, "Ver").Triggered:Fire(farmer) -- el aviso aún no se ha refrescado: da igual el texto
-check(InventoryService.count(farmer, "Agro_Lechuga") >= Farming.cropById.Lechuga.Yield[1] + 1 and profiles[farmer].Farm.Plots["1"] == nil, "cuando está listo, se cosecha a la mochila y el bancal queda libre")
-check((farmer:GetAttribute("FarmXp") or 0) > 0, "cosechar da experiencia de agricultor")
--- Cooperativa
-moveTo(farmerRoot, coop.Mostrador.Position)
-promptOf(coop, "Cooperativa").Triggered:Fire(farmer)
-check(lastMessage(farmer, "Panel")[2].Id == "Coop" and lastMessage(farmer, "Panel")[2].Tab == "Semillas", "la cooperativa abre en semillas")
-fire(farmer, "BuySeed", "Trigo", 5)
-check(InventoryService.count(farmer, "Semilla_Trigo") == 5, "compra 5 de semillas de trigo")
-fire(farmer, "BuySeed", "Olivo", 1)
-check(InventoryService.count(farmer, "Semilla_Olivo") == 0, "los árboles que piden nivel no se venden")
-fire(farmer, "BuyAnimal", "Gallina")
-fire(farmer, "BuyFeed", 5)
-check(#profiles[farmer].Farm.Animals == 1 and InventoryService.count(farmer, Farming.Feed) == 5, "compra una gallina y pienso")
-fire(farmer, "BuyAnimal", "Vaca")
-check(#profiles[farmer].Farm.Animals == 1, "la vaca pide más nivel")
--- Trigo: plantar con semilla, cosechar y hacer harina en el obrador
-moveTo(farmerRoot, myStakes[2].Position)
-local moneyBefore = profiles[farmer].Money
-fire(farmer, "Plant", 2, "Trigo")
-check(profiles[farmer].Money == moneyBefore and InventoryService.count(farmer, "Semilla_Trigo") == 4, "con semillas, planta sin pagar")
-clock += 10000
-promptOf(myStakes[2]).Triggered:Fire(farmer)
-local wheat = InventoryService.count(farmer, "Agro_Trigo")
-check(wheat >= 6, ("cosecha trigo (%d)"):format(wheat))
--- Corral: dar de comer y recoger
-local trough = sign.Parent:FindFirstChild("Abrevadero")
-moveTo(farmerRoot, trough.Position)
-promptOf(trough, "Atender animales").Triggered:Fire(farmer)
-check(profiles[farmer].Farm.Animals[1].ReadyAt ~= nil and InventoryService.count(farmer, Farming.Feed) == 4, "atender da de comer a la gallina (1 pienso)")
-clock += 1000
-promptOf(trough, "Atender animales").Triggered:Fire(farmer)
-check(InventoryService.count(farmer, "Agro_Huevos") == 2 and profiles[farmer].Farm.Animals[1].ReadyAt ~= nil, "después recoge 2 huevos y le vuelve a dar de comer")
-local herd = fincasFolder.Finca1:FindFirstChild("Herd")
-check(herd ~= nil and herd:FindFirstChild("Gallina") ~= nil, "la gallina se ve en el corral")
--- Obrador
-moveTo(farmerRoot, coop.Mostrador.Position)
-fire(farmer, "Make", "Harina", 2)
-check(InventoryService.count(farmer, "Agro_Harina") == 2 and InventoryService.count(farmer, "Agro_Trigo") == wheat - 6, "en el molino, 6 de trigo son 2 sacos de harina")
-local extraWheat = InventoryService.count(farmer, "Agro_Trigo") - 2
-if extraWheat > 0 then
-	InventoryService.remove(farmer, "Agro_Trigo", extraWheat) -- la cosecha es al azar: nos quedamos con 2
-end
-fire(farmer, "Make", "Harina", 1)
-check(InventoryService.count(farmer, "Agro_Harina") == 2 and notified(farmer, "Te faltan ingredientes"), "sin trigo suficiente no hay más harina")
-fire(farmer, "Make", "Queso", 1)
-check(InventoryService.count(farmer, "Agro_Queso") == 0 and notified(farmer, "nivel 4"), "el queso pide nivel 4")
-fire(farmer, "Make", "Pizza", 1)
-check(notified(farmer, "cocina de tu restaurante"), "los platos se cocinan en un restaurante, no en el obrador")
-moveTo(farmerRoot, Vector3.new(0, 0, 0))
-fire(farmer, "Make", "Pan", 1)
-check(InventoryService.count(farmer, "Agro_Pan") == 0, "lejos de la cooperativa no se usa el obrador")
--- Vender a la cooperativa
-moveTo(farmerRoot, coop.Mostrador.Position)
-local m1 = profiles[farmer].Money
-fire(farmer, "Sell", "Agro_Huevos", 1)
-check(profiles[farmer].Money == m1 + Farming.sellPrice("Agro_Huevos", "Coop") and InventoryService.count(farmer, "Agro_Huevos") == 1, "vende un huevo a la cooperativa")
--- Supermercado: paga más y llena la estantería
-InventoryService.add(farmer, "Agro_Leche", 5)
-local stockPoint = collection:GetTagged("SuperStock")[1]
-local milkShelf
-for _, shelf in collection:GetTagged("SuperShelf") do
-	if shelf:GetAttribute("Product") == "Leche" then
-		milkShelf = shelf
-	end
-end
-milkShelf:SetAttribute("Stock", 0)
-moveTo(farmerRoot, stockPoint.Position)
-local m2 = profiles[farmer].Money
-local expected = 0
-for _, id in Farming.ProductOrder do
-	if Farming.Products[id].Grocery then
-		expected += InventoryService.count(farmer, id) * Farming.sellPrice(id, "Super")
-	end
-end
-promptOf(stockPoint, "Entregar productos del campo").Triggered:Fire(farmer)
-check(profiles[farmer].Money == m2 + expected and InventoryService.count(farmer, "Agro_Leche") == 0 and InventoryService.count(farmer, "Agro_Huevos") == 0, "el supermercado compra leche, huevos y lechugas, más caros")
-check(milkShelf:GetAttribute("Stock") >= 5, "la leche de la granja se pone en su estantería")
-check(InventoryService.count(farmer, "Agro_Harina") == 2, "lo que el supermercado no vende (harina) te lo quedas")
--- Se va del juego: la finca queda libre (lo plantado sigue en sus datos)
-fire(farmer, "Plant", 3, "Trigo")
-players.PlayerRemoving:Fire(farmer)
-local label = sign:FindFirstChildOfClass("SurfaceGui"):FindFirstChildOfClass("TextLabel")
-check(label.Text == "FINCA LIBRE", "al irse, la finca queda libre")
-_G.__farmer = farmer
-end)()
-
-;(function()
-print("▶ Negocios: locales, gasolineras y hoteles")
-local Business = loadModule(ROOT .. "/shared/Business")
-local building = { Id = 7, Key = "Bloque_4000_4000", Kind = "Local", Walkable = false, Door = Vector3.new(4000, 0.4, 4000), Out = Vector3.new(0, 0, -1), Title = "🏬 Comercio y viviendas", Floors = 3 }
-local resets, left = 0, 0
-local Interior = {
-	Hooks = {},
-	all = function()
-		return { building }
-	end,
-	reset = function()
-		resets += 1
-	end,
-	leave = function()
-		left += 1
-	end,
-}
-mocks[S .. "InteriorService"] = Interior
--- Gasolinera con su poste y surtidor
-local town = worldRoot:FindFirstChild("Town")
-local gasModel = fakeInstance("Model")
-gasModel.Name = "Gasolinera"
-gasModel.Parent = town
-local pylon = part("Pylon", CFrame.new(-290, 6, -310))
-pylon.Size = Vector3.new(2, 12, 2)
-pylon.Parent = gasModel
-fuelPump.Parent = gasModel
-local BusinessService = loadModule(S .. "BusinessService")
-local bclock = 500000
-BusinessService._clock = function()
-	return bclock
-end
-BusinessService.init()
-local keys = {}
-for key, premise in BusinessService._premises do
-	keys[premise.Kind] = key
-end
-check(keys.Local ~= nil and keys.Gas ~= nil and keys.Hotel ~= nil, "encuentra los locales, las gasolineras y los hoteles")
-local L = keys.Local
-local function fire(player, ...)
-	task.wait(0.16)
-	remotes.Business.OnServerEvent:Fire(player, ...)
-end
-local owner, ownerRoot = newPlayer(390, "Adulto", 60000)
-profiles[owner].Items = {}
-profiles[owner].Slots = {}
-owner:SetAttribute("InteriorKey", "7:0")
-local teen = newPlayer(391, "Adolescente", 99999)
-teen:SetAttribute("InteriorKey", "7:0")
-fire(teen, "BuyPremise", L)
-check(notified(teen, "mayor de edad") and BusinessService._index()[L] == nil, "un adolescente no puede comprar un local")
-local price = Business.premisePrice("Local", L)
-fire(owner, "BuyPremise", L)
-check(profiles[owner].Money == 60000 - price and BusinessService._index()[L].Owner == 390, "un adulto compra el local")
-check(lastMessage(owner, "Panel")[2].Id == "Setup", "después elige qué negocio abrir")
-fire(teen, "BuyPremise", L)
-check(profiles[teen].Money == 99999, "un local con dueño no se vende dos veces")
-fire(owner, "Open", L, "Gasolinera")
-check(BusinessService._getRecord(L, true).Type == nil, "en un local no se puede abrir una gasolinera")
-fire(owner, "Open", L, "Fruteria")
-local rec = BusinessService._getRecord(L, true)
-check(rec.Type == "Fruteria" and rec.Open and rec.Name == "Frutas " .. owner.Name, "abre una frutería con su nombre")
-check(resets > 0, "la sala del local se rehace con el negocio")
--- Dentro del local: cartel, comprar, gestionar
-local room = fakeInstance("Model")
-room.Parent = worldRoot
-local register = part("Register", CFrame.new(4010, 4, 4020))
-register.Parent = room
-local counterPart = part("Counter", CFrame.new(4010, 2, 4020))
-counterPart.Parent = room
-Interior.Hooks.Decorate({ Floor = 0, Building = building, Room = { Model = room } })
-check(promptOf(register, "Comprar") ~= nil and promptOf(register, "Gestionar") ~= nil and room:FindFirstChild("CartelNegocio") ~= nil, "dentro hay cartel, «Comprar» y «Gestionar»")
-check(promptOf(counterPart, "Cocina") == nil, "una frutería no tiene cocina")
--- Existencias desde la mochila y precios
-InventoryService.add(owner, "Agro_Manzana", 30)
-InventoryService.add(owner, "Agro_Pizza", 2)
-fire(owner, "Stock", L, "Agro_Manzana", 30)
-fire(owner, "Stock", L, "Agro_Pizza", 2)
-rec = BusinessService._getRecord(L, true)
-check(rec.Stock.Agro_Manzana == 30 and InventoryService.count(owner, "Agro_Manzana") == 0, "pone 30 manzanas a la venta desde la mochila")
-check(rec.Stock.Agro_Pizza == nil and InventoryService.count(owner, "Agro_Pizza") == 2, "una frutería no puede vender pizzas")
-local ref = Business.Goods.Agro_Manzana.Ref
-fire(owner, "Price", L, "Agro_Manzana", 1)
-check(Business.priceOf(BusinessService._getRecord(L, true), "Agro_Manzana") == ref + Business.priceStep(Business.Goods.Agro_Manzana), "sube el precio")
--- Un cliente compra en el mostrador
-local buyer = newPlayer(392, "Adulto", 100)
-profiles[buyer].Items = {}
-profiles[buyer].Slots = {}
-buyer:SetAttribute("InteriorKey", "7:0")
-promptOf(register, "Comprar").Triggered:Fire(buyer)
-check(lastMessage(buyer, "Panel")[2].Id == "Shop", "«Comprar» abre la tienda")
-local unit = Business.priceOf(BusinessService._getRecord(L, true), "Agro_Manzana")
-fire(buyer, "Buy", L, "Agro_Manzana", 2)
-rec = BusinessService._getRecord(L, true)
-check(InventoryService.count(buyer, "Agro_Manzana") == 2 and profiles[buyer].Money == 100 - unit * 2, "el cliente compra 2 manzanas")
-check(rec.Stock.Agro_Manzana == 28 and rec.Till == unit * 2 and notified(owner, "ha comprado"), "el dinero va a la caja y el dueño se entera")
-local outside = newPlayer(393, "Adulto", 100)
-fire(outside, "Buy", L, "Agro_Manzana", 1)
-check(profiles[outside].Money == 100, "desde fuera del local no se compra")
--- Los vecinos compran solos
-bclock += 3600
-local units, money = BusinessService._simulate(L)
-rec = BusinessService._getRecord(L, true)
-check(units > 0 and money > 0 and rec.Stock.Agro_Manzana == 28 - units, ("en una hora los vecinos compran %d manzanas (+$%d)"):format(units, money))
-local till = math.floor(rec.Till)
-local before = profiles[owner].Money
-fire(owner, "Collect", L)
-check(profiles[owner].Money == before + till and BusinessService._getRecord(L, true).Till < 1, "recoge la caja")
-fire(owner, "Toggle", L)
-fire(buyer, "Buy", L, "Agro_Manzana", 1)
-check(InventoryService.count(buyer, "Agro_Manzana") == 2 and notified(buyer, "cerrado"), "cerrado no se puede comprar")
-fire(owner, "Toggle", L)
-fire(outside, "Collect", L)
-check(notified(outside, "no es tuyo"), "nadie más puede recoger tu caja")
--- Gasolinera: mayorista, precio y repostajes
-local G = keys.Gas
-local anchor = BusinessService._premises[G].Anchor
-moveTo(ownerRoot, anchor.Position)
-owner:SetAttribute("InteriorKey", nil)
-fire(owner, "BuyPremise", G)
-fire(owner, "Open", G, "Gasolinera")
-fire(owner, "Order", G, "W_Gasolina", 1)
-local grec = BusinessService._getRecord(G, true)
-check(grec.Type == "Gasolinera" and grec.Stock.W_Gasolina == Business.Goods.W_Gasolina.Lot, "compra la gasolinera y pide gasolina al mayorista")
-fire(owner, "Price", G, "W_Gasolina", 1)
-check(math.abs(Business.priceOf(BusinessService._getRecord(G, true), "W_Gasolina") - 1.6) < 0.001, "sube la gasolina a 1,60")
-remotes.Vehicle.OnServerEvent:Fire(adult, "Spawn", "Coche")
-local car = worldRoot.Rides:FindFirstChild("Coche")
-local chassis = car.PrimaryPart
-for _ = 1, 8 do
-	chassis.CFrame = chassis.CFrame * CFrame.new(0, 0, -150)
-	task.wait(0.55)
-end
-chassis.CFrame = fuelPump.CFrame * CFrame.new(0, 0, 6)
-task.wait(0.6)
-local tillBefore = BusinessService._getRecord(G, true).Till
-local litersBefore = BusinessService._getRecord(G, true).Stock.W_Gasolina
-promptOf(fuelPump, "Repostar / cargar").Triggered:Fire(adult)
-task.wait(0.1)
-grec = BusinessService._getRecord(G, true)
-check(grec.Till > tillBefore and grec.Stock.W_Gasolina < litersBefore and notified(owner, "Han repostado"), "quien reposta paga al dueño y bajan los litros")
-remotes.Vehicle.OnServerEvent:Fire(adult, "Dismount")
--- Hotel: las reservas van a la caja
-local H = keys.Hotel
-local hotelAnchor = BusinessService._premises[H].Anchor
-local hotelier, hotelierRoot = newPlayer(394, "Adulto", 60000)
-moveTo(hotelierRoot, hotelAnchor.Position)
-fire(hotelier, "BuyPremise", H)
-fire(hotelier, "Open", H, "Hotel")
-local lobby = BusinessService._premises[H].Model
-local HotelService = loadModule(S .. "HotelService")
-HotelService.RoomSold(lobby, 50, buyer)
-task.wait(0.1)
-check(BusinessService._getRecord(H, true).Till == 50 and notified(hotelier, "se aloja"), "una reserva en su hotel va a su caja")
--- Máximo de negocios y vender el local
-check(#(function()
-	local n = {}
-	for _, e in BusinessService._index() do
-		if e.Owner == 390 then
-			table.insert(n, e)
-		end
-	end
-	return n
-end)() == 2, "el dueño tiene 2 negocios")
-owner:SetAttribute("InteriorKey", "7:0")
-fire(owner, "Unstock", L, "Agro_Manzana")
-check(InventoryService.count(owner, "Agro_Manzana") > 0 and (BusinessService._getRecord(L, true).Stock.Agro_Manzana or 0) == 0, "retira las manzanas que quedan")
-local m3 = profiles[owner].Money
-fire(owner, "SellPremise", L)
-check(BusinessService._index()[L] == nil and profiles[owner].Money >= m3 + Business.sellBack(price), "vende el local y le devuelven una parte")
--- Restaurante: cocina de platos
-fire(owner, "BuyPremise", L)
-fire(owner, "Open", L, "Restaurante")
-local room2 = fakeInstance("Model")
-room2.Parent = worldRoot
-local reg2 = part("Register", CFrame.new(4010, 4, 4020))
-reg2.Parent = room2
-local counter2 = part("Counter", CFrame.new(4010, 2, 4020))
-counter2.Parent = room2
-Interior.Hooks.Decorate({ Floor = 0, Building = building, Room = { Model = room2 } })
-local kitchen = promptOf(counter2, "Cocina")
-check(kitchen ~= nil, "un restaurante tiene cocina")
-kitchen.Triggered:Fire(buyer)
-check(notified(buyer, "Solo el dueño"), "la cocina es solo del dueño")
-ownerRoot.CFrame = CFrame.new(counter2.Position)
-kitchen.Triggered:Fire(owner)
-check(lastMessage(owner, "Panel")[2].Id == "Kitchen", "el dueño abre la cocina")
-InventoryService.add(owner, "Agro_Harina", 1)
-InventoryService.add(owner, "Agro_TomateFrito", 1)
-InventoryService.add(owner, "Agro_Queso", 1)
-task.wait(0.16)
-remotes.Farm.OnServerEvent:Fire(owner, "Make", "Pizza", 1)
-check(InventoryService.count(owner, "Agro_Pizza") == 4 and InventoryService.count(owner, "Agro_Queso") == 0, "cocina 2 pizzas con harina, tomate frito y queso")
-fire(owner, "Stock", L, "Agro_Pizza", 4)
-check(BusinessService._getRecord(L, true).Stock.Agro_Pizza == 4, "y las pone a la venta en su restaurante")
-local _ = left
-end)()
-
-;(function()
-print("▶ Catástrofes marinas: tsunami, marea negra, tiburón, medusas, temporal y remolino")
-local SeaEvents = loadModule(ROOT .. "/shared/SeaEvents")
-local Fishing = loadModule(ROOT .. "/shared/Fishing")
-local FishingService = loadModule(S .. "FishingService")
-local DivingService = loadModule(S .. "DivingService")
-local SeaEventService = loadModule(S .. "SeaEventService")
-local realIsWater = FishingService.isWater
-FishingService.isWater = function(p)
-	return p.Y < -1 -- en la prueba: por debajo de la superficie siempre hay agua
-end
-for _, id in SeaEvents.Order do
-	SeaEvents.Kinds[id].Warning = 0
-end
-local savedStart = SeaEvents.WaveStart
-SeaEvents.WaveStart = 20
-local function ticks(n, gap)
-	for _ = 1, n do
-		SeaEventService._tick()
-		if gap then
-			task.wait(gap)
-		end
-	end
-end
-local function person(id, pos, items)
-	local p, root, hum = newPlayer(id, "Adulto", 100)
-	profiles[p].Items = items or {}
-	InventoryService.refresh(p)
-	root.CFrame = CFrame.new(pos)
-	p.Character.Head.CFrame = CFrame.new(pos + Vector3.new(0, 1.5, 0))
-	return p, root, hum
-end
-check(SeaEvents.pick(0) == "Tsunami" and SeaEvents.pick(0.9999) == "Medusas", "cada catástrofe tiene su probabilidad")
-check(not SeaEventService.ready("Tsunami") and SeaEventService.ready("Medusas") == false and SeaEvents.Kinds.Tsunami.MinGap >= 3600, "al arrancar no sale ninguna enseguida (y el tsunami, como mucho cada hora o más)")
-check(SeaEvents.pick(0, function(id)
-	return id ~= "Tsunami" and id ~= "Temporal" and id ~= "Remolino"
-end) == "MareaNegra", "las que están en espera no salen")
-check(SeaEvents.Kinds.Tsunami.Weight < SeaEvents.Kinds.Medusas.Weight and SeaEvents.Kinds.Tsunami.MinGap > SeaEvents.Kinds.Medusas.MinGap, "las que más dañan salen mucho menos")
--- Tsunami en Playa Dorada
-local low, _, lowHum = person(201, Vector3.new(4150, 2, -1000))
-local high, _, highHum = person(202, Vector3.new(4150, 30, -1000))
-local far, _, farHum = person(203, Vector3.new(4150, 2, 200))
-check(SeaEventService.start("Tsunami", "Playa Dorada") and worldRoot:GetAttribute("SeaEvent") == "Tsunami", "empieza el tsunami")
-check(lastMessage(low, "Start") ~= nil and notified(low, "TSUNAMI"), "llega la alerta a todos")
-check(not SeaEventService.start("Medusas"), "no hay dos catástrofes a la vez")
-ticks(25, 0.1)
-check(lowHum.Health < 100 and lastMessage(low, "Hit") ~= nil, "la ola arrastra a quien está en la playa")
-check(highHum.Health == 100 and farHum.Health == 100, "quien está en alto o lejos no sufre nada")
-SeaEventService.stop()
-check(worldRoot:GetAttribute("SeaEvent") == nil and lastMessage(high, "End") ~= nil, "al acabar se avisa y vuelve la calma")
--- Marea negra: no se pesca y se limpia entre todos
-local cleaner = person(204, Vector3.new(4210, 3, -1000), { CanaPescar = 1 })
-check(SeaEventService.start("MareaNegra", "Playa Dorada"), "empieza la marea negra")
-local patches = SeaEventService._event().Patches
-check(#patches == SeaEvents.Kinds.MareaNegra.Patches, ("salen manchas de petróleo en el mar (%d)"):format(#patches))
-local oilSpot = part("FishingSpot", CFrame.new(4210, 3.5, -1000), { "FishingSpot" }, { Water = "Mar", CastDistance = 10 })
-FishingService._cast(cleaner, oilSpot)
-check(notified(cleaner, "petróleo") and FishingService._fishing[cleaner] == nil, "donde hay petróleo no se puede pescar")
-local money = profiles[cleaner].Money
-for _, patch in table.clone(patches) do
-	promptOf(patch, "Limpiar").Triggered:Fire(cleaner)
-end
-local mk = SeaEvents.Kinds.MareaNegra
-check(profiles[cleaner].Money == money + mk.Reward * mk.Patches + mk.Bonus, "se cobra por cada mancha limpia y un premio al acabar")
-check(SeaEventService._event() == nil and notified(cleaner, "limpiado toda la marea negra"), "limpia toda, la catástrofe se acaba")
--- Tiburón en la playa
-local bather, _, batherHum = person(205, Vector3.new(4230, -3, -1000))
-check(SeaEventService.start("Tiburon", "Playa Dorada"), "aparece el tiburón en la playa")
-ticks(60)
-check(batherHum.Health < 100 and notified(bather, "mordido"), "si te bañas, te puede morder")
-local hunter = person(206, Vector3.new(4225, -8, -1000), { Arpon = 1, Botella = 1 })
-profiles[hunter].Fishing = { Xp = Fishing.xpFor(40), Caught = {} }
-ticks(1)
-local shark = SeaEventService._event().Shark
-check(shark ~= nil, "a un buceador con arpón le aparece el tiburón para cazarlo")
-local savedGap = Fishing.Dive.ShotGap
-Fishing.Dive.ShotGap = 0
-for _ = 1, 12 do
-	if shark.Parent then
-		hunter.Character.HumanoidRootPart.CFrame = CFrame.new(shark.Position - Vector3.new(0, 3, 0))
-		hunter.Character.Head.CFrame = CFrame.new(shark.Position - Vector3.new(0, 1.5, 0))
-		remotes.Diving.OnServerEvent:Fire(hunter, "Shoot", shark)
-	end
-end
-Fishing.Dive.ShotGap = savedGap
-ticks(1)
-check(SeaEventService._event() == nil and notified(hunter, "Recompensa por cazar al tiburón"), "si lo cazas, se acaba el peligro y te dan recompensa")
--- Medusas: el equipo de buceo protege
-local swimmer, _, swimmerHum = person(207, Vector3.new(4230, -3, -990))
-local suited, _, suitedHum = person(208, Vector3.new(4230, -3, -1010), { Botella = 1 })
-check(SeaEventService.start("Medusas", "Playa Dorada"), "llega la plaga de medusas")
-ticks(60)
-check(swimmerHum.Health < 100 and suitedHum.Health == 100, "las medusas pican a los bañistas (con equipo de buceo no)")
-SeaEventService.stop()
--- Temporal: rayos en alta mar
-check(SeaEventService.start("Temporal"), "empieza el temporal")
-ticks(1)
-check(lastMessage(swimmer, "Strike") ~= nil, "caen rayos en el mar")
-SeaEventService.stop()
--- Remolino: en el centro te hace daño
-check(SeaEventService.start("Remolino"), "aparece un remolino")
-local c = worldRoot:GetAttribute("SeaEventPos")
-local diver2, _, diver2Hum = person(209, Vector3.new(c.X, -3, c.Z))
-ticks(4)
-check(diver2Hum.Health < 100 and notified(diver2, "remolino"), "si nadas en el centro del remolino te hace daño")
-SeaEventService.stop()
-SeaEvents.WaveStart = savedStart
-FishingService.isWater = realIsWater
-local _ = far
-end)()
-
----------------------------------------------------------------------
--- (en su propia función: la prueba ya usa casi todas las variables locales permitidas)
-;(function()
-print("▶ Armas: Armería, licencia, disparos, galería, policía y zonas seguras")
-mocks[ROOT .. "/server/World/PoliceUnits"] = {
-	init = function() end, ensure = function() end, dismiss = function() end, setTarget = function() end, knockDown = function() end,
-	sees = function() return false end, anyNear = function() return false end, officersNear = function() return 0 end,
-}
-mocks[S .. "JusticeService"] = { process = function() end }
-mocks[S .. "CareerService"] = { addPoints = function() end }
-mocks[S .. "BreakService"] = { hitStructure = function() return nil end }
-mocks[S .. "ClassService"] = { isRunning = function() return false end }
-mocks[S .. "MiniGameService"] = { isRunning = function() return false end }
-function players:GetPlayerFromCharacter(character)
-	for _, p in playersList do
-		if p.Character == character then
-			return p
-		end
-	end
-	return nil
-end
-function Fake.GetPartBoundsInRadius()
-	return {}
-end
--- Rayos de verdad (contra cajas) para esta parte: las balas tienen que dar en algo
-local realRaycast = Fake.Raycast
-Fake.Raycast = function(_, origin, direction, params)
-	local ignored = (params and params.FilterDescendantsInstances) or {}
-	local best, bestT = nil, math.huge
-	for _, part in worldRoot:GetDescendants() do
-		local props = rawget(part, "__props")
-		if PARTS[props.ClassName] and props.CanQuery ~= false and props.Transparency ~= 1 then
-			local skip = false
-			for _, ignore in ignored do
-				if part == ignore or part:IsDescendantOf(ignore) then
-					skip = true
-					break
-				end
-			end
-			if not skip then
-				local cf, half = props.CFrame, props.Size / 2
-				local o = cf:PointToObjectSpace(origin)
-				local d = cf:VectorToObjectSpace(direction)
-				local tmin, tmax = 0, 1
-				local hit = true
-				for _, axis in { "X", "Y", "Z" } do
-					local oa, da, h = o[axis], d[axis], half[axis]
-					if math.abs(da) < 1e-9 then
-						if math.abs(oa) > h then
-							hit = false
-						end
-					else
-						local t1, t2 = (-h - oa) / da, (h - oa) / da
-						tmin = math.max(tmin, math.min(t1, t2))
-						tmax = math.min(tmax, math.max(t1, t2))
-					end
-				end
-				if hit and tmin <= tmax and tmin < bestT then
-					best, bestT = part, tmin
-				end
-			end
-		end
-	end
-	if not best then
-		return nil
-	end
-	local position = origin + direction * bestT
-	return { Instance = best, Position = position, Normal = -direction.Unit, Material = Enum.Material.Plastic, Distance = (position - origin).Magnitude }
-end
-
--- Una Armería de prueba: mostrador, ventanilla, galería con una diana
-local shopCounter = part("GunShopCounter", CFrame.new(5020, 1.6, 5000), { "GunShop" }, { ShopName = "Armería de prueba" })
-shopCounter.Size = Vector3.new(14, 3.2, 2.4)
-local licenceDesk = part("LicenceDesk", CFrame.new(5010, 1.7, 5000), { "GunLicence" })
-licenceDesk.Size = Vector3.new(5, 3.4, 2)
-local rangeVolume = part("Galeria", CFrame.new(5000, 6, 5030), { "ShootingRange" })
-rangeVolume.Size = Vector3.new(30, 12, 24)
-rangeVolume.CanQuery = false
-local target = part("Diana", CFrame.new(5000, 4.6, 5040), { "RangeTarget" }, { Lane = 1, Score = 0 })
-target.Size = Vector3.new(3, 4, 0.1)
-local CombatService = loadModule(S .. "CombatService")
-CombatService.init()
-local WantedService = loadModule(S .. "WantedService")
-WantedService.init()
-local WeaponService = loadModule(S .. "WeaponService")
-WeaponService.init()
--- Jugadores nuevos de esta parte: los servicios se enteran (PlayerAdded)
-local function join(id: number, stage: string, money: number)
-	local p, r, h = newPlayer(id, stage, money)
-	p.DisplayName = p.Name
-	players.PlayerAdded:Fire(p)
-	return p, r, h
-end
-local Weapons = loadModule(ROOT .. "/shared/Weapons")
-local Inv = loadModule(S .. "InventoryService")
-local Wp = remotes.Weapons.OnServerEvent
-local function act(player, ...)
-	task.wait(0.1) -- (el servidor ignora peticiones demasiado seguidas)
-	Wp:Fire(player, ...)
-end
-local function place(player, position: Vector3, facing: Vector3?)
-	local look = facing or Vector3.new(0, 0, -1)
-	player.Character.HumanoidRootPart.CFrame = CFrame.new(position + Vector3.new(0, 3, 0)) * CFrame.Angles(0, math.atan2(-look.X, -look.Z), 0)
-	player.Character.Head.CFrame = CFrame.new(position + Vector3.new(0, 4.6, 0))
-end
-
-check(promptOf(shopCounter, "Comprar") ~= nil and promptOf(licenceDesk, "Licencia de armas") ~= nil, "la Armería tiene mostrador y ventanilla de licencias")
-
-local buyer = join(301, "AdultoJoven", 20000)
-place(buyer, Vector3.new(5020, 0, 5004))
-promptOf(shopCounter, "Comprar").Triggered:Fire(buyer)
-local shop = lastMessage(buyer, "Shop")
-check(shop ~= nil and #shop[2].Items >= 9, "el menú lista las armas, la munición y la licencia")
-act(buyer, "Buy", "Pistola")
-check(Inv.count(buyer, "Arma_Pistola") == 0 and profiles[buyer].Money == 20000 and notified(buyer, "licencia"), "sin licencia no se puede comprar un arma")
-local kid = join(302, "Nino", 500)
-place(kid, Vector3.new(5022, 0, 5004))
-act(kid, "Buy", "Pistola")
-check(Inv.count(kid, "Arma_Pistola") == 0, "un niño no puede comprar una pistola")
-act(kid, "Buy", "PistolaAgua")
-check(Inv.count(kid, "Arma_PistolaAgua") == 1, "un niño sí compra la pistola de agua")
-
--- Licencia: tasa + test (primero suspende, luego aprueba)
-local function answerQuiz(player, good: boolean)
-	local msg = lastMessage(player, "Quiz")
-	local answers = {}
-	for i, q in msg[3].Questions do
-		for _, entry in Weapons.Quiz do
-			if entry[1] == q.Text then
-				local right = table.find(q.Options, entry[2][1])
-				answers[i] = if good then right else (right % #q.Options) + 1
-			end
-		end
-	end
-	act(player, "Answers", msg[2], answers)
-end
-promptOf(licenceDesk, "Licencia de armas").Triggered:Fire(buyer)
-check(profiles[buyer].Money == 20000 - Weapons.Licence.Price and lastMessage(buyer, "Quiz") ~= nil, "se paga la tasa y empieza el test de seguridad")
-answerQuiz(buyer, false)
-check(Inv.count(buyer, Weapons.Licence.Item) == 0, "suspender el test no da la licencia")
-clearInbox(buyer)
-promptOf(licenceDesk, "Licencia de armas").Triggered:Fire(buyer)
-answerQuiz(buyer, true)
-check(Inv.count(buyer, Weapons.Licence.Item) == 1 and buyer:GetAttribute("WeaponLicence") == true, "aprobando el test se obtiene la licencia de armas")
-promptOf(licenceDesk, "Licencia de armas").Triggered:Fire(kid)
-check(Inv.count(kid, Weapons.Licence.Item) == 0, "un niño no puede sacarse la licencia")
-
-local money = profiles[buyer].Money
-act(buyer, "Buy", "Pistola")
-check(Inv.count(buyer, "Arma_Pistola") == 1 and profiles[buyer].Money == money - Weapons.List.Pistola.Price, "con licencia se compra la pistola")
-act(buyer, "Buy", "Municion_9mm")
-check(Inv.count(buyer, "Municion_9mm") == Weapons.AmmoTypes.Municion_9mm.Box, "y una caja de munición")
-
--- Galería de tiro: practicar no es delito
-act(buyer, "Equip", "Pistola")
-check(buyer:GetAttribute("Weapon") == "Pistola" and buyer:GetAttribute("WeaponMag") == 15, "empuña la pistola con el cargador lleno")
-place(buyer, Vector3.new(5000, 0, 5025), Vector3.new(0, 0, 1))
-act(buyer, "Aim", true)
-check(buyer:GetAttribute("Aiming") == true, "apunta")
-Wp:Fire(buyer, "Fire", target.Position)
-check(buyer:GetAttribute("WeaponMag") == 14 and lastMessage(buyer, "Shot") ~= nil, "disparar gasta una bala y se ve el disparo")
-check((target:GetAttribute("Score") or 0) > 0 and (target:GetAttribute("Shots") or 0) == 1, "la diana marca el impacto y la puntuación")
-Wp:Fire(buyer, "Fire", target.Position)
-check(buyer:GetAttribute("WeaponMag") == 14, "no se puede disparar más rápido que la cadencia")
-task.wait(0.2)
-Wp:Fire(buyer, "Fire", target.Position)
-check(buyer:GetAttribute("WeaponMag") == 13, "pasada la pausa, sí")
-task.wait(0.2)
-check(WantedService.stars(buyer) == 0, "en la galería de tiro practicar no suma estrellas")
-act(buyer, "Reload")
-check(buyer:GetAttribute("Reloading") == true, "recarga")
-task.wait(Weapons.List.Pistola.Reload.Tactical + 0.2)
-check(buyer:GetAttribute("WeaponMag") == 16 and Inv.count(buyer, "Municion_9mm") == 12, "recarga táctica: 15 + 1 en la recámara, gasta munición de la mochila")
-
--- Disparar a una persona en la calle (con un policía mirando)
-local victim, _, victimHum = join(303, "Adulto", 100)
-local cop = join(304, "Adulto", 0)
-place(buyer, Vector3.new(26000, 0, 26000))
-place(victim, Vector3.new(26000, 0, 25985))
-place(cop, Vector3.new(26030, 0, 26000))
-cop:SetAttribute("Job", "Policia")
-check(Inv.count(cop, "Arma_PistolaPolicia") == 1 and Inv.count(cop, "Arma_Taser") == 1, "la policía de servicio recibe la pistola reglamentaria y el táser")
-task.wait(0.3)
-Wp:Fire(buyer, "Fire", victim.Character.Head.Position)
-check(victimHum.Health < 100, "la bala hace daño (CombatService)")
-check(lastMessage(buyer, "Confirm") ~= nil, "el tirador ve el aspa de acierto")
-check(WantedService.stars(buyer) >= 2, "disparar a una persona suma estrellas de búsqueda")
-if WantedService.stars(buyer) < 2 then
-	print("    (avisos al policía: " .. table.concat(notifyTexts(cop), " | ") .. ")")
-end
-
--- Policía de servicio contra un buscado: no es delito
-local suspectHum = buyer.Character:FindFirstChildOfClass("Humanoid")
-local suspectHealth = suspectHum.Health
-act(cop, "Equip", "PistolaPolicia")
-act(cop, "Aim", true)
-check(cop:GetAttribute("Weapon") == "PistolaPolicia", "el policía empuña su pistola")
-place(cop, Vector3.new(26000, 0, 26015), Vector3.new(0, 0, -1))
-Wp:Fire(cop, "Fire", buyer.Character.Head.Position)
-check(suspectHum.Health < suspectHealth, "el policía alcanza al sospechoso")
-task.wait(0.2)
-check(WantedService.stars(cop) == 0, "un policía de servicio que dispara a un buscado no comete delito")
-
--- Zona segura: no se dispara
-local safe = part("ZonaSegura", CFrame.new(7000, 5, 7000), { "SafeZone" }, { ZoneName = "el hospital" })
-safe.Size = Vector3.new(40, 20, 40)
-safe.CanQuery = false
-place(cop, Vector3.new(7000, 0, 7000))
-local copMag = cop:GetAttribute("WeaponMag")
-task.wait(0.2)
-Wp:Fire(cop, "Fire", Vector3.new(7000, 4, 6980))
-check(cop:GetAttribute("WeaponMag") == copMag and notified(cop, "no se puede disparar"), "en una zona segura no se puede disparar")
-cop:SetAttribute("Job", nil)
-check(Inv.count(cop, "Arma_PistolaPolicia") == 0 and cop:GetAttribute("Weapon") == nil, "al acabar el turno se devuelven las armas de servicio")
-
--- Los niños no empuñan armas de verdad
-Inv.add(kid, "Arma_Pistola", 1)
-act(kid, "Equip", "Pistola")
-check(kid:GetAttribute("Weapon") == nil, "un niño no puede empuñar un arma de verdad (aunque la tenga)")
-act(kid, "Equip", "PistolaAgua")
-check(kid:GetAttribute("Weapon") == "PistolaAgua", "sí la pistola de agua")
-
-Fake.Raycast = realRaycast
 end)()
 
 end, debug.traceback)
