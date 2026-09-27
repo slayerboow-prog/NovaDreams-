@@ -37,6 +37,7 @@ local order = {
 	"NeedsService",
 	"WorldService",
 	"WeatherService", -- estaciones y tiempo: sol, lluvia, tormenta, nieve, niebla
+	"ToyService", -- balones y conos con física: se patean, botan y vuelven solos a su sitio
 	"JobService",
 	"FoodService",
 	"HouseService",

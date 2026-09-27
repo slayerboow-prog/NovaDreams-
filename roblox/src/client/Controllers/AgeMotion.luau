@@ -7,6 +7,9 @@
 --   * Adolescente: un poco encorvado, hombros hacia delante y brazos más caídos.
 --   * Adulto: como siempre.
 --   * Mayor: espalda encorvada, rodillas algo dobladas, pasos cortos y brazos que casi no se balancean.
+--   * Trabajando (jugadores): quieto en su puesto hace su oficio con las posturas de WorkAnim
+--     (el barista remueve el café, el cajero pasa productos, el bombero sujeta la manguera…) y,
+--     si lleva algo (una caja, un plato, un paquete), lo sujeta con las dos manos, también andando.
 --
 -- Se aplica a los jugadores (según su LifeStage) y a los personajes con el atributo "Age"
 -- (compañeros de clase, la abuela…). Todo en tu pantalla, encima de sus animaciones: cada frame,
@@ -18,6 +21,8 @@
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+
+local WorkAnim = require(script.Parent.WorkAnim)
 
 local AgeMotion = {}
 
@@ -249,6 +254,11 @@ type Body = {
 	LastPos: Vector3?,
 	Drop: number?,
 	DropScale: number?,
+	Seed: number, -- desfase propio (que no hagan todos lo mismo a la vez)
+	WorkName: string?, -- tarea para la que están hechos sus objetos de la mano
+	Work: number, -- 0..1: cuánto está haciendo su tarea (suave)
+	WorkPose: WorkAnim.Pose,
+	Props: { WorkAnim.HeldProp },
 }
 
 local bodies: { [Model]: Body } = {}
@@ -284,7 +294,13 @@ local function register(model: Model)
 		LastPos = nil,
 		Drop = nil,
 		DropScale = nil,
+		Seed = math.random() * 100,
+		WorkName = nil,
+		Work = 0,
+		WorkPose = {} :: any,
+		Props = {},
 	}
+	WorkAnim.clear(bodies[model].WorkPose)
 	model.AncestryChanged:Connect(function(_, parent)
 		if parent == nil then
 			bodies[model] = nil
@@ -351,6 +367,54 @@ local function same(a: CFrame, b: CFrame): boolean
 	return (a.Position - b.Position).Magnitude < 1e-4 and a.LookVector:Dot(b.LookVector) > 0.999999 and a.UpVector:Dot(b.UpVector) > 0.999999
 end
 
+-- Qué oficio hace cada trabajo cuando el jugador está quieto en su puesto
+local JOB_WORK = {
+	Barista = "Coffee",
+	Cajero = "Scan",
+	Charcutero = "Cut",
+	Recepcionista = "Type",
+	Taquillero = "Type",
+	Medico = "Clipboard",
+	Policia = "Traffic",
+	Bombero = "Hose",
+	Camarero = "Tray",
+	Barman = "Wipe",
+}
+AgeMotion.JobWork = JOB_WORK
+
+-- Lo que se lleva en brazos en cada trabajo (lo pone el servidor en el personaje)
+local CARRIED = { CarriedItem = true, CarriedPlate = true, CafeTray = true, PostParcel = true }
+AgeMotion.Carried = CARRIED
+
+-- ¿Qué tarea hace ahora este jugador? (nil = ninguna)
+local function workOf(body: Body): string?
+	local player = body.Player
+	if not player then
+		return nil
+	end
+	for name in CARRIED do
+		if body.Model:FindFirstChild(name) then
+			return "Carry"
+		end
+	end
+	local job = player:GetAttribute("Job")
+	return if type(job) == "string" then JOB_WORK[job] else nil
+end
+
+-- ¿Está haciendo un gesto (saludar, bailar…)? Entonces el gesto manda sobre la tarea
+local function gesturing(body: Body): boolean
+	local animator = body.Humanoid:FindFirstChildOfClass("Animator")
+	if not animator then
+		return false
+	end
+	for _, track in animator:GetPlayingAnimationTracks() do
+		if track.Priority == Enum.AnimationPriority.Action and track.WeightCurrent > 0.1 then
+			return true
+		end
+	end
+	return false
+end
+
 local function restore(body: Body)
 	for name, joint in body.Joints do
 		local written = body.Written[name]
@@ -360,6 +424,14 @@ local function restore(body: Body)
 	end
 	table.clear(body.Written)
 	table.clear(body.Base)
+end
+
+-- Deja de animarlo (lejos o sin cuerpo): postura de la animación y fuera los objetos de la mano
+local function release(body: Body)
+	restore(body)
+	WorkAnim.clearProps(body.Props)
+	body.WorkName = nil
+	body.Work = 0
 end
 
 local function update(body: Body, t: number, dt: number)
@@ -393,9 +465,45 @@ local function update(body: Body, t: number, dt: number)
 
 	body.Crawl = smooth(body.Crawl, if crawling and not sitting then 1 else 0, 5, dt)
 	body.Style = smooth(body.Style, if style and not sitting then 1 else 0, 4, dt)
-	if body.Crawl < 0.001 and body.Style < 0.001 then
+	-- Su oficio (jugadores): quieto en su puesto, o llevando algo (también andando)
+	local workName = workOf(body)
+	local work = WorkAnim.get(workName)
+	if workName ~= body.WorkName then
+		body.WorkName = workName
+		WorkAnim.clearProps(body.Props)
+		if work then
+			body.Props = WorkAnim.makeProps(body.Model, work)
+		end
+	end
+	local working = work ~= nil
+		and not sitting
+		and not crawling
+		and (body.Move < 0.3 or work.Walk == true)
+		and not gesturing(body)
+	body.Work = smooth(body.Work, if working then 1 else 0, if working then 3 else 7, dt)
+	local W = body.Work
+	local w = body.WorkPose
+	WorkAnim.clear(w)
+	if work and W > 0.001 then
+		work.Pose(t, body.Seed, w)
+	end
+	WorkAnim.showProps(body.Props, W > 0.5)
+
+	if body.Crawl < 0.001 and body.Style < 0.001 and W < 0.001 then
 		restore(body)
 		return
+	end
+	-- La tarea, como retoque de cada articulación (los mismos ángulos que usa ActorLife en C0)
+	local workOffsets: { [string]: CFrame }? = nil
+	if W > 0.001 then
+		workOffsets = {
+			Neck = angles(w.np * W, w.ny * W, w.nr * W),
+			Waist = angles(w.wp * W, w.wy * W, w.wr * W),
+			RightShoulder = angles(w.rx * W, w.rt * W, w.rz * W),
+			LeftShoulder = angles(w.lx * W, -w.lt * W, -w.lz * W),
+			RightElbow = angles(w.re * W, 0, 0),
+			LeftElbow = angles(w.le * W, 0, 0),
+		}
 	end
 
 	local offsets = if style and body.Style > 0.001 then style.Offsets(t, body.Move, body.Phase) else nil
@@ -416,6 +524,16 @@ local function update(body: Body, t: number, dt: number)
 			local offset = offsets and offsets[name]
 			if offset then
 				out = CFrame.identity:Lerp(offset, body.Style) * out
+			end
+		end
+		if workOffsets then
+			-- Con las manos ocupadas, los brazos dejan de balancearse al andar
+			if ARMS[name] then
+				out = scaled(out, 1 - W)
+			end
+			local offset = workOffsets[name]
+			if offset then
+				out = offset * out
 			end
 		end
 		if crawl then
@@ -478,7 +596,7 @@ function AgeMotion.init()
 			for _, body in active do
 				if not keep[body] and body.Active then
 					body.Active = false
-					pcall(restore, body)
+					pcall(release, body)
 				end
 			end
 			for _, body in nextActive do
@@ -503,6 +621,7 @@ function AgeMotion.init()
 				if not ok then
 					warn("[AgeMotion] " .. tostring(err))
 					body.Active = false
+					pcall(release, body)
 					bodies[body.Model] = nil -- no se vuelve a intentar con este
 				end
 			end

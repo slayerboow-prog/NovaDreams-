@@ -81,8 +81,7 @@ type Rig = {
 	WorkW: number, -- 0..1: cuánto está haciendo su tarea ahora (suave)
 	WorkPose: WorkAnim.Pose,
 	Attention: number, -- 0..1: cuánto te está mirando (deja la tarea para mirarte)
-	Props: { { Part: BasePart, Hand: BasePart, Alpha: number } },
-	PropsShown: boolean?,
+	Props: { WorkAnim.HeldProp },
 }
 
 local rigs: { [Model]: Rig } = {}
@@ -180,7 +179,6 @@ local function register(model: Model)
 		WorkPose = {} :: any,
 		Attention = 0,
 		Props = {},
-		PropsShown = nil,
 	}
 	WorkAnim.clear(rig.WorkPose)
 	rigs[model] = rig
@@ -441,59 +439,15 @@ end
 ---------------------------------------------------------------------
 
 local function clearProps(rig: Rig)
-	for _, prop in rig.Props do
-		prop.Part:Destroy()
-	end
-	table.clear(rig.Props)
-	rig.PropsShown = nil
+	WorkAnim.clearProps(rig.Props)
 end
 
 local function makeProps(rig: Rig, work: WorkAnim.Work)
-	for _, spec in work.Prop or {} do
-		local hand = rig.Model:FindFirstChild(spec.Hand .. "Hand")
-		if not hand or not hand:IsA("BasePart") then
-			continue
-		end
-		local part = Instance.new("Part")
-		part.Name = "WorkProp_" .. spec.Name
-		part.Size = spec.Size
-		part.Color = spec.Color
-		part.Material = spec.Material or Enum.Material.SmoothPlastic
-		if spec.Shape then
-			part.Shape = spec.Shape
-		end
-		part.Anchored = false
-		part.CanCollide = false
-		part.CanQuery = false
-		part.CanTouch = false
-		part.Massless = true
-		part.CastShadow = false
-		part.Transparency = 1 -- se enseña cuando empieza la tarea
-		part.CFrame = hand.CFrame * spec.Offset
-		local weld = Instance.new("Weld")
-		weld.Part0 = hand
-		weld.Part1 = part
-		weld.C0 = spec.Offset
-		weld.Parent = part
-		part.Parent = rig.Model
-		table.insert(rig.Props, { Part = part, Hand = hand, Alpha = spec.Transparency or 0 })
-	end
+	rig.Props = WorkAnim.makeProps(rig.Model, work)
 end
 
--- Los objetos se ven solo mientras hace la tarea, y se ocultan con el personaje (SceneClient)
 local function showProps(rig: Rig, shown: boolean)
-	for _, prop in rig.Props do
-		local hidden = prop.Hand.LocalTransparencyModifier
-		if prop.Part.LocalTransparencyModifier ~= hidden then
-			prop.Part.LocalTransparencyModifier = hidden
-		end
-	end
-	if rig.PropsShown ~= shown then
-		rig.PropsShown = shown
-		for _, prop in rig.Props do
-			prop.Part.Transparency = if shown then prop.Alpha else 1
-		end
-	end
+	WorkAnim.showProps(rig.Props, shown)
 end
 
 local function update(rig: Rig, t: number, dt: number)

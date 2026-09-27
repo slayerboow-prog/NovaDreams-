@@ -58,6 +58,8 @@ function Nature.tree(parent: Instance, base: Vector3, scale: number?)
 			CFrame = CFrame.new(crown + Vector3.new(math.cos(a) * r, y, math.sin(a) * r)),
 			Color = leafTone:Lerp(Color3.fromRGB(34, 56, 32), 0.25 * (1 - shade)):Lerp(Color3.fromRGB(150, 168, 88), 0.18 * shade),
 			Material = Enum.Material.LeafyGrass,
+			Tags = { "Sway" }, -- la copa se mece con el viento (Controllers/ObjectMotion)
+			Attributes = { Pivot = top },
 			Parent = m,
 		})
 	end
@@ -83,6 +85,8 @@ function Nature.cypress(parent: Instance, base: Vector3)
 			CFrame = CFrame.new(base + Vector3.new(0, 1.2 + tall / 2 + shape[3], 0)),
 			Color = if i == 1 then color else color:Lerp(Color3.fromRGB(120, 140, 80), 0.15),
 			Material = Enum.Material.LeafyGrass,
+			Tags = { "Sway" },
+			Attributes = { Pivot = base + Vector3.new(0, 1.2, 0) },
 			Parent = m,
 		})
 		local mesh = Instance.new("SpecialMesh")
@@ -122,9 +126,9 @@ function Nature.palm(parent: Instance, base: Vector3)
 		local yawLeaf = CFrame.Angles(0, math.rad(i * 45 + math.random(-12, 12)), 0)
 		local color = Color3.fromRGB(70, 118, 54):Lerp(Color3.fromRGB(116, 142, 70), math.random())
 		local inner = CFrame.new(top) * yawLeaf * CFrame.Angles(math.rad(14 + math.random(0, 10)), 0, 0)
-		Builder.decor({ Name = "Frond", Size = Vector3.new(1.9, 0.15, 4.4), CFrame = inner * CFrame.new(0, 0, -2.1), Color = color, Material = Enum.Material.Grass, Parent = m })
+		Builder.decor({ Name = "Frond", Size = Vector3.new(1.9, 0.15, 4.4), CFrame = inner * CFrame.new(0, 0, -2.1), Color = color, Material = Enum.Material.Grass, Tags = { "Sway" }, Attributes = { Pivot = top, Leaf = true }, Parent = m })
 		local outer = inner * CFrame.new(0, 0, -4.1) * CFrame.Angles(math.rad(-48), 0, 0)
-		Builder.decor({ Name = "Frond", Size = Vector3.new(1.4, 0.12, 4.4), CFrame = outer * CFrame.new(0, 0, -2), Color = color:Lerp(Color3.fromRGB(150, 150, 80), 0.2), Material = Enum.Material.Grass, Parent = m })
+		Builder.decor({ Name = "Frond", Size = Vector3.new(1.4, 0.12, 4.4), CFrame = outer * CFrame.new(0, 0, -2), Color = color:Lerp(Color3.fromRGB(150, 150, 80), 0.2), Material = Enum.Material.Grass, Tags = { "Sway" }, Attributes = { Pivot = top, Leaf = true }, Parent = m })
 	end
 	for i = 1, 3 do
 		Builder.decor({
@@ -133,6 +137,8 @@ function Nature.palm(parent: Instance, base: Vector3)
 			Size = Vector3.new(0.8, 0.8, 0.8),
 			CFrame = CFrame.new(top + Vector3.new(math.cos(i * 2.1) * 0.6, -0.6, math.sin(i * 2.1) * 0.6)),
 			Color = Color3.fromRGB(110, 84, 50),
+			Tags = { "Sway" },
+			Attributes = { Pivot = top },
 			Parent = m,
 		})
 	end

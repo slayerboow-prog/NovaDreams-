@@ -97,7 +97,7 @@ local function giveCarry(player: Player, shift: Shift)
 	item.CanCollide = false
 	item.CanQuery = false
 	item.Massless = true
-	item.CFrame = root.CFrame * CFrame.new(0, 0, -1.8)
+	item.CFrame = root.CFrame * CFrame.new(0, 0.45, -1.35) -- entre las manos (el cliente pone los brazos: AgeMotion)
 	local weld = Instance.new("WeldConstraint")
 	weld.Part0 = root
 	weld.Part1 = item

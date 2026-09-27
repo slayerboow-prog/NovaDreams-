@@ -5,7 +5,10 @@
 -- coordenadas locales a mundo:  u = a lo largo de la calle (0 = centro),
 -- v = distancia hacia dentro desde la acera.  lot.facing(u, v) da un CFrame que mira a la calle.
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
 local Builder = require(script.Parent.Parent.Builder)
+local Toys = require(ReplicatedStorage.Shared.Toys)
 local Palette = require(script.Parent.Palette)
 local Building = require(script.Parent.Building)
 local Nature = require(script.Parent.Nature)
@@ -155,8 +158,10 @@ function Civic.playground(parent: Instance, cf: CFrame)
 	end
 	Builder.part({ Name = "SwingBar", Size = Vector3.new(8.4, 0.4, 0.4), CFrame = cf * CFrame.new(6, 7.2, 0), Color = rgb(220, 60, 60), Parent = m })
 	for _, x in { 4.5, 7.5 } do
-		Builder.decor({ Name = "Rope", Size = Vector3.new(0.1, 5, 0.1), CFrame = cf * CFrame.new(x, 4.6, 0), Color = rgb(60, 60, 60), Parent = m })
-		Builder.part({ Name = "SwingSeat", Size = Vector3.new(1.6, 0.2, 1), CFrame = cf * CFrame.new(x, 2.1, 0), Color = rgb(40, 40, 44), Parent = m })
+		-- Se mecen colgados de la barra (Controllers/ObjectMotion)
+		local swing = { Pivot = (cf * CFrame.new(x, 7.1, 0)).Position, Axis = cf.RightVector }
+		Builder.decor({ Name = "Rope", Size = Vector3.new(0.1, 5, 0.1), CFrame = cf * CFrame.new(x, 4.6, 0), Color = rgb(60, 60, 60), Tags = { "Swing" }, Attributes = swing, Parent = m })
+		Builder.part({ Name = "SwingSeat", Size = Vector3.new(1.6, 0.2, 1), CFrame = cf * CFrame.new(x, 2.1, 0), Color = rgb(40, 40, 44), Tags = { "Swing" }, Attributes = swing, Parent = m })
 	end
 	return m
 end
@@ -179,7 +184,7 @@ function Civic.school(parent: Instance, lot: Lot, townName: string)
 	local mark = { School = townName }
 	-- Mástil con bandera
 	Builder.part({ Name = "Flagpole", Size = Vector3.new(0.4, 20, 0.4), CFrame = lot.facing(-W / 2 + 6, 5, 10), Color = rgb(220, 220, 224), Material = Enum.Material.Metal, Parent = m })
-	Builder.decor({ Name = "Flag", Size = Vector3.new(5, 3, 0.1), CFrame = lot.facing(-W / 2 + 8.6, 5, 18.5), Color = rgb(40, 110, 200), Material = Enum.Material.Fabric, Parent = m })
+	Builder.decor({ Name = "Flag", Size = Vector3.new(5, 3, 0.1), CFrame = lot.facing(-W / 2 + 8.6, 5, 18.5), Color = rgb(40, 110, 200), Material = Enum.Material.Fabric, Tags = { "Flag" }, Parent = m })
 	-- Patio: pista deportiva y parque infantil
 	local courtV = setback + D + 24
 	if lot.Depth > courtV + 20 then
@@ -416,7 +421,7 @@ function Civic.schoolGym(parent: Instance, cf: CFrame, townName: string)
 	StoryMarks.prop(model, "Canasta", at(-6, 2.5, -1), Vector3.new(4, 5, 4), mark) -- desde aquí se tira
 	Builder.decor({ Name = "FreeThrowLine", Size = Vector3.new(4, 0.05, 0.3), CFrame = at(-6, 0.03, -1.8), Color = rgb(250, 250, 250), Parent = model })
 	for k = 0, 2 do
-		Builder.decor({ Name = "Ball", Shape = Enum.PartType.Ball, Size = Vector3.new(1.2, 1.2, 1.2), CFrame = at(-9.5 + k * 1.3, 0.6, 5), Color = rgb(230, 110, 40), Parent = model })
+		Toys.make("Baloncesto", at(-9.5 + k * 1.3, 0.6, 5), model) -- se pueden botar y patear (ToyService)
 	end
 	for _, z in { -12, -8 } do
 		Builder.part({ Name = "Mat", Size = Vector3.new(4, 0.5, 3.4), CFrame = at(8, 0.25, z), Color = rgb(40, 90, 180), Material = Enum.Material.Fabric, Parent = model })
@@ -433,7 +438,7 @@ function Civic.schoolGym(parent: Instance, cf: CFrame, townName: string)
 		end
 	end
 	for k = 0, 3 do
-		Builder.decor({ Name = "Cone", Size = Vector3.new(0.8, 1.2, 0.8), CFrame = at(-6 + k, 0.6, 15), Color = rgb(250, 120, 30), Parent = model })
+		Toys.make("Cono", at(-6 + k, 0.6, 15), model)
 	end
 	Builder.part({ Name = "BallCart", Size = Vector3.new(3, 2.2, 2), CFrame = at(5, 1.1, 14.5), Color = rgb(90, 90, 96), Material = Enum.Material.Metal, Parent = model })
 	local bagColors = { rgb(200, 50, 60), rgb(40, 150, 90), rgb(240, 190, 40), rgb(120, 60, 160), rgb(40, 110, 200) }
@@ -667,6 +672,7 @@ function Civic.park(parent: Instance, lot: Lot, townName: string?)
 	local mark = { Town = townName }
 	local L, Dp = lot.Length, lot.Depth
 	slab(m, lot, -L / 2, L / 2, 0, Dp, 0.3, Palette.Ground.Lawn, Enum.Material.Grass, "Lawn")
+	Toys.make("Futbol", lot.facing(L / 6, Dp / 2 + 10, 1.35), m) -- un balón en el césped
 	-- Caminos en cruz
 	slab(m, lot, -3, 3, 0, Dp, 0.45, rgb(214, 200, 170), Enum.Material.Pavement, "Path")
 	slab(m, lot, -L / 2, L / 2, Dp / 2 - 3, Dp / 2 + 3, 0.46, rgb(214, 200, 170), Enum.Material.Pavement, "Path")
@@ -791,6 +797,10 @@ function Civic.beach(parent: Instance, lot: Lot)
 	for u = -L / 2 + 6, L / 2 - 6, 24 do
 		Nature.palm(m, lot.point(u, 8, FT))
 	end
+	-- Balones de playa (ligeros: salen volando)
+	for _, u in { -L / 6, L / 6 } do
+		Toys.make("Playa", CFrame.new(lot.point(u, Dp * 0.45, 0.6 + 1.35)), m)
+	end
 	-- Torre de socorrista
 	local tower = lot.point(0, Dp - 20, 0.6)
 	for _, dx in { -2, 2 } do
@@ -826,6 +836,7 @@ function Civic.stadium(parent: Instance, lot: Lot, name: string, teamColor: Colo
 	-- Terreno de juego (110 × 70) con líneas
 	local pitch = lot.facing(0, cv, FT)
 	Builder.part({ Name = "Pitch", Size = Vector3.new(110, 0.3, 70), CFrame = pitch * CFrame.new(0, 0.15, 0), Color = rgb(70, 146, 66), Material = Enum.Material.Grass, Parent = m })
+	Toys.make("Futbol", pitch * CFrame.new(0, 1.35, 0), m) -- en el centro del campo
 	for i = -5, 5 do
 		if i % 2 == 0 then
 			Builder.decor({ Name = "Stripe", Size = Vector3.new(10, 0.05, 70), CFrame = pitch * CFrame.new(i * 10, 0.31, 0), Color = rgb(80, 160, 74), Parent = m })

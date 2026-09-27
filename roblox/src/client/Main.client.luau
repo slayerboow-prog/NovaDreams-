@@ -44,6 +44,7 @@ local JobPrompts = require(script.Parent.Controllers.JobPrompts)
 local BusUI = require(script.Parent.Controllers.BusUI)
 local ActorLife = require(script.Parent.Controllers.ActorLife)
 local AgeMotion = require(script.Parent.Controllers.AgeMotion)
+local ObjectMotion = require(script.Parent.Controllers.ObjectMotion)
 
 local gui = Hud.init(function()
 	Store.open()
@@ -62,6 +63,7 @@ task.spawn(MiniGameUI.init) -- pase, canastas, partido de fútbol
 task.spawn(SceneClient.init) -- cada uno ve solo los personajes de su historia
 task.spawn(ActorLife.init) -- los personajes respiran, miran, gesticulan al hablar y andan con animación
 task.spawn(AgeMotion.init) -- cada edad se mueve a su manera: el bebé gatea, los mayores van encorvados…
+task.spawn(ObjectMotion.init) -- árboles que se mecen, columpios, banderas, noria, carrusel, fuentes
 task.spawn(Ambient.init) -- tráfico y peatones
 task.spawn(Weather.init) -- estaciones y tiempo: lluvia, tormenta, nieve, hojas de otoño
 task.spawn(Wildlife.init) -- pájaros, palomas, mariposas, patos, perros, gatos y animales de granja

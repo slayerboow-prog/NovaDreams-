@@ -296,8 +296,14 @@ local UNIFORMS: { [string]: { Work: string, Look: Npc.Look, Icon: string, Lines:
 	["Feriante"] = { Work = "Call", Look = { Shirt = rgb(230, 70, 70), Pants = rgb(250, 200, 60) }, Icon = "🎡", Lines = { "¡Pasen y vean!", "¡La noria es la mejor vista de Valmar!" } },
 	["Monitor"] = { Work = "Clipboard", Look = { Shirt = rgb(90, 170, 80), Pants = rgb(120, 100, 70) }, Icon = "⛺", Lines = { "¡Bienvenido al camping!", "Esta noche hay fogata." } },
 	["Conserje"] = { Work = "Sweep", Look = { Shirt = rgb(110, 110, 120), Pants = rgb(60, 60, 70), LongSleeves = true }, Icon = "🔑", Lines = { "¡No corras por los pasillos!", "Buenos días." } },
+	["Jardinero"] = { Work = "Garden", Look = { Shirt = rgb(70, 140, 70), Pants = rgb(80, 70, 50) }, Icon = "🌻", Lines = { "Estas flores las he plantado yo.", "¡No pises el césped, que está recién regado!", "En primavera este parque es precioso." } },
+	["Mecánico"] = { Work = "Hammer", Look = { Shirt = rgb(40, 70, 130), Pants = rgb(40, 70, 130), LongSleeves = true }, Icon = "🔧", Lines = { "¿Te hace un ruido raro el coche? Tráemelo.", "Cambiar una rueda es más fácil de lo que parece." } },
+	["Obrero"] = { Work = "Hammer", Look = { Shirt = rgb(240, 150, 40), Pants = rgb(60, 60, 70) }, Icon = "👷", Lines = { "¡Cuidado, zona de obras!", "Esta nave estará lista en primavera." } },
+	["Granjero"] = { Work = "Rake", Look = { Shirt = rgb(170, 60, 50), Pants = rgb(60, 80, 130) }, Icon = "🌾", Lines = { "Este año la cosecha viene buena.", "Las gallinas se levantan antes que yo." } },
+	["Músico"] = { Work = "Guitar", Look = { Shirt = rgb(30, 30, 34), Pants = rgb(50, 60, 90) }, Icon = "🎸", Lines = { "¿Te sabes esta? ¡Canta conmigo!", "Toco aquí todas las tardes.", "Una moneda para el músico, que da suerte." } },
+	["Limpiador"] = { Work = "Mop", Look = { Shirt = rgb(60, 150, 190), Pants = rgb(40, 60, 80) }, Icon = "🧹", Lines = { "Cuidado, que resbala.", "Una ciudad limpia es una ciudad feliz." } },
 }
-local MAX_WORKERS = 60
+local MAX_WORKERS = 110
 
 local function spawnWorkers()
 	local folder = Instance.new("Folder")
