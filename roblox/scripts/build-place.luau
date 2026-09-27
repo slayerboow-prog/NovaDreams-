@@ -70,6 +70,9 @@ function requireModule(target: any): any
 		UDim = roblox.UDim,
 		UDim2 = roblox.UDim2,
 		Font = roblox.Font,
+		NumberRange = roblox.NumberRange,
+		NumberSequence = roblox.NumberSequence,
+		ColorSequence = roblox.ColorSequence,
 	}, { __index = baseEnv })
 	local chunk = luau.load(fs.readFile(path), { debugName = path, environment = env })
 	local result = chunk()

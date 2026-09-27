@@ -69,6 +69,7 @@ local order = {
 	"SocialService", -- grupos de jugadores y chat privado (menú al tocar a un jugador)
 	"FishingService", -- pesca, tienda de pesca, barco y oficio de pescador
 	"MetroService", -- metro subterráneo: trenes, galería, encargos y revisor
+	"MetroLifeService", -- vida del metro: guardias, ratas, aseos, taquillas, fuente, piano…
 	"DivingService", -- nadar, bucear (aire) y pesca submarina con fusil o arpón
 	"ClassService", -- clases y exámenes que se juegan (lo usa la historia)
 	"DialogueService", -- conversaciones con respuestas (misiones episódicas)
