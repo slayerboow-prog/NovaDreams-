@@ -1,4 +1,4 @@
--- DefaultCommands: los comandos de NovaLife. Para añadir uno nuevo basta con registrarlo aquí
+-- DefaultCommands: los comandos del juego. Para añadir uno nuevo basta con registrarlo aquí
 -- (o desde cualquier otro módulo) con CommandRegistry.register.
 --
 -- Orden (Priority, de arriba abajo):
@@ -67,7 +67,7 @@ function DefaultCommands.register()
 				Id = "AquiMas",
 				Label = "Aquí",
 				Detail = ("%d más"):format(#targets - TOP_TARGETS),
-				Icon = "📍",
+				Icon = "lugar",
 				Priority = 4,
 				Open = function(now)
 					local list = {}
@@ -85,7 +85,7 @@ function DefaultCommands.register()
 	CommandRegistry.register({
 		Id = "Saludar",
 		Label = "Saludar",
-		Icon = "👋",
+		Icon = "saludar",
 		Priority = 5,
 		When = function(ctx)
 			return not baby(ctx) and not ctx.Seated and ctx.Target ~= nil and ctx.Target.Kind == "Npc"
@@ -99,7 +99,7 @@ function DefaultCommands.register()
 	CommandRegistry.register({
 		Id = "Bajarse",
 		Label = "Bajarse",
-		Icon = "⬇",
+		Icon = "bajarse",
 		Priority = 6,
 		When = function(ctx)
 			return ctx.Seated
@@ -109,20 +109,31 @@ function DefaultCommands.register()
 		end,
 	})
 
-	-- Pelear (el combo sale pulsando seguido; también X / RB / 👊)
-	CommandRegistry.register({
-		Id = "Atacar",
-		Label = "Atacar",
-		Icon = "👊",
-		Priority = 7,
-		When = function(ctx)
-			return not baby(ctx) and not ctx.Seated
-		end,
-		Run = function()
-			CombatController.attack()
-		end,
-		Stay = true,
-	} :: any)
+	-- Pelear (el combo sale pulsando seguido; también X / RB / el botón Ataque). En plena pelea,
+	-- Atacar, Habilidades, Objetos, Defensa y Huir suben arriba del todo.
+	CommandRegistry.addProvider(function(ctx)
+		if baby(ctx) or ctx.Seated then
+			return {}
+		end
+		local fighting = CombatController.inCombat()
+		local out: { Command } = {
+			{ Id = "Atacar", Label = "Atacar", Icon = "espada", Priority = if fighting then 0.1 else 7, Accent = fighting, Run = function()
+				CombatController.attack()
+			end, Stay = true } :: any,
+		}
+		if fighting then
+			table.insert(out, { Id = "Habilidades", Label = "Habilidades", Icon = "habilidades", Priority = 0.15, Run = function()
+				Hud.runCommand("Personaje")
+			end })
+			table.insert(out, { Id = "Defender", Label = "Defensa", Icon = "escudo", Priority = 0.2, Run = function()
+				CombatController.guard(1.2)
+			end, Stay = true } :: any)
+			table.insert(out, { Id = "Huir", Label = "Huir", Icon = "esquivar", Priority = 0.3, Run = function()
+				CombatController.flee()
+			end })
+		end
+		return out
+	end)
 
 	-- Junto a otro jugador: robarle (desde adolescente) o, si eres policía de servicio y le buscan, detenerle
 	CommandRegistry.addProvider(function(ctx)
@@ -144,7 +155,7 @@ function DefaultCommands.register()
 		local job = me:GetAttribute("Job")
 		-- Instituciones: dar la libertad a un preso (jefes) e inspeccionar a quien no ha declarado
 		if other:GetAttribute("JailUntil") and me:GetAttribute("Chief") and (job == "Funcionario" or job == "Juez") then
-			table.insert(out, { Id = "Liberar", Label = "Liberar", Detail = other.DisplayName, Icon = "🔓", Priority = 4.4, Accent = true, Run = function()
+			table.insert(out, { Id = "Liberar", Label = "Liberar", Detail = other.DisplayName, Icon = "liberar", Priority = 4.4, Accent = true, Run = function()
 				local justice = remotes and remotes:FindFirstChild("Justice") :: RemoteEvent?
 				if justice then
 					justice:FireServer("Release", other)
@@ -152,7 +163,7 @@ function DefaultCommands.register()
 			end })
 		end
 		if job == "Funcionario" and other:GetAttribute("JailUntil") then
-			table.insert(out, { Id = "Registrar", Label = "Registrar", Detail = other.DisplayName, Icon = "🔦", Priority = 4.3, Accent = true, Run = function()
+			table.insert(out, { Id = "Registrar", Label = "Registrar", Detail = other.DisplayName, Icon = "registrar", Priority = 4.3, Accent = true, Run = function()
 				local prison = remotes and remotes:FindFirstChild("Prison") :: RemoteEvent?
 				if prison then
 					prison:FireServer("Search", other)
@@ -160,7 +171,7 @@ function DefaultCommands.register()
 			end })
 		end
 		if job == "Hacienda" and other:GetAttribute("TaxOverdue") then
-			table.insert(out, { Id = "Inspeccionar", Label = "Inspeccionar", Detail = other.DisplayName, Icon = "🏛", Priority = 4.6, Accent = true, Run = function()
+			table.insert(out, { Id = "Inspeccionar", Label = "Inspeccionar", Detail = other.DisplayName, Icon = "hacienda", Priority = 4.6, Accent = true, Run = function()
 				local tax = remotes and remotes:FindFirstChild("Tax") :: RemoteEvent?
 				if tax then
 					tax:FireServer("Inspect", other)
@@ -168,13 +179,13 @@ function DefaultCommands.register()
 			end })
 		end
 		if me:GetAttribute("Job") == "Policia" and other:GetAttribute("Wanted") then
-			table.insert(out, { Id = "Detener", Label = "Detener", Detail = other.DisplayName, Icon = "🚔", Priority = 4.5, Accent = true, Run = function()
+			table.insert(out, { Id = "Detener", Label = "Detener", Detail = other.DisplayName, Icon = "detener", Priority = 4.5, Accent = true, Run = function()
 				if remote then
 					remote:FireServer("Arrest", other)
 				end
 			end })
 		elseif ctx.Stage == nil or Stages.inRange(ctx.Stage, Wanted.MinStage, nil) then
-			table.insert(out, { Id = "Robar", Label = "Robar", Detail = other.DisplayName, Icon = "💸", Priority = 8, Run = function()
+			table.insert(out, { Id = "Robar", Label = "Robar", Detail = other.DisplayName, Icon = "robar", Priority = 8, Run = function()
 				if remote then
 					remote:FireServer("Steal", other)
 				end
@@ -184,22 +195,21 @@ function DefaultCommands.register()
 	end)
 
 	-- Lo de siempre
-	CommandRegistry.register({
-		Id = "Objetos",
-		Label = "Objetos",
-		Icon = "🎒",
-		Priority = 50,
-		When = function(ctx)
-			return not baby(ctx)
-		end,
-		Run = function()
-			Hud.runCommand("Mochila")
-		end,
-	})
+	-- (Objetos va como proveedor: en plena pelea sube, entre Habilidades y Defensa)
+	CommandRegistry.addProvider(function(ctx)
+		if baby(ctx) then
+			return {}
+		end
+		return {
+			{ Id = "Objetos", Label = "Objetos", Icon = "mochila", Priority = if not ctx.Seated and CombatController.inCombat() then 0.18 else 50, Run = function()
+				Hud.runCommand("Mochila")
+			end },
+		}
+	end)
 	CommandRegistry.register({
 		Id = "Mapa",
 		Label = "Mapa",
-		Icon = "🗺",
+		Icon = "mapa",
 		Priority = 51,
 		When = function(ctx)
 			return not baby(ctx)
@@ -211,7 +221,7 @@ function DefaultCommands.register()
 	CommandRegistry.register({
 		Id = "Telefono",
 		Label = "Teléfono",
-		Icon = "📱",
+		Icon = "telefono",
 		Priority = 52,
 		When = function(ctx)
 			return not baby(ctx)
@@ -225,20 +235,20 @@ function DefaultCommands.register()
 	local more: Command = {
 		Id = "Mas",
 		Label = "Más",
-		Icon = "➕",
+		Icon = "mas",
 		Priority = 60,
 		Open = function()
 			return {
-				{ Id = "Misiones", Label = "Misiones", Icon = "📋", Priority = 1, Badge = Hud.questPending(), Run = function()
+				{ Id = "Misiones", Label = "Misiones", Icon = "misiones", Priority = 1, Badge = Hud.questPending(), Run = function()
 					Hud.runCommand("Misiones")
 				end } :: any,
-				{ Id = "Personaje", Label = "Personaje", Icon = "⭐", Priority = 2, Run = function()
+				{ Id = "Personaje", Label = "Personaje", Icon = "personaje", Priority = 2, Run = function()
 					Hud.runCommand("Personaje")
 				end },
-				{ Id = "Vehiculos", Label = "Vehículos", Icon = "🚲", Priority = 3, Run = function()
+				{ Id = "Vehiculos", Label = "Vehículos", Icon = "coche", Priority = 3, Run = function()
 					Vehicles.open()
 				end },
-				{ Id = "Viviendas", Label = "Mis viviendas", Icon = "🏠", Priority = 4.4, Run = function()
+				{ Id = "Viviendas", Label = "Mis viviendas", Icon = "viviendas", Priority = 4.4, Run = function()
 					local homes = Players.LocalPlayer:GetAttribute("Homes")
 					if homes then
 						for line in string.gmatch(homes, "[^\n]+") do
@@ -248,10 +258,16 @@ function DefaultCommands.register()
 						Hud.toast("Info", "🏠 Aún no tienes vivienda. Entra en casas y pisos: los que tienen el cartel SE VENDE se pueden comprar.")
 					end
 				end },
-				{ Id = "Carrera", Label = "Mi carrera", Icon = "🎖", Priority = 4.5, Run = function()
+				{ Id = "Carrera", Label = "Mi carrera", Icon = "carrera", Priority = 4.5, Run = function()
 					InstitutionsUI.showCareer()
 				end },
-				{ Id = "Menu", Label = "Menú", Icon = "☰", Priority = 5, Run = function()
+				{ Id = "Gestos", Label = "Gestos", Icon = "gestos", Priority = 3.5, Run = function()
+					Actions.openEmotes()
+				end },
+				{ Id = "Controles", Label = "Controles", Icon = "mando", Priority = 4.8, Run = function()
+					Hud.runCommand("Controles")
+				end },
+				{ Id = "Menu", Label = "Menú", Icon = "menu", Priority = 5, Run = function()
 					Hud.runCommand("Menu")
 				end },
 			}

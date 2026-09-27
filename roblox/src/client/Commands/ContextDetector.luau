@@ -29,19 +29,20 @@ local originalKeys: { [ProximityPrompt]: { Keyboard: Enum.KeyCode, Gamepad: Enum
 local focus: ProximityPrompt? = nil
 local listeners: { () -> () } = {}
 
+-- Nombre del icono de cada tipo (UI/Icons: imagen subida o emoji que se ve en todos los móviles)
 local ICONS = {
-	Npc = "💬",
-	Door = "🚪",
-	Vehicle = "🚲",
-	Car = "🚗",
-	Shop = "🛒",
-	School = "🏫",
-	Item = "✋",
-	Seat = "💺",
-	Food = "🍽",
-	Bed = "🛏",
-	Job = "💼",
-	Other = "👉",
+	Npc = "hablar",
+	Door = "puerta",
+	Vehicle = "bici",
+	Car = "coche",
+	Shop = "tienda",
+	School = "escuela",
+	Item = "interactuar",
+	Seat = "asiento",
+	Food = "comida",
+	Bed = "cama",
+	Job = "trabajo",
+	Other = "lugar",
 }
 
 -- Palabras que delatan qué es cada cosa (en el texto del cartel, sin tildes)

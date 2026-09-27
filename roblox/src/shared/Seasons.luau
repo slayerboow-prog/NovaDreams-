@@ -103,6 +103,17 @@ function Seasons.weatherAt(day: number, clockTime: number): WeatherId
 	return "Despejado"
 end
 
+-- Temperatura que se enseña en la cápsula de la hora (°C, redondeada): base de la estación, más
+-- calor a media tarde y fresco de madrugada, y lo que resta el tiempo que hace.
+local BASE_TEMP = { Primavera = 17, Verano = 27, Otono = 15, Invierno = 7 }
+local WEATHER_TEMP = { Despejado = 1, Nublado = -1, Lluvia = -3, Tormenta = -4, Nieve = -8, Niebla = -2 }
+function Seasons.temperature(season: string, weather: string, clockTime: number): number
+	local base = BASE_TEMP[season] or 17
+	-- Máxima hacia las 15:00 y mínima hacia las 5:00 (±5 °C)
+	local daily = math.cos((clockTime - 15) / 24 * 2 * math.pi) * 5
+	return math.floor(base + daily + (WEATHER_TEMP[weather] or 0) + 0.5)
+end
+
 -- Texto corto para la interfaz: «🌸 Primavera · 🌧️ Lluvia»
 function Seasons.label(season: string, weather: string): string
 	local s, w = Seasons.Info[season], Seasons.Weather[weather]

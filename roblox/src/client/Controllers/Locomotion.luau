@@ -162,7 +162,7 @@ type Body = {
 }
 
 local bodies: { [Model]: Body } = {}
-local Layers: any, ReactMotion: any, Cinematics: any
+local Layers: any, ReactMotion: any, Cinematics: any, Joystick: any
 local player: Player
 local stumbleUntil = 0
 local faceYaw: number? = nil
@@ -374,6 +374,11 @@ local function moveStep(dt: number)
 		return
 	end
 	local ok, raw = pcall(function()
+		-- En el móvil, el joystick propio del HUD (el de Roblox no está)
+		local stick = if Joystick and Joystick.active() then Joystick.moveVector() else nil
+		if stick and stick.Magnitude > 0 then
+			return stick
+		end
 		return controls:GetMoveVector()
 	end)
 	if not ok or typeof(raw) ~= "Vector3" then
@@ -491,6 +496,7 @@ function Locomotion.init()
 	Layers = require(script.Parent.PoseLayers)
 	ReactMotion = require(script.Parent.ReactMotion)
 	Cinematics = require(script.Parent.Cinematics)
+	Joystick = require(script.Parent.Joystick)
 
 	-- El control de Roblox (teclado, joystick y mando): lo que pide cada frame
 	task.spawn(function()
