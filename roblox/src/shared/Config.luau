@@ -153,6 +153,11 @@ Config.Sounds = {
 	Clic = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.3, Pitch = 1 },
 	Aviso = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.35, Pitch = 1.2 },
 	Error = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.35, Pitch = 0.6 },
+	-- Menú de comandos: moverse, aceptar, volver y abrir un submenú
+	MenuMover = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.22, Pitch = 1.45 },
+	MenuOk = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.3, Pitch = 1.6 },
+	MenuAtras = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.28, Pitch = 0.75 },
+	MenuAbrir = { Id = "rbxasset://sounds/swoosh.wav", Volume = 0.2, Pitch = 1.8 },
 	Choque = { Id = "rbxasset://sounds/collide.wav", Volume = 1, Pitch = 0.55 },
 	Arranque = { Id = "rbxasset://sounds/switch.wav", Volume = 0.5, Pitch = 0.7 },
 	-- Estos no vienen con Roblox: pon un ID (o un Sound en ReplicatedStorage > Sonidos) para oírlos

@@ -337,6 +337,24 @@ local function setPhoto(on: boolean)
 end
 
 ---------------------------------------------------------------------
+-- Para el menú de comandos: hacer un gesto por su nombre y abrir el panel de gestos
+function Actions.emote(name: string)
+	for _, emote in EMOTES do
+		if emote.Name == name then
+			playEmote(emote)
+			return
+		end
+	end
+end
+function Actions.emotes(): { { Name: string, Icon: string } }
+	local list = {}
+	for _, emote in EMOTES do
+		table.insert(list, { Name = emote.Name, Icon = emote.Icon })
+	end
+	return list
+end
+Actions.toggleGestures = togglePanel
+
 function Actions.init()
 	local playerGui = player:WaitForChild("PlayerGui")
 	local gui = Theme.create("ScreenGui", { Name = "ActionsGui", ResetOnSpawn = false, Parent = playerGui })

@@ -621,12 +621,11 @@ local function buildMini()
 	camera:GetPropertyChangedSignal("ViewportSize"):Connect(rescale)
 	rescale()
 
-	-- Minimapa redondo con aro azul arriba a la derecha (en el móvil, debajo de los iconos de comandos)
-	local touchOnly = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+	-- Minimapa redondo con aro azul arriba a la derecha
 	miniHolder = create("Frame", {
 		Name = "Minimap",
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -22, 0, if touchOnly then 92 else 18),
+		Position = UDim2.new(1, -22, 0, 18),
 		Size = UDim2.fromOffset(MINI_SIZE, MINI_SIZE),
 		BackgroundColor3 = rgb(12, 22, 42),
 		Parent = gui,
