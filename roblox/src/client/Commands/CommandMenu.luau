@@ -25,12 +25,13 @@ local CommandRegistry = require(script.Parent.CommandRegistry)
 local ContextDetector = require(script.Parent.ContextDetector)
 local CommandRenderer = require(script.Parent.CommandRenderer)
 local UiAudio = require(script.Parent.UiAudio)
+local MenuLogic = require(script.Parent.MenuLogic)
 
 local CommandMenu = {}
 
 local player = Players.LocalPlayer
 local TOUCH = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
-local IDLE_RESET = 4 -- segundos sin tocar el menú: vuelve a elegirse lo que tienes delante
+local IDLE_RESET = MenuLogic.IdleReset -- segundos sin tocar el menú: lo nuevo que aparece delante pasa a elegido
 
 type Command = CommandRegistry.Command
 type Level = { Title: string, Items: { Command }, Index: number, Group: Command? }
@@ -107,17 +108,11 @@ local function refresh()
 	local key = keyOf(list)
 	if key ~= signature then
 		signature = key
-		local keep = level.Items[level.Index]
+		-- Lo que habías elegido sigue elegido (aunque la lista cambie); solo si llevas un rato sin tocar
+		-- el menú y aparece algo nuevo delante de ti, pasa a eso (MenuLogic.pickIndex)
+		local index = MenuLogic.pickIndex(level.Items, level.Index, list, os.clock() - lastInput, IDLE_RESET)
 		level.Items = list
-		level.Index = 1
-		-- Si hace poco que elegiste algo, se mantiene; si no, arriba del todo (lo que tienes delante)
-		if keep and os.clock() - lastInput < IDLE_RESET then
-			for i, command in list do
-				if command.Id == keep.Id then
-					level.Index = i
-				end
-			end
-		end
+		level.Index = index
 		level.Title = "Comandos" -- (con quién o qué: en la segunda columna de cada fila)
 		if #stack == 1 then
 			showLevel(nil)
@@ -173,7 +168,7 @@ end
 
 local function accept(index: number?)
 	local level = current()
-	if not level then
+	if not level or busy then
 		return
 	end
 	lastInput = os.clock()
@@ -323,6 +318,9 @@ end
 
 -- Botón Interactuar: usa lo que tienes delante (el cartel del foco); si no hay nada, el comando elegido
 function CommandMenu.interact()
+	if busy then
+		return
+	end
 	local prompt = ContextDetector.getFocus()
 	if prompt then
 		ContextDetector.trigger(prompt)

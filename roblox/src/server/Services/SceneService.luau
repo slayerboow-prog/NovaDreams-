@@ -17,6 +17,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Cast = require(ReplicatedStorage.Shared.LifeStory.Cast)
 local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
+local Locations = require(ReplicatedStorage.Shared.LifeStory.Locations)
 local LocationService = require(script.Parent.LocationService)
 local Npc = require(script.Parent.Parent.World.Npc) -- ropa, pelo y pies en el suelo (lo comparte todo el juego)
 
@@ -116,15 +117,18 @@ local function placement(player: Player, spec: { [string]: any }, forProp: boole
 	end
 	local position = groundAt(spot.Position + V(0, 0.5, 0), {})
 	local rotation = spot.CFrame.Rotation
-	if isMark and not spec.Look then
+	-- Hacia dónde mira: lo que diga el actor o, si no, lo que diga el lugar (asientos del comedor…)
+	local placeDef = Locations.Places[placeId]
+	local lookAt = spec.Look or (placeDef and placeDef.Look)
+	if isMark and not lookAt then
 		-- Un StorySpot dice hacia dónde mira el personaje
 		local look = V(instance.CFrame.LookVector.X, 0, instance.CFrame.LookVector.Z)
 		if look.Magnitude > 0.01 then
 			return CFrame.lookAt(position, position + look), instance :: BasePart, false
 		end
 	end
-	if spec.Look then
-		local look = rotation:VectorToWorldSpace(spec.Look)
+	if lookAt then
+		local look = rotation:VectorToWorldSpace(lookAt)
 		look = V(look.X, 0, look.Z)
 		if look.Magnitude > 0.01 then
 			return CFrame.lookAt(position, position + look), nil, false
@@ -323,7 +327,7 @@ local function applyMode(actor: Actor)
 	local moving = mode == "Wander" or mode == "Follow" or mode == "Flee"
 	anchorActor(actor, not moving)
 	-- Chat: charla con los de al lado (el cliente le mueve cabeza y manos como si hablara)
-	actor.Model:SetAttribute("Chat", if mode == "Chat" then true else nil)
+	actor.Model:SetAttribute("Chat", if mode == "Chat" or actor.Spec.Chat == true then true else nil)
 	-- Work: su tarea mientras está quieto (barrer, cocinar, apuntar…; Controllers/WorkAnim)
 	actor.Model:SetAttribute("Work", actor.Spec.Work)
 	if mode == "Sit" then
@@ -336,7 +340,7 @@ local function applyMode(actor: Actor)
 	end
 end
 
-local function makeActor(player: Player, questId: string, spec: { [string]: any }, cf: CFrame): Actor
+local function makeActor(player: Player, questId: string, spec: { [string]: any }, cf: CFrame, standing: boolean?): Actor
 	local model = buildModel(spec.Npc, player, spec.Scale)
 	local humanoid = model:FindFirstChildOfClass("Humanoid")
 	local root = model:FindFirstChild("HumanoidRootPart") :: BasePart?
@@ -358,7 +362,11 @@ local function makeActor(player: Player, questId: string, spec: { [string]: any 
 	if root then
 		root.Anchored = true
 	end
-	standAt(actor, cf)
+	if standing then
+		Npc.placeFeet(model, cf) -- (viene andando: de pie, aunque luego se siente)
+	else
+		standAt(actor, cf)
+	end
 	model.Parent = sceneFolder(player)
 	if root and spec.Prompt ~= false then
 		prompt(root, "Hablar", model.Name, player, function()
@@ -669,9 +677,23 @@ function applySet(player: Player, questId: string, actors: { { [string]: any } }
 		if actor then
 			actor.Model:Destroy()
 		end
-		local created = makeActor(player, questId, spec, cf)
+		-- ¿Está ese personaje por aquí cerca (Nico en el patio, la profe en su aula…)? Entonces sale de
+		-- donde está y va andando hasta su sitio de la escena, en vez de aparecer de la nada. (Tu pantalla
+		-- oculta al de siempre en cuanto llega el de tu escena: nunca se ven dos.)
+		local from = if actor == nil and spec.Mode ~= "Follow" and spec.Mode ~= "Flee" then SceneService.ambientStart(spec.Npc, cf.Position) else nil
+		local created = makeActor(player, questId, spec, from or cf, from ~= nil)
 		created.Key = key
 		scene.Actors[npc] = created
+		if from then
+			created.Home = cf
+			if spec.Mode ~= "Wander" then
+				anchorActor(created, false)
+				if created.Humanoid then
+					created.Humanoid:MoveTo(cf.Position)
+				end
+				created.StuckSince = os.clock()
+			end
+		end
 	end
 
 	-- Objetos
@@ -695,6 +717,36 @@ function applySet(player: Player, questId: string, actors: { { [string]: any } }
 			scene.Props[id] = makeProp(player, questId, id, def, cf, mark, isMapObject)
 		end
 	end
+end
+
+-- Dónde está ahora el personaje de siempre (los que viven en el mapa: StaticNpc con NpcId), si está
+-- a menos de `range` studs de `target` y se puede ir andando. Devuelve sus pies, mirando hacia target.
+SceneService.AmbientRange = 110
+function SceneService.ambientStart(npcId: string, target: Vector3, range: number?): CFrame?
+	local best: Model? = nil
+	local bestDistance = range or SceneService.AmbientRange
+	for _, model in CollectionService:GetTagged("StaticNpc") do
+		if model:IsA("Model") and model:GetAttribute("NpcId") == npcId and model:IsDescendantOf(workspace) then
+			local root = model:FindFirstChild("HumanoidRootPart") :: BasePart?
+			if root then
+				local offset = root.Position - target
+				local distance = V(offset.X, 0, offset.Z).Magnitude
+				if distance < bestDistance and math.abs(offset.Y) < 12 then
+					best, bestDistance = model, distance
+				end
+			end
+		end
+	end
+	if not best or bestDistance < 3 then
+		return nil
+	end
+	local root = best:FindFirstChild("HumanoidRootPart") :: BasePart
+	local feet = groundAt(root.Position, { best })
+	local toward = V(target.X - feet.X, 0, target.Z - feet.Z)
+	if toward.Magnitude < 0.1 then
+		return nil
+	end
+	return CFrame.lookAt(feet, feet + toward)
 end
 
 -- Quita toda la escena de una misión

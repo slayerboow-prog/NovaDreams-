@@ -4,6 +4,7 @@
 --   Npc.icon(npc, text?)                 -> icono pequeño sobre la cabeza (✋, ⏳, 😋…)
 --   Npc.walkTo(npc, { Vector3 }, speed)  -> camina por esos puntos (espera hasta llegar)
 --   Npc.sit(npc, seat) / Npc.stand(npc)  -> sentarse en una silla y levantarse
+--   Npc.sitAt(npc, cf)                   -> sentarse en un punto (banco o silla sin Seat)
 --   Npc.dress(npc, look)                 -> ropa (camiseta, pantalón, zapatos), pelo y, si es niño, mochila
 --   Npc.placeFeet(npc, cf)               -> lo pone de pie con los pies justo en cf (no bajo tierra)
 --   Npc.work(npc, "Sweep")               -> su tarea mientras espera (barrer, cobrar…); la anima el cliente
@@ -303,6 +304,24 @@ function Npc.sit(npc: Model, seat: BasePart)
 		end
 	end
 	root.CFrame = seat.CFrame * CFrame.new(0, seat.Size.Y / 2 + 1.35, 0.4)
+end
+
+-- Se sienta en un punto (cf: la superficie del asiento, mirando hacia donde mira quien se sienta),
+-- para bancos y sillas sin pieza Seat: dobla las piernas y apoya la cadera en el asiento.
+function Npc.sitAt(npc: Model, cf: CFrame)
+	local root = npc.PrimaryPart or npc:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if not root then
+		return
+	end
+	for name, angle in LEG_JOINTS do
+		local joint = npc:FindFirstChild(name, true)
+		if joint and joint:IsA("Motor6D") and not joint:GetAttribute("BaseC0") then
+			joint:SetAttribute("BaseC0", joint.C0)
+			joint.C0 = joint.C0 * CFrame.Angles(math.rad(angle), 0, 0)
+		end
+	end
+	local lift = root.Size.Y / 2 + 0.25
+	npc:PivotTo(cf * CFrame.new(0, lift, 0) * root.CFrame:ToObjectSpace(npc:GetPivot()))
 end
 
 function Npc.stand(npc: Model, feet: Vector3?)

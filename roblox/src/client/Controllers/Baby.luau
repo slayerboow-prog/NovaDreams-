@@ -129,8 +129,27 @@ local function showLine(line: { SpeakerKey: string?, TextKey: string, Role: stri
 	panel:Destroy()
 end
 
+local MAX_QUEUE = 2 -- frases en espera como mucho (si llegan más, sobran las viejas)
+local lastSaid = ""
+local lastSaidAt = -math.huge
+local sayEndedAt = -math.huge
+
 local function say(line: { SpeakerKey: string?, TextKey: string, Role: string? })
+	-- La misma frase otra vez (un toque de más) no se vuelve a decir ni se pone en cola
+	local key = tostring(line.SpeakerKey) .. "|" .. tostring(line.TextKey)
+	if key == lastSaid and os.clock() - lastSaidAt < 8 then
+		return
+	end
+	for _, queued in sayQueue do
+		if tostring(queued.SpeakerKey) .. "|" .. tostring(queued.TextKey) == key then
+			return
+		end
+	end
+	lastSaid, lastSaidAt = key, os.clock()
 	table.insert(sayQueue, line)
+	while #sayQueue > MAX_QUEUE do
+		table.remove(sayQueue, 1)
+	end
 	if saying then
 		return
 	end
@@ -140,7 +159,13 @@ local function say(line: { SpeakerKey: string?, TextKey: string, Role: string? }
 			showLine(table.remove(sayQueue, 1) :: any)
 		end
 		saying = false
+		sayEndedAt = os.clock()
 	end)
+end
+
+-- ¿Hay un globo de diálogo en pantalla (o acaba de irse)? (Main apaga los carteles de hablar mientras)
+function Baby.isSaying(grace: number?): boolean
+	return saying or os.clock() - sayEndedAt < (grace or 0)
 end
 
 ---------------------------------------------------------------------

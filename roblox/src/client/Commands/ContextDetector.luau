@@ -12,6 +12,8 @@
 local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 
+local MenuLogic = require(script.Parent.MenuLogic)
+
 local ContextDetector = {}
 
 export type Target = {
@@ -28,6 +30,7 @@ local shown: { [ProximityPrompt]: boolean } = {}
 local originalKeys: { [ProximityPrompt]: { Keyboard: Enum.KeyCode, Gamepad: Enum.KeyCode } } = {}
 local focus: ProximityPrompt? = nil
 local listeners: { () -> () } = {}
+local lastOrder: { any } = {} -- el orden de la última vez (para que la lista no baile)
 
 -- Nombre del icono de cada tipo (UI/Icons: imagen subida o emoji que se ve en todos los móviles)
 local ICONS = {
@@ -53,7 +56,7 @@ local KEYWORDS = {
 	{ Kind = "Vehicle", Words = { "montar", "subir", "bici", "monopatin", "patinete", "bajar" } },
 	{ Kind = "Shop", Words = { "comprar", "tienda", "pagar", "caja", "pedir", "vender", "taquilla" } },
 	{ Kind = "School", Words = { "clase", "colegio", "cole", "instituto", "aula", "examen", "estudiar", "pupitre" } },
-	{ Kind = "Food", Words = { "comer", "beber", "desayunar", "cenar", "cocinar" } },
+	{ Kind = "Food", Words = { "comer", "beber", "desayunar", "cenar", "cocinar", "comida", "fruta" } },
 	{ Kind = "Bed", Words = { "dormir", "descansar", "cama" } },
 	{ Kind = "Seat", Words = { "sentar", "silla", "banco" } },
 	{ Kind = "Job", Words = { "trabajar", "turno", "repartir", "atender", "cobrar", "patrullar", "apagar" } },
@@ -137,9 +140,21 @@ function ContextDetector.targets(): { Target }
 	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	local from = root and root.Position
 	local list: { Target } = {}
+	local stale = {}
 	for prompt in shown do
-		if prompt.Parent and prompt.Enabled then
-			local at = worldPosition(prompt)
+		local at = worldPosition(prompt)
+		local distance = if from and at then (at - from).Magnitude else math.huge
+		-- Solo lo que se puede usar de verdad: los carteles que se quedaron "a la vista" al apagarse los
+		-- carteles en una conversación (sin aviso de que se ocultaban), los de personajes que tu escena
+		-- oculta o los que ya están lejos no salen (antes salía "Hablar" con alguien lejano u oculto)
+		local ok = MenuLogic.usable({
+			Exists = prompt.Parent ~= nil and prompt:IsDescendantOf(workspace),
+			Enabled = prompt.Enabled,
+			ServiceEnabled = ProximityPromptService.Enabled,
+			Distance = distance,
+			Max = prompt.MaxActivationDistance,
+		})
+		if ok then
 			local kind = kindOf(prompt)
 			table.insert(list, {
 				Prompt = prompt,
@@ -147,14 +162,21 @@ function ContextDetector.targets(): { Target }
 				Icon = ICONS[kind] or ICONS.Other,
 				Label = if prompt.ActionText ~= "" then prompt.ActionText else "Interactuar",
 				Detail = prompt.ObjectText,
-				Distance = if from and at then (at - from).Magnitude else math.huge,
+				Distance = distance,
 			})
+		elseif not prompt.Parent or distance > prompt.MaxActivationDistance + 30 then
+			table.insert(stale, prompt)
 		end
 	end
-	table.sort(list, function(a, b)
-		return a.Distance < b.Distance
+	for _, prompt in stale do
+		shown[prompt] = nil
+	end
+	-- Del más cercano al más lejano, sin bailar (MenuLogic.orderTargets)
+	local ordered, keys = MenuLogic.orderTargets(lastOrder, list, function(target: Target)
+		return target.Prompt
 	end)
-	return list
+	lastOrder = keys
+	return ordered
 end
 
 -- Todo lo que el menú necesita saber para decidir qué comandos enseñar
@@ -201,7 +223,19 @@ end
 
 -- Dispara un cartel como si se hubiera pulsado su tecla (mantiene pulsado si hace falta)
 function ContextDetector.trigger(prompt: ProximityPrompt)
-	if not prompt.Parent or not prompt.Enabled then
+	-- (desde el menú o el botón Interactuar: nunca en una conversación, ni con carteles lejanos u ocultos)
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	local at = worldPosition(prompt)
+	local ok = MenuLogic.usable({
+		Exists = prompt.Parent ~= nil,
+		Enabled = prompt.Enabled,
+		ServiceEnabled = ProximityPromptService.Enabled,
+		Busy = player:GetAttribute("InDialogue") == true,
+		Distance = if root and at then (at - root.Position).Magnitude else nil,
+		Max = prompt.MaxActivationDistance,
+	})
+	if not ok then
 		return
 	end
 	prompt:InputHoldBegin()

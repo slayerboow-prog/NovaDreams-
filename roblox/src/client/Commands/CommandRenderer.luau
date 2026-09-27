@@ -243,7 +243,49 @@ end
 
 -- items: lo que se enseña; selected: cuál va elegido; motion: "push" (entra un submenú),
 -- "pop" (se vuelve atrás) o nil (solo ha cambiado lo que hay alrededor)
+-- Rellena una fila ya hecha con otro comando (sin destruirla: así no parpadea al cambiar lo de alrededor)
+local function refill(row: { [string]: any }, item: Item)
+	Theme.setText(row.Label, item.Label)
+	Theme.setText(row.Detail, item.Detail or "")
+	row.Accent.BackgroundColor3 = if item.Accent then H.Gold else H.Violet
+	if row.IconName ~= item.Icon then
+		row.IconName = item.Icon
+		if row.Icon then
+			row.Icon:Destroy()
+		end
+		row.Icon = Icons.new(item.Icon, { Name = "Icon", Position = UDim2.fromOffset(16, 6), Size = UDim2.fromOffset(ROW_H - 12, ROW_H - 12), ZIndex = 4, Parent = row.Button })
+	end
+	if (item.Badge == true) ~= (row.BadgeDot ~= nil) then
+		if row.BadgeDot then
+			row.BadgeDot:Destroy()
+			row.BadgeDot = nil
+		else
+			row.BadgeDot = create("Frame", { Name = "Badge", AnchorPoint = Vector2.new(0.5, 0.5), Size = UDim2.fromOffset(10, 10), Position = UDim2.new(0, 16, 0, 6), BackgroundColor3 = rgb(255, 70, 90), ZIndex = 5, Parent = row.Button }, {
+				create("UICorner", { CornerRadius = UDim.new(1, 0) }),
+				create("UIStroke", { Color = Color3.new(1, 1, 1), Thickness = 1.5 }),
+			})
+		end
+	end
+end
+
 function CommandRenderer:setItems(items: { Item }, selected: number, motion: string?)
+	if motion == nil and #items == #self.Rows and #items > 0 then
+		-- Mismo número de filas: se cambia el contenido en su sitio (sin rehacerlas ni parpadear)
+		self.Items = items
+		for i, item in items do
+			refill(self.Rows[i], item)
+		end
+		local old = self.Rows[self.Selected]
+		if old then
+			paintRow(old, false)
+		end
+		self.Selected = selected
+		for i, row in self.Rows do
+			paintRow(row, i == selected)
+		end
+		self:window(false)
+		return
+	end
 	for _, row in self.Rows do
 		row.Button:Destroy()
 	end
@@ -273,7 +315,7 @@ function CommandRenderer:setItems(items: { Item }, selected: number, motion: str
 			create("UICorner", { CornerRadius = UDim.new(0, 9) }),
 			create("UIGradient", { Transparency = NumberSequence.new(0, 0.6) }),
 		})
-		create("Frame", {
+		local accent = create("Frame", {
 			Name = "Accent",
 			Position = UDim2.fromOffset(6, 7),
 			Size = UDim2.new(0, 3, 1, -14),
@@ -282,7 +324,7 @@ function CommandRenderer:setItems(items: { Item }, selected: number, motion: str
 			ZIndex = 4,
 			Parent = button,
 		}, { create("UICorner", { CornerRadius = UDim.new(1, 0) }) })
-		Icons.new(item.Icon, { Name = "Icon", Position = UDim2.fromOffset(16, 6), Size = UDim2.fromOffset(ROW_H - 12, ROW_H - 12), ZIndex = 4, Parent = button })
+		local icon = Icons.new(item.Icon, { Name = "Icon", Position = UDim2.fromOffset(16, 6), Size = UDim2.fromOffset(ROW_H - 12, ROW_H - 12), ZIndex = 4, Parent = button })
 		local label = Theme.label({
 			Name = "Label",
 			Position = UDim2.fromOffset(ROW_H + 12, 0),
@@ -307,13 +349,14 @@ function CommandRenderer:setItems(items: { Item }, selected: number, motion: str
 			ZIndex = 4,
 			Parent = button,
 		})
+		local badgeDot = nil
 		if item.Badge then
-			create("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Size = UDim2.fromOffset(10, 10), Position = UDim2.new(0, 16, 0, 6), BackgroundColor3 = rgb(255, 70, 90), ZIndex = 5, Parent = button }, {
+			badgeDot = create("Frame", { Name = "Badge", AnchorPoint = Vector2.new(0.5, 0.5), Size = UDim2.fromOffset(10, 10), Position = UDim2.new(0, 16, 0, 6), BackgroundColor3 = rgb(255, 70, 90), ZIndex = 5, Parent = button }, {
 				create("UICorner", { CornerRadius = UDim.new(1, 0) }),
 				create("UIStroke", { Color = Color3.new(1, 1, 1), Thickness = 1.5 }),
 			})
 		end
-		local row = { Button = button, Body = body, Label = label, Detail = detail }
+		local row = { Button = button, Body = body, Label = label, Detail = detail, Accent = accent, Icon = icon, IconName = item.Icon, BadgeDot = badgeDot }
 		paintRow(row, i == selected)
 		table.insert(self.Rows, row)
 
