@@ -8,6 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Gameplay = require(ReplicatedStorage.Shared.Gameplay)
 local Format = require(ReplicatedStorage.Shared.Format)
+local Stages = require(ReplicatedStorage.Shared.LifeStory.Stages)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Dialog = require(script.Parent.Parent.UI.Dialog)
 local Hud = require(script.Parent.Parent.UI.Hud)
@@ -41,6 +42,19 @@ local function sorted(): { string }
 end
 
 local refresh: (() -> ())? = nil
+
+-- Por qué no puedes comprarlo ahora (nil = sí puedes). Se enseña en la propia ventana: antes solo
+-- salía un aviso arriba, tapado por la ventana, y parecía que el botón no hacía nada.
+local function whyNot(vehicle: { [string]: any }): string?
+	if not Stages.allows(player:GetAttribute("LifeStage"), "Ride", { Ride = vehicle.Stage }) then
+		return "Aún no tienes edad (" .. (STAGE_TEXT[vehicle.Stage] or vehicle.Stage) .. ")"
+	end
+	local money = player:GetAttribute("Money")
+	if typeof(money) == "number" and money < vehicle.Price then
+		return "Te faltan " .. Format.money(vehicle.Price - money)
+	end
+	return nil
+end
 
 local function open()
 	local window, content = Dialog.window("Vehicles", "🚲 Mis vehículos", Vector2.new(480, 520))
@@ -92,7 +106,20 @@ local function open()
 				end
 				window:Destroy()
 			else
+				local reason = whyNot(vehicle)
+				if reason then
+					info.Text = "⚠️ " .. reason
+					info.TextColor3 = Color3.fromRGB(255, 120, 100)
+					return
+				end
+				button.Text = "Comprando…"
 				Remote:FireServer("Buy", key)
+				-- Si el servidor no contesta (sin cambios en 3 s) se deja el botón como estaba
+				task.delay(3, function()
+					if refresh and button.Parent and button.Text == "Comprando…" then
+						refresh()
+					end
+				end)
 			end
 		end)
 		rows[key] = { Info = info, Button = button }
@@ -112,12 +139,13 @@ local function open()
 				needs ..= " · necesita " .. Gameplay.Licenses[vehicle.License].Name
 			end
 			row.Info.Text = ("Velocidad %d · %s"):format(vehicle.Speed, needs)
+			row.Info.TextColor3 = C.Muted
 			if has("OwnedVehicles", key) then
 				row.Button.Text = if player:GetAttribute("Riding") == key then "Bajarse" else "Montar"
 				row.Button.BackgroundColor3 = Color3.fromRGB(0, 140, 200)
 			else
 				row.Button.Text = "Comprar " .. Format.money(vehicle.Price)
-				row.Button.BackgroundColor3 = Color3.fromRGB(0, 150, 80)
+				row.Button.BackgroundColor3 = if whyNot(vehicle) then Color3.fromRGB(110, 110, 120) else Color3.fromRGB(0, 150, 80)
 			end
 		end
 	end
@@ -163,7 +191,7 @@ function Vehicles.init()
 			refresh()
 		end
 	end
-	for _, attribute in { "Riding", "OwnedVehicles", "Licenses" } do
+	for _, attribute in { "Riding", "OwnedVehicles", "Licenses", "Money", "LifeStage" } do
 		player:GetAttributeChangedSignal(attribute):Connect(update)
 	end
 	update()
