@@ -40,7 +40,7 @@ export type Pose = {
 
 export type PropPart = {
 	Name: string,
-	Hand: "Right" | "Left",
+	Hand: "Right" | "Left" | "Torso", -- se sujeta a esa mano (o al pecho: la guitarra)
 	Size: Vector3,
 	Offset: CFrame, -- desde la mano (se sujeta con una soldadura a esa mano)
 	Color: Color3,
@@ -130,6 +130,32 @@ local PROPS: { [string]: { PropPart } } = {
 	Book = {
 		{ Name = "Libro", Hand = "Left", Size = Vector3.new(1.2, 0.12, 0.9), Offset = CFrame.new(0.09, -0.32, -0.16) * CFrame.Angles(-0.42, 0.91, -0.86), Color = rgb(150, 40, 40) },
 		{ Name = "Hojas", Hand = "Left", Size = Vector3.new(1.1, 0.03, 0.8), Offset = CFrame.new(0.12, -0.30, -0.21) * CFrame.Angles(-0.42, 0.91, -0.86), Color = rgb(250, 248, 238) },
+	},
+	Hose = {
+		{ Name = "Boquilla", Hand = "Right", Size = Vector3.new(0.28, 0.9, 0.28), Offset = CFrame.new(0.36, -0.25, 0.11) * CFrame.Angles(-2.40, 0.60, -1.32), Color = rgb(60, 62, 66), Material = Enum.Material.Metal },
+		{ Name = "Manguera", Hand = "Left", Size = Vector3.new(0.3, 3.64, 0.3), Offset = CFrame.new(1.17, -0.72, 1.19) * CFrame.Angles(0.70, -0.86, -1.54), Color = rgb(200, 40, 40), Material = Enum.Material.Plastic },
+	},
+	Garden = {
+		{ Name = "Regadera", Hand = "Right", Size = Vector3.new(0.6, 0.7, 0.9), Offset = CFrame.new(0.16, -0.20, 0.34) * CFrame.Angles(-1.30, -0.38, 0.27), Color = rgb(60, 150, 90), Material = Enum.Material.Plastic },
+		{ Name = "Pitorro", Hand = "Right", Size = Vector3.new(0.12, 0.9, 0.12), Offset = CFrame.new(0.40, -0.88, -0.11) * CFrame.Angles(-2.55, -0.39, -0.26), Color = rgb(60, 150, 90), Material = Enum.Material.Plastic },
+	},
+	Hammer = {
+		{ Name = "Mango", Hand = "Right", Size = Vector3.new(0.14, 1, 0.14), Offset = CFrame.new(0.36, -0.17, -0.05) * CFrame.Angles(-2.53, 0.14, -1.14), Color = rgb(150, 105, 60), Material = Enum.Material.Wood },
+		{ Name = "Cabeza", Hand = "Right", Size = Vector3.new(0.28, 0.6, 0.28), Offset = CFrame.new(0.75, -0.38, -0.07) * CFrame.Angles(-1.46, -1.07, -0.51), Color = rgb(90, 92, 98), Material = Enum.Material.Metal },
+	},
+	Rake = {
+		{ Name = "Palo", Hand = "Right", Size = Vector3.new(0.14, 4.6, 0.14), Offset = CFrame.new(0.72, -1.41, 0.62) * CFrame.Angles(-2.94, 0.89, -0.71), Color = rgb(150, 105, 60), Material = Enum.Material.Wood },
+		{ Name = "Peine", Hand = "Right", Size = Vector3.new(1.5, 0.15, 0.25), Offset = CFrame.new(1.65, -3.24, 1.41) * CFrame.Angles(-0.82, -1.06, -0.16), Color = rgb(90, 92, 98), Material = Enum.Material.Metal },
+		{ Name = "Dientes", Hand = "Right", Size = Vector3.new(1.4, 0.3, 0.08), Offset = CFrame.new(1.68, -3.41, 1.52) * CFrame.Angles(-0.82, -1.06, -0.16), Color = rgb(90, 92, 98), Material = Enum.Material.Metal },
+	},
+	Guitar = {
+		{ Name = "Caja", Hand = "Torso", Size = Vector3.new(1.3, 1.6, 0.35), Offset = CFrame.new(0.30, -0.75, -0.72) * CFrame.Angles(-0.00, 0.00, 0.61), Color = rgb(170, 100, 45), Material = Enum.Material.Wood },
+		{ Name = "Boca", Hand = "Torso", Size = Vector3.new(0.45, 0.45, 0.02), Offset = CFrame.new(0.30, -0.75, -0.91) * CFrame.Angles(-0.00, 0.00, -0.00), Color = rgb(40, 25, 15) },
+		{ Name = "Mastil", Hand = "Torso", Size = Vector3.new(0.2, 0.99, 0.12), Offset = CFrame.new(-0.61, -0.22, -0.80) * CFrame.Angles(-1.57, 0.38, 1.57), Color = rgb(60, 40, 25), Material = Enum.Material.Wood },
+	},
+	Mop = {
+		{ Name = "Palo", Hand = "Right", Size = Vector3.new(0.14, 4.4, 0.14), Offset = CFrame.new(0.48, -1.41, 0.82) * CFrame.Angles(3.04, 0.95, -0.39), Color = rgb(70, 130, 200), Material = Enum.Material.Plastic },
+		{ Name = "Mocho", Hand = "Right", Size = Vector3.new(0.9, 0.45, 0.9), Offset = CFrame.new(1.05, -3.11, 1.81) * CFrame.Angles(-0.70, -1.00, -0.11), Color = rgb(220, 220, 215), Material = Enum.Material.Fabric },
 	},
 }
 
@@ -431,7 +457,164 @@ works.Traffic = {
 	end,
 }
 
+-- Llevar algo con las dos manos delante (cajas, platos, paquetes): también andando
+works.Carry = {
+	Walk = true,
+	Pose = function(t, seed, out)
+		right(out, 0.6, 0, -0.4, 0.2)
+		left(out, 0.6, 0, -0.4, 0.2)
+		out.wp = 0.04 -- un poco hacia atrás, por el peso
+		out.Look = 1
+	end,
+}
+
+-- Bombero: sujeta la manguera con las dos manos y riega de lado a lado
+works.Hose = {
+	Pose = function(t, seed, out)
+		local s = sin(t * 1.3 + seed)
+		out.wy = s * 0.3
+		out.wp = -0.06
+		out.np = -0.1
+		out.ny = s * 0.1
+		right(out, 0.9, 1.35, -0.4, 0.6)
+		left(out, 0.25, 1.55, 0, 0.9)
+		out.re += sin(t * 17 + seed) * 0.02 -- tiembla con la presión del agua
+		out.Look = 0.3
+	end,
+	Prop = PROPS.Hose,
+}
+
+-- Jardinero: riega con la regadera, inclinándola de vez en cuando
+works.Garden = {
+	Pose = function(t, seed, out)
+		local pour = smoothstep(window(cycle(t, 6, seed), 0.2, 0.6, 0.1))
+		out.wp = -0.08 * pour
+		out.np = -0.35 * pour - 0.1
+		right(out, mix(0, 0.45, pour), mix(0.7, 0.25, pour), mix(0, -0.4, pour), mix(1.05, 0.95, pour))
+		out.Look = 1 - pour
+	end,
+	Prop = PROPS.Garden,
+}
+
+-- Mecánico u obrero: martillea sujetando el clavo con la otra mano
+works.Hammer = {
+	Pose = function(t, seed, out)
+		local f = cycle(t, 5, seed)
+		local busy = 1 - smoothstep(window(f, 0.72, 0.9, 0.06))
+		-- Sube despacio y baja de golpe
+		local k = (t * 1.4 + seed) % 1
+		local up = if k < 0.6 then smoothstep(k / 0.6) else 1 - smoothstep((k - 0.6) / 0.4)
+		up *= busy
+		out.wp = -0.12 * busy
+		out.np = -0.4 * busy
+		right(out, mix(0.7, 0.05, up), mix(1.1, 1.0, up), mix(-0.4, -0.1, up), mix(0.7, 1.95, up), busy)
+		left(out, 0.4, 1.55, 0, 0.75, busy)
+		handsFront(out, 1 - busy)
+		out.Look = 1 - busy
+	end,
+	Prop = PROPS.Hammer,
+}
+
+-- Granjero: rastrilla la tierra, tirando hacia sí
+works.Rake = {
+	Pose = function(t, seed, out)
+		local s = (sin(t * 1.8 + seed) + 1) / 2 -- 0 = rastrillo cerca, 1 = estirado
+		out.wp = -0.1 - s * 0.06
+		out.np = -0.35
+		right(out, mix(0.45, 0.65, s), mix(1.2, 0.85, s), -0.4, mix(0.45, 0.35, s))
+		left(out, mix(0.65, 0.5, s), mix(1.5, 1.55, s), mix(-0.4, 0, s), mix(1.15, 1.0, s))
+		out.Look = lookUp(t, seed, 12, 2)
+	end,
+	Prop = PROPS.Rake,
+}
+
+-- Músico callejero: toca la guitarra y mueve la cabeza al ritmo
+works.Guitar = {
+	Pose = function(t, seed, out)
+		local beat = t * 4.4 + seed
+		local strum = (sin(beat) + 1) / 2
+		out.np = -0.12 + sin(beat * 0.5) * 0.06
+		out.nr = sin(beat * 0.5) * 0.06
+		out.wr = sin(beat * 0.5) * 0.02
+		left(out, 0, 0.15, -0.4, 1.9)
+		left(out, sin(t * 0.7 + seed) * 0.05, 0, 0, 0) -- cambia de acorde
+		right(out, mix(0.15, 0, strum), mix(1.1, 1.55, strum), mix(-0.4, 0, strum), mix(1.1, 0.85, strum))
+		out.Look = lookUp(t, seed, 9, 3)
+	end,
+	Prop = PROPS.Guitar,
+}
+
+-- Fregar el suelo (limpieza): como barrer, con la fregona
+works.Mop = {
+	Pose = works.Sweep.Pose,
+	Prop = PROPS.Mop,
+}
+
 WorkAnim.Works = works
+
+---------------------------------------------------------------------
+-- Objetos en la mano (los crea cada jugador en su pantalla: ActorLife para los personajes y
+-- AgeMotion para los jugadores)
+---------------------------------------------------------------------
+
+export type HeldProp = { Part: BasePart, Hand: BasePart, Alpha: number }
+
+local ATTACH = { Right = "RightHand", Left = "LeftHand", Torso = "UpperTorso" }
+
+function WorkAnim.makeProps(model: Model, work: Work): { HeldProp }
+	local list = {}
+	for _, spec in work.Prop or {} do
+		local hand = model:FindFirstChild(ATTACH[spec.Hand] or "")
+		if not hand or not hand:IsA("BasePart") then
+			continue
+		end
+		local part = Instance.new("Part")
+		part.Name = "WorkProp_" .. spec.Name
+		part.Size = spec.Size
+		part.Color = spec.Color
+		part.Material = spec.Material or Enum.Material.SmoothPlastic
+		if spec.Shape then
+			part.Shape = spec.Shape
+		end
+		part.Anchored = false
+		part.CanCollide = false
+		part.CanQuery = false
+		part.CanTouch = false
+		part.Massless = true
+		part.CastShadow = false
+		part.Transparency = 1 -- se enseña cuando empieza la tarea
+		part.CFrame = hand.CFrame * spec.Offset
+		local weld = Instance.new("Weld")
+		weld.Part0 = hand
+		weld.Part1 = part
+		weld.C0 = spec.Offset
+		weld.Parent = part
+		part.Parent = model
+		table.insert(list, { Part = part, Hand = hand, Alpha = spec.Transparency or 0 })
+	end
+	return list
+end
+
+function WorkAnim.clearProps(list: { HeldProp })
+	for _, prop in list do
+		prop.Part:Destroy()
+	end
+	table.clear(list)
+end
+
+-- Se ven solo mientras hace la tarea, y se ocultan con el personaje (SceneClient, primera persona)
+function WorkAnim.showProps(list: { HeldProp }, shown: boolean)
+	for _, prop in list do
+		local hidden = prop.Hand.LocalTransparencyModifier
+		if prop.Part.LocalTransparencyModifier ~= hidden then
+			prop.Part.LocalTransparencyModifier = hidden
+		end
+		local want = if shown then prop.Alpha else 1
+		if prop.Part.Transparency ~= want then
+			prop.Part.Transparency = want
+		end
+	end
+end
 
 function WorkAnim.get(name: any): Work?
 	if type(name) ~= "string" then

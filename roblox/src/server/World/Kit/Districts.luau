@@ -26,6 +26,7 @@ local Supermarket = require(script.Parent.Supermarket)
 local Building = require(script.Parent.Building)
 local FishingKit = require(script.Parent.FishingKit)
 local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
+local Toys = require(ReplicatedStorage.Shared.Toys)
 
 local Districts = {}
 
@@ -300,6 +301,7 @@ builders.Deporte = function(m, rect)
 	local cf, w, d = inner(rect, 14)
 	local pw, pd = math.min(w - 20, 110), math.min(d - 20, 70)
 	Builder.part({ Name = "Pitch", Size = Vector3.new(pw, 0.3, pd), CFrame = cf * CFrame.new(0, 0.15, 0), Color = rgb(70, 146, 66), Material = Enum.Material.Grass, Parent = m })
+	Toys.make("Futbol", cf * CFrame.new(0, 1.35, 0), m) -- en el centro del campo (ToyService)
 	local white = rgb(245, 245, 245)
 	for _, l in { { pw, 0.5, 0, -pd / 2 + 1 }, { pw, 0.5, 0, pd / 2 - 1 }, { 0.5, pd, -pw / 2 + 1, 0 }, { 0.5, pd, pw / 2 - 1, 0 }, { 0.5, pd, 0, 0 } } do
 		Builder.decor({ Name = "Line", Size = Vector3.new(l[1], 0.06, l[2]), CFrame = cf * CFrame.new(l[3], 0.33, l[4]), Color = white, Parent = m })
@@ -631,6 +633,18 @@ local WORKERS: { [string]: { string } } = {
 	Hotel = { "Recepcionista" },
 }
 
+-- Oficios de la calle: en algunas manzanas de cada tipo (Chance), no en todas, para que no haya
+-- demasiada gente (cada uno hace su tarea: WorldService + Controllers/WorkAnim)
+local STREET_WORKERS: { [string]: { Chance: number, Roles: { string } } } = {
+	Parque = { Chance = 0.5, Roles = { "Jardinero" } },
+	Taller = { Chance = 1, Roles = { "Mecánico" } },
+	Industrial = { Chance = 0.35, Roles = { "Obrero" } },
+	Campo = { Chance = 1, Roles = { "Granjero" } },
+	Ocio = { Chance = 1, Roles = { "Músico" } },
+	Comercio = { Chance = 0.25, Roles = { "Músico" } },
+	Downtown = { Chance = 0.2, Roles = { "Limpiador" } },
+}
+
 -- Busca sitios libres cerca del borde de la manzana (sin paredes ni muebles encima)
 local function workerSpots(block: Instance, cell: Rect, roles: { string })
 	local boxes = {}
@@ -718,6 +732,12 @@ function Districts.build(world: Instance, towns: { Vector3 })
 		end
 		if WORKERS[cell.Kind] then
 			workerSpots(block, cell, WORKERS[cell.Kind])
+		end
+		-- (sin math.random: si no, cambiaría todo lo que se sortea después y el mapa saldría distinto)
+		local street = STREET_WORKERS[cell.Kind]
+		local luck = (math.sin(cell.X0 * 12.9898 + cell.Z0 * 78.233) * 43758.5453) % 1
+		if street and luck < street.Chance then
+			workerSpots(block, cell, street.Roles)
 		end
 	end
 	return folder

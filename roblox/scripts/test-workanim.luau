@@ -127,11 +127,12 @@ for _, name in names do
 	check(sane, name .. ": ángulos razonables en todo momento")
 	check(smooth, name .. ": se mueve suave, sin tirones")
 	check(not inside, name .. ": las manos quedan fuera del torso")
-	-- (el camarero con la bandeja y el guardia vigilando miran alrededor todo el rato)
-	check(looks or name == "Tray" or name == "Guard", name .. ": hay ratos en que está metido en su tarea")
+	-- (llevando algo, con la bandeja, la manguera o vigilando miran alrededor todo el rato)
+	local alwaysLooking = { Tray = true, Guard = true, Carry = true, Hose = true }
+	check(looks or alwaysLooking[name] == true, name .. ": hay ratos en que está metido en su tarea")
 	for _, prop in work.Prop or {} do
 		local ok = type(prop.Name) == "string"
-			and (prop.Hand == "Right" or prop.Hand == "Left")
+			and (prop.Hand == "Right" or prop.Hand == "Left" or prop.Hand == "Torso")
 			and typeof(prop.Size) == "Vector3"
 			and typeof(prop.Offset) == "CFrame"
 			and typeof(prop.Color) == "Color3"

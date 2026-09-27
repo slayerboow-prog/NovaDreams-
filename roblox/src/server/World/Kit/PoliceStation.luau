@@ -91,7 +91,7 @@ function PoliceStation.build(model: Model, at: (number, number, number) -> CFram
 	end
 	for k, color in { rgb(200, 30, 40), rgb(250, 200, 30), BLUE } do
 		bit("FlagPole", Vector3.new(0.15, 7, 0.15), at(4 + k * 1.5, 3.5, back - 1), rgb(210, 190, 120), Enum.Material.Metal)
-		bit("Flag", Vector3.new(1.2, 1.6, 0.05), at(4.6 + k * 1.5, 6, back - 1), color, Enum.Material.Fabric)
+		bit("Flag", Vector3.new(1.2, 1.6, 0.05), at(4.6 + k * 1.5, 6, back - 1), color, Enum.Material.Fabric):AddTag("Flag")
 	end
 	bit("Emblem", Vector3.new(3, 3, 0.1), at(0, 8, back - 0.6), BLUE)
 	local emblem = bit("EmblemText", Vector3.new(2.6, 0.8, 0.05), at(0, 8, back - 0.66), BLUE)
