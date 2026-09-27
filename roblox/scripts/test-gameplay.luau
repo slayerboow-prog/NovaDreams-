@@ -316,6 +316,7 @@ local remotes = {
 	Cinema = remote(),
 	Hotel = remote(),
 	Trade = remote(),
+	Fishing = remote(),
 }
 function remotes:WaitForChild(name)
 	return self[name]
@@ -1190,6 +1191,8 @@ local kiosk = sp("SelfCheckout", Vector3.new(520, 2, 482), { "SuperSelfCheckout"
 local deli = sp("DeliCounter", Vector3.new(480, 2, 500), { "SuperDeli" }, { StaffSpot = Vector3.new(477, 0.4, 500), CustomerSpot = Vector3.new(484, 0.4, 500) })
 local stockPoint = sp("StockPoint", Vector3.new(500, 2, 525), { "SuperStock" })
 local superBoard = sp("StaffBoard", Vector3.new(495, 4, 478), { "SuperBoard" })
+local sardineShelf = sp("Section_Sardinas", Vector3.new(482, 4, 510), { "SuperShelf" }, { Product = "Sardinas" })
+sp("FishCounter", Vector3.new(482, 2, 512), { "SuperFish" })
 
 local SupermarketService = loadModule(S .. "SupermarketService")
 SupermarketService.init()
@@ -1197,6 +1200,7 @@ local shopper, shopperRoot = newPlayer(30, "Adulto", 100)
 moveTo(shopperRoot, Vector3.new(500, 0, 495))
 local startStock = milk:GetAttribute("Stock")
 check(startStock ~= nil and startStock > 0 and promptOf(milk, "Coger") ~= nil, "las estanterías tienen productos y cartel Coger")
+check(sardineShelf:GetAttribute("Stock") == 0, "el pescado empieza vacío: lo traen los pescadores")
 promptOf(milk, "Coger").Triggered:Fire(shopper)
 promptOf(milk, "Coger").Triggered:Fire(shopper)
 local function cartOf(player)
@@ -2081,6 +2085,122 @@ check(#lastMessage(ana, "Market")[2] == 0, "el anuncio se quita al venderse")
 T:Fire(ana, "List", "Pan", 1, 20)
 players.PlayerRemoving:Fire(ana)
 check(#lastMessage(ben, "Market")[2] == 0, "si el vendedor se va, sus anuncios se quitan")
+end)()
+
+;(function()
+print("▶ Pesca: cañas, cebo, pescar, vender en la pescadería, barco y pescador")
+local Fishing = loadModule(ROOT .. "/shared/Fishing")
+Fishing.BiteMin, Fishing.BiteMax = 0.2, 0.3 -- en la prueba pican enseguida
+local spot = part("FishingSpot", CFrame.new(4000, 3.5, 4000), { "FishingSpot" }, { Water = "Mar", CastDistance = 10 })
+spot.Size = Vector3.new(3, 5, 3)
+spot.Parent = worldRoot
+local shopCounter = part("FishingShopCounter", CFrame.new(4010, 2, 4000), { "FishingShopCounter" })
+shopCounter.Parent = worldRoot
+local dock = part("BoatDock", CFrame.new(4020, 4, 4000), { "FishingBoatDock" })
+dock.Parent = worldRoot
+local deck = part("Deck spawn", CFrame.new(4300, 3, 4300), { "FishingBoatDeck" })
+deck.Parent = worldRoot
+local FishingService = loadModule(S .. "FishingService")
+FishingService.init()
+check(jobProviders.Handler_Pescador ~= nil, "el tablón del puerto lleva al oficio de pescador")
+local fisher, fisherRoot = newPlayer(81, "Adulto", 200)
+profiles[fisher].Items = {}
+InventoryService.refresh(fisher)
+moveTo(fisherRoot, Vector3.new(4000, 0, 4000))
+promptOf(spot, "Pescar").Triggered:Fire(fisher)
+check(notified(fisher, "Necesitas una caña"), "sin caña no se puede pescar")
+-- Tienda de pesca
+moveTo(fisherRoot, Vector3.new(4008, 0, 4000))
+promptOf(shopCounter, "Comprar").Triggered:Fire(fisher)
+check(lastMessage(fisher, "Shop") ~= nil and #lastMessage(fisher, "Shop")[2] == 3, "la tienda enseña las cañas y el cebo")
+local F = remotes.Fishing.OnServerEvent
+F:Fire(fisher, "Buy", "CanaPescar")
+F:Fire(fisher, "Buy", "Cebo")
+check(InventoryService.count(fisher, "CanaPescar") == 1 and InventoryService.count(fisher, "Cebo") == Fishing.Bait.Pack, "compra una caña y un paquete de cebo")
+check(profiles[fisher].Money == 200 - Fishing.Rods.CanaPescar.Price - Fishing.Bait.Price, "paga la caña y el cebo")
+F:Fire(fisher, "Buy", "CanaPescar")
+check(notified(fisher, "Ya tienes"), "no compra dos cañas iguales")
+-- Pescar
+moveTo(fisherRoot, Vector3.new(4000, 0, 4000))
+promptOf(spot, "Pescar").Triggered:Fire(fisher)
+local cast = lastMessage(fisher, "Cast")
+check(cast ~= nil and cast[2].Bobber.Y < 0, "se lanza el sedal y el corcho cae al agua")
+check(InventoryService.count(fisher, "Cebo") == Fishing.Bait.Pack - 1, "cada lanzamiento gasta un cebo")
+F:Fire(fisher, "Reel", cast[2].Token)
+check(lastMessage(fisher, "Result")[2].Kind == "Early", "si tiras antes de que pique, el pez se asusta")
+local caught = nil
+for _ = 1, 15 do
+	F:Fire(fisher, "Again")
+	local c = lastMessage(fisher, "Cast")
+	task.wait(0.45)
+	local bite = lastMessage(fisher, "Bite")
+	if bite and bite[2].Token == c[2].Token then
+		F:Fire(fisher, "Reel", c[2].Token)
+		local r = lastMessage(fisher, "Result")[2]
+		if r.Kind == "Catch" then
+			caught = r
+			break
+		end
+	end
+end
+check(caught ~= nil, "cuando pica y tiras a tiempo, sacas un pez")
+local fishInBag = 0
+for _, sp in Fishing.Species do
+	fishInBag += InventoryService.count(fisher, sp.Item)
+end
+check(fishInBag >= 1, "el pez va a la mochila")
+-- Tardar demasiado
+F:Fire(fisher, "Again")
+local slow = lastMessage(fisher, "Cast")[2].Token
+task.wait(0.35 + Fishing.Window + 0.6)
+check(lastMessage(fisher, "Result")[2].Kind == "Late" and lastMessage(fisher, "Result")[2].Token == slow, "si tardas en tirar, se escapa")
+-- Vender en la pescadería
+local counter = nil
+for _, c in services.CollectionService:GetTagged("SuperFish") do
+	counter = c
+end
+local sardineShelf = nil
+for _, d in counter.Parent:GetDescendants() do
+	if d:GetAttribute("Product") == "Sardinas" then
+		sardineShelf = d
+	end
+end
+InventoryService.add(fisher, "Pez_Sardina", 3)
+local sardinesToSell = InventoryService.count(fisher, "Pez_Sardina")
+local moneyBefore = profiles[fisher].Money
+local stockBefore = sardineShelf:GetAttribute("Stock") or 0
+promptOf(counter, "Vender pescado").Triggered:Fire(fisher)
+check(InventoryService.count(fisher, "Pez_Sardina") == 0 and sardineShelf:GetAttribute("Stock") == math.min(stockBefore + sardinesToSell, loadModule(ROOT .. "/shared/Groceries").StockMax), "las sardinas pasan al mostrador del supermercado")
+check(profiles[fisher].Money >= moneyBefore + 3 * Fishing.byId.Sardina.Price, "el supermercado paga el pescado")
+-- Barco de pesca (alquiler)
+moneyBefore = profiles[fisher].Money
+moveTo(fisherRoot, Vector3.new(4020, 0, 4000))
+promptOf(dock, "Subir al barco de pesca").Triggered:Fire(fisher)
+check(profiles[fisher].Money == moneyBefore - Fishing.BoatPrice and fisher:GetAttribute("BoatReturn") ~= nil, "se alquila el barco y subes a alta mar (y sabe por dónde volver)")
+-- Pescador de turno: le prestan una caña y el barco le sale gratis
+local pro, proRoot = newPlayer(82, "AdultoJoven", 50)
+profiles[pro].Items = {}
+InventoryService.refresh(pro)
+moveTo(proRoot, Vector3.new(4020, 0, 4000))
+FishingService.start(pro)
+check(pro:GetAttribute("Job") == "Pescador" and InventoryService.count(pro, "CanaPescar") == 1, "al empezar de pescador te prestan una caña")
+promptOf(dock, "Subir al barco de pesca").Triggered:Fire(pro)
+check(profiles[pro].Money == 50, "el barco es gratis para los pescadores")
+InventoryService.add(pro, "Pez_Sardina", 2)
+local jobEvents = 0
+local conn = StoryEventsModule.connect(function(p, name, payload)
+	if p == pro and name == "JobTaskDone" and payload.JobId == "Pescador" then
+		jobEvents += 1
+	end
+end)
+promptOf(counter, "Vender pescado").Triggered:Fire(pro)
+check(profiles[pro].Money >= 50 + math.floor(2 * Fishing.byId.Sardina.Price * Fishing.Job.PayBonus), "de pescador cobras más por el pescado")
+check(jobEvents == 1, "cada venta del pescador cuenta para la historia")
+if conn and conn.Disconnect then
+	conn:Disconnect()
+end
+FishingService.quit(pro)
+check(pro:GetAttribute("Job") == nil and InventoryService.count(pro, "CanaPescar") == 0, "al acabar el turno devuelves la caña prestada")
 end)()
 
 end, debug.traceback)

@@ -79,6 +79,7 @@ local stores: { Store } = {}
 local carts: { [Player]: Cart } = {}
 local sessions: { [string]: any } = {}
 local jobs: { [Player]: { Role: string, Store: Store, Lane: Lane? } } = {}
+local isFishShelf: (Instance) -> boolean
 
 ---------------------------------------------------------------------
 -- Utilidades
@@ -170,6 +171,12 @@ local function setStock(shelf: BasePart, stock: number)
 		prompt.Enabled = stock > 0
 		prompt.ObjectText = ("%s %s · %s"):format(product.Icon, product.Name, Format.money(product.Price))
 	end
+end
+
+-- El pescado no se repone solo (lo traen los pescadores)
+function isFishShelf(shelf: Instance): boolean
+	local product = Groceries.byId[shelf:GetAttribute("Product")]
+	return product ~= nil and product.Supply == "Fish"
 end
 
 local function take(shelf: BasePart): boolean
@@ -928,6 +935,9 @@ JobService.setProvider("Reponedor", {
 		end
 		local best, bestStock = nil, math.huge
 		for _, shelf in store.Shelves do
+			if isFishShelf(shelf) then
+				continue -- el pescado lo traen los pescadores
+			end
 			local stock = (shelf:GetAttribute("Stock") or 0) + math.random() * 0.5
 			if stock < bestStock then
 				best, bestStock = shelf, stock
@@ -1020,8 +1030,9 @@ local function setupStore(model: Instance)
 			p.Triggered:Connect(function(player)
 				onTake(player, shelf)
 			end)
-			-- Unas llenas y otras a medias (como en una tienda de verdad)
-			setStock(shelf, math.random(6, Groceries.StockMax))
+			-- Unas llenas y otras a medias (como en una tienda de verdad). El pescado empieza
+			-- vacío: solo hay el que traen los pescadores.
+			setStock(shelf, if product.Supply == "Fish" then 0 else math.random(6, Groceries.StockMax))
 		end
 	end
 	-- Cajas
@@ -1205,7 +1216,7 @@ function SupermarketService.init()
 				if not restocker and os.clock() - (lastRestock[store] or 0) > Groceries.NpcRestockEvery then
 					lastRestock[store] = os.clock()
 					for _, shelf in store.Shelves do
-						if (shelf:GetAttribute("Stock") or 0) <= 2 then
+						if (shelf:GetAttribute("Stock") or 0) <= 2 and not isFishShelf(shelf) then
 							setStock(shelf, Groceries.StockMax)
 							break
 						end
@@ -1220,6 +1231,39 @@ function SupermarketService.init()
 			end
 		end
 	end)
+end
+
+---------------------------------------------------------------------
+-- Pescadería (la llenan los pescadores: FishingService)
+---------------------------------------------------------------------
+
+-- Cuántos caben todavía de un producto en la tienda de ese mostrador
+function SupermarketService.fishRoom(part: Instance, productId: string): number
+	local store = storeOfPart(part)
+	local room = 0
+	for _, shelf in if store then store.Shelves else {} do
+		if shelf:GetAttribute("Product") == productId then
+			room += Groceries.StockMax - (shelf:GetAttribute("Stock") or 0)
+		end
+	end
+	return room
+end
+
+-- Mete pescado en las estanterías de esa tienda. Devuelve cuántos han cabido.
+function SupermarketService.addFish(part: Instance, productId: string, count: number): number
+	local store = storeOfPart(part)
+	local added = 0
+	for _, shelf in if store then store.Shelves else {} do
+		if shelf:GetAttribute("Product") == productId then
+			local stock = shelf:GetAttribute("Stock") or 0
+			local put = math.min(count - added, Groceries.StockMax - stock)
+			if put > 0 then
+				setStock(shelf, stock + put)
+				added += put
+			end
+		end
+	end
+	return added
 end
 
 return SupermarketService

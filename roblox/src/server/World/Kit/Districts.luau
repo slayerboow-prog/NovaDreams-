@@ -23,6 +23,8 @@ local Nature = require(script.Parent.Nature)
 local Props = require(script.Parent.Props)
 local Palette = require(script.Parent.Palette)
 local Supermarket = require(script.Parent.Supermarket)
+local Building = require(script.Parent.Building)
+local FishingKit = require(script.Parent.FishingKit)
 local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
 
 local Districts = {}
@@ -387,6 +389,33 @@ builders.SupermercadoOeste = supermarket("Mediano", "Supermercado Poniente")
 builders.SupermercadoSur = supermarket("Mediano", "Supermercado Sur")
 builders.SupermercadoCampus = supermarket("Mediano", "Supermercado Campus")
 
+-- Tienda de pesca: en una manzana de tiendas del centro, con la tienda en medio de la fachada sur
+builders.TiendaPesca = function(m, rect)
+	local lot = Blocks.lot(rect, "S")
+	local W, D = 30, 28
+	local cf = lot.facing(0, D / 2, 0)
+	local shop = Building.build({
+		Name = "TiendaPesca",
+		Parent = m,
+		CFrame = cf,
+		Width = W,
+		Depth = D,
+		Floors = 2,
+		Style = "Clasico",
+		GroundFloor = "Shop",
+		WindowFaces = { Front = true },
+		Sign = "🎣 PESCA VALMAR",
+		ShopId = "Pesca",
+		Awning = rgb(30, 90, 140),
+	})
+	FishingKit.shop(shop, cf * CFrame.new(0, Building.FLOOR_TOP, 0), W, D)
+	-- El resto de la fachada sur y los otros lados: tiendas y pisos como en el resto del centro
+	local styles, floors = { "Clasico", "Moderno", "Popular" }, { 3, 6 }
+	Blocks.row(m, lot, -lot.Length / 2 + 28, -W / 2, styles, floors)
+	Blocks.row(m, lot, W / 2, lot.Length / 2 - 28, styles, floors)
+	Blocks.downtown(m, rect, { "N", "E", "W" }, styles, floors)
+end
+
 -- Dónde va cada uno (se elige la manzana más cercana a ese punto, dentro de su distrito)
 local LANDMARKS = {
 	{ "TorreValmar", "Centro", 750, -750 },
@@ -398,6 +427,7 @@ local LANDMARKS = {
 	{ "HospitalCentral", "Centro", 375, 875 },
 	{ "ComisariaCentral", "Centro", -375, 625 },
 	{ "ColegioCentro", "Centro", 1000, 125 },
+	{ "TiendaPesca", "Centro", 375, 125 },
 	{ "ColegioNorte", "Norte", 0, -1500 },
 	{ "ColegioOeste", "Oeste", -2100, 600 },
 	{ "ClinicaOeste", "Oeste", -2300, 1500 },
@@ -468,7 +498,7 @@ end
 local PAVED = {
 	Towers = true, Downtown = true, Comercio = true, Industrial = true, Taller = true, Parking = true, Ocio = true, Oficinas = true,
 	TorreValmar = true, Ayuntamiento = true, EstacionCentral = true, EstacionAutobuses = true, Museo = true, Teatro = true,
-	GranCentroComercial = true, Feria = true,
+	GranCentroComercial = true, Feria = true, TiendaPesca = true,
 	Hipermercado = true, SupermercadoNorte = true, SupermercadoOeste = true, SupermercadoSur = true, SupermercadoCampus = true,
 }
 

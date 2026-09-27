@@ -56,6 +56,9 @@
         "Trade": {
           "$className": "RemoteEvent"
         },
+        "Fishing": {
+          "$className": "RemoteEvent"
+        },
         "LifeStory": {
           "$className": "RemoteEvent"
         },

@@ -22,6 +22,7 @@ local Groceries = require(script.Parent.Groceries)
 local CafeMenu = require(script.Parent.CafeMenu)
 local Cinema = require(script.Parent.Cinema)
 local Hotel = require(script.Parent.Hotel)
+local Fishing = require(script.Parent.Fishing)
 
 local Items = {}
 
@@ -202,6 +203,22 @@ list[Hotel.KeyItem] = {
 	Desc = "La llave de tu habitación. Úsala en el ascensor del hotel para subir a descansar.",
 	Stack = 4,
 }
+
+-- Pesca: cañas, cebo y lo que pescas (se vende en la pescadería del supermercado)
+for _, rod in Fishing.Rods do
+	list[rod.Id] = { Id = rod.Id, Name = rod.Name, Icon = rod.Icon, Kind = "Thing", Desc = rod.Desc, Stack = 1 }
+end
+list[Fishing.Bait.Id] = { Id = Fishing.Bait.Id, Name = Fishing.Bait.Name, Icon = Fishing.Bait.Icon, Kind = "Thing", Desc = Fishing.Bait.Desc, Stack = 50 }
+for _, s in Fishing.Species do
+	list[s.Item] = {
+		Id = s.Item,
+		Name = s.Name,
+		Icon = s.Icon,
+		Kind = "Thing",
+		Desc = ("Pescado fresco. Véndelo en la pescadería del supermercado (%d € cada uno)."):format(s.Price),
+		Stack = 20,
+	}
+end
 
 -- Objetos de la historia (las misiones los dan y los quitan con Effects.Items / Effects.Take)
 local KEEPSAKES = {

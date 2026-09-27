@@ -17,6 +17,7 @@ export type Product = {
 	Hunger: number?,
 	Energy: number?,
 	Shape: string?, -- "Box" | "Bottle" | "Can" | "Bag" | "Round" (cómo se ve en la estantería)
+	Supply: string?, -- "Fish": no se repone solo; lo traen los pescadores (Fishing.luau)
 }
 
 local rgb = Color3.fromRGB
@@ -69,8 +70,16 @@ Groceries.List = {
 	p("Pollo", "Pechuga de pollo", "🍗", 5, "Carne", rgb(240, 200, 170), 30, 0, "Box"),
 	p("Filetes", "Filetes de ternera", "🥩", 7, "Carne", rgb(180, 50, 50), 35, 0, "Box"),
 	p("Hamburguesas", "Hamburguesas", "🍔", 5, "Carne", rgb(150, 70, 50), 30, 0, "Box"),
-	p("Salmon", "Salmón", "🐟", 8, "Pescado", rgb(245, 140, 110), 30, 5, "Box"),
+	-- Pescadería: todo lo trae el pescador (no se repone solo)
+	p("Sardinas", "Sardinas", "🐟", 4, "Pescado", rgb(150, 170, 190), 20, 0, "Box"),
+	p("Dorada", "Dorada", "🐠", 8, "Pescado", rgb(200, 190, 150), 28, 0, "Box"),
+	p("Lubina", "Lubina", "🐟", 9, "Pescado", rgb(170, 180, 190), 30, 0, "Box"),
+	p("Merluza", "Merluza", "🐟", 10, "Pescado", rgb(215, 215, 220), 32, 0, "Box"),
+	p("Trucha", "Trucha", "🐟", 7, "Pescado", rgb(160, 150, 120), 26, 0, "Box"),
+	p("Salmon", "Salmón", "🐟", 15, "Pescado", rgb(245, 140, 110), 30, 5, "Box"),
 	p("Gambas", "Gambas", "🦐", 7, "Pescado", rgb(240, 120, 90), 22, 0, "Box"),
+	p("Pulpo", "Pulpo", "🐙", 14, "Pescado", rgb(190, 100, 110), 30, 0, "Box"),
+	p("Atun", "Atún", "🐟", 18, "Pescado", rgb(170, 60, 70), 40, 5, "Box"),
 	-- Congelados
 	p("Pizza", "Pizza congelada", "🍕", 4, "Congelados", rgb(220, 60, 40), 40, 0, "Box"),
 	p("HeladoTarrina", "Tarrina de helado", "🍨", 4, "Congelados", rgb(250, 220, 230), 15, 8, "Box"),
@@ -140,6 +149,13 @@ function Groceries.deliPrice(id: string, grams: number): number
 end
 
 -- Supermercado: cuánto se tarda en reponer una sección vacía si no hay reponedor (segundos)
+-- El pescado no se repone solo: lo traen los pescadores
+for _, product in Groceries.List do
+	if product.Section == "Pescado" then
+		product.Supply = "Fish"
+	end
+end
+
 Groceries.StockMax = 12
 Groceries.NpcRestockEvery = 45
 

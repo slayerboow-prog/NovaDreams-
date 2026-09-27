@@ -8,6 +8,7 @@
 local Builder = require(script.Parent.Parent.Builder)
 local Palette = require(script.Parent.Palette)
 local Props = require(script.Parent.Props)
+local FishingKit = require(script.Parent.FishingKit)
 
 local Landmarks = {}
 
@@ -133,6 +134,23 @@ local function buildPort(world: Instance)
 	Builder.decor({ Name = "Roof", Size = Vector3.new(7, 0.6, 7), CFrame = CFrame.new(x0 + 258, 7.3, z0), Color = RED, Parent = m })
 	board(m, Builder.facing(Vector3.new(x0 + 254.8, 5, z0), Vector3.new(-1, 0, 0)), 5.4, 1.6, "BARCA AL FARO", rgb(20, 70, 130))
 	ferryPrompt(kiosk, "Ir a la Isla del Faro", Landmarks.Island + Vector3.new(-ISLAND_RADIUS + 14, 5, 0))
+	-- Pesca: sitios en los dos lados del pantalán (sin los barcos amarrados delante)
+	for _, x in { 55, 80, 140, 195 } do
+		FishingKit.spot(m, Builder.facing(Vector3.new(x0 + x, 1, z0 - 5.4), Vector3.new(0, 0, -1)), "Mar")
+	end
+	for _, x in { 70, 130, 200, 248 } do
+		FishingKit.spot(m, Builder.facing(Vector3.new(x0 + x, 1, z0 + 5.4), Vector3.new(0, 0, 1)), "Mar")
+	end
+	-- El sitio del pescador del puerto (un NPC que pesca ahí y lleva pescado al súper si no hay pescadores)
+	local npcSpot = FishingKit.spot(m, Builder.facing(Vector3.new(x0 + 95, 1, z0 + 5.4), Vector3.new(0, 0, 1)), "Mar")
+	npcSpot:SetAttribute("Npc", true)
+	npcSpot:RemoveTag("FishingSpot")
+	npcSpot:AddTag("FishingNpcSpot")
+	-- Tablón de trabajo de pescador y amarre del barco de pesca
+	Props.jobBoard(m, Builder.facing(Vector3.new(x0 + 25, 1, z0 - 12), Vector3.new(-1, 0, 0)), "Pescador", "PESCADORES")
+	FishingKit.dock(m, Builder.facing(Vector3.new(x0 + 225, 1, z0 + 6.4), Vector3.new(0, 0, 1)))
+	-- Barco de pesca fondeado en alta mar (se sube desde el amarre)
+	FishingKit.boat(m, CFrame.new(x0 + 420, 0, z0 + 60) * CFrame.Angles(0, math.rad(90), 0))
 	-- Llevar el puerto a la costa sur, mirando al mar
 	for _, part in m:GetDescendants() do
 		if part:IsA("BasePart") then
@@ -318,8 +336,25 @@ local function buildMarina(world: Instance)
 	return m
 end
 
+-- Pantalanes de pesca en los lagos y en el río
+local function buildFishingZones(world: Instance)
+	local lakes = CityPlan.Lakes
+	-- Lago del Parque Natural: orilla que mira a la ciudad (este)
+	local park = lakes[1]
+	FishingKit.jetty(world, Builder.facing(Vector3.new(park.X + park.R + 5, 0, park.Z), Vector3.new(-1, 0, 0)), "Lago", "Pesca · " .. park.Name)
+	-- Lago de Montaña: orilla sur
+	local mountain = lakes[2]
+	FishingKit.jetty(world, Builder.facing(Vector3.new(mountain.X, 0, mountain.Z + mountain.R + 5), Vector3.new(0, 0, -1)), "Lago", "Pesca · " .. mountain.Name)
+	-- Río: dos pantalanes en la orilla oeste
+	local half = CityPlan.River.Width / 2
+	for _, p in { { 1513, -400 }, { 1514, 1000 } } do
+		FishingKit.jetty(world, Builder.facing(Vector3.new(p[1] - half - 5, 0, p[2]), Vector3.new(1, 0, 0)), "Rio", "Pesca · Río Valmar")
+	end
+end
+
 function Landmarks.build(world: Instance)
 	buildPort(world)
+	buildFishingZones(world)
 	buildIsland(world)
 	buildLookout(world)
 	buildMarina(world)

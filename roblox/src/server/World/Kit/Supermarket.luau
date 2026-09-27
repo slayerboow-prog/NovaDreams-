@@ -28,8 +28,8 @@ local DARK = rgb(40, 42, 46)
 type Spec = { W: number, D: number, H: number, Aisles: number, Lanes: number, Self: number, Fish: boolean }
 local SPECS: { [string]: Spec } = {
 	Grande = { W = 140, D = 112, H = 16, Aisles = 7, Lanes = 6, Self = 4, Fish = true },
-	Mediano = { W = 88, D = 84, H = 13, Aisles = 4, Lanes = 3, Self = 2, Fish = false },
-	Compacto = { W = 60, D = 80, H = 12, Aisles = 3, Lanes = 2, Self = 1, Fish = false },
+	Mediano = { W = 88, D = 84, H = 13, Aisles = 4, Lanes = 3, Self = 2, Fish = true },
+	Compacto = { W = 60, D = 80, H = 12, Aisles = 3, Lanes = 2, Self = 1, Fish = true },
 }
 Supermarket.Specs = SPECS
 
@@ -324,7 +324,7 @@ function Supermarket.build(parent: Instance, cf: CFrame, size: string, name: str
 	---------------------------------------------------------------------
 	box("InnerWall", Vector3.new(W - 2 * T, H, T), at(0, H / 2, storeBack + T / 2), WHITE, Enum.Material.Plaster)
 	local fridgeProducts = {}
-	for _, id in { "Lacteos", "Carne", if spec.Fish then "Pescado" else nil } do
+	for _, id in { "Lacteos", "Carne" } do -- (el pescado va en el mostrador de la pescadería)
 		for _, product in Groceries.bySection[id] or {} do
 			table.insert(fridgeProducts, product)
 		end
@@ -349,7 +349,7 @@ function Supermarket.build(parent: Instance, cf: CFrame, size: string, name: str
 		end
 	end
 	local fridgeSign = deco("SectionSign", Vector3.new(24, 2, 0.3), at(fx0 + 14, H - 3.5, storeBack - 0.6), rgb(90, 150, 220))
-	Builder.sign(fridgeSign, "🥛 LÁCTEOS · 🥩 CARNE" .. (if spec.Fish then " · 🐟 PESCADO" else ""), Enum.NormalId.Front)
+	Builder.sign(fridgeSign, "🥛 LÁCTEOS · 🥩 CARNE", Enum.NormalId.Front)
 
 	-- Congeladores (islas delante de las neveras)
 	local frozen = Groceries.bySection.Congelados
@@ -388,14 +388,29 @@ function Supermarket.build(parent: Instance, cf: CFrame, size: string, name: str
 	deli:SetAttribute("CustomerSpot", (counter * CFrame.new(0, 0.4, -3.4)).Position)
 	deli:AddTag("SuperDeli")
 	if spec.Fish then
-		local fish = at(deliX, 0, deliZ - 20) * CFrame.Angles(0, -math.pi / 2, 0)
-		deco("FishCounter", Vector3.new(12, 3, 3), fish * CFrame.new(0, 1.9, 0), rgb(230, 235, 240), Enum.Material.Metal)
-		deco("Ice", Vector3.new(11.4, 0.4, 2.6), fish * CFrame.new(0, 3.6, 0), rgb(235, 245, 255), Enum.Material.Ice)
-		for k, product in Groceries.bySection.Pescado do
-			local part = section(m, fish * CFrame.new(-3 + (k - 1) * 6, 4.2, -0.6), Vector3.new(5, 1, 2), product)
-			Builder.decor({ Name = "Good", Size = Vector3.new(4.6, 0.5, 2), CFrame = fish * CFrame.new(-3 + (k - 1) * 6, 4, 0), Color = product.Color, Parent = part })
+		-- Pescadería: mostrador con hielo y el pescado en dos filas. Solo hay lo que traen los
+		-- pescadores (FishingService): si nadie pesca, el hielo está vacío.
+		local fishProducts = Groceries.bySection.Pescado
+		local per = math.ceil(#fishProducts / 2)
+		local len = per * 3.4 + 1.4
+		local fz = if spec.W >= 120 then deliZ - 20 else deliZ + 17.5
+		local fish = at(deliX, 0, fz) * CFrame.Angles(0, -math.pi / 2, 0)
+		local fishCounter = box("FishCounter", Vector3.new(len, 3, 4.2), fish * CFrame.new(0, 1.9, 0.3), rgb(230, 235, 240), Enum.Material.Metal)
+		fishCounter:AddTag("SuperFish")
+		fishCounter:SetAttribute("SellSpot", (fish * CFrame.new(0, 0.4, -3.6)).Position)
+		deco("Ice", Vector3.new(len - 0.6, 0.4, 3.8), fish * CFrame.new(0, 3.6, 0.3), rgb(235, 245, 255), Enum.Material.Ice)
+		deco("FishGlass", Vector3.new(len, 1.4, 0.2), fish * CFrame.new(0, 4.7, -1.9) * CFrame.Angles(math.rad(-25), 0, 0), rgb(200, 225, 240), Enum.Material.Glass, { Transparency = 0.6 })
+		for k, product in fishProducts do
+			local rowIndex, col = (k - 1) // per, (k - 1) % per
+			local x = -len / 2 + 2.1 + col * 3.4
+			local z = if rowIndex == 0 then -0.7 else 1.2
+			local y = if rowIndex == 0 then 4.05 else 4.45
+			local part = section(m, fish * CFrame.new(x, y + 0.3, z), Vector3.new(3, 1, 1.6), product)
+			Builder.decor({ Name = "Good", Size = Vector3.new(2.8, 0.5, 1.5), CFrame = fish * CFrame.new(x, y, z), Color = product.Color, Parent = part })
+			Builder.decor({ Name = "PriceTag", Size = Vector3.new(0.8, 0.5, 0.1), CFrame = fish * CFrame.new(x + 1, y + 0.4, z - 0.8), Color = rgb(250, 250, 250), Parent = part })
 		end
-		local fishSign = deco("SectionSign", Vector3.new(10, 2, 0.3), fish * CFrame.new(0, 8, 3), rgb(70, 140, 190))
+		deco("FishBackWall", Vector3.new(len, 6, 0.4), fish * CFrame.new(0, 3, 4.4), rgb(210, 230, 245), Enum.Material.CeramicTiles)
+		local fishSign = deco("SectionSign", Vector3.new(10, 2, 0.3), fish * CFrame.new(0, 8, 4.2), rgb(70, 140, 190))
 		Builder.sign(fishSign, "🐟 PESCADERÍA", Enum.NormalId.Front)
 	end
 

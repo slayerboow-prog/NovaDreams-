@@ -88,6 +88,8 @@ local function row(parent: Instance, lot: Civic.Lot, u0: number, u1: number, sty
 	end
 end
 
+Blocks.row = row
+
 -- Manzana urbana: edificios alineados en los lados indicados y patio interior con árboles
 function Blocks.downtown(parent: Instance, rect: Rect, sides: { string }, styles: { string }, floors: { number })
 	local m = Builder.model("Manzana", parent)

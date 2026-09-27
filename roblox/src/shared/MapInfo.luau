@@ -79,6 +79,8 @@ MapInfo.Kinds = {
 	{ Model = "Camping", Icon = "⛺", Name = "Camping Valmar", Important = true },
 	{ Model = "Marina", Icon = "⛵", Name = "Puerto Deportivo", Important = true },
 	{ Model = "Supermercado", Icon = "🛒", Name = "Supermercado", Important = true },
+	{ Model = "TiendaPesca", Icon = "🎣", Name = "Tienda de pesca", Important = true },
+	{ Model = "ZonaPesca", Icon = "🐟", Name = "Zona de pesca" },
 } :: { Kind }
 
 MapInfo.KindByModel = {} :: { [string]: Kind }
@@ -90,8 +92,8 @@ end
 MapInfo.Legend = {
 	{ Name = "Salud y emergencias", Icon = "🏥", Models = { "Hospital", "CentroSalud", "Policia", "Bomberos" } },
 	{ Name = "Estudios", Icon = "🏫", Models = { "Colegio", "Facultad", "Autoescuela" } },
-	{ Name = "Tiendas y comida", Icon = "🛍️", Models = { "CentroComercial", "Supermercado", "Restaurante", "Gasolinera", "PlazaFinanciera" } },
-	{ Name = "Ocio y naturaleza", Icon = "🌳", Models = { "Parque", "Estadio", "Playa", "Granja", "Recreativos", "Plaza", "Mirador", "Faro", "Puerto", "Feria", "Camping", "Marina", "Museo", "Teatro" } },
+	{ Name = "Tiendas y comida", Icon = "🛍️", Models = { "CentroComercial", "Supermercado", "Restaurante", "Gasolinera", "PlazaFinanciera", "TiendaPesca" } },
+	{ Name = "Ocio y naturaleza", Icon = "🌳", Models = { "Parque", "Estadio", "Playa", "Granja", "Recreativos", "Plaza", "Mirador", "Faro", "Puerto", "Feria", "Camping", "Marina", "Museo", "Teatro", "ZonaPesca" } },
 	{ Name = "Ciudad y transporte", Icon = "🏛️", Models = { "TorreValmar", "Ayuntamiento", "EstacionCentral", "EstacionAutobuses", "GranCentroComercial" } },
 }
 
