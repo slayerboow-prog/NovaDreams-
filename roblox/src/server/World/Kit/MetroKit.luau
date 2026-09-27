@@ -1,11 +1,12 @@
 -- MetroKit: el metro subterráneo de Valmar (datos en Shared/Metro.luau; lo mueve MetroService).
 --
---   * Boca de metro en la calle (modelo "BocaMetro", sale en el mapa): pabellón de cristal con la
---     gran M. Puerta: tag MetroEntrance (atributo Station).
---   * Estación subterránea por línea: andén recto (el tren para en medio), vía, túneles,
+--   * Bocas de metro que se bajan andando (Kit/MetroAccess): escaleras desde la acera, vestíbulo bajo
+--     la calle y escaleras mecánicas hasta el vestíbulo de andenes. Ascensor en la boca (MetroEntrance)
+--     y en el vestíbulo de andenes (MetroExit), que baja/sube directo (MetroArrival).
+--   * Estación subterránea por línea: andén recto (el tren para en medio), vía, túneles en curva,
 --     vestíbulo con máquinas de billetes (MetroTicketMachine), tornos (MetroGate / MetroGateExit),
---     quiosco (MetroShop + MetroDelivery), máquina expendedora, escalera a la calle (MetroExit)
---     y punto de llegada (MetroArrival). Botones de subir al tren en el borde del andén (MetroBoard).
+--     quiosco (MetroShop + MetroDelivery) y máquina expendedora. Botones de subir al tren en el
+--     borde del andén (MetroBoard).
 --   * Plaza Mayor (Hub): galería comercial subterránea con tiendas (MetroShop), fotomatón
 --     (MetroPhoto), escenario para músicos (MetroStage), tablón de encargos (MetroMissionBoard),
 --     Objetos Perdidos (MetroLostOffice), tablón de revisor y transbordo a la Línea 2 (MetroTransfer).
@@ -19,6 +20,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Builder = require(script.Parent.Parent.Builder)
 local MetroDetails = require(script.Parent.MetroDetails)
+local MetroAccess = require(script.Parent.MetroAccess)
 local Metro = require(ReplicatedStorage.Shared.Metro)
 
 local MetroKit = {}
@@ -82,67 +84,6 @@ local function signBoard(parent: Instance, cf: CFrame, size: Vector3, text: stri
 		Builder.sign(board, text, Enum.NormalId.Back)
 	end
 	return board
-end
-
----------------------------------------------------------------------
--- Boca de metro en la calle
----------------------------------------------------------------------
-function MetroKit.entrance(parent: Instance, station: Metro.Station)
-	local m = Builder.model("BocaMetro", parent)
-	m:SetAttribute("PlaceName", "Metro · " .. station.Name)
-	local pos = Vector3.new(station.Surface[1], 0, station.Surface[2])
-	local cf = Builder.facing(pos, Vector3.new(station.Facing[1], 0, station.Facing[2])) -- la puerta mira a la calle (-Z)
-	local function at(x: number, y: number, z: number): CFrame
-		return cf * CFrame.new(x, y, z)
-	end
-	local W, D, H = 9, 7, 7
-	part(m, "Floor", Vector3.new(W, 0.6, D), at(0, 0.3, 0), rgb(90, 92, 98), Enum.Material.Granite)
-	-- Paredes de cristal (laterales y fondo) y marco metálico
-	for _, x in { -W / 2 + 0.15, W / 2 - 0.15 } do
-		part(m, "Glass", Vector3.new(0.3, H - 1, D - 0.6), at(x, H / 2, 0), rgb(170, 210, 230), Enum.Material.Glass, { Transparency = 0.55 })
-	end
-	part(m, "GlassBack", Vector3.new(W, H - 1, 0.3), at(0, H / 2, D / 2 - 0.15), rgb(170, 210, 230), Enum.Material.Glass, { Transparency = 0.55 })
-	for _, x in { -W / 2, W / 2 } do
-		for _, z in { -D / 2, D / 2 } do
-			part(m, "Frame", Vector3.new(0.4, H, 0.4), at(x, H / 2, z), DARK, Enum.Material.Metal)
-		end
-	end
-	-- Tejadillo con franjas de las líneas
-	part(m, "Roof", Vector3.new(W + 1.6, 0.5, D + 1.6), at(0, H + 0.25, 0), DARK, Enum.Material.Metal)
-	local colors = {}
-	for _, line in Metro.Lines do
-		if table.find(line.Stations, station.Id) then
-			table.insert(colors, line.Color)
-		end
-	end
-	for i, color in colors do
-		decor(m, "LineStripe", Vector3.new(W + 1.7, 0.35, 0.3), at(0, H - 0.1 - (i - 1) * 0.4, -D / 2 - 0.8), color, Enum.Material.Neon)
-	end
-	-- Escalera que baja (se ve el hueco oscuro) y barandillas
-	for i = 0, 5 do
-		decor(m, "Step", Vector3.new(W - 2, 0.4, 1), at(0, 0.4 - i * 0.6, D / 2 - 1.5 - i * 0.9), rgb(70, 72, 78), Enum.Material.Concrete)
-	end
-	decor(m, "Stairwell", Vector3.new(W - 2, 0.2, 5.5), at(0, -3, 0), rgb(10, 10, 12))
-	for _, x in { -W / 2 + 1, W / 2 - 1 } do
-		decor(m, "Handrail", Vector3.new(0.2, 0.2, D - 1), at(x, 2.6, 0), STEEL, Enum.Material.Metal)
-	end
-	-- Cartel sobre la puerta
-	signBoard(m, at(0, H - 1.2, -D / 2 - 0.05), Vector3.new(W - 1, 1.3, 0.2), "METRO · " .. string.upper(station.Name), DARK)
-	-- Tótem con la gran M
-	local totemPos = at(-W / 2 - 1.6, 0, -D / 2 + 0.5)
-	part(m, "TotemPole", Vector3.new(0.5, 8, 0.5), totemPos * CFrame.new(0, 4, 0), DARK, Enum.Material.Metal)
-	local cube = part(m, "MetroSign", Vector3.new(2.4, 2.4, 2.4), totemPos * CFrame.new(0, 9.2, 0), rgb(200, 30, 40), Enum.Material.SmoothPlastic)
-	for _, face in { Enum.NormalId.Front, Enum.NormalId.Back, Enum.NormalId.Left, Enum.NormalId.Right } do
-		Builder.sign(cube, "M", face, Color3.new(1, 1, 1), rgb(200, 30, 40))
-	end
-	local glow = Instance.new("PointLight")
-	glow.Range = 14
-	glow.Brightness = 1
-	glow.Color = rgb(255, 120, 120)
-	glow.Parent = cube
-	-- Puerta (la usa MetroService: "Bajar al metro")
-	marker(m, "MetroDoor", at(0, 2.5, -D / 2 + 1), "MetroEntrance", { Station = station.Id }, Vector3.new(5, 5, 2))
-	return m
 end
 
 ---------------------------------------------------------------------
@@ -270,7 +211,8 @@ end
 ---------------------------------------------------------------------
 -- Túnel entre dos puntos (a la altura de la vía)
 ---------------------------------------------------------------------
-local function tunnel(parent: Instance, a: Vector3, b: Vector3, color: Color3)
+-- (extA / extB: cuánto se alarga por cada punta, para cerrar el hueco de las curvas)
+local function tunnel(parent: Instance, a: Vector3, b: Vector3, color: Color3, extA: number?, extB: number?)
 	local len = (b - a).Magnitude
 	if len < 1 then
 		return
@@ -279,13 +221,16 @@ local function tunnel(parent: Instance, a: Vector3, b: Vector3, color: Color3)
 	local pieces = math.ceil(len / 150)
 	local piece = len / pieces
 	for i = 0, pieces - 1 do
-		local c = cf0 * CFrame.new(0, 0, -(i + 0.5) * piece)
-		part(parent, "TunnelFloor", Vector3.new(12, 1, piece + 0.2), c * CFrame.new(0, -1.5, 0), rgb(70, 66, 60), Enum.Material.Concrete)
+		local ea = if i == 0 then extA or 0 else 0.1
+		local eb = if i == pieces - 1 then extB or 0 else 0.1
+		local c = cf0 * CFrame.new(0, 0, -(i + 0.5) * piece - (eb - ea) / 2)
+		local long = piece + ea + eb
+		part(parent, "TunnelFloor", Vector3.new(12, 1, long), c * CFrame.new(0, -1.5, 0), rgb(70, 66, 60), Enum.Material.Concrete)
 		for _, x in { -6.5, 6.5 } do
-			part(parent, "TunnelWall", Vector3.new(1, 14, piece + 0.2), c * CFrame.new(x, 5, 0), CONCRETE, Enum.Material.Concrete)
+			part(parent, "TunnelWall", Vector3.new(1, 14, long), c * CFrame.new(x, 5, 0), CONCRETE, Enum.Material.Concrete)
 			decor(parent, "Cable", Vector3.new(0.3, 0.3, piece), c * CFrame.new(x * 0.9, 8, 0), DARK)
 		end
-		part(parent, "TunnelRoof", Vector3.new(14, 1, piece + 0.2), c * CFrame.new(0, 12.5, 0), CONCRETE, Enum.Material.Concrete)
+		part(parent, "TunnelRoof", Vector3.new(14, 1, long), c * CFrame.new(0, 12.5, 0), CONCRETE, Enum.Material.Concrete)
 		for _, x in { -1.4, 1.4 } do
 			decor(parent, "Rail", Vector3.new(0.3, 0.4, piece), c * CFrame.new(x, -0.8, 0), STEEL, Enum.Material.Metal)
 		end
@@ -376,18 +321,57 @@ local function station(parent: Instance, line: Metro.Line, index: number): (Mode
 	decor(m, "VendingGlass", Vector3.new(0.1, 3.6, 2.2), at(14.55, 3.6, 40), rgb(200, 230, 240), Enum.Material.Glass, { Transparency = 0.4 })
 	-- Subir al tren (uno por coche) y bajar
 	local step = Metro.CarLength + Metro.CarGap
+	-- (uno delante de cada puerta: en el móvil sale el botón de la puerta que tienes más cerca)
 	for k = 1, Metro.Cars do
 		local z = (k - (Metro.Cars + 1) / 2) * step
-		marker(m, "Board", at(7, 2.5, z), "MetroBoard", { Station = id, Line = line.Id }, Vector3.new(3, 5, 6))
+		for _, dz in { -Metro.CarLength / 4, Metro.CarLength / 4 } do
+			marker(m, "Board", at(7, 2.5, z + dz), "MetroBoard", { Station = id, Line = line.Id }, Vector3.new(3, 5, 4))
+		end
 	end
 	marker(m, "Alight", at(12, 3, 0), "MetroAlight", { Station = id, Line = line.Id })
 
 	-- Vestíbulo (detrás del andén)
 	local X0, X1, LH = 17.5, 47.5, 13
 	part(m, "LobbyFloor", Vector3.new(X1 - X0, 2, LZ * 2), at((X0 + X1) / 2, -1, 0), rgb(210, 206, 198), Enum.Material.Marble)
-	part(m, "LobbyCeiling", Vector3.new(X1 - X0, 1, LZ * 2), at((X0 + X1) / 2, LH + 0.5, 0), rgb(200, 198, 192), Enum.Material.Concrete)
+	-- Por dónde llegan las escaleras mecánicas de la boca: por una pared lateral o, en Plaza Mayor,
+	-- bajando del techo
+	local access = Metro.access(id)
+	local shaftIn = access.Line == line
+	local q = cf:PointToObjectSpace(access.Shaft.Bottom)
+	local SW = access.Shaft.Width / 2
+	local ceilingHole: { number }? = nil
+	if shaftIn and access.Shaft.Ceiling then
+		local tan = access.Shaft.Rise / access.Shaft.Run
+		local z0 = q.Z - (LH + 3.1) / tan
+		local z1 = q.Z - (LH - Metro.Shaft.Headroom - 0.9) / tan
+		ceilingHole = { q.X - SW - 0.2, X1, z0, z1 }
+	end
+	local function ceilingPiece(xa: number, xb: number, za: number, zb: number)
+		if xb - xa > 0.05 and zb - za > 0.05 then
+			part(m, "LobbyCeiling", Vector3.new(xb - xa, 1, zb - za), at((xa + xb) / 2, LH + 0.5, (za + zb) / 2), rgb(200, 198, 192), Enum.Material.Concrete)
+		end
+	end
+	if ceilingHole then
+		local h = ceilingHole
+		ceilingPiece(X0, h[1], -LZ, LZ)
+		ceilingPiece(h[1], X1, -LZ, h[3])
+		ceilingPiece(h[1], X1, h[4], LZ)
+		-- Borde del hueco del techo, rematado
+		decor(m, "HoleTrim", Vector3.new(0.3, 1.2, h[4] - h[3]), at(h[1] - 0.15, LH + 0.4, (h[3] + h[4]) / 2), STEEL, Enum.Material.Metal)
+	else
+		ceilingPiece(X0, X1, -LZ, LZ)
+	end
 	for _, z in { -LZ - 0.5, LZ + 0.5 } do
-		part(m, "LobbyWall", Vector3.new(X1 - X0, LH + 2, 1), at((X0 + X1) / 2, LH / 2, z), TILE, Enum.Material.Marble)
+		if shaftIn and not access.Shaft.Ceiling and math.sign(q.Z) == math.sign(z) then
+			-- Hueco para las escaleras mecánicas (con un dintel por encima)
+			local a, b = q.X - SW, q.X + SW
+			part(m, "LobbyWall", Vector3.new(a - X0, LH + 2, 1), at((X0 + a) / 2, LH / 2, z), TILE, Enum.Material.Marble)
+			part(m, "LobbyWall", Vector3.new(X1 - b, LH + 2, 1), at((b + X1) / 2, LH / 2, z), TILE, Enum.Material.Marble)
+			local hv = Metro.Shaft.Headroom
+			part(m, "LobbyWallTop", Vector3.new(b - a, LH + 1 - hv, 1), at((a + b) / 2, (hv + LH + 1) / 2, z), TILE, Enum.Material.Marble)
+		else
+			part(m, "LobbyWall", Vector3.new(X1 - X0, LH + 2, 1), at((X0 + X1) / 2, LH / 2, z), TILE, Enum.Material.Marble)
+		end
 	end
 	if not st.Hub or line.Id ~= "L1" then
 		part(m, "LobbyBack", Vector3.new(1, LH + 2, LZ * 2), at(X1 + 0.5, LH / 2, 0), TILE, Enum.Material.Marble)
@@ -411,30 +395,42 @@ local function station(parent: Instance, line: Metro.Line, index: number): (Mode
 		local _ = machine
 		decor(m, "TicketScreen", Vector3.new(0.1, 1.6, 2), at(X1 - 2.45, 3.8, z), rgb(120, 200, 255), Enum.Material.Neon)
 	end
-	-- Quiosco (y punto de entrega de paquetes)
-	local kiosk = part(m, "Kiosk", Vector3.new(7, 3.4, 2.4), at(X1 - 6, 1.7, 18), rgb(40, 110, 70), Enum.Material.Wood, { Tags = { "MetroShop", "MetroDelivery" } })
+	-- Quiosco (y punto de entrega de paquetes). En Plaza Mayor, al otro lado: por el +Z bajan las
+	-- escaleras mecánicas
+	local kz = if st.Hub and line.Id == "L1" then -1 else 1
+	local kiosk = part(m, "Kiosk", Vector3.new(7, 3.4, 2.4), at(X1 - 6, 1.7, kz * 18), rgb(40, 110, 70), Enum.Material.Wood, { Tags = { "MetroShop", "MetroDelivery" } })
 	kiosk:SetAttribute("ShopId", "Quiosco")
 	kiosk:SetAttribute("Station", id)
-	decor(m, "KioskRoof", Vector3.new(8, 0.4, 5), at(X1 - 6, 7.5, 19.5), rgb(40, 110, 70))
-	signBoard(m, at(X1 - 6, 8.6, 17.2), Vector3.new(6, 1.2, 0.2), "📰 QUIOSCO", rgb(40, 110, 70))
+	decor(m, "KioskRoof", Vector3.new(8, 0.4, 5), at(X1 - 6, 7.5, kz * 19.5), rgb(40, 110, 70))
+	signBoard(m, at(X1 - 6, 8.6, kz * 17.2) * CFrame.Angles(0, if kz < 0 then math.pi else 0, 0), Vector3.new(6, 1.2, 0.2), "📰 QUIOSCO", rgb(40, 110, 70))
 	for i = 0, 5 do
-		decor(m, "Magazine", Vector3.new(0.9, 1.2, 0.1), at(X1 - 8.5 + i, 4.2, 20.8), rgb(math.random(80, 240), math.random(80, 240), math.random(80, 240)))
+		decor(m, "Magazine", Vector3.new(0.9, 1.2, 0.1), at(X1 - 8.5 + i, 4.2, kz * 20.8), rgb(math.random(80, 240), math.random(80, 240), math.random(80, 240)))
 	end
-	-- Escalera a la calle y punto de llegada
-	for i = 0, 7 do
-		decor(m, "Stair", Vector3.new(8, 0.8, 1.2), at(X0 + 12 + i * 1.2, 0.4 + i * 1.3, -LZ + 4), rgb(120, 118, 114), Enum.Material.Concrete)
+	-- Ascensor a la calle (MetroExit) y dónde deja el de la calle al bajar (MetroArrival)
+	local liftAt = if st.Hub then at(26, 0, -LZ + 0.1) * CFrame.Angles(0, math.pi, 0) else at(X1 - 0.1, 0, 11) * CFrame.Angles(0, math.rad(90), 0)
+	if not (st.Hub and line.Id ~= "L1") then
+		part(m, "LiftDoor", Vector3.new(4, 7, 0.3), liftAt * CFrame.new(0, 3.5, 0), STEEL, Enum.Material.Metal)
+		decor(m, "LiftSeam", Vector3.new(0.08, 6.8, 0.35), liftAt * CFrame.new(0, 3.5, 0), DARK)
+		decor(m, "LiftFrame", Vector3.new(5, 8, 0.2), liftAt * CFrame.new(0, 4, 0.1), rgb(90, 94, 102), Enum.Material.Metal)
+		signBoard(m, liftAt * CFrame.new(0, 8.8, -0.2), Vector3.new(4.6, 1, 0.15), "♿ ASCENSOR · CALLE", rgb(30, 90, 170))
+		marker(m, "Exit", liftAt * CFrame.new(0, 3, -2.5), "MetroExit", { Station = id }, Vector3.new(5, 6, 3))
 	end
-	marker(m, "Exit", at(X0 + 14, 3, -LZ + 4), "MetroExit", { Station = id }, Vector3.new(8, 6, 6))
-	signBoard(m, at(X0 + 14, 10, -LZ + 0.2), Vector3.new(8, 1.4, 0.2), "↑ SALIDA A LA CALLE", DARK)
-	marker(m, "Arrival", at(X0 + 10, 3, -LZ + 10), "MetroArrival", { Station = id, Line = line.Id })
+	marker(m, "Arrival", liftAt * CFrame.new(0, 3, -4.5), "MetroArrival", { Station = id, Line = line.Id })
 	for x = X0 + 6, X1 - 4, 12 do
-		ceilingLight(m, at(x, LH - 0.1, -12), Vector3.new(5, 0.2, 1.2), 18)
-		ceilingLight(m, at(x, LH - 0.1, 12), Vector3.new(5, 0.2, 1.2), 18)
+		for _, z in { -12, 12 } do
+			local h = ceilingHole
+			if not (h and x + 2.5 > h[1] and z + 0.6 > h[3] and z - 0.6 < h[4]) then
+				ceilingLight(m, at(x, LH - 0.1, z), Vector3.new(5, 0.2, 1.2), 18)
+			end
+		end
 	end
-	-- Transbordo en Plaza Mayor (Línea 2: subir a la galería)
+	-- Transbordo en Plaza Mayor (Línea 2: ascensor a la galería)
 	if st.Hub and line.Id ~= "L1" then
 		marker(m, "Transfer", at(X1 - 3, 3, 0), "MetroTransfer", { To = "Hub", Station = id }, Vector3.new(4, 6, 8))
-		signBoard(m, at(X1 - 0.1, 8, 0) * CFrame.Angles(0, math.rad(90), 0), Vector3.new(12, 1.6, 0.2), "↑ GALERÍA · LÍNEA 1 🔴", rgb(215, 40, 50))
+		local door = at(X1 - 0.1, 0, 0) * CFrame.Angles(0, math.rad(90), 0)
+		part(m, "LiftDoor", Vector3.new(4, 7, 0.3), door * CFrame.new(0, 3.5, 0), STEEL, Enum.Material.Metal)
+		decor(m, "LiftSeam", Vector3.new(0.08, 6.8, 0.35), door * CFrame.new(0, 3.5, 0), DARK)
+		signBoard(m, at(X1 - 0.1, 8, 0) * CFrame.Angles(0, math.rad(90), 0), Vector3.new(12, 1.6, 0.2), "♿ ASCENSOR · GALERÍA · LÍNEA 1", rgb(215, 40, 50))
 	end
 	-- Detalles: columnas, cámaras, anuncios, grafitis, ratas, aseos, guardias, taquillas… (MetroDetails)
 	local seed = index + (if line.Id == "L1" then 0 else 10)
@@ -532,12 +528,13 @@ local function galleria(parent: Instance, cf: CFrame)
 	for _, x in { 120, 136 } do
 		part(m, "Bench", Vector3.new(4, 0.4, 1.6), at(x, 1.5, -6), WOOD, Enum.Material.Wood)
 	end
-	-- Bajada a la Línea 2
-	for i = 0, 7 do
-		decor(m, "Stair", Vector3.new(1.2, 0.8, 10), at(X1 - 8 + i * 0.9, 0.4 - i * 0.6, 12), rgb(120, 118, 114), Enum.Material.Concrete)
-	end
+	-- Transbordo a la Línea 2: ascensor en el fondo de la galería (la Línea 2 va por debajo)
+	local liftDoor = at(X1 - 0.1, 0, 12) * CFrame.Angles(0, math.rad(90), 0)
+	part(m, "LiftDoor", Vector3.new(5, 7, 0.3), liftDoor * CFrame.new(0, 3.5, 0), STEEL, Enum.Material.Metal)
+	decor(m, "LiftSeam", Vector3.new(0.08, 6.8, 0.35), liftDoor * CFrame.new(0, 3.5, 0), DARK)
+	decor(m, "LiftFrame", Vector3.new(6, 8, 0.2), liftDoor * CFrame.new(0, 4, 0.1), rgb(90, 94, 102), Enum.Material.Metal)
 	marker(m, "Transfer", at(X1 - 6, 3, 12), "MetroTransfer", { To = "L2", Station = "PlazaMayor" }, Vector3.new(6, 6, 10))
-	signBoard(m, at(X1 - 0.1, 9, 12) * CFrame.Angles(0, math.rad(90), 0), Vector3.new(12, 1.8, 0.2), "↓ LÍNEA 2 🔵 NORTE · SAN ROQUE · PUERTO", rgb(40, 110, 215))
+	signBoard(m, at(X1 - 0.1, 9, 12) * CFrame.Angles(0, math.rad(90), 0), Vector3.new(12, 1.8, 0.2), "♿ ASCENSOR · LÍNEA 2 🔵 NORTE · SAN ROQUE · PUERTO", rgb(40, 110, 215))
 	marker(m, "HubArrival", at(X1 - 12, 3, 4), "MetroHubArrival", { Station = "PlazaMayor" })
 	MetroDetails.galleria(m, cf)
 	return m
@@ -547,22 +544,23 @@ end
 
 function MetroKit.build(world: Instance)
 	local root = Builder.model("Metro", world)
-	-- Bocas de metro (una por estación)
-	for _, st in Metro.Stations do
-		MetroKit.entrance(root, st)
-	end
+	-- Bocas de metro que se bajan andando: escaleras, vestíbulo y escaleras mecánicas (Kit/MetroAccess)
+	MetroAccess.build(root, world, root)
 	local under = Builder.model("MetroSubterraneo", root)
 	for _, line in Metro.Lines do
-		local points = Metro.path(line)
+		local points, _, platform = Metro.path(line)
 		for i = 1, #line.Stations do
 			local _, cf = station(under, line, i)
 			if Metro.Stations[line.Stations[i]].Hub and line.Id == "L1" then
 				galleria(under, cf)
 			end
 		end
-		-- Túneles entre la salida de un andén y la entrada del siguiente
-		for i = 2, #points - 1, 2 do
-			tunnel(under, points[i], points[i + 1], line.Color)
+		-- Túneles: de la salida de un andén a la entrada del siguiente, en curva (trozos rectos que se
+		-- solapan un poco en cada codo)
+		for k = 1, #points - 1 do
+			if not platform[k] then
+				tunnel(under, points[k], points[k + 1], line.Color, if platform[k - 1] then 0 else 1.5, if platform[k + 1] then 0 else 1.5)
+			end
 		end
 		-- Fondos de saco detrás de las estaciones de los extremos
 		local first, last = points[1], points[#points]
@@ -571,6 +569,20 @@ function MetroKit.build(world: Instance)
 		MetroKit.train(under, line)
 	end
 	return root
+end
+
+-- Vacía la roca del terreno por donde pasan las bocas (lo llama TerrainBuilder al arrancar)
+function MetroKit.terrain(terrain: Terrain)
+	for id in Metro.Stations do
+		for _, box in MetroAccess.carveBoxes(id) do
+			terrain:FillBlock(box[1], box[2], Enum.Material.Air)
+		end
+	end
+end
+
+-- ¿Hay una boca de metro aquí? (para no plantar árboles encima)
+function MetroKit.blocked(x: number, z: number): boolean
+	return MetroAccess.blocked(x, z)
 end
 
 return MetroKit

@@ -265,7 +265,7 @@ FakeMeta.__newindex = function(self, key, value)
 				added:Fire(self)
 			end
 		end
-	elseif key == "Position" then
+	elseif key == "Position" and typeof(value) == "Vector3" then -- (en la interfaz, Position es un UDim2)
 		props.CFrame = CFrame.new(value) * (props.CFrame and props.CFrame.Rotation or CFrame.new())
 	else
 		props[key] = value
@@ -347,6 +347,7 @@ local remotes = {
 	Trade = remote(),
 	Fishing = remote(),
 	Metro = remote(),
+	Bus = remote(),
 	Diving = remote(),
 	SeaEvent = remote(),
 	Social = remote(),
@@ -1731,76 +1732,236 @@ promptOf(receptionDesk, "Pedir cita").Triggered:Fire(walkIn)
 check(profiles[walkIn].Money == 20 - Medical.QuickVisitPrice, "sin médico de guardia, la consulta rápida cuesta poco y te atiende el médico NPC")
 
 ---------------------------------------------------------------------
-print("▶ Autobús urbano L1: billete, paradas y conductor")
-services.RunService = services.RunService or { Heartbeat = signal() }
-local ambient = fakeInstance("Folder")
-local roadsFolder = fakeInstance("Folder")
-roadsFolder.Name = "Roads"
-roadsFolder.Parent = ambient
-services.ReplicatedStorage.Ambient = ambient
-local function road(a, b)
-	local c = fakeInstance("Configuration")
-	c:SetAttribute("A", a)
-	c:SetAttribute("B", b)
-	c:SetAttribute("Width", 24)
-	c.Parent = roadsFolder
-end
-road(Vector3.new(0, 0, 2000), Vector3.new(400, 0, 2000))
-road(Vector3.new(400, 0, 2000), Vector3.new(400, 0, 2400))
-road(Vector3.new(400, 0, 2400), Vector3.new(0, 0, 2400))
-road(Vector3.new(0, 0, 2400), Vector3.new(0, 0, 2000))
-local centroStop = part("TravelPoint", CFrame.new(200, 2, 1985), { "TravelStop" }, { Town = "Valmar Centro" })
-part("TravelPoint", CFrame.new(200, 2, 2415), { "TravelStop" }, { Town = "Los Pinos" })
-local BusService = loadModule(S .. "BusService")
-BusService.init()
-task.wait(0.3)
-local busesFolder = worldRoot:FindFirstChild("Buses")
-check(busesFolder ~= nil and #busesFolder:GetChildren() == Gameplay.Bus.NpcBuses, "salen los autobuses automáticos de la línea L1")
-local openBus = nil
-for _ = 1, 600 do
-	services.RunService.Heartbeat:Fire(0.1)
-	for _, m in busesFolder:GetChildren() do
-		if m:GetAttribute("DoorsOpen") then
-			openBus = m
+;(function() -- (en una función: sus variables no cuentan para el límite de locales del archivo)
+	print("▶ Autobuses urbanos: líneas, paradas, paneles de llegada, pasajeros y conductor")
+	services.RunService = services.RunService or { Heartbeat = signal() }
+	local ambient = fakeInstance("Folder")
+	local roadsFolder = fakeInstance("Folder")
+	roadsFolder.Name = "Roads"
+	roadsFolder.Parent = ambient
+	services.ReplicatedStorage.Ambient = ambient
+	local roadCount = 0
+	local function road(a, b, width, kind)
+		roadCount += 1
+		local c = fakeInstance("Configuration")
+		c.Name = "Road" .. roadCount
+		c:SetAttribute("A", a)
+		c:SetAttribute("B", b)
+		c:SetAttribute("Width", width or 24)
+		c:SetAttribute("Kind", kind)
+		c.Parent = roadsFolder
+		return c
+	end
+	-- Las calles de verdad de Valmar, en el mismo orden que las publica el servidor
+	local BusLinesMod = loadModule(ROOT .. "/shared/BusLines")
+	-- (la prueba usa un Region de mentira: para las calles se carga un momento el de verdad)
+	local regionPath = ROOT .. "/server/World/Region"
+	local fakeRegion = mocks[regionPath]
+	mocks[regionPath] = nil
+	local cityRoads = loadModule(ROOT .. "/server/World/Kit/BusStops").roads()
+	mocks[regionPath] = fakeRegion
+	cache[regionPath] = nil
+	local realRoads = {}
+	for _, r in cityRoads do
+		table.insert(realRoads, road(r.A, r.B, r.Width, r.Kind))
+	end
+	local centroStop = part("TravelPoint", CFrame.new(200, 2, 1985), { "TravelStop" }, { Town = "Valmar Centro" })
+	local BusService = loadModule(S .. "BusService")
+	BusService.init()
+	waitFor(function()
+		return BusService.isReady()
+	end, 120, "la red de autobuses")
+	local busLines = BusService.lines()
+	local signs = {}
+	for _, d in worldRoot:GetDescendants() do
+		if d:HasTag("BusStop") then
+			signs[d:GetAttribute("StopId")] = d
 		end
 	end
-	if openBus then
-		break
+	local signCount = 0
+	for _ in signs do
+		signCount += 1
 	end
-end
-check(openBus ~= nil and openBus:GetAttribute("CurrentStop") ~= nil, "un autobús llega a una parada y abre las puertas")
-local rider, _, riderHumanoid = newPlayer(40, "Adulto", 10)
-promptOf(openBus, "Subir").Triggered:Fire(rider)
-check(riderHumanoid.SeatPart ~= nil and riderHumanoid.SeatPart.Name == "PassengerSeat" and profiles[rider].Money == 10 - Gameplay.Bus.Fare, "paga el billete y se sienta dentro")
-riderHumanoid.Sit = false
-check(riderHumanoid.SeatPart == nil, "saltando se baja del autobús")
-local broke, _, brokeHumanoid = newPlayer(41, "Adulto", 0)
-promptOf(openBus, "Subir").Triggered:Fire(broke)
-check(brokeHumanoid.SeatPart == nil and notified(broke, "billete"), "sin dinero no se puede subir")
-promptOf(centroStop, "🚌 Trabajar de conductor").Triggered:Fire(broke)
-check(broke:GetAttribute("Job") == nil and notified(broke, "carnet"), "sin carnet no se puede ser conductor")
-local driverMoney = profiles[adult].Money
-promptOf(centroStop, "🚌 Trabajar de conductor").Triggered:Fire(adult)
-check(adult:GetAttribute("Job") == "Conductor" and adult:GetAttribute("Riding") == "Autobus", "con carnet se hace conductor y se sube a su autobús")
-local target = adult:GetAttribute("TaskTarget")
-check(typeof(target) == "Vector3", "la línea azul le lleva a la siguiente parada")
-local driverBus = nil
-for _, d in worldRoot:GetDescendants() do
-	if d.Name == "Autobus_" .. adult.Name then
-		driverBus = d
+	check(#busLines >= 5 and signCount >= 40, ("%d líneas y %d paradas con su marquesina (se construyen si el mapa no las trae)"):format(#busLines, signCount))
+	local onRoute = true
+	for _, line in busLines do
+		for _, stop in line.Stops do
+			local point = stop.Sign and stop.Sign:GetAttribute("StopPoint")
+			local p = BusLinesMod.pointAt(line.Plan, stop.S)
+			onRoute = onRoute and typeof(point) == "Vector3" and (Vector3.new(p.X, 0, p.Z) - Vector3.new(point.X, 0, point.Z)).Magnitude < 3
+		end
 	end
-end
-local chassis = driverBus and driverBus.PrimaryPart
-chassis.CFrame = CFrame.new(target + Vector3.new(0, 1, 0))
-chassis.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-for _ = 1, 25 do
-	services.RunService.Heartbeat:Fire(0.1)
-	task.wait(0.1)
-end
-check(profiles[adult].Money >= driverMoney + Gameplay.Bus.DriverPerStop and driverBus:GetAttribute("DoorsOpen") == true, "para en la parada: se abren las puertas y cobra")
-remotes.QuitJob.OnServerEvent:Fire(adult)
-check(adult:GetAttribute("Job") == nil and adult:GetAttribute("Riding") == nil, "deja el turno y se baja")
+	check(onRoute, "cada parada de cada línea está en su recorrido (el autobús para junto a la marquesina)")
+	local allBuses = BusService.buses()
+	local expected = 0
+	for _, line in busLines do
+		expected += line.Def.Buses
+	end
+	local noDriver = #allBuses == expected
+	for _, bus in allBuses do
+		noDriver = noDriver and bus.Driver == nil and bus.Model:FindFirstChild("BusDriverNpc") ~= nil
+	end
+	check(noDriver and #worldRoot:FindFirstChild("Buses"):GetChildren() == expected, ("salen %d autobuses con conductor del juego (sin ningún conductor jugador)"):format(expected))
+	local before = {}
+	for _, bus in allBuses do
+		before[bus] = bus.S
+	end
+	for _ = 1, 50 do
+		services.RunService.Heartbeat:Fire(0.1)
+	end
+	local moving = true
+	for _, bus in allBuses do
+		moving = moving and (bus.S ~= before[bus] or bus.DoorsOpen)
+	end
+	check(moving, "circulan solos por sus líneas")
 
+	-- Un autobús de la L1 llega a una parada y abre las puertas
+	local l1 = BusService.lineOf("L1")
+	local function step(times, until_)
+		for _ = 1, times do
+			services.RunService.Heartbeat:Fire(0.1)
+			if until_ and until_() then
+				return true
+			end
+		end
+		return false
+	end
+	local openBus = nil
+	step(4000, function()
+		for _, bus in allBuses do
+			if bus.Line == l1 and bus.DoorsOpen and bus.AtStop then
+				openBus = bus
+				return true
+			end
+		end
+		return false
+	end)
+	check(openBus ~= nil and openBus.Model:GetAttribute("CurrentStop") ~= nil and openBus.Model:GetAttribute("DoorsOpen") == true, "un autobús de la L1 para en una parada y abre las puertas")
+	local boardStop = openBus.Line.Stops[openBus.AtStop]
+	local boardSign = boardStop.Sign
+	services.RunService.Heartbeat:Fire(2) -- (se publican los paneles)
+	local stopPromptObj = promptOf(boardSign, nil)
+	check(stopPromptObj ~= nil and stopPromptObj.ActionText == "Subir al bus (L1)", "en la parada, el cartel del poste dice «Subir al bus (L1)»")
+
+	-- Un niño sube gratis desde la parada, pide bajar en la próxima y baja en la acera
+	local kid, kidRoot, kidHumanoid = newPlayer(60, "Nino", 0)
+	moveTo(kidRoot, boardSign.Position + Vector3.new(0, -8, 0))
+	stopPromptObj.Triggered:Fire(kid)
+	check(kidHumanoid.SeatPart ~= nil and kidHumanoid.SeatPart.Name == "PassengerSeat" and kidHumanoid.SeatPart:IsDescendantOf(openBus.Model), "un niño sube al autobús desde la parada y se sienta")
+	check(profiles[kid].Money == 0 and notified(kid, "gratis"), "los niños viajan gratis")
+	check(kid:GetAttribute("BusLine") == "L1", "el pasajero sabe en qué línea va (panel del autobús)")
+	local teen, teenRoot, teenHumanoid = newPlayer(61, "Adolescente", 10)
+	moveTo(teenRoot, boardSign.Position + Vector3.new(0, -8, 0))
+	promptOf(openBus.Model, "Subir al bus (L1)").Triggered:Fire(teen)
+	check(teenHumanoid.SeatPart ~= nil and profiles[teen].Money == 10 - Gameplay.Bus.Fares.Adolescente, "un adolescente sube por la puerta y paga medio billete")
+	local broke, brokeRoot, brokeHumanoid = newPlayer(41, "Adulto", 0)
+	moveTo(brokeRoot, boardSign.Position + Vector3.new(0, -8, 0))
+	stopPromptObj.Triggered:Fire(broke)
+	check(brokeHumanoid.SeatPart == nil and notified(broke, "billete"), "un adulto sin dinero no puede subir")
+	local rider, riderRoot, riderHumanoid = newPlayer(40, "Adulto", 10)
+	moveTo(riderRoot, boardSign.Position + Vector3.new(0, -8, 0))
+	stopPromptObj.Triggered:Fire(rider)
+	check(riderHumanoid.SeatPart ~= nil and profiles[rider].Money == 10 - Gameplay.Bus.Fare, "un adulto paga el billete entero")
+	local far, farRoot, farHumanoid = newPlayer(42, "Adulto", 10)
+	moveTo(farRoot, boardSign.Position + Vector3.new(300, -8, 0))
+	stopPromptObj.Triggered:Fire(far)
+	check(farHumanoid.SeatPart == nil and profiles[far].Money == 10, "desde lejos no se puede subir")
+	moveTo(brokeRoot, Vector3.new(9000, 0, 9000))
+	moveTo(farRoot, Vector3.new(9000, 0, 9000))
+
+	-- El autobús arranca (espera un poco si hay alguien en la parada)
+	step(400, function()
+		return not openBus.DoorsOpen
+	end)
+	check(not openBus.DoorsOpen and openBus.AtStop == nil, "cierra las puertas y sigue su ruta")
+	-- Saltar con el autobús en marcha: vuelves a tu asiento y se pide la parada
+	teenRoot.CFrame = teenHumanoid.SeatPart.CFrame -- (sentado, el personaje va pegado al asiento)
+	teenHumanoid.Sit = false
+	task.wait(0.05)
+	check(teenHumanoid.SeatPart ~= nil and openBus.Model:GetAttribute("StopRequested") == true, "si saltas en marcha no te caes: vuelves al asiento y se pide parada")
+	remotes.Bus.OnServerEvent:Fire(kid, "Request")
+	check(openBus.Model:GetAttribute("StopRequested") == true and notified(kid, "Parada solicitada"), "«Bajar en la próxima»: parada solicitada (timbre)")
+
+	-- El panel de la próxima parada: el tiempo baja a medida que se acerca
+	local nextStop = openBus.Line.Stops[openBus.NextStop]
+	local function etaAt(stopId, lineId)
+		local best = nil
+		for _, a in BusService.arrivals()[stopId] or {} do
+			if a.Line == lineId and (best == nil or a.Seconds < best) then
+				best = a.Seconds
+			end
+		end
+		return best
+	end
+	local eta1 = etaAt(nextStop.Id, "L1")
+	step(30)
+	local eta2 = etaAt(nextStop.Id, "L1")
+	check(eta1 ~= nil and eta2 ~= nil and eta2 < eta1, ("el tiempo de llegada baja a medida que se acerca (%s → %s s)"):format(tostring(eta1 and math.floor(eta1)), tostring(eta2 and math.floor(eta2))))
+	services.RunService.Heartbeat:Fire(2)
+	local boardRows = BusLinesMod.decodeBoard(nextStop.Sign:GetAttribute("Board"))
+	local hasL1 = false
+	for _, a in boardRows do
+		hasL1 = hasL1 or a.Line == "L1"
+	end
+	check(hasL1 and string.find(promptOf(nextStop.Sign, nil).ObjectText, "L", 1, true) ~= nil, "el panel de la parada y su cartel dicen cuánto falta: " .. (if boardRows[1] then BusLinesMod.boardText(boardRows[1]) else "(vacío)"))
+
+	-- Llega a la siguiente parada: el niño y el adolescente bajan en la acera, junto a la marquesina
+	step(4000, function()
+		return openBus.DoorsOpen and openBus.AtStop ~= nil
+	end)
+	task.wait(0.05)
+	local exitStop = openBus.Line.Stops[openBus.AtStop]
+	check(exitStop.Id == nextStop.Id, "para en la siguiente parada")
+	local kidPos = kidRoot.CFrame.Position
+	local signPos = exitStop.Sign.Position
+	check(kidHumanoid.SeatPart == nil and kid:GetAttribute("BusLine") == nil and notified(kid, "Has bajado"), "el niño baja en la parada que pidió")
+	local stopInfo = exitStop.Info
+	local across = (Vector3.new(kidPos.X, 0, kidPos.Z) - stopInfo.Center):Dot(stopInfo.Right)
+	check((Vector3.new(kidPos.X, 0, kidPos.Z) - Vector3.new(signPos.X, 0, signPos.Z)).Magnitude < 30 and across > stopInfo.Width / 2 and across < stopInfo.Width / 2 + stopInfo.Walk and math.abs(kidPos.Y - 4) < 0.5, "y aparece en la acera, al lado de la marquesina (no en la calzada)")
+	check(teenHumanoid.SeatPart == nil, "el que saltó en marcha también baja en esta parada")
+	check(riderHumanoid.SeatPart ~= nil, "quien no pidió parada sigue sentado")
+	riderHumanoid.Sit = false
+	task.wait(0.05)
+	check(riderHumanoid.SeatPart == nil, "con las puertas abiertas, saltando se baja")
+	for _, p in { kid, teen, rider } do
+		p.Character:FindFirstChild("HumanoidRootPart").CFrame = CFrame.new(9000, 3, 9000)
+	end
+
+	-- Oficio de conductor: con la red en marcha, un jugador conduce su autobús en la línea más cercana
+	promptOf(centroStop, "🚌 Trabajar de conductor").Triggered:Fire(broke)
+	check(broke:GetAttribute("Job") == nil and notified(broke, "carnet"), "sin carnet no se puede ser conductor")
+	local driverMoney = profiles[adult].Money
+	moveTo(adultRoot, Vector3.new(0, 0, 600))
+	promptOf(centroStop, "🚌 Trabajar de conductor").Triggered:Fire(adult)
+	check(adult:GetAttribute("Job") == "Conductor" and adult:GetAttribute("Riding") == "Autobus", "con carnet se hace conductor y se sube a su autobús")
+	local target = adult:GetAttribute("TaskTarget")
+	check(typeof(target) == "Vector3", "la línea azul le lleva a la siguiente parada")
+	local driverBus = nil
+	for _, d in worldRoot:GetDescendants() do
+		if d.Name == "Autobus_" .. adult.Name then
+			driverBus = d
+		end
+	end
+	check(#BusService.buses() == expected + 1, "los autobuses del juego siguen circulando con el conductor jugador")
+	local chassis = driverBus and driverBus.PrimaryPart
+	chassis.CFrame = CFrame.new(target + Vector3.new(0, 1, 0))
+	chassis.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+	for _ = 1, 25 do
+		services.RunService.Heartbeat:Fire(0.1)
+		task.wait(0.1)
+	end
+	check(profiles[adult].Money >= driverMoney + Gameplay.Bus.DriverPerStop and driverBus:GetAttribute("DoorsOpen") == true, "para en la parada: se abren las puertas y cobra")
+	remotes.QuitJob.OnServerEvent:Fire(adult)
+	check(adult:GetAttribute("Job") == nil and adult:GetAttribute("Riding") == nil, "deja el turno y se baja")
+	-- (para las pruebas de después: se quitan las calles de la ciudad y quedan unas pocas de prueba)
+	for _, c in realRoads do
+		c:Destroy()
+	end
+	road(Vector3.new(0, 0, 2000), Vector3.new(400, 0, 2000))
+	road(Vector3.new(400, 0, 2000), Vector3.new(400, 0, 2400))
+	road(Vector3.new(400, 0, 2400), Vector3.new(0, 0, 2400))
+	road(Vector3.new(0, 0, 2400), Vector3.new(0, 0, 2000))
+end)()
 ---------------------------------------------------------------------
 print("▶ Policía: avisos por la ciudad (robo, multa, accidente, persona perdida)")
 -- (las calles de la prueba del autobús sirven para los avisos)
@@ -2636,20 +2797,104 @@ local function mp(name, cf, tags, attrs, size)
 	p.Parent = worldRoot
 	return p
 end
+-- Bocas de metro que se bajan andando (geometría compartida: Metro.access)
+local stairsOk, landingsOk, hallsOk, shaftsOk, lobbyOk, deepOk = true, true, true, true, true, true
+for id in Metro.Stations do
+	local A = Metro.access(id)
+	local S, K, H = A.Stair, A.Shaft, A.Hall
+	local function near(a, b)
+		return (a - b).Magnitude < 0.05
+	end
+	-- De la acera, dos tramos con rellano hasta el vestíbulo; ningún peldaño más alto de la cuenta
+	local p = S.Top
+	if math.abs(p.Y - Metro.StreetY) > 0.01 then
+		stairsOk = false
+	end
+	for i, f in S.Flights do
+		local drop = f.Top.Y - f.Bottom.Y
+		local run = (Vector3.new(f.Bottom.X, 0, f.Bottom.Z) - Vector3.new(f.Top.X, 0, f.Top.Z)).Magnitude
+		if not near(f.Top, p) or f.Rise > Metro.MaxRise or math.abs(f.Steps * f.Rise - drop) > 0.01 or math.abs(f.Steps * f.Run - run) > 0.01 then
+			stairsOk = false
+		end
+		p = f.Bottom
+		local land = S.Landings[i]
+		if land then
+			if not near(land.From, p) or math.abs(land.To.Y - p.Y) > 0.01 or (land.To - land.From).Magnitude < 3 then
+				landingsOk = false
+			end
+			p = land.To
+		end
+	end
+	if not near(p, S.Bottom) or math.abs(S.Bottom.Y - Metro.HallY) > 0.01 then
+		stairsOk = false
+	end
+	-- El vestíbulo recoge el final de la escalera y el principio de las mecánicas; su techo, bajo las calles
+	local function onHall(q)
+		return q.X >= H.Min.X - 0.05 and q.X <= H.Max.X + 0.05 and q.Z >= H.Min.Z - 0.05 and q.Z <= H.Max.Z + 0.05 and math.abs(q.Y - H.Min.Y) < 0.05
+	end
+	if not onHall(S.Bottom) or not onHall(K.Top) or H.Max.Y + 0.5 > -4.2 or H.Max.Y - H.Min.Y < 7 then
+		hallsOk = false
+	end
+	-- Escaleras mecánicas (y la fija de al lado): peldaños bajos, pendiente de escalera mecánica
+	local run = (Vector3.new(K.Bottom.X, 0, K.Bottom.Z) - Vector3.new(K.Top.X, 0, K.Top.Z)).Magnitude
+	local slope = math.deg(math.atan((K.Top.Y - K.Bottom.Y) / run))
+	if K.Rise > Metro.MaxRise or math.abs(K.Steps * K.Rise - (K.Top.Y - K.Bottom.Y)) > 0.01 or slope > 35 or slope < 25 or math.abs(K.Bottom.Y - A.LowerY) > 0.01 then
+		shaftsOk = false
+	end
+	-- Y llegan al vestíbulo de andenes de su línea (donde están los tornos)
+	if not Metro.inLobby(id, A.Line, K.Bottom) or not Metro.inLobby(id, A.Line, A.Route[#A.Route]) then
+		lobbyOk = false
+	end
+	-- Al fondo del todo ya se está "bajo tierra" (no llueve); en la acera, no
+	if not (A.LowerY + 6 < Metro.Underground and Metro.StreetY + 5 > Metro.Underground) then
+		deepOk = false
+	end
+	-- Camino continuo: cada tramo empieza donde acaba el anterior y nunca sube de golpe
+	for k = 2, #A.Route do
+		local a, b = A.Route[k - 1], A.Route[k]
+		if b.Y > a.Y + 0.01 then
+			stairsOk = false
+		end
+	end
+end
+check(stairsOk, "las bocas de metro bajan de la acera con escaleras (peldaños de 1,2 como mucho y sin huecos)")
+check(landingsOk, "las escaleras de la calle tienen su rellano a mitad")
+check(hallsOk, "el vestíbulo recoge la escalera de la calle y las mecánicas, bajo el suelo de las calles")
+check(shaftsOk, "escaleras mecánicas y fija hasta el fondo, con pendiente de escalera mecánica")
+check(lobbyOk, "las escaleras mecánicas llegan al vestíbulo de andenes de cada estación")
+check(deepOk, "abajo se está bajo tierra (sin lluvia) y en la calle no")
+local off = { Metro.escalatorOffset(0, 0, 1.3, 40, 7), Metro.escalatorOffset(39, 0, 1.3, 40, 7), Metro.escalatorOffset(0, 10, 1.3, 40, -7) }
+check(off[1] > 0 and off[2] < 40 * 1.3 and off[3] >= 0 and off[3] < 40 * 1.3, "los peldaños de las escaleras mecánicas dan la vuelta sin salirse")
+-- Cuándo llega el tren: cuentas puras
+do
+	local centers = { 75, 1000, 2500 }
+	local t0 = { Centers = centers, Index = 1, Dir = 1, Phase = "Dwell", Timer = 5, Duration = 1, Elapsed = 0 }
+	local e0, to0 = Metro.eta(t0, 1)
+	local e1 = Metro.eta(t0, 2)
+	local e3, to3 = Metro.eta(t0, 3)
+	check(e0 == 0 and to0 == 3, "con el tren en el andén el panel dice EN ANDÉN (y hacia la última estación)")
+	check(math.abs(e1 - (5 + Metro.travelTime(925))) < 0.01, "llega a la siguiente: lo que le queda parado + el viaje")
+	check(math.abs(e3 - (5 + Metro.travelTime(925) + Metro.Dwell + Metro.travelTime(1500))) < 0.01 and to3 == 1, "a la última: con la parada de en medio, y luego vuelve")
+	local back = { Centers = centers, Index = 3, Dir = 1, Phase = "Move", Timer = 0, Duration = 20, Elapsed = 5 }
+	local eb = Metro.eta(back, 2)
+	check(math.abs(eb - (15 + Metro.Dwell + Metro.travelTime(1500))) < 0.01, "si va hacia la punta, primero llega allí y da la vuelta")
+	check(Metro.travelTime(10) < Metro.travelTime(100) and Metro.travelTime(5000) > 5000 / Metro.Speed, "el tren arranca y frena (tarda más que a velocidad de crucero)")
+	check(Metro.boardText(L1, 150, #L1.Stations):find("3 min") ~= nil and Metro.boardText(L1, 10, 1):find("LLEGANDO") ~= nil and Metro.boardText(L1, 0, 1, 7):find("EN ANDÉN") ~= nil, "el cartel: minutos, llegando y en andén")
+end
 -- Estaciones (lo mínimo de cada una)
 for id, st in Metro.Stations do
-	local c = Vector3.new(st.Surface[1], -150, st.Surface[2])
+	local c = Vector3.new(st.Surface[1], L1.Y, st.Surface[2])
 	mp("Door", CFrame.new(st.Surface[1], 2.5, st.Surface[2]), { "MetroEntrance" }, { Station = id })
 	mp("Arrival", CFrame.new(c + Vector3.new(30, 3, 0)), { "MetroArrival" }, { Station = id, Line = "L1" })
 	mp("Alight", CFrame.new(c + Vector3.new(12, 3, 0)), { "MetroAlight" }, { Station = id, Line = "L1" })
 	local kiosk = mp("Kiosk", CFrame.new(c + Vector3.new(40, 2, 18)), { "MetroShop", "MetroDelivery" }, { ShopId = "Quiosco", Station = id })
 	local _ = kiosk
 end
-local P = Metro.Stations.Poniente
-local base = Vector3.new(P.Surface[1], -150, P.Surface[2])
+local P = Metro.Stations[L1.Stations[1]] -- (la primera estación de la Línea 1: allí espera el tren)
+local base = Vector3.new(P.Surface[1], L1.Y, P.Surface[2])
 local machine = mp("TicketMachine", CFrame.new(base + Vector3.new(46, 3, -20)), { "MetroTicketMachine" })
 local gate = mp("Turnstile", CFrame.new(base + Vector3.new(19, 2, 0)), { "MetroGate" }, { Through = base + Vector3.new(14, 3, 0) })
-local board = mp("Board", CFrame.new(base + Vector3.new(7, 2.5, 0)), { "MetroBoard" }, { Station = "Poniente", Line = "L1" })
+local board = mp("Board", CFrame.new(base + Vector3.new(7, 2.5, 0)), { "MetroBoard" }, { Station = P.Id, Line = "L1" })
 -- Tren de la Línea 1 (3 coches con un asiento y una puerta cada uno)
 local trainModel = fakeInstance("Model")
 trainModel.Name = "Metro_L1"
@@ -2671,7 +2916,9 @@ end
 trainModel:AddTag("MetroTrain")
 -- Galería
 local H = Metro.Stations.PlazaMayor
-local hub = Vector3.new(H.Surface[1], -150, H.Surface[2])
+local hub = Vector3.new(H.Surface[1], L1.Y, H.Surface[2])
+-- Escalera mecánica: el suelo invisible lleva a quien se sube
+local belt = mp("EscalatorBelt", CFrame.new(base + Vector3.new(30, 10, -40)), { "MetroEscalator" }, { Velocity = Vector3.new(6, -3.5, 0), Down = true })
 local music = mp("Counter", CFrame.new(hub + Vector3.new(98, 2, 28)), { "MetroShop" }, { ShopId = "Musica" })
 local mic = mp("Mic", CFrame.new(hub + Vector3.new(128, 3, -16)), { "MetroStage" })
 local missionBoard = mp("MissionBoard", CFrame.new(hub + Vector3.new(80, 5, -24)), { "MetroMissionBoard" })
@@ -2679,6 +2926,7 @@ local lostOffice = mp("LostOffice", CFrame.new(hub + Vector3.new(58, 2, -28)), {
 local MetroService = loadModule(S .. "MetroService")
 MetroService.init()
 check(jobProviders.Handler_Revisor ~= nil, "el tablón de la galería lleva al oficio de revisor/a")
+check(belt.AssemblyLinearVelocity == Vector3.new(6, -3.5, 0), "las escaleras mecánicas llevan (cinta transportadora)")
 local train = MetroService._trains.L1
 check(train ~= nil and train.Phase == "Dwell" and train.Index == 1, "el tren de la Línea 1 espera en la primera estación con las puertas abiertas")
 local rider, riderRoot, riderHumanoid = newPlayer(91, "Adulto", 100)
@@ -2687,12 +2935,12 @@ InventoryService.refresh(rider)
 moveTo(riderRoot, Vector3.new(P.Surface[1], 0, P.Surface[2]))
 local door = nil
 for _, d in services.CollectionService:GetTagged("MetroEntrance") do
-	if d:GetAttribute("Station") == "Poniente" then
+	if d:GetAttribute("Station") == P.Id then
 		door = d
 	end
 end
-promptOf(door, "Bajar al metro").Triggered:Fire(rider)
-check(notified(rider, "Metro · Poniente"), "por la boca de metro se baja al vestíbulo")
+promptOf(door, "Bajar en ascensor").Triggered:Fire(rider)
+check(notified(rider, "Metro · " .. P.Name), "el ascensor de la boca de metro baja directo al vestíbulo de andenes")
 moveTo(riderRoot, base + Vector3.new(40, -2, -18))
 promptOf(gate, "Pasar (billete)").Triggered:Fire(rider)
 check(notified(rider, "Necesitas un billete"), "sin billete no se pasa el torno")
@@ -2700,15 +2948,26 @@ M:Fire(rider, "BuyTicket", "Sencillo")
 check(profiles[rider].Money == 98 and InventoryService.count(rider, "BilleteMetro") == 1, "la máquina vende el billete")
 promptOf(gate, "Pasar (billete)").Triggered:Fire(rider)
 check(InventoryService.count(rider, "BilleteMetro") == 0 and rider:GetAttribute("MetroTicket") == true, "el torno gasta el billete")
+do
+	local kid = newPlayer(93, "Nino", 0)
+	promptOf(gate, "Pasar (billete)").Triggered:Fire(kid)
+	check(kid:GetAttribute("MetroTicket") == true and notified(kid, "gratis"), "los niños pasan el torno gratis")
+end
 -- Subir y viajar
 moveTo(riderRoot, base + Vector3.new(8, -2, 0))
 promptOf(board, "Subir al metro").Triggered:Fire(rider)
 check(riderHumanoid.SeatPart ~= nil and MetroService._riding[rider] == train and lastMessage(rider, "Board") ~= nil, "sube al tren y se sienta")
 local guard = 0
-while not (train.Index == 2 and train.Phase == "Dwell") and guard < 400 do
+local hubIndex = table.find(L1.Stations, "PlazaMayor")
+-- (antes de salir: cuánto dice el panel que tarda en llegar a Plaza Mayor)
+local etaHub, towardHub = Metro.eta(train, hubIndex)
+local waited = 0
+while not (train.Index == hubIndex and train.Phase == "Dwell") and guard < 2000 do
 	guard += 1
+	waited += 0.5
 	MetroService._step(train, 0.5)
 end
+check(math.abs(waited - etaHub) <= 1.5 and towardHub == #L1.Stations, ("el panel acierta cuándo llega el tren (%.1f s dicho, %.1f s de verdad) y hacia dónde va"):format(etaHub, waited))
 local arrive = lastMessage(rider, "Arrive")
 check(arrive ~= nil and arrive[2].Station == "Plaza Mayor", "el tren llega a Plaza Mayor y te avisa")
 local car2 = trainModel:FindFirstChild("Car2"):FindFirstChild("Root")
@@ -2716,7 +2975,10 @@ check((car2.Position - Metro.center("PlazaMayor", L1)).Magnitude < 5, "el tren p
 check(train.Cars[1].Doors[1].Transparency == 1, "con el tren parado las puertas están abiertas")
 M:Fire(rider, "Alight")
 check(MetroService._riding[rider] == nil and lastMessage(rider, "Off") ~= nil, "bajas en Plaza Mayor")
+local walker, walkerRoot = newPlayer(94, "Adolescente", 0)
+moveTo(walkerRoot, train.Cars[2].Root.Position + Vector3.new(0, 3, 0))
 MetroService._step(train, Metro.Dwell + 0.1)
+check(MetroService._riding[walker] == train and lastMessage(walker, "Board") ~= nil, "quien entra andando en el tren se sienta al cerrarse las puertas")
 check(train.Phase == "Move" and train.Cars[1].Doors[1].Transparency == 0, "el tren cierra las puertas y sigue")
 -- Galería: tienda de discos y escenario
 moveTo(riderRoot, hub + Vector3.new(98, -2, 22))
@@ -3642,6 +3904,1104 @@ dormFridge:FindFirstChild("InteractPrompt").Triggered:Fire(otherStudent)
 remotes.Interact.OnServerEvent:Fire(otherStudent, "Fridge", "Eat", "Pan")
 check(#needsChanges == 0 and dormStock.Pan == 1, "otro estudiante no coge de tu nevera")
 Config.SleepSeconds = savedSleep
+end)()
+
+;(function()
+print("▶ Gimnasio: recepción, máquinas, ritmo, fuerza en el cuerpo, deportistas y monitor/a")
+local Gym = loadModule(ROOT .. "/shared/Gym")
+-- Un gimnasio de verdad (el mismo interior que en el mapa: World/Kit/GymKit)
+local GymKit = loadModule(ROOT .. "/server/World/Kit/GymKit")
+local building = fakeInstance("Model")
+building.Name = "GimnasioValmar"
+building.Parent = worldRoot
+GymKit.interior(building, CFrame.new(6000, 1, 6000), "Gimnasio de Prueba")
+local tagged = services.CollectionService:GetTagged("GymMachine")
+local kinds = {}
+for _, m in tagged do
+	kinds[m:GetAttribute("Kind")] = true
+end
+local kindCount = 0
+for _ in kinds do
+	kindCount += 1
+end
+check(#tagged >= 15 and kindCount >= 14, ("el gimnasio tiene %d máquinas de %d tipos"):format(#tagged, kindCount))
+local desk = services.CollectionService:GetTagged("GymReception")[1]
+check(desk ~= nil and typeof(desk:GetAttribute("StaffSpot")) == "Vector3", "hay recepción con sitio para la recepcionista")
+check(#services.CollectionService:GetTagged("GymFountain") == 1 and #services.CollectionService:GetTagged("Bench") >= 2, "fuente de agua y bancos para descansar")
+local lockers, mirrors = 0, 0
+for _, d in building:GetDescendants() do
+	if d.Name == "Locker" then
+		lockers += 1
+	elseif d.Name == "Mirror" then
+		mirrors += 1
+	end
+end
+check(lockers >= 6 and mirrors >= 2, "vestuarios con taquillas y espejos")
+
+local GymService = loadModule(S .. "GymService")
+local clock, now = 1000, 5000000
+GymService._clock = function()
+	return clock
+end
+GymService._now = function()
+	return now
+end
+local callbacksBefore = #loadedCallbacks
+GymService.init()
+local function loaded(p)
+	for i = callbacksBefore + 1, #loadedCallbacks do
+		loadedCallbacks[i](p, profiles[p])
+	end
+end
+check(jobProviders.Handler_MonitorGimnasio ~= nil, "el tablón del gimnasio lleva al oficio de monitor/a")
+check(promptOf(desk, "Recepción") ~= nil, "la recepción tiene su cartel")
+local receptionist = nil
+for _, d in desk.Parent:GetDescendants() do
+	if d.Name == "Recepcionista" then
+		receptionist = d
+	end
+end
+check(receptionist ~= nil, "la recepcionista está detrás del mostrador")
+local function machineOf(kind)
+	for _, m in services.CollectionService:GetTagged("GymMachine") do
+		if m:GetAttribute("Kind") == kind then
+			return m
+		end
+	end
+	return nil
+end
+local cinta, banca, comba = machineOf("Cinta"), machineOf("PressBanca"), machineOf("Comba")
+check(promptOf(cinta, "Entrenar") ~= nil and promptOf(banca, "Entrenar") ~= nil, "cada máquina tiene su cartel «Entrenar»")
+check(promptOf(banca, "Entrenar"):GetAttribute("MinStage") == "Adolescente" and promptOf(cinta, "Entrenar"):GetAttribute("MinStage") == "Nino", "los niños solo ven los carteles de las máquinas ligeras")
+
+local athlete, athleteRoot = newPlayer(91, "Adulto", 200)
+profiles[athlete].Hunger, profiles[athlete].Energy = 100, 100
+loaded(athlete)
+check(athlete:GetAttribute("GymStrength") == 0 and athlete:GetAttribute("GymPass") == nil, "empieza sin fuerza y sin entrada")
+-- Sin entrada no se entrena
+promptOf(cinta, "Entrenar").Triggered:Fire(athlete)
+check(athlete:GetAttribute("Training") == nil and notified(athlete, "Necesitas entrada"), "sin entrada te mandan a la recepción")
+-- Recepción: entrada del día
+moveTo(athleteRoot, desk.Position + Vector3.new(0, 0, -3))
+promptOf(desk, "Recepción").Triggered:Fire(athlete)
+local info = lastMessage(athlete, "Reception")
+check(info ~= nil and info[2].Active == false and #info[2].Passes == 2 and info[2].Passes[1].Price == 5 and info[2].Passes[2].Price == 60, "la recepción enseña la entrada (5 €) y el abono (60 €)")
+local G = remotes.Gym.OnServerEvent
+G:Fire(athlete, "Buy", "Dia")
+check(profiles[athlete].Money == 195 and athlete:GetAttribute("GymPass") == "Dia" and GymService.data(athlete).PassUntil == now + Gym.daySeconds(Config.DayLengthMinutes), "paga la entrada del día")
+-- Lejos de la recepción no se compra nada
+moveTo(athleteRoot, Vector3.new(0, 0, 0))
+G:Fire(athlete, "Buy", "Mes")
+check(profiles[athlete].Money == 195, "lejos de la recepción no se puede comprar")
+
+-- Entrenar en el press de banca
+promptOf(banca, "Entrenar").Triggered:Fire(athlete)
+local anchor = banca:FindFirstChild("GymAnchor")
+check(athlete:GetAttribute("Training") == "PressBanca" and athleteRoot.Anchored == true, "se pone a entrenar (quieto en la máquina)")
+check((athleteRoot.Position - (anchor.Position + Vector3.new(0, 3 - anchor.Size.Y / 2, 0))).Magnitude < 0.01, "colocado justo en su sitio de la máquina")
+check(athlete.Character:GetAttribute("GymExercise") == "PressBanca" and athlete.Character:HasTag("GymTraining"), "todos lo ven entrenar (etiqueta y ejercicio en el personaje)")
+local start = lastMessage(athlete, "Start")
+check(start ~= nil and start[2].SetReps == Gym.SetReps and start[2].Kind == "PressBanca", "sale la barra del ritmo")
+G:Fire(athlete, "Rep", "Bien")
+G:Fire(athlete, "Rep", "Bien")
+check(GymService._sessions[athlete].Reps == 1, "no cuentan dos repeticiones seguidas sin darle tiempo")
+check(athlete.Character:GetAttribute("GymRep") == 1, "cada repetición se ve (GymRep)")
+table.clear(needsChanges)
+for _ = 2, Gym.SetReps do
+	clock += 1
+	G:Fire(athlete, "Rep", "Perfecto")
+end
+local set = lastMessage(athlete, "Set")
+check(set ~= nil and set[2].Sets == 1 and set[2].GainStrength > 0 and set[2].GainCardio == 0, "serie completa: sube la Fuerza")
+check((athlete:GetAttribute("GymStrength") or 0) > 0, "y se guarda (atributo GymStrength)")
+local spent = false
+for _, c in needsChanges do
+	if c[1] == athlete and c[2] < 0 and c[3] < 0 then
+		spent = true
+	end
+end
+check(spent, "entrenar gasta hambre y energía")
+-- Sin fuerzas
+local tired = false
+for _ = 1, 20 do
+	clock += 1
+	G:Fire(athlete, "Rep", "Bien")
+	if lastMessage(athlete, "Tired") then
+		tired = true
+		break
+	end
+end
+check(tired, "si no descansas, te quedas sin fuerzas")
+clock += 10
+GymService._regen(10)
+check(GymService._sessions[athlete].Effort == Gym.EffortMax, "descansando se recupera el esfuerzo")
+clock += 1
+G:Fire(athlete, "Miss")
+check(GymService._sessions[athlete].Effort == Gym.EffortMax - Gym.MissEffort, "fallar el ritmo también cansa")
+
+-- El cuerpo se ensancha (LifeService de verdad, con el tamaño de su edad)
+local savedLife = mocks[S .. "LifeService"]
+mocks[S .. "LifeService"] = nil
+local savedCache = cache[S .. "LifeService"]
+cache[S .. "LifeService"] = nil
+local RealLife = loadModule(S .. "LifeService")
+mocks[S .. "LifeService"] = savedLife
+cache[S .. "LifeService"] = savedCache
+athlete.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = 16
+athlete:SetAttribute("GymStrength", 100)
+RealLife.refresh(athlete)
+local humanoid = athlete.Character:FindFirstChildOfClass("Humanoid")
+local width = humanoid:FindFirstChild("BodyWidthScale")
+local depth = humanoid:FindFirstChild("BodyDepthScale")
+check(width ~= nil and depth ~= nil and math.abs(width.Value - 1.25) < 1e-6 and math.abs(depth.Value - 1.25) < 1e-6, "con 100 de Fuerza: un 25 % más ancho")
+athlete:SetAttribute("GymStrength", 0)
+RealLife.refresh(athlete)
+check(width ~= nil and math.abs(width.Value - 1) < 1e-6, "y vuelve a su medida si pierde la fuerza")
+-- Con otra medida de base (su avatar) y tamaño de niño: se multiplica
+local kidLook = newPlayer(95, "Nino", 0)
+local kidHumanoid = kidLook.Character:FindFirstChildOfClass("Humanoid")
+kidHumanoid.WalkSpeed = 16
+local base = FakeInstanceLib.new("NumberValue")
+base.Name = "BodyWidthScale"
+base.Value = 0.9
+base.Parent = kidHumanoid
+kidLook:SetAttribute("GymStrength", 100)
+RealLife.refresh(kidLook)
+check(math.abs(base.Value - 0.9 * 1.25) < 1e-6 and math.abs(kidLook.Character:GetScale() - Config.StageBody.Nino.Scale) < 1e-6, "se multiplica con su medida y con el tamaño de su edad")
+base.Value = 1 -- (otro sistema le cambia el aspecto)
+RealLife.refresh(kidLook)
+check(math.abs(base.Value - 1.25) < 1e-6, "si cambia de aspecto, la fuerza se aplica sobre el nuevo")
+athlete:SetAttribute("GymStrength", GymService.data(athlete).Strength)
+
+-- Dejar la máquina
+G:Fire(athlete, "Stop")
+check(athlete:GetAttribute("Training") == nil and athleteRoot.Anchored == false, "«Dejar» te baja de la máquina")
+check(athlete.Character:GetAttribute("GymExercise") == nil and not athlete.Character:HasTag("GymTraining"), "y deja de hacer el ejercicio")
+local exit = banca:GetAttribute("Exit")
+check((Vector3.new(athleteRoot.Position.X, 0, athleteRoot.Position.Z) - Vector3.new(exit.X, 0, exit.Z)).Magnitude < 0.01, "se aparta a un lado de la máquina")
+check(notified(athlete, "Buen entreno"), "te dice cómo ha ido el entreno")
+
+-- Niños y bebés
+local kid, kidRoot = newPlayer(92, "Nino", 50)
+profiles[kid].Hunger, profiles[kid].Energy = 100, 100
+loaded(kid)
+moveTo(kidRoot, desk.Position + Vector3.new(0, 0, -3))
+G:Fire(kid, "Buy", "Dia")
+check(profiles[kid].Money == 47, "los niños pagan la mitad (3 €)")
+promptOf(banca, "Entrenar").Triggered:Fire(kid)
+check(kid:GetAttribute("Training") == nil and notified(kid, "para mayores"), "un niño no puede usar el press de banca")
+promptOf(comba, "Entrenar").Triggered:Fire(kid)
+check(kid:GetAttribute("Training") == "Comba", "pero sí la comba")
+local baby, babyRoot = newPlayer(93, "Bebe", 50)
+profiles[baby].Hunger, profiles[baby].Energy = 100, 100
+loaded(baby)
+moveTo(babyRoot, desk.Position + Vector3.new(0, 0, -3))
+G:Fire(baby, "Buy", "Dia")
+check(profiles[baby].Money == 50 and notified(baby, "bebés"), "un bebé no puede apuntarse")
+promptOf(cinta, "Entrenar").Triggered:Fire(baby)
+check(baby:GetAttribute("Training") == nil, "ni entrenar")
+-- Máquina ocupada por otro jugador
+promptOf(comba, "Entrenar").Triggered:Fire(athlete)
+check(athlete:GetAttribute("Training") == nil and notified(athlete, "ocupada"), "si otro jugador está en la máquina, está ocupada")
+G:Fire(kid, "Stop")
+
+-- Cansado: no se entrena
+profiles[athlete].Energy = 5
+promptOf(cinta, "Entrenar").Triggered:Fire(athlete)
+check(athlete:GetAttribute("Training") == nil and notified(athlete, "cansado"), "con muy poca energía no se puede entrenar")
+profiles[athlete].Energy = 100
+
+-- Deportistas (NPC) cuando hay alguien cerca, y te dejan su máquina
+moveTo(athleteRoot, desk.Position + Vector3.new(0, 0, 4))
+GymService._tick()
+GymService._tick()
+local npcs = {}
+for _, d in worldRoot:FindFirstChild("Deportistas"):GetChildren() do
+	if d:HasTag("GymTraining") then
+		table.insert(npcs, d)
+	end
+end
+check(#npcs >= 2, ("hay %d deportistas entrenando"):format(#npcs))
+local npc = npcs[1]
+local npcMachine = nil
+for _, m in services.CollectionService:GetTagged("GymMachine") do
+	if npc and m:GetAttribute("MachineId") == npc:GetAttribute("GymMachine") then
+		npcMachine = m
+	end
+end
+local repBefore = npc and npc:GetAttribute("GymRep") or 0
+clock += 20
+GymService._tick()
+check(npc ~= nil and (npc:GetAttribute("GymRep") or 0) > repBefore, "los deportistas hacen sus repeticiones")
+if npcMachine then
+	promptOf(npcMachine, "Entrenar").Triggered:Fire(athlete)
+end
+check(npcMachine ~= nil and athlete:GetAttribute("Training") == npcMachine:GetAttribute("Kind") and npc.Parent == nil, "un deportista te deja su máquina")
+G:Fire(athlete, "Stop")
+
+-- Monitor/a de gimnasio
+local coach, coachRoot = newPlayer(94, "Adulto", 0)
+profiles[coach].Hunger, profiles[coach].Energy = 100, 100
+loaded(coach)
+jobProviders.Handler_MonitorGimnasio.Start(coach)
+check(coach:GetAttribute("Job") == "MonitorGimnasio", "empieza de monitor/a")
+moveTo(coachRoot, desk.Position + Vector3.new(2, 0, 4))
+for _, gymInfo in GymService._gyms do
+	gymInfo.NextRequest = 0
+end
+GymService._tick()
+local helpPrompt = nil
+for _, d in worldRoot:FindFirstChild("Deportistas"):GetDescendants() do
+	if d.ClassName == "ProximityPrompt" and d.ActionText == "Ayudar" then
+		helpPrompt = d
+	end
+end
+check(helpPrompt ~= nil and helpPrompt:GetAttribute("JobOnly") == "MonitorGimnasio", "un deportista pide ayuda (solo lo ve el monitor)")
+check(coach:GetAttribute("TaskText") ~= nil, "al monitor le marca a quién ayudar")
+local jobEvents = 0
+local conn = StoryEventsModule.connect(function(p, name, payload)
+	if p == coach and name == "JobTaskDone" and payload.JobId == "MonitorGimnasio" then
+		jobEvents += 1
+	end
+end)
+if helpPrompt then
+	helpPrompt.Triggered:Fire(coach)
+end
+check(profiles[coach].Money == Config.Jobs.MonitorGimnasio.Pay and jobEvents == 1, "ayudar le paga y cuenta para la historia")
+-- Entrenar con un monitor cerca: sube más y el monitor se lleva propina
+local moneyCoach = profiles[coach].Money
+clock += 5
+moveTo(athleteRoot, cinta:FindFirstChild("GymAnchor").Position)
+promptOf(cinta, "Entrenar").Triggered:Fire(athlete)
+for _ = 1, Gym.SetReps do
+	clock += 2
+	G:Fire(athlete, "Rep", "Bien")
+end
+check(lastMessage(athlete, "Set") ~= nil and lastMessage(athlete, "Set")[2].Monitor == true, "entrenando cerca del monitor ganas más")
+check(profiles[coach].Money > moneyCoach, "y el monitor se lleva una propina")
+G:Fire(athlete, "Stop")
+if conn and conn.Disconnect then
+	conn:Disconnect()
+end
+jobProviders.Handler_MonitorGimnasio.Quit(coach)
+check(coach:GetAttribute("Job") == nil, "acaba el turno de monitor/a")
+
+-- Fuente de agua
+table.clear(needsChanges)
+promptOf(services.CollectionService:GetTagged("GymFountain")[1], "Beber agua").Triggered:Fire(athlete)
+check(#needsChanges == 1 and needsChanges[1][3] > 0, "beber agua da un poco de energía")
+
+-- Días sin entrenar: se pierde un poco (y la entrada caduca)
+local data = GymService.data(athlete)
+local before = data.Strength
+now += Gym.daySeconds(Config.DayLengthMinutes) * 10
+GymService.applyDecay(athlete)
+check(data.Strength < before and data.Strength > before * 0.8, "tras 10 días sin entrenar pierde un poco de fuerza")
+local after = data.Strength
+GymService.applyDecay(athlete)
+check(data.Strength == after, "y no se vuelve a quitar lo mismo")
+promptOf(cinta, "Entrenar").Triggered:Fire(athlete)
+check(athlete:GetAttribute("Training") == nil, "la entrada del día ya ha caducado")
+end)()
+
+;(function()
+print("▶ Granja: fincas, bancales, corral, cooperativa, obrador y supermercado")
+local Farming = loadModule(ROOT .. "/shared/Farming")
+local town = worldRoot:FindFirstChild("Town")
+if not town then
+	town = fakeInstance("Folder")
+	town.Name = "Town"
+	town.Parent = worldRoot
+end
+local farm = fakeInstance("Model")
+farm.Name = "Granja"
+farm.Parent = town
+for i = 1, 10 do
+	local row = part("Crop", CFrame.new(3000 + i * 6, 0.25, 3050))
+	row.Size = Vector3.new(5, 0.5, 64)
+	row.Parent = farm
+end
+local barn = fakeInstance("Model")
+barn.Name = "Granero"
+barn.WorldPivot = CFrame.new(3030, 0, 3000)
+barn.Parent = farm
+local barnWalls = part("Walls", CFrame.new(3030, 5, 3000))
+barnWalls.Size = Vector3.new(26, 10, 20)
+barnWalls.Parent = barn
+for _, p in collection:GetTagged("SuperStock") do
+	p:SetAttribute("Index", 1)
+end
+local FarmService = loadModule(S .. "FarmService")
+local clock = 100000
+FarmService._clock = function()
+	return clock
+end
+FarmService.init()
+local fincasFolder = worldRoot:FindFirstChild("Fincas")
+local signs, stakes = {}, {}
+for _, d in fincasFolder:GetDescendants() do
+	if d.Name == "CartelFinca" then
+		table.insert(signs, d)
+	elseif d.Name == "Estaca" then
+		table.insert(stakes, d)
+	end
+end
+check(#signs == 2 and #stakes == 8, ("10 filas de cultivo = 2 fincas de 4 bancales (%d carteles, %d estacas)"):format(#signs, #stakes))
+local coop = fincasFolder:FindFirstChild("Cooperativa")
+check(coop ~= nil and promptOf(coop, "Cooperativa") ~= nil and promptOf(coop, "Obrador") ~= nil and promptOf(coop, "Vender cosecha") ~= nil, "delante del granero hay una cooperativa con tienda, obrador y venta")
+local function fire(player, ...)
+	task.wait(0.16)
+	remotes.Farm.OnServerEvent:Fire(player, ...)
+end
+local farmer, farmerRoot = newPlayer(380, "Adulto", 1000)
+profiles[farmer].Items = {}
+profiles[farmer].Slots = {}
+local baby = newPlayer(381, "Bebe", 0)
+local sign = signs[1]
+promptOf(sign, "Quedarme esta finca").Triggered:Fire(baby)
+check(notified(baby, "pequeño"), "un bebé no puede quedarse una finca")
+moveTo(farmerRoot, sign.Position)
+promptOf(sign, "Quedarme esta finca").Triggered:Fire(farmer)
+check(farmer:GetAttribute("FincaAt") ~= nil and notified(farmer, "es tuya"), "un adulto se queda la finca")
+local myStakes = {}
+for _, st in stakes do
+	if st.Parent == sign.Parent then
+		table.insert(myStakes, st)
+	end
+end
+table.sort(myStakes, function(a, b)
+	return a.Position.X < b.Position.X
+end)
+local stake = myStakes[1]
+local other = newPlayer(382, "Adulto", 100)
+promptOf(stake, "Plantar").Triggered:Fire(other)
+check(notified(other, "es de"), "en una finca ajena no se puede plantar")
+moveTo(farmerRoot, stake.Position)
+promptOf(stake, "Plantar").Triggered:Fire(farmer)
+local panel = lastMessage(farmer, "Panel")
+check(panel ~= nil and panel[2].Id == "Seeds" and #panel[2].Rows >= 3, "al tocar un bancal vacío sale la lista de semillas")
+local money0 = profiles[farmer].Money
+fire(farmer, "Plant", 1, "Lechuga")
+check(profiles[farmer].Money == money0 - Farming.cropById.Lechuga.Seed and profiles[farmer].Farm.Plots["1"].Crop == "Lechuga", "sin semillas, las compra y planta al momento")
+fire(farmer, "Plant", 1, "Olivo")
+check(profiles[farmer].Farm.Plots["1"].Crop == "Lechuga", "no se planta encima de otra cosa ni sin nivel")
+local ready = profiles[farmer].Farm.Plots["1"].ReadyAt
+check(promptOf(stake, "Regar") ~= nil, "el bancal plantado pide riego")
+promptOf(stake, "Regar").Triggered:Fire(farmer)
+check(profiles[farmer].Farm.Plots["1"].Watered and profiles[farmer].Farm.Plots["1"].ReadyAt < ready, "regar hace que tarde menos")
+local plants = fincasFolder:FindFirstChild("Finca1") and fincasFolder.Finca1:FindFirstChild("Plot1")
+check(plants ~= nil and #plants:GetChildren() > 0, "en el bancal se ven las plantas")
+clock += 10000
+promptOf(stake, "Ver").Triggered:Fire(farmer) -- el aviso aún no se ha refrescado: da igual el texto
+check(InventoryService.count(farmer, "Agro_Lechuga") >= Farming.cropById.Lechuga.Yield[1] + 1 and profiles[farmer].Farm.Plots["1"] == nil, "cuando está listo, se cosecha a la mochila y el bancal queda libre")
+check((farmer:GetAttribute("FarmXp") or 0) > 0, "cosechar da experiencia de agricultor")
+-- Cooperativa
+moveTo(farmerRoot, coop.Mostrador.Position)
+promptOf(coop, "Cooperativa").Triggered:Fire(farmer)
+check(lastMessage(farmer, "Panel")[2].Id == "Coop" and lastMessage(farmer, "Panel")[2].Tab == "Semillas", "la cooperativa abre en semillas")
+fire(farmer, "BuySeed", "Trigo", 5)
+check(InventoryService.count(farmer, "Semilla_Trigo") == 5, "compra 5 de semillas de trigo")
+fire(farmer, "BuySeed", "Olivo", 1)
+check(InventoryService.count(farmer, "Semilla_Olivo") == 0, "los árboles que piden nivel no se venden")
+fire(farmer, "BuyAnimal", "Gallina")
+fire(farmer, "BuyFeed", 5)
+check(#profiles[farmer].Farm.Animals == 1 and InventoryService.count(farmer, Farming.Feed) == 5, "compra una gallina y pienso")
+fire(farmer, "BuyAnimal", "Vaca")
+check(#profiles[farmer].Farm.Animals == 1, "la vaca pide más nivel")
+-- Trigo: plantar con semilla, cosechar y hacer harina en el obrador
+moveTo(farmerRoot, myStakes[2].Position)
+local moneyBefore = profiles[farmer].Money
+fire(farmer, "Plant", 2, "Trigo")
+check(profiles[farmer].Money == moneyBefore and InventoryService.count(farmer, "Semilla_Trigo") == 4, "con semillas, planta sin pagar")
+clock += 10000
+promptOf(myStakes[2]).Triggered:Fire(farmer)
+local wheat = InventoryService.count(farmer, "Agro_Trigo")
+check(wheat >= 6, ("cosecha trigo (%d)"):format(wheat))
+-- Corral: dar de comer y recoger
+local trough = sign.Parent:FindFirstChild("Abrevadero")
+moveTo(farmerRoot, trough.Position)
+promptOf(trough, "Atender animales").Triggered:Fire(farmer)
+check(profiles[farmer].Farm.Animals[1].ReadyAt ~= nil and InventoryService.count(farmer, Farming.Feed) == 4, "atender da de comer a la gallina (1 pienso)")
+clock += 1000
+promptOf(trough, "Atender animales").Triggered:Fire(farmer)
+check(InventoryService.count(farmer, "Agro_Huevos") == 2 and profiles[farmer].Farm.Animals[1].ReadyAt ~= nil, "después recoge 2 huevos y le vuelve a dar de comer")
+local herd = fincasFolder.Finca1:FindFirstChild("Herd")
+check(herd ~= nil and herd:FindFirstChild("Gallina") ~= nil, "la gallina se ve en el corral")
+-- Obrador
+moveTo(farmerRoot, coop.Mostrador.Position)
+fire(farmer, "Make", "Harina", 2)
+check(InventoryService.count(farmer, "Agro_Harina") == 2 and InventoryService.count(farmer, "Agro_Trigo") == wheat - 6, "en el molino, 6 de trigo son 2 sacos de harina")
+local extraWheat = InventoryService.count(farmer, "Agro_Trigo") - 2
+if extraWheat > 0 then
+	InventoryService.remove(farmer, "Agro_Trigo", extraWheat) -- la cosecha es al azar: nos quedamos con 2
+end
+fire(farmer, "Make", "Harina", 1)
+check(InventoryService.count(farmer, "Agro_Harina") == 2 and notified(farmer, "Te faltan ingredientes"), "sin trigo suficiente no hay más harina")
+fire(farmer, "Make", "Queso", 1)
+check(InventoryService.count(farmer, "Agro_Queso") == 0 and notified(farmer, "nivel 4"), "el queso pide nivel 4")
+fire(farmer, "Make", "Pizza", 1)
+check(notified(farmer, "cocina de tu restaurante"), "los platos se cocinan en un restaurante, no en el obrador")
+moveTo(farmerRoot, Vector3.new(0, 0, 0))
+fire(farmer, "Make", "Pan", 1)
+check(InventoryService.count(farmer, "Agro_Pan") == 0, "lejos de la cooperativa no se usa el obrador")
+-- Vender a la cooperativa
+moveTo(farmerRoot, coop.Mostrador.Position)
+local m1 = profiles[farmer].Money
+fire(farmer, "Sell", "Agro_Huevos", 1)
+check(profiles[farmer].Money == m1 + Farming.sellPrice("Agro_Huevos", "Coop") and InventoryService.count(farmer, "Agro_Huevos") == 1, "vende un huevo a la cooperativa")
+-- Supermercado: paga más y llena la estantería
+InventoryService.add(farmer, "Agro_Leche", 5)
+local stockPoint = collection:GetTagged("SuperStock")[1]
+local milkShelf
+for _, shelf in collection:GetTagged("SuperShelf") do
+	if shelf:GetAttribute("Product") == "Leche" then
+		milkShelf = shelf
+	end
+end
+milkShelf:SetAttribute("Stock", 0)
+moveTo(farmerRoot, stockPoint.Position)
+local m2 = profiles[farmer].Money
+local expected = 0
+for _, id in Farming.ProductOrder do
+	if Farming.Products[id].Grocery then
+		expected += InventoryService.count(farmer, id) * Farming.sellPrice(id, "Super")
+	end
+end
+promptOf(stockPoint, "Entregar productos del campo").Triggered:Fire(farmer)
+check(profiles[farmer].Money == m2 + expected and InventoryService.count(farmer, "Agro_Leche") == 0 and InventoryService.count(farmer, "Agro_Huevos") == 0, "el supermercado compra leche, huevos y lechugas, más caros")
+check(milkShelf:GetAttribute("Stock") >= 5, "la leche de la granja se pone en su estantería")
+check(InventoryService.count(farmer, "Agro_Harina") == 2, "lo que el supermercado no vende (harina) te lo quedas")
+-- Se va del juego: la finca queda libre (lo plantado sigue en sus datos)
+fire(farmer, "Plant", 3, "Trigo")
+players.PlayerRemoving:Fire(farmer)
+local label = sign:FindFirstChildOfClass("SurfaceGui"):FindFirstChildOfClass("TextLabel")
+check(label.Text == "FINCA LIBRE", "al irse, la finca queda libre")
+_G.__farmer = farmer
+end)()
+
+;(function()
+print("▶ Negocios: locales, gasolineras y hoteles")
+local Business = loadModule(ROOT .. "/shared/Business")
+local building = { Id = 7, Key = "Bloque_4000_4000", Kind = "Local", Walkable = false, Door = Vector3.new(4000, 0.4, 4000), Out = Vector3.new(0, 0, -1), Title = "🏬 Comercio y viviendas", Floors = 3 }
+local building2 = { Id = 8, Key = "Bloque_4100_4000", Kind = "Local", Walkable = false, Door = Vector3.new(4100, 0.4, 4000), Out = Vector3.new(0, 0, -1), Title = "🏬 Comercio y viviendas", Floors = 3 }
+-- Filtro de Roblox de mentira: tapa con # lo que lleve "Prohibida"
+services.TextService = {
+	FilterStringAsync = function(_, text)
+		return {
+			GetNonChatStringForBroadcastAsync = function()
+				return (text:gsub("Prohibida", "#########"))
+			end,
+		}
+	end,
+}
+local resets, left = 0, 0
+local Interior = {
+	Hooks = {},
+	all = function()
+		return { building, building2 }
+	end,
+	reset = function()
+		resets += 1
+	end,
+	leave = function()
+		left += 1
+	end,
+}
+mocks[S .. "InteriorService"] = Interior
+-- Gasolinera con su poste y surtidor
+local town = worldRoot:FindFirstChild("Town")
+local gasModel = fakeInstance("Model")
+gasModel.Name = "Gasolinera"
+gasModel.Parent = town
+local pylon = part("Pylon", CFrame.new(-290, 6, -310))
+pylon.Size = Vector3.new(2, 12, 2)
+pylon.Parent = gasModel
+fuelPump.Parent = gasModel
+local BusinessService = loadModule(S .. "BusinessService")
+local bclock = 500000
+BusinessService._clock = function()
+	return bclock
+end
+BusinessService.init()
+local keys = {}
+for key, premise in BusinessService._premises do
+	if premise.Kind ~= "Local" or premise.Building == building then
+		keys[premise.Kind] = key
+	end
+end
+check(keys.Local ~= nil and keys.Gas ~= nil and keys.Hotel ~= nil, "encuentra los locales, las gasolineras y los hoteles")
+local L = keys.Local
+local function fire(player, ...)
+	task.wait(0.16)
+	remotes.Business.OnServerEvent:Fire(player, ...)
+end
+local owner, ownerRoot = newPlayer(390, "Adulto", 60000)
+profiles[owner].Items = {}
+profiles[owner].Slots = {}
+owner:SetAttribute("InteriorKey", "7:0")
+local teen = newPlayer(391, "Adolescente", 99999)
+teen:SetAttribute("InteriorKey", "7:0")
+fire(teen, "BuyPremise", L)
+check(notified(teen, "mayor de edad") and BusinessService._index()[L] == nil, "un adolescente no puede comprar un local")
+local price = Business.premisePrice("Local", L)
+fire(owner, "BuyPremise", L)
+check(profiles[owner].Money == 60000 - price and BusinessService._index()[L].Owner == 390, "un adulto compra el local")
+check(lastMessage(owner, "Panel")[2].Id == "Setup", "después elige qué negocio abrir")
+fire(teen, "BuyPremise", L)
+check(profiles[teen].Money == 99999, "un local con dueño no se vende dos veces")
+fire(owner, "Open", L, "Gasolinera")
+check(BusinessService._getRecord(L, true).Type == nil, "en un local no se puede abrir una gasolinera")
+fire(owner, "Open", L, "Fruteria")
+local rec = BusinessService._getRecord(L, true)
+check(rec.Type == "Fruteria" and rec.Open and rec.Name == "Frutas " .. owner.Name, "abre una frutería con su nombre")
+check(resets > 0, "la sala del local se rehace con el negocio")
+-- Dentro del local: cartel, comprar, gestionar
+local room = fakeInstance("Model")
+room.Parent = worldRoot
+local register = part("Register", CFrame.new(4010, 4, 4020))
+register.Parent = room
+local counterPart = part("Counter", CFrame.new(4010, 2, 4020))
+counterPart.Parent = room
+Interior.Hooks.Decorate({ Floor = 0, Building = building, Room = { Model = room } })
+check(promptOf(register, "Comprar") ~= nil and promptOf(register, "Gestionar") ~= nil and room:FindFirstChild("CartelNegocio") ~= nil, "dentro hay cartel, «Comprar» y «Gestionar»")
+check(promptOf(counterPart, "Cocina") == nil, "una frutería no tiene cocina")
+-- Existencias desde la mochila y precios
+InventoryService.add(owner, "Agro_Manzana", 30)
+InventoryService.add(owner, "Agro_Pizza", 2)
+fire(owner, "Stock", L, "Agro_Manzana", 30)
+fire(owner, "Stock", L, "Agro_Pizza", 2)
+rec = BusinessService._getRecord(L, true)
+check(rec.Stock.Agro_Manzana == 30 and InventoryService.count(owner, "Agro_Manzana") == 0, "pone 30 manzanas a la venta desde la mochila")
+check(rec.Stock.Agro_Pizza == nil and InventoryService.count(owner, "Agro_Pizza") == 2, "una frutería no puede vender pizzas")
+local ref = Business.Goods.Agro_Manzana.Ref
+fire(owner, "Price", L, "Agro_Manzana", 1)
+check(Business.priceOf(BusinessService._getRecord(L, true), "Agro_Manzana") == ref + Business.priceStep(Business.Goods.Agro_Manzana), "sube el precio")
+-- Un cliente compra en el mostrador
+local buyer = newPlayer(392, "Adulto", 100)
+profiles[buyer].Items = {}
+profiles[buyer].Slots = {}
+buyer:SetAttribute("InteriorKey", "7:0")
+promptOf(register, "Comprar").Triggered:Fire(buyer)
+check(lastMessage(buyer, "Panel")[2].Id == "Shop", "«Comprar» abre la tienda")
+local unit = Business.priceOf(BusinessService._getRecord(L, true), "Agro_Manzana")
+fire(buyer, "Buy", L, "Agro_Manzana", 2)
+rec = BusinessService._getRecord(L, true)
+check(InventoryService.count(buyer, "Agro_Manzana") == 2 and profiles[buyer].Money == 100 - unit * 2, "el cliente compra 2 manzanas")
+check(rec.Stock.Agro_Manzana == 28 and rec.Till == unit * 2 and notified(owner, "ha comprado"), "el dinero va a la caja y el dueño se entera")
+local outside = newPlayer(393, "Adulto", 100)
+fire(outside, "Buy", L, "Agro_Manzana", 1)
+check(profiles[outside].Money == 100, "desde fuera del local no se compra")
+-- Los vecinos compran solos
+bclock += 3600
+local units, money = BusinessService._simulate(L)
+rec = BusinessService._getRecord(L, true)
+check(units > 0 and money > 0 and rec.Stock.Agro_Manzana == 28 - units, ("en una hora los vecinos compran %d manzanas (+$%d)"):format(units, money))
+local till = math.floor(rec.Till)
+local before = profiles[owner].Money
+fire(owner, "Collect", L)
+check(profiles[owner].Money == before + till and BusinessService._getRecord(L, true).Till < 1, "recoge la caja")
+fire(owner, "Toggle", L)
+fire(buyer, "Buy", L, "Agro_Manzana", 1)
+check(InventoryService.count(buyer, "Agro_Manzana") == 2 and notified(buyer, "cerrado"), "cerrado no se puede comprar")
+fire(owner, "Toggle", L)
+fire(outside, "Collect", L)
+check(notified(outside, "no es tuyo"), "nadie más puede recoger tu caja")
+-- Gasolinera: mayorista, precio y repostajes
+local G = keys.Gas
+local anchor = BusinessService._premises[G].Anchor
+moveTo(ownerRoot, anchor.Position)
+owner:SetAttribute("InteriorKey", nil)
+fire(owner, "BuyPremise", G)
+fire(owner, "Open", G, "Gasolinera")
+fire(owner, "Order", G, "W_Gasolina", 1)
+local grec = BusinessService._getRecord(G, true)
+check(grec.Type == "Gasolinera" and grec.Stock.W_Gasolina == Business.Goods.W_Gasolina.Lot, "compra la gasolinera y pide gasolina al mayorista")
+fire(owner, "Price", G, "W_Gasolina", 1)
+check(math.abs(Business.priceOf(BusinessService._getRecord(G, true), "W_Gasolina") - 1.6) < 0.001, "sube la gasolina a 1,60")
+remotes.Vehicle.OnServerEvent:Fire(adult, "Spawn", "Coche")
+local car = worldRoot.Rides:FindFirstChild("Coche")
+local chassis = car.PrimaryPart
+for _ = 1, 8 do
+	chassis.CFrame = chassis.CFrame * CFrame.new(0, 0, -150)
+	task.wait(0.55)
+end
+chassis.CFrame = fuelPump.CFrame * CFrame.new(0, 0, 6)
+task.wait(0.6)
+local tillBefore = BusinessService._getRecord(G, true).Till
+local litersBefore = BusinessService._getRecord(G, true).Stock.W_Gasolina
+promptOf(fuelPump, "Repostar / cargar").Triggered:Fire(adult)
+task.wait(0.1)
+grec = BusinessService._getRecord(G, true)
+check(grec.Till > tillBefore and grec.Stock.W_Gasolina < litersBefore and notified(owner, "Han repostado"), "quien reposta paga al dueño y bajan los litros")
+remotes.Vehicle.OnServerEvent:Fire(adult, "Dismount")
+-- Hotel: las reservas van a la caja
+local H = keys.Hotel
+local hotelAnchor = BusinessService._premises[H].Anchor
+local hotelier, hotelierRoot = newPlayer(394, "Adulto", 60000)
+moveTo(hotelierRoot, hotelAnchor.Position)
+fire(hotelier, "BuyPremise", H)
+fire(hotelier, "Open", H, "Hotel")
+local lobby = BusinessService._premises[H].Model
+local HotelService = loadModule(S .. "HotelService")
+HotelService.RoomSold(lobby, 50, buyer)
+task.wait(0.1)
+check(BusinessService._getRecord(H, true).Till == 50 and notified(hotelier, "se aloja"), "una reserva en su hotel va a su caja")
+-- Máximo de negocios y vender el local
+check(#(function()
+	local n = {}
+	for _, e in BusinessService._index() do
+		if e.Owner == 390 then
+			table.insert(n, e)
+		end
+	end
+	return n
+end)() == 2, "el dueño tiene 2 negocios")
+owner:SetAttribute("InteriorKey", "7:0")
+fire(owner, "Unstock", L, "Agro_Manzana")
+check(InventoryService.count(owner, "Agro_Manzana") > 0 and (BusinessService._getRecord(L, true).Stock.Agro_Manzana or 0) == 0, "retira las manzanas que quedan")
+local m3 = profiles[owner].Money
+fire(owner, "SellPremise", L)
+check(BusinessService._index()[L] == nil and profiles[owner].Money >= m3 + Business.sellBack(price), "vende el local y le devuelven una parte")
+-- Restaurante: cocina de platos
+fire(owner, "BuyPremise", L)
+fire(owner, "Open", L, "Restaurante")
+local room2 = fakeInstance("Model")
+room2.Parent = worldRoot
+local reg2 = part("Register", CFrame.new(4010, 4, 4020))
+reg2.Parent = room2
+local counter2 = part("Counter", CFrame.new(4010, 2, 4020))
+counter2.Parent = room2
+Interior.Hooks.Decorate({ Floor = 0, Building = building, Room = { Model = room2 } })
+local kitchen = promptOf(counter2, "Cocina")
+check(kitchen ~= nil, "un restaurante tiene cocina")
+kitchen.Triggered:Fire(buyer)
+check(notified(buyer, "Solo el dueño"), "la cocina es solo del dueño")
+ownerRoot.CFrame = CFrame.new(counter2.Position)
+kitchen.Triggered:Fire(owner)
+check(lastMessage(owner, "Panel")[2].Id == "Kitchen", "el dueño abre la cocina")
+InventoryService.add(owner, "Agro_Harina", 1)
+InventoryService.add(owner, "Agro_TomateFrito", 1)
+InventoryService.add(owner, "Agro_Queso", 1)
+task.wait(0.16)
+remotes.Farm.OnServerEvent:Fire(owner, "Make", "Pizza", 1)
+check(InventoryService.count(owner, "Agro_Pizza") == 4 and InventoryService.count(owner, "Agro_Queso") == 0, "cocina 2 pizzas con harina, tomate frito y queso")
+fire(owner, "Stock", L, "Agro_Pizza", 4)
+check(BusinessService._getRecord(L, true).Stock.Agro_Pizza == 4, "y las pone a la venta en su restaurante")
+
+-- Nombre libre: filtro propio y filtro de Roblox
+local function nameOfL()
+	return BusinessService._getRecord(L, true).Name
+end
+local before2 = nameOfL()
+fire(owner, "SetName", L, "P.U.T.A tienda")
+check(nameOfL() == before2 and notified(owner, "no está permitido"), "un nombre con palabrotas (aunque sea con trucos) se rechaza")
+task.wait(3.1)
+fire(owner, "SetName", L, "La Cocina Prohibida")
+check(nameOfL() == before2 and notified(owner, "Roblox no permite"), "si el filtro de Roblox tapa algo, se rechaza")
+task.wait(3.1)
+fire(owner, "SetName", L, "  Casa   Pepa  ")
+check(nameOfL() == "Casa Pepa" and BusinessService._index()[L].Name == "Casa Pepa", "un nombre normal se acepta (y sale en el cartel)")
+-- Personal: dependientes
+fire(owner, "HireNpc", L, 1)
+fire(owner, "HireNpc", L, 1)
+fire(owner, "HireNpc", L, 1)
+check(BusinessService._getRecord(L, true).Npc == 2, "contrata 2 dependientes (el máximo)")
+fire(owner, "HireNpc", L, -1)
+check(BusinessService._getRecord(L, true).Npc == 1, "despide a uno")
+-- Contratar a un jugador: oferta, aceptar y turno
+local worker, workerRoot = newPlayer(395, "Adulto", 0)
+profiles[worker].Items = {}
+profiles[worker].Slots = {}
+local kid = newPlayer(396, "Nino", 0)
+fire(owner, "Offer", L, kid.UserId)
+check(notified(owner, "mayores de edad"), "no se puede contratar a un niño")
+fire(owner, "Offer", L, worker.UserId)
+check(lastMessage(worker, "Panel")[2].Id == "Offer", "al empleado le llega la oferta de trabajo")
+fire(worker, "AcceptJob", L)
+local wrec = BusinessService._getRecord(L, true)
+check(wrec.Workers and wrec.Workers[tostring(worker.UserId)] ~= nil and notified(owner, "trabaja ahora"), "acepta y ya trabaja en el negocio")
+fire(worker, "Shift", L)
+check(notified(worker, "tienes que estar en el negocio") or notified(worker, "Tienes que estar"), "fuera del negocio no se empieza el turno")
+worker:SetAttribute("InteriorKey", "7:0")
+fire(worker, "Shift", L)
+check(worker:GetAttribute("BizShift") ~= nil, "en el negocio empieza el turno")
+local wage = BusinessService._getRecord(L, true).Workers[tostring(worker.UserId)].Wage
+local memo = BusinessService._getRecord(L, true)
+memo.Till = 100
+BusinessService._payShifts()
+check(profiles[worker].Money == wage and BusinessService._getRecord(L, true).Till == 100 - wage, "cada minuto de turno cobra su sueldo de la caja")
+memo = BusinessService._getRecord(L, true)
+memo.Till = 0
+BusinessService._payShifts()
+check(worker:GetAttribute("BizShift") == nil and notified(worker, "No queda dinero"), "sin dinero en la caja se acaba el turno")
+fire(owner, "Wage", L, tostring(worker.UserId))
+check(BusinessService._getRecord(L, true).Workers[tostring(worker.UserId)].Wage ~= wage, "el dueño cambia el sueldo")
+fire(owner, "FireWorker", L, tostring(worker.UserId))
+check(BusinessService._getRecord(L, true).Workers[tostring(worker.UserId)] == nil and notified(worker, "Ya no trabajas"), "y le despide")
+-- Sucursales: otro local con el mismo negocio y nombre
+owner:SetAttribute("InteriorKey", "8:0")
+local L2
+for key, premise in BusinessService._premises do
+	if premise.Building == building2 then
+		L2 = key
+	end
+end
+fire(owner, "BuyPremise", L2)
+local setup = lastMessage(owner, "Panel")[2]
+local hasBranch = false
+for _, row in setup.Rows do
+	for _, b in row.Buttons or {} do
+		if b.Action == "Branch" then
+			hasBranch = true
+		end
+	end
+end
+check(hasBranch, "al comprar otro local puede abrir una sucursal de su restaurante")
+local m4 = profiles[owner].Money
+fire(owner, "Branch", L2, L)
+local r2 = BusinessService._getRecord(L2, true)
+check(r2.Type == "Restaurante" and r2.Name == "Casa Pepa" and profiles[owner].Money == m4 - math.floor(Business.Types.Restaurante.License * Business.BranchLicense), "abre la sucursal con el mismo nombre y media licencia")
+task.wait(3.1)
+owner:SetAttribute("InteriorKey", "7:0")
+fire(owner, "SetName", L, "Casa Pepa Grill")
+check(BusinessService._getRecord(L2, true).Name == "Casa Pepa Grill", "al cambiar el nombre cambia en toda la cadena")
+local _ = left
+end)()
+
+;(function()
+print("▶ Catástrofes marinas: tsunami, marea negra, tiburón, medusas, temporal y remolino")
+local SeaEvents = loadModule(ROOT .. "/shared/SeaEvents")
+local Fishing = loadModule(ROOT .. "/shared/Fishing")
+local FishingService = loadModule(S .. "FishingService")
+local DivingService = loadModule(S .. "DivingService")
+local SeaEventService = loadModule(S .. "SeaEventService")
+local realIsWater = FishingService.isWater
+FishingService.isWater = function(p)
+	return p.Y < -1 -- en la prueba: por debajo de la superficie siempre hay agua
+end
+for _, id in SeaEvents.Order do
+	SeaEvents.Kinds[id].Warning = 0
+end
+local savedStart = SeaEvents.WaveStart
+SeaEvents.WaveStart = 20
+local function ticks(n, gap)
+	for _ = 1, n do
+		SeaEventService._tick()
+		if gap then
+			task.wait(gap)
+		end
+	end
+end
+local function person(id, pos, items)
+	local p, root, hum = newPlayer(id, "Adulto", 100)
+	profiles[p].Items = items or {}
+	InventoryService.refresh(p)
+	root.CFrame = CFrame.new(pos)
+	p.Character.Head.CFrame = CFrame.new(pos + Vector3.new(0, 1.5, 0))
+	return p, root, hum
+end
+check(SeaEvents.pick(0) == "Tsunami" and SeaEvents.pick(0.9999) == "Medusas", "cada catástrofe tiene su probabilidad")
+check(not SeaEventService.ready("Tsunami") and SeaEventService.ready("Medusas") == false and SeaEvents.Kinds.Tsunami.MinGap >= 3600, "al arrancar no sale ninguna enseguida (y el tsunami, como mucho cada hora o más)")
+check(SeaEvents.pick(0, function(id)
+	return id ~= "Tsunami" and id ~= "Temporal" and id ~= "Remolino"
+end) == "MareaNegra", "las que están en espera no salen")
+check(SeaEvents.Kinds.Tsunami.Weight < SeaEvents.Kinds.Medusas.Weight and SeaEvents.Kinds.Tsunami.MinGap > SeaEvents.Kinds.Medusas.MinGap, "las que más dañan salen mucho menos")
+-- Tsunami en Playa Dorada
+local low, _, lowHum = person(201, Vector3.new(4150, 2, -1000))
+local high, _, highHum = person(202, Vector3.new(4150, 30, -1000))
+local far, _, farHum = person(203, Vector3.new(4150, 2, 200))
+check(SeaEventService.start("Tsunami", "Playa Dorada") and worldRoot:GetAttribute("SeaEvent") == "Tsunami", "empieza el tsunami")
+check(lastMessage(low, "Start") ~= nil and notified(low, "TSUNAMI"), "llega la alerta a todos")
+check(not SeaEventService.start("Medusas"), "no hay dos catástrofes a la vez")
+ticks(25, 0.1)
+check(lowHum.Health < 100 and lastMessage(low, "Hit") ~= nil, "la ola arrastra a quien está en la playa")
+check(highHum.Health == 100 and farHum.Health == 100, "quien está en alto o lejos no sufre nada")
+SeaEventService.stop()
+check(worldRoot:GetAttribute("SeaEvent") == nil and lastMessage(high, "End") ~= nil, "al acabar se avisa y vuelve la calma")
+-- Marea negra: no se pesca y se limpia entre todos
+local cleaner = person(204, Vector3.new(4210, 3, -1000), { CanaPescar = 1 })
+check(SeaEventService.start("MareaNegra", "Playa Dorada"), "empieza la marea negra")
+local patches = SeaEventService._event().Patches
+check(#patches == SeaEvents.Kinds.MareaNegra.Patches, ("salen manchas de petróleo en el mar (%d)"):format(#patches))
+local oilSpot = part("FishingSpot", CFrame.new(4210, 3.5, -1000), { "FishingSpot" }, { Water = "Mar", CastDistance = 10 })
+FishingService._cast(cleaner, oilSpot)
+check(notified(cleaner, "petróleo") and FishingService._fishing[cleaner] == nil, "donde hay petróleo no se puede pescar")
+local money = profiles[cleaner].Money
+for _, patch in table.clone(patches) do
+	promptOf(patch, "Limpiar").Triggered:Fire(cleaner)
+end
+local mk = SeaEvents.Kinds.MareaNegra
+check(profiles[cleaner].Money == money + mk.Reward * mk.Patches + mk.Bonus, "se cobra por cada mancha limpia y un premio al acabar")
+check(SeaEventService._event() == nil and notified(cleaner, "limpiado toda la marea negra"), "limpia toda, la catástrofe se acaba")
+-- Tiburón en la playa
+local bather, _, batherHum = person(205, Vector3.new(4230, -3, -1000))
+check(SeaEventService.start("Tiburon", "Playa Dorada"), "aparece el tiburón en la playa")
+ticks(60)
+check(batherHum.Health < 100 and notified(bather, "mordido"), "si te bañas, te puede morder")
+local hunter = person(206, Vector3.new(4225, -8, -1000), { Arpon = 1, Botella = 1 })
+profiles[hunter].Fishing = { Xp = Fishing.xpFor(40), Caught = {} }
+ticks(1)
+local shark = SeaEventService._event().Shark
+check(shark ~= nil, "a un buceador con arpón le aparece el tiburón para cazarlo")
+local savedGap = Fishing.Dive.ShotGap
+Fishing.Dive.ShotGap = 0
+for _ = 1, 12 do
+	if shark.Parent then
+		hunter.Character.HumanoidRootPart.CFrame = CFrame.new(shark.Position - Vector3.new(0, 3, 0))
+		hunter.Character.Head.CFrame = CFrame.new(shark.Position - Vector3.new(0, 1.5, 0))
+		remotes.Diving.OnServerEvent:Fire(hunter, "Shoot", shark)
+	end
+end
+Fishing.Dive.ShotGap = savedGap
+ticks(1)
+check(SeaEventService._event() == nil and notified(hunter, "Recompensa por cazar al tiburón"), "si lo cazas, se acaba el peligro y te dan recompensa")
+-- Medusas: el equipo de buceo protege
+local swimmer, _, swimmerHum = person(207, Vector3.new(4230, -3, -990))
+local suited, _, suitedHum = person(208, Vector3.new(4230, -3, -1010), { Botella = 1 })
+check(SeaEventService.start("Medusas", "Playa Dorada"), "llega la plaga de medusas")
+ticks(60)
+check(swimmerHum.Health < 100 and suitedHum.Health == 100, "las medusas pican a los bañistas (con equipo de buceo no)")
+SeaEventService.stop()
+-- Temporal: rayos en alta mar
+check(SeaEventService.start("Temporal"), "empieza el temporal")
+ticks(1)
+check(lastMessage(swimmer, "Strike") ~= nil, "caen rayos en el mar")
+SeaEventService.stop()
+-- Remolino: en el centro te hace daño
+check(SeaEventService.start("Remolino"), "aparece un remolino")
+local c = worldRoot:GetAttribute("SeaEventPos")
+local diver2, _, diver2Hum = person(209, Vector3.new(c.X, -3, c.Z))
+ticks(4)
+check(diver2Hum.Health < 100 and notified(diver2, "remolino"), "si nadas en el centro del remolino te hace daño")
+SeaEventService.stop()
+SeaEvents.WaveStart = savedStart
+FishingService.isWater = realIsWater
+local _ = far
+end)()
+
+---------------------------------------------------------------------
+-- (en su propia función: la prueba ya usa casi todas las variables locales permitidas)
+;(function()
+print("▶ Armas: Armería, licencia, disparos, galería, policía y zonas seguras")
+mocks[ROOT .. "/server/World/PoliceUnits"] = {
+	init = function() end, ensure = function() end, dismiss = function() end, setTarget = function() end, knockDown = function() end,
+	sees = function() return false end, anyNear = function() return false end, officersNear = function() return 0 end,
+}
+mocks[S .. "JusticeService"] = { process = function() end }
+mocks[S .. "CareerService"] = { addPoints = function() end }
+mocks[S .. "BreakService"] = { hitStructure = function() return nil end }
+mocks[S .. "ClassService"] = { isRunning = function() return false end }
+mocks[S .. "MiniGameService"] = { isRunning = function() return false end }
+function players:GetPlayerFromCharacter(character)
+	for _, p in playersList do
+		if p.Character == character then
+			return p
+		end
+	end
+	return nil
+end
+function Fake.GetPartBoundsInRadius()
+	return {}
+end
+-- Rayos de verdad (contra cajas) para esta parte: las balas tienen que dar en algo
+local realRaycast = Fake.Raycast
+Fake.Raycast = function(_, origin, direction, params)
+	local ignored = (params and params.FilterDescendantsInstances) or {}
+	local best, bestT = nil, math.huge
+	for _, part in worldRoot:GetDescendants() do
+		local props = rawget(part, "__props")
+		if PARTS[props.ClassName] and props.CanQuery ~= false and props.Transparency ~= 1 then
+			local skip = false
+			for _, ignore in ignored do
+				if part == ignore or part:IsDescendantOf(ignore) then
+					skip = true
+					break
+				end
+			end
+			if not skip then
+				local cf, half = props.CFrame, props.Size / 2
+				local o = cf:PointToObjectSpace(origin)
+				local d = cf:VectorToObjectSpace(direction)
+				local tmin, tmax = 0, 1
+				local hit = true
+				for _, axis in { "X", "Y", "Z" } do
+					local oa, da, h = o[axis], d[axis], half[axis]
+					if math.abs(da) < 1e-9 then
+						if math.abs(oa) > h then
+							hit = false
+						end
+					else
+						local t1, t2 = (-h - oa) / da, (h - oa) / da
+						tmin = math.max(tmin, math.min(t1, t2))
+						tmax = math.min(tmax, math.max(t1, t2))
+					end
+				end
+				if hit and tmin <= tmax and tmin < bestT then
+					best, bestT = part, tmin
+				end
+			end
+		end
+	end
+	if not best then
+		return nil
+	end
+	local position = origin + direction * bestT
+	return { Instance = best, Position = position, Normal = -direction.Unit, Material = Enum.Material.Plastic, Distance = (position - origin).Magnitude }
+end
+
+-- Una Armería de prueba: mostrador, ventanilla, galería con una diana
+local shopCounter = part("GunShopCounter", CFrame.new(5020, 1.6, 5000), { "GunShop" }, { ShopName = "Armería de prueba" })
+shopCounter.Size = Vector3.new(14, 3.2, 2.4)
+local licenceDesk = part("LicenceDesk", CFrame.new(5010, 1.7, 5000), { "GunLicence" })
+licenceDesk.Size = Vector3.new(5, 3.4, 2)
+local rangeVolume = part("Galeria", CFrame.new(5000, 6, 5030), { "ShootingRange" })
+rangeVolume.Size = Vector3.new(30, 12, 24)
+rangeVolume.CanQuery = false
+local target = part("Diana", CFrame.new(5000, 4.6, 5040), { "RangeTarget" }, { Lane = 1, Score = 0 })
+target.Size = Vector3.new(3, 4, 0.1)
+local CombatService = loadModule(S .. "CombatService")
+CombatService.init()
+local WantedService = loadModule(S .. "WantedService")
+WantedService.init()
+local WeaponService = loadModule(S .. "WeaponService")
+WeaponService.init()
+-- Jugadores nuevos de esta parte: los servicios se enteran (PlayerAdded)
+local function join(id: number, stage: string, money: number)
+	local p, r, h = newPlayer(id, stage, money)
+	p.DisplayName = p.Name
+	players.PlayerAdded:Fire(p)
+	return p, r, h
+end
+local Weapons = loadModule(ROOT .. "/shared/Weapons")
+local Inv = loadModule(S .. "InventoryService")
+local Wp = remotes.Weapons.OnServerEvent
+local function act(player, ...)
+	task.wait(0.1) -- (el servidor ignora peticiones demasiado seguidas)
+	Wp:Fire(player, ...)
+end
+local function place(player, position: Vector3, facing: Vector3?)
+	local look = facing or Vector3.new(0, 0, -1)
+	player.Character.HumanoidRootPart.CFrame = CFrame.new(position + Vector3.new(0, 3, 0)) * CFrame.Angles(0, math.atan2(-look.X, -look.Z), 0)
+	player.Character.Head.CFrame = CFrame.new(position + Vector3.new(0, 4.6, 0))
+end
+
+check(promptOf(shopCounter, "Comprar") ~= nil and promptOf(licenceDesk, "Licencia de armas") ~= nil, "la Armería tiene mostrador y ventanilla de licencias")
+
+local buyer = join(301, "AdultoJoven", 20000)
+place(buyer, Vector3.new(5020, 0, 5004))
+promptOf(shopCounter, "Comprar").Triggered:Fire(buyer)
+local shop = lastMessage(buyer, "Shop")
+check(shop ~= nil and #shop[2].Items >= 9, "el menú lista las armas, la munición y la licencia")
+act(buyer, "Buy", "Pistola")
+check(Inv.count(buyer, "Arma_Pistola") == 0 and profiles[buyer].Money == 20000 and notified(buyer, "licencia"), "sin licencia no se puede comprar un arma")
+local kid = join(302, "Nino", 500)
+place(kid, Vector3.new(5022, 0, 5004))
+act(kid, "Buy", "Pistola")
+check(Inv.count(kid, "Arma_Pistola") == 0, "un niño no puede comprar una pistola")
+act(kid, "Buy", "PistolaAgua")
+check(Inv.count(kid, "Arma_PistolaAgua") == 1, "un niño sí compra la pistola de agua")
+
+-- Licencia: tasa + test (primero suspende, luego aprueba)
+local function answerQuiz(player, good: boolean)
+	local msg = lastMessage(player, "Quiz")
+	local answers = {}
+	for i, q in msg[3].Questions do
+		for _, entry in Weapons.Quiz do
+			if entry[1] == q.Text then
+				local right = table.find(q.Options, entry[2][1])
+				answers[i] = if good then right else (right % #q.Options) + 1
+			end
+		end
+	end
+	act(player, "Answers", msg[2], answers)
+end
+promptOf(licenceDesk, "Licencia de armas").Triggered:Fire(buyer)
+check(profiles[buyer].Money == 20000 - Weapons.Licence.Price and lastMessage(buyer, "Quiz") ~= nil, "se paga la tasa y empieza el test de seguridad")
+answerQuiz(buyer, false)
+check(Inv.count(buyer, Weapons.Licence.Item) == 0, "suspender el test no da la licencia")
+clearInbox(buyer)
+promptOf(licenceDesk, "Licencia de armas").Triggered:Fire(buyer)
+answerQuiz(buyer, true)
+check(Inv.count(buyer, Weapons.Licence.Item) == 1 and buyer:GetAttribute("WeaponLicence") == true, "aprobando el test se obtiene la licencia de armas")
+promptOf(licenceDesk, "Licencia de armas").Triggered:Fire(kid)
+check(Inv.count(kid, Weapons.Licence.Item) == 0, "un niño no puede sacarse la licencia")
+
+local money = profiles[buyer].Money
+act(buyer, "Buy", "Pistola")
+check(Inv.count(buyer, "Arma_Pistola") == 1 and profiles[buyer].Money == money - Weapons.List.Pistola.Price, "con licencia se compra la pistola")
+act(buyer, "Buy", "Municion_9mm")
+check(Inv.count(buyer, "Municion_9mm") == Weapons.AmmoTypes.Municion_9mm.Box, "y una caja de munición")
+
+-- Galería de tiro: practicar no es delito
+act(buyer, "Equip", "Pistola")
+check(buyer:GetAttribute("Weapon") == "Pistola" and buyer:GetAttribute("WeaponMag") == 15, "empuña la pistola con el cargador lleno")
+place(buyer, Vector3.new(5000, 0, 5025), Vector3.new(0, 0, 1))
+act(buyer, "Aim", true)
+check(buyer:GetAttribute("Aiming") == true, "apunta")
+Wp:Fire(buyer, "Fire", target.Position)
+check(buyer:GetAttribute("WeaponMag") == 14 and lastMessage(buyer, "Shot") ~= nil, "disparar gasta una bala y se ve el disparo")
+check((target:GetAttribute("Score") or 0) > 0 and (target:GetAttribute("Shots") or 0) == 1, "la diana marca el impacto y la puntuación")
+Wp:Fire(buyer, "Fire", target.Position)
+check(buyer:GetAttribute("WeaponMag") == 14, "no se puede disparar más rápido que la cadencia")
+task.wait(0.2)
+Wp:Fire(buyer, "Fire", target.Position)
+check(buyer:GetAttribute("WeaponMag") == 13, "pasada la pausa, sí")
+task.wait(0.2)
+check(WantedService.stars(buyer) == 0, "en la galería de tiro practicar no suma estrellas")
+act(buyer, "Reload")
+check(buyer:GetAttribute("Reloading") == true, "recarga")
+task.wait(Weapons.List.Pistola.Reload.Tactical + 0.2)
+check(buyer:GetAttribute("WeaponMag") == 16 and Inv.count(buyer, "Municion_9mm") == 12, "recarga táctica: 15 + 1 en la recámara, gasta munición de la mochila")
+
+-- Disparar a una persona en la calle (con un policía mirando)
+local victim, _, victimHum = join(303, "Adulto", 100)
+local cop = join(304, "Adulto", 0)
+place(buyer, Vector3.new(26000, 0, 26000))
+place(victim, Vector3.new(26000, 0, 25985))
+place(cop, Vector3.new(26030, 0, 26000))
+cop:SetAttribute("Job", "Policia")
+check(Inv.count(cop, "Arma_PistolaPolicia") == 1 and Inv.count(cop, "Arma_Taser") == 1, "la policía de servicio recibe la pistola reglamentaria y el táser")
+task.wait(0.3)
+Wp:Fire(buyer, "Fire", victim.Character.Head.Position)
+check(victimHum.Health < 100, "la bala hace daño (CombatService)")
+check(lastMessage(buyer, "Confirm") ~= nil, "el tirador ve el aspa de acierto")
+check(WantedService.stars(buyer) >= 2, "disparar a una persona suma estrellas de búsqueda")
+if WantedService.stars(buyer) < 2 then
+	print("    (avisos al policía: " .. table.concat(notifyTexts(cop), " | ") .. ")")
+end
+
+-- Policía de servicio contra un buscado: no es delito
+local suspectHum = buyer.Character:FindFirstChildOfClass("Humanoid")
+local suspectHealth = suspectHum.Health
+act(cop, "Equip", "PistolaPolicia")
+act(cop, "Aim", true)
+check(cop:GetAttribute("Weapon") == "PistolaPolicia", "el policía empuña su pistola")
+place(cop, Vector3.new(26000, 0, 26015), Vector3.new(0, 0, -1))
+Wp:Fire(cop, "Fire", buyer.Character.Head.Position)
+check(suspectHum.Health < suspectHealth, "el policía alcanza al sospechoso")
+task.wait(0.2)
+check(WantedService.stars(cop) == 0, "un policía de servicio que dispara a un buscado no comete delito")
+
+-- Zona segura: no se dispara
+local safe = part("ZonaSegura", CFrame.new(7000, 5, 7000), { "SafeZone" }, { ZoneName = "el hospital" })
+safe.Size = Vector3.new(40, 20, 40)
+safe.CanQuery = false
+place(cop, Vector3.new(7000, 0, 7000))
+local copMag = cop:GetAttribute("WeaponMag")
+task.wait(0.2)
+Wp:Fire(cop, "Fire", Vector3.new(7000, 4, 6980))
+check(cop:GetAttribute("WeaponMag") == copMag and notified(cop, "no se puede disparar"), "en una zona segura no se puede disparar")
+cop:SetAttribute("Job", nil)
+check(Inv.count(cop, "Arma_PistolaPolicia") == 0 and cop:GetAttribute("Weapon") == nil, "al acabar el turno se devuelven las armas de servicio")
+
+-- Los niños no empuñan armas de verdad
+Inv.add(kid, "Arma_Pistola", 1)
+act(kid, "Equip", "Pistola")
+check(kid:GetAttribute("Weapon") == nil, "un niño no puede empuñar un arma de verdad (aunque la tenga)")
+act(kid, "Equip", "PistolaAgua")
+check(kid:GetAttribute("Weapon") == "PistolaAgua", "sí la pistola de agua")
+
+Fake.Raycast = realRaycast
 end)()
 
 end, debug.traceback)
