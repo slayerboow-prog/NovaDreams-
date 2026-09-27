@@ -38,6 +38,7 @@ local order = {
 	"WorldService",
 	"WeatherService", -- estaciones y tiempo: sol, lluvia, tormenta, nieve, niebla
 	"ToyService", -- balones y conos con física: se patean, botan y vuelven solos a su sitio
+	"BreakService", -- piedras que se lanzan: ventanas y puertas que se rompen (y se arreglan solas)
 	"JobService",
 	"FoodService",
 	"HouseService",

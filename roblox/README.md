@@ -124,4 +124,6 @@ lune run scripts/test-agemotion.luau   # cómo se mueve cada edad: el bebé gate
 lune run scripts/test-hud.luau        # la interfaz principal (estilo KH3) en ordenador y móvil, con la API de Roblox
 lune run scripts/test-animals.luau     # animales: patas en el suelo, sentarse, pastar, picotear…
 lune run scripts/test-objects.luau RealLifeSimulator.rbxl  # árboles, columpios, banderas, feria y balones con física
+lune run scripts/test-weather.luau     # lluvia y nieve: suelo mojado, agarre de los vehículos, gente mojada
+lune run scripts/test-breakables.luau RealLifeSimulator.rbxl  # piedras: qué ventanas y puertas se rompen y la puntería
 ```
