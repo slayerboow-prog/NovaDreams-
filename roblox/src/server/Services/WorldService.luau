@@ -393,8 +393,19 @@ function WorldService.init()
 		return false
 	end
 
+	-- La hora se lleva aquí con todos sus decimales: Lighting.ClockTime se guarda redondeada al
+	-- segundo y, con el reloj lento del cole, cada fotograma avanza menos de un segundo de juego
+	-- (si se leyera de Lighting, se quedaría parado para siempre en las 9:00).
+	local exact = Lighting.ClockTime
+	Lighting:GetPropertyChangedSignal("ClockTime"):Connect(function()
+		-- Alguien la ha cambiado a propósito (dormir, viajar…): se sigue desde ahí
+		if math.abs(Lighting.ClockTime - exact) > 0.02 then
+			exact = Lighting.ClockTime
+		end
+	end)
+
 	RunService.Heartbeat:Connect(function(dt)
-		local previous = Lighting.ClockTime
+		local previous = exact
 		studentCheck -= dt
 		if studentCheck <= 0 then
 			studentCheck = 2
@@ -402,6 +413,7 @@ function WorldService.init()
 		end
 		local speed = if students and previous >= SCHOOL.Start and previous < SCHOOL.End then SCHOOL.ClockSpeed else 1
 		local clock = (previous + dt * hoursPerSecond * speed) % 24
+		exact = clock
 		Lighting.ClockTime = clock
 		if clock < previous then
 			day += 1
