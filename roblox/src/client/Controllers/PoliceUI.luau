@@ -1,6 +1,6 @@
 -- PoliceUI (cliente): el panel del policía y las sirenas (también las del camión de bomberos).
 --   * Panel con el aviso actual: qué ha pasado, qué toca hacer y el tiempo que queda.
---   * Tecla K (o el botón 🚨 en móvil): enciende o apaga la sirena del coche patrulla.
+--   * Tecla K (o el botón Sirena en móvil): enciende o apaga la sirena del coche patrulla.
 --   * Las luces azules y rojas de los coches patrulla con la sirena encendida parpadean
 --     (lo ve todo el mundo: cada cliente las anima por su cuenta).
 
@@ -23,7 +23,6 @@ local C = Theme.Colors
 
 local panel: Frame
 local body: TextLabel
-local sirenButton: TextButton?
 
 local function show(incident: { [string]: any }?)
 	panel.Visible = true
@@ -107,28 +106,21 @@ function PoliceUI.init()
 		TextColor3 = C.Text,
 		Parent = panel,
 	})
-	if UserInputService.TouchEnabled then
-		-- (en su propia pantalla sin escala, en el arco del botón de saltar; solo conduciendo)
-		local touchGui = create("ScreenGui", { Name = "SirenGui", ResetOnSpawn = false, Parent = player:WaitForChild("PlayerGui") })
-		sirenButton = Theme.button({
-			Name = "SirenButton",
-			Text = "🚨",
-			TextSize = 26,
-			BackgroundTransparency = 0.3,
-			Visible = false,
-			Parent = touchGui,
-		})
-		TouchLayout.place(sirenButton :: TextButton, "Sirena")
-		local corner = (sirenButton :: TextButton):FindFirstChildOfClass("UICorner")
-		if corner then
-			corner.CornerRadius = UDim.new(0.5, 0)
-		end
-		(sirenButton :: TextButton).Activated:Connect(siren)
-		updateSiren = TouchLayout.showWhen(sirenButton :: TextButton, "Vehiculo", function()
+	-- Sirena: botón del racimo conduciendo (móvil) o tecla K
+	TouchLayout.register({
+		Id = "Sirena",
+		Icon = "sirena",
+		Label = "Sirena",
+		Slot = "Defender",
+		Priority = 3.5,
+		Key = "K",
+		Visible = function()
 			local job = player:GetAttribute("Job")
-			return job == "Policia" or job == "Bombero"
-		end)
-	end
+			return TouchLayout.riding() and (job == "Policia" or job == "Bombero")
+		end,
+		Callback = siren,
+	})
+	updateSiren = TouchLayout.refresh
 	ContextActionService:BindAction("PoliceSiren", function(_, state)
 		if state == Enum.UserInputState.Begin and not UserInputService:GetFocusedTextBox() then
 			siren()

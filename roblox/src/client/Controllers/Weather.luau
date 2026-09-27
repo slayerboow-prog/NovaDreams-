@@ -3,7 +3,7 @@
 --  * Pétalos en primavera y hojas cayendo en otoño
 --  * Las copas de los árboles, los arbustos y la hierba cambian de color con la estación y la nieve
 --  * El cielo: nubes, luz y color (a través de DayLight.setModifier)
---  * Una etiqueta pequeña con la estación y el tiempo («🍂 Otoño · 🌧️ Lluvia»)
+--  * El tiempo y la temperatura se ven en la cápsula de la hora del HUD (UI/Hud lee workspace)
 -- Todo pasa en el dispositivo de cada jugador: no gasta red ni servidor.
 
 local Players = game:GetService("Players")
@@ -29,7 +29,7 @@ local snow: ParticleEmitter
 local falling: ParticleEmitter
 local rainSound: Sound?
 local thunderSound: Sound?
-local label: TextLabel
+local started = false -- (los avisos de cambio de tiempo no salen al entrar al juego)
 
 local season = "Primavera"
 local weather = "Despejado"
@@ -229,51 +229,13 @@ end
 
 ---------------------------------------------------------------------
 
-local function buildLabel()
-	-- Debajo del minimapa (arriba a la derecha), con el mismo estilo y escala que el HUD
-	local gui = Instance.new("ScreenGui")
-	gui.Name = "WeatherChip"
-	gui.ResetOnSpawn = false
-	gui.IgnoreGuiInset = true
-	gui.DisplayOrder = 2
-	gui.Parent = player:WaitForChild("PlayerGui")
-	local scale = Instance.new("UIScale")
-	scale.Parent = gui
-	local camera = workspace.CurrentCamera
-	local function rescale()
-		local v = camera.ViewportSize
-		scale.Scale = math.clamp(math.min(v.Y / 900, v.X / 1700), 0.55, 1.2)
-	end
-	camera:GetPropertyChangedSignal("ViewportSize"):Connect(rescale)
-	rescale()
-	label = Instance.new("TextLabel")
-	label.AnchorPoint = Vector2.new(0.5, 0)
-	label.Position = UDim2.new(1, -110, 0, 296) -- centrado bajo el minimapa (176 px, a 22 px del borde)
-	label.Size = UDim2.fromOffset(200, 26)
-	label.BackgroundColor3 = Color3.fromRGB(12, 22, 42)
-	label.BackgroundTransparency = 0.2
-	label.TextColor3 = Color3.new(1, 1, 1)
-	label.Font = Enum.Font.GothamMedium
-	label.TextSize = 13
-	label.Text = ""
-	label.Parent = gui
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(1, 0)
-	corner.Parent = label
-	local stroke = Instance.new("UIStroke")
-	stroke.Color = Color3.fromRGB(80, 140, 240)
-	stroke.Transparency = 0.55
-	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	stroke.Parent = label
-end
-
 local function refreshState()
 	local newSeason = workspace:GetAttribute("Season") or "Primavera"
 	local newWeather = workspace:GetAttribute("Weather") or "Despejado"
 	local newSnow = workspace:GetAttribute("Snow") or 0
 	local changed = newSeason ~= season or math.abs(newSnow - snowCover) > 0.04
 	-- Avisos cuando cambia la estación o empieza algo llamativo (no al entrar al juego)
-	if label and label.Text ~= "" then
+	if started then
 		local info = Seasons.Info[newSeason]
 		if newSeason ~= season and info then
 			Hud.toast("Info", ("%s Llega %s"):format(info.Icon, ({ Primavera = "la primavera", Verano = "el verano", Otono = "el otoño", Invierno = "el invierno" })[newSeason] or info.Name))
@@ -287,14 +249,11 @@ local function refreshState()
 		snowCover = newSnow
 		repaint()
 	end
-	if label then
-		label.Text = Seasons.label(season, weather)
-	end
+	started = true
 end
 
 function Weather.init()
 	buildEmitters()
-	buildLabel()
 	local terrain = workspace.Terrain
 	for _, material in { Enum.Material.Grass, Enum.Material.LeafyGrass } do
 		local ok, color = pcall(function()

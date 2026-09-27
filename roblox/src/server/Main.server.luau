@@ -72,6 +72,7 @@ local order = {
 	"MetroService", -- metro subterráneo: trenes, galería, encargos y revisor
 	"MetroLifeService", -- vida del metro: guardias, ratas, aseos, taquillas, fuente, piano…
 	"DivingService", -- nadar, bucear (aire) y pesca submarina con fusil o arpón
+	"SeaEventService", -- catástrofes marinas: tsunami, temporal, remolino, marea negra, tiburón y medusas
 	"ClassService", -- clases y exámenes que se juegan (lo usa la historia)
 	"DialogueService", -- conversaciones con respuestas (misiones episódicas)
 	"MiniGameService", -- pase, canastas, partido de fútbol…

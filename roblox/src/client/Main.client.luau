@@ -44,6 +44,7 @@ local FishingUI = require(script.Parent.Controllers.FishingUI)
 local MetroUI = require(script.Parent.Controllers.MetroUI)
 local DivingUI = require(script.Parent.Controllers.DivingUI)
 local SeaBiome = require(script.Parent.Controllers.SeaBiome)
+local SeaEventsUI = require(script.Parent.Controllers.SeaEventsUI)
 local JobPrompts = require(script.Parent.Controllers.JobPrompts)
 local BusUI = require(script.Parent.Controllers.BusUI)
 local ActorLife = require(script.Parent.Controllers.ActorLife)
@@ -51,6 +52,8 @@ local AgeMotion = require(script.Parent.Controllers.AgeMotion)
 local ReactMotion = require(script.Parent.Controllers.ReactMotion)
 local Locomotion = require(script.Parent.Controllers.Locomotion)
 local FootCamera = require(script.Parent.Controllers.FootCamera)
+local RideCamera = require(script.Parent.Controllers.RideCamera)
+local RidePose = require(script.Parent.Controllers.RidePose)
 local ObjectMotion = require(script.Parent.Controllers.ObjectMotion)
 local WetWorld = require(script.Parent.Controllers.WetWorld)
 local StoneThrow = require(script.Parent.Controllers.StoneThrow)
@@ -61,6 +64,7 @@ local InstitutionsUI = require(script.Parent.Controllers.InstitutionsUI)
 local InteriorUI = require(script.Parent.Controllers.InteriorUI)
 local UseMotion = require(script.Parent.Controllers.UseMotion)
 local InteractClient = require(script.Parent.Controllers.InteractClient)
+local Joystick = require(script.Parent.Controllers.Joystick)
 local CommandMenu = require(script.Parent.Commands.CommandMenu)
 local DefaultCommands = require(script.Parent.Commands.DefaultCommands)
 
@@ -84,6 +88,8 @@ task.spawn(AgeMotion.init) -- cada edad se mueve a su manera: el bebé gatea, lo
 task.spawn(ReactMotion.init) -- golpes con cuerpo y choques: balón, piedras, arena, arbustos y charcos
 task.spawn(Locomotion.init) -- andar fluido: arrancar y frenar suave, inclinarse, mirar, aterrizar, sentarse y alcanzar cosas
 task.spawn(FootCamera.init) -- cámara a pie: zoom corto dentro de edificios y campo de visión al correr
+task.spawn(RideCamera.init) -- cámara en un vehículo, el autobús o el metro: detrás, suave y sin meterse dentro
+task.spawn(RidePose.init) -- postura en un vehículo: manos al volante o al manillar, pasajeros sentados
 task.spawn(ObjectMotion.init) -- árboles que se mecen, columpios, banderas, noria, carrusel, fuentes
 task.spawn(WetWorld.init) -- con lluvia: suelo que brilla, charcos, gente y cosas mojadas; con nieve, todo blanco
 task.spawn(StoneThrow.init) -- coger piedras del suelo y lanzarlas (tecla B o botón 🥌)
@@ -95,6 +101,7 @@ task.spawn(Arcade.init) -- recreativos
 task.spawn(DrivingSchool.init) -- autoescuela
 task.spawn(Restaurant.init) -- trabajo de camarero y barman
 task.spawn(Character.init) -- ficha del personaje (botón Personaje) y correr con Shift
+task.spawn(Joystick.init) -- móvil: joystick fijo abajo a la izquierda (con el estilo del HUD)
 task.spawn(NearShadows.init) -- sombras de las luces solo cerca de ti (mismo aspecto, mucho más fluido)
 task.spawn(Prompts.init) -- carteles de "pulsa E" con el estilo de la interfaz
 task.spawn(SoundFx.init) -- efectos de sonido: saltos, golpes, agua, botones, motor, claxon y gente hablando
@@ -114,6 +121,7 @@ task.spawn(FishingUI.init) -- pesca: sedal y corcho, ¡tirar!, tienda de pesca
 task.spawn(MetroUI.init) -- metro: panel del tren, billetes, tiendas, encargos y escenario
 task.spawn(DivingUI.init) -- nadar, bucear (aire) y pesca submarina con fusil o arpón
 task.spawn(SeaBiome.init) -- el fondo del mar y la luz bajo el agua (solo cuando estás en el agua)
+task.spawn(SeaEventsUI.init) -- catástrofes marinas: alerta, ola del tsunami, rayos, remolino, tiburón y medusas
 task.spawn(JobPrompts.init) -- los carteles de cada oficio solo los ve quien trabaja en él
 task.spawn(Driving.init) -- conducir coches, motos, bicis, monopatines y patinetes (W/A/S/D)
 task.spawn(Actions.init) -- gestos y bailes (G), trepar muros bajos, linterna (L) y modo foto (P)
@@ -142,7 +150,7 @@ DefaultCommands.register()
 CommandMenu.onFocus(Prompts.setFocus)
 task.spawn(CommandMenu.init)
 
--- Botones de arriba a la derecha del HUD
+-- Acciones de los comandos (Objetos y Mapa)
 Hud.setAction("Mochila", InventoryUI.toggle)
 Hud.setAction("Mapa", MapUI.toggleBig)
 
@@ -167,6 +175,15 @@ end
 Hud.addMenuToggle(lookText(), 3, function()
 	ReplicatedStorage.Remotes.Avatar:FireServer("Toggle")
 	return if game:GetService("Players").LocalPlayer:GetAttribute("OwnAvatar") then "👕 Ropa: estilo Valmar" else "👕 Ropa: mi avatar de Roblox"
+end)
+
+-- Móvil: correr al empujar el joystick hasta el borde (sí por defecto)
+local function autoRunText(): string
+	return if game:GetService("Players").LocalPlayer:GetAttribute("AutoRun") == false then "🏃 Correr al empujar el joystick: no" else "🏃 Correr al empujar el joystick: sí"
+end
+Hud.addMenuToggle(autoRunText(), 3.5, function()
+	Character.setAutoRun(game:GetService("Players").LocalPlayer:GetAttribute("AutoRun") == false)
+	return autoRunText()
 end)
 
 -- Empezar una vida nueva (desde bebé): hay que pulsar dos veces para confirmar
@@ -253,6 +270,7 @@ game:GetService("RunService").Heartbeat:Connect(function()
 		TaskMarker.setHidden(busy)
 		Hud.setBusy(busy)
 		CommandMenu.setBusy(busy)
+		Joystick.setBusy(busy)
 		if busy and MapUI.isOpen() then
 			MapUI.toggleBig()
 		end
@@ -262,14 +280,14 @@ game:GetService("RunService").Heartbeat:Connect(function()
 	end
 end)
 
--- De bebé sobran el minimapa, el tiempo y el botón de correr
+-- De bebé sobra el minimapa (los botones y el resto del HUD ya se apartan solos)
 local function babyMode()
 	local baby = localPlayer:GetAttribute("LifeStage") == "Bebe"
 	local playerGui = localPlayer:FindFirstChild("PlayerGui")
 	if not playerGui then
 		return
 	end
-	for _, path in { { "MapUI", "Minimap" }, { "WeatherChip" }, { "SprintGui", "SprintButton" } } do
+	for _, path in { { "MapUI", "Minimap" } } do
 		local target = playerGui:FindFirstChild(path[1])
 		if target and path[2] then
 			target = target:FindFirstChild(path[2])

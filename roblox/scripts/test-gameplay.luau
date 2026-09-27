@@ -334,6 +334,7 @@ local remotes = {
 	Fishing = remote(),
 	Metro = remote(),
 	Diving = remote(),
+	SeaEvent = remote(),
 	Social = remote(),
 	Interior = remote(),
 	Interact = remote(),
@@ -865,6 +866,75 @@ answerTheory(adult, 4)
 check(adult:GetAttribute("Riding") == "Moto", "con 4 de 5 aprueba el teórico de moto")
 remotes.Vehicle.OnServerEvent:Fire(adult, "Dismount")
 check(not VehicleService.hasLicense(adult, "A") and adult:GetAttribute("TaskTarget") == nil, "si se baja en el práctico, suspende")
+
+---------------------------------------------------------------------
+print("▶ Pasajeros")
+do
+	local Rides = loadModule(ROOT .. "/server/World/Kit/Rides")
+	check(#Rides.passengerSeats("Moto") == 1 and #Rides.passengerSeats("Bici") == 0 and #Rides.passengerSeats("Patinete") == 0 and #Rides.passengerSeats("Monopatin") == 0, "la moto lleva asiento de atrás; bici, patinete y monopatín no")
+	check(#Rides.passengerSeats("Patrulla") == 3 and #Rides.passengerSeats("Bomberos") == 3 and #Rides.passengerSeats("Camion") == 1, "coche patrulla y camiones llevan asientos de pasajero")
+	local car = worldRoot.Rides:FindFirstChild("Coche")
+	local seats = {}
+	for _, c in car:GetChildren() do
+		if c.ClassName == "Seat" and c.Name == "RideSeat" then
+			table.insert(seats, c)
+		end
+	end
+	check(#seats == 3 and promptOf(car, "Subir de copiloto") ~= nil and promptOf(car, "Subir detrás") ~= nil, "el coche tiene copiloto y dos asientos detrás, cada uno con su cartel")
+	check(car.PrimaryPart.RootPriority == 127, "la base del coche manda en el conjunto (nadie tiembla)")
+	local friend, friendRoot, friendHumanoid = newPlayer(21, "AdultoJoven", 500)
+	moveTo(friendRoot, car.PrimaryPart.Position + Vector3.new(4, 0, 0))
+	promptOf(car, "Conducir").Triggered:Fire(friend)
+	check(friend:GetAttribute("Riding") == nil and notified(friend, "de otra persona"), "no puede conducir el coche de otro")
+	promptOf(car, "Subir de copiloto").Triggered:Fire(friend)
+	check(friend:GetAttribute("Passenger") == "Coche" and friendHumanoid.SeatPart ~= nil and friendHumanoid.SeatPart.Name == "RideSeat", "se sube de copiloto al coche aparcado de su amigo")
+	check(promptOf(car, "Subir de copiloto").Enabled == false, "el asiento ocupado ya no ofrece subirse")
+	local kidRider, _, kidHumanoid = newPlayer(22, "Nino", 0)
+	promptOf(car, "Subir de copiloto").Triggered:Fire(kidRider)
+	check(kidRider:GetAttribute("Passenger") == nil, "no se puede sentar en un asiento ocupado")
+	local back
+	for _, seat in seats do
+		if seat:GetAttribute("Label") == "Subir detrás" then
+			back = seat
+			break
+		end
+	end
+	back.SeatPrompt.Triggered:Fire(kidRider)
+	check(kidRider:GetAttribute("Passenger") == "Coche" and kidHumanoid.SeatPart == back, "un niño va detrás")
+	promptOf(car, "Conducir").Triggered:Fire(adult)
+	check(adult:GetAttribute("Riding") == "Coche" and car:GetAttribute("Driver") == adult.UserId, "el dueño conduce con sus amigos dentro")
+	check(friend:GetAttribute("Passenger") == "Coche" and friendHumanoid.SeatPart ~= nil and not car.PrimaryPart.Anchored, "los pasajeros siguen sentados con el coche en marcha")
+	remotes.Vehicle.OnServerEvent:Fire(adult, "Dismount")
+	check(adult:GetAttribute("Riding") == nil and friend:GetAttribute("Passenger") == "Coche" and car.PrimaryPart.Anchored, "si el conductor se baja, los pasajeros siguen en el coche aparcado")
+	-- Con suelo de verdad para ver dónde queda
+	local floor = part("Street", CFrame.new(0, -0.5, 0))
+	local oldRaycast = Fake.Raycast
+	Fake.Raycast = function(_, origin)
+		return { Position = Vector3.new(origin.X, 0, origin.Z), Instance = floor, Normal = Vector3.new(0, 1, 0), Material = Enum.Material.Concrete }
+	end
+	remotes.Vehicle.OnServerEvent:Fire(friend, "Dismount")
+	local rel = car.PrimaryPart.CFrame:PointToObjectSpace(friendRoot.Position)
+	check(friend:GetAttribute("Passenger") == nil and friendHumanoid.SeatPart == nil, "se baja con «Bajarse»")
+	check(rel.X > 3.5 and rel.X < 7.5 and math.abs(rel.Z) < 2 and friendRoot.Position.Y > 1, "se baja por su lado, de pie junto al coche (no dentro)")
+	check(promptOf(car, "Subir de copiloto").Enabled == true, "el asiento queda libre otra vez")
+	kidHumanoid.Sit = false
+	rel = car.PrimaryPart.CFrame:PointToObjectSpace(kidHumanoid.Parent.HumanoidRootPart.Position)
+	check(kidRider:GetAttribute("Passenger") == nil and rel.X < -3.5 and rel.Z > 1, "saltar le baja por la puerta de atrás de su lado")
+	-- Vehículo de trabajo o de alquiler: al retirarlo, los pasajeros se bajan antes
+	VehicleService.mount(adult, "Coche", { Rented = true })
+	local rented
+	for _, m in worldRoot.Rides:GetChildren() do
+		if m:GetAttribute("Driver") == adult.UserId then
+			rented = m
+		end
+	end
+	promptOf(rented, "Subir de copiloto").Triggered:Fire(friend)
+	check(friend:GetAttribute("Passenger") == "Coche", "se sube de copiloto a un vehículo de trabajo")
+	remotes.Vehicle.OnServerEvent:Fire(adult, "Dismount")
+	check(friend:GetAttribute("Passenger") == nil and friendHumanoid.SeatPart == nil and friendRoot.Position.Y > 1, "al retirarlo, el pasajero se baja a su lado")
+	Fake.Raycast = oldRaycast
+	floor:Destroy()
+end
 
 ---------------------------------------------------------------------
 print("▶ Recreativos")
@@ -3226,6 +3296,112 @@ check(strangerHum.SeatPart ~= nil and stranger:GetAttribute("UsePose") == "Piano
 strangerHum.Sit = false
 check(piano:GetAttribute("Playing") == false and stranger:GetAttribute("UsePose") == nil, "al levantarse deja de sonar")
 Config.SleepSeconds = savedSleep
+end)()
+
+;(function()
+print("▶ Catástrofes marinas: tsunami, marea negra, tiburón, medusas, temporal y remolino")
+local SeaEvents = loadModule(ROOT .. "/shared/SeaEvents")
+local Fishing = loadModule(ROOT .. "/shared/Fishing")
+local FishingService = loadModule(S .. "FishingService")
+local DivingService = loadModule(S .. "DivingService")
+local SeaEventService = loadModule(S .. "SeaEventService")
+local realIsWater = FishingService.isWater
+FishingService.isWater = function(p)
+	return p.Y < -1 -- en la prueba: por debajo de la superficie siempre hay agua
+end
+for _, id in SeaEvents.Order do
+	SeaEvents.Kinds[id].Warning = 0
+end
+local savedStart = SeaEvents.WaveStart
+SeaEvents.WaveStart = 20
+local function ticks(n, gap)
+	for _ = 1, n do
+		SeaEventService._tick()
+		if gap then
+			task.wait(gap)
+		end
+	end
+end
+local function person(id, pos, items)
+	local p, root, hum = newPlayer(id, "Adulto", 100)
+	profiles[p].Items = items or {}
+	InventoryService.refresh(p)
+	root.CFrame = CFrame.new(pos)
+	p.Character.Head.CFrame = CFrame.new(pos + Vector3.new(0, 1.5, 0))
+	return p, root, hum
+end
+check(SeaEvents.pick(0) == "Tsunami" and SeaEvents.pick(0.9999) == "Medusas", "cada catástrofe tiene su probabilidad")
+-- Tsunami en Playa Dorada
+local low, _, lowHum = person(201, Vector3.new(4150, 2, -1000))
+local high, _, highHum = person(202, Vector3.new(4150, 30, -1000))
+local far, _, farHum = person(203, Vector3.new(4150, 2, 200))
+check(SeaEventService.start("Tsunami", "Playa Dorada") and worldRoot:GetAttribute("SeaEvent") == "Tsunami", "empieza el tsunami")
+check(lastMessage(low, "Start") ~= nil and notified(low, "TSUNAMI"), "llega la alerta a todos")
+check(not SeaEventService.start("Medusas"), "no hay dos catástrofes a la vez")
+ticks(25, 0.1)
+check(lowHum.Health < 100 and lastMessage(low, "Hit") ~= nil, "la ola arrastra a quien está en la playa")
+check(highHum.Health == 100 and farHum.Health == 100, "quien está en alto o lejos no sufre nada")
+SeaEventService.stop()
+check(worldRoot:GetAttribute("SeaEvent") == nil and lastMessage(high, "End") ~= nil, "al acabar se avisa y vuelve la calma")
+-- Marea negra: no se pesca y se limpia entre todos
+local cleaner = person(204, Vector3.new(4210, 3, -1000), { CanaPescar = 1 })
+check(SeaEventService.start("MareaNegra", "Playa Dorada"), "empieza la marea negra")
+local patches = SeaEventService._event().Patches
+check(#patches == SeaEvents.Kinds.MareaNegra.Patches, ("salen manchas de petróleo en el mar (%d)"):format(#patches))
+local oilSpot = part("FishingSpot", CFrame.new(4210, 3.5, -1000), { "FishingSpot" }, { Water = "Mar", CastDistance = 10 })
+FishingService._cast(cleaner, oilSpot)
+check(notified(cleaner, "petróleo") and FishingService._fishing[cleaner] == nil, "donde hay petróleo no se puede pescar")
+local money = profiles[cleaner].Money
+for _, patch in table.clone(patches) do
+	promptOf(patch, "Limpiar").Triggered:Fire(cleaner)
+end
+local mk = SeaEvents.Kinds.MareaNegra
+check(profiles[cleaner].Money == money + mk.Reward * mk.Patches + mk.Bonus, "se cobra por cada mancha limpia y un premio al acabar")
+check(SeaEventService._event() == nil and notified(cleaner, "limpiado toda la marea negra"), "limpia toda, la catástrofe se acaba")
+-- Tiburón en la playa
+local bather, _, batherHum = person(205, Vector3.new(4230, -3, -1000))
+check(SeaEventService.start("Tiburon", "Playa Dorada"), "aparece el tiburón en la playa")
+ticks(60)
+check(batherHum.Health < 100 and notified(bather, "mordido"), "si te bañas, te puede morder")
+local hunter = person(206, Vector3.new(4225, -8, -1000), { Arpon = 1, Botella = 1 })
+profiles[hunter].Fishing = { Xp = Fishing.xpFor(40), Caught = {} }
+ticks(1)
+local shark = SeaEventService._event().Shark
+check(shark ~= nil, "a un buceador con arpón le aparece el tiburón para cazarlo")
+local savedGap = Fishing.Dive.ShotGap
+Fishing.Dive.ShotGap = 0
+for _ = 1, 12 do
+	if shark.Parent then
+		hunter.Character.HumanoidRootPart.CFrame = CFrame.new(shark.Position - Vector3.new(0, 3, 0))
+		hunter.Character.Head.CFrame = CFrame.new(shark.Position - Vector3.new(0, 1.5, 0))
+		remotes.Diving.OnServerEvent:Fire(hunter, "Shoot", shark)
+	end
+end
+Fishing.Dive.ShotGap = savedGap
+ticks(1)
+check(SeaEventService._event() == nil and notified(hunter, "Recompensa por cazar al tiburón"), "si lo cazas, se acaba el peligro y te dan recompensa")
+-- Medusas: el equipo de buceo protege
+local swimmer, _, swimmerHum = person(207, Vector3.new(4230, -3, -990))
+local suited, _, suitedHum = person(208, Vector3.new(4230, -3, -1010), { Botella = 1 })
+check(SeaEventService.start("Medusas", "Playa Dorada"), "llega la plaga de medusas")
+ticks(60)
+check(swimmerHum.Health < 100 and suitedHum.Health == 100, "las medusas pican a los bañistas (con equipo de buceo no)")
+SeaEventService.stop()
+-- Temporal: rayos en alta mar
+check(SeaEventService.start("Temporal"), "empieza el temporal")
+ticks(1)
+check(lastMessage(swimmer, "Strike") ~= nil, "caen rayos en el mar")
+SeaEventService.stop()
+-- Remolino: en el centro te hace daño
+check(SeaEventService.start("Remolino"), "aparece un remolino")
+local c = worldRoot:GetAttribute("SeaEventPos")
+local diver2, _, diver2Hum = person(209, Vector3.new(c.X, -3, c.Z))
+ticks(4)
+check(diver2Hum.Health < 100 and notified(diver2, "remolino"), "si nadas en el centro del remolino te hace daño")
+SeaEventService.stop()
+SeaEvents.WaveStart = savedStart
+FishingService.isWater = realIsWater
+local _ = far
 end)()
 
 end, debug.traceback)
