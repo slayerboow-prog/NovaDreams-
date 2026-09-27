@@ -59,6 +59,10 @@ local function makeNpc(parent: Instance, cf: CFrame, person: { [string]: any }, 
 	end
 	-- Ropa, pelo y mochila (antes eran de un solo color, como maniquíes)
 	Npc.dress(model, { Skin = person.Skin, Backpack = if person.Kid then Color3.fromHSV(math.random(), 0.6, 0.8) else nil, LongHair = math.random() < 0.5 })
+	if person.Kid then
+		-- Niños del cole o adolescentes del instituto: se mueven como tales (Controllers/AgeMotion)
+		model:SetAttribute("Age", if scale >= 0.85 then "Adolescente" else "Nino")
+	end
 	pcall(function()
 		model:ScaleTo(scale)
 	end)

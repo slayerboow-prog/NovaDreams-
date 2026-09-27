@@ -185,6 +185,9 @@ local function setupHome(home: Home)
 			-- Id del reparto (Cast): si una escena de la historia trae a este personaje, el fijo se oculta
 			npc:SetAttribute("NpcId", if person.Npc == "Familia_Abu" then "Abu" else "Familia")
 			Npc.work(npc, person.Work)
+			if person.Npc == "Familia_Abu" then
+				npc:SetAttribute("Age", "Mayor") -- anda encorvada (Controllers/AgeMotion)
+			end
 			CollectionService:AddTag(npc, "StaticNpc")
 			local root = npc:FindFirstChild("HumanoidRootPart") :: BasePart?
 			if root then

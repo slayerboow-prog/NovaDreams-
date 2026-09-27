@@ -5,6 +5,7 @@
 --   NameAttr  (opcional) atributo del jugador con la clave de su nombre (la familia cambia en cada casa)
 --   Voice     perfil de voz sintetizada
 --   Kid       tamaño de niño (escala 0.65); Teen = 0.85; si no, adulto
+--   Old       persona mayor: anda encorvada y con pasos cortos (Controllers/AgeMotion)
 --   Skin, Shirt, Pants  colores (el aspecto sin necesitar ropa de catálogo)
 --   Bio       personalidad (para quien escriba diálogos: así habla este personaje)
 --
@@ -18,6 +19,7 @@ export type Person = {
 	Voice: string,
 	Kid: boolean?,
 	Teen: boolean?,
+	Old: boolean?,
 	Skin: Color3,
 	Shirt: Color3,
 	Pants: Color3,
@@ -38,7 +40,7 @@ local People: { [string]: Person } = {
 		Bio = "Cariño con prisas. Bromea para que no estés nervioso. Siempre pregunta qué tal el día.",
 	},
 	Abu = {
-		Name = "NPC.ABU_ROSA", NameAttr = "AbuKey", Voice = "Abu",
+		Name = "NPC.ABU_ROSA", NameAttr = "AbuKey", Voice = "Abu", Old = true,
 		Skin = rgb(234, 196, 160), Shirt = rgb(150, 90, 120), Pants = rgb(90, 80, 70),
 		Hair = rgb(200, 200, 205), LongSleeves = true,
 		Bio = "Calma y refranes. Cuenta historias de cuando Valmar era un pueblo.",
@@ -52,7 +54,7 @@ local People: { [string]: Person } = {
 		Bio = "Tutora de 1.º A. Cariñosa y exigente, frases cortas, humor seco. Estudió en este mismo colegio.",
 	},
 	Ramon = {
-		Name = "Ramón", Voice = "Abu",
+		Name = "Ramón", Voice = "Abu", Old = true,
 		Skin = rgb(200, 150, 110), Shirt = rgb(60, 90, 150), Pants = rgb(40, 50, 70),
 		Hair = rgb(190, 190, 195), LongSleeves = true,
 		Bio = "Conserje. Bromista, lo sabe todo del colegio, lleva un manojo enorme de llaves.",
@@ -64,7 +66,7 @@ local People: { [string]: Person } = {
 		Bio = "Profe de música. Dulce, habla cantando, siempre tararea algo.",
 	},
 	Marisa = {
-		Name = "Marisa", Voice = "Abu",
+		Name = "Marisa", Voice = "Abu", Old = true,
 		Skin = rgb(230, 190, 160), Shirt = rgb(120, 90, 150), Pants = rgb(60, 60, 70),
 		Hair = rgb(190, 190, 195), LongHair = true, LongSleeves = true,
 		Bio = "Bibliotecaria. Habla en susurros, lo presta todo, y todo lo apunta. Cree que un libro puede arreglar cualquier día malo.",
@@ -76,7 +78,7 @@ local People: { [string]: Person } = {
 		Bio = "Monitora de la granja escuela. Sabe el nombre de cada gallina. Muy seria con las normas de los animales.",
 	},
 	Julian = {
-		Name = "Julián", Voice = "Abu",
+		Name = "Julián", Voice = "Abu", Old = true,
 		Skin = rgb(190, 140, 100), Shirt = rgb(70, 90, 140), Pants = rgb(60, 60, 60),
 		Hair = rgb(230, 230, 230), LongSleeves = true,
 		Bio = "El granjero. Habla poco, sonríe mucho, se sabe todos los caminos del campo.",

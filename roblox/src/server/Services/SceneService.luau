@@ -285,6 +285,9 @@ local function buildModel(npc: string, player: Player, forcedScale: number?): Mo
 	local stage = player:GetAttribute("LifeStage")
 	local kidScale = if stage == "Adolescente" then 0.85 elseif stage == "Bebe" or stage == "Nino" or stage == nil then 0.65 else 1
 	local scale = forcedScale or (if person and person.Kid then kidScale elseif person and person.Teen then 0.85 else 1)
+	-- Su edad, para que se mueva como tal (Controllers/AgeMotion): los compañeros crecen contigo
+	local kidAge = if stage == "Adolescente" then "Adolescente" elseif stage == "Bebe" or stage == "Nino" or stage == nil then "Nino" else nil
+	model:SetAttribute("Age", if person and person.Kid then kidAge elseif person and person.Teen then "Adolescente" elseif person and person.Old then "Mayor" else nil)
 	if scale ~= 1 then
 		pcall(function()
 			model:ScaleTo(scale)

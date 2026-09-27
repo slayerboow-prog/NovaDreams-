@@ -9,6 +9,7 @@ reaccionar con el cuerpo a lo que dicen. Las escenas de cámara tienen que parec
 |---|---|---|
 | `SceneService` | servidor | Anima a los actores de las escenas con las animaciones R15 de Roblox: estar de pie, andar, **correr**, saludar, celebrar, **reírse**, **bailar**, señalar, sentarse. Cada uno respira a su ritmo (la animación de pie empieza en un punto al azar) y el paso va a la velocidad de sus pies. Quien saluda o celebra lo repite cada pocos segundos, y al acabar el gesto sigue de pie (antes se quedaba congelado). |
 | `ActorLife` | cliente | Añade la capa «viva» encima de cualquier animación. Solo trabaja con los 32 personajes más cercanos (a menos de 95 studs), así que no pesa en el móvil. |
+| `AgeMotion` | cliente | Cada edad se mueve a su manera: el bebé gatea, el niño va suelto, el adolescente algo encorvado y el mayor encorvado y con pasos cortos. |
 | `WorkAnim` | cliente | Las tareas de cada oficio (barrer, apuntar, cobrar, cocinar…) y el objeto que llevan en la mano. Las usa `ActorLife`. |
 | `Emotion` | compartido | Decide con qué gesto se dice cada frase. |
 | `DialogueUI` | cliente | Es la cámara de las conversaciones y avisa a `ActorLife` de quién habla. |
@@ -51,6 +52,28 @@ reaccionar con el cuerpo a lo que dicen. Las escenas de cámara tienen que parec
   - Los personajes de un grupo charlan entre ellos por turnos: se miran, gesticulan, asienten y a veces se ríen.
   - Si te acercas, alguno te mira.
   - Se usa en la parada del bus del instituto, en la cafetería de la universidad y en la fiesta del reencuentro.
+
+### AgeMotion: cada edad se mueve a su manera
+
+| Edad | Cómo se mueve |
+|---|---|
+| Bebé que aún no se ha levantado | Gatea a cuatro patas: brazo derecho con pierna izquierda y al revés, la espalda casi horizontal y la cabeza levantada mirando al frente. |
+| Bebé de pie | Pasitos de pato: piernas abiertas, brazos separados para no caerse y un vaivén de lado a lado. |
+| Niño | Brazos más sueltos al andar, cabeza alta, y quieto no para (se balancea, mira a los lados). |
+| Adolescente | Un poco encorvado, hombros hacia delante y brazos más caídos. |
+| Adulto | Como siempre. |
+| Mayor | Espalda encorvada (pero mirando al frente), rodillas algo dobladas, pasos cortos y brazos que casi no se balancean. |
+
+- Se aplica a los jugadores (según su etapa, `LifeStage`, y el atributo `Crawling` del bebé) y a los
+  personajes con el atributo `Age`: los compañeros de clase (crecen contigo), la abuela y la gente mayor
+  del reparto (`Old = true` en `Cast`).
+- Cada jugador lo calcula en su pantalla para los 24 personajes más cercanos, también para los demás
+  jugadores: todos ven gatear al bebé de otro.
+- Va encima de la animación de Roblox: después de que Roblox anime, se retoca `Motor6D.Transform`.
+  `ActorLife` mueve `C0` (mirada, gestos, tareas), así que las dos cosas se suman sin pisarse.
+- Al sentarse, conducir o dormir no se toca nada: manda esa postura.
+- Para gatear, el cuerpo baja justo hasta que manos y rodillas tocan el suelo; se calcula con las
+  medidas de cada personaje, así que vale para cualquier tamaño.
 
 ### WorkAnim: cada uno a su oficio
 

@@ -120,4 +120,5 @@ Ver el [documento de diseño](docs/diseno/README.md), la [historia y jugabilidad
 ```bash
 lune run scripts/test-lifestory.luau   # simula vidas completas con la historia de vida (LifeStoryService)
 lune run scripts/test-workanim.luau    # tareas de los personajes (barrer, cobrar…): posturas y objetos
+lune run scripts/test-agemotion.luau   # cómo se mueve cada edad: el bebé gatea, el mayor va encorvado…
 ```
