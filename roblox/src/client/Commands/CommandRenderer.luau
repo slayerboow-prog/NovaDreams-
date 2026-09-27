@@ -1,6 +1,6 @@
 -- CommandRenderer: dibuja el menú de comandos (abajo a la izquierda).
 --
---   ┌ ✦ COMANDOS ─────────┐     <- pestaña: el título (o con quién estás: "MARTA")
+--   ┌ COMANDOS ─────────┐     <- pestaña: el título (o con quién estás: "MARTA")
 --   ▶ █ 💬 HABLAR   Marta  █     <- el elegido: brillante, más grande, desplazado y con el cursor ▶
 --       🚪 ENTRAR   Tienda
 --       🎒 OBJETOS
@@ -75,7 +75,7 @@ function CommandRenderer.new(parent: Instance, touch: boolean)
 		FontFace = Theme.TitleFace,
 		TextSize = 15,
 		TextStrokeTransparency = 0.5,
-		Text = "✦ COMANDOS",
+		Text = "COMANDOS",
 		Parent = tab,
 	})
 
@@ -143,7 +143,7 @@ function CommandRenderer.new(parent: Instance, touch: boolean)
 end
 
 function CommandRenderer:setHeader(text: string)
-	Theme.setText(self.HeaderText, "✦ " .. string.upper(text))
+	Theme.setText(self.HeaderText, string.upper(text))
 end
 
 function CommandRenderer:setHint(text: string)

@@ -162,10 +162,10 @@ local SEGMENTS = 48
 local HEALTH_LEN = 240 -- largo de la barra verde (desde el centro de la foto)
 local ARC_LEN = RING_R * math.rad(ARC_TO - ARC_FROM)
 local BARS = {
-	-- Id, texto, alto, largo (desde el borde de la foto), colores del degradado
-	{ Id = "Stamina", Emoji = "🏃", Height = 9, Width = 196, From = rgb(40, 80, 230), To = rgb(110, 170, 255) },
-	{ Id = "Energy", Emoji = "⚡", Height = 8, Width = 168, From = rgb(245, 150, 30), To = rgb(255, 225, 80) },
-	{ Id = "Hunger", Emoji = "🍔", Height = 8, Width = 140, From = rgb(230, 80, 40), To = rgb(255, 160, 70) },
+	-- Id, texto, alto, largo (desde el borde del aro), colores del degradado
+	{ Id = "Stamina", Emoji = "🏃", Height = 9, Width = 170, From = rgb(40, 80, 230), To = rgb(110, 170, 255) },
+	{ Id = "Energy", Emoji = "⚡", Height = 8, Width = 150, From = rgb(245, 150, 30), To = rgb(255, 225, 80) },
+	{ Id = "Hunger", Emoji = "🍔", Height = 8, Width = 130, From = rgb(230, 80, 40), To = rgb(255, 160, 70) },
 }
 local HEALTH_GREEN = { rgb(70, 200, 50), rgb(170, 255, 110) }
 local HEALTH_YELLOW = { rgb(230, 180, 20), rgb(255, 235, 110) }
@@ -339,7 +339,7 @@ local function buildStatus(parent: Instance)
 		xpFill.Position = UDim2.fromScale(if right then 1 else 0, 0)
 
 		local y = barY - 4
-		local from = cx + PORTRAIT / 2 * 0.55 -- salen de debajo de la foto
+		local from = lane -- empiezan pasado el aro (no tapan la foto)
 		for _, def in BARS do
 			local bar = bars[def.Id]
 			y -= def.Height + 4
@@ -422,7 +422,7 @@ local function storyText(key: string?, args: { [string]: any }?): string
 end
 
 local objectivesList: Frame
-local objectivesWanted = true -- el botón Misiones los muestra u oculta
+local objectivesWanted = not TOUCH -- el botón Misiones los muestra u oculta (en el móvil empiezan ocultos: el objetivo sale bajo el reloj)
 local busy = false -- en una conversación o cinemática
 local refreshVisible: () -> () -- se define más abajo
 local jobBox: Frame
@@ -540,6 +540,7 @@ local function buildObjectives(parent: Instance)
 		AutomaticSize = Enum.AutomaticSize.Y,
 		Position = UDim2.fromOffset(12, 188),
 		BackgroundTransparency = 1,
+		Visible = objectivesWanted,
 		Parent = parent,
 	})
 	create("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder, Parent = objectivesPanel })
@@ -994,19 +995,24 @@ function Hud.init(openStore: () -> ()): ScreenGui
 		clock.Size = UDim2.fromOffset(if canvas.X < 1500 then 400 else 440, 54)
 		local y = top
 		if TOUCH then
+			-- Móvil: la vida arriba a la izquierda (debajo va el menú de comandos) y los objetivos,
+			-- cuando los abres con «Misiones», en el centro bajo el reloj
 			status.AnchorPoint = Vector2.new(0, 0)
 			status.Position = UDim2.fromOffset(8, top)
 			arrangeStatus("Left")
-			y = top + STATUS_H + 12
+			y = 118
+			objectivesPanel.AnchorPoint = Vector2.new(0.5, 0)
+			objectivesPanel.Position = UDim2.new(0.5, 0, 0, y)
+			objectivesPanel.Size = UDim2.fromOffset(380, 0)
 		else
 			status.AnchorPoint = Vector2.new(1, 1)
 			status.Position = UDim2.new(1, -18, 1, -16)
 			arrangeStatus("Right")
+			objectivesPanel.Position = UDim2.fromOffset(12, y)
 		end
-		objectivesPanel.Position = UDim2.fromOffset(12, y)
-		-- En el ordenador los objetivos no bajan hasta el menú de comandos (abajo a la izquierda;
-		-- en el móvil el menú va a la derecha)
-		local room = canvas.Y - y - (if TOUCH then 16 else 300)
+		-- Los objetivos no bajan hasta el menú de comandos (abajo a la izquierda) ni, en el móvil,
+		-- hasta los botones de abajo
+		local room = canvas.Y - y - (if TOUCH then 220 else 300)
 		objectivesLimit.MaxSize = Vector2.new(math.huge, math.max(120, room))
 	end
 	camera:GetPropertyChangedSignal("ViewportSize"):Connect(function()

@@ -11,6 +11,7 @@ local Format = require(ReplicatedStorage.Shared.Format)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Dialog = require(script.Parent.Parent.UI.Dialog)
 local Hud = require(script.Parent.Parent.UI.Hud)
+local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
 
 local create = Theme.create
 local C = Theme.Colors
@@ -142,18 +143,30 @@ Vehicles.open = open
 function Vehicles.init()
 	Hud.addButton("🚲 Vehículos", Color3.fromRGB(0, 120, 170), 3, open)
 
-	-- Botón grande para bajarse mientras vas montado
-	local gui = player:WaitForChild("PlayerGui"):WaitForChild("MainHud")
+	-- Botón para bajarse mientras vas montado: en el ordenador, grande abajo a la derecha; en el
+	-- móvil, redondo en el arco del botón de saltar (donde a pie está el de correr)
+	local touch = game:GetService("UserInputService").TouchEnabled
+	local gui = if touch
+		then Theme.create("ScreenGui", { Name = "GetOffGui", ResetOnSpawn = false, Parent = player:WaitForChild("PlayerGui") })
+		else player:WaitForChild("PlayerGui"):WaitForChild("MainHud")
 	local getOff = Theme.button({
 		Name = "GetOff",
 		AnchorPoint = Vector2.new(1, 1),
 		Size = UDim2.fromOffset(180, 46),
-		Position = UDim2.new(1, -24, 1, -176), -- abajo a la derecha, encima del cartel de "dónde estás" y del botón de correr
-		Text = "⬇ Bajarse (F)",
+		Position = UDim2.new(1, -24, 1, -176), -- abajo a la derecha, encima del cartel de "dónde estás"
+		Text = if touch then "⬇" else "⬇ Bajarse (F)",
+		TextSize = if touch then 26 else nil,
 		BackgroundColor3 = Color3.fromRGB(150, 60, 40),
 		Visible = false,
 		Parent = gui,
 	})
+	if touch then
+		local corner = getOff:FindFirstChildOfClass("UICorner")
+		if corner then
+			corner.CornerRadius = UDim.new(0.5, 0)
+		end
+		TouchLayout.place(getOff, "Bajarse")
+	end
 	getOff.Activated:Connect(function()
 		Remote:FireServer("Dismount")
 	end)

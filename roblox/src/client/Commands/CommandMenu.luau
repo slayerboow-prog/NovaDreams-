@@ -272,12 +272,15 @@ function CommandMenu.init()
 	local function layout()
 		local view = camera.ViewportSize
 		local hud = math.clamp(math.min(view.Y / 900, view.X / 1700), 0.55, 1.2)
-		-- En el móvil: a la derecha, entre el minimapa y los botones (abajo a la izquierda va el
-		-- joystick y el pulgar lo tocaba sin querer), un poco más grande para tocarlo bien
+		-- En el móvil: a la izquierda, justo debajo de la vida (la derecha es de los botones de
+		-- acción y abajo a la izquierda va el joystick), un poco más grande para tocarlo bien
 		scale.Scale = if TOUCH then math.max(hud, 0.72) else hud
 		if TOUCH then
-			renderer.Root.AnchorPoint = Vector2.new(1, 0.5)
-			renderer.Root.Position = UDim2.new(1, -8, 0.5, 0)
+			-- (el estado del HUD va arriba a la izquierda: desde "top" y 138 de alto, con la escala del HUD)
+			local inset = GuiService:GetGuiInset()
+			local top = math.max(72, inset.Y / hud + 8)
+			renderer.Root.AnchorPoint = Vector2.new(0, 0)
+			renderer.Root.Position = UDim2.fromOffset(10, math.floor((top + 138 + 6) * hud))
 		else
 			renderer.Root.AnchorPoint = Vector2.new(0, 1)
 			renderer.Root.Position = UDim2.new(0, 18, 1, -16)

@@ -22,6 +22,7 @@ local Theme = require(script.Parent.Parent.UI.Theme)
 local Hud = require(script.Parent.Parent.UI.Hud)
 local Cinematics = require(script.Parent.Cinematics)
 local SoundFx = require(script.Parent.SoundFx)
+local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
 local StreetVoices = require(ReplicatedStorage.Shared.Config).StreetVoices
 
 local Actions = {}
@@ -330,12 +331,9 @@ function Actions.init()
 	-- Móvil: botones de linterna y modo foto (los gestos y bailes son los de Roblox)
 	if UserInputService.TouchEnabled then
 		-- (en el teclado son L y P)
-		local function round(name: string, icon: string, position: UDim2, callback: () -> ())
+		local function round(name: string, icon: string, slot: string, callback: () -> ())
 			local b = Theme.button({
 				Name = name,
-				AnchorPoint = Vector2.new(1, 1),
-				Size = UDim2.fromOffset(48, 48),
-				Position = position,
 				Text = icon,
 				TextSize = 22,
 				BackgroundTransparency = 0.3,
@@ -345,10 +343,12 @@ function Actions.init()
 			if c then
 				c.CornerRadius = UDim.new(0.5, 0)
 			end
+			TouchLayout.place(b, slot)
+			TouchLayout.showWhen(b, "Pie")
 			b.Activated:Connect(callback)
 		end
-		round("FlashlightButton", "🔦", UDim2.new(1, -256, 1, -92), toggleFlashlight)
-		round("PhotoButton", "📷", UDim2.new(1, -204, 1, -100), function()
+		round("FlashlightButton", "🔦", "Linterna", toggleFlashlight)
+		round("PhotoButton", "📷", "Foto", function()
 			setPhoto(not photo)
 		end)
 	end
