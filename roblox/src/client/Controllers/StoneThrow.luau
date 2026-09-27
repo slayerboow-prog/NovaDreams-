@@ -91,7 +91,7 @@ local touchButton: TextButton? = nil
 local function refreshButton()
 	local count = player:GetAttribute("Stones") or 0
 	local baby = player:GetAttribute("LifeStage") == "Bebe"
-	if baby or TouchLayout.riding() then
+	if baby or TouchLayout.aboard() then
 		ContextActionService:UnbindAction(ACTION)
 		if touchButton then
 			touchButton.Visible = false
@@ -135,6 +135,7 @@ function StoneThrow.init()
 	refreshButton()
 	player:GetAttributeChangedSignal("LifeStage"):Connect(refreshButton)
 	player:GetAttributeChangedSignal("Riding"):Connect(refreshButton)
+	player:GetAttributeChangedSignal("Passenger"):Connect(refreshButton)
 	local stones = player:GetAttribute("Stones") or 0
 	player:GetAttributeChangedSignal("Stones"):Connect(function()
 		local now = player:GetAttribute("Stones") or 0

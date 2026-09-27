@@ -51,6 +51,8 @@ local AgeMotion = require(script.Parent.Controllers.AgeMotion)
 local ReactMotion = require(script.Parent.Controllers.ReactMotion)
 local Locomotion = require(script.Parent.Controllers.Locomotion)
 local FootCamera = require(script.Parent.Controllers.FootCamera)
+local RideCamera = require(script.Parent.Controllers.RideCamera)
+local RidePose = require(script.Parent.Controllers.RidePose)
 local ObjectMotion = require(script.Parent.Controllers.ObjectMotion)
 local WetWorld = require(script.Parent.Controllers.WetWorld)
 local StoneThrow = require(script.Parent.Controllers.StoneThrow)
@@ -82,6 +84,8 @@ task.spawn(AgeMotion.init) -- cada edad se mueve a su manera: el bebé gatea, lo
 task.spawn(ReactMotion.init) -- golpes con cuerpo y choques: balón, piedras, arena, arbustos y charcos
 task.spawn(Locomotion.init) -- andar fluido: arrancar y frenar suave, inclinarse, mirar, aterrizar, sentarse y alcanzar cosas
 task.spawn(FootCamera.init) -- cámara a pie: zoom corto dentro de edificios y campo de visión al correr
+task.spawn(RideCamera.init) -- cámara en un vehículo, el autobús o el metro: detrás, suave y sin meterse dentro
+task.spawn(RidePose.init) -- postura en un vehículo: manos al volante o al manillar, pasajeros sentados
 task.spawn(ObjectMotion.init) -- árboles que se mecen, columpios, banderas, noria, carrusel, fuentes
 task.spawn(WetWorld.init) -- con lluvia: suelo que brilla, charcos, gente y cosas mojadas; con nieve, todo blanco
 task.spawn(StoneThrow.init) -- coger piedras del suelo y lanzarlas (tecla B o botón 🥌)

@@ -1,6 +1,8 @@
 -- Vehicles: menú "🚲 Vehículos" (comprar y sacar tu monopatín, patinete, bici, moto o coche)
 -- (la conducción en sí está en Driving.luau)
--- y botón para bajarse (también con la tecla F).
+-- y botón para bajarse (también con la tecla F), conduciendo o de pasajero.
+-- Mientras vas dentro de un vehículo no se ven sus propios carteles ("Subir de copiloto"…):
+-- solo estorbarían en el menú de comandos.
 
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
@@ -153,20 +155,59 @@ local function open()
 	refresh()
 end
 
+local function aboard(): boolean
+	return player:GetAttribute("Riding") ~= nil or player:GetAttribute("Passenger") ~= nil
+end
+
 local function dismount(_: string, state: Enum.UserInputState)
-	if state == Enum.UserInputState.Begin and player:GetAttribute("Riding") then
+	if state == Enum.UserInputState.Begin and aboard() then
 		Remote:FireServer("Dismount")
 	end
 	return Enum.ContextActionResult.Pass
 end
 
--- Para el menú de comandos
+-- Para el menú de comandos: bajarse del vehículo (o levantarse de cualquier asiento: banco, metro…)
 function Vehicles.dismount()
-	if player:GetAttribute("Riding") then
+	if aboard() then
 		Remote:FireServer("Dismount")
+		return
+	end
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if humanoid and humanoid.SeatPart then
+		humanoid.Jump = true
 	end
 end
 Vehicles.open = open
+
+-- Los carteles del vehículo en el que vas se apagan en tu pantalla (y vuelven al bajarte)
+local hiddenPrompts: { [ProximityPrompt]: boolean } = {}
+local function hidePromptsOf(model: Instance?)
+	for prompt in hiddenPrompts do
+		local parent = prompt.Parent
+		if parent then
+			-- (como los deja el servidor: el asiento libre, o el volante si nadie conduce)
+			if prompt.Name == "SeatPrompt" and parent:IsA("Seat") then
+				prompt.Enabled = parent.Occupant == nil
+			else
+				local vehicle = prompt:FindFirstAncestorOfClass("Model")
+				prompt.Enabled = vehicle == nil or vehicle:GetAttribute("Driver") == nil
+			end
+		end
+	end
+	table.clear(hiddenPrompts)
+	if not model then
+		return
+	end
+	for _, prompt in model:GetDescendants() do
+		-- (el de conducir se le deja al pasajero: si el coche es suyo, se puede pasar al volante)
+		local mine = prompt.Name == "SeatPrompt" or (prompt.Name == "DrivePrompt" and player:GetAttribute("Riding") ~= nil)
+		if prompt:IsA("ProximityPrompt") and mine and prompt.Enabled then
+			prompt.Enabled = false
+			hiddenPrompts[prompt] = true
+		end
+	end
+end
 
 function Vehicles.init()
 	Hud.addButton("🚲 Vehículos", Color3.fromRGB(0, 120, 170), 3, open)
@@ -199,12 +240,20 @@ function Vehicles.init()
 		Remote:FireServer("Dismount")
 	end)
 	local function update()
-		getOff.Visible = player:GetAttribute("Riding") ~= nil
+		getOff.Visible = aboard()
+		-- Los carteles de tu propio vehículo, fuera mientras vas dentro
+		task.defer(function()
+			local character = player.Character
+			local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+			local seat = humanoid and humanoid.SeatPart
+			local model = seat and seat:FindFirstAncestorOfClass("Model")
+			hidePromptsOf(if aboard() and model and model:GetAttribute("Drivable") then model else nil)
+		end)
 		if refresh then
 			refresh()
 		end
 	end
-	for _, attribute in { "Riding", "OwnedVehicles", "Licenses", "Money", "LifeStage" } do
+	for _, attribute in { "Riding", "Passenger", "OwnedVehicles", "Licenses", "Money", "LifeStage" } do
 		player:GetAttributeChangedSignal(attribute):Connect(update)
 	end
 	update()
