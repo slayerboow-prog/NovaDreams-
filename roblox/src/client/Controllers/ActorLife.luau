@@ -12,6 +12,9 @@
 --     con animación de andar cuando se mueven y cambian de postura de vez en cuando (antes eran
 --     maniquís). Los de las escenas de la historia ya los anima el servidor (SceneService): aquí
 --     solo se les añade la mirada, la respiración y los gestos.
+--   * Hacen su oficio: si el servidor les pone el atributo "Work" (barrer, apuntar en la carpeta,
+--     cobrar, cocinar, tejer…), mueven los brazos con esa tarea y llevan su objeto en la mano
+--     (WorkAnim). Cuando hablan contigo o andan, lo dejan y vuelven a él después.
 --
 -- La usan DialogueUI (quién habla y con qué emoción) y Cinematics (gestos en las escenas de cámara).
 
@@ -21,6 +24,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Emotion = require(ReplicatedStorage.Shared.LifeStory.Emotion)
+local WorkAnim = require(script.Parent.WorkAnim)
 
 local ActorLife = {}
 
@@ -73,6 +77,12 @@ type Rig = {
 	Interested: boolean,
 	ChatAt: number, -- (modo Chat) cuándo cambia de turno la charla
 	Partner: Model?,
+	WorkName: string?, -- tarea (atributo "Work") para la que están hechos sus objetos
+	WorkW: number, -- 0..1: cuánto está haciendo su tarea ahora (suave)
+	WorkPose: WorkAnim.Pose,
+	Attention: number, -- 0..1: cuánto te está mirando (deja la tarea para mirarte)
+	Props: { { Part: BasePart, Hand: BasePart, Alpha: number } },
+	PropsShown: boolean?,
 }
 
 local rigs: { [Model]: Rig } = {}
@@ -165,7 +175,14 @@ local function register(model: Model)
 		Interested = false,
 		ChatAt = now() + math.random() * 3,
 		Partner = nil,
+		WorkName = nil,
+		WorkW = 0,
+		WorkPose = {} :: any,
+		Attention = 0,
+		Props = {},
+		PropsShown = nil,
 	}
+	WorkAnim.clear(rig.WorkPose)
 	rigs[model] = rig
 	model.AncestryChanged:Connect(function(_, parent)
 		if parent == nil and rigs[model] then
@@ -292,8 +309,8 @@ local function updateBase(rig: Rig, t: number)
 		if not alt or not alt.IsPlaying then
 			setBase(rig, "Idle")
 		end
-	elseif t > rig.IdleAltAt and not conversation then
-		-- De vez en cuando cambian de postura / miran alrededor
+	elseif t > rig.IdleAltAt and not conversation and rig.WorkName == nil then
+		-- De vez en cuando cambian de postura / miran alrededor (si no están con su tarea)
 		rig.IdleAltAt = t + math.random(14, 30)
 		setBase(rig, "Idle2")
 	else
@@ -419,6 +436,66 @@ local function actionPlaying(rig: Rig): boolean
 	return false
 end
 
+---------------------------------------------------------------------
+-- Tarea de trabajo y objetos en la mano (solo en tu pantalla)
+---------------------------------------------------------------------
+
+local function clearProps(rig: Rig)
+	for _, prop in rig.Props do
+		prop.Part:Destroy()
+	end
+	table.clear(rig.Props)
+	rig.PropsShown = nil
+end
+
+local function makeProps(rig: Rig, work: WorkAnim.Work)
+	for _, spec in work.Prop or {} do
+		local hand = rig.Model:FindFirstChild(spec.Hand .. "Hand")
+		if not hand or not hand:IsA("BasePart") then
+			continue
+		end
+		local part = Instance.new("Part")
+		part.Name = "WorkProp_" .. spec.Name
+		part.Size = spec.Size
+		part.Color = spec.Color
+		part.Material = spec.Material or Enum.Material.SmoothPlastic
+		if spec.Shape then
+			part.Shape = spec.Shape
+		end
+		part.Anchored = false
+		part.CanCollide = false
+		part.CanQuery = false
+		part.CanTouch = false
+		part.Massless = true
+		part.CastShadow = false
+		part.Transparency = 1 -- se enseña cuando empieza la tarea
+		part.CFrame = hand.CFrame * spec.Offset
+		local weld = Instance.new("Weld")
+		weld.Part0 = hand
+		weld.Part1 = part
+		weld.C0 = spec.Offset
+		weld.Parent = part
+		part.Parent = rig.Model
+		table.insert(rig.Props, { Part = part, Hand = hand, Alpha = spec.Transparency or 0 })
+	end
+end
+
+-- Los objetos se ven solo mientras hace la tarea, y se ocultan con el personaje (SceneClient)
+local function showProps(rig: Rig, shown: boolean)
+	for _, prop in rig.Props do
+		local hidden = prop.Hand.LocalTransparencyModifier
+		if prop.Part.LocalTransparencyModifier ~= hidden then
+			prop.Part.LocalTransparencyModifier = hidden
+		end
+	end
+	if rig.PropsShown ~= shown then
+		rig.PropsShown = shown
+		for _, prop in rig.Props do
+			prop.Part.Transparency = if shown then prop.Alpha else 1
+		end
+	end
+end
+
 local function update(rig: Rig, t: number, dt: number)
 	-- Velocidad (los NPCs del mapa se mueven sin física: se mide cuánto avanzan)
 	local position = rig.Root.Position
@@ -466,6 +543,11 @@ local function update(rig: Rig, t: number, dt: number)
 	rig.Pitch = smooth(rig.Pitch, wantPitch, 6, dt)
 
 	-- Hablar y emoción
+	-- Con su bocadillo de texto a la vista (Npc.say) también está hablando: deja la tarea y gesticula
+	local bubble = rig.Head:FindFirstChild("Bubble")
+	if bubble and bubble:IsA("BillboardGui") and bubble.Enabled and not rig.Me then
+		rig.TalkUntil = math.max(rig.TalkUntil, t + 0.25)
+	end
 	local talking = t < rig.TalkUntil
 	rig.Talk = smooth(rig.Talk, if talking then 1 else 0, if talking then 9 else 4, dt)
 	local sinceLine = t - rig.EmotionAt
@@ -480,12 +562,44 @@ local function update(rig: Rig, t: number, dt: number)
 	local P = rig.Poses
 	local seed = rig.Seed
 	local talk = rig.Talk
-	local busyArms = actionPlaying(rig) or rig.Speed > 0.8
+	local acting = actionPlaying(rig)
+	local busyArms = acting or rig.Speed > 0.8
+
+	-- Su tarea (barrer, apuntar, cobrar…): la deja al hablar, al andar o al hacer un gesto
+	local workName = rig.Model:GetAttribute("Work")
+	local work = if rig.Me then nil else WorkAnim.get(workName)
+	if workName ~= rig.WorkName then
+		rig.WorkName = if type(workName) == "string" then workName else nil
+		clearProps(rig)
+		if work then
+			makeProps(rig, work)
+		end
+	end
+	local inConversation = conversation and (listeners[rig.Model] or rig.Model == speaker)
+	local working = work ~= nil
+		and not talking
+		and talk < 0.05
+		and not inConversation
+		and not acting
+		and (rig.Speed <= 0.8 or work.Walk == true)
+	rig.WorkW = smooth(rig.WorkW, if working then 1 else 0, if working then 2.5 else 6, dt)
+	rig.Attention = smooth(rig.Attention, if rig.Interested or rig.Partner then 1 else 0, 3, dt)
+	local W = rig.WorkW
+	local w = rig.WorkPose
+	WorkAnim.clear(w)
+	if work and W > 0.001 then
+		work.Pose(t, seed, w)
+	end
+	showProps(rig, W > 0.5)
+	-- Metido en su tarea casi no mira alrededor; si te acercas, levanta la vista
+	local absorbed = W * (1 - w.Look) * (1 - rig.Attention)
+	local lookMul = 1 - absorbed * 0.8
+	local workNeck = W * (1 - 0.75 * rig.Attention)
 
 	-- Cabeza
-	local neckPitch = rig.Pitch * 0.8
-	local neckYaw = rig.Yaw * 0.65
-	local neckRoll = 0
+	local neckPitch = rig.Pitch * 0.8 * lookMul + w.np * workNeck
+	local neckYaw = rig.Yaw * 0.65 * lookMul + w.ny * workNeck
+	local neckRoll = w.nr * workNeck
 	neckPitch += talk * (math.sin(t * 7.3 + seed) * 0.035 + math.sin(t * 11.1 + seed * 2) * 0.015)
 	neckYaw += talk * math.sin(t * 3.4 + seed) * 0.045
 	neckPitch += (P.Happy or 0) * (0.07 + math.abs(math.sin(t * 6)) * 0.04)
@@ -499,8 +613,9 @@ local function update(rig: Rig, t: number, dt: number)
 
 	-- Torso: respira, acompaña la mirada, se encoge si está triste
 	local breath = math.sin(t * (math.pi * 2 / (3.6 + (seed % 1.2))) + seed)
-	local waistPitch = breath * 0.012 + rig.Pitch * 0.2 - (P.Sad or 0) * 0.09 + (P.Surprised or 0) * 0.05 + (P.Angry or 0) * -0.04
-	local waistYaw = rig.Yaw * 0.35
+	local waistPitch = breath * 0.012 + rig.Pitch * 0.2 * lookMul - (P.Sad or 0) * 0.09 + (P.Surprised or 0) * 0.05 + (P.Angry or 0) * -0.04 + w.wp * W
+	local waistYaw = rig.Yaw * 0.35 * lookMul + w.wy * W
+	local waistRoll = w.wr * W
 
 	-- Brazos (solo si no están andando ni haciendo un gesto de animación)
 	local armWeight = if busyArms then 0 else 1
@@ -536,18 +651,27 @@ local function update(rig: Rig, t: number, dt: number)
 	local angry = (P.Angry or 0) * armWeight
 	rElbow += angry * 0.4
 	lElbow += angry * 0.4
+	-- Tarea
+	rX += w.rx * W
+	rZ += w.rz * W
+	local rTwist = w.rt * W
+	rElbow += w.re * W
+	lX += w.lx * W
+	lZ += w.lz * W
+	local lTwist = w.lt * W
+	lElbow += w.le * W
 
 	-- Aplicar (encima de la animación: C0 es la postura base de cada articulación)
 	local J, B = rig.Joints, rig.Base
 	J.Neck.C0 = B.Neck * CFrame.Angles(neckPitch, neckYaw, neckRoll)
 	if J.Waist then
-		J.Waist.C0 = B.Waist * CFrame.Angles(waistPitch, waistYaw, 0)
+		J.Waist.C0 = B.Waist * CFrame.Angles(waistPitch, waistYaw, waistRoll)
 	end
 	if J.RightShoulder then
-		J.RightShoulder.C0 = B.RightShoulder * CFrame.new(0, shoulderUp, 0) * CFrame.Angles(rX, 0, rZ)
+		J.RightShoulder.C0 = B.RightShoulder * CFrame.new(0, shoulderUp, 0) * CFrame.Angles(rX, rTwist, rZ)
 	end
 	if J.LeftShoulder then
-		J.LeftShoulder.C0 = B.LeftShoulder * CFrame.new(0, shoulderUp, 0) * CFrame.Angles(lX, 0, -lZ)
+		J.LeftShoulder.C0 = B.LeftShoulder * CFrame.new(0, shoulderUp, 0) * CFrame.Angles(lX, -lTwist, -lZ)
 	end
 	if J.RightElbow then
 		J.RightElbow.C0 = B.RightElbow * CFrame.Angles(rElbow, 0, 0)
@@ -561,6 +685,10 @@ local function rest(rig: Rig)
 	for name, joint in rig.Joints do
 		joint.C0 = rig.Base[name]
 	end
+	-- Lejos no se ve: fuera objetos (se vuelven a poner al acercarte)
+	clearProps(rig)
+	rig.WorkName = nil
+	rig.WorkW = 0
 	if rig.Own then
 		setBase(rig, nil)
 	end

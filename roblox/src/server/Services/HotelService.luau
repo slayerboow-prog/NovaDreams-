@@ -362,6 +362,7 @@ local function refreshStaff(lobby: Lobby, active: boolean)
 	if want and not lobby.NpcStaff then
 		lobby.NpcStaff = Npc.create("Npc_Recepcionista", lobby.Folder, CFrame.new(point(lobby, "Staff")), { Shirt = Color3.fromRGB(30, 36, 60), Pants = Color3.fromRGB(24, 24, 30) })
 		Npc.face(lobby.NpcStaff :: Model, lobby.Desk.Position)
+		Npc.work(lobby.NpcStaff :: Model, "Type")
 	elseif not want and lobby.NpcStaff then
 		lobby.NpcStaff:Destroy()
 		lobby.NpcStaff = nil

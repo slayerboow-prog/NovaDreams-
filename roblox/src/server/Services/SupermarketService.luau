@@ -634,6 +634,7 @@ local function refreshStaff(store: Store, active: boolean)
 			local spot = lane.Belt:GetAttribute("CashierSpot") :: Vector3
 			lane.NpcCashier = Npc.create("Npc_Cajero", store.Folder, CFrame.new(spot), UNIFORM)
 			Npc.face(lane.NpcCashier :: Model, lane.Belt.Position)
+			Npc.work(lane.NpcCashier :: Model, "Scan")
 		elseif not wantNpc and lane.NpcCashier then
 			lane.NpcCashier:Destroy()
 			lane.NpcCashier = nil
@@ -646,6 +647,7 @@ local function refreshStaff(store: Store, active: boolean)
 			local spot = store.Deli:GetAttribute("StaffSpot") :: Vector3
 			store.NpcDeli = Npc.create("Npc_Charcutero", store.Folder, CFrame.new(spot), { Shirt = Color3.fromRGB(245, 245, 245), Pants = Color3.fromRGB(40, 40, 46) })
 			Npc.face(store.NpcDeli :: Model, store.Deli:GetAttribute("CustomerSpot") :: Vector3)
+			Npc.work(store.NpcDeli :: Model, "Cut")
 		elseif not wantNpc and store.NpcDeli then
 			store.NpcDeli:Destroy()
 			store.NpcDeli = nil

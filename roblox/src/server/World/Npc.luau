@@ -6,6 +6,7 @@
 --   Npc.sit(npc, seat) / Npc.stand(npc)  -> sentarse en una silla y levantarse
 --   Npc.dress(npc, look)                 -> ropa (camiseta, pantalón, zapatos), pelo y, si es niño, mochila
 --   Npc.placeFeet(npc, cf)               -> lo pone de pie con los pies justo en cf (no bajo tierra)
+--   Npc.work(npc, "Sweep")               -> su tarea mientras espera (barrer, cobrar…); la anima el cliente
 -- Usa el avatar por defecto de Roblox con colores al azar; si falla, un muñeco de bloques.
 
 local Players = game:GetService("Players")
@@ -265,6 +266,13 @@ function Npc.walkTo(npc: Model, points: { Vector3 }, speed: number?)
 			tween.Completed:Wait()
 		end
 	end
+end
+
+-- Tarea que hace mientras espera: el cliente le mueve los brazos y le pone el objeto en la mano
+-- (Controllers/WorkAnim: Sweep, Clipboard, Phone, Type, Scan, Cut, Coffee, Tray, Wipe, Count, Call,
+-- Present, Watch, Fold, Knit, Stir, Book, Guard, Traffic). nil = ninguna.
+function Npc.work(npc: Model, work: string?)
+	npc:SetAttribute("Work", work)
 end
 
 -- Mira hacia un punto (sin moverse)
