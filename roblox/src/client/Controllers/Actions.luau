@@ -1,6 +1,6 @@
 -- Actions (cliente): movimientos y acciones nuevas del personaje.
---   * Gestos: los de Roblox (su menú de gestos). Aquí solo queda "Saludar" para el menú de
---     comandos (delante de alguien); se corta solo al andar o saltar.
+--   * Gestos: los de Roblox (su menú de gestos: botón Gestos, app Gestos o comando Más > Gestos).
+--     Aquí queda "Saludar" para el menú de comandos (delante de alguien); se corta al andar o saltar.
 --   * Trepar: salta contra un muro bajo, una valla o un coche (hasta unos 9 studs) y el
 --     personaje se agarra al borde y sube.
 --   * Linterna (tecla L, R3 en el mando): la ven todos los jugadores (y el brazo va delante,
@@ -323,12 +323,39 @@ function Actions.emote(name: string)
 		end
 	end
 end
+-- Abre (o cierra) el menú de gestos y bailes de Roblox
+function Actions.openEmotes()
+	pcall(function()
+		local GuiService = game:GetService("GuiService")
+		GuiService:SetEmotesMenuOpen(not GuiService:GetEmotesMenuOpen())
+	end)
+end
+
 function Actions.emotes(): { { Name: string, Icon: string } }
 	local list = {}
 	for _, emote in EMOTES do
 		table.insert(list, { Name = emote.Name, Icon = emote.Icon })
 	end
 	return list
+end
+
+-- ¿Hay techo encima? (dentro de casa o en un túnel: la linterna sirve también de día)
+local lastRoofCheck, lastRoof = 0, false
+local function underRoof(): boolean
+	if os.clock() - lastRoofCheck < 1 then
+		return lastRoof
+	end
+	lastRoofCheck = os.clock()
+	local _, root = parts()
+	if not root then
+		lastRoof = false
+		return false
+	end
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = { player.Character :: Instance }
+	lastRoof = workspace:Raycast(root.Position, Vector3.new(0, 40, 0), params) ~= nil
+	return lastRoof
 end
 
 function Actions.init()
@@ -354,30 +381,33 @@ function Actions.init()
 		end
 	end, Enum.KeyCode.ButtonL2)
 
-	-- Móvil: botones de linterna y modo foto (los gestos y bailes son los de Roblox)
-	if UserInputService.TouchEnabled then
-		-- (en el teclado son L y P)
-		local function round(name: string, icon: string, slot: string, callback: () -> ())
-			local b = Theme.button({
-				Name = name,
-				Text = icon,
-				TextSize = 22,
-				BackgroundTransparency = 0.3,
-				Parent = gui,
-			})
-			local c = b:FindFirstChildOfClass("UICorner")
-			if c then
-				c.CornerRadius = UDim.new(0.5, 0)
-			end
-			TouchLayout.place(b, slot)
-			TouchLayout.showWhen(b, "Pie")
-			b.Activated:Connect(callback)
-		end
-		round("FlashlightButton", "🔦", "Linterna", toggleFlashlight)
-		round("PhotoButton", "📷", "Foto", function()
-			setPhoto(not photo)
-		end)
+	-- Botones del racimo (móvil) y pistas de teclas (ordenador y mando): a pie
+	local function onFoot(): boolean
+		return player:GetAttribute("LifeStage") ~= "Bebe" and not busy() and not TouchLayout.riding()
 	end
+	TouchLayout.register({ Id = "Gestos", Icon = "gestos", Label = "Gestos", Slot = "Gestos", Priority = 7, Visible = onFoot, Callback = Actions.openEmotes })
+	-- Linterna: de noche o bajo techo (o si ya la llevas encendida, para poder apagarla)
+	TouchLayout.register({
+		Id = "Linterna", Icon = "linterna", Label = "Linterna", Priority = 20, Key = "L", Pad = "R3",
+		Visible = function()
+			local clock = Lighting.ClockTime
+			local on = player:GetAttribute("Flashlight") == true
+			return onFoot() and (on or clock >= 19.5 or clock < 6.5 or underRoof())
+		end,
+		Active = function()
+			return player:GetAttribute("Flashlight") == true
+		end,
+		Callback = toggleFlashlight,
+	})
+	TouchLayout.register({
+		Id = "Foto", Icon = "camara", Label = "Foto", Priority = 40, Key = "P", Pad = "LT",
+		Visible = onFoot,
+		Callback = function()
+			setPhoto(not photo)
+		end,
+	})
+	Hud.addButton("😀 Gestos", Color3.fromRGB(200, 140, 20), 4, Actions.openEmotes)
+	local _ = gui
 
 	-- Cada personaje nuevo empieza sin animaciones cargadas
 	player.CharacterAdded:Connect(function()
@@ -392,7 +422,7 @@ function Actions.init()
 		local clock = Lighting.ClockTime
 		if not warned and (clock >= 20.5 or clock < 5) and not busy() and player:GetAttribute("LifeStage") ~= "Bebe" then
 			warned = true
-			Hud.toast("Info", if UserInputService.TouchEnabled then "🌙 Es de noche: toca 🔦 para encender la linterna" else "🌙 Es de noche: pulsa L para encender la linterna")
+			Hud.toast("Info", if UserInputService.TouchEnabled then "🌙 Es de noche: toca el botón Linterna para encenderla" else "🌙 Es de noche: pulsa L para encender la linterna")
 		end
 	end)
 

@@ -1,5 +1,6 @@
 {
   "name": "RealLifeSimulator",
+  "globIgnorePaths": ["assets/icons", "assets/icons/**"],
   "tree": {
     "$className": "DataModel",
     "ReplicatedStorage": {
