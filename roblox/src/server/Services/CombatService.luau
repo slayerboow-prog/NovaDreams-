@@ -6,7 +6,8 @@
 --
 -- K.O.: al quedarte sin vida no mueres; caes Combat.KOSeconds segundos (sin poder pegar ni recibir)
 -- y te levantas con parte de la vida. Así no pierdes el sitio ni la misión en la que estabas.
--- Para las misiones: StoryEvents "HitSomeone" (Target/Npc), "GotHit" y "KnockedOut".
+-- Para las misiones y la policía: StoryEvents "HitSomeone" (Target/Npc/Model/KO), "GotHit" y
+-- "KnockedOut". Los agentes de policía (Officer) sí reciben daño y caen (WantedService lo castiga).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -17,6 +18,7 @@ local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 local ProgressionService = require(script.Parent.ProgressionService)
 local ClassService = require(script.Parent.ClassService)
 local MiniGameService = require(script.Parent.MiniGameService)
+local PoliceUnits = require(script.Parent.Parent.World.PoliceUnits)
 
 local CombatService = {}
 
@@ -191,17 +193,31 @@ local function attack(player: Player)
 				Knockback = if blocked then 0 else Combat.Knockback[combo],
 				KO = ko,
 			})
-			StoryEvents.emit(player, "HitSomeone", { Target = victim.UserId })
+			StoryEvents.emit(player, "HitSomeone", { Target = victim.UserId, Model = model, KO = ko })
 			StoryEvents.emit(victim, "GotHit", { By = player.UserId })
 			if ko then
 				knockOut(victim, targetHumanoid)
 			end
+		elseif model:GetAttribute("Officer") then
+			-- Agentes de policía (WantedService): se les puede tumbar, pero es un delito grave
+			if model:GetAttribute("Down") then
+				continue
+			end
+			hits += 1
+			local amount = Combat.damage(combo, ProgressionService.stat(player, "Fuerza"), false)
+			local hp = (model:GetAttribute("Hp") or 0) - amount
+			model:SetAttribute("Hp", hp)
+			Remote:FireAllClients("Hit", { Victim = model, Attacker = player, Amount = amount, Blocked = false, Combo = combo, Direction = direction, Knockback = 0, KO = hp <= 0 })
+			if hp <= 0 then
+				PoliceUnits.knockDown(model)
+			end
+			StoryEvents.emit(player, "HitSomeone", { Model = model, KO = hp <= 0 })
 		elseif npcBelongsTo(model, player) then
 			-- Personajes (de misión, del cole…): reaccionan pero no se hacen daño
 			hits += 1
 			local npcId = model:GetAttribute("NpcId")
 			Remote:FireAllClients("Hit", { Victim = model, Attacker = player, Amount = 0, Blocked = false, Combo = combo, Direction = direction, Knockback = 0, KO = false })
-			StoryEvents.emit(player, "HitSomeone", { Npc = npcId or model.Name })
+			StoryEvents.emit(player, "HitSomeone", { Npc = npcId or model.Name, Model = model })
 		end
 	end
 end

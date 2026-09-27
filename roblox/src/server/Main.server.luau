@@ -70,6 +70,7 @@ local order = {
 	"DialogueService", -- conversaciones con respuestas (misiones episódicas)
 	"MiniGameService", -- pase, canastas, partido de fútbol…
 	"CombatService", -- golpes entre jugadores (combo, defenderse y K.O.) y a los personajes de tus misiones
+	"WantedService", -- delitos, testigos y estrellas de búsqueda: patrullas, agentes y helicópteros
 	"SceneService", -- actores y objetos de cada misión (solo para su jugador)
 	"LifeStoryService", -- la historia de vida escucha a todos los anteriores
 	"BabyService", -- tutorial de bebé (fase 2)

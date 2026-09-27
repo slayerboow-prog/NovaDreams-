@@ -13,6 +13,10 @@ local Hud = require(script.Parent.Parent.UI.Hud)
 local Actions = require(script.Parent.Parent.Controllers.Actions)
 local Vehicles = require(script.Parent.Parent.Controllers.Vehicles)
 local CombatController = require(script.Parent.Parent.Controllers.CombatController)
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Stages = require(ReplicatedStorage.Shared.LifeStory.Stages)
+local Wanted = require(ReplicatedStorage.Shared.Wanted)
 
 type Command = CommandRegistry.Command
 
@@ -118,6 +122,38 @@ function DefaultCommands.register()
 		end,
 		Stay = true,
 	} :: any)
+
+	-- Junto a otro jugador: robarle (desde adolescente) o, si eres policía de servicio y le buscan, detenerle
+	CommandRegistry.addProvider(function(ctx)
+		local other: Player? = nil
+		for _, target in ctx.Targets or {} do
+			if target.Prompt.Name == "PlayerPrompt" and target.Distance <= Wanted.StealRange then
+				local character = target.Prompt:FindFirstAncestorOfClass("Model")
+				other = character and Players:GetPlayerFromCharacter(character)
+				break
+			end
+		end
+		if not other or baby(ctx) or ctx.Seated then
+			return {}
+		end
+		local remote = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("Wanted") :: RemoteEvent?
+		local out = {}
+		local me = Players.LocalPlayer
+		if me:GetAttribute("Job") == "Policia" and other:GetAttribute("Wanted") then
+			table.insert(out, { Id = "Detener", Label = "Detener", Detail = other.DisplayName, Icon = "🚔", Priority = 4.5, Accent = true, Run = function()
+				if remote then
+					remote:FireServer("Arrest", other)
+				end
+			end })
+		elseif ctx.Stage == nil or Stages.inRange(ctx.Stage, Wanted.MinStage, nil) then
+			table.insert(out, { Id = "Robar", Label = "Robar", Detail = other.DisplayName, Icon = "💸", Priority = 8, Run = function()
+				if remote then
+					remote:FireServer("Steal", other)
+				end
+			end })
+		end
+		return out
+	end)
 
 	-- Lo de siempre
 	CommandRegistry.register({

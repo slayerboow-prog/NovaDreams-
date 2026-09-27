@@ -49,6 +49,7 @@ local ObjectMotion = require(script.Parent.Controllers.ObjectMotion)
 local WetWorld = require(script.Parent.Controllers.WetWorld)
 local StoneThrow = require(script.Parent.Controllers.StoneThrow)
 local CombatController = require(script.Parent.Controllers.CombatController)
+local WantedUI = require(script.Parent.Controllers.WantedUI)
 local CommandMenu = require(script.Parent.Commands.CommandMenu)
 local DefaultCommands = require(script.Parent.Commands.DefaultCommands)
 
@@ -100,6 +101,7 @@ task.spawn(JobPrompts.init) -- los carteles de cada oficio solo los ve quien tra
 task.spawn(Driving.init) -- conducir coches, motos, bicis, monopatines y patinetes (W/A/S/D)
 task.spawn(Actions.init) -- gestos y bailes (G), trepar muros bajos, linterna (L) y modo foto (P)
 task.spawn(CombatController.init) -- pelear: X/RB golpear (combo de 3), Z/LB defenderse, 👊 y 🛡 en el móvil
+task.spawn(WantedUI.init) -- estrellas de búsqueda bajo el reloj, avisos de delito, DETENIDO y hélices
 
 -- Menú de comandos (abajo a la izquierda): cambia según lo que tienes delante; el comando elegido
 -- es también lo que hace la tecla E, y su cartel es el único que se dibuja
