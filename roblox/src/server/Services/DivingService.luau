@@ -98,6 +98,9 @@ local function breathe(player: Player)
 		now = math.min(max, now + DIVE.Refill)
 		drowning[player] = nil
 	end
+	-- Lo que lleva (para las animaciones y lo que ven los demás: SeaMotion y SeaFx)
+	player:SetAttribute("Speargun", if InventoryService.count(player, "Arpon") > 0 then "Arpon" elseif InventoryService.count(player, "FusilSubmarino") > 0 then "FusilSubmarino" else nil)
+	player:SetAttribute("DiveGear", if InventoryService.count(player, "Botella") > 0 then "Botella" elseif InventoryService.count(player, "Gafas") > 0 then "Gafas" else nil)
 	player:SetAttribute("OxygenMax", max)
 	player:SetAttribute("Oxygen", math.min(now, max))
 end
@@ -245,6 +248,10 @@ local function onShoot(player: Player, part: any)
 		return
 	end
 	lastShot[player] = now
+	local okTime, serverTime = pcall(function()
+		return workspace:GetServerTimeNow()
+	end)
+	player:SetAttribute("SpearAt", if okTime and type(serverTime) == "number" then serverTime else os.clock())
 	local root = rootOf(player)
 	if not root or (root.Position - fish.Part.Position).Magnitude > DIVE.Range then
 		Notify:FireClient(player, "Info", "Está demasiado lejos. Acércate más.")

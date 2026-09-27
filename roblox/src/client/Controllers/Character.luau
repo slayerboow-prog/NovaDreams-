@@ -95,7 +95,8 @@ function Character.init()
 	-- Móvil: botón redondo que se enciende y se apaga
 	-- (en su propia pantalla, sin la escala del HUD: así tiene el mismo tamaño que el botón de saltar)
 	if UserInputService.TouchEnabled then
-		local gui = Theme.create("ScreenGui", { Name = "SprintGui", ResetOnSpawn = false, Parent = player:WaitForChild("PlayerGui") })
+		-- (DisplayOrder alto: ningún panel del HUD puede quedar encima y quitarle los toques)
+		local gui = Theme.create("ScreenGui", { Name = "SprintGui", ResetOnSpawn = false, DisplayOrder = 4, Parent = player:WaitForChild("PlayerGui") })
 		local button = Theme.button({
 			Name = "SprintButton",
 			Size = UDim2.fromOffset(56, 56),

@@ -269,22 +269,24 @@ function CommandMenu.init()
 	renderer = CommandRenderer.new(gui, TOUCH)
 	local scale = Theme.create("UIScale", { Parent = renderer.Root })
 	local camera = workspace.CurrentCamera
+	-- Debajo de la barra de vida y la foto del personaje (arriba a la izquierda), más pequeño:
+	-- así no tapa el joystick ni los botones de saltar y correr del móvil
+	local hudGui = player:WaitForChild("PlayerGui"):WaitForChild("MainHud", 10)
+	local status = hudGui and hudGui:WaitForChild("Status", 10) :: GuiObject?
 	local function layout()
 		local view = camera.ViewportSize
 		local hud = math.clamp(math.min(view.Y / 900, view.X / 1700), 0.55, 1.2)
-		-- En el móvil: a la izquierda, justo debajo de la vida (la derecha es de los botones de
-		-- acción y abajo a la izquierda va el joystick), un poco más grande para tocarlo bien
-		scale.Scale = if TOUCH then math.max(hud, 0.72) else hud
-		if TOUCH then
-			-- (el estado del HUD va arriba a la izquierda: desde "top" y 138 de alto, con la escala del HUD)
-			local inset = GuiService:GetGuiInset()
-			local top = math.max(72, inset.Y / hud + 8)
-			renderer.Root.AnchorPoint = Vector2.new(0, 0)
-			renderer.Root.Position = UDim2.fromOffset(10, math.floor((top + 138 + 6) * hud))
+		scale.Scale = if TOUCH then math.max(hud * 0.85, 0.6) else hud * 0.85
+		renderer.Root.AnchorPoint = Vector2.new(0, 0)
+		if status then
+			renderer.Root.Position = UDim2.fromOffset(status.AbsolutePosition.X + 4, status.AbsolutePosition.Y + status.AbsoluteSize.Y + 6)
 		else
-			renderer.Root.AnchorPoint = Vector2.new(0, 1)
-			renderer.Root.Position = UDim2.new(0, 18, 1, -16)
+			renderer.Root.Position = UDim2.fromOffset(12, 230)
 		end
+	end
+	if status then
+		status:GetPropertyChangedSignal("AbsolutePosition"):Connect(layout)
+		status:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout)
 	end
 	camera:GetPropertyChangedSignal("ViewportSize"):Connect(layout)
 	layout()

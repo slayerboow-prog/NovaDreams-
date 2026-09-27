@@ -979,11 +979,9 @@ function Hud.init(openStore: () -> ()): ScreenGui
 	buildPhone(popupGui)
 	buildMenu(popupGui)
 
-	-- Colocación según la pantalla:
-	--   * ordenador: comandos abajo a la izquierda, tu estado abajo a la derecha y los objetivos a la
-	--     izquierda, debajo de la barra de Roblox
-	--   * táctil: abajo están el joystick y los botones, así que tu estado sube arriba a la izquierda
-	--     (al revés: la foto a la izquierda) y los objetivos van debajo
+	-- Colocación (igual en ordenador y móvil): tu estado arriba a la izquierda (la foto a la
+	-- izquierda), el menú de comandos justo debajo y los objetivos a la derecha, bajo el minimapa.
+	-- Abajo quedan libres el joystick y los botones de saltar y correr.
 	local objectivesLimit = create("UISizeConstraint", { Parent = objectivesPanel })
 	objectivesPanel.ClipsDescendants = true
 	local function layout()
@@ -993,32 +991,29 @@ function Hud.init(openStore: () -> ()): ScreenGui
 		local top = math.max(72, inset.Y / s + 8)
 		local clock = gui:FindFirstChild("Clock") :: Frame
 		clock.Size = UDim2.fromOffset(if canvas.X < 1500 then 400 else 440, 54)
-		local y = top
-		if TOUCH then
-			-- Móvil: la vida arriba a la izquierda (debajo va el menú de comandos) y los objetivos,
-			-- cuando los abres con «Misiones», en el centro bajo el reloj
-			status.AnchorPoint = Vector2.new(0, 0)
-			status.Position = UDim2.fromOffset(8, top)
-			arrangeStatus("Left")
-			y = 118
-			objectivesPanel.AnchorPoint = Vector2.new(0.5, 0)
-			objectivesPanel.Position = UDim2.new(0.5, 0, 0, y)
-			objectivesPanel.Size = UDim2.fromOffset(380, 0)
-		else
-			status.AnchorPoint = Vector2.new(1, 1)
-			status.Position = UDim2.new(1, -18, 1, -16)
-			arrangeStatus("Right")
-			objectivesPanel.Position = UDim2.fromOffset(12, y)
+		-- Tu estado (foto y vida) arriba a la izquierda y, debajo, el menú de comandos
+		-- (CommandMenu se coloca solo bajo "Status"); los objetivos van a la derecha, bajo el minimapa
+		status.AnchorPoint = Vector2.new(0, 0)
+		status.Position = UDim2.fromOffset(8, top)
+		arrangeStatus("Left")
+		local y = top + 190
+		local minimap = gui.Parent and gui.Parent:FindFirstChild("MapUI") and gui.Parent.MapUI:FindFirstChild("Minimap")
+		if minimap and minimap:IsA("GuiObject") and minimap.Visible and minimap.AbsoluteSize.Y > 0 then
+			y = (minimap.AbsolutePosition.Y + minimap.AbsoluteSize.Y) / s + 16
 		end
-		-- Los objetivos no bajan hasta el menú de comandos (abajo a la izquierda) ni, en el móvil,
-		-- hasta los botones de abajo
-		local room = canvas.Y - y - (if TOUCH then 220 else 300)
+		objectivesPanel.AnchorPoint = Vector2.new(1, 0)
+		objectivesPanel.Position = UDim2.new(1, -12, 0, y)
+		-- En el móvil abajo a la derecha están saltar y el arco de botones (TouchLayout): los objetivos no bajan hasta ahí
+		local room = canvas.Y - y - (if TOUCH then 360 else 40)
 		objectivesLimit.MaxSize = Vector2.new(math.huge, math.max(120, room))
 	end
 	camera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
 		task.defer(layout)
 	end)
 	layout()
+	-- El minimapa lo crea MapUI un poco después: se recoloca cuando aparece
+	task.delay(3, layout)
+	task.delay(10, layout)
 
 	-- Apps del teléfono que pone el propio HUD
 	Hud.addButton("🏠 Ir a casa", rgb(40, 110, 200), 1, function()
@@ -1027,13 +1022,21 @@ function Hud.init(openStore: () -> ()): ScreenGui
 	Hud.addButton("🛒 Tienda", rgb(160, 115, 20), 2, openStore)
 	refreshPhone()
 
+	-- Los avisos van en su propia capa, por encima de las ventanas (tiendas, vehículos…): si no, un
+	-- "no tienes dinero" quedaba escondido detrás de la ventana y parecía que el botón no hacía nada
+	local toastGui = create("ScreenGui", { Name = "HudToasts", ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = 9, Parent = gui.Parent })
+	local toastScale = create("UIScale", { Scale = scale.Scale, Parent = toastGui })
+	scale:GetPropertyChangedSignal("Scale"):Connect(function()
+		toastScale.Scale = scale.Scale
+	end)
 	toastList = create("Frame", {
 		Name = "Toasts",
 		AnchorPoint = Vector2.new(0.5, 0),
 		Size = UDim2.fromOffset(600, 200),
 		Position = UDim2.new(0.5, 0, 0, 112),
 		BackgroundTransparency = 1,
-		Parent = gui,
+		Active = false,
+		Parent = toastGui,
 	})
 	create("UIListLayout", { Padding = UDim.new(0, 6), HorizontalAlignment = Enum.HorizontalAlignment.Center, Parent = toastList })
 
