@@ -98,6 +98,57 @@ local function open(remote: RemoteEvent, panel: { [string]: any })
 			})
 			continue
 		end
+		if type(row.Input) == "table" then
+			-- Campo para escribir (p. ej. el nombre del negocio) y su botón
+			local spec = row.Input
+			local frame = create("Frame", { Size = UDim2.new(1, -8, 0, 56), BackgroundColor3 = rgb(20, 32, 56), BackgroundTransparency = 0.2, LayoutOrder = i, Parent = list }, { Theme.corner(10) })
+			local box = create("TextBox", {
+				Position = UDim2.fromOffset(10, 8),
+				Size = UDim2.new(1, -140, 0, 40),
+				BackgroundColor3 = rgb(8, 16, 36),
+				BorderSizePixel = 0,
+				ClearTextOnFocus = false,
+				PlaceholderText = tostring(spec.Placeholder or ""),
+				PlaceholderColor3 = C.Muted,
+				Text = tostring(spec.Text or ""),
+				TextColor3 = C.Text,
+				Font = Theme.Font,
+				TextSize = 15,
+				TextXAlignment = Enum.TextXAlignment.Left,
+				Parent = frame,
+			}, { Theme.corner(6), Theme.padding(8) })
+			local max = tonumber(spec.Max) or 40
+			box:GetPropertyChangedSignal("Text"):Connect(function()
+				if utf8.len(box.Text) and (utf8.len(box.Text) :: number) > max then
+					box.Text = box.Text:sub(1, utf8.offset(box.Text, max + 1) - 1)
+				end
+			end)
+			local b = Theme.button({
+				AnchorPoint = Vector2.new(1, 0.5),
+				Position = UDim2.new(1, -8, 0.5, 0),
+				Size = UDim2.fromOffset(118, 40),
+				Text = tostring(spec.Button or "Aceptar"),
+				TextSize = 13,
+				TextWrapped = true,
+				BackgroundColor3 = C.Accent,
+				Parent = frame,
+			})
+			local function submit()
+				if box.Text:match("%S") and type(spec.Action) == "string" then
+					SoundFx.play("Clic")
+					local args = table.clone(if type(spec.Args) == "table" then spec.Args else {})
+					table.insert(args, box.Text)
+					remote:FireServer(spec.Action, table.unpack(args))
+				end
+			end
+			b.Activated:Connect(submit)
+			box.FocusLost:Connect(function(enter)
+				if enter then
+					submit()
+				end
+			end)
+			continue
+		end
 		local buttons = if type(row.Buttons) == "table" then row.Buttons else {}
 		local buttonsWidth = #buttons * 112
 		local frame = create("Frame", { Size = UDim2.new(1, -8, 0, 64), BackgroundColor3 = rgb(20, 32, 56), BackgroundTransparency = 0.2, LayoutOrder = i, Parent = list }, { Theme.corner(10) })

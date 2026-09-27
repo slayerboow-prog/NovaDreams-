@@ -2,7 +2,10 @@
 --   * En el tren: panel arriba con la línea, las estaciones y la próxima; en cada parada, "Bajar aquí".
 --   * Máquinas de billetes, tiendas, tablón de encargos (y el encargo que llevas, con su tiempo).
 --   * Fotomatón (flash) y escenario: minijuego de guitarra (pulsa cuando la marca está en verde).
+--   * Escaleras mecánicas de las bocas de metro: los peldaños se mueven (solo las que tienes cerca)
+--     y la cinta invisible de debajo te lleva (también se le pone aquí la velocidad, por si acaso).
 
+local CollectionService = game:GetService("CollectionService")
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -11,7 +14,9 @@ local TweenService = game:GetService("TweenService")
 
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Dialog = require(script.Parent.Parent.UI.Dialog)
+local Hud = require(script.Parent.Parent.UI.Hud)
 local Format = require(ReplicatedStorage.Shared.Format)
+local Metro = require(ReplicatedStorage.Shared.Metro)
 
 local MetroUI = {}
 
@@ -278,8 +283,90 @@ local function busk(data: { [string]: any })
 end
 
 ---------------------------------------------------------------------
+-- Escaleras mecánicas: peldaños que se mueven
+---------------------------------------------------------------------
+local ESCALATOR_RANGE = 170
+local escalators: { [Instance]: { Steps: { BasePart }, Refresh: number } } = {}
+
+local function collectSteps(model: Instance): { BasePart }
+	local list = {}
+	for _, p in model:GetChildren() do
+		if p:IsA("BasePart") and typeof(p:GetAttribute("I")) == "number" then
+			table.insert(list, p)
+		end
+	end
+	return list
+end
+
+local function startEscalators()
+	local function add(model: Instance)
+		escalators[model] = { Steps = collectSteps(model), Refresh = os.clock() }
+	end
+	for _, m in CollectionService:GetTagged("MetroEscalatorSteps") do
+		add(m)
+	end
+	CollectionService:GetInstanceAddedSignal("MetroEscalatorSteps"):Connect(add)
+	CollectionService:GetInstanceRemovedSignal("MetroEscalatorSteps"):Connect(function(m)
+		escalators[m] = nil
+	end)
+	-- La cinta de debajo (el servidor ya le pone la velocidad; aquí también, que es quien mueve al personaje)
+	local function belt(p: Instance)
+		local v = p:GetAttribute("Velocity")
+		if p:IsA("BasePart") and typeof(v) == "Vector3" then
+			p.AssemblyLinearVelocity = v
+		end
+	end
+	for _, p in CollectionService:GetTagged("MetroEscalator") do
+		belt(p)
+	end
+	CollectionService:GetInstanceAddedSignal("MetroEscalator"):Connect(belt)
+	local acc = 0
+	RunService.Heartbeat:Connect(function(dt)
+		acc += dt
+		if acc < 1 / 30 then
+			return
+		end
+		acc = 0
+		local camera = workspace.CurrentCamera
+		if not camera then
+			return
+		end
+		local eye = camera.CFrame.Position
+		local now = os.clock()
+		for model, e in escalators do
+			local origin = model:GetAttribute("Origin")
+			if typeof(origin) == "CFrame" and (origin.Position - eye).Magnitude < ESCALATOR_RANGE then
+				if now - e.Refresh > 2 then
+					e.Steps = collectSteps(model) -- (con la carga por zonas llegan poco a poco)
+					e.Refresh = now
+				end
+				local pitch, count = model:GetAttribute("Pitch"), model:GetAttribute("Count")
+				local tan, speed = model:GetAttribute("Tan"), model:GetAttribute("Speed")
+				local parts, cframes = {}, {}
+				for _, p in e.Steps do
+					if p.Parent then
+						local d = Metro.escalatorOffset(p:GetAttribute("I"), now, pitch, count, speed)
+						table.insert(parts, p)
+						table.insert(cframes, origin * CFrame.new(0, -d * tan - pitch * tan / 2 + 0.05, -d))
+					end
+				end
+				local ok = pcall(function()
+					workspace:BulkMoveTo(parts, cframes, Enum.BulkMoveMode.FireCFrameChanged)
+				end)
+				if not ok then
+					for i, p in parts do
+						p.CFrame = cframes[i]
+					end
+				end
+			end
+		end
+	end)
+end
+
+---------------------------------------------------------------------
 
 function MetroUI.init()
+	task.spawn(startEscalators)
 	gui = create("ScreenGui", { Name = "MetroGui", ResetOnSpawn = false, Parent = player:WaitForChild("PlayerGui") })
 	Theme.fit(gui)
 	ride = Theme.panel({
@@ -355,6 +442,20 @@ function MetroUI.init()
 				task.wait(0.3)
 			end
 			flash.Visible = false
+		end
+	end)
+	-- La primera vez que bajas al metro en cada partida: cómo se viaja
+	task.spawn(function()
+		while true do
+			task.wait(1)
+			local character = player.Character
+			local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+			if root and root.Position.Y < Metro.Underground then
+				local stage = player:GetAttribute("LifeStage")
+				local ticket = if Metro.FreeStages[stage or ""] then "Los niños pasan el torno gratis." else "Compra el billete (🎫 BilleteMetro) en las máquinas azules y pásalo por el torno."
+				Hud.toast("Info", "🚇 ¡Bienvenido al metro! " .. ticket .. " En el andén, mira el panel del próximo tren y pulsa «Subir al metro» (o entra por la puerta). Para bajar: «Bajar en…». Las escaleras mecánicas te llevan solas.")
+				break
+			end
 		end
 	end)
 	task.spawn(function()
