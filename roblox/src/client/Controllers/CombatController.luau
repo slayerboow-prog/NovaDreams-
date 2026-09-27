@@ -129,6 +129,8 @@ function CombatController.setBlocking(value: boolean)
 		return
 	end
 	blocking = value
+	-- La guardia se ve al momento en tu pantalla (sin esperar a que el servidor la confirme)
+	ReactMotion.hold(player.Character, "Guard", value or player:GetAttribute("Blocking") == true)
 	Remote:FireServer("Block", value)
 end
 
@@ -268,7 +270,8 @@ end
 local shields: { [Player]: BillboardGui } = {}
 local function updateShield(other: Player)
 	local on = other:GetAttribute("Blocking") == true
-	ReactMotion.hold(other.Character, "Guard", on)
+	-- (tu propia guardia sigue a tu dedo, aunque el servidor tarde en confirmarla)
+	ReactMotion.hold(other.Character, "Guard", on or (other == player and blocking))
 	local existing = shields[other]
 	if on and not existing then
 		local head = other.Character and other.Character:FindFirstChild("Head")
@@ -366,6 +369,7 @@ function CombatController.init()
 		local ko = player:GetAttribute("KO") == true
 		if ko then
 			blocking = false
+			ReactMotion.hold(player.Character, "Guard", false)
 		end
 		showKnockOut(ko)
 	end)
