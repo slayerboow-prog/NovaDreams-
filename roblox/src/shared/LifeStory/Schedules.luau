@@ -33,6 +33,8 @@ local DAY_PLANS = {
 local SCHOOL_TAGS = {
 	SchoolEntrance = true, Classroom = true, MusicRoom = true, RecessArea = true, PEArea = true,
 	Desk = true, TeacherSpot = true, Board = true,
+	-- Marcas de la historia (comedor, biblioteca del cole…): en Campus Valmar solo las tiene el instituto
+	StoryArea = true, StoryProp = true, StorySpot = true,
 }
 
 -- Horario de un lugar (o nil si se puede ir a cualquier hora)

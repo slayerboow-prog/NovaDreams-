@@ -25,6 +25,8 @@
 --   MomentKey  el acontecimiento de vida que se muestra y se guarda en la biografía al terminar
 --   MomentSting efecto de sonido del momento (Config.Audio.Stings); por defecto "Momento", false = ninguno
 
+local SchoolLife = require(script.Parent.SchoolLife)
+
 export type Step = { [string]: any }
 export type Quest = {
 	Kind: "Main" | "Side",
@@ -118,6 +120,7 @@ local Quests: { [string]: Quest } = {
 		DayPlan = "SchoolDay",
 		Repeatable = true,
 		Steps = {},
+		Dialogues = SchoolLife.Dialogues, -- el recreo y la comida con tus compañeros
 		MomentKey = "MOMENT.DIA_COLE",
 		MomentSting = false,
 	},
@@ -131,6 +134,7 @@ local Quests: { [string]: Quest } = {
 		DayPlan = "HighSchoolDay",
 		Repeatable = true,
 		Steps = {},
+		Dialogues = SchoolLife.Dialogues, -- el recreo y la comida con tus compañeros
 		MomentKey = "MOMENT.DIA_INSTITUTO",
 		MomentSting = false,
 	},

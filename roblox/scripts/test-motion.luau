@@ -296,6 +296,8 @@ local cases = {
 	{ "Coger", 0.2, "Reach" },
 	{ "Abrir", 0.6, "Reach" },
 	{ "Comprar aguacate", 0, "Reach" },
+	{ "Coger comida", 0.1, "Eat" },
+	{ "Coger fruta", 0.1, "Eat" },
 	{ "Mirar", -0.95, "PickUp" },
 	{ nil, 0, "Reach" },
 }

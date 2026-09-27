@@ -8,6 +8,13 @@
 local DayPlans = {}
 
 local SCHOOL = require(script.Parent.Parent.Config).SchoolDay
+local SchoolLife = require(script.Parent.SchoolLife)
+
+-- Ninguna espera de un día de cole depende solo del reloj: como mucho estos minutos de juego
+-- (en horario de clase el reloj va a Config.SchoolDay.ClockSpeed: 20 min de juego ≈ 40 s reales), y
+-- además cada espera lleva MaxSeconds: pase lo que pase con el reloj, se acaba en ese tiempo real.
+DayPlans.MaxWaitMinutes = 30
+DayPlans.MaxWaitSeconds = 120
 
 type Step = { [string]: any }
 
@@ -42,6 +49,36 @@ local SCHOOL_SUBJECTS = {
 }
 local FRIENDS = { "Nico", "Sara", "Omar" }
 local FRIEND_TEXT = { Nico = "QUEST.COLE.HABLA_NICO", Sara = "QUEST.COLE.HABLA_SARA", Omar = "QUEST.COLE.HABLA_OMAR" }
+local LUNCH_TEXT = { Nico = "QUEST.COLE.COME_NICO", Sara = "QUEST.COLE.COME_SARA", Omar = "QUEST.COLE.COME_OMAR" }
+
+-- La comida en el comedor (de 14:00 a 15:00), como una escena de verdad:
+--   1) vas al comedor: tus compañeros ya están sentados comiendo y la profe de guardia vigila
+--   2) coges tu bandeja en la barra ("Coger comida"; si no lo haces en un rato, la historia sigue)
+--   3) te sientas con tu amigo del día y habláis (conversación corta)
+--   4) terminas de comer hasta que vuelven las clases (como mucho unos minutos de juego)
+local function lunch(steps: { Step }, friend: string, school: string)
+	local actors = SchoolLife.lunchActors(friend, school)
+	local instituto = school == "Instituto"
+	table.insert(steps, { Type = "Reach", Place = if instituto then "ComedorInstituto" else "ComedorColegio", TextKey = "QUEST.COLE.COMEDOR", Actors = actors })
+	table.insert(steps, {
+		Type = "Event", Event = "SchoolMeal", Place = if instituto then "BarraInstituto" else "BarraComedor",
+		TextKey = "QUEST.COLE.BANDEJA", Actors = actors, Timeout = { After = 75 },
+	})
+	table.insert(steps, { Type = "Talk", Npc = friend, Dialogue = "Comida_" .. friend, TextKey = LUNCH_TEXT[friend], Actors = actors })
+	table.insert(steps, { Type = "Wait", UntilHour = SCHOOL.LunchTo, GameMinutes = 20, MaxSeconds = 60, TextKey = "QUEST.COLE.COMIENDO", Actors = actors })
+end
+
+-- Recreo: el amigo del día te espera en el patio (va andando desde donde esté) y habláis un momento
+local function recess(steps: { Step }, friend: string, school: string, reach: boolean?)
+	local patio = if school == "Instituto" then "PatioInstituto" else "Patio"
+	if reach then
+		table.insert(steps, { Type = "Reach", Place = patio, TextKey = "QUEST.PRIMER_DIA.RECREO", Actors = SchoolLife.recessActors(friend, school) })
+	end
+	table.insert(steps, {
+		Type = "Talk", Npc = friend, Place = patio, Dialogue = "Recreo_" .. friend, TextKey = FRIEND_TEXT[friend],
+		Actors = SchoolLife.recessActors(friend, school),
+	})
+end
 
 local function schoolDay(rng: Random)
 	local roll = rng:NextNumber()
@@ -64,7 +101,7 @@ local function schoolDay(rng: Random)
 		title = "QUEST.DIA_EXCURSION.TITLE"
 		local destination = pick(rng, { "Parque", "Bomberos", "CentroSalud", "Columpios" })
 		table.insert(steps, { Type = "Reach", Place = destination, TextKey = "QUEST.DIA.EXCURSION" })
-		table.insert(steps, { Type = "Wait", GameMinutes = 40, TextKey = "QUEST.DIA.EXCURSION_DISFRUTA" })
+		table.insert(steps, { Type = "Wait", GameMinutes = 30, MaxSeconds = 90, TextKey = "QUEST.DIA.EXCURSION_DISFRUTA" })
 		table.insert(steps, class(subjects[1][1], "Clase", subjects[1][2]))
 	elseif roll < 0.47 then
 		-- Día con recado a la vuelta
@@ -80,13 +117,11 @@ local function schoolDay(rng: Random)
 	end
 	-- Recreo con un amigo
 	local friend = pick(rng, FRIENDS)
-	table.insert(steps, { Type = "Reach", Place = "Patio", TextKey = "QUEST.PRIMER_DIA.RECREO" })
-	table.insert(steps, { Type = "Talk", Npc = friend, Place = "Patio", TextKey = FRIEND_TEXT[friend] })
+	recess(steps, friend, "Colegio", true)
 	-- Comida en el comedor (de 14:00 a 15:00) y clases de la tarde hasta las 17:00
-	table.insert(steps, { Type = "Reach", Place = "ComedorColegio", TextKey = "QUEST.COLE.COMEDOR" })
-	table.insert(steps, { Type = "Wait", UntilHour = SCHOOL.LunchTo, GameMinutes = 60, TextKey = "QUEST.COLE.COMIENDO" })
+	lunch(steps, friend, "Colegio")
 	table.insert(steps, class(subjects[3][1], "Clase", subjects[3][2], "QUEST.COLE.TARDE"))
-	table.insert(steps, { Type = "Wait", UntilHour = SCHOOL.End, GameMinutes = 45, TextKey = "QUEST.COLE.ULTIMA_HORA" })
+	table.insert(steps, { Type = "Wait", UntilHour = SCHOOL.End, GameMinutes = 30, MaxSeconds = 90, TextKey = "QUEST.COLE.ULTIMA_HORA" })
 	table.insert(steps, { Type = "Reach", Place = "CasaFamiliar", TextKey = "QUEST.PRIMER_DIA.VOLVER" })
 	return { TitleKey = title, Steps = steps }
 end
@@ -118,7 +153,9 @@ local function highSchoolDay(rng: Random)
 		table.insert(steps, class(subjects[2], "Clase", "AulaInstituto"))
 	end
 	local friend = pick(rng, FRIENDS)
-	table.insert(steps, { Type = "Talk", Npc = friend, Place = "PatioInstituto", TextKey = FRIEND_TEXT[friend] })
+	recess(steps, friend, "Instituto")
+	-- Comida en el comedor del instituto con el grupo
+	lunch(steps, friend, "Instituto")
 	table.insert(steps, class(subjects[3], "Clase", "AulaInstituto"))
 	return { TitleKey = title, Steps = steps }
 end

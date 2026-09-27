@@ -389,6 +389,8 @@ local DRINK = { "beber", "tomar", "brindar" }
 -- Bebidas (palabras enteras: "agua" sí, "aguacate" no)
 local DRINKS = { "cafe", "zumo", "refresco", "batido", "leche", "agua", "cola", "limonada", "te", "infusion", "cacao", "horchata", "bebida", "cafes", "zumos", "refrescos", "batidos" }
 local PICK = { "coger", "recoger", "levantar", "agarrar" }
+-- Coger algo de comer ("Coger comida", "Coger fruta"): se come (palabras enteras)
+local FOODS = { "comida", "fruta", "bocadillo", "menu", "merienda", "almuerzo", "bandeja" }
 local ACCENTS = { ["á"] = "a", ["é"] = "e", ["í"] = "i", ["ó"] = "o", ["ú"] = "u", ["ñ"] = "n" }
 
 local function hasWord(text: string, words: { string }): boolean
@@ -426,6 +428,8 @@ function ReactMotion.gestureFor(text: string?, height: number?): string?
 		return "Eat"
 	elseif hasWord(plain, DRINK) or hasWholeWord(plain, DRINKS) then
 		return "Drink"
+	elseif hasWord(plain, PICK) and hasWholeWord(plain, FOODS) then
+		return "Eat"
 	elseif hasWord(plain, PICK) then
 		return if h < -0.35 then "PickUp" else "Reach"
 	end

@@ -3,9 +3,13 @@
 --     se vuelven invisibles y sin botones para ti.
 --   * Si tu escena trae a un personaje que también existe fijo en el mundo (Nico en el patio,
 --     tu familia en casa…), el fijo se oculta mientras dure tu escena: nunca ves a dos Nicos.
+--   * Fundidos: los personajes de tu escena aparecen con un fundido suave, y los del colegio que
+--     "saltan" a otro sitio porque no pueden ir andando (atributo Fade, SchoolService) se desvanecen
+--     y reaparecen allí.
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 
 local SceneClient = {}
 
@@ -21,7 +25,8 @@ local function setHidden(root: Instance, hidden: boolean)
 		elseif instance:IsA("Decal") then
 			instance.LocalTransparencyModifier = if hidden then 1 else 0
 		elseif instance:IsA("ProximityPrompt") then
-			instance.Enabled = not hidden
+			instance:SetAttribute("SceneHidden", if hidden then true else nil)
+			instance.Enabled = not hidden and not instance:GetAttribute("GuardOff") -- (PromptGuard)
 		elseif instance:IsA("Highlight") then
 			instance.Enabled = not hidden
 		elseif instance:IsA("Humanoid") then
@@ -36,6 +41,57 @@ end
 
 local mine: Instance? = nil
 local hiddenStatic: { [Instance]: boolean } = {}
+
+-- Fundido de un personaje (solo en tu pantalla): de `from` a `to` de transparencia en `seconds`
+local function fade(model: Instance, from: number, to: number, seconds: number, onDone: (() -> ())?)
+	local parts = {}
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") or d:IsA("Decal") then
+			table.insert(parts, d)
+		end
+	end
+	local start = os.clock()
+	local connection
+	connection = RunService.Heartbeat:Connect(function()
+		local k = math.clamp((os.clock() - start) / seconds, 0, 1)
+		local value = from + (to - from) * k
+		if hiddenStatic[model] then
+			value = 1 -- (oculto por tu escena mientras tanto: sigue oculto)
+		end
+		for _, p in parts do
+			if p.Parent then
+				(p :: any).LocalTransparencyModifier = value
+			end
+		end
+		if k >= 1 or not model.Parent then
+			connection:Disconnect()
+			if onDone then
+				onDone()
+			end
+		end
+	end)
+end
+
+local watched: { [Instance]: boolean } = setmetatable({}, { __mode = "k" }) :: any
+local function watchFade(npc: Instance)
+	if watched[npc] then
+		return -- (vuelve a aparecer en el mundo cada mañana: se escucha una sola vez)
+	end
+	watched[npc] = true
+	npc:GetAttributeChangedSignal("Fade"):Connect(function()
+		if hiddenStatic[npc] then
+			return
+		end
+		-- Se desvanece, el servidor lo cambia de sitio, y reaparece
+		fade(npc, 0, 1, 0.3, function()
+			task.delay(0.1, function()
+				if npc.Parent and not hiddenStatic[npc] then
+					fade(npc, 1, 0, 0.4)
+				end
+			end)
+		end)
+	end)
+end
 
 -- Los personajes fijos que ahora mismo están en tu escena se ocultan
 local function refreshStatic()
@@ -64,8 +120,12 @@ local function watchScene(folder: Instance)
 	local owner = folder:GetAttribute("Owner")
 	if owner == player.UserId then
 		mine = folder
-		folder.ChildAdded:Connect(function()
+		folder.ChildAdded:Connect(function(child)
 			task.defer(refreshStatic)
+			if child:IsA("Model") and child:GetAttribute("NpcId") then
+				-- Tu escena trae a alguien: aparece con un fundido (no de golpe)
+				task.defer(fade, child, 1, 0, 0.45)
+			end
 		end)
 		folder.ChildRemoved:Connect(function()
 			task.defer(refreshStatic)
@@ -89,7 +149,11 @@ function SceneClient.init()
 		watchScene(folder)
 	end
 	scenes.ChildAdded:Connect(watchScene)
-	CollectionService:GetInstanceAddedSignal("StaticNpc"):Connect(function()
+	for _, npc in CollectionService:GetTagged("StaticNpc") do
+		watchFade(npc)
+	end
+	CollectionService:GetInstanceAddedSignal("StaticNpc"):Connect(function(npc)
+		watchFade(npc)
 		task.defer(refreshStatic)
 	end)
 end
