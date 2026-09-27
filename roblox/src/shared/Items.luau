@@ -159,7 +159,13 @@ local KEEPSAKES = {
 	{ "PrimeraNomina", "Tu primera nómina completa", "💶", "Con tu nombre, tu puesto y, ay, las retenciones." },
 	{ "ConchaAbu", "Una concha de Playa Dorada", "🐚", "«Para que vuelvas aquí. Con quien tú quieras.»" },
 	{ "FotoReencuentro", "Foto del reencuentro", "📸", "Todo el grupo en la cafetería de Omar. Más altos, igual de ruidosos." },
-	{ "CuadernoProfesiones", "Cuaderno de profesiones", "📓", "Lo que viste en la semana de las profesiones. «Dentro de unos años lo leerás y te reirás. O no.»" },	-- Recuerdos exclusivos de las misiones locas
+	{ "CuadernoProfesiones", "Cuaderno de profesiones", "📓", "Lo que viste en la semana de las profesiones. «Dentro de unos años lo leerás y te reirás. O no.»" },	-- Saga de la Grieta
+	{ "MonedaPerilla", "Moneda de la 66-B", "🪙", "Caliente, como recién salida de un horno. En una cara, la cara de Cosme… con perilla." },
+	{ "EscamaBrillante", "Escama brillante", "✨", "Regalo de Don Escamas: «Por si necesitas un contable. O un amigo. Soy las dos cosas»." },
+	{ "SelloAduana", "Sello de la Aduana del Tiempo", "📄", "De repuesto. «Nunca se sabe cuándo hay que sellar algo.» — Agente Cronos." },
+	{ "CalcetinSolitario", "Calcetín solitario", "🧦", "Verde. Sin pareja. Del Monstruo de los Calcetines Desparejados. Te mira." },
+	{ "AgujaCuantica", "Aguja cuántica", "🪡", "Con ella cosiste el cielo de Valmar. Todavía brilla un poco cuando hay luna llena." },
+	-- Recuerdos exclusivos de las misiones locas
 	{ "CoronaBigotes", "Corona del emperador Bigotes", "👑", "Mide dos centímetros. En Gatonia es enorme. Huele un poco a jamón." },
 	{ "FotoClones", "Foto con tus clones", "📸", "Cuatro como tú haciendo el signo de la victoria. Uno tiene plastilina en la boca." },
 	{ "MonedaPerez", "Moneda del Ratón Pérez", "🪙", "Oro de verdad, del año 1702. Un pirata la cambió por su último diente." },
@@ -176,8 +182,9 @@ for _, entry in KEEPSAKES do
 end
 
 -- Gadgets: recompensas exclusivas de las misiones secundarias locas (una por misión, no se venden)
---   Effect = Beam (rayo) | Bubbles (burbujas) | Teleport (salto de dimensión) | Message (dice algo) | Sparkle (brillo)
+--   Effect = Sling (bellota en arco) | Beam (rayo) | Bubbles (burbujas) | Teleport (salto de dimensión) | Message (dice algo) | Sparkle (brillo)
 local GADGETS = {
+	{ "Tirachinas", "El tirachinas de tu abu", "🪃", "El de verdad, el del Gran Torneo de 1962. Dispara bellotas que vuelan en arco y hacen «¡plof!». Regla de oro: nunca a personas ni a animales de verdad.", { Effect = "Sling", Cooldown = 0.8 } },
 	{ "PistolaBurbujas", "Pistola de burbujas cuánticas", "🫧", "Invento de Cosme. Las burbujas existen en tres dimensiones a la vez. Explotan en las tres.", { Effect = "Bubbles" } },
 	{ "RayoEncogedor", "Rayo encogedor", "🔬", "El rayo que convirtió un pollo de 6 metros en un pollo normal. Ahora solo hace «bzzzt» y da cosquillas.", { Effect = "Beam", Color = { 190, 90, 255 }, Cooldown = 1 } },
 	{ "MovilFuturo", "Móvil del futuro", "📱", "Recibe mensajes de ti dentro de 10 años. Casi todos son sobre qué no comer.", { Effect = "Message", Lines = "Futuro", Cooldown = 4 } },

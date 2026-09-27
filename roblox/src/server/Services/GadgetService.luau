@@ -125,6 +125,41 @@ local EFFECTS: { [string]: (Player, Items.Item, BasePart) -> () } = {
 			spark:Destroy()
 		end)
 	end,
+	-- Tirachinas: una bellota sale volando en arco hacia delante y hace «¡plof!» donde cae.
+	-- No empuja ni hace daño a nadie (solo se ve): la regla de {abu} es sagrada.
+	Sling = function(player, _, root)
+		local character = player.Character :: Model
+		local hand = (character:FindFirstChild("RightHand") or root) :: BasePart
+		local from = hand.Position + Vector3.new(0, 0.5, 0)
+		local forward = root.CFrame.LookVector
+		local params = RaycastParams.new()
+		params.FilterType = Enum.RaycastFilterType.Exclude
+		params.FilterDescendantsInstances = { character, effectsFolder() }
+		-- Punto de caída: 45 studs hacia delante (o la primera pared), apoyado en el suelo
+		local ahead = workspace:Raycast(from, forward * 45, params)
+		local landing = if ahead then ahead.Position else from + forward * 45
+		local down = workspace:Raycast(landing + Vector3.new(0, 5, 0), Vector3.new(0, -60, 0), params)
+		if down and not ahead then
+			landing = down.Position
+		end
+		local acorn = piece(Vector3.new(0.5, 0.5, 0.5), CFrame.new(from), Color3.fromRGB(140, 90, 40), Enum.PartType.Ball)
+		acorn.Material = Enum.Material.Wood
+		local distance = (landing - from).Magnitude
+		local height = math.clamp(distance * 0.25, 2, 10)
+		task.spawn(function()
+			local steps = 18
+			for i = 1, steps do
+				local t = i / steps
+				local position = from:Lerp(landing, t) + Vector3.new(0, math.sin(t * math.pi) * height, 0)
+				acorn.CFrame = CFrame.new(position)
+				task.wait(0.03)
+			end
+			emit(acorn, Color3.fromRGB(200, 170, 120), 14, 5, 0.35)
+			acorn.Transparency = 1
+			task.wait(0.8)
+			acorn:Destroy()
+		end)
+	end,
 	-- Burbujas que salen de ti
 	Bubbles = function(_, _, root)
 		local emitter = Instance.new("ParticleEmitter")

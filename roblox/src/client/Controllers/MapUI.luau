@@ -12,6 +12,7 @@ local UserInputService = game:GetService("UserInputService")
 
 local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 local Theme = require(script.Parent.Parent.UI.Theme)
+local CanonMarkers = require(script.Parent.CanonMarkers)
 
 local create = Theme.create
 local C = Theme.Colors
@@ -37,6 +38,7 @@ type Layer = {
 	Me: TextLabel,
 	Target: TextLabel,
 	Dots: { [Player]: Frame },
+	Canon: { [string]: TextLabel }, -- misiones canónicas pendientes (❗ dorado)
 }
 
 local roads: { Road } = {}
@@ -146,7 +148,7 @@ local function buildLayer(parent: Instance, scale: number, withZoneNames: boolea
 		BorderSizePixel = 0,
 		Parent = parent,
 	})
-	local layer: Layer = { Frame = frame, Scale = scale, Min = boundsMin, Me = nil :: any, Target = nil :: any, Dots = {} }
+	local layer: Layer = { Frame = frame, Scale = scale, Min = boundsMin, Me = nil :: any, Target = nil :: any, Dots = {}, Canon = {} }
 	local width = math.max(2, ROAD_WIDTH / scale)
 	for _, road in roads do
 		local a = if road.Axis == "X" then toPixel(layer, road.From, road.At) else toPixel(layer, road.At, road.From)
@@ -214,6 +216,33 @@ local function updateLayer(layer: Layer, root: BasePart?, clampTo: number?)
 		layer.Target.Visible = true
 	else
 		layer.Target.Visible = false
+	end
+
+	-- Misiones canónicas pendientes: un ❗ dorado donde empiezan (siempre, hasta que las haces)
+	local seenCanon = {}
+	for _, mark in CanonMarkers.list() do
+		seenCanon[mark.Id] = true
+		local label = layer.Canon[mark.Id]
+		if not label then
+			label = marker("❗", Color3.fromRGB(255, 200, 60), 18, layer.Frame, 5)
+			layer.Canon[mark.Id] = label
+		end
+		local p = toPixel(layer, mark.X, mark.Z)
+		if clampTo and root then
+			local me = toPixel(layer, root.Position.X, root.Position.Z)
+			local offset = p - me
+			if offset.Magnitude > clampTo then
+				p = me + offset.Unit * clampTo
+			end
+		end
+		label.Position = UDim2.fromOffset(p.X, p.Y)
+		label.Visible = true
+	end
+	for id, label in layer.Canon do
+		if not seenCanon[id] then
+			label:Destroy()
+			layer.Canon[id] = nil
+		end
 	end
 
 	-- Los demás jugadores (puntos azules)

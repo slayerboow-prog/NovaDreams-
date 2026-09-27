@@ -1479,12 +1479,21 @@ local function playLoco(player, questId: string): boolean
 		passTime(player, 5)
 		if received(player, "Offer", quest.Title) then
 			fromClient(player, "Offer", questId, true)
+		else
+			-- En el mismo sitio te pueden ofrecer otra (en casa: los gnomos o tu yo malvado): esa, ahora no
+			for _, message in player.Inbox do
+				if message.Kind == "Offer" and message.Payload.QuestId ~= questId and not message.Answered then
+					message.Answered = true
+					fromClient(player, "Offer", message.Payload.QuestId, false)
+				end
+			end
 		end
 	end
 	return story.Active[questId] ~= nil and playQuest(player, questId, 200)
 end
 
 print("\n▶ Misiones locas · Infancia (Cosme, el vecino del garaje)")
+local ItemsDataEarly = loadModule(ROOT .. "/shared/Items")
 local kiko = newPlayer("Kiko", "Nino")
 local kikoData = profiles[kiko]
 kiko.Prefer = { "¡Te ayudo", "Le cambias", "Será nuestro secreto", "Un título", "¡Ha sido lo mejor", "Los ha hecho un clon", "Contrátala" }
@@ -1500,7 +1509,144 @@ check(said(kiko, "Te ha cogido con el pico") or kiko.CaughtBy == nil, "Si Petra 
 check(playLoco(kiko, "Loco_N4_Clones") and kikoData.Items.FotoClones == 1 and said(kiko, "por aula es el máximo legal"), "Deberes clónicos: tres clones en el cole y la foto de los cuatro")
 lighting.ClockTime = 23
 check(playLoco(kiko, "Loco_N5_Perez") and kikoData.Items.MonedaPerez == 1 and kikoData.Story.Flags.RataContratada, "La huelga del Ratón Pérez: persecución nocturna y la moneda de 1702")
+kiko.Prefer = { "¡Prometido! Solo a latas" }
+check(QuestsData.Loco_N6_Tirachinas.Requires.Completed[1] == "Cole01_PrimerDia", "El tirachinas llega en cuanto empiezas el cole (tras «El primer día»)")
+kikoData.Story.Completed.Cole01_PrimerDia = os.time()
+lighting.ClockTime = 17
+check(playLoco(kiko, "Loco_N6_Tirachinas") and kikoData.Items.Tirachinas == 1 and said(kiko, "Solo a latas"), "El tirachinas del campeón: el baúl de {abu}, práctica con latas y las palomas robot de Cosme")
+check(ItemsDataEarly.get("Tirachinas").Kind == "Gadget" and ItemsDataEarly.get("Tirachinas").Effect == "Sling", "El tirachinas se usa desde la mochila: dispara bellotas en arco")
 check(kikoData.Story.Memories.ConociCosme ~= nil and kikoData.Story.Memories.GallinaGigante ~= nil and kikoData.Story.Memories.RatonPerez ~= nil, "Los recuerdos de las misiones locas quedan en su vida")
+
+print("\n▶ Saga de la Grieta · Acto I (misiones canónicas: siempre en el mapa)")
+local function canonIds(player)
+	local raw = player:GetAttribute("CanonMarks") or "[]"
+	local ids = {}
+	for id in raw:gmatch('"Id":"([%w_]+)"') do
+		ids[id] = true
+	end
+	return ids
+end
+local sol = newPlayer("Sol", "Nino")
+local solData = profiles[sol]
+sol.Prefer = { "¡Te ayudo", "Será nuestro secreto", "Te saco de aquí", "Por favor. Es para", "No. Es de Lucía", "¿Quién es Cósimo" }
+lighting.ClockTime = 17
+passTime(sol, 5)
+check(canonIds(sol).Loco_N1_Cosme and not canonIds(sol).Saga_02_Grieta, "Al empezar, el mapa marca la primera misión canónica (y solo esa)")
+check(playLoco(sol, "Loco_N1_Cosme") and solData.Story.Flags.GrietaVista, "1 · El vecino del garaje (canónica: empieza sola al llegar) y la línea verde del cielo")
+passTime(sol, 5)
+check(canonIds(sol).Saga_02_Grieta and not canonIds(sol).Loco_N1_Cosme, "Hecha una, su marca desaparece y aparece la siguiente")
+check(playLoco(sol, "Saga_02_Grieta") and solData.Items.MonedaPerilla == 1 and said(sol, "…Cósimo."), "2 · La grieta en el cielo: la moneda con perilla y el nombre de Cósimo")
+check(playLoco(sol, "Saga_03_Pez") and solData.Story.Flags.OyoAncla and said(sol, "He hablado de más"), "3 · El pez que sabía demasiado: el Consorcio y la palabra «Ancla»")
+check(playLoco(sol, "Saga_04_Ventanilla") and solData.Items.SelloAduana == 1 and said(sol, "Alguien del otro lado tira de ella"), "4 · La ventanilla 42: burocracia del tiempo y un aviso de Cronos")
+check(playLoco(sol, "Saga_05_Perdidas") and solData.Items.CalcetinSolitario == 1 and said(sol, "Hay cosas que perdemos"), "5 · La noche de las cosas perdidas: devolver lo perdido y el Monstruo de los Calcetines")
+passTime(sol, 5)
+check(canonIds(sol).Saga_06_Coser, "El final del acto está marcado en el mapa (aunque sea de día: pide la noche)")
+lighting.ClockTime = 21
+check(playLoco(sol, "Saga_06_Coser") and solData.Items.AgujaCuantica == 1 and solData.Story.Flags.SagaActo1 and said(sol, "Ya te he visto, Ancla"), "6 · Coser el cielo: los anclajes, los agentes grises y la voz de Cósimo")
+check(cinematic(sol, "Saga_Coser"), "Cinemática: la aguja cose el cielo")
+
+print("\n▶ Misiones locas · Adolescencia (el futuro, los lápices, el DJ alienígena, Pip, Zoltán)")
+local iris = newPlayer("Iris", "Adolescente")
+local irisData = profiles[iris]
+iris.Prefer = { "Prometo no publicar", "Para saber lo que ya sé", "Un DJ alienígena", "Nadie sabe para qué", "Que todo el mundo me haga caso", "La guardaré" }
+lighting.ClockTime = 12
+check(playLoco(iris, "Loco_A1_Futuro") and irisData.Items.MovilFuturo == 1 and irisData.Story.Flags.SinCalcetin, "Mensajes del futuro: tu yo de 2036, el calcetín viral y la huida de la Aduana del Tiempo")
+check(playLoco(iris, "Loco_A2_Lapices") and irisData.Items.LapizDimensional == 1, "La Dimensión Examen: huir de los lápices gigantes y la Última Pregunta")
+check(playLoco(iris, "Loco_A3_Concierto") and irisData.Items.CascosAntiHipnosis == 1 and said(iris, "ZUMBIDO FAN CLUB"), "El concierto hipnótico: cascos con la música de los helados para los fans y el DJ")
+check(playLoco(iris, "Loco_A4_Pip") and irisData.Items.PipBolsillo == 1 and said(iris, "Un 97 %"), "La crisis de Pip: tres pistas, la persecución y el propósito")
+check(playLoco(iris, "Loco_A5_Zoltan") and irisData.Items.FichaDorada == 1 and irisData.Story.Flags.DeseoCaso, "Zoltán: un deseo al pie de la letra, la huida y la ficha dorada")
+
+print("\n▶ Misiones locas · Universidad (la luz del monte, Rex, el multiverso, la fiesta, el examen del universo)")
+local uxia = newPlayer("Uxia", "AdultoJoven")
+local uxiaData = profiles[uxia]
+uxia.Prefer = { "Pues yo sí voy", "La verdad: alienígenas", "¡Bienvenido!", "Rex es el mejor", "No. Cosme es insoportable" }
+uxia.Picks = { CualCosme = "Rescatar", Acusar = "Bien" }
+lighting.ClockTime = 12
+check(QuestsData.Loco_U1_Monte ~= nil, "La luz del Monte del Silencio existe")
+local monte = false
+do
+	local story = uxiaData.Story
+	for _ = 1, 12 do
+		if story.Active.Loco_U1_Monte then
+			break
+		end
+		uxia.At = "Universidad"
+		passTime(uxia, 5)
+		if received(uxia, "Offer", "La luz del Monte del Silencio") then
+			fromClient(uxia, "Offer", "Loco_U1_Monte", true)
+		end
+	end
+	-- De día, la cima está vacía: la luz solo sale de madrugada
+	for _ = 1, 20 do
+		local _, step = questStep(uxia, "Loco_U1_Monte")
+		if step and step.Hours then
+			break
+		end
+		if step then
+			doStep(uxia, "Loco_U1_Monte", step)
+		end
+		task.wait(0.6)
+	end
+	uxia.At = "CimaMonte"
+	passTime(uxia, 5)
+	local _, still = questStep(uxia, "Loco_U1_Monte")
+	check(still and still.Hours ~= nil, "A mediodía en la cima no pasa nada (la luz sale entre las 2 y las 5)")
+	lighting.ClockTime = 3
+	monte = playQuest(uxia, "Loco_U1_Monte", 250)
+end
+check(monte and uxiaData.Items.PistolaRayos == 1 and uxiaData.Story.Flags.DeclaracionAlien, "Sube de madrugada, huye de la luz, derrota a los tres alienígenas y se queda la pistola de rayos")
+check(said(uxia, "Terrícolas en apuros") and said(uxia, "Tres semanas abriendo botes de pepinillos"), "Era un reality alienígena; Fermín y los desaparecidos vuelven")
+check(uxiaData.Story.Memories.Abduccion ~= nil, "Recuerdo: la luz del Monte del Silencio")
+lighting.ClockTime = 16
+check(playLoco(uxia, "Loco_U2_Rex") and uxiaData.Items.DienteRex == 1 and uxiaData.Story.Flags.RexSeQueda, "Mi compañero de piso es un dinosaurio: huida de la Aduana del Tiempo y Rex se queda")
+check(playLoco(uxia, "Loco_U3_Multiverso") and uxiaData.Items.MandoDimensiones == 1 and uxiaData.Story.Flags.CosmeOriginal, "Las tres Valmar: gatos, tú de alcalde y un Cosme aburrido; rescatas al de siempre")
+check(said(uxia, "Yo no soy tu Cosme"), "Giro: el Cosme que te acompañaba era de otra dimensión")
+lighting.ClockTime = 22
+check(playLoco(uxia, "Loco_U4_Fiesta") and uxiaData.Items.GafasImpostores == 1, "La fiesta de los cambiaformas: pistas, acusación y gafas de ver impostores")
+lighting.ClockTime = 12
+check(playLoco(uxia, "Loco_U5_Examen") and uxiaData.Items.DiplomaUniverso == 1 and uxiaData.Story.Flags.SalvasteACosme, "El examen del universo: la Tierra aprueba gracias a ti")
+
+print("\n▶ Misiones locas · Vida adulta (el lunes eterno, la deuda galáctica, la tostadora, los gnomos, tu yo malvado)")
+local olga = newPlayer("Olga", "Adulto")
+local olgaData = profiles[olga]
+olgaData.Money = 500
+olga.Prefer = { "¿Por qué querías guardarte", "Un duelo", "Vuelve a tu dimensión" }
+olga.Picks = { Deuda = "Resistir" }
+lighting.ClockTime = 10
+check(playLoco(olga, "Loco_D1_Lunes") and olgaData.Items.TazaTiempo == 1 and said(olga, "¡Martes! ¡Qué martes!"), "El lunes eterno: pistas en la oficina, la cafetera X-9000 y por fin martes")
+check(playLoco(olga, "Loco_D2_Deuda") and olgaData.Items.TarjetaGalactica == 1 and said(olga, "Terrícolas: tercos"), "La deuda galáctica: el bocadillo de Cosme en Plutón y resistir a los cobradores")
+check(olgaData.Money == 600, "Resistir no cuesta dinero (y dan 100 de bono)")
+check(playLoco(olga, "Loco_D3_Tostadora") and olgaData.Items.TostadoraCosme == 1 and said(olga, "tengo miedo de olvidarme"), "Cosme en una tostadora: la rebelión de los electrodomésticos y su miedo a olvidar")
+lighting.ClockTime = 18
+check(playLoco(olga, "Loco_D5_Malvado") and olgaData.Items.PerillaMalvada == 1 and olgaData.Story.Flags.MalvadoRedimido, "Tu yo malvado: huir del portal, arrancarle la perilla y darle otra oportunidad")
+lighting.ClockTime = 23
+local barked = function(player, fragment)
+	for _, text in player.Barks do
+		if tostring(text):find(fragment, 1, true) then
+			return true
+		end
+	end
+	return false
+end
+check(playLoco(olga, "Loco_D4_Gnomos") and olgaData.Items.GnomoAliado == 1 and olgaData.Story.Choices.Gnomos.V == "Guerra" and barked(olga, "Tengo vértigo") and said(olga, "Firmamos"), "La noche de los gnomos: duelo con el Gran Gnomo y tratado de paz")
+
+print("\n▶ Gadgets: las recompensas exclusivas se usan desde la mochila")
+local ItemsData = loadModule(ROOT .. "/shared/Items")
+local gadgets = 0
+for _, id in { "Tirachinas", "PistolaBurbujas", "RayoEncogedor", "MovilFuturo", "CascosAntiHipnosis", "PipBolsillo", "PistolaRayos", "MandoDimensiones", "GafasImpostores", "TazaTiempo", "TostadoraCosme" } do
+	local item = ItemsData.get(id)
+	if item and item.Kind == "Gadget" and item.Effect then
+		gadgets += 1
+	end
+end
+check(gadgets == 11, "11 gadgets exclusivos, cada uno con su efecto")
+local exclusive = 0
+for _, quest in QuestsData do
+	if quest.Id and quest.Id:sub(1, 5) == "Loco_" and quest.Rewards and quest.Rewards.Items then
+		exclusive += 1
+	end
+end
+check(exclusive == 21, "21 misiones locas (6 de infancia y 5 en cada otra etapa), todas con recompensa exclusiva")
 
 print(("\n%s"):format(if failures == 0 then "✅ Todo correcto" else ("❌ %d fallos"):format(failures)))
 process.exit(if failures == 0 then 0 else 1)

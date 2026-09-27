@@ -79,6 +79,7 @@ type Runtime = {
 	Fallback: { [string]: boolean }, -- misión -> ya se lanzó el plan B de este paso
 	Busy: boolean, -- una conversación, un minijuego o una clase de la historia en marcha
 	CaughtAt: number?, -- (Escape/Fight) la última vez que te atrapó un enemigo
+	CanonSpots: { [string]: any }?, -- dónde empieza cada misión canónica (para su marca en el mapa)
 	LastHit: number?, -- (Fight) último disparo (no se puede disparar más rápido que esto)
 }
 local runtime: { [Player]: Runtime } = {}
@@ -1097,7 +1098,11 @@ local function canOffer(player: Player, data: Data, questId: string): boolean
 	local story = storyOf(data)
 	local quest = Quests[questId]
 	local rt = runtime[player]
-	if not rt or rt.PendingOffer or story.Active[questId] or activeSideCount(story) >= CFG.MaxActiveSide then
+	if not rt or story.Active[questId] then
+		return false
+	end
+	-- Las canónicas (la saga) no esperan: no cuentan para el límite de secundarias ni se pueden rechazar
+	if not quest.Canon and (rt.PendingOffer or activeSideCount(story) >= CFG.MaxActiveSide) then
 		return false
 	end
 	local done = story.Completed[questId]
@@ -1105,7 +1110,7 @@ local function canOffer(player: Player, data: Data, questId: string): boolean
 		return false
 	end
 	local declined = story.Declined[questId]
-	if declined and os.time() - declined < CFG.DeclineCooldown then
+	if declined and not quest.Canon and os.time() - declined < CFG.DeclineCooldown then
 		return false
 	end
 	return (Conditions.check(quest.Requires, contextFor(player, data)))
@@ -1124,10 +1129,58 @@ local function checkPlaceOffers(player: Player, data: Data)
 		if quest.Kind == "Side" and quest.Offer and quest.Offer.Place and canOffer(player, data, questId) then
 			local spot = LocationService.resolve(player, quest.Offer.Place)
 			if spot and LocationService.isAt(player, spot) then
-				offer(player, questId)
+				if quest.Canon then
+					-- Misión canónica: empieza sola al llegar (su marca estaba en el mapa)
+					moment(player, quest.OfferKey or quest.TitleKey, nil, "Momento")
+					startQuest(player, data, questId)
+				else
+					offer(player, questId)
+				end
 				return
 			end
 		end
+	end
+end
+
+-- Misiones canónicas disponibles: marca en el mapa y en el mundo hasta que las haces.
+-- Se publican en el atributo CanonMarks (JSON): { { Id, Title, X, Y, Z, From?, To? } }
+local function updateCanonMarks(player: Player, data: Data)
+	local rt = runtime[player]
+	local story = storyOf(data)
+	local ctx = contextFor(player, data)
+	local marks = {}
+	rt.CanonSpots = rt.CanonSpots or {}
+	for questId, quest in Quests do
+		if quest.Canon and quest.Offer and quest.Offer.Place and not story.Active[questId] and not story.Completed[questId] then
+			local req = quest.Requires
+			local hours = req and req.Hours
+			if hours then
+				req = table.clone(req)
+				req.Hours = nil
+			end
+			if Conditions.check(req, ctx) then
+				local spot = rt.CanonSpots[questId]
+				if not spot or not spot.Instance:IsDescendantOf(workspace) then
+					spot = LocationService.resolve(player, quest.Offer.Place)
+					rt.CanonSpots[questId] = spot
+				end
+				if spot then
+					table.insert(marks, {
+						Id = questId,
+						Title = quest.Title,
+						X = math.round(spot.Position.X), Y = math.round(spot.Position.Y), Z = math.round(spot.Position.Z),
+						From = hours and hours.From, To = hours and hours.To,
+					})
+				end
+			end
+		end
+	end
+	table.sort(marks, function(a, b)
+		return a.Id < b.Id
+	end)
+	local encoded = HttpService:JSONEncode(marks)
+	if player:GetAttribute("CanonMarks") ~= encoded then
+		player:SetAttribute("CanonMarks", encoded)
 	end
 end
 
@@ -1242,6 +1295,10 @@ local function checkReach(player: Player, data: Data, questId: string, prog: Pro
 		end
 	end
 	if spot and LocationService.isAt(player, spot) then
+		-- Hours = { From, To }: solo cuenta si llegas a esa hora (la luz del monte sale de madrugada)
+		if step.Hours and not Conditions.check({ Hours = step.Hours }, contextFor(player, data)) then
+			return false
+		end
 		storyOf(data).Discovered[stepPlace(step, storyOf(data)) or "?"] = true
 		return true
 	end
@@ -1492,6 +1549,7 @@ local function slowTick(player: Player, data: Data)
 	end
 	discoverZone(player, data)
 	checkPlaceOffers(player, data)
+	updateCanonMarks(player, data)
 	processLater(player, data)
 	refresh(player)
 end

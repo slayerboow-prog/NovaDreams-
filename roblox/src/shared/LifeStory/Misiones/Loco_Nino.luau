@@ -6,6 +6,7 @@
 --   Loco_N3_Pollo     «La gallina de seis metros»     huir y encoger a Petra → 🔬 Rayo encogedor
 --   Loco_N4_Clones    «Deberes clónicos»              tres clones en el cole → 📸 Foto con tus clones
 --   Loco_N5_Perez     «La huelga del Ratón Pérez»     persecución nocturna → 🪙 Moneda del Ratón Pérez
+--   Loco_N6_Tirachinas «El tirachinas del campeón»   desde el primer día de cole: prácticas y palomas robot → 🪃 Tirachinas
 --
 -- Todo es de dibujos animados: los «malos» no se hacen daño, se desintegran en chispas y vuelven a
 -- su planeta (o a su tamaño, o a su botón de deshacer).
@@ -26,17 +27,18 @@ return {
 	{
 		Id = "Loco_N1_Cosme",
 		Kind = "Side",
+		Canon = true, -- Saga de la Grieta, misión 1 (docs/historia/13-saga-de-la-grieta.md): siempre en el mapa
 		Title = "El vecino del garaje",
 		Description = "¡BUM! Del garaje del vecino sale humo verde. Y una voz: «¡NADIE TOQUE NADA QUE BRILLE!»",
-		Type = "Misión loca · Infancia (1/5)",
+		Type = "Saga de la Grieta · Acto I (1/6)",
 		Duration = { 12, 18 },
 		Npcs = { "Cosme", "Bigotes" },
 		Offer = { Place = "GarajeCosme" },
-		OfferKey = "¡BUM! Humo verde en el garaje del vecino. ¿Vas a mirar?",
+		OfferKey = "¡BUM! Humo verde en el garaje del vecino…",
 		Requires = NINO,
 		Moment = "Conociste a Cosme, el inventor del garaje",
 		Memory = "ConociCosme",
-		Rewards = { Items = { PistolaBurbujas = 1 }, Flags = { "AmigoDeCosme" } },
+		Rewards = { Items = { PistolaBurbujas = 1 }, Flags = { "AmigoDeCosme", "GrietaVista" } },
 		Props = {
 			Tornillo = { Kind = "Cristal", Name = "El tornillo cuántico", Prompt = "Recoger", Place = "FuenteParque", Offset = V(3, 0, 2), Dialogue = "Tornillo", Once = true },
 			Bobina = { Kind = "Maquina", Name = "Una bobina… dentro de un helado", Prompt = "Sacarla del helado", Place = "Heladeria", Offset = V(3, 0, 3), Color = Color3.fromRGB(250, 180, 220), Dialogue = "Bobina", Once = true },
@@ -109,6 +111,8 @@ return {
 						{ S = "Narrador", T = "Esa noche se lo cuentas a {familia}. Te dice que qué imaginación. Y te pone más puré." },
 					} },
 				} },
+				{ S = "Narrador", T = "Al salir del garaje, Cosme se queda mirando el cielo. Encima de Los Pinos hay una línea verde, finísima, como un rasguño en el aire." },
+				{ S = "Cosme", T = "Criatura… ¿eso estaba ahí antes? …No. No estaba. Vete a casa. Mañana hablamos. Mañana… hablamos." },
 			} },
 		},
 	},
@@ -397,6 +401,81 @@ return {
 				{ S = "RatonPerez", T = "Toma. No es la moneda de siempre. Es una de las de antes: oro de verdad, del año 1702. Me la dio un pirata por su último diente." },
 				{ S = "Narrador", T = "Recibes 🪙 la Moneda del Ratón Pérez (y 50 monedas de las normales, «para gastos»)." },
 				{ S = "RatonPerez", T = "Y ahora, a dormir. Que mañana tienes cole. Y yo, a lo mejor, playa." },
+			} },
+		},
+	},
+
+	---------------------------------------------------------------------
+	-- N6 · El tirachinas de {abu} (disponible en cuanto empiezas el cole)
+	---------------------------------------------------------------------
+	{
+		Id = "Loco_N6_Tirachinas",
+		Kind = "Side",
+		Title = "El tirachinas del campeón",
+		Description = "{abu} dice que fue campeón del Gran Torneo de Tirachinas de 1962. Y que su tirachinas sigue en el baúl.",
+		Type = "Misión loca · Infancia (6/6)",
+		Duration = { 10, 15 },
+		Npcs = { "Abu", "Cosme", "PalomaRobot1", "PalomaRobot2", "PalomaRobot3" },
+		Offer = { Place = "HomeSalon" },
+		OfferKey = "Tu abu te guiña un ojo: «¿Sabías que fui campeón de tirachinas? Todavía lo guardo…»",
+		Requires = { Stage = { Min = "Nino", Max = "Nino" }, Completed = { "Cole01_PrimerDia" } },
+		Moment = "{abu} te regaló su tirachinas de campeón",
+		Memory = "TirachinasAbu",
+		Rewards = { Items = { Tirachinas = 1 } },
+		Props = {
+			Baul = { Kind = "Caja", Name = "El baúl de tu abu", Prompt = "Abrir el baúl", Place = "HomeSalon", Offset = V(-3, 0, 2), Color = Color3.fromRGB(120, 80, 45), Dialogue = "Baul", Once = true },
+			Latas = { Kind = "Marcador", Name = "Latas vacías en fila", Place = "Parque", Offset = V(0, 0, 10), Prompt = false },
+		},
+		Steps = {
+			{ Type = "Talk", Npc = "Abu", Dialogue = "Campeon", Text = "Habla con {abu}", Actors = { { Npc = "Abu", Place = "HomeSalon", Offset = V(2, 0, 2) } } },
+			{ Type = "Use", Prop = "Baul", Text = "Abre el baúl de {abu}", Actors = { { Npc = "Abu", Place = "HomeSalon", Offset = V(2, 0, 2) } } },
+			{ Type = "Reach", Place = "Parque", Text = "Vamos al parque a practicar con latas (solo latas)",
+				Actors = { { Npc = "Abu", Mode = "Follow" } } },
+			{ Type = "MiniGame", Game = "Timing", Title = "Práctica: derriba las latas", Icon = "🥫", Hint = "Suelta la goma justo en la zona verde",
+				Rounds = 5, Need = 3, Zone = 0.28, Speed = 0.9,
+				Win = { Flags = { "PunteriaDeCampeon" }, Rel = { Abu = 4 } }, Lose = { Traits = { Humor = 1 } },
+				Props = { "Latas" }, Actors = { { Npc = "Abu", Place = "Parque", Offset = V(3, 0, 2), Mode = "Cheer" } } },
+			{ Type = "Scene", Dialogue = "Palomas", Props = { "Latas" },
+				Actors = { { Npc = "Abu", Place = "Parque", Offset = V(3, 0, 2) }, { Npc = "Cosme", Place = "Parque", Offset = V(-4, 0, 4) } } },
+			{ Type = "Fight", Place = "Parque", Respawn = "Parque", Action = "Disparar el tirachinas 🪃", HP = 2, BeamColor = Color3.fromRGB(160, 110, 60),
+				Text = "¡Las palomas robot de Cosme roban bocadillos! Apágalas con el tirachinas ({count}/{total})",
+				CaughtLine = "¡Cucurrú-bip! (Te han quitado la merienda. Vuelves al banco del parque.)",
+				Actors = { { Npc = "Abu", Place = "Parque", Offset = V(3, 0, 2), Mode = "Cheer" }, { Npc = "Cosme", Place = "Parque", Offset = V(-4, 0, 4) } },
+				Enemies = {
+					{ Npc = "PalomaRobot1", Offset = V(-8, 0, -6), Speed = 12, Hurt = "¡Cucurrú-error!", Bye = "Cucurrú… apagando… (Se queda quieta y se echa a dormir en modo ahorro.)" },
+					{ Npc = "PalomaRobot2", Offset = V(8, 0, -6), Speed = 12, Hurt = "¡Bip! ¡Miga detectada! ¡Ah, no, bellota!", Bye = "Cucurrú-bip-bip… (Apagada.)" },
+					{ Npc = "PalomaRobot3", Offset = V(0, 0, -10), Speed = 13, HP = 3, Hurt = "¡Este bocadillo de chorizo es MÍO!", Bye = "…Error 404: bocadillo no encontrado. (Suelta el bocadillo y se apaga.)" },
+				} },
+			{ Type = "Scene", Dialogue = "Final",
+				Actors = { { Npc = "Abu", Place = "Parque", Offset = V(3, 0, 2) }, { Npc = "Cosme", Place = "Parque", Offset = V(-4, 0, 4) } } },
+		},
+		Dialogues = {
+			Campeon = { Lines = {
+				{ S = "Abu", T = "¿Ya vas al cole? ¡Qué mayor! Entonces ya tienes edad para saber un secreto de familia." },
+				{ S = "Abu", T = "En 1962 gané el Gran Torneo de Tirachinas de Valmar. Derribé cuarenta latas seguidas. Y una lata que no era una lata: era el sombrero del alcalde. Pero eso no contó." },
+				{ S = "Abu", T = "Mi tirachinas está en el baúl. Te lo doy… con una regla de oro. Nunca, nunca, NUNCA a personas ni a animales de verdad. Solo a latas." },
+				{ Ask = "¿Qué le dices?", Options = {
+					{ T = "«¡Prometido! Solo a latas.»", Effects = { Traits = { Responsabilidad = 1 }, Rel = { Abu = 4 } }, Then = {
+						{ S = "Abu", T = "Así me gusta. Un campeón de verdad sabe cuándo NO disparar." },
+					} },
+					{ T = "«¿Y al sombrero del alcalde?»", Effects = { Traits = { Humor = 1 } }, Then = {
+						{ S = "Abu", T = "…Eso fue un accidente. Un accidente muy bien apuntado. ¡Solo latas!" },
+					} },
+				} },
+			} },
+			Baul = { Lines = {
+				{ S = "Narrador", T = "Fotos viejas, una medalla oxidada que pone «1962», un cromo de un futbolista con bigote… y un tirachinas de madera, con la goma nueva. {abu} la cambió ayer. Ya lo tenía pensado." },
+			} },
+			Palomas = { Lines = {
+				{ S = "Narrador", T = "De repente: «¡CUCURRÚ-BIP!». Tres palomas metálicas bajan en picado y se llevan los bocadillos de los niños del parque." },
+				{ S = "Cosme", T = "¡Mis drones! ¡Los programé para recoger migas del parque! Se ve que han decidido que un bocadillo entero es una miga muy grande. Tienen lógica. Mala, pero lógica." },
+				{ S = "Abu", T = "Son robots, no palomas. La regla sigue en pie: a animales de verdad, nunca. A robots ladrones de bocadillos… eso es otra cosa. ¡A ellas!" },
+				{ S = "Cosme", T = "Apunta al botón de la espalda. Una bellota en el botón y se apagan. Bueno, dos. O tres. No las hice muy bien." },
+			} },
+			Final = { Lines = {
+				{ S = "Cosme", T = "Drones recuperados. Los reprogramaré para algo útil. Como regar. O cantar. …Regar." },
+				{ S = "Abu", T = "¿Has visto qué puntería? Se hereda. El tirachinas ya es tuyo. Cuídalo. Y recuerda la regla." },
+				{ S = "Narrador", T = "Recibes 🪃 el tirachinas de {abu}. Úsalo desde la mochila o la barra rápida: dispara bellotas que hacen «¡plof!»." },
 			} },
 		},
 	},

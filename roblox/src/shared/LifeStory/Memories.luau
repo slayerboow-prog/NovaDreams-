@@ -43,11 +43,18 @@ local Memories: { [string]: Memory } = {
 	Graduacion = { Text = "Tu graduación y el brindis con todos los de siempre", Icon = "🎓" },
 	PrimerContrato = { Text = "Tu primer contrato de verdad (y tus primeras facturas)", Icon = "✍️" },
 	AtardecerConAbu = { Text = "El atardecer junto al mar con tu abu", Icon = "🌅" },
-	ElReencuentro = { Text = "La inauguración de Omar y la noche en el banco del parque", Icon = "🪑" },	-- Misiones locas
+	ElReencuentro = { Text = "La inauguración de Omar y la noche en el banco del parque", Icon = "🪑" },	-- Saga de la Grieta
+	GrietaEnElCielo = { Text = "La noche en que viste la Grieta en el cielo (y una moneda con perilla)", Icon = "🌌" },
+	DonEscamas = { Text = "Rescataste a Don Escamas, el pez contable, del Consorcio", Icon = "🐟" },
+	VentanillaAduana = { Text = "El formulario 42 y las tres ventanillas de la Aduana del Tiempo", Icon = "📄" },
+	CosasPerdidas = { Text = "La noche en que devolviste las cosas perdidas de Valmar", Icon = "🧦" },
+	CoserElCielo = { Text = "La noche que cosiste el cielo con Cosme (y oíste a Cósimo por primera vez)", Icon = "🪡" },
+	-- Misiones locas
 	ConociCosme = { Text = "Cuando conociste a Cosme, el inventor del garaje (y su microondas temporal)", Icon = "🧪" },
 	EmperadorBigotes = { Text = "Salvaste a Bigotes, emperador de Gatonia, de las cucarachas espaciales", Icon = "👑" },
 	GallinaGigante = { Text = "Petra, la gallina de seis metros de Villaverde", Icon = "🐔" },
 	LosClones = { Text = "El día que hubo cuatro como tú en el cole", Icon = "👯" },
+	TirachinasAbu = { Text = "Cuando tu abu te regaló su tirachinas de campeón (solo latas)", Icon = "🪃" },
 	RatonPerez = { Text = "La noche que ayudaste al Ratón Pérez en su huelga", Icon = "🐭" },
 	MensajeFuturo = { Text = "Cuando tu yo del futuro vino a pedirte un favor", Icon = "📱" },
 	DimensionExamen = { Text = "El examen en la Dimensión de los Lápices", Icon = "✏️" },

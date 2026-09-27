@@ -43,4 +43,9 @@ return {
 	require(Misiones.Cole_Consecuencias),
 	-- Misiones locas (secundarias de cada etapa, con Cosme): docs/historia/12-misiones-locas.md
 	require(Misiones.Loco_Nino),
+	-- La Saga de la Grieta (historia principal canónica): docs/historia/13-saga-de-la-grieta.md
+	require(Misiones.Saga_Acto1),
+	require(Misiones.Loco_Adolescente),
+	require(Misiones.Loco_Uni),
+	require(Misiones.Loco_Adulto),
 }

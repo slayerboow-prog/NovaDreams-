@@ -24,6 +24,7 @@ local DrivingSchool = require(script.Parent.Controllers.DrivingSchool)
 local Restaurant = require(script.Parent.Controllers.Restaurant)
 local Character = require(script.Parent.Controllers.Character)
 local ActorLife = require(script.Parent.Controllers.ActorLife)
+local CanonMarkers = require(script.Parent.Controllers.CanonMarkers)
 
 local gui = Hud.init(function()
 	Store.open()
@@ -40,6 +41,7 @@ task.spawn(InventoryUI.init) -- mochila estilo Minecraft (barra rápida 1-9, tec
 task.spawn(DialogueUI.init) -- conversaciones de las misiones (con respuestas y cámara)
 task.spawn(MiniGameUI.init) -- pase, canastas, partido de fútbol
 task.spawn(SceneClient.init) -- cada uno ve solo los personajes de su historia
+task.spawn(CanonMarkers.init) -- la saga: ❗ dorados en el mapa y pilares de luz hasta que haces cada misión canónica
 task.spawn(ActorLife.init) -- los personajes respiran, miran, gesticulan al hablar y andan con animación
 task.spawn(Ambient.init) -- tráfico y peatones
 task.spawn(Weather.init) -- estaciones y tiempo: lluvia, tormenta, nieve, hojas de otoño
