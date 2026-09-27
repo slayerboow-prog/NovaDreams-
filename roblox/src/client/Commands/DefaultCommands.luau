@@ -225,7 +225,7 @@ function DefaultCommands.register()
 	local more: Command = {
 		Id = "Mas",
 		Label = "Más",
-		Icon = "✦",
+		Icon = "➕",
 		Priority = 60,
 		Open = function()
 			return {

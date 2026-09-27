@@ -214,7 +214,7 @@ local function renderCard(state: { [string]: any })
 
 	local tracked = state.Tracked
 	if tracked then
-		cardTitle.Text = (if tracked.Kind == "Side" then "✦ " else "") .. Strings.get(tracked.TitleKey)
+		cardTitle.Text = (if tracked.Kind == "Side" then "🔶 " else "") .. Strings.get(tracked.TitleKey)
 		cardText.Text = text(tracked.TextKey, tracked.Args)
 		if tracked.Need and tracked.Children then
 			-- "Haz 3 de estas 5 cosas": cuántas llevas
@@ -231,7 +231,7 @@ local function renderCard(state: { [string]: any })
 				TextSize = 12,
 				TextWrapped = true,
 				TextColor3 = if child.Done then C.Money else C.Text,
-				Text = (if child.Done then "✓ " else "• ") .. text(child.TextKey, child.Args),
+				Text = (if child.Done then "✔ " else "• ") .. text(child.TextKey, child.Args),
 				LayoutOrder = i,
 				Parent = cardList,
 			})

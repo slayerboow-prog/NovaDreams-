@@ -1,9 +1,11 @@
 -- StoneThrow (cliente): coger piedras del suelo y lanzarlas.
---   * Tecla B (o botón 🪨 en móvil, Y en el mando): si no llevas piedra, coges una del suelo
+--   * Tecla B (o botón 🥌 en móvil, Y en el mando): si no llevas piedra, coges una del suelo
 --     (tierra, césped, arena o roca); si llevas, la lanzas hacia donde apuntas (el ratón en el
 --     ordenador; el centro de la pantalla en móvil y mando).
 --   * Dibuja las piedras que vuelan (las tuyas y las de los demás) siguiendo el mismo camino que
 --     calcula el servidor (BreakService), así se ven suaves.
+--   * El cuerpo acompaña: al coger una piedra se agacha a por ella y al lanzar echa el brazo atrás
+--     por encima del hombro y lo lanza (ReactMotion: PickUp y Throw, con entrada y salida suaves).
 
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
@@ -13,6 +15,8 @@ local UserInputService = game:GetService("UserInputService")
 
 local Breakables = require(ReplicatedStorage.Shared.Breakables)
 local Hud = require(script.Parent.Parent.UI.Hud)
+local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
+local ReactMotion = require(script.Parent.ReactMotion)
 
 local StoneThrow = {}
 
@@ -50,6 +54,10 @@ local function throwGesture()
 	if not humanoid or not animator then
 		return
 	end
+	if humanoid.RigType == Enum.HumanoidRigType.R15 then
+		ReactMotion.play(character, "Throw")
+		return
+	end
 	local animation = Instance.new("Animation")
 	local r15 = humanoid.RigType == Enum.HumanoidRigType.R15
 	animation.AnimationId = "rbxassetid://" .. (if r15 then THROW_ANIM.R15 else THROW_ANIM.R6)
@@ -58,9 +66,9 @@ local function throwGesture()
 	end)
 	if ok and track then
 		track.Priority = Enum.AnimationPriority.Action
-		track:Play(0.05, 1, 1.6)
+		track:Play(0.1, 1, 1.6)
 		task.delay(0.45, function()
-			track:Stop(0.2)
+			track:Stop(0.25)
 		end)
 	end
 end
@@ -81,13 +89,13 @@ end
 local function refreshButton()
 	local count = player:GetAttribute("Stones") or 0
 	local baby = player:GetAttribute("LifeStage") == "Bebe"
-	if baby then
+	if baby or TouchLayout.riding() then
 		ContextActionService:UnbindAction(ACTION)
 		return
 	end
 	ContextActionService:BindAction(ACTION, use, true, Enum.KeyCode.B, Enum.KeyCode.ButtonY)
-	ContextActionService:SetTitle(ACTION, if count > 0 then ("🪨×%d"):format(count) else "🪨")
-	ContextActionService:SetPosition(ACTION, UDim2.new(1, -170, 1, -210))
+	ContextActionService:SetTitle(ACTION, if count > 0 then ("🥌×%d"):format(count) else "🥌")
+	TouchLayout.placeAction(ContextActionService, ACTION, "Piedra")
 end
 
 local function newStone(): BasePart
@@ -113,17 +121,34 @@ function StoneThrow.init()
 
 	refreshButton()
 	player:GetAttributeChangedSignal("LifeStage"):Connect(refreshButton)
+	player:GetAttributeChangedSignal("Riding"):Connect(refreshButton)
+	local stones = player:GetAttribute("Stones") or 0
 	player:GetAttributeChangedSignal("Stones"):Connect(function()
+		local now = player:GetAttribute("Stones") or 0
+		if now > stones and player.Character then
+			ReactMotion.play(player.Character, "PickUp") -- se agacha a cogerla
+		end
+		stones = now
 		refreshButton()
 		if (player:GetAttribute("Stones") or 0) > 0 and not hinted then
 			hinted = true
-			Hud.toast("Info", "🪨 Tienes una piedra: pulsa B (o 🪨) para lanzarla donde apuntes.")
+			Hud.toast("Info", "🥌 Tienes una piedra: pulsa B (o 🥌) para lanzarla donde apuntes.")
 		end
 	end)
 
 	Remote.OnClientEvent:Connect(function(action, id, a, b, c, d)
 		if action == "Stone" then
 			flying[id] = { Part = newStone(), From = a, Velocity = b, Start = c, Gravity = d }
+			-- Quien la lanza (otro jugador, a su lado sale la piedra): también echa el brazo
+			if typeof(a) == "Vector3" then
+				for _, other in Players:GetPlayers() do
+					local root = other ~= player and other.Character and other.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+					if root and (root.Position - a).Magnitude < 4.5 then
+						ReactMotion.play(other.Character, "Throw")
+						break
+					end
+				end
+			end
 		elseif action == "Hit" then
 			local stone = flying[id]
 			if stone then
