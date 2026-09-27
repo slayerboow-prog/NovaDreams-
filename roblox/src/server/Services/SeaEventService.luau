@@ -1,6 +1,7 @@
 -- SeaEventService: catástrofes marinas (reglas en shared/SeaEvents.luau).
 --
--- Cada 8-16 minutos (si hay alguien jugando) pasa una al azar. Se avisa a todos y, tras la cuenta
+-- Cada 10-20 minutos (si hay alguien jugando) pasa una al azar. Las que más dañan (tsunami, temporal,
+-- remolino) tienen un tiempo mínimo largo entre una y otra (MinGap: el tsunami, 2 horas). Se avisa a todos y, tras la cuenta
 -- atrás, empieza el peligro. Aquí se decide todo lo que importa (daño, premios, pesca cerrada…);
 -- lo que se ve (la ola, los rayos, el remolino, las aletas…) lo pinta cada jugador (SeaEventsUI).
 --
@@ -231,6 +232,20 @@ function finish(text: string, kind: string?)
 	Remote:FireAllClients("End", { Text = text })
 end
 
+-- Cuándo salió cada tipo por última vez (al arrancar el servidor cuenta como "ahora": así un
+-- tsunami no sale nada más entrar, sino como pronto al cabo de su MinGap)
+local lastAt: { [string]: number } = {}
+local bootAt = os.clock()
+
+-- ¿Puede volver a salir este tipo? (ha pasado su MinGap)
+function SeaEventService.ready(id: string): boolean
+	local kind = KINDS[id]
+	if not kind then
+		return false
+	end
+	return os.clock() - (lastAt[id] or bootAt) >= (kind.MinGap or 0)
+end
+
 -- Empieza una catástrofe (kind: id de SeaEvents.Kinds; siteName opcional). Devuelve si ha empezado.
 function SeaEventService.start(kindId: string, siteName: string?): boolean
 	local kind = KINDS[kindId]
@@ -280,6 +295,7 @@ function SeaEventService.start(kindId: string, siteName: string?): boolean
 		Saved = {},
 	}
 	current = e
+	lastAt[kind.Id] = os.clock()
 	workspace:SetAttribute("SeaEvent", kind.Id)
 	workspace:SetAttribute("SeaEventAt", e.StartAt)
 	workspace:SetAttribute("SeaEventEnd", e.EndAt)
@@ -477,7 +493,10 @@ function SeaEventService.init()
 		while true do
 			task.wait(rng:NextNumber(SeaEvents.Every[1], SeaEvents.Every[2]))
 			if not current and #Players:GetPlayers() > 0 then
-				pcall(SeaEventService.start, SeaEvents.pick(rng:NextNumber()))
+				local id = SeaEvents.pick(rng:NextNumber(), SeaEventService.ready)
+				if id then
+					pcall(SeaEventService.start, id)
+				end
 			end
 		end
 	end)

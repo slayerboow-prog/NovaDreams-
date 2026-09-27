@@ -3243,6 +3243,11 @@ local function person(id, pos, items)
 	return p, root, hum
 end
 check(SeaEvents.pick(0) == "Tsunami" and SeaEvents.pick(0.9999) == "Medusas", "cada catástrofe tiene su probabilidad")
+check(not SeaEventService.ready("Tsunami") and SeaEventService.ready("Medusas") == false and SeaEvents.Kinds.Tsunami.MinGap >= 3600, "al arrancar no sale ninguna enseguida (y el tsunami, como mucho cada hora o más)")
+check(SeaEvents.pick(0, function(id)
+	return id ~= "Tsunami" and id ~= "Temporal" and id ~= "Remolino"
+end) == "MareaNegra", "las que están en espera no salen")
+check(SeaEvents.Kinds.Tsunami.Weight < SeaEvents.Kinds.Medusas.Weight and SeaEvents.Kinds.Tsunami.MinGap > SeaEvents.Kinds.Medusas.MinGap, "las que más dañan salen mucho menos")
 -- Tsunami en Playa Dorada
 local low, _, lowHum = person(201, Vector3.new(4150, 2, -1000))
 local high, _, highHum = person(202, Vector3.new(4150, 30, -1000))
