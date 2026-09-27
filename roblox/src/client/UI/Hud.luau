@@ -1005,14 +1005,32 @@ function Hud.init(openStore: () -> ()): ScreenGui
 		clock.Size = UDim2.fromOffset(if canvas.X < 1500 then 400 else 440, 54)
 		-- Tu estado (foto y vida) arriba a la izquierda y, debajo, el menú de comandos
 		-- (CommandMenu se coloca solo bajo "Status"); los objetivos van a la derecha, bajo el minimapa
+		if not TOUCH then
+			-- Ordenador: tu estado abajo a la derecha y los objetivos arriba a la izquierda
+			status.AnchorPoint = Vector2.new(1, 1)
+			status.Position = UDim2.new(1, -18, 1, -16)
+			arrangeStatus("Right")
+			objectivesPanel.AnchorPoint = Vector2.new(0, 0)
+			objectivesPanel.Position = UDim2.fromOffset(12, top)
+			objectivesLimit.MaxSize = Vector2.new(math.huge, math.max(120, canvas.Y - top - 300))
+			return
+		end
 		status.AnchorPoint = Vector2.new(0, 0)
 		status.Position = UDim2.fromOffset(8, top)
 		arrangeStatus("Left")
-		local y = top + 190
-		local minimap = gui.Parent and gui.Parent:FindFirstChild("MapUI") and gui.Parent.MapUI:FindFirstChild("Minimap")
-		if minimap and minimap:IsA("GuiObject") and minimap.Visible and minimap.AbsoluteSize.Y > 0 then
-			y = (minimap.AbsolutePosition.Y + minimap.AbsoluteSize.Y) / s + 16
+		-- Debajo del minimapa, de su cartel del barrio y del de la estación y el tiempo
+		local bottom = 0
+		local playerGui = gui.Parent
+		local mapGui = playerGui and playerGui:FindFirstChild("MapUI")
+		local weatherGui = playerGui and playerGui:FindFirstChild("WeatherChip")
+		for _, holder in { mapGui, weatherGui } do
+			for _, child in if holder then holder:GetChildren() else {} do
+				if child:IsA("GuiObject") and child.Visible and child.AbsolutePosition.X > camera.ViewportSize.X * 0.5 and child.AbsolutePosition.Y < camera.ViewportSize.Y * 0.5 then
+					bottom = math.max(bottom, child.AbsolutePosition.Y + child.AbsoluteSize.Y)
+				end
+			end
 		end
+		local y = if bottom > 0 then bottom / s + 14 else math.max(top + 250, 330)
 		objectivesPanel.AnchorPoint = Vector2.new(1, 0)
 		objectivesPanel.Position = UDim2.new(1, -12, 0, y)
 		-- En el móvil abajo a la derecha están saltar y el arco de botones (TouchLayout): los objetivos no bajan hasta ahí
@@ -1024,8 +1042,13 @@ function Hud.init(openStore: () -> ()): ScreenGui
 	end)
 	layout()
 	-- El minimapa lo crea MapUI un poco después: se recoloca cuando aparece
-	task.delay(3, layout)
-	task.delay(10, layout)
+	-- (y cada pocos segundos, por si el minimapa o el tiempo cambian de tamaño)
+	task.spawn(function()
+		while gui.Parent do
+			task.wait(4)
+			layout()
+		end
+	end)
 
 	-- Apps del teléfono que pone el propio HUD
 	Hud.addButton("🏠 Ir a casa", rgb(40, 110, 200), 1, function()
