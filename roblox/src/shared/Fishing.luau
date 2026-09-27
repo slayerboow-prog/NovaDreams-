@@ -143,7 +143,7 @@ Fishing.Species = {
 	sp("Morena", "Morena", "🐍", { Mar = 6 }, 13, 2, nil, 14, { 1, 8 }, 4),
 	sp("Langosta", "Langosta", "🦞", { Mar = 4, AltaMar = 4 }, 15, 3, "Nasa", 30, { 0.5, 3 }, 3),
 	sp("Rape", "Rape", "🐟", { Mar = 5, AltaMar = 5 }, 16, 3, nil, 20, { 2, 15 }, 4),
-	sp("Raya", "Raya", "🪁", { Mar = 5 }, 17, 3, nil, 18, { 2, 20 }, 5),
+	sp("Raya", "Raya", "🐟", { Mar = 5 }, 17, 3, nil, 18, { 2, 20 }, 5),
 	sp("Mero", "Mero", "🐟", { Mar = 4, AltaMar = 4 }, 19, 3, nil, 28, { 5, 40 }, 6),
 	-- Alta mar: solo desde el barco de pesca
 	sp("Merluza", "Merluza", "🐟", { AltaMar = 22 }, 2, 1, nil, 8, { 0.8, 3 }, 2, "Merluza"),
@@ -200,7 +200,7 @@ Fishing.Tools = {
 	Nasa = { Id = "Nasa", Name = "Nasa", Icon = "🧺", Level = 4, Price = 90, Desc = "Trampa para cangrejos y langostas." },
 	FusilSubmarino = { Id = "FusilSubmarino", Name = "Fusil submarino", Icon = "🏹", Level = 3, Price = 150, Desc = "Pesca buceando: dispara a los peces bajo el agua." },
 	Red = { Id = "Red", Name = "Red de pesca", Icon = "🕸️", Level = 8, Price = 250, Desc = "Para los bancos de calamares y bonitos." },
-	Botella = { Id = "Botella", Name = "Equipo de buceo", Icon = "🫧", Level = 15, Price = 900, Desc = "Botella de aire: 150 s bajo el agua y los peces del fondo." },
+	Botella = { Id = "Botella", Name = "Equipo de buceo", Icon = "💨", Level = 15, Price = 900, Desc = "Botella de aire: 150 s bajo el agua y los peces del fondo." },
 	Arpon = { Id = "Arpon", Name = "Arpón", Icon = "🔱", Level = 22, Price = 1200, Desc = "Con caña: peces espada, marlines y tiburones. Buceando: los grandes." },
 	Sonar = { Id = "Sonar", Name = "Sonar de pesca", Icon = "📡", Level = 28, Price = 2500, Desc = "Encuentra los peces del abismo (en alta mar)." },
 }
@@ -267,7 +267,7 @@ function Fishing.pickSpear(water: string, rng: Random, pop: { [string]: number }
 	return if #list > 0 then list[#list][1] else nil
 end
 
-Fishing.Bait = { Id = "Cebo", Name = "Cebo", Icon = "🪱", Price = 4, Pack = 5, Bite = 0.6, Desc = "Un cebo por lanzamiento: pican mucho antes." }
+Fishing.Bait = { Id = "Cebo", Name = "Cebo", Icon = "🐛", Price = 4, Pack = 5, Bite = 0.6, Desc = "Un cebo por lanzamiento: pican mucho antes." }
 Fishing.BoatPrice = 15 -- alquilar el barco de pesca (los pescadores de turno van gratis)
 
 -- Tiempos (segundos)

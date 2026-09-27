@@ -7,6 +7,13 @@
 --   * Bici, monopatín y patinete públicos (tag RentalStation, junto a las paradas de bus): gratis.
 --   * Vehículos propios: se compran y se sacan desde el botón "🚲 Vehículos".
 --   * Moto y coche piden ser mayor de edad y tener el carnet (autoescuela).
+--   * Pasajeros: coches, moto, coche patrulla, camiones llevan asientos de pasajero ("RideSeat",
+--     Rides.passengerSeats) con su cartel ("Subir de copiloto", "Subir detrás"). Cualquiera se
+--     puede subir (amigos, otros jugadores), también a un coche aparcado ("Sentarse"). Conducir
+--     sigue siendo solo del dueño y con carnet. Para bajarse: saltar o el botón "Bajarse"; se
+--     baja por su lado del vehículo, de pie en el suelo.
+--   * Todo el vehículo (con el conductor y los pasajeros) lo mueve el ordenador del conductor:
+--     así nadie tiembla (la base, "Chassis", es la raíz del conjunto: RootPriority).
 -- Datos guardados: data.Vehicles = { Bici = true, ... }, data.Licenses = { A = true, B = true }
 
 local CollectionService = game:GetService("CollectionService")
@@ -47,6 +54,17 @@ type Ride = {
 	LastPos: Vector3?,
 }
 local riding: { [Player]: Ride } = {}
+
+-- Quién va de pasajero y dónde
+type Passenger = {
+	Model: Model,
+	Seat: Seat,
+	Kind: string,
+	Humanoid: Humanoid,
+	Left: RBXScriptConnection?,
+	Died: RBXScriptConnection?,
+}
+local passengers: { [Player]: Passenger } = {}
 local dismountListeners: { (Player, string) -> () } = {}
 local folder: Folder
 
@@ -168,6 +186,76 @@ local function park(model: Model)
 		end
 	end
 	model:SetAttribute("Driver", nil)
+end
+
+-- Deja a alguien de pie junto al vehículo, por su lado (side: -1 izquierda, 1 derecha) y a la
+-- altura de su asiento (along: z del asiento respecto a la base). Siempre en el suelo que haya
+-- ahí (nunca dentro ni debajo de nada); si al lado no hay nada firme, encima del vehículo.
+local function placeBeside(character: Model, model: Model, kind: string, side: number, along: number?)
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	local root = character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	local chassis = model.PrimaryPart
+	if not root or not chassis or not humanoid or humanoid.Health <= 0 then
+		return
+	end
+	local spec = Rides.Spec[kind]
+	local width = if spec then spec.Size.X else chassis.Size.X
+	local gap = (width / 2) + 2.5
+	local flat = chassis.CFrame.Rotation:VectorToWorldSpace(Vector3.new(side, 0, 0))
+	flat = Vector3.new(flat.X, 0, flat.Z)
+	flat = if flat.Magnitude > 0.1 then flat.Unit else Vector3.new(side, 0, 0)
+	local forward = chassis.CFrame.Rotation:VectorToWorldSpace(Vector3.new(0, 0, along or 0))
+	forward = Vector3.new(forward.X, 0, forward.Z)
+	local spot = chassis.Position + flat * gap + forward
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = { model, character :: Instance }
+	params.RespectCanCollide = true
+	local hit = workspace:Raycast(spot + Vector3.new(0, 12, 0), Vector3.new(0, -40, 0), params)
+	if not hit or (hit.Instance == workspace.Terrain and hit.Position.Y < chassis.Position.Y - 3) then
+		-- nada firme al lado: encima del propio vehículo
+		hit = workspace:Raycast(chassis.Position + Vector3.new(0, 12, 0), Vector3.new(0, -40, 0), params)
+		spot = chassis.Position
+	end
+	local ground = if hit then hit.Position.Y else chassis.Position.Y
+	local height = humanoid.HipHeight + root.Size.Y / 2 + 0.5
+	-- Mirando hacia el morro, como quien acaba de bajarse (y la cámara queda detrás, no dentro del coche)
+	local look = Vector3.new(chassis.CFrame.LookVector.X, 0, chassis.CFrame.LookVector.Z)
+	look = if look.Magnitude > 0.1 then look.Unit else Vector3.new(0, 0, -1)
+	root.CFrame = CFrame.new(spot.X, math.max(ground, chassis.Position.Y - 2) + height, spot.Z) * CFrame.Angles(0, math.atan2(-look.X, -look.Z), 0)
+	root.AssemblyLinearVelocity = Vector3.zero
+	-- Vuelve a moverlo su propio ordenador (mientras iba sentado lo movía el del conductor)
+	pcall(function()
+		root:SetNetworkOwner(Players:GetPlayerFromCharacter(character))
+	end)
+end
+
+-- Quita la soldadura del asiento y levanta al humanoide
+local function unseat(humanoid: Humanoid?, seat: BasePart?)
+	if seat and seat.Parent then
+		local weld = seat:FindFirstChild("SeatWeld")
+		if weld then
+			weld:Destroy()
+		end
+	end
+	if humanoid then
+		humanoid.Sit = false
+	end
+end
+
+-- El ordenador del conductor mueve todo el vehículo, con quien vaya dentro
+local function claimOwnership(model: Model)
+	local chassis = model.PrimaryPart
+	local driverId = model:GetAttribute("Driver")
+	if not chassis or chassis.Anchored or typeof(driverId) ~= "number" then
+		return
+	end
+	local driver = Players:GetPlayerByUserId(driverId)
+	if driver then
+		pcall(function()
+			chassis:SetNetworkOwner(driver)
+		end)
+	end
 end
 
 ---------------------------------------------------------------------
@@ -319,45 +407,17 @@ function VehicleService.dismount(player: Player, silent: boolean?)
 	end
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
-	local seat = ride.Seat
-	if seat.Parent then
-		local weld = seat:FindFirstChild("SeatWeld")
-		if weld then
-			weld:Destroy()
-		end
-	end
-	if humanoid then
-		humanoid.Sit = false
-	end
-	local chassis = ride.Model.PrimaryPart
+	unseat(humanoid, ride.Seat)
 	if ride.Keep and ride.Model.Parent then
 		park(ride.Model)
 	end
 	-- Se baja por el lado izquierdo (del coche, fuera de la carrocería)
-	if root and chassis and humanoid and humanoid.Health > 0 then
-		-- Al lado izquierdo, de pie sobre el suelo que haya ahí (nunca dentro ni debajo de nada)
-		local side = (Rides.Spec[ride.Kind].Size.X / 2) + 2.5
-		local flat = chassis.CFrame.Rotation:VectorToWorldSpace(Vector3.new(-1, 0, 0))
-		flat = Vector3.new(flat.X, 0, flat.Z)
-		flat = if flat.Magnitude > 0.1 then flat.Unit else Vector3.new(-1, 0, 0)
-		local spot = chassis.Position + flat * side
-		local params = RaycastParams.new()
-		params.FilterType = Enum.RaycastFilterType.Exclude
-		params.FilterDescendantsInstances = { ride.Model, character :: Instance }
-		params.RespectCanCollide = true
-		local hit = workspace:Raycast(spot + Vector3.new(0, 12, 0), Vector3.new(0, -40, 0), params)
-		if not hit or (hit.Instance == workspace.Terrain and hit.Position.Y < chassis.Position.Y - 3) then
-			-- nada firme al lado: encima del propio vehículo
-			hit = workspace:Raycast(chassis.Position + Vector3.new(0, 12, 0), Vector3.new(0, -40, 0), params)
-			spot = chassis.Position
-		end
-		local ground = if hit then hit.Position.Y else chassis.Position.Y
-		local height = humanoid.HipHeight + root.Size.Y / 2 + 0.5
-		root.CFrame = CFrame.new(spot.X, math.max(ground, chassis.Position.Y - 2) + height, spot.Z) * CFrame.Angles(0, math.atan2(-flat.X, -flat.Z) + math.pi / 2, 0)
-		root.AssemblyLinearVelocity = Vector3.zero
+	if character then
+		placeBeside(character, ride.Model, ride.Kind, -1, 0)
 	end
 	if not ride.Keep then
+		-- Vehículo de alquiler o de trabajo: se retira (los pasajeros se bajan antes, a su lado)
+		VehicleService.emptyPassengers(ride.Model)
 		ride.Model:Destroy()
 	end
 	player:SetAttribute("Riding", nil)
@@ -370,6 +430,153 @@ function VehicleService.dismount(player: Player, silent: boolean?)
 		task.spawn(listener, player, ride.Kind)
 	end
 end
+
+---------------------------------------------------------------------
+-- Pasajeros
+---------------------------------------------------------------------
+
+function VehicleService.passengerKind(player: Player): string?
+	local entry = passengers[player]
+	return if entry then entry.Kind else nil
+end
+
+-- Se baja del asiento de pasajero. place = false: no se le recoloca (se cambia de asiento,
+-- se muere o se va del juego)
+function VehicleService.leavePassenger(player: Player, silent: boolean?, place: boolean?)
+	local entry = passengers[player]
+	if not entry then
+		return
+	end
+	passengers[player] = nil
+	if entry.Left then
+		entry.Left:Disconnect()
+	end
+	if entry.Died then
+		entry.Died:Disconnect()
+	end
+	player:SetAttribute("Passenger", nil)
+	local seat = entry.Seat
+	if seat.Occupant == nil or seat.Occupant == entry.Humanoid then
+		unseat(if entry.Humanoid.SeatPart == seat or seat.Occupant == entry.Humanoid then entry.Humanoid else nil, seat)
+	end
+	local character = player.Character
+	local chassis = entry.Model.PrimaryPart
+	if place ~= false and character and chassis and entry.Model.Parent then
+		local along = chassis.CFrame:PointToObjectSpace(seat.Position).Z
+		local side = seat:GetAttribute("Side")
+		placeBeside(character, entry.Model, entry.Kind, if typeof(side) == "number" then side else 1, along)
+	end
+	if not silent then
+		Notify:FireClient(player, "Info", "Te has bajado.")
+	end
+end
+
+-- Todos abajo (el vehículo se va a retirar): cada uno por su lado
+function VehicleService.emptyPassengers(model: Model)
+	for player, entry in passengers do
+		if entry.Model == model then
+			VehicleService.leavePassenger(player, true)
+		end
+	end
+end
+
+-- Sube a alguien a un asiento de pasajero. Cualquiera puede ir de pasajero (también en un coche
+-- ajeno o aparcado); conducir sigue siendo solo del dueño y con carnet.
+function VehicleService.board(player: Player, seat: Seat): boolean
+	local model = seat.Parent
+	if not model or not model:IsA("Model") or not model:GetAttribute("Drivable") or seat.Name ~= "RideSeat" then
+		return false
+	end
+	local kind = model:GetAttribute("Kind")
+	if typeof(kind) ~= "string" then
+		return false
+	end
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if not humanoid or not root or humanoid.Health <= 0 then
+		return false
+	end
+	if player:GetAttribute("Sleeping") or player:GetAttribute("Crawling") or player:GetAttribute("JailUntil") or player:GetAttribute("OnTrial") then
+		return false
+	end
+	if not LifeService.allows(player, "Travel") then
+		return false
+	end
+	if seat.Occupant and seat.Occupant ~= humanoid then
+		Notify:FireClient(player, "Error", "Ese asiento ya está ocupado.")
+		return false
+	end
+	-- Ya va en este vehículo: para cambiarse de sitio, que se baje primero
+	local ride = riding[player]
+	local current = passengers[player]
+	if (ride and ride.Model == model) or (current and current.Model == model) then
+		return false
+	end
+	if ride and ride.Exam then
+		return false -- en el examen práctico no se cambia de vehículo
+	end
+	VehicleService.dismount(player, true)
+	VehicleService.leavePassenger(player, true, false)
+	if humanoid.SeatPart then
+		unseat(humanoid, humanoid.SeatPart)
+	end
+	root.CFrame = seat.CFrame * CFrame.new(0, 3, 0)
+	seat:Sit(humanoid)
+	local entry: Passenger = { Model = model, Seat = seat, Kind = kind, Humanoid = humanoid }
+	passengers[player] = entry
+	-- Saltar (o "Bajarse") le levanta del asiento: se baja por su lado
+	entry.Left = seat:GetPropertyChangedSignal("Occupant"):Connect(function()
+		if seat.Occupant ~= humanoid and passengers[player] == entry then
+			VehicleService.leavePassenger(player)
+		end
+	end)
+	entry.Died = humanoid.Died:Connect(function()
+		if passengers[player] == entry then
+			VehicleService.leavePassenger(player, true, false)
+		end
+	end)
+	player:SetAttribute("Passenger", kind)
+	claimOwnership(model)
+	local vehicle = Gameplay.Vehicles[kind]
+	Notify:FireClient(player, "Info", ("%s Vas de pasajero. Para bajarte, salta o pulsa «Bajarse»."):format(vehicle and vehicle.Icon or "🚗"))
+	return true
+end
+
+-- Carteles de los asientos de pasajero ("Subir de copiloto", "Subir detrás") de un vehículo
+-- preparado con Rides.prepare. Si el vehículo se retira, los pasajeros se bajan antes.
+local function setupSeats(model: Model, kind: string)
+	if model:GetAttribute("SeatsReady") then
+		return
+	end
+	model:SetAttribute("SeatsReady", true)
+	local vehicle = Gameplay.Vehicles[kind]
+	local spec = Rides.Spec[kind]
+	local big = spec ~= nil and spec.Size.X > 7
+	for _, seat in model:GetChildren() do
+		if seat:IsA("Seat") and seat.Name == "RideSeat" then
+			local label = seat:GetAttribute("Label")
+			local prompt = Instance.new("ProximityPrompt")
+			prompt.Name = "SeatPrompt"
+			prompt.ActionText = if typeof(label) == "string" then label else "Sentarse"
+			prompt.ObjectText = if vehicle then vehicle.Icon .. " " .. vehicle.Name else ""
+			prompt.MaxActivationDistance = if big then 10 else 7
+			prompt.RequiresLineOfSight = false
+			prompt.HoldDuration = 0.2
+			prompt.Parent = seat
+			prompt.Triggered:Connect(function(player)
+				VehicleService.board(player, seat)
+			end)
+			seat:GetPropertyChangedSignal("Occupant"):Connect(function()
+				prompt.Enabled = seat.Occupant == nil
+			end)
+		end
+	end
+	model.Destroying:Connect(function()
+		VehicleService.emptyPassengers(model)
+	end)
+end
+VehicleService.setupSeats = setupSeats
 
 -- ¿Puede conducir este vehículo? (edad y carnet; en el examen no hace falta carnet)
 local function allowed(player: Player, kind: string, exam: boolean?): boolean
@@ -406,12 +613,9 @@ local function drive(player: Player, model: Model, kind: string, opts: { Rented:
 		return false
 	end
 	VehicleService.dismount(player, true)
+	VehicleService.leavePassenger(player, true, false) -- (si iba de pasajero, se pasa al volante)
 	if humanoid.SeatPart then
-		humanoid.Sit = false
-		local weld = humanoid.SeatPart:FindFirstChild("SeatWeld")
-		if weld then
-			weld:Destroy()
-		end
+		unseat(humanoid, humanoid.SeatPart)
 	end
 
 	-- En marcha: sin choques (lo guía Driving.luau con rayos) y suelto para que se mueva
@@ -515,7 +719,7 @@ local function setupParkedCar(model: Instance)
 	if not body or not body:IsA("BasePart") then
 		return
 	end
-	-- Cartel ligero en la carrocería; el coche solo se prepara cuando alguien lo coge
+	-- Carteles ligeros en la carrocería; el coche solo se prepara cuando alguien lo coge
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.Name = "DrivePrompt"
 	prompt.ActionText = "Conducir"
@@ -524,19 +728,56 @@ local function setupParkedCar(model: Instance)
 	prompt.RequiresLineOfSight = false
 	prompt.HoldDuration = 0.25
 	prompt.Parent = body
+	local sit = Instance.new("ProximityPrompt")
+	sit.Name = "SitPrompt"
+	sit.ActionText = "Sentarse"
+	sit.ObjectText = "🚗 Coche aparcado"
+	sit.MaxActivationDistance = 9
+	sit.RequiresLineOfSight = false
+	sit.HoldDuration = 0.25
+	sit.UIOffset = Vector2.new(0, 58)
+	sit.Parent = body
+	-- Al cogerlo (o sentarse) se ve con todo detalle (interior, montantes, retrovisores…) y ya
+	-- tiene sus asientos de verdad, cada uno con su cartel
+	local function activate()
+		prompt:Destroy()
+		sit:Destroy()
+		local ground = body.CFrame * CFrame.new(0, -2.2, 0)
+		require(script.Parent.Parent.World.Kit.CarModel).upgrade(model :: Model, ground)
+		Rides.prepare(model :: Model, "Coche", ground)
+		addDrivePrompt(model :: Model, "Coche")
+		addHeadlight(model :: Model)
+		setupSeats(model :: Model, "Coche")
+	end
 	prompt.Triggered:Connect(function(player)
 		local ride = riding[player]
 		if (ride and ride.Exam) or not allowed(player, "Coche") or model:GetAttribute("Drivable") then
 			return
 		end
-		prompt:Destroy()
-		local ground = body.CFrame * CFrame.new(0, -2.2, 0)
-		-- Al cogerlo se ve con todo detalle (interior, montantes, retrovisores…)
-		require(script.Parent.Parent.World.Kit.CarModel).upgrade(model :: Model, ground)
-		Rides.prepare(model, "Coche", ground)
-		addDrivePrompt(model, "Coche")
-		addHeadlight(model)
-		drive(player, model, "Coche", { Keep = true })
+		activate()
+		drive(player, model :: Model, "Coche", { Keep = true })
+	end)
+	sit.Triggered:Connect(function(player)
+		local ride = riding[player]
+		local character = player.Character
+		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+		if (ride and ride.Exam) or not root or model:GetAttribute("Drivable") or not LifeService.allows(player, "Travel") then
+			return
+		end
+		activate()
+		-- El asiento libre más cercano (el de su lado)
+		local best, bestD = nil, math.huge
+		for _, seat in model:GetChildren() do
+			if seat:IsA("Seat") and seat.Name == "RideSeat" and not seat.Occupant then
+				local d = (seat.Position - root.Position).Magnitude
+				if d < bestD then
+					best, bestD = seat, d
+				end
+			end
+		end
+		if best then
+			VehicleService.board(player, best)
+		end
 	end)
 end
 
@@ -576,6 +817,7 @@ function VehicleService.mount(player: Player, kind: string, opts: { Rented: bool
 	model:SetAttribute("OwnerId", player.UserId)
 	Rides.prepare(model, kind, cf)
 	addHeadlight(model)
+	setupSeats(model, kind)
 	model.Parent = folder
 	local keep = not options.Rented and not options.Exam
 	if keep then
@@ -683,6 +925,8 @@ function VehicleService.init()
 			local ride = riding[player]
 			if ride then
 				VehicleService.dismount(player)
+			elseif passengers[player] then
+				VehicleService.leavePassenger(player)
 			end
 		elseif action == "Spawn" and typeof(kind) == "string" then
 			spawnOwned(player, kind)
@@ -691,18 +935,19 @@ function VehicleService.init()
 		end
 	end)
 
-	Players.PlayerAdded:Connect(function(player)
+	local function watchCharacter(player: Player)
 		player.CharacterRemoving:Connect(function()
 			VehicleService.dismount(player, true)
+			VehicleService.leavePassenger(player, true, false)
 		end)
-	end)
+	end
+	Players.PlayerAdded:Connect(watchCharacter)
 	for _, player in Players:GetPlayers() do
-		player.CharacterRemoving:Connect(function()
-			VehicleService.dismount(player, true)
-		end)
+		watchCharacter(player)
 	end
 	Players.PlayerRemoving:Connect(function(player)
 		VehicleService.dismount(player, true)
+		VehicleService.leavePassenger(player, true, false)
 		if parked[player] then
 			parked[player]:Destroy()
 			parked[player] = nil

@@ -848,6 +848,75 @@ remotes.Vehicle.OnServerEvent:Fire(adult, "Dismount")
 check(not VehicleService.hasLicense(adult, "A") and adult:GetAttribute("TaskTarget") == nil, "si se baja en el práctico, suspende")
 
 ---------------------------------------------------------------------
+print("▶ Pasajeros")
+do
+	local Rides = loadModule(ROOT .. "/server/World/Kit/Rides")
+	check(#Rides.passengerSeats("Moto") == 1 and #Rides.passengerSeats("Bici") == 0 and #Rides.passengerSeats("Patinete") == 0 and #Rides.passengerSeats("Monopatin") == 0, "la moto lleva asiento de atrás; bici, patinete y monopatín no")
+	check(#Rides.passengerSeats("Patrulla") == 3 and #Rides.passengerSeats("Bomberos") == 3 and #Rides.passengerSeats("Camion") == 1, "coche patrulla y camiones llevan asientos de pasajero")
+	local car = worldRoot.Rides:FindFirstChild("Coche")
+	local seats = {}
+	for _, c in car:GetChildren() do
+		if c.ClassName == "Seat" and c.Name == "RideSeat" then
+			table.insert(seats, c)
+		end
+	end
+	check(#seats == 3 and promptOf(car, "Subir de copiloto") ~= nil and promptOf(car, "Subir detrás") ~= nil, "el coche tiene copiloto y dos asientos detrás, cada uno con su cartel")
+	check(car.PrimaryPart.RootPriority == 127, "la base del coche manda en el conjunto (nadie tiembla)")
+	local friend, friendRoot, friendHumanoid = newPlayer(21, "AdultoJoven", 500)
+	moveTo(friendRoot, car.PrimaryPart.Position + Vector3.new(4, 0, 0))
+	promptOf(car, "Conducir").Triggered:Fire(friend)
+	check(friend:GetAttribute("Riding") == nil and notified(friend, "de otra persona"), "no puede conducir el coche de otro")
+	promptOf(car, "Subir de copiloto").Triggered:Fire(friend)
+	check(friend:GetAttribute("Passenger") == "Coche" and friendHumanoid.SeatPart ~= nil and friendHumanoid.SeatPart.Name == "RideSeat", "se sube de copiloto al coche aparcado de su amigo")
+	check(promptOf(car, "Subir de copiloto").Enabled == false, "el asiento ocupado ya no ofrece subirse")
+	local kidRider, _, kidHumanoid = newPlayer(22, "Nino", 0)
+	promptOf(car, "Subir de copiloto").Triggered:Fire(kidRider)
+	check(kidRider:GetAttribute("Passenger") == nil, "no se puede sentar en un asiento ocupado")
+	local back
+	for _, seat in seats do
+		if seat:GetAttribute("Label") == "Subir detrás" then
+			back = seat
+			break
+		end
+	end
+	back.SeatPrompt.Triggered:Fire(kidRider)
+	check(kidRider:GetAttribute("Passenger") == "Coche" and kidHumanoid.SeatPart == back, "un niño va detrás")
+	promptOf(car, "Conducir").Triggered:Fire(adult)
+	check(adult:GetAttribute("Riding") == "Coche" and car:GetAttribute("Driver") == adult.UserId, "el dueño conduce con sus amigos dentro")
+	check(friend:GetAttribute("Passenger") == "Coche" and friendHumanoid.SeatPart ~= nil and not car.PrimaryPart.Anchored, "los pasajeros siguen sentados con el coche en marcha")
+	remotes.Vehicle.OnServerEvent:Fire(adult, "Dismount")
+	check(adult:GetAttribute("Riding") == nil and friend:GetAttribute("Passenger") == "Coche" and car.PrimaryPart.Anchored, "si el conductor se baja, los pasajeros siguen en el coche aparcado")
+	-- Con suelo de verdad para ver dónde queda
+	local floor = part("Street", CFrame.new(0, -0.5, 0))
+	local oldRaycast = Fake.Raycast
+	Fake.Raycast = function(_, origin)
+		return { Position = Vector3.new(origin.X, 0, origin.Z), Instance = floor, Normal = Vector3.new(0, 1, 0), Material = Enum.Material.Concrete }
+	end
+	remotes.Vehicle.OnServerEvent:Fire(friend, "Dismount")
+	local rel = car.PrimaryPart.CFrame:PointToObjectSpace(friendRoot.Position)
+	check(friend:GetAttribute("Passenger") == nil and friendHumanoid.SeatPart == nil, "se baja con «Bajarse»")
+	check(rel.X > 3.5 and rel.X < 7.5 and math.abs(rel.Z) < 2 and friendRoot.Position.Y > 1, "se baja por su lado, de pie junto al coche (no dentro)")
+	check(promptOf(car, "Subir de copiloto").Enabled == true, "el asiento queda libre otra vez")
+	kidHumanoid.Sit = false
+	rel = car.PrimaryPart.CFrame:PointToObjectSpace(kidHumanoid.Parent.HumanoidRootPart.Position)
+	check(kidRider:GetAttribute("Passenger") == nil and rel.X < -3.5 and rel.Z > 1, "saltar le baja por la puerta de atrás de su lado")
+	-- Vehículo de trabajo o de alquiler: al retirarlo, los pasajeros se bajan antes
+	VehicleService.mount(adult, "Coche", { Rented = true })
+	local rented
+	for _, m in worldRoot.Rides:GetChildren() do
+		if m:GetAttribute("Driver") == adult.UserId then
+			rented = m
+		end
+	end
+	promptOf(rented, "Subir de copiloto").Triggered:Fire(friend)
+	check(friend:GetAttribute("Passenger") == "Coche", "se sube de copiloto a un vehículo de trabajo")
+	remotes.Vehicle.OnServerEvent:Fire(adult, "Dismount")
+	check(friend:GetAttribute("Passenger") == nil and friendHumanoid.SeatPart == nil and friendRoot.Position.Y > 1, "al retirarlo, el pasajero se baja a su lado")
+	Fake.Raycast = oldRaycast
+	floor:Destroy()
+end
+
+---------------------------------------------------------------------
 print("▶ Recreativos")
 profiles[kid].Money = 100
 promptOf(machineBolas).Triggered:Fire(kid)

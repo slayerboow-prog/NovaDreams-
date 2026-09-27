@@ -19,6 +19,7 @@ local UserInputService = game:GetService("UserInputService")
 local Items = require(ReplicatedStorage.Shared.Items)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Hud = require(script.Parent.Parent.UI.Hud)
+local ReactMotion = require(script.Parent.ReactMotion)
 
 local create = Theme.create
 
@@ -569,7 +570,7 @@ local function buildWindow()
 	local title = label("🎒  Mochila", header, 1)
 	title.TextSize = 22
 	title.Size = UDim2.new(1, -130, 1, 0)
-	local close = mcButton("✕  Cerrar", header, 2)
+	local close = mcButton("✖  Cerrar", header, 2)
 	close.AnchorPoint = Vector2.new(1, 0)
 	close.Position = UDim2.fromScale(1, 0)
 	close.Size = UDim2.fromOffset(116, 34)
@@ -758,6 +759,8 @@ useSlot = function(index: number)
 	end
 	if item.Kind == "Food" then
 		Remote:FireServer("Use", index)
+		-- La mano a la boca (o el vaso, si es una bebida)
+		ReactMotion.play(player.Character, ReactMotion.foodGesture(item.Name))
 	elseif item.Kind == "Vehicle" then
 		local vehicle = Remotes:FindFirstChild("Vehicle") :: RemoteEvent?
 		if vehicle then

@@ -26,6 +26,7 @@ local GameClock = require(ReplicatedStorage.Shared.GameClock)
 local MapInfo = require(ReplicatedStorage.Shared.MapInfo)
 local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 local Theme = require(script.Parent.Theme)
+local TouchLayout = require(script.Parent.TouchLayout)
 
 local create = Theme.create
 local setText = Theme.setText
@@ -446,7 +447,7 @@ local function objectiveRow(parent: Instance, order: number, text: string, done:
 		create("UIStroke", { Color = if done then C.Money else C.Muted, Thickness = 1.5 }),
 	})
 	if done then
-		Theme.label({ Size = UDim2.fromScale(1, 1), Text = "✓", TextSize = 11, Font = Theme.FontBold, TextXAlignment = Enum.TextXAlignment.Center, Parent = dot })
+		Theme.label({ Size = UDim2.fromScale(1, 1), Text = "✔", TextSize = 11, Font = Theme.FontBold, TextXAlignment = Enum.TextXAlignment.Center, Parent = dot })
 	end
 	Theme.label({
 		Size = UDim2.new(1, -28, 0, 0),
@@ -523,7 +524,7 @@ local function renderObjectives(state: { [string]: any })
 	end
 	local others = state.Others or {}
 	if #others > 0 then
-		section(objectivesList, nextOrder(), "◆", "Objetivos opcionales", C.Purple)
+		section(objectivesList, nextOrder(), "🔶", "Objetivos opcionales", C.Purple)
 		for i = 1, math.min(3, #others) do
 			local other = others[i]
 			local row = objectiveRow(objectivesList, nextOrder(), Strings.get(other.TitleKey), false)
@@ -1034,8 +1035,9 @@ function Hud.init(openStore: () -> ()): ScreenGui
 		objectivesPanel.AnchorPoint = Vector2.new(1, 0)
 		objectivesPanel.Position = UDim2.new(1, -12, 0, y)
 		-- En el móvil abajo a la derecha están saltar y el arco de botones (TouchLayout): los objetivos no bajan hasta ahí
-		local room = canvas.Y - y - (if TOUCH then 360 else 40)
-		objectivesLimit.MaxSize = Vector2.new(math.huge, math.max(120, room))
+		-- (se para 12 px por encima del botón más alto del arco)
+		local room = canvas.Y - y - (TouchLayout.top() + 12) / s
+		objectivesLimit.MaxSize = Vector2.new(math.huge, math.max(60, room))
 	end
 	camera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
 		task.defer(layout)
