@@ -63,6 +63,9 @@
         "Social": {
           "$className": "RemoteEvent"
         },
+        "Interact": {
+          "$className": "RemoteEvent"
+        },
         "Fishing": {
           "$className": "RemoteEvent"
         },

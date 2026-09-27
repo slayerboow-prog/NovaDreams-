@@ -39,6 +39,7 @@ local order = {
 	"WorldService",
 	"InteriorService", -- todos los edificios por dentro (salas al entrar, ascensores e instituciones)
 	"PropertyService", -- casas y pisos que se compran, y los vecinos que viven en ellos
+	"InteractService", -- los muebles se usan: sentarse, dormir, tele, luces, nevera, grifos, ducha, puertas…
 	"WeatherService", -- estaciones y tiempo: sol, lluvia, tormenta, nieve, niebla
 	"ToyService", -- balones y conos con física: se patean, botan y vuelven solos a su sitio
 	"BreakService", -- piedras que se lanzan: ventanas y puertas que se rompen (y se arreglan solas)

@@ -469,6 +469,9 @@ local function onPrompt(prompt: ProximityPrompt)
 	if not at then
 		return
 	end
+	if prompt:GetAttribute("NoGesture") then
+		return -- los muebles con postura propia (grifo, nevera, piano…): UseMotion
+	end
 	local kind = ReactMotion.gestureFor(prompt.ActionText, 0)
 	if kind == nil then
 		return -- sentarse, montar, hablar…: lo hace su propia animación

@@ -160,6 +160,14 @@ Config.Sounds = {
 	MenuAbrir = { Id = "rbxasset://sounds/swoosh.wav", Volume = 0.2, Pitch = 1.8 },
 	Choque = { Id = "rbxasset://sounds/collide.wav", Volume = 1, Pitch = 0.55 },
 	Arranque = { Id = "rbxasset://sounds/switch.wav", Volume = 0.5, Pitch = 0.7 },
+	-- Muebles de las casas y edificios (InteractClient)
+	Interruptor = { Id = "rbxasset://sounds/switch.wav", Volume = 0.35, Pitch = 1.4 },
+	Puerta = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.4, Pitch = 0.55 },
+	Nevera = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.35, Pitch = 0.8 },
+	Agua = { Id = "rbxasset://sounds/action_swim.mp3", Volume = 0.25, Pitch = 1.6 },
+	Piano = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.35, Pitch = 1 },
+	Tecla = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.12, Pitch = 1.8 },
+	Tele = { Id = 0, Volume = 0.3, Pitch = 1 }, -- (pon un ID para oír la tele encendida)
 	-- Estos no vienen con Roblox: pon un ID (o un Sound en ReplicatedStorage > Sonidos) para oírlos
 	Motor = { Id = 0, Volume = 0.45, Pitch = 1 }, -- en bucle mientras conduces un coche o una moto
 	Claxon = { Id = 0, Volume = 0.8, Pitch = 1 }, -- tecla H en coche o moto
@@ -401,7 +409,7 @@ Config.Foods = {
 	Hamburguesa = { Name = "Hamburguesa", Price = 25, Hunger = 55, Energy = 0 },
 	Menu = { Name = "Menú completo", Price = 45, Hunger = 100, Energy = 10 },
 	-- La nevera de tu casa es gratis, pero tiene tiempo de espera
-	Nevera = { Name = "Algo de la nevera", Price = 0, Hunger = 20, Energy = 0, Cooldown = 180 },
+	Nevera = { Name = "Algo de la nevera", Price = 0, Hunger = 20, Energy = 0, Cooldown = 3 }, -- (en casa se come sin límite)
 }
 
 Config.SleepSeconds = 4 -- lo que dura la animación de dormir

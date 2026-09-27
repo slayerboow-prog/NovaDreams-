@@ -348,7 +348,8 @@ local function busy(body: Body): boolean
 		return true
 	end
 	local player = body.Player
-	if player and (player:GetAttribute("Riding") or player:GetAttribute("Sleeping")) then
+	-- (usando un mueble —tumbado, en el grifo, al piano…— manda la postura de UseMotion)
+	if player and (player:GetAttribute("Riding") or player:GetAttribute("Sleeping") or player:GetAttribute("UsePose")) then
 		return true
 	end
 	return false

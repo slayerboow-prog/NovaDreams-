@@ -258,12 +258,17 @@ local function castLook(id: string): ({ [string]: any }?, string?)
 	return look, name
 end
 
-local function resident(inst: InteriorService.Instance_, name: string, spot: CFrame, look: { [string]: any }?, scale: number?)
+local function resident(inst: InteriorService.Instance_, name: string, spot: CFrame, look: { [string]: any }?, scale: number?, seat: BasePart?)
 	local model = Npc.create(name, inst.Room.Model, spot, look)
 	if scale and scale ~= 1 then
 		pcall(function()
 			model:ScaleTo(scale)
 		end)
+	end
+	if seat then
+		-- Sentado en el sofá (el asiento queda ocupado: nadie más se sienta encima)
+		seat:SetAttribute("Taken", true)
+		pcall(Npc.sit, model, seat)
 	end
 	model:SetAttribute("Resident", true)
 	local root = model.PrimaryPart
@@ -288,7 +293,8 @@ local function signAt(inst: InteriorService.Instance_, text: string, color: Colo
 	local part = Builder.part({
 		Name = "PropertySign",
 		Size = Vector3.new(7, 3.4, 0.4),
-		CFrame = r.at(offsetX, 4.5, -r.D / 2 + 6),
+		-- (las viviendas dicen dónde caben sin tapar muebles; si no, junto a la entrada)
+		CFrame = if r.SignAt then r.SignAt(if offsetX < 0 then -1 else 1) else r.at(offsetX, 4.5, -r.D / 2 + 6),
 		Color = color,
 		CanCollide = false,
 		Parent = r.Model,
@@ -328,24 +334,37 @@ local function decorate(inst: InteriorService.Instance_)
 	if Properties.isNeighborHome(unit) then
 		-- Vecinos: un personaje de la historia (si esta es su casa) o vecinos con nombre
 		local castId = castHomes[unit]
-		local spots = {
-			r.at(r.W * 0.2, 0, -r.D * 0.02 - 2) * CFrame.Angles(0, math.pi, 0),
-			r.at(-r.W * 0.22, 0, -r.D * 0.2 - 3),
-			r.at(-r.W * 0.1, 0, -r.D * 0.3),
-		}
+		-- (sitios libres que deja la sala: salón, comedor, junto a la ventana)
+		local spots = if #r.Spots > 0
+			then r.Spots
+			else {
+				r.at(r.W * 0.2, 0, -r.D * 0.02 - 2) * CFrame.Angles(0, math.pi, 0),
+				r.at(-r.W * 0.22, 0, -r.D * 0.2 - 3),
+				r.at(-r.W * 0.1, 0, -r.D * 0.3),
+			}
 		local names = Properties.neighbors(unit)
+		-- Uno de ellos, a veces, sentado en el sofá
+		local sofaSeat: BasePart? = nil
+		if Properties.hash("sofa:" .. unit) % 2 == 0 then
+			for _, d in r.Model:GetDescendants() do
+				if d:IsA("Seat") and d.Parent and d.Parent.Name == "Sofa" then
+					sofaSeat = d
+					break
+				end
+			end
+		end
 		if castId then
 			local look, name = castLook(castId)
 			local person = Cast.People[castId]
 			local scale = if person and person.Kid then 0.65 elseif person and person.Teen then 0.85 else 1
-			resident(inst, name or castId, spots[1], look, scale)
+			resident(inst, name or castId, spots[1], look, scale, if scale == 1 then sofaSeat else nil)
 			if person and (person.Kid or person.Teen) then
 				resident(inst, names[1], spots[2], nil) -- vive con su familia
 			end
 			signAt(inst, "🏠 AQUÍ VIVE " .. string.upper(name or castId), Color3.fromRGB(60, 110, 70), -8)
 		else
 			for i, name in names do
-				resident(inst, name, spots[i] or spots[1], nil)
+				resident(inst, name, spots[i] or spots[1], nil, nil, if i == 1 then sofaSeat else nil)
 			end
 			signAt(inst, "🏠 FAMILIA " .. string.upper(string.match(names[1], "%s(.+)$") or names[1]), Color3.fromRGB(60, 110, 70), -8)
 		end
@@ -417,6 +436,39 @@ local function labels(building: InteriorService.Building): { [number]: string }
 		end
 	end
 	return out
+end
+
+-- Qué es esa sala para ese jugador (lo usa InteractService con los muebles; shared/Interact):
+-- "Owner" (suya), "Guest" (de alguien de su grupo), "Stranger" (de otro jugador), "Neighbor"
+-- (viven vecinos), "ForSale" (en venta) o "Public" (no es una vivienda)
+function PropertyService.access(player: Player, building: InteriorService.Building, floor: number): string
+	if not unitKind(building, floor) then
+		return "Public"
+	end
+	local owner = ownerOf(building, floor)
+	if owner then
+		if owner.UserId == player.UserId then
+			return "Owner"
+		end
+		local ownerPlayer = Players:GetPlayerByUserId(owner.UserId)
+		local group = player:GetAttribute("GroupId")
+		if ownerPlayer and group ~= nil and ownerPlayer:GetAttribute("GroupId") == group then
+			return "Guest"
+		end
+		return "Stranger"
+	end
+	if Properties.isNeighborHome(Properties.unitKey(building.Key, floor)) then
+		return "Neighbor"
+	end
+	return "ForSale"
+end
+
+-- ¿Tiene dueño esa vivienda? (UserId y nombre, o nil)
+function PropertyService.ownerOf(building: InteriorService.Building, floor: number): Owner?
+	if not unitKind(building, floor) then
+		return nil
+	end
+	return ownerOf(building, floor)
 end
 
 -- "Ir a casa": a tu vivienda (la primera que compraste)
