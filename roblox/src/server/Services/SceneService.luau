@@ -29,6 +29,7 @@ local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 local Locations = require(ReplicatedStorage.Shared.LifeStory.Locations)
 local LocationService = require(script.Parent.LocationService)
 local Npc = require(script.Parent.Parent.World.Npc) -- ropa, pelo y pies en el suelo (lo comparte todo el juego)
+local Log = require(ReplicatedStorage.Shared.Log)
 
 local SceneService = {}
 
@@ -83,6 +84,9 @@ type Actor = {
 	Computing: boolean?,
 	Recomputes: number,
 	TurnUntil: number?, -- (Idle) girándose hacia el jugador
+	Facing: boolean?, -- está girándose hacia quien le habla
+	Talking: boolean?, -- está en una conversación contigo (quieto, mirándote)
+	Recovered: number?, -- (vigilante) última vez que se le devolvió a su sitio
 }
 type Prop = { Id: string, Key: string, Model: Model }
 type Scene = { Actors: { [string]: Actor }, Props: { [string]: Prop } }
@@ -1002,7 +1006,11 @@ end
 function applySet(player: Player, questId: string, actors: { { [string]: any } }, props: { string }, defs: { [string]: any }?)
 	scenes[player] = scenes[player] or {}
 	local byQuest = scenes[player]
-	local scene = byQuest[questId] or { Actors = {}, Props = {} }
+	local scene = byQuest[questId]
+	if not scene then
+		scene = { Actors = {}, Props = {} }
+		Log.info("SCENE", "begin %s (%s): %d actores, %d objetos", questId, player.Name, #actors, #props)
+	end
 	byQuest[questId] = scene
 	-- Crear un personaje espera a Roblox: si mientras tanto el jugador se fue (o la escena se quitó),
 	-- lo recién creado se borra y se deja de montar (si no, quedaban actores fantasma en el mapa)
@@ -1102,6 +1110,8 @@ function applySet(player: Player, questId: string, actors: { { [string]: any } }
 				return
 			end
 			scene.Props[id] = created
+		else
+			Log.warn("SCENE", "%s (%s): el objeto %s no tiene sitio en el mapa", questId, player.Name, id)
 		end
 	end
 end
@@ -1154,6 +1164,31 @@ function applyClear(player: Player, questId: string)
 		prop.Model:Destroy()
 	end
 	byQuest[questId] = nil
+	Log.info("SCENE", "end %s (%s)", questId, player.Name)
+end
+
+-- (Vigilante) Olvida los actores y objetos rotos de una escena (borrados, caídos del mapa, sin
+-- cuerpo) para que el siguiente SceneService.set los vuelva a crear en su sitio
+function SceneService.respawn(player: Player, questId: string)
+	local scene = scenes[player] and scenes[player][questId]
+	if not scene then
+		return
+	end
+	for npc, actor in scene.Actors do
+		if not actor.Model.Parent or not actor.Root or not actor.Root:IsDescendantOf(workspace) then
+			pcall(function()
+				actor.Model:Destroy()
+			end)
+			scene.Actors[npc] = nil
+			Log.warn("NPC", "respawn %s (%s · %s)", npc, questId, player.Name)
+		end
+	end
+	for id, prop in scene.Props do
+		if not prop.Model.Parent then
+			scene.Props[id] = nil
+			Log.warn("SCENE", "respawn del objeto %s (%s · %s)", id, questId, player.Name)
+		end
+	end
 end
 
 -- Un objeto que ya se usó y desaparece (un libro recogido)
@@ -1186,6 +1221,31 @@ function SceneService.actorOf(player: Player, npc: string): Model?
 		end
 	end
 	return nil
+end
+
+-- (Depuración) Los actores de las escenas de este jugador: quién, dónde, qué hace y si habla contigo
+function SceneService.debugActors(player: Player): { { [string]: any } }
+	local list = {}
+	local me = playerRoot(player)
+	for questId, scene in scenes[player] or {} do
+		for npc, actor in scene.Actors do
+			local root = actor.Root
+			local position = root and root.Position
+			local home = actor.Home.Position
+			table.insert(list, {
+				Npc = npc,
+				Quest = questId,
+				Mode = actor.Spec.Mode or "Idle",
+				Distance = if position and me then math.round((position - me.Position).Magnitude) else nil,
+				Target = if position and V(position.X - home.X, 0, position.Z - home.Z).Magnitude > 2.5
+					then ("(%d, %d, %d)"):format(math.round(home.X), math.round(home.Y), math.round(home.Z))
+					else nil,
+				Talking = actor.Talking == true,
+				Stuck = actor.StuckSince ~= nil and os.clock() - actor.StuckSince > 4,
+			})
+		end
+	end
+	return list
 end
 
 function SceneService.hasActor(player: Player, questId: string, npc: string): boolean
@@ -1358,6 +1418,57 @@ end
 -- Movimiento: seguir al jugador, pasear, mirar a quien habla
 ---------------------------------------------------------------------
 
+-- Gira el cuerpo hacia un punto poco a poco (unos 0,3 s): la cabeza ya mira antes (ActorLife, en
+-- el cliente), así que parece natural: primero mira, luego se vuelve
+SceneService.TurnSeconds = 0.3
+local function faceSmooth(actor: Actor, target: Vector3)
+	local root = actor.Root
+	if not root or actor.Facing then
+		return
+	end
+	local from = actor.Model:GetPivot()
+	local flat = V(target.X - from.Position.X, 0, target.Z - from.Position.Z)
+	if flat.Magnitude < 0.5 then
+		return
+	end
+	local want = CFrame.lookAt(from.Position, from.Position + flat)
+	if want.LookVector:Dot(from.LookVector) > 0.985 then
+		return -- ya mira hacia allí
+	end
+	actor.Facing = true
+	task.spawn(function()
+		local start = os.clock()
+		local rotation = from.Rotation
+		while actor.Model.Parent do
+			local t = math.min(1, (os.clock() - start) / SceneService.TurnSeconds)
+			local eased = t * t * (3 - 2 * t)
+			actor.Model:PivotTo(CFrame.new(actor.Model:GetPivot().Position) * rotation:Lerp(want.Rotation, eased))
+			if t >= 1 then
+				break
+			end
+			task.wait()
+		end
+		actor.Facing = false
+	end)
+end
+
+-- ¿Habla ahora este personaje con el jugador? (DialogueService pone TalkingTo = "Nico,Sara")
+local function talkingWith(player: Player, npc: string): boolean
+	local list = player:GetAttribute("TalkingTo")
+	if type(list) ~= "string" then
+		return false
+	end
+	for id in list:gmatch("[^,]+") do
+		if id == npc then
+			return true
+		end
+	end
+	return false
+end
+
+local FALL_LIMIT = 40 -- más abajo que esto de su sitio: se ha caído del mapa
+local LOST_LIMIT = 260 -- más lejos que esto de su sitio (sin seguir a nadie): se ha perdido
+
 local function stepActor(player: Player, actor: Actor, index: number)
 	local humanoid, root = actor.Humanoid, actor.Root
 	if not humanoid or not root or not actor.Model.Parent then
@@ -1365,6 +1476,45 @@ local function stepActor(player: Player, actor: Actor, index: number)
 	end
 	local mode = actor.Spec.Mode or "Idle"
 	local me = playerRoot(player)
+	-- Vigilante: caído del mapa, perdido o flotando lejos de su sitio -> vuelve a su sitio
+	local roaming = mode == "Follow" or mode == "Hunt" or mode == "Flee"
+	local home = actor.Home.Position
+	if root.Position.Y < home.Y - FALL_LIMIT or (not roaming and V(root.Position.X - home.X, 0, root.Position.Z - home.Z).Magnitude > LOST_LIMIT) then
+		if not actor.Recovered or os.clock() - actor.Recovered > 5 then
+			actor.Recovered = os.clock()
+			Log.warn("NPC", "stuck %s (%s): lejos de su sitio o caído, vuelve a su sitio", actor.Npc, player.Name)
+			standAt(actor, actor.Home)
+			actor.StuckSince = nil
+			applyMode(actor)
+			Log.info("NPC", "recovered %s (%s)", actor.Npc, player.Name)
+		end
+		return
+	end
+	-- Conversación: quien habla contigo se para y se vuelve hacia ti (sin meterse encima)
+	local talking = me ~= nil and talkingWith(player, actor.Npc) and mode ~= "Hunt" and mode ~= "Flee"
+	if talking and me then
+		if not actor.Talking then
+			actor.Talking = true
+			if not root.Anchored then
+				humanoid:MoveTo(root.Position) -- se para donde está
+			end
+		end
+		local toMe = V(me.Position.X - root.Position.X, 0, me.Position.Z - root.Position.Z)
+		if mode ~= "Sit" and toMe.Magnitude < 30 then
+			faceSmooth(actor, me.Position)
+		end
+		if not root.Anchored and toMe.Magnitude > 1 then
+			-- Quieto a unos pasos (nunca dentro de ti): si está a menos de 4, se queda donde está
+			humanoid:MoveTo(root.Position)
+		end
+		return
+	elseif actor.Talking then
+		actor.Talking = false
+		-- Fin de la conversación: vuelve a lo suyo (y a mirar hacia donde miraba)
+		if mode ~= "Sit" and actor.Spec.Look ~= nil and root.Anchored then
+			faceSmooth(actor, actor.Model:GetPivot().Position + actor.Home.LookVector * 10)
+		end
+	end
 	if mode == "Flee" then
 		-- Huye por su ruta (pasillo → patio → gimnasio…). Si se atasca en una pared, "atajo": aparece en el
 		-- siguiente punto. Al final de la ruta se queda escondido esperando a que llegues.

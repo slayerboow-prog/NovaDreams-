@@ -177,7 +177,7 @@ local function universityDay(rng: Random)
 		title = "QUEST.DIA_UNI_PARTIDO.TITLE"
 		table.insert(steps, class(first, "Clase", "$Carrera.Facultad", "QUEST.UNI.CLASE"))
 		table.insert(steps, { Type = "Reach", Place = "EstadioUniversitario", TextKey = "QUEST.UNI.PARTIDO" })
-		table.insert(steps, { Type = "Wait", GameMinutes = 40, TextKey = "QUEST.UNI.ANIMA" })
+		table.insert(steps, { Type = "Wait", GameMinutes = 40, MaxSeconds = 90, TextKey = "QUEST.UNI.ANIMA" })
 	elseif roll < 0.5 then
 		title = "QUEST.DIA_UNI_PARCIAL.TITLE"
 		table.insert(steps, class(first, "Estudio", "Biblioteca", "QUEST.UNI.ESTUDIA"))

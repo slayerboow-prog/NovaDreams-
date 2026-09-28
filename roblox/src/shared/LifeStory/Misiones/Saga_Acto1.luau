@@ -256,7 +256,13 @@ return {
 		Npcs = { "Ramon", "Lucia", "Nico", "CalcetinMonstruo", "Pip" },
 		Offer = { Place = "EntradaColegio" },
 		OfferKey = "El gimnasio del cole está lleno hasta el techo de cosas perdidas. Ramón, el conserje, no da crédito",
-		Requires = after("Saga_04_Ventanilla"),
+		-- «Esta noche»: pasa de noche, con el cole cerrado (Ramón os abre), no en horario de clase
+		Requires = (function()
+			local req = after("Saga_04_Ventanilla")
+			req.Hours = { From = 19, To = 6 }
+			return req
+		end)(),
+		Schedule = false,
 		Moment = "Devolviste las cosas perdidas de Valmar",
 		Memory = "CosasPerdidas",
 		Rewards = { Items = { CalcetinSolitario = 1 }, Flags = { "VecinosNotanRarezas" } },
@@ -352,6 +358,9 @@ return {
 		Offer = { Place = "GarajeCosme" },
 		OfferKey = "Esta noche se cose el cielo. Cosme te espera",
 		Requires = { Stage = { Min = "Nino" }, Completed = { "Saga_05_Perdidas" }, Hours = { From = 19, To = 6 } },
+		-- De noche en el patio del cole: sin el horario del cole (si no, nunca podría empezar: pide la
+		-- noche y el cole cierra a las 17:00)
+		Schedule = false,
 		Moment = "Cosiste el cielo de Valmar (por ahora)",
 		Memory = "CoserElCielo",
 		Rewards = { Items = { AgujaCuantica = 1 }, Flags = { "SagaActo1", "CosimoTeHaVisto" } },

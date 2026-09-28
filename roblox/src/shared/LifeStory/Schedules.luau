@@ -49,8 +49,9 @@ function Schedules.forPlace(placeId: string?): Window?
 		return Schedules.Windows.Oficina
 	elseif place.Zone == "Campus Valmar" and (place.Model == "Colegio" or SCHOOL_TAGS[place.Tag or ""]) then
 		return Schedules.Windows.Instituto
-	elseif place.Zone == "Home" and place.Tag ~= "Shop" and place.Tag ~= "JobBoard" and place.Tag ~= "TravelStop" then
-		-- "Home" = el colegio más cercano a tu casa (y todo lo que hay dentro: aulas, patio, gimnasio…)
+	elseif place.Zone == "Home" and (place.Model == "Colegio" or SCHOOL_TAGS[place.Tag or ""]) then
+		-- El colegio más cercano a tu casa (y todo lo que hay dentro: aulas, patio, gimnasio…). Lo demás
+		-- del barrio (el parque, los columpios, el centro de salud, las tiendas) no cierra con el cole.
 		return Schedules.Windows.Colegio
 	end
 	return nil

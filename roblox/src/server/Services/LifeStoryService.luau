@@ -65,8 +65,25 @@ local MiniGameService = require(script.Parent.MiniGameService)
 local InventoryService = require(script.Parent.InventoryService)
 local NeedsService = require(script.Parent.NeedsService)
 local Memories = require(LifeStory.Memories)
+local Log = require(ReplicatedStorage.Shared.Log)
 
 local LifeStoryService = {}
+
+-- Quien quiera enterarse de lo que pasa en la historia (registro de desarrollo, pruebas, panel de
+-- depuración): fn(kind, player, questId, info). kind = QuestStart, QuestDone, QuestInvalid,
+-- StepEnter, StepDone, StepSkip, StepTimeout, Dialogue, Recover.
+local observers: { (string, Player, string?, { [string]: any }?) -> () } = {}
+function LifeStoryService.observe(fn: (string, Player, string?, { [string]: any }?) -> ())
+	table.insert(observers, fn)
+end
+local function notify(kind: string, player: Player, questId: string?, info: { [string]: any }?)
+	for _, fn in observers do
+		local ok, err = pcall(fn, kind, player, questId, info)
+		if not ok then
+			Log.warn("DEBUG", "observador de la historia: %s", tostring(err))
+		end
+	end
+end
 
 local CFG = Config.LifeStory
 local Remote: RemoteEvent
@@ -104,6 +121,9 @@ type Runtime = {
 	CaughtAt: number?, -- (Escape/Fight) la última vez que te atrapó un enemigo
 	CanonSpots: { [string]: any }?, -- dónde empieza cada misión canónica (para su marca en el mapa)
 	LastHit: number?, -- (Fight) último disparo (no se puede disparar más rápido que esto)
+	BusySince: number?, -- desde cuándo está Busy (el vigilante lo suelta si se queda colgado)
+	Watch: { [string]: { [string]: any } }?, -- (vigilante) última foto del progreso de cada misión
+	Ticking: boolean?, -- su tick de la historia está en marcha (no se solapan)
 }
 local runtime: { [Player]: Runtime } = {}
 local dayRng = Random.new()
@@ -632,6 +652,17 @@ local function publish(player: Player, force: boolean?)
 		if step then
 			tracked.TextKey = step.Text or step.TextKey
 			tracked.Args = placeArgs(step, prog, story)
+			-- Si ya estás allí (dentro del cole cuando toca ir al aula), no se te dice "ve al cole"
+			local here = step.Type == "Reach" and rt.Spots[spotKey(trackedId, prog)]
+			local me = here and LocationService.positionOf(player)
+			if here and me and Vector3.new(here.Position.X - me.X, 0, here.Position.Z - me.Z).Magnitude < 150 then
+				local text = tracked.TextKey
+				if step.TextHere then
+					tracked.TextKey = step.TextHere
+				elseif type(text) == "string" and (text:find("^Ve al colegio") or text:find("^Ve al cole") or text:find("^Ve al instituto")) then
+					tracked.TextKey = "Ya estás aquí: ve a {place}"
+				end
+			end
 			if step.Type == "Group" then
 				tracked.Children = {}
 				tracked.Need = step.Need
@@ -805,14 +836,22 @@ local function playDialogue(player: Player, data: Data, questId: string, name: a
 		return false
 	end
 	rt.Busy = true
+	rt.BusySince = os.clock()
 	local tag = if type(name) == "string" then name else (label or "Paso")
 	local started = DialogueService.play(player, dialogue, dialogueContext(player, data, questId, tag), function()
 		rt.Busy = false
 		rt.DialogueEndedAt = os.clock() -- el toque que cierra la conversación no abre otra
 		onDone()
+	end, function()
+		-- Conversación cortada (murió, se fue, el vigilante): no cuenta, se podrá repetir
+		rt.Busy = false
+		rt.DialogueEndedAt = os.clock()
 	end)
 	if not started then
 		rt.Busy = false
+	else
+		local prog = storyOf(data).Active[questId]
+		notify("Dialogue", player, questId, { Dialogue = dialogue, Name = if type(name) == "string" then name else "(en el paso)", Step = prog and prog.Step })
 	end
 	return started
 end
@@ -1039,15 +1078,18 @@ local function enterStep(player: Player, data: Data, questId: string)
 			rt.Fallback[questId] = nil
 		end
 		if step.If and not Conditions.check(step.If, contextFor(player, data)) then
+			notify("StepSkip", player, questId, { Step = prog.Step, Type = step.Type, Reason = "If" })
 			prog.Step += 1
 			continue
 		end
+		notify("StepEnter", player, questId, { Step = prog.Step, Type = step.Type })
 		if step.Teleport and not held(player) then
 			SceneService.teleport(player, step.Teleport)
 		end
 		if step.Type == "Moment" then
 			moment(player, step.Text or step.TextKey or quest.MomentKey)
 			applyEffects(player, data, step.Effects, questId)
+			notify("StepDone", player, questId, { Step = prog.Step, Type = step.Type })
 			prog.Step += 1
 			continue
 		elseif step.Type == "Transition" then
@@ -1060,6 +1102,7 @@ local function enterStep(player: Player, data: Data, questId: string)
 				LifeStoryService.setStage(player, step.SetStage)
 			end
 			applyEffects(player, data, step.Effects, questId)
+			notify("StepDone", player, questId, { Step = prog.Step, Type = step.Type })
 			prog.Step += 1
 			continue
 		elseif step.Type == "Wait" then
@@ -1115,6 +1158,9 @@ function startInteractive(player: Player, data: Data, questId: string)
 		local now = current and storyOf(current).Active[questId]
 		return now ~= nil and now.Step == index
 	end
+	if player:GetAttribute("Dead") then
+		return -- en el hospital no empieza ninguna escena (se reintenta al volver)
+	end
 	if step.Type == "Scene" then
 		playDialogue(player, data, questId, step.Dialogue, function()
 			if stillHere() then
@@ -1123,6 +1169,7 @@ function startInteractive(player: Player, data: Data, questId: string)
 		end, "Scene")
 	elseif step.Type == "MiniGame" then
 		rt.Busy = true
+		rt.BusySince = os.clock()
 		local spec = step
 		if step.PositionFrom then
 			-- La posición que elegiste antes (delantero, defensa, portero) cambia las jugadas
@@ -1160,6 +1207,8 @@ function advance(player: Player, data: Data, questId: string)
 				applyEffects(player, data, step.Late, questId)
 			end
 			applyEffects(player, data, step.Effects, questId)
+			notify("StepDone", player, questId, { Step = prog.Step, Type = step.Type })
+			Log.info("OBJECTIVE", "%s: paso %d (%s) completado · %s", questId, prog.Step, tostring(step.Type), player.Name)
 		end
 		if storyOf(data).Active[questId] == prog then
 			prog.Step += 1
@@ -1174,6 +1223,13 @@ local function startQuest(player: Player, data: Data, questId: string)
 		return
 	end
 	local quest = Quests[questId]
+	if not quest or not Validate.questOk(questId) then
+		-- Misión con errores en sus datos (validador): no se activa, para no dejar a nadie atascado
+		Log.error("MISSION", "failed %s: no pasa el validador, no se activa (%s)", questId, player.Name)
+		notify("QuestInvalid", player, questId, nil)
+		return
+	end
+	Log.info("MISSION", "started %s (%s)", questId, player.Name)
 	local prog: any = { Step = 1, Count = 0, Started = os.time(), Kind = quest.Kind }
 	if quest.DayPlan then
 		-- Día generado: cada vez con asignaturas y sorpresas distintas
@@ -1189,6 +1245,7 @@ local function startQuest(player: Player, data: Data, questId: string)
 	if quest.Kind == "Main" then
 		story.Tracked = questId
 	end
+	notify("QuestStart", player, questId, nil)
 	enterStep(player, data, questId)
 end
 
@@ -1224,6 +1281,8 @@ function completeQuest(player: Player, data: Data, questId: string)
 	if story.Tracked == questId then
 		story.Tracked = nil
 	end
+	Log.info("MISSION", "completed %s (%s)", questId, player.Name)
+	notify("QuestDone", player, questId, nil)
 	SceneService.clear(player, questId)
 	giveRewards(player, data, quest.Rewards)
 	if quest.Memory then
@@ -1345,6 +1404,15 @@ function refresh(player: Player)
 			else
 				story.Chapter = nil
 			end
+			continue
+		end
+		if not Validate.questOk(pending) then
+			-- Una principal rota no puede bloquear la vida entera: se salta (y queda anotado)
+			Log.error("MISSION", "failed %s: datos con errores, se salta para no bloquear el capítulo (%s)", pending, player.Name)
+			notify("QuestInvalid", player, pending, nil)
+			story.Skipped = story.Skipped or {}
+			story.Skipped[pending] = os.time()
+			story.Completed[pending] = os.time()
 			continue
 		end
 		local ok, reason = Conditions.check(Quests[pending].Requires, contextFor(player, data))
@@ -1540,6 +1608,10 @@ local function onStoryEvent(player: Player, name: string, payload: { [string]: a
 		return
 	end
 	local story = storyOf(data)
+	if name == "Died" then
+		-- Al morir se corta la conversación (se repetirá al volver); los controles vuelven solos
+		DialogueService.cancel(player, "Died")
+	end
 	if name == "Revived" and not payload.Jailed then
 		-- (se espera un poco: al avisar, el hospital aún no ha quitado "Dead" y puede detenerte justo después)
 		task.delay(1, function()
@@ -1663,6 +1735,7 @@ local function stepTimers(player: Player, data: Data, questId: string, prog: Pro
 	local touched = prog.Sub ~= nil and next(prog.Sub) ~= nil
 	if step.Timeout and since > step.Timeout.After and not (step.Timeout.OnlyIfUntouched and touched) then
 		applyEffects(player, data, step.Timeout, questId)
+		notify("StepTimeout", player, questId, { Step = prog.Step, Type = step.Type })
 		if storyOf(data).Active[questId] == prog then
 			prog.Step += 1
 			enterStep(player, data, questId)
@@ -1724,6 +1797,192 @@ local function stepTimers(player: Player, data: Data, questId: string, prog: Pro
 	return false
 end
 
+---------------------------------------------------------------------
+-- Vigilante de atascos: busca pasos que ya no pueden avanzar (falta un actor, un objeto o el sitio
+-- en el mapa, el enemigo no aparece, la historia se quedó "ocupada", la decisión se perdió…) y los
+-- arregla: vuelve a montar la escena, reenvía la decisión o da el paso por hecho. Lo normal
+-- (el jugador aún no ha ido, está leyendo) no se toca. Todo queda en el registro [WATCHDOG].
+---------------------------------------------------------------------
+
+LifeStoryService.Watchdog = {
+	Every = 2, -- cada cuánto mira cada misión (s)
+	BusyStuck = 6, -- "ocupada" sin conversación ni minijuego: se suelta
+	Respawn = 6, -- falta un actor u objeto que la escena debería tener: se vuelve a montar
+	MaxRespawns = 3,
+	ChoiceResend = 45, -- decisión (ventana) sin respuesta: se vuelve a mandar
+	MissingPlace = 30, -- el sitio no existe en el mapa (ni su plan B): el paso se da por hecho
+	MissingEnemy = 30, -- el enemigo no aparece: cuenta como vencido
+	Optional = 180, -- paso Optional = true sin avances: se da por hecho
+}
+
+local function recover(player: Player, questId: string, what: string, fmt: string, ...)
+	Log.warn("WATCHDOG", "%s · %s: " .. fmt, player.Name, questId, ...)
+	notify("Recover", player, questId, { What = what })
+end
+
+-- ¿Qué personajes y objetos necesita el paso para poder cumplirse?
+local function neededBy(step: { [string]: any }, prog: Progress): ({ string }, { string })
+	local npcs, props = {}, {}
+	local function add(s: { [string]: any }, key: string?)
+		if key and prog.Sub and prog.Sub[key] then
+			return
+		end
+		if s.Type == "Talk" or s.Type == "Chase" then
+			table.insert(npcs, s.Npc)
+		elseif s.Type == "Use" then
+			table.insert(props, s.Prop)
+		end
+	end
+	if step.Type == "Group" then
+		for i, child in step.Steps or {} do
+			add(child, tostring(i))
+		end
+	elseif step.Type == "Choice" then
+		for _, option in step.Options or {} do
+			if option.Npc then
+				table.insert(npcs, option.Npc)
+			end
+			if option.Prop then
+				table.insert(props, option.Prop)
+			end
+		end
+	elseif step.Type == "Fight" then
+		for _, enemy in step.Enemies or {} do
+			if not (prog.Sub and prog.Sub[enemy.Npc]) then
+				table.insert(npcs, enemy.Npc)
+			end
+		end
+	else
+		add(step)
+	end
+	return npcs, props
+end
+
+local function watchdog(player: Player, data: Data, questId: string, prog: Progress, step: { [string]: any }): boolean
+	local rt = runtime[player]
+	local W = LifeStoryService.Watchdog
+	local now = os.clock()
+	rt.Watch = rt.Watch or {}
+	local subCount = 0
+	for _ in prog.Sub or {} do
+		subCount += 1
+	end
+	local key = ("%d:%d:%d"):format(prog.Step, prog.Count or 0, subCount)
+	local watch = rt.Watch[questId]
+	if not watch or watch.Key ~= key then
+		watch = { Key = key, Since = now, Checked = 0, Respawns = 0, Missing = {} }
+		rt.Watch[questId] = watch
+	end
+	if now - watch.Checked < W.Every then
+		return false
+	end
+	watch.Checked = now
+	local stalled = now - watch.Since
+
+	-- 1) La historia se quedó "ocupada" sin nada en marcha: nadie podría hablar ni usar nada
+	if rt.Busy and not DialogueService.isBusy(player) and not MiniGameService.isRunning(player)
+		and now - (rt.BusySince or now) > W.BusyStuck then
+		rt.Busy = false
+		recover(player, questId, "Busy", "la historia estaba ocupada sin conversación ni minijuego: liberada")
+	end
+	local busy = rt.Busy or DialogueService.isBusy(player) or MiniGameService.isRunning(player) or ClassService.isRunning(player)
+	if busy then
+		return false
+	end
+
+	-- 2) Falta alguien u algo que la escena debería tener: se vuelve a montar (actores a su sitio)
+	local npcs, props = neededBy(step, prog)
+	if #npcs > 0 or #props > 0 then
+		local actors, sceneProps = sceneFor(player, data, questId)
+		local missing = {}
+		for _, npc in npcs do
+			for _, spec in actors do
+				if spec.Npc == npc and not SceneService.actorOf(player, npc) then
+					table.insert(missing, npc)
+					break
+				end
+			end
+		end
+		for _, id in props do
+			if table.find(sceneProps, id) and not SceneService.hasProp(player, questId, id) then
+				table.insert(missing, id)
+			end
+		end
+		for _, id in missing do
+			watch.Missing[id] = watch.Missing[id] or now
+		end
+		if #missing > 0 and stalled > W.Respawn * (watch.Respawns + 1) and watch.Respawns < W.MaxRespawns then
+			watch.Respawns += 1
+			SceneService.respawn(player, questId)
+			updateScene(player, data, questId)
+			recover(player, questId, "Respawn", "faltan en la escena (%s): se vuelve a montar (intento %d)", table.concat(missing, ", "), watch.Respawns)
+		end
+		-- Combate: un enemigo que no aparece nunca cuenta como vencido
+		if step.Type == "Fight" then
+			for _, enemy in step.Enemies or {} do
+				local since = watch.Missing[enemy.Npc]
+				if since and now - since > W.MissingEnemy and not SceneService.actorOf(player, enemy.Npc)
+					and not (prog.Sub and prog.Sub[enemy.Npc]) then
+					prog.Sub = prog.Sub or {}
+					prog.Sub[enemy.Npc] = true
+					prog.Count += 1
+					recover(player, questId, "Enemy", "%s no aparece: cuenta como vencido", enemy.Npc)
+					if prog.Count >= #(step.Enemies or {}) then
+						advance(player, data, questId)
+						return true
+					end
+				end
+			end
+		end
+	end
+
+	-- 3) El sitio al que hay que ir no existe en el mapa (ni su plan B): el paso se da por hecho
+	local function placeMissing(s: { [string]: any }): boolean
+		local placeId = stepPlace(s, storyOf(data))
+		if not placeId then
+			return false
+		end
+		return LocationService.resolve(player, placeId) == nil
+	end
+	if (step.Type == "Reach" or (step.Type == "Escape" and step.Place)) and stalled > W.MissingPlace and not step.Hours and placeMissing(step) then
+		recover(player, questId, "Place", "el sitio '%s' no está en el mapa: paso dado por hecho", tostring(step.Place))
+		advance(player, data, questId)
+		return true
+	elseif step.Type == "Group" and stalled > W.MissingPlace then
+		local changed = false
+		for i, child in step.Steps or {} do
+			local k = tostring(i)
+			if child.Type == "Reach" and not (prog.Sub and prog.Sub[k]) and not child.Hours and placeMissing(child) then
+				prog.Sub = prog.Sub or {}
+				prog.Sub[k] = true
+				changed = true
+				recover(player, questId, "Place", "el sitio '%s' no está en el mapa: tarea dada por hecha", tostring(child.Place))
+			end
+		end
+		if changed and groupDone(step, prog.Sub or {}, contextFor(player, data)) then
+			advance(player, data, questId)
+			return true
+		end
+	end
+
+	-- 4) La ventana de la decisión se perdió (otra ventana la tapó, se reinició la interfaz…)
+	if step.Type == "Choice" and not worldChoice(step) and stalled > W.ChoiceResend * ((watch.Resent or 0) + 1) then
+		watch.Resent = (watch.Resent or 0) + 1
+		if watch.Resent <= 3 then
+			sendChoice(player, questId, step)
+			Log.info("WATCHDOG", "%s · %s: decisión sin respuesta, se vuelve a mostrar", player.Name, questId)
+		end
+	end
+
+	-- 5) Paso opcional que no avanza: no bloquea la misión
+	if step.Optional and stalled > W.Optional then
+		recover(player, questId, "Optional", "paso opcional %d sin avances: se da por hecho", prog.Step)
+		advance(player, data, questId)
+		return true
+	end
+	return false
+end
+
 local function tickPlayer(player: Player, data: Data)
 	local story = storyOf(data)
 	local ids = {}
@@ -1744,6 +2003,9 @@ local function tickPlayer(player: Player, data: Data)
 				rt.StepStart[questId] = os.clock()
 			end
 			continue
+		end
+		if watchdog(player, data, questId, prog, step) then
+			continue -- el vigilante ha arreglado un atasco (el paso cambió)
 		end
 		if stepTimers(player, data, questId, prog, step) then
 			continue -- el paso cambió (se acabó el tiempo, plan B…)
@@ -2060,7 +2322,7 @@ end
 function LifeStoryService.interact(player: Player, kind: string, questId: string, id: string)
 	local data = DataService.get(player)
 	local rt = runtime[player]
-	if not data or not rt or busy(player) then
+	if not data or not rt or busy(player) or player:GetAttribute("Dead") then
 		return
 	end
 	local story = storyOf(data)
@@ -2157,6 +2419,75 @@ function LifeStoryService.interact(player: Player, kind: string, questId: string
 		end
 		StoryEvents.emit(player, "Talk", { Npc = id })
 	end
+end
+
+-- (Depuración del dueño: /debug resetmission) Vuelve a empezar una misión activa desde el paso 1.
+-- Sin id: la que se está siguiendo. Corta la conversación o el minijuego y rehace la escena.
+function LifeStoryService.resetQuest(player: Player, questId: string?): (boolean, string)
+	local data = DataService.get(player)
+	local rt = runtime[player]
+	if not data or not rt then
+		return false, "sin datos"
+	end
+	local story = storyOf(data)
+	local id = questId or story.Tracked
+	if not id then
+		for activeId in story.Active do
+			id = activeId
+			break
+		end
+	end
+	if not id or not story.Active[id] then
+		return false, "no hay esa misión activa"
+	end
+	DialogueService.cancel(player, "reset")
+	MiniGameService.cancel(player)
+	rt.Busy = false
+	story.Active[id] = nil
+	if rt.Watch then
+		rt.Watch[id] = nil
+	end
+	SceneService.clear(player, id)
+	Log.warn("DEBUG", "%s reinicia la misión %s", player.Name, id)
+	startQuest(player, data, id)
+	return true, id
+end
+
+-- Estado de la historia de un jugador para depurar (panel del dueño, /debug, pruebas)
+function LifeStoryService.debugState(player: Player): { [string]: any }?
+	local rt = runtime[player]
+	local data = DataService.get(player)
+	if not rt or not data then
+		return nil
+	end
+	local story = storyOf(data)
+	local active = {}
+	for id, prog in story.Active do
+		local step = stepsOf(id, prog)[prog.Step]
+		local watch = rt.Watch and rt.Watch[id]
+		active[id] = {
+			Step = prog.Step,
+			Steps = #stepsOf(id, prog),
+			Type = step and step.Type,
+			Text = step and (step.Text or step.TextKey),
+			Npc = step and step.Npc,
+			Place = step and step.Place,
+			Count = prog.Count,
+			Kind = prog.Kind,
+			StalledFor = if watch then math.floor(os.clock() - watch.Since) else 0,
+		}
+	end
+	return {
+		Ready = rt.Ready,
+		Busy = rt.Busy,
+		InDialogue = DialogueService.isBusy(player),
+		Waiting = rt.Waiting,
+		Tracked = story.Tracked,
+		Chapter = story.Chapter,
+		Stage = data.Life.Stage,
+		Age = data.Life.AgeYears,
+		Active = active,
+	}
 end
 
 -- Consecuencias diferidas: lo que decidiste hace horas vuelve ahora
@@ -2349,8 +2680,20 @@ local function onLoaded(player: Player, data: Data)
 end
 
 function LifeStoryService.init()
-	for _, problem in Validate.run() do
-		warn("[LifeStory] " .. problem)
+	local report = Validate.report()
+	for _, problem in report.Errors do
+		Log.error("VALIDATE", "%s", problem)
+	end
+	for _, problem in report.Warnings do
+		Log.info("VALIDATE", "%s", problem)
+	end
+	if next(report.BadQuests) then
+		local bad = {}
+		for id in report.BadQuests do
+			table.insert(bad, id)
+		end
+		table.sort(bad)
+		Log.error("VALIDATE", "misiones que no se activarán: %s", table.concat(bad, ", "))
 	end
 
 	local remotes = ReplicatedStorage:WaitForChild("Remotes")
@@ -2382,19 +2725,25 @@ function LifeStoryService.init()
 			if slow then
 				sinceSlow = 0
 			end
-			for player in runtime do
+			for player, rt in runtime do
 				local data = DataService.get(player)
-				if data and runtime[player].Ready then
-					local ok, err = pcall(function()
-						growUp(player, data, CFG.TickSeconds)
-						tickPlayer(player, data)
-						if slow then
-							slowTick(player, data)
+				-- Cada jugador en su propio hilo: si algo de uno espera (el mapa, una escena), los demás
+				-- siguen; y si su tick anterior no ha acabado, este se salta (no se solapan).
+				if data and rt.Ready and not rt.Ticking then
+					rt.Ticking = true
+					task.spawn(function()
+						local ok, err = pcall(function()
+							growUp(player, data, CFG.TickSeconds)
+							tickPlayer(player, data)
+							if slow then
+								slowTick(player, data)
+							end
+						end)
+						rt.Ticking = false
+						if not ok then
+							Log.error("MISSION", "error en la historia de %s: %s", player.Name, tostring(err))
 						end
 					end)
-					if not ok then
-						warn("[LifeStory] " .. tostring(err))
-					end
 				end
 			end
 		end

@@ -19,6 +19,7 @@ local Players = game:GetService("Players")
 
 local Npc = require(script.Parent.Parent.World.Npc)
 local Space = require(script.Parent.Parent.World.Space)
+local TimeContext = require(game:GetService("ReplicatedStorage").Shared.LifeStory.TimeContext)
 
 local CrowdService = {}
 
@@ -658,7 +659,8 @@ function CrowdService.bark()
 			local lines = LINES[p.Context] or LINES.Generic
 			local npc = p.Model
 			npc:SetAttribute("Talking", true)
-			pcall(Npc.say, npc, lines[math.random(1, #lines)])
+			local hour, weather = TimeContext.now()
+			pcall(Npc.say, npc, TimeContext.pick(lines, hour, weather) or lines[math.random(1, #lines)])
 			task.delay(3.5, function()
 				if npc.Parent then
 					pcall(Npc.say, npc, nil)
