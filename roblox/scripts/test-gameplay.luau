@@ -334,11 +334,19 @@ local function remote()
 	end
 	return r
 end
--- Bocadillos (Npc.say -> remoto Speech a todos): se apuntan aquí
+-- Bocadillos (Npc.say -> remoto Speech a los jugadores cercanos): se apuntan aquí (y a quién van)
 local speechLog = {}
+local speechTo = {}
 local speechRemote = {}
 function speechRemote:FireAllClients(payload)
 	table.insert(speechLog, payload)
+end
+function speechRemote:FireClient(player, payload)
+	if speechLog[#speechLog] ~= payload then
+		table.insert(speechLog, payload)
+	end
+	speechTo[payload] = speechTo[payload] or {}
+	speechTo[payload][player] = true
 end
 local remotes = {
 	Speech = speechRemote,
@@ -1146,6 +1154,15 @@ check(profiles[kid].Vehicles and profiles[kid].Vehicles.Monopatin == true and pr
 
 ---------------------------------------------------------------------
 print("▶ Restaurante con un solo jugador de BARMAN (camarero NPC)")
+-- El NPC de servicio que está atendiendo (el que se retira se aparta andando y lleva Leaving)
+local function servingNpc(name: string)
+	for _, c in worldRoot.RestaurantLife:GetChildren() do
+		if c.Name == name and not c:GetAttribute("Leaving") then
+			return c
+		end
+	end
+	return nil
+end
 local barman, barmanRoot = newPlayer(4, "Adulto", 0)
 local board = collection:GetTagged("RestaurantBoard")[1]
 promptOf(board, "Barman (barra)").Triggered:Fire(barman)
@@ -1203,7 +1220,11 @@ for _, text in notifyTexts(barman) do
 end
 check(profiles[barman].Money >= Gameplay.Jobs.Barman.Pay * 2, "sigue preparando platos (" .. profiles[barman].Money .. " $)")
 remotes.QuitJob.OnServerEvent:Fire(barman)
-check(barman:GetAttribute("Job") == nil and worldRoot.RestaurantLife:FindFirstChild("Npc_Camarero") == nil, "deja el trabajo y el NPC se va")
+check(barman:GetAttribute("Job") == nil and servingNpc("Npc_Camarero") == nil, "deja el trabajo y el NPC se va")
+do
+	local leaving = worldRoot.RestaurantLife:FindFirstChild("Npc_Camarero")
+	check(leaving == nil or (leaving:GetAttribute("Leaving") == true and leaving:GetAttribute("Work") == nil), "al cerrar, el camarero NPC deja la bandeja y se va andando (no se esfuma de golpe)")
+end
 waitFor(function()
 	for _, c in worldRoot.RestaurantLife:GetChildren() do
 		if string.sub(c.Name, 1, 8) == "Cliente_" then
@@ -1281,7 +1302,7 @@ check(customer.Head.Icon.TextLabel.Text == "😋", "el cliente come")
 ---------------------------------------------------------------------
 print("▶ Restaurante con DOS jugadores (camarero + barman)")
 promptOf(board, "Barman (barra)").Triggered:Fire(barman)
-check(worldRoot.RestaurantLife:FindFirstChild("Npc_Barman") == nil and worldRoot.RestaurantLife:FindFirstChild("Npc_Camarero") == nil, "con dos jugadores no hay NPC de servicio")
+check(servingNpc("Npc_Barman") == nil and servingNpc("Npc_Camarero") == nil, "con dos jugadores no hay NPC de servicio (el que había se retira)")
 local other = newPlayer(6, "Adulto", 0)
 promptOf(board, "Barman (barra)").Triggered:Fire(other)
 check(other:GetAttribute("Job") == nil, "un tercero no puede quitarle el puesto")
@@ -1342,7 +1363,7 @@ promptOf(customer2).Triggered:Fire(waiter)
 check(profiles[waiter].Money > waiterMoney, "y lo sirve a su mesa")
 
 remotes.QuitJob.OnServerEvent:Fire(waiter)
-check(worldRoot.RestaurantLife:FindFirstChild("Npc_Camarero") ~= nil, "si el camarero se va, entra un camarero NPC")
+check(servingNpc("Npc_Camarero") ~= nil, "si el camarero se va, entra un camarero NPC")
 
 ---------------------------------------------------------------------
 print("▶ Mochila (inventario estilo Minecraft)")
@@ -5043,6 +5064,20 @@ check(copNpc:GetAttribute("Says") ~= nil, "y te contesta con un bocadillo")
 local lastSpeech = speechLog[#speechLog]
 check(lastSpeech ~= nil and lastSpeech.Speaker == copNpc and lastSpeech.Text == copNpc:GetAttribute("Says"),
 	"el bocadillo va a los clientes con quién lo dice (cada uno dibuja el suyo encima de su cabeza)")
+do
+	-- Solo a los que están cerca: un jugador en la otra punta del mapa no recibe la frase
+	local Npc = loadModule(ROOT .. "/server/World/Npc")
+	local far, farRoot = newPlayer(262, "Adulto", 100)
+	moveTo(farRoot, cop.CFrame.Position + Vector3.new(0, 0, 900))
+	Npc.say(copNpc, "Prueba de alcance")
+	local sent = speechTo[speechLog[#speechLog]] or {}
+	check(sent[visitor] == true and sent[far] == nil, "las frases de los NPC solo van a los jugadores cercanos (no a toda la ciudad)")
+	moveTo(visitorRoot, cop.CFrame.Position + Vector3.new(0, 0, 900))
+	Npc.say(copNpc, nil)
+	sent = speechTo[speechLog[#speechLog]] or {}
+	check(sent[visitor] == true, "y el 'ya no habla' llega también a quien oyó la frase aunque se haya alejado")
+	moveTo(visitorRoot, BASE + Vector3.new(200, 0, 0))
+end
 -- Un jugador policía entra de servicio en la comisaría: el agente NPC se aparta
 local officer, officerRoot = newPlayer(261, "Adulto", 100)
 officer:SetAttribute("Job", "Policia")

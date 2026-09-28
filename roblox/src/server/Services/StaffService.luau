@@ -271,24 +271,11 @@ end
 local function spawnNpc(post: Post)
 	-- ¿Se estaba retirando? Vuelve a su puesto andando (no aparece otro encima de él)
 	local leaving = post.Leaving
-	if leaving and leaving.Parent then
+	if leaving and StaffService.recallNpc(leaving, post.CFrame.Position, (post.CFrame * CFrame.new(0, 0, -4)).Position, post.Work) then
 		post.Leaving = nil
 		post.Npc = leaving
-		leaving:SetAttribute("Leaving", nil)
-		post.Busy = true
-		pcall(Npc.say, leaving, nil)
 		pcall(Npc.icon, leaving, roleOf(post).Icon)
-		local talkPrompt = leaving.PrimaryPart and leaving.PrimaryPart:FindFirstChild("TalkPrompt")
-		if talkPrompt and talkPrompt:IsA("ProximityPrompt") then
-			talkPrompt.Enabled = true
-		end
-		pcall(Npc.walkTo, leaving, { post.CFrame.Position }, 7)
-		if post.Npc == leaving and leaving.Parent then
-			pcall(Npc.face, leaving, (post.CFrame * CFrame.new(0, 0, -4)).Position)
-			pcall(Npc.work, leaving, post.Work)
-		end
 		post.Aside = false
-		post.Busy = false
 		return
 	end
 	post.Leaving = nil
@@ -327,31 +314,40 @@ local function spawnNpc(post: Post)
 	post.Busy = false
 end
 
--- Se retira del puesto (un jugador lo cubre, o cierra): deja la tarea, se despide y se aparta andando.
--- Ya no es la persona del puesto (npcOf = nil), pero no se esfuma delante de nadie: se va cuando no
--- queda ningún jugador al lado (LEAVE_SEEN) o pasado LEAVE_MAX. Si le vuelven a necesitar antes,
--- vuelve a su sitio (spawnNpc) en vez de aparecer otro encima.
-local function retire(post: Post, line: string?)
-	local npc = post.Npc
-	if not npc then
-		return
+-- Retirarse (genérico: también lo usan la cafetería, el cine, el restaurante y el súper con su propio
+-- personal). Deja la tarea, se despide, se aparta andando hasta `aside` (pies) y se va cuando no queda
+-- ningún jugador al lado (LEAVE_SEEN) o pasado LEAVE_MAX: nunca se esfuma delante de nadie. Espera
+-- hasta entonces (llamar con task.spawn). Si antes le vuelven a necesitar, StaffService.recallNpc le
+-- hace volver a su sitio (no aparece otro encima) y esto devuelve false; true si se ha ido del todo.
+local leaveSeq: { [Model]: number } = setmetatable({}, { __mode = "k" }) :: any
+local mutedPrompts: { [Model]: { ProximityPrompt } } = setmetatable({}, { __mode = "k" }) :: any
+
+function StaffService.retireNpc(npc: Model, aside: Vector3?, line: string?): boolean
+	if not npc or not npc.Parent then
+		return true
 	end
-	post.Npc = nil
-	post.Leaving = npc
+	local token = (leaveSeq[npc] or 0) + 1
+	leaveSeq[npc] = token
 	npc:SetAttribute("Leaving", true)
-	post.Talking = false
 	pcall(Npc.work, npc, nil)
 	pcall(Npc.icon, npc, nil)
-	local talkPrompt = npc.PrimaryPart and npc.PrimaryPart:FindFirstChild("TalkPrompt")
-	if talkPrompt and talkPrompt:IsA("ProximityPrompt") then
-		talkPrompt.Enabled = false -- (ya no atiende)
+	-- Ya no atiende: fuera sus botones (y se vuelven a poner si vuelve)
+	local muted = mutedPrompts[npc] or {}
+	for _, d in npc:GetDescendants() do
+		if d:IsA("ProximityPrompt") and d.Enabled then
+			d.Enabled = false
+			table.insert(muted, d)
+		end
 	end
+	mutedPrompts[npc] = muted
 	if line then
 		pcall(Npc.say, npc, line, 4)
 	end
-	pcall(Npc.walkTo, npc, { asideOf(post).Position }, 7)
+	if aside then
+		pcall(Npc.walkTo, npc, { aside }, 7)
+	end
 	local waited = 0
-	while npc.Parent and post.Leaving == npc and waited < StaffService.LEAVE_MAX do
+	while npc.Parent and leaveSeq[npc] == token and waited < StaffService.LEAVE_MAX do
 		local root = npc.PrimaryPart
 		if not root or not playerWithin(root.Position, StaffService.LEAVE_SEEN) then
 			break
@@ -359,9 +355,70 @@ local function retire(post: Post, line: string?)
 		task.wait(1)
 		waited += 1
 	end
+	if leaveSeq[npc] ~= token then
+		return false -- (le han llamado de vuelta)
+	end
+	leaveSeq[npc] = nil
+	mutedPrompts[npc] = nil
+	npc:Destroy()
+	return true
+end
+
+-- ¿Se está retirando (retireNpc) y aún sigue ahí?
+function StaffService.isLeaving(npc: Model?): boolean
+	return npc ~= nil and npc.Parent ~= nil and leaveSeq[npc] ~= nil
+end
+
+-- Quien se retiraba vuelve a su sitio andando (feet: pies en el puesto; faceAt: hacia dónde mira al
+-- llegar; work: su tarea). No espera a que llegue. false si ya no estaba (entonces hay que crear otro).
+function StaffService.recallNpc(npc: Model?, feet: Vector3, faceAt: Vector3?, work: string?): boolean
+	if not npc or not StaffService.isLeaving(npc) then
+		return false
+	end
+	local person = npc :: Model
+	leaveSeq[person] = nil
+	person:SetAttribute("Leaving", nil)
+	pcall(Npc.say, person, nil)
+	for _, prompt in mutedPrompts[person] or {} do
+		if prompt.Parent then
+			prompt.Enabled = true
+		end
+	end
+	mutedPrompts[person] = nil
+	task.spawn(function()
+		pcall(Npc.walkTo, person, { feet }, 7)
+		-- (si mientras volvía se ha tenido que retirar otra vez, ya no se pone a trabajar)
+		if person.Parent and leaveSeq[person] == nil then
+			if faceAt then
+				pcall(Npc.face, person, faceAt)
+			end
+			pcall(Npc.work, person, work)
+		end
+	end)
+	return true
+end
+
+-- Un sitio a un lado de un puesto (pies en feet, mirando a toward): ahí se aparta quien se retira
+function StaffService.asideOf(feet: Vector3, toward: Vector3?): Vector3
+	local flat = if toward then Vector3.new(toward.X - feet.X, 0, toward.Z - feet.Z) else Vector3.zero
+	local cf = if flat.Magnitude > 0.1 then CFrame.lookAt(feet, feet + flat) else CFrame.new(feet)
+	return (cf * CFrame.new(5, 0, 2.5)).Position
+end
+
+-- Se retira del puesto (un jugador lo cubre, o cierra): deja la tarea, se despide y se aparta andando.
+-- Ya no es la persona del puesto (npcOf = nil), pero no se esfuma delante de nadie (retireNpc). Si le
+-- vuelven a necesitar antes, vuelve a su sitio (spawnNpc) en vez de aparecer otro encima.
+local function retire(post: Post, line: string?)
+	local npc = post.Npc
+	if not npc then
+		return
+	end
+	post.Npc = nil
+	post.Leaving = npc
+	post.Talking = false
+	StaffService.retireNpc(npc, asideOf(post).Position, line)
 	if post.Leaving == npc then
 		post.Leaving = nil
-		npc:Destroy()
 	end
 end
 StaffService._retire = retire
@@ -408,8 +465,8 @@ function StaffService.tick()
 			-- Ya no queda nadie cerca: el que se retiraba se va del todo
 			post.Leaving:Destroy()
 			post.Leaving = nil
-		elseif post.Npc and not post.Talking then
-			-- Mira a quien se acerca al mostrador
+		elseif post.Npc and not post.Talking and not Npc.isWalking(post.Npc) then
+			-- Mira a quien se acerca al mostrador (no mientras vuelve andando a su sitio)
 			for _, player in Players:GetPlayers() do
 				local root = rootOf(player)
 				if root and (root.Position - post.CFrame.Position).Magnitude < 8 then

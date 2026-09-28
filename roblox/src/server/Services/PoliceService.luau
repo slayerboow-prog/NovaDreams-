@@ -521,15 +521,27 @@ end
 -- Sirena del coche patrulla
 ---------------------------------------------------------------------
 
+local SIREN_COOLDOWN = 1 -- (s) entre dos toques de la sirena: no se puede hacer sonar a lo loco
+local sirenAt: { [Player]: number } = setmetatable({}, { __mode = "k" }) :: any
+
+-- Solo de servicio y sentado en el vehículo de servicio (el asiento puede ir dentro de un submodelo)
 local function toggleSiren(player: Player)
 	if not shifts[player] then
+		return
+	end
+	local now = os.clock()
+	if now - (sirenAt[player] or -math.huge) < SIREN_COOLDOWN then
 		return
 	end
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	local seat = humanoid and humanoid.SeatPart
-	local car = seat and seat:FindFirstAncestorOfClass("Model")
-	if car and car:HasTag("PoliceCar") then
+	local car: Instance? = seat and seat.Parent
+	while car and car ~= workspace and not (car:IsA("Model") and car:HasTag("PoliceCar")) do
+		car = car.Parent
+	end
+	if car and car ~= workspace then
+		sirenAt[player] = now
 		car:SetAttribute("Siren", not car:GetAttribute("Siren"))
 	end
 end

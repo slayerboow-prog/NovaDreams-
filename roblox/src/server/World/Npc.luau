@@ -1,7 +1,7 @@
 -- Npc: personajes sencillos controlados por el servidor (clientes, camarero, barman…).
 --   Npc.create(name, parent, cf, look?)  -> Model con HumanoidRootPart anclado (se mueve con tweens)
 --   Npc.say(npc, text?, seconds?)        -> bocadillo de texto sobre la cabeza (nil lo oculta); lo dibuja
---                                           cada cliente cercano (UI/SpeechBubbles, remoto "Speech")
+--                                           cada cliente a menos de SPEECH_RANGE (UI/SpeechBubbles, remoto "Speech")
 --   Npc.icon(npc, text?)                 -> icono pequeño sobre la cabeza (✋, ⏳, 😋…)
 --   Npc.walkTo(npc, { Vector3 }, speed)  -> camina por esos puntos (espera hasta llegar)
 --   Npc.sit(npc, seat) / Npc.stand(npc)  -> sentarse en una silla y levantarse (el cliente le pone la
@@ -283,6 +283,9 @@ local function speech(): RemoteEvent?
 	return if speechRemote then speechRemote else nil
 end
 
+Npc.SPEECH_RANGE = 120 -- (studs) las frases solo se mandan a los jugadores a menos de esto
+local heardBy: { [Model]: { [Player]: boolean } } = setmetatable({}, { __mode = "k" }) :: any -- (quién oyó la última)
+
 -- Bocadillo de texto (nil lo oculta). Sin seconds se queda hasta que se quite (el cliente le pone
 -- un tope); con seconds se va solo. Lo dibuja cada jugador cerca (UI/SpeechBubbles): un bocadillo
 -- por personaje, y el atributo Says dice qué está diciendo (el cliente gesticula, las pruebas lo leen).
@@ -307,12 +310,35 @@ function Npc.say(npc: Model, text: string?, seconds: number?)
 	end)
 	local remote = speech()
 	if remote then
-		remote:FireAllClients({
+		local payload = {
 			Speaker = npc,
 			Text = line,
 			Seconds = seconds,
 			Name = npc:GetAttribute("SpeakerName"),
-		})
+		}
+		-- Solo a quien está cerca (el cliente ni dibuja las de más de 100 studs); el "ya no habla" va
+		-- también a quien recibió la frase anterior, aunque se haya alejado (que no se le quede puesto)
+		local ok, at = pcall(function()
+			return npc:GetPivot().Position
+		end)
+		if not ok then
+			remote:FireAllClients(payload)
+		else
+			local before = heardBy[npc]
+			local now: { [Player]: boolean } = {}
+			for _, player in Players:GetPlayers() do
+				local character = player.Character
+				local root = character and character:FindFirstChild("HumanoidRootPart")
+				local near = root ~= nil and root:IsA("BasePart") and (root.Position - at).Magnitude <= Npc.SPEECH_RANGE
+				if near then
+					now[player] = true
+				end
+				if near or (before and before[player]) then
+					remote:FireClient(player, payload)
+				end
+			end
+			heardBy[npc] = if line then now else nil
+		end
 	end
 	if seconds and line then
 		task.delay(seconds, function()

@@ -21,6 +21,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Cinema = require(ReplicatedStorage.Shared.Cinema)
 local Format = require(ReplicatedStorage.Shared.Format)
 local Npc = require(script.Parent.Parent.World.Npc)
+local StaffService = require(script.Parent.StaffService)
 local DataService = require(script.Parent.DataService)
 local NeedsService = require(script.Parent.NeedsService)
 local LifeService = require(script.Parent.LifeService)
@@ -62,6 +63,7 @@ type Hall = {
 	Taken: { [BasePart]: boolean },
 	Staff: Player?,
 	NpcStaff: Model?,
+	NpcLeaving: Model?, -- el taquillero NPC que se está retirando (si hace falta, vuelve él)
 	NpcBusy: boolean,
 	Orders: { Order },
 	Queue: { any },
@@ -402,15 +404,34 @@ local function npcWork(hall: Hall)
 end
 
 local function refreshStaff(hall: Hall, active: boolean)
-	local want = active and isOpen() and not hall.Staff
+	-- Al cerrar, despacha antes lo que ya estaba pagado (nadie se queda sin su entrada)
+	local want = active and not hall.Staff and (isOpen() or currentOrder(hall) ~= nil)
+	local staffAt = point(hall, "Staff")
 	if want and not hall.NpcStaff then
-		hall.NpcStaff = Npc.create("Npc_Taquillero", hall.Folder, CFrame.new(point(hall, "Staff")), { Shirt = Color3.fromRGB(150, 24, 36), Pants = Color3.fromRGB(24, 22, 30) })
-		Npc.face(hall.NpcStaff :: Model, hall.Register.Position - Vector3.new(0, 0, 0))
-		Npc.work(hall.NpcStaff :: Model, "Type")
+		-- ¿Se estaba retirando? Vuelve el mismo a la taquilla (no aparece otro encima)
+		local back = hall.NpcLeaving
+		if back and StaffService.recallNpc(back, staffAt, hall.Register.Position, "Type") then
+			hall.NpcLeaving = nil
+			hall.NpcStaff = back
+		else
+			hall.NpcStaff = Npc.create("Npc_Taquillero", hall.Folder, CFrame.new(staffAt), { Shirt = Color3.fromRGB(150, 24, 36), Pants = Color3.fromRGB(24, 22, 30) })
+			Npc.face(hall.NpcStaff :: Model, hall.Register.Position)
+			Npc.work(hall.NpcStaff :: Model, "Type")
+		end
 	elseif not want and hall.NpcStaff then
-		hall.NpcStaff:Destroy()
+		-- Se retira (cierra o un jugador coge la taquilla): se despide y se aparta andando, sin esfumarse
+		-- delante de nadie. Un pedido a medias lo termina npcWork solo si no hay taquillero jugador (si
+		-- lo hay, se queda en su panel); NpcBusy lo suelta ese mismo temporizador.
+		local npc = hall.NpcStaff :: Model
 		hall.NpcStaff = nil
-		hall.NpcBusy = false
+		hall.NpcLeaving = npc
+		local line = if not active then nil elseif hall.Staff then "¡Todo tuyo! Me tomo un descanso." else "¡Cerramos! Hasta mañana."
+		task.spawn(function()
+			StaffService.retireNpc(npc, StaffService.asideOf(staffAt, hall.Register.Position), line)
+			if hall.NpcLeaving == npc then
+				hall.NpcLeaving = nil
+			end
+		end)
 	end
 	npcWork(hall)
 end
