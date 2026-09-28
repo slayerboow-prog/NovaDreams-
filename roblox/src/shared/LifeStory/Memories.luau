@@ -51,6 +51,10 @@ local Memories: { [string]: Memory } = {
 	ParcialImposible = { Text = "El parcial imposible de Beltrán", Icon = "🧠" },
 	TFG = { Text = "La defensa de tu trabajo de fin de grado", Icon = "📘" },
 	ZumoDeMora = { Text = "La guerra del zumo de mora en la habitación 214", Icon = "🍇" },
+	-- Metro
+	MetroPrimerDia = { Text = "Tu primer día de universidad, en metro", Icon = "🚇" },
+	MetroCartera = { Text = "La cartera perdida en el metro", Icon = "👛" },
+	MetroTrabajo = { Text = "Tu primer día de trabajo yendo en transporte público", Icon = "💼" },
 	FiestaAdrian = { Text = "La fiesta en casa de Adrián (y el vecino del twist)", Icon = "🎉" },
 	Acampada = { Text = "La acampada en el Monte del Silencio y la visita de Blorp", Icon = "⛺" },
 	PlayaClase = { Text = "El día de playa con la clase y Don Pinzas", Icon = "🏖️" },

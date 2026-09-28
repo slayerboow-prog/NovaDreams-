@@ -1,5 +1,7 @@
 -- MetroUI (cliente): el metro subterráneo.
---   * En el tren: panel arriba con la línea, las estaciones y la próxima; en cada parada, "Bajar aquí".
+--   * En el tren: panel arriba con la línea, la tira de estaciones (✓ pasadas, ● aquí, ○ próximas) y
+--     un trenecito que avanza por ella en vivo; en cada parada, "Bajar en…"; y "🗺️ Plano" (MetroMapUI).
+--   * Incidencias (Remote "Incident"): aviso arriba durante unos segundos (tocarlo abre los avisos).
 --   * Máquinas de billetes, tiendas, tablón de encargos (y el encargo que llevas, con su tiempo).
 --   * Fotomatón (flash) y escenario: minijuego de guitarra (pulsa cuando la marca está en verde).
 --   * Escaleras mecánicas de las bocas de metro: los peldaños se mueven (solo las que tienes cerca)
@@ -17,6 +19,7 @@ local Dialog = require(script.Parent.Parent.UI.Dialog)
 local Hud = require(script.Parent.Parent.UI.Hud)
 local Format = require(ReplicatedStorage.Shared.Format)
 local Metro = require(ReplicatedStorage.Shared.Metro)
+local MetroMapUI = require(script.Parent.MetroMapUI)
 
 local MetroUI = {}
 
@@ -30,19 +33,47 @@ local gui: ScreenGui
 local ride: Frame
 local rideTitle: TextLabel
 local rideStrip: Frame
+local rideMarker: Frame
+local rideArrow: TextLabel
 local alightButton: TextButton
+local banner: TextButton
+local bannerText: TextLabel
+local bannerStripe: Frame
+local bannerToken = 0
 local missionLabel: TextLabel
 local flash: Frame
 local lineInfo: { [string]: any }? = nil
+local rideAt: number? = nil -- índice de la estación en la que está el tren (nil: en marcha)
+local rideLast: number? = nil -- la última estación en la que ha parado
+local rideNext: number? = nil -- la siguiente
+local markerFrac = 0.5 -- dónde va el trenecito de la tira (0-1)
 local missionDeadline: number? = nil
 local missionText = ""
 
+local RIDE_H = 110 -- alto del panel del tren
+local TRACK_Y = 30 -- la vía de la tira (dentro de rideStrip)
+
 ---------------------------------------------------------------------
--- En el tren
+-- En el tren: la tira de estaciones (✓ pasadas, ● aquí, ○ próximas) y el trenecito en vivo
 ---------------------------------------------------------------------
+local function stationIndex(name: string?): number?
+	local info = lineInfo
+	if not info or not name then
+		return nil
+	end
+	return table.find(info.Stations, name)
+end
+
+local function rideDir(): number
+	if rideLast and rideNext and rideNext ~= rideLast then
+		return if rideNext > rideLast then 1 else -1
+	end
+	return 1
+end
+
 local function drawStrip(current: string?, nextName: string?)
 	for _, child in rideStrip:GetChildren() do
-		if child:IsA("GuiObject") then
+		if child:IsA("GuiObject") and child ~= rideMarker then
 			child:Destroy()
 		end
 	end
@@ -50,36 +81,111 @@ local function drawStrip(current: string?, nextName: string?)
 	if not info then
 		return
 	end
+	rideAt = stationIndex(current)
+	if rideAt then
+		rideLast = rideAt
+	end
+	rideNext = stationIndex(nextName)
+	local n = #info.Stations
+	local dir = rideDir()
+	-- La vía
+	create("Frame", {
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0.5 / n, 0, 0, TRACK_Y),
+		Size = UDim2.new((n - 1) / n, 0, 0, 4),
+		BackgroundColor3 = info.Color,
+		BorderSizePixel = 0,
+		Parent = rideStrip,
+	})
 	for i, name in info.Stations do
-		local isHere = name == current
-		local isNext = name == nextName
-		local cell = create("Frame", { Size = UDim2.new(1 / #info.Stations, -4, 1, 0), BackgroundTransparency = 1, LayoutOrder = i, Parent = rideStrip })
-		create("Frame", {
-			AnchorPoint = Vector2.new(0.5, 0),
-			Position = UDim2.new(0.5, 0, 0, 0),
-			Size = UDim2.fromOffset(if isHere or isNext then 16 else 12, if isHere or isNext then 16 else 12),
-			BackgroundColor3 = if isHere then Color3.new(1, 1, 1) elseif isNext then C.Gold else info.Color,
-			Parent = cell,
-		}, { Theme.corner(8) })
+		local here = i == rideAt
+		local isNext = i == rideNext
+		local passed = not here and rideLast ~= nil and (if dir > 0 then i <= rideLast else i >= rideLast)
+		local size = if here then 26 else 22
+		create("TextLabel", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.new((i - 0.5) / n, 0, 0, TRACK_Y),
+			Size = UDim2.fromOffset(size, size),
+			BackgroundColor3 = if here then Color3.new(1, 1, 1) elseif passed then rgb(52, 62, 86) else C.Panel,
+			Text = if here then "●" elseif passed then "✓" else "○",
+			TextColor3 = if here then info.Color elseif passed then C.Muted elseif isNext then C.Gold else C.Text,
+			TextSize = if here then 18 else 14,
+			Font = Theme.FontBold,
+			ZIndex = 2,
+			Parent = rideStrip,
+		}, {
+			Theme.corner(size),
+			create("UIStroke", { Color = if isNext then C.Gold elseif here then Color3.new(1, 1, 1) else info.Color, Thickness = if isNext or here then 2.5 else 1.5 }),
+		})
 		Theme.label({
-			Position = UDim2.fromOffset(0, 18),
-			Size = UDim2.new(1, 0, 0, 16),
+			AnchorPoint = Vector2.new(0.5, 0),
+			Position = UDim2.new((i - 0.5) / n, 0, 0, TRACK_Y + 15),
+			Size = UDim2.new(1 / n, -2, 0, 16),
 			Text = name,
 			TextSize = 11,
 			TextXAlignment = Enum.TextXAlignment.Center,
-			TextColor3 = if isHere then Color3.new(1, 1, 1) elseif isNext then C.Gold else C.Muted,
-			Font = if isHere or isNext then Theme.FontBold else Theme.Font,
-			Parent = cell,
+			TextTruncate = Enum.TextTruncate.AtEnd,
+			TextColor3 = if here then Color3.new(1, 1, 1) elseif isNext then C.Gold elseif passed then rgb(120, 135, 160) else C.Muted,
+			Font = if here or isNext then Theme.FontBold else Theme.Font,
+			Parent = rideStrip,
 		})
 	end
 end
 
+-- Parte de la tira (0-1) que corresponde a una distancia del recorrido de la línea
+local function stripFraction(centers: { number }, s: number): number
+	local n = #centers
+	if s <= centers[1] then
+		return 0.5 / n
+	end
+	for k = 1, n - 1 do
+		if s <= centers[k + 1] then
+			local t = (s - centers[k]) / math.max(1, centers[k + 1] - centers[k])
+			return (k - 0.5 + math.clamp(t, 0, 1)) / n
+		end
+	end
+	return (n - 0.5) / n
+end
+
+-- Cada fotograma: el trenecito va por la tira según dónde está el tren de verdad (MetroState);
+-- si aún no hay datos, entre la última parada y la siguiente
+local function updateMarker(dt: number)
+	local info = lineInfo
+	if not info or not ride.Visible then
+		return
+	end
+	local n = #info.Stations
+	local target: number
+	local dir = rideDir()
+	local centers = MetroMapUI.centers(info.Line)
+	local s, liveDir = MetroMapUI.trainPosition(info.Line)
+	if s and centers and #centers == n then
+		target = stripFraction(centers, s)
+		dir = liveDir or dir
+		markerFrac = target
+	else
+		if rideAt then
+			target = (rideAt - 0.5) / n
+		elseif rideLast and rideNext then
+			target = (rideLast + rideNext - 1) / (2 * n)
+		else
+			target = markerFrac
+		end
+		markerFrac += (target - markerFrac) * math.min(1, dt * 2)
+	end
+	rideMarker.Position = UDim2.new(markerFrac, 0, 0, 8)
+	rideArrow.Text = if dir < 0 then "◀🚇" else "🚇▶"
+end
+
 local function onBoard(data: { [string]: any })
 	lineInfo = data
+	rideLast, rideNext, rideAt = nil, nil, nil
 	ride.Visible = true
 	ride.BackgroundColor3 = C.Panel
 	rideTitle.Text = ("🚇 %s · próxima: <b>%s</b>"):format(data.LineName, data.Next)
 	drawStrip(data.Station, data.Next)
+	markerFrac = if rideAt then (rideAt - 0.5) / #data.Stations else 0.5
+	rideMarker.BackgroundColor3 = data.Color or C.Accent
 	alightButton.Visible = true
 	alightButton.Text = "Bajar en " .. data.Station
 end
@@ -88,7 +194,7 @@ local function onArrive(data: { [string]: any })
 	if not lineInfo then
 		return
 	end
-	rideTitle.Text = ("🚇 %s · <b>%s</b> (puertas abiertas)"):format(lineInfo.LineName, data.Station)
+	rideTitle.Text = ("🚇 %s · <b>%s</b> · puertas abiertas"):format(lineInfo.LineName, data.Station)
 	drawStrip(data.Station, data.Next)
 	alightButton.Visible = true
 	alightButton.Text = "Bajar en " .. data.Station
@@ -105,15 +211,64 @@ end
 
 local function onOff()
 	lineInfo = nil
+	rideAt, rideLast, rideNext = nil, nil, nil
 	ride.Visible = false
+end
+
+---------------------------------------------------------------------
+-- Incidencias: aviso arriba ("⚠️ INCIDENCIA · Línea 1 · Retraso de 2 min · Se recomienda…")
+---------------------------------------------------------------------
+local function showIncident(data: any)
+	if type(data) ~= "table" then
+		banner.Visible = false
+		return
+	end
+	local line = Metro.lineById[data.Line or ""]
+	local parts = { "⚠️ <b>INCIDENCIA</b>" }
+	if line then
+		table.insert(parts, "<b>" .. line.Name .. "</b>")
+	end
+	local station = Metro.Stations[data.Station or ""]
+	local body = tostring(data.Text or "")
+	if station and not string.find(body, station.Name, 1, true) then
+		table.insert(parts, station.Name)
+	end
+	if body ~= "" then
+		table.insert(parts, (if data.Icon then tostring(data.Icon) .. " " else "") .. body)
+	end
+	if type(data.Alt) == "string" and data.Alt ~= "" then
+		table.insert(parts, data.Alt)
+	end
+	bannerText.Text = table.concat(parts, " · ")
+	bannerStripe.BackgroundColor3 = if line then line.Color else C.Gold
+	-- Debajo del panel del tren si vas montado; si no, donde iría el panel
+	banner.Position = UDim2.new(0.5, 0, 0, if ride.Visible then 70 + RIDE_H + 56 else 70)
+	banner.Visible = true
+	bannerToken += 1
+	local token = bannerToken
+	task.delay(12, function()
+		if token == bannerToken then
+			banner.Visible = false
+		end
+	end)
 end
 
 ---------------------------------------------------------------------
 -- Menús (billetes, tiendas, encargos)
 ---------------------------------------------------------------------
 local function listWindow(name: string, title: string, rows: { any }, height: number?)
-	local window, content, close = Dialog.window(name, title, Vector2.new(460, height or (110 + #rows * 70)))
-	local layout = create("Frame", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Parent = content })
+	-- (con muchas filas la lista se desplaza: que quepa también en el móvil)
+	local window, content, close = Dialog.window(name, title, Vector2.new(460, math.min(height or (110 + #rows * 70), 470)))
+	local layout = create("ScrollingFrame", {
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		CanvasSize = UDim2.new(),
+		AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		ScrollBarThickness = 6,
+		ScrollingDirection = Enum.ScrollingDirection.Y,
+		Parent = content,
+	})
 	create("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder, Parent = layout })
 	for i, r in rows do
 		local row = create("Frame", { Size = UDim2.new(1, 0, 0, 62), BackgroundColor3 = rgb(20, 32, 56), BackgroundTransparency = 0.2, LayoutOrder = i, Parent = layout }, { Theme.corner(10) })
@@ -133,8 +288,23 @@ local function listWindow(name: string, title: string, rows: { any }, height: nu
 	return window, layout
 end
 
-local function openTickets(tickets: { any })
+local function openTickets(tickets: { any }, passes: { [string]: any }?)
 	local rows = {}
+	if passes and passes.Current then
+		local left = if typeof(passes.Until) == "number" and typeof(passes.Now) == "number" then math.max(0, passes.Until - passes.Now) else 0
+		table.insert(rows, {
+			Title = ("✅ <b>Tu abono:</b> %s"):format(passes.Current),
+			Sub = ("Te quedan %s reales. Pasas los tornos sin billete."):format(Metro.duration(left)),
+			Button = "Plano",
+			Close = true,
+			Action = function()
+				local ok, MetroMapUI = pcall(require, script.Parent.MetroMapUI)
+				if ok and MetroMapUI.open then
+					MetroMapUI.open()
+				end
+			end,
+		})
+	end
 	for _, t in tickets do
 		table.insert(rows, {
 			Title = ("%s <b>%s</b> · %s"):format(t.Icon, t.Name, Format.money(t.Price)),
@@ -145,7 +315,18 @@ local function openTickets(tickets: { any })
 			end,
 		})
 	end
-	listWindow("MetroTickets", "🎫 Billetes de metro", rows)
+	for _, p in (passes and passes.Passes) or {} do
+		local who = if p.Student then " · para estudiantes" elseif p.Worker then " · para quien trabaja" else ""
+		table.insert(rows, {
+			Title = ("%s <b>%s</b> · %s"):format(p.Icon, p.Name, Format.money(p.Price)),
+			Sub = ("Viajes sin límite durante %d %s de juego%s"):format(p.Days, if p.Days == 1 then "día" else "días", who),
+			Button = "Comprar",
+			Action = function()
+				Remote:FireServer("BuyPass", p.Id)
+			end,
+		})
+	end
+	listWindow("MetroTickets", "🎫 Billetes y abonos de metro", rows)
 end
 
 local function openShop(shop: { [string]: any })
@@ -373,14 +554,23 @@ function MetroUI.init()
 		Name = "Ride",
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.new(0.5, 0, 0, 70),
-		Size = UDim2.fromOffset(560, 104),
+		Size = UDim2.fromOffset(560, RIDE_H),
 		Visible = false,
 		Parent = gui,
 	})
 	Theme.padding(8).Parent = ride
-	rideTitle = Theme.label({ Size = UDim2.new(1, 0, 0, 24), Text = "", RichText = true, TextSize = 16, Parent = ride })
-	rideStrip = create("Frame", { Position = UDim2.fromOffset(0, 30), Size = UDim2.new(1, 0, 0, 36), BackgroundTransparency = 1, Parent = ride })
-	create("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder, Parent = rideStrip })
+	rideTitle = Theme.label({ Size = UDim2.new(1, 0, 0, 24), Text = "", RichText = true, TextSize = 16, TextTruncate = Enum.TextTruncate.AtEnd, Parent = ride })
+	rideStrip = create("Frame", { Position = UDim2.fromOffset(0, 28), Size = UDim2.new(1, 0, 0, 64), BackgroundTransparency = 1, Parent = ride })
+	rideMarker = create("Frame", {
+		Name = "Train",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0.5, 0, 0, 8),
+		Size = UDim2.fromOffset(40, 18),
+		BackgroundColor3 = C.Accent,
+		ZIndex = 3,
+		Parent = rideStrip,
+	}, { Theme.corner(6), create("UIStroke", { Color = Color3.new(1, 1, 1), Thickness = 1.5 }) })
+	rideArrow = Theme.label({ Size = UDim2.fromScale(1, 1), Text = "🚇▶", TextSize = 12, TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 3, Parent = rideMarker })
 	alightButton = Theme.button({
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.new(0.5, 0, 1, 6),
@@ -393,6 +583,46 @@ function MetroUI.init()
 	})
 	alightButton.Activated:Connect(function()
 		Remote:FireServer("Alight")
+	end)
+	local planButton = Theme.button({
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, 0, 1, 6),
+		Size = UDim2.fromOffset(120, 42),
+		Text = "🗺️ Plano",
+		TextSize = 15,
+		Parent = ride,
+	})
+	planButton.Activated:Connect(function()
+		MetroMapUI.open("Ruta")
+	end)
+	RunService.RenderStepped:Connect(updateMarker)
+	banner = create("TextButton", {
+		Name = "MetroIncident",
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 70),
+		Size = UDim2.fromOffset(600, 52),
+		BackgroundColor3 = rgb(70, 40, 8),
+		BackgroundTransparency = 0.08,
+		AutoButtonColor = false,
+		Text = "",
+		Visible = false,
+		ZIndex = 20,
+		Parent = gui,
+	}, { Theme.corner(10), create("UIStroke", { Color = C.Gold, Thickness = 2 }) })
+	bannerStripe = create("Frame", { Position = UDim2.fromOffset(8, 8), Size = UDim2.new(0, 6, 1, -16), BackgroundColor3 = C.Gold, BorderSizePixel = 0, ZIndex = 21, Parent = banner }, { Theme.corner(3) })
+	bannerText = Theme.label({
+		Position = UDim2.fromOffset(22, 0),
+		Size = UDim2.new(1, -30, 1, 0),
+		Text = "",
+		RichText = true,
+		TextWrapped = true,
+		TextSize = 14,
+		ZIndex = 21,
+		Parent = banner,
+	})
+	banner.Activated:Connect(function()
+		banner.Visible = false
+		MetroMapUI.open("Avisos")
 	end)
 	missionLabel = Theme.label({
 		Name = "MetroMission",
@@ -408,7 +638,7 @@ function MetroUI.init()
 	})
 	flash = create("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.new(1, 1, 1), BackgroundTransparency = 1, Visible = false, ZIndex = 40, Parent = gui })
 
-	Remote.OnClientEvent:Connect(function(action, data)
+	Remote.OnClientEvent:Connect(function(action, data, extra)
 		if action == "Board" then
 			onBoard(data)
 		elseif action == "Arrive" then
@@ -417,8 +647,10 @@ function MetroUI.init()
 			onDepart(data)
 		elseif action == "Off" then
 			onOff()
+		elseif action == "Incident" then
+			showIncident(data)
 		elseif action == "Tickets" then
-			openTickets(data)
+			openTickets(data, extra)
 		elseif action == "Shop" then
 			openShop(data)
 		elseif action == "Missions" then

@@ -63,6 +63,11 @@ local DEFAULT_DATA = {
 		LastTrain = 0,
 		DecayApplied = 0,
 	},
+	-- Metro (MetroService): abono en vigor (PassKind) y hora real a la que caduca (PassUntil)
+	Metro = {
+		PassKind = "",
+		PassUntil = 0,
+	},
 	-- Estudios: notas por asignatura, exámenes, títulos y asistencia (ClassService)
 	Education = {
 		Subjects = {},

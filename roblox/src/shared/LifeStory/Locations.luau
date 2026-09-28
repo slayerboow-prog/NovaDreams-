@@ -58,6 +58,11 @@ Locations.Places = {
 	Supermercado = { NameKey = "PLACE.SUPERMERCADO", Tag = "JobBoard", Attribute = { JobId = "Reponedor" } },
 	PuntoLimpio = { NameKey = "PLACE.PUNTO_LIMPIO", Model = "PuntoLimpio" },
 	ParadaBus = { NameKey = "PLACE.PARADA_BUS", Tag = "TravelStop" },
+	-- Metro (MetroKit): la boca más cercana, estaciones concretas y la galería de Plaza Mayor
+	MetroBoca = { NameKey = "Boca de metro", Tag = "MetroEntrance", Radius = 12, Fallback = "ParadaBus" },
+	MetroCampus = { NameKey = "Metro · Campus", Tag = "MetroEntrance", Attribute = { Station = "Campus" }, Radius = 12, Fallback = "MetroBoca" },
+	MetroAndenLevante = { NameKey = "Andén de Levante", Tag = "MetroAlight", Attribute = { Station = "Levante" }, Radius = 14, Fallback = "MetroBoca" },
+	MetroObjetosPerdidos = { NameKey = "Objetos Perdidos del metro", Tag = "MetroLostOffice", Radius = 10, Fallback = "MetroBoca" },
 	Colegio = { NameKey = "PLACE.COLEGIO", Model = "Colegio", Zone = "Home" },
 
 	-- Dentro del colegio (Civic.school del mapa, ver docs/mapa/ETIQUETAS.md)

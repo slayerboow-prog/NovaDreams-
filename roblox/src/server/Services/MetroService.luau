@@ -24,6 +24,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Metro = require(ReplicatedStorage.Shared.Metro)
+local GameClock = require(ReplicatedStorage.Shared.GameClock)
 local Items = require(ReplicatedStorage.Shared.Items)
 local Format = require(ReplicatedStorage.Shared.Format)
 local Npc = require(script.Parent.Parent.World.Npc)
@@ -60,6 +61,15 @@ type Train = {
 	Duration: number,
 	Elapsed: number,
 	Passengers: { [Player]: boolean },
+	Speed: number, -- velocidad de crucero (baja con una avería)
+	DwellTime: number, -- lo que para en cada estación (según el horario)
+	Layover: number, -- descanso en las cabeceras (según el horario)
+	Hold: number?, -- espera extra en la próxima parada (retraso, incidencia de seguridad)
+	T0: number, -- hora del servidor a la que salió del último andén (para los clientes)
+	DoorsOpen: boolean,
+	Warned: boolean, -- ya ha avisado "las puertas van a cerrarse"
+	Announced: boolean, -- ya ha avisado en el andén de que llega
+	Riders: { Model }, -- viajeros NPC sentados en el tren
 }
 
 local trains: { [string]: Train } = {}
@@ -69,6 +79,18 @@ local busking: { [Player]: { Token: number, Started: number } } = {}
 local missions: { [Player]: { [string]: any } } = {}
 local onDuty: { [Player]: boolean } = {}
 local nextToken = 0
+local stateFolder: Folder? = nil -- ReplicatedStorage.MetroState: lo que ven los clientes
+local incidents: { { [string]: any } } = {} -- incidencias activas
+local closedUntil: { [string]: number } = {} -- estaciones cerradas (hora de os.clock hasta la que lo están)
+local schedule = Metro.scheduleAt(8)
+
+-- Hora del servidor (la misma que ven los clientes con workspace:GetServerTimeNow())
+function MetroService._now(): number
+	local ok, t = pcall(function()
+		return workspace:GetServerTimeNow()
+	end)
+	return if ok and typeof(t) == "number" then t else os.clock()
+end
 
 local function rootOf(player: Player): BasePart?
 	local character = player.Character
@@ -133,6 +155,85 @@ local function placeTrain(train: Train)
 		local p, t = Metro.sample(train.Points, train.S - offset)
 		car.Root.CFrame = CFrame.lookAt(p, p + t) * CFrame.new(0, -0.3, 0)
 	end
+	for _, npc in train.Riders do
+		local car = train.Cars[npc:GetAttribute("MetroCar") or 1]
+		local rel = npc:GetAttribute("MetroOffset")
+		if car and typeof(rel) == "CFrame" and npc.Parent then
+			npc:PivotTo(car.Root.CFrame * rel)
+		end
+	end
+end
+
+-- Dónde va cada coche ahora mismo (para saber quién va dentro, aunque sea de pie)
+local function carAt(train: Train, position: Vector3): Car?
+	for _, car in train.Cars do
+		local q = car.Root.CFrame:PointToObjectSpace(position)
+		if math.abs(q.X) < 4.4 and q.Y > -1 and q.Y < 9 and math.abs(q.Z) < Metro.CarLength / 2 + 1 then
+			return car
+		end
+	end
+	return nil
+end
+
+-- Lo que ven los clientes para mover el tren en su pantalla (ReplicatedStorage.MetroState.<línea>)
+local function publish(train: Train)
+	local root = stateFolder
+	if not root then
+		return
+	end
+	local f = root:FindFirstChild(train.Line.Id)
+	if not f then
+		f = Instance.new("Folder")
+		f.Name = train.Line.Id
+		f.Parent = root
+	end
+	local now = MetroService._now()
+	f:SetAttribute("Phase", train.Phase)
+	f:SetAttribute("S", train.S)
+	f:SetAttribute("From", train.From)
+	f:SetAttribute("To", train.To)
+	f:SetAttribute("Duration", train.Duration)
+	f:SetAttribute("T0", train.T0)
+	f:SetAttribute("Speed", train.Speed)
+	f:SetAttribute("Index", train.Index)
+	f:SetAttribute("Dir", train.Dir)
+	f:SetAttribute("DwellEnd", if train.Phase == "Dwell" then now + math.max(0, train.Timer) else 0)
+	f:SetAttribute("DwellTime", train.DwellTime)
+	f:SetAttribute("Layover", train.Layover)
+	f:SetAttribute("Doors", train.DoorsOpen)
+end
+
+local function playersNear(position: Vector3, range: number): { Player }
+	local list = {}
+	for _, player in Players:GetPlayers() do
+		local root = rootOf(player)
+		if root and (root.Position - position).Magnitude < range then
+			table.insert(list, player)
+		end
+	end
+	return list
+end
+
+-- Megafonía: a los viajeros del tren y/o a quien está en el andén
+local function announce(train: Train, text: string, toRiders: boolean, platformIndex: number?)
+	if toRiders then
+		for player in train.Passengers do
+			Remote:FireClient(player, "Announce", { Text = text, Line = train.Line.Id })
+		end
+	end
+	if platformIndex then
+		local center = Metro.center(train.Line.Stations[platformIndex], train.Line)
+		for _, player in playersNear(center, 110) do
+			if not train.Passengers[player] then
+				Remote:FireClient(player, "Announce", { Text = text, Line = train.Line.Id, Platform = true })
+			end
+		end
+	end
+end
+
+local function isClosed(stationId: string): boolean
+	local t = closedUntil[stationId]
+	return t ~= nil and os.clock() < t
 end
 
 local function setDoors(train: Train, open: boolean)
@@ -145,10 +246,13 @@ local function setDoors(train: Train, open: boolean)
 end
 
 local function freeSeat(train: Train, from: Vector3?): Seat?
+	if train.Full and os.clock() < train.Full then
+		return nil -- (tren lleno: se va de pie)
+	end
 	local best, bestD = nil, math.huge
 	for _, car in train.Cars do
 		for _, seat in car.Seats do
-			if not seat.Occupant then
+			if not seat.Occupant and not seat:GetAttribute("NpcRider") then
 				local d = if from then (seat.Position - from).Magnitude else 0
 				if d < bestD then
 					best, bestD = seat, d
@@ -179,19 +283,37 @@ local function eta(train: Train, index: number): number
 	return math.floor((Metro.eta(train, index)))
 end
 
+local refreshRiders: (Train) -> () -- (más abajo: viajeros NPC que suben y bajan)
+
 local function arrive(train: Train)
 	train.Phase = "Dwell"
-	train.Timer = Metro.Dwell
-	train.S = train.Centers[train.Index]
-	placeTrain(train)
-	setDoors(train, true)
 	local id = train.Line.Stations[train.Index]
+	local closed = isClosed(id)
+	local hold = train.Hold or 0
+	train.Hold = nil
+	-- Estación cerrada: el tren para un momento con las puertas cerradas y sigue
+	train.Timer = if closed then 3 else Metro.dwellAt(train, train.Index) + hold
+	train.S = train.Centers[train.Index]
+	train.Warned = false
+	train.Announced = false
+	train.DoorsOpen = not closed
+	placeTrain(train)
+	setDoors(train, not closed)
+	publish(train)
 	local nextI = nextIndex(train)
 	for player in train.Passengers do
-		Remote:FireClient(player, "Arrive", { Line = train.Line.Id, Station = stationName(id), Next = stationName(train.Line.Stations[nextI]) })
+		Remote:FireClient(player, "Arrive", { Line = train.Line.Id, Station = stationName(id), Next = stationName(train.Line.Stations[nextI]), Closed = closed })
 		if missions[player] then
 			missions[player].Rode = true
 		end
+	end
+	if closed then
+		announce(train, ("Estación %s cerrada temporalmente. El tren no abre las puertas."):format(stationName(id)), true, nil)
+	elseif hold > 0 then
+		announce(train, ("Por motivos de regulación, el tren permanecerá detenido en %s unos instantes."):format(stationName(id)), true, train.Index)
+	end
+	if refreshRiders and not closed then
+		refreshRiders(train)
 	end
 end
 
@@ -206,48 +328,43 @@ local function depart(train: Train)
 	train.Index = i
 	local dist = math.abs(train.To - train.From)
 	-- Arranca y frena suave (aceleración constante hasta la velocidad de crucero)
-	local accelDist = Metro.Speed * Metro.Speed / Metro.Accel
-	if dist >= accelDist then
-		train.Duration = 2 * Metro.Speed / Metro.Accel + (dist - accelDist) / Metro.Speed
-	else
-		train.Duration = 2 * math.sqrt(dist / Metro.Accel)
-	end
+	train.Duration = Metro.legDuration(dist, train.Speed)
 	train.Elapsed = 0
+	train.T0 = MetroService._now()
 	train.Phase = "Move"
+	train.DoorsOpen = false
 	setDoors(train, false)
+	publish(train)
 	for player in train.Passengers do
 		Remote:FireClient(player, "Depart", { Line = train.Line.Id, Next = stationName(train.Line.Stations[i]) })
 	end
+	announce(train, Metro.announceNext(train.Line, train.Line.Stations[i]), true, nil)
 end
 
 -- Distancia recorrida a los t segundos de un tramo (acelera, crucero y frena)
 local function travelled(train: Train, t: number): number
-	local dist = math.abs(train.To - train.From)
-	local a, v = Metro.Accel, Metro.Speed
-	local ta = v / a
-	if dist < v * v / a then
-		ta = math.sqrt(dist / a)
-		v = a * ta
-	end
-	local T = train.Duration
-	if t <= ta then
-		return 0.5 * a * t * t
-	elseif t >= T - ta then
-		local r = math.max(0, T - t)
-		return dist - 0.5 * a * r * r
-	end
-	return 0.5 * a * ta * ta + v * (t - ta)
+	return Metro.travelled(math.abs(train.To - train.From), t, train.Duration, train.Speed)
 end
 
 local function step(train: Train, dt: number)
 	if train.Phase == "Dwell" then
 		train.Timer -= dt
+		if train.DoorsOpen and not train.Warned and train.Timer <= 4 then
+			train.Warned = true
+			announce(train, Metro.AnnounceDoors, true, train.Index)
+			Remote:FireAllClients("Doors", { Line = train.Line.Id, Closing = true })
+		end
 		if train.Timer <= 0 then
 			depart(train)
 		end
 		return
 	end
 	train.Elapsed += dt
+	if not train.Announced and train.Duration - train.Elapsed <= 12 then
+		train.Announced = true
+		local toward = Metro.Stations[train.Line.Stations[select(2, Metro.eta(train :: any, train.Index))]].Name
+		announce(train, Metro.announceArriving(train.Line, toward), false, train.Index)
+	end
 	if train.Elapsed >= train.Duration then
 		arrive(train)
 		return
@@ -301,6 +418,14 @@ local function setupTrain(model: Instance)
 		Duration = 1,
 		Elapsed = 0,
 		Passengers = {},
+		Speed = Metro.Speed,
+		DwellTime = schedule.Dwell,
+		Layover = schedule.Layover,
+		T0 = MetroService._now(),
+		DoorsOpen = true,
+		Warned = false,
+		Announced = false,
+		Riders = {},
 	}
 	trains[line.Id] = train
 	arrive(train)
@@ -317,27 +442,32 @@ local function stopRiding(player: Player)
 	end
 end
 
--- Sienta al jugador en el tren y le enseña el panel del viaje
-local function seatPlayer(player: Player, train: Train, seat: Seat, humanoid: Humanoid)
-	require(script.Parent.VehicleService).standUp(player) -- (si iba en bici o patinete, se baja antes)
-	seat:Sit(humanoid)
+-- Panel del viaje para quien va en el tren (sentado o de pie)
+local function startRide(player: Player, train: Train)
 	train.Passengers[player] = true
 	riding[player] = train
 	local nextI = nextIndex(train)
+	local names = {}
+	for _, id in train.Line.Stations do
+		table.insert(names, stationName(id))
+	end
 	Remote:FireClient(player, "Board", {
 		Line = train.Line.Id,
 		LineName = train.Line.Name,
 		Color = train.Line.Color,
-		Stations = (function()
-			local names = {}
-			for _, id in train.Line.Stations do
-				table.insert(names, stationName(id))
-			end
-			return names
-		end)(),
+		Stations = names,
 		Station = stationName(train.Line.Stations[train.Index]),
 		Next = stationName(train.Line.Stations[nextI]),
 	})
+end
+
+-- Sienta al jugador en el tren y le enseña el panel del viaje
+local function seatPlayer(player: Player, train: Train, seat: Seat, humanoid: Humanoid)
+	require(script.Parent.VehicleService).standUp(player) -- (si iba en bici o patinete, se baja antes)
+	seat:Sit(humanoid)
+	if riding[player] ~= train then
+		startRide(player, train)
+	end
 end
 
 local function onBoard(player: Player, marker: BasePart)
@@ -352,37 +482,46 @@ local function onBoard(player: Player, marker: BasePart)
 		Notify:FireClient(player, "Info", ("El tren de la %s no está en el andén. Mira el panel: llega en %d s."):format(train.Line.Name, eta(train, here or 1)))
 		return
 	end
+	if not train.DoorsOpen then
+		Notify:FireClient(player, "Info", "Esta estación está cerrada: el tren no abre las puertas.")
+		return
+	end
 	local seat = freeSeat(train, marker.Position)
 	if not seat then
-		Notify:FireClient(player, "Info", "El tren va lleno. Espera al siguiente.")
+		-- Sin asiento libre: se sube de pie (dentro del coche más cercano)
+		local root = rootOf(player)
+		local best, bestD = nil, math.huge
+		for _, car in train.Cars do
+			local d = if root then (car.Root.Position - root.Position).Magnitude else 0
+			if d < bestD then
+				best, bestD = car, d
+			end
+		end
+		if best then
+			require(script.Parent.VehicleService).standUp(player)
+			teleport(player, best.Root.CFrame * CFrame.new(0, 3.5, 0))
+			startRide(player, train)
+			Notify:FireClient(player, "Info", "No quedan asientos libres: vas de pie. Agárrate a la barra 🧍")
+		end
 		return
 	end
 	seatPlayer(player, train, seat, humanoid)
 end
 
--- Al cerrar las puertas: quien se ha metido andando en un coche, se sienta y viaja
+-- Al cerrar las puertas: quien se ha metido andando en un coche viaja (de pie, o se sienta si quiere)
 function boardWalkIns(train: Train)
 	for _, player in Players:GetPlayers() do
 		local root = rootOf(player)
 		local humanoid = humanoidOf(player)
-		if root and humanoid and (humanoid.Health or 0) > 0 and not riding[player] then
-			for _, car in train.Cars do
-				local q = car.Root.CFrame:PointToObjectSpace(root.Position)
-				if math.abs(q.X) < 4.4 and q.Y > -1 and q.Y < 9 and math.abs(q.Z) < Metro.CarLength / 2 then
-					local seat = freeSeat(train, root.Position)
-					if seat then
-						seatPlayer(player, train, seat, humanoid)
-					end
-					break
-				end
-			end
+		if root and humanoid and (humanoid.Health or 0) > 0 and not riding[player] and carAt(train, root.Position) then
+			startRide(player, train)
 		end
 	end
 end
 
 local function onAlight(player: Player)
 	local train = riding[player]
-	if not train or train.Phase ~= "Dwell" then
+	if not train or train.Phase ~= "Dwell" or not train.DoorsOpen then
 		return
 	end
 	local id = train.Line.Stations[train.Index]
@@ -400,21 +539,21 @@ local function onAlight(player: Player)
 	StoryEvents.emit(player, "RodeMetro", { Station = id })
 end
 
--- Pasajeros: si se levantan con el tren en marcha, vuelven a su asiento; si se bajan parados, fuera
+-- Pasajeros: se puede ir sentado o de pie, andar por el coche y cambiar de coche. Si con el tren
+-- parado sales por la puerta, has bajado en esa estación.
 local function checkPassengers()
 	for player, train in riding do
 		local humanoid = humanoidOf(player)
-		if not player.Parent or not humanoid or humanoid.Health <= 0 then
+		local root = rootOf(player)
+		if not player.Parent or not humanoid or humanoid.Health <= 0 or not root then
 			stopRiding(player)
-		elseif not isTrainSeat(train, humanoid.SeatPart) then
-			if train.Phase == "Move" then
-				local root = rootOf(player)
-				local seat = freeSeat(train, root and root.Position)
-				if seat then
-					seat:Sit(humanoid)
-				end
-			else
+		elseif not isTrainSeat(train, humanoid.SeatPart) and not carAt(train, root.Position) then
+			if train.Phase == "Dwell" then
+				local id = train.Line.Stations[train.Index]
 				stopRiding(player)
+				StoryEvents.emit(player, "RodeMetro", { Station = id })
+			elseif (root.Position - train.Cars[1].Root.Position).Magnitude > 200 then
+				stopRiding(player) -- (se ha ido del tren de otra forma: teletransporte, muerte…)
 			end
 		end
 	end
@@ -462,11 +601,25 @@ local function onGate(player: Player, gate: BasePart)
 			teleport(player, CFrame.new(through))
 		end
 		player:SetAttribute("MetroTicket", true)
+		StoryEvents.emit(player, "MetroGate", { Station = gate:GetAttribute("Station"), Pass = "Gratis" })
 		Notify:FireClient(player, "Info", "🎫 Los niños viajan gratis en el metro. ¡Buen viaje!")
 		return
 	end
+	-- De servicio (revisor, policía…) o con abono en vigor: pasa sin gastar billete
+	local job = player:GetAttribute("Job")
+	local pass = MetroService.passOf(player)
+	if (typeof(job) == "string" and Metro.FreeJobs[job]) or pass then
+		local through = gate:GetAttribute("Through")
+		if typeof(through) == "Vector3" then
+			teleport(player, CFrame.new(through))
+		end
+		player:SetAttribute("MetroTicket", true)
+		StoryEvents.emit(player, "MetroGate", { Station = gate:GetAttribute("Station"), Pass = pass and pass.Id or "Servicio" })
+		Notify:FireClient(player, "Info", if pass then ("%s %s: ¡buen viaje!"):format(pass.Icon, pass.Name) else "🚇 Vas de servicio: el metro es gratis para ti.")
+		return
+	end
 	if InventoryService.count(player, Metro.TicketItem) < 1 then
-		Notify:FireClient(player, "Info", "Necesitas un billete: cómpralo en las máquinas azules del vestíbulo 🎫")
+		Notify:FireClient(player, "Info", "Necesitas un billete o un abono: cómpralo en las máquinas azules del vestíbulo 🎫")
 		return
 	end
 	InventoryService.remove(player, Metro.TicketItem, 1)
@@ -475,6 +628,7 @@ local function onGate(player: Player, gate: BasePart)
 		teleport(player, CFrame.new(through))
 	end
 	player:SetAttribute("MetroTicket", true) -- (para el revisor: tiene billete validado)
+	StoryEvents.emit(player, "MetroGate", { Station = gate:GetAttribute("Station"), Pass = "Billete" })
 end
 
 local function onGateExit(player: Player, gate: BasePart)
@@ -515,6 +669,82 @@ local function onBuyTicket(player: Player, id: any)
 			return
 		end
 	end
+end
+
+---------------------------------------------------------------------
+-- Abonos (se guardan en data.Metro: PassUntil = hora real a la que caduca)
+---------------------------------------------------------------------
+local function passSeconds(days: number): number
+	local Config = require(ReplicatedStorage.Shared.Config)
+	return days * (Config.DayLengthMinutes or 20) * 60
+end
+
+-- El abono en vigor del jugador (o nil)
+function MetroService.passOf(player: Player): { [string]: any }?
+	local data = DataService.get(player)
+	local m = data and data.Metro
+	if not m or not m.PassKind or m.PassKind == "" or (m.PassUntil or 0) <= os.time() then
+		return nil
+	end
+	return Metro.passById[m.PassKind]
+end
+
+local function syncPass(player: Player)
+	local data = DataService.get(player)
+	local m = data and data.Metro
+	local pass = MetroService.passOf(player)
+	player:SetAttribute("MetroPass", pass and pass.Name or nil)
+	player:SetAttribute("MetroPassUntil", if pass and m then m.PassUntil else nil)
+end
+
+local function isWorker(player: Player): boolean
+	if player:GetAttribute("Job") then
+		return true
+	end
+	local data = DataService.get(player)
+	if data and data.Careers then
+		for _ in data.Careers do
+			return true
+		end
+	end
+	return data ~= nil and data.Stats ~= nil and (data.Stats.TasksDone or 0) > 0
+end
+
+local function onBuyPass(player: Player, id: any)
+	local pass = typeof(id) == "string" and Metro.passById[id]
+	local root = rootOf(player)
+	local near = false
+	for _, m in tagged("MetroTicketMachine") do
+		if root and (m.Position - root.Position).Magnitude < 14 then
+			near = true
+		end
+	end
+	if not pass or not near then
+		return
+	end
+	if pass.Student and not Metro.StudentStages[player:GetAttribute("LifeStage") or ""] then
+		Notify:FireClient(player, "Error", "El abono estudiante es para estudiantes de instituto o universidad.")
+		return
+	end
+	if pass.Worker and not isWorker(player) then
+		Notify:FireClient(player, "Error", "El abono trabajador es para quien tiene trabajo. ¡Busca uno en el móvil!")
+		return
+	end
+	local data = DataService.get(player)
+	if not data then
+		return
+	end
+	if not DataService.spend(player, pass.Price) then
+		Notify:FireClient(player, "Error", "No tienes dinero suficiente.")
+		return
+	end
+	data.Metro = data.Metro or {}
+	local from = math.max(os.time(), if data.Metro.PassKind == pass.Id then data.Metro.PassUntil or 0 else 0)
+	data.Metro.PassKind = pass.Id
+	data.Metro.PassUntil = from + passSeconds(pass.Days)
+	syncPass(player)
+	Notify:FireClient(player, "Success", ("%s %s: pasa por los tornos sin billete (%d %s de juego)."):format(pass.Icon, pass.Name, pass.Days, if pass.Days == 1 then "día" else "días"))
+	StoryEvents.emit(player, "BoughtItem", { ShopId = "MetroAbono", ItemId = pass.Id })
 end
 
 ---------------------------------------------------------------------
@@ -1018,7 +1248,7 @@ local function ambientTick()
 				table.remove(list, i)
 			end
 		end
-		if active and #list < 3 then
+		if active and #list < (schedule.Crowd or 3) then
 			-- Un sitio libre del andén: entre el borde y los bancos/la máquina (x -3..1 de la marca),
 			-- lejos de los extremos y sin pisar a otro viajero; de pie en el suelo (la marca va a media
 			-- altura: antes flotaban 3 studs)
@@ -1112,6 +1342,216 @@ local function trainArrivedAmbient(train: Train)
 	end
 end
 
+---------------------------------------------------------------------
+-- Viajeros NPC dentro del tren (van sentados; los clientes los mueven con su coche)
+---------------------------------------------------------------------
+local RIDER_LINES = {
+	"Voy tardísimo al trabajo…", "¿Has visto el partido de ayer?", "La próxima es la mía.", "Qué sueño tengo hoy.",
+	"Mira este vídeo, jajaja 😂", "¿Sabes si para en Plaza Mayor?", "Hoy hay examen, qué nervios.", "Me encanta ir en metro, se lee muy bien.",
+	"Buf, qué lleno va hoy.", "Luego quedamos en la galería, ¿vale?",
+}
+local RIDER_ICONS = { "📱", "📖", "🎧", "📰", "☕" }
+local riderSeat: { [Model]: Seat } = {}
+
+local function removeRider(train: Train, index: number)
+	local npc = table.remove(train.Riders, index) :: Model
+	local seat = riderSeat[npc]
+	riderSeat[npc] = nil
+	if seat then
+		seat:SetAttribute("NpcRider", nil)
+	end
+	if npc.Parent then
+		npc:Destroy()
+	end
+end
+
+local function spawnRider(train: Train): boolean
+	local options = {}
+	for k, car in train.Cars do
+		for _, seat in car.Seats do
+			if not seat.Occupant and not seat:GetAttribute("NpcRider") then
+				table.insert(options, { K = k, Car = car, Seat = seat })
+			end
+		end
+	end
+	if #options == 0 then
+		return false
+	end
+	local pick = options[math.random(1, #options)]
+	local seat = pick.Seat
+	local npc = Npc.create("Viajero", seat.Parent :: Instance, seat.CFrame, nil)
+	pcall(Npc.sit, npc, seat)
+	seat:SetAttribute("NpcRider", true)
+	riderSeat[npc] = seat
+	npc:SetAttribute("MetroLine", train.Line.Id)
+	npc:SetAttribute("MetroCar", pick.K)
+	npc:SetAttribute("MetroOffset", pick.Car.Root.CFrame:ToObjectSpace(npc:GetPivot()))
+	npc:AddTag("MetroRider")
+	if math.random() < 0.5 then
+		pcall(Npc.icon, npc, RIDER_ICONS[math.random(1, #RIDER_ICONS)])
+	end
+	table.insert(train.Riders, npc)
+	return true
+end
+
+-- En cada parada: unos bajan y otros suben (solo si hay algún jugador cerca, para no gastar)
+function refreshRiders(train: Train)
+	for i = #train.Riders, 1, -1 do
+		if not train.Riders[i].Parent or math.random() < 0.35 then
+			removeRider(train, i)
+		end
+	end
+	local watched = next(train.Passengers) ~= nil or #playersNear(train.Cars[math.ceil(#train.Cars / 2)].Root.Position, 260) > 0
+	if not watched then
+		for i = #train.Riders, 1, -1 do
+			removeRider(train, i)
+		end
+		return
+	end
+	local want = schedule.Riders or 4
+	if train.Full and os.clock() < train.Full then
+		want = 99 -- (tren lleno: todos los asientos ocupados)
+	end
+	for _ = 1, 30 do
+		if #train.Riders >= want or not spawnRider(train) then
+			break
+		end
+	end
+end
+
+local function riderChatter()
+	for _, train in trains do
+		if next(train.Passengers) ~= nil and #train.Riders > 0 and math.random() < 0.08 then
+			local npc = train.Riders[math.random(1, #train.Riders)]
+			if npc.Parent then
+				pcall(Npc.say, npc, RIDER_LINES[math.random(1, #RIDER_LINES)], 4)
+			end
+		end
+	end
+end
+
+---------------------------------------------------------------------
+-- Horarios (con el reloj del juego) e incidencias
+---------------------------------------------------------------------
+local nextIncident = os.clock() + math.random(Metro.IncidentEvery[1], Metro.IncidentEvery[2])
+
+local function updateSchedule()
+	local ok, date = pcall(GameClock.now)
+	local sch = Metro.scheduleAt(if ok and date then date.ClockTime else 12)
+	if sch ~= schedule then
+		schedule = sch
+		for _, train in trains do
+			train.DwellTime = sch.Dwell
+			train.Layover = sch.Layover
+			publish(train)
+		end
+	end
+	if stateFolder then
+		stateFolder:SetAttribute("Schedule", sch.Id)
+		stateFolder:SetAttribute("ScheduleName", sch.Name)
+		stateFolder:SetAttribute("Night", sch.Night == true)
+	end
+end
+
+local function publishIncidents()
+	local lines = {}
+	for _, inc in incidents do
+		table.insert(lines, table.concat({ inc.Kind, inc.Line, inc.Station, inc.Icon, inc.Text, inc.Alt or "" }, "|"))
+	end
+	if stateFolder then
+		stateFolder:SetAttribute("Incidents", table.concat(lines, "\n"))
+	end
+end
+
+-- Lanza una incidencia (kind = Metro.Incidents; sin línea/estación, al azar)
+function MetroService.startIncident(kind: string, lineId: string?, stationId: string?): { [string]: any }?
+	local def = Metro.Incidents[kind]
+	if not def then
+		return nil
+	end
+	local line = if lineId then Metro.lineById[lineId] else Metro.Lines[math.random(1, #Metro.Lines)]
+	local train = line and trains[line.Id]
+	if not line or not train then
+		return nil
+	end
+	local candidates = {}
+	for _, id in line.Stations do
+		if not Metro.Stations[id].Hub then
+			table.insert(candidates, id)
+		end
+	end
+	local station = stationId or candidates[math.random(1, #candidates)]
+	local inc: { [string]: any } = { Kind = kind, Line = line.Id, Station = station, Icon = def.Icon, Until = os.clock() + (def.Seconds or 120) }
+	local other = nil
+	for _, l in Metro.Lines do
+		if l.Id ~= line.Id then
+			other = l
+		end
+	end
+	if kind == "Retraso" or kind == "Seguridad" then
+		local hold = math.random(def.Hold[1], def.Hold[2])
+		train.Hold = (train.Hold or 0) + hold
+		inc.Until = os.clock() + hold + 150
+		if kind == "Retraso" then
+			inc.Text = def.Text:format(math.max(1, math.ceil(hold / 60)), line.Name)
+		else
+			inc.Station = train.Line.Stations[train.Index]
+			inc.Text = def.Text:format(stationName(inc.Station))
+		end
+		inc.Alt = if other then "Se recomienda utilizar la " .. other.Name .. " si te sirve." else ""
+	elseif kind == "Averia" then
+		train.Speed = Metro.Speed * def.Slow
+		inc.Text = def.Text:format(line.Name)
+		inc.Alt = if other then "Se recomienda utilizar la " .. other.Name .. "." else ""
+	elseif kind == "Lleno" then
+		train.Full = inc.Until
+		inc.Text = def.Text:format(line.Name)
+		inc.Alt = "Puedes ir de pie o esperar al siguiente."
+	else -- Cerrada / Mantenimiento
+		closedUntil[station] = inc.Until
+		inc.Text = def.Text:format(stationName(station))
+		local i = table.find(line.Stations, station) :: number
+		local near = line.Stations[if i > 1 then i - 1 else i + 1]
+		inc.Alt = ("Usa la estación %s y sigue andando."):format(stationName(near))
+	end
+	table.insert(incidents, inc)
+	publishIncidents()
+	Remote:FireAllClients("Incident", { Kind = kind, Line = inc.Line, Station = inc.Station, Icon = inc.Icon, Text = inc.Text, Alt = inc.Alt })
+	-- Aviso por megafonía a los viajeros de la línea
+	announce(train, "Atención: " .. inc.Text .. ".", true, nil)
+	return inc
+end
+
+local function incidentTick()
+	local now = os.clock()
+	for i = #incidents, 1, -1 do
+		local inc = incidents[i]
+		if now > inc.Until then
+			table.remove(incidents, i)
+			local train = trains[inc.Line]
+			if train and inc.Kind == "Averia" then
+				train.Speed = Metro.Speed
+			end
+			closedUntil[inc.Station] = nil
+			publishIncidents()
+			Remote:FireAllClients("IncidentEnd", { Kind = inc.Kind, Line = inc.Line })
+		end
+	end
+	if now >= nextIncident then
+		nextIncident = now + math.random(Metro.IncidentEvery[1], Metro.IncidentEvery[2])
+		if #incidents == 0 and math.random() < Metro.IncidentChance then
+			local kinds = {}
+			for id, def in Metro.Incidents do
+				if not def.NightOnly or schedule.Night then
+					table.insert(kinds, id)
+				end
+			end
+			table.sort(kinds)
+			MetroService.startIncident(kinds[math.random(1, #kinds)])
+		end
+	end
+end
+
 -- Paneles "PRÓXIMO TREN": "Línea 1 → Levante · 2 min", "LLEGANDO", "EN ANDÉN"
 local function updateDisplays()
 	for _, display in tagged("MetroDisplay") do
@@ -1182,7 +1622,8 @@ local SETUP: { [string]: (BasePart) -> () } = {
 	end,
 	MetroTicketMachine = function(machine)
 		prompt(machine, "Comprar billete", "🎫 Máquina de billetes", 0.3, 8).Triggered:Connect(function(player)
-			Remote:FireClient(player, "Tickets", Metro.Tickets)
+			syncPass(player)
+			Remote:FireClient(player, "Tickets", Metro.Tickets, { Passes = Metro.Passes, Current = player:GetAttribute("MetroPass"), Until = player:GetAttribute("MetroPassUntil"), Now = os.time() })
 		end)
 	end,
 	MetroBoard = function(marker)
@@ -1222,9 +1663,24 @@ local SETUP: { [string]: (BasePart) -> () } = {
 	MetroLostOffice = function(counter)
 		prompt(counter, "Objetos perdidos", "👛 Ventanilla", 0.4, 9).Triggered:Connect(onLostOffice)
 	end,
+	MetroMapSign = function(sign)
+		prompt(sign, "Ver plano del metro", "🗺️ Plano de la red", 0.2, 10).Triggered:Connect(function(player)
+			Remote:FireClient(player, "OpenMap")
+		end)
+	end,
 }
 
 function MetroService.init()
+	stateFolder = ReplicatedStorage:FindFirstChild("MetroState") :: Folder?
+	if not stateFolder then
+		local f = Instance.new("Folder")
+		f.Name = "MetroState"
+		pcall(function()
+			f.Parent = ReplicatedStorage
+		end)
+		stateFolder = f
+	end
+	updateSchedule()
 	for tag, fn in SETUP do
 		for _, part in tagged(tag) do
 			fn(part)
@@ -1246,6 +1702,8 @@ function MetroService.init()
 			onAlight(player)
 		elseif action == "BuyTicket" then
 			onBuyTicket(player, a)
+		elseif action == "BuyPass" then
+			onBuyPass(player, a)
 		elseif action == "Buy" then
 			onBuy(player, a, b)
 		elseif action == "Accept" then
@@ -1284,6 +1742,9 @@ function MetroService.init()
 				checkPassengers()
 				updateDisplays()
 				ambientTick()
+				updateSchedule()
+				incidentTick()
+				riderChatter()
 				for player in onDuty do
 					revisorTick(player)
 				end
@@ -1302,6 +1763,17 @@ function MetroService.init()
 end
 
 -- Para las pruebas
+MetroService._incidents = incidents
+MetroService._closed = closedUntil
+MetroService._schedule = function()
+	return schedule
+end
+MetroService._checkPassengers = function()
+	checkPassengers()
+end
+MetroService._refreshRiders = function(train: Train)
+	refreshRiders(train)
+end
 MetroService._trains = trains
 MetroService._riding = riding
 MetroService._missions = missions

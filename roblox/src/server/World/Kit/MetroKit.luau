@@ -52,6 +52,7 @@ end
 -- Luz de techo: plafón de neón que ilumina hacia abajo
 local function ceilingLight(parent: Instance, cf: CFrame, size: Vector3, range: number?)
 	local lamp = decor(parent, "CeilingLamp", size, cf, rgb(250, 250, 255), Enum.Material.Neon)
+	lamp:AddTag("MetroLamp") -- (de noche los clientes bajan la luz: MetroTrains)
 	local light = Instance.new("SurfaceLight")
 	light.Face = Enum.NormalId.Bottom
 	light.Angle = 110
@@ -75,6 +76,20 @@ local function marker(parent: Instance, name: string, cf: CFrame, tag: string, a
 		Attributes = attrs,
 		Parent = parent,
 	})
+end
+
+-- Texto del plano de la red (todas las líneas y estaciones, sale de Shared/Metro)
+local function planText(title: string): string
+	local lines = { title }
+	for _, line in Metro.Lines do
+		local names = {}
+		for _, id in line.Stations do
+			table.insert(names, Metro.Stations[id].Name)
+		end
+		table.insert(lines, ("%s %s · %s"):format(if line.Id == "L1" then "🔴" elseif line.Id == "L2" then "🔵" else "🟢", line.Name, table.concat(names, " · ")))
+	end
+	table.insert(lines, "(Pulsa para ver el plano y calcular tu ruta)")
+	return table.concat(lines, "\n")
 end
 
 local function signBoard(parent: Instance, cf: CFrame, size: Vector3, text: string, color: Color3, both: boolean?): BasePart
@@ -140,9 +155,44 @@ local function car(parent: Instance, cf: CFrame, line: Metro.Line, index: number
 		end
 	end
 	part(m, "Roof", Vector3.new(W, 0.5, L), at(0, H - 0.25, 0), WHITE)
+	-- Testeros: en las cabinas, cerrados; entre coches, con paso (puerta de intercomunicación abierta)
+	local GW = 3.4 -- ancho del paso entre coches
 	for _, z in { -L / 2 + 0.15, L / 2 - 0.15 } do
-		part(m, "End", Vector3.new(W, H, 0.3), at(0, H / 2, z), WHITE)
+		local cab = (z < 0 and index == 1) or (z > 0 and index == count)
+		if cab then
+			part(m, "End", Vector3.new(W, H, 0.3), at(0, H / 2, z), WHITE)
+		else
+			local side = (W - GW) / 2
+			part(m, "End", Vector3.new(side, H, 0.3), at(-(GW + side) / 2, H / 2, z), WHITE)
+			part(m, "End", Vector3.new(side, H, 0.3), at((GW + side) / 2, H / 2, z), WHITE)
+			part(m, "EndTop", Vector3.new(GW, 2.4, 0.3), at(0, H - 1.2, z), WHITE)
+			decor(m, "GangwaySign", Vector3.new(GW - 0.4, 0.5, 0.1), at(0, H - 2.7, z - math.sign(z) * 0.2), rgb(30, 150, 70), Enum.Material.Neon, { Transparency = 0.2 })
+			-- Fuelle y suelo del paso (hasta la mitad del hueco con el coche de al lado)
+			local reach = Metro.CarGap / 2 + 0.3
+			local zc = z + math.sign(z) * reach / 2
+			part(m, "GangwayFloor", Vector3.new(GW, 0.6, reach), at(0, -0.3, zc), rgb(80, 82, 88), Enum.Material.DiamondPlate)
+			for _, x in { -GW / 2 - 0.15, GW / 2 + 0.15 } do
+				part(m, "Bellows", Vector3.new(0.3, H - 2.4, reach), at(x, (H - 2.4) / 2, zc), DARK, Enum.Material.Fabric)
+			end
+			part(m, "BellowsTop", Vector3.new(GW + 0.6, 0.3, reach), at(0, H - 2.4, zc), DARK, Enum.Material.Fabric)
+		end
 	end
+	-- Pantallas de información, publicidad, cámara, papeleras y panel de emergencia
+	for _, z in { -L / 4, L / 4 } do
+		local screen = decor(m, "InfoScreen", Vector3.new(2.6, 0.9, 0.12), at(0, H - 1.3, z + 3.2), DARK)
+		Builder.sign(screen, "🚇 " .. line.Name .. " · próxima estación en pantalla", Enum.NormalId.Front, rgb(255, 210, 60), DARK)
+		Builder.sign(screen, "🚇 " .. line.Name, Enum.NormalId.Back, rgb(255, 210, 60), DARK)
+	end
+	local ADS = { "¡Ven a la galería de Plaza Mayor!", "Cursos en el Campus Valmar", "Playa Dorada: tu verano", "Abono mensual: viaja sin límites", "Hospital de Valmar: cuídate" }
+	for _, side in { -1, 1 } do
+		local ad = decor(m, "AdPanel", Vector3.new(0.1, 1.1, 5), at(side * (W / 2 - 0.35), H - 2.2, -L / 2 + 6) * CFrame.Angles(0, if side > 0 then math.rad(90) else math.rad(-90), 0), rgb(245, 245, 245))
+		Builder.sign(ad, ADS[(index + side + 5) % #ADS + 1], Enum.NormalId.Front, DARK, rgb(245, 245, 245))
+		decor(m, "Bin", Vector3.new(0.8, 1.4, 0.8), at(side * (W / 2 - 0.9), 0.7, 0), DARK, Enum.Material.Metal)
+	end
+	decor(m, "Camera", Vector3.new(0.5, 0.5, 0.7), at(W / 2 - 0.6, H - 0.9, L / 2 - 1.5), DARK, Enum.Material.Metal)
+	decor(m, "CameraLed", Vector3.new(0.12, 0.12, 0.12), at(W / 2 - 0.6, H - 0.9, L / 2 - 1.9), rgb(255, 40, 40), Enum.Material.Neon)
+	local sos = decor(m, "EmergencyPanel", Vector3.new(0.12, 1.2, 0.9), at(-W / 2 + 0.35, 4.6, -L / 4 + 3.4), rgb(210, 40, 40))
+	Builder.sign(sos, "🆘 SOS", Enum.NormalId.Right, Color3.new(1, 1, 1), rgb(210, 40, 40))
 	-- Cabina en los extremos del tren: frente oscuro con parabrisas y faros
 	if index == 1 or index == count then
 		local zEnd = if index == 1 then -L / 2 - 0.25 else L / 2 + 0.25
@@ -308,7 +358,12 @@ local function station(parent: Instance, line: Metro.Line, index: number): (Mode
 		decor(m, "BenchLeg", Vector3.new(1.4, 1.3, 0.3), at(15.6, 0.65, z + 2), DARK)
 		decor(m, "Bin", Vector3.new(1, 1.6, 1), at(16.3, 0.8, z + 4), DARK, Enum.Material.Metal)
 	end
-	signBoard(m, at(16.9, 6, -40) * CFrame.Angles(0, math.rad(90), 0), Vector3.new(12, 6, 0.2), "PLANO DEL METRO\nL1 🔴 Poniente · Plaza Mayor · Levante · Playa Dorada\nL2 🔵 Norte · Plaza Mayor · San Roque · Puerto", DARK)
+	signBoard(m, at(16.9, 6, -40) * CFrame.Angles(0, math.rad(90), 0), Vector3.new(12, 6, 0.2), planText("PLANO DEL METRO"), DARK):AddTag("MetroMapSign")
+	-- Salidas de emergencia (verdes, en las dos puntas del andén)
+	for _, z in { -P + 3, P - 3 } do
+		signBoard(m, at(16.9, 9.5, z) * CFrame.Angles(0, math.rad(90), 0), Vector3.new(5, 1.2, 0.15), "🏃 SALIDA DE EMERGENCIA", rgb(30, 150, 70))
+		decor(m, "EmergencyLight", Vector3.new(0.3, 0.3, 1.2), at(16.8, 10.6, z), rgb(80, 255, 120), Enum.Material.Neon)
+	end
 	local clock = decor(m, "Clock", Vector3.new(0.3, 1.6, 5), at(10, 13.6, 0), DARK)
 	Builder.sign(clock, "PRÓXIMO TREN", Enum.NormalId.Right, YELLOW, DARK)
 	Builder.sign(clock, "PRÓXIMO TREN", Enum.NormalId.Left, YELLOW, DARK)
@@ -513,7 +568,7 @@ local function galleria(parent: Instance, cf: CFrame)
 	end
 	local revisor = part(m, "RevisorBoard", Vector3.new(4.4, 3, 0.3), at(92, 4.8, -24), rgb(34, 108, 196), nil, { Tags = { "JobBoard" }, Attributes = { JobId = "Revisor" } })
 	Builder.sign(revisor, "SE BUSCA\nREVISORES", Enum.NormalId.Back)
-	signBoard(m, at(110, 9, -24.4) * CFrame.Angles(0, math.rad(180), 0), Vector3.new(20, 5, 0.2), "PLANO DEL METRO DE VALMAR\n🔴 L1 Poniente · Plaza Mayor · Levante · Playa Dorada\n🔵 L2 Norte · Plaza Mayor · San Roque · Puerto", DARK)
+	signBoard(m, at(110, 9, -24.4) * CFrame.Angles(0, math.rad(180), 0), Vector3.new(20, 5, 0.2), planText("PLANO DEL METRO DE VALMAR"), DARK):AddTag("MetroMapSign")
 	for _, z in { -35.6, 35.6 } do
 		part(m, "MallWall", Vector3.new(X1 - X0, H + 2, 1), at((X0 + X1) / 2, H / 2, z), TILE, Enum.Material.Marble)
 	end

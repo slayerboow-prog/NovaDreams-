@@ -41,6 +41,28 @@ Metro.Stations = {
 	Campus = { Id = "Campus", Name = "Campus", Surface = { 2100, 1317.5 }, Facing = { 0, -1 }, Access = { Side = -1, Lanes = 26, Stair = 7.5, Edge = 3.5 } },
 } :: { [string]: Station }
 
+-- A qué distrito da servicio cada estación y qué hay cerca (plano, planificador y paneles)
+Metro.StationInfo = {
+	Villaverde = { District = "Oeste", Serves = { "Villaverde", "Barrio residencial", "Campo" } },
+	Poniente = { District = "Oeste", Serves = { "Costa oeste", "Marina", "Barrio de lujo" } },
+	PlazaMayor = { District = "Centro", Serves = { "Plaza Mayor", "Ayuntamiento", "Galería comercial", "Tiendas" } },
+	Levante = { District = "Este", Serves = { "Zona comercial", "Ocio", "Restaurantes" } },
+	PlayaDorada = { District = "Este", Serves = { "Playa Dorada", "Paseo marítimo", "Hoteles" } },
+	Campus = { District = "Universitario", Serves = { "Universidad", "Residencia de estudiantes", "Biblioteca" } },
+	Norte = { District = "Norte", Serves = { "Valmar Norte", "Los Pinos", "Colegio" } },
+	Financiero = { District = "Centro", Serves = { "Distrito Financiero", "Oficinas", "Torres" } },
+	SanRoque = { District = "Sur", Serves = { "San Roque", "Barrio obrero", "Mercado" } },
+	Puerto = { District = "Sur", Serves = { "Puerto", "Zona industrial", "Almacenes" } },
+}
+Metro.Districts = {
+	{ Id = "Centro", Name = "Centro", Icon = "🏙️" },
+	{ Id = "Norte", Name = "Norte", Icon = "🏡" },
+	{ Id = "Oeste", Name = "Oeste", Icon = "🌴" },
+	{ Id = "Este", Name = "Este", Icon = "🛍️" },
+	{ Id = "Universitario", Name = "Universitario", Icon = "🎓" },
+	{ Id = "Sur", Name = "Sur", Icon = "🏭" },
+}
+
 -- Las líneas van a distinta profundidad para cruzarse sin chocar (Y = suelo del andén)
 Metro.Lines = {
 	{ Id = "L1", Name = "Línea 1", Color = rgb(215, 40, 50), Y = -42, Stations = { "Villaverde", "Poniente", "PlazaMayor", "Levante", "PlayaDorada", "Campus" } },
@@ -472,8 +494,8 @@ end
 ---------------------------------------------------------------------
 
 -- Segundos para recorrer dist studs arrancando y frenando (acelera, va a crucero y frena)
-function Metro.travelTime(dist: number): number
-	local v, a = Metro.Speed, Metro.Accel
+function Metro.travelTime(dist: number, speed: number?): number
+	local v, a = speed or Metro.Speed, Metro.Accel
 	if dist >= v * v / a then
 		return 2 * v / a + (dist - v * v / a) / v
 	end
@@ -493,10 +515,20 @@ end
 -- Estado del tren (el de MetroService): { Centers, Index, Dir, Phase = "Dwell"|"Move", Timer, Duration, Elapsed }
 -- Devuelve: segundos hasta que el tren esté en el andén de la estación target (0 = ya está), y el índice
 -- de la estación de punta hacia la que irá al salir de allí (para el cartel: "→ Levante").
+-- Lo que para el tren en la estación i (más el descanso en las cabeceras, según el horario)
+function Metro.dwellAt(train: { [string]: any }, i: number): number
+	local d = train.DwellTime or Metro.Dwell
+	if i == 1 or i == #train.Centers then
+		d += train.Layover or 0
+	end
+	return d
+end
+
 function Metro.eta(train: { [string]: any }, target: number): (number, number)
 	local centers = train.Centers
 	local n = #centers
 	local cur, dir = train.Index, train.Dir
+	local speed = train.Speed
 	local function heading(at: number, d: number): number
 		local _, d2 = Metro.nextStop(n, at, d)
 		return if d2 > 0 then n else 1
@@ -512,16 +544,16 @@ function Metro.eta(train: { [string]: any }, target: number): (number, number)
 		if cur == target then
 			return t, heading(cur, dir)
 		end
-		t += Metro.Dwell
+		t += Metro.dwellAt(train, cur)
 	end
 	for _ = 1, n * 2 do
 		local nextI, nextDir = Metro.nextStop(n, cur, dir)
-		t += Metro.travelTime(math.abs(centers[nextI] - centers[cur]))
+		t += Metro.travelTime(math.abs(centers[nextI] - centers[cur]), speed)
 		cur, dir = nextI, nextDir
 		if cur == target then
 			return t, heading(cur, dir)
 		end
-		t += Metro.Dwell
+		t += Metro.dwellAt(train, cur)
 	end
 	return t, heading(cur, dir)
 end
@@ -552,6 +584,296 @@ function Metro.sample(points: { Vector3 }, s: number): (Vector3, Vector3)
 		walked += len
 	end
 	return points[1], Vector3.new(0, 0, -1)
+end
+
+---------------------------------------------------------------------
+-- Movimiento del tren (lo calculan igual el servidor y los clientes: así el tren se ve fluido en
+-- cada pantalla y todos lo ven en el mismo sitio)
+---------------------------------------------------------------------
+
+-- Distancia recorrida a los t segundos de un tramo de dist studs que dura T (acelera, crucero, frena)
+function Metro.travelled(dist: number, t: number, T: number, speed: number?): number
+	local a, v = Metro.Accel, speed or Metro.Speed
+	local ta = v / a
+	if dist < v * v / a then
+		ta = math.sqrt(dist / a)
+		v = a * ta
+	end
+	if t <= 0 then
+		return 0
+	elseif t >= T then
+		return dist
+	elseif t <= ta then
+		return 0.5 * a * t * t
+	elseif t >= T - ta then
+		local r = math.max(0, T - t)
+		return dist - 0.5 * a * r * r
+	end
+	return 0.5 * a * ta * ta + v * (t - ta)
+end
+
+-- Dónde va el centro del tren (distancia del recorrido) según su estado publicado:
+-- { Phase = "Dwell"|"Move", S, From, To, Duration, T0 (hora del servidor al salir), Speed }
+function Metro.positionAt(state: { [string]: any }, now: number): number
+	if state.Phase ~= "Move" then
+		return state.S or 0
+	end
+	local dist = math.abs(state.To - state.From)
+	local d = Metro.travelled(dist, now - state.T0, state.Duration, state.Speed)
+	return state.From + (if state.To >= state.From then d else -d)
+end
+
+-- Cuánto dura un tramo (lo mismo que travelTime, con la velocidad del tren)
+function Metro.legDuration(dist: number, speed: number?): number
+	return Metro.travelTime(dist, speed)
+end
+
+---------------------------------------------------------------------
+-- Horarios (van con el reloj del juego)
+---------------------------------------------------------------------
+
+-- Crowd = viajeros esperando en cada andén; Riders = viajeros sentados en el tren
+Metro.Schedule = {
+	{ Id = "Nocturno", Name = "Servicio nocturno", From = 0, To = 6, Dwell = 14, Layover = 70, Crowd = 1, Riders = 2, Night = true },
+	{ Id = "Punta", Name = "Hora punta", From = 6, To = 9, Dwell = 12, Layover = 0, Crowd = 5, Riders = 9 },
+	{ Id = "Normal", Name = "Frecuencia normal", From = 9, To = 16, Dwell = 14, Layover = 15, Crowd = 3, Riders = 5 },
+	{ Id = "Punta", Name = "Hora punta", From = 16, To = 20, Dwell = 12, Layover = 0, Crowd = 5, Riders = 9 },
+	{ Id = "Reducida", Name = "Frecuencia reducida", From = 20, To = 24, Dwell = 14, Layover = 40, Crowd = 2, Riders = 3, Night = true },
+}
+
+function Metro.scheduleAt(clockTime: number): { [string]: any }
+	local h = clockTime % 24
+	for _, s in Metro.Schedule do
+		if h >= s.From and h < s.To then
+			return s
+		end
+	end
+	return Metro.Schedule[3]
+end
+
+---------------------------------------------------------------------
+-- Incidencias (MetroService las lanza de vez en cuando; salen en los paneles, el tren y el móvil)
+---------------------------------------------------------------------
+Metro.Incidents = {
+	Retraso = { Name = "Retraso", Icon = "⏱️", Hold = { 45, 110 }, Text = "Retraso de %d min en la %s" },
+	Averia = { Name = "Avería", Icon = "🔧", Slow = 0.55, Seconds = 200, Text = "Avería en la %s: los trenes circulan despacio" },
+	Cerrada = { Name = "Estación cerrada", Icon = "🚧", Seconds = 240, Text = "Estación %s cerrada temporalmente: el tren pasa sin parar" },
+	Lleno = { Name = "Tren lleno", Icon = "👥", Seconds = 180, Text = "Trenes muy llenos en la %s: puede que no haya asiento" },
+	Seguridad = { Name = "Incidencia de seguridad", Icon = "🚨", Hold = { 30, 60 }, Text = "Incidencia de seguridad en %s: el tren espera en la estación" },
+	Mantenimiento = { Name = "Mantenimiento", Icon = "🛠️", Seconds = 300, NightOnly = true, Text = "Obras de mantenimiento en %s: el tren pasa sin parar" },
+}
+Metro.IncidentEvery = { 300, 600 } -- segundos entre una incidencia y la siguiente (al azar)
+Metro.IncidentChance = 0.6
+
+---------------------------------------------------------------------
+-- Billetes y abonos
+---------------------------------------------------------------------
+-- Days = días de juego que dura (un día de juego son Config.DayLengthMinutes minutos reales)
+Metro.Passes = {
+	{ Id = "Dia", Name = "Abono de un día", Icon = "📅", Price = 5, Days = 1 },
+	{ Id = "Semana", Name = "Abono semanal", Icon = "🗓️", Price = 22, Days = 7 },
+	{ Id = "Mes", Name = "Abono mensual", Icon = "📆", Price = 60, Days = 28 },
+	{ Id = "Estudiante", Name = "Abono estudiante (mensual)", Icon = "🎓", Price = 25, Days = 28, Student = true },
+	{ Id = "Trabajador", Name = "Abono trabajador (mensual)", Icon = "💼", Price = 40, Days = 28, Worker = true },
+}
+Metro.passById = {} :: { [string]: any }
+for _, p in Metro.Passes do
+	Metro.passById[p.Id] = p
+end
+-- Trabajos con los que el metro sale gratis (van de servicio)
+Metro.FreeJobs = { Revisor = true, Policia = true, Guardia = true, Bombero = true, Medico = true }
+Metro.StudentStages = { Adolescente = true, AdultoJoven = true }
+
+---------------------------------------------------------------------
+-- Planificador de rutas (plano del metro, móvil y "Cómo llegar")
+---------------------------------------------------------------------
+Metro.TransferSeconds = 45 -- cambiar de línea en Plaza Mayor (andar + escaleras)
+Metro.WalkSpeed = 16 -- studs por segundo andando
+Metro.MetersPerStud = 0.28
+
+local centersCache: { [string]: { number } } = {}
+local function lineCenters(line: Line): { number }
+	local c = centersCache[line.Id]
+	if not c then
+		local _, centers = Metro.path(line)
+		c = centers
+		centersCache[line.Id] = c
+	end
+	return c
+end
+
+-- Segundos de viaje entre dos estaciones seguidas de una línea (sin la parada)
+function Metro.hopSeconds(line: Line, i: number, j: number): number
+	local c = lineCenters(line)
+	return Metro.travelTime(math.abs(c[j] - c[i]))
+end
+
+-- Líneas que paran en una estación
+function Metro.linesAt(stationId: string): { Line }
+	local list = {}
+	for _, line in Metro.Lines do
+		if table.find(line.Stations, stationId) then
+			table.insert(list, line)
+		end
+	end
+	return list
+end
+
+export type Leg = { Line: string, From: string, To: string, Stops: { string }, Seconds: number }
+export type Route = { Legs: { Leg }, Seconds: number, Transfers: number }
+
+-- La ruta más rápida entre dos estaciones: líneas, transbordos, paradas y tiempo aproximado
+function Metro.route(fromId: string, toId: string): Route?
+	if not Metro.Stations[fromId] or not Metro.Stations[toId] then
+		return nil
+	end
+	if fromId == toId then
+		return { Legs = {}, Seconds = 0, Transfers = 0 }
+	end
+	-- Nodos: "L1|Poniente". Dijkstra sencillo (la red es pequeña)
+	local dist: { [string]: number } = {}
+	local prev: { [string]: string } = {}
+	local done: { [string]: boolean } = {}
+	local function key(lineId: string, st: string): string
+		return lineId .. "|" .. st
+	end
+	for _, line in Metro.linesAt(fromId) do
+		dist[key(line.Id, fromId)] = 0
+	end
+	while true do
+		local best, bestD = nil, math.huge
+		for k, d in dist do
+			if not done[k] and d < bestD then
+				best, bestD = k, d
+			end
+		end
+		if not best then
+			break
+		end
+		done[best] = true
+		local lineId, st = string.match(best, "^(.-)|(.+)$")
+		local line = Metro.lineById[lineId :: string]
+		if st == toId then
+			-- Reconstruir los tramos
+			local nodes = {}
+			local cur: string? = best
+			while cur do
+				table.insert(nodes, 1, cur)
+				cur = prev[cur]
+			end
+			local legs: { Leg } = {}
+			local leg: Leg? = nil
+			local lastSeconds = 0
+			for _, node in nodes do
+				local l, s = string.match(node, "^(.-)|(.+)$")
+				local t = dist[node]
+				if not leg or leg.Line ~= l then
+					if leg then
+						table.insert(legs, leg)
+					end
+					leg = { Line = l :: string, From = s :: string, To = s :: string, Stops = { s :: string }, Seconds = 0 }
+					lastSeconds = t
+				else
+					leg.To = s :: string
+					table.insert(leg.Stops, s :: string)
+					leg.Seconds += t - lastSeconds
+					lastSeconds = t
+				end
+			end
+			if leg then
+				table.insert(legs, leg)
+			end
+			-- (un tramo de una sola parada es el transbordo: fuera)
+			local clean = {}
+			for _, l in legs do
+				if #l.Stops > 1 then
+					table.insert(clean, l)
+				end
+			end
+			return { Legs = clean, Seconds = math.floor(bestD + 0.5), Transfers = math.max(0, #clean - 1) }
+		end
+		local i = table.find(line.Stations, st) :: number
+		local function relax(k: string, d: number)
+			if not done[k] and d < (dist[k] or math.huge) then
+				dist[k] = d
+				prev[k] = best :: string
+			end
+		end
+		for _, j in { i - 1, i + 1 } do
+			if j >= 1 and j <= #line.Stations then
+				relax(key(line.Id, line.Stations[j]), bestD + Metro.hopSeconds(line, i, j) + (if line.Stations[j] == toId then 0 else Metro.Dwell))
+			end
+		end
+		for _, other in Metro.linesAt(st :: string) do
+			if other.Id ~= line.Id then
+				relax(key(other.Id, st :: string), bestD + Metro.TransferSeconds)
+			end
+		end
+	end
+	return nil
+end
+
+-- Estación más cercana a un punto (por la boca de la calle): id y distancia en studs
+function Metro.nearestStation(position: Vector3): (string?, number)
+	local best, bestD = nil, math.huge
+	for id in Metro.Stations do
+		local ok, access = pcall(Metro.access, id)
+		local p = if ok and access then access.Stair.Top else Vector3.new(Metro.Stations[id].Surface[1], Metro.StreetY, Metro.Stations[id].Surface[2])
+		local d = (Vector3.new(p.X, 0, p.Z) - Vector3.new(position.X, 0, position.Z)).Magnitude
+		if d < bestD then
+			best, bestD = id, d
+		end
+	end
+	return best, bestD
+end
+
+-- Dónde está la boca de metro de una estación (para el GPS)
+function Metro.entrance(stationId: string): Vector3
+	local ok, access = pcall(Metro.access, stationId)
+	if ok and access then
+		return access.Stair.Top
+	end
+	local s = Metro.Stations[stationId]
+	return Vector3.new(s.Surface[1], Metro.StreetY, s.Surface[2])
+end
+
+-- Textos: "450 m", "≈ 30 s andando", "3 min 20 s"
+function Metro.meters(studs: number): string
+	local m = studs * Metro.MetersPerStud
+	if m >= 1000 then
+		return ("%.1f km"):format(m / 1000)
+	end
+	return ("%d m"):format(math.floor(m / 10 + 0.5) * 10)
+end
+function Metro.duration(seconds: number): string
+	seconds = math.max(0, math.floor(seconds + 0.5))
+	if seconds < 60 then
+		return ("%d s"):format(seconds)
+	end
+	local m, s = seconds // 60, seconds % 60
+	return if s == 0 then ("%d min"):format(m) else ("%d min %d s"):format(m, s)
+end
+
+---------------------------------------------------------------------
+-- Megafonía
+---------------------------------------------------------------------
+function Metro.announceNext(line: Line, stationId: string): string
+	local text = "Próxima estación: " .. Metro.Stations[stationId].Name .. "."
+	local others = {}
+	for _, l in Metro.linesAt(stationId) do
+		if l.Id ~= line.Id then
+			table.insert(others, l.Name)
+		end
+	end
+	if #others > 0 then
+		text ..= " Correspondencia con " .. table.concat(others, " y ") .. "."
+	end
+	return text
+end
+Metro.AnnounceDoors = "Las puertas van a cerrarse."
+Metro.AnnounceSafety = "Por favor, manténganse detrás de la línea de seguridad."
+function Metro.announceArriving(line: Line, towardName: string): string
+	return ("Tren de la %s con destino %s. Por favor, manténganse detrás de la línea amarilla."):format(line.Name, towardName)
 end
 
 return Metro

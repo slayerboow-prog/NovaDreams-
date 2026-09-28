@@ -45,6 +45,8 @@ local TradeUI = require(script.Parent.Controllers.TradeUI)
 local PlayerMenuUI = require(script.Parent.Controllers.PlayerMenuUI)
 local FishingUI = require(script.Parent.Controllers.FishingUI)
 local MetroUI = require(script.Parent.Controllers.MetroUI)
+local MetroMapUI = require(script.Parent.Controllers.MetroMapUI)
+local MetroTrains = require(script.Parent.Controllers.MetroTrains)
 local GymUI = require(script.Parent.Controllers.GymUI)
 local GymMotion = require(script.Parent.Controllers.GymMotion)
 local DivingUI = require(script.Parent.Controllers.DivingUI)
@@ -141,6 +143,8 @@ task.spawn(TradeUI.init) -- intercambio entre jugadores y mercadillo
 task.spawn(PlayerMenuUI.init) -- al tocar a un jugador: invitar al grupo, chat y comerciar
 task.spawn(FishingUI.init) -- pesca: sedal y corcho, ¡tirar!, tienda de pesca
 task.spawn(MetroUI.init) -- metro: panel del tren, billetes, tiendas, encargos y escenario
+task.spawn(MetroMapUI.init) -- metro: plano de la red, trenes en vivo, estación más cercana y planificador (app 🚇 Metro)
+task.spawn(MetroTrains.init) -- metro: trenes fluidos en cada pantalla, ir de pie en el tren, megafonía y sonidos
 task.spawn(GymUI.init) -- gimnasio: recepción (entrada y abono) y la barra del ritmo al entrenar
 task.spawn(GymMotion.init) -- gimnasio: el cuerpo hace el ejercicio y la máquina se mueve (cinta, pesas, bici…)
 task.spawn(DivingUI.init) -- nadar, bucear (aire) y pesca submarina con fusil o arpón

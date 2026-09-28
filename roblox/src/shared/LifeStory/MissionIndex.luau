@@ -53,4 +53,6 @@ return {
 	require(Misiones.Loco_Adolescente),
 	require(Misiones.Loco_Uni),
 	require(Misiones.Loco_Adulto),
+	-- Metro de Valmar: secundarias que se hacen viajando en metro
+	require(Misiones.Metro_Secundarias),
 }

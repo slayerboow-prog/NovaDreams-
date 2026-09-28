@@ -3060,6 +3060,60 @@ do
 	check(math.abs(eb - (15 + Metro.Dwell + Metro.travelTime(1500))) < 0.01, "si va hacia la punta, primero llega allí y da la vuelta")
 	check(Metro.travelTime(10) < Metro.travelTime(100) and Metro.travelTime(5000) > 5000 / Metro.Speed, "el tren arranca y frena (tarda más que a velocidad de crucero)")
 	check(Metro.boardText(L1, 150, #L1.Stations):find("3 min") ~= nil and Metro.boardText(L1, 10, 1):find("LLEGANDO") ~= nil and Metro.boardText(L1, 0, 1, 7):find("EN ANDÉN") ~= nil, "el cartel: minutos, llegando y en andén")
+	-- Con descanso en las cabeceras (horario de noche) el tren tarda más en volver
+	local rest = { Centers = centers, Index = 3, Dir = 1, Phase = "Move", Timer = 0, Duration = 20, Elapsed = 5, Layover = 60 }
+	check(math.abs(Metro.eta(rest, 2) - (eb + 60)) < 0.01, "de noche el tren descansa en la cabecera y el panel lo cuenta")
+	-- Movimiento compartido (servidor y clientes calculan lo mismo)
+	local T = Metro.travelTime(900)
+	local state = { Phase = "Move", From = 100, To = 1000, Duration = T, T0 = 50 }
+	check(Metro.positionAt(state, 50) == 100 and math.abs(Metro.positionAt(state, 50 + T) - 1000) < 0.01, "el tren sale del andén y llega justo al siguiente")
+	local mid = Metro.positionAt(state, 50 + T / 2)
+	check(math.abs(mid - 550) < 1, "a mitad de tiempo va por la mitad del túnel")
+	local back2 = { Phase = "Move", From = 1000, To = 100, Duration = T, T0 = 0 }
+	check(Metro.positionAt(back2, T / 2) < 1000 and Metro.positionAt(back2, T) == 100, "también de vuelta")
+end
+-- Horarios según la hora del juego
+check(Metro.scheduleAt(7.5).Id == "Punta" and Metro.scheduleAt(12).Id == "Normal" and Metro.scheduleAt(18).Id == "Punta" and Metro.scheduleAt(22).Id == "Reducida" and Metro.scheduleAt(3).Id == "Nocturno", "el metro sigue el horario: punta, normal, reducido y nocturno")
+check(Metro.scheduleAt(7.5).Layover < Metro.scheduleAt(22).Layover and Metro.scheduleAt(22).Layover < Metro.scheduleAt(3).Layover, "en hora punta pasan más trenes que por la noche")
+-- Planificador de rutas
+do
+	local same = Metro.route("Poniente", "Levante")
+	check(same ~= nil and #same.Legs == 1 and same.Legs[1].Line == "L1" and same.Transfers == 0 and same.Legs[1].Stops[2] == "PlazaMayor", "ruta en la misma línea: sin transbordo y pasando por Plaza Mayor")
+	local cross = Metro.route("Villaverde", "Puerto")
+	check(cross ~= nil and cross.Transfers == 1 and cross.Legs[1].Line == "L1" and cross.Legs[2].Line == "L2" and cross.Legs[1].To == "PlazaMayor" and cross.Legs[2].From == "PlazaMayor" and cross.Legs[2].To == "Puerto", "ruta con transbordo en Plaza Mayor (Línea 1 y luego Línea 2)")
+	check(cross.Seconds > same.Seconds and cross.Seconds > 60, "el tiempo aproximado cuenta los tramos y el transbordo")
+	local rev = Metro.route("Campus", "Norte")
+	check(rev ~= nil and rev.Legs[1].Stops[1] == "Campus" and rev.Legs[#rev.Legs].Stops[#rev.Legs[#rev.Legs].Stops] == "Norte", "las rutas van en los dos sentidos")
+	check(#Metro.route("Norte", "Norte").Legs == 0, "misma estación: no hay que viajar")
+	for id in Metro.Stations do
+		for id2 in Metro.Stations do
+			if not Metro.route(id, id2) then
+				check(false, "hay ruta de " .. id .. " a " .. id2)
+			end
+		end
+	end
+	check(true, "todas las estaciones están conectadas entre sí")
+	local LEV = Metro.Stations.Levante
+	local near, d = Metro.nearestStation(Vector3.new(LEV.Surface[1] + 30, 1, LEV.Surface[2]))
+	local e = Metro.entrance("Levante")
+	check(near == "Levante" and math.abs(d - (Vector3.new(e.X, 0, e.Z) - Vector3.new(LEV.Surface[1] + 30, 0, LEV.Surface[2])).Magnitude) < 0.01, "la estación más cercana a donde estás (hasta su boca de metro)")
+	check(Metro.meters(1600) == "450 m" and Metro.duration(200) == "3 min 20 s" and Metro.duration(40) == "40 s", "distancias y tiempos en texto")
+	check(Metro.announceNext(L1, "PlazaMayor"):find("Correspondencia con Línea 2") ~= nil and Metro.announceNext(L1, "Levante"):find("Correspondencia") == nil, "la megafonía avisa del transbordo solo donde lo hay")
+	for id in Metro.Stations do
+		local info = Metro.StationInfo[id]
+		if not info or not info.District then
+			check(false, "cada estación dice a qué distrito da servicio: " .. id)
+		end
+	end
+	local districts = {}
+	for _, info in Metro.StationInfo do
+		districts[info.District] = true
+	end
+	local all = true
+	for _, dd in Metro.Districts do
+		all = all and districts[dd.Id] == true
+	end
+	check(all, "el metro llega a los 6 distritos")
 end
 -- Estaciones (lo mínimo de cada una)
 for id, st in Metro.Stations do
@@ -3227,6 +3281,120 @@ check(profiles[inspector].Money == Metro.Revisor.PerCheck or profiles[inspector]
 check(events == 1, "cada revisión cuenta para la historia")
 MetroService.quitRevisor(inspector)
 check(inspector:GetAttribute("Job") == nil, "termina el turno")
+-- Ir de pie: se puede andar por el coche con el tren en marcha, y bajar andando en la parada
+do
+	while train.Phase ~= "Dwell" do
+		MetroService._step(train, 0.5)
+	end
+	local stander, standerRoot = newPlayer(95, "Adulto", 0)
+	moveTo(standerRoot, train.Cars[1].Root.Position + Vector3.new(0, 3, 0))
+	MetroService._step(train, train.Timer + 0.1)
+	check(MetroService._riding[stander] == train and lastMessage(stander, "Board") ~= nil, "quien entra andando viaja de pie (no le obligan a sentarse)")
+	MetroService._step(train, 1)
+	moveTo(standerRoot, train.Cars[2].Root.Position + Vector3.new(0, 3, 0))
+	MetroService._checkPassengers()
+	check(MetroService._riding[stander] == train and train.Phase == "Move", "con el tren en marcha se puede cambiar de coche sin dejar de viajar")
+	local got = nil
+	StoryEventsModule.connect(function(p, name, payload)
+		if p == stander and name == "RodeMetro" then
+			got = payload.Station
+		end
+	end)
+	while train.Phase ~= "Dwell" do
+		MetroService._step(train, 0.5)
+		moveTo(standerRoot, train.Cars[2].Root.Position + Vector3.new(0, 3, 0))
+	end
+	local here = train.Line.Stations[train.Index]
+	moveTo(standerRoot, Metro.center(here, train.Line) + Vector3.new(12, 3, 0))
+	MetroService._checkPassengers()
+	check(MetroService._riding[stander] == nil and got == here, "al salir por la puerta con el tren parado has bajado en esa estación")
+end
+-- Incidencias
+do
+	while train.Phase ~= "Dwell" do
+		MetroService._step(train, 0.5)
+	end
+	MetroService._step(train, train.Timer + 0.1)
+	local target = train.Line.Stations[train.Index]
+	local inc = MetroService.startIncident("Cerrada", "L1", target)
+	check(inc ~= nil and inc.Text:find(Metro.Stations[target].Name) ~= nil and #MetroService._incidents >= 1, "una estación se cierra y sale el aviso")
+	while train.Phase ~= "Dwell" do
+		MetroService._step(train, 0.5)
+	end
+	check(train.Line.Stations[train.Index] == target and train.DoorsOpen == false and train.Cars[1].Doors[1].Transparency == 0 and train.Timer <= 3, "en la estación cerrada el tren no abre las puertas y sigue enseguida")
+	MetroService._closed[target] = nil
+	MetroService._step(train, train.Timer + 0.1)
+	local delay = MetroService.startIncident("Retraso", "L1")
+	check(delay ~= nil and (train.Hold or 0) >= Metro.Incidents.Retraso.Hold[1] and delay.Text:find("Retraso") ~= nil, "un retraso retiene el tren en la próxima parada")
+	local held = train.Hold
+	while train.Phase ~= "Dwell" do
+		MetroService._step(train, 0.5)
+	end
+	check(train.Timer >= Metro.dwellAt(train, train.Index) + held - 0.01, "el tren espera más en la estación por el retraso")
+	local slow = MetroService.startIncident("Averia", "L1")
+	local leg = train.Duration
+	while train.Phase ~= "Move" do
+		MetroService._step(train, 0.5)
+	end
+	check(slow ~= nil and train.Speed < Metro.Speed and slow.Alt:find("Línea 2") ~= nil, "una avería hace que el tren vaya más despacio (y te recomienda la otra línea)")
+	check(train.Duration > Metro.travelTime(math.abs(train.To - train.From)) + 0.5, "con la avería el tramo tarda más")
+	train.Speed = Metro.Speed
+	local _ = leg
+end
+-- Abonos y gratis de servicio
+do
+	local commuter, commuterRoot = newPlayer(96, "Adulto", 100)
+	profiles[commuter].Items = {}
+	InventoryService.refresh(commuter)
+	moveTo(commuterRoot, machine.Position + Vector3.new(0, 0, 3))
+	M:Fire(commuter, "BuyPass", "Estudiante")
+	check(profiles[commuter].Money == 100 and notified(commuter, "estudiantes"), "el abono estudiante es solo para estudiantes")
+	M:Fire(commuter, "BuyPass", "Semana")
+	local week = Metro.passById.Semana
+	check(profiles[commuter].Money == 100 - week.Price and profiles[commuter].Metro.PassKind == "Semana" and profiles[commuter].Metro.PassUntil > os.time(), "compra un abono semanal en la máquina")
+	moveTo(commuterRoot, gate.Position)
+	promptOf(gate, "Pasar (billete)").Triggered:Fire(commuter)
+	check(commuter:GetAttribute("MetroTicket") == true and InventoryService.count(commuter, Metro.TicketItem) == 0, "con abono pasa el torno sin billete")
+	profiles[commuter].Metro.PassUntil = os.time() - 1
+	commuter:SetAttribute("MetroTicket", nil)
+	promptOf(gate, "Pasar (billete)").Triggered:Fire(commuter)
+	check(commuter:GetAttribute("MetroTicket") == nil and notified(commuter, "billete o un abono"), "el abono caducado ya no vale")
+	local cop, copRoot = newPlayer(97, "Adulto", 0)
+	cop:SetAttribute("Job", "Policia")
+	moveTo(copRoot, gate.Position)
+	promptOf(gate, "Pasar (billete)").Triggered:Fire(cop)
+	check(cop:GetAttribute("MetroTicket") == true and notified(cop, "servicio"), "de servicio (policía) el metro es gratis")
+end
+-- Viajeros NPC en el tren
+do
+	local fan = newPlayer(98, "Adulto", 0)
+	train.Passengers[fan] = true
+	MetroService._refreshRiders(train)
+	check(#train.Riders > 0 and #train.Riders <= (MetroService._schedule().Riders or 99), "en el tren van viajeros sentados (según la hora)")
+	local seatsTaken = 0
+	for _, car in train.Cars do
+		for _, seat in car.Seats do
+			if seat:GetAttribute("NpcRider") then
+				seatsTaken += 1
+			end
+		end
+	end
+	check(seatsTaken == #train.Riders, "cada viajero ocupa su asiento")
+	train.Passengers[fan] = nil
+	local saved = {}
+	for _, other in services.Players:GetPlayers() do
+		local r = other.Character and other.Character:FindFirstChild("HumanoidRootPart")
+		if r then
+			saved[r] = r.Position
+			moveTo(r, Vector3.new(9000, 0, 9000))
+		end
+	end
+	MetroService._refreshRiders(train)
+	check(#train.Riders == 0, "si no hay nadie cerca, los viajeros se van (no gastan)")
+	for r, pos in saved do
+		moveTo(r, pos)
+	end
+end
 print("▶ Nadar, bucear y pesca submarina con fusil o arpón")
 local Fishing = loadModule(ROOT .. "/shared/Fishing")
 local FishingService = loadModule(S .. "FishingService")
