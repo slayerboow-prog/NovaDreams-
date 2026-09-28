@@ -131,9 +131,17 @@ function Fake.GetPivot(self)
 	return props.WorldPivot or (props.PrimaryPart and props.PrimaryPart.CFrame) or props.CFrame or CFrame.new()
 end
 function Fake.PivotTo(self, cf)
+	-- Un modelo se mueve con su PrimaryPart, o con su HumanoidRootPart (personajes)
 	local primary = self.__props.PrimaryPart
 	if primary then
 		primary.CFrame = cf
+		return
+	end
+	for _, child in self.__children do
+		if child.__props.Name == "HumanoidRootPart" then
+			child.CFrame = cf
+			return
+		end
 	end
 end
 function Fake.FindFirstAncestorOfClass(self, className)
@@ -5612,6 +5620,71 @@ check(profiles[vandal].Conduct ~= nil and profiles[vandal].Conduct.Points == Con
 
 Fake.Raycast = savedRaycast
 end)()
+
+---------------------------------------------------------------------
+print("▶ Dormir: energía, estamina, reaparición y amanecer a las 8:30")
+Config.SleepSeconds = 0.05
+Config.SleepWaitSeconds = 2
+local lighting = services.Lighting
+local dayCount = 1
+mocks[S .. "WorldService"] = {
+	skipTo = function(clock)
+		local newDay = lighting.ClockTime > clock
+		if newDay then
+			dayCount += 1
+		end
+		lighting.ClockTime = clock
+		return newDay
+	end,
+}
+local othersBefore = table.clone(playersList)
+table.clear(playersList) -- en el servidor, de momento, solo quien va a dormir
+local bed = part("CamaPublica", CFrame.new(40, 2, 40), { "PublicBed" })
+bed.Size = Vector3.new(6, 1, 8)
+local SleepService = loadModule(S .. "SleepService")
+SleepService.init()
+local sleepy, sleepyRoot = newPlayer(90, "AdultoJoven", 0)
+services.Players.PlayerAdded:Fire(sleepy) -- en Roblox se avisa al entrar
+for _, callback in loadedCallbacks do
+	callback(sleepy, profiles[sleepy])
+end
+sleepy:SetAttribute("Stamina", 3)
+lighting.ClockTime = 21.5
+promptOf(bed, "Dormir").Triggered:Fire(sleepy)
+task.wait(0.6)
+check(lighting.ClockTime == 8.5 and dayCount == 2, "solo en el servidor: si duermes a las 21:30, te levantas a las 8:30 del día siguiente")
+local lastNeeds = needsChanges[#needsChanges]
+check(lastNeeds and lastNeeds[1] == sleepy and lastNeeds[3] == Config.Needs.Max, "al despertar, la energía está al máximo")
+check(sleepy:GetAttribute("Stamina") == sleepy:GetAttribute("MaxStamina") and (sleepy:GetAttribute("Stamina") or 0) > 3, "y la estamina también")
+check(profiles[sleepy].SpawnPoint ~= nil and sleepy:GetAttribute("SpawnPoint") ~= nil, "la cama queda guardada como punto de reaparición")
+check(notified(sleepy, "Buenos días") and sleepy:GetAttribute("Sleeping") == nil, "aviso de buenos días y ya no está durmiendo")
+sleepyRoot.CFrame = CFrame.new(500, 3, 500)
+sleepy.CharacterAdded:Fire(sleepy.Character)
+task.wait(0.9)
+check((sleepyRoot.Position - bed.Position).Magnitude < 6, "al reaparecer, aparece en su cama")
+lighting.ClockTime = 12
+clearInbox(sleepy)
+promptOf(bed, "Dormir").Triggered:Fire(sleepy)
+task.wait(0.4)
+check(lighting.ClockTime == 12 and notified(sleepy, "Siesta"), "de día es una siesta: descansas, pero no pasa el tiempo")
+local other = newPlayer(91, "Adulto", 0)
+lighting.ClockTime = 23
+clearInbox(sleepy)
+promptOf(bed, "Dormir").Triggered:Fire(sleepy)
+task.wait(0.5)
+check(lighting.ClockTime == 23 and notified(sleepy, "Esperando a que se acuesten los demás"), "con otro jugador despierto, la noche no pasa: espera en la cama")
+promptOf(bed, "Dormir").Triggered:Fire(other)
+task.wait(0.8)
+check(lighting.ClockTime == 8.5 and dayCount == 3 and notified(other, "Buenos días"), "cuando se acuestan todos, amanece para todos a las 8:30")
+lighting.ClockTime = 23
+clearInbox(sleepy)
+promptOf(bed, "Dormir").Triggered:Fire(sleepy)
+task.wait(Config.SleepWaitSeconds + 1.5)
+check(lighting.ClockTime == 23 and notified(sleepy, "los demás siguen despiertos"), "si los demás no se acuestan, te levantas descansado y la noche sigue")
+table.clear(playersList)
+for _, p in othersBefore do
+	table.insert(playersList, p)
+end
 
 end, debug.traceback)
 if not ok then

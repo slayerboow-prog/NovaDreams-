@@ -58,7 +58,7 @@ return {
 	Duration = { 25, 35 },
 	Difficulty = 2,
 	Type = "Historia · Final de capítulo",
-	Requires = { Completed = { "Uni05_PrimerPiso" }, StageProgress = 0.93 },
+	Requires = { Completed = { "UniEx4_TFG" }, StageProgress = 0.9 },
 	Npcs = { "Beltran", "Julia", "Adrian", "Carla", "Pablo", "Luca", "Familia", "Abu", "Mateo", "Lola", "Omar", "Sara", "Nico", "Leire", "Hugo", "Bruno" },
 	Locations = { "Biblioteca", "$Carrera.Facultad", "CercaDeTi", "CafeteriaCentral" },
 	Next = { "Adu01_PrimerContrato" },

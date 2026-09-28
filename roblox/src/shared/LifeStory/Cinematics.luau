@@ -361,6 +361,40 @@ local Cinematics: { [string]: Cinematic } = {
 		},
 	},
 
+	-- Saga de la Grieta, final del Acto I: la aguja cuántica sube y cose el cielo sobre el cole.
+	Saga_Coser = {
+		Duration = 10,
+		Sting = "Momento",
+		Music = "TemaValmar",
+		Anchors = { Patio = "Place:Patio", Yo = "Player" },
+		Shots = {
+			{ From = { "Yo", V(4, 2, 7) }, To = { "Yo", V(3, 1.5, 5) }, Look = { "Yo", V(0, 2, 0) }, LookTo = { "Patio", V(0, 40, 0) }, Duration = 3.5, Fov = { 60, 50 }, Shake = 0.3 },
+			{ From = { "Patio", V(0, 6, 30) }, To = { "Patio", V(0, 60, 20) }, Look = { "Patio", V(0, 10, 0) }, LookTo = { "Patio", V(0, 120, -40) }, Duration = 4, Shake = 0.5 },
+			{ Orbit = "Patio", Radius = 60, Height = 90, FromAngle = 90, ToAngle = 140, Duration = 2.5, LookHeight = 110, Dip = true },
+		},
+		Anims = {
+			{ At = 7.6, Who = "Todos", Play = "Cheer" },
+		},
+		Titles = {
+			{ At = 7.5, TextKey = "🪡 El cielo está cosido", SubKey = "Fin del Acto I · La Grieta", Duration = 2.4 },
+		},
+	},
+
+	-- Misión loca de la universidad: la luz del Monte del Silencio. La nave aparece sobre la cima.
+	Loco_Abduccion = {
+		Duration = 9,
+		Sting = "Momento",
+		Music = "TemaValmar",
+		Anchors = { Cima = "Place:CimaMonte", Yo = "Player" },
+		Shots = {
+			{ From = { "Yo", V(3, 1.5, 6) }, To = { "Yo", V(2, 1, 4) }, Look = { "Yo", V(0, 2, 0) }, LookTo = { "Cima", V(0, 20, 0) }, Duration = 4, Fov = { 60, 45 }, Shake = 0.4 },
+			{ Orbit = "Cima", Radius = 38, Height = 10, FromAngle = 200, ToAngle = 250, Duration = 5, LookHeight = 14, Shake = 0.6, Dip = true },
+		},
+		Titles = {
+			{ At = 4.5, TextKey = "🛸 ¡NO ESTÁS SOLO!", SubKey = "El Monte del Silencio, 3:00 de la madrugada", Duration = 4 },
+		},
+	},
+
 	-- Una nueva vida en Valmar: vuelta alrededor de la Plaza Mayor.
 	Adulto_Llegada = {
 		Duration = 11,

@@ -1,9 +1,12 @@
 -- SceneService: los ACTORES y OBJETOS de las misiones. Cada misión dice, paso a paso, quién está en
 -- escena, dónde y qué hace (Actors), y qué cosas se pueden examinar o usar (Props).
 --
---   Actor = { Npc = "Nico", Place = "Patio", Offset = V(…), Index = n, Mode = "Idle"|"Wander"|"Follow"|"Sit"|"Wave"|"Cheer",
---             Look = V(…) (hacia dónde mira, en los ejes del lugar; si no, mira al jugador), Prompt = false }
---   Prop  = { Kind = "Mochila", Place = "AulaA", Offset = V(…), Index = n, Prompt = "Examinar", Name = "…", Once = true }
+--   Actor = { Npc = "Nico", Place = "Patio", Offset = V(…), Index = n, Mode = "Idle"|"Wander"|"Follow"|"Sit"|"Wave"|"Cheer"|"Hunt"…,
+--             Look = V(…) (hacia dónde mira, en los ejes del lugar; si no, mira al jugador), Prompt = false,
+--             Action = "Disparar" (texto del botón; "Hablar" si no), Speed = n (Hunt/Flee), Glow = Color3 (brillo de alien…) }
+--   Mode "Hunt": te persigue (enemigos de las misiones locas: alienígenas, robots, pollos mutantes…).
+--   Prop  = { Kind = "Mochila", Place = "AulaA", Offset = V(…), Index = n, Prompt = "Examinar", Name = "…", Once = true,
+--             Bed = true (cama donde se puede dormir de verdad: SleepService) }
 --
 -- Todo es de la historia de UN jugador: vive en workspace.StoryScenes.Scene_<UserId> con el atributo
 -- Owner; los demás jugadores no lo ven (SceneClient lo oculta) ni pueden tocarlo.
@@ -60,6 +63,7 @@ type Actor = {
 	Playing: string?,
 	NextWander: number,
 	StuckSince: number?,
+	StunnedUntil: number?, -- (Hunt) aturdido tras un impacto
 }
 type Prop = { Id: string, Key: string, Model: Model }
 type Scene = { Actors: { [string]: Actor }, Props: { [string]: Prop } }
@@ -324,7 +328,7 @@ end
 
 local function applyMode(actor: Actor)
 	local mode = actor.Spec.Mode or "Idle"
-	local moving = mode == "Wander" or mode == "Follow" or mode == "Flee"
+	local moving = mode == "Wander" or mode == "Follow" or mode == "Flee" or mode == "Hunt"
 	anchorActor(actor, not moving)
 	-- Chat: charla con los de al lado (el cliente le mueve cabeza y manos como si hablara)
 	actor.Model:SetAttribute("Chat", if mode == "Chat" or actor.Spec.Chat == true then true else nil)
@@ -367,9 +371,24 @@ local function makeActor(player: Player, questId: string, spec: { [string]: any 
 	else
 		standAt(actor, cf)
 	end
+	local glow = spec.Glow or (Cast.People[spec.Npc] and Cast.People[spec.Npc].Glow)
+	if glow then
+		-- Seres de otro mundo: brillan un poco (y se ven de noche)
+		local highlight = Instance.new("Highlight")
+		highlight.FillColor = glow
+		highlight.FillTransparency = 0.8
+		highlight.OutlineColor = glow
+		highlight.OutlineTransparency = 0.2
+		highlight.Parent = model
+		local light = Instance.new("PointLight")
+		light.Color = glow
+		light.Range = 10
+		light.Brightness = 1.5
+		light.Parent = root or model:FindFirstChildWhichIsA("BasePart")
+	end
 	model.Parent = sceneFolder(player)
 	if root and spec.Prompt ~= false then
-		prompt(root, "Hablar", model.Name, player, function()
+		prompt(root, spec.Action or "Hablar", model.Name, player, function()
 			if SceneService.onInteract then
 				SceneService.onInteract(player, "Actor", questId, spec.Npc)
 			end
@@ -515,6 +534,72 @@ local BUILDERS: { [string]: (Model, { [string]: any }) -> () } = {
 	Marcador = function(m)
 		part(m, V(0.8, 0.8, 0.8), C(0, 1.5, 0) * CFrame.Angles(0.6, 0.6, 0), rgb(255, 210, 60), Enum.Material.Neon)
 	end,
+
+	-- Misiones locas ------------------------------------------------------
+	-- Platillo volante flotando, con su rayo tractor (spec.Height = a qué altura flota)
+	Nave = function(m, spec)
+		local h = spec.Height or 18
+		part(m, V(2, 22, 22), C(0, h, 0) * CFrame.Angles(0, 0, math.rad(90)), rgb(170, 180, 195), Enum.Material.Metal, Enum.PartType.Cylinder)
+		part(m, V(9, 5, 9), C(0, h + 2, 0), rgb(120, 255, 190), Enum.Material.Glass, Enum.PartType.Ball).Transparency = 0.3
+		for i = 0, 7 do
+			local a = i * math.pi / 4
+			part(m, V(1, 1, 1), C(math.cos(a) * 10, h - 0.6, math.sin(a) * 10), rgb(255, 240, 120), Enum.Material.Neon, Enum.PartType.Ball)
+		end
+		if spec.Beam ~= false then
+			local beam = part(m, V(h, 8, 8), C(0, h / 2, 0) * CFrame.Angles(0, 0, math.rad(90)), rgb(150, 255, 200), Enum.Material.Neon, Enum.PartType.Cylinder)
+			beam.Transparency = 0.75
+			local light = Instance.new("SpotLight")
+			light.Face = Enum.NormalId.Bottom
+			light.Color = rgb(150, 255, 200)
+			light.Range = h + 10
+			light.Brightness = 4
+			light.Parent = m:GetChildren()[1]
+		end
+	end,
+	-- Portal a otra dimensión: anillo que brilla
+	Portal = function(m, spec)
+		local color = spec.Color or rgb(90, 255, 110)
+		part(m, V(0.4, 7, 7), C(0, 4, 0), color, Enum.Material.Neon, Enum.PartType.Cylinder).CFrame = C(0, 4, 0) * CFrame.Angles(0, math.rad(90), 0)
+		local inner = part(m, V(0.2, 6, 6), C(0, 4, 0), color:Lerp(Color3.new(1, 1, 1), 0.5), Enum.Material.Neon, Enum.PartType.Cylinder)
+		inner.CFrame = C(0, 4, 0) * CFrame.Angles(0, math.rad(90), 0)
+		inner.Transparency = 0.5
+	end,
+	-- Máquina rara de un inventor: caja con luces y una antena
+	Maquina = function(m, spec)
+		part(m, V(3, 3, 2), C(0, 1.5, 0), spec.Color or rgb(90, 100, 120), Enum.Material.Metal)
+		part(m, V(0.2, 3, 0.2), C(0.8, 4.5, 0), rgb(180, 180, 190), Enum.Material.Metal)
+		part(m, V(0.7, 0.7, 0.7), C(0.8, 6.1, 0), rgb(255, 60, 90), Enum.Material.Neon, Enum.PartType.Ball)
+		for i = -1, 1 do
+			part(m, V(0.4, 0.4, 0.1), C(i * 0.8, 2, -1.02), if i == 0 then rgb(60, 255, 120) else rgb(255, 200, 40), Enum.Material.Neon)
+		end
+	end,
+	-- Huevo gigante (de dinosaurio, de alien…)
+	Huevo = function(m, spec)
+		part(m, V(2.4, 3.2, 2.4), C(0, 1.6, 0), spec.Color or rgb(230, 240, 200), Enum.Material.SmoothPlastic, Enum.PartType.Ball)
+	end,
+	-- Cristal que brilla
+	Cristal = function(m, spec)
+		local color = spec.Color or rgb(120, 220, 255)
+		part(m, V(1, 3, 1), C(0, 1.5, 0) * CFrame.Angles(0, 0.4, 0.15), color, Enum.Material.Neon)
+		part(m, V(0.7, 2, 0.7), C(0.7, 1, 0.3) * CFrame.Angles(0.2, 0.9, -0.3), color, Enum.Material.Neon)
+	end,
+	-- Cohete de cartón (y de verdad, según la misión)
+	Cohete = function(m, spec)
+		part(m, V(10, 3, 3), C(0, 5, 0) * CFrame.Angles(0, 0, math.rad(90)), spec.Color or rgb(235, 235, 240), Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
+		part(m, V(2.4, 2.4, 2.4), C(0, 10.5, 0), rgb(230, 60, 60), Enum.Material.SmoothPlastic, Enum.PartType.Ball)
+		for _, a in { 0, 2.1, 4.2 } do
+			part(m, V(0.3, 2.5, 1.6), C(math.cos(a) * 1.6, 1.3, math.sin(a) * 1.6) * CFrame.Angles(0, -a, 0), rgb(230, 60, 60))
+		end
+	end,
+	-- Charco de moco brillante (rastro de algo raro)
+	Moco = function(m, spec)
+		part(m, V(0.2, 3, 3), C(0, 0.05, 0) * CFrame.Angles(0, 0, math.rad(90)), spec.Color or rgb(120, 255, 90), Enum.Material.Neon, Enum.PartType.Cylinder).Transparency = 0.2
+	end,
+	-- Pantalla / ordenador
+	Pantalla = function(m, spec)
+		part(m, V(3, 2, 0.2), C(0, 3, 0), spec.Color or rgb(40, 200, 255), Enum.Material.Neon)
+		part(m, V(0.3, 2, 0.3), C(0, 1, 0.2), rgb(60, 60, 70), Enum.Material.Metal)
+	end,
 }
 
 local function makeProp(player: Player, questId: string, id: string, def: { [string]: any }, cf: CFrame, mark: BasePart?, isMapObject: boolean): Prop
@@ -539,6 +624,11 @@ local function makeProp(player: Player, questId: string, id: string, def: { [str
 	model.PrimaryPart = base
 	model:PivotTo(cf)
 	model:SetAttribute("PropId", id)
+	if def.Bed then
+		-- Una cama de verdad (la de la residencia…): SleepService le pone el botón «Dormir»
+		CollectionService:AddTag(base, "PublicBed")
+		base.Size = V(5, 1, 7)
+	end
 	model.Parent = sceneFolder(player)
 	if def.Prompt ~= false and isMapObject and mark then
 		-- El objeto de verdad del mapa (el armario, la taquilla…): se marca con un contorno dorado
@@ -821,6 +911,118 @@ function SceneService.gesture(player: Player, npc: string, name: string)
 	end
 end
 
+-- ¿Te ha atrapado un enemigo (modo Hunt)? Devuelve quién (o nil). Solo cuenta a los que no están aturdidos.
+function SceneService.caught(player: Player, questId: string, radius: number): string?
+	local scene = scenes[player] and scenes[player][questId]
+	local me = playerRoot(player)
+	if not scene or not me then
+		return nil
+	end
+	for npc, actor in scene.Actors do
+		if actor.Spec.Mode == "Hunt" and actor.Root and not (actor.StunnedUntil and os.clock() < actor.StunnedUntil) then
+			local offset = actor.Root.Position - me.Position
+			if V(offset.X, 0, offset.Z).Magnitude <= radius and math.abs(offset.Y) < 8 then
+				-- Tras atraparte se queda un momento quieto (si no, te atraparía otra vez al reaparecer)
+				actor.StunnedUntil = os.clock() + 3
+				return npc
+			end
+		end
+	end
+	return nil
+end
+
+-- Un rayo desde tu mano hasta el enemigo: destello, retrocede y se queda aturdido un momento
+function SceneService.hit(player: Player, questId: string, npc: string, color: Color3?)
+	local scene = scenes[player] and scenes[player][questId]
+	local actor = scene and scene.Actors[npc]
+	local character = player.Character
+	local hand = character and (character:FindFirstChild("RightHand") or character:FindFirstChild("HumanoidRootPart")) :: BasePart?
+	if not actor or not actor.Root then
+		return
+	end
+	local target = actor.Root.Position + V(0, 1, 0)
+	local beamColor = color or rgb(90, 255, 120)
+	if hand then
+		local from = hand.Position
+		local length = (target - from).Magnitude
+		local beam = Instance.new("Part")
+		beam.Name = "Rayo"
+		beam.Anchored = true
+		beam.CanCollide = false
+		beam.CanQuery = false
+		beam.CastShadow = false
+		beam.Material = Enum.Material.Neon
+		beam.Color = beamColor
+		beam.Size = V(0.25, 0.25, length)
+		beam.CFrame = CFrame.lookAt(from, target) * CFrame.new(0, 0, -length / 2)
+		beam.Parent = sceneFolder(player)
+		task.delay(0.12, function()
+			beam:Destroy()
+		end)
+	end
+	local flash = Instance.new("Highlight")
+	flash.FillColor = Color3.new(1, 1, 1)
+	flash.FillTransparency = 0.1
+	flash.OutlineTransparency = 1
+	flash.Parent = actor.Model
+	task.delay(0.15, function()
+		flash:Destroy()
+	end)
+	actor.StunnedUntil = os.clock() + 1.2
+	local me = playerRoot(player)
+	if me and not actor.Root.Anchored then
+		local away = V(actor.Root.Position.X - me.Position.X, 0, actor.Root.Position.Z - me.Position.Z)
+		if away.Magnitude > 0.1 then
+			actor.Model:PivotTo(actor.Model:GetPivot() + away.Unit * 3)
+		end
+	end
+end
+
+-- Derrotado: chispas, sube flotando y desaparece (vuelve teletransportado a su nave / su dimensión)
+function SceneService.defeat(player: Player, questId: string, npc: string)
+	local scene = scenes[player] and scenes[player][questId]
+	local actor = scene and scene.Actors[npc]
+	if not actor then
+		return
+	end
+	scene.Actors[npc] = nil
+	local model = actor.Model
+	anchorActor(actor, true)
+	local root = actor.Root
+	if root then
+		local sparks = Instance.new("ParticleEmitter")
+		sparks.Color = ColorSequence.new(rgb(140, 255, 160), rgb(255, 255, 255))
+		sparks.LightEmission = 1
+		sparks.Size = NumberSequence.new(0.4, 0)
+		sparks.Speed = NumberRange.new(4, 9)
+		sparks.SpreadAngle = Vector2.new(180, 180)
+		sparks.Lifetime = NumberRange.new(0.4, 0.9)
+		sparks.Rate = 0
+		sparks.Parent = root
+		sparks:Emit(60)
+	end
+	for _, prompt in model:GetDescendants() do
+		if prompt:IsA("ProximityPrompt") then
+			prompt.Enabled = false
+		end
+	end
+	task.spawn(function()
+		for i = 1, 12 do
+			if not model.Parent then
+				return
+			end
+			model:PivotTo(model:GetPivot() + V(0, 0.5, 0))
+			for _, piece in model:GetDescendants() do
+				if piece:IsA("BasePart") and piece.Name ~= "HumanoidRootPart" then
+					piece.Transparency = math.max(piece.Transparency, i / 12)
+				end
+			end
+			task.wait(0.05)
+		end
+		model:Destroy()
+	end)
+end
+
 -- Pone al jugador en un lugar (principio de una escena: despertar en la cama…)
 -- where = "HomeDormitorio" o { Place, Index?, Offset? } (un pupitre concreto…)
 function SceneService.teleport(player: Player, where: any)
@@ -889,6 +1091,27 @@ local function stepActor(player: Player, actor: Actor, index: number)
 					actor.Model:PivotTo(CFrame.new(target + V(0, 3, 0)))
 					actor.LastProgress = os.clock()
 				end
+			end
+			actor.LastPosition = root.Position
+		end
+	elseif mode == "Hunt" and me then
+		-- Te persigue (enemigo): va a por ti, sin atravesarte; si se atasca, "salta" un poco hacia ti
+		humanoid.WalkSpeed = actor.Spec.Speed or 13
+		local offset = V(me.Position.X - root.Position.X, 0, me.Position.Z - root.Position.Z)
+		local distance = offset.Magnitude
+		if actor.StunnedUntil and os.clock() < actor.StunnedUntil then
+			humanoid:MoveTo(root.Position)
+		elseif distance > 120 then
+			-- Demasiado lejos (te has teletransportado): reaparece cerca
+			actor.Model:PivotTo(CFrame.new(me.Position - offset.Unit * 25 + V(0, 3, 0)))
+		elseif distance > 2 then
+			humanoid:MoveTo(me.Position - offset.Unit * 1.5)
+			local moved = if actor.LastPosition then (root.Position - actor.LastPosition).Magnitude else 1
+			if moved > 0.3 then
+				actor.LastProgress = os.clock()
+			elseif os.clock() - actor.LastProgress > 3 then
+				actor.Model:PivotTo(CFrame.new(root.Position + offset.Unit * 6 + V(0, 3, 0)))
+				actor.LastProgress = os.clock()
 			end
 			actor.LastPosition = root.Position
 		end

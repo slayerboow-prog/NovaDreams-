@@ -4,7 +4,8 @@
 -- Último curso. Cada amigo tiene un plan (y alguno no lo tiene) → Carmen repasa contigo lo que te
 -- interesó (las marcas Interes_* de «¿Qué quieres ser?») → jornada de puertas abiertas en la
 -- universidad → estudiar para la selectividad → el examen (bonus si estudiaste) → la noche antes de
--- decidir, en casa → LA DECISIÓN: Medicina, Ingeniería, Derecho, Economía o trabajar → graduación del
+-- decidir, en casa → LA DECISIÓN: universidad o trabajar (la nota de selectividad marca a qué carreras
+-- puedes entrar; la carrera se elige el primer día en la universidad; si suspendes, julio) → graduación del
 -- instituto y la orla → paso a la vida adulta (universidad o trabajo). Sustituye a Adol_ElFuturo.
 
 local V = Vector3.new
@@ -16,9 +17,6 @@ local CON_LEIRE = { Flags = { "ConocesALeire" } }
 
 local function interes(flag: string): any
 	return { Flags = { flag } }
-end
-local function estudios(value: string): any
-	return { Choices = { Estudios = value } }
 end
 
 local PATIO = {
@@ -99,16 +97,37 @@ return {
 			Bonus = { If = { Flags = { "EstudiasteSelectividad" } }, Seconds = 5 },
 			Actors = { { Npc = "Javier", Place = "AulaInstituto", Offset = V(0, 0, -6) } } },
 
+		-- La nota de selectividad decide a qué carreras puedes entrar (notas de corte de la Universidad de Valmar)
+		{ Type = "Transition", If = { LastGradeAtLeast = 8 }, Seconds = 5, Effects = { Flags = { "Acceso5", "Acceso6", "Acceso7", "Acceso8" } },
+			Text = "📬 Nota de selectividad: ¡SOBRESALIENTE! Puedes entrar en cualquier carrera (Medicina pide un 8)." },
+		{ Type = "Transition", If = { LastGradeAtLeast = 7, LastGradeBelow = 8 }, Seconds = 5, Effects = { Flags = { "Acceso5", "Acceso6", "Acceso7" } },
+			Text = "📬 Nota de selectividad: notable alto. Ingeniería (7), Derecho (6) y Economía (5). Medicina pide un 8." },
+		{ Type = "Transition", If = { LastGradeAtLeast = 6, LastGradeBelow = 7 }, Seconds = 5, Effects = { Flags = { "Acceso5", "Acceso6" } },
+			Text = "📬 Nota de selectividad: bien. Puedes entrar en Derecho (6) y Economía (5)." },
+		{ Type = "Transition", If = { LastGradeAtLeast = 5, LastGradeBelow = 6 }, Seconds = 5, Effects = { Flags = { "Acceso5" } },
+			Text = "📬 Nota de selectividad: aprobado justo. Puedes entrar en Economía (5)." },
+		{ Type = "Transition", If = { LastGradeBelow = 5 }, Seconds = 5, Effects = { Flags = { "SuspendeSelectividad" } },
+			Text = "📬 Nota de selectividad: suspenso. Pero hay convocatoria extraordinaria en julio. Todavía no está todo perdido." },
+		-- Convocatoria de julio (solo si suspendiste)
+		{ Type = "Class", Subject = "Tecnologia", Mode = "Estudio", Place = "Biblioteca", Text = "Julio: estudia para la convocatoria extraordinaria",
+			If = { Flags = { "SuspendeSelectividad" }, NotFlags = { "Acceso5" } } },
+		{ Type = "Class", Subject = "Tecnologia", Mode = "Examen", Place = "AulaInstituto", Text = "La selectividad de julio (segunda oportunidad)",
+			If = { Flags = { "SuspendeSelectividad" }, NotFlags = { "Acceso5" } }, Bonus = { Seconds = 5 } },
+		{ Type = "Transition", If = { Flags = { "SuspendeSelectividad" }, NotFlags = { "Acceso5" }, LastGradeAtLeast = 6 }, Seconds = 5, Effects = { Flags = { "Acceso5", "Acceso6" } },
+			Text = "📬 Julio: ¡aprobado con un bien! Derecho (6) y Economía (5) te esperan." },
+		{ Type = "Transition", If = { Flags = { "SuspendeSelectividad" }, NotFlags = { "Acceso5" }, LastGradeAtLeast = 5, LastGradeBelow = 6 }, Seconds = 5, Effects = { Flags = { "Acceso5" } },
+			Text = "📬 Julio: ¡aprobado! Puedes entrar en Economía (5)." },
+		{ Type = "Transition", If = { Flags = { "SuspendeSelectividad" }, NotFlags = { "Acceso5" }, LastGradeBelow = 5 }, Seconds = 5,
+			Text = "📬 Julio: otra vez suspenso. Este año no podrás ir a la universidad… pero puedes trabajar. Y volver a intentarlo más adelante." },
+
 		-- La decisión
 		{ Type = "Transition", Text = "La noche antes de entregar la solicitud…", Seconds = 3 },
 		{ Type = "Scene", Dialogue = "Noche", Teleport = "HomeSalon", Actors = CASA },
-		{ Type = "Choice", Key = "Estudios", PromptKey = "QUEST.FUTURO.PREGUNTA", Text = "Decide qué quieres hacer al terminar el instituto",
+		-- La carrera se elige el primer día, en la secretaría de la universidad (Uni01). Aquí: ¿universidad o trabajar?
+		{ Type = "Choice", Key = "Futuro", PromptKey = "QUEST.FUTURO.PREGUNTA", Text = "Decide qué quieres hacer al terminar el instituto",
 			Options = {
-				{ Id = "Medicina", TextKey = "QUEST.FUTURO.OPT_MEDICINA", Flags = { "VaALaUniversidad" } },
-				{ Id = "Ingenieria", TextKey = "QUEST.FUTURO.OPT_INGENIERIA", Flags = { "VaALaUniversidad" } },
-				{ Id = "Derecho", TextKey = "QUEST.FUTURO.OPT_DERECHO", Flags = { "VaALaUniversidad" } },
-				{ Id = "Economia", TextKey = "QUEST.FUTURO.OPT_ECONOMIA", Flags = { "VaALaUniversidad" } },
-				{ Id = "Trabajar", TextKey = "QUEST.FUTURO.OPT_TRABAJAR", Flags = { "EmpiezaATrabajar" } },
+				{ Id = "Universidad", Text = "Ir a la universidad (vivirás en la residencia del campus; la carrera se elige allí)", Flags = { "VaALaUniversidad" }, If = { Flags = { "Acceso5" } } },
+				{ Id = "Trabajar", TextKey = "QUEST.FUTURO.OPT_TRABAJAR", Flags = { "EmpiezaATrabajar" }, Effects = { Choice = { Estudios = "Trabajar" } } },
 			},
 			Actors = CASA },
 		{ Type = "Scene", Dialogue = "Decidido", Actors = CASA },
@@ -185,11 +204,10 @@ return {
 			{ S = "Narrador", T = "Cuando tenías diez años, en un banco del parque, dijiste qué querías ser. Te acuerdas perfectamente." },
 		} },
 		Decidido = { Lines = {
-			{ S = "Familia", T = "¡Medicina! Vas a salvar vidas. Y a no dormir. Pero sobre todo lo primero.", If = estudios("Medicina") },
-			{ S = "Familia", T = "¡Ingeniería! Siempre desmontabas todo. Ahora, además, sabrás montarlo.", If = estudios("Ingenieria") },
-			{ S = "Familia", T = "¡Derecho! Siempre fuiste de defender a los demás. Desde el colegio.", If = estudios("Derecho") },
-			{ S = "Familia", T = "¡Economía! Me alegro. Así me ayudas con las cuentas de casa.", If = estudios("Economia") },
-			{ S = "Familia", T = "¿Trabajar ya? Es una decisión valiente. Y si algún día quieres estudiar, siempre estás a tiempo.", If = estudios("Trabajar") },
+			{ S = "Familia", T = "¡A la universidad! Y a vivir en la residencia del campus… Te voy a echar de menos. Y a tu ropa sucia, no tanto.", If = { Choices = { Futuro = "Universidad" } } },
+			{ S = "Familia", T = "Allí tendrás que hacerte la compra, la comida, la cama… Todo. Mañana te enseño a hacer una tortilla. Por si acaso. Por si acaso, dos.", If = { Choices = { Futuro = "Universidad" } } },
+			{ S = "Familia", T = "Con tu nota puedes elegir cualquier carrera. ¡Cualquiera! Piénsalo bien antes de matricularte.", If = { Choices = { Futuro = "Universidad" }, Flags = { "Acceso8" } } },
+			{ S = "Familia", T = "¿Trabajar ya? Es una decisión valiente. Y si algún día quieres estudiar, siempre estás a tiempo.", If = { Choices = { Futuro = "Trabajar" } } },
 			{ S = "Abu", T = "Sea lo que sea, lo has elegido tú. Eso es lo que importa." },
 		} },
 		Graduacion = { Lines = {

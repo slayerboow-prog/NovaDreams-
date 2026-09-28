@@ -56,6 +56,7 @@ local KIND_TEXT = {
 	Keepsake = "Recuerdo de tu historia",
 	Weapon = "Arma · elígela en la barra rápida para empuñarla",
 	Ammo = "Munición · se gasta al recargar (R)",
+	Gadget = "Gadget exclusivo · clic derecho o tecla para usarlo",
 }
 local NUMBER_KEYS = {
 	[Enum.KeyCode.One] = 1,
@@ -424,10 +425,12 @@ local function refreshDetails()
 	detailName.Text = item.Icon .. "  " .. item.Name .. (if count > 1 then "  ×" .. count else "")
 	detailKind.Text = KIND_TEXT[item.Kind] or ""
 	detailDesc.Text = item.Desc
-	local usable = item.Kind == "Food" or item.Kind == "Vehicle" or item.Kind == "Wear" or item.Kind == "Weapon"
+	local usable = item.Kind == "Food" or item.Kind == "Vehicle" or item.Kind == "Wear" or item.Kind == "Weapon" or item.Kind == "Gadget"
 	useButton.Visible = usable
 	if item.Kind == "Food" then
 		useButton.Text = "Comer"
+	elseif item.Kind == "Gadget" then
+		useButton.Text = "Usar"
 	elseif item.Kind == "Weapon" then
 		useButton.Text = if inUse(item) then "Guardar" else "Empuñar"
 	elseif item.Kind == "Vehicle" then
@@ -803,7 +806,7 @@ useSlot = function(index: number)
 		if weaponHandler then
 			weaponHandler(item.Ref, true)
 		end
-	elseif item.Kind == "Food" then
+	elseif item.Kind == "Food" or item.Kind == "Gadget" then
 		Remote:FireServer("Use", index)
 		-- La mano a la boca (o el vaso, si es una bebida)
 		ReactMotion.play(player.Character, ReactMotion.foodGesture(item.Name))

@@ -13,6 +13,8 @@ local MapInfo = require(ReplicatedStorage.Shared.MapInfo)
 
 local WorldService = {}
 
+local day = 1 -- día absoluto (atributo "Day" de workspace)
+
 local function ensure(className: string, props: { [string]: any })
 	local instance = Lighting:FindFirstChildOfClass(className) or Instance.new(className)
 	for key, value in props do
@@ -348,6 +350,18 @@ local function spawnWorkers()
 	end
 end
 
+-- Salta el reloj a una hora (dormir: la noche pasa y amanece). Si la hora es anterior a la actual,
+-- es el día siguiente. Devuelve true si ha cambiado de día.
+function WorldService.skipTo(clockTime: number): boolean
+	local newDay = Lighting.ClockTime > clockTime
+	if newDay then
+		day += 1
+		workspace:SetAttribute("Day", day)
+	end
+	Lighting.ClockTime = clockTime
+	return newDay
+end
+
 function WorldService.init()
 	setupLighting()
 	publishLandmarks()
@@ -370,7 +384,6 @@ function WorldService.init()
 		end
 	end)
 
-	local day = 1
 	workspace:SetAttribute("Day", day)
 	local hoursPerSecond = 24 / (Config.DayLengthMinutes * 60)
 	local lampsOn: boolean? = nil

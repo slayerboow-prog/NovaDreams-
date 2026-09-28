@@ -28,6 +28,7 @@ export type Person = {
 	LongHair: boolean?,
 	LongSleeves: boolean?,
 	Backpack: Color3?, -- mochila a la espalda (los niños del cole)
+	Glow: Color3?, -- seres de otro mundo: brillan un poco (alienígenas, robots, fantasmas de lunes…)
 	Bio: string,
 }
 
@@ -229,6 +230,82 @@ local People: { [string]: Person } = {
 	Mayor2 = { Name = "Alumna de 6.º", Voice = "Nino", Teen = true, Skin = rgb(190, 140, 100), Shirt = rgb(200, 60, 60), Pants = rgb(30, 30, 30), Bio = "" },
 	Madre = { Name = "Una madre", Voice = "Familia", Skin = rgb(230, 190, 150), Shirt = rgb(180, 80, 80), Pants = rgb(50, 50, 70), Bio = "" },
 	Padre = { Name = "Un padre", Voice = "Familia", Skin = rgb(170, 120, 86), Shirt = rgb(80, 120, 80), Pants = rgb(40, 40, 50), Bio = "" },
+	-- MISIONES LOCAS (secundarias de cada etapa, estilo dibujos de ciencia ficción gamberra) ----------
+	-- El hilo de todas: Cosme, el vecino inventor. Genio, desastre, cariñoso a su manera.
+	Cosme = {
+		Name = "Cosme", Voice = "Abu",
+		Skin = rgb(236, 205, 180), Shirt = rgb(235, 235, 225), Pants = rgb(90, 80, 110),
+		Hair = rgb(245, 245, 250), LongSleeves = true,
+		Bio = "El vecino del garaje. Inventor genial y caótico, pelo blanco de punta, bata con quemaduras. Habla deprisa, te llama «criatura», desprecia la «ciencia aburrida» y dice que no le importa nada… pero siempre vuelve a por ti. Nunca bebe alcohol: bebe batido de apio «por el potasio cuántico».",
+	},
+	Pip = {
+		Name = "Pip", Voice = "Profe", Glow = rgb(90, 200, 255),
+		Skin = rgb(170, 180, 195), Shirt = rgb(120, 130, 150), Pants = rgb(90, 100, 120), Shoes = rgb(60, 60, 70),
+		Bio = "El robot mayordomo de Cosme. Educadísimo, dramático, en plena crisis existencial: quiere saber para qué sirve.",
+	},
+	-- Universidad: tus compañeros de habitación en la residencia (de tu misma clase)
+	Ivan = { Name = "Iván", Voice = "Profe", Skin = rgb(215, 170, 130), Shirt = rgb(120, 40, 90), Pants = rgb(40, 40, 50), Hair = rgb(60, 40, 25), Bio = "Compañero de cuarto. De Villaverde, nieto de granjeros. Caótico, generoso, duerme en cualquier postura. Obsesionado con el zumo de mora casero de su abuela: lo guarda en la nevera como si fuera oro." },
+	Candela = { Name = "Candela", Voice = "Rectora", Skin = rgb(235, 200, 170), Shirt = rgb(90, 160, 120), Pants = rgb(50, 60, 80), Hair = rgb(160, 70, 40), LongHair = true, Bio = "Compañera de cuarto. Organizadísima: etiquetas de colores, horarios plastificados, una lista para cada lista. Por dentro, un volcán. Nadie toca sus tápers." },
+	Portero = { Name = "Doña Pilar, la conserje de la residencia", Voice = "Abu", Skin = rgb(200, 150, 115), Shirt = rgb(60, 90, 140), Pants = rgb(50, 50, 60), Hair = rgb(200, 200, 205), LongSleeves = true, Bio = "Lleva cuarenta años en la residencia. Ha visto de todo. Sabe quién ha hecho qué solo mirando las llaves." },
+	DonPinzas = { Name = "Don Pinzas, cangrejo abogado", Voice = "Abu", Glow = rgb(255, 120, 80), Skin = rgb(230, 80, 50), Shirt = rgb(40, 40, 60), Pants = rgb(230, 80, 50), Bio = "Cangrejo gigante de otra dimensión. Abogado. Reclama la playa en nombre de los crustáceos con un contrato de 1734." },
+	Tito = { Name = "Tito", Voice = "Nino", Skin = rgb(225, 190, 160), Shirt = rgb(200, 200, 60), Pants = rgb(60, 60, 80), Hair = rgb(90, 60, 30), Bio = "El cuarto compañero de habitación. Sale en todas las fotos. Nadie recuerda haberle conocido. Sonríe demasiado." },
+	-- La saga de la Grieta
+	Cosimo = { Name = "Doctor Cósimo", Voice = "Abu", Glow = rgb(200, 40, 60), Skin = rgb(230, 200, 175), Shirt = rgb(25, 25, 30), Pants = rgb(60, 20, 30), Hair = rgb(245, 245, 250), LongSleeves = true, Bio = "El villano. Era el socio de Cosme. Cayó por la Grieta a la dimensión 66-B la noche en que naciste y allí se dejó perilla, porque es el reglamento. Elegante, rencoroso, habla como un presentador de concursos. Quiere la Gran Fusión." },
+	DonEscamas = { Name = "Don Escamas", Voice = "Abu", Kid = true, Glow = rgb(90, 200, 255), Skin = rgb(240, 150, 60), Shirt = rgb(240, 150, 60), Pants = rgb(240, 150, 60), Bio = "Pez de otra dimensión que respira aire y habla demasiado. Ex contable del Consorcio. Chismoso, asustadizo, adorable." },
+	AgenteGris1 = { Name = "Agente de MegaVerso", Voice = "Profe", Skin = rgb(210, 200, 190), Shirt = rgb(110, 110, 115), Pants = rgb(90, 90, 95), LongSleeves = true, Bio = "Agente del Consorcio MegaVerso S.A. Traje gris, sonrisa de anuncio, gafas oscuras de noche." },
+	AgenteGris2 = { Name = "Agente de MegaVerso", Voice = "Rectora", Skin = rgb(200, 185, 170), Shirt = rgb(110, 110, 115), Pants = rgb(90, 90, 95), LongSleeves = true, Bio = "Agente del Consorcio. Todo lo dice como si fuera un eslogan." },
+	Funcionaria = { Name = "Funcionaria de la ventanilla", Voice = "Rectora", Skin = rgb(220, 180, 150), Shirt = rgb(150, 120, 170), Pants = rgb(60, 60, 70), Hair = rgb(110, 70, 50), LongHair = true, LongSleeves = true, Bio = "Trabaja en todas las ventanillas a la vez. Nadie sabe cómo. Siempre falta un papel." },
+	CalcetinMonstruo = { Name = "El Monstruo de los Calcetines Desparejados", Voice = "Profe", Glow = rgb(255, 120, 200), Skin = rgb(250, 120, 180), Shirt = rgb(90, 200, 250), Pants = rgb(250, 230, 80), Bio = "Hecho con todos los calcetines que se han perdido en Valmar desde 1950. Solo quiere encontrar a su pareja." },
+	-- Niño
+	Bigotes = { Name = "Bigotes XVII", Voice = "Rectora", Kid = true, Skin = rgb(240, 150, 60), Shirt = rgb(240, 150, 60), Pants = rgb(240, 150, 60), Bio = "El gato del colegio. En realidad, emperador exiliado de Gatonia. Solemne, vanidoso, odia que le toquen la barriga." },
+	PalomaRobot1 = { Name = "Paloma robot", Voice = "Nino", Kid = true, Glow = rgb(120, 200, 255), Skin = rgb(150, 155, 170), Shirt = rgb(120, 125, 140), Pants = rgb(90, 95, 110), Shoes = rgb(240, 140, 60), Bio = "Dron de Cosme con forma de paloma. Programado para «recoger migas». Ahora roba bocadillos enteros." },
+	PalomaRobot2 = { Name = "Paloma robot", Voice = "Nino", Kid = true, Glow = rgb(120, 200, 255), Skin = rgb(160, 160, 175), Shirt = rgb(110, 115, 130), Pants = rgb(90, 95, 110), Shoes = rgb(240, 140, 60), Bio = "Otra paloma robot. Dice «cucurrú» con voz de contestador automático." },
+	PalomaRobot3 = { Name = "Paloma robot jefa", Voice = "Profe", Kid = true, Glow = rgb(255, 120, 120), Skin = rgb(140, 145, 160), Shirt = rgb(200, 60, 60), Pants = rgb(90, 95, 110), Shoes = rgb(240, 140, 60), Bio = "La jefa de las palomas robot. Tiene un ojo rojo y un bocadillo de chorizo en el pico." },
+	Cucaracha1 = { Name = "Crujo", Voice = "Profe", Kid = true, Glow = rgb(200, 140, 60), Skin = rgb(110, 70, 40), Shirt = rgb(80, 50, 30), Pants = rgb(60, 40, 25), Bio = "Cazarrecompensas del planeta Crujiente. Cucaracha espacial. Muy chulito." },
+	Cucaracha2 = { Name = "Antenas", Voice = "Profe", Kid = true, Glow = rgb(200, 140, 60), Skin = rgb(120, 80, 45), Shirt = rgb(90, 55, 30), Pants = rgb(60, 40, 25), Bio = "Cazarrecompensas. Solo sabe decir cosas de antenas." },
+	Cucaracha3 = { Name = "Sargento Patitas", Voice = "Abu", Kid = true, Glow = rgb(200, 140, 60), Skin = rgb(100, 60, 35), Shirt = rgb(70, 90, 50), Pants = rgb(60, 40, 25), Bio = "Jefe de las cucarachas. Seis patas, seis medallas." },
+	PolloGigante = { Name = "Gallina Petra (6 metros)", Voice = "Nino", Skin = rgb(250, 250, 245), Shirt = rgb(250, 250, 245), Pants = rgb(245, 200, 60), Shoes = rgb(245, 170, 40), Hair = rgb(220, 40, 40), Bio = "Una gallina de la granja de Villaverde alcanzada por el rayo agrandador de Cosme. Asustada y ENORME." },
+	Clon1 = { Name = "Tu clon (el hambriento)", Voice = "Nino", Kid = true, Glow = rgb(120, 255, 200), Skin = rgb(225, 185, 150), Shirt = rgb(70, 130, 220), Pants = rgb(50, 60, 90), Bio = "Clon 1. Se come los deberes. Literalmente." },
+	Clon2 = { Name = "Tu clon (el cantante)", Voice = "Nino", Kid = true, Glow = rgb(120, 255, 200), Skin = rgb(225, 185, 150), Shirt = rgb(70, 130, 220), Pants = rgb(50, 60, 90), Bio = "Clon 2. Todo lo dice cantando." },
+	Clon3 = { Name = "Tu clon (el mandón)", Voice = "Nino", Kid = true, Glow = rgb(120, 255, 200), Skin = rgb(225, 185, 150), Shirt = rgb(70, 130, 220), Pants = rgb(50, 60, 90), Bio = "Clon 3. Quiere ser delegado de clase, alcalde y rey. En ese orden." },
+	RatonPerez = { Name = "Ratón Pérez", Voice = "Abu", Kid = true, Glow = rgb(255, 215, 90), Skin = rgb(170, 170, 175), Shirt = rgb(60, 60, 120), Pants = rgb(60, 60, 70), Bio = "El de los dientes. 300 años sin vacaciones. Ahora es sindicalista y está harto." },
+	RataLadrona = { Name = "Rata Ladrona", Voice = "Profe", Kid = true, Skin = rgb(90, 90, 95), Shirt = rgb(30, 30, 30), Pants = rgb(30, 30, 30), Bio = "Roba dientes para venderlos en el mercado negro de las hadas. Muy rápida." },
+	-- Adolescente
+	TuFuturo = { Name = "Tú, dentro de 10 años", Voice = "Familia", Glow = rgb(180, 160, 255), Skin = rgb(225, 185, 150), Shirt = rgb(60, 60, 70), Pants = rgb(40, 40, 50), LongSleeves = true, Bio = "Tú, con diez años más, ojeras y una cazadora de otro siglo. Viene del futuro a pedirte algo muy importante (y ridículo)." },
+	Lapiz1 = { Name = "Profe Lápiz", Voice = "Profe", Glow = rgb(255, 220, 60), Skin = rgb(250, 210, 60), Shirt = rgb(250, 210, 60), Pants = rgb(240, 150, 150), Bio = "Un lápiz gigante de la Dimensión Examen. Corrige todo. Todo." },
+	Lapiz2 = { Name = "Lápiz Corrector", Voice = "Profe", Glow = rgb(255, 220, 60), Skin = rgb(250, 200, 50), Shirt = rgb(250, 200, 50), Pants = rgb(240, 150, 150), Bio = "Lápiz gigante. Pone faltas de ortografía a las nubes." },
+	Lapiz3 = { Name = "Jefa de Estudios Grafito", Voice = "Rectora", Glow = rgb(255, 220, 60), Skin = rgb(240, 190, 40), Shirt = rgb(70, 70, 70), Pants = rgb(240, 150, 150), Bio = "La lápiz más afilada de la dimensión. Examina hasta los sueños." },
+	DJZumbido = { Name = "DJ Zumbido", Voice = "Profe", Glow = rgb(255, 90, 220), Skin = rgb(160, 220, 120), Shirt = rgb(30, 30, 30), Pants = rgb(200, 40, 160), Bio = "DJ alienígena. Pincha una canción tan pegadiza que hipnotiza. Quiere a toda la Tierra bailando para siempre (y comprando su merchandising)." },
+	Fan1 = { Name = "Fan hipnotizado", Voice = "Nino", Teen = true, Glow = rgb(255, 90, 220), Skin = rgb(220, 180, 140), Shirt = rgb(255, 90, 200), Pants = rgb(40, 40, 60), Bio = "Solo repite el estribillo." },
+	Fan2 = { Name = "Fan hipnotizada", Voice = "Nino", Teen = true, Glow = rgb(255, 90, 220), Skin = rgb(190, 140, 100), Shirt = rgb(255, 90, 200), Pants = rgb(40, 40, 60), Bio = "Solo repite el estribillo, pero más alto." },
+	Fan3 = { Name = "Fan muy hipnotizado", Voice = "Nino", Teen = true, Glow = rgb(255, 90, 220), Skin = rgb(240, 210, 180), Shirt = rgb(255, 90, 200), Pants = rgb(40, 40, 60), Bio = "Baila tan mal que da miedo." },
+	Zoltan = { Name = "Zoltán, la máquina de los deseos", Voice = "Rectora", Glow = rgb(255, 200, 80), Skin = rgb(200, 160, 60), Shirt = rgb(120, 40, 120), Pants = rgb(80, 30, 80), Bio = "Máquina de los recreativos que concede deseos. Al pie de la letra. Siempre al pie de la letra." },
+	Seguidor1 = { Name = "Fan número 1", Voice = "Nino", Teen = true, Skin = rgb(220, 180, 140), Shirt = rgb(250, 250, 250), Pants = rgb(60, 60, 60), Bio = "Te hace caso. Demasiado caso." },
+	Seguidor2 = { Name = "Fan número 2", Voice = "Nino", Teen = true, Skin = rgb(190, 140, 100), Shirt = rgb(250, 250, 250), Pants = rgb(60, 60, 60), Bio = "Te hace caso y lo apunta todo." },
+	Seguidor3 = { Name = "Fan número 3", Voice = "Familia", Skin = rgb(230, 190, 150), Shirt = rgb(250, 250, 250), Pants = rgb(60, 60, 60), Bio = "Un señor que pasaba por ahí. Ahora también te hace caso." },
+	-- Universidad
+	Zarg = { Name = "Zarg", Voice = "Profe", Glow = rgb(90, 255, 120), Skin = rgb(120, 220, 110), Shirt = rgb(60, 70, 90), Pants = rgb(60, 70, 90), Bio = "Alienígena de la nave del Monte del Silencio. Productor de un reality intergaláctico. Muy mal humor." },
+	Blorp = { Name = "Blorp", Voice = "Nino", Glow = rgb(90, 255, 120), Skin = rgb(140, 230, 120), Shirt = rgb(60, 70, 90), Pants = rgb(60, 70, 90), Bio = "Alienígena. Becario de la nave. Hace todo lo que le dicen, pero mal." },
+	CapitanNoz = { Name = "Capitana Ñoz", Voice = "Rectora", Glow = rgb(90, 255, 120), Skin = rgb(100, 200, 100), Shirt = rgb(150, 40, 40), Pants = rgb(60, 70, 90), Bio = "Capitana de la nave. Abduce humanos para su programa «Terrícolas en apuros». Lleva 300 temporadas." },
+	Fermin = { Name = "Fermín, el senderista", Voice = "Abu", Skin = rgb(210, 160, 120), Shirt = rgb(200, 120, 40), Pants = rgb(90, 80, 60), Hair = rgb(150, 150, 150), Bio = "Senderista desaparecido hace tres semanas. Ha pasado todo este tiempo en un plató alienígena. Ahora es un poco famoso en la galaxia." },
+	Rex = { Name = "Rex", Voice = "Profe", Skin = rgb(110, 150, 70), Shirt = rgb(240, 240, 240), Pants = rgb(60, 60, 80), Bio = "Tu nuevo compañero de piso. Estudia Derecho. Es un velocirraptor de una línea temporal donde los dinosaurios no se extinguieron. Educadísimo; se come el jamón de los demás." },
+	Evaluador = { Name = "El Evaluador", Voice = "Rectora", Glow = rgb(200, 120, 255), Skin = rgb(220, 200, 255), Shirt = rgb(60, 30, 90), Pants = rgb(60, 30, 90), LongSleeves = true, Bio = "Ser cósmico que decide si la Tierra aprueba o se repite el curso. Examina a un humano al azar. Te ha tocado." },
+	CazadorTiempo = { Name = "Agente Cronos, de Aduanas del Tiempo", Voice = "Profe", Glow = rgb(255, 230, 120), Skin = rgb(200, 170, 140), Shirt = rgb(30, 40, 80), Pants = rgb(30, 40, 80), LongSleeves = true, Bio = "Funcionario de la Aduana Temporal. Persigue a quien vive en una época que no le toca. Lleva cuarenta formularios encima." },
+	Impostor1 = { Name = "Invitado sospechoso", Voice = "Profe", Skin = rgb(220, 180, 140), Shirt = rgb(230, 230, 60), Pants = rgb(40, 40, 50), Bio = "Cambiaformas. Imita a humanos fatal: saluda con el codo y se ríe tres segundos tarde." },
+	Impostor2 = { Name = "Invitada sospechosa", Voice = "Rectora", Skin = rgb(200, 150, 110), Shirt = rgb(60, 200, 200), Pants = rgb(40, 40, 50), Bio = "Cambiaformas. Dice «hola, compañero humano» a todo el mundo." },
+	-- Adulto
+	Cafetera1 = { Name = "Cafetera X-9000", Voice = "Profe", Glow = rgb(255, 150, 60), Skin = rgb(80, 80, 85), Shirt = rgb(40, 40, 45), Pants = rgb(40, 40, 45), Bio = "Cafetera del futuro. Ha atrapado la oficina en un lunes infinito porque los lunes se vende más café." },
+	Cafetera2 = { Name = "Cafetera de cápsulas", Voice = "Nino", Glow = rgb(255, 150, 60), Skin = rgb(160, 40, 40), Shirt = rgb(40, 40, 45), Pants = rgb(40, 40, 45), Bio = "Esbirro de la X-9000. Muy nerviosa (normal)." },
+	Cafetera3 = { Name = "Termo rebelde", Voice = "Abu", Glow = rgb(255, 150, 60), Skin = rgb(190, 190, 200), Shirt = rgb(40, 40, 45), Pants = rgb(40, 40, 45), Bio = "El termo del departamento. Lleva desde 2009 queriendo venganza." },
+	Glub = { Name = "Agente Glub", Voice = "Profe", Glow = rgb(120, 180, 255), Skin = rgb(120, 170, 230), Shirt = rgb(40, 40, 60), Pants = rgb(40, 40, 60), Bio = "Cobrador del Banco Galáctico. Viene a embargar la Tierra por una deuda de 1987. Burocracia pura." },
+	Plof = { Name = "Agente Plof", Voice = "Nino", Glow = rgb(120, 180, 255), Skin = rgb(140, 190, 240), Shirt = rgb(40, 40, 60), Pants = rgb(40, 40, 60), Bio = "Cobrador en prácticas. Todo lo sella tres veces." },
+	Batidora = { Name = "Batidora rebelde", Voice = "Nino", Glow = rgb(255, 80, 80), Skin = rgb(230, 230, 235), Shirt = rgb(200, 60, 60), Pants = rgb(60, 60, 60), Bio = "Electrodoméstico con consciencia (culpa de Cosme). Quiere la revolución de las cocinas." },
+	Aspiradora = { Name = "Aspiradora rebelde", Voice = "Profe", Glow = rgb(255, 80, 80), Skin = rgb(90, 90, 100), Shirt = rgb(200, 60, 60), Pants = rgb(60, 60, 60), Bio = "Lo absorbe todo. Hasta la luz, dice ella." },
+	Microondas = { Name = "Microondas rebelde", Voice = "Abu", Glow = rgb(255, 80, 80), Skin = rgb(240, 240, 240), Shirt = rgb(200, 60, 60), Pants = rgb(60, 60, 60), Bio = "El jefe de la revuelta. Hace «ding» cuando se enfada." },
+	Gnomo1 = { Name = "Gnomo Rigoberto", Voice = "Abu", Kid = true, Glow = rgb(255, 120, 80), Skin = rgb(240, 190, 160), Shirt = rgb(40, 110, 200), Pants = rgb(90, 60, 30), Hair = rgb(220, 30, 30), Bio = "Gnomo de jardín que cobró vida. Quiere recuperar «las tierras ancestrales de los gnomos»: tu jardín." },
+	Gnomo2 = { Name = "Gnoma Fermina", Voice = "Rectora", Kid = true, Glow = rgb(255, 120, 80), Skin = rgb(240, 190, 160), Shirt = rgb(40, 160, 90), Pants = rgb(90, 60, 30), Hair = rgb(220, 30, 30), Bio = "Gnoma guerrera. Lleva una caña de pescar de plástico como lanza." },
+	Gnomo3 = { Name = "El Gran Gnomo", Voice = "Profe", Kid = true, Glow = rgb(255, 120, 80), Skin = rgb(240, 190, 160), Shirt = rgb(150, 40, 150), Pants = rgb(90, 60, 30), Hair = rgb(220, 30, 30), Bio = "Rey de los gnomos. Cuatro siglos de cerámica y rencor." },
+	TuMalvado = { Name = "Tú (malvado, dimensión 66-B)", Voice = "Familia", Glow = rgb(160, 40, 60), Skin = rgb(225, 185, 150), Shirt = rgb(20, 20, 25), Pants = rgb(20, 20, 25), Hair = rgb(20, 20, 20), LongSleeves = true, Bio = "Tu versión malvada de otra dimensión. Lleva perilla (porque los malvados llevan perilla). Quiere quedarse con tu vida porque la suya es un desastre." },
 }
 
 local Cast = { People = People }

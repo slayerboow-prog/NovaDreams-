@@ -99,7 +99,11 @@ local Chapters: { [string]: Chapter } = {
 		TitleKey = "CHAPTER.UNIVERSIDAD.TITLE",
 		IntroKey = "CHAPTER.UNIVERSIDAD.INTRO",
 		OutroKey = "CHAPTER.UNIVERSIDAD.OUTRO",
-		Main = { "Uni01_PrimerDia", "Uni02_ElProyecto", "Uni03_PrimerTrabajo", "Uni04_Practicas", "Uni05_PrimerPiso", "Uni06_Graduacion" },
+		-- El ciclo de una carrera de verdad: residencia, cuatrimestres, exámenes (teóricos y físicos), recuperaciones, TFG
+		Main = {
+			"Uni01_PrimerDia", "Uni01b_Residencia", "Uni02_ElProyecto", "UniEx1_Enero", "Uni03_PrimerTrabajo", "UniEx2_Junio",
+			"Uni04_Practicas", "UniEx3_Parcial", "Uni05_PrimerPiso", "UniEx4_TFG", "Uni06_Graduacion",
+		},
 		Next = "Adulto_VolarDelNido",
 		Loop = "Uni_Jornada",
 		IntroCinematic = "Uni_PrimerDia",

@@ -58,9 +58,11 @@ local order = {
 	"WeatherService", -- estaciones y tiempo: sol, lluvia, tormenta, nieve, niebla
 	"ToyService", -- balones y conos con física: se patean, botan y vuelven solos a su sitio
 	"BreakService", -- piedras que se lanzan: ventanas y puertas que se rompen (y se arreglan solas)
+	"GadgetService", -- inventos exclusivos de las misiones locas (pistola de rayos, mando de dimensiones…)
 	"JobService",
 	"FoodService",
 	"HouseService",
+	"SleepService", -- dormir en cualquier cama tuya: energía, estamina, reaparición y amanecer a las 8:30
 	"TravelService",
 	"VehicleService", -- bicis, monopatines, motos y coches
 	"RestaurantService", -- camarero + barman (con NPC si falta alguien)
