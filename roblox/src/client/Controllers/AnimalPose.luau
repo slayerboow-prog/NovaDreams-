@@ -216,6 +216,7 @@ export type State = {
 	LookYaw: number, -- hacia dónde gira la cabeza para mirarte (ya suave)
 	Looking: number, -- 0..1
 	Excited: number, -- 0..1 (el perro, si estás cerca)
+	Startle: number, -- 1 → 0: el susto (salto, cabeza y cola arriba) cuando te acercas o chocas
 	Weights: { [string]: number },
 }
 
@@ -278,13 +279,42 @@ function AnimalPose.newState(kind: string): State
 	for _, name in POSES do
 		weights[name] = 0
 	end
-	return { Kind = kind, State = "idle", Action = nil, Phase = math.random() * 10, Stride = 0, Moving = 0, LookYaw = 0, Looking = 0, Excited = 0, Weights = weights }
+	return { Kind = kind, State = "idle", Action = nil, Phase = math.random() * 10, Stride = 0, Moving = 0, LookYaw = 0, Looking = 0, Excited = 0, Startle = 0, Weights = weights }
 end
 
 -- Elige qué hace ahora que se ha parado
 function AnimalPose.chooseAction(kind: string): string?
 	local list = AnimalPose.Actions[kind]
 	return if list then list[math.random(1, #list)] else nil
+end
+
+-- Susto: cuánto dura y lo alto que salta cada uno (el gato, el que más)
+AnimalPose.StartleTime = { Perro = 0.6, Gato = 0.55, Vaca = 0.8, Oveja = 0.6, Gallina = 0.7, Paloma = 0.5, Pato = 0.6 }
+local HOP = { Perro = 0.9, Gato = 1.3, Vaca = 0.35, Oveja = 0.7, Gallina = 0.8, Paloma = 0.5, Pato = 0.3 }
+
+-- Empieza un susto (lo lleva AnimalPose.step)
+function AnimalPose.startle(s: State)
+	s.Startle = 1
+end
+
+-- Cómo se mueve el cuerpo en el susto (función pura): salto, cabeza arriba, cola arriba y aleteo.
+-- startle: 1 al empezar → 0 al acabar
+function AnimalPose.reaction(kind: string, startle: number): { Hop: number, HeadPitch: number, TailUp: number, Flap: number, Crouch: number }
+	if startle <= 0 or startle ~= startle then
+		return { Hop = 0, HeadPitch = 0, TailUp = 0, Flap = 0, Crouch = 0 }
+	end
+	local u = 1 - math.min(startle, 1)
+	-- Se encoge un momento y salta
+	local crouch = if u < 0.2 then math.sin(u / 0.2 * math.pi) * 0.12 else 0
+	local air = if u >= 0.15 then math.sin(math.clamp((u - 0.15) / 0.7, 0, 1) * math.pi) else 0
+	local up = math.sin(u * math.pi)
+	return {
+		Hop = air * (HOP[kind] or 0.6),
+		HeadPitch = 0.4 * up,
+		TailUp = 0.9 * up,
+		Flap = if kind == "Gallina" or kind == "Paloma" or kind == "Pato" then up else 0,
+		Crouch = crouch,
+	}
 end
 
 local function smooth(current: number, target: number, rate: number, dt: number): number
@@ -308,6 +338,9 @@ function AnimalPose.step(s: State, dt: number, speed: number, lookYaw: number?, 
 		s.LookYaw = smooth(s.LookYaw, clamp(lookYaw, -0.9, 0.9), 4, dt)
 	end
 	s.Excited = smooth(s.Excited, if near then 1 else 0, 2, dt)
+	if s.Startle > 0 then
+		s.Startle = math.max(0, s.Startle - dt / (AnimalPose.StartleTime[s.Kind] or 0.6))
+	end
 end
 
 local function around(pivot: Vector3, rotation: CFrame): CFrame
@@ -325,8 +358,12 @@ function AnimalPose.pose(pieces: { Piece }, info: Info, s: State, t: number, out
 	local stride = s.Stride
 	local moving = s.Moving
 
+	local react = AnimalPose.reaction(kind, s.Startle or 0)
 	-- Alas
 	local flap = 0
+	if react.Flap > 0.001 then
+		flap = sin(t * 26 + ph) * 0.9 * react.Flap
+	end
 	if flying then
 		flap = sin(t * (if kind == "Gaviota" then 9 else 22) + ph) * 0.9
 	elseif kind == "Mariposa" then
@@ -352,6 +389,10 @@ function AnimalPose.pose(pieces: { Piece }, info: Info, s: State, t: number, out
 	if kind == "Pato" then
 		body = angles(0, 0, sin(t * 3 + ph) * 0.05) * body -- se mece en el agua
 	end
+	-- Susto: se encoge, pega un salto y cae
+	if react.Hop > 0.001 or react.Crouch > 0.001 then
+		body = C(0, react.Hop - react.Crouch * legLen, 0) * body
+	end
 	-- Respira (quieto)
 	if not flying and legLen > 0 then
 		body = C(0, sin(t * 2.2 + ph) * 0.01 * legLen * (1 - moving), 0) * body
@@ -371,6 +412,7 @@ function AnimalPose.pose(pieces: { Piece }, info: Info, s: State, t: number, out
 	local pk = math.max(0, sin(t * 3 + ph)) ^ 2 * W.peck
 	headPitch += PECK_PITCH * pk
 	headPitch += -0.25 * W.sit -- sentado, con el cuerpo inclinado, la cabeza sigue recta
+	headPitch += react.HeadPitch
 	local head = around(info.Neck, angles(headPitch, headYaw, headRoll))
 	-- Al pastar o picotear, el cuello baja hasta que la boca toca el suelo
 	local drop = info.GrazeDrop * W.graze + info.PeckDrop * pk
@@ -400,6 +442,7 @@ function AnimalPose.pose(pieces: { Piece }, info: Info, s: State, t: number, out
 	elseif kind == "Pato" then
 		tailPitch = 0.6 * W.dabble
 	end
+	tailPitch += react.TailUp
 
 	for i, p in pieces do
 		local offset = p.Offset

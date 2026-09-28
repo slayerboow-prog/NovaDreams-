@@ -246,7 +246,7 @@ end
 --   point(u, v, y) → posición; along / across(sign) → direcciones; RW = ancho de la calzada;
 --   lampAt(u) → ¿hay farola en u? (para no pisarla)
 ---------------------------------------------------------------------
-function StreetDetail.segment(parent: Instance, road: any, u0: number, u1: number, point: (number, number, number) -> Vector3, across: (number) -> Vector3, RW: number, walkTop: number, roadTop: number)
+function StreetDetail.segment(parent: Instance, road: any, u0: number, u1: number, point: (number, number, number) -> Vector3, across: (number) -> Vector3, RW: number, walkTop: number, roadTop: number, free: ((number, number) -> boolean)?)
 	local length = u1 - u0
 	if length < 30 then
 		return
@@ -272,7 +272,7 @@ function StreetDetail.segment(parent: Instance, road: any, u0: number, u1: numbe
 			local p = point(u, s * (RW / 2 + 2.2), walkTop)
 			local r = hash(p.X, p.Z, 1)
 			local fill = if rural then 0.08 else 0.42
-			if r < fill and not MetroAccess.blocked(p.X, p.Z) then
+			if r < fill and not MetroAccess.blocked(p.X, p.Z) and (not free or free(u, s)) then
 				local kind = choose(weights, hash(p.X, p.Z, 2))
 				local fn = kind and Kinds[kind]
 				if fn then

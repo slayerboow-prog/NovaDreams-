@@ -198,7 +198,126 @@ function Region.roads(): { Street.Road }
 	for _, cell in require(Kit.Districts).cells(Region.centers()) do
 		table.insert(blocked, cell)
 	end
-	roadsCache = require(Kit.Connect).fix(list, blocked)
+	local fixed = require(Kit.Connect).fix(list, blocked)
+	-- Calles paralelas casi en la misma línea (a pocos studs) que se solapan: la de la cuadrícula se
+	-- alinea con la otra y se unen en una sola calle (si no, quedaban dos cruces montados uno encima
+	-- del otro, con aceras cruzando la calzada de la vecina)
+	for _, a in fixed do
+		for _, b in fixed do
+			local offset = math.abs(a.At - b.At)
+			if a ~= b and a.Axis == b.Axis and offset > 0 and offset <= 10 and a.From <= b.To + 1 and b.From <= a.To + 1 and a.Trees and not b.Trees then
+				b.At = a.At
+				b.Snapped = true
+			end
+		end
+	end
+	-- Dos trozos en línea que se solapan: se unen, salvo si entre medias los corta una carretera
+	-- principal que pasa de lado a lado (entonces son dos calles que desembocan en ella)
+	local Roads = require(Kit.Roads)
+	local function crossedThrough(axis: string, at: number, u: number): boolean
+		local x, z = if axis == "X" then u else at, if axis == "X" then at else u
+		for _, seg in Roads.segments() do
+			local kind = Roads.Kinds[seg.Kind]
+			if CityPlan.segmentDistance(x, z, seg.A.X, seg.A.Z, seg.B.X, seg.B.Z) < kind.Road / 2 + kind.Walk + 2 then
+				local a = if axis == "X" then seg.A.Z - at else seg.A.X - at
+				local b = if axis == "X" then seg.B.Z - at else seg.B.X - at
+				if (a > 20 and b < -20) or (a < -20 and b > 20) then
+					return true
+				end
+			end
+		end
+		return false
+	end
+	local function joins(m: any, road: any): boolean
+		if m.Axis ~= road.Axis or m.At ~= road.At or road.From > m.To + 1 or m.From > road.To + 1 then
+			return false
+		end
+		if road.Snapped or m.Snapped then
+			return true
+		end
+		local lo, hi = math.max(m.From, road.From), math.min(m.To, road.To)
+		return not crossedThrough(m.Axis, m.At, (lo + hi) / 2)
+	end
+	local merged: { Street.Road } = {}
+	for _, road in fixed do
+		local joined = false
+		for _, m in merged do
+			if joins(m, road) then
+				m.From, m.To = math.min(m.From, road.From), math.max(m.To, road.To)
+				if road.Trees then
+					m.Trees, m.LampEvery, m.Solid = true, road.LampEvery, road.Solid
+				end
+				joined = true
+				break
+			end
+		end
+		if not joined then
+			table.insert(merged, road)
+		end
+	end
+	-- (a veces una unión junta otras dos que ya estaban: otra pasada)
+	for _ = 1, 2 do
+		for i = #merged, 1, -1 do
+			local road = merged[i]
+			for j = 1, i - 1 do
+				local m = merged[j]
+				if joins(m, road) then
+					m.From, m.To = math.min(m.From, road.From), math.max(m.To, road.To)
+					m.Trees = m.Trees or road.Trees
+					table.remove(merged, i)
+					break
+				end
+			end
+		end
+	end
+	for _, road in merged do
+		road.Snapped = nil
+	end
+	-- Una calle que corre casi paralela por encima de una carretera principal (sus aceras pisarían la
+	-- calzada): se queda solo con el trozo más largo que va por fuera
+	local kept: { Street.Road } = {}
+	for _, road in merged do
+		local dirStreet = if road.Axis == "X" then Vector3.new(1, 0, 0) else Vector3.new(0, 0, 1)
+		local function inside(u: number): boolean
+			local x, z = if road.Axis == "X" then u else road.At, if road.Axis == "X" then road.At else u
+			for _, seg in Roads.segments() do
+				local kind = Roads.Kinds[seg.Kind]
+				if math.abs((seg.B - seg.A).Unit:Dot(dirStreet)) > 0.95 and CityPlan.segmentDistance(x, z, seg.A.X, seg.A.Z, seg.B.X, seg.B.Z) < kind.Road / 2 + kind.Walk + 19 then
+					return true
+				end
+			end
+			return false
+		end
+		local bestFrom, bestTo, runFrom = nil, nil, nil
+		local anyInside = false
+		local u = road.From
+		while true do
+			local ok = not inside(u)
+			anyInside = anyInside or not ok
+			if ok and not runFrom then
+				runFrom = u
+			end
+			local last = u >= road.To
+			if runFrom and (not ok or last) then
+				local runTo = if ok then u else u - 5
+				if not bestFrom or runTo - runFrom > (bestTo :: number) - bestFrom then
+					bestFrom, bestTo = runFrom, runTo
+				end
+				runFrom = nil
+			end
+			if last then
+				break
+			end
+			u = math.min(u + 5, road.To)
+		end
+		if not anyInside then
+			table.insert(kept, road)
+		elseif bestFrom and (bestTo :: number) - bestFrom > 60 then
+			road.From, road.To = bestFrom, bestTo :: number
+			table.insert(kept, road)
+		end
+	end
+	roadsCache = kept
 	return table.clone(roadsCache :: { Street.Road })
 end
 

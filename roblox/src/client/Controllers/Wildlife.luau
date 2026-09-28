@@ -7,6 +7,12 @@
 --  * Perros y gatos paseando por las ciudades; vacas, ovejas y gallinas en Villaverde
 --  * Cómo se mueve cada uno (patas, cabeza, cola; sentarse, pastar, olfatear…): AnimalPose.
 --    El perro a veces se acerca a ti, se sienta a tu lado y mueve la cola.
+--  * Los que andan por la ciudad (perros, gatos, palomas…) van por aceras, parques y plazas: nunca
+--    eligen un sitio en la calzada ni cruzan la calle (shared/Walkable, con las calles que publica el
+--    servidor). Las vacas, ovejas y gallinas no se alejan de su granja.
+--  * Si pasas a su lado o chocas con ellos se asustan: dan un salto, ladran/maúllan/cacarean y se
+--    apartan unos pasos (las palomas salen volando); si los empujas, se mueven. Si viene un coche,
+--    saltan a un lado. Nunca se hacen daño.
 -- Cuántos salen depende de la estación y del tiempo (shared/Seasons: Birds, Butterflies, Ground).
 
 local Lighting = game:GetService("Lighting")
@@ -15,7 +21,10 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Seasons = require(ReplicatedStorage.Shared.Seasons)
+local Walkable = require(ReplicatedStorage.Shared.Walkable)
+local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
 local AnimalPose = require(script.Parent.AnimalPose)
+local Nudge = require(script.Parent.Nudge)
 
 local Wildlife = {}
 
@@ -43,9 +52,17 @@ type Animal = {
 	Height: number?,
 	Group: number?,
 	NextTry: number?,
+	Home: Vector3?, -- (granja) de aquí no se alejan
+	ReactAt: number?, -- hasta cuándo no se vuelve a asustar
+	Scurry: boolean?, -- huyendo unos pasos (más deprisa)
 }
 
 local animals: { [string]: { Animal } } = {}
+local roadIndex: Walkable.Index? = nil -- calzadas (no se pisan)
+local ROAD_MARGIN = 1.5 -- ni siquiera pegados al bordillo
+local FARM_RADIUS = 26
+local FARM = { Vaca = true, Oveja = true, Gallina = true }
+local VOICE = { Perro = "¡Guau!", Gato = "¡Miau!", Gallina = "¡Cocoró!", Vaca = "¡Muuu!", Oveja = "¡Beee!", Paloma = "¡Currucucú!", Pato = "¡Cuac!" }
 local zones: { { Name: string, Center: Vector3 } } = {}
 
 local STAND = AnimalPose.Stand
@@ -116,12 +133,21 @@ local function zoneAt(position: Vector3): string?
 	return best
 end
 
--- Un punto de suelo "de calle" cerca (no en un tejado), o nil
-local function groundSpot(around: Vector3, minR: number, maxR: number, wantWater: boolean?): (Vector3?, Enum.Material?)
-	for _ = 1, 4 do
-		local angle = math.random() * math.pi * 2
-		local r = minR + math.random() * (maxR - minR)
-		local x, z = around.X + math.cos(angle) * r, around.Z + math.sin(angle) * r
+-- Un punto de suelo "de calle" cerca (no en un tejado), o nil. En tierra, nunca en la calzada y,
+-- si se da "from", que se pueda llegar en línea recta sin cruzar la calle; "home" = no alejarse de ahí
+local function groundSpot(around: Vector3, minR: number, maxR: number, wantWater: boolean?, from: Vector3?, home: Vector3?): (Vector3?, Enum.Material?)
+	for _ = 1, if wantWater then 4 else 7 do
+		local x, z
+		if wantWater then
+			local angle = math.random() * math.pi * 2
+			local r = minR + math.random() * (maxR - minR)
+			x, z = around.X + math.cos(angle) * r, around.Z + math.sin(angle) * r
+		else
+			x, z = Walkable.pick(roadIndex, around, minR, maxR, from, home, FARM_RADIUS, nil, ROAD_MARGIN)
+			if not x or not z then
+				continue
+			end
+		end
 		local hit = ground(x, z, around.Y + 40)
 		if hit and hit.Position.Y < around.Y + 6 and hit.Normal.Y > 0.8 then
 			local isWater = hit.Material == Enum.Material.Water
@@ -131,6 +157,18 @@ local function groundSpot(around: Vector3, minR: number, maxR: number, wantWater
 		end
 	end
 	return nil
+end
+
+-- Velocidad del vehículo en el que vas (0 si vas a pie)
+local function vehicleSpeed(): number
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	local seat = humanoid and humanoid.SeatPart
+	if seat then
+		local v = seat.AssemblyLinearVelocity
+		return Vector3.new(v.X, 0, v.Z).Magnitude
+	end
+	return 0
 end
 
 ---------------------------------------------------------------------
@@ -227,6 +265,9 @@ local function spawnAnimal(a: Animal, around: Vector3, index: number): boolean
 	if (a.Kind == "Vaca" or a.Kind == "Oveja") and material ~= Enum.Material.Grass and material ~= Enum.Material.LeafyGrass then
 		return false
 	end
+	a.Home = if FARM[a.Kind] then spot else nil
+	a.Speed = WALK_SPEED[a.Kind] or 2
+	a.Scurry = nil
 	a.Root = CFrame.new(spot + Vector3.new(0, STAND[a.Kind] or 0.5, 0)) * CFrame.Angles(0, math.random() * 6.28, 0)
 	a.State = "idle"
 	a.Pose.Action = AnimalPose.chooseAction(a.Kind)
@@ -253,14 +294,40 @@ local function stepFluttery(a: Animal, t: number)
 	a.Root = CFrame.lookAt(pos, Vector3.new(ahead.X, pos.Y, ahead.Z))
 end
 
+-- Susto: salta, "dice" algo y se aparta unos pasos sin pisar la calzada (ni salir de su granja)
+local function startle(a: Animal, t: number, around: Vector3, car: boolean)
+	a.ReactAt = t + 2.5
+	AnimalPose.startle(a.Pose)
+	local voice = VOICE[a.Kind]
+	if voice then
+		Nudge.say(a.Pieces[1] and a.Pieces[1].Part, voice, 1.4)
+	end
+	local pos = a.Root.Position
+	local target = Walkable.escape(roadIndex, pos, around, if car then 10 else 5 + math.random() * 3, ROAD_MARGIN * 0.5)
+	if target and a.Home and Vector2.new(target.X - a.Home.X, target.Z - a.Home.Z).Magnitude > FARM_RADIUS then
+		target = nil
+	end
+	if target then
+		local hit = ground(target.X, target.Z, pos.Y + 6)
+		if hit and math.abs(hit.Position.Y - (pos.Y - (STAND[a.Kind] or 0.5))) < 3 then
+			a.Target = hit.Position + Vector3.new(0, STAND[a.Kind] or 0.5, 0)
+			a.State = "walk"
+			a.Timer = 3
+			a.Speed = (WALK_SPEED[a.Kind] or 2) * (if car then 3.4 else 2.6)
+			a.Scurry = true
+		end
+	end
+end
+
 local function stepWalker(a: Animal, t: number, dt: number, around: Vector3)
 	local pos = a.Root.Position
-	-- Las palomas y las gallinas salen volando si te acercas demasiado
+	local d = Vector2.new(pos.X - around.X, pos.Z - around.Z).Magnitude
+	-- Las palomas salen volando si te acercas demasiado (aleteando)
 	if (a.Kind == "Paloma") and a.State ~= "flee" then
-		local d = Vector2.new(pos.X - around.X, pos.Z - around.Z).Magnitude
 		if d < 9 then
 			a.State = "flee"
 			a.Timer = 3
+			AnimalPose.startle(a.Pose)
 			local away = Vector3.new(pos.X - around.X, 0, pos.Z - around.Z)
 			a.Target = if away.Magnitude > 0.1 then away.Unit else Vector3.new(1, 0, 0)
 		end
@@ -275,6 +342,21 @@ local function stepWalker(a: Animal, t: number, dt: number, around: Vector3)
 		end
 		return
 	end
+	-- Si pasas a su lado (o viene tu coche), se asusta y se aparta
+	local car = vehicleSpeed() > 10
+	if (d < 3.4 or (car and d < 9)) and t >= (a.ReactAt or 0) and pos.Y < around.Y + 4 then
+		startle(a, t, around, car)
+	end
+	-- Empujón suave: si te metes encima, se desplaza (sin acabar en la calzada)
+	if d < 2.3 and d > 0.01 then
+		local away = Vector3.new(pos.X - around.X, 0, pos.Z - around.Z).Unit
+		local push = away * math.min(2.3 - d, 6 * dt)
+		local np = pos + push
+		if not Walkable.onRoad(roadIndex, np.X, np.Z, 0.3) then
+			a.Root = a.Root + push
+			pos = np
+		end
+	end
 	a.Timer -= dt
 	if a.State == "idle" then
 		if a.Timer <= 0 then
@@ -282,10 +364,13 @@ local function stepWalker(a: Animal, t: number, dt: number, around: Vector3)
 			local toPlayer = Vector3.new(around.X - pos.X, 0, around.Z - pos.Z)
 			local spot: Vector3? = nil
 			if a.Kind == "Perro" and toPlayer.Magnitude < 28 and toPlayer.Magnitude > 4 and math.random() < 0.5 then
-				local hit = ground(around.X - toPlayer.Unit.X * 3, around.Z - toPlayer.Unit.Z * 3, around.Y + 6)
-				spot = hit and hit.Position
+				local gx, gz = around.X - toPlayer.Unit.X * 3, around.Z - toPlayer.Unit.Z * 3
+				if not Walkable.onRoad(roadIndex, gx, gz, ROAD_MARGIN) and Walkable.pathClear(roadIndex, pos, Vector3.new(gx, pos.Y, gz), ROAD_MARGIN * 0.5) then
+					local hit = ground(gx, gz, around.Y + 6)
+					spot = hit and hit.Position
+				end
 			end
-			spot = spot or groundSpot(pos, 2, if a.Kind == "Perro" then 12 else 6)
+			spot = spot or groundSpot(pos, 2, if a.Kind == "Perro" then 12 else 6, false, pos, a.Home)
 			if spot then
 				a.Target = spot + Vector3.new(0, STAND[a.Kind] or 0.5, 0)
 				a.State = "walk"
@@ -299,6 +384,10 @@ local function stepWalker(a: Animal, t: number, dt: number, around: Vector3)
 		local flat = Vector3.new(target.X - pos.X, 0, target.Z - pos.Z)
 		if flat.Magnitude < 0.3 or a.Timer <= 0 then
 			a.State = "idle"
+			if a.Scurry then
+				a.Scurry = nil
+				a.Speed = WALK_SPEED[a.Kind] or 2
+			end
 			-- Qué hace ahora que se ha parado (sentarse, pastar, olfatear…): un rato más largo si se tumba
 			local action = AnimalPose.chooseAction(a.Kind)
 			local nearPlayer = Vector2.new(around.X - pos.X, around.Z - pos.Z).Magnitude < 6
@@ -311,12 +400,30 @@ local function stepWalker(a: Animal, t: number, dt: number, around: Vector3)
 			local stepLen = math.min(flat.Magnitude, a.Speed * dt)
 			local newPos = pos + flat.Unit * stepLen
 			newPos = Vector3.new(newPos.X, pos.Y + (target.Y - pos.Y) * math.min(1, dt * 4), newPos.Z)
-			a.Root = CFrame.lookAt(newPos, newPos + flat.Unit)
+			-- (por si acaso: nunca un paso dentro de la calzada)
+			if Walkable.onRoad(roadIndex, newPos.X, newPos.Z, 0.2) and not Walkable.onRoad(roadIndex, pos.X, pos.Z, 0.2) then
+				a.State = "idle"
+				a.Timer = 0.5
+			else
+				a.Root = CFrame.lookAt(newPos, newPos + flat.Unit)
+			end
 		end
 	end
 end
 
-local function stepFloat(a: Animal, t: number, dt: number)
+local function stepFloat(a: Animal, t: number, dt: number, around: Vector3)
+	-- Si te acercas (nadando o por la orilla), se asusta, aletea, hace "¡Cuac!" y se aleja nadando
+	local here = a.Root.Position
+	local d = Vector2.new(here.X - around.X, here.Z - around.Z).Magnitude
+	if d < 5 and t >= (a.ReactAt or 0) then
+		a.ReactAt = t + 3
+		AnimalPose.startle(a.Pose)
+		Nudge.say(a.Pieces[1] and a.Pieces[1].Part, VOICE.Pato, 1.2)
+		local away = Vector3.new(here.X - around.X, 0, here.Z - around.Z)
+		if away.Magnitude > 0.05 then
+			a.Root = CFrame.lookAt(here, here + away.Unit)
+		end
+	end
 	-- A ratos mete la cabeza en el agua (con la cola hacia arriba)
 	a.Timer -= dt
 	if a.Timer <= 0 then
@@ -327,7 +434,8 @@ local function stepFloat(a: Animal, t: number, dt: number)
 	local look = a.Root.LookVector
 	local turn = math.sin(t * 0.3 + a.Phase) * 0.3 * dt
 	local dir = (CFrame.Angles(0, turn, 0) * look)
-	local newPos = pos + dir * 0.6 * dt + Vector3.new(0, math.sin(t * 1.5 + a.Phase) * 0.004, 0)
+	local paddle = if t < (a.ReactAt or 0) - 1.5 then 3 else 0.6 -- al asustarse, nada deprisa un momento
+	local newPos = pos + dir * paddle * dt + Vector3.new(0, math.sin(t * 1.5 + a.Phase) * 0.004, 0)
 	a.Root = CFrame.lookAt(newPos, newPos + dir)
 end
 
@@ -367,7 +475,7 @@ local function update(t: number, dt: number)
 					elseif kind == "Mariposa" or kind == "Luciernaga" then
 						stepFluttery(a, t)
 					elseif kind == "Pato" then
-						stepFloat(a, t, dt)
+						stepFloat(a, t, dt, around)
 					elseif WALKERS[kind] then
 						stepWalker(a, t, dt, around)
 					end
@@ -399,6 +507,14 @@ function Wildlife.init()
 		return UserSettings():GetService("UserGameSettings").SavedQualityLevel
 	end)
 	lowQuality = (ok and level ~= Enum.SavedQualitySetting.Automatic and level.Value <= 3) or require(script.Parent.Parent.UI.Perf).lite
+	-- Calzadas (las publica el servidor): los animales no las pisan
+	task.spawn(function()
+		local data = ReplicatedStorage:WaitForChild("Ambient", 60)
+		local roads = data and data:WaitForChild("Roads", 10)
+		if roads then
+			roadIndex = Walkable.fromFolder(roads, CityPlan.Roundabouts)
+		end
+	end)
 	local zoneFolder = ReplicatedStorage:WaitForChild("MapZones", 10)
 	if zoneFolder then
 		for _, config in zoneFolder:GetChildren() do

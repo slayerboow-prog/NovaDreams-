@@ -66,7 +66,7 @@ local function sane(pose): (boolean, string?)
 end
 
 print("\n▶ Golpes y choques")
-local KINDS = { "Jab", "Cross", "Hook", "HitLight", "HitHeavy", "BlockHit", "Kick", "Trip", "Reach", "PickUp", "Eat", "Drink", "Throw", "Cast", "Reel", "Land", "Stumble", "Roll" }
+local KINDS = { "Jab", "Cross", "Hook", "HitLight", "HitHeavy", "BlockHit", "Kick", "Trip", "Reach", "PickUp", "Eat", "Drink", "Throw", "Cast", "Reel", "Land", "Stumble", "Roll", "Bumped", "Dive" }
 for _, name in KINDS do
 	local kind = ReactMotion.Kinds[name]
 	if not kind then
@@ -111,6 +111,11 @@ local function yaw(pose)
 	return y + z
 end
 check(yaw(left) * yaw(right) < 0, "Un golpe por la izquierda y otro por la derecha mueven la cabeza a lados distintos")
+-- Al empujarle por un lado se aparta hacia el otro (y al revés)
+local pushR = ReactMotion.Kinds.Bumped.Pose(0.35, { Side = 1 }).Root.Position.X
+local pushL = ReactMotion.Kinds.Bumped.Pose(0.35, { Side = -1 }).Root.Position.X
+check(pushR < -0.3 and pushL > 0.3, "Empujado por la derecha se aparta a su izquierda (y al revés)")
+check(math.abs(ReactMotion.Kinds.Dive.Pose(0.4, { Side = 1 }).Root.Position.X) > 1.5, "Se tira de verdad a un lado para esquivar un coche")
 -- La patada es con la pierna
 check(forward(ReactMotion.Kinds.Kick.Pose(0.4, {}), "RightHip") > 0.3, "La patada al balón levanta la pierna derecha")
 

@@ -7,6 +7,9 @@
 --     hacia atrás con los brazos abiertos. Si se defiende, solo retrocede un poco la guardia.
 --   * Defenderse (atributo Blocking): guardia con los dos antebrazos delante de la cara.
 --
+-- EMPUJONES (Controllers/Nudge): el NPC con el que chocas se aparta con un traspiés (Bumped) y, si
+--   va a pillarle un coche, se tira a un lado (Dive).
+--
 -- CHOQUES AL ANDAR (se mira en tu pantalla para todos los jugadores cercanos)
 --   * Pelota (tag Toy): patada con la pierna derecha.
 --   * Piedra (tag Piedra o piezas de roca pequeñas): tropiezo, el cuerpo se va hacia delante y los
@@ -219,6 +222,50 @@ ReactMotion.Kinds = {
 				RightKnee = angles(-0.7 * k, 0, 0),
 				LeftHip = angles(0.55 * step, 0, 0),
 				LeftKnee = angles(-0.4 * step, 0, 0),
+			}
+		end,
+	},
+	-- Empujón al pasar (un NPC con el que chocas): se aparta de lado con un traspiés, levanta el
+	-- brazo de tu lado y te mira. opts.Side: +1 si le llegas por su derecha, -1 por su izquierda
+	Bumped = {
+		Duration = 1.1,
+		Pose = function(t: number, opts): Pose
+			local side = opts.Side or 1
+			local k = strike(t, 0.18, 0.55)
+			local wobble = sin(t * 16) * (1 - t) * 0.08 * k
+			local near = if side > 0 then "Right" else "Left"
+			local far = if side > 0 then "Left" else "Right"
+			return {
+				Root = CFrame.new(-side * 0.9 * k, -0.08 * k, 0) * angles(0.05 * k, 0, side * 0.12 * k + wobble),
+				Waist = angles(0.08 * k, -side * 0.3 * k, -side * 0.08 * k),
+				Neck = angles(-0.05 * k, -side * 0.55 * k, 0),
+				[near .. "Shoulder"] = angles(0.7 * k, 0, side * 0.35 * k),
+				[near .. "Elbow"] = angles(0.9 * k, 0, 0),
+				[far .. "Shoulder"] = angles(0.15 * k, 0, -side * 0.45 * k),
+				[near .. "Hip"] = angles(-0.2 * k, 0, 0),
+				[far .. "Hip"] = angles(0.25 * k, 0, 0),
+				[far .. "Knee"] = angles(-0.35 * k, 0, 0),
+			}
+		end,
+	},
+	-- Se tira a un lado para que no le pille un coche: salto lateral, brazos arriba y se levanta
+	Dive = {
+		Duration = 1.3,
+		Pose = function(t: number, opts): Pose
+			local side = opts.Side or 1
+			local k = strike(t, 0.15, 0.55)
+			return {
+				Root = CFrame.new(-side * 2.4 * k, -0.9 * k, 0) * angles(-0.25 * k, 0, side * 0.55 * k),
+				Waist = angles(-0.15 * k, 0, side * 0.2 * k),
+				Neck = angles(0.25 * k, -side * 0.4 * k, 0),
+				RightShoulder = angles(1.9 * k, 0, 0.3 * k),
+				LeftShoulder = angles(1.9 * k, 0, -0.3 * k),
+				RightElbow = angles(0.5 * k, 0, 0),
+				LeftElbow = angles(0.5 * k, 0, 0),
+				RightHip = angles(0.5 * k, 0, 0),
+				LeftHip = angles(-0.3 * k, 0, 0),
+				RightKnee = angles(-0.8 * k, 0, 0),
+				LeftKnee = angles(-0.6 * k, 0, 0),
 			}
 		end,
 	},

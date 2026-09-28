@@ -3,6 +3,8 @@
 -- así la ciudad parece viva sin coste de red ni de servidor.
 --  * Vehículos (coches, taxis, motos, bicis y patinetes): ver Traffic.luau.
 --  * Peatones: caminan por las aceras con animación de pasos. De noche hay menos.
+--    Si chocas con uno (o lo empujas), se aparta de lado con un traspiés, te mira y a veces suelta
+--    un "¡Eh!"; luego sigue su camino. Si llega tu coche, se tira a un lado.
 
 local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
@@ -10,6 +12,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Traffic = require(script.Parent.Traffic)
+local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
+local Nudge = require(script.Parent.Nudge)
 
 local Ambient = {}
 
@@ -37,6 +41,11 @@ type Agent = {
 	Index: { [string]: number },
 	Umbrella: boolean,
 	PanicUntil: number?,
+	ReactAt: number?, -- cuándo empezó el último traspiés (choque contigo o con tu coche)
+	ReactSide: number?, -- +1: le llegaste por su derecha
+	ReactDive: boolean?,
+	Shove: number?, -- cuánto se aparta de su sitio en la acera (de lado)
+	ShoveNow: number?,
 }
 
 local roads: { Road } = {}
@@ -234,7 +243,27 @@ local function respawnPed(agent: Agent, center: Vector3, initial: boolean)
 	setActive(agent, true)
 end
 
-local function posePed(agent: Agent, root: CFrame)
+-- Traspiés: 0 → 1 → 0 en "dur" segundos (sube rápido y baja suave)
+local function reactWeight(agent: Agent, now: number): number
+	local start = agent.ReactAt
+	if not start then
+		return 0
+	end
+	local dur = if agent.ReactDive then 1.3 else 1.0
+	local t = (now - start) / dur
+	if t <= 0 or t >= 1 then
+		return 0
+	end
+	return if t < 0.2 then math.sin(t / 0.2 * math.pi / 2) else math.cos((t - 0.2) / 0.8 * math.pi / 2)
+end
+
+local function posePed(agent: Agent, root: CFrame, react: number?)
+	local k = react or 0
+	if k > 0.001 then
+		-- Se echa hacia el lado contrario al choque (mucho más si se tira por un coche)
+		local side = agent.ReactSide or 1
+		root = root * CFrame.Angles(if agent.ReactDive then -0.25 * k else 0.06 * k, 0, side * (if agent.ReactDive then 0.7 else 0.2) * k)
+	end
 	local s = agent.Scale
 	local jog = agent.Style == "Jog"
 	local swing = math.sin(agent.Phase) * (if jog then 0.95 else 0.55)
@@ -256,10 +285,20 @@ local function posePed(agent: Agent, root: CFrame)
 	elseif agent.Style == "Bag" then
 		armR = at(1.38, 4.55, 0) * CFrame.Angles(swing * 0.25, 0, 0) * CFrame.new(0, -1.05 * s, 0)
 	end
+	local headTurn = CFrame.identity
+	if k > 0.001 then
+		-- Brazos arriba (para no caerse, o por encima de la cabeza si se tira) y la cabeza hacia ti
+		local up = if agent.ReactDive then 2.4 else 0.9
+		armL = at(-1.38, 4.55, 0) * CFrame.Angles(up * k, 0, -0.5 * k) * CFrame.new(0, -1.05 * s, 0)
+		if agent.Style ~= "Bag" then
+			armR = at(1.38, 4.55, 0) * CFrame.Angles(up * k, 0, 0.5 * k) * CFrame.new(0, -1.05 * s, 0)
+		end
+		headTurn = CFrame.Angles(0, -(agent.ReactSide or 1) * 0.7 * k, 0)
+	end
 	local cframes = {
 		at(0, 3.55, 0), -- torso
-		at(0, 5.35, 0), -- cabeza
-		at(0, 5.95, 0.05), -- pelo
+		at(0, 5.35, 0) * headTurn, -- cabeza
+		at(0, 5.35, 0) * headTurn * CFrame.new(0, 0.6 * s, 0.05 * s), -- pelo
 		at(-0.48, 2.4, 0) * CFrame.Angles(swing, 0, 0) * CFrame.new(0, -1.2 * s, 0),
 		at(0.48, 2.4, 0) * CFrame.Angles(-swing, 0, 0) * CFrame.new(0, -1.2 * s, 0),
 		armL,
@@ -302,9 +341,22 @@ local function posePed(agent: Agent, root: CFrame)
 	workspace:BulkMoveTo(agent.Parts, cframes, Enum.BulkMoveMode.FireCFrameChanged)
 end
 
+local LINES = { "¡Eh!", "¡Cuidado!", "¡Perdona!", "¡Uy!", "¡Mira por dónde vas!" }
+
 local function updatePeds(dt: number, center: Vector3)
 	local clock = Lighting.ClockTime
 	local night = clock < 7 or clock > 21.5
+	local now = os.clock()
+	-- Dónde estás tú (y si vas en coche, a qué velocidad)
+	local character = player.Character
+	local myRoot = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	local seat = humanoid and humanoid.SeatPart
+	local carSpeed = 0
+	if seat then
+		local v = seat.AssemblyLinearVelocity
+		carSpeed = Vector3.new(v.X, 0, v.Z).Magnitude
+	end
 	for i, ped in peds do
 		-- De noche solo sale una parte de la gente (y ningún niño)
 		local wanted = not night or (i % 3 == 0 and ped.Style ~= "Kid")
@@ -325,14 +377,46 @@ local function updatePeds(dt: number, center: Vector3)
 				ped.Speed = ped.Cruise
 			end
 		end
-		ped.U += ped.Dir * ped.Speed * dt
-		ped.Phase += dt * ped.Speed * (if ped.Style == "Kid" then 2.1 elseif ped.Style == "Jog" then 1.1 else 1.5)
-		local pos = point(road, ped.U, ped.Side * (road.Walk or 15.5), WALK_TOP)
+		-- Parado un momento mientras se recupera del traspiés
+		local stunned = ped.ReactAt ~= nil and now - ped.ReactAt < (if ped.ReactDive then 1.1 else 0.7)
+		if not stunned then
+			ped.U += ped.Dir * ped.Speed * dt
+			ped.Phase += dt * ped.Speed * (if ped.Style == "Kid" then 2.1 elseif ped.Style == "Jog" then 1.1 else 1.5)
+		end
+		-- Se aparta de lado y, pasado el susto, vuelve poco a poco a su sitio en la acera
+		local shoveTarget = if ped.ReactAt and now - ped.ReactAt < 2.2 then (ped.Shove or 0) else 0
+		ped.ShoveNow = (ped.ShoveNow or 0) + (shoveTarget - (ped.ShoveNow or 0)) * math.min(1, dt * (if shoveTarget ~= 0 then 7 else 1.5))
+		local lateral = ped.Side * (road.Walk or 15.5) + (ped.ShoveNow or 0)
+		local pos = point(road, ped.U, lateral, WALK_TOP)
 		if ped.U < road.From or ped.U > road.To or (pos - center).Magnitude > 240 then
 			respawnPed(ped, center, false)
-		else
-			posePed(ped, CFrame.new(pos) * heading(road, ped.Dir))
+			ped.ReactAt, ped.Shove, ped.ShoveNow = nil, nil, nil
+			continue
 		end
+		-- ¿Le has dado (o viene tu coche)?
+		if myRoot then
+			local rel = Vector3.new(myRoot.Position.X - pos.X, 0, myRoot.Position.Z - pos.Z)
+			local d = rel.Magnitude
+			local car = carSpeed > 10
+			if (d < 3 or (car and d < 9)) and math.abs(myRoot.Position.Y - pos.Y) < 6 and (not ped.ReactAt or now - ped.ReactAt > 2.5) then
+				ped.ReactAt = now
+				ped.ReactDive = car
+				-- Hacia qué lado de la acera se aparta: lejos de ti (sin salirse de la acera)
+				local away = if rel:Dot(road.Perp) > 0 then -1 else 1
+				ped.Shove = math.clamp((ped.ShoveNow or 0) + away * (if car then 2.6 else 1.4), -2.6, 2.6)
+				local facing = road.Dir * ped.Dir
+				local rightOfPed = Vector3.new(-facing.Z, 0, facing.X)
+				ped.ReactSide = if rel:Dot(rightOfPed) > 0 then 1 else -1
+				if car or math.random() < 0.55 then
+					Nudge.say(ped.Parts[ped.Index.Head], if car then "¡Cuidado!" else LINES[math.random(1, #LINES)], 1.6)
+				end
+			elseif d < 2.2 and ped.ReactAt and now - ped.ReactAt < 2.2 then
+				-- Empujón: si sigues encima, se aparta un poco más
+				local away = if rel:Dot(road.Perp) > 0 then -1 else 1
+				ped.Shove = math.clamp((ped.Shove or 0) + away * dt * 4, -2.6, 2.6)
+			end
+		end
+		posePed(ped, CFrame.new(pos) * heading(road, ped.Dir), reactWeight(ped, now))
 	end
 end
 
@@ -369,12 +453,24 @@ function Ambient.init()
 			local dir = (b - a).Unit
 			local width = config:GetAttribute("Width") or 24
 			local kind = config:GetAttribute("Kind")
+			-- Por la acera no se entra en una rotonda: se da la vuelta antes de su anillo
+			local from, to = 0, (b - a).Magnitude
+			for _, rb in CityPlan.Roundabouts do
+				local c = Vector3.new(rb[1], a.Y, rb[2])
+				local RING = 64
+				if (a - c).Magnitude < RING then
+					from = math.max(from, RING - (a - c).Magnitude)
+				end
+				if (b - Vector3.new(rb[1], b.Y, rb[2])).Magnitude < RING then
+					to = math.min(to, (b - a).Magnitude - (RING - (b - Vector3.new(rb[1], b.Y, rb[2])).Magnitude))
+				end
+			end
 			table.insert(roads, {
 				A = a,
 				Dir = dir,
 				Perp = Vector3.new(-dir.Z, 0, dir.X),
-				From = 0,
-				To = (b - a).Magnitude,
+				From = from,
+				To = to,
 				Lane = if width > 30 then width * 0.2 else 2.9,
 				Walk = if kind == "Autovia" then nil else width / 2 + 3.5, -- centro de la acera
 			})

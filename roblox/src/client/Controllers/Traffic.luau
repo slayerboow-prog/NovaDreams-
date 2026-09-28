@@ -8,6 +8,8 @@
 --  * Con lluvia o nieve van más despacio (shared/Wetness).
 --  * Semáforos: las luces cambian (verde, ámbar, rojo) igual para todos los jugadores y los
 --    vehículos paran en rojo antes del cruce.
+--  * En las rotondas dan la vuelta por el anillo (dejando la isla a la izquierda), a la velocidad de
+--    siempre, y salen por la calle que toque.
 --  * Detalles: luces de freno al frenar, intermitentes antes de girar, faros de noche,
 --    taxis con la luz verde, ciclistas pedaleando y conductores con ropa y casco variados.
 
@@ -17,6 +19,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local BusRoute = require(ReplicatedStorage.Shared.BusRoute)
+local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
 local Wetness = require(ReplicatedStorage.Shared.Wetness)
 local Perf = require(script.Parent.Parent.UI.Perf)
 
@@ -99,6 +102,19 @@ end
 
 local function radiusOf(length: number): number
 	return math.min(9, length * 0.4)
+end
+
+-- Rotondas: nodo del grafo → centro de la rotonda. Se da la vuelta por el anillo a este radio
+-- (entre la isla, de radio 22, y el borde, de 56)
+local RING_LANE = 44
+local roundabout: { [number]: Vector3 } = {}
+
+-- Radio de la curva al llegar a (o salir de) un nodo por un tramo de largo "length"
+local function turnRadius(node: number, length: number): number
+	if roundabout[node] then
+		return math.min(RING_LANE, length - 1)
+	end
+	return radiusOf(length)
 end
 
 local function right(d: Vector3): Vector3
@@ -316,14 +332,27 @@ local function updateTurn(agent: Agent)
 	agent.Turn = if cross > 0.3 then 1 elseif cross < -0.3 then -1 else 0
 end
 
--- Posición y dirección del vehículo según su tramo y lo que ha avanzado (con la curva del cruce)
+-- Vuelta a la rotonda: de la entrada p0 a la salida p2 alrededor del centro c, dejando la isla a la
+-- izquierda (el ángulo baja). Devuelve el ángulo de entrada, lo que se gira y los dos radios.
+local function ringArc(c: Vector3, p0: Vector3, p2: Vector3): (number, number, number, number)
+	local e, x = p0 - c, p2 - c
+	local fe, fx = math.atan2(e.Z, e.X), math.atan2(x.Z, x.X)
+	local sweep = (fe - fx) % (2 * math.pi)
+	if sweep < 0.05 then
+		sweep += 2 * math.pi
+	end
+	return fe, sweep, Vector3.new(e.X, 0, e.Z).Magnitude, Vector3.new(x.X, 0, x.Z).Magnitude
+end
+
+-- Posición y dirección del vehículo según su tramo y lo que ha avanzado (con la curva del cruce
+-- o la vuelta a la rotonda)
 local function pose(agent: Agent): (Vector3, Vector3)
 	local a, b = nodes[agent.From], nodes[agent.To]
 	local L = (b - a).Magnitude
 	local d1 = (b - a).Unit
 	local e1 = edgeOf(agent.From, agent.To)
 	local l1 = laneOf(e1, agent.Small)
-	local rin = radiusOf(L)
+	local rin = turnRadius(agent.To, L)
 	if agent.S <= L - rin then
 		return a + d1 * agent.S + right(d1) * l1, d1
 	end
@@ -331,14 +360,40 @@ local function pose(agent: Agent): (Vector3, Vector3)
 	local L2 = (c - b).Magnitude
 	local d2 = if L2 > 0.01 then (c - b).Unit else -d1
 	local l2 = laneOf(edgeOf(agent.To, agent.Next), agent.Small)
-	local rout = radiusOf(L2)
+	local rout = turnRadius(agent.To, L2)
 	local p0 = b - d1 * rin + right(d1) * l1
 	local p2 = b + d2 * rout + right(d2) * l2
-	local ctrl = b + (right(d1) * l1 + right(d2) * l2) / math.max(1 + d1:Dot(d2), 0.5)
 	local t = math.clamp((agent.S - (L - rin)) / (rin + rout), 0, 1)
+	local center = roundabout[agent.To]
+	if center then
+		local fe, sweep, r0, r1 = ringArc(center, p0, p2)
+		local f = fe - sweep * t
+		local r = r0 + (r1 - r0) * t
+		return center + Vector3.new(math.cos(f), 0, math.sin(f)) * r, Vector3.new(math.sin(f), 0, -math.cos(f))
+	end
+	local ctrl = b + (right(d1) * l1 + right(d2) * l2) / math.max(1 + d1:Dot(d2), 0.5)
 	local q0, q1 = p0:Lerp(ctrl, t), ctrl:Lerp(p2, t)
 	local dir = q1 - q0
 	return q0:Lerp(q1, t), if dir.Magnitude > 0.01 then dir.Unit else d2
+end
+
+-- En la vuelta a una rotonda el recorrido es más largo que la recta que se cuenta: cuánto se estira
+local function arcFactor(agent: Agent): number
+	local center = roundabout[agent.To]
+	if not center then
+		return 1
+	end
+	local a, b, c = nodes[agent.From], nodes[agent.To], nodes[agent.Next]
+	local L, L2 = (b - a).Magnitude, (c - b).Magnitude
+	local rin, rout = turnRadius(agent.To, L), turnRadius(agent.To, L2)
+	if agent.S <= L - rin or L2 < 0.01 then
+		return 1
+	end
+	local d1, d2 = (b - a).Unit, (c - b).Unit
+	local p0 = b - d1 * rin + right(d1) * laneOf(edgeOf(agent.From, agent.To), agent.Small)
+	local p2 = b + d2 * rout + right(d2) * laneOf(edgeOf(agent.To, agent.Next), agent.Small)
+	local _, sweep, r0, r1 = ringArc(center, p0, p2)
+	return (rin + rout) / math.max(sweep * (r0 + r1) / 2, 1)
 end
 
 local function edgeLength(from: number, to: number): number
@@ -501,12 +556,12 @@ local function step(dt: number, center: Vector3)
 		local change = math.clamp(target - agent.Speed, -DECEL * 2 * dt, 14 * dt)
 		agent.Speed = math.max(agent.Speed + change, 0)
 		setBraking(agent, change < -1 * dt or agent.Speed < 0.5)
-		agent.S += agent.Speed * dt
+		agent.S += agent.Speed * dt * arcFactor(agent)
 		agent.Phase += dt * agent.Speed * 0.55
 
 		local L = edgeLength(agent.From, agent.To)
 		local L2 = edgeLength(agent.To, agent.Next)
-		if agent.S >= L + radiusOf(L2) then
+		if agent.S >= L + turnRadius(agent.To, L2) then
 			-- Pasa al siguiente tramo
 			agent.S -= L
 			agent.From, agent.To = agent.To, agent.Next
@@ -538,8 +593,28 @@ function Traffic.init(data: Instance)
 	if #roads == 0 then
 		return
 	end
+	-- Las calles que acaban a la entrada de una rotonda se unen a su centro (como el autobús)
+	for _, rb in CityPlan.Roundabouts do
+		local c = Vector3.new(rb[1], 0, rb[2])
+		for i = 1, #roads do
+			local r = roads[i]
+			for _, e in { r.A, r.B } do
+				local dist = (Vector3.new(e.X, 0, e.Z) - c).Magnitude
+				if dist > 3 and dist < 60 then
+					table.insert(roads, { A = Vector3.new(e.X, 0, e.Z), B = c, Width = r.Width, Kind = r.Kind })
+				end
+			end
+		end
+	end
 	local graph = BusRoute.graph(roads, {})
 	nodes, edges = graph.Nodes, graph.Edges
+	for id, p in nodes do
+		for _, rb in CityPlan.Roundabouts do
+			if (Vector3.new(p.X, 0, p.Z) - Vector3.new(rb[1], 0, rb[2])).Magnitude < 4 then
+				roundabout[id] = Vector3.new(rb[1], 0, rb[2])
+			end
+		end
+	end
 	for id, p in nodes do
 		local key = math.floor(p.X / CELL) .. ":" .. math.floor(p.Z / CELL)
 		cells[key] = cells[key] or {}
@@ -549,9 +624,8 @@ function Traffic.init(data: Instance)
 		for _, e in list do
 			if from < e.To then
 				local L = e.Cost
-				local r = radiusOf(L)
-				local s = r + 5
-				while s < L - r - 5 do
+				local s = turnRadius(from, L) + 5
+				while s < L - turnRadius(e.To, L) - 5 do
 					local p = nodes[from] + (nodes[e.To] - nodes[from]).Unit * s
 					local key = math.floor(p.X / CELL) .. ":" .. math.floor(p.Z / CELL)
 					spots[key] = spots[key] or {}

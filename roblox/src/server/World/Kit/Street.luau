@@ -12,6 +12,9 @@ local Palette = require(script.Parent.Palette)
 local Props = require(script.Parent.Props)
 local Nature = require(script.Parent.Nature)
 local StreetDetail = require(script.Parent.StreetDetail)
+local Bocacalles = require(script.Parent.Bocacalles)
+local Roads = require(script.Parent.Roads)
+local CityPlan = require(game:GetService("ReplicatedStorage").Shared.CityPlan)
 
 local Street = {}
 
@@ -36,8 +39,48 @@ export type Road = { Axis: string, At: number, From: number, To: number, Lamps: 
 -- Geometría
 ---------------------------------------------------------------------
 
+-- Rotondas: ninguna acera ni bordillo de una calle se mete en su anillo de asfalto
+local RING_R = Roads.ROUNDABOUT_R
+local function ringNear(x0: number, x1: number, z0: number, z1: number, radius: number): Vector3?
+	for _, r in CityPlan.Roundabouts do
+		local dx = math.max(x0 - r[1], 0, r[1] - x1)
+		local dz = math.max(z0 - r[2], 0, r[2] - z1)
+		if dx * dx + dz * dz < radius * radius then
+			return Vector3.new(r[1], 0, r[2])
+		end
+	end
+	return nil
+end
+Street.ringNear = ringNear
+
 -- Caja alineada con los ejes del mundo
-local function wbox(parent: Instance, x0: number, x1: number, z0: number, z1: number, y0: number, y1: number, props: { [string]: any }, decor: boolean?): BasePart
+local function wbox(parent: Instance, x0: number, x1: number, z0: number, z1: number, y0: number, y1: number, props: { [string]: any }, decor: boolean?, whole: boolean?): BasePart?
+	if (props.Name == "Sidewalk" or props.Name == "Curb") and not decor and not whole then
+		local c = ringNear(x0, x1, z0, z1, RING_R + 0.5)
+		if c then
+			-- Troceada en cuadros de 2 studs: fuera los que caen en el anillo (los demás se juntan por filas)
+			local nx, nz = math.max(1, math.ceil((x1 - x0) / 2)), math.max(1, math.ceil((z1 - z0) / 2))
+			local sx, sz = (x1 - x0) / nx, (z1 - z0) / nz
+			local last = nil
+			for j = 0, nz - 1 do
+				local runStart: number? = nil
+				for i = 0, nx do
+					local keep = false
+					if i < nx then
+						local cx, cz = x0 + (i + 0.5) * sx, z0 + (j + 0.5) * sz
+						keep = (Vector3.new(cx, 0, cz) - c).Magnitude > RING_R + 0.3
+					end
+					if keep and not runStart then
+						runStart = i
+					elseif not keep and runStart then
+						last = wbox(parent, x0 + runStart * sx, x0 + i * sx, z0 + j * sz, z0 + (j + 1) * sz, y0, y1, table.clone(props), decor, true)
+						runStart = nil
+					end
+				end
+			end
+			return last
+		end
+	end
 	props.Size = Vector3.new(x1 - x0, y1 - y0, z1 - z0)
 	props.CFrame = CFrame.new((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2)
 	props.Parent = parent
@@ -45,7 +88,7 @@ local function wbox(parent: Instance, x0: number, x1: number, z0: number, z1: nu
 end
 
 -- Caja en coordenadas de la calle (u a lo largo, v transversal)
-local function rbox(parent: Instance, road: Road, u0: number, u1: number, v0: number, v1: number, y0: number, y1: number, props: { [string]: any }, decor: boolean?): BasePart
+local function rbox(parent: Instance, road: Road, u0: number, u1: number, v0: number, v1: number, y0: number, y1: number, props: { [string]: any }, decor: boolean?): BasePart?
 	if road.Axis == "X" then
 		return wbox(parent, u0, u1, road.At + v0, road.At + v1, y0, y1, props, decor)
 	end
@@ -85,30 +128,69 @@ end
 -- Tramos
 ---------------------------------------------------------------------
 
-local function segment(parent: Instance, road: Road, u0: number, u1: number)
+-- Límites de un tramo: la calzada va de u0 a u1; cada acera (y su bordillo) puede acabar antes
+-- (donde la calle desemboca en una carretera o en una rotonda, Kit/Bocacalles) y tener bocas abiertas
+-- (donde otra carretera desemboca en ella). Donde no hay acera, la calzada ocupa todo el ancho.
+type Limits = { Walk: { [number]: { number } }, Cuts: { [number]: { any } }, Mark: { number } }
+
+local function segment(parent: Instance, road: Road, u0: number, u1: number, limits: Limits?)
 	local length = u1 - u0
 	if length < 1 then
 		return
 	end
+	local lim: Limits = limits or { Walk = { [-1] = { u0, u1 }, [1] = { u0, u1 } }, Cuts = {}, Mark = { u0, u1 } }
 	rbox(parent, road, u0, u1, -RW / 2, RW / 2, Street.BASE, ROAD_TOP, asphalt())
+	local m0, m1 = math.max(u0, lim.Mark[1]), math.min(u1, lim.Mark[2])
 	for _, s in { -1, 1 } do
 		local inner, outer = s * RW / 2, s * H
-		rbox(parent, road, u0, u1, math.min(inner, outer), math.max(inner, outer), Street.BASE, WALK_TOP, pavement())
-		local c0, c1 = s * (RW / 2 - 0.05), s * (RW / 2 + 0.55)
-		rbox(parent, road, u0, u1, math.min(c0, c1), math.max(c0, c1), ROAD_TOP, WALK_TOP + 0.05, curb())
+		local w = lim.Walk[s]
+		local walks = Bocacalles.subtract(math.max(u0, w[1]), math.min(u1, w[2]), lim.Cuts[s])
+		for _, piece in walks do
+			local a, b = piece[1], piece[2]
+			if b - a > 0.05 then
+				rbox(parent, road, a, b, math.min(inner, outer), math.max(inner, outer), Street.BASE, WALK_TOP, pavement())
+				local c0, c1 = s * (RW / 2 - 0.05), s * (RW / 2 + 0.55)
+				rbox(parent, road, a, b, math.min(c0, c1), math.max(c0, c1), ROAD_TOP, WALK_TOP + 0.05, curb())
+			end
+		end
+		-- Sin acera (boca abierta o final dentro de otra carretera): asfalto hasta el borde
+		local cover = {}
+		for _, piece in walks do
+			table.insert(cover, { From = piece[1], To = piece[2] })
+		end
+		for _, gap in Bocacalles.subtract(u0, u1, cover) do
+			if gap[2] - gap[1] > 0.05 then
+				rbox(parent, road, gap[1], gap[2], math.min(inner, outer), math.max(inner, outer), Street.BASE, ROAD_TOP, asphalt())
+			end
+		end
 		-- Línea continua de borde
-		local e0, e1 = s * (RW / 2 - 1.4), s * (RW / 2 - 1.0)
-		rbox(parent, road, u0, u1, math.min(e0, e1), math.max(e0, e1), ROAD_TOP, ROAD_TOP + 0.04, marking(), true)
+		if m1 - m0 > 1 then
+			local e0, e1 = s * (RW / 2 - 1.4), s * (RW / 2 - 1.0)
+			for _, piece in Bocacalles.subtract(m0, m1, lim.Cuts[s]) do
+				if piece[2] - piece[1] > 0.5 then
+					rbox(parent, road, piece[1], piece[2], math.min(e0, e1), math.max(e0, e1), ROAD_TOP, ROAD_TOP + 0.04, marking(), true)
+				end
+			end
+		end
 	end
 	-- Línea central: discontinua (continua en las calles secundarias: una sola pieza)
-	if road.Solid then
-		rbox(parent, road, u0 + 2, u1 - 2, -0.2, 0.2, ROAD_TOP, ROAD_TOP + 0.04, marking(true), true)
-	else
-		local u = u0 + 3
-		while u + 6 <= u1 - 3 do
-			rbox(parent, road, u, u + 6, -0.25, 0.25, ROAD_TOP, ROAD_TOP + 0.04, marking(), true)
-			u += 12
+	if m1 - m0 > 5 then
+		if road.Solid then
+			rbox(parent, road, m0 + 2, m1 - 2, -0.2, 0.2, ROAD_TOP, ROAD_TOP + 0.04, marking(true), true)
+		else
+			local u = m0 + 3
+			while u + 6 <= m1 - 3 do
+				rbox(parent, road, u, u + 6, -0.25, 0.25, ROAD_TOP, ROAD_TOP + 0.04, marking(), true)
+				u += 12
+			end
 		end
+	end
+	local function freeAt(u: number, s: number): boolean
+		return not Bocacalles.inCut(u, lim.Cuts[s], 6)
+	end
+	u0, u1 = m0, m1
+	if u1 - u0 < 1 then
+		return
 	end
 
 	-- Farolas al tresbolillo y árboles de alineación
@@ -119,9 +201,11 @@ local function segment(parent: Instance, road: Road, u0: number, u1: number)
 			local s = if i % 2 == 0 then 1 else -1
 			local pos = Street.point(road, lu, s * (RW / 2 + 1.8), WALK_TOP)
 			local lampCf = Builder.facing(pos, Street.across(road, -s))
-			Props.lamp(parent, lampCf)
-			StreetDetail.lampBanner(parent, lampCf, i)
-			if i % 3 == 1 then
+			if freeAt(lu, s) then
+				Props.lamp(parent, lampCf)
+				StreetDetail.lampBanner(parent, lampCf, i)
+			end
+			if i % 3 == 1 and freeAt(lu + 3, s) then
 				local binPos = Street.point(road, lu + 3, s * (RW / 2 + 1.8), WALK_TOP)
 				Props.bin(parent, CFrame.new(binPos))
 			end
@@ -133,6 +217,9 @@ local function segment(parent: Instance, road: Road, u0: number, u1: number)
 		local tu = u0 + 30
 		while tu <= u1 - 8 do
 			for _, s in { -1, 1 } do
+				if not freeAt(tu, s) then
+					continue
+				end
 				local v = s * (H - 2.6)
 				rbox(parent, road, tu - 1.8, tu + 1.8, v - 1.8, v + 1.8, WALK_TOP, WALK_TOP + 0.05, { Name = "TreePit", Color = Color3.fromRGB(84, 64, 46), Material = Enum.Material.Ground }, true)
 				Nature.tree(parent, Street.point(road, tu, v, WALK_TOP), 0.75 + math.random() * 0.2)
@@ -146,7 +233,7 @@ local function segment(parent: Instance, road: Road, u0: number, u1: number)
 		return Street.point(road, u, v, y)
 	end, function(sign)
 		return Street.across(road, sign)
-	end, RW, WALK_TOP, ROAD_TOP)
+	end, RW, WALK_TOP, ROAD_TOP, freeAt)
 end
 
 ---------------------------------------------------------------------
@@ -155,20 +242,13 @@ end
 
 type Arms = { West: boolean, East: boolean, North: boolean, South: boolean }
 
+-- Paso de cebra en el brazo abierto de un cruce: se cruza de esquina a esquina, con rampas
 local function zebra(parent: Instance, x0: number, x1: number, z0: number, z1: number, alongX: boolean)
-	-- Franjas paralelas al tráfico, repartidas a lo ancho de la calzada
+	local center = Vector3.new((x0 + x1) / 2, 0, (z0 + z1) / 2)
 	if alongX then
-		local z = z0 + 1.5
-		while z + 1.5 <= z1 do
-			wbox(parent, x0 + 1, x1 - 1, z - 0.8, z + 0.8, ROAD_TOP, ROAD_TOP + 0.04, marking(), true)
-			z += 3
-		end
+		Bocacalles.crossing(parent, center, Vector3.new(0, 0, 1), z1 - z0, x1 - x0 - 1, nil, ROAD_TOP, WALK_TOP)
 	else
-		local x = x0 + 1.5
-		while x + 1.5 <= x1 do
-			wbox(parent, x - 0.8, x + 0.8, z0 + 1, z1 - 1, ROAD_TOP, ROAD_TOP + 0.04, marking(), true)
-			x += 3
-		end
+		Bocacalles.crossing(parent, center, Vector3.new(1, 0, 0), x1 - x0, z1 - z0 - 1, nil, ROAD_TOP, WALK_TOP)
 	end
 end
 
@@ -185,7 +265,10 @@ local function intersection(parent: Instance, cx: number, cz: number, arms: Arms
 	for _, s in strips do
 		if s.Open then
 			wbox(parent, s.X0, s.X1, s.Z0, s.Z1, Street.BASE, ROAD_TOP, asphalt())
-			zebra(parent, s.X0, s.X1, s.Z0, s.Z1, s.AlongX)
+			-- (junto a una rotonda el paso de peatones es el de la rotonda)
+			if not ringNear(s.X0, s.X1, s.Z0, s.Z1, RING_R + 1) then
+				zebra(parent, s.X0, s.X1, s.Z0, s.Z1, s.AlongX)
+			end
 		else
 			wbox(parent, s.X0, s.X1, s.Z0, s.Z1, Street.BASE, WALK_TOP, pavement())
 		end
@@ -223,6 +306,16 @@ function Street.build(parent: Instance, roads: { Road })
 	for _, road in roads do
 		cuts[road] = {}
 	end
+	-- Donde desemboca en una carretera o una rotonda, o recibe una carretera (Kit/Bocacalles)
+	local mouths = Bocacalles.compute(roads)
+	local function mouthAt(road: Road, side: number, u: number): boolean
+		for _, c in (mouths.Cuts[road] or {})[side] or {} do
+			if u > c.From - 1 and u < c.To + 1 then
+				return true
+			end
+		end
+		return false
+	end
 
 	for _, a in roads do
 		if a.Axis == "X" then
@@ -230,11 +323,12 @@ function Street.build(parent: Instance, roads: { Road })
 				if b.Axis == "Z" and b.At >= a.From and b.At <= a.To and a.At >= b.From and a.At <= b.To then
 					table.insert(cuts[a], b.At)
 					table.insert(cuts[b], a.At)
+					-- Un brazo también se abre si por ahí llega una carretera principal (Kit/Bocacalles)
 					intersection(folder, b.At, a.At, {
-						West = a.From < b.At - H,
-						East = a.To > b.At + H,
-						North = b.From < a.At - H,
-						South = b.To > a.At + H,
+						West = a.From < b.At - H or mouthAt(b, -1, a.At),
+						East = a.To > b.At + H or mouthAt(b, 1, a.At),
+						North = b.From < a.At - H or mouthAt(a, -1, b.At),
+						South = b.To > a.At + H or mouthAt(a, 1, b.At),
 					}, a, b)
 				end
 			end
@@ -244,12 +338,29 @@ function Street.build(parent: Instance, roads: { Road })
 	for _, road in roads do
 		local list = cuts[road]
 		table.sort(list)
+		local clips = mouths.Clips[road] or {}
+		local holes = mouths.Cuts[road] or {}
+		local limits: Limits = { Walk = { [-1] = { road.From, road.To }, [1] = { road.From, road.To } }, Cuts = holes, Mark = { road.From, road.To } }
+		for endKey, clip in clips do
+			for side, u in clip.Walk do
+				if endKey == "A" then
+					limits.Walk[side][1] = math.max(limits.Walk[side][1], u)
+				else
+					limits.Walk[side][2] = math.min(limits.Walk[side][2], u)
+				end
+			end
+			if endKey == "A" then
+				limits.Mark[1] = math.max(limits.Mark[1], clip.Mark)
+			else
+				limits.Mark[2] = math.min(limits.Mark[2], clip.Mark)
+			end
+		end
 		local start = road.From
 		for _, c in list do
-			segment(folder, road, start, c - H)
+			segment(folder, road, start, c - H, limits)
 			start = c + H
 		end
-		segment(folder, road, start, road.To)
+		segment(folder, road, start, road.To, limits)
 	end
 	return folder
 end
