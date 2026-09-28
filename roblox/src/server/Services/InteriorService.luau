@@ -77,6 +77,8 @@ export type Hooks = {
 	Decorate: ((Instance_) -> ())?, -- al montar una sala (vecinos, cartel de se vende…)
 	Enter: ((Player, Instance_) -> ())?, -- al entrar alguien
 	Labels: ((Building) -> { [number]: string })?, -- qué pone en el ascensor junto a cada planta
+	Doorbell: ((Player, Building, number, string?) -> boolean)?, -- timbre de la casa de otro jugador (true = lo atiende)
+	NeighborAnswer: ((Building, Floors.Unit, number) -> (boolean, string?))?, -- ¿contesta el vecino a esa hora?
 }
 InteriorService.Hooks = {} :: Hooks
 
@@ -820,14 +822,29 @@ local function onUnitDoor(player: Player, building: Building, panel: BasePart, k
 			open()
 			return
 		end
-		local owner = Players:GetPlayerByUserId(occ.UserId or 0)
-		if owner and owner:GetAttribute("InteriorKey") == building.Id .. ":" .. unit.Id then
-			Notify:FireClient(owner, "Info", ("🚪 %s llama a tu puerta (%s)."):format(player.DisplayName, unit.Label))
+		-- El timbre: el dueño decide si abre (HousingService)
+		local bell = InteriorService.Hooks.Doorbell
+		if bell then
+			local okBell, handled = pcall(bell, player, building, floor :: number, letter)
+			if okBell and handled then
+				return
+			end
 		end
 		Notify:FireClient(player, "Info", ("🚪 Toc, toc… Es la casa de %s. Nadie te abre."):format(occ.Name or "otra persona"))
 		return
 	elseif occ.Type == "Neighbor" then
-		-- Los vecinos contestan; a veces te dejan pasar
+		-- Los vecinos contestan si están en casa (cada uno tiene su horario: shared/Residents)
+		local answer = InteriorService.Hooks.NeighborAnswer
+		if answer then
+			local okAnswer, home, text = pcall(answer, building, unit, game:GetService("Lighting").ClockTime)
+			if okAnswer and home == false then
+				Notify:FireClient(player, "Info", "🚪 Toc, toc…")
+				task.delay(0.8, function()
+					Notify:FireClient(player, "Info", "🚪 " .. tostring(text or "No contesta nadie."))
+				end)
+				return
+			end
+		end
 		Notify:FireClient(player, "Info", "🚪 Toc, toc…")
 		local friendly = (Floors.hash(("%s:%s:%d"):format(building.Key, unit.Id, player.UserId)) + math.floor(os.time() / 600)) % 3 == 0
 		task.delay(0.8, function()

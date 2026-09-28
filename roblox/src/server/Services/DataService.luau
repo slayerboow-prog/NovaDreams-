@@ -109,6 +109,12 @@ local DEFAULT_DATA = {
 		Steps = {},
 		Tips = {},
 	},
+	-- Viviendas (HousingService): ya le tocó su piso al llegar, cuál es "su casa" para «Ir a casa»
+	-- ({ Key, Floor, Letter }) y la deuda que le quedó de un alquiler perdido
+	Housing = {
+		Assigned = false,
+		Debt = 0,
+	},
 }
 
 local profiles: { [Player]: { [string]: any } } = {}
@@ -415,6 +421,7 @@ function DataService.newLife(player: Player)
 	fresh.Properties = data.Properties
 	-- El tutorial y los consejos ya vistos no se repiten en la vida nueva
 	fresh.Onboarding = data.Onboarding
+	fresh.Housing = data.Housing -- (su piso y su deuda siguen siendo suyos)
 	fresh.Life.Stage = Config.LifeStory.NewCharacterStage
 	-- El prólogo (tutorial) ya lo vio: no se repite solo (se puede volver a jugar desde «Mi historia»)
 	if data.Story and data.Story.PrologueDone then

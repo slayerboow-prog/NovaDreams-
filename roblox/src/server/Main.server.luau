@@ -64,6 +64,7 @@ local order = {
 	"WorldService",
 	"InteriorService", -- todos los edificios por dentro (salas al entrar, ascensores e instituciones)
 	"PropertyService", -- casas y pisos que se compran, y los vecinos que viven en ellos
+	"HousingService", -- vivienda al llegar, alquiler, llaves, timbre y horario de los vecinos
 	"InteractService", -- los muebles se usan: sentarse, dormir, tele, luces, nevera, grifos, ducha, puertas…
 	"FridgeService", -- neveras: gratis con tus padres (colegio); desde la universidad, lo que compres y guardes
 	"ResidenceService", -- residencia universitaria: habitación compartida o individual para cada estudiante

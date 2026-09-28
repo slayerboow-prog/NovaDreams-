@@ -19,6 +19,8 @@ local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Properties = require(ReplicatedStorage.Shared.Properties)
+local Housing = require(ReplicatedStorage.Shared.Housing)
+local MapInfo = require(ReplicatedStorage.Shared.MapInfo)
 local Floors = require(ReplicatedStorage.Shared.Floors)
 local Format = require(ReplicatedStorage.Shared.Format)
 local Stages = require(ReplicatedStorage.Shared.LifeStory.Stages)
@@ -32,7 +34,10 @@ local InteriorService = require(script.Parent.InteriorService)
 
 local PropertyService = {}
 
-type Owner = { UserId: number, Name: string, Price: number, Since: number }
+-- Kind: "Compra" (suya), "Alquiler" (paga cada día de juego) o "Inicial" (la que le tocó al llegar).
+-- Access: quién tiene llave (UserId en texto -> nombre). Privacy: "Grupo" (su grupo y los que
+-- tienen llave), "Llaves" (solo los que tienen llave) o "Cerrada" (nadie más).
+type Owner = { UserId: number, Name: string, Price: number, Since: number, Kind: string?, Rent: number?, Access: { [string]: string }?, Privacy: string? }
 type Registry = { [string]: Owner } -- planta (texto) -> dueño
 
 local Notify = ReplicatedStorage.Remotes.Notify :: RemoteEvent
@@ -88,13 +93,22 @@ local function registry(buildingKey: string, fresh: boolean?): Registry
 	return data
 end
 
--- Guarda un cambio de dueño sin pisar a nadie (devuelve false si ya estaba comprada)
-local function claim(buildingKey: string, slot: string, owner: Owner?, onlyIf: number?): boolean
+-- Guarda un cambio de dueño sin pisar a nadie (devuelve false si ya estaba comprada).
+-- Con edit (y onlyIf = el dueño), cambia su ficha (llaves, privacidad…) sin cambiar de dueño.
+local function claim(buildingKey: string, slot: string, owner: Owner?, onlyIf: number?, edit: ((Owner) -> ())?): boolean
 	local okChange = false
 	local function change(old: any): any
 		okChange = false -- UpdateAsync puede repetir esta función: vale lo de la última vez
 		local data = if type(old) == "table" then old else {}
 		local current = data[slot]
+		if edit then
+			if not current or current.UserId ~= onlyIf then
+				return nil
+			end
+			edit(current)
+			okChange = true
+			return data
+		end
 		if owner and current then
 			return nil -- ya tiene dueño
 		end
@@ -167,6 +181,105 @@ local function titleOf(building: InteriorService.Building, floor: number, letter
 	return if unit then ("%s · %s"):format(building.Title, unit.Label) else ("%s · planta %d"):format(building.Title, floor)
 end
 
+---------------------------------------------------------------------
+-- La ficha de cada vivienda (shared/Housing): ID, tipo, precio y alquiler
+---------------------------------------------------------------------
+local buildingIndex: { [string]: { District: number, DistrictName: string?, Number: number } }? = nil
+
+-- Cada edificio: su distrito (1-6, o 0 fuera de ellos) y su número dentro del distrito (fijo: por su clave)
+local function indexOf(building: InteriorService.Building): { District: number, DistrictName: string?, Number: number }
+	if not buildingIndex then
+		local index = {}
+		local byDistrict: { [number]: { InteriorService.Building } } = {}
+		for _, b in InteriorService.all() do
+			local d = 0
+			local name = nil
+			for i, district in MapInfo.Districts do
+				local ok, inside = pcall(MapInfo.districtAt, b.Door.X, b.Door.Z)
+				if ok and inside == district then
+					d, name = i, district.Name
+					break
+				end
+			end
+			byDistrict[d] = byDistrict[d] or {}
+			table.insert(byDistrict[d], b)
+			index[b.Key] = { District = d, DistrictName = name, Number = 0 }
+		end
+		for _, list in byDistrict do
+			table.sort(list, function(a, b)
+				return a.Key < b.Key
+			end)
+			for i, b in list do
+				index[b.Key].Number = i
+			end
+		end
+		buildingIndex = index
+	end
+	return (buildingIndex :: any)[building.Key] or { District = 0, Number = 0 }
+end
+
+function PropertyService.sheetOf(building: InteriorService.Building, floor: number, letter: string?): Housing.Sheet?
+	local kind = unitKind(building, floor, letter)
+	if not kind then
+		return nil
+	end
+	local idx = indexOf(building)
+	local doors = if InteriorService.isTower(building) then #Floors.units(building.Key, building.Kind, building.Upper, floor) else 1
+	return Housing.sheet({
+		District = idx.District, DistrictName = idx.DistrictName, Building = idx.Number, Floor = floor, Letter = letter,
+		Kind = kind, UnitKey = unitKeyOf(building, floor, letter), Top = building.Floors - 1, Doors = doors,
+	})
+end
+
+function PropertyService.idOf(building: InteriorService.Building, floor: number, letter: string?): string
+	local idx = indexOf(building)
+	return Housing.id(idx.District, idx.Number, floor, letter)
+end
+
+function PropertyService.priceOf(building: InteriorService.Building, floor: number, letter: string?): number
+	local sheet = PropertyService.sheetOf(building, floor, letter)
+	if sheet then
+		return sheet.Price
+	end
+	return Properties.price(unitKind(building, floor, letter) or "Piso", floor, unitKeyOf(building, floor, letter))
+end
+
+-- Llaves que da el timbre (quien abre desde dentro): unidad -> UserId -> hasta cuándo
+local tempAccess: { [string]: { [number]: number } } = {}
+
+function PropertyService.grantTemp(building: InteriorService.Building, floor: number, letter: string?, userId: number, seconds: number?)
+	local key = unitKeyOf(building, floor, letter)
+	tempAccess[key] = tempAccess[key] or {}
+	tempAccess[key][userId] = os.clock() + (seconds or Housing.TempAccessSeconds)
+end
+
+-- ¿Puede entrar (y usar la casa como invitado)? El dueño, los que tienen llave, los de su grupo
+-- (si la privacidad lo deja) y a quien acaba de abrir desde el timbre
+local function welcome(player: Player, building: InteriorService.Building, floor: number, letter: string?, owner: Owner): boolean
+	if owner.UserId == player.UserId then
+		return true
+	end
+	local privacy = owner.Privacy or "Grupo"
+	if privacy == "Cerrada" then
+		return false
+	end
+	local temp = tempAccess[unitKeyOf(building, floor, letter)]
+	if temp and temp[player.UserId] and os.clock() < temp[player.UserId] then
+		return true
+	end
+	if owner.Access and owner.Access[tostring(player.UserId)] then
+		return true
+	end
+	if privacy == "Grupo" then
+		local ownerPlayer = Players:GetPlayerByUserId(owner.UserId)
+		local group = player:GetAttribute("GroupId")
+		if ownerPlayer and group ~= nil and ownerPlayer:GetAttribute("GroupId") == group then
+			return true
+		end
+	end
+	return false
+end
+
 local function ownedList(player: Player): { { [string]: any } }
 	local data = DataService.get(player)
 	if not data then
@@ -186,15 +299,28 @@ local function syncAttributes(player: Player)
 	player:SetAttribute("Homes", if #titles > 0 then table.concat(titles, "\n") else nil)
 end
 
-local function buy(player: Player, building: InteriorService.Building, floor: number, letter: string?)
+-- Cuántas cuentan para el máximo (la que te tocó al llegar no cuenta)
+local function countedHomes(list: { { [string]: any } }): number
+	local n = 0
+	for _, entry in list do
+		if entry.Contract ~= "Inicial" then
+			n += 1
+		end
+	end
+	return n
+end
+
+-- mode: "Compra" (por defecto) o "Alquiler" (se paga el primer día y luego cada día de juego)
+local function buy(player: Player, building: InteriorService.Building, floor: number, letter: string?, mode: string?)
 	local kind = unitKind(building, floor, letter)
 	if not kind then
 		return
 	end
+	local renting = mode == "Alquiler"
 	local unit = unitKeyOf(building, floor, letter)
 	local stage = player:GetAttribute("LifeStage")
 	if stage and not Stages.inRange(stage, Properties.MinStage, nil) then
-		Notify:FireClient(player, "Error", "Para comprar una vivienda hay que ser mayor de edad.")
+		Notify:FireClient(player, "Error", ("Para %s una vivienda hay que ser mayor de edad."):format(if renting then "alquilar" else "comprar"))
 		return
 	end
 	if Properties.isNeighborHome(unit) then
@@ -202,31 +328,44 @@ local function buy(player: Player, building: InteriorService.Building, floor: nu
 		return
 	end
 	local list = ownedList(player)
-	if #list >= Properties.MaxOwned then
-		Notify:FireClient(player, "Error", ("Ya tienes %d viviendas (el máximo). Vende una antes."):format(#list))
+	if countedHomes(list) >= Properties.MaxOwned then
+		Notify:FireClient(player, "Error", ("Ya tienes %d viviendas (el máximo). Deja una antes."):format(countedHomes(list)))
 		return
 	end
-	local price = Properties.price(kind, floor, unit)
+	local price = PropertyService.priceOf(building, floor, letter)
+	local rent = Housing.rent(price)
+	local pay = if renting then rent else price
 	local data = DataService.get(player)
-	if not data or data.Money < price then
-		Notify:FireClient(player, "Error", ("Necesitas %s para comprarla."):format(Format.money(price)))
+	if not data or data.Money < pay then
+		Notify:FireClient(player, "Error", ("Necesitas %s para %s."):format(Format.money(pay), if renting then "el primer día de alquiler" else "comprarla"))
 		return
 	end
 	-- Primero se aparta el dinero, luego se registra (si alguien se adelantó, se devuelve)
-	if not DataService.spend(player, price) then
+	if not DataService.spend(player, pay) then
 		return
 	end
-	local owner: Owner = { UserId = player.UserId, Name = player.DisplayName, Price = price, Since = os.time() }
+	local owner: Owner = { UserId = player.UserId, Name = player.DisplayName, Price = if renting then 0 else price, Since = os.time(), Kind = if renting then "Alquiler" else "Compra", Rent = if renting then rent else nil }
 	if not claim(building.Key, slotOf(floor, letter), owner) then
-		DataService.addMoney(player, price)
-		Notify:FireClient(player, "Error", "¡Vaya! Alguien la acaba de comprar.")
+		DataService.addMoney(player, pay)
+		Notify:FireClient(player, "Error", ("¡Vaya! Alguien la acaba de %s."):format(if renting then "alquilar" else "comprar"))
 		return
 	end
-	table.insert(list, { Key = building.Key, Floor = floor, Letter = letter or "A", Kind = kind, Title = titleOf(building, floor, letter), Price = price })
+	table.insert(list, {
+		Key = building.Key, Floor = floor, Letter = letter or "A", Kind = kind, Title = titleOf(building, floor, letter),
+		Price = if renting then 0 else price, Contract = if renting then "Alquiler" else "Compra", Rent = if renting then rent else nil,
+		Id = PropertyService.idOf(building, floor, letter), Since = os.time(),
+	})
+	-- La nueva pasa a ser "su casa" («Ir a casa»)
+	data.Housing = data.Housing or {}
+	data.Housing.Home = { Key = building.Key, Floor = floor, Letter = letter or "A" }
 	syncAttributes(player)
 	DataService.save(player)
-	Notify:FireClient(player, "Success", ("🏠 ¡Enhorabuena! Has comprado %s por %s."):format(titleOf(building, floor, letter), Format.money(price)))
-	StoryEvents.emit(player, "HomeClaimed", { Property = unit, Price = price })
+	if renting then
+		Notify:FireClient(player, "Success", ("🔑 Has alquilado %s: %s al día (el primero ya está pagado)."):format(titleOf(building, floor, letter), Format.money(rent)))
+	else
+		Notify:FireClient(player, "Success", ("🏠 ¡Enhorabuena! Has comprado %s por %s."):format(titleOf(building, floor, letter), Format.money(price)))
+	end
+	StoryEvents.emit(player, "HomeClaimed", { Property = unit, Price = pay, Contract = if renting then "Alquiler" else "Compra" })
 	-- La sala cambia: fuera el cartel de se vende
 	-- Quien estuviera visitándola sale a la calle; la sala se rehace con el cartel del dueño
 	for _, other in Players:GetPlayers() do
@@ -247,11 +386,18 @@ local function sell(player: Player, building: InteriorService.Building, floor: n
 				return
 			end
 			table.remove(list, i)
-			local amount = Properties.sellPrice(entry.Price or Properties.price(entry.Kind, floor, unitKeyOf(building, floor, letter)))
-			DataService.addMoney(player, amount)
-			syncAttributes(player)
-			DataService.save(player)
-			Notify:FireClient(player, "Success", ("🏷 Has vendido %s por %s."):format(entry.Title or "tu vivienda", Format.money(amount)))
+			if entry.Contract == "Alquiler" or entry.Contract == "Inicial" then
+				-- (no es suya del todo: se deja, sin cobrar nada; la deuda del alquiler se queda)
+				syncAttributes(player)
+				DataService.save(player)
+				Notify:FireClient(player, "Info", ("🔑 Has dejado %s."):format(entry.Title or "la vivienda"))
+			else
+				local amount = Properties.sellPrice(entry.Price or Properties.price(entry.Kind, floor, unitKeyOf(building, floor, letter)))
+				DataService.addMoney(player, amount)
+				syncAttributes(player)
+				DataService.save(player)
+				Notify:FireClient(player, "Success", ("🏷 Has vendido %s por %s."):format(entry.Title or "tu vivienda", Format.money(amount)))
+			end
 			-- Vuelve a estar en venta: la sala se rehace (y quien siga dentro sale a la calle)
 			for _, other in Players:GetPlayers() do
 				if other:GetAttribute("InteriorKey") == building.Id .. ":" .. slotOf(floor, letter) then
@@ -338,14 +484,27 @@ local function decorate(inst: InteriorService.Instance_)
 	local unit = unitKeyOf(building, floor, letter)
 	local owner = ownerOf(building, floor, letter)
 	if owner then
-		signAt(inst, "🏠 CASA DE " .. string.upper(owner.Name), Color3.fromRGB(40, 90, 150), -8)
-		local sellSign = signAt(inst, "VENDER", Color3.fromRGB(120, 60, 40), 8)
-		local prompt = Builder.prompt(sellSign, "Vender la vivienda", ("🏷 Te dan %s"):format(Format.money(Properties.sellPrice(owner.Price))), 2)
+		local contract = owner.Kind or "Compra"
+		local sheet = PropertyService.sheetOf(building, floor, letter)
+		local head = if contract == "Alquiler" then "🔑 ALQUILADA POR " elseif contract == "Inicial" then "🏠 PISO DE " else "🏠 CASA DE "
+		signAt(inst, head .. string.upper(owner.Name) .. (if sheet then "\n" .. sheet.Id else ""), Color3.fromRGB(40, 90, 150), -8)
+		local leaving = contract ~= "Compra"
+		local sellSign = signAt(inst, if leaving then "DEJAR" else "VENDER", Color3.fromRGB(120, 60, 40), 8)
+		local prompt = Builder.prompt(sellSign, if leaving then "Dejar la vivienda" else "Vender la vivienda", if leaving then "🔑 Devuelves las llaves" else ("🏷 Te dan %s"):format(Format.money(Properties.sellPrice(owner.Price))), 2)
 		prompt:SetAttribute("OwnerUserId", owner.UserId) -- (solo lo ve el dueño; JobPrompts)
 		prompt:SetAttribute("JobOnly", nil)
 		prompt.Triggered:Connect(function(player)
 			if player.UserId == owner.UserId then
 				sell(player, building, floor, letter)
+			end
+		end)
+		-- Llaves: dar y quitar acceso, privacidad y echar visitas (HousingService)
+		local keys = Builder.prompt(sellSign, "Llaves y visitas", "🔑 Quién puede entrar", 0.3)
+		keys.KeyboardKeyCode = Enum.KeyCode.F
+		keys:SetAttribute("OwnerUserId", owner.UserId)
+		keys.Triggered:Connect(function(player)
+			if player.UserId == owner.UserId and PropertyService.OnKeysPanel then
+				PropertyService.OnKeysPanel(player, building, floor, letter)
 			end
 		end)
 		return
@@ -389,13 +548,22 @@ local function decorate(inst: InteriorService.Instance_)
 		end
 		return
 	end
-	-- En venta
-	local price = Properties.price(kind, floor, unit)
-	local sale = signAt(inst, ("SE VENDE\n%s"):format(Format.money(price)), Color3.fromRGB(180, 40, 40), -8)
+	-- En venta o en alquiler (con su ficha: tipo, habitaciones, metros…)
+	local price = PropertyService.priceOf(building, floor, letter)
+	local sheet = PropertyService.sheetOf(building, floor, letter)
+	local rent = Housing.rent(price)
+	local info = if sheet then "\n" .. Housing.describe(sheet) .. "\n" .. sheet.Id else ""
+	local sale = signAt(inst, ("SE VENDE · %s\nSE ALQUILA · %s/día%s"):format(Format.money(price), Format.money(rent), info), Color3.fromRGB(180, 40, 40), -8)
 	local prompt = Builder.prompt(sale, "Comprar vivienda", ("🏷 %s · %s"):format(titleOf(building, floor, letter), Format.money(price)), 1.5)
 	prompt.MaxActivationDistance = 10
 	prompt.Triggered:Connect(function(player)
 		buy(player, building, floor, letter)
+	end)
+	local rentPrompt = Builder.prompt(sale, "Alquilar vivienda", ("🔑 %s al día"):format(Format.money(rent)), 1)
+	rentPrompt.KeyboardKeyCode = Enum.KeyCode.R
+	rentPrompt.MaxActivationDistance = 10
+	rentPrompt.Triggered:Connect(function(player)
+		buy(player, building, floor, letter, "Alquiler")
 	end)
 end
 
@@ -415,7 +583,8 @@ local function onEnter(player: Player, inst: InteriorService.Instance_)
 	local kind = unitKind(inst.Building, inst.Floor, inst.Unit)
 	local unit = unitKeyOf(inst.Building, inst.Floor, inst.Unit)
 	if kind and not ownerOf(inst.Building, inst.Floor, inst.Unit) and not Properties.isNeighborHome(unit) then
-		Notify:FireClient(player, "Info", ("🏷 Esta vivienda está en venta: %s"):format(Format.money(Properties.price(kind, inst.Floor, unit))))
+		local price = PropertyService.priceOf(inst.Building, inst.Floor, inst.Unit)
+		Notify:FireClient(player, "Info", ("🏷 En venta: %s · o en alquiler: %s al día"):format(Format.money(price), Format.money(Housing.rent(price))))
 	end
 end
 
@@ -425,11 +594,7 @@ local function gate(player: Player, building: InteriorService.Building, floor: n
 		return true
 	end
 	local owner = ownerOf(building, floor, letter)
-	if not owner or owner.UserId == player.UserId then
-		return true
-	end
-	local ownerPlayer = Players:GetPlayerByUserId(owner.UserId)
-	if ownerPlayer and ownerPlayer:GetAttribute("GroupId") and ownerPlayer:GetAttribute("GroupId") == player:GetAttribute("GroupId") then
+	if not owner or welcome(player, building, floor, letter, owner) then
 		return true
 	end
 	return false, ("🔒 Es la casa de %s."):format(owner.Name)
@@ -477,12 +642,7 @@ function PropertyService.access(player: Player, building: InteriorService.Buildi
 		if owner.UserId == player.UserId then
 			return "Owner"
 		end
-		local ownerPlayer = Players:GetPlayerByUserId(owner.UserId)
-		local group = player:GetAttribute("GroupId")
-		if ownerPlayer and group ~= nil and ownerPlayer:GetAttribute("GroupId") == group then
-			return "Guest"
-		end
-		return "Stranger"
+		return if welcome(player, building, floor, letter, owner) then "Guest" else "Stranger"
 	end
 	if Properties.isNeighborHome(unitKeyOf(building, floor, letter)) then
 		return "Neighbor"
@@ -525,7 +685,15 @@ PropertyService.occupant = occupant
 -- "Ir a casa": a tu vivienda (la primera que compraste)
 function PropertyService.goHome(player: Player): boolean
 	local list = ownedList(player)
+	-- La que eligió como casa (HousingService); si no, la primera
+	local data = DataService.get(player)
+	local chosen = data and data.Housing and data.Housing.Home
 	local home = list[1]
+	for _, entry in list do
+		if chosen and entry.Key == chosen.Key and entry.Floor == chosen.Floor and (entry.Letter or "A") == (chosen.Letter or "A") then
+			home = entry
+		end
+	end
 	if not home then
 		return false
 	end
@@ -540,6 +708,78 @@ end
 function PropertyService.list(player: Player): { { [string]: any } }
 	return ownedList(player)
 end
+
+---------------------------------------------------------------------
+-- Para HousingService: llaves, privacidad, vivienda inicial y fin del alquiler
+---------------------------------------------------------------------
+-- Cambia la ficha del dueño (llaves, privacidad) en el registro de todos los servidores
+function PropertyService.editOwner(building: InteriorService.Building, floor: number, letter: string?, userId: number, edit: (Owner) -> ()): boolean
+	return claim(building.Key, slotOf(floor, letter), nil, userId, edit)
+end
+
+-- Viviendas libres (ni de vecinos ni de nadie) de los bloques de pisos, para repartir al llegar.
+-- En orden aleatorio; el registro de cada edificio se consulta al intentar quedársela.
+function PropertyService.starterCandidates(rng: Random?): { { Building: InteriorService.Building, Floor: number, Letter: string } }
+	local out = {}
+	for _, building in InteriorService.all() do
+		if building.Upper == "Piso" and InteriorService.isTower(building) and not building.Residence then
+			for floor = 1, building.Floors - 1 do
+				for _, u in Floors.units(building.Key, building.Kind, building.Upper, floor) do
+					if u.Kind == "Piso" and not Properties.isNeighborHome(Properties.unitKey(building.Key, u.Id)) then
+						table.insert(out, { Building = building, Floor = floor, Letter = u.Letter })
+					end
+				end
+			end
+		end
+	end
+	for i = #out, 2, -1 do
+		local j = if rng then rng:NextInteger(1, i) else math.random(1, i)
+		out[i], out[j] = out[j], out[i]
+	end
+	return out
+end
+
+-- Se queda con una vivienda libre como "Inicial" (sin pagar). false si otro se adelantó.
+function PropertyService.claimStarter(player: Player, building: InteriorService.Building, floor: number, letter: string?): boolean
+	if ownerOf(building, floor, letter) then
+		return false
+	end
+	local owner: Owner = { UserId = player.UserId, Name = player.DisplayName, Price = 0, Since = os.time(), Kind = "Inicial" }
+	if not claim(building.Key, slotOf(floor, letter), owner) then
+		return false
+	end
+	local list = ownedList(player)
+	table.insert(list, 1, {
+		Key = building.Key, Floor = floor, Letter = letter or "A", Kind = unitKind(building, floor, letter) or "Piso",
+		Title = titleOf(building, floor, letter), Price = 0, Contract = "Inicial", Id = PropertyService.idOf(building, floor, letter), Since = os.time(),
+	})
+	syncAttributes(player)
+	InteriorService.reset(building, floor, letter)
+	return true
+end
+
+-- Pierde la vivienda (fin del alquiler por impago): se libera y sale de su lista
+function PropertyService.release(player: Player, building: InteriorService.Building, floor: number, letter: string?): boolean
+	local list = ownedList(player)
+	for i, entry in list do
+		if entry.Key == building.Key and entry.Floor == floor and (entry.Letter or "A") == (letter or "A") then
+			claim(building.Key, slotOf(floor, letter), nil, player.UserId)
+			table.remove(list, i)
+			syncAttributes(player)
+			for _, other in Players:GetPlayers() do
+				if other:GetAttribute("InteriorKey") == building.Id .. ":" .. slotOf(floor, letter) then
+					InteriorService.leave(other)
+				end
+			end
+			InteriorService.reset(building, floor, letter)
+			return true
+		end
+	end
+	return false
+end
+
+PropertyService.buy = buy
+PropertyService.titleOf = titleOf
 
 -- A cada personaje de la historia, una vivienda de vecinos (siempre la misma)
 local function assignCastHomes()

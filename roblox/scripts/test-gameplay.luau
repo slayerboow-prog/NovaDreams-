@@ -351,6 +351,7 @@ end
 local remotes = {
 	Speech = speechRemote,
 	Notify = remote(),
+	Housing = remote(),
 	QuitJob = remote(),
 	Vehicle = remote(),
 	DrivingSchool = remote(),
@@ -4156,6 +4157,190 @@ ownedDoor:FindFirstChild("DoorPrompt").Triggered:Fire(visitor)
 check(visitor:GetAttribute("InteriorKey") == tower.Id .. ":" .. saleUnit.Id, "si es de tu grupo, pasas")
 InteriorService.leave(visitor) -- al pasillo
 InteriorService.leave(visitor) -- y a la calle
+
+-- Viviendas de verdad (HousingService): ficha, timbre, llaves, privacidad, alquiler, vivienda al llegar
+local Housing = loadModule(ROOT .. "/shared/Housing")
+local Residents = loadModule(ROOT .. "/shared/Residents")
+local HousingService = loadModule(S .. "HousingService")
+HousingService.AutoAssign = false
+HousingService.init()
+local sheet = PropertyService.sheetOf(tower, saleFloor, saleUnit.Letter)
+check(sheet ~= nil and string.match(sheet.Id, "^D%d%d%-E%d%d%d%-%d%d%d%d$") ~= nil and sheet.Floor == saleFloor and Housing.parseId(sheet.Id) ~= nil,
+	"cada vivienda tiene su ficha con un ID único (" .. tostring(sheet and sheet.Id) .. ": " .. tostring(sheet and Housing.describe(sheet)) .. ")")
+local seenIds, dupId, sheets = {}, false, 0
+for f = 1, tower.Floors - 1 do
+	for _, u in Floors.units(tower.Key, tower.Kind, tower.Upper, f) do
+		local sh = PropertyService.sheetOf(tower, f, u.Letter)
+		if sh then
+			sheets += 1
+			dupId = dupId or seenIds[sh.Id] == true
+			seenIds[sh.Id] = true
+		end
+	end
+end
+check(sheets >= 20 and not dupId, ("las %d viviendas del edificio tienen IDs distintos"):format(sheets))
+local topSheet = PropertyService.sheetOf(tower, tower.Floors - 1, "A")
+check(topSheet ~= nil and topSheet.Type == "Atico" and table.find(topSheet.Extras, "Terraza") ~= nil, "la última planta es un ático con terraza")
+-- Timbre: sin grupo ni llave, el dueño recibe el aviso y decide
+walker:SetAttribute("GroupId", nil)
+visitor:SetAttribute("GroupId", nil)
+InteriorService.enter(visitor, tower)
+visitorRoot.CFrame = CFrame.new(ownedDoor.Position)
+clearInbox(visitor)
+clearInbox(walker)
+ownedDoor:FindFirstChild("DoorPrompt").Triggered:Fire(visitor)
+local bellToken
+for _, m in walker.Inbox do
+	if m[1] == "Doorbell" and type(m[2]) == "table" then
+		bellToken = m[2].Token
+	end
+end
+check(bellToken ~= nil and notified(visitor, "Has llamado") and visitor:GetAttribute("InteriorKey") == tower.Id .. ":T", "timbre: al dueño le llega el aviso y la visita espera en el pasillo")
+remotes.Housing.OnServerEvent:Fire(walker, "Answer", bellToken, false)
+check(notified(visitor, "no puede abrirte") and visitor:GetAttribute("InteriorKey") == tower.Id .. ":T", "timbre: si el dueño no abre, no entras")
+task.wait(0.3)
+clearInbox(walker)
+ownedDoor:FindFirstChild("DoorPrompt").Triggered:Fire(visitor)
+for _, m in walker.Inbox do
+	if m[1] == "Doorbell" and type(m[2]) == "table" then
+		bellToken = m[2].Token
+	end
+end
+task.wait(0.3)
+remotes.Housing.OnServerEvent:Fire(walker, "Answer", bellToken, true)
+check(visitor:GetAttribute("InteriorKey") == tower.Id .. ":" .. saleUnit.Id and PropertyService.access(visitor, tower, saleFloor, saleUnit.Letter) == "Guest", "timbre: si abre, pasas (y eres invitado un rato)")
+-- Echar a la visita
+local unitRef = { Key = tower.Key, Floor = saleFloor, Letter = saleUnit.Letter }
+task.wait(0.3)
+remotes.Housing.OnServerEvent:Fire(walker, "Kick", unitRef, visitor.UserId)
+check(visitor:GetAttribute("InteriorKey") == tower.Id .. ":T", "el dueño puede echar a una visita (vuelve al pasillo)")
+InteriorService.leave(visitor) -- (a la calle)
+-- Llaves: se dan, valen aunque el dueño no esté en su casa, y se quitan
+local third, thirdRoot = newPlayer(901, "Adulto", 100)
+third.DisplayName = "Tercera"
+task.wait(0.3)
+remotes.Housing.OnServerEvent:Fire(walker, "GiveKey", unitRef, third.UserId)
+check(PropertyService.access(third, tower, saleFloor, saleUnit.Letter) == "Guest" and notified(third, "te ha dado una llave"), "llaves: con llave entras (y te avisan)")
+local ownerRec = PropertyService.ownerOf(tower, saleFloor, saleUnit.Letter)
+check(ownerRec ~= nil and ownerRec.Access ~= nil and ownerRec.Access[tostring(third.UserId)] == "Tercera", "llaves: se guardan con la vivienda (valen en todos los servidores)")
+task.wait(0.3)
+remotes.Housing.OnServerEvent:Fire(walker, "Privacy", unitRef, "Cerrada")
+check(PropertyService.access(third, tower, saleFloor, saleUnit.Letter) == "Stranger", "privacidad «Cerrada»: ni con llave")
+task.wait(0.3)
+remotes.Housing.OnServerEvent:Fire(walker, "Privacy", unitRef, "Llaves")
+check(PropertyService.access(third, tower, saleFloor, saleUnit.Letter) == "Guest", "privacidad «Llaves»: los que tienen llave, sí")
+task.wait(0.3)
+remotes.Housing.OnServerEvent:Fire(walker, "TakeKey", unitRef, third.UserId)
+check(PropertyService.access(third, tower, saleFloor, saleUnit.Letter) == "Stranger", "llaves: al quitarla, ya no entras")
+task.wait(0.3)
+remotes.Housing.OnServerEvent:Fire(visitor, "GiveKey", unitRef, visitor.UserId)
+remotes.Housing.OnServerEvent:Fire(third, "Privacy", unitRef, "Grupo")
+check(PropertyService.ownerOf(tower, saleFloor, saleUnit.Letter).Privacy == "Llaves", "solo el dueño cambia las llaves y la privacidad")
+task.wait(0.3)
+remotes.Housing.OnServerEvent:Fire(walker, "Privacy", unitRef, "Grupo")
+-- Alquiler: se paga cada día de juego; sin dinero, avisos y deuda; al tercer impago se pierde
+local renter, renterRoot = newPlayer(902, "Adulto", 5000)
+renter.DisplayName = "Inquilina"
+profiles[renter].Properties = {}
+local rentDoor, rentUnit
+for f = 1, tower.Floors - 1 do
+	if not rentDoor then
+		rentDoor, rentUnit = doorWith(f, "ForSale")
+	end
+end
+local rentFloor = rentDoor:GetAttribute("Floor")
+InteriorService.enter(renter, tower)
+InteriorService.goToUnit(renter, tower, rentFloor, rentUnit.Letter)
+local rentPrompt
+for _, d in InteriorService.instance(tower, rentFloor, rentUnit.Letter).Room.Model:GetDescendants() do
+	if d.ClassName == "ProximityPrompt" and d.ActionText == "Alquilar vivienda" then
+		rentPrompt = d
+	end
+end
+check(rentPrompt ~= nil, "las viviendas libres también se alquilan")
+local rentPrice = Housing.rent(PropertyService.priceOf(tower, rentFloor, rentUnit.Letter))
+rentPrompt.Triggered:Fire(renter)
+local lease = profiles[renter].Properties[1]
+check(lease ~= nil and lease.Contract == "Alquiler" and lease.Rent == rentPrice and profiles[renter].Money == 5000 - rentPrice and PropertyService.access(renter, tower, rentFloor, rentUnit.Letter) == "Owner",
+	"alquilada: paga el primer día (" .. rentPrice .. ") y es suya mientras pague")
+local day = 20 * 60
+HousingService.collectRent(renter, (lease.Since or os.time()) + day + 1)
+check(profiles[renter].Money == 5000 - 2 * rentPrice and lease.Unpaid == 0, "al día siguiente se cobra el alquiler")
+profiles[renter].Money = 0
+clearInbox(renter)
+HousingService.collectRent(renter, lease.RentDue + 1)
+check(lease.Unpaid == 1 and lease.Debt == rentPrice and notified(renter, "aviso 1 de 3"), "sin dinero: deuda y aviso (no te echan)")
+HousingService.collectRent(renter, lease.RentDue + 1)
+check(lease.Unpaid == 2 and PropertyService.access(renter, tower, rentFloor, rentUnit.Letter) == "Owner", "segundo impago: otro aviso, sigue siendo suya")
+HousingService.collectRent(renter, lease.RentDue + 1)
+check(#profiles[renter].Properties == 0 and PropertyService.access(renter, tower, rentFloor, rentUnit.Letter) ~= "Owner" and profiles[renter].Housing.Debt == 3 * rentPrice,
+	"al tercer impago se pierde el alquiler (y queda la deuda)")
+InteriorService.leave(renter)
+InteriorService.leave(renter)
+-- Vivienda al llegar: a cada uno la suya, al azar, sin repetir aunque lleguen a la vez
+local newcomers = {}
+for i = 1, 6 do
+	local p = newPlayer(910 + i, "Nino", 0)
+	p.DisplayName = "Nuevo" .. i
+	profiles[p].Properties = {}
+	profiles[p].Housing = {}
+	table.insert(newcomers, p)
+end
+-- (el mismo orden "aleatorio" para todos: todos quieren el mismo piso a la vez)
+local function sameRng()
+	return { NextInteger = function(_, a, b) return b end }
+end
+local done = 0
+for i, p in newcomers do
+	task.spawn(function()
+		local ok, err = pcall(HousingService.assignStarter, p, sameRng())
+		if not ok then
+			print("[assignStarter] " .. tostring(err))
+		end
+		done += 1
+	end)
+end
+local waited = 0
+while done < #newcomers and waited < 5 do
+	waited += task.wait()
+end
+local homes, repeated, allHave = {}, false, true
+for _, p in newcomers do
+	local entry = profiles[p].Properties[1]
+	allHave = allHave and entry ~= nil and entry.Contract == "Inicial" and profiles[p].Housing.Assigned == true
+	if entry then
+		local k = entry.Key .. "#" .. entry.Floor .. entry.Letter
+		repeated = repeated or homes[k] == true
+		homes[k] = true
+		local b = InteriorService.byKey(entry.Key)
+		allHave = allHave and b ~= nil and PropertyService.access(p, b, entry.Floor, entry.Letter) == "Owner"
+	end
+end
+check(allHave, "vivienda al llegar: a cada jugador nuevo le toca un piso suyo")
+check(not repeated, "vivienda al llegar: nunca el mismo piso a dos jugadores (aunque lleguen a la vez)")
+local firstHome = profiles[newcomers[1]].Properties[1]
+HousingService.assignStarter(newcomers[1])
+check(#profiles[newcomers[1]].Properties == 1 and profiles[newcomers[1]].Properties[1] == firstHome, "vivienda al llegar: solo una vez (al volver, sigue siendo la misma)")
+check(PropertyService.goHome(newcomers[1]) and newcomers[1]:GetAttribute("InteriorKey") ~= nil, "«Ir a casa» te lleva a tu piso")
+InteriorService.leave(newcomers[1])
+InteriorService.leave(newcomers[1])
+-- Vecinos con su vida: a media mañana muchos están trabajando; por la noche, en casa (o durmiendo)
+local working, home23 = 0, 0
+for i = 1, 60 do
+	local person = Residents.person("prueba#" .. i)
+	if Residents.where(person, 11) == "Trabajo" then
+		working += 1
+	end
+	if Residents.where(person, 22) == "Casa" then
+		home23 += 1
+	end
+end
+check(working >= 20 and home23 >= 30, ("vecinos con rutina: a las 11 trabajan %d de 60; a las 22 están en casa %d"):format(working, home23))
+local somebody = Residents.person("prueba#1")
+check(somebody.Age >= 20 and somebody.Name ~= "" and Residents.describe(somebody):find(" años, ", 1, true) ~= nil, "cada vecino tiene nombre, edad, trabajo y horario: " .. Residents.describe(somebody))
+local answered, text = HousingService.neighborAnswer(tower, { Id = "3" }, 11)
+local person3 = Residents.person(Properties.unitKey(tower.Key, "3"))
+check(answered == (Residents.where(person3, 11) == "Casa") and (answered or string.find(text, person3.Name, 1, true) ~= nil), "si llamas a un vecino que no está, te dicen dónde anda")
 -- Subir: al ir por la escalera se montan las plantas de arriba y se quitan las de abajo
 local origin = towerInst.Tower.Origin.Position
 walkerRoot.CFrame = CFrame.new(origin + Vector3.new(0, 6 * Floors.Height + 3, 0))
