@@ -2,6 +2,8 @@
 -- Bandas negras de cine, cámara que viaja por los planos, subtítulos con voz, rótulos grandes,
 -- música y un botón "Saltar". Mientras dura, se ocultan los menús y el personaje no se mueve.
 -- Las posiciones (tu casa, tu ventanal, las zonas…) las manda el servidor ya resueltas.
+-- Si hay una conversación abierta, su cámara se aparta mientras dura la escena y retoma su plano al acabar
+-- (los controles se cuentan en Controls; el atributo InCinematic avisa a las armas sin require).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -15,6 +17,8 @@ local Theme = require(script.Parent.Parent.UI.Theme)
 local StoryAudio = require(script.Parent.StoryAudio)
 local DayLight = require(script.Parent.DayLight)
 local ActorLife = require(script.Parent.ActorLife)
+local Controls = require(script.Parent.Controls)
+local CineCamera = require(script.Parent.CineCamera)
 local Emotion = require(ReplicatedStorage.Shared.LifeStory.Emotion)
 
 local C = Theme.Colors
@@ -40,6 +44,18 @@ local function ease(kind: string?, t: number): number
 end
 
 local baseShotCFrame: (anchors: { [string]: CFrame }, shot: { [string]: any }, u: number) -> CFrame?
+
+-- ¿Ese punto está dentro de una sala? (los interiores están muy arriba; o estás tú dentro y cerca)
+local function indoors(center: Vector3): boolean
+	if center.Y > 3000 then
+		return true
+	end
+	if player:GetAttribute("InteriorKey") == nil then
+		return false
+	end
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	return root ~= nil and (root.Position - center).Magnitude < 60
+end
 
 local function point(anchors: { [string]: CFrame }, spec: { any }?): Vector3?
 	if not spec then
@@ -97,8 +113,18 @@ function baseShotCFrame(anchors: { [string]: CFrame }, shot: { [string]: any }, 
 		end
 		local center = anchor.Position
 		local angle = math.rad(shot.FromAngle + (shot.ToAngle - shot.FromAngle) * a)
-		local position = center + Vector3.new(math.cos(angle) * shot.Radius, shot.Height, math.sin(angle) * shot.Radius)
-		return CFrame.lookAt(position, center + Vector3.new(0, shot.LookHeight or 1, 0))
+		local radius = shot.Radius
+		if indoors(center) then
+			radius = math.min(radius, CineCamera.InteriorRadius) -- en una sala no cabe un plano de 12 studs
+		end
+		local target = center + Vector3.new(0, shot.LookHeight or 1, 0)
+		local position = center + Vector3.new(math.cos(angle) * radius, shot.Height, math.sin(angle) * radius)
+		-- Sin atravesar paredes: si hay un muro entre el centro y la cámara, se acerca
+		position = CineCamera.clamp(target, position)
+		if (target - position).Magnitude < 0.05 then
+			target += Vector3.new(0, 0, -1)
+		end
+		return CFrame.lookAt(position, target)
 	end
 	local from, to = point(anchors, shot.From), point(anchors, shot.To)
 	local look = point(anchors, shot.Look)
@@ -126,29 +152,51 @@ local function hideOtherGuis(except: ScreenGui): () -> ()
 			table.insert(restored, child)
 		end
 	end
+	-- Lo de Roblox: se apunta cómo estaba cada cosa y se deja luego igual (antes se encendía todo,
+	-- también la mochila y la lista de jugadores que el juego tiene apagadas)
+	local core: { [Enum.CoreGuiType]: boolean } = {}
 	pcall(function()
+		for _, kind in Enum.CoreGuiType:GetEnumItems() do
+			if kind ~= Enum.CoreGuiType.All then
+				local ok, enabled = pcall(function()
+					return StarterGui:GetCoreGuiEnabled(kind)
+				end)
+				if ok and type(enabled) == "boolean" then
+					core[kind] = enabled
+				end
+			end
+		end
 		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false)
 	end)
 	return function()
 		for _, gui in restored do
 			gui.Enabled = true
 		end
-		pcall(function()
-			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, true)
-		end)
+		for kind, enabled in core do
+			pcall(function()
+				StarterGui:SetCoreGuiEnabled(kind, enabled)
+			end)
+		end
 	end
 end
 
 local function setControls(enabled: boolean)
-	pcall(function()
-		local module = require(player:WaitForChild("PlayerScripts"):WaitForChild("PlayerModule", 2) :: any)
-		local controls = module:GetControls()
-		if enabled then
-			controls:Enable()
-		else
-			controls:Disable()
-		end
+	if enabled then
+		Controls.enable("Cinematica")
+	else
+		Controls.disable("Cinematica")
+	end
+end
+
+-- ¿Ha cargado ya el suelo bajo ese punto? (el mapa se carga por trozos alrededor de la cámara)
+local areaParams = RaycastParams.new()
+areaParams.FilterType = Enum.RaycastFilterType.Exclude
+local function areaLoaded(position: Vector3): boolean
+	local ok, hit = pcall(function()
+		areaParams.FilterDescendantsInstances = if player.Character then { player.Character } else {}
+		return workspace:Raycast(position + Vector3.new(0, 40, 0), Vector3.new(0, -400, 0), areaParams)
 	end)
+	return not ok or hit ~= nil
 end
 
 local function fadeLabel(label: TextLabel, visible: boolean, seconds: number)
@@ -164,6 +212,14 @@ end
 
 local playing = 0
 local pending = 0 -- escenas que ya han llegado pero esperan su turno (cola de momentos de LifeStory)
+
+local function setPlaying(delta: number)
+	playing = math.max(0, playing + delta)
+	-- Para quien no puede requerir este módulo (las armas): mientras hay escena, no se apunta
+	player:SetAttribute("InCinematic", if playing > 0 then true else nil)
+	-- Sin nombres ni iconos flotantes encima de nadie durante la escena
+	CineCamera.quietLabels("Cinematica", playing > 0)
+end
 
 -- ¿Se está viendo una escena, o hay una esperando? (los diálogos esperan a que termine)
 function Cinematics.isPlaying(): boolean
@@ -191,7 +247,7 @@ local function playImpl(payload: { [string]: any }, cleanup: Cleanup)
 	if not def then
 		return
 	end
-	playing += 1
+	setPlaying(1)
 	cleanup.Counted = true
 	local anchors = payload.Anchors or {}
 	local names = payload.Names or {}
@@ -241,6 +297,7 @@ local function playImpl(payload: { [string]: any }, cleanup: Cleanup)
 		Size = UDim2.new(0.86, 0, BAR, -8),
 		Text = "",
 		TextSize = 20,
+		TextScaled = true, -- en el móvil la banda es baja: la frase se encoge para no salirse
 		TextWrapped = true,
 		RichText = true,
 		TextXAlignment = Enum.TextXAlignment.Center,
@@ -248,10 +305,29 @@ local function playImpl(payload: { [string]: any }, cleanup: Cleanup)
 		ZIndex = 5,
 		Parent = gui,
 	})
-	local title = Theme.label({
+	Theme.create("UITextSizeConstraint", { MaxTextSize = 20, MinTextSize = 12, Parent = caption })
+	-- El rótulo y su subtítulo van en columna: si el título ocupa dos líneas, el subtítulo baja
+	local titleBlock = Theme.create("Frame", {
+		Name = "TitleBlock",
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.45),
-		Size = UDim2.new(0.9, 0, 0, 60),
+		Position = UDim2.fromScale(0.5, 0.47),
+		Size = UDim2.new(0.9, 0, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		BackgroundTransparency = 1,
+		ZIndex = 6,
+		Parent = gui,
+	})
+	Theme.create("UIListLayout", {
+		FillDirection = Enum.FillDirection.Vertical,
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		Padding = UDim.new(0, 4),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Parent = titleBlock,
+	})
+	local title = Theme.label({
+		Size = UDim2.new(1, 0, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		LayoutOrder = 1,
 		Text = "",
 		Font = Theme.FontBold,
 		TextSize = 44,
@@ -261,12 +337,17 @@ local function playImpl(payload: { [string]: any }, cleanup: Cleanup)
 		TextTransparency = 1,
 		TextStrokeTransparency = 1,
 		ZIndex = 6,
-		Parent = gui,
+		Parent = titleBlock,
 	})
+	-- En pantallas pequeñas el rótulo grande no cabe: se reduce
+	local viewport = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize
+	if viewport and viewport.X < 900 then
+		title.TextSize = 32
+	end
 	local subtitle = Theme.label({
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0.45, 34),
-		Size = UDim2.new(0.8, 0, 0, 30),
+		Size = UDim2.new(0.9, 0, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		LayoutOrder = 2,
 		Text = "",
 		TextSize = 20,
 		TextWrapped = true,
@@ -275,7 +356,7 @@ local function playImpl(payload: { [string]: any }, cleanup: Cleanup)
 		TextTransparency = 1,
 		TextStrokeTransparency = 1,
 		ZIndex = 6,
-		Parent = gui,
+		Parent = titleBlock,
 	})
 
 	local skipped = false
@@ -315,8 +396,8 @@ local function playImpl(payload: { [string]: any }, cleanup: Cleanup)
 	local captionToken, titleToken = 0, 0
 
 	local camera = workspace.CurrentCamera
-	local previousType = camera.CameraType
 	local previousFov = camera.FieldOfView
+	local previousCFrame = camera.CFrame
 	camera.CameraType = Enum.CameraType.Scriptable
 
 	-- Quién hace un gesto: "Player" (tú), "Todos" (todos los de tu escena) o alguien del reparto
@@ -337,6 +418,19 @@ local function playImpl(payload: { [string]: any }, cleanup: Cleanup)
 	end
 
 	local shots = def.Shots or {}
+
+	-- Si el mapa aún no ha cargado donde empieza el primer plano (se carga por trozos), la
+	-- pantalla sigue en negro un momento en vez de enseñar el vacío
+	local first = shots[1] and shotCFrame(anchors, shots[1], 0)
+	if first and not areaLoaded(first.Position) then
+		black.BackgroundTransparency = 0
+		local waited = 0
+		while waited < 2.5 and not skipped and not areaLoaded(first.Position) do
+			waited += task.wait(0.1)
+		end
+		TweenService:Create(black, TweenInfo.new(0.6), { BackgroundTransparency = 1 }):Play()
+	end
+
 	local start = os.clock()
 	local fadeOutStarted = false
 	local currentShot: { [string]: any }? = nil
@@ -429,18 +523,16 @@ local function playImpl(payload: { [string]: any }, cleanup: Cleanup)
 	end
 
 	-- Volver al juego
+	StoryAudio.stopVoice() -- (si se salta, la frase a medias no sigue sonando)
 	if def.FadeOut or skipped then
 		TweenService:Create(black, TweenInfo.new(0.3), { BackgroundTransparency = 0 }):Play()
 		task.wait(0.35)
 	end
-	camera.CameraType = if previousType == Enum.CameraType.Scriptable then Enum.CameraType.Custom else previousType
 	camera.FieldOfView = previousFov
 	DayLight.setFocus(nil)
-	local character = player.Character
-	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-	if humanoid then
-		camera.CameraSubject = humanoid
-	end
+	-- La cámara vuelve donde estaba (o detrás de ti). Si hay una conversación abierta con su plano,
+	-- en el fotograma siguiente lo retoma ella (DialogueUI)
+	CineCamera.restore(previousCFrame)
 	restoreGuis()
 	setControls(true)
 	StoryAudio.cinematicEnd()
@@ -454,7 +546,7 @@ local function playImpl(payload: { [string]: any }, cleanup: Cleanup)
 	TweenService:Create(black, TweenInfo.new(0.8), { BackgroundTransparency = 1 }):Play()
 	task.wait(0.8)
 	gui:Destroy()
-	playing = math.max(0, playing - 1)
+	setPlaying(-1)
 	cleanup.Counted = false
 end
 
@@ -470,13 +562,9 @@ function Cinematics.play(payload: { [string]: any })
 		pcall(cleanup.Restore)
 	end
 	pcall(setControls, true)
+	pcall(StoryAudio.stopVoice)
 	pcall(function()
-		local camera = workspace.CurrentCamera
-		camera.CameraType = Enum.CameraType.Custom
-		local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-		if humanoid then
-			camera.CameraSubject = humanoid
-		end
+		CineCamera.restore(nil)
 		DayLight.setFocus(nil)
 		DayLight.setCinematic(false)
 		StoryAudio.cinematicEnd()
@@ -487,7 +575,7 @@ function Cinematics.play(payload: { [string]: any })
 		end)
 	end
 	if cleanup.Counted then
-		playing = math.max(0, playing - 1)
+		setPlaying(-1)
 	end
 end
 

@@ -12,11 +12,17 @@
 -- Owner; los demás jugadores no lo ven (SceneClient lo oculta) ni pueden tocarlo.
 -- Cuando cambia el paso, la escena se actualiza sin parpadeos: quien sigue en el mismo sitio se queda,
 -- quien cambia de sitio camina hasta allí (o aparece, si está lejos), y quien sobra se va.
+-- Andar: si el sitio está a más de unos pasos se busca el camino (PathfindingService: puertas, pasillos,
+-- esquinas; salta si hace falta y recalcula si algo se pone en medio). Al llegar se coloca con un par de
+-- pasos y se gira poco a poco (sin saltos). Si no hay camino o se atasca, se desvanece y aparece en su
+-- sitio (atributo Fade: el fundido lo hace el cliente, Controllers/ActorLife).
 -- Lo que pasa al hablar o usar algo lo decide la historia (SceneService.onInteract).
 
 local CollectionService = game:GetService("CollectionService")
+local PathfindingService = game:GetService("PathfindingService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
 
 local Cast = require(ReplicatedStorage.Shared.LifeStory.Cast)
 local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
@@ -47,6 +53,10 @@ local ANIMS = {
 }
 local ONE_SHOT = { Wave = true, Cheer = true, Point = true, Laugh = true }
 
+local PATH_MIN = 10 -- más cerca va en línea recta (no hace falta calcular el camino)
+local STUCK = 3 -- segundos sin avanzar: salta y recalcula el camino; la segunda vez, fundido
+local WALK_MAX = 30 -- segundos andando como mucho: si no ha llegado, fundido
+
 type Actor = {
 	Npc: string,
 	Spec: { [string]: any },
@@ -62,8 +72,17 @@ type Actor = {
 	LastPosition: Vector3?,
 	Playing: string?,
 	NextWander: number,
-	StuckSince: number?,
+	StuckSince: number?, -- cuándo empezó a andar hasta su sitio
 	StunnedUntil: number?, -- (Hunt) aturdido tras un impacto
+	Walk: string?, -- nil (quieto o en su modo) · "Walk" (va a su sitio) · "Settle" (se coloca) · "Fade" (fundido)
+	WalkId: number, -- cambia con cada paseo: las tareas de uno viejo no tocan el nuevo
+	Path: { Vector3 }?, -- puntos del camino (PathfindingService) o solo el destino
+	PathJump: { boolean }?, -- en qué puntos hay que saltar
+	PathIndex: number,
+	PathConn: RBXScriptConnection?,
+	Computing: boolean?,
+	Recomputes: number,
+	TurnUntil: number?, -- (Idle) girándose hacia el jugador
 }
 type Prop = { Id: string, Key: string, Model: Model }
 type Scene = { Actors: { [string]: Actor }, Props: { [string]: Prop } }
@@ -286,6 +305,7 @@ local function buildModel(npc: string, player: Player, forcedScale: number?): Mo
 	}))
 	model.Name = name
 	model:SetAttribute("NpcId", npc)
+	Npc.atomic(model) -- que llegue entero a tu pantalla (si no, a veces no se le podía animar)
 	local humanoid = model:FindFirstChildOfClass("Humanoid")
 	if humanoid then
 		humanoid.DisplayName = name
@@ -337,7 +357,12 @@ local function applyMode(actor: Actor)
 	actor.Model:SetAttribute("Chat", if mode == "Chat" or actor.Spec.Chat == true then true else nil)
 	-- Work: su tarea mientras está quieto (barrer, cocinar, apuntar…; Controllers/WorkAnim)
 	actor.Model:SetAttribute("Work", actor.Spec.Work)
-	if mode == "Sit" then
+	-- Sentado: el cliente le pone además las manos en el regazo y respira (UseMotion, como a los jugadores)
+	local seated = mode == "Sit"
+	if (actor.Model:GetAttribute("UsePose") == "Sit") ~= seated then
+		Npc.setPose(actor.Model, if seated then "Sit" else nil)
+	end
+	if seated then
 		play(actor, "Sit")
 	elseif mode == "Wave" or mode == "Cheer" or mode == "Point" or mode == "Dance" or mode == "Laugh" then
 		play(actor, mode)
@@ -365,6 +390,9 @@ local function makeActor(player: Player, questId: string, spec: { [string]: any 
 		RouteIndex = 1,
 		LastProgress = os.clock(),
 		LastPosition = nil,
+		WalkId = 0,
+		PathIndex = 1,
+		Recomputes = 0,
 	}
 	if root then
 		root.Anchored = true
@@ -397,8 +425,255 @@ local function makeActor(player: Player, questId: string, spec: { [string]: any 
 			end
 		end)
 	end
-	applyMode(actor)
+	if standing and spec.Mode ~= "Wander" then
+		-- Viene andando: de pie hasta que llegue (sentarse, saludar, su tarea… al llegar)
+		play(actor, "Idle")
+	else
+		applyMode(actor)
+	end
 	return actor
+end
+
+---------------------------------------------------------------------
+-- Andar hasta su sitio (camino, colocarse, fundido si no puede)
+---------------------------------------------------------------------
+
+local function scaleOf(model: Model): number
+	local ok, scale = pcall(function()
+		return model:GetScale()
+	end)
+	return if ok and type(scale) == "number" and scale > 0 then scale else 1
+end
+
+local function flatDistance(a: Vector3, b: Vector3): number
+	return V(a.X - b.X, 0, a.Z - b.Z).Magnitude
+end
+
+-- Ángulo (0..pi) entre dos orientaciones, solo en horizontal
+local function yawBetween(a: CFrame, b: CFrame): number
+	local la, lb = a.LookVector, b.LookVector
+	local flatA, flatB = V(la.X, 0, la.Z), V(lb.X, 0, lb.Z)
+	if flatA.Magnitude < 1e-3 or flatB.Magnitude < 1e-3 then
+		return 0
+	end
+	return math.acos(math.clamp(flatA.Unit:Dot(flatB.Unit), -1, 1))
+end
+
+local function stopPath(actor: Actor)
+	if actor.PathConn then
+		actor.PathConn:Disconnect()
+		actor.PathConn = nil
+	end
+	actor.Path = nil
+	actor.PathJump = nil
+end
+
+-- Dónde queda su raíz cuando está en cf (lo mismo que standAt, sin moverle)
+local function rootGoal(actor: Actor, cf: CFrame): CFrame?
+	local root, humanoid = actor.Root, actor.Humanoid
+	if not root or not humanoid or humanoid.RigType ~= Enum.HumanoidRigType.R15 then
+		return nil
+	end
+	if actor.Spec.Mode == "Sit" then
+		return cf * CFrame.new(0, root.Size.Y / 2 + 0.3, 0)
+	end
+	return cf * CFrame.new(0, humanoid.HipHeight + root.Size.Y / 2, 0)
+end
+
+-- Se desvanece y aparece en su sitio (no hay camino, se ha atascado…). El fundido lo hace el cliente.
+local function fadeTo(actor: Actor)
+	stopPath(actor)
+	actor.WalkId += 1
+	local id = actor.WalkId
+	actor.Walk = "Fade"
+	actor.Model:SetAttribute("Fade", (actor.Model:GetAttribute("Fade") or 0) + 1)
+	if actor.Humanoid and actor.Root then
+		actor.Humanoid:MoveTo(actor.Root.Position) -- se para
+	end
+	task.delay(0.35, function()
+		if actor.WalkId ~= id or not actor.Model.Parent then
+			return
+		end
+		actor.Walk = nil
+		actor.StuckSince = nil
+		anchorActor(actor, true)
+		standAt(actor, actor.Home)
+		applyMode(actor)
+	end)
+end
+
+-- Ya está al lado: da un par de pasos hasta el punto exacto y se gira poco a poco (antes aparecía
+-- de golpe en su sitio y girado)
+local function settle(actor: Actor)
+	stopPath(actor)
+	actor.WalkId += 1
+	local id = actor.WalkId
+	actor.StuckSince = nil
+	local root = actor.Root
+	local goal = rootGoal(actor, actor.Home)
+	anchorActor(actor, true)
+	if not root or not goal or (root.Position - goal.Position).Magnitude > 5 then
+		actor.Walk = nil
+		standAt(actor, actor.Home)
+		applyMode(actor)
+		return
+	end
+	actor.Walk = "Settle"
+	local distance = flatDistance(root.Position, goal.Position)
+	local seconds = math.clamp(math.max(distance / 4, yawBetween(root.CFrame, goal) * 0.3), 0.2, 0.8)
+	if distance > 0.4 then
+		play(actor, "Walk")
+		local walk = actor.Tracks.Walk
+		if walk then
+			walk:AdjustSpeed(0.7)
+		end
+	end
+	TweenService:Create(root, TweenInfo.new(seconds, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), { CFrame = goal }):Play()
+	task.delay(seconds, function()
+		if actor.WalkId ~= id or not actor.Model.Parent then
+			return
+		end
+		actor.Walk = nil
+		applyMode(actor)
+	end)
+end
+
+-- Busca el camino hasta su sitio (sin esperar: mientras tanto va en línea recta)
+local function computePath(actor: Actor)
+	local root, humanoid = actor.Root, actor.Humanoid
+	if actor.Computing or not root or not humanoid then
+		return
+	end
+	actor.Computing = true
+	local id = actor.WalkId
+	local goal = actor.Home.Position
+	task.spawn(function()
+		local scale = scaleOf(actor.Model)
+		local ok, path = pcall(function()
+			local p = PathfindingService:CreatePath({
+				AgentRadius = 1.3 * scale,
+				AgentHeight = 5 * scale,
+				AgentCanJump = true,
+				WaypointSpacing = 4,
+			})
+			p:ComputeAsync(root.Position, goal)
+			return p
+		end)
+		actor.Computing = false
+		if actor.WalkId ~= id or actor.Walk ~= "Walk" or not actor.Model.Parent then
+			return
+		end
+		if ok and path and path.Status == Enum.PathStatus.Success then
+			local points, jumps = {}, {}
+			for _, waypoint in path:GetWaypoints() do
+				table.insert(points, waypoint.Position)
+				table.insert(jumps, waypoint.Action == Enum.PathWaypointAction.Jump)
+			end
+			if #points == 0 then
+				return
+			end
+			stopPath(actor)
+			actor.Path, actor.PathJump = points, jumps
+			actor.PathIndex = math.min(2, #points)
+			actor.LastProgress = os.clock()
+			humanoid:MoveTo(points[actor.PathIndex])
+			-- Si algo se pone en medio (una puerta, otra persona…), se busca otro camino
+			actor.PathConn = path.Blocked:Connect(function(blocked: number)
+				if actor.WalkId ~= id or actor.Path ~= points or blocked < actor.PathIndex then
+					return
+				end
+				actor.Recomputes += 1
+				if actor.Recomputes <= 3 then
+					computePath(actor)
+				else
+					fadeTo(actor)
+				end
+			end)
+		elseif ok and path and path.Status == Enum.PathStatus.NoPath then
+			fadeTo(actor) -- no hay forma de llegar andando
+		end
+		-- (si falla el cálculo sigue en línea recta; si se atasca, fundido)
+	end)
+end
+
+-- Camina hasta cf (su nuevo sitio en la escena)
+local function startWalk(actor: Actor, cf: CFrame)
+	stopPath(actor)
+	actor.WalkId += 1
+	actor.Home = cf
+	actor.Walk = "Walk"
+	actor.StuckSince = os.clock()
+	actor.LastProgress = os.clock()
+	actor.LastPosition = nil
+	actor.Recomputes = 0
+	actor.Path = { cf.Position }
+	actor.PathIndex = 1
+	local humanoid, root = actor.Humanoid, actor.Root
+	if not humanoid or not root then
+		fadeTo(actor)
+		return
+	end
+	-- Andando no está sentado ni con su tarea (al llegar vuelve a ella)
+	if actor.Model:GetAttribute("UsePose") then
+		Npc.setPose(actor.Model, nil)
+	end
+	actor.Model:SetAttribute("Work", nil)
+	actor.Model:SetAttribute("Chat", nil)
+	anchorActor(actor, false)
+	humanoid:MoveTo(cf.Position)
+	if flatDistance(root.Position, cf.Position) > PATH_MIN then
+		computePath(actor)
+	end
+end
+
+-- Un paso (cada 0.3 s) mientras va a su sitio
+local function stepWalk(actor: Actor)
+	local humanoid, root = actor.Humanoid, actor.Root
+	if not humanoid or not root then
+		return
+	end
+	actor.Walk = "Walk"
+	actor.StuckSince = actor.StuckSince or os.clock()
+	local path = actor.Path or { actor.Home.Position }
+	local index = math.min(actor.PathIndex, #path)
+	local target = path[index]
+	local now = os.clock()
+	if index >= #path then
+		-- Último tramo: al llegar (o casi, si algo no le deja dar el último paso) se coloca
+		local left = flatDistance(root.Position, actor.Home.Position)
+		if left < 1.3 or (left < 3.5 and now - actor.LastProgress > 0.6) then
+			settle(actor)
+			return
+		end
+	elseif flatDistance(root.Position, target) < 2 then
+		index += 1
+		actor.PathIndex = index
+		target = path[index]
+		if actor.PathJump and actor.PathJump[index] then
+			humanoid.Jump = true
+		end
+		humanoid:MoveTo(target)
+	end
+	if humanoid.MoveDirection.Magnitude < 0.1 then
+		humanoid:MoveTo(target) -- (MoveTo se rinde a los 8 s: se vuelve a pedir)
+	end
+	local moved = if actor.LastPosition then (root.Position - actor.LastPosition).Magnitude else 1
+	actor.LastPosition = root.Position
+	if now - actor.StuckSince > WALK_MAX then
+		fadeTo(actor) -- da vueltas sin llegar
+	elseif moved > 0.4 then
+		actor.LastProgress = now
+	elseif now - actor.LastProgress > STUCK then
+		actor.Recomputes += 1
+		if actor.Recomputes <= 1 then
+			-- Atascado: un saltito y otro camino desde donde está
+			humanoid.Jump = true
+			actor.LastProgress = now
+			computePath(actor)
+		else
+			fadeTo(actor)
+		end
+	end
 end
 
 ---------------------------------------------------------------------
@@ -765,11 +1040,19 @@ function applySet(player: Player, questId: string, actors: { { [string]: any } }
 			-- Camina hasta su nuevo sitio
 			actor.Spec = spec
 			actor.Key = key
-			actor.Home = cf
-			anchorActor(actor, false)
-			if actor.Humanoid and spec.Mode ~= "Follow" then
-				actor.Humanoid:MoveTo(cf.Position)
-				actor.StuckSince = os.clock()
+			local mode = spec.Mode or "Idle"
+			if mode == "Follow" or mode == "Wander" or mode == "Flee" or mode == "Hunt" then
+				-- Se mueve por su cuenta (stepActor): desde donde está
+				stopPath(actor)
+				actor.WalkId += 1
+				actor.Walk = nil
+				actor.Home = cf
+				applyMode(actor)
+				if actor.Humanoid and mode == "Wander" then
+					actor.Humanoid:MoveTo(cf.Position)
+				end
+			else
+				startWalk(actor, cf)
 			end
 			continue
 		end
@@ -790,11 +1073,7 @@ function applySet(player: Player, questId: string, actors: { { [string]: any } }
 		if from then
 			created.Home = cf
 			if spec.Mode ~= "Wander" then
-				anchorActor(created, false)
-				if created.Humanoid then
-					created.Humanoid:MoveTo(cf.Position)
-				end
-				created.StuckSince = os.clock()
+				startWalk(created, cf)
 			end
 		end
 	end
@@ -921,7 +1200,8 @@ function SceneService.gesture(player: Player, npc: string, name: string)
 		if actor then
 			play(actor, name)
 			task.delay(2.5, function()
-				if actor.Model.Parent then
+				-- (si va andando a su sitio, no: se quedaría clavado a medio camino; al llegar ya se pone)
+				if actor.Model.Parent and actor.Walk == nil then
 					applyMode(actor)
 				end
 			end)
@@ -1157,14 +1437,12 @@ local function stepActor(player: Player, actor: Actor, index: number)
 			local radius = actor.Spec.Radius or 10
 			humanoid:MoveTo(actor.Home.Position + V(math.cos(angle) * radius, 0, math.sin(angle) * radius))
 		end
-	elseif not root.Anchored then
-		-- Iba caminando hasta su sitio: al llegar (o si se atasca), se queda allí
-		local flat = V(root.Position.X - actor.Home.Position.X, 0, root.Position.Z - actor.Home.Position.Z)
-		if flat.Magnitude < 2.5 or (actor.StuckSince and os.clock() - actor.StuckSince > 8) then
-			standAt(actor, actor.Home)
-			actor.StuckSince = nil
-			applyMode(actor)
-		end
+	elseif actor.Walk == "Settle" or actor.Walk == "Fade" then
+		-- Colocándose en su sitio o en pleno fundido: ya acaba solo
+		return
+	elseif actor.Walk == "Walk" or not root.Anchored then
+		-- Va andando hasta su sitio (por el camino); al llegar se coloca, si no puede, fundido
+		stepWalk(actor)
 	elseif ONE_SHOT[mode] then
 		-- Saluda / celebra / se ríe / señala otra vez cada pocos segundos (no se queda congelado)
 		if os.clock() > actor.NextWander then
@@ -1173,23 +1451,41 @@ local function stepActor(player: Player, actor: Actor, index: number)
 			play(actor, mode)
 		end
 	elseif mode == "Idle" and me and actor.Spec.Look == nil then
-		-- Quieto: se gira hacia el jugador cuando está cerca
+		-- Quieto: la cabeza y el cuerpo te siguen en tu pantalla (ActorLife, suave). Si te pones detrás
+		-- de él, se da la vuelta poco a poco, con unos pasitos (antes giraba de golpe)
 		local toMe = V(me.Position.X - root.Position.X, 0, me.Position.Z - root.Position.Z)
-		if toMe.Magnitude < 22 and toMe.Magnitude > 1 then
+		if toMe.Magnitude < 22 and toMe.Magnitude > 1 and os.clock() > (actor.TurnUntil or 0) then
 			local want = CFrame.lookAt(root.Position, root.Position + toMe)
-			if want.LookVector:Dot(root.CFrame.LookVector) < 0.97 then
-				actor.Model:PivotTo(CFrame.new(actor.Model:GetPivot().Position) * want.Rotation)
+			local angle = yawBetween(root.CFrame, want)
+			if angle > math.rad(100) then
+				local seconds = math.clamp(angle * 0.3, 0.35, 0.9)
+				actor.TurnUntil = os.clock() + seconds + 1.5
+				play(actor, "Walk")
+				local walk = actor.Tracks.Walk
+				if walk then
+					walk:AdjustSpeed(0.6)
+				end
+				TweenService:Create(root, TweenInfo.new(seconds, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+					CFrame = CFrame.new(root.Position) * want.Rotation,
+				}):Play()
+				task.delay(seconds, function()
+					if actor.Model.Parent and actor.Playing == "Walk" and root.Anchored and actor.Walk == nil then
+						play(actor, "Idle")
+					end
+				end)
 			end
 		end
 	end
-	-- Andar, correr o estar quieto (la animación va al paso de sus pies)
+	-- Andar, correr o estar quieto (la animación va al paso de sus pies, y a su tamaño: un niño da
+	-- más pasos para ir igual de rápido)
 	if not root.Anchored then
 		local speed = V(root.AssemblyLinearVelocity.X, 0, root.AssemblyLinearVelocity.Z).Magnitude
 		local name = if speed > 17 then "Run" elseif speed > 1 then "Walk" else "Idle"
 		play(actor, name)
 		local track = actor.Tracks[name]
 		if track and name ~= "Idle" then
-			track:AdjustSpeed(math.clamp(speed / (if name == "Run" then 20 else 12), 0.6, 1.5))
+			local stride = (if name == "Run" then 20 else 12) * scaleOf(actor.Model)
+			track:AdjustSpeed(math.clamp(speed / stride, 0.6, 1.8))
 		end
 	end
 end

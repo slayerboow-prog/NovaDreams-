@@ -108,6 +108,7 @@ local function lineFor(player: Player, session: Session, line: Line): { [string]
 		Voice = voice,
 		Text = text,
 		Emotion = Emotion.of(line, text), -- con qué gesto lo dice (el cliente anima a quien habla)
+		Gesture = Emotion.gesture(line), -- gesto de encima (G = "Clap"…), a la vez que la frase
 		Actor = actor,
 		Me = line.S == "Yo",
 		Narrator = line.S == nil or line.S == "Narrador",

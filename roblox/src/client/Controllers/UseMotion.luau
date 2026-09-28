@@ -6,8 +6,10 @@
 -- acumula con las demás. Cada postura entra y sale mezclándose poco a poco (UseAnim.BlendIn /
 -- BlendOut con curva suave): al sentarse, tumbarse o levantarse no hay tirones. Si cambia de
 -- postura (del sillón al ordenador), la vieja se va mientras entra la nueva.
--- Se ve en todos los jugadores cercanos (y en los personajes con el atributo UsePose).
+-- Se ve en todos los jugadores cercanos y en los personajes (NPCs del mapa y actores de tus escenas)
+-- con el atributo UsePose y la etiqueta UsePoseNpc (World/Npc.setPose: sentados en una silla…).
 
+local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 
 local UseAnim = require(script.Parent.UseAnim)
@@ -113,6 +115,7 @@ end
 
 function UseMotion.init()
 	local Layers = require(script.Parent.PoseLayers)
+	local me = Players.LocalPlayer
 
 	-- Quién está cerca y usando algo (cada medio segundo)
 	task.spawn(function()
@@ -133,13 +136,37 @@ function UseMotion.init()
 					end
 				end
 			end
+			-- Personajes (NPCs del mapa, actores de tus escenas) sentados o usando algo: Npc.setPose
+			local scenes = workspace:FindFirstChild("StoryScenes")
+			local mine = scenes and scenes:FindFirstChild("Scene_" .. me.UserId)
+			for _, model in CollectionService:GetTagged("UsePoseNpc") do
+				if not model:IsA("Model") or not model.Parent then
+					continue
+				end
+				-- (los de la escena de otro jugador no los ves)
+				if scenes and model:IsDescendantOf(scenes) and not (mine and model:IsDescendantOf(mine)) then
+					continue
+				end
+				local root = model:FindFirstChild("HumanoidRootPart") :: BasePart?
+				if root and (root.Position - from).Magnitude < ACTIVE_DISTANCE then
+					local body = bodyOf(model)
+					if body then
+						table.insert(list, body)
+					end
+				end
+			end
+			-- Los que ya no tienen postura siguen hasta acabar de levantarse (se quitan solos al llegar a 0)
+			for _, body in active do
+				if not body.Player and #body.Layers > 0 and body.Model.Parent and not table.find(list, body) then
+					table.insert(list, body)
+				end
+			end
 			active = list
 			task.wait(0.5)
 		end
 	end)
 
 	-- Tu personaje empieza enseguida (sin esperar a la próxima vuelta)
-	local me = Players.LocalPlayer
 	me:GetAttributeChangedSignal("UsePose"):Connect(function()
 		local character = me.Character
 		local body = character and bodyOf(character)

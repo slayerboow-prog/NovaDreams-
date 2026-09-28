@@ -9,6 +9,12 @@
 -- Posturas (el cliente mueve cabeza, hombros y brazos mientras habla):
 --   Happy · Sad · Angry · Surprised · Thinking · Ask (pregunta: cabeza ladeada) · Shrug (encogerse de hombros)
 --   · Nod (asentir) · No (negar con la cabeza) · Calm (hablar tranquilo, lo normal)
+--   · ArmsCrossed (brazos cruzados) · HandsOnHips (brazos en jarra) · Facepalm (mano a la frente)
+--   · Clap (aplaudir) · ThinkChin (mano en la barbilla) · WaveLite (saludo corto con la mano)
+--
+-- Además de su emoción, una línea puede llevar un gesto encima con G = "…" (una postura o una animación
+-- de las de arriba): { S = "Abu", T = "Ay, este niño…", A = "Sad", G = "Facepalm" }. El servidor lo manda
+-- como Gesture (DialogueService) y el cliente lo hace mientras dice la frase (ActorLife.speak).
 
 local Emotion = {}
 
@@ -24,6 +30,12 @@ Emotion.Poses = {
 	Nod = true,
 	No = true,
 	Calm = true,
+	ArmsCrossed = true,
+	HandsOnHips = true,
+	Facepalm = true,
+	Clap = true,
+	ThinkChin = true,
+	WaveLite = true,
 }
 
 function Emotion.valid(name: any): boolean
@@ -32,15 +44,21 @@ end
 
 -- Pistas del texto (en minúsculas), por orden: la primera que encaja gana
 local RULES: { { any } } = {
+	{ "Facepalm", { "^¡otra vez no", "^otra vez no", "^¡qué desastre", "^qué desastre", "^¡qué vergüenza", "^qué vergüenza", "^¡ay, madre", "^ay, madre", "^¡no, por favor", "^¡en qué estaría pensando" } },
 	{ "Laugh", { "jaja", "jeje", "jiji", "ja, ja", "qué risa" } },
+	{ "WaveLite", { "^¡hey", "^hey,", "^hey!", "^¡ey,", "^¡ey!", "^ey," } },
+	{ "Clap", { "aplauso", "^¡muy bien!", "^¡muy bien,", "^¡muy bien hecho", "^¡qué bien lo has hecho", "^¡fenomenal", "^¡perfecto!" } },
 	{ "Wave", { "^¡hola", "^hola", "^¡eh!", "^¡eh,", "^¡buenos días", "^buenos días", "^¡buenas", "^buenas", "^¡adiós", "^adiós", "^¡hasta luego", "^hasta luego", "^¡hasta mañana", "^¡nos vemos" } },
 	{ "Cheer", { "^¡bien", "^¡sí!", "^¡sí,", "^¡sííí", "^¡toma", "^¡lo hemos", "^¡lo has", "^¡lo conseguimos", "^¡enhorabuena", "^¡felicidades", "^¡genial", "^¡olé", "^¡bravo", "^¡hemos ganado", "^¡ganamos", "^¡gol" } },
 	{ "Point", { "^mira", "^¡mira", "^allí", "^¡allí", "^ahí", "^¡ahí", "^por allí", "^es por ahí" } },
 	{ "Sad", { "lo siento", "perdón", "perdona", "lo echo de menos", "la echo de menos", "le echo de menos", "me duele", "qué pena", "triste", "llorar", "lloro", "^…" } },
+	{ "HandsOnHips", { "^¿se puede saber", "^¿qué horas son estas", "^¿qué haces aquí", "^¿dónde te habías metido", "^¿dónde estabas" } },
+	{ "ArmsCrossed", { "^¡ni se te ocurra", "^ni se te ocurra", "^ya te lo dije", "^te lo dije", "^¡te lo dije", "^estoy esperando", "^¿y bien?", "^no pienso" } },
 	{ "Angry", { "^¡basta", "^¡ya está bien", "^¡déjame", "^¡fuera", "^¡cállate", "^¡otra vez", "^¡no puede ser" } },
 	{ "Surprised", { "^¡¿", "^¿¡", "^¡anda", "^¡hala", "^¡ostras", "^¡madre mía", "^¡no me lo puedo creer", "^¡vaya", "^¿en serio?", "^¡qué sorpresa", "^¿tú?" } },
 	{ "No", { "^no, no", "^¡no!", "^no.", "^ni hablar", "^¡ni hablar", "^de eso nada" } },
 	{ "Nod", { "^sí.", "^sí,", "^vale", "^claro", "^exacto", "^de acuerdo", "^eso es", "^muy bien", "^bien." } },
+	{ "ThinkChin", { "^interesante", "^mmm, interesante", "^veamos", "^déjame que lo piense", "^me pregunto", "^curioso" } },
 	{ "Thinking", { "^mmm", "^hmm", "^a ver", "^pues…", "^pues...", "^déjame pensar", "^no sé" } },
 	{ "Shrug", { "^bueno, ", "^bah", "^qué más da", "^yo qué sé", "^ni idea" } },
 }
@@ -63,6 +81,14 @@ local function matches(s: string, pattern: string): boolean
 		return s:sub(1, #body) == body
 	end
 	return s:find(pattern, 1, true) ~= nil
+end
+
+-- El gesto de encima de una línea (G = "Clap"…), si existe; nil si no lleva o no es válido
+function Emotion.gesture(line: { [string]: any }): string?
+	if line.S == nil or line.S == "Narrador" then
+		return nil
+	end
+	return if Emotion.valid(line.G) then line.G else nil
 end
 
 -- El gesto de una línea { S, T, A? }. nil para el narrador.

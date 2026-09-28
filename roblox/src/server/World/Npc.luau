@@ -4,7 +4,8 @@
 --                                           cada cliente cercano (UI/SpeechBubbles, remoto "Speech")
 --   Npc.icon(npc, text?)                 -> icono pequeño sobre la cabeza (✋, ⏳, 😋…)
 --   Npc.walkTo(npc, { Vector3 }, speed)  -> camina por esos puntos (espera hasta llegar)
---   Npc.sit(npc, seat) / Npc.stand(npc)  -> sentarse en una silla y levantarse
+--   Npc.sit(npc, seat) / Npc.stand(npc)  -> sentarse en una silla y levantarse (el cliente le pone la
+--                                           postura de sentado: atributo UsePose, Controllers/UseMotion)
 --   Npc.sitAt(npc, cf)                   -> sentarse en un punto (banco o silla sin Seat)
 --   Npc.dress(npc, look)                 -> ropa (camiseta, pantalón, zapatos), pelo y, si es niño, mochila
 --   Npc.placeFeet(npc, cf)               -> lo pone de pie con los pies justo en cf (no bajo tierra)
@@ -145,6 +146,14 @@ function Npc.placeFeet(model: Model, cf: CFrame)
 	end
 end
 
+-- Que llegue entero a los jugadores (el mapa se carga por trozos): sin esto a veces llegaba el
+-- humanoide sin la cabeza o sin el cuello y el cliente no podía animarlo (ActorLife, UseMotion)
+function Npc.atomic(model: Model)
+	pcall(function()
+		(model :: any).ModelStreamingMode = Enum.ModelStreamingMode.Atomic
+	end)
+end
+
 function Npc.create(name: string, parent: Instance, cf: CFrame, look: Look?): Model
 	local l: Look = {
 		Skin = (look and look.Skin) or pick(SKINS),
@@ -178,6 +187,7 @@ function Npc.create(name: string, parent: Instance, cf: CFrame, look: Look?): Mo
 	end
 	root.Anchored = true
 	model.PrimaryPart = root
+	Npc.atomic(model)
 	if ok then
 		Npc.dress(model, look)
 	end
@@ -286,17 +296,32 @@ function Npc.icon(npc: Model, text: string?)
 	end
 end
 
+local walking: { [Model]: boolean } = setmetatable({}, { __mode = "k" }) :: any
+local turning: { [Model]: number } = setmetatable({}, { __mode = "k" }) :: any -- (Npc.face: el último giro manda)
+
+-- Cuánto hay que girar (radianes, 0..pi) para pasar de mirar a `a` a mirar a `b`
+local function turnAngle(a: CFrame, b: CFrame): number
+	local la, lb = a.LookVector, b.LookVector
+	local dot = math.clamp(la.X * lb.X + la.Z * lb.Z, -1, 1)
+	return math.acos(dot)
+end
+
 -- Camina por los puntos (a la altura del suelo) mirando hacia donde va. Espera hasta llegar.
+-- Gira mientras da los primeros pasos de cada tramo (no de golpe en cada esquina), y el cliente le
+-- pone la animación de andar al paso que lleva (ActorLife mide cuánto avanza).
 function Npc.walkTo(npc: Model, points: { Vector3 }, speed: number?)
 	local root = npc.PrimaryPart
 	local humanoid = npc:FindFirstChildOfClass("Humanoid")
 	if not root or not humanoid or not npc.Parent then
 		return
 	end
+	local pace = speed or 9
 	local height = humanoid.HipHeight + root.Size.Y / 2
+	walking[npc] = true
+	turning[npc] = (turning[npc] or 0) + 1 -- (si se estaba girando con Npc.face, ya no)
 	for _, point in points do
 		if not npc.Parent then
-			return
+			break
 		end
 		local target = point + Vector3.new(0, height, 0)
 		local from = root.Position
@@ -304,14 +329,49 @@ function Npc.walkTo(npc: Model, points: { Vector3 }, speed: number?)
 		local distance = flat.Magnitude
 		if distance > 0.1 then
 			local facing = CFrame.new(from) * CFrame.Angles(0, math.atan2(-flat.X, -flat.Z), 0)
-			root.CFrame = facing
-			local tween = TweenService:Create(root, TweenInfo.new(distance / (speed or 9), Enum.EasingStyle.Linear), {
-				CFrame = CFrame.new(target) * facing.Rotation,
-			})
-			tween:Play()
-			tween.Completed:Wait()
+			-- Primeros pasos girando (más pasos cuanto más gira: una esquina cerrada no es un giro en seco)
+			local angle = turnAngle(root.CFrame, facing)
+			if angle > 1.6 then
+				-- Media vuelta: primero se gira casi del todo sin avanzar (no anda de espaldas)
+				local look = root.CFrame.LookVector
+				local current = math.atan2(-look.X, -look.Z)
+				local goal = math.atan2(-flat.X, -flat.Z)
+				local diff = (goal - current + math.pi) % (2 * math.pi) - math.pi
+				local pre = TweenService:Create(root, TweenInfo.new((angle - 1) * 0.22, Enum.EasingStyle.Sine), {
+					CFrame = CFrame.new(from) * CFrame.Angles(0, current + diff * (angle - 1) / angle, 0),
+				})
+				pre:Play()
+				pre.Completed:Wait()
+				if not npc.Parent then
+					break
+				end
+				angle = turnAngle(root.CFrame, facing)
+			end
+			local turnSteps = math.min(distance, math.max(0.8, angle * 1.4))
+			if angle < 0.3 then
+				root.CFrame = facing -- (un giro pequeño no se nota)
+			else
+				local along = from + (target - from) * (turnSteps / distance)
+				local turn = TweenService:Create(root, TweenInfo.new(turnSteps / pace, Enum.EasingStyle.Linear), {
+					CFrame = CFrame.new(along) * facing.Rotation,
+				})
+				turn:Play()
+				turn.Completed:Wait()
+				if not npc.Parent then
+					break
+				end
+			end
+			local rest = (target - root.Position).Magnitude
+			if rest > 0.05 then
+				local tween = TweenService:Create(root, TweenInfo.new(rest / pace, Enum.EasingStyle.Linear), {
+					CFrame = CFrame.new(target) * facing.Rotation,
+				})
+				tween:Play()
+				tween.Completed:Wait()
+			end
 		end
 	end
+	walking[npc] = nil
 end
 
 -- Tarea que hace mientras espera: el cliente le mueve los brazos y le pone el objeto en la mano
@@ -329,9 +389,45 @@ function Npc.face(npc: Model, point: Vector3)
 	end
 	local flat = Vector3.new(point.X - root.Position.X, 0, point.Z - root.Position.Z)
 	if flat.Magnitude > 0.1 then
-		root.CFrame = CFrame.new(root.Position) * CFrame.Angles(0, math.atan2(-flat.X, -flat.Z), 0)
+		local goal = CFrame.new(root.Position) * CFrame.Angles(0, math.atan2(-flat.X, -flat.Z), 0)
+		local angle = turnAngle(root.CFrame, goal)
+		turning[npc] = (turning[npc] or 0) + 1
+		local token = turning[npc]
+		-- Se da la vuelta en un momento, no de golpe. Solo gira: si mientras tanto otro lo cambia de
+		-- sitio (se sienta, se levanta), no se le devuelve adonde estaba.
+		local ok = not walking[npc] and angle >= 0.35 and pcall(function()
+			local value = Instance.new("CFrameValue")
+			value.Value = root.CFrame.Rotation
+			value.Changed:Connect(function(rotation: CFrame)
+				if turning[npc] == token and not walking[npc] and root.Parent then
+					root.CFrame = CFrame.new(root.Position) * rotation
+				end
+			end)
+			local tween = TweenService:Create(value, TweenInfo.new(math.clamp(angle * 0.22, 0.2, 0.55), Enum.EasingStyle.Sine), { Value = goal.Rotation })
+			tween.Completed:Connect(function()
+				value:Destroy()
+			end)
+			tween:Play()
+		end)
+		if not ok then
+			root.CFrame = goal -- (andando ya mira hacia donde va; un giro pequeño no se nota)
+		end
 	end
 end
+
+-- La postura sentada también la ve el cliente (UseMotion: manos en el regazo, respira, mira alrededor)
+local function setPose(npc: Model, pose: string?)
+	pcall(function()
+		npc:SetAttribute("UsePose", pose)
+		local CollectionService = game:GetService("CollectionService")
+		if pose then
+			CollectionService:AddTag(npc, "UsePoseNpc")
+		else
+			CollectionService:RemoveTag(npc, "UsePoseNpc")
+		end
+	end)
+end
+Npc.setPose = setPose
 
 local LEG_JOINTS = { LeftHip = 90, RightHip = 90, LeftKnee = -90, RightKnee = -90 }
 
@@ -348,7 +444,9 @@ function Npc.sit(npc: Model, seat: BasePart)
 			joint.C0 = joint.C0 * CFrame.Angles(math.rad(angle), 0, 0)
 		end
 	end
+	turning[npc] = (turning[npc] or 0) + 1
 	root.CFrame = seat.CFrame * CFrame.new(0, seat.Size.Y / 2 + 1.35, 0.4)
+	setPose(npc, "Sit")
 end
 
 -- Se sienta en un punto (cf: la superficie del asiento, mirando hacia donde mira quien se sienta),
@@ -365,11 +463,16 @@ function Npc.sitAt(npc: Model, cf: CFrame)
 			joint.C0 = joint.C0 * CFrame.Angles(math.rad(angle), 0, 0)
 		end
 	end
+	turning[npc] = (turning[npc] or 0) + 1
 	local lift = root.Size.Y / 2 + 0.25
 	npc:PivotTo(cf * CFrame.new(0, lift, 0) * root.CFrame:ToObjectSpace(npc:GetPivot()))
+	setPose(npc, "Sit")
 end
 
 function Npc.stand(npc: Model, feet: Vector3?)
+	if npc:GetAttribute("UsePose") == "Sit" then
+		setPose(npc, nil)
+	end
 	for name in LEG_JOINTS do
 		local joint = npc:FindFirstChild(name, true)
 		if joint and joint:IsA("Motor6D") then

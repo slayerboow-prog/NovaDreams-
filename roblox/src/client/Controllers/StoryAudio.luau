@@ -200,8 +200,22 @@ local function duck(on: boolean)
 	end
 end
 
+-- La voz que suena ahora (solo una a la vez: una frase nueva o pasar de línea corta la anterior)
+local currentVoice: { Stop: () -> () }? = nil
+local voiceSerial = 0
+
+-- Corta la voz que esté sonando (al pasar de línea, cerrar la conversación o saltar una escena)
+function StoryAudio.stopVoice()
+	voiceSerial += 1
+	local voice = currentVoice
+	currentVoice = nil
+	if voice then
+		pcall(voice.Stop)
+	end
+end
+
 -- Voz sintetizada de Roblox. Si el motor no la tiene (o falla), se desactiva y quedan los subtítulos.
-local function textToSpeech(text: string, profile: { [string]: any }): boolean
+local function textToSpeech(text: string, profile: { [string]: any }, serial: number): boolean
 	local ok, err = pcall(function()
 		local tts = Instance.new("AudioTextToSpeech")
 		tts.Text = text
@@ -227,16 +241,27 @@ local function textToSpeech(text: string, profile: { [string]: any }): boolean
 		pcall(function()
 			tts:LoadAsync()
 		end)
+		if serial ~= voiceSerial then
+			-- Mientras cargaba ya se pasó a otra frase: esta no suena
+			tts:Destroy()
+			return
+		end
 		duck(true)
 		tts:Play()
 		local length = 0
 		pcall(function()
 			length = tts.TimeLength
 		end)
-		task.delay(math.clamp(if length > 0 then length + 0.3 else #text * 0.07, 1, 15), function()
-			duck(false)
-			tts:Destroy()
-		end)
+		local finished = false
+		local function done()
+			if not finished then
+				finished = true
+				duck(false)
+				tts:Destroy()
+			end
+		end
+		currentVoice = { Stop = done }
+		task.delay(math.clamp(if length > 0 then length + 0.3 else #text * 0.07, 1, 15), done)
 	end)
 	if not ok then
 		warn("[StoryAudio] Voz sintetizada no disponible; se muestran solo los subtítulos:", err)
@@ -246,9 +271,11 @@ end
 
 -- Dice una frase con la voz de ese personaje (role: "Abu", "Familia", "Narrador")
 function StoryAudio.speak(role: string?, textKey: string, args: { [string]: any }?)
+	StoryAudio.stopVoice() -- nunca dos voces a la vez
 	if muted then
 		return
 	end
+	local serial = voiceSerial
 	local recorded = assetId(AUDIO.Voices.Lines[textKey])
 	if recorded then
 		local sound = Instance.new("Sound")
@@ -267,12 +294,13 @@ function StoryAudio.speak(role: string?, textKey: string, args: { [string]: any 
 		end
 		sound.Ended:Connect(done)
 		task.delay(15, done)
+		currentVoice = { Stop = done }
 		return
 	end
 	if ttsAvailable then
 		local profile = AUDIO.Voices.Speakers[role or "Narrador"] or AUDIO.Voices.Speakers.Narrador
 		task.spawn(function()
-			if not textToSpeech(Strings.get(textKey, args), profile) then
+			if not textToSpeech(Strings.get(textKey, args), profile, serial) then
 				ttsAvailable = false
 			end
 		end)
@@ -285,6 +313,9 @@ end
 
 function StoryAudio.setMuted(value: boolean)
 	muted = value
+	if value then
+		StoryAudio.stopVoice()
+	end
 	if current then
 		fadeTo(current.Sound, targetVolume(current.Volume), 0.5)
 	end
