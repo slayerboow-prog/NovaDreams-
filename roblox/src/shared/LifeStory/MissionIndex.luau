@@ -29,6 +29,8 @@ return {
 	require(Misiones.Ins05_ElRumor),
 	require(Misiones.Ins06_LaGranDecision),
 	require(Misiones.Uni01_PrimerDia),
+	require(Misiones.Uni_Vida), -- la residencia y el ciclo de exámenes (misiones principales)
+	require(Misiones.Uni_Secundarias), -- fiestas, acampada, playa, zumo de mora, cita, lugares abandonados…
 	require(Misiones.Uni02_ElProyecto),
 	require(Misiones.Uni03_PrimerTrabajo),
 	require(Misiones.Uni04_Practicas),
@@ -41,4 +43,11 @@ return {
 	require(Misiones.Uni_Consecuencias),
 	require(Misiones.Ins_Consecuencias),
 	require(Misiones.Cole_Consecuencias),
+	-- Misiones locas (secundarias de cada etapa, con Cosme): docs/historia/12-misiones-locas.md
+	require(Misiones.Loco_Nino),
+	-- La Saga de la Grieta (historia principal canónica): docs/historia/13-saga-de-la-grieta.md
+	require(Misiones.Saga_Acto1),
+	require(Misiones.Loco_Adolescente),
+	require(Misiones.Loco_Uni),
+	require(Misiones.Loco_Adulto),
 }

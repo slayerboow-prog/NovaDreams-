@@ -13,7 +13,6 @@ local Builder = require(script.Parent.Parent.World.Builder)
 local Building = require(script.Parent.Parent.World.Kit.Building)
 local TownBuilder = require(script.Parent.Parent.World.TownBuilder)
 local DataService = require(script.Parent.DataService)
-local NeedsService = require(script.Parent.NeedsService)
 local LifeService = require(script.Parent.LifeService)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 
@@ -73,7 +72,7 @@ local function furnish(model: Model, at: (number, number, number) -> CFrame, siz
 
 	local sleep = Builder.prompt(mattress, "Dormir", "Cama", 0.5)
 	sleep.Triggered:Connect(function(player)
-		HouseService.sleep(player, plotId)
+		HouseService.sleep(player, plotId, mattress)
 	end)
 
 	-- COCINA: nevera y encimera al fondo a la izquierda
@@ -317,26 +316,15 @@ function HouseService.release(player: Player)
 	refreshSign(plot)
 end
 
-function HouseService.sleep(player: Player, plotId: number)
+-- Dormir en tu cama: energía y estamina al máximo, punto de reaparición y, de noche, amanece a las 8:30
+-- (todo eso lo hace SleepService, que vale para cualquier cama tuya)
+function HouseService.sleep(player: Player, plotId: number, bed: BasePart)
 	if player:GetAttribute("PlotId") ~= plotId then
 		Notify:FireClient(player, "Error", "Esta cama no es tuya.")
 		return
 	end
-	if player:GetAttribute("Sleeping") then
-		return
-	end
-	player:SetAttribute("Sleeping", true)
-	Notify:FireClient(player, "Sleep", "Zzz...")
-	task.wait(Config.SleepSeconds * 0.6)
-	-- De noche, si todos duermen, se hace de día
-	require(script.Parent.WorldService).trySkipNight()
-	task.wait(Config.SleepSeconds * 0.4)
-	if player.Parent then
-		player:SetAttribute("Sleeping", nil)
-		NeedsService.change(player, 0, Config.Needs.Max)
-		Notify:FireClient(player, "Success", "Has dormido genial. ¡Energía al máximo!")
-		StoryEvents.emit(player, "Slept", {})
-	end
+	local SleepService = require(script.Parent.SleepService) :: any
+	SleepService.sleep(player, bed)
 end
 
 function HouseService.goHome(player: Player)

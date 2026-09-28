@@ -137,6 +137,19 @@ Locations.Places = {
 	CasaSalida = { NameKey = "La puerta de casa", Tag = "StorySpot", Attribute = { SpotId = "SalirCasa" }, Zone = "FamilyHome", Fallback = "CasaFamiliar" },
 	CercaDeTi = { NameKey = "Aquí", Special = "NearPlayer" },
 
+	-- La residencia de estudiantes del campus (primer año de universidad)
+	Residencia = { NameKey = "Residencia de estudiantes", Tag = "StorySpot", Attribute = { SpotId = "Residencia" }, Zone = "Campus Valmar", Radius = 14, Fallback = "ResidenciaCampus" },
+	ResidenciaCampus = { NameKey = "Residencia de estudiantes", Between = { "Universidad", "EstadioUniversitario" }, At = 0.5, Radius = 14, Fallback = "Universidad" },
+	HabitacionResidencia = { NameKey = "Tu habitación de la residencia", Tag = "StorySpot", Attribute = { SpotId = "HabitacionResidencia" }, Zone = "Campus Valmar", Inside = true, Radius = 8, Fallback = "Residencia" },
+	CocinaResidencia = { NameKey = "La cocina compartida", Tag = "StorySpot", Attribute = { SpotId = "CocinaResidencia" }, Zone = "Campus Valmar", Inside = true, Radius = 8, Fallback = "Residencia" },
+
+	-- Misiones locas (las de Cosme). Si el mapa todavía no tiene el sitio, se usa el Fallback.
+	GarajeCosme = { NameKey = "El garaje de Cosme", Tag = "StorySpot", Attribute = { SpotId = "GarajeCosme" }, Fallback = "CaminoAlGaraje", Radius = 10 },
+	CaminoAlGaraje = { NameKey = "El garaje de Cosme", Between = { "CasaFamiliar", "ParadaBus" }, At = 0.3, Radius = 12, Fallback = "CasaFamiliar" },
+	MonteSilencio = { NameKey = "El Monte del Silencio", Model = "MonteSilencio", Zone = "Villaverde", Radius = 30, Fallback = "LadoMonte" },
+	LadoMonte = { NameKey = "El Monte del Silencio", Between = { "Universidad", "Granja" }, At = 0.7, Radius = 30, Fallback = "Granja" },
+	CimaMonte = { NameKey = "La cima del monte", Model = "MonteSilencio", Child = "Cima", Zone = "Villaverde", Radius = 14, Fallback = "MonteSilencio" },
+
 	-- Instituto (el colegio grande de Campus Valmar)
 	Instituto = { NameKey = "PLACE.INSTITUTO", Model = "Colegio", Zone = "Campus Valmar" },
 	AulaInstituto = { NameKey = "PLACE.AULA_INSTITUTO", Tag = "Classroom", Zone = "Campus Valmar", Inside = true },

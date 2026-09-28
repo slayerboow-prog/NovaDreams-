@@ -1,5 +1,7 @@
 -- DialogueUI (cliente): las conversaciones de las misiones, como en un juego de rol.
---   * Caja abajo en el centro con el nombre de quien habla y el texto escribiéndose letra a letra.
+--   * Lo que dice cada personaje sale en un bocadillo encima de él (UI/SpeechBubbles), escribiéndose
+--     letra a letra; la caja de abajo queda para el nombre, "Toca para seguir" y tus respuestas.
+--     El narrador (y quien no está en la escena o no se ve) sale en la caja, como siempre.
 --   * Clic, toque, Espacio o E: termina de escribir la línea / pasa a la siguiente.
 --   * Cuando te preguntan algo, tus respuestas aparecen como botones (teclas 1-4).
 --   * La cámara se acerca a quien habla (si está en la escena) y vuelve a su sitio al acabar.
@@ -18,6 +20,7 @@ local Cinematics = require(script.Parent.Cinematics)
 local LifeStory = require(script.Parent.LifeStory)
 local ActorLife = require(script.Parent.ActorLife)
 local DayLight = require(script.Parent.DayLight)
+local SpeechBubbles = require(script.Parent.Parent.UI.SpeechBubbles)
 
 local create = Theme.create
 local C = Theme.Colors
@@ -44,6 +47,10 @@ local queue: { { [string]: any } } = {}
 local running = false
 local advanceSignal: BindableEvent
 local skipTyping = false
+local typed = true -- la línea ya se ha escrito entera (el siguiente toque pasa a la siguiente)
+local bubbleOf: Instance? = nil -- quién tiene ahora el bocadillo de la conversación
+local lineSerial = 0
+local BUBBLE_DISTANCE = 55
 local open = false
 local savedCamera: { Type: Enum.CameraType, CFrame: CFrame }? = nil
 
@@ -162,8 +169,8 @@ local function frame(line: { [string]: any })
 		goal = CFrame.lookAt(me - forward * 4.5 + right * 1.8 + Vector3.new(0, 0.9, 0), them + Vector3.new(0, -0.2, 0))
 		focus = them
 	else
-		-- Primer plano de quien habla (un poco de lado)
-		goal = CFrame.lookAt(them - forward * 3.6 + right * 1.1 + Vector3.new(0, 0.15, 0), them + Vector3.new(0, -0.1, 0))
+		-- Primer plano de quien habla (un poco de lado; con sitio arriba para su bocadillo)
+		goal = CFrame.lookAt(them - forward * 4.6 + right * 1.2 + Vector3.new(0, 0.3, 0), them + Vector3.new(0, 0.5, 0))
 		focus = them
 	end
 	local from = if shot and not changed then camera.CFrame else goal
@@ -321,19 +328,59 @@ local function showLine(line: { [string]: any })
 	local speakingModel = if line.Narrator then nil else line.Actor
 	local plainText = line.Text or ""
 	ActorLife.speak(speakingModel, line.Emotion, (utf8.len(plainText) or #plainText) / TYPE_SPEED + 0.8)
+	-- Bocadillo encima de quien habla (si está en la escena y cerca); si no, el texto va en la caja
+	lineSerial += 1
+	local serial = lineSerial
+	if bubbleOf and bubbleOf ~= speakingModel then
+		SpeechBubbles.hide(bubbleOf)
+		bubbleOf = nil
+	end
+	local bubbled = false
+	local head = headOf(speakingModel)
+	local camera = workspace.CurrentCamera
+	if speakingModel and head and camera and (head - camera.CFrame.Position).Magnitude < BUBBLE_DISTANCE then
+		bubbled = SpeechBubbles.show(speakingModel, plainText, {
+			Name = line.Name,
+			NameColor = if line.Me then NAME_COLORS.Me:Lerp(Color3.new(0, 0, 0), 0.35) else nil,
+			Hold = true,
+			Typing = TYPE_SPEED,
+		})
+	end
+	if bubbled then
+		bubbleOf = speakingModel
+	end
+	textLabel.Visible = not bubbled
+	if bubbled then
+		-- Si su bocadillo no se ve en tu pantalla (fuera de plano, tapado…), el texto va también en la caja
+		task.spawn(function()
+			task.wait(0.35)
+			while lineSerial == serial and open and not textLabel.Visible do
+				if not SpeechBubbles.isOnScreen(speakingModel) then
+					textLabel.Visible = true
+					break
+				end
+				task.wait(0.25)
+			end
+		end)
+	end
 	-- Escribir
 	skipTyping = false
+	typed = false
 	local plain = line.Text or ""
 	local total = utf8.len(plain) or #plain
 	textLabel.MaxVisibleGraphemes = 0
 	textLabel.Text = full
-	hint.Visible = false
+	hint.Visible = bubbled -- con bocadillo, la caja solo dice "Toca para seguir"
 	local shown = 0
 	while shown < total and not skipTyping do
 		shown = math.min(total, shown + math.max(1, math.floor(TYPE_SPEED * task.wait())))
 		textLabel.MaxVisibleGraphemes = shown
 	end
 	textLabel.MaxVisibleGraphemes = -1
+	if bubbled then
+		SpeechBubbles.reveal(speakingModel)
+	end
+	typed = true
 	hint.Visible = true
 	advanceSignal.Event:Wait()
 	ActorLife.quiet(speakingModel)
@@ -346,6 +393,7 @@ local function ask(prompt: string?, options: { string }): number
 		end
 	end
 	if prompt and prompt ~= "" then
+		textLabel.Visible = true
 		nameTag.Visible = true
 		nameTag.Text = player.DisplayName
 		nameTag.TextColor3 = NAME_COLORS.Me
@@ -413,6 +461,11 @@ local function setOpen(value: boolean)
 		setControls(false)
 	else
 		box.Visible = false
+		if bubbleOf then
+			SpeechBubbles.hide(bubbleOf)
+			bubbleOf = nil
+		end
+		textLabel.Visible = true
 		restoreCamera()
 		setControls(true)
 	end
@@ -505,7 +558,7 @@ function DialogueUI.init()
 		local key = input.KeyCode
 		if key == Enum.KeyCode.Space or key == Enum.KeyCode.Return or key == Enum.KeyCode.E or key == Enum.KeyCode.ButtonA
 			or (input.UserInputType == Enum.UserInputType.MouseButton1 and not processed) then
-			if hint.Visible then
+			if typed then
 				advanceSignal:Fire()
 			else
 				skipTyping = true
@@ -517,7 +570,7 @@ function DialogueUI.init()
 		if optionsFrame.Visible then
 			return
 		end
-		if hint.Visible then
+		if typed then
 			advanceSignal:Fire()
 		else
 			skipTyping = true

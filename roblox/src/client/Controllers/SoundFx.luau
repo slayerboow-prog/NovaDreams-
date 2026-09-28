@@ -17,6 +17,7 @@ local SoundService = game:GetService("SoundService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
+local SpeechBubbles = require(script.Parent.Parent.UI.SpeechBubbles)
 
 local SoundFx = {}
 
@@ -269,65 +270,26 @@ local function pitchOf(npc: Instance): number
 	return pitches[npc]
 end
 
--- Cuando un trabajador dice algo (su bocadillo cambia) y estás cerca, se oye
-local function watchWorker(npc: Instance)
-	local head = npc:WaitForChild("Head", 10)
-	if not head then
+-- Cuando un trabajador dice algo (Npc.say: su bocadillo) y estás cerca, se oye
+local function workerVoice(npc: Instance, text: string, source: string)
+	if source ~= "Server" or muted then
 		return
 	end
-	local function hook(gui: Instance)
-		if gui.Name ~= "Bubble" or not gui:IsA("BillboardGui") then
-			return
-		end
-		local label = gui:FindFirstChildOfClass("TextLabel")
-		if not label then
-			return
-		end
-		label:GetPropertyChangedSignal("Text"):Connect(function()
-			local character = player.Character
-			local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
-			if label.Text ~= "" and root and (root.Position - (head :: BasePart).Position).Magnitude < 30 then
-				SoundFx.voice(label.Text, pitchOf(npc))
-			end
-		end)
+	local workers = workspace:FindFirstChild("Trabajadores")
+	local head = npc:FindFirstChild("Head") :: BasePart?
+	if not workers or not head or not npc:IsDescendantOf(workers) then
+		return
 	end
-	for _, child in head:GetChildren() do
-		hook(child)
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if root and (root.Position - head.Position).Magnitude < 30 then
+		SoundFx.voice(text, pitchOf(npc))
 	end
-	head.ChildAdded:Connect(function(child)
-		task.defer(hook, child)
-	end)
 end
 
 -- Bocadillo solo para ti (comentarios sueltos de la gente)
 local function localBubble(npc: Model, text: string)
-	local head = npc:FindFirstChild("Head") :: BasePart?
-	if not head then
-		return
-	end
-	local gui = Instance.new("BillboardGui")
-	gui.Name = "LocalBubble"
-	gui.Size = UDim2.fromOffset(220, 54)
-	gui.StudsOffset = Vector3.new(0, 3.2, 0)
-	gui.MaxDistance = 60
-	gui.Adornee = head
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.fromScale(1, 1)
-	label.BackgroundColor3 = Color3.new(1, 1, 1)
-	label.BackgroundTransparency = 0.1
-	label.TextColor3 = Color3.fromRGB(20, 20, 24)
-	label.TextScaled = true
-	label.TextWrapped = true
-	label.Text = text
-	label.FontFace = Font.fromEnum(Enum.Font.GothamBold)
-	label.Parent = gui
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 12)
-	corner.Parent = label
-	gui.Parent = player:WaitForChild("PlayerGui")
-	task.delay(3.5, function()
-		gui:Destroy()
-	end)
+	SpeechBubbles.show(npc, text, { Seconds = 3.5 })
 end
 
 local function streetChatter()
@@ -435,24 +397,7 @@ function SoundFx.init()
 	end, false, Enum.KeyCode.H, Enum.KeyCode.DPadUp)
 
 	-- Gente de la ciudad
-	local function watchFolder(workers: Instance)
-		for _, npc in workers:GetChildren() do
-			task.spawn(watchWorker, npc)
-		end
-		workers.ChildAdded:Connect(function(npc)
-			task.spawn(watchWorker, npc)
-		end)
-	end
-	local workers = workspace:FindFirstChild("Trabajadores")
-	if workers then
-		watchFolder(workers)
-	else
-		workspace.ChildAdded:Connect(function(child)
-			if child.Name == "Trabajadores" then
-				watchFolder(child)
-			end
-		end)
-	end
+	SpeechBubbles.onSpoken(workerVoice)
 	task.spawn(streetChatter)
 	task.spawn(crowd)
 end

@@ -76,6 +76,8 @@ type Progress = {
 	Step: number,
 	Count: number,
 	Sub: { [string]: boolean }?,
+	Hits: { [string]: number }?, -- (Fight) impactos a cada enemigo
+	Caught: number?, -- (Escape/Fight) cuántas veces te han atrapado en este paso
 	WaitUntil: number?,
 	Started: number,
 	Kind: string,
@@ -99,6 +101,9 @@ type Runtime = {
 	Busy: boolean, -- una conversación, un minijuego o una clase de la historia en marcha
 	Starting: boolean?, -- esperando a que el jugador aparezca para retomar la historia
 	ChoiceSentAt: { [string]: number }, -- misión -> cuándo se mandó su ventana de decisión (0 = volver a mandarla)
+	CaughtAt: number?, -- (Escape/Fight) la última vez que te atrapó un enemigo
+	CanonSpots: { [string]: any }?, -- dónde empieza cada misión canónica (para su marca en el mapa)
+	LastHit: number?, -- (Fight) último disparo (no se puede disparar más rápido que esto)
 }
 local runtime: { [Player]: Runtime } = {}
 local dayRng = Random.new()
@@ -456,6 +461,9 @@ local function placeArgs(step: { [string]: any }, prog: Progress?, story: Data):
 	if step.Type == "Event" and (step.Count or 1) > 1 then
 		args.count = if prog then prog.Count else 0
 		args.total = step.Count
+	elseif step.Type == "Fight" then
+		args.count = if prog then prog.Count else 0
+		args.total = #(step.Enemies or {})
 	end
 	return args
 end
@@ -465,7 +473,11 @@ end
 local function closedWindow(player: Player, data: Data, questId: string, prog: Progress): Schedules.Window?
 	local story = storyOf(data)
 	local step = stepsOf(questId, prog)[prog.Step]
-	if not step or Quests[questId].Schedule == false then
+	-- Solo las rutinas con horario (el día de cole, instituto, uni o trabajo, o las que lo piden con
+	-- Schedule = true) esperan a que abra el sitio; las misiones de la historia y las locas se
+	-- pueden jugar a cualquier hora (colarse en el patio del cole por la tarde, la noche de la Grieta…)
+	local quest = Quests[questId]
+	if not step or quest.Schedule == false or not (quest.DayPlan or quest.Schedule == true) then
 		return nil
 	end
 	local window: Schedules.Window? = nil
@@ -575,6 +587,13 @@ function sceneTarget(player: Player, questId: string, step: { [string]: any }): 
 	end
 	if step.Type == "Talk" or step.Type == "Chase" then
 		return actorPosition(step.Npc)
+	elseif step.Type == "Fight" then
+		for _, enemy in step.Enemies or {} do
+			local position = actorPosition(enemy.Npc)
+			if position then
+				return position
+			end
+		end
 	elseif step.Type == "Use" then
 		return propPosition(step.Prop)
 	elseif step.Type == "Choice" then
@@ -628,7 +647,7 @@ local function publish(player: Player, force: boolean?)
 						end
 					end
 				end
-			elseif step.Type == "Talk" or step.Type == "Use" or step.Type == "Choice" or step.Type == "Chase" then
+			elseif step.Type == "Talk" or step.Type == "Use" or step.Type == "Choice" or step.Type == "Chase" or step.Type == "Fight" then
 				target = sceneTarget(player, trackedId, step)
 				if not target and step.Place then
 					local spot = rt.Spots[spotKey(trackedId, prog)]
@@ -707,10 +726,11 @@ local advance -- se define más abajo
 
 local function sendChoice(player: Player, questId: string, step: { [string]: any })
 	local data = DataService.get(player)
-	local ctx = data and contextFor(player, data)
+	local ctx = if data then contextFor(player, data) else nil
 	local options = {}
 	for _, option in step.Options do
-		-- Solo las opciones que se pueden elegir (el servidor rechazaría las demás)
+		-- Opciones con If (la nota de corte de una carrera…): solo se ven si se cumplen
+		-- (el servidor rechazaría las demás)
 		if not option.If or (ctx and Conditions.check(option.If, ctx)) then
 			table.insert(options, { Id = option.Id, TextKey = option.Text or option.TextKey })
 		end
@@ -831,6 +851,20 @@ local function sceneFor(player: Player, data: Data, questId: string): ({ { [stri
 	addActors(quest.Actors)
 	if step then
 		addActors(step.Actors)
+		if step.Type == "Fight" then
+			-- Los enemigos que quedan en pie: te persiguen y el botón es para atacar
+			local enemies = {}
+			for _, enemy in step.Enemies or {} do
+				if not (prog.Sub and prog.Sub[enemy.Npc]) then
+					local spec = table.clone(enemy)
+					spec.Mode = spec.Mode or "Hunt"
+					spec.Action = spec.Action or step.Action or "Atacar"
+					spec.Place = spec.Place or step.Place
+					table.insert(enemies, spec)
+				end
+			end
+			addActors(enemies)
+		end
 		for _, id in step.Props or {} do
 			addProp(id)
 		end
@@ -975,6 +1009,7 @@ local story_defaults -- se define más abajo
 local processLater -- se define más abajo
 local resumeAll -- se define más abajo
 local groupDone -- se define más abajo
+local hitEnemy -- se define más abajo
 
 -- Prepara el paso actual de una misión. Los pasos "instantáneos" (Moment, Transition, If que no
 -- se cumple) se resuelven aquí mismo y se pasa al siguiente.
@@ -994,6 +1029,7 @@ local function enterStep(player: Player, data: Data, questId: string)
 		end
 		prog.Count = 0
 		prog.Sub = nil
+		prog.Hits = nil
 		prog.WaitUntil = nil
 		prog.Chatted = nil -- con quién se ha charlado ya en este paso (no se repite la conversación)
 		prog.DlgApplied = nil -- efectos de conversaciones ya aplicados en este paso
@@ -1030,6 +1066,9 @@ local function enterStep(player: Player, data: Data, questId: string)
 			prog.WaitUntil = waitTarget(step)
 		elseif step.Type == "Group" then
 			prog.Sub = {}
+		elseif step.Type == "Fight" then
+			prog.Sub = {}
+			prog.Hits = {}
 		elseif step.Type == "Choice" then
 			if not worldChoice(step) then
 				sendChoice(player, questId, step)
@@ -1351,7 +1390,11 @@ local function canOffer(player: Player, data: Data, questId: string): boolean
 	local story = storyOf(data)
 	local quest = Quests[questId]
 	local rt = runtime[player]
-	if not rt or rt.PendingOffer or story.Active[questId] or activeSideCount(story) >= CFG.MaxActiveSide then
+	if not rt or story.Active[questId] then
+		return false
+	end
+	-- Las canónicas (la saga) no esperan: no cuentan para el límite de secundarias ni se pueden rechazar
+	if not quest.Canon and (rt.PendingOffer or activeSideCount(story) >= CFG.MaxActiveSide) then
 		return false
 	end
 	local done = story.Completed[questId]
@@ -1359,7 +1402,7 @@ local function canOffer(player: Player, data: Data, questId: string): boolean
 		return false
 	end
 	local declined = story.Declined[questId]
-	if declined and os.time() - declined < CFG.DeclineCooldown then
+	if declined and not quest.Canon and os.time() - declined < CFG.DeclineCooldown then
 		return false
 	end
 	if not Schedules.isOpen(Schedules.forQuest(quest), GameClock.now().ClockTime) then
@@ -1381,10 +1424,58 @@ local function checkPlaceOffers(player: Player, data: Data)
 		if quest.Kind == "Side" and quest.Offer and quest.Offer.Place and canOffer(player, data, questId) then
 			local spot = LocationService.resolve(player, quest.Offer.Place)
 			if spot and LocationService.isAt(player, spot) then
-				offer(player, questId)
+				if quest.Canon then
+					-- Misión canónica: empieza sola al llegar (su marca estaba en el mapa)
+					moment(player, quest.OfferKey or quest.TitleKey, nil, "Momento")
+					startQuest(player, data, questId)
+				else
+					offer(player, questId)
+				end
 				return
 			end
 		end
+	end
+end
+
+-- Misiones canónicas disponibles: marca en el mapa y en el mundo hasta que las haces.
+-- Se publican en el atributo CanonMarks (JSON): { { Id, Title, X, Y, Z, From?, To? } }
+local function updateCanonMarks(player: Player, data: Data)
+	local rt = runtime[player]
+	local story = storyOf(data)
+	local ctx = contextFor(player, data)
+	local marks = {}
+	rt.CanonSpots = rt.CanonSpots or {}
+	for questId, quest in Quests do
+		if quest.Canon and quest.Offer and quest.Offer.Place and not story.Active[questId] and not story.Completed[questId] then
+			local req = quest.Requires
+			local hours = req and req.Hours
+			if hours then
+				req = table.clone(req)
+				req.Hours = nil
+			end
+			if Conditions.check(req, ctx) then
+				local spot = rt.CanonSpots[questId]
+				if not spot or not spot.Instance:IsDescendantOf(workspace) then
+					spot = LocationService.resolve(player, quest.Offer.Place)
+					rt.CanonSpots[questId] = spot
+				end
+				if spot then
+					table.insert(marks, {
+						Id = questId,
+						Title = quest.Title,
+						X = math.round(spot.Position.X), Y = math.round(spot.Position.Y), Z = math.round(spot.Position.Z),
+						From = hours and hours.From, To = hours and hours.To,
+					})
+				end
+			end
+		end
+	end
+	table.sort(marks, function(a, b)
+		return a.Id < b.Id
+	end)
+	local encoded = HttpService:JSONEncode(marks)
+	if player:GetAttribute("CanonMarks") ~= encoded then
+		player:SetAttribute("CanonMarks", encoded)
 	end
 end
 
@@ -1537,6 +1628,10 @@ local function checkReach(player: Player, data: Data, questId: string, prog: Pro
 		end
 	end
 	if spot and LocationService.isAt(player, spot) then
+		-- Hours = { From, To }: solo cuenta si llegas a esa hora (la luz del monte sale de madrugada)
+		if step.Hours and not Conditions.check({ Hours = step.Hours }, contextFor(player, data)) then
+			return false
+		end
 		storyOf(data).Discovered[stepPlace(step, storyOf(data)) or "?"] = true
 		return true
 	end
@@ -1668,6 +1763,32 @@ local function tickPlayer(player: Player, data: Data)
 			elseif since > 10 then
 				advance(player, data, questId)
 			end
+		elseif step.Type == "Escape" or step.Type == "Fight" then
+			-- Te persiguen: si te atrapan, vuelves al punto de partida (y en una huida, a empezar)
+			local rt = runtime[player]
+			local busy = rt.Busy or DialogueService.isBusy(player)
+			if not busy and (not rt.CaughtAt or os.clock() - rt.CaughtAt > 3) then
+				local by = SceneService.caught(player, questId, step.Catch or 3.5)
+				if by then
+					rt.CaughtAt = os.clock()
+					prog.Caught = (prog.Caught or 0) + 1
+					DialogueService.bark(player, by, step.CaughtLine or "¡Te tengo!")
+					if step.Respawn then
+						SceneService.teleport(player, step.Respawn)
+					end
+					if step.Type == "Escape" then
+						rt.StepStart[questId] = os.clock()
+					end
+					StoryEvents.emit(player, "Caught", { Quest = questId, By = by })
+				end
+			end
+			if step.Type == "Escape" then
+				local since = os.clock() - (rt.StepStart[questId] or os.clock())
+				local reached = step.Place ~= nil and checkReach(player, data, questId, prog, step)
+				if reached or (step.Seconds and since >= step.Seconds) then
+					advance(player, data, questId)
+				end
+			end
 		elseif step.Type == "Wait" then
 			-- Se acaba a la hora de juego que toca… o, pase lo que pase con el reloj, a los MaxSeconds reales
 			local rt = runtime[player]
@@ -1777,6 +1898,7 @@ local function slowTick(player: Player, data: Data)
 	end
 	discoverZone(player, data)
 	checkPlaceOffers(player, data)
+	updateCanonMarks(player, data)
 	processLater(player, data)
 	refresh(player)
 end
@@ -1904,6 +2026,34 @@ function LifeStoryService.Guard.bark(rt: { [string]: any }, npc: string, now: nu
 end
 
 -- El jugador ha hablado con un actor o usado un objeto de una escena (lo avisa SceneService)
+-- Un golpe (rayo, globo de agua, lo que diga la misión) a un enemigo del combate
+function hitEnemy(player: Player, data: Data, questId: string, prog: Progress, step: { [string]: any }, enemy: { [string]: any })
+	local hits = prog.Hits or {}
+	prog.Hits = hits
+	hits[enemy.Npc] = (hits[enemy.Npc] or 0) + 1
+	SceneService.hit(player, questId, enemy.Npc, step.BeamColor)
+	if hits[enemy.Npc] < (enemy.HP or step.HP or 3) then
+		if enemy.Hurt and hits[enemy.Npc] == 1 then
+			DialogueService.bark(player, enemy.Npc, enemy.Hurt)
+		end
+		return
+	end
+	local sub = prog.Sub or {}
+	prog.Sub = sub
+	sub[enemy.Npc] = true
+	prog.Count += 1
+	SceneService.defeat(player, questId, enemy.Npc)
+	if enemy.Bye then
+		DialogueService.bark(player, enemy.Npc, enemy.Bye)
+	end
+	StoryEvents.emit(player, "EnemyDefeated", { Quest = questId, Npc = enemy.Npc })
+	if prog.Count >= #(step.Enemies or {}) then
+		advance(player, data, questId)
+	else
+		publish(player)
+	end
+end
+
 function LifeStoryService.interact(player: Player, kind: string, questId: string, id: string)
 	local data = DataService.get(player)
 	local rt = runtime[player]
@@ -1924,6 +2074,18 @@ function LifeStoryService.interact(player: Player, kind: string, questId: string
 		return
 	end
 	local step = stepsOf(questId, prog)[prog.Step]
+	-- 0) Combate: el botón del enemigo es atacar
+	if step and step.Type == "Fight" then
+		for _, enemy in step.Enemies or {} do
+			if enemy.Npc == id then
+				if not (prog.Sub and prog.Sub[id]) and (not rt.LastHit or os.clock() - rt.LastHit >= 0.25) then
+					rt.LastHit = os.clock()
+					hitEnemy(player, data, questId, prog, step, enemy)
+				end
+				return
+			end
+		end
+	end
 	-- 1) Hablar con este personaje ES elegir (unirte a un grupo del recreo…)
 	if step and step.Type == "Choice" then
 		for _, option in step.Options do
@@ -2199,6 +2361,10 @@ function LifeStoryService.init()
 	StoryEvents.connect(onStoryEvent)
 	DataService.onLoaded(onLoaded)
 	SceneService.onInteract = LifeStoryService.interact
+	-- Frases sueltas: el bocadillo sale encima del actor de tu escena
+	DialogueService.setActorFinder(function(player, npc)
+		return SceneService.actorOf(player, npc)
+	end)
 	Players.PlayerRemoving:Connect(function(player)
 		runtime[player] = nil
 	end)

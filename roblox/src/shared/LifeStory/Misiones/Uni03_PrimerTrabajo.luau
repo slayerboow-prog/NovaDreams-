@@ -41,10 +41,10 @@ return {
 	Duration = { 20, 30 },
 	Difficulty = 2,
 	Type = "Historia · Trabajo",
-	Requires = { Completed = { "Uni02_ElProyecto" }, StageProgress = 0.36 },
+	Requires = { Completed = { "UniEx1_Enero" }, StageProgress = 0.27 },
 	Npcs = { "Familia", "Lola", "Omar", "Ernesto", "Rocio", "Alba", "Beltran" },
 	Locations = { "HomeSalon", "Biblioteca", "CafeteriaCentral", "Correos", "$Carrera.Facultad" },
-	Next = { "Uni04_Practicas" },
+	Next = { "UniEx2_Junio" },
 	Outcomes = { "Cafetería, reparto o clases particulares", "Cubrir el turno o estudiar", "Tu primera nómina" },
 
 	Moment = "Tu primer trabajo de universitario",

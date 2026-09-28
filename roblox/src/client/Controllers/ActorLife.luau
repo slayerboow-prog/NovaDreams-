@@ -25,6 +25,7 @@ local RunService = game:GetService("RunService")
 
 local Emotion = require(ReplicatedStorage.Shared.LifeStory.Emotion)
 local WorkAnim = require(script.Parent.WorkAnim)
+local SpeechBubbles = require(script.Parent.Parent.UI.SpeechBubbles)
 
 local ActorLife = {}
 
@@ -497,9 +498,9 @@ local function update(rig: Rig, t: number, dt: number)
 	rig.Pitch = smooth(rig.Pitch, wantPitch, 6, dt)
 
 	-- Hablar y emoción
-	-- Con su bocadillo de texto a la vista (Npc.say) también está hablando: deja la tarea y gesticula
-	local bubble = rig.Head:FindFirstChild("Bubble")
-	if bubble and bubble:IsA("BillboardGui") and bubble.Enabled and not rig.Me then
+	-- Con su bocadillo de texto a la vista (Npc.say, UI/SpeechBubbles) también está hablando: deja la
+	-- tarea y gesticula
+	if not rig.Me and (rig.Model:GetAttribute("Says") ~= nil or SpeechBubbles.isSpeaking(rig.Model)) then
 		rig.TalkUntil = math.max(rig.TalkUntil, t + 0.25)
 	end
 	local talking = t < rig.TalkUntil

@@ -132,8 +132,9 @@ end
 -- Hablar (con espera entre frase y frase)
 ---------------------------------------------------------------------
 
-local function say(player: Player, speakerKey: string, textKey: string, teacher: boolean)
-	SayRemote:FireClient(player, "Say", { SpeakerKey = speakerKey, TextKey = textKey, Role = if teacher then "Profe" else "Nino" })
+-- speaker: el modelo de quien habla (su bocadillo sale encima de él)
+local function say(player: Player, speakerKey: string, textKey: string, teacher: boolean, speaker: Model?)
+	SayRemote:FireClient(player, "Say", { SpeakerKey = speakerKey, TextKey = textKey, Role = if teacher then "Profe" else "Nino", Speaker = speaker })
 end
 
 -- ¿Puede decirte algo ya? (una frase cada SchoolLife.TalkCooldown segundos por personaje)
@@ -159,9 +160,9 @@ local function onTalk(person: Person, player: Player)
 		if first then
 			LifeStoryService.remember(player, person.Id, "SeConocen")
 			LifeStoryService.addAffinity(player, person.Id, 1)
-			say(player, nameKey, lines.First, not person.Kid)
+			say(player, nameKey, lines.First, not person.Kid, person.Model)
 		else
-			say(player, nameKey, lines.Lines[math.random(1, #lines.Lines)], not person.Kid)
+			say(player, nameKey, lines.Lines[math.random(1, #lines.Lines)], not person.Kid, person.Model)
 		end
 		-- Te mira mientras te habla (si está quieto)
 		local root = person.Root

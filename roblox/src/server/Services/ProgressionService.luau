@@ -215,6 +215,16 @@ local function tickStamina(dt: number)
 	end
 end
 
+-- Estamina al máximo (al despertarse después de dormir)
+function ProgressionService.restoreStamina(player: Player)
+	local runner = runners[player]
+	if runner then
+		runner.Stamina = maxStamina(player)
+		runner.Shown = math.floor(runner.Stamina + 0.5)
+		player:SetAttribute("Stamina", runner.Shown)
+	end
+end
+
 function ProgressionService.init()
 	DataService.onLoaded(function(player, data)
 		ensure(data)

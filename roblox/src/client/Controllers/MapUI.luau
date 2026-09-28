@@ -24,6 +24,7 @@ local Theme = require(script.Parent.Parent.UI.Theme)
 local Icons = require(script.Parent.Parent.UI.Icons)
 local HudLayout = require(script.Parent.Parent.UI.HudLayout)
 local Gps = require(script.Parent.Gps)
+local CanonMarkers = require(script.Parent.CanonMarkers)
 
 local create = Theme.create
 local C = Theme.Colors
@@ -67,6 +68,7 @@ type Layer = {
 	Dots: { [Player]: Frame },
 	Icons: { { Holder: GuiObject, Kind: string } },
 	Scalers: { UIScale },
+	Canon: { [string]: TextLabel }, -- misiones canónicas pendientes (❗ dorado)
 }
 
 local roads: { Road } = {}
@@ -301,6 +303,7 @@ local function buildLayer(parent: Instance, scale: number, detailed: boolean): L
 		Dots = {},
 		Icons = {},
 		Scalers = {},
+		Canon = {},
 	}
 	-- Isla: arena en la orilla y hierba dentro (franjas horizontales del polígono de la costa)
 	-- (en el minimapa, franjas más gruesas: menos piezas que redibujar al moverse)
@@ -593,6 +596,33 @@ local function updateLayer(layer: Layer, root: BasePart?, clampTo: number?)
 	end
 	place(layer, layer.Target, if typeof(target) == "Vector3" then target else nil, root, clampTo)
 	place(layer, layer.Waypoint, if waypoint then waypoint.Position else nil, root, clampTo)
+
+	-- Misiones canónicas pendientes: un ❗ dorado donde empiezan (siempre, hasta que las haces)
+	local seenCanon = {}
+	for _, mark in CanonMarkers.list() do
+		seenCanon[mark.Id] = true
+		local label = layer.Canon[mark.Id]
+		if not label then
+			label = marker("❗", Color3.fromRGB(255, 200, 60), 18, layer.Frame, 5)
+			layer.Canon[mark.Id] = label
+		end
+		local p = toPixel(layer, mark.X, mark.Z)
+		if clampTo and root then
+			local me = toPixel(layer, root.Position.X, root.Position.Z)
+			local offset = p - me
+			if offset.Magnitude > clampTo then
+				p = me + offset.Unit * clampTo
+			end
+		end
+		label.Position = UDim2.fromOffset(p.X, p.Y)
+		label.Visible = true
+	end
+	for id, label in layer.Canon do
+		if not seenCanon[id] then
+			label:Destroy()
+			layer.Canon[id] = nil
+		end
+	end
 
 	-- Los demás jugadores (puntos azules)
 	local seen = {}

@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Hud = require(script.Parent.UI.Hud)
 local Store = require(script.Parent.UI.Store)
+local SpeechBubbles = require(script.Parent.UI.SpeechBubbles)
 local TaskMarker = require(script.Parent.Controllers.TaskMarker)
 local Ambient = require(script.Parent.Controllers.Ambient)
 local Weather = require(script.Parent.Controllers.Weather)
@@ -77,6 +78,7 @@ local Joystick = require(script.Parent.Controllers.Joystick)
 local Gps = require(script.Parent.Controllers.Gps)
 local CommandMenu = require(script.Parent.Commands.CommandMenu)
 local DefaultCommands = require(script.Parent.Commands.DefaultCommands)
+local CanonMarkers = require(script.Parent.Controllers.CanonMarkers)
 
 local gui = Hud.init(function()
 	Store.open()
@@ -86,6 +88,7 @@ TaskMarker.init()
 require(script.Parent.UI.Perf).stripDetails() -- móvil: sin los detalles pequeños de la calle
 DayLight.init() -- luz realista según la hora (amanecer, mediodía, atardecer, noche)
 StoryAudio.init() -- música, efectos y voces de la historia (botón 🔊)
+task.spawn(SpeechBubbles.init) -- bocadillos encima de cada personaje que habla (lo que dice la gente del servidor)
 task.spawn(LifeStory.init) -- historia de vida (tarjeta "Tu vida", momentos, decisiones)
 task.spawn(Baby.init) -- tutorial de bebé (botón de levantarse, familia, vista de la ciudad)
 task.spawn(ClassUI.init) -- clases y exámenes que se juegan
@@ -95,6 +98,7 @@ task.spawn(InventoryUI.init) -- mochila estilo Minecraft (barra rápida 1-9, tec
 task.spawn(DialogueUI.init) -- conversaciones de las misiones (con respuestas y cámara)
 task.spawn(MiniGameUI.init) -- pase, canastas, partido de fútbol
 task.spawn(SceneClient.init) -- cada uno ve solo los personajes de su historia
+task.spawn(CanonMarkers.init) -- la saga: ❗ dorados en el mapa y pilares de luz hasta que haces cada misión canónica
 task.spawn(ActorLife.init) -- los personajes respiran, miran, gesticulan al hablar y andan con animación
 task.spawn(AgeMotion.init) -- cada edad se mueve a su manera: el bebé gatea, los mayores van encorvados…
 task.spawn(ReactMotion.init) -- golpes con cuerpo y choques: balón, piedras, arena, arbustos y charcos

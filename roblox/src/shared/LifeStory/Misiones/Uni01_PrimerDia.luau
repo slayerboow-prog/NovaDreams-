@@ -52,7 +52,7 @@ return {
 	Type = "Historia · Nueva etapa",
 	Npcs = { "Familia", "Abu", "Luca", "Sara", "Beltran", "Julia", "Adrian", "Carla", "Mateo", "Omar", "Nico", "Leire", "Hugo" },
 	Locations = { "HomeSalon", "ParadaBus", "Universidad", "$Carrera.Facultad", "Biblioteca", "EstadioUniversitario" },
-	Next = { "Uni02_ElProyecto" },
+	Next = { "Uni01b_Residencia" },
 	Outcomes = { "Con quién comes el primer día", "Qué descubres del campus" },
 
 	Moment = "Tu primer día de universidad",
@@ -73,6 +73,15 @@ return {
 		{ Type = "Event", Event = "Traveled", Match = { Town = "Campus Valmar" }, Place = "ParadaBus", Text = "Coge el autobús al Campus Valmar" },
 		{ Type = "Reach", Place = "Universidad", Text = "Llega a la entrada principal de la universidad", Actors = ENTRADA },
 		{ Type = "Scene", Dialogue = "Campus", Actors = ENTRADA },
+		-- La matrícula: aquí se elige la carrera. Solo salen las que permite tu nota de selectividad.
+		{ Type = "Choice", Key = "Estudios", Text = "Matrícula: ¿qué carrera quieres estudiar? (según tu nota de selectividad)",
+			Options = {
+				{ Id = "Medicina", Text = "Medicina (nota de corte: 8)", If = { Flags = { "Acceso8" } } },
+				{ Id = "Ingenieria", Text = "Ingeniería (nota de corte: 7)", If = { Flags = { "Acceso7" } } },
+				{ Id = "Derecho", Text = "Derecho (nota de corte: 6)", If = { Flags = { "Acceso6" } } },
+				{ Id = "Economia", Text = "Economía (nota de corte: 5)" },
+			},
+			Actors = ENTRADA },
 		{ Type = "Use", Prop = "Secretaria", Text = "Recoge tu horario en secretaría", Actors = ENTRADA },
 
 		-- Tu facultad
@@ -103,15 +112,16 @@ return {
 				{ Npc = "Adrian", Place = "Universidad", Offset = V(-14, 0, 6), Mode = "Chat" },
 			} },
 
-		-- Por la noche
-		{ Type = "Transition", Text = "Esa noche…", Seconds = 3 },
-		{ Type = "Scene", Dialogue = "Mensajes", Teleport = "HomeSalon", Actors = CASA },
+		-- Por la noche: tu primera noche en la residencia
+		{ Type = "Transition", Text = "Esa noche, en la residencia de estudiantes…", Seconds = 3 },
+		{ Type = "Scene", Dialogue = "Mensajes", Teleport = "HabitacionResidencia" },
 	},
 
 	Dialogues = {
 		Despedida = { Lines = {
 			{ S = "Familia", T = "¿Llevas todo? ¿El carnet? ¿Agua? ¿El cargador? Perdona. Es la costumbre." },
 			{ S = "Familia", T = "¡Universidad! ¡{nombre} en la universidad! Me acuerdo de cuando no llegabas al pomo de la puerta." },
+			{ S = "Familia", T = "Y a vivir en la residencia… Te he metido tápers en la maleta. Siete. Uno por día. Luego ya, a hacerte la compra tú." },
 			{ S = "Abu", T = "Ven aquí. Toma. Era mío. Lo llevé el día que empecé a trabajar. Ahora te toca a ti." },
 			{ S = "Narrador", T = "{abu} te da un reloj viejo, con la correa gastada. Todavía funciona. Hace tic-tac muy bajito." },
 			{ Ask = "¿Qué le dices?", Options = {
@@ -126,7 +136,7 @@ return {
 		Campus = { Lines = {
 			{ S = "Narrador", T = "El campus es una ciudad dentro de la ciudad: facultades, jardines, bicis, gente de todas partes hablando en cuatro idiomas." },
 			{ S = "Luca", T = "Ciao! ¿Primer año? Se te nota: todos los de primero miráis hacia arriba. Soy Luca, voluntario de bienvenida. De Bolonia." },
-			{ S = "Luca", T = "Primer paso: secretaría, a por el horario. Sin horario no existes. Es un poco como la pasta sin sal." },
+			{ S = "Luca", T = "Primer paso: secretaría. Matrícula y horario. Allí eliges tu carrera de verdad, con tu nota de selectividad. Sin matrícula no existes. Es un poco como la pasta sin sal." },
 			{ S = "Sara", T = "¡{nombre}! Te he visto desde la facultad de Ciencias. ¡Estamos en el mismo campus! Esto va a ser genial." },
 		} },
 		Secretaria = { Lines = {
@@ -180,7 +190,8 @@ return {
 			{ S = "Nico", T = "(mensaje) Entreno con el juvenil de Altamar. Me han llamado «el nuevo». Tengo diecinueve años de «nuevo» por delante." },
 			{ S = "Leire", T = "(mensaje) Primer día en la escuela de cine. Aquí todos hablan en planos. Me siento en casa. Os echo de menos.", If = CON_LEIRE },
 			{ S = "Hugo", T = "(mensaje) La facultad de Periodismo tiene una redacción de verdad. Ya he escrito mi primer artículo. Era sobre piratas.", If = CON_HUGO },
-			{ S = "Familia", T = "¿Qué tal ha ido? ¿Has comido? ¿Has hecho amigos? Cuéntamelo todo. Bueno, lo que quieras." },
+			{ S = "Familia", T = "(mensaje) ¿Qué tal ha ido? ¿Has comido? ¿Has hecho amigos? ¿Te has comido el táper del lunes? Cuéntamelo todo. Bueno, lo que quieras." },
+			{ S = "Narrador", T = "En la habitación hay dos camas más. Tus compañeros de cuarto llegan mañana del todo. Por ahora, hay una maleta con pegatinas de grupos de música y una caja con etiquetas de colores." },
 			{ S = "Narrador", T = "Esa noche, antes de dormir, das cuerda al reloj de {abu}. Tic-tac. Empieza algo nuevo." },
 		} },
 	},

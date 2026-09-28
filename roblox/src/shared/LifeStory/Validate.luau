@@ -14,7 +14,7 @@ local Emotion = require(script.Parent.Emotion)
 -- Lo que puede estar haciendo un personaje en una escena (SceneService)
 local ACTOR_MODES = {
 	Idle = true, Sit = true, Wave = true, Cheer = true, Point = true, Dance = true, Laugh = true,
-	Chat = true, Wander = true, Follow = true, Flee = true,
+	Chat = true, Wander = true, Follow = true, Flee = true, Hunt = true,
 }
 local Config = require(script.Parent.Parent.Config)
 local Subjects = require(script.Parent.Subjects)
@@ -34,6 +34,8 @@ local STEP_TYPES = {
 	Use = { "Prop" },
 	MiniGame = { "Game" },
 	Chase = { "Npc" },
+	Fight = { "Enemies" },
+	Escape = {},
 	Wait = { "GameMinutes" },
 	Group = { "Steps" },
 	Moment = {},
@@ -52,6 +54,7 @@ local PROP_KINDS = {
 	Balon = true, Armario = true, Espejo = true, Desayuno = true, Almohada = true, Perchero = true, Papelera = true,
 	Asiento = true, Canasta = true, Kiosco = true, Banco = true, Escarabajo = true, Mural = true, Gato = true,
 	Autobus = true, Caja = true, Marcador = true, Animal = true, Trofeo = true,
+	Nave = true, Portal = true, Maquina = true, Huevo = true, Cristal = true, Cohete = true, Moco = true, Pantalla = true,
 }
 local TRAITS = { Humor = true, Empatia = true, Valentia = true, Responsabilidad = true, Curiosidad = true, Deportividad = true, Creatividad = true, Rebeldia = true }
 local EFFECTS = {
@@ -134,6 +137,23 @@ function Validate.mission(id: string, quest: { [string]: any }, err: (string, ..
 		elseif s.Type == "Group" then
 			for i, child in s.Steps do
 				checkStep(where .. ".g" .. i, child)
+			end
+		elseif s.Type == "Fight" then
+			if #(s.Enemies or {}) == 0 then
+				err("%s: un combate necesita enemigos", where)
+			end
+			for i, enemy in s.Enemies or {} do
+				actor(where .. ".enemy" .. i, { Npc = enemy.Npc, Place = enemy.Place or s.Place, Mode = enemy.Mode or "Hunt" })
+			end
+			if s.Respawn then
+				helpers.place(where .. ".Respawn", if type(s.Respawn) == "table" then s.Respawn.Place else s.Respawn)
+			end
+		elseif s.Type == "Escape" then
+			if not s.Place and not s.Seconds then
+				err("%s: una huida necesita Place (a dónde huir) o Seconds (cuánto aguantar)", where)
+			end
+			if s.Respawn then
+				helpers.place(where .. ".Respawn", if type(s.Respawn) == "table" then s.Respawn.Place else s.Respawn)
 			end
 		end
 	end
@@ -536,7 +556,7 @@ function Validate.run(): { string }
 				err("carrera %s: lugar desconocido '%s'", id, tostring(degree[field]))
 			end
 		end
-		for _, field in { "Asignatura1", "Asignatura2", "Practica" } do
+		for _, field in { "Asignatura1", "Asignatura2", "Practica", "Fisico" } do
 			if not Subjects.List[degree[field]] then
 				err("carrera %s: asignatura desconocida '%s'", id, tostring(degree[field]))
 			end
