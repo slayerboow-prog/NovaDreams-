@@ -13,6 +13,7 @@ local Nudge = require(script.Parent.Controllers.Nudge)
 local StoryAudio = require(script.Parent.Controllers.StoryAudio)
 local DayLight = require(script.Parent.Controllers.DayLight)
 local LifeStory = require(script.Parent.Controllers.LifeStory)
+local Prologue = require(script.Parent.Controllers.Prologue)
 local Baby = require(script.Parent.Controllers.Baby)
 local ClassUI = require(script.Parent.Controllers.ClassUI)
 local MapUI = require(script.Parent.Controllers.MapUI)
@@ -96,6 +97,7 @@ DayLight.init() -- luz realista según la hora (amanecer, mediodía, atardecer, 
 StoryAudio.init() -- música, efectos y voces de la historia (botón 🔊)
 task.spawn(SpeechBubbles.init) -- bocadillos encima de cada personaje que habla (lo que dice la gente del servidor)
 task.spawn(LifeStory.init) -- historia de vida (tarjeta "Tu vida", momentos, decisiones)
+task.spawn(Prologue.init) -- prólogo jugable («El sueño»): tarjeta de ayuda de cada control y "Saltar"
 task.spawn(Baby.init) -- tutorial de bebé (botón de levantarse, familia, vista de la ciudad)
 task.spawn(ClassUI.init) -- clases y exámenes que se juegan
 task.spawn(Gps.init) -- GPS: ruta por las calles hasta tu destino (mapas, flechas en el suelo e indicación)
@@ -198,6 +200,12 @@ task.spawn(CommandMenu.init)
 -- Acciones de los comandos (Objetos y Mapa)
 Hud.setAction("Mochila", InventoryUI.toggle)
 Hud.setAction("Mapa", MapUI.toggleBig)
+
+-- 📖 «Mi historia» en el menú (capítulos, personajes y recuerdos; también en la tarjeta "Tu vida" y con J)
+Hud.addMenuToggle("📖 Mi historia", 0, function()
+	LifeStory.openJournal()
+	return "📖 Mi historia"
+end)
 
 -- Música on/off en el menú (sustituye al botón suelto 🔊)
 local musicOn = true

@@ -33,6 +33,17 @@ do
 end
 TerrainBuilder.removeGroundPart()
 
+-- 3b) El sueño del prólogo: una isla pequeña en el cielo donde los personajes nuevos aprenden los
+--     controles (Misiones/Prologo_Sueno). Si falla, el prólogo no empieza y se juega normal.
+do
+	local ok, err = pcall(function()
+		require(World.Kit.DreamIsland).build()
+	end)
+	if not ok then
+		warn("[DreamIsland] " .. tostring(err))
+	end
+end
+
 -- 4) Datos para el tráfico y los peatones que simula cada cliente
 local Roads = require(World.Kit.Roads)
 local segments = {}

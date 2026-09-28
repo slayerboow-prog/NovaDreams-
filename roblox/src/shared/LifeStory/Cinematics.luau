@@ -471,6 +471,49 @@ local Cinematics: { [string]: Cinematic } = {
 			{ At = 3, TextKey = "CHAPTER.NUEVA_VIDA.OUTRO", Duration = 5 },
 		},
 	},
+
+	-- PRÓLOGO (el sueño): qué es el juego y el gancho de la saga, antes de jugar el tutorial.
+	-- Pasa en la isla del sueño (World/Kit/DreamIsland). La línea verde del cielo es la Grieta.
+	Prologo_Apertura = {
+		Duration = 17,
+		FadeIn = true,
+		Music = "TemaValmar",
+		Anchors = { Inicio = "Place:PrologoInicio", Puerta = "Place:PrologoPuerta" },
+		Shots = {
+			{ From = { "Inicio", V(-30, 45, 40) }, To = { "Inicio", V(40, 55, 34) }, Look = { "Puerta", V(-60, 70, 0) }, Duration = 7, Shake = 0.2 },
+			{ From = { "Puerta", V(-40, 12, 26) }, To = { "Puerta", V(-22, 8, 16) }, Look = { "Puerta", V(0, 3, 0) }, Duration = 5, Dip = true },
+			{ Orbit = "Inicio", Radius = 9, Height = 4, FromAngle = 200, ToAngle = 300, Duration = 5, Dip = true, LookHeight = 1.5 },
+		},
+		Titles = {
+			{ At = 0.8, TextKey = "CINE.PROLOGO.VALMAR", SubKey = "CINE.PROLOGO.VIDA", Duration = 4 },
+			{ At = 13.4, TextKey = "CINE.PROLOGO.SUENO", SubKey = "CINE.PROLOGO.SUENO_SUB", Duration = 3.3 },
+		},
+		Lines = {
+			{ At = 5, Speaker = "Narrador", TextKey = "CINE.PROLOGO.ELIGES" },
+			{ At = 8.4, Speaker = "Narrador", TextKey = "CINE.PROLOGO.GRIETA" },
+			{ At = 11.4, Speaker = "Narrador", TextKey = "CINE.PROLOGO.COSME" },
+		},
+	},
+
+	-- Fin del prólogo: la cámara sube hacia la Grieta y el sueño se apaga. Explica los tres tipos de
+	-- misión y deja paso al nacimiento (Bebe_Nacimiento, primer capítulo).
+	Prologo_Cierre = {
+		Duration = 14,
+		FadeOut = true,
+		Music = "Nacimiento",
+		Anchors = { Puerta = "Place:PrologoPuerta" },
+		Shots = {
+			{ From = { "Puerta", V(-12, 4, 12) }, To = { "Puerta", V(-12, 60, 60) }, Look = { "Puerta", V(0, 3, 0) }, LookTo = { "Puerta", V(-70, 70, 0) }, Duration = 14, Easing = "In" },
+		},
+		Lines = {
+			{ At = 0.5, Speaker = "Narrador", TextKey = "CINE.PROLOGO.DESPIERTA" },
+		},
+		Titles = {
+			{ At = 3, TextKey = "CINE.PROLOGO.T_VIDA", SubKey = "CINE.PROLOGO.S_VIDA", Duration = 3.1 },
+			{ At = 6.4, TextKey = "CINE.PROLOGO.T_LOCA", SubKey = "CINE.PROLOGO.S_LOCA", Duration = 3.1 },
+			{ At = 9.8, TextKey = "CINE.PROLOGO.T_SAGA", SubKey = "CINE.PROLOGO.S_SAGA", Duration = 3.4 },
+		},
+	},
 }
 
 return Cinematics

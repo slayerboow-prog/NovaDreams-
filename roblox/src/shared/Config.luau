@@ -73,6 +73,11 @@ Config.LifeStory = {
 	DeclineCooldown = 600, -- segundos reales antes de volver a ofrecer una secundaria rechazada
 	MaxLifeEvents = 200, -- acontecimientos guardados en la biografía
 	ReachPadding = 14, -- studs de margen alrededor de un edificio para contar como "has llegado"
+	-- Prólogo jugable («El sueño», tutorial de controles) para personajes nuevos, una sola vez
+	Prologue = true,
+	PrologueMaxSeconds = 480, -- tope real: si se atasca, se cierra solo y se sigue con el juego normal
+	-- «Anteriormente en tu vida…»: al volver al juego, si llevabas fuera al menos este tiempo
+	RecapMinAwaySeconds = 60,
 	-- Horas de juego que dura cada etapa. Los grandes momentos se reparten por esas horas y entre
 	-- ellos se viven días normales generados (DayPlans). El bebé es un tutorial corto (sin horas).
 	StageHours = {

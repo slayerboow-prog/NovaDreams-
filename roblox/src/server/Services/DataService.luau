@@ -97,6 +97,10 @@ local DEFAULT_DATA = {
 		Memories = {}, -- grandes recuerdos (primer día de cole, primer amigo…)
 		Later = {}, -- consecuencias diferidas: lo que pasará dentro de X horas de juego
 		Clock = 0, -- segundos jugados con la historia (reloj de las consecuencias)
+		PrologueDone = false, -- el prólogo («El sueño») ya se vio: os.time() al terminarlo o saltarlo
+		PrologueResult = "", -- cómo acabó: "Done", "Skipped", "Error", "Timeout", "Left", "Veteran"…
+		LastSeen = 0, -- última vez que se le vio jugando (os.time): para «Anteriormente en tu vida…»
+		RecapAt = 0, -- cuándo se enseñó el último resumen
 	},
 	-- Primeros pasos (OnboardingService): el tutorial guiado ("" = sin decidir, "Pendiente", "Hecho",
 	-- "Saltado" o "Veterano"), los pasos ya hechos y los consejos de la primera vez ya vistos
@@ -412,6 +416,11 @@ function DataService.newLife(player: Player)
 	-- El tutorial y los consejos ya vistos no se repiten en la vida nueva
 	fresh.Onboarding = data.Onboarding
 	fresh.Life.Stage = Config.LifeStory.NewCharacterStage
+	-- El prólogo (tutorial) ya lo vio: no se repite solo (se puede volver a jugar desde «Mi historia»)
+	if data.Story and data.Story.PrologueDone then
+		fresh.Story.PrologueDone = data.Story.PrologueDone
+		fresh.Story.PrologueResult = "NewLife"
+	end
 	profiles[player] = fresh
 	DataService.save(player, true)
 	profiles[player] = nil -- que el guardado al salir no pise la vida nueva

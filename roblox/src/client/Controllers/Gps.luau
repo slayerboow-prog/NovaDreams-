@@ -322,7 +322,8 @@ local function update()
 	if changed or off then
 		lastReroute = now
 		routeTarget = dest.Position
-		local underground = position.Y < UNDERGROUND or dest.Position.Y < UNDERGROUND
+		-- (bajo tierra o en el sueño del prólogo no hay calles: línea recta)
+		local underground = position.Y < UNDERGROUND or dest.Position.Y < UNDERGROUND or player:GetAttribute("InPrologue") == true
 		route = if graph and not underground then GpsMath.route(graph, position, dest.Position) or straight(position, dest.Position) else straight(position, dest.Position)
 		lastIndex = -1
 		lastMarkPosition = nil

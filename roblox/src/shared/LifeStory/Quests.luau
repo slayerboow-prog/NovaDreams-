@@ -43,6 +43,8 @@ export type Quest = {
 	DayPlan: string?, -- día generado (DayPlans.luau): los pasos se crean al empezar
 	-- Misiones episódicas (Misiones/*.luau, docs/historia/11): escenas, diálogos y minijuegos
 	Title: string?,
+	Description: string?, -- quién te lo pide y por qué, en una frase sencilla (se ve al ofrecerla y al empezar)
+	Type: string?,
 	Moment: string?,
 	Memory: string?,
 	Props: { [string]: any }?,
@@ -58,6 +60,7 @@ local Quests: { [string]: Quest } = {
 	Bebe_AprendeACaminar = {
 		Kind = "Main",
 		TitleKey = "QUEST.BEBE_CAMINAR.TITLE",
+		Description = "Acabas de nacer y tu familia te mira con ilusión. Hoy te toca levantarte y dar tus primeros pasos hasta tu abu.",
 		Steps = {
 			{ Type = "Event", Event = "BabyStood", TextKey = "QUEST.BEBE_CAMINAR.S1" },
 			{ Type = "Event", Event = "BabySteps", Count = 5, TextKey = "QUEST.BEBE_CAMINAR.S2" },
@@ -70,6 +73,7 @@ local Quests: { [string]: Quest } = {
 	Bebe_ExploraLaCasa = {
 		Kind = "Main",
 		TitleKey = "QUEST.BEBE_CASA.TITLE",
+		Description = "Ya caminas. Tu casa está llena de cosas nuevas: la cocina, la tele, los juguetes… y tu familia quiere enseñártelas.",
 		Requires = { Completed = { "Bebe_AprendeACaminar" } },
 		Steps = {
 			{
@@ -88,6 +92,7 @@ local Quests: { [string]: Quest } = {
 	Bebe_HoraDeSalir = {
 		Kind = "Main",
 		TitleKey = "QUEST.BEBE_SALIR.TITLE",
+		Description = "Por el ventanal se ve Valmar, la ciudad donde vas a crecer. Asómate: ahí fuera te espera tu vida.",
 		Requires = { Completed = { "Bebe_ExploraLaCasa" } },
 		Steps = {
 			{ Type = "Event", Event = "LookedOutside", Place = "Ventanal", TextKey = "QUEST.BEBE_SALIR.S1" },
@@ -103,6 +108,7 @@ local Quests: { [string]: Quest } = {
 	Nino_Recados = {
 		Kind = "Main",
 		TitleKey = "QUEST.RECADOS.TITLE",
+		Description = "Tu familia confía en ti: te pide que compres el material del cole y unas medicinas, y que vuelvas a casa.",
 		Requires = { Completed = { "Cole06_Examen" }, StageProgress = 0.36 },
 		Steps = {
 			{ Type = "Event", Event = "BoughtItem", Match = { ShopId = "Libreria" }, Place = "Libreria", TextKey = "QUEST.RECADOS.MATERIAL" },
@@ -117,6 +123,7 @@ local Quests: { [string]: Quest } = {
 	Nino_Jornada = {
 		Kind = "Main",
 		TitleKey = "QUEST.DIA_COLE.TITLE",
+		Description = "Un día normal de cole: clases, recreo con tus amigos y vuelta a casa. Los días normales también cuentan.",
 		DayPlan = "SchoolDay",
 		Repeatable = true,
 		Steps = {},
@@ -131,6 +138,7 @@ local Quests: { [string]: Quest } = {
 	Adol_Jornada = {
 		Kind = "Main",
 		TitleKey = "QUEST.DIA_INSTITUTO.TITLE",
+		Description = "Un día normal de instituto: clases, amigos y, a veces, algo que hacer después.",
 		DayPlan = "HighSchoolDay",
 		Repeatable = true,
 		Steps = {},
@@ -145,6 +153,7 @@ local Quests: { [string]: Quest } = {
 	Uni_Jornada = {
 		Kind = "Main",
 		TitleKey = "QUEST.DIA_UNI.TITLE",
+		Description = "Un día normal de universidad: clases de tu carrera, estudio y la vida del campus.",
 		DayPlan = "UniversityDay",
 		Repeatable = true,
 		Steps = {},
@@ -158,6 +167,7 @@ local Quests: { [string]: Quest } = {
 	Nino_TuBarrio = {
 		Kind = "Main",
 		TitleKey = "QUEST.BARRIO.TITLE",
+		Description = "Ya eres mayor para salir a jugar. Conoce el parque y el colegio de tu barrio.",
 		Steps = {
 			{ Type = "Reach", Place = "Parque", TextKey = "QUEST.BARRIO.PARQUE" },
 			{ Type = "Reach", Place = "Colegio", TextKey = "QUEST.BARRIO.COLEGIO" },
@@ -173,6 +183,7 @@ local Quests: { [string]: Quest } = {
 	Adulto_LlegadaValmar = {
 		Kind = "Main",
 		TitleKey = "QUEST.LLEGADA.TITLE",
+		Description = "Acabas de llegar a Valmar para empezar una vida nueva. Necesitas un sitio donde vivir y algo que comer.",
 		Steps = {
 			{ Type = "Reach", Place = "PlazaCentro", TextKey = "QUEST.LLEGADA.PLAZA" },
 			{ Type = "Event", Event = "HomeClaimed", TextKey = "QUEST.LLEGADA.CASA", If = { NotFlags = { "TieneHogar" } } }, -- si ya te independizaste en la universidad, no hace falta
@@ -184,6 +195,7 @@ local Quests: { [string]: Quest } = {
 	Adulto_PrimerSueldo = {
 		Kind = "Main",
 		TitleKey = "QUEST.SUELDO.TITLE",
+		Description = "Para vivir en Valmar hace falta dinero. Busca un trabajo y gánate tu primer sueldo.",
 		Requires = { Completed = { "Adulto_LlegadaValmar" } },
 		Steps = {
 			{ Type = "Event", Event = "JobTaskDone", Count = 3, TextKey = "QUEST.SUELDO.TRABAJA" },
@@ -194,6 +206,7 @@ local Quests: { [string]: Quest } = {
 	Adulto_ConoceLaRegion = {
 		Kind = "Main",
 		TitleKey = "QUEST.REGION.TITLE",
+		Description = "Valmar es mucho más que el centro. Elige a dónde ir de excursión y descubre la región.",
 		Requires = { Completed = { "Adulto_PrimerSueldo" } },
 		Steps = {
 			{
@@ -222,6 +235,7 @@ local Quests: { [string]: Quest } = {
 	Side_MochilaPerdida = {
 		Kind = "Side",
 		TitleKey = "QUEST.MOCHILA.TITLE",
+		Description = "Una niña ha perdido su mochila en el parque y está muy preocupada. Ayúdala a encontrarla.",
 		Offer = { Place = "Colegio" },
 		OfferKey = "QUEST.MOCHILA.OFFER",
 		Requires = { Hours = { From = 8, To = 20 } },
@@ -235,6 +249,7 @@ local Quests: { [string]: Quest } = {
 	Side_MedicinasUrgentes = {
 		Kind = "Side",
 		TitleKey = "QUEST.MEDICINAS.TITLE",
+		Description = "Alguien necesita sus medicinas hoy mismo. Correos te pide que lleves el paquete al centro de salud.",
 		Offer = { Event = "JobTaskDone", Match = { JobId = "Repartidor" } },
 		OfferKey = "QUEST.MEDICINAS.OFFER",
 		Repeatable = true,
@@ -249,6 +264,7 @@ local Quests: { [string]: Quest } = {
 	Side_TardeDePlaya = {
 		Kind = "Side",
 		TitleKey = "QUEST.PLAYA.TITLE",
+		Description = "Hace buen día en Playa Dorada. Tómate un descanso: merienda algo y mira el atardecer.",
 		Offer = { Place = "Playa" },
 		OfferKey = "QUEST.PLAYA.OFFER",
 		Requires = { Hours = { From = 10, To = 21 } },

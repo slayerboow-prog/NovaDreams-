@@ -6,6 +6,7 @@
 local Misiones = script.Parent.Misiones
 
 return {
+	require(Misiones.Prologo_Sueno), -- el prólogo jugable (tutorial de controles): lo lanza LifeStoryService
 	require(Misiones.Cole01_PrimerDia),
 	require(Misiones.Cole02_Mochila),
 	require(Misiones.Cole03_Grupo),

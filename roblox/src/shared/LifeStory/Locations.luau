@@ -208,6 +208,15 @@ Locations.Places = {
 	Granja = { NameKey = "PLACE.GRANJA", Model = "Granja", Zone = "Villaverde" },
 	GranjaGranero = { NameKey = "Granero", Model = "Granja", Child = "Granero", Zone = "Villaverde", Fallback = "Granja" },
 	GranjaSilo = { NameKey = "Silo", Model = "Granja", Child = "Silo", Zone = "Villaverde", Fallback = "Granja" },
+
+	-- El sueño del prólogo: una isla pequeña en el cielo (World/Kit/DreamIsland). Sin Fallback: si la
+	-- isla no existe, el prólogo no empieza (y el vigilante da por hechos los pasos que falten).
+	PrologoInicio = { NameKey = "El sueño", Tag = "StorySpot", Attribute = { SpotId = "Prologo_Inicio" }, Radius = 6 },
+	PrologoCamino = { NameKey = "El círculo de luz", Tag = "StorySpot", Attribute = { SpotId = "Prologo_Camino" }, Radius = 5 },
+	PrologoSalto = { NameKey = "Detrás de la valla de flores", Tag = "StorySpot", Attribute = { SpotId = "Prologo_Salto" }, Radius = 6 },
+	PrologoCosme = { NameKey = "El inventor de la bata", Tag = "StorySpot", Attribute = { SpotId = "Prologo_Cosme" }, Radius = 6 },
+	PrologoTornillo = { NameKey = "El tornillo que brilla", Tag = "StorySpot", Attribute = { SpotId = "Prologo_Tornillo" }, Radius = 4 },
+	PrologoPuerta = { NameKey = "La puerta del garaje", Tag = "StorySpot", Attribute = { SpotId = "Prologo_Puerta" }, Radius = 6 },
 } :: { [string]: Place }
 
 -- Las 8 zonas de la región (los nombres son los del mapa)
