@@ -415,13 +415,18 @@ local function step(dt: number)
 	local heading = Vector3.new(-math.sin(s.Travel), 0, -math.cos(s.Travel))
 	local move = heading * s.Speed * dt
 
-	-- Choques: un rayo por delante (o por detrás) a media altura, desde las dos esquinas
+	-- Choques: un rayo por delante (o por detrás) a media altura, desde las dos esquinas, y otro
+	-- desde el centro de la base hasta el morro (lo fino que pase entre las esquinas, o algo que ya
+	-- esté metido en el morro, también para)
 	if math.abs(s.Speed) > 0.1 then
 		local sign = if s.Speed > 0 then 1 else -1
 		local right = Vector3.new(-forward.Z, 0, forward.X)
-		for _, side in { -0.4, 0.4 } do
-			local origin = base + Vector3.new(0, 1.6, 0) + right * size.X * side + forward * sign * (size.Z / 2 - 0.5)
-			local hit = workspace:Raycast(origin, heading * sign * (math.abs(s.Speed) * dt + 0.8), params)
+		local reach = math.abs(s.Speed) * dt + 0.8
+		for _, side in { -0.4, 0.4, 0 } do
+			local nose = if side == 0 then 0 else size.Z / 2 - 0.5
+			local length = if side == 0 then size.Z / 2 - 0.5 + reach else reach
+			local origin = base + Vector3.new(0, 1.6, 0) + right * size.X * side + forward * sign * nose
+			local hit = workspace:Raycast(origin, heading * sign * length, params)
 			if hit and hit.Normal.Y < 0.6 then
 				SoundFx.crash(math.abs(s.Speed), s.Chassis)
 				s.Speed = -s.Speed * 0.15 -- rebote suave

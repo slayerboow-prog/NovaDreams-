@@ -61,6 +61,8 @@ type Ride = {
 	Trip: number?,
 	Owned: boolean?,
 	LastPos: Vector3?,
+	LastCFrame: CFrame?, -- último sitio bueno de la base (si salta de golpe, vuelve aquí)
+	LastAt: number?,
 }
 local riding: { [Player]: Ride } = {}
 
@@ -78,10 +80,23 @@ local dismountListeners: { (Player, string) -> () } = {}
 local folder: Folder
 local exitedAt: { [Player]: number } = {} -- cuándo se bajó (nada le vuelve a sentar enseguida)
 local warnedAt: { [Player]: number } = {} -- último aviso de «conduces sin carnet»
+local leftModel: { [Player]: Model } = {} -- el vehículo del que se bajó (no se vuelve a subir enseguida)
+local spawnedAt: { [Player]: { number } } = {} -- cuándo sacó sus últimos vehículos desde el menú
+local SAME_VEHICLE_COOLDOWN = 3 -- segundos sin volver a subir al mismo vehículo
+local SPAWN_BURST, SPAWN_WINDOW = 3, 6 -- como mucho 3 vehículos sacados cada 6 s (uno cada 2 s de media)
 
 -- ¿Se acaba de bajar? (un cartel pulsado sin querer no le vuelve a subir)
 local function justExited(player: Player): boolean
 	return os.clock() - (exitedAt[player] or -math.huge) < Gameplay.ExitCooldown
+end
+
+-- ¿Se acaba de bajar de ESTE vehículo? (un cartel pulsado sin querer no le vuelve a subir). Al tuyo
+-- propio sí puedes volver enseguida (pasado Gameplay.ExitCooldown): es tuyo y lo coges a propósito.
+local function justLeft(player: Player, model: Instance): boolean
+	if model:GetAttribute("OwnerId") == player.UserId then
+		return false
+	end
+	return leftModel[player] == model and os.clock() - (exitedAt[player] or -math.huge) < SAME_VEHICLE_COOLDOWN
 end
 
 local function isDark(): boolean
@@ -188,18 +203,29 @@ local function stageAllows(player: Player, stage: string, silent: boolean?): boo
 	return false
 end
 
--- Aparca el vehículo donde está: anclado, con sus choques de nuevo y quieto
-local function park(model: Model)
+-- Lo deja quieto, recto y a ras de suelo (por si se paró inclinado en una cuesta)
+local function level(model: Model)
 	local chassis = model.PrimaryPart
 	if not chassis then
 		return
 	end
 	chassis.AssemblyLinearVelocity = Vector3.zero
 	chassis.AssemblyAngularVelocity = Vector3.zero
-	-- Se deja recto y a ras de suelo (por si se paró inclinado en una cuesta)
 	local look = Vector3.new(chassis.CFrame.LookVector.X, 0, chassis.CFrame.LookVector.Z)
 	if look.Magnitude > 0.1 then
 		chassis.CFrame = CFrame.lookAt(chassis.Position, chassis.Position + look.Unit)
+	end
+end
+
+-- Aparca el vehículo donde está: anclado, con sus choques de nuevo y quieto
+-- (leveled = ya se ha dejado recto antes de bajar a la gente)
+local function park(model: Model, leveled: boolean?)
+	local chassis = model.PrimaryPart
+	if not chassis then
+		return
+	end
+	if not leveled then
+		level(model)
 	end
 	chassis.Anchored = true
 	for _, part in model:GetDescendants() do
@@ -222,29 +248,50 @@ local function placeBeside(character: Model, model: Model, kind: string, side: n
 	end
 	local spec = Rides.Spec[kind]
 	local width = if spec then spec.Size.X else chassis.Size.X
+	local length = if spec then spec.Size.Z else chassis.Size.Z
 	local gap = (width / 2) + 2.5
-	local flat = chassis.CFrame.Rotation:VectorToWorldSpace(Vector3.new(side, 0, 0))
+	local flat = chassis.CFrame.Rotation:VectorToWorldSpace(Vector3.new(1, 0, 0))
 	flat = Vector3.new(flat.X, 0, flat.Z)
-	flat = if flat.Magnitude > 0.1 then flat.Unit else Vector3.new(side, 0, 0)
+	flat = if flat.Magnitude > 0.1 then flat.Unit else Vector3.xAxis
 	local forward = chassis.CFrame.Rotation:VectorToWorldSpace(Vector3.new(0, 0, along or 0))
 	forward = Vector3.new(forward.X, 0, forward.Z)
-	local spot = chassis.Position + flat * gap + forward
+	-- Mirando hacia el morro, como quien acaba de bajarse (y la cámara queda detrás, no dentro del coche)
+	local look = Vector3.new(chassis.CFrame.LookVector.X, 0, chassis.CFrame.LookVector.Z)
+	look = if look.Magnitude > 0.1 then look.Unit else Vector3.new(0, 0, -1)
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = { model, character :: Instance }
 	params.RespectCanCollide = true
-	local hit = workspace:Raycast(spot + Vector3.new(0, 12, 0), Vector3.new(0, -40, 0), params)
-	if not hit or (hit.Instance == workspace.Terrain and hit.Position.Y < chassis.Position.Y - 3) then
-		-- nada firme al lado: encima del propio vehículo
-		hit = workspace:Raycast(chassis.Position + Vector3.new(0, 12, 0), Vector3.new(0, -40, 0), params)
-		spot = chassis.Position
-	end
-	local ground = if hit then hit.Position.Y else chassis.Position.Y
 	local height = humanoid.HipHeight + root.Size.Y / 2 + 0.5
-	-- Mirando hacia el morro, como quien acaba de bajarse (y la cámara queda detrás, no dentro del coche)
-	local look = Vector3.new(chassis.CFrame.LookVector.X, 0, chassis.CFrame.LookVector.Z)
-	look = if look.Magnitude > 0.1 then look.Unit else Vector3.new(0, 0, -1)
-	local placed = CFrame.new(spot.X, math.max(ground, chassis.Position.Y - 2) + height, spot.Z) * CFrame.Angles(0, math.atan2(-look.X, -look.Z), 0)
+	local lift = Vector3.new(0, 2, 0) -- (a la altura del asiento)
+	-- Su lado; si hay una pared, el otro; luego delante y detrás. Nunca a través de una pared
+	-- (rayo en horizontal desde el asiento) y siempre sobre suelo firme (rayo hacia abajo desde poco
+	-- más arriba del vehículo: así no acaba encima de un toldo o un tejado)
+	local seatAt = chassis.Position + forward
+	local tries = {
+		{ seatAt, seatAt + flat * side * gap },
+		{ seatAt, seatAt - flat * side * gap },
+		{ chassis.Position, chassis.Position + look * (length / 2 + 2.5) },
+		{ chassis.Position, chassis.Position - look * (length / 2 + 2.5) },
+	}
+	local spot, ground = nil :: Vector3?, nil :: number?
+	for _, try in tries do
+		local from, to = try[1] + lift, try[2] + lift
+		local wall = workspace:Raycast(from, to - from, params)
+		if not wall or wall.Normal.Y >= 0.6 then -- (una cuesta no es una pared)
+			local hit = workspace:Raycast(try[2] + Vector3.new(0, 4, 0), Vector3.new(0, -40, 0), params)
+			if hit and not (hit.Instance == workspace.Terrain and hit.Position.Y < chassis.Position.Y - 3) then
+				spot, ground = try[2], math.max(hit.Position.Y, chassis.Position.Y - 2)
+				break
+			end
+		end
+	end
+	if not spot or not ground then
+		-- nada firme alrededor: encima del propio vehículo (por encima del techo)
+		local box, size = model:GetBoundingBox()
+		spot, ground = chassis.Position, box.Position.Y + size.Y / 2
+	end
+	local placed = CFrame.new(spot.X, ground + height, spot.Z) * CFrame.Angles(0, math.atan2(-look.X, -look.Z), 0)
 	root.CFrame = placed
 	root.AssemblyLinearVelocity = Vector3.zero
 	-- Vuelve a moverlo su propio ordenador (mientras iba sentado lo movía el del conductor)
@@ -274,13 +321,14 @@ end
 
 -- Se ha bajado: su ordenador lo repite al momento (de pie en ese sitio, cámara normal) y durante
 -- un momento nada le vuelve a sentar
-local switching = false -- (se cambia de vehículo o de asiento: no es bajarse)
+local switching: { [Player]: boolean } = {} -- (se cambia de vehículo o de asiento: no es bajarse; cada uno el suyo)
 local switchOut: (Player) -> ()
-local function exited(player: Player, placed: CFrame?)
-	if switching then
+local function exited(player: Player, placed: CFrame?, model: Model?)
+	if switching[player] then
 		return
 	end
 	exitedAt[player] = os.clock()
+	leftModel[player] = model
 	Remote:FireClient(player, "Exited", { CFrame = placed })
 end
 
@@ -368,16 +416,52 @@ local function saveFuel(player: Player, ride: Ride)
 	end
 end
 
--- Cada medio segundo: gasta según la distancia recorrida
+-- ¿Se ha movido más de lo que puede? Al vehículo lo mueve el ordenador del conductor: un tramposo
+-- podría teletransportarlo o hacerlo volar (con sus pasajeros dentro). Lo más que corre su
+-- vehículo, con margen, en dt segundos.
+local function jumped(kind: string, from: Vector3, to: Vector3, dt: number): boolean
+	local vehicle = Gameplay.Vehicles[kind]
+	local speed = if vehicle then vehicle.Speed else 80
+	local flat = Vector3.new(to.X - from.X, 0, to.Z - from.Z).Magnitude
+	return flat > (speed * 1.3 + 10) * dt or to.Y - from.Y > (speed + 10) * dt
+end
+
+-- Cada medio segundo: vigila que el vehículo no dé saltos imposibles y gasta según la distancia
 local function burnFuel()
+	local now = os.clock()
 	for player, ride in riding do
-		local spec = FUEL.Kinds[ride.Kind]
 		local chassis = ride.Model.PrimaryPart
+		-- (solo si lo mueve el ordenador del conductor: lo que mueve el servidor no se discute)
+		local ok, owner = pcall(function()
+			return chassis and chassis:GetNetworkOwner()
+		end)
+		if chassis and ok and owner == player and not chassis.Anchored and ride.LastPos and ride.LastCFrame then
+			local dt = math.max(0.5, now - (ride.LastAt or now))
+			if jumped(ride.Kind, ride.LastPos, chassis.Position, dt) then
+				-- El conductor se queda donde ha llegado (a pie) y el vehículo, con quien vaya dentro,
+				-- vuelve a donde estaba. (Si lo movió el propio juego, p. ej. al llevarte a casa, llegas
+				-- tú solo y el vehículo se queda aparcado donde lo dejaste.)
+				warn(("[Vehicles] %s: salto imposible con %s"):format(player.Name, ride.Kind))
+				local good = ride.LastCFrame
+				VehicleService.dismount(player, true)
+				if ride.Model.Parent and chassis.Parent then
+					chassis.AssemblyLinearVelocity = Vector3.zero
+					chassis.CFrame = good
+				end
+				continue
+			end
+		end
+		local last = ride.LastPos
+		if chassis then
+			ride.LastPos = chassis.Position
+			ride.LastCFrame = chassis.CFrame
+			ride.LastAt = now
+		end
+		local spec = FUEL.Kinds[ride.Kind]
 		if spec and ride.Fuel and chassis then
 			local pos = chassis.Position
-			local last = ride.LastPos or pos
+			last = last or pos
 			local d = Vector3.new(pos.X - last.X, 0, pos.Z - last.Z).Magnitude
-			ride.LastPos = pos
 			if d > 0.05 and d < 200 then -- (un salto grande es un teletransporte, no un viaje)
 				ride.Fuel = math.max(0, ride.Fuel - d / 1000 * spec.Per1000)
 				local km = d * FUEL.KmPerStud
@@ -462,11 +546,15 @@ function VehicleService.dismount(player: Player, silent: boolean?)
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	unseat(humanoid, ride.Seat)
 	if ride.Keep and ride.Model.Parent then
-		park(ride.Model)
+		level(ride.Model)
 	end
 	-- Se baja por el lado izquierdo (del coche, fuera de la carrocería)
 	local placed = if character then placeBeside(character, ride.Model, ride.Kind, -1, 0) else nil
-	exited(player, placed)
+	-- Y luego se aparca (con sus choques de nuevo: ya no está dentro)
+	if ride.Keep and ride.Model.Parent then
+		park(ride.Model, true)
+	end
+	exited(player, placed, ride.Model)
 	if not ride.Keep then
 		-- Vehículo de alquiler o de trabajo: se retira (los pasajeros se bajan antes, a su lado)
 		VehicleService.emptyPassengers(ride.Model)
@@ -495,22 +583,30 @@ local function orphanExit(player: Player): boolean
 	if not character or not humanoid or not seat or not model or not model:GetAttribute("Drivable") then
 		return false
 	end
+	if model:GetAttribute("BusLine") then
+		return false -- (el autobús urbano: sus asientos los lleva BusService)
+	end
 	unseat(humanoid, seat)
 	local kind = model:GetAttribute("Kind")
 	local chassis = model.PrimaryPart
 	local side = seat:GetAttribute("Side")
 	local along = if chassis then chassis.CFrame:PointToObjectSpace(seat.Position).Z else 0
-	-- Si iba al volante, el vehículo se queda aparcado ahí (salvo que lo conduzca otra persona)
+	-- Si iba al volante, el vehículo se queda aparcado ahí (salvo que lo conduzca otra persona):
+	-- recto, se le baja a su lado y luego vuelven sus choques
 	local driver = model:GetAttribute("Driver")
-	if seat.Name == "DriverSeat" and (driver == nil or driver == player.UserId) and chassis and not chassis.Anchored then
-		park(model)
+	local parking = seat.Name == "DriverSeat" and (driver == nil or driver == player.UserId) and chassis ~= nil and not chassis.Anchored
+	if parking then
+		level(model)
 	end
 	local placed = placeBeside(character, model, if typeof(kind) == "string" then kind else "Coche", if typeof(side) == "number" then side else -1, along)
+	if parking then
+		park(model, true)
+	end
 	player:SetAttribute("Riding", nil)
 	player:SetAttribute("Passenger", nil)
 	player:SetAttribute("VehicleSpeed", nil)
 	LifeService.refresh(player)
-	exited(player, placed)
+	exited(player, placed, model)
 	return true
 end
 
@@ -524,6 +620,21 @@ function VehicleService.exitAny(player: Player, silent: boolean?)
 		VehicleService.leavePassenger(player, silent)
 	elseif not orphanExit(player) then
 		exited(player, nil)
+	end
+end
+
+-- Antes de llevarle a otro sitio (viajes, metro…): se baja del vehículo y se levanta de cualquier
+-- asiento. Si no, se llevaría el vehículo (y a quien vaya dentro) con él, o se quedaría soldado.
+function VehicleService.standUp(player: Player)
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	local seat = humanoid and humanoid.SeatPart
+	local model = seat and seat:FindFirstAncestorOfClass("Model")
+	if riding[player] or passengers[player] or (model and model:GetAttribute("Drivable")) then
+		VehicleService.exitAny(player, true)
+	end
+	if humanoid and humanoid.SeatPart then
+		unseat(humanoid, humanoid.SeatPart)
 	end
 end
 
@@ -562,7 +673,7 @@ function VehicleService.leavePassenger(player: Player, silent: boolean?, place: 
 		placed = placeBeside(character, entry.Model, entry.Kind, if typeof(side) == "number" then side else 1, along)
 	end
 	if place ~= false then
-		exited(player, placed)
+		exited(player, placed, entry.Model)
 	end
 	if not silent then
 		Notify:FireClient(player, "Info", "Te has bajado.")
@@ -571,16 +682,20 @@ end
 
 -- Se cambia de vehículo o de asiento: se baja del anterior sin que eso cuente como bajarse
 function switchOut(player: Player)
-	switching = true
+	switching[player] = true
 	local ok, err = pcall(function()
 		VehicleService.dismount(player, true)
 		VehicleService.leavePassenger(player, true, false)
 	end)
-	switching = false
+	switching[player] = nil
 	if not ok then
 		warn("[Vehicles] " .. tostring(err))
 	end
 end
+
+-- Se baja de su vehículo sin que cuente como bajarse (ni aviso «Exited» a su ordenador): para
+-- subirse a otra cosa enseguida (el autobús urbano)
+VehicleService.switchOut = switchOut
 
 -- Todos abajo (el vehículo se va a retirar): cada uno por su lado
 function VehicleService.emptyPassengers(model: Model)
@@ -608,7 +723,7 @@ function VehicleService.board(player: Player, seat: Seat): boolean
 	if not humanoid or not root or humanoid.Health <= 0 then
 		return false
 	end
-	if justExited(player) then
+	if justExited(player) or justLeft(player, model) then
 		return false -- se acaba de bajar: un cartel pulsado sin querer no le vuelve a sentar
 	end
 	if player:GetAttribute("Sleeping") or player:GetAttribute("Crawling") or player:GetAttribute("JailUntil") or player:GetAttribute("OnTrial") then
@@ -825,6 +940,8 @@ local function drive(player: Player, model: Model, kind: string, opts: { Rented:
 	end)
 	riding[player] = ride
 	loadFuel(player, ride)
+	-- Desde aquí se vigila que no dé saltos imposibles (burnFuel)
+	ride.LastPos, ride.LastCFrame, ride.LastAt = chassis.Position, chassis.CFrame, os.clock()
 	player:SetAttribute("Riding", kind)
 	player:SetAttribute("VehicleSpeed", vehicle.Speed)
 	StoryEvents.emit(player, "VehicleMounted", { Vehicle = kind, Rented = ride.Rented })
@@ -842,9 +959,9 @@ local function addDrivePrompt(model: Model, kind: string, owner: Player?)
 	prompt.Name = "DrivePrompt"
 	prompt.ActionText = if kind == "Coche" then "Conducir" else "Montar"
 	prompt.ObjectText = if owner then vehicle.Icon .. " Tu " .. string.lower(vehicle.Name) else vehicle.Icon .. " " .. vehicle.Name
-	prompt.MaxActivationDistance = if kind == "Coche" then 11 else 7
+	prompt.MaxActivationDistance = if kind == "Coche" then 8 else 7 -- (de cerca y manteniendo: nadie se sube sin querer)
 	prompt.RequiresLineOfSight = false
-	prompt.HoldDuration = 0.25
+	prompt.HoldDuration = 0.5
 	prompt.Parent = chassis
 	prompt.Triggered:Connect(function(player)
 		if owner and player ~= owner then
@@ -852,7 +969,7 @@ local function addDrivePrompt(model: Model, kind: string, owner: Player?)
 			return
 		end
 		local ride = riding[player]
-		if (ride and ride.Exam) or justExited(player) then
+		if (ride and ride.Exam) or justExited(player) or justLeft(player, model) then
 			return
 		end
 		if allowed(player, kind) then
@@ -863,6 +980,9 @@ local function addDrivePrompt(model: Model, kind: string, owner: Player?)
 		prompt.Enabled = model:GetAttribute("Driver") == nil
 	end)
 end
+
+-- Dónde estaba aparcado cada coche de la calle (vuelve ahí si lo dejan abandonado en otro sitio)
+local homes: { [Model]: { CFrame: CFrame, Since: number } } = {}
 
 -- Coche aparcado de la ciudad (decorativo) -> se puede conducir
 local function setupParkedCar(model: Instance)
@@ -878,17 +998,17 @@ local function setupParkedCar(model: Instance)
 	prompt.Name = "DrivePrompt"
 	prompt.ActionText = "Conducir"
 	prompt.ObjectText = "🚗 Coche"
-	prompt.MaxActivationDistance = 11
+	prompt.MaxActivationDistance = 8 -- (de cerca y manteniendo: nadie se sube sin querer)
 	prompt.RequiresLineOfSight = false
-	prompt.HoldDuration = 0.25
+	prompt.HoldDuration = 0.5
 	prompt.Parent = body
 	local sit = Instance.new("ProximityPrompt")
 	sit.Name = "SitPrompt"
 	sit.ActionText = "Sentarse"
 	sit.ObjectText = "🚗 Coche aparcado"
-	sit.MaxActivationDistance = 9
+	sit.MaxActivationDistance = 7
 	sit.RequiresLineOfSight = false
-	sit.HoldDuration = 0.25
+	sit.HoldDuration = 0.5
 	sit.UIOffset = Vector2.new(0, 58)
 	sit.Parent = body
 	-- Al cogerlo (o sentarse) se ve con todo detalle (interior, montantes, retrovisores…) y ya
@@ -898,7 +1018,8 @@ local function setupParkedCar(model: Instance)
 		sit:Destroy()
 		local ground = body.CFrame * CFrame.new(0, -2.2, 0)
 		require(script.Parent.Parent.World.Kit.CarModel).upgrade(model :: Model, ground)
-		Rides.prepare(model :: Model, "Coche", ground)
+		local chassis = Rides.prepare(model :: Model, "Coche", ground)
+		homes[model :: Model] = { CFrame = chassis.CFrame, Since = os.clock() }
 		addDrivePrompt(model :: Model, "Coche")
 		addHeadlight(model :: Model)
 		setupSeats(model :: Model, "Coche")
@@ -947,6 +1068,21 @@ end
 -- Tu vehículo aparcado (solo uno a la vez: al sacar otro, el anterior desaparece)
 local parked: { [Player]: Model } = {}
 
+-- ¿Cabe un vehículo de este tamaño aquí (cf a ras de suelo)? Nada que choque donde irá: paredes,
+-- farolas, otros coches, personas (sin contar el suelo ni lo que haya en ignore)
+local function fits(size: Vector3, cf: CFrame, ignore: { Instance }): boolean
+	local overlap = OverlapParams.new()
+	overlap.FilterType = Enum.RaycastFilterType.Exclude
+	overlap.FilterDescendantsInstances = ignore
+	overlap.RespectCanCollide = true
+	overlap.MaxParts = 1
+	local box = Vector3.new(size.X, 4, size.Z)
+	local ok, parts = pcall(function()
+		return workspace:GetPartBoundsInBox(cf * CFrame.new(0, 0.6 + box.Y / 2, 0), box, overlap)
+	end)
+	return not ok or #parts == 0 -- (si la consulta falla, no se impide sacarlo)
+end
+
 -- Crea un vehículo al lado del jugador y le sube. opts.Rented = de una estación pública;
 -- opts.Exam = examen práctico (sin carnet). Los tuyos se quedan aparcados al bajarte.
 function VehicleService.mount(player: Player, kind: string, opts: { Rented: boolean?, Exam: boolean? }?): boolean
@@ -957,16 +1093,35 @@ function VehicleService.mount(player: Player, kind: string, opts: { Rented: bool
 		return false
 	end
 	switchOut(player)
-	-- Sale a ras de suelo delante del jugador, mirando hacia donde mira
+	-- Sale a ras de suelo delante del jugador, mirando hacia donde mira. Si ahí no cabe (una pared,
+	-- una farola, otro coche, alguien), detrás o a un lado; si no cabe en ningún sitio, no sale.
 	local look = Vector3.new(root.CFrame.LookVector.X, 0, root.CFrame.LookVector.Z)
 	look = if look.Magnitude > 0.1 then look.Unit else Vector3.new(0, 0, -1)
+	local right = Vector3.new(-look.Z, 0, look.X)
 	local params = RaycastParams.new()
 	params.FilterDescendantsInstances = { character :: Instance, folder }
 	params.RespectCanCollide = true
-	local from = root.Position + look * 2 + Vector3.new(0, 2, 0)
-	local hit = workspace:Raycast(from, Vector3.new(0, -20, 0), params)
-	local ground = if hit then hit.Position else root.Position - Vector3.new(0, 3, 0)
-	local cf = CFrame.lookAt(ground, ground + look)
+	local size = Rides.Spec[kind].Size
+	local ignore: { Instance } = { character :: Instance, workspace.Terrain }
+	local old = parked[player]
+	if old then
+		table.insert(ignore, old) -- (el tuyo de antes se retira al sacar este)
+	end
+	local cf: CFrame? = nil
+	for _, offset in { look * 2, -look * (size.Z / 2 + 1.5), right * (size.X / 2 + 2), -right * (size.X / 2 + 2) } do
+		local from = root.Position + offset + Vector3.new(0, 2, 0)
+		local hit = workspace:Raycast(from, Vector3.new(0, -20, 0), params)
+		local ground = if hit then hit.Position else root.Position + offset - Vector3.new(0, 3, 0)
+		local candidate = CFrame.lookAt(ground, ground + look)
+		if fits(size, candidate, ignore) then
+			cf = candidate
+			break
+		end
+	end
+	if not cf then
+		Notify:FireClient(player, "Error", "Aquí no cabe: busca un sitio más despejado para sacar el vehículo.")
+		return false
+	end
 	local model = Rides.build(kind, nil, cf)
 	model:SetAttribute("OwnerId", player.UserId)
 	Rides.prepare(model, kind, cf)
@@ -974,18 +1129,64 @@ function VehicleService.mount(player: Player, kind: string, opts: { Rented: bool
 	setupSeats(model, kind)
 	model.Parent = folder
 	local keep = not options.Rented and not options.Exam
-	if keep then
-		if parked[player] and parked[player] ~= model then
-			parked[player]:Destroy()
-		end
-		parked[player] = model
-		addDrivePrompt(model, kind, player)
-	end
 	if not drive(player, model, kind, { Rented = options.Rented, Exam = options.Exam, Keep = keep }) then
 		model:Destroy()
 		return false
 	end
+	-- Solo ahora (ya va montado en el nuevo) se retira el que tenía aparcado
+	if keep then
+		if old and old ~= model and parked[player] == old then
+			old:Destroy()
+		end
+		parked[player] = model
+		addDrivePrompt(model, kind, player)
+	end
 	return true
+end
+
+-- Coches de la calle abandonados lejos de su sitio: si llevan STREET_IDLE segundos sin nadie
+-- dentro y no hay nadie cerca (ni de él ni de su sitio), vuelven a su plaza con el depósito nuevo
+local STREET_IDLE = 300
+local STREET_NEAR = 60
+local function returnStreetCars()
+	local now = os.clock()
+	local near: { Vector3 } = {}
+	for _, player in Players:GetPlayers() do
+		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+		if root and root:IsA("BasePart") then
+			table.insert(near, root.Position)
+		end
+	end
+	for model, home in homes do
+		local chassis = model.PrimaryPart
+		if not model.Parent or not chassis then
+			homes[model] = nil
+			continue
+		end
+		local busy = model:GetAttribute("Driver") ~= nil or not chassis.Anchored
+		for _, seat in model:GetChildren() do
+			if (seat:IsA("Seat") or seat:IsA("VehicleSeat")) and seat.Occupant then
+				busy = true
+			end
+		end
+		if busy or (chassis.Position - home.CFrame.Position).Magnitude < 3 then
+			home.Since = now
+		elseif now - home.Since >= STREET_IDLE then
+			local seen = false
+			for _, position in near do
+				if (position - chassis.Position).Magnitude < STREET_NEAR or (position - home.CFrame.Position).Magnitude < STREET_NEAR then
+					seen = true
+					break
+				end
+			end
+			local size = Rides.Spec.Coche.Size
+			if not seen and fits(size, home.CFrame * CFrame.new(0, -size.Y / 2, 0), { model, workspace.Terrain }) then
+				chassis.CFrame = home.CFrame
+				model:SetAttribute("Fuel", nil) -- (depósito nuevo al volver a cogerlo)
+				home.Since = now
+			end
+		end
+	end
 end
 
 function VehicleService.buy(player: Player, kind: string)
@@ -1012,6 +1213,39 @@ function VehicleService.buy(player: Player, kind: string)
 	StoryEvents.emit(player, "VehicleBought", { Vehicle = kind })
 end
 
+-- ¿Puede sacar ahora un vehículo? No en la cárcel, en un juicio, muerto, KO, dentro de un edificio
+-- ni sentado en algo que no sea su vehículo (el autobús, un banco, de pasajero…)
+local function canSpawn(player: Player): boolean
+	for _, attribute in { "JailUntil", "OnTrial", "Dead", "KO", "InteriorKey" } do
+		if player:GetAttribute(attribute) then
+			return false
+		end
+	end
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if not humanoid or humanoid.Health <= 0 or (humanoid.SeatPart and not riding[player]) then
+		return false
+	end
+	return true
+end
+
+-- El menú no se puede pulsar en ráfaga (cada vehículo sacado se construye entero en el servidor)
+local function spawnAllowed(player: Player): boolean
+	local now = os.clock()
+	local recent = {}
+	for _, at in spawnedAt[player] or {} do
+		if now - at < SPAWN_WINDOW then
+			table.insert(recent, at)
+		end
+	end
+	spawnedAt[player] = recent
+	if #recent >= SPAWN_BURST then
+		return false
+	end
+	table.insert(recent, now)
+	return true
+end
+
 local function spawnOwned(player: Player, kind: string)
 	local data = DataService.get(player)
 	if not data or not Gameplay.Vehicles[kind] then
@@ -1025,6 +1259,9 @@ local function spawnOwned(player: Player, kind: string)
 	local ride = riding[player]
 	if ride and ride.Exam then
 		return -- en el examen no se cambia de vehículo
+	end
+	if not canSpawn(player) or not spawnAllowed(player) then
+		return
 	end
 	VehicleService.mount(player, kind)
 end
@@ -1040,7 +1277,7 @@ local function setupStation(station: Instance)
 		prompt.UIOffset = Vector2.new(0, (i - 1) * 58)
 		prompt.Triggered:Connect(function(player)
 			local ride = riding[player]
-			if ride and ride.Exam then
+			if (ride and ride.Exam) or not canSpawn(player) then
 				return
 			end
 			VehicleService.mount(player, kind, { Rented = true })
@@ -1103,6 +1340,9 @@ function VehicleService.init()
 		end
 		exitedAt[player] = nil
 		warnedAt[player] = nil
+		leftModel[player] = nil
+		spawnedAt[player] = nil
+		switching[player] = nil
 	end)
 
 	-- Surtidores de las gasolineras
@@ -1130,6 +1370,12 @@ function VehicleService.init()
 		while true do
 			task.wait(0.5)
 			burnFuel()
+		end
+	end)
+	task.spawn(function()
+		while true do
+			task.wait(15)
+			returnStreetCars()
 		end
 	end)
 
