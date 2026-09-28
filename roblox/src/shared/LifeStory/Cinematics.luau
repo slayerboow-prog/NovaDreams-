@@ -380,6 +380,53 @@ local Cinematics: { [string]: Cinematic } = {
 		},
 	},
 
+	-- Saga, final del Acto II: la costura se rompe sobre tu graduación y baja Cósimo.
+	Saga_Grieta2 = {
+		Duration = 9,
+		Sting = "Momento",
+		Music = "TemaValmar",
+		Anchors = { Patio = "Place:PatioInstituto", Yo = "Player" },
+		Shots = {
+			{ From = { "Yo", V(3, 2, 6) }, To = { "Yo", V(2, 1.5, 4) }, Look = { "Yo", V(0, 2, 0) }, LookTo = { "Patio", V(0, 50, 0) }, Duration = 3, Fov = { 60, 48 }, Shake = 0.4 },
+			{ From = { "Patio", V(0, 20, 40) }, To = { "Patio", V(0, 40, 30) }, Look = { "Patio", V(0, 60, 0) }, Duration = 3.5, Shake = 0.9, Roll = -4 },
+			{ Orbit = "Patio", Radius = 30, Height = 12, FromAngle = 60, ToAngle = 110, Duration = 2.5, LookHeight = 20, Dip = true },
+		},
+		Titles = {
+			{ At = 3.4, TextKey = "🌀 La costura se rompe", SubKey = "Tu graduación del instituto", Duration = 3 },
+		},
+	},
+
+	-- Saga, acto IV: la Gran Fusión se abre sobre la cima del Monte del Silencio.
+	Saga_Fusion = {
+		Duration = 10,
+		Sting = "Momento",
+		Music = "TemaValmar",
+		Anchors = { Cima = "Place:CimaMonte", Yo = "Player" },
+		Shots = {
+			{ From = { "Yo", V(3, 2, 6) }, To = { "Yo", V(2, 1.5, 4) }, Look = { "Yo", V(0, 2, 0) }, LookTo = { "Cima", V(0, 40, 0) }, Duration = 3.5, Fov = { 60, 45 }, Shake = 0.5 },
+			{ Orbit = "Cima", Radius = 45, Height = 18, FromAngle = 0, ToAngle = 90, Duration = 4, LookHeight = 30, Shake = 1, Roll = 5 },
+			{ From = { "Cima", V(0, 10, 30) }, To = { "Cima", V(0, 60, 20) }, Look = { "Cima", V(0, 50, 0) }, Duration = 2.5, Shake = 1.2, Dip = true },
+		},
+		Titles = {
+			{ At = 3.8, TextKey = "🌀 LA GRAN FUSIÓN", SubKey = "Todas las dimensiones, a la vez", Duration = 3.5 },
+		},
+	},
+
+	-- Saga, final: la última costura, en el patio del cole donde empezó todo.
+	Saga_Final = {
+		Duration = 11,
+		FadeIn = true,
+		Music = "TemaValmar",
+		Anchors = { Patio = "Place:Patio", Yo = "Player" },
+		Shots = {
+			{ From = { "Yo", V(4, 2, 7) }, To = { "Yo", V(2, 1.5, 4) }, Look = { "Yo", V(0, 2, 0) }, Duration = 4, Fov = { 55, 45 } },
+			{ Orbit = "Patio", Radius = 35, Height = 15, FromAngle = 120, ToAngle = 200, Duration = 7, LookHeight = 25 },
+		},
+		Titles = {
+			{ At = 4.5, TextKey = "🌅 La Grieta se cierra", SubKey = "Fin de la Saga de la Grieta", Duration = 5 },
+		},
+	},
+
 	-- Misión loca de la universidad: la luz del Monte del Silencio. La nave aparece sobre la cima.
 	Loco_Abduccion = {
 		Duration = 9,

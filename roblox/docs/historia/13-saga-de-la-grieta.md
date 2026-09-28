@@ -9,6 +9,9 @@ locas en una sola historia con sentido. Todo lo raro que pasa en Valmar tiene un
 - Saga canónica: unas 15 h, en 24 misiones de 30 a 45 min.
 - Secundarias enlazadas con la saga: otras 15 h, entre las misiones locas y las «rarezas» de cada etapa.
 
+**Estado**: las 24 misiones están escritas y se prueban solas en `scripts/test-lifestory.luau`
+(`Misiones/Saga_Acto1.luau` … `Saga_Acto4.luau`). Falta probarlas en Roblox Studio con el mapa real.
+
 ## Misiones canónicas en el mapa
 
 - Las misiones canónicas (`Canon = true`) se ven **siempre** hasta que las haces:
@@ -71,12 +74,12 @@ saga: casi todo lo raro que pasa en ellas llega por la Grieta. En el final vuelv
 
 | # | Misión | Resumen |
 |---|---|---|
-| 13 | **Sin Cosme** | El garaje está vacío. Pip y tú encontráis el mando de dimensiones (enlace con U3). |
-| 14 | **El presidente Bigotes** | En la Valmar de los gatos, Bigotes (ahora presidente) te da coordenadas. |
-| 15 | **Reestreno** | La Capitana Ñoz (U1) tiene grabaciones del laboratorio de Cósimo. Negocias un episodio especial. |
-| 16 | **Dimensión 66-B** | Te infiltras en la Valmar malvada, donde te cruzas con tu yo malvado (prepara D5). |
-| 17 | **El rescate** | Asaltas el laboratorio de Cósimo, combates contra sus robots y rescatas a Cosme… sin memoria. |
-| 18 | **Todo tiene un precio** | Final del acto, en tu graduación. Cósimo anuncia la fecha de la Gran Fusión. Cosme recuerda una cosa: tu nombre. |
+| 13 | **Sin Cosme** | El garaje está cerrado. Pip, Don Escamas, Iván y Candela (tus compis de la residencia) forman el equipo de rescate. El cuaderno de Cosme. |
+| 14 | **El presidente Bigotes** | Portal en el parque a Gatonia. Huyes de la policía gatuna; Bigotes (ahora presidente) te da las coordenadas de Cósimo. |
+| 15 | **Reestreno** | De noche, en el Monte del Silencio: la Capitana Ñoz (U1) cambia las grabaciones del laboratorio por un episodio especial del reality. |
+| 16 | **Dimensión 66-B** | Te infiltras en la Valmar malvada («Cósimo alcalde para siempre») y conoces a tu yo malvado (prepara D5). Huida de los drones. |
+| 17 | **El rescate** | Asalto al laboratorio bajo la universidad: combate contra los robots, abres la cápsula y huyes con Cosme… sin memoria. |
+| 18 | **Todo tiene un precio** | Final del acto. Cósimo sale en todas las pantallas y anuncia la Gran Fusión. Cosme solo recuerda una cosa: tu nombre. |
 
 ## Acto IV · Vida adulta: «La Gran Fusión»
 
@@ -101,6 +104,10 @@ saga: casi todo lo raro que pasa en ellas llega por la Grieta. En el final vuelv
   piso 13 que no existe…
 - Cada una da una **pieza de la colección «Restos de la Grieta»**.
 - En el final, la colección cuenta: cuantas más piezas, más fácil la batalla.
+
+**Aliados en el final (hecho)**: en la misión 20 vienen Iván y Candela siempre, y además Cronos, Bigotes,
+Rex, el Ratón Pérez, los gnomos y tu yo malvado **solo si les ayudaste** en su misión. En la batalla final
+aparecen los que vinieron.
 
 **Misiones de aliados** (pendientes): 1 o 2 por cada aliado de la saga, para que vuelvan con sentido en el final.
 
