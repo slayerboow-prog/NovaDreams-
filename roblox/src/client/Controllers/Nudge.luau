@@ -4,11 +4,13 @@
 --     rozándolos se apartan de lado con un traspiés (ReactMotion "Bumped"), te miran (ActorLife) y a
 --     veces sueltan un "¡Eh!". Mientras se apartan, en tu pantalla dejan de ser un muro: los empujas
 --     un poco en vez de chocar contra ellos. Si llegas con el coche, se tiran a un lado ("Dive").
---   * Nudge.say: bocadillo corto encima de alguien (o de un animal), solo en tu pantalla.
+--   * Nudge.say: bocadillo corto encima de alguien (o de un animal), solo en tu pantalla (UI/SpeechBubbles).
 -- Barato: se mira 8 veces por segundo y solo alrededor de tu personaje.
 -- Los peatones del tráfico (Ambient) y los animales (Wildlife) hacen su versión en su propio bucle.
 
 local Players = game:GetService("Players")
+
+local SpeechBubbles = require(script.Parent.Parent.UI.SpeechBubbles)
 
 local Nudge = {}
 
@@ -18,44 +20,13 @@ local LINES = { "¡Eh!", "¡Cuidado!", "¡Perdona!", "¡Oye, mira por dónde vas
 local CAR_LINES = { "¡Cuidado!", "¡Frena!", "¡Que me pillas!", "¡Eh, el coche!" }
 local COOLDOWN = 2.5
 
--- Bocadillo solo para ti encima de una pieza (la cabeza de alguien, un animal…)
+-- Bocadillo solo para ti encima de una pieza (la cabeza de alguien, un animal…): el mismo de todos
+-- (UI/SpeechBubbles), así un "¡Eh!" sustituye a lo que estaba diciendo en vez de ponerse encima
 function Nudge.say(adornee: BasePart?, text: string, seconds: number?)
 	if not adornee or not adornee.Parent then
 		return
 	end
-	local gui = Instance.new("BillboardGui")
-	gui.Name = "NudgeBubble"
-	gui.Size = UDim2.fromOffset(math.clamp(#text * 11 + 30, 70, 240), 36)
-	gui.StudsOffset = Vector3.new(0, 2.6, 0)
-	gui.MaxDistance = 50
-	gui.AlwaysOnTop = false
-	gui.Adornee = adornee
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.fromScale(1, 1)
-	label.BackgroundColor3 = Color3.new(1, 1, 1)
-	label.BackgroundTransparency = 0.1
-	label.TextColor3 = Color3.fromRGB(20, 20, 24)
-	label.TextScaled = true
-	label.Text = text
-	label.FontFace = Font.fromEnum(Enum.Font.GothamBold)
-	label.Parent = gui
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 10)
-	corner.Parent = label
-	local pad = Instance.new("UIPadding")
-	pad.PaddingLeft = UDim.new(0, 6)
-	pad.PaddingRight = UDim.new(0, 6)
-	pad.Parent = label
-	local ok = pcall(function()
-		gui.Parent = player:WaitForChild("PlayerGui", 2)
-	end)
-	if not ok or not gui.Parent then
-		gui:Destroy()
-		return
-	end
-	task.delay(seconds or 1.6, function()
-		gui:Destroy()
-	end)
+	SpeechBubbles.show(adornee, text, { Seconds = seconds or 1.6 })
 end
 
 -- Qué lado del NPC queda hacia ti (+1 su derecha, -1 su izquierda)
