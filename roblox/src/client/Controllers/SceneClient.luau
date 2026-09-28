@@ -30,7 +30,9 @@ local function setHidden(root: Instance, hidden: boolean)
 		elseif instance:IsA("Highlight") then
 			instance.Enabled = not hidden
 		elseif instance:IsA("Humanoid") then
-			instance.DisplayDistanceType = if hidden then Enum.HumanoidDisplayDistanceType.None else Enum.HumanoidDisplayDistanceType.Viewer
+			-- (los actores con nombre lo llevan en su cartel propio: Controllers/NameTags)
+			local named = instance.Parent ~= nil and game:GetService("CollectionService"):HasTag(instance.Parent, "NamedActor")
+			instance.DisplayDistanceType = if hidden or named then Enum.HumanoidDisplayDistanceType.None else Enum.HumanoidDisplayDistanceType.Viewer
 		end
 	end
 	apply(root)

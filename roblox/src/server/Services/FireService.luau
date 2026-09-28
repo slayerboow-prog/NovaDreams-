@@ -515,15 +515,27 @@ end
 -- Sirena del camión
 ---------------------------------------------------------------------
 
+local SIREN_COOLDOWN = 1 -- (s) entre dos toques de la sirena: no se puede hacer sonar a lo loco
+local sirenAt: { [Player]: number } = setmetatable({}, { __mode = "k" }) :: any
+
+-- Solo de servicio y sentado en el vehículo de servicio (el asiento puede ir dentro de un submodelo)
 local function toggleSiren(player: Player)
 	if not shifts[player] then
+		return
+	end
+	local now = os.clock()
+	if now - (sirenAt[player] or -math.huge) < SIREN_COOLDOWN then
 		return
 	end
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	local seat = humanoid and humanoid.SeatPart
-	local truck = seat and seat:FindFirstAncestorOfClass("Model")
-	if truck and truck:HasTag("SirenCar") then
+	local truck: Instance? = seat and seat.Parent
+	while truck and truck ~= workspace and not (truck:IsA("Model") and truck:HasTag("SirenCar")) do
+		truck = truck.Parent
+	end
+	if truck and truck ~= workspace then
+		sirenAt[player] = now
 		truck:SetAttribute("Siren", not truck:GetAttribute("Siren"))
 	end
 end

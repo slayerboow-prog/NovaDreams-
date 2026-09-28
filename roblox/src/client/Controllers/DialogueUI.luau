@@ -39,6 +39,7 @@ local NAME_COLORS = {
 local gui: ScreenGui
 local box: Frame
 local nameTag: TextLabel
+local boxPadding: UIPadding
 local textLabel: TextLabel
 local hint: TextLabel
 local optionsFrame: Frame
@@ -283,7 +284,7 @@ local function build()
 		Parent = gui,
 	}, { Theme.corner(10), Theme.stroke(0.35), create("UIGradient", { Rotation = 90, Color = Theme.Sheen }) })
 	create("UISizeConstraint", { MaxSize = Vector2.new(640, math.huge), Parent = box })
-	create("UIPadding", {
+	boxPadding = create("UIPadding", {
 		PaddingLeft = UDim.new(0, 18),
 		PaddingRight = UDim.new(0, 18),
 		PaddingTop = UDim.new(0, 22),
@@ -358,6 +359,24 @@ local function build()
 
 end
 
+-- Con bocadillo, la caja se encoge a una pastilla pequeña que solo dice "Toca para seguir" (el nombre
+-- y la frase ya van en el bocadillo); sin él, vuelve a ser la caja entera con el nombre encima
+local compact = false
+local function setCompact(on: boolean)
+	if compact == on then
+		return
+	end
+	compact = on
+	box.Size = UDim2.fromOffset(if on then 230 else 640, 0)
+	box.BackgroundTransparency = if on then 0.25 else 0.08
+	boxPadding.PaddingTop = UDim.new(0, if on then 8 else 22)
+	boxPadding.PaddingBottom = UDim.new(0, if on then 8 else 14)
+	hint.TextSize = if on then 15 else 12
+	hint.Size = UDim2.new(1, 0, 0, if on then 18 else 14)
+	hint.TextXAlignment = if on then Enum.TextXAlignment.Center else Enum.TextXAlignment.Right
+	hint.TextColor3 = if on then C.Text else C.Muted
+end
+
 local function escapeRich(text: string): string
 	return (text:gsub("&", "&amp;"):gsub("<", "&lt;"):gsub(">", "&gt;"))
 end
@@ -405,12 +424,18 @@ local function showLine(line: { [string]: any })
 		bubbleOf = speakingModel
 	end
 	textLabel.Visible = not bubbled
+	setCompact(bubbled)
+	if bubbled then
+		nameTag.Visible = false -- ya sale en el bocadillo
+	end
 	if bubbled then
 		-- Si su bocadillo no se ve en tu pantalla (fuera de plano, tapado…), el texto va también en la caja
 		task.spawn(function()
 			task.wait(0.35)
 			while lineSerial == serial and open and not textLabel.Visible do
 				if not SpeechBubbles.isOnScreen(speakingModel) then
+					setCompact(false)
+					nameTag.Visible = line.Name ~= nil
 					textLabel.Visible = true
 					break
 				end
@@ -442,6 +467,7 @@ local function showLine(line: { [string]: any })
 end
 
 local function ask(prompt: string?, options: { string }): number
+	setCompact(false) -- las respuestas van en la caja entera
 	for _, child in optionsFrame:GetChildren() do
 		if child:IsA("TextButton") then
 			child:Destroy()
@@ -523,6 +549,7 @@ local function setOpen(value: boolean)
 			bubbleOf = nil
 		end
 		textLabel.Visible = true
+		setCompact(false)
 		restoreCamera()
 		setControls(true)
 		turnSerial += 1

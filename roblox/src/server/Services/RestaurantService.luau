@@ -18,6 +18,7 @@ local Gameplay = require(ReplicatedStorage.Shared.Gameplay)
 local Format = require(ReplicatedStorage.Shared.Format)
 local Builder = require(script.Parent.Parent.World.Builder)
 local Npc = require(script.Parent.Parent.World.Npc)
+local StaffService = require(script.Parent.StaffService)
 local DataService = require(script.Parent.DataService)
 local NeedsService = require(script.Parent.NeedsService)
 local MonetizationService = require(script.Parent.MonetizationService)
@@ -74,6 +75,8 @@ local barToken: { [Player]: string } = {}
 local nextId = 0
 local npcWaiter: Model? = nil
 local npcBarman: Model? = nil
+local leavingWaiter: Model? = nil -- (el NPC que se está retirando: si hace falta otra vez, vuelve él)
+local leavingBarman: Model? = nil
 local folder: Folder
 
 local function newId(): number
@@ -589,28 +592,65 @@ end
 -- Turnos
 ---------------------------------------------------------------------
 
+-- Se retira (cierra o un jugador coge su puesto): se despide y se aparta andando, sin esfumarse
+-- delante de nadie (StaffService.retireNpc). Lo que tuviera a medias lo sueltan npcWaiterStep y
+-- npcBarmanStep en cuanto deja de ser el NPC del puesto (la mesa vuelve a esperar, el plato sigue pendiente).
+local function retireStaff(npc: Model, feet: Vector3, toward: Vector3, taken: boolean, gone: () -> ())
+	local line = if taken then "¡Todo tuyo! Me tomo un descanso." else "¡Cerramos! Hasta mañana."
+	task.spawn(function()
+		StaffService.retireNpc(npc, StaffService.asideOf(feet, toward), line)
+		gone()
+	end)
+end
+
 local function ensureNpcStaff()
 	if not place then
 		return
 	end
 	local open = isOpen()
+	local waiterHome = floorOf(place.WaiterSpot)
+	local waiterLook = waiterHome + place.WaiterSpot.CFrame.LookVector * 4
 	if open and not staff.Camarero and not npcWaiter then
-		npcWaiter = Npc.create("Npc_Camarero", folder, CFrame.new(floorOf(place.WaiterSpot)), {
-			Shirt = Color3.fromRGB(245, 245, 245), Pants = Color3.fromRGB(30, 30, 34),
-		})
-		Npc.work(npcWaiter :: Model, "Tray")
+		if leavingWaiter and StaffService.recallNpc(leavingWaiter, waiterHome, waiterLook, "Tray") then
+			npcWaiter = leavingWaiter
+			leavingWaiter = nil
+		else
+			npcWaiter = Npc.create("Npc_Camarero", folder, CFrame.new(waiterHome), {
+				Shirt = Color3.fromRGB(245, 245, 245), Pants = Color3.fromRGB(30, 30, 34),
+			})
+			Npc.work(npcWaiter :: Model, "Tray")
+		end
 	elseif (not open or staff.Camarero) and npcWaiter then
-		npcWaiter:Destroy()
+		local npc = npcWaiter :: Model
 		npcWaiter = nil
+		leavingWaiter = npc
+		retireStaff(npc, waiterHome, waiterLook, staff.Camarero ~= nil, function()
+			if leavingWaiter == npc then
+				leavingWaiter = nil
+			end
+		end)
 	end
+	local barmanFeet = place.BarmanSpot.CFrame * CFrame.new(0, -2, 0)
+	local barmanLook = (barmanFeet * CFrame.new(0, 0, -4)).Position
 	if open and not staff.Barman and not npcBarman then
-		npcBarman = Npc.create("Npc_Barman", folder, place.BarmanSpot.CFrame * CFrame.new(0, -2, 0), {
-			Shirt = Color3.fromRGB(30, 30, 34), Pants = Color3.fromRGB(30, 30, 34),
-		})
-		Npc.work(npcBarman :: Model, "Wipe")
+		if leavingBarman and StaffService.recallNpc(leavingBarman, barmanFeet.Position, barmanLook, "Wipe") then
+			npcBarman = leavingBarman
+			leavingBarman = nil
+		else
+			npcBarman = Npc.create("Npc_Barman", folder, barmanFeet, {
+				Shirt = Color3.fromRGB(30, 30, 34), Pants = Color3.fromRGB(30, 30, 34),
+			})
+			Npc.work(npcBarman :: Model, "Wipe")
+		end
 	elseif (not open or staff.Barman) and npcBarman then
-		npcBarman:Destroy()
+		local npc = npcBarman :: Model
 		npcBarman = nil
+		leavingBarman = npc
+		retireStaff(npc, barmanFeet.Position, barmanLook, staff.Barman ~= nil, function()
+			if leavingBarman == npc then
+				leavingBarman = nil
+			end
+		end)
 	end
 end
 
@@ -780,35 +820,40 @@ local function npcWaiterStep()
 		local function near(seat: BasePart): Vector3
 			return Vector3.new(seat.Position.X, home.Y, seat.Position.Z) + seat.CFrame.LookVector * 1.7 + seat.CFrame.RightVector * 2.4
 		end
+		-- ¿Sigue siendo el camarero? (si se ha retirado a medias, lo suelta todo para quien le sustituya)
+		local function still(): boolean
+			return npcWaiter == waiter and waiter.Parent ~= nil
+		end
 		if readyOrder then
 			local customer = customers[readyOrder.CustomerId]
 			local pass = place.Pass.Position
 			Npc.walkTo(waiter, { Vector3.new(pass.X, home.Y, pass.Z) + place.Pass.CFrame.LookVector * 3 }, 12)
-			if customer and customer.Order == readyOrder and waiter.Parent then
-				if readyOrder.Plate then
-					readyOrder.Plate:Destroy()
-					readyOrder.Plate = nil
-				end
+			if still() and customer and customer.Order == readyOrder then
+				-- (el plato se queda en el pase hasta servirlo: si se retira por el camino, sigue ahí)
 				Npc.walkTo(waiter, { near(customer.Seat) }, 12)
-				if customers[customer.Id] and customer.Order == readyOrder then
+				if still() and customers[customer.Id] and customer.Order == readyOrder then
 					serve(customer, nil)
 				end
 			end
 		elseif target then
 			setState(target, "Ordering")
 			Npc.walkTo(waiter, { near(target.Seat) }, 12)
-			if customers[target.Id] and target.State == "Ordering" then
+			if still() and customers[target.Id] and target.State == "Ordering" then
 				speakOrder(target)
 				Npc.say(waiter, "Apuntado 📝")
 				task.wait(R.NpcWaiterSeconds)
-				Npc.say(waiter, nil)
+				if still() then
+					Npc.say(waiter, nil)
+				end
 				if customers[target.Id] and target.State == "Ordering" then
 					Npc.say(target.Model, nil)
-					sendToBar(target)
+					sendToBar(target) -- (ya lo tenía apuntado: la comanda va a la barra igual)
 				end
+			elseif customers[target.Id] and target.State == "Ordering" and not target.Choice then
+				setState(target, "WaitingOrder") -- (no llegó a tomar nota: la mesa vuelve a llamar ✋)
 			end
 		end
-		if waiter.Parent then
+		if still() then
 			Npc.walkTo(waiter, { home }, 12)
 		end
 		npcWaiterBusy = false
@@ -826,14 +871,16 @@ local function npcBarmanStep()
 			for index, done in order.Done do
 				if not done then
 					npcBarmanBusy = true
+					local npc = npcBarman :: Model
 					task.spawn(function()
-						Npc.say(npcBarman :: Model, "Marchando " .. string.lower((Gameplay.dish(order.Items[index]) or { Name = "" }).Name) .. "…")
+						Npc.say(npc, "Marchando " .. string.lower((Gameplay.dish(order.Items[index]) or { Name = "" }).Name) .. "…")
 						task.wait(R.NpcBarmanSeconds)
-						if npcBarman then
-							Npc.say(npcBarman, nil)
-						end
-						if table.find(orders, order) and not order.Done[index] then
-							markPrepared(order, index, nil)
+						-- (si se ha retirado mientras, el plato sigue pendiente para el barman que le sustituya)
+						if npcBarman == npc then
+							Npc.say(npc, nil)
+							if table.find(orders, order) and not order.Done[index] then
+								markPrepared(order, index, nil)
+							end
 						end
 						npcBarmanBusy = false
 					end)

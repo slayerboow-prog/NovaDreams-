@@ -995,7 +995,8 @@ local function setupShop(counter: Instance)
 	end)
 	local spot = counter:GetAttribute("StaffSpot")
 	if typeof(spot) == "Vector3" then
-		local ok, clerk = pcall(Npc.create, "Npc_Armero", counter.Parent :: Instance, CFrame.lookAt(spot + Vector3.new(0, 3, 0), counter.Position * Vector3.new(1, 0, 1) + Vector3.new(0, spot.Y + 3, 0)), { Shirt = Color3.fromRGB(60, 70, 50), Pants = Color3.fromRGB(40, 40, 44) })
+		local feet = Npc.feetAt(spot) -- (pies en el suelo detrás del mostrador: con +3 flotaba)
+		local ok, clerk = pcall(Npc.create, "Npc_Armero", counter.Parent :: Instance, CFrame.lookAt(feet, Vector3.new(counter.Position.X, feet.Y, counter.Position.Z)), { Shirt = Color3.fromRGB(60, 70, 50), Pants = Color3.fromRGB(40, 40, 44) })
 		if ok and clerk then
 			clerkNpcs[counter] = clerk
 		end
