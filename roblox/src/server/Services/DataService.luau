@@ -70,6 +70,11 @@ local DEFAULT_DATA = {
 		Degrees = {},
 		Attendance = 0,
 	},
+	-- Historial de comportamiento (ConductService): puntos, lo que hiciste, castigo y paga
+	Conduct = {
+		Points = 0,
+		Log = {},
+	},
 	-- Historia de vida (LifeStoryService): capítulos, misiones, decisiones, memoria de NPC y biografía
 	Story = {
 		Version = 1,

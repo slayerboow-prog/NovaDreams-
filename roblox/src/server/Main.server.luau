@@ -100,6 +100,7 @@ local order = {
 	"CareerService", -- carreras en las instituciones: rangos, ascensos, plus de sueldo y uniformes
 	"JusticeService", -- juicios (jueces), condenas y prisión (presos y funcionarios)
 	"TaxService", -- Agencia Tributaria: declaración de la renta, agentes e inspecciones
+	"ConductService", -- historial de buen o mal comportamiento: la familia se entera, castigos y paga
 	"WantedService", -- delitos, testigos y estrellas de búsqueda: patrullas, agentes y helicópteros
 	"WeaponService", -- armas de fuego y de juguete, Armerías, licencia de armas y galería de tiro
 	"HospitalService", -- morir: pantalla de HAS MUERTO y reaparecer en el hospital (factura)

@@ -19,7 +19,8 @@
 --   * Lluvia y nieve (shared/Wetness): con el suelo mojado o nevado agarra menos. Acelera y frena
 --     peor, gira menos y derrapa en las curvas (va un poco hacia donde iba, no hacia donde apunta).
 --     Las motos, bicis y patinetes resbalan más.
--- Saltar (Espacio) o F para bajarse (en el móvil, el botón "Bajarse"). El servidor
+-- Saltar (Espacio) o F para bajarse (en el móvil, el botón "Bajarse"; lo hace Controllers/Vehicles
+-- y funciona siempre a la primera). El servidor
 -- (VehicleService) le da el control a tu ordenador, así que se mueve sin retraso y los demás
 -- (también tus pasajeros) lo ven igual. La cámara la lleva RideCamera.luau.
 
@@ -309,6 +310,14 @@ local function stop()
 	if state.Pose then
 		state.Pose:Stop(0.3)
 	end
+	-- Al bajarse, el vehículo se queda quieto (aunque fuera lanzado: frena en seco y lo aparca el servidor)
+	local chassis = state.Chassis
+	if chassis.Parent and not chassis.Anchored then
+		pcall(function()
+			chassis.AssemblyLinearVelocity = Vector3.zero
+			chassis.AssemblyAngularVelocity = Vector3.zero
+		end)
+	end
 	state = nil
 	VehicleHud.hide()
 	SoundFx.vehicleStop()
@@ -478,6 +487,11 @@ local function step(dt: number)
 
 	SoundFx.vehicleSpeed(math.clamp(math.abs(s.Speed) / maxSpeed, 0, 1))
 	VehicleHud.update(s.Speed, dt)
+end
+
+-- Deja de conducir ya (al bajarse: Controllers/Vehicles no espera al servidor)
+function Driving.release()
+	stop()
 end
 
 -- Para la cámara y las posturas: el volante (-1..1) y la velocidad del vehículo que conduces

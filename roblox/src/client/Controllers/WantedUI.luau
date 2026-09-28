@@ -2,7 +2,8 @@
 --   * Estrellas bajo el reloj (★★★☆☆). Parpadean cuando la policía te ha perdido de vista:
 --     si sigue sin verte un rato, te libras.
 --   * Avisos: "🚨 La policía te ha visto", "📞 Un testigo ha llamado…", "Has despistado a la policía".
---   * Pantalla de DETENIDO con la multa.
+--   * Pantalla de DETENIDO: tus delitos y tu historial de comportamiento (😇/😈). Si eres menor,
+--     la policía te lleva a casa con tu familia (no hay juicio).
 --   * Las hélices de los helicópteros giran y la alarma de la tienda suena (efectos solo aquí).
 
 local CollectionService = game:GetService("CollectionService")
@@ -49,7 +50,7 @@ local function paint()
 end
 
 -- Pantalla grande (DETENIDO)
-local function bigScreen(title: string, subtitle: string, color: Color3)
+local function bigScreen(title: string, subtitle: string, color: Color3, detail: string?)
 	local gui = create("ScreenGui", { Name = "Busted", IgnoreGuiInset = true, DisplayOrder = 9, ResetOnSpawn = false, Parent = player:WaitForChild("PlayerGui") })
 	local shade = create("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 1, Parent = gui })
 	TweenService:Create(shade, TweenInfo.new(0.5), { BackgroundTransparency = 0.35 }):Play()
@@ -68,7 +69,10 @@ local function bigScreen(title: string, subtitle: string, color: Color3)
 	local scale = create("UIScale", { Scale = 1.4, Parent = titleLabel })
 	TweenService:Create(scale, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
 	Theme.label({ AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.56), Size = UDim2.fromOffset(600, 30), Text = subtitle, TextSize = 22, TextXAlignment = Enum.TextXAlignment.Center, Parent = gui })
-	task.delay(3.2, function()
+	if detail then
+		Theme.label({ AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.fromScale(0.5, 0.61), Size = UDim2.fromOffset(600, 50), Text = detail, TextSize = 16, TextWrapped = true, TextColor3 = rgb(220, 225, 235), TextXAlignment = Enum.TextXAlignment.Center, Parent = gui })
+	end
+	task.delay(if detail then 4.5 else 3.2, function()
 		TweenService:Create(shade, TweenInfo.new(0.4), { BackgroundTransparency = 1 }):Play()
 		task.wait(0.4)
 		gui:Destroy()
@@ -93,7 +97,17 @@ local function onEvent(kind: string, data: any)
 		Hud.toast("Success", "😎 Has despistado a la policía")
 	elseif kind == "Busted" then
 		local by = if data.By then " por " .. data.By else ""
-		bigScreen("DETENIDO", ("Te han detenido%s · pasas a disposición judicial"):format(by), rgb(120, 170, 255))
+		local crimes = if type(data.Crimes) == "table" and #data.Crimes > 0 then table.concat(data.Crimes, " · ") else nil
+		local record = player:GetAttribute("ConductLevel")
+		local detail = crimes
+		if typeof(record) == "string" then
+			detail = (if detail then detail .. "\n" else "") .. "Historial: " .. record
+		end
+		if data.Minor then
+			bigScreen("¡PILLADO!", ("Te ha parado la policía%s · te llevan a casa con tu familia"):format(by), rgb(255, 190, 90), detail)
+		else
+			bigScreen("DETENIDO", ("Te han detenido%s · pasas a disposición judicial"):format(by), rgb(120, 170, 255), detail)
+		end
 	elseif kind == "Alarm" then
 		local entrance = data :: BasePart
 		if typeof(entrance) == "Instance" and entrance:IsA("BasePart") then

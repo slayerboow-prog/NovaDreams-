@@ -631,7 +631,7 @@ local function setupStation(model: Instance)
 		p.Parent = patrol
 		p.Triggered:Connect(function(player)
 			if shifts[player] and not VehicleService.mount(player, "Patrulla", { Rented = true }) then
-				Notify:FireClient(player, "Info", "Para el coche patrulla hace falta el carnet B.")
+				Notify:FireClient(player, "Info", "Ahora no puedes coger el coche patrulla.")
 			end
 		end)
 	end

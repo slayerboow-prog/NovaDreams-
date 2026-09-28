@@ -25,6 +25,7 @@ local Cinematics = require(script.Parent.Cinematics)
 local FootCamera = require(script.Parent.FootCamera)
 local SoundFx = require(script.Parent.SoundFx)
 local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
+local Vehicles = require(script.Parent.Vehicles)
 local StreetVoices = require(ReplicatedStorage.Shared.Config).StreetVoices
 
 local Actions = {}
@@ -37,12 +38,11 @@ function Actions.standUp()
 	if not humanoid then
 		return
 	end
-	local player = Players.LocalPlayer
-	if player:GetAttribute("Riding") or player:GetAttribute("Passenger") then
-		local vehicle = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("Vehicle")
-		if vehicle then
-			(vehicle :: RemoteEvent):FireServer("Dismount")
-		end
+	-- En un vehículo (conduciendo, de pasajero o sentado en él aunque el servidor no lo sepa):
+	-- Controllers/Vehicles te baja a la primera, de pie junto a tu puerta y sin volver a sentarte
+	if Vehicles.inVehicle() then
+		Vehicles.exit()
+		return
 	end
 	humanoid.Sit = false
 	humanoid.Jump = true

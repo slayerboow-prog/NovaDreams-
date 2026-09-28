@@ -13,6 +13,14 @@
 -- policía te ve durante Wanted.evadeSeconds, te libras. Si te alcanzan: detenido, multa y comisaría.
 -- Un policía jugador de servicio también puede detenerte (comando DETENER, junto a ti).
 -- Al detenerte pasas a disposición judicial (JusticeService): juicio o sentencia automática.
+-- Si eres menor (niño o adolescente), no: la policía te lleva a casa con tu familia (ConductService).
+--
+-- Al volante (checkDrivers, cada medio segundo): conducir sin el carnet que toca, o siendo menor,
+-- solo es delito si te ve la policía (una patrulla de ronda, agentes o un policía jugador de
+-- servicio a menos de Wanted.DriveSight y sin nada en medio). Entonces: «¡Alto!», la patrulla
+-- enciende la sirena y te sigue, y 1 estrella. Si Wanted.StopSeconds después sigues conduciendo,
+-- huida (+1). Si paras, bajan los agentes y te detienen.
+-- Lo que se sabe de ti también va a tu historial de comportamiento (ConductService).
 -- Las estrellas se guardan: salir del juego no borra la búsqueda.
 
 local CollectionService = game:GetService("CollectionService")
@@ -30,10 +38,14 @@ local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 local DataService = require(script.Parent.DataService)
 local JusticeService = require(script.Parent.JusticeService)
 local CareerService = require(script.Parent.CareerService)
+local VehicleService = require(script.Parent.VehicleService)
+local ConductService = require(script.Parent.ConductService)
+local Conduct = require(ReplicatedStorage.Shared.Conduct)
 
 local WantedService = {}
 
-type State = { Stars: number, LastSeen: number, LastPosition: Vector3?, CatchSince: number?, StealAt: number, Arresting: boolean, Crimes: { string } }
+type Stop = { At: number, Crime: string, Fled: boolean }
+type State = { Stars: number, LastSeen: number, LastPosition: Vector3?, CatchSince: number?, StealAt: number, Arresting: boolean, Crimes: { string }, Stop: Stop?, MisbehavedAt: number? }
 
 local states: { [Player]: State } = {}
 local Notify = ReplicatedStorage.Remotes.Notify :: RemoteEvent
@@ -65,6 +77,9 @@ end
 local function setStars(player: Player, stars: number)
 	local state = stateOf(player)
 	state.Stars = stars
+	if stars <= 0 then
+		state.Stop = nil -- (sin búsqueda, un nuevo «¡Alto!» vuelve a contar)
+	end
 	player:SetAttribute("Wanted", if stars > 0 then stars else nil)
 	player:SetAttribute("WantedSearching", nil)
 	local data = DataService.get(player)
@@ -164,14 +179,20 @@ function WantedService.crime(player: Player, crime: string, position: Vector3?, 
 	if not Wanted.Crimes[crime] or not player.Parent then
 		return
 	end
-	if not oldEnough(player) then
+	local at = position or (rootOf(player) and (rootOf(player) :: BasePart).Position)
+	if not Wanted.appliesTo(crime, oldEnough(player)) then
 		Notify:FireClient(player, "Error", "¡Eso no se hace! Si fueras mayor, vendría la policía.")
+		-- Si alguien lo ha visto, tu familia se entera (historial de comportamiento)
+		local state = stateOf(player)
+		if at and os.clock() - (state.MisbehavedAt or -math.huge) > 20 and (witnessNear(player, at) or PoliceUnits.anyNear(at, Wanted.PoliceSight, player)) then
+			state.MisbehavedAt = os.clock()
+			StoryEvents.emit(player, "Misbehaved", { Crime = crime })
+		end
 		return
 	end
 	if player:GetAttribute("JailUntil") or player:GetAttribute("OnTrial") then
 		return -- dentro de la cárcel (o en un juicio) no viene la policía
 	end
-	local at = position or (rootOf(player) and (rootOf(player) :: BasePart).Position)
 	if not at then
 		return
 	end
@@ -216,10 +237,18 @@ function WantedService.arrest(player: Player, cop: Player?)
 		CareerService.addPoints(cop, "Policia", "Arrest")
 	end
 	setStars(player, 0)
-	Remote:FireClient(player, "Busted", { Stars = stars, By = cop and cop.DisplayName })
-	StoryEvents.emit(player, "Arrested", { Stars = stars })
-	-- A disposición judicial: juicio (si hay juez de guardia) o sentencia automática
-	JusticeService.process(player, stars, if #crimes > 0 then crimes else { "Resistencia a la autoridad" })
+	local minor = Conduct.isMinor(player:GetAttribute("LifeStage"))
+	Remote:FireClient(player, "Busted", { Stars = stars, By = cop and cop.DisplayName, Minor = minor, Crimes = crimes })
+	StoryEvents.emit(player, "Arrested", { Stars = stars, Minor = minor })
+	-- Del vehículo, abajo (y el vehículo se queda parado)
+	pcall(VehicleService.exitAny, player, true)
+	if minor then
+		-- Un niño o un adolescente no va a juicio: a casa con su familia
+		ConductService.takeHome(player, crimes)
+	else
+		-- A disposición judicial: juicio (si hay juez de guardia) o sentencia automática
+		JusticeService.process(player, stars, if #crimes > 0 then crimes else { "Resistencia a la autoridad" })
+	end
 	task.delay(4, function()
 		state.Arresting = false
 		state.CatchSince = nil
@@ -353,6 +382,77 @@ local function watchWanted(player: Player, state: State)
 end
 
 ---------------------------------------------------------------------
+-- Al volante sin carnet (o siendo menor): solo si te ve la policía
+---------------------------------------------------------------------
+
+-- ¿Ve la policía a quien conduce? Un policía jugador de servicio, una patrulla de ronda o los
+-- agentes y coches de cualquier persecución. Devuelve también la patrulla de ronda que le vio.
+local function policeSeesDriver(player: Player): (boolean, any)
+	local r = rootOf(player)
+	if not r then
+		return false, nil
+	end
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	local ignore: { Instance } = {}
+	for _, p in Players:GetPlayers() do
+		if p.Character then
+			table.insert(ignore, p.Character)
+		end
+	end
+	local rides = workspace:FindFirstChild("Rides")
+	if rides then
+		table.insert(ignore, rides) -- (a quien va en coche se le ve por las ventanillas)
+	end
+	params.FilterDescendantsInstances = ignore
+	for _, cop in Players:GetPlayers() do
+		local c = rootOf(cop)
+		if cop ~= player and onDuty(cop) and c and (c.Position - r.Position).Magnitude <= Wanted.DriveSight then
+			if not workspace:Raycast(c.Position, r.Position - c.Position, params) then
+				Notify:FireClient(cop, "Info", ("🚨 %s conduce sin carnet delante de ti"):format(player.DisplayName))
+				return true, nil
+			end
+		end
+	end
+	return PoliceUnits.seesDriver(player, Wanted.DriveSight)
+end
+WantedService.policeSeesDriver = policeSeesDriver
+
+local function checkDriver(player: Player, state: State)
+	local offence = VehicleService.drivingOffence(player)
+	if not offence or state.Arresting or player:GetAttribute("JailUntil") or player:GetAttribute("OnTrial") then
+		return
+	end
+	local now = os.clock()
+	local stop = state.Stop
+	if not stop then
+		local seen, patrol = policeSeesDriver(player)
+		if seen then
+			state.Stop = { At = now, Crime = offence, Fled = false }
+			PoliceUnits.pullOver(player, patrol)
+			Notify:FireClient(player, "Error", "🚨 ¡Alto! ¡Policía! Para el vehículo y bájate.")
+			report(player, offence, "Police")
+		end
+	elseif not stop.Fled and now - stop.At >= Wanted.StopSeconds and VehicleService.rideSpeed(player) >= Wanted.StopSpeed then
+		-- Le han dado el «¡Alto!» y sigue conduciendo: huida
+		stop.Fled = true
+		report(player, "Huida", "Police")
+	end
+end
+
+-- Repaso de todos los que van al volante (lo hace el bucle cada medio segundo; las pruebas lo llaman)
+function WantedService.checkDrivers()
+	for _, player in Players:GetPlayers() do
+		if player.Parent and VehicleService.ridingKind(player) then
+			local ok, err = pcall(checkDriver, player, stateOf(player))
+			if not ok then
+				warn("[Wanted] " .. tostring(err))
+			end
+		end
+	end
+end
+
+---------------------------------------------------------------------
 -- Lo que hace CombatService (golpes) -> delitos
 ---------------------------------------------------------------------
 local function onStoryEvent(player: Player, name: string, payload: { [string]: any })
@@ -442,6 +542,7 @@ function WantedService.init()
 	task.spawn(function()
 		while true do
 			task.wait(0.5)
+			WantedService.checkDrivers()
 			for player, state in states do
 				if state.Stars > 0 and player.Parent then
 					local ok, err = pcall(watchWanted, player, state)

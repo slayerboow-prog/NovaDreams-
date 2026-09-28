@@ -1,6 +1,7 @@
 -- Character: ficha del personaje y correr.
 --   (La vida, la estamina, el nivel y la experiencia los dibuja el HUD: UI/Hud.luau)
 --   * Botón "⭐ Personaje" de arriba: reparte los puntos de cada nivel en Salud, Resistencia, Fuerza, Destreza y Suerte
+--     (y abajo, tu historial de comportamiento 😇/😈: ConductService)
 --   * Correr: mantén Shift (L3 en el mando; en móvil, el botón Correr o el joystick hasta el borde)
 --     mientras te quede estamina
 
@@ -32,7 +33,7 @@ local P = Gameplay.Progression
 local rgb = Color3.fromRGB
 
 local function openSheet()
-	local window, content = Dialog.window("CharacterSheet", "⭐ Tu personaje", Vector2.new(470, 590))
+	local window, content = Dialog.window("CharacterSheet", "⭐ Tu personaje", Vector2.new(470, 670))
 	local list = create("Frame", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Parent = content })
 	create("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder, Parent = list })
 	local header = Theme.label({ Size = UDim2.new(1, 0, 0, 44), TextSize = 15, TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top, LayoutOrder = 0, Parent = list })
@@ -60,6 +61,11 @@ local function openSheet()
 		gymBars[id] = { Label = label, Fill = fill }
 	end
 	local gymNote = Theme.label({ Position = UDim2.fromOffset(0, 80), Size = UDim2.new(1, 0, 0, 16), TextSize = 12, TextColor3 = C.Muted, Parent = gym })
+	-- Historial de comportamiento (😇 / 😈): ConductService
+	local conduct = Theme.panel({ Size = UDim2.new(1, 0, 0, 70), BackgroundColor3 = C.PanelLight, BackgroundTransparency = 0, LayoutOrder = 101, Parent = list })
+	Theme.padding(8).Parent = conduct
+	local conductTitle = Theme.label({ Size = UDim2.new(1, 0, 0, 22), Font = Theme.FontBold, TextSize = 16, Parent = conduct })
+	local conductNote = Theme.label({ Position = UDim2.fromOffset(0, 24), Size = UDim2.new(1, 0, 0, 30), TextSize = 12, TextWrapped = true, TextColor3 = C.Muted, TextYAlignment = Enum.TextYAlignment.Top, Parent = conduct })
 	local function refresh()
 		if not window.Parent then
 			return
@@ -81,11 +87,28 @@ local function openSheet()
 		gymBars.GymStrength.Fill.Size = UDim2.fromScale(math.clamp(strength / Gym.MaxStat, 0, 1), 1)
 		gymBars.GymCardio.Fill.Size = UDim2.fromScale(math.clamp(cardio / Gym.MaxStat, 0, 1), 1)
 		local days = player:GetAttribute("GymPassDays") or 0
+		local level = player:GetAttribute("ConductLevel")
+		local conductPoints = player:GetAttribute("Conduct") or 0
+		conductTitle.Text = ("%s  ·  %d punto%s"):format(if typeof(level) == "string" then level else "😇 Un angelito", conductPoints, if conductPoints == 1 then "" else "s")
+		local notes = {}
+		local last = player:GetAttribute("ConductLast")
+		if typeof(last) == "string" then
+			table.insert(notes, "Lo último: " .. last)
+		end
+		local records = player:GetAttribute("Records") or 0
+		if records > 0 then
+			table.insert(notes, ("Antecedentes: %d"):format(records))
+		end
+		local grounded = player:GetAttribute("GroundedUntil")
+		if typeof(grounded) == "number" and grounded > os.time() then
+			table.insert(notes, ("🏠 Castigado/a %d min: sin paga"):format(math.ceil((grounded - os.time()) / 60)))
+		end
+		conductNote.Text = if #notes > 0 then table.concat(notes, "  ·  ") else "Pórtate bien: lo que hagas mal lo sabrá tu familia (y la policía)."
 		gymNote.Text = if days > 0 then ("🏋️ Gimnasio: te queda%s %d día%s de entrada · entrena para ponerte fuerte"):format(if days == 1 then "" else "n", days, if days == 1 then "" else "s")
 			else "🏋️ Entrena en el gimnasio (💪 en el mapa): la Fuerza se nota en el cuerpo"
 	end
 	local connections = {}
-	for _, attribute in { "StatPoints", "Level", "Xp", "XpNext", "Stat_Salud", "Stat_Resistencia", "Stat_Fuerza", "Stat_Destreza", "Stat_Suerte", "GymStrength", "GymCardio", "GymPassDays" } do
+	for _, attribute in { "StatPoints", "Level", "Xp", "XpNext", "Stat_Salud", "Stat_Resistencia", "Stat_Fuerza", "Stat_Destreza", "Stat_Suerte", "GymStrength", "GymCardio", "GymPassDays", "Conduct", "ConductLevel", "ConductLast", "GroundedUntil", "Records" } do
 		table.insert(connections, player:GetAttributeChangedSignal(attribute):Connect(refresh))
 	end
 	window.Destroying:Connect(function()

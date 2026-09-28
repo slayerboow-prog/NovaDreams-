@@ -597,6 +597,7 @@ Gameplay.Restaurant.NpcBarmanSeconds = 0.05
 Gameplay.Restaurant.EatSeconds = 0.1
 Gameplay.Arcade.Games.Bolas.MinSeconds = 0
 Gameplay.Arcade.Games.Canasta.MinSeconds = 0
+Gameplay.ExitCooldown = 0.3 -- (lo que tarda en poder volver a subirse después de bajarse)
 
 ---------------------------------------------------------------------
 -- Mapa mínimo con las mismas etiquetas que el de verdad
@@ -752,7 +753,7 @@ DrivingSchoolService.init()
 ArcadeService.init()
 
 -- Si algo se atasca, la prueba falla en vez de quedarse colgada
-task.delay(240, function()
+task.delay(480, function()
 	print("❌ La prueba ha tardado demasiado")
 	process.exit(1)
 end)
@@ -768,7 +769,8 @@ print("▶ Vehículos")
 local teen, teenRoot, teenHumanoid = newPlayer(1, "Adolescente", 1000)
 local kid = newPlayer(2, "Nino", 1000)
 promptOf(station, "Coger monopatín").Triggered:Fire(kid)
-check(kid:GetAttribute("Riding") == nil, "un niño no puede coger el monopatín público")
+check(kid:GetAttribute("Riding") == "Monopatin", "un niño ya puede coger el monopatín público (conducir: desde niño)")
+remotes.Vehicle.OnServerEvent:Fire(kid, "Dismount")
 promptOf(station, "Coger bicicleta").Triggered:Fire(kid)
 check(kid:GetAttribute("Riding") == "Bici", "un niño ya puede coger la bici pública")
 remotes.Vehicle.OnServerEvent:Fire(kid, "Dismount")
@@ -811,7 +813,9 @@ print("▶ Autoescuela")
 local adult, adultRoot = newPlayer(3, "AdultoJoven", 20000)
 remotes.Vehicle.OnServerEvent:Fire(adult, "Buy", "Coche")
 remotes.Vehicle.OnServerEvent:Fire(adult, "Spawn", "Coche")
-check(adult:GetAttribute("Riding") == nil, "sin carnet no puede conducir su coche")
+check(adult:GetAttribute("Riding") == "Coche" and notified(adult, "sin el Carnet de coche"), "sin carnet también puede conducir su coche (con aviso: si le ve la policía, le para)")
+check(VehicleService.drivingOffence(adult) == "SinCarnet", "conducir el coche sin carnet es «Conducir sin carnet»")
+remotes.Vehicle.OnServerEvent:Fire(adult, "Dismount")
 promptOf(school).Triggered:Fire(teen)
 check(lastMessage(teen, "Menu") == nil, "un adolescente no puede sacarse el carnet")
 
@@ -892,6 +896,7 @@ check(not VehicleService.hasLicense(adult, "A") and adult:GetAttribute("TaskTarg
 
 ---------------------------------------------------------------------
 print("▶ Pasajeros")
+task.wait(Gameplay.ExitCooldown + 0.05) -- (se acaban de bajar: esperan un momento para volver a subir)
 do
 	local Rides = loadModule(ROOT .. "/server/World/Kit/Rides")
 	check(#Rides.passengerSeats("Moto") == 1 and #Rides.passengerSeats("Bici") == 0 and #Rides.passengerSeats("Patinete") == 0 and #Rides.passengerSeats("Monopatin") == 0, "la moto lleva asiento de atrás; bici, patinete y monopatín no")
@@ -944,6 +949,7 @@ do
 	rel = car.PrimaryPart.CFrame:PointToObjectSpace(kidHumanoid.Parent.HumanoidRootPart.Position)
 	check(kidRider:GetAttribute("Passenger") == nil and rel.X < -3.5 and rel.Z > 1, "saltar le baja por la puerta de atrás de su lado")
 	-- Vehículo de trabajo o de alquiler: al retirarlo, los pasajeros se bajan antes
+	task.wait(Gameplay.ExitCooldown + 0.05)
 	VehicleService.mount(adult, "Coche", { Rented = true })
 	local rented
 	for _, m in worldRoot.Rides:GetChildren() do
@@ -955,6 +961,99 @@ do
 	check(friend:GetAttribute("Passenger") == "Coche", "se sube de copiloto a un vehículo de trabajo")
 	remotes.Vehicle.OnServerEvent:Fire(adult, "Dismount")
 	check(friend:GetAttribute("Passenger") == nil and friendHumanoid.SeatPart == nil and friendRoot.Position.Y > 1, "al retirarlo, el pasajero se baja a su lado")
+	Fake.Raycast = oldRaycast
+	floor:Destroy()
+end
+
+---------------------------------------------------------------------
+print("▶ Bajarse siempre a la primera (conductor y pasajero, en marcha, sin volver a sentarse)")
+do
+	local floor = part("Street", CFrame.new(0, -0.5, 0))
+	local oldRaycast = Fake.Raycast
+	Fake.Raycast = function(_, origin)
+		return { Position = Vector3.new(origin.X, 0, origin.Z), Instance = floor, Normal = Vector3.new(0, 1, 0), Material = Enum.Material.Concrete }
+	end
+	local function exitedMessage(player)
+		local m = lastMessage(player, "Exited")
+		return m ~= nil and type(m[2]) == "table" and typeof(m[2].CFrame) == "CFrame"
+	end
+	local function welds(seat)
+		local n = 0
+		for _, c in seat:GetChildren() do
+			if c.Name == "SeatWeld" then
+				n += 1
+			end
+		end
+		return n
+	end
+	local driver, driverRoot, driverHum = newPlayer(31, "AdultoJoven", 20000)
+	profiles[driver].Licenses = { B = true }
+	remotes.Vehicle.OnServerEvent:Fire(driver, "Buy", "Coche")
+	remotes.Vehicle.OnServerEvent:Fire(driver, "Spawn", "Coche")
+	local car
+	for _, m in worldRoot.Rides:GetChildren() do
+		if m:GetAttribute("OwnerId") == driver.UserId then
+			car = m
+		end
+	end
+	local seat = car:FindFirstChild("DriverSeat")
+	check(driver:GetAttribute("Riding") == "Coche" and driverHum.SeatPart == seat, "se sube a su coche")
+	-- A toda velocidad: una pulsación y fuera; el coche se para y se queda aparcado
+	car.PrimaryPart.Anchored = false
+	car.PrimaryPart.AssemblyLinearVelocity = Vector3.new(0, 0, -70)
+	clearInbox(driver)
+	remotes.Vehicle.OnServerEvent:Fire(driver, "Dismount")
+	local rel = car.PrimaryPart.CFrame:PointToObjectSpace(driverRoot.Position)
+	check(driver:GetAttribute("Riding") == nil and driverHum.SeatPart == nil and welds(seat) == 0 and seat.Occupant == nil, "una pulsación le baja aunque vaya a toda velocidad (sin soldadura en el asiento)")
+	check(car.PrimaryPart.Anchored and car.PrimaryPart.AssemblyLinearVelocity.Magnitude == 0, "el coche frena en seco y se queda aparcado")
+	check(rel.X < -3 and driverRoot.Position.Y > 1, "queda de pie junto a la puerta del conductor (fuera de la carrocería)")
+	check(exitedMessage(driver), "su ordenador recibe dónde dejarle (se levanta él también, sin esperar)")
+	-- Justo después: el cartel de conducir no le vuelve a sentar
+	promptOf(car, "Conducir").Triggered:Fire(driver)
+	check(driver:GetAttribute("Riding") == nil and driverHum.SeatPart == nil, "justo después de bajarse, nada le vuelve a sentar (ni el cartel)")
+	task.wait(Gameplay.ExitCooldown + 0.05)
+	promptOf(car, "Conducir").Triggered:Fire(driver)
+	check(driver:GetAttribute("Riding") == "Coche", "un momento después ya puede volver a subir")
+	-- Con dos soldaduras (algo raro que pasa a veces): se quitan todas
+	local extra = fakeInstance("Weld")
+	extra.Name = "SeatWeld"
+	extra.Parent = seat
+	driverHum.Sit = false -- (saltar)
+	check(driver:GetAttribute("Riding") == nil and welds(seat) == 0, "saltar también le baja, y no queda ninguna soldadura")
+	-- Sentado en un vehículo sin que el servidor lo sepa: «Bajarse» le saca igual
+	task.wait(Gameplay.ExitCooldown + 0.05)
+	local back
+	for _, c in car:GetChildren() do
+		if c.ClassName == "Seat" and c:GetAttribute("Label") == "Subir detrás" then
+			back = c
+			break
+		end
+	end
+	back:Sit(driverHum)
+	clearInbox(driver)
+	remotes.Vehicle.OnServerEvent:Fire(driver, "Dismount")
+	rel = car.PrimaryPart.CFrame:PointToObjectSpace(driverRoot.Position)
+	check(driverHum.SeatPart == nil and welds(back) == 0 and back.Occupant == nil and math.abs(rel.X) > 3, "sentado sin que el servidor lo sepa: «Bajarse» le saca igual y le deja a su lado")
+	check(exitedMessage(driver), "y su ordenador también se levanta")
+	-- Sin ir sentado en nada: contesta igual (el ordenador se asegura de que está de pie)
+	clearInbox(driver)
+	remotes.Vehicle.OnServerEvent:Fire(driver, "Dismount")
+	check(lastMessage(driver, "Exited") ~= nil, "«Bajarse» siempre tiene respuesta")
+	-- Pasajero con el coche en marcha
+	task.wait(Gameplay.ExitCooldown + 0.05)
+	local rider, riderRoot, riderHum = newPlayer(32, "Adolescente", 0)
+	promptOf(car, "Subir de copiloto").Triggered:Fire(rider)
+	promptOf(car, "Conducir").Triggered:Fire(driver)
+	check(rider:GetAttribute("Passenger") == "Coche" and driver:GetAttribute("Riding") == "Coche", "conductor y copiloto dentro")
+	car.PrimaryPart.AssemblyLinearVelocity = Vector3.new(0, 0, -50)
+	local riderSeat = riderHum.SeatPart
+	remotes.Vehicle.OnServerEvent:Fire(rider, "Dismount")
+	rel = car.PrimaryPart.CFrame:PointToObjectSpace(riderRoot.Position)
+	check(rider:GetAttribute("Passenger") == nil and riderHum.SeatPart == nil and welds(riderSeat) == 0 and rel.X > 3, "el copiloto se baja a la primera, por su lado, con el coche en marcha")
+	promptOf(car, "Subir de copiloto").Triggered:Fire(rider)
+	check(rider:GetAttribute("Passenger") == nil, "y no se vuelve a sentar sin querer")
+	remotes.Vehicle.OnServerEvent:Fire(driver, "Dismount")
+	car:Destroy() -- (las pruebas de después buscan «el» coche aparcado)
 	Fake.Raycast = oldRaycast
 	floor:Destroy()
 end
@@ -5080,6 +5179,7 @@ print("▶ Armas: Armería, licencia, disparos, galería, policía y zonas segur
 mocks[ROOT .. "/server/World/PoliceUnits"] = {
 	init = function() end, ensure = function() end, dismiss = function() end, setTarget = function() end, knockDown = function() end,
 	sees = function() return false end, anyNear = function() return false end, officersNear = function() return 0 end,
+	seesDriver = function() return false, nil end, pullOver = function() end, patrolSees = function() return nil end,
 }
 mocks[S .. "JusticeService"] = { process = function() end }
 mocks[S .. "CareerService"] = { addPoints = function() end }
@@ -5296,6 +5396,221 @@ act(kid, "Equip", "PistolaAgua")
 check(kid:GetAttribute("Weapon") == "PistolaAgua", "sí la pistola de agua")
 
 Fake.Raycast = realRaycast
+end)()
+
+---------------------------------------------------------------------
+;(function()
+print("▶ Conducir sin carnet: la policía, el historial (😇/😈) y la familia")
+local Wanted = loadModule(ROOT .. "/shared/Wanted")
+local Conduct = loadModule(ROOT .. "/shared/Conduct")
+local PoliceMock = mocks[ROOT .. "/server/World/PoliceUnits"]
+local JusticeMock = mocks[S .. "JusticeService"]
+local rels, affinity, dialogues, processed, pulled = {}, {}, {}, {}, {}
+mocks[S .. "LifeStoryService"] = {
+	addRel = function(player, npc, amount)
+		rels[player] = rels[player] or {}
+		rels[player][npc] = (rels[player][npc] or 0) + amount
+	end,
+	addAffinity = function(player, _, amount)
+		affinity[player] = (affinity[player] or 0) + amount
+	end,
+	updateCamino = function() end,
+	logEvent = function() end,
+}
+mocks[S .. "DialogueService"] = {
+	play = function(player, dialogue, context)
+		table.insert(dialogues, { Player = player, Lines = dialogue.Lines, Args = context and context.args })
+		return true
+	end,
+	bark = function() end,
+}
+mocks[S .. "SceneService"] = {
+	teleportTo = function(player, target)
+		player.Character.HumanoidRootPart.CFrame = CFrame.new(target + Vector3.new(0, 3, 0))
+	end,
+}
+JusticeMock.process = function(player)
+	table.insert(processed, player)
+end
+local WantedService = loadModule(S .. "WantedService")
+local ConductService = loadModule(S .. "ConductService")
+ConductService.init()
+ConductService.HomeDelay = 0.05
+Wanted.StopSeconds = 0.3
+local savedRaycast = Fake.Raycast
+Fake.Raycast = function()
+	return nil -- (nada tapa la vista)
+end
+-- Qué ve la policía en cada momento (patrullas de ronda y persecuciones: PoliceUnits)
+local seen = {}
+PoliceMock.seesDriver = function(player)
+	return seen[player] == true, if seen[player] then "patrulla" else nil
+end
+PoliceMock.pullOver = function(player, patrol)
+	table.insert(pulled, { player, patrol })
+end
+local function join(id: number, stage: string, money: number)
+	local p, r, h = newPlayer(id, stage, money)
+	p.DisplayName = p.Name
+	players.PlayerAdded:Fire(p)
+	return p, r, h
+end
+local function crimeMessage(player, text)
+	for _, m in player.Inbox do
+		if m[1] == "Crime" and type(m[2]) == "table" and m[2].Crime == text then
+			return m[2]
+		end
+	end
+	return nil
+end
+local function busted(player)
+	local m = lastMessage(player, "Busted")
+	return m and m[2]
+end
+local function ownCar(player)
+	for _, m in worldRoot.Rides:GetChildren() do
+		if m:GetAttribute("OwnerId") == player.UserId then
+			return m
+		end
+	end
+	return nil
+end
+
+-- Un adulto sin carnet conduce su coche
+local driver, driverRoot = join(401, "Adulto", 20000)
+moveTo(driverRoot, Vector3.new(9000, 0, 9000))
+remotes.Vehicle.OnServerEvent:Fire(driver, "Buy", "Coche")
+remotes.Vehicle.OnServerEvent:Fire(driver, "Spawn", "Coche")
+check(driver:GetAttribute("Riding") == "Coche", "sin carnet se puede conducir cualquier coche")
+WantedService.checkDrivers()
+check(WantedService.stars(driver) == 0 and (profiles[driver].Conduct == nil or (profiles[driver].Conduct.Points or 0) == 0), "si no le ve la policía, no pasa nada")
+seen[driver] = true
+WantedService.checkDrivers()
+check(WantedService.stars(driver) == 1 and crimeMessage(driver, "Conducir sin carnet") ~= nil, "le ve una patrulla: «Conducir sin carnet», 1 estrella")
+check(notified(driver, "¡Alto!") and #pulled == 1 and pulled[1][1] == driver and pulled[1][2] == "patrulla", "le dan el «¡Alto!» y esa patrulla le sigue con la sirena")
+task.wait(0.05)
+check(profiles[driver].Conduct ~= nil and profiles[driver].Conduct.Points == Conduct.Points.SinCarnet and driver:GetAttribute("ConductLast") == "Conducir sin carnet", "va a su historial de comportamiento")
+check(rels[driver] == nil, "es adulto: sus padres no se enteran")
+WantedService.checkDrivers()
+check(WantedService.stars(driver) == 1, "mientras sigue el «¡Alto!», no se vuelve a contar")
+-- No para: huida
+local driverCar = ownCar(driver)
+driverCar.PrimaryPart.AssemblyLinearVelocity = Vector3.new(0, 0, -40)
+task.wait(Wanted.StopSeconds + 0.05)
+WantedService.checkDrivers()
+check(WantedService.stars(driver) == 2 and crimeMessage(driver, "No parar ante la policía") ~= nil, "si sigue conduciendo tras el «¡Alto!»: huida, 2 estrellas")
+-- Le alcanzan: adulto, a disposición judicial
+WantedService.arrest(driver)
+check(#processed == 1 and processed[1] == driver and busted(driver) ~= nil and busted(driver).Minor == false, "un adulto detenido pasa a disposición judicial (juicio o sentencia)")
+check(driver:GetAttribute("Riding") == nil and driverCar.PrimaryPart.Anchored, "al detenerle se baja del coche y el coche se queda parado")
+
+-- Con carnet no es delito
+local legal, legalRoot = join(402, "Adulto", 20000)
+moveTo(legalRoot, Vector3.new(9100, 0, 9000))
+profiles[legal].Licenses = { B = true }
+remotes.Vehicle.OnServerEvent:Fire(legal, "Buy", "Coche")
+remotes.Vehicle.OnServerEvent:Fire(legal, "Spawn", "Coche")
+seen[legal] = true
+WantedService.checkDrivers()
+check(legal:GetAttribute("Riding") == "Coche" and WantedService.stars(legal) == 0, "con carnet, que le vea la policía no es nada")
+remotes.Vehicle.OnServerEvent:Fire(legal, "Dismount")
+
+-- Un policía jugador de servicio también lo ve
+local cop, copRoot = join(403, "Adulto", 0)
+local sneaky, sneakyRoot = join(404, "Adulto", 20000)
+moveTo(sneakyRoot, Vector3.new(9300, 0, 9000))
+remotes.Vehicle.OnServerEvent:Fire(sneaky, "Buy", "Coche")
+remotes.Vehicle.OnServerEvent:Fire(sneaky, "Spawn", "Coche")
+local sneakyCar = ownCar(sneaky)
+moveTo(copRoot, sneakyCar.PrimaryPart.Position + Vector3.new(Wanted.DriveSight + 40, 0, 0))
+cop:SetAttribute("Job", "Policia")
+WantedService.checkDrivers()
+check(WantedService.stars(sneaky) == 0, "un policía de servicio lejos no lo ve")
+moveTo(copRoot, sneakyCar.PrimaryPart.Position + Vector3.new(30, 0, 0))
+WantedService.checkDrivers()
+check(WantedService.stars(sneaky) == 1 and notified(cop, "conduce sin carnet"), "un policía de servicio cerca lo ve y le para")
+cop:SetAttribute("Job", nil)
+
+-- Una adolescente con la moto (sin carnet: menor al volante)
+local teen, teenRoot = join(405, "Adolescente", 50)
+moveTo(teenRoot, Vector3.new(9500, 0, 9000))
+teen:SetAttribute("FamilyHomeId", "CasaTest")
+teen:SetAttribute("FamilyKey", "NPC.PAPA")
+profiles[teen].Story = { Traits = {}, Flags = {} }
+local home = fakeInstance("Model")
+home.Name = "CasaFamiliar"
+home:SetAttribute("HomeId", "CasaTest")
+home:AddTag("FamilyHome")
+home.Parent = worldRoot
+local dadSpot = fakeInstance("Part")
+dadSpot.Name = "Familia_Padre"
+dadSpot.CFrame = CFrame.new(12000, 2.5, 12000)
+dadSpot.Parent = home
+profiles[teen].Vehicles = { Moto = true }
+remotes.Vehicle.OnServerEvent:Fire(teen, "Spawn", "Moto")
+check(teen:GetAttribute("Riding") == "Moto" and notified(teen, "Eres menor"), "una adolescente puede conducir la moto (con aviso: es menor)")
+WantedService.checkDrivers()
+check(WantedService.stars(teen) == 0, "sin policía a la vista, nadie se entera")
+seen[teen] = true
+WantedService.checkDrivers()
+task.wait(0.05)
+check(WantedService.stars(teen) == 1 and crimeMessage(teen, "Menor al volante") ~= nil, "la ve una patrulla: «Menor al volante»")
+check(notified(teen, "Nos ha llamado la policía") and notified(teen, "Papá"), "su familia la llama al móvil: «¡Nos ha llamado la policía!»")
+check(rels[teen] ~= nil and rels[teen].Familia == Conduct.Family.Rel and (affinity[teen] or 0) < 0 and profiles[teen].Story.Traits.Rebeldia == 1, "baja la relación con sus padres y sube su Rebeldía")
+check(typeof(teen:GetAttribute("GroundedUntil")) == "number" and ConductService.isGrounded(teen), "castigada (sin paga)")
+-- Para y se baja: no hay huida
+remotes.Vehicle.OnServerEvent:Fire(teen, "Dismount")
+task.wait(Wanted.StopSeconds + 0.05)
+WantedService.checkDrivers()
+check(WantedService.stars(teen) == 1, "si para y se baja, no es huida")
+-- La detienen: a casa con su familia (no hay juicio)
+local before = #processed
+WantedService.arrest(teen)
+check(#processed == before and busted(teen) ~= nil and busted(teen).Minor == true, "una menor no va a juicio")
+task.wait(ConductService.HomeDelay + 0.15)
+check((teenRoot.Position - dadSpot.Position).Magnitude < 10, "la policía la lleva a su casa")
+check(#dialogues > 0 and dialogues[#dialogues].Player == teen and dialogues[#dialogues].Lines[2].S == "Familia", "en casa la espera la charla con su familia")
+check(rels[teen].Familia == Conduct.Family.Rel + Conduct.Family.RelArrest, "sus padres se enfadan todavía más")
+local log = profiles[teen].Conduct.Log
+check(log[#log].K == "Detenido" and profiles[teen].Conduct.Points == Conduct.Points.MenorVolante + Conduct.Points.Detenido, "todo queda en su historial")
+check(string.find(tostring(teen:GetAttribute("ConductLevel")), Conduct.level(profiles[teen].Conduct.Points).Name, 1, true) ~= nil, "la ficha enseña su nivel de historial")
+-- Castigada: sin paga
+local money = profiles[teen].Money
+profiles[teen].Conduct.PaidAt = os.time() - Config.DayLengthMinutes * 60 - 1
+ConductService.tick(teen)
+check(profiles[teen].Money == money and notified(teen, "no hay paga"), "castigada, se queda sin paga")
+
+-- Un niño al volante de un coche
+local kidDriver, kidRoot = join(406, "Nino", 0)
+moveTo(kidRoot, Vector3.new(9700, 0, 9000))
+check(VehicleService.mount(kidDriver, "Coche", { Rented = true }) and kidDriver:GetAttribute("Riding") == "Coche", "un niño también puede ponerse al volante")
+WantedService.checkDrivers()
+check(WantedService.stars(kidDriver) == 0, "si no le ve nadie, no pasa nada")
+seen[kidDriver] = true
+WantedService.checkDrivers()
+check(WantedService.stars(kidDriver) == 1, "si le ve la policía, le para (aunque sea un niño)")
+remotes.Vehicle.OnServerEvent:Fire(kidDriver, "Dismount")
+local baby = join(407, "Bebe", 0)
+check(not VehicleService.mount(baby, "Coche", { Rented = true }) and baby:GetAttribute("Riding") == nil, "un bebé no conduce nada")
+-- Sin castigo: la paga llega cada día de juego
+task.wait(0.05)
+local kidData = profiles[kidDriver]
+kidData.Conduct.GroundedUntil = nil
+kidData.Conduct.PaidAt = os.time() - Config.DayLengthMinutes * 60 - 1
+ConductService.tick(kidDriver)
+check(kidData.Money == Conduct.Family.Allowance.Nino, "sin castigo, la familia le da la paga")
+-- Portarse bien borra puntos
+local pts = kidData.Conduct.Points
+kidData.Conduct.CalmAt = os.time() - Conduct.CalmMinutes * 60 * 2 - 1
+ConductService.tick(kidDriver)
+check(pts > 0 and kidData.Conduct.Points == math.max(0, pts - 2), "portarse bien borra puntos del historial")
+-- Romper cristales también cuenta
+local vandal = join(408, "Adulto", 0)
+StoryEventsModule.emit(vandal, "Vandalism", { What = "han roto una ventana" })
+task.wait(0.05)
+check(profiles[vandal].Conduct ~= nil and profiles[vandal].Conduct.Points == Conduct.Points.Vandalismo, "romper cristales va al historial")
+
+Fake.Raycast = savedRaycast
 end)()
 
 end, debug.traceback)
