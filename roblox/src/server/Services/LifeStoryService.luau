@@ -457,7 +457,11 @@ end
 local function closedWindow(player: Player, data: Data, questId: string, prog: Progress): Schedules.Window?
 	local story = storyOf(data)
 	local step = stepsOf(questId, prog)[prog.Step]
-	if not step or Quests[questId].Schedule == false then
+	-- Solo las rutinas con horario (el día de cole, instituto, uni o trabajo, o las que lo piden con
+	-- Schedule = true) esperan a que abra el sitio; las misiones de la historia y las locas se
+	-- pueden jugar a cualquier hora (colarse en el patio del cole por la tarde, la noche de la Grieta…)
+	local quest = Quests[questId]
+	if not step or quest.Schedule == false or not (quest.DayPlan or quest.Schedule == true) then
 		return nil
 	end
 	local window: Schedules.Window? = nil
