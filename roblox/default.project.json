@@ -125,6 +125,9 @@
         },
         "Business": {
           "$className": "RemoteEvent"
+        },
+        "Speech": {
+          "$className": "RemoteEvent"
         }
       },
       "Musica": {

@@ -2276,6 +2276,10 @@ function LifeStoryService.init()
 	StoryEvents.connect(onStoryEvent)
 	DataService.onLoaded(onLoaded)
 	SceneService.onInteract = LifeStoryService.interact
+	-- Frases sueltas: el bocadillo sale encima del actor de tu escena
+	DialogueService.setActorFinder(function(player, npc)
+		return SceneService.actorOf(player, npc)
+	end)
 	Players.PlayerRemoving:Connect(function(player)
 		runtime[player] = nil
 	end)

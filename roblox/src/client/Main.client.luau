@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Hud = require(script.Parent.UI.Hud)
 local Store = require(script.Parent.UI.Store)
+local SpeechBubbles = require(script.Parent.UI.SpeechBubbles)
 local TaskMarker = require(script.Parent.Controllers.TaskMarker)
 local Ambient = require(script.Parent.Controllers.Ambient)
 local Weather = require(script.Parent.Controllers.Weather)
@@ -87,6 +88,7 @@ TaskMarker.init()
 require(script.Parent.UI.Perf).stripDetails() -- móvil: sin los detalles pequeños de la calle
 DayLight.init() -- luz realista según la hora (amanecer, mediodía, atardecer, noche)
 StoryAudio.init() -- música, efectos y voces de la historia (botón 🔊)
+task.spawn(SpeechBubbles.init) -- bocadillos encima de cada personaje que habla (lo que dice la gente del servidor)
 task.spawn(LifeStory.init) -- historia de vida (tarjeta "Tu vida", momentos, decisiones)
 task.spawn(Baby.init) -- tutorial de bebé (botón de levantarse, familia, vista de la ciudad)
 task.spawn(ClassUI.init) -- clases y exámenes que se juegan

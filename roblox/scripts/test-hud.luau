@@ -897,6 +897,66 @@ for _, size in { { 844, 390 }, { 932, 430 }, { 1024, 768 } } do
 	check(#badWrites == 0, "Ninguna propiedad inventada al usarlo" .. (if #badWrites > 0 then ": " .. table.concat(badWrites, ", ") else ""))
 end
 
+---------------------------------------------------------------------
+-- Bocadillos de texto (UI/BubbleLayout): uno por personaje, sin pisarse
+---------------------------------------------------------------------
+do
+	print("\n▶ Bocadillos de los personajes")
+	local B = loadModule("src/client/UI/BubbleLayout")
+	local book = B.book()
+	local ana, luis, perro = {}, {}, {}
+	B.put(book, ana, "¡Hola!", 0)
+	local entry, changed = B.put(book, ana, "¿Qué tal el día? Yo muy bien, gracias.", 0.5)
+	local count = 0
+	for _ in book.Entries do
+		count += 1
+	end
+	check(count == 1 and changed and entry.Text == "¿Qué tal el día? Yo muy bien, gracias.", "Una frase nueva del mismo personaje sustituye a la anterior (un solo bocadillo suyo)")
+	local _, again = B.put(book, ana, "¿Qué tal el día? Yo muy bien, gracias.", 0.8)
+	check(not again, "La misma frase otra vez no vuelve a saltar")
+	B.put(book, luis, "¡Buenas!", 1)
+	B.put(book, perro, "¡Guau!", 1, { Seconds = 1.4 })
+	count = 0
+	for _ in book.Entries do
+		count += 1
+	end
+	check(count == 3 and book.Entries[luis].Text == "¡Buenas!" and book.Entries[ana].Text ~= book.Entries[luis].Text, "Cada personaje tiene su propio bocadillo (no se mezclan)")
+	check(B.duration("¡Eh!") < B.duration("Si ves algo raro, avísame por el interfono, que para eso estoy aquí toda la noche."), "Las frases largas duran más")
+	check(B.duration("¡Eh!") >= 2 and B.duration(string.rep("palabra ", 80)) <= 9, "Ni tan cortas que no se lean ni eternas (2-9 s)")
+	check(B.speaking(book, perro, 2) and not B.speaking(book, perro, 2.5), "Con duración fija se calla a su hora")
+	local gone = B.sweep(book, 2.5 + B.FadeOut)
+	check(table.find(gone, perro) ~= nil and book.Entries[perro] == nil and book.Entries[ana] ~= nil, "Se quita cuando termina de irse (los demás siguen)")
+	B.quiet(book, luis, 3)
+	check(not B.speaking(book, luis, 3.01), "Callar a alguien quita su bocadillo")
+	local a1 = B.alpha(book.Entries[ana], 0.05)
+	local a2 = B.alpha(book.Entries[ana], 1)
+	check(a1 < 1 and a2 == 1, "Aparece con un fundido")
+	local sticky = B.put(B.book(), {}, "¿Me pone un café con leche, por favor?", 0, { Sticky = true })
+	check(sticky.Until >= 12 and sticky.Until <= 40, "Las frases que se quedan (pedidos) tienen un tope")
+	-- Tamaño: ancho máximo y varias líneas
+	local w1, h1 = B.estimate("¡Eh!")
+	local w2, h2 = B.estimate(string.rep("texto largo ", 20), "Abu Rosa")
+	check(w1 < w2 and w2 <= B.MaxWidth and h2 > h1 * 2, "Las frases largas se parten en líneas sin pasar del ancho máximo")
+	check(B.scale(5, 1080) > B.scale(50, 1080) and B.scale(10, 390) < B.scale(10, 1080) and B.scale(10, 390) >= 0.55, "Más lejos, más pequeño; en el móvil algo menor, pero legible")
+	-- Apilar: dos que hablan juntos no se pisan; uno lejos en pantalla se queda en su sitio
+	local lifts = B.stack({
+		{ Id = "ana", X = 500, Y = 300, W = 200, H = 60, Depth = 10 },
+		{ Id = "luis", X = 540, Y = 305, W = 200, H = 60, Depth = 12 },
+		{ Id = "eva", X = 560, Y = 310, W = 180, H = 50, Depth = 14 },
+		{ Id = "lejos", X = 1400, Y = 300, W = 200, H = 60, Depth = 30 },
+	})
+	check(lifts.ana == 0 and lifts.lejos == 0, "El más cercano y los que no chocan se quedan en su sitio")
+	local function rect(id, x, y, w, h)
+		local bottom = y - lifts[id]
+		return { L = x - w / 2, R = x + w / 2, T = bottom - h, B = bottom }
+	end
+	local ra, rl, re = rect("ana", 500, 300, 200, 60), rect("luis", 540, 305, 200, 60), rect("eva", 560, 310, 180, 50)
+	local function overlap(p, q)
+		return p.L < q.R and p.R > q.L and p.T < q.B and p.B > q.T
+	end
+	check(lifts.luis > 0 and lifts.eva > lifts.luis and not overlap(ra, rl) and not overlap(ra, re) and not overlap(rl, re), "Los que hablan cerca se apilan hacia arriba sin pisarse")
+end
+
 print()
 if failures > 0 then
 	print(("❌ %d fallo(s)"):format(failures))
