@@ -417,11 +417,28 @@ local function setOpen(value: boolean)
 	end
 end
 
+local processQueue: () -> ()
+
 local function process()
 	if running then
 		return
 	end
 	running = true
+	-- Si algo falla a mitad de una conversación, la caja se cierra igual (antes se quedaba
+	-- "hablando" para siempre y el HUD entero seguía escondido)
+	local ok, err = pcall(processQueue)
+	if not ok then
+		warn("[DialogueUI] " .. tostring(err))
+		table.clear(queue)
+	end
+	if not pcall(setOpen, false) then
+		open = false
+		player:SetAttribute("InDialogue", nil)
+	end
+	running = false
+end
+
+processQueue = function()
 	while #queue > 0 do
 		local payload = table.remove(queue, 1) :: { [string]: any }
 		-- Si hay una escena de cámara, la conversación espera a que termine
@@ -451,8 +468,6 @@ local function process()
 			end
 		end
 	end
-	setOpen(false)
-	running = false
 end
 
 function DialogueUI.isOpen(): boolean

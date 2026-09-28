@@ -53,7 +53,7 @@ local function nearestSupermarket(): Vector3?
 	return best
 end
 
-local function row(parent: Instance, order: number, text: string, buttons: { { string, () -> () } })
+local function row(parent: Instance, order: number, text: string, buttons: { { any } })
 	local line = create("Frame", { Size = UDim2.new(1, -8, 0, 36), BackgroundTransparency = 1, LayoutOrder = order, Parent = parent })
 	Theme.label({ Size = UDim2.new(1, -#buttons * 92, 1, 0), Text = text, TextSize = 15, TextTruncate = Enum.TextTruncate.AtEnd, Parent = line })
 	for i, b in buttons do

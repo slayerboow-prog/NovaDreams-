@@ -293,6 +293,24 @@ PromptGuard.init(function()
 	return Cinematics.isPlaying() or localPlayer:GetAttribute("InDialogue") == true
 end, Baby.isSaying)
 
+-- Red de seguridad: si la marca "hablando" se quedó puesta sin ninguna conversación abierta
+-- (algo falló a medias), se quita a los pocos segundos y vuelve toda la interfaz
+task.spawn(function()
+	local stale = 0
+	while true do
+		task.wait(1)
+		if localPlayer:GetAttribute("InDialogue") == true and not DialogueUI.isOpen() then
+			stale += 1
+			if stale >= 3 then
+				localPlayer:SetAttribute("InDialogue", nil)
+				stale = 0
+			end
+		else
+			stale = 0
+		end
+	end
+end)
+
 local wasBusy = false
 game:GetService("RunService").Heartbeat:Connect(function()
 	local cinematic = Cinematics.isPlaying()
