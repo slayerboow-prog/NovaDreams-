@@ -145,9 +145,14 @@ local function cutGround(world: Instance, skip: Instance, holes: { { Vector3 } }
 			end
 		end
 	end
+	-- (una pieza puede tocar dos agujeros: si ya se partió o quitó con el primero, se salta; en el
+	-- constructor, mirar Parent de una pieza destruida da error)
 	for _, item in found do
 		local p, lo, hi = item[1], item[2], item[3]
-		if not p.Parent then
+		local okParent, parent = pcall(function()
+			return p.Parent
+		end)
+		if not okParent or not parent then
 			continue
 		end
 		local c = { p.CFrame:GetComponents() }
