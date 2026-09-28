@@ -5,6 +5,10 @@
 --   * Agente: te persigue a pie (buscando camino entre los edificios); si te alcanza, te detiene.
 --     Se le puede tumbar a golpes (atributos Officer / Hp / Down, los usa CombatService).
 --   * Helicóptero: vuela en círculos sobre ti con un foco. Ve desde lejos, pero no a través de un techo.
+--   * Patrullas de ronda: unos pocos coches patrulla circulan por las calles cerca de los jugadores
+--     aunque nadie esté buscado (sin sirena). Si ven a alguien conduciendo sin carnet (o a un menor
+--     al volante), WantedService le da el «¡Alto!»: esa patrulla enciende la sirena y le sigue
+--     (pullOver); cuando se para, bajan los agentes a detenerle.
 -- Todo va anclado y lo mueve el servidor; las hélices y las luces las anima el cliente (WantedUI).
 
 local PathfindingService = game:GetService("PathfindingService")
@@ -16,6 +20,7 @@ local Wanted = require(ReplicatedStorage.Shared.Wanted)
 local Npc = require(script.Parent.Npc)
 local Roads = require(script.Parent.Kit.Roads)
 local Rides = require(script.Parent.Kit.Rides)
+local PatrolRoutes = require(script.Parent.PatrolRoutes)
 
 local PoliceUnits = {}
 
@@ -23,12 +28,15 @@ local V = Vector3.new
 local rgb = Color3.fromRGB
 
 type Officer = { Model: Model, Root: BasePart, Height: number, Path: { Vector3 }, PathAt: number, Car: any? }
-type Car = { Model: Model, Offset: CFrame, Officers: { Officer }, Arrived: boolean }
+type Car = { Model: Model, Offset: CFrame, Officers: { Officer }, Arrived: boolean, Chase: boolean?, Position: Vector3?, Look: Vector3? }
+type Patrol = { Model: Model, Offset: CFrame, Index: number, From: string, T: number, Lane: number, Position: Vector3, GroundAt: number }
 type Heli = { Model: Model, Offset: CFrame, Beam: BasePart, Angle: number, Position: Vector3 }
 type Force = { Cars: { Car }, Helis: { Heli }, Officers: { Officer }, Target: Vector3?, Stars: number, Folder: Folder }
 
 local forces: { [Player]: Force } = {}
+local patrols: { Patrol } = {}
 local root: Folder
+local patrolFolder: Folder
 
 ---------------------------------------------------------------------
 -- Utilidades
@@ -41,6 +49,11 @@ local function rayParams(extra: { Instance }?): RaycastParams
 		if player.Character then
 			table.insert(list, player.Character)
 		end
+	end
+	-- (los vehículos no tapan: a quien va en coche se le ve por las ventanillas)
+	local rides = workspace:FindFirstChild("Rides")
+	if rides then
+		table.insert(list, rides)
 	end
 	for _, instance in extra or {} do
 		table.insert(list, instance)
@@ -387,7 +400,7 @@ function PoliceUnits.ensure(player: Player, stars: number)
 	local r = playerRoot(player)
 	for i = #force.Cars, 1, -1 do
 		local car = force.Cars[i]
-		local far = r and car.Arrived and (car.Model:GetPivot().Position - r.Position).Magnitude > 320
+		local far = r and (car.Arrived or car.Chase) and (car.Model:GetPivot().Position - r.Position).Magnitude > 320
 		-- …o que se han quedado sin agentes (los han tumbado): llegan refuerzos
 		local empty = car.Arrived and #car.Officers > 0
 		for _, officer in car.Officers do
@@ -510,12 +523,248 @@ function PoliceUnits.anyNear(position: Vector3, range: number, except: Player?):
 	return false
 end
 
+---------------------------------------------------------------------
+-- Patrullas de ronda (circulan por la ciudad sin que nadie esté buscado)
+---------------------------------------------------------------------
+local graph: PatrolRoutes.Graph? = nil
+local function routes(): PatrolRoutes.Graph
+	if not graph then
+		graph = PatrolRoutes.graph(Roads.segments())
+	end
+	return graph :: PatrolRoutes.Graph
+end
+
+local function flatDistance(a: Vector3, b: Vector3): number
+	return V(a.X - b.X, 0, a.Z - b.Z).Magnitude
+end
+
+-- Sale una patrulla en una calle a la distancia justa de ese punto (ni encima ni lejísimos)
+local function spawnPatrol(near: Vector3): Patrol?
+	local g = routes()
+	local P = Wanted.Patrols
+	local candidates = {}
+	for i, segment in g.Segments do
+		local d = flatDistance((segment.A + segment.B) / 2, near)
+		if d >= P.Spawn[1] and d <= P.Spawn[2] and PatrolRoutes.length(segment) > 20 then
+			table.insert(candidates, i)
+		end
+	end
+	if #candidates == 0 then
+		return nil
+	end
+	local index = candidates[math.random(1, #candidates)]
+	local segment = g.Segments[index]
+	local from = if math.random() < 0.5 then "A" else "B"
+	local width = Roads.Kinds[segment.Kind] and Roads.Kinds[segment.Kind].Road or 22
+	local lane = width / 4
+	local point, dir = PatrolRoutes.point(segment, from, 0.5, lane)
+	local ground = groundAt(point)
+	local cf = CFrame.lookAt(ground, ground + dir)
+	local model = Rides.build("Patrulla", patrolFolder, cf)
+	anchorAll(model)
+	model:SetAttribute("Siren", false)
+	model:SetAttribute("Patrol", true)
+	local patrol: Patrol = { Model = model, Offset = cf:ToObjectSpace(model:GetPivot()), Index = index, From = from, T = 0.5, Lane = lane, Position = ground, GroundAt = 0 }
+	table.insert(patrols, patrol)
+	return patrol
+end
+
+local function stepPatrol(patrol: Patrol, dt: number)
+	local g = routes()
+	local segment = g.Segments[patrol.Index]
+	if not segment then
+		return
+	end
+	patrol.T += Wanted.Patrols.Speed * dt / math.max(PatrolRoutes.length(segment), 1)
+	if patrol.T >= 1 then
+		-- Final del tramo: sigue por otra calle del cruce (o da la vuelta si no hay salida)
+		local arrived = if patrol.From == "A" then "B" else "A"
+		patrol.Index, patrol.From = PatrolRoutes.next(g, patrol.Index, arrived)
+		patrol.T = 0
+		segment = g.Segments[patrol.Index]
+		patrol.Lane = (Roads.Kinds[segment.Kind] and Roads.Kinds[segment.Kind].Road or 22) / 4
+	end
+	local point, dir = PatrolRoutes.point(segment, patrol.From, patrol.T, patrol.Lane)
+	-- La altura del suelo, de vez en cuando (las calles son casi planas)
+	local now = os.clock()
+	local y = patrol.Position.Y
+	if now - patrol.GroundAt > 0.3 then
+		patrol.GroundAt = now
+		y = groundAt(point).Y
+	end
+	patrol.Position = V(point.X, y, point.Z)
+	patrol.Model:PivotTo(CFrame.lookAt(patrol.Position, patrol.Position + dir) * patrol.Offset)
+end
+
+-- Cuántas patrullas de ronda hay: según los jugadores; las que se quedan lejos de todos se retiran
+local function tendPatrols()
+	local roots = {}
+	for _, player in Players:GetPlayers() do
+		local r = playerRoot(player)
+		if r and player:GetAttribute("LifeStage") ~= "Bebe" then
+			table.insert(roots, r.Position)
+		end
+	end
+	for i = #patrols, 1, -1 do
+		local patrol = patrols[i]
+		local near = false
+		for _, position in roots do
+			if flatDistance(patrol.Position, position) <= Wanted.Patrols.Despawn then
+				near = true
+				break
+			end
+		end
+		if not near or not patrol.Model.Parent then
+			patrol.Model:Destroy()
+			table.remove(patrols, i)
+		end
+	end
+	local want = if #roots == 0 then 0 else math.min(Wanted.Patrols.Max, math.ceil(#roots / Wanted.Patrols.PerPlayers))
+	local tries = 0
+	while #patrols < want and tries < 3 do
+		tries += 1
+		spawnPatrol(roots[math.random(1, #roots)])
+	end
+end
+PoliceUnits.tendPatrols = tendPatrols
+
+function PoliceUnits.patrolCount(): number
+	return #patrols
+end
+
+-- ¿Te ve alguna patrulla de ronda? (a menos de range y sin nada en medio) Devuelve cuál.
+function PoliceUnits.patrolSees(player: Player, range: number): Patrol?
+	local r = playerRoot(player)
+	if not r then
+		return nil
+	end
+	local params = rayParams({ player.Character :: Instance })
+	for _, patrol in patrols do
+		local from = patrol.Position + V(0, 4, 0)
+		local offset = r.Position - from
+		if patrol.Model.Parent and offset.Magnitude <= range and workspace:Raycast(from, offset, params) == nil then
+			return patrol
+		end
+	end
+	return nil
+end
+
+-- ¿Ve la policía a quien conduce? Patrullas de ronda, y agentes o coches de cualquier persecución.
+-- Devuelve si le ven y, si fue una patrulla de ronda, cuál (para que le dé el «¡Alto!»).
+function PoliceUnits.seesDriver(player: Player, range: number): (boolean, Patrol?)
+	local patrol = PoliceUnits.patrolSees(player, range)
+	if patrol then
+		return true, patrol
+	end
+	local r = playerRoot(player)
+	if not r then
+		return false, nil
+	end
+	local params = rayParams({ player.Character :: Instance })
+	local function clear(from: Vector3): boolean
+		local offset = r.Position - from
+		return offset.Magnitude <= range and workspace:Raycast(from, offset, params) == nil
+	end
+	for _, force in forces do
+		for _, officer in force.Officers do
+			if not officerDown(officer) and clear(officer.Root.Position + V(0, 1.5, 0)) then
+				return true, nil
+			end
+		end
+		for _, car in force.Cars do
+			if car.Model.Parent and clear(car.Model:GetPivot().Position + V(0, 4, 0)) then
+				return true, nil
+			end
+		end
+	end
+	return false, nil
+end
+
+-- «¡Alto!»: la patrulla de ronda que te ha visto enciende la sirena y te sigue (pasa a ser de tu
+-- persecución). Cuando te paras, bajan los agentes.
+function PoliceUnits.pullOver(player: Player, patrol: Patrol?)
+	if not patrol then
+		return
+	end
+	local i = table.find(patrols, patrol)
+	if not i or not patrol.Model.Parent then
+		return
+	end
+	table.remove(patrols, i)
+	local force = forceOf(player)
+	patrol.Model.Parent = force.Folder
+	patrol.Model:SetAttribute("Siren", true)
+	patrol.Model:SetAttribute("Patrol", nil)
+	local r = playerRoot(player)
+	local look = if r then V(r.Position.X - patrol.Position.X, 0, r.Position.Z - patrol.Position.Z) else V(0, 0, -1)
+	table.insert(force.Cars, {
+		Model = patrol.Model,
+		Offset = patrol.Offset,
+		Officers = {},
+		Arrived = false,
+		Chase = true,
+		Position = patrol.Position,
+		Look = if look.Magnitude > 0.1 then look.Unit else V(0, 0, -1),
+	})
+end
+
+-- La patrulla del «¡Alto!» te sigue; cuando te paras cerca, bajan los agentes
+local function stepChase(player: Player, force: Force, car: Car, dt: number)
+	local r = playerRoot(player)
+	if car.Arrived or not car.Model.Parent or not r or not car.Position then
+		return
+	end
+	local position = car.Position :: Vector3
+	local flat = V(r.Position.X - position.X, 0, r.Position.Z - position.Z)
+	local distance = flat.Magnitude
+	if distance > 12 then
+		local step = math.min(distance - 12, Wanted.ChaseSpeed * dt)
+		car.Look = flat.Unit
+		local nextPos = position + flat.Unit * step
+		car.Position = V(nextPos.X, groundAt(nextPos).Y, nextPos.Z)
+		local look = car.Look :: Vector3
+		car.Model:PivotTo(CFrame.lookAt(car.Position :: Vector3, (car.Position :: Vector3) + look) * car.Offset)
+	end
+	local velocity = r.AssemblyLinearVelocity
+	local speed = if typeof(velocity) == "Vector3" then V(velocity.X, 0, velocity.Z).Magnitude else 0
+	if distance <= 24 and speed < Wanted.StopSpeed then
+		car.Arrived = true
+		local at = car.Position :: Vector3
+		local look = car.Look or V(0, 0, -1)
+		for k = 1, 2 do
+			local door = at + V(-look.Z, 0, look.X) * (if k == 1 then -3.5 else 3.5)
+			table.insert(car.Officers, makeOfficer(force, door, car))
+		end
+	end
+end
+
 function PoliceUnits.init()
 	root = Instance.new("Folder")
 	root.Name = "PoliceResponse"
 	root.Parent = workspace
+	patrolFolder = Instance.new("Folder")
+	patrolFolder.Name = "Patrullas"
+	patrolFolder.Parent = root
+	-- Patrullas de ronda: cuántas hay, cada 2 segundos
+	task.spawn(function()
+		while true do
+			task.wait(2)
+			local ok, err = pcall(tendPatrols)
+			if not ok then
+				warn("[PoliceUnits] " .. tostring(err))
+			end
+		end
+	end)
 	RunService.Heartbeat:Connect(function(dt)
+		for _, patrol in patrols do
+			stepPatrol(patrol, dt)
+		end
 		for player, force in forces do
+			for _, car in force.Cars do
+				if car.Chase then
+					stepChase(player, force, car, dt)
+				end
+			end
 			local speed = Wanted.OfficerSpeed[math.clamp(force.Stars, 1, #Wanted.OfficerSpeed)]
 			for _, officer in force.Officers do
 				stepOfficer(officer, force.Target, speed, dt)

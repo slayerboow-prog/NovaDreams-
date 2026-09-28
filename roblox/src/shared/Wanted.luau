@@ -7,6 +7,11 @@
 --     cuarta, helicópteros.
 --   * Para librarte: que ningún policía te vea durante un rato (más largo cuantas más estrellas).
 --   * Si te alcanzan (o te quedas K.O. con un agente cerca): detenido, multa y a la comisaría.
+--     Si eres menor (niño o adolescente) no vas a juicio: la policía te lleva a casa con tu familia
+--     (ConductService).
+--   * Conducir sin carnet (o siendo menor) solo es delito si te ve la policía: una patrulla que
+--     circula por ahí, los agentes o un policía de servicio, a menos de DriveSight y sin nada en
+--     medio. Te dan el «¡Alto!»: si sigues conduciendo StopSeconds después, suma la huida.
 
 local Wanted = {}
 
@@ -24,6 +29,25 @@ Wanted.Crimes = {
 	Homicidio = { Stars = 3, Text = "Homicidio" },
 	Disparo = { Stars = 2, Text = "Disparar a una persona" }, -- (WeaponService)
 	Disparos = { Stars = 1, Text = "Disparos en la vía pública" },
+	-- Al volante (Minors = también cuenta para los niños: la policía para a cualquiera que conduzca)
+	SinCarnet = { Stars = 1, Text = "Conducir sin carnet" },
+	MenorVolante = { Stars = 1, Text = "Menor al volante", Minors = true },
+	Huida = { Stars = 1, Text = "No parar ante la policía", Minors = true },
+}
+
+-- Delitos de tráfico: los ve solo la policía (sin testigos que llamen)
+Wanted.DriveSight = 75 -- studs a los que una patrulla o un agente ve quién conduce
+Wanted.StopSeconds = 8 -- tras el «¡Alto!», tiempo para parar y bajarse
+Wanted.StopSpeed = 5 -- por debajo de esto (studs/s) se considera que has parado
+Wanted.ChaseSpeed = 70 -- la patrulla que te ha visto te sigue a esta velocidad
+
+-- Patrullas que circulan por la ciudad aunque nadie esté buscado (PoliceUnits)
+Wanted.Patrols = {
+	PerPlayers = 2, -- una patrulla por cada 2 jugadores (al menos una si hay alguien)
+	Max = 4,
+	Speed = 24, -- velocidad de crucero
+	Spawn = { 110, 240 }, -- aparecen a esta distancia de un jugador (no delante de sus narices)
+	Despawn = 480, -- si se alejan tanto de todos, se retiran (y sale otra cerca)
 }
 
 Wanted.PoliceSight = 90 -- studs a los que un agente (o un policía jugador) te ve
@@ -59,6 +83,12 @@ Wanted.StealRange = 6
 Wanted.HeistHold = 2.5
 Wanted.HeistLoot = { 80, 220 }
 Wanted.HeistCooldown = 300 -- la misma tienda no se puede volver a atracar hasta pasado esto
+
+-- ¿Cuenta este delito para alguien de esta edad? (antes de MinStage, solo los de Minors)
+function Wanted.appliesTo(crime: string, oldEnough: boolean): boolean
+	local def = Wanted.Crimes[crime]
+	return def ~= nil and (oldEnough or def.Minors == true)
+end
 
 -- Estrellas después de un delito
 function Wanted.starsAfter(current: number, crime: string): number

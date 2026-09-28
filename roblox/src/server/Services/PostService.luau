@@ -360,7 +360,7 @@ local function onVehicle(player: Player, kind: string)
 		return
 	end
 	if not VehicleService.mount(player, kind, { Rented = true }) and kind == "Moto" then
-		Notify:FireClient(player, "Info", "Para la moto hace falta el carnet A. Coge la bici de reparto.")
+		Notify:FireClient(player, "Info", "Ahora no puedes coger la moto. Coge la bici de reparto.")
 	end
 end
 

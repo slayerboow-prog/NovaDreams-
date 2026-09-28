@@ -358,7 +358,7 @@ local function setupDepot(model: Instance)
 					return
 				end
 				if not VehicleService.mount(player, "Camion", { Rented = true }) then
-					Notify:FireClient(player, "Info", "Para el camión hace falta el carnet B. Puedes hacer la ruta a pie.")
+					Notify:FireClient(player, "Info", "Ahora no puedes coger el camión. Puedes hacer la ruta a pie.")
 				end
 			end)
 		end

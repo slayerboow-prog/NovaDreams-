@@ -6,8 +6,8 @@
 --     atravesar cristales finos) y cada jugador la dibuja volando (Vandal "Stone").
 --   * Cristales (ventanas de casas y edificios, de coches, de balcones…): se rompen en trozos que
 --     caen al suelo. Puertas: aguantan unos golpes y se caen. Todo se arregla solo al rato.
---   * Consecuencias: los policías de servicio reciben el aviso («🚨 Vandalismo en …») y los
---     personajes a los que das se quejan.
+--   * Consecuencias: los policías de servicio reciben el aviso («🚨 Vandalismo en …»), los
+--     personajes a los que das se quejan y va a tu historial de comportamiento (ConductService).
 --   * Las balas (WeaponService) rompen lo mismo con BreakService.hitStructure.
 -- Las reglas (qué se rompe, cómo vuela la piedra) están en shared/Breakables.
 
@@ -20,6 +20,7 @@ local RunService = game:GetService("RunService")
 local Breakables = require(ReplicatedStorage.Shared.Breakables)
 local Npc = require(script.Parent.Parent.World.Npc)
 local LocationService = require(script.Parent.LocationService)
+local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 
 local BreakService = {}
 
@@ -269,6 +270,7 @@ local function alertPolice(thrower: Player, at: Vector3, what: string)
 	end
 	lastAlert[thrower] = os.clock()
 	thrower:SetAttribute("Vandalismo", (thrower:GetAttribute("Vandalismo") or 0) + 1)
+	StoryEvents.emit(thrower, "Vandalism", { What = what }) -- (al historial de comportamiento)
 	local zone = LocationService.zoneAt(at) or "la ciudad"
 	for _, other in Players:GetPlayers() do
 		if other ~= thrower and other:GetAttribute("Job") == "Policia" then

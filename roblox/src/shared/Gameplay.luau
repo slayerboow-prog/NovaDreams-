@@ -10,7 +10,10 @@ local Gameplay = {}
 -- Se compran desde el botón "🚲 Vehículos" y se sacan en cualquier sitio.
 -- Las bicis y monopatines públicos (junto a las paradas de autobús) son gratis.
 ---------------------------------------------------------------------
--- Stage = etapa mínima: la bici y el patinete se pueden usar desde la infancia
+-- Stage = etapa mínima para COMPRARLO (la bici y el patinete, desde la infancia).
+-- Conducir se puede cualquier vehículo desde niño (Gameplay.DriveMinStage), con carnet o sin él:
+-- sin el carnet que toca (o siendo menor) es un delito, pero solo si te ve la policía
+-- (WantedService: "Conducir sin carnet" / "Menor al volante").
 Gameplay.Vehicles = {
 	Monopatin = { Name = "Monopatín", Icon = "🛹", Price = 150, Speed = 26, Stage = "Adolescente", Order = 1 },
 	Patinete = { Name = "Patinete eléctrico", Icon = "🛴", Price = 250, Speed = 30, Stage = "Nino", Order = 2 },
@@ -80,6 +83,30 @@ Gameplay.Licenses = {
 	B = { Name = "Carnet de coche (B)", Price = 400, Vehicle = "Coche" },
 }
 Gameplay.LicenseStage = "AdultoJoven"
+
+-- Conducir: desde esta etapa se puede montar en cualquier vehículo (los bebés, en ninguno)
+Gameplay.DriveMinStage = "Nino"
+Gameplay.MinorStages = { Bebe = true, Nino = true, Adolescente = true }
+-- Al bajarse de un vehículo no te vuelve a subir nada durante este rato (ni un cartel pulsado sin
+-- querer ni un asiento): así bajarse es siempre bajarse
+Gameplay.ExitCooldown = 1.2
+
+-- ¿Qué delito es conducir este vehículo? nil = ninguno (no pide carnet, o lo tienes)
+--   "MenorVolante": un menor conduciendo algo que pide carnet (moto, coche…)
+--   "SinCarnet": un adulto sin el carnet que toca
+function Gameplay.drivingOffence(stage: string?, hasLicense: boolean, kind: string): string?
+	local vehicle = Gameplay.Vehicles[kind]
+	if not vehicle or not vehicle.License then
+		return nil
+	end
+	if stage and Gameplay.MinorStages[stage] then
+		return "MenorVolante"
+	end
+	if not hasLicense then
+		return "SinCarnet"
+	end
+	return nil
+end
 Gameplay.Theory = { Questions = 5, ToPass = 4 }
 Gameplay.Practical = { Checkpoints = 5, Seconds = 100, ReachDistance = 16 }
 

@@ -20,7 +20,7 @@ local Ambient = {}
 local player = Players.LocalPlayer
 
 local Perf = require(script.Parent.Parent.UI.Perf)
-local PED_COUNT = Perf.count(28) -- en móvil, la mitad
+local PED_COUNT = Perf.count(34) -- en móvil, la mitad
 local WALK_TOP = 1.0
 -- Cada calle es un tramo recto en cualquier ángulo: A + Dir·u (u de From a To) + Perp·v
 type Road = { A: Vector3, Dir: Vector3, Perp: Vector3, From: number, To: number, Lane: number, Walk: number? }
@@ -358,8 +358,8 @@ local function updatePeds(dt: number, center: Vector3)
 		carSpeed = Vector3.new(v.X, 0, v.Z).Magnitude
 	end
 	for i, ped in peds do
-		-- De noche solo sale una parte de la gente (y ningún niño)
-		local wanted = not night or (i % 3 == 0 and ped.Style ~= "Kid")
+		-- De noche sale la mitad de la gente (y ningún niño)
+		local wanted = not night or (i % 2 == 0 and ped.Style ~= "Kid")
 		if not wanted then
 			setActive(ped, false)
 			ped.Road = nil
@@ -422,6 +422,27 @@ end
 
 ---------------------------------------------------------------------
 
+-- Modo ligero (móvil y ordenadores modestos): de la gente que pone el servidor en las salas, los
+-- parques y las tiendas (CrowdService), la mitad no se ve en esta pantalla (atributo CrowdLite)
+local function trimCrowd()
+	if not Perf.lite then
+		return
+	end
+	local function consider(d: Instance)
+		if d:IsA("Model") and d:GetAttribute("CrowdLite") == true then
+			task.defer(function()
+				if d.Parent then
+					d:Destroy()
+				end
+			end)
+		end
+	end
+	for _, d in workspace:GetDescendants() do
+		consider(d)
+	end
+	workspace.DescendantAdded:Connect(consider)
+end
+
 -- Disparos cerca (WeaponFx): la gente de la calle huye corriendo en dirección contraria
 function Ambient.panic(position: Vector3, radius: number)
 	for _, ped in peds do
@@ -442,6 +463,7 @@ function Ambient.panic(position: Vector3, radius: number)
 end
 
 function Ambient.init()
+	task.spawn(trimCrowd)
 	local data = ReplicatedStorage:WaitForChild("Ambient", 60)
 	if not data then
 		warn("[Ambient] No hay datos de calles: sin tráfico ni peatones")

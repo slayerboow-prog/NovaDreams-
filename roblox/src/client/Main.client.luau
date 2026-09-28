@@ -72,6 +72,7 @@ local InteriorUI = require(script.Parent.Controllers.InteriorUI)
 local EconomyUI = require(script.Parent.Controllers.EconomyUI)
 local UseMotion = require(script.Parent.Controllers.UseMotion)
 local InteractClient = require(script.Parent.Controllers.InteractClient)
+local FridgeUI = require(script.Parent.Controllers.FridgeUI)
 local Joystick = require(script.Parent.Controllers.Joystick)
 local Gps = require(script.Parent.Controllers.Gps)
 local CommandMenu = require(script.Parent.Commands.CommandMenu)
@@ -162,6 +163,7 @@ task.spawn(InteriorUI.init) -- ascensor de los edificios (todos se pueden visita
 task.spawn(EconomyUI.init) -- granja (cooperativa, obrador) y negocios (gestión y mostrador)
 task.spawn(UseMotion.init) -- posturas al usar los muebles: sentado, tumbado, grifo, nevera, ducha, ordenador, piano, ventana
 task.spawn(InteractClient.init) -- tele con imagen, ordenador, piano, agua y clics de los muebles
+task.spawn(FridgeUI.init) -- nevera de casa: lo que hay dentro (comer, coger) y guardar la compra
 
 -- Menú de comandos (abajo a la izquierda): cambia según lo que tienes delante; el comando elegido
 -- es también lo que hace la tecla E, y su cartel es el único que se dibuja

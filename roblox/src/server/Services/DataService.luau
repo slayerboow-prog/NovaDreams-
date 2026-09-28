@@ -39,6 +39,8 @@ local DEFAULT_DATA = {
 	-- Mochila (InventoryService): objetos que se cuentan y en qué casilla va cada cosa
 	Items = {},
 	Slots = {},
+	-- Neveras (FridgeService): lo guardado en cada una, por su clave ("casa:…", "residencia:…")
+	Fridges = {},
 	-- Pesca (FishingService): experiencia (el nivel sale de aquí) y cuántos has pescado de cada pez
 	Fishing = {
 		Xp = 0,
@@ -67,6 +69,11 @@ local DEFAULT_DATA = {
 		Exams = {},
 		Degrees = {},
 		Attendance = 0,
+	},
+	-- Historial de comportamiento (ConductService): puntos, lo que hiciste, castigo y paga
+	Conduct = {
+		Points = 0,
+		Log = {},
 	},
 	-- Historia de vida (LifeStoryService): capítulos, misiones, decisiones, memoria de NPC y biografía
 	Story = {

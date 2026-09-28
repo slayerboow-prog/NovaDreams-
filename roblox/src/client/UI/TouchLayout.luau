@@ -313,12 +313,10 @@ end
 ---------------------------------------------------------------------
 local function visibleSpecs(): { Spec }
 	local list = {}
-	if busy then
-		return list
-	end
 	for _, id in order do
 		local spec = specs[id]
-		if spec and safe(spec.Visible, true) then
+		-- En conversaciones y cinemáticas solo quedan los botones marcados Always (levantarse)
+		if spec and (not busy or (spec :: any).Always) and safe(spec.Visible, true) then
 			table.insert(list, spec)
 		end
 	end

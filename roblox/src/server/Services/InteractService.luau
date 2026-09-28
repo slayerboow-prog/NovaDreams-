@@ -18,6 +18,7 @@ local TweenService = game:GetService("TweenService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Interact = require(ReplicatedStorage.Shared.Interact)
+local Floors = require(ReplicatedStorage.Shared.Floors)
 local Format = require(ReplicatedStorage.Shared.Format)
 local Builder = require(script.Parent.Parent.World.Builder)
 local Npc = require(script.Parent.Parent.World.Npc)
@@ -81,11 +82,16 @@ function InteractService.accessOf(player: Player, inst: InteriorService.Instance
 	if not inst then
 		return "Public"
 	end
+	if (inst.Room :: any).Kind == "Dorm" then
+		-- Habitación de la residencia: la tuya o la de otro estudiante
+		local key = inst.Building.Key .. "#" .. Floors.unitId(inst.Floor, inst.Unit)
+		return if player:GetAttribute("DormUnit") == key then "Owner" else "Stranger"
+	end
 	local ok, PropertyService = pcall(function()
 		return require(script.Parent.PropertyService) :: any
 	end)
 	if ok and PropertyService and PropertyService.access then
-		local got, access = pcall(PropertyService.access, player, inst.Building, inst.Floor)
+		local got, access = pcall(PropertyService.access, player, inst.Building, inst.Floor, inst.Unit)
 		if got and type(access) == "string" then
 			return access
 		end
@@ -474,11 +480,14 @@ actions.Fridge = function(player, part, inst, access)
 			end
 		end,
 	})
-	local mode = Interact.fridgeMode(access, kindOf(inst))
-	local familyHome = part:GetAttribute("FamilyHomeId")
-	if familyHome ~= nil then
-		-- La nevera de la casa de tus padres: tuya si es tu familia
-		mode = if Interact.familyFridge(familyHome, player:GetAttribute("FamilyHomeId")) then "Free" else nil
+	-- Qué hay dentro para ti (FridgeService): gratis con tus padres en la etapa del colegio; desde la
+	-- universidad, lo que hayas comprado y guardado; en las tiendas se paga; lo demás, solo mirar
+	local FridgeService = require(script.Parent.FridgeService) :: any
+	local ctx = FridgeService.context(player, part, inst, access, kindOf(inst))
+	local mode = ctx.Mode
+	if mode == "Stock" then
+		FridgeService.show(player, ctx, part)
+		return
 	end
 	if mode == "Free" then
 		local now = os.clock()
@@ -501,7 +510,7 @@ actions.Fridge = function(player, part, inst, access)
 		Notify:FireClient(player, "Food", ("🥤 %s: %s"):format(drink.Name, Format.money(drink.Price)))
 		StoryEvents.emit(player, "Ate", { FoodId = "Bebida" })
 	else
-		Notify:FireClient(player, "Info", "🧊 Echas un vistazo… Mejor no tocar lo que no es tuyo.")
+		Notify:FireClient(player, "Info", ctx.Why or "🧊 Echas un vistazo… Mejor no tocar lo que no es tuyo.")
 	end
 end
 
@@ -646,7 +655,9 @@ local function addClerk(spot: BasePart, index: number)
 		return
 	end
 	spot:SetAttribute("Staffed", true)
-	local ok, npc = pcall(Npc.create, CLERK_NAMES[(index - 1) % #CLERK_NAMES + 1], spot.Parent or spot, spot.CFrame, nil)
+	local given = spot:GetAttribute("ClerkName")
+	local name = if type(given) == "string" then given else CLERK_NAMES[(index - 1) % #CLERK_NAMES + 1]
+	local ok, npc = pcall(Npc.create, name, spot.Parent or spot, spot.CFrame, nil)
 	if not ok or not npc then
 		return
 	end
@@ -678,7 +689,7 @@ local function textFor(part: BasePart, use: string, inst: InteriorService.Instan
 			local ok, PropertyService = pcall(function()
 				return require(script.Parent.PropertyService) :: any
 			end)
-			owned = ok and PropertyService.ownerOf ~= nil and PropertyService.ownerOf(inst.Building, inst.Floor) ~= nil
+			owned = ok and PropertyService.ownerOf ~= nil and PropertyService.ownerOf(inst.Building, inst.Floor, inst.Unit) ~= nil
 		end
 		return if owned then "Dormir" else info.Action, object
 	elseif use == "Fridge" then
@@ -743,6 +754,8 @@ local function setupPart(part: BasePart, inst: InteriorService.Instance_?)
 			end
 			for _, s in seats do
 				s:GetPropertyChangedSignal("Occupant"):Connect(refresh)
+				-- (la gente de la sala también ocupa sitio: CrowdService marca el asiento con Taken)
+				s:GetAttributeChangedSignal("Taken"):Connect(refresh)
 			end
 			refresh()
 		end

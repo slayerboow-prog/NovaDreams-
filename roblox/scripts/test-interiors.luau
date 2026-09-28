@@ -1,7 +1,9 @@
 -- Prueba de los muebles de los interiores FUERA de Roblox, con Lune (funciones puras):
+--   * neveras (shared/Fridge) y edificios de varias plantas (shared/Floors: escalera, puertas)
 --   * reglas de uso (shared/Interact): qué se puede hacer en tu casa, en la de otro, en las de los
 --     vecinos y en las tiendas; picar de la nevera con límite; textos de los carteles; canales
 --   * números fijos por edificio (World/Furniture.rng): la misma casa siempre igual
+--   * sitio ocupado (World/Space): decorar y poner gente sin meter nada dentro de otra cosa
 --   * posturas al usar los muebles (Controllers/UseAnim): sin tirones, mezcla suave, y en un
 --     personaje R15 las manos van donde deben (teclado, piano, grifo, cabeza en la ducha…) y
 --     tumbado el cuerpo queda recto
@@ -74,7 +76,7 @@ end
 check(blocked, "en casa ajena no se duerme, ni se abre la nevera, ni la ducha… (y dice por qué)")
 check(Interact.allowed("Bed", "Neighbor") == true and Interact.allowed("Shower", "Neighbor") == false and Interact.allowed("Fridge", "Neighbor") == false, "en casa de los vecinos te puedes tumbar, pero no ducharte ni abrir su nevera")
 check(Interact.canSleep("Owner") and Interact.canSleep("Guest") and not Interact.canSleep("Neighbor") and not Interact.canSleep("ForSale") and not Interact.canSleep("Public"), "solo se duerme (energía) en tu casa o invitado")
-check(Interact.fridgeMode("Owner", "Casa") == "Free" and Interact.fridgeMode("Guest", "Piso") == "Free", "la nevera de casa es gratis")
+check(Interact.fridgeMode("Owner", "Casa") == "Stock" and Interact.fridgeMode("Guest", "Piso") == "Stock", "la nevera de casa tiene lo que hayas guardado")
 check(Interact.fridgeMode("Public", "Local") == "Pay" and Interact.fridgeMode("Public", "Ocio") == "Pay", "en las tiendas y bares se paga")
 check(Interact.fridgeMode("Public", "Oficina") == nil and Interact.fridgeMode("ForSale", "Casa") == nil and Interact.fridgeMode("Stranger", "Casa") == nil, "en las demás, solo se mira")
 -- Picar algo en casa: sin límite, solo un momento entre bocado y bocado
@@ -98,6 +100,71 @@ for _, channel in Interact.Channels do
 	channelsOk = channelsOk and type(channel.Name) == "string" and #channel.Colors >= 2 and channel.Speed > 0
 end
 check(channelsOk and #Interact.Melody >= 8, "cada canal tiene nombre y colores; el piano, su melodía")
+
+---------------------------------------------------------------------
+print("Neveras: gratis de pequeño, desde la universidad lo que compres")
+local Fridge = load("src/shared/Fridge.luau")
+check(Fridge.freeAtFamily("Bebe") and Fridge.freeAtFamily("Nino") and Fridge.freeAtFamily("Adolescente"), "en la etapa del colegio, gratis en casa de tus padres")
+check(not Fridge.freeAtFamily("AdultoJoven") and not Fridge.freeAtFamily("Adulto") and not Fridge.freeAtFamily("Mayor") and not Fridge.freeAtFamily(nil), "desde la universidad, no")
+local stock = {}
+check(Fridge.store(stock, "Pan", 3) == 3 and stock.Pan == 3 and Fridge.total(stock) == 3, "guardar comida en la nevera")
+check(Fridge.take(stock, "Pan") and stock.Pan == 2, "comer gasta uno")
+check(not Fridge.take(stock, "Leche"), "no se puede coger lo que no hay")
+check(Fridge.store(stock, "Leche", 100) == Fridge.MaxStock - 2 and Fridge.total(stock) == Fridge.MaxStock, "no cabe más de lo que cabe")
+check(Fridge.store(stock, "Pan", 1) == 0, "llena, ya no entra nada")
+Fridge.take(stock, "Pan")
+Fridge.take(stock, "Pan")
+check(stock.Pan == nil and #Fridge.list(stock) == 1, "al acabarse algo, desaparece de la lista")
+check(Fridge.isFood({ Kind = "Food", Hunger = 10 }) and not Fridge.isFood({ Kind = "Thing" }) and not Fridge.isFood(nil), "solo se guarda comida")
+
+---------------------------------------------------------------------
+print("Edificios de varias plantas (shared/Floors)")
+local Floors = load("src/shared/Floors.luau")
+check(Floors.isTower("Piso", 5) and not Floors.isTower(nil, 5) and not Floors.isTower("Piso", 1), "se sube por dentro si tiene plantas de arriba")
+local rise, total = true, 0
+local last = 0
+for i, s in Floors.steps() do
+	if s.Y - last > 1 or s.Y <= last then
+		rise = false
+	end
+	last = s.Y
+	total = i
+end
+check(rise and math.abs(last - Floors.Height) < 1e-6 and total == Floors.StepsPerFlight * 2, "escalera: escalones de ≤ 1 stud hasta la planta de arriba (dos tramos)")
+local okUnits, unique = true, true
+for k = 1, 200 do
+	local key = "Portal_" .. k .. "_7"
+	local seen = {}
+	for f = 1, 8 do
+		local units = Floors.units(key, "Portal", "Piso", f)
+		if #units < 3 or #units > 6 then
+			okUnits = false
+		end
+		for _, u in units do
+			if seen[u.Id] or seen[u.Label] then
+				unique = false
+			end
+			seen[u.Id], seen[u.Label] = true, true
+			local floor, letter = Floors.parseUnit(u.Id)
+			if floor ~= f or letter ~= u.Letter or u.Label ~= ("%dº%s"):format(f, u.Letter) then
+				unique = false
+			end
+		end
+	end
+end
+check(okUnits, "de 3 a 6 viviendas por planta")
+check(unique, "cada puerta con su nombre (3ºA, 3ºB…) y su clave, que se lee al revés")
+check(Floors.unitId(3, "A") == "3" and Floors.unitId(3, "B") == "3B" and Floors.unitId(0, nil) == "0", "la A de cada planta es la vivienda de antes (una por planta)")
+check(#Floors.units("X", "Portal", "Piso", 0) == 0 and #Floors.units("X", "Local", "Piso", 0) == 1 and Floors.units("X", "Local", "Piso", 0)[1].Ground, "en la planta baja: el portal (o la tienda de la calle)")
+check(string.match(Floors.units("X", "OficinaLobby", "Oficina", 3)[1].Label, "^Oficina 301$") ~= nil and Floors.units("R", "Portal", "Dorm", 2)[1].Kind == "Dorm", "oficinas numeradas y habitaciones de residencia")
+check(Floors.floorAt(-1, 10) == 0 and Floors.floorAt(3, 10) == 0 and Floors.floorAt(Floors.Height * 4 + 3, 10) == 4 and Floors.floorAt(1e4, 10) == 10, "planta según la altura")
+local build, keep = Floors.wanted({ 6 }, 11)
+local nb = 0
+for _ in build do
+	nb += 1
+end
+check(nb == 5 and build[4] and build[8] and not build[3] and keep[3] and keep[9] and not keep[2], "se montan las plantas a ±2 y se quitan las que quedan a más de ±3")
+check(Floors.isOpen(10) and not Floors.isOpen(22) and not Floors.isOpen(6), "las oficinas abren de 8:00 a 20:00")
 
 ---------------------------------------------------------------------
 print("Números fijos por edificio")
@@ -314,6 +381,31 @@ check(yaws[#yaws] - yaws[1] > 0.6, "y mira a un lado y a otro")
 local sit = place(transforms("Sit", 1))
 check(math.abs(hand(sit, "Right").X) > 0.3 and hand(sit, "Right").Z < 0, "sentado: las manos en el regazo")
 local _ = headPos
+
+---------------------------------------------------------------------
+print("Sitio ocupado al decorar y al poner gente (World/Space)")
+local Space = load("src/server/World/Space.luau")
+local frame = CFrame.new(100, 5, 100) * CFrame.Angles(0, math.rad(90), 0)
+local s = Space.new(frame, 10, 8, 12)
+local function fakePart(cf, size)
+	return { CFrame = cf, Size = size }
+end
+-- Un mueble girado en medio y una alfombra (plana) en el suelo
+s:addPart(fakePart(frame * CFrame.new(0, 1.5, 0) * CFrame.Angles(0, math.rad(90), 0), Vector3.new(6, 3, 2)))
+s:addPart(fakePart(frame * CFrame.new(-5, 0.05, 3), Vector3.new(6, 0.1, 4)))
+check(not s:free(Vector3.new(0.5, 1, 2.5), Vector3.new(1, 1, 1)), "no cabe nada dentro de un mueble (aunque esté girado)")
+check(s:free(Vector3.new(2, 1, 0), Vector3.new(1, 1, 1)), "al lado del mueble, sí")
+check(s:free(Vector3.new(-5, 1, 3), Vector3.new(2, 2, 2)), "encima de una alfombra se puede poner algo")
+check(not s:free(Vector3.new(9.8, 1, 0), Vector3.new(2, 2, 2)), "nada se sale de la sala")
+check(s:claim(Vector3.new(6, 1, -5), Vector3.new(2, 2, 2)) and not s:claim(Vector3.new(6.5, 1, -5), Vector3.new(2, 2, 2)), "lo reservado ya no está libre")
+s:block(-3, 3, -9, -3)
+check(not s:free(Vector3.new(0, 1, -6), Vector3.new(1, 1, 1)), "el paso desde la puerta queda libre")
+-- Pared con una ventana: solo se cuelga donde hay pared de verdad
+s:addWall(fakePart(frame * CFrame.new(-4, 6, 8.5), Vector3.new(12, 12, 1)))
+check(s:onWall(Vector3.new(-6, 6, 8), Vector3.new(0, 0, -1)), "se cuelga en la pared")
+check(not s:onWall(Vector3.new(6, 6, 8), Vector3.new(0, 0, -1)), "pero no en un hueco sin pared")
+local here = s:at(2, 0, 3)
+check((frame:PointToObjectSpace(here.Position) - Vector3.new(2, 0, 3)).Magnitude < 1e-3, "las posiciones de la sala van con la sala (girada y en su sitio)")
 
 print("")
 if failures == 0 then

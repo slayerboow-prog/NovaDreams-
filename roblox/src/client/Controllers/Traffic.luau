@@ -34,9 +34,9 @@ local DECEL = 26 -- frenada (studs/s²)
 
 -- Tipos de vehículo: cuántos hay alrededor del jugador y cómo circulan
 local KINDS = {
-	Car = { Count = 18, Cruise = { 26, 40 }, Length = 13.5, Small = false },
+	Car = { Count = 20, Cruise = { 26, 40 }, Length = 13.5, Small = false },
 	Moto = { Count = 4, Cruise = { 30, 42 }, Length = 6, Small = false },
-	Bici = { Count = 5, Cruise = { 11, 16 }, Length = 5, Small = true },
+	Bici = { Count = 6, Cruise = { 11, 16 }, Length = 5, Small = true },
 	Patinete = { Count = 3, Cruise = { 12, 15 }, Length = 4, Small = true },
 }
 

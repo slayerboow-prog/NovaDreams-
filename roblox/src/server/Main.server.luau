@@ -18,6 +18,19 @@ local TownBuilder = require(World.TownBuilder)
 if not town then
 	TownBuilder.build()
 end
+-- Si el archivo trae una ciudad de antes de la decoración de las plantas bajas, se decora ahora
+-- (una vez: la ciudad guarda la versión en su atributo DecorVersion)
+do
+	local built = workspace:FindFirstChild("Town")
+	if built then
+		local ok, err = pcall(function()
+			require(World.Kit.Decor).dressTown(built)
+		end)
+		if not ok then
+			warn("[Decor] " .. tostring(err))
+		end
+	end
+end
 TerrainBuilder.removeGroundPart()
 
 -- 4) Datos para el tráfico y los peatones que simula cada cliente
@@ -40,6 +53,8 @@ local order = {
 	"InteriorService", -- todos los edificios por dentro (salas al entrar, ascensores e instituciones)
 	"PropertyService", -- casas y pisos que se compran, y los vecinos que viven en ellos
 	"InteractService", -- los muebles se usan: sentarse, dormir, tele, luces, nevera, grifos, ducha, puertas…
+	"FridgeService", -- neveras: gratis con tus padres (colegio); desde la universidad, lo que compres y guardes
+	"ResidenceService", -- residencia universitaria: habitación compartida o individual para cada estudiante
 	"WeatherService", -- estaciones y tiempo: sol, lluvia, tormenta, nieve, niebla
 	"ToyService", -- balones y conos con física: se patean, botan y vuelven solos a su sitio
 	"BreakService", -- piedras que se lanzan: ventanas y puertas que se rompen (y se arreglan solas)
@@ -74,6 +89,8 @@ local order = {
 	"MetroService", -- metro subterráneo: trenes, galería, encargos y revisor
 	"GymService", -- gimnasios: recepción, máquinas, ritmo, fuerza que se nota en el cuerpo y monitor/a
 	"MetroLifeService", -- vida del metro: guardias, ratas, aseos, taquillas, fuente, piano…
+	"StaffService", -- cada sitio que atiende al público tiene a alguien (NPC si no hay jugador de ese oficio)
+	"CrowdService", -- gente en las salas, las tiendas, los parques y las plazas (aunque juegues solo)
 	"DivingService", -- nadar, bucear (aire) y pesca submarina con fusil o arpón
 	"SeaEventService", -- catástrofes marinas: tsunami, temporal, remolino, marea negra, tiburón y medusas
 	"ClassService", -- clases y exámenes que se juegan (lo usa la historia)
@@ -83,6 +100,7 @@ local order = {
 	"CareerService", -- carreras en las instituciones: rangos, ascensos, plus de sueldo y uniformes
 	"JusticeService", -- juicios (jueces), condenas y prisión (presos y funcionarios)
 	"TaxService", -- Agencia Tributaria: declaración de la renta, agentes e inspecciones
+	"ConductService", -- historial de buen o mal comportamiento: la familia se entera, castigos y paga
 	"WantedService", -- delitos, testigos y estrellas de búsqueda: patrullas, agentes y helicópteros
 	"WeaponService", -- armas de fuego y de juguete, Armerías, licencia de armas y galería de tiro
 	"HospitalService", -- morir: pantalla de HAS MUERTO y reaparecer en el hospital (factura)
