@@ -1233,6 +1233,10 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean })
 		end
 	end
 	new("Folder", "Musica").Parent = replicated
+	-- Lo que el servidor publica para los mapas (vacío): así el minimapa se monta enseguida
+	for _, name in { "Ambient", "MapZones", "MapLandmarks" } do
+		new("Folder", name).Parent = replicated
+	end
 	local client = mount(ROOT .. "/client", playerScripts, "Client")
 	-- El PlayerModule de Roblox (controles y cámara)
 	local playerModule = new("ModuleScript", "PlayerModule")
@@ -1586,6 +1590,19 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean })
 	local events = {
 		[math.floor(2 * FPS)] = function()
 			spawnCharacter()
+		end,
+		[math.floor(3 * FPS)] = function()
+			-- Una misión canónica pendiente (LifeStoryService): su ❗ en el minimapa
+			localPlayer:SetAttribute("CanonMarks", '[{"Id":"Grieta01","Title":"La grieta","X":40,"Y":0,"Z":-60}]')
+		end,
+		[math.floor(5 * FPS)] = function()
+			local found = false
+			for _, d in playerGui:GetDescendants() do
+				if d.Name ~= "Title" and rawget(d, "__class") == "TextLabel" and d.Text == "❗" and d.Visible then
+					found = true
+				end
+			end
+			table.insert(checks, { found, "las misiones canónicas pendientes salen en el mapa (❗)" })
 		end,
 		[math.floor(6 * FPS)] = function()
 			-- Lo que manda el servidor mientras juegas: bocadillos, la familia, una conversación
