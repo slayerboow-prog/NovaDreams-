@@ -55,6 +55,7 @@ type Ride = {
 	Keep: boolean, -- se queda aparcado al bajarse
 	Died: RBXScriptConnection?,
 	Left: RBXScriptConnection?,
+	Gone: RBXScriptConnection?, -- el vehículo desaparece con él dentro
 	-- Combustible y cuentakilómetros (solo coche, moto y patinete)
 	Fuel: number?,
 	Odometer: number?,
@@ -542,6 +543,9 @@ function VehicleService.dismount(player: Player, silent: boolean?)
 	if ride.Left then
 		ride.Left:Disconnect()
 	end
+	if ride.Gone then
+		ride.Gone:Disconnect()
+	end
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	unseat(humanoid, ride.Seat)
@@ -936,6 +940,13 @@ local function drive(player: Player, model: Model, kind: string, opts: { Rented:
 	ride.Left = seat:GetPropertyChangedSignal("Occupant"):Connect(function()
 		if seat.Occupant ~= humanoid and riding[player] == ride then
 			VehicleService.dismount(player)
+		end
+	end)
+	-- Si el vehículo se retira con él dentro (lo quita otro sistema), se baja: si no, se quedaría
+	-- «montado» a pie (con la velocidad del vehículo, sin poder correr y conduciendo para la policía)
+	ride.Gone = model.Destroying:Connect(function()
+		if riding[player] == ride then
+			VehicleService.dismount(player, true)
 		end
 	end)
 	riding[player] = ride
