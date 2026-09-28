@@ -28,6 +28,7 @@ local CafeMenu = require(ReplicatedStorage.Shared.CafeMenu)
 local OpeningHours = require(ReplicatedStorage.Shared.OpeningHours)
 local Format = require(ReplicatedStorage.Shared.Format)
 local Npc = require(script.Parent.Parent.World.Npc)
+local StaffService = require(script.Parent.StaffService)
 local DataService = require(script.Parent.DataService)
 local NeedsService = require(script.Parent.NeedsService)
 local LifeService = require(script.Parent.LifeService)
@@ -71,6 +72,7 @@ type Cafe = {
 	Board: BasePart?,
 	Barista: Player?,
 	NpcBarista: Model?,
+	NpcLeaving: Model?, -- el barista NPC que se está retirando (si hace falta, vuelve él)
 	NpcBusy: boolean,
 	Orders: { Order },
 	Queue: { any },
@@ -448,6 +450,9 @@ local function npcWork(cafe: Cafe)
 				Npc.face(npc, station.Position)
 			end
 			task.wait(CafeMenu.NpcBaristaSeconds * 0.5)
+			if cafe.NpcBarista ~= npc or cafe.Barista then
+				break -- (se ha retirado a medias: ese paso lo hace quien le sustituya)
+			end
 			order.Done += 1
 		end
 		cafe.NpcBusy = false
@@ -455,32 +460,51 @@ local function npcWork(cafe: Cafe)
 end
 
 local function refreshStaff(cafe: Cafe, active: boolean)
-	local want = active and not cafe.Barista and isDay()
+	-- Al cerrar, termina antes lo que ya estaba pedido (nadie se queda sin su café pagado)
+	local want = active and not cafe.Barista and (isDay() or currentOrder(cafe) ~= nil)
+	local staffAt = point(cafe, "Staff")
 	if want and not cafe.NpcBarista then
-		cafe.NpcBarista = Npc.create("Npc_Barista", cafe.Folder, CFrame.new(point(cafe, "Staff")), { Shirt = Color3.fromRGB(40, 40, 44), Pants = Color3.fromRGB(40, 40, 46) })
-		Npc.work(cafe.NpcBarista :: Model, "Coffee")
-		local apron = cafe.NpcBarista:FindFirstChild("UpperTorso") :: BasePart?
-		if apron then
-			-- Delantal marrón
-			local p = Instance.new("Part")
-			p.Name = "Apron"
-			p.Size = Vector3.new(apron.Size.X * 0.8, apron.Size.Y * 1.3, 0.1)
-			p.Color = Color3.fromRGB(120, 76, 44)
-			p.Material = Enum.Material.Fabric
-			p.CanCollide = false
-			p.Massless = true
-			p.CFrame = apron.CFrame * CFrame.new(0, -apron.Size.Y * 0.2, -apron.Size.Z / 2 - 0.05)
-			local weld = Instance.new("WeldConstraint")
-			weld.Part0 = apron
-			weld.Part1 = p
-			weld.Parent = p
-			p.Parent = cafe.NpcBarista
+		-- ¿Se estaba retirando? Vuelve el mismo a la barra (no aparece otro encima)
+		local back = cafe.NpcLeaving
+		if back and StaffService.recallNpc(back, staffAt, cafe.Register.Position, "Coffee") then
+			cafe.NpcLeaving = nil
+			cafe.NpcBarista = back
+		else
+			cafe.NpcBarista = Npc.create("Npc_Barista", cafe.Folder, CFrame.new(staffAt), { Shirt = Color3.fromRGB(40, 40, 44), Pants = Color3.fromRGB(40, 40, 46) })
+			Npc.work(cafe.NpcBarista :: Model, "Coffee")
+			local apron = cafe.NpcBarista:FindFirstChild("UpperTorso") :: BasePart?
+			if apron then
+				-- Delantal marrón
+				local p = Instance.new("Part")
+				p.Name = "Apron"
+				p.Size = Vector3.new(apron.Size.X * 0.8, apron.Size.Y * 1.3, 0.1)
+				p.Color = Color3.fromRGB(120, 76, 44)
+				p.Material = Enum.Material.Fabric
+				p.CanCollide = false
+				p.Massless = true
+				p.CFrame = apron.CFrame * CFrame.new(0, -apron.Size.Y * 0.2, -apron.Size.Z / 2 - 0.05)
+				local weld = Instance.new("WeldConstraint")
+				weld.Part0 = apron
+				weld.Part1 = p
+				weld.Parent = p
+				p.Parent = cafe.NpcBarista
+			end
+			Npc.face(cafe.NpcBarista :: Model, cafe.Register.Position)
 		end
-		Npc.face(cafe.NpcBarista :: Model, cafe.Register.Position)
 	elseif not want and cafe.NpcBarista then
-		cafe.NpcBarista:Destroy()
+		-- Se retira (cierra o un jugador coge el puesto): se despide y se aparta andando, sin esfumarse
+		-- delante de nadie. Lo que tuviera a medias se queda en la lista para el barista jugador (npcWork
+		-- deja de hacerlo en cuanto deja de ser el barista NPC; NpcBusy lo suelta ese mismo bucle).
+		local npc = cafe.NpcBarista :: Model
 		cafe.NpcBarista = nil
-		cafe.NpcBusy = false
+		cafe.NpcLeaving = npc
+		local line = if not active then nil elseif cafe.Barista then "¡Todo tuyo! Me tomo un descanso." else "¡Cerramos! Hasta mañana."
+		task.spawn(function()
+			StaffService.retireNpc(npc, StaffService.asideOf(staffAt, cafe.Register.Position), line)
+			if cafe.NpcLeaving == npc then
+				cafe.NpcLeaving = nil
+			end
+		end)
 	end
 	if cafe.NpcBarista then
 		npcWork(cafe)

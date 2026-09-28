@@ -29,6 +29,7 @@ local OpeningHours = require(ReplicatedStorage.Shared.OpeningHours)
 local Groceries = require(ReplicatedStorage.Shared.Groceries)
 local Format = require(ReplicatedStorage.Shared.Format)
 local Npc = require(script.Parent.Parent.World.Npc)
+local StaffService = require(script.Parent.StaffService)
 local DataService = require(script.Parent.DataService)
 local NeedsService = require(script.Parent.NeedsService)
 local LifeService = require(script.Parent.LifeService)
@@ -52,6 +53,7 @@ type Lane = {
 	Index: number,
 	Cashier: Player?,
 	NpcCashier: Model?,
+	NpcLeaving: Model?, -- el cajero NPC que se está retirando (si hace falta, vuelve él)
 	Queue: { any },
 	Session: any?,
 	Light: BasePart?,
@@ -66,6 +68,7 @@ type Store = {
 	Deli: BasePart?,
 	DeliWorker: Player?,
 	NpcDeli: Model?,
+	DeliLeaving: Model?, -- el charcutero NPC que se está retirando
 	DeliQueue: { any },
 	Stock: { BasePart },
 	Bounds: BasePart,
@@ -655,31 +658,71 @@ end
 
 local UNIFORM = { Shirt = Color3.fromRGB(36, 132, 76), Pants = Color3.fromRGB(40, 40, 46) }
 
+-- Se retira (cierra o un jugador coge su puesto): se despide y se aparta andando, sin esfumarse
+-- delante de nadie (StaffService.retireNpc); si hace falta otra vez, vuelve él (recallNpc)
+local function retireStaff(npc: Model, spot: Vector3, toward: Vector3, line: string?, gone: () -> ())
+	task.spawn(function()
+		StaffService.retireNpc(npc, StaffService.asideOf(spot, toward), line)
+		gone()
+	end)
+end
+
 local function refreshStaff(store: Store, active: boolean)
-	-- Caja 1 siempre abierta con un NPC (si no la lleva un jugador); el resto solo con jugadores
+	-- Caja 1 siempre abierta con un NPC (si no la lleva un jugador); el resto solo con jugadores.
+	-- Al cerrar, cobra antes a quien ya estaba en la cola (nadie se queda con la compra en la cinta).
 	for i, lane in store.Lanes do
-		local wantNpc = active and i == 1 and not lane.Cashier and isDay()
+		local wantNpc = active and i == 1 and not lane.Cashier and (isDay() or lane.Session ~= nil or #lane.Queue > 0)
+		local spot = lane.Belt:GetAttribute("CashierSpot") :: Vector3
 		if wantNpc and not lane.NpcCashier then
-			local spot = lane.Belt:GetAttribute("CashierSpot") :: Vector3
-			lane.NpcCashier = Npc.create("Npc_Cajero", store.Folder, CFrame.new(spot), UNIFORM)
-			Npc.face(lane.NpcCashier :: Model, lane.Belt.Position)
-			Npc.work(lane.NpcCashier :: Model, "Scan")
+			local back = lane.NpcLeaving
+			if back and StaffService.recallNpc(back, spot, lane.Belt.Position, "Scan") then
+				lane.NpcLeaving = nil
+				lane.NpcCashier = back
+			else
+				lane.NpcCashier = Npc.create("Npc_Cajero", store.Folder, CFrame.new(spot), UNIFORM)
+				Npc.face(lane.NpcCashier :: Model, lane.Belt.Position)
+				Npc.work(lane.NpcCashier :: Model, "Scan")
+			end
 		elseif not wantNpc and lane.NpcCashier then
-			lane.NpcCashier:Destroy()
+			local npc = lane.NpcCashier :: Model
 			lane.NpcCashier = nil
+			lane.NpcLeaving = npc
+			local line = if not active then nil elseif lane.Cashier then "¡Todo tuyo! Me tomo un descanso." else "¡Cerramos! Hasta mañana."
+			retireStaff(npc, spot, lane.Belt.Position, line, function()
+				if lane.NpcLeaving == npc then
+					lane.NpcLeaving = nil
+				end
+			end)
 		end
 		setLaneLight(lane)
 	end
 	if store.Deli then
-		local wantNpc = active and not store.DeliWorker and isDay()
+		local wantNpc = active and not store.DeliWorker and (isDay() or #store.DeliQueue > 0)
+		local deli = store.Deli :: BasePart
+		local function spot(): Vector3
+			return Npc.feetAt(deli:GetAttribute("StaffSpot") :: Vector3) -- (solo al entrar o salir: es un rayo)
+		end
+		local customerSpot = store.Deli:GetAttribute("CustomerSpot") :: Vector3
 		if wantNpc and not store.NpcDeli then
-			local spot = store.Deli:GetAttribute("StaffSpot") :: Vector3
-			store.NpcDeli = Npc.create("Npc_Charcutero", store.Folder, CFrame.new(Npc.feetAt(spot)), { Shirt = Color3.fromRGB(245, 245, 245), Pants = Color3.fromRGB(40, 40, 46) })
-			Npc.face(store.NpcDeli :: Model, store.Deli:GetAttribute("CustomerSpot") :: Vector3)
-			Npc.work(store.NpcDeli :: Model, "Cut")
+			local back = store.DeliLeaving
+			if back and StaffService.recallNpc(back, spot(), customerSpot, "Cut") then
+				store.DeliLeaving = nil
+				store.NpcDeli = back
+			else
+				store.NpcDeli = Npc.create("Npc_Charcutero", store.Folder, CFrame.new(spot()), { Shirt = Color3.fromRGB(245, 245, 245), Pants = Color3.fromRGB(40, 40, 46) })
+				Npc.face(store.NpcDeli :: Model, customerSpot)
+				Npc.work(store.NpcDeli :: Model, "Cut")
+			end
 		elseif not wantNpc and store.NpcDeli then
-			store.NpcDeli:Destroy()
+			local npc = store.NpcDeli :: Model
 			store.NpcDeli = nil
+			store.DeliLeaving = npc
+			local line = if not active then nil elseif store.DeliWorker then "¡Todo tuyo! Me tomo un descanso." else "¡Cerramos! Hasta mañana."
+			retireStaff(npc, spot(), customerSpot, line, function()
+				if store.DeliLeaving == npc then
+					store.DeliLeaving = nil
+				end
+			end)
 		end
 	end
 end
@@ -904,11 +947,7 @@ local function startRole(player: Player, store: Store, role: string)
 			return
 		end
 		local lane = free :: Lane
-		if lane.NpcCashier then
-			lane.NpcCashier:Destroy()
-			lane.NpcCashier = nil
-		end
-		lane.Cashier = player
+		lane.Cashier = player -- (el cajero NPC se aparta y se va andando: refreshStaff, abajo)
 		jobs[player] = { Role = "Cajero", Store = store, Lane = lane }
 		player:SetAttribute("Job", "Cajero")
 		player:SetAttribute("TaskTarget", lane.Belt:GetAttribute("CashierSpot"))
@@ -922,11 +961,7 @@ local function startRole(player: Player, store: Store, role: string)
 			Notify:FireClient(player, "Error", "La charcutería ya tiene charcutero. ¡Prueba otro puesto!")
 			return
 		end
-		store.DeliWorker = player
-		if store.NpcDeli then
-			store.NpcDeli:Destroy()
-			store.NpcDeli = nil
-		end
+		store.DeliWorker = player -- (el charcutero NPC se aparta y se va andando: refreshStaff, abajo)
 		jobs[player] = { Role = "Charcutero", Store = store }
 		player:SetAttribute("Job", "Charcutero")
 		player:SetAttribute("TaskTarget", store.Deli:GetAttribute("StaffSpot"))

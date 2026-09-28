@@ -106,14 +106,38 @@ saga: casi todo lo raro que pasa en ellas llega por la Grieta. En el final vuelv
 
 **Misiones locas**: 21 ya hechas (infancia 6, adolescencia 5, universidad 5, adulto 5).
 
-**«Rarezas de la Grieta»** (pendientes):
+**«Rarezas de la Grieta»** (`Misiones/Rarezas.luau`). Dos lotes hechos, 16 misiones (4 por etapa), todas probadas
+de principio a fin en `test-lifestory`:
+
+| Etapa | Rareza | Pieza |
+|---|---|---|
+| Niño | El buzón que escribe al pasado | Sello del ayer |
+| Niño | La farola que canta ópera (de 19:00 a 23:00) | Bombilla tenor |
+| Adolescente | El perro que ladra en binario | Chapa binaria de Pip |
+| Adolescente | Lluvia de espaguetis | Tenedor cósmico |
+| Universidad | El piso 13 | Botón del piso 13 |
+| Universidad | El reloj que va hacia atrás | Engranaje al revés |
+| Adulto | El semáforo con opiniones | Luz ámbar |
+| Adulto | La nube que te sigue | Gota de nube |
+| Niño | El columpio que va al pasado | Cadena del columpio viejo |
+| Niño | La sombra que se escapa (de 9:00 a 19:00) | Tiza de sombra |
+| Adolescente | El espejo que contesta | Esquirla de espejo |
+| Adolescente | Las palomas que hacen cola | Pluma de paloma cartera |
+| Universidad | La máquina de café que da consejos | Vaso de los consejos |
+| Universidad | El eco del estadio | Silbato del eco |
+| Adulto | El contestador de 1999 | Cinta del contestador |
+| Adulto | El gato que está y no está | Cascabel cuántico |
+
+Pendiente de las rarezas:
 
 - Entre 6 y 8 por etapa, de 10 a 20 min cada una.
 - Son cosas pequeñas y absurdas que caen por la Grieta: el buzón que manda cartas al pasado, la farola
   que canta ópera, el perro que ladra en binario, la lluvia de espaguetis, el ascensor que sube a un
   piso 13 que no existe…
 - Cada una da una **pieza de la colección «Restos de la Grieta»**.
-- En el final, la colección cuenta: cuantas más piezas, más fácil la batalla.
+- En el final, la colección cuenta (hecho): con 4 piezas o más, los Restos brillan en la cima, Pip lo cuenta y
+  Cósimo llega debilitado (aguanta 6 golpes en vez de 10). Condición `MemoriesAtLeast` / `MemoriesFewer`
+  sobre los recuerdos de las rarezas (lista `RESTOS` en `Saga_Acto4.luau`: añadir ahí las rarezas nuevas).
 
 **Aliados en el final (hecho)**: en la misión 20 vienen Iván y Candela siempre, y además Cronos, Bigotes,
 Rex, el Ratón Pérez, los gnomos y tu yo malvado **solo si les ayudaste** en su misión. En la batalla final

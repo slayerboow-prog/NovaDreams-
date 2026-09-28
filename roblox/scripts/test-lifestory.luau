@@ -1185,14 +1185,22 @@ nora.At = "Parque" -- se va del garaje (si no, la siguiente canónica empieza so
 passTime(nora, 5)
 check(canonIds(nora).Saga_19_Recuerdos, "Acto IV: de adulto, el mapa marca devolverle la memoria a Cosme")
 local deuda = QuestsData.Loco_D2_Deuda
+local function offered(player, questId: string): boolean
+	for _, message in player.Inbox do
+		if message.Kind == "Offer" and message.Payload.QuestId == questId then
+			return true
+		end
+	end
+	return false
+end
 nora.At = deuda.Offer.Place
 passTime(nora, 5)
-check(not received(nora, "Offer", deuda.Title) and not noraData.Story.Active.Loco_D2_Deuda, "Con Cosme sin memoria, las locas en las que recuerda su pasado esperan")
+check(not offered(nora, "Loco_D2_Deuda") and not noraData.Story.Active.Loco_D2_Deuda, "Con Cosme sin memoria, las locas en las que recuerda su pasado esperan")
 check(playLoco(nora, "Saga_19_Recuerdos") and noraData.Items.AlbumRecuerdos == 1 and not noraData.Story.Flags.CosmeSinMemoria, "19 · Los recuerdos: Cosme vuelve a ser Cosme")
 nora.At = deuda.Offer.Place
 -- Si en el banco le ofrecieron otra cosa mientras tanto, dice que no (una oferta pendiente tapa las demás)
 for _ = 1, 3 do
-	if received(nora, "Offer", deuda.Title) then
+	if offered(nora, "Loco_D2_Deuda") then
 		break
 	end
 	for _, message in nora.Inbox do
@@ -1203,14 +1211,33 @@ for _ = 1, 3 do
 	end
 	passTime(nora, 5)
 end
-check(received(nora, "Offer", deuda.Title), "Con la memoria recuperada, ya te ofrecen la deuda galáctica")
+check(offered(nora, "Loco_D2_Deuda"), "Con la memoria recuperada, ya te ofrecen la deuda galáctica")
 fromClient(nora, "Offer", "Loco_D2_Deuda", false)
 check(playLoco(nora, "Saga_20_Aliados") and noraData.Story.Flags.AliadosReunidos and noraData.Story.Flags.AliadoCompis, "20 · Los aliados: vienen los que ayudaste en tu vida")
 check(playLoco(nora, "Saga_21_Consorcio"), "21 · La caída del Consorcio")
 lighting.ClockTime = 22
 check(playLoco(nora, "Saga_22_Ancla") and noraData.Story.Choices.Trato and noraData.Story.Choices.Trato.V == "No", "22 · El trato: Cósimo llama a tu puerta y le dices que no")
 lighting.ClockTime = 23
+-- Ha hecho 4 rarezas: los Restos de la Grieta debilitan a Cósimo en la batalla final
+noraData.Story.Memories = noraData.Story.Memories or {}
+for _, key in { "BuzonPasado", "PerroBinario", "Piso13", "NubePerdida" } do
+	noraData.Story.Memories[key] = os.time()
+end
 check(playLoco(nora, "Saga_23_Fusion") and noraData.Story.Flags.FusionDetenida and cinematic(nora, "Saga_Fusion"), "23 · La Gran Fusión: aguantar, la oleada y Cósimo se rinde")
+check(said(nora, "¿Por qué me pesan las piernas?"), "Con 4 Restos de la Grieta, la colección brilla y Cósimo llega debilitado")
+local ConditionsMod = loadModule(ROOT .. "/shared/LifeStory/Conditions")
+local fusionSteps = QuestsData.Saga_23_Fusion.Steps
+local weakHp, strongHp
+for _, step in fusionSteps do
+	if step.Type == "Fight" and step.If and step.If.MemoriesAtLeast then
+		weakHp = step.HP
+	elseif step.Type == "Fight" and step.If and step.If.MemoriesFewer then
+		strongHp = step.HP
+	end
+end
+check(weakHp == 6 and strongHp == 10, "Cósimo: 10 golpes sin colección, 6 con 4 Restos o más")
+local ctxPocos = { Stage = "Adulto", ClockTime = 12, Weekday = 1, Completed = {}, Flags = {}, Choices = {}, Discovered = {}, Memories = { BuzonPasado = 1 } }
+check(ConditionsMod.check({ MemoriesFewer = { N = 4, Of = { "BuzonPasado", "Piso13" } } }, ctxPocos) and not ConditionsMod.check({ MemoriesAtLeast = { N = 2, Of = { "BuzonPasado", "Piso13" } } }, ctxPocos), "Las condiciones cuentan recuerdos de una colección")
 check(noraData.Story.Flags.CosimoPerdonado or noraData.Story.Flags.CosimoArregla66B, "Decides qué pasa con Cósimo")
 lighting.ClockTime = 12
 check(playLoco(nora, "Saga_24_Final") and noraData.Items.AgujaDeOro == 1 and noraData.Story.Flags.SagaCompleta and cinematic(nora, "Saga_Final"), "24 · El final: la Grieta se cierra en el patio del cole")
@@ -1220,6 +1247,49 @@ for _ in canonIds(nora) do
 	quedan += 1
 end
 check(quedan == 0, "Terminada la saga, no quedan marcas canónicas en el mapa")
+
+print("\n▶ Rarezas de la Grieta (secundarias cortas: una pieza de colección cada una)")
+local function rarezaPlayer(name: string, stage: string)
+	local player = newPlayer(name, stage)
+	local story = profiles[player].Story
+	-- Ya ha jugado la saga (así ninguna canónica empieza sola en mitad de la rareza)
+	for id, quest in QuestsData do
+		if quest.Canon then
+			story.Completed[id] = os.time()
+		end
+	end
+	story.Completed.Uni01b_Residencia = os.time()
+	return player, profiles[player]
+end
+local ruth, ruthData = rarezaPlayer("Ruth", "Nino")
+lighting.ClockTime = 12
+check(QuestsData.Rareza_Buzon.Requires.Completed[1] == "Saga_02_Grieta", "Las rarezas piden haber visto la Grieta")
+check(playLoco(ruth, "Rareza_Buzon") and ruthData.Items.SelloDelAyer == 1 and said(ruth, "yogures del barrio"), "El buzón que escribe al pasado: la carta de ayer, la fuente y el sello")
+lighting.ClockTime = 21
+check(playLoco(ruth, "Rareza_Farola") and ruthData.Items.BombillaTenor == 1, "La farola que canta ópera (de noche): clase de canto y bombilla tenor")
+local teo, teoData = rarezaPlayer("Teo", "Adolescente")
+lighting.ClockTime = 12
+check(playLoco(teo, "Rareza_Perro") and teoData.Items.ChapaBinaria == 1 and said(teo, "Un robot con amigos"), "El perro que ladra en binario: la biblioteca, la caja y la chapa de Pip")
+check(playLoco(teo, "Rareza_Espaguetis") and teoData.Items.TenedorCosmico == 1, "Lluvia de espaguetis: recoger la pasta y enrollar el agujero")
+local vera, veraData = rarezaPlayer("Vera", "AdultoJoven")
+check(playLoco(vera, "Rareza_Piso13") and veraData.Items.BotonPiso13 == 1 and said(vera, "trescientos años"), "El piso 13: el botón, los exámenes del futuro y Cronos")
+check(playLoco(vera, "Rareza_Reloj") and veraData.Items.EngranajeAlReves == 1 and said(vera, "me debes dos euros"), "El reloj que va hacia atrás: los engranajes y la memoria de Iván")
+local gael, gaelData = rarezaPlayer("Gael", "Adulto")
+gael.Picks = { Semaforo = "Escuchar" }
+check(playLoco(gael, "Rareza_Semaforo") and gaelData.Items.LuzAmbar == 1 and said(gael, "Me siento… solo"), "El semáforo con opiniones: le preguntas cómo se siente")
+check(playLoco(gael, "Rareza_Nube") and gaelData.Items.GotaNube == 1, "La nube que te sigue: parque, playa y la gota que no se seca")
+-- Segundo lote
+lighting.ClockTime = 12
+check(playLoco(ruth, "Rareza_Columpio") and ruthData.Items.CadenaColumpio == 1 and said(ruth, "Mereció la pena"), "El columpio que va al pasado: las iniciales de tu abu en el banco")
+check(playLoco(ruth, "Rareza_Sombra") and ruthData.Items.TizaSombra == 1, "La sombra que se escapa: seguirla y que vuelva a tus zapatillas")
+teo.Picks = { Espejo = "Amable" }
+check(playLoco(teo, "Rareza_Espejo") and teoData.Items.EsquirlaEspejo == 1 and said(teo, "Tienes buena risa"), "El espejo que contesta: le pides que te diga algo bueno")
+check(playLoco(teo, "Rareza_Palomas") and teoData.Items.PlumaCartero == 1, "Las palomas que hacen cola: la carta a la dimensión del pan")
+vera.Picks = { Cafe = "Cafe" }
+check(playLoco(vera, "Rareza_Cafe") and veraData.Items.VasoConsejos == 1 and said(vera, "Buena decisión"), "La máquina de café que da consejos: eliges café normal")
+check(playLoco(vera, "Rareza_Eco") and veraData.Items.SilbatoEco == 1 and said(vera, "Gracias por no rendirte"), "El eco del estadio: tu yo del futuro te da las gracias")
+check(playLoco(gael, "Rareza_Contestador") and gaelData.Items.CintaContestador == 1 and said(gael, "lo mejor que nos ha pasado"), "El contestador de 1999: un mensaje de tu familia")
+check(playLoco(gael, "Rareza_GatoCaja") and gaelData.Items.CascabelCuantico == 1, "El gato que está y no está: abres la caja y el gato decide")
 
 print("\n▶ Misiones locas · Adolescencia (el futuro, los lápices, el DJ alienígena, Pip, Zoltán)")
 local iris = newPlayer("Iris", "Adolescente")
