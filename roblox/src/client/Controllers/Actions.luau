@@ -29,6 +29,37 @@ local StreetVoices = require(ReplicatedStorage.Shared.Config).StreetVoices
 
 local Actions = {}
 
+-- Levantarse de cualquier asiento (o bajarse del vehículo). Si el servidor no te baja en un
+-- momento, se fuerza aquí: nunca te quedas sentado sin poder hacer nada.
+function Actions.standUp()
+	local character = Players.LocalPlayer.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if not humanoid then
+		return
+	end
+	local player = Players.LocalPlayer
+	if player:GetAttribute("Riding") or player:GetAttribute("Passenger") then
+		local vehicle = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("Vehicle")
+		if vehicle then
+			(vehicle :: RemoteEvent):FireServer("Dismount")
+		end
+	end
+	humanoid.Sit = false
+	humanoid.Jump = true
+	humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+	task.delay(0.6, function()
+		if humanoid.Parent and (humanoid.SeatPart or humanoid.Sit) then
+			local seat = humanoid.SeatPart
+			local weld = seat and seat:FindFirstChild("SeatWeld")
+			if weld then
+				weld:Destroy()
+			end
+			humanoid.Sit = false
+			humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+		end
+	end)
+end
+
 local player = Players.LocalPlayer
 local Remote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Actions") :: RemoteEvent
 
@@ -312,6 +343,27 @@ function Actions.init()
 			setPhoto(not photo)
 		end,
 	})
+	-- Levantarse / bajarse: siempre que estés sentado (banco, silla, sofá, coche, bus…) ocupa el
+	-- sitio de Saltar, y sale aunque haya una conversación abierta (nunca te quedas atrapado)
+	TouchLayout.register({
+		Id = "Levantarse", Icon = "bajarse", Label = "Levantarse", Slot = "Saltar", Priority = 1, Key = "F", Pad = "B",
+		Always = true,
+		Visible = function()
+			local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+			return humanoid ~= nil and (humanoid.SeatPart ~= nil or humanoid.Sit)
+		end,
+		Callback = Actions.standUp,
+	} :: any)
+	ContextActionService:BindAction("Levantarse", function(_, state)
+		if state == Enum.UserInputState.Begin then
+			local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+			if humanoid and (humanoid.SeatPart or humanoid.Sit) and not player:GetAttribute("Riding") then
+				Actions.standUp()
+				return Enum.ContextActionResult.Sink
+			end
+		end
+		return Enum.ContextActionResult.Pass
+	end, false, Enum.KeyCode.F)
 	Hud.addButton("😀 Gestos", Color3.fromRGB(200, 140, 20), 4, Actions.openEmotes)
 	local _ = gui
 
