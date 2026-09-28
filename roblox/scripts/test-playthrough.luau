@@ -165,6 +165,12 @@ do
 		},
 		Rewards = { Money = -5 },
 	}
+	-- Otra rota: pide la noche pero pasa en el cole (que cierra a las 17:00): nunca podría empezar
+	Quests.Test_Noche = {
+		Kind = "Side", Title = "Noche en el cole (prueba)", TitleKey = "Noche en el cole", OfferKey = "¿Vienes?",
+		Offer = { Place = "Patio" }, Requires = { Hours = { From = 20, To = 5 } },
+		Steps = { { Type = "Reach", Place = "Patio", Text = "Ve al patio" } },
+	}
 	local broken = Validate.report()
 	local function found(fragment: string): boolean
 		for _, e in broken.Errors do
@@ -183,6 +189,8 @@ do
 	check(found("habla alguien que no está en el reparto"), "Detecta: habla alguien que no está en el reparto")
 	check(found("Club = 'NoExiste'"), "Detecta: una rama que pregunta por una opción que no existe")
 	check(found("Money debe ser"), "Detecta: recompensa no válida")
+	check(broken.BadQuests.Test_Noche == true, "Detecta: una misión que pide una hora en la que su sitio está cerrado (nunca empezaría)")
+	Quests.Test_Noche = nil
 	check(broken.BadQuests.Test_Rota == true and not broken.BadQuests.Cole01_PrimerDia, "Solo la misión rota queda marcada")
 
 	-- En el juego: la misión rota no se activa (y queda en el registro)
@@ -927,6 +935,49 @@ do
 	check(hud ~= nil and hud.Mission and hud.Story and hud.Npcs and hud.Location and hud.Dialogue, "Panel de depuración: misión, vida, personajes cerca, dónde y conversación")
 	H.leave(owner)
 	H.leave(normal)
+end
+
+print("\n▶ 6. Lo que se dice cuadra con la hora, el tiempo y lo que has vivido")
+do
+	local TimeContext = loadModule(ROOT .. "/shared/LifeStory/TimeContext")
+	local StoryState = loadModule(ROOT .. "/shared/LifeStory/StoryState")
+	local OpeningHours = loadModule(ROOT .. "/shared/OpeningHours")
+	check(TimeContext.adapt("¡Buenos días!", 23) == "¡Buenas noches!" and TimeContext.adapt("Buenas noches, chavales.", 17) == "Buenas tardes, chavales."
+		and TimeContext.adapt("Buenas tardes.", 9) == "Buenos días.", "El saludo es el de la hora (nadie dice «Buenos días» a las 23:00)")
+	check(TimeContext.adapt("Le dije «buenas noches» y se fue.", 10) == "Le dije «buenas noches» y se fue.", "Lo que va entre comillas (lo que dijo otro) no se toca")
+	check(TimeContext.adapt("¡Que tenga un buen día!", 22) == "¡Que tenga una buena noche!", "La despedida también: «que tenga una buena noche»")
+	check(not TimeContext.fits("Uf, qué calor.", 14, "Nieve") and not TimeContext.fits("Qué buen día hace hoy.", 13, "Lluvia")
+		and not TimeContext.fits("Qué buen día hace hoy.", 23, nil) and TimeContext.fits("Qué buen día hace hoy.", 11, "Despejado"), "Nada de «qué calor» nevando ni «qué buen día» con lluvia o de noche")
+	local picked = TimeContext.pick({ "¡Buenos días!", "Uf, qué calor.", "Qué buen día hace hoy." }, 23, "Lluvia", H.TestRandom.new(3))
+	check(picked == "¡Buenas noches!", "Las frases sueltas eligen algo que pegue ahora")
+	-- La historia contada en la barra: bark de un personaje a las 23:00
+	local night = H.newPlayer("Noctambula", "Adulto")
+	H.lighting.ClockTime = 23
+	DialogueService.bark(night, "Nico", "¡Buenos días, {nombre}!")
+	H.lighting.ClockTime = 10
+	check(night.Barks[#night.Barks] == "¡Buenas noches, Noctambula!", "Las frases de los personajes de la historia también (a las 23:00: «¡Buenas noches, …!»)")
+	H.leave(night)
+	local Schedules = loadModule(ROOT .. "/shared/LifeStory/Schedules")
+	check(Schedules.forPlace("Parque") == nil and Schedules.forPlace("CentroSalud") == nil and Schedules.forPlace("EstanqueParque") == nil
+		and Schedules.forPlace("AulaA").Id == "Colegio" and Schedules.forPlace("Patio").Id == "Colegio", "El parque y el centro de salud del barrio no cierran con el cole (el aula y el patio sí)")
+	check(OpeningHours.isOpen(OpeningHours.forRole("Dependiente"), 12) and not OpeningHours.isOpen(OpeningHours.forRole("Dependiente"), 23)
+		and OpeningHours.isOpen(OpeningHours.forRole("Agente de guardia"), 3), "Tiendas con horario; policía y hospital 24 horas")
+	-- Continuidad: solo recuerdan lo que pasó de verdad
+	local data = {
+		Life = { Stage = "Nino", AgeYears = 8 },
+		Story = { Completed = { Cole08_Torneo = 1, Cole06_Examen = 1 }, Skipped = { Cole06_Examen = 1 }, Active = {}, Flags = {}, Choices = {},
+			NpcMemory = { Nico = { Facts = {}, Affinity = 0, Rel = 10 } }, Memories = {}, Traits = {}, Discovered = {} },
+	}
+	local state = StoryState.of(data)
+	check(state.knows("Nico") and not state.knows("Omar") and state.completed("Cole08_Torneo") and not state.completed("Cole06_Examen"),
+		"StoryState: a quién conoces y qué misiones viviste de verdad (una saltada no cuenta)")
+	check(SchoolLife.knownLine("Nico", state, 0.1) ~= nil and SchoolLife.knownLine("Nico", state, 0.1):find("torneo", 1, true) ~= nil,
+		"Nico te saluda recordando el torneo que jugasteis")
+	check(SchoolLife.knownLine("Sara", state, 0.1) == nil and SchoolLife.knownLine("Omar", state, 0.1) == nil,
+		"Nadie recuerda algo que no pasó (el examen saltado, el festival que no hiciste)")
+	check(not pcall(function()
+		state.Nuevo = 1
+	end), "StoryState es solo de lectura")
 end
 
 print("\n▶ 6. Registro de desarrollo")

@@ -358,6 +358,9 @@ return {
 		Offer = { Place = "GarajeCosme" },
 		OfferKey = "Esta noche se cose el cielo. Cosme te espera",
 		Requires = { Stage = { Min = "Nino" }, Completed = { "Saga_05_Perdidas" }, Hours = { From = 19, To = 6 } },
+		-- De noche en el patio del cole: sin el horario del cole (si no, nunca podría empezar: pide la
+		-- noche y el cole cierra a las 17:00)
+		Schedule = false,
 		Moment = "Cosiste el cielo de Valmar (por ahora)",
 		Memory = "CoserElCielo",
 		Rewards = { Items = { AgujaCuantica = 1 }, Flags = { "SagaActo1", "CosimoTeHaVisto" } },

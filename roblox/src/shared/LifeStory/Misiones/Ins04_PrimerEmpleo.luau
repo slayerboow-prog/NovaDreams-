@@ -63,7 +63,7 @@ return {
 	Steps = {
 		{ Type = "Transition", Text = "Un año después. Llega el verano…", Seconds = 3 },
 		{ Type = "Scene", Dialogue = "Deseo", Teleport = "HomeSalon", Actors = CASA },
-		{ Type = "Reach", Place = "AulaInstituto", Text = "Ve al instituto: taller de primer empleo con Carmen",
+		{ Type = "Reach", Place = "AulaInstituto", Text = "Ve al instituto: taller de primer empleo con Carmen", TextHere = "Ve a tu aula: taller de primer empleo con Carmen",
 			Actors = { { Npc = "Carmen", Place = "AulaInstituto", Offset = V(0, 0, -6) }, { Npc = "Omar", Place = "AulaInstituto", Offset = V(3, 0, 0) } } },
 		{ Type = "Scene", Dialogue = "Perfil",
 			Actors = { { Npc = "Carmen", Place = "AulaInstituto", Offset = V(0, 0, -6) }, { Npc = "Omar", Place = "AulaInstituto", Offset = V(3, 0, 0) } } },

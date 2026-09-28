@@ -57,7 +57,8 @@ local savedCamera: { Type: Enum.CameraType, CFrame: CFrame }? = nil
 local queuedKeys: { [string]: boolean } = {}
 local answeredKeys: { [string]: boolean } = {}
 local closedTokens: { [number]: boolean } = {}
-local currentAsk: BindableEvent? = nil -- la pregunta abierta (se cierra si el servidor corta)
+local currentAsk: BindableEvent? = nil
+local currentToken: number? = nil -- la conversación que se está enseñando -- la pregunta abierta (se cierra si el servidor corta)
 
 ---------------------------------------------------------------------
 -- Controles y cámara
@@ -187,6 +188,51 @@ local function frame(line: { [string]: any })
 		lastActor = line.Actor
 	end
 	startCameraLoop()
+end
+
+-- Te vuelves hacia quien te habla, poco a poco (unos 0,3 s), si estás de pie y cerca
+local TURN_SECONDS = 0.3
+local turnSerial = 0
+local turnedFor: Instance? = nil
+local function turnPlayerTowards(model: Instance?)
+	if not model or model == turnedFor then
+		return
+	end
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	local them = headOf(model)
+	if not root or not humanoid or not them or root.Anchored or humanoid.Sit or humanoid.Health <= 0 then
+		return
+	end
+	local flat = Vector3.new(them.X - root.Position.X, 0, them.Z - root.Position.Z)
+	if flat.Magnitude < 1 or flat.Magnitude > 25 then
+		return
+	end
+	turnedFor = model
+	local from = root.CFrame
+	local goal = CFrame.lookAt(root.Position, root.Position + flat)
+	if goal.LookVector:Dot(from.LookVector) > 0.985 then
+		return
+	end
+	turnSerial += 1
+	local serial = turnSerial
+	humanoid.AutoRotate = false
+	task.spawn(function()
+		local start = os.clock()
+		while serial == turnSerial and root.Parent do
+			local t = math.min(1, (os.clock() - start) / TURN_SECONDS)
+			local eased = t * t * (3 - 2 * t)
+			root.CFrame = CFrame.new(root.Position) * from.Rotation:Lerp(goal.Rotation, eased)
+			if t >= 1 then
+				break
+			end
+			RunService.RenderStepped:Wait()
+		end
+		if serial == turnSerial and humanoid.Parent then
+			humanoid.AutoRotate = true
+		end
+	end)
 end
 
 local function restoreCamera()
@@ -331,6 +377,9 @@ local function showLine(line: { [string]: any })
 	end
 	-- Quien habla se mueve al hablar (cabeza, manos, el gesto de la frase); los demás le miran
 	local speakingModel = if line.Narrator then nil else line.Actor
+	if not line.Me and not line.Narrator then
+		turnPlayerTowards(speakingModel) -- y tú te vuelves hacia quien te habla
+	end
 	local plainText = line.Text or ""
 	ActorLife.speak(speakingModel, line.Emotion, (utf8.len(plainText) or #plainText) / TYPE_SPEED + 0.8)
 	-- Bocadillo encima de quien habla (si está en la escena y cerca); si no, el texto va en la caja
@@ -475,6 +524,23 @@ local function setOpen(value: boolean)
 		textLabel.Visible = true
 		restoreCamera()
 		setControls(true)
+		turnSerial += 1
+		turnedFor = nil
+		local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			humanoid.AutoRotate = true
+		end
+	end
+end
+
+-- Corta todo lo que se esté enseñando (el servidor cortó la conversación, has muerto…): la caja se
+-- cierra y vuelven controles, cámara y giro, pase lo que pase
+local function forceClose()
+	table.clear(queue)
+	skipTyping = true
+	advanceSignal:Fire()
+	if currentAsk then
+		currentAsk:Fire()
 	end
 end
 
@@ -510,6 +576,7 @@ processQueue = function()
 		if closedTokens[payload.Token] then
 			continue -- el servidor ya cortó esta conversación
 		end
+		currentToken = payload.Token
 		setOpen(true)
 		for _, line in payload.Lines or {} do
 			if closedTokens[payload.Token] then
@@ -570,14 +637,35 @@ function DialogueUI.init()
 			if payload and payload.Token then
 				closedTokens[payload.Token] = true
 			end
-			table.clear(queue)
-			skipTyping = true
-			advanceSignal:Fire()
-			if currentAsk then
-				currentAsk:Fire()
-			end
+			forceClose()
 		end
 	end)
+	-- Redes de seguridad: al morir se cierra; al reaparecer (o tras un teletransporte que cambie de
+	-- personaje) los controles y la cámara vuelven aunque algo se quedara a medias
+	local function watchCharacter(character: Model)
+		if not open then
+			pcall(restoreCamera)
+			setControls(true)
+		end
+		local humanoid = character:WaitForChild("Humanoid", 10) :: Humanoid?
+		if humanoid then
+			humanoid.Died:Connect(function()
+				if currentToken then
+					closedTokens[currentToken] = true
+				end
+				if open then
+					for _, pending in queue do
+						closedTokens[pending.Token] = true
+					end
+					forceClose()
+				end
+			end)
+		end
+	end
+	if player.Character then
+		task.spawn(watchCharacter, player.Character)
+	end
+	player.CharacterAdded:Connect(watchCharacter)
 	UserInputService.InputBegan:Connect(function(input, processed)
 		if not open or optionsFrame.Visible then
 			return

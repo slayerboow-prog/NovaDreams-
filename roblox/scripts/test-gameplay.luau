@@ -4906,6 +4906,8 @@ local lab = fakeInstance("Model")
 lab.Name = "PruebasPersonal"
 lab.Parent = worldRoot
 local BASE = Vector3.new(61000, 0, -61000) -- (lejos de los jugadores de las otras pruebas)
+local staffClock = services.Lighting.ClockTime
+services.Lighting.ClockTime = 12 -- de día: todo abierto (de noche, las tiendas cierran)
 -- Un puesto por cada oficio que atiende al público (los de la ciudad: marcas StaffSpot de Kit/Decor)
 local ROLES = {
 	{ "Dependiente" }, { "Cajero" }, { "Cajera" }, { "Recepcionista" }, { "Informadora" }, { "Vigilante" },
@@ -4951,6 +4953,19 @@ for _, r in ROLES do
 end
 check(staffed == #ROLES, ("con un jugador cerca, todos los puestos atendidos por un NPC (%d/%d)"):format(staffed, #ROLES))
 check(working == #ROLES, "y cada uno haciendo su tarea (Npc.work)")
+-- De noche: la tienda y correos cierran (su gente se va y sale el cartel con la hora a la que abren);
+-- la comisaría y los bomberos siguen abiertos
+services.Lighting.ClockTime = 23.5
+StaffService.tick()
+task.wait(0.05)
+check(StaffService.npcOf(posts["Dependiente"]) == nil and StaffService.hasClosedSign(posts["Dependiente"])
+	and StaffService.npcOf(posts["Funcionaria de Correos"]) == nil, "de noche la tienda y correos cierran: nadie en el mostrador y cartel de CERRADO")
+check(StaffService.npcOf(posts["Agente de guardia"]) ~= nil and StaffService.npcOf(posts["Bombero"]) ~= nil and not StaffService.hasClosedSign(posts["Agente de guardia"]),
+	"la comisaría y los bomberos, abiertos las 24 horas")
+services.Lighting.ClockTime = 12
+StaffService.tick()
+task.wait(0.05)
+check(StaffService.npcOf(posts["Dependiente"]) ~= nil and not StaffService.hasClosedSign(posts["Dependiente"]), "por la mañana abre otra vez: vuelve el dependiente y se quita el cartel")
 local cop = posts["Agente de guardia"]
 local copNpc = StaffService.npcOf(cop)
 check(copNpc ~= nil and promptOf(copNpc, "Hablar") ~= nil, "se puede hablar con el agente del mostrador")
@@ -5186,6 +5201,7 @@ for _, kind in roomKinds do
 end
 check(decorOk, "cada sala que no es vivienda gana detalles en paredes y suelo")
 local _ = { visitorRoot, officerRoot, fireRoot }
+services.Lighting.ClockTime = staffClock
 end)()
 
 ---------------------------------------------------------------------

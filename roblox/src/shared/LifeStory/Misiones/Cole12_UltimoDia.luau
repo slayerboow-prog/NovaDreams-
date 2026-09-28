@@ -90,7 +90,7 @@ return {
 		{ Type = "Transition", Text = "El último día de colegio…", Seconds = 3 },
 		{ Type = "Scene", Dialogue = "Manana", Teleport = "HomeSalon",
 			Actors = { { Npc = "Familia", Place = "HomeSalon", Offset = V(-4, 0, 0) }, { Npc = "Abu", Place = "HomeSalon", Offset = V(10, 0, -2) } } },
-		{ Type = "Reach", Place = "Vestibulo", Text = "Ve al colegio por última vez", Actors = grupoEn("Vestibulo") },
+		{ Type = "Reach", Place = "Vestibulo", Text = "Ve al colegio por última vez", TextHere = "Entra en el vestíbulo del cole por última vez", Actors = grupoEn("Vestibulo") },
 		{ Type = "Scene", Dialogue = "Llegada", Actors = grupoEn("Vestibulo") },
 
 		-- Los sitios de tu historia

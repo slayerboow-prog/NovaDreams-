@@ -31,6 +31,9 @@ local SchoolLife = require(ReplicatedStorage.Shared.LifeStory.SchoolLife)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 local Npc = require(script.Parent.Parent.World.Npc)
 local LifeStoryService = require(script.Parent.LifeStoryService)
+local DataService = require(script.Parent.DataService)
+local StoryState = require(ReplicatedStorage.Shared.LifeStory.StoryState)
+local TimeContext = require(ReplicatedStorage.Shared.LifeStory.TimeContext)
 local LocationService = require(script.Parent.LocationService)
 
 local SchoolService = {}
@@ -134,8 +137,13 @@ end
 
 -- speaker: el modelo de quien habla (su bocadillo sale encima de él)
 local function say(player: Player, speakerKey: string, textKey: string, teacher: boolean, speaker: Model?)
-	SayRemote:FireClient(player, "Say", { SpeakerKey = speakerKey, TextKey = textKey, Role = if teacher then "Profe" else "Nino", Speaker = speaker })
+	-- El texto se rellena aquí ({nombre}) y con el saludo de la hora que es
+	local hour, weather = TimeContext.now()
+	local text = TimeContext.adapt(Strings.get(textKey, { nombre = player.DisplayName }), hour, weather)
+	SayRemote:FireClient(player, "Say", { SpeakerKey = speakerKey, TextKey = text, Role = if teacher then "Profe" else "Nino", Speaker = speaker })
 end
+
+
 
 -- ¿Puede decirte algo ya? (una frase cada SchoolLife.TalkCooldown segundos por personaje)
 function SchoolService.canTalk(player: Player, npcId: string, now: number): boolean
@@ -156,20 +164,27 @@ local function onTalk(person: Person, player: Player)
 	local lines = SchoolLife.Lines[person.Id]
 	local nameKey = (Cast.People[person.Id] and Cast.People[person.Id].Name) or person.Id
 	if lines and SchoolService.canTalk(player, person.Id, os.clock()) then
-		local first = not LifeStoryService.recall(player, person.Id, "SeConocen")
+		-- ¿Os conocéis ya? (de esta charla o de la historia: una misión juntos, una relación…)
+		local data = DataService.get(player)
+		local state = StoryState.of(data)
+		local first = not LifeStoryService.recall(player, person.Id, "SeConocen") and not state.knows(person.Id)
 		if first then
 			LifeStoryService.remember(player, person.Id, "SeConocen")
 			LifeStoryService.addAffinity(player, person.Id, 1)
 			say(player, nameKey, lines.First, not person.Kid, person.Model)
 		else
-			say(player, nameKey, lines.Lines[math.random(1, #lines.Lines)], not person.Kid, person.Model)
+			if not LifeStoryService.recall(player, person.Id, "SeConocen") then
+				LifeStoryService.remember(player, person.Id, "SeConocen")
+			end
+			local line = SchoolLife.knownLine(person.Id, state, math.random())
+			say(player, nameKey, line or lines.Lines[math.random(1, #lines.Lines)], not person.Kid, person.Model)
 		end
 		-- Te mira mientras te habla (si está quieto)
 		local root = person.Root
 		local character = player.Character
 		local mine = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 		if root and root.Anchored and mine and not person.Seated then
-			Npc.face(person.Model, mine.Position)
+			Npc.faceSmooth(person.Model, mine.Position)
 		end
 	end
 	-- Para la historia cuenta siempre (una misión puede pedir "habla con Nico")
@@ -555,12 +570,30 @@ local function setGoal(person: Person, goal: { [string]: any }, walk: boolean)
 	end
 end
 
+SchoolService.StopDistance = 4 -- quien viene a buscarte se para a esta distancia de ti
+
 -- Mientras anda: sigue el camino; al llegar, se queda; si se atasca, aparece allí
 local function stepWalk(person: Person)
 	local goal = person.Goal
 	local root, humanoid = person.Root, person.Humanoid
 	if not person.Walking or not goal or not root or not humanoid then
 		return
+	end
+	-- Viene a buscarte (tu misión pide hablar con él): se para a unos 4 pasos de ti, nunca encima,
+	-- y se queda mirándote
+	if type(goal.Key) == "string" and goal.Key:sub(1, 6) == "Busca:" then
+		local userId = tonumber(goal.Key:match("^Busca:(%-?%d+):"))
+		local seeker = userId and Players:GetPlayerByUserId(userId)
+		local character = seeker and seeker.Character
+		local mine = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+		if mine and flat(root.Position - mine.Position).Magnitude < SchoolService.StopDistance then
+			local feet = root.Position - V(0, humanoid.HipHeight + root.Size.Y / 2, 0)
+			local toward = flat(mine.Position - root.Position)
+			local stop = table.clone(goal)
+			stop.CFrame = if toward.Magnitude > 0.1 then CFrame.lookAt(feet, feet + toward) else CFrame.new(feet)
+			settle(person, stop)
+			return
+		end
 	end
 	local path = person.Path or { goal.CFrame.Position }
 	local target = path[person.PathIndex] or goal.CFrame.Position

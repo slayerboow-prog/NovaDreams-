@@ -19,6 +19,7 @@ local Log = require(ReplicatedStorage.Shared.Log)
 local Cast = require(ReplicatedStorage.Shared.LifeStory.Cast)
 local Emotion = require(ReplicatedStorage.Shared.LifeStory.Emotion)
 local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
+local TimeContext = require(ReplicatedStorage.Shared.LifeStory.TimeContext)
 
 local DialogueService = {}
 
@@ -111,6 +112,9 @@ local function lineFor(player: Player, session: Session, line: Line): { [string]
 		actor = session.Context.actorOf(line.S)
 	end
 	local text = Strings.get(line.T or "", argsFor(player, session.Context.args))
+	if line.S ~= nil and line.S ~= "Narrador" then
+		text = TimeContext.adapt(text, TimeContext.now()) -- el saludo de la hora que es
+	end
 	return {
 		Name = name,
 		Voice = voice,
@@ -369,7 +373,7 @@ function DialogueService.bark(player: Player, speakerId: string?, text: string, 
 	if SayRemote then
 		SayRemote:FireClient(player, "Say", {
 			SpeakerKey = name,
-			TextKey = Strings.get(text, argsFor(player, args)),
+			TextKey = TimeContext.adapt(Strings.get(text, argsFor(player, args)), TimeContext.now()),
 			Role = voice,
 			Speaker = actor or actorFor(player, speakerId),
 		})

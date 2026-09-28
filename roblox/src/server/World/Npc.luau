@@ -254,6 +254,17 @@ function Npc.say(npc: Model, text: string?, seconds: number?)
 		return
 	end
 	local line = if text ~= nil and text ~= "" then text else nil
+	if line then
+		-- El saludo de la hora que es (nadie dice "Buenos días" a las once de la noche)
+		local ok, adapted = pcall(function()
+			local TimeContext = require(ReplicatedStorage.Shared.LifeStory.TimeContext)
+			local hour, weather = TimeContext.now()
+			return TimeContext.adapt(line, hour, weather)
+		end)
+		if ok and type(adapted) == "string" then
+			line = adapted
+		end
+	end
 	pcall(function()
 		npc:SetAttribute("Says", line)
 	end)
@@ -319,6 +330,29 @@ end
 -- Present, Watch, Fold, Knit, Stir, Book, Guard, Traffic). nil = ninguna.
 function Npc.work(npc: Model, work: string?)
 	npc:SetAttribute("Work", work)
+end
+
+-- Se vuelve hacia un punto poco a poco (unos 0,3 s), como una persona; sin moverse del sitio
+function Npc.faceSmooth(npc: Model, point: Vector3, seconds: number?)
+	local root = npc.PrimaryPart
+	if not root then
+		return
+	end
+	local flat = Vector3.new(point.X - root.Position.X, 0, point.Z - root.Position.Z)
+	if flat.Magnitude <= 0.1 then
+		return
+	end
+	local goal = CFrame.new(root.Position) * CFrame.Angles(0, math.atan2(-flat.X, -flat.Z), 0)
+	if not root.Anchored then
+		root.CFrame = goal
+		return
+	end
+	local ok = pcall(function()
+		TweenService:Create(root, TweenInfo.new(seconds or 0.3, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), { CFrame = goal }):Play()
+	end)
+	if not ok then
+		root.CFrame = goal
+	end
 end
 
 -- Mira hacia un punto (sin moverse)

@@ -35,6 +35,7 @@ local Items = require(script.Parent.Parent.Items)
 local EventCatalog = require(script.Parent.EventCatalog)
 local SchoolLife = require(script.Parent.SchoolLife)
 local Schedules = require(script.Parent.Schedules)
+local GameClock = require(script.Parent.Parent.GameClock)
 
 local Validate = {}
 
@@ -398,6 +399,10 @@ function Validate.report(): Report
 			end
 		end
 		text(where, s.TextKey)
+		text(where, s.TextHere)
+		if s.TextHere ~= nil and s.Type ~= "Reach" then
+			err("%s: TextHere solo sirve en pasos Reach", where)
+		end
 		if not NO_TEXT[s.Type] and not s.TextKey and not s.Text then
 			err("%s: el paso %s necesita Text o TextKey", where, s.Type)
 		end
@@ -574,6 +579,22 @@ function Validate.report(): Report
 		end
 		if quest.Chapter and not Chapters[quest.Chapter] then
 			err("%s: capítulo desconocido '%s'", id, tostring(quest.Chapter))
+		end
+		-- ¿Hay alguna hora en la que se pueda empezar? (pide la noche pero el sitio cierra de noche…)
+		local hours = quest.Requires and quest.Requires.Hours
+		local window = Schedules.forQuest(quest)
+		if hours and window and type(hours.From) == "number" and type(hours.To) == "number" then
+			local possible = false
+			for quarter = 0, 95 do
+				local t = quarter / 4
+				if GameClock.isBetween(hours.From, hours.To, t) and Schedules.isOpen(window, t) then
+					possible = true
+					break
+				end
+			end
+			if not possible then
+				err("%s: nunca puede empezar: pide de %s a %s h y %s solo abre de %s a %s (¿Schedule = false?)", id, tostring(hours.From), tostring(hours.To), window.Name, tostring(window.From), tostring(window.To))
+			end
 		end
 		if quest.Kind == "Main" and not questChapter[id] and not quest.Canon then
 			warnf("%s: principal que no está en ningún capítulo (nadie la empieza)", id)
@@ -782,6 +803,18 @@ function Validate.report(): Report
 		if cine.Sting and not Config.Audio.Stings[cine.Sting] then
 			err("%s: efecto desconocido '%s'", where, cine.Sting)
 		end
+	end
+
+	-- Lo que recuerdan los del colegio (SchoolLife.Callbacks): personajes y condiciones que existen
+	for i, entry in SchoolLife.Callbacks or {} do
+		local where = "recuerdo del colegio " .. i
+		if not Cast.People[entry.Npc] then
+			err("%s: personaje que no está en el reparto '%s'", where, tostring(entry.Npc))
+		end
+		if type(entry.T) ~= "string" or entry.T == "" then
+			err("%s: sin texto", where)
+		end
+		requirements(where, entry.If)
 	end
 
 	for id, subject in Subjects.List do

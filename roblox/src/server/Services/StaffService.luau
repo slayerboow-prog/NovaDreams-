@@ -16,6 +16,8 @@
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 
+local OpeningHours = require(game:GetService("ReplicatedStorage").Shared.OpeningHours)
+local TimeContext = require(game:GetService("ReplicatedStorage").Shared.LifeStory.TimeContext)
 local Npc = require(script.Parent.Parent.World.Npc)
 
 local StaffService = {}
@@ -163,16 +165,55 @@ function StaffService.covered(post: Post): boolean
 	return false
 end
 
+-- Horario del puesto: el suyo o el de su oficio (OpeningHours); nil = 24 horas
+local function hoursOf(post: Post): { number }?
+	return post.Hours or OpeningHours.forRole(post.Role)
+end
+
 local function open(post: Post): boolean
-	local hours = post.Hours
-	if not hours then
-		return true
-	end
 	local ok, clock = pcall(function()
 		return game:GetService("Lighting").ClockTime
 	end)
-	local t = if ok and type(clock) == "number" then clock else 12
-	return t >= hours[1] and t < hours[2]
+	return OpeningHours.isOpen(hoursOf(post), if ok and type(clock) == "number" then clock else 12)
+end
+StaffService.isOpen = open
+
+-- Cartel de CERRADO en el puesto (con la hora a la que abre) mientras alguien está cerca
+local function setClosedSign(post: Post, shown: boolean)
+	local sign = (post :: any).Sign :: BasePart?
+	if shown and not sign then
+		local hours = hoursOf(post)
+		local part = Instance.new("Part")
+		part.Name = "CerradoSign"
+		part.Anchored = true
+		part.CanCollide = false
+		part.CanQuery = false
+		part.CanTouch = false
+		part.Transparency = 1
+		part.Size = Vector3.new(0.2, 0.2, 0.2)
+		part.CFrame = post.CFrame + Vector3.new(0, 4.5, 0)
+		local billboard = Instance.new("BillboardGui")
+		billboard.Size = UDim2.fromOffset(190, 46)
+		billboard.MaxDistance = 45
+		billboard.Parent = part
+		local label = Instance.new("TextLabel")
+		label.Size = UDim2.fromScale(1, 1)
+		label.BackgroundColor3 = Color3.fromRGB(150, 30, 30)
+		label.BackgroundTransparency = 0.1
+		label.TextColor3 = Color3.new(1, 1, 1)
+		label.TextScaled = true
+		label.Font = Enum.Font.GothamBold
+		label.Text = "🔒 CERRADO" .. (if hours then " · " .. OpeningHours.label(hours) else "")
+		label.Parent = billboard
+		part.Parent = folder or workspace
+		;(post :: any).Sign = part
+	elseif not shown and sign then
+		sign:Destroy()
+		;(post :: any).Sign = nil
+	end
+end
+function StaffService.hasClosedSign(post: Post): boolean
+	return (post :: any).Sign ~= nil
 end
 
 -- Dónde se aparta (a un lado del puesto)
@@ -191,10 +232,12 @@ local function talk(post: Post, npc: Model, player: Player)
 	post.Talking = true
 	local root = rootOf(player)
 	if root then
-		Npc.face(npc, root.Position)
+		Npc.faceSmooth(npc, root.Position)
 	end
+	-- Una frase que pegue con la hora y el tiempo (y con el saludo de la hora)
 	local lines = roleOf(post).Lines
-	Npc.say(npc, lines[math.random(1, #lines)])
+	local hour, weather = TimeContext.now()
+	Npc.say(npc, TimeContext.pick(lines, hour, weather) or lines[math.random(1, #lines)])
 	task.delay(4, function()
 		if npc.Parent then
 			Npc.say(npc, nil)
@@ -272,7 +315,10 @@ function StaffService.tick()
 		end
 		local near = anyoneNear(post, StaffService.ACTIVE)
 		local covered = StaffService.covered(post)
-		local want = near and not covered and open(post)
+		local isOpen = open(post)
+		local want = near and not covered and isOpen
+		-- Cerrado: nadie en el puesto (se ha ido a casa) y el cartel con la hora a la que abre
+		setClosedSign(post, near and not isOpen and not covered)
 		if want and not post.Npc then
 			task.spawn(spawnNpc, post)
 		elseif not want and post.Npc then

@@ -632,6 +632,17 @@ local function publish(player: Player, force: boolean?)
 		if step then
 			tracked.TextKey = step.Text or step.TextKey
 			tracked.Args = placeArgs(step, prog, story)
+			-- Si ya estás allí (dentro del cole cuando toca ir al aula), no se te dice "ve al cole"
+			local here = step.Type == "Reach" and rt.Spots[spotKey(trackedId, prog)]
+			local me = here and LocationService.positionOf(player)
+			if here and me and Vector3.new(here.Position.X - me.X, 0, here.Position.Z - me.Z).Magnitude < 150 then
+				local text = tracked.TextKey
+				if step.TextHere then
+					tracked.TextKey = step.TextHere
+				elseif type(text) == "string" and (text:find("^Ve al colegio") or text:find("^Ve al cole") or text:find("^Ve al instituto")) then
+					tracked.TextKey = "Ya estás aquí: ve a {place}"
+				end
+			end
 			if step.Type == "Group" then
 				tracked.Children = {}
 				tracked.Need = step.Need
