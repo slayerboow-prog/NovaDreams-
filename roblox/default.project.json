@@ -33,6 +33,9 @@
         "NewLife": {
           "$className": "RemoteEvent"
         },
+        "Housing": {
+          "$className": "RemoteEvent"
+        },
         "Onboarding": {
           "$className": "RemoteEvent"
         },

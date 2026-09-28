@@ -56,6 +56,7 @@ local CF = setmetatable({
 	end,
 }, { __index = roblox.CFrame })
 
+local serverLog: { any } = {} -- lo que el cliente manda al servidor (FireServer)
 local SIM_SECONDS = 40 -- tiempo de juego simulado en cada modo
 local FPS = 20
 local REAL_BUDGET = 120 -- segundos reales como mucho en cada modo
@@ -683,7 +684,9 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean })
 	function methods:ScaleTo() end
 	function methods:SetNetworkOwner() end
 	function methods:ApplyImpulse() end
-	function methods:FireServer() end
+	function methods:FireServer(...)
+		table.insert(serverLog, { Remote = rawget(self, "__props") and rawget(self, "__props").Name or tostring(self), Args = table.pack(...) })
+	end
 	function methods:InvokeServer()
 		return nil
 	end
@@ -1906,6 +1909,57 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean })
 			if ok and Journal then
 				Journal.close()
 			end
+		end,
+
+		-- Viviendas (Controllers/HousingUI): el timbre y las llaves
+		[math.floor(32 * FPS)] = function()
+			local housing = remotes:FindFirstChild("Housing")
+			if housing then
+				housing.OnClientEvent:Fire("Doorbell", { Token = "b1", From = "Ana", Title = "Torre Norte · 3ºB" })
+			end
+		end,
+		[math.floor(33 * FPS)] = function()
+			local hg = playerGui:FindFirstChild("HousingGui")
+			local card = hg and hg:FindFirstChild("Doorbell")
+			local texts = {}
+			for _, d in (card and card:GetDescendants()) or {} do
+				if rawget(d, "__class") == "TextLabel" then
+					table.insert(texts, tostring(d.Text))
+				end
+			end
+			table.insert(checks, { card ~= nil and table.concat(texts, " "):find("Ana quiere entrar", 1, true) ~= nil, "timbre: sale el aviso de quién llama" })
+			local open = card and card:FindFirstChild("Open", true)
+			table.clear(serverLog)
+			if open then
+				open.Activated:Fire()
+			end
+			local sent = false
+			for _, call in serverLog do
+				if call.Remote == "Housing" and call.Args[1] == "Answer" and call.Args[2] == "b1" and call.Args[3] == true then
+					sent = true
+				end
+			end
+			table.insert(checks, { sent and hg:FindFirstChild("Doorbell") == nil, "timbre: «Abrir» contesta al servidor y el aviso se va" })
+			local housing = remotes:FindFirstChild("Housing")
+			if housing then
+				housing.OnClientEvent:Fire("Keys", {
+					Key = "Torre", Floor = 3, Letter = "B", Title = "Torre Norte · 3ºB", Id = "D01-E004-0302", Privacy = "Grupo",
+					Keys = { { UserId = 7, Name = "Luis" } }, Players = { { UserId = 7, Name = "Luis" }, { UserId = 8, Name = "Marta" } }, Visitors = { { UserId = 8, Name = "Marta" } },
+				})
+			end
+		end,
+		[math.floor(34 * FPS)] = function()
+			local hg = playerGui:FindFirstChild("HousingGui")
+			local keys = hg and hg:FindFirstChild("HouseKeys")
+			local texts = {}
+			for _, d in (keys and keys:GetDescendants()) or {} do
+				if rawget(d, "__class") == "TextLabel" or rawget(d, "__class") == "TextButton" then
+					table.insert(texts, tostring(d.Text))
+				end
+			end
+			local all = table.concat(texts, " | ")
+			table.insert(checks, { all:find("D01-E004-0302", 1, true) ~= nil and all:find("🔑 Luis", 1, true) ~= nil and all:find("🙂 Marta", 1, true) ~= nil and all:find("👤 Marta", 1, true) ~= nil and all:find("👤 Luis", 1, true) == nil,
+				"llaves: el panel enseña la vivienda, quién tiene llave, las visitas y a quién dársela (" .. all .. ")" })
 		end,
 	}
 	for frame = 1, frames do

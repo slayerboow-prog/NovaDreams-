@@ -634,7 +634,15 @@ local function goTo(player: Player, building: Building, floor: number, byElevato
 	if gate then
 		local ok, allowed, why = pcall(gate, player, building, floor, nil)
 		if ok and allowed == false then
-			Notify:FireClient(player, "Error", why or "🔒 No puedes entrar.")
+			-- Casa de otro jugador: suena el timbre (el dueño decide); si no, puerta cerrada
+			local bell = InteriorService.Hooks.Doorbell
+			local okBell, handled = false, false
+			if bell then
+				okBell, handled = pcall(bell, player, building, floor, nil)
+			end
+			if not (okBell and handled) then
+				Notify:FireClient(player, "Error", why or "🔒 No puedes entrar.")
+			end
 			return
 		end
 	end
