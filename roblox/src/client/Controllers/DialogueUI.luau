@@ -6,6 +6,10 @@
 --   * Cuando te preguntan algo, tus respuestas aparecen como botones (teclas 1-4).
 --   * La cámara se acerca a quien habla (si está en la escena) y vuelve a su sitio al acabar.
 --   * Voz: la del perfil del personaje (StoryAudio). Mientras hay conversación, el personaje no anda.
+--   * Si el servidor la corta ("Close"), mueres o desaparece tu personaje, la conversación se cierra
+--     del todo (aunque estuviera escribiendo o esperando respuesta) y vuelven la cámara y los controles.
+--   * Si empieza una cinemática con la conversación abierta, la cámara de la escena manda; al acabar,
+--     la conversación retoma su plano. Los controles se cuentan en Controls (no se devuelven a medias).
 -- Lo que se ve lo decide el servidor (DialogueService); aquí solo se muestra y se contesta.
 
 local ContextActionService = game:GetService("ContextActionService")
@@ -20,6 +24,8 @@ local Cinematics = require(script.Parent.Cinematics)
 local ActorLife = require(script.Parent.ActorLife)
 local DayLight = require(script.Parent.DayLight)
 local SpeechBubbles = require(script.Parent.Parent.UI.SpeechBubbles)
+local Controls = require(script.Parent.Controls)
+local CineCamera = require(script.Parent.CineCamera)
 
 local create = Theme.create
 local C = Theme.Colors
@@ -51,6 +57,8 @@ local bubbleOf: Instance? = nil -- quién tiene ahora el bocadillo de la convers
 local lineSerial = 0
 local BUBBLE_DISTANCE = 55
 local open = false
+local closing = false -- se ha cerrado (servidor, muerte…): todo lo que espera sale sin contestar
+local activePick: BindableEvent? = nil -- la pregunta que espera respuesta (para poder cerrarla)
 local savedCamera: { Type: Enum.CameraType, CFrame: CFrame }? = nil
 
 ---------------------------------------------------------------------
@@ -58,15 +66,11 @@ local savedCamera: { Type: Enum.CameraType, CFrame: CFrame }? = nil
 ---------------------------------------------------------------------
 
 local function setControls(enabled: boolean)
-	pcall(function()
-		local module = require(player:WaitForChild("PlayerScripts"):WaitForChild("PlayerModule") :: ModuleScript) :: any
-		local controls = module:GetControls()
-		if enabled then
-			controls:Enable()
-		else
-			controls:Disable()
-		end
-	end)
+	if enabled then
+		Controls.enable("Dialogo")
+	else
+		Controls.disable("Dialogo")
+	end
 end
 
 local function headOf(model: Instance?): Vector3?
@@ -103,10 +107,13 @@ local function startCameraLoop()
 	end
 	cameraConnection = RunService.RenderStepped:Connect(function()
 		local current = shot
-		if not current then
-			return
+		if not current or Cinematics.isPlaying() then
+			return -- (durante una cinemática la cámara es suya; al acabar, se retoma este plano)
 		end
 		local camera = workspace.CurrentCamera
+		if camera.CameraType ~= Enum.CameraType.Scriptable then
+			camera.CameraType = Enum.CameraType.Scriptable
+		end
 		local t = os.clock() - current.Start
 		local base = current.From:Lerp(current.To, smoothstep(t / current.Blend))
 		local push = math.min(t, 10) * 0.07 -- se acerca despacio
@@ -142,7 +149,9 @@ local function frame(line: { [string]: any })
 	if not savedCamera then
 		savedCamera = { Type = camera.CameraType, CFrame = camera.CFrame }
 	end
-	camera.CameraType = Enum.CameraType.Scriptable
+	if not Cinematics.isPlaying() then
+		camera.CameraType = Enum.CameraType.Scriptable
+	end
 	local flat = Vector3.new(them.X - me.X, 0, them.Z - me.Z)
 	if flat.Magnitude < 0.5 then
 		return
@@ -150,26 +159,36 @@ local function frame(line: { [string]: any })
 	local forward = flat.Unit -- de ti hacia el otro
 	local right = forward:Cross(Vector3.yAxis)
 	local distance = flat.Magnitude
+	-- Dentro de una casa los planos son más cortos (y ninguno atraviesa paredes: CineCamera.clamp)
+	local k = if CineCamera.inInterior() then 0.7 else 1
+	local clamp = CineCamera.clamp
 	shotCount += 1
 	local changed = line.Actor ~= lastActor
 	local goal: CFrame
 	local focus: Vector3
 	if line.Me then
 		-- Contraplano: por encima del hombro del otro, mirándote a ti
-		goal = CFrame.lookAt(them + forward * 4.2 - right * 1.6 + Vector3.new(0, 0.7, 0), me + Vector3.new(0, -0.2, 0))
+		local at = clamp(them, them + (forward * 4.2 - right * 1.6) * k + Vector3.new(0, 0.7, 0))
+		goal = CFrame.lookAt(at, me + Vector3.new(0, -0.2, 0))
 		focus = me
 	elseif shotCount == 1 then
 		-- Al empezar: los dos de perfil
 		local middle = (me + them) / 2
-		goal = CFrame.lookAt(middle + right * (distance * 0.8 + 5) + Vector3.new(0, 1.2, 0), middle + Vector3.new(0, -0.3, 0))
+		local side = if k < 1 then math.min(distance * 0.8 + 3, CineCamera.InteriorRadius) else distance * 0.8 + 5
+		local at = clamp(middle, middle + right * side + Vector3.new(0, 1.2, 0))
+		goal = CFrame.lookAt(at, middle + Vector3.new(0, -0.3, 0))
 		focus = middle
 	elseif changed or shotCount % 3 ~= 0 then
 		-- Por encima de tu hombro
-		goal = CFrame.lookAt(me - forward * 4.5 + right * 1.8 + Vector3.new(0, 0.9, 0), them + Vector3.new(0, -0.2, 0))
+		local at = clamp(me, me + (-forward * 4.5 + right * 1.8) * k + Vector3.new(0, 0.9, 0))
+		goal = CFrame.lookAt(at, them + Vector3.new(0, -0.2, 0))
 		focus = them
 	else
-		-- Primer plano de quien habla (un poco de lado; con sitio arriba para su bocadillo)
-		goal = CFrame.lookAt(them - forward * 4.6 + right * 1.2 + Vector3.new(0, 0.3, 0), them + Vector3.new(0, 0.5, 0))
+		-- Primer plano de quien habla (un poco de lado; con sitio arriba para su bocadillo). Nunca más
+		-- atrás que la mitad del camino hasta ti: si estáis cerca, la cámara no se mete dentro de tu cabeza
+		local back = math.min(3.6, distance * 0.55)
+		local at = clamp(them, them - forward * back + right * 1.2 * k + Vector3.new(0, 0.3, 0))
+		goal = CFrame.lookAt(at, them + Vector3.new(0, 0.5, 0))
 		focus = them
 	end
 	local from = if shot and not changed then camera.CFrame else goal
@@ -185,14 +204,16 @@ end
 
 local function restoreCamera()
 	stopCameraLoop()
+	local saved = savedCamera
+	savedCamera = nil
+	if not saved or Cinematics.isPlaying() then
+		return -- (con una cinemática en marcha, la cámara la devuelve ella al acabar)
+	end
 	local camera = workspace.CurrentCamera
-	if savedCamera then
-		camera.CameraType = if savedCamera.Type == Enum.CameraType.Scriptable then Enum.CameraType.Custom else savedCamera.Type
-		local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-		if humanoid then
-			camera.CameraSubject = humanoid
-		end
-		savedCamera = nil
+	-- Vuelve donde estaba antes de hablar (o detrás de ti, mirando al frente) y luego al juego
+	CineCamera.restore(saved.CFrame)
+	if saved.Type ~= Enum.CameraType.Scriptable and camera.CameraType ~= saved.Type then
+		camera.CameraType = saved.Type
 	end
 end
 
@@ -311,6 +332,10 @@ end
 
 -- Escribe una línea letra a letra; devuelve cuando el jugador pasa a la siguiente
 local function showLine(line: { [string]: any })
+	if closing then
+		return
+	end
+	StoryAudio.stopVoice() -- la frase anterior no sigue sonando por encima de esta
 	nameTag.Visible = line.Name ~= nil and not line.Narrator
 	nameTag.Text = line.Name or ""
 	nameTag.TextColor3 = if line.Me then NAME_COLORS.Me else NAME_COLORS.Other
@@ -371,7 +396,7 @@ local function showLine(line: { [string]: any })
 	textLabel.Text = full
 	hint.Visible = bubbled -- con bocadillo, la caja solo dice "Toca para seguir"
 	local shown = 0
-	while shown < total and not skipTyping do
+	while shown < total and not skipTyping and not closing do
 		shown = math.min(total, shown + math.max(1, math.floor(TYPE_SPEED * task.wait())))
 		textLabel.MaxVisibleGraphemes = shown
 	end
@@ -381,11 +406,17 @@ local function showLine(line: { [string]: any })
 	end
 	typed = true
 	hint.Visible = true
-	advanceSignal.Event:Wait()
+	if not closing then
+		advanceSignal.Event:Wait()
+	end
+	StoryAudio.stopVoice()
 	ActorLife.quiet(speakingModel)
 end
 
-local function ask(prompt: string?, options: { string }): number
+local function ask(prompt: string?, options: { string }): number?
+	if closing then
+		return nil
+	end
 	for _, child in optionsFrame:GetChildren() do
 		if child:IsA("TextButton") then
 			child:Destroy()
@@ -441,10 +472,17 @@ local function ask(prompt: string?, options: { string }): number
 		end
 		return Enum.ContextActionResult.Sink
 	end, false, 3000, table.unpack(keys))
-	picked.Event:Wait()
+	activePick = picked
+	if not closing then
+		picked.Event:Wait()
+	end
+	activePick = nil
 	ContextActionService:UnbindAction("DialogueOptions")
 	picked:Destroy()
 	optionsFrame.Visible = false
+	if closing then
+		return nil -- cerrada sin contestar
+	end
 	return chosen or 1
 end
 
@@ -455,10 +493,12 @@ local function setOpen(value: boolean)
 	open = value
 	player:SetAttribute("InDialogue", if value then true else nil) -- la mochila no se abre con la E mientras hablas
 	ActorLife.conversation(value)
+	CineCamera.quietLabels("Dialogo", value) -- sin nombres ni iconos flotantes en los primeros planos
 	if value then
 		box.Visible = true
 		setControls(false)
 	else
+		StoryAudio.stopVoice()
 		box.Visible = false
 		if bubbleOf then
 			SpeechBubbles.hide(bubbleOf)
@@ -487,27 +527,48 @@ local function process()
 	if not pcall(setOpen, false) then
 		open = false
 		player:SetAttribute("InDialogue", nil)
+		pcall(setControls, true)
 	end
+	closing = false
 	running = false
+	-- Lo que llegó después de cerrar (una conversación nueva) se muestra ahora
+	if #queue > 0 then
+		task.spawn(process)
+	end
 end
 
 processQueue = function()
 	while #queue > 0 do
+		if closing then
+			break
+		end
 		local payload = table.remove(queue, 1) :: { [string]: any }
 		-- Si hay una escena de cámara, la conversación espera a que termine
-		while Cinematics.isPlaying() do
+		while Cinematics.isPlaying() and not closing do
 			task.wait(0.2)
+		end
+		if closing then
+			break
 		end
 		setOpen(true)
 		for _, line in payload.Lines or {} do
 			showLine(line)
+			if closing then
+				break
+			end
+		end
+		if closing then
+			break -- cerrada a medias: no se contesta al servidor
 		end
 		if payload.Options then
 			local index = ask(payload.Ask, payload.Options)
+			if closing or not index then
+				break
+			end
 			Remote:FireServer("Next", payload.Token, index)
 			-- Lo siguiente llega enseguida (la respuesta del otro); la caja sigue abierta
 			local waited = 0
-			while #queue == 0 and waited < 3 do
+			while #queue == 0 and waited < 3 and not closing do
 				waited += task.wait(0.05)
 			end
 		else
@@ -515,7 +576,7 @@ processQueue = function()
 			if payload.Final then
 				-- ¿Viene otra conversación justo detrás? Si no, se cierra
 				local waited = 0
-				while #queue == 0 and waited < 0.25 do
+				while #queue == 0 and waited < 0.25 and not closing do
 					waited += task.wait(0.05)
 				end
 			end
@@ -527,6 +588,39 @@ function DialogueUI.isOpen(): boolean
 	return open
 end
 
+-- Cierra la conversación en este cliente: lo que estaba escribiendo o esperando sale enseguida,
+-- y al salir process() devuelve la cámara y los controles
+local function closeLocal()
+	table.clear(queue)
+	StoryAudio.stopVoice()
+	if not running then
+		if open then
+			pcall(setOpen, false)
+		end
+		return
+	end
+	closing = true
+	skipTyping = true
+	advanceSignal:Fire()
+	if activePick then
+		activePick:Fire()
+	end
+end
+DialogueUI.close = closeLocal
+
+-- Si mueres o desaparece tu personaje a media conversación, se cierra (si no, la cámara se
+-- quedaba fija y los controles apagados). El servidor debería cancelar también la suya.
+local function watchCharacter(character: Model)
+	local humanoid = character:FindFirstChildOfClass("Humanoid") or character:WaitForChild("Humanoid", 10)
+	if humanoid and humanoid:IsA("Humanoid") then
+		humanoid.Died:Connect(function()
+			if open or running then
+				closeLocal()
+			end
+		end)
+	end
+end
+
 function DialogueUI.init()
 	advanceSignal = Instance.new("BindableEvent")
 	build()
@@ -536,18 +630,27 @@ function DialogueUI.init()
 			table.insert(queue, payload)
 			task.spawn(process)
 		elseif kind == "Close" then
-			table.clear(queue)
-			skipTyping = true
-			advanceSignal:Fire()
+			closeLocal()
 		end
 	end)
+	player.CharacterAdded:Connect(function(character)
+		task.spawn(watchCharacter, character)
+	end)
+	player.CharacterRemoving:Connect(function()
+		if open or running then
+			closeLocal()
+		end
+	end)
+	if player.Character then
+		task.spawn(watchCharacter, player.Character)
+	end
 	UserInputService.InputBegan:Connect(function(input, processed)
 		if not open or optionsFrame.Visible then
 			return
 		end
 		local key = input.KeyCode
 		if key == Enum.KeyCode.Space or key == Enum.KeyCode.Return or key == Enum.KeyCode.E or key == Enum.KeyCode.ButtonA
-			or (input.UserInputType == Enum.UserInputType.MouseButton1 and not processed) then
+			or ((input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) and not processed) then
 			if typed then
 				advanceSignal:Fire()
 			else
