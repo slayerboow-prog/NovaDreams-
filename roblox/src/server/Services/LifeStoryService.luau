@@ -98,6 +98,7 @@ type Runtime = {
 	Fallback: { [string]: boolean }, -- misión -> ya se lanzó el plan B de este paso
 	Busy: boolean, -- una conversación, un minijuego o una clase de la historia en marcha
 	Starting: boolean?, -- esperando a que el jugador aparezca para retomar la historia
+	ChoiceSentAt: { [string]: number }, -- misión -> cuándo se mandó su ventana de decisión (0 = volver a mandarla)
 }
 local runtime: { [Player]: Runtime } = {}
 local dayRng = Random.new()
@@ -203,6 +204,21 @@ end
 local function moment(player: Player, key: string, args: { [string]: any }?, sting: string?)
 	send(player, "Moment", { TextKey = key, Args = args, Sting = sting })
 	LifeStoryService.logEvent(player, key, args, "Moment")
+end
+
+-- ¿Está ya ocupado el jugador? (una conversación, un minijuego o una clase: no se empieza otra cosa encima)
+local function busy(player: Player): boolean
+	local rt = runtime[player]
+	if rt and (rt.Busy or rt.ClassFor ~= nil) then
+		return true
+	end
+	return DialogueService.isBusy(player) or MiniGameService.isRunning(player) or ClassService.isRunning(player)
+end
+
+-- ¿Muerto (esperando a reaparecer en el hospital), detenido o en un juicio? Entonces la historia no
+-- le lleva de un sitio a otro (no se sale de la cárcel por una escena)
+local function held(player: Player): boolean
+	return player:GetAttribute("Dead") == true or player:GetAttribute("JailUntil") ~= nil or player:GetAttribute("OnTrial") ~= nil
 end
 
 ---------------------------------------------------------------------
@@ -389,7 +405,7 @@ local function applyEffects(player: Player, data: Data, effects: { [string]: any
 	if effects.Say then
 		DialogueService.bark(player, effects.Say.S, effects.Say.T)
 	end
-	if effects.Teleport then
+	if effects.Teleport and not held(player) then
 		SceneService.teleport(player, effects.Teleport) -- un atajo, una escena que empieza en otro sitio
 	end
 	story.Later = story.Later or {}
@@ -690,9 +706,18 @@ local completeQuest -- se define más abajo
 local advance -- se define más abajo
 
 local function sendChoice(player: Player, questId: string, step: { [string]: any })
+	local data = DataService.get(player)
+	local ctx = data and contextFor(player, data)
 	local options = {}
 	for _, option in step.Options do
-		table.insert(options, { Id = option.Id, TextKey = option.Text or option.TextKey })
+		-- Solo las opciones que se pueden elegir (el servidor rechazaría las demás)
+		if not option.If or (ctx and Conditions.check(option.If, ctx)) then
+			table.insert(options, { Id = option.Id, TextKey = option.Text or option.TextKey })
+		end
+	end
+	local rt = runtime[player]
+	if rt then
+		rt.ChoiceSentAt[questId] = os.clock()
 	end
 	send(player, "Choice", { QuestId = questId, PromptKey = step.Prompt or step.PromptKey or step.Text or step.TextKey, Options = options })
 end
@@ -715,14 +740,25 @@ local function questDialogue(questId: string, name: any): { [string]: any }?
 	return quest and quest.Dialogues and quest.Dialogues[name]
 end
 
--- Contexto de un diálogo: condiciones con lo que recuerda el personaje, efectos, cámara
-local function dialogueContext(player: Player, data: Data, questId: string): DialogueService.Context
+-- Contexto de un diálogo: condiciones con lo que recuerda el personaje, efectos, cámara.
+-- Los efectos de cada línea u opción se apuntan en el progreso (DlgApplied, se guarda): si sales a
+-- mitad de la conversación y vuelves, se repite la charla pero no se cobra ni se gana dos veces.
+local function dialogueContext(player: Player, data: Data, questId: string, label: string): DialogueService.Context
 	local story = storyOf(data)
+	local prog = story.Active[questId]
 	return {
 		check = function(condition)
 			return (Conditions.check(condition, contextFor(player, data)))
 		end,
-		apply = function(effects)
+		apply = function(effects, key)
+			if key and prog and effects then
+				local id = label .. key
+				prog.DlgApplied = prog.DlgApplied or {}
+				if prog.DlgApplied[id] then
+					return
+				end
+				prog.DlgApplied[id] = true
+			end
 			applyEffects(player, data, effects, questId)
 		end,
 		actorOf = function(npc)
@@ -736,7 +772,8 @@ local function dialogueContext(player: Player, data: Data, questId: string): Dia
 end
 
 -- Juega una conversación de la misión; onDone cuando termine. Si ya hay otra, se reintenta luego.
-local function playDialogue(player: Player, data: Data, questId: string, name: any, onDone: () -> ()): boolean
+-- label: de dónde sale la conversación si viene escrita en el paso (para recordar sus efectos)
+local function playDialogue(player: Player, data: Data, questId: string, name: any, onDone: () -> (), label: string?): boolean
 	local dialogue = questDialogue(questId, name)
 	local rt = runtime[player]
 	if not dialogue then
@@ -748,7 +785,8 @@ local function playDialogue(player: Player, data: Data, questId: string, name: a
 		return false
 	end
 	rt.Busy = true
-	local started = DialogueService.play(player, dialogue, dialogueContext(player, data, questId), function()
+	local tag = if type(name) == "string" then name else (label or "Paso")
+	local started = DialogueService.play(player, dialogue, dialogueContext(player, data, questId, tag), function()
 		rt.Busy = false
 		rt.DialogueEndedAt = os.clock() -- el toque que cierra la conversación no abre otra
 		onDone()
@@ -908,8 +946,8 @@ end
 local function returnToScene(player: Player, data: Data)
 	local story = storyOf(data)
 	local root = LocationService.positionOf(player)
-	if not root then
-		return
+	if not root or held(player) then
+		return -- (muerto o detenido: se queda donde está)
 	end
 	local ids = {}
 	if story.Tracked and story.Active[story.Tracked] then
@@ -958,6 +996,7 @@ local function enterStep(player: Player, data: Data, questId: string)
 		prog.Sub = nil
 		prog.WaitUntil = nil
 		prog.Chatted = nil -- con quién se ha charlado ya en este paso (no se repite la conversación)
+		prog.DlgApplied = nil -- efectos de conversaciones ya aplicados en este paso
 		if rt then
 			rt.StepStart[questId] = os.clock()
 			rt.NudgedAt[questId] = nil
@@ -967,7 +1006,7 @@ local function enterStep(player: Player, data: Data, questId: string)
 			prog.Step += 1
 			continue
 		end
-		if step.Teleport then
+		if step.Teleport and not held(player) then
 			SceneService.teleport(player, step.Teleport)
 		end
 		if step.Type == "Moment" then
@@ -1028,8 +1067,8 @@ function startInteractive(player: Player, data: Data, questId: string)
 	local prog = story.Active[questId]
 	local step = prog and stepsOf(questId, prog)[prog.Step]
 	local rt = runtime[player]
-	if not step or not rt or not rt.Ready then
-		return
+	if not step or not rt or not rt.Ready or player:GetAttribute("Dead") or busy(player) then
+		return -- (muerto u ocupado: se reintenta luego)
 	end
 	local index = prog.Step
 	local function stillHere(): boolean
@@ -1042,8 +1081,8 @@ function startInteractive(player: Player, data: Data, questId: string)
 			if stillHere() then
 				advance(player, data, questId)
 			end
-		end)
-	elseif step.Type == "MiniGame" and not rt.Busy and not MiniGameService.isRunning(player) then
+		end, "Scene")
+	elseif step.Type == "MiniGame" then
 		rt.Busy = true
 		local spec = step
 		if step.PositionFrom then
@@ -1372,12 +1411,50 @@ function groupDone(step: { [string]: any }, sub: { [string]: boolean }, ctx: Con
 	return done >= math.min(step.Need or available, available)
 end
 
+-- Al reaparecer en el hospital: vuelta a donde pasa la misión (el sitio del paso actual o su escena).
+-- Si entretanto te han detenido (tenías estrellas) o sigues muerto, te quedas donde estás.
+local function afterRevive(player: Player)
+	local data = DataService.get(player)
+	local rt = runtime[player]
+	if not data or not rt or not rt.Ready or not player.Parent or held(player) then
+		return
+	end
+	local story = storyOf(data)
+	local ids = {}
+	if story.Tracked and story.Active[story.Tracked] then
+		table.insert(ids, story.Tracked)
+	end
+	for id in story.Active do
+		if id ~= story.Tracked then
+			table.insert(ids, id)
+		end
+	end
+	for _, questId in ids do
+		local prog = story.Active[questId]
+		local step = prog and stepsOf(questId, prog)[prog.Step]
+		if step and step.Teleport then
+			SceneService.teleport(player, step.Teleport)
+			return
+		end
+	end
+	returnToScene(player, data)
+end
+
 local function onStoryEvent(player: Player, name: string, payload: { [string]: any })
 	local data = DataService.get(player)
 	if not data or not runtime[player] then
 		return
 	end
 	local story = storyOf(data)
+	if name == "Revived" and not payload.Jailed then
+		-- (se espera un poco: al avisar, el hospital aún no ha quitado "Dead" y puede detenerte justo después)
+		task.delay(1, function()
+			local ok, err = pcall(afterRevive, player)
+			if not ok then
+				warn("[LifeStory] " .. tostring(err))
+			end
+		end)
+	end
 
 	local ids = {}
 	for id in story.Active do
@@ -1472,8 +1549,7 @@ local interactProp -- se define más abajo
 local function stepTimers(player: Player, data: Data, questId: string, prog: Progress, step: { [string]: any }): boolean
 	local rt = runtime[player]
 	local since = os.clock() - (rt.StepStart[questId] or os.clock())
-	local busy = rt.Busy or DialogueService.isBusy(player) or MiniGameService.isRunning(player) or ClassService.isRunning(player)
-	if busy then
+	if busy(player) or player:GetAttribute("Dead") then
 		return false
 	end
 	-- "¡Vas a llegar tarde!": alguien te mete prisa (una vez, o cada Every segundos)
@@ -1500,6 +1576,11 @@ local function stepTimers(player: Player, data: Data, questId: string, prog: Pro
 		startInteractive(player, data, questId)
 		return false
 	end
+	-- La ventana de una decisión puede perderse (otra ventana encima, un toque rechazado porque había
+	-- una conversación): mientras no se elija, se vuelve a mandar
+	if step.Type == "Choice" and (not worldChoice(step) or rt.Fallback[questId]) and os.clock() - (rt.ChoiceSentAt[questId] or 0) > 15 then
+		sendChoice(player, questId, step)
+	end
 	if rt.Fallback[questId] then
 		return false
 	end
@@ -1508,7 +1589,7 @@ local function stepTimers(player: Player, data: Data, questId: string, prog: Pro
 		rt.Fallback[questId] = true
 		playDialogue(player, data, questId, step.Dialogue, function()
 			StoryEvents.emit(player, "TalkDone", { Npc = step.Npc, Quest = questId })
-		end)
+		end, "Talk:" .. tostring(step.Npc))
 	elseif step.Type == "Use" and since > 20 and not SceneService.hasProp(player, questId, step.Prop) then
 		rt.Fallback[questId] = true
 		interactProp(player, data, questId, step.Prop)
@@ -1615,7 +1696,7 @@ local function tickPlayer(player: Player, data: Data)
 			-- Clase: al llegar al aula empieza sola; si el aula no existe en el mapa, empieza igual a los 8 s
 			local rt = runtime[player]
 			local key = spotKey(questId, prog)
-			if rt.ClassFor == nil and not ClassService.isRunning(player) then
+			if not busy(player) then
 				local arrived = checkReach(player, data, questId, prog, step)
 				if not arrived and not rt.Spots[key] then
 					rt.ClassWaitSince[key] = rt.ClassWaitSince[key] or os.clock()
@@ -1737,7 +1818,7 @@ local function chooseOption(player: Player, data: Data, questId: string, optionI
 				advance(player, data, questId)
 			end
 			if option.Dialogue then
-				return playDialogue(player, data, questId, option.Dialogue, commit)
+				return playDialogue(player, data, questId, option.Dialogue, commit, "Option:" .. tostring(option.Id))
 			end
 			commit()
 			return true
@@ -1782,7 +1863,7 @@ function interactProp(player: Player, data: Data, questId: string, propId: strin
 		end
 	end
 	if def.Dialogue then
-		playDialogue(player, data, questId, def.Dialogue, done)
+		playDialogue(player, data, questId, def.Dialogue, done, "Prop:" .. propId)
 	else
 		done()
 	end
@@ -1826,7 +1907,7 @@ end
 function LifeStoryService.interact(player: Player, kind: string, questId: string, id: string)
 	local data = DataService.get(player)
 	local rt = runtime[player]
-	if not data or not rt or rt.Busy or DialogueService.isBusy(player) or MiniGameService.isRunning(player) then
+	if not data or not rt or busy(player) then
 		return
 	end
 	local story = storyOf(data)
@@ -1880,7 +1961,7 @@ function LifeStoryService.interact(player: Player, kind: string, questId: string
 			end
 			StoryEvents.emit(player, "TalkDone", { Npc = id, Quest = questId })
 			StoryEvents.emit(player, "Talk", { Npc = id })
-		end)
+		end, "Talk:" .. id)
 		return
 	end
 	-- 3) Si no, lo que ese actor tenga que decir en esta escena (o saluda)
@@ -1903,7 +1984,7 @@ function LifeStoryService.interact(player: Player, kind: string, questId: string
 				now.Chatted[id] = true
 			end
 			StoryEvents.emit(player, "Talk", { Npc = id })
-		end)
+		end, "Chat:" .. id)
 	else
 		if LifeStoryService.Guard.bark(rt, id, os.clock()) then
 			DialogueService.bark(player, id, spec and spec.Bark or "¡Hola!")
@@ -1916,7 +1997,7 @@ end
 function processLater(player: Player, data: Data)
 	local story = storyOf(data)
 	local rt = runtime[player]
-	if not story.Later or #story.Later == 0 or rt.Busy or DialogueService.isBusy(player) or data.Life.Stage == "Bebe" then
+	if not story.Later or #story.Later == 0 or busy(player) or data.Life.Stage == "Bebe" then
 		return
 	end
 	local clock = story.Clock or 0
@@ -1984,11 +2065,14 @@ local function onRemote(player: Player, kind: any, questId: any, value: any)
 	if not data or not rt or type(kind) ~= "string" then
 		return
 	end
+	local story = storyOf(data)
 	if os.clock() - rt.LastRemote < 0.25 then
+		if kind == "Choose" and type(questId) == "string" and story.Active[questId] then
+			rt.ChoiceSentAt[questId] = 0 -- el toque se ha perdido: la ventana vuelve a salir
+		end
 		return
 	end
 	rt.LastRemote = os.clock()
-	local story = storyOf(data)
 
 	if kind == "Sync" then
 		if rt.Ready then
@@ -1997,8 +2081,8 @@ local function onRemote(player: Player, kind: any, questId: any, value: any)
 			task.spawn(becomeReady, player)
 		end
 	elseif kind == "Choose" and type(questId) == "string" and type(value) == "string" then
-		if not rt.Busy then
-			chooseOption(player, data, questId, value)
+		if (busy(player) or not chooseOption(player, data, questId, value)) and story.Active[questId] then
+			rt.ChoiceSentAt[questId] = 0 -- rechazada (había una conversación…): la ventana vuelve a salir luego
 		end
 	elseif kind == "Offer" and type(questId) == "string" and rt.PendingOffer == questId then
 		rt.PendingOffer = nil
@@ -2062,6 +2146,7 @@ local function onLoaded(player: Player, data: Data)
 		NudgedAt = {},
 		Fallback = {},
 		Busy = false,
+		ChoiceSentAt = {},
 	}
 	story_defaults(data)
 

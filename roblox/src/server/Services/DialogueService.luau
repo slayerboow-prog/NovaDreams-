@@ -29,17 +29,20 @@ local TIMEOUT = 300 -- si el cliente no contesta en 5 minutos, la conversación 
 export type Line = { [string]: any }
 export type Context = {
 	check: (({ [string]: any }?) -> boolean)?, -- ¿se cumplen estas condiciones? (líneas con If)
-	apply: (({ [string]: any }?) -> ())?, -- aplicar efectos (relaciones, marcas, recuerdos…)
+	-- aplicar efectos (relaciones, marcas, recuerdos…); key = qué línea u opción es ("/3", "/5.2/1", "/end"),
+	-- siempre la misma para el mismo sitio del diálogo (la historia no los repite si vuelves a entrar)
+	apply: (({ [string]: any }?, string?) -> ())?,
 	actorOf: ((string) -> Instance?)?, -- el modelo de ese personaje en la escena (para la cámara)
 	args: ({ [string]: any } | () -> { [string]: any })?, -- {nombre}, {familia}… (o una función: se lee en cada línea)
 }
 
-type Frame = { Lines: { Line }, Index: number }
+type Frame = { Lines: { Line }, Index: number, Key: string }
 type Session = {
 	Token: number,
 	Stack: { Frame },
 	Context: Context,
 	Options: { Line }?, -- opciones que se están preguntando ahora
+	OptionKeys: { string }?, -- la clave de cada una (su sitio en el diálogo)
 	OnDone: (() -> ())?,
 	Deadline: number,
 }
@@ -147,15 +150,18 @@ local function pump(player: Player, session: Session)
 		end
 		if line.Ask then
 			local options = {}
+			local keys = {}
 			local visible = {}
-			for _, option in line.Options or {} do
+			for i, option in line.Options or {} do
 				if passes(session.Context, option.If) then
 					table.insert(options, option)
+					table.insert(keys, ("%s/%d.%d"):format(frame.Key, frame.Index, i))
 					table.insert(visible, Strings.get(option.T or "", argsFor(player, session.Context.args)))
 				end
 			end
 			if #options > 0 then
 				session.Options = options
+				session.OptionKeys = keys
 				session.Deadline = os.clock() + TIMEOUT
 				Remote:FireClient(player, "Show", {
 					Token = session.Token,
@@ -168,7 +174,7 @@ local function pump(player: Player, session: Session)
 			continue
 		end
 		if line.Effects and session.Context.apply then
-			session.Context.apply(line.Effects)
+			session.Context.apply(line.Effects, ("%s/%d"):format(frame.Key, frame.Index))
 		end
 		if line.T then
 			table.insert(chunk, lineFor(player, session, line))
@@ -184,13 +190,18 @@ local function answer(player: Player, token: any, choice: any)
 	local options = session.Options
 	if options then
 		local index = if type(choice) == "number" then math.floor(choice) else 1
-		local option = options[index] or options[1]
+		if not options[index] then
+			index = 1
+		end
+		local option = options[index]
+		local key = (session.OptionKeys and session.OptionKeys[index]) or "?"
 		session.Options = nil
-		if session.Context.apply then
-			session.Context.apply(option.Effects)
+		session.OptionKeys = nil
+		if session.Context.apply and option.Effects then
+			session.Context.apply(option.Effects, key)
 		end
 		if option.Then then
-			table.insert(session.Stack, { Lines = option.Then, Index = 0 })
+			table.insert(session.Stack, { Lines = option.Then, Index = 0, Key = key })
 		end
 		pump(player, session)
 	elseif #session.Stack == 0 then
@@ -216,11 +227,11 @@ function DialogueService.play(player: Player, dialogue: { [string]: any }, conte
 	local ctx = context or {}
 	local session: Session = {
 		Token = nextToken,
-		Stack = { { Lines = dialogue.Lines or dialogue, Index = 0 } },
+		Stack = { { Lines = dialogue.Lines or dialogue, Index = 0, Key = "" } },
 		Context = ctx,
 		OnDone = function()
 			if dialogue.Effects and ctx.apply then
-				ctx.apply(dialogue.Effects)
+				ctx.apply(dialogue.Effects, "/end")
 			end
 			if onDone then
 				onDone()
@@ -279,7 +290,18 @@ function DialogueService.init()
 			task.wait(5)
 			for player, session in sessions do
 				if os.clock() > session.Deadline then
-					answer(player, session.Token, 1)
+					-- Si algo falla al seguir, la conversación se da por terminada (la historia no se
+					-- queda esperando para siempre a que acabe)
+					local ok, err = pcall(answer, player, session.Token, 1)
+					if not ok then
+						warn("[DialogueService] " .. tostring(err))
+						if player.Parent then
+							pcall(function()
+								Remote:FireClient(player, "Close", { Token = session.Token })
+							end)
+						end
+						finish(player, session)
+					end
 				end
 			end
 		end

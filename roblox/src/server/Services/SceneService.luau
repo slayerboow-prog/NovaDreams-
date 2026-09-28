@@ -148,11 +148,14 @@ end
 -- Actores
 ---------------------------------------------------------------------
 
-local function sceneFolder(player: Player): Folder
+local function sceneFolder(player: Player): Folder?
 	local name = "Scene_" .. player.UserId
 	local existing = folder:FindFirstChild(name)
 	if existing then
 		return existing :: Folder
+	end
+	if not player.Parent then
+		return nil -- ya se ha ido: no se crea otra carpeta (se quedaría para siempre)
 	end
 	local f = Instance.new("Folder")
 	f.Name = name
@@ -633,8 +636,14 @@ end
 
 function applySet(player: Player, questId: string, actors: { { [string]: any } }, props: { string }, defs: { [string]: any }?)
 	scenes[player] = scenes[player] or {}
-	local scene = scenes[player][questId] or { Actors = {}, Props = {} }
-	scenes[player][questId] = scene
+	local byQuest = scenes[player]
+	local scene = byQuest[questId] or { Actors = {}, Props = {} }
+	byQuest[questId] = scene
+	-- Crear un personaje espera a Roblox: si mientras tanto el jugador se fue (o la escena se quitó),
+	-- lo recién creado se borra y se deja de montar (si no, quedaban actores fantasma en el mapa)
+	local function gone(): boolean
+		return not player.Parent or scenes[player] ~= byQuest or byQuest[questId] ~= scene
+	end
 
 	-- Actores
 	local wanted: { [string]: { [string]: any } } = {}
@@ -682,6 +691,10 @@ function applySet(player: Player, questId: string, actors: { { [string]: any } }
 		-- oculta al de siempre en cuanto llega el de tu escena: nunca se ven dos.)
 		local from = if actor == nil and spec.Mode ~= "Follow" and spec.Mode ~= "Flee" then SceneService.ambientStart(spec.Npc, cf.Position) else nil
 		local created = makeActor(player, questId, spec, from or cf, from ~= nil)
+		if gone() then
+			created.Model:Destroy()
+			return
+		end
 		created.Key = key
 		scene.Actors[npc] = created
 		if from then
@@ -714,7 +727,12 @@ function applySet(player: Player, questId: string, actors: { { [string]: any } }
 		end
 		local cf, mark, isMapObject = placement(player, def, true)
 		if cf then
-			scene.Props[id] = makeProp(player, questId, id, def, cf, mark, isMapObject)
+			local created = makeProp(player, questId, id, def, cf, mark, isMapObject)
+			if gone() then
+				created.Model:Destroy()
+				return
+			end
+			scene.Props[id] = created
 		end
 	end
 end

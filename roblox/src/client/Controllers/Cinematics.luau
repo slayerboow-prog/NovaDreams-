@@ -163,10 +163,23 @@ end
 ---------------------------------------------------------------------
 
 local playing = 0
+local pending = 0 -- escenas que ya han llegado pero esperan su turno (cola de momentos de LifeStory)
 
--- ¿Se está viendo una escena? (los diálogos esperan a que termine)
+-- ¿Se está viendo una escena, o hay una esperando? (los diálogos esperan a que termine)
 function Cinematics.isPlaying(): boolean
-	return playing > 0
+	return playing > 0 or pending > 0
+end
+
+-- Apunta una escena que acaba de llegar y aún no empieza; devuelve cómo soltarla (al acabar)
+function Cinematics.hold(): () -> ()
+	pending += 1
+	local released = false
+	return function()
+		if not released then
+			released = true
+			pending = math.max(0, pending - 1)
+		end
+	end
 end
 
 -- Lo que hay que deshacer si una escena falla a medias (si no, la interfaz se quedaba escondida)
