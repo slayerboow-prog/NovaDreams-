@@ -12,6 +12,7 @@ local UserInputService = game:GetService("UserInputService")
 
 local Gameplay = require(ReplicatedStorage.Shared.Gameplay)
 local Theme = require(script.Parent.Parent.UI.Theme)
+local HudLayout = require(script.Parent.Parent.UI.HudLayout)
 
 local VehicleHud = {}
 
@@ -104,10 +105,13 @@ function VehicleHud.init(parent: Instance)
 		local hud = math.clamp(math.min(view.Y / 900, view.X / 1700), 0.55, 1.2)
 		if TOUCH then
 			scale.Scale = hud * 0.85
-			-- justo debajo del reloj (arriba en el centro; mide 10 + 54 en la escala del HUD)
-			-- (si te busca la policía, las estrellas van justo bajo el reloj: el cuadro baja un poco)
-			local stars = if player:GetAttribute("Wanted") then 46 else 0
-			panel.Position = UDim2.new(0.5, 0, 0, math.floor((10 + 54 + 8 + stars) * hud))
+			-- Debajo de todo lo de arriba en el centro (UI/HudLayout: el reloj, la indicación del GPS,
+			-- los avisos y, si te busca la policía, las estrellas). Antes iba justo bajo el reloj y tapaba
+			-- la indicación del GPS y las estrellas.
+			local layout = HudLayout.current()
+			local above = if player:GetAttribute("Wanted") then layout.Items.Wanted else layout.Items.Activity
+			local r = HudLayout.rect(above, layout.Canvas)
+			panel.Position = UDim2.new(0.5, 0, 0, math.ceil((r.Y + r.H + 8) * layout.Scale))
 		else
 			scale.Scale = math.max(hud, 0.7)
 			panel.Position = UDim2.new(0.5, 0, 1, -math.floor(110 * hud))
@@ -115,7 +119,7 @@ function VehicleHud.init(parent: Instance)
 	end
 	camera:GetPropertyChangedSignal("ViewportSize"):Connect(rescale)
 	player:GetAttributeChangedSignal("Wanted"):Connect(rescale)
-	rescale()
+	HudLayout.onChanged(rescale)
 
 	-- Velocímetro
 	dial = create("Frame", {

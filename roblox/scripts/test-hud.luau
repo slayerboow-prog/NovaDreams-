@@ -894,6 +894,42 @@ for _, size in { { 844, 390 }, { 932, 430 }, { 1024, 768 } } do
 	mods.Hud.setBusy(false)
 	mods.Joystick.setBusy(false)
 	check(TouchLayout.buttons().Ataque.Visible and stick.Visible, "Y vuelven al acabar")
+
+	-- Conduciendo: el cuadro de mandos (VehicleHud) no tapa la indicación del GPS, los avisos, las
+	-- estrellas de búsqueda ni nada de arriba o de abajo (con y sin estrellas)
+	local VehicleHud = loadModule("src/client/Controllers/VehicleHud")
+	local vok, verr = pcall(VehicleHud.init, playerGui)
+	check(vok, "El cuadro de mandos se monta sin errores" .. (if vok then "" else ": " .. tostring(verr)))
+	local vgui = playerGui:FindFirstChild("VehicleHud")
+	local panel = vgui and vgui:FindFirstChildOfClass("Frame")
+	for _, stars in { 0, 2 } do
+		localPlayer:SetAttribute("Wanted", if stars > 0 then stars else nil)
+		if panel then
+			local ui = panel:FindFirstChildOfClass("UIScale")
+			local k = if ui then ui.Scale else 1
+			local w, h = panel.Size.X.Offset * k, panel.Size.Y.Offset * k
+			local x = panel.Position.X.Scale * size[1] + panel.Position.X.Offset - panel.AnchorPoint.X * w
+			local y = panel.Position.Y.Scale * size[2] + panel.Position.Y.Offset - panel.AnchorPoint.Y * h
+			local mine = { X = x / s, Y = y / s, W = w / s, H = h / s } -- (en el lienzo del HUD)
+			local clashes = {}
+			local others = hudRects(mods)
+			for _, name in if stars > 0 then { "Gps", "Activity", "Wanted" } else { "Gps", "Activity" } do
+				table.insert(others, { Name = name, Rect = HudLayout.rect(now.Items[name], now.Canvas) })
+			end
+			for name, slot in now.Slots do
+				table.insert(others, { Name = "Hueco " .. name, Rect = HudLayout.rect(slot, now.Canvas) })
+			end
+			for _, other in others do
+				if HudLayout.overlaps(mine, other.Rect) then
+					table.insert(clashes, other.Name)
+				end
+			end
+			check(#clashes == 0 and mine.Y + mine.H < now.Canvas.Y, ("Conduciendo (%d estrellas): el cuadro de mandos no pisa nada%s"):format(stars, if #clashes > 0 then ": " .. table.concat(clashes, ", ") else ""))
+		else
+			check(false, "Conduciendo: falta el cuadro de mandos")
+		end
+	end
+	localPlayer:SetAttribute("Wanted", nil)
 	check(#badWrites == 0, "Ninguna propiedad inventada al usarlo" .. (if #badWrites > 0 then ": " .. table.concat(badWrites, ", ") else ""))
 end
 
