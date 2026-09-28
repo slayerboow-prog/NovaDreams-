@@ -50,6 +50,8 @@ return {
 	require(Misiones.Saga_Acto2),
 	require(Misiones.Saga_Acto3),
 	require(Misiones.Saga_Acto4),
+	-- Rarezas de la Grieta (secundarias cortas que dan los «Restos de la Grieta»)
+	require(Misiones.Rarezas),
 	require(Misiones.Loco_Adolescente),
 	require(Misiones.Loco_Uni),
 	require(Misiones.Loco_Adulto),

@@ -81,6 +81,15 @@ local Memories: { [string]: Memory } = {
 	GranFusion = { Text = "Paraste la Gran Fusión en la cima del Monte del Silencio", Icon = "🌀" },
 	FinDeLaSaga = { Text = "Cerraste la Grieta para siempre en el patio donde empezó todo", Icon = "🌅" },
 	CoserElCielo = { Text = "La noche que cosiste el cielo con Cosme (y oíste a Cósimo por primera vez)", Icon = "🪡" },
+	-- Rarezas de la Grieta
+	BuzonPasado = { Text = "Te escribiste una carta a ti mismo desde ayer", Icon = "📮" },
+	FarolaOpera = { Text = "Le diste clase de canto a una farola tenor", Icon = "🎶" },
+	PerroBinario = { Text = "Tradujiste los ladridos de un perro binario", Icon = "🐕" },
+	LluviaEspaguetis = { Text = "El día que llovieron espaguetis en la plaza", Icon = "🍝" },
+	Piso13 = { Text = "Subiste al piso 13 de la biblioteca (que no existe)", Icon = "🛗" },
+	RelojAtras = { Text = "Arreglaste el reloj que desenseñaba cosas", Icon = "⏰" },
+	SemaforoOpina = { Text = "Negociaste con un semáforo con opiniones", Icon = "🚦" },
+	NubePerdida = { Text = "Llevaste a una nube bebé de vuelta al mar", Icon = "☁️" },
 	-- Misiones locas
 	ConociCosme = { Text = "Cuando conociste a Cosme, el inventor del garaje (y su microondas temporal)", Icon = "🧪" },
 	EmperadorBigotes = { Text = "Salvaste a Bigotes, emperador de Gatonia, de las cucarachas espaciales", Icon = "👑" },

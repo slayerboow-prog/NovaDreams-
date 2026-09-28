@@ -369,6 +369,15 @@ local KEEPSAKES = {
 	{ "AlbumRecuerdos", "Álbum de recuerdos", "📔", "El microondas, las gallinas, el anclaje del parque. Todo lo que le devolviste a Cosme." },
 	{ "AgujaDeOro", "La aguja de oro", "🪡", "La que cerró la Grieta para siempre. En la punta pone, muy pequeñito: «Gracias, Ancla»." },
 	{ "AgujaCuantica", "Aguja cuántica", "🪡", "Con ella cosiste el cielo de Valmar. Todavía brilla un poco cuando hay luna llena." },
+	-- Restos de la Grieta (colección de las rarezas)
+	{ "SelloDelAyer", "Sello del ayer", "📮", "Resto de la Grieta. Un sello con matasellos de ayer. Siempre de ayer, lo mires cuando lo mires." },
+	{ "BombillaTenor", "Bombilla tenor", "💡", "Resto de la Grieta. Si la acercas al oído, tararea «Fígaro». Bajito, por fin." },
+	{ "ChapaBinaria", "Chapa binaria de Pip", "🏷️", "Resto de la Grieta. 01010000 01001001 01010000. Pone «PIP». Era suya, de cuando quería ser perro." },
+	{ "TenedorCosmico", "Tenedor cósmico", "🍴", "Resto de la Grieta. Objeto sagrado en la dimensión de la pasta. Aquí, un tenedor de bolsillo." },
+	{ "BotonPiso13", "Botón del piso 13", "🔘", "Resto de la Grieta. Está calentito. No lo pulses. Hay lista de espera de trescientos años." },
+	{ "EngranajeAlReves", "Engranaje al revés", "⚙️", "Resto de la Grieta. Gira hacia atrás. Dicen que, si lo giras, te olvidas de los malos ratos." },
+	{ "LuzAmbar", "Luz ámbar", "🟠", "Resto de la Grieta. Regalo de un semáforo con opiniones. Significa «gracias». O «precaución»." },
+	{ "GotaNube", "Gota de nube", "💧", "Resto de la Grieta. No se seca nunca. En los días tristes, dicen, sale el sol." },
 	-- Recuerdos exclusivos de las misiones locas
 	{ "CoronaBigotes", "Corona del emperador Bigotes", "👑", "Mide dos centímetros. En Gatonia es enorme. Huele un poco a jamón." },
 	{ "FotoClones", "Foto con tus clones", "📸", "Cuatro como tú haciendo el signo de la victoria. Uno tiene plastilina en la boca." },

@@ -106,7 +106,21 @@ saga: casi todo lo raro que pasa en ellas llega por la Grieta. En el final vuelv
 
 **Misiones locas**: 21 ya hechas (infancia 6, adolescencia 5, universidad 5, adulto 5).
 
-**«Rarezas de la Grieta»** (pendientes):
+**«Rarezas de la Grieta»** (`Misiones/Rarezas.luau`). Primer lote hecho, 8 misiones (2 por etapa), todas probadas
+de principio a fin en `test-lifestory`:
+
+| Etapa | Rareza | Pieza |
+|---|---|---|
+| Niño | El buzón que escribe al pasado | Sello del ayer |
+| Niño | La farola que canta ópera (de 19:00 a 23:00) | Bombilla tenor |
+| Adolescente | El perro que ladra en binario | Chapa binaria de Pip |
+| Adolescente | Lluvia de espaguetis | Tenedor cósmico |
+| Universidad | El piso 13 | Botón del piso 13 |
+| Universidad | El reloj que va hacia atrás | Engranaje al revés |
+| Adulto | El semáforo con opiniones | Luz ámbar |
+| Adulto | La nube que te sigue | Gota de nube |
+
+Pendiente de las rarezas:
 
 - Entre 6 y 8 por etapa, de 10 a 20 min cada una.
 - Son cosas pequeñas y absurdas que caen por la Grieta: el buzón que manda cartas al pasado, la farola

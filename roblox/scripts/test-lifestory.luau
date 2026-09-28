@@ -1209,6 +1209,37 @@ for _ in canonIds(nora) do
 end
 check(quedan == 0, "Terminada la saga, no quedan marcas canónicas en el mapa")
 
+print("\n▶ Rarezas de la Grieta (secundarias cortas: una pieza de colección cada una)")
+local function rarezaPlayer(name: string, stage: string)
+	local player = newPlayer(name, stage)
+	local story = profiles[player].Story
+	-- Ya ha jugado la saga (así ninguna canónica empieza sola en mitad de la rareza)
+	for id, quest in QuestsData do
+		if quest.Canon then
+			story.Completed[id] = os.time()
+		end
+	end
+	story.Completed.Uni01b_Residencia = os.time()
+	return player, profiles[player]
+end
+local ruth, ruthData = rarezaPlayer("Ruth", "Nino")
+lighting.ClockTime = 12
+check(QuestsData.Rareza_Buzon.Requires.Completed[1] == "Saga_02_Grieta", "Las rarezas piden haber visto la Grieta")
+check(playLoco(ruth, "Rareza_Buzon") and ruthData.Items.SelloDelAyer == 1 and said(ruth, "yogures del barrio"), "El buzón que escribe al pasado: la carta de ayer, la fuente y el sello")
+lighting.ClockTime = 21
+check(playLoco(ruth, "Rareza_Farola") and ruthData.Items.BombillaTenor == 1, "La farola que canta ópera (de noche): clase de canto y bombilla tenor")
+local teo, teoData = rarezaPlayer("Teo", "Adolescente")
+lighting.ClockTime = 12
+check(playLoco(teo, "Rareza_Perro") and teoData.Items.ChapaBinaria == 1 and said(teo, "Un robot con amigos"), "El perro que ladra en binario: la biblioteca, la caja y la chapa de Pip")
+check(playLoco(teo, "Rareza_Espaguetis") and teoData.Items.TenedorCosmico == 1, "Lluvia de espaguetis: recoger la pasta y enrollar el agujero")
+local vera, veraData = rarezaPlayer("Vera", "AdultoJoven")
+check(playLoco(vera, "Rareza_Piso13") and veraData.Items.BotonPiso13 == 1 and said(vera, "trescientos años"), "El piso 13: el botón, los exámenes del futuro y Cronos")
+check(playLoco(vera, "Rareza_Reloj") and veraData.Items.EngranajeAlReves == 1 and said(vera, "me debes dos euros"), "El reloj que va hacia atrás: los engranajes y la memoria de Iván")
+local gael, gaelData = rarezaPlayer("Gael", "Adulto")
+gael.Picks = { Semaforo = "Escuchar" }
+check(playLoco(gael, "Rareza_Semaforo") and gaelData.Items.LuzAmbar == 1 and said(gael, "Me siento… solo"), "El semáforo con opiniones: le preguntas cómo se siente")
+check(playLoco(gael, "Rareza_Nube") and gaelData.Items.GotaNube == 1, "La nube que te sigue: parque, playa y la gota que no se seca")
+
 print("\n▶ Misiones locas · Adolescencia (el futuro, los lápices, el DJ alienígena, Pip, Zoltán)")
 local iris = newPlayer("Iris", "Adolescente")
 local irisData = profiles[iris]
