@@ -1802,7 +1802,15 @@ sagaStage("Adulto")
 nora.At = "Parque" -- se va del garaje (si no, la siguiente canónica empieza sola allí mismo)
 passTime(nora, 5)
 check(canonIds(nora).Saga_19_Recuerdos, "Acto IV: de adulto, el mapa marca devolverle la memoria a Cosme")
+local deuda = QuestsData.Loco_D2_Deuda
+nora.At = deuda.Offer.Place
+passTime(nora, 5)
+check(not received(nora, "Offer", deuda.Title) and not noraData.Story.Active.Loco_D2_Deuda, "Con Cosme sin memoria, las locas en las que recuerda su pasado esperan")
 check(playLoco(nora, "Saga_19_Recuerdos") and noraData.Items.AlbumRecuerdos == 1 and not noraData.Story.Flags.CosmeSinMemoria, "19 · Los recuerdos: Cosme vuelve a ser Cosme")
+nora.At = deuda.Offer.Place
+passTime(nora, 5)
+check(received(nora, "Offer", deuda.Title), "Con la memoria recuperada, ya te ofrecen la deuda galáctica")
+fromClient(nora, "Offer", "Loco_D2_Deuda", false)
 check(playLoco(nora, "Saga_20_Aliados") and noraData.Story.Flags.AliadosReunidos and noraData.Story.Flags.AliadoCompis, "20 · Los aliados: vienen los que ayudaste en tu vida")
 check(playLoco(nora, "Saga_21_Consorcio"), "21 · La caída del Consorcio")
 lighting.ClockTime = 22

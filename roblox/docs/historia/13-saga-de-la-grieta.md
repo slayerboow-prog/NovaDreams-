@@ -92,6 +92,16 @@ saga: casi todo lo raro que pasa en ellas llega por la Grieta. En el final vuelv
 | 23 | **La Gran Fusión** | La batalla final en el Monte del Silencio: huida, oleadas, Cósimo y cinemática. |
 | 24 | **Coser el cielo (de verdad)** | Epílogo. La Grieta se cierra para siempre. Cosme te llama «criatura» una última vez… y otra más, porque no se ha muerto. Es una comedia. |
 
+## Continuidad con las misiones locas
+
+- **Cosme secuestrado** (del final del acto II al rescate, misión 17) y **Cosme sin memoria** (de la 17 a la 19):
+  - «Mi compañero de piso es un dinosaurio» (U2) tiene frases para un Cosme sin memoria.
+  - «Las tres Valmar» (U3) necesita al Cosme de siempre: si no da tiempo en la universidad, queda para la vida adulta.
+  - «La deuda galáctica» (D2) y «Cosme en una tostadora» (D3) esperan a que Cosme recupere la memoria (y D5 va después de D3).
+- **Personajes que ya conoces**: Bigotes (14), la Capitana Ñoz (15), tu yo malvado (D5) y Glub (21) hablan distinto
+  según hayas jugado o no su misión loca. Nadie da por hecho una misión que no has hecho.
+- **Saludos**: las frases usan `{Saludo}` (buenos días / buenas tardes / buenas noches según la hora del juego).
+
 ## Secundarias (unas 15 h)
 
 **Misiones locas**: 21 ya hechas (infancia 6, adolescencia 5, universidad 5, adulto 5).

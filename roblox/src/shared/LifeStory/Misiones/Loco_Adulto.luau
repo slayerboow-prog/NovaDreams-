@@ -9,6 +9,8 @@
 local V = Vector3.new
 
 local ADULTO = { Stage = { Min = "Adulto" } }
+-- Con Cosme: esperan a que recupere la memoria (Saga 19). Hablan de sus recuerdos: la gallina, el bocadillo…
+local CON_COSME = { Stage = { Min = "Adulto" }, NotFlags = { "CosmeSinMemoria", "CosmeSecuestrado" } }
 
 local OFICINA = "OficinasFinanciero"
 
@@ -95,7 +97,7 @@ return {
 		Npcs = { "Glub", "Plof", "Cosme" },
 		Offer = { Place = "Banco" },
 		OfferKey = "En el banco, dos cobradores azules quieren embargar… la Tierra entera.",
-		Requires = ADULTO,
+		Requires = CON_COSME,
 		Moment = "Salvaste la Tierra de un embargo galáctico",
 		Memory = "DeudaGalactica",
 		Rewards = { Items = { TarjetaGalactica = 1 }, Money = 100 },
@@ -166,7 +168,7 @@ return {
 		Npcs = { "Pip", "Cosme", "Batidora", "Aspiradora", "Microondas" },
 		Offer = { Place = "GarajeCosme" },
 		OfferKey = "Pip, en la puerta del garaje, te hace señas desesperado. Sale humo. Y se oye un «ding» furioso.",
-		Requires = ADULTO,
+		Requires = CON_COSME,
 		Moment = "Rescataste la mente de Cosme de una tostadora",
 		Memory = "CosmeTostadora",
 		Rewards = { Items = { TostadoraCosme = 1 } },
@@ -341,9 +343,11 @@ return {
 		Dialogues = {
 			Puerta = { Lines = {
 				{ S = "TuMalvado", T = "Vaya, vaya. El «yo» bueno. Bienvenido o bienvenida a MI casa. Porque ahora es mía. Y tu trabajo. Y tu sofá. Muahaha." },
-				{ S = "Yo", T = "¿Quién eres? ¿Y por qué llevas perilla?" },
-				{ S = "TuMalvado", T = "Soy tú. De la dimensión 66-B. Allí soy malvado. Los malvados llevamos perilla. Es la norma. Hay un reglamento." },
-				{ S = "TuMalvado", T = "Mi vida allí es un desastre. Me echaron del trabajo por malvado. Mi gato se fue con otro. Así que me quedo con la tuya. Tú puedes quedarte la mía. Tiene deudas. Muchas." },
+				{ S = "Yo", T = "¿Quién eres? ¿Y por qué llevas perilla?", If = { NotFlags = { "ConoceTuMalvado" } } },
+				{ S = "TuMalvado", T = "Soy tú. De la dimensión 66-B. Allí soy malvado. Los malvados llevamos perilla. Es la norma. Hay un reglamento.", If = { NotFlags = { "ConoceTuMalvado" } } },
+				{ S = "TuMalvado", T = "Mi vida allí es un desastre. Me echaron del trabajo por malvado. Mi gato se fue con otro. Así que me quedo con la tuya. Tú puedes quedarte la mía. Tiene deudas. Muchas.", If = { NotFlags = { "ConoceTuMalvado" } } },
+				{ S = "Yo", T = "Tú. El del banco de la 66-B.", If = { Flags = { "ConoceTuMalvado" } } },
+				{ S = "TuMalvado", T = "Te lo avisé en la plaza: «algún día iré a quedarme con tu vida». Soy malvado, pero de palabra. Pues ya es algún día. Tu sofá es comodísimo.", If = { Flags = { "ConoceTuMalvado" } } },
 			} },
 			Familia = { Lines = {
 				{ S = "Familia", T = "¡Cariño! ¿Por qué hay dos como tú? ¿Y por qué el otro me ha dicho «muahaha» cuando le he preguntado si quería croquetas?" },
