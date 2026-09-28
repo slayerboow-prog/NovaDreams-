@@ -140,6 +140,8 @@ lune run scripts/test-motion.luau      # andar fluido: arrancar y frenar, inclin
 lune run scripts/test-parkour.luau     # agacharse, tumbarse y parkour: qué salto toca, el camino del salto, cuestas e IK
 lune run scripts/test-gps.luau        # GPS: grafo de calles, ruta más corta (A*), recalcular e indicaciones de giro
 lune run scripts/test-hud.luau        # el HUD en ordenador, móvil y tableta: que nada se pise, comandos, joystick y botones
+                                       # (y los primeros pasos, el botón ❓ «¿Qué hago ahora?», las pistas y los consejos)
+lune run scripts/test-onboarding.luau # primeros pasos: a quién le toca, qué se guarda, ideas de «¿Qué hago ahora?» y pistas
 lune run scripts/test-animals.luau     # animales: patas en el suelo, sentarse, pastar, picotear…
 lune run scripts/test-objects.luau RealLifeSimulator.rbxl  # árboles, columpios, banderas, feria y balones con física
 lune run scripts/test-weather.luau     # lluvia y nieve: suelo mojado, agarre de los vehículos, gente mojada

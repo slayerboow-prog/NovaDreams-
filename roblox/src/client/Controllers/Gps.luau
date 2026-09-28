@@ -127,6 +127,14 @@ function Gps.clear()
 	Gps.setManual(nil)
 end
 
+-- «Llévame» (Controllers/HelpUI y las pistas): vuelve a poner la ruta a tu misión o trabajo, aunque
+-- la hubieras quitado con ✕ o apagado el GPS en el menú
+function Gps.follow()
+	enabled = true
+	suppressed = nil
+	Gps.setManual(nil)
+end
+
 -- Ruta hasta tu casa familiar (la del atributo FamilyHomeId)
 function Gps.routeHome()
 	local homeId = player:GetAttribute("FamilyHomeId")

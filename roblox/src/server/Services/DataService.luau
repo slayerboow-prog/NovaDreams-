@@ -98,6 +98,13 @@ local DEFAULT_DATA = {
 		Later = {}, -- consecuencias diferidas: lo que pasará dentro de X horas de juego
 		Clock = 0, -- segundos jugados con la historia (reloj de las consecuencias)
 	},
+	-- Primeros pasos (OnboardingService): el tutorial guiado ("" = sin decidir, "Pendiente", "Hecho",
+	-- "Saltado" o "Veterano"), los pasos ya hechos y los consejos de la primera vez ya vistos
+	Onboarding = {
+		Tutorial = "",
+		Steps = {},
+		Tips = {},
+	},
 }
 
 local profiles: { [Player]: { [string]: any } } = {}
@@ -402,6 +409,8 @@ function DataService.newLife(player: Player)
 	fresh.ProcessedReceipts = data.ProcessedReceipts or {}
 	-- Las viviendas compradas siguen siendo tuyas (el registro de dueños está en otro DataStore)
 	fresh.Properties = data.Properties
+	-- El tutorial y los consejos ya vistos no se repiten en la vida nueva
+	fresh.Onboarding = data.Onboarding
 	fresh.Life.Stage = Config.LifeStory.NewCharacterStage
 	profiles[player] = fresh
 	DataService.save(player, true)

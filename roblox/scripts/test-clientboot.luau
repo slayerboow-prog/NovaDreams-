@@ -1699,6 +1699,35 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean })
 				speech.OnClientEvent:Fire({ Speaker = workspace:FindFirstChild("Vecina"), Text = nil })
 			end
 		end,
+		[math.floor(14 * FPS)] = function()
+			-- Llega un jugador nuevo (lo que pone OnboardingService al cargar su perfil). Aún hay
+			-- una conversación abierta: la tarjeta de los primeros pasos espera
+			localPlayer:SetAttribute("Tutorial", "Pendiente")
+			localPlayer:SetAttribute("TutorialSteps", "")
+		end,
+		[math.floor(15 * FPS)] = function()
+			local guide = playerGui:FindFirstChild("GuideGui")
+			local card = guide and guide:FindFirstChild("TutorialCard")
+			table.insert(checks, { card ~= nil and localPlayer:GetAttribute("InDialogue") == true and card.Visible == false, "primeros pasos: en una conversación la tarjeta no sale" })
+			local help = playerGui:FindFirstChild("HelpGui")
+			local touchGui = playerGui:FindFirstChild("TouchLayout")
+			local button = (help and help:FindFirstChild("HelpButton")) or (touchGui and touchGui:FindFirstChild("Ayuda"))
+			table.insert(checks, { button ~= nil, "el botón ❓ «¿Qué hago ahora?» existe" })
+			localPlayer:SetAttribute("InDialogue", nil) -- (acaba la conversación)
+		end,
+		[math.floor(16 * FPS)] = function()
+			local guide = playerGui:FindFirstChild("GuideGui")
+			local card = guide and guide:FindFirstChild("TutorialCard")
+			table.insert(checks, { card ~= nil and card.Visible, "primeros pasos: al acabar la conversación, la tarjeta sale a un jugador nuevo" })
+			-- En el prólogo se aparta
+			localPlayer:SetAttribute("InPrologue", true)
+		end,
+		[math.floor(17 * FPS)] = function()
+			local guide = playerGui:FindFirstChild("GuideGui")
+			local card = guide and guide:FindFirstChild("TutorialCard")
+			table.insert(checks, { card ~= nil and card.Visible == false, "en el prólogo (InPrologue) no sale la tarjeta" })
+			localPlayer:SetAttribute("InPrologue", nil)
+		end,
 	}
 	for frame = 1, frames do
 		now += dt

@@ -79,6 +79,8 @@ local InteractClient = require(script.Parent.Controllers.InteractClient)
 local FridgeUI = require(script.Parent.Controllers.FridgeUI)
 local Joystick = require(script.Parent.Controllers.Joystick)
 local Gps = require(script.Parent.Controllers.Gps)
+local HelpUI = require(script.Parent.Controllers.HelpUI)
+local Guide = require(script.Parent.Controllers.Guide)
 local CommandMenu = require(script.Parent.Commands.CommandMenu)
 local DefaultCommands = require(script.Parent.Commands.DefaultCommands)
 local CanonMarkers = require(script.Parent.Controllers.CanonMarkers)
@@ -97,6 +99,16 @@ task.spawn(LifeStory.init) -- historia de vida (tarjeta "Tu vida", momentos, dec
 task.spawn(Baby.init) -- tutorial de bebé (botón de levantarse, familia, vista de la ciudad)
 task.spawn(ClassUI.init) -- clases y exámenes que se juegan
 task.spawn(Gps.init) -- GPS: ruta por las calles hasta tu destino (mapas, flechas en el suelo e indicación)
+task.spawn(HelpUI.init) -- botón ❓ "¿Qué hago ahora?" (tecla H): tu objetivo en claro y «Llévame»
+-- Primeros pasos del jugador nuevo, pistas si te atascas y consejos de la primera vez
+task.spawn(Guide.init, { mapOpen = MapUI.isOpen, bagOpen = InventoryUI.isOpen, dialogOpen = LifeStory.hasDialog })
+-- Abrir el ❓ y usar «Llévame» también son pasos del tutorial
+HelpUI.onOpen(function()
+	Guide.mark("Ayuda")
+end)
+HelpUI.onGo(function()
+	Guide.mark("Mision")
+end)
 task.spawn(MapUI.init) -- minimapa y mapa grande (tecla M)
 task.spawn(InventoryUI.init) -- mochila estilo Minecraft (barra rápida 1-9, tecla E)
 task.spawn(DialogueUI.init) -- conversaciones de las misiones (con respuestas y cámara)
@@ -199,6 +211,15 @@ Hud.addMenuToggle("🔔 Sonidos: sí", 2, function()
 	effectsOn = not effectsOn
 	SoundFx.setMuted(not effectsOn)
 	return if effectsOn then "🔔 Sonidos: sí" else "🔕 Sonidos: no"
+end)
+
+-- Primeros pasos: volver a ver el tutorial (se cierra el menú para que se vea la tarjeta)
+local REPLAY = "🎓 Ver tutorial otra vez"
+Hud.addMenuToggle(REPLAY, 0.5, function()
+	Guide.restart()
+	Hud.runCommand("Menu")
+	Hud.toast("Info", "🎓 Empezamos los primeros pasos otra vez")
+	return REPLAY
 end)
 
 -- Ropa: el aspecto de Valmar (por defecto) o tu avatar de Roblox
@@ -334,6 +355,8 @@ game:GetService("RunService").Heartbeat:Connect(function()
 		CommandMenu.setBusy(busy)
 		Joystick.setBusy(busy)
 		Gps.setBusy(busy)
+		Guide.setBusy(busy)
+		HelpUI.setBusy(busy)
 		if busy and MapUI.isOpen() then
 			MapUI.toggleBig()
 		end

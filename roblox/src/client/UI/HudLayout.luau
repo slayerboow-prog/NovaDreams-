@@ -7,6 +7,8 @@
 --   Abajo a la izquierda   -> el menú de comandos (en el móvil, encima del joystick)
 --   Abajo en el centro     -> la barra rápida del inventario
 --   Abajo a la derecha     -> los botones táctiles en racimo (en el ordenador, las teclas)
+--   Junto a la misión      -> el botón ❓ "¿Qué hago ahora?" (a su izquierda, bajo el minimapa)
+--   Abajo en el centro     -> encima de la barra rápida: la tarjeta de los primeros pasos, pistas y consejos
 --
 -- Todo se mide en "unidades de lienzo": cada pantalla del HUD lleva un UIScale con HudLayout.scale()
 -- y el lienzo mide ViewportSize / escala (unos 1700 de ancho siempre; en el móvil unos 785 de alto).
@@ -49,6 +51,8 @@ HudLayout.Sizes = {
 	Joystick = 210,
 	Hints = Vector2.new(300, 196),
 	Gps = Vector2.new(440, 58), -- indicación del GPS, bajo la cápsula de la hora
+	Help = 76, -- diámetro del botón ❓ "¿Qué hago ahora?"
+	Guide = Vector2.new(640, 150), -- tarjeta de los primeros pasos, pistas y consejos
 }
 
 -- Racimo de botones táctiles (abajo a la derecha): centro de cada hueco respecto al de Ataque y su radio.
@@ -106,6 +110,9 @@ function HudLayout.compute(viewport: Vector2, options: Options?): Layout
 	items.Minimap = place(Vector2.new(1, 0), UDim2.new(1, -miniRight, 0, 10), Vector2.new(s.Minimap, s.Minimap + s.MinimapLabel))
 	local missionTop = 10 + s.Minimap + s.MinimapLabel + 10
 	items.Mission = place(Vector2.new(1, 0), UDim2.new(1, -MARGIN, 0, missionTop), s.Mission)
+	-- El botón ❓ a la izquierda de la misión (siempre ahí, aunque no haya misión)
+	local helpCenterX = MARGIN + s.Mission.X + 12 + s.Help / 2
+	items.Help = place(Vector2.new(0.5, 0.5), UDim2.new(1, -helpCenterX, 0, missionTop + s.Help / 2), Vector2.new(s.Help, s.Help))
 	-- Debajo del reloj: la indicación del GPS, avisos fijos (examen…) y estrellas de búsqueda
 	items.Gps = place(Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 8 + s.Clock.Y + 8), s.Gps)
 	items.Activity = place(Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 8 + s.Clock.Y + 8 + s.Gps.Y + 8), Vector2.new(0, 34))
@@ -113,6 +120,8 @@ function HudLayout.compute(viewport: Vector2, options: Options?): Layout
 
 	-- Abajo
 	items.Hotbar = place(Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, -MARGIN), s.Hotbar)
+	-- Encima de la barra rápida: tarjeta de los primeros pasos, pistas y consejos (Controllers/Guide)
+	items.Guide = place(Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, -(MARGIN + s.Hotbar.Y + 14)), s.Guide)
 	local statusBottom = statusTop + s.Status.Y
 	local commandBottom: number
 	if touch then
@@ -137,6 +146,8 @@ function HudLayout.compute(viewport: Vector2, options: Options?): Layout
 			local r = def[3]
 			slots[id] = place(Vector2.new(0.5, 0.5), UDim2.new(1, -(W - (ax + def[1])), 1, -(H - (ay + def[2]))), Vector2.new(r * 2, r * 2))
 		end
+		-- El botón ❓ también es un hueco (TouchLayout lo dibuja como los demás botones redondos)
+		slots.Ayuda = items.Help
 		for i = 1, HudLayout.ExtraSlots do
 			local y = ay + EXTRA_FIRST + (i - 1) * EXTRA_STEP
 			slots["Extra" .. i] = place(Vector2.new(0.5, 0.5), UDim2.new(1, -(W - (ax + EXTRA_X)), 1, -(H - y)), Vector2.new(EXTRA_R * 2, EXTRA_R * 2))

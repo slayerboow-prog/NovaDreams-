@@ -88,6 +88,7 @@ Icons.Fallback = {
 	disparar = "💥",
 	agacharse = "🔽", -- (agacharse y tumbarse: Controllers/Stances)
 	tumbarse = "⏬",
+	ayuda = "❓", -- (botón "¿Qué hago ahora?": Controllers/HelpUI)
 }
 
 -- Tipos del tiempo (shared/Seasons) -> icono
