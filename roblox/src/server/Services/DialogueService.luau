@@ -18,6 +18,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Cast = require(ReplicatedStorage.Shared.LifeStory.Cast)
 local Emotion = require(ReplicatedStorage.Shared.LifeStory.Emotion)
 local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
+local GameClock = require(ReplicatedStorage.Shared.GameClock)
 
 local DialogueService = {}
 
@@ -61,6 +62,18 @@ local function attributesOf(player: Player): { [string]: any }
 	}
 end
 
+-- Saludo según la hora del juego: las frases escriben «{Saludo}» y nadie dice «Buenos días» a las 23:00
+local function greeting(): string
+	local clock = GameClock.now().ClockTime
+	if clock >= 6 and clock < 13 then
+		return "Buenos días"
+	elseif clock >= 13 and clock < 20.5 then
+		return "Buenas tardes"
+	end
+	return "Buenas noches"
+end
+DialogueService.greeting = greeting
+
 local function argsFor(player: Player, extra: any): { [string]: any }
 	if type(extra) == "function" then
 		extra = extra()
@@ -69,6 +82,8 @@ local function argsFor(player: Player, extra: any): { [string]: any }
 		nombre = player.DisplayName,
 		familia = Strings.get(Cast.nameOf("Familia", attributesOf(player))),
 		abu = Strings.get(Cast.nameOf("Abu", attributesOf(player))),
+		Saludo = greeting(),
+		saludo = greeting():lower(),
 	}
 	for key, value in extra or {} do
 		args[key] = value

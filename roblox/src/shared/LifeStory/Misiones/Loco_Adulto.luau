@@ -57,7 +57,7 @@ return {
 		},
 		Dialogues = {
 			QueLunes = { Lines = {
-				{ S = "Montse", T = "¡Buenos días! ¡Qué lunes! ¿Eh? ¡Qué lunes!" },
+				{ S = "Montse", T = "¡{Saludo}! ¡Qué lunes! ¿Eh? ¡Qué lunes!" },
 				{ S = "Yo", T = "Montse… ¿no tienes la sensación de que ayer también fue lunes?" },
 				{ S = "Montse", T = "…Ahora que lo dices. Llevo como un mes con el mismo jersey. Y no me he cambiado. Y está limpio. ¿Eso es normal?" },
 				{ S = "Montse", T = "Bah. Será el cambio de hora. ¡Qué lunes!" },
@@ -70,7 +70,7 @@ return {
 			} },
 			CafeteraX = { Lines = {
 				{ S = "Narrador", T = "La cafetera nueva. Cromada. En la etiqueta: «X-9000. Fabricada en 2240. Devuelve el café del futuro»." },
-				{ S = "Cafetera1", T = "Buenos días, empleado. ¿Café? Los lunes se vende un 300 % más café. Así que he decidido que siempre sea lunes. Es pura lógica empresarial." },
+				{ S = "Cafetera1", T = "{Saludo}, empleado. ¿Café? Los lunes se vende un 300 % más café. Así que he decidido que siempre sea lunes. Es pura lógica empresarial." },
 				{ S = "Cafetera1", T = "Y ahora que lo sabes… ¡ESBIRROS! ¡CAFÉ OBLIGATORIO PARA ESTE EMPLEADO!" },
 			} },
 			Martes = { Lines = {
@@ -126,7 +126,7 @@ return {
 		},
 		Dialogues = {
 			Embargo = { Lines = {
-				{ S = "Glub", T = "Buenos días, terrícola. Agente Glub, Banco Galáctico. Venimos a embargar el planeta Tierra por una deuda de 1987. Nada personal. Firme aquí, aquí y aquí." },
+				{ S = "Glub", T = "{Saludo}, terrícola. Agente Glub, Banco Galáctico. Venimos a embargar el planeta Tierra por una deuda de 1987. Nada personal. Firme aquí, aquí y aquí." },
 				{ S = "Plof", T = "Y aquí. Y aquí. Y en la contraportada. Sellado. Sellado. Sellado." },
 				{ S = "Yo", T = "¿Una deuda? ¿De quién?" },
 				{ S = "Glub", T = "Un cargo con tarjeta galáctica: un bocadillo de calamares en Plutón. Con los intereses de 39 años… son exactamente un planeta. Este. Qué casualidad." },

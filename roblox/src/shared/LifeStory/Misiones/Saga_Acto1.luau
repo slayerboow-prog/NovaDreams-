@@ -157,7 +157,7 @@ return {
 			Tarjeta = { Lines = {
 				{ S = "Narrador", T = "Una tarjeta gris: «MegaVerso S.A. — Tu vida, en mil dimensiones. Delegación Valmar: PRÓXIMAMENTE». Por detrás, escrito a mano: «Localizar al Ancla»." },
 				{ S = "Narrador", T = "Dos hombres de traje gris aparecen entre los árboles. Sonríen a la vez. Exactamente a la vez." },
-				{ S = "AgenteGris1", T = "Buenas tardes. ¿Ha visto usted un pez? Contable. Traidor. Con corbata. Hay recompensa: un fin de semana en la dimensión de los helados." },
+				{ S = "AgenteGris1", T = "{Saludo}. ¿Ha visto usted un pez? Contable. Traidor. Con corbata. Hay recompensa: un fin de semana en la dimensión de los helados." },
 			} },
 			Pecera = { Lines = {
 				{ S = "Cosme", T = "¿Un pez? ¿En mi garaje? ¿Contable? Siempre he querido un contable. Pip, la pecera buena. La que no explota." },
@@ -216,7 +216,7 @@ return {
 				{ S = "Funcionaria", T = "Claro. ¿Cómo voy a saber que es el formulario 42 si no tengo una copia del formulario 42? Hágala en el banco. Ventanilla 2." },
 			} },
 			Ventanilla2 = { Lines = {
-				{ S = "Funcionaria", T = "Buenos días. Formulario 42 con fotocopia. Muy bien. ¿Y el sello de la policía que certifica que la fotocopia es una fotocopia?" },
+				{ S = "Funcionaria", T = "{Saludo}. Formulario 42 con fotocopia. Muy bien. ¿Y el sello de la policía que certifica que la fotocopia es una fotocopia?" },
 				{ S = "Yo", T = "¿Usted no estaba en Correos?" },
 				{ S = "Funcionaria", T = "Yo estoy en todas las ventanillas. Es mi trabajo. Nadie sabe cómo. Ni yo. Comisaría. Ventanilla 3. Y no se le olvide sonreír en la foto." },
 			} },

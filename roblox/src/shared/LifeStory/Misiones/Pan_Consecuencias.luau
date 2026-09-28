@@ -27,7 +27,7 @@ return {
 		},
 		Dialogues = {
 			Puerta = { Lines = {
-				{ S = "Ines", T = "Buenas tardes. La puerta del almacén del súper tiene cámara. Y se te ve muy bien la cara. Muy bien." },
+				{ S = "Ines", T = "{Saludo}. La puerta del almacén del súper tiene cámara. Y se te ve muy bien la cara. Muy bien." },
 				{ S = "Familia", T = "¿El súper de Paco? ¿Tú? ¿Y lo has escondido todo este tiempo? …No sé qué me duele más." },
 				{ S = "Ines", T = "Por ser menor y la primera vez: servicio a la comunidad en el Punto Limpio. Y hablar con Paco." },
 				{ Ask = "¿Qué dices?", Options = {
@@ -116,7 +116,7 @@ return {
 				{ S = "Rayo", T = "Ahora trabajo en el puerto de Playa Dorada. Cargando barcos. Es duro. Pero duermo bien. Eso antes no pasaba.", If = { NotFlags = { "RayoCambia", "Camino_Delincuente" } } },
 			}, Effects = { Rel = { Rayo = 4 } } },
 			Control = { Lines = {
-				{ S = "Bruno", T = "Buenas tardes, documentación del vehículo… ¿{nombre}? ¿Tú?" },
+				{ S = "Bruno", T = "{Saludo}, documentación del vehículo… ¿{nombre}? ¿Tú?" },
 				{ S = "Bruno", T = "Abre la parte de atrás. …Cajas sin papeles. Móviles. Muchos. Esto es mercancía robada, {nombre}." },
 				{ S = "Bruno", T = "Yo fui el malo del colegio. Tú me enseñaste que se podía cambiar. Y ahora estás tú aquí. Del otro lado." },
 				{ S = "Bruno", T = "Tengo que llevarte. Es mi trabajo. Pero voy a contarle al juez que colaboraste. Si colaboras." },
