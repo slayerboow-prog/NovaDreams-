@@ -603,7 +603,7 @@ local function updateLayer(layer: Layer, root: BasePart?, clampTo: number?)
 		seenCanon[mark.Id] = true
 		local label = layer.Canon[mark.Id]
 		if not label then
-			label = marker("❗", Color3.fromRGB(255, 200, 60), 18, layer.Frame, 5)
+			label = marker(layer, "❗", Color3.fromRGB(255, 200, 60), 18, 5)
 			layer.Canon[mark.Id] = label
 		end
 		local p = toPixel(layer, mark.X, mark.Z)

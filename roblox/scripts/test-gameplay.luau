@@ -467,6 +467,18 @@ local services = {
 			error("sin DataStore en la prueba")
 		end,
 	},
+	-- (SceneService de verdad, para llevar al jugador de un sitio a otro: sin caminos en la prueba)
+	PathfindingService = {
+		CreatePath = function()
+			error("sin caminos en la prueba")
+		end,
+	},
+	RunService = {
+		Heartbeat = signal(),
+		IsStudio = function()
+			return false
+		end,
+	},
 }
 local fakeGame = {}
 function fakeGame:GetService(name)
@@ -1068,7 +1080,38 @@ do
 	promptOf(car, "Subir de copiloto").Triggered:Fire(rider)
 	check(rider:GetAttribute("Passenger") == nil, "y no se vuelve a sentar sin querer")
 	remotes.Vehicle.OnServerEvent:Fire(driver, "Dismount")
+	-- El vehículo desaparece con él dentro (lo retira otro sistema): se baja igual, no se queda
+	-- «montado» a pie (con la velocidad del coche, sin poder correr y conduciendo para la policía)
+	task.wait(Gameplay.ExitCooldown + 0.05)
+	promptOf(car, "Conducir").Triggered:Fire(driver)
+	check(driver:GetAttribute("Riding") == "Coche", "vuelve a subir a su coche")
+	clearInbox(driver)
 	car:Destroy() -- (las pruebas de después buscan «el» coche aparcado)
+	check(driver:GetAttribute("Riding") == nil and driver:GetAttribute("VehicleSpeed") == nil and VehicleService.ridingKind(driver) == nil and VehicleService.drivingOffence(driver) == nil, "si el coche desaparece con él dentro, se baja (no se queda «montado» a pie)")
+	check(driverHum.SeatPart == nil and lastMessage(driver, "Exited") ~= nil, "y su ordenador también se levanta")
+	-- Llevarle a otro sitio (cárcel, juzgado, a casa, una escena) yendo al volante o de pasajero:
+	-- se baja antes (si no, se llevaría el vehículo con él o se quedaría soldado al asiento)
+	do
+		local Scene = loadModule(S .. "SceneService")
+		task.wait(Gameplay.ExitCooldown + 0.05)
+		remotes.Vehicle.OnServerEvent:Fire(driver, "Spawn", "Coche")
+		local own
+		for _, m in worldRoot.Rides:GetChildren() do
+			if m:GetAttribute("OwnerId") == driver.UserId then
+				own = m
+			end
+		end
+		local rider2, _, rider2Hum = newPlayer(33, "Adolescente", 0)
+		promptOf(own, "Subir de copiloto").Triggered:Fire(rider2)
+		check(driver:GetAttribute("Riding") == "Coche" and rider2:GetAttribute("Passenger") == "Coche", "conductor y copiloto dentro antes del viaje")
+		local before = own.PrimaryPart.CFrame
+		Scene.teleportTo(driver, Vector3.new(900, 0, 900))
+		Scene.teleportTo(rider2, Vector3.new(-900, 0, 900))
+		check(driver:GetAttribute("Riding") == nil and driverHum.SeatPart == nil and VehicleService.ridingKind(driver) == nil, "al llevarle a otro sitio, primero se baja del coche")
+		check(rider2:GetAttribute("Passenger") == nil and rider2Hum.SeatPart == nil, "y el copiloto también")
+		check((own.PrimaryPart.CFrame.Position - before.Position).Magnitude < 12 and (driverRoot.Position - Vector3.new(900, 0, 900)).Magnitude < 10, "el coche se queda donde estaba y él llega solo")
+		own:Destroy()
+	end
 	Fake.Raycast = oldRaycast
 	floor:Destroy()
 end

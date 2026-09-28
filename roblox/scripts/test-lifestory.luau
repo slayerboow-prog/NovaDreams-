@@ -1190,7 +1190,19 @@ passTime(nora, 5)
 check(not received(nora, "Offer", deuda.Title) and not noraData.Story.Active.Loco_D2_Deuda, "Con Cosme sin memoria, las locas en las que recuerda su pasado esperan")
 check(playLoco(nora, "Saga_19_Recuerdos") and noraData.Items.AlbumRecuerdos == 1 and not noraData.Story.Flags.CosmeSinMemoria, "19 · Los recuerdos: Cosme vuelve a ser Cosme")
 nora.At = deuda.Offer.Place
-passTime(nora, 5)
+-- Si en el banco le ofrecieron otra cosa mientras tanto, dice que no (una oferta pendiente tapa las demás)
+for _ = 1, 3 do
+	if received(nora, "Offer", deuda.Title) then
+		break
+	end
+	for _, message in nora.Inbox do
+		if message.Kind == "Offer" and message.Payload.QuestId ~= "Loco_D2_Deuda" and not message.Answered then
+			message.Answered = true
+			fromClient(nora, "Offer", message.Payload.QuestId, false)
+		end
+	end
+	passTime(nora, 5)
+end
 check(received(nora, "Offer", deuda.Title), "Con la memoria recuperada, ya te ofrecen la deuda galáctica")
 fromClient(nora, "Offer", "Loco_D2_Deuda", false)
 check(playLoco(nora, "Saga_20_Aliados") and noraData.Story.Flags.AliadosReunidos and noraData.Story.Flags.AliadoCompis, "20 · Los aliados: vienen los que ayudaste en tu vida")

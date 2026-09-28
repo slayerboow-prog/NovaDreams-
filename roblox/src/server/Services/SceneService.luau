@@ -1400,6 +1400,11 @@ function SceneService.teleportTo(player: Player, target: Vector3)
 	if not root then
 		return
 	end
+	-- Primero se baja del vehículo (o se levanta del banco): si no, se lo llevaría con él (y a quien
+	-- vaya dentro) o se quedaría soldado al asiento. (require aquí dentro: sin requires en círculo)
+	pcall(function()
+		require(script.Parent.VehicleService).standUp(player)
+	end)
 	-- A la calle (las salas de los edificios están en el cielo): ya no estás dentro de ninguna
 	if target.Y < 3000 and player:GetAttribute("InteriorKey") then
 		player:SetAttribute("InteriorKey", nil)

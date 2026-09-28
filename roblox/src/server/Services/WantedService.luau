@@ -232,6 +232,11 @@ function WantedService.arrest(player: Player, cop: Player?)
 		return
 	end
 	state.Arresting = true
+	-- Se programa antes de nada: aunque algo de abajo falle, la detención nunca se queda "a medias" para siempre
+	task.delay(4, function()
+		state.Arresting = false
+		state.CatchSince = nil
+	end)
 	local stars = state.Stars
 	local crimes = state.Crimes
 	state.Crimes = {}
@@ -254,10 +259,6 @@ function WantedService.arrest(player: Player, cop: Player?)
 		-- A disposición judicial: juicio (si hay juez de guardia) o sentencia automática
 		JusticeService.process(player, stars, if #crimes > 0 then crimes else { "Resistencia a la autoridad" })
 	end
-	task.delay(4, function()
-		state.Arresting = false
-		state.CatchSince = nil
-	end)
 end
 
 ---------------------------------------------------------------------
