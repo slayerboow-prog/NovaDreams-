@@ -1405,10 +1405,10 @@ local function canOffer(player: Player, data: Data, questId: string): boolean
 	if declined and not quest.Canon and os.time() - declined < CFG.DeclineCooldown then
 		return false
 	end
-	-- No se ofrece ir al colegio de noche… salvo las locas y la saga, que se juegan a cualquier hora
-	-- (colarse en el patio por la tarde, la noche de la Grieta)
-	local anyHour = quest.Canon or string.sub(questId, 1, 5) == "Loco_"
-	if not anyHour and not Schedules.isOpen(Schedules.forQuest(quest), GameClock.now().ClockTime) then
+	-- Solo las rutinas (DayPlan o Schedule) esperan a que abra el sitio: no se ofrece ir al colegio de
+	-- noche. Las de la historia y las locas pasan cuando pasan (la saga cose el cielo en el patio a las 21:00)
+	local routine = quest.DayPlan ~= nil or quest.Schedule == true or type(quest.Schedule) == "string"
+	if routine and not Schedules.isOpen(Schedules.forQuest(quest), GameClock.now().ClockTime) then
 		return false
 	end
 	return (Conditions.check(quest.Requires, contextFor(player, data)))
