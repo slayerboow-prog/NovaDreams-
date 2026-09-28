@@ -824,7 +824,7 @@ local function setupDesk(desk: Instance)
 	end)
 	local spot = desk:GetAttribute("StaffSpot")
 	if typeof(spot) == "Vector3" then
-		local ok, clerk = pcall(Npc.create, "Recepcionista", desk.Parent :: Instance, CFrame.new(spot) * desk.CFrame.Rotation, { Shirt = Color3.fromRGB(230, 110, 30), Pants = Color3.fromRGB(30, 30, 36) })
+		local ok, clerk = pcall(Npc.create, "Recepcionista", desk.Parent :: Instance, CFrame.new(Npc.feetAt(spot)) * desk.CFrame.Rotation, { Shirt = Color3.fromRGB(230, 110, 30), Pants = Color3.fromRGB(30, 30, 36) })
 		if ok and clerk then
 			pcall(Npc.work, clerk, "Type")
 			pcall(Npc.icon, clerk, "💪")

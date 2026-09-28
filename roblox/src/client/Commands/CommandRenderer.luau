@@ -126,10 +126,11 @@ function CommandRenderer.new(parent: Instance, touch: boolean)
 			self.ToggleCallback()
 		end
 	end)
-	-- Tocar la pestaña cuando está oculto también lo abre
+	-- Tocar la pestaña cuando está oculto también lo abre. En el móvil, tocar la pestaña lo oculta y
+	-- lo muestra: el botón ˅ solo mide unos 15 píxeles en un teléfono y costaba acertar
 	local headerHit = create("TextButton", { Name = "HeaderHit", Size = UDim2.new(1, -40, 1, 0), BackgroundTransparency = 1, Text = "", ZIndex = 5, Parent = header })
 	headerHit.Activated:Connect(function()
-		if self.Collapsed and self.ToggleCallback then
+		if (self.Collapsed or self.Touch) and self.ToggleCallback then
 			self.ToggleCallback()
 		end
 	end)

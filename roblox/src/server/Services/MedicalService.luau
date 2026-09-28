@@ -78,6 +78,8 @@ local function rootOf(player: Player): BasePart?
 	return character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 end
 
+-- Hospitales y centros de salud: 24 horas (shared/OpeningHours). De noche hay médico de guardia
+-- igual, pero llegan menos pacientes.
 local function isDay(): boolean
 	local clock = Lighting.ClockTime
 	return clock >= 7 and clock < 22
@@ -495,7 +497,7 @@ local function spawnPatient(clinic: Clinic)
 end
 
 local function refreshStaff(clinic: Clinic, active: boolean)
-	local want = active and isDay() and not hasDoctor(clinic)
+	local want = active and not hasDoctor(clinic) -- (de guardia día y noche)
 	if want and not clinic.NpcDoctor then
 		local spot = point(clinic, "Reception") + Vector3.new(0, 0, 5)
 		clinic.NpcDoctor = Npc.create("Npc_Medico", clinic.Folder, CFrame.new(spot), { Shirt = Color3.fromRGB(245, 245, 245), Pants = Color3.fromRGB(245, 245, 245) })
@@ -737,7 +739,8 @@ function MedicalService.init()
 				local ok, err = pcall(function()
 					local active = anyoneNear(clinic)
 					refreshStaff(clinic, active)
-					if active and isDay() and #clinic.Waiting < Medical.MaxWaiting and clinic.Count < Medical.MaxWaiting + 2 and os.clock() - clinic.LastSpawn > math.random(12, 22) then
+					local gap = if isDay() then math.random(12, 22) else math.random(45, 80) -- (de madrugada, pocos)
+					if active and #clinic.Waiting < Medical.MaxWaiting and clinic.Count < Medical.MaxWaiting + 2 and os.clock() - clinic.LastSpawn > gap then
 						clinic.LastSpawn = os.clock()
 						spawnPatient(clinic)
 					end

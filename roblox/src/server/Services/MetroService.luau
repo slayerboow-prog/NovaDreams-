@@ -1019,10 +1019,31 @@ local function ambientTick()
 			end
 		end
 		if active and #list < 3 then
-			local cf = alight.CFrame * CFrame.new(math.random(-3, 3), 0, math.random(-60, 60))
-			local npc = Npc.create("Viajero", alight.Parent :: Instance, cf, nil)
-			Npc.face(npc, (alight.CFrame * CFrame.new(-20, 0, 0)).Position)
-			table.insert(list, npc)
+			-- Un sitio libre del andén: entre el borde y los bancos/la máquina (x -3..1 de la marca),
+			-- lejos de los extremos y sin pisar a otro viajero; de pie en el suelo (la marca va a media
+			-- altura: antes flotaban 3 studs)
+			local spot: CFrame? = nil
+			for _ = 1, 6 do
+				local cf = alight.CFrame * CFrame.new(math.random(-30, 10) / 10, 0, math.random(-50, 50))
+				local free = true
+				for _, other in list do
+					local root = other.PrimaryPart
+					if root and Vector3.new(root.Position.X - cf.X, 0, root.Position.Z - cf.Z).Magnitude < 3.5 then
+						free = false
+						break
+					end
+				end
+				if free then
+					spot = cf
+					break
+				end
+			end
+			if spot then
+				local feet = Npc.feetAt(spot.Position, alight.Size.Y / 2 + 4)
+				local npc = Npc.create("Viajero", alight.Parent :: Instance, CFrame.new(feet) * spot.Rotation, nil)
+				Npc.face(npc, (alight.CFrame * CFrame.new(-20, 0, 0)).Position)
+				table.insert(list, npc)
+			end
 		elseif not active then
 			for _, npc in list do
 				npc:Destroy()
@@ -1035,8 +1056,11 @@ local function ambientTick()
 		if typeof(spot) == "Vector3" then
 			local active = anyoneNear(counter.Position, 150)
 			if active and not clerks[counter] then
-				local npc = Npc.create("Npc_Dependiente", counter.Parent :: Instance, CFrame.new(spot + Vector3.new(0, 3, 0)), nil)
-				Npc.face(npc, counter.Position)
+				-- (de pie en el suelo detrás del mostrador: la marca va un poco por encima, y Npc.create
+				-- ya sube la raíz a la altura de la cadera; con +3 flotaba)
+				local feet = Npc.feetAt(spot)
+				local look = Vector3.new(counter.Position.X, feet.Y, counter.Position.Z)
+				local npc = Npc.create("Npc_Dependiente", counter.Parent :: Instance, if (look - feet).Magnitude > 0.1 then CFrame.lookAt(feet, look) else CFrame.new(feet), nil)
 				clerks[counter] = npc
 			elseif not active and clerks[counter] then
 				clerks[counter]:Destroy()
@@ -1054,10 +1078,36 @@ local function trainArrivedAmbient(train: Train)
 	if not list or #list == 0 then
 		return
 	end
+	-- Los que suben andan hasta la puerta más cercana del tren y entran (antes se esfumaban en el andén)
+	local doors = {}
+	for _, board in tagged("MetroBoard") do
+		if board:GetAttribute("Station") == id and board:GetAttribute("Line") == train.Line.Id then
+			table.insert(doors, board)
+		end
+	end
 	for i = #list, 1, -1 do
 		if math.random() < 0.6 then
-			list[i]:Destroy()
-			table.remove(list, i)
+			local npc = table.remove(list, i) :: Model
+			local root = npc.PrimaryPart
+			local best, bestD = nil, math.huge
+			for _, door in doors do
+				local d = if root then (door.Position - root.Position).Magnitude else 0
+				if d < bestD then
+					best, bestD = door, d
+				end
+			end
+			if best and root and bestD < 40 then
+				task.spawn(function()
+					task.wait(math.random() * 0.8)
+					local ground = Npc.feetAt(Vector3.new(best.Position.X, root.Position.Y, best.Position.Z), 8)
+					pcall(Npc.walkTo, npc, { ground }, 6)
+					if npc.Parent then
+						npc:Destroy() -- (ya dentro del coche)
+					end
+				end)
+			else
+				npc:Destroy()
+			end
 		end
 	end
 end

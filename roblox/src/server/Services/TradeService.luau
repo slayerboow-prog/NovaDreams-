@@ -377,8 +377,36 @@ local function marketData(): { any }
 	return list
 end
 
-local function broadcastMarket()
-	Remote:FireAllClients("Market", marketData())
+-- El mercado a todos, como mucho dos veces por segundo: si cambia muy seguido, los cambios se juntan
+-- en un envío (antes anunciar y retirar sin parar mandaba el mercado entero a todos los jugadores en
+-- cada petición). Quien ha hecho el cambio (actors) lo ve al momento.
+local BROADCAST_GAP = 0.5
+local lastBroadcast = -math.huge
+local broadcastPending = false
+local function broadcastMarket(actors: { Player }?)
+	local now = os.clock()
+	if broadcastPending then
+		-- (ya sale uno en un momento)
+	elseif now - lastBroadcast >= BROADCAST_GAP then
+		lastBroadcast = now
+		Remote:FireAllClients("Market", marketData())
+		return
+	else
+		broadcastPending = true
+		task.delay(BROADCAST_GAP - (now - lastBroadcast), function()
+			broadcastPending = false
+			lastBroadcast = os.clock()
+			Remote:FireAllClients("Market", marketData())
+		end)
+	end
+	if actors then
+		local data = marketData()
+		for _, player in actors do
+			if player.Parent then
+				Remote:FireClient(player, "Market", data)
+			end
+		end
+	end
 end
 
 local function listedCount(seller: Player, id: string): number
@@ -427,14 +455,14 @@ local function onList(player: Player, id: any, count: any, price: any)
 	nextListing += 1
 	table.insert(listings, { Id = nextListing, Seller = player, SellerName = nameOf(player), Item = id, Count = count, Price = price })
 	Notify:FireClient(player, "Success", ("🛍️ Puesto a la venta: %d × %s por %s."):format(count, Items.get(id).Name, Format.money(price)))
-	broadcastMarket()
+	broadcastMarket({ player })
 end
 
 local function onUnlist(player: Player, listingId: any)
 	for _, l in listings do
 		if l.Id == listingId and l.Seller == player then
 			removeListing(l)
-			broadcastMarket()
+			broadcastMarket({ player })
 			return
 		end
 	end
@@ -463,7 +491,7 @@ local function onBuy(player: Player, listingId: any)
 	end
 	if not seller.Parent or InventoryService.count(seller, listing.Item) < listing.Count then
 		removeListing(listing)
-		broadcastMarket()
+		broadcastMarket({ player })
 		Notify:FireClient(player, "Info", "El vendedor ya no lo tiene.")
 		return
 	end
@@ -491,13 +519,14 @@ local function onBuy(player: Player, listingId: any)
 	local item = Items.get(listing.Item) :: any
 	Notify:FireClient(player, "Success", ("🛍️ Has comprado %d × %s a %s."):format(listing.Count, item.Name, listing.SellerName))
 	Notify:FireClient(seller, "Money", ("+%s · %s ha comprado tu %s"):format(Format.money(earned), nameOf(player), item.Name))
-	broadcastMarket()
+	broadcastMarket({ player, seller })
 	saveBoth(player, seller)
 end
 
 ---------------------------------------------------------------------
 
 function TradeService.init()
+	local lastMarket: { [Player]: number } = {}
 	Remote.OnServerEvent:Connect(function(player, action, a, b, c)
 		if action == "Request" then
 			onRequest(player, a)
@@ -510,7 +539,12 @@ function TradeService.init()
 		elseif action == "Cancel" then
 			cancel(player, nil)
 		elseif action == "Market" then
-			Remote:FireClient(player, "Market", marketData())
+			-- (pedir la lista entera: una vez por segundo como mucho)
+			local t = os.clock()
+			if t - (lastMarket[player] or -math.huge) >= 1 then
+				lastMarket[player] = t
+				Remote:FireClient(player, "Market", marketData())
+			end
 		elseif action == "List" then
 			onList(player, a, b, c)
 		elseif action == "Unlist" then
@@ -520,6 +554,7 @@ function TradeService.init()
 		end
 	end)
 	Players.PlayerRemoving:Connect(function(player)
+		lastMarket[player] = nil
 		cancel(player, nameOf(player) .. " se ha ido.")
 		invites[player] = nil
 		policyCache[player] = nil

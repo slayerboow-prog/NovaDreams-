@@ -127,7 +127,9 @@ Pendiente de las rarezas:
   que canta ópera, el perro que ladra en binario, la lluvia de espaguetis, el ascensor que sube a un
   piso 13 que no existe…
 - Cada una da una **pieza de la colección «Restos de la Grieta»**.
-- En el final, la colección cuenta: cuantas más piezas, más fácil la batalla.
+- En el final, la colección cuenta (hecho): con 4 piezas o más, los Restos brillan en la cima, Pip lo cuenta y
+  Cósimo llega debilitado (aguanta 6 golpes en vez de 10). Condición `MemoriesAtLeast` / `MemoriesFewer`
+  sobre los recuerdos de las rarezas (lista `RESTOS` en `Saga_Acto4.luau`: añadir ahí las rarezas nuevas).
 
 **Aliados en el final (hecho)**: en la misión 20 vienen Iván y Candela siempre, y además Cronos, Bigotes,
 Rex, el Ratón Pérez, los gnomos y tu yo malvado **solo si les ayudaste** en su misión. En la batalla final

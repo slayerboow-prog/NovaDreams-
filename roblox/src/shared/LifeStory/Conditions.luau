@@ -19,6 +19,8 @@
 --   Traits      = { Empatia = 2 }                rasgo del jugador de al menos 2
 --   TraitsBelow = { Rebeldia = 2 }               rasgo por debajo de 2
 --   Memories    = { "PrimerAmigo" } / NotMemories   recuerdos que tiene (o no)
+--   MemoriesAtLeast = { N = 4, Of = { ... } }  tener al menos N recuerdos de la lista (colecciones)
+--   MemoriesFewer   = { N = 4, Of = { ... } }  tener menos de N de la lista
 --   LastGradeBelow = 5 / LastGradeAtLeast = 7    nota de la última clase o examen
 --   Season      = "Invierno" o { "Otono", "Invierno" }   estación del año (shared/Seasons)
 --   Weather     = "Lluvia" o { "Lluvia", "Tormenta" }     el tiempo que hace ahora
@@ -123,6 +125,21 @@ function Conditions.check(req: { [string]: any }?, ctx: Context): (boolean, stri
 		if ((ctx.Traits or {})[trait] or 0) >= max then
 			return false, "TraitsBelow"
 		end
+	end
+	local function countMemories(of: { string }): number
+		local count = 0
+		for _, key in of do
+			if (ctx.Memories or {})[key] then
+				count += 1
+			end
+		end
+		return count
+	end
+	if req.MemoriesAtLeast and countMemories(req.MemoriesAtLeast.Of) < req.MemoriesAtLeast.N then
+		return false, "MemoriesAtLeast"
+	end
+	if req.MemoriesFewer and countMemories(req.MemoriesFewer.Of) >= req.MemoriesFewer.N then
+		return false, "MemoriesFewer"
 	end
 	for _, key in req.Memories or {} do
 		if not (ctx.Memories or {})[key] then

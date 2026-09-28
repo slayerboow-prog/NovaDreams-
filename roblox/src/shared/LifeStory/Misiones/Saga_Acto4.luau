@@ -22,6 +22,10 @@ local COSME = { Npc = "Cosme", Place = "GarajeCosme", Offset = V(0, 0, 3) }
 local PIP = { Npc = "Pip", Place = "GarajeCosme", Offset = V(3, 0, 2) }
 local ESCAMAS = { Npc = "DonEscamas", Place = "GarajeCosme", Offset = V(-3, 0, 1), Scale = 0.35 }
 local CIMA = "CimaMonte"
+-- Colección «Restos de la Grieta» (recuerdos de las rarezas): con 4 o más, Cósimo llega debilitado a la batalla final
+local RESTOS = { "BuzonPasado", "FarolaOpera", "PerroBinario", "LluviaEspaguetis", "Piso13", "RelojAtras", "SemaforoOpina", "NubePerdida" }
+local MUCHOS_RESTOS = { MemoriesAtLeast = { N = 4, Of = RESTOS } }
+local POCOS_RESTOS = { MemoriesFewer = { N = 4, Of = RESTOS } }
 
 -- Aliados en la batalla final: solo vienen los que ayudaste (marcas de las misiones de toda tu vida)
 local ALIADOS_FINAL = {
@@ -320,7 +324,16 @@ return {
 					{ Npc = "DronCosimo3", Offset = V(0, 0, -8), Speed = 14, HP = 4, Bye = "¡Mi pajarita! ¡Otra vez!" },
 					{ Npc = "RobotSeguridad", Offset = V(0, 0, 4), Speed = 10, HP = 5, Bye = "Llamada… finalizada." },
 				} },
-			{ Type = "Fight", Place = CIMA, Respawn = CIMA, Action = "Coser su perilla con la aguja 🪡", HP = 10, BeamColor = Color3.fromRGB(120, 255, 160), Props = { "Grieta" },
+			{ Type = "Scene", Dialogue = "Restos", If = MUCHOS_RESTOS, Props = { "Grieta" },
+				Actors = { { Npc = "Pip", Place = CIMA, Offset = V(0, 0, 10) }, { Npc = "Cosimo", Place = CIMA, Offset = V(0, 0, -6) } } },
+			{ Type = "Fight", Place = CIMA, Respawn = CIMA, Action = "Coser su perilla con la aguja 🪡", HP = 6, If = MUCHOS_RESTOS, BeamColor = Color3.fromRGB(120, 255, 160), Props = { "Grieta" },
+				Text = "¡Cósimo en persona! Tus Restos de la Grieta brillan y le frenan: cóselo de vuelta a su dimensión",
+				CaughtLine = "¡Ja! ¡El público adora un giro! (Te lanza lejos. Tus aliados te levantan.)",
+				Actors = ALIADOS_FINAL,
+				Enemies = {
+					{ Npc = "Cosimo", Offset = V(0, 0, -6), Speed = 10, HP = 6, Hurt = "¡Mi perilla! ¡Veinte años cultivándola!", Bye = "…Basta. Basta. Me rindo. (Se deja caer de rodillas. No desaparece. Se queda ahí, muy cansado.)" },
+				} },
+			{ Type = "Fight", Place = CIMA, Respawn = CIMA, Action = "Coser su perilla con la aguja 🪡", HP = 10, If = POCOS_RESTOS, BeamColor = Color3.fromRGB(120, 255, 160), Props = { "Grieta" },
 				Text = "¡Cósimo en persona! Cóselo de vuelta a su dimensión",
 				CaughtLine = "¡Ja! ¡El público adora un giro! (Te lanza lejos. Tus aliados te levantan.)",
 				Actors = ALIADOS_FINAL,
@@ -340,6 +353,11 @@ return {
 				{ S = "Cosimo", T = "Habías aceptado… ¿Y traes un EJÉRCITO? ¿Gatos? ¿Un velocirraptor? …Me has engañado. Me has engañado MUY bien. Como él.", If = { Choices = { Trato = "Trampa" } } },
 				{ S = "Cosme", T = "Cósimo. Todavía estás a tiempo. Deja la máquina. Ven a casa. Te hago un batido." },
 				{ S = "Cosimo", T = "¿A casa? ¿A qué casa, Cosme? Tú tienes una vida. Un robot. Un pez. Una criatura. Yo tengo una perilla y una dimensión que me odia. ¡Drones!" },
+			} },
+			Restos = { Lines = {
+				{ S = "Pip", T = "¡Ancla! ¡Los Restos de la Grieta! El sello, la bombilla, mi chapa… Todo lo que devolvió a su sitio. ¡Están brillando!" },
+				{ S = "Narrador", T = "Las cosas raras que arreglaste por Valmar se encienden a la vez. La Grieta las reconoce: son tuyas. Y tira de Cósimo hacia atrás." },
+				{ S = "Cosimo", T = "¿Una farola que canta? ¿Un tenedor? ¿Esto es un ejército o un mercadillo? …¿Por qué me pesan las piernas?" },
 			} },
 			Rendicion = { Lines = {
 				{ S = "Cosimo", T = "Veinte años preparando esto. Y me gana un Ancla con un ejército de gatos, gnomos y un pez contable. …Qué vergüenza. Qué episodio tan bueno." },

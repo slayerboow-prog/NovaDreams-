@@ -25,6 +25,8 @@ local StaffService = {}
 StaffService.ACTIVE = 170 -- solo hay personal si algún jugador está a menos de esto
 StaffService.COVER = 60 -- un jugador de ese oficio a menos de esto cubre el puesto
 StaffService.TICK = 1
+StaffService.LEAVE_SEEN = 14 -- quien se retira no se esfuma con un jugador a menos de esto…
+StaffService.LEAVE_MAX = 25 -- …salvo que pase este rato (s): entonces se va igual
 
 local rgb = Color3.fromRGB
 
@@ -65,6 +67,7 @@ export type Post = {
 	Aside: boolean, -- se apartó por un jugador: vuelve andando
 	Hours: { number }?, -- { abre, cierra } (nil = siempre)
 	Talking: boolean,
+	Leaving: Model?, -- se está retirando (cierre o un jugador le cubre): si hace falta, vuelve
 }
 
 local posts: { Post } = {}
@@ -94,6 +97,7 @@ function StaffService.ensure(place: Instance, role: string, cf: CFrame, work: st
 		Aside = false,
 		Hours = opts and opts.Hours,
 		Talking = false,
+		Leaving = nil,
 	}
 	table.insert(posts, post)
 	return post
@@ -130,10 +134,25 @@ function StaffService.remove(post: Post)
 		post.Npc:Destroy()
 		post.Npc = nil
 	end
+	if post.Leaving then
+		post.Leaving:Destroy()
+		post.Leaving = nil
+	end
 end
 
 function StaffService.posts(): { Post }
 	return posts
+end
+
+-- ¿Algún jugador a menos de radius de un punto?
+local function playerWithin(p: Vector3, radius: number): boolean
+	for _, player in Players:GetPlayers() do
+		local root = rootOf(player)
+		if root and (root.Position - p).Magnitude <= radius then
+			return true
+		end
+	end
+	return false
 end
 
 -- ¿Algún jugador cerca del puesto? (si no, no hace falta nadie)
@@ -250,6 +269,29 @@ local function talk(post: Post, npc: Model, player: Player)
 end
 
 local function spawnNpc(post: Post)
+	-- ¿Se estaba retirando? Vuelve a su puesto andando (no aparece otro encima de él)
+	local leaving = post.Leaving
+	if leaving and leaving.Parent then
+		post.Leaving = nil
+		post.Npc = leaving
+		leaving:SetAttribute("Leaving", nil)
+		post.Busy = true
+		pcall(Npc.say, leaving, nil)
+		pcall(Npc.icon, leaving, roleOf(post).Icon)
+		local talkPrompt = leaving.PrimaryPart and leaving.PrimaryPart:FindFirstChild("TalkPrompt")
+		if talkPrompt and talkPrompt:IsA("ProximityPrompt") then
+			talkPrompt.Enabled = true
+		end
+		pcall(Npc.walkTo, leaving, { post.CFrame.Position }, 7)
+		if post.Npc == leaving and leaving.Parent then
+			pcall(Npc.face, leaving, (post.CFrame * CFrame.new(0, 0, -4)).Position)
+			pcall(Npc.work, leaving, post.Work)
+		end
+		post.Aside = false
+		post.Busy = false
+		return
+	end
+	post.Leaving = nil
 	post.Busy = true
 	local role = roleOf(post)
 	local start = if post.Aside then asideOf(post) else post.CFrame
@@ -285,23 +327,49 @@ local function spawnNpc(post: Post)
 	post.Busy = false
 end
 
--- Un jugador ocupa su puesto: se aparta, se despide y se va
-local function stepAside(post: Post)
+-- Se retira del puesto (un jugador lo cubre, o cierra): deja la tarea, se despide y se aparta andando.
+-- Ya no es la persona del puesto (npcOf = nil), pero no se esfuma delante de nadie: se va cuando no
+-- queda ningún jugador al lado (LEAVE_SEEN) o pasado LEAVE_MAX. Si le vuelven a necesitar antes,
+-- vuelve a su sitio (spawnNpc) en vez de aparecer otro encima.
+local function retire(post: Post, line: string?)
 	local npc = post.Npc
 	if not npc then
 		return
 	end
-	post.Busy = true
-	post.Aside = true
+	post.Npc = nil
+	post.Leaving = npc
+	npc:SetAttribute("Leaving", true)
+	post.Talking = false
 	pcall(Npc.work, npc, nil)
-	pcall(Npc.say, npc, "¡Todo tuyo! Me tomo un descanso.")
-	pcall(Npc.walkTo, npc, { asideOf(post).Position }, 7)
-	task.wait(1.5)
-	if post.Npc == npc then
-		npc:Destroy()
-		post.Npc = nil
+	pcall(Npc.icon, npc, nil)
+	local talkPrompt = npc.PrimaryPart and npc.PrimaryPart:FindFirstChild("TalkPrompt")
+	if talkPrompt and talkPrompt:IsA("ProximityPrompt") then
+		talkPrompt.Enabled = false -- (ya no atiende)
 	end
-	post.Busy = false
+	if line then
+		pcall(Npc.say, npc, line, 4)
+	end
+	pcall(Npc.walkTo, npc, { asideOf(post).Position }, 7)
+	local waited = 0
+	while npc.Parent and post.Leaving == npc and waited < StaffService.LEAVE_MAX do
+		local root = npc.PrimaryPart
+		if not root or not playerWithin(root.Position, StaffService.LEAVE_SEEN) then
+			break
+		end
+		task.wait(1)
+		waited += 1
+	end
+	if post.Leaving == npc then
+		post.Leaving = nil
+		npc:Destroy()
+	end
+end
+StaffService._retire = retire
+
+-- Un jugador ocupa su puesto: se aparta, se despide y se va
+local function stepAside(post: Post)
+	post.Aside = true
+	retire(post, "¡Todo tuyo! Me tomo un descanso.")
 end
 
 -- Una pasada: pone o quita a cada persona según haya jugadores cerca y quién cubre el oficio
@@ -319,16 +387,27 @@ function StaffService.tick()
 		local want = near and not covered and isOpen
 		-- Cerrado: nadie en el puesto (se ha ido a casa) y el cartel con la hora a la que abre
 		setClosedSign(post, near and not isOpen and not covered)
+		if post.Leaving and not post.Leaving.Parent then
+			post.Leaving = nil
+		end
 		if want and not post.Npc then
 			task.spawn(spawnNpc, post)
 		elseif not want and post.Npc then
 			if covered then
 				task.spawn(stepAside, post)
+			elseif near then
+				-- Cierra con gente delante: recoge y se va andando (no desaparece de golpe)
+				post.Aside = false
+				task.spawn(retire, post, "¡Cerramos! Hasta mañana.")
 			else
 				post.Npc:Destroy()
 				post.Npc = nil
 				post.Aside = false
 			end
+		elseif not near and post.Leaving then
+			-- Ya no queda nadie cerca: el que se retiraba se va del todo
+			post.Leaving:Destroy()
+			post.Leaving = nil
 		elseif post.Npc and not post.Talking then
 			-- Mira a quien se acerca al mostrador
 			for _, player in Players:GetPlayers() do

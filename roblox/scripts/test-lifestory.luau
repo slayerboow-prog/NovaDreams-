@@ -1198,7 +1198,19 @@ passTime(nora, 5)
 check(not offered(nora, "Loco_D2_Deuda") and not noraData.Story.Active.Loco_D2_Deuda, "Con Cosme sin memoria, las locas en las que recuerda su pasado esperan")
 check(playLoco(nora, "Saga_19_Recuerdos") and noraData.Items.AlbumRecuerdos == 1 and not noraData.Story.Flags.CosmeSinMemoria, "19 · Los recuerdos: Cosme vuelve a ser Cosme")
 nora.At = deuda.Offer.Place
-passTime(nora, 5)
+-- Si en el banco le ofrecieron otra cosa mientras tanto, dice que no (una oferta pendiente tapa las demás)
+for _ = 1, 3 do
+	if offered(nora, "Loco_D2_Deuda") then
+		break
+	end
+	for _, message in nora.Inbox do
+		if message.Kind == "Offer" and message.Payload.QuestId ~= "Loco_D2_Deuda" and not message.Answered then
+			message.Answered = true
+			fromClient(nora, "Offer", message.Payload.QuestId, false)
+		end
+	end
+	passTime(nora, 5)
+end
 check(offered(nora, "Loco_D2_Deuda"), "Con la memoria recuperada, ya te ofrecen la deuda galáctica")
 fromClient(nora, "Offer", "Loco_D2_Deuda", false)
 check(playLoco(nora, "Saga_20_Aliados") and noraData.Story.Flags.AliadosReunidos and noraData.Story.Flags.AliadoCompis, "20 · Los aliados: vienen los que ayudaste en tu vida")
@@ -1206,7 +1218,26 @@ check(playLoco(nora, "Saga_21_Consorcio"), "21 · La caída del Consorcio")
 lighting.ClockTime = 22
 check(playLoco(nora, "Saga_22_Ancla") and noraData.Story.Choices.Trato and noraData.Story.Choices.Trato.V == "No", "22 · El trato: Cósimo llama a tu puerta y le dices que no")
 lighting.ClockTime = 23
+-- Ha hecho 4 rarezas: los Restos de la Grieta debilitan a Cósimo en la batalla final
+noraData.Story.Memories = noraData.Story.Memories or {}
+for _, key in { "BuzonPasado", "PerroBinario", "Piso13", "NubePerdida" } do
+	noraData.Story.Memories[key] = os.time()
+end
 check(playLoco(nora, "Saga_23_Fusion") and noraData.Story.Flags.FusionDetenida and cinematic(nora, "Saga_Fusion"), "23 · La Gran Fusión: aguantar, la oleada y Cósimo se rinde")
+check(said(nora, "¿Por qué me pesan las piernas?"), "Con 4 Restos de la Grieta, la colección brilla y Cósimo llega debilitado")
+local ConditionsMod = loadModule(ROOT .. "/shared/LifeStory/Conditions")
+local fusionSteps = QuestsData.Saga_23_Fusion.Steps
+local weakHp, strongHp
+for _, step in fusionSteps do
+	if step.Type == "Fight" and step.If and step.If.MemoriesAtLeast then
+		weakHp = step.HP
+	elseif step.Type == "Fight" and step.If and step.If.MemoriesFewer then
+		strongHp = step.HP
+	end
+end
+check(weakHp == 6 and strongHp == 10, "Cósimo: 10 golpes sin colección, 6 con 4 Restos o más")
+local ctxPocos = { Stage = "Adulto", ClockTime = 12, Weekday = 1, Completed = {}, Flags = {}, Choices = {}, Discovered = {}, Memories = { BuzonPasado = 1 } }
+check(ConditionsMod.check({ MemoriesFewer = { N = 4, Of = { "BuzonPasado", "Piso13" } } }, ctxPocos) and not ConditionsMod.check({ MemoriesAtLeast = { N = 2, Of = { "BuzonPasado", "Piso13" } } }, ctxPocos), "Las condiciones cuentan recuerdos de una colección")
 check(noraData.Story.Flags.CosimoPerdonado or noraData.Story.Flags.CosimoArregla66B, "Decides qué pasa con Cósimo")
 lighting.ClockTime = 12
 check(playLoco(nora, "Saga_24_Final") and noraData.Items.AgujaDeOro == 1 and noraData.Story.Flags.SagaCompleta and cinematic(nora, "Saga_Final"), "24 · El final: la Grieta se cierra en el patio del cole")
