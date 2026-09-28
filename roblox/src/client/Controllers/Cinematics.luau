@@ -226,6 +226,11 @@ function Cinematics.isPlaying(): boolean
 	return playing > 0 or pending > 0
 end
 
+-- ¿Hay una escena en pantalla AHORA? (sin contar las que esperan su turno en la cola)
+function Cinematics.isOnScreen(): boolean
+	return playing > 0
+end
+
 -- Apunta una escena que acaba de llegar y aún no empieza; devuelve cómo soltarla (al acabar)
 function Cinematics.hold(): () -> ()
 	pending += 1

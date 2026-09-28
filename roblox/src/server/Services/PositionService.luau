@@ -39,6 +39,9 @@ local function record(player: Player, data: { [string]: any })
 		data.Position = nil
 		return
 	end
+	if player:GetAttribute("InPrologue") then
+		return -- en el sueño del prólogo: se guarda donde estaba antes de dormirse
+	end
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")

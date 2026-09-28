@@ -1,8 +1,11 @@
 -- LifeStory (cliente): dibuja la historia de vida que decide el servidor.
---   * Tarjeta "Tu vida" (arriba a la derecha): qué estás viviendo ahora y el siguiente paso.
+--   * Tarjeta "Tu vida" (arriba a la derecha): qué estás viviendo ahora y el siguiente paso, con el
+--     tipo de misión (⭐ tu vida, 🌀 misión loca, ❗ saga) y el botón 📖 «Mi historia» (StoryJournal).
 --   * Momentos: "Has cobrado tu primer sueldo" (no "Misión completada +100 XP").
 --   * Pantallas de capítulo y de transición ("Han pasado varios años…").
---   * Decisiones y ofrecimientos de otras personas ("¿Me ayudas a buscar mi mochila?").
+--   * Decisiones y ofrecimientos de otras personas ("¿Me ayudas a buscar mi mochila?"), con quién te
+--     lo pide y por qué; y al empezar una misión, su tarjeta de contexto.
+--   * «Anteriormente en tu vida…» al volver al juego (nunca encima de una conversación o una escena).
 -- No decide nada: solo muestra y envía lo que el jugador elige (el servidor lo valida).
 
 local Players = game:GetService("Players")
@@ -13,6 +16,7 @@ local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local StoryAudio = require(script.Parent.StoryAudio)
 local Cinematics = require(script.Parent.Cinematics)
+local StoryJournal = require(script.Parent.StoryJournal)
 
 local create = Theme.create
 local C = Theme.Colors
@@ -153,6 +157,18 @@ local function buildCard()
 			Remote:FireServer("Track", state.Others[1].QuestId)
 		end
 	end)
+	-- 📖 «Mi historia»: capítulos, personajes y recuerdos (sin botón nuevo en el HUD)
+	local journalButton = Theme.button({
+		Name = "JournalButton",
+		Size = UDim2.new(1, 0, 0, 24),
+		Text = Strings.get("JOURNAL.OPEN"),
+		TextSize = 12,
+		LayoutOrder = 6,
+		Parent = card,
+	})
+	journalButton.Activated:Connect(function()
+		StoryJournal.open()
+	end)
 
 	-- Pestaña vertical: pulsar para ocultar o desplegar
 	tab = Theme.button({
@@ -214,7 +230,9 @@ local function renderCard(state: { [string]: any })
 
 	local tracked = state.Tracked
 	if tracked then
-		cardTitle.Text = (if tracked.Kind == "Side" then "🔶 " else "") .. Strings.get(tracked.TitleKey)
+		-- El icono dice qué tipo de misión es (⭐ tu vida, 🌀 misión loca, ❗ saga de la Grieta…)
+		local icon = tracked.Icon or (if tracked.Kind == "Side" then "🔶" else nil)
+		cardTitle.Text = (if icon then icon .. " " else "") .. Strings.get(tracked.TitleKey)
 		cardText.Text = text(tracked.TextKey, tracked.Args)
 		if tracked.Need and tracked.Children then
 			-- "Haz 3 de estas 5 cosas": cuántas llevas
@@ -246,7 +264,12 @@ local function renderCard(state: { [string]: any })
 	local others = state.Others or {}
 	switchButton.Visible = tracked ~= nil and #others > 0
 	switchButton.Text = Strings.get("STORY.CARD.SWITCH", { title = if others[1] then Strings.get(others[1].TitleKey) else "" })
-	hasContent = tracked ~= nil or state.Waiting ~= nil
+	if not tracked and not state.Waiting then
+		-- Sin nada que hacer ahora: la tarjeta sigue (con «Mi historia» a mano)
+		cardTitle.Text = ""
+		cardText.Text = ""
+	end
+	hasContent = true
 
 	-- Si está plegada y hay un objetivo nuevo, un puntito dorado en la pestaña lo avisa
 	local current = cardTitle.Text .. "|" .. cardText.Text
@@ -366,6 +389,131 @@ local function showScreen(small: string?, big: string, body: string?, seconds: n
 end
 
 ---------------------------------------------------------------------
+-- Tarjetas de contexto: el comienzo de una misión y «Anteriormente en tu vida…»
+---------------------------------------------------------------------
+
+-- ¿Hay una conversación o una escena en pantalla? Espera a que acaben (como mucho maxSeconds).
+-- Devuelve false si siguen: entonces la tarjeta no sale (nunca encima de una conversación o escena).
+local function waitFree(maxSeconds: number): boolean
+	local since = os.clock()
+	while player:GetAttribute("InDialogue") or Cinematics.isOnScreen() do
+		if os.clock() - since > maxSeconds then
+			return false
+		end
+		task.wait(0.2)
+	end
+	return true
+end
+
+-- Tarjeta en el centro que se cierra al tocarla (o sola a los `seconds`, o si empieza una
+-- conversación). fill(add) añade las líneas: add(texto, tamaño, color, negrita)
+local function tapCard(name: string, seconds: number, fill: (add: (string?, number?, Color3?, boolean?) -> ()) -> ())
+	local closed = false
+	local shade = create("TextButton", {
+		Name = name,
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = Color3.new(0, 0, 0),
+		BackgroundTransparency = 0.55,
+		Text = "",
+		AutoButtonColor = false,
+		ZIndex = 28,
+		Parent = gui,
+	})
+	local panel = Theme.panel({
+		Name = "Card",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.46),
+		Size = UDim2.new(0.9, 0, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		ZIndex = 29,
+		Parent = shade,
+	})
+	create("UISizeConstraint", { MaxSize = Vector2.new(500, 1000), Parent = panel })
+	Theme.padding(12).Parent = panel
+	create("UIListLayout", { Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder, Parent = panel })
+	local order = 0
+	local function add(content: string?, size: number?, color: Color3?, bold: boolean?)
+		if not content or content == "" then
+			return
+		end
+		order += 1
+		Theme.label({
+			Size = UDim2.new(1, 0, 0, 0),
+			AutomaticSize = Enum.AutomaticSize.Y,
+			Text = content,
+			TextSize = size or 15,
+			TextWrapped = true,
+			Font = if bold then Theme.FontBold else Theme.Font,
+			TextColor3 = color or C.Text,
+			LayoutOrder = order,
+			ZIndex = 30,
+			Parent = panel,
+		})
+	end
+	fill(add)
+	shade.Activated:Connect(function()
+		closed = true
+	end)
+	local waited = 0
+	while not closed and waited < seconds and not player:GetAttribute("InDialogue") and shade.Parent do
+		waited += task.wait(0.1)
+	end
+	shade:Destroy()
+end
+
+-- Al empezar una misión: qué tipo es, quién te lo pide y por qué
+local function showIntro(payload: { [string]: any })
+	if not waitFree(20) then
+		return
+	end
+	tapCard("QuestIntro", 7, function(add)
+		add(("%s %s"):format(payload.Icon or "", payload.Label or ""), 13, C.Gold, true)
+		add(text(payload.TitleKey), 19, C.Text, true)
+		if payload.Asker then
+			add(Strings.get("STORY.CONTEXT.ASKS", { who = text(payload.Asker) }), 14, C.Accent)
+		end
+		add(text(payload.Description), 15, C.Text)
+		add(Strings.get("STORY.CONTEXT.TAP"), 12, C.Muted)
+	end)
+end
+
+-- Al volver: capítulo, etapa, lo último que pasó y lo que estabas haciendo
+local function showRecap(payload: { [string]: any })
+	if not waitFree(12) then
+		return -- había una conversación o una escena: mejor no taparla
+	end
+	tapCard("Recap", 10, function(add)
+		add(Strings.get("RECAP.TITLE"), 20, C.Gold, true)
+		if payload.ChapterTitleKey then
+			add(Strings.get("RECAP.CHAPTER", { chapter = text(payload.ChapterTitleKey) }), 15, C.Text, true)
+		end
+		if payload.StageName then
+			add(Strings.get("RECAP.STAGE", { stage = payload.StageName }), 14, C.Muted)
+		end
+		local recent = payload.Recent or {}
+		if #recent > 0 then
+			add(Strings.get("RECAP.RECENT"), 14, C.Accent)
+			for _, item in recent do
+				local line = text(item.Key, item.Args)
+				if item.Kind == "Choice" then
+					line = Strings.get("RECAP.CHOICE", { text = line })
+				end
+				add(("%s %s"):format(item.Icon or "•", line), 14, C.Text)
+			end
+		end
+		local objective = payload.Objective
+		if objective then
+			local now = Strings.get("RECAP.NOW", { title = (if objective.Icon then objective.Icon .. " " else "") .. text(objective.TitleKey) })
+			add(now, 15, C.Money, true)
+			add(text(objective.TextKey, objective.Args), 14, C.Text)
+		else
+			add(Strings.get("RECAP.NOTHING"), 14, C.Text)
+		end
+		add(Strings.get("RECAP.TAP"), 12, C.Muted)
+	end)
+end
+
+---------------------------------------------------------------------
 -- Decisiones y ofrecimientos
 ---------------------------------------------------------------------
 
@@ -394,7 +542,9 @@ local function closeDialog(slot: string, panel: Frame)
 	layoutDialogs()
 end
 
-local function dialog(slot: string, title: string?, message: string, options: { { Text: string, OnPick: () -> () } })
+-- extra: líneas de contexto entre el mensaje y las opciones ({ Text, Color?, Size? })
+-- inline: las opciones en una fila (ocupa menos alto en el móvil)
+local function dialog(slot: string, title: string?, message: string, options: { { Text: string, OnPick: () -> () } }, extra: { { [string]: any } }?, inline: boolean?)
 	if openDialogs[slot] then
 		closeDialog(slot, openDialogs[slot])
 	end
@@ -407,10 +557,10 @@ local function dialog(slot: string, title: string?, message: string, options: { 
 		Parent = gui,
 	})
 	openDialogs[slot] = panel
-	Theme.padding(14).Parent = panel
-	create("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder, Parent = panel })
+	Theme.padding(if extra then 10 else 14).Parent = panel
+	create("UIListLayout", { Padding = UDim.new(0, if extra then 5 else 8), SortOrder = Enum.SortOrder.LayoutOrder, Parent = panel })
 	if title then
-		Theme.label({ Size = UDim2.new(1, 0, 0, 20), Text = title, Font = Theme.FontBold, TextSize = 17, TextColor3 = C.Accent, LayoutOrder = 1, ZIndex = 26, Parent = panel })
+		Theme.label({ Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, TextWrapped = true, Text = title, Font = Theme.FontBold, TextSize = 17, TextColor3 = C.Accent, LayoutOrder = 1, ZIndex = 26, Parent = panel })
 	end
 	Theme.label({
 		Size = UDim2.new(1, 0, 0, 0),
@@ -422,16 +572,34 @@ local function dialog(slot: string, title: string?, message: string, options: { 
 		ZIndex = 26,
 		Parent = panel,
 	})
+	for i, line in extra or {} do
+		Theme.label({
+			Size = UDim2.new(1, 0, 0, 0),
+			AutomaticSize = Enum.AutomaticSize.Y,
+			Text = line.Text,
+			TextSize = line.Size or 13,
+			TextWrapped = true,
+			TextColor3 = line.Color or C.Muted,
+			LayoutOrder = 10 + i, -- después del mensaje y antes de las opciones
+			ZIndex = 26,
+			Parent = panel,
+		})
+	end
+	local row: Frame? = nil
+	if inline then
+		row = create("Frame", { Size = UDim2.new(1, 0, 0, 34), BackgroundTransparency = 1, LayoutOrder = 99, ZIndex = 26, Parent = panel })
+		create("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder, Parent = row })
+	end
 	for i, option in options do
 		local button = Theme.button({
-			Size = UDim2.new(1, 0, 0, 34),
-			AutomaticSize = Enum.AutomaticSize.Y, -- las opciones largas pasan a dos líneas
+			Size = if row then UDim2.new(1 / #options, -8 * (#options - 1) / #options, 1, 0) else UDim2.new(1, 0, 0, 34),
+			AutomaticSize = if row then Enum.AutomaticSize.None else Enum.AutomaticSize.Y, -- las opciones largas pasan a dos líneas
 			TextWrapped = true,
 			Text = option.Text,
 			TextSize = 15,
-			LayoutOrder = 2 + i,
+			LayoutOrder = 100 + i,
 			ZIndex = 26,
-			Parent = panel,
+			Parent = row or panel,
 		})
 		button.Activated:Connect(function()
 			closeDialog(slot, panel)
@@ -506,14 +674,29 @@ local handlers: { [string]: (payload: { [string]: any }) -> () } = {
 		choiceShown = key
 	end,
 	Offer = function(payload)
-		local panel = dialog("Offer", Strings.get(payload.TitleKey), Strings.get(payload.TextKey), {
+		-- Título con el tipo (⭐/🌀/❗/🔶), lo que te dicen y, debajo, quién te lo pide y por qué
+		local title = Strings.get(payload.TitleKey)
+		if payload.Icon then
+			title = payload.Icon .. " " .. title
+		end
+		local extra = {}
+		if payload.Label then
+			table.insert(extra, { Text = payload.Label, Color = C.Gold, Size = 12 })
+		end
+		if payload.Asker then
+			table.insert(extra, { Text = Strings.get("STORY.CONTEXT.ASKS", { who = text(payload.Asker) }), Color = C.Accent, Size = 13 })
+		end
+		if payload.Description then
+			table.insert(extra, { Text = text(payload.Description), Color = C.Muted, Size = 13 })
+		end
+		local panel = dialog("Offer", title, Strings.get(payload.TextKey), {
 			{ Text = Strings.get("STORY.OFFER.ACCEPT"), OnPick = function()
 				Remote:FireServer("Offer", payload.QuestId, true)
 			end },
 			{ Text = Strings.get("STORY.OFFER.DECLINE"), OnPick = function()
 				Remote:FireServer("Offer", payload.QuestId, false)
 			end },
-		})
+		}, if #extra > 0 then extra else nil, true)
 		-- Si no contesta, el ofrecimiento se va solo (el servidor lo olvida a los 30 s)
 		task.delay(28, function()
 			if panel.Parent then
@@ -521,7 +704,25 @@ local handlers: { [string]: (payload: { [string]: any }) -> () } = {
 			end
 		end)
 	end,
+	QuestIntro = function(payload)
+		queue(function()
+			showIntro(payload)
+		end)
+	end,
+	Recap = function(payload)
+		queue(function()
+			showRecap(payload)
+		end)
+	end,
+	Journal = function(payload)
+		StoryJournal.show(payload)
+	end,
 }
+
+-- «Mi historia» (desde el Menú)
+function LifeStory.openJournal()
+	StoryJournal.open()
+end
 
 function LifeStory.init()
 	gui = create("ScreenGui", {
@@ -535,6 +736,7 @@ function LifeStory.init()
 	buildCard()
 
 	Remote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("LifeStory") :: RemoteEvent
+	StoryJournal.init(Remote)
 	local synced = false
 	Remote.OnClientEvent:Connect(function(kind: string, payload: { [string]: any })
 		if kind == "State" then

@@ -65,6 +65,7 @@ local MiniGameService = require(script.Parent.MiniGameService)
 local InventoryService = require(script.Parent.InventoryService)
 local NeedsService = require(script.Parent.NeedsService)
 local Memories = require(LifeStory.Memories)
+local StoryContext = require(LifeStory.StoryContext)
 local Log = require(ReplicatedStorage.Shared.Log)
 
 local LifeStoryService = {}
@@ -124,8 +125,18 @@ type Runtime = {
 	BusySince: number?, -- desde cuándo está Busy (el vigilante lo suelta si se queda colgado)
 	Watch: { [string]: { [string]: any } }?, -- (vigilante) última foto del progreso de cada misión
 	Ticking: boolean?, -- su tick de la historia está en marcha (no se solapan)
+	-- Prólogo («El sueño»)
+	PrologueSince: number?, -- cuándo empezó (os.clock): tope PrologueMaxSeconds
+	PrologueReplay: boolean?, -- lo vuelve a jugar desde «Mi historia»
+	PrologueReturn: Vector3?, -- dónde estaba antes del sueño (para volver)
+	PrologueTracked: string?, -- la misión que seguía antes (al volver a jugarlo)
+	-- «Anteriormente en tu vida…» y contexto de las misiones
+	AwaySeconds: number?, -- cuánto tiempo llevaba fuera al entrar
+	RecapPending: boolean?, -- toca enseñar el resumen en cuanto no esté ocupado
+	JustOffered: string?, -- misión que acaba de aceptar en una oferta (ya vio su contexto)
 }
 local runtime: { [Player]: Runtime } = {}
+local PROLOGUE = StoryContext.PrologueId
 local dayRng = Random.new()
 local growUp -- se define más abajo
 
@@ -649,6 +660,26 @@ local function publish(player: Player, force: boolean?)
 		local prog: Progress = story.Active[trackedId]
 		local step = stepsOf(trackedId, prog)[prog.Step]
 		local tracked: { [string]: any } = { QuestId = trackedId, Kind = quest.Kind, TitleKey = titleOf(trackedId, prog) }
+		-- De qué tipo es (⭐ principal, 🌀 loca, ❗ saga…) y por qué la haces
+		local info = StoryContext.label(quest)
+		tracked.Icon, tracked.Label, tracked.Type = info.Icon, info.Label, info.Kind
+		tracked.Description = quest.Description
+		if trackedId == PROLOGUE then
+			-- Prólogo: la tarjeta de ayuda de este paso y "paso n de m" (solo cuentan los que enseñan algo)
+			state.Prologue = true
+			local n, total = 0, 0
+			for i, s in stepsOf(trackedId, prog) do
+				if s.Beat then
+					total += 1
+					if i <= prog.Step then
+						n = total
+					end
+				end
+			end
+			tracked.Beat = step and step.Beat
+			tracked.Hint = step and step.Hint
+			tracked.StepNum, tracked.StepTotal = n, total
+		end
 		if step then
 			tracked.TextKey = step.Text or step.TextKey
 			tracked.Args = placeArgs(step, prog, story)
@@ -717,6 +748,8 @@ local function publish(player: Player, force: boolean?)
 	end)
 
 	player:SetAttribute("StoryTarget", target)
+	-- Qué control enseña ahora el prólogo ("Move", "Run", "Jump"…): lo pueden mirar otras partes de la interfaz
+	player:SetAttribute("PrologueBeat", if state.Tracked and state.Tracked.QuestId == PROLOGUE then state.Tracked.Beat else nil)
 	-- A quién hay que ir a buscar (y dónde): los compañeros y profes del colegio (SchoolService) se
 	-- acercan andando si la escena no trae ya a ese personaje
 	local needNpc, needPlace = nil, nil
@@ -754,6 +787,7 @@ end
 
 local completeQuest -- se define más abajo
 local advance -- se define más abajo
+local endPrologue -- se define más abajo
 
 local function sendChoice(player: Player, questId: string, step: { [string]: any })
 	local data = DataService.get(player)
@@ -1246,6 +1280,20 @@ local function startQuest(player: Player, data: Data, questId: string)
 		story.Tracked = questId
 	end
 	notify("QuestStart", player, questId, nil)
+	-- Tarjeta de contexto al empezar: qué tipo de misión es, quién te lo pide y por qué. Sale antes que
+	-- la primera conversación (la cola del cliente la enseña primero). No en los días normales que se
+	-- repiten ni si acaba de aceptarla en una oferta (esa ya lo contaba).
+	local rt = runtime[player]
+	local offered = rt ~= nil and rt.JustOffered == questId
+	if rt then
+		rt.JustOffered = nil
+	end
+	if not offered and not quest.DayPlan and not quest.Repeatable and not quest.Prologue and quest.Description then
+		local card = StoryContext.card(questId, { FamilyKey = player:GetAttribute("FamilyKey"), AbuKey = player:GetAttribute("AbuKey") })
+		if card then
+			send(player, "QuestIntro", card)
+		end
+	end
 	enterStep(player, data, questId)
 end
 
@@ -1293,6 +1341,10 @@ function completeQuest(player: Player, data: Data, questId: string)
 		local args = if quest.DayPlan then { n = story.Counters[questId] or 1 } else nil
 		moment(player, quest.MomentKey, args, sting :: string?)
 	end
+	if questId == PROLOGUE then
+		endPrologue(player, data, "Done") -- vuelta a la vida real (y empieza el primer capítulo)
+		return
+	end
 	refresh(player)
 end
 
@@ -1333,6 +1385,12 @@ function refresh(player: Player)
 	end
 	local story = storyOf(data)
 	local stage = data.Life.Stage
+
+	-- Durante el prólogo (el sueño) no empieza ningún capítulo: el primero llega al despertar
+	if story.Active[PROLOGUE] then
+		publish(player)
+		return
+	end
 
 	local function enterChapter(id: string)
 		story.Chapter = id
@@ -1441,6 +1499,189 @@ function refresh(player: Player)
 end
 
 ---------------------------------------------------------------------
+-- Prólogo («El sueño»): tutorial de controles jugable, antes del primer capítulo
+-- La misión está en Misiones/Prologo_Sueno.luau y pasa en la isla del sueño (World/Kit/DreamIsland).
+-- Mientras dura: atributo InPrologue = true, solo avanza el prólogo y no empieza ningún capítulo.
+-- En el sueño el bebé es un poco mayor (atributo LifeStage = "Nino"; lo guardado sigue siendo Bebe):
+-- así puede correr y saltar, y al despertar BabyService lo devuelve a su cuna.
+-- Pase lo que pase (saltar, error, tope de tiempo, salir del juego) se vuelve al juego normal.
+---------------------------------------------------------------------
+
+local function completedSomething(story: Data): boolean
+	for id in story.Completed do
+		if id ~= PROLOGUE then
+			return true
+		end
+	end
+	return false
+end
+
+-- ¿Le toca el prólogo? Solo a un personaje nuevo que aún no ha empezado su vida (y una sola vez)
+function LifeStoryService.needsPrologue(data: Data): boolean
+	local story = storyOf(data)
+	return CFG.Prologue == true
+		and not story.PrologueDone
+		and data.Life.Stage == CFG.NewCharacterStage
+		and story.Chapter == nil
+		and next(story.Chapters) == nil
+		and not completedSomething(story)
+end
+
+-- Lo da por visto (aunque no se haya podido jugar): así nunca vuelve a bloquear a nadie
+local function markPrologue(story: Data, result: string)
+	if not story.PrologueDone then
+		story.PrologueDone = os.time()
+	end
+	story.PrologueResult = result
+end
+
+local function startPrologue(player: Player, data: Data, replay: boolean): boolean
+	local story = storyOf(data)
+	local rt = runtime[player]
+	if not rt or story.Active[PROLOGUE] then
+		return false
+	end
+	if not Quests[PROLOGUE] or not Validate.questOk(PROLOGUE) then
+		Log.error("MISSION", "prólogo con errores en sus datos: no se juega (%s)", player.Name)
+		if not replay then
+			markPrologue(story, "Error")
+		end
+		return false
+	end
+	-- Sin isla del sueño (mapa sin construir): directamente al juego normal
+	if not LocationService.resolve(player, "PrologoInicio") then
+		Log.warn("MISSION", "no hay isla del sueño (PrologoInicio): se salta el prólogo (%s)", player.Name)
+		if not replay then
+			markPrologue(story, "Unavailable")
+		end
+		return false
+	end
+	rt.PrologueSince = os.clock()
+	rt.PrologueReplay = replay
+	rt.PrologueReturn = LocationService.positionOf(player)
+	rt.PrologueTracked = story.Tracked
+	player:SetAttribute("InPrologue", true)
+	if data.Life.Stage == "Bebe" then
+		player:SetAttribute("LifeStage", "Nino") -- en el sueño eres un poco mayor
+	end
+	Log.info("MISSION", "prólogo: empieza%s (%s)", if replay then " (repetición)" else "", player.Name)
+	local ok, err = pcall(startQuest, player, data, PROLOGUE)
+	if not ok or not story.Active[PROLOGUE] then
+		Log.error("MISSION", "prólogo: no se pudo empezar (%s): %s", player.Name, tostring(err))
+		endPrologue(player, data, "Error")
+		return false
+	end
+	return true
+end
+LifeStoryService.startPrologue = startPrologue
+
+-- Cierra el prólogo (terminado, saltado, con error o por tiempo) y vuelve a la vida real
+function endPrologue(player: Player, data: Data, result: string)
+	local story = storyOf(data)
+	local rt = runtime[player]
+	local replay = rt ~= nil and rt.PrologueReplay == true
+	if story.Active[PROLOGUE] then
+		story.Active[PROLOGUE] = nil
+		-- Si estaba hablando con Cosme o viendo el tornillo, la conversación se corta
+		if DialogueService.isBusy(player) then
+			pcall(DialogueService.cancel, player, "prologo")
+		end
+		if rt then
+			rt.Busy = false
+		end
+	end
+	pcall(SceneService.clear, player, PROLOGUE)
+	if not replay then
+		markPrologue(story, result)
+	end
+	if story.Tracked == PROLOGUE or story.Tracked == nil then
+		story.Tracked = if rt and rt.PrologueTracked and story.Active[rt.PrologueTracked] then rt.PrologueTracked else nil
+	end
+	-- Vuelta a la vida real: el bebé, a su cuna (BabyService lo pone ahí al volver a ser bebé); los
+	-- demás, donde estaban antes de dormirse
+	local realStage = data.Life.Stage
+	if player:GetAttribute("LifeStage") ~= realStage then
+		player:SetAttribute("LifeStage", realStage)
+	end
+	pcall(function()
+		if realStage == "Bebe" then
+			SceneService.teleport(player, "Cuna")
+		elseif rt and rt.PrologueReturn then
+			SceneService.teleportTo(player, rt.PrologueReturn)
+		end
+	end)
+	player:SetAttribute("PrologueBeat", nil)
+	player:SetAttribute("InPrologue", nil)
+	if rt then
+		rt.PrologueSince, rt.PrologueReplay, rt.PrologueReturn, rt.PrologueTracked = nil, nil, nil, nil
+		-- Lo que estaba a medias sigue como si no hubiera pasado el tiempo (sin "llegas tarde")
+		for questId in story.Active do
+			rt.StepStart[questId] = os.clock()
+		end
+		rt.Watch = nil
+	end
+	Log.info("MISSION", "prólogo: termina (%s) (%s)", result, player.Name)
+	notify("PrologueEnd", player, PROLOGUE, { Result = result })
+	refresh(player) -- (sin prólogo activo: empieza el primer capítulo, con su escena del nacimiento)
+end
+LifeStoryService.endPrologue = function(player: Player, result: string?)
+	local data = DataService.get(player)
+	if data and storyOf(data).Active[PROLOGUE] then
+		endPrologue(player, data, result or "Skipped")
+	end
+end
+
+---------------------------------------------------------------------
+-- «Anteriormente en tu vida…»: resumen corto al volver al juego
+---------------------------------------------------------------------
+
+local function recapPayload(player: Player, data: Data): { [string]: any }
+	local story = storyOf(data)
+	local payload = StoryContext.recap(data)
+	local trackedId = trackedQuest(data)
+	if trackedId then
+		local prog: Progress = story.Active[trackedId]
+		local step = stepsOf(trackedId, prog)[prog.Step]
+		payload.Objective = {
+			QuestId = trackedId,
+			TitleKey = titleOf(trackedId, prog),
+			TextKey = step and (step.Text or step.TextKey),
+			Args = step and placeArgs(step, prog, story),
+			Icon = StoryContext.label(Quests[trackedId]).Icon,
+		}
+	end
+	return payload
+end
+LifeStoryService.recapPayload = recapPayload
+
+local function sendRecap(player: Player, data: Data)
+	local rt = runtime[player]
+	if rt then
+		rt.RecapPending = nil
+	end
+	storyOf(data).RecapAt = os.time()
+	send(player, "Recap", recapPayload(player, data))
+	notify("Recap", player, nil, nil)
+end
+
+-- Al volver: si ya tenía una vida empezada y llevaba un rato fuera. Nunca encima de una conversación,
+-- un minijuego o una clase: entonces espera (slowTick lo manda cuando esté libre).
+local function queueRecap(player: Player, data: Data)
+	local rt = runtime[player]
+	if not rt or not StoryContext.hasProgress(data) or storyOf(data).Active[PROLOGUE] then
+		return
+	end
+	if (rt.AwaySeconds or math.huge) < (CFG.RecapMinAwaySeconds or 0) then
+		return
+	end
+	if busy(player) or held(player) then
+		rt.RecapPending = true
+		return
+	end
+	sendRecap(player, data)
+end
+
+---------------------------------------------------------------------
 -- Secundarias: aparecen según dónde estás, qué haces y qué hora es
 ---------------------------------------------------------------------
 
@@ -1487,7 +1728,18 @@ local function offer(player: Player, questId: string)
 	local quest = Quests[questId]
 	rt.PendingOffer = questId
 	rt.OfferedAt = os.clock()
-	send(player, "Offer", { QuestId = questId, TitleKey = quest.TitleKey, TextKey = quest.OfferKey })
+	-- Con su contexto: tipo (⭐/🌀/❗), quién te lo pide y por qué (Description)
+	local card = StoryContext.card(questId, { FamilyKey = player:GetAttribute("FamilyKey"), AbuKey = player:GetAttribute("AbuKey") }) or {}
+	send(player, "Offer", {
+		QuestId = questId,
+		TitleKey = quest.TitleKey,
+		TextKey = quest.OfferKey,
+		Description = card.Description,
+		Icon = card.Icon,
+		Label = card.Label,
+		Type = card.Kind,
+		Asker = card.Asker,
+	})
 end
 
 local function checkPlaceOffers(player: Player, data: Data)
@@ -1989,6 +2241,16 @@ local function tickPlayer(player: Player, data: Data)
 	for id in story.Active do
 		table.insert(ids, id)
 	end
+	-- Durante el prólogo solo avanza el sueño (lo demás que estuviera a medias espera tal cual)
+	if story.Active[PROLOGUE] then
+		ids = { PROLOGUE }
+		-- Si se ha caído del sueño o ha reaparecido lejos (reinicio del personaje), vuelve a la isla
+		local start = LocationService.resolve(player, "PrologoInicio")
+		local me = LocationService.positionOf(player)
+		if start and me and (start.Position - me).Magnitude > 400 and not player:GetAttribute("Dead") then
+			SceneService.teleport(player, "PrologoInicio")
+		end
+	end
 	for _, questId in ids do
 		local prog: Progress? = story.Active[questId]
 		local step = prog and stepsOf(questId, prog)[prog.Step]
@@ -2160,6 +2422,19 @@ local function slowTick(player: Player, data: Data)
 	local rt = runtime[player]
 	if rt.PendingOffer and os.clock() - rt.OfferedAt > 30 then
 		rt.PendingOffer = nil -- nadie contestó: se volverá a ofrecer más adelante
+	end
+	local story = storyOf(data)
+	story.LastSeen = os.time()
+	if story.Active[PROLOGUE] then
+		-- En el sueño no se ofrece nada ni vuelven consecuencias. Con tope: si se atasca, se despierta
+		rt.PrologueSince = rt.PrologueSince or os.clock()
+		if os.clock() - rt.PrologueSince > (CFG.PrologueMaxSeconds or 480) then
+			endPrologue(player, data, "Timeout")
+		end
+		return
+	end
+	if rt.RecapPending and not busy(player) and not held(player) then
+		sendRecap(player, data)
 	end
 	discoverZone(player, data)
 	checkPlaceOffers(player, data)
@@ -2547,6 +2822,22 @@ local function becomeReady(player: Player)
 	end
 	rt.Ready = true
 	rt.Starting = false
+	if data then
+		-- Personaje nuevo: primero el prólogo (el sueño). Quien vuelve: «Anteriormente en tu vida…»
+		-- (antes de retomar las escenas, para que el resumen salga antes que cualquier conversación)
+		local dreaming = false
+		if LifeStoryService.needsPrologue(data) then
+			local ok, started = pcall(startPrologue, player, data, false)
+			dreaming = ok and started == true
+			if not ok then
+				Log.error("MISSION", "prólogo: %s", tostring(started))
+				pcall(endPrologue, player, data, "Error")
+			end
+		end
+		if not dreaming then
+			queueRecap(player, data)
+		end
+	end
 	resumeAll(player)
 	refresh(player)
 	publish(player, true)
@@ -2584,13 +2875,26 @@ local function onRemote(player: Player, kind: any, questId: any, value: any)
 	elseif kind == "Offer" and type(questId) == "string" and rt.PendingOffer == questId then
 		rt.PendingOffer = nil
 		if value == true and canOffer(player, data, questId) then
+			rt.JustOffered = questId -- ya vio quién se lo pide y por qué: sin tarjeta de comienzo
 			startQuest(player, data, questId)
 		else
 			story.Declined[questId] = os.time()
 		end
-	elseif kind == "Track" and type(questId) == "string" and story.Active[questId] then
+	elseif kind == "Track" and type(questId) == "string" and story.Active[questId] and not story.Active[PROLOGUE] then
 		story.Tracked = questId
 		publish(player)
+	elseif kind == "Prologue" then
+		-- El prólogo: "Skip" (botón Saltar), "MapOpened" (ha abierto el mapa) o "Replay" (desde «Mi historia»)
+		if questId == "Skip" and story.Active[PROLOGUE] then
+			endPrologue(player, data, "Skipped")
+		elseif questId == "MapOpened" and story.Active[PROLOGUE] then
+			StoryEvents.emit(player, "MapOpened", {})
+		elseif questId == "Replay" and not story.Active[PROLOGUE] and not busy(player) and not held(player) then
+			startPrologue(player, data, true)
+		end
+	elseif kind == "Journal" then
+		-- «Mi historia»: capítulos, personajes que conoces y recuerdos
+		send(player, "Journal", StoryContext.journal(data, { FamilyKey = player:GetAttribute("FamilyKey"), AbuKey = player:GetAttribute("AbuKey") }))
 	end
 end
 
@@ -2648,6 +2952,19 @@ local function onLoaded(player: Player, data: Data)
 	story_defaults(data)
 
 	local story = storyOf(data)
+	-- Cuánto tiempo ha estado fuera (para «Anteriormente en tu vida…»)
+	runtime[player].AwaySeconds = os.time() - (tonumber(story.LastSeen) or 0)
+	-- Se fue en mitad del prólogo: cuenta como visto y vuelve a su vida (se puede repetir desde «Mi historia»)
+	if story.Active[PROLOGUE] then
+		story.Active[PROLOGUE] = nil
+		if story.Tracked == PROLOGUE then
+			story.Tracked = nil
+		end
+		if not story.PrologueDone then
+			story.PrologueDone = os.time()
+			story.PrologueResult = "Left"
+		end
+	end
 	-- Quitar misiones que ya no existen (por si se borran de los datos en una actualización)
 	-- y reiniciar esperas (el reloj del juego empieza de cero en cada servidor)
 	for id, prog in story.Active do

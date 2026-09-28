@@ -5,6 +5,8 @@
 export type Memory = { Text: string, Icon: string }
 
 local Memories: { [string]: Memory } = {
+	-- Prólogo
+	SuenoGrieta = { Text = "El sueño de la noche en que naciste: una línea verde en el cielo y un inventor que te esperaba", Icon = "🌙" },
 	PrimerDiaCole = { Text = "Tu primer día de colegio", Icon = "🏫" },
 	PrimerAmigo = { Text = "Ayudaste a Mateo a recoger sus libros: tu primer amigo", Icon = "🤝" },
 	SegundaOportunidad = { Text = "Te sentaste con Mateo cuando comía solo", Icon = "🥪" },

@@ -1699,6 +1699,185 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean })
 				speech.OnClientEvent:Fire({ Speaker = workspace:FindFirstChild("Vecina"), Text = nil })
 			end
 		end,
+
+		-- La historia se entiende (Controllers/Prologue, LifeStory, StoryJournal)
+		[math.floor(13 * FPS)] = function()
+			-- Se cierra la conversación de antes (el servidor la corta)
+			local dialogue = remotes:FindFirstChild("Dialogue")
+			if dialogue then
+				dialogue.OnClientEvent:Fire("Close", { Token = "t1" })
+			end
+		end,
+		[math.floor(14 * FPS)] = function()
+			-- Prólogo: el servidor pone InPrologue y manda el paso de saltar
+			localPlayer:SetAttribute("InPrologue", true)
+			local story = remotes:FindFirstChild("LifeStory")
+			if story then
+				story.OnClientEvent:Fire("State", {
+					Prologue = true,
+					Others = {},
+					Tracked = {
+						QuestId = "Prologo_Sueno", Kind = "Main", TitleKey = "Prólogo: el sueño", TextKey = "Salta la valla de flores",
+						Icon = "✨", Beat = "Jump", StepNum = 3, StepTotal = 7,
+						Hint = { Pc = "Pulsa Espacio para saltar", Touch = "Pulsa el botón de saltar (abajo a la derecha)" },
+					},
+				})
+			end
+		end,
+		[math.floor(15 * FPS)] = function()
+			local hints = playerGui:FindFirstChild("PrologueHints")
+			local card = hints and hints:FindFirstChild("HintCard")
+			local texts = {}
+			for _, d in (card and card:GetDescendants()) or {} do
+				if rawget(d, "__class") == "TextLabel" then
+					table.insert(texts, tostring(d.Text))
+				end
+			end
+			local all = table.concat(texts, " | ")
+			table.insert(checks, { hints ~= nil and hints.Enabled and card ~= nil and card.Visible and all:find("Salta la valla", 1, true) ~= nil and all:find("Paso 3 de 7", 1, true) ~= nil,
+				"prólogo: la tarjeta de ayuda sale con el objetivo y el paso (" .. all .. ")" })
+			local wanted = if mode.Touch then "botón de saltar" else "Espacio"
+			table.insert(checks, { all:find(wanted, 1, true) ~= nil, "prólogo: la ayuda es la de este dispositivo (" .. wanted .. ")" })
+			-- Saltar: dos toques (el primero pregunta "¿Seguro?")
+			local skip = card and card:FindFirstChild("Skip", true)
+			if skip then
+				skip.Activated:Fire()
+				table.insert(checks, { tostring(skip.Text):find("Seguro", 1, true) ~= nil, "prólogo: el primer toque en Saltar pregunta si estás seguro" })
+				skip.Activated:Fire()
+			else
+				table.insert(checks, { false, "prólogo: hay botón Saltar" })
+			end
+			-- (sin conversación abierta, algo dejó la cámara bloqueada a medias)
+			localPlayer:SetAttribute("InDialogue", nil)
+			workspace.CurrentCamera.CameraType = Enum.CameraType.Scriptable
+		end,
+		[math.floor(16 * FPS)] = function()
+			localPlayer:SetAttribute("InPrologue", nil) -- el servidor cierra el prólogo
+		end,
+		[math.floor(17 * FPS)] = function()
+			local hints = playerGui:FindFirstChild("PrologueHints")
+			table.insert(checks, { hints ~= nil and not hints.Enabled, "prólogo: al acabar (o saltarlo) la tarjeta se va" })
+			local controllers = client:FindFirstChild("Controllers")
+			local ok, Controls = pcall(requireFn, controllers and controllers:FindFirstChild("Controls"))
+			table.insert(checks, { ok and Controls and not Controls.isDisabled(), "prólogo: al saltarlo, los controles vuelven" })
+			table.insert(checks, { workspace.CurrentCamera.CameraType ~= Enum.CameraType.Scriptable, ("prólogo: y la cámara no se queda bloqueada (%s, conversación: %s)"):format(tostring(workspace.CurrentCamera.CameraType), tostring(localPlayer:GetAttribute("InDialogue"))) })
+			-- «Anteriormente en tu vida…» mientras hay una conversación: espera
+			localPlayer:SetAttribute("InDialogue", true)
+			local story = remotes:FindFirstChild("LifeStory")
+			if story then
+				story.OnClientEvent:Fire("Recap", {
+					ChapterTitleKey = "CHAPTER.NINO.TITLE", Stage = "Nino", StageName = "Infancia (el colegio)",
+					Recent = {
+						{ Kind = "Memory", Key = "Tu primer día de colegio", Icon = "🏫" },
+						{ Kind = "Choice", Key = "Te sientas con Mateo", Icon = "🔀" },
+					},
+					Objective = { TitleKey = "La mochila perdida", TextKey = "Busca a Mateo en el patio", Icon = "⭐" },
+				})
+			end
+		end,
+		[math.floor(19 * FPS)] = function()
+			local lifeGui = playerGui:FindFirstChild("LifeStory")
+			table.insert(checks, { lifeGui ~= nil and lifeGui:FindFirstChild("Recap") == nil, "resumen al volver: no sale encima de una conversación" })
+			localPlayer:SetAttribute("InDialogue", nil)
+		end,
+		[math.floor(21 * FPS)] = function()
+			local lifeGui = playerGui:FindFirstChild("LifeStory")
+			local recap = lifeGui and lifeGui:FindFirstChild("Recap")
+			local texts = {}
+			for _, d in (recap and recap:GetDescendants()) or {} do
+				if rawget(d, "__class") == "TextLabel" then
+					table.insert(texts, tostring(d.Text))
+				end
+			end
+			local all = table.concat(texts, " | ")
+			table.insert(checks, { all:find("Anteriormente", 1, true) ~= nil and all:find("El colegio", 1, true) ~= nil and all:find("Elegiste: Te sientas con Mateo", 1, true) ~= nil and all:find("La mochila perdida", 1, true) ~= nil,
+				"resumen al volver: sale al acabar la conversación, con capítulo, lo último que pasó y lo que hacías" })
+			if recap then
+				recap.Activated:Fire() -- tocar para seguir
+			end
+		end,
+		[math.floor(22 * FPS)] = function()
+			local lifeGui = playerGui:FindFirstChild("LifeStory")
+			table.insert(checks, { lifeGui ~= nil and lifeGui:FindFirstChild("Recap") == nil, "resumen al volver: se cierra al tocarlo" })
+			-- Oferta con contexto: quién lo pide y por qué
+			local story = remotes:FindFirstChild("LifeStory")
+			if story then
+				story.OnClientEvent:Fire("Offer", {
+					QuestId = "Loco_N2_Bigotes", TitleKey = "Bigotes, emperador de Gatonia", TextKey = "¡Miau! (Bigotes te mira muy serio)",
+					Description = "Unas cucarachas del espacio persiguen al gato del cole.", Icon = "🌀", Label = "Misión loca (con Cosme)", Asker = "Bigotes XVII",
+				})
+			end
+		end,
+		[math.floor(23 * FPS)] = function()
+			local lifeGui = playerGui:FindFirstChild("LifeStory")
+			local texts = {}
+			for _, d in (lifeGui and lifeGui:GetDescendants()) or {} do
+				if rawget(d, "__class") == "TextLabel" then
+					table.insert(texts, tostring(d.Text))
+				end
+			end
+			local all = table.concat(texts, " | ")
+			table.insert(checks, { all:find("Te lo pide: Bigotes XVII", 1, true) ~= nil and all:find("cucarachas del espacio", 1, true) ~= nil and all:find("Misión loca", 1, true) ~= nil,
+				"ofertas: dicen quién lo pide, por qué y qué tipo de misión es" })
+			-- «Mi historia»
+			local controllers = client:FindFirstChild("Controllers")
+			local ok, Journal = pcall(requireFn, controllers and controllers:FindFirstChild("StoryJournal"))
+			if ok and Journal then
+				Journal.open("People")
+				local story = remotes:FindFirstChild("LifeStory")
+				if story then
+					local people = {}
+					for i = 1, 12 do
+						table.insert(people, { Id = "P" .. i, Name = if i == 1 then "Mateo" else "Persona " .. i, Who = "El chico nuevo del barrio.", RelText = "😊 Buenos amigos" })
+					end
+					story.OnClientEvent:Fire("Journal", {
+						Chapters = { { Id = "Nino_ElColegio", TitleKey = "CHAPTER.NINO.TITLE", IntroKey = "CHAPTER.NINO.INTRO", Current = true } },
+						People = people,
+						Memories = { { Key = "PrimerAmigo", Icon = "🤝", Text = "Tu primer amigo" } },
+						Choices = {},
+					})
+				end
+			else
+				table.insert(checks, { false, "diario: no se pudo cargar StoryJournal" })
+			end
+		end,
+		[math.floor(24 * FPS)] = function()
+			local journal = playerGui:FindFirstChild("StoryJournal")
+			local list = journal and journal:FindFirstChild("List", true)
+			local texts = {}
+			for _, d in (list and list:GetDescendants()) or {} do
+				if rawget(d, "__class") == "TextLabel" then
+					table.insert(texts, tostring(d.Text))
+				end
+			end
+			local all = table.concat(texts, " | ")
+			table.insert(checks, { journal ~= nil and journal.Enabled and all:find("Mateo", 1, true) ~= nil and all:find("Buenos amigos", 1, true) ~= nil,
+				"diario «Mi historia»: la pestaña Personajes enseña a quien conoces y cómo os lleváis" })
+			table.insert(checks, { list ~= nil and rawget(list, "__class") == "ScrollingFrame" and list.AutomaticCanvasSize == Enum.AutomaticSize.Y,
+				"diario: la lista tiene scroll (para el móvil)" })
+			local tab = journal and journal:FindFirstChild("TabChapters", true)
+			if tab then
+				tab.Activated:Fire()
+			end
+		end,
+		[math.floor(25 * FPS)] = function()
+			local journal = playerGui:FindFirstChild("StoryJournal")
+			local list = journal and journal:FindFirstChild("List", true)
+			local texts = {}
+			for _, d in (list and list:GetDescendants()) or {} do
+				if rawget(d, "__class") == "TextLabel" or rawget(d, "__class") == "TextButton" then
+					table.insert(texts, tostring(d.Text))
+				end
+			end
+			local all = table.concat(texts, " | ")
+			table.insert(checks, { all:find("El colegio", 1, true) ~= nil and all:find("Volver a jugar el prólogo", 1, true) ~= nil,
+				"diario: la pestaña Capítulos enseña el capítulo de ahora y deja volver a jugar el prólogo" })
+			local controllers = client:FindFirstChild("Controllers")
+			local ok, Journal = pcall(requireFn, controllers and controllers:FindFirstChild("StoryJournal"))
+			if ok and Journal then
+				Journal.close()
+			end
+		end,
 	}
 	for frame = 1, frames do
 		now += dt

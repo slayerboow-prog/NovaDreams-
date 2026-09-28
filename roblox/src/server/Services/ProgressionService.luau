@@ -181,6 +181,9 @@ local function setSprinting(player: Player, runner: Runner, on: boolean)
 	runner.Sprinting = on
 	player:SetAttribute("Sprinting", on or nil)
 	NeedsService.refreshSpeed(player)
+	if on then
+		StoryEvents.emit(player, "Sprinted", {}) -- (el prólogo enseña a correr)
+	end
 end
 
 local function tickStamina(dt: number)

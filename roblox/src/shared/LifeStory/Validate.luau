@@ -196,6 +196,26 @@ function Validate.mission(id: string, quest: { [string]: any }, err: (string, ..
 	end
 end
 
+-- Descripción de cada misión: una frase sencilla (quién te lo pide y por qué) que el jugador ve en la
+-- oferta, al empezar y en el diario. Devuelve los problemas ("Cole01: falta la descripción…").
+Validate.MinDescription = 12 -- caracteres como mínimo (algo más que "Ayuda")
+function Validate.descriptionProblems(quests: { [string]: { [string]: any } }): { string }
+	local problems = {}
+	for id, quest in quests do
+		local text = quest.Description
+		local trimmed = if type(text) == "string" then text:match("^%s*(.-)%s*$") else nil
+		if not trimmed or trimmed == "" then
+			table.insert(problems, ("%s: falta la descripción (Description: quién te lo pide y por qué)"):format(id))
+		elseif isKey(trimmed) and not Strings.has(trimmed) then
+			table.insert(problems, ("%s: la descripción es una clave que no existe '%s'"):format(id, trimmed))
+		elseif (utf8.len(trimmed) or #trimmed) < Validate.MinDescription then
+			table.insert(problems, ("%s: descripción demasiado corta ('%s'): di quién te lo pide y por qué"):format(id, trimmed))
+		end
+	end
+	table.sort(problems)
+	return problems
+end
+
 export type Report = { Errors: { string }, Warnings: { string }, BadQuests: { [string]: boolean } }
 
 local cachedReport: Report? = nil
@@ -596,7 +616,7 @@ function Validate.report(): Report
 				err("%s: nunca puede empezar: pide de %s a %s h y %s solo abre de %s a %s (¿Schedule = false?)", id, tostring(hours.From), tostring(hours.To), window.Name, tostring(window.From), tostring(window.To))
 			end
 		end
-		if quest.Kind == "Main" and not questChapter[id] and not quest.Canon then
+		if quest.Kind == "Main" and not questChapter[id] and not quest.Canon and not quest.Prologue then
 			warnf("%s: principal que no está en ningún capítulo (nadie la empieza)", id)
 		end
 		if quest.Kind == "Main" and quest.Chapter and questChapter[id] and questChapter[id] ~= quest.Chapter then
@@ -660,6 +680,11 @@ function Validate.report(): Report
 			err("%s: Offer con un evento que nadie emite '%s'", id, tostring(quest.Offer.Event))
 			currentQuest = nil
 		end
+	end
+	-- Cada misión dice quién te la pide y por qué (Description). Es un error, pero no impide activarla:
+	-- sin contexto el jugador no entiende la historia, aunque la misión se pueda jugar.
+	for _, problem in Validate.descriptionProblems(Quests) do
+		err("%s", problem)
 	end
 	-- Ramas: un If que pregunta por una respuesta que ninguna decisión puede dar nunca se cumple
 	for _, asked in choiceAsked do

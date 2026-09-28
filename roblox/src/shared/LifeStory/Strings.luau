@@ -439,6 +439,60 @@ Strings.es = {
 	["MOMENT.AYUDASTE_NINO"] = "Has ayudado a una niña del barrio. No lo olvidará.",
 	["MOMENT.MEDICINAS"] = "Gracias a ti, alguien tiene hoy sus medicinas.",
 	["MOMENT.TARDE_PLAYA"] = "Has visto atardecer en Playa Dorada.",
+
+	-- Prólogo: el sueño (cinemáticas de Cinematics.luau, tarjetas de Controllers/Prologue)
+	["CINE.PROLOGO.VALMAR"] = "Valmar",
+	["CINE.PROLOGO.VIDA"] = "Aquí vas a vivir una vida entera: de bebé a persona adulta.",
+	["CINE.PROLOGO.ELIGES"] = "Lo que elijas cambiará tu historia… y cómo te recuerda la gente.",
+	["CINE.PROLOGO.GRIETA"] = "Pero en Valmar pasa algo raro. Una línea verde cruza el cielo: la Grieta.",
+	["CINE.PROLOGO.COSME"] = "Y tu vecino Cosme, el inventor del garaje, sabe más de lo que dice.",
+	["CINE.PROLOGO.SUENO"] = "Esto es un sueño…",
+	["CINE.PROLOGO.SUENO_SUB"] = "…de lo que está por venir.",
+	["CINE.PROLOGO.DESPIERTA"] = "El sueño se apaga. Ahora empieza tu vida de verdad.",
+	["CINE.PROLOGO.T_VIDA"] = "⭐ Tu vida",
+	["CINE.PROLOGO.S_VIDA"] = "La historia principal: crecer, estudiar, trabajar… y querer a los tuyos.",
+	["CINE.PROLOGO.T_LOCA"] = "🌀 Misiones locas",
+	["CINE.PROLOGO.S_LOCA"] = "Aventuras rarísimas con Cosme, tu vecino inventor.",
+	["CINE.PROLOGO.T_SAGA"] = "❗ La Saga de la Grieta",
+	["CINE.PROLOGO.S_SAGA"] = "Busca el ❗ dorado en el mapa: ahí sigue el misterio.",
+	["PROLOGUE.BANNER"] = "✨ Prólogo · Un sueño",
+	["PROLOGUE.SKIP"] = "Saltar prólogo ⏭",
+	["PROLOGUE.SKIP_SURE"] = "¿Seguro? Toca otra vez",
+	["PROLOGUE.STEP"] = "Paso {n} de {total}",
+
+	-- Contexto de las misiones (oferta y comienzo)
+	["STORY.CONTEXT.ASKS"] = "Te lo pide: {who}",
+	["STORY.CONTEXT.WHY"] = "¿Por qué?",
+	["STORY.CONTEXT.TAP"] = "Toca para seguir",
+
+	-- «Anteriormente en tu vida…» (al volver al juego)
+	["RECAP.TITLE"] = "Anteriormente en tu vida…",
+	["RECAP.CHAPTER"] = "📖 Capítulo: {chapter}",
+	["RECAP.STAGE"] = "🧒 Etapa: {stage}",
+	["RECAP.RECENT"] = "Lo último que pasó:",
+	["RECAP.CHOICE"] = "Elegiste: {text}",
+	["RECAP.NOW"] = "➡️ Ahora: {title}",
+	["RECAP.NOTHING"] = "Sigue explorando Valmar.",
+	["RECAP.TAP"] = "Toca para seguir",
+
+	-- «Mi historia» (diario)
+	["JOURNAL.OPEN"] = "📖 Mi historia",
+	["JOURNAL.TITLE"] = "📖 Mi historia",
+	["JOURNAL.TAB.CHAPTERS"] = "Capítulos",
+	["JOURNAL.TAB.PEOPLE"] = "Personajes",
+	["JOURNAL.TAB.MEMORIES"] = "Recuerdos",
+	["JOURNAL.CLOSE"] = "Cerrar",
+	["JOURNAL.LOADING"] = "Cargando tu historia…",
+	["JOURNAL.DONE"] = "✔ Terminado",
+	["JOURNAL.NOW"] = "▶ Ahora",
+	["JOURNAL.EMPTY.CHAPTERS"] = "Tu historia acaba de empezar.",
+	["JOURNAL.EMPTY.PEOPLE"] = "Aún no conoces a nadie. ¡Sal a explorar!",
+	["JOURNAL.EMPTY.MEMORIES"] = "Todavía no tienes recuerdos. Ya llegarán.",
+	["JOURNAL.CHOICES"] = "Decisiones importantes",
+	["JOURNAL.REPLAY"] = "🌙 Volver a jugar el prólogo",
+	["JOURNAL.PROLOGUE.TITLE"] = "Prólogo: el sueño",
+	["JOURNAL.PROLOGUE.INTRO"] = "La noche en que naciste soñaste con la Grieta… y con Cosme.",
+	["JOURNAL.HELP"] = "⭐ Tu vida (principal) · 🌀 Misión loca · ❗ Saga de la Grieta",
 }
 
 -- Devuelve el texto de una clave con sus variables sustituidas. Si falta, devuelve la clave

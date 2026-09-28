@@ -213,6 +213,9 @@ end
 -- Dobles de DataService y LocationService
 ---------------------------------------------------------------------
 local Config = loadModule(ROOT .. "/shared/Config")
+-- Las pruebas de la historia empiezan sin el prólogo jugable (el sueño): así cada personaje nuevo va
+-- directo al nacimiento, como antes. test-storycontext lo enciende para probarlo.
+Config.LifeStory.Prologue = false
 local profiles = {}
 local loadedCallbacks = {}
 mocks[ROOT .. "/server/Services/DataService"] = {

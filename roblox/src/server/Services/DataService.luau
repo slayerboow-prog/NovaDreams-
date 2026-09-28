@@ -92,6 +92,10 @@ local DEFAULT_DATA = {
 		Memories = {}, -- grandes recuerdos (primer día de cole, primer amigo…)
 		Later = {}, -- consecuencias diferidas: lo que pasará dentro de X horas de juego
 		Clock = 0, -- segundos jugados con la historia (reloj de las consecuencias)
+		PrologueDone = false, -- el prólogo («El sueño») ya se vio: os.time() al terminarlo o saltarlo
+		PrologueResult = "", -- cómo acabó: "Done", "Skipped", "Error", "Timeout", "Left", "Veteran"…
+		LastSeen = 0, -- última vez que se le vio jugando (os.time): para «Anteriormente en tu vida…»
+		RecapAt = 0, -- cuándo se enseñó el último resumen
 	},
 }
 
@@ -398,6 +402,11 @@ function DataService.newLife(player: Player)
 	-- Las viviendas compradas siguen siendo tuyas (el registro de dueños está en otro DataStore)
 	fresh.Properties = data.Properties
 	fresh.Life.Stage = Config.LifeStory.NewCharacterStage
+	-- El prólogo (tutorial) ya lo vio: no se repite solo (se puede volver a jugar desde «Mi historia»)
+	if data.Story and data.Story.PrologueDone then
+		fresh.Story.PrologueDone = data.Story.PrologueDone
+		fresh.Story.PrologueResult = "NewLife"
+	end
 	profiles[player] = fresh
 	DataService.save(player, true)
 	profiles[player] = nil -- que el guardado al salir no pise la vida nueva
