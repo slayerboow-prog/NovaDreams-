@@ -3,12 +3,17 @@
 --   ReplicatedStorage.Ambient.Roads -> una Configuration por tramo de calle:
 --       A, B (Vector3: principio y fin, en cualquier ángulo) y Width (ancho de la calzada).
 --       Las calles rectas de los barrios llevan además Axis, At, From, To.
+--       WalkIn/WalkOut: la acera va de WalkIn a WalkOut del centro de la calle; Obstacles: lo que
+--       estorba en las dos aceras (farolas, papeleras, quioscos…: shared/Sidewalk) para que los
+--       peatones lo esquiven en vez de atravesarlo.
 --   ReplicatedStorage.Ambient.Cars  -> modelos de coche (y taxis) en el origen, mirando a -Z
 --   ReplicatedStorage.Ambient.Riders -> motos, bicis y patinetes con su conductor montado
 --       (atributo Kind; las piezas del conductor llevan Tint = Skin/Shirt/Pants/Helmet para que
 --       el cliente cambie los colores de cada copia, y las piernas de la bici "PedalLeg" pedalean)
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Sidewalk = require(ReplicatedStorage.Shared.Sidewalk)
 
 local Palette = require(script.Parent.Kit.Palette)
 local CarModel = require(script.Parent.Kit.CarModel)
@@ -18,6 +23,37 @@ local Ambient = {}
 
 local CAR_VARIANTS = 8
 local taxi, rider
+
+---------------------------------------------------------------------
+-- Estorbos de las aceras (una vez al arrancar, con el mapa entero)
+---------------------------------------------------------------------
+local WALK_TOP = 1.0
+
+function Ambient.obstacles(a: Vector3, b: Vector3, walkIn: number, walkOut: number): string
+	local len = (b - a).Magnitude
+	if len < 1 or walkOut <= walkIn then
+		return ""
+	end
+	local dir = (b - a).Unit
+	local frame = { A = Vector3.new(a.X, 0, a.Z), Dir = dir, Perp = Vector3.new(-dir.Z, 0, dir.X) }
+	local rot = CFrame.lookAt(Vector3.zero, dir)
+	local list = {}
+	for _, side in { -1, 1 } do
+		local center = frame.A + dir * (len / 2) + frame.Perp * (side * (walkIn + walkOut) / 2) + Vector3.new(0, WALK_TOP + 3, 0)
+		local ok, parts = pcall(function()
+			return workspace:GetPartBoundsInBox(CFrame.new(center) * rot, Vector3.new(walkOut - walkIn, 4.6, len + 4), OverlapParams.new())
+		end)
+		for _, part in if ok and parts then parts else {} do
+			-- Solo lo que se ve y es sólido (la caja empieza medio stud por encima de la acera: ni el
+			-- suelo ni los bordillos cuentan)
+			if part.CanCollide and part.Transparency < 0.95 then
+				local u0, u1, v0, v1 = Sidewalk.project(frame, part.CFrame, part.Size)
+				table.insert(list, { U0 = u0, U1 = u1, V0 = v0, V1 = v1 })
+			end
+		end
+	end
+	return Sidewalk.encode(list)
+end
 
 ---------------------------------------------------------------------
 -- Taxis: berlina blanca con el cartel "TAXI" y la luz verde de libre en el techo
@@ -182,6 +218,9 @@ function Ambient.publish(roads: { { [string]: any } }, segments: { { [string]: a
 		config:SetAttribute("A", a)
 		config:SetAttribute("B", b)
 		config:SetAttribute("Width", 24)
+		config:SetAttribute("WalkIn", 12) -- (Kit/Street: calzada de 24 y acera de 8)
+		config:SetAttribute("WalkOut", 20)
+		config:SetAttribute("Obstacles", Ambient.obstacles(a, b, 12, 20))
 		config.Parent = roadFolder
 	end
 	-- Carreteras principales del plano (Ronda, avenidas, diagonales)
@@ -193,6 +232,13 @@ function Ambient.publish(roads: { { [string]: any } }, segments: { { [string]: a
 		config:SetAttribute("B", segment.B)
 		config:SetAttribute("Width", segment.Width or 24)
 		config:SetAttribute("Kind", segment.Kind)
+		local walk = segment.Walk
+		if type(walk) == "number" and walk > 0 then
+			local half = (segment.Width or 24) / 2
+			config:SetAttribute("WalkIn", half)
+			config:SetAttribute("WalkOut", half + walk)
+			config:SetAttribute("Obstacles", Ambient.obstacles(segment.A, segment.B, half, half + walk))
+		end
 		config.Parent = roadFolder
 	end
 

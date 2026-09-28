@@ -614,6 +614,100 @@ for _, m in crosswalks do
 end
 check(#crosswalks > 200 and noRamp == 0, ("bordillo rebajado a los dos lados de cada paso de peatones (%d sin rampas)"):format(noRamp))
 
+---------------------------------------------------------------------
+-- Peatones por las aceras: esquivan farolas, papeleras, quioscos, árboles, motos aparcadas…
+-- (los estorbos se calculan como World/Ambient.obstacles y cada peatón elige su hueco con
+-- shared/Sidewalk.lane, igual que Controllers/Ambient)
+---------------------------------------------------------------------
+print("▶ Peatones por las aceras")
+do
+	local Sidewalk = requireModule(sharedProxy.Sidewalk)
+	local walks = {}
+	for _, road in Region.roads() do
+		local a = if road.Axis == "X" then Vector3.new(road.From, 0, road.At) else Vector3.new(road.At, 0, road.From)
+		local b = if road.Axis == "X" then Vector3.new(road.To, 0, road.At) else Vector3.new(road.At, 0, road.To)
+		table.insert(walks, { A = a, B = b, In = 12, Out = 20 }) -- (lo mismo que publica World/Ambient)
+	end
+	for _, seg in Roads.segments() do
+		local k = Roads.Kinds[seg.Kind]
+		if k.Walk > 0 then
+			table.insert(walks, { A = seg.A, B = seg.B, In = k.Road / 2, Out = k.Road / 2 + k.Walk })
+		end
+	end
+	local BODY, WALK_TOP = 0.95, 1.0
+	local frames, inside, turns, runs, naive = 0, 0, 0, 0, 0
+	for _, r in walks do
+		local len = (r.B - r.A).Magnitude
+		if len > 20 then
+			local dir = (r.B - r.A).Unit
+			local fr = { A = Vector3.new(r.A.X, 0, r.A.Z), Dir = dir, Perp = Vector3.new(-dir.Z, 0, dir.X) }
+			local obs, seen = {}, {}
+			for u = -2, len + 2, 4 do
+				for _, side in { -1, 1 } do
+					for v = r.In, r.Out, 2 do
+						local p = fr.A + dir * u + fr.Perp * (side * v)
+						for _, it in grid[cellKey(math.floor(p.X / CELL), math.floor(p.Z / CELL))] or {} do
+							if not seen[it] and it.Solid and it.Visible and it.Hi.Y > WALK_TOP + 0.7 and it.Lo.Y < WALK_TOP + 5.3 then
+								seen[it] = true
+								local u0, u1, v0, v1 = Sidewalk.project(fr, it.Part.CFrame, it.S)
+								if u1 > -2 and u0 < len + 2 and ((v1 > r.In and v0 < r.Out) or (v1 > -r.Out and v0 < -r.In)) then
+									table.insert(obs, { U0 = u0, U1 = u1, V0 = v0, V1 = v1, Name = it.Name })
+								end
+							end
+						end
+					end
+				end
+			end
+			obs = Sidewalk.decode(Sidewalk.encode(obs)) -- (como viaja al cliente, redondeado)
+			local walk = (r.In + r.Out) / 2
+			for _, side in { -1, 1 } do
+				for _, d in { 1, -1 } do
+					runs += 1
+					local u = if d > 0 then 20 else len - 20
+					local keep, dodge = d * 0.9, 0
+					local dt, speed = 1 / 30, 6
+					local inner, outer = r.In + BODY + 0.15, r.Out - BODY - 0.15
+					local lo, hi = if side > 0 then inner else -outer, if side > 0 then outer else -inner
+					for _ = 1, 4000 do
+						if (d > 0 and u > len - 20) or (d < 0 and u < 20) then
+							break
+						end
+						local base = side * walk + keep
+						local v, stuck = Sidewalk.lane(obs, u, d, math.max(4, speed * 0.9), base, lo, hi, BODY, base + dodge)
+						if v == nil then
+							turns += 1
+							break
+						end
+						if not stuck then
+							u += d * speed * dt
+						end
+						dodge += (v - base - dodge) * math.min(1, dt * 5)
+						frames += 1
+						for _, o in obs do
+							if o.U0 > u + BODY then
+								break
+							end
+							if o.U1 > u - BODY then
+								if base + BODY * 0.8 > o.V0 and base - BODY * 0.8 < o.V1 then
+									naive += 1 -- (sin esquivar: como iban antes, en línea recta)
+								end
+								if base + dodge + BODY * 0.8 > o.V0 and base + dodge - BODY * 0.8 < o.V1 then
+									inside += 1
+									break
+								end
+							end
+						end
+					end
+				end
+			end
+		end
+	end
+	print(("  %d recorridos por las aceras (%d fotogramas); en línea recta habrían atravesado algo en %d"):format(runs, frames, naive))
+	check(runs > 500 and inside <= frames * 0.0002,
+		("los peatones esquivan lo que hay en la acera: dentro de algo en %d de %d fotogramas (%.3f %%)"):format(inside, frames, inside / math.max(1, frames) * 100))
+	check(turns <= runs * 0.1, ("donde no cabe nadie, se dan la vuelta (%d de %d recorridos)"):format(turns, runs))
+end
+
 print("")
 if failures == 0 then
 	print("✅ Calles: todo correcto")

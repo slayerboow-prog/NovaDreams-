@@ -1669,6 +1669,31 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean })
 				end
 			end
 			table.insert(checks, { not still, "el bocadillo con duración se va solo" })
+			-- Peatones: en cada extremo de la acera siguen recto por la calle de enfrente (también si
+			-- está dibujada al revés) o, si no sigue ninguna, se dan la vuelta antes de la calzada que cruza
+			local controllers = client:FindFirstChild("Controllers")
+			local ambientModule = controllers and controllers:FindFirstChild("Ambient")
+			local okAmbient, Ambient = pcall(requireFn, ambientModule)
+			if okAmbient and Ambient and Ambient.link then
+				local function road(a: any, b: any)
+					local dir = (b - a).Unit
+					return { A = a, Dir = dir, Perp = V3.new(-dir.Z, 0, dir.X), Len = (b - a).Magnitude, From = 0, To = (b - a).Magnitude, Walk = 14.5, Half = 11, StartMargin = 0, EndMargin = 0 }
+				end
+				local r1, r2 = road(V3.new(0, 0, 0), V3.new(100, 0, 0)), road(V3.new(100, 0, 0), V3.new(200, 0, 0))
+				local r3, r4 = road(V3.new(300, 0, 0), V3.new(200, 0, 0)), road(V3.new(100, 0, 0), V3.new(100, 0, 100))
+				Ambient.link({ r1, r2, r3, r4 })
+				table.insert(checks, {
+					r1.Ahead and r1.Ahead.Road == r2 and not r1.Ahead.Flip and r2.Behind and r2.Behind.Road == r1
+						and r2.Ahead and r2.Ahead.Road == r3 and r2.Ahead.Flip and r3.Ahead and r3.Ahead.Road == r2,
+					"peatones: al final de la acera siguen por la de enfrente (sin desaparecer en el cruce)",
+				})
+				table.insert(checks, {
+					r4.Behind == nil and math.abs(r4.StartMargin - 12.5) < 0.01 and r1.Behind == nil and r1.StartMargin == 0,
+					"peatones: sin calle que siga, se dan la vuelta antes de pisar la calzada que cruza",
+				})
+			else
+				table.insert(checks, { false, "peatones: no se pudo cargar Ambient.link (" .. tostring(Ambient) .. ")" })
+			end
 			local speech = remotes:FindFirstChild("Speech")
 			if speech then
 				speech.OnClientEvent:Fire({ Speaker = workspace:FindFirstChild("Vecina"), Text = nil })

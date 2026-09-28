@@ -386,7 +386,7 @@ end
 -- "Empezar una vida nueva" (botón del Menú): borra la partida y vuelves a nacer bebé.
 -- Se conservan las compras con Robux ya cobradas (ProcessedReceipts; los Game Pass los da Roblox).
 -- Te saca del juego para que todos los sistemas empiecen de cero al volver a entrar.
-local lastNewLife: { [Player]: number } = {}
+local lastNewLife: { [Player]: number } = setmetatable({}, { __mode = "k" }) :: any -- (claves débiles: no se queda con los que se van)
 function DataService.newLife(player: Player)
 	local data = profiles[player]
 	if not data or os.clock() - (lastNewLife[player] or -60) < 10 then

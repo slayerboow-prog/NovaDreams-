@@ -20,6 +20,7 @@ local Players = game:GetService("Players")
 local Npc = require(script.Parent.Parent.World.Npc)
 local Space = require(script.Parent.Parent.World.Space)
 local TimeContext = require(game:GetService("ReplicatedStorage").Shared.LifeStory.TimeContext)
+local OpeningHours = require(game:GetService("ReplicatedStorage").Shared.OpeningHours)
 
 local CrowdService = {}
 
@@ -30,6 +31,7 @@ CrowdService.PARK_RADIUS = 160
 CrowdService.PARK_CAP = 24
 CrowdService.ROOM_CAP = 90
 CrowdService.TICK = 2
+CrowdService.LEAVE_SEEN = 20 -- al cerrar, cada uno se va cuando no hay ningún jugador a menos de esto
 
 local rgb = Color3.fromRGB
 local PI = math.pi
@@ -352,7 +354,7 @@ end
 ---------------------------------------------------------------------
 -- Plantas bajas de la ciudad (marcas CrowdSpot)
 ---------------------------------------------------------------------
-type Group = { Key: string, Spots: { BasePart }, Center: Vector3, Npcs: { Model }, Context: string }
+type Group = { Key: string, Kind: string, Spots: { BasePart }, Center: Vector3, Npcs: { Model }, Context: string, Closing: boolean? }
 local groups: { [string]: Group } = {}
 
 local GROUP_CONTEXT = {
@@ -369,7 +371,7 @@ local function addSpot(spot: Instance)
 	local g = groups[key]
 	if not g then
 		local kind = string.match(key, "^(%a+)_") or ""
-		g = { Key = key, Spots = {}, Center = spot.Position, Npcs = {}, Context = GROUP_CONTEXT[kind] or "Generic" }
+		g = { Key = key, Kind = kind, Spots = {}, Center = spot.Position, Npcs = {}, Context = GROUP_CONTEXT[kind] or "Generic" }
 		groups[key] = g
 	end
 	table.insert(g.Spots, spot)
@@ -391,6 +393,11 @@ end
 
 local function fillGroup(g: Group)
 	local n = 0
+	for i = #g.Spots, 1, -1 do
+		if not g.Spots[i].Parent then
+			table.remove(g.Spots, i) -- (marca quitada del mapa: ya no hay sitio ahí)
+		end
+	end
 	for _, spot in g.Spots do
 		if n >= CrowdService.GROUP_CAP or (counts.City or 0) >= CrowdService.CITY_CAP then
 			break
@@ -409,16 +416,57 @@ local function fillGroup(g: Group)
 	end
 end
 
+-- Cierra (o se hace de noche) con jugadores cerca: dejan lo que hacían, alguno lo dice, y cada uno
+-- se va cuando no tiene a ningún jugador al lado (nadie se esfuma delante de ti)
+local function closing(list: { Model }, first: boolean, line: string)
+	for i = #list, 1, -1 do
+		local npc = list[i]
+		local root = npc.PrimaryPart
+		if first then
+			pcall(Npc.work, npc, nil)
+			if i == 1 and root then
+				pcall(Npc.say, npc, line, 4)
+			end
+		end
+		if not root or not playerNear(root.Position, CrowdService.LEAVE_SEEN) then
+			npc:Destroy()
+			table.remove(list, i)
+		end
+	end
+end
+
+-- ¿Hay gente ahora en ese sitio? Su horario (shared/OpeningHours: sin dependiente no hay clientes);
+-- los de 24 horas, de noche (23:00-7:00) casi vacíos como siempre
+local function groupOpen(g: Group, t: number): boolean
+	local hours = OpeningHours.forPlace(g.Kind)
+	if hours then
+		return OpeningHours.isOpen(hours, t)
+	end
+	return not (t < 7 or t >= 23)
+end
+CrowdService._groupOpen = groupOpen
+
 function CrowdService.tickCity()
-	local night = clock() < 7 or clock() >= 23
+	local t = clock()
 	for _, g in groups do
 		for i = #g.Npcs, 1, -1 do
 			if not g.Npcs[i].Parent then
 				table.remove(g.Npcs, i)
 			end
 		end
-		local near = not night and playerNear(g.Center, CrowdService.CITY_RADIUS)
-		if near and #g.Npcs == 0 then
+		local open = groupOpen(g, t)
+		local near = playerNear(g.Center, CrowdService.CITY_RADIUS)
+		if not open then
+			if #g.Npcs > 0 then
+				if near then
+					closing(g.Npcs, not g.Closing, "Uy, que cierran. ¡Me voy!")
+					g.Closing = true
+				else
+					clearGroup(g)
+				end
+			end
+		elseif near and #g.Npcs == 0 then
+			g.Closing = nil
 			fillGroup(g)
 		elseif not near and #g.Npcs > 0 and not playerNear(g.Center, CrowdService.CITY_RADIUS + 40) then
 			clearGroup(g)
@@ -429,7 +477,10 @@ end
 ---------------------------------------------------------------------
 -- Parques y plazas
 ---------------------------------------------------------------------
-type Feature = { Kind: string, Part: BasePart?, Model: Instance, Center: Vector3, Size: Vector3?, Npcs: { Model } }
+type Feature = { Kind: string, Part: BasePart?, Model: Instance, Center: Vector3, Size: Vector3?, Npcs: { Model }, Closing: boolean? }
+
+-- Horas con gente en cada sitio del parque (fuera de ellas se van: nadie en los columpios de madrugada)
+local FEATURE_HOURS = { Bench = { 8, 22.5 }, Playground = { 9, 20.5 }, Park = { 7, 22 } }
 local features: { Feature } = {}
 
 local PARK_LOOKS = {
@@ -438,15 +489,31 @@ local PARK_LOOKS = {
 	{ Shirt = rgb(250, 200, 60), Pants = rgb(60, 70, 110) },
 }
 
--- Dónde está el suelo bajo un punto (sin chocar con la gente)
+-- Dónde está el suelo bajo un punto (sin chocar con la gente). Solo vale suelo de verdad: el terreno
+-- o una superficie plana y sólida cerca de la altura del parque; las copas de los árboles, farolas,
+-- toldos o piezas sin colisión se atraviesan (si no, el corredor iba flotando por encima de un árbol).
 local function groundAt(p: Vector3, fallback: number): Vector3
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
-	params.FilterDescendantsInstances = { folder :: any }
-	local ok, hit = pcall(function()
-		return workspace:Raycast(Vector3.new(p.X, fallback + 20, p.Z), Vector3.new(0, -40, 0), params)
-	end)
-	return if ok and hit then hit.Position else Vector3.new(p.X, fallback, p.Z)
+	local skip: { Instance } = { folder :: any }
+	params.FilterDescendantsInstances = skip
+	local from = Vector3.new(p.X, fallback + 20, p.Z)
+	for _ = 1, 8 do
+		local ok, hit = pcall(function()
+			return workspace:Raycast(from, Vector3.new(0, -40, 0), params)
+		end)
+		if not ok or not hit then
+			break
+		end
+		local part = hit.Instance
+		local solid = part:IsA("Terrain") or (part:IsA("BasePart") and part.CanCollide)
+		if solid and hit.Normal.Y > 0.8 and hit.Position.Y < fallback + 4 then
+			return hit.Position
+		end
+		table.insert(skip, part)
+		params.FilterDescendantsInstances = skip
+	end
+	return Vector3.new(p.X, fallback, p.Z)
 end
 
 -- Perro de bloques que sigue a su dueño (piezas soldadas a su cuerpo, que se mueve)
@@ -494,7 +561,10 @@ end
 local function spawnFeature(f: Feature)
 	local t = clock()
 	local parent = folder or workspace
-	if f.Kind == "Bench" and f.Part and t >= 8 and t < 22.5 then
+	if not OpeningHours.isOpen(FEATURE_HOURS[f.Kind], t) then
+		return
+	end
+	if f.Kind == "Bench" and f.Part then
 		local seat = f.Part
 		-- Se sienta en un lado del banco (el otro queda libre para el jugador)
 		local side = { CFrame = seat.CFrame * CFrame.new(seat.Size.X / 2 - 1.1, 0, 0), Size = seat.Size }
@@ -502,7 +572,7 @@ local function spawnFeature(f: Feature)
 		if npc then
 			table.insert(f.Npcs, npc)
 		end
-	elseif f.Kind == "Playground" and t >= 9 and t < 20.5 then
+	elseif f.Kind == "Playground" then
 		for k = 1, 2 do
 			local a = Vector3.new(f.Center.X + (k * 5 - 7.5), f.Center.Y, f.Center.Z + 5)
 			local b = Vector3.new(f.Center.X + (k * 4 - 6), f.Center.Y, f.Center.Z - 5)
@@ -517,7 +587,7 @@ local function spawnFeature(f: Feature)
 				wander(npc, { a, b }, 8, NumberRange.new(1.5, 4))
 			end
 		end
-	elseif f.Kind == "Park" and f.Size and t >= 7 and t < 22 then
+	elseif f.Kind == "Park" and f.Size then
 		local hx, hz = math.max(6, f.Size.X / 2 - 8), math.max(6, f.Size.Z / 2 - 8)
 		local c = f.Center
 		local loop = {}
@@ -579,6 +649,7 @@ local function clearFeature(f: Feature)
 end
 
 function CrowdService.tickParks()
+	local t = clock()
 	for _, f in features do
 		for i = #f.Npcs, 1, -1 do
 			if not f.Npcs[i].Parent then
@@ -586,7 +657,16 @@ function CrowdService.tickParks()
 			end
 		end
 		local near = playerNear(f.Center, CrowdService.PARK_RADIUS)
-		if near and #f.Npcs == 0 and (counts.Park or 0) < CrowdService.PARK_CAP then
+		if #f.Npcs > 0 and not OpeningHours.isOpen(FEATURE_HOURS[f.Kind], t) then
+			-- Se hace tarde: se van a casa (sin esfumarse delante de nadie)
+			if near then
+				closing(f.Npcs, not f.Closing, if f.Kind == "Playground" then "¡Mamá, ya voy!" else "Uy, qué tarde. ¡A casa!")
+				f.Closing = true
+			else
+				clearFeature(f)
+			end
+		elseif near and #f.Npcs == 0 and (counts.Park or 0) < CrowdService.PARK_CAP then
+			f.Closing = nil
 			-- (no en todos los bancos: uno de cada tres, más o menos, y siempre el mismo)
 			if f.Kind ~= "Bench" or (math.floor(f.Center.X * 7 + f.Center.Z * 13) % 3 == 0) then
 				spawnFeature(f)

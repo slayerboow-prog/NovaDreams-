@@ -37,7 +37,7 @@ TerrainBuilder.removeGroundPart()
 local Roads = require(World.Kit.Roads)
 local segments = {}
 for _, segment in Roads.segments() do
-	table.insert(segments, { A = segment.A, B = segment.B, Kind = segment.Kind, Width = Roads.Kinds[segment.Kind].Road })
+	table.insert(segments, { A = segment.A, B = segment.B, Kind = segment.Kind, Width = Roads.Kinds[segment.Kind].Road, Walk = Roads.Kinds[segment.Kind].Walk })
 end
 require(World.Ambient).publish(TownBuilder.roads(), segments)
 

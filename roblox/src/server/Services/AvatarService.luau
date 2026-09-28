@@ -293,7 +293,13 @@ local function watch(player: Player)
 	end)
 end
 
+local lastToggle: { [Player]: number } = {}
+
 function AvatarService.init()
+	Players.PlayerRemoving:Connect(function(player)
+		busy[player] = nil
+		lastToggle[player] = nil
+	end)
 	Players.PlayerAdded:Connect(watch)
 	for _, player in Players:GetPlayers() do
 		watch(player)
@@ -304,9 +310,11 @@ function AvatarService.init()
 	local remote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Avatar") :: RemoteEvent
 	remote.OnServerEvent:Connect(function(player, action)
 		local data = DataService.get(player)
-		if action ~= "Toggle" or not data or busy[player] then
+		-- (con su pausa: cada cambio vuelve a vestir al personaje, no se puede pedir sin parar)
+		if action ~= "Toggle" or not data or busy[player] or os.clock() - (lastToggle[player] or -10) < 2 then
 			return
 		end
+		lastToggle[player] = os.clock()
 		data.OwnAvatar = not data.OwnAvatar
 		player:SetAttribute("OwnAvatar", data.OwnAvatar)
 		AvatarService.apply(player)
