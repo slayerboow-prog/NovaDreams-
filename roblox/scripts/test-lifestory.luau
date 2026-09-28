@@ -1797,6 +1797,7 @@ check(playLoco(nora, "Saga_17_Rescate") and noraData.Story.Flags.CosmeRescatado 
 check(playLoco(nora, "Saga_18_Precio") and noraData.Items.FotoSinMemoria == 1 and noraData.Story.Flags.SagaActo3, "18 · El precio: Cosme no recuerda nada")
 
 sagaStage("Adulto")
+nora.At = "Parque" -- se va del garaje (si no, la siguiente canónica empieza sola allí mismo)
 passTime(nora, 5)
 check(canonIds(nora).Saga_19_Recuerdos, "Acto IV: de adulto, el mapa marca devolverle la memoria a Cosme")
 check(playLoco(nora, "Saga_19_Recuerdos") and noraData.Items.AlbumRecuerdos == 1 and not noraData.Story.Flags.CosmeSinMemoria, "19 · Los recuerdos: Cosme vuelve a ser Cosme")
