@@ -4464,7 +4464,7 @@ local Interiors = loadModule(ROOT .. "/server/World/Interiors")
 local lab = fakeInstance("Model")
 lab.Name = "PruebasPersonal"
 lab.Parent = worldRoot
-local BASE = Vector3.new(9000, 0, 9000)
+local BASE = Vector3.new(61000, 0, -61000) -- (lejos de los jugadores de las otras pruebas)
 -- Un puesto por cada oficio que atiende al público (los de la ciudad: marcas StaffSpot de Kit/Decor)
 local ROLES = {
 	{ "Dependiente" }, { "Cajero" }, { "Cajera" }, { "Recepcionista" }, { "Informadora" }, { "Vigilante" },
