@@ -182,7 +182,7 @@ local function drop(player: Player, data: { [string]: any }, slot: any)
 end
 
 local function move(player: Player, data: { [string]: any }, from: any, to: any)
-	if typeof(from) ~= "number" or typeof(to) ~= "number" then
+	if typeof(from) ~= "number" or typeof(to) ~= "number" or from ~= from or to ~= to then
 		return
 	end
 	from, to = math.floor(from), math.floor(to)

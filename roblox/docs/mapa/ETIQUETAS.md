@@ -76,6 +76,13 @@ se usan así, sin tocar el mapa: `{ Tag = "StoryArea", Attribute = { AreaId = "B
   - Pistas de la mochila: `Pista_Papel`, `Pista_Pegatina` (patio), `Pista_Huella`, `Pista_Objeto` (camino al gimnasio)
   - Gimnasio: `Gimnasio_Grupo`, `Gimnasio_Puerta`, `Almacen_NPC`
   - Fútbol: `Futbol_Centro`, `Futbol_PorteriaA`, `Futbol_PorteriaB` (campo de fútbol)
+  - Persecución: `Escondite` (muro bajo y cajas en el patio), `Atajo_Musica` (dentro del aula de música, junto a
+    su puerta trasera) y `Atajo_Musica_Salida` (fuera, en el patio, camino del gimnasio). La puerta es decorativa:
+    la historia lleva al jugador de un punto al otro.
+  - Sala cerrada ("El misterio del colegio"): StoryArea `SalaCerrada` (cuarto viejo detrás del pasillo, con pupitres
+    antiguos y trofeos), StorySpot `SalaCerrada_Puerta` (puerta con candado y cartel "NO ENTRAR", mirando al pasillo)
+    y `SalaCerrada_Dentro`; StoryProp `FotoAntigua` (en la pared). La puerta es decorativa: la historia te mete dentro.
+- Granja (Villaverde): el modelo `Granja` tiene los hijos `Granero` y `Silo`.
 - Ya existían: `SchoolEntrance`, `Classroom`/`Desk`/`Board`/`TeacherSpot` (+`ClassroomId`), `MusicRoom`, `RecessArea`, `PEArea`
 
 **Parques** (atributo `Town`; 8 parques)

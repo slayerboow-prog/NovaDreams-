@@ -17,6 +17,16 @@ Config.StartingMoney = 500
 ---------------------------------------------------------------------
 Config.DayLengthMinutes = 20 -- minutos reales que dura un día completo
 Config.StartClockTime = 8 -- hora a la que empieza el servidor
+-- Horario del colegio y del instituto. Mientras haya algún niño o adolescente en el servidor, de
+-- Start a End el reloj va más despacio (ClockSpeed): así un día de cole cabe en su horario de verdad.
+Config.SchoolDay = {
+	Opens = 8.5, -- se abren las puertas
+	Start = 9, -- empiezan las clases
+	LunchFrom = 14, -- comida en el comedor
+	LunchTo = 15,
+	End = 17, -- se acaban las clases y cierra
+	ClockSpeed = 0.4, -- en horario de clase, una hora de juego dura 2,5 veces más
+}
 Config.LampsOnAt = 18 -- las farolas se encienden a esta hora...
 Config.LampsOffAt = 6.5 -- ...y se apagan a esta
 
@@ -83,6 +93,28 @@ Config.StageBody = {
 	Mayor = { Scale = 1, WalkSpeed = 13, JumpHeight = 5 },
 }
 
+-- Aspecto por defecto del protagonista (AvatarService): sudadera negra con capucha gris abierta,
+-- camiseta blanca, pantalón cargo negro, zapatillas blancas, mochila negra, colgante con chapa
+-- y pelo castaño despeinado. Cada jugador puede cambiar a su avatar de Roblox en el Menú.
+-- Si subes una cara o ropa a Roblox (Creator Hub), pon aquí su ID (0 = no se usa):
+Config.DefaultLook = {
+	Enabled = true,
+	Skin = Color3.fromRGB(234, 190, 150),
+	Hair = Color3.fromRGB(74, 46, 30),
+	HairOld = Color3.fromRGB(196, 196, 200), -- de mayor, pelo canoso
+	Hoodie = Color3.fromRGB(26, 26, 30),
+	HoodLining = Color3.fromRGB(150, 152, 158),
+	Tee = Color3.fromRGB(236, 236, 236),
+	Pants = Color3.fromRGB(34, 36, 42),
+	Shoes = Color3.fromRGB(245, 245, 245),
+	Backpack = Color3.fromRGB(22, 22, 26),
+	Metal = Color3.fromRGB(200, 204, 210),
+	Onesie = Color3.fromRGB(170, 205, 235), -- pelele del bebé
+	FaceId = 0,
+	ShirtId = 0,
+	PantsId = 0,
+}
+
 -- Qué etapa mínima hace falta para cada cosa (el servidor lo comprueba siempre)
 Config.StageLimits = {
 	Work = "Adolescente", -- trabajar (a los adolescentes solo trabajos sencillos)
@@ -106,17 +138,87 @@ Config.Baby = {
 -- 2. Copia el ID de cada audio aquí (campo Id). Mientras sea 0, ese audio no suena
 --    (todo lo demás funciona igual). También me los puedes pasar y los pongo yo.
 ---------------------------------------------------------------------
+-- Efectos de sonido del juego (client/Controllers/SoundFx.luau). Cada uno puede ser:
+--   * "rbxasset://sounds/..." -> sonidos que vienen instalados con Roblox (funcionan siempre)
+--   * un número -> ID de un audio de Roblox (de la Caja de herramientas o subido por ti)
+--   * 0 -> no suena
+-- También se puede arrastrar un Sound a ReplicatedStorage > Sonidos con el mismo nombre
+-- (por ejemplo "Motor"): ese tiene preferencia.
+Config.Sounds = {
+	Salto = { Id = "rbxasset://sounds/swoosh.wav", Volume = 0.25, Pitch = 1.3 },
+	Aterrizaje = { Id = "rbxasset://sounds/action_jump_land.mp3", Volume = 0.7, Pitch = 0.8 },
+	Golpe = { Id = "rbxasset://sounds/collide.wav", Volume = 0.6, Pitch = 1 },
+	Chapuzon = { Id = "rbxasset://sounds/impact_water.mp3", Volume = 0.7, Pitch = 1 },
+	Trepar = { Id = "rbxasset://sounds/action_get_up.mp3", Volume = 0.6, Pitch = 1.1 },
+	Clic = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.3, Pitch = 1 },
+	Aviso = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.35, Pitch = 1.2 },
+	Error = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.35, Pitch = 0.6 },
+	-- Menú de comandos: moverse, aceptar, volver y abrir un submenú
+	MenuMover = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.22, Pitch = 1.45 },
+	MenuOk = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.3, Pitch = 1.6 },
+	MenuAtras = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.28, Pitch = 0.75 },
+	MenuAbrir = { Id = "rbxasset://sounds/swoosh.wav", Volume = 0.2, Pitch = 1.8 },
+	Choque = { Id = "rbxasset://sounds/collide.wav", Volume = 1, Pitch = 0.55 },
+	Arranque = { Id = "rbxasset://sounds/switch.wav", Volume = 0.5, Pitch = 0.7 },
+	-- Armas (shared/Weapons: Sound.Shot). Suenan con sonidos de Roblox retocados; para uno de verdad,
+	-- pon un Sound con ese nombre en ReplicatedStorage > Sonidos.
+	DisparoPistola = { Id = "rbxasset://sounds/collide.wav", Volume = 1, Pitch = 1.9 },
+	DisparoRevolver = { Id = "rbxasset://sounds/collide.wav", Volume = 1, Pitch = 1.4 },
+	DisparoEscopeta = { Id = "rbxasset://sounds/collide.wav", Volume = 1, Pitch = 0.8 },
+	DisparoSubfusil = { Id = "rbxasset://sounds/collide.wav", Volume = 0.8, Pitch = 2.2 },
+	DisparoFusil = { Id = "rbxasset://sounds/collide.wav", Volume = 1, Pitch = 1.7 },
+	DisparoFrancotirador = { Id = "rbxasset://sounds/collide.wav", Volume = 1, Pitch = 1.1 },
+	DisparoTaser = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.5, Pitch = 2.5 },
+	DisparoAgua = { Id = "rbxasset://sounds/impact_water.mp3", Volume = 0.3, Pitch = 2 },
+	DisparoPaintball = { Id = "rbxasset://sounds/paintball.wav", Volume = 0.6, Pitch = 1 },
+	EcoDisparo = { Id = "rbxasset://sounds/collide.wav", Volume = 0.45, Pitch = 0.45 }, -- cola / eco del disparo
+	ArmaSeco = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.5, Pitch = 0.7 }, -- sin balas
+	CargadorFuera = { Id = "rbxasset://sounds/switch.wav", Volume = 0.5, Pitch = 1.3 },
+	CargadorDentro = { Id = "rbxasset://sounds/switch.wav", Volume = 0.6, Pitch = 0.9 },
+	Corredera = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.6, Pitch = 0.5 },
+	Casquillo = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.12, Pitch = 3.5 },
+	Rebote = { Id = "rbxasset://sounds/swoosh.wav", Volume = 0.35, Pitch = 2.5 },
+	ImpactoBala = { Id = "rbxasset://sounds/collide.wav", Volume = 0.35, Pitch = 2.6 },
+	-- Muebles de las casas y edificios (InteractClient)
+	Interruptor = { Id = "rbxasset://sounds/switch.wav", Volume = 0.35, Pitch = 1.4 },
+	Puerta = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.4, Pitch = 0.55 },
+	Nevera = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.35, Pitch = 0.8 },
+	Agua = { Id = "rbxasset://sounds/action_swim.mp3", Volume = 0.25, Pitch = 1.6 },
+	Piano = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.35, Pitch = 1 },
+	Tecla = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.12, Pitch = 1.8 },
+	Tele = { Id = 0, Volume = 0.3, Pitch = 1 }, -- (pon un ID para oír la tele encendida)
+	-- Estos no vienen con Roblox: pon un ID (o un Sound en ReplicatedStorage > Sonidos) para oírlos
+	Motor = { Id = 0, Volume = 0.45, Pitch = 1 }, -- en bucle mientras conduces un coche o una moto
+	Claxon = { Id = 0, Volume = 0.8, Pitch = 1 }, -- tecla H en coche o moto
+	Timbre = { Id = 0, Volume = 0.6, Pitch = 1 }, -- tecla H en bici o patinete
+	Multitud = { Id = 0, Volume = 0.25, Pitch = 1 }, -- murmullo de gente en el centro
+}
+
+-- Voces de la gente de la ciudad (voz sintetizada de Roblox, como la de la historia)
+Config.StreetVoices = {
+	Enabled = true,
+	Volume = 0.7,
+	Distance = 26, -- a cuántos studs se oye a un trabajador hablar solo
+	Every = { 18, 40 }, -- cada cuántos segundos dice algo alguien cercano
+	Lines = {
+		"¡Buenos días!", "Qué buen día hace hoy.", "¿Has visto el partido de ayer?", "Hoy hay mucho lío.",
+		"Uf, qué calor.", "¡Hola, vecino!", "Luego te llamo.", "Me voy a tomar un café.",
+		"¿Sabes dónde está la estación?", "Mañana es fiesta.", "¡Qué bonito está el mar!",
+	},
+	Emotes = { Saludar = "¡Hola!", Reir = "¡Ja, ja, ja!", Animar = "¡Vamos!", Senalar = "¡Mira allí!", NoSe = "Ni idea…" },
+}
+
 Config.Audio = {
 	Music = {
-		Nacimiento = { Id = 0, File = "nacimiento.ogg", Volume = 0.4, Looped = true },
-		TemaValmar = { Id = 0, File = "tema_valmar.ogg", Volume = 0.45, Looped = true },
-		PasanLosAnos = { Id = 0, File = "pasan_los_anos.ogg", Volume = 0.5, Looped = false },
-		VidaAdulta = { Id = 0, File = "vida_adulta.ogg", Volume = 0.4, Looped = true },
+		Nacimiento = { Id = 99685990275611, File = "nacimiento.ogg", Volume = 0.4, Looped = true },
+		TemaValmar = { Id = 71915200549382, File = "tema_valmar.ogg", Volume = 0.45, Looped = true },
+		PasanLosAnos = { Id = 136669358482377, File = "pasan_los_anos.ogg", Volume = 0.5, Looped = false },
+		VidaAdulta = { Id = 90317690788724, File = "vida_adulta.ogg", Volume = 0.4, Looped = true },
 	},
 	Stings = {
-		Momento = { Id = 0, File = "sting_momento.ogg", Volume = 0.55 },
-		Capitulo = { Id = 0, File = "sting_capitulo.ogg", Volume = 0.55 },
-		PrimerosPasos = { Id = 0, File = "sting_primeros_pasos.ogg", Volume = 0.6 },
+		Momento = { Id = 107278309519549, File = "sting_momento.ogg", Volume = 0.55 },
+		Capitulo = { Id = 99594760388393, File = "sting_capitulo.ogg", Volume = 0.55 },
+		PrimerosPasos = { Id = 129269798599195, File = "sting_primeros_pasos.ogg", Volume = 0.6 },
 	},
 	AmbientVolume = 0.2, -- música de fondo de un capítulo (más baja que en las cinemáticas)
 	DuckVolume = 0.45, -- la música baja a este porcentaje mientras alguien habla
@@ -190,6 +292,139 @@ Config.Jobs = {
 		CarryColor = Color3.fromRGB(30, 30, 30),
 		CarrySize = Vector3.new(1.6, 2, 1.6),
 	},
+	-- Médico/a: consultas del hospital (MedicalService: su propio sistema, no este circuito)
+	Medico = {
+		DisplayName = "Médico/a",
+		Place = "Hospital",
+		Pay = 30,
+		EnergyCost = 3,
+		PickupText = "",
+		DropoffText = "",
+		CarryColor = Color3.fromRGB(250, 250, 250),
+		CarrySize = Vector3.new(1, 1, 1),
+	},
+	Policia = {
+		DisplayName = "Policía",
+		Place = "Comisaría",
+		Pay = 30,
+		EnergyCost = 3,
+		PickupText = "",
+		DropoffText = "",
+		CarryColor = Color3.fromRGB(250, 250, 250),
+		CarrySize = Vector3.new(1, 1, 1),
+	},
+	-- Instituciones del Estado (Ciudad de la Justicia; carreras y rangos en shared/Institutions)
+	Juez = {
+		DisplayName = "Juez/a",
+		Place = "Palacio de Justicia",
+		Pay = 30,
+		EnergyCost = 2,
+		PickupText = "Recoge un expediente del archivo",
+		DropoffText = "Estudia el expediente en el estrado",
+		CarryColor = Color3.fromRGB(220, 190, 110),
+		CarrySize = Vector3.new(1.2, 0.4, 1.6),
+	},
+	Funcionario = {
+		DisplayName = "Funcionario/a de prisiones",
+		Place = "Centro Penitenciario",
+		Pay = 30,
+		EnergyCost = 3,
+		PickupText = "Recoge las llaves y el parte en la garita",
+		DropoffText = "Haz la ronda: revisa el punto marcado",
+		CarryColor = Color3.fromRGB(200, 200, 210),
+		CarrySize = Vector3.new(0.8, 0.3, 0.8),
+	},
+	Militar = {
+		DisplayName = "Militar",
+		Place = "Cuartel del Ejército",
+		Pay = 32,
+		EnergyCost = 4,
+		PickupText = "Recoge tu equipo en la armería",
+		DropoffText = "Cubre el puesto marcado (guardia o instrucción)",
+		CarryColor = Color3.fromRGB(78, 92, 56),
+		CarrySize = Vector3.new(1.6, 1.2, 0.8),
+	},
+	Hacienda = {
+		DisplayName = "Agente de Hacienda",
+		Place = "Agencia Tributaria",
+		Pay = 28,
+		EnergyCost = 2,
+		PickupText = "Recoge un expediente fiscal del archivo",
+		DropoffText = "Tramítalo en una mesa de la oficina",
+		CarryColor = Color3.fromRGB(240, 240, 230),
+		CarrySize = Vector3.new(1.2, 0.4, 1.6),
+	},
+	Bombero = {
+		DisplayName = "Bombero/a",
+		Place = "Parque de bomberos",
+		Pay = 30,
+		EnergyCost = 4,
+		PickupText = "",
+		DropoffText = "",
+		CarryColor = Color3.fromRGB(250, 250, 250),
+		CarrySize = Vector3.new(1, 1, 1),
+	},
+	Taquillero = {
+		DisplayName = "Taquillero/a",
+		Place = "Cine",
+		Pay = 12,
+		EnergyCost = 2,
+		PickupText = "",
+		DropoffText = "",
+		CarryColor = Color3.fromRGB(250, 250, 250),
+		CarrySize = Vector3.new(1, 1, 1),
+	},
+	Revisor = {
+		DisplayName = "Revisor",
+		Place = "Metro",
+		Pay = 4,
+		EnergyCost = 1,
+		PickupText = "",
+		DropoffText = "",
+		CarryColor = Color3.fromRGB(250, 250, 250),
+		CarrySize = Vector3.new(1, 1, 1),
+	},
+	Armero = {
+		DisplayName = "Armero/a",
+		Place = "Armeria",
+		Pay = 14,
+		EnergyCost = 1,
+		PickupText = "",
+		DropoffText = "",
+		CarryColor = Color3.fromRGB(250, 250, 250),
+		CarrySize = Vector3.new(1, 1, 1),
+	},
+	Pescador = {
+		DisplayName = "Pescador",
+		Place = "Puerto",
+		Pay = 10,
+		EnergyCost = 1,
+		PickupText = "",
+		DropoffText = "",
+		CarryColor = Color3.fromRGB(250, 250, 250),
+		CarrySize = Vector3.new(1, 1, 1),
+	},
+	-- Monitor/a de gimnasio (GymService: corrige la postura de quien entrena)
+	MonitorGimnasio = {
+		DisplayName = "Monitor/a de gimnasio",
+		Place = "Gimnasio",
+		Pay = 14,
+		EnergyCost = 2,
+		PickupText = "",
+		DropoffText = "",
+		CarryColor = Color3.fromRGB(250, 250, 250),
+		CarrySize = Vector3.new(1, 1, 1),
+	},
+	Recepcionista = {
+		DisplayName = "Recepcionista",
+		Place = "Hotel",
+		Pay = 10,
+		EnergyCost = 2,
+		PickupText = "",
+		DropoffText = "",
+		CarryColor = Color3.fromRGB(250, 250, 250),
+		CarrySize = Vector3.new(1, 1, 1),
+	},
 	Repartidor = {
 		DisplayName = "Repartidor",
 		Place = "Correos",
@@ -214,7 +449,7 @@ Config.Foods = {
 	Hamburguesa = { Name = "Hamburguesa", Price = 25, Hunger = 55, Energy = 0 },
 	Menu = { Name = "Menú completo", Price = 45, Hunger = 100, Energy = 10 },
 	-- La nevera de tu casa es gratis, pero tiene tiempo de espera
-	Nevera = { Name = "Algo de la nevera", Price = 0, Hunger = 20, Energy = 0, Cooldown = 180 },
+	Nevera = { Name = "Algo de la nevera", Price = 0, Hunger = 20, Energy = 0, Cooldown = 3 }, -- (en casa se come sin límite)
 }
 
 Config.SleepSeconds = 4 -- lo que dura la animación de dormir

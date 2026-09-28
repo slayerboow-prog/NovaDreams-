@@ -34,6 +34,7 @@ type Home = {
 	Index: number,
 	Users: { [Player]: boolean },
 	Ready: boolean,
+	Npcs: { [string]: Model }, -- la familia de esa casa (para poner su bocadillo encima)
 }
 type Baby = {
 	HomeId: string,
@@ -51,6 +52,17 @@ local babies: { [Player]: Baby } = {}
 -- Utilidades
 ---------------------------------------------------------------------
 
+-- El familiar que habla, en la casa de tu familia (su bocadillo sale encima de él)
+local function familyModel(player: Player, role: string?): Model?
+	if not role then
+		return nil
+	end
+	local baby = babies[player]
+	local home = homes[player:GetAttribute("FamilyHomeId") or (baby and baby.HomeId) or ""]
+	local model = home and home.Npcs[if role == "Abu" then "Familia_Abu" else "Familia_Padre"]
+	return if model and model.Parent then model else nil
+end
+
 -- Role: quién habla ("Abu", "Familia" o nil = narrador), para ponerle su voz
 local function say(player: Player, speakerKey: string?, textKey: string, delay: number?)
 	local role = if speakerKey == "NPC.ABU_ROSA" or speakerKey == "NPC.ABU_TOMAS"
@@ -59,7 +71,7 @@ local function say(player: Player, speakerKey: string?, textKey: string, delay: 
 		else nil
 	local function fire()
 		if player.Parent then
-			Remote:FireClient(player, "Say", { SpeakerKey = speakerKey, TextKey = textKey, Role = role })
+			Remote:FireClient(player, "Say", { SpeakerKey = speakerKey, TextKey = textKey, Role = role, Speaker = familyModel(player, role) })
 		end
 	end
 	if delay then
@@ -173,16 +185,22 @@ local function setupHome(home: Home)
 	home.Ready = true
 	local abuKey = if home.Index % 2 == 1 then "NPC.ABU_ROSA" else "NPC.ABU_TOMAS"
 	local familyKey = if home.Index % 2 == 1 then "NPC.PAPA" else "NPC.MAMA"
+	-- Work: la abuela teje en el salón y papá/mamá cocina en la cocina (lo anima el cliente)
 	local people = {
-		{ Npc = "Familia_Abu", NameKey = abuKey, Skin = Color3.fromRGB(234, 196, 160) },
-		{ Npc = "Familia_Padre", NameKey = familyKey, Skin = Color3.fromRGB(198, 150, 112) },
+		{ Npc = "Familia_Abu", NameKey = abuKey, Skin = Color3.fromRGB(234, 196, 160), Work = "Knit" },
+		{ Npc = "Familia_Padre", NameKey = familyKey, Skin = Color3.fromRGB(198, 150, 112), Work = "Stir" },
 	}
 	for _, person in people do
 		local spot = findTagged(home.Model, "FamilySpot", { Npc = person.Npc })
 		if spot then
 			local npc = makeNpc(home, spot, person.NameKey, person.Skin)
+			home.Npcs[person.Npc] = npc
 			-- Id del reparto (Cast): si una escena de la historia trae a este personaje, el fijo se oculta
 			npc:SetAttribute("NpcId", if person.Npc == "Familia_Abu" then "Abu" else "Familia")
+			Npc.work(npc, person.Work)
+			if person.Npc == "Familia_Abu" then
+				npc:SetAttribute("Age", "Mayor") -- anda encorvada (Controllers/AgeMotion)
+			end
 			CollectionService:AddTag(npc, "StaticNpc")
 			local root = npc:FindFirstChild("HumanoidRootPart") :: BasePart?
 			if root then
@@ -284,7 +302,7 @@ local function indexHomes()
 	for index, model in list do
 		local id = model:GetAttribute("HomeId")
 		if model:IsA("Model") and id and not homes[id] then
-			homes[id] = { Id = id, Model = model, Index = index, Users = {}, Ready = false }
+			homes[id] = { Id = id, Model = model, Index = index, Users = {}, Ready = false, Npcs = {} }
 		end
 	end
 end

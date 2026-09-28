@@ -1,14 +1,18 @@
 -- Npc: personajes sencillos controlados por el servidor (clientes, camarero, barman…).
 --   Npc.create(name, parent, cf, look?)  -> Model con HumanoidRootPart anclado (se mueve con tweens)
---   Npc.say(npc, text?)                  -> bocadillo de texto sobre la cabeza (nil lo oculta)
+--   Npc.say(npc, text?, seconds?)        -> bocadillo de texto sobre la cabeza (nil lo oculta); lo dibuja
+--                                           cada cliente cercano (UI/SpeechBubbles, remoto "Speech")
 --   Npc.icon(npc, text?)                 -> icono pequeño sobre la cabeza (✋, ⏳, 😋…)
 --   Npc.walkTo(npc, { Vector3 }, speed)  -> camina por esos puntos (espera hasta llegar)
 --   Npc.sit(npc, seat) / Npc.stand(npc)  -> sentarse en una silla y levantarse
+--   Npc.sitAt(npc, cf)                   -> sentarse en un punto (banco o silla sin Seat)
 --   Npc.dress(npc, look)                 -> ropa (camiseta, pantalón, zapatos), pelo y, si es niño, mochila
 --   Npc.placeFeet(npc, cf)               -> lo pone de pie con los pies justo en cf (no bajo tierra)
+--   Npc.work(npc, "Sweep")               -> su tarea mientras espera (barrer, cobrar…); la anima el cliente
 -- Usa el avatar por defecto de Roblox con colores al azar; si falla, un muñeco de bloques.
 
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
 local Npc = {}
@@ -199,10 +203,9 @@ local function billboard(npc: Model, name: string, offset: number, size: UDim2):
 		g.Parent = head
 		local label = Instance.new("TextLabel")
 		label.Size = UDim2.fromScale(1, 1)
-		label.BackgroundColor3 = Color3.new(1, 1, 1)
-		label.BackgroundTransparency = if name == "Bubble" then 0.05 else 1
-		label.TextColor3 = if name == "Bubble" then Color3.fromRGB(20, 20, 24) else Color3.new(1, 1, 1)
-		label.TextStrokeTransparency = if name == "Bubble" then 1 else 0.3
+		label.BackgroundTransparency = 1
+		label.TextColor3 = Color3.new(1, 1, 1)
+		label.TextStrokeTransparency = 0.3
 		label.TextScaled = true
 		label.TextWrapped = true
 		label.FontFace = Font.fromEnum(Enum.Font.GothamBold)
@@ -221,12 +224,56 @@ local function billboard(npc: Model, name: string, offset: number, size: UDim2):
 	return (gui :: BillboardGui):FindFirstChildOfClass("TextLabel")
 end
 
--- Bocadillo de texto (nil lo oculta)
-function Npc.say(npc: Model, text: string?)
-	local label = billboard(npc, "Bubble", 3.4, UDim2.fromOffset(260, 70))
-	if label then
-		label.Text = text or ""
-		label.Parent.Enabled = text ~= nil
+-- Remoto de los bocadillos (lo crea si falta; false si no se puede, p. ej. en las pruebas)
+local speechRemote: RemoteEvent | false | nil = nil
+local function speech(): RemoteEvent?
+	if speechRemote == nil then
+		local ok, found = pcall(function()
+			local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+			if not remotes then
+				return nil
+			end
+			local remote = remotes:FindFirstChild("Speech")
+			if not remote then
+				remote = Instance.new("RemoteEvent")
+				remote.Name = "Speech"
+				remote.Parent = remotes
+			end
+			return remote
+		end)
+		speechRemote = if ok and found then found else false
+	end
+	return if speechRemote then speechRemote else nil
+end
+
+-- Bocadillo de texto (nil lo oculta). Sin seconds se queda hasta que se quite (el cliente le pone
+-- un tope); con seconds se va solo. Lo dibuja cada jugador cerca (UI/SpeechBubbles): un bocadillo
+-- por personaje, y el atributo Says dice qué está diciendo (el cliente gesticula, las pruebas lo leen).
+function Npc.say(npc: Model, text: string?, seconds: number?)
+	if not npc then
+		return
+	end
+	local line = if text ~= nil and text ~= "" then text else nil
+	pcall(function()
+		npc:SetAttribute("Says", line)
+	end)
+	local remote = speech()
+	if remote then
+		remote:FireAllClients({
+			Speaker = npc,
+			Text = line,
+			Seconds = seconds,
+			Name = npc:GetAttribute("SpeakerName"),
+		})
+	end
+	if seconds and line then
+		task.delay(seconds, function()
+			if npc.Parent and npc:GetAttribute("Says") == line then
+				pcall(function()
+					npc:SetAttribute("Says", nil)
+				end)
+			end
+		end)
 	end
 end
 
@@ -267,6 +314,13 @@ function Npc.walkTo(npc: Model, points: { Vector3 }, speed: number?)
 	end
 end
 
+-- Tarea que hace mientras espera: el cliente le mueve los brazos y le pone el objeto en la mano
+-- (Controllers/WorkAnim: Sweep, Clipboard, Phone, Type, Scan, Cut, Coffee, Tray, Wipe, Count, Call,
+-- Present, Watch, Fold, Knit, Stir, Book, Guard, Traffic). nil = ninguna.
+function Npc.work(npc: Model, work: string?)
+	npc:SetAttribute("Work", work)
+end
+
 -- Mira hacia un punto (sin moverse)
 function Npc.face(npc: Model, point: Vector3)
 	local root = npc.PrimaryPart
@@ -295,6 +349,24 @@ function Npc.sit(npc: Model, seat: BasePart)
 		end
 	end
 	root.CFrame = seat.CFrame * CFrame.new(0, seat.Size.Y / 2 + 1.35, 0.4)
+end
+
+-- Se sienta en un punto (cf: la superficie del asiento, mirando hacia donde mira quien se sienta),
+-- para bancos y sillas sin pieza Seat: dobla las piernas y apoya la cadera en el asiento.
+function Npc.sitAt(npc: Model, cf: CFrame)
+	local root = npc.PrimaryPart or npc:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if not root then
+		return
+	end
+	for name, angle in LEG_JOINTS do
+		local joint = npc:FindFirstChild(name, true)
+		if joint and joint:IsA("Motor6D") and not joint:GetAttribute("BaseC0") then
+			joint:SetAttribute("BaseC0", joint.C0)
+			joint.C0 = joint.C0 * CFrame.Angles(math.rad(angle), 0, 0)
+		end
+	end
+	local lift = root.Size.Y / 2 + 0.25
+	npc:PivotTo(cf * CFrame.new(0, lift, 0) * root.CFrame:ToObjectSpace(npc:GetPivot()))
 end
 
 function Npc.stand(npc: Model, feet: Vector3?)

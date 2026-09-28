@@ -9,33 +9,55 @@ local TerrainBuilder = require(World.TerrainBuilder)
 -- 1) Terreno primero, para que nadie caiga al vacío mientras se prepara la ciudad
 TerrainBuilder.build()
 
--- 2) Packs gratuitos de Synty desde la Creator Store (si se pueden descargar)
-local packs = require(World.AssetLoader).load()
-
--- 3) La ciudad viene construida dentro del archivo (scripts/build-place.luau).
---    Si ahora hay packs y la ciudad del archivo se hizo sin ellos, se reconstruye con los modelos.
+-- 2) La ciudad viene construida dentro del archivo (scripts/build-place.luau) y ya optimizada.
+--    Antes, si se podían descargar los packs de Synty, se BORRABA y se volvía a construir entera
+--    al arrancar (casi 100.000 piezas): eso colgaba Studio y los PC modestos. Ya no se hace.
+--    (Solo se construye aquí si el archivo no trae la ciudad.)
 local town = workspace:FindFirstChild("Town")
-if town and packs > 0 and not town:GetAttribute("BuiltWithAssets") then
-	town:Destroy()
-	town = nil
-end
 local TownBuilder = require(World.TownBuilder)
 if not town then
 	TownBuilder.build()
 end
+-- Si el archivo trae una ciudad de antes de la decoración de las plantas bajas, se decora ahora
+-- (una vez: la ciudad guarda la versión en su atributo DecorVersion)
+do
+	local built = workspace:FindFirstChild("Town")
+	if built then
+		local ok, err = pcall(function()
+			require(World.Kit.Decor).dressTown(built)
+		end)
+		if not ok then
+			warn("[Decor] " .. tostring(err))
+		end
+	end
+end
 TerrainBuilder.removeGroundPart()
 
 -- 4) Datos para el tráfico y los peatones que simula cada cliente
-require(World.Ambient).publish(TownBuilder.roads())
+local Roads = require(World.Kit.Roads)
+local segments = {}
+for _, segment in Roads.segments() do
+	table.insert(segments, { A = segment.A, B = segment.B, Kind = segment.Kind, Width = Roads.Kinds[segment.Kind].Road })
+end
+require(World.Ambient).publish(TownBuilder.roads(), segments)
 
 local order = {
 	"DataService",
 	"MonetizationService",
 	"RoleService",
 	"LifeService",
+	"AvatarService", -- aspecto por defecto del protagonista (sudadera, cargo, mochila…)
+	"PositionService", -- al volver a entrar apareces donde lo dejaste
 	"NeedsService",
 	"WorldService",
+	"InteriorService", -- todos los edificios por dentro (salas al entrar, ascensores e instituciones)
+	"PropertyService", -- casas y pisos que se compran, y los vecinos que viven en ellos
+	"InteractService", -- los muebles se usan: sentarse, dormir, tele, luces, nevera, grifos, ducha, puertas…
+	"FridgeService", -- neveras: gratis con tus padres (colegio); desde la universidad, lo que compres y guardes
+	"ResidenceService", -- residencia universitaria: habitación compartida o individual para cada estudiante
 	"WeatherService", -- estaciones y tiempo: sol, lluvia, tormenta, nieve, niebla
+	"ToyService", -- balones y conos con física: se patean, botan y vuelven solos a su sitio
+	"BreakService", -- piedras que se lanzan: ventanas y puertas que se rompen (y se arreglan solas)
 	"GadgetService", -- inventos exclusivos de las misiones locas (pistola de rayos, mando de dimensiones…)
 	"JobService",
 	"FoodService",
@@ -45,19 +67,53 @@ local order = {
 	"VehicleService", -- bicis, monopatines, motos y coches
 	"RestaurantService", -- camarero + barman (con NPC si falta alguien)
 	"DrivingSchoolService", -- autoescuela: carnet de moto y de coche
+	"BusService", -- autobús urbano L1: pasajeros con billete y oficio de conductor
 	"ArcadeService", -- recreativos: juegos de bolas, tickets y premios
 	"ProgressionService", -- nivel, experiencia, estadísticas, vida y estamina
 	"LocationService",
 	"CinematicService",
 	"InventoryService", -- mochila estilo Minecraft (barra rápida + 27 casillas)
 	"ShopService", -- tiendas donde se hacen los recados
+	"SupermarketService", -- supermercados: carrito, cajas, charcutería, clientes y oficios
+	"CafeService", -- cafeterías: pedir en la barra y oficio de barista paso a paso
+	"PostService", -- Correos: oficio de repartidor con rutas por las casas de Valmar
+	"GarbageService", -- Limpieza: oficio de basurero con papeleras llenas y camión de la basura
+	"MedicalService", -- hospitales: pacientes, consultas y oficio de médico/a con diagnóstico
+	"PoliceService", -- comisarías: oficio de policía con avisos, coche patrulla y sirena
+	"FireService", -- bomberos: incendios en casas, coches y papeleras, gatos en apuros, camión y sirena
+	"CinemaService", -- cines: sesiones con película en pantalla y oficio de taquillero/a
+	"HotelService", -- hoteles: reservar habitación, descansar y oficio de recepcionista
+	"TradeService", -- intercambio entre jugadores y mercadillo
+	"SocialService", -- grupos de jugadores y chat privado (menú al tocar a un jugador)
+	"FishingService", -- pesca, tienda de pesca, barco y oficio de pescador
+	"FarmService", -- agricultores y ganaderos: fincas de Villaverde, cooperativa, obrador y venta a supermercados
+	"BusinessService", -- negocios de jugadores: locales, gasolineras y hoteles con existencias, precios y clientes
+	"MetroService", -- metro subterráneo: trenes, galería, encargos y revisor
+	"GymService", -- gimnasios: recepción, máquinas, ritmo, fuerza que se nota en el cuerpo y monitor/a
+	"MetroLifeService", -- vida del metro: guardias, ratas, aseos, taquillas, fuente, piano…
+	"StaffService", -- cada sitio que atiende al público tiene a alguien (NPC si no hay jugador de ese oficio)
+	"CrowdService", -- gente en las salas, las tiendas, los parques y las plazas (aunque juegues solo)
+	"DivingService", -- nadar, bucear (aire) y pesca submarina con fusil o arpón
+	"SeaEventService", -- catástrofes marinas: tsunami, temporal, remolino, marea negra, tiburón y medusas
 	"ClassService", -- clases y exámenes que se juegan (lo usa la historia)
 	"DialogueService", -- conversaciones con respuestas (misiones episódicas)
 	"MiniGameService", -- pase, canastas, partido de fútbol…
+	"CombatService", -- golpes entre jugadores (combo, defenderse y K.O.) y a los personajes de tus misiones
+	"CareerService", -- carreras en las instituciones: rangos, ascensos, plus de sueldo y uniformes
+	"JusticeService", -- juicios (jueces), condenas y prisión (presos y funcionarios)
+	"TaxService", -- Agencia Tributaria: declaración de la renta, agentes e inspecciones
+	"ConductService", -- historial de buen o mal comportamiento: la familia se entera, castigos y paga
+	"WantedService", -- delitos, testigos y estrellas de búsqueda: patrullas, agentes y helicópteros
+	"WeaponService", -- armas de fuego y de juguete, Armerías, licencia de armas y galería de tiro
+	"HospitalService", -- morir: pantalla de HAS MUERTO y reaparecer en el hospital (factura)
+	"PrisonService", -- la vida en la cárcel: trabajos, deporte, estudios, comedor, túnel y aislamiento
 	"SceneService", -- actores y objetos de cada misión (solo para su jugador)
 	"LifeStoryService", -- la historia de vida escucha a todos los anteriores
 	"BabyService", -- tutorial de bebé (fase 2)
-	"SchoolService", -- compañeros y profe en cada colegio
+	"CanteenService", -- comedor de cada colegio: comida gratis para los alumnos, cocinera y mesas puestas
+	"SchoolService", -- compañeros y profe en cada colegio: siguen el horario y van a buscarte si tu misión lo pide
+	"UpdateService", -- versión nueva publicada: los servidores viejos llevan a sus jugadores a uno nuevo
+	"ActionService", -- linterna (los gestos, trepar y sentarse van en el cliente)
 }
 
 for _, name in order do

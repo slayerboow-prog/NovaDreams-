@@ -22,6 +22,8 @@ local muted = false
 local folder: Folder
 local current: { Cue: string, Sound: Sound, Volume: number }? = nil
 local ambientCue: string? = nil
+local chapterCue: string? = nil -- la música que pide el capítulo (nil = ninguna)
+local loadWarned = false
 local inCinematic = false
 local speaking = 0
 local ttsAvailable = AUDIO.Voices.TextToSpeech
@@ -92,6 +94,19 @@ local function playMusic(cue: string?, volumeScale: number)
 	sound.Volume = 0
 	sound.Parent = folder
 	sound:Play()
+	-- Si Roblox no deja cargar el audio (permisos o revisión), avisarlo en la ventana Salida
+	task.delay(10, function()
+		if sound.Parent and not sound.IsLoaded then
+			warn(("[Música] No se ha podido cargar «%s» (%s). ¿Sigue en revisión o el juego no es del mismo dueño que el audio?"):format(cue :: string, id))
+			-- En el móvil no se ve la ventana Salida: avisarlo una vez en pantalla
+			if not loadWarned then
+				loadWarned = true
+				pcall(function()
+					require(script.Parent.Parent.UI.Hud).toast("Error", "🎵 La música no se ha podido cargar (Roblox aún no deja usar el audio en este juego).")
+				end)
+			end
+		end
+	end)
 	current = { Cue = cue :: string, Sound = sound, Volume = (track.Volume or 0.4) * volumeScale }
 	fadeTo(sound, targetVolume(current.Volume), 2)
 	if not sound.Looped then
@@ -108,8 +123,22 @@ local function playMusic(cue: string?, volumeScale: number)
 	end
 end
 
+-- Música de fondo cuando el capítulo no pide ninguna: según tu etapa de vida
+local function defaultCue(): string
+	local stage = Players.LocalPlayer:GetAttribute("LifeStage")
+	if stage == "Bebe" then
+		return "Nacimiento"
+	elseif stage == "Nino" or stage == "Adolescente" then
+		return "TemaValmar"
+	end
+	return "VidaAdulta"
+end
+
 -- Música de fondo del capítulo (más baja). Se aplica cuando no hay una cinemática sonando.
+-- Sin música de capítulo suena la de tu etapa: así nunca se queda en silencio.
 function StoryAudio.setAmbient(cue: string?)
+	chapterCue = cue
+	cue = cue or defaultCue()
 	if cue == ambientCue then
 		return
 	end
@@ -280,6 +309,15 @@ function StoryAudio.init()
 		TextSize = 22,
 		Parent = gui,
 	})
+	-- Música de fondo siempre: si la historia no ha puesto la de su capítulo, suena la de tu etapa
+	task.delay(6, function()
+		if not ambientCue then
+			StoryAudio.setAmbient(chapterCue)
+		end
+	end)
+	player:GetAttributeChangedSignal("LifeStage"):Connect(function()
+		StoryAudio.setAmbient(chapterCue)
+	end)
 	button.Activated:Connect(function()
 		StoryAudio.setMuted(not muted)
 		button.Text = Strings.get(if muted then "STORY.AUDIO.OFF" else "STORY.AUDIO.ON")

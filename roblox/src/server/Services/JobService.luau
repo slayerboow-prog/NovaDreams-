@@ -28,8 +28,37 @@ type Shift = {
 	Phase: "Pickup" | "Dropoff",
 	Target: BasePart,
 	Carry: BasePart?,
+	Context: any?, -- lo que necesite su proveedor (p. ej. en qué supermercado trabaja)
 }
 local shifts: { [Player]: Shift } = {}
+
+-- Trabajos con sus propios puntos (el reponedor repone SU supermercado, no uno al azar):
+--   Pickup(player, shift) -> BasePart?   Dropoff(player, shift) -> BasePart?   Done(player, shift)
+export type Provider = {
+	Pickup: (Player, any) -> BasePart?,
+	Dropoff: (Player, any) -> BasePart?,
+	Done: ((Player, any) -> ())?,
+	Text: ((Player, any) -> string?)?, -- (opcional) texto de la tarea en vez del fijo del oficio
+	Start: ((Player) -> boolean)?, -- (opcional) comprobaciones extra al empezar (edad…); false = no empieza
+}
+local providers: { [string]: Provider } = {}
+
+function JobService.setProvider(jobId: string, provider: Provider)
+	providers[jobId] = provider
+end
+
+-- Oficios con su propio sistema (el barista de CafeService): el tablón "Trabajar" y el botón de
+-- dejar el trabajo llaman a Start/Quit de ese sistema en vez de al circuito de recoger y entregar.
+export type Handler = { Start: (Player) -> (), Quit: (Player, boolean?) -> () }
+local handlers: { [string]: Handler } = {}
+
+function JobService.setHandler(jobId: string, handler: Handler)
+	handlers[jobId] = handler
+end
+
+function JobService.shiftOf(player: Player): Shift?
+	return shifts[player]
+end
 
 local function pickTarget(tag: string, avoid: BasePart?): BasePart?
 	local options = CollectionService:GetTagged(tag)
@@ -70,7 +99,7 @@ local function giveCarry(player: Player, shift: Shift)
 	item.CanCollide = false
 	item.CanQuery = false
 	item.Massless = true
-	item.CFrame = root.CFrame * CFrame.new(0, 0, -1.8)
+	item.CFrame = root.CFrame * CFrame.new(0, 0.45, -1.35) -- entre las manos (el cliente pone los brazos: AgeMotion)
 	local weld = Instance.new("WeldConstraint")
 	weld.Part0 = root
 	weld.Part1 = item
@@ -81,12 +110,22 @@ end
 
 local function publish(player: Player, shift: Shift)
 	local job = Config.Jobs[shift.JobId]
+	local provider = providers[shift.JobId]
+	local custom = provider and provider.Text and provider.Text(player, shift)
 	player:SetAttribute("TaskTarget", shift.Target.Position)
-	player:SetAttribute("TaskText", if shift.Phase == "Pickup" then job.PickupText else job.DropoffText)
+	player:SetAttribute("TaskText", custom or (if shift.Phase == "Pickup" then job.PickupText else job.DropoffText))
+end
+
+local function pickupFor(player: Player, shift: Shift, lastTarget: BasePart?): BasePart?
+	local provider = providers[shift.JobId]
+	if provider then
+		return provider.Pickup(player, shift)
+	end
+	return pickTarget("Pickup_" .. shift.JobId, lastTarget)
 end
 
 local function nextTask(player: Player, shift: Shift, lastTarget: BasePart?)
-	local target = pickTarget("Pickup_" .. shift.JobId, lastTarget)
+	local target = pickupFor(player, shift, lastTarget)
 	if not target then
 		return
 	end
@@ -98,6 +137,10 @@ end
 function JobService.quit(player: Player, silent: boolean?)
 	local shift = shifts[player]
 	if not shift then
+		local own = handlers[player:GetAttribute("Job") or ""]
+		if own then
+			own.Quit(player, silent)
+		end
 		return
 	end
 	removeCarry(shift)
@@ -111,7 +154,7 @@ function JobService.quit(player: Player, silent: boolean?)
 	end
 end
 
-function JobService.start(player: Player, jobId: string)
+function JobService.start(player: Player, jobId: string, context: any?)
 	local job = Config.Jobs[jobId]
 	if not job or not DataService.get(player) then
 		return
@@ -123,13 +166,18 @@ function JobService.start(player: Player, jobId: string)
 		Notify:FireClient(player, "Error", "Estás demasiado cansado o hambriento para trabajar.")
 		return
 	end
+	local custom = providers[jobId]
+	if custom and custom.Start and not custom.Start(player) then
+		return
+	end
 	JobService.quit(player, true)
 
-	local target = pickTarget("Pickup_" .. jobId)
+	local shift: Shift = { JobId = jobId, Phase = "Pickup", Target = nil :: any, Context = context }
+	local target = pickupFor(player, shift, nil)
 	if not target then
 		return
 	end
-	local shift: Shift = { JobId = jobId, Phase = "Pickup", Target = target }
+	shift.Target = target
 	shifts[player] = shift
 	RoleService.setOnDuty(player, jobId)
 	player:SetAttribute("Job", jobId)
@@ -141,7 +189,8 @@ local function reached(player: Player, shift: Shift)
 	local job = Config.Jobs[shift.JobId]
 	if shift.Phase == "Pickup" then
 		giveCarry(player, shift)
-		local target = pickTarget("Dropoff_" .. shift.JobId, shift.Target)
+		local provider = providers[shift.JobId]
+		local target = if provider then provider.Dropoff(player, shift) else pickTarget("Dropoff_" .. shift.JobId, shift.Target)
 		if not target then
 			return
 		end
@@ -153,6 +202,10 @@ local function reached(player: Player, shift: Shift)
 
 	-- Entrega completada: cobrar
 	removeCarry(shift)
+	local provider = providers[shift.JobId]
+	if provider and provider.Done then
+		provider.Done(player, shift)
+	end
 	local pay = math.floor(job.Pay * MonetizationService.payMultiplier(player))
 	DataService.addMoney(player, pay, true)
 	local data = DataService.get(player)
@@ -183,6 +236,15 @@ local function setupBoard(board: Instance)
 	end
 	local prompt = Builder.prompt(board, "Trabajar", ("%s · %s/entrega"):format(job.DisplayName, Format.money(job.Pay)), 0.5)
 	prompt.Triggered:Connect(function(player)
+		local own = handlers[jobId]
+		if own then
+			if player:GetAttribute("Job") == jobId then
+				own.Quit(player)
+			else
+				own.Start(player)
+			end
+			return
+		end
 		if player:GetAttribute("Job") == jobId then
 			JobService.quit(player)
 		else
@@ -207,7 +269,7 @@ function JobService.init()
 	end)
 
 	-- Si el jugador muere, pierde lo que llevaba y vuelve a la fase de recogida
-	Players.PlayerAdded:Connect(function(player)
+	local function onPlayer(player: Player)
 		player.CharacterAdded:Connect(function()
 			local shift = shifts[player]
 			if shift then
@@ -215,7 +277,12 @@ function JobService.init()
 				nextTask(player, shift, nil)
 			end
 		end)
-	end)
+	end
+	Players.PlayerAdded:Connect(onPlayer)
+	-- (los que ya estaban dentro antes de que arrancara este servicio)
+	for _, player in Players:GetPlayers() do
+		task.spawn(onPlayer, player)
+	end
 
 	-- Comprobar llegadas 4 veces por segundo
 	task.spawn(function()

@@ -366,7 +366,8 @@ end
 
 -- stage = nil: personaje recién creado (playSeconds 0 -> nace bebé; > 0 -> jugador veterano, adulto)
 local function newPlayer(name: string, stage: string?, playSeconds: number?)
-	local player = { Name = name, DisplayName = name, Parent = true, Inbox = {}, Attributes = {}, Said = {}, Games = {}, Barks = {} }
+	-- SpawnReady: ya ha aparecido donde lo dejó (en el juego lo pone PositionService)
+	local player = { Name = name, DisplayName = name, Parent = true, Inbox = {}, Attributes = { SpawnReady = true }, Said = {}, Games = {}, Barks = {} }
 	function player:SetAttribute(key, value)
 		self.Attributes[key] = value
 	end
@@ -451,6 +452,114 @@ for _, problem in problems do
 end
 check(#problems == 0, "Validate no encuentra errores")
 
+print("\n▶ Días de cole: cada paso se puede completar (nadie falta, ninguna espera es eterna)")
+do
+	local DayPlans = loadModule(ROOT .. "/shared/LifeStory/DayPlans")
+	local SchoolLife = loadModule(ROOT .. "/shared/LifeStory/SchoolLife")
+	local LocationsMod = loadModule(ROOT .. "/shared/LifeStory/Locations")
+	local QuestsMod = loadModule(ROOT .. "/shared/LifeStory/Quests")
+	local secondsPerGameMinute = Config.DayLengthMinutes * 60 / 1440 / Config.SchoolDay.ClockSpeed
+	local problemsFound = {}
+	local function problem(text)
+		if #problemsFound < 8 then
+			table.insert(problemsFound, text)
+		end
+	end
+	local lunches, recesses, days = 0, 0, 0
+	for _, entry in { { Plan = "SchoolDay", Quest = "Nino_Jornada" }, { Plan = "HighSchoolDay", Quest = "Adol_Jornada" } } do
+		local rng = TestRandom.new(7)
+		local dialogues = QuestsMod[entry.Quest].Dialogues or {}
+		for day = 1, 120 do
+			local plan = DayPlans.generate(entry.Plan, rng)
+			days += 1
+			if not pcall(serde.encode, "json", plan.Steps) then
+				problem(entry.Plan .. ": los pasos no se pueden guardar (JSON)")
+			end
+			for i, step in plan.Steps do
+				local where = ("%s día %d paso %d (%s)"):format(entry.Plan, day, i, step.Type)
+				if step.Place and not LocationsMod.Places[step.Place] and not tostring(step.Place):find("^%$") then
+					problem(where .. ": lugar que no existe " .. tostring(step.Place))
+				end
+				for _, actor in step.Actors or {} do
+					if not LocationsMod.Places[actor.Place] then
+						problem(where .. ": actor en un lugar que no existe " .. tostring(actor.Place))
+					end
+				end
+				if step.Type == "Talk" then
+					-- El personaje está: lo trae la escena del paso o vive en el colegio (SchoolService)
+					local inScene = false
+					for _, actor in step.Actors or {} do
+						inScene = inScene or actor.Npc == step.Npc
+					end
+					if not inScene and not SchoolLife.livesAtSchool(step.Npc) then
+						problem(where .. ": nadie trae a " .. tostring(step.Npc))
+					end
+					if not inScene then
+						problem(where .. ": " .. tostring(step.Npc) .. " no está en la escena del paso")
+					end
+					if step.Dialogue and not dialogues[step.Dialogue] then
+						problem(where .. ": falta la conversación " .. tostring(step.Dialogue))
+					end
+					if not step.Dialogue then
+						problem(where .. ": hablar sin conversación (no tendría plan B si no aparece)")
+					end
+				elseif step.Type == "Wait" then
+					local minutes = step.GameMinutes or math.huge
+					if minutes > DayPlans.MaxWaitMinutes or minutes * secondsPerGameMinute > DayPlans.MaxWaitSeconds then
+						problem(where .. (": espera demasiado larga (%s min de juego)"):format(tostring(step.GameMinutes)))
+					end
+					if not step.MaxSeconds or step.MaxSeconds > DayPlans.MaxWaitSeconds then
+						problem(where .. ": espera sin tope de tiempo real (MaxSeconds)")
+					end
+				elseif step.Type == "Event" and step.Event == "SchoolMeal" then
+					if not (step.Timeout and step.Timeout.After and step.Timeout.After <= 120) then
+						problem(where .. ": coger la bandeja sin plan B (Timeout)")
+					end
+				end
+			end
+			-- La comida: comedor con los compañeros sentados y la profe, bandeja, charla con el amigo y fin
+			for i, step in plan.Steps do
+				if step.Type == "Reach" and (step.Place == "ComedorColegio" or step.Place == "ComedorInstituto") then
+					lunches += 1
+					local meal, talk, rest = plan.Steps[i + 1], plan.Steps[i + 2], plan.Steps[i + 3]
+					local names = {}
+					for _, actor in step.Actors or {} do
+						names[actor.Npc] = actor
+					end
+					local teacher = if entry.Plan == "HighSchoolDay" then "Javier" else "Lucia"
+					if not (names.Nico and names.Sara and names.Omar and names[teacher]) then
+						problem(entry.Plan .. ": en el comedor faltan compañeros o la profe")
+					end
+					if not (names.Nico and names.Nico.Mode == "Sit" and names.Nico.Work == "Eat") then
+						problem(entry.Plan .. ": los compañeros no están sentados comiendo")
+					end
+					if not (meal and meal.Type == "Event" and meal.Event == "SchoolMeal" and talk and talk.Type == "Talk" and talk.Dialogue and rest and rest.Type == "Wait") then
+						problem(entry.Plan .. ": la comida no es «bandeja → charla → terminar»")
+					end
+				elseif step.Type == "Talk" and step.Dialogue and step.Dialogue:find("^Recreo_") then
+					recesses += 1
+				end
+			end
+		end
+	end
+	for _, text in problemsFound do
+		print("    " .. text)
+	end
+	check(#problemsFound == 0, ("%d días generados: todos los pasos existen, cada personaje está y cada espera tiene tope"):format(days))
+	check(lunches == days and recesses == days, "Todos los días (cole e instituto) tienen recreo con un amigo y comida en el comedor")
+	check(SchoolLife.activityAt(8.7) == "Llegada" and SchoolLife.activityAt(10) == "Clase" and SchoolLife.activityAt(11.7) == "Recreo" and SchoolLife.activityAt(14.5) == "Comedor" and SchoolLife.activityAt(16) == "Clase" and SchoolLife.activityAt(17.2) == "Salida" and SchoolLife.activityAt(22) == "Fuera", "Horario del colegio: puerta, clase, recreo, comedor, clase, salida y cerrado")
+	check(SchoolLife.canEat("Nino", 14.5) and SchoolLife.canEat("Adolescente", 10) and not SchoolLife.canEat("Adulto", 14.5) and not SchoolLife.canEat("Nino", 21), "Comedor: gratis para niños y adolescentes con el cole abierto")
+	local ready1 = SchoolLife.ready(nil, 100, 15)
+	local ready2, left = SchoolLife.ready(100, 105, 15)
+	check(ready1 and not ready2 and left == 10 and SchoolLife.ready(100, 116, 15), "Comedor: sin límite, solo una espera corta entre bandeja y bandeja")
+	for _, where in { "AsientoComedor1", "AsientoInstituto1", "ProfeComedor", "ComedorInstituto", "BarraInstituto" } do
+		local place = LocationsMod.Places[where]
+		check(place and place.Fallback and LocationsMod.Places[place.Fallback], where .. " existe y tiene plan B en el mapa")
+	end
+	local Schedules = loadModule(ROOT .. "/shared/LifeStory/Schedules")
+	check(Schedules.forPlace("ComedorInstituto") and Schedules.forPlace("ComedorInstituto").Id == "Instituto" and Schedules.forPlace("ComedorColegio").Id == "Colegio", "El comedor del instituto tiene el horario del instituto")
+end
+
 print("\n▶ Personajes vivos: gestos y emociones al hablar")
 local Emotion = loadModule(ROOT .. "/shared/LifeStory/Emotion")
 check(Emotion.of({ S = "Nico", T = "¡Hola, {nombre}!" }) == "Wave" and Emotion.of({ S = "Nico", T = "Jajaja, qué bueno" }) == "Laugh" and Emotion.of({ S = "Omar", T = "¡Hemos ganado!" }) == "Cheer", "Saludan, se ríen y celebran según lo que dicen")
@@ -524,6 +633,16 @@ local other = RoleService.assign("Profesor", { Subject = "Musica" })
 check(other.Kind == "NPC", "Para otra asignatura sigue habiendo NPC")
 RoleService.release(real)
 RoleService.offDuty(teacher)
+
+print("\n▶ Las conversaciones no se repiten (toques de más, el toque que cierra una conversación)")
+do
+	local Guard = Service.Guard
+	local rt = {}
+	check(Guard.allow(rt, "Actor:Nico", 0) and not Guard.allow(rt, "Actor:Nico", 0.5) and Guard.allow(rt, "Actor:Nico", 1.3), "Dos toques seguidos al mismo personaje cuentan como uno")
+	rt.DialogueEndedAt = 10
+	check(not Guard.allow(rt, "Actor:Sara", 10.4) and Guard.allow(rt, "Actor:Sara", 11.5), "El toque que cierra una conversación no empieza otra")
+	check(Guard.bark(rt, "Mateo", 0) and not Guard.bark(rt, "Mateo", 3) and Guard.bark(rt, "Mateo", 9), "Una frase suelta del mismo personaje, como mucho cada 8 s")
+end
 
 print("\n▶ Capítulo puente: una nueva vida en Valmar")
 local ana = newPlayer("Ana", nil, 3600) -- ya jugaba antes de la historia de vida
@@ -871,9 +990,67 @@ local jornada = leoData.Story.Active.Nino_Jornada
 check(jornada ~= nil and jornada.Steps and #jornada.Steps >= 4, "Hasta la siguiente misión, días de cole normales")
 check(leoData.Story.Active.Cole02_Mochila == nil, "«La mochila desaparecida» espera su momento de la etapa")
 
+print("\n▶ Un día de cole jugado entero: recreo, comedor con los compañeros y la profe, bandeja, charla")
+do
+	local story = leoData.Story
+	local sawLunch, sawTeacher, shortWait, sawRecess = false, false, false, false
+	leo.Answer = preferAnswer(leo)
+	for _ = 1, 200 do
+		if story.Completed.Nino_Jornada ~= nil then
+			break
+		end
+		local prog = story.Active.Nino_Jornada
+		local step = prog and prog.Steps and prog.Steps[prog.Step]
+		if step then
+			local scene = scenes[leo] and scenes[leo].Nino_Jornada
+			if step.Type == "Event" and step.Event == "SchoolMeal" and scene then
+				sawLunch = sawLunch or (scene.Actors.Nico ~= nil and scene.Actors.Sara ~= nil and scene.Actors.Omar ~= nil and scene.Actors.Nico.Mode == "Sit")
+				sawTeacher = sawTeacher or scene.Actors.Lucia ~= nil
+			elseif step.Type == "Talk" and step.Dialogue and step.Dialogue:find("^Recreo_") and scene then
+				sawRecess = sawRecess or scene.Actors[step.Npc] ~= nil
+			end
+			if step.Type == "Wait" and step.TextKey == "QUEST.COLE.COMIENDO" then
+				-- Aunque el reloj del juego no avance (como el bug de las 9:00), la comida se acaba sola
+				step.MaxSeconds = 1
+				local index = prog.Step
+				task.wait(1.4 + Config.LifeStory.TickSeconds)
+				local now = story.Active.Nino_Jornada
+				shortWait = now == nil or now.Step ~= index
+			else
+				doStep(leo, "Nino_Jornada", step)
+			end
+		end
+		task.wait(0.6)
+	end
+	check(story.Completed.Nino_Jornada ~= nil, "El día de cole se completa de principio a fin")
+	check(sawRecess, "En el recreo, tu amigo del día está en el patio (la escena lo trae)")
+	check(sawLunch and sawTeacher, "En el comedor están Nico, Sara y Omar sentados comiendo, y la profe de guardia")
+	check(said(leo, "Te he guardado sitio") or said(leo, "contando los guisantes") or said(leo, "le falta un poco de comino"), "Coges la bandeja, te sientas y hablas con tu amigo (conversación del comedor)")
+	check(shortWait, "«Terminad de comer» se acaba aunque el reloj esté parado (tope de tiempo real)")
+	check(pcall(serde.encode, "json", leoData), "El día de cole se puede guardar (JSON válido)")
+end
+
 print("\n▶ Consecuencia diferida: una hora después, Mateo te busca")
 passTime(leo, 3700)
 check(leoData.Story.Active.Eco_MateoDibujo ~= nil, "Pasada una hora de juego, empieza «Un regalo de Mateo»")
+state = lastState(leo)
+local function showsQuest(questId: string): boolean
+	if state.Tracked and state.Tracked.QuestId == questId then
+		return true
+	end
+	for _, other in state.Others do
+		if other.QuestId == questId then
+			return true
+		end
+	end
+	return false
+end
+check(showsQuest("Nino_Jornada") and not showsQuest("Eco_MateoDibujo"), "En horario de cole solo se ven las misiones del cole")
+lighting.ClockTime = 18
+task.wait(Config.LifeStory.RefreshSeconds + 0.6)
+state = lastState(leo)
+check(not showsQuest("Nino_Jornada") and state.Tracked and state.Tracked.QuestId == "Eco_MateoDibujo", "Al acabar el cole, el día de cole se va y aparece la misión de Mateo")
+lighting.ClockTime = 9
 check(playQuest(leo, "Eco_MateoDibujo"), "Hablas con Mateo")
 check(leoData.Items.DibujoMateo == 1, "Te regala su dibujo (va a tu mochila)")
 
@@ -964,6 +1141,22 @@ check(not noaData.Story.Memories.PrimerAmigo and laterStarts(noa).Eco_MateoSolo 
 passTime(noa, 3700)
 check(noaData.Story.Active.Eco_MateoSolo ~= nil, "Una hora después, ves a Mateo comiendo solo")
 check(playQuest(noa, "Eco_MateoSolo") and noaData.Story.Memories.SegundaOportunidad and noaData.Story.Flags.AyudasteAMateo, "Te sientas con él: ahora sí sois amigos")
+do
+	local function count(fragment)
+		local n = 0
+		for _, text in noa.Said do
+			if text:find(fragment, 1, true) then
+				n += 1
+			end
+		end
+		return n
+	end
+	Service.interact(noa, "Actor", "Eco_MateoSolo", "Mateo")
+	task.wait(1.5)
+	Service.interact(noa, "Actor", "Eco_MateoSolo", "Mateo")
+	task.wait(0.5)
+	check(count("¿Conmigo? Vale. Sí. Claro.") == 1, "Lo de Mateo («…¿Conmigo? Vale.») se dice una sola vez: al volver a tocarle no se repite")
+end
 
 print("\n▶ Misión 04 «Los malotes» (burlas, objeto robado, persecución, Hugo, decisión)")
 leo.Prefer = { "Por lo menos nosotros", "Pedir ayuda a mi grupo" }

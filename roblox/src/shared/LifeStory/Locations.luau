@@ -10,6 +10,7 @@
 --   Index = 3                -> el tercero del mismo edificio (pupitres); también por actor
 --   Offset = Vector3         -> desplazado (en los ejes del lugar) desde el lugar encontrado
 --   Radius = 8               -> a qué distancia ya "has llegado"
+--   Look = Vector3           -> (actores) hacia dónde mira quien se pone ahí, en los ejes del lugar
 --   Fallback = "OtroLugar"   -> si este no existe en el mapa, se usa ese
 -- Y cuál elegir si hay varios (Zone):
 --   "Nearest" (por defecto)  -> el más cercano al jugador
@@ -33,6 +34,7 @@ export type Place = {
 	Child: string?,
 	Index: number?,
 	Offset: Vector3?,
+	Look: Vector3?,
 	Radius: number?,
 	Fallback: string?,
 }
@@ -61,7 +63,7 @@ Locations.Places = {
 	-- Dentro del colegio (Civic.school del mapa, ver docs/mapa/ETIQUETAS.md)
 	EntradaColegio = { NameKey = "PLACE.ENTRADA_COLEGIO", Tag = "SchoolEntrance", Zone = "Home" },
 	Aula = { NameKey = "PLACE.AULA", Tag = "Classroom", Zone = "Home", Inside = true },
-	AulaMusica = { NameKey = "PLACE.AULA_MUSICA", Tag = "MusicRoom", Zone = "Home", Inside = true },
+	AulaMusica = { NameKey = "PLACE.AULA_MUSICA", Tag = "MusicRoom", Zone = "Home", Inside = true, Fallback = "Aula" },
 	Patio = { NameKey = "PLACE.PATIO", Tag = "RecessArea", Zone = "Home", Inside = true },
 	Pista = { NameKey = "PLACE.PISTA", Tag = "PEArea", Zone = "Home" },
 	-- Rincones del colegio para las misiones (ver docs/historia/11). "Colegio" = el más cercano a casa.
@@ -106,6 +108,12 @@ Locations.Places = {
 	ApuntesBiblioteca = { NameKey = "Mesa de los apuntes", Tag = "StoryProp", Attribute = { PropId = "Apuntes" }, Zone = "Home", Fallback = "BibliotecaColegio" },
 	SpotBibliotecaria = { NameKey = "Mostrador de la biblioteca", Tag = "StorySpot", Attribute = { SpotId = "Bibliotecaria" }, Zone = "Home", Fallback = "BibliotecaColegio" },
 	BarraComedor = { NameKey = "Barra del comedor", Tag = "StoryProp", Attribute = { PropId = "BarraComedor" }, Zone = "Home", Fallback = "ComedorColegio" },
+	-- Sitios en las mesas del comedor (en los ejes del comedor: las mesas van a lo largo de Z en x = -11, -5 y 8,
+	-- con un banco a cada lado). El amigo del día se sienta enfrente de tu sitio; la profe vigila de pie.
+	AsientoComedor1 = { NameKey = "Comedor", Tag = "StoryArea", Attribute = { AreaId = "Comedor" }, Zone = "Home", Offset = Vector3.new(-13, 0, 1.5), Look = Vector3.new(1, 0, 0), Radius = 4, Fallback = "Patio" },
+	AsientoComedor2 = { NameKey = "Comedor", Tag = "StoryArea", Attribute = { AreaId = "Comedor" }, Zone = "Home", Offset = Vector3.new(-9, 0, -2), Look = Vector3.new(-1, 0, 0), Radius = 4, Fallback = "Patio" },
+	AsientoComedor3 = { NameKey = "Comedor", Tag = "StoryArea", Attribute = { AreaId = "Comedor" }, Zone = "Home", Offset = Vector3.new(-13, 0, -2), Look = Vector3.new(1, 0, 0), Radius = 4, Fallback = "Patio" },
+	ProfeComedor = { NameKey = "Comedor", Tag = "StoryArea", Attribute = { AreaId = "Comedor" }, Zone = "Home", Offset = Vector3.new(1.5, 0, 4), Look = Vector3.new(-1, 0, 0), Radius = 4, Fallback = "Patio" },
 	TaquillaColegio = { NameKey = "Tu taquilla", Tag = "StoryProp", Attribute = { PropId = "Taquilla", LockerId = 3 }, Zone = "Home", Fallback = "PasilloColegio" },
 	CanastaGimnasio = { NameKey = "Canasta del gimnasio", Model = "Colegio", Child = "StoryProp_Canasta", Zone = "Home", Fallback = "GimnasioColegio" },
 	MochilaAlmacen1 = { NameKey = "Mochila roja", Tag = "StoryProp", Attribute = { PropId = "MochilaAlmacen", Index = 1 }, Zone = "Home", Fallback = "AlmacenColegio" },
@@ -147,6 +155,12 @@ Locations.Places = {
 	AulaInstituto = { NameKey = "PLACE.AULA_INSTITUTO", Tag = "Classroom", Zone = "Campus Valmar", Inside = true },
 	PatioInstituto = { NameKey = "PLACE.PATIO", Tag = "RecessArea", Zone = "Campus Valmar", Inside = true },
 	PistaInstituto = { NameKey = "PLACE.PISTA", Tag = "PEArea", Zone = "Campus Valmar" },
+	ComedorInstituto = { NameKey = "Comedor del instituto", Tag = "StoryArea", Attribute = { AreaId = "Comedor" }, Zone = "Campus Valmar", Inside = true, Fallback = "PatioInstituto" },
+	BarraInstituto = { NameKey = "Barra del comedor", Tag = "StoryProp", Attribute = { PropId = "BarraComedor" }, Zone = "Campus Valmar", Fallback = "ComedorInstituto" },
+	AsientoInstituto1 = { NameKey = "Comedor del instituto", Tag = "StoryArea", Attribute = { AreaId = "Comedor" }, Zone = "Campus Valmar", Offset = Vector3.new(-13, 0, 1.5), Look = Vector3.new(1, 0, 0), Radius = 4, Fallback = "PatioInstituto" },
+	AsientoInstituto2 = { NameKey = "Comedor del instituto", Tag = "StoryArea", Attribute = { AreaId = "Comedor" }, Zone = "Campus Valmar", Offset = Vector3.new(-9, 0, -2), Look = Vector3.new(-1, 0, 0), Radius = 4, Fallback = "PatioInstituto" },
+	AsientoInstituto3 = { NameKey = "Comedor del instituto", Tag = "StoryArea", Attribute = { AreaId = "Comedor" }, Zone = "Campus Valmar", Offset = Vector3.new(-13, 0, -2), Look = Vector3.new(1, 0, 0), Radius = 4, Fallback = "PatioInstituto" },
+	ProfeInstituto = { NameKey = "Comedor del instituto", Tag = "StoryArea", Attribute = { AreaId = "Comedor" }, Zone = "Campus Valmar", Offset = Vector3.new(1.5, 0, 4), Look = Vector3.new(-1, 0, 0), Radius = 4, Fallback = "PatioInstituto" },
 
 	-- Universidad
 	FacultadMedicina = { NameKey = "PLACE.FACULTAD_MEDICINA", Model = "Facultad", Attribute = { Faculty = "Medicina" }, Zone = "Campus Valmar" },

@@ -88,11 +88,8 @@ function Home.familyHouse(parent: Instance, cf: CFrame, homeId: string): Model
 		FloorColor = rgb(186, 146, 104),
 		LightColor = rgb(255, 226, 186),
 	})
-	-- Los muebles se colocan sobre el suelo interior (a FLOOR_TOP del terreno); los tabiques, desde el terreno
+	-- at() de Building ya mide desde el suelo interior: los muebles con y = 0 quedan apoyados en él
 	local ground = at
-	at = function(x: number, y: number, z: number): CFrame
-		return ground(x, y + Building.FLOOR_TOP, z)
-	end
 	model:AddTag("FamilyHome")
 	model:SetAttribute("HomeId", homeId)
 
@@ -133,7 +130,11 @@ function Home.familyHouse(parent: Instance, cf: CFrame, homeId: string): Model
 	-- COCINA: encimera, nevera, mesa con sillas y trona
 	box(model, "Counter", Vector3.new(2.6, 3.6, 10), at(15.3, 1.8, -8.5), rgb(236, 234, 228), Enum.Material.Plaster)
 	box(model, "Worktop", Vector3.new(2.9, 0.3, 10.2), at(15.3, 3.75, -8.5), rgb(60, 62, 66), Enum.Material.Granite, true)
-	box(model, "Fridge", Vector3.new(2.8, 7, 2.8), at(15.4, 3.5, -2), rgb(226, 229, 233), Enum.Material.Metal)
+	-- Nevera: se come de ella gratis y sin límite (InteractService, solo la familia de la casa)
+	local fridge = box(model, "Fridge", Vector3.new(2.8, 7, 2.8), at(15.4, 3.5, -2), rgb(226, 229, 233), Enum.Material.Metal)
+	fridge:AddTag("Interact")
+	fridge:SetAttribute("Use", "Fridge")
+	fridge:SetAttribute("FamilyHomeId", homeId)
 	box(model, "KitchenTable", Vector3.new(5, 0.4, 3.4), at(9, 2.8, -8), WOOD, Enum.Material.Wood)
 	box(model, "TableLeg", Vector3.new(0.6, 2.6, 0.6), at(9, 1.3, -8), WOOD, Enum.Material.Wood, true)
 	for _, x in { 6.8, 11.2 } do

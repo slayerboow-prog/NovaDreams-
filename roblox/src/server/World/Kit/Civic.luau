@@ -5,12 +5,19 @@
 -- coordenadas locales a mundo:  u = a lo largo de la calle (0 = centro),
 -- v = distancia hacia dentro desde la acera.  lot.facing(u, v) da un CFrame que mira a la calle.
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
 local Builder = require(script.Parent.Parent.Builder)
+local Toys = require(ReplicatedStorage.Shared.Toys)
 local Palette = require(script.Parent.Palette)
 local Building = require(script.Parent.Building)
 local Nature = require(script.Parent.Nature)
 local Props = require(script.Parent.Props)
 local StoryMarks = require(script.Parent.StoryMarks)
+local Clinic = require(script.Parent.Clinic)
+local PoliceStation = require(script.Parent.PoliceStation)
+local CinemaHall = require(script.Parent.CinemaHall)
+local GymKit = require(script.Parent.GymKit)
 
 local Civic = {}
 
@@ -95,6 +102,9 @@ function Civic.hospital(parent: Instance, lot: Lot, townName: string, small: boo
 		Sign = if small then "CENTRO DE SALUD" else "HOSPITAL " .. string.upper(townName), SignColor = rgb(200, 36, 40),
 		FloorMaterial = Enum.Material.CeramicTiles, FloorColor = rgb(232, 234, 232), LightColor = rgb(240, 248, 255),
 	})
+	-- Planta baja: admisión, sala de espera y consultas (oficio de médico/a: MedicalService)
+	Clinic.build(model, at, W, D)
+	Props.jobBoard(m, lot.facing(-W / 4, setback - 3, FT), "Medico", "MÉDICO/A")
 	-- Cruz roja en lo alto de la fachada
 	local crossCf = at(0, info.Top - FT + 5, -D / 2 + 1)
 	Builder.decor({ Name = "CrossBack", Size = Vector3.new(9, 9, 0.4), CFrame = crossCf, Color = rgb(250, 250, 250), Parent = model })
@@ -149,8 +159,10 @@ function Civic.playground(parent: Instance, cf: CFrame)
 	end
 	Builder.part({ Name = "SwingBar", Size = Vector3.new(8.4, 0.4, 0.4), CFrame = cf * CFrame.new(6, 7.2, 0), Color = rgb(220, 60, 60), Parent = m })
 	for _, x in { 4.5, 7.5 } do
-		Builder.decor({ Name = "Rope", Size = Vector3.new(0.1, 5, 0.1), CFrame = cf * CFrame.new(x, 4.6, 0), Color = rgb(60, 60, 60), Parent = m })
-		Builder.part({ Name = "SwingSeat", Size = Vector3.new(1.6, 0.2, 1), CFrame = cf * CFrame.new(x, 2.1, 0), Color = rgb(40, 40, 44), Parent = m })
+		-- Se mecen colgados de la barra (Controllers/ObjectMotion)
+		local swing = { Pivot = (cf * CFrame.new(x, 7.1, 0)).Position, Axis = cf.RightVector }
+		Builder.decor({ Name = "Rope", Size = Vector3.new(0.1, 5, 0.1), CFrame = cf * CFrame.new(x, 4.6, 0), Color = rgb(60, 60, 60), Tags = { "Swing" }, Attributes = swing, Parent = m })
+		Builder.part({ Name = "SwingSeat", Size = Vector3.new(1.6, 0.2, 1), CFrame = cf * CFrame.new(x, 2.1, 0), Color = rgb(40, 40, 44), Tags = { "Swing" }, Attributes = swing, Parent = m })
 	end
 	return m
 end
@@ -173,7 +185,7 @@ function Civic.school(parent: Instance, lot: Lot, townName: string)
 	local mark = { School = townName }
 	-- Mástil con bandera
 	Builder.part({ Name = "Flagpole", Size = Vector3.new(0.4, 20, 0.4), CFrame = lot.facing(-W / 2 + 6, 5, 10), Color = rgb(220, 220, 224), Material = Enum.Material.Metal, Parent = m })
-	Builder.decor({ Name = "Flag", Size = Vector3.new(5, 3, 0.1), CFrame = lot.facing(-W / 2 + 8.6, 5, 18.5), Color = rgb(40, 110, 200), Material = Enum.Material.Fabric, Parent = m })
+	Builder.decor({ Name = "Flag", Size = Vector3.new(5, 3, 0.1), CFrame = lot.facing(-W / 2 + 8.6, 5, 18.5), Color = rgb(40, 110, 200), Material = Enum.Material.Fabric, Tags = { "Flag" }, Parent = m })
 	-- Patio: pista deportiva y parque infantil
 	local courtV = setback + D + 24
 	if lot.Depth > courtV + 20 then
@@ -192,19 +204,27 @@ function Civic.school(parent: Instance, lot: Lot, townName: string)
 		})
 		StoryMarks.area(m, "Patio", lot.facing(0, courtV, 5), Vector3.new(lot.Length - 10, 10, 44), mark)
 		-- Los tres grupos del recreo: deportistas (pista), artistas (tizas junto al parque infantil), estudiantes (banco)
-		StoryMarks.spot(m, "Grupo_Deportistas", lot.facing(-12, courtV + 19, FT + 2.5), mark)
-		StoryMarks.spot(m, "Grupo_Artistas", lot.facing(34, courtV + 13, FT + 2.5), mark)
+		StoryMarks.spot(m, "Grupo_Deportistas", lot.facing(-12, courtV + 19, 2.5), mark)
+		StoryMarks.spot(m, "Grupo_Artistas", lot.facing(34, courtV + 13, 2.5), mark)
 		for k, color in { rgb(250, 120, 160), rgb(90, 180, 250), rgb(250, 220, 80), rgb(140, 220, 120) } do
 			Builder.decor({ Name = "ChalkDrawing", Size = Vector3.new(2.6, 0.05, 2.6), CFrame = lot.facing(28 + k * 3, courtV + 16, 0.03) * CFrame.Angles(0, math.rad(k * 17), 0), Color = color, Parent = m })
 		end
 		Builder.part({ Name = "Easel", Size = Vector3.new(2.4, 3.6, 0.3), CFrame = lot.facing(40, courtV + 13, 1.8) * CFrame.Angles(math.rad(-12), 0, 0), Color = rgb(250, 250, 245), Parent = m })
 		Props.bench(m, lot.facing(-40, setback + D + 5, 0))
-		StoryMarks.spot(m, "Grupo_Estudiantes", lot.facing(-36, setback + D + 5, FT + 2.5), mark)
+		StoryMarks.spot(m, "Grupo_Estudiantes", lot.facing(-36, setback + D + 5, 2.5), mark)
 		-- Sitios para las pistas de "La mochila desaparecida" (la historia pone el objeto)
-		StoryMarks.spot(m, "Pista_Papel", lot.facing(0, courtV + 21, FT + 2.5), mark)
-		StoryMarks.spot(m, "Pista_Pegatina", lot.facing(46, courtV - 6, FT + 2.5), mark)
+		StoryMarks.spot(m, "Pista_Papel", lot.facing(0, courtV + 21, 2.5), mark)
+		StoryMarks.spot(m, "Pista_Pegatina", lot.facing(46, courtV - 6, 2.5), mark)
+		-- Escondite de la persecución: muro bajo y cajas a un lado del patio
+		local hide = lot.facing(-68, courtV, 0)
+		Builder.part({ Name = "LowWall", Size = Vector3.new(10, 3.2, 1), CFrame = hide * CFrame.new(0, 1.6, 0), Color = rgb(196, 112, 84), Material = Enum.Material.Brick, Parent = m })
+		for k, offset in { { -3, 1.6 }, { 1, 1.8 }, { 3.6, 1.5 } } do
+			Builder.part({ Name = "Crate", Size = Vector3.new(2.6, 2.6, 2.6), CFrame = hide * CFrame.new(offset[1], 1.3 + (if k == 2 then 2.6 else 0), offset[2]) * CFrame.Angles(0, math.rad(k * 11), 0), Color = rgb(170, 125, 75), Material = Enum.Material.WoodPlanks, Parent = m })
+		end
+		StoryMarks.spot(m, "Escondite", hide * CFrame.new(0, 2.5, 4), mark)
 	end
 	-- Campo de fútbol y gimnasio al fondo del recinto
+	local canteen = false
 	local fieldV = courtV + 40 + 30
 	if lot.Depth > fieldV + 32 then
 		local field = lot.facing(-12, fieldV, 0)
@@ -219,17 +239,25 @@ function Civic.school(parent: Instance, lot: Lot, townName: string)
 				Builder.part({ Name = "GoalPost", Size = Vector3.new(0.4, 6, 0.4), CFrame = goal * CFrame.new(0, 3, z), Color = rgb(250, 250, 250), Parent = m })
 			end
 		end
-		StoryMarks.spot(m, "Futbol_Centro", field * CFrame.new(0, FT + 2.5, 0), mark)
-		StoryMarks.spot(m, "Futbol_PorteriaA", field * CFrame.new(-36, FT + 2.5, 0), mark)
-		StoryMarks.spot(m, "Futbol_PorteriaB", field * CFrame.new(36, FT + 2.5, 0), mark)
+		StoryMarks.spot(m, "Futbol_Centro", field * CFrame.new(0, 2.5, 0), mark)
+		StoryMarks.spot(m, "Futbol_PorteriaA", field * CFrame.new(-36, 2.5, 0), mark)
+		StoryMarks.spot(m, "Futbol_PorteriaB", field * CFrame.new(36, 2.5, 0), mark)
 		local gymU = math.min(W / 2 - 12, 48)
 		Civic.schoolGym(m, lot.facing(gymU, fieldV, 0), townName)
-		StoryMarks.spot(m, "Pista_Huella", lot.facing(gymU - 4, fieldV - 26, FT + 2.5), mark)
-		StoryMarks.spot(m, "Pista_Objeto", lot.facing(gymU + 5, fieldV - 20, FT + 2.5), mark)
+		StoryMarks.spot(m, "Pista_Huella", lot.facing(gymU - 4, fieldV - 26, 2.5), mark)
+		StoryMarks.spot(m, "Pista_Objeto", lot.facing(gymU + 5, fieldV - 20, 2.5), mark)
 		-- Comedor y biblioteca a un lado del campo
 		if lot.Length >= 190 then
 			Civic.schoolCanteen(m, lot.facing(-lot.Length / 2 + 24, fieldV - 24, 0), townName)
+			canteen = true
 		end
+	end
+	-- Sin sitio detrás del campo (el instituto del Campus): el comedor va al fondo del patio, al lado del
+	-- parque infantil. (Services/CanteenService hace lo mismo en los mapas guardados sin comedor.)
+	local canteenInYard = false
+	if not canteen and lot.Length >= 190 and lot.Depth >= courtV + 34 then
+		Civic.schoolCanteen(m, lot.facing(Civic.yardCanteenU(lot.Length), courtV + Civic.YardCanteenV, 0), townName)
+		canteenInYard = true
 	end
 	-- Llegada al colegio: padres, autobús escolar y el balón del camino
 	StoryMarks.spot(m, "Balon_Camino", lot.facing(-W / 2 - 22, -4, FT + 2.5), mark)
@@ -245,9 +273,18 @@ function Civic.school(parent: Instance, lot: Lot, townName: string)
 		Builder.part({ Name = "Fence", Size = Vector3.new(0.3, 5, lot.Depth - setback - 4), CFrame = lot.facing(u, (lot.Depth + setback) / 2, 2.5), Color = rgb(40, 110, 70), Material = Enum.Material.Metal, Transparency = 0.3, Parent = m })
 	end
 	for _, u in { -half + 8, half - 8 } do
-		Nature.tree(m, lot.point(u, lot.Depth - 10, 0))
+		if not (canteenInYard and u > 0) then -- (ahí está el comedor)
+			Nature.tree(m, lot.point(u, lot.Depth - 10, 0))
+		end
 	end
 	return m
+end
+
+-- Dónde va el comedor cuando no cabe detrás del campo: al fondo del patio (u a lo largo de la calle,
+-- en el lado del parque infantil; v desde el centro del patio hacia dentro)
+Civic.YardCanteenV = 10
+function Civic.yardCanteenU(lotLength: number): number
+	return lotLength / 2 - 28
 end
 
 ---------------------------------------------------------------------
@@ -294,10 +331,8 @@ local function classroom(model: Model, at: (number, number, number) -> CFrame, i
 end
 
 function Civic.schoolInterior(model: Model, ground: (number, number, number) -> CFrame, W: number, D: number, townName: string?)
-	-- Muebles sobre el suelo interior (a FT del terreno); los tabiques, desde el terreno
-	local function at(x: number, y: number, z: number): CFrame
-		return ground(x, y + FT, z)
-	end
+	-- at() de Building ya mide desde el suelo interior (los muebles con y = 0 quedan apoyados en él)
+	local at = ground
 	local half = W / 2 - 1
 	local halfD = D / 2 - 1
 	-- Entrada (fuera, delante de la puerta) y vestíbulo
@@ -323,7 +358,7 @@ function Civic.schoolInterior(model: Model, ground: (number, number, number) -> 
 	end
 	-- Corcho con dibujos en el vestíbulo
 	for i, color in { rgb(240, 200, 60), rgb(90, 170, 230), rgb(230, 100, 120) } do
-		Builder.decor({ Name = "Drawing", Size = Vector3.new(2.4, 2, 0.1), CFrame = at(-6 + i * 3, 6, halfD - 0.1), Color = color, Parent = model })
+		Builder.decor({ Name = "Drawing", Size = Vector3.new(2.4, 2, 0.1), CFrame = at(-6 + i * 3, 9.6, halfD - 0.1), Color = color, Parent = model })
 	end
 
 	-- Pasillo con taquillas (misiones "El primer día" y "La mochila desaparecida")
@@ -339,6 +374,40 @@ function Civic.schoolInterior(model: Model, ground: (number, number, number) -> 
 	StoryMarks.spot(model, "Informante_Pasillo", at(-6, 2.5, -6), mark)
 	StoryMarks.spot(model, "Libros", at(5, 2.5, -2), mark)
 	StoryMarks.spot(model, "Profesor_Entrada", at(4, 2.5, -D / 2 - 4), mark)
+	-- Atajo de la persecución: puerta trasera del aula de música que da al patio (hacia el gimnasio).
+	-- La historia mueve al jugador de un punto al otro con un aviso "Salir por la puerta de atrás".
+	for _, side in { { z = halfD - 0.05, base = at }, { z = D / 2 + 0.15, base = ground } } do
+		Builder.decor({ Name = "BackDoor", Size = Vector3.new(3.6, 7, 0.2), CFrame = side.base(39, 3.5, side.z), Color = rgb(120, 82, 52), Material = Enum.Material.Wood, Parent = model })
+		Builder.decor({ Name = "BackDoorHandle", Size = Vector3.new(0.3, 0.3, 0.3), CFrame = side.base(40.3, 3.5, side.z + (if side.base == at then -0.15 else 0.15)), Color = rgb(210, 180, 90), Material = Enum.Material.Metal, Parent = model })
+	end
+	-- La sala cerrada (misión "El misterio del colegio"): cuarto viejo detrás del pasillo, con candado.
+	-- La puerta es decorativa: la historia lleva al jugador dentro cuando consigue abrirla.
+	Builder.decor({ Name = "OldDoor", Size = Vector3.new(3.6, 7, 0.2), CFrame = at(0, 3.5, halfD - 0.05), Color = rgb(92, 64, 44), Material = Enum.Material.WoodPlanks, Parent = model })
+	Builder.decor({ Name = "Padlock", Size = Vector3.new(0.5, 0.6, 0.3), CFrame = at(1.2, 3.4, halfD - 0.3), Color = rgb(200, 170, 60), Material = Enum.Material.Metal, Parent = model })
+	local doorSign = Builder.decor({ Name = "DoorSign", Size = Vector3.new(2.6, 0.7, 0.1), CFrame = at(0, 6.4, halfD - 0.2), Color = rgb(240, 236, 220), Parent = model })
+	Builder.sign(doorSign, "NO ENTRAR", Enum.NormalId.Front, rgb(170, 30, 30))
+	StoryMarks.spot(model, "SalaCerrada_Puerta", at(0, 2.5, halfD - 3), mark)
+	local oldWall, oldWood = rgb(176, 164, 140), rgb(96, 70, 50)
+	Builder.part({ Name = "OldRoomFloor", Size = Vector3.new(13.2, FT, 7.6), CFrame = ground(0, -FT / 2, D / 2 + 3.8), Color = rgb(120, 96, 70), Material = Enum.Material.WoodPlanks, Parent = model })
+	Builder.part({ Name = "OldRoomWall", Size = Vector3.new(13.2, 9, 0.6), CFrame = ground(0, 4.5, D / 2 + 7.9), Color = oldWall, Material = Enum.Material.Plaster, Parent = model })
+	for _, x in { -6.3, 6.3 } do
+		Builder.part({ Name = "OldRoomWall", Size = Vector3.new(0.6, 9, 7.6), CFrame = ground(x, 4.5, D / 2 + 3.8), Color = oldWall, Material = Enum.Material.Plaster, Parent = model })
+	end
+	Builder.part({ Name = "OldRoomRoof", Size = Vector3.new(13.8, 0.6, 8.4), CFrame = ground(0, 9.3, D / 2 + 3.9), Color = rgb(110, 100, 90), Material = Enum.Material.Slate, Parent = model })
+	StoryMarks.area(model, "SalaCerrada", at(0, 4, D / 2 + 3.8), Vector3.new(12, 8, 7), mark)
+	StoryMarks.spot(model, "SalaCerrada_Dentro", at(0, 2.5, D / 2 + 1.5) * CFrame.Angles(0, math.pi, 0), mark)
+	for _, x in { -3.6, 0, 3.6 } do
+		Builder.part({ Name = "OldDesk", Size = Vector3.new(2.4, 2.4, 2), CFrame = at(x, 1.2, D / 2 + 3.2) * CFrame.Angles(0, math.rad(x * 3), 0), Color = oldWood, Material = Enum.Material.Wood, Parent = model })
+	end
+	Builder.part({ Name = "TrophyShelf", Size = Vector3.new(8, 6, 1), CFrame = at(0, 3, D / 2 + 7.1), Color = oldWood, Material = Enum.Material.Wood, Parent = model })
+	for k = 0, 3 do
+		Builder.decor({ Name = "OldTrophy", Size = Vector3.new(0.7, 1.3, 0.7), CFrame = at(-2.7 + k * 1.8, 6.65, D / 2 + 7.1), Color = rgb(190, 150, 60), Material = Enum.Material.Metal, Parent = model })
+	end
+	Builder.decor({ Name = "OldPhoto", Size = Vector3.new(0.1, 1.8, 2.4), CFrame = at(5.9, 4.6, D / 2 + 3.5), Color = rgb(170, 140, 100), Parent = model })
+	StoryMarks.prop(model, "FotoAntigua", at(5.4, 4.6, D / 2 + 3.5), Vector3.new(1.2, 2.4, 3), mark)
+
+	StoryMarks.spot(model, "Atajo_Musica", at(39, 2.5, halfD - 3) * CFrame.Angles(0, math.pi, 0), mark)
+	StoryMarks.spot(model, "Atajo_Musica_Salida", ground(39, 2.5, D / 2 + 4) * CFrame.Angles(0, math.pi, 0), mark)
 end
 
 ---------------------------------------------------------------------
@@ -352,9 +421,7 @@ function Civic.schoolGym(parent: Instance, cf: CFrame, townName: string)
 		WallColor = rgb(226, 214, 196), Balconies = false, WindowFaces = { Front = true, Left = true, Right = true },
 		FloorMaterial = Enum.Material.WoodPlanks, FloorColor = rgb(214, 170, 110), LightColor = rgb(246, 248, 255),
 	})
-	local function at(x: number, y: number, z: number): CFrame
-		return ground(x, y + FT, z)
-	end
+	local at = ground -- at() de Building ya mide desde el suelo interior
 	local mark = { School = townName }
 	local wall = rgb(236, 230, 218)
 	-- Tabique con puerta entre la pista y el almacén (z = 7)
@@ -373,7 +440,7 @@ function Civic.schoolGym(parent: Instance, cf: CFrame, townName: string)
 	StoryMarks.prop(model, "Canasta", at(-6, 2.5, -1), Vector3.new(4, 5, 4), mark) -- desde aquí se tira
 	Builder.decor({ Name = "FreeThrowLine", Size = Vector3.new(4, 0.05, 0.3), CFrame = at(-6, 0.03, -1.8), Color = rgb(250, 250, 250), Parent = model })
 	for k = 0, 2 do
-		Builder.decor({ Name = "Ball", Shape = Enum.PartType.Ball, Size = Vector3.new(1.2, 1.2, 1.2), CFrame = at(-9.5 + k * 1.3, 0.6, 5), Color = rgb(230, 110, 40), Parent = model })
+		Toys.make("Baloncesto", at(-9.5 + k * 1.3, 0.6, 5), model) -- se pueden botar y patear (ToyService)
 	end
 	for _, z in { -12, -8 } do
 		Builder.part({ Name = "Mat", Size = Vector3.new(4, 0.5, 3.4), CFrame = at(8, 0.25, z), Color = rgb(40, 90, 180), Material = Enum.Material.Fabric, Parent = model })
@@ -390,7 +457,7 @@ function Civic.schoolGym(parent: Instance, cf: CFrame, townName: string)
 		end
 	end
 	for k = 0, 3 do
-		Builder.decor({ Name = "Cone", Size = Vector3.new(0.8, 1.2, 0.8), CFrame = at(-6 + k, 0.6, 15), Color = rgb(250, 120, 30), Parent = model })
+		Toys.make("Cono", at(-6 + k, 0.6, 15), model)
 	end
 	Builder.part({ Name = "BallCart", Size = Vector3.new(3, 2.2, 2), CFrame = at(5, 1.1, 14.5), Color = rgb(90, 90, 96), Material = Enum.Material.Metal, Parent = model })
 	local bagColors = { rgb(200, 50, 60), rgb(40, 150, 90), rgb(240, 190, 40), rgb(120, 60, 160), rgb(40, 110, 200) }
@@ -417,9 +484,7 @@ function Civic.schoolCanteen(parent: Instance, cf: CFrame, townName: string)
 		Sign = "COMEDOR · BIBLIOTECA", SignColor = rgb(30, 90, 160),
 		FloorMaterial = Enum.Material.WoodPlanks, FloorColor = rgb(196, 160, 118),
 	})
-	local function at(x: number, y: number, z: number): CFrame
-		return ground(x, y + FT, z)
-	end
+	local at = ground -- at() de Building ya mide desde el suelo interior
 	local mark = { School = townName }
 	local wall = rgb(242, 236, 222)
 	for _, seg in { { -17, -2.5 }, { 2.5, 17 } } do
@@ -466,6 +531,9 @@ function Civic.schoolCanteen(parent: Instance, cf: CFrame, townName: string)
 	end
 	for _, x in { -6, 6 } do
 		Builder.part({ Name = "ReadingTable", Size = Vector3.new(6, 0.3, 3), CFrame = at(x, 2.6, 13), Color = rgb(170, 120, 80), Material = Enum.Material.Wood, Parent = model })
+		for _, leg in { { -2.7, -1.2 }, { 2.7, -1.2 }, { -2.7, 1.2 }, { 2.7, 1.2 } } do
+			Builder.decor({ Name = "TableLeg", Size = Vector3.new(0.3, 2.45, 0.3), CFrame = at(x + leg[1], 1.225, 13 + leg[2]), Color = rgb(120, 82, 52), Material = Enum.Material.Wood, Parent = model })
+		end
 		Builder.decor({ Name = "Lamp", Size = Vector3.new(0.5, 1.2, 0.5), CFrame = at(x + 2, 3.35, 13), Color = rgb(60, 140, 90), Parent = model })
 		for _, dz in { -2.2, 2.2 } do
 			Builder.part({ Name = "Chair", Size = Vector3.new(1.6, 1.6, 1.6), CFrame = at(x, 0.8, 13 + dz), Color = rgb(60, 110, 180), Parent = model })
@@ -495,6 +563,26 @@ function Civic.fireStation(parent: Instance, lot: Lot, u: number)
 	-- Torre de entrenamiento
 	Builder.part({ Name = "Tower", Size = Vector3.new(8, info.Top + 8, 8), CFrame = at(W / 2 - 4, (info.Top + 8) / 2 - FT, D / 2 - 4), Color = rgb(176, 50, 42), Material = Enum.Material.Brick, Parent = model })
 	Props.vehicle(m, lot.along(u - 4, setback - 8, FT), "FireTruck")
+	-- Oficio de bombero (FireService): tablón, sitio del camión, material y boca de riego
+	Props.jobBoard(m, lot.facing(u - W / 2 + 3, setback - 3, FT), "Bombero", "BOMBEROS")
+	local bay = lot.facing(u + W / 4 + 2, setback - 7, FT)
+	Builder.decor({ Name = "TruckBay", Size = Vector3.new(10, 0.05, 12), CFrame = bay * CFrame.new(0, 0.03, 0), Color = rgb(250, 210, 40), Parent = m })
+	Builder.part({ Name = "FireTruckSpot", Size = Vector3.new(4, 3, 4), CFrame = bay * CFrame.new(0, 1.5, 3), Transparency = 1, CanCollide = false, Tags = { "FireTruckSpot" }, Parent = m })
+	local rack = lot.facing(u + W / 2 - 3, setback - 2, FT)
+	Builder.part({ Name = "GearRack", Size = Vector3.new(5, 5, 1.2), CFrame = rack * CFrame.new(0, 2.5, 0), Color = rgb(60, 60, 66), Material = Enum.Material.Metal, Parent = m })
+	for k = -1, 1 do
+		Builder.decor({ Name = "Helmet", Shape = Enum.PartType.Ball, Size = Vector3.new(1.3, 1.1, 1.3), CFrame = rack * CFrame.new(k * 1.5, 4.4, -0.7), Color = rgb(250, 210, 40), Parent = m })
+		Builder.decor({ Name = "Jacket", Size = Vector3.new(1.3, 2, 0.4), CFrame = rack * CFrame.new(k * 1.5, 2.6, -0.8), Color = rgb(200, 170, 110), Material = Enum.Material.Fabric, Parent = m })
+		Builder.decor({ Name = "JacketStripe", Size = Vector3.new(1.32, 0.2, 0.42), CFrame = rack * CFrame.new(k * 1.5, 2.2, -0.8), Color = rgb(250, 250, 200), Material = Enum.Material.Neon, Parent = m })
+	end
+	for k = 0, 2 do
+		Builder.decor({ Name = "HoseRoll", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.6, 1.8, 1.8), CFrame = rack * CFrame.new(-4 + k * 0.7, 0.9, -1) * CFrame.Angles(0, math.rad(90), 0), Color = rgb(200, 60, 40), Material = Enum.Material.Fabric, Parent = m })
+	end
+	local hydrant = lot.facing(u - W / 2 - 1, 2, FT)
+	Builder.part({ Name = "Hydrant", Shape = Enum.PartType.Cylinder, Size = Vector3.new(2.4, 0.9, 0.9), CFrame = hydrant * CFrame.new(0, 1.2, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = rgb(210, 30, 30), Material = Enum.Material.Metal, Parent = m })
+	Builder.decor({ Name = "HydrantCap", Shape = Enum.PartType.Ball, Size = Vector3.new(1, 1, 1), CFrame = hydrant * CFrame.new(0, 2.45, 0), Color = rgb(210, 30, 30), Material = Enum.Material.Metal, Parent = m })
+	Builder.decor({ Name = "HydrantOutlet", Shape = Enum.PartType.Cylinder, Size = Vector3.new(1.4, 0.4, 0.4), CFrame = hydrant * CFrame.new(0, 1.6, 0), Color = rgb(230, 230, 230), Material = Enum.Material.Metal, Parent = m })
+	m:AddTag("FireStation")
 	return m
 end
 
@@ -511,11 +599,11 @@ function Civic.policeStation(parent: Instance, lot: Lot, u: number)
 	})
 	-- Franja azul corporativa
 	Builder.decor({ Name = "Band", Size = Vector3.new(W + 0.4, 1.4, 0.4), CFrame = at(0, info.GroundTop - FT + 0.8, -D / 2 - 0.25), Color = rgb(30, 70, 180), Parent = model })
-	for i, du in { -12, 0, 12 } do
-		if i ~= 2 then
-			Props.vehicle(m, lot.facing(u + du, setback - 7, FT), "Police")
-		end
-	end
+	-- Planta baja: mostrador, mesas, taquillas y calabozos; tablón del oficio (PoliceService)
+	PoliceStation.build(model, at, W, D)
+	Props.jobBoard(m, lot.facing(u + W / 4, setback - 3, FT), "Policia", "POLICÍA")
+	-- Un coche aparcado a un lado (al otro está el sitio del coche patrulla del oficio)
+	Props.vehicle(m, lot.facing(u - 12, setback - 7, FT), "Police")
 	return m
 end
 
@@ -577,7 +665,9 @@ function Civic.gasStation(parent: Instance, lot: Lot)
 		for _, dv in { -6, 6 } do
 			Builder.part({ Name = "Pillar", Size = Vector3.new(1, 10.5, 1), CFrame = lot.facing(du, 16 + dv, 5.5), Color = rgb(235, 235, 235), Parent = m })
 		end
-		Builder.part({ Name = "Pump", Size = Vector3.new(2, 4.5, 1.4), CFrame = lot.facing(du, 16, 2.75), Color = rgb(30, 150, 80), Parent = m })
+		Builder.part({ Name = "Pump", Size = Vector3.new(2, 4.5, 1.4), CFrame = lot.facing(du, 16, 2.75), Color = rgb(30, 150, 80), Tags = { "FuelPump" }, Parent = m })
+		Builder.decor({ Name = "Hose", Size = Vector3.new(0.2, 3, 0.2), CFrame = lot.facing(du + 1.1, 16, 2.6), Color = rgb(25, 25, 28), Parent = m })
+		Builder.decor({ Name = "Nozzle", Size = Vector3.new(0.4, 0.8, 0.3), CFrame = lot.facing(du + 1.1, 16, 4.2), Color = rgb(250, 200, 30), Parent = m })
 		Builder.decor({ Name = "PumpScreen", Size = Vector3.new(1.4, 1, 0.1), CFrame = lot.facing(du, 16 - 0.75, 3.8), Color = rgb(20, 20, 24), Material = Enum.Material.Neon, Parent = m })
 	end
 	Building.build({
@@ -601,6 +691,7 @@ function Civic.park(parent: Instance, lot: Lot, townName: string?)
 	local mark = { Town = townName }
 	local L, Dp = lot.Length, lot.Depth
 	slab(m, lot, -L / 2, L / 2, 0, Dp, 0.3, Palette.Ground.Lawn, Enum.Material.Grass, "Lawn")
+	Toys.make("Futbol", lot.facing(L / 6, Dp / 2 + 10, 1.35), m) -- un balón en el césped
 	-- Caminos en cruz
 	slab(m, lot, -3, 3, 0, Dp, 0.45, rgb(214, 200, 170), Enum.Material.Pavement, "Path")
 	slab(m, lot, -L / 2, L / 2, Dp / 2 - 3, Dp / 2 + 3, 0.46, rgb(214, 200, 170), Enum.Material.Pavement, "Path")
@@ -667,6 +758,13 @@ function Civic.park(parent: Instance, lot: Lot, townName: string?)
 		Props.lamp(m, lot.facing(-5, v + 8, 0.45) * CFrame.Angles(0, math.rad(-90), 0))
 	end
 	Nature.flowerBed(m, lot.facing(0, Dp / 2, 0.46), 10, 10)
+	-- Unas piedras sueltas en el césped (lejos de los caminos): se puede tropezar con ellas
+	for k = 1, 4 do
+		local side = if k % 2 == 0 then 1 else -1
+		local u = side * (10 + math.random() * (L / 2 - 20))
+		local v = if k <= 2 then 14 + math.random() * (Dp / 2 - 22) else Dp / 2 + 8 + math.random() * (Dp / 2 - 22)
+		Nature.stone(m, lot.point(u, v, 0.3))
+	end
 	return m
 end
 
@@ -725,6 +823,14 @@ function Civic.beach(parent: Instance, lot: Lot)
 	for u = -L / 2 + 6, L / 2 - 6, 24 do
 		Nature.palm(m, lot.point(u, 8, FT))
 	end
+	-- Piedras y conchas sueltas en la arena
+	for _ = 1, 5 do
+		Nature.stone(m, lot.point((math.random() - 0.5) * (L - 20), 16 + math.random() * math.max(Dp - 10, 4), 0.6), 0.6 + math.random() * 0.4)
+	end
+	-- Balones de playa (ligeros: salen volando)
+	for _, u in { -L / 6, L / 6 } do
+		Toys.make("Playa", CFrame.new(lot.point(u, Dp * 0.45, 0.6 + 1.35)), m)
+	end
 	-- Torre de socorrista
 	local tower = lot.point(0, Dp - 20, 0.6)
 	for _, dx in { -2, 2 } do
@@ -760,6 +866,7 @@ function Civic.stadium(parent: Instance, lot: Lot, name: string, teamColor: Colo
 	-- Terreno de juego (110 × 70) con líneas
 	local pitch = lot.facing(0, cv, FT)
 	Builder.part({ Name = "Pitch", Size = Vector3.new(110, 0.3, 70), CFrame = pitch * CFrame.new(0, 0.15, 0), Color = rgb(70, 146, 66), Material = Enum.Material.Grass, Parent = m })
+	Toys.make("Futbol", pitch * CFrame.new(0, 1.35, 0), m) -- en el centro del campo
 	for i = -5, 5 do
 		if i % 2 == 0 then
 			Builder.decor({ Name = "Stripe", Size = Vector3.new(10, 0.05, 70), CFrame = pitch * CFrame.new(i * 10, 0.31, 0), Color = rgb(80, 160, 74), Parent = m })
@@ -949,8 +1056,12 @@ function Civic.cinema(parent: Instance, lot: Lot, u: number, townName: string)
 	local model, at = Building.build({
 		Name = "Cine", Parent = parent, CFrame = lot.facing(u + W / 2, 8 + D / 2, 0),
 		Width = W, Depth = D, Floors = 1, GroundHeight = 22, Style = "Moderno", GroundFloor = "Shop",
-		WallColor = rgb(52, 40, 62), Interior = false, Balconies = false, WindowFaces = { Front = true }, ShopId = "Cine",
+		WallColor = rgb(52, 40, 62), Balconies = false, WindowFaces = { Front = true }, ShopId = "Cine",
+		FloorMaterial = Enum.Material.Carpet, FloorColor = rgb(60, 20, 30), LightColor = rgb(255, 220, 180),
 	})
+	-- Por dentro: taquilla, barra de palomitas y la sala con su pantalla (CinemaService)
+	CinemaHall.build(model, at, W, D)
+	Props.jobBoard(parent, lot.facing(u + W - 3, 3, 0), "Taquillero", "TAQUILLA")
 	-- Marquesina luminosa con carteles de películas
 	local marquee = Builder.decor({ Name = "Marquee", Size = Vector3.new(30, 6, 0.8), CFrame = at(0, 17, -D / 2 - 0.5), Color = rgb(18, 16, 24), Parent = model })
 	Builder.sign(marquee, "CINE " .. string.upper(townName), Enum.NormalId.Front, rgb(255, 214, 90))
@@ -980,7 +1091,7 @@ function Civic.arcade(parent: Instance, lot: Lot, u: number)
 	for i, color in { rgb(255, 60, 200), rgb(60, 220, 255), rgb(255, 230, 60) } do
 		neonStrip(model, at(0, 15 - i * 0.9, -D / 2 - 0.4), W - 2, color)
 	end
-	local F = FT -- suelo interior
+	local F = 0 -- at() de Building ya mide desde el suelo interior
 
 	-- Dos pistas de lanzabolas al fondo a la izquierda
 	for i, x in { -10, -5 } do
@@ -1057,23 +1168,17 @@ function Civic.arcade(parent: Instance, lot: Lot, u: number)
 	return W
 end
 
-function Civic.gym(parent: Instance, lot: Lot, u: number)
-	local W, D = 40, 36
+-- Gimnasio del barrio: se entra andando y se entrena de verdad (GymKit + GymService).
+-- (El interior no usa math.random: así el resto del mapa sale igual que antes.)
+function Civic.gym(parent: Instance, lot: Lot, u: number, townName: string?)
+	local W, D = GymKit.Width, GymKit.Depth
 	local model, at = Building.build({
-		Name = "Gimnasio", Parent = parent, CFrame = lot.facing(u + W / 2, 8 + D / 2, 0),
+		Name = "GimnasioValmar", Parent = parent, CFrame = lot.facing(u + W / 2, 8 + D / 2, 0),
 		Width = W, Depth = D, Floors = 2, Style = "Moderno", GroundFloor = "Shop", Balconies = false,
 		WallColor = rgb(230, 232, 236), WindowFaces = { Front = true, Left = true, Right = true },
 		Sign = "GIMNASIO", SignColor = rgb(230, 110, 30), ShopId = "Gimnasio", FloorMaterial = Enum.Material.Rubber, FloorColor = rgb(50, 52, 58),
 	})
-	-- Máquinas visibles desde el escaparate
-	for i = 0, 3 do
-		local cf = at(-12 + i * 8, 0, -6)
-		Builder.part({ Name = "Treadmill", Size = Vector3.new(2.6, 1, 6), CFrame = cf * CFrame.new(0, 0.5, 0), Color = rgb(30, 30, 34), Parent = model })
-		Builder.decor({ Name = "Console", Size = Vector3.new(2.6, 3.6, 0.4), CFrame = cf * CFrame.new(0, 2.4, -2.8), Color = rgb(70, 72, 80), Parent = model })
-	end
-	for i = 0, 2 do
-		Builder.part({ Name = "Bench", Size = Vector3.new(1.4, 1.6, 5), CFrame = at(-10 + i * 10, 0.8, 8), Color = rgb(200, 60, 40), Parent = model })
-	end
+	GymKit.interior(model, at(0, 0, 0), "Gimnasio " .. (townName or "Valmar"))
 	return W
 end
 
@@ -1088,17 +1193,20 @@ function Civic.drivingSchool(parent: Instance, lot: Lot, u: number, townName: st
 		FloorMaterial = Enum.Material.CeramicTiles, FloorColor = rgb(226, 226, 222),
 	})
 	-- Aula de teoría: pizarra con señales y pupitres
-	local board = Builder.part({ Name = "Board", Size = Vector3.new(10, 4, 0.3), CFrame = at(0, FT + 5, D / 2 - 1.4), Color = rgb(245, 245, 245), Parent = model })
+	local board = Builder.part({ Name = "Board", Size = Vector3.new(10, 4, 0.3), CFrame = at(0, 5, D / 2 - 2.95), Color = rgb(245, 245, 245), Parent = model }) -- pegada a la pared de dentro
 	Builder.sign(board, "STOP · CEDA EL PASO · 50", Enum.NormalId.Front, rgb(200, 30, 30))
 	for _, x in { -7, 0, 7 } do
 		for _, z in { 0, 5 } do
-			Builder.part({ Name = "Desk", Size = Vector3.new(4, 0.3, 2), CFrame = at(x, FT + 2.6, z), Color = rgb(190, 150, 100), Material = Enum.Material.Wood, Parent = model })
-			Builder.part({ Name = "Chair", Size = Vector3.new(1.6, 1.6, 1.6), CFrame = at(x, FT + 0.8, z - 1.8), Color = rgb(40, 90, 150), Parent = model })
+			Builder.part({ Name = "Desk", Size = Vector3.new(4, 0.3, 2), CFrame = at(x, 2.6, z), Color = rgb(190, 150, 100), Material = Enum.Material.Wood, Parent = model })
+			for _, leg in { { -1.8, -0.8 }, { 1.8, -0.8 }, { -1.8, 0.8 }, { 1.8, 0.8 } } do
+				Builder.decor({ Name = "DeskLeg", Size = Vector3.new(0.2, 2.45, 0.2), CFrame = at(x + leg[1], 1.225, z + leg[2]), Color = rgb(60, 60, 64), Material = Enum.Material.Metal, Parent = model })
+			end
+			Builder.part({ Name = "Chair", Size = Vector3.new(1.6, 1.6, 1.6), CFrame = at(x, 0.8, z - 1.8), Color = rgb(40, 90, 150), Parent = model })
 		end
 	end
 	-- Punto para apuntarse (en la acera, delante de la puerta)
 	local desk = Builder.part({
-		Name = "Signup", Size = Vector3.new(4, 3.4, 0.4), CFrame = at(-9, FT + 3.2, -D / 2 - 2.5), Color = rgb(40, 90, 150),
+		Name = "Signup", Size = Vector3.new(4, 3.4, 0.4), CFrame = at(-9, 3.2, -D / 2 - 2.5), Color = rgb(40, 90, 150),
 		Tags = { "DrivingSchool" }, Attributes = { Town = townName }, Parent = model,
 	})
 	Builder.sign(desk, "CARNET\nMOTO · COCHE", Enum.NormalId.Front)
@@ -1126,7 +1234,7 @@ function Civic.leisure(parent: Instance, lot: Lot, townName: string)
 			return Civic.arcade(m, lot, u)
 		end,
 		function(u)
-			return Civic.gym(m, lot, u)
+			return Civic.gym(m, lot, u, townName)
 		end,
 		function(u)
 			return Civic.drivingSchool(m, lot, u, townName)

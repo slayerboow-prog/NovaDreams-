@@ -7,6 +7,7 @@
 
 local Builder = require(script.Parent.Parent.Builder)
 local Palette = require(script.Parent.Palette)
+local StreetDetail = require(script.Parent.StreetDetail)
 
 local Building = {}
 
@@ -120,6 +121,10 @@ end
 local function fillOpening(ctx: Ctx, face: CFrame, o: Opening)
 	local h = o.Top - o.Bottom
 	local style = ctx.Style
+	-- Aire acondicionado bajo alguna ventana (Kit/StreetDetail)
+	if o.Kind == "Window" then
+		StreetDetail.window(ctx.Model, face, o.X, o.Bottom, o.W)
+	end
 	if o.Kind == "Window" or o.Kind == "Balcony" or o.Kind == "GroundWindow" then
 		local isGround = o.Kind == "GroundWindow"
 		glass(ctx, face, o, if isGround then ctx.GroundGlassTransparency else 0, if isGround then 0 else NIGHT_WINDOW_CHANCE)
@@ -177,6 +182,8 @@ local function fillOpening(ctx: Ctx, face: CFrame, o: Opening)
 				Material = Enum.Material.Metal,
 				Parent = ctx.Model,
 			})
+			-- Macetas o ropa tendida (Kit/StreetDetail)
+			StreetDetail.balcony(ctx.Model, face, o.X, o.Bottom, o.W)
 		end
 	elseif o.Kind == "Shop" then
 		-- Sin interior jugable: cristal reflectante en vez de ver una sala vacía
@@ -466,7 +473,7 @@ function Building.build(spec: Spec): (Model, (number, number, number) -> CFrame,
 				light.Range = math.clamp(Y1 + 8, 16, 30)
 				light.Brightness = 1.6
 				light.Color = color
-				light.Shadows = index == 1
+				light.Shadows = false -- rendimiento: cientos de luces de techo con sombra
 				light.Parent = lamp
 			end
 		end
@@ -571,6 +578,10 @@ function Building.build(spec: Spec): (Model, (number, number, number) -> CFrame,
 			Attributes = { ShopId = spec.ShopId },
 			Parent = model,
 		})
+	end
+	-- Delante de la tienda: terraza, cajas de fruta, flores o una pizarra (Kit/StreetDetail)
+	if spec.Sign and spec.GroundFloor == "Shop" then
+		StreetDetail.shopFront(model, O * CFrame.new(0, 0, -D / 2), W, spec.Sign, spec.Awning or spec.SignColor)
 	end
 	if spec.Awning and spec.GroundFloor == "Shop" then
 		local winW = W / 2 - 8

@@ -83,7 +83,13 @@ local function characterAttachment(): Attachment?
 	return attachment
 end
 
+local hidden = false -- durante cinemáticas y conversaciones
+
 local function update()
+	if hidden then
+		anchor.Parent = nil
+		return
+	end
 	local target = player:GetAttribute("TaskTarget")
 	if typeof(target) ~= "Vector3" then
 		target = player:GetAttribute("StoryTarget")
@@ -94,6 +100,15 @@ local function update()
 	end
 	anchor.Position = target
 	anchor.Parent = workspace
+end
+
+function TaskMarker.setHidden(value: boolean)
+	if hidden ~= value then
+		hidden = value
+		if anchor then
+			update()
+		end
+	end
 end
 
 function TaskMarker.init()
@@ -110,7 +125,10 @@ function TaskMarker.init()
 		beam.Attachment0 = attachment
 		if attachment then
 			local distance = (attachment.WorldPosition - anchor.Position).Magnitude
-			distanceLabel.Text = ("%d m"):format(math.floor(distance / 3.5))
+			local text = ("%d m"):format(math.floor(distance / 3.5))
+			if distanceLabel.Text ~= text then -- solo si cambia (esto va cada frame)
+				distanceLabel.Text = text
+			end
 		end
 	end)
 end

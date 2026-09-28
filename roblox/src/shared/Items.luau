@@ -1,6 +1,7 @@
 -- Items: todo lo que puede aparecer en la mochila (inventario al estilo Minecraft).
 -- Junta en una sola lista cosas que guardan distintos sistemas:
 --   * Comida y objetos comprados en las tiendas (ShopItems.luau)   -> data.Items = { Pan = 3, ... }
+--   * Productos de los supermercados (Groceries.luau)             -> data.Items
 --   * Vehículos (Gameplay.Vehicles)                                -> data.Vehicles
 --   * Premios de los recreativos (Gameplay.Prizes)                 -> data.Prizes
 --   * Carnets de conducir (Gameplay.Licenses)                      -> data.Licenses
@@ -10,6 +11,8 @@
 --   Food     se come (quita hambre o da energía) y se gasta uno
 --   Vehicle  te montas o te bajas
 --   Wear     te lo pones o te lo quitas
+--   Weapon   se empuña al elegir su casilla de la barra rápida (WeaponService / WeaponController)
+--   Ammo     munición de un arma (se gasta al recargar)
 --   Thing / Prize / Document   solo se guarda (recados, recuerdos, papeles)
 --   Keepsake  objeto de la historia (la mochila del cole, la foto del grupo…): no se tira
 --   Gadget    invento exclusivo de las misiones locas de Cosme (pistola de rayos, mando de dimensiones…):
@@ -19,6 +22,14 @@ local Gameplay = require(script.Parent.Gameplay)
 local ShopItems = require(script.Parent.LifeStory.ShopItems)
 local Subjects = require(script.Parent.LifeStory.Subjects)
 local Strings = require(script.Parent.LifeStory.Strings)
+local Groceries = require(script.Parent.Groceries)
+local CafeMenu = require(script.Parent.CafeMenu)
+local Cinema = require(script.Parent.Cinema)
+local Hotel = require(script.Parent.Hotel)
+local Fishing = require(script.Parent.Fishing)
+local Metro = require(script.Parent.Metro)
+local Weapons = require(script.Parent.Weapons)
+local Farming = require(script.Parent.Farming)
 
 local Items = {}
 
@@ -77,6 +88,9 @@ for _, shopItem in ShopItems do
 end
 
 for key, vehicle in Gameplay.Vehicles do
+	if vehicle.Hidden then
+		continue
+	end
 	list["Vehiculo_" .. key] = {
 		Id = "Vehiculo_" .. key,
 		Name = vehicle.Name,
@@ -106,7 +120,7 @@ for key, license in Gameplay.Licenses do
 	list["Carnet_" .. key] = {
 		Id = "Carnet_" .. key,
 		Name = license.Name,
-		Icon = "🪪",
+		Icon = "💳",
 		Kind = "Document",
 		Desc = "Aprobado en la autoescuela. Te deja conducir: " .. (Gameplay.Vehicles[license.Vehicle] and Gameplay.Vehicles[license.Vehicle].Name or license.Vehicle) .. ".",
 		Stack = 1,
@@ -126,6 +140,175 @@ for _, degree in Subjects.Degrees do
 	}
 end
 
+-- Supermercado: productos de las estanterías y de la charcutería
+for _, product in Groceries.List do
+	if not list[product.Id] then
+		local food = product.Hunger ~= nil
+		local section = Groceries.Sections[product.Section]
+		list[product.Id] = {
+			Id = product.Id,
+			Name = product.Name,
+			Icon = product.Icon,
+			Kind = if food then "Food" else "Thing",
+			Desc = if food then ("Del supermercado (%s). Quita el hambre."):format(section.Name) else ("Del supermercado (%s). Para tu casa."):format(section.Name),
+			Stack = if food then 16 else 32,
+			Hunger = product.Hunger,
+			Energy = product.Energy,
+		}
+	end
+end
+for _, deli in Groceries.Deli do
+	list[deli.Id] = {
+		Id = deli.Id,
+		Name = deli.Name .. " (al corte)",
+		Icon = deli.Icon,
+		Kind = "Food",
+		Desc = "Recién cortado en la charcutería del supermercado.",
+		Stack = 16,
+		Hunger = deli.Hunger * 2,
+		Energy = 0,
+	}
+end
+
+-- Cafetería: lo que se pide en la barra (lo prepara el barista)
+for _, product in CafeMenu.List do
+	local id = CafeMenu.itemId(product.Id)
+	list[id] = {
+		Id = id,
+		Name = product.Name,
+		Icon = product.Icon,
+		Kind = "Food",
+		Desc = if product.Plate then "Recién servido en la cafetería." else "Recién hecho por el barista. Quita el sueño.",
+		Stack = 8,
+		Hunger = product.Hunger,
+		Energy = product.Energy,
+	}
+end
+
+-- Cine: la entrada (se gasta al entrar a la sala) y lo de la barra
+list[Cinema.TicketItem] = {
+	Id = Cinema.TicketItem,
+	Name = "Entrada de cine",
+	Icon = "🎟️",
+	Kind = "Thing",
+	Desc = "Una entrada para la próxima sesión del cine. Enséñala en la puerta de la sala.",
+	Stack = 8,
+}
+for _, snack in Cinema.Snacks do
+	list[snack.Id] = list[snack.Id] or {
+		Id = snack.Id,
+		Name = snack.Name,
+		Icon = snack.Icon,
+		Kind = "Food",
+		Desc = "De la barra del cine. Mejor durante la película.",
+		Stack = 8,
+		Hunger = snack.Hunger,
+		Energy = snack.Energy,
+	}
+end
+
+-- Hotel: la llave de tu habitación (se gasta al descansar una noche)
+list[Hotel.KeyItem] = {
+	Id = Hotel.KeyItem,
+	Name = "Llave de hotel",
+	Icon = "🗝️",
+	Kind = "Thing",
+	Desc = "La llave de tu habitación. Úsala en el ascensor del hotel para subir a descansar.",
+	Stack = 4,
+}
+
+-- Pesca: cañas, cebo y lo que pescas (se vende en la pescadería del supermercado)
+for _, rod in Fishing.Rods do
+	list[rod.Id] = { Id = rod.Id, Name = rod.Name, Icon = rod.Icon, Kind = "Thing", Desc = rod.Desc, Stack = 1 }
+end
+for _, tool in Fishing.Tools do
+	list[tool.Id] = { Id = tool.Id, Name = tool.Name, Icon = tool.Icon, Kind = "Thing", Desc = tool.Desc .. " (herramienta de pesca)", Stack = 1 }
+end
+for _, boss in Fishing.Bosses do
+	list[boss.Item] = {
+		Id = boss.Item,
+		Name = boss.Name,
+		Icon = boss.Icon,
+		Kind = "Thing",
+		Desc = ("¡Un trofeo legendario! La lonja de la pescadería lo compra por %d €."):format(boss.Price),
+		Stack = 5,
+	}
+end
+list[Fishing.Bait.Id] = { Id = Fishing.Bait.Id, Name = Fishing.Bait.Name, Icon = Fishing.Bait.Icon, Kind = "Thing", Desc = Fishing.Bait.Desc, Stack = 50 }
+for _, s in Fishing.Species do
+	list[s.Item] = {
+		Id = s.Item,
+		Name = s.Name,
+		Icon = s.Icon,
+		Kind = "Thing",
+		Desc = ("%s · pescado fresco. Véndelo en la pescadería del supermercado (%d € cada uno)."):format(s.Rarity, s.Price),
+		Stack = 64, -- como los demás objetos: caben muchos antes de tener que venderlos
+	}
+end
+
+-- Campo de Villaverde: cosechas, lo de los animales, lo del obrador y la cocina, semillas y pienso
+for _, id in Farming.ProductOrder do
+	local p = Farming.Products[id]
+	local food = p.Hunger ~= nil
+	list[id] = {
+		Id = id,
+		Name = p.Name,
+		Icon = p.Icon,
+		Kind = if food then "Food" else "Thing",
+		Desc = ("%s La cooperativa lo paga a %d €; el supermercado, a %d €."):format(p.Desc, Farming.sellPrice(id, "Coop"), Farming.sellPrice(id, "Super")),
+		Stack = 99,
+		Hunger = p.Hunger,
+		Energy = p.Energy,
+	}
+end
+for _, c in Farming.Crops do
+	local id = Farming.seedItem(c.Id)
+	list[id] = {
+		Id = id,
+		Name = if c.Tree then "Plantón de " .. c.Name:lower() else "Semillas de " .. c.Name:lower(),
+		Icon = "🌱",
+		Kind = "Thing",
+		Desc = ("Para plantar en un bancal de tu finca de Villaverde. Da %s %s."):format(c.Icon, Farming.Products[c.Product].Name:lower()),
+		Stack = 99,
+	}
+end
+list[Farming.Feed] = { Id = Farming.Feed, Name = "Saco de pienso", Icon = "🥣", Kind = "Thing", Desc = "Comida para tus animales de la granja (también comen trigo y maíz).", Stack = 99 }
+
+-- Metro: el billete y lo que venden las tiendas subterráneas
+list[Metro.TicketItem] = { Id = Metro.TicketItem, Name = "Billete de metro", Icon = "🎫", Kind = "Thing", Desc = "Un viaje en metro. Se gasta al pasar el torno.", Stack = 50 }
+for id, p in Metro.Products do
+	list[id] = list[id] or {
+		Id = id,
+		Name = p.Name,
+		Icon = p.Icon,
+		Kind = p.Kind,
+		Desc = p.Desc,
+		Stack = if p.Kind == "Food" then 8 else 4,
+		Hunger = p.Hunger,
+		Energy = p.Energy,
+	}
+end
+
+-- Armas (de verdad, de la policía y de juguete), su munición y la licencia de armas
+for id, w in Weapons.List do
+	local itemId = Weapons.itemId(id)
+	local desc = if w.Kind == "Toy" then "De juguete: no hace daño. Elígelo en la barra rápida para empuñarlo."
+		elseif w.Duty then "Arma de servicio de la policía. Se devuelve al acabar el turno."
+		else "Arma de fuego (necesita licencia). Elígela en la barra rápida para empuñarla; clic derecho para apuntar."
+	list[itemId] = { Id = itemId, Name = w.Name, Icon = w.Icon, Kind = "Weapon", Desc = desc, Stack = 1, Ref = id }
+end
+for id, ammo in Weapons.AmmoTypes do
+	list[id] = { Id = id, Name = ammo.Name, Icon = ammo.Icon, Kind = "Ammo", Desc = ("Munición. Se gasta al recargar (caja de %d)."):format(ammo.Box), Stack = ammo.Stack }
+end
+list[Weapons.Licence.Item] = {
+	Id = Weapons.Licence.Item,
+	Name = "Licencia de armas",
+	Icon = "🪪",
+	Kind = "Document",
+	Desc = "Te permite comprar y llevar armas de fuego. Se retira si te condenan.",
+	Stack = 1,
+}
+
 -- Objetos de la historia (las misiones los dan y los quitan con Effects.Items / Effects.Take)
 local KEEPSAKES = {
 	{ "MochilaCole", "Mochila del cole", "🎒", "Tu mochila azul del colegio, con tu nombre bordado." },
@@ -144,7 +327,7 @@ local KEEPSAKES = {
 	{ "Maqueta", "Maqueta del proyecto final", "🔬", "Un poco torcida, llena de pegamento… y con mucha historia." },
 	{ "DiplomaPrimaria", "Diploma de primaria", "🎓", "Firmado por Lucía. Con una carita sonriente al lado de la firma." },
 	{ "Llavero13", "Llavero con el número 13", "🗝️", "Regalo de Ramón: las puertas cerradas a veces esconden cosas bonitas." },
-	{ "CarnetInstituto", "Carnet del instituto", "🪪", "Tu foto de carnet del primer día. Nadie sale bien en las fotos de carnet." },
+	{ "CarnetInstituto", "Carnet del instituto", "💳", "Tu foto de carnet del primer día. Nadie sale bien en las fotos de carnet." },
 	{ "FotoDeLeire", "Foto de Leire", "📷", "Blanco y negro. Tú, el primer día de instituto, con cara de «¿dónde me he metido?»." },
 	{ "InsigniaClub", "Insignia del club", "📌", "La insignia de tu primer club del instituto." },
 	{ "PrimerSobre", "Sobre de tu primer sueldo", "✉️", "Vacío. Pero lo guardas en un cajón y no sabes muy bien por qué." },

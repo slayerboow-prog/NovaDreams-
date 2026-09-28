@@ -523,7 +523,7 @@ local function pickUp(player: Player)
 	part.CanCollide = false
 	part.CanQuery = false
 	part.Massless = true
-	part.CFrame = root.CFrame * CFrame.new(0, 0.2, -1.6) * CFrame.Angles(0, 0, math.rad(90))
+	part.CFrame = root.CFrame * CFrame.new(0, 0.5, -1.4) * CFrame.Angles(0, 0, math.rad(90)) -- entre las manos
 	local weld = Instance.new("WeldConstraint")
 	weld.Part0 = root
 	weld.Part1 = part
@@ -590,6 +590,7 @@ local function ensureNpcStaff()
 		npcWaiter = Npc.create("Npc_Camarero", folder, CFrame.new(floorOf(place.WaiterSpot)), {
 			Shirt = Color3.fromRGB(245, 245, 245), Pants = Color3.fromRGB(30, 30, 34),
 		})
+		Npc.work(npcWaiter :: Model, "Tray")
 	elseif (not open or staff.Camarero) and npcWaiter then
 		npcWaiter:Destroy()
 		npcWaiter = nil
@@ -598,6 +599,7 @@ local function ensureNpcStaff()
 		npcBarman = Npc.create("Npc_Barman", folder, place.BarmanSpot.CFrame * CFrame.new(0, -2, 0), {
 			Shirt = Color3.fromRGB(30, 30, 34), Pants = Color3.fromRGB(30, 30, 34),
 		})
+		Npc.work(npcBarman :: Model, "Wipe")
 	elseif (not open or staff.Barman) and npcBarman then
 		npcBarman:Destroy()
 		npcBarman = nil

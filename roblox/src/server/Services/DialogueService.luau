@@ -10,7 +10,7 @@
 -- recuerda), aplica los efectos y manda al cliente trozos de conversación hasta cada pregunta.
 -- El cliente (DialogueUI) los enseña con cámara y voz, y devuelve la respuesta elegida.
 --
--- Además: DialogueService.bark = una frase suelta en un globo, sin parar el juego ("¡Vas a llegar tarde!").
+-- Además: DialogueService.bark = una frase suelta en un bocadillo encima de quien la dice, sin parar el juego ("¡Vas a llegar tarde!").
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -244,14 +244,55 @@ function DialogueService.cancel(player: Player)
 	end
 end
 
--- Una frase suelta en un globo, sin parar el juego
-function DialogueService.bark(player: Player, speakerId: string?, text: string, args: { [string]: any }?)
+-- Quién busca el modelo de un personaje de la historia (LifeStoryService: los actores de su escena)
+local actorFinder: ((Player, string) -> Instance?)? = nil
+function DialogueService.setActorFinder(fn: (Player, string) -> Instance?)
+	actorFinder = fn
+end
+
+-- El modelo de quien dice una frase suelta: el jugador, el actor de su escena o el personaje fijo
+-- (la familia en casa…) más cercano con ese NpcId
+local function actorFor(player: Player, speakerId: string?): Instance?
+	if speakerId == nil or speakerId == "Narrador" then
+		return nil
+	elseif speakerId == "Yo" then
+		return player.Character
+	end
+	if actorFinder then
+		local ok, found = pcall(actorFinder, player, speakerId)
+		if ok and found then
+			return found
+		end
+	end
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if not root then
+		return nil
+	end
+	local best, bestDistance = nil, 80
+	local ok = pcall(function()
+		for _, npc in game:GetService("CollectionService"):GetTagged("StaticNpc") do
+			if npc:IsA("Model") and npc:GetAttribute("NpcId") == speakerId and npc.Parent then
+				local distance = (npc:GetPivot().Position - root.Position).Magnitude
+				if distance < bestDistance then
+					best, bestDistance = npc, distance
+				end
+			end
+		end
+	end)
+	return if ok then best else nil
+end
+
+-- Una frase suelta en un bocadillo encima de quien la dice, sin parar el juego
+-- (actor: su modelo, si ya se sabe; si no, se busca)
+function DialogueService.bark(player: Player, speakerId: string?, text: string, args: { [string]: any }?, actor: Instance?)
 	local name, voice = DialogueService.speaker(player, speakerId)
 	if SayRemote then
 		SayRemote:FireClient(player, "Say", {
 			SpeakerKey = name,
 			TextKey = Strings.get(text, argsFor(player, args)),
 			Role = voice,
+			Speaker = actor or actorFor(player, speakerId),
 		})
 	end
 end

@@ -24,6 +24,25 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local GameClock = require(ReplicatedStorage.Shared.GameClock)
+
+-- Hasta cuándo dura un paso "Wait" (en minutos de juego):
+--   GameMinutes = N          -> N minutos desde ahora
+--   UntilHour = H            -> hasta las H de hoy (si ya han pasado, nada)
+--   UntilHour + GameMinutes  -> hasta las H, pero como mucho N minutos (p. ej. la comida del cole)
+local function waitTarget(step: { [string]: any }): number
+	local now = GameClock.now()
+	if step.UntilHour then
+		local target = now.TotalMinutes - now.Hour * 60 - now.Minute + math.floor(step.UntilHour * 60)
+		if target <= now.TotalMinutes then
+			return now.TotalMinutes
+		end
+		if step.GameMinutes then
+			target = math.min(target, now.TotalMinutes + step.GameMinutes)
+		end
+		return target
+	end
+	return now.TotalMinutes + (step.GameMinutes or 0)
+end
 local LifeStory = ReplicatedStorage.Shared.LifeStory
 local Chapters = require(LifeStory.Chapters)
 local Quests = require(LifeStory.Quests)
@@ -33,6 +52,7 @@ local Stages = require(LifeStory.Stages)
 local Validate = require(LifeStory.Validate)
 local Subjects = require(LifeStory.Subjects)
 local DayPlans = require(LifeStory.DayPlans)
+local Schedules = require(LifeStory.Schedules)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 local DataService = require(script.Parent.DataService)
 local LocationService = require(script.Parent.LocationService)
@@ -66,9 +86,10 @@ type Progress = {
 -- Estado que no se guarda (se reconstruye al entrar)
 type Runtime = {
 	Spots: { [string]: LocationService.Spot }, -- lugar elegido para cada paso "Reach" en curso
+	ScheduleSpots: { [string]: any }?, -- sitios con horario ya buscados (para saber si ya estás dentro)
 	PendingOffer: string?,
 	OfferedAt: number,
-	Waiting: { QuestId: string, Reason: string }?,
+	Waiting: { QuestId: string, Reason: string, From: number?, To: number? }?,
 	LastPublished: string?,
 	LastRemote: number,
 	Ready: boolean,
@@ -78,6 +99,7 @@ type Runtime = {
 	NudgedAt: { [string]: number }, -- misión -> último "¡date prisa!"
 	Fallback: { [string]: boolean }, -- misión -> ya se lanzó el plan B de este paso
 	Busy: boolean, -- una conversación, un minijuego o una clase de la historia en marcha
+	Starting: boolean?, -- esperando a que el jugador aparezca para retomar la historia
 	CaughtAt: number?, -- (Escape/Fight) la última vez que te atrapó un enemigo
 	CanonSpots: { [string]: any }?, -- dónde empieza cada misión canónica (para su marca en el mapa)
 	LastHit: number?, -- (Fight) último disparo (no se puede disparar más rápido que esto)
@@ -430,16 +452,106 @@ local function placeArgs(step: { [string]: any }, prog: Progress?, story: Data):
 	return args
 end
 
-local function trackedQuest(story: Data): string?
-	if story.Tracked and story.Active[story.Tracked] then
-		return story.Tracked
+-- Horarios: si el paso actual te manda a un sitio con horario (colegio, instituto, universidad,
+-- oficina) y está cerrado, la misión se queda en pausa hasta que abra. Si ya estás allí, sigue.
+local function closedWindow(player: Player, data: Data, questId: string, prog: Progress): Schedules.Window?
+	local story = storyOf(data)
+	local step = stepsOf(questId, prog)[prog.Step]
+	-- Solo las rutinas con horario (el día de cole, instituto, uni o trabajo, o las que lo piden con
+	-- Schedule = true) esperan a que abra el sitio; las misiones de la historia y las locas se
+	-- pueden jugar a cualquier hora (colarse en el patio del cole por la tarde, la noche de la Grieta…)
+	local quest = Quests[questId]
+	if not step or quest.Schedule == false or not (quest.DayPlan or quest.Schedule == true) then
+		return nil
 	end
-	for id, prog in story.Active do
-		if prog.Kind == "Main" then
-			return id
+	local window: Schedules.Window? = nil
+	local placeId: string? = nil
+	if step.Type == "Group" and step.Steps then
+		for i, child in step.Steps do
+			if not (prog.Sub and prog.Sub[tostring(i)]) then
+				placeId = stepPlace(child, story)
+				window = Schedules.forPlace(placeId)
+				if window then
+					break
+				end
+			end
+		end
+	else
+		placeId = stepPlace(step, story)
+		window = Schedules.forPlace(placeId)
+	end
+	if not window or Schedules.isOpen(window, GameClock.now().ClockTime) then
+		return nil
+	end
+	-- ¿Ya estás allí? (dentro del colegio cuando cierra: puedes terminar lo que hacías)
+	local rt = runtime[player]
+	local me = LocationService.positionOf(player)
+	if rt and me and placeId then
+		rt.ScheduleSpots = rt.ScheduleSpots or {}
+		local spot = rt.ScheduleSpots[placeId]
+		if spot == nil then
+			spot = LocationService.resolve(player, placeId) or false
+			rt.ScheduleSpots[placeId] = spot
+		end
+		if spot and Vector3.new(spot.Position.X - me.X, 0, spot.Position.Z - me.Z).Magnitude < 180 then
+			return nil
 		end
 	end
-	return next(story.Active)
+	return window
+end
+
+-- ¿Es una misión del cole? (el día de colegio o instituto, y las misiones que pasan en el cole)
+local function schoolQuest(questId: string): boolean
+	local quest = Quests[questId]
+	return quest ~= nil and quest.Schedule ~= false and Schedules.isSchool(Schedules.forQuest(quest))
+end
+
+-- ¿El paso actual toca hacerlo en el cole? Si te manda a un sitio del colegio o del instituto, sí;
+-- si te manda a otro sitio (volver a casa, un recado, el parque…), no; si no te manda a ningún
+-- sitio (esperar, hablar con alguien…), depende de si la misión es del cole.
+local function schoolStep(questId: string, prog: Progress): boolean
+	local step = stepsOf(questId, prog)[prog.Step]
+	if step and Quests[questId].Schedule ~= false then
+		local window = Schedules.forStep(step, prog.Sub)
+		if window then
+			return Schedules.isSchool(window)
+		end
+		local hasPlace = step.Place ~= nil
+		for _, child in step.Steps or {} do
+			hasPlace = hasPlace or child.Place ~= nil
+		end
+		if hasPlace then
+			return false
+		end
+	end
+	return schoolQuest(questId)
+end
+
+-- Qué misiones se ven: en horario de cole, un niño o adolescente solo ve las misiones del cole;
+-- cuando se acaba el cole, lo que toca hacer en el cole desaparece y vuelven las demás.
+local function visibleQuest(data: Data, questId: string, prog: Progress): boolean
+	if Schedules.isSchoolTime(GameClock.now().ClockTime) then
+		local stage = data.Life.Stage
+		return schoolQuest(questId) or (stage ~= "Nino" and stage ~= "Adolescente")
+	end
+	return not schoolStep(questId, prog)
+end
+
+local function trackedQuest(data: Data): string?
+	local story = storyOf(data)
+	if story.Tracked and story.Active[story.Tracked] and visibleQuest(data, story.Tracked, story.Active[story.Tracked]) then
+		return story.Tracked
+	end
+	local first: string? = nil
+	for id, prog in story.Active do
+		if visibleQuest(data, id, prog) then
+			if prog.Kind == "Main" then
+				return id
+			end
+			first = first or id
+		end
+	end
+	return first
 end
 
 local sceneTarget -- se define más abajo
@@ -495,7 +607,7 @@ local function publish(player: Player, force: boolean?)
 	}
 
 	local target: Vector3? = nil
-	local trackedId = trackedQuest(story)
+	local trackedId = trackedQuest(data)
 	if trackedId then
 		local quest = Quests[trackedId]
 		local prog: Progress = story.Active[trackedId]
@@ -531,6 +643,12 @@ local function publish(player: Player, force: boolean?)
 				target = spot and spot.Position
 			end
 		end
+		local closed = closedWindow(player, data, trackedId, prog)
+		if closed then
+			-- Cerrado: sin línea guía; el HUD dice a qué hora abre
+			tracked.Closed = { Name = closed.Name, From = closed.From, To = closed.To }
+			target = nil
+		end
 		state.Tracked = tracked
 	elseif rt.Waiting then
 		local quest = Quests[rt.Waiting.QuestId]
@@ -538,12 +656,12 @@ local function publish(player: Player, force: boolean?)
 		state.Waiting = {
 			TitleKey = quest.TitleKey or quest.Title,
 			Reason = rt.Waiting.Reason,
-			From = req.Hours and req.Hours.From,
-			To = req.Hours and req.Hours.To,
+			From = rt.Waiting.From or (req.Hours and req.Hours.From),
+			To = rt.Waiting.To or (req.Hours and req.Hours.To),
 		}
 	end
-	for id in story.Active do
-		if id ~= trackedId then
+	for id, prog in story.Active do
+		if id ~= trackedId and visibleQuest(data, id, prog) then
 			table.insert(state.Others, { QuestId = id, TitleKey = titleOf(id, story.Active[id]) })
 		end
 	end
@@ -552,6 +670,30 @@ local function publish(player: Player, force: boolean?)
 	end)
 
 	player:SetAttribute("StoryTarget", target)
+	-- A quién hay que ir a buscar (y dónde): los compañeros y profes del colegio (SchoolService) se
+	-- acercan andando si la escena no trae ya a ese personaje
+	local needNpc, needPlace = nil, nil
+	if trackedId and not (state.Tracked and state.Tracked.Closed) then
+		local prog: Progress = story.Active[trackedId]
+		local step = stepsOf(trackedId, prog)[prog.Step]
+		local function wants(s: { [string]: any }?)
+			if needNpc == nil and s and s.Type == "Talk" and type(s.Npc) == "string" then
+				needNpc = s.Npc
+				needPlace = if type(s.Place) == "string" then Subjects.resolve(s.Place, degreeOf(story)) else nil
+			end
+		end
+		if step and step.Type == "Group" then
+			for i, child in step.Steps do
+				if not (prog.Sub and prog.Sub[tostring(i)]) then
+					wants(child)
+				end
+			end
+		else
+			wants(step)
+		end
+	end
+	player:SetAttribute("StoryNpc", needNpc)
+	player:SetAttribute("StoryNpcPlace", needPlace)
 	local encoded = HttpService:JSONEncode(state)
 	if force or encoded ~= rt.LastPublished then
 		rt.LastPublished = encoded
@@ -576,7 +718,7 @@ local function sendChoice(player: Player, questId: string, step: { [string]: any
 			table.insert(options, { Id = option.Id, TextKey = option.Text or option.TextKey })
 		end
 	end
-	send(player, "Choice", { QuestId = questId, PromptKey = step.Prompt or step.PromptKey, Options = options })
+	send(player, "Choice", { QuestId = questId, PromptKey = step.Prompt or step.PromptKey or step.Text or step.TextKey, Options = options })
 end
 
 -- ¿Se elige en el mundo (hablar con alguien, tocar un objeto) en vez de con una ventana?
@@ -632,6 +774,7 @@ local function playDialogue(player: Player, data: Data, questId: string, name: a
 	rt.Busy = true
 	local started = DialogueService.play(player, dialogue, dialogueContext(player, data, questId), function()
 		rt.Busy = false
+		rt.DialogueEndedAt = os.clock() -- el toque que cierra la conversación no abre otra
 		onDone()
 	end)
 	if not started then
@@ -708,7 +851,7 @@ end
 
 local function updateScene(player: Player, data: Data, questId: string)
 	local quest = Quests[questId]
-	if not quest or not (quest.Props or quest.Actors or quest.Dialogues) then
+	if not quest or not (quest.Props or quest.Actors or quest.Dialogues or quest.DayPlan) then
 		return -- misión sencilla, sin escena
 	end
 	local actors, props = sceneFor(player, data, questId)
@@ -726,6 +869,105 @@ local function updateScene(player: Player, data: Data, questId: string)
 		end
 	end
 	SceneService.set(player, questId, actors, props, defs)
+end
+
+---------------------------------------------------------------------
+-- Volver a la escena al entrar: si te fuiste en mitad de una clase y apareces lejos,
+-- el profe no puede ponerse a hablar sin ti. Se te devuelve al sitio de la escena.
+---------------------------------------------------------------------
+
+-- Pasos que ocurren en un sitio concreto con gente u objetos (los "Reach" ya te guían con la luz)
+local PLACED_STEPS = { Scene = true, Class = true, Choice = true, MiniGame = true, Talk = true, Use = true, Group = true }
+local RETURN_DISTANCE = 120 -- más lejos que esto de la escena = te has perdido
+
+-- where = "Lugar" o { Place, Index?, Offset? } (un actor, un objeto, un pupitre…)
+local function placePosition(player: Player, where: any): Vector3?
+	local placeId = if type(where) == "table" then where.Place else where
+	local place = type(placeId) == "string" and Locations.Places[placeId]
+	if not place or place.Special == "NearPlayer" or (type(where) == "table" and where.Mode == "Follow") then
+		return nil
+	end
+	local spot = if type(where) == "table"
+		then LocationService.resolve(player, placeId, { Index = where.Index, Offset = where.Offset })
+		else LocationService.resolve(player, placeId)
+	return spot and spot.Position
+end
+
+-- Dónde ocurre el paso actual de una misión (nil si no está atado a un sitio)
+local function sceneAnchor(player: Player, data: Data, questId: string): Vector3?
+	local story = storyOf(data)
+	local prog = story.Active[questId]
+	local steps = prog and stepsOf(questId, prog)
+	local step = steps and steps[prog.Step]
+	if not step or not PLACED_STEPS[step.Type] then
+		return nil
+	end
+	if step.Teleport then
+		return placePosition(player, step.Teleport)
+	end
+	if step.Place then
+		return placePosition(player, Subjects.resolve(step.Place, degreeOf(story)))
+	end
+	-- El centro de la gente y los objetos de la escena (el aula, el patio…)
+	local actors, props = sceneFor(player, data, questId)
+	local quest = Quests[questId]
+	local sum, count = Vector3.zero, 0
+	local function add(spec: { [string]: any }?)
+		local position = spec and spec.Place and placePosition(player, spec)
+		if position then
+			sum += position
+			count += 1
+		end
+	end
+	for _, spec in actors do
+		add(spec)
+	end
+	for _, id in props do
+		add(quest.Props and quest.Props[id])
+	end
+	if count > 0 then
+		return sum / count
+	end
+	-- Si no, el último sitio al que te llevó la misión
+	local ctx = contextFor(player, data)
+	for i = prog.Step - 1, math.max(1, prog.Step - 6), -1 do
+		local prev = steps[i]
+		if prev and (not prev.If or Conditions.check(prev.If, ctx)) then
+			local position = (prev.Teleport and placePosition(player, prev.Teleport)) or (prev.Place and placePosition(player, prev.Place))
+			if position then
+				return position
+			end
+		end
+	end
+	return nil
+end
+
+-- Si la misión que estabas jugando pasa en otro sitio, te lleva allí (una sola vez, al entrar)
+local function returnToScene(player: Player, data: Data)
+	local story = storyOf(data)
+	local root = LocationService.positionOf(player)
+	if not root then
+		return
+	end
+	local ids = {}
+	if story.Tracked and story.Active[story.Tracked] then
+		table.insert(ids, story.Tracked)
+	end
+	for id in story.Active do
+		if id ~= story.Tracked then
+			table.insert(ids, id)
+		end
+	end
+	for _, questId in ids do
+		local anchor = sceneAnchor(player, data, questId)
+		if anchor then
+			local offset = anchor - root
+			if Vector3.new(offset.X, 0, offset.Z).Magnitude > RETURN_DISTANCE then
+				SceneService.teleportTo(player, anchor)
+			end
+			return
+		end
+	end
 end
 
 local startInteractive -- se define más abajo
@@ -755,6 +997,7 @@ local function enterStep(player: Player, data: Data, questId: string)
 		prog.Sub = nil
 		prog.Hits = nil
 		prog.WaitUntil = nil
+		prog.Chatted = nil -- con quién se ha charlado ya en este paso (no se repite la conversación)
 		if rt then
 			rt.StepStart[questId] = os.clock()
 			rt.NudgedAt[questId] = nil
@@ -785,7 +1028,7 @@ local function enterStep(player: Player, data: Data, questId: string)
 			prog.Step += 1
 			continue
 		elseif step.Type == "Wait" then
-			prog.WaitUntil = GameClock.now().TotalMinutes + step.GameMinutes
+			prog.WaitUntil = waitTarget(step)
 		elseif step.Type == "Group" then
 			prog.Sub = {}
 		elseif step.Type == "Fight" then
@@ -1070,13 +1313,22 @@ function refresh(player: Player)
 			continue
 		end
 		local ok, reason = Conditions.check(Quests[pending].Requires, contextFor(player, data))
-		if ok then
+		local clock = GameClock.now().ClockTime
+		local window = Schedules.forQuest(Quests[pending])
+		if ok and not Schedules.isOpen(window, clock) then
+			-- Toca, pero el sitio está cerrado a esta hora (el colegio no abre de noche)
+			rt.Waiting = { QuestId = pending, Reason = "Hours", From = window and window.From, To = window and window.To }
+		elseif ok then
 			startQuest(player, data, pending)
 			return -- startQuest ya publica
 		elseif reason == "StageProgress" and chapter.Loop and Quests[chapter.Loop] then
 			-- Aún no toca el siguiente gran momento: se vive un día normal (colegio, instituto, universidad)
-			startQuest(player, data, chapter.Loop)
-			return
+			local loopWindow = Schedules.forQuest(Quests[chapter.Loop])
+			if Schedules.isOpen(loopWindow, clock) then
+				startQuest(player, data, chapter.Loop)
+				return
+			end
+			rt.Waiting = { QuestId = chapter.Loop, Reason = "Hours", From = loopWindow and loopWindow.From, To = loopWindow and loopWindow.To }
 		elseif Conditions.isWaitOnly(reason) then
 			rt.Waiting = { QuestId = pending, Reason = reason :: string }
 		end
@@ -1117,6 +1369,9 @@ local function canOffer(player: Player, data: Data, questId: string): boolean
 	local declined = story.Declined[questId]
 	if declined and not quest.Canon and os.time() - declined < CFG.DeclineCooldown then
 		return false
+	end
+	if not Schedules.isOpen(Schedules.forQuest(quest), GameClock.now().ClockTime) then
+		return false -- no se ofrece ir al colegio de noche
 	end
 	return (Conditions.check(quest.Requires, contextFor(player, data)))
 end
@@ -1401,6 +1656,15 @@ local function tickPlayer(player: Player, data: Data)
 		if not prog or not step then
 			continue
 		end
+		if closedWindow(player, data, questId, prog) then
+			-- El sitio al que toca ir está cerrado: se sigue cuando abra (y el reloj de "llegas tarde"
+			-- no corre mientras tanto)
+			local rt = runtime[player]
+			if rt then
+				rt.StepStart[questId] = os.clock()
+			end
+			continue
+		end
 		if stepTimers(player, data, questId, prog, step) then
 			continue -- el paso cambió (se acabó el tiempo, plan B…)
 		end
@@ -1449,7 +1713,10 @@ local function tickPlayer(player: Player, data: Data)
 				end
 			end
 		elseif step.Type == "Wait" then
-			if prog.WaitUntil and GameClock.now().TotalMinutes >= prog.WaitUntil then
+			-- Se acaba a la hora de juego que toca… o, pase lo que pase con el reloj, a los MaxSeconds reales
+			local rt = runtime[player]
+			local since = os.clock() - (rt.StepStart[questId] or os.clock())
+			if (prog.WaitUntil and GameClock.now().TotalMinutes >= prog.WaitUntil) or (step.MaxSeconds and since >= step.MaxSeconds) then
 				advance(player, data, questId)
 			end
 		elseif step.Type == "Group" then
@@ -1647,6 +1914,40 @@ function interactProp(player: Player, data: Data, questId: string, propId: strin
 	end
 end
 
+-- Guardas contra conversaciones que se repiten (un toque de más en el móvil, el mismo toque que
+-- cierra una conversación, volver a acercarte a alguien…). Funciones puras: se prueban con Lune.
+LifeStoryService.Guard = {
+	AfterDialogue = 1.2, -- segundos tras acabar una conversación en los que no se empieza otra
+	Repeat = 1.0, -- dos toques seguidos al mismo personaje u objeto cuentan como uno
+	Bark = 8, -- una frase suelta del mismo personaje, como mucho cada tantos segundos
+}
+
+-- ¿Se atiende este toque? (rt: estado del jugador; key: "Actor:Nico", "Prop:Libro"…)
+function LifeStoryService.Guard.allow(rt: { [string]: any }, key: string, now: number): boolean
+	local guard = LifeStoryService.Guard
+	if rt.DialogueEndedAt and now - rt.DialogueEndedAt < guard.AfterDialogue then
+		return false
+	end
+	rt.LastTouch = rt.LastTouch or {}
+	local last = rt.LastTouch[key]
+	if last and now - last < guard.Repeat then
+		return false
+	end
+	rt.LastTouch[key] = now
+	return true
+end
+
+-- ¿Puede decir ya otra frase suelta este personaje?
+function LifeStoryService.Guard.bark(rt: { [string]: any }, npc: string, now: number): boolean
+	rt.BarkAt = rt.BarkAt or {}
+	local last = rt.BarkAt[npc]
+	if last and now - last < LifeStoryService.Guard.Bark then
+		return false
+	end
+	rt.BarkAt[npc] = now
+	return true
+end
+
 -- El jugador ha hablado con un actor o usado un objeto de una escena (lo avisa SceneService)
 -- Un golpe (rayo, globo de agua, lo que diga la misión) a un enemigo del combate
 function hitEnemy(player: Player, data: Data, questId: string, prog: Progress, step: { [string]: any }, enemy: { [string]: any })
@@ -1688,12 +1989,9 @@ function LifeStoryService.interact(player: Player, kind: string, questId: string
 	if not prog or not quest then
 		return
 	end
-	if kind == "Prop" then
-		interactProp(player, data, questId, id)
-		return
-	end
 	local step = stepsOf(questId, prog)[prog.Step]
-	-- 0) Combate: el botón del enemigo es atacar
+	-- 0) Combate: el botón del enemigo es atacar (va antes del filtro de toques dobles: aquí pulsar
+	-- seguido ES lo que hay que hacer, y ya tiene su propio ritmo máximo)
 	if step and step.Type == "Fight" then
 		for _, enemy in step.Enemies or {} do
 			if enemy.Npc == id then
@@ -1704,6 +2002,13 @@ function LifeStoryService.interact(player: Player, kind: string, questId: string
 				return
 			end
 		end
+	end
+	if not LifeStoryService.Guard.allow(rt, kind .. ":" .. id, os.clock()) then
+		return
+	end
+	if kind == "Prop" then
+		interactProp(player, data, questId, id)
+		return
 	end
 	-- 1) Hablar con este personaje ES elegir (unirte a un grupo del recreo…)
 	if step and step.Type == "Choice" then
@@ -1727,7 +2032,19 @@ function LifeStoryService.interact(player: Player, kind: string, questId: string
 		end
 	end
 	if talk and talk.Dialogue then
+		prog.Chatted = prog.Chatted or {}
+		if prog.Chatted[id] then
+			-- Esta conversación ya se tuvo en este paso: no se repite (solo se vuelve a avisar)
+			StoryEvents.emit(player, "TalkDone", { Npc = id, Quest = questId })
+			return
+		end
+		local index = prog.Step
 		playDialogue(player, data, questId, talk.Dialogue, function()
+			local now = story.Active[questId]
+			if now and now.Step == index then
+				now.Chatted = now.Chatted or {}
+				now.Chatted[id] = true
+			end
 			StoryEvents.emit(player, "TalkDone", { Npc = id, Quest = questId })
 			StoryEvents.emit(player, "Talk", { Npc = id })
 		end)
@@ -1742,12 +2059,22 @@ function LifeStoryService.interact(player: Player, kind: string, questId: string
 			end
 		end
 	end
-	if spec and spec.Talk then
+	prog.Chatted = prog.Chatted or {}
+	if spec and spec.Talk and not prog.Chatted[id] then
+		-- Su charla de esta escena, una vez por paso; después, como mucho una frase suelta de vez en cuando
+		local index = prog.Step
 		playDialogue(player, data, questId, spec.Talk, function()
+			local now = story.Active[questId]
+			if now and now.Step == index then
+				now.Chatted = now.Chatted or {}
+				now.Chatted[id] = true
+			end
 			StoryEvents.emit(player, "Talk", { Npc = id })
 		end)
 	else
-		DialogueService.bark(player, id, spec and spec.Bark or "¡Hola!")
+		if LifeStoryService.Guard.bark(rt, id, os.clock()) then
+			DialogueService.bark(player, id, spec and spec.Bark or "¡Hola!")
+		end
 		StoryEvents.emit(player, "Talk", { Npc = id })
 	end
 end
@@ -1785,6 +2112,35 @@ function processLater(player: Player, data: Data)
 	end
 end
 
+-- Empieza la historia del jugador cuando ya ha aparecido donde lo dejó (PositionService):
+-- primero se le devuelve a la escena si está lejos, luego se montan actores y conversaciones.
+local function becomeReady(player: Player)
+	local rt = runtime[player]
+	if not rt or rt.Ready or rt.Starting then
+		return
+	end
+	rt.Starting = true
+	local deadline = os.clock() + 10
+	while player.Parent and not player:GetAttribute("SpawnReady") and os.clock() < deadline do
+		task.wait(0.2)
+	end
+	if runtime[player] ~= rt then
+		return -- se fue mientras tanto
+	end
+	local data = DataService.get(player)
+	if data then
+		local ok, err = pcall(returnToScene, player, data)
+		if not ok then
+			warn("[LifeStory] " .. tostring(err))
+		end
+	end
+	rt.Ready = true
+	rt.Starting = false
+	resumeAll(player)
+	refresh(player)
+	publish(player, true)
+end
+
 ---------------------------------------------------------------------
 -- Lo que pide el cliente (siempre validado)
 ---------------------------------------------------------------------
@@ -1802,12 +2158,11 @@ local function onRemote(player: Player, kind: any, questId: any, value: any)
 	local story = storyOf(data)
 
 	if kind == "Sync" then
-		if not rt.Ready then
-			rt.Ready = true
-			resumeAll(player)
-			refresh(player)
+		if rt.Ready then
+			publish(player, true)
+		else
+			task.spawn(becomeReady, player)
 		end
-		publish(player, true)
 	elseif kind == "Choose" and type(questId) == "string" and type(value) == "string" then
 		if not rt.Busy then
 			chooseOption(player, data, questId, value)
@@ -1885,7 +2240,7 @@ local function onLoaded(player: Player, data: Data)
 		if not quest then
 			story.Active[id] = nil
 		elseif stepsOf(id, prog)[prog.Step] and stepsOf(id, prog)[prog.Step].Type == "Wait" then
-			prog.WaitUntil = GameClock.now().TotalMinutes + stepsOf(id, prog)[prog.Step].GameMinutes
+			prog.WaitUntil = waitTarget(stepsOf(id, prog)[prog.Step])
 		elseif stepsOf(id, prog)[prog.Step] and stepsOf(id, prog)[prog.Step].Type == "Cinematic" then
 			-- Se fue en mitad de una escena: al volver, la historia sigue desde el paso siguiente
 			local index = prog.Step
@@ -1905,12 +2260,7 @@ local function onLoaded(player: Player, data: Data)
 	end
 	-- Normalmente el cliente avisa con "Sync" en cuanto escucha; por si acaso, empezar igual a los 10 s
 	task.delay(10, function()
-		local rt = runtime[player]
-		if rt and not rt.Ready then
-			rt.Ready = true
-			resumeAll(player)
-			refresh(player)
-		end
+		becomeReady(player)
 	end)
 end
 
@@ -1931,6 +2281,10 @@ function LifeStoryService.init()
 	StoryEvents.connect(onStoryEvent)
 	DataService.onLoaded(onLoaded)
 	SceneService.onInteract = LifeStoryService.interact
+	-- Frases sueltas: el bocadillo sale encima del actor de tu escena
+	DialogueService.setActorFinder(function(player, npc)
+		return SceneService.actorOf(player, npc)
+	end)
 	Players.PlayerRemoving:Connect(function(player)
 		runtime[player] = nil
 	end)

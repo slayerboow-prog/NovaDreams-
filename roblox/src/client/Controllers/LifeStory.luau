@@ -214,7 +214,7 @@ local function renderCard(state: { [string]: any })
 
 	local tracked = state.Tracked
 	if tracked then
-		cardTitle.Text = (if tracked.Kind == "Side" then "✦ " else "") .. Strings.get(tracked.TitleKey)
+		cardTitle.Text = (if tracked.Kind == "Side" then "🔶 " else "") .. Strings.get(tracked.TitleKey)
 		cardText.Text = text(tracked.TextKey, tracked.Args)
 		if tracked.Need and tracked.Children then
 			-- "Haz 3 de estas 5 cosas": cuántas llevas
@@ -231,7 +231,7 @@ local function renderCard(state: { [string]: any })
 				TextSize = 12,
 				TextWrapped = true,
 				TextColor3 = if child.Done then C.Money else C.Text,
-				Text = (if child.Done then "✓ " else "• ") .. text(child.TextKey, child.Args),
+				Text = (if child.Done then "✔ " else "• ") .. text(child.TextKey, child.Args),
 				LayoutOrder = i,
 				Parent = cardList,
 			})
@@ -383,7 +383,7 @@ local function dialog(title: string?, message: string, options: { { Text: string
 	Theme.label({
 		Size = UDim2.new(1, 0, 0, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
-		Text = message,
+		Text = message or "",
 		TextSize = 15,
 		TextWrapped = true,
 		LayoutOrder = 2,
@@ -393,6 +393,8 @@ local function dialog(title: string?, message: string, options: { { Text: string
 	for i, option in options do
 		local button = Theme.button({
 			Size = UDim2.new(1, 0, 0, 34),
+			AutomaticSize = Enum.AutomaticSize.Y, -- las opciones largas pasan a dos líneas
+			TextWrapped = true,
 			Text = option.Text,
 			TextSize = 15,
 			LayoutOrder = 2 + i,
@@ -482,6 +484,8 @@ function LifeStory.init()
 	gui = create("ScreenGui", {
 		Name = "LifeStory",
 		ResetOnSpawn = false,
+		DisplayOrder = 8, -- encima del HUD y del minimapa (pantallas de capítulo, decisiones)
+		IgnoreGuiInset = true, -- el fundido cubre también la franja de arriba
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 		Parent = player:WaitForChild("PlayerGui"),
 	})

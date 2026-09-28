@@ -48,6 +48,10 @@ local function node(path: string, parent: any?): any
 end
 
 function requireModule(target: any): any
+	-- Módulos compartidos (ReplicatedStorage.Shared.X) -> src/shared/X.luau
+	if type(target) ~= "table" then
+		target = { __path = "src/shared/" .. target.Name .. ".luau" }
+	end
 	local path = rawget(target, "__path")
 	if cache[path] ~= nil then
 		return cache[path]
@@ -59,12 +63,16 @@ function requireModule(target: any): any
 		game = game,
 		Instance = roblox.Instance,
 		Vector3 = roblox.Vector3,
+		Vector2 = roblox.Vector2,
 		CFrame = roblox.CFrame,
 		Color3 = roblox.Color3,
 		Enum = roblox.Enum,
 		UDim = roblox.UDim,
 		UDim2 = roblox.UDim2,
 		Font = roblox.Font,
+		NumberRange = roblox.NumberRange,
+		NumberSequence = roblox.NumberSequence,
+		ColorSequence = roblox.ColorSequence,
 	}, { __index = baseEnv })
 	local chunk = luau.load(fs.readFile(path), { debugName = path, environment = env })
 	local result = chunk()

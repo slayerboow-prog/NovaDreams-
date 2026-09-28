@@ -4,10 +4,12 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Hud = require(script.Parent.UI.Hud)
 local Store = require(script.Parent.UI.Store)
+local SpeechBubbles = require(script.Parent.UI.SpeechBubbles)
 local TaskMarker = require(script.Parent.Controllers.TaskMarker)
 local Ambient = require(script.Parent.Controllers.Ambient)
 local Weather = require(script.Parent.Controllers.Weather)
 local Wildlife = require(script.Parent.Controllers.Wildlife)
+local Nudge = require(script.Parent.Controllers.Nudge)
 local StoryAudio = require(script.Parent.Controllers.StoryAudio)
 local DayLight = require(script.Parent.Controllers.DayLight)
 local LifeStory = require(script.Parent.Controllers.LifeStory)
@@ -23,7 +25,59 @@ local Arcade = require(script.Parent.Controllers.Arcade)
 local DrivingSchool = require(script.Parent.Controllers.DrivingSchool)
 local Restaurant = require(script.Parent.Controllers.Restaurant)
 local Character = require(script.Parent.Controllers.Character)
+local Prompts = require(script.Parent.Controllers.Prompts)
+local Cinematics = require(script.Parent.Controllers.Cinematics)
+local NearShadows = require(script.Parent.Controllers.NearShadows)
+local Actions = require(script.Parent.Controllers.Actions)
+local Driving = require(script.Parent.Controllers.Driving)
+local SoundFx = require(script.Parent.Controllers.SoundFx)
+local SupermarketUI = require(script.Parent.Controllers.SupermarketUI)
+local CafeUI = require(script.Parent.Controllers.CafeUI)
+local PostUI = require(script.Parent.Controllers.PostUI)
+local GarbageUI = require(script.Parent.Controllers.GarbageUI)
+local MedicalUI = require(script.Parent.Controllers.MedicalUI)
+local PoliceUI = require(script.Parent.Controllers.PoliceUI)
+local FireUI = require(script.Parent.Controllers.FireUI)
+local CinemaUI = require(script.Parent.Controllers.CinemaUI)
+local HotelUI = require(script.Parent.Controllers.HotelUI)
+local TradeUI = require(script.Parent.Controllers.TradeUI)
+local PlayerMenuUI = require(script.Parent.Controllers.PlayerMenuUI)
+local FishingUI = require(script.Parent.Controllers.FishingUI)
+local MetroUI = require(script.Parent.Controllers.MetroUI)
+local GymUI = require(script.Parent.Controllers.GymUI)
+local GymMotion = require(script.Parent.Controllers.GymMotion)
+local DivingUI = require(script.Parent.Controllers.DivingUI)
+local SeaBiome = require(script.Parent.Controllers.SeaBiome)
+local SeaEventsUI = require(script.Parent.Controllers.SeaEventsUI)
+local JobPrompts = require(script.Parent.Controllers.JobPrompts)
+local BusUI = require(script.Parent.Controllers.BusUI)
+local BusBoards = require(script.Parent.Controllers.BusBoards)
 local ActorLife = require(script.Parent.Controllers.ActorLife)
+local AgeMotion = require(script.Parent.Controllers.AgeMotion)
+local ReactMotion = require(script.Parent.Controllers.ReactMotion)
+local Locomotion = require(script.Parent.Controllers.Locomotion)
+local Stances = require(script.Parent.Controllers.Stances)
+local Parkour = require(script.Parent.Controllers.Parkour)
+local FootCamera = require(script.Parent.Controllers.FootCamera)
+local RideCamera = require(script.Parent.Controllers.RideCamera)
+local RidePose = require(script.Parent.Controllers.RidePose)
+local ObjectMotion = require(script.Parent.Controllers.ObjectMotion)
+local WetWorld = require(script.Parent.Controllers.WetWorld)
+local StoneThrow = require(script.Parent.Controllers.StoneThrow)
+local CombatController = require(script.Parent.Controllers.CombatController)
+local WeaponController = require(script.Parent.Controllers.WeaponController)
+local WantedUI = require(script.Parent.Controllers.WantedUI)
+local DeathUI = require(script.Parent.Controllers.DeathUI)
+local InstitutionsUI = require(script.Parent.Controllers.InstitutionsUI)
+local InteriorUI = require(script.Parent.Controllers.InteriorUI)
+local EconomyUI = require(script.Parent.Controllers.EconomyUI)
+local UseMotion = require(script.Parent.Controllers.UseMotion)
+local InteractClient = require(script.Parent.Controllers.InteractClient)
+local FridgeUI = require(script.Parent.Controllers.FridgeUI)
+local Joystick = require(script.Parent.Controllers.Joystick)
+local Gps = require(script.Parent.Controllers.Gps)
+local CommandMenu = require(script.Parent.Commands.CommandMenu)
+local DefaultCommands = require(script.Parent.Commands.DefaultCommands)
 local CanonMarkers = require(script.Parent.Controllers.CanonMarkers)
 
 local gui = Hud.init(function()
@@ -31,11 +85,14 @@ local gui = Hud.init(function()
 end)
 Store.init(gui)
 TaskMarker.init()
+require(script.Parent.UI.Perf).stripDetails() -- móvil: sin los detalles pequeños de la calle
 DayLight.init() -- luz realista según la hora (amanecer, mediodía, atardecer, noche)
 StoryAudio.init() -- música, efectos y voces de la historia (botón 🔊)
+task.spawn(SpeechBubbles.init) -- bocadillos encima de cada personaje que habla (lo que dice la gente del servidor)
 task.spawn(LifeStory.init) -- historia de vida (tarjeta "Tu vida", momentos, decisiones)
 task.spawn(Baby.init) -- tutorial de bebé (botón de levantarse, familia, vista de la ciudad)
 task.spawn(ClassUI.init) -- clases y exámenes que se juegan
+task.spawn(Gps.init) -- GPS: ruta por las calles hasta tu destino (mapas, flechas en el suelo e indicación)
 task.spawn(MapUI.init) -- minimapa y mapa grande (tecla M)
 task.spawn(InventoryUI.init) -- mochila estilo Minecraft (barra rápida 1-9, tecla E)
 task.spawn(DialogueUI.init) -- conversaciones de las misiones (con respuestas y cámara)
@@ -43,14 +100,160 @@ task.spawn(MiniGameUI.init) -- pase, canastas, partido de fútbol
 task.spawn(SceneClient.init) -- cada uno ve solo los personajes de su historia
 task.spawn(CanonMarkers.init) -- la saga: ❗ dorados en el mapa y pilares de luz hasta que haces cada misión canónica
 task.spawn(ActorLife.init) -- los personajes respiran, miran, gesticulan al hablar y andan con animación
+task.spawn(AgeMotion.init) -- cada edad se mueve a su manera: el bebé gatea, los mayores van encorvados…
+task.spawn(ReactMotion.init) -- golpes con cuerpo y choques: balón, piedras, arena, arbustos y charcos
+task.spawn(Locomotion.init) -- andar fluido: arrancar y frenar suave, inclinarse, mirar, aterrizar, sentarse y alcanzar cosas
+task.spawn(Stances.init) -- agacharse (Ctrl, cruceta abajo) y tumbarse (mantener): más bajo, más lento y más discreto
+task.spawn(Parkour.init) -- saltar vallas, muros y capós corriendo, y agarrarse a bordes para subir
+task.spawn(FootCamera.init) -- cámara a pie: zoom corto dentro de edificios y campo de visión al correr
+task.spawn(RideCamera.init) -- cámara en un vehículo, el autobús o el metro: detrás, suave y sin meterse dentro
+task.spawn(RidePose.init) -- postura en un vehículo: manos al volante o al manillar, pasajeros sentados
+task.spawn(ObjectMotion.init) -- árboles que se mecen, columpios, banderas, noria, carrusel, fuentes
+task.spawn(WetWorld.init) -- con lluvia: suelo que brilla, charcos, gente y cosas mojadas; con nieve, todo blanco
+task.spawn(StoneThrow.init) -- coger piedras del suelo y lanzarlas (tecla B o botón 🥌)
 task.spawn(Ambient.init) -- tráfico y peatones
 task.spawn(Weather.init) -- estaciones y tiempo: lluvia, tormenta, nieve, hojas de otoño
 task.spawn(Wildlife.init) -- pájaros, palomas, mariposas, patos, perros, gatos y animales de granja
+task.spawn(Nudge.init) -- los NPC se apartan (con traspiés) si chocas con ellos o pasa tu coche
 task.spawn(Vehicles.init) -- bicis, monopatines, motos y coches
 task.spawn(Arcade.init) -- recreativos
 task.spawn(DrivingSchool.init) -- autoescuela
 task.spawn(Restaurant.init) -- trabajo de camarero y barman
-task.spawn(Character.init) -- vida, estamina (correr con Shift), nivel y estadísticas
+task.spawn(Character.init) -- ficha del personaje (botón Personaje) y correr con Shift
+task.spawn(Joystick.init) -- móvil: joystick fijo abajo a la izquierda (con el estilo del HUD)
+task.spawn(NearShadows.init) -- sombras de las luces solo cerca de ti (mismo aspecto, mucho más fluido)
+task.spawn(Prompts.init) -- carteles de "pulsa E" con el estilo de la interfaz
+task.spawn(SoundFx.init) -- efectos de sonido: saltos, golpes, agua, botones, motor, claxon y gente hablando
+task.spawn(BusUI.init) -- pasajeros del autobús: línea, próxima parada y "Bajar en la próxima"
+task.spawn(BusBoards.init) -- paneles ámbar de las paradas: cuánto falta para cada autobús
+task.spawn(SupermarketUI.init) -- supermercados: carrito, ticket, cajero y charcutería
+task.spawn(CafeUI.init) -- cafeterías: la carta y el panel del barista
+task.spawn(PostUI.init) -- Correos: el panel de la ruta del repartidor
+task.spawn(GarbageUI.init) -- Limpieza: el panel del basurero
+task.spawn(MedicalUI.init) -- hospital: el panel del médico/a (pruebas, diagnóstico, botiquín)
+task.spawn(PoliceUI.init) -- policía: panel del aviso y sirenas de los coches patrulla
+task.spawn(FireUI.init) -- bomberos: panel del aviso
+task.spawn(CinemaUI.init) -- cines: película en pantalla, taquilla y panel del taquillero
+task.spawn(HotelUI.init) -- hoteles: reservar, descansar y panel del recepcionista
+task.spawn(TradeUI.init) -- intercambio entre jugadores y mercadillo
+task.spawn(PlayerMenuUI.init) -- al tocar a un jugador: invitar al grupo, chat y comerciar
+task.spawn(FishingUI.init) -- pesca: sedal y corcho, ¡tirar!, tienda de pesca
+task.spawn(MetroUI.init) -- metro: panel del tren, billetes, tiendas, encargos y escenario
+task.spawn(GymUI.init) -- gimnasio: recepción (entrada y abono) y la barra del ritmo al entrenar
+task.spawn(GymMotion.init) -- gimnasio: el cuerpo hace el ejercicio y la máquina se mueve (cinta, pesas, bici…)
+task.spawn(DivingUI.init) -- nadar, bucear (aire) y pesca submarina con fusil o arpón
+task.spawn(SeaBiome.init) -- el fondo del mar y la luz bajo el agua (solo cuando estás en el agua)
+task.spawn(SeaEventsUI.init) -- catástrofes marinas: alerta, ola del tsunami, rayos, remolino, tiburón y medusas
+task.spawn(JobPrompts.init) -- los carteles de cada oficio solo los ve quien trabaja en él
+task.spawn(Driving.init) -- conducir coches, motos, bicis, monopatines y patinetes (W/A/S/D)
+task.spawn(Actions.init) -- gestos y bailes, linterna (L) y modo foto (P)
+task.spawn(CombatController.init) -- pelear: X/RB golpear (combo de 3), Z/LB defenderse, 👊 y 🛡 en el móvil
+task.spawn(WeaponController.init) -- armas: clic dcho/LT apuntar, clic/RT disparar, R recargar; Armerías y licencia
+task.spawn(WantedUI.init) -- estrellas de búsqueda bajo el reloj, avisos de delito, DETENIDO y hélices
+task.spawn(DeathUI.init) -- pantalla de HAS MUERTO y despertar en el hospital
+-- Versión nueva del juego: aviso antes de pasar a un servidor nuevo (UpdateService)
+task.spawn(function()
+	local remote = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Update", 60) :: RemoteEvent?
+	if remote then
+		remote.OnClientEvent:Connect(function(kind: string, data: any)
+			if kind == "Soon" then
+				Hud.toast("Info", ("🔄 ¡Versión nueva! Te llevamos a un servidor actualizado en %d s"):format(tonumber(data and data.Seconds) or 15))
+			end
+		end)
+	end
+end)
+task.spawn(InstitutionsUI.init) -- instituciones: panel del juez, juicio, condena, ascensos y Hacienda
+task.spawn(InteriorUI.init) -- ascensor de los edificios (todos se pueden visitar por dentro)
+task.spawn(EconomyUI.init) -- granja (cooperativa, obrador) y negocios (gestión y mostrador)
+task.spawn(UseMotion.init) -- posturas al usar los muebles: sentado, tumbado, grifo, nevera, ducha, ordenador, piano, ventana
+task.spawn(InteractClient.init) -- tele con imagen, ordenador, piano, agua y clics de los muebles
+task.spawn(FridgeUI.init) -- nevera de casa: lo que hay dentro (comer, coger) y guardar la compra
+
+-- Menú de comandos (abajo a la izquierda): cambia según lo que tienes delante; el comando elegido
+-- es también lo que hace la tecla E, y su cartel es el único que se dibuja
+DefaultCommands.register()
+CommandMenu.onFocus(Prompts.setFocus)
+task.spawn(CommandMenu.init)
+
+-- Acciones de los comandos (Objetos y Mapa)
+Hud.setAction("Mochila", InventoryUI.toggle)
+Hud.setAction("Mapa", MapUI.toggleBig)
+
+-- Música on/off en el menú (sustituye al botón suelto 🔊)
+local musicOn = true
+Hud.addMenuToggle("🔊 Música: sí", 1, function()
+	musicOn = not musicOn
+	StoryAudio.setMuted(not musicOn)
+	return if musicOn then "🔊 Música: sí" else "🔇 Música: no"
+end)
+local effectsOn = true
+Hud.addMenuToggle("🔔 Sonidos: sí", 2, function()
+	effectsOn = not effectsOn
+	SoundFx.setMuted(not effectsOn)
+	return if effectsOn then "🔔 Sonidos: sí" else "🔕 Sonidos: no"
+end)
+
+-- Ropa: el aspecto de Valmar (por defecto) o tu avatar de Roblox
+local function lookText(): string
+	return if game:GetService("Players").LocalPlayer:GetAttribute("OwnAvatar") then "👕 Ropa: mi avatar de Roblox" else "👕 Ropa: estilo Valmar"
+end
+Hud.addMenuToggle(lookText(), 3, function()
+	ReplicatedStorage.Remotes.Avatar:FireServer("Toggle")
+	return if game:GetService("Players").LocalPlayer:GetAttribute("OwnAvatar") then "👕 Ropa: estilo Valmar" else "👕 Ropa: mi avatar de Roblox"
+end)
+
+-- GPS (ruta por las calles, flechas en el suelo e indicaciones): sí por defecto
+Hud.addMenuToggle("🧭 GPS: sí", 3.2, function()
+	Gps.setEnabled(not Gps.isEnabled())
+	return if Gps.isEnabled() then "🧭 GPS: sí" else "🧭 GPS: no"
+end)
+
+-- Móvil: correr al empujar el joystick hasta el borde (sí por defecto)
+local function autoRunText(): string
+	return if game:GetService("Players").LocalPlayer:GetAttribute("AutoRun") == false then "🏃 Correr al empujar el joystick: no" else "🏃 Correr al empujar el joystick: sí"
+end
+Hud.addMenuToggle(autoRunText(), 3.5, function()
+	Character.setAutoRun(game:GetService("Players").LocalPlayer:GetAttribute("AutoRun") == false)
+	return autoRunText()
+end)
+
+-- Empezar una vida nueva (desde bebé): hay que pulsar dos veces para confirmar
+local NEW_LIFE = "👶 Empezar una vida nueva"
+local confirmUntil = 0
+Hud.addMenuToggle(NEW_LIFE, 4, function()
+	if os.clock() < confirmUntil then
+		ReplicatedStorage.Remotes.NewLife:FireServer()
+		return "⏳ Preparando tu vida nueva…"
+	end
+	confirmUntil = os.clock() + 5
+	task.delay(5, function()
+		confirmUntil = 0
+	end)
+	return "⚠️ Se borra la partida. Pulsa otra vez"
+end)
+
+-- La tarjeta "Tu vida" de la historia y el botón suelto de la música ya están en el HUD nuevo
+-- (objetivos a la izquierda y menú): se ocultan para que no salgan repetidos.
+task.spawn(function()
+	local playerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+	-- (se esconde el botón y no la pantalla entera: las cinemáticas vuelven a encender las pantallas)
+	local audioGui = playerGui:WaitForChild("StoryAudio", 30)
+	if audioGui then
+		for _, child in audioGui:GetChildren() do
+			if child:IsA("GuiObject") then
+				child.Visible = false
+			end
+		end
+	end
+	local story = playerGui:WaitForChild("LifeStory", 30)
+	local dock = story and story:WaitForChild("LifeStoryDock", 30)
+	if dock and dock:IsA("GuiObject") then
+		dock.Visible = false
+		dock:GetPropertyChangedSignal("Visible"):Connect(function()
+			dock.Visible = false
+		end)
+	end
+end)
 
 local Notify = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Notify") :: RemoteEvent
 Notify.OnClientEvent:Connect(function(kind: string, text: string)
@@ -62,3 +265,99 @@ Notify.OnClientEvent:Connect(function(kind: string, text: string)
 		Hud.toast(kind, text)
 	end
 end)
+
+-- Durante las cinemáticas y las conversaciones no se puede interactuar con nada:
+-- se apagan los carteles de "pulsa E" (y el mapa grande se cierra)
+local PromptGuard = require(script.Parent.Controllers.PromptGuard)
+local localPlayer = game:GetService("Players").LocalPlayer
+local StarterGui = game:GetService("StarterGui")
+local function coreGuis()
+	-- Lo que el juego ya dibuja a su manera (las cinemáticas encienden todo lo de Roblox al acabar)
+	pcall(function()
+		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false) -- mochila propia
+		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Health, false) -- la vida es el aro del HUD
+		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false) -- tapaba los botones de arriba a la derecha
+		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.EmotesMenu, true) -- gestos y bailes: los de Roblox
+	end)
+end
+coreGuis()
+-- El chat de Roblox, a la derecha a media altura (arriba a la izquierda tapaba la ficha y los objetivos)
+pcall(function()
+	local TextChatService = game:GetService("TextChatService")
+	local window = TextChatService:WaitForChild("ChatWindowConfiguration", 10) :: any
+	if window then
+		window.HorizontalAlignment = Enum.HorizontalAlignment.Right
+		window.VerticalAlignment = Enum.VerticalAlignment.Center
+	end
+end)
+
+-- Carteles: apagados en conversaciones y cinemáticas (y un segundo después), y el de hablar con alguien
+-- no vuelve mientras su globo está en pantalla (PromptGuard: en el móvil, un toque de más ya no repite)
+PromptGuard.init(function()
+	return Cinematics.isPlaying() or localPlayer:GetAttribute("InDialogue") == true
+end, Baby.isSaying)
+
+-- Red de seguridad: si la marca "hablando" se quedó puesta sin ninguna conversación abierta
+-- (algo falló a medias), se quita a los pocos segundos y vuelve toda la interfaz
+task.spawn(function()
+	local stale = 0
+	while true do
+		task.wait(1)
+		if localPlayer:GetAttribute("InDialogue") == true and not DialogueUI.isOpen() then
+			stale += 1
+			if stale >= 3 then
+				localPlayer:SetAttribute("InDialogue", nil)
+				stale = 0
+			end
+		else
+			stale = 0
+		end
+	end
+end)
+
+local wasBusy = false
+game:GetService("RunService").Heartbeat:Connect(function()
+	local cinematic = Cinematics.isPlaying()
+	local busy = cinematic or localPlayer:GetAttribute("InDialogue") == true
+	if busy ~= wasBusy then
+		wasBusy = busy
+		TaskMarker.setHidden(busy)
+		Hud.setBusy(busy)
+		CommandMenu.setBusy(busy)
+		Joystick.setBusy(busy)
+		Gps.setBusy(busy)
+		if busy and MapUI.isOpen() then
+			MapUI.toggleBig()
+		end
+		if not busy then
+			task.defer(coreGuis)
+		end
+	end
+end)
+
+-- De bebé sobra el minimapa (los botones y el resto del HUD ya se apartan solos)
+local function babyMode()
+	local baby = localPlayer:GetAttribute("LifeStage") == "Bebe"
+	local playerGui = localPlayer:FindFirstChild("PlayerGui")
+	if not playerGui then
+		return
+	end
+	for _, path in { { "MapUI", "Minimap" } } do
+		local target = playerGui:FindFirstChild(path[1])
+		if target and path[2] then
+			target = target:FindFirstChild(path[2])
+		end
+		if target and target:IsA("GuiObject") then
+			target.Visible = not baby
+		elseif target and target:IsA("ScreenGui") then
+			for _, child in target:GetChildren() do
+				if child:IsA("GuiObject") then
+					child.Visible = not baby
+				end
+			end
+		end
+	end
+end
+localPlayer:GetAttributeChangedSignal("LifeStage"):Connect(babyMode)
+task.delay(3, babyMode)
+task.delay(12, babyMode)

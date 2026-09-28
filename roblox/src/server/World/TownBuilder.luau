@@ -22,6 +22,12 @@ local Nature = require(Kit.Nature)
 local Props = require(Kit.Props)
 local AssetLibrary = require(Kit.AssetLibrary)
 local Rides = require(Kit.Rides)
+local Landmarks = require(Kit.Landmarks)
+local Roads = require(Kit.Roads)
+local Supermarket = require(Kit.Supermarket)
+local Cafe = require(Kit.Cafe)
+local PostOffice = require(Kit.PostOffice)
+local CityPlan = require(game:GetService("ReplicatedStorage").Shared.CityPlan)
 local Region = require(script.Parent.Region)
 
 local TownBuilder = {}
@@ -41,7 +47,7 @@ end
 
 local ROADS = {
 	Avenue = Region.Highways.Avenue, -- la avenida sigue hasta San Roque y Playa Dorada
-	Residential = { Axis = "X", At = 120, From = -340, To = 340, Lamps = true, Trees = true },
+	Residential = Region.Residential,
 	NorthSouth = Region.Highways.NorthSouth, -- sigue hasta Valmar Norte y Los Pinos
 }
 
@@ -86,7 +92,8 @@ local function cafeTable(parent: Instance, cf: CFrame, tag: string?)
 	Builder.decor({ Name = "Leg", Size = Vector3.new(0.4, 2.8, 0.4), CFrame = cf * CFrame.new(0, 1.5, 0), Color = Palette.Street.Metal, Material = Enum.Material.Metal, Parent = m })
 	for _, dir in { -1, 1 } do
 		local chair = cf * CFrame.new(dir * 3.4, 0, 0) * CFrame.Angles(0, if dir > 0 then math.rad(90) else math.rad(-90), 0)
-		Builder.part({ Name = "Seat", Size = Vector3.new(2, 0.3, 2), CFrame = chair * CFrame.new(0, 1.9, 0), Color = rgb(150, 100, 64), Material = Enum.Material.Wood, Parent = m })
+		-- (dentro de la cafetería, los clientes NPC se sientan aquí a tomarse lo suyo: CafeSeat)
+		Builder.part({ Name = "Seat", Size = Vector3.new(2, 0.3, 2), CFrame = chair * CFrame.new(0, 1.9, 0), Color = rgb(150, 100, 64), Material = Enum.Material.Wood, Tags = if tag then { "CafeSeat" } else nil, Parent = m })
 		Builder.decor({ Name = "Back", Size = Vector3.new(2, 2, 0.25), CFrame = chair * CFrame.new(0, 3, 0.9), Color = rgb(150, 100, 64), Material = Enum.Material.Wood, Parent = m })
 		for _, lx in { -0.8, 0.8 } do
 			for _, lz in { -0.8, 0.8 } do
@@ -109,14 +116,13 @@ local function buildCafe(world: Instance)
 		Sign = "CAFETERÍA CENTRAL", SignColor = rgb(96, 60, 38), Awning = rgb(110, 66, 40), ShopId = "Cafeteria",
 		FloorMaterial = Enum.Material.WoodPlanks, FloorColor = rgb(150, 108, 72),
 	})
-	counter(model, at(0, 0, 11), 26, rgb(96, 60, 38))
-	Builder.part({
-		Name = "CoffeeMachine", Size = Vector3.new(3, 3, 2), CFrame = at(-9, 5.4, 11),
-		Color = rgb(60, 60, 66), Material = Enum.Material.Metal, Tags = { "Pickup_Barista" }, Parent = model,
-	})
-	foodStand(model, at(4, 4.5, 10.5), "Cafe", rgb(96, 60, 38))
-	foodStand(model, at(9, 4.5, 10.5), "Croissant", rgb(222, 170, 90))
-	for _, p in { { -12, -8 }, { 0, -8 }, { 12, -8 }, { -12, 1 }, { 12, 1 } } do
+	-- Barra, cafetera y puestos del barista (Kit/Cafe + CafeService)
+	Cafe.build(model, at, W, D)
+	-- Café y croissant para llevar (autoservicio junto a la puerta)
+	counter(model, at(-17, 0, -10), 4, rgb(96, 60, 38))
+	foodStand(model, at(-17.8, 4.5, -10), "Cafe", rgb(96, 60, 38))
+	foodStand(model, at(-16.2, 4.5, -10), "Croissant", rgb(222, 170, 90))
+	for _, p in { { -10, -8 }, { 0, -8 }, { 12, -8 }, { -8, 1 }, { 13, 1 } } do
 		cafeTable(model, at(p[1], 0, p[2]), "Dropoff_Barista")
 	end
 	Props.jobBoard(world, at(10, 0, -D / 2 - 3.5) * CFrame.Angles(0, math.pi, 0), "Barista", "BARISTA")
@@ -125,39 +131,13 @@ local function buildCafe(world: Instance)
 end
 
 local function buildSupermarket(world: Instance)
-	local W, D = 60, 48
-	local model, at = Building.build({
-		Name = "Supermercado", Parent = world, CFrame = northOfAvenue(160, D),
-		Width = W, Depth = D, Floors = 2, Style = "Moderno", GroundFloor = "Shop", Balconies = false,
-		WindowFaces = { Front = true, Left = true, Right = true },
-		Sign = "SUPERMERCADO", SignColor = rgb(36, 132, 76), Awning = rgb(36, 132, 76), ShopId = "Supermercado",
-		FloorMaterial = Enum.Material.CeramicTiles, FloorColor = rgb(226, 226, 222),
-		LightColor = rgb(240, 248, 255),
-	})
-	for i, x in { -20, -8, 4 } do
-		for j, z in { -6, 8 } do
-			local shelf = Builder.part({
-				Name = "Shelf" .. i .. j, Size = Vector3.new(3, 7, 10), CFrame = at(x, 3.5, z),
-				Color = rgb(206, 206, 210), Material = Enum.Material.Metal, Tags = { "Dropoff_Reponedor" }, Parent = model,
-			})
-			for k = 0, 2 do
-				Builder.decor({
-					Name = "Products", Size = Vector3.new(3.4, 1, 9), CFrame = shelf.CFrame * CFrame.new(0, -2 + k * 2.2, 0),
-					Color = Color3.fromHSV(math.random(), 0.55, 0.9), Parent = model,
-				})
-			end
-		end
-	end
-	for _, x in { 20, 25 } do
-		Builder.part({
-			Name = "StockBoxes", Size = Vector3.new(4, 4, 4), CFrame = at(x, 2, 18),
-			Color = rgb(190, 150, 90), Material = Enum.Material.Cardboard, Tags = { "Pickup_Reponedor" }, Parent = model,
-		})
-	end
-	counter(model, at(20, 0, -12), 10, rgb(36, 132, 76))
-	foodStand(model, at(17, 4.5, -12), "Fruta", rgb(226, 60, 60))
-	foodStand(model, at(22, 4.5, -12), "Bocadillo", rgb(226, 190, 120))
-	Props.jobBoard(world, at(-22, 0, -D / 2 - 3.5) * CFrame.Angles(0, math.pi, 0), "Reponedor", "REPONEDOR")
+	-- Supermercado del centro (Kit/Supermarket): el de Paco en la historia. El tablón de
+	-- reponedor sigue fuera, en la acera, donde lo busca la historia.
+	local D = Supermarket.Specs.Compacto.D
+	local cf = northOfAvenue(160, D)
+	local model = Supermarket.build(world, cf, "Compacto", "Supermercado Valmar")
+	model:SetAttribute("ShopId", "Supermercado")
+	Props.jobBoard(world, cf * CFrame.new(-22, 0, -D / 2 - 3.5) * CFrame.Angles(0, math.pi, 0), "Reponedor", "REPONEDOR")
 end
 
 local function buildPostOffice(world: Instance)
@@ -168,11 +148,8 @@ local function buildPostOffice(world: Instance)
 		WindowFaces = { Front = true, Left = true, Right = true },
 		Sign = "CORREOS", SignColor = rgb(30, 60, 140), Awning = rgb(30, 60, 140),
 	})
-	counter(model, at(0, 0, 3), 20, rgb(30, 60, 140))
-	Builder.part({
-		Name = "Parcels", Size = Vector3.new(10, 5, 4), CFrame = at(0, 2.5, 11),
-		Color = rgb(170, 120, 70), Material = Enum.Material.Cardboard, Tags = { "Pickup_Repartidor" }, Parent = model,
-	})
+	-- Mostrador, clasificación y reparto (Kit/PostOffice + PostService)
+	PostOffice.build(model, at, W, D)
 	Props.jobBoard(world, at(10, 0, -D / 2 - 3.5) * CFrame.Angles(0, math.pi, 0), "Repartidor", "REPARTIDOR")
 end
 
@@ -265,8 +242,8 @@ local function buildRestaurant(world: Instance)
 	end
 	-- Plantas en las esquinas
 	for _, x in { -25.5, 25.5 } do
-		Builder.part({ Name = "Pot", Size = Vector3.new(1.6, 1.6, 1.6), CFrame = at(x, 1.8, 15.5), Color = rgb(170, 90, 60), Material = Enum.Material.Plaster, Parent = model })
-		Builder.decor({ Name = "Plant", Shape = Enum.PartType.Ball, Size = Vector3.new(3, 3, 3), CFrame = at(x, 3.8, 15.5), Color = rgb(70, 124, 58), Material = Enum.Material.LeafyGrass, Parent = model })
+		Builder.part({ Name = "Pot", Size = Vector3.new(1.6, 1.6, 1.6), CFrame = at(x, 0.8, 15.5), Color = rgb(170, 90, 60), Material = Enum.Material.Plaster, Parent = model })
+		Builder.decor({ Name = "Plant", Shape = Enum.PartType.Ball, Size = Vector3.new(3, 3, 3), CFrame = at(x, 2.8, 15.5), Color = rgb(70, 124, 58), Material = Enum.Material.LeafyGrass, Parent = model })
 	end
 	-- Tablón de empleo del restaurante (dos puestos)
 	local board = Builder.part({
@@ -385,7 +362,7 @@ local function buildPlaza(world: Instance)
 		Props.bench(plaza, facing(Vector3.new(b[1], WALK, b[2]), b[3]))
 	end
 	Nature.flowerBed(plaza, CFrame.new(-74, WALK, -40), 8, 4)
-	Nature.flowerBed(plaza, CFrame.new(-46, WALK, -40), 8, 4)
+	Nature.flowerBed(plaza, CFrame.new(-51, WALK, -40), 8, 4) -- (apartado de la boca de metro)
 	Nature.flowerBed(plaza, CFrame.new(-60, WALK, -78), 16, 3)
 	Rides.station(plaza, facing(Vector3.new(-47, WALK, -24), SOUTH))
 
@@ -427,6 +404,14 @@ local function buildRecycling(world: Instance)
 	local sign = Builder.part({ Name = "Sign", Size = Vector3.new(16, 3, 0.4), CFrame = facing(Vector3.new(cx, WALK + 9.5, -53), SOUTH), Color = rgb(40, 120, 60), Parent = area })
 	Builder.sign(sign, "PUNTO LIMPIO", Enum.NormalId.Front)
 	Props.jobBoard(world, facing(Vector3.new(cx + 12, WALK, -24), SOUTH), "Basurero", "BASURERO")
+	-- Camión de la basura (lo coge el basurero con carnet) y punto de descarga (GarbageService)
+	Builder.decor({ Name = "TruckBay", Size = Vector3.new(12, 0.06, 30), CFrame = CFrame.new(cx - 8, WALK + 0.03, -32), Color = rgb(250, 200, 30), Material = Enum.Material.SmoothPlastic, Parent = area })
+	Builder.part({ Name = "GarbageTruckSpot", Size = Vector3.new(4, 4, 4), CFrame = CFrame.new(cx - 8, WALK + 2, -20), Transparency = 1, CanCollide = false, Tags = { "GarbageTruck" }, Parent = area })
+	Builder.part({ Name = "GarbageUnload", Size = Vector3.new(30, 4, 2), CFrame = CFrame.new(cx, WALK + 2, -46.5), Transparency = 1, CanCollide = false, Tags = { "GarbageUnload" }, Parent = area })
+	local truckSign = Builder.part({ Name = "TruckSign", Size = Vector3.new(6, 1.6, 0.3), CFrame = facing(Vector3.new(cx - 8, WALK + 5, -18.5), SOUTH), Color = rgb(40, 120, 60), Parent = area })
+	Builder.sign(truckSign, "🚛 CAMIÓN", Enum.NormalId.Front)
+	Builder.decor({ Name = "TruckSignPost", Size = Vector3.new(0.3, 4, 0.3), CFrame = CFrame.new(cx - 8, WALK + 2, -18.5), Color = Palette.Street.Metal, Material = Enum.Material.Metal, Parent = area })
+	area:AddTag("GarbageDepot")
 
 	local bags = Builder.model("TrashBags", world)
 	local spots = {
@@ -494,7 +479,7 @@ local function buildPlot(parent: Instance, plotId: number, center: Vector3)
 	Builder.part({ Name = "MailboxPost", Size = Vector3.new(0.4, 3.5, 0.4), CFrame = cf * CFrame.new(5, 1.75, -half + 1), Color = Palette.Street.Wood, Parent = plot })
 	Builder.part({
 		Name = "Mailbox", Size = Vector3.new(1.2, 1.2, 2), CFrame = cf * CFrame.new(5, 4, -half + 1),
-		Color = rgb(196, 48, 48), Tags = { "Dropoff_Repartidor" }, Parent = plot,
+		Color = rgb(196, 48, 48), Tags = { "Dropoff_Repartidor", "Buzon" }, Attributes = { Address = "Parcela " .. plotId }, Parent = plot,
 	})
 	-- Cartel de la parcela (reclamar / mejorar casa)
 	Builder.part({ Name = "SignPost", Size = Vector3.new(0.4, 4, 0.4), CFrame = cf * CFrame.new(-6, 2, -half + 1), Color = Palette.Street.Wood, Parent = plot })
@@ -550,39 +535,57 @@ end
 ---------------------------------------------------------------------
 
 local function buildGround(world: Instance)
-	-- Solo para verlo en Studio: en el juego se sustituye por terreno real (TerrainBuilder)
-	local x0, x1, z0, z1 = -2400, 1640, -2400, 2400
-	for i = 0, 2 do
-		for j = 0, 2 do
-			local w, d = (x1 - x0) / 3, (z1 - z0) / 3
+	-- Solo para verlo en Studio: en el juego se sustituye por terreno real (TerrainBuilder).
+	-- Franjas de hierba con la forma de la isla, el río y los lagos, y un mar alrededor.
+	local b = CityPlan.Bounds
+	local stripe = 96
+	for z = b.MinZ, b.MaxZ, stripe do
+		for _, span in CityPlan.spans(CityPlan.Coast, z + stripe / 2) do
 			Builder.part({
-				Name = "Ground", Size = Vector3.new(w, 2, d),
-				CFrame = CFrame.new(x0 + w * (i + 0.5), -1, z0 + d * (j + 0.5)),
+				Name = "Ground", Size = Vector3.new(span[2] - span[1], 2, stripe),
+				CFrame = CFrame.new((span[1] + span[2]) / 2, -2, z + stripe / 2), -- debajo del suelo de las manzanas (Y = 0)
 				Color = Palette.Ground.Grass, Material = Enum.Material.Grass, Tags = { "EditOnly" }, Parent = world,
 			})
 		end
 	end
-	for j = 0, 2 do
-		local d = (z1 - z0) / 3
+	local water = Color3.fromRGB(46, 120, 170)
+	local pts = CityPlan.River.Points
+	for k = 1, #pts - 1 do
+		local a, c = Vector3.new(pts[k][1], -0.9, pts[k][2]), Vector3.new(pts[k + 1][1], -0.9, pts[k + 1][2])
 		Builder.part({
-			Name = "Sea", Size = Vector3.new(2400 - x1, 2, d),
-			CFrame = CFrame.new((x1 + 2400) / 2, -1.6, z0 + d * (j + 0.5)),
-			Color = Color3.fromRGB(46, 120, 170), Material = Enum.Material.Glass, Reflectance = 0.2, Tags = { "EditOnly" }, Parent = world,
+			Name = "River", Size = Vector3.new(CityPlan.River.Width, 0.4, (c - a).Magnitude + CityPlan.River.Width),
+			CFrame = Builder.facing((a + c) / 2, c - a), Color = water, Material = Enum.Material.Glass,
+			Tags = { "EditOnly" }, Parent = world,
 		})
+	end
+	for _, lake in CityPlan.Lakes do
+		Builder.part({
+			Name = "Lake", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.4, lake.R * 2, lake.R * 2),
+			CFrame = CFrame.new(lake.X, -0.9, lake.Z) * CFrame.Angles(0, 0, math.rad(90)), Color = water,
+			Material = Enum.Material.Glass, Tags = { "EditOnly" }, Parent = world,
+		})
+	end
+	for x = b.MinX - 1000, b.MaxX + 999, 2000 do
+		for z = b.MinZ - 1000, b.MaxZ + 999, 2000 do
+			Builder.part({
+				Name = "Sea", Size = Vector3.new(2000, 1, 2000), CFrame = CFrame.new(x + 1000, -3, z + 1000),
+				Color = water, Material = Enum.Material.Glass, Reflectance = 0.2, Tags = { "EditOnly" }, Parent = world,
+			})
+		end
 	end
 end
 
--- Arboledas en el campo entre ciudades (lejos de calles y manzanas)
-local function buildOutskirts(world: Instance)
-	local folder = Builder.model("Campo", world)
+-- ¿Hay algo construido aquí? (barrios, calles, manzanas, puerto…)
+local function builtAt(): (x: number, z: number) -> boolean
 	local roads = Region.roads()
-	table.insert(roads, ROADS.Residential)
-	local function blocked(x: number, z: number): boolean
-		if math.abs(x) < 380 and z > -220 and z < 240 then
+	local Districts = require(Kit.Districts)
+	local centers = Region.centers()
+	return function(x: number, z: number): boolean
+		if math.abs(x) < 400 and z > -240 and z < 280 then
 			return true -- Valmar Centro
 		end
 		for _, town in Region.Towns do
-			if math.abs(x - town.Center.X) < 390 and math.abs(z - town.Center.Z) < 390 then
+			if math.abs(x - town.Center.X) < 400 and math.abs(z - town.Center.Z) < 400 then
 				return true
 			end
 		end
@@ -592,11 +595,42 @@ local function buildOutskirts(world: Instance)
 				return true
 			end
 		end
-		return x > 1600
+		return Landmarks.blocked(x, z) or Roads.near(x, z, 16) or Districts.blocked(x, z, centers) or require(Kit.MetroKit).blocked(x, z)
+	end
+end
+
+-- Bosques y arboledas en el campo (lejos de calles, manzanas, agua y montañas)
+local function buildOutskirts(world: Instance, built: (number, number) -> boolean)
+	local folder = Builder.model("Campo", world)
+	local function blocked(x: number, z: number): boolean
+		if not CityPlan.inside(CityPlan.Coast, x, z) then
+			return true
+		end
+		if CityPlan.riverDistance(x, z) < CityPlan.River.Width / 2 + 40 then
+			return true
+		end
+		for _, lake in CityPlan.Lakes do
+			if math.sqrt((x - lake.X) ^ 2 + (z - lake.Z) ^ 2) < lake.R + 40 then
+				return true
+			end
+		end
+		for _, m in CityPlan.Mountains do
+			if math.sqrt((x - m.X) ^ 2 + (z - m.Z) ^ 2) < m.R then
+				return true -- en las laderas el suelo no está a nivel
+			end
+		end
+		-- Playa: franja de arena junto al mar
+		for _, span in CityPlan.spans(CityPlan.Coast, z) do
+			if x > span[1] and x < span[2] and (x - span[1] < 90 or span[2] - x < 90) then
+				return true
+			end
+		end
+		return built(x, z)
 	end
 	-- Grupos de árboles (bosquecillos) en vez de árboles sueltos al azar
-	for _ = 1, 70 do
-		local cx, cz = math.random(-2200, 1550), math.random(-2200, 2200)
+	local b = CityPlan.Bounds
+	for _ = 1, 260 do
+		local cx, cz = math.random(b.MinX, b.MaxX), math.random(b.MinZ, b.MaxZ)
 		for _ = 1, math.random(3, 7) do
 			local x, z = cx + math.random(-30, 30), cz + math.random(-30, 30)
 			if not blocked(x, z) then
@@ -612,9 +646,7 @@ end
 
 -- Todas las calles del mapa (las usan el tráfico y los peatones del cliente)
 function TownBuilder.roads()
-	local roads = Region.roads()
-	table.insert(roads, ROADS.Residential)
-	return roads
+	return Region.roads() -- (ya incluye la calle residencial de Valmar Centro)
 end
 
 function TownBuilder.build(): Folder
@@ -641,7 +673,35 @@ function TownBuilder.build(): Folder
 	buildPlots(world)
 	buildStreetLife(world)
 	Region.build(world)
-	buildOutskirts(world)
+	Roads.build(world, TownBuilder.roads()) -- Ronda, avenidas, diagonales, rotondas y puentes (CityPlan.Roads)
+	require(Kit.Districts).build(world, Region.centers()) -- manzanas de los 6 distritos
+	Landmarks.build(world) -- puerto, isla del faro y mirador
+	require(Kit.MetroKit).build(world) -- metro subterráneo: bocas, estaciones, túneles, trenes y galería
+	local built = builtAt()
+	buildOutskirts(world, built)
+	require(Kit.Wilds).build(world, built) -- bosques de montaña, orillas del río, parque del lago y playas
+	-- Centro Penitenciario (grande, con mucho que hacer): al final y sin azar, para no mover nada más.
+	-- (El juzgado, Hacienda y el cuartel están dentro de edificios que ya existían: InteriorService)
+	require(Kit.Prison).build(world)
+	-- Gimnasio grande de Valmar Centro (junto a la tienda de pesca): también al final, para que no
+	-- cambie nada más (los de los barrios ya salen con su manzana de ocio: Civic.gym)
+	require(Kit.GymKit).centro(world)
+	-- Paradas de las líneas de autobús urbano (marquesinas, postes y paneles): también al final y
+	-- sin azar; se corren por la acera si hay una farola o un árbol, y despejan su carril
+	require(Kit.BusStops).build(world)
+	-- Detalles de la calle que han quedado encima de otra cosa (paradas, bancos, portales…): fuera
+	require(Kit.StreetDetail).prune(world)
+	-- Plantas bajas bien decoradas y con sitio para su gente; tiendas vacías cerradas (Kit/Decor)
+	require(Kit.Decor).dressTown(world)
+	-- Repaso final: que ninguna moldura, bordillo o cristalera parpadee contra la pared de detrás
+	-- (varias pasadas: al crecer una pieza puede quedar a ras de otra)
+	for _ = 1, 4 do
+		if require(Kit.Polish).fixCoplanar(world) == 0 then
+			break
+		end
+	end
+	require(Kit.Polish).tone(world)
+	require(Kit.Polish).optimize(world)
 
 	return world
 end

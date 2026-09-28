@@ -68,7 +68,8 @@ local function isKey(value: string): boolean
 end
 
 -- Revisa una misión episódica: diálogos, objetos, actores y a quién se habla en cada paso
-function Validate.mission(id: string, quest: { [string]: any }, err: (string, ...any) -> (), helpers: { [string]: any })
+-- (extraSteps: los pasos de los días generados de una misión con DayPlan, que no están en quest.Steps)
+function Validate.mission(id: string, quest: { [string]: any }, err: (string, ...any) -> (), helpers: { [string]: any }, extraSteps: { { [string]: any } }?)
 	local dialogues = quest.Dialogues or {}
 	local props = quest.Props or {}
 	local function dialogue(where: string, name: any)
@@ -158,6 +159,9 @@ function Validate.mission(id: string, quest: { [string]: any }, err: (string, ..
 	end
 	for i, s in quest.Steps do
 		checkStep(id .. ".s" .. i, s)
+	end
+	for i, s in extraSteps or {} do
+		checkStep(id .. ".dia.s" .. i, s)
 	end
 end
 
@@ -371,6 +375,7 @@ function Validate.run(): { string }
 		elseif quest.Kind ~= "Main" then
 			err("%s: Kind debe ser Main o Side", id)
 		end
+		local generated: { { [string]: any } } = {}
 		if quest.DayPlan then
 			if not DayPlans.Plans[quest.DayPlan] then
 				err("%s: DayPlan desconocido '%s'", id, quest.DayPlan)
@@ -383,6 +388,7 @@ function Validate.run(): { string }
 						text(id .. ".dia" .. day, plan.TitleKey)
 						for i, s in plan.Steps do
 							step(id .. ".dia" .. day .. ".s" .. i, s, false)
+							table.insert(generated, s)
 						end
 					end
 				end
@@ -400,13 +406,13 @@ function Validate.run(): { string }
 		if quest.Memory and not Memories[quest.Memory] then
 			err("%s: recuerdo desconocido '%s'", id, quest.Memory)
 		end
-		if quest.Dialogues or quest.Props or quest.Actors then
+		if quest.Dialogues or quest.Props or quest.Actors or #generated > 0 then
 			Validate.mission(id, quest, err, {
 				place = checkPlace,
 				lines = lines,
 				effects = effects,
 				requirements = requirements,
-			})
+			}, generated)
 		end
 	end
 	for id, quest in Quests do

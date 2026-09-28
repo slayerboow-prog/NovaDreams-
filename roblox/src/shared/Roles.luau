@@ -16,6 +16,12 @@ local Roles: { [string]: Role } = {
 	Reponedor = { NameKey = "ROLE.REPONEDOR", Npc = "Npc_Reponedor", MaxClients = 1 },
 	Basurero = { NameKey = "ROLE.BASURERO", Npc = "Npc_Basurero", MaxClients = 1 },
 	Repartidor = { NameKey = "ROLE.REPARTIDOR", Npc = "Npc_Repartidor", MaxClients = 1 },
+	Taquillero = { NameKey = "ROLE.TAQUILLERO", Npc = "Npc_Taquillero", MaxClients = 4 },
+	Recepcionista = { NameKey = "ROLE.RECEPCIONISTA", Npc = "Npc_Recepcionista", MaxClients = 3 },
+	Pescador = { NameKey = "ROLE.PESCADOR", Npc = "Npc_Pescador", MaxClients = 1 },
+	Revisor = { NameKey = "ROLE.REVISOR", Npc = "Npc_Revisor", MaxClients = 4 },
+	Armero = { NameKey = "ROLE.ARMERO", Npc = "Npc_Armero", MaxClients = 3 },
+	MonitorGimnasio = { NameKey = "ROLE.MONITOR_GIMNASIO", Npc = "Npc_MonitorGimnasio", MaxClients = 6 },
 
 	-- Roles de la campaña (fases 6 y siguientes)
 	Profesor = { NameKey = "ROLE.PROFESOR", Npc = "Npc_Profesor", MaxClients = 24 },

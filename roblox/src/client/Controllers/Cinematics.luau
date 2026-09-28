@@ -169,13 +169,17 @@ function Cinematics.isPlaying(): boolean
 	return playing > 0
 end
 
+-- Lo que hay que deshacer si una escena falla a medias (si no, la interfaz se quedaba escondida)
+type Cleanup = { Restore: (() -> ())?, Gui: Instance?, Counted: boolean }
+
 -- Espera hasta que termina (o hasta que el jugador la salta)
-function Cinematics.play(payload: { [string]: any })
+local function playImpl(payload: { [string]: any }, cleanup: Cleanup)
 	local def = Definitions[payload.Id]
 	if not def then
 		return
 	end
 	playing += 1
+	cleanup.Counted = true
 	local anchors = payload.Anchors or {}
 	local names = payload.Names or {}
 	local args = payload.Args or {}
@@ -188,6 +192,7 @@ function Cinematics.play(payload: { [string]: any })
 		Parent = player:WaitForChild("PlayerGui"),
 	})
 	local restoreGuis = hideOtherGuis(gui)
+	cleanup.Restore, cleanup.Gui = restoreGuis, gui
 	setControls(false)
 
 	-- Bandas de cine
@@ -437,6 +442,40 @@ function Cinematics.play(payload: { [string]: any })
 	task.wait(0.8)
 	gui:Destroy()
 	playing = math.max(0, playing - 1)
+	cleanup.Counted = false
+end
+
+function Cinematics.play(payload: { [string]: any })
+	local cleanup: Cleanup = { Counted = false }
+	local ok, err = pcall(playImpl, payload, cleanup)
+	if ok then
+		return
+	end
+	warn("[Cinematics] La escena falló; se devuelve la interfaz: " .. tostring(err))
+	-- Pase lo que pase: vuelven la interfaz, los controles y la cámara
+	if cleanup.Restore then
+		pcall(cleanup.Restore)
+	end
+	pcall(setControls, true)
+	pcall(function()
+		local camera = workspace.CurrentCamera
+		camera.CameraType = Enum.CameraType.Custom
+		local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			camera.CameraSubject = humanoid
+		end
+		DayLight.setFocus(nil)
+		DayLight.setCinematic(false)
+		StoryAudio.cinematicEnd()
+	end)
+	if cleanup.Gui then
+		pcall(function()
+			(cleanup.Gui :: Instance):Destroy()
+		end)
+	end
+	if cleanup.Counted then
+		playing = math.max(0, playing - 1)
+	end
 end
 
 return Cinematics

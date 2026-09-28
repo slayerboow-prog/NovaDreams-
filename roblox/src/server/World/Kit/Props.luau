@@ -23,7 +23,7 @@ local function addLampLight(model: Instance)
 	light.Range = 40
 	light.Brightness = 3
 	light.Color = Palette.Street.LampLight
-	light.Shadows = true -- con iluminación Future, las farolas dibujan sombras de noche
+	light.Shadows = false -- sin sombras: cientos de farolas con sombra hunden el rendimiento
 	light.Enabled = false
 	light.Parent = lens
 end
@@ -72,7 +72,7 @@ function Props.lamp(parent: Instance, cf: CFrame)
 		light.Range = 46
 		light.Brightness = 3
 		light.Color = S.LampLight
-		light.Shadows = true -- con iluminación Future, las farolas dibujan sombras de noche
+		light.Shadows = false -- sin sombras: cientos de farolas con sombra hunden el rendimiento
 		light.Enabled = false
 		light.Parent = lens
 	end
@@ -86,6 +86,7 @@ function Props.trafficLight(parent: Instance, cf: CFrame, armLength: number)
 		return asset
 	end
 	local m = Builder.model("TrafficLight", parent)
+	m:AddTag("TrafficLight") -- el cliente cambia las luces y el tráfico para en rojo (Traffic.luau)
 	Builder.part({
 		Name = "Pole",
 		Shape = Enum.PartType.Cylinder,
@@ -126,7 +127,8 @@ function Props.bench(parent: Instance, cf: CFrame)
 		return asset
 	end
 	local m = Builder.model("Bench", parent)
-	Builder.part({ Name = "Seat", Size = Vector3.new(6, 0.4, 1.8), CFrame = cf * CFrame.new(0, 1.9, 0), Color = S.Wood, Material = Enum.Material.Wood, Parent = m })
+	m:AddTag("Bench") -- el jugador se puede sentar (client/Controllers/Actions.luau)
+	Builder.part({ ClassName = "Seat", Name = "Seat", Size = Vector3.new(6, 0.4, 1.8), CFrame = cf * CFrame.new(0, 1.9, 0), Color = S.Wood, Material = Enum.Material.Wood, CanTouch = false, Parent = m })
 	Builder.decor({ Name = "Back", Size = Vector3.new(6, 1.6, 0.3), CFrame = cf * CFrame.new(0, 3, 0.95) * CFrame.Angles(math.rad(-10), 0, 0), Color = S.Wood, Material = Enum.Material.Wood, Parent = m })
 	for _, x in { -2.6, 2.6 } do
 		Builder.decor({ Name = "Leg", Size = Vector3.new(0.3, 1.8, 1.8), CFrame = cf * CFrame.new(x, 0.9, 0.1), Color = S.Metal, Material = Enum.Material.Metal, Parent = m })
@@ -138,6 +140,7 @@ function Props.bin(parent: Instance, cf: CFrame)
 	if AssetLibrary.spawn("Bin", parent, cf) then
 		return
 	end
+	-- Papelera (el basurero las vacía: GarbageService)
 	Builder.part({
 		Name = "Bin",
 		Shape = Enum.PartType.Cylinder,
@@ -145,6 +148,7 @@ function Props.bin(parent: Instance, cf: CFrame)
 		CFrame = cf * CFrame.new(0, 1.3, 0) * CFrame.Angles(0, 0, math.rad(90)),
 		Color = Color3.fromRGB(56, 96, 70),
 		Material = Enum.Material.Metal,
+		Tags = { "Papelera" },
 		Parent = parent,
 	})
 end
@@ -156,12 +160,13 @@ function Props.busStop(parent: Instance, cf: CFrame)
 		return asset
 	end
 	local m = Builder.model("BusStop", parent)
+	m:AddTag("Bench")
 	Builder.decor({ Name = "Roof", Size = Vector3.new(10, 0.3, 4), CFrame = cf * CFrame.new(0, 8.2, 0), Color = S.Metal, Material = Enum.Material.Metal, Parent = m })
 	Builder.part({ Name = "BackGlass", Size = Vector3.new(10, 6.5, 0.2), CFrame = cf * CFrame.new(0, 4.6, 1.8), Color = S.Glass, Material = Enum.Material.Glass, Transparency = 0.5, Parent = m })
 	for _, x in { -4.9, 4.9 } do
 		Builder.decor({ Name = "Post", Size = Vector3.new(0.3, 8, 0.3), CFrame = cf * CFrame.new(x, 4.1, 1.8), Color = S.Metal, Material = Enum.Material.Metal, Parent = m })
 	end
-	Builder.part({ Name = "Seat", Size = Vector3.new(6, 0.3, 1.2), CFrame = cf * CFrame.new(0, 2, 1.1), Color = S.Metal, Material = Enum.Material.Metal, Parent = m })
+	Builder.part({ ClassName = "Seat", Name = "Seat", Size = Vector3.new(6, 0.3, 1.2), CFrame = cf * CFrame.new(0, 2, 1.1), Color = S.Metal, Material = Enum.Material.Metal, CanTouch = false, Parent = m })
 	local sign = Builder.decor({ Name = "Sign", Size = Vector3.new(2.4, 2.4, 0.2), CFrame = cf * CFrame.new(-6, 8, 0), Color = Color3.fromRGB(30, 110, 200), Parent = m })
 	Builder.sign(sign, "BUS", Enum.NormalId.Front)
 	Builder.sign(sign, "BUS", Enum.NormalId.Back)
@@ -171,37 +176,13 @@ end
 
 -- Coche aparcado decorativo. El CFrame es el centro del coche a nivel de la calzada;
 -- LookVector = morro.
-function Props.car(parent: Instance, cf: CFrame, color: Color3?)
+function Props.car(parent: Instance, cf: CFrame, color: Color3?, variant: string?)
 	local asset = AssetLibrary.spawn("Car", parent, cf)
 	if asset then
 		return asset
 	end
-	local m = Builder.model("ParkedCar", parent)
-	local paint = color or Palette.pick(Palette.CarColors)
-	local r = 1.3 -- radio de rueda
-	Builder.part({ Name = "Body", Size = Vector3.new(6.2, 2.2, 13.5), CFrame = cf * CFrame.new(0, r + 0.9, 0), Color = paint, Material = Enum.Material.SmoothPlastic, Reflectance = 0.08, Parent = m })
-	Builder.part({ Name = "Cabin", Size = Vector3.new(5.6, 2.1, 7), CFrame = cf * CFrame.new(0, r + 3, 0.6), Color = paint, Material = Enum.Material.SmoothPlastic, Reflectance = 0.08, Parent = m })
-	local glassColor = Color3.fromRGB(40, 52, 62)
-	Builder.decor({ Name = "SideWindows", Size = Vector3.new(5.7, 1.4, 6.2), CFrame = cf * CFrame.new(0, r + 3.1, 0.6), Color = glassColor, Material = Enum.Material.Glass, Parent = m })
-	Builder.decor({ Name = "Windshield", Size = Vector3.new(5, 1.4, 7.1), CFrame = cf * CFrame.new(0, r + 3.1, 0.6), Color = glassColor, Material = Enum.Material.Glass, Parent = m })
-	for _, z in { -4.3, 4.3 } do
-		for _, x in { -2.9, 2.9 } do
-			Builder.decor({
-				Name = "Wheel",
-				Shape = Enum.PartType.Cylinder,
-				Size = Vector3.new(1.1, r * 2, r * 2),
-				CFrame = cf * CFrame.new(x, r, z),
-				Color = Color3.fromRGB(26, 26, 28),
-				Material = Enum.Material.Rubber,
-				Parent = m,
-			})
-		end
-	end
-	for _, x in { -2.2, 2.2 } do
-		Builder.decor({ Name = "Headlight", Size = Vector3.new(1.2, 0.5, 0.2), CFrame = cf * CFrame.new(x, r + 1.4, -6.8), Color = Color3.fromRGB(255, 250, 230), Material = Enum.Material.Neon, Parent = m })
-		Builder.decor({ Name = "Taillight", Size = Vector3.new(1.2, 0.5, 0.2), CFrame = cf * CFrame.new(x, r + 1.4, 6.8), Color = Color3.fromRGB(200, 30, 30), Material = Enum.Material.Neon, Parent = m })
-	end
-	return m
+	-- Coche con todo detalle (Kit/CarModel): berlina, compacto o todoterreno
+	return require(script.Parent.CarModel).build(parent, cf, color or Palette.pick(Palette.CarColors), { Name = "ParkedCar", Variant = variant, Lite = true })
 end
 
 -- Tablón de empleo "SE BUSCA" (JobId debe existir en Config.Jobs)
@@ -227,7 +208,7 @@ end
 -- Vehículos de servicio (decorativos, aparcados). kind: "Police" | "Ambulance" | "FireTruck" | "Bus"
 function Props.vehicle(parent: Instance, cf: CFrame, kind: string)
 	if kind == "Police" then
-		local car = Props.car(parent, cf, Color3.fromRGB(240, 242, 246))
+		local car = Props.car(parent, cf, Color3.fromRGB(240, 242, 246), "Berlina")
 		if car and car:IsA("Model") and car.Name == "ParkedCar" then
 			Builder.decor({ Name = "Stripe", Size = Vector3.new(6.3, 0.7, 13.6), CFrame = cf * CFrame.new(0, 2.2, 0), Color = Color3.fromRGB(30, 70, 170), Parent = car })
 			Builder.decor({ Name = "LightBarRed", Size = Vector3.new(1.6, 0.5, 1), CFrame = cf * CFrame.new(-0.9, 5.6, 0.6), Color = Color3.fromRGB(230, 40, 40), Material = Enum.Material.Neon, Parent = car })

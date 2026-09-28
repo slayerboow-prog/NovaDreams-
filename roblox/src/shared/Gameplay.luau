@@ -10,13 +10,70 @@ local Gameplay = {}
 -- Se compran desde el botón "🚲 Vehículos" y se sacan en cualquier sitio.
 -- Las bicis y monopatines públicos (junto a las paradas de autobús) son gratis.
 ---------------------------------------------------------------------
+-- Stage = etapa mínima para COMPRARLO (la bici y el patinete, desde la infancia).
+-- Conducir se puede cualquier vehículo desde niño (Gameplay.DriveMinStage), con carnet o sin él:
+-- sin el carnet que toca (o siendo menor) es un delito, pero solo si te ve la policía
+-- (WantedService: "Conducir sin carnet" / "Menor al volante").
 Gameplay.Vehicles = {
 	Monopatin = { Name = "Monopatín", Icon = "🛹", Price = 150, Speed = 26, Stage = "Adolescente", Order = 1 },
-	Bici = { Name = "Bicicleta", Icon = "🚲", Price = 350, Speed = 34, Stage = "Adolescente", Order = 2 },
-	Moto = { Name = "Moto", Icon = "🛵", Price = 3500, Speed = 58, Stage = "AdultoJoven", License = "A", Order = 3 },
-	Coche = { Name = "Coche", Icon = "🚗", Price = 9000, Speed = 72, Stage = "AdultoJoven", License = "B", Order = 4 },
+	Patinete = { Name = "Patinete eléctrico", Icon = "🛴", Price = 250, Speed = 30, Stage = "Nino", Order = 2 },
+	Bici = { Name = "Bicicleta", Icon = "🚲", Price = 350, Speed = 34, Stage = "Nino", Order = 3 },
+	Moto = { Name = "Moto", Icon = "🛵", Price = 3500, Speed = 58, Stage = "AdultoJoven", License = "A", Order = 4 },
+	Coche = { Name = "Coche", Icon = "🚗", Price = 9000, Speed = 72, Stage = "AdultoJoven", License = "B", Order = 5 },
+	-- El autobús no se compra: lo conduce quien trabaja de conductor (BusService)
+	Autobus = { Name = "Autobús", Icon = "🚌", Price = 0, Speed = 48, Stage = "AdultoJoven", License = "B", Order = 9, Hidden = true },
+	-- El camión de la basura tampoco: es de los basureros (GarbageService)
+	Camion = { Name = "Camión de la basura", Icon = "🚛", Price = 0, Speed = 42, Stage = "AdultoJoven", License = "B", Order = 10, Hidden = true },
+	Patrulla = { Name = "Coche patrulla", Icon = "🚓", Price = 0, Speed = 80, Stage = "AdultoJoven", License = "B", Order = 11, Hidden = true },
+	Bomberos = { Name = "Camión de bomberos", Icon = "🚒", Price = 0, Speed = 56, Stage = "AdultoJoven", License = "B", Order = 12, Hidden = true },
 }
-Gameplay.RentalVehicles = { "Bici", "Monopatin" } -- los que se cogen gratis en las estaciones públicas
+Gameplay.RentalVehicles = { "Bici", "Monopatin", "Patinete" } -- los que se cogen gratis en las estaciones públicas
+
+-- Cómo se conduce cada vehículo (studs/s y radianes/s). Lo usa client/Controllers/Driving.luau.
+--   Accel: aceleración · Brake: frenada · Reverse: velocidad marcha atrás · Turn: giro máximo
+--   Lean: se inclina en las curvas (dos ruedas) · Standing: se va de pie (monopatín, patinete)
+Gameplay.Driving = {
+	Monopatin = { Accel = 12, Brake = 30, Reverse = 6, Turn = 2.4, Lean = 10, Standing = true },
+	Patinete = { Accel = 16, Brake = 34, Reverse = 5, Turn = 2.5, Lean = 12, Standing = true },
+	Bici = { Accel = 14, Brake = 36, Reverse = 5, Turn = 2.5, Lean = 16 },
+	Moto = { Accel = 26, Brake = 50, Reverse = 6, Turn = 2.2, Lean = 22 },
+	Coche = { Accel = 22, Brake = 55, Reverse = 18, Turn = 1.7, Lean = 0 },
+	Autobus = { Accel = 11, Brake = 34, Reverse = 6, Turn = 1.1, Lean = 0 },
+	Camion = { Accel = 10, Brake = 32, Reverse = 6, Turn = 1.2, Lean = 0 },
+	Patrulla = { Accel = 26, Brake = 60, Reverse = 18, Turn = 1.8, Lean = 0 },
+	Bomberos = { Accel = 13, Brake = 36, Reverse = 6, Turn = 1.2, Lean = 0 },
+}
+
+-- Combustible y cuentakilómetros (VehicleService gasta; se reposta en las gasolineras)
+--   Tank: depósito (litros, o % de batería) · Per1000: lo que se gasta cada 1000 studs
+--   Price: € por litro (o por % de batería). Bici y monopatín no gastan nada.
+Gameplay.Fuel = {
+	Kinds = {
+		Coche = { Tank = 50, Per1000 = 2.2, Type = "Gasolina", Unit = "L", Price = 1.5 },
+		Moto = { Tank = 12, Per1000 = 0.7, Type = "Gasolina", Unit = "L", Price = 1.5 },
+		Patinete = { Tank = 100, Per1000 = 10, Type = "Bateria", Unit = "%", Price = 0.1 },
+	},
+	KmPerStud = 0.00028, -- 1 stud ≈ 28 cm (y así km/h ≈ studs/s)
+	Reserve = 0.15, -- por debajo de esto se enciende la luz de reserva
+}
+
+-- Autobús urbano (línea L1 circular por todos los barrios)
+Gameplay.Bus = {
+	Fare = 2, -- billete de adulto (lo cobra la ciudad o el conductor jugador)
+	Fares = { Bebe = 0, Nino = 0, Adolescente = 1 }, -- los niños viajan gratis y los adolescentes pagan la mitad
+	DriverPerStop = 12, -- el conductor cobra por cada parada bien hecha
+	DriverPerPassenger = 2, -- y por cada pasajero que sube (jugadores y NPC)
+	Speed = 40, -- velocidad máxima de los autobuses del juego (studs/s)
+	Accel = 10, -- aceleración al arrancar (studs/s²)
+	Brake = 9, -- frenada al llegar a la parada (studs/s²)
+	AverageFactor = 0.8, -- velocidad media / máxima (curvas, arrancar y frenar): para los tiempos de los paneles
+	StopSeconds = 8, -- lo que esperan en cada parada con las puertas abiertas
+	HoldSeconds = 22, -- si hay alguien en la parada, esperan hasta esto con las puertas abiertas
+	HoldRadius = 26, -- a qué distancia de la parada cuenta que alguien espera
+	BoardDistance = 40, -- desde dónde se puede subir (cartel de la parada o de la puerta)
+	BoardEvery = 2, -- cada cuántos segundos se actualizan los paneles de las paradas
+	StopRadius = 20, -- (conductor jugador) a qué distancia de la parada hay que parar
+}
 
 ---------------------------------------------------------------------
 -- Carnet de conducir (autoescuela)
@@ -26,6 +83,30 @@ Gameplay.Licenses = {
 	B = { Name = "Carnet de coche (B)", Price = 400, Vehicle = "Coche" },
 }
 Gameplay.LicenseStage = "AdultoJoven"
+
+-- Conducir: desde esta etapa se puede montar en cualquier vehículo (los bebés, en ninguno)
+Gameplay.DriveMinStage = "Nino"
+Gameplay.MinorStages = { Bebe = true, Nino = true, Adolescente = true }
+-- Al bajarse de un vehículo no te vuelve a subir nada durante este rato (ni un cartel pulsado sin
+-- querer ni un asiento): así bajarse es siempre bajarse
+Gameplay.ExitCooldown = 1.2
+
+-- ¿Qué delito es conducir este vehículo? nil = ninguno (no pide carnet, o lo tienes)
+--   "MenorVolante": un menor conduciendo algo que pide carnet (moto, coche…)
+--   "SinCarnet": un adulto sin el carnet que toca
+function Gameplay.drivingOffence(stage: string?, hasLicense: boolean, kind: string): string?
+	local vehicle = Gameplay.Vehicles[kind]
+	if not vehicle or not vehicle.License then
+		return nil
+	end
+	if stage and Gameplay.MinorStages[stage] then
+		return "MenorVolante"
+	end
+	if not hasLicense then
+		return "SinCarnet"
+	end
+	return nil
+end
 Gameplay.Theory = { Questions = 5, ToPass = 4 }
 Gameplay.Practical = { Checkpoints = 5, Seconds = 100, ReachDistance = 16 }
 
@@ -147,6 +228,7 @@ Gameplay.Progression = {
 		JobTaskDone = 12, ArcadePlayed = 6, LicenseEarned = 150, LicenseFailed = 10, PrizeRedeemed = 5,
 		Talk = 3, Traveled = 5, VehicleBought = 25, HomeClaimed = 60, BoughtItem = 3, Ate = 1, Slept = 4,
 		BabySteps = 20, BabyStood = 20, LookedOutside = 10,
+		GymSet = 6, -- cada serie completa en el gimnasio
 	},
 	QuestXp = 60, -- por cada misión completada de la historia
 	Stats = {
@@ -194,5 +276,70 @@ function Gameplay.orderText(items: { string }): string
 	end
 	return table.concat(names, ", ", 1, #names - 1) .. " y " .. names[#names]
 end
+
+---------------------------------------------------------------------
+-- Correos: oficio de repartidor (PostService)
+---------------------------------------------------------------------
+Gameplay.Post = {
+	Parcels = 5, -- paquetes por ruta
+	MinDistance = 120, -- las casas de la ruta, entre estas distancias de Correos
+	MaxDistance = 700,
+	PerParcel = 10, -- sueldo por paquete entregado
+	PerStud = 0.02, -- y un extra según lo lejos que esté la casa
+	RouteBonus = 25, -- al cerrar la ruta en Correos
+	RouteSeconds = 420, -- si se cierra antes de esto, bonus doble
+	EnergyCost = 3,
+	Kinds = {
+		{ Id = "Carta", Name = "Carta certificada", Icon = "✉️", Door = false, Size = Vector3.new(0.9, 0.1, 0.6) },
+		{ Id = "Paquete", Name = "Paquete pequeño", Icon = "📦", Door = false, Size = Vector3.new(1.2, 0.8, 1) },
+		{ Id = "Caja", Name = "Caja grande (en mano)", Icon = "📦", Door = true, Size = Vector3.new(2, 1.5, 1.6) },
+		{ Id = "Urgente", Name = "Urgente (en mano)", Icon = "🚨", Door = true, Size = Vector3.new(1.4, 1, 1.2) },
+	},
+}
+
+---------------------------------------------------------------------
+-- Limpieza: oficio de basurero (GarbageService)
+---------------------------------------------------------------------
+Gameplay.Garbage = {
+	Bins = 8, -- papeleras llenas por ruta
+	MinDistance = 60,
+	MaxDistance = 600,
+	PerBin = 7, -- por cada papelera vaciada
+	PerBag = 4, -- por cada bolsa suelta recogida de la calle
+	UnloadBonus = 20, -- al descargar en el Punto Limpio
+	RouteSeconds = 420, -- descarga antes de esto: bonus doble
+	BagRespawn = 150, -- segundos hasta que vuelve a aparecer una bolsa suelta
+	EnergyCost = 2,
+}
+
+---------------------------------------------------------------------
+-- Policía (PoliceService)
+---------------------------------------------------------------------
+Gameplay.Police = {
+	MinDistance = 80, -- los avisos salen por la ciudad, a esta distancia de la comisaría
+	MaxDistance = 650,
+	Pay = { Robo = 30, Multa = 15, Accidente = 28, Perdido = 22 },
+	PerStud = 0.015, -- extra según lo lejos que esté el aviso
+	TimeLimit = 300, -- si no se atiende en este tiempo, llega otro aviso
+	FleeSpeed = 11, -- a qué velocidad huye el ladrón (un jugador corriendo le alcanza)
+	EnergyCost = 3,
+	MinStage = "AdultoJoven",
+}
+
+---------------------------------------------------------------------
+-- Bomberos (FireService)
+---------------------------------------------------------------------
+Gameplay.Fire = {
+	MinDistance = 80, -- los avisos, a esta distancia del parque de bomberos
+	MaxDistance = 700,
+	Pay = { Casa = 45, Coche = 30, Papelera = 15, Gato = 25 },
+	PerStud = 0.015,
+	FlameHits = 2, -- veces que hay que echar agua a cada llama
+	GrowEvery = 35, -- si tardas, el fuego crece (una llama más fuerte) cada tantos segundos
+	MaxHits = 4,
+	TimeLimit = 360,
+	EnergyCost = 4,
+	MinStage = "AdultoJoven",
+}
 
 return Gameplay

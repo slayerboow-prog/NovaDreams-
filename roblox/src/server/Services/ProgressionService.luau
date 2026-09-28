@@ -15,6 +15,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Gameplay = require(ReplicatedStorage.Shared.Gameplay)
+local Config = require(ReplicatedStorage.Shared.Config)
 local DataService = require(script.Parent.DataService)
 local NeedsService = require(script.Parent.NeedsService)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
@@ -146,7 +147,31 @@ end
 ---------------------------------------------------------------------
 local function canSprint(player: Player): boolean
 	local stage = player:GetAttribute("LifeStage")
+	local stance = player:GetAttribute("Stance")
 	return stage ~= "Bebe" and not player:GetAttribute("Crawling") and not player:GetAttribute("Riding") and not player:GetAttribute("Sleeping")
+		and (stance == nil or stance == "Stand") -- agachado o tumbado no se corre
+end
+
+local function sprintBlocker(player: Player): string?
+	if player:GetAttribute("LifeStage") == "Bebe" or player:GetAttribute("Crawling") then
+		return "👶 Los bebés todavía no pueden correr."
+	elseif player:GetAttribute("Riding") then
+		return "🚲 Bájate del vehículo para correr."
+	elseif player:GetAttribute("Sleeping") then
+		return "😴 Estás durmiendo."
+	end
+	local runner = runners[player]
+	if runner and runner.Stamina < ST.MinToStart then
+		return "💨 Estás sin aliento: espera a recuperar la estamina."
+	end
+	local data = DataService.get(player)
+	local low = Config.Needs.LowThreshold
+	if data and (data.Hunger or 100) <= low then
+		return "🍔 Tienes mucha hambre: corres más despacio. ¡Come algo!"
+	elseif data and (data.Energy or 100) <= low then
+		return "😴 Tienes mucho sueño: corres más despacio. ¡Descansa!"
+	end
+	return nil
 end
 
 local function setSprinting(player: Player, runner: Runner, on: boolean)
@@ -162,7 +187,8 @@ local function tickStamina(dt: number)
 	for player, runner in runners do
 		local character = player.Character
 		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
-		local moving = root ~= nil and Vector3.new(root.AssemblyLinearVelocity.X, 0, root.AssemblyLinearVelocity.Z).Magnitude > 2
+		local velocity = root and root.AssemblyLinearVelocity
+		local moving = typeof(velocity) == "Vector3" and Vector3.new(velocity.X, 0, velocity.Z).Magnitude > 2
 		local limit = maxStamina(player)
 		if runner.Sprinting then
 			if not runner.Wants or not moving or not canSprint(player) or runner.Stamina <= 0 then
@@ -227,6 +253,13 @@ function ProgressionService.init()
 			local runner = runners[player]
 			if runner then
 				runner.Wants = value == true
+				if runner.Wants then
+					-- Que se sepa por qué no corre (antes el botón se encendía y no pasaba nada)
+					local why = sprintBlocker(player)
+					if why then
+						Notify:FireClient(player, "Info", why)
+					end
+				end
 			end
 		elseif action == "Spend" then
 			spend(player, value)
@@ -241,7 +274,11 @@ function ProgressionService.init()
 		local elapsed = 0
 		while true do
 			local dt = task.wait(0.1)
-			tickStamina(dt)
+			-- Un fallo con un jugador no debe parar la estamina de todos
+			local ok, err = pcall(tickStamina, dt)
+			if not ok then
+				warn("[ProgressionService] Estamina:", err)
+			end
 			elapsed += dt
 			if elapsed >= 3 then
 				elapsed = 0

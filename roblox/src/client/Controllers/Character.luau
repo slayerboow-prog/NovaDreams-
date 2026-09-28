@@ -1,19 +1,26 @@
--- Character: vida, estamina, nivel y estadísticas del personaje en pantalla.
---   * Barras de vida ❤ y estamina ⚡ encima de las de hambre y energía (abajo a la izquierda)
---   * Nivel y barra de experiencia junto al dinero
---   * Botón "⭐ Personaje": reparte los puntos de cada nivel en Salud, Resistencia, Fuerza, Destreza y Suerte
---   * Correr: mantén Shift (en móvil, el botón 🏃) mientras te quede estamina
+-- Character: ficha del personaje y correr.
+--   (La vida, la estamina, el nivel y la experiencia los dibuja el HUD: UI/Hud.luau)
+--   * Botón "⭐ Personaje" de arriba: reparte los puntos de cada nivel en Salud, Resistencia, Fuerza, Destreza y Suerte
+--     (y abajo, tu historial de comportamiento 😇/😈: ConductService)
+--   * Correr: mantén Shift (L3 en el mando; en móvil, el botón Correr o el joystick hasta el borde)
+--     mientras te quede estamina
 
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
+-- Pantalla táctil sin teclado (móvil o tableta)
+local TOUCH = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+
 local Gameplay = require(ReplicatedStorage.Shared.Gameplay)
+local Gym = require(ReplicatedStorage.Shared.Gym)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Dialog = require(script.Parent.Parent.UI.Dialog)
 local Hud = require(script.Parent.Parent.UI.Hud)
+local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
+local Joystick = require(script.Parent.Joystick)
 
 local create = Theme.create
 local C = Theme.Colors
@@ -25,100 +32,8 @@ local Remote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Progressi
 local P = Gameplay.Progression
 local rgb = Color3.fromRGB
 
-local function bar(parent: Instance, icon: string, color: Color3, order: number): (number, number) -> ()
-	local row = create("Frame", { Size = UDim2.new(1, 0, 0, 22), BackgroundTransparency = 1, LayoutOrder = order, Parent = parent })
-	Theme.label({ Size = UDim2.fromOffset(24, 22), Text = icon, TextSize = 16, Parent = row })
-	local track = create("Frame", {
-		Size = UDim2.new(1, -86, 0, 10),
-		Position = UDim2.new(0, 26, 0.5, -5),
-		BackgroundColor3 = C.PanelLight,
-		BorderSizePixel = 0,
-		Parent = row,
-	}, { Theme.corner(5) })
-	local fill = create("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = color, BorderSizePixel = 0, Parent = track }, { Theme.corner(5) })
-	local value = Theme.label({ Size = UDim2.fromOffset(56, 22), Position = UDim2.new(1, -56, 0, 0), TextSize = 13, TextXAlignment = Enum.TextXAlignment.Right, Parent = row })
-	return function(amount: number, max: number)
-		local ratio = math.clamp(amount / math.max(max, 1), 0, 1)
-		TweenService:Create(fill, TweenInfo.new(0.2), { Size = UDim2.fromScale(ratio, 1) }):Play()
-		fill.BackgroundColor3 = if ratio <= 0.2 then C.Error else color
-		value.Text = ("%d/%d"):format(math.floor(amount + 0.5), math.floor(max + 0.5))
-	end
-end
-
-local function buildVitals(gui: Instance)
-	local panel = Theme.panel({
-		Name = "Vitals",
-		AnchorPoint = Vector2.new(0, 1),
-		Size = UDim2.fromOffset(230, 76),
-		Position = UDim2.new(0, 16, 1, -100),
-		Parent = gui,
-	})
-	Theme.padding(12).Parent = panel
-	create("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder, Parent = panel })
-	local setHealth = bar(panel, "❤", rgb(230, 70, 80), 1)
-	local setStamina = bar(panel, "🏃", rgb(90, 210, 140), 2)
-
-	local healthConnection: RBXScriptConnection? = nil
-	local function watchHumanoid(character: Model)
-		local humanoid = character:WaitForChild("Humanoid", 10) :: Humanoid?
-		if not humanoid then
-			return
-		end
-		if healthConnection then
-			healthConnection:Disconnect()
-		end
-		local function update()
-			setHealth(humanoid.Health, humanoid.MaxHealth)
-		end
-		healthConnection = humanoid.HealthChanged:Connect(update)
-		humanoid:GetPropertyChangedSignal("MaxHealth"):Connect(update)
-		update()
-	end
-	player.CharacterAdded:Connect(watchHumanoid)
-	if player.Character then
-		task.spawn(watchHumanoid, player.Character)
-	end
-
-	local function updateStamina()
-		local max = player:GetAttribute("MaxStamina") or P.Stamina.Base
-		setStamina(player:GetAttribute("Stamina") or max, max)
-	end
-	player:GetAttributeChangedSignal("Stamina"):Connect(updateStamina)
-	player:GetAttributeChangedSignal("MaxStamina"):Connect(updateStamina)
-	updateStamina()
-	-- De bebé no hace falta (no corre ni lucha)
-	local function stage()
-		panel.Visible = player:GetAttribute("LifeStage") ~= "Bebe"
-	end
-	player:GetAttributeChangedSignal("LifeStage"):Connect(stage)
-	stage()
-end
-
-local function buildLevel(gui: Instance)
-	local panel = Theme.panel({
-		Name = "Level",
-		Size = UDim2.fromOffset(200, 30),
-		Position = UDim2.fromOffset(16, 102),
-		Parent = gui,
-	})
-	local text = Theme.label({ Size = UDim2.new(0, 70, 1, 0), Position = UDim2.fromOffset(10, 0), Font = Theme.FontBold, TextSize = 15, TextColor3 = C.Gold, Parent = panel })
-	local track = create("Frame", { Size = UDim2.new(1, -92, 0, 8), Position = UDim2.new(0, 80, 0.5, -4), BackgroundColor3 = C.PanelLight, BorderSizePixel = 0, Parent = panel }, { Theme.corner(4) })
-	local fill = create("Frame", { Size = UDim2.fromScale(0, 1), BackgroundColor3 = C.Gold, BorderSizePixel = 0, Parent = track }, { Theme.corner(4) })
-	local function update()
-		local level = player:GetAttribute("Level") or 1
-		local points = player:GetAttribute("StatPoints") or 0
-		text.Text = ("⭐ Nv %d%s"):format(level, if points > 0 then " +" else "")
-		local ratio = (player:GetAttribute("Xp") or 0) / math.max(player:GetAttribute("XpNext") or 1, 1)
-		TweenService:Create(fill, TweenInfo.new(0.4), { Size = UDim2.fromScale(math.clamp(ratio, 0, 1), 1) }):Play()
-	end
-	for _, attribute in { "Level", "Xp", "XpNext", "StatPoints" } do
-		player:GetAttributeChangedSignal(attribute):Connect(update)
-	end
-	update()
-end
-
 local function openSheet()
-	local window, content = Dialog.window("CharacterSheet", "⭐ Tu personaje", Vector2.new(470, 470))
+	local window, content = Dialog.window("CharacterSheet", "⭐ Tu personaje", Vector2.new(470, 670))
 	local list = create("Frame", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Parent = content })
 	create("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder, Parent = list })
 	local header = Theme.label({ Size = UDim2.new(1, 0, 0, 44), TextSize = 15, TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top, LayoutOrder = 0, Parent = list })
@@ -134,6 +49,23 @@ local function openSheet()
 		end)
 		rows[stat.Id] = { Name = name, Plus = plus, Stat = stat }
 	end
+	-- Gimnasio: la Fuerza que se nota en el cuerpo y la Forma física (GymService)
+	local gym = Theme.panel({ Size = UDim2.new(1, 0, 0, 104), BackgroundColor3 = C.PanelLight, BackgroundTransparency = 0, LayoutOrder = 100, Parent = list })
+	Theme.padding(8).Parent = gym
+	local gymBars = {}
+	for i, id in { "GymStrength", "GymCardio" } do
+		local y = (i - 1) * 40
+		local label = Theme.label({ Position = UDim2.fromOffset(0, y), Size = UDim2.new(1, 0, 0, 22), Font = Theme.FontBold, TextSize = 16, Parent = gym })
+		local track = create("Frame", { Position = UDim2.fromOffset(0, y + 24), Size = UDim2.new(1, 0, 0, 8), BackgroundColor3 = rgb(12, 18, 32), BorderSizePixel = 0, Parent = gym }, { Theme.corner(4) })
+		local fill = create("Frame", { Size = UDim2.fromScale(0, 1), BackgroundColor3 = if i == 1 then rgb(240, 140, 40) else rgb(90, 190, 230), BorderSizePixel = 0, Parent = track }, { Theme.corner(4) })
+		gymBars[id] = { Label = label, Fill = fill }
+	end
+	local gymNote = Theme.label({ Position = UDim2.fromOffset(0, 80), Size = UDim2.new(1, 0, 0, 16), TextSize = 12, TextColor3 = C.Muted, Parent = gym })
+	-- Historial de comportamiento (😇 / 😈): ConductService
+	local conduct = Theme.panel({ Size = UDim2.new(1, 0, 0, 70), BackgroundColor3 = C.PanelLight, BackgroundTransparency = 0, LayoutOrder = 101, Parent = list })
+	Theme.padding(8).Parent = conduct
+	local conductTitle = Theme.label({ Size = UDim2.new(1, 0, 0, 22), Font = Theme.FontBold, TextSize = 16, Parent = conduct })
+	local conductNote = Theme.label({ Position = UDim2.fromOffset(0, 24), Size = UDim2.new(1, 0, 0, 30), TextSize = 12, TextWrapped = true, TextColor3 = C.Muted, TextYAlignment = Enum.TextYAlignment.Top, Parent = conduct })
 	local function refresh()
 		if not window.Parent then
 			return
@@ -148,9 +80,35 @@ local function openSheet()
 			row.Plus.BackgroundColor3 = if can then rgb(0, 150, 80) else C.PanelLight
 			row.Plus.AutoButtonColor = can
 		end
+		local strength = player:GetAttribute("GymStrength") or 0
+		local cardio = player:GetAttribute("GymCardio") or 0
+		gymBars.GymStrength.Label.Text = ("💪 Fuerza  ·  %d / 100  ·  %s"):format(math.floor(strength), Gym.level(strength))
+		gymBars.GymCardio.Label.Text = ("🏃 Forma física  ·  %d / 100  ·  %s"):format(math.floor(cardio), Gym.level(cardio))
+		gymBars.GymStrength.Fill.Size = UDim2.fromScale(math.clamp(strength / Gym.MaxStat, 0, 1), 1)
+		gymBars.GymCardio.Fill.Size = UDim2.fromScale(math.clamp(cardio / Gym.MaxStat, 0, 1), 1)
+		local days = player:GetAttribute("GymPassDays") or 0
+		local level = player:GetAttribute("ConductLevel")
+		local conductPoints = player:GetAttribute("Conduct") or 0
+		conductTitle.Text = ("%s  ·  %d punto%s"):format(if typeof(level) == "string" then level else "😇 Un angelito", conductPoints, if conductPoints == 1 then "" else "s")
+		local notes = {}
+		local last = player:GetAttribute("ConductLast")
+		if typeof(last) == "string" then
+			table.insert(notes, "Lo último: " .. last)
+		end
+		local records = player:GetAttribute("Records") or 0
+		if records > 0 then
+			table.insert(notes, ("Antecedentes: %d"):format(records))
+		end
+		local grounded = player:GetAttribute("GroundedUntil")
+		if typeof(grounded) == "number" and grounded > os.time() then
+			table.insert(notes, ("🏠 Castigado/a %d min: sin paga"):format(math.ceil((grounded - os.time()) / 60)))
+		end
+		conductNote.Text = if #notes > 0 then table.concat(notes, "  ·  ") else "Pórtate bien: lo que hagas mal lo sabrá tu familia (y la policía)."
+		gymNote.Text = if days > 0 then ("🏋️ Gimnasio: te queda%s %d día%s de entrada · entrena para ponerte fuerte"):format(if days == 1 then "" else "n", days, if days == 1 then "" else "s")
+			else "🏋️ Entrena en el gimnasio (💪 en el mapa): la Fuerza se nota en el cuerpo"
 	end
 	local connections = {}
-	for _, attribute in { "StatPoints", "Level", "Xp", "XpNext", "Stat_Salud", "Stat_Resistencia", "Stat_Fuerza", "Stat_Destreza", "Stat_Suerte" } do
+	for _, attribute in { "StatPoints", "Level", "Xp", "XpNext", "Stat_Salud", "Stat_Resistencia", "Stat_Fuerza", "Stat_Destreza", "Stat_Suerte", "GymStrength", "GymCardio", "GymPassDays", "Conduct", "ConductLevel", "ConductLast", "GroundedUntil", "Records" } do
 		table.insert(connections, player:GetAttributeChangedSignal(attribute):Connect(refresh))
 	end
 	window.Destroying:Connect(function()
@@ -162,58 +120,178 @@ local function openSheet()
 end
 
 ---------------------------------------------------------------------
--- Correr
+-- Correr (lo decide el servidor: ProgressionService pone "Sprinting" y NeedsService la velocidad)
+--   Teclado: mantener Shift.
+--   Mando:   pulsar el stick izquierdo (L3) enciende y apaga; se apaga solo al pararte.
+--   Móvil:   el botón Correr (UI/TouchLayout) enciende y apaga; y, con "AutoRun" (atributo del jugador,
+--            sí por defecto; se cambia en el Menú), empujar el joystick hasta el borde un momento
+--            también corre (al soltarlo un poco, anda).
+--   El botón enseña el estado: apagado, ámbar pedido (pero quieto o sin aliento), azul corriendo,
+--   y abajo una barrita con la estamina.
 ---------------------------------------------------------------------
 local wants = false
-local function setSprint(on: boolean)
+local held = false -- Shift mantenido
+local toggled = false -- botón 🏃 o L3
+local toggledByPad = false
+local auto = false -- joystick empujado hasta el borde
+local refreshButton: () -> () = function() end
+
+local function sync()
+	local on = held or toggled or auto
 	if wants ~= on then
 		wants = on
+		if on then
+			-- Agachado o tumbado: correr te levanta (si hay sitio encima)
+			pcall(function()
+				require(script.Parent.Stances).standUp()
+			end)
+		end
 		Remote:FireServer("Sprint", on)
+	end
+	refreshButton()
+end
+
+-- (para un ajuste del menú) correr al empujar el joystick hasta el borde
+function Character.setAutoRun(on: boolean)
+	player:SetAttribute("AutoRun", on)
+	if not on and auto then
+		auto = false
+		sync()
 	end
 end
 
-function Character.init()
-	local gui = player:WaitForChild("PlayerGui"):WaitForChild("MainHud")
-	buildVitals(gui)
-	buildLevel(gui)
-	Hud.addButton("⭐ Personaje", rgb(150, 110, 20), 4, openSheet)
+local function controlModule(): any
+	local ok, controls = pcall(function()
+		local module = require(player:WaitForChild("PlayerScripts"):WaitForChild("PlayerModule", 30) :: any)
+		return module:GetControls()
+	end)
+	return if ok then controls else nil
+end
 
-	-- Teclado: mantener Shift. Mando: pulsar el stick izquierdo.
+function Character.init()
+	Hud.setAction("Personaje", openSheet)
+
 	ContextActionService:BindAction("Sprint", function(_, state)
 		if state == Enum.UserInputState.Begin then
-			setSprint(true)
+			held = true
 		elseif state == Enum.UserInputState.End or state == Enum.UserInputState.Cancel then
-			setSprint(false)
+			held = false
+		end
+		sync()
+		return Enum.ContextActionResult.Pass
+	end, false, Enum.KeyCode.LeftShift, Enum.KeyCode.RightShift)
+	ContextActionService:BindAction("SprintPad", function(_, state)
+		if state == Enum.UserInputState.Begin then
+			toggled = not toggled
+			toggledByPad = toggled
+			sync()
 		end
 		return Enum.ContextActionResult.Pass
-	end, false, Enum.KeyCode.LeftShift, Enum.KeyCode.RightShift, Enum.KeyCode.ButtonL3)
+	end, false, Enum.KeyCode.ButtonL3)
 
-	-- Móvil: botón redondo que se enciende y se apaga
-	if UserInputService.TouchEnabled then
-		local button = Theme.button({
-			Name = "SprintButton",
-			AnchorPoint = Vector2.new(1, 1),
-			Size = UDim2.fromOffset(70, 70),
-			Position = UDim2.new(1, -190, 1, -40),
-			Text = "🏃",
-			TextSize = 30,
-			BackgroundTransparency = 0.3,
-			Parent = gui,
-		})
-		local corner = button:FindFirstChildOfClass("UICorner")
-		if corner then
-			corner.CornerRadius = UDim.new(0.5, 0)
+	-- Sin aliento: se apaga lo encendido con botón (Shift se suelta solo)
+	player:GetAttributeChangedSignal("Stamina"):Connect(function()
+		if (toggled or auto) and (player:GetAttribute("Stamina") or 0) <= 0 then
+			toggled, auto = false, false
+			sync()
 		end
-		button.Activated:Connect(function()
-			setSprint(not wants)
-			button.BackgroundColor3 = if wants then rgb(0, 150, 80) else C.PanelLight
-		end)
-		player:GetAttributeChangedSignal("Stamina"):Connect(function()
-			if wants and (player:GetAttribute("Stamina") or 0) <= 0 then
-				setSprint(false)
-				button.BackgroundColor3 = C.PanelLight
+		refreshButton()
+	end)
+	player:GetAttributeChangedSignal("Sprinting"):Connect(function()
+		refreshButton()
+	end)
+	player.CharacterAdded:Connect(function()
+		held, toggled, auto = false, false, false
+		sync()
+	end)
+
+	-- Mando: al pararte un rato se deja de correr (como en casi todos los juegos)
+	local stillFor = 0
+	local controls: any = nil
+	task.spawn(function()
+		controls = controlModule()
+	end)
+	local edgeSince: number? = nil
+	RunService.Heartbeat:Connect(function(dt)
+		local character = player.Character
+		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+		local moving = humanoid ~= nil and humanoid.MoveDirection.Magnitude > 0.1
+		if toggled and toggledByPad then
+			stillFor = if moving then 0 else stillFor + dt
+			if stillFor > 1 then
+				toggled, toggledByPad = false, false
+				sync()
 			end
-		end)
+		end
+		-- Móvil: joystick hasta el borde → corre
+		if not TOUCH or not (controls or Joystick.active()) then
+			return
+		end
+		local push = 0
+		if Joystick.active() then
+			-- Joystick propio (UI del HUD): lo lejos que llevas el pomo
+			push = Joystick.push()
+		else
+			local ok, vector = pcall(function()
+				return controls:GetMoveVector()
+			end)
+			push = if ok and typeof(vector) == "Vector3" then vector.Magnitude else 0
+		end
+		local allowed = player:GetAttribute("AutoRun") ~= false and player:GetAttribute("LifeStage") ~= "Bebe" and player:GetAttribute("Riding") == nil
+		if allowed and push >= 0.97 then
+			edgeSince = edgeSince or os.clock()
+			if not auto and os.clock() - edgeSince > 0.35 and (player:GetAttribute("Stamina") or 100) > 0 then
+				auto = true
+				sync()
+			end
+		else
+			edgeSince = nil
+			if auto and (not allowed or push < 0.75) then
+				auto = false
+				sync()
+			end
+		end
+	end)
+
+	-- Móvil: botón Correr del racimo (enciende y apaga, con la estamina); en el ordenador, en las pistas
+	local function seated(): boolean
+		local character = player.Character
+		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+		return humanoid ~= nil and humanoid.SeatPart ~= nil
+	end
+	TouchLayout.register({
+		Id = "Correr",
+		Icon = "correr",
+		Label = "Correr",
+		Slot = "Correr",
+		Priority = 4.5,
+		Key = "Mayús",
+		Pad = "L3",
+		Visible = function()
+			return player:GetAttribute("LifeStage") ~= "Bebe" and not seated() and not TouchLayout.riding()
+		end,
+		Active = function(): any
+			if player:GetAttribute("Sprinting") == true then
+				return true
+			end
+			return if wants then "wait" else false
+		end,
+		Meter = function(): number?
+			local max = player:GetAttribute("MaxStamina") or Gameplay.Progression.Stamina.Base
+			local ratio = math.clamp((player:GetAttribute("Stamina") or max) / math.max(max, 1), 0, 1)
+			return if ratio < 0.999 or wants then ratio else nil
+		end,
+		Callback = function()
+			toggled = not toggled
+			toggledByPad = false
+			if not toggled then
+				auto = false
+			end
+			sync()
+		end,
+	})
+	refreshButton = function()
+		TouchLayout.refresh()
 	end
 end
 

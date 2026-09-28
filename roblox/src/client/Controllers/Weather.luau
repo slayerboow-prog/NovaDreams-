@@ -3,7 +3,7 @@
 --  * Pétalos en primavera y hojas cayendo en otoño
 --  * Las copas de los árboles, los arbustos y la hierba cambian de color con la estación y la nieve
 --  * El cielo: nubes, luz y color (a través de DayLight.setModifier)
---  * Una etiqueta pequeña con la estación y el tiempo («🍂 Otoño · 🌧️ Lluvia»)
+--  * El tiempo y la temperatura se ven en la cápsula de la hora del HUD (UI/Hud lee workspace)
 -- Todo pasa en el dispositivo de cada jugador: no gasta red ni servidor.
 
 local Players = game:GetService("Players")
@@ -12,6 +12,7 @@ local RunService = game:GetService("RunService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Seasons = require(ReplicatedStorage.Shared.Seasons)
+local Metro = require(ReplicatedStorage.Shared.Metro)
 local DayLight = require(script.Parent.DayLight)
 local Hud = require(script.Parent.Parent.UI.Hud)
 
@@ -29,7 +30,7 @@ local snow: ParticleEmitter
 local falling: ParticleEmitter
 local rainSound: Sound?
 local thunderSound: Sound?
-local label: TextLabel
+local started = false -- (los avisos de cambio de tiempo no salen al entrar al juego)
 
 local season = "Primavera"
 local weather = "Despejado"
@@ -181,7 +182,8 @@ local function updateParticles()
 	-- La "nube" que suelta las partículas va delante y encima de la cámara
 	local ahead = camera.CFrame.LookVector * Vector3.new(1, 0, 1) * 20
 	emitterPart.CFrame = CFrame.new(position + ahead + Vector3.new(0, if info.Snow then 35 else 45, 0))
-	local off = indoor
+	local underground = position.Y < Metro.Underground -- bajando al metro (vestíbulos, escaleras, andenes)
+	local off = indoor or underground
 	rain.Rate = if off then 0 else (info.Rain or 0) * 900
 	rain.Enabled = rain.Rate > 0
 	snow.Rate = if off then 0 else (info.Snow or 0) * 260
@@ -195,7 +197,7 @@ local function updateParticles()
 		falling.Enabled = false
 	end
 	if rainSound then
-		rainSound.Volume = if info.Rain and not off then 0.5 * info.Rain else (if info.Rain then 0.15 else 0)
+		rainSound.Volume = if info.Rain and not off then 0.5 * info.Rain else (if info.Rain and not underground then 0.15 else 0)
 	end
 end
 
@@ -228,35 +230,13 @@ end
 
 ---------------------------------------------------------------------
 
-local function buildLabel()
-	local gui = Instance.new("ScreenGui")
-	gui.Name = "WeatherChip"
-	gui.ResetOnSpawn = false
-	gui.DisplayOrder = 2
-	gui.Parent = player:WaitForChild("PlayerGui")
-	label = Instance.new("TextLabel")
-	label.AnchorPoint = Vector2.new(0.5, 0)
-	label.Position = UDim2.new(0.5, 0, 0, 4)
-	label.Size = UDim2.fromOffset(210, 22)
-	label.BackgroundColor3 = Color3.new(0, 0, 0)
-	label.BackgroundTransparency = 0.55
-	label.TextColor3 = Color3.new(1, 1, 1)
-	label.Font = Enum.Font.GothamMedium
-	label.TextSize = 13
-	label.Text = ""
-	label.Parent = gui
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(1, 0)
-	corner.Parent = label
-end
-
 local function refreshState()
 	local newSeason = workspace:GetAttribute("Season") or "Primavera"
 	local newWeather = workspace:GetAttribute("Weather") or "Despejado"
 	local newSnow = workspace:GetAttribute("Snow") or 0
 	local changed = newSeason ~= season or math.abs(newSnow - snowCover) > 0.04
 	-- Avisos cuando cambia la estación o empieza algo llamativo (no al entrar al juego)
-	if label and label.Text ~= "" then
+	if started then
 		local info = Seasons.Info[newSeason]
 		if newSeason ~= season and info then
 			Hud.toast("Info", ("%s Llega %s"):format(info.Icon, ({ Primavera = "la primavera", Verano = "el verano", Otono = "el otoño", Invierno = "el invierno" })[newSeason] or info.Name))
@@ -270,14 +250,11 @@ local function refreshState()
 		snowCover = newSnow
 		repaint()
 	end
-	if label then
-		label.Text = Seasons.label(season, weather)
-	end
+	started = true
 end
 
 function Weather.init()
 	buildEmitters()
-	buildLabel()
 	local terrain = workspace.Terrain
 	for _, material in { Enum.Material.Grass, Enum.Material.LeafyGrass } do
 		local ok, color = pcall(function()

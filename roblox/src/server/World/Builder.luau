@@ -81,7 +81,7 @@ function Builder.sign(
 	local gui = Instance.new("SurfaceGui")
 	gui.Face = face or Enum.NormalId.Front
 	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-	gui.PixelsPerStud = 40
+	gui.PixelsPerStud = 20 -- suficiente para leerse; a 40 los 500 carteles gastaban mucha memoria
 	gui.LightInfluence = 0
 	gui.Parent = target
 

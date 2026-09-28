@@ -1,0 +1,1824 @@
+-- Prueba: el cliente ARRANCA sin errores FUERA de Roblox, con Lune.
+--
+-- Uso (desde la carpeta roblox/):
+--   lune run scripts/test-clientboot.luau
+--
+-- test-compile.luau ya detecta los errores de escritura. Esta prueba va un paso más allá: carga
+-- src/client/Main.client.luau (que carga e inicia todos los módulos del cliente) en un Roblox de
+-- mentira muy permisivo y deja correr el juego un rato (tiempo simulado, con fotogramas y esperas).
+-- Cualquier error al cargar un módulo, al iniciarlo o en lo que arranca (un require que falla, un
+-- índice nil al cargar, una propiedad que no existe…) sale en la lista y la prueba falla: son los
+-- errores que en el juego dejan al jugador sin interfaz ("el cliente se para y no sale nada").
+-- Después carga también cada módulo de src/client y src/shared que Main no haya cargado.
+--
+-- Se hace dos veces: como en el ordenador (1920x1080, teclado) y como en el móvil (844x390, táctil).
+--
+-- El Roblox de mentira: las instancias tienen Parent/Name/hijos/atributos/etiquetas, FindFirstChild,
+-- WaitForChild (con tiempo de espera; sin él, si no aparece en 5 s, se crea un sustituto y se apunta),
+-- señales que se pueden conectar y esperar, y propiedades con su valor por defecto según la API de
+-- Roblox. Lo que no se conoce devuelve un objeto comodín al que se puede llamar e indexar.
+-- Los errores que salen solo porque el doble no imita algo se arreglan aquí, en la prueba.
+
+local fs = require("@lune/fs")
+local luau = require("@lune/luau")
+local process = require("@lune/process")
+local roblox = require("@lune/roblox")
+local serde = require("@lune/serde")
+
+local db = roblox.getReflectionDatabase()
+local realClock = os.clock
+
+local V3, V2, C3 = roblox.Vector3, roblox.Vector2, roblox.Color3
+local Enum = roblox.Enum
+
+-- CFrame.lookAt de Lune da la vuelta al mirar hacia -Z: aquí, el de Roblox
+local function lookAt(at: any, target: any, up: any?): any
+	local look = target - at
+	if look.Magnitude < 1e-6 then
+		return roblox.CFrame.new(at)
+	end
+	look = look.Unit
+	local right = look:Cross(up or V3.yAxis)
+	if right.Magnitude < 1e-6 then
+		right = look:Cross(V3.zAxis)
+	end
+	right = right.Unit
+	return roblox.CFrame.fromMatrix(at, right, right:Cross(look).Unit, -look)
+end
+local CF = setmetatable({
+	lookAt = lookAt,
+	new = function(...)
+		local a, b = ...
+		if select("#", ...) == 2 and typeof(a) == "Vector3" and typeof(b) == "Vector3" then
+			return lookAt(a, b)
+		end
+		return roblox.CFrame.new(...)
+	end,
+}, { __index = roblox.CFrame })
+
+local SIM_SECONDS = 40 -- tiempo de juego simulado en cada modo
+local FPS = 20
+local REAL_BUDGET = 120 -- segundos reales como mucho en cada modo
+local ROOT = "src"
+
+---------------------------------------------------------------------
+-- La API de Roblox (tipos de las propiedades)
+---------------------------------------------------------------------
+local classCache: { [string]: any } = {}
+local function classOf(name: string): any
+	local c = classCache[name]
+	if c == nil then
+		c = db:GetClass(name) or false
+		classCache[name] = c
+	end
+	return c or nil
+end
+
+local function isA(className: string, other: string): boolean
+	if className == other or other == "Instance" then
+		return true
+	end
+	local class = classOf(className)
+	while class do
+		if class.Name == other then
+			return true
+		end
+		class = class.Superclass and classOf(class.Superclass)
+	end
+	return false
+end
+
+local propTypeCache: { [string]: any } = {}
+local function propType(className: string, name: string): string?
+	local cacheKey = className .. "." .. name
+	local cached = propTypeCache[cacheKey]
+	if cached ~= nil then
+		return cached or nil
+	end
+	local found: string? = nil
+	local class = classOf(className)
+	while class do
+		local p = class.Properties[name]
+		if p then
+			found = tostring(p.Datatype)
+			break
+		end
+		class = class.Superclass and classOf(class.Superclass)
+	end
+	propTypeCache[cacheKey] = found or false
+	return found
+end
+
+---------------------------------------------------------------------
+-- Una arrancada completa (un modo: ordenador o móvil)
+---------------------------------------------------------------------
+local function boot(mode: { Name: string, Viewport: any, Touch: boolean })
+	local now = 0
+	local errors: { { Where: string, Message: string, Trace: string } } = {}
+	local errorSeen: { [string]: boolean } = {}
+	local warnings: { [string]: number } = {}
+	local placeholders: { string } = {}
+	local oddWrites: { [string]: boolean } = {}
+	local loaded: { [string]: boolean } = {}
+
+	local function report(where: string, err: any, thread: thread?)
+		local text = tostring(err)
+		local message, rest = string.match(text, "^([^\n]*)\n(.*)$")
+		message = message or text
+		if errorSeen[message] then
+			return
+		end
+		errorSeen[message] = true
+		local trace = rest or (if thread then debug.traceback(thread) else debug.traceback())
+		table.insert(errors, { Where = where, Message = message, Trace = trace })
+	end
+
+	-----------------------------------------------------------------
+	-- Hilos: task.* con reloj simulado
+	-----------------------------------------------------------------
+	local sleeping: { { Thread: thread, At: number, Args: any, Where: string } } = {}
+	local deferred: { { Thread: thread, Args: any, Where: string } } = {}
+	local cancelled: { [thread]: boolean } = {}
+
+	local function whereOf(fn: any): string
+		if type(fn) ~= "function" then
+			return "hilo"
+		end
+		local source, line = debug.info(fn, "sl")
+		return ("%s:%s"):format(tostring(source):gsub("^.*/src/", ""), tostring(line))
+	end
+
+	local function resume(thread: thread, where: string, ...)
+		if cancelled[thread] or coroutine.status(thread) ~= "suspended" then
+			return
+		end
+		local ok, err = coroutine.resume(thread, ...)
+		if not ok then
+			report(where, err, thread)
+		end
+	end
+
+	local function threadOf(fn: any): thread
+		if type(fn) == "thread" then
+			return fn
+		end
+		assert(type(fn) == "function", "task: se esperaba una función, llegó " .. typeof(fn))
+		return coroutine.create(fn)
+	end
+
+	local fakeTask = {}
+	function fakeTask.spawn(fn: any, ...)
+		local thread = threadOf(fn)
+		resume(thread, whereOf(fn), ...)
+		return thread
+	end
+	function fakeTask.defer(fn: any, ...)
+		local thread = threadOf(fn)
+		table.insert(deferred, { Thread = thread, Args = table.pack(...), Where = whereOf(fn) })
+		return thread
+	end
+	function fakeTask.delay(seconds: number?, fn: any, ...)
+		local thread = threadOf(fn)
+		table.insert(sleeping, { Thread = thread, At = now + (tonumber(seconds) or 0), Args = table.pack(...), Where = whereOf(fn) })
+		return thread
+	end
+	function fakeTask.wait(seconds: number?)
+		local thread = coroutine.running()
+		local start = now
+		table.insert(sleeping, { Thread = thread, At = now + math.max(tonumber(seconds) or 0, 1 / FPS), Args = nil, Where = "task.wait", Start = start } :: any)
+		coroutine.yield()
+		return now - start, now
+	end
+	function fakeTask.cancel(thread: thread)
+		cancelled[thread] = true
+		pcall(coroutine.close, thread)
+	end
+	function fakeTask.synchronize() end
+	function fakeTask.desynchronize() end
+
+	-----------------------------------------------------------------
+	-- Comodín: todo lo que no se conoce
+	-----------------------------------------------------------------
+	local mockMeta = {}
+	local function U(label: string): any
+		return setmetatable({ __mock = label }, mockMeta)
+	end
+	local function connection(): any
+		local c = { __conn = true, Connected = true }
+		function c.Disconnect(self)
+			c.Connected = false
+		end
+		return c
+	end
+	mockMeta.__index = function(self, key)
+		if key == "Connect" or key == "Once" or key == "ConnectParallel" then
+			return function()
+				return connection()
+			end
+		elseif key == "Wait" then
+			return function()
+				coroutine.yield() -- nunca llega
+			end
+		elseif key == "Disconnect" or key == "Destroy" then
+			return function() end
+		end
+		local child = U(rawget(self, "__mock") .. "." .. tostring(key))
+		rawset(self, key, child)
+		return child
+	end
+	mockMeta.__call = function(self)
+		return U(rawget(self, "__mock") .. "()")
+	end
+	for _, op in { "__add", "__sub", "__mul", "__div", "__mod", "__pow", "__idiv" } do
+		mockMeta[op] = function()
+			return U("op")
+		end
+	end
+	mockMeta.__unm = function()
+		return U("op")
+	end
+	mockMeta.__len = function()
+		return 0
+	end
+	mockMeta.__lt = function()
+		return false
+	end
+	mockMeta.__le = function()
+		return false
+	end
+	mockMeta.__concat = function(a, b)
+		return tostring(a) .. tostring(b)
+	end
+	mockMeta.__tostring = function(self)
+		return "<" .. rawget(self, "__mock") .. ">"
+	end
+	mockMeta.__iter = function()
+		return next, {}
+	end
+
+	-----------------------------------------------------------------
+	-- Señales
+	-----------------------------------------------------------------
+	local signalMeta = {}
+	signalMeta.__call = function(self)
+		return U("llamada a " .. rawget(self, "__name"))
+	end
+	local function Signal(name: string): any
+		local s = setmetatable({ __signal = true, __name = name, Handlers = {}, Waiting = {} }, signalMeta)
+		function s.Connect(self2, fn)
+			local c = connection()
+			table.insert(s.Handlers, { Fn = fn, Conn = c })
+			return c
+		end
+		s.ConnectParallel = s.Connect
+		function s.Once(self2, fn)
+			local c
+			c = s:Connect(function(...)
+				c:Disconnect()
+				fn(...)
+			end)
+			return c
+		end
+		function s.Wait()
+			table.insert(s.Waiting, coroutine.running())
+			return coroutine.yield()
+		end
+		function s.Fire(self2, ...)
+			for _, h in table.clone(s.Handlers) do
+				if h.Conn.Connected then
+					fakeTask.spawn(h.Fn, ...)
+				end
+			end
+			local waiting = s.Waiting
+			s.Waiting = {}
+			for _, thread in waiting do
+				resume(thread, "Wait de " .. name, ...)
+			end
+		end
+		return s
+	end
+
+	-----------------------------------------------------------------
+	-- Instancias
+	-----------------------------------------------------------------
+	local instanceMeta = {}
+	local tagged: { [string]: { [any]: boolean } } = {}
+	local tagSignals: { [string]: { Added: any, Removed: any } } = {}
+
+	local function tagSignal(tag: string)
+		tagSignals[tag] = tagSignals[tag] or { Added = Signal("TagAdded " .. tag), Removed = Signal("TagRemoved " .. tag) }
+		return tagSignals[tag]
+	end
+
+	local SPECIAL: { [string]: any } = {
+		Visible = true, Enabled = true, Archivable = true, CanCollide = true, CanQuery = true, CanTouch = true,
+		AutoJumpEnabled = true, Health = 100, MaxHealth = 100, WalkSpeed = 16, JumpPower = 50, JumpHeight = 7.2,
+		HipHeight = 2, Volume = 0.5, TextSize = 14, PlaybackSpeed = 1, FieldOfView = 70, Scale = 1,
+		MaxVisibleGraphemes = -1, Brightness = 1, Gravity = 196.2, ClockTime = 14, Speed = 1, Length = 1,
+		MaxDistance = 100, RollOffMaxDistance = 100, LineHeight = 1, Density = 0.3, Range = 8, ZIndex = 1,
+		WeightCurrent = 1, WeightTarget = 1, Thickness = 1, TimeLength = 1, MaxSlopeAngle = 89,
+	}
+	local function defaultFor(className: string, key: string, dt: string): any
+		local special = SPECIAL[key]
+		if dt == "Bool" then
+			return if type(special) == "boolean" then special else false
+		elseif dt == "Float32" or dt == "Float64" or dt == "Int32" or dt == "Int64" then
+			return if type(special) == "number" then special else 0
+		elseif dt == "String" or dt == "Content" or dt == "ContentId" or dt == "BinaryString" then
+			return if key == "Name" then className else ""
+		elseif dt == "Vector3" then
+			if key == "Size" then
+				return V3.new(4, 1.2, 2)
+			end
+			return V3.zero
+		elseif dt == "Vector2" then
+			if key == "ViewportSize" or key == "AbsoluteWindowSize" then
+				return mode.Viewport
+			elseif key == "AbsoluteSize" then
+				return V2.new(200, 50)
+			elseif key == "TextBounds" then
+				return V2.new(80, 18)
+			end
+			return V2.zero
+		elseif dt == "CFrame" or dt == "OptionalCFrame" then
+			return CF.new()
+		elseif dt == "Color3" or dt == "Color3uint8" then
+			return C3.new(0.6, 0.6, 0.6)
+		elseif dt == "UDim2" then
+			return roblox.UDim2.new()
+		elseif dt == "UDim" then
+			return roblox.UDim.new()
+		elseif dt == "Font" then
+			return roblox.Font.fromEnum(Enum.Font.SourceSans)
+		elseif dt == "Rect" then
+			return roblox.Rect.new(0, 0, 0, 0)
+		elseif dt == "NumberRange" then
+			return roblox.NumberRange.new(0, 0)
+		elseif dt == "NumberSequence" then
+			return roblox.NumberSequence.new(0)
+		elseif dt == "ColorSequence" then
+			return roblox.ColorSequence.new(C3.new(1, 1, 1))
+		elseif dt == "BrickColor" then
+			return roblox.BrickColor.new("Medium stone grey")
+		elseif string.sub(dt, 1, 5) == "Enum." then
+			local enumName = string.sub(dt, 6)
+			local preferred = ({ CameraType = "Custom", HumanoidRigType = "R15", Material = "Plastic", Font = "SourceSans", HumanoidStateType = "Running" })[enumName]
+			local ok, item = pcall(function()
+				local e = (Enum :: any)[enumName]
+				return if preferred then e[preferred] else e:GetEnumItems()[1]
+			end)
+			return if ok then item else nil
+		end
+		return nil
+	end
+
+	local function new(className: string, name: string?): any
+		local o = setmetatable({
+			__class = className,
+			__props = { Name = name or className },
+			__children = {},
+			__attrs = {},
+			__signals = {},
+			__attrSignals = {},
+			__propSignals = {},
+			__tags = {},
+		}, instanceMeta)
+		return o
+	end
+
+	local function signalOf(o: any, key: string): any
+		local signals = rawget(o, "__signals")
+		signals[key] = signals[key] or Signal(tostring(rawget(o, "__props").Name) .. "." .. key)
+		return signals[key]
+	end
+	local function fireIf(o: any, key: string, ...)
+		local s = rawget(o, "__signals")[key]
+		if s then
+			s:Fire(...)
+		end
+	end
+
+	local methods: { [string]: any } = {}
+	function methods:GetChildren()
+		return table.clone(rawget(self, "__children"))
+	end
+	function methods:GetDescendants()
+		local out = {}
+		local function walk(object)
+			for _, child in rawget(object, "__children") do
+				table.insert(out, child)
+				walk(child)
+			end
+		end
+		walk(self)
+		return out
+	end
+	function methods:FindFirstChild(name, recursive)
+		for _, child in rawget(self, "__children") do
+			if rawget(child, "__props").Name == name then
+				return child
+			end
+		end
+		if recursive then
+			for _, child in rawget(self, "__children") do
+				local found = child:FindFirstChild(name, true)
+				if found then
+					return found
+				end
+			end
+		end
+		return nil
+	end
+	function methods:FindFirstChildOfClass(className)
+		for _, child in rawget(self, "__children") do
+			if rawget(child, "__class") == className then
+				return child
+			end
+		end
+		return nil
+	end
+	function methods:FindFirstChildWhichIsA(className, recursive)
+		for _, child in rawget(self, "__children") do
+			if isA(rawget(child, "__class"), className) then
+				return child
+			end
+		end
+		if recursive then
+			for _, child in rawget(self, "__children") do
+				local found = child:FindFirstChildWhichIsA(className, true)
+				if found then
+					return found
+				end
+			end
+		end
+		return nil
+	end
+	function methods:FindFirstDescendant(name)
+		return self:FindFirstChild(name, true)
+	end
+	function methods:FindFirstAncestor(name)
+		local p = self.Parent
+		while p do
+			if p.Name == name then
+				return p
+			end
+			p = p.Parent
+		end
+		return nil
+	end
+	function methods:FindFirstAncestorOfClass(className)
+		local p = self.Parent
+		while p do
+			if rawget(p, "__class") == className then
+				return p
+			end
+			p = p.Parent
+		end
+		return nil
+	end
+	function methods:FindFirstAncestorWhichIsA(className)
+		local p = self.Parent
+		while p do
+			if rawget(p, "__class") and isA(rawget(p, "__class"), className) then
+				return p
+			end
+			p = p.Parent
+		end
+		return nil
+	end
+	local function guessClass(name: string, parent: any): string
+		if parent and rawget(parent, "__props").Name == "Remotes" then
+			return "RemoteEvent"
+		end
+		return ({
+			Humanoid = "Humanoid", HumanoidRootPart = "Part", Head = "Part", UpperTorso = "Part", Torso = "Part",
+			Animator = "Animator", PlayerModule = "ModuleScript", PlayerGui = "PlayerGui", PlayerScripts = "PlayerScripts",
+		})[name] or "Folder"
+	end
+	function methods:WaitForChild(name, timeout)
+		local found = self:FindFirstChild(name)
+		if found then
+			return found
+		end
+		local limit = if timeout then tonumber(timeout) or 0 else 5
+		local waited = 0
+		while waited < limit do
+			waited += fakeTask.wait(0.1)
+			found = self:FindFirstChild(name)
+			if found then
+				return found
+			end
+		end
+		if timeout then
+			return nil
+		end
+		-- En Roblox se quedaría esperando para siempre: aquí aparece un sustituto (y se apunta)
+		table.insert(placeholders, ("%s:WaitForChild(%q)"):format(self:GetFullName(), tostring(name)))
+		local child = new(guessClass(name, self), name)
+		child.Parent = self
+		return child
+	end
+	function methods:IsA(className)
+		return isA(rawget(self, "__class"), className)
+	end
+	function methods:IsDescendantOf(other)
+		local p = self.Parent
+		while p do
+			if p == other then
+				return true
+			end
+			p = p.Parent
+		end
+		return false
+	end
+	function methods:IsAncestorOf(other)
+		return other ~= nil and other:IsDescendantOf(self)
+	end
+	function methods:Destroy()
+		if rawget(self, "__destroyed") then
+			return
+		end
+		fireIf(self, "Destroying")
+		for _, child in table.clone(rawget(self, "__children")) do
+			child:Destroy()
+		end
+		self.Parent = nil
+		rawset(self, "__destroyed", true)
+	end
+	function methods:ClearAllChildren()
+		for _, child in table.clone(rawget(self, "__children")) do
+			child:Destroy()
+		end
+	end
+	function methods:Clone()
+		local copy = new(rawget(self, "__class"))
+		for k, v in rawget(self, "__props") do
+			if k ~= "Parent" then
+				rawget(copy, "__props")[k] = v
+			end
+		end
+		for k, v in rawget(self, "__attrs") do
+			rawget(copy, "__attrs")[k] = v
+		end
+		for tag in rawget(self, "__tags") do
+			copy:AddTag(tag)
+		end
+		for _, child in rawget(self, "__children") do
+			child:Clone().Parent = copy
+		end
+		return copy
+	end
+	function methods:GetAttribute(name)
+		return rawget(self, "__attrs")[name]
+	end
+	function methods:GetAttributes()
+		return table.clone(rawget(self, "__attrs"))
+	end
+	function methods:SetAttribute(name, value)
+		local attrs = rawget(self, "__attrs")
+		if attrs[name] == value then
+			return
+		end
+		attrs[name] = value
+		local s = rawget(self, "__attrSignals")[name]
+		if s then
+			s:Fire()
+		end
+		fireIf(self, "AttributeChanged", name)
+	end
+	function methods:GetAttributeChangedSignal(name)
+		local signals = rawget(self, "__attrSignals")
+		signals[name] = signals[name] or Signal("Atributo " .. tostring(name))
+		return signals[name]
+	end
+	function methods:GetPropertyChangedSignal(name)
+		local signals = rawget(self, "__propSignals")
+		signals[name] = signals[name] or Signal("Propiedad " .. tostring(name))
+		return signals[name]
+	end
+	function methods:HasTag(tag)
+		return rawget(self, "__tags")[tag] == true
+	end
+	function methods:AddTag(tag)
+		if not rawget(self, "__tags")[tag] then
+			rawget(self, "__tags")[tag] = true
+			tagged[tag] = tagged[tag] or {}
+			tagged[tag][self] = true
+			tagSignal(tag).Added:Fire(self)
+		end
+	end
+	function methods:RemoveTag(tag)
+		if rawget(self, "__tags")[tag] then
+			rawget(self, "__tags")[tag] = nil
+			if tagged[tag] then
+				tagged[tag][self] = nil
+			end
+			tagSignal(tag).Removed:Fire(self)
+		end
+	end
+	function methods:GetTags()
+		local out = {}
+		for tag in rawget(self, "__tags") do
+			table.insert(out, tag)
+		end
+		return out
+	end
+	function methods:GetFullName()
+		local names = {}
+		local o = self
+		while o and rawget(o, "__class") ~= "DataModel" do
+			table.insert(names, 1, tostring(rawget(o, "__props").Name))
+			o = rawget(o, "__props").Parent
+		end
+		return table.concat(names, ".")
+	end
+	function methods:GetDebugId()
+		return tostring(self)
+	end
+	local function partCFrame(o: any): any
+		local props = rawget(o, "__props")
+		return props.CFrame or CF.new()
+	end
+	function methods:GetPivot()
+		if isA(rawget(self, "__class"), "BasePart") then
+			return partCFrame(self)
+		end
+		local primary = rawget(self, "__props").PrimaryPart
+		if primary then
+			return partCFrame(primary)
+		end
+		local part = self:FindFirstChildWhichIsA("BasePart", true)
+		return if part then partCFrame(part) else CF.new()
+	end
+	function methods:PivotTo(cf)
+		if isA(rawget(self, "__class"), "BasePart") then
+			self.CFrame = cf
+			return
+		end
+		local pivot = self:GetPivot()
+		for _, d in self:GetDescendants() do
+			if isA(rawget(d, "__class"), "BasePart") then
+				d.CFrame = cf * pivot:ToObjectSpace(partCFrame(d))
+			end
+		end
+	end
+	function methods:GetBoundingBox()
+		return self:GetPivot(), V3.new(4, 5, 2)
+	end
+	function methods:GetExtentsSize()
+		return V3.new(4, 5, 2)
+	end
+	function methods:GetMass()
+		return 10
+	end
+	function methods:GetConnectedParts()
+		return { self }
+	end
+	function methods:GetTouchingParts()
+		return {}
+	end
+	function methods:GetScale()
+		return 1
+	end
+	function methods:ScaleTo() end
+	function methods:SetNetworkOwner() end
+	function methods:ApplyImpulse() end
+	function methods:FireServer() end
+	function methods:InvokeServer()
+		return nil
+	end
+	function methods:Play()
+		fireIf(self, "Played")
+	end
+	function methods:Stop()
+		fireIf(self, "Stopped")
+	end
+	function methods:Pause() end
+	function methods:Resume() end
+
+	instanceMeta.__index = function(self, key)
+		local m = methods[key]
+		if m then
+			return m
+		end
+		local props = rawget(self, "__props")
+		local v = props[key]
+		if v ~= nil then
+			return v
+		end
+		local className = rawget(self, "__class")
+		if key == "ClassName" then
+			return className
+		elseif key == "Parent" then
+			return nil
+		elseif key == "Position" and isA(className, "BasePart") then
+			return partCFrame(self).Position
+		elseif key == "Orientation" and isA(className, "BasePart") then
+			local rx, ry, rz = partCFrame(self):ToOrientation()
+			return V3.new(math.deg(rx), math.deg(ry), math.deg(rz))
+		elseif key == "AssemblyLinearVelocity" or key == "AssemblyAngularVelocity" then
+			return V3.zero
+		end
+		local dt = if type(key) == "string" then propType(className, key) else nil
+		if dt == nil and type(key) == "string" then
+			-- Un hijo por su nombre (gui.Status)
+			for _, child in rawget(self, "__children") do
+				if rawget(child, "__props").Name == key then
+					return child
+				end
+			end
+		end
+		if dt then
+			local value = defaultFor(className, key, dt)
+			if value ~= nil then
+				props[key] = value
+			end
+			return value
+		end
+		-- Evento o método que no conoce el doble: se puede conectar y llamar
+		return signalOf(self, tostring(key))
+	end
+	instanceMeta.__newindex = function(self, key, value)
+		local props = rawget(self, "__props")
+		local className = rawget(self, "__class")
+		if key == "Parent" then
+			if rawget(self, "__destroyed") and value ~= nil then
+				error(("The Parent property of %s is locked, current parent: NULL, new parent %s"):format(tostring(props.Name), tostring(value)), 2)
+			end
+			if value ~= nil and (type(value) ~= "table" or rawget(value, "__children") == nil) then
+				error(("Parent: se esperaba una instancia, llegó %s"):format(typeof(value)), 2)
+			end
+			local old = props.Parent
+			if old == value then
+				return
+			end
+			if old then
+				local list = rawget(old, "__children")
+				local i = table.find(list, self)
+				if i then
+					table.remove(list, i)
+				end
+				fireIf(old, "ChildRemoved", self)
+			end
+			props.Parent = value
+			if value then
+				table.insert(rawget(value, "__children"), self)
+				fireIf(value, "ChildAdded", self)
+				local p = value
+				while p do
+					fireIf(p, "DescendantAdded", self)
+					p = rawget(p, "__props").Parent
+				end
+			end
+			fireIf(self, "AncestryChanged", self, value)
+		elseif key == "Position" and isA(className, "BasePart") and typeof(value) == "Vector3" then
+			props.CFrame = partCFrame(self).Rotation + value
+		else
+			if type(key) == "string" and key ~= "Name" and propType(className, key) == nil and classOf(className) then
+				oddWrites[className .. "." .. key] = true
+			end
+			props[key] = value
+		end
+		local s = rawget(self, "__propSignals")[key]
+		if s then
+			s:Fire()
+		end
+		fireIf(self, "Changed", key)
+	end
+	instanceMeta.__tostring = function(self)
+		return tostring(rawget(self, "__props").Name)
+	end
+
+	local InstanceLib = {}
+	function InstanceLib.new(className: string, parent: any?)
+		if type(className) ~= "string" or not classOf(className) then
+			error(("Unable to create an Instance of type %q"):format(tostring(className)), 2)
+		end
+		local o = new(className)
+		if parent then
+			o.Parent = parent
+		end
+		return o
+	end
+	function InstanceLib.fromExisting(other: any)
+		return other:Clone()
+	end
+
+	-- Pistas de animación
+	local function track(): any
+		local t = new("AnimationTrack")
+		local props = rawget(t, "__props")
+		props.Length, props.Speed, props.IsPlaying, props.TimePosition, props.Looped = 1, 1, false, 0, false
+		rawset(t, "Play", function(self)
+			props.IsPlaying = true
+		end)
+		rawset(t, "Stop", function(self)
+			props.IsPlaying = false
+			fireIf(self, "Stopped")
+		end)
+		for _, name in { "AdjustSpeed", "AdjustWeight" } do
+			rawset(t, name, function() end)
+		end
+		rawset(t, "GetMarkerReachedSignal", function(self, name)
+			return signalOf(self, "Marker " .. tostring(name))
+		end)
+		rawset(t, "GetTimeOfKeyframe", function()
+			return 0
+		end)
+		return t
+	end
+	methods.LoadAnimation = function()
+		return track()
+	end
+	methods.GetPlayingAnimationTracks = function()
+		return {}
+	end
+
+	-----------------------------------------------------------------
+	-- El juego: servicios
+	-----------------------------------------------------------------
+	local game = new("DataModel", "Game")
+	local services: { [string]: any } = {}
+	local function service(name: string): any
+		local s = services[name]
+		if not s then
+			s = new(if classOf(name) then name else "Folder", name)
+			rawget(s, "__props").Parent = nil
+			table.insert(rawget(game, "__children"), s)
+			rawget(s, "__props").Parent = game
+			services[name] = s
+		end
+		return s
+	end
+	rawset(game, "GetService", function(_, name)
+		return service(name)
+	end)
+	rawset(game, "FindService", function(_, name)
+		return services[name]
+	end)
+	rawset(game, "IsLoaded", function()
+		return true
+	end)
+	rawset(game, "BindToClose", function() end)
+	rawget(game, "__props").PlaceId = 0
+	rawget(game, "__props").GameId = 0
+	rawget(game, "__props").JobId = "prueba"
+	rawget(game, "__props").CreatorId = 0
+	rawget(game, "__props").PlaceVersion = 1
+
+	local function fn(object: any, name: string, f: any)
+		rawset(object, name, f)
+	end
+
+	-- Workspace y cámara
+	local workspace = service("Workspace")
+	rawget(game, "__props").Workspace = workspace
+	local camera = new("Camera", "Camera")
+	camera.CFrame = CF.lookAt(V3.new(0, 12, 24), V3.new(0, 3, 0))
+	camera.Parent = workspace
+	rawget(workspace, "__props").CurrentCamera = camera
+	local function project(point: any): (any, boolean)
+		local cf = camera.CFrame
+		local rel = cf:PointToObjectSpace(point)
+		local vp = mode.Viewport
+		local depth = -rel.Z
+		if depth <= 0.01 then
+			return V3.new(vp.X / 2, vp.Y / 2, depth), false
+		end
+		local f = (vp.Y / 2) / math.tan(math.rad(camera.FieldOfView) / 2)
+		local x = vp.X / 2 + rel.X / depth * f
+		local y = vp.Y / 2 - rel.Y / depth * f
+		return V3.new(x, y, depth), x >= 0 and x <= vp.X and y >= 0 and y <= vp.Y
+	end
+	fn(camera, "WorldToViewportPoint", function(_, p)
+		return project(p)
+	end)
+	fn(camera, "WorldToScreenPoint", function(_, p)
+		return project(p)
+	end)
+	fn(camera, "ViewportPointToRay", function()
+		return roblox.Ray.new(camera.CFrame.Position, camera.CFrame.LookVector)
+	end)
+	fn(camera, "ScreenPointToRay", function()
+		return roblox.Ray.new(camera.CFrame.Position, camera.CFrame.LookVector)
+	end)
+	fn(camera, "GetPartsObscuringTarget", function()
+		return {}
+	end)
+	local terrain = new("Terrain", "Terrain")
+	terrain.Parent = workspace
+	rawget(workspace, "__props").Terrain = terrain
+	fn(workspace, "Raycast", function()
+		return nil
+	end)
+	for _, name in { "GetPartBoundsInRadius", "GetPartBoundsInBox", "GetPartsInPart" } do
+		fn(workspace, name, function()
+			return {}
+		end)
+	end
+	for _, name in { "Blockcast", "Spherecast", "Shapecast" } do
+		fn(workspace, name, function()
+			return nil
+		end)
+	end
+	fn(workspace, "GetServerTimeNow", function()
+		return 1.7e9 + now
+	end)
+	fn(workspace, "GetRealPhysicsFPS", function()
+		return 60
+	end)
+	rawget(workspace, "__props").Gravity = 196.2
+	rawget(workspace, "__props").DistributedGameTime = 0
+
+	-- Players y tú
+	local players = service("Players")
+	local localPlayer = new("Player", "Rayo")
+	local lp = rawget(localPlayer, "__props")
+	lp.DisplayName, lp.UserId, lp.AccountAge = "Rayo", 1, 100
+	localPlayer.Parent = players
+	rawget(players, "__props").LocalPlayer = localPlayer
+	local playerGui = new("PlayerGui", "PlayerGui")
+	playerGui.Parent = localPlayer
+	local playerScripts = new("PlayerScripts", "PlayerScripts")
+	playerScripts.Parent = localPlayer
+	new("Backpack", "Backpack").Parent = localPlayer
+	local mouse = new("Mouse", "Mouse")
+	rawget(mouse, "__props").Hit = CF.new()
+	rawget(mouse, "__props").X = 400
+	rawget(mouse, "__props").Y = 300
+	fn(localPlayer, "GetMouse", function()
+		return mouse
+	end)
+	fn(localPlayer, "GetNetworkPing", function()
+		return 0.05
+	end)
+	fn(localPlayer, "GetRankInGroup", function()
+		return 0
+	end)
+	fn(localPlayer, "IsInGroup", function()
+		return false
+	end)
+	fn(localPlayer, "HasAppearanceLoaded", function()
+		return true
+	end)
+	fn(players, "GetPlayers", function()
+		return { localPlayer }
+	end)
+	fn(players, "GetPlayerFromCharacter", function(_, model)
+		return if model ~= nil and model == localPlayer.Character then localPlayer else nil
+	end)
+	fn(players, "GetPlayerByUserId", function(_, id)
+		return if id == 1 then localPlayer else nil
+	end)
+	fn(players, "GetUserThumbnailAsync", function()
+		return "rbxthumb://type=AvatarHeadShot&id=1&w=150&h=150", true
+	end)
+	fn(players, "GetNameFromUserIdAsync", function()
+		return "Rayo"
+	end)
+
+	-- Servicios con algo de comportamiento
+	local runService = service("RunService")
+	for name, value in { IsClient = true, IsServer = false, IsStudio = false, IsRunning = true, IsRunMode = false, IsEdit = false } do
+		fn(runService, name, function()
+			return value
+		end)
+	end
+	local renderSteps: { [string]: any } = {}
+	fn(runService, "BindToRenderStep", function(_, name, _, f)
+		renderSteps[name] = f
+	end)
+	fn(runService, "UnbindFromRenderStep", function(_, name)
+		renderSteps[name] = nil
+	end)
+
+	local uis = service("UserInputService")
+	local up = rawget(uis, "__props")
+	up.TouchEnabled, up.KeyboardEnabled, up.MouseEnabled = mode.Touch, not mode.Touch, not mode.Touch
+	up.GamepadEnabled, up.AccelerometerEnabled, up.GyroscopeEnabled, up.VREnabled = false, false, false, false
+	for name, value in {
+		GetFocusedTextBox = nil, IsKeyDown = false, IsMouseButtonPressed = false, GetGamepadConnected = false,
+		IsGamepadButtonDown = false, GetStringForKeyCode = "E", GetImageForKeyCode = "",
+	} :: { [string]: any } do
+		fn(uis, name, function()
+			return value
+		end)
+	end
+	fn(uis, "GetFocusedTextBox", function()
+		return nil
+	end)
+	for _, name in { "GetConnectedGamepads", "GetNavigationGamepads", "GetKeysPressed", "GetMouseButtonsPressed", "GetSupportedGamepadKeyCodes", "GetGamepadState" } do
+		fn(uis, name, function()
+			return {}
+		end)
+	end
+	fn(uis, "GetLastInputType", function()
+		return if mode.Touch then Enum.UserInputType.Touch else Enum.UserInputType.Keyboard
+	end)
+	fn(uis, "GetMouseLocation", function()
+		return V2.new(400, 300)
+	end)
+	fn(uis, "GetMouseDelta", function()
+		return V2.zero
+	end)
+
+	local tweenService = service("TweenService")
+	fn(tweenService, "Create", function(_, object, info, goals)
+		local tween = new("Tween", "Tween")
+		rawget(tween, "__props").PlaybackState = Enum.PlaybackState.Begin
+		fn(tween, "Play", function(self)
+			for key, value in goals do
+				object[key] = value
+			end
+			rawget(tween, "__props").PlaybackState = Enum.PlaybackState.Completed
+			local completed = signalOf(tween, "Completed")
+			fakeTask.delay(if type(info) == "table" then info.Time or 0 else 0, function()
+				completed:Fire(Enum.PlaybackState.Completed)
+			end)
+		end)
+		fn(tween, "Cancel", function() end)
+		fn(tween, "Pause", function() end)
+		return tween
+	end)
+	fn(tweenService, "GetValue", function(_, alpha)
+		return alpha
+	end)
+
+	local cas = service("ContextActionService")
+	for _, name in { "BindAction", "BindActionAtPriority", "UnbindAction", "SetTitle", "SetImage", "SetPosition", "SetDescription", "BindActivate", "UnbindActivate", "UnbindAllActions" } do
+		fn(cas, name, function() end)
+	end
+	fn(cas, "GetButton", function()
+		return nil
+	end)
+	fn(cas, "GetAllBoundActionInfo", function()
+		return {}
+	end)
+	fn(cas, "GetBoundActionInfo", function()
+		return {}
+	end)
+
+	local collection = service("CollectionService")
+	fn(collection, "GetTagged", function(_, tag)
+		local out = {}
+		for o in tagged[tag] or {} do
+			table.insert(out, o)
+		end
+		return out
+	end)
+	fn(collection, "GetInstanceAddedSignal", function(_, tag)
+		return tagSignal(tag).Added
+	end)
+	fn(collection, "GetInstanceRemovedSignal", function(_, tag)
+		return tagSignal(tag).Removed
+	end)
+	fn(collection, "HasTag", function(_, o, tag)
+		return o:HasTag(tag)
+	end)
+	fn(collection, "AddTag", function(_, o, tag)
+		o:AddTag(tag)
+	end)
+	fn(collection, "RemoveTag", function(_, o, tag)
+		o:RemoveTag(tag)
+	end)
+	fn(collection, "GetTags", function(_, o)
+		return o:GetTags()
+	end)
+	fn(collection, "GetAllTags", function()
+		local out = {}
+		for tag in tagged do
+			table.insert(out, tag)
+		end
+		return out
+	end)
+
+	local guiService = service("GuiService")
+	fn(guiService, "GetGuiInset", function()
+		return V2.new(0, 58), V2.new(0, 0)
+	end)
+	rawget(guiService, "__props").TopbarInset = roblox.Rect.new(0, 0, mode.Viewport.X - 120, 58)
+	fn(guiService, "IsTenFootInterface", function()
+		return false
+	end)
+
+	local textService = service("TextService")
+	fn(textService, "GetTextSize", function(_, text, size, _, frame)
+		local s = tonumber(size) or 14
+		local width = #tostring(text) * s * 0.5
+		local maxW = if typeof(frame) == "Vector2" then frame.X else math.huge
+		local lines = math.max(1, math.ceil(width / math.max(1, maxW)))
+		return V2.new(math.min(width, maxW), lines * s)
+	end)
+
+	local starterGui = service("StarterGui")
+	fn(starterGui, "SetCore", function() end)
+	fn(starterGui, "SetCoreGuiEnabled", function() end)
+	fn(starterGui, "GetCore", function()
+		return nil
+	end)
+	fn(starterGui, "GetCoreGuiEnabled", function()
+		return true
+	end)
+
+	local lighting = service("Lighting")
+	rawget(lighting, "__props").ClockTime = 14
+	fn(lighting, "GetMinutesAfterMidnight", function()
+		return lighting.ClockTime * 60
+	end)
+	fn(lighting, "SetMinutesAfterMidnight", function(_, m)
+		lighting.ClockTime = m / 60
+	end)
+	fn(lighting, "GetSunDirection", function()
+		return V3.new(0.3, 0.9, 0.2).Unit
+	end)
+	fn(lighting, "GetMoonDirection", function()
+		return V3.new(-0.3, 0.9, -0.2).Unit
+	end)
+	for _, className in { "Atmosphere", "Sky", "BloomEffect", "SunRaysEffect", "ColorCorrectionEffect" } do
+		local name = ({ BloomEffect = "Bloom", SunRaysEffect = "SunRays", ColorCorrectionEffect = "ColorCorrection" })[className] or className
+		new(className, name).Parent = lighting
+	end
+
+	local http = service("HttpService")
+	fn(http, "JSONEncode", function(_, v)
+		return serde.encode("json", v)
+	end)
+	fn(http, "JSONDecode", function(_, s)
+		return serde.decode("json", s)
+	end)
+	local guid = 0
+	fn(http, "GenerateGUID", function()
+		guid += 1
+		return "guid-" .. guid
+	end)
+	fn(http, "UrlEncode", function(_, s)
+		return s
+	end)
+
+	local market = service("MarketplaceService")
+	fn(market, "UserOwnsGamePassAsync", function()
+		return false
+	end)
+	fn(market, "GetProductInfo", function()
+		return { Name = "", PriceInRobux = 0, Description = "" }
+	end)
+	local debris = service("Debris")
+	fn(debris, "AddItem", function(_, o, t)
+		fakeTask.delay(t or 10, function()
+			o:Destroy()
+		end)
+	end)
+	local contentProvider = service("ContentProvider")
+	fn(contentProvider, "PreloadAsync", function() end)
+	local pathfinding = service("PathfindingService")
+	fn(pathfinding, "CreatePath", function()
+		local path = new("Path", "Path")
+		rawget(path, "__props").Status = Enum.PathStatus.NoPath
+		fn(path, "ComputeAsync", function() end)
+		fn(path, "GetWaypoints", function()
+			return {}
+		end)
+		return path
+	end)
+	local policy = service("PolicyService")
+	fn(policy, "GetPolicyInfoForPlayerAsync", function()
+		return { IsPaidItemTradingAllowed = true, ArePaidRandomItemsRestricted = false, AllowedExternalLinkReferences = {}, IsSubjectToChinaPolicies = false }
+	end)
+	local soundService = service("SoundService")
+	fn(soundService, "PlayLocalSound", function() end)
+	local haptics = service("HapticService")
+	fn(haptics, "IsVibrationSupported", function()
+		return false
+	end)
+	fn(haptics, "IsMotorSupported", function()
+		return false
+	end)
+
+	-----------------------------------------------------------------
+	-- ReplicatedStorage (Shared = src/shared, Remotes del proyecto) y el cliente
+	-----------------------------------------------------------------
+	local replicated = service("ReplicatedStorage")
+	local function mount(dir: string, parent: any, name: string)
+		local folder = new("Folder", name)
+		folder.Parent = parent
+		for _, entry in fs.readDir(dir) do
+			local path = dir .. "/" .. entry
+			if fs.isDir(path) then
+				mount(path, folder, entry)
+			elseif string.match(entry, "%.luau$") then
+				local base = string.gsub(entry, "%.luau$", "")
+				local className = "ModuleScript"
+				if string.match(base, "%.client$") then
+					base = string.gsub(base, "%.client$", "")
+					className = "LocalScript"
+				elseif string.match(base, "%.server$") then
+					base = string.gsub(base, "%.server$", "")
+					className = "Script"
+				end
+				local s = new(className, base)
+				rawset(s, "__file", path)
+				rawset(s, "__source", fs.readFile(path)) -- ahora: fs de Lune no se puede usar dentro de los hilos simulados
+				s.Parent = folder
+			end
+		end
+		return folder
+	end
+	mount(ROOT .. "/shared", replicated, "Shared")
+	local remotes = new("Folder", "Remotes")
+	remotes.Parent = replicated
+	local project = serde.decode("json", fs.readFile("default.project.json"))
+	for name, spec in project.tree.ReplicatedStorage.Remotes do
+		if type(spec) == "table" and spec["$className"] then
+			new(spec["$className"], name).Parent = remotes
+		end
+	end
+	new("Folder", "Musica").Parent = replicated
+	local client = mount(ROOT .. "/client", playerScripts, "Client")
+	-- El PlayerModule de Roblox (controles y cámara)
+	local playerModule = new("ModuleScript", "PlayerModule")
+	local controls = { Enable = function() end, Disable = function() end, GetMoveVector = function()
+		return V3.zero
+	end }
+	rawset(playerModule, "__value", {
+		GetControls = function()
+			return controls
+		end,
+		GetCameras = function()
+			return U("Cameras")
+		end,
+	})
+	playerModule.Parent = playerScripts
+
+	-----------------------------------------------------------------
+	-- require y el entorno de cada script
+	-----------------------------------------------------------------
+	local cache: { [any]: any } = {}
+	local loading: { [any]: boolean } = {}
+	local typeofReal = typeof
+	local function fakeTypeof(v: any): string
+		if type(v) == "table" then
+			if rawget(v, "__class") then
+				return "Instance"
+			elseif rawget(v, "__signal") then
+				return "RBXScriptSignal"
+			elseif rawget(v, "__conn") then
+				return "RBXScriptConnection"
+			elseif getmetatable(v) == mockMeta then
+				return "Instance"
+			end
+		end
+		return typeofReal(v)
+	end
+
+	local function warnFn(...)
+		local parts = {}
+		for i = 1, select("#", ...) do
+			table.insert(parts, tostring((select(i, ...))))
+		end
+		local line = table.concat(parts, " ")
+		warnings[line] = (warnings[line] or 0) + 1
+	end
+
+	local fakeOs = setmetatable({
+		clock = function()
+			return now
+		end,
+		time = function(t)
+			return if t then os.time(t) else math.floor(1.7e9 + now)
+		end,
+	}, { __index = os })
+
+	local sharedTable = {}
+	local userSettings = new("UserSettings", "UserSettings")
+	rawset(userSettings, "GetService", function(_, name)
+		return service(name)
+	end)
+	rawget(service("UserGameSettings"), "__props").SavedQualityLevel = Enum.SavedQualitySetting.Automatic
+	local requireFn
+	local function envFor(scriptInstance: any): any
+		return setmetatable({
+			script = scriptInstance,
+			require = requireFn,
+			game = game,
+			workspace = workspace,
+			Workspace = workspace,
+			task = fakeTask,
+			wait = fakeTask.wait,
+			delay = fakeTask.delay,
+			spawn = fakeTask.spawn,
+			tick = function()
+				return 1.7e9 + now
+			end,
+			time = function()
+				return now
+			end,
+			elapsedTime = function()
+				return now
+			end,
+			os = fakeOs,
+			Instance = InstanceLib,
+			Vector3 = V3,
+			Vector2 = V2,
+			CFrame = CF,
+			Color3 = C3,
+			Enum = Enum,
+			UDim = roblox.UDim,
+			UDim2 = roblox.UDim2,
+			Font = roblox.Font,
+			BrickColor = roblox.BrickColor,
+			NumberRange = roblox.NumberRange,
+			NumberSequence = roblox.NumberSequence,
+			NumberSequenceKeypoint = roblox.NumberSequenceKeypoint,
+			ColorSequence = roblox.ColorSequence,
+			ColorSequenceKeypoint = roblox.ColorSequenceKeypoint,
+			Rect = roblox.Rect,
+			Ray = roblox.Ray,
+			Region3 = roblox.Region3,
+			PhysicalProperties = roblox.PhysicalProperties,
+			Faces = roblox.Faces,
+			Axes = roblox.Axes,
+			Vector3int16 = roblox.Vector3int16,
+			Vector2int16 = roblox.Vector2int16,
+			TweenInfo = {
+				new = function(t, style, direction, repeatCount, reverses, delayTime)
+					return {
+						Time = t or 1,
+						EasingStyle = style or Enum.EasingStyle.Quad,
+						EasingDirection = direction or Enum.EasingDirection.Out,
+						RepeatCount = repeatCount or 0,
+						Reverses = reverses or false,
+						DelayTime = delayTime or 0,
+					}
+				end,
+			},
+			RaycastParams = {
+				new = function()
+					return { FilterDescendantsInstances = {}, FilterType = Enum.RaycastFilterType.Exclude, IgnoreWater = false, CollisionGroup = "Default", RespectCanCollide = false, AddToFilter = function() end }
+				end,
+			},
+			OverlapParams = {
+				new = function()
+					return { FilterDescendantsInstances = {}, FilterType = Enum.RaycastFilterType.Exclude, MaxParts = 0, CollisionGroup = "Default", RespectCanCollide = false, AddToFilter = function() end }
+				end,
+			},
+			Random = {
+				new = function()
+					local r = {}
+					function r.NextNumber(_, a, b)
+						a, b = a or 0, b or 1
+						return a + math.random() * (b - a)
+					end
+					function r.NextInteger(_, a, b)
+						return math.random(a, b)
+					end
+					function r.NextUnitVector()
+						return V3.new(0, 1, 0)
+					end
+					function r.Shuffle() end
+					function r.Clone()
+						return r
+					end
+					return r
+				end,
+			},
+			DateTime = {
+				now = function()
+					local t = math.floor(1.7e9 + now)
+					return {
+						UnixTimestamp = t,
+						UnixTimestampMillis = t * 1000,
+						ToLocalTime = function()
+							return { Year = 2026, Month = 9, Day = 28, Hour = 12, Minute = 0, Second = 0, Millisecond = 0 }
+						end,
+						ToUniversalTime = function()
+							return { Year = 2026, Month = 9, Day = 28, Hour = 12, Minute = 0, Second = 0, Millisecond = 0 }
+						end,
+						FormatLocalTime = function()
+							return ""
+						end,
+						FormatUniversalTime = function()
+							return ""
+						end,
+					}
+				end,
+			},
+			typeof = fakeTypeof,
+			warn = warnFn,
+			print = function() end,
+			settings = function()
+				return U("settings()")
+			end,
+			UserSettings = function()
+				return userSettings
+			end,
+			shared = sharedTable,
+		}, { __index = _G })
+	end
+
+	local function run(scriptInstance: any): any
+		local file = rawget(scriptInstance, "__file")
+		local source = rawget(scriptInstance, "__source")
+		local chunk = luau.load(source, { debugName = file, environment = envFor(scriptInstance) })
+		return chunk()
+	end
+
+	requireFn = function(target: any): any
+		if type(target) == "number" then
+			return U("require(" .. target .. ")")
+		end
+		if type(target) ~= "table" or rawget(target, "__class") == nil then
+			error("require: se esperaba un ModuleScript, llegó " .. fakeTypeof(target), 2)
+		end
+		if rawget(target, "__class") ~= "ModuleScript" then
+			error(("require: %s no es un ModuleScript"):format(target:GetFullName()), 2)
+		end
+		if cache[target] ~= nil then
+			return cache[target]
+		end
+		if rawget(target, "__value") ~= nil then
+			return rawget(target, "__value")
+		end
+		if not rawget(target, "__file") then
+			return U("require(" .. target:GetFullName() .. ")") -- sustituto (PlayerModule…)
+		end
+		if loading[target] then
+			if loading[target] == coroutine.running() then
+				error("require en bucle: " .. target:GetFullName(), 2)
+			end
+			-- Otro hilo lo está cargando (y espera algo): como en Roblox, se espera a que acabe
+			local waited = 0
+			while loading[target] and waited < 30 do
+				waited += fakeTask.wait(0.1)
+			end
+			if cache[target] ~= nil then
+				return cache[target]
+			end
+			error("require: " .. target:GetFullName() .. " no termina de cargar", 2)
+		end
+		loading[target] = coroutine.running()
+		local ok, result = xpcall(run, function(e)
+			return tostring(e) .. "\n" .. debug.traceback()
+		end, target)
+		loading[target] = nil
+		if not ok then
+			report("require " .. rawget(target, "__file"), result)
+			error(("Requested module experienced an error while loading: %s"):format(target:GetFullName()), 2)
+		end
+		if result == nil then
+			report("require " .. rawget(target, "__file"), "el módulo no devuelve nada")
+		end
+		loaded[rawget(target, "__file")] = true
+		cache[target] = result
+		return result
+	end
+
+	-----------------------------------------------------------------
+	-- Tu personaje (aparece a los 2 s, como en el juego)
+	-----------------------------------------------------------------
+	local function spawnCharacter()
+		local model = new("Model", "Rayo")
+		local function part(name: string, size: any, offset: any)
+			local p = new("Part", name)
+			p.Size = size
+			p.CFrame = CF.new(V3.new(0, 3, 0) + offset)
+			p.Parent = model
+			return p
+		end
+		local root = part("HumanoidRootPart", V3.new(2, 2, 1), V3.zero)
+		local head = part("Head", V3.new(1.2, 1.2, 1.2), V3.new(0, 1.9, 0))
+		local upper = part("UpperTorso", V3.new(2, 1.6, 1), V3.new(0, 0.6, 0))
+		local lower = part("LowerTorso", V3.new(2, 0.4, 1), V3.new(0, -0.3, 0))
+		local limbs: { [string]: any } = {}
+		for _, side in { "Left", "Right" } do
+			local x = if side == "Left" then -1.5 else 1.5
+			limbs[side .. "UpperArm"] = part(side .. "UpperArm", V3.new(1, 1.2, 1), V3.new(x, 0.6, 0))
+			limbs[side .. "LowerArm"] = part(side .. "LowerArm", V3.new(1, 1.1, 1), V3.new(x, -0.4, 0))
+			limbs[side .. "Hand"] = part(side .. "Hand", V3.new(1, 0.3, 1), V3.new(x, -1.1, 0))
+			limbs[side .. "UpperLeg"] = part(side .. "UpperLeg", V3.new(1, 1.2, 1), V3.new(x / 3, -1.1, 0))
+			limbs[side .. "LowerLeg"] = part(side .. "LowerLeg", V3.new(1, 1.2, 1), V3.new(x / 3, -2.2, 0))
+			limbs[side .. "Foot"] = part(side .. "Foot", V3.new(1, 0.3, 1), V3.new(x / 3, -2.9, 0))
+		end
+		local function motor(name: string, owner: any, part0: any)
+			local m = new("Motor6D", name)
+			m.Part0, m.Part1 = part0, owner
+			m.C0, m.C1, m.Transform = CF.new(), CF.new(), CF.new()
+			m.Parent = owner
+		end
+		motor("Root", lower, root)
+		motor("Waist", upper, lower)
+		motor("Neck", head, upper)
+		for _, side in { "Left", "Right" } do
+			motor(side .. "Shoulder", limbs[side .. "UpperArm"], upper)
+			motor(side .. "Elbow", limbs[side .. "LowerArm"], limbs[side .. "UpperArm"])
+			motor(side .. "Wrist", limbs[side .. "Hand"], limbs[side .. "LowerArm"])
+			motor(side .. "Hip", limbs[side .. "UpperLeg"], lower)
+			motor(side .. "Knee", limbs[side .. "LowerLeg"], limbs[side .. "UpperLeg"])
+			motor(side .. "Ankle", limbs[side .. "Foot"], limbs[side .. "LowerLeg"])
+		end
+		local humanoid = new("Humanoid", "Humanoid")
+		local hp = rawget(humanoid, "__props")
+		hp.RigType = Enum.HumanoidRigType.R15
+		hp.RootPart = root
+		hp.MoveDirection = V3.zero
+		hp.FloorMaterial = Enum.Material.Plastic
+		fn(humanoid, "GetState", function()
+			return Enum.HumanoidStateType.Running
+		end)
+		for _, name in { "ChangeState", "Move", "MoveTo", "SetStateEnabled", "EquipTool", "UnequipTools", "TakeDamage", "ApplyDescription", "AddAccessory", "BuildRigFromAttachments" } do
+			fn(humanoid, name, function() end)
+		end
+		fn(humanoid, "GetStateEnabled", function()
+			return true
+		end)
+		fn(humanoid, "GetAccessories", function()
+			return {}
+		end)
+		fn(humanoid, "GetAppliedDescription", function()
+			return new("HumanoidDescription")
+		end)
+		humanoid.Parent = model
+		new("Animator", "Animator").Parent = humanoid
+		rawget(model, "__props").PrimaryPart = root
+		model.Parent = workspace
+		lp.Character = model
+		signalOf(localPlayer, "CharacterAdded"):Fire(model)
+		signalOf(localPlayer, "CharacterAppearanceLoaded"):Fire(model)
+		return model
+	end
+
+	-- Un vecino (para los bocadillos que llegan del servidor)
+	local function spawnNpc(name: string, at: any): any
+		local model = new("Model", name)
+		local root = new("Part", "HumanoidRootPart")
+		root.CFrame = CF.new(at)
+		root.Parent = model
+		local head = new("Part", "Head")
+		head.Size = V3.new(1.2, 1.2, 1.2)
+		head.CFrame = CF.new(at + V3.new(0, 1.9, 0))
+		head.Parent = model
+		new("Humanoid", "Humanoid").Parent = model
+		rawget(model, "__props").PrimaryPart = root
+		model.Parent = workspace
+		return model
+	end
+
+	-----------------------------------------------------------------
+	-- A correr
+	-----------------------------------------------------------------
+	local main = client:FindFirstChild("Main")
+	assert(main, "no está src/client/Main.client.luau")
+	local mainDone = false
+	local mainThread = fakeTask.spawn(function()
+		local ok, err = xpcall(run, function(e)
+			return tostring(e) .. "\n" .. debug.traceback()
+		end, main)
+		if not ok then
+			report("Main.client", err)
+		end
+		loaded[rawget(main, "__file")] = true
+		mainDone = true
+	end)
+
+	local checks: { { any } } = {}
+	local realStart = realClock()
+	local frames = math.floor(SIM_SECONDS * FPS)
+	local dt = 1 / FPS
+	local events = {
+		[math.floor(2 * FPS)] = function()
+			spawnCharacter()
+		end,
+		[math.floor(6 * FPS)] = function()
+			-- Lo que manda el servidor mientras juegas: bocadillos, la familia, una conversación
+			local a = spawnNpc("Vecina", V3.new(4, 3, -4))
+			local b = spawnNpc("Vecino", V3.new(5, 3, -4))
+			local speech = remotes:FindFirstChild("Speech")
+			if speech then
+				speech.OnClientEvent:Fire({ Speaker = a, Text = "¡Buenos días! Qué calor hace hoy, ¿eh?" })
+				speech.OnClientEvent:Fire({ Speaker = b, Text = "Ni que lo digas.", Seconds = 3 })
+				speech.OnClientEvent:Fire({ Speaker = a, Text = "Me voy a la playa." })
+			end
+			local baby = remotes:FindFirstChild("Baby")
+			if baby then
+				baby.OnClientEvent:Fire("Say", { SpeakerKey = "NPC.ABU_ROSA", TextKey = "DLG.ABU.BEBE.LEVANTATE", Role = "Abu", Speaker = a })
+				baby.OnClientEvent:Fire("Say", { TextKey = "BABY.TOYS" })
+			end
+			local dialogue = remotes:FindFirstChild("Dialogue")
+			if dialogue then
+				dialogue.OnClientEvent:Fire("Show", {
+					Token = "t1",
+					Lines = {
+						{ Name = "Vecina", Text = "¿Me ayudas con la compra?", Actor = a, Voice = "Narrador" },
+						{ Name = "Rayo", Text = "¡Claro!", Actor = localPlayer.Character, Me = true },
+						{ Text = "Y así empezó todo.", Narrator = true },
+					},
+					Options = { "Sí", "No" },
+					Ask = "¿Qué le dices?",
+				})
+			end
+		end,
+		[math.floor(7 * FPS)] = function()
+			-- Un bocadillo por personaje: la Vecina habló tres veces (y es quien habla en la
+			-- conversación), el Vecino una: dos bocadillos, cada uno sobre su cabeza
+			local byHead: { [any]: number } = {}
+			local total = 0
+			for _, child in playerGui:GetChildren() do
+				if child.Name == "SpeechBubble" and child.Enabled then
+					total += 1
+					byHead[child.Adornee] = (byHead[child.Adornee] or 0) + 1
+				end
+			end
+			local a, b = workspace:FindFirstChild("Vecina"), workspace:FindFirstChild("Vecino")
+			table.insert(checks, {
+				total == 2 and byHead[a and a.Head] == 1 and byHead[b and b.Head] == 1,
+				("bocadillos: uno encima de cada personaje que habla, sin repetir (%d)"):format(total),
+			})
+			local line
+			for _, d in playerGui:GetDescendants() do
+				if d.Name == "Line" and d.Parent and d.Parent.Name == "Panel" and d.Parent.Parent.Adornee == (a and a.Head) then
+					line = d.Text
+				end
+			end
+			table.insert(checks, { line == "¿Me ayudas con la compra?", "la frase de la conversación sale en el bocadillo de quien la dice (la nueva sustituye a la vieja)" })
+			local dialogueGui = playerGui:FindFirstChild("DialogueUI")
+			local box = dialogueGui and dialogueGui:FindFirstChild("Dialogue")
+			table.insert(checks, { box ~= nil and box.Visible, "la caja de la conversación sigue abajo (Toca para seguir / respuestas)" })
+		end,
+		[math.floor(12 * FPS)] = function()
+			local b = workspace:FindFirstChild("Vecino")
+			local still = false
+			for _, child in playerGui:GetChildren() do
+				if child.Name == "SpeechBubble" and child.Adornee == (b and b.Head) then
+					still = true
+				end
+			end
+			table.insert(checks, { not still, "el bocadillo con duración se va solo" })
+			local speech = remotes:FindFirstChild("Speech")
+			if speech then
+				speech.OnClientEvent:Fire({ Speaker = workspace:FindFirstChild("Vecina"), Text = nil })
+			end
+		end,
+	}
+	for frame = 1, frames do
+		now += dt
+		rawget(workspace, "__props").DistributedGameTime = now
+		if events[frame] then
+			fakeTask.spawn(events[frame])
+		end
+		local queue = deferred
+		deferred = {}
+		for _, d in queue do
+			resume(d.Thread, d.Where, table.unpack(d.Args, 1, d.Args.n))
+		end
+		for _, name in { "PreRender", "RenderStepped", "PreAnimation", "Stepped", "PreSimulation", "PostSimulation", "Heartbeat" } do
+			local s = rawget(runService, "__signals")[name]
+			if s then
+				if name == "Stepped" then
+					s:Fire(now, dt)
+				else
+					s:Fire(dt)
+				end
+			end
+		end
+		for name, f in table.clone(renderSteps) do
+			fakeTask.spawn(f, dt)
+		end
+		local due = {}
+		local keep = {}
+		for _, entry in sleeping do
+			if entry.At <= now then
+				table.insert(due, entry)
+			else
+				table.insert(keep, entry)
+			end
+		end
+		sleeping = keep
+		table.sort(due, function(x, y)
+			return x.At < y.At
+		end)
+		for _, entry in due do
+			if entry.Args then
+				resume(entry.Thread, entry.Where, table.unpack(entry.Args, 1, entry.Args.n))
+			else
+				resume(entry.Thread, entry.Where, now - ((entry :: any).Start or now), now)
+			end
+		end
+		if realClock() - realStart > REAL_BUDGET then
+			table.insert(placeholders, ("(se acabó el tiempo real a los %.1f s simulados)"):format(now))
+			break
+		end
+	end
+
+	if not mainDone and #errors == 0 then
+		report("Main.client", "Main.client no llega al final (se queda esperando algo)", mainThread)
+	end
+
+	-- Cada módulo que Main no haya cargado: que al menos cargue
+	local extra = 0
+	local function requireAll(folder: any)
+		for _, child in folder:GetDescendants() do
+			if rawget(child, "__class") == "ModuleScript" and rawget(child, "__file") and not loaded[rawget(child, "__file")] then
+				extra += 1
+				fakeTask.spawn(function()
+					pcall(requireFn, child)
+				end)
+			end
+		end
+	end
+	requireAll(client)
+	requireAll(replicated:FindFirstChild("Shared"))
+
+	-- ¿Se ve la interfaz?
+	local screens = {}
+	for _, child in playerGui:GetChildren() do
+		if rawget(child, "__class") == "ScreenGui" then
+			table.insert(screens, child.Name)
+		end
+	end
+	local modulesLoaded = 0
+	for _ in loaded do
+		modulesLoaded += 1
+	end
+	return {
+		Errors = errors,
+		Warnings = warnings,
+		Placeholders = placeholders,
+		OddWrites = oddWrites,
+		Screens = screens,
+		Modules = modulesLoaded,
+		Extra = extra,
+		Simulated = now,
+		Real = realClock() - realStart,
+		Checks = checks,
+	}
+end
+
+---------------------------------------------------------------------
+-- Informe
+---------------------------------------------------------------------
+local failures = 0
+local function check(ok: any, what: string)
+	if ok then
+		print("  ✅ " .. what)
+	else
+		failures += 1
+		print("  ❌ " .. what)
+	end
+end
+
+for _, mode in {
+	{ Name = "ordenador (1920x1080, teclado)", Viewport = V2.new(1920, 1080), Touch = false },
+	{ Name = "móvil (844x390, táctil)", Viewport = V2.new(844, 390), Touch = true },
+} do
+	print(("\n▶ Arranque en %s"):format(mode.Name))
+	local result = boot(mode)
+	print(("  %d módulos cargados (%d más cargados aparte), %.0f s simulados en %.1f s"):format(result.Modules, result.Extra, result.Simulated, result.Real))
+	for _, e in result.Errors do
+		print(("  ❌ [%s] %s"):format(e.Where, e.Message))
+		local shown = 0
+		for line in string.gmatch(e.Trace, "[^\n]+") do
+			if string.find(line, "src/", 1, true) and not string.find(line, "scripts/", 1, true) and shown < 6 then
+				shown += 1
+				print("       " .. line)
+			end
+		end
+	end
+	check(#result.Errors == 0, ("ningún error al cargar, iniciar ni en los primeros %d s de juego"):format(SIM_SECONDS))
+	local hasHud = table.find(result.Screens, "MainHud") ~= nil
+	check(#result.Screens >= 10 and hasHud, ("la interfaz aparece (%d pantallas: %s…)"):format(#result.Screens, table.concat(result.Screens, ", ", 1, math.min(6, #result.Screens))))
+	for _, c in result.Checks do
+		check(c[1], c[2])
+	end
+	if #result.Placeholders > 0 then
+		print("  ℹ️  Esperas que en Roblox no acabarían aquí (se usó un sustituto):")
+		for _, p in result.Placeholders do
+			print("       " .. p)
+		end
+	end
+	local warnList = {}
+	for line, count in result.Warnings do
+		table.insert(warnList, ("%s%s"):format(line, if count > 1 then (" (x%d)"):format(count) else ""))
+	end
+	table.sort(warnList)
+	if #warnList > 0 then
+		print(("  ℹ️  Avisos (warn) del juego: %d distintos"):format(#warnList))
+		for i = 1, math.min(15, #warnList) do
+			print("       " .. string.sub(warnList[i], 1, 200))
+		end
+	end
+	local odd = {}
+	for key in result.OddWrites do
+		table.insert(odd, key)
+	end
+	table.sort(odd)
+	if #odd > 0 then
+		print("  ℹ️  Propiedades que no están en la API conocida (revisar si son nuevas o erratas): " .. table.concat(odd, ", "))
+	end
+end
+
+print("")
+if failures > 0 then
+	print(("❌ %d comprobaciones fallan"):format(failures))
+	process.exit(1)
+end
+print("✅ El cliente arranca bien (ordenador y móvil)")
+process.exit(0)

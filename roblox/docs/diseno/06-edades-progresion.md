@@ -54,6 +54,7 @@ Para que los primeros minutos enganchen (es cuando más jugadores se pierden):
 
 - **Escala del personaje** con `Model:ScaleTo()`: bebé ~0,45, niño ~0,65, adolescente ~0,85 y adulto 1,0. Los accesorios del avatar se escalan con él.
 - Velocidad, salto y animaciones distintas por etapa (bebé gatea, mayor camina más despacio).
+  Hecho en `Controllers/AgeMotion` (ver [personajes vivos](personajes-vivos-cinematicas.md#agemotion-cada-edad-se-mueve-a-su-manera)).
 - Ropa y peinados disponibles por etapa.
 - **Límites reales:** el servidor comprueba la etapa en cada interacción (una puerta, un trabajo o un coche no se pueden usar si tu etapa no lo permite).
 

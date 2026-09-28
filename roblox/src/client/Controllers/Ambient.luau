@@ -1,25 +1,29 @@
 -- Ambient (cliente): tráfico y peatones alrededor del jugador.
 -- Se simula en cada dispositivo (no en el servidor) y solo cerca del jugador,
 -- así la ciudad parece viva sin coste de red ni de servidor.
---  * Coches: circulan por su carril (por la derecha) y frenan si hay alguien delante.
+--  * Vehículos (coches, taxis, motos, bicis y patinetes): ver Traffic.luau.
 --  * Peatones: caminan por las aceras con animación de pasos. De noche hay menos.
+--    Si chocas con uno (o lo empujas), se aparta de lado con un traspiés, te mira y a veces suelta
+--    un "¡Eh!"; luego sigue su camino. Si llega tu coche, se tira a un lado.
 
 local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
+local Traffic = require(script.Parent.Traffic)
+local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
+local Nudge = require(script.Parent.Nudge)
+
 local Ambient = {}
 
 local player = Players.LocalPlayer
 
-local CAR_COUNT = 26
-local PED_COUNT = 34
-local ROAD_TOP, WALK_TOP = 0.4, 1.0
-local LANE = 2.9 -- distancia del centro de la calzada al centro del carril
-local SIDEWALK = 15.5 -- distancia del centro de la calzada al centro de la acera
-
-type Road = { Axis: string, At: number, From: number, To: number }
+local Perf = require(script.Parent.Parent.UI.Perf)
+local PED_COUNT = Perf.count(34) -- en móvil, la mitad
+local WALK_TOP = 1.0
+-- Cada calle es un tramo recto en cualquier ángulo: A + Dir·u (u de From a To) + Perp·v
+type Road = { A: Vector3, Dir: Vector3, Perp: Vector3, From: number, To: number, Lane: number, Walk: number? }
 type Agent = {
 	Model: Model,
 	Parts: { BasePart },
@@ -32,22 +36,29 @@ type Agent = {
 	Side: number,
 	Phase: number,
 	Active: boolean,
+	Style: string,
+	Scale: number,
+	Index: { [string]: number },
+	Umbrella: boolean,
+	PanicUntil: number?,
+	ReactAt: number?, -- cuándo empezó el último traspiés (choque contigo o con tu coche)
+	ReactSide: number?, -- +1: le llegaste por su derecha
+	ReactDive: boolean?,
+	Shove: number?, -- cuánto se aparta de su sitio en la acera (de lado)
+	ShoveNow: number?,
 }
 
 local roads: { Road } = {}
-local cars: { Agent } = {}
 local peds: { Agent } = {}
 local folder: Folder
 
 local function point(road: Road, u: number, v: number, y: number): Vector3
-	if road.Axis == "X" then
-		return Vector3.new(u, y, road.At + v)
-	end
-	return Vector3.new(road.At + v, y, u)
+	local p = road.A + road.Dir * u + road.Perp * v
+	return Vector3.new(p.X, y, p.Z)
 end
 
 local function heading(road: Road, dir: number): CFrame
-	local d = if road.Axis == "X" then Vector3.new(dir, 0, 0) else Vector3.new(0, 0, dir)
+	local d = road.Dir * dir
 	return CFrame.Angles(0, math.atan2(-d.X, -d.Z), 0)
 end
 
@@ -65,9 +76,9 @@ end
 local function spawnPoint(center: Vector3, minDist: number, maxDist: number): (Road?, number)
 	for _ = 1, 12 do
 		local road = roads[math.random(1, #roads)]
-		local along = if road.Axis == "X" then center.X else center.Z
-		local across = if road.Axis == "X" then center.Z else center.X
-		local offset = math.abs(across - road.At)
+		local rel = center - road.A
+		local along = rel:Dot(road.Dir)
+		local offset = math.abs(rel:Dot(road.Perp))
 		if offset < maxDist then
 			local reach = math.sqrt(maxDist * maxDist - offset * offset)
 			local u0 = math.max(road.From + 10, along - reach)
@@ -84,116 +95,10 @@ local function spawnPoint(center: Vector3, minDist: number, maxDist: number): (R
 	return nil, 0
 end
 
-local function place(agent: Agent, root: CFrame)
-	local cframes = table.create(#agent.Parts)
-	for i, offset in agent.Offsets do
-		cframes[i] = root * offset
-	end
-	workspace:BulkMoveTo(agent.Parts, cframes, Enum.BulkMoveMode.FireCFrameChanged)
-end
-
 local function setActive(agent: Agent, active: boolean)
 	if agent.Active ~= active then
 		agent.Active = active
 		agent.Model.Parent = if active then folder else nil
-	end
-end
-
----------------------------------------------------------------------
--- Coches
----------------------------------------------------------------------
-
--- Faros: una luz por coche (en el primer faro) que se enciende de noche
-local headlights: { SpotLight } = {}
-
-local function addHeadlight(model: Model)
-	for _, d in model:GetDescendants() do
-		if d:IsA("BasePart") and d.Name == "Headlight" then
-			local light = Instance.new("SpotLight")
-			light.Face = Enum.NormalId.Front
-			light.Angle = 55
-			light.Range = 42
-			light.Brightness = 3
-			light.Color = Color3.fromRGB(255, 244, 222)
-			light.Shadows = false
-			light.Enabled = false
-			light.Parent = d
-			table.insert(headlights, light)
-			return
-		end
-	end
-end
-
-local function makeCar(template: Model): Agent
-	local model = template:Clone()
-	addHeadlight(model)
-	local parts, offsets = {}, {}
-	for _, d in model:GetDescendants() do
-		if d:IsA("BasePart") then
-			d.Anchored = true
-			d.CanCollide = false
-			d.CanQuery = false
-			d.CanTouch = false
-			table.insert(parts, d)
-			table.insert(offsets, d.CFrame)
-		end
-	end
-	return { Model = model, Parts = parts, Offsets = offsets, Road = nil, U = 0, Dir = 1, Speed = 0, Cruise = 0, Side = 1, Phase = 0, Active = false }
-end
-
-local function respawnCar(agent: Agent, center: Vector3, initial: boolean)
-	local road, u = spawnPoint(center, if initial then 30 else 160, 330)
-	agent.Road = road
-	if not road then
-		setActive(agent, false)
-		return
-	end
-	agent.U = u
-	agent.Dir = if math.random() < 0.5 then 1 else -1
-	agent.Cruise = 26 + math.random() * 14
-	agent.Speed = agent.Cruise
-	setActive(agent, true)
-end
-
-local function updateCars(dt: number, center: Vector3)
-	local character = player.Character
-	local me = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
-	for _, car in cars do
-		local road = car.Road
-		if not road then
-			respawnCar(car, center, false)
-			continue
-		end
-		local pos = point(road, car.U, car.Dir * LANE, ROAD_TOP)
-		-- ¿Hay algo delante en el carril? (el jugador u otro coche)
-		local blocked = false
-		if me then
-			local rel = me.Position - pos
-			local ahead = if road.Axis == "X" then rel.X * car.Dir else rel.Z * car.Dir
-			local lateral = if road.Axis == "X" then math.abs(rel.Z) else math.abs(rel.X)
-			blocked = ahead > 0 and ahead < 16 and lateral < 5 and math.abs(rel.Y) < 8
-		end
-		if not blocked then
-			for _, other in cars do
-				if other ~= car and other.Road == road and other.Dir == car.Dir then
-					local gap = (other.U - car.U) * car.Dir
-					if gap > 0 and gap < 18 then
-						blocked = true
-						break
-					end
-				end
-			end
-		end
-		local target = if blocked then 0 else car.Cruise
-		car.Speed += math.clamp(target - car.Speed, -60 * dt, 18 * dt)
-		car.U += car.Dir * car.Speed * dt
-
-		local distance = (pos - center).Magnitude
-		if car.U < road.From or car.U > road.To or distance > 400 then
-			respawnCar(car, center, false)
-		else
-			place(car, CFrame.new(pos) * heading(road, car.Dir))
-		end
 	end
 end
 
@@ -210,41 +115,112 @@ local function pick<T>(list: { T }): T
 	return list[math.random(1, #list)]
 end
 
--- Figura de peatón: 0 torso, 1 cabeza, 2 pelo, 3-4 piernas, 5-6 brazos (en ese orden)
+-- Tipos de peatón (con su probabilidad): paseando, corriendo, con el perro, con bolsas de la
+-- compra, mirando el móvil o niños. Si llueve, casi todos sacan el paraguas.
+local STYLES = { { "Walk", 30 }, { "Jog", 10 }, { "Dog", 12 }, { "Bag", 16 }, { "Phone", 14 }, { "Kid", 12 } }
+local DOG_COLORS = { Color3.fromRGB(150, 100, 60), Color3.fromRGB(40, 36, 34), Color3.fromRGB(230, 220, 200), Color3.fromRGB(200, 150, 80) }
+local UMBRELLA_COLORS = { Color3.fromRGB(30, 30, 34), Color3.fromRGB(200, 40, 50), Color3.fromRGB(40, 80, 170), Color3.fromRGB(240, 200, 40), Color3.fromRGB(120, 60, 140) }
+
+local function pickStyle(): string
+	local total = 0
+	for _, s in STYLES do
+		total += s[2]
+	end
+	local r = math.random() * total
+	for _, s in STYLES do
+		r -= s[2]
+		if r <= 0 then
+			return s[1]
+		end
+	end
+	return "Walk"
+end
+
+local function raining(): boolean
+	local weather = workspace:GetAttribute("Weather")
+	return weather == "Lluvia" or weather == "Tormenta"
+end
+
+-- Figura de peatón: 1 torso, 2 cabeza, 3 pelo, 4-5 piernas, 6-7 brazos y luego los extras
+-- (paraguas, bolsa, móvil, perro y correa) según el tipo
 local function makePed(): Agent
 	local model = Instance.new("Model")
 	model.Name = "Peaton"
+	local style = pickStyle()
+	local scale = if style == "Kid" then 0.68 else 1
 	local skin, shirt, pants = pick(SKIN), pick(CLOTHES), pick(PANTS)
+	if style == "Jog" then
+		shirt, pants = pick({ Color3.fromRGB(250, 120, 40), Color3.fromRGB(60, 200, 220), Color3.fromRGB(240, 240, 240), Color3.fromRGB(230, 60, 120) }), Color3.fromRGB(30, 30, 34)
+	end
+	local s = scale
 	local specs = {
-		{ "Torso", Vector3.new(2, 2.3, 1.1), shirt, Enum.PartType.Block },
-		{ "Head", Vector3.new(1.3, 1.3, 1.3), skin, Enum.PartType.Ball },
-		{ "Hair", Vector3.new(1.4, 0.55, 1.4), pick(HAIR), Enum.PartType.Block },
-		{ "LegL", Vector3.new(0.9, 2.4, 0.95), pants, Enum.PartType.Block },
-		{ "LegR", Vector3.new(0.9, 2.4, 0.95), pants, Enum.PartType.Block },
-		{ "ArmL", Vector3.new(0.7, 2.2, 0.75), shirt, Enum.PartType.Block },
-		{ "ArmR", Vector3.new(0.7, 2.2, 0.75), shirt, Enum.PartType.Block },
+		{ "Torso", Vector3.new(2, 2.3, 1.1) * s, shirt, Enum.PartType.Block },
+		{ "Head", Vector3.new(1.3, 1.3, 1.3) * s, skin, Enum.PartType.Ball },
+		{ "Hair", Vector3.new(1.4, 0.55, 1.4) * s, pick(HAIR), Enum.PartType.Block },
+		{ "LegL", Vector3.new(0.9, 2.4, 0.95) * s, pants, Enum.PartType.Block },
+		{ "LegR", Vector3.new(0.9, 2.4, 0.95) * s, pants, Enum.PartType.Block },
+		{ "ArmL", Vector3.new(0.7, 2.2, 0.75) * s, shirt, Enum.PartType.Block },
+		{ "ArmR", Vector3.new(0.7, 2.2, 0.75) * s, shirt, Enum.PartType.Block },
+		-- Paraguas (se esconde si no llueve)
+		{ "UmbrellaStick", Vector3.new(0.12, 3.2, 0.12), Color3.fromRGB(50, 50, 54), Enum.PartType.Block },
+		{ "Umbrella", Vector3.new(0.5, 5.2, 5.2), pick(UMBRELLA_COLORS), Enum.PartType.Cylinder },
 	}
-	local parts = {}
-	for _, s in specs do
+	if style == "Bag" then
+		table.insert(specs, { "Bag", Vector3.new(0.5, 1.3, 1.1), pick({ Color3.fromRGB(240, 236, 226), Color3.fromRGB(60, 140, 80), Color3.fromRGB(200, 60, 50) }), Enum.PartType.Block })
+	elseif style == "Phone" then
+		table.insert(specs, { "Phone", Vector3.new(0.5, 0.9, 0.12), Color3.fromRGB(20, 20, 24), Enum.PartType.Block })
+	elseif style == "Dog" then
+		local fur = pick(DOG_COLORS)
+		table.insert(specs, { "DogBody", Vector3.new(0.9, 0.9, 2.2), fur, Enum.PartType.Block })
+		table.insert(specs, { "DogHead", Vector3.new(0.8, 0.8, 0.9), fur, Enum.PartType.Block })
+		table.insert(specs, { "DogSnout", Vector3.new(0.45, 0.4, 0.4), fur:Lerp(Color3.new(0, 0, 0), 0.3), Enum.PartType.Block })
+		for _, name in { "DogLegFL", "DogLegFR", "DogLegBL", "DogLegBR" } do
+			table.insert(specs, { name, Vector3.new(0.28, 0.9, 0.28), fur, Enum.PartType.Block })
+		end
+		table.insert(specs, { "DogTail", Vector3.new(0.18, 0.18, 0.9), fur, Enum.PartType.Block })
+		table.insert(specs, { "Leash", Vector3.new(0.08, 0.08, 1), Color3.fromRGB(200, 40, 40), Enum.PartType.Block })
+	end
+	local parts, index = {}, {}
+	for _, spec in specs do
 		local p = Instance.new("Part")
-		p.Name = s[1]
-		p.Size = s[2]
-		p.Color = s[3]
-		p.Shape = s[4]
-		p.Material = Enum.Material.SmoothPlastic
+		p.Name = spec[1]
+		p.Size = spec[2]
+		p.Color = spec[3]
+		p.Shape = spec[4]
+		p.Material = if spec[1] == "Umbrella" then Enum.Material.Fabric else Enum.Material.SmoothPlastic
 		p.Anchored = true
 		p.CanCollide = false
 		p.CanQuery = false
 		p.CanTouch = false
-		p.CastShadow = true
+		p.CastShadow = spec[1] ~= "Leash"
 		p.Parent = model
 		table.insert(parts, p)
+		index[spec[1]] = #parts
 	end
-	return { Model = model, Parts = parts, Offsets = {}, Road = nil, U = 0, Dir = 1, Speed = 0, Cruise = 0, Side = 1, Phase = math.random() * 6, Active = false }
+	return {
+		Model = model,
+		Parts = parts,
+		Offsets = {},
+		Road = nil,
+		U = 0,
+		Dir = 1,
+		Speed = 0,
+		Cruise = 0,
+		Side = 1,
+		Phase = math.random() * 6,
+		Active = false,
+		Style = style,
+		Scale = scale,
+		Index = index,
+		Umbrella = false,
+	}
 end
 
 local function respawnPed(agent: Agent, center: Vector3, initial: boolean)
 	local road, u = spawnPoint(center, if initial then 10 else 90, 200)
+	if road and not road.Walk then
+		road = nil -- las autovías no tienen acera
+	end
 	agent.Road = road
 	if not road then
 		setActive(agent, false)
@@ -253,33 +229,137 @@ local function respawnPed(agent: Agent, center: Vector3, initial: boolean)
 	agent.U = u
 	agent.Dir = if math.random() < 0.5 then 1 else -1
 	agent.Side = if math.random() < 0.5 then 1 else -1
-	agent.Cruise = 4.5 + math.random() * 2.5
+	local style = agent.Style
+	agent.Cruise = if style == "Jog" then 9 + math.random() * 2.5
+		elseif style == "Kid" then 4 + math.random() * 1.5
+		elseif style == "Dog" or style == "Phone" then 3.5 + math.random() * 1.5
+		else 4.5 + math.random() * 2.5
 	agent.Speed = agent.Cruise
+	-- Paraguas: casi todos lo sacan si llueve (los que corren, no)
+	agent.Umbrella = raining() and style ~= "Jog" and math.random() < 0.85
+	local stick, canopy = agent.Parts[agent.Index.UmbrellaStick], agent.Parts[agent.Index.Umbrella]
+	stick.Transparency = if agent.Umbrella then 0 else 1
+	canopy.Transparency = if agent.Umbrella then 0 else 1
 	setActive(agent, true)
 end
 
-local function posePed(agent: Agent, root: CFrame)
-	local swing = math.sin(agent.Phase) * 0.55
-	local bob = math.abs(math.cos(agent.Phase)) * 0.12
+-- Traspiés: 0 → 1 → 0 en "dur" segundos (sube rápido y baja suave)
+local function reactWeight(agent: Agent, now: number): number
+	local start = agent.ReactAt
+	if not start then
+		return 0
+	end
+	local dur = if agent.ReactDive then 1.3 else 1.0
+	local t = (now - start) / dur
+	if t <= 0 or t >= 1 then
+		return 0
+	end
+	return if t < 0.2 then math.sin(t / 0.2 * math.pi / 2) else math.cos((t - 0.2) / 0.8 * math.pi / 2)
+end
+
+local function posePed(agent: Agent, root: CFrame, react: number?)
+	local k = react or 0
+	if k > 0.001 then
+		-- Se echa hacia el lado contrario al choque (mucho más si se tira por un coche)
+		local side = agent.ReactSide or 1
+		root = root * CFrame.Angles(if agent.ReactDive then -0.25 * k else 0.06 * k, 0, side * (if agent.ReactDive then 0.7 else 0.2) * k)
+	end
+	local s = agent.Scale
+	local jog = agent.Style == "Jog"
+	local swing = math.sin(agent.Phase) * (if jog then 0.95 else 0.55)
+	local bob = math.abs(math.cos(agent.Phase)) * (if jog then 0.35 else 0.12) * s
 	local base = root * CFrame.new(0, bob, 0)
+	if jog then
+		base *= CFrame.Angles(-0.12, 0, 0) -- inclinado hacia delante
+	end
+	local function at(x: number, y: number, z: number): CFrame
+		return base * CFrame.new(x * s, y * s, z * s)
+	end
+	local armL = at(-1.38, 4.55, 0) * CFrame.Angles(-swing * 0.8, 0, 0) * CFrame.new(0, -1.05 * s, 0)
+	local armR = at(1.38, 4.55, 0) * CFrame.Angles(swing * 0.8, 0, 0) * CFrame.new(0, -1.05 * s, 0)
+	if agent.Umbrella then
+		armL = at(-1.38, 4.55, 0) * CFrame.Angles(0.9, 0, 0.15) * CFrame.new(0, -1.05 * s, 0)
+	end
+	if agent.Style == "Phone" then
+		armR = at(1.38, 4.55, 0) * CFrame.Angles(1.3, 0, 0.35) * CFrame.new(0, -1.05 * s, 0)
+	elseif agent.Style == "Bag" then
+		armR = at(1.38, 4.55, 0) * CFrame.Angles(swing * 0.25, 0, 0) * CFrame.new(0, -1.05 * s, 0)
+	end
+	local headTurn = CFrame.identity
+	if k > 0.001 then
+		-- Brazos arriba (para no caerse, o por encima de la cabeza si se tira) y la cabeza hacia ti
+		local up = if agent.ReactDive then 2.4 else 0.9
+		armL = at(-1.38, 4.55, 0) * CFrame.Angles(up * k, 0, -0.5 * k) * CFrame.new(0, -1.05 * s, 0)
+		if agent.Style ~= "Bag" then
+			armR = at(1.38, 4.55, 0) * CFrame.Angles(up * k, 0, 0.5 * k) * CFrame.new(0, -1.05 * s, 0)
+		end
+		headTurn = CFrame.Angles(0, -(agent.ReactSide or 1) * 0.7 * k, 0)
+	end
 	local cframes = {
-		base * CFrame.new(0, 3.55, 0), -- torso
-		base * CFrame.new(0, 5.35, 0), -- cabeza
-		base * CFrame.new(0, 5.95, 0.05), -- pelo
-		base * CFrame.new(-0.48, 2.4, 0) * CFrame.Angles(swing, 0, 0) * CFrame.new(0, -1.2, 0),
-		base * CFrame.new(0.48, 2.4, 0) * CFrame.Angles(-swing, 0, 0) * CFrame.new(0, -1.2, 0),
-		base * CFrame.new(-1.38, 4.55, 0) * CFrame.Angles(-swing * 0.8, 0, 0) * CFrame.new(0, -1.05, 0),
-		base * CFrame.new(1.38, 4.55, 0) * CFrame.Angles(swing * 0.8, 0, 0) * CFrame.new(0, -1.05, 0),
+		at(0, 3.55, 0), -- torso
+		at(0, 5.35, 0) * headTurn, -- cabeza
+		at(0, 5.35, 0) * headTurn * CFrame.new(0, 0.6 * s, 0.05 * s), -- pelo
+		at(-0.48, 2.4, 0) * CFrame.Angles(swing, 0, 0) * CFrame.new(0, -1.2 * s, 0),
+		at(0.48, 2.4, 0) * CFrame.Angles(-swing, 0, 0) * CFrame.new(0, -1.2 * s, 0),
+		armL,
+		armR,
 	}
+	local rot = base.Rotation
+	-- Paraguas en la mano izquierda, abierto encima de la cabeza
+	local handL = (armL * CFrame.new(0, -1.05 * s, 0)).Position
+	local stickTop = handL + Vector3.new(0, 3, 0)
+	cframes[8] = CFrame.new(handL + Vector3.new(0, 1.5, 0)) * rot
+	cframes[9] = CFrame.new(stickTop + Vector3.new(0, 0.1, 0)) * rot * CFrame.Angles(0, 0, math.rad(90))
+	local handR = (armR * CFrame.new(0, -1.05 * s, 0)).Position
+	local i = agent.Index
+	if i.Bag then
+		cframes[i.Bag] = CFrame.new(handR - Vector3.new(0, 0.75, 0)) * rot
+	elseif i.Phone then
+		cframes[i.Phone] = CFrame.new(handR + rot:VectorToWorldSpace(Vector3.new(-0.25, 0.25, -0.1))) * rot * CFrame.Angles(math.rad(-20), 0, 0)
+	elseif i.DogBody then
+		-- El perro trota a la derecha, un poco por delante, con la correa en la mano
+		local trot = agent.Phase * 1.6
+		local dog = root * CFrame.new(2.4, math.abs(math.sin(trot)) * 0.12, -1.8)
+		cframes[i.DogBody] = dog * CFrame.new(0, 1.35, 0)
+		cframes[i.DogHead] = dog * CFrame.new(0, 1.95, -1.3)
+		cframes[i.DogSnout] = dog * CFrame.new(0, 1.8, -1.9)
+		local leg = math.sin(trot) * 0.6
+		cframes[i.DogLegFL] = dog * CFrame.new(-0.3, 0.9, -0.75) * CFrame.Angles(leg, 0, 0) * CFrame.new(0, -0.45, 0)
+		cframes[i.DogLegFR] = dog * CFrame.new(0.3, 0.9, -0.75) * CFrame.Angles(-leg, 0, 0) * CFrame.new(0, -0.45, 0)
+		cframes[i.DogLegBL] = dog * CFrame.new(-0.3, 0.9, 0.75) * CFrame.Angles(-leg, 0, 0) * CFrame.new(0, -0.45, 0)
+		cframes[i.DogLegBR] = dog * CFrame.new(0.3, 0.9, 0.75) * CFrame.Angles(leg, 0, 0) * CFrame.new(0, -0.45, 0)
+		cframes[i.DogTail] = dog * CFrame.new(0, 1.85, 1.3) * CFrame.Angles(math.rad(35), math.sin(agent.Phase * 4) * 0.5, 0)
+		local collar = (dog * CFrame.new(0, 1.7, -0.9)).Position
+		local mid = (handR + collar) / 2
+		local leash = agent.Parts[i.Leash]
+		local length = (collar - handR).Magnitude
+		if math.abs(leash.Size.Z - length) > 0.05 then
+			leash.Size = Vector3.new(0.08, 0.08, length)
+		end
+		cframes[i.Leash] = CFrame.lookAt(mid, collar)
+	end
 	workspace:BulkMoveTo(agent.Parts, cframes, Enum.BulkMoveMode.FireCFrameChanged)
 end
+
+local LINES = { "¡Eh!", "¡Cuidado!", "¡Perdona!", "¡Uy!", "¡Mira por dónde vas!" }
 
 local function updatePeds(dt: number, center: Vector3)
 	local clock = Lighting.ClockTime
 	local night = clock < 7 or clock > 21.5
+	local now = os.clock()
+	-- Dónde estás tú (y si vas en coche, a qué velocidad)
+	local character = player.Character
+	local myRoot = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	local seat = humanoid and humanoid.SeatPart
+	local carSpeed = 0
+	if seat then
+		local v = seat.AssemblyLinearVelocity
+		carSpeed = Vector3.new(v.X, 0, v.Z).Magnitude
+	end
 	for i, ped in peds do
-		-- De noche solo sale una parte de la gente
-		local wanted = not night or i % 3 == 0
+		-- De noche sale la mitad de la gente (y ningún niño)
+		local wanted = not night or (i % 2 == 0 and ped.Style ~= "Kid")
 		if not wanted then
 			setActive(ped, false)
 			ped.Road = nil
@@ -290,32 +370,133 @@ local function updatePeds(dt: number, center: Vector3)
 			respawnPed(ped, center, false)
 			continue
 		end
-		ped.U += ped.Dir * ped.Speed * dt
-		ped.Phase += dt * ped.Speed * 1.5
-		local pos = point(road, ped.U, ped.Side * SIDEWALK, WALK_TOP)
+		if ped.PanicUntil then
+			-- Asustado por unos disparos: corre y luego vuelve a su paso
+			if os.clock() > ped.PanicUntil then
+				ped.PanicUntil = nil
+				ped.Speed = ped.Cruise
+			end
+		end
+		-- Parado un momento mientras se recupera del traspiés
+		local stunned = ped.ReactAt ~= nil and now - ped.ReactAt < (if ped.ReactDive then 1.1 else 0.7)
+		if not stunned then
+			ped.U += ped.Dir * ped.Speed * dt
+			ped.Phase += dt * ped.Speed * (if ped.Style == "Kid" then 2.1 elseif ped.Style == "Jog" then 1.1 else 1.5)
+		end
+		-- Se aparta de lado y, pasado el susto, vuelve poco a poco a su sitio en la acera
+		local shoveTarget = if ped.ReactAt and now - ped.ReactAt < 2.2 then (ped.Shove or 0) else 0
+		ped.ShoveNow = (ped.ShoveNow or 0) + (shoveTarget - (ped.ShoveNow or 0)) * math.min(1, dt * (if shoveTarget ~= 0 then 7 else 1.5))
+		local lateral = ped.Side * (road.Walk or 15.5) + (ped.ShoveNow or 0)
+		local pos = point(road, ped.U, lateral, WALK_TOP)
 		if ped.U < road.From or ped.U > road.To or (pos - center).Magnitude > 240 then
 			respawnPed(ped, center, false)
-		else
-			posePed(ped, CFrame.new(pos) * heading(road, ped.Dir))
+			ped.ReactAt, ped.Shove, ped.ShoveNow = nil, nil, nil
+			continue
 		end
+		-- ¿Le has dado (o viene tu coche)?
+		if myRoot then
+			local rel = Vector3.new(myRoot.Position.X - pos.X, 0, myRoot.Position.Z - pos.Z)
+			local d = rel.Magnitude
+			local car = carSpeed > 10
+			if (d < 3 or (car and d < 9)) and math.abs(myRoot.Position.Y - pos.Y) < 6 and (not ped.ReactAt or now - ped.ReactAt > 2.5) then
+				ped.ReactAt = now
+				ped.ReactDive = car
+				-- Hacia qué lado de la acera se aparta: lejos de ti (sin salirse de la acera)
+				local away = if rel:Dot(road.Perp) > 0 then -1 else 1
+				ped.Shove = math.clamp((ped.ShoveNow or 0) + away * (if car then 2.6 else 1.4), -2.6, 2.6)
+				local facing = road.Dir * ped.Dir
+				local rightOfPed = Vector3.new(-facing.Z, 0, facing.X)
+				ped.ReactSide = if rel:Dot(rightOfPed) > 0 then 1 else -1
+				if car or math.random() < 0.55 then
+					Nudge.say(ped.Parts[ped.Index.Head], if car then "¡Cuidado!" else LINES[math.random(1, #LINES)], 1.6)
+				end
+			elseif d < 2.2 and ped.ReactAt and now - ped.ReactAt < 2.2 then
+				-- Empujón: si sigues encima, se aparta un poco más
+				local away = if rel:Dot(road.Perp) > 0 then -1 else 1
+				ped.Shove = math.clamp((ped.Shove or 0) + away * dt * 4, -2.6, 2.6)
+			end
+		end
+		posePed(ped, CFrame.new(pos) * heading(road, ped.Dir), reactWeight(ped, now))
 	end
 end
 
 ---------------------------------------------------------------------
 
+-- Modo ligero (móvil y ordenadores modestos): de la gente que pone el servidor en las salas, los
+-- parques y las tiendas (CrowdService), la mitad no se ve en esta pantalla (atributo CrowdLite)
+local function trimCrowd()
+	if not Perf.lite then
+		return
+	end
+	local function consider(d: Instance)
+		if d:IsA("Model") and d:GetAttribute("CrowdLite") == true then
+			task.defer(function()
+				if d.Parent then
+					d:Destroy()
+				end
+			end)
+		end
+	end
+	for _, d in workspace:GetDescendants() do
+		consider(d)
+	end
+	workspace.DescendantAdded:Connect(consider)
+end
+
+-- Disparos cerca (WeaponFx): la gente de la calle huye corriendo en dirección contraria
+function Ambient.panic(position: Vector3, radius: number)
+	for _, ped in peds do
+		local road = ped.Road
+		if road and ped.Active then
+			local pos = point(road, ped.U, ped.Side * (road.Walk or 15.5), WALK_TOP)
+			local away = pos - position
+			if away.Magnitude < radius then
+				local along = road.Dir * ped.Dir
+				if along:Dot(away) < 0 then
+					ped.Dir = -ped.Dir
+				end
+				ped.Speed = math.max(ped.Cruise, 5) * 2.6
+				ped.PanicUntil = os.clock() + 4 + math.random() * 3
+			end
+		end
+	end
+end
+
 function Ambient.init()
+	task.spawn(trimCrowd)
 	local data = ReplicatedStorage:WaitForChild("Ambient", 60)
 	if not data then
 		warn("[Ambient] No hay datos de calles: sin tráfico ni peatones")
 		return
 	end
 	for _, config in data:WaitForChild("Roads"):GetChildren() do
-		table.insert(roads, {
-			Axis = config:GetAttribute("Axis"),
-			At = config:GetAttribute("At"),
-			From = config:GetAttribute("From"),
-			To = config:GetAttribute("To"),
-		})
+		local a, b = config:GetAttribute("A"), config:GetAttribute("B")
+		if typeof(a) == "Vector3" and typeof(b) == "Vector3" and (b - a).Magnitude > 20 then
+			local dir = (b - a).Unit
+			local width = config:GetAttribute("Width") or 24
+			local kind = config:GetAttribute("Kind")
+			-- Por la acera no se entra en una rotonda: se da la vuelta antes de su anillo
+			local from, to = 0, (b - a).Magnitude
+			for _, rb in CityPlan.Roundabouts do
+				local c = Vector3.new(rb[1], a.Y, rb[2])
+				local RING = 64
+				if (a - c).Magnitude < RING then
+					from = math.max(from, RING - (a - c).Magnitude)
+				end
+				if (b - Vector3.new(rb[1], b.Y, rb[2])).Magnitude < RING then
+					to = math.min(to, (b - a).Magnitude - (RING - (b - Vector3.new(rb[1], b.Y, rb[2])).Magnitude))
+				end
+			end
+			table.insert(roads, {
+				A = a,
+				Dir = dir,
+				Perp = Vector3.new(-dir.Z, 0, dir.X),
+				From = from,
+				To = to,
+				Lane = if width > 30 then width * 0.2 else 2.9,
+				Walk = if kind == "Autovia" then nil else width / 2 + 3.5, -- centro de la acera
+			})
+		end
 	end
 	if #roads == 0 then
 		return
@@ -325,48 +506,28 @@ function Ambient.init()
 	folder.Name = "AmbientLife"
 	folder.Parent = workspace
 
-	local templates = data:WaitForChild("Cars"):GetChildren()
-	for i = 1, CAR_COUNT do
-		local template = templates[(i - 1) % #templates + 1]
-		if template and template:IsA("Model") then
-			table.insert(cars, makeCar(template))
-		end
-	end
 	for _ = 1, PED_COUNT do
 		table.insert(peds, makePed())
 	end
 
 	-- Primera colocación repartida alrededor del jugador
 	local center = focus() or Vector3.zero
-	for _, car in cars do
-		respawnCar(car, center, true)
-	end
 	for _, ped in peds do
 		respawnPed(ped, center, true)
 	end
 
-	-- Faros encendidos al anochecer (con algo de margen: primero se encienden los coches)
-	task.spawn(function()
-		local lit: boolean? = nil
-		while true do
-			local clock = Lighting.ClockTime
-			local on = clock >= 18.3 or clock < 7.2
-			if on ~= lit then
-				lit = on
-				for _, light in headlights do
-					light.Enabled = on
-				end
-			end
-			task.wait(2)
-		end
-	end)
+	Traffic.init(data)
 
 	RunService.RenderStepped:Connect(function(dt)
 		local c = focus()
 		if not c then
 			return
 		end
-		updateCars(math.min(dt, 0.1), c)
+		Traffic.update(dt)
+		-- Dentro de un edificio (salas en el cielo) no hay peatones que mover: se quedan en su sitio
+		if c.Y > 3000 then
+			return
+		end
 		updatePeds(math.min(dt, 0.1), c)
 	end)
 end
