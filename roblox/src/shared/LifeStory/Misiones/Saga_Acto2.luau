@@ -439,7 +439,7 @@ return {
 			} },
 			Cosimo = { Lines = {
 				{ S = "Narrador", T = "La costura del cielo se rompe con un sonido de cremallera gigante. Del agujero baja, flotando en una plataforma dorada, un hombre de pelo blanco muy peinado. Con perilla." },
-				{ S = "Cosimo", T = "¡Buenas tardes, Valmar! ¡Y enhorabuena a los graduados! Qué emocionante. Me encantan las graduaciones. Hay tantos finales." },
+				{ S = "Cosimo", T = "¡{Saludo}, Valmar! ¡Y enhorabuena a los graduados! Qué emocionante. Me encantan las graduaciones. Hay tantos finales." },
 				{ S = "Cosimo", T = "Hola, Cosme. Hola, Ancla. Qué grande estás. La última vez que te vi en persona eras un bebé que no sabía que sujetaba el universo." },
 				{ S = "Cosme", T = "Cósimo. Vete. Esto no es tuyo." },
 				{ S = "Cosimo", T = "Todo es mío, Cosme. Lo será. Solo necesito que la costura ceda un poco más. Y tengo ayudantes. ¡Chicos!" },

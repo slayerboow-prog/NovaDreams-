@@ -154,7 +154,7 @@ return {
 		}, Effects = { Rel = { Abu = 6 } } },
 		Manana = { Lines = {
 			{ S = "Narrador", T = "Te despiertas con la luz que entra por una ventana que todavía no tiene cortinas. Es tu casa. Es tu vida." },
-			{ S = "Sara", T = "Buenos días. He hecho café. Y he etiquetado tu taza. Por si la confundías con la mía.", If = SARA },
+			{ S = "Sara", T = "{Saludo}. He hecho café. Y he etiquetado tu taza. Por si la confundías con la mía.", If = SARA },
 			{ S = "Luca", T = "¡Buongiorno! Hay pasta de ayer. En Italia, la pasta de ayer es desayuno. Es la ley.", If = LUCA },
 		} },
 	},

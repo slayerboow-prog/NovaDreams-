@@ -184,7 +184,7 @@ return {
 		},
 		Dialogues = {
 			Hola = { Lines = {
-				{ S = "Rex", T = "Buenas tardes. Soy Rex. Estudio segundo de Derecho. No fumo, no hago ruido, pago puntual. Tengo garras, pero las limo los domingos." },
+				{ S = "Rex", T = "{Saludo}. Soy Rex. Estudio segundo de Derecho. No fumo, no hago ruido, pago puntual. Tengo garras, pero las limo los domingos." },
 				{ S = "Yo", T = "Eres… ¿un dinosaurio?" },
 				{ S = "Rex", T = "Velocirraptor. De una línea temporal donde el meteorito falló por tres kilómetros. Allí los dinosaurios tenemos universidades, hipotecas y atascos." },
 				{ S = "Rex", T = "Vine aquí de Erasmus temporal. El programa se llama «Erasmus», sí. Igual que el vuestro. El universo es muy poco original." },
@@ -462,7 +462,7 @@ return {
 		},
 		Dialogues = {
 			Presentacion = { Lines = {
-				{ S = "Evaluador", T = "Buenas tardes, humano. Soy El Evaluador. Cada mil años examino a un planeta para ver si pasa de curso o repite." },
+				{ S = "Evaluador", T = "{Saludo}, humano. Soy El Evaluador. Cada mil años examino a un planeta para ver si pasa de curso o repite." },
 				{ S = "Evaluador", T = "Examino a un solo habitante al azar. Esta vez el azar ha elegido… a alguien que estaba subrayando con un fosforito sin tapa. A ti." },
 				{ S = "Yo", T = "¿Y si suspendo?" },
 				{ S = "Evaluador", T = "Si suspendes, la Tierra repite curso. Vuelta a los dinosaurios. Nada personal. Es burocracia cósmica." },

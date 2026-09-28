@@ -61,7 +61,7 @@ return {
 		},
 		Dialogues = {
 			Pip = { Lines = {
-				{ S = "Pip", T = "Buenos días. Llevo cuatrocientos doce días limpiando el polvo del garaje. Por si vuelve. Tiene que encontrarlo limpio. Si no, se queja." },
+				{ S = "Pip", T = "{Saludo}. Llevo cuatrocientos doce días limpiando el polvo del garaje. Por si vuelve. Tiene que encontrarlo limpio. Si no, se queja." },
 				{ S = "DonEscamas", T = "(Desde la pecera) He calculado nuestras posibilidades de rescatarle sin ayuda: un 3 %. Con ayuda: un 4 %. Pero con amigos, las matemáticas cambian." },
 				{ S = "Pip", T = "El señor dejó dicho que usted sabría qué hacer. Yo creo que lo dijo por decir. Pero aquí estamos." },
 			} },
@@ -371,7 +371,7 @@ return {
 		},
 		Dialogues = {
 			Anuncio = { Lines = {
-				{ S = "Cosimo", T = "(En todas las pantallas) ¡Buenas noches, Valmar! Tengo un anuncio. La Gran Fusión se celebrará en el Monte del Silencio. Cuando el Ancla ya no sea una criatura, sino una persona adulta con trabajo y facturas." },
+				{ S = "Cosimo", T = "(En todas las pantallas) ¡{Saludo}, Valmar! Tengo un anuncio. La Gran Fusión se celebrará en el Monte del Silencio. Cuando el Ancla ya no sea una criatura, sino una persona adulta con trabajo y facturas." },
 				{ S = "Cosimo", T = "Porque los adultos, querido público, están tan cansados que sueltan cualquier cosa. Hasta un universo. ¡No se lo pierdan! Entradas a la venta en MegaVerso." },
 				{ S = "Pip", T = "Nos da tiempo. Años. Tiempo para que el señor recupere la memoria. Y para prepararnos." },
 			} },

@@ -1128,6 +1128,7 @@ lighting.ClockTime = 17
 passTime(sol, 5)
 check(canonIds(sol).Loco_N1_Cosme and not canonIds(sol).Saga_02_Grieta, "Al empezar, el mapa marca la primera misión canónica (y solo esa)")
 check(playLoco(sol, "Loco_N1_Cosme") and solData.Story.Flags.GrietaVista, "1 · El vecino del garaje (canónica: empieza sola al llegar) y la línea verde del cielo")
+sol.At = "Parque" -- lejos del garaje (si no, la siguiente empieza sola y ya no tiene marca)
 passTime(sol, 5)
 check(canonIds(sol).Saga_02_Grieta and not canonIds(sol).Loco_N1_Cosme, "Hecha una, su marca desaparece y aparece la siguiente")
 check(playLoco(sol, "Saga_02_Grieta") and solData.Items.MonedaPerilla == 1 and said(sol, "…Cósimo."), "2 · La grieta en el cielo: la moneda con perilla y el nombre de Cósimo")
@@ -1177,6 +1178,7 @@ lighting.ClockTime = 12
 check(playLoco(nora, "Saga_16_66B") and noraData.Items.MapaMalvado == 1 and noraData.Story.Flags.ConoceTuMalvado, "16 · La dimensión 66-B y tu yo malvado")
 check(playLoco(nora, "Saga_17_Rescate") and noraData.Story.Flags.CosmeRescatado and not noraData.Story.Flags.CosmeSecuestrado, "17 · El rescate: desconectar la cápsula y huir de los drones")
 check(playLoco(nora, "Saga_18_Precio") and noraData.Items.FotoSinMemoria == 1 and noraData.Story.Flags.SagaActo3, "18 · El precio: Cosme no recuerda nada")
+check(said(nora, "¡Buenos días, Valmar!") and not said(nora, "{Saludo}"), "Los saludos van según la hora (a mediodía, Cósimo no dice «buenas noches»)")
 
 sagaStage("Adulto")
 nora.At = "Parque" -- se va del garaje (si no, la siguiente canónica empieza sola allí mismo)

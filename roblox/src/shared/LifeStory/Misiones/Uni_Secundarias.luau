@@ -314,7 +314,7 @@ return {
 			Castillo = { Lines = {
 				{ S = "Narrador", T = "Candela construye una réplica exacta de la facultad, con escala. Carla hace un dragón. Tú haces… un castillo. Con foso. Y una bandera de patata frita." },
 				{ S = "Narrador", T = "De repente la arena tiembla. Del mar sale un cangrejo enorme, con corbata y un maletín. Te mira por encima de las gafas." },
-				{ S = "DonPinzas", T = "Buenas tardes. Don Pinzas, abogado. Según el Tratado de las Mareas de 1734, esta playa pertenece a los crustáceos. Tienen diez minutos para desalojar. Firmen aquí." },
+				{ S = "DonPinzas", T = "{Saludo}. Don Pinzas, abogado. Según el Tratado de las Mareas de 1734, esta playa pertenece a los crustáceos. Tienen diez minutos para desalojar. Firmen aquí." },
 			} },
 			Final = { Lines = {
 				{ S = "Julia", T = "¿Hemos… luchado contra un cangrejo abogado? ¿Con cubos? Esto no lo pongo en mis memorias. Nadie me creería." },
@@ -484,7 +484,7 @@ return {
 		Duration = { 15, 20 },
 		Npcs = { "Tito", "Ivan", "Candela", "Portero" },
 		Offer = { Place = "HabitacionResidencia" },
-		OfferKey = "Hay alguien durmiendo en la cama de al lado. Te saluda: «¡Buenos días, compi!»",
+		OfferKey = "Hay alguien durmiendo en la cama de al lado. Te saluda: «¡Hola, compi!»",
 		Requires = uni({ Completed = { "Uni01b_Residencia", "UniS_Pabellon0" } }),
 		Moment = "Desenmascaraste al espía del Consorcio",
 		Memory = "TitoEspia",
@@ -513,7 +513,7 @@ return {
 		},
 		Dialogues = {
 			Hola = { Lines = {
-				{ S = "Tito", T = "¡Buenos días, compi! Soy Tito. Tu compañero de cuarto. De siempre. Desde el primer día. ¿No te acuerdas? Qué gracioso eres." },
+				{ S = "Tito", T = "¡{Saludo}, compi! Soy Tito. Tu compañero de cuarto. De siempre. Desde el primer día. ¿No te acuerdas? Qué gracioso eres." },
 				{ S = "Ivan", T = "(susurrando) Yo creo que sí me acuerdo de él. Creo. Me suena. Como una canción que no has oído nunca." },
 				{ S = "Tito", T = "Por cierto, compi, ¿tú nunca has notado nada raro en tu vida? ¿Luces? ¿Grietas? ¿Un vecino con inventos? Pregunto por nada. Por curiosidad de compi." },
 			} },
