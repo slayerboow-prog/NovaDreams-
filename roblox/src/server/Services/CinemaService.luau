@@ -49,6 +49,7 @@ type Order = {
 	Printed: boolean,
 	Created: number,
 	Player: Player?,
+	Paid: number?, -- lo que pagó el jugador (para devolvérselo si se va)
 	Customer: any?,
 }
 type Hall = {
@@ -208,7 +209,8 @@ local function deliver(hall: Hall, order: Order, by: Player?)
 	elseif order.Customer then
 		order.Customer.Served = true
 	end
-	if by then
+	-- El taquillero no cobra por venderse entradas a sí mismo
+	if by and order.Player ~= by then
 		local pay = math.floor((JOB.PerSale + JOB.PerTicket * order.Tickets + JOB.PerSnack * #order.Snacks) * MonetizationService.payMultiplier(by))
 		DataService.addMoney(by, pay, true)
 		local data = DataService.get(by)
@@ -303,6 +305,15 @@ local function onBuy(player: Player, count: any, snacks: any)
 	if not hall then
 		return
 	end
+	-- El taquillero de turno no se vende a sí mismo
+	if hall.Staff == player or staffOf[player] then
+		return
+	end
+	-- Cerrado y sin taquillero: nadie atendería el pedido
+	if not hall.Staff and not isOpen() then
+		Notify:FireClient(player, "Info", "La taquilla está cerrada. Vuelve más tarde.")
+		return
+	end
 	local total = Cinema.TicketPrice * count
 	local list = {}
 	for _, id in snacks do
@@ -325,7 +336,7 @@ local function onBuy(player: Player, count: any, snacks: any)
 	end
 	nextOrder += 1
 	local film = Cinema.session(now())
-	local order: Order = { Id = nextOrder, Name = player.DisplayName or player.Name, Film = film.Id, Tickets = count, Snacks = list, Served = {}, Printed = false, Created = os.clock(), Player = player }
+	local order: Order = { Id = nextOrder, Name = player.DisplayName or player.Name, Film = film.Id, Tickets = count, Snacks = list, Served = {}, Printed = false, Created = os.clock(), Player = player, Paid = total }
 	table.insert(hall.Orders, order)
 	Notify:FireClient(player, "Info", ("Pedido: %s (%s). Un momento…"):format(orderText(order), Format.money(total)))
 	publish(hall)
@@ -691,6 +702,17 @@ function CinemaService.init()
 	end)
 	Players.PlayerRemoving:Connect(function(player)
 		CinemaService.quit(player, true)
+		-- Sus pedidos pendientes se quitan y se le devuelve el dinero
+		for _, hall in halls do
+			for i = #hall.Orders, 1, -1 do
+				local order = hall.Orders[i]
+				if order.Player == player then
+					table.remove(hall.Orders, i)
+					DataService.addMoney(player, order.Paid or 0)
+				end
+			end
+			publish(hall)
+		end
 	end)
 	task.spawn(function()
 		while true do

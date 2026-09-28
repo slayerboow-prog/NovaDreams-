@@ -3900,7 +3900,7 @@ check(nearOk and not table.find(nowBuilt, 0), ("en la 6ª: montadas de la 4ª a 
 local perFloor = math.floor(parts / #nowBuilt)
 check(parts < 1500, ("piezas del edificio de 12 plantas: %d (unas %d por planta, tope 1500)"):format(parts, perFloor))
 -- La ascensor lleva a cualquier planta (y monta las de alrededor)
-walker:SetAttribute("ElevatorBuilding", tower.Id)
+InteriorService.openElevator(walker, tower) -- (el panel se abre desde el ascensor, donde está ahora)
 remotes.Interior.OnServerEvent:Fire(walker, "Floor", 11)
 local after = InteriorService.builtFloors(tower)
 check(walker:GetAttribute("TowerFloor") == 11 and table.find(after, 11) ~= nil and table.find(after, 9) ~= nil, "el ascensor te deja en la 11ª (y se monta alrededor)")

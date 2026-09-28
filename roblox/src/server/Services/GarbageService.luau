@@ -177,14 +177,18 @@ end
 
 local function makeRoute(route: Route)
 	local origin = if depot and unloadPart then unloadPart.Position else (rootOf(route.Player) or { Position = Vector3.zero } :: any).Position
-	local candidates = {}
+	local candidates, anyFree = {}, {}
 	for _, bin in CollectionService:GetTagged("Papelera") do
 		if bin:IsA("BasePart") and not busyBins[bin] and bin:IsDescendantOf(workspace) then
+			table.insert(anyFree, bin)
 			local d = Vector3.new(bin.Position.X - origin.X, 0, bin.Position.Z - origin.Z).Magnitude
 			if d >= G.MinDistance and d <= G.MaxDistance then
 				table.insert(candidates, bin)
 			end
 		end
+	end
+	if #candidates == 0 then
+		candidates = anyFree -- ninguna a buena distancia: vale cualquiera libre
 	end
 	route.Stops = {}
 	route.Phase = "Collect"
@@ -223,6 +227,16 @@ local function makeRoute(route: Route)
 		end)
 		stop.Prompt = prompt
 		table.insert(route.Stops, stop)
+	end
+	-- Todas las papeleras están cogidas: se vuelve a intentar en un rato (si no, te quedarías sin ruta)
+	if #route.Stops == 0 then
+		Notify:FireClient(route.Player, "Info", "Ahora no hay papeleras llenas. Espera un momento, que saldrán más.")
+		task.delay(15, function()
+			if routes[route.Player] == route and #route.Stops == 0 then
+				makeRoute(route)
+				publish(route)
+			end
+		end)
 	end
 end
 

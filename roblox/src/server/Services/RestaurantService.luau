@@ -232,6 +232,14 @@ local function removeOrder(order: Order)
 		order.Plate:Destroy()
 		order.Plate = nil
 	end
+	-- Si el camarero llevaba este plato (el cliente se ha ido), se le quita de las manos
+	for waiter, carry in carrying do
+		if carry.Order == order then
+			carry.Part:Destroy()
+			carrying[waiter] = nil
+			Notify:FireClient(waiter, "Info", ("El cliente de la mesa %d se ha ido: ya no hace falta ese plato."):format(order.TableId))
+		end
+	end
 	notifyBarman()
 end
 
