@@ -383,6 +383,17 @@ local function layoutDialogs()
 	end
 end
 
+-- ¿Hay una decisión o un ofrecimiento en pantalla? (abajo en el centro: la tarjeta de los primeros
+-- pasos, Controllers/Guide, espera a que se cierre)
+function LifeStory.hasDialog(): boolean
+	for _, panel in openDialogs do
+		if panel.Parent then
+			return true
+		end
+	end
+	return false
+end
+
 local function closeDialog(slot: string, panel: Frame)
 	if openDialogs[slot] == panel then
 		openDialogs[slot] = nil

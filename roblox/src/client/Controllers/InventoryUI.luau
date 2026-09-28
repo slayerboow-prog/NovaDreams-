@@ -865,6 +865,10 @@ function InventoryUI.close()
 	refreshAll()
 end
 
+function InventoryUI.isOpen(): boolean
+	return isOpen
+end
+
 function InventoryUI.toggle()
 	if isOpen then
 		InventoryUI.close()
