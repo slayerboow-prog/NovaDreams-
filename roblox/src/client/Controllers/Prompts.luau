@@ -19,6 +19,11 @@ local Prompts = {}
 
 local player = Players.LocalPlayer
 
+-- Un toque en el móvil: soltar antes de esto y sin arrastrar más de estos píxeles
+local TAP_TIME = 0.45
+local TAP_SLOP = 12
+local TAP_STILL = 0.15 -- (carteles de mantener: el dedo quieto encima este rato para empezar)
+
 -- Solo se dibuja el cartel del "foco": lo que hace la tecla E (lo elige el menú de comandos)
 local focus: ProximityPrompt? = nil
 local managed = false -- hasta que el menú de comandos elija, se ven todos (por si no arrancara)
@@ -146,17 +151,58 @@ local function show(prompt: ProximityPrompt, inputType: Enum.ProximityPromptInpu
 			TweenService:Create(key, TweenInfo.new(0.2), { BackgroundColor3 = rgb(20, 36, 70) }):Play()
 		end),
 	}
-	-- Tocar el cartel (móvil) o hacer clic en él
-	card.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-			prompt:InputHoldBegin()
-		end
-	end)
-	card.InputEnded:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+	-- Tocar el cartel (móvil) o hacer clic en él. En el móvil solo cuenta un toque de verdad: el
+	-- cartel flota en medio del mundo y el dedo que gira la cámara o mueve al personaje pasaba
+	-- por encima y lo activaba solo. Así que: tocar y soltar sin arrastrar (o, si hay que mantener,
+	-- dejar el dedo quieto encima).
+	local press: { Input: InputObject, From: Vector3, At: number, Holding: boolean }? = nil
+	local function cancelPress()
+		if press and press.Holding then
 			prompt:InputHoldEnd()
 		end
-	end)
+		press = nil
+	end
+	table.insert(connections, card.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			prompt:InputHoldBegin()
+		elseif input.UserInputType == Enum.UserInputType.Touch and input.UserInputState == Enum.UserInputState.Begin then
+			local current = { Input = input, From = input.Position, At = os.clock(), Holding = false }
+			press = current
+			if prompt.HoldDuration > 0 then
+				-- Mantener: empieza si el dedo sigue quieto encima un momento
+				task.delay(TAP_STILL, function()
+					if press == current and (input.Position - current.From).Magnitude <= TAP_SLOP and input.UserInputState ~= Enum.UserInputState.End then
+						current.Holding = true
+						prompt:InputHoldBegin()
+					end
+				end)
+			end
+		end
+	end))
+	table.insert(connections, UserInputService.InputChanged:Connect(function(input)
+		-- El dedo se mueve: era para la cámara o el joystick, no para el cartel
+		if press and input == press.Input and (input.Position - press.From).Magnitude > TAP_SLOP then
+			cancelPress()
+		end
+	end))
+	table.insert(connections, UserInputService.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			prompt:InputHoldEnd()
+			return
+		end
+		if not press or input ~= press.Input then
+			return
+		end
+		local current = press
+		press = nil
+		if current.Holding then
+			prompt:InputHoldEnd()
+		elseif prompt.HoldDuration <= 0 and os.clock() - current.At <= TAP_TIME and (input.Position - current.From).Magnitude <= TAP_SLOP then
+			-- Toque corto y sin arrastrar: ahora sí
+			prompt:InputHoldBegin()
+			prompt:InputHoldEnd()
+		end
+	end))
 
 	prompt.PromptHidden:Once(function()
 		shown[prompt] = nil
