@@ -313,7 +313,9 @@ local function buildModel(npc: string, player: Player, forcedScale: number?): Mo
 	local humanoid = model:FindFirstChildOfClass("Humanoid")
 	if humanoid then
 		humanoid.DisplayName = name
-		humanoid.NameDisplayDistance = 35
+		-- El nombre lo pinta el cliente (Controllers/NameTags: más legible y se esconde mientras habla)
+		humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+		CollectionService:AddTag(model, "NamedActor")
 		humanoid.WalkSpeed = if person and person.Kid then 15 else 13
 	end
 	-- Los compañeros de clase (Kid) crecen contigo: niños en el colegio, adolescentes en el instituto

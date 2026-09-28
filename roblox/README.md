@@ -115,6 +115,19 @@ rojo serve                                          # sincroniza en vivo con el 
 > ⚠️ Si editas scripts **dentro de Studio**, esos cambios no llegan a GitHub.
 > Lo ideal es pedirme los cambios a mí (o editar los `.luau`) y regenerar `RealLifeSimulator.rbxl`.
 
+### Publicar en Roblox
+
+```bash
+git pull origin claude/roblox-game-d98vy8   # traer lo último de todas las ventanas
+ROBLOX_API_KEY=… scripts/publish.sh          # comprueba, construye y publica
+```
+
+En Roblox siempre gana la última versión subida, así que `publish.sh` tiene un candado: se niega
+a publicar si la rama no es `claude/roblox-game-d98vy8`, si hay cambios sin guardar o si el código
+no está exactamente al día con GitHub (le faltan cambios de otras ventanas o tiene commits sin subir).
+Después compila, construye el juego con ese código y vuelve a comprobar GitHub justo antes de subirlo.
+Así nunca se publica una versión vieja que borre lo que han hecho las demás ventanas.
+
 Ver el [documento de diseño](docs/diseno/README.md), la [historia y jugabilidad](docs/historia/README.md) y la [hoja de ruta](ROADMAP.md) para lo que viene después.
 
 ### Pruebas automáticas
