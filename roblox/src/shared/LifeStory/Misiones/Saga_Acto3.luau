@@ -127,7 +127,8 @@ return {
 		},
 		Dialogues = {
 			Presidente = { Lines = {
-				{ S = "Bigotes", T = "Humano. Otra vez tú. Aquí soy presidente. En tu dimensión soy emperador exiliado. En todas soy el mejor. Es una constante universal." },
+				{ S = "Bigotes", T = "Humano. Otra vez tú. Aquí soy presidente. En tu dimensión soy emperador exiliado. En todas soy el mejor. Es una constante universal.", If = { Completed = { "Loco_N2_Bigotes" } } },
+				{ S = "Bigotes", T = "Humano. Tú eres el del cole. Allí mi otro yo duerme en el patio y finge no hablar. Aquí soy presidente. En todas las dimensiones soy el mejor. Es una constante universal.", If = { NotCompleted = { "Loco_N2_Bigotes" } } },
 				{ S = "Bigotes", T = "Me tocaste la barriga una vez. No lo he olvidado. Nunca lo olvidaré.", If = { Flags = { "DuqueDeGatonia" } } },
 				{ S = "Bigotes", T = "Ah, el Duque o Duquesa del Cojín. Siempre es un honor.", If = { Flags = { "DuqueDeGatonia" } } },
 				{ S = "Candela", T = "Señor presidente gato. Buscamos la dimensión 66-B. Tenemos un plan plastificado." },

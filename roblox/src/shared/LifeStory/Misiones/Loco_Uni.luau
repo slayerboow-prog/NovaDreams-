@@ -226,7 +226,8 @@ return {
 						{ S = "CazadorTiempo", T = "Pagar a tiempo. En mis cuatrocientos años de carrera, es el mejor argumento que he oído." },
 					} },
 				} },
-				{ S = "Cosme", T = "(Desde el fondo) Y si no vale, yo le hago unos papeles. Tengo una fotocopiadora que fotocopia en el pasado. Técnicamente, siempre tuvo visado." },
+				{ S = "Cosme", T = "(Desde el fondo) Y si no vale, yo le hago unos papeles. Tengo una fotocopiadora que fotocopia en el pasado. Técnicamente, siempre tuvo visado.", If = { NotFlags = { "CosmeSinMemoria" } } },
+				{ S = "Cosme", T = "(Desde el fondo) No sé quién es este dinosaurio. Tampoco sé quién soy yo, la verdad. Pero tengo una fotocopiadora rarísima en el garaje, y seguro que algo sabe hacer. Técnicamente, siempre tuvo visado.", If = { Flags = { "CosmeSinMemoria" } } },
 				{ S = "CazadorTiempo", T = "No he oído nada. …Recurso aceptado. Residencia temporal concedida. Sello. Sello. Y sello." },
 				{ S = "Rex", T = "¡GRAAAAH! Perdón. Es de alegría. Toma: un diente mío. En mi época es lo que se regala a los amigos. Me salen nuevos cada martes." },
 				{ S = "Narrador", T = "Recibes 🦖 el Diente de Rex." },
@@ -247,7 +248,7 @@ return {
 		Npcs = { "Cosme", "Bigotes", "Pip" },
 		Offer = { Place = "GarajeCosme" },
 		OfferKey = "Cosme te llama desde el garaje: «¡Criatura! ¿Te apetece ver otras dimensiones? Es para una cosa de ciencia. Y de ego.»",
-		Requires = { Stage = { Min = "AdultoJoven", Max = "AdultoJoven" }, NotFlags = { "CosmeSecuestrado" } }, -- con Cosme (no mientras está secuestrado)
+		Requires = { Stage = { Min = "AdultoJoven" }, NotFlags = { "CosmeSecuestrado", "CosmeSinMemoria" } }, -- con el Cosme de siempre: no mientras está secuestrado ni sin memoria (si pasa, queda para la vida adulta)
 		Moment = "Visitaste tres dimensiones con Cosme",
 		Memory = "Multiverso",
 		Rewards = { Items = { MandoDimensiones = 1 } },
@@ -279,7 +280,8 @@ return {
 		},
 		Dialogues = {
 			Mando = { Lines = {
-				{ S = "Cosme", T = "¡Criatura! ¡Cuánto has crecido! Ya estudias en la universidad… ¿Cuántos años tienes? No me lo digas. Me da igual. El tiempo es una ilusión. El alquiler, no." },
+				{ S = "Cosme", T = "¡Criatura! ¡Cuánto has crecido! Ya estudias en la universidad… ¿Cuántos años tienes? No me lo digas. Me da igual. El tiempo es una ilusión. El alquiler, no.", If = { Stage = { Max = "AdultoJoven" } } },
+				{ S = "Cosme", T = "¡Criatura! ¡Cuánto has crecido! Ya trabajas, pagas facturas… ¿Cuántos años tienes? No me lo digas. Me da igual. El tiempo es una ilusión. El alquiler, no.", If = { Stage = { Min = "Adulto" } } },
 				{ S = "Cosme", T = "Mira: el mando de dimensiones. Cada botón, una Valmar distinta. Hay infinitas. En una eres rico. En otra eres una silla. No toques el botón de la silla." },
 				{ S = "Pip", T = "El señor Cosme quiere presentarlo en un congreso de científicos. Necesita pruebas. Y un voluntario. El último voluntario fui yo. Ahora tengo un tornillo que canta." },
 				{ S = "Cosme", T = "He abierto tres portales: en el parque, en la plaza del centro y en la playa. Tú entras, miras, sales. Yo apunto. Ciencia." },
