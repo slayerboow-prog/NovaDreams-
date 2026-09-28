@@ -74,6 +74,11 @@ local function onDuty(player: Player): boolean
 	return player:GetAttribute("Job") == "Policia"
 end
 
+-- Preso, en un juicio o muerto: la policía no viene a por ti (ya está la justicia)
+local function outOfReach(player: Player): boolean
+	return player:GetAttribute("JailUntil") ~= nil or player:GetAttribute("OnTrial") ~= nil or player:GetAttribute("Dead") ~= nil
+end
+
 local function setStars(player: Player, stars: number)
 	local state = stateOf(player)
 	state.Stars = stars
@@ -157,8 +162,8 @@ end
 
 -- Suma estrellas por un delito ya denunciado
 local function report(player: Player, crime: string, how: string)
-	if not player.Parent then
-		return
+	if not player.Parent or outOfReach(player) then
+		return -- (el aviso llega tarde: ya estás preso, en un juicio o muerto)
 	end
 	local state = stateOf(player)
 	local before = state.Stars
@@ -223,7 +228,7 @@ end
 ---------------------------------------------------------------------
 function WantedService.arrest(player: Player, cop: Player?)
 	local state = stateOf(player)
-	if state.Stars <= 0 or state.Arresting then
+	if state.Stars <= 0 or state.Arresting or outOfReach(player) then
 		return
 	end
 	state.Arresting = true
@@ -276,6 +281,11 @@ local function steal(thief: Player, victim: any)
 		return
 	end
 	if victim:GetAttribute("InDialogue") or victim:GetAttribute("LifeStage") == "Bebe" then
+		return
+	end
+	-- En la cárcel o en un juicio no se roba (dentro no viene la policía: saldría gratis)
+	if thief:GetAttribute("JailUntil") or thief:GetAttribute("OnTrial") or victim:GetAttribute("JailUntil") or victim:GetAttribute("OnTrial") then
+		Notify:FireClient(thief, "Error", "Aquí no puedes robar.")
 		return
 	end
 	state.StealAt = os.clock()
@@ -333,7 +343,7 @@ end
 ---------------------------------------------------------------------
 local function watchWanted(player: Player, state: State)
 	local r = rootOf(player)
-	if not r or state.Arresting then
+	if not r or state.Arresting or outOfReach(player) then
 		return
 	end
 	local now = os.clock()
@@ -374,6 +384,7 @@ local function watchWanted(player: Player, state: State)
 		state.CatchSince = state.CatchSince or now
 		if knocked or now - state.CatchSince >= Wanted.CatchSeconds then
 			WantedService.arrest(player, nil)
+			return -- (ya sin estrellas: no hace falta patrulla)
 		end
 	else
 		state.CatchSince = nil
@@ -479,7 +490,7 @@ local function onStoryEvent(player: Player, name: string, payload: { [string]: a
 	WantedService.crime(player, if payload.Killed then "Homicidio" elseif payload.KO then "KO" else "Agresion")
 end
 
--- Sin estrellas (al morir)
+-- Sin estrellas
 function WantedService.clear(player: Player)
 	setStars(player, 0)
 end

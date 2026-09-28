@@ -893,7 +893,12 @@ local function stock(player: Player, key: string, id: string, count: number)
 	if not rec or not bizType or not good or good.Item ~= id or not Business.canSell(bizType, id) then
 		return
 	end
-	count = math.clamp(math.floor(count), 1, InventoryService.count(player, id))
+	local have = InventoryService.count(player, id)
+	if have < 1 then
+		Notify:FireClient(player, "Info", "No llevas de eso.")
+		return
+	end
+	count = math.clamp(math.floor(count), 1, have)
 	local room = Business.stockMax(good) - (rec.Stock[id] or 0)
 	count = math.min(count, room)
 	if count < 1 then
@@ -951,7 +956,15 @@ local function unstock(player: Player, key: string, id: string)
 		return true, n
 	end)
 	if saved and taken and taken > 0 then
-		InventoryService.add(player, id, taken)
+		if not InventoryService.add(player, id, taken) then
+			-- La mochila se llenó mientras se guardaba: vuelve a la tienda
+			mutate(key, function(r)
+				r.Stock[id] = (r.Stock[id] or 0) + taken
+				return true, nil
+			end)
+			Notify:FireClient(player, "Error", "🎒 No te cabe en la mochila.")
+			return
+		end
 		Notify:FireClient(player, "Info", ("🎒 Has retirado %d %s"):format(taken, good.Name:lower()))
 	end
 end
@@ -1393,18 +1406,31 @@ local function buy(player: Player, key: string, id: string, count: number)
 		if r.Owner ~= rec.Owner or Business.priceOf(r, id) * count > price + 0.001 then
 			return false, false
 		end
-		local sold = Business.sell(r, id, count)
+		local sold, total = Business.sell(r, id, count)
 		if sold and r.Owner ~= player.UserId then
 			Business.log(r, now(), ("%s te ha comprado %d %s"):format(nameOf(player), count, good.Name:lower()))
 		end
-		return sold, sold
+		return sold, if sold then total else nil
 	end)
 	if not saved or not ok then
 		DataService.addMoney(player, price)
 		Notify:FireClient(player, "Error", "Ya no queda. ¡Se te han adelantado!")
 		return
 	end
-	InventoryService.add(player, id, count)
+	if not InventoryService.add(player, id, count) then
+		-- La mochila se llenó mientras se guardaba: se devuelve el dinero y el género vuelve a la tienda
+		local total = ok :: number
+		mutate(key, function(r)
+			r.Stock[id] = (r.Stock[id] or 0) + count
+			r.Till = math.max(0, r.Till - total)
+			r.Sales = math.max(0, r.Sales - total)
+			r.Units = math.max(0, r.Units - count)
+			return true, nil
+		end)
+		DataService.addMoney(player, price)
+		Notify:FireClient(player, "Error", "🎒 No te cabe en la mochila.")
+		return
+	end
 	Notify:FireClient(player, "Success", ("🛍️ +%d %s (%s)"):format(count, good.Name:lower(), Format.money(price)))
 	local owner = Players:GetPlayerByUserId(rec.Owner)
 	if owner and owner ~= player then
@@ -1810,6 +1836,12 @@ function BusinessService.init()
 		lastRequest[player] = t
 		if type(action) ~= "string" or type(key) ~= "string" or not premises[key] then
 			return
+		end
+		-- Números raros desde el cliente (NaN, infinito, enormes): fuera
+		for _, value in { a, b } do
+			if type(value) == "number" and (value ~= value or math.abs(value) > 1e6) then
+				return
+			end
 		end
 		local premise = premises[key]
 		if action == "Panel" then

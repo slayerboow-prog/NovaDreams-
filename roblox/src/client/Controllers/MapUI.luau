@@ -146,6 +146,16 @@ end
 ---------------------------------------------------------------------
 
 -- El norte (−Z) queda arriba: X del mundo -> x de pantalla, Z del mundo -> y de pantalla
+-- Dónde está alguien en el mapa: dentro de un edificio (salas en el cielo) es la puerta de ese
+-- edificio en la calle, no la sala. Devuelve algo con Position y CFrame, como la pieza.
+local function mapRoot(who: Player, root: BasePart?): any
+	local door = who:GetAttribute("InteriorDoor")
+	if root and typeof(door) == "Vector3" then
+		return { Position = door, CFrame = CFrame.new(door) * root.CFrame.Rotation }
+	end
+	return root
+end
+
 local function toPixel(layer: Layer, x: number, z: number): Vector2
 	return Vector2.new((x - layer.Min.X) / layer.Scale, (z - layer.Min.Y) / layer.Scale)
 end
@@ -603,7 +613,8 @@ local function updateLayer(layer: Layer, root: BasePart?, clampTo: number?)
 				}, { Theme.corner(4), create("UIStroke", { Color = Color3.new(1, 1, 1), Thickness = 1 }) })
 				layer.Dots[other] = dot
 			end
-			local p = toPixel(layer, otherRoot.Position.X, otherRoot.Position.Z)
+			local at = mapRoot(other, otherRoot).Position
+			local p = toPixel(layer, at.X, at.Z)
 			dot.Position = UDim2.fromOffset(p.X, p.Y)
 		end
 	end
@@ -700,7 +711,7 @@ local function setBigOpen(open: boolean)
 	bigGui.Enabled = open
 	if open then
 		ensureBigLayer()
-		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+		local root = mapRoot(player, player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?)
 		if root and zoom <= 1 then
 			centerOn(root.Position, 1.6)
 		end
@@ -1090,7 +1101,7 @@ local function buildBig()
 		setZoom(zoom / 1.4, holderSize / 2)
 	end)
 	roundButton(holder, "🎯", 12, function()
-		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+		local root = mapRoot(player, player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?)
 		if root then
 			centerOn(root.Position, math.max(zoom, 2))
 		else
@@ -1240,7 +1251,7 @@ function MapUI.init()
 		end
 		elapsed = 0
 		local character = player.Character
-		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+		local root = mapRoot(player, character and character:FindFirstChild("HumanoidRootPart") :: BasePart?)
 		-- El minimapa se mueve para que tú estés siempre en el centro
 		local inner = MINI_SIZE - 8
 		local zoom = MINI_ZOOMS[miniZoom]

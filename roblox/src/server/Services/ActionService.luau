@@ -164,9 +164,9 @@ function ActionService.init()
 			player:SetAttribute("Stance", "Stand")
 		end
 	end
-	Players.PlayerAdded:Connect(function(player)
+	local function onPlayer(player: Player)
 		player:SetAttribute("Stance", "Stand")
-		player.CharacterAdded:Connect(function(character)
+		local function onCharacter(character: Model)
 			player:SetAttribute("Flashlight", false)
 			standUp(player)
 			local humanoid = character:WaitForChild("Humanoid", 10) :: Humanoid?
@@ -180,7 +180,11 @@ function ActionService.init()
 					standUp(player)
 				end)
 			end
-		end)
+		end
+		player.CharacterAdded:Connect(onCharacter)
+		if player.Character then
+			task.spawn(onCharacter, player.Character)
+		end
 		for _, attribute in { "Riding", "Passenger" } do
 			player:GetAttributeChangedSignal(attribute):Connect(function()
 				if player:GetAttribute(attribute) ~= nil then
@@ -188,7 +192,12 @@ function ActionService.init()
 				end
 			end)
 		end
-	end)
+	end
+	Players.PlayerAdded:Connect(onPlayer)
+	-- (los que ya estaban dentro antes de que arrancara este servicio)
+	for _, player in Players:GetPlayers() do
+		task.spawn(onPlayer, player)
+	end
 	Players.PlayerRemoving:Connect(function(player)
 		lastStance[player] = nil
 		lastVault[player] = nil

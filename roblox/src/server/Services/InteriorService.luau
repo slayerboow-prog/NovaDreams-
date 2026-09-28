@@ -86,6 +86,7 @@ local EMPTY_SECONDS = 30
 
 local buildings: { [number]: Building } = {}
 local instances: { [string]: Instance_ } = {}
+local elevatorOpen: { [Player]: { At: number, Position: Vector3? } } = {} -- ascensor abierto por cada jugador (dónde y cuándo)
 local freeSlots: { number } = {}
 local nextSlot = 0
 local folder: Folder
@@ -537,7 +538,16 @@ local function goToLanding(player: Player, building: Building, floor: number, at
 	local inst = towerOf(building, true) :: Instance_
 	local t = inst.Tower :: TowerState
 	floor = math.clamp(floor, 0, t.Plan.Top)
-	streamFloors(inst, { floor })
+	-- Las plantas en las que están los demás no se quitan (se caerían al vacío)
+	local wanted = { floor }
+	local towerKey = building.Id .. ":T"
+	for _, other in Players:GetPlayers() do
+		local at = other:GetAttribute("TowerFloor")
+		if other ~= player and other:GetAttribute("InteriorKey") == towerKey and type(at) == "number" then
+			table.insert(wanted, at)
+		end
+	end
+	streamFloors(inst, wanted)
 	inst.EmptySince = nil
 	player:SetAttribute("InteriorKey", building.Id .. ":T")
 	player:SetAttribute("InteriorDoor", building.Door + building.Out * 3)
@@ -729,6 +739,8 @@ local function openElevator(player: Player, building: Building)
 		return
 	end
 	player:SetAttribute("ElevatorBuilding", building.Id)
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	elevatorOpen[player] = { At = os.clock(), Position = if root then root.Position else nil }
 	local labels = {}
 	local getLabels = InteriorService.Hooks.Labels
 	if getLabels then
@@ -934,6 +946,15 @@ local function addDoor(building: Building)
 		Attributes = { BuildingId = building.Id, Kind = building.Kind },
 		Parent = folder,
 	})
+	if building.Roof then
+		-- En la azotea, el ascensor para volver a bajar
+		local roof = Builder.part({ Name = "RoofElevator", Size = Vector3.new(4, 6, 4), CFrame = CFrame.new(building.Roof), Transparency = 1, CanCollide = false, CanQuery = false, CanTouch = false, Parent = folder })
+		local down = Builder.prompt(roof, "Ascensor", "🏢 Bajar", 0.2)
+		down.MaxActivationDistance = 10
+		down.Triggered:Connect(function(player)
+			openElevator(player, building)
+		end)
+	end
 	if building.Walkable then
 		-- Ya se entra andando: el ascensor, dentro, al fondo de la planta baja
 		if building.Floors >= 2 then
@@ -1166,7 +1187,18 @@ function InteriorService.init()
 
 	Remote.OnServerEvent:Connect(function(player: Player, kind: any, value: any)
 		if kind == "Floor" and type(value) == "number" then
+			if value ~= value or math.abs(value) > 1000 then
+				return
+			end
 			local building = buildings[player:GetAttribute("ElevatorBuilding") or 0]
+			-- Solo desde el ascensor que acabas de abrir (no desde cualquier sitio ni mucho después)
+			local opened = elevatorOpen[player]
+			elevatorOpen[player] = nil
+			player:SetAttribute("ElevatorBuilding", nil)
+			local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+			if not opened or os.clock() - opened.At > 60 or not root or not opened.Position or (root.Position - opened.Position).Magnitude > 25 then
+				return
+			end
 			if not building or busy(player) then
 				return
 			end
@@ -1179,6 +1211,10 @@ function InteriorService.init()
 			end
 			goTo(player, building, floor, true)
 		end
+	end)
+
+	Players.PlayerRemoving:Connect(function(player)
+		elevatorOpen[player] = nil
 	end)
 
 	-- Al morir o reaparecer ya no estás dentro de ninguna sala

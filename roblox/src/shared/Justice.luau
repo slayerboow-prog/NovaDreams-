@@ -39,6 +39,9 @@ function Justice.verdict(kind: string, stars: number, minutes: number?): (number
 	elseif kind == "Multa" then
 		return Justice.FinePerStar * s, 0
 	end
+	if minutes and (minutes ~= minutes or math.abs(minutes) == math.huge) then
+		minutes = nil -- (NaN o infinito: lo mínimo)
+	end
 	local m = math.clamp(math.floor(minutes or 1), 1, Justice.MaxMinutes)
 	return Justice.FinePerStar * s, m * 60
 end

@@ -840,6 +840,12 @@ function SceneService.teleportTo(player: Player, target: Vector3)
 	if not root then
 		return
 	end
+	-- A la calle (las salas de los edificios están en el cielo): ya no estás dentro de ninguna
+	if target.Y < 3000 and player:GetAttribute("InteriorKey") then
+		player:SetAttribute("InteriorKey", nil)
+		player:SetAttribute("InteriorDoor", nil)
+		player:SetAttribute("TowerFloor", nil)
+	end
 	pcall(function()
 		player:RequestStreamAroundAsync(target, 3)
 	end)

@@ -118,7 +118,7 @@ local function panelData(player: Player, ctx: Context): { [string]: any }
 	table.sort(bag, function(a, b)
 		return a.Id < b.Id
 	end)
-	return { Title = ctx.Title or "🧊 Nevera", Inside = inside, Bag = bag, Space = Fridge.MaxStock - Fridge.total(stock), Empty = #inside == 0 }
+	return { Title = ctx.Title or "🧊 Nevera", Inside = inside, Bag = bag, Space = Fridge.MaxStock - Fridge.total(stock), Empty = #inside == 0, Guest = ctx.Owner ~= player }
 end
 
 -- Abre el panel de la nevera (modo "Stock")
@@ -163,7 +163,11 @@ end
 function FridgeService.takeOut(player: Player, id: string): boolean
 	local s = sessionOf(player)
 	local ctx = s and s.Context
-	local stock = ctx and ctx.Owner and ctx.Key and FridgeService.stock(ctx.Owner, ctx.Key)
+	-- Los invitados solo comen: llevarse la comida de otro a la mochila, no
+	if not ctx or ctx.Owner ~= player then
+		return false
+	end
+	local stock = ctx.Owner and ctx.Key and FridgeService.stock(ctx.Owner, ctx.Key)
 	if not stock or (stock[id] or 0) <= 0 or not InventoryService.canAdd(player, id, 1) then
 		return false
 	end

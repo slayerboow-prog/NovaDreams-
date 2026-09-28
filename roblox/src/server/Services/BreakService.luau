@@ -485,14 +485,16 @@ function BreakService.init()
 			throw(player, data)
 		end
 	end)
-	Players.PlayerAdded:Connect(function(player)
+	local function onPlayer(player: Player)
 		player:SetAttribute("Stones", 0)
 		player.CharacterAdded:Connect(function()
 			player:SetAttribute("Stones", 0) -- al reaparecer, sin piedras
 		end)
-	end)
+	end
+	Players.PlayerAdded:Connect(onPlayer)
+	-- (los que ya estaban dentro antes de que arrancara este servicio)
 	for _, player in Players:GetPlayers() do
-		player:SetAttribute("Stones", 0)
+		task.spawn(onPlayer, player)
 	end
 	Players.PlayerRemoving:Connect(function(player)
 		lastPick[player] = nil

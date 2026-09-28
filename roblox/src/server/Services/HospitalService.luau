@@ -1,8 +1,9 @@
 -- HospitalService: la muerte y el reaparecer en el hospital (reglas en shared/Hospital).
 --
--- Al morir (Humanoid.Died) se avisa al cliente (pantalla de HAS MUERTO), se pierden las
--- estrellas de búsqueda y, al reaparecer, se lleva al jugador delante del hospital más cercano
--- al sitio donde murió y se le cobra la factura. Los presos reaparecen en su celda.
+-- Al morir (Humanoid.Died) se avisa al cliente (pantalla de HAS MUERTO) y, al reaparecer, se lleva
+-- al jugador delante del hospital más cercano al sitio donde murió y se le cobra la factura. Morir
+-- no libra de la búsqueda: si te buscaban, al reaparecer te detienen (a disposición judicial).
+-- Los presos reaparecen en su celda (o en la de aislamiento, si estaban castigados).
 -- Para las misiones: StoryEvents "Died" y "Revived".
 
 local Players = game:GetService("Players")
@@ -15,6 +16,7 @@ local SceneService = require(script.Parent.SceneService)
 local InteriorService = require(script.Parent.InteriorService)
 local WantedService = require(script.Parent.WantedService)
 local JusticeService = require(script.Parent.JusticeService)
+local PrisonService = require(script.Parent.PrisonService)
 
 local HospitalService = {}
 
@@ -75,31 +77,27 @@ end
 
 local function onDied(player: Player, character: Model)
 	local root = character:FindFirstChild("HumanoidRootPart") :: BasePart?
-	diedAt[player] = if root then root.Position else Vector3.zero
+	-- Dentro de un edificio (las salas están en el cielo): cuenta la puerta por la que entraste
+	local door = player:GetAttribute("InteriorDoor")
+	diedAt[player] = if typeof(door) == "Vector3" then door elseif root then root.Position else Vector3.zero
 	player:SetAttribute("Dead", true)
+	player:SetAttribute("KO", nil)
 	if player:GetAttribute("Riding") then
 		player:SetAttribute("Riding", nil)
 	end
-	pcall(function()
-		if WantedService.stars(player) > 0 then
-			WantedService.clear(player)
-		end
-	end)
+	-- (las estrellas se quedan: al reaparecer te detienen)
 	StoryEvents.emit(player, "Died", {})
 	Remote:FireClient(player, "Died", { Seconds = Hospital.RespawnSeconds, Jailed = JusticeService.isJailed(player) })
 end
 
-local function onRespawn(player: Player, character: Model)
-	local from = diedAt[player]
-	if not from then
-		return
-	end
-	diedAt[player] = nil
-	player:SetAttribute("Dead", nil)
+local function revive(player: Player, character: Model, from: Vector3)
 	character:WaitForChild("HumanoidRootPart", 10)
 	task.wait(0.2)
 	if JusticeService.isJailed(player) then
-		JusticeService.sendToCell(player)
+		-- Castigado en aislamiento: vuelve allí (el tiempo sigue corriendo)
+		if not PrisonService.sendToIsolation(player) then
+			JusticeService.sendToCell(player)
+		end
 		Remote:FireClient(player, "Revived", { Jailed = true })
 		StoryEvents.emit(player, "Revived", { Jailed = true })
 		return
@@ -115,6 +113,24 @@ local function onRespawn(player: Player, character: Model)
 	end
 	Remote:FireClient(player, "Revived", { Bill = bill })
 	StoryEvents.emit(player, "Revived", { Bill = bill })
+end
+
+local function onRespawn(player: Player, character: Model)
+	local from = diedAt[player]
+	if not from then
+		return
+	end
+	diedAt[player] = nil
+	local ok, err = pcall(revive, player, character, from)
+	if not ok then
+		warn("[Hospital] " .. tostring(err))
+	end
+	-- Hasta aquí seguía «muerto» (la policía no le da por escapado mientras reaparece).
+	-- Si le buscaban, morir no le libra: detenido como si le hubieran alcanzado (sin premio a nadie)
+	player:SetAttribute("Dead", nil)
+	if player.Parent and not JusticeService.isJailed(player) and WantedService.stars(player) > 0 then
+		WantedService.arrest(player, nil)
+	end
 end
 
 function HospitalService.isDead(player: Player): boolean

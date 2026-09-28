@@ -92,6 +92,7 @@ end
 local function claim(buildingKey: string, slot: string, owner: Owner?, onlyIf: number?): boolean
 	local okChange = false
 	local function change(old: any): any
+		okChange = false -- UpdateAsync puede repetir esta función: vale lo de la última vez
 		local data = if type(old) == "table" then old else {}
 		local current = data[slot]
 		if owner and current then

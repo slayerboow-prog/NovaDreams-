@@ -269,7 +269,7 @@ function JobService.init()
 	end)
 
 	-- Si el jugador muere, pierde lo que llevaba y vuelve a la fase de recogida
-	Players.PlayerAdded:Connect(function(player)
+	local function onPlayer(player: Player)
 		player.CharacterAdded:Connect(function()
 			local shift = shifts[player]
 			if shift then
@@ -277,7 +277,12 @@ function JobService.init()
 				nextTask(player, shift, nil)
 			end
 		end)
-	end)
+	end
+	Players.PlayerAdded:Connect(onPlayer)
+	-- (los que ya estaban dentro antes de que arrancara este servicio)
+	for _, player in Players:GetPlayers() do
+		task.spawn(onPlayer, player)
+	end
 
 	-- Comprobar llegadas 4 veces por segundo
 	task.spawn(function()

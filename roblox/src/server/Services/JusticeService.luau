@@ -142,13 +142,23 @@ local function record(player: Player, entry: { [string]: any })
 	player:SetAttribute("Records", #data.Record)
 end
 
-local function sentence(player: Player, fine: number, seconds: number, kind: string, judge: Player?, crimes: { string })
+-- Lo que queda apuntado de una sentencia: la multa, los antecedentes y la condena en la partida
+-- (data.Jail). Va aparte para que se guarde ya, aunque salgas del juego antes de ir a la celda.
+local function charge(player: Player, fine: number, seconds: number, kind: string, judge: Player?, crimes: { string }): number
 	local data = DataService.get(player)
 	local paid = math.min(fine, if data then data.Money else 0)
 	if paid > 0 then
 		DataService.addMoney(player, -paid)
 	end
 	record(player, { Time = os.time(), Crimes = crimes, Fine = paid, Seconds = seconds, Verdict = kind, Judge = judge and judge.DisplayName })
+	if data then
+		data.Jail = if seconds > 0 then { Until = os.time() + math.floor(seconds), Reason = table.concat(crimes, ", "), Tunnel = 0, Course = 0 } else nil
+	end
+	return paid
+end
+
+-- Se le comunica la sentencia y se cumple (a la celda, o sale libre)
+local function announce(player: Player, paid: number, seconds: number, kind: string, judge: Player?, crimes: { string })
 	Remote:FireClient(player, "Sentence", { Kind = kind, Fine = paid, Seconds = seconds, Judge = judge and judge.DisplayName })
 	StoryEvents.emit(player, "Sentenced", { Kind = kind, Seconds = seconds })
 	if seconds > 0 then
@@ -160,6 +170,10 @@ local function sentence(player: Player, fine: number, seconds: number, kind: str
 			SceneService.teleportTo(player, (exit.CFrame * CFrame.new(0, 0, -16)).Position)
 		end
 	end
+end
+
+local function sentence(player: Player, fine: number, seconds: number, kind: string, judge: Player?, crimes: { string })
+	announce(player, charge(player, fine, seconds, kind, judge, crimes), seconds, kind, judge, crimes)
 end
 
 local function closeCase(case: Case, kind: string, minutes: number?)
@@ -180,11 +194,14 @@ local function closeCase(case: Case, kind: string, minutes: number?)
 		fine, seconds = Justice.verdict(kind, case.Stars, minutes)
 	end
 	local judge = case.Judge
-	if judge and judge.Parent and kind ~= "Auto" then
+	-- Absolver no se paga (si no, un juez y un amigo buscado podrían hacer caja sin fin)
+	if judge and judge.Parent and kind ~= "Auto" and kind ~= "Absolver" then
 		DataService.addMoney(judge, Justice.JudgePay, true)
 		Notify:FireClient(judge, "Money", ("⚖ Caso cerrado: +%s"):format(Format.money(Justice.JudgePay)))
 		CareerService.addPoints(judge, "Justicia", "Case")
 		StoryEvents.emit(judge, "JobTaskDone", { JobId = "Juez", Pay = Justice.JudgePay })
+	end
+	if judge and judge.Parent and kind ~= "Auto" then
 		Remote:FireClient(judge, "CaseClosed", { Id = case.Id })
 	end
 	sentence(case.Accused, fine, seconds, kind, if kind ~= "Auto" then judge else nil, case.Crimes)
@@ -214,9 +231,12 @@ function JusticeService.process(player: Player, stars: number, crimes: { string 
 	if not judge then
 		local fine, seconds = Justice.automatic(stars)
 		Notify:FireClient(player, "Info", "⚖ No hay juez de guardia: sentencia automática.")
+		-- Se apunta ya (si sales del juego en estos segundos, la condena se guarda igual);
+		-- la espera es solo para que se vea la pantalla de detenido
+		local paid = charge(player, fine, seconds, "Auto", nil, crimes)
 		task.delay(3, function()
 			if player.Parent then
-				sentence(player, fine, seconds, "Auto", nil, crimes)
+				announce(player, paid, seconds, "Auto", nil, crimes)
 			end
 		end)
 		return
@@ -225,12 +245,25 @@ function JusticeService.process(player: Player, stars: number, crimes: { string 
 	local case: Case = { Id = nextCase, Accused = player, Judge = judge, Stars = stars, Crimes = crimes, Done = false }
 	cases[case.Id] = case
 	player:SetAttribute("OnTrial", true)
+	-- Mientras dura el juicio queda apuntada la condena automática: si te vas, se guarda con la
+	-- partida (el veredicto del juez la cambia o la quita)
+	local data = DataService.get(player)
+	local _, provisional = Justice.automatic(stars)
+	if data and provisional > 0 then
+		data.Jail = { Until = os.time() + math.floor(provisional), Reason = table.concat(crimes, ", "), Tunnel = 0, Course = 0 }
+	end
 	task.delay(3, function()
+		if case.Done then
+			return -- (ya sentenciado: se fue el juez o el acusado)
+		end
 		-- Al juzgado: el acusado al banquillo y el juez al estrado
 		local dock, bench = tagged("CourtDock"), tagged("CourtJudge")
 		if dock and player.Parent then
 			SceneService.teleportTo(player, dock.Position)
 			task.wait(0.4)
+			if case.Done then
+				return
+			end
 			anchor(player, true)
 		end
 		if bench and judge.Parent then
@@ -287,7 +320,9 @@ function JusticeService.init()
 	Remote.OnServerEvent:Connect(function(player: Player, kind: any, a: any, b: any, c: any)
 		if kind == "Verdict" and type(a) == "number" then
 			local case = cases[a]
-			if case and case.Judge == player and (b == "Absolver" or b == "Multa" or b == "Prision") then
+			-- (minutos raros —NaN o infinito— no valen)
+			local bad = type(c) == "number" and (c ~= c or math.abs(c) == math.huge)
+			if case and case.Judge == player and not bad and (b == "Absolver" or b == "Multa" or b == "Prision") then
 				closeCase(case, b, if type(c) == "number" then c else nil)
 			end
 		elseif kind == "Release" then

@@ -382,6 +382,10 @@ end
 
 -- Ajusta cuántas patrullas persiguen a este jugador según sus estrellas
 function PoliceUnits.ensure(player: Player, stars: number)
+	if stars <= 0 then
+		PoliceUnits.dismiss(player) -- (sin estrellas no queda ninguna patrulla)
+		return
+	end
 	local force = forceOf(player)
 	force.Stars = stars
 	local want = Wanted.response(stars)
