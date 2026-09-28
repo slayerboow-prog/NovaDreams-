@@ -6,8 +6,20 @@
 --   * Al entrar se monta su interior (World/Interiors) en una zona oculta, lejos de la ciudad, y
 --     te lleva allí; "Salir" te devuelve a la calle, delante de la puerta. Las salas se quitan
 --     solas cuando se quedan vacías (así el móvil no carga 900 interiores a la vez).
---   * Los edificios de varias plantas tienen ascensor: eliges planta (panel del cliente, InteriorUI).
+--   * Los edificios de varias plantas (bloques de pisos, oficinas, facultades, comercios con pisos,
+--     la residencia) son un edificio de verdad por dentro (World/Tower, shared/Floors): portal con la
+--     puerta a la calle, escalera que se sube andando (dos tramos por planta, con descansillo y el
+--     número de la planta) y ascensor. En cada planta, un pasillo con puertas numeradas (3ºA, 3ºB…,
+--     Oficina 301, Hab. 204): cada puerta lleva a su vivienda, oficina, aula o local, que se monta
+--     al entrar (y al salir vuelves al pasillo, delante de su puerta). Solo están montadas las
+--     plantas a ±2 de algún jugador; las demás se montan al subir o bajar y se quitan al alejarse.
+--     Clave de la sala (atributo InteriorKey): "id:T" la escalera y los pasillos, "id:3B" una puerta.
+--   * Quién vive detrás de cada puerta: un jugador (PropertyService), vecinos ("Llamar": contestan y
+--     a veces te dejan pasar), en venta ("Visitar"), una empresa (abierta de 8:00 a 20:00), "SE
+--     ALQUILA", la tienda de la calle o las aulas.
+--   * El ascensor lleva a cualquier planta (panel del cliente, InteriorUI).
 --     En la Torre de Valmar se puede subir a la azotea (la de verdad, con vistas).
+--   * Las casas de dos plantas tienen su escalera por dentro y arriba un pasillo con habitaciones.
 --   * Los edificios que ya tienen planta baja de verdad (tiendas, colegio, hospital, comisaría…)
 --     solo ganan el ascensor a sus plantas de arriba.
 --   * Cada sala sale amueblada y decorada a su manera (World/Interiors con World/Furniture), con un
@@ -22,7 +34,9 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Floors = require(ReplicatedStorage.Shared.Floors)
 local Interiors = require(script.Parent.Parent.World.Interiors)
+local Tower = require(script.Parent.Parent.World.Tower)
 local Builder = require(script.Parent.Parent.World.Builder)
 local SceneService = require(script.Parent.SceneService)
 
@@ -42,12 +56,24 @@ export type Building = {
 	Shop: string?, -- comercios: lo que pone su cartel (el interior va a juego: farmacia, banco, bar…)
 	Roof: Vector3?, -- azotea de verdad (Torre de Valmar)
 	Persistent: boolean?,
+	Residence: boolean?, -- residencia universitaria (bloque del campus con habitaciones)
 }
-export type Instance_ = { Room: Interiors.Room, Slot: number, Building: Building, Floor: number, EmptySince: number? }
+-- Edificio de varias plantas montado: sus plantas (solo las que están cerca de alguien)
+export type TowerState = { Plan: Tower.Plan, Origin: CFrame, Built: { [number]: Tower.Built } }
+export type Instance_ = {
+	Room: Interiors.Room,
+	Slot: number,
+	Building: Building,
+	Floor: number,
+	Unit: string?, -- letra de la puerta ("A", "B"…; "T" = escalera y pasillos)
+	EmptySince: number?,
+	Tower: TowerState?,
+}
 
 -- Enganches para las viviendas (PropertyService)
 export type Hooks = {
-	Gate: ((Player, Building, number) -> (boolean, string?))?, -- ¿puede entrar en esa planta?
+	Gate: ((Player, Building, number, string?) -> (boolean, string?))?, -- ¿puede entrar en esa planta o puerta?
+	Occupant: ((Building, Floors.Unit) -> { Type: string, Name: string?, UserId: number? })?, -- quién vive detrás de una puerta
 	Decorate: ((Instance_) -> ())?, -- al montar una sala (vecinos, cartel de se vende…)
 	Enter: ((Player, Instance_) -> ())?, -- al entrar alguien
 	Labels: ((Building) -> { [number]: string })?, -- qué pone en el ascensor junto a cada planta
@@ -263,22 +289,57 @@ end
 local connectRoom -- se define más abajo
 local builtListeners: { (Instance_) -> () } = {}
 
-local function instanceOf(building: Building, floor: number): Instance_?
-	local key = building.Id .. ":" .. floor
+local function notifyBuilt(inst: Instance_)
+	for _, listener in builtListeners do
+		local ok, err = pcall(listener, inst)
+		if not ok then
+			warn("[Interiores] " .. tostring(err))
+		end
+	end
+end
+
+-- ¿Se sube por dentro (escalera, pasillo y puertas)? Los bloques, oficinas, facultades y comercios
+-- de varias plantas. (Las casas de dos plantas llevan su escalera dentro de la casa.)
+local function isTower(building: Building): boolean
+	return Floors.isTower(building.Upper, building.Floors) and not building.Persistent
+end
+InteriorService.isTower = isTower
+
+-- La puerta (unidad) de ese edificio: planta y letra
+function InteriorService.unitOf(building: Building, floor: number, letter: string?): Floors.Unit?
+	return Floors.unit(building.Key, building.Kind, building.Upper, floor, letter)
+end
+
+-- Sala de una unidad (vivienda, oficina, aula, tienda) o de la planta de un edificio de una sala
+local function unitInstance(building: Building, floor: number, letter: string?): Instance_?
+	local unitId = Floors.unitId(floor, letter)
+	local key = building.Id .. ":" .. unitId
 	local existing = instances[key]
 	if existing and existing.Room.Model.Parent then
 		return existing
 	end
-	local kind = if floor == 0 then building.Kind else (building.Upper or "Piso")
-	local builder = (Interiors :: any)[kind]
+	local kind
+	if isTower(building) then
+		local unit = InteriorService.unitOf(building, floor, letter)
+		kind = unit and unit.Kind
+	else
+		kind = if floor == 0 then building.Kind else (building.Upper or "Piso")
+	end
+	local builder = kind and (Interiors :: any)[kind]
 	if not builder then
 		return nil
 	end
 	local slot = takeSlot()
-	-- (la semilla de los muebles: el mismo edificio y la misma planta, siempre igual)
-	local r = builder(folder, CFrame.new(slotPosition(slot)), { Seed = building.Key .. ":" .. floor, Floor = floor, Shop = if floor == 0 then building.Shop else nil })
+	-- (la semilla de los muebles: el mismo edificio y la misma puerta, siempre igual)
+	local r = builder(folder, CFrame.new(slotPosition(slot)), {
+		Seed = building.Key .. ":" .. unitId,
+		Floor = floor,
+		Floors = building.Floors,
+		Single = kind == "Dorm" and Floors.dormSingle(building.Key, unitId),
+		Shop = if floor == 0 then building.Shop else nil, -- (comercios: el interior va con su cartel)
+	})
 	r.Model:SetAttribute("Key", key)
-	local inst: Instance_ = { Room = r, Slot = slot, Building = building, Floor = floor, EmptySince = nil }
+	local inst: Instance_ = { Room = r, Slot = slot, Building = building, Floor = floor, Unit = letter or "A", EmptySince = nil }
 	instances[key] = inst
 	connectRoom(inst)
 	local decorate = InteriorService.Hooks.Decorate
@@ -288,33 +349,39 @@ local function instanceOf(building: Building, floor: number): Instance_?
 			warn("[Interiores] " .. tostring(err))
 		end
 	end
-	for _, listener in builtListeners do
-		local ok, err = pcall(listener, inst)
-		if not ok then
-			warn("[Interiores] " .. tostring(err))
-		end
-	end
+	notifyBuilt(inst)
 	return inst
 end
 
--- Avisa cada vez que se monta una sala (y ahora mismo, de las que ya están montadas)
+local function instanceOf(building: Building, floor: number): Instance_?
+	return unitInstance(building, floor, nil)
+end
+
+-- Avisa cada vez que se monta una sala o una planta de un edificio (y ahora mismo, de las que ya
+-- están montadas)
 function InteriorService.onBuilt(listener: (Instance_) -> ())
 	table.insert(builtListeners, listener)
 	for _, inst in instances do
 		if inst.Room.Model.Parent then
-			task.spawn(listener, inst)
+			if inst.Tower then
+				for floor, built in inst.Tower.Built do
+					task.spawn(listener, { Room = { Model = built.Model, Kind = "Tower" } :: any, Slot = inst.Slot, Building = inst.Building, Floor = floor, Unit = "T" })
+				end
+			else
+				task.spawn(listener, inst)
+			end
 		end
 	end
 end
 
--- La sala montada con esa clave ("id:planta", el atributo Key de su modelo)
+-- La sala montada con esa clave ("id:planta", "id:3B" o "id:T" para la escalera y los pasillos)
 function InteriorService.fromKey(key: string): Instance_?
 	local inst = instances[key]
 	return if inst and inst.Room.Model.Parent then inst else nil
 end
 
 local function entryOf(inst: Instance_): Vector3
-	local entry = inst.Room.Model:FindFirstChild("InteriorEntry") :: BasePart?
+	local entry = inst.Room.Model:FindFirstChild("InteriorEntry", true) :: BasePart?
 	if entry then
 		return entry.Position
 	end
@@ -328,7 +395,205 @@ local function busy(player: Player): boolean
 	return humanoid == nil or humanoid.Health <= 0 or humanoid.SeatPart ~= nil or player:GetAttribute("OnTrial") == true or player:GetAttribute("JailUntil") ~= nil
 end
 
-local function goTo(player: Player, building: Building, floor: number)
+---------------------------------------------------------------------
+-- Edificios de varias plantas: escalera, pasillos y puertas (World/Tower)
+---------------------------------------------------------------------
+local connectFloor -- se define más abajo
+
+-- Quién hay detrás de una puerta: { Type, Name } (Owner/Neighbor/ForSale de PropertyService;
+-- Company/ForRent en las oficinas; Business la tienda de la calle; Shop los locales de arriba;
+-- Public las aulas)
+function InteriorService.occupant(building: Building, unit: Floors.Unit): { Type: string, Name: string?, UserId: number? }
+	if unit.Kind == "Dorm" then
+		return { Type = "Dorm", Name = if Floors.dormSingle(building.Key, unit.Id) then "Individual" else "Compartida" }
+	elseif unit.Kind == "Piso" then
+		local hook = InteriorService.Hooks.Occupant
+		if hook then
+			local ok, result = pcall(hook, building, unit)
+			if ok and type(result) == "table" then
+				return result
+			end
+		end
+		return { Type = "ForSale" }
+	elseif unit.Kind == "Oficina" then
+		local company = Floors.company(building.Key, unit.Id)
+		return if company then { Type = "Company", Name = company } else { Type = "ForRent" }
+	elseif unit.Ground then
+		return { Type = "Business", Name = if unit.Kind == "Aula" then "Facultad" else building.Title }
+	elseif unit.Kind == "Local" then
+		local shops = Interiors.Shops
+		local shop = shops[Floors.hash(building.Key .. unit.Id) % #shops + 1]
+		return { Type = "Shop", Name = shop.Title }
+	end
+	return { Type = "Public", Name = if unit.Kind == "Aula" then "Facultad" else nil }
+end
+
+local function plateNames(building: Building, floor: number): { [string]: string }
+	local names = {}
+	for _, unit in Floors.units(building.Key, building.Kind, building.Upper, floor) do
+		local occ = InteriorService.occupant(building, unit)
+		names[unit.Id] = if occ.Type == "ForSale" then "SE VENDE" elseif occ.Type == "ForRent" then "SE ALQUILA" else (occ.Name or "")
+	end
+	return names
+end
+
+local function towerOf(building: Building, create: boolean): Instance_?
+	local key = building.Id .. ":T"
+	local existing = instances[key]
+	if existing and existing.Room.Model.Parent then
+		return existing
+	end
+	if not create then
+		return nil
+	end
+	local plan = Tower.plan(building.Key, building.Title, building.Kind, building.Upper :: string, building.Floors)
+	local slot = takeSlot()
+	local origin = CFrame.new(slotPosition(slot))
+	local model = Instance.new("Model")
+	model.Name = "Interior_Tower"
+	model:SetAttribute("Key", key)
+	model:SetAttribute("Floors", building.Floors)
+	model.Parent = folder
+	local room = {
+		Model = model,
+		W = plan.W,
+		D = Floors.Depth,
+		H = Floors.Height * building.Floors,
+		at = function(x: number, y: number, z: number): CFrame
+			return origin * CFrame.new(x, y, z)
+		end,
+		Kind = "Tower",
+		Spots = {},
+	}
+	local inst: Instance_ = {
+		Room = room :: any,
+		Slot = slot,
+		Building = building,
+		Floor = 0,
+		Unit = "T",
+		EmptySince = nil,
+		Tower = { Plan = plan, Origin = origin, Built = {} },
+	}
+	instances[key] = inst
+	return inst
+end
+
+-- Monta una planta (y la conecta: ascensor, puertas, calle)
+local function buildFloor(inst: Instance_, floor: number)
+	local t = inst.Tower :: TowerState
+	if t.Built[floor] then
+		return
+	end
+	local built = Tower.buildFloor(inst.Room.Model, t.Origin, t.Plan, floor, plateNames(inst.Building, floor))
+	t.Built[floor] = built
+	connectFloor(inst, floor, built)
+	notifyBuilt({ Room = { Model = built.Model, Kind = "Tower" } :: any, Slot = inst.Slot, Building = inst.Building, Floor = floor, Unit = "T" })
+end
+
+local function dropFloor(inst: Instance_, floor: number)
+	local t = inst.Tower :: TowerState
+	local built = t.Built[floor]
+	if built then
+		built.Model:Destroy()
+		t.Built[floor] = nil
+	end
+end
+
+-- Deja montadas las plantas que hacen falta para quien está en esas plantas (y quita las lejanas)
+local function streamFloors(inst: Instance_, playerFloors: { number })
+	local t = inst.Tower :: TowerState
+	local build, keep = Floors.wanted(playerFloors, t.Plan.Top)
+	for floor in build do
+		buildFloor(inst, floor)
+	end
+	for floor in t.Built do
+		if not keep[floor] then
+			dropFloor(inst, floor)
+		end
+	end
+end
+InteriorService.streamFloors = streamFloors
+
+-- Plantas montadas ahora (para las pruebas y el rendimiento)
+function InteriorService.builtFloors(building: Building): ({ number }, number)
+	local inst = towerOf(building, false)
+	local list, parts = {}, 0
+	if inst and inst.Tower then
+		for floor, built in inst.Tower.Built do
+			table.insert(list, floor)
+			parts += built.Parts
+		end
+	end
+	table.sort(list)
+	return list, parts
+end
+
+function InteriorService.tower(building: Building): Instance_?
+	return towerOf(building, false)
+end
+
+-- A una planta de un edificio de varias plantas (rellano; en la planta baja, junto a la calle)
+local function goToLanding(player: Player, building: Building, floor: number, at: CFrame?)
+	local inst = towerOf(building, true) :: Instance_
+	local t = inst.Tower :: TowerState
+	floor = math.clamp(floor, 0, t.Plan.Top)
+	streamFloors(inst, { floor })
+	inst.EmptySince = nil
+	player:SetAttribute("InteriorKey", building.Id .. ":T")
+	player:SetAttribute("InteriorDoor", building.Door + building.Out * 3)
+	player:SetAttribute("TowerFloor", floor)
+	local target: Vector3
+	if at then
+		target = (t.Origin * at).Position
+	elseif floor == 0 then
+		target = entryOf({ Room = { Model = t.Built[0].Model } } :: any)
+	else
+		target = (t.Origin * Tower.landing(t.Plan, floor)).Position
+	end
+	SceneService.teleportTo(player, target)
+end
+
+-- Entrar por una puerta del pasillo (a su vivienda, oficina, aula o tienda)
+local function goToUnit(player: Player, building: Building, floor: number, letter: string)
+	local unit = InteriorService.unitOf(building, floor, letter)
+	if not unit then
+		return
+	end
+	local gate = InteriorService.Hooks.Gate
+	if gate then
+		local ok, allowed, why = pcall(gate, player, building, floor, letter)
+		if ok and allowed == false then
+			Notify:FireClient(player, "Error", why or "🔒 No puedes entrar.")
+			return
+		end
+	end
+	local inst = unitInstance(building, floor, letter)
+	if not inst then
+		return
+	end
+	inst.EmptySince = nil
+	player:SetAttribute("InteriorKey", building.Id .. ":" .. unit.Id)
+	player:SetAttribute("InteriorDoor", building.Door + building.Out * 3)
+	player:SetAttribute("TowerFloor", nil)
+	SceneService.teleportTo(player, entryOf(inst))
+	local enter = InteriorService.Hooks.Enter
+	if enter then
+		task.spawn(enter, player, inst)
+	end
+end
+
+function InteriorService.goToUnit(player: Player, building: Building, floor: number, letter: string?)
+	if busy(player) then
+		return
+	end
+	if isTower(building) then
+		goToUnit(player, building, floor, letter or "A")
+	else
+		InteriorService.goTo(player, building, floor)
+	end
+end
+
+local function goTo(player: Player, building: Building, floor: number, byElevator: boolean?)
 	if floor == -1 and building.Roof then
 		-- Azotea de la Torre de Valmar: la de verdad
 		player:SetAttribute("InteriorKey", nil)
@@ -343,9 +608,19 @@ local function goTo(player: Player, building: Building, floor: number)
 		SceneService.teleportTo(player, building.Door - building.Out * 6)
 		return
 	end
+	if isTower(building) then
+		local ground = InteriorService.unitOf(building, 0, "A")
+		if floor == 0 and not byElevator and ground and ground.Ground and building.Kind ~= "Aula" then
+			-- La tienda de la planta baja da a la calle: se entra directamente
+			goToUnit(player, building, 0, "A")
+		else
+			goToLanding(player, building, floor)
+		end
+		return
+	end
 	local gate = InteriorService.Hooks.Gate
 	if gate then
-		local ok, allowed, why = pcall(gate, player, building, floor)
+		local ok, allowed, why = pcall(gate, player, building, floor, nil)
 		if ok and allowed == false then
 			Notify:FireClient(player, "Error", why or "🔒 No puedes entrar.")
 			return
@@ -373,20 +648,27 @@ function InteriorService.goTo(player: Player, building: Building, floor: number)
 	goTo(player, building, floor)
 end
 
--- La sala montada de esa planta (nil si ahora no hay nadie dentro)
-function InteriorService.instance(building: Building, floor: number): Instance_?
-	local inst = instances[building.Id .. ":" .. floor]
+-- La sala montada de esa planta o puerta (nil si ahora no hay nadie dentro)
+function InteriorService.instance(building: Building, floor: number, letter: string?): Instance_?
+	local inst = instances[building.Id .. ":" .. Floors.unitId(floor, letter)]
 	return if inst and inst.Room.Model.Parent then inst else nil
 end
 
--- Quita la sala de esa planta (se vuelve a montar al entrar: p. ej. al cambiar de dueño)
-function InteriorService.reset(building: Building, floor: number)
-	local key = building.Id .. ":" .. floor
+-- Quita la sala de esa planta o puerta (se vuelve a montar al entrar: p. ej. al cambiar de dueño)
+-- y pone al día la placa de su puerta en el pasillo
+function InteriorService.reset(building: Building, floor: number, letter: string?)
+	local key = building.Id .. ":" .. Floors.unitId(floor, letter)
 	local inst = instances[key]
 	if inst then
 		inst.Room.Model:Destroy()
 		instances[key] = nil
 		table.insert(freeSlots, inst.Slot)
+	end
+	local tower = towerOf(building, false)
+	if tower and tower.Tower and tower.Tower.Built[floor] then
+		-- La planta se rehace con las placas y los carteles nuevos
+		dropFloor(tower, floor)
+		buildFloor(tower, floor)
 	end
 end
 
@@ -418,9 +700,24 @@ function InteriorService.enter(player: Player, building: Building)
 end
 
 function InteriorService.leave(player: Player)
+	local key = player:GetAttribute("InteriorKey")
+	local id, unitId = string.match(type(key) == "string" and key or "", "^(%d+):(%w+)$")
+	local building = id and buildings[tonumber(id) :: number]
+	if building and unitId and unitId ~= "T" and isTower(building) then
+		local floor, letter = Floors.parseUnit(unitId)
+		local unit = floor and InteriorService.unitOf(building, floor, letter)
+		-- De una vivienda u oficina se sale al pasillo, delante de su puerta (la tienda de la calle,
+		-- a la calle)
+		if floor and letter and unit and not (unit.Ground and building.Kind ~= "Aula") then
+			local plan = (towerOf(building, true) :: Instance_).Tower.Plan
+			goToLanding(player, building, floor, Tower.doorFront(plan, floor, letter))
+			return
+		end
+	end
 	local door = player:GetAttribute("InteriorDoor")
 	player:SetAttribute("InteriorKey", nil)
 	player:SetAttribute("InteriorDoor", nil)
+	player:SetAttribute("TowerFloor", nil)
 	if typeof(door) == "Vector3" then
 		SceneService.teleportTo(player, door)
 	end
@@ -442,19 +739,161 @@ local function openElevator(player: Player, building: Building)
 			end
 		end
 	end
+	local current = player:GetAttribute("TowerFloor")
+	if type(current) ~= "number" then
+		current = tonumber(string.match(player:GetAttribute("InteriorKey") or "", ":(%d+)%a?$")) or 0
+	end
 	Remote:FireClient(player, "Elevator", {
 		Labels = labels,
 		Title = building.Title,
 		Floors = building.Floors,
 		Roof = building.Roof ~= nil,
-		Current = tonumber(string.match(player:GetAttribute("InteriorKey") or "", ":(%d+)$")) or 0,
+		Current = current,
 	})
 end
 
+-- La función de abrir puertas con bisagra (InteractService; se pide al usarla para no depender de él)
+local function InteractSwing(): ((BasePart, boolean, number?) -> ())?
+	local ok, service = pcall(function()
+		return require(script.Parent.InteractService) :: any
+	end)
+	return if ok and service and service.swing then service.swing else nil
+end
+
+local function onUnitDoor(player: Player, building: Building, panel: BasePart, knock: boolean)
+	if busy(player) or player:GetAttribute("InDialogue") then
+		return
+	end
+	local floor, letter = panel:GetAttribute("Floor"), panel:GetAttribute("Letter")
+	local unit = type(floor) == "number" and InteriorService.unitOf(building, floor, letter)
+	if not unit then
+		return
+	end
+	local occ = InteriorService.occupant(building, unit)
+	local function open()
+		local swing = InteractSwing()
+		if swing then
+			swing(panel, true, 0.35)
+			task.delay(2, function()
+				if panel.Parent then
+					swing(panel, false, 0.4)
+				end
+			end)
+		end
+		goToUnit(player, building, floor :: number, letter)
+	end
+	local mine = occ.UserId ~= nil and occ.UserId == player.UserId
+	if occ.Type == "Dorm" then
+		-- Residencia: entras en la tuya; en las demás llamas y contesta quien viva
+		if player:GetAttribute("DormUnit") == building.Key .. "#" .. unit.Id then
+			open()
+		else
+			Notify:FireClient(player, "Info", "🚪 Toc, toc… «¿Sí? Ahora estoy estudiando, ¡luego hablamos!»")
+		end
+		return
+	elseif occ.Type == "Owner" and not mine then
+		-- Casa de otro jugador: si es de tu grupo, entras; si no, llamas
+		local gate = InteriorService.Hooks.Gate
+		local ok, allowed = true, true
+		if gate then
+			ok, allowed = pcall(gate, player, building, floor :: number, letter)
+		end
+		if ok and allowed then
+			-- (de tu grupo: te abren aunque llames)
+			if knock then
+				Notify:FireClient(player, "Success", ("🚪 Toc, toc… %s te abre la puerta."):format(occ.Name or "Tu amigo"))
+			end
+			open()
+			return
+		end
+		local owner = Players:GetPlayerByUserId(occ.UserId or 0)
+		if owner and owner:GetAttribute("InteriorKey") == building.Id .. ":" .. unit.Id then
+			Notify:FireClient(owner, "Info", ("🚪 %s llama a tu puerta (%s)."):format(player.DisplayName, unit.Label))
+		end
+		Notify:FireClient(player, "Info", ("🚪 Toc, toc… Es la casa de %s. Nadie te abre."):format(occ.Name or "otra persona"))
+		return
+	elseif occ.Type == "Neighbor" then
+		-- Los vecinos contestan; a veces te dejan pasar
+		Notify:FireClient(player, "Info", "🚪 Toc, toc…")
+		local friendly = (Floors.hash(("%s:%s:%d"):format(building.Key, unit.Id, player.UserId)) + math.floor(os.time() / 600)) % 3 == 0
+		task.delay(0.8, function()
+			local name = occ.Name or "Vecino"
+			if friendly then
+				Notify:FireClient(player, "Success", ("🙂 %s: «¡Hola! Pasa, pasa, estás en tu casa.»"):format(name))
+				open()
+			else
+				local lines = { "Ahora no puedo, perdona.", "¿Quién es? No compro nada, gracias.", "Estoy con la comida, vuelve luego.", "Hoy no es buen momento." }
+				Notify:FireClient(player, "Info", ("🚪 %s: «%s»"):format(name, lines[math.random(1, #lines)]))
+			end
+		end)
+		return
+	elseif occ.Type == "Company" or occ.Type == "Shop" then
+		local clock = game:GetService("Lighting").ClockTime
+		if not Floors.isOpen(clock) then
+			Notify:FireClient(player, "Info", ("🕘 %s está cerrado. Abre de %d:00 a %d:00."):format(occ.Name or unit.Label, Floors.OpenFrom, Floors.OpenTo))
+			return
+		end
+	end
+	open()
+end
+
+function connectFloor(inst: Instance_, floor: number, built: Tower.Built)
+	local building = inst.Building
+	for _, part in built.Model:GetDescendants() do
+		if not part:IsA("BasePart") then
+			continue
+		end
+		if part:HasTag("InteriorExit") then
+			local prompt = Builder.prompt(part, "Salir", "🚪 A la calle", 0.2)
+			prompt.MaxActivationDistance = 9
+			prompt.Triggered:Connect(function(player)
+				InteriorService.leave(player)
+			end)
+		elseif part:HasTag("InteriorElevator") then
+			local prompt = Builder.prompt(part, "Ascensor", "🏢 Elegir planta", 0.2)
+			prompt.MaxActivationDistance = 8
+			prompt.Triggered:Connect(function(player)
+				openElevator(player, building)
+			end)
+		elseif part:HasTag("UnitDoor") then
+			local unit = InteriorService.unitOf(building, floor, part:GetAttribute("Letter"))
+			if not unit then
+				continue
+			end
+			local occ = InteriorService.occupant(building, unit)
+			local action = if occ.Type == "Neighbor" or occ.Type == "Owner" then "Llamar" elseif occ.Type == "ForSale" or occ.Type == "ForRent" then "Visitar" else "Entrar"
+			if occ.Type == "Dorm" then
+				-- (cada uno entra en la suya; en las demás, llama: onUnitDoor)
+				action = "Entrar"
+			end
+			local object = ("🚪 %s"):format(unit.Label) .. (if occ.Name and occ.Name ~= "" then " · " .. occ.Name else "")
+			local prompt = Builder.prompt(part, action, object, 0.3)
+			prompt.Name = "DoorPrompt"
+			prompt.MaxActivationDistance = 6
+			prompt:SetAttribute("NoGesture", true)
+			prompt.Triggered:Connect(function(player)
+				onUnitDoor(player, building, part, action == "Llamar")
+			end)
+			if occ.Type == "Owner" and occ.UserId then
+				-- El dueño (y solo él) ve además "Entrar" (JobPrompts: OwnerUserId)
+				local mine = Builder.prompt(part, "Entrar", ("🏠 %s · tu casa"):format(unit.Label), 0.3)
+				mine.Name = "DoorPromptOwner"
+				mine.MaxActivationDistance = 6
+				mine:SetAttribute("OwnerUserId", occ.UserId)
+				mine:SetAttribute("NoGesture", true)
+				mine.Triggered:Connect(function(player)
+					onUnitDoor(player, building, part, false)
+				end)
+			end
+		end
+	end
+end
+
 function connectRoom(inst: Instance_)
+	local toCorridor = isTower(inst.Building) and not (inst.Floor == 0 and inst.Building.Kind ~= "Aula" and (inst.Building.Kind == "Local" or inst.Building.Kind == "CentroComercial"))
 	for _, part in inst.Room.Model:GetDescendants() do
 		if part:IsA("BasePart") and part:HasTag("InteriorExit") then
-			local prompt = Builder.prompt(part, "Salir", "🚪 A la calle", 0.2)
+			local prompt = Builder.prompt(part, "Salir", if toCorridor then "🚪 Al rellano" else "🚪 A la calle", 0.2)
 			prompt.MaxActivationDistance = 9
 			prompt.Triggered:Connect(function(player)
 				InteriorService.leave(player)
@@ -464,6 +903,15 @@ function connectRoom(inst: Instance_)
 			prompt.MaxActivationDistance = 9
 			prompt.Triggered:Connect(function(player)
 				openElevator(player, inst.Building)
+			end)
+		elseif part:IsA("BasePart") and part:HasTag("TowerStairs") and isTower(inst.Building) then
+			-- De la tienda de la calle al portal del edificio (escalera y ascensor)
+			local prompt = Builder.prompt(part, "Ir al portal", "🪜 Escalera y viviendas", 0.2)
+			prompt.MaxActivationDistance = 8
+			prompt.Triggered:Connect(function(player)
+				if not busy(player) then
+					goToLanding(player, inst.Building, 0)
+				end
 			end)
 		end
 	end
@@ -562,6 +1010,44 @@ local function hostInstitutions(list: { Building })
 	end
 end
 
+-- Residencias universitarias: algunos bloques del campus (siempre los mismos) tienen habitaciones
+-- para los estudiantes (ResidenceService les da una)
+local function hostResidences(list: { Building })
+	local campus: { Building } = {}
+	for _, b in list do
+		if b.Model.Parent and b.Model.Parent.Name == "Manzana_Campus" and b.Kind == "Aula" and b.Floors >= 2 then
+			table.insert(campus, b)
+		end
+	end
+	table.sort(campus, function(a, b)
+		return a.Key < b.Key
+	end)
+	local chosen = 0
+	for i, b in campus do
+		if Floors.hash("residencia:" .. b.Key) % 3 == 0 or (i == #campus and chosen == 0) then
+			chosen += 1
+			b.Kind = "Portal"
+			b.Upper = "Dorm"
+			b.Title = "🛏 Residencia universitaria"
+			b.Residence = true
+			publishLandmark("Residencia", b.Door)
+		end
+	end
+end
+
+function InteriorService.residences(): { Building }
+	local list = {}
+	for _, b in buildings do
+		if b.Residence then
+			table.insert(list, b)
+		end
+	end
+	table.sort(list, function(a, b)
+		return a.Key < b.Key
+	end)
+	return list
+end
+
 local function scan()
 	local town = workspace:FindFirstChild("Town")
 	if not town then
@@ -624,6 +1110,30 @@ local function scan()
 	return list
 end
 
+-- Planta de cada jugador dentro de los edificios de varias plantas (por su altura)
+function InteriorService.stepTowers()
+	local byTower: { [string]: { number } } = {}
+	for _, player in Players:GetPlayers() do
+		local key = player:GetAttribute("InteriorKey")
+		local inst = type(key) == "string" and instances[key]
+		if inst and inst.Tower then
+			local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+			if root then
+				local y = root.Position.Y - inst.Tower.Origin.Position.Y - 3
+				local floor = Floors.floorAt(y, inst.Tower.Plan.Top)
+				if player:GetAttribute("TowerFloor") ~= floor then
+					player:SetAttribute("TowerFloor", floor)
+				end
+				byTower[key] = byTower[key] or {}
+				table.insert(byTower[key], floor)
+			end
+		end
+	end
+	for key, list in byTower do
+		streamFloors(instances[key], list)
+	end
+end
+
 function InteriorService.buildingOf(player: Player): Building?
 	local key = player:GetAttribute("InteriorKey")
 	local id = tonumber(string.match(key or "", "^(%d+):"))
@@ -645,6 +1155,7 @@ function InteriorService.init()
 
 	local list = scan()
 	hostInstitutions(list)
+	hostResidences(list)
 	for _, building in list do
 		addDoor(building)
 		if building.Persistent then
@@ -666,7 +1177,7 @@ function InteriorService.init()
 			if floor < -1 or floor >= building.Floors then
 				return
 			end
-			goTo(player, building, floor)
+			goTo(player, building, floor, true)
 		end
 	end)
 
@@ -676,6 +1187,7 @@ function InteriorService.init()
 			if player:GetAttribute("InteriorKey") and player:GetAttribute("SpawnReady") then
 				player:SetAttribute("InteriorKey", nil)
 				player:SetAttribute("InteriorDoor", nil)
+				player:SetAttribute("TowerFloor", nil)
 			end
 		end)
 	end
@@ -683,6 +1195,15 @@ function InteriorService.init()
 	for _, player in Players:GetPlayers() do
 		watch(player)
 	end
+
+	-- Edificios de varias plantas: solo están montadas las plantas cerca de alguien (±2); al subir
+	-- o bajar por la escalera se montan las siguientes y se quitan las lejanas
+	task.spawn(function()
+		while true do
+			task.wait(0.5)
+			InteriorService.stepTowers()
+		end
+	end)
 
 	-- Salas vacías: se quitan al rato
 	task.spawn(function()

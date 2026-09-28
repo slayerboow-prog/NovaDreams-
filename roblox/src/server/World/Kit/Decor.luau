@@ -1207,6 +1207,11 @@ function Decor.room(room: { [string]: any }, seed: string?): number
 			elseif name ~= "Floor" and name ~= "Ceiling" and name ~= "FloorFinish" and name ~= "WallFinish" and name ~= "Baseboard" then
 				space:addPart(part)
 			end
+			-- Delante de las puertas y del ascensor no se pone nada (hay que poder pasar)
+			if part:HasTag("TowerStairs") or part:HasTag("InteriorElevator") or part:HasTag("InteriorExit") or part:HasTag("InteriorEntry") then
+				local l = frame:PointToObjectSpace(part.Position)
+				space:addBox(Vector3.new(l.X, 4, l.Z), Vector3.new(math.max(part.Size.X, part.Size.Z) + 5, 8, math.max(part.Size.X, part.Size.Z) + 5))
+			end
 		end
 	end
 	local rand = Furniture.rng("DecorRoom:" .. room.Kind .. ":" .. (seed or room.Kind))

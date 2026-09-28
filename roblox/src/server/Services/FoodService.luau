@@ -4,6 +4,7 @@ local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Fridge = require(ReplicatedStorage.Shared.Fridge)
 local Format = require(ReplicatedStorage.Shared.Format)
 local Builder = require(script.Parent.Parent.World.Builder)
 local DataService = require(script.Parent.DataService)
@@ -24,6 +25,13 @@ function FoodService.eat(player: Player, foodId: string, stand: BasePart?)
 	-- La nevera solo funciona en tu propia casa
 	if stand and stand:GetAttribute("PlotId") and stand:GetAttribute("PlotId") ~= player:GetAttribute("PlotId") then
 		Notify:FireClient(player, "Error", "Esta nevera no es tuya.")
+		return
+	end
+	-- Desde la universidad, la nevera de casa tiene lo que hayas comprado y guardado (FridgeService);
+	-- gratis solo en la etapa del colegio
+	if stand and stand:GetAttribute("PlotId") and not Fridge.freeAtFamily(player:GetAttribute("LifeStage")) then
+		local FridgeService = require(script.Parent.FridgeService) :: any
+		FridgeService.show(player, FridgeService.context(player, stand, nil, "Owner", nil), stand)
 		return
 	end
 

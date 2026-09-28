@@ -6,7 +6,8 @@
 --   Bed       camas (en tu casa duermes; en otra, solo te tumbas)
 --   TV        la tele (encender/apagar: la pantalla cambia y suena)
 --   Light     interruptores (encienden y apagan las luces de esa habitación)
---   Fridge    nevera (en tu casa picas algo, con límite; en las tiendas se paga)
+--   Fridge    nevera (con tus padres, de pequeño, gratis; desde la universidad, lo que compres y
+--             guardes: shared/Fridge y FridgeService; en las tiendas se paga)
 --   Tap       grifos (sale agua)
 --   Shower    ducha (agua y vapor)
 --   Door      puertas entre habitaciones (se abren girando en su bisagra)
@@ -112,10 +113,11 @@ function Interact.canSleep(access: string): boolean
 	return access == "Owner" or access == "Guest"
 end
 
--- Qué pasa al abrir una nevera: "Free" (tu casa), "Pay" (tienda o bar) o nil (solo mirar)
+-- Qué pasa al abrir una nevera: "Stock" (tu casa: lo que hayas guardado; FridgeService),
+-- "Pay" (tienda o bar) o nil (solo mirar). (Gratis, solo con tus padres de pequeño: shared/Fridge)
 function Interact.fridgeMode(access: string, kind: string?): string?
 	if access == "Owner" or access == "Guest" then
-		return "Free"
+		return "Stock"
 	end
 	if access == "Public" and kind and Interact.ShopKinds[kind] then
 		return "Pay"

@@ -39,6 +39,8 @@ local DEFAULT_DATA = {
 	-- Mochila (InventoryService): objetos que se cuentan y en qué casilla va cada cosa
 	Items = {},
 	Slots = {},
+	-- Neveras (FridgeService): lo guardado en cada una, por su clave ("casa:…", "residencia:…")
+	Fridges = {},
 	-- Pesca (FishingService): experiencia (el nivel sale de aquí) y cuántos has pescado de cada pez
 	Fishing = {
 		Xp = 0,

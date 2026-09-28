@@ -345,6 +345,11 @@ function HouseService.goHome(player: Player)
 	if PropertyService.goHome(player) then
 		return
 	end
+	-- Estudiante de la universidad: a su habitación de la residencia
+	local ResidenceService = require(script.Parent.ResidenceService) :: any
+	if ResidenceService.goHome(player) then
+		return
+	end
 	local plot = plotOf(player)
 	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	if not plot then

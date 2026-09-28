@@ -3210,11 +3210,7 @@ for _, kind in { "Casa", "Villa", "Piso" } do
 			exitTag = true
 		end
 	end
-	if kind == "Piso" then
-		check(not exitTag and r.Model:FindFirstChild("InteriorElevator") ~= nil, "Piso: se entra y se sale por el ascensor")
-	else
-		check(exitTag, kind .. ": puerta a la calle")
-	end
+	check(exitTag, kind .. (if kind == "Piso" then ": puerta al rellano" else ": puerta a la calle"))
 	r.Model:Destroy()
 end
 -- La misma vivienda sale siempre igual; otras, distintas
@@ -3280,6 +3276,9 @@ for i = 0, 5 do
 end
 building("Manzana_Pisos", "Bloque", Vector3.new(2000, 30, 2200), Vector3.new(40, 60, 40))
 building("Ocio", "Ocio_Local", Vector3.new(2200, 10, 2200), Vector3.new(50, 20, 40))
+building("Manzana_Downtown", "Bloque", Vector3.new(2400, 75, 2200), Vector3.new(40, 150, 40)) -- 12 plantas
+building("Manzana_Towers", "Bloque", Vector3.new(2600, 30, 2200), Vector3.new(40, 60, 40))
+building("Manzana_Campus", "Bloque", Vector3.new(2800, 30, 2200), Vector3.new(40, 60, 40))
 services.RunService = services.RunService or {
 	IsStudio = function()
 		return true
@@ -3420,12 +3419,16 @@ fire(owner, ownerRoot, sofaBase)
 check(ownerHum.SeatPart ~= nil and ownerHum.SeatPart.Parent.Name == "Sofa" and owner:GetAttribute("UsePose") == "Sofa", "se sienta en el sofá (postura de sofá)")
 ownerHum.Sit = false
 check(owner:GetAttribute("UsePose") == nil, "al levantarse se quita la postura")
--- Nevera: en tu casa comes sin límite (un momento entre bocado y bocado); en casa ajena, nada
+-- Nevera: desde la universidad se come lo que hayas comprado y guardado (FridgeService)
+local InventoryService = loadModule(S .. "InventoryService")
+local FridgeService = loadModule(S .. "FridgeService")
+local Fridge = loadModule(ROOT .. "/shared/Fridge")
+FridgeService.init()
 local fridge = partOf("Fridge")
 table.clear(needsChanges)
+clearInbox(owner)
 fire(owner, ownerRoot, fridge)
-local ate = needsChanges[1]
-check(ate ~= nil and ate[1] == owner and ate[2] == Interact.Snack.Hunger, "en tu casa, la nevera quita el hambre")
+check(#needsChanges == 0 and notified(owner, "vacía") and lastMessage(owner, "Fridge") ~= nil, "vacía: hay que comprar comida en el supermercado")
 check(owner:GetAttribute("UsePose") == "Fridge", "postura de abrir la nevera")
 local fridgeDoor
 for _, d in fridge.Parent:GetDescendants() do
@@ -3436,26 +3439,39 @@ end
 check(fridgeDoor:GetAttribute("Open") == true, "la puerta de la nevera se abre")
 task.wait(0.3)
 check(fridgeDoor:GetAttribute("Open") == false and owner:GetAttribute("UsePose") == nil, "y se cierra sola")
+-- Compra en el supermercado (a la mochila) y la guarda
+InventoryService.add(owner, "Pan", 3)
 fire(owner, ownerRoot, fridge)
-check(#needsChanges == 1 and notified(owner, "masticando"), "entre bocado y bocado, un momento")
-local savedCooldown = Interact.Snack.Cooldown
-Interact.Snack.Cooldown = 0
-for _ = 1, 10 do
-	fire(owner, ownerRoot, fridge)
-end
-check(#needsChanges == 11, "en tu casa se come sin límite")
-Interact.Snack.Cooldown = savedCooldown
+local R = remotes.Interact.OnServerEvent
+R:Fire(owner, "Fridge", "StoreAll")
+local fridgeKey = "casa:" .. mine.Key .. "#0"
+local stock = profiles[owner].Fridges[fridgeKey]
+check(stock ~= nil and stock.Pan == 3 and InventoryService.count(owner, "Pan") == 0, "guarda la compra en la nevera")
+local panel = lastMessage(owner, "Fridge")
+check(panel ~= nil and #panel[2].Inside == 1 and panel[2].Inside[1].Count == 3, "el panel enseña lo que hay dentro")
+table.clear(needsChanges)
+R:Fire(owner, "Fridge", "Eat", "Pan")
+check(#needsChanges == 1 and needsChanges[1][2] > 0 and stock.Pan == 2, "comer gasta lo guardado")
+R:Fire(owner, "Fridge", "Take", "Pan")
+check(stock.Pan == 1 and InventoryService.count(owner, "Pan") == 1, "coger algo lo lleva a la mochila")
+-- Se guarda con la partida (ida y vuelta por JSON, como en el DataStore)
+local serde = require("@lune/serde")
+local saved = serde.decode("json", serde.encode("json", profiles[owner].Fridges))
+check(saved[fridgeKey] and saved[fridgeKey].Pan == 1, "lo de la nevera se guarda con la partida")
 table.clear(needsChanges)
 clearInbox(stranger)
 fire(stranger, strangerRoot, fridge)
-check(#needsChanges == 0 and notified(stranger, "No es tu casa"), "en casa ajena la nevera no es para ti")
--- Invitado (mismo grupo que el dueño)
+R:Fire(stranger, "Fridge", "Eat", "Pan")
+check(#needsChanges == 0 and stock.Pan == 1 and notified(stranger, "No es tu casa"), "en casa ajena no se coge nada de su nevera")
+-- Invitado (mismo grupo que el dueño): come de lo del dueño
 owner:SetAttribute("GroupId", 77)
 friend:SetAttribute("GroupId", 77)
 check(PropertyService.access(friend, mine, 0) == "Guest", "alguien de tu grupo es invitado")
 fire(friend, friendRoot, fridge)
-check(#needsChanges == 1 and needsChanges[1][1] == friend, "un invitado sí puede picar algo")
--- La casa de tus padres (casa familiar): su nevera es gratis y sin límite para la familia
+R:Fire(friend, "Fridge", "Eat", "Pan")
+check(#needsChanges == 1 and needsChanges[1][1] == friend and stock.Pan == nil, "un invitado come de lo que ha guardado el dueño")
+local savedCooldown = Interact.Snack.Cooldown
+-- La casa de tus padres (casa familiar): gratis y sin límite solo en la etapa del colegio
 local family = fakeInstance("Model")
 family.Name = "CasaFamiliar"
 family:SetAttribute("HomeId", "Casa_Test")
@@ -3476,12 +3492,21 @@ Interact.Snack.Cooldown = 0
 for _ = 1, 5 do
 	fire(kid, kidRoot, oldFridge)
 end
-Interact.Snack.Cooldown = savedCooldown
 check(#needsChanges == 5 and needsChanges[1][1] == kid and needsChanges[1][2] == Interact.Snack.Hunger and profiles[kid].Money == 0, "de niño comes gratis de la nevera de tus padres, las veces que quieras")
 check(kid:GetAttribute("UsePose") == "Fridge", "cogiendo la comida de la nevera")
+local teen, teenRoot = newPlayer(134, "Adolescente", 0)
+teen:SetAttribute("FamilyHomeId", "Casa_Test")
+fire(teen, teenRoot, oldFridge)
+check(#needsChanges == 6 and needsChanges[6][1] == teen, "en el instituto, también")
+local student, studentRoot = newPlayer(135, "AdultoJoven", 0)
+student:SetAttribute("FamilyHomeId", "Casa_Test")
+fire(student, studentRoot, oldFridge)
+check(#needsChanges == 6 and notified(student, "Ya no vives con tus padres"), "desde la universidad, en casa de tus padres ya no hay comida gratis")
+Interact.Snack.Cooldown = savedCooldown
 table.clear(needsChanges)
 fire(friend, friendRoot, oldFridge)
 check(#needsChanges == 0, "la nevera de otra familia no es tuya")
+check(Fridge.freeAtFamily("Nino") and Fridge.freeAtFamily("Adolescente") and not Fridge.freeAtFamily("AdultoJoven") and not Fridge.freeAtFamily("Adulto"), "gratis solo en la etapa del colegio")
 table.clear(needsChanges)
 -- Cama: el dueño duerme; un desconocido no puede
 table.clear(needsChanges)
@@ -3579,6 +3604,305 @@ piano:FindFirstChild("InteractPrompt").Triggered:Fire(stranger)
 check(strangerHum.SeatPart ~= nil and stranger:GetAttribute("UsePose") == "Piano" and piano:GetAttribute("Playing") == true, "al piano: se sienta y toca")
 strangerHum.Sit = false
 check(piano:GetAttribute("Playing") == false and stranger:GetAttribute("UsePose") == nil, "al levantarse deja de sonar")
+
+print("▶ Edificios de varias plantas: escalera, pasillos, puertas y dueños")
+local Floors = loadModule(ROOT .. "/shared/Floors")
+local tower, offices, residence
+for _, b in InteriorService.all() do
+	if b.Model.Parent.Name == "Manzana_Downtown" then
+		tower = b
+	elseif b.Model.Parent.Name == "Manzana_Towers" then
+		offices = b
+	elseif b.Residence then
+		residence = b
+	end
+end
+check(tower ~= nil and tower.Floors == 12 and InteriorService.isTower(tower), "el bloque del centro tiene 12 plantas y se sube por dentro")
+check(offices ~= nil and offices.Upper == "Oficina" and residence ~= nil and residence.Upper == "Dorm", "hay oficinas y una residencia universitaria en el campus")
+local walker, walkerRoot = newPlayer(140, "Adulto", 90000)
+local visitor, visitorRoot = newPlayer(141, "Adulto", 500)
+walker.DisplayName, visitor.DisplayName = "Paseante", "Visita"
+for _, callback in loadedCallbacks do
+	for _, p in { walker, visitor } do
+		pcall(callback, p, profiles[p])
+	end
+end
+profiles[walker].Properties = {}
+InteriorService.enter(walker, tower)
+check(walker:GetAttribute("InteriorKey") == tower.Id .. ":T", "al entrar se llega al portal del edificio")
+local built = InteriorService.builtFloors(tower)
+check(#built == 3 and built[1] == 0 and built[3] == 2, "solo se montan las plantas de cerca (0, 1 y 2)")
+local towerInst = InteriorService.tower(tower)
+local function floorModel(f)
+	return towerInst.Room.Model:FindFirstChild("Planta_" .. f)
+end
+local function top(p)
+	return p.CFrame.Position.Y + p.Size.Y / 2
+end
+-- La escalera: escalones de 0,75 como mucho 1 stud, descansillo y llega al suelo de la de arriba
+local stairsOk, landings = true, true
+for f = 0, 1 do
+	local m = floorModel(f)
+	local steps = {}
+	local slab, nextSlab, mid
+	for _, d in m:GetDescendants() do
+		if d:GetAttribute("Step") then
+			table.insert(steps, d)
+		elseif d.Name == "FloorSlab" then
+			slab = d
+		elseif d.Name == "MidLanding" then
+			mid = d
+		end
+	end
+	for _, d in floorModel(f + 1):GetDescendants() do
+		if d.Name == "FloorSlab" then
+			nextSlab = d
+		end
+	end
+	table.sort(steps, function(a, b)
+		return a:GetAttribute("Step") < b:GetAttribute("Step")
+	end)
+	landings = landings and slab ~= nil and mid ~= nil and nextSlab ~= nil
+	if #steps ~= 16 or not slab or not nextSlab then
+		stairsOk = false
+		continue
+	end
+	local last = top(slab)
+	for i, s in steps do
+		local h = top(s)
+		if h - last > 1.0001 or h - last <= 0 then
+			stairsOk = false
+		end
+		if i == 8 and math.abs(h - top(mid)) > 0.01 then
+			stairsOk = false
+		end
+		last = h
+	end
+	if math.abs(last - top(nextSlab)) > 0.01 then
+		stairsOk = false
+	end
+end
+check(landings, "cada planta tiene rellano, descansillo y la de arriba su suelo")
+check(stairsOk, "la escalera une las plantas: 16 escalones de 0,75 (≤ 1 stud) hasta el rellano de arriba")
+local signs = 0
+for _, d in floorModel(1):GetDescendants() do
+	if d:GetAttribute("FloorLabel") == "Planta 1" then
+		signs += 1
+	end
+end
+check(signs >= 2, "el número de la planta en el rellano y en el pasillo")
+-- Puertas: de 3 a 6 viviendas por planta, cada una con su nombre y su dueño
+local labels, perFloorOk, mapsOk = {}, true, true
+for f = 1, 11 do
+	local units = Floors.units(tower.Key, tower.Kind, tower.Upper, f)
+	if #units < 3 or #units > 6 then
+		perFloorOk = false
+	end
+	for _, u in units do
+		if labels[u.Label] then
+			perFloorOk = false
+		end
+		labels[u.Label] = true
+		local back = InteriorService.unitOf(tower, f, u.Letter)
+		local occ = InteriorService.occupant(tower, u)
+		if not back or back.Id ~= u.Id or not (occ.Type == "Owner" or occ.Type == "Neighbor" or occ.Type == "ForSale") then
+			mapsOk = false
+		end
+	end
+end
+check(perFloorOk, "cada planta de viviendas tiene de 3 a 6 puertas, con nombres distintos (1ºA, 1ºB…)")
+check(mapsOk, "cada puerta es una vivienda con su dueño (jugador, vecinos o en venta)")
+local doors1 = {}
+for _, d in floorModel(1):GetDescendants() do
+	if d:HasTag("UnitDoor") then
+		table.insert(doors1, d)
+	end
+end
+check(#doors1 == #Floors.units(tower.Key, tower.Kind, tower.Upper, 1), "en el pasillo están todas las puertas de la planta")
+-- Llamar, visitar, entrar y salir al rellano
+local function doorWith(f, kind)
+	for _, u in Floors.units(tower.Key, tower.Kind, tower.Upper, f) do
+		if InteriorService.occupant(tower, u).Type == kind then
+			for _, d in floorModel(f):GetDescendants() do
+				if d:HasTag("UnitDoor") and d:GetAttribute("UnitId") == u.Id then
+					return d, u
+				end
+			end
+		end
+	end
+	return nil
+end
+local neighborDoor, neighborUnit
+for f = 1, 2 do
+	if not neighborDoor then
+		neighborDoor, neighborUnit = doorWith(f, "Neighbor")
+	end
+end
+if neighborDoor then
+	clearInbox(walker)
+	check(neighborDoor:FindFirstChild("DoorPrompt").ActionText == "Llamar", "en casa de los vecinos se llama")
+	neighborDoor:FindFirstChild("DoorPrompt").Triggered:Fire(walker)
+	task.wait(1)
+	check(notified(walker, "Toc, toc"), "llamas y contestan (y a veces te dejan pasar)")
+	if walker:GetAttribute("InteriorKey") ~= tower.Id .. ":T" then
+		InteriorService.leave(walker)
+	end
+end
+local saleDoor, saleUnit
+for f = 1, 2 do
+	if not saleDoor then
+		saleDoor, saleUnit = doorWith(f, "ForSale")
+	end
+end
+check(saleDoor ~= nil and saleDoor:FindFirstChild("DoorPrompt").ActionText == "Visitar", "las que están en venta se visitan")
+saleDoor:FindFirstChild("DoorPrompt").Triggered:Fire(walker)
+local saleFloor = saleDoor:GetAttribute("Floor")
+check(walker:GetAttribute("InteriorKey") == tower.Id .. ":" .. saleUnit.Id, "al visitarla entras en esa vivienda (" .. saleUnit.Label .. ")")
+check(saleDoor:GetAttribute("Open") == true, "la puerta se abre")
+local flat = InteriorService.instance(tower, saleFloor, saleUnit.Letter)
+local buyFlat
+for _, d in flat.Room.Model:GetDescendants() do
+	if d.ClassName == "ProximityPrompt" and d.ActionText == "Comprar vivienda" then
+		buyFlat = d
+	end
+end
+check(buyFlat ~= nil, "dentro está el cartel de SE VENDE")
+buyFlat.Triggered:Fire(walker)
+check(PropertyService.access(walker, tower, saleFloor, saleUnit.Letter) == "Owner" and profiles[walker].Properties[1].Letter == saleUnit.Letter, "comprada: el " .. saleUnit.Label .. " es suyo")
+local plate = floorModel(saleFloor):FindFirstChild("UnitDoor_" .. saleUnit.Id)
+local plateText = plate and plate:FindFirstChild("PlateText", true)
+check(plateText ~= nil and string.find(plateText.Text, "Paseante", 1, true) ~= nil, "la placa de la puerta dice quién vive")
+InteriorService.leave(walker)
+check(walker:GetAttribute("InteriorKey") == tower.Id .. ":T" and walker:GetAttribute("TowerFloor") == saleFloor, "al salir se vuelve al pasillo de esa planta")
+-- Un desconocido llama y nadie abre; alguien del grupo entra
+local ownedDoor = floorModel(saleFloor):FindFirstChild("UnitDoor_" .. saleUnit.Id):FindFirstChild("DoorPanel")
+InteriorService.enter(visitor, tower)
+clearInbox(visitor)
+visitorRoot.CFrame = CFrame.new(ownedDoor.Position)
+ownedDoor:FindFirstChild("DoorPrompt").Triggered:Fire(visitor)
+check(notified(visitor, "Nadie te abre") and visitor:GetAttribute("InteriorKey") == tower.Id .. ":T", "en la casa de otro jugador llamas y no entras")
+walker:SetAttribute("GroupId", 91)
+visitor:SetAttribute("GroupId", 91)
+ownedDoor:FindFirstChild("DoorPrompt").Triggered:Fire(visitor)
+check(visitor:GetAttribute("InteriorKey") == tower.Id .. ":" .. saleUnit.Id, "si es de tu grupo, pasas")
+InteriorService.leave(visitor) -- al pasillo
+InteriorService.leave(visitor) -- y a la calle
+-- Subir: al ir por la escalera se montan las plantas de arriba y se quitan las de abajo
+local origin = towerInst.Tower.Origin.Position
+walkerRoot.CFrame = CFrame.new(origin + Vector3.new(0, 6 * Floors.Height + 3, 0))
+InteriorService.stepTowers()
+local nowBuilt, parts = InteriorService.builtFloors(tower)
+check(walker:GetAttribute("TowerFloor") == 6, "sabe en qué planta estás por la altura")
+local nearOk = nowBuilt[1] >= 3 and nowBuilt[#nowBuilt] <= 9
+for f = 4, 8 do
+	nearOk = nearOk and table.find(nowBuilt, f) ~= nil
+end
+check(nearOk and not table.find(nowBuilt, 0), ("en la 6ª: montadas de la 4ª a la 8ª (y las de abajo, quitadas): %s"):format(table.concat(nowBuilt, ",")))
+local perFloor = math.floor(parts / #nowBuilt)
+check(parts < 1500, ("piezas del edificio de 12 plantas: %d (unas %d por planta, tope 1500)"):format(parts, perFloor))
+-- La ascensor lleva a cualquier planta (y monta las de alrededor)
+walker:SetAttribute("ElevatorBuilding", tower.Id)
+remotes.Interior.OnServerEvent:Fire(walker, "Floor", 11)
+local after = InteriorService.builtFloors(tower)
+check(walker:GetAttribute("TowerFloor") == 11 and table.find(after, 11) ~= nil and table.find(after, 9) ~= nil, "el ascensor te deja en la 11ª (y se monta alrededor)")
+InteriorService.leave(walker)
+check(walker:GetAttribute("InteriorKey") == nil, "desde el portal se sale a la calle")
+-- Oficinas: abiertas en horario
+local officeFloor1
+InteriorService.goTo(visitor, offices, 1)
+officeFloor1 = InteriorService.tower(offices).Room.Model:FindFirstChild("Planta_1")
+local companyDoor
+for _, d in officeFloor1:GetDescendants() do
+	if d:HasTag("UnitDoor") then
+		local u = InteriorService.unitOf(offices, 1, d:GetAttribute("Letter"))
+		if InteriorService.occupant(offices, u).Type == "Company" then
+			companyDoor = d
+		end
+	end
+end
+if companyDoor then
+	services.Lighting.ClockTime = 22
+	clearInbox(visitor)
+	companyDoor:FindFirstChild("DoorPrompt").Triggered:Fire(visitor)
+	check(notified(visitor, "cerrado") and visitor:GetAttribute("InteriorKey") == offices.Id .. ":T", "de noche la oficina está cerrada")
+	services.Lighting.ClockTime = 10
+	companyDoor:FindFirstChild("DoorPrompt").Triggered:Fire(visitor)
+	check(string.find(visitor:GetAttribute("InteriorKey") or "", "^" .. offices.Id .. ":1") ~= nil, "en horario, entras en la oficina")
+	services.Lighting.ClockTime = 21
+end
+-- Casa de dos plantas: escalera por dentro y arriba pasillo con puertas
+local Interiors2 = loadModule(ROOT .. "/server/World/Interiors")
+local house = Interiors2.Casa(lab, CFrame.new(0, 5000, 0), { Seed = "Casa_2_2:0", Floors = 2 })
+local hs = {}
+local doors2 = 0
+for _, d in house.Model:GetDescendants() do
+	if d:GetAttribute("Step") then
+		table.insert(hs, d)
+	elseif d:GetAttribute("Use") == "Door" then
+		doors2 += 1
+	end
+end
+table.sort(hs, function(a, b)
+	return a:GetAttribute("Step") < b:GetAttribute("Step")
+end)
+local houseOk = #hs == 16
+local lastY = 0
+for _, s in hs do
+	local h = top(s) - 5000
+	houseOk = houseOk and h - lastY <= 1.0001
+	lastY = h
+end
+check(houseOk and math.abs(lastY - (house.H + 1)) < 0.01, "casa de dos plantas: escalera de escalones ≤ 1 stud hasta la planta de arriba")
+check(doors2 == 6 and house.Model:GetAttribute("Storeys") == 2, "arriba: pasillo y tres habitaciones con puerta (más las tres de abajo)")
+house.Model:Destroy()
+
+print("▶ Residencia universitaria: habitación y nevera propia")
+local ResidenceService = loadModule(S .. "ResidenceService")
+local uni, uniRoot = newPlayer(150, "AdultoJoven", 300)
+uni.DisplayName = "Estudiante"
+ResidenceService.assign(uni)
+local dormKey = uni:GetAttribute("DormUnit")
+check(type(dormKey) == "string" and string.find(dormKey, residence.Key, 1, true) == 1, "en la universidad te dan una habitación en la residencia")
+local kidNo = newPlayer(151, "Nino", 0)
+ResidenceService.assign(kidNo)
+check(kidNo:GetAttribute("DormUnit") == nil, "de niño no")
+local singles = 0
+for id = 1000, 1400 do
+	local room = ResidenceService.roomFor(id)
+	if room and room.Single then
+		singles += 1
+	end
+end
+check(singles > 40 and singles < 200, ("más o menos una de cada cuatro, individual (%d de 401)"):format(singles))
+local _, dormUnit = string.match(dormKey, "^(.+)#(%w+)$")
+local dFloor, dLetter = Floors.parseUnit(dormUnit)
+InteriorService.goToUnit(uni, residence, dFloor, dLetter)
+check(uni:GetAttribute("InteriorKey") == residence.Id .. ":" .. dormUnit, "entra en su habitación")
+local dorm = InteriorService.instance(residence, dFloor, dLetter)
+local dormFridge, dormBeds = nil, 0
+for _, d in dorm.Room.Model:GetDescendants() do
+	if d:IsA("BasePart") and d:GetAttribute("Use") == "Fridge" then
+		dormFridge = d
+	elseif d:IsA("BasePart") and d:GetAttribute("Use") == "Bed" then
+		dormBeds += 1
+	end
+end
+check(dormFridge ~= nil and dormBeds == (if dorm.Room.Model:GetAttribute("Single") then 1 else 2), "tiene nevera y su cama (dos si es compartida)")
+InventoryService.add(uni, "Pan", 2)
+uniRoot.CFrame = CFrame.new(dormFridge.Position + Vector3.new(0, 0, 1.5))
+dormFridge:FindFirstChild("InteractPrompt").Triggered:Fire(uni)
+remotes.Interact.OnServerEvent:Fire(uni, "Fridge", "StoreAll")
+table.clear(needsChanges)
+remotes.Interact.OnServerEvent:Fire(uni, "Fridge", "Eat", "Pan")
+local dormStock = profiles[uni].Fridges["residencia:" .. dormKey]
+check(dormStock ~= nil and dormStock.Pan == 1 and #needsChanges == 1, "guarda la compra en la nevera de la residencia y come de ella")
+local otherStudent, otherRoot = newPlayer(152, "AdultoJoven", 0)
+otherStudent:SetAttribute("DormUnit", "otra")
+otherRoot.CFrame = uniRoot.CFrame
+table.clear(needsChanges)
+dormFridge:FindFirstChild("InteractPrompt").Triggered:Fire(otherStudent)
+remotes.Interact.OnServerEvent:Fire(otherStudent, "Fridge", "Eat", "Pan")
+check(#needsChanges == 0 and dormStock.Pan == 1, "otro estudiante no coge de tu nevera")
 Config.SleepSeconds = savedSleep
 end)()
 
