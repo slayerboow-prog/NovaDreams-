@@ -9,7 +9,8 @@
 --   Las preguntas escritas a mano están en QuestionBank.luau (misma clave que la asignatura).
 --
 --   Degrees[id] = carrera universitaria: su facultad, sus asignaturas, dónde se hacen las prácticas
---   y el título que se consigue. Las misiones de la universidad usan "$Carrera.Asignatura1",
+--   y el título que se consigue. Fisico = su prueba física (circuito); Corte = nota de selectividad
+--   que pide (Medicina 8, Ingeniería 7, Derecho 6, Economía 5). Las misiones de la universidad usan "$Carrera.Asignatura1",
 --   "$Carrera.Facultad"… y se resuelven con la carrera que eligió el jugador.
 
 local Subjects = {}
@@ -46,6 +47,11 @@ Subjects.List = {
 	PracticaIngenieria = { NameKey = "SUBJECT.PRACTICA_INGENIERIA", Teacher = "NPC.TUTOR_TECNOVAL" },
 	PracticaDerecho = { NameKey = "SUBJECT.PRACTICA_DERECHO", Teacher = "NPC.TUTOR_BUFETE" },
 	PracticaEconomia = { NameKey = "SUBJECT.PRACTICA_ECONOMIA", Teacher = "NPC.TUTOR_BANCO" },
+	-- Pruebas físicas de cada carrera (circuito por puntos, a tiempo, como Educación Física)
+	FisicoMedicina = { NameKey = "Prueba física: el circuito de urgencias", Teacher = "NPC.PROFE_DEPORTE", Circuit = true },
+	FisicoIngenieria = { NameKey = "Prueba física: la visita de obra", Teacher = "NPC.PROFE_DEPORTE", Circuit = true },
+	FisicoDerecho = { NameKey = "Prueba física: la carrera de los juzgados", Teacher = "NPC.PROFE_DEPORTE", Circuit = true },
+	FisicoEconomia = { NameKey = "Prueba física: el cierre de la bolsa", Teacher = "NPC.PROFE_DEPORTE", Circuit = true },
 } :: { [string]: Subject }
 
 Subjects.Degrees = {
@@ -57,6 +63,8 @@ Subjects.Degrees = {
 		Practica = "PracticaMedicina",
 		LugarPracticas = "Hospital",
 		Titulo = "Grado_Medicina",
+		Fisico = "FisicoMedicina",
+		Corte = "8",
 	},
 	Ingenieria = {
 		NameKey = "DEGREE.INGENIERIA",
@@ -66,6 +74,8 @@ Subjects.Degrees = {
 		Practica = "PracticaIngenieria",
 		LugarPracticas = "OficinasFinanciero",
 		Titulo = "Grado_Ingenieria",
+		Fisico = "FisicoIngenieria",
+		Corte = "7",
 	},
 	Derecho = {
 		NameKey = "DEGREE.DERECHO",
@@ -75,6 +85,8 @@ Subjects.Degrees = {
 		Practica = "PracticaDerecho",
 		LugarPracticas = "OficinasFinanciero",
 		Titulo = "Grado_Derecho",
+		Fisico = "FisicoDerecho",
+		Corte = "6",
 	},
 	Economia = {
 		NameKey = "DEGREE.ECONOMIA",
@@ -84,6 +96,8 @@ Subjects.Degrees = {
 		Practica = "PracticaEconomia",
 		LugarPracticas = "Banco",
 		Titulo = "Grado_Economia",
+		Fisico = "FisicoEconomia",
+		Corte = "5",
 	},
 } :: { [string]: { [string]: string } }
 

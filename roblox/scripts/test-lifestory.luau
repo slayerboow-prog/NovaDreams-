@@ -1274,7 +1274,8 @@ for _, call in classCalls do
 	end
 end
 check(selectividadExtra == 5, "Estudiar da 5 segundos más por pregunta en la selectividad")
-check(leoData.Story.Choices.Estudios and leoData.Story.Choices.Estudios.V == "Ingenieria" and leoData.Story.Flags.VaALaUniversidad and said(leo, "¡Ingeniería! Siempre desmontabas"), "Elige estudiar Ingeniería")
+check(leoData.Story.Flags.Acceso8 and leoData.Story.Flags.Acceso5, "Con un 8 en selectividad, puede entrar en cualquier carrera (nota de corte)")
+check(leoData.Story.Choices.Futuro and leoData.Story.Choices.Futuro.V == "Universidad" and leoData.Story.Flags.VaALaUniversidad and said(leo, "a vivir en la residencia del campus"), "Elige ir a la universidad (vivirá en la residencia)")
 check(said(leo, "Algunos esperasteis un ascensor") and leoData.Items.OrlaInstituto == 1 and leoData.Story.Memories.LaGranDecision ~= nil, "Graduación del instituto: orla y recuerdo")
 check(cinematic(leo, "Adol_Selectividad"), "Cinemática de selectividad")
 task.wait(0.8)
@@ -1292,12 +1293,20 @@ end
 
 print("\n▶ Universidad 01 «Primer día en el campus» (el reloj, Luca, tu facultad, Beltrán)")
 leo.Prefer = { "Lo voy a cuidar" }
-leo.Picks = { ComidaUni = "Luca" }
+leo.Picks = { ComidaUni = "Luca", Estudios = "Ingenieria" }
 leoData.Life.StageSeconds = 0
 check(playUntil(leo, function()
 	return leoData.Story.Completed.Uni01_PrimerDia ~= nil
 end), "Universidad 01 completa")
 check(said(leo, "te da un reloj viejo") and leoData.Items.RelojAbu == 1, "{abu} te regala su reloj")
+check(leoData.Story.Choices.Estudios and leoData.Story.Choices.Estudios.V == "Ingenieria", "Elige Ingeniería el primer día, en la matrícula (su nota se lo permite)")
+check(said(leo, "Tus compañeros de cuarto llegan mañana"), "Su primera noche es en la residencia de estudiantes")
+
+print("\n▶ Universidad · La residencia (compañeros de cuarto, la compra, la nevera, la primera cena)")
+check(playUntil(leo, function()
+	return leoData.Story.Completed.Uni01b_Residencia ~= nil
+end), "La residencia completa")
+check(said(leo, "Son sagradas") and leoData.Items.LlaveResidencia == 1 and leoData.Story.Choices.Normas ~= nil, "Iván y Candela (de su clase), las normas de la nevera y la llave de la 214")
 check(said(leo, "Facultad de Ingeniería. Física el primer día") and table.find(classesOf(leo), "Fisica") ~= nil, "El horario y la clase son los de tu carrera (Ingeniería)")
 check(said(leo, "Juntos otra vez."), "Mateo (tu primer amigo) estudia Ingeniería contigo")
 check(said(leo, "me ha dado croquetas gratis") and said(leo, "Por eso me hice voluntario"), "Descubres el campus y comes con Luca")
@@ -1373,6 +1382,17 @@ for _, subject in classesOf(leo) do
 	uniClasses[subject] = true
 end
 check(uniClasses[degreeSubjects.Asignatura1] and uniClasses[degreeSubjects.Asignatura2], "Las clases son las de Ingeniería")
+check(uniClasses[degreeSubjects.Fisico], "Y las pruebas físicas también son de Ingeniería (la visita de obra)")
+local exams = leoData.Story.Completed
+check(exams.UniEx1_Enero and exams.UniEx2_Junio and exams.UniEx3_Parcial and exams.UniEx4_TFG, "El ciclo real de la carrera: enero, junio, el parcial imposible y el TFG")
+check(leoData.Story.Flags.EneroAprobado and leoData.Story.Flags.JunioAprobado and leoData.Items.TFG == 1 and said(leo, "Ensayas cinco veces"), "Aprueba sus exámenes, ensaya con sus compañeros y defiende el TFG")
+local circuits = 0
+for _, call in classCalls do
+	if call.Player == leo and call.Mode == "Circuito" and call.Subject == "FisicoIngenieria" then
+		circuits += 1
+	end
+end
+check(circuits == 4, "Cuatro pruebas físicas a lo largo de la carrera")
 check(leoData.Story.Flags.Graduado and leoData.Education.Degrees[degreeSubjects.Titulo] ~= nil, "Título guardado: graduado en Ingeniería")
 check(cinematic(leo, "Uni_Graduacion") and leoData.Items.OrlaUniversidad == 1 and leoData.Story.Memories.Graduacion ~= nil, "Cinemática de graduación, orla y recuerdo")
 task.wait(1)
@@ -1471,6 +1491,7 @@ local QuestsData = loadModule(ROOT .. "/shared/LifeStory/Quests")
 local function playLoco(player, questId: string): boolean
 	local quest = QuestsData[questId]
 	local story = profiles[player].Story
+	story.Declined[questId] = nil -- si se rechazó mientras se jugaba otra, ahora sí
 	for _ = 1, 12 do
 		if story.Active[questId] or story.Completed[questId] then
 			break
@@ -1605,6 +1626,27 @@ lighting.ClockTime = 22
 check(playLoco(uxia, "Loco_U4_Fiesta") and uxiaData.Items.GafasImpostores == 1, "La fiesta de los cambiaformas: pistas, acusación y gafas de ver impostores")
 lighting.ClockTime = 12
 check(playLoco(uxia, "Loco_U5_Examen") and uxiaData.Items.DiplomaUniverso == 1 and uxiaData.Story.Flags.SalvasteACosme, "El examen del universo: la Tierra aprueba gracias a ti")
+
+print("\n▶ Universidad · secundarias con los compañeros (zumo de mora, fiesta, acampada, playa, Pabellón 0, cita, Tito)")
+local nora = newPlayer("Nora", "AdultoJoven")
+local noraData = profiles[nora]
+noraData.Money = 300
+noraData.Story.Completed.Uni01b_Residencia = os.time()
+noraData.Story.Completed.UniEx1_Enero = os.time()
+nora.Prefer = { "«Perdone. Bajamos la música", "Una de miedo de verdad", "«Me gustas", "Les cuentas todo" }
+nora.Picks = { Culpable = "Suave", Cita = "Luca" }
+lighting.ClockTime = 12
+check(playLoco(nora, "UniS_Zumo") and noraData.Items.ZumoMora == 1 and said(nora, "Moras del Monte del Silencio"), "La guerra del zumo de mora: era Iván, sonámbulo (moras del Monte del Silencio)")
+lighting.ClockTime = 19
+check(playLoco(nora, "UniS_Fiesta") and noraData.Story.Flags.FiestaTranquila and said(nora, "concursos de twist"), "Fiesta en casa de Adrián: el vecino acaba enseñando twist")
+check(playLoco(nora, "UniS_Acampada") and noraData.Items.TazaCampamento == 1 and said(nora, "¿Mi abuela vende zumo a los alienígenas?"), "Acampada en el monte: historias de miedo y Blorp viene a por moras")
+lighting.ClockTime = 12
+check(playLoco(nora, "UniS_Playa") and noraData.Items.PinzaDeOro == 1 and said(nora, "Tratado de las Mareas de 1734"), "Día de playa: voley, castillos y Don Pinzas, cangrejo abogado")
+check(playLoco(nora, "UniS_Pabellon0") and noraData.Items.FotoCosmeCosimo == 1 and noraData.Story.Flags.VioPabellon0, "El Pabellón 0: el laboratorio donde Cosme y Cósimo abrieron la Grieta")
+lighting.ClockTime = 19
+check(playLoco(nora, "UniS_Cita") and noraData.Story.Flags.TienePareja and said(nora, "Ahora hay alguien con quien quiero ver atardeceres"), "Una cita (opcional, con un personaje): helado y atardecer con Luca")
+lighting.ClockTime = 12
+check(playLoco(nora, "UniS_Tito") and noraData.Story.Flags.TitoDescubierto and noraData.Story.Flags.CompisSabenGrieta, "El compañero que no existe: un espía del Consorcio; Iván y Candela ya saben lo de la Grieta")
 
 print("\n▶ Misiones locas · Vida adulta (el lunes eterno, la deuda galáctica, la tostadora, los gnomos, tu yo malvado)")
 local olga = newPlayer("Olga", "Adulto")

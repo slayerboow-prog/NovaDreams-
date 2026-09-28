@@ -550,7 +550,7 @@ function Validate.run(): { string }
 				err("carrera %s: lugar desconocido '%s'", id, tostring(degree[field]))
 			end
 		end
-		for _, field in { "Asignatura1", "Asignatura2", "Practica" } do
+		for _, field in { "Asignatura1", "Asignatura2", "Practica", "Fisico" } do
 			if not Subjects.List[degree[field]] then
 				err("carrera %s: asignatura desconocida '%s'", id, tostring(degree[field]))
 			end

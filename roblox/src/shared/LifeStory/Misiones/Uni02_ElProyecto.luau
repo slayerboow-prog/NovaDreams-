@@ -57,10 +57,10 @@ return {
 	Duration = { 25, 40 },
 	Difficulty = 3,
 	Type = "Historia · Trabajo en equipo",
-	Requires = { Completed = { "Uni01_PrimerDia" }, StageProgress = 0.18 },
+	Requires = { Completed = { "Uni01b_Residencia" }, StageProgress = 0.1 },
 	Npcs = { "Beltran", "Julia", "Pablo", "Adrian", "Carla", "Alumno3" },
 	Locations = { "$Carrera.Facultad", "Biblioteca", "Parque", "PlazaCentro" },
-	Next = { "Uni03_PrimerTrabajo" },
+	Next = { "UniEx1_Enero" },
 	Outcomes = { "Cómo gestionas el grupo", "Qué descubres de cada uno", "Equipo unido o todo el trabajo para ti", "La nota" },
 
 	Moment = "El proyecto del grupo imposible",

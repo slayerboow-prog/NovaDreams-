@@ -43,7 +43,20 @@ local Memories: { [string]: Memory } = {
 	Graduacion = { Text = "Tu graduación y el brindis con todos los de siempre", Icon = "🎓" },
 	PrimerContrato = { Text = "Tu primer contrato de verdad (y tus primeras facturas)", Icon = "✍️" },
 	AtardecerConAbu = { Text = "El atardecer junto al mar con tu abu", Icon = "🌅" },
-	ElReencuentro = { Text = "La inauguración de Omar y la noche en el banco del parque", Icon = "🪑" },	-- Saga de la Grieta
+	ElReencuentro = { Text = "La inauguración de Omar y la noche en el banco del parque", Icon = "🪑" },	-- Universidad de verdad
+	Residencia = { Text = "Tu primera semana en la residencia con Iván y Candela", Icon = "🏠" },
+	ExamenesEnero = { Text = "Tus primeros exámenes de universidad (y la prueba física)", Icon = "📚" },
+	PrimerCurso = { Text = "Aprobaste primero de carrera", Icon = "✅" },
+	ParcialImposible = { Text = "El parcial imposible de Beltrán", Icon = "🧠" },
+	TFG = { Text = "La defensa de tu trabajo de fin de grado", Icon = "📘" },
+	ZumoDeMora = { Text = "La guerra del zumo de mora en la habitación 214", Icon = "🍇" },
+	FiestaAdrian = { Text = "La fiesta en casa de Adrián (y el vecino del twist)", Icon = "🎉" },
+	Acampada = { Text = "La acampada en el Monte del Silencio y la visita de Blorp", Icon = "⛺" },
+	PlayaClase = { Text = "El día de playa con la clase y Don Pinzas", Icon = "🏖️" },
+	Pabellon0 = { Text = "El Pabellón 0, el edificio que no salía en los mapas", Icon = "🏚️" },
+	LaCita = { Text = "Aquella tarde de helado y atardecer en Playa Dorada", Icon = "🍦" },
+	TitoEspia = { Text = "Tito, el compañero de cuarto que no existía", Icon = "🕵️" },
+	-- Saga de la Grieta
 	GrietaEnElCielo = { Text = "La noche en que viste la Grieta en el cielo (y una moneda con perilla)", Icon = "🌌" },
 	DonEscamas = { Text = "Rescataste a Don Escamas, el pez contable, del Consorcio", Icon = "🐟" },
 	VentanillaAduana = { Text = "El formulario 42 y las tres ventanillas de la Aduana del Tiempo", Icon = "📄" },

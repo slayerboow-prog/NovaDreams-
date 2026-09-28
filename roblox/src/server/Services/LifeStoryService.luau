@@ -568,8 +568,13 @@ local advance -- se define más abajo
 
 local function sendChoice(player: Player, questId: string, step: { [string]: any })
 	local options = {}
+	local data = DataService.get(player)
+	local ctx = if data then contextFor(player, data) else nil
 	for _, option in step.Options do
-		table.insert(options, { Id = option.Id, TextKey = option.Text or option.TextKey })
+		-- Opciones con If (la nota de corte de una carrera…): solo se ven si se cumplen
+		if not option.If or (ctx and Conditions.check(option.If, ctx)) then
+			table.insert(options, { Id = option.Id, TextKey = option.Text or option.TextKey })
+		end
 	end
 	send(player, "Choice", { QuestId = questId, PromptKey = step.Prompt or step.PromptKey, Options = options })
 end

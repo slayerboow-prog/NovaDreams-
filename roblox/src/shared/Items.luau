@@ -48,6 +48,7 @@ local ICONS = {
 	Pan = "🥖",
 	Fruta = "🍎",
 	Flores = "💐",
+	BolsaCompra = "🛒",
 }
 local DESCS = {
 	MaterialEscolar = "Lápices, cuadernos y una goma que huele a fresa.",
@@ -56,6 +57,7 @@ local DESCS = {
 	Pan = "Recién hecho en la panadería. Quita el hambre.",
 	Fruta = "Fresca y sana. Quita el hambre.",
 	Flores = "Un ramo precioso para regalar o decorar tu casa.",
+	BolsaCompra = "Pasta, huevos, fruta y algo de verdura (que acabará caducando). Quita mucha hambre.",
 }
 
 local list: { [string]: Item } = {}
@@ -159,7 +161,14 @@ local KEEPSAKES = {
 	{ "PrimeraNomina", "Tu primera nómina completa", "💶", "Con tu nombre, tu puesto y, ay, las retenciones." },
 	{ "ConchaAbu", "Una concha de Playa Dorada", "🐚", "«Para que vuelvas aquí. Con quien tú quieras.»" },
 	{ "FotoReencuentro", "Foto del reencuentro", "📸", "Todo el grupo en la cafetería de Omar. Más altos, igual de ruidosos." },
-	{ "CuadernoProfesiones", "Cuaderno de profesiones", "📓", "Lo que viste en la semana de las profesiones. «Dentro de unos años lo leerás y te reirás. O no.»" },	-- Saga de la Grieta
+	{ "CuadernoProfesiones", "Cuaderno de profesiones", "📓", "Lo que viste en la semana de las profesiones. «Dentro de unos años lo leerás y te reirás. O no.»" },	-- Universidad de verdad
+	{ "LlaveResidencia", "Llave de la habitación 214", "🗝️", "La de la puerta que chirría. Tercer piso, al fondo. Tu primera casa sin tu familia." },
+	{ "TFG", "Tu trabajo de fin de grado", "📘", "Encuadernado en azul. Cuatro años de carrera caben en noventa páginas (y una bibliografía muy larga)." },
+	{ "ZumoMora", "Botella de zumo de mora", "🍇", "De la abuela de Iván. Moras del Monte del Silencio. No beber de madrugada (da sonambulismo)." },
+	{ "TazaCampamento", "Taza de campamento del grupo", "⛺", "Cuatro nombres y un dibujo de un alienígena, hecho por Julia. Nadie os creyó." },
+	{ "PinzaDeOro", "Pinza de oro de Don Pinzas", "🦀", "Se le cayó al cangrejo abogado. Según el tratado de 1734, ahora eres dueño de un metro de playa." },
+	{ "FotoCosmeCosimo", "Foto de Cosme y Cósimo, jóvenes", "📸", "«La noche antes de la prueba». Dos jóvenes con bata delante de una máquina. Uno de ellos, con una sonrisa de anuncio." },
+	-- Saga de la Grieta
 	{ "MonedaPerilla", "Moneda de la 66-B", "🪙", "Caliente, como recién salida de un horno. En una cara, la cara de Cosme… con perilla." },
 	{ "EscamaBrillante", "Escama brillante", "✨", "Regalo de Don Escamas: «Por si necesitas un contable. O un amigo. Soy las dos cosas»." },
 	{ "SelloAduana", "Sello de la Aduana del Tiempo", "📄", "De repuesto. «Nunca se sabe cuándo hay que sellar algo.» — Agente Cronos." },

@@ -29,6 +29,8 @@ return {
 	require(Misiones.Ins05_ElRumor),
 	require(Misiones.Ins06_LaGranDecision),
 	require(Misiones.Uni01_PrimerDia),
+	require(Misiones.Uni_Vida), -- la residencia y el ciclo de exámenes (misiones principales)
+	require(Misiones.Uni_Secundarias), -- fiestas, acampada, playa, zumo de mora, cita, lugares abandonados…
 	require(Misiones.Uni02_ElProyecto),
 	require(Misiones.Uni03_PrimerTrabajo),
 	require(Misiones.Uni04_Practicas),

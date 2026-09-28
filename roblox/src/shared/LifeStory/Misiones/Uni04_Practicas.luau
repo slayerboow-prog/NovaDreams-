@@ -41,10 +41,10 @@ return {
 	Duration = { 30, 40 },
 	Difficulty = 3,
 	Type = "Historia · Prácticas",
-	Requires = { Completed = { "Uni03_PrimerTrabajo" }, StageProgress = 0.55 },
+	Requires = { Completed = { "UniEx2_Junio" }, StageProgress = 0.45 },
 	Npcs = { "Nuria", "Sofia", "Montse", "Ignacio", "Paciente", "Vecino", "Marcos" },
 	Locations = { "$Carrera.LugarPracticas" },
-	Next = { "Uni05_PrimerPiso" },
+	Next = { "UniEx3_Parcial" },
 	Outcomes = { "Un caso distinto para cada carrera", "Qué haces con tu error", "Oferta de trabajo o no" },
 
 	Moment = "Tus primeras prácticas",

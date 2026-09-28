@@ -60,7 +60,7 @@ Config.LifeStory = {
 	StageHours = {
 		Nino = 5, -- el colegio
 		Adolescente = 5, -- el instituto
-		AdultoJoven = 5, -- la universidad (o los primeros años de trabajo)
+		AdultoJoven = 8, -- la universidad (o los primeros años de trabajo): residencia, cursos, exámenes, secundarias
 	},
 	-- Edad al empezar y al terminar cada etapa (un cumpleaños cada StageHours / años)
 	AgeRange = {

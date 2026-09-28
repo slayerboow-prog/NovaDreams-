@@ -17,9 +17,12 @@ local CASA_FAMILIA = {
 	{ Npc = "Familia", Place = "HomeSalon", Offset = V(-4, 0, 0) },
 	{ Npc = "Abu", Place = "HomeSalon", Offset = V(10, 0, -2), Mode = "Sit" },
 }
+local RESI = { Choices = { CompiPiso = "Resi" } }
 local COMPIS = {
 	{ Npc = "Sara", Mode = "Follow", If = SARA },
 	{ Npc = "Luca", Mode = "Follow", If = LUCA },
+	{ Npc = "Ivan", Mode = "Follow", If = RESI },
+	{ Npc = "Candela", Mode = "Follow", If = RESI },
 }
 
 return {
@@ -32,10 +35,10 @@ return {
 	Duration = { 20, 30 },
 	Difficulty = 2,
 	Type = "Historia · Vida adulta",
-	Requires = { Completed = { "Uni04_Practicas" }, StageProgress = 0.72 },
+	Requires = { Completed = { "UniEx3_Parcial" }, StageProgress = 0.63 },
 	Npcs = { "Familia", "Abu", "Sara", "Luca" },
 	Locations = { "HomeSalon", "Universidad", "CercaDeTi" },
-	Next = { "Uni06_Graduacion" },
+	Next = { "UniEx4_TFG" },
 	Outcomes = { "Con quién vives", "La caja misteriosa", "Cómo resolvéis la convivencia" },
 
 	Moment = "Tu primer piso",
@@ -56,11 +59,14 @@ return {
 			Options = {
 				{ Id = "Sara", Npc = "Sara", Text = "Con Sara", Dialogue = "Con_Sara", Effects = { Rel = { Sara = 6 } } },
 				{ Id = "Luca", Npc = "Luca", Text = "Con Luca", Dialogue = "Con_Luca", Effects = { Rel = { Luca = 6 } } },
+				{ Id = "Resi", Npc = "Candela", Text = "Con Iván y Candela (los de la residencia)", Dialogue = "Con_Resi", Effects = { Rel = { Ivan = 6, Candela = 6 } } },
 				{ Id = "Solo", Prop = "MesaSola", Text = "A tu aire", Dialogue = "Sin_Compi", Effects = { Traits = { Valentia = 1 } } },
 			},
 			Actors = {
 				{ Npc = "Sara", Place = "Universidad", Offset = V(-6, 0, -6) },
 				{ Npc = "Luca", Place = "Universidad", Offset = V(-10, 0, -4) },
+				{ Npc = "Candela", Place = "Universidad", Offset = V(-2, 0, -8) },
+				{ Npc = "Ivan", Place = "Universidad", Offset = V(0, 0, -9), Mode = "Wave" },
 			} },
 		{ Type = "Event", Event = "HomeClaimed", Text = "Busca una casa libre (cartel «Se vende») y quédatela", Actors = COMPIS },
 		{ Type = "Scene", Dialogue = "Llaves", Actors = COMPIS },
@@ -82,8 +88,8 @@ return {
 
 	Dialogues = {
 		Conversacion = { Lines = {
-			{ S = "Familia", T = "Siéntate. Tenemos que hablar. No, no es nada malo. Es que… estás en cuarto. Y el campus está lejos." },
-			{ S = "Familia", T = "Hemos pensado que quizá es hora de que tengas tu propio sitio. Te ayudamos a empezar." },
+			{ S = "Familia", T = "Siéntate. Tenemos que hablar. No, no es nada malo. Es que… estás en cuarto. Tres años en la residencia, compartiendo cuarto y nevera." },
+			{ S = "Familia", T = "Hemos pensado que quizá es hora de que tengas tu propio piso. De verdad. Con tu nombre en el buzón. Te ayudamos a empezar." },
 			{ S = "Familia", T = "Y lo que llevas ahorrando desde aquel verano del instituto por fin va a servir para algo grande.", If = { Choices = { Meta = "Ahorro" } } },
 			{ S = "Abu", T = "Yo me fui de casa con una maleta y un bocadillo. El bocadillo me duró dos horas. La maleta, cuarenta años." },
 			{ Ask = "¿Qué sientes?", Options = {
@@ -102,6 +108,10 @@ return {
 		Con_Luca = { Lines = {
 			{ S = "Luca", T = "¡Perfetto! Me quedo en Valmar para el máster. Yo cocino, tú friegas. Es el pacto italiano." },
 			{ S = "Luca", T = "Y los domingos, pasta fresca. Con la receta de mi nonna. Es un secreto de Estado." },
+		} },
+		Con_Resi = { Lines = {
+			{ S = "Candela", T = "¿Seguir juntos? ¿Fuera de la residencia? He hecho una lista de pros y contras. Contras: Iván. Pros: Iván. Se anulan. Sí." },
+			{ S = "Ivan", T = "¡Piso propio! ¡Con nevera PROPIA! ¡Una balda entera para el zumo de mora! …Vale, media balda. Candela ya me está mirando." },
 		} },
 		Sin_Compi = { Lines = {
 			{ S = "Narrador", T = "Te sientas a pensar. Nunca has vivido a tu aire. Nadie que te diga qué comer ni a qué hora dormir. Da vértigo. Y ganas." },

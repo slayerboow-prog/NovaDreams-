@@ -11,6 +11,8 @@ local ShopItems: { [string]: Item } = {
 	Panaderia = { Id = "Pan", NameKey = "ITEM.PAN", Price = 3, Hunger = 15 },
 	Fruteria = { Id = "Fruta", NameKey = "ITEM.FRUTA", Price = 3, Hunger = 15 },
 	Floristeria = { Id = "Flores", NameKey = "ITEM.FLORES", Price = 8 },
+	-- La compra para la nevera del piso o de la residencia (la universidad: comer ya depende de ti)
+	Supermercado = { Id = "BolsaCompra", NameKey = "Bolsa de la compra", Price = 15, Hunger = 35, Energy = 5 },
 }
 
 return ShopItems
