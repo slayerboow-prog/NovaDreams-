@@ -2066,15 +2066,9 @@ function LifeStoryService.interact(player: Player, kind: string, questId: string
 	if not prog or not quest then
 		return
 	end
-	if not LifeStoryService.Guard.allow(rt, kind .. ":" .. id, os.clock()) then
-		return
-	end
-	if kind == "Prop" then
-		interactProp(player, data, questId, id)
-		return
-	end
 	local step = stepsOf(questId, prog)[prog.Step]
-	-- 0) Combate: el botón del enemigo es atacar
+	-- 0) Combate: el botón del enemigo es atacar (va antes del filtro de toques dobles: aquí pulsar
+	-- seguido ES lo que hay que hacer, y ya tiene su propio ritmo máximo)
 	if step and step.Type == "Fight" then
 		for _, enemy in step.Enemies or {} do
 			if enemy.Npc == id then
@@ -2085,6 +2079,13 @@ function LifeStoryService.interact(player: Player, kind: string, questId: string
 				return
 			end
 		end
+	end
+	if not LifeStoryService.Guard.allow(rt, kind .. ":" .. id, os.clock()) then
+		return
+	end
+	if kind == "Prop" then
+		interactProp(player, data, questId, id)
+		return
 	end
 	-- 1) Hablar con este personaje ES elegir (unirte a un grupo del recreo…)
 	if step and step.Type == "Choice" then
