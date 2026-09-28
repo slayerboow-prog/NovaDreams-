@@ -81,7 +81,7 @@ return {
 			Lista = { Lines = {
 				{ S = "Pip", T = "He hecho una lista de sitios donde el señor fue feliz. Es corta. El señor no salía mucho. Pero en casi todos estaba usted." },
 				{ S = "Cosme", T = "¿Yo fui feliz? ¿En sitios? ¿Con esta cara? Qué raro. Vamos. Pero volvemos pronto: echo de menos una cosa que no sé cuál es." },
-				{ S = "DonEscamas", T = "(Desde la pecera) Y si la tostadora con su mente sigue por ahí, que la traiga. Yo nunca tiro una copia de seguridad.", If = { Completed = { "Loco_D3_Tostadora" } } },
+				{ S = "DonEscamas", T = "(Desde la pecera) Mirad también en los cacharros del garaje. Una mente se esconde donde menos te lo esperas… en una tostadora, por ejemplo. Yo nunca tiro una copia de seguridad." },
 			} },
 			Microondas = { Lines = {
 				{ S = "Narrador", T = "Metes un bocadillo en el microondas temporal. «Ding». Sale caliente… y mordido. Mordido por el Cosme de ayer." },
