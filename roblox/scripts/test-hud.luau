@@ -17,6 +17,10 @@
 --   * el menú rápido no tapa el minimapa; el joystick mueve al personaje (Humanoid:Move relativo)
 --   * en conversaciones y de bebé se aparta lo que tapa la escena
 --   * el GPS (Controllers/Gps) da la indicación bajo la reloj sin pisar nada
+--   * primeros pasos (Controllers/Guide), el botón ❓ (Controllers/HelpUI) y las pistas: la tarjeta sale
+--     a un jugador nuevo y no a uno que ya jugaba, cada paso se cumple al hacerlo de verdad, «Saltar»,
+--     el prólogo (InPrologue), «Llévame» pone el GPS, la pista tras 90 s (y no en conversaciones) y
+--     los consejos de la primera vez; y la tarjeta y el ❓ tampoco pisan nada
 
 local fs = require("@lune/fs")
 local luau = require("@lune/luau")
@@ -307,11 +311,17 @@ for i, road in { { roblox.Vector3.new(0, 0, 0), roblox.Vector3.new(0, 0, -200) }
 	config:SetAttribute("B", road[2])
 	config.Parent = roadsFolder
 end
-for _, name in { "LifeStory", "QuitJob", "GoHome" } do
+for _, name in { "LifeStory", "QuitJob", "GoHome", "Onboarding" } do
 	local remote = newInstance("RemoteEvent")
 	remote.Name = name
 	remote.Parent = remotes
 end
+
+-- Lo que el cliente manda al servidor por el remoto de los primeros pasos
+local onboardingSent: { { any } } = {}
+rawset(remotes:FindFirstChild("Onboarding"), "FireServer", function(_, ...)
+	table.insert(onboardingSent, { ... })
+end)
 
 local players = service("Players")
 rawset(players, "GetUserThumbnailAsync", function()
@@ -507,6 +517,9 @@ local function setViewport(x: number, y: number)
 	camera.ViewportSize = roblox.Vector2.new(x, y) -- (dispara el cambio: todo se recoloca)
 end
 
+-- Lo que ven los primeros pasos del mapa grande y de la mochila (en el juego: MapUI.isOpen, InventoryUI.isOpen)
+local fakeHooks = { Map = false, Bag = false, Dialog = false }
+
 local function mount(touch: boolean, x: number, y: number)
 	-- Cada montaje empieza de cero (módulos y pantalla)
 	table.clear(cache)
@@ -520,6 +533,10 @@ local function mount(touch: boolean, x: number, y: number)
 	rawget(userInput, "__props").TouchEnabled = touch
 	rawget(userInput, "__props").KeyboardEnabled = not touch
 	localPlayer:SetAttribute("LifeStage", "Nino")
+	-- Jugador nuevo (lo que pone OnboardingService): la tarjeta de los primeros pasos está en pantalla
+	localPlayer:SetAttribute("Tutorial", "Pendiente")
+	localPlayer:SetAttribute("TutorialSteps", "")
+	localPlayer:SetAttribute("TipsSeen", "")
 	local Hud = loadModule("src/client/UI/Hud")
 	local storeOpened = false
 	local ok, err = pcall(Hud.init, function()
@@ -533,6 +550,8 @@ local function mount(touch: boolean, x: number, y: number)
 		CommandRegistry = loadModule("src/client/Commands/CommandRegistry"),
 		Joystick = loadModule("src/client/Controllers/Joystick"),
 		Gps = loadModule("src/client/Controllers/Gps"),
+		Guide = loadModule("src/client/Controllers/Guide"),
+		HelpUI = loadModule("src/client/Controllers/HelpUI"),
 	}
 	if ok then
 		ok, err = pcall(mods.CommandMenu.init)
@@ -542,6 +561,29 @@ local function mount(touch: boolean, x: number, y: number)
 	end
 	if ok then
 		ok, err = pcall(mods.Gps.init)
+	end
+	if ok then
+		ok, err = pcall(mods.HelpUI.init)
+	end
+	if ok then
+		ok, err = pcall(mods.Guide.init, {
+			mapOpen = function()
+				return fakeHooks.Map
+			end,
+			bagOpen = function()
+				return fakeHooks.Bag
+			end,
+			dialogOpen = function()
+				return fakeHooks.Dialog
+			end,
+		})
+		-- (como en Main.client: abrir el ❓ y «Llévame» son pasos)
+		mods.HelpUI.onOpen(function()
+			mods.Guide.mark("Ayuda")
+		end)
+		mods.HelpUI.onGo(function()
+			mods.Guide.mark("Mision")
+		end)
 	end
 	-- Un objetivo de misión al noreste: el GPS calcula la ruta y da la indicación
 	localPlayer:SetAttribute("StoryTarget", roblox.Vector3.new(150, 0, -200))
@@ -619,6 +661,11 @@ local function hudRects(mods, withQuick: boolean?)
 	add("Joystick", stick and stick:FindFirstChild("Joystick"))
 	local gps = playerGui:FindFirstChild("GpsGui")
 	add("Indicación del GPS", gps and gps:FindFirstChild("GpsBanner"))
+	local helpGui = playerGui:FindFirstChild("HelpGui")
+	add("Botón ❓", helpGui and helpGui:FindFirstChild("HelpButton"))
+	local guideGui = playerGui:FindFirstChild("GuideGui")
+	add("Tarjeta de primeros pasos", guideGui and guideGui:FindFirstChild("TutorialCard"))
+	add("Pista o consejo", guideGui and guideGui:FindFirstChild("GuideNote"))
 	local touchGui = playerGui:FindFirstChild("TouchLayout")
 	for _, child in if touchGui then touchGui:GetChildren() else {} do
 		if child:IsA("TextButton") and child.Visible then
@@ -787,6 +834,21 @@ check(toasts and textOf(toasts, "+50 $"), "Los avisos aparecen")
 check(toastGui and (toastGui.DisplayOrder or 0) > 5, "Los avisos salen por encima de las ventanas")
 check(#badWrites == 0, "Ninguna propiedad inventada al usarlo" .. (if #badWrites > 0 then ": " .. table.concat(badWrites, ", ") else ""))
 
+-- Primeros pasos y ❓ en el ordenador: botón para el ratón, tecla H y textos con teclas
+do
+	local helpGui = playerGui:FindFirstChild("HelpGui")
+	local helpButton = helpGui and helpGui:FindFirstChild("HelpButton")
+	local card = playerGui:FindFirstChild("GuideGui") and playerGui.GuideGui:FindFirstChild("TutorialCard")
+	check(helpButton and helpButton.Visible and helpButton:FindFirstChild("Key") and helpButton.Key.Text == "H", "Ordenador: botón ❓ «¿Qué hago?» con su tecla H (junto a la misión)")
+	check(hints and textOf(hints, "¿Qué hago?"), "Y la fila «H · ¿Qué hago?» en la lista de teclas")
+	check(card and card.Visible and card.Text.Text:find("W A S D", 1, true) ~= nil, "La tarjeta de los primeros pasos, con las teclas («W A S D»)")
+	userInput.InputBegan:Fire({ KeyCode = roblox.Enum.KeyCode.H, UserInputType = roblox.Enum.UserInputType.Keyboard }, false)
+	local helpCard = helpGui and helpGui:FindFirstChild("HelpCard")
+	check(helpCard and helpCard.Visible, "La tecla H abre «¿Qué hago ahora?»")
+	userInput.InputBegan:Fire({ KeyCode = roblox.Enum.KeyCode.H, UserInputType = roblox.Enum.UserInputType.Keyboard }, false)
+	check(helpCard and not helpCard.Visible, "Y la cierra")
+end
+
 -- Nada se pisa, en varios tamaños de ordenador
 for _, size in { { 1920, 1080 }, { 1600, 900 }, { 1366, 768 } } do
 	setViewport(size[1], size[2])
@@ -833,7 +895,10 @@ for _, size in { { 844, 390 }, { 932, 430 }, { 1024, 768 } } do
 			visible += 1
 		end
 	end
-	check(visible == 13, "Racimo con Interactuar, Saltar, los 6 de siempre y 5 de contexto (" .. visible .. ")")
+	check(visible == 14, "Racimo con Interactuar, Saltar, los 6 de siempre, 5 de contexto y el ❓ (" .. visible .. ")")
+	check(buttons.Ayuda and buttons.Ayuda.Visible and buttons.Ayuda:FindFirstChild("Caption").Text == "¿Qué hago?", "Botón ❓ «¿Qué hago?» junto a la misión")
+	local guideCard = playerGui:FindFirstChild("GuideGui") and playerGui.GuideGui:FindFirstChild("TutorialCard")
+	check(guideCard and guideCard.Visible, "Jugador nuevo: la tarjeta de los primeros pasos se ve (y entra en la prueba de que nada se pisa)")
 	check(buttons.Saltar and buttons.Saltar.Visible and buttons.Saltar:FindFirstChild("Caption").Text == "Saltar", "Botón Saltar propio (icono y texto)")
 	check(buttons.Ataque and buttons.Ataque.Size.X.Offset > buttons.Correr.Size.X.Offset, "El Ataque es el botón grande")
 	check(buttons.Piedra and buttons.Piedra.Badge.Visible and buttons.Piedra.Badge.Text == "×3", "Numerito en la esquina (piedras «×3»)")
@@ -943,6 +1008,296 @@ for _, size in { { 844, 390 }, { 932, 430 }, { 1024, 768 } } do
 	end
 	localPlayer:SetAttribute("Wanted", nil)
 	check(#badWrites == 0, "Ninguna propiedad inventada al usarlo" .. (if #badWrites > 0 then ": " .. table.concat(badWrites, ", ") else ""))
+end
+
+---------------------------------------------------------------------
+-- Primeros pasos, el botón ❓ y las pistas (Controllers/Guide y Controllers/HelpUI)
+---------------------------------------------------------------------
+do
+	print("\n▶ Primeros pasos, ❓ «¿Qué hago ahora?», pistas y consejos (móvil 844x390)")
+	local function sent(kind: string, id: string?): boolean
+		for _, message in onboardingSent do
+			if message[1] == kind and message[2] == id then
+				return true
+			end
+		end
+		return false
+	end
+	local function toastSaid(text: string): boolean
+		local toastGui = playerGui:FindFirstChild("HudToasts")
+		return toastGui ~= nil and textOf(toastGui, text)
+	end
+	local function clearToasts()
+		local toastGui = playerGui:FindFirstChild("HudToasts")
+		local list = toastGui and toastGui:FindFirstChild("Toasts")
+		for _, child in if list then list:GetChildren() else {} do
+			if not child:IsA("UIListLayout") then
+				child:Destroy()
+			end
+		end
+	end
+	local function near(a: number, b: number): boolean
+		return math.abs(a - b) < 1
+	end
+	for _, attribute in { "InPrologue", "InDialogue", "Riding", "Wanted", "Sprinting" } do
+		localPlayer:SetAttribute(attribute, nil)
+	end
+	table.clear(onboardingSent)
+	fakeHooks.Map, fakeHooks.Bag, fakeHooks.Dialog = false, false, false
+	local m, okMount, errMount = mount(true, 844, 390)
+	check(okMount, "Se monta sin errores" .. (if okMount then "" else ": " .. tostring(errMount)))
+	local Guide, HelpUI, TL, HL = m.Guide, m.HelpUI, m.TouchLayout, m.HudLayout
+	local layout = HL.current()
+	local function centerOf(placement): (number, number)
+		local r = HL.rect(placement, layout.Canvas)
+		return r.X + r.W / 2, r.Y + r.H / 2
+	end
+	local guideGui = playerGui:FindFirstChild("GuideGui")
+	local tcard = guideGui and guideGui:FindFirstChild("TutorialCard")
+	local noteView = guideGui and guideGui:FindFirstChild("GuideNote")
+	local highlightGui = playerGui:FindFirstChild("GuideHighlight")
+	local ring = highlightGui and highlightGui:FindFirstChild("Ring")
+	local arrowView = highlightGui and highlightGui:FindFirstChild("Arrow")
+	local pps = services.ProximityPromptService
+	local function ringOn(placement): boolean
+		local x, y = centerOf(placement)
+		return ring ~= nil and ring.Visible and near(ring.Position.X.Offset, x) and near(ring.Position.Y.Offset, y)
+	end
+
+	-- Nuevo o de antes
+	check(tcard and tcard.Visible and tcard.Count.Text:find("1/7", 1, true) ~= nil and tcard.Title.Text == "Muévete", "Jugador nuevo: sale la tarjeta «PRIMEROS PASOS · 1/7 · Muévete»")
+	check(tcard and tcard.Text.Text:find("joystick", 1, true) ~= nil and tcard.Skip.Text:find("Saltar", 1, true) ~= nil, "En el móvil habla del joystick, con el botón «Saltar»")
+	check(ringOn(layout.Items.Joystick) and arrowView and arrowView.Visible, "Un aro brillante y una flecha señalan el joystick de verdad")
+	localPlayer:SetAttribute("Tutorial", "Veterano")
+	check(tcard.Visible == false and ring.Visible == false, "Quien ya jugaba antes (Veterano): no sale el tutorial")
+	localPlayer:SetAttribute("Tutorial", "Pendiente")
+	check(tcard.Visible, "Jugador nuevo (Pendiente): sí")
+	fakeHooks.Dialog = true
+	Guide.refresh()
+	check(tcard.Visible == false, "Con una decisión de la historia en pantalla (también abajo en el centro), la tarjeta espera")
+	fakeHooks.Dialog = false
+	localPlayer:SetAttribute("Training", "Cinta")
+	Guide.refresh()
+	check(tcard.Visible == false, "Y mientras entrenas (la barra del gimnasio)")
+	localPlayer:SetAttribute("Training", nil)
+	Guide.refresh()
+	check(tcard.Visible, "Luego vuelve")
+
+	-- Cada paso se cumple al hacerlo de verdad
+	local humanoidProps = rawget(humanoid, "__props")
+	humanoidProps.MoveDirection = roblox.Vector3.new(0, 0, -1)
+	Guide.tick(0.5)
+	check(tcard.Title.Text == "Muévete" and not sent("Step", "Mover"), "Medio segundo andando aún no cuenta (no es un temporizador: hay que andar)")
+	Guide.tick(0.6)
+	humanoidProps.MoveDirection = roblox.Vector3.new(0, 0, 0)
+	check(sent("Step", "Mover") and tcard.Title.Text == "Corre" and tcard.Count.Text:find("2/7", 1, true) ~= nil, "Andar con el joystick cumple «Muévete» (se guarda) y pasa a «Corre»")
+	check(ringOn(layout.Slots.Correr), "El aro pasa al botón Correr")
+	Guide.tick(30)
+	check(tcard.Title.Text == "Corre", "Esperar sin hacer nada no cumple nada")
+	localPlayer:SetAttribute("Sprinting", true)
+	localPlayer:SetAttribute("Sprinting", nil)
+	check(sent("Step", "Correr") and tcard.Title.Text == "Habla o usa algo", "Correr de verdad (Sprinting) cumple «Corre»")
+	check(ringOn(layout.Slots.Interactuar), "El aro pasa al botón Interactuar")
+	pps.PromptTriggered:Fire(newInstance("ProximityPrompt"), newInstance("Player"))
+	check(tcard.Title.Text == "Habla o usa algo", "Un cartel que usa otro jugador no cuenta")
+	pps.PromptTriggered:Fire(newInstance("ProximityPrompt"), localPlayer)
+	check(sent("Step", "Interactuar") and tcard.Title.Text == "Abre el mapa", "Usar un cartel (hablar, abrir…) cumple «Habla o usa algo»")
+	check(ringOn(layout.Items.Minimap), "El aro señala el minimapa")
+	fakeHooks.Map = true
+	Guide.tick(0.25)
+	fakeHooks.Map = false
+	check(sent("Step", "Mapa") and tcard.Title.Text == "Abre la mochila", "Abrir el mapa grande cumple «Abre el mapa»")
+	check(ringOn(layout.Items.Commands), "El aro señala el menú COMANDOS (Objetos)")
+	fakeHooks.Bag = true
+	Guide.tick(0.25)
+	fakeHooks.Bag = false
+	check(sent("Step", "Mochila") and tcard.Title.Text == "¿No sabes qué hacer?", "Abrir la mochila cumple «Abre la mochila»")
+	check(ringOn(layout.Slots.Ayuda), "El aro señala el botón ❓")
+
+	-- ❓: tu objetivo en claro, dónde está y «Llévame»
+	remotes:FindFirstChild("LifeStory").OnClientEvent:Fire("State", {
+		Tracked = { QuestId = "Nino_Jornada", Kind = "Main", TitleKey = "QUEST.DIA_COLE.TITLE", TextKey = "Ve al colegio y entra en clase", Args = { placeKey = "Colegio Valmar" } },
+		Others = {},
+	})
+	localPlayer:SetAttribute("StoryTarget", roblox.Vector3.new(150, 0, -200))
+	local missionStep = playerGui.MainHud.Mission.Step.Text
+	TL.buttons().Ayuda.Activated:Fire()
+	local helpCard = playerGui.HelpGui.HelpCard
+	local body = helpCard.Body
+	check(helpCard.Visible and missionStep ~= "" and body.Step.Text:find(missionStep, 1, true) ~= nil, "El ❓ abre la tarjeta con tu objetivo en claro («" .. body.Step.Text .. "»)")
+	check(body.Kind.Text:find("MISIÓN PRINCIPAL", 1, true) ~= nil, "Dice qué misión es («" .. body.Kind.Text .. "»)")
+	check(body.Where.Text:find("Colegio Valmar · ", 1, true) ~= nil and body.Where.Text:find(" m · ", 1, true) ~= nil and body.Where.Text:find("hacia el", 1, true) ~= nil, "Dónde está (el sitio), a cuánto y hacia dónde («" .. body.Where.Text .. "»)")
+	check(sent("Step", "Ayuda") and tcard.Title.Text == "Sigue tu misión", "Abrir el ❓ cumple «¿No sabes qué hacer?»")
+	check(ringOn(layout.Items.Mission), "El aro señala la misión")
+	-- La ruta estaba quitada (✕) y el GPS apagado en el menú: «Llévame» la vuelve a poner
+	local banner = playerGui.GpsGui.GpsBanner
+	banner.Clear.Activated:Fire()
+	m.Gps.setEnabled(false)
+	m.Gps.update()
+	check(m.Gps.path() == nil and banner.Visible == false, "(sin ruta: quitada con ✕ y el GPS apagado)")
+	clearToasts()
+	body.Go.Activated:Fire()
+	m.Gps.update()
+	check(m.Gps.isEnabled() and m.Gps.path() ~= nil and banner.Visible and helpCard.Visible == false, "«Llévame» pone la ruta del GPS al objetivo y cierra la tarjeta")
+	check(sent("Step", "Mision") and tcard.Visible == false and ring.Visible == false, "…y cumple «Sigue tu misión»: primeros pasos terminados")
+	check(toastSaid("Ya sabes lo básico") and (Guide.state()) == "Hecho", "Al acabar: «🎉 ¡Ya sabes lo básico!»")
+
+	-- «Saltar» y «Ver tutorial otra vez»
+	table.clear(onboardingSent)
+	Guide.restart()
+	check(sent("Restart") and tcard.Visible and tcard.Count.Text:find("1/7", 1, true) ~= nil, "«Ver tutorial otra vez» lo empieza de nuevo (se guarda)")
+	tcard.Skip.Activated:Fire()
+	check(sent("Skip") and tcard.Visible == false and ring.Visible == false and (Guide.state()) == "Saltado", "«Saltar» quita la tarjeta y se guarda")
+	localPlayer:SetAttribute("Tutorial", "Saltado") -- (lo que contesta el servidor)
+	Guide.tick(5)
+	check(tcard.Visible == false, "Y no vuelve")
+
+	-- Prólogo (InPrologue): la tarjeta no sale, pero lo que haces cuenta
+	Guide.restart()
+	clearToasts()
+	localPlayer:SetAttribute("InPrologue", true)
+	check(tcard.Visible == false and ring.Visible == false, "En el prólogo (InPrologue) no sale la tarjeta")
+	humanoidProps.MoveDirection = roblox.Vector3.new(1, 0, 0)
+	Guide.tick(1.2)
+	humanoidProps.MoveDirection = roblox.Vector3.new(0, 0, 0)
+	localPlayer:SetAttribute("Sprinting", true)
+	localPlayer:SetAttribute("Sprinting", nil)
+	pps.PromptTriggered:Fire(newInstance("ProximityPrompt"), localPlayer)
+	fakeHooks.Map = true
+	Guide.tick(0.25)
+	fakeHooks.Map = false
+	check(tcard.Visible == false, "Tampoco mientras anda, corre, habla y abre el mapa en el prólogo")
+	localPlayer:SetAttribute("InPrologue", nil)
+	check(tcard.Visible and tcard.Title.Text == "Abre la mochila" and tcard.Count.Text:find("5/7", 1, true) ~= nil, "Al acabar el prólogo cuenta lo que hizo en él: solo sale lo que falta («Abre la mochila», 5/7)")
+	-- Todo hecho dentro del prólogo: se da por terminado sin decir nada
+	Guide.restart()
+	clearToasts()
+	localPlayer:SetAttribute("InPrologue", true)
+	humanoidProps.MoveDirection = roblox.Vector3.new(1, 0, 0)
+	Guide.tick(1.2)
+	humanoidProps.MoveDirection = roblox.Vector3.new(0, 0, 0)
+	localPlayer:SetAttribute("Sprinting", true)
+	localPlayer:SetAttribute("Sprinting", nil)
+	pps.PromptTriggered:Fire(newInstance("ProximityPrompt"), localPlayer)
+	fakeHooks.Map, fakeHooks.Bag = true, true
+	Guide.tick(0.25)
+	fakeHooks.Map, fakeHooks.Bag = false, false
+	HelpUI.open()
+	HelpUI.close()
+	m.Hud.runCommand("Misiones")
+	Guide.tick(0.25)
+	m.Hud.runCommand("Misiones")
+	localPlayer:SetAttribute("InPrologue", nil)
+	check(tcard.Visible == false and (Guide.state()) == "Hecho" and not toastSaid("Ya sabes lo básico") and not toastSaid("Bien hecho"), "Si lo hizo todo en el prólogo, se da por hecho sin decir nada")
+
+	-- Pistas si te atascas: nunca en una conversación; a los 90 s, «💡 Pista: …» con «Toca para ir»
+	remotes:FindFirstChild("LifeStory").OnClientEvent:Fire("State", {
+		Tracked = { QuestId = "Nino_Jornada", Kind = "Main", TitleKey = "QUEST.DIA_COLE.TITLE", TextKey = "Busca a Leo en el patio del colegio", Args = {} },
+		Others = {},
+	})
+	missionStep = playerGui.MainHud.Mission.Step.Text
+	localPlayer:SetAttribute("InDialogue", true)
+	for _ = 1, 150 do
+		Guide.tick(1)
+	end
+	check(Guide.currentNote() == nil and noteView.Visible == false, "En una conversación (InDialogue) no sale ninguna pista (150 s)")
+	localPlayer:SetAttribute("InDialogue", nil)
+	Guide.setBusy(true) -- (una cinemática: Cinematics.isPlaying() en Main.client)
+	for _ = 1, 150 do
+		Guide.tick(1)
+	end
+	check(Guide.currentNote() == nil, "Ni durante una cinemática")
+	Guide.setBusy(false)
+	for _ = 1, 85 do
+		Guide.tick(1)
+	end
+	check(Guide.currentNote() == nil, "85 s jugando sin avanzar: todavía nada" .. (if Guide.currentNote() then " (" .. Guide.currentNote().Text .. ")" else ""))
+	for _ = 1, 6 do
+		Guide.tick(1)
+	end
+	local hint = Guide.currentNote()
+	check(hint and hint.Kind == "Hint" and noteView.Visible and noteView.Text.Text:find("💡 Pista:", 1, true) ~= nil and noteView.Text.Text:find(missionStep, 1, true) ~= nil, "A los 90 s sin avanzar: «" .. noteView.Text.Text .. "»")
+	check(noteView.Go.Visible and noteView.Go.Text:find("Toca para ir", 1, true) ~= nil, "Con «Toca para ir»")
+	check(not (tcard.Visible and noteView.Visible), "La pista no sale a la vez que la tarjeta")
+	m.Gps.clear()
+	m.Gps.update()
+	noteView.Go.Activated:Fire()
+	m.Gps.update()
+	check(m.Gps.path() ~= nil and noteView.Visible == false, "Tocarla pone la ruta del GPS (y se quita)")
+	for _ = 1, 95 do
+		Guide.tick(1)
+	end
+	check(Guide.currentNote() ~= nil and Guide.currentNote().Kind == "Hint", "Sigue sin avanzar: la pista sale una segunda vez")
+	Guide.dismissNote()
+	local again = false
+	for _ = 1, 400 do
+		Guide.tick(1)
+		again = again or Guide.currentNote() ~= nil
+	end
+	check(not again, "Pero la misma pista no sale más de dos veces")
+	-- Paso nuevo y te alejas mucho rato de él: «te estás alejando»
+	remotes:FindFirstChild("LifeStory").OnClientEvent:Fire("State", {
+		Tracked = { QuestId = "Nino_Jornada", Kind = "Main", TitleKey = "QUEST.DIA_COLE.TITLE", TextKey = "Vuelve a casa con tu familia", Args = {} },
+		Others = {},
+	})
+	Guide.tick(1)
+	local rootProps = rawget(rootPart, "__props")
+	rootProps.Position = roblox.Vector3.new(-200, 3, 300)
+	for _ = 1, 50 do
+		Guide.tick(1)
+	end
+	hint = Guide.currentNote()
+	check(hint and noteView.Text.Text:find("te estás alejando", 1, true) ~= nil, "Si te alejas mucho rato del objetivo: «" .. noteView.Text.Text .. "»")
+	rootProps.Position = roblox.Vector3.new(0, 3, -10)
+	Guide.dismissNote()
+
+	-- Consejos de la primera vez (una sola vez cada uno; en el prólogo no)
+	table.clear(onboardingSent)
+	localPlayer:SetAttribute("Riding", "Bici")
+	Guide.tick(0.25)
+	local tip = Guide.currentNote()
+	check(tip and tip.Kind == "Tip" and noteView.Visible and noteView.Text.Text:find("vehículo", 1, true) ~= nil and sent("Tip", "Vehiculo"), "Primera vez en un vehículo: su consejo («" .. noteView.Text.Text .. "»), y se guarda")
+	TL.refresh()
+	check(TL.buttons().Ayuda.Visible == false, "Montado, el ❓ se aparta (la H es el claxon)")
+	Guide.dismissNote()
+	localPlayer:SetAttribute("Riding", nil)
+	Guide.tick(0.25)
+	localPlayer:SetAttribute("Riding", "Bici")
+	Guide.tick(0.25)
+	check(Guide.currentNote() == nil, "La segunda vez ya no sale")
+	localPlayer:SetAttribute("Riding", nil)
+	localPlayer:SetAttribute("InPrologue", true)
+	localPlayer:SetAttribute("Wanted", 2)
+	Guide.tick(0.25)
+	check(Guide.currentNote() == nil and noteView.Visible == false, "En el prólogo no salen consejos")
+	localPlayer:SetAttribute("InPrologue", nil)
+	Guide.tick(0.25)
+	check(Guide.currentNote() and noteView.Text.Text:find("policía", 1, true) ~= nil, "Al acabar, sí (estrellas de búsqueda)")
+	Guide.dismissNote()
+	localPlayer:SetAttribute("Wanted", nil)
+	local machine = newInstance("Model")
+	machine:SetAttribute("GymMachine", "Cinta")
+	local machinePrompt = newInstance("ProximityPrompt")
+	machinePrompt.MaxActivationDistance = 10
+	machinePrompt.Parent = machine
+	pps.PromptShown:Fire(machinePrompt)
+	pps.PromptHidden:Fire(machinePrompt)
+	Guide.tick(0.25)
+	check(Guide.currentNote() and noteView.Text.Text:find("gimnasio", 1, true) ~= nil, "Delante de una máquina del gimnasio: su consejo")
+	Guide.dismissNote()
+	localPlayer:SetAttribute("Hunger", 20)
+	Guide.tick(0.25)
+	check(Guide.currentNote() and noteView.Text.Text:find("hambre", 1, true) ~= nil, "Con hambre: su consejo")
+	Guide.dismissNote()
+	localPlayer:SetAttribute("Hunger", nil)
+
+	-- ❓ sin misión: 2-3 ideas para ahora mismo
+	remotes:FindFirstChild("LifeStory").OnClientEvent:Fire("State", { Others = {} })
+	localPlayer:SetAttribute("StoryTarget", nil)
+	HelpUI.open()
+	check(helpCard.Visible and body.Kind.Text == "AHORA NO TIENES MISIÓN" and body:FindFirstChild("Idea1") ~= nil and body:FindFirstChild("Idea2") ~= nil, "Sin misión: ideas para ahora mismo («" .. (if body:FindFirstChild("Idea1") then body.Idea1.Text.Text else "?") .. "»…)")
+	HelpUI.close()
+	check(#badWrites == 0, "Ninguna propiedad inventada" .. (if #badWrites > 0 then ": " .. table.concat(badWrites, ", ") else ""))
 end
 
 ---------------------------------------------------------------------

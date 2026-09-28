@@ -731,6 +731,62 @@ local function buildMission(parent: Instance)
 	paintMission()
 end
 
+-- ¿Está abierta la lista de misiones? (el tutorial cuenta abrirla como "seguir la misión")
+function Hud.questsOpen(): boolean
+	return questWindow ~= nil and questWindow.Parent ~= nil
+end
+
+-- Lo que tienes que hacer ahora, en claro (para "¿Qué hago ahora?" y las pistas): el paso de tu
+-- trabajo o de la misión que sigues, el sitio (si se sabe) y dónde está. nil = nada que hacer.
+-- Key cambia cada vez que cambia el paso (así se sabe si llevas rato atascado).
+export type Objective = { Kind: string, Title: string, Step: string, Place: string?, Target: Vector3?, Job: boolean, Key: string }
+function Hud.objective(): Objective?
+	local taskTarget = player:GetAttribute("TaskTarget")
+	local jobId = player:GetAttribute("Job")
+	local job = jobId and (Config.Jobs[jobId] or Gameplay.Jobs[jobId])
+	local text = player:GetAttribute("TaskText")
+	if job or (typeof(taskTarget) == "Vector3" and typeof(text) == "string") then
+		local step = if typeof(text) == "string" then text else ""
+		return {
+			Kind = "TRABAJO",
+			Title = if job then job.DisplayName else "Tu trabajo",
+			Step = step,
+			Target = if typeof(taskTarget) == "Vector3" then taskTarget else nil,
+			Job = true,
+			Key = "Trabajo|" .. step,
+		}
+	end
+	local summary = missionSummary(storyState)
+	if not summary then
+		return nil
+	end
+	-- El sitio del paso (el primero sin hacer si son varios)
+	local place: string? = nil
+	local tracked = storyState.Tracked
+	if tracked then
+		local args = tracked.Args
+		for _, child in tracked.Children or {} do
+			if not child.Done then
+				args = child.Args
+				break
+			end
+		end
+		if type(args) == "table" and args.placeKey then
+			place = Strings.get(args.placeKey)
+		end
+	end
+	local target = player:GetAttribute("StoryTarget")
+	return {
+		Kind = summary.Kind,
+		Title = summary.Title,
+		Step = summary.Step,
+		Place = place,
+		Target = if typeof(target) == "Vector3" then target else nil,
+		Job = false,
+		Key = summary.Title .. "|" .. summary.Step,
+	}
+end
+
 ---------------------------------------------------------------------
 -- Al llegar a un sitio: su nombre en grande
 ---------------------------------------------------------------------

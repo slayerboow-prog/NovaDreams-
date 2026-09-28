@@ -43,6 +43,7 @@ require(World.Ambient).publish(TownBuilder.roads(), segments)
 
 local order = {
 	"DataService",
+	"OnboardingService", -- primeros pasos: tutorial guiado y consejos de la primera vez (lo guardado)
 	"MonetizationService",
 	"RoleService",
 	"LifeService",

@@ -33,6 +33,9 @@
         "NewLife": {
           "$className": "RemoteEvent"
         },
+        "Onboarding": {
+          "$className": "RemoteEvent"
+        },
         "Avatar": {
           "$className": "RemoteEvent"
         },
