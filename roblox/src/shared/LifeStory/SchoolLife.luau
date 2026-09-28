@@ -60,6 +60,37 @@ SchoolLife.Lines = {
 		Lines = { "Como decía Sócrates: solo sé que el examen es el jueves.", "¿Dudas? Pregunta. Las dudas son el principio de todo.", "Sin prisa pero sin pausa, que el trimestre se acaba." } },
 }
 
+-- Si ya os conocéis, a veces te saludan por tu nombre recordando algo que PASÓ de verdad en tu
+-- historia (If: condiciones de Conditions sobre tu vida; nunca dan por hecho lo que no hiciste).
+-- Lo usa SchoolService con StoryState; Validate revisa que las condiciones existan.
+SchoolLife.Callbacks = {
+	{ Npc = "Nico", If = { Completed = { "Cole08_Torneo" } }, T = "¡{nombre}! Aún sueño con la final del torneo. ¡Qué partidazo!" },
+	{ Npc = "Nico", If = { Completed = { "Cole03_Grupo" } }, T = "¡Eh, {nombre}! ¿Cuándo nos juntamos otra vez con el grupo?" },
+	{ Npc = "Sara", If = { Completed = { "Cole06_Examen" } }, T = "{nombre}, después del examen imposible cualquier examen me parece fácil. ¿A ti no?" },
+	{ Npc = "Sara", If = { Completed = { "Cole09_Misterio" } }, T = "¿Te acuerdas del misterio del cole, {nombre}? Todavía me da escalofríos." },
+	{ Npc = "Omar", If = { Completed = { "Cole10_Festival" } }, T = "¡{nombre}! ¿Te acuerdas del festival? Aún me tiemblan las piernas." },
+	{ Npc = "Omar", If = { Completed = { "Cole07_Excursion" } }, T = "Hola, {nombre}. Echo de menos la granja de la excursión… y las gallinas." },
+	{ Npc = "Lucia", If = { Completed = { "Cole02_Mochila" } }, T = "Hola, {nombre}. ¿Ya no se te pierde la mochila?" },
+	{ Npc = "Lucia", If = { Completed = { "Cole11_Proyecto" } }, T = "{nombre}, sigo presumiendo de vuestro proyecto en la sala de profes." },
+	{ Npc = "Javier", If = { Completed = { "Ins03_QueQuieresSer" } }, T = "¿Sigues pensando en lo que quieres ser, {nombre}? Hay tiempo, pero piénsalo." },
+	{ Npc = "Javier", If = { Completed = { "Ins05_ElRumor" } }, T = "{nombre}, lo del rumor lo llevaste con cabeza. Eso también se aprende." },
+}
+
+-- Lo que te dice alguien que ya te conoce: la mitad de las veces (roll < 0.5) recuerda algo que
+-- pasó de verdad (state = StoryState.of(data)); si no, nil (dice una de sus frases de siempre)
+function SchoolLife.knownLine(npcId: string, state: any, roll: number): string?
+	local memories = {}
+	for _, entry in SchoolLife.Callbacks do
+		if entry.Npc == npcId and state.check(entry.If) then
+			table.insert(memories, entry.T)
+		end
+	end
+	if #memories > 0 and roll < 0.5 then
+		return memories[math.min(#memories, math.floor(roll * 2 * #memories) + 1)]
+	end
+	return nil
+end
+
 -- Todos los que viven en el colegio (compañeros + profe)
 function SchoolLife.people(): { string }
 	local list = table.clone(SchoolLife.Kids)

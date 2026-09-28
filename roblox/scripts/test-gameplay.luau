@@ -4937,6 +4937,7 @@ check(not anyone, "sin jugadores cerca no se gasta nada: no hay nadie en los pue
 local visitor, visitorRoot = newPlayer(260, "Adulto", 100)
 moveTo(visitorRoot, BASE + Vector3.new(200, 0, 0))
 StaffService.ACTIVE = 1000
+services.Lighting.ClockTime = 12 -- a mediodía está todo abierto (cada oficio tiene su horario)
 StaffService.tick()
 task.wait(0.05)
 local staffed, working = 0, 0
@@ -4951,6 +4952,14 @@ for _, r in ROLES do
 end
 check(staffed == #ROLES, ("con un jugador cerca, todos los puestos atendidos por un NPC (%d/%d)"):format(staffed, #ROLES))
 check(working == #ROLES, "y cada uno haciendo su tarea (Npc.work)")
+services.Lighting.ClockTime = 3
+StaffService.tick()
+task.wait(0.05)
+check(StaffService.npcOf(posts["Dependiente"]) == nil and StaffService.hasClosedSign(posts["Dependiente"]), "a las 3 de la mañana la tienda cierra: sin dependiente y con el cartel de CERRADO")
+check(StaffService.npcOf(posts["Agente de guardia"]) ~= nil, "la comisaría abre las 24 horas")
+services.Lighting.ClockTime = 12
+StaffService.tick()
+task.wait(0.05)
 local cop = posts["Agente de guardia"]
 local copNpc = StaffService.npcOf(cop)
 check(copNpc ~= nil and promptOf(copNpc, "Hablar") ~= nil, "se puede hablar con el agente del mostrador")

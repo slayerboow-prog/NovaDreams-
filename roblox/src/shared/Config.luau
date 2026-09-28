@@ -53,6 +53,14 @@ Config.Seasons = {
 ---------------------------------------------------------------------
 -- Historia de vida (LifeStoryService)
 ---------------------------------------------------------------------
+-- Herramientas de desarrollo (solo para el dueño del juego)
+Config.Debug = {
+	DevLogs = false, -- true: los avisos [MISSION], [NPC], [DIALOGUE]… salen también en el juego publicado
+	LogLevel = "Info", -- nivel mínimo en Studio (o con DevLogs): Debug, Info, Warn, Error
+	-- Quién puede usar /debug y el panel de depuración, además del creador del juego y de Studio
+	DebugUserIds = {} :: { number },
+}
+
 Config.LifeStory = {
 	-- Un personaje NUEVO nace bebé (tutorial de bebé, fase 2). Quien ya jugaba antes de la
 	-- historia de vida (tiene tiempo jugado guardado) sigue siendo adulto.

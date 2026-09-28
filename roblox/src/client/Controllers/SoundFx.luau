@@ -310,7 +310,10 @@ local function streetChatter()
 				end
 			end
 			if best then
-				local line = VOICES.Lines[math.random(1, #VOICES.Lines)]
+				-- Algo que pegue con la hora y el tiempo (nada de "¡Buenos días!" de noche ni "qué calor" nevando)
+				local TimeContext = require(ReplicatedStorage.Shared.LifeStory.TimeContext)
+				local hour, weather = TimeContext.now()
+				local line = TimeContext.pick(VOICES.Lines, hour, weather) or VOICES.Lines[math.random(1, #VOICES.Lines)]
 				localBubble(best, line)
 				SoundFx.voice(line, pitchOf(best), 1 - bestDistance / (VOICES.Distance * 1.5))
 			end

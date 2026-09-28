@@ -254,7 +254,7 @@ local Quests: { [string]: Quest } = {
 		Requires = { Hours = { From = 10, To = 21 } },
 		Steps = {
 			{ Type = "Event", Event = "Ate", TextKey = "QUEST.PLAYA.MERIENDA" },
-			{ Type = "Wait", GameMinutes = 60, TextKey = "QUEST.PLAYA.ATARDECER" },
+			{ Type = "Wait", GameMinutes = 60, MaxSeconds = 90, TextKey = "QUEST.PLAYA.ATARDECER" },
 		},
 		Rewards = { Flags = { "TardeDePlaya" } },
 		MomentKey = "MOMENT.TARDE_PLAYA",
