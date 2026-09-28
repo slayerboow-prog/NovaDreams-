@@ -1799,6 +1799,7 @@ check(playLoco(nora, "Saga_18_Precio") and noraData.Items.FotoSinMemoria == 1 an
 check(said(nora, "¡Buenos días, Valmar!") and not said(nora, "{Saludo}"), "Los saludos van según la hora (a mediodía, Cósimo no dice «buenas noches»)")
 
 sagaStage("Adulto")
+nora.At = "Parque" -- se va del garaje (si no, la siguiente canónica empieza sola allí mismo)
 passTime(nora, 5)
 check(canonIds(nora).Saga_19_Recuerdos, "Acto IV: de adulto, el mapa marca devolverle la memoria a Cosme")
 check(playLoco(nora, "Saga_19_Recuerdos") and noraData.Items.AlbumRecuerdos == 1 and not noraData.Story.Flags.CosmeSinMemoria, "19 · Los recuerdos: Cosme vuelve a ser Cosme")
