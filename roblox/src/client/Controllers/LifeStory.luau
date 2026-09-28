@@ -361,6 +361,7 @@ end
 ---------------------------------------------------------------------
 
 local openDialog: Frame? = nil
+local openKind: string? = nil -- "Choice" (una decisión de la historia) u "Offer"
 
 local function dialog(title: string?, message: string, options: { { Text: string, OnPick: () -> () } })
 	if openDialog then
@@ -448,6 +449,7 @@ local handlers: { [string]: (payload: { [string]: any }) -> () } = {
 		end)
 	end,
 	Choice = function(payload)
+		openKind = nil
 		local options = {}
 		for _, option in payload.Options do
 			table.insert(options, {
@@ -458,8 +460,15 @@ local handlers: { [string]: (payload: { [string]: any }) -> () } = {
 			})
 		end
 		dialog(nil, Strings.get(payload.PromptKey), options)
+		openKind = "Choice"
 	end,
 	Offer = function(payload)
+		-- Una decisión de la historia pendiente no se tapa con un ofrecimiento (se perdería la
+		-- decisión y la misión se quedaría esperando); el servidor olvida el ofrecimiento solo
+		if openDialog and openDialog.Parent and openKind == "Choice" then
+			return
+		end
+		openKind = "Offer"
 		local panel = dialog(Strings.get(payload.TitleKey), Strings.get(payload.TextKey), {
 			{ Text = Strings.get("STORY.OFFER.ACCEPT"), OnPick = function()
 				Remote:FireServer("Offer", payload.QuestId, true)

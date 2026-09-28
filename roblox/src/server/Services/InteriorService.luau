@@ -1056,6 +1056,8 @@ local function hostResidences(list: { Building })
 	end
 end
 
+InteriorService.openElevator = openElevator -- (pruebas: abrir el panel como al tocar el botón)
+
 function InteriorService.residences(): { Building }
 	local list = {}
 	for _, b in buildings do

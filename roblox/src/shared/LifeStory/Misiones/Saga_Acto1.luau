@@ -256,7 +256,13 @@ return {
 		Npcs = { "Ramon", "Lucia", "Nico", "CalcetinMonstruo", "Pip" },
 		Offer = { Place = "EntradaColegio" },
 		OfferKey = "El gimnasio del cole está lleno hasta el techo de cosas perdidas. Ramón, el conserje, no da crédito",
-		Requires = after("Saga_04_Ventanilla"),
+		-- «Esta noche»: pasa de noche, con el cole cerrado (Ramón os abre), no en horario de clase
+		Requires = (function()
+			local req = after("Saga_04_Ventanilla")
+			req.Hours = { From = 19, To = 6 }
+			return req
+		end)(),
+		Schedule = false,
 		Moment = "Devolviste las cosas perdidas de Valmar",
 		Memory = "CosasPerdidas",
 		Rewards = { Items = { CalcetinSolitario = 1 }, Flags = { "VecinosNotanRarezas" } },

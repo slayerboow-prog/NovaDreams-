@@ -1,6 +1,16 @@
--- Validate: revisa que los datos de la historia estén bien escritos (claves de texto que existen,
--- lugares que existen, misiones que existen, pasos con el tipo correcto...).
--- El servidor lo ejecuta al arrancar y avisa en Output; también se usa en las pruebas automáticas.
+-- Validate (validador de misiones): revisa que los datos de la historia estén bien escritos y que
+-- cada misión se pueda jugar de principio a fin:
+--   * claves de texto, lugares (y su cadena de Fallback), misiones, capítulos y diálogos que existen;
+--   * a quien hay que hablar está en la escena del paso o lo traen los sistemas de siempre
+--     (compañeros y profes del colegio, la familia en casa);
+--   * cada espera (Wait) tiene tope en minutos de juego Y en segundos reales (MaxSeconds);
+--   * cada paso "Event" espera un evento que algún sistema emite de verdad (EventCatalog);
+--   * cada decisión (Choice) tiene opciones que cierran la decisión, y las ramas (If con Choices)
+--     preguntan por opciones que existen;
+--   * recompensas válidas, siguiente capítulo/misión que existen, y ningún paso manda a un sitio de
+--     otra etapa (un niño no va a dar clase a la universidad).
+-- Validate.report() devuelve { Errors, Warnings, BadQuests }: el servidor NO activa una misión con
+-- errores (BadQuests) y lo avisa en Output. Validate.run() = solo la lista de errores (pruebas).
 
 local Chapters = require(script.Parent.Chapters)
 local Quests = require(script.Parent.Quests)
@@ -22,8 +32,28 @@ local DayPlans = require(script.Parent.DayPlans)
 local Cast = require(script.Parent.Cast)
 local Memories = require(script.Parent.Memories)
 local Items = require(script.Parent.Parent.Items)
+local EventCatalog = require(script.Parent.EventCatalog)
+local SchoolLife = require(script.Parent.SchoolLife)
+local Schedules = require(script.Parent.Schedules)
 
 local Validate = {}
+
+-- Topes de las esperas
+Validate.MaxWaitGameMinutes = 12 * 60 -- una espera no pasa de medio día de juego
+Validate.MaxWaitSeconds = 600 -- ni de 10 minutos reales, pase lo que pase con el reloj
+
+-- ¿Lo traen los sistemas de siempre (sin escena)? Compañeros y profes del colegio (SchoolService,
+-- atributo StoryNpc) y la familia de casa (BabyService, marcas FamilySpot).
+function Validate.ambientNpc(npc: any): boolean
+	return type(npc) == "string" and (SchoolLife.livesAtSchool(npc) or npc:sub(1, 8) == "Familia_")
+end
+
+-- Qué colegio le toca a cada etapa (para las clases) y a qué sitios con horario no se manda a nadie
+local CLASS_WINDOW = { Nino = "Colegio", Adolescente = "Instituto", AdultoJoven = "Universidad" }
+local FORBIDDEN_WINDOW = {
+	Bebe = { Colegio = true, Instituto = true, Universidad = true, Oficina = true },
+	Nino = { Universidad = true, Oficina = true },
+}
 
 local STEP_TYPES = {
 	Reach = { "Place" },
@@ -165,16 +195,42 @@ function Validate.mission(id: string, quest: { [string]: any }, err: (string, ..
 	end
 end
 
-function Validate.run(): { string }
+export type Report = { Errors: { string }, Warnings: { string }, BadQuests: { [string]: boolean } }
+
+local cachedReport: Report? = nil
+
+function Validate.report(): Report
 	local errors = {}
+	local warnings = {}
+	local badQuests: { [string]: boolean } = {}
+	local currentQuest: string? = nil -- misión que se está revisando (sus errores la invalidan)
 	local seen = {}
 	local function err(fmt: string, ...)
 		local message = fmt:format(...)
+		if currentQuest then
+			badQuests[currentQuest] = true
+		end
 		-- Los días generados repiten los mismos textos: cada problema se cuenta una vez
 		local key = message:gsub("%.dia%d+", "")
 		if not seen[key] then
 			seen[key] = true
 			table.insert(errors, key)
+		end
+	end
+	local function warnf(fmt: string, ...)
+		local key = fmt:format(...):gsub("%.dia%d+", "")
+		if not seen[key] then
+			seen[key] = true
+			table.insert(warnings, key)
+		end
+	end
+	-- Decisiones: qué valores puede tener cada Choices[Clave] y quién pregunta por ellos
+	local choiceValues: { [string]: { [string]: boolean } } = {}
+	local choiceAsked: { { Where: string, Key: string, Value: any, Quest: string? } } = {}
+	local function produces(key: any, value: any)
+		if type(key) == "string" then
+			choiceValues[key] = choiceValues[key] or {}
+			choiceValues[key][tostring(value)] = true
 		end
 	end
 	local function text(where: string, key: string?)
@@ -193,10 +249,20 @@ function Validate.run(): { string }
 				end
 			end
 		end
-		for _, id in req.Completed or {} do
-			if not Quests[id] then
-				err("%s: requiere una misión que no existe '%s'", where, id)
+		for _, list in { req.Completed or {}, req.NotCompleted or {} } do
+			for _, id in list do
+				if not Quests[id] then
+					err("%s: requiere una misión que no existe '%s'", where, id)
+				end
 			end
+		end
+		for _, map in { req.Choices or {}, req.NotChoices or {} } do
+			for key, value in map do
+				table.insert(choiceAsked, { Where = where, Key = key, Value = value, Quest = currentQuest })
+			end
+		end
+		if req.Hours and not (type(req.Hours.From) == "number" and type(req.Hours.To) == "number") then
+			err("%s: Hours necesita From y To", where)
 		end
 		for npc in req.Rel or {} do
 			if not Cast.People[npc] then
@@ -233,6 +299,17 @@ function Validate.run(): { string }
 			if not TRAITS[trait] then
 				err("%s: rasgo desconocido '%s'", where, trait)
 			end
+		end
+		for key, value in e.Choice or {} do
+			produces(key, value)
+		end
+		for _, field in { "Money", "Spend" } do
+			if e[field] ~= nil and (type(e[field]) ~= "number" or e[field] < 0 or e[field] ~= e[field]) then
+				err("%s: %s debe ser un número positivo", where, field)
+			end
+		end
+		if e.SetStage ~= nil and not Stages.isValid(e.SetStage) then
+			err("%s: etapa desconocida '%s'", where, tostring(e.SetStage))
 		end
 		for _, key in (if type(e.Memory) == "table" then e.Memory else { e.Memory }) do
 			if not Memories[key] then
@@ -273,6 +350,9 @@ function Validate.run(): { string }
 			if line.A ~= nil and not Emotion.valid(line.A) then
 				err("%s: gesto desconocido A = '%s'", w, tostring(line.A))
 			end
+			if type(line.T) == "string" then
+				text(w, line.T)
+			end
 			if line.Ask then
 				if not line.Options or #line.Options == 0 then
 					err("%s: pregunta sin opciones", w)
@@ -292,7 +372,18 @@ function Validate.run(): { string }
 			requirements(w, line.If)
 		end
 	end
-	local function step(where: string, s: { [string]: any }, inGroup: boolean)
+	-- Misión que se revisa ahora: sus actores y en qué etapas se juega
+	local questDef: { [string]: any } = {}
+	local questStages: { string } = {}
+	local function hasActor(list: { { [string]: any } }?, npc: any): (boolean, boolean)
+		for _, spec in list or {} do
+			if spec.Npc == npc then
+				return true, spec.If ~= nil
+			end
+		end
+		return false, false
+	end
+	local function step(where: string, s: { [string]: any }, inGroup: boolean, groupActors: { { [string]: any } }?, parentIf: any?)
 		local fields = STEP_TYPES[s.Type]
 		if not fields then
 			err("%s: tipo de paso desconocido '%s'", where, tostring(s.Type))
@@ -354,19 +445,142 @@ function Validate.run(): { string }
 		end
 		if s.Type == "Group" then
 			for i, child in s.Steps do
-				step(where .. ".g" .. i, child, true)
+				step(where .. ".g" .. i, child, true, s.Actors, s.If)
+			end
+			if s.Need ~= nil and (type(s.Need) ~= "number" or s.Need < 1 or s.Need > #s.Steps) then
+				err("%s: Need fuera de rango (1-%d)", where, #s.Steps)
 			end
 		end
 		if s.SetStage and not Stages.isValid(s.SetStage) then
 			err("%s: etapa desconocida '%s'", where, s.SetStage)
 		end
 		requirements(where .. ".If", s.If)
+
+		-- ¿Está la persona con la que hay que hablar? (en la escena del paso, en la de la misión o la
+		-- traen los sistemas de siempre). Si no, con diálogo hay plan B (se habla igual a los 15 s);
+		-- sin diálogo, el paso no se podría cumplir.
+		if s.Type == "Talk" or s.Type == "Chase" then
+			local inStep, conditional = hasActor(s.Actors, s.Npc)
+			if not inStep then
+				inStep, conditional = hasActor(groupActors, s.Npc)
+			end
+			if not inStep then
+				inStep, conditional = hasActor(questDef.Actors, s.Npc)
+			end
+			if s.Type == "Talk" and not inStep and not Validate.ambientNpc(s.Npc) then
+				if s.Dialogue then
+					warnf("%s: %s no está en la escena (se hablará con el plan B)", where, tostring(s.Npc))
+				else
+					err("%s: nadie trae a %s (ni la escena ni el colegio ni la familia)", where, tostring(s.Npc))
+				end
+			elseif conditional and not s.If and not parentIf then
+				warnf("%s: %s solo está en la escena con una condición", where, tostring(s.Npc))
+			end
+		end
+		-- Esperas: siempre con tope (de juego y real)
+		if s.Type == "Wait" then
+			if type(s.GameMinutes) ~= "number" or s.GameMinutes <= 0 or s.GameMinutes > Validate.MaxWaitGameMinutes then
+				err("%s: Wait con GameMinutes fuera de rango (1-%d)", where, Validate.MaxWaitGameMinutes)
+			end
+			if type(s.MaxSeconds) ~= "number" or s.MaxSeconds <= 0 or s.MaxSeconds > Validate.MaxWaitSeconds then
+				err("%s: Wait sin tope de tiempo real (MaxSeconds, como mucho %d s)", where, Validate.MaxWaitSeconds)
+			end
+		end
+		-- Eventos que alguien emite de verdad
+		if s.Type == "Event" and not EventCatalog.has(s.Event) then
+			err("%s: nadie emite el evento '%s' (EventCatalog)", where, tostring(s.Event))
+		end
+		if s.Type == "Event" and s.Count ~= nil and (type(s.Count) ~= "number" or s.Count < 1) then
+			err("%s: Count debe ser 1 o más", where)
+		end
+		-- Decisiones: Ids únicos, alguna opción cierra la decisión sin condiciones
+		if s.Type == "Choice" then
+			local ids = {}
+			local closes = false
+			for _, option in s.Options or {} do
+				if option.Id == nil then
+					err("%s: opción sin Id", where)
+				elseif ids[option.Id] then
+					err("%s: opción repetida '%s'", where, tostring(option.Id))
+				end
+				ids[option.Id or "?"] = true
+				produces(s.Key, option.Id)
+				closes = closes or (not option.Stay and not option.If)
+			end
+			if #(s.Options or {}) == 0 then
+				err("%s: decisión sin opciones", where)
+			elseif not closes then
+				err("%s: ninguna opción cierra la decisión sin condiciones (podría quedarse sin salida)", where)
+			end
+		end
+		-- Sitios de otra etapa
+		local placeId = if isRef(s.Place) then nil else s.Place
+		local window = placeId and Schedules.forPlace(placeId)
+		if window and (s.Type == "Reach" or s.Type == "Class") then
+			for _, stage in questStages do
+				if FORBIDDEN_WINDOW[stage] and FORBIDDEN_WINDOW[stage][window.Id] then
+					err("%s: manda a %s (%s) en la etapa %s", where, tostring(placeId), window.Name, stage)
+				end
+			end
+		end
+		if s.Type == "Class" and s.Mode ~= "Estudio" and window and #questStages == 1 then
+			local expected = CLASS_WINDOW[questStages[1]]
+			if expected and window.Id ~= expected then
+				err("%s: clase en %s, pero en la etapa %s toca %s", where, window.Name, questStages[1], expected)
+			end
+		end
+	end
+
+	-- En qué etapas se juega cada misión (su capítulo o su Requires.Stage)
+	local questChapter: { [string]: string } = {}
+	for id, chapter in Chapters do
+		for _, questId in chapter.Main do
+			if questChapter[questId] and questChapter[questId] ~= id then
+				err("misión %s: está en dos capítulos (%s y %s)", questId, questChapter[questId], id)
+			end
+			questChapter[questId] = id
+		end
+		if chapter.Loop then
+			questChapter[chapter.Loop] = questChapter[chapter.Loop] or id
+		end
+	end
+	local function stagesOf(questId: string, quest: { [string]: any }): { string }
+		local range = (quest.Requires and quest.Requires.Stage)
+			or (questChapter[questId] and Chapters[questChapter[questId]].Stage)
+		local list = {}
+		if not range then
+			return list
+		end
+		for _, stage in Stages.Order or {} do
+			if Stages.inRange(stage, range.Min, range.Max) then
+				table.insert(list, stage)
+			end
+		end
+		return list
 	end
 
 	for id, quest in Quests do
+		currentQuest = id
+		questDef = quest
+		questStages = stagesOf(id, quest)
 		text(id, quest.TitleKey)
 		text(id, quest.MomentKey)
 		requirements(id, quest.Requires)
+		-- Lo que viene después (datos de diseño de las misiones episódicas)
+		for _, nextId in quest.Next or {} do
+			if not Quests[nextId] then
+				err("%s: Next con una misión que no existe '%s'", id, tostring(nextId))
+			end
+		end
+		if quest.Chapter and not Chapters[quest.Chapter] then
+			err("%s: capítulo desconocido '%s'", id, tostring(quest.Chapter))
+		end
+		if quest.Kind == "Main" and not questChapter[id] and not quest.Canon then
+			warnf("%s: principal que no está en ningún capítulo (nadie la empieza)", id)
+		end
+		if quest.Kind == "Main" and quest.Chapter and questChapter[id] and questChapter[id] ~= quest.Chapter then
+			err("%s: dice ser del capítulo %s pero está en %s", id, quest.Chapter, questChapter[id])
+		end
 		if quest.Kind == "Side" then
 			if quest.Offer and quest.Offer.Place and not Locations.Places[quest.Offer.Place] then
 				err("%s: Offer con lugar desconocido '%s'", id, quest.Offer.Place)
@@ -414,10 +628,27 @@ function Validate.run(): { string }
 				requirements = requirements,
 			}, generated)
 		end
+		currentQuest = nil
 	end
 	for id, quest in Quests do
 		if quest.Kind == "Side" and not quest.Offer and not startedLater[id] then
 			err("%s: secundaria sin Offer que nadie lanza (Later.Start)", id)
+		end
+		if quest.Kind == "Side" and quest.Offer and quest.Offer.Event and not EventCatalog.has(quest.Offer.Event) then
+			currentQuest = id
+			err("%s: Offer con un evento que nadie emite '%s'", id, tostring(quest.Offer.Event))
+			currentQuest = nil
+		end
+	end
+	-- Ramas: un If que pregunta por una respuesta que ninguna decisión puede dar nunca se cumple
+	for _, asked in choiceAsked do
+		local values = choiceValues[asked.Key]
+		if values and not values[tostring(asked.Value)] then
+			currentQuest = asked.Quest
+			err("%s: pregunta por %s = '%s', pero esa decisión no tiene esa opción", asked.Where, asked.Key, tostring(asked.Value))
+			currentQuest = nil
+		elseif not values then
+			warnf("%s: pregunta por la decisión %s, que ninguna misión toma", asked.Where, asked.Key)
 		end
 	end
 
@@ -465,6 +696,17 @@ function Validate.run(): { string }
 		end
 		if place.Child and not place.Model then
 			err("lugar %s: Child necesita Model", id)
+		end
+		-- La cadena de planes B termina (sin vueltas)
+		local visited = { [id] = true }
+		local current = place.Fallback
+		while current do
+			if visited[current] then
+				err("lugar %s: la cadena de Fallback da la vuelta en '%s'", id, current)
+				break
+			end
+			visited[current] = true
+			current = Locations.Places[current] and Locations.Places[current].Fallback
 		end
 	end
 
@@ -571,7 +813,23 @@ function Validate.run(): { string }
 	end
 
 	table.sort(errors)
-	return errors
+	table.sort(warnings)
+	cachedReport = { Errors = errors, Warnings = warnings, BadQuests = badQuests }
+	return cachedReport :: Report
+end
+
+-- El último informe (o uno nuevo): lo usa el servidor para no activar misiones rotas
+function Validate.cached(): Report
+	return cachedReport or Validate.report()
+end
+
+-- ¿Se puede activar esta misión? (sin errores en el validador)
+function Validate.questOk(questId: string): boolean
+	return not Validate.cached().BadQuests[questId]
+end
+
+function Validate.run(): { string }
+	return Validate.report().Errors
 end
 
 return Validate
