@@ -70,7 +70,9 @@ return {
 		Rewards = { Items = { LlaveResidencia = 1 } },
 		Props = {
 			Nevera = { Kind = "Armario", Name = "La nevera compartida", Prompt = "Guardar la compra", Place = "CocinaResidencia", Offset = V(-4, 0, 0), Dialogue = "Nevera", Once = true },
-			Cama = { Kind = "Almohada", Name = "Tu cama (la de la ventana)", Prompt = "Deshacer la maleta", Place = "HabitacionResidencia", Offset = V(0, 0, -2), Dialogue = "Maleta", Once = true },
+			Cama = { Kind = "Almohada", Name = "Tu cama (la de la ventana)", Prompt = "Deshacer la maleta", Place = "HabitacionResidencia", Offset = V(3, 0, -2), Dialogue = "Maleta", Once = true },
+			-- Tu cama de la residencia: se duerme de verdad (energía, estamina, reaparición, amanecer a las 8:30)
+			CamaDormir = { Kind = "Almohada", Name = "Tu cama de la residencia", Place = "HabitacionResidencia", Offset = V(0, 0, -2), Bed = true, Prompt = false },
 		},
 		Steps = {
 			{ Type = "Talk", Npc = "Portero", Dialogue = "Llaves", Text = "Doña Pilar, la conserje, te da las llaves",
@@ -90,7 +92,7 @@ return {
 			{ Type = "Use", Prop = "Nevera", Text = "Guarda la compra en la nevera de la residencia", Actors = COCINA },
 			{ Type = "Event", Event = "Ate", Text = "Tu primera cena de independiente: cómete algo (desde la mochila)", Actors = COCINA },
 			{ Type = "Scene", Dialogue = "Cena", Actors = COCINA },
-			{ Type = "Event", Event = "Slept", Text = "Duerme en tu cama de la residencia",
+			{ Type = "Event", Event = "Slept", Text = "Duerme en tu cama de la residencia (de noche, te despiertas a las 8:30)", Props = { "CamaDormir" },
 				Actors = { { Npc = "Ivan", Place = "HabitacionResidencia", Offset = V(-3, 0, 2), Mode = "Sit" } } },
 		},
 		Dialogues = {

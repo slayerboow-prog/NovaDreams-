@@ -218,6 +218,12 @@ Config.Foods = {
 }
 
 Config.SleepSeconds = 4 -- lo que dura la animación de dormir
+-- Dormir en una cama (SleepService): desde SleepNightFrom (o de madrugada) la noche pasa y te
+-- despiertas a las WakeClockTime del día siguiente. La hora es la misma para todo el servidor:
+-- la noche solo pasa si duermen todos los jugadores (o estás solo). Mientras, esperas SleepWaitSeconds.
+Config.SleepNightFrom = 18 -- a partir de esta hora, dormir es «la noche»
+Config.WakeClockTime = 8.5 -- 8:30 de la mañana
+Config.SleepWaitSeconds = 12 -- cuánto esperas en la cama a que se acuesten los demás
 
 ---------------------------------------------------------------------
 -- Casas: cada jugador reclama una parcela gratis y puede mejorarla.

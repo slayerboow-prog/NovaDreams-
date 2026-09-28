@@ -5,7 +5,8 @@
 --             Look = V(…) (hacia dónde mira, en los ejes del lugar; si no, mira al jugador), Prompt = false,
 --             Action = "Disparar" (texto del botón; "Hablar" si no), Speed = n (Hunt/Flee), Glow = Color3 (brillo de alien…) }
 --   Mode "Hunt": te persigue (enemigos de las misiones locas: alienígenas, robots, pollos mutantes…).
---   Prop  = { Kind = "Mochila", Place = "AulaA", Offset = V(…), Index = n, Prompt = "Examinar", Name = "…", Once = true }
+--   Prop  = { Kind = "Mochila", Place = "AulaA", Offset = V(…), Index = n, Prompt = "Examinar", Name = "…", Once = true,
+--             Bed = true (cama donde se puede dormir de verdad: SleepService) }
 --
 -- Todo es de la historia de UN jugador: vive en workspace.StoryScenes.Scene_<UserId> con el atributo
 -- Owner; los demás jugadores no lo ven (SceneClient lo oculta) ni pueden tocarlo.
@@ -610,6 +611,11 @@ local function makeProp(player: Player, questId: string, id: string, def: { [str
 	model.PrimaryPart = base
 	model:PivotTo(cf)
 	model:SetAttribute("PropId", id)
+	if def.Bed then
+		-- Una cama de verdad (la de la residencia…): SleepService le pone el botón «Dormir»
+		CollectionService:AddTag(base, "PublicBed")
+		base.Size = V(5, 1, 7)
+	end
 	model.Parent = sceneFolder(player)
 	if def.Prompt ~= false and isMapObject and mark then
 		-- El objeto de verdad del mapa (el armario, la taquilla…): se marca con un contorno dorado

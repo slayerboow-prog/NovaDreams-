@@ -99,3 +99,32 @@ Lo que obliga a rehacer trabajo son los **cimientos mal puestos**: el formato de
 | **Rendimiento en móvil** | 🟠 Media | Mapa grande y muchos sistemas | Streaming, presupuestos por casilla, mallas reutilizadas, NPCs en el cliente con niveles de detalle (Fase 15) |
 | **Normas de Roblox** | 🟠 Media (riesgo) | Roblox prohíbe experiencias de citas o romance entre usuarios y regula alcohol, violencia y azar | Pareja y familia como **rol de hogar** sin mecánicas de "ligar". Discotecas sin alcohol. Nada de azar con Robux. Revisar la normativa vigente y el cuestionario de madurez antes de cada sistema sensible |
 | **Límites de DataStore** | 🟡 Media | Máx. 4 MB por clave y cuotas de peticiones por minuto | Datos repartidos en varios stores, guardado por lotes, caché y MemoryStore para lo muy frecuente |
+
+## 3.5 Dormir (`server/Services/SleepService.luau`)
+
+Dormir en una cama tuya hace cuatro cosas:
+
+1. Pone la **energía** y la **estamina** al máximo, y también la vida.
+2. Guarda esa cama como **punto de reaparición**. Si te caes, te quedas sin vida o vuelves a entrar al
+   juego, apareces en ella. Se guarda con tus datos (`data.SpawnPoint`).
+3. **De noche**, desde las 18:00 o de madrugada antes de las 8:30, pasa la noche y te despiertas a las
+   **8:30 del día siguiente**. Si duermes a las 21:30, te levantas a las 8:30.
+4. **De día** es una siesta: descansas, pero la hora no cambia.
+
+**La hora es la misma para todo el servidor** (`Lighting.ClockTime`). Por eso la noche funciona como en
+Minecraft:
+
+- Pasa cuando duermen todos los jugadores del servidor. Los bebés no cuentan.
+- Si estás solo, pasa en cuanto te acuestas.
+- Si alguien sigue despierto, esperas en la cama `SleepWaitSeconds` segundos. Si no se acuesta, te
+  levantas descansado y la noche continúa.
+- El salto de hora lo hace `WorldService.skipTo`, que también cuenta el día nuevo.
+
+**Camas que valen**:
+
+- La de tu casa comprada (`HouseService`).
+- La de tu casa familiar: la marca `StoryProp` con `PropId = "Cama"` y el mismo `HomeId`.
+- Cualquier pieza con el tag `PublicBed`: la cama de la residencia o las que ponga el mapa.
+- Las camas que ponen las misiones como objeto de escena con `Bed = true`.
+
+La configuración está en `Config`: `SleepNightFrom = 18`, `WakeClockTime = 8.5` y `SleepWaitSeconds = 12`.

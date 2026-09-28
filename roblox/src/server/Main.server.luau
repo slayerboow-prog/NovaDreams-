@@ -40,6 +40,7 @@ local order = {
 	"JobService",
 	"FoodService",
 	"HouseService",
+	"SleepService", -- dormir en cualquier cama tuya: energía, estamina, reaparición y amanecer a las 8:30
 	"TravelService",
 	"VehicleService", -- bicis, monopatines, motos y coches
 	"RestaurantService", -- camarero + barman (con NPC si falta alguien)
