@@ -863,7 +863,15 @@ local function castHere(player: Player)
 	spot.CanQuery = false
 	spot.CanTouch = false
 	spot.CFrame = CFrame.lookAt(root.Position - Vector3.new(0, 0.5, 0), root.Position - Vector3.new(0, 0.5, 0) + flat)
-	local onBoat = player:GetAttribute("BoatReturn") ~= nil
+	-- En el barco de verdad (no vale haber vuelto nadando con el atributo puesto)
+	local onBoat = false
+	if player:GetAttribute("BoatReturn") ~= nil then
+		for _, deck in CollectionService:GetTagged("FishingBoatDeck") do
+			if deck:IsA("BasePart") and (deck.Position - root.Position).Magnitude < 40 then
+				onBoat = true
+			end
+		end
+	end
 	spot:SetAttribute("Water", if onBoat then "AltaMar" else FishingService.waterKind(root.Position + flat * distance))
 	spot:SetAttribute("CastDistance", distance)
 	spot:SetAttribute("Temporary", true)
@@ -1126,7 +1134,12 @@ function FishingService.quit(player: Player, silent: boolean?)
 	if lentRod[player] then
 		lentRod[player] = nil
 		stop(player, true)
-		InventoryService.remove(player, "CanaPescar", 1)
+		-- Si ya no la tiene (la ha vendido o cambiado), se le cobra: así no se duplican cañas
+		if not InventoryService.remove(player, "CanaPescar", 1) then
+			local price = Fishing.Rods.CanaPescar.Price
+			DataService.addMoney(player, -price)
+			Notify:FireClient(player, "Error", ("🎣 No has devuelto la caña prestada: se te cobra (%s)."):format(Format.money(price)))
+		end
 	end
 	RoleService.offDuty(player, "Pescador")
 	if player:GetAttribute("Job") == "Pescador" then
@@ -1302,6 +1315,16 @@ function FishingService.init()
 			end
 		end
 	end)
+	-- Al reaparecer (p. ej. tras morir) ya no estás en el barco
+	local function watchBoat(player: Player)
+		player.CharacterAdded:Connect(function()
+			player:SetAttribute("BoatReturn", nil)
+		end)
+	end
+	Players.PlayerAdded:Connect(watchBoat)
+	for _, player in Players:GetPlayers() do
+		watchBoat(player)
+	end
 	Players.PlayerRemoving:Connect(function(player)
 		stop(player, true)
 		FishingService.quit(player, true)

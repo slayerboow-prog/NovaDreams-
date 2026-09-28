@@ -107,6 +107,9 @@ local function findTagged(tag: string, attrs: { [string]: any }): BasePart?
 end
 
 local function teleport(player: Player, cf: CFrame)
+	-- Primero se baja del vehículo (si no, se lo llevaría con él). (require aquí dentro: así no hay
+	-- requires en círculo)
+	require(script.Parent.VehicleService).standUp(player)
 	pcall(function()
 		player:RequestStreamAroundAsync(cf.Position, 5)
 	end)
@@ -316,6 +319,7 @@ end
 
 -- Sienta al jugador en el tren y le enseña el panel del viaje
 local function seatPlayer(player: Player, train: Train, seat: Seat, humanoid: Humanoid)
+	require(script.Parent.VehicleService).standUp(player) -- (si iba en bici o patinete, se baja antes)
 	seat:Sit(humanoid)
 	train.Passengers[player] = true
 	riding[player] = train

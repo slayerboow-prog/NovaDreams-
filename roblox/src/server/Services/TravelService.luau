@@ -27,6 +27,9 @@ function TravelService.travel(player: Player, destination: string)
 	if not LifeService.allows(player, "Travel") then
 		return
 	end
+	-- Primero se baja del vehículo (o se levanta del banco): si no, se lo llevaría con él
+	-- (require aquí dentro: así no hay requires en círculo)
+	require(script.Parent.VehicleService).standUp(player)
 	traveling[player] = true
 	Notify:FireClient(player, "Travel", "🚌 Viajando a " .. destination .. "…")
 	task.wait(TRAVEL_SECONDS / 2)

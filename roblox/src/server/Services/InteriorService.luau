@@ -763,7 +763,8 @@ local function openElevator(player: Player, building: Building)
 		Current = current,
 	})
 end
-InteriorService.openElevator = openElevator -- (también lo usan las pruebas)
+
+InteriorService.openElevator = openElevator
 
 -- La función de abrir puertas con bisagra (InteractService; se pide al usarla para no depender de él)
 local function InteractSwing(): ((BasePart, boolean, number?) -> ())?

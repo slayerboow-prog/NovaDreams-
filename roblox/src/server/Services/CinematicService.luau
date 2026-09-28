@@ -1,6 +1,7 @@
 -- CinematicService: prepara y lanza las escenas de cámara de la historia (shared/LifeStory/Cinematics.luau).
 -- Para cada jugador busca sus anclas (SU casa, SU ventanal, la zona…), pide al mapa que cargue esas
--- zonas (el mapa se carga por trozos, StreamingEnabled) y manda la escena al cliente, que la dibuja.
+-- zonas (el mapa se carga por trozos, StreamingEnabled) y, cuando están (o tras un tope corto),
+-- manda la escena al cliente, que la dibuja.
 -- Devuelve lo que dura la escena, para que la historia siga cuando termine.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -53,7 +54,13 @@ function CinematicService.resolveAnchors(player: Player, cinematic: { [string]: 
 	return anchors
 end
 
--- Lanza la escena y devuelve cuánto dura (0 si no existe)
+-- Cuánto se espera como mucho a que el mapa cargue las anclas antes de empezar la escena
+local STREAM_WAIT = 2.5
+
+-- Lanza la escena y devuelve cuánto dura (0 si no existe).
+-- Primero pide al mapa que cargue lo que va a enseñar la cámara (todas las anclas a la vez, con un
+-- tope de STREAM_WAIT s) y después la manda al cliente: así la cámara no enseña el vacío. No hace
+-- esperar a quien llama (la historia sigue su curso); lo que devuelve incluye esa espera.
 function CinematicService.play(player: Player, id: string): number
 	local cinematic = Cinematics[id]
 	local remote = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("LifeStory")
@@ -62,7 +69,7 @@ function CinematicService.play(player: Player, id: string): number
 		return 0
 	end
 	local anchors = CinematicService.resolveAnchors(player, cinematic)
-	remote:FireClient(player, "Cinematic", {
+	local payload = {
 		Id = id,
 		Anchors = anchors,
 		Names = {
@@ -72,16 +79,49 @@ function CinematicService.play(player: Player, id: string): number
 			Rectora = "NPC.AMAIA",
 		},
 		Args = { nombre = player.DisplayName },
-	})
-	-- Que el mapa cargue lo que va a enseñar la cámara (en paralelo: la escena ya ha empezado)
+	}
+	local fired = false
+	local function fire()
+		if fired then
+			return
+		end
+		fired = true
+		if player.Parent then
+			remote:FireClient(player, "Cinematic", payload)
+		end
+	end
+	-- Anclas distintas (varias suelen ser el mismo sitio: el jugador)
+	local points: { Vector3 } = {}
 	for _, cf in anchors do
+		local near = false
+		for _, p in points do
+			if (p - cf.Position).Magnitude < 20 then
+				near = true
+				break
+			end
+		end
+		if not near then
+			table.insert(points, cf.Position)
+		end
+	end
+	local pending = #points
+	for _, position in points do
 		task.spawn(function()
 			pcall(function()
-				player:RequestStreamAroundAsync(cf.Position, 4)
+				player:RequestStreamAroundAsync(position, STREAM_WAIT)
 			end)
+			pending -= 1
+			if pending <= 0 then
+				fire()
+			end
 		end)
 	end
-	return cinematic.Duration
+	if pending <= 0 then
+		fire() -- (ya estaba todo o no hay nada que cargar)
+		return cinematic.Duration
+	end
+	task.delay(STREAM_WAIT, fire) -- tope: la escena empieza aunque falte algo
+	return cinematic.Duration + STREAM_WAIT
 end
 
 function CinematicService.init() end
