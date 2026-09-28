@@ -1278,6 +1278,18 @@ local gael, gaelData = rarezaPlayer("Gael", "Adulto")
 gael.Picks = { Semaforo = "Escuchar" }
 check(playLoco(gael, "Rareza_Semaforo") and gaelData.Items.LuzAmbar == 1 and said(gael, "Me siento… solo"), "El semáforo con opiniones: le preguntas cómo se siente")
 check(playLoco(gael, "Rareza_Nube") and gaelData.Items.GotaNube == 1, "La nube que te sigue: parque, playa y la gota que no se seca")
+-- Segundo lote
+lighting.ClockTime = 12
+check(playLoco(ruth, "Rareza_Columpio") and ruthData.Items.CadenaColumpio == 1 and said(ruth, "Mereció la pena"), "El columpio que va al pasado: las iniciales de tu abu en el banco")
+check(playLoco(ruth, "Rareza_Sombra") and ruthData.Items.TizaSombra == 1, "La sombra que se escapa: seguirla y que vuelva a tus zapatillas")
+teo.Picks = { Espejo = "Amable" }
+check(playLoco(teo, "Rareza_Espejo") and teoData.Items.EsquirlaEspejo == 1 and said(teo, "Tienes buena risa"), "El espejo que contesta: le pides que te diga algo bueno")
+check(playLoco(teo, "Rareza_Palomas") and teoData.Items.PlumaCartero == 1, "Las palomas que hacen cola: la carta a la dimensión del pan")
+vera.Picks = { Cafe = "Cafe" }
+check(playLoco(vera, "Rareza_Cafe") and veraData.Items.VasoConsejos == 1 and said(vera, "Buena decisión"), "La máquina de café que da consejos: eliges café normal")
+check(playLoco(vera, "Rareza_Eco") and veraData.Items.SilbatoEco == 1 and said(vera, "Gracias por no rendirte"), "El eco del estadio: tu yo del futuro te da las gracias")
+check(playLoco(gael, "Rareza_Contestador") and gaelData.Items.CintaContestador == 1 and said(gael, "lo mejor que nos ha pasado"), "El contestador de 1999: un mensaje de tu familia")
+check(playLoco(gael, "Rareza_GatoCaja") and gaelData.Items.CascabelCuantico == 1, "El gato que está y no está: abres la caja y el gato decide")
 
 print("\n▶ Misiones locas · Adolescencia (el futuro, los lápices, el DJ alienígena, Pip, Zoltán)")
 local iris = newPlayer("Iris", "Adolescente")

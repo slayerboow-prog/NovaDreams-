@@ -23,7 +23,8 @@ local PIP = { Npc = "Pip", Place = "GarajeCosme", Offset = V(3, 0, 2) }
 local ESCAMAS = { Npc = "DonEscamas", Place = "GarajeCosme", Offset = V(-3, 0, 1), Scale = 0.35 }
 local CIMA = "CimaMonte"
 -- Colección «Restos de la Grieta» (recuerdos de las rarezas): con 4 o más, Cósimo llega debilitado a la batalla final
-local RESTOS = { "BuzonPasado", "FarolaOpera", "PerroBinario", "LluviaEspaguetis", "Piso13", "RelojAtras", "SemaforoOpina", "NubePerdida" }
+local RESTOS = { "BuzonPasado", "FarolaOpera", "PerroBinario", "LluviaEspaguetis", "Piso13", "RelojAtras", "SemaforoOpina", "NubePerdida",
+	"ColumpioPasado", "SombraEscapada", "EspejoContesta", "PalomasCola", "CafeConsejos", "EcoFuturo", "Contestador1999", "GatoCuantico" }
 local MUCHOS_RESTOS = { MemoriesAtLeast = { N = 4, Of = RESTOS } }
 local POCOS_RESTOS = { MemoriesFewer = { N = 4, Of = RESTOS } }
 

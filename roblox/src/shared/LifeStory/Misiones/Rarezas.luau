@@ -2,7 +2,7 @@
 -- Ficha de diseño: docs/historia/13-saga-de-la-grieta.md («Secundarias»)
 --
 -- Todas piden haber visto la Grieta (Saga_02) y dan una pieza de la colección «Restos de la Grieta».
--- Dos por etapa (primer lote):
+-- Cuatro por etapa (dos lotes):
 --   Rareza_Buzon      Niño         «El buzón que escribe al pasado»
 --   Rareza_Farola     Niño         «La farola que canta ópera» (de noche)
 --   Rareza_Perro      Adolescente  «El perro que ladra en binario»
@@ -11,6 +11,14 @@
 --   Rareza_Reloj      Universidad  «El reloj que va hacia atrás»
 --   Rareza_Semaforo   Adulto       «El semáforo con opiniones»
 --   Rareza_Nube       Adulto       «La nube que te sigue»
+--   Rareza_Columpio   Niño         «El columpio que va al pasado»
+--   Rareza_Sombra     Niño         «La sombra que se escapa»
+--   Rareza_Espejo     Adolescente  «El espejo que contesta»
+--   Rareza_Palomas    Adolescente  «Las palomas que hacen cola»
+--   Rareza_Cafe       Universidad  «La máquina de café que da consejos»
+--   Rareza_Eco        Universidad  «El eco del estadio»
+--   Rareza_Contestador Adulto      «El contestador de 1999»
+--   Rareza_GatoCaja   Adulto       «El gato que está y no está»
 
 local V = Vector3.new
 
@@ -405,6 +413,348 @@ return {
 				{ S = "Narrador", T = "En la playa, la nubecita se para. Mira el mar. Sobre el horizonte hay un banco de nubes grandes. Una de ellas hace «¡plic!»." },
 				{ S = "Narrador", T = "La nubecita te llueve encima una última vez, flojito, y se va volando. Antes de irse, deja caer una gota que no se seca." },
 				{ S = "Pip", T = "Una gota de nube. Dicen que, si la tiene en la mano en un día triste, sale el sol. Yo no lo he probado. Yo no tengo días tristes. Solo actualizaciones." },
+			} },
+		},
+	},
+	---------------------------------------------------------------------
+	-- SEGUNDO LOTE
+	---------------------------------------------------------------------
+
+	---------------------------------------------------------------------
+	-- Niño · El columpio que va al pasado
+	---------------------------------------------------------------------
+	{
+		Id = "Rareza_Columpio",
+		Kind = "Side",
+		Title = "El columpio que va al pasado",
+		Description = "Un columpio del parque, cuanto más alto subes, más atrás te lleva en el tiempo. Solo un poquito. Solo un rato.",
+		Type = "Rareza de la Grieta · Infancia",
+		Duration = { 10, 14 },
+		Npcs = { "Pip", "Abu" },
+		Offer = { Place = "ColumpiosParque" },
+		OfferKey = "Un columpio del parque brilla un poco verde. Cuando te columpias, el parque se ve… antiguo",
+		Requires = rareza(NINO),
+		Moment = "Te columpiaste hasta la infancia de tu abu",
+		Memory = "ColumpioPasado",
+		Rewards = { Items = { CadenaColumpio = 1 } },
+		Props = {
+			Columpio = { Kind = "Asiento", Name = "El columpio verde", Prompt = "Columpiarte", Place = "ColumpiosParque", Offset = V(0, 0, 3), Color = Color3.fromRGB(120, 255, 160), Dialogue = "Columpio", Once = true },
+			Iniciales = { Kind = "Banco", Name = "Unas iniciales grabadas en el banco", Prompt = "Mirar las iniciales", Place = "ColumpiosParque", Offset = V(-4, 0, 2), Dialogue = "Iniciales", Once = true },
+		},
+		Steps = {
+			{ Type = "Use", Prop = "Columpio", Text = "Súbete al columpio verde" },
+			{ Type = "Transition", Text = "Subes. Y subes. El parque se vuelve de color sepia. Los coches son redondos. Un niño con gorra graba algo en un banco con una navaja de juguete.", Seconds = 4, Teleport = "ColumpiosParque" },
+			{ Type = "Use", Prop = "Iniciales", Text = "Mira qué ha grabado el niño en el banco" },
+			{ Type = "Talk", Npc = "Abu", Dialogue = "Abu", Text = "Vuelve al presente y pregúntale a {abu}",
+				Actors = { { Npc = "Abu", Place = "Home", Offset = V(2, 0, 3), Mode = "Sit" } } },
+		},
+		Dialogues = {
+			Columpio = { Lines = {
+				{ S = "Narrador", T = "Cada vez que el columpio llega arriba, el cielo cambia un poco de color. Como si pasaras las páginas de un álbum de fotos muy viejo." },
+			} },
+			Iniciales = { Lines = {
+				{ S = "Narrador", T = "El niño ya se ha ido. En el banco pone, recién grabado: «Aquí estuvo el mejor columpiador de Valmar». Y unas iniciales. Son las de {abu}." },
+				{ S = "Narrador", T = "El columpio se frena solo. El parque recupera sus colores. En el banco de hoy, casi borradas, siguen las mismas letras." },
+			} },
+			Abu = { Lines = {
+				{ S = "Abu", T = "¿Las iniciales del banco? ¡Claro que las hice yo! Tenía tu edad. Me castigaron una semana sin postre. Mereció la pena." },
+				{ S = "Abu", T = "¿Y tú cómo sabes lo de la navaja de juguete? Eso no se lo he contado nunca a nadie… Bueno. Da igual. Toma: la cadenita de aquel columpio. La guardé cuando lo cambiaron. Ahora es tuya." },
+			} },
+		},
+	},
+
+	---------------------------------------------------------------------
+	-- Niño · La sombra que se escapa
+	---------------------------------------------------------------------
+	{
+		Id = "Rareza_Sombra",
+		Kind = "Side",
+		Title = "La sombra que se escapa",
+		Description = "Tu sombra se ha despegado y se ha ido a jugar sola. Sin ti no puede volver a casa. Y sin ella, tú no haces sombra.",
+		Type = "Rareza de la Grieta · Infancia",
+		Duration = { 10, 14 },
+		Npcs = { "Pip" },
+		Offer = { Place = "Patio" },
+		OfferKey = "Miras al suelo y… no tienes sombra. A lo lejos, una sombra con tu forma se ríe y sale corriendo",
+		Requires = rareza(NINO, { Hours = { From = 9, To = 19 } }),
+		Moment = "Recuperaste tu sombra (que solo quería jugar)",
+		Memory = "SombraEscapada",
+		Rewards = { Items = { TizaSombra = 1 } },
+		Steps = {
+			{ Type = "Reach", Place = "JuegosColegio", Text = "Tu sombra ha ido a la zona de juegos" },
+			{ Type = "Reach", Place = "Parque", Text = "¡Ahora está en el parque! Síguela" },
+			{ Type = "Talk", Npc = "Pip", Dialogue = "Pip", Text = "Pip la ha acorralado junto a la fuente",
+				Actors = { { Npc = "Pip", Place = "FuenteParque", Offset = V(-2, 0, 2) } } },
+		},
+		Dialogues = {
+			Pip = { Lines = {
+				{ S = "Pip", T = "Su sombra estaba jugando al escondite con las sombras de los árboles. Iba ganando. Las sombras son muy buenas escondiéndose: es su trabajo." },
+				{ S = "Pip", T = "Un poco de Grieta le dio vida. No quería escaparse de usted: quería jugar con usted. Y usted estaba en clase." },
+				{ S = "Narrador", T = "Tu sombra se acerca, arrastrando los pies, como cuando te pillan. Se pega otra vez a tus zapatillas. Al principio va un segundo por detrás. Luego ya no." },
+				{ S = "Pip", T = "Consejo: juegue con ella de vez en cuando. Al atardecer se estira mucho. Le encanta. Tome, una tiza: dibuje su contorno en el suelo. Así sabrá dónde vive." },
+			} },
+		},
+	},
+
+	---------------------------------------------------------------------
+	-- Adolescente · El espejo que contesta
+	---------------------------------------------------------------------
+	{
+		Id = "Rareza_Espejo",
+		Kind = "Side",
+		Title = "El espejo que contesta",
+		Description = "El espejo de tu cuarto ha empezado a opinar sobre tu pelo. Y sobre tu vida. Sobre todo sobre tu vida.",
+		Type = "Rareza de la Grieta · Adolescencia",
+		Duration = { 10, 14 },
+		Npcs = { "Pip" },
+		Offer = { Place = "HomeDormitorio" },
+		OfferKey = "Te miras al espejo y el reflejo, en vez de peinarse, se cruza de brazos: «¿En serio vas a salir así?»",
+		Requires = rareza(ADOLESCENTE),
+		Moment = "Le enseñaste a tu reflejo a ser amable",
+		Memory = "EspejoContesta",
+		Rewards = { Items = { EsquirlaEspejo = 1 } },
+		Props = {
+			Espejo = { Kind = "Espejo", Name = "Tu espejo (con opiniones)", Place = "HomeDormitorio", Offset = V(0, 0, 3), Prompt = false },
+		},
+		Steps = {
+			{ Type = "Scene", Dialogue = "Reflejo", Props = { "Espejo" } },
+			{ Type = "Choice", Key = "Espejo", Text = "Tu reflejo dice que eres «un desastre con patas». ¿Qué le contestas?", Props = { "Espejo" },
+				Options = {
+					{ Id = "Amable", Text = "«Hoy no. Pero dime algo bueno, que tú me conoces mejor que nadie»", Effects = { Traits = { Empatia = 2 } } },
+					{ Id = "Humor", Text = "Hacerle muecas hasta que se ría", Effects = { Traits = { Humor = 2 } } },
+					{ Id = "Tapar", Text = "Taparlo con una toalla", Effects = { Traits = { Rebeldia = 1 } } },
+				} },
+			{ Type = "Talk", Npc = "Pip", Dialogue = "Pip", Text = "Pregúntale a Pip qué le pasa al espejo",
+				Actors = { { Npc = "Pip", Place = "HomeDormitorio", Offset = V(3, 0, 2) } } },
+		},
+		Dialogues = {
+			Reflejo = { Lines = {
+				{ S = "Narrador", T = "(Tu reflejo) «Ese grano. Esa camiseta. Esa cara de sueño. Y lo de ayer en clase… Madre mía, lo de ayer.»" },
+				{ S = "Narrador", T = "Lo raro es que dice exactamente lo que piensas tú de ti mismo los días malos. Con tu voz. Pero en alto." },
+			} },
+			Pip = { Lines = {
+				{ S = "Narrador", T = "(Tu reflejo, sonrojado) «…Tienes buena risa. Y ayudas a la gente aunque nadie mire. Y ese pelo… bueno, el pelo no. Pero lo demás, sí.»", If = { Choices = { Espejo = "Amable" } } },
+				{ S = "Narrador", T = "(Tu reflejo, llorando de la risa) «¡Para! ¡Para, que me meo! Vale, vale: eres gracioso. Lo admito.»", If = { Choices = { Espejo = "Humor" } } },
+				{ S = "Narrador", T = "(Desde debajo de la toalla, ofendido) «Muy maduro. Muy maduro.» …Al rato, flojito: «Perdona. Me he pasado.»", If = { Choices = { Espejo = "Tapar" } } },
+				{ S = "Pip", T = "Un reflejo con un poquito de Grieta dentro. Repite lo que usted piensa de sí mismo. Por eso decía cosas feas: usted se las dice a veces." },
+				{ S = "Pip", T = "Ya está arreglado. Se le ha caído un trocito de cristal. Si lo mira, verá su reflejo sonriendo. Aunque usted no sonría. Es un truco. Funciona." },
+			} },
+		},
+	},
+
+	---------------------------------------------------------------------
+	-- Adolescente · Las palomas que hacen cola
+	---------------------------------------------------------------------
+	{
+		Id = "Rareza_Palomas",
+		Kind = "Side",
+		Title = "Las palomas que hacen cola",
+		Description = "Cuarenta palomas hacen cola en Correos. Con número. Quieren enviar una carta. Nadie sabe a dónde.",
+		Type = "Rareza de la Grieta · Adolescencia",
+		Duration = { 10, 14 },
+		Npcs = { "Pip" },
+		Offer = { Place = "Correos" },
+		OfferKey = "En Correos hay una cola de palomas. Todas con su numerito. La 37 te mira con impaciencia",
+		Requires = rareza(ADOLESCENTE),
+		Moment = "Ayudaste a cuarenta palomas a enviar una carta",
+		Memory = "PalomasCola",
+		Rewards = { Items = { PlumaCartero = 1 } },
+		Props = {
+			Paloma = { Kind = "Animal", Name = "La paloma número 1 (la jefa)", Prompt = "Coger su carta", Place = "Correos", Offset = V(2, 0, 3), Color = Color3.fromRGB(150, 150, 170), Dialogue = "Carta", Once = true },
+			Buzon = { Kind = "Kiosco", Name = "El buzón de «Otras dimensiones»", Prompt = "Echar la carta", Place = "Correos", Offset = V(-3, 0, 4), Color = Color3.fromRGB(120, 255, 160), Dialogue = "Enviar", Once = true },
+		},
+		Steps = {
+			{ Type = "Use", Prop = "Paloma", Text = "Habla (más o menos) con la paloma jefa" },
+			{ Type = "Talk", Npc = "Pip", Dialogue = "Pip", Text = "Pip sabe leer paloma",
+				Actors = { { Npc = "Pip", Place = "Correos", Offset = V(3, 0, 2) } } },
+			{ Type = "Use", Prop = "Buzon", Text = "Echa la carta por el buzón que nadie ve" },
+		},
+		Dialogues = {
+			Carta = { Lines = {
+				{ S = "Narrador", T = "La paloma jefa te da una carta con el pico. Está escrita con patitas. Mucho «cu-rú» y un dibujo de un pan." },
+			} },
+			Pip = { Lines = {
+				{ S = "Pip", T = "Dice: «Queridas palomas de la dimensión del pan infinito: aquí nos tiran migas de dos en dos. Llevadnos con vosotras. O mandad pan.»" },
+				{ S = "Pip", T = "Al lado de Correos hay un buzón pequeñito que solo se ve si has visto la Grieta. Es de «Otras dimensiones». Casi nadie lo usa. Las palomas sí." },
+			} },
+			Enviar = { Lines = {
+				{ S = "Narrador", T = "La carta entra con un «plop» verde. Cuarenta palomas aplauden con las alas. La 37 te da una pluma. Parece un sello de agradecimiento." },
+				{ S = "Narrador", T = "Al día siguiente, en la plaza, cae del cielo una barra de pan con lacito. Las palomas la comparten. Por turnos. Con número." },
+			} },
+		},
+	},
+
+	---------------------------------------------------------------------
+	-- Universidad · La máquina de café que da consejos
+	---------------------------------------------------------------------
+	{
+		Id = "Rareza_Cafe",
+		Kind = "Side",
+		Title = "La máquina de café que da consejos",
+		Description = "La máquina de café de la biblioteca ya no da café. Da consejos. Muy buenos. Demasiado buenos.",
+		Type = "Rareza de la Grieta · Universidad",
+		Duration = { 10, 14 },
+		Npcs = { "Ivan", "Candela" },
+		Offer = { Place = "Biblioteca" },
+		OfferKey = "Metes una moneda en la máquina de café. En vez de café, sale un papelito: «Llama a tu familia. Hace una semana que no lo haces»",
+		Requires = rareza(UNI, { Completed = { "Saga_02_Grieta", "Uni01b_Residencia" } }),
+		Moment = "Aceptaste un consejo de una máquina de café",
+		Memory = "CafeConsejos",
+		Rewards = { Items = { VasoConsejos = 1 } },
+		Props = {
+			Maquina = { Kind = "Maquina", Name = "La máquina de café (consejera)", Prompt = "Pedir un consejo", Place = "Biblioteca", Offset = V(3, 0, 3), Color = Color3.fromRGB(120, 80, 50), Dialogue = "Consejo", Once = true },
+		},
+		Steps = {
+			{ Type = "Use", Prop = "Maquina", Text = "Pídele un consejo a la máquina" },
+			{ Type = "Talk", Npc = "Candela", Dialogue = "Compis", Text = "Iván y Candela también han recibido consejos",
+				Actors = { { Npc = "Candela", Place = "Biblioteca", Offset = V(-3, 0, 3) }, { Npc = "Ivan", Place = "Biblioteca", Offset = V(-5, 0, 2), Mode = "Sit" } } },
+			{ Type = "Choice", Key = "Cafe", Text = "La máquina ofrece un trato: «Un consejo al día para siempre… o un café normal para siempre». ¿Qué eliges?",
+				Options = {
+					{ Id = "Cafe", Text = "Café normal: tus decisiones, las tomas tú", Effects = { Traits = { Responsabilidad = 2 } } },
+					{ Id = "Consejos", Text = "Consejos: ¿quién dice que no a un buen consejo?", Effects = { Traits = { Curiosidad = 1 } } },
+				},
+				Actors = { { Npc = "Candela", Place = "Biblioteca", Offset = V(-3, 0, 3) } } },
+			{ Type = "Scene", Dialogue = "Final", Actors = { { Npc = "Ivan", Place = "Biblioteca", Offset = V(-5, 0, 2) }, { Npc = "Candela", Place = "Biblioteca", Offset = V(-3, 0, 3) } } },
+		},
+		Dialogues = {
+			Consejo = { Lines = {
+				{ S = "Narrador", T = "Otro papelito: «El examen del jueves cae el tema 4. No el 3. El 4. Y come algo verde, por favor.»" },
+			} },
+			Compis = { Lines = {
+				{ S = "Ivan", T = "A mí me ha dicho que deje de echarle azúcar al zumo de mora. ¡Al zumo de mora! ¿Quién se cree que es?" },
+				{ S = "Candela", T = "A mí me ha dicho que no todo cabe en un Excel. …Le he puesto una queja formal. En Excel." },
+			} },
+			Final = { Lines = {
+				{ S = "Narrador", T = "La máquina suelta un café. Solo café. Humeante, normal, perfecto. Por el lateral cae un vasito de cartón con un último papel dentro: «Buena decisión».", If = { Choices = { Cafe = "Cafe" } } },
+				{ S = "Narrador", T = "La máquina suelta un papelito: «Consejo 1: no le hagas caso a todo lo que dice una máquina». Luego se apaga. Parece contenta.", If = { Choices = { Cafe = "Consejos" } } },
+				{ S = "Candela", T = "Apunto: «Máquina de café con criterio». Pestaña «Cosas imposibles». Fila 47." },
+			} },
+		},
+	},
+
+	---------------------------------------------------------------------
+	-- Universidad · El eco del estadio
+	---------------------------------------------------------------------
+	{
+		Id = "Rareza_Eco",
+		Kind = "Side",
+		Title = "El eco del estadio",
+		Description = "En el estadio universitario, el eco no repite lo que gritas. Repite lo que gritarás dentro de un año.",
+		Type = "Rareza de la Grieta · Universidad",
+		Duration = { 10, 14 },
+		Npcs = { "Ivan" },
+		Offer = { Place = "EstadioUniversitario" },
+		OfferKey = "Iván grita «¡hola!» en el estadio vacío. El eco contesta: «¡He aprobado Anatomía!»",
+		Requires = rareza(UNI, { Completed = { "Saga_02_Grieta", "Uni01b_Residencia" } }),
+		Moment = "Oíste a tu yo del futuro en el eco del estadio",
+		Memory = "EcoFuturo",
+		Rewards = { Items = { SilbatoEco = 1 } },
+		Props = {
+			Grada = { Kind = "Asiento", Name = "La grada del eco", Prompt = "Gritar algo", Place = "EstadioUniversitario", Offset = V(0, 0, 6), Dialogue = "Grito", Once = true },
+		},
+		Steps = {
+			{ Type = "Talk", Npc = "Ivan", Dialogue = "Ivan", Text = "Iván ha descubierto el eco del futuro",
+				Actors = { { Npc = "Ivan", Place = "EstadioUniversitario", Offset = V(3, 0, 4), Mode = "Cheer" } } },
+			{ Type = "Use", Prop = "Grada", Text = "Grita algo desde la grada" },
+			{ Type = "Scene", Dialogue = "Final", Actors = { { Npc = "Ivan", Place = "EstadioUniversitario", Offset = V(3, 0, 4) } } },
+		},
+		Dialogues = {
+			Ivan = { Lines = {
+				{ S = "Ivan", T = "¡{nombre}! ¡El eco sabe cosas! Le he gritado «¿apruebo?» y me ha dicho «¡he aprobado Anatomía!». Con MI voz. Pero más… segura." },
+				{ S = "Ivan", T = "Grita tú. Pero algo bonito, ¿eh? Que igual contesta algo triste y me pongo a llorar. Soy de lágrima fácil. Tú ya lo sabes." },
+			} },
+			Grito = { Lines = {
+				{ S = "Narrador", T = "Gritas tu nombre. El estadio vacío se lo piensa. Y el eco, con tu voz, pero un año mayor, contesta: «¡Gracias por no rendirte!»." },
+				{ S = "Narrador", T = "No sabes de qué se da las gracias tu yo del futuro. Pero suena contento. Muy contento." },
+			} },
+			Final = { Lines = {
+				{ S = "Ivan", T = "«Gracias por no rendirte». Tío. Eso se va a cumplir. Lo sé. Tengo un pálpito. Y el eco tiene un pálpito. Somos dos pálpitos." },
+				{ S = "Narrador", T = "En la grada, donde gritaste, hay un silbato que antes no estaba. Si soplas, no suena. Se oye un segundo después." },
+			} },
+		},
+	},
+
+	---------------------------------------------------------------------
+	-- Adulto · El contestador de 1999
+	---------------------------------------------------------------------
+	{
+		Id = "Rareza_Contestador",
+		Kind = "Side",
+		Title = "El contestador de 1999",
+		Description = "Tu móvil recibe mensajes de voz de un contestador de 1999. Son de alguien de tu familia. De cuando eras un bebé.",
+		Type = "Rareza de la Grieta · Vida adulta",
+		Duration = { 10, 14 },
+		Npcs = { "Familia", "Pip" },
+		Offer = { Place = "Home" },
+		OfferKey = "Tienes un mensaje de voz. Número desconocido. Fecha: 1999",
+		Requires = rareza(ADULTO),
+		Moment = "Oíste un mensaje de 1999 dedicado a ti",
+		Memory = "Contestador1999",
+		Rewards = { Items = { CintaContestador = 1 } },
+		Props = {
+			Telefono = { Kind = "Pantalla", Name = "Tu móvil (con un mensaje de 1999)", Prompt = "Escuchar el mensaje", Place = "HomeSalon", Offset = V(0, 0, 3), Color = Color3.fromRGB(40, 40, 50), Dialogue = "Mensaje", Once = true },
+		},
+		Steps = {
+			{ Type = "Use", Prop = "Telefono", Text = "Escucha el mensaje" },
+			{ Type = "Talk", Npc = "Pip", Dialogue = "Pip", Text = "Pregúntale a Pip cómo es posible",
+				Actors = { { Npc = "Pip", Place = "GarajeCosme", Offset = V(3, 0, 2) } } },
+			{ Type = "Talk", Npc = "Familia", Dialogue = "Familia", Text = "Díselo a {familia}",
+				Actors = { { Npc = "Familia", Place = "CasaFamiliar", Offset = V(2, 0, 3) } } },
+		},
+		Dialogues = {
+			Mensaje = { Lines = {
+				{ S = "Narrador", T = "(Una voz que conoces, pero más joven) «Hola, cosa pequeña. Esto es una prueba del contestador nuevo. Estás dormido en la cuna. Roncas. Muy fuerte para ser tan pequeño.»" },
+				{ S = "Narrador", T = "«No sé para qué te grabo esto, si no lo vas a oír. Bueno. Por si algún día… que sepas que eres lo mejor que nos ha pasado. Fin del mensaje. ¿Cómo se para esto? ¿Este botón?»" },
+			} },
+			Pip = { Lines = {
+				{ S = "Pip", T = "La Grieta a veces cruza cables de años distintos. Los mensajes que nadie escuchó se quedan flotando. Y un día encuentran a quien iban dirigidos." },
+				{ S = "Pip", T = "Le he pasado el mensaje a una cinta. Así no se pierde. Las cintas son más cabezotas que los móviles." },
+			} },
+			Familia = { Lines = {
+				{ S = "Familia", T = "¿Un mensaje de 1999? ¿Del contestador de la casa vieja? …Me acuerdo. Lo grabé una noche que no podía dormir. Pensé que se había borrado." },
+				{ S = "Familia", T = "…Lo que decía era verdad. Lo sigue siendo. No me hagas repetirlo, que me emociono. Anda, quédate a cenar." },
+			} },
+		},
+	},
+
+	---------------------------------------------------------------------
+	-- Adulto · El gato del supermercado (dentro y fuera de la caja)
+	---------------------------------------------------------------------
+	{
+		Id = "Rareza_GatoCaja",
+		Kind = "Side",
+		Title = "El gato que está y no está",
+		Description = "En el supermercado hay un gato dentro de una caja. Y el mismo gato fuera de la caja. A la vez. El encargado está muy estresado.",
+		Type = "Rareza de la Grieta · Vida adulta",
+		Duration = { 10, 14 },
+		Npcs = { "Pip" },
+		Offer = { Place = "Supermercado" },
+		OfferKey = "En el pasillo 3 hay un gato dentro de una caja. Y el mismo gato sentado encima de la caja. Te miran los dos",
+		Requires = rareza(ADULTO),
+		Moment = "Decidiste dónde estaba un gato cuántico",
+		Memory = "GatoCuantico",
+		Rewards = { Items = { CascabelCuantico = 1 } },
+		Props = {
+			Caja = { Kind = "Caja", Name = "Una caja con un gato (quizá)", Prompt = "Abrir la caja", Place = "Supermercado", Offset = V(2, 0, 3), Dialogue = "Abrir", Once = true },
+			Gato = { Kind = "Gato", Name = "Un gato (quizá el mismo)", Place = "Supermercado", Offset = V(4, 0, 3), Prompt = false },
+		},
+		Steps = {
+			{ Type = "Talk", Npc = "Pip", Dialogue = "Pip", Text = "Pip ha venido a por yogures (y a por el gato)", Props = { "Gato" },
+				Actors = { { Npc = "Pip", Place = "Supermercado", Offset = V(-2, 0, 3) } } },
+			{ Type = "Use", Prop = "Caja", Text = "Abre la caja", Props = { "Gato" } },
+			{ Type = "Scene", Dialogue = "Final", Actors = { { Npc = "Pip", Place = "Supermercado", Offset = V(-2, 0, 3) } } },
+		},
+		Dialogues = {
+			Pip = { Lines = {
+				{ S = "Pip", T = "Un gato de la Grieta. Está dentro y fuera de la caja a la vez hasta que alguien mira. En la dimensión de los gatos esto es normal. Aquí, el encargado ha llamado a tres veterinarios." },
+				{ S = "Pip", T = "Hay que abrir la caja. Cuando alguien mira, el gato tiene que decidir dónde está. Normalmente elige donde haya comida." },
+			} },
+			Abrir = { Lines = {
+				{ S = "Narrador", T = "Abres la caja. Por un segundo hay dos gatos. Se miran. Uno bosteza. El otro se ofende. Y… solo queda uno. Dentro de la caja. Como si nada." },
+			} },
+			Final = { Lines = {
+				{ S = "Pip", T = "Gato decidido. Caja ocupada. Encargado más tranquilo. Ha dejado un cascabel: a veces suena y a veces no. Aunque no lo muevas. Es cuántico. O está roto." },
+				{ S = "Pip", T = "Y he comprado los yogures. Los de fresa no: siguen raros." },
 			} },
 		},
 	},

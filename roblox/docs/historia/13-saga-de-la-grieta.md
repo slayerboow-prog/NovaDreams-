@@ -106,7 +106,7 @@ saga: casi todo lo raro que pasa en ellas llega por la Grieta. En el final vuelv
 
 **Misiones locas**: 21 ya hechas (infancia 6, adolescencia 5, universidad 5, adulto 5).
 
-**«Rarezas de la Grieta»** (`Misiones/Rarezas.luau`). Primer lote hecho, 8 misiones (2 por etapa), todas probadas
+**«Rarezas de la Grieta»** (`Misiones/Rarezas.luau`). Dos lotes hechos, 16 misiones (4 por etapa), todas probadas
 de principio a fin en `test-lifestory`:
 
 | Etapa | Rareza | Pieza |
@@ -119,6 +119,14 @@ de principio a fin en `test-lifestory`:
 | Universidad | El reloj que va hacia atrás | Engranaje al revés |
 | Adulto | El semáforo con opiniones | Luz ámbar |
 | Adulto | La nube que te sigue | Gota de nube |
+| Niño | El columpio que va al pasado | Cadena del columpio viejo |
+| Niño | La sombra que se escapa (de 9:00 a 19:00) | Tiza de sombra |
+| Adolescente | El espejo que contesta | Esquirla de espejo |
+| Adolescente | Las palomas que hacen cola | Pluma de paloma cartera |
+| Universidad | La máquina de café que da consejos | Vaso de los consejos |
+| Universidad | El eco del estadio | Silbato del eco |
+| Adulto | El contestador de 1999 | Cinta del contestador |
+| Adulto | El gato que está y no está | Cascabel cuántico |
 
 Pendiente de las rarezas:
 
