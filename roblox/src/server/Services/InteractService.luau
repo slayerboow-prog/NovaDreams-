@@ -754,6 +754,8 @@ local function setupPart(part: BasePart, inst: InteriorService.Instance_?)
 			end
 			for _, s in seats do
 				s:GetPropertyChangedSignal("Occupant"):Connect(refresh)
+				-- (la gente de la sala también ocupa sitio: CrowdService marca el asiento con Taken)
+				s:GetAttributeChangedSignal("Taken"):Connect(refresh)
 			end
 			refresh()
 		end

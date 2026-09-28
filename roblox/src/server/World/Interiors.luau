@@ -39,6 +39,7 @@ local DARKWOOD = rgb(96, 64, 40)
 local WHITE = Furniture.WHITE
 local DARK = Furniture.DARK
 local STEEL = Furniture.STEEL
+local CHROME = Furniture.CHROME
 local P = Furniture.Palette
 
 export type Room = {
@@ -57,7 +58,7 @@ export type Room = {
 	SignAt: ((number) -> CFrame)?, -- dónde van los carteles de la vivienda (lado -1 o 1; PropertyService)
 }
 
-export type Options = { Seed: string?, Floor: number?, Floors: number?, Single: boolean? }
+export type Options = { Seed: string?, Floor: number?, Floors: number?, Single: boolean?, Shop: string? } -- Shop: lo que pone el cartel del comercio
 
 ---------------------------------------------------------------------
 -- Piezas sueltas
@@ -825,27 +826,87 @@ local SHOPS = {
 }
 Interiors.Shops = SHOPS
 
-function Interiors.Local(parent: Instance, cf: CFrame, opts: Options?): Room
-	local r = room(parent, "Local", cf, 40, 30, 12, { Floor = rgb(220, 220, 214), FloorMaterial = M.Marble, Windows = false }, opts)
+-- Comercios de la calle: su interior va con lo que pone el cartel (opts.Shop). Layout:
+--   Retail (estanterías y caja), Eatery (barra, mesas y sillas), Office (mesas con ordenador y
+--   sala de espera), Salon (peluquería), Studio (espejos y suelo de madera: baile, gimnasio)
+export type ShopProfile = { Id: string, Title: string?, Layout: string, Shelf: string?, Coolers: number?, Color: Color3, Extra: string? }
+local PROFILES: { [string]: ShopProfile } = {
+	FARMACIA = { Id = "Farmacia", Layout = "Retail", Shelf = "Pharmacy", Color = rgb(40, 150, 80) },
+	PANADERIA = { Id = "Panaderia", Layout = "Retail", Shelf = "Food", Coolers = 1, Color = rgb(190, 130, 60) },
+	ZAPATERIA = { Id = "Zapateria", Layout = "Retail", Shelf = "Clothes", Color = rgb(120, 70, 40), Extra = "Shoes" },
+	LIBRERIA = { Id = "Libreria", Layout = "Retail", Shelf = "Books", Color = rgb(110, 70, 40) },
+	PAPELERIA = { Id = "Papeleria", Layout = "Retail", Shelf = "Books", Color = rgb(60, 110, 170) },
+	FERRETERIA = { Id = "Ferreteria", Layout = "Retail", Shelf = "Tools", Color = rgb(60, 80, 130) },
+	ELECTRONICA = { Id = "Electronica", Layout = "Retail", Shelf = "Tech", Color = rgb(30, 60, 110), Extra = "TVs" },
+	TELEFONIA = { Id = "Telefonia", Layout = "Retail", Shelf = "Tech", Color = rgb(40, 120, 200), Extra = "TVs" },
+	VIDEOJUEGOS = { Id = "Videojuegos", Layout = "Retail", Shelf = "Tech", Color = rgb(110, 40, 160), Extra = "TVs" },
+	ROPA = { Id = "Moda", Layout = "Retail", Shelf = "Clothes", Color = rgb(40, 40, 46), Extra = "Fitting" },
+	MODA = { Id = "Moda", Layout = "Retail", Shelf = "Clothes", Color = rgb(40, 40, 46), Extra = "Fitting" },
+	DEPORTES = { Id = "Deportes", Layout = "Retail", Shelf = "Toys", Color = rgb(40, 150, 90), Extra = "Fitting" },
+	JUGUETERIA = { Id = "Jugueteria", Layout = "Retail", Shelf = "Toys", Color = rgb(240, 160, 40) },
+	FRUTERIA = { Id = "Fruteria", Layout = "Retail", Shelf = "Food", Coolers = 1, Color = rgb(90, 160, 60), Extra = "Crates" },
+	SUPERMERCADO = { Id = "Ultramarinos", Layout = "Retail", Shelf = "Food", Coolers = 2, Color = rgb(170, 60, 60) },
+	ULTRAMARINOS = { Id = "Ultramarinos", Layout = "Retail", Shelf = "Food", Coolers = 2, Color = rgb(170, 60, 60) },
+	ESTANCO = { Id = "Estanco", Layout = "Retail", Shelf = "Food", Color = rgb(130, 90, 50) },
+	MASCOTAS = { Id = "Mascotas", Layout = "Retail", Shelf = "Food", Color = rgb(60, 140, 170), Extra = "Aquarium" },
+	OPTICA = { Id = "Optica", Layout = "Retail", Shelf = "Pharmacy", Color = rgb(30, 90, 150), Extra = "Vitrines" },
+	JOYERIA = { Id = "Joyeria", Layout = "Retail", Shelf = "Pharmacy", Color = rgb(120, 90, 40), Extra = "Vitrines" },
+	FLORISTERIA = { Id = "Floristeria", Layout = "Retail", Shelf = "Food", Color = rgb(200, 90, 140), Extra = "Flowers" },
+	MUEBLES = { Id = "Muebles", Layout = "Retail", Shelf = "Tools", Color = rgb(150, 110, 76), Extra = "Showroom" },
+	LAVANDERIA = { Id = "Lavanderia", Layout = "Retail", Shelf = "Pharmacy", Color = rgb(60, 150, 200), Extra = "Washers" },
+	BAR = { Id = "Bar", Layout = "Eatery", Color = rgb(96, 64, 40) },
+	CAFETERIA = { Id = "Cafeteria", Layout = "Eatery", Color = rgb(120, 76, 44) },
+	PIZZERIA = { Id = "Pizzeria", Layout = "Eatery", Color = rgb(200, 60, 40) },
+	HELADERIA = { Id = "Heladeria", Layout = "Eatery", Color = rgb(240, 150, 190) },
+	SUSHI = { Id = "Sushi", Layout = "Eatery", Color = rgb(30, 30, 34) },
+	HAMBURGUESERIA = { Id = "Hamburgueseria", Layout = "Eatery", Color = rgb(240, 186, 40) },
+	KEBAB = { Id = "Kebab", Layout = "Eatery", Color = rgb(200, 120, 40) },
+	BANCO = { Id = "Banco", Layout = "Office", Color = rgb(30, 70, 130), Extra = "Bank" },
+	INMOBILIARIA = { Id = "Inmobiliaria", Layout = "Office", Color = rgb(40, 110, 90) },
+	SEGUROS = { Id = "Seguros", Layout = "Office", Color = rgb(30, 90, 150) },
+	COPISTERIA = { Id = "Copisteria", Layout = "Office", Color = rgb(70, 70, 80), Extra = "Copies" },
+	ACADEMIA = { Id = "Academia", Layout = "Office", Color = rgb(150, 50, 50), Extra = "Class" },
+	TALLER = { Id = "Taller", Layout = "Office", Color = rgb(90, 90, 96) },
+	PELUQUERIA = { Id = "Peluqueria", Layout = "Salon", Color = rgb(200, 110, 160) },
+	GIMNASIO = { Id = "Estudio", Layout = "Studio", Color = rgb(230, 110, 30), Extra = "Weights" },
+	ESCUELA = { Id = "Baile", Layout = "Studio", Color = rgb(150, 60, 150) },
+}
+Interiors.ShopProfiles = PROFILES
+
+local PLAIN = { ["Á"] = "A", ["É"] = "E", ["Í"] = "I", ["Ó"] = "O", ["Ú"] = "U", ["Ü"] = "U", ["Ñ"] = "N" }
+-- "PANADERÍA" -> perfil de panadería; nil si no se conoce
+function Interiors.profileFor(text: string?): ShopProfile?
+	if not text then
+		return nil
+	end
+	local word = string.upper(string.match(text, "[^%s]+") or "")
+	for accented, plain in PLAIN do
+		word = string.gsub(word, accented, plain)
+	end
+	return PROFILES[word]
+end
+
+-- Planta de un comercio de la calle: estanterías y caja (Retail)
+local function retail(r: Room, shop: ShopProfile)
 	local W, D = r.W, r.D
 	local R = r.Rand
-	local shop = R.pick(SHOPS)
-	r.Model:SetAttribute("Shop", shop.Id)
-	-- Pasillos con estanterías
+	local kind = shop.Shelf or "Food"
+	local extra = shop.Extra
+	local showroom = extra == "Showroom" or extra == "Washers" or extra == "Vitrines"
+	-- Pasillos con estanterías (en las exposiciones, solo las de los lados)
 	for k = 0, 2 do
-		Furniture.shopShelf(r, face(r, -12 + k * 12, 0, 4.4, 0, -1), 8, shop.Shelf)
-		if shop.Shelf ~= "Clothes" and shop.Id ~= "Panaderia" then
-			Furniture.shopShelf(r, face(r, -12 + k * 12, 0, 7, 0, 1), 8, shop.Shelf)
+		if not showroom or k ~= 1 then
+			Furniture.shopShelf(r, face(r, -12 + k * 12, 0, 4.4, 0, -1), 8, kind)
+		end
+		if kind ~= "Clothes" and shop.Id ~= "Panaderia" and not showroom then
+			Furniture.shopShelf(r, face(r, -12 + k * 12, 0, 7, 0, 1), 8, kind)
 		end
 	end
 	Furniture.checkout(r, r.at(W / 2 - 6, 0, -D / 2 + 7), 8, shop.Color)
-	sign(r, shop.Title, V(16, 2.4, 0.3), r.at(0, 9, D / 2 - 0.2) * ANG(0, PI, 0), shop.Color, WHITE)
-	bit(r, "Mat", V(6, 0.08, 3), r.at(0, 0.05, -D / 2 + 2), rgb(60, 60, 66), M.Fabric)
-	for k = 1, shop.Coolers do
+	for k = 1, shop.Coolers or 0 do
 		Furniture.drinksCooler(r, face(r, -W / 2 + 1.3, 0, -6 + (k - 1) * 4.2, 1, 0))
 	end
-	if shop.Id == "Moda" then
-		-- Maniquíes, probador y espejo
+	if shop.Id == "Moda" or extra == "Fitting" or extra == "Shoes" then
 		for k = 0, 1 do
 			local mq = Furniture.group(r.Model, "Mannequin")
 			local x = -W / 2 + 4 + k * 4
@@ -858,14 +919,22 @@ function Interiors.Local(parent: Instance, cf: CFrame, opts: Options?): Room
 		bit(r, "FittingCurtain", V(4, 7, 0.2), r.at(-W / 2 + 4, 4, D / 2 - 5.3), rgb(150, 40, 60), M.Fabric)
 		bit(r, "Mirror", V(0.15, 6, 3), r.at(W / 2 - 0.1, 4, 2), rgb(200, 215, 225), M.Glass).Reflectance = 0.5
 		Furniture.bench(r, face(r, W / 2 - 1.4, 0, 8, -1, 0), 5, r.Wood)
-	elseif shop.Id == "Libreria" then
+		if extra == "Shoes" then
+			-- Cajas de zapatos apiladas
+			for k = 0, 5 do
+				bit(r, "ShoeBox", V(1.6, 0.7, 1), r.at(-4 + (k % 3) * 1.8, 0.35 + math.floor(k / 3) * 0.7, -D / 2 + 9), R.pick({ rgb(200, 160, 110), WHITE, rgb(40, 40, 46), rgb(200, 60, 60) }), M.Cardboard)
+			end
+		end
+	elseif kind == "Books" then
 		Furniture.armchair(r, face(r, -W / 2 + 3, 0, -D / 2 + 5, 1, 0), r.Fabric)
 		Furniture.floorLamp(r, r.at(-W / 2 + 1.4, 0, -D / 2 + 1.6), "Main")
 		Furniture.table(r, face(r, -W / 2 + 8, 0, -D / 2 + 6, 0, -1), 4, 3)
-	elseif shop.Id == "Electronica" then
+		Furniture.chair(r, face(r, -W / 2 + 8, 0, -D / 2 + 3.8, 0, 1))
+	elseif kind == "Tech" then
 		for k = 0, 2 do
 			Furniture.wallTV(r, face(r, -W / 2, 6, -8 + k * 8, 1, 0), 5)
 		end
+		Furniture.bench(r, face(r, -W / 2 + 5, 0, -D / 2 + 4, 0, 1), 5, DARK)
 	elseif shop.Id == "Panaderia" then
 		local vit = Furniture.group(r.Model, "Showcase")
 		Furniture.solid(vit, "ShowcaseBase", V(10, 3, 2.4), r.at(-4, 1.5, -D / 2 + 8), WHITE)
@@ -878,21 +947,79 @@ function Interiors.Local(parent: Instance, cf: CFrame, opts: Options?): Room
 			Furniture.table(r, face(r, tx, 0, D / 2 - 5, 0, -1), 3, 3)
 			Furniture.chair(r, face(r, tx, 0, D / 2 - 7.2, 0, 1))
 		end
+	elseif extra == "Crates" or extra == "Flowers" then
+		-- Cajas de fruta o cubos de flores junto a la entrada
+		for k = 0, 7 do
+			local x, z = -W / 2 + 4 + (k % 4) * 3.4, -D / 2 + 5 + math.floor(k / 4) * 3.2
+			local g = Furniture.group(r.Model, if extra == "Crates" then "FruitCrate" else "FlowerBucket")
+			if extra == "Crates" then
+				Furniture.solid(g, "Crate", V(3, 1.6, 2.4), r.at(x, 0.8 + math.floor(k / 4) * 0.8, z), rgb(170, 130, 80), M.WoodPlanks)
+				for f = 0, 5 do
+					Furniture.ball(g, "Fruit", V(0.7, 0.7, 0.7), r.at(x - 1 + (f % 3), 1.8 + math.floor(k / 4) * 0.8, z - 0.5 + math.floor(f / 3)), R.pick({ rgb(220, 40, 40), rgb(250, 180, 40), rgb(120, 190, 60), rgb(240, 120, 30) }))
+				end
+			else
+				Furniture.cyl(g, "Bucket", 1.6, 1.4, r.at(x, 0.8, z), rgb(70, 72, 78), M.Metal)
+				for f = 0, 4 do
+					Furniture.deco(g, "Stem", V(0.12, 2, 0.12), r.at(x - 0.4 + f * 0.2, 2.4, z), rgb(60, 130, 60), M.Grass)
+					Furniture.ball(g, "Bloom", V(0.6, 0.6, 0.6), r.at(x - 0.4 + f * 0.2, 3.5, z), R.pick({ rgb(230, 60, 90), rgb(250, 220, 60), rgb(240, 240, 236), rgb(200, 110, 220), rgb(250, 140, 60) }), M.Fabric)
+				end
+			end
+		end
+		Furniture.bench(r, face(r, W / 2 - 1.4, 0, 8, -1, 0), 5, r.Wood)
+	elseif extra == "Aquarium" then
+		for k = 0, 1 do
+			local g = Furniture.group(r.Model, "Aquarium")
+			local x = -W / 2 + 6 + k * 8
+			Furniture.solid(g, "AquaStand", V(6, 3, 2.4), r.at(x, 1.5, -D / 2 + 4), DARK)
+			Furniture.deco(g, "AquaGlass", V(6, 3.4, 2.2), r.at(x, 4.7, -D / 2 + 4), rgb(90, 180, 230), M.Glass, 0.5)
+			for f = 0, 3 do
+				Furniture.deco(g, "Fish", V(0.6, 0.3, 0.15), r.at(x - 2 + f * 1.2, 4.2 + (f % 2) * 0.8, -D / 2 + 4), R.pick({ rgb(250, 140, 30), rgb(250, 220, 60), rgb(60, 160, 230) }), M.Neon)
+			end
+		end
+		Furniture.bench(r, face(r, W / 2 - 1.4, 0, 8, -1, 0), 5, r.Wood)
+	elseif extra == "Vitrines" then
+		for k = 0, 2 do
+			local g = Furniture.group(r.Model, "Vitrine")
+			local x = -10 + k * 10
+			Furniture.solid(g, "VitrineBase", V(6, 3.4, 2.4), r.at(x, 1.7, -1), rgb(40, 36, 34), M.Wood)
+			Furniture.deco(g, "VitrineGlass", V(5.8, 1.6, 2.2), r.at(x, 4.2, -1), rgb(210, 230, 240), M.Glass, 0.5)
+			for f = 0, 4 do
+				Furniture.deco(g, "Piece", V(0.5, 0.3, 0.5), r.at(x - 2 + f, 3.55, -1), R.pick({ rgb(230, 190, 70), rgb(210, 214, 220), rgb(60, 60, 66), rgb(200, 60, 80) }), M.Metal)
+			end
+			Furniture.stool(r, face(r, x, 0, -3.8, 0, 1), rgb(40, 40, 46), 2.6)
+		end
+		bit(r, "Mirror", V(0.15, 5, 3), r.at(W / 2 - 0.1, 4.5, 2), rgb(200, 215, 225), M.Glass).Reflectance = 0.5
+	elseif extra == "Showroom" then
+		-- Tienda de muebles: rincones de exposición
+		Furniture.rug(r, r.at(-8, 0, -4), 10, 8, R.pick(P.Carpets))
+		Furniture.sofa(r, face(r, -8, 0, -1, 0, -1), R.pick(P.Fabrics), 3)
+		Furniture.coffeeTable(r, face(r, -8, 0, -5, 0, -1), 4, 2.4)
+		Furniture.armchair(r, face(r, -13, 0, -5, 1, 0), R.pick(P.Fabrics))
+		Furniture.diningSet(r, face(r, 8, 0, -3, 0, -1), 4)
+		Furniture.floorLamp(r, r.at(-3, 0, -1), "Main")
+		for k = 0, 2 do
+			local tag = bit(r, "PriceTag", V(1.4, 0.8, 0.1), r.at(-9 + k * 8, 3.2, -8) * ANG(0, PI, 0), rgb(250, 230, 90))
+			Builder.sign(tag, R.pick({ "399 $", "129 $", "899 $", "59 $" }), Enum.NormalId.Front, DARK)
+		end
+	elseif extra == "Washers" then
+		for k = 0, 5 do
+			local g = Furniture.group(r.Model, "Washer")
+			local x = -12.5 + k * 5
+			Furniture.solid(g, "WasherBody", V(3.4, 3.8, 3), r.at(x, 1.9, 1.4), WHITE, M.Metal)
+			Furniture.cyl(g, "WasherDoor", 0.2, 2.2, r.at(x, 2.2, -0.12) * ANG(0, PI / 2, 0), rgb(160, 200, 230), M.Glass)
+			Furniture.deco(g, "WasherPanel", V(3, 0.5, 0.1), r.at(x, 3.5, -0.12), DARK)
+		end
+		Furniture.bench(r, face(r, 0, 0, -D / 2 + 6, 0, 1), 8, rgb(60, 90, 150))
+		Furniture.table(r, face(r, -W / 2 + 5, 0, -D / 2 + 5, 0, -1), 5, 3, WHITE)
 	else
 		Furniture.plant(r, r.at(-W / 2 + 3, 0, -D / 2 + 3), 1.2)
+		Furniture.bench(r, face(r, W / 2 - 1.4, 0, 8, -1, 0), 5, r.Wood)
 	end
 	Furniture.plant(r, r.at(W / 2 - 2, 0, D / 2 - 2), 1.2)
-	-- Puerta al portal del edificio (escalera y viviendas de arriba)
-	local stairsDoor = bit(r, "StairsDoor", V(4, 8, 0.3), r.at(-W / 2 + 11, 4, D / 2 - 0.2), rgb(96, 64, 40), M.Wood)
-	stairsDoor:AddTag("TowerStairs")
-	local stairsSign = bit(r, "StairsSign", V(4, 1, 0.2), r.at(-W / 2 + 11, 8.8, D / 2 - 0.4), rgb(30, 60, 110))
-	Builder.sign(stairsSign, "PORTAL · ESCALERA", Enum.NormalId.Front)
-	-- Escaparates a los lados de la puerta
-	for _, x in { -9, 9 } do
-		Furniture.window(r, face(r, x, 6, -D / 2, 0, 1), 5, 5, "Main", nil)
-	end
 	-- Estantería larga en la pared de la derecha, cestas, carteles de ofertas y escaparate
-	Furniture.shopShelf(r, face(r, W / 2 - 1.2, 0, 5, -1, 0), 12, shop.Shelf)
+	if not showroom then
+		Furniture.shopShelf(r, face(r, W / 2 - 1.2, 0, 5, -1, 0), 12, kind)
+	end
 	local baskets = Furniture.group(r.Model, "Baskets")
 	for k = 0, 4 do
 		Furniture.deco(baskets, "Basket", V(1.8, 0.5, 1.4), r.at(-5, 0.3 + k * 0.45, -D / 2 + 2.2), rgb(200, 40, 40), M.Plastic)
@@ -909,6 +1036,256 @@ function Interiors.Local(parent: Instance, cf: CFrame, opts: Options?): Room
 		end
 	end
 	bit(r, "Poster", V(4, 5, 0.1), r.at(0, 6, D / 2 - 0.1) * ANG(0, PI, 0) * CF(-12, 0, 0), R.pick(P.Accents))
+end
+
+-- Bar, cafetería, pizzería, heladería…: barra con taburetes, mesas y carta
+local function eatery(r: Room, shop: ShopProfile)
+	local W, D = r.W, r.D
+	local R = r.Rand
+	-- Barra al fondo (el camarero detrás: ClerkSpot)
+	Furniture.checkout(r, r.at(2, 0, D / 2 - 6.5), 16, shop.Color)
+	for k = 0, 4 do
+		Furniture.stool(r, face(r, -4 + k * 3, 0, D / 2 - 9.6, 0, 1), rgb(160, 40, 50), 3)
+	end
+	-- Estantes con botellas y cafetera detrás de la barra
+	local back = Furniture.group(r.Model, "BackBar")
+	Furniture.solid(back, "BackCounter", V(18, 3.4, 1.6), r.at(3, 1.7, D / 2 - 0.8), DARKWOOD, M.Wood)
+	for row = 0, 1 do
+		Furniture.deco(back, "BottleShelf", V(16, 0.15, 1), r.at(3, 5.4 + row * 1.8, D / 2 - 0.5), rgb(200, 200, 210), M.Glass)
+		for k = 0, 13 do
+			Furniture.cyl(back, "Bottle", R.range(0.9, 1.4), 0.4, r.at(-4 + k * 1.05, 6.1 + row * 1.8, D / 2 - 0.5), R.pick({ rgb(120, 200, 160), rgb(200, 150, 60), rgb(160, 40, 40), rgb(230, 230, 220), rgb(90, 60, 30) }), M.Glass)
+		end
+	end
+	Furniture.deco(back, "CoffeeMachine", V(3, 2.4, 1.4), r.at(10.2, 4.6, D / 2 - 0.9), rgb(60, 60, 66), M.Metal)
+	-- Carta colgada encima de la barra
+	local menu = bit(r, "MenuBoard", V(8, 2.4, 0.2), r.at(3, r.H - 1.5, D / 2 - 3.5) * ANG(0, PI, 0), DARK)
+	local dishes = {
+		Bar = "TAPAS · CAÑA · BOCADILLOS", Cafeteria = "CAFÉ · TOSTADAS · ZUMOS", Pizzeria = "MARGARITA · 4 QUESOS · BARBACOA",
+		Heladeria = "VAINILLA · FRESA · CHOCOLATE", Sushi = "MAKI · NIGIRI · RAMEN", Hamburgueseria = "CLÁSICA · DOBLE · POLLO", Kebab = "DÜRUM · PLATO · FALAFEL",
+	}
+	Builder.sign(menu, dishes[shop.Id] or "MENÚ DEL DÍA", Enum.NormalId.Front, rgb(250, 240, 200))
+	-- Mesas con sillas (sin tapar la puerta)
+	for k = 0, 5 do
+		local tx = -W / 2 + 6 + (k % 3) * 13
+		local tz = -D / 2 + 7 + math.floor(k / 3) * 7
+		if not (math.abs(tx) < 6 and tz < -D / 2 + 10) then
+			Furniture.table(r, face(r, tx, 0, tz, 0, -1), 3.4, 3.4, if shop.Id == "Heladeria" then WHITE else r.Wood)
+			Furniture.chair(r, face(r, tx - 2.6, 0, tz, 1, 0), shop.Color)
+			Furniture.chair(r, face(r, tx + 2.6, 0, tz, -1, 0), shop.Color)
+			if R.chance(0.6) then
+				Furniture.cyl(r.Model, "Cup", 0.5, 0.5, r.at(tx + 0.6, 3.4, tz), WHITE)
+			end
+		end
+	end
+	if shop.Id == "Heladeria" then
+		local vit = Furniture.group(r.Model, "IceCreams")
+		Furniture.solid(vit, "FreezerBase", V(8, 3, 2.4), r.at(W / 2 - 6, 1.5, D / 2 - 3), WHITE)
+		Furniture.deco(vit, "FreezerGlass", V(8, 1.4, 2.2), r.at(W / 2 - 6, 3.7, D / 2 - 3), rgb(210, 230, 240), M.Glass, 0.5)
+		for k = 0, 6 do
+			Furniture.deco(vit, "Flavour", V(1, 0.4, 1.4), r.at(W / 2 - 9.5 + k * 1.15, 3.2, D / 2 - 3), R.pick({ rgb(250, 240, 200), rgb(240, 150, 190), rgb(120, 70, 40), rgb(150, 220, 140), rgb(250, 200, 80) }))
+		end
+	elseif shop.Id == "Pizzeria" then
+		local oven = Furniture.group(r.Model, "PizzaOven")
+		Furniture.solid(oven, "Oven", V(6, 6, 4), r.at(W / 2 - 5, 3, D / 2 - 2.5), rgb(170, 90, 60), M.Brick)
+		Furniture.deco(oven, "OvenMouth", V(2.6, 1.6, 0.2), r.at(W / 2 - 5, 2.6, D / 2 - 4.55), rgb(255, 140, 40), M.Neon)
+	end
+	Furniture.drinksCooler(r, face(r, W / 2 - 1.3, 0, -2, -1, 0))
+	for k = -1, 1 do
+		Furniture.ceilingLight(r, r.at(k * 12, r.H, -2), "Main", "Pendant")
+	end
+	Furniture.plant(r, r.at(-W / 2 + 2, 0, D / 2 - 2), 1.3)
+	Furniture.plant(r, r.at(W / 2 - 2, 0, -D / 2 + 2), 1.2)
+	Furniture.wallTV(r, face(r, -W / 2, 7.5, 2, 1, 0), 6)
+	for _, z in { -8, 8 } do
+		Furniture.picture(r, face(r, W / 2, 6.5, z, -1, 0), 3.4, 3)
+	end
+end
+
+-- Banco, inmobiliaria, seguros, academia…: mostrador, mesas con ordenador y sala de espera
+local function office(r: Room, shop: ShopProfile)
+	local W, D = r.W, r.D
+	local R = r.Rand
+	Furniture.checkout(r, r.at(0, 0, -2), 10, shop.Color)
+	if shop.Extra == "Class" then
+		-- Aula de la academia: pizarra y pupitres
+		Furniture.whiteboard(r, face(r, 6, 0, D / 2, 0, -1), 10)
+		for row = 0, 1 do
+			for k = 0, 3 do
+				Furniture.desk(r, face(r, -14 + k * 5.5, 0, 5.5 + row * 4.5, 0, -1), { Width = 3.6, Color = r.Wood })
+			end
+		end
+	else
+		-- Mesas de los empleados con su ordenador (y el sitio de cada uno)
+		for k = 0, 2 do
+			local x = -12 + k * 12
+			Furniture.desk(r, face(r, x, 0, 7, 0, 1), { Computer = true, Color = r.Wood, Chair = false })
+			Furniture.chair(r, face(r, x, 0, 4.4, 0, 1), shop.Color)
+			Builder.part({ Name = "ClerkSpot", Size = V(2, 2, 2), CFrame = face(r, x, 0, 9.4, 0, -1), Transparency = 1, CanCollide = false, CanQuery = false, CanTouch = false, Tags = { "ClerkSpot" }, Parent = r.Model })
+		end
+	end
+	-- Sala de espera con máquina de turnos
+	for k = 0, 3 do
+		seat(r, face(r, -W / 2 + 3 + k * 2.6, 0, -D / 2 + 4, 0, 1) * ANG(0, PI, 0), shop.Color)
+	end
+	bit(r, "TicketMachine", V(1.6, 4.4, 1.2), r.at(W / 2 - 3, 2.2, -D / 2 + 4), shop.Color)
+	bit(r, "TicketScreen", V(1.2, 0.8, 0.1), r.at(W / 2 - 3, 3.6, -D / 2 + 3.35), rgb(80, 200, 255), M.Neon)
+	Furniture.waterCooler(r, face(r, -W / 2 + 1.2, 0, 4, 1, 0))
+	for k = 0, 2 do
+		Furniture.filingCabinet(r, face(r, W / 2 - 1.2, 0, 2 + k * 2.4, -1, 0))
+	end
+	if shop.Extra == "Bank" then
+		-- Cajero automático y puerta de la cámara acorazada
+		local atm = Furniture.group(r.Model, "ATM")
+		Furniture.solid(atm, "ATM", V(2.6, 5, 1.4), r.at(-W / 2 + 1, 2.5, -4), rgb(60, 64, 70), M.Metal)
+		Furniture.deco(atm, "ATMScreen", V(0.1, 1.2, 1.6), r.at(-W / 2 + 1.75, 3.6, -4), rgb(80, 200, 255), M.Neon)
+		Furniture.cyl(r.Model, "VaultDoor", 0.6, 7, r.at(W / 2 - 8, 4, D / 2 - 0.4) * ANG(0, PI / 2, 0), rgb(170, 176, 184), M.DiamondPlate)
+		Furniture.cyl(r.Model, "VaultWheel", 0.8, 2.4, r.at(W / 2 - 8, 4, D / 2 - 0.9) * ANG(0, PI / 2, 0), rgb(200, 170, 90), M.Metal)
+	elseif shop.Extra == "Copies" then
+		for k = 0, 1 do
+			Furniture.printer(r, face(r, 8 + k * 4, 0, D / 2 - 1.2, 0, -1))
+		end
+	end
+	Furniture.whiteboard(r, face(r, W / 2, 0, -8, -1, 0), 6)
+	for _, p in { { -W / 2 + 2, D / 2 - 2 }, { W / 2 - 2, -D / 2 + 2 } } do
+		Furniture.plant(r, r.at(p[1], 0, p[2]), R.range(1.1, 1.5))
+	end
+	Furniture.clock(r, face(r, 0, 9, D / 2, 0, -1))
+	Furniture.picture(r, face(r, -W / 2, 6.5, -8, 1, 0), 4, 3)
+end
+
+-- Peluquería: sillones con espejo, lavacabezas y sala de espera
+local function salon(r: Room, shop: ShopProfile)
+	local W, D = r.W, r.D
+	local R = r.Rand
+	for k = 0, 3 do
+		local x = -5 + k * 6.8
+		local chair = Furniture.group(r.Model, "SalonChair")
+		local s = Furniture.seatPart(chair, face(r, x, 0, D / 2 - 5, 0, -1) * CF(0, 2.4, 0), V(2.2, 0.5, 2.2), rgb(30, 30, 34), M.Leather, true)
+		Furniture.usable(s, "Sit")
+		Furniture.deco(chair, "ChairBack", V(2.2, 2.6, 0.4), face(r, x, 0, D / 2 - 5, 0, -1) * CF(0, 3.9, 1), rgb(30, 30, 34), M.Leather)
+		Furniture.cyl(chair, "ChairBase", 0.3, 2, r.at(x, 0.15, D / 2 - 5), CHROME, M.Metal)
+		Furniture.deco(chair, "ChairPost", V(0.3, 2.1, 0.3), r.at(x, 1.2, D / 2 - 5), CHROME, M.Metal)
+		bit(r, "Mirror", V(3.4, 4.4, 0.1), r.at(x, 6, D / 2 - 0.15) * ANG(0, PI, 0), rgb(200, 215, 225), M.Glass).Reflectance = 0.5
+		bit(r, "MirrorShelf", V(3.4, 0.2, 1), r.at(x, 3.6, D / 2 - 0.6), WHITE)
+		for f = 0, 2 do
+			Furniture.cyl(r.Model, "Bottle", 0.7, 0.35, r.at(x - 1 + f, 4.05, D / 2 - 0.6), R.pick(P.Accents))
+		end
+		Builder.part({ Name = "ClerkSpot", Size = V(2, 2, 2), CFrame = face(r, x + 2.4, 0, D / 2 - 5, -1, 0), Transparency = 1, CanCollide = false, CanQuery = false, CanTouch = false, Tags = { "ClerkSpot" }, Parent = r.Model })
+	end
+	for k = 0, 1 do
+		local basin = Furniture.group(r.Model, "Basin")
+		Furniture.solid(basin, "BasinBody", V(3, 3.2, 2.4), r.at(W / 2 - 3, 1.6, -2 + k * 5), WHITE)
+		Furniture.deco(basin, "Bowl", V(2.2, 0.6, 1.4), r.at(W / 2 - 3, 3.4, -2 + k * 5), rgb(40, 40, 46))
+	end
+	Furniture.checkout(r, r.at(-W / 2 + 7, 0, -D / 2 + 7), 7, shop.Color)
+	Furniture.sofa(r, face(r, 6, 0, -D / 2 + 2, 0, 1), R.pick(P.Fabrics), 3)
+	Furniture.coffeeTable(r, face(r, 6, 0, -D / 2 + 6, 0, 1), 4, 2.2)
+	for k = 0, 2 do
+		bit(r, "Magazine", V(1.2, 0.1, 1.6), r.at(5 + k, 2.25, -D / 2 + 6) * ANG(0, k * 0.4, 0), R.pick(P.Books))
+	end
+	for _, p in { { -W / 2 + 2, D / 2 - 2 }, { W / 2 - 2, -D / 2 + 2 }, { -W / 2 + 2, -D / 2 + 2 } } do
+		Furniture.plant(r, r.at(p[1], 0, p[2]), R.range(1.1, 1.4))
+	end
+	for _, z in { -6, 3 } do
+		Furniture.picture(r, face(r, -W / 2, 6.5, z, 1, 0), 3.4, 4)
+	end
+	Furniture.clock(r, face(r, W / 2, 8.5, 8, -1, 0))
+	for k = -1, 1 do
+		Furniture.ceilingLight(r, r.at(k * 10, r.H, D / 2 - 6), "Main", "Pendant")
+	end
+end
+
+-- Estudio de baile o gimnasio de barrio: espejos, barra, esterillas y equipo de música
+local function studio(r: Room, shop: ShopProfile)
+	local W, D = r.W, r.D
+	local R = r.Rand
+	floorPatch(r, -W / 2 + 1, W / 2 - 1, -D / 2 + 9, D / 2 - 1, rgb(190, 150, 100), M.WoodPlanks)
+	-- (espejo y barra desde la puerta del portal hasta la pared de la derecha)
+	bit(r, "MirrorWall", V(22, 7, 0.1), r.at(6, 4.5, D / 2 - 0.1) * ANG(0, PI, 0), rgb(200, 215, 225), M.Glass).Reflectance = 0.45
+	bit(r, "Barre", V(21, 0.25, 0.25), r.at(6, 3.6, D / 2 - 1), CHROME, M.Metal)
+	for k = 0, 5 do
+		bit(r, "Mat", V(2.4, 0.12, 5), r.at(-12 + k * 4.8, 0.08, 4), R.pick({ rgb(60, 120, 200), rgb(200, 60, 120), rgb(60, 160, 90), rgb(90, 90, 96) }), M.Rubber)
+	end
+	if shop.Extra == "Weights" then
+		local rack = Furniture.group(r.Model, "DumbbellRack")
+		Furniture.solid(rack, "Rack", V(8, 2.6, 2), r.at(W / 2 - 5, 1.3, -2), DARK, M.Metal)
+		for k = 0, 7 do
+			Furniture.cyl(rack, "Dumbbell", 1.2, 0.6, r.at(W / 2 - 8.5 + k, 2.9, -2) * ANG(0, 0, PI / 2), rgb(60, 60, 66), M.Metal)
+		end
+		for k = 0, 1 do
+			local bike = Furniture.group(r.Model, "Bike")
+			Furniture.solid(bike, "BikeFrame", V(1.2, 3, 4), r.at(-W / 2 + 4 + k * 4, 1.5, -6), rgb(230, 110, 30), M.Metal)
+			local s = Furniture.seatPart(bike, face(r, -W / 2 + 4 + k * 4, 0, -5, 0, -1) * CF(0, 3.3, 0), V(1.2, 0.3, 1.4), DARK, M.Leather, true)
+			Furniture.usable(s, "Sit")
+		end
+	end
+	-- Soportes de la barra, esterillas enrolladas, pelotas de pilates y el equipo de música
+	for k = 0, 4 do
+		bit(r, "BarrePost", V(0.2, 3.6, 0.2), r.at(-4 + k * 5, 1.8, D / 2 - 1), CHROME, M.Metal)
+	end
+	for k = 0, 5 do
+		Furniture.cyl(r.Model, "RolledMat", 2.4, 0.7, r.at(-W / 2 + 1.2, 0.4 + (k % 3) * 0.72, -D / 2 + 11 + math.floor(k / 3) * 0.8) * ANG(0, 0, PI / 2) * ANG(0, 0, PI / 2), R.pick({ rgb(60, 120, 200), rgb(200, 60, 120), rgb(60, 160, 90) }), M.Rubber)
+	end
+	for k = 0, 2 do
+		Furniture.ball(r.Model, "Ball", V(2.2, 2.2, 2.2), r.at(W / 2 - 3 - k * 2.4, 1.1, D / 2 - 5), R.pick({ rgb(90, 160, 230), rgb(230, 90, 120), rgb(120, 200, 120) }), M.Rubber)
+	end
+	local stereo = Furniture.group(r.Model, "Stereo")
+	Furniture.solid(stereo, "StereoTable", V(4, 2.8, 2), r.at(0, 1.4, D / 2 - 3), DARK)
+	Furniture.deco(stereo, "Stereo", V(2.4, 1, 1.4), r.at(0, 3.3, D / 2 - 3), rgb(30, 30, 34))
+	Furniture.deco(stereo, "StereoLight", V(1.6, 0.2, 0.1), r.at(0, 3.5, D / 2 - 3.72), rgb(80, 200, 255), M.Neon)
+	for _, dx in { -0.8, 0.8 } do
+		Furniture.cyl(stereo, "Knob", 0.1, 0.3, r.at(dx, 3.1, D / 2 - 3.75) * ANG(PI / 2, 0, 0), CHROME, M.Metal)
+	end
+	local speakers = Furniture.group(r.Model, "Speakers")
+	for _, x in { -W / 2 + 2, W / 2 - 2 } do
+		Furniture.solid(speakers, "Speaker", V(2, 4, 2), r.at(x, 2, D / 2 - 2.5), rgb(20, 20, 24))
+	end
+	Furniture.checkout(r, r.at(W / 2 - 6, 0, -D / 2 + 6), 7, shop.Color)
+	Furniture.bench(r, face(r, -W / 2 + 1.6, 0, -D / 2 + 5, 1, 0), 6, r.Wood)
+	Furniture.lockers(r, face(r, -W / 2 + 1.1, 0, 4, 1, 0), 5)
+	Furniture.waterCooler(r, face(r, W / 2 - 1.2, 0, 4, -1, 0))
+	Furniture.clock(r, face(r, -W / 2, 9, -4, 1, 0))
+	for _, p in { { W / 2 - 2, D / 2 - 6 }, { -W / 2 + 2, -D / 2 + 2 } } do
+		Furniture.plant(r, r.at(p[1], 0, p[2]), 1.2)
+	end
+end
+
+function Interiors.Local(parent: Instance, cf: CFrame, opts: Options?): Room
+	local r = room(parent, "Local", cf, 40, 30, 12, { Floor = rgb(220, 220, 214), FloorMaterial = M.Marble, Windows = false }, opts)
+	local W, D = r.W, r.D
+	local R = r.Rand
+	local text = opts and opts.Shop
+	local profile = Interiors.profileFor(text)
+	if not profile then
+		local base = R.pick(SHOPS)
+		profile = { Id = base.Id, Title = base.Title, Layout = "Retail", Shelf = base.Shelf, Coolers = base.Coolers, Color = base.Color }
+	end
+	local shop = profile :: ShopProfile
+	r.Model:SetAttribute("Shop", shop.Id)
+	if shop.Layout == "Eatery" then
+		eatery(r, shop)
+	elseif shop.Layout == "Office" then
+		office(r, shop)
+	elseif shop.Layout == "Salon" then
+		salon(r, shop)
+	elseif shop.Layout == "Studio" then
+		studio(r, shop)
+	else
+		retail(r, shop)
+	end
+	-- Cartel del comercio (lo mismo que pone fuera) encima de la pared del fondo
+	local title = if text and text ~= "" then text else (shop.Title or string.upper(shop.Id))
+	sign(r, title, V(16, 2.2, 0.3), r.at(0, 10.3, D / 2 - 0.2) * ANG(0, PI, 0), shop.Color, WHITE)
+	-- Puerta al portal del edificio (escalera y viviendas de arriba)
+	local stairsDoor = bit(r, "StairsDoor", V(4, 8, 0.3), r.at(-W / 2 + 11, 4, D / 2 - 0.2), rgb(96, 64, 40), M.Wood)
+	stairsDoor:AddTag("TowerStairs")
+	local stairsSign = bit(r, "StairsSign", V(4, 1, 0.2), r.at(-W / 2 + 11, 8.8, D / 2 - 0.4), rgb(30, 60, 110))
+	Builder.sign(stairsSign, "PORTAL · ESCALERA", Enum.NormalId.Front)
+	bit(r, "Mat", V(6, 0.08, 3), r.at(0, 0.05, -D / 2 + 2), rgb(60, 60, 66), M.Fabric)
+	-- Escaparates a los lados de la puerta
+	for _, x in { -9, 9 } do
+		Furniture.window(r, face(r, x, 6, -D / 2, 0, 1), 5, 5, "Main", nil)
+	end
 	elevator(r, -W / 2 + 5, D / 2 - 0.4, PI)
 	return r
 end
@@ -1616,5 +1993,23 @@ Interiors.UpperFloor = {
 
 -- Tipos que son viviendas (con dormitorio, baño y cocina)
 Interiors.Homes = { Casa = true, Villa = true, Piso = true, Dorm = true }
+
+-- Las salas que no son viviendas salen con más detalles en las paredes y en el suelo (cuadros,
+-- carteles, tablones, relojes, estantes, extintores, plantas, papeleras…): Kit/Decor, siempre
+-- donde no estorban y siempre igual en el mismo edificio
+local Decor = require(script.Parent.Kit.Decor)
+for kind in Decor.RoomRecipes do
+	local build = (Interiors :: any)[kind]
+	if type(build) == "function" then
+		(Interiors :: any)[kind] = function(parent: Instance, cf: CFrame, opts: Options?): Room
+			local r = build(parent, cf, opts)
+			local ok, err = pcall(Decor.room, r, opts and opts.Seed)
+			if not ok then
+				warn("[Interiores] " .. tostring(err))
+			end
+			return r
+		end
+	end
+end
 
 return Interiors

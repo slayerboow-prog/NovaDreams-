@@ -3,6 +3,7 @@
 --   * reglas de uso (shared/Interact): qué se puede hacer en tu casa, en la de otro, en las de los
 --     vecinos y en las tiendas; picar de la nevera con límite; textos de los carteles; canales
 --   * números fijos por edificio (World/Furniture.rng): la misma casa siempre igual
+--   * sitio ocupado (World/Space): decorar y poner gente sin meter nada dentro de otra cosa
 --   * posturas al usar los muebles (Controllers/UseAnim): sin tirones, mezcla suave, y en un
 --     personaje R15 las manos van donde deben (teclado, piano, grifo, cabeza en la ducha…) y
 --     tumbado el cuerpo queda recto
@@ -380,6 +381,31 @@ check(yaws[#yaws] - yaws[1] > 0.6, "y mira a un lado y a otro")
 local sit = place(transforms("Sit", 1))
 check(math.abs(hand(sit, "Right").X) > 0.3 and hand(sit, "Right").Z < 0, "sentado: las manos en el regazo")
 local _ = headPos
+
+---------------------------------------------------------------------
+print("Sitio ocupado al decorar y al poner gente (World/Space)")
+local Space = load("src/server/World/Space.luau")
+local frame = CFrame.new(100, 5, 100) * CFrame.Angles(0, math.rad(90), 0)
+local s = Space.new(frame, 10, 8, 12)
+local function fakePart(cf, size)
+	return { CFrame = cf, Size = size }
+end
+-- Un mueble girado en medio y una alfombra (plana) en el suelo
+s:addPart(fakePart(frame * CFrame.new(0, 1.5, 0) * CFrame.Angles(0, math.rad(90), 0), Vector3.new(6, 3, 2)))
+s:addPart(fakePart(frame * CFrame.new(-5, 0.05, 3), Vector3.new(6, 0.1, 4)))
+check(not s:free(Vector3.new(0.5, 1, 2.5), Vector3.new(1, 1, 1)), "no cabe nada dentro de un mueble (aunque esté girado)")
+check(s:free(Vector3.new(2, 1, 0), Vector3.new(1, 1, 1)), "al lado del mueble, sí")
+check(s:free(Vector3.new(-5, 1, 3), Vector3.new(2, 2, 2)), "encima de una alfombra se puede poner algo")
+check(not s:free(Vector3.new(9.8, 1, 0), Vector3.new(2, 2, 2)), "nada se sale de la sala")
+check(s:claim(Vector3.new(6, 1, -5), Vector3.new(2, 2, 2)) and not s:claim(Vector3.new(6.5, 1, -5), Vector3.new(2, 2, 2)), "lo reservado ya no está libre")
+s:block(-3, 3, -9, -3)
+check(not s:free(Vector3.new(0, 1, -6), Vector3.new(1, 1, 1)), "el paso desde la puerta queda libre")
+-- Pared con una ventana: solo se cuelga donde hay pared de verdad
+s:addWall(fakePart(frame * CFrame.new(-4, 6, 8.5), Vector3.new(12, 12, 1)))
+check(s:onWall(Vector3.new(-6, 6, 8), Vector3.new(0, 0, -1)), "se cuelga en la pared")
+check(not s:onWall(Vector3.new(6, 6, 8), Vector3.new(0, 0, -1)), "pero no en un hueco sin pared")
+local here = s:at(2, 0, 3)
+check((frame:PointToObjectSpace(here.Position) - Vector3.new(2, 0, 3)).Magnitude < 1e-3, "las posiciones de la sala van con la sala (girada y en su sitio)")
 
 print("")
 if failures == 0 then

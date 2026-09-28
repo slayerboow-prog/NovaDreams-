@@ -691,6 +691,8 @@ function TownBuilder.build(): Folder
 	require(Kit.BusStops).build(world)
 	-- Detalles de la calle que han quedado encima de otra cosa (paradas, bancos, portales…): fuera
 	require(Kit.StreetDetail).prune(world)
+	-- Plantas bajas bien decoradas y con sitio para su gente; tiendas vacías cerradas (Kit/Decor)
+	require(Kit.Decor).dressTown(world)
 	-- Repaso final: que ninguna moldura, bordillo o cristalera parpadee contra la pared de detrás
 	-- (varias pasadas: al crecer una pieza puede quedar a ras de otra)
 	for _ = 1, 4 do
