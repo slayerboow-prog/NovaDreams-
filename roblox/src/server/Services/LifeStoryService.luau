@@ -1446,8 +1446,9 @@ end
 
 local function activeSideCount(story: Data): number
 	local count = 0
-	for _, prog in story.Active do
-		if prog.Kind == "Side" then
+	for questId, prog in story.Active do
+		-- Las canónicas (la saga) no cuentan: con una en marcha te siguen ofreciendo secundarias
+		if prog.Kind == "Side" and not (Quests[questId] and Quests[questId].Canon) then
 			count += 1
 		end
 	end
