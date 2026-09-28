@@ -25,6 +25,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local CafeMenu = require(ReplicatedStorage.Shared.CafeMenu)
+local OpeningHours = require(ReplicatedStorage.Shared.OpeningHours)
 local Format = require(ReplicatedStorage.Shared.Format)
 local Npc = require(script.Parent.Parent.World.Npc)
 local DataService = require(script.Parent.DataService)
@@ -88,9 +89,9 @@ local function rootOf(player: Player): BasePart?
 	return character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 end
 
+-- Horario de las cafeterías (shared/OpeningHours)
 local function isDay(): boolean
-	local clock = Lighting.ClockTime
-	return clock >= 7 and clock < 22.5
+	return OpeningHours.isOpen(OpeningHours.Services.Cafeteria, Lighting.ClockTime)
 end
 
 local function point(cafe: Cafe, name: string): Vector3

@@ -2491,7 +2491,31 @@ check(profiles[ana].Money == 450 + Trade.sellerGets(20) and InventoryService.cou
 check(#lastMessage(ana, "Market")[2] == 0, "el anuncio se quita al venderse")
 T:Fire(ana, "List", "Pan", 1, 20)
 players.PlayerRemoving:Fire(ana)
+task.wait(0.6) -- (el mercado se manda a todos como mucho dos veces por segundo)
 check(#lastMessage(ben, "Market")[2] == 0, "si el vendedor se va, sus anuncios se quitan")
+-- Anunciar y retirar sin parar no inunda a los demás: los cambios seguidos se juntan en un envío
+local carl, carlRoot = newPlayer(75, "Adulto", 100)
+profiles[carl].Items = { Pan = 3 }
+InventoryService.refresh(carl)
+moveTo(carlRoot, Vector3.new(3010, 0, 3000))
+local function marketsTo(p: any): number
+	local n = 0
+	for _, m in p.Inbox do
+		if m[1] == "Market" then
+			n += 1
+		end
+	end
+	return n
+end
+local before = marketsTo(ben)
+for _ = 1, 20 do
+	T:Fire(carl, "List", "Pan", 1, 5)
+	local mine = lastMessage(carl, "Market")[2]
+	T:Fire(carl, "Unlist", mine[#mine] and mine[#mine].Id)
+end
+task.wait(0.6)
+local sent = marketsTo(ben) - before
+check(sent >= 1 and sent <= 3, ("40 cambios seguidos en el mercadillo: a los demás les llegan juntos (%d envíos)"):format(sent))
 end)()
 
 ;(function()
@@ -4952,10 +4976,18 @@ for _, r in ROLES do
 end
 check(staffed == #ROLES, ("con un jugador cerca, todos los puestos atendidos por un NPC (%d/%d)"):format(staffed, #ROLES))
 check(working == #ROLES, "y cada uno haciendo su tarea (Npc.work)")
+local clerk = StaffService.npcOf(posts["Dependiente"])
 services.Lighting.ClockTime = 3
 StaffService.tick()
 task.wait(0.05)
 check(StaffService.npcOf(posts["Dependiente"]) == nil and StaffService.hasClosedSign(posts["Dependiente"]), "a las 3 de la mañana la tienda cierra: sin dependiente y con el cartel de CERRADO")
+check(clerk ~= nil and clerk:GetAttribute("Leaving") == true and clerk:GetAttribute("Says") ~= nil,
+	"al cerrar con gente cerca, el dependiente se despide y se va andando (no desaparece de golpe)")
+waitFor(function()
+	return clerk == nil or clerk.Parent == nil
+end, 4, "que el dependiente se vaya")
+check(clerk ~= nil and clerk.Parent == nil and StaffService.npcOf(posts["Cajero"]) ~= nil,
+	"sin nadie a su lado, se va del todo; la gasolinera (cartel de 24H) sigue con su cajero")
 check(StaffService.npcOf(posts["Agente de guardia"]) ~= nil, "la comisaría abre las 24 horas")
 services.Lighting.ClockTime = 12
 StaffService.tick()
@@ -4976,13 +5008,19 @@ StaffService.tick()
 waitFor(function()
 	return StaffService.npcOf(cop) == nil
 end, 4, "que el agente NPC se aparte")
-check(StaffService.npcOf(cop) == nil and not copNpc.Parent, "el jugador policía cubre el mostrador: el NPC se aparta y se va")
+check(StaffService.npcOf(cop) == nil and copNpc:GetAttribute("Leaving") == true and copNpc:GetAttribute("Work") == nil,
+	"el jugador policía cubre el mostrador: el NPC deja la tarea y se aparta (no se esfuma delante de él)")
+check((copNpc.PrimaryPart.Position - cop.CFrame.Position).Magnitude > 3, "se ha apartado del mostrador andando")
 check(StaffService.npcOf(posts["Bombero"]) ~= nil and StaffService.npcOf(posts["Cajero"]) ~= nil, "los demás puestos siguen atendidos")
 -- Un policía de patrulla lejos no cubre el mostrador
 moveTo(officerRoot, cop.CFrame.Position + Vector3.new(0, 0, 400))
 StaffService.tick()
 task.wait(0.05)
-check(StaffService.npcOf(cop) ~= nil, "si el policía se va de patrulla, vuelve el agente NPC")
+check(StaffService.npcOf(cop) == copNpc and copNpc:GetAttribute("Leaving") == nil, "si el policía se va de patrulla, vuelve el mismo agente NPC a su puesto (no aparece otro encima)")
+waitFor(function()
+	return copNpc:GetAttribute("Work") ~= nil
+end, 3, "que el agente vuelva a su tarea")
+check(((copNpc.PrimaryPart.Position - cop.CFrame.Position) * Vector3.new(1, 0, 1)).Magnitude < 1, "y está otra vez en el mostrador")
 moveTo(officerRoot, cop.CFrame.Position + Vector3.new(2, 0, 0))
 StaffService.tick()
 waitFor(function()
@@ -5018,6 +5056,47 @@ for _, post in StaffService.posts() do
 	anyone = anyone or StaffService.npcOf(post) ~= nil
 end
 check(not anyone, "cuando no queda nadie cerca, se quitan")
+
+-- Gente en una planta baja de la ciudad: sigue el horario de su sitio (la biblioteca cierra a las 21)
+local librarySpots = {}
+for k = 1, 3 do
+	local spot = fakeInstance("Part")
+	spot.Name = "CrowdSpot"
+	spot.Size = Vector3.new(1, 1, 1)
+	spot.CFrame = CFrame.new(BASE + Vector3.new(0, 0.5, 300 + k * 4))
+	spot:SetAttribute("Group", "Library_9_9")
+	spot:SetAttribute("Work", "Book")
+	spot.Parent = lab
+	CrowdService.addSpot(spot)
+	table.insert(librarySpots, spot)
+end
+services.Lighting.ClockTime = 12
+moveTo(visitorRoot, BASE + Vector3.new(2, 0, 306))
+CrowdService.tickCity()
+local readers = CrowdService.count("City")
+check(readers >= 1, ("a mediodía hay gente leyendo en la biblioteca (%d)"):format(readers))
+services.Lighting.ClockTime = 22
+CrowdService.tickCity()
+local stillThere, reading = 0, 0
+for _, d in worldRoot:GetDescendants() do
+	if d:IsA("Model") and d:GetAttribute("Crowd") == "City" then
+		stillThere += 1
+		if d:GetAttribute("Work") ~= nil then
+			reading += 1
+		end
+	end
+end
+check(stillThere == readers and reading == 0, "a las 22:00 cierra: dejan de leer y se van (sin esfumarse delante del jugador que está a su lado)")
+moveTo(visitorRoot, BASE + Vector3.new(60, 0, 306))
+CrowdService.tickCity()
+check(CrowdService.count("City") == 0, "en cuanto no hay nadie a su lado, se han ido")
+services.Lighting.ClockTime = 12
+check(CrowdService._groupOpen({ Kind = "GasShop" } :: any, 3) == false and CrowdService._groupOpen({ Kind = "Library" } :: any, 20.5),
+	"la tienda de la gasolinera de madrugada casi vacía; la biblioteca abierta a las 20:30")
+moveTo(visitorRoot, BASE + Vector3.new(0, 0, 50000))
+for _, spot in librarySpots do
+	spot:Destroy()
+end
 
 -- Salas por dentro: gente dentro del tope de cada sala y se va con la sala
 local kinds = {}

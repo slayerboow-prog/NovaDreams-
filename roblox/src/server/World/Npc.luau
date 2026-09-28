@@ -146,6 +146,33 @@ function Npc.placeFeet(model: Model, cf: CFrame)
 	end
 end
 
+-- Dónde pisar bajo un punto (las marcas StaffSpot y parecidas van un poco por encima del suelo): el
+-- primer suelo sólido de verdad de ahí hacia abajo (sin mostradores ni personas); si no hay, el punto.
+-- Así nadie queda flotando detrás del mostrador ni hundido en él.
+function Npc.feetAt(point: Vector3, depth: number?): Vector3
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	local skip: { Instance } = {}
+	local from = point + Vector3.new(0, 1, 0)
+	for _ = 1, 6 do
+		params.FilterDescendantsInstances = skip
+		local ok, hit = pcall(function()
+			return workspace:Raycast(from, Vector3.new(0, -((depth or 8) + 1), 0), params)
+		end)
+		if not ok or not hit then
+			break
+		end
+		local part = hit.Instance
+		local model = part:FindFirstAncestorOfClass("Model")
+		local isPerson = model ~= nil and model:FindFirstChildOfClass("Humanoid") ~= nil
+		if not isPerson and hit.Normal.Y > 0.8 and (part:IsA("Terrain") or (part :: BasePart).CanCollide) then
+			return hit.Position
+		end
+		table.insert(skip, if isPerson then model :: Instance else part)
+	end
+	return point
+end
+
 -- Que llegue entero a los jugadores (el mapa se carga por trozos): sin esto a veces llegaba el
 -- humanoide sin la cabeza o sin el cuello y el cliente no podía animarlo (ActorLife, UseMotion)
 function Npc.atomic(model: Model)
@@ -308,6 +335,7 @@ function Npc.icon(npc: Model, text: string?)
 end
 
 local walking: { [Model]: boolean } = setmetatable({}, { __mode = "k" }) :: any
+local walkSeq: { [Model]: number } = setmetatable({}, { __mode = "k" }) :: any -- (el último walkTo manda)
 local turning: { [Model]: number } = setmetatable({}, { __mode = "k" }) :: any -- (Npc.face: el último giro manda)
 
 -- Cuánto hay que girar (radianes, 0..pi) para pasar de mirar a `a` a mirar a `b`
@@ -330,8 +358,15 @@ function Npc.walkTo(npc: Model, points: { Vector3 }, speed: number?)
 	local height = humanoid.HipHeight + root.Size.Y / 2
 	walking[npc] = true
 	turning[npc] = (turning[npc] or 0) + 1 -- (si se estaba girando con Npc.face, ya no)
+	-- Si otro sistema le manda andar a otro sitio mientras va, manda el último: este paseo se para
+	-- (antes los dos tweens se pisaban y el personaje daba saltos o se deslizaba de lado)
+	local token = (walkSeq[npc] or 0) + 1
+	walkSeq[npc] = token
+	local function superseded(): boolean
+		return walkSeq[npc] ~= token or not npc.Parent
+	end
 	for _, point in points do
-		if not npc.Parent then
+		if superseded() then
 			break
 		end
 		local target = point + Vector3.new(0, height, 0)
@@ -353,7 +388,7 @@ function Npc.walkTo(npc: Model, points: { Vector3 }, speed: number?)
 				})
 				pre:Play()
 				pre.Completed:Wait()
-				if not npc.Parent then
+				if superseded() then
 					break
 				end
 				angle = turnAngle(root.CFrame, facing)
@@ -368,7 +403,7 @@ function Npc.walkTo(npc: Model, points: { Vector3 }, speed: number?)
 				})
 				turn:Play()
 				turn.Completed:Wait()
-				if not npc.Parent then
+				if superseded() then
 					break
 				end
 			end
@@ -382,7 +417,14 @@ function Npc.walkTo(npc: Model, points: { Vector3 }, speed: number?)
 			end
 		end
 	end
-	walking[npc] = nil
+	if walkSeq[npc] == token then
+		walking[npc] = nil
+	end
+end
+
+-- ¿Está andando ahora (Npc.walkTo)?
+function Npc.isWalking(npc: Model): boolean
+	return walking[npc] == true
 end
 
 -- Tarea que hace mientras espera: el cliente le mueve los brazos y le pone el objeto en la mano

@@ -13,6 +13,7 @@ local RunService = game:GetService("RunService")
 
 local Traffic = require(script.Parent.Traffic)
 local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
+local Sidewalk = require(ReplicatedStorage.Shared.Sidewalk)
 local Nudge = require(script.Parent.Nudge)
 
 local Ambient = {}
@@ -22,8 +23,33 @@ local player = Players.LocalPlayer
 local Perf = require(script.Parent.Parent.UI.Perf)
 local PED_COUNT = Perf.count(34) -- en móvil, la mitad
 local WALK_TOP = 1.0
+local TURN_TIME = 0.7 -- lo que tarda en darse la vuelta al final de la acera
+local KEEP_RIGHT = 0.9 -- cada uno por su derecha de la acera
+local SEEN = 150 -- más cerca que esto del jugador, un peatón no desaparece: sigue o se da la vuelta
+local BODY = 0.95 -- medio ancho de un peatón (para no rozar farolas ni papeleras)
 -- Cada calle es un tramo recto en cualquier ángulo: A + Dir·u (u de From a To) + Perp·v
-type Road = { A: Vector3, Dir: Vector3, Perp: Vector3, From: number, To: number, Lane: number, Walk: number? }
+-- Ahead/Behind: la calle que sigue recta al pasar el cruce del final (To) o del principio (From);
+-- Flip: va en sentido contrario. EndMargin/StartMargin: dónde se da la vuelta si no sigue (antes de
+-- pisar la calzada de la calle que cruza).
+type Link = { Road: any, Flip: boolean }
+type Road = {
+	A: Vector3,
+	Dir: Vector3,
+	Perp: Vector3,
+	Len: number,
+	From: number,
+	To: number,
+	Lane: number,
+	Walk: number?,
+	Half: number,
+	Ahead: Link?,
+	Behind: Link?,
+	StartMargin: number,
+	EndMargin: number,
+	WalkIn: number?, -- la acera va de WalkIn a WalkOut del centro (a los dos lados)
+	WalkOut: number?,
+	Obstacles: { Sidewalk.Obstacle }, -- farolas, papeleras, quioscos… (shared/Sidewalk)
+}
 type Agent = {
 	Model: Model,
 	Parts: { BasePart },
@@ -46,6 +72,9 @@ type Agent = {
 	ReactDive: boolean?,
 	Shove: number?, -- cuánto se aparta de su sitio en la acera (de lado)
 	ShoveNow: number?,
+	TurnAt: number?, -- cuándo empezó a darse la vuelta (al final de la acera)
+	Keep: number?, -- lo que se arrima a su derecha (los que van y vienen no se atraviesan)
+	Dodge: number?, -- lo que se aparta de su sitio para esquivar una farola, una papelera…
 }
 
 local roads: { Road } = {}
@@ -229,6 +258,7 @@ local function respawnPed(agent: Agent, center: Vector3, initial: boolean)
 	agent.U = u
 	agent.Dir = if math.random() < 0.5 then 1 else -1
 	agent.Side = if math.random() < 0.5 then 1 else -1
+	agent.TurnAt, agent.Keep, agent.Dodge = nil, nil, nil
 	local style = agent.Style
 	agent.Cruise = if style == "Jog" then 9 + math.random() * 2.5
 		elseif style == "Kid" then 4 + math.random() * 1.5
@@ -361,9 +391,14 @@ local function updatePeds(dt: number, center: Vector3)
 		-- De noche sale la mitad de la gente (y ningún niño)
 		local wanted = not night or (i % 2 == 0 and ped.Style ~= "Kid")
 		if not wanted then
-			setActive(ped, false)
-			ped.Road = nil
-			continue
+			-- Se retira el que está lejos; el que tienes a la vista sigue su camino hasta que se aleja
+			-- (antes, a las 21:30, la mitad de la gente desaparecía de golpe delante de ti)
+			local r = ped.Road
+			if not ped.Active or not r or (point(r, ped.U, ped.Side * (r.Walk or 15.5), WALK_TOP) - center).Magnitude > SEEN then
+				setActive(ped, false)
+				ped.Road = nil
+				continue
+			end
 		end
 		local road = ped.Road
 		if not road then
@@ -377,21 +412,81 @@ local function updatePeds(dt: number, center: Vector3)
 				ped.Speed = ped.Cruise
 			end
 		end
-		-- Parado un momento mientras se recupera del traspiés
+		-- Parado un momento mientras se recupera del traspiés (o mientras se da la vuelta)
 		local stunned = ped.ReactAt ~= nil and now - ped.ReactAt < (if ped.ReactDive then 1.1 else 0.7)
-		if not stunned then
+		local turning = ped.TurnAt ~= nil and now - ped.TurnAt < TURN_TIME
+		if turning then
+			ped.Phase += dt * 3 -- (unos pasitos en el sitio al girar)
+		elseif not stunned then
 			ped.U += ped.Dir * ped.Speed * dt
 			ped.Phase += dt * ped.Speed * (if ped.Style == "Kid" then 2.1 elseif ped.Style == "Jog" then 1.1 else 1.5)
 		end
 		-- Se aparta de lado y, pasado el susto, vuelve poco a poco a su sitio en la acera
 		local shoveTarget = if ped.ReactAt and now - ped.ReactAt < 2.2 then (ped.Shove or 0) else 0
 		ped.ShoveNow = (ped.ShoveNow or 0) + (shoveTarget - (ped.ShoveNow or 0)) * math.min(1, dt * (if shoveTarget ~= 0 then 7 else 1.5))
-		local lateral = ped.Side * (road.Walk or 15.5) + (ped.ShoveNow or 0)
+		-- Por su derecha: el que viene de frente pasa por el otro lado (antes se atravesaban)
+		local keepTarget = ped.Dir * KEEP_RIGHT -- (Perp·Dir es la derecha de hacia donde anda)
+		ped.Keep = (ped.Keep or keepTarget) + (keepTarget - (ped.Keep or keepTarget)) * math.min(1, dt * 2)
+		-- Esquivar lo que haya en la acera (farolas, papeleras, jardineras, quioscos, árboles…): se
+		-- aparta a tiempo por el hueco libre más cercano; si aún lo tiene justo delante, espera a
+		-- haberse apartado; si no cabe por ningún lado, se da la vuelta. Nunca lo atraviesa.
+		local base = ped.Side * (road.Walk or 15.5) + (ped.Keep or 0)
+		local dodgeTarget = 0
+		if #road.Obstacles > 0 and road.WalkIn and road.WalkOut then
+			local inner, outer = road.WalkIn + BODY + 0.15, road.WalkOut - BODY - 0.15
+			local lo, hi = if ped.Side > 0 then inner else -outer, if ped.Side > 0 then outer else -inner
+			local now_ = base + (ped.Dodge or 0) + (ped.ShoveNow or 0)
+			local look = math.max(4, ped.Speed * 0.9)
+			local v, stuck = Sidewalk.lane(road.Obstacles, ped.U, ped.Dir, look, base, lo, hi, BODY, now_)
+			if v == nil then
+				if not ped.TurnAt then
+					ped.Dir = -ped.Dir
+					ped.TurnAt = now
+				end
+			else
+				dodgeTarget = v - base
+				if stuck and not turning and not stunned then
+					ped.U -= ped.Dir * ped.Speed * dt -- (no avanza hasta haberse apartado)
+					ped.Phase -= dt * ped.Speed * 0.9
+				end
+			end
+		end
+		ped.Dodge = (ped.Dodge or 0) + (dodgeTarget - (ped.Dodge or 0)) * math.min(1, dt * 5)
+		local lateral = base + (ped.Dodge or 0) + (ped.ShoveNow or 0)
 		local pos = point(road, ped.U, lateral, WALK_TOP)
-		if ped.U < road.From or ped.U > road.To or (pos - center).Magnitude > 240 then
+		local far = (pos - center).Magnitude > SEEN
+		local pastEnd = ped.U > road.To - road.EndMargin and ped.Dir > 0
+		local pastStart = ped.U < road.From + road.StartMargin and ped.Dir < 0
+		if (pos - center).Magnitude > 240 or ((pastEnd or pastStart) and far) then
+			-- Lejos del jugador: se recicla cerca de él (aquí nadie lo ve irse)
 			respawnPed(ped, center, false)
-			ped.ReactAt, ped.Shove, ped.ShoveNow = nil, nil, nil
+			ped.ReactAt, ped.Shove, ped.ShoveNow, ped.TurnAt, ped.Keep, ped.Dodge = nil, nil, nil, nil, nil, nil
 			continue
+		elseif pastEnd or pastStart then
+			-- A la vista: sigue recto por la acera de la calle de enfrente (cruzando por el paso de
+			-- peatones) o, si no sigue ninguna, se da la vuelta antes de bajar a la calzada
+			local link = if pastEnd then road.Ahead else road.Behind
+			local over = if pastEnd then ped.U - road.To else road.From - ped.U
+			if link and ((pastEnd and ped.U > road.To) or (pastStart and ped.U < road.From)) then
+				local nextRoad = link.Road :: Road
+				local oldWalk = road.Walk or 15.5
+				ped.Road = nextRoad
+				if link.Flip then
+					-- Misma acera y mismo paso, con la calle al revés: se cambian los signos
+					ped.Dir, ped.Side = -ped.Dir, -ped.Side
+					ped.ShoveNow, ped.Keep, ped.Dodge = -(ped.ShoveNow or 0), -(ped.Keep or 0), -(ped.Dodge or 0)
+					ped.Shove = if ped.Shove then -ped.Shove else nil
+				end
+				-- Si la acera de enfrente es más ancha o más estrecha, se arrima poco a poco (sin saltos)
+				ped.ShoveNow = (ped.ShoveNow or 0) + ped.Side * (oldWalk - (nextRoad.Walk or 15.5))
+				ped.U = if ped.Dir > 0 then nextRoad.From + over else nextRoad.To - over
+				road = nextRoad
+			elseif not link then
+				ped.U = if pastEnd then road.To - road.EndMargin else road.From + road.StartMargin
+				ped.Dir = -ped.Dir
+				ped.TurnAt = now
+			end
+			pos = point(road, ped.U, ped.Side * (road.Walk or 15.5) + (ped.ShoveNow or 0) + (ped.Keep or 0) + (ped.Dodge or 0), WALK_TOP)
 		end
 		-- ¿Le has dado (o viene tu coche)?
 		if myRoot then
@@ -416,7 +511,18 @@ local function updatePeds(dt: number, center: Vector3)
 				ped.Shove = math.clamp((ped.Shove or 0) + away * dt * 4, -2.6, 2.6)
 			end
 		end
-		posePed(ped, CFrame.new(pos) * heading(road, ped.Dir), reactWeight(ped, now))
+		local facing = heading(road, ped.Dir)
+		if ped.TurnAt then
+			local k = (now - ped.TurnAt) / TURN_TIME
+			if k >= 1 then
+				ped.TurnAt = nil
+			else
+				-- Media vuelta poco a poco (antes daba la vuelta de golpe o desaparecía)
+				local ease = (1 - math.cos(k * math.pi)) / 2
+				facing = facing * CFrame.Angles(0, math.pi * (1 - ease), 0)
+			end
+		end
+		posePed(ped, CFrame.new(pos) * facing, reactWeight(ped, now))
 	end
 end
 
@@ -462,6 +568,49 @@ function Ambient.panic(position: Vector3, radius: number)
 	end
 end
 
+-- Une las aceras en los cruces: qué calle sigue recta al otro lado de cada extremo y, si no sigue
+-- ninguna, dónde darse la vuelta (antes del bordillo de la calle que cruza). Sin cruces a menos de 3
+-- studs (fin de calle, rotonda recortada) = se da la vuelta en el extremo.
+function Ambient.link(list: { Road })
+	local function endOf(r: Road, atEnd: boolean): Vector3
+		return if atEnd then r.A + r.Dir * r.Len else r.A
+	end
+	for _, r in list do
+		for _, atEnd in { true, false } do
+			local here = endOf(r, atEnd)
+			local trimmed = if atEnd then r.To < r.Len - 0.01 else r.From > 0.01
+			local best: Link? = nil
+			local margin = 0
+			for _, q in list do
+				if q ~= r then
+					for _, qEnd in { true, false } do
+						local there = endOf(q, qEnd)
+						if Vector3.new(there.X - here.X, 0, there.Z - here.Z).Magnitude < 3 then
+							local dot = r.Dir:Dot(q.Dir)
+							-- Sigue recta: por el final de r se entra por el principio de q (mismo sentido)
+							-- o por el final de q (sentido contrario)
+							local straight = if atEnd then (dot > 0.97 and not qEnd) or (dot < -0.97 and qEnd)
+								else (dot > 0.97 and qEnd) or (dot < -0.97 and not qEnd)
+							if straight and r.Walk and q.Walk and not trimmed then
+								best = { Road = q, Flip = dot < 0 }
+							elseif math.abs(dot) < 0.97 then
+								margin = math.max(margin, q.Half + 1.5) -- (la calzada de la que cruza)
+							end
+						end
+					end
+				end
+			end
+			if atEnd then
+				r.Ahead = best
+				r.EndMargin = if best then 0 else math.min(margin, math.max(0, (r.To - r.From) / 3))
+			else
+				r.Behind = best
+				r.StartMargin = if best then 0 else math.min(margin, math.max(0, (r.To - r.From) / 3))
+			end
+		end
+	end
+end
+
 function Ambient.init()
 	task.spawn(trimCrowd)
 	local data = ReplicatedStorage:WaitForChild("Ambient", 60)
@@ -475,6 +624,8 @@ function Ambient.init()
 			local dir = (b - a).Unit
 			local width = config:GetAttribute("Width") or 24
 			local kind = config:GetAttribute("Kind")
+			local walkIn, walkOut = config:GetAttribute("WalkIn"), config:GetAttribute("WalkOut")
+			local walkCenter = if typeof(walkIn) == "number" and typeof(walkOut) == "number" then (walkIn + walkOut) / 2 else width / 2 + 3.5
 			-- Por la acera no se entra en una rotonda: se da la vuelta antes de su anillo
 			local from, to = 0, (b - a).Magnitude
 			for _, rb in CityPlan.Roundabouts do
@@ -491,16 +642,26 @@ function Ambient.init()
 				A = a,
 				Dir = dir,
 				Perp = Vector3.new(-dir.Z, 0, dir.X),
+				Len = (b - a).Magnitude,
 				From = from,
 				To = to,
 				Lane = if width > 30 then width * 0.2 else 2.9,
-				Walk = if kind == "Autovia" then nil else width / 2 + 3.5, -- centro de la acera
+				Walk = if kind == "Autovia" then nil else walkCenter, -- centro de la acera
+				Half = width / 2,
+				WalkIn = if typeof(walkIn) == "number" then walkIn else nil,
+				WalkOut = if typeof(walkOut) == "number" then walkOut else nil,
+				Obstacles = Sidewalk.decode(config:GetAttribute("Obstacles")),
+				Ahead = nil,
+				Behind = nil,
+				StartMargin = 0,
+				EndMargin = 0,
 			})
 		end
 	end
 	if #roads == 0 then
 		return
 	end
+	Ambient.link(roads)
 
 	folder = Instance.new("Folder")
 	folder.Name = "AmbientLife"

@@ -7,6 +7,7 @@ local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Format = require(ReplicatedStorage.Shared.Format)
+local OpeningHours = require(ReplicatedStorage.Shared.OpeningHours)
 local ShopItems = require(ReplicatedStorage.Shared.LifeStory.ShopItems)
 local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
@@ -35,6 +36,12 @@ local function setup(entrance: Instance)
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = entrance
 	prompt.Triggered:Connect(function(player)
+		-- Con la tienda cerrada no se vende (su dependiente no está: shared/OpeningHours)
+		local hours = OpeningHours.forShop(shopId)
+		if not OpeningHours.openNow(hours) then
+			Notify:FireClient(player, "Info", ("🔒 Está cerrado: %s. Vuelve más tarde."):format(OpeningHours.label(hours :: { number })))
+			return
+		end
 		if not InventoryService.canAdd(player, item.Id) then
 			Notify:FireClient(player, "Error", Strings.get("SHOP.BAG_FULL", { item = Strings.get(item.NameKey) }))
 			return

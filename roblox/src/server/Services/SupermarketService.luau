@@ -25,6 +25,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
+local OpeningHours = require(ReplicatedStorage.Shared.OpeningHours)
 local Groceries = require(ReplicatedStorage.Shared.Groceries)
 local Format = require(ReplicatedStorage.Shared.Format)
 local Npc = require(script.Parent.Parent.World.Npc)
@@ -116,9 +117,9 @@ local function nearestStore(position: Vector3): Store?
 	return best
 end
 
+-- Horario del supermercado (shared/OpeningHours, el mismo que su tienda en ShopItems)
 local function isDay(): boolean
-	local clock = Lighting.ClockTime
-	return clock >= 7.5 and clock < 22.5
+	return OpeningHours.isOpen(OpeningHours.Services.Supermercado, Lighting.ClockTime)
 end
 
 local function pay(player: Player, amount: number, what: string)
@@ -673,7 +674,7 @@ local function refreshStaff(store: Store, active: boolean)
 		local wantNpc = active and not store.DeliWorker and isDay()
 		if wantNpc and not store.NpcDeli then
 			local spot = store.Deli:GetAttribute("StaffSpot") :: Vector3
-			store.NpcDeli = Npc.create("Npc_Charcutero", store.Folder, CFrame.new(spot), { Shirt = Color3.fromRGB(245, 245, 245), Pants = Color3.fromRGB(40, 40, 46) })
+			store.NpcDeli = Npc.create("Npc_Charcutero", store.Folder, CFrame.new(Npc.feetAt(spot)), { Shirt = Color3.fromRGB(245, 245, 245), Pants = Color3.fromRGB(40, 40, 46) })
 			Npc.face(store.NpcDeli :: Model, store.Deli:GetAttribute("CustomerSpot") :: Vector3)
 			Npc.work(store.NpcDeli :: Model, "Cut")
 		elseif not wantNpc and store.NpcDeli then
