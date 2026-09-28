@@ -91,6 +91,8 @@ MapInfo.Kinds = {
 	{ Model = "CentroPenitenciario", Icon = "⛓", Name = "Centro Penitenciario", Important = true },
 	{ Model = "CuartelEjercito", Icon = "🎖", Name = "Cuartel del Ejército", Important = true },
 	{ Model = "AgenciaTributaria", Icon = "🏛", Name = "Agencia Tributaria", Important = true },
+	-- Residencia universitaria (bloques del campus: ResidenceService)
+	{ Model = "Residencia", Icon = "🛏", Name = "Residencia universitaria" },
 } :: { Kind }
 
 MapInfo.KindByModel = {} :: { [string]: Kind }
