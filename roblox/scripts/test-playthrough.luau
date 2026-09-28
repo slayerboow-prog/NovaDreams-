@@ -519,10 +519,6 @@ for _, id in mainIds do
 end
 check(#mainIds == 0, "Cada principal: pasos en orden sin saltos ni repeticiones, conversaciones una vez, personajes presentes, recompensas")
 
-if QUICK then
-	print(("\n%s"):format(if H.failures == 0 then "✅ Todo correcto" else ("❌ %d fallos"):format(H.failures)))
-	process.exit(if H.failures == 0 then 0 else 1)
-end
 
 ---------------------------------------------------------------------
 print("\n▶ 4. Romperlo: cada principal a la vez, saliendo, muriendo y tocando de más")
@@ -861,6 +857,9 @@ for _, chapterId in { "Nino_ElColegio", "Adolescente_Instituto", "Joven_Universi
 	end
 end
 local running = 0
+if QUICK then
+	mains = {} -- (rápido: sin la parte de romper cada misión)
+end
 for i, questId in mains do
 	running += 1
 	task.spawn(function()
@@ -886,12 +885,54 @@ for _, questId in mains do
 		print(("    ✔ %s: %s"):format(questId, table.concat(breaksDone[questId] or { "sin rompimientos aplicables" }, ", ")))
 	end
 end
-check(clean == total, ("%d/%d principales aguantan salir y volver, morir, tocar de más e irse lejos (y terminan)"):format(clean, total))
+check(QUICK or clean == total, ("%d/%d principales aguantan salir y volver, morir, tocar de más e irse lejos (y terminan)"):format(clean, total))
 
-print("\n▶ 5. Registro de desarrollo")
+print("\n▶ 5. Depuración: solo para el dueño")
+do
+	local DebugService = loadModule(ROOT .. "/server/Services/DebugService")
+	DebugService.init()
+	local owner = H.newPlayer("Duena", "Nino")
+	owner.UserId = 1 -- el creador del juego (game.CreatorId)
+	local normal = H.newPlayer("Normal", "Nino")
+	task.wait(0.5)
+	check(DebugService.allowed(owner) and not DebugService.allowed(normal), "Solo el creador del juego (o Studio, o Config.Debug.DebugUserIds) puede depurar")
+	for _, command in { "/debug mission", "/debug npc", "/debug story", "/debug teleport PlazaCentro", "/debug resetmission", "/debug validate", "/debug hud", "/debug log" } do
+		check(DebugService.handle(normal, command) == nil, "Un jugador normal no puede usar «" .. command .. "»")
+	end
+	H.debugRemote.OnServerEvent:Fire(normal, "Command", "/debug teleport PlazaCentro")
+	task.wait(0.4)
+	check(normal.DebugInbox == nil and normal.TeleportedTo == nil, "…ni desde el panel: no le llega nada ni se mueve")
+	local lines = DebugService.handle(owner, "/debug mission")
+	check(lines ~= nil and #lines >= 2 and table.concat(lines, "\n"):find("Cole01_PrimerDia", 1, true) ~= nil, "/debug mission: misión, paso y objetivo")
+	lines = DebugService.handle(owner, "/debug story")
+	check(lines ~= nil and table.concat(lines, "\n"):find("Etapa Nino", 1, true) ~= nil, "/debug story: etapa, edad, capítulo, decisiones, relaciones")
+	check(DebugService.handle(owner, "/debug npc") ~= nil, "/debug npc: personajes de alrededor")
+	task.wait(0.4)
+	DebugService.handle(owner, "/debug teleport PlazaCentro")
+	check(owner.TeleportedTo ~= nil, "/debug teleport <lugar>")
+	lines = DebugService.handle(owner, "/debug validate")
+	check(lines ~= nil and lines[1]:find("0 errores", 1, true) ~= nil, "/debug validate: pasa el validador")
+	local before = profiles[owner].Story.Active.Cole01_PrimerDia
+	profiles[owner].Story.Active.Cole01_PrimerDia.Step = 3
+	lines = DebugService.handle(owner, "/debug resetmission")
+	local after = profiles[owner].Story.Active.Cole01_PrimerDia
+	check(lines ~= nil and before ~= nil and after ~= nil and after ~= before and after.Step <= 2, "/debug resetmission: la misión vuelve a empezar")
+	DebugService.handle(owner, "/debug hud")
+	local hud = nil
+	for _, message in owner.DebugInbox or {} do
+		if message.Kind == "Hud" and type(message.Payload) == "table" then
+			hud = message.Payload
+		end
+	end
+	check(hud ~= nil and hud.Mission and hud.Story and hud.Npcs and hud.Location and hud.Dialogue, "Panel de depuración: misión, vida, personajes cerca, dónde y conversación")
+	H.leave(owner)
+	H.leave(normal)
+end
+
+print("\n▶ 6. Registro de desarrollo")
 check(logged("[MISSION] started") and logged("[MISSION] completed"), "[MISSION] started / completed")
 check(logged("[OBJECTIVE]"), "[OBJECTIVE] pasos completados")
-check(logged("[DIALOGUE] started") and logged("[DIALOGUE] ended") and logged("[DIALOGUE] cancelled"), "[DIALOGUE] started / ended / cancelled")
+check(logged("[DIALOGUE] started") and logged("[DIALOGUE] ended") and (QUICK or logged("[DIALOGUE] cancelled")), "[DIALOGUE] started / ended / cancelled")
 
 print(("\n%s"):format(if H.failures == 0 then "✅ Todo correcto" else ("❌ %d fallos"):format(H.failures)))
 process.exit(if H.failures == 0 then 0 else 1)

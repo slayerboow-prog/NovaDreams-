@@ -926,6 +926,31 @@ function SceneService.actorOf(player: Player, npc: string): Model?
 	return nil
 end
 
+-- (Depuración) Los actores de las escenas de este jugador: quién, dónde, qué hace y si habla contigo
+function SceneService.debugActors(player: Player): { { [string]: any } }
+	local list = {}
+	local me = playerRoot(player)
+	for questId, scene in scenes[player] or {} do
+		for npc, actor in scene.Actors do
+			local root = actor.Root
+			local position = root and root.Position
+			local home = actor.Home.Position
+			table.insert(list, {
+				Npc = npc,
+				Quest = questId,
+				Mode = actor.Spec.Mode or "Idle",
+				Distance = if position and me then math.round((position - me.Position).Magnitude) else nil,
+				Target = if position and V(position.X - home.X, 0, position.Z - home.Z).Magnitude > 2.5
+					then ("(%d, %d, %d)"):format(math.round(home.X), math.round(home.Y), math.round(home.Z))
+					else nil,
+				Talking = actor.Talking == true,
+				Stuck = actor.StuckSince ~= nil and os.clock() - actor.StuckSince > 4,
+			})
+		end
+	end
+	return list
+end
+
 function SceneService.hasActor(player: Player, questId: string, npc: string): boolean
 	local scene = scenes[player] and scenes[player][questId]
 	return scene ~= nil and scene.Actors[npc] ~= nil
@@ -1268,6 +1293,11 @@ local function stepActor(player: Player, actor: Actor, index: number)
 		-- Iba caminando hasta su sitio: al llegar (o si se atasca), se queda allí
 		local flat = V(root.Position.X - actor.Home.Position.X, 0, root.Position.Z - actor.Home.Position.Z)
 		if flat.Magnitude < 2.5 or (actor.StuckSince and os.clock() - actor.StuckSince > 8) then
+			if flat.Magnitude < 2.5 then
+				Log.debug("NPC", "reached %s (%s)", actor.Npc, player.Name)
+			else
+				Log.warn("NPC", "stuck %s (%s): no llega a su sitio, se coloca allí", actor.Npc, player.Name)
+			end
 			standAt(actor, actor.Home)
 			actor.StuckSince = nil
 			applyMode(actor)

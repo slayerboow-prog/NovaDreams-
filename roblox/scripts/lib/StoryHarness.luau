@@ -75,6 +75,7 @@ local function loadModule(path: string): any
 		Color3 = roblox.Color3,
 		CFrame = roblox.CFrame,
 		Random = TestRandom,
+		Enum = roblox.Enum,
 		warn = function(...)
 			print("[warn]", ...)
 		end,
@@ -153,7 +154,13 @@ function sayRemote:FireClient(player, kind, payload)
 	table.insert(player.Barks, payload.TextKey)
 end
 
-local remotes = { LifeStory = remote, Dialogue = dialogueRemote, MiniGame = miniGameRemote, Baby = sayRemote }
+-- Depuración del dueño: lo que el servidor le manda a cada jugador
+local debugRemote = { OnServerEvent = signal() }
+function debugRemote:FireClient(player, kind, payload)
+	player.DebugInbox = player.DebugInbox or {}
+	table.insert(player.DebugInbox, { Kind = kind, Payload = payload })
+end
+local remotes = { LifeStory = remote, Dialogue = dialogueRemote, MiniGame = miniGameRemote, Baby = sayRemote, Debug = debugRemote }
 function remotes:FindFirstChild(name)
 	return self[name]
 end
@@ -170,7 +177,7 @@ function replicatedStorage:FindFirstChild(name)
 end
 
 local lighting = { ClockTime = 14 }
-local players = { PlayerRemoving = signal() }
+local players = { PlayerRemoving = signal(), PlayerAdded = signal() }
 local activePlayers = {}
 function players:GetPlayers()
 	return activePlayers
@@ -180,7 +187,7 @@ function http:JSONEncode(value)
 	return serde.encode("json", value)
 end
 
-fakeGame = {}
+fakeGame = { CreatorId = 1, CreatorType = roblox.Enum.CreatorType.User, JobId = "prueba" }
 function fakeGame:GetService(name)
 	return ({
 		ReplicatedStorage = replicatedStorage,
@@ -189,6 +196,9 @@ function fakeGame:GetService(name)
 		HttpService = http,
 		RunService = { IsStudio = function()
 			return false
+		end },
+		CollectionService = { GetTagged = function()
+			return {}
 		end },
 	})[name] or error("Servicio sin doble: " .. name)
 end
@@ -342,6 +352,18 @@ mocks[ROOT .. "/server/Services/SceneService"] = {
 		if scene then
 			scene.Actors[npc] = nil
 		end
+	end,
+	debugActors = function(player)
+		local list = {}
+		for questId, scene in scenes[player] or {} do
+			for npc, spec in scene.Actors do
+				table.insert(list, { Npc = npc, Quest = questId, Mode = spec.Mode or "Idle", Distance = 3 })
+			end
+		end
+		return list
+	end,
+	teleportTo = function(player, position)
+		player.TeleportedTo = position
 	end,
 	teleport = function(player, where)
 		player.At = if type(where) == "table" then where.Place else where
@@ -727,6 +749,7 @@ H.remote = remote
 H.dialogueRemote = dialogueRemote
 H.miniGameRemote = miniGameRemote
 H.remotes = remotes
+H.debugRemote = debugRemote
 H.lighting = lighting
 H.players = players
 H.profiles = profiles

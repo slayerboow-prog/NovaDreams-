@@ -2325,6 +2325,38 @@ function LifeStoryService.interact(player: Player, kind: string, questId: string
 	end
 end
 
+-- (Depuración del dueño: /debug resetmission) Vuelve a empezar una misión activa desde el paso 1.
+-- Sin id: la que se está siguiendo. Corta la conversación o el minijuego y rehace la escena.
+function LifeStoryService.resetQuest(player: Player, questId: string?): (boolean, string)
+	local data = DataService.get(player)
+	local rt = runtime[player]
+	if not data or not rt then
+		return false, "sin datos"
+	end
+	local story = storyOf(data)
+	local id = questId or story.Tracked
+	if not id then
+		for activeId in story.Active do
+			id = activeId
+			break
+		end
+	end
+	if not id or not story.Active[id] then
+		return false, "no hay esa misión activa"
+	end
+	DialogueService.cancel(player, "reset")
+	MiniGameService.cancel(player)
+	rt.Busy = false
+	story.Active[id] = nil
+	if rt.Watch then
+		rt.Watch[id] = nil
+	end
+	SceneService.clear(player, id)
+	Log.warn("DEBUG", "%s reinicia la misión %s", player.Name, id)
+	startQuest(player, data, id)
+	return true, id
+end
+
 -- Estado de la historia de un jugador para depurar (panel del dueño, /debug, pruebas)
 function LifeStoryService.debugState(player: Player): { [string]: any }?
 	local rt = runtime[player]
