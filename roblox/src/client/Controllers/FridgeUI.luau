@@ -111,14 +111,18 @@ local function open(data: { [string]: any })
 	end
 	for _, item in data.Inside or {} do
 		order += 1
-		row(list, order, ("%s %s ×%d"):format(item.Icon or "🍽", item.Name or item.Id, item.Count or 1), {
+		local buttons = {
 			{ "Comer", function()
 				remote:FireServer("Fridge", "Eat", item.Id)
 			end },
-			{ "Coger", function()
+		}
+		-- De invitado solo se come (no te llevas la comida de otro)
+		if not data.Guest then
+			table.insert(buttons, { "Coger", function()
 				remote:FireServer("Fridge", "Take", item.Id)
-			end },
-		})
+			end })
+		end
+		row(list, order, ("%s %s ×%d"):format(item.Icon or "🍽", item.Name or item.Id, item.Count or 1), buttons)
 	end
 	header("EN TU MOCHILA")
 	if #(data.Bag or {}) == 0 then

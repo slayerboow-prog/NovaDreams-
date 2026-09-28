@@ -96,6 +96,7 @@ local DEFAULT_DATA = {
 }
 
 local profiles: { [Player]: { [string]: any } } = {}
+local released: { [Player]: boolean } = {} -- ya se ha ido: los autoguardados pendientes no escriben
 local loadedCallbacks: { (Player, { [string]: any }) -> () } = {}
 local beforeSaveCallbacks: { (Player, { [string]: any }) -> () } = {}
 local earningCallbacks: { (Player, number) -> () } = {}
@@ -187,7 +188,14 @@ local function loadFromStore(player: Player): { [string]: any }?
 	return nil
 end
 
+-- Cantidad de dinero válida (ni NaN, ni infinita, ni negativa): lo que llega de un remoto puede ser cualquier cosa
+local function validAmount(x: any): boolean
+	return type(x) == "number" and x == x and x >= 0 and x < 1e12
+end
+DataService.validAmount = validAmount
+
 -- Guarda los datos. release = true suelta el session lock (al salir).
+-- Devuelve true solo si de verdad se ha escrito.
 function DataService.save(player: Player, release: boolean?): boolean
 	local data = profiles[player]
 	if not data then
@@ -203,20 +211,27 @@ function DataService.save(player: Player, release: boolean?): boolean
 		return true -- en Studio sin API damos el guardado por bueno
 	end
 
+	local wrote = false
 	local ok, err = pcall(function()
 		(store :: DataStore):UpdateAsync(keyFor(player), function(old)
+			wrote = false
 			if type(old) == "table" and old.SessionLock and old.SessionLock.JobId ~= game.JobId then
 				return nil -- otro servidor se ha quedado los datos: no pisarlos
 			end
+			-- Un autoguardado que acaba después de que el jugador se haya ido no vuelve a bloquear sus datos
+			if not release and (not player.Parent or released[player]) then
+				return nil
+			end
 			local toSave = deepCopy(data)
 			toSave.SessionLock = if release then nil else { JobId = game.JobId, Time = os.time() }
+			wrote = true
 			return toSave
 		end)
 	end)
 	if not ok then
 		warn(("[DataService] Error guardando %s: %s"):format(player.Name, tostring(err)))
 	end
-	return ok
+	return ok and wrote
 end
 
 -- Devuelve los datos del jugador (nil si todavía no han cargado).
@@ -267,7 +282,7 @@ end
 -- Suma (o resta, si amount es negativo) dinero. Devuelve false si no hay datos.
 function DataService.addMoney(player: Player, amount: number, isEarning: boolean?): boolean
 	local data = profiles[player]
-	if not data then
+	if not data or type(amount) ~= "number" or amount ~= amount or math.abs(amount) >= 1e12 then
 		return false
 	end
 	data.Money = math.max(0, math.floor(data.Money + amount))
@@ -284,7 +299,7 @@ end
 -- Cobra un precio si hay dinero suficiente. Devuelve true si se ha pagado.
 function DataService.spend(player: Player, price: number): boolean
 	local data = profiles[player]
-	if not data or data.Money < price then
+	if not data or not validAmount(price) or data.Money < price then
 		return false
 	end
 	data.Money -= price
@@ -322,7 +337,19 @@ local function onPlayerAdded(player: Player)
 
 	local data = loadFromStore(player)
 	if not player.Parent then
-		return -- se fue mientras cargaba
+		-- Se fue mientras cargaba: soltar el bloqueo para que pueda entrar enseguida en otro servidor
+		if data and savingEnabled and store then
+			pcall(function()
+				(store :: DataStore):UpdateAsync(keyFor(player), function(old)
+					if type(old) == "table" and old.SessionLock and old.SessionLock.JobId == game.JobId then
+						old.SessionLock = nil
+						return old
+					end
+					return nil
+				end)
+			end)
+		end
+		return
 	end
 	if not data then
 		player:Kick("No hemos podido cargar tus datos. Vuelve a entrar en unos segundos.")
@@ -330,6 +357,9 @@ local function onPlayerAdded(player: Player)
 	end
 
 	reconcile(data, DEFAULT_DATA)
+	if type(data.Money) ~= "number" or data.Money ~= data.Money or data.Money == math.huge then
+		data.Money = 0 -- dinero roto (NaN) por un fallo antiguo
+	end
 	profiles[player] = data
 	syncMoney(player, data)
 
@@ -340,8 +370,16 @@ end
 
 local function onPlayerRemoving(player: Player)
 	if profiles[player] then
-		DataService.save(player, true)
+		released[player] = true
+		-- Guardar al salir (con reintentos: si falla se perdería lo último)
+		for attempt = 1, 3 do
+			if DataService.save(player, true) then
+				break
+			end
+			task.wait(attempt * 2)
+		end
 		profiles[player] = nil
+		released[player] = nil
 	end
 end
 
@@ -357,6 +395,8 @@ function DataService.newLife(player: Player)
 	lastNewLife[player] = os.clock()
 	local fresh = deepCopy(DEFAULT_DATA)
 	fresh.ProcessedReceipts = data.ProcessedReceipts or {}
+	-- Las viviendas compradas siguen siendo tuyas (el registro de dueños está en otro DataStore)
+	fresh.Properties = data.Properties
 	fresh.Life.Stage = Config.LifeStory.NewCharacterStage
 	profiles[player] = fresh
 	DataService.save(player, true)

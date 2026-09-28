@@ -332,7 +332,8 @@ local function crowd()
 			return
 		end
 		local d = Vector2.new(root.Position.X, root.Position.Z).Magnitude -- distancia a la Plaza Mayor
-		sound.Volume = if muted then 0 else base * math.clamp(1 - (d - 150) / 350, 0, 1)
+		local indoors = root.Position.Y > 3000 -- salas de los edificios (en el cielo)
+		sound.Volume = if muted or indoors then 0 else base * math.clamp(1 - (d - 150) / 350, 0, 1)
 	end)
 end
 

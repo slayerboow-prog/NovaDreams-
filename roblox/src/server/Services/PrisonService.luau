@@ -366,15 +366,30 @@ end
 ---------------------------------------------------------------------
 -- Peleas dentro: más condena y a aislamiento
 ---------------------------------------------------------------------
-local function isolate(player: Player)
+-- A una celda de aislamiento (sin tocar el tiempo que le queda)
+local function toIsolation(player: Player): boolean
 	local cells = CollectionService:GetTagged("PrisonIsolation")
 	if #cells == 0 then
-		return
+		return false
 	end
 	local cell = cells[math.random(1, #cells)] :: BasePart
+	SceneService.teleportTo(player, cell.Position)
+	return true
+end
+
+-- Una pelea nueva: empieza el tiempo de aislamiento
+local function isolate(player: Player)
+	if #CollectionService:GetTagged("PrisonIsolation") == 0 then
+		return
+	end
 	isolated[player] = os.clock() + Justice.IsolationSeconds
 	player:SetAttribute("Isolated", true)
-	SceneService.teleportTo(player, cell.Position)
+	toIsolation(player)
+end
+
+-- Si está en aislamiento, de vuelta a su celda de aislamiento (al reaparecer; HospitalService)
+function PrisonService.sendToIsolation(player: Player): boolean
+	return isolated[player] ~= nil and JusticeService.isJailed(player) and toIsolation(player)
 end
 
 function PrisonService.init()
@@ -454,7 +469,7 @@ function PrisonService.init()
 						end
 					end
 					if root and nearest > 12 then
-						isolate(player)
+						toIsolation(player) -- (solo volver: el tiempo no se reinicia)
 					end
 				end
 			end

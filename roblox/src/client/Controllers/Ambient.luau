@@ -524,6 +524,10 @@ function Ambient.init()
 			return
 		end
 		Traffic.update(dt)
+		-- Dentro de un edificio (salas en el cielo) no hay peatones que mover: se quedan en su sitio
+		if c.Y > 3000 then
+			return
+		end
 		updatePeds(math.min(dt, 0.1), c)
 	end)
 end

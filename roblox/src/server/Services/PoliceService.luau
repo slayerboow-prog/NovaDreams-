@@ -546,6 +546,15 @@ function PoliceService.start(player: Player)
 		Notify:FireClient(player, "Error", "Para ser policía hay que ser mayor de edad.")
 		return
 	end
+	-- (como en CareerService.canJoin: ni buscado ni preso)
+	if player:GetAttribute("Wanted") then
+		Notify:FireClient(player, "Error", "Con la policía buscándote no te van a contratar.")
+		return
+	end
+	if player:GetAttribute("JailUntil") then
+		Notify:FireClient(player, "Error", "Primero cumple tu condena.")
+		return
+	end
 	if not NeedsService.canWork(player) then
 		Notify:FireClient(player, "Error", "Estás demasiado cansado o hambriento para trabajar.")
 		return
@@ -654,7 +663,8 @@ function PoliceService.init()
 	Players.PlayerRemoving:Connect(function(player)
 		PoliceService.quit(player, true)
 	end)
-	Players.PlayerAdded:Connect(function(player)
+	-- Al reaparecer de servicio, otra vez el uniforme (también los que ya estaban al arrancar)
+	local function watch(player: Player)
 		player.CharacterAdded:Connect(function()
 			local shift = shifts[player]
 			if shift then
@@ -662,7 +672,11 @@ function PoliceService.init()
 				dress(shift)
 			end
 		end)
-	end)
+	end
+	Players.PlayerAdded:Connect(watch)
+	for _, player in Players:GetPlayers() do
+		watch(player)
+	end
 	-- Avisos caducados y panel al día
 	task.spawn(function()
 		while true do

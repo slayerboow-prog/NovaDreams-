@@ -479,7 +479,7 @@ function PostService.init()
 		PostService.quit(player, true)
 	end)
 	-- Si reaparece (muere o se reinicia), vuelve a llevar el paquete en las manos
-	Players.PlayerAdded:Connect(function(player)
+	local function onPlayer(player: Player)
 		player.CharacterAdded:Connect(function()
 			local route = routes[player]
 			if route and route.Phase == "Deliver" then
@@ -487,7 +487,12 @@ function PostService.init()
 				giveCarry(route)
 			end
 		end)
-	end)
+	end
+	Players.PlayerAdded:Connect(onPlayer)
+	-- (los que ya estaban dentro antes de que arrancara este servicio)
+	for _, player in Players:GetPlayers() do
+		task.spawn(onPlayer, player)
+	end
 	-- El panel enseña el tiempo de la ruta
 	task.spawn(function()
 		while true do

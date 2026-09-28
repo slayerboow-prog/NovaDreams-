@@ -447,7 +447,8 @@ local DESPAWN = 110 -- más lejos que esto, el animal desaparece y sale otro cer
 
 local function update(t: number, dt: number)
 	local around = playerPosition()
-	if not around then
+	-- Dentro de un edificio (salas en el cielo) no salen animales en el suelo de la sala
+	if not around or around.Y > 3000 then
 		return
 	end
 	local where = zoneAt(around)
