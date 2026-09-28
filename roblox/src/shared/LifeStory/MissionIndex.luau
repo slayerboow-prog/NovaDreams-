@@ -47,6 +47,9 @@ return {
 	require(Misiones.Loco_Nino),
 	-- La Saga de la Grieta (historia principal canónica): docs/historia/13-saga-de-la-grieta.md
 	require(Misiones.Saga_Acto1),
+	require(Misiones.Saga_Acto2),
+	require(Misiones.Saga_Acto3),
+	require(Misiones.Saga_Acto4),
 	require(Misiones.Loco_Adolescente),
 	require(Misiones.Loco_Uni),
 	require(Misiones.Loco_Adulto),

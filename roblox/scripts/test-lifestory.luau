@@ -1759,6 +1759,63 @@ lighting.ClockTime = 21
 check(playLoco(sol, "Saga_06_Coser") and solData.Items.AgujaCuantica == 1 and solData.Story.Flags.SagaActo1 and said(sol, "Ya te he visto, Ancla"), "6 · Coser el cielo: los anclajes, los agentes grises y la voz de Cósimo")
 check(cinematic(sol, "Saga_Coser"), "Cinemática: la aguja cose el cielo")
 
+print("\n▶ Saga de la Grieta · Actos II, III y IV (de la adolescencia a la vida adulta, hasta el final)")
+local nora = newPlayer("Nora", "Adolescente")
+local noraData = profiles[nora]
+for _, id in { "Loco_N1_Cosme", "Saga_02_Grieta", "Saga_03_Pez", "Saga_04_Ventanilla", "Saga_05_Perdidas", "Saga_06_Coser" } do
+	noraData.Story.Completed[id] = os.time()
+end
+noraData.Story.Flags.SagaActo1 = true
+nora.Picks = { Trato = "No" }
+local function sagaStage(stage: string)
+	noraData.Life.Stage = stage
+	nora:SetAttribute("LifeStage", stage)
+end
+lighting.ClockTime = 12
+passTime(nora, 5)
+check(canonIds(nora).Saga_07_Costuras, "Acto II: tras coser el cielo, el mapa marca la siguiente canónica")
+check(playLoco(nora, "Saga_07_Costuras") and noraData.Items.CredencialAyudante == 1, "7 · Las costuras: ayudante oficial de Cosme")
+check(playLoco(nora, "Saga_08_MegaVerso") and noraData.Items.FolletoMegaVerso == 1, "8 · MegaVerso S.A.: el Proyecto Fusión")
+lighting.ClockTime = 22
+check(playLoco(nora, "Saga_09_Archivo") and noraData.Items.CintaArchivo == 1, "9 · El archivo (de noche): eres el Ancla")
+lighting.ClockTime = 20
+check(playLoco(nora, "Saga_10_Fiesta"), "10 · La fiesta del fin del mundo")
+lighting.ClockTime = 12
+check(playLoco(nora, "Saga_11_Cronos") and noraData.Items.RelojArena == 1, "11 · Cronos se pasa a tu bando")
+check(playLoco(nora, "Saga_12_Graduacion") and noraData.Story.Flags.SagaActo2 and noraData.Story.Flags.CosmeSecuestrado and cinematic(nora, "Saga_Grieta2"), "12 · La graduación: Cósimo se lleva a Cosme (cinemática)")
+
+sagaStage("AdultoJoven")
+passTime(nora, 5)
+check(canonIds(nora).Saga_13_SinCosme, "Acto III: en la universidad, el mapa marca el garaje cerrado")
+check(playLoco(nora, "Saga_13_SinCosme") and noraData.Items.CuadernoCosme == 1 and noraData.Story.Flags.CompisSabenGrieta, "13 · Sin Cosme: el cuaderno y el equipo de rescate")
+check(playLoco(nora, "Saga_14_Bigotes") and noraData.Items.CollarDiplomatico == 1 and noraData.Story.Flags.CoordenadasCosimo, "14 · Gatonia: huir de la policía gatuna y las coordenadas")
+lighting.ClockTime = 23
+check(playLoco(nora, "Saga_15_Reestreno") and noraData.Items.PaseVIP == 1, "15 · El reestreno del reality (de noche, en el monte)")
+lighting.ClockTime = 12
+check(playLoco(nora, "Saga_16_66B") and noraData.Items.MapaMalvado == 1 and noraData.Story.Flags.ConoceTuMalvado, "16 · La dimensión 66-B y tu yo malvado")
+check(playLoco(nora, "Saga_17_Rescate") and noraData.Story.Flags.CosmeRescatado and not noraData.Story.Flags.CosmeSecuestrado, "17 · El rescate: desconectar la cápsula y huir de los drones")
+check(playLoco(nora, "Saga_18_Precio") and noraData.Items.FotoSinMemoria == 1 and noraData.Story.Flags.SagaActo3, "18 · El precio: Cosme no recuerda nada")
+
+sagaStage("Adulto")
+passTime(nora, 5)
+check(canonIds(nora).Saga_19_Recuerdos, "Acto IV: de adulto, el mapa marca devolverle la memoria a Cosme")
+check(playLoco(nora, "Saga_19_Recuerdos") and noraData.Items.AlbumRecuerdos == 1 and not noraData.Story.Flags.CosmeSinMemoria, "19 · Los recuerdos: Cosme vuelve a ser Cosme")
+check(playLoco(nora, "Saga_20_Aliados") and noraData.Story.Flags.AliadosReunidos and noraData.Story.Flags.AliadoCompis, "20 · Los aliados: vienen los que ayudaste en tu vida")
+check(playLoco(nora, "Saga_21_Consorcio"), "21 · La caída del Consorcio")
+lighting.ClockTime = 22
+check(playLoco(nora, "Saga_22_Ancla") and noraData.Story.Choices.Trato and noraData.Story.Choices.Trato.V == "No", "22 · El trato: Cósimo llama a tu puerta y le dices que no")
+lighting.ClockTime = 23
+check(playLoco(nora, "Saga_23_Fusion") and noraData.Story.Flags.FusionDetenida and cinematic(nora, "Saga_Fusion"), "23 · La Gran Fusión: aguantar, la oleada y Cósimo se rinde")
+check(noraData.Story.Flags.CosimoPerdonado or noraData.Story.Flags.CosimoArregla66B, "Decides qué pasa con Cósimo")
+lighting.ClockTime = 12
+check(playLoco(nora, "Saga_24_Final") and noraData.Items.AgujaDeOro == 1 and noraData.Story.Flags.SagaCompleta and cinematic(nora, "Saga_Final"), "24 · El final: la Grieta se cierra en el patio del cole")
+passTime(nora, 5)
+local quedan = 0
+for _ in canonIds(nora) do
+	quedan += 1
+end
+check(quedan == 0, "Terminada la saga, no quedan marcas canónicas en el mapa")
+
 print("\n▶ Misiones locas · Adolescencia (el futuro, los lápices, el DJ alienígena, Pip, Zoltán)")
 local iris = newPlayer("Iris", "Adolescente")
 local irisData = profiles[iris]

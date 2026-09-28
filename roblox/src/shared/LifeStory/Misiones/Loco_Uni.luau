@@ -147,7 +147,7 @@ return {
 		Npcs = { "Rex", "CazadorTiempo", "Cosme" },
 		Offer = { Place = "Home" },
 		OfferKey = "Ha llegado tu nuevo compañero de piso. Hay unas huellas muy raras en la entrada…",
-		Requires = UNI,
+		Requires = { Stage = { Min = "AdultoJoven", Max = "AdultoJoven" }, NotFlags = { "CosmeSecuestrado" } }, -- Cosme sale en el juicio
 		Moment = "Defendiste a Rex ante la Aduana del Tiempo",
 		Memory = "CompaneroRex",
 		Rewards = { Items = { DienteRex = 1 } },
@@ -247,7 +247,7 @@ return {
 		Npcs = { "Cosme", "Bigotes", "Pip" },
 		Offer = { Place = "GarajeCosme" },
 		OfferKey = "Cosme te llama desde el garaje: «¡Criatura! ¿Te apetece ver otras dimensiones? Es para una cosa de ciencia. Y de ego.»",
-		Requires = UNI,
+		Requires = { Stage = { Min = "AdultoJoven", Max = "AdultoJoven" }, NotFlags = { "CosmeSecuestrado" } }, -- con Cosme (no mientras está secuestrado)
 		Moment = "Visitaste tres dimensiones con Cosme",
 		Memory = "Multiverso",
 		Rewards = { Items = { MandoDimensiones = 1 } },
