@@ -20,6 +20,7 @@
 
 local Builder = require(script.Parent.Builder)
 local Furniture = require(script.Parent.Furniture)
+local Lift = require(script.Parent.Lift)
 local Floors = require(game:GetService("ReplicatedStorage").Shared.Floors)
 
 local Tower = {}
@@ -100,6 +101,13 @@ end
 
 function Tower.elevatorAt(plan: Plan, floor: number): CFrame
 	return CF(-plan.W / 2 + CORE + 4.5, floor * FH, CORRIDOR_Z1)
+end
+
+-- El suelo del hueco del ascensor en la planta baja (detrás de la pared del pasillo; -Z = hacia el
+-- pasillo). Relativo al edificio: towerCf * Tower.shaftBase(plan)
+function Tower.shaftBase(plan: Plan): CFrame
+	local ex = Tower.elevatorAt(plan, 0).Position.X
+	return CF(ex, 0, CORRIDOR_Z1 + 0.6 + Lift.Depth / 2)
 end
 
 -- Delante de una puerta, en el pasillo
@@ -286,13 +294,31 @@ function Tower.buildFloor(parent: Instance, towerCf: CFrame, plan: Plan, floor: 
 	Furniture.baseboard(ctx, at(0, 0, CORRIDOR_Z0) * ANG(0, PI, 0), W)
 	Furniture.baseboard(ctx, at((-W / 2 + CORE + W / 2) / 2, 0, CORRIDOR_Z1), W - CORE)
 
-	-- Ascensor
+	-- Ascensor: marco, puertas de rellano (dos hojas que se abren con la cabina aquí: World/Lift),
+	-- pantalla con la planta en la que está la cabina, botón de llamada y el hueco por detrás
 	deco(m, "ElevatorFrame", V(6, 9.5, 0.4), at(ex, 4.75, CORRIDOR_Z1 + 0.05), rgb(160, 166, 172), M.Metal)
-	solid(m, "ElevatorDoors", V(4.6, 8.4, 0.2), at(ex, 4.2, CORRIDOR_Z1 + 0.35), rgb(190, 196, 204), M.Metal)
+	for side = -1, 1, 2 do
+		local leaf = solid(m, if side < 0 then "LiftLandingL" else "LiftLandingR", V(2.4, 8.4, 0.2), at(ex + side * 1.2, 4.2, CORRIDOR_Z1 + 0.35), rgb(190, 196, 204), M.Metal)
+		leaf:AddTag("LiftLandingDoor")
+		leaf:SetAttribute("Closed", leaf.CFrame)
+		leaf:SetAttribute("Side", side)
+		leaf:SetAttribute("Floor", floor)
+	end
 	deco(m, "ElevatorLight", V(1.2, 0.6, 0.1), at(ex, 9.1, CORRIDOR_Z1 - 0.2), rgb(120, 220, 255), M.Neon)
-	local panelSign = deco(m, "ElevatorFloor", V(1.6, 0.8, 0.1), at(ex + 3.4, 6, CORRIDOR_Z1 - 0.1), rgb(20, 20, 24))
-	Builder.sign(panelSign, tostring(floor), Enum.NormalId.Front, rgb(120, 220, 255))
+	local panelSign = deco(m, "ElevatorFloor", V(1.6, 0.8, 0.1), at(ex, 10.1, CORRIDOR_Z1 - 0.1), rgb(20, 20, 24))
+	Builder.sign(panelSign, tostring(floor), Enum.NormalId.Front, rgb(255, 170, 60))
+	-- (botón de llamada, a un lado)
+	deco(m, "LiftCallPlate", V(0.6, 1.2, 0.1), at(ex + 3.4, 4.4, CORRIDOR_Z1 - 0.05), rgb(200, 204, 210), M.Metal)
+	deco(m, "LiftCallButton", V(0.26, 0.26, 0.08), at(ex + 3.4, 4.6, CORRIDOR_Z1 - 0.12), rgb(255, 240, 200), M.Neon)
 	Builder.part({ Name = "InteriorElevator", Size = V(6, 8, 2), CFrame = at(ex, 4, CORRIDOR_Z1 - 1.6), Transparency = 1, CanCollide = false, CanQuery = false, CanTouch = false, Tags = { "InteriorElevator" }, Attributes = { Floor = floor }, Parent = m })
+	-- Hueco: paredes a los lados y al fondo (la cabina sube y baja por dentro)
+	local sz = CORRIDOR_Z1 + 0.6 + Lift.Depth / 2
+	solid(m, "ShaftLeft", V(0.5, FH, Lift.Depth + 0.6), at(ex - Lift.Width / 2 - 0.25, FH / 2, sz), wall)
+	solid(m, "ShaftRight", V(0.5, FH, Lift.Depth + 0.6), at(ex + Lift.Width / 2 + 0.25, FH / 2, sz), wall)
+	solid(m, "ShaftBack", V(Lift.Width + 1, FH, 0.5), at(ex, FH / 2, sz + Lift.Depth / 2 + 0.25), wall)
+	if floor == 0 then
+		solid(m, "ShaftPit", V(Lift.Width + 1, 1, Lift.Depth + 0.6), at(ex, -0.5, sz), rgb(80, 80, 86), M.Concrete)
+	end
 
 	-- Número de la planta en el rellano (y en el descansillo)
 	local label = if floor == 0 then "Planta baja" else ("Planta %d"):format(floor)

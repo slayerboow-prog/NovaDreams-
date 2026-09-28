@@ -4354,11 +4354,83 @@ end
 check(nearOk and not table.find(nowBuilt, 0), ("en la 6ª: montadas de la 4ª a la 8ª (y las de abajo, quitadas): %s"):format(table.concat(nowBuilt, ",")))
 local perFloor = math.floor(parts / #nowBuilt)
 check(parts < 1500, ("piezas del edificio de 12 plantas: %d (unas %d por planta, tope 1500)"):format(parts, perFloor))
--- La ascensor lleva a cualquier planta (y monta las de alrededor)
-InteriorService.openElevator(walker, tower) -- (el panel se abre desde el ascensor, donde está ahora)
+-- El ascensor de verdad: se llama desde el rellano, viene, abre, se entra, se elige planta y sube
+local lift = InteriorService.lift(tower)
+check(lift ~= nil and lift.Floor == 0 and lift.Cabin.Model.Parent ~= nil, "el edificio tiene su ascensor (cabina en la planta baja)")
+local function waitLift(floor, seconds)
+	local t0 = os.clock()
+	while os.clock() - t0 < seconds and not (lift.Floor == floor and not lift.Busy and lift.DoorsOpen) do
+		task.wait(0.05)
+	end
+	return lift.Floor == floor and lift.DoorsOpen
+end
+local function doorsOf(f)
+	local out = {}
+	for _, d in floorModel(f):GetDescendants() do
+		if d:HasTag("LiftLandingDoor") then
+			table.insert(out, d)
+		end
+	end
+	return out
+end
+local call6
+for _, d in floorModel(6):GetDescendants() do
+	if d:HasTag("InteriorElevator") then
+		for _, c in d:GetChildren() do
+			if c.ClassName == "ProximityPrompt" then
+				call6 = c
+			end
+		end
+	end
+end
+check(call6 ~= nil and call6.ActionText == "Llamar al ascensor", "en cada rellano hay botón para llamar al ascensor")
+call6.Triggered:Fire(walker)
+task.wait(0.4)
+local midClosed = lift.Busy
+for f = 0, 8 do
+	if floorModel(f) then
+		for _, d in doorsOf(f) do
+			midClosed = midClosed and d.CanCollide ~= false
+		end
+	end
+end
+check(midClosed, "mientras el ascensor se mueve, todas las puertas de rellano están cerradas (no se cae nadie al hueco)")
+check(waitLift(6, 10), "el ascensor sube hasta la 6ª y abre")
+local open6 = #doorsOf(6) == 2
+for _, d in doorsOf(6) do
+	open6 = open6 and d.CanCollide == false
+end
+check(open6 and lift.Cabin.Doors[1].CanCollide == false, "con la cabina en la 6ª se abren sus puertas y las del rellano")
+local cabinFloor = lift.Cabin.Model:FindFirstChild("CabinFloor")
+check(cabinFloor ~= nil and math.abs((cabinFloor.Position.Y + 0.2) - (origin.Y + 6 * Floors.Height)) < 0.05, "la cabina queda a ras del suelo de la planta")
+-- Sin entrar no se puede elegir planta
+clearInbox(walker)
+InteriorService.openElevator(walker, tower)
 remotes.Interior.OnServerEvent:Fire(walker, "Floor", 11)
+check(notified(walker, "Entra en el ascensor") and lift.Floor == 6, "el panel de plantas se usa desde dentro de la cabina")
+-- Dentro: a la 11ª
+walkerRoot.CFrame = CFrame.new(cabinFloor.Position + Vector3.new(0, 3.2, 0))
+InteriorService.openElevator(walker, tower)
+remotes.Interior.OnServerEvent:Fire(walker, "Floor", 11)
+local rodeAttr = false
+local t0 = os.clock()
+while os.clock() - t0 < 3 and not rodeAttr do
+	rodeAttr = walker:GetAttribute("LiftTower") ~= nil
+	task.wait(0.05)
+end
+check(rodeAttr, "al arrancar, el cliente sabe que vas dentro (para moverte fluido)")
+check(waitLift(11, 15), "el ascensor sube contigo hasta la 11ª y abre")
+InteriorService.stepTowers() -- (las plantas de alrededor se montan en la siguiente vuelta)
 local after = InteriorService.builtFloors(tower)
-check(walker:GetAttribute("TowerFloor") == 11 and table.find(after, 11) ~= nil and table.find(after, 9) ~= nil, "el ascensor te deja en la 11ª (y se monta alrededor)")
+check(walker:GetAttribute("TowerFloor") == 11 and walker:GetAttribute("LiftTower") == nil and math.abs(walkerRoot.Position.Y - (origin.Y + 11 * Floors.Height + 3.2)) < 0.5
+	and table.find(after, 11) ~= nil and table.find(after, 9) ~= nil, "llegas a la 11ª dentro de la cabina (y se montan las plantas de alrededor)")
+local closed6 = true
+for _, d in (floorModel(6) and doorsOf(6)) or {} do
+	closed6 = closed6 and d.CanCollide ~= false
+end
+check(closed6, "las puertas de la 6ª se quedaron cerradas")
+local display = lift.Cabin.Display
+check(display ~= nil and display.Text == "11", "la pantalla dice en qué planta está")
 InteriorService.leave(walker)
 check(walker:GetAttribute("InteriorKey") == nil, "desde el portal se sale a la calle")
 -- Oficinas: abiertas en horario

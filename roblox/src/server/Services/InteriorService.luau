@@ -37,6 +37,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Floors = require(ReplicatedStorage.Shared.Floors)
 local Interiors = require(script.Parent.Parent.World.Interiors)
 local Tower = require(script.Parent.Parent.World.Tower)
+local Lift = require(script.Parent.Parent.World.Lift)
 local Builder = require(script.Parent.Parent.World.Builder)
 local SceneService = require(script.Parent.SceneService)
 
@@ -59,7 +60,9 @@ export type Building = {
 	Residence: boolean?, -- residencia universitaria (bloque del campus con habitaciones)
 }
 -- Edificio de varias plantas montado: sus plantas (solo las que están cerca de alguien)
-export type TowerState = { Plan: Tower.Plan, Origin: CFrame, Built: { [number]: Tower.Built } }
+-- Ascensor de verdad (World/Lift): la cabina, en qué planta está, si se mueve y las llamadas pendientes
+export type LiftState = { Cabin: Lift.Cabin, Floor: number, Moving: boolean, DoorsOpen: boolean, Queue: { number }, OpenedAt: number, Busy: boolean }
+export type TowerState = { Plan: Tower.Plan, Origin: CFrame, Built: { [number]: Tower.Built }, Lift: LiftState? }
 export type Instance_ = {
 	Room: Interiors.Room,
 	Slot: number,
@@ -477,6 +480,19 @@ local function towerOf(building: Building, create: boolean): Instance_?
 		EmptySince = nil,
 		Tower = { Plan = plan, Origin = origin, Built = {} },
 	}
+	-- La cabina del ascensor (en la planta baja, con las puertas cerradas)
+	local okLift, cabin = pcall(Lift.build, model, origin * Tower.shaftBase(plan))
+	if okLift then
+		(inst.Tower :: TowerState).Lift = { Cabin = cabin, Floor = 0, Moving = false, DoorsOpen = false, Queue = {}, OpenedAt = 0, Busy = false }
+		-- Botonera de dentro: el panel de plantas (InteriorUI, con quién vive en cada una)
+		local panel = Builder.prompt(cabin.Panel, "Elegir planta", "🛗 Ascensor", 0)
+		panel.MaxActivationDistance = 6
+		panel.Triggered:Connect(function(player)
+			InteriorService.openElevator(player, building)
+		end)
+	else
+		warn("[Interiores] ascensor: " .. tostring(cabin))
+	end
 	instances[key] = inst
 	return inst
 end
@@ -490,6 +506,9 @@ local function buildFloor(inst: Instance_, floor: number)
 	local built = Tower.buildFloor(inst.Room.Model, t.Origin, t.Plan, floor, plateNames(inst.Building, floor))
 	t.Built[floor] = built
 	connectFloor(inst, floor, built)
+	if InteriorService.afterFloor then
+		InteriorService.afterFloor(inst, floor)
+	end
 	notifyBuilt({ Room = { Model = built.Model, Kind = "Tower" } :: any, Slot = inst.Slot, Building = inst.Building, Floor = floor, Unit = "T" })
 end
 
@@ -516,6 +535,267 @@ local function streamFloors(inst: Instance_, playerFloors: { number })
 	end
 end
 InteriorService.streamFloors = streamFloors
+
+---------------------------------------------------------------------
+-- Ascensor de verdad: se llama desde el rellano, se entra, se elige planta y sube o baja con quien
+-- vaya dentro (el cliente lo mueve fluido con las mismas cuentas: Controllers/LiftRide)
+---------------------------------------------------------------------
+local TweenService = game:GetService("TweenService")
+
+local function tweenPart(part: BasePart, goal: CFrame)
+	local ok = pcall(function()
+		TweenService:Create(part, TweenInfo.new(Lift.DoorSeconds * 0.9, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), { CFrame = goal }):Play()
+	end)
+	if not ok then
+		part.CFrame = goal
+	end
+end
+
+local function landingDoors(inst: Instance_, floor: number): { BasePart }
+	local t = inst.Tower :: TowerState
+	local built = t.Built[floor]
+	local left, right = nil, nil
+	if built then
+		for _, d in built.Model:GetDescendants() do
+			if d:IsA("BasePart") and d:HasTag("LiftLandingDoor") then
+				if d:GetAttribute("Side") == -1 then
+					left = d
+				else
+					right = d
+				end
+			end
+		end
+	end
+	return if left and right then { left, right } else {}
+end
+
+-- Lo que dice la pantalla: "PB" en la planta baja, el número en las demás (con flecha si se mueve)
+local function liftLabel(floor: number, dir: number?): string
+	local text = if floor == 0 then "PB" else tostring(floor)
+	if dir and dir > 0 then
+		return "▲ " .. text
+	elseif dir and dir < 0 then
+		return "▼ " .. text
+	end
+	return text
+end
+
+local function textOf(part: Instance?): TextLabel?
+	for _, d in (part and part:GetDescendants()) or {} do
+		if d:IsA("TextLabel") then
+			return d
+		end
+	end
+	return nil
+end
+
+local function liftDisplays(inst: Instance_, text: string)
+	local t = inst.Tower :: TowerState
+	local lift = t.Lift :: LiftState
+	if lift.Cabin.Display then
+		lift.Cabin.Display.Text = text
+	end
+	for _, built in t.Built do
+		local label = textOf(built.Model:FindFirstChild("ElevatorFloor"))
+		if label then
+			label.Text = text
+		end
+	end
+end
+
+-- Quién va dentro de la cabina ahora (y a qué altura sobre su suelo)
+local function liftRiders(inst: Instance_): { { Player: Player, Offset: Vector3 } }
+	local t = inst.Tower :: TowerState
+	local lift = t.Lift :: LiftState
+	local floorCf = lift.Cabin.Base * CFrame.new(0, lift.Cabin.Model:GetAttribute("Height") or 0, 0)
+	local out = {}
+	local key = inst.Building.Id .. ":T"
+	for _, player in Players:GetPlayers() do
+		if player:GetAttribute("InteriorKey") ~= key then
+			continue
+		end
+		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+		if root then
+			local rel = floorCf:PointToObjectSpace(root.Position)
+			if Lift.inside(rel) then
+				table.insert(out, { Player = player, Offset = root.Position - floorCf.Position })
+			end
+		end
+	end
+	return out
+end
+
+-- ¿Hay alguien en la puerta? (no se cierra encima de nadie)
+local function doorwayBlocked(inst: Instance_): boolean
+	local t = inst.Tower :: TowerState
+	local lift = t.Lift :: LiftState
+	local floorCf = lift.Cabin.Base * CFrame.new(0, lift.Cabin.Model:GetAttribute("Height") or 0, 0)
+	local key = inst.Building.Id .. ":T"
+	for _, player in Players:GetPlayers() do
+		if player:GetAttribute("InteriorKey") == key then
+			local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+			if root then
+				local rel = floorCf:PointToObjectSpace(root.Position)
+				if math.abs(rel.X) < 2.6 and rel.Y > -1 and rel.Y < 8 and rel.Z < -Lift.Depth / 2 + 1 and rel.Z > -Lift.Depth / 2 - 1.4 then
+					return true
+				end
+			end
+		end
+	end
+	return false
+end
+
+local function setLiftDoors(inst: Instance_, open: boolean)
+	local t = inst.Tower :: TowerState
+	local lift = t.Lift :: LiftState
+	Lift.setDoors(lift.Cabin.Doors, open, tweenPart)
+	Lift.setDoors(landingDoors(inst, lift.Floor), open, tweenPart)
+	lift.DoorsOpen = open
+	lift.Cabin.Model:SetAttribute("Doors", if open then "Open" else "Closed")
+	if open then
+		lift.OpenedAt = os.clock()
+	end
+end
+
+local function serverNow(): number
+	local ok, now = pcall(function()
+		return (workspace :: any):GetServerTimeNow()
+	end)
+	return if ok and type(now) == "number" then now else os.clock()
+end
+
+local liftTravel: (Instance_, number) -> ()
+
+-- Pide el ascensor a una planta (desde el rellano o desde dentro). Si ya está ahí, abre.
+local function callLift(inst: Instance_, floor: number)
+	local t = inst.Tower :: TowerState
+	local lift = t.Lift
+	if not lift then
+		return
+	end
+	if lift.Busy then
+		if not table.find(lift.Queue, floor) and floor ~= lift.Floor then
+			table.insert(lift.Queue, floor)
+		end
+		return
+	end
+	if lift.Floor == floor then
+		if not lift.DoorsOpen then
+			setLiftDoors(inst, true)
+		else
+			lift.OpenedAt = os.clock()
+		end
+		return
+	end
+	task.spawn(liftTravel, inst, floor)
+end
+InteriorService.callLift = callLift
+
+liftTravel = function(inst: Instance_, target: number)
+	local t = inst.Tower :: TowerState
+	local lift = t.Lift :: LiftState
+	lift.Busy = true
+	-- Cerrar (si hay alguien en la puerta, se espera un poco)
+	if lift.DoorsOpen then
+		local waited = 0
+		while doorwayBlocked(inst) and waited < 6 do
+			waited += task.wait(0.5)
+		end
+		setLiftDoors(inst, false)
+		task.wait(Lift.DoorSeconds)
+	end
+	local from = lift.Floor
+	local duration = Lift.duration(from, target)
+	local riders = liftRiders(inst)
+	local model = lift.Cabin.Model
+	model:SetAttribute("LiftFrom", from)
+	model:SetAttribute("LiftTo", target)
+	model:SetAttribute("LiftDuration", duration)
+	model:SetAttribute("LiftStart", serverNow())
+	model:SetAttribute("Moving", true)
+	for _, r in riders do
+		r.Player:SetAttribute("LiftTower", inst.Building.Id .. ":T")
+	end
+	local start = os.clock()
+	local dir = if target > from then 1 else -1
+	while true do
+		local elapsed = os.clock() - start
+		local h = Lift.heightAt(from, target, elapsed, duration)
+		Lift.place(lift.Cabin, h)
+		liftDisplays(inst, liftLabel(math.floor(h / Floors.Height + 0.5), dir))
+		if elapsed >= duration or not model.Parent then
+			break
+		end
+		task.wait()
+	end
+	if not model.Parent then
+		return
+	end
+	Lift.place(lift.Cabin, target * Floors.Height)
+	lift.Floor = target
+	model:SetAttribute("Floor", target)
+	model:SetAttribute("Moving", false)
+	-- La planta de llegada, montada; y quien iba dentro, en su sitio (el cliente ya lo ha llevado;
+	-- si no, se le coloca)
+	buildFloor(inst, target)
+	local floorCf = lift.Cabin.Base * CFrame.new(0, target * Floors.Height, 0)
+	for _, r in riders do
+		local root = r.Player.Character and r.Player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+		if root then
+			local want = floorCf.Position + r.Offset
+			if (root.Position - want).Magnitude > 2 then
+				root.CFrame = CFrame.new(want) * (root.CFrame - root.CFrame.Position)
+			end
+		end
+		r.Player:SetAttribute("LiftTower", nil)
+		r.Player:SetAttribute("TowerFloor", target)
+	end
+	liftDisplays(inst, liftLabel(target))
+	setLiftDoors(inst, true)
+	lift.Busy = false
+	-- Siguiente llamada pendiente
+	local nextFloor = table.remove(lift.Queue, 1)
+	if nextFloor then
+		task.delay(2.5, function()
+			if model.Parent then
+				callLift(inst, nextFloor)
+			end
+		end)
+	end
+end
+
+-- Puertas que llevan mucho abiertas: se cierran solas (si no hay nadie en medio)
+local function stepLifts()
+	for _, inst in instances do
+		local lift = inst.Tower and inst.Tower.Lift
+		if lift and lift.DoorsOpen and not lift.Busy and os.clock() - lift.OpenedAt > Lift.DwellSeconds and not doorwayBlocked(inst) then
+			setLiftDoors(inst, false)
+		end
+	end
+end
+InteriorService.stepLifts = stepLifts
+
+-- Una planta que se acaba de montar: sus puertas de rellano y su pantalla, como esté el ascensor
+function InteriorService.afterFloor(inst: Instance_, floor: number)
+	local lift = inst.Tower and inst.Tower.Lift
+	if not lift then
+		return
+	end
+	if lift.Floor == floor and lift.DoorsOpen and not lift.Busy then
+		Lift.setDoors(landingDoors(inst, floor), true)
+	end
+	local built = inst.Tower.Built[floor]
+	local label = textOf(built and built.Model:FindFirstChild("ElevatorFloor"))
+	if label then
+		label.Text = liftLabel(lift.Floor)
+	end
+end
+
+-- (para las pruebas) el estado del ascensor de un edificio
+function InteriorService.lift(building: Building): LiftState?
+	local inst = towerOf(building, false)
+	return inst and inst.Tower and inst.Tower.Lift
+end
 
 -- Plantas montadas ahora (para las pruebas y el rendimiento)
 function InteriorService.builtFloors(building: Building): ({ number }, number)
@@ -889,10 +1169,16 @@ function connectFloor(inst: Instance_, floor: number, built: Tower.Built)
 				InteriorService.leave(player)
 			end)
 		elseif part:HasTag("InteriorElevator") then
-			local prompt = Builder.prompt(part, "Ascensor", "🏢 Elegir planta", 0.2)
+			-- Botón de llamada: la cabina viene a esta planta y abre (sin ascensor, el panel de antes)
+			local lift = inst.Tower and inst.Tower.Lift
+			local prompt = Builder.prompt(part, if lift then "Llamar al ascensor" else "Ascensor", if lift then "🛗 Botón de llamada" else "🏢 Elegir planta", 0.1)
 			prompt.MaxActivationDistance = 8
 			prompt.Triggered:Connect(function(player)
-				openElevator(player, building)
+				if lift then
+					callLift(inst, floor)
+				else
+					openElevator(player, building)
+				end
 			end)
 		elseif part:HasTag("UnitDoor") then
 			local unit = InteriorService.unitOf(building, floor, part:GetAttribute("Letter"))
@@ -1236,6 +1522,22 @@ function InteriorService.init()
 			if floor < -1 or floor >= building.Floors then
 				return
 			end
+			-- Con ascensor de verdad: sube o baja con la cabina (tienes que estar dentro). La azotea
+			-- (Torre de Valmar) sigue siendo un salto aparte.
+			local inst = towerOf(building, false)
+			local lift = inst and inst.Tower and inst.Tower.Lift
+			if lift and floor >= 0 then
+				local inside = false
+				for _, r in liftRiders(inst :: Instance_) do
+					inside = inside or r.Player == player
+				end
+				if not inside then
+					Notify:FireClient(player, "Info", "🛗 Entra en el ascensor y elige la planta dentro.")
+					return
+				end
+				callLift(inst :: Instance_, floor)
+				return
+			end
 			goTo(player, building, floor, true)
 		end
 	end)
@@ -1265,6 +1567,7 @@ function InteriorService.init()
 		while true do
 			task.wait(0.5)
 			InteriorService.stepTowers()
+			pcall(stepLifts)
 		end
 	end)
 
