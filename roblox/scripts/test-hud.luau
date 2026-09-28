@@ -848,6 +848,18 @@ for _, size in { { 844, 390 }, { 932, 430 }, { 1024, 768 } } do
 	local commandRect = HudLayout.rect(now.Items.Commands, now.Canvas)
 	check(stickRect and stickRect.X < now.Canvas.X * 0.3 and stickRect.Y + stickRect.H > now.Canvas.Y * 0.9, "El joystick abajo a la izquierda")
 	check(stickRect and commandRect.Y + commandRect.H <= stickRect.Y and commandRect.X <= 20, "El menú de comandos a la izquierda, justo encima del joystick")
+	-- Ocultar los comandos en el móvil: el botón ˅ es diminuto; tocar la pestaña entera también vale
+	local phoneCommands = playerGui:FindFirstChild("CommandMenuGui")
+	phoneCommands = phoneCommands and phoneCommands:FindFirstChild("CommandMenu")
+	local tab = phoneCommands and phoneCommands.Header:FindFirstChild("HeaderHit")
+	if tab then
+		tab.Activated:Fire()
+		local hidden = CommandMenu.isCollapsed() and phoneCommands.List.Visible == false
+		tab.Activated:Fire()
+		check(hidden and not CommandMenu.isCollapsed() and phoneCommands.List.Visible, "Tocar la pestaña COMANDOS los oculta y los vuelve a mostrar")
+	else
+		check(false, "Falta la pestaña de los comandos")
+	end
 	local popupsGui = playerGui:FindFirstChild("HudPopups")
 	check(popupsGui.Phone.Visible == false and popupsGui.PhoneButton.Visible, "En el móvil el menú rápido empieza cerrado (botón del teléfono)")
 	local list = hudRects(mods)
