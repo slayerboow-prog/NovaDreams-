@@ -260,7 +260,7 @@ end)
 
 -- Durante las cinemáticas y las conversaciones no se puede interactuar con nada:
 -- se apagan los carteles de "pulsa E" (y el mapa grande se cierra)
-local ProximityPromptService = game:GetService("ProximityPromptService")
+local PromptGuard = require(script.Parent.Controllers.PromptGuard)
 local localPlayer = game:GetService("Players").LocalPlayer
 local StarterGui = game:GetService("StarterGui")
 local function coreGuis()
@@ -283,13 +283,18 @@ pcall(function()
 	end
 end)
 
+-- Carteles: apagados en conversaciones y cinemáticas (y un segundo después), y el de hablar con alguien
+-- no vuelve mientras su globo está en pantalla (PromptGuard: en el móvil, un toque de más ya no repite)
+PromptGuard.init(function()
+	return Cinematics.isPlaying() or localPlayer:GetAttribute("InDialogue") == true
+end, Baby.isSaying)
+
 local wasBusy = false
 game:GetService("RunService").Heartbeat:Connect(function()
 	local cinematic = Cinematics.isPlaying()
 	local busy = cinematic or localPlayer:GetAttribute("InDialogue") == true
 	if busy ~= wasBusy then
 		wasBusy = busy
-		ProximityPromptService.Enabled = not busy
 		TaskMarker.setHidden(busy)
 		Hud.setBusy(busy)
 		CommandMenu.setBusy(busy)

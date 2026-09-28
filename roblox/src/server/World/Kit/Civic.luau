@@ -224,6 +224,7 @@ function Civic.school(parent: Instance, lot: Lot, townName: string)
 		StoryMarks.spot(m, "Escondite", hide * CFrame.new(0, 2.5, 4), mark)
 	end
 	-- Campo de fútbol y gimnasio al fondo del recinto
+	local canteen = false
 	local fieldV = courtV + 40 + 30
 	if lot.Depth > fieldV + 32 then
 		local field = lot.facing(-12, fieldV, 0)
@@ -248,7 +249,15 @@ function Civic.school(parent: Instance, lot: Lot, townName: string)
 		-- Comedor y biblioteca a un lado del campo
 		if lot.Length >= 190 then
 			Civic.schoolCanteen(m, lot.facing(-lot.Length / 2 + 24, fieldV - 24, 0), townName)
+			canteen = true
 		end
+	end
+	-- Sin sitio detrás del campo (el instituto del Campus): el comedor va al fondo del patio, al lado del
+	-- parque infantil. (Services/CanteenService hace lo mismo en los mapas guardados sin comedor.)
+	local canteenInYard = false
+	if not canteen and lot.Length >= 190 and lot.Depth >= courtV + 34 then
+		Civic.schoolCanteen(m, lot.facing(Civic.yardCanteenU(lot.Length), courtV + Civic.YardCanteenV, 0), townName)
+		canteenInYard = true
 	end
 	-- Llegada al colegio: padres, autobús escolar y el balón del camino
 	StoryMarks.spot(m, "Balon_Camino", lot.facing(-W / 2 - 22, -4, FT + 2.5), mark)
@@ -264,9 +273,18 @@ function Civic.school(parent: Instance, lot: Lot, townName: string)
 		Builder.part({ Name = "Fence", Size = Vector3.new(0.3, 5, lot.Depth - setback - 4), CFrame = lot.facing(u, (lot.Depth + setback) / 2, 2.5), Color = rgb(40, 110, 70), Material = Enum.Material.Metal, Transparency = 0.3, Parent = m })
 	end
 	for _, u in { -half + 8, half - 8 } do
-		Nature.tree(m, lot.point(u, lot.Depth - 10, 0))
+		if not (canteenInYard and u > 0) then -- (ahí está el comedor)
+			Nature.tree(m, lot.point(u, lot.Depth - 10, 0))
+		end
 	end
 	return m
+end
+
+-- Dónde va el comedor cuando no cabe detrás del campo: al fondo del patio (u a lo largo de la calle,
+-- en el lado del parque infantil; v desde el centro del patio hacia dentro)
+Civic.YardCanteenV = 10
+function Civic.yardCanteenU(lotLength: number): number
+	return lotLength / 2 - 28
 end
 
 ---------------------------------------------------------------------

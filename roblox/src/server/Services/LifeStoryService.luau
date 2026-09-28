@@ -651,6 +651,30 @@ local function publish(player: Player, force: boolean?)
 	end)
 
 	player:SetAttribute("StoryTarget", target)
+	-- A quién hay que ir a buscar (y dónde): los compañeros y profes del colegio (SchoolService) se
+	-- acercan andando si la escena no trae ya a ese personaje
+	local needNpc, needPlace = nil, nil
+	if trackedId and not (state.Tracked and state.Tracked.Closed) then
+		local prog: Progress = story.Active[trackedId]
+		local step = stepsOf(trackedId, prog)[prog.Step]
+		local function wants(s: { [string]: any }?)
+			if needNpc == nil and s and s.Type == "Talk" and type(s.Npc) == "string" then
+				needNpc = s.Npc
+				needPlace = if type(s.Place) == "string" then Subjects.resolve(s.Place, degreeOf(story)) else nil
+			end
+		end
+		if step and step.Type == "Group" then
+			for i, child in step.Steps do
+				if not (prog.Sub and prog.Sub[tostring(i)]) then
+					wants(child)
+				end
+			end
+		else
+			wants(step)
+		end
+	end
+	player:SetAttribute("StoryNpc", needNpc)
+	player:SetAttribute("StoryNpcPlace", needPlace)
 	local encoded = HttpService:JSONEncode(state)
 	if force or encoded ~= rt.LastPublished then
 		rt.LastPublished = encoded
@@ -726,6 +750,7 @@ local function playDialogue(player: Player, data: Data, questId: string, name: a
 	rt.Busy = true
 	local started = DialogueService.play(player, dialogue, dialogueContext(player, data, questId), function()
 		rt.Busy = false
+		rt.DialogueEndedAt = os.clock() -- el toque que cierra la conversación no abre otra
 		onDone()
 	end)
 	if not started then
@@ -788,7 +813,7 @@ end
 
 local function updateScene(player: Player, data: Data, questId: string)
 	local quest = Quests[questId]
-	if not quest or not (quest.Props or quest.Actors or quest.Dialogues) then
+	if not quest or not (quest.Props or quest.Actors or quest.Dialogues or quest.DayPlan) then
 		return -- misión sencilla, sin escena
 	end
 	local actors, props = sceneFor(player, data, questId)
@@ -932,6 +957,7 @@ local function enterStep(player: Player, data: Data, questId: string)
 		prog.Count = 0
 		prog.Sub = nil
 		prog.WaitUntil = nil
+		prog.Chatted = nil -- con quién se ha charlado ya en este paso (no se repite la conversación)
 		if rt then
 			rt.StepStart[questId] = os.clock()
 			rt.NudgedAt[questId] = nil
@@ -1562,7 +1588,10 @@ local function tickPlayer(player: Player, data: Data)
 				advance(player, data, questId)
 			end
 		elseif step.Type == "Wait" then
-			if prog.WaitUntil and GameClock.now().TotalMinutes >= prog.WaitUntil then
+			-- Se acaba a la hora de juego que toca… o, pase lo que pase con el reloj, a los MaxSeconds reales
+			local rt = runtime[player]
+			local since = os.clock() - (rt.StepStart[questId] or os.clock())
+			if (prog.WaitUntil and GameClock.now().TotalMinutes >= prog.WaitUntil) or (step.MaxSeconds and since >= step.MaxSeconds) then
 				advance(player, data, questId)
 			end
 		elseif step.Type == "Group" then
@@ -1759,6 +1788,40 @@ function interactProp(player: Player, data: Data, questId: string, propId: strin
 	end
 end
 
+-- Guardas contra conversaciones que se repiten (un toque de más en el móvil, el mismo toque que
+-- cierra una conversación, volver a acercarte a alguien…). Funciones puras: se prueban con Lune.
+LifeStoryService.Guard = {
+	AfterDialogue = 1.2, -- segundos tras acabar una conversación en los que no se empieza otra
+	Repeat = 1.0, -- dos toques seguidos al mismo personaje u objeto cuentan como uno
+	Bark = 8, -- una frase suelta del mismo personaje, como mucho cada tantos segundos
+}
+
+-- ¿Se atiende este toque? (rt: estado del jugador; key: "Actor:Nico", "Prop:Libro"…)
+function LifeStoryService.Guard.allow(rt: { [string]: any }, key: string, now: number): boolean
+	local guard = LifeStoryService.Guard
+	if rt.DialogueEndedAt and now - rt.DialogueEndedAt < guard.AfterDialogue then
+		return false
+	end
+	rt.LastTouch = rt.LastTouch or {}
+	local last = rt.LastTouch[key]
+	if last and now - last < guard.Repeat then
+		return false
+	end
+	rt.LastTouch[key] = now
+	return true
+end
+
+-- ¿Puede decir ya otra frase suelta este personaje?
+function LifeStoryService.Guard.bark(rt: { [string]: any }, npc: string, now: number): boolean
+	rt.BarkAt = rt.BarkAt or {}
+	local last = rt.BarkAt[npc]
+	if last and now - last < LifeStoryService.Guard.Bark then
+		return false
+	end
+	rt.BarkAt[npc] = now
+	return true
+end
+
 -- El jugador ha hablado con un actor o usado un objeto de una escena (lo avisa SceneService)
 function LifeStoryService.interact(player: Player, kind: string, questId: string, id: string)
 	local data = DataService.get(player)
@@ -1770,6 +1833,9 @@ function LifeStoryService.interact(player: Player, kind: string, questId: string
 	local prog = story.Active[questId]
 	local quest = Quests[questId]
 	if not prog or not quest then
+		return
+	end
+	if not LifeStoryService.Guard.allow(rt, kind .. ":" .. id, os.clock()) then
 		return
 	end
 	if kind == "Prop" then
@@ -1799,7 +1865,19 @@ function LifeStoryService.interact(player: Player, kind: string, questId: string
 		end
 	end
 	if talk and talk.Dialogue then
+		prog.Chatted = prog.Chatted or {}
+		if prog.Chatted[id] then
+			-- Esta conversación ya se tuvo en este paso: no se repite (solo se vuelve a avisar)
+			StoryEvents.emit(player, "TalkDone", { Npc = id, Quest = questId })
+			return
+		end
+		local index = prog.Step
 		playDialogue(player, data, questId, talk.Dialogue, function()
+			local now = story.Active[questId]
+			if now and now.Step == index then
+				now.Chatted = now.Chatted or {}
+				now.Chatted[id] = true
+			end
 			StoryEvents.emit(player, "TalkDone", { Npc = id, Quest = questId })
 			StoryEvents.emit(player, "Talk", { Npc = id })
 		end)
@@ -1814,12 +1892,22 @@ function LifeStoryService.interact(player: Player, kind: string, questId: string
 			end
 		end
 	end
-	if spec and spec.Talk then
+	prog.Chatted = prog.Chatted or {}
+	if spec and spec.Talk and not prog.Chatted[id] then
+		-- Su charla de esta escena, una vez por paso; después, como mucho una frase suelta de vez en cuando
+		local index = prog.Step
 		playDialogue(player, data, questId, spec.Talk, function()
+			local now = story.Active[questId]
+			if now and now.Step == index then
+				now.Chatted = now.Chatted or {}
+				now.Chatted[id] = true
+			end
 			StoryEvents.emit(player, "Talk", { Npc = id })
 		end)
 	else
-		DialogueService.bark(player, id, spec and spec.Bark or "¡Hola!")
+		if LifeStoryService.Guard.bark(rt, id, os.clock()) then
+			DialogueService.bark(player, id, spec and spec.Bark or "¡Hola!")
+		end
 		StoryEvents.emit(player, "Talk", { Npc = id })
 	end
 end

@@ -4377,6 +4377,10 @@ local function person(id, pos, items)
 	return p, root, hum
 end
 check(SeaEvents.pick(0) == "Tsunami" and SeaEvents.pick(0.9999) == "Medusas", "cada catástrofe tiene su probabilidad")
+check(not SeaEvents.showAlert({ Id = "MareaNegra", Stage = "Adulto", Clock = 14, Distance = 300, Busy = true }), "la alerta no tapa una conversación")
+check(not SeaEvents.showAlert({ Id = "MareaNegra", Stage = "Nino", Clock = 14.5, Distance = 3000 }), "a un niño en el comedor del cole no le sale la marea negra (es para mayores y está lejos)")
+check(SeaEvents.showAlert({ Id = "MareaNegra", Stage = "Adulto", Clock = 14.5, Distance = 3000 }) and SeaEvents.showAlert({ Id = "Tsunami", Stage = "Nino", Clock = 10, Distance = 3000 }), "a los adultos sí, y el tsunami se avisa a todos")
+check(SeaEvents.showAlert({ Id = "Medusas", Stage = "Adolescente", Clock = 19, Distance = 3000 }) and not SeaEvents.showAlert({ Id = "Medusas", Stage = "Adolescente", Clock = 11, Distance = 3000 }), "a un adolescente, fuera de clase sí; en clase y lejos, no")
 check(not SeaEventService.ready("Tsunami") and SeaEventService.ready("Medusas") == false and SeaEvents.Kinds.Tsunami.MinGap >= 3600, "al arrancar no sale ninguna enseguida (y el tsunami, como mucho cada hora o más)")
 check(SeaEvents.pick(0, function(id)
 	return id ~= "Tsunami" and id ~= "Temporal" and id ~= "Remolino"

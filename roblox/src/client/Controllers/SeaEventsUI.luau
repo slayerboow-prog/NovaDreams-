@@ -16,6 +16,7 @@ local Theme = require(script.Parent.Parent.UI.Theme)
 local Perf = require(script.Parent.Parent.UI.Perf)
 local SeaEvents = require(ReplicatedStorage.Shared.SeaEvents)
 local SoundFx = require(script.Parent.SoundFx)
+local Cinematics = require(script.Parent.Cinematics)
 
 local SeaEventsUI = {}
 
@@ -341,7 +342,15 @@ function SeaEventsUI.init()
 				if id == "MareaNegra" and typeof(left) == "number" then
 					status ..= (" · manchas: %d"):format(left)
 				end
-				banner.Visible = true
+				-- No encima de una conversación, y a los niños en clase solo si les pilla cerca (SeaEvents.showAlert)
+				local me = rootOf()
+				banner.Visible = SeaEvents.showAlert({
+					Id = id,
+					Stage = player:GetAttribute("LifeStage"),
+					Clock = game:GetService("Lighting").ClockTime,
+					Distance = if me and center then Vector3.new(me.Position.X - center.X, 0, me.Position.Z - center.Z).Magnitude else nil,
+					Busy = player:GetAttribute("InDialogue") == true or Cinematics.isPlaying(),
+				})
 				bannerText.Text = ("%s <b>%s</b> · %s · %s\n<font color=\"#ffd166\">%s</font>"):format(kind.Icon, string.upper(kind.Name), site, status, kind.Tip)
 			else
 				banner.Visible = false

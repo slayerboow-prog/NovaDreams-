@@ -105,7 +105,8 @@ local order = {
 	"SceneService", -- actores y objetos de cada misión (solo para su jugador)
 	"LifeStoryService", -- la historia de vida escucha a todos los anteriores
 	"BabyService", -- tutorial de bebé (fase 2)
-	"SchoolService", -- compañeros y profe en cada colegio
+	"CanteenService", -- comedor de cada colegio: comida gratis para los alumnos, cocinera y mesas puestas
+	"SchoolService", -- compañeros y profe en cada colegio: siguen el horario y van a buscarte si tu misión lo pide
 	"UpdateService", -- versión nueva publicada: los servidores viejos llevan a sus jugadores a uno nuevo
 	"ActionService", -- linterna (los gestos, trepar y sentarse van en el cliente)
 }

@@ -157,6 +157,36 @@ function SeaEvents.oilAt(position: Vector3): boolean
 	return flat.Magnitude < SeaEvents.Kinds.MareaNegra.Radius + 40
 end
 
+-- ¿Se enseña la alerta de arriba a este jugador? (función pura; ctx = { Id, Stage, Clock, Distance, Busy })
+--   * nunca encima de una conversación o una cinemática (Busy)
+--   * los avisos que son "para mayores" (limpiar el petróleo y cobrar, cazar al tiburón, pescar con
+--     temporal) no se les enseñan a bebés ni a niños, salvo que estén allí mismo
+--   * en horario de cole, a niños y adolescentes solo si el peligro les pilla cerca (Near studs)
+--   * el tsunami sí se avisa a todos (hay que subir a un sitio alto)
+SeaEvents.AlertNear = 500
+SeaEvents.ForAdults = { MareaNegra = true, Tiburon = true, Temporal = true }
+function SeaEvents.showAlert(ctx: { [string]: any }): boolean
+	if not ctx.Id or ctx.Busy then
+		return false
+	end
+	if ctx.Id == "Tsunami" then
+		return true
+	end
+	local kind = SeaEvents.Kinds[ctx.Id]
+	local near = type(ctx.Distance) == "number" and ctx.Distance < ((kind and kind.Radius) or 0) + SeaEvents.AlertNear
+	local stage = ctx.Stage
+	local young = stage == "Bebe" or stage == "Nino"
+	if young and SeaEvents.ForAdults[ctx.Id] and not near then
+		return false
+	end
+	local student = stage == "Nino" or stage == "Adolescente" or stage == "Bebe"
+	local schoolTime = type(ctx.Clock) == "number" and ctx.Clock >= 8.5 and ctx.Clock < 17
+	if student and schoolTime and not near then
+		return false
+	end
+	return true
+end
+
 -- Tipo al azar según su peso. `ready(id)` (opcional) dice si ese tipo ya puede volver a salir
 -- (cada uno tiene su MinGap: las que más dañan, como el tsunami, salen muy de vez en cuando).
 function SeaEvents.pick(r: number, ready: ((string) -> boolean)?): string?

@@ -127,6 +127,9 @@ local PROPS: { [string]: { PropPart } } = {
 		{ Name = "Bol", Hand = "Left", Size = Vector3.new(0.9, 0.4, 0.9), Offset = CFrame.new(-0.02, -0.17, -0.28) * CFrame.Angles(-2.28, 1.21, 1.37), Color = rgb(245, 245, 240) },
 		{ Name = "Cuchara", Hand = "Right", Size = Vector3.new(0.08, 0.9, 0.08), Offset = CFrame.new(-0.11, -0.19, 0.20) * CFrame.Angles(0.47, 1.17, 1.52), Color = rgb(160, 115, 70), Material = Enum.Material.Wood },
 	},
+	Eat = {
+		{ Name = "Cuchara", Hand = "Right", Size = Vector3.new(0.08, 0.8, 0.08), Offset = CFrame.new(-0.11, -0.19, 0.20) * CFrame.Angles(0.47, 1.17, 1.52), Color = rgb(200, 200, 205), Material = Enum.Material.Metal },
+	},
 	Book = {
 		{ Name = "Libro", Hand = "Left", Size = Vector3.new(1.2, 0.12, 0.9), Offset = CFrame.new(0.09, -0.32, -0.16) * CFrame.Angles(-0.42, 0.91, -0.86), Color = rgb(150, 40, 40) },
 		{ Name = "Hojas", Hand = "Left", Size = Vector3.new(1.1, 0.03, 0.8), Offset = CFrame.new(0.12, -0.30, -0.21) * CFrame.Angles(-0.42, 0.91, -0.86), Color = rgb(250, 248, 238) },
@@ -419,6 +422,20 @@ works.Stir = {
 		out.Look = lookUp(t, seed, 11, 2)
 	end,
 	Prop = PROPS.Stir,
+}
+
+-- Comer sentado a la mesa (el comedor del colegio): la cuchara del plato a la boca cada pocos
+-- segundos, la otra mano apoyada junto al plato; entre bocado y bocado mira a los de la mesa
+works.Eat = {
+	Pose = function(t, seed, out)
+		local bite = smoothstep(window(cycle(t, 3.4, seed), 0.3, 0.52, 0.14))
+		out.np = mix(-0.35, -0.12, bite)
+		out.wp = -0.08
+		left(out, 0.45, 1.3, -0.3, 0.7)
+		right(out, mix(0.45, 1.05, bite), mix(1.5, 0.35, bite), mix(0, -0.3, bite), mix(1.1, 2.0, bite))
+		out.Look = lookUp(t, seed, 9, 2.2) * (1 - bite)
+	end,
+	Prop = PROPS.Eat,
 }
 
 -- Leer un libro y explicar (profes)
