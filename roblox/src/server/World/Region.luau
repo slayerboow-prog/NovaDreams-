@@ -278,11 +278,22 @@ function Region.roads(): { Street.Road }
 	local kept: { Street.Road } = {}
 	for _, road in merged do
 		local dirStreet = if road.Axis == "X" then Vector3.new(1, 0, 0) else Vector3.new(0, 0, 1)
+		-- (solo las carreteras casi paralelas y cerca de esta calle)
+		local near = {}
+		local x0, x1 = if road.Axis == "X" then road.From else road.At, if road.Axis == "X" then road.To else road.At
+		local z0, z1 = if road.Axis == "X" then road.At else road.From, if road.Axis == "X" then road.At else road.To
+		for _, seg in Roads.segments() do
+			local kind = Roads.Kinds[seg.Kind]
+			local reach = kind.Road / 2 + kind.Walk + 19
+			if math.abs((seg.B - seg.A).Unit:Dot(dirStreet)) > 0.95 and math.max(seg.A.X, seg.B.X) > x0 - reach and math.min(seg.A.X, seg.B.X) < x1 + reach and math.max(seg.A.Z, seg.B.Z) > z0 - reach and math.min(seg.A.Z, seg.B.Z) < z1 + reach then
+				table.insert(near, { seg, reach })
+			end
+		end
 		local function inside(u: number): boolean
 			local x, z = if road.Axis == "X" then u else road.At, if road.Axis == "X" then road.At else u
-			for _, seg in Roads.segments() do
-				local kind = Roads.Kinds[seg.Kind]
-				if math.abs((seg.B - seg.A).Unit:Dot(dirStreet)) > 0.95 and CityPlan.segmentDistance(x, z, seg.A.X, seg.A.Z, seg.B.X, seg.B.Z) < kind.Road / 2 + kind.Walk + 19 then
+			for _, item in near do
+				local seg = item[1]
+				if CityPlan.segmentDistance(x, z, seg.A.X, seg.A.Z, seg.B.X, seg.B.Z) < item[2] then
 					return true
 				end
 			end
