@@ -59,6 +59,7 @@ type Bus = {
 	AtStop: number?, -- parada en la que está con las puertas abiertas
 	DoorsOpen: boolean,
 	Still: number, -- (conductor jugador) tiempo parado junto a la parada
+	Off: number?, -- (conductor jugador) tiempo que lleva fuera del autobús
 	Riders: { [Player]: Seat },
 	Requests: { [Player]: boolean },
 }
@@ -357,10 +358,9 @@ function BusService.board(bus: Bus, player: Player): boolean
 		Notify:FireClient(player, "Error", ("El billete cuesta %s y no tienes suficiente."):format(Format.money(fare)))
 		return false
 	end
-	-- Si iba en bici o sentado en el banco de la parada, se levanta primero
-	if VehicleService.ridingKind(player) then
-		VehicleService.dismount(player, true)
-	end
+	-- Si iba en bici (o de pasajero) o sentado en el banco de la parada, se levanta primero. Sin
+	-- avisar a su ordenador de que «se ha bajado»: si no, le levantaría también del autobús
+	VehicleService.switchOut(player)
 	local current = humanoid.SeatPart
 	if current then
 		local weld = current:FindFirstChild("SeatWeld")
@@ -818,9 +818,21 @@ local function hire(player: Player)
 	Notify:FireClient(player, "Success", ("🚌 ¡Contratado de conductor en la %s (%s)! Sigue la línea azul hasta cada parada y para al lado."):format(line.Def.Id, line.Def.Name))
 end
 
--- Cada medio segundo: ¿ha parado el conductor en su parada?
+-- Cada medio segundo: ¿ha parado el conductor en su parada? (y si deja el autobús abandonado
+-- DRIVER_AWAY segundos, se acaba su turno y el autobús se retira)
+local DRIVER_AWAY = 120
 local function checkDrivers(dt: number)
 	for player, bus in drivers do
+		if VehicleService.ridingKind(player) == "Autobus" then
+			bus.Off = 0
+		else
+			bus.Off = (bus.Off or 0) + dt
+			if (bus.Off :: number) >= DRIVER_AWAY then
+				quit(player, true)
+				Notify:FireClient(player, "Info", "🚌 Has dejado el autobús abandonado: se acabó tu turno de conductor.")
+				continue
+			end
+		end
 		local chassis = bus.Model.PrimaryPart
 		if chassis and bus.Model.Parent then
 			if bus.Wait > 0 then

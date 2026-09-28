@@ -274,10 +274,19 @@ local function queue(show: () -> ())
 	showingMoment = true
 	task.spawn(function()
 		while #momentQueue > 0 do
-			table.remove(momentQueue, 1)()
+			-- Si uno falla, la cola sigue (si no, se quedaba parada y los diálogos esperando)
+			local ok, err = pcall(table.remove(momentQueue, 1))
+			if not ok then
+				warn("[LifeStory] " .. tostring(err))
+			end
 		end
 		showingMoment = false
 	end)
+end
+
+-- ¿Se está enseñando un momento, un capítulo o una escena? (DialogueUI espera a que acaben)
+function LifeStory.isShowing(): boolean
+	return showingMoment
 end
 
 -- Frase grande en el centro de la pantalla que aparece y se desvanece
@@ -360,11 +369,34 @@ end
 -- Decisiones y ofrecimientos
 ---------------------------------------------------------------------
 
-local openDialog: Frame? = nil
+-- Una ventana por tipo: una decisión y un ofrecimiento pueden estar a la vez (antes uno borraba al otro
+-- y la decisión se perdía). El ofrecimiento se pone encima de la decisión.
+local openDialogs: { [string]: Frame } = {}
+local choiceShown: string? = nil -- qué decisión se está enseñando (para no rehacerla si llega otra vez)
 
-local function dialog(title: string?, message: string, options: { { Text: string, OnPick: () -> () } })
-	if openDialog then
-		openDialog:Destroy()
+local function layoutDialogs()
+	local choice = openDialogs.Choice
+	local offer = openDialogs.Offer
+	if offer then
+		local above = if choice and choice.Parent then choice.AbsoluteSize.Y + 10 else 0
+		offer.Position = UDim2.new(0.5, 0, 1, -110 - above)
+	end
+end
+
+local function closeDialog(slot: string, panel: Frame)
+	if openDialogs[slot] == panel then
+		openDialogs[slot] = nil
+		if slot == "Choice" then
+			choiceShown = nil
+		end
+	end
+	panel:Destroy()
+	layoutDialogs()
+end
+
+local function dialog(slot: string, title: string?, message: string, options: { { Text: string, OnPick: () -> () } })
+	if openDialogs[slot] then
+		closeDialog(slot, openDialogs[slot])
 	end
 	local panel = Theme.panel({
 		AnchorPoint = Vector2.new(0.5, 1),
@@ -374,7 +406,7 @@ local function dialog(title: string?, message: string, options: { { Text: string
 		ZIndex = 25,
 		Parent = gui,
 	})
-	openDialog = panel
+	openDialogs[slot] = panel
 	Theme.padding(14).Parent = panel
 	create("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder, Parent = panel })
 	if title then
@@ -402,12 +434,14 @@ local function dialog(title: string?, message: string, options: { { Text: string
 			Parent = panel,
 		})
 		button.Activated:Connect(function()
-			if openDialog == panel then
-				openDialog = nil
-			end
-			panel:Destroy()
+			closeDialog(slot, panel)
 			option.OnPick()
 		end)
+	end
+	-- (el tamaño final se sabe un momento después)
+	task.defer(layoutDialogs)
+	if slot == "Choice" then
+		panel:GetPropertyChangedSignal("AbsoluteSize"):Connect(layoutDialogs)
 	end
 	return panel
 end
@@ -426,8 +460,11 @@ local handlers: { [string]: (payload: { [string]: any }) -> () } = {
 		end)
 	end,
 	Cinematic = function(payload)
+		-- Cuenta como escena en marcha desde que llega (un diálogo no se abre mientras espera su turno)
+		local release = Cinematics.hold()
 		queue(function()
-			Cinematics.play(payload)
+			pcall(Cinematics.play, payload)
+			release()
 		end)
 	end,
 	Chapter = function(payload)
@@ -448,6 +485,14 @@ local handlers: { [string]: (payload: { [string]: any }) -> () } = {
 		end)
 	end,
 	Choice = function(payload)
+		-- El servidor vuelve a mandar la decisión mientras no se elige: si ya está en pantalla, se deja
+		local key = tostring(payload.QuestId) .. "|" .. tostring(payload.PromptKey)
+		for _, option in payload.Options do
+			key ..= "|" .. tostring(option.Id)
+		end
+		if openDialogs.Choice and openDialogs.Choice.Parent and choiceShown == key then
+			return
+		end
 		local options = {}
 		for _, option in payload.Options do
 			table.insert(options, {
@@ -457,10 +502,11 @@ local handlers: { [string]: (payload: { [string]: any }) -> () } = {
 				end,
 			})
 		end
-		dialog(nil, Strings.get(payload.PromptKey), options)
+		dialog("Choice", nil, Strings.get(payload.PromptKey), options)
+		choiceShown = key
 	end,
 	Offer = function(payload)
-		local panel = dialog(Strings.get(payload.TitleKey), Strings.get(payload.TextKey), {
+		local panel = dialog("Offer", Strings.get(payload.TitleKey), Strings.get(payload.TextKey), {
 			{ Text = Strings.get("STORY.OFFER.ACCEPT"), OnPick = function()
 				Remote:FireServer("Offer", payload.QuestId, true)
 			end },
@@ -471,10 +517,7 @@ local handlers: { [string]: (payload: { [string]: any }) -> () } = {
 		-- Si no contesta, el ofrecimiento se va solo (el servidor lo olvida a los 30 s)
 		task.delay(28, function()
 			if panel.Parent then
-				panel:Destroy()
-				if openDialog == panel then
-					openDialog = nil
-				end
+				closeDialog("Offer", panel)
 			end
 		end)
 	end,

@@ -231,6 +231,16 @@ local function clearCart(player: Player, restock: boolean)
 	end
 	carts[player] = nil
 	publishCart(player)
+	-- Si le estaban cobrando en una caja, la caja queda libre
+	for token, s in sessions do
+		if s.Kind == "Lane" and s.Customer.Player == player then
+			sessions[token] = nil
+			s.Lane.Session = nil
+			if s.Lane.Cashier then
+				Remote:FireClient(s.Lane.Cashier, "CloseScan")
+			end
+		end
+	end
 end
 
 local function onTake(player: Player, shelf: BasePart)
@@ -479,6 +489,13 @@ local function onPay(player: Player, token: any)
 		return
 	end
 	if not checkout(player) then
+		-- No ha podido pagar: libera la caja (tendrá que volver a ponerse en ella)
+		if session.Kind == "Lane" then
+			endSession(session)
+			if session.Lane.Cashier then
+				Remote:FireClient(session.Lane.Cashier, "CloseScan")
+			end
+		end
 		return
 	end
 	if session.Kind == "Lane" then
@@ -527,27 +544,30 @@ end
 -- Charcutería
 ---------------------------------------------------------------------
 
-local function deliServe(_store: Store, order: any)
+-- Devuelve si el pedido se ha cobrado (los de NPC siempre cuentan como cobrados)
+local function deliServe(_store: Store, order: any): boolean
 	-- order = { Player = p?, Npc = model?, Id, Grams, Done = fn? }
+	local charged = true
 	if order.Player then
 		local player: Player = order.Player
 		local price = Groceries.deliPrice(order.Id, order.Grams)
 		local packs = math.max(1, math.floor(order.Grams / 100 + 0.5))
 		if not InventoryService.canAdd(player, order.Id, packs) then
 			Notify:FireClient(player, "Error", "No te cabe en la mochila.")
-			return
-		end
-		if not DataService.spend(player, price) then
+			charged = false
+		elseif not DataService.spend(player, price) then
 			Notify:FireClient(player, "Error", "No tienes suficiente dinero para la charcutería.")
-			return
+			charged = false
+		else
+			InventoryService.add(player, order.Id, packs)
+			local d = Groceries.deliById[order.Id]
+			Notify:FireClient(player, "Success", ("🔪 %d g de %s: %s. ¡A la mochila!"):format(order.Grams, d.Name, Format.money(price)))
 		end
-		InventoryService.add(player, order.Id, packs)
-		local d = Groceries.deliById[order.Id]
-		Notify:FireClient(player, "Success", ("🔪 %d g de %s: %s. ¡A la mochila!"):format(order.Grams, d.Name, Format.money(price)))
 	end
 	if order.Done then
 		order.Done()
 	end
+	return charged
 end
 
 local function deliNext(store: Store)
@@ -592,11 +612,15 @@ local function onDeliServe(player: Player, token: any, id: any, grams: any)
 	if i then
 		table.remove(store.DeliQueue, i)
 	end
-	pay(player, JOBS.Charcutero.PerOrder, "pedido de charcutería")
-	NeedsService.change(player, 0, -1)
-	StoryEvents.emit(player, "JobTaskDone", { JobId = "Charcutero" })
 	Remote:FireClient(player, "CloseDeli")
-	deliServe(store, order)
+	-- Primero se cobra al cliente; el charcutero solo cobra si el cliente ha pagado
+	if deliServe(store, order) then
+		pay(player, JOBS.Charcutero.PerOrder, "pedido de charcutería")
+		NeedsService.change(player, 0, -1)
+		StoryEvents.emit(player, "JobTaskDone", { JobId = "Charcutero" })
+	else
+		Notify:FireClient(player, "Info", "El cliente no ha podido pagar el pedido.")
+	end
 	deliNext(store)
 end
 
@@ -607,6 +631,10 @@ local function onDeliOrder(player: Player, id: any, grams: any)
 	local root = rootOf(player)
 	local store = root and nearestStore(root.Position)
 	if not store or not store.Deli or (store.Deli.Position - (root :: BasePart).Position).Magnitude > 20 then
+		return
+	end
+	-- El personal de la tienda no se hace pedidos a sí mismo
+	if store.DeliWorker == player or (jobs[player] and jobs[player].Store == store) then
 		return
 	end
 	for _, o in store.DeliQueue do
@@ -751,7 +779,8 @@ local function spawnCustomer(store: Store)
 				local paySpot = lane.Belt:GetAttribute("PaySpot") :: Vector3
 				local back = (queueSpot - paySpot).Unit
 				local myTurn = false
-				while not myTurn do
+				local queued = os.clock()
+				while not myTurn and os.clock() - queued < 120 do
 					local position = table.find(lane.Queue, customer) or 1
 					Npc.walkTo(npc, { queueSpot + back * (position - 1) * 3 }, 6)
 					if position == 1 and not lane.Session then
@@ -1227,8 +1256,17 @@ function SupermarketService.init()
 			end
 			-- Cobros que se atascan (el cajero se ha ido): los termina el sistema
 			for _, session in sessions do
-				if session.Kind == "Lane" and os.clock() - session.Started > 120 and not session.Customer.Player then
-					finishCustomer(session)
+				if session.Kind == "Lane" and os.clock() - session.Started > 120 then
+					if session.Customer.Player then
+						-- Un jugador que no paga (se ha ido, ha muerto…) no bloquea la caja para siempre
+						endSession(session)
+						Remote:FireClient(session.Customer.Player, "Waiting", nil)
+						if session.Lane.Cashier then
+							Remote:FireClient(session.Lane.Cashier, "CloseScan")
+						end
+					else
+						finishCustomer(session)
+					end
 				end
 			end
 		end

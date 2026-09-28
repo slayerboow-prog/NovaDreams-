@@ -425,6 +425,15 @@ local function waitServed(lobby: Lobby, customer: any, r: Request): boolean
 	return customer.Served
 end
 
+-- Un huésped NPC que bajaba a irse y se marcha sin dejar la llave: la habitación queda libre
+local function releaseGuestRoom(lobby: Lobby, customer: any)
+	local guest = customer.Room and lobby.Rooms[customer.Room]
+	if guest and guest.Leaving then
+		lobby.Rooms[customer.Room] = nil
+		publish(lobby)
+	end
+end
+
 local function customerLife(lobby: Lobby, customer: any)
 	local npc = customer.Model
 	local function leave(text: string?)
@@ -432,6 +441,7 @@ local function customerLife(lobby: Lobby, customer: any)
 			Npc.say(npc, text)
 		end
 		leaveQueue(lobby, customer)
+		releaseGuestRoom(lobby, customer)
 		Npc.walkTo(npc, { point(lobby, "Door"), point(lobby, "Outside") }, 8)
 		local k = table.find(lobby.Customers, customer)
 		if k then
@@ -496,6 +506,13 @@ local function spawnCustomer(lobby: Lobby, name: string?, room: number?)
 		local ok, err = pcall(customerLife, lobby, customer)
 		if not ok then
 			warn("[HotelService] " .. tostring(err))
+			leaveQueue(lobby, customer)
+			for i = #lobby.Requests, 1, -1 do
+				if lobby.Requests[i].Customer == customer then
+					table.remove(lobby.Requests, i)
+				end
+			end
+			releaseGuestRoom(lobby, customer)
 			if model.Parent then
 				model:Destroy()
 			end

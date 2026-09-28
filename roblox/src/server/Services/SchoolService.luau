@@ -200,6 +200,7 @@ local function makePerson(school: School, npcId: string, kid: boolean): Person?
 	model.Name = name
 	model:SetAttribute("NpcId", npcId) -- si una escena de la historia lo trae, este se oculta (SceneClient)
 	CollectionService:AddTag(model, "StaticNpc")
+	Npc.atomic(model) -- que llegue entero al cliente (si no, a veces no se le podía animar)
 	local humanoid = model:FindFirstChildOfClass("Humanoid")
 	local root = model:FindFirstChild("HumanoidRootPart") :: BasePart?
 	if humanoid then

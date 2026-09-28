@@ -56,6 +56,7 @@ type Order = {
 	Ready: boolean,
 	Created: number,
 	Player: Player?, -- cliente jugador
+	Paid: number?, -- lo que pagó el cliente jugador (para devolvérselo si se va)
 	Customer: any?, -- cliente NPC
 	Delivered: boolean,
 }
@@ -287,8 +288,8 @@ local function deliver(cafe: Cafe, order: Order, by: Player?)
 	elseif order.Customer then
 		order.Customer.Served = true
 	end
-	-- Al barista
-	if by then
+	-- Al barista (no cobra por servirse a sí mismo)
+	if by and order.Player ~= by then
 		local wait = os.clock() - order.Created
 		local tip = if wait <= JOB.FastSeconds then JOB.TipFast else 0
 		local pay = math.floor((JOB.PerOrder + JOB.PerStep * #order.Tasks + tip) * MonetizationService.payMultiplier(by))
@@ -383,6 +384,15 @@ local function onOrder(player: Player, items: any)
 	if not cafe then
 		return
 	end
+	-- El barista de turno no se hace pedidos a sí mismo
+	if cafe.Barista == player or baristaOf[player] then
+		return
+	end
+	-- De noche, sin barista, no hay quien lo prepare
+	if not cafe.Barista and not isDay() then
+		Notify:FireClient(player, "Info", "La cafetería está cerrada. Vuelve de día.")
+		return
+	end
 	local list, total = {}, 0
 	for _, id in items do
 		local product = typeof(id) == "string" and CafeMenu.byId[id]
@@ -404,6 +414,7 @@ local function onOrder(player: Player, items: any)
 	end
 	local order = makeOrder(player.DisplayName or player.Name, list)
 	order.Player = player
+	order.Paid = total
 	table.insert(cafe.Orders, order)
 	Notify:FireClient(player, "Info", ("Pedido: %s (%s). Espera en la RECOGIDA."):format(productNames(list), Format.money(total)))
 	publish(cafe)
@@ -812,6 +823,18 @@ function CafeService.init()
 	Players.PlayerRemoving:Connect(function(player)
 		CafeService.quit(player, true)
 		removeTray(player)
+		-- Sus pedidos pendientes se quitan y se le devuelve el dinero
+		for _, cafe in cafes do
+			for i = #cafe.Orders, 1, -1 do
+				local order = cafe.Orders[i]
+				if order.Player == player and not order.Delivered then
+					order.Delivered = true
+					table.remove(cafe.Orders, i)
+					DataService.addMoney(player, order.Paid or 0)
+				end
+			end
+			publish(cafe)
+		end
 	end)
 
 	-- Vida de cada cafetería: clientes que llegan, barista NPC y panel del barista

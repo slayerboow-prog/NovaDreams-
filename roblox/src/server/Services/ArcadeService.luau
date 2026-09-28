@@ -36,6 +36,9 @@ local boards: { BasePart } = {}
 
 local function ensure(data: { [string]: any })
 	data.Tickets = data.Tickets or 0
+	if data.Tickets ~= data.Tickets or math.abs(data.Tickets) == math.huge then
+		data.Tickets = 0 -- partida guardada corrupta (NaN / infinito)
+	end
 	data.Prizes = data.Prizes or {}
 	data.Wearing = data.Wearing or {}
 	data.ArcadeBest = data.ArcadeBest or {}
@@ -240,6 +243,11 @@ local function startGame(player: Player, gameId: string)
 	Remote:FireClient(player, "Play", session.Token, gameId, info)
 end
 
+-- Número de verdad (ni NaN ni infinito): lo manda el cliente
+local function finite(x: any): boolean
+	return typeof(x) == "number" and x == x and math.abs(x) ~= math.huge
+end
+
 local function endGame(player: Player, token: any, result: any)
 	local session = sessions[player]
 	if not session or session.Token ~= token then
@@ -256,16 +264,19 @@ local function endGame(player: Player, token: any, result: any)
 	if session.GameId == "Bolas" and typeof(result) == "table" then
 		for i = 1, math.min(#result, info.Balls) do
 			local power = result[i]
-			if typeof(power) == "number" then
+			if finite(power) then
 				score += Gameplay.bolasScore(math.clamp(power, 0, 1))
 			end
 		end
-	elseif session.GameId == "Canasta" and typeof(result) == "number" then
+	elseif session.GameId == "Canasta" and finite(result) then
 		score = math.floor(result)
 	end
 	score = math.clamp(score, 0, info.MaxScore)
 	-- La Suerte del personaje da algún ticket de más
 	local tickets = math.floor(score / info.TicketsPer * (1 + 0.02 * (player:GetAttribute("Stat_Suerte") or 0)))
+	if tickets ~= tickets or tickets < 0 or tickets == math.huge then
+		tickets = 0
+	end
 	local data = DataService.get(player)
 	if data then
 		ensure(data)

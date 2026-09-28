@@ -424,6 +424,11 @@ local SETUP: { [string]: (BasePart) -> () } = {
 				info(player, "🚽 Ocupado. Espera tu turno.")
 				return
 			end
+			if humanoid.SeatPart ~= s then
+				-- Primero se baja del vehículo (si no, se llevaría la bici al váter). (require aquí
+				-- dentro: así no hay requires en círculo)
+				require(script.Parent.VehicleService).standUp(player)
+			end
 			root.CFrame = s.CFrame * CFrame.new(0, 2.5, 0)
 			s:Sit(humanoid)
 			task.delay(4, function()

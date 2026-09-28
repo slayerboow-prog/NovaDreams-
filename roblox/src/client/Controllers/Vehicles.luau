@@ -169,12 +169,16 @@ local function body(): (Humanoid?, BasePart?)
 	return character and character:FindFirstChildOfClass("Humanoid"), character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 end
 
--- ¿Es el asiento de un vehículo (conductor o pasajero)?
+-- ¿Es el asiento de un vehículo (conductor o pasajero)? Los de viajero del autobús urbano no: esos
+-- los lleva BusService (se baja en las paradas, no en marcha)
 local function vehicleSeat(seat: Instance?): boolean
-	if not seat or not (seat:IsA("Seat") or seat:IsA("VehicleSeat")) then
+	if not seat or not (seat:IsA("Seat") or seat:IsA("VehicleSeat")) or seat.Name == "PassengerSeat" then
 		return false
 	end
 	local model = seat:FindFirstAncestorOfClass("Model")
+	if model and model:GetAttribute("BusLine") and seat.Name ~= "DriverSeat" then
+		return false
+	end
 	return model ~= nil and model:GetAttribute("Drivable") == true
 end
 

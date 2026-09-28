@@ -764,6 +764,8 @@ local function openElevator(player: Player, building: Building)
 	})
 end
 
+InteriorService.openElevator = openElevator
+
 -- La función de abrir puertas con bisagra (InteractService; se pide al usarla para no depender de él)
 local function InteractSwing(): ((BasePart, boolean, number?) -> ())?
 	local ok, service = pcall(function()

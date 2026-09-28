@@ -591,9 +591,18 @@ function MedicalService.quit(player: Player, silent: boolean?)
 	s.Room.Doctor = nil
 	if s.Patient then
 		-- El paciente vuelve a la sala de espera (lo atenderá otro)
+		local patient = s.Patient
 		s.Room.Patient = nil
-		s.Patient.State = "Waiting"
-		table.insert(s.Clinic.Waiting, 1, s.Patient)
+		if patient.Model then
+			-- Un paciente NPC no se queda en la camilla: se va
+			leaveClinic(s.Clinic, patient, "Vaya, el médico se ha ido… volveré otro día.")
+		elseif patient.Player then
+			patient.State = "Waiting"
+			table.insert(s.Clinic.Waiting, 1, patient)
+			patient.Player:SetAttribute("TaskTarget", nil)
+			patient.Player:SetAttribute("TaskText", nil)
+			Notify:FireClient(patient.Player, "Info", "🏥 El médico ha tenido que irse. Vuelve a la sala de espera: te llamarán otra vez.")
+		end
 	end
 	RoleService.offDuty(player, "Medico")
 	if player:GetAttribute("Job") == "Medico" then

@@ -648,7 +648,10 @@ local function frame(dt: number)
 	local w = weapon()
 	local humanoid, root, head = parts()
 	local camera = workspace.CurrentCamera
-	if not w or not humanoid or not root or not head or humanoid.Health <= 0 then
+	-- En una conversación o una cinemática no se apunta (ni se mueve la cámara con el retroceso):
+	-- se leen los atributos que ponen DialogueUI y Cinematics, sin requerirlos
+	local busy = player:GetAttribute("InDialogue") == true or player:GetAttribute("InCinematic") == true
+	if busy or not w or not humanoid or not root or not head or humanoid.Health <= 0 then
 		if wantAim then
 			WeaponController.setAim(false)
 		end

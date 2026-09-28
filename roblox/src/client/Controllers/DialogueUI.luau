@@ -17,6 +17,7 @@ local UserInputService = game:GetService("UserInputService")
 local Theme = require(script.Parent.Parent.UI.Theme)
 local StoryAudio = require(script.Parent.StoryAudio)
 local Cinematics = require(script.Parent.Cinematics)
+local LifeStory = require(script.Parent.LifeStory)
 local ActorLife = require(script.Parent.ActorLife)
 local DayLight = require(script.Parent.DayLight)
 local SpeechBubbles = require(script.Parent.Parent.UI.SpeechBubbles)
@@ -494,9 +495,18 @@ end
 processQueue = function()
 	while #queue > 0 do
 		local payload = table.remove(queue, 1) :: { [string]: any }
-		-- Si hay una escena de cámara, la conversación espera a que termine
+		-- Si hay una escena de cámara (o una esperando su turno), la conversación espera a que termine
 		while Cinematics.isPlaying() do
 			task.wait(0.2)
+		end
+		-- Una conversación nueva tampoco se abre encima de un momento o una pantalla de capítulo
+		-- (como mucho se espera un rato: la conversación nunca se queda sin salir)
+		local since = os.clock()
+		while not open and LifeStory.isShowing() and os.clock() - since < 15 do
+			task.wait(0.2)
+			while Cinematics.isPlaying() do
+				task.wait(0.2)
+			end
 		end
 		setOpen(true)
 		for _, line in payload.Lines or {} do
