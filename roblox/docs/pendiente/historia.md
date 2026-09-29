@@ -1,7 +1,7 @@
 # Traspaso de la sesión de HISTORIA (rama `claude/historia`)
 
 Estado al cerrar: todo commiteado y subido. Nada a medias. Últimas pruebas en verde
-(test-compile, test-clientboot, test-gameplay y test-lifestory: 450 ✅, 0 fallos).
+(test-compile, test-clientboot, test-gameplay y test-lifestory: 473 ✅, 0 fallos; test-storycontext y test-playthrough en verde).
 
 ## Qué estaba haciendo
 
