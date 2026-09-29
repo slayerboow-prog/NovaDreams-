@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bash scripts/publish.sh)",
+      "Bash(bash scripts/publish.sh *)",
+      "Bash(git pull origin claude/roblox-game-d98vy8)"
+    ]
+  }
+}
