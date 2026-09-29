@@ -21,6 +21,7 @@ local Npc = require(script.Parent.Parent.World.Npc)
 local Space = require(script.Parent.Parent.World.Space)
 local TimeContext = require(game:GetService("ReplicatedStorage").Shared.LifeStory.TimeContext)
 local OpeningHours = require(game:GetService("ReplicatedStorage").Shared.OpeningHours)
+local Ground = require(game:GetService("ReplicatedStorage").Shared.Ground)
 
 local CrowdService = {}
 
@@ -506,7 +507,7 @@ local function groundAt(p: Vector3, fallback: number): Vector3
 			break
 		end
 		local part = hit.Instance
-		local solid = part:IsA("Terrain") or (part:IsA("BasePart") and part.CanCollide)
+		local solid = part:IsA("Terrain") or (part:IsA("BasePart") and part.CanCollide and Ground.skipOf(part) == nil) -- (ni coches ni personas)
 		if solid and hit.Normal.Y > 0.8 and hit.Position.Y < fallback + 4 then
 			return hit.Position
 		end

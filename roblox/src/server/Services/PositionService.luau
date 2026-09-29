@@ -11,6 +11,7 @@
 local Players = game:GetService("Players")
 
 local DataService = require(script.Parent.DataService)
+local Ground = require(game:GetService("ReplicatedStorage").Shared.Ground)
 
 local PositionService = {}
 
@@ -83,7 +84,8 @@ local function restore(player: Player, data: { [string]: any })
 			end
 			params.FilterDescendantsInstances = ignore
 			-- Suelo justo debajo de los pies (desde poco más arriba: dentro de un edificio daría con el techo)
-			local hit = workspace:Raycast(position + V(0, 1, 0), V(0, -40, 0), params)
+			-- (solo suelo de verdad: no encima de un coche aparcado o de un personaje)
+			local hit = Ground.cast(position + V(0, 1, 0), V(0, -40, 0), params)
 			if hit then
 				local height = position.Y - hit.Position.Y
 				local lift = math.clamp(height, 2, 5)

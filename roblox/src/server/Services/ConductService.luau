@@ -28,6 +28,20 @@ local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 local DataService = require(script.Parent.DataService)
 
+-- Antes de llevar a alguien a otro sitio: que se levante del asiento en que vaya (coche, autobús,
+-- metro). Si no, se llevaba el vehículo con él (un coche del metro acababa en la calle).
+local function standUpBefore(character: Model?)
+	local ok, who = pcall(function()
+		return character and game:GetService("Players"):GetPlayerFromCharacter(character)
+	end)
+	if ok and who then
+		pcall(function()
+			require(script.Parent.VehicleService).standUp(who)
+		end)
+	end
+end
+
+
 local ConductService = {}
 
 ConductService.HomeDelay = 3 -- segundos de «te llevamos a casa» antes de llegar
@@ -185,7 +199,8 @@ function ConductService.takeHome(player: Player, crimes: { string }?)
 			local ok = scene and scene.teleportTo and pcall(scene.teleportTo, player, spot)
 			if not ok and player.Character then
 				pcall(function()
-					(player.Character :: Model):PivotTo(CFrame.new(spot + Vector3.new(0, 3, 0)))
+					standUpBefore(player.Character)
+					;(player.Character :: Model):PivotTo(CFrame.new(spot + Vector3.new(0, 3, 0)))
 				end)
 			end
 		end

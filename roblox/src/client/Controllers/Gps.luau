@@ -16,6 +16,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local GpsMath = require(ReplicatedStorage.Shared.Gps)
+local Ground = require(ReplicatedStorage.Shared.Ground)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Icons = require(script.Parent.Parent.UI.Icons)
 local HudLayout = require(script.Parent.Parent.UI.HudLayout)
@@ -202,7 +203,7 @@ local function groundBelow(from: Vector3, params: RaycastParams): Vector3?
 		end
 		local part = hit.Instance
 		local model = part:FindFirstAncestorOfClass("Model")
-		local isBody = model ~= nil and model:FindFirstChildOfClass("Humanoid") ~= nil
+		local isBody = (model ~= nil and model:FindFirstChildOfClass("Humanoid") ~= nil) or Ground.skipOf(part) ~= nil -- (personas y vehículos)
 		local flatEnough = hit.Normal.Y > 0.7
 		if hit.Material == Enum.Material.Water or (part.CanCollide and part.Transparency < 0.9 and not isBody and flatEnough and part.Size.Y < 40) or part:IsA("Terrain") then
 			return hit.Position

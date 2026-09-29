@@ -28,6 +28,7 @@ local GameClock = require(ReplicatedStorage.Shared.GameClock)
 local Items = require(ReplicatedStorage.Shared.Items)
 local Format = require(ReplicatedStorage.Shared.Format)
 local Npc = require(script.Parent.Parent.World.Npc)
+local MetroKit = require(script.Parent.Parent.World.Kit.MetroKit)
 local DataService = require(script.Parent.DataService)
 local NeedsService = require(script.Parent.NeedsService)
 local LifeService = require(script.Parent.LifeService)
@@ -237,10 +238,16 @@ local function isClosed(stationId: string): boolean
 end
 
 local function setDoors(train: Train, open: boolean)
+	-- Solo se abren las puertas del lado del andén (las del otro lado dan a la pared y a la vía)
+	local frame = if open then Metro.frame(train.Line.Stations[train.Index], train.Line) else nil
 	for _, car in train.Cars do
+		-- ¿El lado derecho del coche da al andén? (el andén está a la derecha de la estación)
+		local facing = if frame and frame.RightVector:Dot(car.Root.CFrame.RightVector) < 0 then -1 else 1
 		for _, door in car.Doors do
-			door.Transparency = if open then 1 else 0
-			door.CanCollide = not open
+			local platformSide = frame == nil or (door:GetAttribute("Side") or 1) * facing > 0
+			local opened = open and platformSide
+			door.Transparency = if opened then 1 else 0
+			door.CanCollide = not opened
 		end
 	end
 end
@@ -348,6 +355,16 @@ end
 
 local function step(train: Train, dt: number)
 	if train.Phase == "Dwell" then
+		-- Si algo ha movido un coche (un viajero sentado al que otro sistema llevó a otro sitio se
+		-- llevaba el coche con él: aparecía en la calle), vuelve a su sitio
+		local first = train.Cars[1]
+		if first and first.Root.Parent then
+			local offset = (1 - (#train.Cars + 1) / 2) * STEP
+			local p = Metro.sample(train.Points, train.S - offset)
+			if (first.Root.Position - p).Magnitude > 4 then
+				placeTrain(train)
+			end
+		end
 		train.Timer -= dt
 		if train.DoorsOpen and not train.Warned and train.Timer <= 4 then
 			train.Warned = true
@@ -387,11 +404,18 @@ local function setupTrain(model: Instance)
 		local carModel = model:FindFirstChild("Car" .. k)
 		local root = carModel and carModel:FindFirstChild("Root")
 		if carModel and root and root:IsA("BasePart") then
+			if carModel:GetAttribute("NeedsWeld") then
+				-- Soldar todo el coche a su suelo aquí, con las piezas ya en su sitio (MetroKit.weldCar)
+				carModel:SetAttribute("NeedsWeld", nil)
+				MetroKit.weldCar(carModel :: Model, root)
+			end
 			local car: Car = { Root = root, Seats = {}, Doors = {} }
 			for _, d in carModel:GetDescendants() do
 				if d:IsA("Seat") then
 					table.insert(car.Seats, d)
 				elseif d:IsA("BasePart") and d:HasTag("MetroDoor") then
+					-- De qué lado del coche está (a la derecha o a la izquierda de su suelo)
+					d:SetAttribute("Side", if root.CFrame:PointToObjectSpace(d.Position).X > 0 then 1 else -1)
 					table.insert(car.Doors, d)
 				end
 			end
@@ -541,6 +565,64 @@ end
 
 -- Pasajeros: se puede ir sentado o de pie, andar por el coche y cambiar de coche. Si con el tren
 -- parado sales por la puerta, has bajado en esa estación.
+-- Nadie andando por la vía ni por los túneles: quien baje a la vía (o se cuele en un túnel) y no
+-- vaya dentro de un coche vuelve al andén de la estación más cercana, con un aviso. (Antes se podía
+-- andar por los túneles y el tren, que no choca, te atravesaba.)
+local lineCache: { [string]: { Vector3 } } = {}
+local function onTrack(position: Vector3): (Metro.Line?, number)
+	for _, line in Metro.Lines do
+		if position.Y > line.Y - 3 and position.Y < line.Y + 7 then
+			local points = lineCache[line.Id]
+			if not points then
+				points = Metro.path(line)
+				local first, last = points[1], points[#points]
+				table.insert(points, 1, first + (first - points[2]).Unit * 60)
+				table.insert(points, last + (last - points[#points - 1]).Unit * 60)
+				lineCache[line.Id] = points
+			end
+			for i = 1, #points - 1 do
+				local a, b = points[i], points[i + 1]
+				local ab = Vector3.new(b.X - a.X, 0, b.Z - a.Z)
+				local ap = Vector3.new(position.X - a.X, 0, position.Z - a.Z)
+				local t = math.clamp(ap:Dot(ab) / math.max(ab:Dot(ab), 1e-6), 0, 1)
+				if (ap - ab * t).Magnitude < 4.6 then
+					return line, i
+				end
+			end
+		end
+	end
+	return nil, 0
+end
+
+local function guardTracks()
+	for _, player in Players:GetPlayers() do
+		local character = player.Character
+		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+		if root and humanoid and (humanoid.Health or 100) > 0 and not humanoid.SeatPart and root.Position.Y < Metro.Underground then
+			local line = onTrack(root.Position - Vector3.new(0, 3, 0))
+			local train = line and trains[line.Id]
+			local inCar = train ~= nil and (train.Passengers[player] ~= nil or carAt(train, root.Position) ~= nil)
+			if line and not inCar then
+				-- Al andén de la estación de esa línea más cercana (a unos pasos del borde)
+				local best, bestD = nil, math.huge
+				for _, id in line.Stations do
+					local d = (Metro.center(id, line) - root.Position).Magnitude
+					if d < bestD then
+						best, bestD = id, d
+					end
+				end
+				if best then
+					local frame = Metro.frame(best, line)
+					root.AssemblyLinearVelocity = Vector3.zero
+					character:PivotTo(frame * CFrame.new(9, 3, 0))
+					Notify:FireClient(player, "Error", "⚠️ ¡No se puede andar por la vía! Espera al tren en el andén.")
+				end
+			end
+		end
+	end
+end
+
 local function checkPassengers()
 	for player, train in riding do
 		local humanoid = humanoidOf(player)
@@ -1740,6 +1822,7 @@ function MetroService.init()
 			task.wait(1)
 			local ok, err = pcall(function()
 				checkPassengers()
+				guardTracks()
 				updateDisplays()
 				ambientTick()
 				updateSchedule()
@@ -1778,5 +1861,6 @@ MetroService._trains = trains
 MetroService._riding = riding
 MetroService._missions = missions
 MetroService._step = step
+MetroService._guardTracks = guardTracks
 
 return MetroService

@@ -28,6 +28,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Gameplay = require(ReplicatedStorage.Shared.Gameplay)
+local Ground = require(ReplicatedStorage.Shared.Ground)
 local Format = require(ReplicatedStorage.Shared.Format)
 local Stages = require(ReplicatedStorage.Shared.LifeStory.Stages)
 local Builder = require(script.Parent.Parent.World.Builder)
@@ -1155,7 +1156,8 @@ function VehicleService.mount(player: Player, kind: string, opts: { Rented: bool
 	local cf: CFrame? = nil
 	for _, offset in { look * 2, -look * (size.Z / 2 + 1.5), right * (size.X / 2 + 2), -right * (size.X / 2 + 2) } do
 		local from = root.Position + offset + Vector3.new(0, 2, 0)
-		local hit = workspace:Raycast(from, Vector3.new(0, -20, 0), params)
+		-- (no encima de otra persona: un niño pequeño delante no es suelo)
+		local hit = Ground.cast(from, Vector3.new(0, -20, 0), params)
 		local ground = if hit then hit.Position else root.Position + offset - Vector3.new(0, 3, 0)
 		local candidate = CFrame.lookAt(ground, ground + look)
 		if fits(size, candidate, ignore) then

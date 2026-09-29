@@ -30,6 +30,20 @@ local RoleService = require(script.Parent.RoleService)
 local JobService = require(script.Parent.JobService)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 
+-- Antes de llevar a alguien a otro sitio: que se levante del asiento en que vaya (coche, autobús,
+-- metro). Si no, se llevaba el vehículo con él (un coche del metro acababa en la calle).
+local function standUpBefore(character: Model?)
+	local ok, who = pcall(function()
+		return character and game:GetService("Players"):GetPlayerFromCharacter(character)
+	end)
+	if ok and who then
+		pcall(function()
+			require(script.Parent.VehicleService).standUp(who)
+		end)
+	end
+end
+
+
 local HotelService = {}
 
 -- Hoteles de jugadores (BusinessService): se llama al reservar (modelo de la recepción, precio, huésped)
@@ -327,6 +341,7 @@ local function onElevator(player: Player, lobby: Lobby)
 		releaseRoom(player)
 		local character = player.Character
 		if character then
+			standUpBefore(character)
 			character:PivotTo(CFrame.new(point(lobby, "Elevator") + Vector3.new(-3, 3, 0)))
 		end
 		Notify:FireClient(player, "Success", "😴 ¡Como nuevo! Has descansado en el hotel.")

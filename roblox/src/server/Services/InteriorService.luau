@@ -35,6 +35,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Floors = require(ReplicatedStorage.Shared.Floors)
+local Ground = require(ReplicatedStorage.Shared.Ground)
 local Interiors = require(script.Parent.Parent.World.Interiors)
 local Tower = require(script.Parent.Parent.World.Tower)
 local Lift = require(script.Parent.Parent.World.Lift)
@@ -238,7 +239,7 @@ local function groundAt(position: Vector3): Vector3
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = { folder }
 	-- (desde poco más arriba de la puerta: desde muy alto daría con toldos y balcones)
-	local hit = workspace:Raycast(position + Vector3.new(0, 6, 0), Vector3.new(0, -40, 0), params)
+	local hit = Ground.cast(position + Vector3.new(0, 6, 0), Vector3.new(0, -40, 0), params)
 	return if hit then hit.Position else position
 end
 

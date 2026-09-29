@@ -9,6 +9,20 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Items = require(ReplicatedStorage.Shared.Items)
 local LocationService = require(script.Parent.LocationService)
 
+-- Antes de llevar a alguien a otro sitio: que se levante del asiento en que vaya (coche, autobús,
+-- metro). Si no, se llevaba el vehículo con él (un coche del metro acababa en la calle).
+local function standUpBefore(character: Model?)
+	local ok, who = pcall(function()
+		return character and game:GetService("Players"):GetPlayerFromCharacter(character)
+	end)
+	if ok and who then
+		pcall(function()
+			require(script.Parent.VehicleService).standUp(who)
+		end)
+	end
+end
+
+
 local GadgetService = {}
 
 local lastUse: { [Player]: { [string]: number } } = {}
@@ -200,6 +214,7 @@ local EFFECTS: { [string]: (Player, Items.Item, BasePart) -> () } = {
 					local current = rootOf(player)
 					if current then
 						current.AssemblyLinearVelocity = Vector3.zero
+						standUpBefore(player.Character)
 						;(player.Character :: Model):PivotTo(CFrame.new(spot.Position + Vector3.new(0, 4, 0)))
 						local notify = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("Notify")
 						if notify then

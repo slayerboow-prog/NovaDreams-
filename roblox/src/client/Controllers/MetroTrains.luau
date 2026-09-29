@@ -28,6 +28,10 @@ type LineData = { Line: Metro.Line, Points: { Vector3 }, Centers: { number }, St
 local lines: { [string]: LineData } = {}
 local cars: { [string]: { [number]: BasePart } } = {} -- línea -> coche -> Root
 local lastCF: { [BasePart]: CFrame } = {}
+-- En qué fotograma se colocó cada coche por última vez (para saber si «antes» es de verdad el
+-- fotograma anterior o una posición vieja)
+local lastFrame: { [BasePart]: number } = {}
+local frameNumber = 0
 local subtitle: TextLabel? = nil
 local subtitleUntil = 0
 local rideLoop: Sound? = nil
@@ -152,7 +156,9 @@ local function update()
 	if #parts == 0 then
 		return
 	end
-	local before = if under then lastCF[under] or under.CFrame else nil
+	frameNumber += 1
+	-- (solo si el coche se colocó en el fotograma anterior: si no, «antes» sería una posición vieja)
+	local before = if under and lastFrame[under] == frameNumber - 1 then lastCF[under] else nil
 	local ok = pcall(function()
 		workspace:BulkMoveTo(parts, cframes, Enum.BulkMoveMode.FireCFrameChanged)
 	end)
@@ -163,12 +169,15 @@ local function update()
 	end
 	for i, p in parts do
 		lastCF[p] = cframes[i]
+		lastFrame[p] = frameNumber
 	end
 	-- De pie en un coche: el coche te lleva (lo que se ha movido el coche, te mueve a ti)
 	if under and before and root then
 		local after = lastCF[under] or under.CFrame
 		local delta = after * before:Inverse()
-		if delta.Position.Magnitude < 60 then
+		-- (aunque el móvil vaya a tirones y el coche haya avanzado mucho en un fotograma, te lleva
+		-- igual: antes, con un tirón de más de medio segundo, te quedabas en el túnel)
+		if delta.Position.Magnitude < 400 then
 			local moved = delta * root.CFrame
 			-- (solo el giro en horizontal: que no te tumbe en las curvas)
 			local look = moved.LookVector

@@ -21,6 +21,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Seasons = require(ReplicatedStorage.Shared.Seasons)
+local Ground = require(ReplicatedStorage.Shared.Ground)
 local Walkable = require(ReplicatedStorage.Shared.Walkable)
 local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
 local AnimalPose = require(script.Parent.AnimalPose)
@@ -113,7 +114,8 @@ local function ground(x: number, z: number, maxY: number): RaycastResult?
 		table.insert(exclude, player.Character)
 	end
 	rayParams.FilterDescendantsInstances = exclude
-	return workspace:Raycast(Vector3.new(x, maxY, z), Vector3.new(0, -maxY + -200, 0), rayParams)
+	-- (solo suelo de verdad: el perro no se sube al techo de un coche ni a una persona)
+	return Ground.cast(Vector3.new(x, maxY, z), Vector3.new(0, -maxY + -200, 0), rayParams)
 end
 
 local function playerPosition(): Vector3?

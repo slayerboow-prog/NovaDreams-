@@ -22,6 +22,20 @@ local NeedsService = require(script.Parent.NeedsService)
 local CinematicService = require(script.Parent.CinematicService)
 local Npc = require(script.Parent.Parent.World.Npc)
 
+-- Antes de llevar a alguien a otro sitio: que se levante del asiento en que vaya (coche, autobús,
+-- metro). Si no, se llevaba el vehículo con él (un coche del metro acababa en la calle).
+local function standUpBefore(character: Model?)
+	local ok, who = pcall(function()
+		return character and game:GetService("Players"):GetPlayerFromCharacter(character)
+	end)
+	if ok and who then
+		pcall(function()
+			require(script.Parent.VehicleService).standUp(who)
+		end)
+	end
+end
+
+
 local BabyService = {}
 
 local BABY = Config.Baby
@@ -339,6 +353,7 @@ local function spawnAtCrib(player: Player, baby: Baby)
 	pcall(function()
 		player:RequestStreamAroundAsync(spawn.Position, 5)
 	end)
+	standUpBefore(character)
 	character:PivotTo(spawn.CFrame + Vector3.new(0, 2.5, 0))
 end
 

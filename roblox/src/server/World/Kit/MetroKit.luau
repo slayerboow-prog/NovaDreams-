@@ -104,7 +104,16 @@ end
 ---------------------------------------------------------------------
 -- Tren
 ---------------------------------------------------------------------
+-- Las soldaduras se hacen al arrancar el servidor (MetroService.weldCar), no al construir el mapa:
+-- las que se guardaban en el archivo salían mal y, al cargar, todas las piezas del coche se amontonaban
+-- en el centro del suelo (el «tren» parecía un panel blanco sobre una plancha). Aquí solo se marca.
 local function weldAll(model: Model, root: BasePart)
+	model:SetAttribute("NeedsWeld", true)
+	local _ = root
+end
+
+-- (lo usa MetroService al arrancar)
+function MetroKit.weldCar(model: Model, root: BasePart)
 	for _, p in model:GetDescendants() do
 		if p:IsA("BasePart") and p ~= root then
 			p.Anchored = false

@@ -25,6 +25,10 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
 local Cast = require(ReplicatedStorage.Shared.LifeStory.Cast)
+local Ground = require(ReplicatedStorage.Shared.Ground)
+
+local focusOn: (Player, string?) -> boolean -- (definidas más abajo, junto al bucle de los personajes)
+local onFoot: (Player) -> boolean
 local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 local Locations = require(ReplicatedStorage.Shared.LifeStory.Locations)
 local LocationService = require(script.Parent.LocationService)
@@ -114,7 +118,8 @@ local function groundAt(position: Vector3, ignore: { Instance }): Vector3
 	params.FilterDescendantsInstances = list
 	params.IgnoreWater = true
 	-- Desde un poco por encima de los pies (no desde muy arriba: dentro de un edificio daría con el techo)
-	local result = workspace:Raycast(position + V(0, 3.5, 0), V(0, -14, 0), params)
+	-- (solo suelo de verdad: ni el capó de un coche aparcado, ni un autobús, ni la cabeza de alguien)
+	local result = Ground.cast(position + V(0, 3.5, 0), V(0, -14, 0), params)
 	return if result then result.Position else position
 end
 
@@ -1106,9 +1111,13 @@ function applySet(player: Player, questId: string, actors: { { [string]: any } }
 			actor.Spec = spec
 			continue
 		end
-		local cf = if spec.Mode == "Follow" and playerRoot(player) then (playerRoot(player) :: BasePart).CFrame * CFrame.new(3, -3, 4) else placement(player, spec)
-		if cf and spec.Mode ~= "Follow" and spec.Mode ~= "Sit" then
-			cf = spaced(cf, playerRoot(player), placedNow)
+		-- Acompañante: aparece a tu lado solo si su misión es la que juegas ahora y vas a pie (si no,
+		-- en su sitio de la escena); cada uno en un hueco distinto (antes salían todos en el mismo punto)
+		local me = playerRoot(player)
+		local nearMe = spec.Mode == "Follow" and me ~= nil and focusOn(player, questId) and onFoot(player)
+		local cf = if nearMe then (me :: BasePart).CFrame * CFrame.new(3 + #placedNow * 2.5, -3, 5) else placement(player, spec)
+		if cf and spec.Mode ~= "Sit" then
+			cf = spaced(cf, me, placedNow)
 		end
 		if cf then
 			table.insert(placedNow, cf.Position)
@@ -1551,12 +1560,27 @@ local FALL_LIMIT = 40 -- más abajo que esto de su sitio: se ha caído del mapa
 local LOST_LIMIT = 260 -- más lejos que esto de su sitio (sin seguir a nadie): se ha perdido
 
 -- ¿Te sigue ahora? Solo los de la misión que estás jugando (StoryFocus: LifeStoryService)
-local function followsNow(player: Player, actor: Actor): boolean
-	local focus = player:GetAttribute("StoryFocus")
-	if focus ~= nil and actor.Quest ~= nil and actor.Quest ~= focus then
+-- ¿Juegas ahora esta misión? (sin ninguna seguida —p. ej. en horario de cole, con las demás en
+-- espera— no se juega ninguna: antes entonces te seguían todos los acompañantes)
+focusOn = function(player: Player, questId: string?): boolean
+	if questId == nil then
+		return true -- (personajes sin misión)
+	end
+	return player:GetAttribute("StoryFocus") == questId
+end
+
+-- ¿Vas a pie y en la calle? (ni sentado en un coche, autobús o metro, ni dentro de un edificio: ahí
+-- no te sigue nadie; al volver a la calle te alcanza)
+onFoot = function(player: Player): boolean
+	if player:GetAttribute("InteriorKey") ~= nil or player:GetAttribute("Riding") ~= nil or player:GetAttribute("Passenger") ~= nil then
 		return false
 	end
-	return true
+	local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+	return not (humanoid and humanoid.SeatPart)
+end
+
+local function followsNow(player: Player, actor: Actor): boolean
+	return focusOn(player, actor.Quest) and onFoot(player)
 end
 
 local function stepActor(player: Player, actor: Actor, index: number)
@@ -1638,6 +1662,11 @@ local function stepActor(player: Player, actor: Actor, index: number)
 			end
 			actor.LastPosition = root.Position
 		end
+	elseif mode == "Hunt" and me and not followsNow(player, actor) then
+		-- Enemigo de otra misión (o vas en coche, en metro o dentro de un edificio): no te persigue
+		if not root.Anchored and humanoid.MoveDirection.Magnitude > 0.1 then
+			humanoid:MoveTo(root.Position)
+		end
 	elseif mode == "Hunt" and me then
 		-- Te persigue (enemigo): va a por ti, sin atravesarte; si se atasca, "salta" un poco hacia ti
 		humanoid.WalkSpeed = actor.Spec.Speed or 13
@@ -1660,8 +1689,15 @@ local function stepActor(player: Player, actor: Actor, index: number)
 			actor.LastPosition = root.Position
 		end
 	elseif mode == "Follow" and me and not followsNow(player, actor) then
-		-- Acompañante de otra misión (no la que juegas ahora): se queda donde está esperándote
-		if humanoid.MoveDirection.Magnitude > 0.1 then
+		-- Acompañante de otra misión (no la que juegas ahora), o vas en coche, en metro o dentro de un
+		-- edificio: se queda donde está esperándote. Si se había quedado muy lejos de su sitio (te siguió
+		-- a otro barrio o a un interior), vuelve a su sitio.
+		if V(root.Position.X - home.X, 0, root.Position.Z - home.Z).Magnitude > LOST_LIMIT or math.abs(root.Position.Y - home.Y) > 200 then
+			if not actor.Recovered or os.clock() - actor.Recovered > 5 then
+				actor.Recovered = os.clock()
+				standAt(actor, actor.Home)
+			end
+		elseif humanoid.MoveDirection.Magnitude > 0.1 then
 			humanoid:MoveTo(root.Position)
 		end
 	elseif mode == "Follow" and me then
@@ -1772,4 +1808,5 @@ function SceneService.init()
 	end)
 end
 
+SceneService._followsNow = function(player, quest) return focusOn(player, quest) and onFoot(player) end
 return SceneService

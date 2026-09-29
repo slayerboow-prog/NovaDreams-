@@ -31,6 +31,20 @@ local RoleService = require(script.Parent.RoleService)
 local JobService = require(script.Parent.JobService)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 
+-- Antes de llevar a alguien a otro sitio: que se levante del asiento en que vaya (coche, autobús,
+-- metro). Si no, se llevaba el vehículo con él (un coche del metro acababa en la calle).
+local function standUpBefore(character: Model?)
+	local ok, who = pcall(function()
+		return character and game:GetService("Players"):GetPlayerFromCharacter(character)
+	end)
+	if ok and who then
+		pcall(function()
+			require(script.Parent.VehicleService).standUp(who)
+		end)
+	end
+end
+
+
 local CinemaService = {}
 
 local Notify = ReplicatedStorage.Remotes.Notify :: RemoteEvent
@@ -361,6 +375,7 @@ local function onDoor(player: Player, hall: Hall)
 	InventoryService.remove(player, Cinema.TicketItem, 1)
 	local character = player.Character
 	if character then
+		standUpBefore(character)
 		character:PivotTo(CFrame.new(point(hall, "Inside") + Vector3.new(0, 3, 0)))
 	end
 	Notify:FireClient(player, "Success", "🎬 Busca una butaca y siéntate. ¡Que empieza!")
@@ -373,6 +388,7 @@ local function onExit(player: Player, hall: Hall)
 		if humanoid then
 			humanoid.Sit = false
 		end
+		standUpBefore(character)
 		character:PivotTo(CFrame.new(point(hall, "Lobby") + Vector3.new(0, 3, 0)))
 	end
 end

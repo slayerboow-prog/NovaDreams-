@@ -27,6 +27,7 @@ local ServerStorage = game:GetService("ServerStorage")
 
 local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 local Cast = require(ReplicatedStorage.Shared.LifeStory.Cast)
+local Ground = require(ReplicatedStorage.Shared.Ground)
 local SchoolLife = require(ReplicatedStorage.Shared.LifeStory.SchoolLife)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 local Npc = require(script.Parent.Parent.World.Npc)
@@ -107,7 +108,8 @@ local function groundAt(position: Vector3, ignore: { Instance }): Vector3
 		table.insert(list, scenes)
 	end
 	rayParams.FilterDescendantsInstances = list
-	local result = workspace:Raycast(position + V(0, 4, 0), V(0, -12, 0), rayParams)
+	-- (solo suelo de verdad: no la cabeza de otro niño de la fila, que dejaba a uno flotando todo el día)
+	local result = Ground.cast(position + V(0, 4, 0), V(0, -12, 0), rayParams)
 	return if result then result.Position else position
 end
 
@@ -646,7 +648,11 @@ local function needs(): { [School]: { [string]: Player } }
 		local npcId = player:GetAttribute("StoryNpc")
 		local character = player.Character
 		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
-		if type(npcId) == "string" and root and SchoolLife.livesAtSchool(npcId) and not sceneHas(player, npcId) then
+		-- (solo si vas a pie y en la calle: antes, pasando en coche junto al cole, el compañero
+		-- aparecía en la carretera al lado del coche)
+		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+		local onFoot = player:GetAttribute("InteriorKey") == nil and player:GetAttribute("Riding") == nil and player:GetAttribute("Passenger") == nil and not (humanoid and humanoid.SeatPart)
+		if type(npcId) == "string" and root and onFoot and SchoolLife.livesAtSchool(npcId) and not sceneHas(player, npcId) then
 			local best: School? = nil
 			local bestDistance = NEED_RANGE
 			for _, school in schools do
@@ -675,7 +681,7 @@ local function besidePlayer(person: Person, player: Player): { [string]: any }?
 	end
 	local look = flat(root.CFrame.LookVector)
 	look = if look.Magnitude > 0.1 then look.Unit else V(0, 0, -1)
-	local spot = groundAt(root.Position + look * 4.5, { person.Model, character :: Instance })
+	local spot = groundAt(root.Position + look * 5.5, { person.Model, character :: Instance }) -- (a más de 5 pasos: no en tu cara)
 	-- La clave cambia solo si te alejas bastante (para que no esté cambiando de sitio a cada paso)
 	local cell = ("%d,%d"):format(math.floor(root.Position.X / 10), math.floor(root.Position.Z / 10))
 	return { Key = "Busca:" .. player.UserId .. ":" .. cell, CFrame = CFrame.lookAt(spot, spot + flat(root.Position - spot) + V(0.001, 0, 0)), Pose = "Stand" }

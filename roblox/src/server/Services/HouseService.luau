@@ -16,6 +16,20 @@ local DataService = require(script.Parent.DataService)
 local LifeService = require(script.Parent.LifeService)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 
+-- Antes de llevar a alguien a otro sitio: que se levante del asiento en que vaya (coche, autobús,
+-- metro). Si no, se llevaba el vehículo con él (un coche del metro acababa en la calle).
+local function standUpBefore(character: Model?)
+	local ok, who = pcall(function()
+		return character and game:GetService("Players"):GetPlayerFromCharacter(character)
+	end)
+	if ok and who then
+		pcall(function()
+			require(script.Parent.VehicleService).standUp(who)
+		end)
+	end
+end
+
+
 local HouseService = {}
 
 local Notify = ReplicatedStorage.Remotes.Notify :: RemoteEvent
@@ -345,6 +359,7 @@ function HouseService.goHome(player: Player)
 		return
 	end
 	if root then
+		standUpBefore(player.Character)
 		player.Character:PivotTo(plot.Origin * CFrame.new(0, 4, -23.5) * CFrame.Angles(0, math.pi, 0))
 	end
 end

@@ -376,6 +376,20 @@ function HousingService.lobbyScene(building: InteriorService.Building, kind: str
 	local mail = if spots.Mail then feet(spots.Mail, floorY) + Vector3.new(0, 0, -2.2) else nil
 	local name = if which == "Repartidor" then "Repartidor" else person.Name
 	local start = if which == "Sale" or which == "Basura" then lift else door
+	-- Nunca aparece dentro de un jugador (se llega al portal justo por la puerta o el ascensor): si
+	-- hay alguien ahí, sale por el otro sitio
+	local function taken(at: Vector3): boolean
+		for _, other in Players:GetPlayers() do
+			local r = other.Character and other.Character:FindFirstChild("HumanoidRootPart")
+			if r and r:IsA("BasePart") and (Vector3.new(r.Position.X, at.Y, r.Position.Z) - at).Magnitude < 5 and math.abs(r.Position.Y - at.Y) < 8 then
+				return true
+			end
+		end
+		return false
+	end
+	if taken(start) then
+		start = if start == door then lift else door
+	end
 	local npc = Npc.create(name, model, CFrame.new(start + Vector3.new(0, 3, 0)))
 	npc:SetAttribute("LobbyNeighbor", which)
 	local function say(text: string)

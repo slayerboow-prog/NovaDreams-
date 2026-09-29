@@ -1120,6 +1120,18 @@ do
 		check(rider2:GetAttribute("Passenger") == nil and rider2Hum.SeatPart == nil, "y el copiloto también")
 		check((own.PrimaryPart.CFrame.Position - before.Position).Magnitude < 12 and (driverRoot.Position - Vector3.new(900, 0, 900)).Magnitude < 10, "el coche se queda donde estaba y él llega solo")
 		own:Destroy()
+		-- Quién te sigue: solo los acompañantes de la misión que juegas, y solo a pie y en la calle
+		local walker2 = newPlayer(34, "Nino", 0)
+		walker2:SetAttribute("StoryFocus", nil)
+		check(not Scene._followsNow(walker2, "Loco_Nino") and Scene._followsNow(walker2, nil), "sin ninguna misión en juego (horario de cole), no te sigue ningún acompañante")
+		walker2:SetAttribute("StoryFocus", "Loco_Nino")
+		check(Scene._followsNow(walker2, "Loco_Nino") and not Scene._followsNow(walker2, "Cole04_Malotes"), "te sigue el acompañante de la misión que juegas, y no los de las demás")
+		walker2:SetAttribute("InteriorKey", "casa")
+		check(not Scene._followsNow(walker2, "Loco_Nino"), "dentro de un edificio no te sigue nadie")
+		walker2:SetAttribute("InteriorKey", nil)
+		walker2:SetAttribute("Riding", "Coche")
+		check(not Scene._followsNow(walker2, "Loco_Nino"), "yendo en coche (o en bici, autobús, metro) no te sigue nadie")
+		walker2:SetAttribute("Riding", nil)
 	end
 	Fake.Raycast = oldRaycast
 	floor:Destroy()
@@ -3166,8 +3178,10 @@ for k = 1, 3 do
 	seat.Name = "Seat"
 	seat.CFrame = CFrame.new(base)
 	seat.Parent = carModel
-	local door = part("Door", CFrame.new(base), { "MetroDoor" })
-	door.Parent = carModel
+	for _, x in { -4.4, 4.4 } do -- (una puerta a cada lado, como los coches de verdad)
+		local door = part("Door", CFrame.new(base + Vector3.new(x, 0, 0)), { "MetroDoor" })
+		door.Parent = carModel
+	end
 end
 trainModel:AddTag("MetroTrain")
 -- Galería
@@ -3228,9 +3242,49 @@ local arrive = lastMessage(rider, "Arrive")
 check(arrive ~= nil and arrive[2].Station == "Plaza Mayor", "el tren llega a Plaza Mayor y te avisa")
 local car2 = trainModel:FindFirstChild("Car2"):FindFirstChild("Root")
 check((car2.Position - Metro.center("PlazaMayor", L1)).Magnitude < 5, "el tren para con el centro en el andén")
-check(train.Cars[1].Doors[1].Transparency == 1, "con el tren parado las puertas están abiertas")
+do
+	local frame = Metro.frame("PlazaMayor", L1)
+	local platformOpen, farClosed, near, far = true, true, 0, 0
+	for _, car in train.Cars do
+		local facing = if frame.RightVector:Dot(car.Root.CFrame.RightVector) >= 0 then 1 else -1
+		for _, door in car.Doors do
+			if (door:GetAttribute("Side") or 0) * facing > 0 then
+				near += 1
+				platformOpen = platformOpen and door.Transparency == 1 and door.CanCollide == false
+			else
+				far += 1
+				farClosed = farClosed and door.Transparency == 0 and door.CanCollide ~= false
+			end
+		end
+	end
+	check(near > 0 and platformOpen, "con el tren parado se abren las puertas del lado del andén")
+	check(far > 0 and farClosed, "…y las del otro lado (la pared y la vía) siguen cerradas")
+end
 M:Fire(rider, "Alight")
 check(MetroService._riding[rider] == nil and lastMessage(rider, "Off") ~= nil, "bajas en Plaza Mayor")
+-- Un coche que se ha llevado otro sistema (un viajero sentado al que teletransportan) vuelve a su sitio
+do
+	local root = train.Cars[1].Root
+	local before = root.Position
+	root.CFrame = CFrame.new(700, 1, -1900) -- (en la calle, en Los Pinos)
+	MetroService._step(train, 0.05)
+	check(train.Phase == "Dwell" and (root.Position - before).Magnitude < 1, "si algo se lleva un coche del metro a la calle, vuelve a su sitio")
+end
+-- Nadie andando por los túneles: vuelve al andén con un aviso
+do
+	local points = Metro.path(L1)
+	local tunnelPoint = (points[2] + points[3]) / 2
+	moveTo(riderRoot, tunnelPoint + Vector3.new(0, 3, 0))
+	MetroService._guardTracks()
+	local back = riderRoot.Position
+	check((back - tunnelPoint).Magnitude > 40 and notified(rider, "No se puede andar por la vía"), "quien se mete en el túnel vuelve al andén (con un aviso)")
+	for _, spot in { CFrame.new(6.5, 0, 0), CFrame.new(12, 0, 60), CFrame.new(16, 0, -70) } do
+		local at = Metro.frame("Poniente", L1) * spot
+		moveTo(riderRoot, at.Position) -- (los pies en el andén)
+		MetroService._guardTracks()
+		check((riderRoot.Position - (at.Position + Vector3.new(0, 3, 0))).Magnitude < 0.5, ("en el andén (a %.1f del centro de la vía) no te mueve nadie"):format(spot.X))
+	end
+end
 local walker, walkerRoot = newPlayer(94, "Adolescente", 0)
 moveTo(walkerRoot, train.Cars[2].Root.Position + Vector3.new(0, 3, 0))
 MetroService._step(train, Metro.Dwell + 0.1)
@@ -5944,6 +5998,40 @@ Fake.Raycast = function(_, origin, direction, params)
 	end
 	local position = origin + direction * bestT
 	return { Instance = best, Position = position, Normal = -direction.Unit, Material = Enum.Material.Plastic, Distance = (position - origin).Magnitude }
+end
+
+-- Suelo de verdad (shared/Ground): ni el techo de un coche aparcado ni la cabeza de alguien
+do
+	local Ground = loadModule(ROOT .. "/shared/Ground")
+	local floor = part("GroundFloor", CFrame.new(7000, 0, 7000), {})
+	floor.Size = Vector3.new(40, 1, 40)
+	local parked = fakeInstance("Model")
+	parked.Name = "ParkedCar"
+	parked.Parent = worldRoot
+	local roof = part("Roof", CFrame.new(7000, 5, 7000), {})
+	roof.Size = Vector3.new(6, 1, 12)
+	roof.Parent = parked
+	local person = fakeInstance("Model")
+	person.Name = "Vecina"
+	person.Parent = worldRoot
+	fakeInstance("Humanoid").Parent = person
+	local head = part("Head", CFrame.new(7010, 5, 7000), {})
+	head.Size = Vector3.new(2, 2, 2)
+	head.Parent = person
+	local leaf = part("Leaf", CFrame.new(7020, 5, 7000), {})
+	leaf.Size = Vector3.new(4, 4, 4)
+	leaf.CanCollide = false
+	local function groundY(x)
+		local params = { FilterDescendantsInstances = {} } :: any
+		local hit = Ground.cast(Vector3.new(x, 20, 7000), Vector3.new(0, -40, 0), params)
+		return hit and hit.Position.Y
+	end
+	check(groundY(7000) == 0.5, "el suelo bajo un coche aparcado es la calle, no su techo")
+	check(groundY(7010) == 0.5, "el suelo bajo una persona es la calle, no su cabeza")
+	check(groundY(7020) == 0.5, "las hojas y adornos que no chocan no son suelo")
+	for _, p in { floor, parked, person, leaf } do
+		p:Destroy()
+	end
 end
 
 -- Una Armería de prueba: mostrador, ventanilla, galería con una diana
