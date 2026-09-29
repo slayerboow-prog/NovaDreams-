@@ -6922,6 +6922,373 @@ Fake.Raycast = savedRaycast
 end)()
 
 ---------------------------------------------------------------------
+;(function()
+print("▶ Encargos de la ciudad: gente con ❗ por el mapa, favores de 1 a 3 pasos, paga y esperas")
+local CityErrands = loadModule(ROOT .. "/shared/CityErrands")
+local problems = CityErrands.validate()
+check(#problems == 0, "los encargos están bien escritos" .. (if #problems > 0 then ": " .. table.concat(problems, " | ") else ""))
+local siteKinds = {}
+for _, t in CityErrands.Templates do
+	siteKinds[t.Site] = true
+end
+local kindCount = 0
+for _ in siteKinds do
+	kindCount += 1
+end
+check(#CityErrands.Templates >= 25 and kindCount >= 15, ("hay %d encargos en %d tipos de sitio"):format(#CityErrands.Templates, kindCount))
+local perro = CityErrands.ById.Parque_Perro
+check(CityErrands.reward(perro, 800).Money > CityErrands.reward(perro, 0).Money and CityErrands.reward(perro, 800).Xp > CityErrands.reward(perro, 0).Xp, "cuanto más lejos te mandan, más se paga")
+check(CityErrands.fitsStage(CityErrands.ById.Parque_Balon, "Nino") and not CityErrands.fitsStage(CityErrands.ById.Parque_Balon, "Adulto"), "el balón del árbol es cosa de peques")
+check(not CityErrands.fitsStage(CityErrands.ById.Puerto_Cajas, "Nino") and CityErrands.fitsStage(CityErrands.ById.Puerto_Cajas, "AdultoJoven"), "descargar el barco, solo mayores")
+check(not CityErrands.fitsStage(perro, "Bebe"), "a los bebés nadie les pide nada")
+check(#CityErrands.forSite("Parque", "Adulto", 12) > 0 and #CityErrands.forSite("Parque", "Adulto", 23) == 0, "de noche el parque no tiene encargos (horario)")
+check(#CityErrands.forSite("Policia", "Adulto", 3) > 0, "la comisaría abre las 24 horas")
+
+-- Dobles: la historia (¿hay algo que lo impida?), las conversaciones y la experiencia
+local savedMocks = {
+	LifeStory = mocks[S .. "LifeStoryService"],
+	Dialogue = mocks[S .. "DialogueService"],
+	Progression = mocks[S .. "ProgressionService"],
+	Scene = mocks[S .. "SceneService"],
+}
+local storyBlock = {}
+mocks[S .. "LifeStoryService"] = {
+	errandBlock = function(player)
+		return storyBlock[player]
+	end,
+}
+local talks, talking = {}, {}
+mocks[S .. "DialogueService"] = {
+	isBusy = function(player)
+		return talking[player] ~= nil
+	end,
+	play = function(player, dialogue, context, onDone, onCancel)
+		if talking[player] then
+			return false
+		end
+		local entry = { Player = player, Lines = dialogue.Lines, Context = context, OnDone = onDone, OnCancel = onCancel }
+		talking[player] = entry
+		table.insert(talks, entry)
+		return true
+	end,
+	bark = function() end,
+}
+local xpGiven = {}
+mocks[S .. "ProgressionService"] = {
+	addXp = function(player, amount)
+		xpGiven[player] = (xpGiven[player] or 0) + amount
+	end,
+}
+mocks[S .. "SceneService"] = nil -- (el de verdad: construye los objetos)
+-- Contestar a la conversación abierta (1 = «¡Claro!», 2 = «Ahora no puedo»)
+local function answer(player, option)
+	local entry = talking[player]
+	if not entry then
+		return false
+	end
+	talking[player] = nil
+	for _, line in entry.Lines do
+		if line.Ask then
+			entry.Context.apply(line.Options[option].Effects, "/opt")
+		end
+	end
+	entry.OnDone()
+	return true
+end
+remotes.CityErrand = remote()
+local HttpService = services.HttpService
+local Lighting = services.Lighting
+
+-- Un barrio de prueba lejos de todo: parque, súper, farmacia, una casa, colegio, comisaría, parada y puerto
+local townFolder = worldRoot:FindFirstChild("Town")
+if not townFolder then
+	townFolder = fakeInstance("Folder")
+	townFolder.Name = "Town"
+	townFolder.Parent = worldRoot
+end
+local function site(name, position, size)
+	local model = fakeInstance("Model")
+	model.Name = name
+	local p = fakeInstance("Part")
+	p.Name = "Suelo"
+	p.CFrame = CFrame.new(position + Vector3.new(0, size.Y / 2, 0))
+	p.Size = size
+	p.Parent = model
+	model.Parent = townFolder
+	return model
+end
+local O = Vector3.new(30000, 0, 30000)
+site("Parque", O, Vector3.new(60, 1, 60))
+site("Supermercado", O + Vector3.new(200, 0, 0), Vector3.new(40, 16, 30))
+local farmacia = part("Farmacia", CFrame.new(O + Vector3.new(0, 4, 260)), { "Shop" }, { ShopId = "Farmacia" })
+farmacia.Size = Vector3.new(10, 8, 4)
+site("Vivienda", O + Vector3.new(200, 0, 260), Vector3.new(20, 10, 20))
+site("Colegio", O + Vector3.new(420, 0, 0), Vector3.new(60, 12, 50))
+site("Policia", O + Vector3.new(420, 0, 300), Vector3.new(30, 12, 30))
+site("ParadaBus", O + Vector3.new(-60, 0, 330), Vector3.new(6, 4, 3))
+site("Puerto", O + Vector3.new(-400, 0, 0), Vector3.new(50, 1, 50))
+
+local CityErrandService = loadModule(S .. "CityErrandService")
+CityErrandService.StartDelay = 1e6 -- (los repasos los hace la prueba, cuando toca)
+CityErrandService.init()
+CityErrandService.reindex()
+local function siteOf(kind, near)
+	local best, bestD = nil, math.huge
+	for _, s in CityErrandService.sites() do
+		local d = (s.Center - near).Magnitude
+		if s.Kind == kind and d < bestD then
+			best, bestD = s, d
+		end
+	end
+	return best
+end
+local parque = siteOf("Parque", O)
+local super = siteOf("Super", O)
+local parada = siteOf("Estacion", O)
+check(parque ~= nil and super ~= nil and siteOf("Farmacia", O) ~= nil and siteOf("Barrio", O) ~= nil and parada ~= nil, "encuentra los sitios del mapa (modelos y etiquetas)")
+
+Lighting.ClockTime = 11
+local ana, anaRoot = newPlayer(970, "AdultoJoven", 0)
+moveTo(anaRoot, O + Vector3.new(0, 0, -45))
+
+-- Aparece gente cerca, nunca encima de un jugador y sin llenar la zona
+-- (solo cuenta los de este barrio: los otros jugadores de la prueba tienen los suyos)
+local count, tooClose = 0, false
+local function audit()
+	count, tooClose = 0, false
+	for _, g in CityErrandService.givers() do
+		if (g.Position - O).Magnitude > 700 then
+			continue
+		end
+		count += 1
+		for _, p in playersList do
+			local r = p.Character and p.Character:FindFirstChild("HumanoidRootPart")
+			if r and (Vector3.new(r.Position.X, 0, r.Position.Z) - Vector3.new(g.Position.X, 0, g.Position.Z)).Magnitude < CityErrands.Config.MinPlayerGap then
+				tooClose = true
+			end
+		end
+	end
+end
+CityErrandService.scan()
+audit()
+check(count >= 1 and count <= CityErrands.Config.SpawnsPerScan, ("aparece gente con encargos cerca del jugador (%d)"):format(count))
+for _ = 1, 4 do
+	CityErrandService.scan()
+end
+audit()
+check(count <= CityErrands.Config.MaxPerArea and not tooClose, "como mucho " .. CityErrands.Config.MaxPerArea .. " por zona y nadie a menos de 5 studs de un jugador")
+local marks = HttpService:JSONDecode(ana:GetAttribute("CityErrandMarks") or "[]")
+check(#marks == count and #marks > 0, "los ❗ salen en el mapa del jugador")
+local portGiver = false
+for _, g in CityErrandService.givers() do
+	if g.Site.Kind == "Puerto" and (g.Position - O).Magnitude < 700 then
+		portGiver = true
+	end
+end
+check(not portGiver, "solo aparecen cerca de algún jugador (el puerto, lejos, está vacío)")
+
+-- Nunca a menos de 5 studs: con el jugador justo donde se pondría, se aparta
+moveTo(anaRoot, O + Vector3.new(0, 0, -18))
+local g0 = CityErrandService.place(parque, "Parque_Perro", anaRoot.Position)
+check(g0 ~= nil and (Vector3.new(g0.Position.X, 0, g0.Position.Z) - Vector3.new(anaRoot.Position.X, 0, anaRoot.Position.Z)).Magnitude >= CityErrands.Config.MinPlayerGap, "si el jugador está en el sitio, aparece a unos pasos (no encima)")
+check(g0 ~= nil and g0.Model:FindFirstChild("Head") ~= nil and promptOf(g0.Model, "Hablar") ~= nil, "con su botón de hablar")
+
+-- 1) ¡Se ha escapado Trufa!: buscarla por el parque y devolverla
+moveTo(anaRoot, O + Vector3.new(0, 0, -45))
+local giver = CityErrandService.place(parque, "Parque_Perro", anaRoot.Position)
+local money0 = profiles[ana].Money
+CityErrandService.talk(ana, giver)
+check(talking[ana] ~= nil and talking[ana].Lines[1].S == "Doña Amparo", "al hablar te cuenta qué le pasa (conversación con respuestas)")
+answer(ana, 1)
+local job = CityErrandService.activeOf(ana)
+check(job ~= nil and job.Template.Id == "Parque_Perro" and ana:GetAttribute("CityErrand") ~= nil, "«¡Claro!»: el encargo sale en el panel de misiones")
+check(typeof(ana:GetAttribute("CityErrandTarget")) == "Vector3", "y en el GPS (CityErrandTarget)")
+local state = HttpService:JSONDecode(ana:GetAttribute("CityErrand"))
+check(state.Title == "¡Se ha escapado Trufa!" and state.Step == "Busca a Trufa por el parque" and state.Money == job.Money, "el panel dice qué hacer y cuánto pagan")
+local itemsFolder = job.Folder
+check(itemsFolder:IsDescendantOf(worldRoot) and itemsFolder:GetAttribute("ErrandOwner") == 970 and #itemsFolder:GetChildren() == 1, "Trufa aparece por el parque (solo para ti)")
+local trufa = itemsFolder:GetChildren()[1]
+check((ana:GetAttribute("CityErrandTarget") - trufa:GetPivot().Position).Magnitude < 0.5, "el GPS lleva hasta Trufa")
+promptOf(trufa, "Coger a Trufa").Triggered:Fire(ana)
+check(job.Step == 2 and (ana:GetAttribute("CityErrandTarget") - giver.Model:GetPivot().Position).Magnitude < 0.5, "con Trufa en brazos, el GPS lleva de vuelta con Doña Amparo")
+CityErrandService.talk(ana, giver)
+check(CityErrandService.activeOf(ana) == nil and ana:GetAttribute("CityErrand") == nil and ana:GetAttribute("CityErrandTarget") == nil, "al devolverla se acaba el encargo y se quita del panel")
+check(profiles[ana].Money == money0 + job.Money and job.Money >= perro.Reward.Money and xpGiven[ana] == job.Xp, ("cobra %d € y %d XP"):format(job.Money, job.Xp))
+check(notified(ana, "Encargo hecho"), "aviso de encargo hecho")
+check(giver.Model:GetAttribute("Says") == perro.Thanks, "Doña Amparo da las gracias")
+-- La misma persona no te vuelve a pedir nada en un rato
+local again = CityErrandService.place(parque, "Parque_Perro", anaRoot.Position)
+CityErrandService.talk(ana, again)
+check(talking[ana] == nil and string.find(again.Model:GetAttribute("Says") or "", "otra vez tú", 1, true) ~= nil, "la misma persona espera un rato antes de pedirte otro favor")
+local ok1, why1 = CityErrandService.canOffer(ana, again)
+check(not ok1 and why1 == "Cooldown", "(motivo: la espera)")
+for _ = 1, 3 do
+	CityErrandService.scan()
+end
+local sameAgain = false
+for _, g in CityErrandService.givers() do
+	if g ~= again and g.Key == again.Key then
+		sameAgain = true
+	end
+end
+check(not sameAgain, "y no vuelve a aparecer con el mismo encargo mientras espera")
+profiles[ana].CityErrands.Cooldowns[again.Key] = os.time() - 1
+check((CityErrandService.canOffer(ana, again)), "pasada la espera, te lo vuelve a pedir")
+
+-- 2) La compra de la señora Rosario: del súper a una casa del barrio (más lejos, más paga)
+moveTo(anaRoot, O + Vector3.new(200, 0, -40))
+local cajero = CityErrandService.place(super, "Super_CompraRosario", anaRoot.Position)
+CityErrandService.talk(ana, cajero)
+answer(ana, 1)
+job = CityErrandService.activeOf(ana)
+local rosario = job and job.Recipient
+check(job ~= nil and job.Carry == "Bolsas de la compra" and rosario ~= nil and rosario.Name == "Señora Rosario", "te dan la compra y la señora Rosario espera en su casa")
+check(rosario ~= nil and (rosario:GetPivot().Position - (O + Vector3.new(200, 0, 260))).Magnitude < 40, "…en una casa del barrio de verdad")
+check(job ~= nil and job.Money > CityErrands.ById.Super_CompraRosario.Reward.Money + 5, ("paga según la distancia (%s €)"):format(tostring(job and job.Money)))
+money0 = profiles[ana].Money
+local expected = job.Money
+promptOf(rosario, "Entregar").Triggered:Fire(ana)
+check(CityErrandService.activeOf(ana) == nil and profiles[ana].Money == money0 + expected, "al entregarla, cobras")
+check(rosario:GetAttribute("Says") ~= nil, "y la señora Rosario te lo agradece")
+
+-- 3) Parque limpio: con tiempo; si se acaba, no se cobra
+moveTo(anaRoot, O + Vector3.new(0, 0, -45))
+local jardinero = CityErrandService.place(parque, "Parque_Basura", anaRoot.Position)
+CityErrandService.talk(ana, jardinero)
+answer(ana, 1)
+job = CityErrandService.activeOf(ana)
+itemsFolder = job and job.Folder
+check(job ~= nil and job.Deadline ~= nil and #itemsFolder:GetChildren() == 5, "cinco papeles por el suelo y un reloj en marcha")
+promptOf(itemsFolder:GetChildren()[1], "Recoger").Triggered:Fire(ana)
+promptOf(itemsFolder:GetChildren()[1], "Recoger").Triggered:Fire(ana)
+state = HttpService:JSONDecode(ana:GetAttribute("CityErrand"))
+check(job.Collected == 2 and string.find(state.Step, "(2/5)", 1, true) ~= nil and type(state.Left) == "number", "el panel cuenta los que llevas y el tiempo que queda")
+money0 = profiles[ana].Money
+job.Deadline = os.clock() - 1
+CityErrandService.tick()
+check(CityErrandService.activeOf(ana) == nil and profiles[ana].Money == money0 and notified(ana, "Se acabó el tiempo"), "si se acaba el tiempo, el encargo se pierde y no se cobra")
+check(#itemsFolder:GetChildren() == 0, "y la basura que quedaba desaparece")
+
+-- 4) Turista perdido: te sigue hasta el parque
+moveTo(anaRoot, O + Vector3.new(-60, 0, 300))
+local hans = CityErrandService.place(parada, "Estacion_Turista", anaRoot.Position)
+CityErrandService.talk(ana, hans)
+answer(ana, 1)
+job = CityErrandService.activeOf(ana)
+local goal = job and job.Plan[1].Point
+check(job ~= nil and goal ~= nil and (goal - O).Magnitude < 60, "Hans quiere ir a algo bonito: el parque más cercano")
+moveTo(anaRoot, O + Vector3.new(-40, 0, 150))
+CityErrandService.tick()
+check((hans.Model:GetPivot().Position - anaRoot.Position).Magnitude < 20, "Hans te sigue (si se queda atrás, te alcanza)")
+moveTo(anaRoot, goal)
+CityErrandService.tick()
+CityErrandService.tick()
+check(CityErrandService.activeOf(ana) == nil and notified(ana, "Turista perdido"), "al llegar con él al parque, encargo hecho")
+
+-- Edad y dejar un encargo (botón «Dejar»)
+moveTo(anaRoot, O + Vector3.new(0, 0, -45))
+local hugo = CityErrandService.place(parque, "Parque_Balon", anaRoot.Position)
+local kid, kidRoot = newPlayer(971, "Nino", 0)
+moveTo(kidRoot, O + Vector3.new(10, 0, -45))
+CityErrandService.talk(ana, hugo)
+check(talking[ana] == nil and string.find(hugo.Model:GetAttribute("Says") or "", "peque", 1, true) ~= nil, "a un adulto no le piden bajar un balón de un árbol (edad)")
+CityErrandService.talk(kid, hugo)
+answer(kid, 1)
+check(CityErrandService.activeOf(kid) ~= nil, "a un niño, sí")
+remotes.CityErrand.OnServerEvent:Fire(kid, "Abandon")
+check(CityErrandService.activeOf(kid) == nil and kid:GetAttribute("CityErrand") == nil and notified(kid, "Has dejado el encargo"), "«Dejar»: se quita del panel y avisa")
+moveTo(kidRoot, super.Center + Vector3.new(0, 0, -30))
+local lola = CityErrandService.place(super, "Super_Yogures", kidRoot.Position)
+CityErrandService.talk(kid, lola)
+check(talking[kid] == nil and string.find(lola.Model:GetAttribute("Says") or "", "cosa de mayores", 1, true) ~= nil, "a un niño no le piden reponer el súper")
+local kidOnly = true
+for _, template in CityErrands.forSite("Parque", "Nino", 12) do
+	kidOnly = kidOnly and CityErrands.fitsStage(template, "Nino")
+end
+check(kidOnly and #CityErrands.forSite("Puerto", "Nino", 12) == 0, "alrededor de un niño solo aparecen encargos para su edad")
+local _, babyRoot = newPlayer(972, "Bebe", 0)
+moveTo(babyRoot, O + Vector3.new(420, 0, -60))
+moveTo(anaRoot, O + Vector3.new(5000, 0, 5000))
+moveTo(kidRoot, O + Vector3.new(5000, 0, 5040))
+for _ = 1, 3 do
+	CityErrandService.scan()
+end
+local nearBaby = false
+for _, g in CityErrandService.givers() do
+	if (g.Position - (O + Vector3.new(420, 0, 0))).Magnitude < 100 then
+		nearBaby = true
+	end
+end
+check(not nearBaby, "alrededor de un bebé no aparece nadie")
+
+-- Nada en mitad de una conversación, de una escena o de la misión del cole
+moveTo(anaRoot, O + Vector3.new(0, 0, -45))
+local aurelio = CityErrandService.place(parque, "Parque_Basura", anaRoot.Position)
+profiles[ana].CityErrands.Cooldowns[aurelio.Key] = nil -- (el de antes se quedó sin tiempo: que no espere)
+check((CityErrandService.canOffer(ana, aurelio)), "(se le puede ofrecer)")
+talking[ana] = { Lines = {} }
+local before = #talks
+CityErrandService.talk(ana, aurelio)
+check(#talks == before, "en mitad de una conversación no te ofrecen nada")
+talking[ana] = nil
+ana:SetAttribute("InDialogue", true)
+CityErrandService.talk(ana, aurelio)
+check(#talks == before, "ni mientras hablas con alguien de la historia (InDialogue)")
+ana:SetAttribute("InDialogue", nil)
+storyBlock[ana] = "Busy"
+CityErrandService.talk(ana, aurelio)
+check(#talks == before, "ni durante una escena de la historia")
+storyBlock[ana] = "Story"
+clearInbox(ana)
+CityErrandService.talk(ana, aurelio)
+check(#talks == before and notified(ana, "cole"), "ni si toca la misión principal en horario de cole")
+storyBlock[ana] = nil
+ana:SetAttribute("Job", "Barista")
+CityErrandService.talk(ana, aurelio)
+check(#talks == before, "ni trabajando")
+ana:SetAttribute("Job", nil)
+-- Decir que no: tarda en volver a preguntarte
+CityErrandService.talk(ana, aurelio)
+answer(ana, 2)
+local ok2, why2 = CityErrandService.canOffer(ana, aurelio)
+check(#talks == before + 1 and CityErrandService.activeOf(ana) == nil and not ok2 and why2 == "Cooldown", "«Ahora no puedo»: no insiste en un rato")
+-- Un encargo a la vez
+profiles[ana].CityErrands.Cooldowns[aurelio.Key] = nil
+CityErrandService.talk(ana, aurelio)
+answer(ana, 1)
+local otro = CityErrandService.place(super, "Super_Yogures", anaRoot.Position)
+clearInbox(ana)
+CityErrandService.talk(ana, otro)
+check(#talks == before + 2 and notified(ana, "Ya tienes un encargo"), "un encargo a la vez")
+CityErrandService.abandon(ana)
+
+-- Horario: de noche el parque se vacía y el súper cierra
+Lighting.ClockTime = 23.5
+local ok3, why3 = CityErrandService.canOffer(ana, otro)
+check(not ok3 and why3 == "Closed", "con el súper cerrado no se ofrece nada")
+CityErrandService.scan()
+local emptyAtNight = true
+for _, g in CityErrandService.givers() do
+	if not g.Leaving and (g.Site.Kind == "Parque" or g.Site.Kind == "Super") then
+		emptyAtNight = false
+	end
+end
+check(emptyAtNight, "de noche se va la gente del parque y del súper")
+Lighting.ClockTime = 11
+
+-- Se va cuando no queda nadie cerca
+local lonely = CityErrandService.place(parque, "Parque_Perro", anaRoot.Position)
+moveTo(anaRoot, O + Vector3.new(5000, 0, 5000))
+CityErrandService.scan()
+check(lonely.Model.Parent == nil, "sin jugadores cerca, se va")
+
+mocks[S .. "LifeStoryService"] = savedMocks.LifeStory
+mocks[S .. "DialogueService"] = savedMocks.Dialogue
+mocks[S .. "ProgressionService"] = savedMocks.Progression
+mocks[S .. "SceneService"] = savedMocks.Scene
+end)()
+
+---------------------------------------------------------------------
 print("▶ Dormir: energía, estamina, reaparición y amanecer a las 8:30")
 Config.SleepSeconds = 0.05
 Config.SleepWaitSeconds = 2

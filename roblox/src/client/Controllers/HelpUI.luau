@@ -8,7 +8,8 @@
 --       - con misión o trabajo: lo que tienes que hacer en claro, dónde está y a cuánto
 --         ("📍 Colegio · 120 m · 1 min · hacia el norte") y el botón «🧭 Llévame» (pone la ruta del GPS);
 --       - sin nada que hacer: 2-3 ideas para ahora mismo según tu edad, la hora y lo que está abierto
---         (shared/Onboarding.suggest), cada una con su «Llévame».
+--         (shared/Onboarding.suggest), cada una con su «Llévame». Si alguien con ❗ cerca necesita
+--         ayuda (encargos de la ciudad: Controllers/CityErrands), sale la primera.
 --   * HelpUI.onOpen(fn) / HelpUI.onGo(fn): el tutorial (Controllers/Guide) cuenta abrirla y usar «Llévame».
 
 local Players = game:GetService("Players")
@@ -26,6 +27,7 @@ local HudLayout = require(script.Parent.Parent.UI.HudLayout)
 local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
 local Hud = require(script.Parent.Parent.UI.Hud)
 local Gps = require(script.Parent.Gps)
+local CityErrands = require(script.Parent.CityErrands)
 
 local create = Theme.create
 local C = Theme.Colors
@@ -197,25 +199,42 @@ local function render()
 		line(2, "Step", "Puedes hacer una de estas cosas:", 20, C.Text)
 		local marks = landmarks()
 		local from = myPosition()
-		for i, suggestion in Onboarding.suggest(HelpUI.context()) do
+		local function idea(order: number, name: string, text: string, onGo: (() -> ())?)
 			local row = create("Frame", {
-				Name = "Idea" .. i,
+				Name = name,
 				Size = UDim2.new(1, 0, 0, 52),
 				BackgroundColor3 = H.NavyLight,
 				BackgroundTransparency = 0.35,
-				LayoutOrder = 2 + i,
+				LayoutOrder = order,
 				ZIndex = 32,
 				Parent = list,
 			}, { create("UICorner", { CornerRadius = UDim.new(0, 10) }) })
-			Theme.label({ Name = "Text", Position = UDim2.fromOffset(12, 0), Size = UDim2.new(1, -170, 1, 0), Text = suggestion.Text, TextSize = 18, TextWrapped = true, ZIndex = 33, Parent = row })
-			local position = if suggestion.Place and suggestion.Place ~= "Casa" then Onboarding.nearest(marks, suggestion.Place, from) else nil
-			if suggestion.Place == "Casa" or position then
+			Theme.label({ Name = "Text", Position = UDim2.fromOffset(12, 0), Size = UDim2.new(1, -170, 1, 0), Text = text, TextSize = 18, TextWrapped = true, ZIndex = 33, Parent = row })
+			if onGo then
 				local go = Theme.button({ Name = "Go", AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -8, 0.5, 0), Size = UDim2.fromOffset(148, 40), Text = "🧭 Llévame", TextSize = 18, BackgroundColor3 = rgb(30, 140, 90), ZIndex = 33, Parent = row })
 				Theme.pressable(go)
-				go.Activated:Connect(function()
-					goTo(suggestion, position)
-				end)
+				go.Activated:Connect(onGo)
 			end
+		end
+		-- Alguien cerca con un ❗ que necesita ayuda (encargo de la ciudad): la primera idea
+		local best, bestDistance = nil, math.huge
+		for _, mark in CityErrands.list() do
+			local d = if from then (Vector3.new(mark.X, 0, mark.Z) - Vector3.new(from.X, 0, from.Z)).Magnitude else 0
+			if d < bestDistance then
+				best, bestDistance = mark, d
+			end
+		end
+		if best then
+			local mark = best
+			idea(3, "Encargo", ("❗ %s necesita ayuda: «%s»"):format(mark.Giver, mark.Title), function()
+				goTo({ Text = mark.Title, Name = mark.Giver, Place = "Encargo" } :: any, Vector3.new(mark.X, mark.Y, mark.Z))
+			end)
+		end
+		for i, suggestion in Onboarding.suggest(HelpUI.context()) do
+			local position = if suggestion.Place and suggestion.Place ~= "Casa" then Onboarding.nearest(marks, suggestion.Place, from) else nil
+			idea(3 + i, "Idea" .. i, suggestion.Text, if suggestion.Place == "Casa" or position then function()
+				goTo(suggestion, position)
+			end else nil)
 		end
 	end
 	line(20, "Footer", if TOUCH then "Toca ✕ para cerrar" else "H o Esc para cerrar", 14, C.Muted)

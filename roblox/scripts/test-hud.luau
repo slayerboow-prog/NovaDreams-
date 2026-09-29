@@ -373,6 +373,15 @@ local services = {
 	RunService = service("RunService"),
 	ContextActionService = contextActions,
 	ProximityPromptService = service("ProximityPromptService"),
+	-- (el panel lee el encargo de la ciudad en JSON: atributo CityErrand)
+	HttpService = {
+		JSONDecode = function(_, text)
+			return require("@lune/serde").decode("json", text)
+		end,
+		JSONEncode = function(_, value)
+			return require("@lune/serde").encode("json", value)
+		end,
+	},
 }
 local fakeGame = { GetService = function(_, name)
 	return services[name] or error("Servicio sin simular: " .. name)
@@ -751,6 +760,20 @@ check(quests and textOf(quests, "MISIONES OPCIONALES"), "La flecha abre la lista
 check(quests and textOf(quests, "después del cole"), "Las misiones que esperan a que acabe el cole siguen en la lista, marcadas «🏫 después del cole»")
 Hud.runCommand("Misiones")
 check(popups and popups:FindFirstChild("Quests") == nil, "Y se cierra otra vez")
+
+-- Un encargo de la ciudad aceptado: el panel lo enseña (con la paga y «Dejar») y el ❓ también
+localPlayer:SetAttribute("CityErrand", '{"Id":"Parque_Perro","Title":"¡Se ha escapado Trufa!","Giver":"Doña Amparo","Step":"Busca a Trufa por el parque","StepNum":1,"StepTotal":2,"Money":26,"Xp":16}')
+localPlayer:SetAttribute("CityErrandTarget", roblox.Vector3.new(40, 0, 40))
+check(mission and string.find(mission.Kind.Text, "ENCARGO", 1, true) ~= nil and string.find(mission.Title.Text, "Trufa", 1, true) ~= nil and mission.Step.Text == "Busca a Trufa por el parque" and mission.Quit.Visible, "Encargo de la ciudad en el panel: «ENCARGO», el paso y el botón «Dejar»")
+local objective = Hud.objective()
+check(objective ~= nil and objective.Kind == "ENCARGO" and objective.Target == roblox.Vector3.new(40, 0, 40), "«¿Qué hago ahora?» también habla del encargo")
+Hud.runCommand("Misiones")
+quests = popups and popups:FindFirstChild("Quests")
+check(quests and textOf(quests, "ENCARGO DE LA CIUDAD") and textOf(quests, "Dejar el encargo"), "La lista de misiones enseña el encargo con su botón para dejarlo")
+Hud.runCommand("Misiones")
+localPlayer:SetAttribute("CityErrand", nil)
+localPlayer:SetAttribute("CityErrandTarget", nil)
+check(mission and mission.Kind.Text == "MISIÓN PRINCIPAL", "Al acabar el encargo vuelve la misión")
 
 -- Menú rápido: abierto en el ordenador, al lado del minimapa
 local phone = popups and popups:FindFirstChild("Phone")
@@ -1298,6 +1321,13 @@ do
 	HelpUI.open()
 	check(helpCard.Visible and body.Kind.Text == "AHORA NO TIENES MISIÓN" and body:FindFirstChild("Idea1") ~= nil and body:FindFirstChild("Idea2") ~= nil, "Sin misión: ideas para ahora mismo («" .. (if body:FindFirstChild("Idea1") then body.Idea1.Text.Text else "?") .. "»…)")
 	HelpUI.close()
+	-- Con alguien cerca que necesita ayuda (encargo de la ciudad): la primera idea
+	localPlayer:SetAttribute("CityErrandMarks", '[{"Id":"Parque:0,0","Title":"¡Se ha escapado Trufa!","Giver":"Doña Amparo","X":30,"Y":0,"Z":30}]')
+	HelpUI.open()
+	local errandIdea = body:FindFirstChild("Encargo")
+	check(errandIdea ~= nil and errandIdea.Text.Text:find("Doña Amparo", 1, true) ~= nil and errandIdea:FindFirstChild("Go") ~= nil, "Sin misión y con un ❗ cerca: «Doña Amparo necesita ayuda» con su «Llévame»")
+	HelpUI.close()
+	localPlayer:SetAttribute("CityErrandMarks", nil)
 	check(#badWrites == 0, "Ninguna propiedad inventada" .. (if #badWrites > 0 then ": " .. table.concat(badWrites, ", ") else ""))
 end
 

@@ -87,6 +87,7 @@ local Guide = require(script.Parent.Controllers.Guide)
 local CommandMenu = require(script.Parent.Commands.CommandMenu)
 local DefaultCommands = require(script.Parent.Commands.DefaultCommands)
 local CanonMarkers = require(script.Parent.Controllers.CanonMarkers)
+local CityErrands = require(script.Parent.Controllers.CityErrands)
 local NameTags = require(script.Parent.Controllers.NameTags)
 
 local gui = Hud.init(function()
@@ -120,6 +121,7 @@ task.spawn(DebugHud.init) -- panel de depuración del dueño (F8); a los demás 
 task.spawn(MiniGameUI.init) -- pase, canastas, partido de fútbol
 task.spawn(SceneClient.init) -- cada uno ve solo los personajes de su historia
 task.spawn(CanonMarkers.init) -- la saga: ❗ dorados en el mapa y pilares de luz hasta que haces cada misión canónica
+task.spawn(CityErrands.init) -- encargos de la ciudad: cada uno ve solo los objetos y la gente de su encargo
 task.spawn(NameTags.init) -- el nombre encima de los personajes de la historia (legible y sin pisar los bocadillos)
 task.spawn(ActorLife.init) -- los personajes respiran, miran, gesticulan al hablar y andan con animación
 task.spawn(AgeMotion.init) -- cada edad se mueve a su manera: el bebé gatea, los mayores van encorvados…

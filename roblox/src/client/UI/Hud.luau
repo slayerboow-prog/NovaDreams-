@@ -6,7 +6,8 @@
 --   Arriba en el centro    -> cápsula con la hora, la fecha, el día de tu historia y el tiempo (°C)
 --   Arriba a la derecha    -> minimapa (MapUI) y, a su lado, el menú rápido del teléfono (Ir a casa,
 --                             Tienda, Vehículos, Gestos, Mercadillo…). En el móvil se abre con 📱.
---   Derecha                -> la misión que sigues (o tu trabajo); › abre la lista de misiones
+--   Derecha                -> la misión que sigues (o tu trabajo, o el encargo de la ciudad que has
+--                             aceptado: atributo CityErrand); › abre la lista de misiones
 --   Abajo                  -> menú de comandos (client/Commands), barra rápida (InventoryUI) y los
 --                             botones táctiles (UI/TouchLayout)
 --   Al llegar a un sitio nuevo, su nombre aparece en grande. Avisos arriba y pantalla negra para dormir.
@@ -14,6 +15,7 @@
 -- Otros sistemas se enganchan con Hud.setAction (comandos) y Hud.addButton (apps del menú rápido).
 
 local CollectionService = game:GetService("CollectionService")
+local HttpService = game:GetService("HttpService")
 local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -436,6 +438,33 @@ local storyState: { [string]: any } = {}
 local lastTracked: string? = nil
 local hasMission = false
 
+-- El encargo de la ciudad que estás haciendo (CityErrandService lo manda en el atributo CityErrand)
+local function errandState(): { [string]: any }?
+	local raw = player:GetAttribute("CityErrand")
+	if type(raw) ~= "string" then
+		return nil
+	end
+	local ok, state = pcall(function()
+		return HttpService:JSONDecode(raw)
+	end)
+	return if ok and type(state) == "table" and type(state.Title) == "string" then state else nil
+end
+
+local function errandStep(errand: { [string]: any }): string
+	local step = errand.Step or ""
+	if type(errand.Left) == "number" then
+		step ..= (" · ⏱ %d s"):format(errand.Left)
+	end
+	return step
+end
+
+local function abandonErrand()
+	local remote = Remotes:FindFirstChild("CityErrand")
+	if remote then
+		(remote :: RemoteEvent):FireServer("Abandon")
+	end
+end
+
 -- Lo que enseña el panel: título, nombre, paso actual y contador
 local function missionSummary(state: { [string]: any }): { Kind: string, Title: string, Step: string, Count: string }?
 	local tracked = state.Tracked
@@ -486,6 +515,16 @@ local function paintMission()
 		parts.Kind.TextColor3 = H.SelectLight
 		setText(parts.Title, "💼 " .. job.DisplayName)
 		setText(parts.Step, player:GetAttribute("TaskText") or "")
+		parts.Count.Visible = false
+		parts.Quit.Visible = true
+		hasMission = true
+	elseif errandState() then
+		-- Un encargo de la ciudad: lo que te han pedido, la paga y el botón para dejarlo
+		local errand = errandState() :: { [string]: any }
+		setText(parts.Kind, ("ENCARGO · %s · %d XP"):format(Format.money(errand.Money or 0), errand.Xp or 0))
+		parts.Kind.TextColor3 = rgb(80, 210, 255)
+		setText(parts.Title, "🧺 " .. errand.Title)
+		setText(parts.Step, errandStep(errand))
 		parts.Count.Visible = false
 		parts.Quit.Visible = true
 		hasMission = true
@@ -545,6 +584,16 @@ local function renderQuestList(list: Frame, state: { [string]: any })
 	local function nextOrder(): number
 		order += 1
 		return order
+	end
+	-- El encargo de la ciudad que has aceptado (con su botón para dejarlo)
+	local errand = errandState()
+	if errand then
+		section(list, nextOrder(), "Encargo de la ciudad", rgb(80, 210, 255))
+		Theme.title({ Size = UDim2.new(1, 0, 0, 26), Text = "🧺 " .. errand.Title, TextSize = 18, LayoutOrder = nextOrder(), Parent = list })
+		objectiveRow(list, nextOrder(), errandStep(errand), false, true)
+		objectiveRow(list, nextOrder(), ("Te lo ha pedido %s · %s y %d XP"):format(errand.Giver or "alguien", Format.money(errand.Money or 0), errand.Xp or 0), false)
+		local drop = Theme.button({ Size = UDim2.fromOffset(170, 32), Text = "Dejar el encargo", TextSize = 14, BackgroundColor3 = rgb(140, 40, 50), LayoutOrder = nextOrder(), Parent = list })
+		drop.Activated:Connect(abandonErrand)
 	end
 	local tracked = state.Tracked
 	if tracked then
@@ -671,6 +720,10 @@ local function buildMission(parent: Instance)
 	parts.Count = Theme.label({ Name = "Count", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -16, 0, 68), Size = UDim2.fromOffset(60, 28), Font = Theme.FontBold, TextSize = 17, TextXAlignment = Enum.TextXAlignment.Right, Parent = mission })
 	parts.Quit = Theme.button({ Name = "Quit", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -12, 0, 68), Size = UDim2.fromOffset(78, 30), Text = "Dejar", TextSize = 14, BackgroundColor3 = rgb(140, 40, 50), Visible = false, ZIndex = 3, Parent = mission })
 	parts.Quit.Activated:Connect(function()
+		if player:GetAttribute("Job") == nil and errandState() then
+			abandonErrand()
+			return
+		end
 		(Remotes:WaitForChild("QuitJob") :: RemoteEvent):FireServer()
 	end)
 	-- Todo el panel abre la lista de misiones (y la flecha › lo indica)
@@ -729,6 +782,12 @@ local function buildMission(parent: Instance)
 	end)
 	player:GetAttributeChangedSignal("Job"):Connect(paintMission)
 	player:GetAttributeChangedSignal("TaskText"):Connect(paintMission)
+	player:GetAttributeChangedSignal("CityErrand"):Connect(function()
+		paintMission()
+		if questList and questWindow and questWindow.Parent then
+			renderQuestList(questList, storyState)
+		end
+	end)
 	actions.Misiones = openQuests
 	paintMission()
 end
@@ -756,6 +815,18 @@ function Hud.objective(): Objective?
 			Target = if typeof(taskTarget) == "Vector3" then taskTarget else nil,
 			Job = true,
 			Key = "Trabajo|" .. step,
+		}
+	end
+	local errand = errandState()
+	if errand then
+		local target = player:GetAttribute("CityErrandTarget")
+		return {
+			Kind = "ENCARGO",
+			Title = errand.Title,
+			Step = errand.Step or "",
+			Target = if typeof(target) == "Vector3" then target else nil,
+			Job = false,
+			Key = "Encargo|" .. errand.Title .. "|" .. (errand.Step or ""),
 		}
 	end
 	local summary = missionSummary(storyState)

@@ -936,6 +936,25 @@ local BUILDERS: { [string]: (Model, { [string]: any }) -> () } = {
 	end,
 }
 
+-- Construye un objeto suelto de uno de estos tipos (sin misión ni jugador): lo usan otros sistemas,
+-- como los encargos de la ciudad (CityErrandService). Las piezas quedan alrededor del origen (el suelo
+-- en y = 0) con una base invisible como PrimaryPart: se lleva a su sitio con PivotTo.
+function SceneService.buildProp(kind: string, spec: { [string]: any }?): Model
+	local model = Instance.new("Model")
+	local build = BUILDERS[kind] or BUILDERS.Marcador
+	build(model, spec or {})
+	local base = Instance.new("Part")
+	base.Name = "PropBase"
+	base.Size = V(1.5, 1.5, 1.5)
+	base.Transparency = 1
+	base.Anchored = true
+	base.CanCollide = false
+	base.CFrame = CFrame.new(0, 0.75, 0)
+	base.Parent = model
+	model.PrimaryPart = base
+	return model
+end
+
 local function makeProp(player: Player, questId: string, id: string, def: { [string]: any }, cf: CFrame, mark: BasePart?, isMapObject: boolean): Prop
 	local model = Instance.new("Model")
 	model.Name = def.Name or id

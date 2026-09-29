@@ -36,6 +36,9 @@
         "Housing": {
           "$className": "RemoteEvent"
         },
+        "CityErrand": {
+          "$className": "RemoteEvent"
+        },
         "Onboarding": {
           "$className": "RemoteEvent"
         },
