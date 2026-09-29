@@ -366,14 +366,19 @@ function StaffService.retireNpc(npc: Model, aside: Vector3?, line: string?): boo
 	end
 	leaveSeq[npc] = nil
 	mutedPrompts[npc] = nil
-	-- Se va fundiéndose (el cliente lo desvanece: atributo FadeOut, Controllers/ActorLife), no de golpe
-	npc:SetAttribute("FadeIn", true)
-	npc:SetAttribute("FadeOut", true)
-	task.delay(0.7, function()
-		if npc.Parent then
-			npc:Destroy()
-		end
-	end)
+	-- Si alguien lo puede ver (aunque no esté al lado), se va fundiéndose (el cliente lo desvanece:
+	-- atributo FadeOut, Controllers/ActorLife), no de golpe; sin nadie cerca, fuera ya
+	local root = npc.PrimaryPart
+	if root and playerWithin(root.Position, 120) then
+		npc:SetAttribute("FadeOut", true)
+		task.delay(0.7, function()
+			if npc.Parent then
+				npc:Destroy()
+			end
+		end)
+	else
+		npc:Destroy()
+	end
 	return true
 end
 
