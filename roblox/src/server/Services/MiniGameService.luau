@@ -43,9 +43,8 @@ local function evaluate(spec: Spec, raw: any, elapsed: number): Result
 		if goals + against > plays then
 			return { Won = false, Score = 0, Against = plays, Detail = { Draw = false } }
 		end
-		-- Para ganar hay que haber jugado el partido entero (todas las jugadas)
-		local played = elapsed >= rules.MinSecondsPerRound * plays
-		return { Won = played and goals > against, Score = goals, Against = against, Detail = { Draw = goals == against } }
+		-- (el tiempo mínimo del partido ya se mira al recibir el resultado)
+		return { Won = goals > against, Score = goals, Against = against, Detail = { Draw = goals == against } }
 	end
 	local rounds = spec.Rounds or 3
 	local hits = math.clamp(math.floor(tonumber(raw.Hits) or 0), 0, rounds)
