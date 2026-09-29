@@ -1,7 +1,7 @@
 # Traspaso de la sesión de HISTORIA (rama `claude/historia`)
 
 Estado al cerrar: todo commiteado y subido. Nada a medias. Últimas pruebas en verde
-(test-compile, test-clientboot, test-gameplay y test-lifestory: 450 ✅, 0 fallos).
+(test-compile, test-clientboot, test-gameplay y test-lifestory: 473 ✅, 0 fallos; test-storycontext y test-playthrough en verde).
 
 ## Qué estaba haciendo
 
@@ -12,8 +12,11 @@ Contenido de la historia y su continuidad (solo datos de misiones + tests), trab
 
 - **Saga de la Grieta completa (24 misiones canónicas)**: `src/shared/LifeStory/Misiones/Saga_Acto1..4.luau`.
   Doc: `docs/historia/13-saga-de-la-grieta.md`. Test: sección «Saga de la Grieta · Actos II, III y IV».
-- **Rarezas de la Grieta: 16 secundarias (4 por etapa)**: `Misiones/Rarezas.luau`. Cada una da una pieza
+- **Rarezas de la Grieta: 24 secundarias (6 por etapa)**: `Misiones/Rarezas.luau`. Cada una da una pieza
   (Items.luau) y un recuerdo (Memories.luau). Test: sección «Rarezas de la Grieta».
+- **Misiones de aliados: 7 (una por aliado)**: `Misiones/Aliados.luau` (Bigotes, Rex, Ratón Pérez, Cronos, Capitana Ñoz,
+  gnomos, tu yo malvado). Cada una pide su misión loca o de la saga, da recuerdo y pieza, y añade una frase en la
+  saga 20 (`If = { Completed = { "Aliado_…" } }`). Test: sección «Misiones de aliados».
 - **La colección cuenta en el final**: condiciones nuevas `MemoriesAtLeast` / `MemoriesFewer`
   (`shared/LifeStory/Conditions.luau`). En `Saga_Acto4.luau`, lista `RESTOS`: con ≥4, escena «Restos» y
   Cósimo con 6 de vida en vez de 10. **Al añadir rarezas nuevas, añadir su Memory a `RESTOS`.**
@@ -28,9 +31,9 @@ Contenido de la historia y su continuidad (solo datos de misiones + tests), trab
 
 ## Pendiente / ideas siguientes (por prioridad)
 
-1. **Misiones de aliados** (1–2 por aliado: Bigotes, Rex, Ratón Pérez, gnomos, Cronos, tu yo malvado, Ñoz),
-   para que vuelvan con sentido antes del final (saga 20). Documentado como pendiente en el doc 13.
-2. **Más rarezas** hasta 6–8 por etapa (ahora 4). Recordar: Memory nueva → lista `RESTOS` en Saga_Acto4.
+1. (Opcional) Una segunda misión por aliado, y dos rarezas más por etapa (hasta 8). Recordar: Memory nueva de rareza →
+   lista `RESTOS` en Saga_Acto4 (el test comprueba que no falte ninguna).
+2. Revisar en Studio los props nuevos de rarezas y aliados (lavadora, cajero, taquilla, gnomos espía, cámaras de la promo).
 3. Frase muerta: en Saga_19 (Saga_Acto4.luau, diálogo con Don Escamas) hay una línea con
    `If = { Completed = { "Loco_D3_Tostadora" } }` que ya no puede salir (D3 ahora va después de la saga 19).
    Reescribirla o quitar la condición.

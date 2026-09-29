@@ -104,6 +104,14 @@ local Memories: { [string]: Memory } = {
 	EcoFuturo = { Text = "Oíste a tu yo del futuro en el eco del estadio", Icon = "📣" },
 	Contestador1999 = { Text = "Un mensaje de 1999 dedicado a ti", Icon = "📼" },
 	GatoCuantico = { Text = "Decidiste dónde estaba un gato cuántico", Icon = "🐈" },
+	HeladoRecuerdos = { Text = "El helado que sabía a recuerdos", Icon = "🍦" },
+	CharcoSinFondo = { Text = "El charco sin fondo y el patito de las dos lunas", Icon = "🦆" },
+	CancionPegadiza = { Text = "Encontraste el final de la canción que no se acababa", Icon = "🎶" },
+	TaquillaDimensional = { Text = "Te escribiste notas con alguien de otra dimensión por la taquilla", Icon = "🗄️" },
+	FotocopiasVivas = { Text = "La fotocopiadora que copiaba personas (de papel)", Icon = "🖨️" },
+	Wifi1987 = { Text = "El wifi de la residencia que se conectaba a 1987", Icon = "📟" },
+	LavadoraMultiversal = { Text = "La lavadora que devolvía calcetines de otras dimensiones", Icon = "🧺" },
+	CajeroDeTiempo = { Text = "El cajero que daba minutos en vez de dinero", Icon = "🏧" },
 	-- Misiones locas
 	ConociCosme = { Text = "Cuando conociste a Cosme, el inventor del garaje (y su microondas temporal)", Icon = "🧪" },
 	EmperadorBigotes = { Text = "Salvaste a Bigotes, emperador de Gatonia, de las cucarachas espaciales", Icon = "👑" },
@@ -126,6 +134,14 @@ local Memories: { [string]: Memory } = {
 	CosmeTostadora = { Text = "Cuando Cosme se pasó a una tostadora", Icon = "🍞" },
 	GuerraGnomos = { Text = "La noche de la guerra de los gnomos", Icon = "🧙" },
 	TuYoMalvado = { Text = "El duelo contra tu yo malvado de la dimensión 66-B", Icon = "🥸" },
+	-- Misiones de aliados
+	GuardiaGatuna = { Text = "Protegiste la visita de Estado de Bigotes y te nombró Canciller de Gatonia", Icon = "🎗️" },
+	AbogadoRex = { Text = "Rex te defendió ante el tribunal del Consorcio (y ganó su primer juicio)", Icon = "⚖️" },
+	MuelaDelJuicio = { Text = "Tu muela del juicio y los dientes que robaba el Consorcio", Icon = "🦷" },
+	ExpedienteCronos = { Text = "Salvaste al agente Cronos de su propio expediente", Icon = "📋" },
+	TemporadaFinal = { Text = "Grabaste la promo del final de temporada con la Capitana Ñoz", Icon = "🎬" },
+	ConsejoGnomos = { Text = "El consejo de los jardines y los gnomos de plástico espía", Icon = "🧙" },
+	ClasesDeBondad = { Text = "Le enseñaste a tu yo malvado a ser bueno", Icon = "😇" },
 }
 
 return Memories

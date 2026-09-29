@@ -386,6 +386,14 @@ local KEEPSAKES = {
 	{ "SilbatoEco", "Silbato del eco", "📯", "Resto de la Grieta. Si soplas, no suena. Se oye un segundo después." },
 	{ "CintaContestador", "Cinta del contestador", "📼", "Resto de la Grieta. Un mensaje de 1999: «que sepas que eres lo mejor que nos ha pasado»." },
 	{ "CascabelCuantico", "Cascabel cuántico", "🔔", "Resto de la Grieta. A veces suena y a veces no, aunque no lo muevas. Es cuántico. O está roto." },
+	{ "CucuruchoRecuerdos", "Cucurucho de los recuerdos", "🍦", "Resto de la Grieta. Vacío. Si lo hueles, sabe a tu primer día de colegio." },
+	{ "PatitoDosLunas", "Patito de las dos lunas", "🦆", "Resto de la Grieta. Un patito de goma de un cielo con dos lunas. Flota hacia arriba si te descuidas." },
+	{ "PartituraSinFin", "Partitura sin final", "🎼", "Resto de la Grieta. La canción más pegadiza del multiverso. Ahora, por fin, con final." },
+	{ "NotaTaquilla", "Nota de la taquilla 66", "✉️", "Resto de la Grieta. De alguien de otra dimensión que va a tu mismo curso. Firma: «Tú, pero de otra parte»." },
+	{ "TonerVerde", "Cartucho de tóner verde", "🖨️", "Resto de la Grieta. Imprime en verde Grieta. No lo metas en la fotocopiadora. En serio." },
+	{ "ModemPitido", "Módem que pita", "📟", "Resto de la Grieta. Si lo enchufas, suena «piiii-krrrr» y se conecta a 1987." },
+	{ "PinzaMultiversal", "Pinza de tender multiversal", "🧷", "Resto de la Grieta. Lo que tiendes con ella se seca en tres dimensiones a la vez." },
+	{ "BilleteMinutos", "Billete de diez minutos", "💵", "Resto de la Grieta. No compra nada. Pero si lo gastas, tienes diez minutos más. Úsalo con cabeza." },
 	-- Recuerdos exclusivos de las misiones locas
 	{ "CoronaBigotes", "Corona del emperador Bigotes", "👑", "Mide dos centímetros. En Gatonia es enorme. Huele un poco a jamón." },
 	{ "FotoClones", "Foto con tus clones", "📸", "Cuatro como tú haciendo el signo de la victoria. Uno tiene plastilina en la boca." },
@@ -397,6 +405,14 @@ local KEEPSAKES = {
 	{ "TarjetaGalactica", "Tarjeta del Banco Galáctico", "💳", "Sin límite. En ninguna tienda de la Tierra la aceptan. En Plutón, sí." },
 	{ "GnomoAliado", "Rigoberto, gnomo aliado", "🧙", "Firmó la paz contigo. Ahora vigila tu jardín. Por la noche se mueve un poco." },
 	{ "PerillaMalvada", "La perilla de tu yo malvado", "🥸", "Postiza. Se la quitaste en el duelo. Sin ella, tu yo malvado es solo un yo triste." },
+	-- Misiones de aliados
+	{ "BandaCanciller", "Banda de Canciller de Gatonia", "🎗️", "Regalo del presidente Bigotes. Sueldo: una siesta al sol por semana. Huele a atún." },
+	{ "TarjetaRex", "Tarjeta de Rex, abogado", "📇", "«Rex. Abogado. Especialista en Anclas y jamón.» Tiene un mordisco en una esquina: es su firma." },
+	{ "CarnetSindical", "Carnet del Sindicato de Roedores", "🪪", "Socio de honor. Firmado por el Ratón Pérez y por la rata, que ahora es jefa de turno." },
+	{ "Formulario42B", "Formulario 42-B (sellado)", "📋", "El expediente del agente Cronos, archivado. Por detrás pone «Gracias». Con sello." },
+	{ "ClaquetaAlien", "Claqueta alienígena", "🎬", "«Terrícolas en apuros · Final de temporada · Toma 1 de 1»." },
+	{ "GorroGnomo", "Gorro de gnomo honorario", "🔺", "Te queda un poco pequeño. A todos los gnomos les queda un poco pequeño. Es la tradición." },
+	{ "DiplomaBondad", "Diploma de bondad (con faltas)", "🎖️", "«Aprobado en bondad». Lo hizo tu yo malvado. Las faltas son a propósito." },
 }
 for _, entry in KEEPSAKES do
 	list[entry[1]] = { Id = entry[1], Name = entry[2], Icon = entry[3], Kind = "Keepsake", Desc = entry[4], Stack = 99 }

@@ -56,6 +56,8 @@ return {
 	require(Misiones.Loco_Adolescente),
 	require(Misiones.Loco_Uni),
 	require(Misiones.Loco_Adulto),
+	-- Misiones de aliados: cada aliado de la saga vuelve antes del final (saga 20)
+	require(Misiones.Aliados),
 	-- Metro de Valmar: secundarias que se hacen viajando en metro
 	require(Misiones.Metro_Secundarias),
 }
