@@ -106,7 +106,7 @@ saga: casi todo lo raro que pasa en ellas llega por la Grieta. En el final vuelv
 
 **Misiones locas**: 21 ya hechas (infancia 6, adolescencia 5, universidad 5, adulto 5).
 
-**«Rarezas de la Grieta»** (`Misiones/Rarezas.luau`). Dos lotes hechos, 16 misiones (4 por etapa), todas probadas
+**«Rarezas de la Grieta»** (`Misiones/Rarezas.luau`). Tres lotes hechos, 24 misiones (6 por etapa), todas probadas
 de principio a fin en `test-lifestory`:
 
 | Etapa | Rareza | Pieza |
@@ -127,10 +127,18 @@ de principio a fin en `test-lifestory`:
 | Universidad | El eco del estadio | Silbato del eco |
 | Adulto | El contestador de 1999 | Cinta del contestador |
 | Adulto | El gato que está y no está | Cascabel cuántico |
+| Niño | El helado que sabe a recuerdos | Cucurucho de los recuerdos |
+| Niño | El charco sin fondo | Patito de las dos lunas |
+| Adolescente | La canción que no se acaba | Partitura sin final |
+| Adolescente | La taquilla que da a otra taquilla | Nota de la taquilla 66 |
+| Universidad | La fotocopiadora que copia personas | Cartucho de tóner verde |
+| Universidad | El wifi que se conecta a 1987 | Módem que pita |
+| Adulto | La lavadora multiversal | Pinza de tender multiversal |
+| Adulto | El cajero que da minutos | Billete de diez minutos |
 
 Pendiente de las rarezas:
 
-- Entre 6 y 8 por etapa, de 10 a 20 min cada una.
+- Hay 6 por etapa. Se pueden añadir hasta 8 por etapa, de 10 a 20 min cada una.
 - Son cosas pequeñas y absurdas que caen por la Grieta: el buzón que manda cartas al pasado, la farola
   que canta ópera, el perro que ladra en binario, la lluvia de espaguetis, el ascensor que sube a un
   piso 13 que no existe…
@@ -143,7 +151,21 @@ Pendiente de las rarezas:
 Rex, el Ratón Pérez, los gnomos y tu yo malvado **solo si les ayudaste** en su misión. En la batalla final
 aparecen los que vinieron.
 
-**Misiones de aliados** (pendientes): 1 o 2 por cada aliado de la saga, para que vuelvan con sentido en el final.
+**Misiones de aliados (hecho)** (`Misiones/Aliados.luau`): una por aliado. Cada aliado vuelve antes del final, te pide
+ayuda y te promete venir a la Gran Fusión. Todas dan un recuerdo y una pieza, y en «Todos los aliados» (misión 20) cada
+aliado dice una frase extra si hiciste su misión. Test: sección «Misiones de aliados».
+
+| Aliado | Misión | Pide | Resumen | Pieza |
+|---|---|---|---|---|
+| Bigotes | **La visita de Estado** (`Aliado_Bigotes`) | N2 y saga 14 · universidad o después | Las cucarachas de Crujiente vuelven, ahora espías del Consorcio. Manguerazos y Guardia Gatuna. | Banda de Canciller de Gatonia |
+| Rex | **Rex, abogado del Ancla** (`Aliado_Rex`) | U2 (Rex se quedó) y saga 9 | MegaVerso te demanda por ser un Ancla «sin licencia». Rex gana su primer juicio. | Tarjeta de Rex, abogado |
+| Ratón Pérez | **La muela del juicio** (`Aliado_Perez`) | N5 y saga 8 · de noche | El Consorcio compra dientes para la máquina de la Fusión. Persecución del saco. | Carnet del Sindicato de Roedores |
+| Cronos | **El expediente de Cronos** (`Aliado_Cronos`) | saga 11 (Cronos aliado) | La Aduana investiga a Cronos por ayudar al Ancla: firmas de {abu} y Pip, y la ventanilla 42. | Formulario 42-B |
+| Capitana Ñoz | **Final de temporada** (`Aliado_Noz`) | saga 15 · de noche | Quieren cancelar el reality: grabas la promo de la Gran Fusión en directo. | Claqueta alienígena |
+| Los gnomos | **El consejo de los jardines** (`Aliado_Gnomos`) | D4 y saga 8 · adulto, de noche | Gnomos de plástico espía del Consorcio. El Gran Gnomo convoca el consejo. | Gorro de gnomo honorario |
+| Tu yo malvado | **Clases de ser bueno** (`Aliado_Malvado`) | D5 · adulto | Tu yo malvado quiere aprender a ser bueno. Última lección: la eliges tú. | Diploma de bondad (con faltas) |
+
+Continuidad: Cosme no sale en ninguna (puede estar secuestrado o sin memoria); Pip firma «por los dos» si Cosme no está.
 
 ## Reglas para que todo sea coherente
 

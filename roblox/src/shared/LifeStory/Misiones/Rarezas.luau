@@ -2,7 +2,7 @@
 -- Ficha de diseño: docs/historia/13-saga-de-la-grieta.md («Secundarias»)
 --
 -- Todas piden haber visto la Grieta (Saga_02) y dan una pieza de la colección «Restos de la Grieta».
--- Cuatro por etapa (dos lotes):
+-- Seis por etapa (tres lotes):
 --   Rareza_Buzon      Niño         «El buzón que escribe al pasado»
 --   Rareza_Farola     Niño         «La farola que canta ópera» (de noche)
 --   Rareza_Perro      Adolescente  «El perro que ladra en binario»
@@ -19,6 +19,14 @@
 --   Rareza_Eco        Universidad  «El eco del estadio»
 --   Rareza_Contestador Adulto      «El contestador de 1999»
 --   Rareza_GatoCaja   Adulto       «El gato que está y no está»
+--   Rareza_Helado     Niño         «El helado que sabe a recuerdos»
+--   Rareza_Charco     Niño         «El charco sin fondo»
+--   Rareza_Cancion    Adolescente  «La canción que no se acaba»
+--   Rareza_Taquilla   Adolescente  «La taquilla que da a otra taquilla»
+--   Rareza_Fotocopiadora Universidad «La fotocopiadora que copia personas»
+--   Rareza_Wifi       Universidad  «El wifi que se conecta a 1987»
+--   Rareza_Lavadora   Adulto       «La lavadora multiversal»
+--   Rareza_Cajero     Adulto       «El cajero que da minutos»
 
 local V = Vector3.new
 
@@ -755,6 +763,389 @@ return {
 			Final = { Lines = {
 				{ S = "Pip", T = "Gato decidido. Caja ocupada. Encargado más tranquilo. Ha dejado un cascabel: a veces suena y a veces no. Aunque no lo muevas. Es cuántico. O está roto." },
 				{ S = "Pip", T = "Y he comprado los yogures. Los de fresa no: siguen raros." },
+			} },
+		},
+	},
+	---------------------------------------------------------------------
+	-- TERCER LOTE
+	---------------------------------------------------------------------
+
+	---------------------------------------------------------------------
+	-- Niño · El helado que sabe a recuerdos
+	---------------------------------------------------------------------
+	{
+		Id = "Rareza_Helado",
+		Kind = "Side",
+		Title = "El helado que sabe a recuerdos",
+		Description = "En la heladería hay un sabor nuevo, de color verde Grieta. No sabe a fresa ni a chocolate: sabe a un recuerdo.",
+		Type = "Rareza de la Grieta · Infancia",
+		Duration = { 10, 14 },
+		Npcs = { "Pip" },
+		Offer = { Place = "Heladeria" },
+		OfferKey = "En la heladería hay un sabor nuevo: «Sabor Recuerdo». Es verde. Brilla un poquito",
+		Requires = rareza(NINO),
+		Moment = "Probaste un helado que sabía a recuerdos",
+		Memory = "HeladoRecuerdos",
+		Rewards = { Items = { CucuruchoRecuerdos = 1 } },
+		Props = {
+			Cubeta = { Kind = "Kiosco", Name = "La cubeta del «Sabor Recuerdo»", Prompt = "Pedir una bola", Place = "Heladeria", Offset = V(0, 0, 3), Color = Color3.fromRGB(120, 255, 160), Dialogue = "Bola", Once = true },
+		},
+		Steps = {
+			{ Type = "Use", Prop = "Cubeta", Text = "Pide una bola del sabor nuevo" },
+			{ Type = "Choice", Key = "Sabor", Text = "La heladera dice que cada bola sabe a un recuerdo distinto. ¿Cuál pides para la segunda?",
+				Options = {
+					{ Id = "Cumple", Text = "El de tu mejor cumpleaños", Effects = { Traits = { Humor = 1 } } },
+					{ Id = "Abu", Text = "Uno de {abu} cuando era pequeño", Effects = { Traits = { Empatia = 2 } } },
+					{ Id = "Manana", Text = "Uno de mañana (¿se puede?)", Effects = { Traits = { Curiosidad = 2 } } },
+				},
+				Actors = { { Npc = "Pip", Place = "Heladeria", Offset = V(3, 0, 2) } } },
+			{ Type = "Talk", Npc = "Pip", Dialogue = "Pip", Text = "Pip ha venido a por un helado (de tornillos)",
+				Actors = { { Npc = "Pip", Place = "Heladeria", Offset = V(3, 0, 2) } } },
+		},
+		Dialogues = {
+			Bola = { Lines = {
+				{ S = "Narrador", T = "Das un lametazo. De repente estás otra vez en tu primer día de colegio: el olor a lápiz nuevo, los nervios en la barriga, la mochila que pesaba más que tú." },
+				{ S = "Narrador", T = "Otro lametazo y vuelves a la heladería. Tienes la lengua verde y los ojos un poco húmedos. Es un helado muy fuerte." },
+			} },
+			Pip = { Lines = {
+				{ S = "Narrador", T = "Segunda bola: sabe a tarta, a velas, a una canción desafinada. Te ríes solo. La heladera también se ríe. No sabe por qué.", If = { Choices = { Sabor = "Cumple" } } },
+				{ S = "Narrador", T = "Segunda bola: sabe a un pueblo pequeño, a pan con chocolate y a un niño con gorra que se columpia muy alto. Es {abu}. Con tu edad.", If = { Choices = { Sabor = "Abu" } } },
+				{ S = "Narrador", T = "Segunda bola: no sabe a nada. Y luego, de golpe, a un bocadillo de chorizo que todavía no te has comido. Mañana, seguramente.", If = { Choices = { Sabor = "Manana" } } },
+				{ S = "Pip", T = "Leche de la Grieta. Una vaca de otra dimensión se asomó por un agujerito y la heladera la ordeñó sin preguntar. Así se hacen los negocios en Valmar." },
+				{ S = "Pip", T = "Ya se ha acabado la cubeta. Quédese el cucurucho. Si lo huele, se acordará. Yo pedí de tornillos. Sabe a martes." },
+			} },
+		},
+	},
+
+	---------------------------------------------------------------------
+	-- Niño · El charco sin fondo
+	---------------------------------------------------------------------
+	{
+		Id = "Rareza_Charco",
+		Kind = "Side",
+		Title = "El charco sin fondo",
+		Description = "En el parque hay un charco que no refleja el cielo de Valmar. Refleja otro. Con dos lunas. Y algo amarillo flota hacia arriba.",
+		Type = "Rareza de la Grieta · Infancia",
+		Duration = { 10, 14 },
+		Npcs = { "Pip" },
+		Offer = { Place = "Parque" },
+		OfferKey = "Miras un charco del parque. Dentro se ven dos lunas. Aquí solo hay una",
+		Requires = rareza(NINO),
+		Moment = "Devolviste un patito de otra dimensión al agua",
+		Memory = "CharcoSinFondo",
+		Rewards = { Items = { PatitoDosLunas = 1 } },
+		Props = {
+			Charco = { Kind = "Moco", Name = "Un charco con dos lunas", Prompt = "Asomarte al charco", Place = "Parque", Offset = V(3, 0, 5), Color = Color3.fromRGB(90, 140, 220), Dialogue = "Charco", Once = true },
+		},
+		Steps = {
+			{ Type = "Use", Prop = "Charco", Text = "Asómate al charco" },
+			{ Type = "Reach", Place = "EstanqueParque", Text = "El patito quiere nadar: llévalo al estanque" },
+			{ Type = "Talk", Npc = "Pip", Dialogue = "Pip", Text = "Pip está en el estanque (con un flotador)",
+				Actors = { { Npc = "Pip", Place = "EstanqueParque", Offset = V(-3, 0, 2) } } },
+		},
+		Dialogues = {
+			Charco = { Lines = {
+				{ S = "Narrador", T = "En el charco se ve un cielo morado con dos lunas. Y un patito de goma que cae… hacia arriba. Sale del charco, te da en la nariz y se queda en tu mano." },
+				{ S = "Narrador", T = "Hace «cuic». Pero al revés: «kiuc». Te mira. Mira el estanque. Vuelve a mirarte. Está claro lo que quiere." },
+			} },
+			Pip = { Lines = {
+				{ S = "Narrador", T = "Dejas el patito en el estanque. Nada un poco. Luego, feliz, flota hacia arriba unos centímetros y se queda ahí, en el aire, sobre el agua." },
+				{ S = "Pip", T = "En su dimensión, las cosas caen hacia el cielo. Por eso allí los patos llevan piedras en los bolsillos. Este se cayó por un charco que conectaba con la Grieta." },
+				{ S = "Pip", T = "El charco ya se ha secado. El patito no puede volver. Pero dice «kiuc», que en su idioma es «aquí se está bien». Quédese uno de sus primos: vinieron tres." },
+			} },
+		},
+	},
+
+	---------------------------------------------------------------------
+	-- Adolescente · La canción que no se acaba
+	---------------------------------------------------------------------
+	{
+		Id = "Rareza_Cancion",
+		Kind = "Side",
+		Title = "La canción que no se acaba",
+		Description = "Por los altavoces del instituto suena una canción de otra dimensión. Es tan pegadiza que nadie puede dejar de cantarla. Y no tiene final.",
+		Type = "Rareza de la Grieta · Adolescencia",
+		Duration = { 12, 16 },
+		Npcs = { "Pip" },
+		Offer = { Place = "PatioInstituto" },
+		OfferKey = "Todo el patio canta la misma canción. «Na-na-na-naaa…». Tú también. No puedes parar",
+		Requires = rareza(ADOLESCENTE),
+		Moment = "Le pusiste final a la canción más pegadiza del multiverso",
+		Memory = "CancionPegadiza",
+		Rewards = { Items = { PartituraSinFin = 1 } },
+		Props = {
+			Altavoz = { Kind = "Pantalla", Name = "El altavoz del patio (verde)", Place = "PatioInstituto", Offset = V(0, 0, 6), Color = Color3.fromRGB(120, 255, 160), Prompt = false },
+			Estrofa1 = { Kind = "Papel", Name = "Un trozo de partitura pegado en un árbol", Prompt = "Coger la partitura", Place = "Parque", Offset = V(3, 0, 3), Dialogue = "Estrofa", Once = true },
+			Estrofa2 = { Kind = "Papel", Name = "Un trozo de partitura en un libro", Prompt = "Coger la partitura", Place = "Libreria", Offset = V(0, 0, 3), Dialogue = "Estrofa", Once = true },
+		},
+		Steps = {
+			{ Type = "Talk", Npc = "Pip", Dialogue = "Pip", Text = "Pip ha venido con tapones (no le sirven)",
+				Props = { "Altavoz" }, Actors = { { Npc = "Pip", Place = "PatioInstituto", Offset = V(3, 0, 4) } } },
+			{ Type = "Group", Text = "Busca los trozos del final de la canción",
+				Steps = {
+					{ Type = "Use", Prop = "Estrofa1", Text = "Uno en el parque" },
+					{ Type = "Use", Prop = "Estrofa2", Text = "Otro en la librería" },
+				} },
+			{ Type = "MiniGame", Game = "Timing", Title = "El final de la canción", Icon = "🎶", Hint = "Canta la última nota justo cuando se encienda el altavoz",
+				Rounds = 5, Need = 3, Zone = 0.28, Speed = 1,
+				Win = { Flags = { "CancionAfinada" } }, Lose = { Traits = { Humor = 1 } },
+				Props = { "Altavoz" }, Actors = { { Npc = "Pip", Place = "PatioInstituto", Offset = V(3, 0, 4), Mode = "Cheer" } } },
+			{ Type = "Scene", Dialogue = "Final", Props = { "Altavoz" }, Actors = { { Npc = "Pip", Place = "PatioInstituto", Offset = V(3, 0, 4) } } },
+		},
+		Dialogues = {
+			Pip = { Lines = {
+				{ S = "Pip", T = "Na-na-na-naaa… Perdón. Es una canción de la dimensión de los estribillos. Allí las canciones no tienen final. Se cantan hasta que alguien se desmaya." },
+				{ S = "Pip", T = "Se coló por la Grieta y se metió en los altavoces. Pero sin final. El final se quedó enganchado por ahí, a trozos. Si lo encontramos y lo cantamos, se acaba." },
+				{ S = "Pip", T = "Dese prisa. El profesor de Matemáticas lleva dos horas cantando. Ha empezado a hacer coreografía." },
+			} },
+			Estrofa = { Lines = {
+				{ S = "Narrador", T = "Un trozo de partitura, con notas verdes. Al cogerlo, la canción se oye un poco más bajito. Como si se diera cuenta de que se acaba." },
+			} },
+			Final = { Lines = {
+				{ S = "Narrador", T = "Cantas la última nota. Perfecta. La canción termina con un «¡tachán!». Todo el patio se calla. Luego, un aplauso enorme. El profe de Matemáticas hace una reverencia.", If = { Flags = { "CancionAfinada" } } },
+				{ S = "Narrador", T = "Cantas la última nota. Fatal. Pero es una nota final, y la canción lo acepta. Se acaba con un «¿tachán?». Todo el patio respira. Alguien grita: «¡Gracias!».", If = { NotFlags = { "CancionAfinada" } } },
+				{ S = "Pip", T = "Aquí tiene la partitura completa. Guárdela bien. Y no la tararee nunca. Nunca. Ni en la ducha." },
+			} },
+		},
+	},
+
+	---------------------------------------------------------------------
+	-- Adolescente · La taquilla que da a otra taquilla
+	---------------------------------------------------------------------
+	{
+		Id = "Rareza_Taquilla",
+		Kind = "Side",
+		Title = "La taquilla que da a otra taquilla",
+		Description = "Tu taquilla del instituto está conectada con una taquilla de otra dimensión. Alguien te deja notas. Tiene tu letra, pero no es tu letra.",
+		Type = "Rareza de la Grieta · Adolescencia",
+		Duration = { 10, 14 },
+		Npcs = { "Pip" },
+		Offer = { Place = "Instituto" },
+		OfferKey = "Abres tu taquilla. Dentro hay una nota que no has escrito: «¿Tú también estás harto de Matemáticas?»",
+		Requires = rareza(ADOLESCENTE),
+		Moment = "Hiciste amistad con alguien de otra dimensión a través de una taquilla",
+		Memory = "TaquillaDimensional",
+		Rewards = { Items = { NotaTaquilla = 1 } },
+		Props = {
+			Taquilla = { Kind = "Armario", Name = "Tu taquilla (conectada con otra)", Prompt = "Leer la nota", Place = "Instituto", Offset = V(3, 0, 3), Color = Color3.fromRGB(120, 255, 160), Dialogue = "Nota", Once = true },
+			Respuesta = { Kind = "Armario", Name = "Tu taquilla (otra vez)", Prompt = "Mirar si ha contestado", Place = "Instituto", Offset = V(3, 0, 3), Color = Color3.fromRGB(120, 255, 160), Dialogue = "Respuesta", Once = true },
+		},
+		Steps = {
+			{ Type = "Use", Prop = "Taquilla", Text = "Lee la nota de tu taquilla" },
+			{ Type = "Choice", Key = "Taquilla", Text = "¿Qué le contestas a quien escribe desde la otra taquilla?",
+				Options = {
+					{ Id = "Amigos", Text = "«¿Quién eres? ¿Quieres ser mi amigo?»", Effects = { Traits = { Empatia = 2 } } },
+					{ Id = "Deberes", Text = "«¿Me pasas los deberes de Matemáticas?»", Effects = { Traits = { Rebeldia = 1 } } },
+					{ Id = "Chiste", Text = "Un chiste malo de los tuyos", Effects = { Traits = { Humor = 2 } } },
+				} },
+			{ Type = "Use", Prop = "Respuesta", Text = "Mira si ha contestado" },
+			{ Type = "Talk", Npc = "Pip", Dialogue = "Pip", Text = "Enséñale las notas a Pip",
+				Actors = { { Npc = "Pip", Place = "PatioInstituto", Offset = V(3, 0, 2) } } },
+		},
+		Dialogues = {
+			Nota = { Lines = {
+				{ S = "Narrador", T = "«¿Tú también estás harto de Matemáticas? Aquí nos las dan en verso. Rima todo. Hasta la raíz cuadrada. P. D.: ¿Tu taquilla también huele a bocadillo?»" },
+				{ S = "Narrador", T = "La letra se parece a la tuya. Pero más inclinada. Como si la hubieras escrito corriendo. O en otra dimensión." },
+			} },
+			Respuesta = { Lines = {
+				{ S = "Narrador", T = "Nueva nota: «¡Sí! Me llamo como tú. Vivo en tu calle. Pero en mi Valmar el mar está arriba. Amigos para siempre. Y para todas las dimensiones.»", If = { Choices = { Taquilla = "Amigos" } } },
+				{ S = "Narrador", T = "Nueva nota: «Te paso los deberes. Pero aquí las Matemáticas son en verso: ‘Dos más dos, qué dolor, son cuatro, sí, señor’. Tu profe no lo va a entender.»", If = { Choices = { Taquilla = "Deberes" } } },
+				{ S = "Narrador", T = "Nueva nota: «JAJAJA. Aquí ese chiste es ilegal. Me lo voy a aprender. P. D.: ¿Tienes más?»", If = { Choices = { Taquilla = "Chiste" } } },
+			} },
+			Pip = { Lines = {
+				{ S = "Pip", T = "Una taquilla cosida con otra por un hilito de la Grieta. Al otro lado hay un instituto igual que el suyo. Y alguien igual que usted. Bueno, parecido." },
+				{ S = "Pip", T = "El hilito se va a soltar pronto. Guárdese la última nota. Las amistades de otra dimensión son como las de verano: duran poco, pero se recuerdan mucho." },
+			} },
+		},
+	},
+
+	---------------------------------------------------------------------
+	-- Universidad · La fotocopiadora que copia personas
+	---------------------------------------------------------------------
+	{
+		Id = "Rareza_Fotocopiadora",
+		Kind = "Side",
+		Title = "La fotocopiadora que copia personas",
+		Description = "Candela se apoyó en la fotocopiadora de la facultad y le dio sin querer al botón. Ahora hay tres Candelas. Dos son de papel. Y se han escapado.",
+		Type = "Rareza de la Grieta · Universidad",
+		Duration = { 12, 16 },
+		Npcs = { "Candela" },
+		Offer = { Place = "FacultadIngenieria" },
+		OfferKey = "Candela te llama muy nerviosa: «Tengo un problema. En realidad, tengo dos. Y son yo»",
+		Requires = rareza(UNI, { Completed = { "Saga_02_Grieta", "Uni01b_Residencia" } }),
+		Moment = "Recogiste a dos Candelas de papel",
+		Memory = "FotocopiasVivas",
+		Rewards = { Items = { TonerVerde = 1 } },
+		Props = {
+			Maquina = { Kind = "Maquina", Name = "La fotocopiadora (con un brillo verde)", Place = "FacultadIngenieria", Offset = V(0, 0, 4), Color = Color3.fromRGB(120, 255, 160), Prompt = false },
+			Copia1 = { Kind = "Papel", Name = "Una Candela de papel (leyendo)", Prompt = "Doblar a la copia", Place = "Biblioteca", Offset = V(-3, 0, 3), Dialogue = "Copia1", Once = true },
+			Copia2 = { Kind = "Papel", Name = "Una Candela de papel (haciendo un Excel)", Prompt = "Doblar a la copia", Place = "Universidad", Offset = V(4, 0, 3), Dialogue = "Copia2", Once = true },
+			Deshacer = { Kind = "Maquina", Name = "El botón «Deshacer» de la fotocopiadora", Prompt = "Pulsar «Deshacer»", Place = "FacultadIngenieria", Offset = V(1, 0, 3), Dialogue = "Deshacer", Once = true },
+		},
+		Steps = {
+			{ Type = "Talk", Npc = "Candela", Dialogue = "Candela", Text = "Candela te espera junto a la fotocopiadora", Props = { "Maquina" },
+				Actors = { { Npc = "Candela", Place = "FacultadIngenieria", Offset = V(3, 0, 3) } } },
+			{ Type = "Group", Text = "Encuentra a las Candelas de papel",
+				Steps = {
+					{ Type = "Use", Prop = "Copia1", Text = "Una ha ido a la biblioteca" },
+					{ Type = "Use", Prop = "Copia2", Text = "La otra está en el campus" },
+				} },
+			{ Type = "Use", Prop = "Deshacer", Text = "Vuelve a la fotocopiadora y pulsa «Deshacer»", Props = { "Maquina" } },
+			{ Type = "Scene", Dialogue = "Final", Props = { "Maquina" }, Actors = { { Npc = "Candela", Place = "FacultadIngenieria", Offset = V(3, 0, 3), Mode = "Cheer" } } },
+		},
+		Dialogues = {
+			Candela = { Lines = {
+				{ S = "Candela", T = "Me apoyé en la fotocopiadora. Le di al botón con el codo. Salieron dos hojas. Las hojas eran yo. Se levantaron, me dijeron «hola» y se fueron. Muy educadas, eso sí." },
+				{ S = "Candela", T = "Son de papel. Si llueve, se estropean. Si hay viento, salen volando. Y lo peor: tienen mis contraseñas. Hay que traerlas antes de que hagan algo que yo no haría. O que sí haría." },
+			} },
+			Copia1 = { Lines = {
+				{ S = "Narrador", T = "La Candela de papel está leyendo un libro de cuatrocientas páginas. Ya va por la trescientos. Cuando la doblas con cuidado, dice «gracias» con un crujido." },
+			} },
+			Copia2 = { Lines = {
+				{ S = "Narrador", T = "La otra Candela de papel ha hecho un Excel de todas las nubes del cielo. Por tamaño. Y por forma. Se deja doblar, pero antes guarda el archivo." },
+			} },
+			Deshacer = { Lines = {
+				{ S = "Narrador", T = "Metes las dos copias por la bandeja y pulsas «Deshacer». La máquina ronronea, escupe un cartucho de tóner verde y se apaga. Las copias han vuelto a ser papel en blanco." },
+			} },
+			Final = { Lines = {
+				{ S = "Candela", T = "Gracias. De verdad. Ha sido rarísimo verme desde fuera. Hablo muy rápido. Y hago mucho así con las manos. Me he caído bien, eso sí." },
+				{ S = "Candela", T = "El tóner es para ti. Yo lo apunto en mi Excel de «cosas imposibles». Pestaña nueva: «Fotocopias con vida propia». Fila 1." },
+			} },
+		},
+	},
+
+	---------------------------------------------------------------------
+	-- Universidad · El wifi que se conecta a 1987
+	---------------------------------------------------------------------
+	{
+		Id = "Rareza_Wifi",
+		Kind = "Side",
+		Title = "El wifi que se conecta a 1987",
+		Description = "En la residencia ha aparecido una red wifi nueva: «Grieta_1987». Si te conectas, internet es de 1987. Y alguien de 1987 te está escribiendo.",
+		Type = "Rareza de la Grieta · Universidad",
+		Duration = { 10, 14 },
+		Npcs = { "Ivan" },
+		Offer = { Place = "Residencia" },
+		OfferKey = "Iván te enseña el móvil: «Hay un wifi nuevo. Se llama Grieta_1987. Y la página de inicio tiene fuego animado»",
+		Requires = rareza(UNI, { Completed = { "Saga_02_Grieta", "Uni01b_Residencia" } }),
+		Moment = "Chateaste con alguien de 1987",
+		Memory = "Wifi1987",
+		Rewards = { Items = { ModemPitido = 1 } },
+		Props = {
+			Router = { Kind = "Maquina", Name = "Un módem viejísimo (que pita)", Prompt = "Conectarte", Place = "Residencia", Offset = V(2, 0, 3), Color = Color3.fromRGB(200, 200, 190), Dialogue = "Conexion", Once = true },
+		},
+		Steps = {
+			{ Type = "Talk", Npc = "Ivan", Dialogue = "Ivan", Text = "Iván ha encontrado un wifi rarísimo",
+				Actors = { { Npc = "Ivan", Place = "Residencia", Offset = V(-3, 0, 3), Mode = "Sit" } } },
+			{ Type = "Use", Prop = "Router", Text = "Conéctate al wifi de 1987" },
+			{ Type = "Choice", Key = "Wifi", Text = "Alguien de 1987 te escribe: «Hola, ¿de dónde eres?». ¿Qué le contestas?",
+				Options = {
+					{ Id = "Verdad", Text = "«Del futuro. En serio»", Effects = { Traits = { Valentia = 1, Curiosidad = 1 } } },
+					{ Id = "Consejo", Text = "«Da igual. Te doy un consejo: no tires los cómics»", Effects = { Traits = { Empatia = 1, Humor = 1 } } },
+				},
+				Actors = { { Npc = "Ivan", Place = "Residencia", Offset = V(-3, 0, 3) } } },
+			{ Type = "Scene", Dialogue = "Final", Actors = { { Npc = "Ivan", Place = "Residencia", Offset = V(-3, 0, 3), Mode = "Cheer" } } },
+		},
+		Dialogues = {
+			Ivan = { Lines = {
+				{ S = "Ivan", T = "{nombre}, mira. «Grieta_1987». Me conecté y la página tardó cuatro minutos en cargar. Cuatro. Hice un zumo de mora mientras tanto." },
+				{ S = "Ivan", T = "Y hay un chat. Con letras verdes. Alguien pregunta «¿hay alguien ahí?». Yo no me atrevo. Tú eres más valiente. Y yo tengo el zumo en la mano." },
+			} },
+			Conexion = { Lines = {
+				{ S = "Narrador", T = "El módem hace «piiiii-krrrrr-chiiiii». Tarda. Mucho. La pantalla se pone verde. Un cursor parpadea. Alguien escribe: «Hola. Soy Marisa. Tengo 15 años. Es 1987. ¿Y tú?»" },
+			} },
+			Final = { Lines = {
+				{ S = "Narrador", T = "«¿Del futuro? ¡Qué guay! ¿Hay coches voladores? …¿No? ¿Y entonces para qué sirve el futuro?». Se ríe en mayúsculas. Os despedís. «Hasta el futuro», escribe.", If = { Choices = { Wifi = "Verdad" } } },
+				{ S = "Narrador", T = "«¿Los cómics? Vale… Me los guardaré. Por si acaso.» Se desconecta. Iván busca en el internet de hoy: una tal Marisa de Valmar tiene la colección de cómics más valiosa del país.", If = { Choices = { Wifi = "Consejo" } } },
+				{ S = "Ivan", T = "Se ha ido el wifi. Y ha dejado el módem. Pita cuando lo miras. Quédatelo tú: yo con los aparatos que pitan me pongo nervioso. Me recuerdan al microondas." },
+			} },
+		},
+	},
+
+	---------------------------------------------------------------------
+	-- Adulto · La lavadora multiversal
+	---------------------------------------------------------------------
+	{
+		Id = "Rareza_Lavadora",
+		Kind = "Side",
+		Title = "La lavadora multiversal",
+		Description = "Metes calcetines en la lavadora. Salen otros. De otras dimensiones. Uno lleva perilla. Otro es de gato. Otro canta.",
+		Type = "Rareza de la Grieta · Vida adulta",
+		Duration = { 10, 14 },
+		Npcs = { "Pip" },
+		Offer = { Place = "HomeCocina" },
+		OfferKey = "Abres la lavadora. No están tus calcetines. Hay uno con perilla, uno de gato y uno que tararea",
+		Requires = rareza(ADULTO),
+		Moment = "Devolviste los calcetines de otras dimensiones",
+		Memory = "LavadoraMultiversal",
+		Rewards = { Items = { PinzaMultiversal = 1 } },
+		Props = {
+			Lavadora = { Kind = "Maquina", Name = "Tu lavadora (con un brillo verde)", Prompt = "Sacar la ropa", Place = "HomeCocina", Offset = V(2, 0, 1), Color = Color3.fromRGB(235, 240, 245), Dialogue = "Ropa", Once = true },
+			Programa = { Kind = "Maquina", Name = "Tu lavadora (programa «Devolver»)", Prompt = "Poner el programa «Devolver»", Place = "HomeCocina", Offset = V(2, 0, 1), Color = Color3.fromRGB(120, 255, 160), Dialogue = "Devolver", Once = true },
+		},
+		Steps = {
+			{ Type = "Use", Prop = "Lavadora", Text = "Saca la ropa de la lavadora" },
+			{ Type = "Talk", Npc = "Pip", Dialogue = "Pip", Text = "Llévale los calcetines raros a Pip",
+				Actors = { { Npc = "Pip", Place = "GarajeCosme", Offset = V(3, 0, 2) } } },
+			{ Type = "Use", Prop = "Programa", Text = "Vuelve a casa y pon el programa que dice Pip" },
+		},
+		Dialogues = {
+			Ropa = { Lines = {
+				{ S = "Narrador", T = "Un calcetín negro con una perilla bordada. Un calcetín diminuto con cuatro dedos (de gato). Y uno de rayas que tararea algo parecido a la ópera." },
+				{ S = "Narrador", T = "Tus calcetines no están. En su lugar, pegada al tambor, hay una nota: «Perdón, nos hemos llevado los suyos. Son muy cómodos. Firmado: la dimensión de al lado»." },
+			} },
+			Pip = { Lines = {
+				{ S = "Pip", T = "Su lavadora centrifuga tan fuerte que ha abierto un agujerito en la Grieta. Por ahí se pasan calcetines entre dimensiones. Es la causa de los calcetines desparejados de todo el universo." },
+				{ S = "Pip", T = "Solución: el programa «Devolver». Está entre «Algodón» y «Delicado». Nadie lo usa porque nadie lo ve. Hay que haber visto la Grieta." },
+			} },
+			Devolver = { Lines = {
+				{ S = "Narrador", T = "Pones el programa «Devolver». La lavadora gira hacia el otro lado. Hace «¡flop!». Al abrirla, están tus calcetines. Todos. Hasta uno que perdiste hace diez años." },
+				{ S = "Narrador", T = "Y una pinza de tender verde, de regalo, con una nota: «Gracias por los calcetines. Os los devolvemos lavados. Esta pinza seca en tres dimensiones a la vez»." },
+			} },
+		},
+	},
+
+	---------------------------------------------------------------------
+	-- Adulto · El cajero que da minutos
+	---------------------------------------------------------------------
+	{
+		Id = "Rareza_Cajero",
+		Kind = "Side",
+		Title = "El cajero que da minutos",
+		Description = "El cajero del banco ya no da dinero. Da minutos. Billetes de diez minutos. La cola da la vuelta a la manzana.",
+		Type = "Rareza de la Grieta · Vida adulta",
+		Duration = { 10, 14 },
+		Npcs = { "Pip" },
+		Offer = { Place = "Banco" },
+		OfferKey = "Sacas dinero del cajero y sale un billete que pone «10 minutos». La señora de detrás ya lleva cuarenta",
+		Requires = rareza(ADULTO),
+		Moment = "Decidiste qué hacer con diez minutos de más",
+		Memory = "CajeroDeTiempo",
+		Rewards = { Items = { BilleteMinutos = 1 } },
+		Props = {
+			Cajero = { Kind = "Pantalla", Name = "El cajero (que da minutos)", Prompt = "Sacar un billete", Place = "Banco", Offset = V(2, 0, 3), Color = Color3.fromRGB(120, 255, 160), Dialogue = "Billete", Once = true },
+		},
+		Steps = {
+			{ Type = "Use", Prop = "Cajero", Text = "Saca un billete del cajero" },
+			{ Type = "Choice", Key = "Minutos", Text = "Tienes diez minutos de más en la mano. ¿Qué haces con ellos?",
+				Options = {
+					{ Id = "Siesta", Text = "Una siesta. Diez minutos exactos", Effects = { Traits = { Humor = 1 } } },
+					{ Id = "Llamar", Text = "Llamar a {familia}, que hace mucho", Effects = { Traits = { Empatia = 2 } } },
+					{ Id = "Devolver", Text = "Devolverlos al cajero: no son tuyos", Effects = { Traits = { Responsabilidad = 2 } } },
+				} },
+			{ Type = "Talk", Npc = "Pip", Dialogue = "Pip", Text = "Pip ha venido a arreglar el cajero",
+				Actors = { { Npc = "Pip", Place = "Banco", Offset = V(-3, 0, 3) } } },
+		},
+		Dialogues = {
+			Billete = { Lines = {
+				{ S = "Narrador", T = "Un billete verde que pone «10 minutos». Cuando lo tocas, el reloj del banco se para un momento, como esperando a ver qué haces." },
+			} },
+			Pip = { Lines = {
+				{ S = "Narrador", T = "Te sientas en un banco (de los de sentarse) y duermes diez minutos exactos. Te despiertas como nuevo. El reloj no se ha movido. Es la mejor siesta de tu vida.", If = { Choices = { Minutos = "Siesta" } } },
+				{ S = "Narrador", T = "Llamas a {familia}. Habláis de todo y de nada. Al colgar, el reloj no se ha movido. Pero tú sí: te has movido por dentro.", If = { Choices = { Minutos = "Llamar" } } },
+				{ S = "Narrador", T = "Metes el billete otra vez en el cajero. La pantalla se pone roja de vergüenza: «Nadie había devuelto nunca un minuto». Escupe un billete de regalo.", If = { Choices = { Minutos = "Devolver" } } },
+				{ S = "Pip", T = "Un cable del cajero se enganchó en la Grieta, en la dimensión donde se guarda el tiempo que nadie usa. Por eso daba minutos. Ya está arreglado." },
+				{ S = "Pip", T = "Quédese un billete. No lo gaste en tonterías. Bueno, sí: en tonterías bonitas. Para eso está el tiempo de más." },
 			} },
 		},
 	},

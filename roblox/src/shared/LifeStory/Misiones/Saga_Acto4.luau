@@ -24,7 +24,8 @@ local ESCAMAS = { Npc = "DonEscamas", Place = "GarajeCosme", Offset = V(-3, 0, 1
 local CIMA = "CimaMonte"
 -- Colección «Restos de la Grieta» (recuerdos de las rarezas): con 4 o más, Cósimo llega debilitado a la batalla final
 local RESTOS = { "BuzonPasado", "FarolaOpera", "PerroBinario", "LluviaEspaguetis", "Piso13", "RelojAtras", "SemaforoOpina", "NubePerdida",
-	"ColumpioPasado", "SombraEscapada", "EspejoContesta", "PalomasCola", "CafeConsejos", "EcoFuturo", "Contestador1999", "GatoCuantico" }
+	"ColumpioPasado", "SombraEscapada", "EspejoContesta", "PalomasCola", "CafeConsejos", "EcoFuturo", "Contestador1999", "GatoCuantico",
+	"HeladoRecuerdos", "CharcoSinFondo", "CancionPegadiza", "TaquillaDimensional", "FotocopiasVivas", "Wifi1987", "LavadoraMultiversal", "CajeroDeTiempo" }
 local MUCHOS_RESTOS = { MemoriesAtLeast = { N = 4, Of = RESTOS } }
 local POCOS_RESTOS = { MemoriesFewer = { N = 4, Of = RESTOS } }
 
@@ -161,25 +162,32 @@ return {
 			}, Effects = { Flags = { "AliadoCompis" } } },
 			Cronos = { Lines = {
 				{ S = "CazadorTiempo", T = "Mi agenda del futuro dice que el sábado hay una batalla en el Monte del Silencio. Y que yo estoy allí. Mi agenda nunca falla. Casi nunca." },
+				{ S = "CazadorTiempo", T = "Y gracias a tu firma, mi expediente está limpio. Iré de uniforme. Con todos los sellos. Y esta vez, a la hora.", If = { Completed = { "Aliado_Cronos" } } },
 			}, Effects = { Flags = { "AliadoCronos" } } },
 			Bigotes = { Lines = {
 				{ S = "Bigotes", T = "¿Una batalla por el destino del universo? Los gatos no participamos en batallas. Las supervisamos desde una caja. Estaré allí. En mi caja." },
+				{ S = "Bigotes", T = "Y la Guardia Gatuna también, Canciller. Cuarenta gatos, cuarenta cajas. Ya ensayan el maullido de desprecio.", If = { Completed = { "Aliado_Bigotes" } } },
 			}, Effects = { Flags = { "AliadoBigotes" } } },
 			Rex = { Lines = {
 				{ S = "Rex", T = "Me defendiste ante la Aduana del Tiempo. Un velocirraptor no olvida. Y un abogado, menos. Iré. Con garras y con código civil." },
+				{ S = "Rex", T = "Además, ya le ganamos un juicio al Consorcio. Si Cósimo protesta, le pongo una demanda. Y luego le muerdo. En ese orden.", If = { Completed = { "Aliado_Rex" } } },
 			}, Effects = { Flags = { "AliadoRex" } } },
 			Perez = { Lines = {
 				{ S = "RatonPerez", T = "¿Una batalla? Tengo vacaciones gracias a ti. Mi ayudante, la rata, cubre el turno. Iré con la patrulla de ratones. Somos pequeños, pero mordemos cables." },
+				{ S = "RatonPerez", T = "Y el sindicato ya ha votado. La patrulla lleva una semana roendo cables de MegaVerso. Nos hemos guardado los mejores para el sábado.", If = { Completed = { "Aliado_Perez" } } },
 			}, Effects = { Flags = { "AliadoPerez" } } },
 			Gnomos = { Lines = {
 				{ S = "Gnomo1", T = "¡El tratado de paz nos obliga a defender el jardín! Y el universo es un jardín muy grande. ¡Los gnomos marchamos! Despacito." },
+				{ S = "Gnomo1", T = "¡Y el Consejo de los Jardines votó por unanimidad! Bueno, Fermina se abstuvo. Pero porque estaba boca abajo.", If = { Completed = { "Aliado_Gnomos" } } },
 			}, Effects = { Flags = { "AliadoGnomos" } } },
 			Malvado = { Lines = {
 				{ S = "TuMalvado", T = "¿Ayudarte? ¿Contra Cósimo? …Él me prometió tu vida y nunca me la dio. Además, me ha subido el alquiler. Iré. Por venganza. Y un poco por ti. Poco." },
+				{ S = "TuMalvado", T = "Además, ya sé pedir perdón y dar las gracias. Lo practico todos los días delante del espejo. Me da un asco… pero funciona.", If = { Completed = { "Aliado_Malvado" } } },
 			}, Effects = { Flags = { "AliadoMalvado" } } },
 			Reunion = { Lines = {
 				{ S = "Cosme", T = "¡Mira cuánta gente! Y gatos. Y roedores. Y… ¿eso es un velocirraptor con corbata? Criatura, tienes una vida rarísima. Me encanta." },
 				{ S = "DonEscamas", T = "(Desde la pecera) Y yo tengo lo más importante: las cuentas de MegaVerso. Para vencer a Cósimo, primero hay que dejarle sin dinero. Y yo sé dónde lo esconde." },
+				{ S = "Narrador", T = "Sobre el garaje pasa una nave con un cartel luminoso: «FINAL DE TEMPORADA · EN DIRECTO». La Capitana Ñoz saluda con las cuatro manos.", If = { Completed = { "Aliado_Noz" } } },
 			} },
 		},
 	},
