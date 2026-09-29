@@ -56,6 +56,17 @@ upToDate() {
 upToDate
 COMMIT="$(git rev-parse --short HEAD)"
 
+# 2b. Herramientas para construir (lune y rojo). Las ventanas nuevas no las traen: se descargan solas.
+if ! command -v lune >/dev/null 2>&1 || ! command -v rojo >/dev/null 2>&1; then
+	echo "Instalando lune y rojo…"
+	mkdir -p "$HOME/bin"
+	curl -sSfL -o /tmp/lune.zip https://github.com/lune-org/lune/releases/download/v0.10.5/lune-0.10.5-linux-x86_64.zip &&
+		curl -sSfL -o /tmp/rojo.zip https://github.com/rojo-rbx/rojo/releases/download/v7.7.0/rojo-7.7.0-linux-x86_64.zip &&
+		unzip -oq /tmp/lune.zip -d "$HOME/bin" && unzip -oq /tmp/rojo.zip -d "$HOME/bin" &&
+		chmod +x "$HOME/bin/lune" "$HOME/bin/rojo" || fail "no se pudieron instalar lune y rojo."
+	export PATH="$HOME/bin:$PATH"
+fi
+
 # 3. Construir el juego con este código (nunca se sube un .rbxl viejo)
 echo "Comprobando y construyendo el juego del commit $COMMIT…"
 lune run scripts/test-compile.luau
