@@ -1007,6 +1007,28 @@ function SceneService.set(player: Player, questId: string, actors: { { [string]:
 	enqueue(player, { QuestId = questId, Actors = actors, Props = props, Defs = defs })
 end
 
+local spaced: (CFrame, BasePart?, { Vector3 }) -> CFrame
+-- Que nadie aparezca encima de ti ni de otro: a 5 studs de ti como poco y a 3 de los demás de la
+-- escena (antes, al llegar a casa, la abuela salía pegada a tu cara y la cámara se le metía dentro)
+spaced = function(cf: CFrame, me: BasePart?, others: { Vector3 }): CFrame
+	local pos = cf.Position
+	if me then
+		local flat = V(pos.X - me.Position.X, 0, pos.Z - me.Position.Z)
+		if flat.Magnitude < 5 then
+			local dir = if flat.Magnitude > 0.2 then flat.Unit else V(me.CFrame.LookVector.X, 0, me.CFrame.LookVector.Z).Unit
+			pos = V(me.Position.X, pos.Y, me.Position.Z) + dir * 5
+		end
+	end
+	for _, other in others do
+		local flat = V(pos.X - other.X, 0, pos.Z - other.Z)
+		if flat.Magnitude < 3 then
+			local side = if flat.Magnitude > 0.2 then flat.Unit else V(1, 0, 0)
+			pos += side * (3 - flat.Magnitude)
+		end
+	end
+	return CFrame.new(pos) * cf.Rotation
+end
+
 function applySet(player: Player, questId: string, actors: { { [string]: any } }, props: { string }, defs: { [string]: any }?)
 	scenes[player] = scenes[player] or {}
 	local byQuest = scenes[player]
@@ -1023,6 +1045,7 @@ function applySet(player: Player, questId: string, actors: { { [string]: any } }
 	end
 
 	-- Actores
+	local placedNow: { Vector3 } = {}
 	local wanted: { [string]: { [string]: any } } = {}
 	for _, spec in actors do
 		wanted[spec.Npc] = spec
@@ -1041,6 +1064,12 @@ function applySet(player: Player, questId: string, actors: { { [string]: any } }
 			continue
 		end
 		local cf = if spec.Mode == "Follow" and playerRoot(player) then (playerRoot(player) :: BasePart).CFrame * CFrame.new(3, -3, 4) else placement(player, spec)
+		if cf and spec.Mode ~= "Follow" and spec.Mode ~= "Sit" then
+			cf = spaced(cf, playerRoot(player), placedNow)
+		end
+		if cf then
+			table.insert(placedNow, cf.Position)
+		end
 		if not cf then
 			if actor then
 				actor.Model:Destroy()
