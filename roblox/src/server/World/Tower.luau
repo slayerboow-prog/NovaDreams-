@@ -37,6 +37,8 @@ local CORE = Floors.CoreWidth
 local HALF_D = Floors.Depth / 2
 local CORRIDOR_Z0, CORRIDOR_Z1 = -HALF_D, -HALF_D + Floors.CorridorWidth -- pasillo: z entre -10 y -4
 local DOOR_W, DOOR_H = 3.6, 8
+local FIRE_DOOR_W: number, EMERGENCY_W: number -- (se fijan más abajo)
+local emergencyStair, corridorDetails -- (se definen más abajo)
 
 export type Door = { Unit: Floors.Unit, CFrame: CFrame, Front: boolean } -- CFrame: en el suelo, mirando al pasillo
 export type Plan = {
@@ -186,26 +188,28 @@ local function unitDoor(parent: Instance, plan: Plan, floor: number, door: Door,
 	return panel
 end
 
--- Escalera de una planta a la siguiente, en el hueco de la izquierda
-local function stairs(parent: Instance, plan: Plan, at: (number, number, number) -> CFrame)
+-- Escalera de una planta a la siguiente, en un hueco de ancho CORE que empieza en x0 (la principal,
+-- a la izquierda: x0 = -W/2; la de emergencia, al final del pasillo)
+local function stairs(parent: Instance, plan: Plan, at: (number, number, number) -> CFrame, x0: number?, color0: Color3?)
 	local W = plan.W
+	local left = x0 or -W / 2
 	local laneW = CORE / 2 - 0.4
-	local lanes = { -W / 2 + CORE - laneW / 2, -W / 2 + laneW / 2 } -- tramo 1 (sube hacia +Z), tramo 2 (vuelve)
-	local color = plan.Style.Stair
+	local lanes = { left + CORE - laneW / 2, left + laneW / 2 } -- tramo 1 (sube hacia +Z), tramo 2 (vuelve)
+	local color = color0 or plan.Style.Stair
 	for i, s in Floors.steps() do
 		local step = solid(parent, "Step", V(laneW, Floors.StepRise, Floors.StepRun), at(lanes[s.Lane], s.Y - Floors.StepRise / 2, s.Z), color, M.Concrete)
-		step:SetAttribute("Step", i)
+		step:SetAttribute(if x0 then "EmergencyStep" else "Step", i)
 		deco(parent, "Nosing", V(laneW, 0.08, 0.15), at(lanes[s.Lane], s.Y + 0.02, s.Z - (if s.Lane == 1 then 0.45 else -0.45)), rgb(60, 60, 64))
 	end
 	local half = Floors.StepsPerFlight * Floors.StepRise
 	local zf = Floors.StepsPerFlight * Floors.StepRun / 2 -- los tramos van de z = -zf a +zf
 	-- Descansillo a media altura (al fondo)
-	local landing = solid(parent, "MidLanding", V(CORE, 1, HALF_D - zf), at(-W / 2 + CORE / 2, half - 0.5, (zf + HALF_D) / 2), color, M.Concrete)
+	local landing = solid(parent, "MidLanding", V(CORE, 1, HALF_D - zf), at(left + CORE / 2, half - 0.5, (zf + HALF_D) / 2), color, M.Concrete)
 	landing:SetAttribute("Landing", "Mid")
 	-- Muro entre los dos tramos y pasamanos
-	solid(parent, "StairDivider", V(0.8, FH, zf * 2), at(-W / 2 + CORE / 2, FH / 2, 0), plan.Style.Wall)
+	solid(parent, "StairDivider", V(0.8, FH, zf * 2), at(left + CORE / 2, FH / 2, 0), plan.Style.Wall)
 	for _, side in { -1, 1 } do
-		local x = -W / 2 + CORE / 2 + side * 0.55
+		local x = left + CORE / 2 + side * 0.55
 		-- Pasamanos inclinado (sube con el tramo)
 		local rise = half
 		local length = math.sqrt((zf * 2) ^ 2 + rise ^ 2)
@@ -213,6 +217,110 @@ local function stairs(parent: Instance, plan: Plan, at: (number, number, number)
 		local base = if side > 0 then 0 else half
 		local tilt = if side > 0 then -slope else slope
 		deco(parent, "Handrail", V(0.2, 0.2, length), at(x, base + rise / 2 + 3, 0) * ANG(tilt, 0, 0), plan.Style.Rail, M.Metal)
+	end
+end
+
+---------------------------------------------------------------------
+-- Escalera de emergencia (al final del pasillo, tras la puerta cortafuegos) y detalles del pasillo
+---------------------------------------------------------------------
+FIRE_DOOR_W = 3.8
+EMERGENCY_W = CORE + 0.6 -- lo que ocupa la escalera de emergencia más allá del pasillo
+
+local function exitSign(parent: Instance, cf: CFrame, text: string)
+	local sign = deco(parent, "ExitSign", V(2.6, 0.9, 0.15), cf, rgb(20, 150, 70), M.Neon)
+	Builder.sign(sign, text, Enum.NormalId.Front, rgb(255, 255, 255))
+	return sign
+end
+
+emergencyStair = function(m: Model, plan: Plan, floor: number, at: (number, number, number) -> CFrame, ctx: any)
+	local W = plan.W
+	local x0 = W / 2 + 0.6 -- empieza detrás de la pared del fondo
+	local fz = (CORRIDOR_Z0 + CORRIDOR_Z1) / 2
+	local grey = rgb(170, 172, 176)
+	local top = floor == plan.Top
+	-- Puerta cortafuegos (roja, con barra antipánico) y su cartel verde de salida
+	local door = Furniture.door(ctx, at(W / 2 + 0.3, 0, fz) * ANG(0, -PI / 2, 0), FIRE_DOOR_W, DOOR_H, rgb(170, 40, 34), false, m, true)
+	door:AddTag("FireDoor")
+	deco(m, "PanicBar", V(0.2, 0.2, FIRE_DOOR_W - 0.8), at(W / 2 - 0.05, 3.4, fz), rgb(200, 200, 205), M.Metal)
+	exitSign(m, at(W / 2 - 0.1, DOOR_H + 1, fz) * ANG(0, -PI / 2, 0), "🏃 SALIDA DE EMERGENCIA")
+	-- Suelo del rellano (y en la planta baja, todo el hueco)
+	if floor == 0 then
+		solid(m, "EmergencyFloor", V(CORE, 1, HALF_D * 2), at(x0 + CORE / 2, -0.5, 0), grey, M.Concrete)
+	else
+		solid(m, "EmergencyLanding", V(CORE, 1, CORRIDOR_Z1 - CORRIDOR_Z0), at(x0 + CORE / 2, -0.5, fz), grey, M.Concrete):SetAttribute("Landing", "Floor")
+	end
+	-- Paredes del hueco
+	solid(m, "EmergencyOuter", V(0.6, FH, HALF_D * 2 + 0.6), at(x0 + CORE + 0.3, FH / 2, 0), plan.Style.Wall)
+	solid(m, "EmergencyBack", V(CORE + 0.6, FH, 0.6), at(x0 + CORE / 2, FH / 2, HALF_D + 0.3), plan.Style.Wall)
+	solid(m, "EmergencyFront", V(CORE + 0.6, FH, 0.6), at(x0 + CORE / 2, FH / 2, -HALF_D - 0.3), plan.Style.Wall)
+	solid(m, "EmergencyInner", V(0.6, FH, HALF_D - CORRIDOR_Z1 + 0.6), at(W / 2 + 0.3, FH / 2, (CORRIDOR_Z1 + HALF_D) / 2), plan.Style.Wall)
+	if not top then
+		stairs(m, plan, at, x0, grey)
+	else
+		local laneW = CORE / 2 - 0.4
+		local zf = Floors.StepsPerFlight * Floors.StepRun / 2
+		solid(m, "StairRail", V(laneW, 3.4, 0.25), at(x0 + CORE - laneW / 2, 1.7, -zf + 0.15), plan.Style.Rail, M.Metal)
+		solid(m, "StairRail", V(0.8, 3.4, zf * 2), at(x0 + CORE / 2, 1.7, 0), plan.Style.Rail, M.Metal)
+	end
+	-- Luz de emergencia (siempre encendida, verdosa) y el número de la planta
+	local lamp = deco(m, "EmergencyLight", V(1.4, 0.3, 0.5), at(x0 + CORE / 2, FH - 0.6, fz), rgb(230, 255, 230), M.Neon)
+	local light = Instance.new("PointLight")
+	light.Range = 14
+	light.Brightness = 0.7
+	light.Color = rgb(200, 255, 210)
+	light.Parent = lamp
+	local label = if floor == 0 then "PB · SALIDA" else ("PLANTA %d"):format(floor)
+	local plate = deco(m, "EmergencyFloorSign", V(0.15, 1.4, 4), at(x0 + CORE + 0.05, 5.5, fz), rgb(20, 150, 70))
+	Builder.sign(plate, label, Enum.NormalId.Left, rgb(255, 255, 255))
+	-- En la planta baja: la puerta a la calle
+	if floor == 0 then
+		local exit = solid(m, "EmergencyExit", V(0.6, DOOR_H, FIRE_DOOR_W), at(x0 + CORE + 0.3, DOOR_H / 2, fz), rgb(170, 40, 34), M.Metal)
+		exit:AddTag("InteriorExit")
+		exitSign(m, at(x0 + CORE - 0.1, DOOR_H + 1, fz) * ANG(0, PI / 2, 0), "🏃 SALIDA A LA CALLE")
+	end
+end
+
+-- Detalles del pasillo: detectores de humo, cámara, cuadro eléctrico, cuadros, papelera, plano de
+-- evacuación… (cada planta a su manera: el mismo edificio siempre igual)
+corridorDetails = function(m: Model, plan: Plan, floor: number, at: (number, number, number) -> CFrame, ctx: any, doors: { Door })
+	local W = plan.W
+	local rand = ctx.Rand
+	local fz = (CORRIDOR_Z0 + CORRIDOR_Z1) / 2
+	local x0, x1 = -W / 2 + CORE + 2, W / 2 - 2
+	-- Detectores de humo cada ~12 studs
+	local n = math.max(1, math.floor((x1 - x0) / 12))
+	for i = 1, n do
+		deco(m, "SmokeDetector", V(0.7, 0.2, 0.7), at(x0 + (i - 0.5) * (x1 - x0) / n, FH - 0.1, fz + 1.2), rgb(245, 245, 245))
+	end
+	-- Cámara de seguridad (en la mitad de los edificios) y cuadro eléctrico junto a la escalera
+	if Floors.hash("camara:" .. plan.Key) % 2 == 0 then
+		deco(m, "SecurityCamera", V(0.5, 0.4, 0.9), at(W / 2 - 0.6, FH - 0.8, CORRIDOR_Z0 + 0.6) * ANG(-0.4, PI * 0.75, 0), rgb(40, 40, 44), M.Metal)
+	end
+	local panel = deco(m, "ElectricPanel", V(1.6, 2.2, 0.3), at(-W / 2 + CORE + 1.2, 6.6, CORRIDOR_Z0 + 0.2), rgb(150, 154, 160), M.Metal)
+	Builder.sign(panel, "⚡", Enum.NormalId.Back, rgb(250, 210, 40))
+	-- Plano de evacuación («Usted está aquí»)
+	local evac = deco(m, "EvacuationPlan", V(2.4, 1.8, 0.1), at(-W / 2 + CORE + 1.6, 5.4, CORRIDOR_Z1 - 0.1), rgb(250, 250, 245))
+	Builder.sign(evac, "PLANO DE EVACUACIÓN\n● Usted está aquí\n→ Salida al fondo", Enum.NormalId.Front, rgb(20, 120, 60))
+	-- Cuadros entre las puertas (en los huecos de las paredes) y una papelera junto al ascensor
+	if plan.Upper ~= "Oficina" or rand.chance(0.5) then
+		local used = {}
+		for _, d in doors do
+			used[math.floor(d.CFrame.Position.X / 4)] = true
+		end
+		local placed = 0
+		for x = x0 + 4, x1 - 4, 8 do
+			if placed < 3 and not used[math.floor(x / 4)] and not used[math.floor(x / 4) + 1] and not used[math.floor(x / 4) - 1] and rand.chance(0.6) then
+				Furniture.picture(ctx, at(x, 5.2, CORRIDOR_Z0) * ANG(0, PI, 0), 2.2, 1.6, m)
+				placed += 1
+			end
+		end
+	end
+	deco(m, "Bin", V(0.9, 1.4, 0.9), at(Tower.elevatorAt(plan, 0).Position.X + 4.2, 0.7, CORRIDOR_Z1 - 0.6), rgb(90, 96, 100), M.Metal)
+	-- Portal: portero automático junto a la puerta de la calle
+	if floor == 0 then
+		local sx = (-W / 2 + CORE + W / 2) / 2 + 4
+		local intercom = deco(m, "Intercom", V(1, 1.6, 0.2), at(sx, 4.6, CORRIDOR_Z0 + 0.1), rgb(180, 184, 190), M.Metal)
+		Builder.sign(intercom, "🔔", Enum.NormalId.Back, rgb(40, 40, 44))
 	end
 end
 
@@ -250,7 +358,7 @@ function Tower.buildFloor(parent: Instance, towerCf: CFrame, plan: Plan, floor: 
 		stairs(m, plan, at)
 	else
 		-- Última planta: tejado y barandilla sobre el hueco
-		solid(m, "Roof", V(W, 1, HALF_D * 2), at(0, FH + 0.5, 0), rgb(236, 236, 232))
+		solid(m, "Roof", V(W + EMERGENCY_W, 1, HALF_D * 2), at(EMERGENCY_W / 2, FH + 0.5, 0), rgb(236, 236, 232))
 		-- (sobre el tramo que ya no sube, y a lo largo del muro de en medio: la bajada queda libre)
 		local laneW = CORE / 2 - 0.4
 		local zf = Floors.StepsPerFlight * Floors.StepRun / 2
@@ -289,7 +397,14 @@ function Tower.buildFloor(parent: Instance, towerCf: CFrame, plan: Plan, floor: 
 	wallX(m, at, CORRIDOR_Z1 + 0.3, -W / 2 + CORE + 0.6, ex - 2.5, {}, gapW, DOOR_H, wall)
 	solid(m, "Lintel", V(5, FH - 8.5, 0.6), at(ex, 8.5 + (FH - 8.5) / 2, CORRIDOR_Z1 + 0.3), wall)
 	wallX(m, at, CORRIDOR_Z1 + 0.3, ex + 2.5, W / 2, backDoors, gapW, DOOR_H, wall)
-	solid(m, "EndWall", V(0.6, FH, CORRIDOR_Z1 - CORRIDOR_Z0 + 0.6), at(W / 2 + 0.3, FH / 2, (CORRIDOR_Z0 + CORRIDOR_Z1) / 2), wall)
+	-- Pared del fondo del pasillo con la puerta cortafuegos a la escalera de emergencia
+	local fz = (CORRIDOR_Z0 + CORRIDOR_Z1) / 2
+	local band = CORRIDOR_Z1 - CORRIDOR_Z0
+	local sideW = (band + 0.6 - FIRE_DOOR_W) / 2
+	solid(m, "EndWall", V(0.6, FH, sideW), at(W / 2 + 0.3, FH / 2, CORRIDOR_Z0 - 0.3 + sideW / 2), wall)
+	solid(m, "EndWall", V(0.6, FH, sideW), at(W / 2 + 0.3, FH / 2, CORRIDOR_Z1 + 0.3 - sideW / 2), wall)
+	solid(m, "EndWall", V(0.6, FH - DOOR_H, FIRE_DOOR_W), at(W / 2 + 0.3, DOOR_H + (FH - DOOR_H) / 2, fz), wall)
+	emergencyStair(m, plan, floor, at, ctx)
 	-- Zócalos del pasillo
 	Furniture.baseboard(ctx, at(0, 0, CORRIDOR_Z0) * ANG(0, PI, 0), W)
 	Furniture.baseboard(ctx, at((-W / 2 + CORE + W / 2) / 2, 0, CORRIDOR_Z1), W - CORE)
@@ -343,9 +458,9 @@ function Tower.buildFloor(parent: Instance, towerCf: CFrame, plan: Plan, floor: 
 	end
 	Furniture.ceilingLight(ctx, at(-W / 2 + CORE / 2, FH - 1, (CORRIDOR_Z0 + CORRIDOR_Z1) / 2), room, "Dome")
 	Furniture.lightSwitch(ctx, at(-W / 2 + CORE + 1.4, 4.2, CORRIDOR_Z1), room)
-	Furniture.window(ctx, at(W / 2, 6, (CORRIDOR_Z0 + CORRIDOR_Z1) / 2) * ANG(0, PI / 2, 0), 3.2, 4, room, nil)
 	Furniture.plant(ctx, at(W / 2 - 1.4, 0, CORRIDOR_Z0 + 1.1), 0.9)
 	deco(m, "Extinguisher", V(0.7, 1.5, 0.7), at(-W / 2 + CORE + 0.5, 2.2, CORRIDOR_Z0 + 0.5), rgb(210, 30, 30), M.Metal)
+	corridorDetails(m, plan, floor, at, ctx, doors)
 
 	-- Planta baja: puerta a la calle, buzones o recepción
 	if floor == 0 then

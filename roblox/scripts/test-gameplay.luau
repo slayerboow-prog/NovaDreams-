@@ -4054,6 +4054,49 @@ for f = 0, 1 do
 end
 check(landings, "cada planta tiene rellano, descansillo y la de arriba su suelo")
 check(stairsOk, "la escalera une las plantas: 16 escalones de 0,75 (≤ 1 stud) hasta el rellano de arriba")
+-- Escalera de emergencia: al fondo del pasillo, puerta cortafuegos, cartel de salida, 16 escalones
+-- por planta y en la planta baja la salida a la calle
+local emOk = true
+for f = 0, 1 do
+	local m = floorModel(f)
+	local esteps, fireDoor, exitSign, lamp = {}, nil, nil, nil
+	for _, d in m:GetDescendants() do
+		if d:GetAttribute("EmergencyStep") then
+			table.insert(esteps, d)
+		elseif d:HasTag("FireDoor") then
+			fireDoor = d
+		elseif d.Name == "ExitSign" then
+			exitSign = d
+		elseif d.Name == "EmergencyLight" then
+			lamp = d
+		end
+	end
+	table.sort(esteps, function(a, b)
+		return a:GetAttribute("EmergencyStep") < b:GetAttribute("EmergencyStep")
+	end)
+	local rises = #esteps == 16
+	for i = 2, #esteps do
+		local dh = top(esteps[i]) - top(esteps[i - 1])
+		rises = rises and dh > 0 and dh <= 1.0001
+	end
+	emOk = emOk and rises and fireDoor ~= nil and exitSign ~= nil and lamp ~= nil
+end
+local streetExit = false
+for _, d in floorModel(0):GetDescendants() do
+	if d.Name == "EmergencyExit" and d:HasTag("InteriorExit") then
+		streetExit = true
+	end
+end
+check(emOk and streetExit, "escalera de emergencia: puerta cortafuegos, cartel verde, luz de emergencia, 16 escalones por planta y salida a la calle")
+local detailsOk = true
+for _, name in { "SmokeDetector", "ElectricPanel", "EvacuationPlan", "Extinguisher", "Bin" } do
+	local found = false
+	for _, d in floorModel(1):GetDescendants() do
+		found = found or d.Name == name
+	end
+	detailsOk = detailsOk and found
+end
+check(detailsOk, "pasillos con detalles: detectores de humo, cuadro eléctrico, plano de evacuación, extintor y papelera")
 local signs = 0
 for _, d in floorModel(1):GetDescendants() do
 	if d:GetAttribute("FloorLabel") == "Planta 1" then
