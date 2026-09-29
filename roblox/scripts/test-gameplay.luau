@@ -3193,6 +3193,9 @@ local music = mp("Counter", CFrame.new(hub + Vector3.new(98, 2, 28)), { "MetroSh
 local mic = mp("Mic", CFrame.new(hub + Vector3.new(128, 3, -16)), { "MetroStage" })
 local missionBoard = mp("MissionBoard", CFrame.new(hub + Vector3.new(80, 5, -24)), { "MetroMissionBoard" })
 local lostOffice = mp("LostOffice", CFrame.new(hub + Vector3.new(58, 2, -28)), { "MetroLostOffice" })
+-- Taquilla con persona (lejos de las máquinas) y un banco en el andén de la primera estación
+local booth = mp("BoothCounter", CFrame.new(base + Vector3.new(40, 1.7, -60)), { "MetroTicketBooth" }, { Station = P.Id, StaffSpot = base + Vector3.new(40, 0.2, -62.5) }, Vector3.new(5.8, 3.4, 1))
+local metroBench = mp("Bench", CFrame.new(base + Vector3.new(15.6, 1.5, 30)), {}, nil, Vector3.new(1.6, 0.4, 5))
 local MetroService = loadModule(S .. "MetroService")
 MetroService.init()
 check(jobProviders.Handler_Revisor ~= nil, "el tablón de la galería lleva al oficio de revisor/a")
@@ -3470,6 +3473,186 @@ do
 	for r, pos in saved do
 		moveTo(r, pos)
 	end
+end
+-- Taquilla con persona: el taquillero/a sale cuando hay alguien cerca y vende lo mismo que la máquina
+do
+	local buyer, buyerRoot = newPlayer(120, "Adulto", 50)
+	profiles[buyer].Items = {}
+	InventoryService.refresh(buyer)
+	moveTo(buyerRoot, booth.Position + Vector3.new(0, -3, -1.5 + 6))
+	MetroService._ambientTick()
+	local clerk = nil
+	for _, c in worldRoot:GetChildren() do
+		if (c.Name == "Taquillera" or c.Name == "Taquillero") and c:IsA("Model") then
+			clerk = c
+		end
+	end
+	local hum = clerk and clerk:FindFirstChildOfClass("Humanoid")
+	check(clerk ~= nil and clerk:HasTag("NamedActor") and hum ~= nil and hum.DisplayDistanceType == Enum.HumanoidDisplayDistanceType.None and hum.DisplayName == clerk.Name, "en la taquilla hay una persona (con su nombre encima)")
+	local cRoot = clerk and clerk.PrimaryPart
+	check(cRoot ~= nil and (cRoot.Position - booth:GetAttribute("StaffSpot")).Magnitude < 4, "el taquillero/a está detrás del mostrador")
+	promptOf(booth, "Comprar billete").Triggered:Fire(buyer)
+	check(lastMessage(buyer, "Tickets") ~= nil, "en la taquilla se compra igual que en la máquina")
+	M:Fire(buyer, "BuyTicket", "Bono10")
+	check(profiles[buyer].Money == 35 and InventoryService.count(buyer, "BilleteMetro") == 10, "la taquilla vende el bonometro")
+	M:Fire(buyer, "BuyPass", "Dia")
+	check(profiles[buyer].Money == 30 and profiles[buyer].Metro and profiles[buyer].Metro.PassKind == "Dia", "y también abonos")
+	-- Nunca aparece al lado de un jugador
+	if clerk then
+		clerk:Destroy()
+	end
+	moveTo(buyerRoot, booth:GetAttribute("StaffSpot") + Vector3.new(0, -2, 0))
+	MetroService._ambientTick()
+	local again = false
+	for _, c in worldRoot:GetChildren() do
+		if (c.Name == "Taquillera" or c.Name == "Taquillero") and c.Parent then
+			again = true
+		end
+	end
+	check(not again, "el taquillero/a no aparece encima de nadie")
+	moveTo(buyerRoot, Vector3.new(9000, 0, -9000))
+end
+-- Andén: los viajeros que esperan se sientan en los bancos
+do
+	local alightP = nil
+	for _, a in services.CollectionService:GetTagged("MetroAlight") do
+		if a:GetAttribute("Station") == P.Id then
+			alightP = a
+		end
+	end
+	local saved = {}
+	for _, other in services.Players:GetPlayers() do
+		local r = other.Character and other.Character:FindFirstChild("HumanoidRootPart")
+		if r then
+			saved[r] = r.Position
+			moveTo(r, Vector3.new(9000, 0, 9000))
+		end
+	end
+	MetroService._ambientTick() -- (sin nadie cerca se van todos)
+	local waiter, waiterRoot = newPlayer(121, "Adulto", 0)
+	moveTo(waiterRoot, alightP.Position + Vector3.new(0, -3, -40))
+	MetroService._ambientTick()
+	local seated, tooClose = nil, false
+	for _, c in worldRoot:GetChildren() do
+		if c.Name == "Viajero" and c:IsA("Model") and c.PrimaryPart then
+			if (c.PrimaryPart.Position - waiterRoot.Position).Magnitude < 5 then
+				tooClose = true
+			end
+			if c:GetAttribute("UsePose") == "Sit" and (c.PrimaryPart.Position - metroBench.Position).Magnitude < 4 then
+				seated = c
+			end
+		end
+	end
+	check(seated ~= nil, "en el andén hay quien espera sentado en el banco")
+	check(not tooClose, "los viajeros no aparecen al lado de ningún jugador")
+	if seated then
+		local look = seated.PrimaryPart.CFrame.LookVector
+		check(look.X < -0.9, "sentado mirando hacia la vía")
+	end
+	moveTo(waiterRoot, Vector3.new(9000, 0, -9000))
+	for r, pos in saved do
+		moveTo(r, pos)
+	end
+end
+-- Viajeros que se cambian de vagón (andando por el pasillo, con el tren parado)
+do
+	local fan = newPlayer(122, "Adulto", 0)
+	train.Passengers[fan] = true
+	for _ = 1, 600 do
+		if train.Phase == "Dwell" and train.Timer > 9 then
+			break
+		end
+		MetroService._step(train, 0.5)
+	end
+	MetroService._refreshRiders(train)
+	while #train.Riders > 1 do
+		MetroService._removeRider(train, #train.Riders)
+	end
+	local npc = train.Riders[1]
+	local fromCar = npc and npc:GetAttribute("MetroCar")
+	local moved = npc ~= nil and train.Phase == "Dwell" and MetroService._changeCar(train, npc)
+	check(moved and npc:GetAttribute("MetroCar") ~= fromCar and math.abs(npc:GetAttribute("MetroCar") - fromCar) == 1, "un viajero se cambia al vagón de al lado")
+	check(moved and npc:HasTag("MetroRider") and npc:GetAttribute("ChangingCar") == nil and npc:GetAttribute("UsePose") == "Sit", "y vuelve a sentarse (y va con su coche)")
+	local taken = 0
+	for _, car in train.Cars do
+		for _, seat in car.Seats do
+			if seat:GetAttribute("NpcRider") then
+				taken += 1
+			end
+		end
+	end
+	check(taken == #train.Riders, "deja libre su asiento y ocupa el nuevo")
+	train.Passengers[fan] = nil
+end
+-- Incidencia de seguridad: bajan agentes de policía al andén y se van al acabar
+do
+	local alightP = nil
+	for _, a in services.CollectionService:GetTagged("MetroAlight") do
+		if a:GetAttribute("Station") == P.Id then
+			alightP = a
+		end
+	end
+	local inc = MetroService.startIncident("Seguridad", "L1")
+	check(inc ~= nil and inc.Station == train.Line.Stations[train.Index], "incidencia de seguridad en la estación del tren")
+	for _, a in services.CollectionService:GetTagged("MetroAlight") do
+		if inc and a:GetAttribute("Station") == inc.Station then
+			alightP = a
+		end
+	end
+	local saved = {}
+	for _, other in services.Players:GetPlayers() do
+		local r = other.Character and other.Character:FindFirstChild("HumanoidRootPart")
+		if r then
+			saved[r] = r.Position
+			moveTo(r, Vector3.new(9000, 0, 9000))
+		end
+	end
+	local watcher, watcherRoot = newPlayer(123, "Adulto", 0)
+	moveTo(watcherRoot, alightP.Position + Vector3.new(2.5, -3, -4)) -- (justo por donde entran, junto a los tornos)
+	MetroService._incidentTick()
+	task.wait(1.5)
+	local cops = inc and inc.Police or {}
+	local uniform, near = #cops > 0, false
+	for _, cop in cops do
+		local r = cop.PrimaryPart
+		if cop.Name ~= "Policía" or cop:GetAttribute("MetroPolice") ~= true then
+			uniform = false
+		end
+		local home = cop:GetAttribute("Home")
+		if typeof(home) ~= "Vector3" or (home - watcherRoot.Position).Magnitude < 5 then
+			near = true
+		end
+		local _ = r
+	end
+	check(#cops >= 1 and #cops <= 2 and uniform, ("bajan agentes de policía al andén (%d)"):format(#cops))
+	check(not near, "los agentes no aparecen al lado de ningún jugador")
+	local said = false
+	for _, cop in cops do
+		if typeof(cop:GetAttribute("Says")) == "string" then
+			said = true
+		end
+	end
+	check(said, "los agentes avisan a la gente")
+	MetroService._incidentTick()
+	check(inc ~= nil and #inc.Police == #cops, "no bajan más agentes de la cuenta")
+	moveTo(watcherRoot, Vector3.new(9000, 0, -9000))
+	for _, i2 in MetroService._incidents do
+		i2.Until = 0
+	end
+	MetroService._incidentTick()
+	task.wait(0.1)
+	local gone = true
+	for _, cop in cops do
+		if cop.Parent then
+			gone = false
+		end
+	end
+	check(inc ~= nil and inc.Police == nil and gone, "al acabar la incidencia se van (sin nadie delante)")
+	train.Hold = nil
+	for r, pos in saved do
+		moveTo(r, pos)
+	end
+	local _ = watcher
 end
 print("▶ Nadar, bucear y pesca submarina con fusil o arpón")
 local Fishing = loadModule(ROOT .. "/shared/Fishing")

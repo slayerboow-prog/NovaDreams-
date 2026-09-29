@@ -31,12 +31,17 @@
   - Que los NPC sentados vayan con su coche.
   - Que el plano (`MetroMapUI`) quepa en el móvil.
 
+## Hecho después (segunda tanda)
+- **Taquilla con persona** (`MetroAccess.hall`, tag `MetroTicketBooth` con `StaffSpot`): mostrador con cristal en el vestíbulo de cada boca. `MetroService.ambientTick` pone al taquillero/a (nombre con `NamedActor`) cuando hay alguien cerca y nunca a menos de 5 studs de un jugador; "Comprar billete" abre la misma compra que la máquina (`openTickets`, `nearTicketSeller` vale para máquinas y taquillas).
+- **Policía en las incidencias de seguridad** (`spawnPolice` / `retirePolice` en `MetroService`): 1 o 2 agentes con el uniforme de la Policía bajan al andén por los tornos (o por las puntas si hay alguien allí), van a las puertas del coche de en medio, avisan y vigilan; al acabar la incidencia se vuelven andando y se van sin nadie delante (`StaffService.retireNpc`).
+- **NPC del andén en los bancos**: algunos aparecen sentados y, de vez en cuando, uno que espera de pie se va a sentar a un banco libre (`freeBench`, `sitOnBench`); al llegar el tren se levantan antes de subir (`leaveBench`). Los viajeros del andén tampoco aparecen ya a menos de 5 studs de un jugador.
+- **Viajeros que cambian de vagón** (`changeCar`): con el tren parado y tiempo de sobra, alguno se levanta, va por el pasillo y el paso entre coches al de al lado y se sienta (mientras anda no lo mueve el coche: `ChangingCar`).
+- **Estaciones con personalidad** (`MetroKit.Themes` / `mural`): cada estación de calle tiene su azulejo, un mural en lo alto de la pared de enfrente (lema y dibujos del barrio), cartel en el vestíbulo con lo que hay cerca y el nombre con su letra y colores. Plaza Mayor sigue como estaba.
+- **Pruebas**: `test-gameplay` (taquilla, bancos, cambio de vagón, policía) y `test-metro` (una taquilla por estación, murales y azulejos distintos).
+
 ## Qué falta del prompt
 - **Más trenes por línea, una 3.ª línea y "cambio de andén":** cada línea tiene **una sola vía** (`MetroKit.station` / `tunnel`), así que con más trenes chocarían. Hace falta construir una segunda vía (andén central o dos andenes con paso) antes.
-- **Estaciones con personalidad propia:** todas salen de `station()`, salvo Plaza Mayor.
-- **Ascensor real:** sigue teletransportando (`onEntrance` / `onExit`).
-- **Taquilla con persona:** solo hay máquinas.
-- **Policía que actúe en el metro** con las incidencias de seguridad (ahora solo retienen el tren).
-- **NPC:** no cambian de vagón y los del andén no se sientan en los bancos.
+- **Ascensor real:** sigue teletransportando (`onEntrance` / `onExit`). No se hizo: el ascensor de la boca (en la calle) y el del vestíbulo de andenes no están uno encima del otro (hay decenas de studs de distancia en horizontal y 45–70 de alto), así que haría falta un pozo nuevo que atraviese la calle, el vestíbulo y el terreno, más su lógica (`World/Lift` + `LiftRide`). Mejor hacerlo aparte.
 - **Sonidos:** poner IDs reales en `Config.Sounds.MetroTren`, `MetroFreno` y `MetroAnden`. La voz depende de `AudioTextToSpeech`; si no está, solo salen subtítulos.
 - **Precios:** los abonos no dependen de ningún índice de la economía (no existe todavía).
+- **A revisar en Studio:** que el taquillero/a quede bien detrás del mostrador en todas las bocas, que los sentados en los bancos no floten y que el paseo por el pasillo al cambiar de vagón se vea bien.
