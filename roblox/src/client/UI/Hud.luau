@@ -580,9 +580,11 @@ local function renderQuestList(list: Frame, state: { [string]: any })
 		section(list, nextOrder(), "Misiones opcionales", C.Purple)
 		for i = 1, math.min(6, #others) do
 			local other = others[i]
-			local row = objectiveRow(list, nextOrder(), Strings.get(other.TitleKey), false)
+			-- Las que no tocan ahora siguen en la lista, con el porqué (no han desaparecido)
+			local later = if other.Later == "AfterSchool" then "  · 🏫 después del cole" elseif other.Later == "School" then "  · 🏫 en horario de cole" else ""
+			local row = objectiveRow(list, nextOrder(), Strings.get(other.TitleKey) .. later, false)
 			-- Pulsar una opcional la convierte en la que sigues
-			if other.QuestId then
+			if other.QuestId and not other.Later then
 				local pick = create("TextButton", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "", ZIndex = 3, Parent = row })
 				pick.Activated:Connect(function()
 					(Remotes:WaitForChild("LifeStory") :: RemoteEvent):FireServer("Track", other.QuestId)

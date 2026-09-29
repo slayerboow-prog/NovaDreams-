@@ -738,7 +738,7 @@ check(gpsBanner.Visible, "Un objetivo nuevo vuelve a poner la ruta")
 local remote = remotes:FindFirstChild("LifeStory")
 remote.OnClientEvent:Fire("State", {
 	Tracked = { QuestId = "Nino_Jornada", Kind = "Main", TitleKey = "QUEST.DIA_COLE.TITLE", TextKey = "QUEST.DIA.LLEGA_COLE", Args = {} },
-	Others = { { QuestId = "Eco_MateoDibujo", TitleKey = "QUEST.DIA_COLE.TITLE" } },
+	Others = { { QuestId = "Eco_MateoDibujo", TitleKey = "QUEST.DIA_COLE.TITLE" }, { QuestId = "Loco_Nino_Chip", TitleKey = "QUEST.DIA_COLE.TITLE", Later = "AfterSchool" } },
 })
 local mission = hud and hud:FindFirstChild("Mission")
 check(mission and mission.Visible and mission.Kind.Text == "MISIÓN PRINCIPAL", "Panel de la misión con «MISIÓN PRINCIPAL»")
@@ -748,6 +748,7 @@ local popups = playerGui:FindFirstChild("HudPopups")
 Hud.runCommand("Misiones")
 local quests = popups and popups:FindFirstChild("Quests")
 check(quests and textOf(quests, "MISIONES OPCIONALES"), "La flecha abre la lista de misiones (con las opcionales)")
+check(quests and textOf(quests, "después del cole"), "Las misiones que esperan a que acabe el cole siguen en la lista, marcadas «🏫 después del cole»")
 Hud.runCommand("Misiones")
 check(popups and popups:FindFirstChild("Quests") == nil, "Y se cierra otra vez")
 

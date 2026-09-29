@@ -742,12 +742,24 @@ local function publish(player: Player, force: boolean?)
 			To = rt.Waiting.To or (req.Hours and req.Hours.To),
 		}
 	end
+	-- Las demás misiones. Las que no tocan ahora (en horario de cole solo se hacen las del cole; fuera
+	-- de él, las que te mandan al cole esperan) siguen en la lista, marcadas: antes se escondían y
+	-- parecía que habían desaparecido.
+	local inSchool = Schedules.isSchoolTime(GameClock.now().ClockTime)
 	for id, prog in story.Active do
-		if id ~= trackedId and visibleQuest(data, id, prog) then
-			table.insert(state.Others, { QuestId = id, TitleKey = titleOf(id, story.Active[id]) })
+		if id ~= trackedId then
+			local visible = visibleQuest(data, id, prog)
+			table.insert(state.Others, {
+				QuestId = id,
+				TitleKey = titleOf(id, story.Active[id]),
+				Later = if visible then nil elseif inSchool then "AfterSchool" else "School",
+			})
 		end
 	end
 	table.sort(state.Others, function(a, b)
+		if (a.Later ~= nil) ~= (b.Later ~= nil) then
+			return a.Later == nil -- (primero las que se pueden hacer ya)
+		end
 		return a.QuestId < b.QuestId
 	end)
 

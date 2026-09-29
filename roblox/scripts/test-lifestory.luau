@@ -414,22 +414,33 @@ print("\n▶ Consecuencia diferida: una hora después, Mateo te busca")
 passTime(leo, 3700)
 check(leoData.Story.Active.Eco_MateoDibujo ~= nil, "Pasada una hora de juego, empieza «Un regalo de Mateo»")
 state = lastState(leo)
+-- (se puede hacer ahora: la que sigues o una opcional sin «para luego»)
 local function showsQuest(questId: string): boolean
 	if state.Tracked and state.Tracked.QuestId == questId then
 		return true
 	end
 	for _, other in state.Others do
-		if other.QuestId == questId then
+		if other.QuestId == questId and not other.Later then
 			return true
 		end
 	end
 	return false
 end
-check(showsQuest("Nino_Jornada") and not showsQuest("Eco_MateoDibujo"), "En horario de cole solo se ven las misiones del cole")
+local function laterQuest(questId: string): string?
+	for _, other in state.Others do
+		if other.QuestId == questId then
+			return other.Later
+		end
+	end
+	return nil
+end
+check(showsQuest("Nino_Jornada") and not showsQuest("Eco_MateoDibujo"), "En horario de cole solo se hacen las misiones del cole")
+check(laterQuest("Eco_MateoDibujo") == "AfterSchool", "…pero las demás siguen en la lista, marcadas «después del cole» (no desaparecen)")
 lighting.ClockTime = 18
 task.wait(Config.LifeStory.RefreshSeconds + 0.6)
 state = lastState(leo)
-check(not showsQuest("Nino_Jornada") and state.Tracked and state.Tracked.QuestId == "Eco_MateoDibujo", "Al acabar el cole, el día de cole se va y aparece la misión de Mateo")
+check(not showsQuest("Nino_Jornada") and state.Tracked and state.Tracked.QuestId == "Eco_MateoDibujo", "Al acabar el cole, el día de cole espera y se sigue la misión de Mateo")
+check(laterQuest("Nino_Jornada") == "School", "…y el día de cole sigue en la lista, marcado «en horario de cole»")
 lighting.ClockTime = 9
 check(playQuest(leo, "Eco_MateoDibujo"), "Hablas con Mateo")
 check(leoData.Items.DibujoMateo == 1, "Te regala su dibujo (va a tu mochila)")
@@ -1409,7 +1420,18 @@ end
 check(gadgets == 11, "11 gadgets exclusivos, cada uno con su efecto")
 local exclusive = 0
 for _, quest in QuestsData do
-	if quest.Id and quest.Id:sub(1, 5) == "Loco_" and quest.Rewards and quest.Rewards.Items then
+	-- (el premio llega al final o en un paso: el tirachinas te lo da la abuela al abrir el baúl)
+	local gives = quest.Rewards ~= nil and quest.Rewards.Items ~= nil and next(quest.Rewards.Items) ~= nil
+	local function scan(steps)
+		for _, step in steps or {} do
+			if step.Effects and step.Effects.Items and next(step.Effects.Items) ~= nil then
+				gives = true
+			end
+			scan(step.Steps)
+		end
+	end
+	scan(quest.Steps)
+	if quest.Id and quest.Id:sub(1, 5) == "Loco_" and gives then
 		exclusive += 1
 	end
 end

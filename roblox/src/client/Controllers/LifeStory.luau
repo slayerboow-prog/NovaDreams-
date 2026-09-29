@@ -261,7 +261,12 @@ local function renderCard(state: { [string]: any })
 			then Strings.get("STORY.WAIT.HOURS", { from = waiting.From, to = waiting.To })
 			else Strings.get("STORY.WAIT.DAYS")
 	end
-	local others = state.Others or {}
+	local others = {}
+	for _, other in state.Others or {} do
+		if not other.Later then
+			table.insert(others, other) -- (las que esperan al cole o a salir de él no se pueden seguir ahora)
+		end
+	end
 	switchButton.Visible = tracked ~= nil and #others > 0
 	switchButton.Text = Strings.get("STORY.CARD.SWITCH", { title = if others[1] then Strings.get(others[1].TitleKey) else "" })
 	if not tracked and not state.Waiting then
