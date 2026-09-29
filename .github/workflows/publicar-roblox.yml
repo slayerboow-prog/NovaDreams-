@@ -1,0 +1,40 @@
+# Publica el juego en Roblox cada vez que alguna ventana sube cambios a la rama del juego.
+# Si llegan varios pushes seguidos, se cancela la publicación en curso y solo se publica el último.
+# Hace falta el secreto ROBLOX_API_KEY en GitHub (Settings → Secrets and variables → Actions).
+name: Publicar en Roblox
+
+on:
+  push:
+    branches: [claude/roblox-game-d98vy8]
+    paths: ["roblox/**", ".github/workflows/publicar-roblox.yml"]
+  workflow_dispatch:
+
+concurrency:
+  group: publicar-roblox
+  cancel-in-progress: true
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+
+      - name: Instalar lune y rojo
+        run: |
+          mkdir -p "$HOME/bin"
+          curl -sSfL -o /tmp/lune.zip https://github.com/lune-org/lune/releases/download/v0.10.5/lune-0.10.5-linux-x86_64.zip
+          curl -sSfL -o /tmp/rojo.zip https://github.com/rojo-rbx/rojo/releases/download/v7.7.0/rojo-7.7.0-linux-x86_64.zip
+          unzip -oq /tmp/lune.zip -d "$HOME/bin"
+          unzip -oq /tmp/rojo.zip -d "$HOME/bin"
+          chmod +x "$HOME/bin/lune" "$HOME/bin/rojo"
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+
+      - name: Publicar
+        working-directory: roblox
+        env:
+          ROBLOX_API_KEY: ${{ secrets.ROBLOX_API_KEY }}
+        run: bash scripts/publish.sh
