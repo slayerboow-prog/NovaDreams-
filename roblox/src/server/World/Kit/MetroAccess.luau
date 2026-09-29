@@ -2,7 +2,8 @@
 --
 --   calle ─▶ boca con barandillas, la gran M y el ascensor (modelo "BocaMetro", sale en el mapa)
 --        ─▶ dos tramos de escalera con rellano
---        ─▶ vestíbulo bajo la calle: máquinas de billetes, plano, panel de próximos trenes, anuncios
+--        ─▶ vestíbulo bajo la calle: máquinas de billetes, taquilla con persona (MetroTicketBooth),
+--           plano, panel de próximos trenes, anuncios
 --        ─▶ pozo inclinado: escalera mecánica de bajada, escalera fija y escalera mecánica de subida
 --        ─▶ vestíbulo de andenes (tornos) ─▶ andén
 --
@@ -535,7 +536,7 @@ local function hall(root: Instance, A: any, station: Metro.Station): Model
 	table.sort(free, function(a, b)
 		return (a.B - a.A) > (b.B - b.A)
 	end)
-	local items = { "Machines", "Map", "Advert", "Bench", "Advert", "Advert" }
+	local items = { "Machines", "Booth", "Map", "Advert", "Bench", "Advert", "Advert" }
 	local slots = {}
 	for _, f in free do
 		local cursor = f.A
@@ -564,6 +565,23 @@ local function hall(root: Instance, A: any, station: Metro.Station): Model
 					decor(m, "TicketScreen", V3(1.6, 1.4, 0.1), cf * CFrame.new(x, 3.9, -1.65), rgb(120, 200, 255), Enum.Material.Neon)
 				end
 				signBoard(m, cf * CFrame.new(0, 6.6, -0.1), V3(5, 0.9, 0.1), "🎫 BILLETES", rgb(30, 90, 170))
+			end
+		elseif item == "Booth" then
+			-- Taquilla con persona: mostrador con cristal y un hueco detrás para el taquillero/a (lo pone
+			-- MetroService en StaffSpot). Vende lo mismo que las máquinas.
+			local cf = take(6.4)
+			if cf then
+				local BLUE = rgb(30, 90, 170)
+				for _, x in { -3.05, 3.05 } do
+					part(m, "BoothSide", V3(0.3, 7, 3.4), cf * CFrame.new(x, 3.5, -1.7), BLUE, Enum.Material.SmoothPlastic)
+				end
+				local counter = part(m, "BoothCounter", V3(5.8, 3.4, 1), cf * CFrame.new(0, 1.7, -3), rgb(220, 224, 230), Enum.Material.SmoothPlastic, { Tags = { "MetroTicketBooth" } })
+				counter:SetAttribute("Station", station.Id)
+				counter:SetAttribute("StaffSpot", (cf * CFrame.new(0, 0.2, -1.3)).Position)
+				decor(m, "BoothTop", V3(6, 0.2, 1.4), cf * CFrame.new(0, 3.5, -3), rgb(140, 100, 64), Enum.Material.Wood)
+				decor(m, "BoothGlass", V3(5.8, 2.6, 0.1), cf * CFrame.new(0, 5.2, -3.3), rgb(190, 225, 240), Enum.Material.Glass, { Transparency = 0.6 })
+				part(m, "BoothRoof", V3(6.4, 0.4, 3.6), cf * CFrame.new(0, 7.2, -1.8), BLUE, Enum.Material.SmoothPlastic)
+				signBoard(m, cf * CFrame.new(0, 7.2, -3.65), V3(5.6, 0.8, 0.1), "🎫 TAQUILLA · BILLETES Y ABONOS", BLUE)
 			end
 		elseif item == "Map" then
 			local cf = take(7)

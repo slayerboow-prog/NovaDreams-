@@ -36,6 +36,7 @@ local MonetizationService = require(script.Parent.MonetizationService)
 local InventoryService = require(script.Parent.InventoryService)
 local RoleService = require(script.Parent.RoleService)
 local JobService = require(script.Parent.JobService)
+local StaffService = require(script.Parent.StaffService)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 
 local MetroService = {}
@@ -43,6 +44,7 @@ local MetroService = {}
 local Notify = ReplicatedStorage.Remotes.Notify :: RemoteEvent
 local Remote = ReplicatedStorage.Remotes.Metro :: RemoteEvent
 local REV = Metro.Revisor
+local rgb = Color3.fromRGB
 local STEP = Metro.CarLength + Metro.CarGap
 
 type Car = { Root: BasePart, Seats: { Seat }, Doors: { BasePart } }
@@ -159,7 +161,7 @@ local function placeTrain(train: Train)
 	for _, npc in train.Riders do
 		local car = train.Cars[npc:GetAttribute("MetroCar") or 1]
 		local rel = npc:GetAttribute("MetroOffset")
-		if car and typeof(rel) == "CFrame" and npc.Parent then
+		if car and typeof(rel) == "CFrame" and npc.Parent and not npc:GetAttribute("ChangingCar") then
 			npc:PivotTo(car.Root.CFrame * rel)
 		end
 	end
@@ -721,15 +723,24 @@ local function onGateExit(player: Player, gate: BasePart)
 	player:SetAttribute("MetroTicket", nil)
 end
 
-local function onBuyTicket(player: Player, id: any)
+-- ¿Está junto a una máquina de billetes o a una taquilla? (las dos venden lo mismo)
+local function nearTicketSeller(player: Player): boolean
 	local root = rootOf(player)
-	local machine = nil
-	for _, m in tagged("MetroTicketMachine") do
-		if root and (m.Position - root.Position).Magnitude < 14 then
-			machine = m
+	if not root then
+		return false
+	end
+	for _, tag in { "MetroTicketMachine", "MetroTicketBooth" } do
+		for _, m in tagged(tag) do
+			if (m.Position - root.Position).Magnitude < 14 then
+				return true
+			end
 		end
 	end
-	if not machine then
+	return false
+end
+
+local function onBuyTicket(player: Player, id: any)
+	if not nearTicketSeller(player) then
 		return
 	end
 	for _, t in Metro.Tickets do
@@ -794,14 +805,7 @@ end
 
 local function onBuyPass(player: Player, id: any)
 	local pass = typeof(id) == "string" and Metro.passById[id]
-	local root = rootOf(player)
-	local near = false
-	for _, m in tagged("MetroTicketMachine") do
-		if root and (m.Position - root.Position).Magnitude < 14 then
-			near = true
-		end
-	end
-	if not pass or not near then
+	if not pass or not nearTicketSeller(player) then
 		return
 	end
 	if pass.Student and not Metro.StudentStages[player:GetAttribute("LifeStage") or ""] then
@@ -1309,6 +1313,12 @@ end
 
 local ambient: { [BasePart]: { Model } } = {}
 local clerks: { [BasePart]: Model } = {}
+local boothClerks: { [BasePart]: Model } = {} -- taquillero/a de cada taquilla
+local BOOTH_LINES = { "¡Hola! ¿Qué billete le pongo?", "Buenas. ¿Sencillo, bonometro o abono?", "¿A dónde va hoy?", "Si viaja mucho, el abono le sale más barato." }
+local BOOTH_LOOKS = {
+	{ Name = "Taquillera", Look = { Shirt = rgb(30, 90, 170), Pants = rgb(40, 44, 60), LongSleeves = true, LongHair = true } },
+	{ Name = "Taquillero", Look = { Shirt = rgb(30, 90, 170), Pants = rgb(40, 44, 60), LongSleeves = true } },
+}
 
 local function anyoneNear(position: Vector3, range: number): boolean
 	for _, player in Players:GetPlayers() do
@@ -1318,6 +1328,90 @@ local function anyoneNear(position: Vector3, range: number): boolean
 		end
 	end
 	return false
+end
+
+-- Bancos del andén: cada banco tiene dos sitios (benchUsed[banco][sitio] = quien está sentado)
+local benchUsed: { [BasePart]: { [number]: Model } } = {}
+local benchOf: { [Model]: { any } } = setmetatable({}, { __mode = "k" }) :: any
+local benchCache: { [BasePart]: { BasePart } } = {}
+local BENCH_SLOTS = { -1.2, 1.2 }
+
+local function benchesNear(alight: BasePart): { BasePart }
+	local cached = benchCache[alight]
+	if cached then
+		return cached
+	end
+	local list = {}
+	local parent = alight.Parent
+	if parent then
+		for _, b in parent:GetChildren() do
+			if b:IsA("BasePart") and b.Name == "Bench" and math.abs(b.Position.Y - alight.Position.Y) < 6 and (b.Position - alight.Position).Magnitude < 90 then
+				table.insert(list, b)
+			end
+		end
+	end
+	benchCache[alight] = list
+	return list
+end
+
+-- Dónde se sienta uno en ese sitio del banco: la superficie del asiento, mirando hacia la vía
+local function benchSeat(alight: BasePart, bench: BasePart, slot: number): CFrame
+	local along = if bench.Size.Z >= bench.Size.X then Vector3.new(0, 0, BENCH_SLOTS[slot]) else Vector3.new(BENCH_SLOTS[slot], 0, 0)
+	local top = bench.CFrame * CFrame.new(along + Vector3.new(0, bench.Size.Y / 2, 0))
+	local d = -alight.CFrame.RightVector -- (la vía queda a -X de la marca, recto desde el banco)
+	d = Vector3.new(d.X, 0, d.Z)
+	return CFrame.new(top.Position) * CFrame.Angles(0, math.atan2(-d.X, -d.Z), 0)
+end
+
+-- Un sitio libre en los bancos (sin nadie sentado ni ningún jugador a menos de 5 studs)
+local function freeBench(alight: BasePart): (BasePart?, number?)
+	local options = {}
+	for _, bench in benchesNear(alight) do
+		local used = benchUsed[bench] or {}
+		for slot in BENCH_SLOTS do
+			local who = used[slot]
+			if not (who and who.Parent) and not anyoneNear(benchSeat(alight, bench, slot).Position, 5) then
+				table.insert(options, { bench, slot })
+			end
+		end
+	end
+	if #options == 0 then
+		return nil, nil
+	end
+	local pick = options[math.random(1, #options)]
+	return pick[1], pick[2]
+end
+
+local function sitOnBench(npc: Model, alight: BasePart, bench: BasePart, slot: number)
+	benchUsed[bench] = benchUsed[bench] or {}
+	benchUsed[bench][slot] = npc
+	benchOf[npc] = { bench, slot }
+	local seatCf = benchSeat(alight, bench, slot)
+	pcall(Npc.sitAt, npc, seatCf)
+	local root = npc.PrimaryPart
+	if root then
+		root.CFrame = CFrame.new(root.Position) * seatCf.Rotation -- (mirando a la vía, venga de donde venga)
+	end
+	if math.random() < 0.5 then
+		pcall(Npc.work, npc, if math.random() < 0.5 then "Phone" else "Book")
+	end
+end
+
+-- Se levanta del banco (pies delante del asiento)
+local function leaveBench(npc: Model)
+	local b = benchOf[npc]
+	if not b then
+		return
+	end
+	benchOf[npc] = nil
+	local bench, slot = b[1] :: BasePart, b[2] :: number
+	if benchUsed[bench] and benchUsed[bench][slot] == npc then
+		benchUsed[bench][slot] = nil
+	end
+	pcall(Npc.work, npc, nil)
+	local root = npc.PrimaryPart
+	local front = if root then root.Position + root.CFrame.LookVector * 1.6 else bench.Position
+	pcall(Npc.stand, npc, Npc.feetAt(front, 6))
 end
 
 local function ambientTick()
@@ -1331,13 +1425,18 @@ local function ambientTick()
 			end
 		end
 		if active and #list < (schedule.Crowd or 3) then
+			local bench, slot = nil, nil
+			-- (el primero que llega a un andén vacío se sienta si hay banco; luego, algunos)
+			if #list == 0 or math.random() < 0.4 then
+				bench, slot = freeBench(alight)
+			end
 			-- Un sitio libre del andén: entre el borde y los bancos/la máquina (x -3..1 de la marca),
-			-- lejos de los extremos y sin pisar a otro viajero; de pie en el suelo (la marca va a media
-			-- altura: antes flotaban 3 studs)
+			-- lejos de los extremos, sin pisar a otro viajero ni aparecer al lado de un jugador; de pie
+			-- en el suelo (la marca va a media altura: antes flotaban 3 studs)
 			local spot: CFrame? = nil
-			for _ = 1, 6 do
+			for _ = 1, if bench then 0 else 6 do
 				local cf = alight.CFrame * CFrame.new(math.random(-30, 10) / 10, 0, math.random(-50, 50))
-				local free = true
+				local free = not anyoneNear(cf.Position, 5)
 				for _, other in list do
 					local root = other.PrimaryPart
 					if root and Vector3.new(root.Position.X - cf.X, 0, root.Position.Z - cf.Z).Magnitude < 3.5 then
@@ -1350,24 +1449,77 @@ local function ambientTick()
 					break
 				end
 			end
-			if spot then
+			if bench and slot then
+				-- Sentado en un banco esperando el tren
+				local seatCf = benchSeat(alight, bench, slot)
+				local npc = Npc.create("Viajero", alight.Parent :: Instance, seatCf, nil)
+				sitOnBench(npc, alight, bench, slot)
+				table.insert(list, npc)
+			elseif spot then
 				local feet = Npc.feetAt(spot.Position, alight.Size.Y / 2 + 4)
 				local npc = Npc.create("Viajero", alight.Parent :: Instance, CFrame.new(feet) * spot.Rotation, nil)
 				Npc.face(npc, (alight.CFrame * CFrame.new(-20, 0, 0)).Position)
 				table.insert(list, npc)
 			end
+		elseif active and #list > 0 and math.random() < 0.05 then
+			-- De vez en cuando, uno que espera de pie se va andando a sentarse a un banco libre
+			local npc = list[math.random(1, #list)]
+			local bench, slot = freeBench(alight)
+			if bench and slot and not benchOf[npc] and not Npc.isWalking(npc) and npc.PrimaryPart then
+				benchUsed[bench] = benchUsed[bench] or {}
+				benchUsed[bench][slot] = npc -- (reservado mientras va)
+				benchOf[npc] = { bench, slot }
+				local seatCf = benchSeat(alight, bench, slot)
+				local front = Npc.feetAt((seatCf * CFrame.new(0, 0, -1.4)).Position, 6)
+				task.spawn(function()
+					pcall(Npc.walkTo, npc, { front }, 5)
+					if npc.Parent and benchOf[npc] and benchOf[npc][1] == bench then
+						sitOnBench(npc, alight, bench, slot)
+					end
+				end)
+			end
 		elseif not active then
 			for _, npc in list do
+				benchOf[npc] = nil
 				npc:Destroy()
 			end
 			table.clear(list)
+		end
+	end
+	-- Taquillas: una persona detrás del mostrador cuando hay alguien cerca (nunca aparece al lado de
+	-- nadie; se va cuando ya no queda nadie que lo vea)
+	for _, counter in tagged("MetroTicketBooth") do
+		local spot = counter:GetAttribute("StaffSpot")
+		if typeof(spot) == "Vector3" then
+			local active = anyoneNear(counter.Position, 150)
+			local clerk = boothClerks[counter]
+			if active and not (clerk and clerk.Parent) and not anyoneNear(spot, 5) then
+				local who = BOOTH_LOOKS[math.random(1, #BOOTH_LOOKS)]
+				local feet = Npc.feetAt(spot)
+				local look = Vector3.new(counter.Position.X, feet.Y, counter.Position.Z)
+				local ok, npc = pcall(Npc.create, who.Name, counter.Parent :: Instance, if (look - feet).Magnitude > 0.1 then CFrame.lookAt(feet, look) else CFrame.new(feet), who.Look)
+				if ok and npc then
+					local humanoid = npc:FindFirstChildOfClass("Humanoid")
+					if humanoid then
+						humanoid.DisplayName = who.Name
+						-- (el nombre lo pinta el cliente: Controllers/NameTags)
+						humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+					end
+					npc:AddTag("NamedActor")
+					pcall(Npc.work, npc, "Type")
+					boothClerks[counter] = npc
+				end
+			elseif not active and clerk then
+				clerk:Destroy()
+				boothClerks[counter] = nil
+			end
 		end
 	end
 	for _, counter in tagged("MetroShop") do
 		local spot = counter:GetAttribute("StaffSpot")
 		if typeof(spot) == "Vector3" then
 			local active = anyoneNear(counter.Position, 150)
-			if active and not clerks[counter] then
+			if active and not clerks[counter] and not anyoneNear(spot, 5) then
 				-- (de pie en el suelo detrás del mostrador: la marca va un poco por encima, y Npc.create
 				-- ya sube la raíz a la altura de la cadera; con +3 flotaba)
 				local feet = Npc.feetAt(spot)
@@ -1400,6 +1552,7 @@ local function trainArrivedAmbient(train: Train)
 	for i = #list, 1, -1 do
 		if math.random() < 0.6 then
 			local npc = table.remove(list, i) :: Model
+			leaveBench(npc) -- (si estaba sentado, primero se levanta)
 			local root = npc.PrimaryPart
 			local best, bestD = nil, math.huge
 			for _, door in doors do
@@ -1476,6 +1629,64 @@ local function spawnRider(train: Train): boolean
 	return true
 end
 
+-- Punto del pasillo de un coche (en el suelo, a lo largo del coche en z)
+local function aisle(car: Car, z: number): Vector3
+	return (car.Root.CFrame * CFrame.new(0, car.Root.Size.Y / 2, z)).Position
+end
+
+-- Un viajero se levanta y se va andando por el pasillo (y el paso entre coches) a un asiento libre del
+-- coche de al lado. Solo con el tren parado y tiempo de sobra; mientras va, el cliente no lo mueve con
+-- el coche (se le quita MetroRider) y placeTrain tampoco (ChangingCar).
+local function changeCar(train: Train, npc: Model): boolean
+	local k = npc:GetAttribute("MetroCar") or 1
+	local oldSeat = riderSeat[npc]
+	local options = {}
+	for _, k2 in { k - 1, k + 1 } do
+		local car = train.Cars[k2]
+		if car then
+			for _, seat in car.Seats do
+				if not seat.Occupant and not seat:GetAttribute("NpcRider") then
+					table.insert(options, { K = k2, Seat = seat })
+				end
+			end
+		end
+	end
+	local from, pick = train.Cars[k], options[math.random(1, math.max(1, #options))]
+	if not from or not oldSeat or not pick or train.Phase ~= "Dwell" or npc:GetAttribute("ChangingCar") then
+		return false
+	end
+	local to = train.Cars[pick.K]
+	local seat = pick.Seat :: Seat
+	-- Cambia de asiento (el nuevo queda reservado mientras va)
+	oldSeat:SetAttribute("NpcRider", nil)
+	seat:SetAttribute("NpcRider", true)
+	riderSeat[npc] = seat
+	npc:SetAttribute("ChangingCar", true)
+	npc:RemoveTag("MetroRider")
+	pcall(Npc.icon, npc, nil)
+	local L = Metro.CarLength / 2
+	local sFrom = if from.Root.CFrame:PointToObjectSpace(to.Root.Position).Z > 0 then 1 else -1
+	local sTo = if to.Root.CFrame:PointToObjectSpace(from.Root.Position).Z > 0 then 1 else -1
+	local path = {
+		aisle(from, from.Root.CFrame:PointToObjectSpace(oldSeat.Position).Z),
+		aisle(from, sFrom * (L - 1)),
+		aisle(to, sTo * (L - 1)),
+		aisle(to, to.Root.CFrame:PointToObjectSpace(seat.Position).Z),
+	}
+	pcall(Npc.stand, npc, path[1])
+	task.spawn(function()
+		pcall(Npc.walkTo, npc, path, 6)
+		if npc.Parent and riderSeat[npc] == seat then
+			pcall(Npc.sit, npc, seat)
+			npc:SetAttribute("MetroCar", pick.K)
+			npc:SetAttribute("MetroOffset", to.Root.CFrame:ToObjectSpace(npc:GetPivot()))
+			npc:SetAttribute("ChangingCar", nil)
+			npc:AddTag("MetroRider")
+		end
+	end)
+	return true
+end
+
 -- En cada parada: unos bajan y otros suben (solo si hay algún jugador cerca, para no gastar)
 function refreshRiders(train: Train)
 	for i = #train.Riders, 1, -1 do
@@ -1489,6 +1700,10 @@ function refreshRiders(train: Train)
 			removeRider(train, i)
 		end
 		return
+	end
+	-- De vez en cuando alguien se cambia de vagón (si el tren va a estar parado lo bastante)
+	if #train.Riders > 0 and train.Timer > 9 and math.random() < 0.3 then
+		changeCar(train, train.Riders[math.random(1, #train.Riders)])
 	end
 	local want = schedule.Riders or 4
 	if train.Full and os.clock() < train.Full then
@@ -1604,12 +1819,86 @@ function MetroService.startIncident(kind: string, lineId: string?, stationId: st
 	return inc
 end
 
+-- Policía en las incidencias de seguridad: una o dos agentes bajan al andén (entrando por los tornos),
+-- van hasta las puertas del coche de en medio, avisan a la gente y se quedan vigilando. Cuando acaba la
+-- incidencia se vuelven andando y se van cuando nadie las ve (StaffService.retireNpc).
+local POLICE_LOOK = { Shirt = rgb(40, 60, 110), Pants = rgb(30, 35, 60), LongSleeves = true }
+local POLICE_LINES = { "Policía. Mantengan la calma, por favor.", "Aléjense de las puertas: estamos revisando el tren.", "Un momento, enseguida podrá salir el tren.", "Todo controlado. Gracias por su paciencia." }
+local POLICE_BYE = { "Todo en orden. ¡Buen viaje!", "Ya está, pueden continuar.", "Falsa alarma. ¡Que tengan buen día!" }
+
+local function spawnPolice(inc: { [string]: any })
+	local alight = findTagged("MetroAlight", { Station = inc.Station, Line = inc.Line })
+	if not alight or not anyoneNear(alight.Position, 150) then
+		return -- (sin nadie cerca no hace falta: vendrán cuando llegue alguien)
+	end
+	inc.Police = {}
+	local floor = alight.Size.Y / 2 + 4
+	-- De dónde vienen (los tornos o las puntas del andén) y adónde van (puertas del coche de en medio)
+	local starts = { { 2.5, -4 }, { 2.5, 4 }, { 2, -34 }, { 2, 34 }, { 2, -60 }, { 2, 60 } }
+	local goals = { { -4, -Metro.CarLength / 4 }, { -4, Metro.CarLength / 4 } }
+	local count = math.random(1, 2)
+	for n = 1, count do
+		local from: Vector3? = nil
+		for _, s0 in starts do
+			local p = (alight.CFrame * CFrame.new(s0[1], 0, s0[2])).Position
+			if not anyoneNear(p, 5) then
+				from = p
+				table.remove(starts, table.find(starts, s0))
+				break
+			end
+		end
+		if not from then
+			break
+		end
+		local feet = Npc.feetAt(from, floor)
+		local goal = Npc.feetAt((alight.CFrame * CFrame.new(goals[n][1], 0, goals[n][2])).Position, floor)
+		local ok, npc = pcall(Npc.create, "Policía", alight.Parent :: Instance, CFrame.new(feet), POLICE_LOOK)
+		if ok and npc then
+			local humanoid = npc:FindFirstChildOfClass("Humanoid")
+			if humanoid then
+				humanoid.DisplayName = "Policía"
+				humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+			end
+			npc:AddTag("NamedActor")
+			npc:SetAttribute("MetroPolice", true)
+			npc:SetAttribute("Home", feet)
+			pcall(Npc.icon, npc, "👮")
+			table.insert(inc.Police, npc)
+			task.spawn(function()
+				task.wait(n * 0.6)
+				pcall(Npc.walkTo, npc, { goal }, 8)
+				if npc.Parent and not StaffService.isLeaving(npc) then
+					pcall(Npc.face, npc, (alight.CFrame * CFrame.new(-20, 0, goals[n][2])).Position)
+					pcall(Npc.say, npc, POLICE_LINES[math.random(1, #POLICE_LINES)], 5)
+					pcall(Npc.work, npc, "Guard")
+				end
+			end)
+		end
+	end
+end
+
+local function retirePolice(inc: { [string]: any })
+	for _, npc in inc.Police or {} do
+		if npc.Parent then
+			local home = npc:GetAttribute("Home")
+			task.spawn(StaffService.retireNpc, npc, if typeof(home) == "Vector3" then home else nil, POLICE_BYE[math.random(1, #POLICE_BYE)])
+		end
+	end
+	inc.Police = nil
+end
+
 local function incidentTick()
 	local now = os.clock()
+	for _, inc in incidents do
+		if inc.Kind == "Seguridad" and not inc.Police then
+			spawnPolice(inc)
+		end
+	end
 	for i = #incidents, 1, -1 do
 		local inc = incidents[i]
 		if now > inc.Until then
 			table.remove(incidents, i)
+			retirePolice(inc)
 			local train = trains[inc.Line]
 			if train and inc.Kind == "Averia" then
 				train.Speed = Metro.Speed
@@ -1674,6 +1963,12 @@ local function setupEscalator(belt: BasePart)
 	end
 end
 
+-- Menú de billetes y abonos (máquinas y taquillas)
+local function openTickets(player: Player)
+	syncPass(player)
+	Remote:FireClient(player, "Tickets", Metro.Tickets, { Passes = Metro.Passes, Current = player:GetAttribute("MetroPass"), Until = player:GetAttribute("MetroPassUntil"), Now = os.time() })
+end
+
 local SETUP: { [string]: (BasePart) -> () } = {
 	MetroEntrance = function(door)
 		prompt(door, "Bajar en ascensor", "♿ Ascensor · Metro " .. stationName(door:GetAttribute("Station")), 0.4, 8).Triggered:Connect(function(player)
@@ -1703,9 +1998,20 @@ local SETUP: { [string]: (BasePart) -> () } = {
 		end)
 	end,
 	MetroTicketMachine = function(machine)
-		prompt(machine, "Comprar billete", "🎫 Máquina de billetes", 0.3, 8).Triggered:Connect(function(player)
-			syncPass(player)
-			Remote:FireClient(player, "Tickets", Metro.Tickets, { Passes = Metro.Passes, Current = player:GetAttribute("MetroPass"), Until = player:GetAttribute("MetroPassUntil"), Now = os.time() })
+		prompt(machine, "Comprar billete", "🎫 Máquina de billetes", 0.3, 8).Triggered:Connect(openTickets)
+	end,
+	MetroTicketBooth = function(counter)
+		-- La taquilla abre la misma compra que la máquina; el taquillero/a saluda
+		prompt(counter, "Comprar billete", "🎫 Taquilla", 0.3, 8).Triggered:Connect(function(player)
+			local clerk = boothClerks[counter]
+			if clerk and clerk.Parent then
+				pcall(Npc.say, clerk, BOOTH_LINES[math.random(1, #BOOTH_LINES)], 4)
+				local root = rootOf(player)
+				if root then
+					pcall(Npc.face, clerk, root.Position)
+				end
+			end
+			openTickets(player)
 		end)
 	end,
 	MetroBoard = function(marker)
@@ -1856,6 +2162,14 @@ MetroService._checkPassengers = function()
 end
 MetroService._refreshRiders = function(train: Train)
 	refreshRiders(train)
+end
+MetroService._changeCar = changeCar
+MetroService._removeRider = removeRider
+MetroService._incidentTick = function()
+	incidentTick()
+end
+MetroService._ambientTick = function()
+	ambientTick()
 end
 MetroService._trains = trains
 MetroService._riding = riding
