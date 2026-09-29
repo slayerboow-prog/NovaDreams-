@@ -190,6 +190,30 @@ local function hideMarks()
 	lastMarkPosition = nil
 end
 
+-- El suelo de verdad debajo de un punto: se salta lo que no es suelo (hojas de los árboles, farolas,
+-- techos de coches, personas, marcas invisibles…) y sigue mirando hacia abajo
+local function groundBelow(from: Vector3, params: RaycastParams): Vector3?
+	local skip = table.clone(params.FilterDescendantsInstances)
+	local origin = from
+	for _ = 1, 6 do
+		local hit = workspace:Raycast(origin, Vector3.new(0, -60, 0), params)
+		if not hit then
+			return nil
+		end
+		local part = hit.Instance
+		local model = part:FindFirstAncestorOfClass("Model")
+		local isBody = model ~= nil and model:FindFirstChildOfClass("Humanoid") ~= nil
+		local flatEnough = hit.Normal.Y > 0.7
+		if hit.Material == Enum.Material.Water or (part.CanCollide and part.Transparency < 0.9 and not isBody and flatEnough and part.Size.Y < 40) or part:IsA("Terrain") then
+			return hit.Position
+		end
+		table.insert(skip, part)
+		params.FilterDescendantsInstances = skip
+		origin = hit.Position + Vector3.new(0, -0.05, 0)
+	end
+	return nil
+end
+
 local function placeMarks(path: { Vector3 }, position: Vector3)
 	if not folder then
 		return
@@ -214,8 +238,8 @@ local function placeMarks(path: { Vector3 }, position: Vector3)
 		end
 		-- En el suelo de verdad (acera, calle, césped…)
 		local from = Vector3.new(mark.Position.X, math.max(mark.Position.Y, position.Y) + 6, mark.Position.Z)
-		local hit = workspace:Raycast(from, Vector3.new(0, -40, 0), params)
-		local ground = if hit then hit.Position else Vector3.new(mark.Position.X, position.Y - 2.8, mark.Position.Z)
+		params.FilterDescendantsInstances = { player.Character :: Instance, folder :: Instance, workspace.CurrentCamera :: Instance }
+		local ground = groundBelow(from, params) or Vector3.new(mark.Position.X, position.Y - 2.8, mark.Position.Z)
 		local base = CFrame.lookAt(ground + Vector3.new(0, 0.12, 0), ground + Vector3.new(0, 0.12, 0) + mark.Direction)
 		-- ">" en el suelo: dos barras que se juntan en la punta
 		pair[1].CFrame = base * CFrame.new(-0.55, 0, 0) * CFrame.Angles(0, math.rad(-40), 0)
