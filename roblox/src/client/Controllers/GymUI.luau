@@ -261,9 +261,10 @@ function GymUI.init()
 	local effort = create("Frame", { Position = UDim2.fromOffset(92, 73), Size = UDim2.new(1, -92, 0, 8), BackgroundColor3 = rgb(10, 16, 30), BorderSizePixel = 0, Parent = panel }, { Theme.corner(4) })
 	effortFill = create("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = ORANGE, BorderSizePixel = 0, Parent = effort }, { Theme.corner(4) })
 	feedback = Theme.label({ Position = UDim2.fromOffset(0, 86), Size = UDim2.new(1, 0, 0, 20), Text = "", TextSize = 14, TextWrapped = true, Parent = panel })
-	tapButton = Theme.button({ Position = UDim2.fromOffset(0, 110), Size = UDim2.new(0.7, 0, 0, 44), Text = "💪 ¡YA!  (Espacio)", TextSize = 20, BackgroundColor3 = rgb(200, 90, 30), Parent = panel })
+	-- (en el móvil no hay teclas: el texto va sin «(espacio)» ni «(Q)»)
+	tapButton = Theme.button({ Position = UDim2.fromOffset(0, 110), Size = UDim2.new(0.7, 0, 0, 44), Text = if Theme.isTouch() then "💪 ¡YA!" else "💪 ¡YA!  (Espacio)", TextSize = 20, BackgroundColor3 = rgb(200, 90, 30), Parent = panel })
 	tapButton.Activated:Connect(tap)
-	local stopButton = Theme.button({ Position = UDim2.new(0.72, 0, 0, 110), Size = UDim2.new(0.28, 0, 0, 44), Text = "Dejar (Q)", TextSize = 15, BackgroundColor3 = rgb(50, 52, 60), Parent = panel })
+	local stopButton = Theme.button({ Position = UDim2.new(0.72, 0, 0, 110), Size = UDim2.new(0.28, 0, 0, 44), Text = if Theme.isTouch() then "Dejar" else "Dejar (Q)", TextSize = 15, BackgroundColor3 = rgb(50, 52, 60), Parent = panel })
 	stopButton.Activated:Connect(stop)
 
 	-- Botones de acción (móvil: racimo de abajo a la derecha; ordenador y mando: pistas de teclas).

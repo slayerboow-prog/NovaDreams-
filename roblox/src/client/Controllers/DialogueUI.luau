@@ -283,13 +283,6 @@ local function build()
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 		Parent = player:WaitForChild("PlayerGui"),
 	})
-	local scale = create("UIScale", { Parent = gui })
-	local camera = workspace.CurrentCamera
-	local function rescale()
-		scale.Scale = math.clamp(camera.ViewportSize.Y / 850, 0.65, 1.25)
-	end
-	camera:GetPropertyChangedSignal("ViewportSize"):Connect(rescale)
-	rescale()
 
 	box = create("TextButton", {
 		Name = "Dialogue",
@@ -305,6 +298,8 @@ local function build()
 		Parent = gui,
 	}, { Theme.corner(10), Theme.stroke(0.35), create("UIGradient", { Rotation = 90, Color = Theme.Sheen }) })
 	create("UISizeConstraint", { MaxSize = Vector2.new(640, math.huge), Parent = box })
+	-- Escala: suelo 0.8 en el móvil (texto legible); si la caja (más el nombre de encima) no cabe, baja
+	Theme.popupScale(gui, { { Frame = box, Margin = 84 + 48 } })
 	boxPadding = create("UIPadding", {
 		PaddingLeft = UDim.new(0, 18),
 		PaddingRight = UDim.new(0, 18),

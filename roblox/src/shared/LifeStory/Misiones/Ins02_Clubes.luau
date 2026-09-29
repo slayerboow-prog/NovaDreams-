@@ -105,7 +105,7 @@ return {
 			Actors = club("Alex", "PistaInstituto", BALONCESTO) },
 
 		-- Teatro: la audición
-		{ Type = "Reach", Place = "AulaInstituto", Text = "Ve al aula de teatro: audición", If = TEATRO, Actors = club("Ruben", "AulaInstituto", TEATRO) },
+		{ Type = "Reach", Place = "AulaInstituto", Text = "Ve a tu aula: hoy es la audición de teatro", If = TEATRO, Actors = club("Ruben", "AulaInstituto", TEATRO) },
 		{ Type = "Scene", Dialogue = "Audicion", If = TEATRO, Actors = club("Ruben", "AulaInstituto", TEATRO) },
 		{ Type = "MiniGame", Game = "Timing", Title = "Audición: di el texto con ritmo", Icon = "🎭", Hint = "Habla en la zona verde",
 			Rounds = 6, Need = 4, Zone = 0.25, Speed = 1, If = TEATRO,

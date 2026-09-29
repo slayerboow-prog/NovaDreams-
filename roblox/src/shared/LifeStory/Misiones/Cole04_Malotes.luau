@@ -67,7 +67,7 @@ return {
 	Type = "Historia · Conflicto",
 	Requires = { Completed = { "Cole03_Grupo" }, StageProgress = 0.18 },
 	Npcs = { "Bruno", "Ruben", "Hugo", "Nico", "Sara", "Omar", "Mateo", "Lucia", "Ramon" },
-	Locations = { "Patio", "AulaA", "PasilloColegio", "GimnasioColegio", "SpotGimnasioPuerta", "AlmacenFuera", "AulaMusica" },
+	Locations = { "Patio", "AulaA", "PasilloColegio", "GimnasioColegio", "SpotGimnasioPuerta", "AlmacenFuera", "AulaMusica", "SpotEscondite" },
 	Next = { "Cole05_Venganza" },
 	Outcomes = { "Lucía interviene", "Hablas con Bruno (lo de su hermano)", "Tu grupo se planta", "Lo dejas estar" },
 
@@ -76,7 +76,7 @@ return {
 	Rewards = { Later = { { AfterHours = 2, Start = "Eco_Hugo" } } },
 
 	Props = {
-		Escondite = { Kind = "Caja", Name = "Detrás de las cajas", Prompt = "Esconderte", Place = "Patio", Offset = V(-6, 0, -14), Dialogue = "Escondido", Once = true },
+		Escondite = { Kind = "Caja", Name = "Detrás de las cajas", Prompt = "Esconderte", Place = "SpotEscondite", Dialogue = "Escondido", Once = true },
 		Atajo = { Kind = "Marcador", Name = "Atajo por el aula de música", Prompt = "Colarte", Place = "AulaMusica", Dialogue = "Atajo", Once = true },
 	},
 

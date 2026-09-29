@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Format = require(ReplicatedStorage.Shared.Format)
 local Theme = require(script.Parent.Theme)
+local Dialog = require(script.Parent.Dialog)
 
 local create = Theme.create
 local C = Theme.Colors
@@ -14,7 +15,6 @@ local C = Theme.Colors
 local Store = {}
 
 local player = Players.LocalPlayer
-local window: Frame
 
 local function card(parent: Instance, order: number, title: string, description: string, robux: number, id: number, owned: () -> boolean, buy: () -> ())
 	local frame = Theme.panel({
@@ -66,46 +66,40 @@ local function card(parent: Instance, order: number, title: string, description:
 	return refresh
 end
 
-function Store.open()
-	window.Visible = true
-end
+-- La tienda es una ventana de UI/Dialog (antes colgaba de MainHud y salía a la escala del HUD:
+-- diminuta en el móvil). Se construye al abrirla; al cerrarla se destruye.
+local window: Frame? = nil
 
 function Store.close()
-	window.Visible = false
+	if window and window.Parent then
+		window:Destroy()
+	end
+	window = nil
 end
 
-function Store.init(parent: ScreenGui)
-	window = Theme.panel({
-		Name = "Store",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Size = UDim2.fromOffset(460, 440),
-		Position = UDim2.fromScale(0.5, 0.5),
-		BackgroundTransparency = 0.05,
-		Visible = false,
-		ZIndex = 10,
-		Parent = parent,
-	})
-	Theme.padding(16).Parent = window
-
-	Theme.label({ Size = UDim2.new(1, -40, 0, 30), Text = "🛒 Tienda", Font = Theme.FontBold, TextSize = 24, Parent = window })
-	local close = Theme.button({
-		AnchorPoint = Vector2.new(1, 0),
-		Size = UDim2.fromOffset(32, 32),
-		Position = UDim2.fromScale(1, 0),
-		Text = "✖",
-		Parent = window,
-	})
-	close.Activated:Connect(Store.close)
+function Store.open()
+	-- (Dialog.window ya cierra el menú, los controles y las misiones; aquí también las otras ventanas)
+	Dialog.closeAll("Store")
+	local frame, content = Dialog.window("Store", "🛒 Tienda", Vector2.new(460, 440))
+	window = frame
+	local connections: { RBXScriptConnection } = {}
+	frame.Destroying:Connect(function()
+		for _, connection in connections do
+			connection:Disconnect()
+		end
+		if window == frame then
+			window = nil
+		end
+	end)
 
 	local list = create("ScrollingFrame", {
-		Size = UDim2.new(1, 0, 1, -44),
-		Position = UDim2.fromOffset(0, 44),
+		Size = UDim2.fromScale(1, 1),
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		ScrollBarThickness = 4,
 		AutomaticCanvasSize = Enum.AutomaticSize.Y,
 		CanvasSize = UDim2.new(),
-		Parent = window,
+		Parent = content,
 	})
 	create("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder, Parent = list })
 	create("UIPadding", { PaddingRight = UDim.new(0, 8), Parent = list })
@@ -130,7 +124,7 @@ function Store.init(parent: ScreenGui)
 		end, function()
 			MarketplaceService:PromptGamePassPurchase(player, pass.Id)
 		end)
-		player:GetAttributeChangedSignal("Pass_" .. key):Connect(refresh)
+		table.insert(connections, player:GetAttributeChangedSignal("Pass_" .. key):Connect(refresh))
 	end
 
 	section("DINERO")
@@ -142,6 +136,11 @@ function Store.init(parent: ScreenGui)
 			MarketplaceService:PromptProductPurchase(player, product.Id)
 		end)
 	end
+end
+
+-- (se mantiene la firma: Main.client la llama con MainHud, que ya no hace falta)
+function Store.init(_parent: ScreenGui?)
+	Dialog.registerBig("Store", Store.close)
 end
 
 return Store

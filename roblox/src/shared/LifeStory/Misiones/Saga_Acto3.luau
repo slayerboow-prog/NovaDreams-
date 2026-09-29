@@ -128,7 +128,7 @@ return {
 		Dialogues = {
 			Presidente = { Lines = {
 				{ S = "Bigotes", T = "Humano. Otra vez tú. Aquí soy presidente. En tu dimensión soy emperador exiliado. En todas soy el mejor. Es una constante universal.", If = { Completed = { "Loco_N2_Bigotes" } } },
-				{ S = "Bigotes", T = "Humano. Tú eres el del cole. Allí mi otro yo duerme en el patio y finge no hablar. Aquí soy presidente. En todas las dimensiones soy el mejor. Es una constante universal.", If = { NotCompleted = { "Loco_N2_Bigotes" } } },
+				{ S = "Bigotes", T = "Humano. Tú eres del cole. Allí mi otro yo duerme en el patio y finge no hablar. Aquí soy presidente. En todas las dimensiones soy el mejor. Es una constante universal.", If = { NotCompleted = { "Loco_N2_Bigotes" } } },
 				{ S = "Bigotes", T = "Me tocaste la barriga una vez. No lo he olvidado. Nunca lo olvidaré.", If = { Flags = { "DuqueDeGatonia" } } },
 				{ S = "Bigotes", T = "Ah, el Duque o Duquesa del Cojín. Siempre es un honor.", If = { Flags = { "DuqueDeGatonia" } } },
 				{ S = "Candela", T = "Señor presidente gato. Buscamos la dimensión 66-B. Tenemos un plan plastificado." },
@@ -387,7 +387,7 @@ return {
 						{ S = "Cosme", T = "{nombre}… {nombre}. …Criatura. Tú eres la criatura. Eso sí lo sé. No sé nada más. Pero eso lo sé." },
 					} },
 				} },
-				{ S = "Narrador", T = "Candela hace una foto: Cosme en su sillón, con cara de no entender nada, y tú a su lado. Iván sale en una esquina comiendo moras." },
+				{ S = "Narrador", T = "Candela hace una foto: Cosme en la puerta del garaje, con cara de no entender nada, y tú a su lado. Iván sale en una esquina comiendo moras." },
 				{ S = "Narrador", T = "Recibes 📸 la foto «Cosme sin memoria». FIN DEL ACTO III. Cosme está en casa. Faltan sus recuerdos. Y falta la Gran Fusión." },
 			} },
 		},

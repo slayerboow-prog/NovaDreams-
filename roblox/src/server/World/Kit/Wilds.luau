@@ -171,12 +171,89 @@ local function beaches(folder: Instance, blocked: Blocked)
 	end
 end
 
+-- Altura del terreno contando también la cumbre de roca (TerrainBuilder: bola de roca de radio R·0.42)
+local function surfaceY(x: number, z: number): number
+	local y = groundY(x, z)
+	for _, m in CityPlan.Mountains do
+		if m.Rock then
+			local r = m.R * 0.42
+			local d2 = (x - m.X) ^ 2 + (z - m.Z) ^ 2
+			if d2 < r * r then
+				y = math.max(y, (m.H - r * 0.9) + math.sqrt(r * r - d2))
+			end
+		end
+	end
+	return y
+end
+
+-- El Monte del Silencio (misiones de Cosme y de la universidad): la montaña alta más cercana a
+-- Villaverde. Marcas de la historia (StorySpot):
+--   SpotId = "MonteSilencio"      -> al pie de la ladera que mira a Villaverde (junto al poste del sendero)
+--   SpotId = "MonteSilencio_Cima" -> en la cima (con el vértice geodésico al lado)
+local function silenceMountain(folder: Instance)
+	local town = CityPlan.Towns["Villaverde"]
+	local villaverde = Vector3.new(town[1], 0, town[2])
+	local best, bestDistance = nil, math.huge
+	for _, m in CityPlan.Mountains do
+		local distance = (Vector3.new(m.X, 0, m.Z) - villaverde).Magnitude
+		if m.H >= 120 and distance < bestDistance then
+			best, bestDistance = m, distance
+		end
+	end
+	if not best then
+		return
+	end
+	local model = Builder.model("MonteSilencio", folder)
+	local center = Vector3.new(best.X, 0, best.Z)
+	local out = (villaverde - center).Unit -- de la cima hacia el pueblo
+	-- Al pie: justo fuera de la falda (el campo está en Y = -1)
+	local ground = math.sqrt(math.max(0, best.R * best.R - (best.R - best.H) ^ 2))
+	local foot = center + out * (ground + 8)
+	local footCf = Builder.facing(Vector3.new(foot.X, -1, foot.Z), out)
+	Builder.part({ Name = "TrailPost", Size = Vector3.new(0.6, 7, 0.6), CFrame = footCf * CFrame.new(5, 2.5, 1), Color = rgb(110, 80, 50), Material = Enum.Material.Wood, Parent = model })
+	local board = Builder.decor({ Name = "TrailSign", Size = Vector3.new(5, 1.4, 0.2), CFrame = footCf * CFrame.new(5, 5, 0.6), Color = rgb(110, 80, 50), Material = Enum.Material.Wood, Parent = model })
+	Builder.sign(board, "MONTE DEL SILENCIO ↑ Cima", Enum.NormalId.Front, rgb(250, 240, 220), rgb(110, 80, 50))
+	Builder.part({
+		Name = "Pie",
+		Size = Vector3.new(2, 5, 2),
+		CFrame = footCf * CFrame.new(0, 2.5, 0),
+		Transparency = 1,
+		CanCollide = false,
+		CanQuery = false,
+		CanTouch = false,
+		CastShadow = false,
+		Tags = { "StorySpot" },
+		Attributes = { SpotId = "MonteSilencio" },
+		Parent = model,
+	})
+	-- En la cima: la marca en lo más alto y el vértice geodésico (pilar blanco) a un lado
+	local topCf = Builder.facing(Vector3.new(best.X, surfaceY(best.X, best.Z), best.Z), out)
+	Builder.part({
+		Name = "Cima",
+		Size = Vector3.new(2, 5, 2),
+		CFrame = topCf * CFrame.new(0, 2.5, 0),
+		Transparency = 1,
+		CanCollide = false,
+		CanQuery = false,
+		CanTouch = false,
+		CastShadow = false,
+		Tags = { "StorySpot" },
+		Attributes = { SpotId = "MonteSilencio_Cima" },
+		Parent = model,
+	})
+	local pillar = topCf * CFrame.new(16, 0, 12)
+	local pillarY = surfaceY(pillar.Position.X, pillar.Position.Z)
+	Builder.part({ Name = "Vertice", Size = Vector3.new(2, 4, 2), CFrame = CFrame.new(pillar.Position.X, pillarY + 1, pillar.Position.Z), Color = rgb(245, 245, 240), Material = Enum.Material.Concrete, Parent = model })
+	Builder.part({ Name = "VerticeBase", Size = Vector3.new(3, 1, 3), CFrame = CFrame.new(pillar.Position.X, pillarY - 0.5, pillar.Position.Z), Color = rgb(245, 245, 240), Material = Enum.Material.Concrete, Parent = model })
+end
+
 function Wilds.build(world: Instance, blocked: Blocked)
 	local folder = Builder.model("Naturaleza", world)
 	mountainForests(folder, blocked)
 	riverBanks(folder, blocked)
 	lakePark(folder, blocked)
 	beaches(folder, blocked)
+	silenceMountain(folder)
 	return folder
 end
 

@@ -129,7 +129,7 @@ return {
 			Nudge = { After = 110, Every = 80, S = "Familia", T = "¡{nombre}! ¡Que vas a llegar tarde!" },
 			Late = { After = 330, Flags = { "LlegasTarde" } } },
 
-		{ Type = "Talk", Npc = "Familia", Dialogue = "Salida", Text = "Dile a {familia} que ya estás listo",
+		{ Type = "Talk", Npc = "Familia", Dialogue = "Salida", Text = "Dile a {familia} que ya lo tienes todo",
 			Actors = { FAMILIA_COCINA, ABU_SALON } },
 
 		-----------------------------------------------------------------
@@ -250,15 +250,15 @@ return {
 				{ T = "Cinco minutitos más…", Effects = { Traits = { Humor = 1 } }, Then = {
 					{ S = "Familia", T = "¿Cinco minutitos? Eso decía yo a tu edad. Y siempre llegaba tarde. ¡Arriba!" },
 				} },
-				{ T = "¡Ya estoy despierto! ¡Ya estoy despierto!", Effects = { Traits = { Responsabilidad = 1 } }, Then = {
-					{ S = "Familia", T = "¡Así me gusta! Energía de campeón." },
+				{ T = "¡Ya voy! ¡Ya voy!", Effects = { Traits = { Responsabilidad = 1 } }, Then = {
+					{ S = "Familia", T = "¡Así me gusta! ¡Qué energía!" },
 				} },
 				{ T = "¿Y si no voy? Me duele… la tripa.", Effects = { Traits = { Humor = 1 } }, Then = {
 					{ S = "Familia", T = "Qué casualidad: justo hoy. Eso son nervios, cariño. Se pasan en cuanto llegas." },
 					{ S = "Familia", T = "A mí me pasaba igual. Y mira: sobreviví." },
 				} },
 			} },
-			{ S = "Familia", T = "Tienes que vestirte, preparar la mochila y desayunar. El cole empieza a las nueve." },
+			{ S = "Familia", T = "Tienes que vestirte, preparar la mochila y desayunar. El cole empieza enseguida." },
 			{ S = "Familia", T = "Yo estoy en la cocina. Si tardas mucho, llegarás tarde… ¡y la profe lo notará!" },
 			{ S = "Narrador", T = "Acércate a los objetos que brillan y usa el botón de acción (E)." },
 		} },
@@ -378,10 +378,10 @@ return {
 
 		ConoceLucia = { Lines = {
 			{ S = "Lucia", T = "¡Hola! Tú debes de ser {nombre}. Yo soy Lucía, tu tutora de 1.º A." },
-			{ S = "Lucia", T = "Llegas justo a tiempo. Buena señal.", If = { NotFlags = { "LlegasTarde" } } },
-			{ S = "Lucia", T = "Un poquito tarde, ¿eh? Hoy te lo perdono. Mañana, a las nueve en punto.", If = { Flags = { "LlegasTarde" } } },
+			{ S = "Lucia", T = "Ya estás aquí. Buena señal.", If = { NotFlags = { "LlegasTarde" } } },
+			{ S = "Lucia", T = "Un poquito tarde, ¿eh? Hoy te lo perdono. Mañana, un poco antes.", If = { Flags = { "LlegasTarde" } } },
 			{ S = "Lucia", T = "Antes de empezar, tengo una misión para ti: conoce el colegio: la biblioteca, el comedor, el patio, el gimnasio y el campo." },
-			{ S = "Lucia", T = "Por el camino encontrarás gente que te contará cosas. Y luego… encuentra tú solito tu aula. Es la de 1.º A." },
+			{ S = "Lucia", T = "Por el camino encontrarás gente que te contará cosas. Y luego… encuentra por tu cuenta tu aula. Es la de 1.º A." },
 			{ Ask = "¿Qué le dices?", Options = {
 				{ T = "¡Hecho! Me encanta explorar.", Effects = { Traits = { Valentia = 1 }, Rel = { Lucia = 3 } }, Then = {
 					{ S = "Lucia", T = "Eso quiero ver. ¡Suerte, y a explorar!" },
@@ -455,11 +455,11 @@ return {
 			{ S = "Alex", T = "Nunca. Nunca me ha metido gol. Hola." },
 			{ S = "Nico", T = "¡Tú dijiste que te gusta el fútbol! Mañana juegas con nosotros.", If = { Choices = { Gusto = "Futbol" } } },
 			{ Ask = "¿Qué dices?", Options = {
-				{ T = "Te apuesto a que yo sí te marco, Álex.", Effects = { Rel = { Alex = 5 }, Traits = { Valentia = 1 } }, Then = {
+				{ T = "Te apuesto a que yo sí te marco, Álex.", Effects = { Rel = { Alex = 5 }, Traits = { Valentia = 1 }, Flags = { "ApuestaAlex" } }, Then = {
 					{ S = "Alex", T = "Apuesta aceptada. El que pierda lleva los balones una semana." },
 				} },
 				{ T = "Yo mejor de defensa, que corro mucho.", Effects = { Rel = { Nico = 5 } }, Then = {
-					{ S = "Nico", T = "¡Un defensa! ¡Justo lo que nos faltaba!" },
+					{ S = "Nico", T = "¡Alguien en defensa! ¡Justo lo que nos faltaba!" },
 				} },
 			} },
 		} },

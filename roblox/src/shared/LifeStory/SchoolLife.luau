@@ -188,7 +188,7 @@ SchoolLife.Dialogues = {
 				{ S = "Nico", T = "Es estrategia. Los bomberos comen rápido por si suena la alarma." },
 			} },
 			{ T = "Te cambio mi yogur por tu fruta.", Effects = { Rel = { Nico = 2 } }, Then = {
-				{ S = "Nico", T = "¡Trato hecho! Eres el mejor negociador del comedor." },
+				{ S = "Nico", T = "¡Trato hecho! ¡Negocias mejor que nadie en el comedor!" },
 			} },
 		} },
 	} },

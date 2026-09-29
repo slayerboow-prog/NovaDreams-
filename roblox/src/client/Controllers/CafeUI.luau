@@ -171,7 +171,6 @@ function CafeUI.init()
 		Parent = gui,
 	})
 	-- En el móvil va a la izquierda para no quedar bajo los botones táctiles.
-	HudLayout.jobPanel(panel)
 	Theme.padding(8).Parent = panel
 	Theme.label({ Size = UDim2.new(1, 0, 0, 22), Text = "☕ Barista · pedidos", Font = Theme.FontBold, TextSize = 16, Parent = panel })
 	hint = Theme.label({ Position = UDim2.fromOffset(0, 22), Size = UDim2.new(1, 0, 0, 30), Text = "", TextSize = 12, TextWrapped = true, TextColor3 = C.Muted, Parent = panel })
@@ -185,6 +184,8 @@ function CafeUI.init()
 	})
 	create("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder, Parent = list })
 
+	-- Colocar el panel ya montado (en el móvil su contenido pasa a una lista que se desplaza)
+	HudLayout.jobPanel(panel)
 	player:GetAttributeChangedSignal("Job"):Connect(function()
 		if not isBarista() then
 			panel.Visible = false

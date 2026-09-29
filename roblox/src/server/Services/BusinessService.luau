@@ -75,10 +75,13 @@ local records: { [string]: { Data: Record?, At: number } } = {}
 local memory: { [string]: any } = {}
 local store: DataStore? = nil
 local lastRequest: { [Player]: number } = {}
--- Cada acción que lee o escribe el DataStore gasta del presupuesto de TODO el servidor: un jugador
--- no puede pedir más de una cada STORE_COOLDOWN segundos (si no, uno solo lo agota)
+-- Cada acción que lee o escribe el DataStore gasta del presupuesto de TODO el servidor: a la larga un
+-- jugador no puede pedir más de una cada STORE_COOLDOWN segundos (si no, uno solo lo agota). Pero se
+-- permiten STORE_BURST seguidas (tocar el precio de dos productos, comprar dos cosas…): antes una
+-- pausa fija de 2 s se comía el segundo clic
 local STORE_COOLDOWN = 2
-local lastStoreAction: { [Player]: number } = {}
+local STORE_BURST = 6
+local storeTokens: { [Player]: { Tokens: number, At: number } } = {}
 local lastPromptRead: { [Player]: number } = {} -- (los avisos de proximidad van aparte: abrir y pulsar no choca)
 -- Ofertas de trabajo: una cada OFFER_COOLDOWN segundos por destinatario (nada de llenarle de ventanas)
 local OFFER_COOLDOWN = 30
@@ -97,12 +100,26 @@ local function storeReady(player: Player, map: { [Player]: number }?): boolean
 	if not store then
 		return true -- sin DataStore (Studio sin API, pruebas) no hay presupuesto que proteger
 	end
-	local last = map or lastStoreAction
 	local t = os.clock()
-	if t - (last[player] or -math.huge) < STORE_COOLDOWN then
+	if not map then
+		-- Acciones del panel: una "ficha" por acción, que se recupera cada STORE_COOLDOWN segundos
+		local bucket = storeTokens[player]
+		if not bucket then
+			bucket = { Tokens = STORE_BURST, At = t }
+			storeTokens[player] = bucket
+		end
+		bucket.Tokens = math.min(STORE_BURST, bucket.Tokens + (t - bucket.At) / STORE_COOLDOWN)
+		bucket.At = t
+		if bucket.Tokens < 1 then
+			return false
+		end
+		bucket.Tokens -= 1
+		return true
+	end
+	if t - (map[player] or -math.huge) < STORE_COOLDOWN then
 		return false
 	end
-	last[player] = t
+	map[player] = t
 	return true
 end
 
@@ -887,6 +904,12 @@ local function returnToTill(key: string, amount: number)
 	end
 end
 
+-- Recoger la caja cuenta como tarea (experiencia) solo si hay algo de verdad y no más de una vez
+-- por minuto: antes recoger 1 € sin parar daba experiencia sin límite
+local COLLECT_TASK_MIN = 20
+local COLLECT_TASK_GAP = 60
+local collectTaskAt: { [number]: number } = {}
+
 local function collect(player: Player, key: string)
 	if not ownRecord(player, key) then
 		return
@@ -911,7 +934,11 @@ local function collect(player: Player, key: string)
 			return
 		end
 		Notify:FireClient(player, "Money", ("+%s · caja de %s"):format(Format.money(amount), if new then new.Name or "tu negocio" else "tu negocio"))
-		StoryEvents.emit(player, "JobTaskDone", { JobId = "Empresario", Pay = amount })
+		local t = os.clock()
+		if amount >= COLLECT_TASK_MIN and t - (collectTaskAt[player.UserId] or -math.huge) >= COLLECT_TASK_GAP then
+			collectTaskAt[player.UserId] = t
+			StoryEvents.emit(player, "JobTaskDone", { JobId = "Empresario", Pay = amount })
+		end
 	else
 		Notify:FireClient(player, "Info", "La caja está vacía.")
 	end
@@ -2058,7 +2085,7 @@ function BusinessService.init()
 	end)
 	Players.PlayerRemoving:Connect(function(player)
 		lastRequest[player] = nil
-		lastStoreAction[player] = nil
+		storeTokens[player] = nil
 		lastPromptRead[player] = nil
 		lastOfferTo[player] = nil
 		lastName[player] = nil

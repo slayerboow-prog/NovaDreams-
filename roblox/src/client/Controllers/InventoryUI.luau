@@ -942,16 +942,11 @@ function InventoryUI.init()
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 		Parent = player:WaitForChild("PlayerGui"),
 	})
-	local scale = create("UIScale", { Parent = gui })
-	local camera = workspace.CurrentCamera
-	local function rescale()
-		scale.Scale = math.clamp(camera.ViewportSize.Y / 850, 0.65, 1.25)
-	end
-	camera:GetPropertyChangedSignal("ViewportSize"):Connect(rescale)
-	rescale()
 
 	buildHotbar()
 	buildWindow()
+	-- Escala: suelo 0.8 en el móvil (texto legible) pero la ventana de la mochila siempre cabe entera
+	Theme.popupScale(gui, { { Frame = window } })
 	readSlots()
 	refreshAll()
 	updateVisibility()

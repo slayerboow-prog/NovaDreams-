@@ -440,7 +440,15 @@ function Region.build(world: Instance)
 					Z1 = c.Z + CELLS[j][2],
 				}
 				Region.groundSlab(model, rect)
+				-- Casas junto a las casas familiares (misma fila): ahí vive Cosme, el vecino inventor,
+				-- con su garaje mirando a la calle que las separa
+				local west, east = town.Plan[j][i - 1], town.Plan[j][i + 1]
+				local cosmeGarage = if cell.Kind ~= "Houses" then nil
+					elseif east and east.Kind == "FamilyHomes" then "E"
+					elseif west and west.Kind == "FamilyHomes" then "W"
+					else nil
 				Blocks.fill(model, rect, cell.Kind, {
+					CosmeGarage = cosmeGarage,
 					Side = cell.Side,
 					Sides = roadSides(i, j),
 					TownName = town.Name,

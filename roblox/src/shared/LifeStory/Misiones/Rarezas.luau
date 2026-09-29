@@ -73,7 +73,7 @@ return {
 		},
 		Dialogues = {
 			Carta = { Lines = {
-				{ S = "Narrador", T = "«Querido yo de ayer: soy tú, de hoy. Mañana, o sea hoy, ve a la fuente del parque. Allí hay algo que se nos olvidó. Firmado: tú. P. D.: No te comas el yogur de fresa. Está raro.»" },
+				{ S = "Narrador", T = "«Hola, yo de ayer: soy tú, de hoy. Mañana, o sea hoy, ve a la fuente del parque. Allí hay algo que se nos olvidó. Firmado: tú. P. D.: No te comas el yogur de fresa. Está raro.»" },
 				{ S = "Narrador", T = "La fecha del matasellos es la de ayer. La letra es la tuya. Tú no has escrito ninguna carta. Todavía." },
 			} },
 			Papel = { Lines = {
@@ -542,7 +542,7 @@ return {
 			} },
 			Pip = { Lines = {
 				{ S = "Narrador", T = "(Tu reflejo, sonrojado) «…Tienes buena risa. Y ayudas a la gente aunque nadie mire. Y ese pelo… bueno, el pelo no. Pero lo demás, sí.»", If = { Choices = { Espejo = "Amable" } } },
-				{ S = "Narrador", T = "(Tu reflejo, llorando de la risa) «¡Para! ¡Para, que me meo! Vale, vale: eres gracioso. Lo admito.»", If = { Choices = { Espejo = "Humor" } } },
+				{ S = "Narrador", T = "(Tu reflejo, llorando de la risa) «¡Para! ¡Para, que me meo! Vale, vale: tienes gracia. Lo admito.»", If = { Choices = { Espejo = "Humor" } } },
 				{ S = "Narrador", T = "(Desde debajo de la toalla, ofendido) «Muy maduro. Muy maduro.» …Al rato, flojito: «Perdona. Me he pasado.»", If = { Choices = { Espejo = "Tapar" } } },
 				{ S = "Pip", T = "Un reflejo con un poquito de Grieta dentro. Repite lo que usted piensa de sí mismo. Por eso decía cosas feas: usted se las dice a veces." },
 				{ S = "Pip", T = "Ya está arreglado. Se le ha caído un trocito de cristal. Si lo mira, verá su reflejo sonriendo. Aunque usted no sonría. Es un truco. Funciona." },
@@ -711,7 +711,7 @@ return {
 		},
 		Dialogues = {
 			Mensaje = { Lines = {
-				{ S = "Narrador", T = "(Una voz que conoces, pero más joven) «Hola, cosa pequeña. Esto es una prueba del contestador nuevo. Estás dormido en la cuna. Roncas. Muy fuerte para ser tan pequeño.»" },
+				{ S = "Narrador", T = "(Una voz que conoces, pero más joven) «Hola, cosa pequeña. Esto es una prueba del contestador nuevo. Duermes en la cuna. Roncas. Muy fuerte para caber en una caja de zapatos.»" },
 				{ S = "Narrador", T = "«No sé para qué te grabo esto, si no lo vas a oír. Bueno. Por si algún día… que sepas que eres lo mejor que nos ha pasado. Fin del mensaje. ¿Cómo se para esto? ¿Este botón?»" },
 			} },
 			Pip = { Lines = {
@@ -921,7 +921,7 @@ return {
 		Duration = { 10, 14 },
 		Npcs = { "Pip" },
 		Offer = { Place = "Instituto" },
-		OfferKey = "Abres tu taquilla. Dentro hay una nota que no has escrito: «¿Tú también estás harto de Matemáticas?»",
+		OfferKey = "Abres tu taquilla. Dentro hay una nota que no has escrito: «¿Tú también estás hasta el gorro de Matemáticas?»",
 		Requires = rareza(ADOLESCENTE),
 		Moment = "Hiciste amistad con alguien de otra dimensión a través de una taquilla",
 		Memory = "TaquillaDimensional",
@@ -944,7 +944,7 @@ return {
 		},
 		Dialogues = {
 			Nota = { Lines = {
-				{ S = "Narrador", T = "«¿Tú también estás harto de Matemáticas? Aquí nos las dan en verso. Rima todo. Hasta la raíz cuadrada. P. D.: ¿Tu taquilla también huele a bocadillo?»" },
+				{ S = "Narrador", T = "«¿Tú también estás hasta el gorro de Matemáticas? Aquí nos las dan en verso. Rima todo. Hasta la raíz cuadrada. P. D.: ¿Tu taquilla también huele a bocadillo?»" },
 				{ S = "Narrador", T = "La letra se parece a la tuya. Pero más inclinada. Como si la hubieras escrito corriendo. O en otra dimensión." },
 			} },
 			Respuesta = { Lines = {
@@ -1141,7 +1141,7 @@ return {
 				{ S = "Narrador", T = "Un billete verde que pone «10 minutos». Cuando lo tocas, el reloj del banco se para un momento, como esperando a ver qué haces." },
 			} },
 			Pip = { Lines = {
-				{ S = "Narrador", T = "Te sientas en un banco (de los de sentarse) y duermes diez minutos exactos. Te despiertas como nuevo. El reloj no se ha movido. Es la mejor siesta de tu vida.", If = { Choices = { Minutos = "Siesta" } } },
+				{ S = "Narrador", T = "Te sientas en un banco (de los de sentarse) y duermes diez minutos exactos. Te despiertas con energía de sobra. El reloj no se ha movido. Es la mejor siesta de tu vida.", If = { Choices = { Minutos = "Siesta" } } },
 				{ S = "Narrador", T = "Llamas a {familia}. Habláis de todo y de nada. Al colgar, el reloj no se ha movido. Pero tú sí: te has movido por dentro.", If = { Choices = { Minutos = "Llamar" } } },
 				{ S = "Narrador", T = "Metes el billete otra vez en el cajero. La pantalla se pone roja de vergüenza: «Nadie había devuelto nunca un minuto». Escupe un billete de regalo.", If = { Choices = { Minutos = "Devolver" } } },
 				{ S = "Pip", T = "Un cable del cajero se enganchó en la Grieta, en la dimensión donde se guarda el tiempo que nadie usa. Por eso daba minutos. Ya está arreglado." },

@@ -236,6 +236,10 @@ local function onShoot(player: Player, part: any)
 	if not fish then
 		return
 	end
+	-- Cada buceador pesca solo sus peces (los demás ni los ven): nada de quitárselos a otro
+	if fish.Owner ~= player then
+		return
+	end
 	if not hasSpear(player) then
 		Notify:FireClient(player, "Info", "Necesitas un fusil submarino (tienda de pesca) para pescar buceando.")
 		return

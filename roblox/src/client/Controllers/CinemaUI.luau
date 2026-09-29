@@ -270,12 +270,13 @@ function CinemaUI.init()
 		Parent = gui,
 	})
 	-- En el móvil va a la izquierda para no quedar bajo los botones táctiles.
-	HudLayout.jobPanel(panel)
 	Theme.padding(8).Parent = panel
 	Theme.label({ Size = UDim2.new(1, 0, 0, 22), Text = "🎟️ Taquilla · pedidos", Font = Theme.FontBold, TextSize = 16, Parent = panel })
 	list = create("Frame", { Position = UDim2.fromOffset(0, 26), Size = UDim2.new(1, 0, 1, -26), BackgroundTransparency = 1, Parent = panel })
 	create("UIListLayout", { Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder, Parent = list })
 
+	-- Colocar el panel ya montado (en el móvil su contenido pasa a una lista que se desplaza)
+	HudLayout.jobPanel(panel)
 	Remote.OnClientEvent:Connect(function(action, a, b)
 		if action == "Menu" then
 			openMenu(a)

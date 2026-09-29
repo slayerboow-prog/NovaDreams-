@@ -74,6 +74,11 @@ local hintsPanel: Frame? = nil
 local touch = false
 local started = false
 
+-- Botón «⋯» (móvil): cuando hay más botones de contexto que huecos, pasa de página
+local MORE_ID = "MasBotones"
+local extraPage = 1
+local moreBadge: string? = nil
+
 -- Huecos con otro nombre (armas: van donde los golpes)
 local SLOT_ALIAS = { Disparar = "Ataque", Apuntar = "Defender", Recargar = "Fijar" }
 
@@ -348,9 +353,29 @@ function TouchLayout.refresh()
 			table.insert(extras, spec)
 		end
 	end
-	for i, spec in extras do
-		if i <= HudLayout.ExtraSlots then
-			placed[spec.Id] = "Extra" .. i
+	local room = HudLayout.ExtraSlots
+	if #extras > room and specs[MORE_ID] then
+		-- Más botones de contexto que huecos (p. ej. con un arma: golpear, defender y fijar pasan aquí):
+		-- el último hueco es «⋯» y cada toque enseña la página siguiente. Así ninguno desaparece.
+		local per = room - 1
+		local pages = math.ceil(#extras / per)
+		if extraPage > pages then
+			extraPage = 1
+		end
+		for i = 1, per do
+			local spec = extras[(extraPage - 1) * per + i]
+			if spec then
+				placed[spec.Id] = "Extra" .. i
+			end
+		end
+		placed[MORE_ID] = "Extra" .. room
+		moreBadge = ("%d/%d"):format(extraPage, pages)
+	else
+		extraPage = 1
+		for i, spec in extras do
+			if i <= room then
+				placed[spec.Id] = "Extra" .. i
+			end
 		end
 	end
 	for _, id in order do
@@ -536,6 +561,23 @@ function TouchLayout.init(parent: Instance?)
 	end)
 	TouchLayout.register(jumpSpec())
 	if touch then
+		TouchLayout.register({
+			Id = MORE_ID,
+			Icon = "mas",
+			Label = "Más",
+			-- (nunca entra en la lista normal: lo coloca refresh() solo cuando hace falta)
+			Visible = function()
+				return false
+			end,
+			Badge = function()
+				return moreBadge
+			end,
+			Callback = function()
+				extraPage += 1
+			end,
+		})
+	end
+	if touch then
 		task.spawn(function()
 			for _ = 1, 20 do
 				if hideRobloxJump() then
@@ -695,6 +737,7 @@ end
 function TouchLayout._reset()
 	specs, order, views, labels = {}, {}, {}, {}
 	busy, gui, hintsPanel, started = false, nil, nil, false
+	extraPage, moreBadge = 1, nil
 end
 
 return TouchLayout

@@ -966,6 +966,71 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1024,
 	end
 	check(popupsGui.Phone.Visible == false, "En el móvil se cierra al usar una app (deja ver el mundo)")
 
+	-- Paneles de trabajo (UI/HudLayout.jobPanel): a la derecha del menú de comandos, entre tu estado y
+	-- la barra rápida, por encima de los comandos (DisplayOrder 3); si es alto, su lista se desplaza
+	do
+		local Theme = loadModule("src/client/UI/Theme")
+		local jobGui = Instance.new("ScreenGui")
+		jobGui.Name = "PruebaTrabajo"
+		jobGui.Parent = playerGui
+		Theme.fit(jobGui)
+		local jobPanel = Theme.panel({ Name = "Panel", Size = roblox.UDim2.fromOffset(300, 400), Parent = jobGui })
+		Theme.padding(8).Parent = jobPanel
+		Theme.label({ Size = roblox.UDim2.new(1, 0, 0, 22), Text = "🛎️ Recepción", Parent = jobPanel })
+		HudLayout.jobPanel(jobPanel)
+		local k = jobGui:FindFirstChildOfClass("UIScale").Scale
+		local sc = now.Scale
+		local jobRect = {
+			X = jobPanel.Position.X.Offset * k / sc,
+			Y = jobPanel.Position.Y.Offset * k / sc,
+			W = jobPanel.Size.X.Offset * k / sc,
+			H = jobPanel.Size.Y.Offset * k / sc,
+		}
+		local clashes = {}
+		for _, other in hudRects(mods, false) do
+			if HudLayout.overlaps(jobRect, other.Rect) and other.Name ~= "Tarjeta de primeros pasos" then
+				table.insert(clashes, other.Name .. describe(other.Rect))
+			end
+		end
+		check(#clashes == 0 and jobRect.Y + jobRect.H <= now.Canvas.Y, ("Panel de trabajo %s: no pisa estado, comandos, joystick, barra rápida ni botones%s"):format(describe(jobRect), if #clashes > 0 then ": " .. table.concat(clashes, ", ") else ""))
+		check(jobGui.DisplayOrder == 3 and jobPanel:FindFirstChild("JobScroll") and jobPanel.JobScroll.CanvasSize.Y.Offset == 400 - 16, "Encima de los comandos (DisplayOrder 3) y, si no cabe entero, con lista que se desplaza")
+		check(k >= 0.8 - 1e-6, ("Textos del panel a escala %.2f (antes 0,6)"):format(k))
+		jobGui:Destroy()
+	end
+
+	-- Más botones de contexto que huecos (con un arma): el último hueco es «Más» y pasa de página
+	do
+		for _, id in { "Extra6", "Extra7" } do
+			TouchLayout.register({ Id = id, Icon = "linterna", Label = id, Priority = 40, Callback = function() end })
+		end
+		local tl = TouchLayout.buttons()
+		local more = tl.MasBotones
+		check(more and more.Visible and more:GetAttribute("Slot") == "Extra5" and (tl.Extra7 == nil or not tl.Extra7.Visible), "Con 7 botones de contexto: 4 a la vista y «Más» en el último hueco")
+		if more then
+			more.Activated:Fire()
+			tl = TouchLayout.buttons()
+			check(tl.Extra7 and tl.Extra7.Visible and tl.Extra6 and tl.Extra6.Visible and not tl.Linterna.Visible, "«Más» enseña los que faltaban")
+			more.Activated:Fire()
+		end
+		TouchLayout.unregister("Extra6")
+		TouchLayout.unregister("Extra7")
+		check(not TouchLayout.buttons().MasBotones.Visible and TouchLayout.buttons().Sirena.Visible, "Con 5 o menos, sin «Más»")
+	end
+
+	-- Ventanas del HUD en el móvil: más grandes que el HUD y con el ✖ de al menos ~36 px
+	do
+		mods.Hud.showQuests()
+		local questsWin = popupsGui:FindFirstChild("Quests")
+		local press = questsWin and questsWin:FindFirstChild("PressScale")
+		local k = if press then press:GetAttribute("Base") or 1 else 1
+		local closePx = questsWin and questsWin.Close.Size.X.Offset * now.Scale * k
+		check(questsWin and k > 1 and closePx and closePx >= 35.9, ("Misiones: ventana agrandada (x%.2f) y ✖ de %d px"):format(k, closePx or 0))
+		mods.Hud.runCommand("Misiones")
+		check(popupsGui:FindFirstChild("Quests") == nil, "Y se cierra")
+		local phoneClose = popupsGui.Phone.Close
+		check(phoneClose.Size.X.Offset * now.Scale >= 35.9, ("Menú rápido: ✖ de %d px"):format(phoneClose.Size.X.Offset * now.Scale))
+	end
+
 	-- El joystick mueve al personaje (relativo a la cámara)
 	table.clear(moves)
 	local s = now.Scale

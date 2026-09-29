@@ -103,7 +103,7 @@ return {
 			{ S = "Abu", T = "El autobús de Playa Dorada. Hace cincuenta años lo cogía con mis amigos. Íbamos cantando. El conductor nos odiaba." },
 		} },
 		Mar = { Lines = {
-			{ S = "Narrador", T = "El mar. {abu} se sienta en la arena despacito. Cierra los ojos. Respira hondo." },
+			{ S = "Narrador", T = "El mar. {abu} se descalza y mete los pies en la arena despacito. Cierra los ojos. Respira hondo." },
 			{ S = "Narrador", T = "Llueve un poco sobre el mar. A {abu} no le importa: «el mar con lluvia también es el mar».", If = { Weather = { "Lluvia", "Tormenta" } } },
 			{ S = "Narrador", T = "Hace frío y el viento sopla. Le pones tu chaqueta por encima. {abu} protesta, pero no se la quita.", If = { Season = "Invierno" } },
 			{ S = "Abu", T = "Aquí conocí a la persona más importante de mi vida. Y aquí vine el día que naciste, a contárselo al mar." },

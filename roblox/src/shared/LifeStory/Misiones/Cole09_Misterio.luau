@@ -46,16 +46,16 @@ local PUERTA = {
 	{ Npc = "Ramon", Place = "SalaCerradaPuerta", Offset = V(-5, 0, 5), If = PERMISO },
 }
 local DENTRO = {
-	{ Npc = "Sara", Place = "SalaCerrada", Offset = V(-3, 0, 2) },
-	{ Npc = "Omar", Place = "SalaCerrada", Offset = V(3, 0, 2) },
-	{ Npc = "Nico", Place = "SalaCerrada", Offset = V(0, 0, 4) },
-	{ Npc = "Iker", Place = "SalaCerrada", Offset = V(5, 0, 4), If = CON_IKER },
-	{ Npc = "Ramon", Place = "SalaCerrada", Offset = V(-5, 0, 5), If = PERMISO },
+	{ Npc = "Sara", Place = "SalaCerrada", Offset = V(-3.2, 0, 1.7) },
+	{ Npc = "Omar", Place = "SalaCerrada", Offset = V(3.2, 0, 1.7) },
+	{ Npc = "Nico", Place = "SalaCerrada", Offset = V(-1.4, 0, 1.7) },
+	{ Npc = "Iker", Place = "SalaCerrada", Offset = V(5.2, 0, 2.6), If = CON_IKER },
+	{ Npc = "Ramon", Place = "SalaCerrada", Offset = V(-2, 0, -3), If = PERMISO },
 }
 -- Si te colaste, Ramón aparece en la puerta cuando encontráis la foto
 local DENTRO_FOTO = {
 	DENTRO[1], DENTRO[2], DENTRO[3], DENTRO[4],
-	{ Npc = "Ramon", Place = "SalaCerrada", Offset = V(-5, 0, 5) },
+	{ Npc = "Ramon", Place = "SalaCerrada", Offset = V(-1.8, 0, -3) },
 }
 local CLASE = {
 	{ Npc = "Lucia", Place = "PizarraA", Look = V(1, 0, 0) },
@@ -94,8 +94,8 @@ return {
 		Colarse = { Kind = "Marcador", Name = "La puerta del fondo", Prompt = "Colarte en el recreo", Place = "SalaCerradaPuerta", Offset = V(0, 0, 1) },
 		Pupitre = { Kind = "Asiento", Name = "Un pupitre viejo", Prompt = "Mirar el pupitre", Place = "SalaCerrada", Offset = V(-4, 0, -2), Dialogue = "Dentro_Pupitre", Once = true },
 		Caja = { Kind = "Caja", Name = "Una caja de lata", Prompt = "Abrir la caja", Place = "SalaCerrada", Offset = V(4, 0, -2), Color = Color3.fromRGB(200, 170, 60), Dialogue = "Dentro_Caja", Once = true },
-		Estanteria = { Kind = "Trofeo", Name = "Trofeos y medallas", Prompt = "Mirar los trofeos", Place = "SalaCerrada", Offset = V(6, 0, 1), Dialogue = "Dentro_Trofeos", Once = true },
-		Foto = { Kind = "Papel", Name = "Una foto enmarcada", Prompt = "Mirar la foto", Place = "SalaCerrada", Offset = V(0, 0, -5), Once = true },
+		Estanteria = { Kind = "Trofeo", Name = "Trofeos y medallas", Prompt = "Mirar los trofeos", Place = "SalaCerrada", Offset = V(0, 0, 2.4), Dialogue = "Dentro_Trofeos", Once = true },
+		Foto = { Kind = "Papel", Name = "Una foto enmarcada", Prompt = "Mirar la foto", Place = "SalaCerrada", Offset = V(5.2, 0, -0.3), Once = true },
 	},
 
 	Steps = {

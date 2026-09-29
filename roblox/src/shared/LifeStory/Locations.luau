@@ -100,6 +100,7 @@ Locations.Places = {
 	SpotPadres2 = { NameKey = "Puerta del cole", Tag = "StorySpot", Attribute = { SpotId = "Padres_2" }, Zone = "Home", Fallback = "EntradaColegio" },
 	SpotPadres3 = { NameKey = "Puerta del cole", Tag = "StorySpot", Attribute = { SpotId = "Padres_3" }, Zone = "Home", Fallback = "EntradaColegio" },
 	SpotInformantePasillo = { NameKey = "Pasillo", Tag = "StorySpot", Attribute = { SpotId = "Informante_Pasillo" }, Zone = "Home", Fallback = "Vestibulo" },
+	SpotEscondite = { NameKey = "Detrás de las cajas", Tag = "StorySpot", Attribute = { SpotId = "Escondite" }, Zone = "Home", Fallback = "Patio" },
 	SpotInformanteComedor = { NameKey = "Comedor", Tag = "StorySpot", Attribute = { SpotId = "Informante_Comedor" }, Zone = "Home", Fallback = "Patio" },
 	SpotInformanteBiblioteca = { NameKey = "Biblioteca del cole", Tag = "StorySpot", Attribute = { SpotId = "Informante_Biblioteca" }, Zone = "Home", Fallback = "Vestibulo" },
 	SpotGrupoDeportistas = { NameKey = "Pista", Tag = "StorySpot", Attribute = { SpotId = "Grupo_Deportistas" }, Zone = "Home", Fallback = "CanchaColegio" },
@@ -153,11 +154,13 @@ Locations.Places = {
 	CocinaResidencia = { NameKey = "La cocina compartida", Tag = "StorySpot", Attribute = { SpotId = "CocinaResidencia" }, Zone = "Campus Valmar", Inside = true, Radius = 8, Fallback = "Residencia" },
 
 	-- Misiones locas (las de Cosme). Si el mapa todavía no tiene el sitio, se usa el Fallback.
-	GarajeCosme = { NameKey = "El garaje de Cosme", Tag = "StorySpot", Attribute = { SpotId = "GarajeCosme" }, Fallback = "CaminoAlGaraje", Radius = 10 },
+	-- El garaje de Cosme está en la manzana de casas de al lado de las casas familiares (Kit/Home.cosmeGarage)
+	GarajeCosme = { NameKey = "El garaje de Cosme", Tag = "StorySpot", Attribute = { SpotId = "GarajeCosme" }, Zone = "Home", Fallback = "CaminoAlGaraje", Radius = 10 },
 	CaminoAlGaraje = { NameKey = "El garaje de Cosme", Between = { "CasaFamiliar", "ParadaBus" }, At = 0.3, Radius = 12, Fallback = "CasaFamiliar" },
-	MonteSilencio = { NameKey = "El Monte del Silencio", Model = "MonteSilencio", Zone = "Villaverde", Radius = 30, Fallback = "LadoMonte" },
+	-- El monte y su cima los marca Kit/Wilds (la montaña alta más cercana a Villaverde)
+	MonteSilencio = { NameKey = "El Monte del Silencio", Tag = "StorySpot", Attribute = { SpotId = "MonteSilencio" }, Zone = "Villaverde", Radius = 30, Fallback = "LadoMonte" },
 	LadoMonte = { NameKey = "El Monte del Silencio", Between = { "Universidad", "Granja" }, At = 0.7, Radius = 30, Fallback = "Granja" },
-	CimaMonte = { NameKey = "La cima del monte", Model = "MonteSilencio", Child = "Cima", Zone = "Villaverde", Radius = 14, Fallback = "MonteSilencio" },
+	CimaMonte = { NameKey = "La cima del monte", Tag = "StorySpot", Attribute = { SpotId = "MonteSilencio_Cima" }, Zone = "Villaverde", Radius = 14, Fallback = "MonteSilencio" },
 
 	-- Instituto (el colegio grande de Campus Valmar)
 	Instituto = { NameKey = "PLACE.INSTITUTO", Model = "Colegio", Zone = "Campus Valmar" },

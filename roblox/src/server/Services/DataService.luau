@@ -420,7 +420,11 @@ local function onPlayerAdded(player: Player)
 		data.Money = 0 -- dinero roto (NaN) por un fallo antiguo
 	end
 	-- Cuánto tiempo ha estado fuera (se calcula una vez, antes de avisar a los servicios)
+	-- (partidas de antes de LastOnline: vale la última vez que la historia le vio jugando, Story.LastSeen)
 	local lastOnline = data.LastOnline
+	if type(lastOnline) ~= "number" or lastOnline <= 0 then
+		lastOnline = type(data.Story) == "table" and tonumber(data.Story.LastSeen) or nil
+	end
 	offline[player] = if type(lastOnline) == "number" and lastOnline > 0 then math.max(0, os.time() - lastOnline) else 0
 	data.LastOnline = os.time()
 	profiles[player] = data

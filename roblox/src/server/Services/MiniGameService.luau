@@ -30,17 +30,28 @@ MiniGameService.Games = {
 	Futbol = { MinSecondsPerRound = 0.8, MaxSeconds = 480 },
 }
 
-local function evaluate(spec: Spec, raw: any): Result
+-- elapsed: segundos desde que empezó. El resultado lo manda el cliente: aquí al menos se comprueba
+-- que sea posible (cada jugada da como mucho un gol, para uno u otro) y que haya dado tiempo a
+-- jugar lo que dice haber jugado; si no, no cuenta como ganado.
+local function evaluate(spec: Spec, raw: any, elapsed: number): Result
 	raw = if type(raw) == "table" then raw else {}
+	local rules = MiniGameService.Games[spec.Game]
 	if spec.Game == "Futbol" then
 		local plays = spec.Plays or 6
 		local goals = math.clamp(math.floor(tonumber(raw.Goals) or 0), 0, plays)
 		local against = math.clamp(math.floor(tonumber(raw.Against) or 0), 0, plays)
-		return { Won = goals > against, Score = goals, Against = against, Detail = { Draw = goals == against } }
+		if goals + against > plays then
+			return { Won = false, Score = 0, Against = plays, Detail = { Draw = false } }
+		end
+		-- Para ganar hay que haber jugado el partido entero (todas las jugadas)
+		local played = elapsed >= rules.MinSecondsPerRound * plays
+		return { Won = played and goals > against, Score = goals, Against = against, Detail = { Draw = goals == against } }
 	end
 	local rounds = spec.Rounds or 3
 	local hits = math.clamp(math.floor(tonumber(raw.Hits) or 0), 0, rounds)
-	return { Won = hits >= (spec.Need or 1), Score = hits }
+	-- Cada acierto es una ronda jugada: tiene que haber dado tiempo a jugarlas
+	local played = elapsed >= rules.MinSecondsPerRound * math.max(hits, 1)
+	return { Won = played and hits >= (spec.Need or 1), Score = hits }
 end
 
 local function finish(player: Player, session: Session, result: Result)
@@ -102,7 +113,7 @@ function MiniGameService.init()
 			finish(player, session, { Won = false, Score = 0 })
 			return
 		end
-		finish(player, session, evaluate(spec, raw))
+		finish(player, session, evaluate(spec, raw, os.clock() - session.Started))
 	end)
 	Players.PlayerRemoving:Connect(function(player)
 		sessions[player] = nil

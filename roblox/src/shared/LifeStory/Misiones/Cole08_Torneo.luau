@@ -3,7 +3,7 @@
 --
 -- Andrés presenta el torneo → eliges deporte (fútbol con Nico, baloncesto con Álex, atletismo con
 -- Sara) → entrenamiento (distinto en cada deporte) → charla del equipo (capitán y estrategia) →
--- clasificación contra 1.º B → descanso: tu familia en la grada y Bruno antes de la final → la
+-- clasificación contra 4.º B → descanso: tu familia en la grada y Bruno antes de la final → la
 -- final contra el equipo de Bruno → cómo celebras o encajas el resultado → medallas. Al final corre
 -- un rumor: la sala cerrada del fondo del pasillo (misión 09).
 
@@ -45,10 +45,10 @@ local EQUIPO_FUTBOL = equipo("CampoColegio")
 local EQUIPO_BALONCESTO = equipo("CanchaColegio")
 local EQUIPO_ATLETISMO = equipo("Pista")
 
--- El rival de la clasificación: dos alumnos de 1.º B
+-- El rival de la clasificación: dos alumnos de 4.º B
 local function rival1B(place: string): { any }
 	return {
-		{ Npc = "Alumno1", Place = place, Offset = V(8, 0, -6), Bark = "¡1.º B! ¡1.º B!" },
+		{ Npc = "Alumno1", Place = place, Offset = V(8, 0, -6), Bark = "¡4.º B! ¡4.º B!" },
 		{ Npc = "Alumno2", Place = place, Offset = V(11, 0, -4) },
 	}
 end
@@ -150,14 +150,14 @@ return {
 		{ Type = "Scene", Dialogue = "Charla", Actors = EQUIPO_BALONCESTO, If = BALONCESTO },
 		{ Type = "Scene", Dialogue = "Charla", Actors = EQUIPO_ATLETISMO, If = ATLETISMO },
 
-		-- Clasificación contra 1.º B
+		-- Clasificación contra 4.º B
 		{ Type = "Transition", Text = "El día del torneo…", Seconds = 3 },
 		{ Type = "Scene", Dialogue = "Clasificacion", If = FUTBOL, Teleport = "CampoColegio", Actors = con(EQUIPO_FUTBOL, rival1B("CampoColegio")) },
-		{ Type = "MiniGame", Game = "Futbol", Title = "Clasificación contra 1.º B", Icon = "⚽", Plays = 4, Rival = "1.º B",
+		{ Type = "MiniGame", Game = "Futbol", Title = "Clasificación contra 4.º B", Icon = "⚽", Plays = 4, Rival = "4.º B",
 			PositionFrom = "Posicion", If = FUTBOL, Win = CLASIFICA_BIEN, Lose = { Traits = { Deportividad = 1 } },
 			Actors = con(EQUIPO_FUTBOL, rival1B("CampoColegio")) },
 		{ Type = "Scene", Dialogue = "Clasificacion", If = BALONCESTO, Teleport = "CanchaColegio", Actors = con(EQUIPO_BALONCESTO, rival1B("CanchaColegio")) },
-		{ Type = "MiniGame", Game = "Timing", Title = "Clasificación contra 1.º B", Icon = "🏀", Hint = "Cada canasta cuenta. Necesitáis 3.",
+		{ Type = "MiniGame", Game = "Timing", Title = "Clasificación contra 4.º B", Icon = "🏀", Hint = "Cada canasta cuenta. Necesitáis 3.",
 			Rounds = 6, Need = 3, Zone = 0.24, Shrink = 0.02, Speed = 1.05, If = BALONCESTO,
 			Win = CLASIFICA_BIEN, Lose = { Traits = { Deportividad = 1 } },
 			Actors = con(EQUIPO_BALONCESTO, rival1B("CanchaColegio")) },
@@ -215,7 +215,7 @@ return {
 	Dialogues = {
 		Presentacion = { Lines = {
 			{ S = "Andres", T = "¡Atención, deportistas! Empieza el torneo de primavera del colegio. Tres deportes: fútbol, baloncesto y atletismo." },
-			{ S = "Andres", T = "Cada uno elige UNO. Entrenamos esta semana, y el viernes: clasificación contra 1.º B y, si pasáis… la final." },
+			{ S = "Andres", T = "Cada uno elige UNO. Entrenamos esta semana, y el viernes: clasificación contra 4.º B y, si pasáis… la final." },
 			{ S = "Bruno", T = "La final es nuestra. Siempre es nuestra." },
 			{ S = "Andres", T = "Bruno, la final es de quien juegue mejor. Y de quien juegue limpio. Venga: id con vuestro capitán de deporte." },
 			{ S = "Omar", T = "Yo voy a donde vaya {nombre}. Soy malo en los tres deportes por igual. Es un talento." },
@@ -287,13 +287,13 @@ return {
 		} },
 
 		Clasificacion = { Lines = {
-			{ S = "Andres", T = "¡Clasificación! 4.º A contra 1.º B. Los que ganen pasan directos a la final." },
+			{ S = "Andres", T = "¡Clasificación! 4.º A contra 4.º B. Los que ganen pasan directos a la final." },
 			{ S = "Alumno1", T = "¡Somos más pequeños pero somos MÁS RÁPIDOS!" },
 			{ S = "Omar", T = "Son pequeñitos. Me dan un poco de miedo. Parecen muy motivados." },
 		} },
 		TrasClasificacion = { Lines = {
 			{ S = "Andres", T = "¡Ganáis la clasificación! Directos a la final.", If = CLASIFICA_BIEN },
-			{ S = "Andres", T = "1.º B gana… ¡pero pasáis como mejor segundo! Estáis en la final por los pelos.", If = CLASIFICA_MAL },
+			{ S = "Andres", T = "4.º B gana… ¡pero pasáis como mejor segundo! Estáis en la final por los pelos.", If = CLASIFICA_MAL },
 			{ S = "Alumno1", T = "Buen partido. El año que viene os ganamos. Bueno, este también casi.", If = CLASIFICA_BIEN },
 			{ S = "Andres", T = "Descanso de veinte minutos. Y la final es contra… cómo no: el equipo de Bruno." },
 		} },

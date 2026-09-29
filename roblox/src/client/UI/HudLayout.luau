@@ -215,16 +215,128 @@ local function touchOnly(): boolean
 	return UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 end
 
--- Paneles de trabajo (barista, taquilla, recepción…): a la derecha en el ordenador; en el móvil a la
--- izquierda, bajo tu estado, porque a la derecha están los botones táctiles y los taparían.
+-- Paneles de trabajo (barista, taquilla, recepción…): a la derecha en el ordenador. En el móvil, a la
+-- derecha del menú de comandos (a la izquierda del todo están los comandos y el joystick, y a la derecha
+-- los botones táctiles): desde el pie de tu estado hasta encima de la barra rápida. Si el panel es más
+-- alto que ese hueco, su contenido va en una lista que se desplaza. Llamar con el panel ya montado.
+local jobPanels: { [GuiObject]: () -> () } = {}
+
+-- Rectángulo del hueco (en píxeles de pantalla, contando la franja de arriba)
+function HudLayout.jobArea(layout: Layout): { X: number, Y: number, W: number, H: number }
+	local s = layout.Scale
+	local status = HudLayout.rect(layout.Items.Status, layout.Canvas)
+	local hotbar = HudLayout.rect(layout.Items.Hotbar, layout.Canvas)
+	local left = MARGIN + HudLayout.Sizes.CommandWidth + 12
+	local top = status.Y + status.H + 10
+	local bottom = hotbar.Y - 10
+	return { X = left * s, Y = top * s, W = (layout.Canvas.X / 2 - left) * s, H = (bottom - top) * s }
+end
+
+local function mountJobPanel(panel: GuiObject)
+	local gui = panel.Parent
+	if gui and gui:IsA("ScreenGui") then
+		-- Encima del HUD, los comandos (2) y la tarjeta de tu vida; debajo de los botones táctiles (4)
+		gui.DisplayOrder = 3
+		gui.IgnoreGuiInset = true
+	end
+	panel:SetAttribute("JobPanel", true) -- (Theme.fit no lo cuenta: se recorta él solo)
+	-- Todo lo de dentro (menos bordes, esquinas y relleno) pasa a una lista que se desplaza
+	local scroll = Instance.new("ScrollingFrame")
+	scroll.Name = "JobScroll"
+	scroll.Size = UDim2.fromScale(1, 1)
+	scroll.BackgroundTransparency = 1
+	scroll.BorderSizePixel = 0
+	scroll.ScrollBarThickness = 5
+	scroll.ScrollingDirection = Enum.ScrollingDirection.Y
+	local keep = { UICorner = true, UIStroke = true, UIGradient = true, UIPadding = true, UIScale = true, UISizeConstraint = true }
+	for _, child in panel:GetChildren() do
+		if not keep[child.ClassName] then
+			child.Parent = scroll
+		end
+	end
+	scroll.Parent = panel
+	local padding = panel:FindFirstChildOfClass("UIPadding")
+	local design = panel.Size.Y.Offset -- alto que pide el panel (lo cambian al añadir filas)
+	local busy = false
+	local function apply()
+		local ui = gui and gui:FindFirstChildOfClass("UIScale")
+		local k = if ui then ui.Scale else 1
+		local area = HudLayout.jobArea(HudLayout.current())
+		local pad = if padding then padding.PaddingTop.Offset + padding.PaddingBottom.Offset else 0
+		busy = true
+		panel.AnchorPoint = Vector2.new(0, 0)
+		panel.Position = UDim2.fromOffset(math.floor(area.X / k), math.floor(area.Y / k))
+		panel.Size = UDim2.fromOffset(panel.Size.X.Offset, math.max(60, math.min(design, math.floor(area.H / k))))
+		busy = false
+		-- (los hijos con tamaño en escala se miden contra el lienzo: el alto de diseño)
+		scroll.CanvasSize = UDim2.fromOffset(0, math.max(0, design - pad))
+	end
+	panel:GetPropertyChangedSignal("Size"):Connect(function()
+		if not busy then
+			design = panel.Size.Y.Offset
+			apply()
+		end
+	end)
+	local ui = gui and gui:FindFirstChildOfClass("UIScale")
+	if ui then
+		ui:GetPropertyChangedSignal("Scale"):Connect(apply)
+	end
+	jobPanels[panel] = apply
+	HudLayout.onChanged(function()
+		if panel.Parent then
+			apply()
+		end
+	end)
+end
+
 function HudLayout.jobPanel(panel: GuiObject)
 	if touchOnly() then
-		panel.AnchorPoint = Vector2.new(0, 0.5)
-		panel.Position = UDim2.new(0, 12, 0.6, 0)
+		if not jobPanels[panel] then
+			mountJobPanel(panel)
+		end
 	else
 		panel.AnchorPoint = Vector2.new(1, 0.5)
 		panel.Position = UDim2.new(1, -12, 0.55, 0)
 	end
+end
+
+---------------------------------------------------------------------
+-- Móvil: textos del HUD más grandes. El HUD se dibuja a escala 0.4-0.5 (el diseño mide 1700 de ancho
+-- y en el móvil no se puede estrechar: el minimapa pisaría el reloj y la misión los botones), así que
+-- los textos quedaban de 7-9 px. Cada texto crece hasta 1,5 veces, pero solo lo que quepa en su caja
+-- (TextScaled con tope), para que nada se salga ni se pise.
+---------------------------------------------------------------------
+local TEXT_BOOST = 1.5
+function HudLayout.boostText(object: Instance)
+	if not (object:IsA("TextLabel") or object:IsA("TextButton")) then
+		return
+	end
+	local label = object :: TextLabel
+	if label.TextScaled or label:GetAttribute("TouchText") or label.AutomaticSize ~= Enum.AutomaticSize.None then
+		return
+	end
+	label:SetAttribute("TouchText", true)
+	local size = label.TextSize
+	if label.TextTruncate ~= Enum.TextTruncate.None then
+		-- Con «…»: más grande hasta el alto de la caja (lo que no quepa a lo ancho se corta con «…»)
+		local height = label.Size.Y.Offset
+		if label.Size.Y.Scale == 0 and height - 2 > size then
+			label.TextSize = math.min(math.floor(size * TEXT_BOOST), height - 2)
+		end
+		return
+	end
+	local limit = Instance.new("UITextSizeConstraint")
+	limit.MinTextSize = math.max(1, math.min(size, 100))
+	limit.MaxTextSize = math.clamp(math.floor(size * TEXT_BOOST), 1, 100)
+	limit.Parent = label
+	label.TextScaled = true
+end
+
+local function boostGui(gui: ScreenGui)
+	for _, object in gui:GetDescendants() do
+		HudLayout.boostText(object)
+	end
+	gui.DescendantAdded:Connect(HudLayout.boostText)
 end
 
 local function recompute()
@@ -283,6 +395,9 @@ function HudLayout.scaleGui(gui: ScreenGui): UIScale
 	scaler.Scale = HudLayout.scale()
 	scaler.Parent = gui
 	table.insert(scalers, scaler)
+	if touchOnly() then
+		boostGui(gui)
+	end
 	return scaler
 end
 
@@ -300,6 +415,7 @@ function HudLayout._reset()
 	options = { QuickOpen = nil }
 	started = false
 	scalers = {}
+	jobPanels = {}
 end
 
 return HudLayout

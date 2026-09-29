@@ -1011,6 +1011,10 @@ local function onDock(player: Player, dock: BasePart)
 	player:SetAttribute("BoatReturn", dock.Position)
 end
 
+-- A cuánto de la cubierta se considera que te has bajado del barco (algo más que los 40 de pescar
+-- desde él, para no perderlo por dar dos pasos por la borda)
+local BOAT_LEAVE = 60
+
 local function onReturn(player: Player)
 	stop(player, true)
 	local back = player:GetAttribute("BoatReturn")
@@ -1376,6 +1380,23 @@ function FishingService.init()
 				end
 				for player in onDuty do
 					guide(player)
+				end
+				-- Quien se baja del barco (o se aleja nadando) deja de "estar en el barco": si no, podía
+				-- volver luego a la cubierta por su cuenta y pescar en alta mar sin pagar otro viaje
+				for _, player in Players:GetPlayers() do
+					if player:GetAttribute("BoatReturn") ~= nil and not player:GetAttribute("Teleporting") then
+						local root = rootOf(player)
+						local near = false
+						for _, deck in CollectionService:GetTagged("FishingBoatDeck") do
+							if root and deck:IsA("BasePart") and (deck.Position - root.Position).Magnitude < BOAT_LEAVE then
+								near = true
+								break
+							end
+						end
+						if root and not near then
+							player:SetAttribute("BoatReturn", nil)
+						end
+					end
 				end
 				regenTick()
 				refreshNpc()

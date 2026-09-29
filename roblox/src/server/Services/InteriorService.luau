@@ -1598,6 +1598,46 @@ function InteriorService.stepTowers()
 	end
 end
 
+-- Intrusos: alguien que se ha teletransportado dentro de la casa de otro jugador (sin pasar por la
+-- puerta) tiene el cuerpo en esa sala pero no su llave. Solo se mira en las viviendas de jugadores
+-- (Hooks.Gate dice que no puede entrar); pasillos, escaleras, tiendas y salas públicas no. Tampoco a
+-- quien está a mitad de un salto (Teleporting) o en el ascensor. Se le saca a la calle, a la puerta.
+function InteriorService.checkIntruders()
+	local gate = InteriorService.Hooks.Gate
+	if not gate then
+		return
+	end
+	local half = SLOT / 2
+	for key, inst in instances do
+		if inst.Tower or inst.Building.Persistent or not inst.Room.Model.Parent then
+			continue
+		end
+		local center = slotPosition(inst.Slot)
+		for _, player in Players:GetPlayers() do
+			if player:GetAttribute("InteriorKey") == key or player:GetAttribute("Teleporting") or teleporting[player] or player:GetAttribute("LiftTower") then
+				continue
+			end
+			local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+			if not root then
+				continue
+			end
+			local rel = root.Position - center
+			if math.abs(rel.X) > half or math.abs(rel.Z) > half or rel.Y < -40 or rel.Y > 120 then
+				continue
+			end
+			local building = inst.Building
+			local ok, allowed = pcall(gate, player, building, inst.Floor, if isTower(building) then inst.Unit else nil)
+			if ok and allowed == false then
+				player:SetAttribute("InteriorKey", nil)
+				player:SetAttribute("InteriorDoor", nil)
+				player:SetAttribute("TowerFloor", nil)
+				Notify:FireClient(player, "Error", "🔒 No puedes estar en casa de otro.")
+				task.spawn(teleport, player, building.Door + building.Out * 3)
+			end
+		end
+	end
+end
+
 function InteriorService.buildingOf(player: Player): Building?
 	local key = player:GetAttribute("InteriorKey")
 	local id = tonumber(string.match(key or "", "^(%d+):"))
@@ -1703,6 +1743,17 @@ function InteriorService.init()
 			task.wait(0.5)
 			InteriorService.stepTowers()
 			pcall(stepLifts)
+		end
+	end)
+
+	-- Cada segundo: nadie dentro de la casa de otro jugador sin haber pasado por la puerta
+	task.spawn(function()
+		while true do
+			task.wait(1)
+			local ok, err = pcall(InteriorService.checkIntruders)
+			if not ok then
+				warn("[Interiores] " .. tostring(err))
+			end
 		end
 	end)
 

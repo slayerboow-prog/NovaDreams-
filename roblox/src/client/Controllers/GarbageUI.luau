@@ -46,7 +46,6 @@ function GarbageUI.init()
 		Parent = gui,
 	})
 	-- En el móvil va a la izquierda para no quedar bajo los botones táctiles.
-	HudLayout.jobPanel(panel)
 	Theme.padding(8).Parent = panel
 	header = Theme.label({ Size = UDim2.new(1, 0, 0, 22), Text = "♻ Limpieza", Font = Theme.FontBold, TextSize = 16, Parent = panel })
 	body = Theme.label({
@@ -60,6 +59,8 @@ function GarbageUI.init()
 		TextColor3 = C.Text,
 		Parent = panel,
 	})
+	-- Colocar el panel ya montado (en el móvil su contenido pasa a una lista que se desplaza)
+	HudLayout.jobPanel(panel)
 	Remote.OnClientEvent:Connect(function(action, payload)
 		if action == "Route" then
 			show(payload)

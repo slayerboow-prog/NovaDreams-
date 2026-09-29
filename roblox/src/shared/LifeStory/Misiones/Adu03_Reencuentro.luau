@@ -113,7 +113,7 @@ return {
 			{ S = "Lola", T = "Me jubilo. Cuarenta años detrás de esta barra. Ya está. Me voy a la playa a no hacer nada. Lo he decidido." },
 			{ S = "Omar", T = "Y… me la deja a mí. ¡A MÍ! La cafetería. Se va a llamar «La Cafetería de Omar». Bueno, se llama igual, pero con mi nombre." },
 			{ S = "Omar", T = "Reabro el sábado. Y quiero a todo el grupo. A TODO. Como en el colegio. Tú eres el encargado o la encargada de invitarles." },
-			{ S = "Lola", T = "Ya era mío el mejor ayudante de verano. Ahora es mío el mejor sucesor. Qué bien lo he hecho todo.", If = { Choices = { Empleo = "Barista" } } },
+			{ S = "Lola", T = "Primero, la mejor ayuda de verano. Ahora, quien mejor me sucede. Qué bien lo he hecho todo.", If = { Choices = { Empleo = "Barista" } } },
 		} },
 		Nico = { Lines = {
 			{ S = "Nico", T = "¡{nombre}! ¡Mira, uniforme del primer equipo! Firmé el mes pasado. Jugador de Altamar. Profesional. Todavía no me lo creo." },
@@ -151,7 +151,7 @@ return {
 			{ S = "Narrador", T = "Le cuentas que querías defender a quien no puede defenderse… y que ahora eres abogado o abogada.", If = sueno("Derecho", "Derecho") },
 			{ S = "Narrador", T = "Le cuentas que querías tener tu propio negocio… y que ahora ayudas a otros a abrir el suyo.", If = sueno("Economia", "Economia") },
 			{ S = "Lucia", T = "Lo dijiste a los diez años en un banco del parque. Y lo has cumplido. Eso, {nombre}, es lo más bonito que puede oír una profesora.", If = { Flags = { "Graduado" } } },
-			{ S = "Lucia", T = "Lo importante no es si se cumple lo que dijiste de pequeño. Es si eres feliz con lo que has hecho. Y se te ve feliz." },
+			{ S = "Lucia", T = "Lo importante no es si se cumple lo que dijiste con diez años. Es si eres feliz con lo que has hecho. Y se te ve feliz." },
 			{ Ask = "¿Qué le dices?", Options = {
 				{ T = "«Gracias por aquel primer día. Y por todos los demás.»", Effects = { Rel = { Lucia = 10 } }, Then = {
 					{ S = "Lucia", T = "Venga, que me haces llorar en la puerta del colegio. Y aquí me ven los alumnos." },

@@ -171,6 +171,11 @@ local function join(group: Group, player: Player)
 	addToChannel(group.Channel, player)
 end
 
+-- Una invitación a la misma persona cada INVITE_GAP segundos, aunque diga que no (si no, se le
+-- llena la pantalla de ventanas). Por UserId de quien invita y de quien recibe.
+local INVITE_GAP = 30
+local invitedAt: { [string]: number } = {}
+
 local function onInvite(player: Player, userId: any)
 	if typeof(userId) ~= "number" or tooFast(player) then
 		return
@@ -197,6 +202,12 @@ local function onInvite(player: Player, userId: any)
 		Notify:FireClient(player, "Info", "Ya le has invitado. Espera a que conteste.")
 		return
 	end
+	local pair = player.UserId .. ">" .. target.UserId
+	if os.clock() - (invitedAt[pair] or -math.huge) < INVITE_GAP then
+		Notify:FireClient(player, "Info", ("Ya has invitado a %s hace poco. Espera un poco."):format(nameOf(target)))
+		return
+	end
+	invitedAt[pair] = os.clock()
 	invites[target] = { From = player, Until = os.clock() + Social.InviteSeconds }
 	Remote:FireClient(target, "GroupInvite", { Name = nameOf(player), UserId = player.UserId, Seconds = Social.InviteSeconds })
 	Notify:FireClient(player, "Info", ("👥 Invitación enviada a %s."):format(nameOf(target)))
@@ -217,6 +228,7 @@ local function onAnswer(player: Player, userId: any, yes: any)
 		Notify:FireClient(from, "Info", nameOf(player) .. " no quiere unirse ahora.")
 		return
 	end
+	invitedAt[from.UserId .. ">" .. player.UserId] = nil -- (ha aceptado: sin pausa para la próxima)
 	local group = groupOf[from]
 	if group and groupOf[player] == group then
 		return

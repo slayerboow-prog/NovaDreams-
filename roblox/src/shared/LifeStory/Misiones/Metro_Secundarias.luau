@@ -21,7 +21,8 @@ return {
 		Npcs = {},
 		Offer = { Place = "CasaFamiliar" },
 		OfferKey = "Mañana hay clase a las 8:30 en el campus. ¿Y si vas en metro?",
-		Requires = { Stage = { Min = "AdultoJoven", Max = "AdultoJoven" } },
+		Requires = { Stage = { Min = "AdultoJoven", Max = "AdultoJoven" }, Flags = { "VaALaUniversidad" }, Hours = { From = 6, To = 8 } },
+		Schedule = false, -- empieza en casa, antes de que abra el campus (a las 8)
 		Moment = "Fuiste por primera vez a la universidad en metro",
 		Memory = "MetroPrimerDia",
 		Rewards = { Money = 20 },
@@ -36,7 +37,7 @@ return {
 		},
 		Dialogues = {
 			Salir = { Lines = {
-				{ S = "Narrador", T = "7:00. Mochila, llaves, móvil. El autobús al campus pasa lleno hasta el techo. Hoy te estrenas en el metro de Valmar." },
+				{ S = "Narrador", T = "Mochila, llaves, móvil. El autobús al campus pasa lleno hasta el techo. Hoy te estrenas en el metro de Valmar." },
 				{ S = "Narrador", T = "En el móvil tienes la app 🚇 Metro: te dice la estación más cercana, la ruta y cuándo pasa el próximo tren." },
 			} },
 			Puntual = { Lines = {

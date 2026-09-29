@@ -92,7 +92,7 @@ return {
 			} },
 			Chip = { Lines = {
 				{ S = "Narrador", T = "Bigotes, el gato del colegio, lleva el chip enganchado al collar. Te mira. Tú le miras. Él suspira." },
-				{ S = "Bigotes", T = "Humano pequeño. Coge tu chip y vete. Y no le digas a nadie que puedo hablar. Tengo una reputación." },
+				{ S = "Bigotes", T = "Cría humana. Coge tu chip y vete. Y no le digas a nadie que puedo hablar. Tengo una reputación." },
 				{ S = "Yo", T = "¡¿El gato habla?!" },
 				{ S = "Bigotes", T = "Todos los gatos hablamos. Solo que no con vosotros. …Este chip me ha soltado la lengua. Ya me callo. Miau. Ya está. Miau." },
 			}, Effects = { Flags = { "BigotesHabla" } } },
@@ -155,7 +155,7 @@ return {
 		},
 		Dialogues = {
 			Socorro = { Lines = {
-				{ S = "Bigotes", T = "Por fin. Humano pequeño. Escucha bien, porque solo lo diré una vez y luego fingiré que no he hablado." },
+				{ S = "Bigotes", T = "Por fin. Cría humana. Escucha bien, porque solo lo diré una vez y luego fingiré que no he hablado." },
 				{ S = "Bigotes", T = "No soy un gato. Bueno: sí soy un gato. Pero también soy Bigotes XVII, emperador exiliado de Gatonia, planeta de los gatos, en la nebulosa del Ovillo." },
 				{ S = "Yo", T = "¿Y qué haces en mi cole?" },
 				{ S = "Bigotes", T = "Aquí me dan jamón en el comedor. Y nadie me busca. …Nadie me buscaba. Las cucarachas cazarrecompensas de Crujiente me han encontrado." },
@@ -177,7 +177,7 @@ return {
 						{ S = "Bigotes", T = "Te nombro… Duque o Duquesa del Cojín, Guardián del Rayo de Sol de las Cuatro de la Tarde. Es un título muy importante en Gatonia." },
 					} },
 					{ T = "«Que sigas en el cole con nosotros.»", Effects = { Traits = { Empatia = 1 }, Rel = { Bigotes = 10 } }, Then = {
-						{ S = "Bigotes", T = "…Humano pequeño. Eso no es un favor para ti. …Pero acepto. Por el jamón. Solo por el jamón." },
+						{ S = "Bigotes", T = "…Cría humana. Eso no es un favor para ti. …Pero acepto. Por el jamón. Solo por el jamón." },
 					} },
 				} },
 				{ S = "Bigotes", T = "Toma. Mi corona de viaje. Mide dos centímetros. En Gatonia es enorme." },
@@ -320,7 +320,7 @@ return {
 			} },
 			Lucia = { Lines = {
 				{ S = "Lucia", T = "{nombre}. Pregunta rápida. ¿Tienes… hermanos? ¿Trillizos? ¿Cuatrillizos?" },
-				{ S = "Lucia", T = "Porque hoy has llegado cuatro veces a clase. Una de ellas se ha comido la plastilina. Otra ha hecho un musical. Y la otra se ha presentado a delegada contra ti misma." },
+				{ S = "Lucia", T = "Porque hoy has llegado cuatro veces a clase. Una de ellas se ha comido la plastilina. Otra ha hecho un musical. Y la otra se ha presentado a delegada contra otro tú." },
 				{ S = "Narrador", T = "Detrás de Lucía, uno de tus clones baila. En el patio, los otros dos te han visto. Abren los brazos. Vienen a abrazarte." },
 				{ S = "Lucia", T = "No sé qué está pasando. No quiero saberlo. Quiero que, cuando vuelva de la sala de profes, haya UNO de ti." },
 			} },

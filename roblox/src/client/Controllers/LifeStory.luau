@@ -14,6 +14,7 @@ local TweenService = game:GetService("TweenService")
 
 local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 local Theme = require(script.Parent.Parent.UI.Theme)
+local HudLayout = require(script.Parent.Parent.UI.HudLayout)
 local StoryAudio = require(script.Parent.StoryAudio)
 local Cinematics = require(script.Parent.Cinematics)
 local StoryJournal = require(script.Parent.StoryJournal)
@@ -73,7 +74,9 @@ end
 local function refreshVisibility()
 	card.Visible = expanded and hasContent
 	tab.Visible = hasContent
-	tabArrow.Text = if expanded then "▶" else "◀"
+	-- (en el móvil la pestaña está a la izquierda: las flechas al revés)
+	local opens = if Theme.isTouch() then "▶" else "◀"
+	tabArrow.Text = if expanded then (if opens == "▶" then "◀" else "▶") else opens
 	if expanded then
 		newDot.Visible = false
 	end
@@ -90,10 +93,25 @@ local function buildCard()
 		BackgroundTransparency = 1,
 		Parent = gui,
 	})
+	local touch = Theme.isTouch()
+	if touch then
+		-- Móvil: a la derecha tapaba la misión y los botones táctiles. Va arriba a la izquierda, junto
+		-- a tu estado ([pestaña][panel]), en su propia capa por debajo de los botones (DisplayOrder 3)
+		local dockGui = create("ScreenGui", {
+			Name = "LifeStoryDock",
+			ResetOnSpawn = false,
+			DisplayOrder = 3,
+			IgnoreGuiInset = true,
+			ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+			Parent = gui.Parent,
+		})
+		dock.AnchorPoint = Vector2.new(0, 0)
+		dock.Parent = dockGui
+	end
 	create("UIListLayout", {
 		FillDirection = Enum.FillDirection.Horizontal,
-		HorizontalAlignment = Enum.HorizontalAlignment.Right,
-		VerticalAlignment = Enum.VerticalAlignment.Center,
+		HorizontalAlignment = if touch then Enum.HorizontalAlignment.Left else Enum.HorizontalAlignment.Right,
+		VerticalAlignment = if touch then Enum.VerticalAlignment.Top else Enum.VerticalAlignment.Center,
 		Padding = UDim.new(0, 4),
 		SortOrder = Enum.SortOrder.LayoutOrder,
 		Parent = dock,
@@ -175,7 +193,7 @@ local function buildCard()
 		Name = "LifeStoryTab",
 		Size = UDim2.fromOffset(28, 104),
 		Text = "",
-		LayoutOrder = 2,
+		LayoutOrder = if touch then 0 else 2, -- (en el móvil la pestaña va a la izquierda del panel)
 		Visible = false,
 		Parent = dock,
 	})
@@ -215,7 +233,25 @@ local function buildCard()
 
 	-- En pantallas pequeñas (móvil, ventana de Studio) empieza plegada
 	local camera = workspace.CurrentCamera
-	expanded = camera.ViewportSize.Y >= 700
+	-- (en el móvil y la tableta siempre plegada: desplegada tapa el reloj)
+	expanded = camera.ViewportSize.Y >= 700 and not touch
+	if touch then
+		-- Textos de la tarjeta legibles en el móvil (~14 px)
+		cardHeader.TextSize, cardHeader.Size = 13, UDim2.new(1, 0, 0, 16)
+		cardTitle.TextSize = 16
+		cardText.TextSize = 14
+		switchButton.TextSize, switchButton.Size = 14, UDim2.new(1, 0, 0, 30)
+		journalButton.TextSize, journalButton.Size = 14, UDim2.new(1, 0, 0, 32)
+		card.Size = UDim2.fromOffset(230, 0)
+		-- Pegada a la derecha de tu estado; la pestaña no más ancha que el hueco hasta el reloj
+		HudLayout.onChanged(function(layout)
+			local status = HudLayout.rect(layout.Items.Status, layout.Canvas)
+			local clock = HudLayout.rect(layout.Items.Clock, layout.Canvas)
+			local left = status.X + status.W + 4
+			dock.Position = UDim2.fromOffset(math.ceil(left * layout.Scale), math.floor(status.Y * layout.Scale))
+			tab.Size = UDim2.fromOffset(math.clamp(math.floor((clock.X - left) * layout.Scale) - 4, 24, 36), 104)
+		end)
+	end
 	refreshVisibility()
 end
 

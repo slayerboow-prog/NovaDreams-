@@ -297,7 +297,7 @@ for id, w in Weapons.List do
 	local itemId = Weapons.itemId(id)
 	local desc = if w.Kind == "Toy" then "De juguete: no hace daño. Elígelo en la barra rápida para empuñarlo."
 		elseif w.Duty then "Arma de servicio de la policía. Se devuelve al acabar el turno."
-		else "Arma de fuego (necesita licencia). Elígela en la barra rápida para empuñarla; clic derecho para apuntar."
+		else "Arma de fuego (necesita licencia). Elígela en la barra rápida para empuñarla; botón Apuntar (clic derecho) para apuntar."
 	list[itemId] = { Id = itemId, Name = w.Name, Icon = w.Icon, Kind = "Weapon", Desc = desc, Stack = 1, Ref = id }
 end
 for id, ammo in Weapons.AmmoTypes do

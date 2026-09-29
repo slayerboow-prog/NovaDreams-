@@ -30,9 +30,17 @@ local function grupoEn(place: string): { any }
 	}
 end
 
-local SALA = grupoEn("SalaCerrada")
-table.insert(SALA, { Npc = "Lucia", Place = "SalaCerrada", Offset = V(0, 0, -3) })
-table.insert(SALA, { Npc = "Ramon", Place = "SalaCerrada", Offset = V(-6, 0, -2) })
+-- La sala cerrada es pequeña (12 × 7, pupitres en medio y la estantería al fondo): cada uno en su hueco
+local SALA = {
+	{ Npc = "Nico", Place = "SalaCerrada", Offset = V(-1.5, 0, 1.7) },
+	{ Npc = "Sara", Place = "SalaCerrada", Offset = V(-3.6, 0, 1.7) },
+	{ Npc = "Omar", Place = "SalaCerrada", Offset = V(1.5, 0, 1.7) },
+	{ Npc = "Mateo", Place = "SalaCerrada", Offset = V(-5.2, 0, 2.6), If = AMIGO_MATEO },
+	{ Npc = "Hugo", Place = "SalaCerrada", Offset = V(3.6, 0, 1.7), If = CON_HUGO },
+	{ Npc = "Iker", Place = "SalaCerrada", Offset = V(5.2, 0, 2.6), If = CON_IKER },
+	{ Npc = "Lucia", Place = "SalaCerrada", Offset = V(2, 0, -2.8) },
+	{ Npc = "Ramon", Place = "SalaCerrada", Offset = V(-2.5, 0, -2.8) },
+}
 
 local CEREMONIA = grupoEn("Patio")
 for _, actor in {
@@ -191,14 +199,14 @@ return {
 			{ S = "Lucia", T = "Lo prometí: la cápsula se abre el último día de colegio. Y yo esta vez no me olvido." },
 			{ S = "Ramon", T = "Código secreto… clac. Abierta. Treinta años guardando llaves y esta es la que más me ha gustado abrir." },
 			{ S = "Narrador", T = "Dentro está todo lo que metió la clase: dibujos, predicciones, cromos… y lo tuyo." },
-			{ S = "Narrador", T = "Tu carta: «Querido yo del último día: ¿has sido valiente? ¿Sigues con tus amigos? Espero que sí.»", If = { Choices = { Capsula = "Carta" } } },
+			{ S = "Narrador", T = "Tu carta: «Hola, yo del último día: ¿has sido valiente? ¿Sigues con tus amigos? Espero que sí.»", If = { Choices = { Capsula = "Carta" } } },
 			{ S = "Narrador", T = "Tu dibujo del grupo. Omar sale con un bocadillo. Omar dice que es el retrato más realista de su vida.", If = { Choices = { Capsula = "Dibujo" } } },
 			{ S = "Narrador", T = "Tu predicción: «Nico será futbolista». Nico la lee tres veces y se la guarda en el bolsillo sin decir nada.", If = { Choices = { Capsula = "Prediccion" } } },
 			{ S = "Narrador", T = "Tu pregunta: «¿Seguimos siendo amigos?». Nadie contesta con palabras. Omar te da un abrazo. Luego todos.", If = { Choices = { Capsula = "Pregunta" } } },
 			{ S = "Lucia", T = "Mi clase de 1998 hizo esto mismo. Y aquí estoy, veintitantos años después, en la misma sala. Las cosas importantes vuelven." },
 		} },
 		Ceremonia = { Lines = {
-			{ S = "Lucia", T = "Familias, alumnos: hoy 4.º A termina la primaria." },
+			{ S = "Lucia", T = "Familias, alumnos: hoy nuestra clase termina la primaria." },
 			{ S = "Lucia", T = "Os he visto llegar con mochilas más grandes que vosotros. Os he visto perder mochilas, encontrar amigos, resolver misterios…" },
 			{ S = "Lucia", T = "…ganar torneos, perderlos, y aprender a dar la mano. Estoy muy orgullosa de cada uno." },
 			{ S = "Narrador", T = "Uno a uno, subís a recoger el diploma. Cuando dicen tu nombre, tu familia aplaude tan fuerte que Marta se ríe." },

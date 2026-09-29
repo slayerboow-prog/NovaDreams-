@@ -104,7 +104,8 @@ function VehicleHud.init(parent: Instance)
 		local view = camera.ViewportSize
 		local hud = math.clamp(math.min(view.Y / 900, view.X / 1700), 0.55, 1.2)
 		if TOUCH then
-			scale.Scale = hud * 0.85
+			-- (la cápsula del móvil es pequeña: puede ir algo más grande que el HUD)
+			scale.Scale = math.max(hud, 0.6)
 			-- Debajo de todo lo de arriba en el centro (UI/HudLayout: el reloj, la indicación del GPS,
 			-- los avisos y, si te busca la policía, las estrellas). Antes iba justo bajo el reloj y tapaba
 			-- la indicación del GPS y las estrellas.
@@ -170,7 +171,7 @@ function VehicleHud.init(parent: Instance)
 		Parent = panel,
 	})
 	create("UICorner", { CornerRadius = UDim.new(0, 10), Parent = gearText })
-	Theme.label({ Position = UDim2.fromOffset(220, 30), Size = UDim2.fromOffset(70, 44), Text = "D adelante\nR atrás", TextSize = 11, TextColor3 = C.Muted, Parent = panel })
+	local gearHelp = Theme.label({ Position = UDim2.fromOffset(220, 30), Size = UDim2.fromOffset(70, 44), Text = "D adelante\nR atrás", TextSize = 11, TextColor3 = C.Muted, Parent = panel })
 
 	-- Derecha: combustible
 	fuelBox = create("Frame", { Position = UDim2.fromOffset(296, 0), Size = UDim2.fromOffset(150, 80), BackgroundTransparency = 1, Parent = panel })
@@ -194,6 +195,30 @@ function VehicleHud.init(parent: Instance)
 	if not TOUCH then
 		-- (en el móvil se conduce con el joystick y los botones: no hacen falta las teclas)
 		Theme.label({ Position = UDim2.fromOffset(158, 128), Size = UDim2.fromOffset(290, 16), Text = "W/S acelerar y frenar · A/D girar · H claxon · F bajarse", TextSize = 11, TextColor3 = C.Muted, Parent = panel })
+	else
+		-- Móvil: en 640x360 el cuadro entero tapaba media calle. Queda una cápsula baja con la
+		-- velocidad, la marcha y el combustible (la esfera, el nombre y los kilómetros se esconden).
+		panel.Size = UDim2.fromOffset(320, 72)
+		dial.Visible = false
+		nameText.Visible = false
+		odoText.Visible = false
+		tripText.Visible = false
+		gearHelp.Visible = false
+		speedText.Parent = panel
+		speedText.AnchorPoint = Vector2.new(0, 0)
+		speedText.Position = UDim2.fromOffset(0, 0)
+		speedText.Size = UDim2.fromOffset(64, 30)
+		speedText.TextSize = 28
+		create("TextLabel", { Position = UDim2.fromOffset(0, 30), Size = UDim2.fromOffset(64, 12), BackgroundTransparency = 1, Font = Enum.Font.Gotham, TextSize = 11, TextColor3 = C.Muted, Text = "km/h", Parent = panel })
+		gearText.Position = UDim2.fromOffset(70, 0)
+		gearText.Size = UDim2.fromOffset(42, 42)
+		gearText.TextSize = 30
+		fuelBox.Position = UDim2.fromOffset(140, 0)
+		-- El aviso de reserva, debajo de la velocidad (en la caja del combustible no cabe)
+		warning.Parent = panel
+		warning.Position = UDim2.fromOffset(0, 42)
+		warning.Size = UDim2.fromOffset(136, 12)
+		warning.TextScaled = true
 	end
 end
 

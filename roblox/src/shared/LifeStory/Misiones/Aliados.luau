@@ -52,7 +52,7 @@ return {
 			{ Type = "Use", Prop = "Manguera", Text = "Esta vez no hay globos: coge la manguera (junto a los juegos)", Props = { "Nave" } },
 			{ Type = "Fight", Place = "Parque", Respawn = "JuegosParque", Action = "Regar 💦", HP = 2, BeamColor = Color3.fromRGB(80, 170, 255),
 				Text = "¡Las cucarachas espías del Consorcio! Riégalas ({count}/{total})",
-				CaughtLine = "¡Te pillé, larva grande! …Uy, qué alto estás ahora. Suéltate y vuelve a empezar.",
+				CaughtLine = "¡Te pillé, larva grande! …Uy, cuánto has crecido. Suéltate y vuelve a empezar.",
 				Props = { "Nave" },
 				Actors = { { Npc = "Bigotes", Place = "Parque", Offset = V(0, 0, 5) } },
 				Enemies = {
@@ -68,7 +68,7 @@ return {
 		},
 		Dialogues = {
 			Visita = { Lines = {
-				{ S = "Bigotes", T = "Humano. Ya no eres pequeño. Pero sigues siendo humano. Nadie es perfecto." },
+				{ S = "Bigotes", T = "Humano. Ya no eres una cría. Pero sigues siendo humano. Nadie es perfecto." },
 				{ S = "Bigotes", T = "Duque o Duquesa del Cojín: tu título sigue en vigor. Lo he vuelto a sellar yo mismo. Con la pata.", If = { Flags = { "DuqueDeGatonia" } } },
 				{ S = "Bigotes", T = "Vengo en visita oficial. Asunto: la Gran Fusión. Si las dos Valmar se juntan, habrá dos de cada gato. Y un solo sofá. Inaceptable." },
 				{ S = "Bigotes", T = "Y hay otro asunto. Las cucarachas de Crujiente. Dijeron que volverían cuando se secaran. Se han secado. Ahora espían para el Consorcio. Con corbata." },
@@ -225,7 +225,7 @@ return {
 		Duration = { 15, 20 },
 		Npcs = { "CazadorTiempo", "Abu", "Pip" },
 		Offer = { Place = "Correos" },
-		OfferKey = "El agente Cronos está en Correos, sentado en un banco, sin sellos. Nunca le habías visto sin sellos",
+		OfferKey = "El agente Cronos está en Correos, de pie junto a la ventanilla, sin sellos. Nunca le habías visto sin sellos",
 		Requires = { Stage = UNI_O_MAS, Completed = { "Saga_11_Cronos" }, Flags = { "CronosAliado" } },
 		Moment = "Salvaste al agente Cronos de su propio expediente",
 		Memory = "ExpedienteCronos",
@@ -262,7 +262,7 @@ return {
 				{ S = "CazadorTiempo", T = "Necesito dos firmas de gente de confianza y el sello de la ventanilla 42. La conoces. Es la que te manda a otra ventanilla." },
 			} },
 			FirmaAbu = { Lines = {
-				{ S = "Abu", T = "¿Firmar por un señor que brilla y lleva cuarenta formularios? Hijo mío, en mis tiempos a eso lo llamábamos «funcionario». Firmo. Con buena letra." },
+				{ S = "Abu", T = "¿Firmar por un señor que brilla y lleva cuarenta formularios? Cariño, en mis tiempos a eso lo llamábamos «funcionario». Firmo. Con buena letra." },
 				{ S = "Abu", T = "Y pon que es un señor muy educado. Una vez me ayudó con la declaración de la renta. De 1974. Ni sé cómo." },
 			} },
 			FirmaPip = { Lines = {

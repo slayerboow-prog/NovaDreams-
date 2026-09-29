@@ -33,6 +33,7 @@ local Theme = require(script.Parent.Theme)
 local Icons = require(script.Parent.Icons)
 local HudLayout = require(script.Parent.HudLayout)
 local TouchLayout = require(script.Parent.TouchLayout)
+local Dialog = require(script.Parent.Dialog)
 
 local create = Theme.create
 local setText = Theme.setText
@@ -691,6 +692,40 @@ end
 local questWindow: Frame? = nil
 local questList: Frame? = nil
 
+-- Móvil: las ventanas del HUD (menú, controles, misiones) salían a la escala del HUD (0,4-0,5, texto de
+-- 7 px): se agrandan hasta la de las ventanas de UI/Dialog sin salirse de la pantalla, y su ✖ mide
+-- al menos ~36 px en pantalla.
+local function touchPopup(panel: GuiObject, close: GuiObject?)
+	if not TOUCH then
+		return
+	end
+	local camera = workspace.CurrentCamera
+	local closeSide = if close then close.Size.X.Offset else 0
+	local function apply()
+		local view = camera.ViewportSize
+		local hud = HudLayout.scaleFor(view)
+		local size = panel.Size
+		local want = math.min(Dialog.baseScale(), (view.Y - 60) / math.max(size.Y.Offset, 1), (view.X - 24) / math.max(size.X.Offset, 1))
+		local k = math.max(1, want / hud)
+		Theme.setBaseScale(panel, k)
+		if close then
+			local side = math.max(closeSide, math.ceil(36 / (hud * k)))
+			close.Size = UDim2.fromOffset(side, side)
+			-- (el aspa crece con el botón)
+			for _, icon in close:GetChildren() do
+				if icon:IsA("Frame") then
+					icon.Size = UDim2.fromScale(0.45, 0.45)
+				end
+			end
+		end
+	end
+	local connection = camera:GetPropertyChangedSignal("ViewportSize"):Connect(apply)
+	panel.Destroying:Connect(function()
+		connection:Disconnect()
+	end)
+	apply()
+end
+
 local function openQuests()
 	questPending = false
 	if questWindow and questWindow.Parent then
@@ -699,6 +734,8 @@ local function openQuests()
 		paintMission()
 		return
 	end
+	-- Una sola ventana grande a la vez (menú, controles, tienda…)
+	Dialog.closeOthers("Quests")
 	local window = Theme.hudPanel({
 		Name = "Quests",
 		AnchorPoint = Vector2.new(0.5, 0.5),
@@ -716,6 +753,7 @@ local function openQuests()
 	})
 	Icons.plus({ AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(16, 16), Rotation = 45, Parent = close })
 	close.Activated:Connect(openQuests)
+	touchPopup(window, close)
 	local scroll = create("ScrollingFrame", {
 		Position = UDim2.fromOffset(16, 52),
 		Size = UDim2.new(1, -32, 1, -120),
@@ -1122,6 +1160,24 @@ local function buildPhone(parent: Instance)
 	close.Activated:Connect(function()
 		setQuickOpen(false)
 	end)
+	if TOUCH then
+		-- Móvil: con 26 unidades el botón medía 10-13 px. Ahora ~36 px en pantalla, dentro de la
+		-- esquina (fuera tapaba la misión o se salía); las apps van en una columna a su izquierda.
+		local grid = phoneGrid:FindFirstChildOfClass("UIGridLayout") :: UIGridLayout
+		HudLayout.onChanged(function(layout)
+			local side = math.ceil(36 / layout.Scale)
+			close.AnchorPoint = Vector2.new(1, 0)
+			close.Position = UDim2.new(1, -4, 0, 4)
+			close.Size = UDim2.fromOffset(side, side)
+			for _, icon in close:GetChildren() do
+				if icon:IsA("Frame") then
+					icon.Size = UDim2.fromScale(0.45, 0.45)
+				end
+			end
+			phoneGrid.Size = UDim2.new(1, -16 - side - 4, 1, -16)
+			grid.CellSize = UDim2.new(1, -3, 0, 50)
+		end)
+	end
 
 	-- Botón del teléfono: abre el menú rápido cuando está cerrado
 	phoneButton = create("TextButton", { Name = "PhoneButton", BackgroundColor3 = H.Navy, BackgroundTransparency = 0.25, Text = "", ZIndex = 20, Parent = parent }, {
@@ -1204,6 +1260,7 @@ local function popupPanel(name: string, title: string, iconName: string, size: V
 	close.Activated:Connect(function()
 		panel.Visible = false
 	end)
+	touchPopup(panel, close)
 	local content = create("Frame", { Name = "Content", Position = UDim2.fromOffset(16, 50), Size = UDim2.new(1, -32, 1, -62), BackgroundTransparency = 1, Parent = panel })
 	return panel, content
 end
@@ -1244,19 +1301,37 @@ local function buildMenu()
 	create("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder, Parent = content })
 	local controls = Theme.button({ Size = UDim2.new(1, 0, 0, 36), Text = "🎮 Controles", TextSize = 15, LayoutOrder = 50, ZIndex = 31, Parent = content })
 	controls.Activated:Connect(function()
-		menu.Visible = false
+		Dialog.closeOthers("Controls")
 		controlsPanel.Visible = true
 		Theme.pop(controlsPanel, 1.04)
 	end)
 	actions.Menu = function()
+		if not menu.Visible then
+			-- Una sola ventana grande a la vez: fuera los controles, las misiones o la tienda
+			Dialog.closeOthers("Menu")
+		end
 		menu.Visible = not menu.Visible
 		if menu.Visible then
 			Theme.pop(menu, 1.04)
 		end
 	end
 	actions.Controles = function()
+		if not controlsPanel.Visible then
+			Dialog.closeOthers("Controls")
+		end
 		controlsPanel.Visible = not controlsPanel.Visible
 	end
+	Dialog.registerBig("Menu", function()
+		menu.Visible = false
+	end)
+	Dialog.registerBig("Controls", function()
+		controlsPanel.Visible = false
+	end)
+	Dialog.registerBig("Quests", function()
+		if questWindow and questWindow.Parent then
+			openQuests() -- (con la ventana abierta, la cierra)
+		end
+	end)
 end
 
 -- Añade una opción al menú (la usa el cliente para la música, los sonidos, la ropa…)
@@ -1498,6 +1573,10 @@ function Hud.init(openStore: () -> ()): ScreenGui
 	-- "no tienes dinero" quedaba escondido detrás de la ventana y parecía que el botón no hacía nada
 	local toastGui = create("ScreenGui", { Name = "HudToasts", ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = 9, Parent = playerGui })
 	local toastScale = create("UIScale", { Scale = scale.Scale, Parent = toastGui })
+	if TOUCH then
+		HudLayout.boostText(toastGui)
+		toastGui.DescendantAdded:Connect(HudLayout.boostText) -- (móvil: avisos más legibles)
+	end
 	scale:GetPropertyChangedSignal("Scale"):Connect(function()
 		toastScale.Scale = scale.Scale
 	end)

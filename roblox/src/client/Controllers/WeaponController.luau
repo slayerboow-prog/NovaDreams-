@@ -891,6 +891,21 @@ function WeaponController.init()
 		Callback = WeaponController.cycleMode,
 	})
 	TouchLayout.register({ Id = "Guardar", Icon = "bajarse", Label = "Guardar", Priority = 13, Visible = armed, Callback = WeaponController.holster })
+	-- Móvil: con mira telescópica no había forma de contener la respiración (en el ordenador es Mayús).
+	-- Mientras apuntas con mira sale «Respirar»: mantenlo pulsado para que la mira no se mueva.
+	TouchLayout.register({
+		Id = "Respirar", Icon = "esquivar", Label = "Respirar", Priority = 2,
+		Visible = function()
+			local w = weapon()
+			return TouchLayout.isTouch() and w ~= nil and w.Scope == true and wantAim
+		end,
+		Active = function()
+			return holdBreath
+		end,
+		Hold = function(down: boolean)
+			holdBreath = down
+		end,
+	})
 
 	RunService:BindToRenderStep("WeaponCamera", Enum.RenderPriority.Camera.Value + 1, function(dt)
 		local ok, err = pcall(frame, dt)

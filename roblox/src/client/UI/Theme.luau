@@ -185,6 +185,34 @@ function Theme.button(props: { [string]: any }): TextButton
 	return button
 end
 
+-- ¿Solo pantalla táctil (móvil o tableta sin teclado)?
+function Theme.isTouch(): boolean
+	return TOUCH_ONLY
+end
+
+-- Móvil: un texto importante nunca por debajo de min (en unidades de su pantalla)
+function Theme.touchText(label: TextLabel | TextButton, min: number)
+	if TOUCH_ONLY and label.TextSize < min then
+		label.TextSize = min
+	end
+end
+
+-- Escala de una pantalla en el móvil: suelo 0.8 (con 0.6 los textos salían de 7-10 px), pero cada
+-- ventana de tamaño fijo tiene que caber entera; si no, se baja lo justo (nunca de 0.5).
+local function touchFitScale(gui: ScreenGui, base: number, viewport: Vector2): number
+	local s = base
+	for _, child in gui:GetChildren() do
+		-- (los paneles de trabajo se recortan solos: UI/HudLayout.jobPanel)
+		if child:IsA("GuiObject") and child:GetAttribute("JobPanel") == nil and child.Size.X.Scale == 0 and child.Size.Y.Scale == 0 then
+			local w, h = child.Size.X.Offset, child.Size.Y.Offset
+			if w > 0 and h > 0 then
+				s = math.min(s, (viewport.Y - 70) / h, (viewport.X - 24) / w)
+			end
+		end
+	end
+	return math.max(s, 0.5)
+end
+
 -- Encoge una pantalla en móviles pequeños (los paneles tienen tamaño fijo en píxeles)
 function Theme.fit(gui: ScreenGui)
 	local scale = Instance.new("UIScale")
@@ -192,10 +220,59 @@ function Theme.fit(gui: ScreenGui)
 	local camera = workspace.CurrentCamera
 	local function rescale()
 		local size = camera.ViewportSize
-		scale.Scale = math.clamp(math.min(size.Y / 820, size.X / 1300), 0.6, 1)
+		if TOUCH_ONLY then
+			scale.Scale = touchFitScale(gui, math.clamp(math.min(size.Y / 820, size.X / 1300), 0.8, 1), size)
+		else
+			scale.Scale = math.clamp(math.min(size.Y / 820, size.X / 1300), 0.6, 1)
+		end
 	end
 	camera:GetPropertyChangedSignal("ViewportSize"):Connect(rescale)
+	if TOUCH_ONLY then
+		-- Las ventanas se crean después: se vuelve a mirar si caben
+		gui.ChildAdded:Connect(function()
+			task.defer(rescale)
+		end)
+	end
 	rescale()
+end
+
+-- Escala de las ventanas emergentes (minijuegos, clase, conversación, mochila): como antes en el
+-- ordenador (alto / 850, suelo 0.65); en el móvil suelo 0.8 para leer bien, pero si alguna de las
+-- ventanas vigiladas (con su margen de abajo, en unidades) no cabe, se reduce lo justo.
+function Theme.popupScale(gui: ScreenGui, watched: { { Frame: GuiObject, Margin: number? } }?): UIScale
+	local scale = Instance.new("UIScale")
+	scale.Parent = gui
+	local camera = workspace.CurrentCamera
+	local list = watched or {}
+	local function rescale()
+		local view = camera.ViewportSize
+		if not TOUCH_ONLY then
+			scale.Scale = math.clamp(view.Y / 850, 0.65, 1.25)
+			return
+		end
+		local s = math.clamp(view.Y / 850, 0.8, 1.25)
+		for _, entry in list do
+			local abs = entry.Frame.AbsoluteSize
+			if typeof(abs) == "Vector2" and abs.Y > 0 and scale.Scale > 0 then
+				-- tamaño "natural" (sin esta escala) de la ventana
+				local natural = abs / scale.Scale
+				s = math.min(s, (view.Y - 70) / (natural.Y + (entry.Margin or 0)), (view.X - 24) / natural.X)
+			end
+		end
+		s = math.max(s, 0.5)
+		-- (con margen: el tamaño en píxeles se redondea y no queremos que la escala baile)
+		if math.abs(s - scale.Scale) > 0.01 then
+			scale.Scale = s
+		end
+	end
+	camera:GetPropertyChangedSignal("ViewportSize"):Connect(rescale)
+	if TOUCH_ONLY then
+		for _, entry in list do
+			entry.Frame:GetPropertyChangedSignal("AbsoluteSize"):Connect(rescale)
+		end
+	end
+	rescale()
+	return scale
 end
 
 ---------------------------------------------------------------------
@@ -307,25 +384,39 @@ local function scalerOf(object: GuiObject): UIScale
 	return scale :: UIScale
 end
 
+-- Tamaño base de un objeto (1 = normal). Un objeto solo admite un UIScale: así el salto y el pulsado
+-- no le quitan el tamaño que se le haya dado (p. ej. ventanas del HUD agrandadas en el móvil).
+local function baseOf(scale: UIScale): number
+	local base = scale:GetAttribute("Base")
+	return if type(base) == "number" then base else 1
+end
+
+function Theme.setBaseScale(object: GuiObject, value: number)
+	local scale = scalerOf(object)
+	scale:SetAttribute("Base", value)
+	scale.Scale = value
+end
+
 -- Al pulsar se encoge un poco y vuelve al soltar
 function Theme.pressable(button: GuiButton)
 	local scale = scalerOf(button)
 	button.InputBegan:Connect(function(input)
 		local kind = input.UserInputType
 		if kind == Enum.UserInputType.Touch or kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Gamepad1 then
-			TweenService:Create(scale, TweenInfo.new(0.08), { Scale = 0.9 }):Play()
+			TweenService:Create(scale, TweenInfo.new(0.08), { Scale = 0.9 * baseOf(scale) }):Play()
 		end
 	end)
 	button.InputEnded:Connect(function()
-		TweenService:Create(scale, TweenInfo.new(0.16, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
+		TweenService:Create(scale, TweenInfo.new(0.16, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = baseOf(scale) }):Play()
 	end)
 end
 
 -- Salto rápido (crece y vuelve): dinero que sube, nivel nuevo, misión cumplida…
 function Theme.pop(object: GuiObject, amount: number?)
 	local scale = scalerOf(object)
-	scale.Scale = 1
-	TweenService:Create(scale, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, true), { Scale = amount or 1.18 }):Play()
+	local base = baseOf(scale)
+	scale.Scale = base
+	TweenService:Create(scale, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, true), { Scale = (amount or 1.18) * base }):Play()
 end
 
 -- Aparece deslizándose un poco y con fundido (CanvasGroup) o solo deslizándose

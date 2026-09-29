@@ -299,8 +299,7 @@ local function steal(thief: Player, victim: any)
 	-- Recién aparecido, sentado (en un vehículo o una silla) o en una zona segura: no se le roba
 	local CombatService = require(script.Parent.CombatService) :: any
 	local WeaponService = require(script.Parent.WeaponService) :: any
-	local vh = victim.Character and victim.Character:FindFirstChildOfClass("Humanoid")
-	if (vh and vh.SeatPart) or CombatService.isProtected(victim) or WeaponService.safeSpot(vr.Position) or WeaponService.safeSpot(tr.Position) then
+	if CombatService.isProtected(victim) or WeaponService.safeSpot(vr.Position) or WeaponService.safeSpot(tr.Position) then
 		Notify:FireClient(thief, "Error", "Aquí no puedes robar.")
 		return
 	end

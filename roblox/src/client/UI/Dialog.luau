@@ -25,8 +25,7 @@ local function root(): ScreenGui
 		local scale = create("UIScale", { Parent = g })
 		local camera = workspace.CurrentCamera
 		local function rescale()
-			-- Suelo bajo (0.4): en móviles pequeños la escala base no debe dejar la ventana fuera.
-			scale.Scale = math.clamp(camera.ViewportSize.Y / 850, 0.4, 1.25)
+			scale.Scale = Dialog.baseScale()
 			-- Cada ventana grande se encoge un poco más si aún no cabe.
 			for _, child in g:GetChildren() do
 				local fit = child:FindFirstChild("FitScale")
@@ -40,6 +39,38 @@ local function root(): ScreenGui
 		rescale()
 	end
 	return gui :: ScreenGui
+end
+
+-- Escala base de las ventanas. Ordenador: alto / 850 (suelo 0.4). Móvil: con alto / 850 salían a
+-- 0.42-0.46 (texto de ~7 px); ahora mínimo 0.6. Lo que no quepa lo encoge FitScale en cada ventana.
+function Dialog.baseScale(): number
+	local viewport = workspace.CurrentCamera.ViewportSize
+	if Theme.isTouch() then
+		return math.clamp(math.min(viewport.Y / 560, viewport.X / 1000), 0.6, 1.25)
+	end
+	return math.clamp(viewport.Y / 850, 0.4, 1.25)
+end
+
+---------------------------------------------------------------------
+-- Paneles grandes: el menú, los controles, las misiones, la tienda y las ventanas de aquí.
+-- Al abrir uno se cierran los demás, para que no se amontonen (en el móvil no se ve nada debajo).
+---------------------------------------------------------------------
+local bigPanels: { [string]: () -> () } = {}
+
+function Dialog.registerBig(name: string, close: () -> ())
+	bigPanels[name] = close
+end
+
+-- Cierra todos los paneles grandes menos `except`
+function Dialog.closeOthers(except: string?)
+	for name, close in bigPanels do
+		if name ~= except then
+			local ok, err = pcall(close)
+			if not ok then
+				warn("[Dialog] " .. tostring(err))
+			end
+		end
+	end
 end
 
 -- Encoge una ventana para que quepa entera en pantalla: alto menos la barra de Roblox (~60)
@@ -65,6 +96,8 @@ function Dialog.window(name: string, title: string, size: Vector2): (Frame, Fram
 	if existing then
 		existing:Destroy()
 	end
+	-- Fuera el menú, los controles, las misiones o la tienda que hubiera abiertos
+	Dialog.closeOthers(name)
 	local window = Theme.panel({
 		Name = name,
 		AnchorPoint = Vector2.new(0.5, 0.5),
@@ -81,7 +114,7 @@ function Dialog.window(name: string, title: string, size: Vector2): (Frame, Fram
 	end)
 	Theme.label({
 		Name = "Title",
-		Size = UDim2.new(1, -60, 0, 40),
+		Size = UDim2.new(1, if Theme.isTouch() then -76 else -60, 0, 40),
 		Position = UDim2.fromOffset(16, 8),
 		Text = title,
 		Font = Theme.FontBold,
@@ -92,9 +125,11 @@ function Dialog.window(name: string, title: string, size: Vector2): (Frame, Fram
 	local close = Theme.button({
 		Name = "Close",
 		AnchorPoint = Vector2.new(1, 0),
-		Size = UDim2.fromOffset(36, 36),
+		-- (móvil: ~36 px en pantalla también con la escala mínima 0.6)
+		Size = if Theme.isTouch() then UDim2.fromOffset(50, 50) else UDim2.fromOffset(36, 36),
 		Position = UDim2.new(1, -10, 0, 10),
 		Text = "✖",
+		TextSize = if Theme.isTouch() then 22 else 16,
 		Parent = window,
 	})
 	local content = create("Frame", {
@@ -113,8 +148,23 @@ end
 -- Pregunta con varias respuestas. Espera hasta que el jugador elige (o cierra: nil).
 function Dialog.choose(title: string, body: string?, options: { string }): number?
 	local height = 90 + (if body then 60 else 0) + #options * 54
-	local window, content = Dialog.window("Choose", title, Vector2.new(460, height))
-	local list = create("Frame", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Parent = content })
+	-- Con muchas opciones la ventana no crece más que la pantalla: la lista se desplaza
+	-- (antes FitScale la encogía hasta que el texto no se leía)
+	local viewport = workspace.CurrentCamera.ViewportSize
+	local maxHeight = math.max(240, math.floor((viewport.Y - 60) / Dialog.baseScale()))
+	local window, content = Dialog.window("Choose", title, Vector2.new(460, math.min(height, maxHeight)))
+	local list = create("ScrollingFrame", {
+		Name = "Options",
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		ScrollBarThickness = 6,
+		AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		CanvasSize = UDim2.new(),
+		ScrollingDirection = Enum.ScrollingDirection.Y,
+		Parent = content,
+	})
+	create("UIPadding", { PaddingRight = UDim.new(0, if height > maxHeight then 10 else 0), Parent = list })
 	create("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder, Parent = list })
 	if body then
 		Theme.label({
@@ -158,6 +208,16 @@ function Dialog.choose(title: string, body: string?, options: { string }): numbe
 	end
 	done:Destroy()
 	return result
+end
+
+-- Cierra todas las ventanas de aquí menos `except` (y los paneles grandes)
+function Dialog.closeAll(except: string?)
+	Dialog.closeOthers(except)
+	for _, child in root():GetChildren() do
+		if child:IsA("GuiObject") and child.Name ~= except then
+			child:Destroy()
+		end
+	end
 end
 
 function Dialog.close(name: string)

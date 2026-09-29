@@ -124,7 +124,7 @@ local QuestionBank: { [string]: { Question } } = {
 		{ Q = "¿Por qué se apagó el Faro de la Punta?", A = { "Porque llegó el GPS", "Por una gran tormenta", "Porque cerró la playa", "Porque se rompió la torre" } },
 		{ Q = "¿Cómo se llama el antiguo farero de Playa Dorada?", A = { "Bernardo", "Ernesto", "Paco", "Mateo" } },
 		{ Q = "Según la leyenda, ¿qué pasará si el faro vuelve a encenderse?", A = { "Volverán las ballenas", "Lloverá durante un año", "Nevará en la playa", "Volverá el tren" } },
-		{ Q = "¿Alrededor de qué fábrica creció San Roque?", A = { "La Conservera Robles", "Tecnoval", "Grupo Altamar", "Banco Valmar" } },
+		{ Q = "¿Alrededor de qué fábrica creció San Roque?", A = { "La Conservera Robles", "TecnoVal", "Grupo Altamar", "Banco Valmar" } },
 		{ Q = "¿Qué hay hoy en el edificio de la antigua conservera?", A = { "El Mercado de San Roque", "La Universidad de Valmar", "El Estadio Altamar", "La Cafetería Central" } },
 		{ Q = "¿Qué vende Paco Almansa en el Mercado de San Roque?", A = { "Fruta", "Pescado", "Libros", "Zapatos" } },
 		{ Q = "¿Qué unía la conservera con la costa y Villaverde?", A = { "Un tren de mercancías", "Un teleférico", "Un canal de agua", "Una línea de aviones" } },

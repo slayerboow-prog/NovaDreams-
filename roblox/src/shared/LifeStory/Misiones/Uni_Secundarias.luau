@@ -163,7 +163,7 @@ return {
 			Final = { Lines = {
 				{ S = "Ines", T = "Buenas noches, chavales. Me han llamado por… ¿un señor mayor bailando twist en el rellano? ¿Está todo bien?", If = { Flags = { "FiestaTranquila" } } },
 				{ S = "Ines", T = "Buenas noches. Tenemos una queja por ruido. Música más baja, y a las doce se acaba. No me hagáis volver.", If = { NotFlags = { "FiestaTranquila" } } },
-				{ S = "Ines", T = "¿Otra vez tú? Siempre estás donde pasan cosas raras. …Esta vez es solo una fiesta. Qué alivio." },
+				{ S = "Ines", T = "Siempre hay jaleo donde hay estudiantes. …Esta vez es solo una fiesta. Qué alivio." },
 				{ S = "Pablo", T = "(tocando la guitarra, bajito) Esta canción se llama «Fiesta en casa de Adrián». La acabo de inventar. Tiene tres acordes y un vecino." },
 				{ S = "Narrador", T = "A la una volvéis andando a la residencia. Iván lleva a Candela a caballito. Nadie sabe por qué. Nadie pregunta." },
 			} },
@@ -333,7 +333,7 @@ return {
 		Id = "UniS_Pabellon0",
 		Kind = "Side",
 		Title = "El pabellón que no sale en los mapas",
-		Description = "En un mapa antiguo del campus, en la biblioteca, hay un edificio que no aparece en ningún otro: el «Pabellón 0». Candela dice que es un error de impresión. Tú no estás tan seguro.",
+		Description = "En un mapa antiguo del campus, en la biblioteca, hay un edificio que no aparece en ningún otro: el «Pabellón 0». Candela dice que es un error de impresión. Tú no lo tienes tan claro.",
 		Type = "Universidad · Lugares abandonados",
 		Duration = { 20, 25 },
 		Npcs = { "Candela", "Ivan", "AgenteGris1" },

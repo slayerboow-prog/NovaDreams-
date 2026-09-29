@@ -63,13 +63,6 @@ local function build()
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 		Parent = player:WaitForChild("PlayerGui"),
 	})
-	local scale = create("UIScale", { Parent = gui })
-	local camera = workspace.CurrentCamera
-	local function rescale()
-		scale.Scale = math.clamp(camera.ViewportSize.Y / 850, 0.65, 1.25)
-	end
-	camera:GetPropertyChangedSignal("ViewportSize"):Connect(rescale)
-	rescale()
 
 	-- Panel de preguntas: abajo en el centro, sin tapar al personaje
 	panel = Theme.panel({
@@ -81,6 +74,8 @@ local function build()
 		Visible = false,
 		Parent = gui,
 	})
+	-- Escala: suelo 0.8 en el móvil (texto legible) sin que el panel se salga por arriba
+	Theme.popupScale(gui, { { Frame = panel, Margin = 86 } })
 	Theme.padding(12).Parent = panel
 	create("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder, Parent = panel })
 	header = Theme.label({
@@ -114,6 +109,7 @@ local function build()
 		LayoutOrder = 4,
 		Parent = panel,
 	})
+	Theme.touchText(question, 19)
 	local grid = create("Frame", {
 		Size = UDim2.new(1, 0, 0, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
@@ -135,6 +131,7 @@ local function build()
 			LayoutOrder = i,
 			Parent = grid,
 		})
+		Theme.touchText(button, 17)
 		create("UIPadding", { PaddingLeft = UDim.new(0, 6), PaddingRight = UDim.new(0, 6), Parent = button })
 		button.Activated:Connect(function()
 			if chosen or currentIndex == 0 then

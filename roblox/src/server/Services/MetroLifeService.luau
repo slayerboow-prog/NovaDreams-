@@ -517,7 +517,8 @@ local SETUP: { [string]: (BasePart) -> () } = {
 			turning = t
 			t:Play()
 			if open then
-				if ready(player, door, 120) and math.random() < LIFE.LockerCoinChance then
+				-- La pausa es por jugador, no por taquilla: antes se iba de taquilla en taquilla sacando monedas
+				if ready(player, "Locker", 120) and math.random() < LIFE.LockerCoinChance then
 					DataService.addMoney(player, 1, false)
 					Notify:FireClient(player, "Success", "🔓 ¡Alguien se dejó una moneda! +" .. Format.money(1))
 				else

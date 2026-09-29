@@ -586,17 +586,22 @@ function CombatController.init()
 	local function canFight(): boolean
 		return CombatController.canAttack()
 	end
-	TouchLayout.register({ Id = "Ataque", Icon = "espada", Label = "Ataque", Slot = "Ataque", Priority = 3, Key = "X", Pad = "RB", Visible = canFight, Callback = CombatController.attack })
+	-- Móvil: con un arma en la mano, Disparar, Apuntar y Recargar ocupan los huecos de golpear, defender
+	-- y fijar; si estos pasaban a la columna de contexto la llenaban y echaban a otros (linterna, foto…)
+	local function canPunch(): boolean
+		return canFight() and (not TouchLayout.isTouch() or player:GetAttribute("Weapon") == nil)
+	end
+	TouchLayout.register({ Id = "Ataque", Icon = "espada", Label = "Ataque", Slot = "Ataque", Priority = 3, Key = "X", Pad = "RB", Visible = canPunch, Callback = CombatController.attack })
 	TouchLayout.register({
 		Id = "Defender", Icon = "escudo", Label = "Defensa", Slot = "Defender", Priority = 4, Key = "Z", Pad = "LB",
-		Visible = canFight,
+		Visible = canPunch,
 		Active = CombatController.isBlocking,
 		Hold = function(down: boolean)
 			CombatController.setBlocking(down)
 		end,
 	})
 	TouchLayout.register({ Id = "Esquivar", Icon = "esquivar", Label = "Esquivar", Slot = "Esquivar", Priority = 5, Key = "Q", Pad = "B", Visible = canFight, Callback = CombatController.dodge })
-	TouchLayout.register({ Id = "Fijar", Icon = "objetivo", Label = "Fijar", Slot = "Fijar", Priority = 6, Key = "V", Pad = "R3", Visible = canFight, Active = CombatController.isLocked, Callback = CombatController.toggleLock })
+	TouchLayout.register({ Id = "Fijar", Icon = "objetivo", Label = "Fijar", Slot = "Fijar", Priority = 6, Key = "V", Pad = "R3", Visible = canPunch, Active = CombatController.isLocked, Callback = CombatController.toggleLock })
 
 	player:GetAttributeChangedSignal("KO"):Connect(function()
 		local ko = player:GetAttribute("KO") == true

@@ -134,6 +134,7 @@ local function file(player: Player, window: BasePart)
 end
 
 -- Inspección: un agente de servicio junto a quien no ha declarado
+local INSPECTION_GAP = 120
 local lastInspection: { [number]: number } = {}
 local function inspect(agent: Player, target: any)
 	if typeof(target) ~= "Instance" or not target:IsA("Player") or target == agent or agent:GetAttribute("Job") ~= "Hacienda" then
@@ -143,13 +144,17 @@ local function inspect(agent: Player, target: any)
 	if not a or not b or (a.Position - b.Position).Magnitude > 10 then
 		return
 	end
+	-- Mismo sitio (misma casa o edificio, o los dos fuera): no vale teletransportarse a su lado
+	if agent:GetAttribute("InteriorKey") ~= target:GetAttribute("InteriorKey") then
+		return
+	end
 	if not target:GetAttribute("TaxOverdue") then
 		Notify:FireClient(agent, "Info", target.DisplayName .. " está al día con Hacienda.")
 		return
 	end
 	-- (una inspección por persona cada 2 minutos: antes se podía repetir sin parar)
 	local key = target.UserId
-	if lastInspection[key] and os.clock() - lastInspection[key] < 120 then
+	if lastInspection[key] and os.clock() - lastInspection[key] < INSPECTION_GAP then
 		Notify:FireClient(agent, "Info", target.DisplayName .. " ya ha sido inspeccionado hace poco.")
 		return
 	end
@@ -244,6 +249,13 @@ function TaxService.init()
 	task.spawn(function()
 		while true do
 			task.wait(TICK)
+			-- Las inspecciones ya pasadas de la pausa no hacen falta (la tabla no crece sin fin)
+			local now = os.clock()
+			for key, at in lastInspection do
+				if now - at >= INSPECTION_GAP then
+					lastInspection[key] = nil
+				end
+			end
 			for _, player in Players:GetPlayers() do
 				local tax = taxOf(player)
 				if tax then

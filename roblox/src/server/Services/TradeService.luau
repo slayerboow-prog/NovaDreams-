@@ -163,12 +163,37 @@ local function stillHas(side: Side): boolean
 	return data ~= nil and data.Money >= side.Money
 end
 
-local function saveBoth(a: Player, b: Player)
+-- Guardar tras un trato, pero sin inundar el DataStore: como mucho una vez cada SAVE_GAP segundos
+-- por jugador (Roblox no deja escribir la misma clave más a menudo). Si se pide antes, se guarda
+-- una sola vez al acabar la pausa (comprar y vender sin parar ya no lanza un guardado por clic)
+local SAVE_GAP = 6
+local savedAt: { [Player]: number } = {}
+local savePending: { [Player]: boolean } = {}
+
+local function saveSoon(player: Player)
 	local save = (DataService :: any).save
-	if save then
-		task.spawn(pcall, save, a)
-		task.spawn(pcall, save, b)
+	if not save or savePending[player] then
+		return
 	end
+	local wait = SAVE_GAP - (os.clock() - (savedAt[player] or -math.huge))
+	if wait <= 0 then
+		savedAt[player] = os.clock()
+		task.spawn(pcall, save, player)
+		return
+	end
+	savePending[player] = true
+	task.delay(wait, function()
+		savePending[player] = nil
+		if player.Parent then
+			savedAt[player] = os.clock()
+			pcall(save, player)
+		end
+	end)
+end
+
+local function saveBoth(a: Player, b: Player)
+	saveSoon(a)
+	saveSoon(b)
 end
 
 -- Hace el intercambio de golpe: o todo o nada
@@ -239,6 +264,11 @@ local function execute(session: Session)
 	saveBoth(a.Player, b.Player)
 end
 
+-- Una invitación a la misma persona cada INVITE_GAP segundos (si no, se le llena la pantalla de
+-- ventanas). Por UserId de quien invita y de quien recibe.
+local INVITE_GAP = 30
+local invitedAt: { [string]: number } = {}
+
 local function onRequest(player: Player, userId: any)
 	if typeof(userId) ~= "number" or sessionOf[player] or not allowed(player) then
 		return
@@ -259,6 +289,12 @@ local function onRequest(player: Player, userId: any)
 		Notify:FireClient(player, "Info", nameOf(target) .. " no puede intercambiar ahora.")
 		return
 	end
+	local pair = player.UserId .. ">" .. target.UserId
+	if os.clock() - (invitedAt[pair] or -math.huge) < INVITE_GAP then
+		Notify:FireClient(player, "Info", ("Ya has invitado a %s hace poco. Espera un poco."):format(nameOf(target)))
+		return
+	end
+	invitedAt[pair] = os.clock()
 	invites[target] = { From = player, Until = os.clock() + Trade.InviteSeconds }
 	Remote:FireClient(target, "Invite", { Name = nameOf(player), UserId = player.UserId, Seconds = Trade.InviteSeconds })
 	Notify:FireClient(player, "Info", ("Invitación enviada a %s. Esperando…"):format(nameOf(target)))
@@ -279,6 +315,7 @@ local function onAnswer(player: Player, userId: any, yes: any)
 		Notify:FireClient(from, "Info", nameOf(player) .. " no quiere intercambiar ahora.")
 		return
 	end
+	invitedAt[from.UserId .. ">" .. player.UserId] = nil -- (ha aceptado: puede volver a invitarle cuando quiera)
 	if sessionOf[player] or sessionOf[from] or not allowed(player) or not allowed(from, true) then
 		return
 	end
@@ -528,6 +565,9 @@ end
 
 function TradeService.init()
 	local lastMarket: { [Player]: number } = {}
+	-- Comprar en el mercadillo: una compra cada BUY_GAP segundos por jugador (cada una guarda)
+	local BUY_GAP = 1.5
+	local lastBuy: { [Player]: number } = {}
 	Remote.OnServerEvent:Connect(function(player, action, a, b, c)
 		if action == "Request" then
 			onRequest(player, a)
@@ -551,11 +591,19 @@ function TradeService.init()
 		elseif action == "Unlist" then
 			onUnlist(player, a)
 		elseif action == "Buy" then
+			local t = os.clock()
+			if t - (lastBuy[player] or -math.huge) < BUY_GAP then
+				Notify:FireClient(player, "Info", "Espera un momento…")
+				return
+			end
+			lastBuy[player] = t
 			onBuy(player, a)
 		end
 	end)
 	Players.PlayerRemoving:Connect(function(player)
 		lastMarket[player] = nil
+		lastBuy[player] = nil
+		savedAt[player] = nil
 		cancel(player, nameOf(player) .. " se ha ido.")
 		invites[player] = nil
 		policyCache[player] = nil

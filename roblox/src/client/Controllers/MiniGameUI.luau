@@ -55,13 +55,6 @@ local function build()
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 		Parent = player:WaitForChild("PlayerGui"),
 	})
-	local scale = create("UIScale", { Parent = gui })
-	local camera = workspace.CurrentCamera
-	local function rescale()
-		scale.Scale = math.clamp(camera.ViewportSize.Y / 850, 0.65, 1.25)
-	end
-	camera:GetPropertyChangedSignal("ViewportSize"):Connect(rescale)
-	rescale()
 
 	panel = Theme.panel({
 		Name = "MiniGame",
@@ -72,6 +65,8 @@ local function build()
 		Visible = false,
 		Parent = gui,
 	})
+	-- Escala: suelo 0.8 en el móvil (texto legible) sin que el panel se salga por arriba
+	Theme.popupScale(gui, { { Frame = panel, Margin = 90 } })
 	Theme.padding(14).Parent = panel
 	create("UIListLayout", {
 		Padding = UDim.new(0, 8),
@@ -107,6 +102,7 @@ local function build()
 		LayoutOrder = 2,
 		Parent = panel,
 	})
+	Theme.touchText(hintLabel, 17) -- (en el móvil, la pista a ~14 px)
 	bar = create("Frame", {
 		Size = UDim2.fromOffset(420, 30),
 		BackgroundColor3 = C.PanelLight,

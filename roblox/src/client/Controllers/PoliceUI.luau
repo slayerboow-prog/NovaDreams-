@@ -95,7 +95,6 @@ function PoliceUI.init()
 		Parent = gui,
 	})
 	-- En el móvil va a la izquierda para no quedar bajo los botones táctiles.
-	HudLayout.jobPanel(panel)
 	Theme.padding(8).Parent = panel
 	Theme.label({ Size = UDim2.new(1, 0, 0, 22), Text = "🚔 Policía · aviso", Font = Theme.FontBold, TextSize = 16, Parent = panel })
 	body = Theme.label({
@@ -124,6 +123,8 @@ function PoliceUI.init()
 		end,
 		Callback = siren,
 	})
+	-- Colocar el panel ya montado (en el móvil su contenido pasa a una lista que se desplaza)
+	HudLayout.jobPanel(panel)
 	updateSiren = TouchLayout.refresh
 	ContextActionService:BindAction("PoliceSiren", function(_, state)
 		if state == Enum.UserInputState.Begin and not UserInputService:GetFocusedTextBox() then

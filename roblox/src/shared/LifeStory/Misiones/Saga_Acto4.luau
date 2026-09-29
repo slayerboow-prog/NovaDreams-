@@ -95,7 +95,7 @@ return {
 				{ S = "Cosme", T = "Y me acuerdo de lo que le dije a la criatura en la furgoneta. Que no era nada. Que esperara al martes en que me convertí en perchero.", If = { Completed = { "Loco_N3_Pollo" } } },
 			} },
 			Anclaje = { Lines = {
-				{ S = "Narrador", T = "El viejo anclaje de cristal, el que clavaste de niño. Todavía brilla un poco. Cosme lo toca." },
+				{ S = "Narrador", T = "El viejo anclaje de cristal, el que clavaste hace años. Todavía brilla un poco. Cosme lo toca." },
 				{ S = "Cosme", T = "La noche de la aguja. Coser el cielo. Tú subiste al tejado del cole… no, eso no. Tú clavaste esto. Y yo… yo me sentí tan orgulloso que no supe decírtelo." },
 			} },
 			Vuelve = { Lines = {
@@ -410,7 +410,7 @@ return {
 		Steps = {
 			{ Type = "Scene", Dialogue = "Garaje", Props = { "Cosedora" },
 				Actors = { COSME, { Npc = "Cosimo", Place = "GarajeCosme", Offset = V(-3, 0, 3) }, PIP, ESCAMAS } },
-			{ Type = "Reach", Place = "Patio", Text = "Id al patio del cole: donde clavaste el primer anclaje, de niño",
+			{ Type = "Reach", Place = "Patio", Text = "Id al patio del cole: donde clavaste el primer anclaje, hace años",
 				Actors = { { Npc = "Cosme", Mode = "Follow" }, { Npc = "Cosimo", Mode = "Follow" }, { Npc = "Ivan", Mode = "Follow" }, { Npc = "Candela", Mode = "Follow" } } },
 			{ Type = "Cinematic", Id = "Saga_Final" },
 			{ Type = "Scene", Dialogue = "Final",

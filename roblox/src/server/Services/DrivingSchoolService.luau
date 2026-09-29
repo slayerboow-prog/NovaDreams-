@@ -260,20 +260,26 @@ function DrivingSchoolService.init()
 		end
 	end)
 
+	-- Suspensos por bajarse del vehículo, por si es porque se está saliendo del juego (al salir le
+	-- bajan del vehículo, a veces antes de que llegue nuestro PlayerRemoving): ahí se le devuelve
+	local droppedAt: { [Player]: { Price: number, At: number } } = {}
 	VehicleService.onDismount(function(player)
 		local session = sessions[player]
 		if session and session.Phase == "Practical" then
-			-- (un poco después: si se baja porque se sale del juego, antes le toca a PlayerRemoving
-			-- devolverle la matrícula; si no, el examen se daba por suspendido y se perdía el dinero)
-			task.defer(function()
-				if sessions[player] == session then
-					finish(player, false, "te has bajado del vehículo durante el examen.")
-				end
-			end)
+			local license = session.License and Gameplay.Licenses[session.License]
+			if license then
+				droppedAt[player] = { Price = license.Price, At = os.clock() }
+			end
+			finish(player, false, "te has bajado del vehículo durante el examen.")
 		end
 	end)
 
 	Players.PlayerRemoving:Connect(function(player)
+		local dropped = droppedAt[player]
+		droppedAt[player] = nil
+		if dropped and os.clock() - dropped.At < 1 then
+			DataService.addMoney(player, dropped.Price)
+		end
 		local session = sessions[player]
 		if session then
 			sessions[player] = nil

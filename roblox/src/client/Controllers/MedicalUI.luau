@@ -131,10 +131,11 @@ function MedicalUI.init()
 		Parent = gui,
 	})
 	-- En el móvil va a la izquierda para no quedar bajo los botones táctiles.
-	HudLayout.jobPanel(panel)
 	Theme.padding(8).Parent = panel
 	content = create("Frame", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Parent = panel })
 	create("UIListLayout", { Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder, Parent = content })
+	-- Colocar el panel ya montado (en el móvil su contenido pasa a una lista que se desplaza)
+	HudLayout.jobPanel(panel)
 	Remote.OnClientEvent:Connect(function(action, payload)
 		if action == "Case" then
 			showCase(payload)

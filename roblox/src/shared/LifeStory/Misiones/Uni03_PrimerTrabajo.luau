@@ -126,7 +126,7 @@ return {
 		Oferta_Clases = { Lines = { { S = "Narrador", T = "«Busco profe particular para mi hija Alba (9 años). Matemáticas. Mucha paciencia. Llamar a Rocío.» Hay dinosaurios dibujados en el papel." } } },
 
 		Entrevista_Lola = { Lines = {
-			{ S = "Lola", T = "¡{nombre}! ¡Mi mejor ayudante de verano! Bueno, mi único ayudante de verano. ¿Buscas trabajo? Estás contratado o contratada. Esa es la entrevista.", If = { Choices = { Empleo = "Barista" } } },
+			{ S = "Lola", T = "¡{nombre}! ¡Mi mejor ayudante de verano! Bueno, la única persona que me ayudó aquel verano. ¿Buscas trabajo? Estás contratado o contratada. Esa es la entrevista.", If = { Choices = { Empleo = "Barista" } } },
 			{ S = "Lola", T = "¿Una carta de recomendación? A ver… ¡de Paco! Si Paco dice algo bueno de alguien, es que es un santo. Contratado o contratada.", If = { Flags = { "TieneCartaRecomendacion" }, Choices = { Empleo = "Reponedor" } } },
 			{ S = "Lola", T = "Siéntate. ¿Sabes llevar tres cafés a la vez? No. Nadie sabe. Aprenderás. Empiezas el lunes." },
 			{ S = "Omar", T = "(desde la cocina) ¡Vamos a trabajar juntos! ¡Como en el festival! ¡Pero con sueldo!" },

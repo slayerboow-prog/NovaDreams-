@@ -8,7 +8,7 @@
 
 local V = Vector3.new
 
-local ADOL = { Stage = { Min = "Adolescente", Max = "Adolescente" } }
+local ADOL = { Stage = { Min = "Adolescente", Max = "Adolescente" }, NotFlags = { "CosmeSecuestrado" } } -- Cosme sale en todas: no mientras está secuestrado
 
 return {
 	---------------------------------------------------------------------
@@ -242,7 +242,7 @@ return {
 		Duration = { 15, 20 },
 		Npcs = { "Cosme", "Pip", "Omar", "Paco", "Lucia" },
 		Offer = { Place = "GarajeCosme" },
-		OfferKey = "Cosme está sentado en la puerta del garaje, con cara de perro abandonado. ¿Qué le pasa?",
+		OfferKey = "Cosme está en la puerta del garaje, con cara de perro abandonado. ¿Qué le pasa?",
 		Requires = ADOL,
 		Moment = "Ayudaste a Pip a encontrar su propósito",
 		Memory = "CrisisDePip",

@@ -245,7 +245,7 @@ local Quests: { [string]: Quest } = {
 			{ Type = "Reach", Place = "Parque", TextKey = "QUEST.MOCHILA.BUSCA" },
 			{ Type = "Reach", Place = "Colegio", TextKey = "QUEST.MOCHILA.DEVUELVE" },
 		},
-		Rewards = { Money = 40, Remember = { { Npc = "Lucia", Fact = "DevolvioMochila" } } },
+		Rewards = { Money = 15 },
 		MomentKey = "MOMENT.AYUDASTE_NINO",
 	},
 	Side_MedicinasUrgentes = {
@@ -269,7 +269,7 @@ local Quests: { [string]: Quest } = {
 		Description = "Hace buen día en Playa Dorada. Tómate un descanso: merienda algo y mira el atardecer.",
 		Offer = { Place = "Playa" },
 		OfferKey = "QUEST.PLAYA.OFFER",
-		Requires = { Hours = { From = 10, To = 21 } },
+		Requires = { Hours = { From = 18, To = 21 } },
 		Steps = {
 			{ Type = "Event", Event = "Ate", TextKey = "QUEST.PLAYA.MERIENDA" },
 			{ Type = "Wait", GameMinutes = 60, MaxSeconds = 90, TextKey = "QUEST.PLAYA.ATARDECER" },

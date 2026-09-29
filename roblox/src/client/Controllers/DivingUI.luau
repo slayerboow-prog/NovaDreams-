@@ -15,6 +15,7 @@ local TweenService = game:GetService("TweenService")
 
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Hud = require(script.Parent.Parent.UI.Hud)
+local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
 local Fishing = require(ReplicatedStorage.Shared.Fishing)
 local Format = require(ReplicatedStorage.Shared.Format)
 local SoundFx = require(script.Parent.SoundFx)
@@ -189,12 +190,49 @@ function DivingUI.init()
 	hold(up, 1)
 	hold(down, -1)
 	shootButton.Activated:Connect(shoot)
+	-- Móvil: estos botones quedaban debajo del racimo táctil (Saltar, Interactuar…). Van en la columna
+	-- de contexto de UI/TouchLayout (en huecos libres) y el marco de aquí no se usa.
+	local touch = TouchLayout.isTouch()
+	local swimmingNow, shootNow = false, false
+	if touch then
+		TouchLayout.register({
+			Id = "BucearDisparar", Icon = "disparar", Label = "Disparar", Priority = 6,
+			Visible = function()
+				return swimmingNow and shootNow
+			end,
+			Callback = shoot,
+		})
+		TouchLayout.register({
+			Id = "BucearSubir", Icon = "flecha", Label = "Subir", Priority = 7,
+			Visible = function()
+				return swimmingNow
+			end,
+			Active = function()
+				return vertical == 1
+			end,
+			Hold = function(pressed: boolean)
+				vertical = if pressed then 1 elseif vertical == 1 then 0 else vertical
+			end,
+		})
+		TouchLayout.register({
+			Id = "BucearBajar", Icon = "bajarse", Label = "Bucear", Priority = 8,
+			Visible = function()
+				return swimmingNow
+			end,
+			Active = function()
+				return vertical == -1
+			end,
+			Hold = function(pressed: boolean)
+				vertical = if pressed then -1 elseif vertical == -1 then 0 else vertical
+			end,
+		})
+	end
 	ContextActionService:BindAction("DiveDown", function(_, state)
 		vertical = if state == Enum.UserInputState.Begin then -1 else 0
 		return Enum.ContextActionResult.Pass
 	end, false, Enum.KeyCode.C, Enum.KeyCode.ButtonL2)
 	ContextActionService:BindAction("DiveShoot", function(_, state)
-		if state == Enum.UserInputState.Begin and buttons.Visible and shootButton.Visible then
+		if state == Enum.UserInputState.Begin and (buttons.Visible or shootNow) and shootButton.Visible then
 			shoot()
 			return Enum.ContextActionResult.Sink
 		end
@@ -223,7 +261,7 @@ function DivingUI.init()
 			task.wait(0.2)
 			local _, humanoid = character()
 			local swimming = humanoid ~= nil and humanoid:GetState() == Enum.HumanoidStateType.Swimming
-			buttons.Visible = swimming
+			buttons.Visible = swimming and not touch
 			if not swimming then
 				vertical = 0
 			end
@@ -241,6 +279,10 @@ function DivingUI.init()
 			local armed = tools.FusilSubmarino or tools.Arpon
 			shootButton.Visible = below and armed == true
 			target = if shootButton.Visible then pickTarget() else nil
+			if touch and (swimmingNow ~= swimming or shootNow ~= shootButton.Visible) then
+				swimmingNow, shootNow = swimming, shootButton.Visible
+				TouchLayout.refresh()
+			end
 			if target then
 				if not highlight then
 					highlight = create("Highlight", { FillTransparency = 0.6, OutlineColor = rgb(255, 230, 90), FillColor = rgb(255, 230, 90), DepthMode = Enum.HighlightDepthMode.AlwaysOnTop })

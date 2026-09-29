@@ -583,7 +583,7 @@ function PoliceService.start(player: Player)
 	player:SetAttribute("Job", "Policia")
 	dress(shift)
 	Remote:FireClient(player, "Start")
-	Notify:FireClient(player, "Success", "¡De servicio! Fuera tienes el coche patrulla (sirena: tecla K).")
+	Notify:FireClient(player, "Success", "¡De servicio! Fuera tienes el coche patrulla (sirena: botón Sirena (tecla K)).")
 	newIncident(shift)
 end
 

@@ -259,7 +259,7 @@ return {
 			{ S = "Yo", T = "Mi mochila. ¿Has visto a alguien pasar corriendo con una mochila azul?" },
 			{ S = "Alex", T = "Puede. Puede que sí. Pero la información es cara." },
 			{ S = "Alex", T = "Trato: mete tres canastas. Si las metes, te lo cuento todo." },
-			{ S = "Alex", T = "Y ya me debes una por la apuesta del otro día, que lo sé.", If = { Choices = { GrupoRecreo = "Deportistas" } } },
+			{ S = "Alex", T = "Y ya me debes una por la apuesta del otro día, que lo sé.", If = { Flags = { "ApuestaAlex" } } },
 		} },
 		Alex_Pista = { Lines = {
 			{ S = "Alex", T = "Vale, vale. Tres canastas. Un trato es un trato.", If = { Flags = { "CanastasAlex" } } },

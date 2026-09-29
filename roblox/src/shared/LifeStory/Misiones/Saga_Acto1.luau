@@ -77,7 +77,7 @@ return {
 				{ S = "Pip", T = "…Oh, no. Oh, no, no, no. Mejor que esto lo vea el señor Cosme. Mejor que no lo vea. Mejor que lo vea. Tengo un conflicto de programación." },
 			} },
 			Bigotes = { Lines = {
-				{ S = "Bigotes", T = "Humano pequeño. Deja de hacer como que no me oyes hablar. Tengo información imperial.", If = { Flags = { "BigotesHabla" } } },
+				{ S = "Bigotes", T = "Cría humana. Deja de hacer como que no me oyes hablar. Tengo información imperial.", If = { Flags = { "BigotesHabla" } } },
 				{ S = "Bigotes", T = "Miau. …Vale. Sé que sabes que hablamos. Escucha.", If = { NotFlags = { "BigotesHabla" } } },
 				{ S = "Bigotes", T = "Esa grieta del cielo ya la vi una vez. En Gatonia la llamamos «La Puerta Mal Cerrada». Por ahí entran los problemas. Las cucarachas. Los cobradores. Los que venden cosas." },
 				{ S = "Bigotes", T = "Y esta noche he oído algo al otro lado. Una voz de hombre. Muy elegante. Decía tu nombre, humano. Varias veces. Como quien cuenta monedas." },
@@ -413,10 +413,10 @@ return {
 			} },
 			Voz = { Lines = {
 				{ S = "Narrador", T = "La aguja sube como un cohete y cose el cielo, punto a punto, con hilo de luz. La grieta se cierra. Valmar entera se queda a oscuras un segundo… y vuelve la luz." },
-				{ S = "Cosme", T = "¡LO HEMOS HECHO! ¡Cosido! ¡Como un calcetín! ¡Soy un genio! ¡Somos unos genios! ¡Tú eres un genio pequeño, yo uno grande!" },
+				{ S = "Cosme", T = "¡LO HEMOS HECHO! ¡Cosido! ¡Como un calcetín! ¡Soy un genio! ¡Somos unos genios! ¡Tú eres un genio en miniatura, yo uno grande!" },
 				{ S = "Narrador", T = "Entonces, del último punto de la costura sale una voz. Elegante. Tranquila. Como un presentador de concursos a medianoche." },
 				{ S = "Cosimo", T = "Bravo, Cosme. Precioso trabajo de costura. Siempre fuiste el de las manualidades." },
-				{ S = "Cosimo", T = "Y tú… hola. Por fin te veo la cara. Qué grande estás. La última vez eras así de pequeño. Ya te he visto, Ancla. Nos veremos pronto. Las costuras… siempre se sueltan." },
+				{ S = "Cosimo", T = "Y tú… hola. Por fin te veo la cara. Qué grande estás. La última vez eras así de chiquitín o chiquitina. Ya te he visto, Ancla. Nos veremos pronto. Las costuras… siempre se sueltan." },
 				{ S = "Narrador", T = "Silencio. La costura brilla un momento y se apaga. Cosme está blanco como su bata." },
 				{ S = "Pip", T = "Señor. Tiene que contárselo. Algún día." },
 				{ S = "Cosme", T = "Algún día, Pip. No hoy. Hoy hemos cosido el cielo. Hoy… a cenar. Criatura: te quedas la aguja. Tú la has hecho funcionar. Siempre has sido tú." },

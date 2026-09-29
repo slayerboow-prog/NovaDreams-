@@ -264,7 +264,6 @@ function SupermarketUI.init()
 		Parent = gui,
 	})
 	-- En el móvil va a la izquierda para no quedar bajo los botones táctiles.
-	HudLayout.jobPanel(cartPanel)
 	Theme.padding(8).Parent = cartPanel
 	Theme.label({ Size = UDim2.new(1, 0, 0, 22), Text = "🛒 Tu carrito", Font = Theme.FontBold, TextSize = 16, Parent = cartPanel })
 	cartList = create("ScrollingFrame", {
@@ -291,6 +290,8 @@ function SupermarketUI.init()
 	})
 	Theme.corner(10).Parent = waiting
 
+	-- Colocar el panel ya montado (en el móvil su contenido pasa a una lista que se desplaza)
+	HudLayout.jobPanel(cartPanel)
 	player:GetAttributeChangedSignal("Cart"):Connect(refreshCart)
 	refreshCart()
 

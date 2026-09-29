@@ -110,7 +110,7 @@ return {
 				{ S = "Ruben", T = "Solo quería decirte… perdona. Por lo de la mochila. Lo digo en serio esta vez." },
 				{ Ask = "¿Qué le dices?", Options = {
 					{ T = "Hace mucho que te perdoné.", If = { Choices = { MochilaRuben = "Perdon" } }, Effects = { Rel = { Ruben = 15 } }, Then = {
-						{ S = "Ruben", T = "Lo sé. Por eso quería decírtelo a ti el primero." },
+						{ S = "Ruben", T = "Lo sé. Por eso quería decírtelo a ti antes que a nadie." },
 					} },
 					{ T = "Gracias por decírmelo. Empezamos de cero.", Effects = { Rel = { Ruben = 12 }, Traits = { Empatia = 1 } }, Then = {
 						{ S = "Ruben", T = "¿De cero? Trato hecho. Oye, hay función de teatro el viernes. Guardo sitio." },

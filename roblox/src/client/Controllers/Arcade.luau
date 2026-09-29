@@ -80,7 +80,8 @@ local function playBolas(token: string, info: { [string]: any })
 	local status = Theme.label({ Size = UDim2.new(1, -100, 0, 30), Position = UDim2.fromOffset(92, 10), Font = Theme.FontBold, TextSize = 20, Parent = content })
 	local total = Theme.label({ Size = UDim2.new(1, -100, 0, 40), Position = UDim2.fromOffset(92, 44), Font = Theme.FontBold, TextSize = 30, TextColor3 = C.Gold, Parent = content })
 	local history = Theme.label({ Size = UDim2.new(1, -100, 0, 80), Position = UDim2.fromOffset(92, 90), TextSize = 16, TextColor3 = C.Muted, TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top, Parent = content })
-	local throw = Theme.button({ Size = UDim2.new(1, -100, 0, 60), Position = UDim2.fromOffset(92, 240), Text = "¡LANZAR! (espacio)", TextSize = 20, BackgroundColor3 = rgb(200, 40, 160), Parent = content })
+	-- (en el móvil no hay teclas: el texto va sin «(espacio)» ni «(Q)»)
+	local throw = Theme.button({ Size = UDim2.new(1, -100, 0, 60), Position = UDim2.fromOffset(92, 240), Text = if Theme.isTouch() then "¡LANZAR!" else "¡LANZAR! (espacio)", TextSize = 20, BackgroundColor3 = rgb(200, 40, 160), Parent = content })
 
 	local powers, scores = {}, {}
 	local t, speed, power = 0, 2.4, 0
@@ -170,7 +171,8 @@ local function playCanasta(token: string, info: { [string]: any })
 		Parent = track,
 	})
 	local status = Theme.label({ Size = UDim2.new(1, 0, 0, 30), Position = UDim2.fromOffset(10, 10), Font = Theme.FontBold, TextSize = 22, TextColor3 = C.Gold, Parent = content })
-	local shoot = Theme.button({ Size = UDim2.new(1, -20, 0, 56), Position = UDim2.fromOffset(10, 140), Text = "¡TIRAR! (espacio)", TextSize = 20, BackgroundColor3 = rgb(230, 110, 40), Parent = content })
+	-- (en el móvil no hay teclas: el texto va sin «(espacio)» ni «(Q)»)
+	local shoot = Theme.button({ Size = UDim2.new(1, -20, 0, 56), Position = UDim2.fromOffset(10, 140), Text = if Theme.isTouch() then "¡TIRAR!" else "¡TIRAR! (espacio)", TextSize = 20, BackgroundColor3 = rgb(230, 110, 40), Parent = content })
 
 	local baskets, left = 0, info.Seconds
 	local t, speed, width = 0, 3, 0.18

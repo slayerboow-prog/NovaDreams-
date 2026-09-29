@@ -78,6 +78,7 @@ type Hall = {
 	Staff: Player?,
 	NpcStaff: Model?,
 	NpcLeaving: Model?, -- el taquillero NPC que se está retirando (si hace falta, vuelve él)
+	Admitted: { [Player]: boolean }?, -- quién ha entrado con entrada en esta sesión (solo ellos se llevan la recompensa)
 	NpcBusy: boolean,
 	Orders: { Order },
 	Queue: { any },
@@ -387,6 +388,9 @@ local function onDoor(player: Player, hall: Hall)
 		return
 	end
 	InventoryService.remove(player, Cinema.TicketItem, 1)
+	local admitted = hall.Admitted or {}
+	admitted[player] = true
+	hall.Admitted = admitted
 	local character = player.Character
 	if character then
 		standUpBefore(character)
@@ -396,6 +400,9 @@ local function onDoor(player: Player, hall: Hall)
 end
 
 local function onExit(player: Player, hall: Hall)
+	if hall.Admitted then
+		hall.Admitted[player] = nil -- (si sales, para volver a entrar hace falta otra entrada)
+	end
 	local character = player.Character
 	if character then
 		local humanoid = character:FindFirstChildOfClass("Humanoid")
@@ -753,6 +760,11 @@ function CinemaService.init()
 	end)
 	Players.PlayerRemoving:Connect(function(player)
 		CinemaService.quit(player, true)
+		for _, hall in halls do
+			if hall.Admitted then
+				hall.Admitted[player] = nil
+			end
+		end
 		-- Sus pedidos pendientes se quitan y se le devuelve el dinero
 		for _, hall in halls do
 			for i = #hall.Orders, 1, -1 do
@@ -778,10 +790,14 @@ function CinemaService.init()
 						spawnCustomer(hall)
 					end
 					-- Al acabar la película, los jugadores que la han visto se llevan su recompensa
+					-- Solo quien ha entrado por la puerta con su entrada en esta sesión (teletransportarse
+					-- a la sala sin entrada no cuenta)
 					if hall.LastPhase == "Film" and phase == "Break" then
+						local admitted = hall.Admitted or {}
+						hall.Admitted = {}
 						for _, player in Players:GetPlayers() do
 							local root = rootOf(player)
-							if root and inSala(hall, root.Position) then
+							if root and admitted[player] and inSala(hall, root.Position) then
 								NeedsService.change(player, 0, 10)
 								Notify:FireClient(player, "Success", "🎬 ¡Qué peliculón! Te has despejado un montón.")
 								StoryEvents.emit(player, "WatchedMovie", {})

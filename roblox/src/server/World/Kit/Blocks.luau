@@ -181,6 +181,21 @@ function Blocks.houses(parent: Instance, rect: Rect, sides: { string })
 	return m
 end
 
+-- Garaje de Cosme (el vecino inventor): en la esquina de atrás de esta manzana de casas que da a las
+-- casas familiares ("E" u "O"), con la puerta mirando a esa calle. Solo si ese rincón está libre:
+-- una fila de casas en un solo lado (N o S, fondo 56) y ninguna casa en el lado de las familiares.
+function Blocks.cosmeGarage(parent: Instance, rect: Rect, sides: { string }, toward: string)
+	local hasN, hasS = table.find(sides, "N") ~= nil, table.find(sides, "S") ~= nil
+	local width, depth = rect.X1 - rect.X0, rect.Z1 - rect.Z0
+	if hasN == hasS or depth - 56 < 34 or depth - 56 >= 46 or width < 60 then
+		return nil
+	end
+	local z = if hasS then rect.Z0 + 20 else rect.Z1 - 20
+	local x = if toward == "E" then rect.X1 - 10 else rect.X0 + 10
+	local out = Vector3.new(if toward == "E" then 1 else -1, 0, 0)
+	return Home.cosmeGarage(parent, Builder.facing(Vector3.new(x, 0, z), out))
+end
+
 -- Rellena una manzana según su tipo
 function Blocks.fill(parent: Instance, rect: Rect, kind: string, opts: { [string]: any })
 	local side = opts.Side or opts.Sides[1]
@@ -200,7 +215,11 @@ function Blocks.fill(parent: Instance, rect: Rect, kind: string, opts: { [string
 			end
 			sides = filtered
 		end
-		return Blocks.houses(parent, rect, sides)
+		local m = Blocks.houses(parent, rect, sides)
+		if opts.CosmeGarage then
+			Blocks.cosmeGarage(m, rect, sides, opts.CosmeGarage)
+		end
+		return m
 	elseif kind == "Hospital" then
 		return Civic.hospital(parent, lot, opts.TownName, false)
 	elseif kind == "Clinic" then

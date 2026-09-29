@@ -577,7 +577,7 @@ function FireService.start(player: Player)
 	player:SetAttribute("Job", "Bombero")
 	dress(shift)
 	Remote:FireClient(player, "Start")
-	Notify:FireClient(player, "Success", "¡De guardia! El camión está en la plaza amarilla (sirena: tecla K).")
+	Notify:FireClient(player, "Success", "¡De guardia! El camión está en la plaza amarilla (sirena: botón Sirena (tecla K)).")
 	newIncident(shift)
 end
 
