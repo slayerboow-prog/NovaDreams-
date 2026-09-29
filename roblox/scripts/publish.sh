@@ -47,6 +47,22 @@ upToDate() {
 upToDate
 COMMIT="$(git rev-parse --short HEAD)"
 
+# 2b. Nunca hacia atrás: cada publicación deja en GitHub una marca (etiqueta pub/<hora>-<commit>).
+#     Solo se publica si este código contiene la última versión publicada. Así, aunque dos ventanas
+#     publiquen casi a la vez, una versión vieja (la «56» después de la «57») no puede pisar a la nueva.
+lastPublished() {
+	git fetch -q origin "refs/tags/pub/*:refs/tags/pub/*" 2>/dev/null || true
+	git tag -l "pub/*" | sort -t/ -k2 -n | tail -1
+}
+notOlder() {
+	local last
+	last="$(lastPublished)"
+	if [ -n "$last" ] && ! git merge-base --is-ancestor "$last" HEAD; then
+		fail "ya está publicada una versión más nueva ($last). Haz: git pull origin $BRANCH"
+	fi
+}
+notOlder
+
 # 3. Construir el juego con este código (nunca se sube un .rbxl viejo)
 echo "Comprobando y construyendo el juego del commit $COMMIT…"
 lune run scripts/test-compile.luau
@@ -55,6 +71,7 @@ lune run scripts/build-place.luau "$FILE"
 
 # 4. Última comprobación justo antes de subir, por si otra ventana ha subido código mientras tanto
 upToDate
+notOlder
 [ "$(git rev-parse --short HEAD)" = "$COMMIT" ] || fail "el código ha cambiado durante la construcción."
 
 URL="https://apis.roblox.com/universes/v1/${ROBLOX_UNIVERSE_ID}/places/${ROBLOX_PLACE_ID}/versions?versionType=Published"
@@ -64,4 +81,7 @@ curl -sS --fail-with-body -X POST "$URL" \
 	-H "Content-Type: application/octet-stream" \
 	--data-binary @"$FILE"
 echo
+# Marca de lo publicado (para el candado 2b de las demás ventanas)
+TAG="pub/$(date -u +%s)-$COMMIT"
+git tag "$TAG" HEAD && git push -q origin "refs/tags/$TAG" || echo "⚠️ No se pudo guardar la marca $TAG en GitHub (la publicación sí se ha hecho)."
 echo "✅ Publicado (commit $COMMIT). Ábrelo en la app de Roblox del móvil."
