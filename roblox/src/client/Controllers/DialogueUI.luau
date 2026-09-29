@@ -412,7 +412,8 @@ local function showLine(line: { [string]: any })
 	local bubbled = false
 	local head = headOf(speakingModel)
 	local camera = workspace.CurrentCamera
-	if speakingModel and head and camera and (head - camera.CFrame.Position).Magnitude < BUBBLE_DISTANCE then
+	-- (lo que dices tú va en la caja de abajo: encima de tu cabeza lo taparía tu propio personaje)
+	if speakingModel and not line.Me and head and camera and (head - camera.CFrame.Position).Magnitude < BUBBLE_DISTANCE then
 		bubbled = SpeechBubbles.show(speakingModel, plainText, {
 			Name = line.Name,
 			NameColor = if line.Me then NAME_COLORS.Me:Lerp(Color3.new(0, 0, 0), 0.35) else nil,
