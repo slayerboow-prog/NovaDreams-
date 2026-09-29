@@ -321,12 +321,33 @@ function Npc.say(npc: Model, text: string?, seconds: number?)
 		local ok, at = pcall(function()
 			return npc:GetPivot().Position
 		end)
+		-- Los personajes de un encargo de la ciudad solo los ve quien lo hace (los demás los tienen
+		-- escondidos: Controllers/CityErrands): su bocadillo, igual, solo para él
+		local owner: any = nil
+		local node: Instance? = npc
+		while node and node ~= workspace do
+			owner = node:GetAttribute("ErrandOwner")
+			if owner ~= nil then
+				break
+			end
+			node = node.Parent
+		end
 		if not ok then
-			remote:FireAllClients(payload)
+			if owner ~= nil then
+				local who = Players:GetPlayerByUserId(owner)
+				if who then
+					remote:FireClient(who, payload)
+				end
+			else
+				remote:FireAllClients(payload)
+			end
 		else
 			local before = heardBy[npc]
 			local now: { [Player]: boolean } = {}
 			for _, player in Players:GetPlayers() do
+				if owner ~= nil and player.UserId ~= owner then
+					continue
+				end
 				local character = player.Character
 				local root = character and character:FindFirstChild("HumanoidRootPart")
 				local near = root ~= nil and root:IsA("BasePart") and (root.Position - at).Magnitude <= Npc.SPEECH_RANGE

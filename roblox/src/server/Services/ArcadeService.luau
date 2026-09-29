@@ -34,6 +34,10 @@ local globalTop: { [string]: { Entry } } = {}
 local names: { [number]: string } = {}
 local boards: { BasePart } = {}
 
+-- Anti-trampas: la puntuación la manda el cliente, así que el servidor pone límites
+local MAX_TICKETS_PER_HOUR = 300 -- tickets máximos por jugador y hora (la bici cuesta 600: dos horas mínimo)
+local ticketWindow: { [number]: { Start: number, Earned: number } } = {} -- por UserId (si reentra no se reinicia)
+
 local function ensure(data: { [string]: any })
 	data.Tickets = data.Tickets or 0
 	if data.Tickets ~= data.Tickets or math.abs(data.Tickets) == math.huge then
@@ -42,6 +46,17 @@ local function ensure(data: { [string]: any })
 	data.Prizes = data.Prizes or {}
 	data.Wearing = data.Wearing or {}
 	data.ArcadeBest = data.ArcadeBest or {}
+end
+
+-- Número de verdad (ni NaN ni infinito): lo manda el cliente
+local function finite(x: any): boolean
+	return typeof(x) == "number" and x == x and math.abs(x) ~= math.huge
+end
+
+-- ¿Puntuación creíble para ese juego? (número entero, finito y sin pasar del máximo posible)
+local function plausibleScore(gameId: string, score: any): boolean
+	local info = Arcade.Games[gameId]
+	return info ~= nil and finite(score) and score >= 0 and score <= info.MaxScore and score == math.floor(score)
 end
 
 local function keys(t: { [string]: any }): string
@@ -189,7 +204,8 @@ local function refreshGlobal()
 			local list = {}
 			for _, item in pages:GetCurrentPage() do
 				local userId = tonumber(item.key)
-				if userId then
+				-- (los récords imposibles que ya se colaron antes no salen en el marcador)
+				if userId and plausibleScore(gameId, item.value) then
 					table.insert(list, { Name = nameOf(userId), Score = item.value })
 				end
 			end
@@ -205,6 +221,9 @@ local function recordScore(player: Player, gameId: string, score: number)
 		return
 	end
 	ensure(data)
+	if not plausibleScore(gameId, score) then
+		return -- nada de récords imposibles (y menos en el marcador de todos los servidores)
+	end
 	local best = data.ArcadeBest[gameId] or 0
 	if score <= best then
 		return
@@ -243,11 +262,6 @@ local function startGame(player: Player, gameId: string)
 	Remote:FireClient(player, "Play", session.Token, gameId, info)
 end
 
--- Número de verdad (ni NaN ni infinito): lo manda el cliente
-local function finite(x: any): boolean
-	return typeof(x) == "number" and x == x and math.abs(x) ~= math.huge
-end
-
 local function endGame(player: Player, token: any, result: any)
 	local session = sessions[player]
 	if not session or session.Token ~= token then
@@ -272,11 +286,37 @@ local function endGame(player: Player, token: any, result: any)
 		score = math.floor(result)
 	end
 	score = math.clamp(score, 0, info.MaxScore)
+	-- Tope por tiempo: en un juego con reloj no se puede sacar más de lo que da el tiempo jugado,
+	-- y en el Lanzabolas cada bola necesita su parte del tiempo mínimo (con MinSeconds = 0 no hay control)
+	if info.MinSeconds > 0 then
+		if info.Seconds and info.Seconds > 0 then
+			score = math.min(score, math.floor(info.MaxScore * math.min(1, elapsed / info.Seconds)))
+		elseif info.Balls and info.Balls > 0 then
+			local perBall = info.MinSeconds / info.Balls
+			local maxBalls = math.min(info.Balls, math.floor(elapsed / perBall))
+			score = math.min(score, math.floor(info.MaxScore / info.Balls) * maxBalls)
+		end
+	end
 	-- La Suerte del personaje da algún ticket de más
-	local tickets = math.floor(score / info.TicketsPer * (1 + 0.02 * (player:GetAttribute("Stat_Suerte") or 0)))
+	local luck = player:GetAttribute("Stat_Suerte")
+	luck = if finite(luck) then math.clamp(luck, 0, 100) else 0
+	local tickets = math.floor(score / info.TicketsPer * (1 + 0.02 * luck))
 	if tickets ~= tickets or tickets < 0 or tickets == math.huge then
 		tickets = 0
 	end
+	-- Tope de tickets por hora (aunque la puntuación "cuele", no se puede farmear sin fin)
+	local now = os.time()
+	local window = ticketWindow[player.UserId]
+	if not window or now - window.Start >= 3600 then
+		window = { Start = now, Earned = 0 }
+		ticketWindow[player.UserId] = window
+	end
+	local capped = math.max(0, math.min(tickets, MAX_TICKETS_PER_HOUR - window.Earned))
+	if capped < tickets then
+		Notify:FireClient(player, "Info", "🎟 Has llegado al máximo de tickets por hora. ¡Vuelve más tarde!")
+	end
+	tickets = capped
+	window.Earned += tickets
 	local data = DataService.get(player)
 	if data then
 		ensure(data)
@@ -388,6 +428,15 @@ function ArcadeService.init()
 	DataService.onLoaded(function(player, data)
 		ensure(data)
 		for gameId, score in data.ArcadeBest do
+			if not plausibleScore(gameId, score) then
+				-- Récord imposible de una trampa antigua: se recorta al máximo del juego (o se quita)
+				local info = Arcade.Games[gameId]
+				score = if info and finite(score) then math.clamp(math.floor(score), 0, info.MaxScore) else nil
+				data.ArcadeBest[gameId] = score
+				if score == nil then
+					continue
+				end
+			end
 			localBest[gameId] = localBest[gameId] or {}
 			localBest[gameId][player.UserId] = { Name = player.Name, Score = score }
 		end

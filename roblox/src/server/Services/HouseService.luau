@@ -16,19 +16,6 @@ local DataService = require(script.Parent.DataService)
 local LifeService = require(script.Parent.LifeService)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 
--- Antes de llevar a alguien a otro sitio: que se levante del asiento en que vaya (coche, autobús,
--- metro). Si no, se llevaba el vehículo con él (un coche del metro acababa en la calle).
-local function standUpBefore(character: Model?)
-	local ok, who = pcall(function()
-		return character and game:GetService("Players"):GetPlayerFromCharacter(character)
-	end)
-	if ok and who then
-		pcall(function()
-			require(script.Parent.VehicleService).standUp(who)
-		end)
-	end
-end
-
 
 local HouseService = {}
 
@@ -342,6 +329,11 @@ function HouseService.sleep(player: Player, plotId: number, bed: BasePart)
 end
 
 function HouseService.goHome(player: Player)
+	-- Buscado, KO, en la cárcel o en un juicio: no vale escaparse a casa de un salto
+	if (tonumber(player:GetAttribute("Wanted")) or 0) > 0 or player:GetAttribute("KO") or player:GetAttribute("JailUntil") ~= nil or player:GetAttribute("OnTrial") then
+		Notify:FireClient(player, "Error", "🏠 Ahora no puedes ir a casa.")
+		return
+	end
 	-- Si tienes vivienda comprada (casa o piso del mapa), vas a ella
 	local PropertyService = require(script.Parent.PropertyService) :: any
 	if PropertyService.goHome(player) then
@@ -359,8 +351,11 @@ function HouseService.goHome(player: Player)
 		return
 	end
 	if root then
-		standUpBefore(player.Character)
-		player.Character:PivotTo(plot.Origin * CFrame.new(0, 4, -23.5) * CFrame.Angles(0, math.pi, 0))
+		-- (con SceneService: se baja del vehículo y, si estabas dentro de un edificio, deja de contar
+		-- que sigues dentro; antes quedaba la llave de la sala)
+		local SceneService = require(script.Parent.SceneService) :: any
+		player:SetAttribute("LiftTower", nil)
+		SceneService.teleportTo(player, (plot.Origin * CFrame.new(0, 4, -23.5)).Position)
 	end
 end
 

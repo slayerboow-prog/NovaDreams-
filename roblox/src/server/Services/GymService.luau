@@ -32,6 +32,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Gym = require(ReplicatedStorage.Shared.Gym)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Format = require(ReplicatedStorage.Shared.Format)
+local OpeningHours = require(ReplicatedStorage.Shared.OpeningHours)
 local Npc = require(script.Parent.Parent.World.Npc)
 local DataService = require(script.Parent.DataService)
 local NeedsService = require(script.Parent.NeedsService)
@@ -51,6 +52,7 @@ local NEAR_GYM = 150 -- a esta distancia de la recepción empiezan a entrenar lo
 local MONITOR_RANGE = 70 -- el monitor ayuda a los que entrenan en su gimnasio
 local NPCS_PER_GYM = 3
 local FOUNTAIN_COOLDOWN = 25
+local MACHINE_RANGE = 10 -- más lejos de la máquina que esto: ya no estás en ella (te han teletransportado…)
 
 type Session = {
 	Machine: Model,
@@ -90,6 +92,19 @@ GymService._now = function(): number
 end
 GymService._clock = function(): number
 	return os.clock()
+end
+-- Hora del juego (la misma que usan las tiendas para abrir y cerrar)
+GymService._hour = function(): number
+	return OpeningHours.clock()
+end
+
+-- El gimnasio cierra de noche (como su monitora): nil si está abierto, o el aviso para el jugador
+local function closedMessage(): string?
+	local hours = OpeningHours.Places.Gym
+	if OpeningHours.isOpen(hours, GymService._hour()) then
+		return nil
+	end
+	return ("🔒 El gimnasio está cerrado: %s. Vuelve más tarde."):format(OpeningHours.label(hours))
 end
 
 local function daySeconds(): number
@@ -235,9 +250,12 @@ function GymService.stop(player: Player, silent: boolean?)
 		setTraining(character, nil, nil)
 		local root = rootOf(character)
 		if root and root.Parent then
-			local exit = s.Machine:GetAttribute("Exit")
-			local feet = if typeof(exit) == "Vector3" then CFrame.new(exit) * feetOf(s.Anchor).Rotation else feetOf(s.Anchor)
-			root.CFrame = feet * CFrame.new(0, liftOf(character), 0)
+			-- Solo te baja de la máquina si sigues en ella: si te han llevado a otro sitio, te quedas allí
+			if s.Anchor.Parent and (root.Position - s.Anchor.Position).Magnitude <= MACHINE_RANGE then
+				local exit = s.Machine:GetAttribute("Exit")
+				local feet = if typeof(exit) == "Vector3" then CFrame.new(exit) * feetOf(s.Anchor).Rotation else feetOf(s.Anchor)
+				root.CFrame = feet * CFrame.new(0, liftOf(character), 0)
+			end
 			root.Anchored = false
 		end
 	end
@@ -269,6 +287,11 @@ local function start(player: Player, machine: Model)
 	local ok, why = Gym.canUse(def.Kind, stageOf(player))
 	if not ok then
 		Notify:FireClient(player, "Error", why or "No puedes usar esta máquina.")
+		return
+	end
+	local closed = closedMessage()
+	if closed then
+		Notify:FireClient(player, "Error", closed)
 		return
 	end
 	local who = occupant[machine]
@@ -365,9 +388,12 @@ local function completeSet(player: Player, s: Session)
 	local monitor = monitorNear(player)
 	if monitor then
 		quality *= Gym.MonitorBonus
+		-- La propina la paga quien entrena (antes salía de la nada: dinero infinito entre dos amigos)
 		local tip = 2
-		DataService.addMoney(monitor, tip, true)
-		Notify:FireClient(monitor, "Money", ("+%s · propina de %s"):format(Format.money(tip), player.DisplayName or player.Name))
+		if DataService.spend(player, tip) then
+			DataService.addMoney(monitor, tip, true)
+			Notify:FireClient(monitor, "Money", ("+%s · propina de %s"):format(Format.money(tip), player.DisplayName or player.Name))
+		end
 	end
 	local beforeStrength = g.Strength
 	local ds, dc = Gym.setGains(s.Kind, g.Strength, g.Cardio, quality)
@@ -507,6 +533,11 @@ local function buy(player: Player, passId: any)
 	end
 	if stageOf(player) == "Bebe" then
 		Notify:FireClient(player, "Error", "👶 Los bebés no pueden apuntarse al gimnasio.")
+		return
+	end
+	local closed = closedMessage()
+	if closed then
+		Notify:FireClient(player, "Error", closed)
 		return
 	end
 	local price = Gym.price(passId, stageOf(player)) or 0
@@ -906,10 +937,14 @@ function GymService.init()
 			local dt = task.wait(0.25)
 			local ok, err = pcall(function()
 				regen(dt)
-				-- Si se muere o se queda sin personaje, se acaba el entreno
+				-- Si se muere, se queda sin personaje o lo llevan lejos de la máquina (teletransporte), se
+				-- acaba el entreno (y se suelta el anclaje, sin volver a la máquina)
 				for player, s in sessions do
 					local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+					local root = rootOf(player.Character)
 					if not humanoid or humanoid.Health <= 0 or not s.Machine.Parent then
+						GymService.stop(player, true)
+					elseif root and (root.Position - s.Anchor.Position).Magnitude > MACHINE_RANGE then
 						GymService.stop(player, true)
 					end
 				end

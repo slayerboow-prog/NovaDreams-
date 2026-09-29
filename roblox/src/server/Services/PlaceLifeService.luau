@@ -172,6 +172,32 @@ local function roomFor(p: Vector3): boolean
 	return true
 end
 
+-- Fachadas de un sitio "Around": 1 = -Z, 2 = +Z, 3 = -X, 4 = +X (en el espacio del sitio).
+-- Devuelve el punto a `out` studs por fuera de la fachada (along: -1..1 a lo largo de ella), la
+-- dirección hacia fuera y la dirección a lo largo de la fachada (en el mundo)
+local function facadePoint(a: Anchor, side: number, along: number, out: number): (Vector3, Vector3, Vector3)
+	local x, z, normal, tangent
+	if side == 1 then
+		x, z, normal, tangent = along * a.Half.X, -a.Half.Z - out, Vector3.new(0, 0, -1), Vector3.new(1, 0, 0)
+	elseif side == 2 then
+		x, z, normal, tangent = along * a.Half.X, a.Half.Z + out, Vector3.new(0, 0, 1), Vector3.new(1, 0, 0)
+	elseif side == 3 then
+		x, z, normal, tangent = -a.Half.X - out, along * a.Half.Z, Vector3.new(-1, 0, 0), Vector3.new(0, 0, 1)
+	else
+		x, z, normal, tangent = a.Half.X + out, along * a.Half.Z, Vector3.new(1, 0, 0), Vector3.new(0, 0, 1)
+	end
+	return a.Frame * Vector3.new(x, 0, z), a.Frame:VectorToWorldSpace(normal), a.Frame:VectorToWorldSpace(tangent)
+end
+
+-- ¿Junto a qué fachada está este punto? (la más cercana, con la misma numeración)
+local function facadeOf(a: Anchor, p: Vector3): number
+	local l = a.Frame:PointToObjectSpace(p)
+	if math.abs(l.Z) - a.Half.Z >= math.abs(l.X) - a.Half.X then
+		return if l.Z < 0 then 1 else 2
+	end
+	return if l.X < 0 then 3 else 4
+end
+
 -- Un punto al azar del sitio según su forma
 local function candidate(a: Anchor): Vector3
 	local place = a.Place
@@ -180,20 +206,8 @@ local function candidate(a: Anchor): Vector3
 		return a.Frame * Vector3.new((math.random() * 2 - 1) * hx, 0, (math.random() * 2 - 1) * hz)
 	elseif place.Shape == "Around" then
 		-- Junto a una de sus fachadas, por fuera
-		local side = math.random(1, 4)
 		local out = (place.Min or 3) + math.random() * ((place.Max or 9) - (place.Min or 3))
-		local along = math.random() * 2 - 1
-		local x, z
-		if side == 1 then
-			x, z = along * a.Half.X, -a.Half.Z - out
-		elseif side == 2 then
-			x, z = along * a.Half.X, a.Half.Z + out
-		elseif side == 3 then
-			x, z = -a.Half.X - out, along * a.Half.Z
-		else
-			x, z = a.Half.X + out, along * a.Half.Z
-		end
-		return a.Frame * Vector3.new(x, 0, z)
+		return (facadePoint(a, math.random(1, 4), math.random() * 2 - 1, out))
 	elseif place.Shape == "Front" then
 		-- Delante de la puerta (hacia donde mira la marca), a lo largo de la fachada
 		local out = (place.Min or 1.5) + math.random() * ((place.Max or 6) - (place.Min or 1.5))
@@ -335,8 +349,16 @@ end
 
 -- Un segundo punto para andar (a 10-25 studs), en suelo de verdad
 local function walkTarget(a: Anchor, from: Vector3, list): Vector3?
+	local place = a.Place
 	for _ = 1, 5 do
-		local c = candidate(a)
+		local c
+		if place.Shape == "Around" then
+			-- En la misma fachada que el primero: si no, la línea recta cruza el edificio
+			local out = (place.Min or 3) + math.random() * ((place.Max or 9) - (place.Min or 3))
+			c = facadePoint(a, facadeOf(a, from), math.random() * 2 - 1, out)
+		else
+			c = candidate(a)
+		end
 		local d = flatDistance(c, from)
 		if d > 8 and d < 60 then
 			local g = groundAt(a, c)
@@ -353,6 +375,22 @@ local function loopPath(a: Anchor, start: Vector3): { Vector3 }
 	if a.Place.Shape == "Area" then
 		local hx, hz = math.max(4, a.Half.X - 8), math.max(4, a.Half.Z - 8)
 		for _, q in { { -1, -1 }, { 1, -1 }, { 1, 1 }, { -1, 1 } } do
+			local g = groundAt(a, a.Frame * Vector3.new(q[1] * hx, 0, q[2] * hz))
+			if g then
+				table.insert(path, g)
+			end
+		end
+	elseif a.Place.Shape == "Around" then
+		-- Vuelta al edificio por fuera de su caja (un radio desde el centro corta por dentro si el
+		-- edificio es alargado). Empieza por la esquina de su fachada y acaba por la otra, así que
+		-- ningún tramo cruza el edificio
+		local m = ((a.Place.Min or 3) + (a.Place.Max or 9)) / 2
+		local hx, hz = a.Half.X + m, a.Half.Z + m
+		local corners = { { -1, -1 }, { 1, -1 }, { 1, 1 }, { -1, 1 } }
+		local FIRST = { [1] = 1, [4] = 2, [2] = 3, [3] = 4 } -- (primera esquina de cada fachada, en orden)
+		local first = FIRST[facadeOf(a, start)]
+		for k = 1, 4 do
+			local q = corners[(first + k - 1) % 4 + 1]
 			local g = groundAt(a, a.Frame * Vector3.new(q[1] * hx, 0, q[2] * hz))
 			if g then
 				table.insert(path, g)
@@ -450,6 +488,14 @@ local function build(a: Anchor, name: string, size: number, list, weather: strin
 		local door = a.Frame.Position
 		local out = a.Frame.LookVector * 1.8 -- (un poco hacia fuera)
 		local along = a.Frame.RightVector * (if math.random() < 0.5 then 1 else -1)
+		if a.Place.Shape == "Around" then
+			-- En un edificio el centro está dentro: la "puerta" es un punto de una de sus fachadas y
+			-- la cola va por fuera, a lo largo de ella
+			local face, normal, tangent = facadePoint(a, math.random(1, 4), math.random() * 1.2 - 0.6, 0)
+			door = face
+			out = normal * math.max(1.8, a.Place.Min or 3)
+			along = tangent * (if math.random() < 0.5 then 1 else -1)
+		end
 		local placed = 0
 		for k = 1, size do
 			local p = door + out + along * (1.5 + k * 2.2)
@@ -514,7 +560,15 @@ local function build(a: Anchor, name: string, size: number, list, weather: strin
 				end
 			end
 		end
-		return if #g.Npcs > 0 then g else nil
+		if #g.Npcs == 0 then
+			-- Nadie cabía: las bolas no se quedan solas en el suelo para siempre
+			for _, p in g.Props do
+				p:Destroy()
+			end
+			table.clear(g.Props)
+			return nil
+		end
+		return g
 	end
 	if activity.Lead then
 		-- Músico en el centro y su público delante, en semicírculo

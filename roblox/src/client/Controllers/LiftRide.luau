@@ -40,7 +40,7 @@ local function cabinOf(key: string): Model?
 	return nil
 end
 
-local riding: { Cabin: Model, Offset: number }? = nil
+local riding: { Cabin: Model, Offset: number, Character: Model }? = nil
 
 -- Pone la cabina (en tu pantalla) a esa altura sobre la planta baja. Mide dónde está de verdad su
 -- suelo (lo que llega del servidor puede haberla movido) y la lleva hasta ahí.
@@ -82,9 +82,16 @@ local function step()
 	local h = LiftMath.heightAt(from, to, serverNow() - start, duration)
 	placeLocal(cabin, h)
 	local base = cabin:GetAttribute("Base") :: CFrame
+	-- Si ya no estás en la cabina (te han llevado a otro sitio o has reaparecido), no se te arrastra
+	local floorPart = cabin:FindFirstChild("CabinFloor") :: BasePart?
+	if floorPart and Vector3.new(root.Position.X - floorPart.Position.X, 0, root.Position.Z - floorPart.Position.Z).Magnitude > 8 then
+		riding = nil
+		return
+	end
 	local floorY = base.Position.Y + h
-	if not riding or riding.Cabin ~= cabin then
-		riding = { Cabin = cabin, Offset = root.Position.Y - floorY }
+	-- (personaje nuevo —has muerto o reaparecido—: se empieza de cero, sin el desfase del de antes)
+	if not riding or riding.Cabin ~= cabin or riding.Character ~= character then
+		riding = { Cabin = cabin, Offset = root.Position.Y - floorY, Character = character :: Model }
 	end
 	local pos = root.Position
 	root.CFrame = CFrame.new(pos.X, floorY + riding.Offset, pos.Z) * (root.CFrame - pos)
@@ -92,6 +99,10 @@ local function step()
 end
 
 function LiftRide.init()
+	-- Al reaparecer ya no vas en el ascensor (aunque el atributo tarde en llegar del servidor)
+	player.CharacterAdded:Connect(function()
+		riding = nil
+	end)
 	RunService.RenderStepped:Connect(function()
 		local ok, err = pcall(step)
 		if not ok then

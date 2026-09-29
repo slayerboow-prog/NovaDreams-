@@ -248,51 +248,20 @@ function WorldService.trySkipNight()
 		return false
 	end
 	for _, other in Players:GetPlayers() do
-		if not other:GetAttribute("Sleeping") then
+		-- (los bebés no pueden dormir cuando quieren: no se les espera)
+		if not other:GetAttribute("Sleeping") and other:GetAttribute("LifeStage") ~= "Bebe" then
 			return false
 		end
 	end
-	Lighting.ClockTime = 7 -- (si era antes de medianoche, el reloj da la vuelta y empieza un día nuevo)
+	-- Con skipTo: si era antes de medianoche también sube el contador de días (poner ClockTime a
+	-- mano no lo hacía, porque el reloj no ve la vuelta)
+	WorldService.skipTo(7)
 	return true
 end
 
--- Camas de las casas familiares: "Dormir" (la de las casas compradas la gestiona HouseService)
-local function setupBed(mattress: Instance)
-	if not mattress:IsA("BasePart") or mattress:FindFirstChild("SleepPrompt") then
-		return
-	end
-	local prompt = Instance.new("ProximityPrompt")
-	prompt.Name = "SleepPrompt"
-	prompt.ActionText = "Dormir"
-	prompt.ObjectText = "Cama"
-	prompt.HoldDuration = 0.5
-	prompt.MaxActivationDistance = 9
-	prompt.RequiresLineOfSight = false
-	prompt.Parent = mattress
-	prompt.Triggered:Connect(function(player)
-		if player:GetAttribute("Sleeping") or player:GetAttribute("LifeStage") == "Bebe" then
-			return
-		end
-		player:SetAttribute("Sleeping", true)
-		local notify = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("Notify")
-		if notify then
-			(notify :: RemoteEvent):FireClient(player, "Sleep", "Zzz...")
-		end
-		task.wait(Config.SleepSeconds * 0.6)
-		local skipped = WorldService.trySkipNight()
-		task.wait(Config.SleepSeconds * 0.4)
-		if player.Parent then
-			player:SetAttribute("Sleeping", nil)
-			if notify then
-				(notify :: RemoteEvent):FireClient(player, "Success", if skipped then "☀ ¡Buenos días! Has dormido toda la noche." else "Has descansado un rato.")
-			end
-			local ok, NeedsService = pcall(require, script.Parent.NeedsService)
-			if ok then
-				NeedsService.change(player, 0, Config.Needs.Max)
-			end
-		end
-	end)
-end
+-- (Las camas de las casas familiares ya no tienen aquí su propio "Dormir": de eso se encarga
+-- SleepService con la cama de la historia, "Cama". Había dos avisos en la misma cama y este no
+-- guardaba dónde reaparecer y esperaba también a los bebés, que nunca duermen)
 
 -- Trabajadores de la ciudad: una persona con su uniforme en cada edificio importante
 -- (las posiciones las marca el mapa con piezas "WorkerSpot" y el oficio en Role)
@@ -389,15 +358,6 @@ function WorldService.init()
 	end)
 	task.spawn(spinLighthouse)
 	task.defer(spawnWorkers)
-	task.defer(function()
-		for _, home in CollectionService:GetTagged("FamilyHome") do
-			for _, part in home:GetDescendants() do
-				if part.Name == "Mattress" then
-					setupBed(part)
-				end
-			end
-		end
-	end)
 
 	workspace:SetAttribute("Day", day)
 	local hoursPerSecond = 24 / (Config.DayLengthMinutes * 60)

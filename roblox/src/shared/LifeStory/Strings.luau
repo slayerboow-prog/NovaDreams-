@@ -217,7 +217,7 @@ Strings.es = {
 	["QUEST.COLE.TARDE"] = "Clase de la tarde: ve a {place}",
 	["QUEST.COLE.ULTIMA_HORA"] = "Última hora de clase… a las 17:00 suena el timbre",
 	["QUEST.DIA.RECADO"] = "A la vuelta, haz un recado en {place}",
-	["QUEST.DIA.TRABAJO"] = "Trabajo de tarde: haz 2 entregas ({count}/{total})",
+	["QUEST.DIA.TRABAJO"] = "Trabajo: haz 2 tareas de tu trabajo ({count}/{total})",
 	["QUEST.DIA.ENTRENO"] = "Entreno en {place}",
 	["QUEST.DIA.REPASO"] = "Repasa {subject} en {place}",
 
@@ -375,6 +375,7 @@ Strings.es = {
 	-- Mapa
 	["MAP.TITLE"] = "Mapa de Valmar",
 	["MAP.HINT"] = "Pulsa M para abrir o cerrar el mapa",
+	["MAP.HINT_TOUCH"] = "Toca 🗺️ para abrir o cerrar el mapa", -- (en móvil y tableta no hay tecla M)
 	["MAP.YOU"] = "Tú",
 	["MAP.TARGET"] = "Tu objetivo",
 	["MAP.CLOSE"] = "Cerrar",

@@ -277,11 +277,51 @@ local function standPoint(site: Site, near: Vector3, shift: number?): Vector3
 	return groundAt(cf:PointToWorldSpace(Vector3.new(p.X, -size.Y / 2, p.Z)))
 end
 
--- Un punto al azar alrededor de otro, entre min y max studs
+-- ¿Se puede estar de pie en este suelo? (a la altura del centro, sin agua y sin techo encima).
+-- Si no, el objeto o la persona acaban en un tejado, dentro de un edificio o en el mar
+local function standableHit(center: Vector3, hit: RaycastResult?): boolean
+	if not hit then
+		return false
+	end
+	if math.abs(hit.Position.Y - center.Y) > 4 then
+		return false
+	end
+	if hit.Material == Enum.Material.Water then
+		return false
+	end
+	local ok, roof = pcall(function()
+		local params = RaycastParams.new()
+		params.FilterType = Enum.RaycastFilterType.Exclude
+		return Ground.cast(hit.Position + Vector3.new(0, 0.5, 0), Vector3.new(0, 6, 0), params)
+	end)
+	return ok and roof == nil
+end
+
+-- Un punto al azar alrededor de otro, entre min y max studs.
+-- Prueba varios ángulos y distancias hasta dar con un sitio al que se pueda llegar andando
 local function ringPoint(center: Vector3, min: number, max: number): Vector3
-	local angle = math.random() * math.pi * 2
-	local distance = min + math.random() * math.max(0, max - min)
-	return groundAt(center + Vector3.new(math.cos(angle) * distance, 0, math.sin(angle) * distance))
+	for attempt = 1, 12 do
+		local angle = math.random() * math.pi * 2
+		-- En los últimos intentos se acerca un poco al centro (ahí suele haber calle)
+		local far = if attempt > 8 then math.max(min * 0.5, 3) else min
+		local distance = far + math.random() * math.max(0, max - far)
+		local point = center + Vector3.new(math.cos(angle) * distance, 0, math.sin(angle) * distance)
+		local ok, hit = pcall(function()
+			return Ground.cast(point + Vector3.new(0, 40, 0), Vector3.new(0, -90, 0))
+		end)
+		if ok and standableHit(center, hit) then
+			return hit.Position
+		end
+	end
+	-- Nada sirvió: mejor al lado del centro (que sí se alcanza) que en un tejado
+	local near = center + Vector3.new(math.random(-2, 2), 0, math.random(-2, 2))
+	local ok, hit = pcall(function()
+		return Ground.cast(near + Vector3.new(0, 3, 0), Vector3.new(0, -8, 0))
+	end)
+	if ok and standableHit(center, hit) then
+		return hit.Position
+	end
+	return center
 end
 
 -- El sitio más cercano de esos tipos (sin contar el de quien pide el encargo), a una distancia de viaje

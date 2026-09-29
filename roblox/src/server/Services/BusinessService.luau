@@ -75,6 +75,15 @@ local records: { [string]: { Data: Record?, At: number } } = {}
 local memory: { [string]: any } = {}
 local store: DataStore? = nil
 local lastRequest: { [Player]: number } = {}
+-- Cada acción que lee o escribe el DataStore gasta del presupuesto de TODO el servidor: un jugador
+-- no puede pedir más de una cada STORE_COOLDOWN segundos (si no, uno solo lo agota)
+local STORE_COOLDOWN = 2
+local lastStoreAction: { [Player]: number } = {}
+local lastPromptRead: { [Player]: number } = {} -- (los avisos de proximidad van aparte: abrir y pulsar no choca)
+-- Ofertas de trabajo: una cada OFFER_COOLDOWN segundos por destinatario y solo a quien está cerca
+local OFFER_COOLDOWN = 30
+local OFFER_DISTANCE = 60
+local lastOfferTo: { [Player]: number } = {}
 local signFolder: Folder
 
 local shifts: { [Player]: { Key: string, Since: number } } = {}
@@ -82,6 +91,17 @@ local offers: { [Player]: { Key: string, From: Player, Wage: number, At: number 
 
 local function isWorker(rec: Record?, player: Player): boolean
 	return rec ~= nil and rec.Workers ~= nil and rec.Workers[tostring(player.UserId)] ~= nil
+end
+
+-- ¿Puede ya hacer otra acción que toca el DataStore? (si sí, cuenta como hecha ahora)
+local function storeReady(player: Player, map: { [Player]: number }?): boolean
+	local last = map or lastStoreAction
+	local t = os.clock()
+	if t - (last[player] or -math.huge) < STORE_COOLDOWN then
+		return false
+	end
+	last[player] = t
+	return true
 end
 
 local CACHE = 30 -- segundos que vale lo leído del DataStore
@@ -735,6 +755,12 @@ end
 -- Acciones del dueño
 ---------------------------------------------------------------------
 local function ownRecord(player: Player, key: string, fresh: boolean?): Record?
+	-- Primero el índice que ya tenemos en memoria: si no es suyo, ni se lee el DataStore
+	local entry = index[key]
+	if not entry or entry.Owner ~= player.UserId then
+		Notify:FireClient(player, "Error", "Este negocio no es tuyo.")
+		return nil
+	end
 	local rec = getRecord(key, fresh)
 	if not rec or rec.Owner ~= player.UserId then
 		Notify:FireClient(player, "Error", "Este negocio no es tuyo.")
@@ -750,6 +776,10 @@ local function buyPremise(player: Player, key: string)
 	end
 	if not isAdult(player) then
 		Notify:FireClient(player, "Error", "Para tener un negocio hay que ser mayor de edad.")
+		return
+	end
+	if index[key] then -- (ya se sabe que tiene dueño: no hace falta volver a leer el índice)
+		Notify:FireClient(player, "Error", "¡Vaya! Este local ya tiene dueño.")
 		return
 	end
 	loadIndex(true)
@@ -844,6 +874,17 @@ local function openBusiness(player: Player, key: string, typeId: string, branchO
 	send(player, managePanel(player, key, new, "Existencias"))
 end
 
+-- Devuelve a la caja un dinero que no se ha podido entregar (el jugador se fue durante el guardado)
+local function returnToTill(key: string, amount: number)
+	local saved = mutate(key, function(rec)
+		rec.Till += amount
+		return true, nil
+	end)
+	if not saved then
+		warn(("[Negocios] No se pudo devolver %s a la caja de %s"):format(tostring(amount), key))
+	end
+end
+
 local function collect(player: Player, key: string)
 	if not ownRecord(player, key) then
 		return
@@ -862,7 +903,11 @@ local function collect(player: Player, key: string)
 		return true, whole
 	end)
 	if saved and amount and amount > 0 then
-		DataService.addMoney(player, amount, true)
+		if not DataService.addMoney(player, amount, true) then
+			-- Se fue mientras se guardaba (ya no hay datos): el dinero vuelve a la caja, no se pierde
+			returnToTill(key, amount)
+			return
+		end
 		Notify:FireClient(player, "Money", ("+%s · caja de %s"):format(Format.money(amount), if new then new.Name or "tu negocio" else "tu negocio"))
 		StoryEvents.emit(player, "JobTaskDone", { JobId = "Empresario", Pay = amount })
 	else
@@ -1149,9 +1194,22 @@ local function hireNpc(player: Player, key: string, dir: number)
 end
 
 local function offerJob(player: Player, key: string, targetId: any)
-	local rec = ownRecord(player, key, true)
 	local target = type(targetId) == "number" and Players:GetPlayerByUserId(targetId)
-	if not rec or not target or target == player then
+	if not target or target == player then
+		return
+	end
+	-- Nada de llenar a otro de ventanas: una oferta cada un rato y solo a quien tienes cerca
+	if os.clock() - (lastOfferTo[target] or -math.huge) < OFFER_COOLDOWN then
+		Notify:FireClient(player, "Info", ("%s acaba de recibir una oferta. Espera un poco."):format(nameOf(target)))
+		return
+	end
+	local myRoot, theirRoot = rootOf(player), rootOf(target)
+	if not myRoot or not theirRoot or (myRoot.Position - theirRoot.Position).Magnitude > OFFER_DISTANCE then
+		Notify:FireClient(player, "Info", ("Acércate a %s para ofrecerle trabajo."):format(nameOf(target)))
+		return
+	end
+	local rec = ownRecord(player, key, true)
+	if not rec then
 		return
 	end
 	if not isAdult(target) then
@@ -1167,6 +1225,7 @@ local function offerJob(player: Player, key: string, targetId: any)
 		return
 	end
 	offers[target] = { Key = key, From = player, Wage = Business.Wages[2], At = os.clock() }
+	lastOfferTo[target] = os.clock()
 	send(target, {
 		Remote = "Business",
 		Id = "Offer",
@@ -1297,6 +1356,14 @@ local function workerPanel(player: Player, key: string, rec: Record): { [string]
 end
 
 local function toggleShift(player: Player, key: string)
+	-- Sin dueño en el índice no hay empleados; y si lo recién leído dice que no trabaja aquí, no se relee
+	if not index[key] then
+		return
+	end
+	local cached = records[key]
+	if cached and os.clock() - cached.At < CACHE and not isWorker(cached.Data, player) then
+		return
+	end
 	local rec = getRecord(key, true)
 	if not rec or not isWorker(rec, player) then
 		return
@@ -1333,8 +1400,11 @@ local function payShifts()
 				rec.Till -= w.Wage
 				return true, w.Wage
 			end)
-			if saved and paid and paid > 0 then
-				DataService.addMoney(worker, paid, true)
+			if saved and paid and paid > 0 and not DataService.addMoney(worker, paid, true) then
+				-- Se fue mientras se guardaba: el sueldo vuelve a la caja (no desaparece)
+				returnToTill(shift.Key, paid)
+				shifts[worker] = nil
+			elseif saved and paid and paid > 0 then
 				Notify:FireClient(worker, "Money", ("+%s · minuto de turno"):format(Format.money(paid)))
 				StoryEvents.emit(worker, "JobTaskDone", { JobId = "Empleado", Pay = paid })
 			elseif paid == -1 then
@@ -1387,6 +1457,12 @@ local function buy(player: Player, key: string, id: string, count: number)
 		return
 	end
 	count = math.clamp(math.floor(count), 1, 20)
+	-- El índice en memoria ya dice si está abierto: si no, ni se lee el DataStore
+	local entry = index[key]
+	if not entry or not entry.Open or not entry.Type then
+		Notify:FireClient(player, "Info", "Está cerrado.")
+		return
+	end
 	local rec = getRecord(key, true)
 	if not rec or not rec.Open then
 		Notify:FireClient(player, "Info", "Está cerrado.")
@@ -1413,8 +1489,16 @@ local function buy(player: Player, key: string, id: string, count: number)
 		return sold, if sold then total else nil
 	end)
 	if not saved or not ok then
-		DataService.addMoney(player, price)
+		if not DataService.addMoney(player, price) then
+			-- Se fue mientras se guardaba y ya no se le puede devolver: que quede constancia
+			warn(("[Negocios] %s se fue durante una compra fallida en %s (%s sin devolver)"):format(player.Name, key, tostring(price)))
+		end
 		Notify:FireClient(player, "Error", "Ya no queda. ¡Se te han adelantado!")
+		return
+	end
+	if not DataService.get(player) then
+		-- Se fue mientras se guardaba: su dinero ya se guardó descontado, así que la venta se queda
+		-- hecha (el dinero en la caja del dueño). Deshacerla solo haría desaparecer ese dinero.
 		return
 	end
 	if not InventoryService.add(player, id, count) then
@@ -1447,8 +1531,10 @@ local function onManage(player: Player, premise: Premise)
 		send(player, premisePanel(player, premise))
 		return
 	end
+	-- Si abre y cierra muy seguido se usa lo ya leído (sin gastar DataStore)
+	local canRead = storeReady(player, lastPromptRead)
 	if entry.Owner ~= player.UserId then
-		local rec = getRecord(premise.Key, true)
+		local rec = getRecord(premise.Key, canRead)
 		if rec and isWorker(rec, player) then
 			send(player, workerPanel(player, premise.Key, rec))
 			return
@@ -1456,7 +1542,9 @@ local function onManage(player: Player, premise: Premise)
 		Notify:FireClient(player, "Info", ("Este negocio es de %s."):format(entry.OwnerName))
 		return
 	end
-	simulate(premise.Key)
+	if canRead then
+		simulate(premise.Key)
+	end
 	local rec = getRecord(premise.Key)
 	if rec then
 		send(player, managePanel(player, premise.Key, rec))
@@ -1473,7 +1561,9 @@ local function onShop(player: Player, premise: Premise)
 		Notify:FireClient(player, "Info", ("%s aún no ha abierto su negocio."):format(entry.OwnerName))
 		return
 	end
-	simulate(premise.Key)
+	if storeReady(player, lastPromptRead) then -- (muy seguido: se enseña lo ya leído)
+		simulate(premise.Key)
+	end
 	local rec = getRecord(premise.Key)
 	if rec then
 		send(player, shopPanel(player, premise.Key, rec))
@@ -1848,6 +1938,11 @@ function BusinessService.init()
 			-- Pestañas: key es el Id de la ventana, a la pestaña, b la clave del negocio
 			return
 		end
+		-- Todo lo demás (menos decir que no a una oferta) lee o escribe el DataStore: con calma
+		if action ~= "RejectJob" and not storeReady(player) then
+			Notify:FireClient(player, "Info", "Espera un momento…")
+			return
+		end
 		if action == "Buy" and type(a) == "string" and type(b) == "number" then
 			buy(player, key, a, b)
 			local rec = getRecord(key)
@@ -1965,6 +2060,9 @@ function BusinessService.init()
 	end)
 	Players.PlayerRemoving:Connect(function(player)
 		lastRequest[player] = nil
+		lastStoreAction[player] = nil
+		lastPromptRead[player] = nil
+		lastOfferTo[player] = nil
 		lastName[player] = nil
 		shifts[player] = nil
 		offers[player] = nil

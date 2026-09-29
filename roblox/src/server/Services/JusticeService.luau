@@ -22,10 +22,11 @@ local DataService = require(script.Parent.DataService)
 local JobService = require(script.Parent.JobService)
 local SceneService = require(script.Parent.SceneService)
 local CareerService = require(script.Parent.CareerService)
+local InteriorService = require(script.Parent.InteriorService)
 
 local JusticeService = {}
 
-type Case = { Id: number, Accused: Player, Judge: Player?, Stars: number, Crimes: { string }, Done: boolean }
+type Case = { Id: number, Accused: Player, Judge: Player?, Stars: number, Crimes: { string }, Done: boolean, InCourt: boolean? }
 
 local Notify = ReplicatedStorage.Remotes.Notify :: RemoteEvent
 local Remote: RemoteEvent
@@ -158,22 +159,22 @@ local function charge(player: Player, fine: number, seconds: number, kind: strin
 end
 
 -- Se le comunica la sentencia y se cumple (a la celda, o sale libre)
-local function announce(player: Player, paid: number, seconds: number, kind: string, judge: Player?, crimes: { string })
+local function announce(player: Player, paid: number, seconds: number, kind: string, judge: Player?, crimes: { string }, inCourt: boolean?)
 	Remote:FireClient(player, "Sentence", { Kind = kind, Fine = paid, Seconds = seconds, Judge = judge and judge.DisplayName })
 	StoryEvents.emit(player, "Sentenced", { Kind = kind, Seconds = seconds })
 	if seconds > 0 then
 		JusticeService.imprison(player, seconds, table.concat(crimes, ", "))
 	else
-		-- Absuelto o solo multa: sale del juzgado (o de la comisaría) libre
-		local exit = tagged("CourtDock")
-		if exit and judge then
-			SceneService.teleportTo(player, (exit.CFrame * CFrame.new(0, 0, -16)).Position)
+		-- Absuelto o solo multa: sale libre del juzgado a la calle, por su puerta (la sala está en el
+		-- cielo: antes se quedaba dentro, y sin juez no se le movía). Sin juicio, sigue donde estaba.
+		if inCourt and player:GetAttribute("InteriorKey") then
+			InteriorService.leave(player)
 		end
 	end
 end
 
-local function sentence(player: Player, fine: number, seconds: number, kind: string, judge: Player?, crimes: { string })
-	announce(player, charge(player, fine, seconds, kind, judge, crimes), seconds, kind, judge, crimes)
+local function sentence(player: Player, fine: number, seconds: number, kind: string, judge: Player?, crimes: { string }, inCourt: boolean?)
+	announce(player, charge(player, fine, seconds, kind, judge, crimes), seconds, kind, judge, crimes, inCourt)
 end
 
 local function closeCase(case: Case, kind: string, minutes: number?)
@@ -204,7 +205,7 @@ local function closeCase(case: Case, kind: string, minutes: number?)
 	if judge and judge.Parent and kind ~= "Auto" then
 		Remote:FireClient(judge, "CaseClosed", { Id = case.Id })
 	end
-	sentence(case.Accused, fine, seconds, kind, if kind ~= "Auto" then judge else nil, case.Crimes)
+	sentence(case.Accused, fine, seconds, kind, if kind ~= "Auto" then judge else nil, case.Crimes, case.InCourt)
 end
 
 -- Un/a juez de servicio libre (sin otro caso abierto)
@@ -258,8 +259,10 @@ function JusticeService.process(player: Player, stars: number, crimes: { string 
 		end
 		-- Al juzgado: el acusado al banquillo y el juez al estrado
 		local dock, bench = tagged("CourtDock"), tagged("CourtJudge")
+		-- (con la llave y la puerta del juzgado: si no, "Salir" no sabe adónde y queda la de antes)
 		if dock and player.Parent then
-			SceneService.teleportTo(player, dock.Position)
+			case.InCourt = true
+			InteriorService.placeAt(player, dock)
 			task.wait(0.4)
 			if case.Done then
 				return
@@ -267,7 +270,7 @@ function JusticeService.process(player: Player, stars: number, crimes: { string 
 			anchor(player, true)
 		end
 		if bench and judge.Parent then
-			SceneService.teleportTo(judge, bench.Position)
+			InteriorService.placeAt(judge, bench)
 		end
 		Remote:FireClient(player, "Trial", { Judge = judge.DisplayName, Seconds = Justice.TrialSeconds })
 		Remote:FireClient(judge, "Case", {

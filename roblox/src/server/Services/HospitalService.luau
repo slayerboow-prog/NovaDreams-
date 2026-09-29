@@ -102,6 +102,12 @@ local function revive(player: Player, character: Model, from: Vector3)
 		StoryEvents.emit(player, "Revived", { Jailed = true })
 		return
 	end
+	if player:GetAttribute("LifeStage") == "Bebe" then
+		-- Un bebé no va al hospital ni paga: vuelve a su cuna (BabyService)
+		Remote:FireClient(player, "Revived", { Bill = 0 })
+		StoryEvents.emit(player, "Revived", { Bill = 0 })
+		return
+	end
 	local spot = nearestSpot(from)
 	if spot then
 		SceneService.teleportTo(player, spot.Position)

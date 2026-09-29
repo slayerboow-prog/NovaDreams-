@@ -398,10 +398,30 @@ local function entryOf(inst: Instance_): Vector3
 	return if elevator then elevator.Position + elevator.CFrame.LookVector * -3 else slotPosition(inst.Slot) + Vector3.new(0, 3, 0)
 end
 
-local function busy(player: Player): boolean
+-- inLift = true: vale ir dentro del ascensor (el panel de la cabina se usa en marcha)
+local function busy(player: Player, inLift: boolean?): boolean
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	return humanoid == nil or humanoid.Health <= 0 or humanoid.SeatPart ~= nil or player:GetAttribute("OnTrial") == true or player:GetAttribute("JailUntil") ~= nil
+		-- (en pleno viaje de ascensor no se salta a otro sitio: la cabina te volvería a meter)
+		or (not inLift and player:GetAttribute("LiftTower") ~= nil)
+end
+
+-- Jugadores a mitad de un salto (mientras teleportTo espera a que cargue el sitio nuevo)
+local teleporting: { [Player]: number } = {}
+
+-- Lleva al jugador a un punto. Deja de ir en el ascensor (si no, la cabina lo recogería al llegar)
+-- y, mientras dura el salto, stepTowers no mira su altura (aún está en la sala de antes).
+local function teleport(player: Player, target: Vector3)
+	player:SetAttribute("LiftTower", nil)
+	teleporting[player] = (teleporting[player] or 0) + 1
+	player:SetAttribute("Teleporting", true)
+	pcall(SceneService.teleportTo, player, target)
+	local left = (teleporting[player] or 1) - 1
+	teleporting[player] = if left > 0 then left else nil
+	if left <= 0 and player.Parent then
+		player:SetAttribute("Teleporting", nil)
+	end
 end
 
 ---------------------------------------------------------------------
@@ -617,7 +637,7 @@ local function liftDisplays(inst: Instance_, text: string)
 end
 
 -- Quién va dentro de la cabina ahora (y a qué altura sobre su suelo)
-local function liftRiders(inst: Instance_): { { Player: Player, Offset: Vector3 } }
+local function liftRiders(inst: Instance_): { { Player: Player, Offset: Vector3, Character: Model? } }
 	local t = inst.Tower :: TowerState
 	local lift = t.Lift :: LiftState
 	local floorCf = lift.Cabin.Base * CFrame.new(0, lift.Cabin.Model:GetAttribute("Height") or 0, 0)
@@ -631,7 +651,8 @@ local function liftRiders(inst: Instance_): { { Player: Player, Offset: Vector3 
 		if root then
 			local rel = floorCf:PointToObjectSpace(root.Position)
 			if Lift.inside(rel) then
-				table.insert(out, { Player = player, Offset = root.Position - floorCf.Position })
+				-- (se apunta el personaje: si muere o reaparece en el viaje, ya no se le coloca)
+				table.insert(out, { Player = player, Offset = root.Position - floorCf.Position, Character = player.Character })
 			end
 		end
 	end
@@ -741,7 +762,15 @@ liftTravel = function(inst: Instance_, target: number)
 		end
 		task.wait()
 	end
+	local towerKey = inst.Building.Id .. ":T"
 	if not model.Parent then
+		-- La cabina ya no existe (se quitó el edificio): nadie sigue "dentro" y el ascensor queda libre
+		for _, r in riders do
+			if r.Player:GetAttribute("LiftTower") == towerKey then
+				r.Player:SetAttribute("LiftTower", nil)
+			end
+		end
+		lift.Busy = false
 		return
 	end
 	Lift.place(lift.Cabin, target * Floors.Height)
@@ -755,15 +784,21 @@ liftTravel = function(inst: Instance_, target: number)
 	end
 	local floorCf = lift.Cabin.Base * CFrame.new(0, target * Floors.Height, 0)
 	for _, r in riders do
-		local root = r.Player.Character and r.Player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+		-- Solo quien sigue en el viaje: si murió, reapareció o lo llevaron a otro sitio, se le deja
+		local still = r.Player.Character == r.Character and r.Player:GetAttribute("InteriorKey") == towerKey and r.Player:GetAttribute("LiftTower") == towerKey
+		local root = if still and r.Character then r.Character:FindFirstChild("HumanoidRootPart") :: BasePart? else nil
 		if root then
 			local want = floorCf.Position + r.Offset
 			if (root.Position - want).Magnitude > 2 then
 				root.CFrame = CFrame.new(want) * (root.CFrame - root.CFrame.Position)
 			end
 		end
-		r.Player:SetAttribute("LiftTower", nil)
-		r.Player:SetAttribute("TowerFloor", target)
+		if r.Player:GetAttribute("LiftTower") == towerKey then
+			r.Player:SetAttribute("LiftTower", nil)
+		end
+		if still then
+			r.Player:SetAttribute("TowerFloor", target)
+		end
 	end
 	liftDisplays(inst, liftLabel(target))
 	setLiftDoors(inst, true)
@@ -863,7 +898,7 @@ local function goToLanding(player: Player, building: Building, floor: number, at
 	else
 		target = (t.Origin * Tower.landing(t.Plan, floor)).Position
 	end
-	SceneService.teleportTo(player, target)
+	teleport(player, target)
 end
 
 -- Entrar por una puerta del pasillo (a su vivienda, oficina, aula o tienda)
@@ -888,15 +923,17 @@ local function goToUnit(player: Player, building: Building, floor: number, lette
 	player:SetAttribute("InteriorKey", building.Id .. ":" .. unit.Id)
 	player:SetAttribute("InteriorDoor", building.Door + building.Out * 3)
 	player:SetAttribute("TowerFloor", nil)
-	SceneService.teleportTo(player, entryOf(inst))
+	teleport(player, entryOf(inst))
 	local enter = InteriorService.Hooks.Enter
 	if enter then
 		task.spawn(enter, player, inst)
 	end
 end
 
-function InteriorService.goToUnit(player: Player, building: Building, floor: number, letter: string?)
-	if busy(player) then
+-- force = true: sin mirar si está ocupado (p. ej. justo después de rehacer la sala en la que estaba,
+-- PropertyService.buy: si no, podría quedarse colgado en el pasillo o sentado en un sofá que ya no existe)
+function InteriorService.goToUnit(player: Player, building: Building, floor: number, letter: string?, force: boolean?)
+	if not force and busy(player) then
 		return
 	end
 	if isTower(building) then
@@ -911,14 +948,16 @@ local function goTo(player: Player, building: Building, floor: number, byElevato
 		-- Azotea de la Torre de Valmar: la de verdad
 		player:SetAttribute("InteriorKey", nil)
 		player:SetAttribute("InteriorDoor", nil)
-		SceneService.teleportTo(player, building.Roof)
+		player:SetAttribute("TowerFloor", nil) -- (ya no estás en ninguna planta de la torre)
+		teleport(player, building.Roof)
 		return
 	end
 	if floor == 0 and building.Walkable then
 		-- Planta baja de verdad: vuelves junto al ascensor
 		player:SetAttribute("InteriorKey", nil)
 		player:SetAttribute("InteriorDoor", nil)
-		SceneService.teleportTo(player, building.Door - building.Out * 6)
+		player:SetAttribute("TowerFloor", nil) -- (ya no estás en ninguna planta de la torre)
+		teleport(player, building.Door - building.Out * 6)
 		return
 	end
 	if isTower(building) then
@@ -954,7 +993,7 @@ local function goTo(player: Player, building: Building, floor: number, byElevato
 	inst.EmptySince = nil
 	player:SetAttribute("InteriorKey", building.Id .. ":" .. floor)
 	player:SetAttribute("InteriorDoor", building.Door + building.Out * 3)
-	SceneService.teleportTo(player, entryOf(inst))
+	teleport(player, entryOf(inst))
 	local enter = InteriorService.Hooks.Enter
 	if enter then
 		task.spawn(enter, player, inst)
@@ -979,6 +1018,12 @@ end
 -- y pone al día la placa de su puerta en el pasillo
 function InteriorService.reset(building: Building, floor: number, letter: string?)
 	local key = building.Id .. ":" .. Floors.unitId(floor, letter)
+	-- Quien esté dentro sale antes (al rellano o a la calle): si no, se caería al vacío
+	for _, player in Players:GetPlayers() do
+		if player:GetAttribute("InteriorKey") == key then
+			InteriorService.leave(player)
+		end
+	end
 	local inst = instances[key]
 	if inst then
 		inst.Room.Model:Destroy()
@@ -1020,7 +1065,35 @@ function InteriorService.enter(player: Player, building: Building)
 	goTo(player, building, 0)
 end
 
+-- Pone al jugador en un sitio concreto de una sala montada (p. ej. el banquillo del juzgado:
+-- JusticeService), con su llave y su puerta: así "Salir" funciona y no se queda la de otro edificio.
+-- Si esa pieza no está en ninguna sala, solo lo lleva allí.
+function InteriorService.placeAt(player: Player, part: BasePart): Instance_?
+	local node: Instance? = part
+	local inst: Instance_?, roomKey: string? = nil, nil
+	while node and node ~= folder do
+		local key = node:GetAttribute("Key")
+		if type(key) == "string" and instances[key] and instances[key].Room.Model == node then
+			inst, roomKey = instances[key], key
+			break
+		end
+		node = node.Parent
+	end
+	if inst and roomKey then
+		local building = inst.Building
+		inst.EmptySince = nil
+		player:SetAttribute("InteriorKey", roomKey)
+		player:SetAttribute("InteriorDoor", building.Door + building.Out * 3)
+		player:SetAttribute("TowerFloor", nil)
+	end
+	teleport(player, part.Position)
+	return inst
+end
+
 function InteriorService.leave(player: Player)
+	if player:GetAttribute("OnTrial") then
+		return -- (en pleno juicio no se sale del banquillo: sale al acabar, JusticeService)
+	end
 	local key = player:GetAttribute("InteriorKey")
 	local id, unitId = string.match(type(key) == "string" and key or "", "^(%d+):(%w+)$")
 	local building = id and buildings[tonumber(id) :: number]
@@ -1040,13 +1113,32 @@ function InteriorService.leave(player: Player)
 	player:SetAttribute("InteriorDoor", nil)
 	player:SetAttribute("TowerFloor", nil)
 	if typeof(door) == "Vector3" then
-		SceneService.teleportTo(player, door)
+		teleport(player, door)
 	end
+end
+
+-- ¿Sigue delante de esa puerta? (en el rellano de esa planta, a unos pasos; en una casa, en la calle
+-- junto a su puerta). Para abrir a quien llamó hace un rato (timbre, vecinos).
+function InteriorService.atDoor(player: Player, building: Building, floor: number, letter: string?): boolean
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if not root or busy(player) then
+		return false
+	end
+	if not isTower(building) then
+		return player:GetAttribute("InteriorKey") == nil and (root.Position - building.Door).Magnitude <= 12
+	end
+	local inst = towerOf(building, false)
+	local t = inst and inst.Tower
+	if not t or player:GetAttribute("InteriorKey") ~= building.Id .. ":T" or player:GetAttribute("TowerFloor") ~= floor then
+		return false
+	end
+	local front = Tower.doorFront(t.Plan, floor, letter or "A")
+	return front ~= nil and (root.Position - (t.Origin * front).Position).Magnitude <= 12
 end
 
 -- Panel del ascensor (el cliente elige planta)
 local function openElevator(player: Player, building: Building)
-	if busy(player) then
+	if busy(player, true) then
 		return
 	end
 	player:SetAttribute("ElevatorBuilding", building.Id)
@@ -1159,6 +1251,10 @@ local function onUnitDoor(player: Player, building: Building, panel: BasePart, k
 		task.delay(0.8, function()
 			local name = occ.Name or "Vecino"
 			if friendly then
+				-- (solo si sigues en la puerta: en ese rato te has podido ir a otra planta o a la calle)
+				if not InteriorService.atDoor(player, building, floor :: number, letter) then
+					return
+				end
 				Notify:FireClient(player, "Success", ("🙂 %s: «¡Hola! Pasa, pasa, estás en tu casa.»"):format(name))
 				open()
 			else
@@ -1473,7 +1569,11 @@ function InteriorService.stepTowers()
 		local inst = type(key) == "string" and instances[key]
 		if inst and inst.Tower then
 			local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
-			if root then
+			-- A mitad de un salto (o aún en la sala de antes, fuera de la torre) su altura no vale:
+			-- se le pondría en la planta 0 y se quitaría la planta a la que va
+			local rel = root and inst.Tower.Origin:PointToObjectSpace(root.Position)
+			local outside = rel == nil or math.abs(rel.X) > inst.Tower.Plan.W / 2 + 16 or math.abs(rel.Z) > Floors.Depth / 2 + 16
+			if root and not teleporting[player] and not outside then
 				local y = root.Position.Y - inst.Tower.Origin.Position.Y - 3
 				local floor = Floors.floorAt(y, inst.Tower.Plan.Top)
 				if player:GetAttribute("TowerFloor") ~= floor then
@@ -1481,6 +1581,10 @@ function InteriorService.stepTowers()
 				end
 				byTower[key] = byTower[key] or {}
 				table.insert(byTower[key], floor)
+			elseif type(player:GetAttribute("TowerFloor")) == "number" then
+				-- (su planta de llegada se deja montada mientras llega)
+				byTower[key] = byTower[key] or {}
+				table.insert(byTower[key], player:GetAttribute("TowerFloor"))
 			end
 		end
 	end
@@ -1533,7 +1637,7 @@ function InteriorService.init()
 			if not opened or os.clock() - opened.At > 60 or not root or not opened.Position or (root.Position - opened.Position).Magnitude > 25 then
 				return
 			end
-			if not building or busy(player) then
+			if not building or busy(player, true) then
 				return
 			end
 			local floor = math.floor(value)
@@ -1544,10 +1648,13 @@ function InteriorService.init()
 				return
 			end
 			-- Con ascensor de verdad: sube o baja con la cabina (tienes que estar dentro). La azotea
-			-- (Torre de Valmar) sigue siendo un salto aparte.
+			-- (Torre de Valmar) sigue siendo un salto aparte. Desde la calle (planta baja de verdad) o
+			-- desde la azotea no estás en la torre: se va directo al rellano. Y en los edificios con
+			-- planta baja de verdad, la planta 0 es la calle (no un portal de mentira en el cielo).
 			local inst = towerOf(building, false)
 			local lift = inst and inst.Tower and inst.Tower.Lift
-			if lift and floor >= 0 then
+			local inTower = player:GetAttribute("InteriorKey") == building.Id .. ":T"
+			if lift and floor >= 0 and inTower and not (floor == 0 and building.Walkable) then
 				local inside = false
 				for _, r in liftRiders(inst :: Instance_) do
 					inside = inside or r.Player == player
@@ -1565,16 +1672,18 @@ function InteriorService.init()
 
 	Players.PlayerRemoving:Connect(function(player)
 		elevatorOpen[player] = nil
+		teleporting[player] = nil
 	end)
 
 	-- Al morir o reaparecer ya no estás dentro de ninguna sala
 	local function watch(player: Player)
+		-- (siempre, también antes de SpawnReady: PositionService te deja en la calle, delante de la
+		-- puerta, nunca dentro de una sala; una llave vieja haría creer que sigues dentro)
 		player.CharacterAdded:Connect(function()
-			if player:GetAttribute("InteriorKey") and player:GetAttribute("SpawnReady") then
-				player:SetAttribute("InteriorKey", nil)
-				player:SetAttribute("InteriorDoor", nil)
-				player:SetAttribute("TowerFloor", nil)
-			end
+			player:SetAttribute("InteriorKey", nil)
+			player:SetAttribute("InteriorDoor", nil)
+			player:SetAttribute("TowerFloor", nil)
+			player:SetAttribute("LiftTower", nil)
 		end)
 	end
 	Players.PlayerAdded:Connect(watch)

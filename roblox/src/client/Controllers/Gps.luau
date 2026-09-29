@@ -31,6 +31,7 @@ local Gps = {}
 
 local player = Players.LocalPlayer
 local UNDERGROUND = -60 -- por debajo: metro (sin calles)
+local SKY = 3000 -- por encima: interiores en el cielo (sin calles)
 local ARRIVE = 14 -- studs para "has llegado" (a pie)
 local MARKS = 20 -- flechas en el suelo (2 piezas cada una: 40 en total)
 local MARK_STEP = 6
@@ -101,27 +102,26 @@ function Gps.manual(): { Position: Vector3, Name: string }?
 	return manual
 end
 
+-- Los objetivos que pone el servidor, por orden de preferencia
+local TARGETS = {
+	{ Attribute = "TaskTarget", Name = "Tu trabajo" },
+	{ Attribute = "CityErrandTarget", Name = "Tu encargo" },
+	{ Attribute = "StoryTarget", Name = "Tu misión" },
+}
+
 local function currentDestination(): Destination?
 	if manual then
 		return { Position = manual.Position, Name = manual.Name, Manual = true }
 	end
-	local target = player:GetAttribute("TaskTarget")
-	local name = "Tu trabajo"
-	if typeof(target) ~= "Vector3" then
-		target = player:GetAttribute("CityErrandTarget")
-		name = "Tu encargo"
+	-- El primer objetivo que haya y que no esté silenciado (si el trabajo ya se alcanzó, sigue con
+	-- el encargo o la misión en vez de quedarse sin ruta)
+	for _, entry in TARGETS do
+		local target = player:GetAttribute(entry.Attribute)
+		if typeof(target) == "Vector3" and not (suppressed and (suppressed - target).Magnitude < 1) then
+			return { Position = target, Name = entry.Name, Manual = false }
+		end
 	end
-	if typeof(target) ~= "Vector3" then
-		target = player:GetAttribute("StoryTarget")
-		name = "Tu misión"
-	end
-	if typeof(target) ~= "Vector3" then
-		return nil
-	end
-	if suppressed and (suppressed - target).Magnitude < 1 then
-		return nil
-	end
-	return { Position = target, Name = name, Manual = false }
+	return nil
 end
 
 -- Quitar la ruta (el sitio marcado, o el objetivo actual hasta que cambie)
@@ -326,12 +326,19 @@ local function update()
 		showBanner(nil, nil, 0)
 		return
 	end
-	local position = root.Position
 	local seated = humanoid ~= nil and humanoid.SeatPart ~= nil
+	-- Dentro de un interior (en el cielo, Y ~ 6000) la ruta sale de la puerta del edificio; salvo que
+	-- el destino también esté en el cielo (entonces, desde donde estás)
+	local door = player:GetAttribute("InteriorDoor")
+	local inside = typeof(door) == "Vector3"
+	local sky = dest.Position.Y > SKY
+	local position = if inside and not sky then door :: Vector3 else root.Position
 
-	-- ¿Has llegado?
+	-- ¿Has llegado? (los sitios marcados en el mapa y los lugares de la lista no tienen altura de
+	-- verdad (Y = 0): con ellos solo cuenta la distancia en el plano)
 	local flat = Vector3.new(dest.Position.X - position.X, 0, dest.Position.Z - position.Z)
-	if flat.Magnitude < (if seated then ARRIVE * 1.8 else ARRIVE) and math.abs(dest.Position.Y - position.Y) < 30 then
+	local sameHeight = dest.Manual or math.abs(dest.Position.Y - position.Y) < 30
+	if flat.Magnitude < (if seated then ARRIVE * 1.8 else ARRIVE) and sameHeight then
 		Hud.toast("Success", "📍 Has llegado: " .. dest.Name)
 		if dest.Manual then
 			Gps.setManual(nil)
@@ -352,8 +359,8 @@ local function update()
 	if changed or off then
 		lastReroute = now
 		routeTarget = dest.Position
-		-- (bajo tierra o en el sueño del prólogo no hay calles: línea recta)
-		local underground = position.Y < UNDERGROUND or dest.Position.Y < UNDERGROUND or player:GetAttribute("InPrologue") == true
+		-- (bajo tierra, en un interior del cielo o en el sueño del prólogo no hay calles: línea recta)
+		local underground = position.Y < UNDERGROUND or dest.Position.Y < UNDERGROUND or position.Y > SKY or sky or player:GetAttribute("InPrologue") == true
 		route = if graph and not underground then GpsMath.route(graph, position, dest.Position) or straight(position, dest.Position) else straight(position, dest.Position)
 		lastIndex = -1
 		lastMarkPosition = nil
@@ -367,8 +374,11 @@ local function update()
 		notify(GpsMath.ahead(path, position))
 	end
 
-	-- Flechas en el suelo (si te has movido un poco)
-	if lastMarkPosition == nil or (lastMarkPosition - position).Magnitude > 2 then
+	-- Flechas en el suelo (si te has movido un poco). Dentro de un interior no: la ruta empieza en
+	-- la puerta y las flechas saldrían en la calle, lejos de ti
+	if inside and not sky then
+		hideMarks()
+	elseif lastMarkPosition == nil or (lastMarkPosition - position).Magnitude > 2 then
 		lastMarkPosition = position
 		placeMarks(path, position)
 	end
@@ -414,11 +424,18 @@ function Gps.init()
 	buildBanner()
 	Hud.addButton("🧭 Ruta a casa", rgb(20, 150, 140), 1.5, Gps.routeHome)
 	task.spawn(loadRoads)
-	for _, attribute in { "TaskTarget", "CityErrandTarget", "StoryTarget" } do
-		player:GetAttributeChangedSignal(attribute):Connect(function()
+	for _, entry in TARGETS do
+		player:GetAttributeChangedSignal(entry.Attribute):Connect(function()
 			route = nil
+			-- Objetivo nuevo: lo que se silenció al llegar (o con ✕) ya no vale
+			suppressed = nil
 		end)
 	end
+	-- Al entrar o salir de un interior, la ruta sale de otro sitio
+	player:GetAttributeChangedSignal("InteriorDoor"):Connect(function()
+		route = nil
+		lastMarkPosition = nil
+	end)
 	player.CharacterAdded:Connect(function()
 		route = nil
 		lastMarkPosition = nil

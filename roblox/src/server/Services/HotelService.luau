@@ -65,6 +65,7 @@ type Request = {
 	Room: number?, -- su habitación (salidas)
 	Created: number,
 	Player: Player?,
+	Price: number?, -- lo que pagó (si no le cabe la llave, se le devuelve)
 	Customer: any?,
 }
 type Lobby = {
@@ -196,8 +197,12 @@ local function serve(lobby: Lobby, r: Request, room: number, by: Player?)
 	if r.Kind == "In" then
 		local stay = math.random(Hotel.StayMin, Hotel.StayMax)
 		lobby.Rooms[room] = { Name = r.Name, Until = os.clock() + stay, Player = r.Player, Customer = r.Customer }
-		if r.Player and r.Player.Parent then
-			InventoryService.add(r.Player, Hotel.KeyItem, 1)
+		if r.Player and r.Player.Parent and not InventoryService.add(r.Player, Hotel.KeyItem, 1) then
+			-- (se llenó la mochila mientras esperaba: sin llave no hay habitación; se devuelve el dinero)
+			lobby.Rooms[room] = nil
+			DataService.addMoney(r.Player, r.Price or 0)
+			Notify:FireClient(r.Player, "Error", "🔑 No te cabía la llave en la mochila: te devuelven el dinero.")
+		elseif r.Player and r.Player.Parent then
 			roomOf[r.Player] = { Lobby = lobby, Room = room }
 			Notify:FireClient(r.Player, "Success", ("🔑 Habitación %d. Sube por el ascensor cuando quieras descansar."):format(room))
 		elseif r.Customer then
@@ -286,6 +291,10 @@ local function onBook(player: Player, typeId: any)
 		Notify:FireClient(player, "Error", "No quedan habitaciones de ese tipo. Prueba otra.")
 		return
 	end
+	if not InventoryService.canAdd(player, Hotel.KeyItem, 1) then
+		Notify:FireClient(player, "Error", "No te cabe la llave en la mochila. Haz hueco primero.")
+		return
+	end
 	if not DataService.spend(player, t.Price) then
 		Notify:FireClient(player, "Error", "No tienes dinero suficiente.")
 		return
@@ -295,7 +304,7 @@ local function onBook(player: Player, typeId: any)
 		pcall(HotelService.RoomSold, lobby.Model, t.Price, player)
 	end
 	nextId += 1
-	table.insert(lobby.Requests, { Id = nextId, Kind = "In", Name = player.DisplayName or player.Name, Type = t.Id, Created = os.clock(), Player = player })
+	table.insert(lobby.Requests, { Id = nextId, Kind = "In", Name = player.DisplayName or player.Name, Type = t.Id, Created = os.clock(), Player = player, Price = t.Price })
 	Notify:FireClient(player, "Info", ("Habitación %s (%s). Un momento, que te dan la llave…"):format(string.lower(t.Name), Format.money(t.Price)))
 	publish(lobby)
 end
@@ -328,9 +337,29 @@ local function onElevator(player: Player, lobby: Lobby)
 	if root then
 		root.Anchored = true
 	end
-	task.delay(Hotel.RestSeconds, function()
+	-- El personaje con el que se echa: si muere (o reaparece) mientras, se acaba el descanso y no se
+	-- le mueve el personaje nuevo al hotel
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	local ended = false
+	local died = humanoid and humanoid.Died:Connect(function()
+		ended = true
 		resting[player] = nil
+	end)
+	task.delay(Hotel.RestSeconds, function()
+		if died then
+			died:Disconnect()
+		end
+		-- (si murió, ya se quitó; y puede que ahora esté descansando otra vez: ese no se toca)
+		if not ended then
+			resting[player] = nil
+		end
+		local same = not ended and character ~= nil and player.Character == character
 		if not player.Parent then
+			return
+		end
+		releaseRoom(player)
+		if not same then
 			return
 		end
 		local r = rootOf(player)
@@ -338,12 +367,8 @@ local function onElevator(player: Player, lobby: Lobby)
 			r.Anchored = false
 		end
 		NeedsService.change(player, 0, REST_ENERGY)
-		releaseRoom(player)
-		local character = player.Character
-		if character then
-			standUpBefore(character)
-			character:PivotTo(CFrame.new(point(lobby, "Elevator") + Vector3.new(-3, 3, 0)))
-		end
+		standUpBefore(character)
+		;(character :: Model):PivotTo(CFrame.new(point(lobby, "Elevator") + Vector3.new(-3, 3, 0)))
 		Notify:FireClient(player, "Success", "😴 ¡Como nuevo! Has descansado en el hotel.")
 	end)
 end
@@ -693,6 +718,21 @@ function HotelService.init()
 		HotelService.quit(player, true)
 		releaseRoom(player)
 		resting[player] = nil
+		-- Sus peticiones de habitación pendientes se quitan (se ha ido: no hay llave que dar ni nada
+		-- que devolver)
+		for _, lobby in lobbies do
+			local changed = false
+			for i = #lobby.Requests, 1, -1 do
+				local r = lobby.Requests[i]
+				if r.Kind == "In" and r.Player == player then
+					table.remove(lobby.Requests, i)
+					changed = true
+				end
+			end
+			if changed then
+				publish(lobby)
+			end
+		end
 	end)
 	task.spawn(function()
 		while true do

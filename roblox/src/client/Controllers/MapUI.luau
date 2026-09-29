@@ -71,6 +71,8 @@ type Layer = {
 	Dots: { [Player]: Frame },
 	Icons: { { Holder: GuiObject, Kind: string } },
 	Scalers: { UIScale },
+	Keep: number, -- la escala que llevan ahora los Scalers (según el zoom)
+	Labels: { Rect }, -- dónde ya hay un nombre de lugar (para no ponerlos unos encima de otros)
 	Canon: { [string]: TextLabel }, -- misiones canónicas pendientes (❗ dorado)
 }
 
@@ -197,10 +199,18 @@ local function circle(layer: Layer, name: string, x: number, z: number, radius: 
 	}, { create("UICorner", { CornerRadius = UDim.new(1, 0) }) })
 end
 
--- Cosas que no deben crecer tanto al acercar el mapa llevan un UIScale propio
+-- Cosas que no deben crecer tanto al acercar el mapa llevan un UIScale propio.
+-- Nace ya con la escala del zoom actual (si no, un marcador nuevo sale enorme hasta que se mueve
+-- el zoom) y se quita de la lista al destruirse (si no, la lista crece para siempre)
 local function keepSize(layer: Layer, object: GuiObject)
-	local s = create("UIScale", { Parent = object })
+	local s = create("UIScale", { Scale = layer.Keep, Parent = object })
 	table.insert(layer.Scalers, s)
+	object.Destroying:Connect(function()
+		local i = table.find(layer.Scalers, s)
+		if i then
+			table.remove(layer.Scalers, i)
+		end
+	end)
 end
 
 local function marker(layer: Layer, text: string, color: Color3, size: number, z: number): TextLabel
@@ -269,7 +279,18 @@ local function landmarkIcon(layer: Layer, place: Landmark, detailed: boolean)
 		ZIndex = icon.ZIndex,
 		Parent = icon,
 	})
-	if detailed and important then
+	-- El nombre debajo (si no pisa otro que ya esté puesto: mejor sin nombre que ilegible)
+	local half = math.min(70, (utf8.len(place.Kind.Name) or #place.Kind.Name) * 3.5) -- (ancho aproximado del texto)
+	local labelRect = Rect.new(p.X - half, p.Y + size / 2 + 2, p.X + half, p.Y + size / 2 + 16)
+	local free = true
+	for _, other in layer.Labels do
+		if labelRect.Min.X < other.Max.X and other.Min.X < labelRect.Max.X and labelRect.Min.Y < other.Max.Y and other.Min.Y < labelRect.Max.Y then
+			free = false
+			break
+		end
+	end
+	if detailed and important and free then
+		table.insert(layer.Labels, labelRect)
 		Theme.label({
 			AnchorPoint = Vector2.new(0.5, 0),
 			Position = UDim2.new(0.5, 0, 1, 2),
@@ -306,6 +327,8 @@ local function buildLayer(parent: Instance, scale: number, detailed: boolean): L
 		Dots = {},
 		Icons = {},
 		Scalers = {},
+		Keep = 1,
+		Labels = {},
 		Canon = {},
 	}
 	-- Isla: arena en la orilla y hierba dentro (franjas horizontales del polígono de la costa)
@@ -708,6 +731,7 @@ local function applyView()
 	local scaler = layer.Frame:FindFirstChild("Zoom") :: UIScale
 	scaler.Scale = zoom
 	local keep = 1 / zoom ^ 0.75 -- los iconos crecen solo un poco al acercar
+	layer.Keep = keep
 	for _, s in layer.Scalers do
 		s.Scale = keep
 	end
@@ -817,6 +841,7 @@ local function setMiniZoom(index: number)
 	miniZoom = math.clamp(index, 1, #MINI_ZOOMS)
 	local zoom = MINI_ZOOMS[miniZoom]
 	miniScaler.Scale = zoom
+	miniLayer.Keep = 1 / zoom
 	for _, s in miniLayer.Scalers do
 		s.Scale = 1 / zoom -- los iconos no cambian de tamaño
 	end
@@ -1012,6 +1037,8 @@ local function roundButton(parent: Instance, text: string, y: number, callback: 
 end
 
 local function buildBig()
+	-- ¿Solo pantalla táctil (móvil o tableta, sin teclado)?
+	local touchOnly = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 	bigGui = create("ScreenGui", {
 		Name = "BigMap",
 		ResetOnSpawn = false,
@@ -1078,7 +1105,7 @@ local function buildBig()
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.fromScale(1, 0),
 		Size = UDim2.fromOffset(150, 36),
-		Text = "✖  " .. Strings.get("MAP.CLOSE") .. " (M)",
+		Text = "✖  " .. Strings.get("MAP.CLOSE") .. (if touchOnly then "" else " (M)"),
 		TextSize = 15,
 		BackgroundColor3 = rgb(40, 60, 100),
 		ZIndex = 22,
@@ -1195,7 +1222,10 @@ local function buildBig()
 	Theme.label({
 		Position = UDim2.new(0, 0, 1, -FOOTER + 6),
 		Size = UDim2.new(1, 0, 0, 18),
-		Text = "Arrastra para mover · rueda o + / - para acercar · pulsa un lugar o mantén pulsado para ir allí (GPS) · " .. Strings.get("MAP.HINT"),
+		-- En pantallas táctiles no hay rueda ni tecla M: se dice lo que sí se puede hacer
+		Text = if touchOnly
+			then "Arrastra para mover · + / - para acercar · toca un lugar o mantén el dedo para ir allí (GPS) · " .. Strings.get("MAP.HINT_TOUCH")
+			else "Arrastra para mover · rueda o + / - para acercar · pulsa un lugar o mantén pulsado para ir allí (GPS) · " .. Strings.get("MAP.HINT"),
 		TextSize = 12,
 		TextColor3 = C.Muted,
 		TextXAlignment = Enum.TextXAlignment.Center,

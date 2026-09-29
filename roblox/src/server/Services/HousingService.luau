@@ -100,6 +100,17 @@ function HousingService.collectRent(player: Player, now: number?)
 		return
 	end
 	local t = now or os.time()
+	-- Deuda de un alquiler que ya no tienes: se cobra poco a poco, con lo que tengas (antes se olvidaba)
+	local old = data.Housing and data.Housing.Debt or 0
+	if old > 0 and (data.Money or 0) > 0 then
+		local pay = math.min(old, data.Money)
+		if DataService.spend(player, pay) then
+			data.Housing.Debt = old - pay
+			Notify:FireClient(player, "Info", if data.Housing.Debt > 0
+				then ("🔑 Pagas %s de la deuda del alquiler. Aún debes %s."):format(Format.money(pay), Format.money(data.Housing.Debt))
+				else ("🔑 Has pagado toda la deuda del alquiler (%s)."):format(Format.money(pay)))
+		end
+	end
 	for _, entry in table.clone(data.Properties) do
 		if entry.Contract ~= "Alquiler" then
 			continue
@@ -289,6 +300,11 @@ function HousingService.answer(owner: Player, token: string, open: boolean): boo
 		return false
 	end
 	if open then
+		-- Solo si sigue en la puerta (en ese rato se ha podido ir a otra planta, a la calle o a otra casa)
+		if not InteriorService.atDoor(bell.Visitor, bell.Building, bell.Floor, bell.Letter) then
+			Notify:FireClient(owner, "Info", ("🚪 %s ya no está en la puerta."):format(bell.Visitor.DisplayName))
+			return true
+		end
 		PropertyService.grantTemp(bell.Building, bell.Floor, bell.Letter, bell.Visitor.UserId)
 		Notify:FireClient(bell.Visitor, "Success", ("🚪 %s te abre la puerta. ¡Pasa!"):format(owner.DisplayName))
 		-- (entra solo: como si le abrieran desde dentro)

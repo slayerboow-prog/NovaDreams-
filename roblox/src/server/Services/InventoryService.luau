@@ -109,7 +109,15 @@ function InventoryService.canAdd(player: Player, id: string, count: number?): bo
 	return used < Items.Slots
 end
 
+-- Cantidad válida: entero finito >= 1 (un NaN o un 0,5 corromperían la mochila guardada)
+local function validCount(n: any): boolean
+	return type(n) == "number" and n == n and n >= 1 and n < 1e9 and n == math.floor(n)
+end
+
 function InventoryService.add(player: Player, id: string, count: number?): boolean
+	if count ~= nil and not validCount(count) then
+		return false
+	end
 	if not InventoryService.canAdd(player, id, count) then
 		return false
 	end
@@ -121,6 +129,9 @@ function InventoryService.add(player: Player, id: string, count: number?): boole
 end
 
 function InventoryService.remove(player: Player, id: string, count: number?): boolean
+	if count ~= nil and not validCount(count) then
+		return false
+	end
 	local data = DataService.get(player)
 	local have = data and data.Items and data.Items[id] or 0
 	if have < (count or 1) then

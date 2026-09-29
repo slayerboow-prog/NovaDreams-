@@ -119,6 +119,11 @@ local DEFAULT_DATA = {
 
 local profiles: { [Player]: { [string]: any } } = {}
 local released: { [Player]: boolean } = {} -- ya se ha ido: los autoguardados pendientes no escriben
+-- Guardado de salida en marcha, por UserId: si vuelve a entrar en ESTE servidor antes de que acabe,
+-- el bloqueo es nuestro y cargaría los datos viejos; hay que esperar a que termine de escribirse
+local pendingRelease: { [number]: number } = {} -- (cuántos guardados de salida hay en marcha)
+local PENDING_RELEASE_WAIT = 30 -- (segundos máx.: los reintentos de salida tardan como mucho ~15 s)
+local lastPlayCredit: { [Player]: number } = {} -- última vez (os.clock) que se le sumó tiempo jugado
 local loadedCallbacks: { (Player, { [string]: any }) -> () } = {}
 local beforeSaveCallbacks: { (Player, { [string]: any }) -> () } = {}
 local earningCallbacks: { (Player, number) -> () } = {}
@@ -167,6 +172,15 @@ end
 local function loadFromStore(player: Player): { [string]: any }?
 	if not savingEnabled or not store then
 		return deepCopy(DEFAULT_DATA)
+	end
+
+	-- Si se fue hace nada de este mismo servidor, esperar a que su guardado de salida acabe
+	local waitUntil = os.clock() + PENDING_RELEASE_WAIT
+	while pendingRelease[player.UserId] and player.Parent and os.clock() < waitUntil do
+		task.wait(0.2)
+	end
+	if pendingRelease[player.UserId] then
+		return nil -- sigue guardándose: mejor pedirle que reentre que cargar datos viejos
 	end
 
 	for attempt = 1, 5 do
@@ -383,6 +397,7 @@ local function onPlayerAdded(player: Player)
 		data.Money = 0 -- dinero roto (NaN) por un fallo antiguo
 	end
 	profiles[player] = data
+	lastPlayCredit[player] = os.clock()
 	syncMoney(player, data)
 
 	for _, callback in loadedCallbacks do
@@ -390,19 +405,43 @@ local function onPlayerAdded(player: Player)
 	end
 end
 
-local function onPlayerRemoving(player: Player)
-	if profiles[player] then
-		released[player] = true
-		-- Guardar al salir (con reintentos: si falla se perdería lo último)
-		for attempt = 1, 3 do
-			if DataService.save(player, true) then
-				break
-			end
-			task.wait(attempt * 2)
+local function markPending(userId: number, delta: number)
+	local n = (pendingRelease[userId] or 0) + delta
+	pendingRelease[userId] = if n > 0 then n else nil
+end
+
+-- Guarda soltando el bloqueo, con reintentos. Devuelve true si se escribió.
+local function saveReleaseWithRetries(player: Player): boolean
+	for attempt = 1, 3 do
+		if DataService.save(player, true) then
+			return true
 		end
+		task.wait(attempt * 2)
+	end
+	return false
+end
+
+-- Suma al tiempo jugado lo que de verdad ha pasado desde la última vez (no un autoguardado entero)
+local function creditPlayTime(player: Player, data: { [string]: any })
+	local now = os.clock()
+	local last = lastPlayCredit[player] or now
+	lastPlayCredit[player] = now
+	data.Stats.PlaySeconds += math.max(0, math.floor(now - last + 0.5))
+end
+
+local function onPlayerRemoving(player: Player)
+	local data = profiles[player]
+	if data then
+		creditPlayTime(player, data)
+		released[player] = true
+		markPending(player.UserId, 1)
+		-- Guardar al salir (con reintentos: si falla se perdería lo último)
+		saveReleaseWithRetries(player)
 		profiles[player] = nil
 		released[player] = nil
+		markPending(player.UserId, -1)
 	end
+	lastPlayCredit[player] = nil
 end
 
 -- "Empezar una vida nueva" (botón del Menú): borra la partida y vuelves a nacer bebé.
@@ -421,16 +460,36 @@ function DataService.newLife(player: Player)
 	fresh.Properties = data.Properties
 	-- El tutorial y los consejos ya vistos no se repiten en la vida nueva
 	fresh.Onboarding = data.Onboarding
-	fresh.Housing = data.Housing -- (su piso y su deuda siguen siendo suyos)
+	fresh.Housing = data.Housing -- (su piso y su deuda del alquiler, Housing.Debt, siguen siendo suyos)
+	-- Hacienda tampoco se olvida: renacer no borra lo pendiente ni las declaraciones sin presentar
+	fresh.Tax = data.Tax
 	fresh.Life.Stage = Config.LifeStory.NewCharacterStage
 	-- El prólogo (tutorial) ya lo vio: no se repite solo (se puede volver a jugar desde «Mi historia»)
 	if data.Story and data.Story.PrologueDone then
 		fresh.Story.PrologueDone = data.Story.PrologueDone
 		fresh.Story.PrologueResult = "NewLife"
 	end
+	-- Marcarlo como "ya se va" antes de guardar: un autoguardado a medias no vuelve a bloquear sus datos
 	profiles[player] = fresh
-	DataService.save(player, true)
+	released[player] = true
+	markPending(player.UserId, 1)
+	local ok = saveReleaseWithRetries(player)
+	markPending(player.UserId, -1)
+	if not ok then
+		-- No se pudo escribir: se queda con su vida de antes (mejor que perder las dos)
+		if player.Parent then
+			profiles[player] = data
+			released[player] = nil
+			local Notify = game:GetService("ReplicatedStorage").Remotes:FindFirstChild("Notify") :: RemoteEvent?
+			if Notify then
+				Notify:FireClient(player, "Error", "No se pudo guardar tu vida nueva. Inténtalo otra vez en un rato.")
+			end
+		end
+		-- (si ya se ha ido, onPlayerRemoving se encarga de guardar y limpiar)
+		return
+	end
 	profiles[player] = nil -- que el guardado al salir no pise la vida nueva
+	released[player] = nil
 	player:Kick("👶 Tu vida nueva está lista. Vuelve a entrar para nacer en Valmar.")
 end
 
@@ -448,7 +507,7 @@ function DataService.init()
 		while true do
 			task.wait(Config.AutosaveSeconds)
 			for player, data in profiles do
-				data.Stats.PlaySeconds += Config.AutosaveSeconds
+				creditPlayTime(player, data)
 				task.spawn(DataService.save, player)
 			end
 		end
@@ -457,7 +516,8 @@ function DataService.init()
 	-- Al cerrar el servidor, guardar a todos
 	game:BindToClose(function()
 		local pending = 0
-		for player in profiles do
+		for player, data in profiles do
+			creditPlayTime(player, data)
 			pending += 1
 			task.spawn(function()
 				DataService.save(player, true)

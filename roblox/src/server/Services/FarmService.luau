@@ -1178,6 +1178,11 @@ function FarmService.init()
 	end
 	CollectionService:GetInstanceAddedSignal("SuperStock"):Connect(setupStockroom)
 
+	-- Número entero y finito (lo que llega del cliente puede ser NaN o infinito y romper la mochila)
+	local function isInt(x: any): boolean
+		return type(x) == "number" and x == x and math.abs(x) < 1e9 and x == math.floor(x)
+	end
+
 	Remote.OnServerEvent:Connect(function(player, action, a, b, c)
 		local t = os.clock()
 		if t - (lastRequest[player] or 0) < 0.15 then
@@ -1192,7 +1197,7 @@ function FarmService.init()
 				send(player, coopPanel(player, if type(b) == "string" then b else nil))
 			elseif a == "Kitchen" and stations[player] and near(player, stations[player].Part, 30) then
 				send(player, kitchenPanel(player))
-			elseif a == "Seeds" and type(c) == "number" then
+			elseif a == "Seeds" and isInt(c) then
 				send(player, seedPanel(player, c))
 			end
 			return
@@ -1200,22 +1205,22 @@ function FarmService.init()
 		if not canFarm(player) then
 			return
 		end
-		if action == "Plant" and type(a) == "number" and type(b) == "string" then
+		if action == "Plant" and isInt(a) and type(b) == "string" then
 			plant(player, math.floor(a), b)
 			Remote:FireClient(player, "Close", "Seeds")
-		elseif action == "BuySeed" and type(a) == "string" and type(b) == "number" and nearestCoop(player) then
+		elseif action == "BuySeed" and type(a) == "string" and isInt(b) and nearestCoop(player) then
 			buySeed(player, a, b)
 			send(player, coopPanel(player, "Semillas"))
-		elseif action == "BuyFeed" and type(a) == "number" and nearestCoop(player) then
+		elseif action == "BuyFeed" and isInt(a) and nearestCoop(player) then
 			buyFeed(player, a)
 			send(player, coopPanel(player, "Animales"))
 		elseif action == "BuyAnimal" and type(a) == "string" and nearestCoop(player) then
 			buyAnimal(player, a)
 			send(player, coopPanel(player, "Animales"))
 		elseif action == "Sell" and type(a) == "string" and nearestCoop(player) then
-			sellCoop(player, a, if type(b) == "number" then b else nil)
+			sellCoop(player, a, if isInt(b) then b else nil)
 			send(player, coopPanel(player, "Vender"))
-		elseif action == "Make" and type(a) == "string" and type(b) == "number" then
+		elseif action == "Make" and type(a) == "string" and isInt(b) then
 			make(player, a, b)
 			local r = Farming.recipeById[a]
 			if r and r.Station == "Cocina" then

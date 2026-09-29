@@ -9,17 +9,24 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Items = require(ReplicatedStorage.Shared.Items)
 local LocationService = require(script.Parent.LocationService)
 
--- Antes de llevar a alguien a otro sitio: que se levante del asiento en que vaya (coche, autobús,
--- metro). Si no, se llevaba el vehículo con él (un coche del metro acababa en la calle).
-local function standUpBefore(character: Model?)
-	local ok, who = pcall(function()
-		return character and game:GetService("Players"):GetPlayerFromCharacter(character)
-	end)
-	if ok and who then
-		pcall(function()
-			require(script.Parent.VehicleService).standUp(who)
-		end)
+-- El portal no vale si estás preso, en un juicio, muerto, KO, durmiendo o eres un bebé: te sacaría
+-- de la celda, del hospital o de la cuna. Devuelve el aviso, o nil si puedes viajar.
+local function cantTravel(player: Player): string?
+	if player:GetAttribute("JailUntil") ~= nil or player:GetAttribute("OnTrial") ~= nil then
+		return "🌀 El portal no se abre aquí: estás a disposición de la justicia."
+	elseif player:GetAttribute("Dead") or player:GetAttribute("KO") then
+		return "🌀 Ahora mismo no estás para portales."
+	elseif player:GetAttribute("Sleeping") then
+		return "🌀 Primero despierta."
+	elseif player:GetAttribute("LifeStage") == "Bebe" then
+		return "🌀 Los bebés no viajan por portales."
 	end
+	return nil
+end
+
+local function notifyOf(): RemoteEvent?
+	local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+	return remotes and remotes:FindFirstChild("Notify") :: RemoteEvent?
 end
 
 
@@ -203,22 +210,24 @@ local EFFECTS: { [string]: (Player, Items.Item, BasePart) -> () } = {
 		ring.Transparency = 0.2
 		emit(ring, color, 40, 6, 0.6)
 		task.delay(0.8, function()
+			-- (se vuelve a mirar: en ese rato le pueden haber detenido o dejado KO)
+			if cantTravel(player) then
+				ring:Destroy()
+				return
+			end
 			local choices = table.clone(TELEPORTS)
 			for _ = 1, #choices do
 				local id = table.remove(choices, math.random(1, #choices))
 				local spot = LocationService.resolve(player, id)
 				if spot and player.Character then
-					pcall(function()
-						player:RequestStreamAroundAsync(spot.Position, 3)
-					end)
-					local current = rootOf(player)
-					if current then
-						current.AssemblyLinearVelocity = Vector3.zero
-						standUpBefore(player.Character)
-						;(player.Character :: Model):PivotTo(CFrame.new(spot.Position + Vector3.new(0, 4, 0)))
-						local notify = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("Notify")
+					if rootOf(player) then
+						-- SceneService baja del vehículo y, en la calle, quita el "estás dentro de un
+						-- edificio" (InteriorKey). require aquí dentro: sin requires en círculo
+						local SceneService = require(script.Parent.SceneService) :: any
+						SceneService.teleportTo(player, spot.Position)
+						local notify = notifyOf()
 						if notify then
-							(notify :: RemoteEvent):FireClient(player, "Info", "🌀 ¡Portal! Has aparecido en otro sitio (esta vez sin gatos).")
+							notify:FireClient(player, "Info", "🌀 ¡Portal! Has aparecido en otro sitio (esta vez sin gatos).")
 						end
 					end
 					break
@@ -244,6 +253,16 @@ function GadgetService.use(player: Player, itemId: string)
 	local root = rootOf(player)
 	if not item or item.Kind ~= "Gadget" or not root then
 		return
+	end
+	if item.Effect == "Teleport" then
+		local why = cantTravel(player)
+		if why then
+			local notify = notifyOf()
+			if notify then
+				notify:FireClient(player, "Error", why)
+			end
+			return
+		end
 	end
 	local mine = lastUse[player] or {}
 	lastUse[player] = mine

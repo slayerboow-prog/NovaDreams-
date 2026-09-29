@@ -84,7 +84,7 @@ MapInfo.Kinds = {
 	{ Model = "Armeria", Icon = "🔫", Name = "Armería", Important = true },
 	{ Model = "GimnasioValmar", Icon = "💪", Name = "Gimnasio", Important = true },
 	{ Model = "ZonaPesca", Icon = "🐟", Name = "Zona de pesca" },
-	{ Model = "BocaMetro", Icon = "🚇", Name = "Metro", Important = true },
+	{ Model = "BocaMetro", Icon = "🚇", Name = "Metro" }, -- (sin Important: hay muchas bocas y sus nombres se pisaban en el mapa)
 	{ Model = "Aeropuerto", Icon = "✈️", Name = "Aeropuerto de Valmar", Important = true },
 	{ Model = "Aerodromo", Icon = "🛩️", Name = "Aeródromo de las Gaviotas", Important = true },
 	{ Model = "EstacionCercanias", Icon = "🚆", Name = "Cercanías", Important = true },

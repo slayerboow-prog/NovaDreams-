@@ -26,7 +26,7 @@ local PoliceUnits = require(script.Parent.Parent.World.PoliceUnits)
 
 local CombatService = {}
 
-type State = { Combo: number, LastAt: number, Blocking: boolean, KOUntil: number, SpawnedAt: number, DodgeAt: number? }
+type State = { Combo: number, LastAt: number, Blocking: boolean, KOUntil: number, SpawnedAt: number, DodgeAt: number?, Stunned: boolean? }
 
 local states: { [Player]: State } = {}
 local Remote: RemoteEvent
@@ -89,6 +89,8 @@ local function knockOut(victim: Player, humanoid: Humanoid, seconds: number?)
 	local state = stateOf(victim)
 	local duration = seconds or Combat.KOSeconds
 	state.KOUntil = os.clock() + duration
+	-- En el suelo por el táser (con vida) no es lo mismo que K.O. sin vida: a ese no se le remata
+	state.Stunned = seconds ~= nil
 	state.Blocking = false
 	victim:SetAttribute("Blocking", nil)
 	victim:SetAttribute("KO", true)
@@ -101,6 +103,20 @@ local function knockOut(victim: Player, humanoid: Humanoid, seconds: number?)
 			humanoid.Health = math.max(humanoid.Health, humanoid.MaxHealth * Combat.KOHealth)
 		end
 	end)
+end
+
+-- ¿Se le puede rematar? Solo si está K.O. por quedarse sin vida (o, aturdido, ya casi sin ella).
+-- Antes un táser y un puñetazo mataban a alguien con la vida entera.
+local function canFinish(victim: Player, humanoid: Humanoid): boolean
+	if not (os.clock() < stateOf(victim).KOUntil) then
+		return false
+	end
+	return not stateOf(victim).Stunned or humanoid.Health <= humanoid.MaxHealth * Combat.KOHealth
+end
+
+-- Aturdido por el táser pero con vida: no se le remata, los golpes le quitan vida como siempre
+local function stunnedOnly(victim: Player, humanoid: Humanoid): boolean
+	return os.clock() < stateOf(victim).KOUntil and not canFinish(victim, humanoid)
 end
 
 -- El personaje (modelo con Humanoid) al que pertenece una pieza
@@ -176,7 +192,7 @@ local function attack(player: Player)
 		local victim = Players:GetPlayerFromCharacter(model)
 		local direction = Vector3.new(targetRoot.Position.X - root.Position.X, 0, targetRoot.Position.Z - root.Position.Z)
 		direction = if direction.Magnitude > 0.01 then direction.Unit else root.CFrame.LookVector
-		if victim and CombatService.isKnockedOut(victim) and not isProtected(victim) then
+		if victim and canFinish(victim, targetHumanoid) and not isProtected(victim) then
 			-- Rematar a alguien que está K.O.: muere
 			hits += 1
 			targetHumanoid.Health = 0
@@ -184,7 +200,7 @@ local function attack(player: Player)
 			StoryEvents.emit(player, "HitSomeone", { Target = victim.UserId, Model = model, KO = true, Killed = true })
 			StoryEvents.emit(victim, "GotHit", { By = player.UserId })
 		elseif victim then
-			if not canFight(victim) or isProtected(victim) then
+			if (not canFight(victim) and not stunnedOnly(victim, targetHumanoid)) or isProtected(victim) then
 				continue
 			end
 			local victimState = stateOf(victim)
@@ -291,10 +307,10 @@ function CombatService.applyHit(attacker: Player, model: Model, info: HitInfo): 
 		if not CombatService.isKnockedOut(victim) and not canFight(victim) then
 			return none -- (bebés, en una conversación, en clase…)
 		end
-		if CombatService.isKnockedOut(victim) then
-			if (info.Stun or 0) > 0 then
-				return none -- (el táser no remata)
-			end
+		if CombatService.isKnockedOut(victim) and (info.Stun or 0) > 0 then
+			return none -- (el táser no remata ni alarga el K.O.)
+		end
+		if canFinish(victim, targetHumanoid) then
 			-- Rematar a alguien que está K.O.: muere
 			targetHumanoid.Health = 0
 			show(info.Amount, true)
@@ -384,6 +400,7 @@ function CombatService.init()
 			local state = stateOf(player)
 			state.SpawnedAt = os.clock()
 			state.KOUntil = 0
+			state.Stunned = nil
 			state.Blocking = false
 			state.Combo = 0
 			player:SetAttribute("KO", nil)

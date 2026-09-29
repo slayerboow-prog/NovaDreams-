@@ -374,7 +374,9 @@ local function buy(player: Player, building: InteriorService.Building, floor: nu
 		end
 	end
 	InteriorService.reset(building, floor, letter)
-	InteriorService.goToUnit(player, building, floor, letter)
+	-- (sin mirar si está ocupado: si estaba de visita dentro, reset lo ha sacado al rellano y tiene
+	-- que volver a entrar pase lo que pase)
+	InteriorService.goToUnit(player, building, floor, letter, true)
 end
 
 local function sell(player: Player, building: InteriorService.Building, floor: number, letter: string?)
@@ -387,7 +389,13 @@ local function sell(player: Player, building: InteriorService.Building, floor: n
 			end
 			table.remove(list, i)
 			if entry.Contract == "Alquiler" or entry.Contract == "Inicial" then
-				-- (no es suya del todo: se deja, sin cobrar nada; la deuda del alquiler se queda)
+				-- (no es suya del todo: se deja, sin cobrar nada; la deuda del alquiler se queda y se te
+				-- sigue cobrando, HousingService.collectRent)
+				local data = DataService.get(player)
+				if data and (entry.Debt or 0) > 0 then
+					data.Housing = data.Housing or {}
+					data.Housing.Debt = (data.Housing.Debt or 0) + entry.Debt
+				end
 				syncAttributes(player)
 				DataService.save(player)
 				Notify:FireClient(player, "Info", ("🔑 Has dejado %s."):format(entry.Title or "la vivienda"))
