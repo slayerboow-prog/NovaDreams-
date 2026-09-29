@@ -173,6 +173,8 @@ local function underRoof(): boolean
 	local camera = workspace.CurrentCamera
 	local character = player.Character
 	rayParams.FilterDescendantsInstances = if character then { character, camera } else { camera }
+	-- Solo cuenta como tejado lo que choca (toldos, balcones, farolas y árboles no tapan la lluvia)
+	rayParams.RespectCanCollide = true
 	local hit = workspace:Raycast(camera.CFrame.Position, Vector3.new(0, 80, 0), rayParams)
 	return hit ~= nil and hit.Instance.Transparency < 0.5 and hit.Material ~= Enum.Material.LeafyGrass
 end

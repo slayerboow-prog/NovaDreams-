@@ -63,9 +63,11 @@ function Props.lamp(parent: Instance, cf: CFrame)
 		Tags = { "StreetLamp" },
 		Parent = m,
 	})
-	-- Solo 1 de cada 2 farolas lleva luz real (las demás brillan): la mitad de coste de iluminación
+	-- Solo 1 de cada 2 farolas lleva luz real (las demás brillan): la mitad de coste de iluminación.
+	-- Las calles ponen las farolas alternando lados (1 y 1): se cuentan por parejas para que haya
+	-- luz a los dos lados (con "% 2" todas las de luz caían en la misma acera)
 	lampCount += 1
-	if lampCount % 2 == 0 then
+	if (lampCount // 2) % 2 == 0 then
 		local light = Instance.new("SpotLight")
 		light.Face = Enum.NormalId.Bottom
 		light.Angle = 120

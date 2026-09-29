@@ -20,6 +20,7 @@ local Lite = {}
 
 local rgb = Color3.fromRGB
 local FH = 11 -- alto de una planta
+local DIM_WINDOW = rgb(170, 120, 70) -- luz de ventana de noche: cálida y tenue (no deslumbra)
 
 local function pick<T>(list: { T }): T
 	return list[math.random(1, #list)]
@@ -97,8 +98,11 @@ function Lite.building(parent: Instance, cf: CFrame, w: number, d: number, floor
 		local y = ground + (f - 0.5) * FH + 0.5
 		local strip = part(m, "Windows", cf * CFrame.new(0, y, -d / 2 - 0.15), Vector3.new(w - 4, FH * 0.52, 0.3), glass, Enum.Material.Glass, true)
 		if night and math.random() < 0.25 then
+			-- La franja ocupa toda la planta: de noche luz cálida y tenue (Soft), no un bloque de neón
 			strip:AddTag("NightWindow")
 			strip:SetAttribute("DayColor", glass)
+			strip:SetAttribute("NightColor", DIM_WINDOW)
+			strip:SetAttribute("Soft", true)
 			strip:SetAttribute("OnAt", 18 + math.random() * 2)
 			strip:SetAttribute("OffAt", 23 + math.random() * 3)
 		end
@@ -154,12 +158,24 @@ function Lite.tower(parent: Instance, cf: CFrame, w: number, d: number, floors: 
 			part(m, "Band", cf * CFrame.new(0, y + f * fh - 0.5, 0), Vector3.new(cw + 0.6, 1, cd + 0.6), band, Enum.Material.Concrete, true)
 		end
 		if math.random() < 0.5 then
-			local lit = part(m, "OfficeLights", cf * CFrame.new(0, y + h * 0.5, -cd / 2 - 0.12), Vector3.new(cw - 3, h * 0.8, 0.1), glass, Enum.Material.Glass, true)
-			lit:AddTag("NightWindow")
-			lit:SetAttribute("DayColor", glass)
-			lit:SetAttribute("NightColor", rgb(206, 222, 240))
-			lit:SetAttribute("OnAt", 17.5)
-			lit:SetAttribute("OffAt", 22 + math.random() * 3)
+			-- Oficinas encendidas: un panel por planta y solo algunas plantas (antes era un único
+			-- panel del 80 % de la fachada y de noche la torre entera era una losa de neón).
+			-- Qué plantas se encienden sale de la posición (sin math.random: si no, cambiaría todo lo
+			-- que se sortea después, como la altura de las otras torres)
+			local offBase = 22 + math.random() * 3
+			local seed = cf.Position.X * 12.9898 + cf.Position.Z * 78.233 + s * 37.719
+			for f = 1, n do
+				local luck = (math.sin(seed + f * 4.1414) * 43758.5453) % 1
+				if luck < 0.4 then
+					local lit = part(m, "OfficeLights", cf * CFrame.new(0, y + (f - 0.5) * fh, -cd / 2 - 0.12), Vector3.new(cw - 3, fh * 0.55, 0.1), glass, Enum.Material.Glass, true)
+					lit:AddTag("NightWindow")
+					lit:SetAttribute("DayColor", glass)
+					lit:SetAttribute("NightColor", DIM_WINDOW)
+					lit:SetAttribute("Soft", true)
+					lit:SetAttribute("OnAt", 17.5 + luck * 2)
+					lit:SetAttribute("OffAt", offBase - 1 + luck * 5)
+				end
+			end
 		end
 		y += h
 		cw, cd = cw * 0.78, cd * 0.78

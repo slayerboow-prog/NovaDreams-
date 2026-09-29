@@ -318,7 +318,8 @@ local function crossingPost(parent: Instance, c: Crossing, pos: Vector3, sigma: 
 	local cf = Builder.facing(V3(pos.X, 0, pos.Z), -out) -- (LookVector hacia la vía: la cara de delante, a los coches)
 	local m = Builder.model("PostePasoNivel", parent)
 	part(m, "Post", V3(0.6, 7, 0.6), cf * CFrame.new(0, 2.5, 0), WHITE, Enum.Material.Metal)
-	decor(m, "PostBand", V3(0.65, 0.8, 0.65), cf * CFrame.new(0, 1.2, 0), RED, Enum.Material.Metal)
+	-- (la franja y las rayas sobresalen al menos 0,05 del poste y del brazo: si no, parpadean)
+	decor(m, "PostBand", V3(0.72, 0.8, 0.72), cf * CFrame.new(0, 1.2, 0), RED, Enum.Material.Metal)
 	-- Cruz de San Andrés (mirando a los coches)
 	for _, ang in { 40, -40 } do
 		decor(m, "CrossSign", V3(4, 0.5, 0.12), cf * CFrame.new(0, 6.6, 0.4) * CFrame.Angles(0, 0, math.rad(ang)), WHITE, Enum.Material.SmoothPlastic)
@@ -348,7 +349,7 @@ local function crossingPost(parent: Instance, c: Crossing, pos: Vector3, sigma: 
 	while z < length - 1 do
 		k += 1
 		if k % 2 == 1 then
-			armPart("ArmStripe", V3(0.38, 0.38, 1.4), CFrame.new(0, 0, -z - 0.7), RED)
+			armPart("ArmStripe", V3(0.45, 0.45, 1.4), CFrame.new(0, 0, -z - 0.7), RED)
 		end
 		z += 1.4
 	end

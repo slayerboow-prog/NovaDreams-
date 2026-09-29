@@ -101,11 +101,18 @@ function CarModel.build(parent: Instance?, cf: CFrame, paint: Color3, options: O
 	---------------------------------------------------------------------
 	-- Luces
 	---------------------------------------------------------------------
+	-- Coche aparcado (Lite): faros apagados (sin neón) y marcados CarLight; WorldService los
+	-- enciende de noche como las farolas. Los coches que circulan los llevan siempre encendidos.
+	local lamp = if full then Enum.Material.Neon else Enum.Material.SmoothPlastic
 	for _, sx in { -1, 1 } do
 		local x = sx * (HW - 1)
-		local head = detail("Headlight", Vector3.new(1.3, 0.45, 0.3), at(x, 2.75, -HL + 0.2), rgb(255, 250, 235), Enum.Material.Neon)
+		local head = detail("Headlight", Vector3.new(1.3, 0.45, 0.3), at(x, 2.75, -HL + 0.2), rgb(255, 250, 235), lamp)
 		head.Name = if sx < 0 then "Headlight" else "HeadlightRight"
-		detail("Taillight", Vector3.new(1.4, 0.45, 0.3), at(x, 2.8, HL - 0.2), rgb(200, 20, 30), Enum.Material.Neon)
+		local tail = detail("Taillight", Vector3.new(1.4, 0.45, 0.3), at(x, 2.8, HL - 0.2), rgb(200, 20, 30), lamp)
+		if not full then
+			head:AddTag("CarLight")
+			tail:AddTag("CarLight")
+		end
 		if full then
 			detail("DRL", Vector3.new(1.3, 0.08, 0.1), at(x, 2.45, -HL - 0.04), rgb(225, 240, 255), Enum.Material.Neon)
 			detail("IndicatorFront", Vector3.new(0.35, 0.3, 0.12), at(sx * (HW - 0.15), 2.75, -HL + 0.1), rgb(255, 150, 20), Enum.Material.Neon)

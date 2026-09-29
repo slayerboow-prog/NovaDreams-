@@ -23,6 +23,7 @@ local HALF = 12 -- media calzada de una calle
 local STEP = 4 -- paso al buscar hacia delante
 local MAX_EXTEND = 700 -- como mucho se alarga esto
 local ROUNDABOUT_R = 56
+local WIDE = 20 -- del centro de la calle al borde de la acera (Street.HALF)
 
 local function point(road: Road, u: number): (number, number)
 	if road.Axis == "X" then
@@ -56,8 +57,8 @@ local function touches(self: Road, x: number, z: number, roads: { Road }): boole
 	return false
 end
 
--- ¿Se puede asfaltar este punto al alargar una calle?
-local function free(x: number, z: number, blocked: { Rect }): boolean
+-- ¿Se puede asfaltar este punto al alargar una calle? (axis: sentido de la calle)
+local function free(x: number, z: number, blocked: { Rect }, axis: string): boolean
 	for _, d in { { 0, 0 }, { 50, 0 }, { -50, 0 }, { 0, 50 }, { 0, -50 } } do
 		if not CityPlan.inside(CityPlan.Coast, x + d[1], z + d[2]) then
 			return false
@@ -80,8 +81,12 @@ local function free(x: number, z: number, blocked: { Rect }): boolean
 	if Landmarks.blocked(x, z) then
 		return false
 	end
+	-- Las manzanas se miran con todo el ancho de la calle (calzada + aceras), no solo la línea
+	-- del centro: si no, la acera se metía debajo de los edificios del borde de la manzana
+	local wx = if axis == "Z" then WIDE else 0
+	local wz = if axis == "X" then WIDE else 0
 	for _, r in blocked do
-		if x > r.X0 and x < r.X1 and z > r.Z0 and z < r.Z1 then
+		if x > r.X0 - wx and x < r.X1 + wx and z > r.Z0 - wz and z < r.Z1 + wz then
 			return false
 		end
 	end
@@ -128,7 +133,7 @@ local function extend(road: Road, sign: number, roads: { Road }, blocked: { Rect
 	while d <= MAX_EXTEND do
 		local u = u0 + sign * d
 		local x, z = point(road, u)
-		if not free(x, z, blocked) then
+		if not free(x, z, blocked, road.Axis) then
 			return nil
 		end
 		if touches(road, x, z, roads) then

@@ -494,7 +494,8 @@ local function buildPlot(parent: Instance, plotId: number, center: Vector3)
 	TownBuilder.showHouse(plot, cf)
 
 	-- Jardín
-	Nature.tree(plot, (cf * CFrame.new(-half + 6, 0, half - 6)).Position)
+	-- (en la esquina de atrás: más adentro la copa se metía en la pared de la casa grande)
+	Nature.tree(plot, (cf * CFrame.new(-half + 3, 0, half - 3)).Position)
 	Nature.cypress(plot, (cf * CFrame.new(half - 5, 0, half - 5)).Position)
 	for _, x in { -12, 12 } do
 		Nature.bush(plot, (cf * CFrame.new(x, 0.3, -half + 5)).Position)

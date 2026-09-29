@@ -755,9 +755,11 @@ function Districts.build(world: Instance, towns: { Vector3 })
 			models[cell.District] = model
 		end
 		local block = Builder.model("Manzana_" .. cell.Kind, model)
+		-- (4 studs más ancha y larga que la manzana: llega hasta debajo de la acera y no queda
+		--  una franja de terreno a la vista entre las dos)
 		Builder.part({
 			Name = "BlockGround",
-			Size = Vector3.new(cell.X1 - cell.X0, 1, cell.Z1 - cell.Z0),
+			Size = Vector3.new(cell.X1 - cell.X0 + 4, 1, cell.Z1 - cell.Z0 + 4),
 			CFrame = CFrame.new((cell.X0 + cell.X1) / 2, -0.5, (cell.Z0 + cell.Z1) / 2),
 			Color = if PAVED[cell.Kind] then rgb(186, 182, 174) else Palette.Ground.Grass,
 			Material = if PAVED[cell.Kind] then Enum.Material.Pavement else Enum.Material.Grass,

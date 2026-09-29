@@ -123,6 +123,11 @@ local function setWindow(window: BasePart, info: WindowInfo, on: boolean)
 	windowOn[window] = on
 	window.Material = if on then Enum.Material.Neon else Enum.Material.Glass
 	window.Color = if on then info.NightColor else (info.DayColor or window.Color)
+	-- Las ventanas grandes (franjas de una planta entera, paneles de oficina) llevan "Soft": neón
+	-- medio transparente, así se ven encendidas sin que la fachada entera deslumbre
+	if window:GetAttribute("Soft") then
+		window.Transparency = if on then 0.45 else 0
+	end
 end
 
 local function shouldBeLit(info: WindowInfo, clock: number): boolean
@@ -158,11 +163,21 @@ local function lighthouse(on: boolean)
 end
 
 -- Las farolas no se encienden todas a la vez (cada fotocélula tarda un poco distinto)
+local carLightsHooked = false
 local function setNight(on: boolean)
 	night = on
 	lighthouse(on)
 	for _, bulb in CollectionService:GetTagged("StreetLamp") do
 		task.delay(math.random() * 6, applyLamp, bulb)
+	end
+	-- Faros de los coches aparcados (CarLight): se encienden y apagan como las farolas. Los coches
+	-- que aparecen luego (incidentes, etc.) salen ya con la luz que toca.
+	for _, lamp in CollectionService:GetTagged("CarLight") do
+		task.delay(math.random() * 6, applyLamp, lamp)
+	end
+	if not carLightsHooked then
+		carLightsHooked = true
+		CollectionService:GetInstanceAddedSignal("CarLight"):Connect(applyLamp)
 	end
 end
 

@@ -33,7 +33,7 @@ local KEYS: { { Hour: number, Key: Key } } = {
 		EnvDiffuse = 0.55, EnvSpecular = 0.6, Shadow = 0.3,
 		Density = 0.33, Offset = 0.1, AtmColor = rgb(60, 72, 102), Decay = rgb(22, 26, 44), Glare = 0, Haze = 1,
 		Tint = rgb(206, 216, 255), Saturation = -0.1, Contrast = 0.06, CCBright = 0.03,
-		Bloom = 0.9, BloomSize = 28, Threshold = 1.2, Rays = 0, RaysSpread = 0.5,
+		Bloom = 0.9, BloomSize = 28, Threshold = 1.7, Rays = 0, RaysSpread = 0.5, -- (umbral alto: las ventanas no deslumbran)
 		Cover = 0.5, CloudDensity = 0.28, CloudColor = rgb(66, 74, 98),
 	} },
 	{ Hour = 4.9, Key = { -- antes del alba (azul)
@@ -61,7 +61,9 @@ local KEYS: { { Hour: number, Key: Key } } = {
 		Cover = 0.45, CloudDensity = 0.32, CloudColor = rgb(255, 236, 222),
 	} },
 	{ Hour = 8.5, Key = { -- mañana
-		Ambient = rgb(30, 31, 34), Outdoor = rgb(90, 92, 99), Brightness = 3.4, Exposure = 0.08,
+		-- (Ambient de día igual que el de noche o más: es la luz de dentro de casa; con 30 los
+		--  interiores se veían más oscuros a mediodía que a medianoche)
+		Ambient = rgb(62, 62, 66), Outdoor = rgb(90, 92, 99), Brightness = 3.4, Exposure = 0.08,
 		EnvDiffuse = 1, EnvSpecular = 1, Shadow = 0.12,
 		Density = 0.28, Offset = 0.25, AtmColor = rgb(200, 212, 228), Decay = rgb(100, 120, 146), Glare = 0.1, Haze = 0.78,
 		Tint = rgb(255, 250, 245), Saturation = 0.1, Contrast = 0.14, CCBright = 0,
@@ -69,7 +71,7 @@ local KEYS: { { Hour: number, Key: Key } } = {
 		Cover = 0.42, CloudDensity = 0.3, CloudColor = rgb(255, 255, 255),
 	} },
 	{ Hour = 12.5, Key = { -- mediodía
-		Ambient = rgb(32, 32, 34), Outdoor = rgb(92, 94, 98), Brightness = 3.6, Exposure = 0,
+		Ambient = rgb(62, 62, 66), Outdoor = rgb(92, 94, 98), Brightness = 3.6, Exposure = 0,
 		EnvDiffuse = 1, EnvSpecular = 1, Shadow = 0.1,
 		Density = 0.26, Offset = 0.25, AtmColor = rgb(199, 213, 230), Decay = rgb(106, 125, 150), Glare = 0, Haze = 0.6,
 		Tint = rgb(255, 252, 248), Saturation = 0.08, Contrast = 0.14, CCBright = 0,
@@ -77,7 +79,7 @@ local KEYS: { { Hour: number, Key: Key } } = {
 		Cover = 0.4, CloudDensity = 0.3, CloudColor = rgb(255, 255, 255),
 	} },
 	{ Hour = 15.5, Key = { -- tarde
-		Ambient = rgb(32, 32, 33), Outdoor = rgb(95, 92, 94), Brightness = 3.4, Exposure = 0.05,
+		Ambient = rgb(62, 62, 66), Outdoor = rgb(95, 92, 94), Brightness = 3.4, Exposure = 0.05,
 		EnvDiffuse = 1, EnvSpecular = 1, Shadow = 0.12,
 		Density = 0.27, Offset = 0.25, AtmColor = rgb(210, 214, 222), Decay = rgb(115, 120, 138), Glare = 0.1, Haze = 0.72,
 		Tint = rgb(255, 248, 238), Saturation = 0.1, Contrast = 0.15, CCBright = 0,
@@ -196,6 +198,8 @@ end
 -- ¿Hay techo encima de la cámara? (para simular que los ojos se acostumbran dentro de casa)
 local rayParams = RaycastParams.new()
 rayParams.FilterType = Enum.RaycastFilterType.Exclude
+-- Solo cuenta como techo lo que choca (brazos de farola, toldos, balcones y copas no chocan)
+rayParams.RespectCanCollide = true
 local function cameraIndoors(): boolean
 	local camera = workspace.CurrentCamera
 	local character = Players.LocalPlayer.Character

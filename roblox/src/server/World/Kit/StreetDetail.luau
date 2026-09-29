@@ -146,8 +146,9 @@ Kinds.Mupi = function(parent, cf, r)
 	local m = item(parent, "Mupi")
 	local ad = ADS[math.floor(r * #ADS) % #ADS + 1]
 	local c = cf * CFrame.Angles(0, math.rad(90), 0) -- de canto a la calle (se lee al pasar)
-	solid(m, "MupiFrame", V3(3.2, 6, 0.6), c * CFrame.new(0, 3.6, 0), rgb(70, 74, 80), Enum.Material.Metal)
-	local board = decor(m, "MupiAd", V3(2.8, 4.2, 0.7), c * CFrame.new(0, 3.9, 0), ad[2], Enum.Material.Neon, { Transparency = 0.15 })
+	-- (el marco apoya en la acera: antes flotaba 0,6 studs)
+	solid(m, "MupiFrame", V3(3.2, 6, 0.6), c * CFrame.new(0, 3, 0), rgb(70, 74, 80), Enum.Material.Metal)
+	local board = decor(m, "MupiAd", V3(2.8, 4.2, 0.7), c * CFrame.new(0, 3.3, 0), ad[2], Enum.Material.Neon, { Transparency = 0.15 })
 	Builder.sign(board, ad[1], Enum.NormalId.Front, Color3.new(1, 1, 1), ad[2])
 	Builder.sign(board, ad[1], Enum.NormalId.Back, Color3.new(1, 1, 1), ad[2])
 end

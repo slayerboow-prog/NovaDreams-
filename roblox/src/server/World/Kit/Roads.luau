@@ -364,7 +364,7 @@ type SegmentPlan = {
 	Cuts: { [number]: { { number } } }, -- [lado] = bocas abiertas en la acera
 }
 
-local function buildSegment(parent: Instance, s: Segment, plan: SegmentPlan)
+local function buildSegment(parent: Instance, s: Segment, plan: SegmentPlan, kerbFree: ((Vector3) -> boolean)?)
 	local kind = Roads.Kinds[s.Kind]
 	local dir = (s.B - s.A).Unit
 	local perp = perpOf(dir)
@@ -416,6 +416,33 @@ local function buildSegment(parent: Instance, s: Segment, plan: SegmentPlan)
 					end
 				end
 			end
+		end
+	end
+	-- Sin acera (autovía): bordillo bajo de hormigón a cada lado, en trozos largos. Se corta en los
+	-- cruces, rotondas y bocas de calle (kerbFree) y sobre el agua (ahí va el muro del puente).
+	if kind.Walk == 0 and kerbFree then
+		local STEP = 4
+		for _, side in { -1, 1 } do
+			local runFrom: number? = nil
+			local function close(to: number)
+				if runFrom and to - runFrom >= 6 then
+					local from = runFrom :: number
+					box(parent, "RoadKerb", frame(from, to) * CFrame.new(side * (half + 0.3), 0.7, 0), V3(0.6, 1, to - from), rgb(190, 188, 182), Enum.Material.Concrete)
+				end
+				runFrom = nil
+			end
+			local d = plan.RoadA
+			while d <= plan.RoadB do
+				local q = s.A + dir * d + perp * side * (half + 0.3)
+				local ok = not overWater(s.A + dir * d) and kerbFree(q)
+				if ok then
+					runFrom = runFrom or d
+				else
+					close(d - STEP)
+				end
+				d += STEP
+			end
+			close(math.min(d - STEP, plan.RoadB))
 		end
 	end
 	-- Mediana (autovía) o línea central
@@ -604,7 +631,9 @@ local function buildRoundabout(parent: Instance, J: Junction, approaches: { any 
 		if not blockedHere then
 			local cf = Builder.facing(center, tangent)
 			box(m, "RingSidewalk", cf * CFrame.new(0, (BASE + WALK_TOP) / 2, 0), V3(RING_WALK, WALK_TOP - BASE, chord), G.Sidewalk, Enum.Material.Pavement)
-			box(m, "RingCurb", Builder.facing(p + dir * (R + 0.3), tangent) * CFrame.new(0, (ROAD_TOP + WALK_TOP + 0.05) / 2, 0), V3(0.6, WALK_TOP + 0.05 - ROAD_TOP, 2 * (R + 0.6) * math.sin(dAng / 2) + 0.1), G.Curb, Enum.Material.Concrete)
+			-- (el bordillo sobresale 0,05 hacia la calzada: si su cara interior coincide con la de la
+			--  acera, las dos parpadean al verse de lejos)
+			box(m, "RingCurb", Builder.facing(p + dir * (R + 0.25), tangent) * CFrame.new(0, (ROAD_TOP + WALK_TOP + 0.05) / 2, 0), V3(0.6, WALK_TOP + 0.05 - ROAD_TOP, 2 * (R + 0.6) * math.sin(dAng / 2) + 0.1), G.Curb, Enum.Material.Concrete)
 		end
 	end
 	-- Isla: césped con bordillo de muchos trozos
@@ -713,6 +742,24 @@ function Roads.build(world: Instance, streets: { any }?)
 	local function blocked(p: Vector3): boolean
 		return B.blocked(p, 1) or streetAt(p, 1)
 	end
+	-- ¿Puede ir el bordillo de la autovía aquí? (no dentro de un cruce, una rotonda ni una boca)
+	local function kerbFree(q: Vector3): boolean
+		if blocked(q) or streetAt(q, 4) then
+			return false
+		end
+		for _, j in J do
+			local c = j.Node.Position
+			local r = if j.Node.Roundabout then ROUNDABOUT_R + RING_WALK + 2 else j.Radius + 2
+			-- (una curva suave de la misma carretera no es un cruce: ahí el bordillo sigue)
+			local bend = #j.Arms == 2 and j.Arms[1].Dir:Dot(j.Arms[2].Dir) < -0.9
+			if (#j.Arms >= 2 and not bend) or j.Node.Roundabout then
+				if (V3(q.X, 0, q.Z) - V3(c.X, 0, c.Z)).Magnitude < r then
+					return false
+				end
+			end
+		end
+		return true
+	end
 	local function cutsOf(s: Segment): { [number]: { { number } } }
 		local out = { [-1] = {}, [1] = {} }
 		local c = mouths.Cuts[s]
@@ -768,7 +815,7 @@ function Roads.build(world: Instance, streets: { any }?)
 				end
 			end
 		end
-		buildSegment(folder, s, plan)
+		buildSegment(folder, s, plan, kerbFree)
 	end
 	for k, j in J do
 		if j.Node.Roundabout then

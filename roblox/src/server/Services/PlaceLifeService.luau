@@ -1231,28 +1231,29 @@ function PlaceLifeService.tick()
 			break
 		end
 		local a = w.Anchor
-		local name, size = nil, 0
+		local name, size, extra = nil, 0, 0
 		for _ = 1, 3 do
 			local n = PlaceLife.pick(a.Kind, hour, weather)
 			if n then
 				local s = PlaceLife.groupSize(n)
 				local activity = PlaceLife.Activities[n]
 				local minimum = if activity.Size then activity.Size[1] else 1
-				s = math.min(s, w.Want)
+				local more = if activity.Ball then 1 else 0 -- (los niños de la pelota, con un adulto)
+				s = math.min(s, w.Want - more)
 				if s >= minimum then
-					name, size = n, s
+					name, size, extra = n, s, more
 					break
 				end
 			end
 		end
 		-- ¿Cabe en el presupuesto de cada jugador que lo vería?
-		local fits = name ~= nil and total + size <= PlaceLife.GlobalCap
+		local fits = name ~= nil and total + size + extra <= PlaceLife.GlobalCap
 		local affected = {}
 		if fits then
 			for _, v in list do
 				if anchorDistance(a, v.Pos) <= PlaceLife.Radius then
 					table.insert(affected, v)
-					if budget[v] + size > PlaceLife.PlayerBudget then
+					if budget[v] + size + extra > PlaceLife.PlayerBudget then
 						fits = false
 					end
 				end
