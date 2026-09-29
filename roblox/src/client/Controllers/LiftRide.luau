@@ -9,6 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local LiftMath = require(ReplicatedStorage.Shared.LiftMath)
+local SoundFx = require(script.Parent.SoundFx)
 
 local LiftRide = {}
 
@@ -40,7 +41,17 @@ local function cabinOf(key: string): Model?
 	return nil
 end
 
-local riding: { Cabin: Model, Offset: number, Character: Model }? = nil
+local riding: { Cabin: Model, LastFloorY: number, Character: Model }? = nil
+-- Para el "ding" al llegar: la cabina en la que ibas deja de moverse
+local wasMoving = false
+local lastCabin: Model? = nil
+
+local function arrivalDing(cabin: Model)
+	local floorPart = cabin:FindFirstChild("CabinFloor") :: BasePart?
+	if floorPart then
+		SoundFx.play("Ascensor", 1, nil, floorPart)
+	end
+end
 
 -- Pone la cabina (en tu pantalla) a esa altura sobre la planta baja. Mide dónde está de verdad su
 -- suelo (lo que llega del servidor puede haberla movido) y la lleva hasta ahí.
@@ -67,11 +78,23 @@ local function step()
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	if type(key) ~= "string" then
+		-- (el servidor quita LiftTower justo al llegar: si la cabina ya se ha parado, ha llegado)
+		if wasMoving and lastCabin and lastCabin.Parent and not lastCabin:GetAttribute("Moving") then
+			arrivalDing(lastCabin)
+		end
 		riding = nil
+		wasMoving = false
+		lastCabin = nil
 		return
 	end
 	local cabin = cabinOf(key)
-	if not cabin or not root or not cabin:GetAttribute("Moving") then
+	local moving = cabin ~= nil and cabin:GetAttribute("Moving") == true
+	if wasMoving and not moving and cabin then
+		arrivalDing(cabin) -- ha llegado a la planta
+	end
+	wasMoving = moving
+	lastCabin = cabin
+	if not cabin or not root or not moving then
 		return
 	end
 	local from, to = cabin:GetAttribute("LiftFrom"), cabin:GetAttribute("LiftTo")
@@ -91,17 +114,32 @@ local function step()
 	local floorY = base.Position.Y + h
 	-- (personaje nuevo —has muerto o reaparecido—: se empieza de cero, sin el desfase del de antes)
 	if not riding or riding.Cabin ~= cabin or riding.Character ~= character then
-		riding = { Cabin = cabin, Offset = root.Position.Y - floorY, Character = character :: Model }
+		riding = { Cabin = cabin, LastFloorY = floorY, Character = character :: Model }
 	end
-	local pos = root.Position
-	root.CFrame = CFrame.new(pos.X, floorY + riding.Offset, pos.Z) * (root.CFrame - pos)
-	root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+	local ride = riding :: { Cabin: Model, LastFloorY: number, Character: Model }
+	-- Solo se te mueve lo que se ha movido la cabina en este fotograma (antes se te clavaba a una
+	-- altura fija y se borraba toda la velocidad: no se podía saltar ni andar bien dentro)
+	local dy = floorY - ride.LastFloorY
+	ride.LastFloorY = floorY
+	if dy ~= 0 then
+		root.CFrame += Vector3.new(0, dy, 0)
+	end
+	-- De pie en el suelo: sin velocidad vertical (que no se acumule la caída); saltando, se respeta
+	local humanoid = (character :: Model):FindFirstChildOfClass("Humanoid")
+	if humanoid and humanoid.FloorMaterial ~= Enum.Material.Air then
+		local v = root.AssemblyLinearVelocity
+		if v.Y < 0 then
+			root.AssemblyLinearVelocity = Vector3.new(v.X, 0, v.Z)
+		end
+	end
 end
 
 function LiftRide.init()
 	-- Al reaparecer ya no vas en el ascensor (aunque el atributo tarde en llegar del servidor)
 	player.CharacterAdded:Connect(function()
 		riding = nil
+		wasMoving = false
+		lastCabin = nil
 	end)
 	RunService.RenderStepped:Connect(function()
 		local ok, err = pcall(step)

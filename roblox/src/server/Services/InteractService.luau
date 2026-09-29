@@ -123,7 +123,13 @@ local function tween(part: BasePart, goal: CFrame, seconds: number)
 	end
 end
 
--- Abre o cierra una hoja con bisagra (y lo que va pegado a ella: pomo, tirador, imanes)
+-- Cada hoja recuerda su ángulo y su giro en marcha (si la vuelves a pulsar a medio abrir, sigue desde ahí)
+type Swinging = { Angle: NumberValue, Tween: Tween?, Parts: { { Part: BasePart, Closed: CFrame } }, Hinge: CFrame }
+local swinging: { [BasePart]: Swinging } = setmetatable({}, { __mode = "k" }) :: any
+
+-- Abre o cierra una hoja con bisagra (y lo que va pegado a ella: pomo, tirador, imanes).
+-- Se anima el ángulo, no el CFrame: si no, la hoja iba en línea recta de cerrada a abierta y el
+-- canto de la bisagra atravesaba la pared (se deslizaba en vez de girar)
 local function swing(door: BasePart, open: boolean, seconds: number?)
 	local hinge = door:GetAttribute("Hinge") :: CFrame
 	local closed = door:GetAttribute("Closed") :: CFrame
@@ -131,9 +137,8 @@ local function swing(door: BasePart, open: boolean, seconds: number?)
 	if typeof(hinge) ~= "CFrame" or typeof(closed) ~= "CFrame" then
 		return
 	end
-	local turn = if open then hinge * CFrame.Angles(0, angle, 0) * hinge:Inverse() else CFrame.identity
 	door:SetAttribute("Open", open)
-	tween(door, turn * closed, seconds or DOOR_TIME)
+	local parts = { { Part = door, Closed = closed } }
 	local parent = door.Parent
 	if parent then
 		for _, follower in parent:GetDescendants() do
@@ -143,9 +148,56 @@ local function swing(door: BasePart, open: boolean, seconds: number?)
 					base = follower.CFrame
 					follower:SetAttribute("ClosedAt", base)
 				end
-				tween(follower, turn * (base :: CFrame), seconds or DOOR_TIME)
+				table.insert(parts, { Part = follower, Closed = base :: CFrame })
 			end
 		end
+	end
+	local state = swinging[door]
+	if not state then
+		local value = Instance.new("NumberValue")
+		-- (la primera vez parte de donde esté: cerrada, o abierta si ya lo estaba)
+		value.Value = if door.CFrame:FuzzyEq(closed, 1e-3) then 0 else angle
+		local new: Swinging = { Angle = value, Tween = nil, Parts = parts, Hinge = hinge }
+		value.Changed:Connect(function(a: number)
+			local turn = new.Hinge * CFrame.Angles(0, a, 0) * new.Hinge:Inverse()
+			for _, entry in new.Parts do
+				entry.Part.CFrame = turn * entry.Closed
+			end
+		end)
+		swinging[door] = new
+		state = new
+	end
+	state.Parts = parts
+	state.Hinge = hinge
+	if state.Tween then
+		state.Tween:Cancel()
+		state.Tween = nil
+	end
+	local target = if open then angle else 0
+	-- Al final, justo donde se ponía antes (cerrada = su CFrame de cerrada exacto, sin decimales de más)
+	local function settle()
+		local turn = if open then hinge * CFrame.Angles(0, angle, 0) * hinge:Inverse() else CFrame.identity
+		for _, entry in parts do
+			entry.Part.CFrame = turn * entry.Closed
+		end
+	end
+	local time = seconds or DOOR_TIME
+	local ok = time > 0
+		and pcall(function()
+			local t = TweenService:Create(state.Angle, TweenInfo.new(time, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), { Value = target })
+			state.Tween = t
+			t.Completed:Connect(function(status)
+				if status == Enum.PlaybackState.Completed and state.Tween == t then
+					state.Tween = nil
+					settle()
+				end
+			end)
+			t:Play()
+		end)
+	if not ok then
+		state.Tween = nil
+		state.Angle.Value = target
+		settle()
 	end
 end
 InteractService.swing = swing

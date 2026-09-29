@@ -35,6 +35,7 @@ local WeaponMotion = require(script.Parent.WeaponMotion)
 local FootCamera = require(script.Parent.FootCamera)
 local InventoryUI = require(script.Parent.InventoryUI)
 local SoundFx = require(script.Parent.SoundFx)
+local Prompts = require(script.Parent.Prompts)
 
 local WeaponController = {}
 
@@ -64,6 +65,9 @@ local lastPitchSent, pitchSentAt = 0, 0
 local wallAmount = 0
 local mouseLocked = false
 local autoRotateSaved: boolean? = nil
+-- Retroceso y balanceo que se pusieron en la cámara el fotograma anterior: la cámara de Roblox parte
+-- de donde la dejamos, así que cada fotograma solo se añade la diferencia (si no, se acumula y se va)
+local lastKick = CFrame.identity
 
 -- Interfaz
 local gui: ScreenGui
@@ -660,6 +664,7 @@ local function frame(dt: number)
 			releaseCamera()
 		end
 		trigger = false
+		lastKick = CFrame.identity
 		updateReticle(nil, 0)
 		WeaponMotion.setLocal(0, 0, 0, 0, 0)
 		return
@@ -704,7 +709,12 @@ local function frame(dt: number)
 	local swayUp, swaySide = Weapons.sway(w, os.clock(), aimAlpha > 0.5, holdBreath)
 	local swayK = eased * (if st == "Prone" then 0.3 elseif st == "Crouch" then 0.7 else 1)
 	local kick = CFrame.Angles(camPitch + math.rad(swayUp) * swayK, camYaw + math.rad(swaySide) * swayK, 0)
-	camera.CFrame = camera.CFrame * kick
+	camera.CFrame = camera.CFrame * lastKick:Inverse() * kick
+	lastKick = kick
+	-- Sin apuntar y con el muelle ya quieto: se empieza de cero la próxima vez
+	if aimAlpha <= 0 and math.abs(camPitch) + math.abs(camYaw) < 1e-4 then
+		lastKick = CFrame.identity
+	end
 
 	-- Hacia dónde apunta (arriba/abajo) y aviso al servidor para que los demás lo vean
 	local pitch = math.asin(math.clamp(camera.CFrame.LookVector.Y, -1, 1))
@@ -799,6 +809,7 @@ function WeaponController.init()
 	end
 	player.CharacterAdded:Connect(function()
 		wantAim, aimAlpha, trigger = false, 0, false
+		lastKick = CFrame.identity
 		autoRotateSaved = nil
 		savedMax = nil
 		releaseCamera()
@@ -817,6 +828,9 @@ function WeaponController.init()
 				setTrigger(true)
 			end
 		elseif processed then
+			return
+		elseif (input.KeyCode == Enum.KeyCode.R or input.KeyCode == Enum.KeyCode.T) and Prompts.keyInUse(input.KeyCode) then
+			-- Un cartel cercano usa esa tecla: es para él, no para el arma
 			return
 		elseif input.KeyCode == Enum.KeyCode.R or input.KeyCode == Enum.KeyCode.DPadLeft then
 			WeaponController.reload()

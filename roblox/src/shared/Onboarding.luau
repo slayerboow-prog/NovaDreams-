@@ -41,7 +41,7 @@ Onboarding.Steps = {
 		Id = "Correr",
 		Title = "Corre",
 		Touch = "Toca el botón Correr o empuja el joystick hasta el borde.",
-		Keys = "Mantén pulsado Mayús mientras andas (con mando: L3).",
+		Keys = "Mantén pulsado Mayús (Shift) mientras andas (con mando: L3).",
 		Target = { Touch = "Slots.Correr", Keys = "Items.Hints" },
 	},
 	{
@@ -90,7 +90,7 @@ end
 -- Consejos de la primera vez (uno por cosa nueva; se guardan para no repetirlos)
 Onboarding.Tips = {
 	Vehiculo = "🚗 Vas en un vehículo. Muévete con el joystick (o W A S D). Para bajarte, toca «Bajarse» (tecla F).",
-	Tienda = "🛒 Estás en una tienda. Acércate a lo que quieras y toca el botón de acción para comprar.",
+	Tienda = "🛒 Estás en una tienda. Coge lo que quieras con el botón de acción y paga en una caja antes de salir.",
 	Gimnasio = "💪 Máquina del gimnasio. Úsala con el botón de acción y toca «¡YA!» cuando el marcador pase por la zona verde.",
 	Transporte = "🚏 Parada de bus, metro o Cercanías. Espera y sube con el botón de acción. En el bus, «Bajar en la próxima». El metro y el tren piden billete.",
 	Busqueda = "⭐ ¡La policía te busca! Aléjate y escóndete un rato: si no te ven, las estrellas se van solas.",
@@ -165,7 +165,7 @@ Onboarding.PlaceHours = {
 	Supermercado = OpeningHours.Services.Supermercado,
 	GimnasioValmar = OpeningHours.Places.Gym,
 	Recreativos = OpeningHours.Places.Arcade,
-	Colegio = { 8, 17 },
+	Colegio = { 8.5, 17 }, -- (como Config.SchoolDay: abre a las 8:30)
 	Facultad = OpeningHours.Places.Faculty,
 	Playa = { 8, 20.5 },
 	Parque = { 7, 22 },

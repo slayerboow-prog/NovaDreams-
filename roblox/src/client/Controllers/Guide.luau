@@ -112,8 +112,22 @@ local function quiet(): boolean
 end
 
 -- Abajo en el centro hay otra cosa: la barra del ritmo del gimnasio o el panel del autobús
+-- (y también la clase —el examen de mates, el circuito— o un minijuego: la tarjeta los tapaba)
 local function areaTaken(): boolean
-	return player:GetAttribute("Training") ~= nil or player:GetAttribute("BusLine") ~= nil
+	if player:GetAttribute("Training") ~= nil or player:GetAttribute("BusLine") ~= nil or player:GetAttribute("InMiniGame") then
+		return true
+	end
+	local gui = player:FindFirstChild("PlayerGui")
+	local class = gui and gui:FindFirstChild("ClassUI")
+	if class then
+		for _, name in { "Class", "Circuit" } do
+			local panel = class:FindFirstChild(name, true)
+			if panel and panel:IsA("GuiObject") and panel.Visible then
+				return true
+			end
+		end
+	end
+	return false
 end
 
 local function tutorialActive(): boolean

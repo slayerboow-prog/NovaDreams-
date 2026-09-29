@@ -644,7 +644,7 @@ local function renderQuestList(list: Frame, state: { [string]: any })
 		local waiting = state.Waiting
 		section(list, nextOrder(), "Misión principal", H.Gold)
 		objectiveRow(list, nextOrder(), Strings.get(waiting.TitleKey), false, true)
-		objectiveRow(list, nextOrder(), if waiting.Reason == "Hours" and waiting.From then ("🕗 Empieza a las %s (ahora está cerrado)"):format(hourText(waiting.From)) elseif waiting.Reason == "Hours" then Strings.get("STORY.WAIT.HOURS", { from = waiting.From, to = waiting.To }) else Strings.get("STORY.WAIT.DAYS"), false)
+		objectiveRow(list, nextOrder(), if waiting.Reason == "Hours" and waiting.From then ("🕗 Empieza a las %s (ahora está cerrado)"):format(hourText(waiting.From)) elseif waiting.Reason == "Hours" then "Podrás seguir más tarde." else Strings.get("STORY.WAIT.DAYS"), false)
 		if waiting.Reason == "Hours" then
 			objectiveRow(list, nextOrder(), "💤 Puedes dormir en tu cama para que pase antes el tiempo", false)
 		end

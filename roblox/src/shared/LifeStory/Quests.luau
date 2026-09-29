@@ -96,7 +96,8 @@ local Quests: { [string]: Quest } = {
 		Requires = { Completed = { "Bebe_ExploraLaCasa" } },
 		Steps = {
 			{ Type = "Event", Event = "LookedOutside", Place = "Ventanal", TextKey = "QUEST.BEBE_SALIR.S1" },
-			{ Type = "Transition", Seconds = 5, SetStage = "Nino", TextKey = "TRANSITION.ANOS_DESPUES", Cinematic = "Bebe_AnosDespues" },
+			-- (amanece: el primer día de cole empieza por la mañana, sin esperar a que abra el colegio)
+			{ Type = "Transition", Seconds = 5, SetStage = "Nino", TextKey = "TRANSITION.ANOS_DESPUES", Cinematic = "Bebe_AnosDespues", Clock = 7.5 },
 		},
 		MomentKey = "MOMENT.YA_ERES_NINO",
 	},

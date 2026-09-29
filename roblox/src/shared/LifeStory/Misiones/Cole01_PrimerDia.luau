@@ -73,6 +73,9 @@ end
 return {
 	Id = "Cole01_PrimerDia",
 	Kind = "Main",
+	-- Empieza en casa (despertar, vestirse…): no espera al horario del colegio (antes se quedaba
+	-- parada hasta las 8:30, sin nada que hacer, justo después de la fase de bebé)
+	Schedule = false,
 	Title = "El primer día",
 	Description = "Hoy empiezas el colegio. Nuevos lugares, nuevas caras… y un montón de cosas que aprender.",
 	Chapter = "Nino_ElColegio",
@@ -239,7 +242,7 @@ return {
 
 	Dialogues = {
 		Despertar = { Lines = {
-			{ S = "Narrador", T = "Los Pinos, 7:30 de la mañana. Hoy no es un día cualquiera." },
+			{ S = "Narrador", T = "Los Pinos, por la mañana temprano. Hoy no es un día cualquiera." },
 			{ S = "Familia", T = "¡Buenos días, {nombre}! Arriba, que hoy es un día MUY importante." },
 			{ S = "Yo", T = "Mmmm… ¿qué día?" },
 			{ S = "Familia", T = "¡Tu primer día de cole! Mochila nueva, profe nueva, amigos nuevos…" },
@@ -257,7 +260,7 @@ return {
 			} },
 			{ S = "Familia", T = "Tienes que vestirte, preparar la mochila y desayunar. El cole empieza a las nueve." },
 			{ S = "Familia", T = "Yo estoy en la cocina. Si tardas mucho, llegarás tarde… ¡y la profe lo notará!" },
-			{ S = "Narrador", T = "Pulsa E junto a los objetos que brillan para usarlos." },
+			{ S = "Narrador", T = "Acércate a los objetos que brillan y usa el botón de acción (E)." },
 		} },
 
 		Armario = { Lines = {
@@ -285,7 +288,7 @@ return {
 					{ S = "Yo", T = "Se queda en casa, a salvo. Solo lo del cole." },
 				} },
 			} },
-			{ S = "Narrador", T = "Mochila lista. La encontrarás en tu inventario (tecla E)." },
+			{ S = "Narrador", T = "Mochila lista. La encontrarás en tu mochila (botón Objetos, tecla E)." },
 		}, Effects = { Items = { MochilaCole = 1 } } },
 
 		Desayuno = { Lines = {
@@ -329,7 +332,7 @@ return {
 			{ S = "Familia", T = "Deja que te vea… ¡Qué elegancia!", If = { Choices = { Ropa = "Camisa" } } },
 			{ S = "Familia", T = "Con los dinosaurios. Muy tú. ¡Me encanta!", If = { Choices = { Ropa = "Dinosaurios" } } },
 			{ S = "Familia", T = "¡Con la sudadera del cole! Pareces de sexto.", If = { Choices = { Ropa = "Sudadera" } } },
-			{ S = "Familia", T = "Aunque… son las nueve menos cuarto. ¡Corre!", If = { Flags = { "LlegasTarde" } } },
+			{ S = "Familia", T = "Aunque… ¡mira qué hora es! ¡Corre!", If = { Flags = { "LlegasTarde" } } },
 			{ S = "Familia", T = "El cole está cerca. ¿Quieres que te acompañe?" },
 			{ Ask = "¿Vas solo o acompañado?", Options = {
 				{ T = "Sí, acompáñame, porfa.", Effects = { Choice = { Acompanante = "Familia" }, Rel = { Familia = 3 } }, Then = {
@@ -359,9 +362,9 @@ return {
 			{ S = "Narrador", T = "La puerta del colegio es un hervidero: mochilas, abrazos, un autobús amarillo y muchísimo ruido." },
 			{ S = "Ramon", T = "¡Buenos días, buenos días! ¡Los mayores, por la izquierda; los de primero, por la puerta grande!" },
 			{ S = "Ramon", T = "Uy, ¿y tú? Cara nueva. Me llamo Ramón, soy el conserje. Si algo se rompe, se pierde o se atasca: Ramón." },
-			{ S = "Ramon", T = "¿Llegando a las nueve y cuarto el primer día? Tranquilidad, lo apunto en mi libreta de secretos. Jejeje.", If = { Flags = { "LlegasTarde" } } },
+			{ S = "Ramon", T = "¿Llegando tarde el primer día? Tranquilidad, lo apunto en mi libreta de secretos. Jejeje.", If = { Flags = { "LlegasTarde" } } },
 			{ S = "Familia", T = "Bueno… aquí te dejo. ¡Pásalo genial! Te espero para cenar y me lo cuentas TODO.", If = { Choices = { Acompanante = "Familia" } } },
-			{ S = "Ramon", T = "Tu tutora es Lucía. Está en el vestíbulo. La reconocerás: jersey amarillo y una risa que se oye desde aquí." },
+			{ S = "Ramon", T = "Tu tutora es Lucía. Está en el pasillo. La reconocerás: jersey amarillo y una risa que se oye desde aquí." },
 		}, Effects = { Remember = { { Npc = "Ramon", Fact = "SeConocen" } } } },
 
 		Andres_Pista = { Lines = {
@@ -377,7 +380,7 @@ return {
 			{ S = "Lucia", T = "¡Hola! Tú debes de ser {nombre}. Yo soy Lucía, tu tutora de 1.º A." },
 			{ S = "Lucia", T = "Llegas justo a tiempo. Buena señal.", If = { NotFlags = { "LlegasTarde" } } },
 			{ S = "Lucia", T = "Un poquito tarde, ¿eh? Hoy te lo perdono. Mañana, a las nueve en punto.", If = { Flags = { "LlegasTarde" } } },
-			{ S = "Lucia", T = "Antes de empezar, tengo una misión para ti: conoce el colegio. El patio, la cancha, el campo y el gimnasio." },
+			{ S = "Lucia", T = "Antes de empezar, tengo una misión para ti: conoce el colegio: la biblioteca, el comedor, el patio, el gimnasio y el campo." },
 			{ S = "Lucia", T = "Por el camino encontrarás gente que te contará cosas. Y luego… encuentra tú solito tu aula. Es la de 1.º A." },
 			{ Ask = "¿Qué le dices?", Options = {
 				{ T = "¡Hecho! Me encanta explorar.", Effects = { Traits = { Valentia = 1 }, Rel = { Lucia = 3 } }, Then = {

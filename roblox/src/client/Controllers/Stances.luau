@@ -540,6 +540,13 @@ function Stances.init()
 		if typing() then
 			return Enum.ContextActionResult.Pass
 		end
+		-- Sentado o en un vehículo, Ctrl es el freno de mano: ni agacharse ni el aviso de "no puedes"
+		local humanoid = parts()
+		if (humanoid and (humanoid.SeatPart ~= nil or humanoid.Sit))
+			or player:GetAttribute("Riding") ~= nil or player:GetAttribute("Passenger") ~= nil then
+			pressedAt = nil
+			return Enum.ContextActionResult.Pass
+		end
 		if state == Enum.UserInputState.Begin then
 			press(true)
 		elseif state == Enum.UserInputState.End or state == Enum.UserInputState.Cancel then

@@ -398,6 +398,12 @@ local function start(player: Player)
 	spawnAtCrib(player, baby)
 	if not stood then
 		task.delay(3, function()
+			-- (espera a que acabe la escena del nacimiento o el sueño: antes Abu hablaba encima)
+			local since = os.clock()
+			while player.Parent and (player:GetAttribute("InCinematic") or player:GetAttribute("InPrologue") or player:GetAttribute("InDialogue")) and os.clock() - since < 90 do
+				task.wait(1)
+			end
+			task.wait(1.5)
 			if babies[player] == baby and not baby.Stood then
 				say(player, if home.Index % 2 == 1 then "NPC.ABU_ROSA" else "NPC.ABU_TOMAS", "DLG.ABU.BEBE.LEVANTATE")
 			end

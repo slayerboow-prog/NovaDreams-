@@ -35,6 +35,8 @@ local function sound(part: BasePart)
 	kick.SoundId = "rbxasset://sounds/collide.wav"
 	kick.Volume = 0.6
 	kick.RollOffMaxDistance = 80
+	-- Cada cliente lo mete en su grupo de efectos (SoundFx): así «Sonidos: no» también lo calla
+	kick:SetAttribute("SfxGroup", "SFX")
 	kick.Parent = part
 end
 

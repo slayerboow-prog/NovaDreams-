@@ -1220,6 +1220,16 @@ local function enterStep(player: Player, data: Data, questId: string)
 					advance(player, current, questId)
 				end
 			end)
+		elseif step.Type == "Event" and step.Event == "BabyStood" and story.Flags.BebeDePie then
+			-- Ya se puso de pie antes de que empezara la misión (el botón ya no sale): paso hecho
+			local index = prog.Step
+			task.defer(function()
+				local current = DataService.get(player)
+				local now = current and storyOf(current).Active[questId]
+				if now and now.Step == index then
+					advance(player, current, questId)
+				end
+			end)
 		elseif step.Type == "Event" and step.Event == "LicenseEarned" and type(step.Match) == "table" and type(step.Match.License) == "string" then
 			-- ¿Ya tienes ese carnet? Entonces el paso está hecho (antes la autoescuela no te dejaba
 			-- examinarte otra vez y la misión se quedaba atascada para siempre)

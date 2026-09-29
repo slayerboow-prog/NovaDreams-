@@ -24,7 +24,8 @@ local TAP_TIME = 0.45
 local TAP_SLOP = 12
 local TAP_STILL = 0.15 -- (carteles de mantener: el dedo quieto encima este rato para empezar)
 
--- Solo se dibuja el cartel del "foco": lo que hace la tecla E (lo elige el menú de comandos)
+-- Se dibuja el cartel del "foco" (lo que hace la tecla E, lo elige el menú de comandos) y, encima,
+-- los que usan otra tecla: esos también se activan al pulsarla, así que tienen que verse
 local focus: ProximityPrompt? = nil
 local managed = false -- hasta que el menú de comandos elija, se ven todos (por si no arrancara)
 local shown: { [ProximityPrompt]: { Billboard: BillboardGui, Key: TextLabel, InputType: Enum.ProximityPromptInputType } } = {}
@@ -49,6 +50,32 @@ local function keyText(prompt: ProximityPrompt, inputType: Enum.ProximityPromptI
 		text = prompt.KeyboardKeyCode.Name
 	end
 	return string.upper(text)
+end
+
+-- Coloca los carteles: el del foco en su sitio y los de otras teclas apilados encima
+local function relayout()
+	local focusKey = if focus then focus.KeyboardKeyCode else Enum.KeyCode.E
+	local extras = {}
+	for prompt, entry in shown do
+		if not managed or prompt == focus then
+			entry.Billboard.Enabled = true
+			entry.Billboard.SizeOffset = Vector2.zero
+		elseif prompt.KeyboardKeyCode ~= focusKey then
+			table.insert(extras, prompt)
+		else
+			entry.Billboard.Enabled = false
+		end
+	end
+	-- Siempre en el mismo orden (por tecla) para que no bailen al moverte
+	table.sort(extras, function(a, b)
+		return a.KeyboardKeyCode.Value < b.KeyboardKeyCode.Value
+	end)
+	for i, prompt in extras do
+		local entry = shown[prompt]
+		entry.Billboard.Enabled = true
+		-- (SizeOffset va en alturas del cartel: cada uno, una fila más arriba)
+		entry.Billboard.SizeOffset = Vector2.new(0, if focus then i else i - 1)
+	end
 end
 
 local function adornee(prompt: ProximityPrompt): Instance?
@@ -104,8 +131,8 @@ local function show(prompt: ProximityPrompt, inputType: Enum.ProximityPromptInpu
 		Parent = card,
 	}, { Theme.corner(10), create("UIStroke", { Color = C.Accent, Thickness = 2 }) })
 	local keyLabel = Theme.label({ Size = UDim2.fromScale(1, 1), Text = keyText(prompt, inputType), Font = Theme.FontBold, TextSize = 20, TextXAlignment = Enum.TextXAlignment.Center, Parent = key })
-	billboard.Enabled = not managed or prompt == focus
 	shown[prompt] = { Billboard = billboard, Key = keyLabel, InputType = inputType }
+	relayout()
 	local texts = create("Frame", {
 		Position = UDim2.fromOffset(54, 0),
 		Size = UDim2.fromOffset(0, 56),
@@ -156,6 +183,7 @@ local function show(prompt: ProximityPrompt, inputType: Enum.ProximityPromptInpu
 	-- por encima y lo activaba solo. Así que: tocar y soltar sin arrastrar (o, si hay que mantener,
 	-- dejar el dedo quieto encima).
 	local press: { Input: InputObject, From: Vector3, At: number, Holding: boolean }? = nil
+	local mouseHolding = false -- (el clic empezó en este cartel)
 	local function cancelPress()
 		if press and press.Holding then
 			prompt:InputHoldEnd()
@@ -164,6 +192,7 @@ local function show(prompt: ProximityPrompt, inputType: Enum.ProximityPromptInpu
 	end
 	table.insert(connections, card.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			mouseHolding = true
 			prompt:InputHoldBegin()
 		elseif input.UserInputType == Enum.UserInputType.Touch and input.UserInputState == Enum.UserInputState.Begin then
 			local current = { Input = input, From = input.Position, At = os.clock(), Holding = false }
@@ -186,8 +215,13 @@ local function show(prompt: ProximityPrompt, inputType: Enum.ProximityPromptInpu
 		end
 	end))
 	table.insert(connections, UserInputService.InputEnded:Connect(function(input)
+		-- Soltar el clic solo corta si se pulsó en este cartel (un clic en otro sitio, p. ej.
+		-- disparar, no corta lo que mantienes con la tecla)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 then
-			prompt:InputHoldEnd()
+			if mouseHolding then
+				mouseHolding = false
+				prompt:InputHoldEnd()
+			end
 			return
 		end
 		if not press or input ~= press.Input then
@@ -210,6 +244,7 @@ local function show(prompt: ProximityPrompt, inputType: Enum.ProximityPromptInpu
 			connection:Disconnect()
 		end
 		billboard:Destroy()
+		relayout()
 	end)
 end
 
@@ -219,16 +254,25 @@ local function customize(instance: Instance)
 	end
 end
 
--- El menú de comandos dice cuál es el cartel que va con la E: solo ese se ve
+-- El menú de comandos dice cuál es el cartel que va con la E: ese se ve (y los de otras teclas)
 function Prompts.setFocus(prompt: ProximityPrompt?)
 	focus = prompt
 	managed = true
-	for other, entry in shown do
-		entry.Billboard.Enabled = other == prompt
-		if other == prompt then
-			entry.Key.Text = keyText(other, entry.InputType)
+	local entry = prompt and shown[prompt]
+	if entry then
+		entry.Key.Text = keyText(prompt :: ProximityPrompt, entry.InputType)
+	end
+	relayout()
+end
+
+-- ¿Hay un cartel a la vista que se activa con esta tecla? (para que otras cosas no la usen a la vez)
+function Prompts.keyInUse(key: Enum.KeyCode): boolean
+	for prompt in shown do
+		if prompt.Enabled and prompt.KeyboardKeyCode == key then
+			return true
 		end
 	end
+	return false
 end
 
 function Prompts.init()

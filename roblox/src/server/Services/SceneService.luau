@@ -260,20 +260,22 @@ local function play(actor: Actor, name: string)
 			track.Looped = not ONE_SHOT[name]
 			actor.Tracks[name] = track
 		end
+		-- Un gesto corto (saludar, reír…) va encima de su postura: de pie, o sentado si está sentado
+		-- (antes paraba la de sentarse y se quedaba de pie en la silla)
+		local base = if actor.Spec.Mode == "Sit" then "Sit" else "Idle"
 		for other, t in actor.Tracks do
-			-- Un gesto corto (saludar, reír…) va encima de estar de pie: al acabar, sigue de pie
-			if other ~= name and not (ONE_SHOT[name] and other == "Idle") then
+			if other ~= name and not (ONE_SHOT[name] and other == base) then
 				t:Stop(0.25)
 			end
 		end
 		if ONE_SHOT[name] then
-			local idle = actor.Tracks.Idle
+			local idle = actor.Tracks[base]
 			if not idle then
 				local animation = Instance.new("Animation")
-				animation.AnimationId = ANIMS.Idle
+				animation.AnimationId = ANIMS[base]
 				idle = animator:LoadAnimation(animation)
 				idle.Looped = true
-				actor.Tracks.Idle = idle
+				actor.Tracks[base] = idle
 			end
 			if not idle.IsPlaying then
 				idle:Play(0.25)

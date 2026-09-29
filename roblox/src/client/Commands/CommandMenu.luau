@@ -8,7 +8,7 @@
 --   * El comando elegido es también lo que hace la tecla E / el botón X del mando / el botón Interactuar.
 --
 -- Controles:
---   Teclado:  ↑ ↓ elegir · Enter aceptar · ← o Retroceso volver · E usar lo que tienes delante · Tab ocultar
+--   Teclado:  ↑ ↓ elegir (con el menú desplegado) · Enter aceptar · ← o Retroceso volver · E usar lo que tienes delante · Tab ocultar
 --   Mando:    cruceta ↑ ↓ elegir · cruceta → aceptar · cruceta ← o B volver (← en la lista principal: ocultar)
 --   Móvil:    un toque elige un comando y otro toque sobre el elegido lo hace
 -- Mientras hablas con alguien o ves una cinemática se aparta (setBusy).
@@ -247,18 +247,30 @@ local function bindInput()
 			return if used == false then Enum.ContextActionResult.Pass else Enum.ContextActionResult.Sink
 		end
 	end
-	ContextActionService:BindActionAtPriority("CommandUp", handler(function()
-		if not openIfCollapsed() then
-			move(-1)
+	-- ↑ ↓ del teclado también mueven al personaje (y aceleran/frenan el coche): solo se quedan
+	-- para el menú cuando está desplegado. Conduciendo, ni flechas ni cruceta (sirena, claxon…).
+	local function step(delta: number, state: Enum.UserInputState)
+		return handler(function()
+			if not openIfCollapsed() then
+				move(delta)
+			end
+			return true
+		end)(nil, state)
+	end
+	local function arrows(delta: number)
+		return function(_, state: Enum.UserInputState, input: InputObject)
+			if player:GetAttribute("Riding") ~= nil then
+				return Enum.ContextActionResult.Pass
+			end
+			local keyboard = input.KeyCode == Enum.KeyCode.Up or input.KeyCode == Enum.KeyCode.Down
+			if keyboard and (not expanded or collapsed) then
+				return Enum.ContextActionResult.Pass
+			end
+			return step(delta, state)
 		end
-		return true
-	end), false, 3000, Enum.KeyCode.Up, Enum.KeyCode.DPadUp)
-	ContextActionService:BindActionAtPriority("CommandDown", handler(function()
-		if not openIfCollapsed() then
-			move(1)
-		end
-		return true
-	end), false, 3000, Enum.KeyCode.Down, Enum.KeyCode.DPadDown)
+	end
+	ContextActionService:BindActionAtPriority("CommandUp", arrows(-1), false, 3000, Enum.KeyCode.Up, Enum.KeyCode.DPadUp)
+	ContextActionService:BindActionAtPriority("CommandDown", arrows(1), false, 3000, Enum.KeyCode.Down, Enum.KeyCode.DPadDown)
 	ContextActionService:BindActionAtPriority("CommandAccept", handler(function()
 		if openIfCollapsed() then
 			return true

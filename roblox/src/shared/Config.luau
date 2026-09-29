@@ -212,6 +212,8 @@ Config.Sounds = {
 	MetroTren = { Id = 0, Volume = 0.4, Pitch = 1 }, -- en bucle mientras vas en el tren
 	MetroFreno = { Id = 0, Volume = 0.5, Pitch = 1 },
 	MetroAnden = { Id = 0, Volume = 0.25, Pitch = 1 }, -- en bucle en los andenes (gente, anuncios de fondo)
+	-- Ascensor (LiftRide): "ding" al llegar a la planta
+	Ascensor = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.35, Pitch = 1.4 },
 }
 
 -- Voces de la gente de la ciudad (voz sintetizada de Roblox, como la de la historia)

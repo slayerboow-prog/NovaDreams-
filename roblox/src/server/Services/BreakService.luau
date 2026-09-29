@@ -115,6 +115,8 @@ local function sound(at: Vector3, id: string, volume: number, pitch: number)
 	s.Volume = volume
 	s.PlaybackSpeed = pitch
 	s.RollOffMaxDistance = 120
+	-- Cada cliente lo mete en su grupo de efectos (SoundFx): así «Sonidos: no» también lo calla
+	s:SetAttribute("SfxGroup", "SFX")
 	s.Parent = anchor
 	s:Play()
 	Debris:AddItem(anchor, 3)

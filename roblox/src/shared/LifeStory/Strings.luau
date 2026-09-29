@@ -18,7 +18,7 @@ Strings.es = {
 
 	-- Etapas de la vida (se guardan en la biografía al cambiar)
 	["STAGE.Bebe"] = "Has nacido.",
-	["STAGE.Nino"] = "Ya eres un niño.",
+	["STAGE.Nino"] = "Ya no eres un bebé: ¡empieza la infancia!",
 	["STAGE.Adolescente"] = "Ya eres adolescente.",
 	["STAGE.AdultoJoven"] = "Ya eres adulto.",
 	["STAGE.Adulto"] = "Has entrado en la madurez.",
@@ -78,7 +78,7 @@ Strings.es = {
 	-- Capítulos
 	["CHAPTER.BEBE.TITLE"] = "Primeros pasos",
 	["CHAPTER.BEBE.INTRO"] = "Acabas de llegar al mundo. Todo es nuevo.",
-	["CHAPTER.BEBE.OUTRO"] = "Han pasado varios años…",
+	["CHAPTER.BEBE.OUTRO"] = "Primeros pasos, primeras palabras… y un día dejas de ser un bebé.",
 	["CHAPTER.NINO.TITLE"] = "El colegio",
 	["CHAPTER.NINO.INTRO"] = "Hoy empieza algo grande: el colegio.",
 	["CHAPTER.NINO.OUTRO"] = "Has crecido mucho.",
@@ -209,7 +209,7 @@ Strings.es = {
 	["QUEST.DIA.EXCURSION"] = "Excursión: ve con tu clase a {place}",
 	["QUEST.DIA.EXCURSION_DISFRUTA"] = "Disfruta de la excursión",
 	["QUEST.COLE.COMEDOR"] = "¡Las 2! Hora de comer: ve a {place}",
-	["QUEST.COLE.COMIENDO"] = "Terminad de comer… las clases vuelven a las 15:00",
+	["QUEST.COLE.COMIENDO"] = "Termina de comer… las clases vuelven a las 15:00",
 	["QUEST.COLE.BANDEJA"] = "Coge tu bandeja en {place} («Coger comida»)",
 	["QUEST.COLE.COME_NICO"] = "Siéntate a comer con Nico",
 	["QUEST.COLE.COME_SARA"] = "Siéntate a comer con Sara",
@@ -439,7 +439,7 @@ Strings.es = {
 	["MOMENT.CONOCES_REGION"] = "Hoy has descubierto un rincón nuevo de Valmar.",
 	["MOMENT.AYUDASTE_NINO"] = "Has ayudado a una niña del barrio. No lo olvidará.",
 	["MOMENT.MEDICINAS"] = "Gracias a ti, alguien tiene hoy sus medicinas.",
-	["MOMENT.TARDE_PLAYA"] = "Has visto atardecer en Playa Dorada.",
+	["MOMENT.TARDE_PLAYA"] = "Has visto el atardecer en Playa Dorada.",
 
 	-- Prólogo: el sueño (cinemáticas de Cinematics.luau, tarjetas de Controllers/Prologue)
 	["CINE.PROLOGO.VALMAR"] = "Valmar",
@@ -469,7 +469,7 @@ Strings.es = {
 	-- «Anteriormente en tu vida…» (al volver al juego)
 	["RECAP.TITLE"] = "Anteriormente en tu vida…",
 	["RECAP.CHAPTER"] = "📖 Capítulo: {chapter}",
-	["RECAP.STAGE"] = "🧒 Etapa: {stage}",
+	["RECAP.STAGE"] = "📅 Etapa: {stage}",
 	["RECAP.RECENT"] = "Lo último que pasó:",
 	["RECAP.CHOICE"] = "Elegiste: {text}",
 	["RECAP.NOW"] = "➡️ Ahora: {title}",

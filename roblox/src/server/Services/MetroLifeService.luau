@@ -495,12 +495,23 @@ local SETUP: { [string]: (BasePart) -> () } = {
 		-- Gira sobre la bisagra (a la izquierda de la puerta)
 		local pivot = CFrame.new(hinge) * closed.Rotation
 		local offset = pivot:ToObjectSpace(closed)
+		-- Se anima el ángulo (no el CFrame): si no, la puerta iba en línea recta y se deslizaba
+		-- atravesando el lateral en vez de girar sobre la bisagra
+		local angle = Instance.new("NumberValue")
+		angle.Changed:Connect(function(a: number)
+			door.CFrame = if a == 0 then closed else pivot * CFrame.Angles(0, a, 0) * offset
+		end)
+		local turning: Tween? = nil
 		local p = prompt(door, "Abrir taquilla", "🔐 Taquilla", 0.3, 6)
 		p.Triggered:Connect(function(player)
 			open = not open
 			p.ActionText = if open then "Cerrar taquilla" else "Abrir taquilla"
-			local goal = if open then pivot * CFrame.Angles(0, math.rad(100), 0) * offset else closed
-			TweenService:Create(door, TweenInfo.new(0.35, Enum.EasingStyle.Quad), { CFrame = goal }):Play()
+			if turning then
+				turning:Cancel()
+			end
+			local t = TweenService:Create(angle, TweenInfo.new(0.35, Enum.EasingStyle.Quad), { Value = if open then math.rad(100) else 0 })
+			turning = t
+			t:Play()
 			if open then
 				if ready(player, door, 120) and math.random() < LIFE.LockerCoinChance then
 					DataService.addMoney(player, 1, false)

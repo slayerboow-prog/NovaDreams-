@@ -117,7 +117,7 @@ local ADS = {
 	{ "🍔 BURGER VALMAR\n¡2x1 los martes!", rgb(230, 120, 30) },
 	{ "🏖️ PLAYA DORADA\nEl verano empieza en la L1", rgb(40, 160, 200) },
 	{ "🎬 ESTRENO\n«Robots en la ciudad»", rgb(120, 40, 160) },
-	{ "📱 NovaPhone 12\nMás batería que nunca", rgb(30, 30, 40) },
+	{ "📱 ValPhone 12\nMás batería que nunca", rgb(30, 30, 40) },
 	{ "🏥 Hospital de Valmar\nDona sangre, salva vidas", rgb(200, 40, 60) },
 	{ "🎡 FERIA DE VALMAR\nNoria gratis los domingos", rgb(240, 180, 30) },
 	{ "🥛 Leche La Vaquita\nFresca de verdad", rgb(80, 160, 90) },

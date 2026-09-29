@@ -257,8 +257,13 @@ local function renderCard(state: { [string]: any })
 	elseif state.Waiting then
 		local waiting = state.Waiting
 		cardTitle.Text = Strings.get(waiting.TitleKey)
-		cardText.Text = if waiting.Reason == "Hours"
-			then Strings.get("STORY.WAIT.HOURS", { from = waiting.From, to = waiting.To })
+		-- (la hora bonita: 8.5 -> "8:30"; sin hora, un texto sin huecos por rellenar)
+		local function hour(h: any): string
+			return if type(h) == "number" then ("%d:%02d"):format(math.floor(h) % 24, math.floor((h % 1) * 60 + 0.5)) else "?"
+		end
+		cardText.Text = if waiting.Reason == "Hours" and type(waiting.From) == "number"
+			then ("Empieza a las %s (ahora está cerrado)."):format(hour(waiting.From))
+			elseif waiting.Reason == "Hours" then "Podrás seguir más tarde."
 			else Strings.get("STORY.WAIT.DAYS")
 	end
 	local others = {}

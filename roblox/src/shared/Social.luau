@@ -14,7 +14,7 @@ Social.MenuRange = 60 -- a qué distancia puedes tocar a alguien para abrir su m
 Social.History = 40 -- mensajes que se guardan en cada chat
 
 -- Nombres de los canales de chat (TextChannel dentro de TextChatService)
-Social.Folder = "NovaChats"
+Social.Folder = "ValmarChats"
 Social.GroupPrefix = "Grupo_"
 Social.PrivatePrefix = "Privado_"
 

@@ -229,7 +229,7 @@ end
 
 -- Dueños posibles de una oficina (nombre en la puerta) o nil si está libre ("SE ALQUILA")
 local COMPANIES = {
-	"Grupo Valmar", "Nova Seguros", "Inmobiliaria Sol", "Tecnoval", "Banco del Puerto", "Consultores Atlántico",
+	"Grupo Valmar", "Vela Seguros", "Inmobiliaria Sol", "Tecnoval", "Banco del Puerto", "Consultores Atlántico",
 	"Valmar Media", "Logística Norte", "Abogados Ruiz & Gil", "Estudio Faro", "Clínica Dental Sonrisa",
 	"Academia Delta", "Gestoría Martínez", "Viajes Brisa", "Arquitectos Mar",
 }

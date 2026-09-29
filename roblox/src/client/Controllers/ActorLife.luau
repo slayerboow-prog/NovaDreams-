@@ -475,9 +475,12 @@ local function updateBase(rig: Rig, t: number)
 		return
 	end
 	local scale = rig.Scale
+	-- Correr empieza por encima de 14 y se deja por debajo de 12 (con un solo umbral, a 13 justo
+	-- parpadeaba entre andar y correr). BaseAnim recuerda si ya iba corriendo.
+	local runFrom = (if rig.BaseAnim == "Run" then 12 else 14) * scale
 	if sitting(rig) then
 		setBase(rig, nil)
-	elseif rig.Speed > 13 * scale then
+	elseif rig.Speed > runFrom then
 		setBase(rig, "Run", math.clamp(rig.Speed / (18 * scale), 0.7, 1.6))
 	elseif rig.Speed > 0.8 then
 		setBase(rig, "Walk", math.clamp(rig.Speed / (11 * scale), 0.5, 1.8))
@@ -1083,6 +1086,22 @@ function ActorLife.cast(): { Model }
 	return list
 end
 
+-- Gestos que mueven también las piernas (sentado no se pueden hacer)
+local FULL_BODY = { Cheer = true, Laugh = true, Dance = true }
+-- Cuántos bailes ha empezado cada uno (para que parar uno viejo no corte el nuevo)
+local danceIds: { [Rig]: number } = setmetatable({}, { __mode = "k" }) :: any
+-- Posturas de UsePose en las que está sentado o tumbado (en las otras, grifo, nevera…, está de pie)
+local SEATED_POSES = { Sit = true, Sofa = true, Lie = true, Type = true, Piano = true }
+
+local function seated(rig: Rig): boolean
+	local pose = rig.Model:GetAttribute("UsePose")
+	if rig.Humanoid.Sit or rig.Model:GetAttribute("Seated") or (type(pose) == "string" and SEATED_POSES[pose]) then
+		return true
+	end
+	-- Npc.sit dobla las piernas y guarda la postura original
+	return rig.Hip ~= nil and rig.Hip:GetAttribute("BaseC0") ~= nil
+end
+
 -- Un gesto de animación (Wave, Cheer, Laugh, Point, Dance) una vez
 function ActorLife.play(model: Instance?, name: string, seconds: number?)
 	if not model or not model:IsA("Model") or not ANIMS[name] then
@@ -1093,12 +1112,25 @@ function ActorLife.play(model: Instance?, name: string, seconds: number?)
 	if not rig then
 		return
 	end
+	-- Sentado, las de cuerpo entero (celebrar, reírse, bailar) le ponían de pie en la silla: celebrar
+	-- se cambia por aplaudir (solo brazos) y las otras no se hacen
+	if FULL_BODY[name] and seated(rig) then
+		if name == "Cheer" then
+			ActorLife.gesture(model, "Clap")
+		end
+		return
+	end
 	local t = track(rig, name)
 	if t then
 		t:Play(0.2)
 		if name == "Dance" then
+			-- Solo lo para el último baile: si baila otra vez antes, el aviso del anterior no lo corta
+			local id = (danceIds[rig] or 0) + 1
+			danceIds[rig] = id
 			task.delay(seconds or 4, function()
-				t:Stop(0.5)
+				if danceIds[rig] == id then
+					t:Stop(0.5)
+				end
 			end)
 		end
 	end

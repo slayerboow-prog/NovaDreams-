@@ -107,6 +107,7 @@ function WeaponFx.soundAt(name: string, at: Vector3, volume: number, pitch: numb
 	sound.PlaybackSpeed = (entry.Pitch or 1) * (pitch or 1) * (0.96 + math.random() * 0.08)
 	sound.RollOffMaxDistance = FX.HearDistance
 	sound.RollOffMinDistance = 12
+	sound.SoundGroup = SoundFx.group("SFX") -- (grupo de efectos: el silencio y el compresor también valen aquí)
 	if (muffle or 0) > 0.05 then
 		local eq = Instance.new("EqualizerSoundEffect")
 		eq.HighGain = -40 * (muffle :: number)

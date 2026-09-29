@@ -310,10 +310,14 @@ function Actions.init()
 	bind("PhotoMode", function()
 		setPhoto(not photo)
 	end, Enum.KeyCode.P)
-	-- Mando: LT (fuera del agua; nadando, LT es bajar)
+	-- Mando: LT, solo a pie y con las manos libres (nadando LT es bajar; conduciendo, frenar; con
+	-- un arma, apuntar). (Select no sirve: Roblox lo usa para moverse por los menús con el mando)
 	bind("PhotoModePad", function()
 		local humanoid = parts()
-		if humanoid and humanoid:GetState() ~= Enum.HumanoidStateType.Swimming then
+		if not humanoid or humanoid.SeatPart or player:GetAttribute("Riding") ~= nil or player:GetAttribute("Weapon") ~= nil then
+			return
+		end
+		if humanoid:GetState() ~= Enum.HumanoidStateType.Swimming then
 			setPhoto(not photo)
 		end
 	end, Enum.KeyCode.ButtonL2)
@@ -363,7 +367,7 @@ function Actions.init()
 			end
 		end
 		return Enum.ContextActionResult.Pass
-	end, false, Enum.KeyCode.F)
+	end, false, Enum.KeyCode.F, Enum.KeyCode.ButtonB) -- (B: la pista del mando dice "B")
 	Hud.addButton("😀 Gestos", Color3.fromRGB(200, 140, 20), 4, Actions.openEmotes)
 	local _ = gui
 
