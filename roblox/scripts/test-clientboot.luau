@@ -1975,6 +1975,55 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean })
 			table.insert(checks, { all:find("D01-E004-0302", 1, true) ~= nil and all:find("🔑 Luis", 1, true) ~= nil and all:find("🙂 Marta", 1, true) ~= nil and all:find("👤 Marta", 1, true) ~= nil and all:find("👤 Luis", 1, true) == nil,
 				"llaves: el panel enseña la vivienda, quién tiene llave, las visitas y a quién dársela (" .. all .. ")" })
 		end,
+		-- Encargos de los vecinos (Controllers/HousingUI): el aviso con «Aceptar» y el cartelito
+		[math.floor(35 * FPS)] = function()
+			local housing = remotes:FindFirstChild("Housing")
+			if housing then
+				housing.OnClientEvent:Fire("ErrandOffer", { Token = "e1", From = "Carmen García", Title = "Entrega en el 5ºB", Text = "Carmen García (3ºA): «¿Se lo subes tú?»", Money = 60, Xp = 20 })
+			end
+		end,
+		[math.floor(36 * FPS)] = function()
+			local hg = playerGui:FindFirstChild("HousingGui")
+			local card = hg and hg:FindFirstChild("ErrandOffer")
+			local texts = {}
+			for _, d in (card and card:GetDescendants()) or {} do
+				if rawget(d, "__class") == "TextLabel" then
+					table.insert(texts, tostring(d.Text))
+				end
+			end
+			local all = table.concat(texts, " | ")
+			table.insert(checks, { card ~= nil and all:find("Entrega en el 5ºB", 1, true) ~= nil and all:find("Recompensa", 1, true) ~= nil, "encargo: sale el favor que te piden y la recompensa (" .. all .. ")" })
+			local accept = card and card:FindFirstChild("Accept", true)
+			table.clear(serverLog)
+			if accept then
+				accept.Activated:Fire()
+			end
+			local sent = false
+			for _, call in serverLog do
+				if call.Remote == "Housing" and call.Args[1] == "ErrandAnswer" and call.Args[2] == "e1" and call.Args[3] == true then
+					sent = true
+				end
+			end
+			table.insert(checks, { sent and hg:FindFirstChild("ErrandOffer") == nil, "encargo: «Aceptar» contesta al servidor y el aviso se va" })
+			local housing = remotes:FindFirstChild("Housing")
+			if housing then
+				housing.OnClientEvent:Fire("Errand", { Title = "Entrega en el 5ºB", Goal = "📦 Recoge el paquete en los buzones del portal." })
+			end
+		end,
+		[math.floor(37 * FPS)] = function()
+			local hg = playerGui:FindFirstChild("HousingGui")
+			local tracker = hg and hg:FindFirstChild("ErrandTracker")
+			local goal = tracker and tracker:FindFirstChild("Goal", true)
+			table.insert(checks, { goal ~= nil and tostring(goal.Text):find("buzones", 1, true) ~= nil, "encargo: el cartelito dice lo que toca" })
+			local housing = remotes:FindFirstChild("Housing")
+			if housing then
+				housing.OnClientEvent:Fire("Errand", { Done = true })
+			end
+		end,
+		[math.floor(38 * FPS)] = function()
+			local hg = playerGui:FindFirstChild("HousingGui")
+			table.insert(checks, { hg ~= nil and hg:FindFirstChild("ErrandTracker") == nil, "encargo: al acabar, el cartelito se quita" })
+		end,
 	}
 	for frame = 1, frames do
 		now += dt

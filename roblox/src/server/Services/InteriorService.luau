@@ -36,6 +36,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Floors = require(ReplicatedStorage.Shared.Floors)
 local Ground = require(ReplicatedStorage.Shared.Ground)
+local MapInfo = require(ReplicatedStorage.Shared.MapInfo)
 local Interiors = require(script.Parent.Parent.World.Interiors)
 local Tower = require(script.Parent.Parent.World.Tower)
 local Lift = require(script.Parent.Parent.World.Lift)
@@ -59,6 +60,7 @@ export type Building = {
 	Roof: Vector3?, -- azotea de verdad (Torre de Valmar)
 	Persistent: boolean?,
 	Residence: boolean?, -- residencia universitaria (bloque del campus con habitaciones)
+	District: string?, -- Id del distrito ("" fuera de ellos; se calcula la primera vez: districtOf)
 }
 -- Edificio de varias plantas montado: sus plantas (solo las que están cerca de alguien)
 -- Ascensor de verdad (World/Lift): la cabina, en qué planta está, si se mueve y las llamadas pendientes
@@ -444,6 +446,16 @@ local function plateNames(building: Building, floor: number): { [string]: string
 	return names
 end
 
+-- El distrito del edificio (Id de CityPlan.Districts: Centro, Norte, Oeste…; nil fuera de ellos).
+-- Da el estilo del portal y los pasillos (World/Tower.Themes).
+function InteriorService.districtOf(building: Building): string?
+	if building.District == nil then
+		local ok, d = pcall(MapInfo.districtAt, building.Door.X, building.Door.Z)
+		building.District = if ok and d then d.Id else ""
+	end
+	return if building.District ~= "" then building.District else nil
+end
+
 local function towerOf(building: Building, create: boolean): Instance_?
 	local key = building.Id .. ":T"
 	local existing = instances[key]
@@ -453,7 +465,7 @@ local function towerOf(building: Building, create: boolean): Instance_?
 	if not create then
 		return nil
 	end
-	local plan = Tower.plan(building.Key, building.Title, building.Kind, building.Upper :: string, building.Floors)
+	local plan = Tower.plan(building.Key, building.Title, building.Kind, building.Upper :: string, building.Floors, InteriorService.districtOf(building))
 	local slot = takeSlot()
 	local origin = CFrame.new(slotPosition(slot))
 	local model = Instance.new("Model")
@@ -736,9 +748,11 @@ liftTravel = function(inst: Instance_, target: number)
 	lift.Floor = target
 	model:SetAttribute("Floor", target)
 	model:SetAttribute("Moving", false)
-	-- La planta de llegada, montada; y quien iba dentro, en su sitio (el cliente ya lo ha llevado;
-	-- si no, se le coloca)
-	buildFloor(inst, target)
+	-- La planta de llegada, montada (si va alguien dentro: un viaje solo con vecinos NPC no monta
+	-- plantas); y quien iba dentro, en su sitio (el cliente ya lo ha llevado; si no, se le coloca)
+	if #riders > 0 then
+		buildFloor(inst, target)
+	end
 	local floorCf = lift.Cabin.Base * CFrame.new(0, target * Floors.Height, 0)
 	for _, r in riders do
 		local root = r.Player.Character and r.Player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
@@ -796,6 +810,12 @@ end
 function InteriorService.lift(building: Building): LiftState?
 	local inst = towerOf(building, false)
 	return inst and inst.Tower and inst.Tower.Lift
+end
+
+-- ¿Va algún jugador dentro de la cabina? (los vecinos NPC no mandan el ascensor con alguien dentro)
+function InteriorService.liftHasRiders(building: Building): boolean
+	local inst = towerOf(building, false)
+	return inst ~= nil and inst.Tower ~= nil and inst.Tower.Lift ~= nil and #liftRiders(inst) > 0
 end
 
 -- Plantas montadas ahora (para las pruebas y el rendimiento)
