@@ -259,6 +259,10 @@ local function onAnnounce(data: { [string]: any })
 	if typeof(data) ~= "table" or typeof(data.Text) ~= "string" then
 		return
 	end
+	-- En una escena o una conversación el aviso del avión no se mete encima
+	if SoundFx.busy() then
+		return
+	end
 	SoundFx.play("MetroGong")
 	task.delay(0.6, function()
 		SoundFx.voice(data.Text, 1.05, 0.9)

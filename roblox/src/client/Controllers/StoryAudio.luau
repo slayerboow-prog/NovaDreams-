@@ -3,7 +3,8 @@
 --   * Efectos cortos (sting) para los momentos de vida y los capítulos.
 --   * Voces: grabadas si hay (Config.Audio.Voices.Lines) o sintetizadas por Roblox
 --     (AudioTextToSpeech) si el motor lo permite. Mientras alguien habla, la música baja.
---   * Botón 🔊/🔇 para silenciar la música y las voces de la historia.
+--   * Música on/off: StoryAudio.setMusicOn / isMusicOn (el interruptor está en el menú del HUD).
+--     Silencia los grupos Music y Voice (SoundService), así se calla también lo que ya suena.
 -- Los IDs de los audios están en Config.Audio. Con Id = 0 ese audio no suena (sin errores).
 
 local Players = game:GetService("Players")
@@ -14,6 +15,7 @@ local TweenService = game:GetService("TweenService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 local Theme = require(script.Parent.Parent.UI.Theme)
+local SoundFx = require(script.Parent.SoundFx)
 
 local AUDIO = Config.Audio
 local StoryAudio = {}
@@ -23,7 +25,6 @@ local folder: Folder
 local current: { Cue: string, Sound: Sound, Volume: number }? = nil
 local ambientCue: string? = nil
 local chapterCue: string? = nil -- la música que pide el capítulo (nil = ninguna)
-local loadWarned = false
 local inCinematic = false
 local speaking = 0
 local ttsAvailable = AUDIO.Voices.TextToSpeech
@@ -59,6 +60,26 @@ local function targetVolume(base: number): number
 	return if speaking > 0 then base * AUDIO.DuckVolume else base
 end
 
+-- Espera a que el audio cargue (como mucho `seconds`). true = cargado
+local LOAD_TIMEOUT = 15
+local function waitLoaded(sound: Sound, seconds: number): boolean
+	if sound.IsLoaded then
+		return true
+	end
+	local loaded = false
+	local connection = sound.Loaded:Connect(function()
+		loaded = true
+	end)
+	for _ = 1, seconds * 4 do
+		if loaded or sound.IsLoaded or not sound.Parent then
+			break
+		end
+		task.wait(0.25)
+	end
+	connection:Disconnect()
+	return loaded or sound.IsLoaded
+end
+
 local function fadeTo(sound: Sound, volume: number, seconds: number)
 	TweenService:Create(sound, TweenInfo.new(seconds), { Volume = volume }):Play()
 end
@@ -92,20 +113,25 @@ local function playMusic(cue: string?, volumeScale: number)
 	sound.SoundId = id
 	sound.Looped = track.Looped == true
 	sound.Volume = 0
+	sound.SoundGroup = SoundFx.group("Music")
 	sound.Parent = folder
 	sound:Play()
-	-- Si Roblox no deja cargar el audio (permisos o revisión), avisarlo en la ventana Salida
-	task.delay(10, function()
-		if sound.Parent and not sound.IsLoaded then
-			warn(("[Música] No se ha podido cargar «%s» (%s). ¿Sigue en revisión o el juego no es del mismo dueño que el audio?"):format(cue :: string, id))
-			-- En el móvil no se ve la ventana Salida: avisarlo una vez en pantalla
-			if not loadWarned then
-				loadWarned = true
-				pcall(function()
-					require(script.Parent.Parent.UI.Hud).toast("Error", "🎵 La música no se ha podido cargar (Roblox aún no deja usar el audio en este juego).")
-				end)
+	-- Si Roblox no deja cargar el audio (permisos o revisión), se prueba la copia de
+	-- ReplicatedStorage.Musica; si tampoco hay, se queda en silencio (aviso solo en la ventana Salida)
+	task.spawn(function()
+		if waitLoaded(sound, LOAD_TIMEOUT) or not sound.Parent then
+			return
+		end
+		local fallback = fromFolder(track.File)
+		if fallback and fallback ~= id then
+			warn(("[Música] No se ha podido cargar «%s» (%s): se usa la copia local."):format(cue :: string, id))
+			sound.SoundId = fallback
+			sound:Play()
+			if waitLoaded(sound, LOAD_TIMEOUT) or not sound.Parent then
+				return
 			end
 		end
+		warn(("[Música] No se ha podido cargar «%s» (%s). ¿Sigue en revisión o el juego no es del mismo dueño que el audio?"):format(cue :: string, sound.SoundId))
 	end)
 	current = { Cue = cue :: string, Sound = sound, Volume = (track.Volume or 0.4) * volumeScale }
 	fadeTo(sound, targetVolume(current.Volume), 2)
@@ -177,6 +203,7 @@ function StoryAudio.sting(name: string?)
 	local sound = Instance.new("Sound")
 	sound.SoundId = id
 	sound.Volume = sting.Volume or 0.5
+	sound.SoundGroup = SoundFx.group("Music") -- (los efectos de la historia van con la música)
 	sound.Parent = folder
 	sound:Play()
 	sound.Ended:Connect(function()
@@ -216,8 +243,10 @@ end
 
 -- Voz sintetizada de Roblox. Si el motor no la tiene (o falla), se desactiva y quedan los subtítulos.
 local function textToSpeech(text: string, profile: { [string]: any }, serial: number): boolean
+	local tts: any = nil
+	local ducked = false
 	local ok, err = pcall(function()
-		local tts = Instance.new("AudioTextToSpeech")
+		tts = Instance.new("AudioTextToSpeech")
 		tts.Text = text
 		if profile.VoiceId and profile.VoiceId ~= "" then
 			tts.VoiceId = profile.VoiceId
@@ -247,6 +276,7 @@ local function textToSpeech(text: string, profile: { [string]: any }, serial: nu
 			return
 		end
 		duck(true)
+		ducked = true
 		tts:Play()
 		local length = 0
 		pcall(function()
@@ -265,6 +295,16 @@ local function textToSpeech(text: string, profile: { [string]: any }, serial: nu
 	end)
 	if not ok then
 		warn("[StoryAudio] Voz sintetizada no disponible; se muestran solo los subtítulos:", err)
+		-- Si falló después de bajar la música, se vuelve a subir (si no, se queda baja para siempre)
+		if ducked then
+			duck(false)
+		end
+		-- (y la instancia a medias no se queda colgada)
+		if tts then
+			pcall(function()
+				tts:Destroy()
+			end)
+		end
 	end
 	return ok
 end
@@ -281,6 +321,7 @@ function StoryAudio.speak(role: string?, textKey: string, args: { [string]: any 
 		local sound = Instance.new("Sound")
 		sound.SoundId = recorded
 		sound.Volume = AUDIO.Voices.Volume or 1
+		sound.SoundGroup = SoundFx.group("Voice")
 		sound.Parent = folder
 		duck(true)
 		sound:Play()
@@ -311,14 +352,27 @@ end
 -- Silenciar
 ---------------------------------------------------------------------
 
-function StoryAudio.setMuted(value: boolean)
-	muted = value
-	if value then
+-- Un solo sitio guarda si la música suena: el interruptor del menú lee y cambia esto
+function StoryAudio.setMusicOn(on: boolean)
+	muted = not on
+	if muted then
 		StoryAudio.stopVoice()
 	end
+	-- Los grupos callan también lo que ya suena (música, efectos de la historia y voces grabadas)
+	SoundFx.setGroupOn("Music", on)
+	SoundFx.setGroupOn("Voice", on)
 	if current then
 		fadeTo(current.Sound, targetVolume(current.Volume), 0.5)
 	end
+end
+
+function StoryAudio.isMusicOn(): boolean
+	return not muted
+end
+
+-- (nombre antiguo, por si alguien lo usa)
+function StoryAudio.setMuted(value: boolean)
+	StoryAudio.setMusicOn(not value)
 end
 
 function StoryAudio.init()
@@ -326,19 +380,16 @@ function StoryAudio.init()
 	folder.Name = "StoryAudio"
 	folder.Parent = SoundService
 
+	SoundFx.group("Music")
+	SoundFx.group("Voice")
+
 	local player = Players.LocalPlayer
-	local gui = Theme.create("ScreenGui", {
+	-- El botón suelto 🔊 ya no existe: lo sustituye el interruptor del menú (un solo estado).
+	-- La pantalla vacía se deja porque Main la espera para esconder cosas del HUD antiguo.
+	Theme.create("ScreenGui", {
 		Name = "StoryAudio",
 		ResetOnSpawn = false,
 		Parent = player:WaitForChild("PlayerGui"),
-	})
-	local button = Theme.button({
-		Name = "Mute",
-		Position = UDim2.fromOffset(224, 14), -- junto al dinero (abajo a la izquierda están las necesidades)
-		Size = UDim2.fromOffset(44, 44),
-		Text = Strings.get("STORY.AUDIO.ON"),
-		TextSize = 22,
-		Parent = gui,
 	})
 	-- Música de fondo siempre: si la historia no ha puesto la de su capítulo, suena la de tu etapa
 	task.delay(6, function()
@@ -348,10 +399,6 @@ function StoryAudio.init()
 	end)
 	player:GetAttributeChangedSignal("LifeStage"):Connect(function()
 		StoryAudio.setAmbient(chapterCue)
-	end)
-	button.Activated:Connect(function()
-		StoryAudio.setMuted(not muted)
-		button.Text = Strings.get(if muted then "STORY.AUDIO.OFF" else "STORY.AUDIO.ON")
 	end)
 end
 

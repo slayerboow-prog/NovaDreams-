@@ -217,18 +217,21 @@ Hud.addMenuToggle("📖 Mi historia", 0, function()
 	return "📖 Mi historia"
 end)
 
--- Música on/off en el menú (sustituye al botón suelto 🔊)
-local musicOn = true
-Hud.addMenuToggle("🔊 Música: sí", 1, function()
-	musicOn = not musicOn
-	StoryAudio.setMuted(not musicOn)
-	return if musicOn then "🔊 Música: sí" else "🔇 Música: no"
+-- Música on/off en el menú (sustituye al botón suelto 🔊). El estado lo guarda StoryAudio (uno solo)
+local function musicLabel(): string
+	return if StoryAudio.isMusicOn() then "🔊 Música: sí" else "🔇 Música: no"
+end
+Hud.addMenuToggle(musicLabel(), 1, function()
+	StoryAudio.setMusicOn(not StoryAudio.isMusicOn())
+	return musicLabel()
 end)
-local effectsOn = true
-Hud.addMenuToggle("🔔 Sonidos: sí", 2, function()
-	effectsOn = not effectsOn
-	SoundFx.setMuted(not effectsOn)
-	return if effectsOn then "🔔 Sonidos: sí" else "🔕 Sonidos: no"
+-- Sonidos on/off: el estado lo guarda SoundFx
+local function effectsLabel(): string
+	return if SoundFx.isMuted() then "🔕 Sonidos: no" else "🔔 Sonidos: sí"
+end
+Hud.addMenuToggle(effectsLabel(), 2, function()
+	SoundFx.setMuted(not SoundFx.isMuted())
+	return effectsLabel()
 end)
 
 -- Primeros pasos: volver a ver el tutorial (se cierra el menú para que se vea la tarjeta)

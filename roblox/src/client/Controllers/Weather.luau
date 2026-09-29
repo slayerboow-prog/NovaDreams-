@@ -15,6 +15,7 @@ local Seasons = require(ReplicatedStorage.Shared.Seasons)
 local Metro = require(ReplicatedStorage.Shared.Metro)
 local DayLight = require(script.Parent.DayLight)
 local Hud = require(script.Parent.Parent.UI.Hud)
+local SoundFx = require(script.Parent.SoundFx)
 
 local Weather = {}
 
@@ -152,6 +153,7 @@ local function buildEmitters()
 		rainSound.SoundId = "rbxassetid://" .. sounds.Rain
 		rainSound.Looped = true
 		rainSound.Volume = 0
+		rainSound.SoundGroup = SoundFx.group("Ambience") -- (así «Sonidos: no» también calla la lluvia)
 		rainSound.Parent = workspace.CurrentCamera
 		rainSound:Play()
 	end
@@ -159,6 +161,7 @@ local function buildEmitters()
 		thunderSound = Instance.new("Sound")
 		thunderSound.SoundId = "rbxassetid://" .. sounds.Thunder
 		thunderSound.Volume = 0.6
+		thunderSound.SoundGroup = SoundFx.group("Ambience")
 		thunderSound.Parent = workspace.CurrentCamera
 	end
 end

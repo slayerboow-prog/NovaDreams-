@@ -28,6 +28,46 @@ local folder: Folder
 local muted = false
 
 ---------------------------------------------------------------------
+-- Grupos de sonido (Music, SFX, Voice, Ambience)
+-- Cada sonido va a su grupo: silenciar = poner el volumen del grupo a 0, y así se callan también
+-- los que ya estaban sonando (bucles, motor, lluvia…). Se crean una sola vez y se reutilizan.
+---------------------------------------------------------------------
+local groups: { [string]: SoundGroup } = {}
+
+function SoundFx.group(name: string): SoundGroup
+	local existing = groups[name]
+	if existing and existing.Parent then
+		return existing
+	end
+	local found = SoundService:FindFirstChild(name)
+	local group: SoundGroup
+	if found and found:IsA("SoundGroup") then
+		group = found
+	else
+		group = Instance.new("SoundGroup")
+		group.Name = name
+		group.Volume = 1
+		if name == "SFX" then
+			-- Compresor: muchos efectos a la vez (disparos, golpes) no saturan
+			local compressor = Instance.new("CompressorSoundEffect")
+			compressor.Threshold = -12
+			compressor.Ratio = 4
+			compressor.Attack = 0.01
+			compressor.Release = 0.2
+			compressor.Parent = group
+		end
+		group.Parent = SoundService
+	end
+	groups[name] = group
+	return group
+end
+
+-- Silencia (volumen 0) o devuelve el volumen a un grupo
+function SoundFx.setGroupOn(name: string, on: boolean)
+	SoundFx.group(name).Volume = if on then 1 else 0
+end
+
+---------------------------------------------------------------------
 -- Reproducir
 ---------------------------------------------------------------------
 
@@ -49,18 +89,35 @@ local function soundId(name: string): string?
 	return if typeof(id) == "string" and id ~= "" then id else nil
 end
 
+-- Clic automático de los botones: si el propio botón ya toca su sonido (en menos de 50 ms), el
+-- clic se quita para que no suenen dos a la vez
+local CLICK_WINDOW = 0.05
+local lastUiSound = -1
+local autoClick: { Sound: Sound, At: number }? = nil
+
 -- Toca un sonido una vez. at = pieza donde suena (se oye más flojo de lejos); sin at, suena "en la cabeza"
 function SoundFx.play(name: string, volume: number?, pitch: number?, at: BasePart?): Sound?
 	local id = soundId(name)
 	if not id or muted then
 		return nil
 	end
+	if not at and name ~= "Clic" then
+		-- Sonido de interfaz: si acaba de sonar el clic automático, se corta (no dos sonidos por pulsación)
+		lastUiSound = os.clock()
+		local click = autoClick
+		if click and os.clock() - click.At < CLICK_WINDOW then
+			autoClick = nil
+			click.Sound:Destroy()
+		end
+	end
 	local entry = SOUNDS[name] or {}
 	local sound = Instance.new("Sound")
 	sound.SoundId = id
-	sound.Volume = (entry.Volume or 0.5) * (volume or 1)
+	-- (el multiplicador no pasa de 1: por encima satura)
+	sound.Volume = (entry.Volume or 0.5) * math.min(volume or 1, 1)
 	sound.PlaybackSpeed = (entry.Pitch or 1) * (pitch or 1) * (0.95 + math.random() * 0.1)
 	sound.RollOffMaxDistance = 120
+	sound.SoundGroup = SoundFx.group("SFX")
 	sound.Parent = at or folder
 	sound:Play()
 	sound.Ended:Connect(function()
@@ -75,7 +132,9 @@ function SoundFx.play(name: string, volume: number?, pitch: number?, at: BasePar
 end
 
 -- Sonido en bucle (motor, murmullo). Devuelve nil si no hay audio para ese nombre.
-function SoundFx.loop(name: string, parent: Instance?): Sound?
+-- groupName: "SFX" (por defecto) o "Ambience". El silencio lo pone el grupo (así el bucle se calla
+-- aunque ya esté sonando y vuelve al quitar el silencio).
+function SoundFx.loop(name: string, parent: Instance?, groupName: string?): Sound?
 	local id = soundId(name)
 	if not id then
 		return nil
@@ -84,8 +143,14 @@ function SoundFx.loop(name: string, parent: Instance?): Sound?
 	local sound = Instance.new("Sound")
 	sound.SoundId = id
 	sound.Looped = true
-	sound.Volume = if muted then 0 else (entry.Volume or 0.5)
+	sound.Volume = entry.Volume or 0.5
 	sound.PlaybackSpeed = entry.Pitch or 1
+	sound.SoundGroup = SoundFx.group(groupName or "SFX")
+	if parent and (parent:IsA("BasePart") or parent:IsA("Attachment")) then
+		-- En un sitio del mundo: se oye solo cerca (por defecto llegaba a 10000 studs)
+		sound.RollOffMode = Enum.RollOffMode.InverseTapered
+		sound.RollOffMaxDistance = 40
+	end
 	sound.Parent = parent or folder
 	sound:Play()
 	return sound
@@ -96,6 +161,8 @@ end
 ---------------------------------------------------------------------
 local ttsAvailable = VOICES.Enabled
 local talking = 0
+-- Voces que suenan ahora (para cortarlas al silenciar: la voz sintetizada no va en un SoundGroup)
+local activeVoices: { [Instance]: boolean } = {}
 
 -- Dice un texto en voz alta. pitch cambia la voz (cada persona tiene la suya)
 function SoundFx.voice(text: string, pitch: number?, volume: number?)
@@ -104,8 +171,9 @@ function SoundFx.voice(text: string, pitch: number?, volume: number?)
 	end
 	talking += 1
 	task.spawn(function()
+		local tts: any = nil
 		local ok = pcall(function()
-			local tts = Instance.new("AudioTextToSpeech")
+			tts = Instance.new("AudioTextToSpeech")
 			tts.Text = text
 			pcall(function()
 				tts.Pitch = pitch or 1
@@ -123,13 +191,27 @@ function SoundFx.voice(text: string, pitch: number?, volume: number?)
 			pcall(function()
 				tts:LoadAsync()
 			end)
+			if muted then
+				-- (se silenció mientras cargaba)
+				tts:Destroy()
+				return
+			end
+			activeVoices[tts] = true
 			tts:Play()
 			task.delay(math.clamp(#text * 0.08 + 1, 1.5, 8), function()
+				activeVoices[tts] = nil
 				tts:Destroy()
 			end)
 		end)
 		if not ok then
 			ttsAvailable = false -- el motor no tiene voz sintetizada: solo se ven los textos
+			-- (si falló a medias, que no se quede la instancia colgada)
+			if tts then
+				activeVoices[tts] = nil
+				pcall(function()
+					tts:Destroy()
+				end)
+			end
 		end
 		task.wait(math.clamp(#text * 0.08, 1, 6))
 		talking -= 1
@@ -235,7 +317,7 @@ function SoundFx.vehicleSpeed(ratio: number)
 	if engine then
 		local base = if vehicleKind == "Moto" then 1.35 else 1
 		engine.PlaybackSpeed = base * (0.75 + ratio * 0.9)
-		engine.Volume = if muted then 0 else (SOUNDS.Motor.Volume or 0.45) * (0.7 + ratio * 0.5)
+		engine.Volume = (SOUNDS.Motor.Volume or 0.45) * (0.7 + ratio * 0.5) -- (el silencio lo pone el grupo SFX)
 	end
 end
 
@@ -266,6 +348,10 @@ local pitches: { [Instance]: number } = {}
 local function pitchOf(npc: Instance): number
 	if not pitches[npc] then
 		pitches[npc] = 0.85 + math.random() * 0.35
+		-- (al desaparecer la persona se olvida su voz: si no, la tabla crece sin parar)
+		npc.Destroying:Connect(function()
+			pitches[npc] = nil
+		end)
 	end
 	return pitches[npc]
 end
@@ -328,7 +414,7 @@ end
 
 -- Murmullo de gente cerca del centro (solo si hay un audio "Multitud")
 local function crowd()
-	local sound = SoundFx.loop("Multitud")
+	local sound = SoundFx.loop("Multitud", nil, "Ambience")
 	if not sound then
 		return
 	end
@@ -341,7 +427,7 @@ local function crowd()
 		end
 		local d = Vector2.new(root.Position.X, root.Position.Z).Magnitude -- distancia a la Plaza Mayor
 		local indoors = root.Position.Y > 3000 -- salas de los edificios (en el cielo)
-		sound.Volume = if muted or indoors then 0 else base * math.clamp(1 - (d - 150) / 350, 0, 1)
+		sound.Volume = if indoors then 0 else base * math.clamp(1 - (d - 150) / 350, 0, 1)
 	end)
 end
 
@@ -354,11 +440,36 @@ function SoundFx.isMuted(): boolean
 	return muted
 end
 
+-- ¿Estás en una conversación o viendo una escena? (entonces no suenan avisos por megafonía)
+function SoundFx.busy(): boolean
+	return player:GetAttribute("InDialogue") == true or player:GetAttribute("InCinematic") == true
+end
+
 ---------------------------------------------------------------------
 function SoundFx.setMuted(value: boolean)
 	muted = value
-	if engine then
-		engine.Volume = if muted then 0 else (SOUNDS.Motor.Volume or 0.45)
+	-- Los grupos callan todo lo que ya suena (bucles, motor, lluvia, sonidos del servidor)
+	SoundFx.setGroupOn("SFX", not value)
+	SoundFx.setGroupOn("Ambience", not value)
+	if value then
+		-- La voz sintetizada no va en un grupo: la que esté sonando se corta
+		for tts in activeVoices do
+			activeVoices[tts] = nil
+			pcall(function()
+				tts:Destroy()
+			end)
+		end
+	end
+end
+
+-- Sonidos creados por el servidor (romper cosas, patear juguetes) llevan el atributo SfxGroup:
+-- aquí se meten en su grupo para que el botón de silenciar también los calle
+local function tagServerSound(obj: Instance)
+	if obj:IsA("Sound") then
+		local name = obj:GetAttribute("SfxGroup")
+		if type(name) == "string" and name ~= "" then
+			obj.SoundGroup = SoundFx.group(name)
+		end
 	end
 end
 
@@ -366,6 +477,15 @@ function SoundFx.init()
 	folder = Instance.new("Folder")
 	folder.Name = "SoundFx"
 	folder.Parent = SoundService
+	SoundFx.group("SFX")
+	SoundFx.group("Ambience")
+
+	workspace.DescendantAdded:Connect(tagServerSound)
+	task.spawn(function()
+		for _, obj in workspace:GetDescendants() do
+			tagServerSound(obj)
+		end
+	end)
 
 	if player.Character then
 		task.spawn(watchCharacter, player.Character)
@@ -377,7 +497,12 @@ function SoundFx.init()
 	local function hookButton(obj: Instance)
 		if obj:IsA("GuiButton") then
 			obj.Activated:Connect(function()
-				SoundFx.play("Clic")
+				-- NoClick = el botón no quiere clic; y si su código ya ha tocado su sonido, tampoco
+				if obj:GetAttribute("NoClick") or os.clock() - lastUiSound < CLICK_WINDOW then
+					return
+				end
+				local sound = SoundFx.play("Clic")
+				autoClick = if sound then { Sound = sound, At = os.clock() } else nil
 			end)
 		end
 	end

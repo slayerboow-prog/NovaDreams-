@@ -219,6 +219,10 @@ local function onAnnounce(data: { [string]: any })
 	if typeof(data) ~= "table" or typeof(data.Text) ~= "string" then
 		return
 	end
+	-- En una escena o una conversación la megafonía no se mete encima
+	if SoundFx.busy() then
+		return
+	end
 	SoundFx.play("MetroGong")
 	task.delay(0.6, function()
 		SoundFx.voice(data.Text, 1.05, 0.9)
@@ -236,9 +240,8 @@ local function setRiding(value: boolean)
 		rideLoop = nil
 	end
 	if value then
-		local character = player.Character
-		local root = character and character:FindFirstChild("HumanoidRootPart")
-		rideLoop = SoundFx.loop("MetroTren", root)
+		-- En la carpeta de SoundFx (no en el personaje): si mueres, el bucle no se pierde colgado
+		rideLoop = SoundFx.loop("MetroTren")
 	end
 end
 
@@ -284,6 +287,10 @@ function MetroTrains.init()
 		lines[Rail.Line.Id] = { Line = Rail.Line, Points = points, Centers = centers, State = nil, Root = "RailState", Cars = Rail.Cars, Step = Rail.CarLength + Rail.CarGap }
 	end
 	refreshTrains()
+	-- Al reaparecer (has muerto) ya no vas en el tren: se para su sonido
+	player.CharacterAdded:Connect(function()
+		setRiding(false)
+	end)
 	CollectionService:GetInstanceAddedSignal("MetroTrain"):Connect(collectTrain)
 	CollectionService:GetInstanceAddedSignal("RailTrain"):Connect(collectTrain)
 	CollectionService:GetInstanceAddedSignal("MetroLamp"):Connect(lampLevel)

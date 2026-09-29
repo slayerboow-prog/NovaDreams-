@@ -279,22 +279,26 @@ local function watch(part: Instance)
 	end
 	-- Agua (grifos; en la ducha corre en la alcachofa, que es otra pieza)
 	local function watchWater(target: BasePart)
-		target:GetAttributeChangedSignal("Running"):Connect(function()
+		local function refreshWater()
 			if target:GetAttribute("Running") then
 				stopLoop(target)
-				if near(target) then
-					local sound = SoundFx.loop("Agua", target)
-					if sound then
-						if use == "Shower" then
-							sound.PlaybackSpeed = 1.1
-						end
-						loops[target] = sound
+				-- Siempre se crea (aunque estés lejos): el bucle 3D solo se oye cerca, así al acercarte
+				-- ya suena sin tener que estar allí cuando se abrió el grifo
+				local sound = SoundFx.loop("Agua", target)
+				if sound then
+					if use == "Shower" then
+						sound.PlaybackSpeed = 1.1
 					end
+					loops[target] = sound
 				end
 			else
 				stopLoop(target)
 			end
-		end)
+		end
+		target:GetAttributeChangedSignal("Running"):Connect(refreshWater)
+		if target:GetAttribute("Running") then
+			refreshWater() -- (ya estaba abierto al llegar)
+		end
 	end
 	if use == "Tap" then
 		watchWater(part)
