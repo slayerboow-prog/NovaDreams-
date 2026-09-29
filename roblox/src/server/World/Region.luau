@@ -286,14 +286,24 @@ function Region.roads(): { Street.Road }
 			local kind = Roads.Kinds[seg.Kind]
 			local reach = kind.Road / 2 + kind.Walk + 19
 			if math.abs((seg.B - seg.A).Unit:Dot(dirStreet)) > 0.95 and math.max(seg.A.X, seg.B.X) > x0 - reach and math.min(seg.A.X, seg.B.X) < x1 + reach and math.max(seg.A.Z, seg.B.Z) > z0 - reach and math.min(seg.A.Z, seg.B.Z) < z1 + reach then
-				table.insert(near, { seg, reach })
+				-- En la misma línea que la calle: la carretera la continúa. La calle empieza justo donde
+				-- acaba la carretera (con el margen quedaba un trozo sin asfalto, con el terreno a la vista)
+				local sideA = if road.Axis == "X" then seg.A.Z - road.At else seg.A.X - road.At
+				local sideB = if road.Axis == "X" then seg.B.Z - road.At else seg.B.X - road.At
+				local along = if road.Axis == "X" then { seg.A.X, seg.B.X } else { seg.A.Z, seg.B.Z }
+				local inLine = math.abs(sideA) < 1 and math.abs(sideB) < 1
+				table.insert(near, { seg, reach, if inLine then { math.min(along[1], along[2]), math.max(along[1], along[2]) } else nil })
 			end
 		end
 		local function inside(u: number): boolean
 			local x, z = if road.Axis == "X" then u else road.At, if road.Axis == "X" then road.At else u
 			for _, item in near do
-				local seg = item[1]
-				if CityPlan.segmentDistance(x, z, seg.A.X, seg.A.Z, seg.B.X, seg.B.Z) < item[2] then
+				local seg, span = item[1], item[3]
+				if span then
+					if u > span[1] + 0.01 and u < span[2] - 0.01 then
+						return true
+					end
+				elseif CityPlan.segmentDistance(x, z, seg.A.X, seg.A.Z, seg.B.X, seg.B.Z) < item[2] then
 					return true
 				end
 			end
@@ -324,6 +334,21 @@ function Region.roads(): { Street.Road }
 		if not anyInside then
 			table.insert(kept, road)
 		elseif bestFrom and (bestTo :: number) - bestFrom > 60 then
+			-- El extremo que toca el final de una carretera en la misma línea se pega a ella. Si la calle
+			-- llegaba hasta un cruce a pocos studs (su circunvalación), se deja entera: el cruce corta
+			-- las aceras (si no, la acera de la circunvalación cruzaba la calzada) y el asfalto de las
+			-- dos es el mismo, así que el trozo que comparten no se nota.
+			for _, item in near do
+				local span = item[3]
+				if span then
+					if math.abs(bestFrom - span[2]) < 5 then
+						bestFrom = if span[2] - road.From < 25 then road.From else span[2]
+					end
+					if math.abs((bestTo :: number) - span[1]) < 5 then
+						bestTo = if road.To - span[1] < 25 then road.To else span[1]
+					end
+				end
+			end
 			road.From, road.To = bestFrom, bestTo :: number
 			table.insert(kept, road)
 		end

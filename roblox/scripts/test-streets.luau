@@ -413,6 +413,37 @@ for _, group in groups do
 end
 check(total == 0, "ningún hueco bajo las calles, aceras, cruces y rotondas (solo la escalera del metro)")
 
+-- Una calle que sigue a una carretera en la misma línea empieza donde acaba la carretera: sin un trozo
+-- de terreno entre las dos (pasaba en la entrada de Los Pinos y de Valmar Norte)
+local cutOff: { string } = {}
+for _, road in Region.roads() do
+	for _, s in Roads.segments() do
+		local sa = if road.Axis == "X" then s.A.Z - road.At else s.A.X - road.At
+		local sb = if road.Axis == "X" then s.B.Z - road.At else s.B.X - road.At
+		if math.abs(sa) < 1 and math.abs(sb) < 1 then
+			local ua = if road.Axis == "X" then s.A.X else s.A.Z
+			local ub = if road.Axis == "X" then s.B.X else s.B.Z
+			local lo, hi = math.min(ua, ub), math.max(ua, ub)
+			local gap = math.max(road.From - hi, lo - road.To)
+			local mid = if road.From - hi > lo - road.To then (road.From + hi) / 2 else (lo + road.To) / 2
+			local mx, mz = if road.Axis == "X" then mid else road.At, if road.Axis == "X" then road.At else mid
+			local covered = false
+			for _, c in select(2, Roads.footprints()) do
+				if (Vector3.new(mx, 0, mz) - Vector3.new(c.Position.X, 0, c.Position.Z)).Magnitude < c.Radius then
+					covered = true -- (lo tapa una rotonda o un cruce)
+				end
+			end
+			if gap > 0.5 and gap < 80 and not covered then
+				table.insert(cutOff, ("%s y la calle %s=%.0f: %.0f studs sin asfalto"):format(s.Name, if road.Axis == "X" then "Z" else "X", road.At, gap))
+			end
+		end
+	end
+end
+for i = 1, math.min(#cutOff, 6) do
+	print("      " .. cutOff[i])
+end
+check(#cutOff == 0, "cada calle empieza justo donde acaba la carretera que la continúa (sin trozos de terreno)")
+
 -- Por la calzada no cruza ninguna acera: la cara de arriba del suelo está a la altura del asfalto
 local steps: { string } = {}
 local stepCount = 0
