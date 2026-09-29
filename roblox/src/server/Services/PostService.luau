@@ -13,6 +13,7 @@
 -- Los carteles de entrega solo los ve el repartidor de esa ruta (atributos JobOnly/OwnerUserId).
 
 local CollectionService = game:GetService("CollectionService")
+local DataStoreService = game:GetService("DataStoreService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -34,6 +35,16 @@ local Notify = ReplicatedStorage.Remotes.Notify :: RemoteEvent
 local Remote = ReplicatedStorage.Remotes.Post :: RemoteEvent
 local P = Gameplay.Post
 
+-- Ritmo mínimo entre entregas cobradas: quien se teletransporta de casa en casa cobraría la ruta en
+-- segundos. Entre una entrega y la siguiente (o desde Correos) hace falta al menos la distancia a
+-- PACE_SPEED studs/s (más que la moto o el coche por calle, contando paradas) y nunca menos de
+-- PACE_MIN segundos. Sin DataStore (Studio sin API, pruebas) no se guarda nada y no se mira.
+local PACE_SPEED = 60
+local PACE_MIN = 1.5
+local CHECK_PACE = pcall(function()
+	return DataStoreService:GetDataStore("PlayerData")
+end)
+
 type Stop = {
 	Target: BasePart,
 	Address: string,
@@ -54,6 +65,8 @@ type Route = {
 	Marker: BasePart?,
 	Carry: Model?,
 	Busy: boolean,
+	PaidAt: number?, -- última entrega cobrada (o salida de Correos) y dónde
+	PaidPos: Vector3?,
 }
 
 local offices: { Office } = {}
@@ -256,11 +269,25 @@ local function setStopPrompt(route: Route)
 	route.Prompt = prompt
 end
 
+-- ¿Ha llegado demasiado rápido desde la última entrega (o desde Correos)?
+local function tooFast(route: Route, point: Vector3): boolean
+	local at, from = route.PaidAt, route.PaidPos
+	if not CHECK_PACE or not at or not from then
+		return false
+	end
+	local flat = Vector3.new(point.X - from.X, 0, point.Z - from.Z).Magnitude
+	return os.clock() - at < math.max(PACE_MIN, flat / PACE_SPEED)
+end
+
 local THANKS = { "¡Por fin! Lo estaba esperando. ¡Gracias!", "¡Qué rapidez! Firmo aquí, ¿no?", "Gracias, majo. ¡Que vaya bien la ruta!", "¡Anda, mi pedido! Muchas gracias." }
 
 function deliver(route: Route)
 	local stop: any = route.Stops[route.Index]
 	if route.Phase ~= "Deliver" or not stop or route.Busy then
+		return
+	end
+	if tooFast(route, stop.Point) then
+		Notify:FireClient(route.Player, "Error", "Demasiado rápido: espera un momento antes de entregar.")
 		return
 	end
 	route.Busy = true
@@ -287,6 +314,8 @@ function deliver(route: Route)
 	stop.Done = true
 	clearStopPrompt(route)
 	removeCarry(route)
+	route.PaidAt = os.clock()
+	route.PaidPos = stop.Point
 	local pay = math.floor((P.PerParcel + stop.Distance * P.PerStud) * MonetizationService.payMultiplier(player))
 	DataService.addMoney(player, pay, true)
 	local data = DataService.get(player)
@@ -337,11 +366,14 @@ local function onSort(player: Player, office: Office)
 		route.Office = office
 		route.Phase = "Deliver"
 		route.Started = os.clock()
+		route.PaidAt = route.Started
+		route.PaidPos = office.Sort.Position
 		setStopPrompt(route)
 		giveCarry(route)
 		Notify:FireClient(player, "Success", ("📦 %d paquetes cargados. ¡A repartir! Fuera tienes la moto o la bici de reparto."):format(#route.Stops))
 	elseif route.Phase == "Return" then
-		local fast = os.clock() - route.Started <= P.RouteSeconds
+		-- El bonus doble pide que la vuelta a Correos también sea creíble (no teletransportada)
+		local fast = os.clock() - route.Started <= P.RouteSeconds and not tooFast(route, office.Sort.Position)
 		local bonus = math.floor(P.RouteBonus * (if fast then 2 else 1) * MonetizationService.payMultiplier(player))
 		DataService.addMoney(player, bonus, true)
 		Notify:FireClient(player, "Money", ("+%s · ruta cerrada%s"):format(Format.money(bonus), if fast then " (¡bonus por rapidez!)" else ""))

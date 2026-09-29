@@ -245,6 +245,12 @@ local function toSpawn(player: Player, character: Model)
 	if type(point) ~= "table" or player:GetAttribute("LifeStage") == "Bebe" then
 		return
 	end
+	-- Al entrar en el juego manda la posición guardada (PositionService): la cama es para cuando
+	-- reapareces después de morir. Mientras no hay "SpawnReady", este personaje es el de la entrada
+	local saved = data and data.Position
+	if not player:GetAttribute("SpawnReady") and type(saved) == "table" and type(saved.X) == "number" and type(saved.Y) == "number" and type(saved.Z) == "number" then
+		return
+	end
 	-- Se mira ya, al aparecer: el hospital quita "Dead" en cuanto termina de llevarte
 	if player:GetAttribute("Dead") or player:GetAttribute("JailUntil") ~= nil or player:GetAttribute("OnTrial") ~= nil then
 		return

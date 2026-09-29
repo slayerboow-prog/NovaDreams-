@@ -90,6 +90,12 @@ local function onDied(player: Player, character: Model)
 	diedAt[player] = if typeof(door) == "Vector3" then door elseif root then root.Position else Vector3.zero
 	player:SetAttribute("Dead", true)
 	player:SetAttribute("KO", nil)
+	-- Se apunta en la partida: si se sale estando muerto, al volver se le cura igual (factura y, si le
+	-- buscaban, detención). Antes salir y entrar libraba de las dos cosas
+	local data = DataService.get(player)
+	if data then
+		data.PendingRevive = true
+	end
 	if player:GetAttribute("Riding") then
 		player:SetAttribute("Riding", nil)
 	end
@@ -135,6 +141,10 @@ local function onRespawn(player: Player, character: Model)
 		return
 	end
 	diedAt[player] = nil
+	local data = DataService.get(player)
+	if data then
+		data.PendingRevive = nil
+	end
 	local ok, err = pcall(revive, player, character, from)
 	if not ok then
 		warn("[Hospital] " .. tostring(err))
@@ -181,6 +191,42 @@ function HospitalService.init()
 	end
 	Players.PlayerRemoving:Connect(function(player)
 		diedAt[player] = nil
+	end)
+
+	-- Se fue estando muerto (PendingRevive): al volver despierta en el hospital, paga la factura y, si
+	-- le buscaban, le detienen, igual que si hubiera reaparecido sin salir del juego
+	DataService.onLoaded(function(player, data)
+		if not data.PendingRevive then
+			return
+		end
+		-- Esperar a que PositionService le ponga donde estaba (si no, luego nos movería a ese sitio)
+		local deadline = os.clock() + 30
+		while player.Parent and not player:GetAttribute("SpawnReady") and os.clock() < deadline do
+			task.wait(0.2)
+		end
+		local character = player.Character
+		if not player.Parent or not character or diedAt[player] then
+			return -- (se ha ido otra vez: la marca sigue guardada; o ha vuelto a morir: ya se ocupa onRespawn)
+		end
+		data.PendingRevive = nil
+		local saved = data.Position
+		local from = if type(saved) == "table" and type(saved.X) == "number" and type(saved.Z) == "number"
+			then Vector3.new(saved.X, saved.Y or 0, saved.Z)
+			else nil
+		local ok, err = pcall(revive, player, character, from or Vector3.zero)
+		if not ok then
+			warn("[Hospital] " .. tostring(err))
+		end
+		-- La búsqueda guardada vuelve unos segundos después de entrar (WantedService): se espera a ella
+		if (tonumber(data.Wanted) or 0) > 0 then
+			local until_ = os.clock() + 12
+			while player.Parent and WantedService.stars(player) <= 0 and os.clock() < until_ do
+				task.wait(0.5)
+			end
+			if player.Parent and not JusticeService.isJailed(player) and WantedService.stars(player) > 0 then
+				WantedService.arrest(player, nil)
+			end
+		end
 	end)
 end
 
