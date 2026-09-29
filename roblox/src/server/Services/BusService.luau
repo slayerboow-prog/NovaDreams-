@@ -285,7 +285,7 @@ local function rolling(bus: Bus): boolean
 		return false
 	end
 	if not bus.Driver then
-		return bus.Speed >= 2
+		return true -- (los del juego, con las puertas cerradas, van de ruta: acaban de arrancar o frenan un momento)
 	end
 	local chassis = bus.Model.PrimaryPart
 	if not chassis or VehicleService.ridingKind(bus.Driver) ~= "Autobus" then

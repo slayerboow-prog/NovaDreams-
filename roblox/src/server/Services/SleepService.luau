@@ -32,29 +32,34 @@ local SleepService = {}
 local Notify: RemoteEvent
 local sleepers: { [Player]: boolean } = {} -- quién está en la cama esperando a que pase la noche
 local beds: { [Player]: BasePart } = {} -- la cama en la que duerme cada uno (para ver si se ha levantado)
+local lyingAt: { [Player]: Vector3 } = {} -- dónde estaba al acostarse
 local spawnBeds: { [Player]: BasePart } = {} -- la cama de su punto de reaparición (si se borra, no vale)
 
-local BED_RANGE = 12 -- si te alejas más que esto de la cama, ya no estás durmiendo
+local BED_RANGE = 10 -- si te alejas más que esto de donde te acostaste, ya no estás durmiendo
 local SKY_Y = 3000 -- por encima están las salas de los edificios: se rehacen y no son un sitio fijo
 
--- ¿Sigue tumbado en su cama? (vivo, con personaje y cerca de ella)
+-- ¿Sigue tumbado en su cama? (la cama sigue ahí, está vivo y no se ha movido de donde se acostó:
+-- ni andando ni teletransportado)
 local function inBed(player: Player): boolean
 	local bed = beds[player]
+	local at = lyingAt[player]
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	return bed ~= nil
 		and bed.Parent ~= nil
+		and at ~= nil
 		and root ~= nil
 		and humanoid ~= nil
 		and humanoid.Health > 0
-		and (root.Position - bed.Position).Magnitude <= BED_RANGE
+		and (root.Position - at).Magnitude <= BED_RANGE
 end
 
 -- Se ha levantado (o ha muerto, o se ha ido): deja de contar como dormido, sin descanso
 local function getUp(player: Player)
 	sleepers[player] = nil
 	beds[player] = nil
+	lyingAt[player] = nil
 	player:SetAttribute("Sleeping", nil)
 end
 
@@ -95,6 +100,7 @@ end
 local function wake(player: Player, message: string)
 	sleepers[player] = nil
 	beds[player] = nil
+	lyingAt[player] = nil
 	player:SetAttribute("Sleeping", nil)
 	if player.Parent then
 		rest(player)
@@ -138,11 +144,13 @@ function SleepService.sleep(player: Player, bed: BasePart)
 		return
 	end
 	player:SetAttribute("Sleeping", true)
+	local character = player.Character
+	local startRoot = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	beds[player] = bed
+	lyingAt[player] = if startRoot then startRoot.Position else nil
 	setSpawn(player, bed)
 	Notify:FireClient(player, "Sleep", "Zzz...")
 	-- Si muere o le cambia el personaje mientras duerme, se acaba el sueño al momento
-	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	local died = humanoid and humanoid.Died:Connect(function()
 		getUp(player)
@@ -158,8 +166,9 @@ function SleepService.sleep(player: Player, bed: BasePart)
 	end
 	local waited = 0
 	while waited < Config.SleepSeconds do
-		task.wait(0.5)
-		waited += 0.5
+		local step = math.min(0.5, Config.SleepSeconds - waited)
+		task.wait(step)
+		waited += step
 		if not player.Parent or beds[player] ~= bed or not inBed(player) then
 			if beds[player] == bed then
 				getUp(player)
@@ -211,15 +220,11 @@ local function validSpawn(player: Player, point: any): boolean
 	if point.X ~= point.X or point.Y ~= point.Y or point.Z ~= point.Z or point.Y > SKY_Y then
 		return false
 	end
-	local bed = spawnBeds[player]
-	if bed and bed.Parent == nil then
-		return false -- la cama de esta partida se ha borrado
+	if point.Y < -400 then
+		return false -- debajo del mapa (ahí Roblox borra al personaje)
 	end
-	-- Tiene que haber algo debajo (la cama o el suelo): si no, caerías al vacío
-	local params = RaycastParams.new()
-	params.FilterType = Enum.RaycastFilterType.Exclude
-	params.FilterDescendantsInstances = if player.Character then { player.Character } else {}
-	return workspace:Raycast(Vector3.new(point.X, point.Y, point.Z), Vector3.new(0, -15, 0), params) ~= nil
+	local bed = spawnBeds[player]
+	return not (bed and bed.Parent == nil) -- la cama de esta partida se ha borrado
 end
 
 -- Quita un punto de reaparición que ya no sirve (para no volver a intentarlo)
@@ -331,6 +336,7 @@ function SleepService.init()
 	Players.PlayerRemoving:Connect(function(player)
 		sleepers[player] = nil
 		beds[player] = nil
+		lyingAt[player] = nil
 		spawnBeds[player] = nil
 		-- Si se va el último despierto, los que esperaban en la cama ya pueden pasar la noche
 		task.defer(function()

@@ -1569,8 +1569,13 @@ remotes.Supermarket.OnServerEvent:Fire(cashier, "Scan", scanMsg[2], 2)
 local receipt2 = lastMessage(shopper, "Receipt")
 check(receipt2 ~= receiptMsg and receipt2[2] == scanMsg[2], "pasados los productos, el cliente ve el ticket")
 local cashierBefore = profiles[cashier].Money
+local shopperBefore = profiles[shopper].Money
 remotes.Supermarket.OnServerEvent:Fire(shopper, "Pay", receipt2[2])
-check(profiles[cashier].Money == cashierBefore + Groceries.Jobs.Cajero.PerCustomer + 2 * Groceries.Jobs.Cajero.PerItem, "el cajero cobra por cliente y por producto")
+-- (con un cliente jugador, el cajero no gana más del 60 % de lo que pagó: si no, dos amigos se
+-- hacían ricos comprándose pan el uno al otro)
+local shopperPaid = shopperBefore - profiles[shopper].Money
+local cashierPay = math.min(Groceries.Jobs.Cajero.PerCustomer + 2 * Groceries.Jobs.Cajero.PerItem, math.max(1, math.floor(shopperPaid * 0.6)))
+check(shopperPaid > 0 and profiles[cashier].Money == cashierBefore + cashierPay, "el cajero cobra por cliente y por producto (sin pasar de lo que paga el cliente)")
 check(InventoryService.count(shopper, "Galletas") == 1, "el cliente se lleva las galletas")
 
 -- Charcutería con charcutero jugador
@@ -1686,7 +1691,7 @@ local baristaBefore = profiles[barista].Money
 promptOf(pickupSpot, "Entregar pedido").Triggered:Fire(barista)
 check(InventoryService.count(coffeeFan, "Cafe_Capuchino") == 1 and InventoryService.count(coffeeFan, "Cafe_Croissant") == 1, "el cliente recibe el capuchino y el croissant en la mochila")
 local J = CafeMenu.Job
-check(profiles[barista].Money == baristaBefore + J.PerOrder + 5 * J.PerStep + J.TipFast, "el barista cobra por pedido, por paso y propina por ser rápido")
+check(profiles[barista].Money == baristaBefore + math.min(J.PerOrder + 5 * J.PerStep + J.TipFast, math.max(1, math.floor(price * 0.6))), "el barista cobra por pedido, por paso y propina (sin pasar de lo que paga el cliente)")
 
 -- Paso equivocado
 remotes.Cafe.OnServerEvent:Fire(coffeeFan, "Order", { "Espresso" })
@@ -2383,7 +2388,8 @@ while served and served.Name ~= (fan.DisplayName or fan.Name) and guard < 8 do
 	served = serveFirst()
 end
 check(InventoryService.count(fan, Cinema.TicketItem) == 2 and InventoryService.count(fan, "Palomitas") == 1, "el cliente recibe sus 2 entradas y las palomitas")
-check(profiles[clerk].Money >= Cinema.Job.PerSale + 2 * Cinema.Job.PerTicket + Cinema.Job.PerSnack, "el taquillero cobra por cliente, entradas y barra")
+local fanPaid = 2 * Cinema.TicketPrice + Cinema.snackById.Palomitas.Price
+check(profiles[clerk].Money >= math.min(Cinema.Job.PerSale + 2 * Cinema.Job.PerTicket + Cinema.Job.PerSnack, math.floor(fanPaid * 0.6)), "el taquillero cobra por cliente, entradas y barra (sin pasar de lo que paga el cliente)")
 -- Entrar a la sala (si no es el descanso)
 local _, phase = Cinema.session(workspace and workspace.GetServerTimeNow and workspace:GetServerTimeNow() or os.clock())
 promptOf(salaDoor, "Entrar a la sala").Triggered:Fire(fan)

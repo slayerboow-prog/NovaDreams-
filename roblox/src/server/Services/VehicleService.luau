@@ -1291,15 +1291,19 @@ local function canSpawn(player: Player): boolean
 end
 
 -- El menú no se puede pulsar en ráfaga (cada vehículo sacado se construye entero en el servidor)
-local function spawnAllowed(player: Player): boolean
+-- (bucket: cada forma de sacar vehículos lleva su propia cuenta: alquilar una bici no te quita
+-- sacar la tuya)
+local rentedAt: { [Player]: { number } } = {}
+local function spawnAllowed(player: Player, bucket: string?): boolean
+	local store = if bucket == "Rent" then rentedAt else spawnedAt
 	local now = os.clock()
 	local recent = {}
-	for _, at in spawnedAt[player] or {} do
+	for _, at in store[player] or {} do
 		if now - at < SPAWN_WINDOW then
 			table.insert(recent, at)
 		end
 	end
-	spawnedAt[player] = recent
+	store[player] = recent
 	if #recent >= SPAWN_BURST then
 		return false
 	end
@@ -1342,7 +1346,7 @@ local function setupStation(station: Instance)
 		prompt.Triggered:Connect(function(player)
 			local ride = riding[player]
 			-- (el mismo límite que el menú: pulsar en ráfaga construye vehículos enteros en el servidor)
-			if (ride and ride.Exam) or not canSpawn(player) or not spawnAllowed(player) then
+			if (ride and ride.Exam) or not canSpawn(player) or not spawnAllowed(player, "Rent") then
 				return
 			end
 			VehicleService.mount(player, kind, { Rented = true })
@@ -1417,6 +1421,7 @@ function VehicleService.init()
 		warnedAt[player] = nil
 		leftModel[player] = nil
 		spawnedAt[player] = nil
+		rentedAt[player] = nil
 		switching[player] = nil
 	end)
 

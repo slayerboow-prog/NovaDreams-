@@ -655,7 +655,7 @@ local function setupStation(model: Instance)
 		p:SetAttribute("JobOnly", "Policia")
 		p.Parent = patrol
 		p.Triggered:Connect(function(player)
-			if not shifts[player] or not VehicleService.spawnAllowed(player) then
+			if not shifts[player] or not VehicleService.spawnAllowed(player, "Rent") then
 				return -- (sin pulsar en ráfaga: cada coche se construye entero en el servidor)
 			end
 			if not VehicleService.mount(player, "Patrulla", { Rented = true }) then

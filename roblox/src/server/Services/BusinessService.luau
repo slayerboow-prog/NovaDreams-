@@ -80,9 +80,8 @@ local lastRequest: { [Player]: number } = {}
 local STORE_COOLDOWN = 2
 local lastStoreAction: { [Player]: number } = {}
 local lastPromptRead: { [Player]: number } = {} -- (los avisos de proximidad van aparte: abrir y pulsar no choca)
--- Ofertas de trabajo: una cada OFFER_COOLDOWN segundos por destinatario y solo a quien está cerca
+-- Ofertas de trabajo: una cada OFFER_COOLDOWN segundos por destinatario (nada de llenarle de ventanas)
 local OFFER_COOLDOWN = 30
-local OFFER_DISTANCE = 60
 local lastOfferTo: { [Player]: number } = {}
 local signFolder: Folder
 
@@ -95,6 +94,9 @@ end
 
 -- ¿Puede ya hacer otra acción que toca el DataStore? (si sí, cuenta como hecha ahora)
 local function storeReady(player: Player, map: { [Player]: number }?): boolean
+	if not store then
+		return true -- sin DataStore (Studio sin API, pruebas) no hay presupuesto que proteger
+	end
 	local last = map or lastStoreAction
 	local t = os.clock()
 	if t - (last[player] or -math.huge) < STORE_COOLDOWN then
@@ -1198,14 +1200,10 @@ local function offerJob(player: Player, key: string, targetId: any)
 	if not target or target == player then
 		return
 	end
-	-- Nada de llenar a otro de ventanas: una oferta cada un rato y solo a quien tienes cerca
+	-- Nada de llenar a otro de ventanas: como mucho una oferta cada un rato a la misma persona
+	-- (sin límite de distancia: el panel ofrece trabajo a cualquiera del servidor, a propósito)
 	if os.clock() - (lastOfferTo[target] or -math.huge) < OFFER_COOLDOWN then
 		Notify:FireClient(player, "Info", ("%s acaba de recibir una oferta. Espera un poco."):format(nameOf(target)))
-		return
-	end
-	local myRoot, theirRoot = rootOf(player), rootOf(target)
-	if not myRoot or not theirRoot or (myRoot.Position - theirRoot.Position).Magnitude > OFFER_DISTANCE then
-		Notify:FireClient(player, "Info", ("Acércate a %s para ofrecerle trabajo."):format(nameOf(target)))
 		return
 	end
 	local rec = ownRecord(player, key, true)
