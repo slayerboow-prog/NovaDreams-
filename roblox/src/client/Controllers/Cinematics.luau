@@ -134,8 +134,11 @@ function baseShotCFrame(anchors: { [string]: CFrame }, shot: { [string]: any }, 
 	end
 	local position = from:Lerp(to, a)
 	local target = look:Lerp(lookTo, a)
-	-- (tampoco dentro de una pared o del techo: si hay algo entre lo que mira y la cámara, se acerca)
-	position = CineCamera.clamp(target, position)
+	-- (dentro de una sala, tampoco dentro de una pared o del techo: si hay algo entre lo que mira y la
+	-- cámara, se acerca. Fuera no: un plano desde el cielo que mira al centro de una casa acababa dentro)
+	if indoors(target) then
+		position = CineCamera.clamp(target, position)
+	end
 	if (target - position).Magnitude < 0.01 then
 		target += Vector3.new(0, 0, -1)
 	end

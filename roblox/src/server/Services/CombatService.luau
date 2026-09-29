@@ -180,6 +180,10 @@ local function attack(player: Player)
 	-- Todos ven el golpe (el que pega ya lo está animando en su pantalla)
 	Remote:FireAllClients("Swing", player, combo)
 
+	-- Zonas seguras (hospital, colegio, casas…): ni se pega desde ellas ni a quien está dentro.
+	-- (WeaponService requiere este módulo: se pide aquí, no arriba)
+	local WeaponService = require(script.Parent.WeaponService) :: any
+	local attackerSafe = WeaponService.safeSpot(root.Position) ~= nil
 	local hits = 0
 	for _, model in victimsOf(player, root) do
 		if hits >= Combat.MaxTargets then
@@ -190,6 +194,11 @@ local function attack(player: Player)
 			continue
 		end
 		local victim = Players:GetPlayerFromCharacter(model)
+		-- A otro jugador solo si estáis en el mismo sitio (mismo interior o los dos fuera) y fuera de
+		-- zonas seguras: teletransportarse a su lado dentro de su casa no vale
+		if victim and (attackerSafe or victim:GetAttribute("InteriorKey") ~= player:GetAttribute("InteriorKey") or WeaponService.safeSpot(targetRoot.Position)) then
+			continue
+		end
 		local direction = Vector3.new(targetRoot.Position.X - root.Position.X, 0, targetRoot.Position.Z - root.Position.Z)
 		direction = if direction.Magnitude > 0.01 then direction.Unit else root.CFrame.LookVector
 		if victim and canFinish(victim, targetHumanoid) and not isProtected(victim) then
@@ -364,6 +373,11 @@ end
 -- ¿Puede pelear o recibir? (para las armas: mismas condiciones que los golpes)
 function CombatService.canFight(player: Player): boolean
 	return canFight(player)
+end
+
+-- ¿Recién aparecido o sentado? (tampoco se le puede robar: WantedService)
+function CombatService.isProtected(player: Player): boolean
+	return isProtected(player)
 end
 
 function CombatService.isKnockedOut(player: Player): boolean

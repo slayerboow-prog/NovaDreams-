@@ -52,8 +52,9 @@ local states: { [Player]: State } = {}
 -- más de una vez cada VICTIM_GAP (antes se podía ir de tienda en tienda o robar sin parar)
 local HEIST_GAP = 300
 local VICTIM_GAP = 300
-local heistAt: { [Player]: number } = {}
-local robbedAt: { [Player]: { [Player]: number } } = {}
+-- (por UserId: salir y volver a entrar no reinicia la pausa)
+local heistAt: { [number]: number } = {}
+local robbedAt: { [number]: { [number]: number } } = {}
 local Notify = ReplicatedStorage.Remotes.Notify :: RemoteEvent
 local Remote: RemoteEvent
 
@@ -303,8 +304,8 @@ local function steal(thief: Player, victim: any)
 		Notify:FireClient(thief, "Error", "Aquí no puedes robar.")
 		return
 	end
-	local mine = robbedAt[thief]
-	if mine and os.clock() - (mine[victim] or -math.huge) < VICTIM_GAP then
+	local mine = robbedAt[thief.UserId]
+	if mine and os.clock() - (mine[victim.UserId] or -math.huge) < VICTIM_GAP then
 		Notify:FireClient(thief, "Error", "A esta persona ya le has robado hace poco.")
 		return
 	end
@@ -314,8 +315,8 @@ local function steal(thief: Player, victim: any)
 		return
 	end
 	state.StealAt = os.clock()
-	robbedAt[thief] = robbedAt[thief] or {}
-	robbedAt[thief][victim] = os.clock()
+	robbedAt[thief.UserId] = robbedAt[thief.UserId] or {}
+	robbedAt[thief.UserId][victim.UserId] = os.clock()
 	local data = DataService.get(victim)
 	local amount = Wanted.stealAmount(if data then data.Money else 0)
 	if amount <= 0 then
@@ -359,7 +360,7 @@ local function setupHeist(entrance: Instance)
 			Notify:FireClient(player, "Error", "Te está buscando la policía: no es momento de atracar.")
 			return
 		end
-		if os.clock() - (heistAt[player] or -math.huge) < HEIST_GAP then
+		if os.clock() - (heistAt[player.UserId] or -math.huge) < HEIST_GAP then
 			Notify:FireClient(player, "Error", "Demasiado pronto para otro atraco: espera un rato.")
 			return
 		end
@@ -369,7 +370,7 @@ local function setupHeist(entrance: Instance)
 			return
 		end
 		entrance:SetAttribute("RobbedUntil", now + Wanted.HeistCooldown)
-		heistAt[player] = os.clock()
+		heistAt[player.UserId] = os.clock()
 		local loot = math.random(Wanted.HeistLoot[1], Wanted.HeistLoot[2])
 		DataService.addMoney(player, loot)
 		Notify:FireClient(player, "Success", ("💰 Te llevas %s de la caja… ¡ha saltado la alarma!"):format(Format.money(loot)))
@@ -590,11 +591,6 @@ function WantedService.init()
 	Players.PlayerRemoving:Connect(function(player)
 		PoliceUnits.dismiss(player)
 		states[player] = nil
-		heistAt[player] = nil
-		robbedAt[player] = nil
-		for _, list in robbedAt do
-			list[player] = nil
-		end
 	end)
 
 	task.spawn(function()

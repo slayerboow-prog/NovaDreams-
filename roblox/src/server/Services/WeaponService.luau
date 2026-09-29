@@ -162,6 +162,15 @@ function WeaponService.safeZone(player: Player, position: Vector3): string?
 	if player:GetAttribute("InteriorKey") and not onDuty then
 		return "dentro de un edificio"
 	end
+	return WeaponService.safeSpot(position)
+end
+
+-- Zona segura solo por el sitio, sin mirar quién es (para quien recibe un disparo, un golpe o un
+-- robo: antes solo se miraba al que ataca). En la galería de tiro, nunca.
+function WeaponService.safeSpot(position: Vector3): string?
+	if inRange(position) then
+		return nil
+	end
 	for _, volume in CollectionService:GetTagged("SafeZone") do
 		if volume:IsA("BasePart") and inside(volume, position) then
 			return volume:GetAttribute("ZoneName") or "esta zona"
@@ -559,6 +568,15 @@ function WeaponService.fire(player: Player, target: any): boolean
 	local confirms = {}
 	for _, model in order do
 		local entry = hitModels[model]
+		-- A quien está en una zona segura o en otro interior (su casa, otro edificio) no le llega el
+		-- disparo: la zona segura se miraba solo en el tirador
+		local hitPlayer = Players:GetPlayerFromCharacter(model)
+		if hitPlayer then
+			local _, hitRoot = partsOf(hitPlayer)
+			if hitPlayer:GetAttribute("InteriorKey") ~= player:GetAttribute("InteriorKey") or WeaponService.safeSpot(if hitRoot then hitRoot.Position else entry.At) then
+				continue
+			end
+		end
 		local ok, result = pcall(CombatService.applyHit, player, model, {
 			Amount = entry.Amount,
 			Direction = direction,

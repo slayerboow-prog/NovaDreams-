@@ -153,8 +153,9 @@ local function startTheory(player: Player, session: Session, licenseKey: string)
 	end
 	if VehicleService.hasLicense(player, licenseKey) then
 		sessions[player] = nil
+		-- (sin "LicenseEarned": daba XP cada vez que se abría el menú. La historia ya avanza sola si
+		-- tienes el carné: LifeStoryService.enterStep)
 		Notify:FireClient(player, "Info", "Ya tienes el " .. license.Name .. ".")
-		StoryEvents.emit(player, "LicenseEarned", { License = licenseKey, Already = true }) -- (la historia no se queda esperando)
 		return
 	end
 	if not DataService.spend(player, license.Price) then
@@ -262,7 +263,13 @@ function DrivingSchoolService.init()
 	VehicleService.onDismount(function(player)
 		local session = sessions[player]
 		if session and session.Phase == "Practical" then
-			finish(player, false, "te has bajado del vehículo durante el examen.")
+			-- (un poco después: si se baja porque se sale del juego, antes le toca a PlayerRemoving
+			-- devolverle la matrícula; si no, el examen se daba por suspendido y se perdía el dinero)
+			task.defer(function()
+				if sessions[player] == session then
+					finish(player, false, "te has bajado del vehículo durante el examen.")
+				end
+			end)
 		end
 	end)
 
@@ -272,6 +279,12 @@ function DrivingSchoolService.init()
 			sessions[player] = nil
 			if session.Marker then
 				session.Marker:Destroy()
+			end
+			-- Se va en pleno examen (teórico o práctico, ya pagado): se le devuelve la matrícula, sin
+			-- esperas para que entre en el guardado de salida (como en la cafetería y el cine)
+			local license = session.License and Gameplay.Licenses[session.License]
+			if license and (session.Phase == "Theory" or session.Phase == "Practical") then
+				DataService.addMoney(player, license.Price)
 			end
 		end
 	end)

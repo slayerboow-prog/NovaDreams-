@@ -656,8 +656,11 @@ local function renderQuestList(list: Frame, state: { [string]: any })
 	end
 	for _, main in mains do
 		section(list, nextOrder(), "Misión principal (en pausa)", H.Gold)
-		local row = objectiveRow(list, nextOrder(), Strings.get(main.TitleKey) .. "  · toca para volver a ella", false)
-		if main.QuestId and not main.Later then
+		-- «toca para volver» solo si de verdad se puede tocar; si no, el porqué (como las opcionales)
+		local canPick = main.QuestId ~= nil and not main.Later
+		local suffix = if canPick then "  · toca para volver a ella" elseif main.Later == "AfterSchool" then "  · 🏫 después del cole" elseif main.Later == "School" then "  · 🏫 en horario de cole" else ""
+		local row = objectiveRow(list, nextOrder(), Strings.get(main.TitleKey) .. suffix, false)
+		if canPick then
 			local pick = create("TextButton", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "", ZIndex = 3, Parent = row })
 			pick.Activated:Connect(function()
 				(Remotes:WaitForChild("LifeStory") :: RemoteEvent):FireServer("Track", main.QuestId)

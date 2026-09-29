@@ -2103,6 +2103,16 @@ function MetroService.init()
 			onBuskEnd(player, a, b)
 		end
 	end)
+	-- El abono no caduca mientras estás desconectado: se corre su caducidad el tiempo que estuvo fuera
+	-- (uno que ya había caducado al irse sigue caducado)
+	DataService.onLoaded(function(player, data)
+		local m = data.Metro
+		local away = if DataService.offlineSeconds then DataService.offlineSeconds(player) else 0
+		if type(m) == "table" and type(m.PassUntil) == "number" and m.PassUntil > 0 and away > 0 then
+			m.PassUntil += away
+		end
+		syncPass(player)
+	end)
 	Players.PlayerRemoving:Connect(function(player)
 		stopRiding(player)
 		clearMission(player)

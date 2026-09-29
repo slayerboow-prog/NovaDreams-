@@ -1164,7 +1164,11 @@ function applySet(player: Player, questId: string, actors: { { [string]: any } }
 		local key = specKey(spec)
 		local actor = scene.Actors[npc]
 		if actor and actor.Key == key then
-			actor.Spec = spec
+			-- (si se quedó de pie porque allí no había asiento, sigue de pie: si no, al siguiente paso se
+			-- volvía a "sentar" en el aire)
+			if not (actor.Spec and actor.Spec.SitDowngraded and spec.Mode == "Sit") then
+				actor.Spec = spec
+			end
 			continue
 		end
 		-- ¿Ya sale en la escena de otra misión tuya? Nunca dos Ivanes: se lo queda la misión que juegas
@@ -1210,6 +1214,7 @@ function applySet(player: Player, questId: string, actors: { { [string]: any } }
 		if spec.Mode == "Sit" and not seatAt(cf.Position) then
 			spec = table.clone(spec)
 			spec.Mode = "Idle"
+			spec.SitDowngraded = true
 		end
 		if actor and actor.Root and (actor.Root.Position - cf.Position).Magnitude < 70 then
 			-- Camina hasta su nuevo sitio

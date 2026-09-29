@@ -903,7 +903,12 @@ function GymService.init()
 	JobService.setHandler(JOB, { Start = GymService.startJob, Quit = GymService.quitJob })
 
 	DataService.onLoaded(function(player)
-		gymData(player)
+		local g = gymData(player)
+		-- Lo que ha estado desconectado no cuenta: ni se pierde forma ni caduca el abono
+		-- (antes 24 h fuera eran 72 días de juego: la Fuerza caía de 80 a 20)
+		if g and DataService.offlineSeconds then
+			Gym.skipOffline(g, DataService.offlineSeconds(player))
+		end
 		applyDecay(player)
 		sync(player)
 		player.CharacterRemoving:Connect(function()

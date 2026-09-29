@@ -616,6 +616,12 @@ function FlightService.init()
 		end
 	end)
 	Players.PlayerRemoving:Connect(function(player)
+		-- El billete sin usar solo vive en este servidor (un atributo): se le devuelve lo que pagó antes
+		-- del guardado de salida, como en la cafetería y el cine (al embarcar ya se borró: no se devuelve)
+		local paid = ticketPaid[player]
+		if paid and paid > 0 then
+			DataService.addMoney(player, paid)
+		end
 		ticketPaid[player] = nil
 		swapAsk[player] = nil
 		local plane = riding[player]

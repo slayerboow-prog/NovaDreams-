@@ -1144,6 +1144,16 @@ function HousingService.init()
 
 	DataService.onLoaded(function(player, data)
 		data.Housing = data.Housing or {}
+		-- El alquiler solo corre mientras juegas: se corre el próximo cobro el tiempo que estuvo fuera
+		-- y, como mucho, queda UN pago pendiente ahora (antes se cobraban de golpe todos los días que
+		-- estuvo desconectado y en un minuto perdía la casa). Sirve también para partidas viejas sin LastOnline.
+		local away = if DataService.offlineSeconds then DataService.offlineSeconds(player) else 0
+		local now = os.time()
+		for _, entry in (if type(data.Properties) == "table" then data.Properties else {}) do
+			if type(entry) == "table" and entry.Contract == "Alquiler" and type(entry.RentDue) == "number" then
+				entry.RentDue = math.max(entry.RentDue + away, now)
+			end
+		end
 		if HousingService.AutoAssign and not data.Housing.Assigned then
 			task.spawn(HousingService.assignStarter, player)
 		end

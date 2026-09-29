@@ -212,6 +212,21 @@ function Gym.pendingDecayDays(lastTrain: number, now: number, daySeconds: number
 	return math.max(0, math.max(0, idle - Gym.DecayGraceDays) - applied)
 end
 
+-- Al volver a entrar: el tiempo desconectado no cuenta (ni para la pérdida ni para el abono). Se
+-- corren el último entreno y la caducidad del abono los segundos que estuvo fuera. (Un abono que ya
+-- había caducado al irse sigue caducado: queda igual de lejos en el pasado.)
+function Gym.skipOffline(gym: { [string]: any }, offlineSeconds: number)
+	if type(offlineSeconds) ~= "number" or offlineSeconds <= 0 then
+		return
+	end
+	if type(gym.LastTrain) == "number" and gym.LastTrain > 0 then
+		gym.LastTrain += offlineSeconds
+	end
+	if type(gym.PassUntil) == "number" and gym.PassUntil > 0 then
+		gym.PassUntil += offlineSeconds
+	end
+end
+
 ---------------------------------------------------------------------
 -- Cuerpo: cuánto se ensancha con la Fuerza (se multiplica por el tamaño de la edad)
 ---------------------------------------------------------------------

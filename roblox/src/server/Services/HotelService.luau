@@ -198,12 +198,20 @@ local function serve(lobby: Lobby, r: Request, room: number, by: Player?)
 		local stay = math.random(Hotel.StayMin, Hotel.StayMax)
 		lobby.Rooms[room] = { Name = r.Name, Until = os.clock() + stay, Player = r.Player, Customer = r.Customer }
 		if r.Player and r.Player.Parent and not InventoryService.add(r.Player, Hotel.KeyItem, 1) then
-			-- (se llenó la mochila mientras esperaba: sin llave no hay habitación; se devuelve el dinero)
+			-- (se llenó la mochila mientras esperaba: sin llave no hay habitación; se devuelve el dinero.
+			-- La caja del hotel aún no lo había cobrado y el recepcionista no cobra: no sale dinero de la nada)
 			lobby.Rooms[room] = nil
 			DataService.addMoney(r.Player, r.Price or 0)
 			Notify:FireClient(r.Player, "Error", "🔑 No te cabía la llave en la mochila: te devuelven el dinero.")
+			publish(lobby)
+			return
 		elseif r.Player and r.Player.Parent then
 			roomOf[r.Player] = { Lobby = lobby, Room = room }
+			-- Hotel de un jugador: la reserva va a su caja al darle la llave (no al pagar: si se va o no
+			-- le cabe la llave se le devuelve el dinero, y la caja no debe quedárselo también)
+			if HotelService.RoomSold and (r.Price or 0) > 0 then
+				pcall(HotelService.RoomSold, lobby.Model, r.Price, r.Player)
+			end
 			Notify:FireClient(r.Player, "Success", ("🔑 Habitación %d. Sube por el ascensor cuando quieras descansar."):format(room))
 		elseif r.Customer then
 			r.Customer.Room = room
@@ -299,10 +307,7 @@ local function onBook(player: Player, typeId: any)
 		Notify:FireClient(player, "Error", "No tienes dinero suficiente.")
 		return
 	end
-	-- Hotel de un jugador: la reserva va a su caja (BusinessService)
-	if HotelService.RoomSold then
-		pcall(HotelService.RoomSold, lobby.Model, t.Price, player)
-	end
+	-- (Hotel de un jugador: la reserva va a su caja cuando le dan la llave, en serve)
 	nextId += 1
 	table.insert(lobby.Requests, { Id = nextId, Kind = "In", Name = player.DisplayName or player.Name, Type = t.Id, Created = os.clock(), Player = player, Price = t.Price })
 	Notify:FireClient(player, "Info", ("Habitación %s (%s). Un momento, que te dan la llave…"):format(string.lower(t.Name), Format.money(t.Price)))
@@ -715,17 +720,16 @@ function HotelService.init()
 		end
 	end)
 	Players.PlayerRemoving:Connect(function(player)
-		HotelService.quit(player, true)
-		releaseRoom(player)
-		resting[player] = nil
-		-- Sus peticiones de habitación pendientes se quitan (se ha ido: no hay llave que dar ni nada
-		-- que devolver)
+		-- Sus peticiones de habitación pendientes se quitan y se le devuelve lo que pagó (se ha ido
+		-- sin llave: no ha tenido habitación). Lo primero, sin esperas, para que entre en el guardado
+		-- de salida (como en la cafetería y el cine)
 		for _, lobby in lobbies do
 			local changed = false
 			for i = #lobby.Requests, 1, -1 do
 				local r = lobby.Requests[i]
 				if r.Kind == "In" and r.Player == player then
 					table.remove(lobby.Requests, i)
+					DataService.addMoney(player, r.Price or 0)
 					changed = true
 				end
 			end
@@ -733,6 +737,9 @@ function HotelService.init()
 				publish(lobby)
 			end
 		end
+		HotelService.quit(player, true)
+		releaseRoom(player)
+		resting[player] = nil
 	end)
 	task.spawn(function()
 		while true do

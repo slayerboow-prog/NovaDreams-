@@ -46,7 +46,17 @@ local route: { Vector3 }? = nil
 local routeTarget: Vector3? = nil
 local lastIndex = -1
 local lastReroute = 0
-local suppressed: Vector3? = nil -- objetivo ya alcanzado (o quitado): no vuelve hasta que cambie
+-- Objetivos ya alcanzados (o quitados con ✕): no vuelven hasta que cambien. Una lista, no uno solo:
+-- si no, con trabajo y misión a la vez, ✕ solo pasaba de uno a otro y nunca quitaba la ruta
+local suppressed: { Vector3 } = {}
+local function isSuppressed(target: Vector3): boolean
+	for _, p in suppressed do
+		if (p - target).Magnitude < 1 then
+			return true
+		end
+	end
+	return false
+end
 local listeners: { (({ Vector3 })?) -> () } = {}
 local manualListeners: { (({ Position: Vector3, Name: string })?) -> () } = {}
 
@@ -88,7 +98,7 @@ end
 function Gps.setManual(position: Vector3?, name: string?)
 	if position then
 		manual = { Position = position, Name = name or "Sitio marcado" }
-		suppressed = nil
+		table.clear(suppressed)
 	else
 		manual = nil
 	end
@@ -117,7 +127,7 @@ local function currentDestination(): Destination?
 	-- el encargo o la misión en vez de quedarse sin ruta)
 	for _, entry in TARGETS do
 		local target = player:GetAttribute(entry.Attribute)
-		if typeof(target) == "Vector3" and not (suppressed and (suppressed - target).Magnitude < 1) then
+		if typeof(target) == "Vector3" and not isSuppressed(target) then
 			return { Position = target, Name = entry.Name, Manual = false }
 		end
 	end
@@ -126,9 +136,14 @@ end
 
 -- Quitar la ruta (el sitio marcado, o el objetivo actual hasta que cambie)
 function Gps.clear()
-	local dest = currentDestination()
-	if dest and not dest.Manual then
-		suppressed = dest.Position
+	-- ✕ quita la ruta de verdad: se silencian todos los objetivos de ahora
+	if not manual then
+		for _, entry in TARGETS do
+			local target = player:GetAttribute(entry.Attribute)
+			if typeof(target) == "Vector3" then
+				table.insert(suppressed, target)
+			end
+		end
 	end
 	Gps.setManual(nil)
 end
@@ -137,7 +152,7 @@ end
 -- la hubieras quitado con ✕ o apagado el GPS en el menú
 function Gps.follow()
 	enabled = true
-	suppressed = nil
+	table.clear(suppressed)
 	Gps.setManual(nil)
 end
 
@@ -343,7 +358,7 @@ local function update()
 		if dest.Manual then
 			Gps.setManual(nil)
 		else
-			suppressed = dest.Position
+			table.insert(suppressed, dest.Position)
 		end
 		route = nil
 		notify(nil)
@@ -428,7 +443,7 @@ function Gps.init()
 		player:GetAttributeChangedSignal(entry.Attribute):Connect(function()
 			route = nil
 			-- Objetivo nuevo: lo que se silenció al llegar (o con ✕) ya no vale
-			suppressed = nil
+			table.clear(suppressed)
 		end)
 	end
 	-- Al entrar o salir de un interior, la ruta sale de otro sitio
