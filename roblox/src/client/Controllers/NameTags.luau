@@ -126,6 +126,32 @@ local function update()
 	end
 end
 
+-- Red de seguridad: cualquier personaje que no sea un jugador y enseñe el nombre de serie de Roblox
+-- (gris y fino, encima de los bocadillos) pasa a llevar el nuestro. Los jugadores lo conservan.
+local watched: { [Humanoid]: boolean } = setmetatable({}, { __mode = "k" }) :: any
+local function adopt(humanoid: Humanoid)
+	if watched[humanoid] then
+		return
+	end
+	local model = humanoid.Parent
+	if not model or not model:IsA("Model") or Players:GetPlayerFromCharacter(model) then
+		return
+	end
+	watched[humanoid] = true
+	local function fix()
+		if humanoid.DisplayDistanceType ~= Enum.HumanoidDisplayDistanceType.None then
+			local name = humanoid.DisplayName
+			humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+			-- (solo los que tenían nombre que enseñar: los peatones sin nombre siguen sin él)
+			if name ~= nil and name ~= "" and humanoid.Parent and not entries[humanoid.Parent :: Model] then
+				track(humanoid.Parent :: Model)
+			end
+		end
+	end
+	humanoid:GetPropertyChangedSignal("DisplayDistanceType"):Connect(fix)
+	fix()
+end
+
 function NameTags.init()
 	local gui = Instance.new("Folder")
 	gui.Name = "NameTags"
@@ -140,6 +166,18 @@ function NameTags.init()
 	for _, instance in CollectionService:GetTagged(TAG) do
 		track(instance)
 	end
+	workspace.DescendantAdded:Connect(function(d)
+		if d:IsA("Humanoid") then
+			task.defer(adopt, d)
+		end
+	end)
+	task.spawn(function()
+		for _, d in workspace:GetDescendants() do
+			if d:IsA("Humanoid") then
+				adopt(d)
+			end
+		end
+	end)
 	task.spawn(function()
 		while true do
 			task.wait(0.15)
