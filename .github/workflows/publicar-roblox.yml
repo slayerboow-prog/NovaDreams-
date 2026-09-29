@@ -13,17 +13,29 @@ concurrency:
   group: publicar-roblox
   cancel-in-progress: true
 
+permissions:
+  contents: write # (para dejar la etiqueta pub/<hora>-<commit> del candado de publish.sh)
+
 jobs:
   publicar:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      # Sin la clave guardada en GitHub no se intenta (y no llega un correo de fallo en cada push)
+      HAS_KEY: ${{ secrets.ROBLOX_API_KEY != '' }}
     steps:
+      - name: Falta la clave de Roblox en GitHub
+        if: env.HAS_KEY != 'true'
+        run: 'echo "::notice::No se publica, falta el secreto ROBLOX_API_KEY (Settings / Secrets and variables / Actions)."'
+
       - uses: actions/checkout@v4
+        if: env.HAS_KEY == 'true'
         with:
           ref: ${{ github.ref_name }}
           fetch-depth: 0
 
       - name: Instalar lune y rojo
+        if: env.HAS_KEY == 'true'
         run: |
           mkdir -p "$HOME/bin"
           curl -sSfL -o /tmp/lune.zip https://github.com/lune-org/lune/releases/download/v0.10.5/lune-0.10.5-linux-x86_64.zip
@@ -34,6 +46,7 @@ jobs:
           echo "$HOME/bin" >> "$GITHUB_PATH"
 
       - name: Publicar
+        if: env.HAS_KEY == 'true'
         working-directory: roblox
         env:
           ROBLOX_API_KEY: ${{ secrets.ROBLOX_API_KEY }}
