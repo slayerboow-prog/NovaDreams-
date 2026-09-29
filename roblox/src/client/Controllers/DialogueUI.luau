@@ -21,6 +21,8 @@ local LifeStory = require(script.Parent.LifeStory)
 local ActorLife = require(script.Parent.ActorLife)
 local DayLight = require(script.Parent.DayLight)
 local SpeechBubbles = require(script.Parent.Parent.UI.SpeechBubbles)
+local Controls = require(script.Parent.Controls)
+local CineCamera = require(script.Parent.CineCamera)
 
 local create = Theme.create
 local C = Theme.Colors
@@ -66,14 +68,14 @@ local currentToken: number? = nil -- la conversación que se está enseñando --
 -- Controles y cámara
 ---------------------------------------------------------------------
 
+-- (con Controls, que cuenta quién ha quitado el control: una cinemática que acabe con la
+-- conversación abierta ya no te lo devuelve a mitad de la conversación)
 local function setControls(enabled: boolean)
 	pcall(function()
-		local module = require(player:WaitForChild("PlayerScripts"):WaitForChild("PlayerModule") :: ModuleScript) :: any
-		local controls = module:GetControls()
 		if enabled then
-			controls:Enable()
+			Controls.enable("Dialogo")
 		else
-			controls:Disable()
+			Controls.disable("Dialogo")
 		end
 	end)
 end
@@ -100,6 +102,7 @@ local shot: { From: CFrame, To: CFrame, Start: number, Blend: number, Focus: Vec
 local shotCount = 0
 local lastActor: Instance? = nil
 local cameraConnection: RBXScriptConnection? = nil
+local pausedByScene = false
 
 local function smoothstep(x: number): number
 	x = math.clamp(x, 0, 1)
@@ -115,7 +118,17 @@ local function startCameraLoop()
 		if not current then
 			return
 		end
+		if Cinematics.isPlaying() then
+			pausedByScene = true -- (durante una escena de cámara manda la escena)
+			return
+		end
 		local camera = workspace.CurrentCamera
+		if pausedByScene then
+			pausedByScene = false
+			camera.CameraType = Enum.CameraType.Scriptable -- (acabada la escena, otra vez la nuestra)
+		elseif camera.CameraType ~= Enum.CameraType.Scriptable then
+			return -- (alguien ha devuelto la cámara al juego: no se le quita)
+		end
 		local t = os.clock() - current.Start
 		local base = current.From:Lerp(current.To, smoothstep(t / current.Blend))
 		local push = math.min(t, 10) * 0.07 -- se acerca despacio
@@ -132,6 +145,7 @@ local function stopCameraLoop()
 		cameraConnection = nil
 	end
 	shot = nil
+	pausedByScene = false
 	shotCount = 0
 	lastActor = nil
 	DayLight.setFocus(nil)
@@ -181,6 +195,12 @@ local function frame(line: { [string]: any })
 		goal = CFrame.lookAt(them - forward * 4.6 + right * 1.2 + Vector3.new(0, 0.3, 0), them + Vector3.new(0, 0.5, 0))
 		focus = them
 	end
+	-- Sin atravesar paredes (y más cerca dentro de los edificios, que son pequeños)
+	if CineCamera.inInterior() then
+		local toGoal = goal.Position - focus
+		goal = CFrame.new(focus + toGoal * 0.7) * goal.Rotation
+	end
+	goal = CineCamera.clampCFrame(goal, focus)
 	local from = if shot and not changed then camera.CFrame else goal
 	if shotCount == 1 then
 		from = camera.CFrame -- la primera vez la cámara viaja desde donde estaba
@@ -239,14 +259,13 @@ end
 
 local function restoreCamera()
 	stopCameraLoop()
-	local camera = workspace.CurrentCamera
 	if savedCamera then
-		camera.CameraType = if savedCamera.Type == Enum.CameraType.Scriptable then Enum.CameraType.Custom else savedCamera.Type
-		local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-		if humanoid then
-			camera.CameraSubject = humanoid
-		end
+		local saved = savedCamera
 		savedCamera = nil
+		-- Si hay una escena de cámara en marcha, ella devuelve la cámara al acabar
+		if not Cinematics.isPlaying() then
+			CineCamera.restore(saved.CFrame) -- (a donde estaba, sin atravesar paredes, o detrás de ti)
+		end
 	end
 end
 
@@ -391,6 +410,7 @@ local function showLine(line: { [string]: any })
 	if line.Narrator then
 		full = "<i>" .. full .. "</i>"
 	end
+	StoryAudio.stopVoice() -- (una sola voz: la de la frase anterior se corta)
 	frame(line)
 	if line.Voice and not line.Me then
 		StoryAudio.speak(line.Voice, line.Text or "")
@@ -401,7 +421,7 @@ local function showLine(line: { [string]: any })
 		turnPlayerTowards(speakingModel) -- y tú te vuelves hacia quien te habla
 	end
 	local plainText = line.Text or ""
-	ActorLife.speak(speakingModel, line.Emotion, (utf8.len(plainText) or #plainText) / TYPE_SPEED + 0.8)
+	ActorLife.speak(speakingModel, line.Emotion, (utf8.len(plainText) or #plainText) / TYPE_SPEED + 0.8, line.Gesture)
 	-- Bocadillo encima de quien habla (si está en la escena y cerca); si no, el texto va en la caja
 	lineSerial += 1
 	local serial = lineSerial
@@ -546,6 +566,10 @@ local function setOpen(value: boolean)
 	open = value
 	player:SetAttribute("InDialogue", if value then true else nil) -- la mochila no se abre con la E mientras hablas
 	ActorLife.conversation(value)
+	pcall(CineCamera.quietLabels, "Dialogo", value)
+	if not value then
+		pcall(StoryAudio.stopVoice)
+	end
 	if value then
 		box.Visible = true
 		setControls(false)
@@ -710,13 +734,25 @@ function DialogueUI.init()
 		task.spawn(watchCharacter, player.Character)
 	end
 	player.CharacterAdded:Connect(watchCharacter)
+	-- (si se quita el personaje sin morir —cambio de aspecto, reaparecer— también se cierra)
+	player.CharacterRemoving:Connect(function()
+		if open then
+			if currentToken then
+				closedTokens[currentToken] = true
+			end
+			for _, pending in queue do
+				closedTokens[pending.Token] = true
+			end
+			forceClose()
+		end
+	end)
 	UserInputService.InputBegan:Connect(function(input, processed)
 		if not open or optionsFrame.Visible then
 			return
 		end
 		local key = input.KeyCode
 		if key == Enum.KeyCode.Space or key == Enum.KeyCode.Return or key == Enum.KeyCode.E or key == Enum.KeyCode.ButtonA
-			or (input.UserInputType == Enum.UserInputType.MouseButton1 and not processed) then
+			or ((input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) and not processed) then
 			if typed then
 				advanceSignal:Fire()
 			else

@@ -371,6 +371,9 @@ function Validate.report(): Report
 			if line.A ~= nil and not Emotion.valid(line.A) then
 				err("%s: gesto desconocido A = '%s'", w, tostring(line.A))
 			end
+			if line.G ~= nil and not Emotion.valid(line.G) then
+				err("%s: gesto desconocido G = '%s' (mal escrito: no se haría)", w, tostring(line.G))
+			end
 			if type(line.T) == "string" then
 				text(w, line.T)
 			end

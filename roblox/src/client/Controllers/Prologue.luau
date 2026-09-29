@@ -57,6 +57,7 @@ function Prologue.restore()
 		return -- la escena o la conversación los devuelven ellas al terminar
 	end
 	pcall(Controls.enable, "Prologo")
+	pcall(Controls.enable, "Dialogo") -- (sin conversación abierta, nadie debe tener el control por ella)
 	pcall(function()
 		local camera = workspace.CurrentCamera
 		if camera and camera.CameraType == Enum.CameraType.Scriptable then

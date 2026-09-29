@@ -1,4 +1,13 @@
-# Pendiente en DialogueUI: cámara, controles, voz y gestos
+# DialogueUI: cámara, controles, voz y gestos
+
+> **HECHO (29-09-2026).** DialogueUI ya usa `Controls` («Dialogo»), `CineCamera.clampCFrame` (y planos
+> ×0,7 dentro de edificios), `CineCamera.restore` (salvo con una escena en marcha), no mueve la cámara
+> durante una escena y la recupera al acabar, corta la voz en cada frase y al cerrar, esconde nombres
+> e iconos (`quietLabels`), acepta toques en el móvil, pasa `line.Gesture` a `ActorLife.speak` y se
+> cierra también con `CharacterRemoving`. El servidor ya cancela al morir. `Validate` comprueba `G`.
+> Lo de abajo queda como referencia.
+
+# (Antes) Pendiente en DialogueUI
 
 `DialogueUI.luau` lo está reescribiendo otra sesión, así que estos arreglos **no** se han metido en
 él. Los módulos ya están listos; solo falta llamarlos desde DialogueUI (y una línea en el servidor).
