@@ -4378,13 +4378,13 @@ local t0l = os.clock()
 local delivered = false
 while os.clock() - t0l < 12 and not delivered do
 	for _, line in speechLog do
-		if type(line) == "table" and type(line.Text) == "string" and string.find(line.Text, "aquete para el", 1, true) then
+		if type(line) == "table" and type(line.Text) == "string" and (string.find(line.Text, "aquete para el", 1, true) or string.find(line.Text, "pedido para el", 1, true)) then
 			delivered = true
 		end
 	end
 	task.wait(0.2)
 end
-check(delivered, "el repartidor llama al portero automático: «¡Paquete para el …!»")
+check(delivered, "el repartidor llama al portero automático: «¡Paquete para el …!» (o «Traigo un pedido para el …»)")
 InteriorService.leave(visitor)
 -- Vecinos con su vida: a media mañana muchos están trabajando; por la noche, en casa (o durmiendo)
 local working, home23 = 0, 0
@@ -6295,6 +6295,28 @@ check(WantedService.stars(kidDriver) == 1, "si le ve la policía, le para (aunqu
 remotes.Vehicle.OnServerEvent:Fire(kidDriver, "Dismount")
 local baby = join(407, "Bebe", 0)
 check(not VehicleService.mount(baby, "Coche", { Rented = true }) and baby:GetAttribute("Riding") == nil, "un bebé no conduce nada")
+-- Nunca «montado» sin vehículo (se quedaba el panel del patinete y su velocidad yendo a pie)
+do
+	local scooter, scooterRoot = join(408, "Nino", 0)
+	moveTo(scooterRoot, Vector3.new(9760, 0, 9000))
+	VehicleService.mount(scooter, "Patinete", { Rented = true })
+	local model = VehicleService.rideModel(scooter)
+	-- Si al bajarse falla algo (aquí, dejar al jugador a su lado), el estado se quita igual
+	local savedExited = 0
+	local realPrimary = model and model.PrimaryPart
+	if model then
+		model.PrimaryPart = nil
+	end
+	local ok = pcall(VehicleService.dismount, scooter, true)
+	check(model ~= nil and realPrimary ~= nil and ok and scooter:GetAttribute("Riding") == nil and scooter:GetAttribute("VehicleSpeed") == nil, "al bajarse del patinete siempre se quita el estado de montado")
+	-- Y si se queda colgado por otro camino: «Bajarse» (y la vigilancia de cada poco) lo limpia
+	scooter:SetAttribute("Riding", "Patinete")
+	scooter:SetAttribute("VehicleSpeed", 30)
+	remotes.Vehicle.OnServerEvent:Fire(scooter, "Dismount")
+	check(scooter:GetAttribute("Riding") == nil and scooter:GetAttribute("VehicleSpeed") == nil and savedExited == 0, "«Bajarse» sin vehículo quita el panel y la velocidad del patinete")
+	scooter:SetAttribute("Riding", "Patinete")
+	check(VehicleService.clearStale(scooter) and scooter:GetAttribute("Riding") == nil, "la vigilancia quita un «montado» sin vehículo")
+end
 -- Sin castigo: la paga llega cada día de juego
 task.wait(0.05)
 local kidData = profiles[kidDriver]

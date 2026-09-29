@@ -461,10 +461,10 @@ local function customerLife(lobby: Lobby, customer: any)
 		r = { Id = nextId, Kind = "Out", Name = customer.Name, Room = customer.Room, Created = os.clock(), Customer = customer }
 		Npc.say(npc, BYE[math.random(1, #BYE)])
 	else
-		-- Pide un tipo que quede libre
+		-- Pide un tipo que quede libre (dejando siempre una de cada tipo para los jugadores)
 		local options = {}
 		for _, t in Hotel.Types do
-			if #freeRooms(lobby, t.Id) > 0 then
+			if #freeRooms(lobby, t.Id) > 1 then
 				table.insert(options, t)
 			end
 		end
@@ -642,11 +642,12 @@ local function setupLobby(model: Instance)
 	folder.Parent = model
 	local lobby: Lobby = { Model = model, Desk = desk, Elevator = elevator, Name = model:GetAttribute("HotelName") or "Hotel", Rooms = {}, Staff = nil, NpcStaff = nil, NpcBusy = false, Requests = {}, Queue = {}, Customers = {}, Folder = folder, LastSpawn = 0 }
 	table.insert(lobbies, lobby)
-	-- Algunos huéspedes ya están dentro al empezar (para que haya salidas desde el principio)
+	-- Algunos huéspedes ya están dentro al empezar (para que haya salidas desde el principio). Siempre
+	-- queda al menos una habitación libre de cada tipo: si no, a veces las tres suites salían ocupadas
 	for _ = 1, 3 do
 		local t = Hotel.Types[math.random(1, #Hotel.Types)]
 		local free = freeRooms(lobby, t.Id)
-		if #free > 0 then
+		if #free > 1 then
 			lobby.Rooms[free[math.random(1, #free)]] = { Name = NAMES[math.random(1, #NAMES)], Until = os.clock() + math.random(30, 120), Customer = {} }
 		end
 	end

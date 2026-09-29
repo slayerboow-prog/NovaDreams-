@@ -546,23 +546,34 @@ function VehicleService.dismount(player: Player, silent: boolean?)
 	if ride.Gone then
 		ride.Gone:Disconnect()
 	end
-	local character = player.Character
-	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-	unseat(humanoid, ride.Seat)
-	if ride.Keep and ride.Model.Parent then
-		level(ride.Model)
-	end
-	-- Se baja por el lado izquierdo (del coche, fuera de la carrocería)
-	local placed = if character then placeBeside(character, ride.Model, ride.Kind, -1, 0) else nil
-	-- Y luego se aparca (con sus choques de nuevo: ya no está dentro)
-	if ride.Keep and ride.Model.Parent then
-		park(ride.Model, true)
-	end
-	exited(player, placed, ride.Model)
-	if not ride.Keep then
-		-- Vehículo de alquiler o de trabajo: se retira (los pasajeros se bajan antes, a su lado)
-		VehicleService.emptyPassengers(ride.Model)
-		ride.Model:Destroy()
+	-- Bajarse de verdad (asiento, sitio al lado, aparcar, retirar). Si algo de esto falla (por ejemplo,
+	-- el vehículo se está borrando justo ahora), el estado de «montado» se quita igual: si no, se
+	-- quedaba el panel del patinete puesto y la velocidad del vehículo yendo a pie.
+	local ok, err = pcall(function()
+		local character = player.Character
+		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+		unseat(humanoid, ride.Seat)
+		if ride.Keep and ride.Model.Parent then
+			level(ride.Model)
+		end
+		-- Se baja por el lado izquierdo (del coche, fuera de la carrocería)
+		local placed = if character and ride.Model.PrimaryPart then placeBeside(character, ride.Model, ride.Kind, -1, 0) else nil
+		-- Y luego se aparca (con sus choques de nuevo: ya no está dentro)
+		if ride.Keep and ride.Model.Parent then
+			park(ride.Model, true)
+		end
+		exited(player, placed, ride.Model)
+		if not ride.Keep then
+			-- Vehículo de alquiler o de trabajo: se retira (los pasajeros se bajan antes, a su lado)
+			VehicleService.emptyPassengers(ride.Model)
+			pcall(function()
+				ride.Model:Destroy() -- (si ya se estaba borrando, no pasa nada)
+			end)
+		end
+	end)
+	if not ok then
+		warn("[VehicleService] Al bajarse:", err)
+		pcall(exited, player, nil, nil)
 	end
 	player:SetAttribute("Riding", nil)
 	player:SetAttribute("VehicleSpeed", nil)
@@ -624,7 +635,30 @@ function VehicleService.exitAny(player: Player, silent: boolean?)
 		VehicleService.leavePassenger(player, silent)
 	elseif not orphanExit(player) then
 		exited(player, nil)
+		VehicleService.clearStale(player)
 	end
+end
+
+-- «Montado» sin vehículo (se perdió al bajarse o se borró el vehículo): se quita ese estado, que
+-- dejaba el panel del vehículo en pantalla y la velocidad del vehículo yendo a pie
+function VehicleService.clearStale(player: Player): boolean
+	if riding[player] or passengers[player] then
+		return false
+	end
+	if player:GetAttribute("Riding") == nil and player:GetAttribute("VehicleSpeed") == nil and player:GetAttribute("Passenger") == nil then
+		return false
+	end
+	local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+	local seat = humanoid and humanoid.SeatPart
+	if seat and seat:FindFirstAncestorOfClass("Model") and (seat:FindFirstAncestorOfClass("Model") :: Model):GetAttribute("Drivable") then
+		return false -- (va sentado en uno: eso lo resuelve orphanExit)
+	end
+	player:SetAttribute("Riding", nil)
+	player:SetAttribute("Passenger", nil)
+	player:SetAttribute("VehicleSpeed", nil)
+	clearFuel(player)
+	LifeService.refresh(player)
+	return true
 end
 
 -- Antes de llevarle a otro sitio (viajes, metro…): se baja del vehículo y se levanta de cualquier
@@ -1320,6 +1354,16 @@ function VehicleService.init()
 
 	DataService.onLoaded(function(player)
 		VehicleService.sync(player)
+	end)
+
+	-- Cada poco: nadie se queda «montado» sin vehículo
+	task.spawn(function()
+		while true do
+			task.wait(2)
+			for _, player in Players:GetPlayers() do
+				pcall(VehicleService.clearStale, player)
+			end
+		end
 	end)
 
 	Remote.OnServerEvent:Connect(function(player, action, kind)
