@@ -4759,6 +4759,40 @@ check(math.abs(base.Value - 0.9 * 1.25) < 1e-6 and math.abs(kidLook.Character:Ge
 base.Value = 1 -- (otro sistema le cambia el aspecto)
 RealLife.refresh(kidLook)
 check(math.abs(base.Value - 1.25) < 1e-6, "si cambia de aspecto, la fuerza se aplica sobre el nuevo")
+-- En Roblox, ScaleTo también multiplica las medidas del Humanoid (ancho, fondo, alto, cabeza). Antes,
+-- con tamaño de niño y algo de fuerza, cada vez que se volvía a aplicar el cuerpo (bajarse de un
+-- vehículo, entrenar…) el ancho encogido se tomaba por el normal: el personaje quedaba cada vez más delgado.
+do
+	local plainScaleTo = Fake.ScaleTo
+	Fake.ScaleTo = function(self, scale)
+		local old = self:GetScale()
+		local h = self:FindFirstChildOfClass("Humanoid")
+		for _, name in { "BodyWidthScale", "BodyDepthScale", "BodyHeightScale", "HeadScale" } do
+			local v = h and h:FindFirstChild(name)
+			if v then
+				v.Value = v.Value * scale / old
+			end
+		end
+		plainScaleTo(self, scale)
+	end
+	local thin = newPlayer(961, "Nino", 0)
+	local thinHumanoid = thin.Character:FindFirstChildOfClass("Humanoid")
+	thinHumanoid.WalkSpeed = 16
+	thin:SetAttribute("GymStrength", 40)
+	RealLife.refresh(thin)
+	local w = thinHumanoid:FindFirstChild("BodyWidthScale")
+	local first = w and w.Value / thin.Character:GetScale()
+	for _ = 1, 5 do
+		RealLife.refresh(thin) -- (como al bajarse de la bici cinco veces)
+	end
+	local after = w and w.Value / thin.Character:GetScale()
+	Fake.ScaleTo = plainScaleTo
+	check(
+		first ~= nil and after ~= nil and math.abs(first - Gym.bodyScale(40)) < 1e-6 and math.abs(after - first) < 1e-6
+			and math.abs(thin.Character:GetScale() - Config.StageBody.Nino.Scale) < 1e-6,
+		("volver a aplicar el cuerpo no adelgaza al personaje (ancho %.2f → %.2f)"):format(first or -1, after or -1)
+	)
+end
 athlete:SetAttribute("GymStrength", GymService.data(athlete).Strength)
 
 -- Dejar la máquina

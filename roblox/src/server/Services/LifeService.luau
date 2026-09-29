@@ -63,8 +63,12 @@ local function muscleWants(player: Player, humanoid: Humanoid): { [NumberValue]:
 			local written = value:GetAttribute("GymWritten")
 			if type(base) ~= "number" or type(written) ~= "number" or math.abs(value.Value - written) > 1e-3 then
 				base = value.Value
-				value:SetAttribute("GymBase", base)
 			end
+			-- (una medida de base imposible —de un personaje ya estropeado— vuelve a la normal)
+			if base < 0.7 or base > 1.3 then
+				base = 1
+			end
+			value:SetAttribute("GymBase", base)
 			local want = base * (if i == 1 then width else depth)
 			if math.abs(value.Value - want) > 1e-3 then
 				wants[value] = want
@@ -81,15 +85,18 @@ local function applyBody(player: Player)
 		return
 	end
 	local scale = bodyFor(player).Scale
-	-- Músculo (gimnasio): con el personaje a tamaño 1, y luego se vuelve a su tamaño
-	local wants = muscleWants(player, humanoid)
-	if next(wants) ~= nil then
+	-- Músculo (gimnasio): SIEMPRE con el personaje a tamaño 1, y luego se vuelve a su tamaño.
+	-- (ScaleTo también cambia las medidas BodyWidthScale/BodyDepthScale: si se leían con el tamaño de
+	-- niño puesto, se tomaba el ancho encogido como el normal y se volvía a encoger. Cada vez que te
+	-- bajabas de algo o entrenabas, el personaje quedaba más delgado.) Todo pasa en el mismo instante,
+	-- sin esperas: no se ve el cambio de tamaño.
+	if humanoid.RigType == Enum.HumanoidRigType.R15 then
 		pcall(function()
 			if math.abs(character:GetScale() - 1) > 0.01 then
 				character:ScaleTo(1)
 			end
 		end)
-		for value, want in wants do
+		for value, want in muscleWants(player, humanoid) do
 			value.Value = want
 			value:SetAttribute("GymWritten", want)
 		end
