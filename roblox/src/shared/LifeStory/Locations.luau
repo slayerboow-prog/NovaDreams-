@@ -59,6 +59,10 @@ Locations.Places = {
 	PuntoLimpio = { NameKey = "PLACE.PUNTO_LIMPIO", Model = "PuntoLimpio" },
 	ParadaBus = { NameKey = "PLACE.PARADA_BUS", Tag = "TravelStop" },
 	-- Metro (MetroKit): la boca más cercana, estaciones concretas y la galería de Plaza Mayor
+	-- Aeropuerto (Kit/Airport): la terminal, los mostradores y el aeródromo de la isla
+	Aeropuerto = { NameKey = "Aeropuerto de Valmar", Model = "Aeropuerto", Radius = 60 },
+	AeropuertoMostrador = { NameKey = "Mostradores del aeropuerto", Tag = "FlightCheckIn", Attribute = { Place = "Valmar" }, Radius = 10, Fallback = "Aeropuerto" },
+	Aerodromo = { NameKey = "Aeródromo de las Gaviotas", Model = "Aerodromo", Radius = 60 },
 	MetroBoca = { NameKey = "Boca de metro", Tag = "MetroEntrance", Radius = 12, Fallback = "ParadaBus" },
 	MetroCampus = { NameKey = "Metro · Campus", Tag = "MetroEntrance", Attribute = { Station = "Campus" }, Radius = 12, Fallback = "MetroBoca" },
 	MetroAndenLevante = { NameKey = "Andén de Levante", Tag = "MetroAlight", Attribute = { Station = "Levante" }, Radius = 14, Fallback = "MetroBoca" },

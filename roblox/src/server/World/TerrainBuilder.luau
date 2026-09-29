@@ -102,6 +102,9 @@ function TerrainBuilder.build()
 		cylinder(terrain, circle.Position.X, circle.Position.Z, circle.Radius - 0.5, -4, 12, Enum.Material.Air)
 	end
 
+	-- 3c) Aeropuerto: tierra ganada al mar y hueco bajo sus pistas (y bajo el aeródromo de la isla)
+	require(script.Parent.Kit.Airport).terrain(terrain)
+
 	-- 4) Río: orillas de arena, cauce y agua (queda a Y = -2, dos studs bajo la orilla)
 	local river = CityPlan.River
 	local pts = river.Points

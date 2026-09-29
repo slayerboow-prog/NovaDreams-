@@ -34,7 +34,7 @@ CityPlan.Cliffs = { { 1, 9 }, { 37, 39 } }
 CityPlan.Islands = {
 	{ Name = "Isla del Faro", X = 4450, Z = 2650, R = 170 },
 	{ Name = "Islote", X = -4450, Z = 1900, R = 110 },
-	{ Name = "Isla de las Gaviotas", X = 2900, Z = -3950, R = 140 },
+	{ Name = "Isla de las Gaviotas", X = 2900, Z = -3950, R = 230 }, -- (con el aeródromo: Shared/Airport)
 }
 
 -- Río de Valmar: baja de las montañas y desemboca en el sur
@@ -140,6 +140,7 @@ CityPlan.Places = {
 	Marina = { -3680, 1300 }, -- el agua empieza unos 200 studs al oeste
 	Mirador = { 0, -3000 },
 	Camping = { -2400, -900 },
+	Aeropuerto = { -2850, 3200 }, -- tierra ganada al mar (el plano está en Shared/Airport)
 }
 
 CityPlan.Bounds = { MinX = -5000, MaxX = 5000, MinZ = -4400, MaxZ = 4300 }

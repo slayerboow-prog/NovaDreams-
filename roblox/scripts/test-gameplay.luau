@@ -371,6 +371,7 @@ local remotes = {
 	Trade = remote(),
 	Fishing = remote(),
 	Metro = remote(),
+	Flight = remote(),
 	Bus = remote(),
 	Diving = remote(),
 	SeaEvent = remote(),
@@ -3000,6 +3001,261 @@ FishingService.isWater = realIsWater
 end)()
 
 ;(function()
+print("▶ Aeropuerto: horario de vuelos, billetes, embarque, vuelo y aterrizaje (Isla de las Gaviotas)")
+do
+	local Airport = loadModule(ROOT .. "/shared/Airport")
+	local CityPlanA = loadModule(ROOT .. "/shared/CityPlan")
+	-- Rutas: cuentas puras (las mismas en el servidor y en los clientes)
+	local function standOf(where, kind)
+		return if where == "Gaviotas" then Airport.Stands.Gaviotas else Airport.Stands[kind]
+	end
+	local endsOk, speedOk, pavedOk, clearOk, chainOk = true, true, true, true, true
+	for id, route in Airport.Routes do
+		local a, b = Airport.pose(route, 0), Airport.pose(route, route.Total)
+		if (a.Position - standOf(route.From, route.Kind)).Magnitude > 0.5 or (b.Position - standOf(route.To, route.Kind)).Magnitude > 0.5 then
+			endsOk = false
+			print("    (puntas) " .. id)
+		end
+		for i = 2, #route.Legs do
+			if math.abs(route.Legs[i - 1].V1 - route.Legs[i].V0) > 0.01 then
+				speedOk = false
+				print("    (velocidad) " .. id .. " tramo " .. i)
+			end
+		end
+		local t = 0
+		local last = a
+		while t <= route.Total do
+			local cf, _, speed = Airport.pose(route, t)
+			local p = cf.Position
+			local leg = Airport.legAt(route, t)
+			if leg.Ground then
+				if not Airport.paved(p.X, p.Z, 1) or math.abs(p.Y - Airport.GROUND) > 0.01 then
+					pavedOk = false
+					print(("    (fuera del asfalto) %s t=%.1f (%.0f, %.0f)"):format(id, t, p.X, p.Z))
+				end
+			else
+				-- En el aire: por encima de montañas y ciudad (salvo al despegar y aterrizar)
+				local nearField = (p - Vector3.new(-3170, 0, 3420)).Magnitude < 1700 or (p - Vector3.new(2900, 0, -3950)).Magnitude < 1300
+				for _, m in CityPlanA.Mountains do
+					local d = math.sqrt((p.X - m.X) ^ 2 + (p.Z - m.Z) ^ 2)
+					if d < m.R and p.Y < m.H - m.R + math.sqrt(m.R * m.R - d * d) + 60 then
+						clearOk = false
+						print(("    (montaña) %s t=%.1f"):format(id, t))
+					end
+				end
+				if not nearField and CityPlanA.inside(CityPlanA.Coast, p.X, p.Z) and p.Y < 200 then
+					clearOk = false
+					print(("    (bajo sobre la ciudad) %s t=%.1f y=%.0f"):format(id, t, p.Y))
+				end
+			end
+			-- Sin saltos: de un instante al siguiente, lo que permite su velocidad
+			if (p - last.Position).Magnitude > math.max(speed, 20) * 0.25 + 3 then
+				chainOk = false
+				print(("    (salto) %s t=%.1f"):format(id, t))
+			end
+			last = cf
+			t += 0.25
+		end
+	end
+	check(endsOk, "cada ruta sale de la puerta de su avión y acaba en la de llegada")
+	check(speedOk, "la velocidad no da saltos entre tramos (acelera y frena poco a poco)")
+	check(pavedOk, "en tierra, los aviones ruedan siempre por el asfalto (pista, calle de rodaje y plataforma)")
+	check(clearOk, "en el aire vuelan por encima de las montañas y de la ciudad")
+	check(chainOk, "el avión se mueve sin saltos a lo largo de todo el vuelo")
+	local joinOk = true
+	for _, plane in Airport.Planes do
+		for i, id in plane.Routes do
+			local nextId = plane.Routes[i % #plane.Routes + 1]
+			local r1, r2 = Airport.Routes[id], Airport.Routes[nextId]
+			local e, s = Airport.pose(r1, r1.Total), Airport.pose(r2, 0)
+			if r1.To ~= r2.From or (e.Position - s.Position).Magnitude > 0.5 or e.LookVector:Dot(s.LookVector) < 0.99 then
+				joinOk = false
+			end
+		end
+	end
+	check(joinOk, "cada vuelo acaba donde empieza el siguiente del mismo avión (en su puerta y mirando igual)")
+	local vuelta = Airport.Routes.Vuelta
+	check(Airport.fare(vuelta, "Nino") == 0 and Airport.fare(vuelta, "Adolescente") == vuelta.Price / 2 and Airport.fare(vuelta, "Adulto") == vuelta.Price, "billetes: niños gratis, adolescentes la mitad")
+	check(Airport.Runway.X1 - Airport.Runway.X0 >= 600, "la pista mide más de 600 studs")
+
+	-- Mapa mínimo: mostradores, puertas, llegadas, paneles y los dos aviones
+	local function fp(name, pos, tags, attrs)
+		local p = part(name, CFrame.new(pos), tags, attrs)
+		p.Size = Vector3.new(4, 4, 4)
+		return p
+	end
+	local deskVuelta = fp("CheckIn", Vector3.new(-2966, 4, 3081), { "FlightCheckIn" }, { Route = "Vuelta", Place = "Valmar" })
+	local deskIda = fp("CheckIn", Vector3.new(-2948, 4, 3081), { "FlightCheckIn" }, { Route = "IdaGaviotas", Place = "Valmar" })
+	local deskBack = fp("CheckIn", Vector3.new(2975, 4.4, -4034), { "FlightCheckIn" }, { Route = "VueltaGaviotas", Place = "Gaviotas" })
+	local gate1 = fp("Gate", Vector3.new(-2900, 4, 3137), { "FlightGate" }, { Plane = "VLM101", Place = "Valmar" })
+	local gate2 = fp("Gate", Vector3.new(-2780, 4, 3137), { "FlightGate" }, { Plane = "VLM205", Place = "Valmar" })
+	local gateG = fp("Gate", Vector3.new(2991, 3.4, -3974), { "FlightGate" }, { Plane = "VLM205", Place = "Gaviotas" })
+	local arrivalV = fp("Arrival", Vector3.new(-2745, 4, 3088), { "FlightArrival" }, { Place = "Valmar" })
+	local arrivalG = fp("Arrival", Vector3.new(2979, 3.4, -4019), { "FlightArrival" }, { Place = "Gaviotas" })
+	local boardPart = fp("DeparturesBoard", Vector3.new(-2890, 10, 3099), { "FlightBoard" })
+	local sgui = fakeInstance("SurfaceGui")
+	sgui.Parent = boardPart
+	local boardLabel = fakeInstance("TextLabel")
+	boardLabel.Name = "Text"
+	boardLabel.Text = "SALIDAS"
+	boardLabel.Parent = sgui
+	local models = {}
+	for _, spec in Airport.Planes do
+		local model = fakeInstance("Model")
+		model.Name = spec.Id
+		model:SetAttribute("PlaneId", spec.Id)
+		model:SetAttribute("Kind", spec.Kind)
+		model:SetAttribute("NeedsWeld", true)
+		model:AddTag("Plane")
+		model.Parent = worldRoot
+		local root = fakeInstance("Part")
+		root.Name = "Root"
+		root.Anchored = true
+		root.CFrame = CFrame.new()
+		root.Parent = model
+		local wing = fakeInstance("Part")
+		wing.Name = "Wing"
+		wing.Anchored = true
+		wing.Parent = model
+		for i = 1, Airport.Kinds[spec.Kind].Seats do
+			local seat = fakeInstance("Seat")
+			seat.Name = "Seat"
+			seat.Anchored = true
+			seat:SetAttribute("SeatIndex", i)
+			seat.Parent = model
+		end
+		models[spec.Id] = model
+	end
+	local FlightService = loadModule(S .. "FlightService")
+	FlightService.init()
+	local planesF = FlightService._planes
+	local big, small = planesF.VLM101, planesF.VLM205
+	check(big ~= nil and small ~= nil and big.Phase == "Boarding" and small.Phase == "Boarding", "los dos aviones esperan en su puerta con el embarque abierto")
+	check(models.VLM101:GetAttribute("NeedsWeld") == nil and models.VLM101.Wing.Anchored == false and big.Root.Anchored == true, "el avión se suelda a su suelo al arrancar (y el suelo va anclado)")
+	check((big.Root.Position - Airport.rootCFrame("Avion", Airport.parkPose(Airport.Routes.Vuelta)).Position).Magnitude < 0.01, "el avión está en su puesto de la puerta 1")
+	FlightService._refreshBoards()
+	check(boardLabel.Text:find("VLM101", 1, true) ~= nil and boardLabel.Text:find("EMBARCANDO", 1, true) ~= nil, "el panel de salidas enseña los vuelos que embarcan")
+	check(FlightService.canPilot(nil :: any, "VLM101") == false, "nadie pilota los aviones (queda el hueco para el oficio de piloto)")
+
+	-- Billetes
+	local flyer, flyerRoot, flyerHum = newPlayer(990, "Adulto", 100)
+	local kid, kidRoot, kidHum = newPlayer(991, "Nino", 0)
+	local teen = newPlayer(992, "Adolescente", 100)
+	local baby = newPlayer(993, "Bebe", 100)
+	moveTo(flyerRoot, Vector3.new(-2900, 1, 3130))
+	promptOf(gate1, "Embarcar").Triggered:Fire(flyer)
+	check(notified(flyer, "Necesitas un billete") and flyerHum.SeatPart == nil, "sin billete no se embarca")
+	promptOf(deskVuelta, "Comprar billete").Triggered:Fire(flyer)
+	check(profiles[flyer].Money == 60 and flyer:GetAttribute("FlightTicket") == "Vuelta", "el mostrador vende el billete (40 €)")
+	promptOf(deskVuelta, "Comprar billete").Triggered:Fire(kid)
+	check(profiles[kid].Money == 0 and kid:GetAttribute("FlightTicket") == "Vuelta" and notified(kid, "gratis"), "los niños vuelan gratis (billete infantil)")
+	promptOf(deskVuelta, "Comprar billete").Triggered:Fire(teen)
+	check(profiles[teen].Money == 80 and teen:GetAttribute("FlightTicket") == "Vuelta", "los adolescentes pagan la mitad")
+	promptOf(deskVuelta, "Comprar billete").Triggered:Fire(baby)
+	check(baby:GetAttribute("FlightTicket") == nil and profiles[baby].Money == 100, "los bebés no vuelan solos")
+	local poor = newPlayer(994, "Adulto", 10)
+	promptOf(deskVuelta, "Comprar billete").Triggered:Fire(poor)
+	check(poor:GetAttribute("FlightTicket") == nil and notified(poor, "no te llega"), "sin dinero no hay billete")
+
+	-- Embarque
+	promptOf(gate1, "Embarcar").Triggered:Fire(flyer)
+	promptOf(gate1, "Embarcar").Triggered:Fire(kid)
+	check(flyerHum.SeatPart ~= nil and kidHum.SeatPart ~= nil and flyerHum.SeatPart ~= kidHum.SeatPart, "con billete, en la puerta se embarca y cada uno tiene su asiento")
+	check(FlightService._riding[flyer] == big and lastMessage(flyer, "Board") ~= nil and flyer:GetAttribute("FlightTicket") == nil, "el billete se gasta al embarcar y sale el panel del vuelo")
+	check(flyer:GetAttribute("FlightLanding") == arrivalV.Position, "si sale del juego volando, al volver aparece en la sala de llegadas")
+	-- Quien se levanta antes de despegar, se baja del avión
+	local teenHum = teen.Character:FindFirstChildOfClass("Humanoid")
+	promptOf(gate1, "Embarcar").Triggered:Fire(teen)
+	check(teenHum.SeatPart ~= nil, "el adolescente también embarca")
+	teenHum.Sit = false
+	FlightService._step(big, 0.1)
+	check(FlightService._riding[teen] == nil and lastMessage(teen, "Off") ~= nil, "si te levantas antes de despegar, bajas del avión")
+	-- El avión grande no embarca en la puerta 2
+	local other = newPlayer(995, "Adulto", 100)
+	promptOf(deskIda, "Comprar billete").Triggered:Fire(other)
+	check(other:GetAttribute("FlightTicket") == "IdaGaviotas" and profiles[other].Money == 75, "billete de avioneta a la Isla de las Gaviotas (25 €)")
+
+	-- Despegue y vuelo
+	FlightService._step(big, big.Timer + 0.05)
+	check(big.Phase == "Flight", "al acabar el embarque, el avión sale de la puerta")
+	local start = big.Root.Position
+	local maxY, moved = 0, false
+	local reseated = false
+	local guard = 0
+	while big.Phase == "Flight" and guard < 4000 do
+		guard += 1
+		FlightService._step(big, 0.5)
+		maxY = math.max(maxY, big.Root.Position.Y)
+		if (big.Root.Position - start).Magnitude > 50 then
+			moved = true
+		end
+		if not reseated and big.Root.Position.Y > 150 then
+			flyerHum.Sit = false -- (intenta levantarse en pleno vuelo)
+			FlightService._step(big, 0.1)
+			reseated = flyerHum.SeatPart ~= nil
+		end
+		if big.Phase == "Flight" and guard == 80 then
+			check(flyerHum.SeatPart ~= nil and FlightService._riding[flyer] == big, "en pleno vuelo los pasajeros siguen sentados")
+		end
+	end
+	check(moved and maxY > 200, ("el avión despega y vuela por encima de la isla (sube hasta %.0f)"):format(maxY))
+	check(reseated, "en pleno vuelo nadie se levanta del asiento")
+	check(big.Phase == "Boarding" and big.Route.Id == "Vuelta", "aterriza y vuelve a su puerta para el siguiente vuelo")
+	check(flyerHum.SeatPart == nil and kidHum.SeatPart == nil and FlightService._riding[flyer] == nil and lastMessage(flyer, "Off") ~= nil, "al llegar, los pasajeros bajan del avión")
+	local dist = (Vector3.new(flyerRoot.Position.X, 0, flyerRoot.Position.Z) - Vector3.new(arrivalV.Position.X, 0, arrivalV.Position.Z)).Magnitude
+	check(flyer:GetAttribute("FlightLanding") == nil, "al bajar ya no hay sala de llegadas pendiente")
+	check(dist < 8 and (kidRoot.Position - flyerRoot.Position).Magnitude > 0.5 and notified(flyer, "Bienvenido/a a Aeropuerto de Valmar"), "y aparecen en la sala de llegadas (cada uno en su sitio)")
+
+	-- Avioneta: ida a la Isla de las Gaviotas y vuelta
+	local otherRoot = other.Character.HumanoidRootPart
+	local otherHum = other.Character:FindFirstChildOfClass("Humanoid")
+	promptOf(gate1, "Embarcar").Triggered:Fire(other)
+	check(otherHum.SeatPart == nil, "con billete de avioneta no se sube al avión grande")
+	promptOf(gate2, "Embarcar").Triggered:Fire(other)
+	check(otherHum.SeatPart ~= nil and FlightService._riding[other] == small, "embarca en la avioneta por la puerta 2")
+	check(FlightService.eta(small, "Gaviotas") ~= nil and (FlightService.eta(small, "Gaviotas") :: number) > small.Route.Total - 1, "el horario sabe cuándo embarca la avioneta en la isla")
+	-- Suelo de verdad en la isla: el jugador aparece encima (Shared/Ground)
+	local floor = part("Plaza", CFrame.new(2979, 0, -4019), {})
+	floor.Size = Vector3.new(40, 1, 40)
+	local oldRaycast = Fake.Raycast
+	Fake.Raycast = function(_, origin)
+		if (Vector3.new(origin.X, 0, origin.Z) - Vector3.new(2979, 0, -4019)).Magnitude < 20 then
+			return { Instance = floor, Position = Vector3.new(origin.X, 0.4, origin.Z), Normal = Vector3.new(0, 1, 0) }
+		end
+		return nil
+	end
+	FlightService._step(small, small.Timer + 0.05)
+	guard = 0
+	while small.Phase == "Flight" and guard < 4000 do
+		guard += 1
+		FlightService._step(small, 0.5)
+	end
+	Fake.Raycast = oldRaycast
+	check(small.Phase == "Boarding" and small.Route.Id == "VueltaGaviotas", "la avioneta aterriza en la Isla de las Gaviotas y embarca para volver")
+	local d2 = (Vector3.new(otherRoot.Position.X, 0, otherRoot.Position.Z) - Vector3.new(arrivalG.Position.X, 0, arrivalG.Position.Z)).Magnitude
+	check(otherHum.SeatPart == nil and d2 < 8 and math.abs(otherRoot.Position.Y - 3.4) < 0.01, "baja en el aeródromo de la isla, de pie en el suelo firme")
+	check(notified(other, "Aeródromo de las Gaviotas"), "aviso de bienvenida a la isla")
+	promptOf(gate2, "Embarcar").Triggered:Fire(flyer)
+	check(notified(flyer, "todavía no está en la puerta"), "si el avión no está en la puerta, te dice cuándo embarca")
+	promptOf(deskBack, "Comprar billete").Triggered:Fire(other)
+	promptOf(gateG, "Embarcar").Triggered:Fire(other)
+	check(otherHum.SeatPart ~= nil and profiles[other].Money == 50, "en la isla se compra el billete de vuelta y se embarca")
+	FlightService._step(small, small.Timer + 0.05)
+	guard = 0
+	while small.Phase == "Flight" and guard < 4000 do
+		guard += 1
+		FlightService._step(small, 0.5)
+	end
+	local d3 = (Vector3.new(otherRoot.Position.X, 0, otherRoot.Position.Z) - Vector3.new(arrivalV.Position.X, 0, arrivalV.Position.Z)).Magnitude
+	check(small.Phase == "Boarding" and small.Route.Id == "IdaGaviotas" and d3 < 8 and otherHum.SeatPart == nil, "vuelve a Valmar y baja en la sala de llegadas")
+	for _, p in { flyer, kid, teen, baby, poor, other } do
+		local i = table.find(playersList, p)
+		if i then
+			table.remove(playersList, i)
+		end
+	end
+end
+
 print("▶ Metro: billetes, tornos, tren, galería, músicos, encargos y revisor")
 local Metro = loadModule(ROOT .. "/shared/Metro")
 Metro.Busk.MinSeconds, Metro.Busk.Cooldown = 0, 0
