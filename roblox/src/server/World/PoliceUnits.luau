@@ -51,9 +51,13 @@ local function rayParams(extra: { Instance }?): RaycastParams
 		end
 	end
 	-- (los vehículos no tapan: a quien va en coche se le ve por las ventanillas)
-	local rides = workspace:FindFirstChild("Rides")
-	if rides then
-		table.insert(list, rides)
+	-- (ni los autobuses: si no, un coche patrulla que busca el suelo junto a un autobús acababa
+	-- encima de su techo)
+	for _, name in { "Rides", "Buses" } do
+		local folder = workspace:FindFirstChild(name)
+		if folder then
+			table.insert(list, folder)
+		end
 	end
 	for _, instance in extra or {} do
 		table.insert(list, instance)
@@ -63,8 +67,32 @@ local function rayParams(extra: { Instance }?): RaycastParams
 	return params
 end
 
+-- ¿Es un vehículo o una persona? (no es suelo: ni el techo de un coche aparcado ni una cabeza)
+local function notGround(part: Instance): Instance?
+	local model = part:FindFirstAncestorOfClass("Model")
+	while model do
+		if model:FindFirstChildOfClass("Humanoid") or model.Name == "ParkedCar" or model:GetAttribute("Drivable") or model:GetAttribute("BusLine") then
+			return model
+		end
+		model = model.Parent and model.Parent:FindFirstAncestorOfClass("Model")
+	end
+	return nil
+end
+
 local function groundAt(position: Vector3): Vector3
-	local hit = workspace:Raycast(position + V(0, 40, 0), V(0, -120, 0), rayParams())
+	local params = rayParams()
+	local from, dir = position + V(0, 40, 0), V(0, -120, 0)
+	local hit = workspace:Raycast(from, dir, params)
+	for _ = 1, 6 do
+		local skip = hit and notGround(hit.Instance)
+		if not skip then
+			break
+		end
+		local list = params.FilterDescendantsInstances
+		table.insert(list, skip)
+		params.FilterDescendantsInstances = list
+		hit = workspace:Raycast(from, dir, params)
+	end
 	return if hit then hit.Position else position
 end
 

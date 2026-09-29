@@ -247,6 +247,11 @@ function MetroKit.train(parent: Instance, line: Metro.Line): Model
 	m.Name = "Metro_" .. line.Id
 	m:SetAttribute("Line", line.Id)
 	m:AddTag("MetroTrain")
+	-- Siempre cargado y entero en cada ordenador: si no, al moverse se cargaba a trozos (un panel
+	-- blanco o el suelo sueltos en vez de un tren). Son dos trenes: no pesa.
+	pcall(function()
+		(m :: any).ModelStreamingMode = Enum.ModelStreamingMode.Persistent
+	end)
 	m.Parent = parent
 	local points, centers = Metro.path(line)
 	local step = Metro.CarLength + Metro.CarGap
@@ -294,6 +299,18 @@ local function tunnel(parent: Instance, a: Vector3, b: Vector3, color: Color3, e
 		light.Brightness = 0.9
 		light.Color = rgb(255, 214, 160)
 		light.Parent = lamp
+	end
+end
+
+-- Fondo del túnel: pared de hormigón que lo cierra (debajo de la ciudad no hay terreno: sin ella se
+-- veía el cielo al final de la vía) y un tope de vía con sus luces rojas
+local function deadEnd(parent: Instance, at: Vector3, dir: Vector3)
+	local cf = Builder.facing(at, dir)
+	part(parent, "TunnelEnd", Vector3.new(15, 15, 1.5), cf * CFrame.new(0, 5.5, -0.75), CONCRETE, Enum.Material.Concrete)
+	part(parent, "BufferStop", Vector3.new(5, 1.6, 1.2), cf * CFrame.new(0, 0.3, 2.5), rgb(200, 40, 40), Enum.Material.Metal)
+	for _, x in { -1.4, 1.4 } do
+		decor(parent, "BufferPost", Vector3.new(0.5, 1.6, 2), cf * CFrame.new(x, -0.5, 3.4), DARK, Enum.Material.Metal)
+		decor(parent, "BufferLight", Vector3.new(0.5, 0.5, 0.2), cf * CFrame.new(x * 1.5, 1.6, 1.8), rgb(255, 40, 40), Enum.Material.Neon)
 	end
 end
 
@@ -614,13 +631,16 @@ function MetroKit.build(world: Instance)
 		-- solapan un poco en cada codo)
 		for k = 1, #points - 1 do
 			if not platform[k] then
-				tunnel(under, points[k], points[k + 1], line.Color, if platform[k - 1] then 0 else 1.5, if platform[k + 1] then 0 else 1.5)
+				tunnel(under, points[k], points[k + 1], line.Color, if platform[k - 1] then 0.8 else 1.5, if platform[k + 1] then 0.8 else 1.5) -- (junto al andén, un poco metido: sin rendijas)
 			end
 		end
 		-- Fondos de saco detrás de las estaciones de los extremos
 		local first, last = points[1], points[#points]
-		tunnel(under, first, first + (first - points[2]).Unit * 60, line.Color)
-		tunnel(under, last, last + (last - points[#points - 1]).Unit * 60, line.Color)
+		for _, e in { { first, (first - points[2]).Unit }, { last, (last - points[#points - 1]).Unit } } do
+			local stop = e[1] + e[2] * 60
+			tunnel(under, e[1], stop, line.Color)
+			deadEnd(under, stop, e[2])
+		end
 		MetroKit.train(under, line)
 	end
 	return root
