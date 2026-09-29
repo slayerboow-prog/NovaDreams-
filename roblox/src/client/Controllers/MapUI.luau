@@ -1028,6 +1028,12 @@ local function buildBig()
 			bigGui.Enabled = bigOpen
 		end
 	end)
+	-- Empieza una escena de cine: el mapa grande se cierra (antes tapaba toda la escena del prólogo)
+	player:GetAttributeChangedSignal("InCinematic"):Connect(function()
+		if player:GetAttribute("InCinematic") and bigOpen then
+			setBigOpen(false)
+		end
+	end)
 	-- Fondo oscuro: pulsar fuera del mapa lo cierra
 	local shade = create("TextButton", {
 		Name = "Shade",

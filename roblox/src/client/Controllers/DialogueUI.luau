@@ -50,6 +50,8 @@ local queue: { { [string]: any } } = {}
 local running = false
 local advanceSignal: BindableEvent
 local skipTyping = false
+local closing = false -- se está cerrando (el servidor la cortó, moriste…): nada espera a que toques
+local askToken: any, askSeq: any = nil, nil -- la pregunta abierta (conversación y trozo)
 local typed = true -- la línea ya se ha escrito entera (el siguiente toque pasa a la siguiente)
 local bubbleOf: Instance? = nil -- quién tiene ahora el bocadillo de la conversación
 local lineSerial = 0
@@ -61,8 +63,8 @@ local savedCamera: { Type: Enum.CameraType, CFrame: CFrame }? = nil
 local queuedKeys: { [string]: boolean } = {}
 local answeredKeys: { [string]: boolean } = {}
 local closedTokens: { [number]: boolean } = {}
-local currentAsk: BindableEvent? = nil
-local currentToken: number? = nil -- la conversación que se está enseñando -- la pregunta abierta (se cierra si el servidor corta)
+local currentAsk: BindableEvent? = nil -- la pregunta abierta (se cierra si el servidor corta)
+local currentToken: number? = nil -- la conversación que se está enseñando
 
 ---------------------------------------------------------------------
 -- Controles y cámara
@@ -478,7 +480,7 @@ local function showLine(line: { [string]: any })
 	textLabel.Text = full
 	hint.Visible = bubbled -- con bocadillo, la caja solo dice "Toca para seguir"
 	local shown = 0
-	while shown < total and not skipTyping do
+	while shown < total and not skipTyping and not closing do
 		shown = math.min(total, shown + math.max(1, math.floor(TYPE_SPEED * task.wait())))
 		textLabel.MaxVisibleGraphemes = shown
 	end
@@ -488,7 +490,11 @@ local function showLine(line: { [string]: any })
 	end
 	typed = true
 	hint.Visible = true
-	advanceSignal.Event:Wait()
+	-- (si se cerró mientras escribía, no se espera a un toque que nunca llega: antes la caja se quedaba
+	-- abierta, sin controles, hasta tocar la pantalla)
+	if not closing and not closedTokens[currentToken] then
+		advanceSignal.Event:Wait()
+	end
 	ActorLife.quiet(speakingModel)
 end
 
@@ -544,7 +550,7 @@ local function ask(prompt: string?, options: { string }): number
 	ContextActionService:BindActionAtPriority("DialogueOptions", function(_, state, input)
 		if state == Enum.UserInputState.Begin then
 			local index = table.find(keys, input.KeyCode)
-			if index and index <= #options and not chosen then
+			if index and index <= #options and not chosen and not Cinematics.isOnScreen() then
 				chosen = index
 				picked:Fire()
 			end
@@ -595,6 +601,7 @@ end
 -- Corta todo lo que se esté enseñando (el servidor cortó la conversación, has muerto…): la caja se
 -- cierra y vuelven controles, cámara y giro, pase lo que pase
 local function forceClose()
+	closing = true
 	table.clear(queue)
 	skipTyping = true
 	advanceSignal:Fire()
@@ -636,6 +643,7 @@ processQueue = function()
 			continue -- el servidor ya cortó esta conversación
 		end
 		currentToken = payload.Token
+		closing = false
 		-- Una conversación nueva tampoco se abre encima de un momento o una pantalla de capítulo
 		-- (como mucho se espera un rato: la conversación nunca se queda sin salir)
 		local since = os.clock()
@@ -659,7 +667,9 @@ processQueue = function()
 			continue
 		end
 		if payload.Options then
+			askToken, askSeq = payload.Token, payload.Seq
 			local index = ask(payload.Ask, payload.Options)
+			askToken, askSeq = nil, nil
 			if closedTokens[payload.Token] then
 				continue
 			end
@@ -697,6 +707,11 @@ function DialogueUI.init()
 				return -- reenvío de algo que ya se está enseñando o ya se contestó
 			end
 			queuedKeys[key] = true
+			-- El servidor ya eligió por ti (tardaste mucho) y manda lo siguiente: la pregunta vieja se
+			-- cierra (antes seguía en pantalla y lo que elegías no contaba)
+			if currentAsk and askToken == payload.Token and type(payload.Seq) == "number" and type(askSeq) == "number" and payload.Seq > askSeq then
+				currentAsk:Fire()
+			end
 			table.insert(queue, payload)
 			task.spawn(process)
 		elseif kind == "Close" then
@@ -747,7 +762,15 @@ function DialogueUI.init()
 		end
 	end)
 	UserInputService.InputBegan:Connect(function(input, processed)
-		if not open or optionsFrame.Visible then
+		-- (durante una escena de cine la caja está escondida: no se pasan frases que no se ven)
+		if not open or optionsFrame.Visible or Cinematics.isOnScreen() then
+			return
+		end
+		-- (escribiendo en el chat: las teclas son para el chat, no para pasar frases)
+		if processed and input.UserInputType == Enum.UserInputType.Keyboard then
+			return
+		end
+		if UserInputService:GetFocusedTextBox() then
 			return
 		end
 		local key = input.KeyCode
@@ -762,7 +785,7 @@ function DialogueUI.init()
 	end)
 	-- Tocar la caja: si está escribiendo, termina la línea; si no, pasa a la siguiente
 	box.MouseButton1Down:Connect(function()
-		if optionsFrame.Visible then
+		if optionsFrame.Visible or Cinematics.isOnScreen() then
 			return
 		end
 		if typed then

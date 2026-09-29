@@ -268,6 +268,9 @@ local function answer(player: Player, token: any, choice: any, seq: any)
 		pump(player, session)
 	elseif #session.Stack == 0 then
 		finish(player, session)
+	else
+		-- (se cortó a medias por un error: sigue desde donde iba, en vez de quedarse atascada)
+		pump(player, session)
 	end
 end
 
@@ -435,6 +438,9 @@ function DialogueService.init()
 					-- Si algo falla al seguir, la conversación se da por terminada (la historia no se
 					-- queda esperando para siempre a que acabe)
 					local ok, err = pcall(answer, player, session.Token, 1)
+					if ok and sessions[player] == session and os.clock() > session.Deadline then
+						ok, err = false, "no avanza" -- (nada cambió: se da por terminada)
+					end
 					if not ok then
 						Log.warn("WATCHDOG", "%s: %s", player.Name, tostring(err))
 						if player.Parent then

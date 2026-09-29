@@ -282,6 +282,9 @@ local function workerVoice(npc: Instance, text: string, source: string)
 	end
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if player:GetAttribute("InDialogue") or player:GetAttribute("InCinematic") then
+		return
+	end
 	if root and (root.Position - head.Position).Magnitude < 30 then
 		SoundFx.voice(text, pitchOf(npc))
 	end
@@ -298,7 +301,9 @@ local function streetChatter()
 		local workers = workspace:FindFirstChild("Trabajadores")
 		local character = player.Character
 		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
-		if workers and root and not muted then
+		-- (no mientras hablas con alguien o ves una escena: su voz se montaba encima de la conversación)
+		local busy = player:GetAttribute("InDialogue") or player:GetAttribute("InCinematic")
+		if workers and root and not muted and not busy then
 			local best, bestDistance = nil, VOICES.Distance
 			for _, npc in workers:GetChildren() do
 				local head = npc:FindFirstChild("Head") :: BasePart?

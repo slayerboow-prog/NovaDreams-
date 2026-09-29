@@ -22,6 +22,15 @@ local function setHidden(root: Instance, hidden: boolean)
 			if hidden then
 				instance.CanQuery = false
 			end
+			-- Invisible para ti = tampoco choca contigo (antes era una pared invisible en la entrada del
+			-- cole, y los acompañantes de otro jugador te empujaban). Solo en tu pantalla.
+			if hidden and instance.CanCollide then
+				instance:SetAttribute("SceneCollide", true)
+				instance.CanCollide = false
+			elseif not hidden and instance:GetAttribute("SceneCollide") then
+				instance:SetAttribute("SceneCollide", nil)
+				instance.CanCollide = true
+			end
 		elseif instance:IsA("Decal") then
 			instance.LocalTransparencyModifier = if hidden then 1 else 0
 		elseif instance:IsA("ProximityPrompt") then

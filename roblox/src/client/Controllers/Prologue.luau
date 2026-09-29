@@ -75,7 +75,8 @@ local function render()
 		return
 	end
 	local show = active() and tracked ~= nil and tracked.QuestId == "Prologo_Sueno"
-	gui.Enabled = active()
+	-- (nunca encima de una escena de cine: antes la tarjeta del objetivo salía en mitad de ella)
+	gui.Enabled = active() and not Cinematics.isOnScreen() and not player:GetAttribute("InCinematic")
 	card.Visible = show
 	if not show or not tracked then
 		return
@@ -187,6 +188,10 @@ function Prologue.init()
 			tracked = payload.Tracked
 			render()
 		end
+	end)
+	player:GetAttributeChangedSignal("InCinematic"):Connect(function()
+		render()
+		task.delay(1.5, render) -- (cuando acaba de fundirse la escena)
 	end)
 	player:GetAttributeChangedSignal("InPrologue"):Connect(function()
 		local ok, err = pcall(onPrologueChanged)

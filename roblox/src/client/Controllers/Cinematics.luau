@@ -134,6 +134,8 @@ function baseShotCFrame(anchors: { [string]: CFrame }, shot: { [string]: any }, 
 	end
 	local position = from:Lerp(to, a)
 	local target = look:Lerp(lookTo, a)
+	-- (tampoco dentro de una pared o del techo: si hay algo entre lo que mira y la cámara, se acerca)
+	position = CineCamera.clamp(target, position)
 	if (target - position).Magnitude < 0.01 then
 		target += Vector3.new(0, 0, -1)
 	end
@@ -555,9 +557,22 @@ local function playImpl(payload: { [string]: any }, cleanup: Cleanup)
 	cleanup.Counted = false
 end
 
+-- Avisa al servidor de que la escena ha terminado en tu pantalla (o la has saltado): la historia
+-- sigue entonces, no antes (antes seguía por su cuenta aunque la escena aún se viera, y al saltarla
+-- había que esperar igual)
+local function tellDone(id: any)
+	pcall(function()
+		local remote = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("LifeStory")
+		if remote and type(id) == "string" then
+			(remote :: RemoteEvent):FireServer("CinematicDone", id)
+		end
+	end)
+end
+
 function Cinematics.play(payload: { [string]: any })
 	local cleanup: Cleanup = { Counted = false }
 	local ok, err = pcall(playImpl, payload, cleanup)
+	tellDone(payload.Id)
 	if ok then
 		return
 	end

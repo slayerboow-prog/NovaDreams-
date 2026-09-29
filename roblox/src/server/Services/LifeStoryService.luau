@@ -658,6 +658,7 @@ local function publish(player: Player, force: boolean?)
 	-- La misión que estás jugando: los que te acompañan en otras misiones esperan (SceneService)
 	if player:GetAttribute("StoryFocus") ~= trackedId then
 		player:SetAttribute("StoryFocus", trackedId)
+		SceneService.refocus(player) -- (un personaje que sale en dos misiones pasa a la que juegas)
 	end
 	if trackedId then
 		local quest = Quests[trackedId]
@@ -940,6 +941,12 @@ local function sceneFor(player: Player, data: Data, questId: string): ({ { [stri
 	addActors(quest.Actors)
 	if step then
 		addActors(step.Actors)
+		-- Una escena de cine sin reparto propio sigue con el del paso de antes (antes desaparecían todos
+		-- justo en la foto de clase o en el final de la saga, y volvían a salir de golpe después)
+		if step.Type == "Cinematic" and step.Actors == nil and prog and prog.Step > 1 then
+			local before = stepsOf(questId, prog)[prog.Step - 1]
+			addActors(before and before.Actors)
+		end
 		if step.Type == "Fight" then
 			-- Los enemigos que quedan en pie: te persiguen y el botón es para atacar
 			local enemies = {}
@@ -1178,7 +1185,8 @@ local function enterStep(player: Player, data: Data, questId: string)
 			-- La escena se ve en el cliente; la historia sigue cuando termina
 			local duration = CinematicService.play(player, step.Id)
 			local index = prog.Step
-			task.delay(duration, function()
+			-- (sigue cuando el jugador la termina o la salta; si su pantalla no avisa, al cabo de un rato)
+			CinematicService.waitFor(player, step.Id, duration + 20, function()
 				local current = DataService.get(player)
 				local now = current and storyOf(current).Active[questId]
 				if now and now.Step == index then
@@ -2473,7 +2481,9 @@ end
 
 local function slowTick(player: Player, data: Data)
 	local rt = runtime[player]
-	if rt.PendingOffer and os.clock() - rt.OfferedAt > 30 then
+	-- (la tarjeta puede esperar hasta 20 s a que acabe una conversación y luego se ve 28 s: se le da
+	-- tiempo de sobra, o un "sí" al final de la tarjeta no hacía nada)
+	if rt.PendingOffer and os.clock() - rt.OfferedAt > 55 then
 		rt.PendingOffer = nil -- nadie contestó: se volverá a ofrecer más adelante
 	end
 	local story = storyOf(data)
@@ -2943,6 +2953,12 @@ local function onRemote(player: Player, kind: any, questId: any, value: any)
 		return
 	end
 	local story = storyOf(data)
+	if kind == "CinematicDone" then
+		if type(questId) == "string" then
+			CinematicService.clientDone(player, questId)
+		end
+		return
+	end
 	if os.clock() - rt.LastRemote < 0.25 then
 		if kind == "Choose" and type(questId) == "string" and story.Active[questId] then
 			rt.ChoiceSentAt[questId] = 0 -- el toque se ha perdido: la ventana vuelve a salir
@@ -2972,9 +2988,11 @@ local function onRemote(player: Player, kind: any, questId: any, value: any)
 				story.Tracked = questId
 				publish(player)
 			end
-		else
+		elseif value ~= true then
 			story.Declined[questId] = os.time()
 		end
+		-- (si dijiste que sí pero justo empezaba una conversación o una escena, no cuenta como "no":
+		-- se te volverá a ofrecer en un rato)
 	elseif kind == "Track" and type(questId) == "string" and story.Active[questId] and not story.Active[PROLOGUE] then
 		story.Tracked = questId
 		publish(player)

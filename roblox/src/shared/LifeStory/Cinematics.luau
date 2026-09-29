@@ -31,21 +31,21 @@ export type Cinematic = { [string]: any }
 local Cinematics: { [string]: Cinematic } = {
 	-- El nacimiento: Los Pinos desde el cielo → la casa → la cuna. Abu da la bienvenida.
 	Bebe_Nacimiento = {
-		Duration = 16,
+		Duration = 17,
 		FadeIn = true,
 		Music = "Nacimiento",
 		Anchors = { Casa = "Place:CasaFamiliar", Cuna = "Place:Cuna" },
 		Shots = {
 			{ From = { "Casa", V(160, 130, 160) }, To = { "Casa", V(55, 38, 55) }, Look = { "Casa", V(0, 0, 0) }, Duration = 6.5, Shake = 0.25 },
-			{ From = { "Cuna", V(3, 9, 5) }, To = { "Cuna", V(1.5, 5, 3) }, Look = { "Cuna", V(0, 1, 0) }, Duration = 9.5, Fov = { 60, 44 }, Dip = true },
+			{ From = { "Cuna", V(3, 9, 5) }, To = { "Cuna", V(1.5, 5, 3) }, Look = { "Cuna", V(0, 1, 0) }, Duration = 10.5, Fov = { 60, 44 }, Dip = true },
 		},
 		Titles = {
 			{ At = 0.8, TextKey = "CINE.NACIMIENTO.LUGAR", SubKey = "CINE.NACIMIENTO.CUANDO", Duration = 4.5 },
-			{ At = 12.5, TextKey = "CHAPTER.BEBE.TITLE", SubKey = "CHAPTER.BEBE.INTRO", Duration = 3.2 },
+			{ At = 13.3, TextKey = "CHAPTER.BEBE.TITLE", SubKey = "CHAPTER.BEBE.INTRO", Duration = 3.4 },
 		},
 		Lines = {
 			{ At = 7, Speaker = "Abu", TextKey = "DLG.ABU.NACER.01" },
-			{ At = 10, Speaker = "Abu", TextKey = "DLG.ABU.NACER.02" },
+			{ At = 12.2, Speaker = "Abu", TextKey = "DLG.ABU.NACER.02" }, -- (la voz de antes tarda ~5 s: no se corta)
 		},
 	},
 
@@ -455,7 +455,7 @@ local Cinematics: { [string]: Cinematic } = {
 			{ At = 1.5, TextKey = "CHAPTER.NUEVA_VIDA.TITLE", SubKey = "CHAPTER.NUEVA_VIDA.INTRO", Duration = 6 },
 		},
 		Lines = {
-			{ At = 7.8, Speaker = "Narrador", TextKey = "CINE.LLEGADA.NARRADOR" },
+			{ At = 6.6, Speaker = "Narrador", TextKey = "CINE.LLEGADA.NARRADOR" }, -- (acaba antes del final)
 		},
 	},
 
@@ -475,23 +475,24 @@ local Cinematics: { [string]: Cinematic } = {
 	-- PRÓLOGO (el sueño): qué es el juego y el gancho de la saga, antes de jugar el tutorial.
 	-- Pasa en la isla del sueño (World/Kit/DreamIsland). La línea verde del cielo es la Grieta.
 	Prologo_Apertura = {
-		Duration = 17,
+		Duration = 19.5,
 		FadeIn = true,
 		Music = "TemaValmar",
 		Anchors = { Inicio = "Place:PrologoInicio", Puerta = "Place:PrologoPuerta" },
 		Shots = {
 			{ From = { "Inicio", V(-30, 45, 40) }, To = { "Inicio", V(40, 55, 34) }, Look = { "Puerta", V(-60, 70, 0) }, Duration = 7, Shake = 0.2 },
 			{ From = { "Puerta", V(-40, 12, 26) }, To = { "Puerta", V(-22, 8, 16) }, Look = { "Puerta", V(0, 3, 0) }, Duration = 5, Dip = true },
-			{ Orbit = "Inicio", Radius = 9, Height = 4, FromAngle = 200, ToAngle = 300, Duration = 5, Dip = true, LookHeight = 1.5 },
+			{ Orbit = "Inicio", Radius = 9, Height = 4, FromAngle = 200, ToAngle = 320, Duration = 7.5, Dip = true, LookHeight = 1.5 },
 		},
 		Titles = {
 			{ At = 0.8, TextKey = "CINE.PROLOGO.VALMAR", SubKey = "CINE.PROLOGO.VIDA", Duration = 4 },
-			{ At = 13.4, TextKey = "CINE.PROLOGO.SUENO", SubKey = "CINE.PROLOGO.SUENO_SUB", Duration = 3.3 },
+			{ At = 15.9, TextKey = "CINE.PROLOGO.SUENO", SubKey = "CINE.PROLOGO.SUENO_SUB", Duration = 3.3 },
 		},
 		Lines = {
-			{ At = 5, Speaker = "Narrador", TextKey = "CINE.PROLOGO.ELIGES" },
-			{ At = 8.4, Speaker = "Narrador", TextKey = "CINE.PROLOGO.GRIETA" },
-			{ At = 11.4, Speaker = "Narrador", TextKey = "CINE.PROLOGO.COSME" },
+			-- (cada voz tarda ~5 s: separadas para que ninguna se corte a mitad de frase)
+			{ At = 3.4, Speaker = "Narrador", TextKey = "CINE.PROLOGO.ELIGES" },
+			{ At = 8.5, Speaker = "Narrador", TextKey = "CINE.PROLOGO.GRIETA" },
+			{ At = 13.8, Speaker = "Narrador", TextKey = "CINE.PROLOGO.COSME" },
 		},
 	},
 

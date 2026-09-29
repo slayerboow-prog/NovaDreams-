@@ -94,7 +94,7 @@ type Actor = {
 	Recovered: number?, -- (vigilante) última vez que se le devolvió a su sitio
 }
 type Prop = { Id: string, Key: string, Model: Model }
-type Scene = { Actors: { [string]: Actor }, Props: { [string]: Prop } }
+type Scene = { Actors: { [string]: Actor }, Props: { [string]: Prop }, Last: { [string]: any }? }
 
 local folder: Folder
 local scenes: { [Player]: { [string]: Scene } } = {} -- jugador -> misión -> escena
@@ -175,6 +175,33 @@ local function placement(player: Player, spec: { [string]: any }, forProp: boole
 		end
 	end
 	return CFrame.new(position) * rotation, nil, false
+end
+
+-- ¿Hay un asiento aquí (silla, banco, sofá…)? Lo que hay bajo los pies está algo más alto que lo que
+-- hay debajo. En el suelo pelado (parque, playa, la calle de un sitio sin marca) no hay dónde sentarse:
+-- el actor se quedaría "sentado en el aire", así que se queda de pie.
+local function seatAt(position: Vector3): boolean
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	local list = { folder }
+	for _, player in Players:GetPlayers() do
+		if player.Character then
+			table.insert(list, player.Character)
+		end
+	end
+	params.FilterDescendantsInstances = list
+	params.IgnoreWater = true
+	local top = Ground.cast(position + V(0, 0.4, 0), V(0, -0.8, 0), params)
+	if not top then
+		return true -- (no se sabe: se deja como estaba)
+	end
+	if top.Instance:IsA("Seat") then
+		return true
+	end
+	table.insert(list, top.Instance)
+	params.FilterDescendantsInstances = list
+	local below = Ground.cast(top.Position - V(0, 0.05, 0), V(0, -3.6, 0), params)
+	return below ~= nil and top.Position.Y - below.Position.Y > 0.8
 end
 
 ---------------------------------------------------------------------
@@ -1105,6 +1132,7 @@ function applySet(player: Player, questId: string, actors: { { [string]: any } }
 		Log.info("SCENE", "begin %s (%s): %d actores, %d objetos", questId, player.Name, #actors, #props)
 	end
 	byQuest[questId] = scene
+	scene.Last = { Actors = actors, Props = props, Defs = defs } -- (para volver a montarla si cambias de misión)
 	-- Crear un personaje espera a Roblox: si mientras tanto el jugador se fue (o la escena se quitó),
 	-- lo recién creado se borra y se deja de montar (si no, quedaban actores fantasma en el mapa)
 	local function gone(): boolean
@@ -1123,6 +1151,13 @@ function applySet(player: Player, questId: string, actors: { { [string]: any } }
 			scene.Actors[npc] = nil
 		end
 	end
+	-- Los que se quedan donde están también ocupan su hueco (si no, uno nuevo podía salir encima)
+	for npc, spec in wanted do
+		local actor = scene.Actors[npc]
+		if actor and actor.Key == specKey(spec) then
+			table.insert(placedNow, actor.Home.Position)
+		end
+	end
 	for npc, spec in wanted do
 		local key = specKey(spec)
 		local actor = scene.Actors[npc]
@@ -1130,11 +1165,33 @@ function applySet(player: Player, questId: string, actors: { { [string]: any } }
 			actor.Spec = spec
 			continue
 		end
+		-- ¿Ya sale en la escena de otra misión tuya? Nunca dos Ivanes: se lo queda la misión que juegas
+		-- ahora (se le quita a la otra); si esta no es la que juegas, se queda donde está en la otra
+		if not actor then
+			local elsewhere = nil
+			for otherId, other in byQuest do
+				if otherId ~= questId and other.Actors[npc] then
+					elsewhere = other
+					break
+				end
+			end
+			if elsewhere then
+				if player:GetAttribute("StoryFocus") ~= questId then
+					continue
+				end
+				elsewhere.Actors[npc].Model:Destroy()
+				elsewhere.Actors[npc] = nil
+			end
+		end
 		-- Acompañante: aparece a tu lado solo si su misión es la que juegas ahora y vas a pie (si no,
 		-- en su sitio de la escena); cada uno en un hueco distinto (antes salían todos en el mismo punto)
 		local me = playerRoot(player)
 		local nearMe = spec.Mode == "Follow" and me ~= nil and focusOn(player, questId) and onFoot(player)
 		local cf = if nearMe then (me :: BasePart).CFrame * CFrame.new(3 + #placedNow * 2.5, -3, 5) else placement(player, spec)
+		if nearMe and cf then
+			-- (apoyado en el suelo: con un jugador niño, en una escalera o saltando quedaba hundido o flotando)
+			cf = CFrame.new(groundAt(cf.Position, {})) * cf.Rotation
+		end
 		if cf and spec.Mode ~= "Sit" then
 			cf = spaced(cf, me, placedNow)
 		end
@@ -1148,7 +1205,11 @@ function applySet(player: Player, questId: string, actors: { { [string]: any } }
 			end
 			continue
 		end
-		if actor and actor.Root and (actor.Root.Position - cf.Position).Magnitude < 70 and spec.Mode ~= "Sit" then
+		if spec.Mode == "Sit" and not seatAt(cf.Position) then
+			spec = table.clone(spec)
+			spec.Mode = "Idle"
+		end
+		if actor and actor.Root and (actor.Root.Position - cf.Position).Magnitude < 70 then
 			-- Camina hasta su nuevo sitio
 			actor.Spec = spec
 			actor.Key = key
@@ -1159,6 +1220,11 @@ function applySet(player: Player, questId: string, actors: { { [string]: any } }
 				actor.WalkId += 1
 				actor.Walk = nil
 				actor.Home = cf
+				-- (empieza de cero: ruta de huida nueva y sin tiempos de antes, que lo hacían "saltar")
+				actor.Route = nil
+				actor.RouteIndex = 1
+				actor.LastProgress = os.clock()
+				actor.LastPosition = nil
 				applyMode(actor)
 				if actor.Humanoid and mode == "Wander" then
 					actor.Humanoid:MoveTo(cf.Position)
@@ -1251,6 +1317,25 @@ function SceneService.ambientStart(npcId: string, target: Vector3, range: number
 end
 
 -- Quita toda la escena de una misión
+-- Cambias de misión: se vuelven a montar tus escenas (el personaje compartido pasa a la que juegas)
+function SceneService.refocus(player: Player)
+	local byQuest = scenes[player]
+	if not byQuest then
+		return
+	end
+	local focus = player:GetAttribute("StoryFocus")
+	-- Primero las otras (sueltan a quien comparte), luego la que juegas (se lo queda)
+	for questId, scene in byQuest do
+		if questId ~= focus and scene.Last then
+			enqueue(player, { QuestId = questId, Actors = scene.Last.Actors, Props = scene.Last.Props, Defs = scene.Last.Defs })
+		end
+	end
+	local mine = focus and byQuest[focus]
+	if mine and mine.Last then
+		enqueue(player, { QuestId = focus, Actors = mine.Last.Actors, Props = mine.Last.Props, Defs = mine.Last.Defs })
+	end
+end
+
 function SceneService.clear(player: Player, questId: string)
 	enqueue(player, { QuestId = questId, Clear = true })
 end
@@ -1612,7 +1697,9 @@ local function stepActor(player: Player, actor: Actor, index: number)
 	-- Vigilante: caído del mapa, perdido o flotando lejos de su sitio -> vuelve a su sitio
 	local roaming = mode == "Follow" or mode == "Hunt" or mode == "Flee"
 	local home = actor.Home.Position
-	if root.Position.Y < home.Y - FALL_LIMIT or (not roaming and V(root.Position.X - home.X, 0, root.Position.Z - home.Z).Magnitude > LOST_LIMIT) then
+	-- (quien te sigue o te persigue baja contigo: se mide desde lo más bajo entre su sitio y tú)
+	local floorY = if roaming and me then math.min(home.Y, me.Position.Y) else home.Y
+	if root.Position.Y < floorY - FALL_LIMIT or (not roaming and V(root.Position.X - home.X, 0, root.Position.Z - home.Z).Magnitude > LOST_LIMIT) then
 		if not actor.Recovered or os.clock() - actor.Recovered > 5 then
 			actor.Recovered = os.clock()
 			Log.warn("NPC", "stuck %s (%s): lejos de su sitio o caído, vuelve a su sitio", actor.Npc, player.Name)
@@ -1630,6 +1717,7 @@ local function stepActor(player: Player, actor: Actor, index: number)
 			actor.Talking = true
 			if not root.Anchored then
 				humanoid:MoveTo(root.Position) -- se para donde está
+				play(actor, "Idle") -- (antes seguía con la animación de andar, sin moverse)
 			end
 		end
 		local toMe = V(me.Position.X - root.Position.X, 0, me.Position.Z - root.Position.Z)
@@ -1643,6 +1731,12 @@ local function stepActor(player: Player, actor: Actor, index: number)
 		return
 	elseif actor.Talking then
 		actor.Talking = false
+		-- El rato de charla no cuenta como "atascado" (antes al acabar se fundía y reaparecía en su sitio)
+		if actor.StuckSince then
+			actor.StuckSince = os.clock()
+		end
+		actor.LastProgress = os.clock()
+		actor.LastPosition = nil
 		-- Fin de la conversación: vuelve a lo suyo (y a mirar hacia donde miraba)
 		if mode ~= "Sit" and actor.Spec.Look ~= nil and root.Anchored then
 			faceSmooth(actor, actor.Model:GetPivot().Position + actor.Home.LookVector * 10)
@@ -1729,6 +1823,18 @@ local function stepActor(player: Player, actor: Actor, index: number)
 		elseif distance > 7 then
 			humanoid.WalkSpeed = math.clamp(distance, 14, 24)
 			humanoid:MoveTo(target)
+			-- Atascado contra una pared o una esquina: aparece detrás de ti
+			local moved = if actor.LastPosition then (root.Position - actor.LastPosition).Magnitude else 1
+			if moved > 0.3 then
+				actor.LastProgress = os.clock()
+			elseif os.clock() - actor.LastProgress > 3 then
+				actor.Model:PivotTo(CFrame.new(target + V(0, 3, 0)) * me.CFrame.Rotation)
+				actor.LastProgress = os.clock()
+			end
+			actor.LastPosition = root.Position
+		else
+			actor.LastProgress = os.clock()
+			actor.LastPosition = nil
 		end
 	elseif mode == "Wander" then
 		if os.clock() > actor.NextWander then
@@ -1737,6 +1843,16 @@ local function stepActor(player: Player, actor: Actor, index: number)
 			local radius = actor.Spec.Radius or 10
 			humanoid:MoveTo(actor.Home.Position + V(math.cos(angle) * radius, 0, math.sin(angle) * radius))
 		end
+		-- Atascado lejos de su zona (contra una pared): fundido y aparece en su sitio
+		local moved = if actor.LastPosition then (root.Position - actor.LastPosition).Magnitude else 1
+		local away = V(root.Position.X - home.X, 0, root.Position.Z - home.Z).Magnitude
+		if moved > 0.3 or away < (actor.Spec.Radius or 10) + 15 then
+			actor.LastProgress = os.clock()
+		elseif os.clock() - actor.LastProgress > 4 and actor.Walk ~= "Fade" then
+			actor.LastProgress = os.clock()
+			fadeTo(actor)
+		end
+		actor.LastPosition = root.Position
 	elseif actor.Walk == "Settle" or actor.Walk == "Fade" then
 		-- Colocándose en su sitio o en pleno fundido: ya acaba solo
 		return

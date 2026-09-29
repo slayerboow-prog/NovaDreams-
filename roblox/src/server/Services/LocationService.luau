@@ -261,7 +261,12 @@ function LocationService._resolve(player: Player, place: Locations.Place, option
 		-- Delante del jugador (para personajes que vienen a buscarte)
 		local character = player.Character
 		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
-		if root then
+		local door = player:GetAttribute("InteriorDoor")
+		if root and player:GetAttribute("InteriorKey") ~= nil and typeof(door) == "Vector3" then
+			-- Estás dentro de un edificio (las salas están en el cielo y se quitan al vaciarse): te espera
+			-- en la puerta, en la calle (antes se quedaba colgado en el cielo cuando se quitaba la sala)
+			spot = pointSpot(root, door, nil, 10)
+		elseif root then
 			local look = Vector3.new(root.CFrame.LookVector.X, 0, root.CFrame.LookVector.Z)
 			look = if look.Magnitude > 0.1 then look.Unit else Vector3.new(0, 0, -1)
 			local ground = root.Position - Vector3.new(0, 3, 0) + look * 9

@@ -713,9 +713,20 @@ local handlers: { [string]: (payload: { [string]: any }) -> () } = {
 				Remote:FireServer("Offer", payload.QuestId, false)
 			end },
 		}, if #extra > 0 then extra else nil, true)
-		-- Si no contesta, el ofrecimiento se va solo (el servidor lo olvida a los 30 s)
+		-- Si no contesta, el ofrecimiento se va solo (el servidor lo olvida a los 55 s)
 		task.delay(28, function()
 			if panel.Parent then
+				closeDialog("Offer", panel)
+			end
+		end)
+		-- Si empieza una conversación, la tarjeta se quita (no queda encima de la caja de diálogo, donde
+		-- un toque la contestaba sin querer); se te volverá a ofrecer más adelante
+		local talk
+		talk = player:GetAttributeChangedSignal("InDialogue"):Connect(function()
+			if not panel.Parent then
+				talk:Disconnect()
+			elseif player:GetAttribute("InDialogue") then
+				talk:Disconnect()
 				closeDialog("Offer", panel)
 			end
 		end)
