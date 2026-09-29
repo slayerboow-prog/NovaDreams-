@@ -106,6 +106,7 @@ local order = {
 	"MetroLifeService", -- vida del metro: guardias, ratas, aseos, taquillas, fuente, piano…
 	"StaffService", -- cada sitio que atiende al público tiene a alguien (NPC si no hay jugador de ese oficio)
 	"CrowdService", -- gente en las salas, las tiendas, los parques y las plazas (aunque juegues solo)
+	"PlaceLifeService", -- vida por lugar: corros, músicos, colas, toallas, petanca… cerca de los jugadores
 	"DivingService", -- nadar, bucear (aire) y pesca submarina con fusil o arpón
 	"SeaEventService", -- catástrofes marinas: tsunami, temporal, remolino, marea negra, tiburón y medusas
 	"ClassService", -- clases y exámenes que se juegan (lo usa la historia)

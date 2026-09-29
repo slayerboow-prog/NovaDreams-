@@ -20,7 +20,8 @@
 --   * Se giran hacia quien les habla: si la cabeza no llega, gira el cuerpo poco a poco (solo en tu
 --     pantalla, con la articulación Root: el servidor no se entera y no hay tirones).
 --   * Fundidos: si un actor de tu escena no puede llegar andando, el servidor sube su atributo Fade y
---     aquí se desvanece y reaparece (los fijos del mapa ya los funde SceneClient).
+--     aquí se desvanece y reaparece (los fijos del mapa ya los funde SceneClient). La gente de los
+--     sitios (PlaceLifeService: atributos FadeIn / FadeOut) aparece y se va fundiéndose.
 --
 -- Solo se calculan los 32 más cercanos a la cámara; los fijos del mapa algo más lejos siguen con su
 -- animación de andar o de estar de pie (medio segundo a medio segundo, barato), para que nadie se deslice.
@@ -329,6 +330,15 @@ local function register(model: Model): string
 	waiting[model] = nil
 	if isScene(model) then
 		watchFade(model)
+	end
+	-- Gente de los sitios (PlaceLifeService): aparece fundiéndose y se va igual (nadie de golpe)
+	if model:GetAttribute("FadeIn") then
+		fadeModel(model, 1, 0, 0.7)
+		model:GetAttributeChangedSignal("FadeOut"):Connect(function()
+			if model:GetAttribute("FadeOut") then
+				fadeModel(model, 0, 1, 0.6)
+			end
+		end)
 	end
 	model.AncestryChanged:Connect(function(_, parent)
 		if parent == nil and rigs[model] then

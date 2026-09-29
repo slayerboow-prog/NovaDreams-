@@ -194,6 +194,18 @@ function CrowdService.count(kind: string?): number
 	return #people
 end
 
+-- Cuánta gente de aquí hay a menos de radius de un punto (PlaceLifeService lo suma a su presupuesto)
+function CrowdService.nearCount(position: Vector3, radius: number): number
+	local n = 0
+	for _, p in people do
+		local root = p.Model.PrimaryPart
+		if root and p.Model.Parent and (root.Position - position).Magnitude <= radius then
+			n += 1
+		end
+	end
+	return n
+end
+
 ---------------------------------------------------------------------
 -- Salas
 ---------------------------------------------------------------------

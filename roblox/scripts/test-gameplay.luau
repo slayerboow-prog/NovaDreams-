@@ -6922,6 +6922,214 @@ Fake.Raycast = savedRaycast
 end)()
 
 ---------------------------------------------------------------------
+;(function()
+print("▶ Vida por lugar: gente haciendo cosas en cada sitio, solo cerca de los jugadores y con topes")
+local PlaceLife = loadModule(ROOT .. "/shared/PlaceLife")
+local PlaceLifeService = loadModule(S .. "PlaceLifeService")
+local BASE = Vector3.new(-83000, 0, 83000) -- (lejos de los jugadores de las otras pruebas)
+local savedClock, savedWeather, savedDay = services.Lighting.ClockTime, worldRoot:GetAttribute("Weather"), worldRoot:GetAttribute("Day")
+worldRoot:SetAttribute("Day", 3) -- (miércoles)
+worldRoot:SetAttribute("Weather", "Despejado")
+services.Lighting.ClockTime = 12
+
+-- Los datos: cada tipo de sitio tiene su gente y sus actividades (con frases)
+local KINDS = { "Parque", "Playa", "Plaza", "ParadaBus", "BocaMetro", "Colegio", "Hospital", "CentroComercial", "Mercado", "Puerto", "Campus", "Gasolinera", "Tienda", "Oficinas", "Estacion", "BancoCalle" }
+local function peakOf(kind: string): number
+	return if kind == "Colegio" then 8.5 elseif kind == "Tienda" then 12.5 else 12
+end
+local dataOk, missing = true, {}
+for _, kind in KINDS do
+	local place = PlaceLife.Places[kind]
+	local ok = place ~= nil and table.find(PlaceLife.Order, kind) ~= nil and #PlaceLife.allowed(kind, peakOf(kind), "Despejado") > 0
+		and PlaceLife.amount(kind, peakOf(kind), "Despejado", 3) > 0 and (place.Tags ~= nil or place.Models ~= nil)
+	for name in if place then place.Activities else {} do
+		local activity = PlaceLife.Activities[name]
+		ok = ok and activity ~= nil and PlaceLife.Lines[activity.Lines] ~= nil
+	end
+	if not ok then
+		dataOk = false
+		table.insert(missing, kind)
+	end
+end
+check(dataOk, "cada tipo de sitio (parque, playa, plaza, paradas, metro, cole, hospital, centro comercial, mercado, puerto, campus, gasolinera, tiendas, oficinas, estación, bancos) tiene gente y actividades " .. table.concat(missing, ","))
+local rainLess, nightLess = true, true
+for _, kind in KINDS do
+	local day = PlaceLife.amount(kind, peakOf(kind), "Despejado", 3)
+	if PlaceLife.amount(kind, peakOf(kind), "Lluvia", 3) >= day then
+		rainLess = false
+		print("    (lluvia: " .. kind .. ")")
+	end
+	if PlaceLife.amount(kind, 2, "Despejado", 3) >= day then
+		nightLess = false
+		print("    (noche: " .. kind .. ")")
+	end
+end
+check(rainLess, "con lluvia hay menos gente en todos los sitios")
+check(nightLess, "y de madrugada, también")
+local noTowel = true
+for _ = 1, 30 do
+	noTowel = noTowel and PlaceLife.pick("Playa", 12, "Lluvia") ~= "Toalla" and PlaceLife.pick("Parque", 12, "Lluvia") ~= "Pelota"
+end
+check(noTowel and PlaceLife.pick("Playa", 12, "Despejado", 0.01) ~= nil, "con lluvia nadie toma el sol en la toalla ni juega a la pelota")
+check(PlaceLife.amount("Colegio", 8.5, "Despejado", 6) == 0 and PlaceLife.amount("Parque", 12, "Despejado", 7) > PlaceLife.amount("Parque", 12, "Despejado", 3),
+	"el sábado no hay nadie en la puerta del cole, y el domingo el parque está más lleno")
+check(PlaceLife.amount("Colegio", 14.5, "Despejado", 2) > PlaceLife.amount("Colegio", 11, "Despejado", 2), "a la salida del cole hay más padres esperando que a media mañana")
+check(PlaceLife.amount("Tienda", 12.5, "Despejado", 2) > PlaceLife.amount("Tienda", 16, "Despejado", 2), "en hora punta hay cola en las tiendas")
+
+-- Un parque, una parada de bus y un banco de la calle en el mapa de prueba
+local lab = fakeInstance("Model")
+lab.Name = "PruebasVidaLugar"
+lab.Parent = worldRoot
+local park = fakeInstance("Model")
+park.Name = "Parque"
+park.Parent = lab
+local lawn = fakeInstance("Part")
+lawn.Name = "Cesped"
+lawn.Size = Vector3.new(140, 1, 140)
+lawn.CFrame = CFrame.new(BASE + Vector3.new(0, -0.5, 0))
+lawn.Parent = park
+local parkAnchor = PlaceLifeService.addAnchor("Parque", park)
+local stop = fakeInstance("Part")
+stop.Name = "BusStop"
+stop.Size = Vector3.new(6, 8, 2)
+stop.CFrame = CFrame.new(BASE + Vector3.new(90, 4, 0))
+stop:AddTag("BusStop")
+stop.Parent = lab
+local stopAnchor = PlaceLifeService.addAnchor("ParadaBus", stop)
+local benchAnchor = nil
+for k = 0, 10 do
+	local x = BASE.X + 40 + k
+	if math.floor(x * 7 + (BASE.Z + 20) * 13) % 3 == 1 then
+		local bench = fakeInstance("Model")
+		bench.Name = "Bench"
+		local seat = fakeInstance("Part")
+		seat.Name = "Seat"
+		seat.Size = Vector3.new(5, 0.4, 1.6)
+		seat.CFrame = CFrame.new(Vector3.new(x, 1.6, BASE.Z + 20))
+		seat.Parent = bench
+		bench.Parent = lab
+		benchAnchor = PlaceLifeService.addAnchor("BancoCalle", bench)
+		break
+	end
+end
+check(parkAnchor ~= nil and stopAnchor ~= nil and benchAnchor ~= nil and #PlaceLifeService.anchors() >= 3, "se encuentran el parque, la parada y el banco")
+
+local function ours(): { any }
+	local list = {}
+	for _, d in worldRoot:GetDescendants() do
+		if d.ClassName == "Model" and d:GetAttribute("PlaceLife") ~= nil and d.Parent ~= nil and not d:GetAttribute("FadeOut") then
+			table.insert(list, d)
+		end
+	end
+	return list
+end
+local function ticks(n)
+	for _ = 1, n do
+		PlaceLifeService.tick()
+	end
+end
+
+-- Sin jugadores cerca no hay nadie (no se gasta nada)
+ticks(3)
+check(PlaceLifeService.count() == 0, "sin jugadores cerca no se pone a nadie")
+
+-- Llega un jugador al parque (mirando al norte, -Z)
+local _, walkerRoot = newPlayer(970, "Adulto", 0)
+moveTo(walkerRoot, BASE)
+ticks(12)
+local n = PlaceLifeService.count("Parque")
+check(n > 0 and n <= PlaceLife.amount("Parque", 12, "Despejado", 3), ("con un jugador en el parque hay gente haciendo cosas (%d)"):format(n))
+check(PlaceLifeService.count("ParadaBus") > 0 and PlaceLifeService.count("BancoCalle") == 1, "gente esperando el bus y alguien sentado en el banco")
+local gapOk, frontOk, namesOk, busy = true, true, true, true
+for _, npc in ours() do
+	local root = npc.PrimaryPart
+	local d = Vector3.new(root.Position.X - BASE.X, 0, root.Position.Z - BASE.Z)
+	if d.Magnitude < PlaceLife.MinGap then
+		gapOk = false
+	end
+	if d.Magnitude < PlaceLife.FrontGap and d.Unit:Dot(Vector3.new(0, 0, -1)) > PlaceLife.FrontCone then
+		frontOk = false
+	end
+	local humanoid = npc:FindFirstChildOfClass("Humanoid")
+	if not humanoid or humanoid.DisplayDistanceType ~= Enum.HumanoidDisplayDistanceType.None or npc:GetAttribute("FadeIn") ~= true then
+		namesOk = false
+	end
+	if not PlaceLife.Activities[npc:GetAttribute("Activity")] then
+		busy = false
+	end
+end
+check(gapOk, "nadie aparece a menos de 5 studs del jugador")
+check(frontOk, "ni a menos de 30 delante de él")
+check(namesOk, "sin el nombre de Roblox encima y apareciendo con fundido")
+check(busy, "cada uno con su actividad")
+
+-- Chácharas: con el jugador cerca, alguien dice algo
+local before = #speechLog
+PlaceLifeService.chatter(true)
+local said = speechLog[#speechLog]
+check(#speechLog > before and said.Speaker:GetAttribute("PlaceLife") ~= nil and type(said.Text) == "string", "la gente del sitio suelta frases cortas")
+
+-- El jugador se va: se quitan (fundiéndose)
+moveTo(walkerRoot, BASE + Vector3.new(0, 0, 5000))
+ticks(1)
+check(PlaceLifeService.count() == 0, "cuando el jugador se va, se quitan todos")
+task.wait(0.9)
+check(#ours() == 0, "y desaparecen del mapa")
+
+-- Topes: por jugador y en todo el servidor
+local savedBudget, savedCap = PlaceLife.PlayerBudget, PlaceLife.GlobalCap
+PlaceLife.PlayerBudget = 5
+moveTo(walkerRoot, BASE)
+ticks(12)
+local near = PlaceLifeService.nearCount(BASE, PlaceLife.Radius)
+check(near <= 5 and PlaceLifeService.count() > 0, ("con un presupuesto de 5 por jugador, no pasa de 5 (%d)"):format(near))
+PlaceLife.PlayerBudget = savedBudget
+moveTo(walkerRoot, BASE + Vector3.new(0, 0, 5000))
+ticks(1)
+PlaceLife.GlobalCap = 3
+moveTo(walkerRoot, BASE)
+ticks(12)
+check(PlaceLifeService.count() <= 3 and PlaceLifeService.count() > 0, "y el tope del servidor también se respeta")
+PlaceLife.GlobalCap = savedCap
+ticks(12)
+local sunny = PlaceLifeService.count("Parque")
+
+-- Lluvia: queda menos gente (los que sobran se van)
+worldRoot:SetAttribute("Weather", "Lluvia")
+ticks(3)
+local rainy = PlaceLifeService.count("Parque")
+check(rainy < sunny and rainy <= PlaceLife.amount("Parque", 12, "Lluvia", 3), ("con lluvia se va la gente del parque (%d → %d)"):format(sunny, rainy))
+local dryOnly = true
+for _, npc in ours() do
+	local activity = PlaceLife.Activities[npc:GetAttribute("Activity")]
+	if activity and activity.Dry then
+		dryOnly = false
+	end
+end
+check(dryOnly, "nadie juega a la pelota ni toma el sol bajo la lluvia")
+worldRoot:SetAttribute("Weather", "Despejado")
+
+-- Noche: casi nadie
+ticks(12)
+services.Lighting.ClockTime = 2
+ticks(3)
+check(PlaceLifeService.count("Parque") <= PlaceLife.amount("Parque", 2, "Despejado", 3) and PlaceLifeService.count("Parque") < sunny,
+	("de madrugada el parque se queda casi vacío (%d)"):format(PlaceLifeService.count("Parque")))
+
+-- El jugador se va: se vacía todo
+services.Lighting.ClockTime = 12
+moveTo(walkerRoot, BASE + Vector3.new(0, 0, 5000))
+ticks(1)
+task.wait(3.2)
+check(PlaceLifeService.count() == 0 and #ours() == 0, "al irse el jugador, no queda nadie")
+
+services.Lighting.ClockTime = savedClock
+worldRoot:SetAttribute("Weather", savedWeather)
+worldRoot:SetAttribute("Day", savedDay)
+lab:Destroy()
+end)()
+
+---------------------------------------------------------------------
 print("▶ Dormir: energía, estamina, reaparición y amanecer a las 8:30")
 Config.SleepSeconds = 0.05
 Config.SleepWaitSeconds = 2
