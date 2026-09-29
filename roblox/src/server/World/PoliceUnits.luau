@@ -8,9 +8,12 @@
 --   * Patrullas de ronda: unos pocos coches patrulla circulan por las calles cerca de los jugadores
 --     aunque nadie esté buscado (sin sirena). Si ven a alguien conduciendo sin carnet (o a un menor
 --     al volante), WantedService le da el «¡Alto!»: esa patrulla enciende la sirena y le sigue
---     (pullOver); cuando se para, bajan los agentes a detenerle.
+--     (pullOver); cuando se para, bajan los agentes a detenerle. Paran en rojo en los semáforos (el
+--     mismo ciclo que Controllers/Traffic), guardan distancia con la patrulla de delante y con quien
+--     se ponga delante, y giran en las esquinas poco a poco.
 -- Todo va anclado y lo mueve el servidor; las hélices y las luces las anima el cliente (WantedUI).
 
+local CollectionService = game:GetService("CollectionService")
 local PathfindingService = game:GetService("PathfindingService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -29,7 +32,7 @@ local rgb = Color3.fromRGB
 
 type Officer = { Model: Model, Root: BasePart, Height: number, Path: { Vector3 }, PathAt: number, Car: any? }
 type Car = { Model: Model, Offset: CFrame, Officers: { Officer }, Arrived: boolean, Chase: boolean?, Position: Vector3?, Look: Vector3? }
-type Patrol = { Model: Model, Offset: CFrame, Index: number, From: string, T: number, Lane: number, Position: Vector3, GroundAt: number }
+type Patrol = { Model: Model, Offset: CFrame, Index: number, From: string, T: number, Lane: number, Position: Vector3, GroundAt: number, Speed: number, Look: Vector3? }
 type Heli = { Model: Model, Offset: CFrame, Beam: BasePart, Angle: number, Position: Vector3 }
 type Force = { Cars: { Car }, Helis: { Heli }, Officers: { Officer }, Target: Vector3?, Stars: number, Folder: Folder }
 
@@ -596,9 +599,73 @@ local function spawnPatrol(near: Vector3): Patrol?
 	anchorAll(model)
 	model:SetAttribute("Siren", false)
 	model:SetAttribute("Patrol", true)
-	local patrol: Patrol = { Model = model, Offset = cf:ToObjectSpace(model:GetPivot()), Index = index, From = from, T = 0.5, Lane = lane, Position = ground, GroundAt = 0 }
+	local patrol: Patrol = { Model = model, Offset = cf:ToObjectSpace(model:GetPivot()), Index = index, From = from, T = 0.5, Lane = lane, Position = ground, GroundAt = 0, Speed = Wanted.Patrols.Speed, Look = dir }
 	table.insert(patrols, patrol)
 	return patrol
+end
+
+-- Semáforos: el mismo ciclo que los coches del tráfico (Controllers/Traffic), con la hora del servidor
+local CYCLE = 30
+local function signal(axis: string): string
+	local t = workspace:GetServerTimeNow() % CYCLE
+	if axis == "X" then
+		return if t < 12 then "Green" elseif t < 15 then "Yellow" else "Red"
+	end
+	return if t < 15 then "Red" elseif t < 27 then "Green" else "Yellow"
+end
+
+-- ¿Hay semáforo en ese cruce? (se mira una vez por cruce y se guarda)
+local lightAt: { [string]: boolean } = {}
+local function hasLight(point: Vector3): boolean
+	local key = PatrolRoutes.key(point)
+	local known = lightAt[key]
+	if known == nil then
+		known = false
+		for _, model in CollectionService:GetTagged("TrafficLight") do
+			local arm = model:FindFirstChild("Arm")
+			if arm and arm:IsA("BasePart") and flatDistance(arm.Position, point) < 40 then
+				known = true
+				break
+			end
+		end
+		lightAt[key] = known
+	end
+	return known
+end
+
+local PATROL_LENGTH = 14 -- (largo del coche patrulla, para guardar distancia)
+local PATROL_DECEL = 26
+
+-- Espacio libre por delante: semáforo en rojo al final del tramo, la patrulla de delante o alguien
+-- (un jugador) en su carril
+local function patrolGap(patrol: Patrol, segment: PatrolRoutes.Segment, length: number, dir: Vector3): number
+	local gap = math.huge
+	local left = (1 - patrol.T) * length
+	local ends = if patrol.From == "A" then segment.B else segment.A
+	if left < 80 and hasLight(ends) then
+		local state = signal(if math.abs(dir.X) > math.abs(dir.Z) then "X" else "Z")
+		local toLine = left - 16 - PATROL_LENGTH / 2
+		if toLine > -1 and (state == "Red" or (state == "Yellow" and toLine > 10)) then
+			gap = math.min(gap, math.max(toLine, 0))
+		end
+	end
+	for _, other in patrols do
+		if other ~= patrol and other.Index == patrol.Index and other.From == patrol.From and other.T > patrol.T then
+			gap = math.min(gap, (other.T - patrol.T) * length - PATROL_LENGTH)
+		end
+	end
+	local side = V(-dir.Z, 0, dir.X)
+	for _, player in Players:GetPlayers() do
+		local r = playerRoot(player)
+		if r then
+			local rel = r.Position - patrol.Position
+			local ahead = rel:Dot(dir)
+			if ahead > 0 and ahead < 24 and math.abs(rel:Dot(side)) < 4.5 and math.abs(rel.Y) < 8 then
+				gap = math.min(gap, ahead - PATROL_LENGTH / 2 - 2)
+			end
+		end
+	end
+	return gap
 end
 
 local function stepPatrol(patrol: Patrol, dt: number)
@@ -607,7 +674,15 @@ local function stepPatrol(patrol: Patrol, dt: number)
 	if not segment then
 		return
 	end
-	patrol.T += Wanted.Patrols.Speed * dt / math.max(PatrolRoutes.length(segment), 1)
+	local length = math.max(PatrolRoutes.length(segment), 1)
+	local _, ahead = PatrolRoutes.point(segment, patrol.From, patrol.T, patrol.Lane)
+	-- Frena y arranca poco a poco (como el tráfico: raíz de 2·frenada·hueco)
+	local gap = patrolGap(patrol, segment, length, ahead)
+	local target = math.min(Wanted.Patrols.Speed, math.sqrt(2 * PATROL_DECEL * math.max(gap - 1.5, 0)))
+	local speed = patrol.Speed or Wanted.Patrols.Speed
+	speed = math.max(speed + math.clamp(target - speed, -PATROL_DECEL * 2 * dt, 14 * dt), 0)
+	patrol.Speed = speed
+	patrol.T += speed * dt / length
 	if patrol.T >= 1 then
 		-- Final del tramo: sigue por otra calle del cruce (o da la vuelta si no hay salida)
 		local arrived = if patrol.From == "A" then "B" else "A"
@@ -624,8 +699,18 @@ local function stepPatrol(patrol: Patrol, dt: number)
 		patrol.GroundAt = now
 		y = groundAt(point).Y
 	end
-	patrol.Position = V(point.X, y, point.Z)
-	patrol.Model:PivotTo(CFrame.lookAt(patrol.Position, patrol.Position + dir) * patrol.Offset)
+	-- En las esquinas gira y se arrima a su carril poco a poco (antes daba un salto y un giro en seco)
+	local blend = math.min(1, dt * 6)
+	local flat = V(patrol.Position.X, 0, patrol.Position.Z):Lerp(V(point.X, 0, point.Z), blend)
+	if flatDistance(flat, point) > 20 then
+		flat = V(point.X, 0, point.Z) -- (un salto grande: callejón sin salida o recién puesta)
+	end
+	patrol.Position = V(flat.X, y, flat.Z)
+	local look = patrol.Look or dir
+	local turned = look:Lerp(dir, math.min(1, dt * 4))
+	look = if turned.Magnitude > 0.01 then turned.Unit else dir
+	patrol.Look = look
+	patrol.Model:PivotTo(CFrame.lookAt(patrol.Position, patrol.Position + look) * patrol.Offset)
 end
 
 -- Cuántas patrullas de ronda hay: según los jugadores; las que se quedan lejos de todos se retiran

@@ -8,6 +8,10 @@
 --    mano y repartidores con la caja a la espalda. De vez en cuando alguien cerca suelta una frase.
 --    Si chocas con uno (o lo empujas), se aparta de lado con un traspiés, te mira y a veces suelta
 --    un "¡Eh!"; luego sigue su camino. Si llega tu coche, se tira a un lado.
+--    En los cruces con semáforo esperan en el bordillo a tener verde (Traffic.mayCross) y, cruzando,
+--    los coches los ven y frenan (Traffic.setWalkers). Si alguien va más despacio delante, le
+--    adelantan por la izquierda. Si empieza a llover sacan el paraguas (y aprietan el paso); si
+--    para, lo guardan. Aparecen y se retiran fuera de tu vista. Los niños, a casa a las 19:30.
 
 local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
@@ -52,6 +56,8 @@ type Road = {
 	Behind: Link?,
 	StartMargin: number,
 	EndMargin: number,
+	CrossStart: number?, -- lo que ocupa la calzada de la calle que cruza al principio / al final
+	CrossEnd: number?, -- (el paso de peatones: ahí se espera al verde y ahí los coches frenan)
 	WalkIn: number?, -- la acera va de WalkIn a WalkOut del centro (a los dos lados)
 	WalkOut: number?,
 	Obstacles: { Sidewalk.Obstacle }, -- farolas, papeleras, quioscos… (shared/Sidewalk)
@@ -81,6 +87,8 @@ type Agent = {
 	TurnAt: number?, -- cuándo empezó a darse la vuelta (al final de la acera)
 	Keep: number?, -- lo que se arrima a su derecha (los que van y vienen no se atraviesan)
 	Dodge: number?, -- lo que se aparta de su sitio para esquivar una farola, una papelera…
+	Lateral: number?, -- dónde iba en la acera el último fotograma (para adelantar)
+	PassUntil: number?, -- adelantando por la izquierda hasta entonces
 }
 
 local roads: { Road } = {}
@@ -106,6 +114,8 @@ local function focus(): Vector3?
 	local camera = workspace.CurrentCamera
 	return camera and camera.Focus.Position
 end
+
+local inView = Traffic.inView
 
 -- Elige una calle cercana y una posición en ella a una distancia razonable del jugador
 local function spawnPoint(center: Vector3, minDist: number, maxDist: number): (Road?, number)
@@ -149,6 +159,7 @@ local HAIR = { Color3.fromRGB(30, 22, 18), Color3.fromRGB(90, 60, 30), Color3.fr
 local function pick<T>(list: { T }): T
 	return list[math.random(1, #list)]
 end
+local JOG_SHIRTS = { Color3.fromRGB(250, 120, 40), Color3.fromRGB(60, 200, 220), Color3.fromRGB(240, 240, 240), Color3.fromRGB(230, 60, 120) }
 
 -- Tipos de peatón (con su probabilidad): paseando, corriendo, con el perro, con bolsas de la
 -- compra, mirando el móvil o niños. Si llueve, casi todos sacan el paraguas.
@@ -185,7 +196,7 @@ local function makePed(): Agent
 	local scale = if style == "Kid" then 0.68 else 1
 	local skin, shirt, pants = pick(SKIN), pick(CLOTHES), pick(PANTS)
 	if style == "Jog" then
-		shirt, pants = pick({ Color3.fromRGB(250, 120, 40), Color3.fromRGB(60, 200, 220), Color3.fromRGB(240, 240, 240), Color3.fromRGB(230, 60, 120) }), Color3.fromRGB(30, 30, 34)
+		shirt, pants = pick(JOG_SHIRTS), Color3.fromRGB(30, 30, 34)
 	end
 	local s = scale
 	local specs = {
@@ -264,8 +275,54 @@ local function makePed(): Agent
 	}
 end
 
+-- Ropa nueva al reciclarlo (antes, el que se iba lejos volvía a salir cerca con la misma ropa: se
+-- veía a la misma persona pasar una y otra vez)
+local function redress(agent: Agent)
+	local parts, i = agent.Parts, agent.Index
+	local skin, shirt, pants = pick(SKIN), pick(CLOTHES), pick(PANTS)
+	if agent.Style == "Jog" then
+		shirt, pants = pick(JOG_SHIRTS), Color3.fromRGB(30, 30, 34)
+	end
+	parts[i.Torso].Color, parts[i.ArmL].Color, parts[i.ArmR].Color = shirt, shirt, shirt
+	parts[i.LegL].Color, parts[i.LegR].Color = pants, pants
+	parts[i.Head].Color, parts[i.Hair].Color = skin, pick(HAIR)
+	if i.P_Torso then
+		local pShirt, pPants = pick(CLOTHES), pick(PANTS)
+		parts[i.P_Torso].Color, parts[i.P_ArmL].Color, parts[i.P_ArmR].Color = pShirt, pShirt, pShirt
+		parts[i.P_LegL].Color, parts[i.P_LegR].Color = pPants, pPants
+		parts[i.P_Head].Color, parts[i.P_Hair].Color = pick(SKIN), pick(HAIR)
+	end
+	parts[i.Umbrella].Color = pick(UMBRELLA_COLORS)
+end
+
+-- Paraguas: casi todos lo sacan si llueve (los que corren, no)
+local function setUmbrella(agent: Agent, rain: boolean)
+	agent.Umbrella = rain and agent.Style ~= "Jog" and math.random() < 0.85
+	local stick, canopy = agent.Parts[agent.Index.UmbrellaStick], agent.Parts[agent.Index.Umbrella]
+	stick.Transparency = if agent.Umbrella then 0 else 1
+	canopy.Transparency = if agent.Umbrella then 0 else 1
+end
+
+-- ¿Se vería aparecer ahí? (cerca y delante de la cámara)
+local function inSight(road: Road, u: number, center: Vector3): boolean
+	local at = point(road, u, road.Walk or 15.5, WALK_TOP)
+	return (at - center).Magnitude <= 170 and inView(at)
+end
+
 local function respawnPed(agent: Agent, center: Vector3, initial: boolean)
 	local road, u = spawnPoint(center, if initial then 10 else 90, 200)
+	-- Nunca aparece a la vista (salvo lejos): antes salía gente de la nada a 90 studs delante de ti
+	if not initial then
+		for _ = 1, 4 do
+			if not road or not inSight(road, u, center) then
+				break
+			end
+			road, u = spawnPoint(center, 90, 200)
+		end
+		if road and inSight(road, u, center) then
+			road = nil -- (se prueba otra vez en otro fotograma)
+		end
+	end
 	if road and not road.Walk then
 		road = nil -- las autovías no tienen acera
 	end
@@ -277,7 +334,10 @@ local function respawnPed(agent: Agent, center: Vector3, initial: boolean)
 	agent.U = u
 	agent.Dir = if math.random() < 0.5 then 1 else -1
 	agent.Side = if math.random() < 0.5 then 1 else -1
-	agent.TurnAt, agent.Keep, agent.Dodge = nil, nil, nil
+	agent.TurnAt, agent.Keep, agent.Dodge, agent.PassUntil, agent.Lateral = nil, nil, nil, nil, nil
+	if not initial then
+		redress(agent)
+	end
 	local style = agent.Style
 	agent.Cruise = if style == "Jog" then 9 + math.random() * 2.5
 		elseif style == "Kid" then 4 + math.random() * 1.5
@@ -285,11 +345,7 @@ local function respawnPed(agent: Agent, center: Vector3, initial: boolean)
 		elseif style == "Delivery" then 7 + math.random() * 1.5
 		else 4.5 + math.random() * 2.5
 	agent.Speed = agent.Cruise
-	-- Paraguas: casi todos lo sacan si llueve (los que corren, no)
-	agent.Umbrella = raining() and style ~= "Jog" and math.random() < 0.85
-	local stick, canopy = agent.Parts[agent.Index.UmbrellaStick], agent.Parts[agent.Index.Umbrella]
-	stick.Transparency = if agent.Umbrella then 0 else 1
-	canopy.Transparency = if agent.Umbrella then 0 else 1
+	setUmbrella(agent, raining())
 	setActive(agent, true)
 end
 
@@ -463,6 +519,16 @@ local function chatter(center: Vector3)
 			local d = (head.Position - center).Magnitude
 			if d > 10 and d < 40 then
 				local lines = if raining() and math.random() < 0.5 then CHATTER.Rain else (CHATTER[ped.Style] or CHATTER.Walk)
+				if not ped.Umbrella and lines == CHATTER.Rain then
+					-- (lo del paraguas, solo quien lleva uno)
+					local dry = {}
+					for _, line in lines do
+						if not string.find(line, "paraguas", 1, true) then
+							table.insert(dry, line)
+						end
+					end
+					lines = dry
+				end
 				local text = TimeContext.pick(lines, hour, weather)
 				if text then
 					Nudge.say(head, text, 2.4)
@@ -473,10 +539,68 @@ local function chatter(center: Vector3)
 	end
 end
 
+-- ¿Espera en el bordillo? Va a pisar la calzada de la calle que cruza (paso de peatones) y el semáforo
+-- no le deja (Traffic.mayCross). Una vez cruzando, sigue.
+local function waitsAtCurb(ped: Agent, road: Road, nextU: number): boolean
+	if ped.Dir > 0 then
+		local cross = road.CrossEnd
+		if not road.Ahead or not cross or cross <= 0 then
+			return false
+		end
+		local line = road.To - cross
+		if ped.U > line or nextU <= line then
+			return false
+		end
+		return not Traffic.mayCross(point(road, road.To, 0, 0), road.Dir)
+	end
+	local cross = road.CrossStart
+	if not road.Behind or not cross or cross <= 0 then
+		return false
+	end
+	local line = road.From + cross
+	if ped.U < line or nextU >= line then
+		return false
+	end
+	return not Traffic.mayCross(point(road, road.From, 0, 0), road.Dir)
+end
+
+-- ¿Está en la calzada, cruzando? (para que los coches le vean)
+local function crossing(ped: Agent, road: Road): boolean
+	return (road.CrossEnd ~= nil and road.CrossEnd > 0 and road.Ahead ~= nil and ped.U > road.To - road.CrossEnd)
+		or (road.CrossStart ~= nil and road.CrossStart > 0 and road.Behind ~= nil and ped.U < road.From + road.CrossStart)
+end
+
+local lastRain: boolean? = nil
+
 local function updatePeds(dt: number, center: Vector3)
 	local clock = Lighting.ClockTime
-	local night = clock < 7 or clock > 21.5
+	-- Los niños, solo de 8:00 a 19:30 (de noche no hay críos solos por la calle)
+	local kidsOut = clock >= 8 and clock < 19.5
 	local now = os.clock()
+	-- Cambia el tiempo: sacan o guardan el paraguas
+	local rain = raining()
+	if lastRain ~= nil and rain ~= lastRain then
+		for _, ped in peds do
+			setUmbrella(ped, rain)
+		end
+	end
+	lastRain = rain
+	-- Con lluvia, aprietan el paso (los que corren ya van deprisa)
+	local hurry = if rain then 1.3 else 1
+	-- Quién va por cada calle (para adelantar al que va más despacio)
+	local byRoad: { [Road]: { Agent } } = {}
+	for _, ped in peds do
+		local r = ped.Road
+		if ped.Active and r then
+			local list = byRoad[r]
+			if not list then
+				list = {}
+				byRoad[r] = list
+			end
+			table.insert(list, ped)
+		end
+	end
+	local walkers: { Vector3 } = {}
 	local weekday = nil
 	pcall(function()
 		weekday = ((workspace:GetAttribute("Day") or 1) - 1) % 7 + 1
@@ -494,12 +618,14 @@ local function updatePeds(dt: number, center: Vector3)
 	end
 	for i, ped in peds do
 		-- Según la hora y el tiempo sale más o menos gente (Ambient.density); de noche, ningún niño
-		local wanted = (i - 0.5) / #peds <= share and not (night and ped.Style == "Kid")
+		local wanted = (i - 0.5) / #peds <= share and not (not kidsOut and ped.Style == "Kid")
 		if not wanted then
-			-- Se retira el que está lejos; el que tienes a la vista sigue su camino hasta que se aleja
-			-- (antes, a las 21:30, la mitad de la gente desaparecía de golpe delante de ti)
+			-- Se retira el que está lejos (y fuera de la vista); el que tienes a la vista sigue su camino
+			-- hasta que se aleja (antes, a las 21:30, la mitad de la gente desaparecía de golpe delante de ti)
 			local r = ped.Road
-			if not ped.Active or not r or (point(r, ped.U, ped.Side * (r.Walk or 15.5), WALK_TOP) - center).Magnitude > SEEN then
+			local at = if r then point(r, ped.U, ped.Side * (r.Walk or 15.5), WALK_TOP) else center
+			local d = (at - center).Magnitude
+			if not ped.Active or not r or (d > SEEN and (d > 200 or not inView(at))) then
 				setActive(ped, false)
 				ped.Road = nil
 				continue
@@ -523,14 +649,35 @@ local function updatePeds(dt: number, center: Vector3)
 		if turning then
 			ped.Phase += dt * 3 -- (unos pasitos en el sitio al girar)
 		elseif not stunned then
-			ped.U += ped.Dir * ped.Speed * dt
-			ped.Phase += dt * ped.Speed * (if ped.Style == "Kid" then 2.1 elseif ped.Style == "Jog" then 1.1 else 1.5)
+			local pace = ped.Speed * (if ped.Style == "Jog" or ped.PanicUntil then 1 else hurry)
+			local step = ped.Dir * pace * dt
+			if not ped.PanicUntil and waitsAtCurb(ped, road, ped.U + step) then
+				step = 0 -- (espera al verde en el bordillo)
+			end
+			ped.U += step
+			if step ~= 0 then
+				ped.Phase += dt * pace * (if ped.Style == "Kid" then 2.1 elseif ped.Style == "Jog" then 1.1 else 1.5)
+			end
 		end
 		-- Se aparta de lado y, pasado el susto, vuelve poco a poco a su sitio en la acera
 		local shoveTarget = if ped.ReactAt and now - ped.ReactAt < 2.2 then (ped.Shove or 0) else 0
 		ped.ShoveNow = (ped.ShoveNow or 0) + (shoveTarget - (ped.ShoveNow or 0)) * math.min(1, dt * (if shoveTarget ~= 0 then 7 else 1.5))
 		-- Por su derecha: el que viene de frente pasa por el otro lado (antes se atravesaban)
-		local keepTarget = ped.Dir * KEEP_RIGHT -- (Perp·Dir es la derecha de hacia donde anda)
+		-- Adelantar: si alcanza a alguien más lento que va por su mismo lado, le pasa por la izquierda
+		-- (antes se atravesaban)
+		if not turning and not stunned and ped.Lateral then
+			for _, other in byRoad[road] or {} do
+				if other ~= ped and other.Dir == ped.Dir and other.Side == ped.Side and other.Lateral then
+					local ahead = (other.U - ped.U) * ped.Dir
+					if ahead > 0 and ahead < 3.5 and math.abs(other.Lateral - ped.Lateral) < 1.6 and ped.Speed > other.Speed + 0.3 then
+						ped.PassUntil = now + 1.8
+						break
+					end
+				end
+			end
+		end
+		local passing = ped.PassUntil ~= nil and now < ped.PassUntil
+		local keepTarget = ped.Dir * (if passing then KEEP_RIGHT - 1.9 else KEEP_RIGHT) -- (Perp·Dir es la derecha de hacia donde anda)
 		ped.Keep = (ped.Keep or keepTarget) + (keepTarget - (ped.Keep or keepTarget)) * math.min(1, dt * 2)
 		-- Esquivar lo que haya en la acera (farolas, papeleras, jardineras, quioscos, árboles…): se
 		-- aparta a tiempo por el hueco libre más cercano; si aún lo tiene justo delante, espera a
@@ -558,11 +705,15 @@ local function updatePeds(dt: number, center: Vector3)
 		end
 		ped.Dodge = (ped.Dodge or 0) + (dodgeTarget - (ped.Dodge or 0)) * math.min(1, dt * 5)
 		local lateral = base + (ped.Dodge or 0) + (ped.ShoveNow or 0)
+		ped.Lateral = lateral
 		local pos = point(road, ped.U, lateral, WALK_TOP)
-		local far = (pos - center).Magnitude > SEEN
+		local dist = (pos - center).Magnitude
+		local far = dist > SEEN
 		local pastEnd = ped.U > road.To - road.EndMargin and ped.Dir > 0
 		local pastStart = ped.U < road.From + road.StartMargin and ped.Dir < 0
-		if (pos - center).Magnitude > 240 or ((pastEnd or pastStart) and far) then
+		-- (a la vista no se recicla: sigue andando hasta que sale de la vista o está muy lejos)
+		local hidden = dist > 300 or not inView(pos)
+		if (dist > 240 and hidden) or ((pastEnd or pastStart) and far and hidden) then
 			-- Lejos del jugador: se recicla cerca de él (aquí nadie lo ve irse)
 			respawnPed(ped, center, false)
 			ped.ReactAt, ped.Shove, ped.ShoveNow, ped.TurnAt, ped.Keep, ped.Dodge = nil, nil, nil, nil, nil, nil
@@ -628,7 +779,11 @@ local function updatePeds(dt: number, center: Vector3)
 			end
 		end
 		posePed(ped, CFrame.new(pos) * facing, reactWeight(ped, now))
+		if ped.Road and crossing(ped, ped.Road) and dist < 260 then
+			table.insert(walkers, pos)
+		end
 	end
+	Traffic.setWalkers(walkers)
 end
 
 ---------------------------------------------------------------------
@@ -708,9 +863,11 @@ function Ambient.link(list: { Road })
 			if atEnd then
 				r.Ahead = best
 				r.EndMargin = if best then 0 else math.min(margin, math.max(0, (r.To - r.From) / 3))
+				r.CrossEnd = if best then math.min(margin, math.max(0, (r.To - r.From) / 3)) else 0
 			else
 				r.Behind = best
 				r.StartMargin = if best then 0 else math.min(margin, math.max(0, (r.To - r.From) / 3))
+				r.CrossStart = if best then math.min(margin, math.max(0, (r.To - r.From) / 3)) else 0
 			end
 		end
 	end
@@ -792,6 +949,7 @@ function Ambient.init()
 		Traffic.update(dt)
 		-- Dentro de un edificio (salas en el cielo) no hay peatones que mover: se quedan en su sitio
 		if c.Y > 3000 then
+			Traffic.setWalkers({})
 			return
 		end
 		updatePeds(math.min(dt, 0.1), c)

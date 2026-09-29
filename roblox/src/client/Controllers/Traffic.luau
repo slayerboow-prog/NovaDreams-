@@ -4,7 +4,10 @@
 --    al llegar a un cruce eligen seguir recto o girar, y giran con una curva suave.
 --  * Van por la derecha; las bicis y los patinetes, más pegados a la acera y más despacio.
 --    Las bicis y patinetes no se meten en la autovía si pueden evitarlo.
---  * Guardan distancia con el de delante y frenan si el jugador se pone delante.
+--  * Guardan distancia con el de delante (también con las bicis, si van por su mismo carril), frenan
+--    si se pone delante un jugador (o su coche entero), o un peatón cruzando, y en los cruces sin
+--    semáforo pasan de uno en uno. Si llevan un rato parados detrás de ti, te pitan («¡Piii!»).
+--  * Aparecen y se retiran fuera de tu vista (detrás de la cámara o muy lejos), no delante de ti.
 --  * Con lluvia o nieve van más despacio (shared/Wetness).
 --  * Semáforos: las luces cambian (verde, ámbar, rojo) igual para todos los jugadores y los
 --    vehículos paran en rojo antes del cruce.
@@ -22,6 +25,7 @@ local BusRoute = require(ReplicatedStorage.Shared.BusRoute)
 local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
 local Wetness = require(ReplicatedStorage.Shared.Wetness)
 local Perf = require(script.Parent.Parent.UI.Perf)
+local Nudge = require(script.Parent.Nudge)
 
 local Traffic = {}
 
@@ -30,14 +34,16 @@ local player = Players.LocalPlayer
 local ROAD_TOP = 0.4
 local CELL = 100 -- rejilla para buscar cruces cercanos
 local SPAWN_MIN, SPAWN_MAX, DESPAWN = 150, 330, 420
+local HIDDEN = 200 -- más cerca que esto, solo aparecen (o se retiran) fuera de la vista de la cámara
 local DECEL = 26 -- frenada (studs/s²)
 
 -- Tipos de vehículo: cuántos hay alrededor del jugador y cómo circulan
+-- (Width: el ancho, para ver si dos vehículos en carriles distintos se rozan)
 local KINDS = {
-	Car = { Count = 20, Cruise = { 26, 40 }, Length = 13.5, Small = false },
-	Moto = { Count = 4, Cruise = { 30, 42 }, Length = 6, Small = false },
-	Bici = { Count = 6, Cruise = { 11, 16 }, Length = 5, Small = true },
-	Patinete = { Count = 3, Cruise = { 12, 15 }, Length = 4, Small = true },
+	Car = { Count = 20, Cruise = { 26, 40 }, Length = 13.5, Width = 6.6, Small = false },
+	Moto = { Count = 4, Cruise = { 30, 42 }, Length = 6, Width = 2.2, Small = false },
+	Bici = { Count = 6, Cruise = { 11, 16 }, Length = 5, Width = 1.8, Small = true },
+	Patinete = { Count = 3, Cruise = { 12, 15 }, Length = 4, Width = 1.4, Small = true },
 }
 
 local SKIN = { Color3.fromRGB(255, 219, 182), Color3.fromRGB(234, 184, 146), Color3.fromRGB(198, 140, 100), Color3.fromRGB(141, 94, 64), Color3.fromRGB(96, 64, 44) }
@@ -52,6 +58,7 @@ type Agent = {
 	Kind: string,
 	Small: boolean,
 	Length: number,
+	Width: number,
 	Parts: { BasePart },
 	Offsets: { CFrame },
 	Pedals: { { Index: number, Pivot: Vector3, Side: number } },
@@ -67,6 +74,9 @@ type Agent = {
 	Braking: boolean,
 	Turn: number, -- -1 izquierda, 0 recto, 1 derecha
 	Phase: number,
+	Look: Vector3?, -- hacia dónde mira el morro (suavizado)
+	StuckAt: number?, -- desde cuándo está parado detrás del jugador
+	HonkAt: number?,
 }
 
 local nodes: { Vector3 } = {}
@@ -95,7 +105,8 @@ local function laneOf(edge: Edge?, small: boolean): number
 	local w = if edge then edge.W else 24
 	local lane = if w > 30 then w * 0.2 else 2.9
 	if small then
-		lane = math.min(lane + 3.2, w / 2 - 2)
+		-- (bien pegadas a la acera: un coche en su carril pasa a su lado sin rozarlas)
+		lane = math.min(lane + 4.4, w / 2 - 2)
 	end
 	return lane
 end
@@ -143,14 +154,21 @@ end
 ---------------------------------------------------------------------
 local CYCLE = 30
 
--- Estado del semáforo para quien circula a lo largo del eje X o Z
-local function signal(axis: string): string
+-- Estado del semáforo para quien circula a lo largo del eje X o Z (y cuántos segundos le quedan)
+local function signal(axis: string): (string, number)
 	local t = workspace:GetServerTimeNow() % CYCLE
 	if axis == "X" then
-		return if t < 12 then "Green" elseif t < 15 then "Yellow" else "Red"
+		if t < 12 then
+			return "Green", 12 - t
+		end
+		return if t < 15 then "Yellow" else "Red", 0
 	end
-	return if t < 15 then "Red" elseif t < 27 then "Green" else "Yellow"
+	if t < 15 then
+		return "Red", 0
+	end
+	return if t < 27 then "Green" else "Yellow", math.max(27 - t, 0)
 end
+Traffic.signal = signal
 
 type Light = { Axis: string, Lamps: { { Part: BasePart, Role: string } } }
 local lights: { [Model]: Light } = {}
@@ -199,6 +217,37 @@ local function addLight(model: Instance)
 	end
 end
 
+-- ¿Puede cruzar ya un peatón que va en dirección dir y llega al cruce de `at`? En los cruces con
+-- semáforo, solo con verde para su eje (los coches de la otra calle tienen rojo) y con tiempo de
+-- sobra para llegar al otro lado; sin semáforo, sí (los coches le ceden el paso: Traffic.setWalkers)
+function Traffic.mayCross(at: Vector3, dir: Vector3): boolean
+	local node = nearestNode(at, 40)
+	if not node or not lightNodes[node] then
+		return true
+	end
+	local state, left = signal(if math.abs(dir.X) > math.abs(dir.Z) then "X" else "Z")
+	return state == "Green" and left > 4
+end
+
+-- Peatones cruzando la calzada ahora mismo (los pone Controllers/Ambient cada fotograma): los coches
+-- frenan ante ellos
+local walkers: { Vector3 } = {}
+function Traffic.setWalkers(list: { Vector3 })
+	walkers = list
+end
+
+-- ¿Se ve este punto desde la cámara? (más o menos delante de ella)
+local function inView(p: Vector3): boolean
+	local camera = workspace.CurrentCamera
+	if not camera then
+		return false
+	end
+	local rel = p - camera.CFrame.Position
+	local d = rel.Magnitude
+	return d > 0.01 and rel:Dot(camera.CFrame.LookVector) / d > 0.3
+end
+Traffic.inView = inView
+
 local shown: { [string]: string } = {}
 local function refreshLights()
 	local state = { X = signal("X"), Z = signal("Z") }
@@ -233,6 +282,7 @@ local function makeAgent(template: Model, kind: string): Agent
 		Kind = kind,
 		Small = info.Small,
 		Length = info.Length,
+		Width = info.Width,
 		Parts = {},
 		Offsets = {},
 		Pedals = {},
@@ -438,6 +488,10 @@ local function respawn(agent: Agent, center: Vector3, minDist: number)
 		if dist < minDist or dist > SPAWN_MAX then
 			continue
 		end
+		-- Nunca aparece a la vista (salvo muy lejos): antes salían coches de la nada delante de ti
+		if dist < HIDDEN and minDist >= SPAWN_MIN and inView(Vector3.new(spot.Pos.X, ROAD_TOP, spot.Pos.Z)) then
+			continue
+		end
 		-- Sentido al azar
 		local from, to, s = spot.From, spot.To, spot.S
 		if math.random() < 0.5 then
@@ -462,6 +516,7 @@ local function respawn(agent: Agent, center: Vector3, minDist: number)
 			local range = KINDS[agent.Kind].Cruise
 			agent.Cruise = range[1] + math.random() * (range[2] - range[1])
 			agent.Speed = agent.Cruise * 0.8
+			agent.Look, agent.StuckAt = nil, nil
 			setActive(agent, true)
 			return
 		end
@@ -469,19 +524,67 @@ local function respawn(agent: Agent, center: Vector3, minDist: number)
 	setActive(agent, false)
 end
 
--- Espacio libre por delante (otro vehículo, un semáforo en rojo o el jugador)
-local function freeGap(agent: Agent, pos: Vector3, dir: Vector3, me: BasePart?): number
+-- Cruces sin semáforo (de 3 calles o más): pasan de uno en uno. Quien llega primero se lo "pide" y
+-- los demás esperan antes de entrar (antes se cruzaban unos a través de otros)
+local claims: { [number]: { Agent: Agent, At: number } } = {}
+local function holds(holder: Agent, node: number): boolean
+	if not holder.Active then
+		return false
+	end
+	if holder.To == node then
+		return true
+	end
+	return holder.From == node and holder.S < turnRadius(node, edgeLength(holder.From, holder.To)) + holder.Length
+end
+
+-- Algo por delante en la calzada (una persona o el coche de un jugador): { Pos, Box?, Size? }
+type Obstacle = { Pos: Vector3, Box: CFrame?, Size: Vector3?, Mine: boolean? }
+
+-- Cuánto sobresale una caja en una dirección (desde su centro)
+local function reach(box: CFrame, size: Vector3, d: Vector3): number
+	return math.abs(d:Dot(box.RightVector)) * size.X / 2 + math.abs(d:Dot(box.UpVector)) * size.Y / 2 + math.abs(d:Dot(box.LookVector)) * size.Z / 2
+end
+
+-- Espacio libre por delante (otro vehículo, un semáforo en rojo, un cruce ocupado, un peatón o un
+-- jugador). Devuelve también si lo que para es el jugador (para pitarle).
+local function freeGap(agent: Agent, pos: Vector3, dir: Vector3, obstacles: { Obstacle }): (number, boolean)
 	local gap = math.huge
 	local L = edgeLength(agent.From, agent.To)
+	local myLane = laneOf(edgeOf(agent.From, agent.To), agent.Small)
 	for _, other in agents do
-		if other == agent or not other.Active or (other.Small and not agent.Small) then
+		if other == agent or not other.Active then
 			continue
 		end
 		local half = (other.Length + agent.Length) / 2
+		local ahead = nil
+		local otherLane = 0
 		if other.From == agent.From and other.To == agent.To and other.S > agent.S then
-			gap = math.min(gap, other.S - agent.S - half)
+			ahead = other.S - agent.S - half
+			otherLane = laneOf(edgeOf(other.From, other.To), other.Small)
 		elseif other.From == agent.To and other.To == agent.Next then
-			gap = math.min(gap, L - agent.S + other.S - half)
+			ahead = L - agent.S + other.S - half
+			otherLane = laneOf(edgeOf(other.From, other.To), other.Small)
+		end
+		-- Bicis y patinetes cuentan si van por el mismo carril (se rozarían); en su carril pegado a
+		-- la acera, el coche pasa a su lado
+		if ahead and (other.Small == agent.Small or math.abs(otherLane - myLane) < (other.Width + agent.Width) / 2) then
+			gap = math.min(gap, ahead)
+		end
+	end
+	-- Cruce sin semáforo: de uno en uno
+	local node = agent.To
+	if not lightNodes[node] and not roundabout[node] and #(edges[node] or {}) >= 3 then
+		local toLine = (L - 14) - agent.S - agent.Length / 2
+		if toLine < 14 then
+			local claim = claims[node]
+			local now = os.clock()
+			if claim and claim.Agent ~= agent and holds(claim.Agent, node) and now - claim.At < 8 then
+				if toLine > -1 then
+					gap = math.min(gap, math.max(toLine, 0))
+				end
+			elseif not claim or claim.Agent ~= agent then
+				claims[node] = { Agent = agent, At = now }
+			end
 		end
 	end
 	-- Semáforo antes del cruce
@@ -505,15 +608,27 @@ local function freeGap(agent: Agent, pos: Vector3, dir: Vector3, me: BasePart?):
 			end
 		end
 	end
-	if me then
-		local rel = me.Position - pos
+	-- Personas y coches de jugadores delante (del coche del jugador cuenta la caja entera, no solo
+	-- dónde va sentado: antes le atravesaban el morro o la cola)
+	local byPlayer = false
+	local side = right(dir)
+	for _, o in obstacles do
+		local rel = o.Pos - pos
 		local ahead = rel:Dot(dir)
-		local lateral = math.abs(rel:Dot(right(dir)))
-		if ahead > 0 and ahead < 22 and lateral < 4.5 and math.abs(rel.Y) < 8 then
-			gap = math.min(gap, ahead - agent.Length / 2 - 2)
+		local lateral = math.abs(rel:Dot(side))
+		local long, wide = 0, 0
+		if o.Box and o.Size then
+			long, wide = reach(o.Box, o.Size, dir), reach(o.Box, o.Size, side)
+		end
+		if ahead + long > 0 and ahead - long < 22 and lateral - wide < agent.Width / 2 + 1.2 and math.abs(rel.Y) < 8 + (if o.Size then o.Size.Y / 2 else 0) then
+			local g = ahead - long - agent.Length / 2 - 2
+			if g < gap then
+				gap = g
+				byPlayer = o.Mine == true
+			end
 		end
 	end
-	return gap
+	return gap, byPlayer
 end
 
 local TAIL_DIM, TAIL_BRAKE = Color3.fromRGB(150, 14, 22), Color3.fromRGB(255, 36, 44)
@@ -544,10 +659,39 @@ local function place(agent: Agent, pos: Vector3, dir: Vector3)
 	workspace:BulkMoveTo(agent.Parts, cframes, Enum.BulkMoveMode.FireCFrameChanged)
 end
 
+-- Lo que ocupa cada jugador en la calle: su cuerpo o, si va en un vehículo, la caja entera del vehículo
+local function playerObstacles(list: { Obstacle })
+	for _, p in Players:GetPlayers() do
+		local character = p.Character
+		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+		if not root then
+			continue
+		end
+		local humanoid = character:FindFirstChildOfClass("Humanoid")
+		local seat = humanoid and humanoid.SeatPart
+		local vehicle = seat and seat:FindFirstAncestorOfClass("Model")
+		local o: Obstacle = { Pos = root.Position, Mine = p == player }
+		if vehicle and vehicle ~= character then
+			local ok, box, size = pcall(function()
+				return (vehicle :: Model):GetBoundingBox()
+			end)
+			if ok and box and size.Magnitude < 80 then
+				o.Pos, o.Box, o.Size = box.Position, box, size
+			end
+		end
+		table.insert(list, o)
+	end
+end
+
 local blink = 0
 local function step(dt: number, center: Vector3)
-	local character = player.Character
-	local me = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	-- Jugadores (con sus vehículos) y peatones cruzando: una lista por fotograma para todos los coches
+	local obstacles: { Obstacle } = {}
+	playerObstacles(obstacles)
+	for _, w in walkers do
+		table.insert(obstacles, { Pos = w })
+	end
+	local now = os.clock()
 	blink += dt
 	local blinkOn = (blink % 0.8) < 0.4
 	for _, agent in agents do
@@ -558,7 +702,8 @@ local function step(dt: number, center: Vector3)
 			continue
 		end
 		local pos, dir = pose(agent)
-		if (pos - Vector3.new(center.X, 0, center.Z)).Magnitude > DESPAWN then
+		local away = (pos - Vector3.new(center.X, 0, center.Z)).Magnitude
+		if away > DESPAWN or (away > SPAWN_MAX and not inView(Vector3.new(pos.X, ROAD_TOP, pos.Z))) then
 			respawn(agent, center, SPAWN_MIN)
 			continue
 		end
@@ -569,7 +714,20 @@ local function step(dt: number, center: Vector3)
 		if agent.Turn ~= 0 then
 			cruise = math.min(cruise, 24) -- más despacio al girar
 		end
-		local gap = freeGap(agent, pos, dir, me)
+		local gap, byPlayer = freeGap(agent, pos, dir, obstacles)
+		-- Parado detrás del jugador más de 2 s: le pita (sin sonido de claxon en el juego: el bocadillo)
+		if byPlayer and agent.Speed < 0.5 and agent.Kind == "Car" then
+			agent.StuckAt = agent.StuckAt or now
+			if now - agent.StuckAt > 2 and now - (agent.HonkAt or 0) > 8 then
+				agent.HonkAt = now
+				local body = agent.Parts[1]
+				if body then
+					pcall(Nudge.say, body, "¡Piii, piii!", 1.4)
+				end
+			end
+		else
+			agent.StuckAt = nil
+		end
 		local target = math.min(cruise, math.sqrt(2 * DECEL * math.max(gap - 1.5, 0)))
 		local change = math.clamp(target - agent.Speed, -DECEL * 2 * dt, 14 * dt)
 		agent.Speed = math.max(agent.Speed + change, 0)
@@ -587,6 +745,13 @@ local function step(dt: number, center: Vector3)
 			updateTurn(agent)
 			pos, dir = pose(agent)
 		end
+		-- El morro gira poco a poco hacia donde va (sin tirones al pasar de un tramo a otro)
+		local look = agent.Look
+		if look and look:Dot(dir) > -0.5 then
+			local blend = look:Lerp(dir, math.min(1, dt * 12))
+			dir = if blend.Magnitude > 0.01 then blend.Unit else dir
+		end
+		agent.Look = dir
 		-- Intermitentes en los últimos metros antes de girar
 		local signalling = agent.Turn ~= 0 and L - agent.S < 45 and blinkOn
 		for _, ind in agent.Indicators do

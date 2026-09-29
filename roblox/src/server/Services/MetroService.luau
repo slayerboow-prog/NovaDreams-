@@ -1859,7 +1859,7 @@ local function spawnPolice(inc: { [string]: any })
 				humanoid.DisplayName = "Policía"
 				humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
 			end
-			npc:AddTag("NamedActor")
+			-- (sin NamedActor: un agente sin nombre propio no lleva cartel con su nombre encima)
 			npc:SetAttribute("MetroPolice", true)
 			npc:SetAttribute("Home", feet)
 			pcall(Npc.icon, npc, "👮")
