@@ -785,10 +785,45 @@ local BUILDERS: { [string]: (Model, { [string]: any }) -> () } = {
 	Mural = function(m, spec)
 		part(m, V(6, 4, 0.2), C(0, 3, 0), spec.Color or rgb(250, 250, 250))
 	end,
-	Gato = function(m)
-		part(m, V(1.8, 0.9, 0.9), C(0, 0.6, 0), rgb(240, 150, 60), Enum.Material.Fabric)
-		part(m, V(0.8, 0.8, 0.8), C(1.1, 1.1, 0), rgb(240, 150, 60), Enum.Material.Fabric, Enum.PartType.Ball)
-		part(m, V(0.2, 0.3, 1.2), C(-1, 1, 0) * CFrame.Angles(0.5, 0, 0), rgb(240, 150, 60), Enum.Material.Fabric)
+	-- Gato naranja atigrado (Bigotes), mirando hacia +X: cuerpo redondeado, patas blancas, cabeza con
+	-- orejas, hocico, ojos verdes y la cola levantada en curva
+	Gato = function(m, spec)
+		local fur = spec.Color or rgb(236, 142, 52)
+		local dark = rgb(190, 100, 30)
+		local white = rgb(250, 245, 235)
+		local fabric = Enum.Material.Fabric
+		local ball = Enum.PartType.Ball
+		part(m, V(1.3, 0.78, 0.8), C(0, 0.98, 0), fur, fabric)
+		part(m, V(0.86, 0.86, 0.86), C(0.62, 1.0, 0), fur, fabric, ball) -- pecho
+		part(m, V(0.9, 0.9, 0.9), C(-0.62, 0.98, 0), fur, fabric, ball) -- lomo de atrás
+		part(m, V(0.5, 0.5, 0.5), C(0.9, 0.9, 0), white, fabric, ball) -- pechera blanca
+		for _, x in { -0.62, 0.6 } do
+			for _, z in { -0.24, 0.24 } do
+				part(m, V(0.22, 0.62, 0.22), C(x, 0.36, z), fur, fabric)
+				part(m, V(0.28, 0.14, 0.3), C(x + 0.04, 0.07, z), white, fabric)
+			end
+		end
+		for _, x in { -0.45, -0.05, 0.35 } do
+			part(m, V(0.14, 0.06, 0.84), C(x, 1.39, 0), dark, fabric) -- rayas del lomo
+		end
+		-- Cabeza
+		local head = C(1.2, 1.62, 0)
+		part(m, V(0.9, 0.9, 0.9), head, fur, fabric, ball)
+		part(m, V(0.46, 0.46, 0.46), head * C(0.3, -0.14, 0), white, fabric, ball) -- hocico
+		part(m, V(0.1, 0.09, 0.14), head * C(0.52, -0.02, 0), rgb(240, 130, 150)) -- nariz
+		for _, z in { -0.19, 0.19 } do
+			part(m, V(0.16, 0.16, 0.16), head * C(0.37, 0.12, z), rgb(120, 210, 80), Enum.Material.Neon, ball)
+			part(m, V(0.07, 0.12, 0.05), head * C(0.44, 0.12, z), rgb(20, 20, 20)) -- pupila
+			part(m, V(0.12, 0.34, 0.3), head * C(-0.02, 0.44, z * 1.25) * CFrame.Angles(math.rad(45) * math.sign(z), 0, 0), fur, fabric) -- oreja
+			part(m, V(0.13, 0.2, 0.16), head * C(0.01, 0.42, z * 1.25) * CFrame.Angles(math.rad(45) * math.sign(z), 0, 0), rgb(240, 170, 170)) -- dentro de la oreja
+			for _, tilt in { -0.18, 0.18 } do
+				part(m, V(0.02, 0.02, 0.5), head * C(0.5, -0.12, z * 1.6) * CFrame.Angles(0, 0, tilt), white) -- bigotes
+			end
+		end
+		-- Cola: tres trozos que suben en curva, con la punta oscura
+		part(m, V(0.6, 0.17, 0.17), C(-1.2, 1.15, 0) * CFrame.Angles(0, 0, math.rad(25)), fur, fabric)
+		part(m, V(0.55, 0.16, 0.16), C(-1.43, 1.55, 0) * CFrame.Angles(0, 0, math.rad(70)), fur, fabric)
+		part(m, V(0.4, 0.15, 0.15), C(-1.38, 1.95, 0) * CFrame.Angles(0, 0, math.rad(110)), dark, fabric)
 	end,
 	Autobus = function(m)
 		part(m, V(8, 7, 26), C(0, 4.2, 0), rgb(250, 200, 30))
