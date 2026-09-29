@@ -658,7 +658,9 @@ local function publish(player: Player, force: boolean?)
 	-- La misión que estás jugando: los que te acompañan en otras misiones esperan (SceneService)
 	if player:GetAttribute("StoryFocus") ~= trackedId then
 		player:SetAttribute("StoryFocus", trackedId)
-		SceneService.refocus(player) -- (un personaje que sale en dos misiones pasa a la que juegas)
+		if SceneService.refocus then
+			SceneService.refocus(player) -- (un personaje que sale en dos misiones pasa a la que juegas)
+		end
 	end
 	if trackedId then
 		local quest = Quests[trackedId]
