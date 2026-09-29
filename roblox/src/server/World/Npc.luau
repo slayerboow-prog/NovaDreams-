@@ -2,7 +2,10 @@
 --   Npc.create(name, parent, cf, look?)  -> Model con HumanoidRootPart anclado (se mueve con tweens)
 --   Npc.say(npc, text?, seconds?)        -> bocadillo de texto sobre la cabeza (nil lo oculta); lo dibuja
 --                                           cada cliente a menos de SPEECH_RANGE (UI/SpeechBubbles, remoto "Speech")
---   Npc.icon(npc, text?)                 -> icono pequeño sobre la cabeza (✋, ⏳, 😋…)
+--   Npc.icon(npc, text?, quiet?)         -> icono pequeño sobre la cabeza (✋, ⏳, 😋…); quiet: solo de
+--                                           cerca y sin verse a través de las paredes (oficios normales)
+--   Npc.outfits(n) / Npc.tint(look)      -> ropa sin repetir en un grupo / un uniforme con el tono un poco cambiado
+--   Npc.vary(npc)                        -> un poco más alto o más bajo (±6 %), con los pies en su sitio
 --   Npc.walkTo(npc, { Vector3 }, speed)  -> camina por esos puntos (espera hasta llegar)
 --   Npc.sit(npc, seat) / Npc.stand(npc)  -> sentarse en una silla y levantarse (el cliente le pone la
 --                                           postura de sentado: atributo UsePose, Controllers/UseMotion)
@@ -29,6 +32,46 @@ export type Look = { Skin: Color3?, Shirt: Color3?, Pants: Color3?, Shoes: Color
 
 local function pick<T>(list: { T }): T
 	return list[math.random(1, #list)]
+end
+
+-- Ropa para n personas de un mismo grupo: las camisetas se barajan y no se repiten hasta que se
+-- acaban (antes salían dos o tres clones con la misma ropa, uno al lado del otro)
+function Npc.outfits(n: number): { Look }
+	local deck = table.clone(SHIRTS)
+	local list = {}
+	for i = 1, n do
+		local k = (i - 1) % #deck + 1
+		if k == 1 then
+			for j = #deck, 2, -1 do
+				local r = math.random(1, j)
+				deck[j], deck[r] = deck[r], deck[j]
+			end
+		end
+		table.insert(list, { Shirt = deck[k], Pants = pick(PANTS) })
+	end
+	return list
+end
+
+local function shade(c: Color3, k: number): Color3
+	local f = 1 + (math.random() * 2 - 1) * k
+	return Color3.new(math.clamp(c.R * f, 0, 1), math.clamp(c.G * f, 0, 1), math.clamp(c.B * f, 0, 1))
+end
+
+-- El mismo uniforme con el tono un poco cambiado (una tela más gastada, otra más nueva): un grupo de
+-- compañeros ya no parecen copias
+function Npc.tint(look: Look?, amount: number?): Look?
+	if not look then
+		return nil
+	end
+	local k = amount or 0.07
+	local copy = table.clone(look)
+	if copy.Shirt then
+		copy.Shirt = shade(copy.Shirt, k)
+	end
+	if copy.Pants then
+		copy.Pants = shade(copy.Pants, k)
+	end
+	return copy
 end
 
 -- Muñeco de bloques (por si no se puede crear el avatar de Roblox)
@@ -123,8 +166,10 @@ function Npc.dress(model: Model, look: Look?)
 	if head then
 		local s = head.Size
 		local hair = l.Hair or pick(HAIR)
+		-- Si el aspecto no lo dice, algunas personas llevan melena (antes todas iban con el pelo corto)
+		local long = l.LongHair or (l.LongHair == nil and math.random() < 0.35)
 		attach(model, head, "Hair", Vector3.new(s.X * 1.06, s.Y * 0.36, s.Z * 1.08), CFrame.new(0, s.Y * 0.36, 0.03 * s.Z), hair, Enum.Material.Fabric)
-		attach(model, head, "HairBack", Vector3.new(s.X * 1.04, s.Y * (if l.LongHair then 0.95 else 0.55), s.Z * 0.3), CFrame.new(0, if l.LongHair then -s.Y * 0.1 else s.Y * 0.12, s.Z * 0.42), hair, Enum.Material.Fabric)
+		attach(model, head, "HairBack", Vector3.new(s.X * 1.04, s.Y * (if long then 0.95 else 0.55), s.Z * 0.3), CFrame.new(0, if long then -s.Y * 0.1 else s.Y * 0.12, s.Z * 0.42), hair, Enum.Material.Fabric)
 		attach(model, head, "Fringe", Vector3.new(s.X * 0.9, s.Y * 0.14, s.Z * 0.2), CFrame.new(0, s.Y * 0.3, -s.Z * 0.48), hair, Enum.Material.Fabric)
 	end
 	if l.Backpack and torso then
@@ -171,6 +216,22 @@ function Npc.feetAt(point: Vector3, depth: number?): Vector3
 		table.insert(skip, if isPerson then model :: Instance else part)
 	end
 	return point
+end
+
+-- Un poco más alto o más bajo (±amount, 6 % por defecto) sin que se hunda ni flote: se miden los pies
+-- antes y se vuelven a poner en el mismo sitio. Llamar antes de sentarlo.
+function Npc.vary(model: Model, amount: number?)
+	local humanoid = model:FindFirstChildOfClass("Humanoid")
+	local root = model:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if not humanoid or not root then
+		return
+	end
+	local feet = root.CFrame * CFrame.new(0, -(humanoid.HipHeight + root.Size.Y / 2), 0)
+	local k = amount or 0.06
+	pcall(function()
+		model:ScaleTo(1 + (math.random() * 2 - 1) * k)
+		Npc.placeFeet(model, feet)
+	end)
 end
 
 -- Que llegue entero a los jugadores (el mapa se carga por trozos): sin esto a veces llegaba el
@@ -224,7 +285,7 @@ function Npc.create(name: string, parent: Instance, cf: CFrame, look: Look?): Mo
 	return model
 end
 
-local function billboard(npc: Model, name: string, offset: number, size: UDim2): TextLabel?
+local function billboard(npc: Model, name: string, offset: number, size: UDim2, quiet: boolean?): TextLabel?
 	local head = npc:FindFirstChild("Head") :: BasePart?
 	if not head then
 		return nil
@@ -235,8 +296,10 @@ local function billboard(npc: Model, name: string, offset: number, size: UDim2):
 		g.Name = name
 		g.Size = size
 		g.StudsOffset = Vector3.new(0, offset, 0)
-		g.MaxDistance = 70
-		g.AlwaysOnTop = true
+		-- Callado (un oficio normal: dependiente, cajero…): solo de cerca y tapado por las paredes;
+		-- si no, el icono se veía desde toda la calle a través de los edificios
+		g.MaxDistance = if quiet then 15 else 70
+		g.AlwaysOnTop = not quiet
 		g.Parent = head
 		local label = Instance.new("TextLabel")
 		label.Size = UDim2.fromScale(1, 1)
@@ -373,8 +436,8 @@ function Npc.say(npc: Model, text: string?, seconds: number?)
 end
 
 -- Icono pequeño sobre la cabeza (nil lo oculta)
-function Npc.icon(npc: Model, text: string?)
-	local label = billboard(npc, "Icon", 2.2, UDim2.fromOffset(46, 46))
+function Npc.icon(npc: Model, text: string?, quiet: boolean?)
+	local label = billboard(npc, "Icon", 2.2, UDim2.fromOffset(46, 46), quiet)
 	if label then
 		label.Text = text or ""
 		label.Parent.Enabled = text ~= nil
@@ -440,10 +503,10 @@ function Npc.walkTo(npc: Model, points: { Vector3 }, speed: number?)
 				end
 				angle = turnAngle(root.CFrame, facing)
 			end
-			local turnSteps = math.min(distance, math.max(0.8, angle * 1.4))
-			if angle < 0.3 then
-				root.CFrame = facing -- (un giro pequeño no se nota)
-			else
+			-- (un giro pequeño también se hace en los primeros pasos, en unos 0,15 s: antes era de golpe
+			-- y se notaba un tirón en cada punto del camino)
+			local turnSteps = if angle < 0.3 then math.min(distance, math.max(0.1, pace * 0.15)) else math.min(distance, math.max(0.8, angle * 1.4))
+			do
 				local along = from + (target - from) * (turnSteps / distance)
 				local turn = TweenService:Create(root, TweenInfo.new(turnSteps / pace, Enum.EasingStyle.Linear), {
 					CFrame = CFrame.new(along) * facing.Rotation,
@@ -518,7 +581,8 @@ function Npc.face(npc: Model, point: Vector3)
 		local token = turning[npc]
 		-- Se da la vuelta en un momento, no de golpe. Solo gira: si mientras tanto otro lo cambia de
 		-- sitio (se sienta, se levanta), no se le devuelve adonde estaba.
-		local ok = not walking[npc] and angle >= 0.35 and pcall(function()
+		-- (también los giros pequeños, en unos 0,15 s: de golpe se notaba un tirón)
+		local ok = not walking[npc] and angle >= 0.01 and pcall(function()
 			local value = Instance.new("CFrameValue")
 			value.Value = root.CFrame.Rotation
 			value.Changed:Connect(function(rotation: CFrame)
@@ -526,7 +590,7 @@ function Npc.face(npc: Model, point: Vector3)
 					root.CFrame = CFrame.new(root.Position) * rotation
 				end
 			end)
-			local tween = TweenService:Create(value, TweenInfo.new(math.clamp(angle * 0.22, 0.2, 0.55), Enum.EasingStyle.Sine), { Value = goal.Rotation })
+			local tween = TweenService:Create(value, TweenInfo.new(if angle < 0.35 then 0.15 else math.clamp(angle * 0.22, 0.2, 0.55), Enum.EasingStyle.Sine), { Value = goal.Rotation })
 			tween.Completed:Connect(function()
 				value:Destroy()
 			end)

@@ -15,7 +15,6 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
 
 local MapInfo = require(ReplicatedStorage.Shared.MapInfo)
 local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
@@ -612,6 +611,22 @@ local function drawRoute(layer: Layer?)
 	end
 end
 
+-- Giro suave de tu flecha: antes se creaba un Tween nuevo por mapa cada 0,1 s (y otro más para el
+-- mapa grande). Ahora se guarda de dónde a dónde gira y se mueve en cada fotograma, sin crear nada;
+-- se ve igual (0,1 s, lineal) y si la flecha no gira no se toca.
+local SPIN_TIME = 0.1
+local spins: { [GuiObject]: { From: number, To: number, T: number } } = {}
+local function stepSpins(dt: number)
+	for me, spin in spins do
+		spin.T += dt
+		local alpha = math.min(1, spin.T / SPIN_TIME)
+		me.Rotation = spin.From + (spin.To - spin.From) * alpha
+		if alpha >= 1 then
+			spins[me] = nil
+		end
+	end
+end
+
 local function updateLayer(layer: Layer, root: BasePart?, clampTo: number?)
 	-- Tu posición y hacia dónde miras
 	if root then
@@ -622,7 +637,11 @@ local function updateLayer(layer: Layer, root: BasePart?, clampTo: number?)
 		-- Giro suave: por el lado corto (sin dar la vuelta entera al pasar de 179° a -179°)
 		local current = layer.Me.Rotation
 		local delta = (target - current + 180) % 360 - 180
-		TweenService:Create(layer.Me, TweenInfo.new(0.1, Enum.EasingStyle.Linear), { Rotation = current + delta }):Play()
+		if math.abs(delta) > 1e-3 then
+			spins[layer.Me] = { From = current, To = current + delta, T = 0 }
+		else
+			spins[layer.Me] = nil
+		end
 		-- El cono mira hacia donde mira la cámara (es hijo de la flecha: se le resta su giro)
 		local cameraLook = workspace.CurrentCamera.CFrame.LookVector
 		local cone = layer.Me:FindFirstChild("Cone") :: Frame?
@@ -1344,6 +1363,9 @@ function MapUI.init()
 
 	local elapsed = 0
 	RunService.Heartbeat:Connect(function(dt)
+		if next(spins) then
+			stepSpins(dt)
+		end
 		elapsed += dt
 		if elapsed < 0.1 then
 			return

@@ -12,15 +12,19 @@
 --     corriendo y alguien paseando al perro; solo cerca de los jugadores (PARK_RADIUS, PARK_CAP).
 --   Todos son baratos: anclados, sin colisiones (Npc.create), con su tarea (Npc.work), andando a ratos
 --   entre dos puntos (Npc.walkTo), mirando al jugador que se acerca y diciendo algo de vez en cuando.
+--   Las salas siguen su horario (ROOM_HOURS): cerradas no se llenan y, al cerrar, su gente se va por
+--   la puerta. Aparecen y se van fundiéndose (atributos FadeIn / FadeOut, Controllers/ActorLife).
 --   En los móviles y ordenadores modestos (Perf.lite) el cliente quita la mitad (atributo CrowdLite).
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
 
 local Npc = require(script.Parent.Parent.World.Npc)
 local Space = require(script.Parent.Parent.World.Space)
 local TimeContext = require(game:GetService("ReplicatedStorage").Shared.LifeStory.TimeContext)
 local OpeningHours = require(game:GetService("ReplicatedStorage").Shared.OpeningHours)
+local Floors = require(game:GetService("ReplicatedStorage").Shared.Floors)
 local Ground = require(game:GetService("ReplicatedStorage").Shared.Ground)
 
 local CrowdService = {}
@@ -73,6 +77,8 @@ type Plan = {
 	Staff: { StaffPlan }?,
 	Look: Npc.Look?,
 	Wander: boolean?,
+	Hours: { number }?, -- horario de la sala (nil = siempre abierta)
+	StaffAlways: boolean?, -- su personal está también cerrada (el vigilante de la recepción)
 }
 local SOLDIER = { Shirt = rgb(86, 100, 62), Pants = rgb(70, 80, 56), LongSleeves = true }
 local WORKER = { Shirt = rgb(240, 150, 40), Pants = rgb(60, 60, 70) }
@@ -96,11 +102,41 @@ local PLANS: { [string]: Plan } = {
 }
 CrowdService.Plans = PLANS
 
+-- Horario de cada sala (hora del juego). Antes no había ninguno: a las 3 de la mañana el museo o las
+-- oficinas estaban llenos. Las tiendas y bares del tipo Local usan el de su tienda (OpeningHours).
+local ROOM_HOURS: { [string]: { number } } = {
+	Local = { 9.5, 21.5 },
+	OficinaLobby = { 7.5, 21 },
+	Oficina = { Floors.OpenFrom, Floors.OpenTo },
+	Nave = { 7, 20 },
+	Taller = { 8, 20 },
+	Ocio = { 12, 3 }, -- (pubs y discotecas: hasta las 3)
+	Aula = { 8, 21 },
+	Ayuntamiento = { 8.5, 20 },
+	Museo = { 10, 20 },
+	Teatro = { 11, 24 },
+	Estacion = { 5.5, 1 },
+	CentroComercial = { 10, 22 },
+	Juzgado = { 8.5, 20 },
+	Hacienda = { 8.5, 20 },
+	-- Cuartel: siempre
+}
+local EATERY_HOURS = { 7.5, 1.5 } -- bares, cafeterías y restaurantes (Local)
+PLANS.OficinaLobby.StaffAlways = true
+for kind, hours in ROOM_HOURS do
+	if PLANS[kind] then
+		PLANS[kind].Hours = hours
+	end
+end
+
 ---------------------------------------------------------------------
 -- Estado
 ---------------------------------------------------------------------
-type Person = { Model: Model, Context: string, Kind: string } -- Kind: "Room" | "City" | "Park"
+-- Kind: "Room" | "City" | "Park". En las salas: Hours (su horario), Exit (la puerta), Floor (altura del
+-- suelo) y Stay (se queda aunque cierre: el vigilante)
+type Person = { Model: Model, Context: string, Kind: string, Hours: { number }?, Exit: Vector3?, Floor: number?, Stay: boolean? }
 local people: { Person } = {}
+local byModel: { [Model]: Person } = setmetatable({}, { __mode = "k" }) :: any
 local counts = { Room = 0, City = 0, Park = 0 }
 local liteToggle = false
 local folder: Folder? = nil
@@ -141,7 +177,9 @@ local function person(kind: string, parent: Instance, cf: CFrame, context: strin
 	if not ok or not npc then
 		return nil
 	end
+	pcall(Npc.vary, npc) -- (unos más altos y otros más bajos)
 	npc:SetAttribute("Crowd", kind)
+	npc:SetAttribute("FadeIn", true) -- (el cliente lo funde al llegar: no aparece de golpe)
 	liteToggle = not liteToggle
 	if liteToggle then
 		npc:SetAttribute("CrowdLite", true) -- (en los móviles, el cliente quita la mitad)
@@ -153,19 +191,78 @@ local function person(kind: string, parent: Instance, cf: CFrame, context: strin
 	if work then
 		pcall(Npc.work, npc, work)
 	end
-	table.insert(people, { Model = npc, Context = context, Kind = kind })
+	local record: Person = { Model = npc, Context = context, Kind = kind }
+	table.insert(people, record)
+	byModel[npc] = record
 	counts[kind] = (counts[kind] or 0) + 1
 	return npc
 end
 
--- Anda entre sus puntos de vez en cuando (mientras exista)
+-- Deja de contar (ya se está yendo): fuera de la lista y de los topes
+local function forget(npc: Model)
+	local record = byModel[npc]
+	byModel[npc] = nil
+	local i = record and table.find(people, record)
+	if i then
+		table.remove(people, i)
+		counts[record.Kind] -= 1
+	end
+end
+
+-- Se va: anda unos pasos (hacia `to`, o lejos del jugador más cercano) y se desvanece. Antes se
+-- borraba de golpe a 21 studs del jugador, a la vista.
+local function fadeAway(npc: Model, to: Vector3?)
+	forget(npc)
+	if not npc.Parent then
+		return
+	end
+	npc:SetAttribute("Leaving", true)
+	pcall(Npc.work, npc, nil)
+	local root = npc.PrimaryPart
+	local goal = to
+	if root and not goal then
+		local away = Vector3.zero
+		local best = math.huge
+		for _, player in Players:GetPlayers() do
+			local proot = rootOf(player)
+			if proot and (proot.Position - root.Position).Magnitude < best then
+				best = (proot.Position - root.Position).Magnitude
+				away = root.Position - proot.Position
+			end
+		end
+		away = Vector3.new(away.X, 0, away.Z)
+		local dir = if away.Magnitude > 0.1 then away.Unit else root.CFrame.LookVector * Vector3.new(1, 0, 1)
+		local humanoid = npc:FindFirstChildOfClass("Humanoid")
+		local height = (if humanoid then humanoid.HipHeight else 2) + root.Size.Y / 2
+		goal = root.Position - Vector3.new(0, height, 0) + (if dir.Magnitude > 0.1 then dir.Unit else Vector3.new(1, 0, 0)) * 6
+	end
+	if root and goal and not npc:GetAttribute("Seated") then
+		task.spawn(function()
+			pcall(Npc.walkTo, npc, { goal :: Vector3 }, 5)
+		end)
+	end
+	task.delay(if goal then 0.9 else 0, function()
+		if npc.Parent then
+			npc:SetAttribute("FadeOut", true)
+		end
+	end)
+	task.delay(if goal then 1.6 else 0.7, function()
+		if npc.Parent then
+			npc:Destroy()
+		end
+	end)
+end
+
+-- Anda entre sus puntos de vez en cuando (mientras exista). Cada uno a su paso (±15 %; los que corren,
+-- solo algo más rápido, para que no pasen de correr a andar: Controllers/ActorLife)
 local function wander(npc: Model, points: { Vector3 }, speed: number, pause: NumberRange?)
+	speed *= if speed >= 10 then 1 + math.random() * 0.12 else 0.85 + math.random() * 0.3
 	task.spawn(function()
 		local i = 1
 		local work = npc:GetAttribute("Work")
 		while npc.Parent do
 			task.wait(if pause then pause.Min + math.random() * (pause.Max - pause.Min) else 4 + math.random() * 6)
-			if not npc.Parent then
+			if not npc.Parent or npc:GetAttribute("Leaving") then
 				break
 			end
 			i = i % #points + 1
@@ -181,6 +278,7 @@ local function prune()
 		local p = people[i]
 		if not p.Model.Parent then
 			counts[p.Kind] -= 1
+			byModel[p.Model] = nil
 			table.remove(people, i)
 		end
 	end
@@ -259,10 +357,41 @@ function CrowdService.populate(room: { [string]: any }): number
 	if not plan or not model or not model.Parent then
 		return 0
 	end
-	local cap = plan.Cap
+	local shopId = model:GetAttribute("Shop")
+	local eatery = shopId == "Bar" or shopId == "Cafeteria" or shopId == "Pizzeria" or shopId == "Heladeria" or shopId == "Sushi" or shopId == "Hamburgueseria" or shopId == "Kebab"
+	-- Su horario: cerrada, sin clientes (solo el personal de guardia, si lo hay)
+	local hours = plan.Hours
+	if room.Kind == "Local" then
+		hours = if eatery then (OpeningHours.forShop(shopId) or EATERY_HOURS) else (OpeningHours.forShop(shopId) or plan.Hours)
+	end
+	local isOpen = OpeningHours.isOpen(hours, clock())
+	if not isOpen and not plan.StaffAlways then
+		return 0
+	end
+	local cap = if isOpen then plan.Cap else #(plan.Staff or {})
 	local placed = 0
 	local function room_(): boolean
 		return placed < cap and (counts.Room or 0) < CrowdService.ROOM_CAP
+	end
+	-- Lo que se apunta de cada persona de la sala (para irse por la puerta al cerrar)
+	local frame0 = room.at(0, 0, 0)
+	local exitPart = partsNamed(model, { "InteriorEntry" })[1]
+	local exit = if exitPart then Vector3.new(exitPart.Position.X, frame0.Position.Y, exitPart.Position.Z) else nil
+	local function note(npc: Model, staff: boolean)
+		local record = byModel[npc]
+		if record then
+			record.Hours = hours
+			record.Exit = exit
+			record.Floor = frame0.Position.Y
+			record.Stay = staff and plan.StaffAlways == true
+		end
+	end
+	-- Ropa sin repetir (o el uniforme de la sala con el tono un poco cambiado)
+	local outfits = Npc.outfits(plan.Cap + 2)
+	local dealt = 0
+	local function lookFor(): Npc.Look?
+		dealt += 1
+		return if plan.Look then Npc.tint(plan.Look) else outfits[dealt]
 	end
 	-- Lo que ocupa sitio (para no poner a nadie dentro de un mueble)
 	local frame = room.at(0, 0, 0)
@@ -275,8 +404,6 @@ function CrowdService.populate(room: { [string]: any }): number
 		end
 	end
 	space:block(-3, 3, -room.D / 2 - 1, -room.D / 2 + 6)
-	local shopId = model:GetAttribute("Shop")
-	local eatery = shopId == "Bar" or shopId == "Cafeteria" or shopId == "Pizzeria" or shopId == "Heladeria" or shopId == "Sushi" or shopId == "Hamburgueseria" or shopId == "Kebab"
 	local context = if eatery then "Eatery" else plan.Context
 	-- Personal (el mecánico junto al elevador, el camarero en la barra, la profe en la pizarra…)
 	for _, s in plan.Staff or {} do
@@ -287,9 +414,10 @@ function CrowdService.populate(room: { [string]: any }): number
 		local at = target and freeNear(space, target.Position, 7)
 		if at then
 			local cf = CFrame.lookAt(at, Vector3.new(target.Position.X, at.Y, target.Position.Z))
-			local npc = person("Room", model, cf, "Work", s.Work, s.Look)
+			local npc = person("Room", model, cf, "Work", s.Work, Npc.tint(s.Look, 0.05))
 			if npc then
 				npc.Name = s.Name
+				note(npc, true)
 				placed += 1
 			end
 		end
@@ -317,14 +445,15 @@ function CrowdService.populate(room: { [string]: any }): number
 		local j = math.random(1, i)
 		seats[i], seats[j] = seats[j], seats[i]
 	end
-	local sitters = (plan.Sit or 0) + (if eatery then 2 else 0)
+	local sitters = if isOpen then (plan.Sit or 0) + (if eatery then 2 else 0) else 0
 	for i = 1, math.min(sitters, #seats) do
 		if not room_() then
 			break
 		end
 		local seat = seats[i]
-		local npc = person("Room", model, seat.CFrame * CFrame.new(0, 0, -2), context, if eatery then "Coffee" else pick(plan.SitWork), plan.Look, seat)
+		local npc = person("Room", model, seat.CFrame * CFrame.new(0, 0, -2), context, if eatery then "Coffee" else pick(plan.SitWork), lookFor(), seat)
 		if npc then
+			note(npc, false)
 			seat:SetAttribute("Taken", true)
 			npc.Destroying:Connect(function()
 				if seat.Parent then
@@ -336,7 +465,7 @@ function CrowdService.populate(room: { [string]: any }): number
 	end
 	-- De pie (mirando las estanterías, los cuadros, la máquina de turnos…)
 	local targets = partsNamed(model, plan.Near or {})
-	for _ = 1, plan.Stand or 0 do
+	for _ = 1, if isOpen then plan.Stand or 0 else 0 do
 		if not room_() then
 			break
 		end
@@ -348,8 +477,9 @@ function CrowdService.populate(room: { [string]: any }): number
 		if at then
 			local look = if target then Vector3.new(target.Position.X, at.Y, target.Position.Z) else at + frame.LookVector * -4
 			local cf = CFrame.lookAt(at, look)
-			local npc = person("Room", model, cf, context, pick(plan.Works), plan.Look)
+			local npc = person("Room", model, cf, context, pick(plan.Works), lookFor())
 			if npc then
+				note(npc, false)
 				placed += 1
 				if plan.Wander and math.random() < 0.5 then
 					local other = pick(targets)
@@ -362,6 +492,32 @@ function CrowdService.populate(room: { [string]: any }): number
 		end
 	end
 	return placed
+end
+
+-- Al cerrar, la gente de las salas se levanta y se va por la puerta (alguno lo dice); el personal de
+-- guardia (Stay) se queda. Antes seguían ahí toda la noche.
+function CrowdService.tickRooms()
+	local t = clock()
+	local said: { [Instance]: boolean } = {}
+	for i = #people, 1, -1 do
+		local p = people[i]
+		if p and p.Kind == "Room" and p.Hours and not p.Stay and p.Model.Parent and not OpeningHours.isOpen(p.Hours, t) then
+			local npc = p.Model
+			local room = npc.Parent
+			if room and not said[room] then
+				said[room] = true
+				pcall(Npc.say, npc, "Uy, que cierran. ¡Me voy!", 3)
+			end
+			if npc:GetAttribute("Seated") then
+				local root = npc.PrimaryPart
+				if root then
+					pcall(Npc.stand, npc, Vector3.new(root.Position.X, p.Floor or root.Position.Y, root.Position.Z))
+				end
+				npc:SetAttribute("Seated", nil)
+			end
+			fadeAway(npc, p.Exit)
+		end
+	end
 end
 
 ---------------------------------------------------------------------
@@ -411,6 +567,7 @@ local function fillGroup(g: Group)
 			table.remove(g.Spots, i) -- (marca quitada del mapa: ya no hay sitio ahí)
 		end
 	end
+	local outfits = Npc.outfits(CrowdService.GROUP_CAP) -- (ropa sin repetir en el grupo)
 	for _, spot in g.Spots do
 		if n >= CrowdService.GROUP_CAP or (counts.City or 0) >= CrowdService.CITY_CAP then
 			break
@@ -420,7 +577,7 @@ local function fillGroup(g: Group)
 			local sit = spot:GetAttribute("Pose") == "Sit"
 			local work = spot:GetAttribute("Work")
 			local cf = spot.CFrame * CFrame.new(0, -spot.Size.Y / 2, 0)
-			local npc = person("City", folder or workspace, if sit then spot.CFrame * CFrame.new(0, 0, -2) else cf, g.Context, if type(work) == "string" then work else nil, nil, if sit then spot else nil)
+			local npc = person("City", folder or workspace, if sit then spot.CFrame * CFrame.new(0, 0, -2) else cf, g.Context, if type(work) == "string" then work else nil, outfits[n + 1], if sit then spot else nil)
 			if npc then
 				table.insert(g.Npcs, npc)
 				n += 1
@@ -430,7 +587,7 @@ local function fillGroup(g: Group)
 end
 
 -- Cierra (o se hace de noche) con jugadores cerca: dejan lo que hacían, alguno lo dice, y cada uno
--- se va cuando no tiene a ningún jugador al lado (nadie se esfuma delante de ti)
+-- se va cuando no tiene a ningún jugador al lado: echa a andar y se desvanece (fadeAway)
 local function closing(list: { Model }, first: boolean, line: string)
 	for i = #list, 1, -1 do
 		local npc = list[i]
@@ -442,7 +599,11 @@ local function closing(list: { Model }, first: boolean, line: string)
 			end
 		end
 		if not root or not playerNear(root.Position, CrowdService.LEAVE_SEEN) then
-			npc:Destroy()
+			if root then
+				fadeAway(npc)
+			else
+				npc:Destroy()
+			end
 			table.remove(list, i)
 		end
 	end
@@ -492,8 +653,20 @@ end
 ---------------------------------------------------------------------
 type Feature = { Kind: string, Part: BasePart?, Model: Instance, Center: Vector3, Size: Vector3?, Npcs: { Model }, Closing: boolean? }
 
--- Horas con gente en cada sitio del parque (fuera de ellas se van: nadie en los columpios de madrugada)
-local FEATURE_HOURS = { Bench = { 8, 22.5 }, Playground = { 9, 20.5 }, Park = { 7, 22 } }
+-- Horas con gente en cada sitio del parque (fuera de ellas se van: nadie en los columpios de madrugada;
+-- los niños, a casa a las 19:30)
+local FEATURE_HOURS = { Bench = { 8, 22.5 }, Playground = { 9, 19.5 }, Park = { 7, 22 } }
+
+-- ¿Con este tiempo hay gente? Con tormenta nadie; con lluvia o nieve, ni en los columpios ni en los bancos
+local function weatherOk(kind: string): boolean
+	local _, weather = TimeContext.now()
+	if weather == "Tormenta" or weather == "Storm" then
+		return false
+	end
+	local wet = weather == "Lluvia" or weather == "Rain" or weather == "Nieve" or weather == "Snow"
+	return not (wet and (kind == "Playground" or kind == "Bench"))
+end
+CrowdService._weatherOk = weatherOk
 local features: { Feature } = {}
 
 local PARK_LOOKS = {
@@ -574,7 +747,7 @@ end
 local function spawnFeature(f: Feature)
 	local t = clock()
 	local parent = folder or workspace
-	if not OpeningHours.isOpen(FEATURE_HOURS[f.Kind], t) then
+	if not OpeningHours.isOpen(FEATURE_HOURS[f.Kind], t) or not weatherOk(f.Kind) then
 		return
 	end
 	if f.Kind == "Bench" and f.Part then
@@ -597,8 +770,15 @@ local function spawnFeature(f: Feature)
 				end)
 				pcall(Npc.placeFeet, npc, CFrame.new(a))
 				table.insert(f.Npcs, npc)
-				wander(npc, { a, b }, 8, NumberRange.new(1.5, 4))
+				-- (corren: con su tamaño, bien por encima de lo que ActorLife cuenta como correr)
+				wander(npc, { a, b }, 10, NumberRange.new(1.5, 4))
 			end
+		end
+		-- Un adulto (madre o padre) vigilando a los niños desde un lado
+		local watch = Vector3.new(f.Center.X - 9, f.Center.Y, f.Center.Z + 7)
+		local parentNpc = person("Park", parent, CFrame.lookAt(watch, Vector3.new(f.Center.X, watch.Y, f.Center.Z)), "Park", pick({ "Phone", "Watch", "Coffee" }), nil)
+		if parentNpc then
+			table.insert(f.Npcs, parentNpc)
 		end
 	elseif f.Kind == "Park" and f.Size then
 		local hx, hz = math.max(6, f.Size.X / 2 - 8), math.max(6, f.Size.Z / 2 - 8)
@@ -608,10 +788,11 @@ local function spawnFeature(f: Feature)
 			table.insert(loop, groundAt(Vector3.new(c.X + q[1] * hx, 0, c.Z + q[2] * hz), c.Y))
 		end
 		-- Alguien corriendo alrededor del parque
-		local jogger = person("Park", parent, CFrame.new(loop[1]), "Jog", nil, pick(PARK_LOOKS))
+		local jogger = person("Park", parent, CFrame.new(loop[1]), "Jog", nil, Npc.tint(pick(PARK_LOOKS)))
 		if jogger then
 			table.insert(f.Npcs, jogger)
-			wander(jogger, loop, 13, NumberRange.new(0.05, 0.2))
+			-- (15: lejos del límite andar/correr de ActorLife, 13, para que no parpadee entre los dos)
+			wander(jogger, loop, 15, NumberRange.new(0.05, 0.2))
 		end
 		-- Alguien paseando al perro de un lado a otro
 		local a, b = loop[1]:Lerp(loop[2], 0.3), loop[3]:Lerp(loop[4], 0.7)
@@ -634,19 +815,21 @@ local function spawnFeature(f: Feature)
 						pcall(Npc.walkTo, walker, { goal }, 4.5)
 					end)
 					if body.Parent then
-						-- El perro va a su lado, un poco por delante
+						-- El perro va a su lado, un poco por delante: se desliza seguido (antes iba a
+						-- saltos de 1,5 studs)
 						local from = body.Position
 						local target = goal + side + Vector3.new(0, 1.3, 0)
-						local steps = math.max(1, math.floor((target - from).Magnitude / 1.5))
-						for s = 1, steps do
-							if not body.Parent then
-								break
-							end
-							local p = from:Lerp(target, s / steps)
-							local flat = (target - from) * Vector3.new(1, 0, 1)
-							body.CFrame = if flat.Magnitude > 0.1 then CFrame.lookAt(p, p + flat) else CFrame.new(p)
-							task.wait(1.5 / 4.5)
+						local flat = (target - from) * Vector3.new(1, 0, 1)
+						local turn = if flat.Magnitude > 0.1 then CFrame.lookAt(from, from + flat).Rotation else body.CFrame.Rotation
+						body.CFrame = CFrame.new(from) * turn
+						local time = (target - from).Magnitude / 4.5
+						local ok = pcall(function()
+							TweenService:Create(body, TweenInfo.new(math.max(time, 0.05), Enum.EasingStyle.Linear), { CFrame = CFrame.new(target) * turn }):Play()
+						end)
+						if not ok then
+							body.CFrame = CFrame.new(target) * turn
 						end
+						task.wait(time)
 					end
 				end
 			end)
@@ -670,10 +853,11 @@ function CrowdService.tickParks()
 			end
 		end
 		local near = playerNear(f.Center, CrowdService.PARK_RADIUS)
-		if #f.Npcs > 0 and not OpeningHours.isOpen(FEATURE_HOURS[f.Kind], t) then
-			-- Se hace tarde: se van a casa (sin esfumarse delante de nadie)
+		local late = not OpeningHours.isOpen(FEATURE_HOURS[f.Kind], t)
+		if #f.Npcs > 0 and (late or not weatherOk(f.Kind)) then
+			-- Se hace tarde (o llega la tormenta): se van a casa (sin esfumarse delante de nadie)
 			if near then
-				closing(f.Npcs, not f.Closing, if f.Kind == "Playground" then "¡Mamá, ya voy!" else "Uy, qué tarde. ¡A casa!")
+				closing(f.Npcs, not f.Closing, if not late then "¡Que llueve! ¡A casa!" elseif f.Kind == "Playground" then "¡Mamá, ya voy!" else "Uy, qué tarde. ¡A casa!")
 				f.Closing = true
 			else
 				clearFeature(f)
@@ -765,18 +949,38 @@ function CrowdService.bark()
 	end
 end
 
--- Los que están de pie miran al jugador que se les acerca
+-- Los que están de pie miran al jugador que se les acerca y, cuando se va, vuelven a lo suyo (antes
+-- se quedaban mirando a la nada, o a la pared)
+local homeLook: { [Model]: Vector3 } = setmetatable({}, { __mode = "k" }) :: any
 local function lookAtPlayers()
 	for _, p in people do
-		local root = p.Model.PrimaryPart
-		if root and not p.Model:GetAttribute("Seated") then
-			for _, player in Players:GetPlayers() do
-				local proot = rootOf(player)
-				if proot and (proot.Position - root.Position).Magnitude < 7 then
-					pcall(Npc.face, p.Model, proot.Position)
-					break
-				end
+		local npc = p.Model
+		local root = npc.PrimaryPart
+		if not root or npc:GetAttribute("Seated") or npc:GetAttribute("Leaving") then
+			continue
+		end
+		if Npc.isWalking(npc) then
+			homeLook[npc] = nil -- (andando ya mira hacia donde va)
+			continue
+		end
+		local seen = nil
+		for _, player in Players:GetPlayers() do
+			local proot = rootOf(player)
+			if proot and (proot.Position - root.Position).Magnitude < (if homeLook[npc] then 9 else 7) then
+				seen = proot.Position
+				break
 			end
+		end
+		if seen then
+			if not homeLook[npc] then
+				local look = root.CFrame.LookVector
+				homeLook[npc] = Vector3.new(look.X, 0, look.Z)
+			end
+			pcall(Npc.face, npc, seen)
+		elseif homeLook[npc] then
+			local look = homeLook[npc]
+			homeLook[npc] = nil
+			pcall(Npc.face, npc, root.Position + look * 4)
 		end
 	end
 end
@@ -819,6 +1023,10 @@ function CrowdService.init()
 			local okParks, err2 = pcall(CrowdService.tickParks)
 			if not okParks then
 				warn("[CrowdService] " .. tostring(err2))
+			end
+			local okRooms, err3 = pcall(CrowdService.tickRooms)
+			if not okRooms then
+				warn("[CrowdService] " .. tostring(err3))
 			end
 			pcall(lookAtPlayers)
 			if beat % 3 == 0 then

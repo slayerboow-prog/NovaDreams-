@@ -8,7 +8,8 @@
 --   PlaceLife.Places[tipo]       -> cómo se encuentra en el mapa (Tags / Models), dónde se ponen
 --                                   (Shape), cuánta gente cabe (Slots) y qué hacen (Activities)
 --   PlaceLife.Activities[nombre] -> la actividad: sentarse, charlar en grupo, correr, perro, toalla…
---   PlaceLife.amount(tipo, hora, tiempo, díaSemana?) -> cuánta gente hay ahora (0..Slots; más el finde)
+--   PlaceLife.amount(tipo, hora, tiempo, díaSemana?, horario?) -> cuánta gente hay ahora (0..Slots; más
+--                                   el finde). horario: el de ese sitio en concreto (cada tienda, el suyo)
 --   PlaceLife.allowed(tipo, hora, tiempo)         -> las actividades que pegan ahora (con su peso)
 --   PlaceLife.pick(tipo, hora, tiempo, r?)        -> una actividad al azar de esas (r: 0..1)
 --   PlaceLife.umbrella(tiempo)                    -> ¿se saca el paraguas?
@@ -63,13 +64,15 @@ export type Activity = {
 PlaceLife.Activities = {
 	Banco = { Pose = "Sit", Works = { "Book", "Phone", "Knit", "Coffee" }, Lines = "Banco" } :: Activity,
 	Charla = { Size = { 2, 4 }, Works = { "Coffee", "Phone" }, Lines = "Charla" } :: Activity,
-	Correr = { Walk = "Loop", Speed = 13, Dry = true, Hours = { 6.5, 22 }, Lines = "Correr" } :: Activity,
+	-- (15: lejos del límite andar/correr de Controllers/ActorLife, 13, para que no parpadee entre los dos)
+	Correr = { Walk = "Loop", Speed = 15, Dry = true, Hours = { 6.5, 22 }, Lines = "Correr" } :: Activity,
 	Perro = { Walk = "Line", Speed = 4.5, Dog = true, Hours = { 6.5, 23.5 }, Lines = "Perro" } :: Activity,
 	Pasear = { Walk = "Line", Speed = 5, Lines = "Pasear" } :: Activity,
 	Leer = { Works = { "Book" }, Lines = "Leer" } :: Activity,
 	Fotos = { Works = { "Phone" }, Walk = "Line", Speed = 3.5, Hours = { 8, 21.5 }, Lines = "Fotos" } :: Activity,
 	Toalla = { Pose = "Lie", Towel = true, Dry = true, Hours = { 9, 20.5 }, Lines = "Playa" } :: Activity,
-	Pelota = { Kids = true, Size = { 2, 3 }, Ball = true, Dry = true, Hours = { 9, 20.5 }, Lines = "Pelota" } :: Activity,
+	-- (los niños, a casa a las 19:30: de noche no hay críos solos por la calle)
+	Pelota = { Kids = true, Size = { 2, 3 }, Ball = true, Dry = true, Hours = { 9, 19.5 }, Lines = "Pelota" } :: Activity,
 	Petanca = { Elders = true, Size = { 2, 4 }, Boules = true, Works = { "Watch" }, Dry = true, Hours = { 9, 20.5 }, Lines = "Petanca" } :: Activity,
 	Cartas = { Elders = true, Size = { 2, 4 }, CardTable = true, Works = { "Count" }, Dry = true, Hours = { 10, 21 }, Lines = "Cartas" } :: Activity,
 	Puesto = { Works = { "Carry", "Count" }, Hours = { 8, 21.5 }, Lines = "Puesto" } :: Activity,
@@ -201,7 +204,8 @@ PlaceLife.Places = {
 	} :: Place,
 	Tienda = {
 		Label = "Tienda de la calle", Tags = { "Shop" }, Shape = "Front", Min = 1.5, Max = 6, Slots = 4, Night = 0.05, Rain = 0.5,
-		Hours = { 9.5, 21.5 }, Peak = { { 11.5, 14 }, { 18, 21 } }, OffPeak = 0.45, Weekend = 1.3,
+		Hours = { 9.5, 21.5 }, -- (horario por defecto: cada tienda usa el suyo, OpeningHours.forShop con su ShopId)
+		Peak = { { 11.5, 14 }, { 18, 21 } }, OffPeak = 0.45, Weekend = 1.3,
 		Activities = { Cola = 3, Descanso = 1, Reparto = 1, Charla = 1, Compras = 1 },
 	} :: Place,
 	Oficinas = {
@@ -233,10 +237,11 @@ local function within(hours: { number }, hour: number): boolean
 end
 PlaceLife.within = within
 
--- Lo que queda de gente a esta hora (1 = todo, de día)
-function PlaceLife.timeFactor(place: Place, hour: number): number
+-- Lo que queda de gente a esta hora (1 = todo, de día). hours: el horario de ese sitio en concreto
+function PlaceLife.timeFactor(place: Place, hour: number, hours: { number }?): number
 	local f = 1
-	if place.Hours and not within(place.Hours, hour) then
+	local open = hours or place.Hours
+	if open and not within(open, hour) then
 		f = 0.1 -- (cerrado: algún rezagado en la puerta)
 	end
 	if place.Peak then
@@ -272,13 +277,13 @@ end
 
 -- Cuánta gente hay ahora en un sitio de ese tipo (número entero, 0..Slots)
 -- weekday: 1 = lunes … 7 = domingo (GameClock); sábado y domingo cambia según el sitio (Weekend)
-function PlaceLife.amount(kind: string, hour: number, weather: string?, weekday: number?): number
+function PlaceLife.amount(kind: string, hour: number, weather: string?, weekday: number?, hours: { number }?): number
 	local place = PlaceLife.Places[kind]
 	if not place then
 		return 0
 	end
 	local weekend = if weekday and weekday >= 6 then (place.Weekend or 1) else 1
-	local n = place.Slots * PlaceLife.timeFactor(place, hour) * PlaceLife.weatherFactor(place, weather) * weekend
+	local n = place.Slots * PlaceLife.timeFactor(place, hour, hours) * PlaceLife.weatherFactor(place, weather) * weekend
 	return math.clamp(math.floor(n + 0.5), 0, math.ceil(place.Slots * math.max(1, weekend)))
 end
 

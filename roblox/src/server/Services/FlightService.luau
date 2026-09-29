@@ -45,7 +45,13 @@ type Plane = {
 	T0: number, -- hora del servidor a la que empezó el vuelo (para los clientes)
 	LastCall: boolean,
 	Passengers: { [Player]: Seat },
+	PlaceTimer: number?, -- tiempo desde la última vez que se colocó en vuelo
 }
+
+-- En vuelo, el avión se coloca en el servidor solo 5 veces por segundo: cada jugador ya lo mueve en
+-- su pantalla, fluido (Controllers/Flights). Al salir, al llegar y en la puerta se coloca exacto.
+local PLACE_EVERY = 0.2
+local NOBODY: { [Player]: Seat } = table.freeze({}) -- lista vacía (para no crear una en cada fotograma)
 
 local planes: { [string]: Plane } = {}
 local riding: { [Player]: Plane } = {}
@@ -217,6 +223,7 @@ local function depart(plane: Plane)
 	plane.Elapsed = 0
 	plane.T0 = FlightService._now()
 	plane.LastCall = false
+	plane.PlaceTimer = nil -- (el primer paso del vuelo lo coloca ya)
 	for player in plane.Passengers do
 		Remote:FireClient(player, "Takeoff", { Plane = plane.Spec.Id, Route = plane.Route.Id, T0 = plane.T0 })
 	end
@@ -258,7 +265,15 @@ function FlightService._step(plane: Plane, dt: number)
 	if plane.Phase == "Boarding" then
 		plane.Timer -= dt
 		-- Quien se levanta antes de salir, se baja del avión (vuelve a la puerta)
-		for player, seat in table.clone(plane.Passengers) do
+		-- (la copia de la lista solo se hace si hay alguien a quien bajar: casi nunca)
+		local anyOff = false
+		for player, seat in plane.Passengers do
+			if not player.Parent or not seated(player, seat) then
+				anyOff = true
+				break
+			end
+		end
+		for player, seat in if anyOff then table.clone(plane.Passengers) else NOBODY do
 			if not player.Parent or not seated(player, seat) then
 				stopRiding(player, plane)
 				local gate = tagged("FlightGate", { Plane = plane.Spec.Id, Place = plane.Route.From })
@@ -280,7 +295,16 @@ function FlightService._step(plane: Plane, dt: number)
 	end
 	plane.Elapsed += dt
 	-- En vuelo nadie se levanta: si alguien se ha soltado, vuelve a su asiento
-	for player, seat in table.clone(plane.Passengers) do
+	-- (la copia de la lista solo se hace si hay algo que arreglar: casi nunca)
+	local anyLoose = false
+	for player, seat in plane.Passengers do
+		local humanoid = humanoidOf(player)
+		if not player.Parent or not humanoid or (humanoid.Health or 0) <= 0 or humanoid.SeatPart ~= seat then
+			anyLoose = true
+			break
+		end
+	end
+	for player, seat in if anyLoose then table.clone(plane.Passengers) else NOBODY do
 		local humanoid = humanoidOf(player)
 		if not player.Parent or not humanoid or (humanoid.Health or 0) <= 0 then
 			stopRiding(player, plane)
@@ -291,7 +315,13 @@ function FlightService._step(plane: Plane, dt: number)
 	if plane.Elapsed >= plane.Route.Total then
 		arrive(plane)
 	else
-		place(plane)
+		local waited = (plane.PlaceTimer or PLACE_EVERY) + dt
+		if waited >= PLACE_EVERY then
+			plane.PlaceTimer = 0
+			place(plane)
+		else
+			plane.PlaceTimer = waited
+		end
 	end
 end
 

@@ -137,6 +137,7 @@ local function swing(door: BasePart, open: boolean, seconds: number?)
 	if typeof(hinge) ~= "CFrame" or typeof(closed) ~= "CFrame" then
 		return
 	end
+	local wasOpen = door:GetAttribute("Open") == true
 	door:SetAttribute("Open", open)
 	local parts = { { Part = door, Closed = closed } }
 	local parent = door.Parent
@@ -156,10 +157,12 @@ local function swing(door: BasePart, open: boolean, seconds: number?)
 	if not state then
 		local value = Instance.new("NumberValue")
 		-- (la primera vez parte de donde esté: cerrada, o abierta si ya lo estaba)
-		value.Value = if door.CFrame:FuzzyEq(closed, 1e-3) then 0 else angle
+		value.Value = if wasOpen then angle else 0
 		local new: Swinging = { Angle = value, Tween = nil, Parts = parts, Hinge = hinge }
-		value.Changed:Connect(function(a: number)
-			local turn = new.Hinge * CFrame.Angles(0, a, 0) * new.Hinge:Inverse()
+		value:GetPropertyChangedSignal("Value"):Connect(function()
+			local a = value.Value
+			-- (en 0, justo su CFrame de cerrada, sin decimales de más)
+			local turn = if a == 0 then CFrame.identity else new.Hinge * CFrame.Angles(0, a, 0) * new.Hinge:Inverse()
 			for _, entry in new.Parts do
 				entry.Part.CFrame = turn * entry.Closed
 			end
@@ -170,7 +173,10 @@ local function swing(door: BasePart, open: boolean, seconds: number?)
 	state.Parts = parts
 	state.Hinge = hinge
 	if state.Tween then
-		state.Tween:Cancel()
+		local running = state.Tween
+		pcall(function()
+			running:Cancel()
+		end)
 		state.Tween = nil
 	end
 	local target = if open then angle else 0

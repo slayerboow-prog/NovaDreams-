@@ -68,6 +68,7 @@ export type Post = {
 	Hours: { number }?, -- { abre, cierra } (nil = siempre)
 	Talking: boolean,
 	Leaving: Model?, -- se está retirando (cierre o un jugador le cubre): si hace falta, vuelve
+	Watching: boolean?, -- está mirando a un jugador que se ha acercado (luego vuelve a mirar al frente)
 }
 
 local posts: { Post } = {}
@@ -274,7 +275,7 @@ local function spawnNpc(post: Post)
 	if leaving and StaffService.recallNpc(leaving, post.CFrame.Position, (post.CFrame * CFrame.new(0, 0, -4)).Position, post.Work) then
 		post.Leaving = nil
 		post.Npc = leaving
-		pcall(Npc.icon, leaving, roleOf(post).Icon)
+		pcall(Npc.icon, leaving, roleOf(post).Icon, true)
 		post.Aside = false
 		return
 	end
@@ -282,15 +283,20 @@ local function spawnNpc(post: Post)
 	post.Busy = true
 	local role = roleOf(post)
 	local start = if post.Aside then asideOf(post) else post.CFrame
-	local ok, npc = pcall(Npc.create, post.Role, post.Parent, start, post.Look or role.Look)
+	-- (el uniforme con el tono un poco cambiado: dos cajeros no son copias)
+	local ok, npc = pcall(Npc.create, post.Role, post.Parent, start, Npc.tint(post.Look or role.Look, 0.05))
 	if not ok or not npc then
 		post.Busy = false
 		return
 	end
+	pcall(Npc.vary, npc)
 	npc:SetAttribute("StaffRole", post.Role)
 	npc:SetAttribute("StaffPost", post.Id)
+	npc:SetAttribute("FadeIn", true) -- (el cliente lo funde al llegar: no aparece de golpe)
 	post.Npc = npc
-	pcall(Npc.icon, npc, role.Icon)
+	post.Watching = nil
+	-- Icono de su oficio solo de cerca y sin verse a través de las paredes (Npc.icon callado)
+	pcall(Npc.icon, npc, role.Icon, true)
 	if post.Aside then
 		-- Vuelve a su puesto andando
 		pcall(Npc.walkTo, npc, { post.CFrame.Position }, 7)
@@ -360,7 +366,14 @@ function StaffService.retireNpc(npc: Model, aside: Vector3?, line: string?): boo
 	end
 	leaveSeq[npc] = nil
 	mutedPrompts[npc] = nil
-	npc:Destroy()
+	-- Se va fundiéndose (el cliente lo desvanece: atributo FadeOut, Controllers/ActorLife), no de golpe
+	npc:SetAttribute("FadeIn", true)
+	npc:SetAttribute("FadeOut", true)
+	task.delay(0.7, function()
+		if npc.Parent then
+			npc:Destroy()
+		end
+	end)
 	return true
 end
 
@@ -466,13 +479,22 @@ function StaffService.tick()
 			post.Leaving:Destroy()
 			post.Leaving = nil
 		elseif post.Npc and not post.Talking and not Npc.isWalking(post.Npc) then
-			-- Mira a quien se acerca al mostrador (no mientras vuelve andando a su sitio)
+			-- Mira a quien se acerca al mostrador (no mientras vuelve andando a su sitio). Cuando se va,
+			-- vuelve a mirar al frente (antes se quedaba mirando a la pared o al pasillo)
+			local seen = false
 			for _, player in Players:GetPlayers() do
 				local root = rootOf(player)
-				if root and (root.Position - post.CFrame.Position).Magnitude < 8 then
+				if root and (root.Position - post.CFrame.Position).Magnitude < (if post.Watching then 10 else 8) then
 					Npc.face(post.Npc, root.Position)
+					seen = true
 					break
 				end
+			end
+			if seen then
+				post.Watching = true
+			elseif post.Watching then
+				post.Watching = nil
+				Npc.face(post.Npc, (post.CFrame * CFrame.new(0, 0, -4)).Position)
 			end
 		end
 	end

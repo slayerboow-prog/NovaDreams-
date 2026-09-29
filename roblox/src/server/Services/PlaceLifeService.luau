@@ -26,6 +26,7 @@ local PlaceLife = require(ReplicatedStorage.Shared.PlaceLife)
 local TimeContext = require(ReplicatedStorage.Shared.LifeStory.TimeContext)
 local Ground = require(ReplicatedStorage.Shared.Ground)
 local GameClock = require(ReplicatedStorage.Shared.GameClock)
+local OpeningHours = require(ReplicatedStorage.Shared.OpeningHours)
 
 local PlaceLifeService = {}
 
@@ -40,6 +41,8 @@ type Anchor = {
 	Level: number, -- altura del suelo del sitio
 	Seat: BasePart?, -- (bancos)
 	Groups: { Group },
+	Hours: { number }?, -- su horario, si es distinto del de su tipo (cada tienda de la calle, el suyo)
+	Recent: { string }, -- las últimas frases dichas aquí (para no repetirlas enseguida)
 }
 type Group = {
 	Anchor: Anchor,
@@ -51,12 +54,15 @@ type Group = {
 	NextAt: number,
 	Ball: BasePart?,
 	Holder: number?,
+	Players: number?, -- (pelota) cuántos se la pasan: los primeros; el último es el adulto que mira
+	Pace: number, -- su paso (±15 %: no andan todos igual, como robots)
 }
 
 local anchors: { Anchor } = {}
 local byInstance: { [Instance]: Anchor } = {}
 local folder: Instance? = nil
 local lastChatter = 0
+local lastWet: boolean? = nil -- (¿llovía en la vuelta anterior? para sacar o guardar los paraguas)
 
 ---------------------------------------------------------------------
 -- Utilidades
@@ -297,9 +303,42 @@ local function carry(npc: Model, name: string, size: Vector3, offset: CFrame, co
 end
 
 local function umbrella(npc: Model)
+	if npc:GetAttribute("Umbrella") then
+		return
+	end
 	carry(npc, "PalParaguas", Vector3.new(0.14, 3.2, 0.14), CFrame.new(-1.1, 1.4, -0.4), rgb(50, 50, 54))
 	carry(npc, "Paraguas", Vector3.new(0.4, 5, 5), CFrame.new(-1.1, 3.1, -0.4) * CFrame.Angles(0, 0, math.rad(90)), pick(UMBRELLAS) :: Color3, Enum.PartType.Cylinder)
 	npc:SetAttribute("Umbrella", true)
+end
+
+-- Deja de llover: guarda el paraguas
+local function closeUmbrella(npc: Model)
+	for _, name in { "PalParaguas", "Paraguas" } do
+		local part = npc:FindFirstChild(name)
+		if part then
+			part:Destroy()
+		end
+	end
+	npc:SetAttribute("Umbrella", nil)
+end
+
+-- Cambia el tiempo: los que están de pie o andando sacan el paraguas (o lo guardan). Antes se quedaba
+-- como estaba al aparecer: gente sin paraguas en plena tormenta y con él al salir el sol.
+local function rewet(wet: boolean)
+	for _, a in anchors do
+		for _, g in a.Groups do
+			for _, npc in g.Npcs do
+				if not npc.Parent or npc:GetAttribute("Leaving") then
+					continue
+				end
+				if not wet then
+					closeUmbrella(npc)
+				elseif g.Activity ~= "Correr" and not npc:GetAttribute("Seated") and npc:GetAttribute("UsePose") == nil and npc:GetAttribute("Age") ~= "Nino" and math.random() < 0.85 then
+					umbrella(npc)
+				end
+			end
+		end
+	end
 end
 
 -- Perro de bloques al lado de su dueño (pegado a él: anda con él sin coste)
@@ -323,6 +362,9 @@ local function person(g: Group, cf: CFrame, look: Npc.Look?, kid: boolean?, elde
 	npc:SetAttribute("PlaceLife", g.Anchor.Kind)
 	npc:SetAttribute("Activity", g.Activity)
 	npc:SetAttribute("FadeIn", true) -- (el cliente lo funde al llegar: no aparece de golpe)
+	if not kid then
+		pcall(Npc.vary, npc) -- (unos más altos y otros más bajos)
+	end
 	if kid then
 		npc:SetAttribute("Age", "Nino")
 		pcall(function()
@@ -415,17 +457,35 @@ local function build(a: Anchor, name: string, size: number, list, weather: strin
 	if not activity then
 		return nil
 	end
-	local g: Group = { Anchor = a, Activity = name, Npcs = {}, Props = {}, Path = nil, Step = 1, NextAt = os.clock() + 3 + math.random() * 5 }
+	-- Cada grupo a su paso: ±15 % (los que corren, solo algo más rápido: que no bajen de correr a andar)
+	local pace = if name == "Correr" then 1 + math.random() * 0.12 else 0.85 + math.random() * 0.3
+	local g: Group = { Anchor = a, Activity = name, Npcs = {}, Props = {}, Path = nil, Step = 1, NextAt = os.clock() + 3 + math.random() * 5, Pace = pace }
 	local wet = PlaceLife.umbrella(weather)
+	-- Ropa del grupo sin repetir: las listas se barajan y se reparten en orden, y los uniformes
+	-- con el tono un poco cambiado (antes salían clones uno al lado del otro)
+	local decks: { [any]: { any } } = {}
+	local function deal(list: { any }): any
+		local deck = decks[list]
+		if not deck or #deck == 0 then
+			deck = table.clone(list)
+			for i = #deck, 2, -1 do
+				local j = math.random(1, i)
+				deck[i], deck[j] = deck[j], deck[i]
+			end
+			decks[list] = deck
+		end
+		return table.remove(deck)
+	end
+	local outfits = Npc.outfits(8)
 	local function look(): Npc.Look?
 		if activity.Elders then
-			return pick(ELDER)
+			return Npc.tint(deal(ELDER))
 		elseif name == "Correr" then
-			return pick(SPORT)
+			return Npc.tint(deal(SPORT))
 		elseif activity.Uniform then
-			return pick(UNIFORM)
+			return Npc.tint(deal(UNIFORM))
 		end
-		return nil
+		return deal(outfits)
 	end
 	-- Sentado en un banco (en un lado: el otro queda libre para el jugador)
 	if activity.Pose == "Sit" then
@@ -534,7 +594,19 @@ local function build(a: Anchor, name: string, size: number, list, weather: strin
 		end
 		middle /= #spots
 		for _, p in spots do
-			person(g, facing(p, middle), { Backpack = if math.random() < 0.3 then pick(TOWELS) else nil }, true)
+			local kidLook = deal(outfits)
+			person(g, facing(p, middle), { Shirt = kidLook.Shirt, Pants = kidLook.Pants, Backpack = if math.random() < 0.3 then pick(TOWELS) else nil }, true)
+		end
+		g.Players = #g.Npcs
+		-- Un adulto mirando a los niños desde un lado (no juegan solos)
+		local outward = Vector3.new(spots[1].X - middle.X, 0, spots[1].Z - middle.Z)
+		outward = if outward.Magnitude > 0.1 then outward.Unit else Vector3.new(1, 0, 0)
+		local watch = groundAt(a, middle + Vector3.new(-outward.Z, 0, outward.X) * 11)
+		if watch and pointOk(watch, list) then
+			local adult = person(g, facing(watch, middle), look())
+			if adult then
+				pcall(Npc.work, adult, pick({ "Phone", "Watch", "Coffee" }))
+			end
 		end
 		g.Ball = prop(g, "Pelota", Vector3.new(1.1, 1.1, 1.1), CFrame.new(spots[1] + Vector3.new(0, 0.55, 0)), pick({ rgb(240, 240, 240), rgb(230, 60, 60), rgb(250, 200, 50) }) :: Color3, Enum.PartType.Ball)
 		g.Holder = 1
@@ -613,10 +685,22 @@ local function build(a: Anchor, name: string, size: number, list, weather: strin
 		end
 		return if placed > 0 then g else nil
 	end
-	-- Una persona (o una pareja) de pie o andando
-	local lookAt = if name == "Fotos" or name == "Pescar" or name == "Musico" then toCenter else toCenter + (at - toCenter) * 2
+	-- Una persona (o una pareja) de pie o andando. Hacia dónde mira: los clientes, a su puesto o a su
+	-- surtidor; quien espera el bus, a la calzada (por donde llega); los demás, hacia fuera del sitio
+	-- (antes, a veces, de cara a la pared)
+	local lookAt = if name == "Fotos" or name == "Pescar" or name == "Musico" or name == "Puesto" or name == "Repostar" then toCenter else toCenter + (at - toCenter) * 2
 	if name == "Pescar" then
 		lookAt = at + (at - toCenter) -- (de cara al agua, hacia fuera)
+	elseif name == "EsperarBus" then
+		local stopPoint = a.Instance:GetAttribute("StopPoint")
+		if typeof(stopPoint) == "Vector3" then
+			lookAt = Vector3.new(stopPoint.X, at.Y, stopPoint.Z)
+		elseif a.Place.Shape == "Ring" then
+			lookAt = toCenter
+		end
+	end
+	if flatDistance(lookAt, at) < 0.5 then
+		lookAt = at + a.Frame.LookVector * 4
 	end
 	local lead = person(g, facing(at, lookAt), look(), activity.Kids, activity.Elders)
 	if not lead then
@@ -642,7 +726,7 @@ local function build(a: Anchor, name: string, size: number, list, weather: strin
 		-- Su pareja, al lado (andan juntos)
 		local side = facing(at, lookAt).RightVector
 		local p = at + side * 1.8
-		local partner = person(g, facing(p, lookAt + side * 1.8), nil)
+		local partner = person(g, facing(p, lookAt + side * 1.8), look())
 		if partner and wet then
 			umbrella(partner)
 		end
@@ -778,15 +862,42 @@ function PlaceLifeService.addAnchor(kind: string, instance: Instance): Anchor?
 	-- Media caja en horizontal (girada como el sitio)
 	local rx = math.abs(frame.RightVector:Dot(cf.RightVector)) * size.X + math.abs(frame.RightVector:Dot(cf.LookVector)) * size.Z
 	local rz = math.abs(frame.LookVector:Dot(cf.RightVector)) * size.X + math.abs(frame.LookVector:Dot(cf.LookVector)) * size.Z
+	local level = center.Y - size.Y / 2
+	if instance:IsA("BasePart") and (place.Shape == "Ring" or place.Shape == "Front") then
+		-- Suelo de verdad bajo la marca (un rayo hacia abajo). El cartel de la parada del bus está a unos
+		-- 7 studs del suelo: con su borde de abajo como suelo no cabía nadie y la parada salía vacía.
+		local ok, hit = pcall(function()
+			local params = RaycastParams.new()
+			params.FilterType = Enum.RaycastFilterType.Exclude
+			local skip: { Instance } = { instance }
+			if folder then
+				table.insert(skip, folder :: Instance)
+			end
+			local parent = instance.Parent
+			if kind == "ParadaBus" and parent and parent:IsA("Model") then
+				table.insert(skip, parent) -- (la marquesina: ni su banco ni su techo son el suelo)
+			end
+			params.FilterDescendantsInstances = skip
+			return Ground.cast(center + Vector3.new(0, 1, 0), Vector3.new(0, -40, 0), params)
+		end)
+		if ok and hit and hit.Position.Y <= center.Y + 1 then
+			level = hit.Position.Y
+		end
+	end
+	-- Las tiendas de la calle, cada una con su horario (la panadería abre antes que la librería)
+	local shopId = instance:GetAttribute("ShopId")
+	local hours = if kind == "Tienda" and type(shopId) == "string" then OpeningHours.forShop(shopId) else nil
 	local a: Anchor = {
 		Kind = kind,
 		Place = place,
 		Instance = instance,
 		Frame = frame,
 		Half = if place.Shape == "Ring" or place.Shape == "Front" then Vector3.zero else Vector3.new(rx / 2, size.Y / 2, rz / 2),
-		Level = center.Y - size.Y / 2,
+		Level = level,
 		Seat = seat,
 		Groups = {},
+		Hours = hours,
+		Recent = {},
 	}
 	table.insert(anchors, a)
 	byInstance[instance] = a
@@ -893,9 +1004,10 @@ local function animate(g: Group)
 	if not lead or not lead.Parent then
 		return
 	end
-	if g.Ball and g.Ball.Parent and #g.Npcs >= 2 then
-		-- Pasa la pelota al siguiente
-		local nextHolder = (g.Holder or 1) % #g.Npcs + 1
+	local players = math.min(g.Players or #g.Npcs, #g.Npcs)
+	if g.Ball and g.Ball.Parent and players >= 2 then
+		-- Pasa la pelota al siguiente (entre los niños: el adulto solo mira)
+		local nextHolder = (g.Holder or 1) % players + 1
 		local from, to = g.Npcs[g.Holder or 1], g.Npcs[nextHolder]
 		if from.PrimaryPart and to.PrimaryPart then
 			local goal = to.PrimaryPart.Position
@@ -914,7 +1026,16 @@ local function animate(g: Group)
 		g.Step = g.Step % #path + 1
 		local goal = path[g.Step]
 		local activity = PlaceLife.Activities[g.Activity]
-		local speed = activity and activity.Speed or 5
+		if activity and activity.Walk == "Line" and lead.PrimaryPart then
+			-- Cada tramo, un sitio nuevo (antes iban y venían entre los mismos dos puntos)
+			local other = walkTarget(g.Anchor, Vector3.new(lead.PrimaryPart.Position.X, g.Anchor.Level, lead.PrimaryPart.Position.Z), nil)
+			if other then
+				goal = other
+			end
+		end
+		-- A su paso (Pace); con lluvia, más deprisa (con prisa por no mojarse)
+		local _, weather = TimeContext.now()
+		local speed = (activity and activity.Speed or 5) * (g.Pace or 1) * (if PlaceLife.umbrella(weather) then 1.3 else 1)
 		local work = lead:GetAttribute("Work")
 		for i, npc in g.Npcs do
 			local offset = Vector3.zero
@@ -935,6 +1056,36 @@ local function animate(g: Group)
 			end)
 		end
 		g.NextAt = t + (if g.Activity == "Correr" then 0.3 else 6 + math.random() * 10)
+	end
+end
+
+-- Una frase que no se haya dicho hace poco en este sitio (y la del paraguas, solo si lleva paraguas)
+local RECENT = 4
+local function freshLine(lines: { string }, hour: number, weather: string?, recent: { string }, speaker: Model): string?
+	local fitting, any = {}, {}
+	for _, line in lines do
+		if TimeContext.fits(line, hour, weather) and not (string.find(line, "paraguas", 1, true) and not speaker:GetAttribute("Umbrella")) then
+			table.insert(any, line)
+			if not table.find(recent, line) then
+				table.insert(fitting, line)
+			end
+		end
+	end
+	if #fitting == 0 then
+		-- (todas dichas hace poco: al menos que no sea la última)
+		for _, line in any do
+			if line ~= recent[#recent] then
+				table.insert(fitting, line)
+			end
+		end
+	end
+	return pick(fitting)
+end
+
+local function remember(a: Anchor, line: string)
+	table.insert(a.Recent, line)
+	while #a.Recent > RECENT do
+		table.remove(a.Recent, 1)
 	end
 end
 
@@ -966,29 +1117,45 @@ function PlaceLifeService.chatter(force: boolean?)
 	end
 	local activity = PlaceLife.Activities[g.Activity]
 	local lines = PlaceLife.Lines[activity and activity.Lines or "Charla"] or PlaceLife.Lines.Charla
-	if PlaceLife.wet(weather) and math.random() < 0.4 then
-		lines = PlaceLife.Lines.Lluvia
-	end
 	local speaker = pick(g.Npcs)
 	if not speaker or speaker:GetAttribute("Says") then
 		return
 	end
+	local rainy = PlaceLife.wet(weather) and math.random() < 0.4
+	if rainy then
+		lines = PlaceLife.Lines.Lluvia
+	end
+	local a = g.Anchor
+	local line = freshLine(lines, hour, weather, a.Recent, speaker)
+	if not line then
+		return
+	end
 	lastChatter = t
-	pcall(Npc.say, speaker, TimeContext.pick(lines, hour, weather) or lines[1], 3.5)
-	-- En un corro, otro le contesta
+	remember(a, line)
+	pcall(Npc.say, speaker, TimeContext.adapt(line, hour, weather), 3.5)
+	-- En un corro, otro le contesta (con otra frase: antes a veces repetía la misma)
 	if #g.Npcs >= 2 and (g.Activity == "Charla" or g.Activity == "Cartas" or g.Activity == "Petanca" or g.Activity == "Pareja") then
 		local other = g.Npcs[(table.find(g.Npcs, speaker) or 1) % #g.Npcs + 1]
-		task.delay(2.8, function()
-			if other.Parent then
-				pcall(Npc.say, other, TimeContext.pick(lines, hour, weather) or lines[#lines], 3)
-			end
-		end)
+		local reply = freshLine(lines, hour, weather, a.Recent, other)
+		if reply then
+			remember(a, reply)
+			task.delay(2.8, function()
+				if other.Parent then
+					pcall(Npc.say, other, TimeContext.adapt(reply :: string, hour, weather), 3)
+				end
+			end)
+		end
 	end
 end
 
 function PlaceLifeService.tick()
 	local hour, weather, weekday = now()
 	local list = viewers()
+	local wet = PlaceLife.umbrella(weather)
+	if lastWet ~= nil and wet ~= lastWet then
+		rewet(wet)
+	end
+	lastWet = wet
 	-- 1) Cuánta gente del servidor tiene ya cada jugador alrededor (la de aquí y la de CrowdService)
 	local budget: { [any]: number } = {}
 	for _, v in list do
@@ -1021,7 +1188,7 @@ function PlaceLifeService.tick()
 				removeGroup(g)
 			end
 		else
-			local want = PlaceLife.amount(a.Kind, hour, weather, weekday)
+			local want = PlaceLife.amount(a.Kind, hour, weather, weekday, a.Hours)
 			if not a.Instance.Parent then
 				want = 0
 			end

@@ -24,16 +24,25 @@ end
 
 -- La cabina de ese edificio (la torre: Interior_Tower con atributo Key)
 local cabinCache: { [string]: Model } = {}
+-- Si no se encuentra (aún no ha llegado con la carga por zonas), no se vuelve a recorrer todo el mapa
+-- en cada fotograma: se reintenta como mucho una vez por segundo.
+local missedAt: { [string]: number } = {}
 local function cabinOf(key: string): Model?
 	local cached = cabinCache[key]
 	if cached and cached.Parent then
 		return cached
 	end
+	local missed = missedAt[key]
+	if missed and os.clock() - missed < 1 then
+		return nil
+	end
+	missedAt[key] = os.clock()
 	for _, d in workspace:GetDescendants() do
 		if d:IsA("Model") and d.Name == "Interior_Tower" and d:GetAttribute("Key") == key then
 			local cabin = d:FindFirstChild("Ascensor")
 			if cabin and cabin:IsA("Model") then
 				cabinCache[key] = cabin
+				missedAt[key] = nil
 				return cabin
 			end
 		end

@@ -498,7 +498,8 @@ local SETUP: { [string]: (BasePart) -> () } = {
 		-- Se anima el ángulo (no el CFrame): si no, la puerta iba en línea recta y se deslizaba
 		-- atravesando el lateral en vez de girar sobre la bisagra
 		local angle = Instance.new("NumberValue")
-		angle.Changed:Connect(function(a: number)
+		angle:GetPropertyChangedSignal("Value"):Connect(function()
+			local a = angle.Value
 			door.CFrame = if a == 0 then closed else pivot * CFrame.Angles(0, a, 0) * offset
 		end)
 		local turning: Tween? = nil
@@ -507,7 +508,10 @@ local SETUP: { [string]: (BasePart) -> () } = {
 			open = not open
 			p.ActionText = if open then "Cerrar taquilla" else "Abrir taquilla"
 			if turning then
-				turning:Cancel()
+				local running = turning
+				pcall(function()
+					running:Cancel()
+				end)
 			end
 			local t = TweenService:Create(angle, TweenInfo.new(0.35, Enum.EasingStyle.Quad), { Value = if open then math.rad(100) else 0 })
 			turning = t
