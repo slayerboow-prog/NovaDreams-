@@ -24,7 +24,14 @@ BRANCH="${PUBLISH_BRANCH:-claude/roblox-game-d98vy8}"
 
 fail() { echo "⛔ No se publica: $1" >&2; exit 1; }
 
-# 1. Estar en la rama del juego, sin cambios sin guardar (el .rbxl construido no cuenta)
+# 1. Estar en la rama del juego, sin cambios sin guardar (el .rbxl construido no cuenta).
+#    Si la copia está en un commit suelto (HEAD desacoplado, pasa en las ventanas nuevas), se pone en
+#    la rama con lo último de GitHub (sin cambios sin guardar no se pierde nada).
+if [ "$(git rev-parse --abbrev-ref HEAD)" = "HEAD" ] && [ -z "$(git status --porcelain -- . ":(exclude)$FILE")" ]; then
+	git fetch -q origin "$BRANCH" || fail "no se pudo consultar GitHub."
+	git checkout -q -B "$BRANCH" "origin/$BRANCH" || fail "no se pudo poner la copia en la rama '$BRANCH'."
+	echo "(La copia estaba en un commit suelto: ahora está en '$BRANCH', al día con GitHub.)"
+fi
 [ "$(git rev-parse --abbrev-ref HEAD)" = "$BRANCH" ] ||
 	fail "estás en la rama '$(git rev-parse --abbrev-ref HEAD)', no en '$BRANCH'."
 DIRTY="$(git status --porcelain -- . ":(exclude)$FILE")"
