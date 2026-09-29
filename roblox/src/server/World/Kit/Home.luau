@@ -8,6 +8,7 @@
 -- Para la misión "El primer día" (StoryMarks, todas con HomeId):
 --   StoryProp PropId = "Cama" | "Armario" | "Espejo" | "Mochila" | "Desayuno"
 --   StorySpot SpotId = "Despertar" (junto a la cama) | "SalirCasa" (delante de la puerta)
+-- Y el garaje de Cosme, el vecino (Home.cosmeGarage, en la manzana de casas de al lado): SpotId = "GarajeCosme"
 --
 -- Distribución (vista desde arriba, la puerta al sur/frente):
 --   ┌───────────────────────────────┐  fondo: ventanal con vista

@@ -954,6 +954,9 @@ local function findPlace(): Place?
 end
 
 function RestaurantService.init()
+	-- Así JobService.quit (p. ej. al entrar en prisión) también termina el turno de camarero o barman
+	JobService.setHandler("Camarero", { Start = function(player) start(player, "Camarero") end, Quit = RestaurantService.quit })
+	JobService.setHandler("Barman", { Start = function(player) start(player, "Barman") end, Quit = RestaurantService.quit })
 	folder = Instance.new("Folder")
 	folder.Name = "RestaurantLife"
 	folder.Parent = workspace

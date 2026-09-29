@@ -1002,6 +1002,11 @@ local function startRole(player: Player, store: Store, role: string)
 	refreshStaff(store, true)
 end
 
+-- Así JobService.quit (p. ej. al entrar en prisión) también termina el turno de cajero o charcutero.
+-- (Start no hace nada: estos puestos se cogen en la tienda, que es la que sabe qué caja toca)
+JobService.setHandler("Cajero", { Start = function() end, Quit = quitRole })
+JobService.setHandler("Charcutero", { Start = function() end, Quit = quitRole })
+
 -- Reponedor (JobService): coge una caja en el almacén de SU tienda y rellena el hueco más vacío
 local function storeForShift(player: Player, shift: any): Store?
 	local context = shift.Context

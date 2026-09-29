@@ -116,6 +116,13 @@ local function revive(player: Player, character: Model, from: Vector3)
 		StoryEvents.emit(player, "Revived", { Jailed = true })
 		return
 	end
+	if JusticeService.returnToDock(player) then
+		-- Murió en pleno juicio: vuelve al banquillo, sin factura (el juicio sigue).
+		-- (a la historia se le dice "Jailed": así no le lleva a ningún sitio)
+		Remote:FireClient(player, "Revived", { Bill = 0, Trial = true })
+		StoryEvents.emit(player, "Revived", { Bill = 0, Jailed = true })
+		return
+	end
 	if player:GetAttribute("LifeStage") == "Bebe" then
 		-- Un bebé no va al hospital ni paga: vuelve a su cuna (BabyService)
 		Remote:FireClient(player, "Revived", { Bill = 0 })

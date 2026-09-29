@@ -23,6 +23,7 @@ local JobService = require(script.Parent.JobService)
 local SceneService = require(script.Parent.SceneService)
 local CareerService = require(script.Parent.CareerService)
 local InteriorService = require(script.Parent.InteriorService)
+local DialogueService = require(script.Parent.DialogueService)
 
 local JusticeService = {}
 
@@ -228,6 +229,9 @@ end
 
 -- Lo llama WantedService al detener a alguien
 function JusticeService.process(player: Player, stars: number, crimes: { string })
+	-- Si le detienen hablando, la conversación se corta (si no, se quedan los controles y la
+	-- cámara bloqueados). La historia la trata como un corte: se repetirá al salir.
+	pcall(DialogueService.cancel, player, "Arrested")
 	local judge = freeJudge(player)
 	if not judge then
 		local fine, seconds = Justice.automatic(stars)
@@ -235,7 +239,11 @@ function JusticeService.process(player: Player, stars: number, crimes: { string 
 		-- Se apunta ya (si sales del juego en estos segundos, la condena se guarda igual);
 		-- la espera es solo para que se vea la pantalla de detenido
 		local paid = charge(player, fine, seconds, "Auto", nil, crimes)
+		-- Mientras se tramita cuenta como "en juicio": así la historia (y lo demás) no lo mueve
+		-- de sitio antes de que llegue a la celda
+		player:SetAttribute("OnTrial", true)
 		task.delay(3, function()
+			player:SetAttribute("OnTrial", nil)
 			if player.Parent then
 				announce(player, paid, seconds, "Auto", nil, crimes)
 			end
@@ -291,6 +299,30 @@ function JusticeService.process(player: Player, stars: number, crimes: { string 
 			closeCase(case, "Auto")
 		end
 	end)
+end
+
+-- Si muere en pleno juicio, reaparece en el banquillo (sin pasar por el hospital ni pagar).
+-- Devuelve true si se ocupa de él (está en juicio). Si aún no ha llegado a la sala, ya le lleva
+-- allí el juicio en marcha.
+function JusticeService.returnToDock(player: Player): boolean
+	if not player:GetAttribute("OnTrial") then
+		return false
+	end
+	for _, case in cases do
+		if case.Accused == player and not case.Done then
+			local dock = tagged("CourtDock")
+			if case.InCourt and dock and player.Parent then
+				InteriorService.placeAt(player, dock)
+				task.delay(0.4, function()
+					if not case.Done and player:GetAttribute("OnTrial") then
+						anchor(player, true)
+					end
+				end)
+			end
+			return true
+		end
+	end
+	return false -- (sentencia automática en trámite: no hay banquillo)
 end
 
 -- Libertad anticipada: el/la director/a de la prisión o el/la presidente/a del tribunal

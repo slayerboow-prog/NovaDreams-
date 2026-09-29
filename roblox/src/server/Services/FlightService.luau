@@ -55,6 +55,9 @@ local NOBODY: { [Player]: Seat } = table.freeze({}) -- lista vacía (para no cre
 
 local planes: { [string]: Plane } = {}
 local riding: { [Player]: Plane } = {}
+-- Dónde estaba cada pasajero en el paso anterior del vuelo (para notar un teletransporte)
+local lastRoot: { [Player]: Vector3 } = {}
+local AWAY = 30 -- a más de esto del asiento (y de golpe), ya no está en el avión
 -- Lo que pagó por el billete que lleva (para devolvérselo si lo cambia por otro)
 local ticketPaid: { [Player]: number } = {}
 -- Quiso comprar otro billete teniendo ya uno: si vuelve a pulsar enseguida, se cambia
@@ -203,6 +206,7 @@ local function stopRiding(player: Player, plane: Plane)
 		riding[player] = nil
 	end
 	player:SetAttribute("FlightLanding", nil)
+	lastRoot[player] = nil
 	local humanoid = humanoidOf(player)
 	if humanoid and seat and humanoid.SeatPart == seat then
 		humanoid.Sit = false
@@ -231,15 +235,25 @@ local function depart(plane: Plane)
 	publish(plane)
 end
 
+-- Detenido, en juicio o muerto: ya no va en el avión aunque siga en la lista
+local function held(player: Player): boolean
+	return player:GetAttribute("JailUntil") ~= nil or player:GetAttribute("OnTrial") ~= nil or player:GetAttribute("Dead") ~= nil
+end
+
 local function arrive(plane: Plane)
 	local route = plane.Route
 	plane.Elapsed = route.Total
 	place(plane)
 	-- Todos abajo, en la sala de llegadas
 	local index = 0
-	for player in table.clone(plane.Passengers) do
-		index += 1
+	for player, seat in table.clone(plane.Passengers) do
+		local humanoid = humanoidOf(player)
+		local aboard = not held(player) and humanoid ~= nil and humanoid.SeatPart == seat
 		stopRiding(player, plane)
+		if not aboard then
+			continue -- (quien ya no iba a bordo no aterriza ni cuenta el vuelo)
+		end
+		index += 1
 		landPlayer(player, route.To, index)
 		Notify:FireClient(player, "Success", ("✈️ Bienvenido/a a %s. ¡Gracias por volar con Valmar Air!"):format(placeName(route.To)))
 		StoryEvents.emit(player, "Flew", { Route = route.Id, From = route.From, To = route.To })
@@ -296,20 +310,38 @@ function FlightService._step(plane: Plane, dt: number)
 	plane.Elapsed += dt
 	-- En vuelo nadie se levanta: si alguien se ha soltado, vuelve a su asiento
 	-- (la copia de la lista solo se hace si hay algo que arreglar: casi nunca)
+	-- Si lo han sacado del avión (detenido, cárcel, juicio, la historia lo ha llevado a otro
+	-- sitio...), deja el vuelo en vez de volver a sentarlo a la fuerza.
 	local anyLoose = false
+	local moved: { [Player]: boolean }? = nil
 	for player, seat in plane.Passengers do
 		local humanoid = humanoidOf(player)
-		if not player.Parent or not humanoid or (humanoid.Health or 0) <= 0 or humanoid.SeatPart ~= seat then
+		local root = rootOf(player)
+		if root then
+			local before = lastRoot[player]
+			if before and (root.Position - before).Magnitude > AWAY then
+				moved = moved or {}
+				;(moved :: { [Player]: boolean })[player] = true
+			end
+			lastRoot[player] = root.Position
+		end
+		if not player.Parent or not humanoid or (humanoid.Health or 0) <= 0 or humanoid.SeatPart ~= seat or held(player) then
 			anyLoose = true
-			break
 		end
 	end
 	for player, seat in if anyLoose then table.clone(plane.Passengers) else NOBODY do
 		local humanoid = humanoidOf(player)
-		if not player.Parent or not humanoid or (humanoid.Health or 0) <= 0 then
+		local root = rootOf(player)
+		-- Lejos del asiento y de un salto: lo han teletransportado (no se ha levantado sin más)
+		local teleported = moved ~= nil and moved[player] == true and root ~= nil and (root.Position - seat.Position).Magnitude > AWAY
+		if not player.Parent or not humanoid or (humanoid.Health or 0) <= 0 or held(player) then
 			stopRiding(player, plane)
 		elseif humanoid.SeatPart ~= seat then
-			seat:Sit(humanoid)
+			if teleported then
+				stopRiding(player, plane)
+			else
+				seat:Sit(humanoid)
+			end
 		end
 	end
 	if plane.Elapsed >= plane.Route.Total then
@@ -624,6 +656,7 @@ function FlightService.init()
 		end
 		ticketPaid[player] = nil
 		swapAsk[player] = nil
+		lastRoot[player] = nil
 		local plane = riding[player]
 		if plane then
 			plane.Passengers[player] = nil

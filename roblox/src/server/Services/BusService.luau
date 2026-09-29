@@ -1048,6 +1048,8 @@ end
 
 ---------------------------------------------------------------------
 function BusService.init()
+	-- Así JobService.quit (p. ej. al entrar en prisión) también termina el turno de conductor
+	JobService.setHandler("Conductor", { Start = hire, Quit = quit })
 	folder = Instance.new("Folder")
 	folder.Name = "Buses"
 	folder.Parent = workspace

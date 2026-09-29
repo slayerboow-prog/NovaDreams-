@@ -76,7 +76,7 @@ return {
 	Rewards = { Later = { { AfterHours = 2, Start = "Eco_Hugo" } } },
 
 	Props = {
-		Escondite = { Kind = "Caja", Name = "Detrás de las cajas", Prompt = "Esconderte", Place = "SpotEscondite", Dialogue = "Escondido", Once = true },
+		Escondite = { Kind = "Caja", Name = "Detrás de las cajas", Prompt = "Esconderte", Place = "SpotEscondite", Offset = V(0, 0, 1), Dialogue = "Escondido", Once = true },
 		Atajo = { Kind = "Marcador", Name = "Atajo por el aula de música", Prompt = "Colarte", Place = "AulaMusica", Dialogue = "Atajo", Once = true },
 	},
 

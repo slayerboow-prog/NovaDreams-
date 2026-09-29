@@ -2010,9 +2010,10 @@ local function onStoryEvent(player: Player, name: string, payload: { [string]: a
 		return
 	end
 	local story = storyOf(data)
-	if name == "Died" then
-		-- Al morir se corta la conversación (se repetirá al volver); los controles vuelven solos
-		DialogueService.cancel(player, "Died")
+	if name == "Died" or name == "Arrested" then
+		-- Al morir o al ser detenido se corta la conversación (no cuenta: se repetirá al volver,
+		-- no desde la celda); los controles vuelven solos
+		DialogueService.cancel(player, name)
 	end
 	if name == "Revived" and not payload.Jailed then
 		-- (se espera un poco: al avisar, el hospital aún no ha quitado "Dead" y puede detenerte justo después)
