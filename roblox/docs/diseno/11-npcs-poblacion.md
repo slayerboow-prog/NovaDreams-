@@ -56,3 +56,36 @@ Un sistema central decide cada pocos minutos qué pasa en el mundo, según la ho
 | Festival / concierto / partido | Mucha gente NPC en una zona y ventas extra para los negocios cercanos | Todos (ocio, hostelería, policía) |
 
 Regla: **si nadie responde, el mundo se resuelve solo** (los servicios NPC llegan tarde). La ausencia de jugadores nunca bloquea nada.
+
+## 11.7 Vida por lugar y presupuesto actual
+
+Cada tipo de sitio tiene su gente haciendo lo que se hace allí (datos en `src/shared/PlaceLife.luau`,
+servidor en `Services/PlaceLifeService.luau`):
+
+| Sitio | Qué hace la gente |
+|---|---|
+| Parque | Corros charlando, correr, pasear al perro, parejas, leer, fotos, niños con la pelota, abuelos a la petanca o a las cartas, músico |
+| Playa | Tomar el sol en la toalla (con sombrilla), pelota, pasear, correr, fotos |
+| Plaza | Corros, fotos, parejas, músico callejero con su público, cartas y petanca |
+| Paradas de bus, bocas de metro y estaciones | Esperar (móvil, reloj, libro), charlar, viajeros con maleta, algún músico |
+| Puerta del colegio | Padres esperando a la entrada y a la salida (horas punta; el finde, nadie) |
+| Hospital | Familiares llamando por teléfono o charlando en la puerta |
+| Centro comercial, tiendas de la calle y mercado | Gente con bolsas, colas en hora punta, repartidores, dependientes en su descanso, clientes en los puestos |
+| Oficinas | Empleados en su descanso (café, móvil) en horas punta; casi nadie el finde |
+| Puerto, campus, gasolinera y bancos de la calle | Pescar y hacer fotos, estudiar y charlar, esperar junto al surtidor, leer sentado |
+
+Reglas: la hora (horarios y horas punta), el día de la semana (`GameClock`: el finde, más gente en el
+ocio y menos en oficinas y colegio) y el tiempo (con lluvia menos gente, paraguas y nadie en la toalla
+ni con la pelota; de noche casi nadie). Las frases salen de `PlaceLife.Lines` pasadas por `TimeContext`
+(una cada 6 s en todo el servidor; en los corros, otro contesta).
+
+**Presupuesto (pensado para móvil):**
+
+| Qué | Dónde | Tope |
+|---|---|---|
+| Peatones de ambiente (paseando, corriendo, perro, bolsas, móvil, niños, parejas, repartidores) | Cliente (`Controllers/Ambient`) | 48 en ordenador y 24 en móvil; cuántos andan lo decide `Ambient.density` (hora punta 100 %, día 80 %, noche 30 %, lluvia ×0,65) |
+| Gente de los sitios (`PlaceLifeService`) | Servidor, solo a menos de 200 studs de un jugador | 40 por jugador contando la de `CrowdService`; 90 en todo el servidor; 4 grupos nuevos cada 2 s |
+| Gente de salas, plantas bajas y parques (`CrowdService`) | Servidor | Sus topes de siempre (en móvil el cliente quita la mitad: `CrowdLite`) |
+
+Nadie aparece a menos de 5 studs de un jugador ni a menos de 30 delante de él; aparecen y se van con
+un fundido (`FadeIn` / `FadeOut`, `Controllers/ActorLife`) y no llevan el nombre de Roblox encima.

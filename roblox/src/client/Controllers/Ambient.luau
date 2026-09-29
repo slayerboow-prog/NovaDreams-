@@ -2,7 +2,10 @@
 -- Se simula en cada dispositivo (no en el servidor) y solo cerca del jugador,
 -- así la ciudad parece viva sin coste de red ni de servidor.
 --  * Vehículos (coches, taxis, motos, bicis y patinetes): ver Traffic.luau.
---  * Peatones: caminan por las aceras con animación de pasos. De noche hay menos.
+--  * Peatones: caminan por las aceras con animación de pasos. Hay más en las horas punta (entrada y
+--    salida del trabajo, la comida), algo menos a media tarde, pocos de noche y menos con lluvia
+--    (Ambient.density). Paseando, corriendo, con el perro, con bolsas, al móvil, niños, parejas de la
+--    mano y repartidores con la caja a la espalda. De vez en cuando alguien cerca suelta una frase.
 --    Si chocas con uno (o lo empujas), se aparta de lado con un traspiés, te mira y a veces suelta
 --    un "¡Eh!"; luego sigue su camino. Si llega tu coche, se tira a un lado.
 
@@ -15,13 +18,16 @@ local Traffic = require(script.Parent.Traffic)
 local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
 local Sidewalk = require(ReplicatedStorage.Shared.Sidewalk)
 local Nudge = require(script.Parent.Nudge)
+local TimeContext = require(ReplicatedStorage.Shared.LifeStory.TimeContext)
 
 local Ambient = {}
 
 local player = Players.LocalPlayer
 
 local Perf = require(script.Parent.Parent.UI.Perf)
-local PED_COUNT = Perf.count(34) -- en móvil, la mitad
+-- Presupuesto de peatones (solo en tu pantalla, sin coste de servidor ni de red): 48 en ordenador y
+-- 24 en móvil (Perf.count). Cuántos andan a la vez lo decide Ambient.density (hora, lluvia, finde).
+local PED_COUNT = Perf.count(48, 20)
 local WALK_TOP = 1.0
 local TURN_TIME = 0.7 -- lo que tarda en darse la vuelta al final de la acera
 local KEEP_RIGHT = 0.9 -- cada uno por su derecha de la acera
@@ -146,7 +152,7 @@ end
 
 -- Tipos de peatón (con su probabilidad): paseando, corriendo, con el perro, con bolsas de la
 -- compra, mirando el móvil o niños. Si llueve, casi todos sacan el paraguas.
-local STYLES = { { "Walk", 30 }, { "Jog", 10 }, { "Dog", 12 }, { "Bag", 16 }, { "Phone", 14 }, { "Kid", 12 } }
+local STYLES = { { "Walk", 28 }, { "Jog", 9 }, { "Dog", 11 }, { "Bag", 15 }, { "Phone", 13 }, { "Kid", 11 }, { "Couple", 8 }, { "Delivery", 5 } }
 local DOG_COLORS = { Color3.fromRGB(150, 100, 60), Color3.fromRGB(40, 36, 34), Color3.fromRGB(230, 220, 200), Color3.fromRGB(200, 150, 80) }
 local UMBRELLA_COLORS = { Color3.fromRGB(30, 30, 34), Color3.fromRGB(200, 40, 50), Color3.fromRGB(40, 80, 170), Color3.fromRGB(240, 200, 40), Color3.fromRGB(120, 60, 140) }
 
@@ -198,6 +204,19 @@ local function makePed(): Agent
 		table.insert(specs, { "Bag", Vector3.new(0.5, 1.3, 1.1), pick({ Color3.fromRGB(240, 236, 226), Color3.fromRGB(60, 140, 80), Color3.fromRGB(200, 60, 50) }), Enum.PartType.Block })
 	elseif style == "Phone" then
 		table.insert(specs, { "Phone", Vector3.new(0.5, 0.9, 0.12), Color3.fromRGB(20, 20, 24), Enum.PartType.Block })
+	elseif style == "Delivery" then
+		-- Repartidor: caja térmica a la espalda
+		table.insert(specs, { "Box", Vector3.new(1.9, 1.9, 1.3), pick({ Color3.fromRGB(240, 180, 40), Color3.fromRGB(40, 190, 170), Color3.fromRGB(220, 50, 60) }), Enum.PartType.Block })
+	elseif style == "Couple" then
+		-- Pareja: una segunda figura a su lado (de la mano), con su ropa
+		local pShirt, pPants = pick(CLOTHES), pick(PANTS)
+		table.insert(specs, { "P_Torso", Vector3.new(2, 2.3, 1.1), pShirt, Enum.PartType.Block })
+		table.insert(specs, { "P_Head", Vector3.new(1.3, 1.3, 1.3), pick(SKIN), Enum.PartType.Ball })
+		table.insert(specs, { "P_Hair", Vector3.new(1.4, 0.55, 1.4), pick(HAIR), Enum.PartType.Block })
+		table.insert(specs, { "P_LegL", Vector3.new(0.9, 2.4, 0.95), pPants, Enum.PartType.Block })
+		table.insert(specs, { "P_LegR", Vector3.new(0.9, 2.4, 0.95), pPants, Enum.PartType.Block })
+		table.insert(specs, { "P_ArmL", Vector3.new(0.7, 2.2, 0.75), pShirt, Enum.PartType.Block })
+		table.insert(specs, { "P_ArmR", Vector3.new(0.7, 2.2, 0.75), pShirt, Enum.PartType.Block })
 	elseif style == "Dog" then
 		local fur = pick(DOG_COLORS)
 		table.insert(specs, { "DogBody", Vector3.new(0.9, 0.9, 2.2), fur, Enum.PartType.Block })
@@ -262,7 +281,8 @@ local function respawnPed(agent: Agent, center: Vector3, initial: boolean)
 	local style = agent.Style
 	agent.Cruise = if style == "Jog" then 9 + math.random() * 2.5
 		elseif style == "Kid" then 4 + math.random() * 1.5
-		elseif style == "Dog" or style == "Phone" then 3.5 + math.random() * 1.5
+		elseif style == "Dog" or style == "Phone" or style == "Couple" then 3.5 + math.random() * 1.5
+		elseif style == "Delivery" then 7 + math.random() * 1.5
 		else 4.5 + math.random() * 2.5
 	agent.Speed = agent.Cruise
 	-- Paraguas: casi todos lo sacan si llueve (los que corren, no)
@@ -367,16 +387,101 @@ local function posePed(agent: Agent, root: CFrame, react: number?)
 			leash.Size = Vector3.new(0.08, 0.08, length)
 		end
 		cframes[i.Leash] = CFrame.lookAt(mid, collar)
+	elseif i.Box then
+		cframes[i.Box] = at(0, 3.9, 1.25)
+	elseif i.P_Torso then
+		-- Su pareja, a su izquierda, con el paso un poco desfasado y dándole la mano
+		local pb = base * CFrame.new(-2 * s, 0, 0)
+		local ps = math.sin(agent.Phase + 0.7) * 0.5
+		local function pat(x: number, y: number, z: number): CFrame
+			return pb * CFrame.new(x * s, y * s, z * s)
+		end
+		cframes[i.P_Torso] = pat(0, 3.55, 0)
+		cframes[i.P_Head] = pat(0, 5.35, 0) * CFrame.Angles(0, -0.25, 0)
+		cframes[i.P_Hair] = pat(0, 5.35, 0) * CFrame.Angles(0, -0.25, 0) * CFrame.new(0, 0.6 * s, 0.05 * s)
+		cframes[i.P_LegL] = pat(-0.48, 2.4, 0) * CFrame.Angles(ps, 0, 0) * CFrame.new(0, -1.2 * s, 0)
+		cframes[i.P_LegR] = pat(0.48, 2.4, 0) * CFrame.Angles(-ps, 0, 0) * CFrame.new(0, -1.2 * s, 0)
+		cframes[i.P_ArmL] = pat(-1.38, 4.55, 0) * CFrame.Angles(-ps * 0.8, 0, 0) * CFrame.new(0, -1.05 * s, 0)
+		cframes[i.P_ArmR] = pat(1.38, 4.55, 0) * CFrame.Angles(0.2, 0, 0.3) * CFrame.new(0, -1.05 * s, 0)
 	end
 	workspace:BulkMoveTo(agent.Parts, cframes, Enum.BulkMoveMode.FireCFrameChanged)
 end
 
 local LINES = { "¡Eh!", "¡Cuidado!", "¡Perdona!", "¡Uy!", "¡Mira por dónde vas!" }
 
+-- Frases sueltas de la calle (según quién sea); TimeContext quita las que no pegan con la hora o el tiempo
+local CHATTER = {
+	Walk = { "¡Buenos días!", "Voy tarde…", "¿Dónde habré aparcado?", "Qué buen día hace.", "Tengo que llamar a mi madre." },
+	Jog = { "¡Uf!", "Un kilómetro más.", "¡Vamos, vamos!" },
+	Dog = { "¡Toby, quieto!", "Vamos, chico.", "¡No tires tanto!" },
+	Bag = { "Qué cargada voy…", "Se me ha olvidado el pan.", "Todo de oferta." },
+	Phone = { "¿Sí? Dime.", "Te llamo luego.", "Ya casi llego.", "¡No me digas!" },
+	Kid = { "¡Espérame!", "¡Carrera!", "¡Te pillé!" },
+	Couple = { "¿Cenamos fuera?", "Mira ese escaparate.", "¿Vamos al cine?" },
+	Delivery = { "¡Paso, paso!", "Voy con prisa.", "Último pedido." },
+	Rain = { "¡Vaya chaparrón!", "Menos mal que traje paraguas.", "Esto no para…" },
+}
+local CHATTER_EVERY = 7 -- segundos entre frase y frase (como mucho una a la vez)
+local nextChatter = 0
+
+-- Qué parte de los peatones anda ahora por la calle (0..1): horas punta a tope, pocos de noche,
+-- menos con lluvia; el finde, por la mañana, algo más tranquilo
+function Ambient.density(clock: number, weather: string?, weekday: number?): number
+	local f
+	if clock >= 7.5 and clock < 9.5 or clock >= 13 and clock < 15 or clock >= 17.5 and clock < 20.5 then
+		f = 1 -- hora punta
+	elseif clock >= 9.5 and clock < 20.5 then
+		f = 0.8
+	elseif clock >= 20.5 and clock < 22.5 or clock >= 6.5 and clock < 7.5 then
+		f = 0.55
+	else
+		f = 0.3 -- de noche
+	end
+	if weekday and weekday >= 6 and clock < 11 then
+		f *= 0.75 -- (sábado y domingo se madruga menos)
+	end
+	if weather == "Lluvia" then
+		f *= 0.65
+	elseif weather == "Tormenta" or weather == "Nieve" then
+		f *= 0.45
+	end
+	return f
+end
+
+-- Alguien cerca (a la vista, a 10-40 studs) suelta una frase corta de vez en cuando
+local function chatter(center: Vector3)
+	local now = os.clock()
+	if now < nextChatter then
+		return
+	end
+	nextChatter = now + CHATTER_EVERY + math.random() * 5
+	local hour, weather = TimeContext.now()
+	for _ = 1, 6 do
+		local ped = peds[math.random(1, #peds)]
+		local head = ped.Active and ped.Parts[ped.Index.Head]
+		if head and not ped.ReactAt then
+			local d = (head.Position - center).Magnitude
+			if d > 10 and d < 40 then
+				local lines = if raining() and math.random() < 0.5 then CHATTER.Rain else (CHATTER[ped.Style] or CHATTER.Walk)
+				local text = TimeContext.pick(lines, hour, weather)
+				if text then
+					Nudge.say(head, text, 2.4)
+				end
+				return
+			end
+		end
+	end
+end
+
 local function updatePeds(dt: number, center: Vector3)
 	local clock = Lighting.ClockTime
 	local night = clock < 7 or clock > 21.5
 	local now = os.clock()
+	local weekday = nil
+	pcall(function()
+		weekday = ((workspace:GetAttribute("Day") or 1) - 1) % 7 + 1
+	end)
+	local share = Ambient.density(clock, workspace:GetAttribute("Weather"), weekday)
 	-- Dónde estás tú (y si vas en coche, a qué velocidad)
 	local character = player.Character
 	local myRoot = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
@@ -388,8 +493,8 @@ local function updatePeds(dt: number, center: Vector3)
 		carSpeed = Vector3.new(v.X, 0, v.Z).Magnitude
 	end
 	for i, ped in peds do
-		-- De noche sale la mitad de la gente (y ningún niño)
-		local wanted = not night or (i % 2 == 0 and ped.Style ~= "Kid")
+		-- Según la hora y el tiempo sale más o menos gente (Ambient.density); de noche, ningún niño
+		local wanted = (i - 0.5) / #peds <= share and not (night and ped.Style == "Kid")
 		if not wanted then
 			-- Se retira el que está lejos; el que tienes a la vista sigue su camino hasta que se aleja
 			-- (antes, a las 21:30, la mitad de la gente desaparecía de golpe delante de ti)
@@ -690,6 +795,7 @@ function Ambient.init()
 			return
 		end
 		updatePeds(math.min(dt, 0.1), c)
+		chatter(c)
 	end)
 end
 

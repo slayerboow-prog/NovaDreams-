@@ -1302,6 +1302,109 @@ check(playLoco(vera, "Rareza_Eco") and veraData.Items.SilbatoEco == 1 and said(v
 check(playLoco(gael, "Rareza_Contestador") and gaelData.Items.CintaContestador == 1 and said(gael, "lo mejor que nos ha pasado"), "El contestador de 1999: un mensaje de tu familia")
 check(playLoco(gael, "Rareza_GatoCaja") and gaelData.Items.CascabelCuantico == 1, "El gato que está y no está: abres la caja y el gato decide")
 
+-- Tercer lote
+lighting.ClockTime = 12
+ruth.Picks = { Sabor = "Abu" }
+check(playLoco(ruth, "Rareza_Helado") and ruthData.Items.CucuruchoRecuerdos == 1 and said(ruth, "Sabe a martes"), "El helado que sabe a recuerdos: una bola con la infancia de tu abu")
+check(playLoco(ruth, "Rareza_Charco") and ruthData.Items.PatitoDosLunas == 1 and said(ruth, "aquí se está bien"), "El charco sin fondo: el patito de las dos lunas, al estanque")
+check(playLoco(teo, "Rareza_Cancion") and teoData.Items.PartituraSinFin == 1 and said(teo, "Ni en la ducha"), "La canción que no se acaba: los trozos del final y la última nota")
+teo.Picks = { Taquilla = "Amigos" }
+check(playLoco(teo, "Rareza_Taquilla") and teoData.Items.NotaTaquilla == 1 and said(teo, "Amigos para siempre"), "La taquilla que da a otra taquilla: una amistad de otra dimensión")
+check(playLoco(vera, "Rareza_Fotocopiadora") and veraData.Items.TonerVerde == 1 and said(vera, "Fotocopias con vida propia"), "La fotocopiadora que copia personas: dos Candelas de papel")
+vera.Picks = { Wifi = "Consejo" }
+check(playLoco(vera, "Rareza_Wifi") and veraData.Items.ModemPitido == 1 and said(vera, "colección de cómics"), "El wifi que se conecta a 1987: un consejo para Marisa")
+check(playLoco(gael, "Rareza_Lavadora") and gaelData.Items.PinzaMultiversal == 1 and said(gael, "la dimensión de al lado"), "La lavadora multiversal: el programa «Devolver»")
+gael.Picks = { Minutos = "Llamar" }
+check(playLoco(gael, "Rareza_Cajero") and gaelData.Items.BilleteMinutos == 1 and said(gael, "te has movido por dentro"), "El cajero que da minutos: llamas a tu familia")
+do
+	local porEtapa = {}
+	local restosSaga = {}
+	for id, quest in QuestsData do
+		if id:sub(1, 7) == "Rareza_" then
+			porEtapa[quest.Type] = (porEtapa[quest.Type] or 0) + 1
+		end
+	end
+	local seis = true
+	for _, stage in { "Infancia", "Adolescencia", "Universidad", "Vida adulta" } do
+		if porEtapa["Rareza de la Grieta · " .. stage] ~= 6 then
+			seis = false
+		end
+	end
+	check(seis, "Seis rarezas por etapa")
+	-- Todas las rarezas cuentan para los Restos de la Grieta del final
+	local fusionIf
+	for _, step in QuestsData.Saga_23_Fusion.Steps do
+		if step.Type == "Fight" and step.If and step.If.MemoriesAtLeast then
+			fusionIf = step.If.MemoriesAtLeast.Of
+		end
+	end
+	for _, key in fusionIf or {} do
+		restosSaga[key] = true
+	end
+	local todas = fusionIf ~= nil
+	for id, quest in QuestsData do
+		if id:sub(1, 7) == "Rareza_" and not restosSaga[quest.Memory] then
+			todas = false
+			print("    Falta en RESTOS: " .. tostring(quest.Memory))
+		end
+	end
+	check(todas, "Cada rareza cuenta como Resto de la Grieta en la batalla final")
+end
+
+print("\n▶ Misiones de aliados (cada aliado vuelve antes de «Todos los aliados»)")
+local function aliadoPlayer(name: string, stage: string)
+	local player, data = rarezaPlayer(name, stage)
+	for _, id in { "Loco_N2_Bigotes", "Loco_N5_Perez", "Loco_U1_Monte", "Loco_U2_Rex", "Loco_D4_Gnomos", "Loco_D5_Malvado" } do
+		data.Story.Completed[id] = os.time()
+	end
+	return player, data
+end
+check(QuestsData.Aliado_Rex.Requires.Flags[1] == "RexSeQueda" and QuestsData.Aliado_Cronos.Requires.Flags[1] == "CronosAliado", "Rex y Cronos solo vuelven si les ayudaste (Rex se quedó, Cronos se pasó a tu bando)")
+check(table.find(QuestsData.Aliado_Bigotes.Requires.Completed, "Loco_N2_Bigotes") ~= nil and table.find(QuestsData.Aliado_Malvado.Requires.Completed, "Loco_D5_Malvado") ~= nil, "Cada aliado pide su misión loca")
+local alba, albaData = aliadoPlayer("Alba", "AdultoJoven")
+albaData.Story.Flags.DuqueDeGatonia = true
+albaData.Story.Flags.RexSeQueda = true
+albaData.Story.Flags.CronosAliado = true
+albaData.Story.Flags.RataContratada = true
+albaData.Story.Flags.CosmeSecuestrado = true -- Cosme aún no ha vuelto: nadie da por hecho que está
+lighting.ClockTime = 12
+check(playLoco(alba, "Aliado_Bigotes") and albaData.Items.BandaCanciller == 1 and albaData.Story.Memories.GuardiaGatuna ~= nil and said(alba, "Duque o Duquesa del Cojín"), "Bigotes: la visita de Estado, las cucarachas a manguerazos y la Guardia Gatuna")
+alba.Picks = { Alegato = "Letra" }
+check(playLoco(alba, "Aliado_Rex") and albaData.Items.TarjetaRex == 1 and albaData.Story.Memories.AbogadoRex ~= nil and said(alba, "Lees la letra pequeña"), "Rex: las pruebas, la letra pequeña y su primer juicio ganado")
+alba.Picks = { Declaracion = "Verdad" }
+check(playLoco(alba, "Aliado_Cronos") and albaData.Items.Formulario42B == 1 and albaData.Story.Memories.ExpedienteCronos ~= nil and said(alba, "La verdad no necesita sello"), "Cronos: las firmas, la ventanilla 42 y el expediente limpio")
+check(said(alba, "Firmo yo por los dos"), "Con Cosme secuestrado, Pip firma por los dos")
+lighting.ClockTime = 23
+check(playLoco(alba, "Aliado_Perez") and albaData.Items.CarnetSindical == 1 and albaData.Story.Memories.MuelaDelJuicio ~= nil and said(alba, "jefa de turno"), "El Ratón Pérez: la muela del juicio y el saco de dientes del Consorcio")
+check(playLoco(alba, "Aliado_Noz") and albaData.Items.ClaquetaAlien == 1 and albaData.Story.Memories.TemporadaFinal ~= nil and said(alba, "aviones de Andrómeda"), "La Capitana Ñoz: la promo del final de temporada")
+local dani, daniData = aliadoPlayer("Dani", "Adulto")
+daniData.Story.Flags.MalvadoRedimido = true
+dani.Picks = { Espias = "Devolver", Leccion = "Nadie" }
+lighting.ClockTime = 23
+check(playLoco(dani, "Aliado_Gnomos") and daniData.Items.GorroGnomo == 1 and daniData.Story.Memories.ConsejoGnomos ~= nil and said(dani, "Id a espiar a vuestra abuela"), "Los gnomos: los gnomos espía de plástico y el consejo de los jardines")
+lighting.ClockTime = 12
+check(playLoco(dani, "Aliado_Malvado") and daniData.Items.DiplomaBondad == 1 and daniData.Story.Memories.ClasesDeBondad ~= nil and said(dani, "multado tres veces"), "Tu yo malvado: clases de ser bueno")
+do
+	-- En «Todos los aliados» (saga 20), cada misión de aliado tiene su frase
+	local saga20 = QuestsData.Saga_20_Aliados
+	local citadas = {}
+	for _, dlg in saga20.Dialogues do
+		for _, line in dlg.Lines do
+			for _, id in (line.If and line.If.Completed) or {} do
+				citadas[id] = true
+			end
+		end
+	end
+	local todas = true
+	for id in QuestsData do
+		if id:sub(1, 7) == "Aliado_" and not citadas[id] then
+			todas = false
+			print("    Sin frase en la saga 20: " .. id)
+		end
+	end
+	check(todas, "En «Todos los aliados», cada aliado recuerda su misión")
+end
+
 print("\n▶ Misiones locas · Adolescencia (el futuro, los lápices, el DJ alienígena, Pip, Zoltán)")
 local iris = newPlayer("Iris", "Adolescente")
 local irisData = profiles[iris]
