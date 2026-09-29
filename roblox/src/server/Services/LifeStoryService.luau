@@ -2930,6 +2930,12 @@ local function onRemote(player: Player, kind: any, questId: any, value: any)
 		if value == true and canOffer(player, data, questId) then
 			rt.JustOffered = questId -- ya vio quién se lo pide y por qué: sin tarjeta de comienzo
 			startQuest(player, data, questId)
+			-- La que acabas de aceptar es la que juegas ahora (panel, GPS y quién te acompaña); al
+			-- terminarla vuelve la principal. Se puede cambiar tocando otra en el panel.
+			if story.Active[questId] and not story.Active[PROLOGUE] then
+				story.Tracked = questId
+				publish(player)
+			end
 		else
 			story.Declined[questId] = os.time()
 		end
