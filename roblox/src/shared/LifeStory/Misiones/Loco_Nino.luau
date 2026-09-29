@@ -421,14 +421,15 @@ return {
 		Requires = { Stage = { Min = "Nino", Max = "Nino" }, Completed = { "Cole01_PrimerDia" } },
 		Moment = "{abu} te regaló su tirachinas de campeón",
 		Memory = "TirachinasAbu",
-		Rewards = { Items = { Tirachinas = 1 } },
+		Rewards = {}, -- (el tirachinas se da al abrir el baúl)
 		Props = {
 			Baul = { Kind = "Caja", Name = "El baúl de tu abu", Prompt = "Abrir el baúl", Place = "HomeSalon", Offset = V(-3, 0, 2), Color = Color3.fromRGB(120, 80, 45), Dialogue = "Baul", Once = true },
 			Latas = { Kind = "Marcador", Name = "Latas vacías en fila", Place = "Parque", Offset = V(0, 0, 10), Prompt = false },
 		},
 		Steps = {
 			{ Type = "Talk", Npc = "Abu", Dialogue = "Campeon", Text = "Habla con {abu}", Actors = { { Npc = "Abu", Place = "HomeSalon", Offset = V(2, 0, 2) } } },
-			{ Type = "Use", Prop = "Baul", Text = "Abre el baúl de {abu}", Actors = { { Npc = "Abu", Place = "HomeSalon", Offset = V(2, 0, 2) } } },
+			-- (el tirachinas es tuyo al abrir el baúl: {abu} te lo da ahí, y lo usas en el parque)
+			{ Type = "Use", Prop = "Baul", Text = "Abre el baúl de {abu}", Effects = { Items = { Tirachinas = 1 } }, Actors = { { Npc = "Abu", Place = "HomeSalon", Offset = V(2, 0, 2) } } },
 			{ Type = "Reach", Place = "Parque", Text = "Vamos al parque a practicar con latas (solo latas)",
 				Actors = { { Npc = "Abu", Mode = "Follow" } } },
 			{ Type = "MiniGame", Game = "Timing", Title = "Práctica: derriba las latas", Icon = "🥫", Hint = "Suelta la goma justo en la zona verde",
