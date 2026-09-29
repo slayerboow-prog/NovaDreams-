@@ -59,6 +59,7 @@ local STUCK = 3 -- segundos sin avanzar: salta y recalcula el camino; la segunda
 local WALK_MAX = 30 -- segundos andando como mucho: si no ha llegado, fundido
 
 type Actor = {
+	Quest: string?, -- la misión de la escena (los de otra misión no te siguen)
 	Npc: string,
 	Spec: { [string]: any },
 	Key: string, -- lugar + modo: si cambia, el actor se mueve
@@ -384,6 +385,7 @@ local function makeActor(player: Player, questId: string, spec: { [string]: any 
 	local root = model:FindFirstChild("HumanoidRootPart") :: BasePart?
 	local actor: Actor = {
 		Npc = spec.Npc,
+		Quest = questId,
 		Spec = spec,
 		Key = "",
 		Model = model,
@@ -1476,6 +1478,15 @@ end
 local FALL_LIMIT = 40 -- más abajo que esto de su sitio: se ha caído del mapa
 local LOST_LIMIT = 260 -- más lejos que esto de su sitio (sin seguir a nadie): se ha perdido
 
+-- ¿Te sigue ahora? Solo los de la misión que estás jugando (StoryFocus: LifeStoryService)
+local function followsNow(player: Player, actor: Actor): boolean
+	local focus = player:GetAttribute("StoryFocus")
+	if focus ~= nil and actor.Quest ~= nil and actor.Quest ~= focus then
+		return false
+	end
+	return true
+end
+
 local function stepActor(player: Player, actor: Actor, index: number)
 	local humanoid, root = actor.Humanoid, actor.Root
 	if not humanoid or not root or not actor.Model.Parent then
@@ -1575,6 +1586,11 @@ local function stepActor(player: Player, actor: Actor, index: number)
 				actor.LastProgress = os.clock()
 			end
 			actor.LastPosition = root.Position
+		end
+	elseif mode == "Follow" and me and not followsNow(player, actor) then
+		-- Acompañante de otra misión (no la que juegas ahora): se queda donde está esperándote
+		if humanoid.MoveDirection.Magnitude > 0.1 then
+			humanoid:MoveTo(root.Position)
 		end
 	elseif mode == "Follow" and me then
 		-- Detrás del jugador, cada uno a un lado

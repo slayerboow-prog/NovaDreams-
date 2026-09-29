@@ -655,6 +655,10 @@ local function publish(player: Player, force: boolean?)
 
 	local target: Vector3? = nil
 	local trackedId = trackedQuest(data)
+	-- La misión que estás jugando: los que te acompañan en otras misiones esperan (SceneService)
+	if player:GetAttribute("StoryFocus") ~= trackedId then
+		player:SetAttribute("StoryFocus", trackedId)
+	end
 	if trackedId then
 		local quest = Quests[trackedId]
 		local prog: Progress = story.Active[trackedId]
