@@ -1118,7 +1118,7 @@ local function enterStep(player: Player, data: Data, questId: string)
 		end
 		notify("StepEnter", player, questId, { Step = prog.Step, Type = step.Type })
 		if step.Teleport and not held(player) then
-			SceneService.teleport(player, step.Teleport)
+			LifeStoryService.teleportStep(player, step.Teleport)
 		end
 		if step.Type == "Moment" then
 			moment(player, step.Text or step.TextKey or quest.MomentKey)
@@ -1127,6 +1127,14 @@ local function enterStep(player: Player, data: Data, questId: string)
 			prog.Step += 1
 			continue
 		elseif step.Type == "Transition" then
+			-- La hora del día va con lo que dice («Esa noche…», «Al día siguiente…»): si juegas solo
+			-- en el servidor, el reloj salta (como al dormir); con más gente, el reloj es de todos
+			local clock = step.Clock or LifeStoryService.clockFor(step.Text or step.TextKey)
+			if clock and #Players:GetPlayers() <= 1 then
+				pcall(function()
+					require(script.Parent.WorldService).skipTo(clock)
+				end)
+			end
 			if step.Cinematic then
 				CinematicService.play(player, step.Cinematic)
 			else
@@ -1701,6 +1709,10 @@ local function canOffer(player: Player, data: Data, questId: string): boolean
 	local quest = Quests[questId]
 	local rt = runtime[player]
 	if not rt or story.Active[questId] then
+		return false
+	end
+	-- Nada se ofrece en mitad de una conversación, una escena o una clase (el aviso taparía lo que pasa)
+	if rt.Busy or DialogueService.isBusy(player) or player:GetAttribute("InDialogue") then
 		return false
 	end
 	-- Las canónicas (la saga) no esperan: no cuentan para el límite de secundarias ni se pueden rechazar
@@ -2593,6 +2605,42 @@ function hitEnemy(player: Player, data: Data, questId: string, prog: Progress, s
 	else
 		publish(player)
 	end
+end
+
+-- La hora que pide el texto de una transición (o nil si no dice ninguna)
+function LifeStoryService.clockFor(text: string?): number?
+	if type(text) ~= "string" then
+		return nil
+	end
+	local t = string.lower(text)
+	if string.find(t, "noche", 1, true) then
+		return 21.5
+	elseif string.find(t, "tarde", 1, true) then
+		return 17
+	elseif string.find(t, "mañana", 1, true) or string.find(t, "al día siguiente", 1, true) or string.find(t, "el día de", 1, true) or string.find(t, "el día del", 1, true) then
+		return 8.5
+	end
+	return nil
+end
+
+-- Lleva al jugador al sitio de un paso y, un momento después, comprueba que ha llegado (si seguía
+-- sentado, en un vehículo o el mapa no estaba cargado, se vuelve a intentar)
+function LifeStoryService.teleportStep(player: Player, where: any)
+	SceneService.teleport(player, where)
+	local placeId = if type(where) == "table" then where.Place else where
+	task.spawn(function()
+		for _ = 1, 3 do
+			task.wait(1.2)
+			if not player.Parent or held(player) then
+				return
+			end
+			local spot = LocationService.resolve(player, placeId)
+			if not spot or LocationService.isAt(player, spot) then
+				return
+			end
+			SceneService.teleport(player, where)
+		end
+	end)
 end
 
 function LifeStoryService.interact(player: Player, kind: string, questId: string, id: string)

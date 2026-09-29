@@ -754,6 +754,19 @@ function LifeStory.init()
 			synced = true
 		end
 		local handler = handlers[kind]
+		if handler and kind == "Offer" and player:GetAttribute("InDialogue") then
+			-- Un ofrecimiento nunca tapa una conversación: sale cuando termina (como mucho, 20 s)
+			task.spawn(function()
+				local since = os.clock()
+				while player:GetAttribute("InDialogue") and os.clock() - since < 20 do
+					task.wait(0.3)
+				end
+				if not player:GetAttribute("InDialogue") then
+					handler(payload)
+				end
+			end)
+			return
+		end
 		if handler then
 			handler(payload)
 		end
