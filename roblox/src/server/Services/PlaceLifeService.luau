@@ -617,6 +617,11 @@ end
 -- Se va: fundido (el cliente la desvanece) y fuera. Con alguien al lado, antes se despide y se aleja.
 local function removeGroup(g: Group, line: string?)
 	dropGroup(g)
+	for _, npc in g.Npcs do
+		if npc.Parent then
+			npc:SetAttribute("Leaving", true) -- (ya no hace lo suyo: se está yendo)
+		end
+	end
 	local anyone = false
 	for _, npc in g.Npcs do
 		local root = npc.PrimaryPart

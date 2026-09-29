@@ -7017,7 +7017,7 @@ check(parkAnchor ~= nil and stopAnchor ~= nil and benchAnchor ~= nil and #PlaceL
 local function ours(): { any }
 	local list = {}
 	for _, d in worldRoot:GetDescendants() do
-		if d.ClassName == "Model" and d:GetAttribute("PlaceLife") ~= nil and d.Parent ~= nil and not d:GetAttribute("FadeOut") then
+		if d.ClassName == "Model" and d:GetAttribute("PlaceLife") ~= nil and d.Parent ~= nil and not d:GetAttribute("FadeOut") and not d:GetAttribute("Leaving") then
 			table.insert(list, d)
 		end
 	end
