@@ -60,7 +60,8 @@ local function relayout()
 		if not managed or prompt == focus then
 			entry.Billboard.Enabled = true
 			entry.Billboard.SizeOffset = Vector2.zero
-		elseif prompt.KeyboardKeyCode ~= focusKey then
+		elseif prompt.KeyboardKeyCode ~= focusKey and prompt.KeyboardKeyCode ~= Enum.KeyCode.Unknown then
+			-- (Unknown: el menú de comandos le quitó la tecla por coincidir con la del foco)
 			table.insert(extras, prompt)
 		else
 			entry.Billboard.Enabled = false
@@ -73,6 +74,7 @@ local function relayout()
 	for i, prompt in extras do
 		local entry = shown[prompt]
 		entry.Billboard.Enabled = true
+		entry.Key.Text = keyText(prompt, entry.InputType)
 		-- (SizeOffset va en alturas del cartel: cada uno, una fila más arriba)
 		entry.Billboard.SizeOffset = Vector2.new(0, if focus then i else i - 1)
 	end

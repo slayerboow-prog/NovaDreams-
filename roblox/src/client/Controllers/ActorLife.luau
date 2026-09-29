@@ -1280,11 +1280,19 @@ function ActorLife.init()
 				if not rig.Active then
 					rig.Active = true
 					-- La postura base se lee al empezar (quieto está como lo dejó el servidor: si le cambiaron
-					-- el tamaño, se usa el nuevo)
-					for name, joint in rig.Joints do
-						rig.Base[name] = joint.C0
+					-- el tamaño, se usa el nuevo). Con la guardia puesta no: los brazos en guardia se quedarían
+					-- como su postura de descanso; entonces se deja la que tenía
+					local owner = if rig.Me then player else nil
+					local blocking = rig.Model:GetAttribute("Blocking") == true
+						or (owner ~= nil and owner:GetAttribute("Blocking") == true)
+					if blocking then
+						pcall(rescale, rig) -- (la de antes, al tamaño de ahora)
+					else
+						for name, joint in rig.Joints do
+							rig.Base[name] = joint.C0
+						end
+						rig.Scale = scaleOf(rig.Model)
 					end
-					rig.Scale = scaleOf(rig.Model)
 					rig.BodyWorld = headingOf(rig.Root.CFrame)
 					-- Si otro ya le pone animaciones (el servidor), aquí no se le pone la base
 					if rig.Own and next(rig.Tracks) == nil then

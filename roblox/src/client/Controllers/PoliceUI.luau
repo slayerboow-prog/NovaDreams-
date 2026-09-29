@@ -1,6 +1,6 @@
 -- PoliceUI (cliente): el panel del policía y las sirenas (también las del camión de bomberos).
 --   * Panel con el aviso actual: qué ha pasado, qué toca hacer y el tiempo que queda.
---   * Tecla K (o el botón Sirena en móvil): enciende o apaga la sirena del coche patrulla.
+--   * Tecla K, cruceta → del mando (o el botón Sirena en móvil): enciende o apaga la sirena del coche patrulla.
 --   * Las luces azules y rojas de los coches patrulla con la sirena encendida parpadean
 --     (lo ve todo el mundo: cada cliente las anima por su cuenta).
 
@@ -117,6 +117,7 @@ function PoliceUI.init()
 		Slot = "Defender",
 		Priority = 3.5,
 		Key = "K",
+		Pad = "Derecha",
 		Visible = function()
 			local job = player:GetAttribute("Job")
 			return TouchLayout.riding() and (job == "Policia" or job == "Bombero")
@@ -130,6 +131,18 @@ function PoliceUI.init()
 		end
 		return Enum.ContextActionResult.Pass
 	end, false, Enum.KeyCode.K)
+	-- Mando: cruceta → conduciendo el coche patrulla o el camión (cruceta ↑ ya es el claxon). Va
+	-- por delante del menú de comandos, que usa → para aceptar, solo en ese caso.
+	ContextActionService:BindActionAtPriority("PoliceSirenPad", function(_, state)
+		local job = player:GetAttribute("Job")
+		if not TouchLayout.riding() or (job ~= "Policia" and job ~= "Bombero") then
+			return Enum.ContextActionResult.Pass
+		end
+		if state == Enum.UserInputState.Begin then
+			siren()
+		end
+		return Enum.ContextActionResult.Sink
+	end, false, 3100, Enum.KeyCode.DPadRight)
 
 	Remote.OnClientEvent:Connect(function(action, payload)
 		if action == "Incident" then

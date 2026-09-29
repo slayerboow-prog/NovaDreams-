@@ -131,13 +131,19 @@ end
 -- Ajustes de rendimiento que no se notan a la vista:
 --   * CanTouch = false en todas las piezas: ningún script usa .Touched en el mapa, y así el motor
 --     no calcula contactos para 95.000 piezas.
---   * Sin sombra en las piezas diminutas (menos de 2 studs en todas sus medidas): su sombra no se aprecia.
+--   * Sin sombra en las piezas pequeñas (menos de 4 studs en todas sus medidas): su sombra apenas
+--     se aprecia y el móvil se ahorra miles de piezas en el mapa de sombras.
 --   * Sin sombra en lo que está plano en el suelo (carreteras, aceras, césped, pasos de cebra…):
 --     solo la echarían sobre el suelo de debajo, donde no se ve. Son decenas de miles de piezas.
 --   * Sin sombra en lo invisible (zonas, marcas, huecos de puertas).
 --   * Los carteles con texto (SurfaceGui) solo se dibujan cerca: de lejos no se leen y cuestan
---     mucho en el móvil.
+--     mucho en el móvil. Hay más de 8.000: los rótulos pequeños (números de portal, placas de calle,
+--     pegatinas, pizarras) se dejan de dibujar antes; los grandes (carteles, banderolas, mupis) algo después.
 local SIGN_DISTANCE = 220
+local SIGN_DISTANCE_BY_KIND = {
+	HouseNumber = 70, NamePlate = 70, DoorSticker = 70, SandwichBoard = 70,
+	Sign = 140, Banner = 140, MupiAd = 140, Advert = 140, AdPanel = 140,
+}
 function Polish.optimize(root: Instance): (number, number)
 	local touch, shadows = 0, 0
 	for _, part in root:GetDescendants() do
@@ -148,7 +154,7 @@ function Polish.optimize(root: Instance): (number, number)
 			end
 			if part.CastShadow then
 				local s = part.Size
-				local off = math.max(s.X, s.Y, s.Z) < 2 or part.Transparency >= 0.9
+				local off = math.max(s.X, s.Y, s.Z) < 4 or part.Transparency >= 0.9
 				if not off then
 					local lo, hi = box(part)
 					off = lo ~= nil and hi ~= nil and hi.Y - lo.Y < 1.2 and hi.Y < 1.6
@@ -159,7 +165,13 @@ function Polish.optimize(root: Instance): (number, number)
 				end
 			end
 		elseif part:IsA("SurfaceGui") and part.MaxDistance == 0 then
-			part.MaxDistance = SIGN_DISTANCE
+			-- Los rótulos enormes (fachadas, monumentos, aeropuerto: 12 studs o más) siguen viéndose de lejos.
+			local parent = part.Parent
+			local near = parent and SIGN_DISTANCE_BY_KIND[parent.Name]
+			if near and parent:IsA("BasePart") and math.max(parent.Size.X, parent.Size.Y, parent.Size.Z) >= 12 then
+				near = nil
+			end
+			part.MaxDistance = near or SIGN_DISTANCE
 		end
 	end
 	return touch, shadows

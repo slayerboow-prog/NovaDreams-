@@ -99,6 +99,15 @@ function FootCamera.init()
 			refresh()
 		end
 	end)
+	-- Entrar o salir de un interior (teletransporte): el zoom se cambia ya, sin esperar el medio
+	-- segundo (si no, la cámara llega de lejos y se ve el exterior por un momento)
+	player:GetAttributeChangedSignal("InteriorKey"):Connect(function()
+		local now = (player:GetAttribute("InteriorKey") ~= nil) or roofOverHead()
+		indoors, pending, since = now, now, os.clock()
+		if refresh then
+			refresh()
+		end
+	end)
 
 	-- Campo de visión al correr. A pie nadie más lo cambia: se escribe entero (70 de Roblox + lo de
 	-- correr). Conduciendo, en cinemáticas y en conversaciones no se toca (y al volver se recoloca).

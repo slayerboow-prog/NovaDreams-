@@ -86,36 +86,60 @@ end
 -- Ventanas que se iluminan de noche (las marca el generador de edificios).
 -- Cada una tiene su color (NightColor) y su horario (OnAt / OffAt; 25 = la 1 de la madrugada):
 -- la ciudad se va encendiendo poco a poco al anochecer y apagando de madrugada, como una de verdad.
-local function setWindow(window: BasePart, on: boolean)
+-- Hay más de 5.000: su horario y colores se leen una sola vez y se guardan en esta tabla, así la
+-- revisión de cada segundo solo compara números (antes leía 2 o 3 atributos de cada ventana).
+type WindowInfo = { OnAt: number, OffAt: number, NightColor: Color3, DayColor: Color3? }
+local windows: { [BasePart]: WindowInfo } = {}
+
+local function track(window: Instance): WindowInfo?
+	if not window:IsA("BasePart") then
+		return nil
+	end
+	local info = windows[window]
+	if not info then
+		local onAt, offAt = window:GetAttribute("OnAt"), window:GetAttribute("OffAt")
+		local nightColor, dayColor = window:GetAttribute("NightColor"), window:GetAttribute("DayColor")
+		info = {
+			OnAt = if typeof(onAt) == "number" then onAt else Config.LampsOnAt,
+			OffAt = if typeof(offAt) == "number" then offAt else (Config.LampsOffAt + 24),
+			NightColor = if typeof(nightColor) == "Color3" then nightColor else NIGHT_WINDOW_COLOR,
+			DayColor = if typeof(dayColor) == "Color3" then dayColor else nil,
+		}
+		windows[window] = info
+	end
+	return info
+end
+
+local function untrack(window: Instance)
+	windows[window :: BasePart] = nil
+	windowOn[window :: BasePart] = nil
+end
+
+-- Solo se toca la pieza cuando cambia de estado (encendida / apagada)
+local function setWindow(window: BasePart, info: WindowInfo, on: boolean)
 	if windowOn[window] == on then
 		return
 	end
 	windowOn[window] = on
 	window.Material = if on then Enum.Material.Neon else Enum.Material.Glass
-	window.Color = if on then (window:GetAttribute("NightColor") or NIGHT_WINDOW_COLOR) else (window:GetAttribute("DayColor") or window.Color)
+	window.Color = if on then info.NightColor else (info.DayColor or window.Color)
 end
 
-local function shouldBeLit(window: Instance, clock: number): boolean
-	local onAt = window:GetAttribute("OnAt") or Config.LampsOnAt
-	local offAt = window:GetAttribute("OffAt") or (Config.LampsOffAt + 24)
+local function shouldBeLit(info: WindowInfo, clock: number): boolean
 	local t = if clock < 12 then clock + 24 else clock -- horas de la noche seguidas (1:00 = 25)
-	return t >= onAt and t < offAt
+	return t >= info.OnAt and t < info.OffAt
 end
 
 local function applyWindow(window: Instance)
-	if window:IsA("BasePart") then
-		setWindow(window, shouldBeLit(window, Lighting.ClockTime))
-		window.Destroying:Connect(function()
-			windowOn[window] = nil
-		end)
+	local info = track(window)
+	if info then
+		setWindow(window :: BasePart, info, shouldBeLit(info, Lighting.ClockTime))
 	end
 end
 
 local function updateWindows(clock: number)
-	for _, window in CollectionService:GetTagged("NightWindow") do
-		if window:IsA("BasePart") then
-			setWindow(window, shouldBeLit(window, clock))
-		end
+	for window, info in windows do
+		setWindow(window, info, shouldBeLit(info, clock))
 	end
 end
 
@@ -367,6 +391,10 @@ function WorldService.init()
 	-- Lo que se construya después (casas de jugadores) respeta la hora actual
 	CollectionService:GetInstanceAddedSignal("StreetLamp"):Connect(applyLamp)
 	CollectionService:GetInstanceAddedSignal("NightWindow"):Connect(applyWindow)
+	CollectionService:GetInstanceRemovedSignal("NightWindow"):Connect(untrack)
+	for _, window in CollectionService:GetTagged("NightWindow") do
+		track(window)
+	end
 
 	-- Horario de clase: si hay niños o adolescentes en el servidor, el reloj va más despacio
 	local SCHOOL = Config.SchoolDay
@@ -385,6 +413,7 @@ function WorldService.init()
 	-- segundo y, con el reloj lento del cole, cada fotograma avanza menos de un segundo de juego
 	-- (si se leyera de Lighting, se quedaría parado para siempre en las 9:00).
 	local exact = Lighting.ClockTime
+	local written, clockTimer = exact, 0
 	Lighting:GetPropertyChangedSignal("ClockTime"):Connect(function()
 		-- Alguien la ha cambiado a propósito (dormir, viajar…): se sigue desde ahí
 		if math.abs(Lighting.ClockTime - exact) > 0.02 then
@@ -402,7 +431,15 @@ function WorldService.init()
 		local speed = if students and previous >= SCHOOL.Start and previous < SCHOOL.End then SCHOOL.ClockSpeed else 1
 		local clock = (previous + dt * hoursPerSecond * speed) % 24
 		exact = clock
-		Lighting.ClockTime = clock
+		-- Escribir Lighting.ClockTime en cada fotograma replica la propiedad a todos los jugadores
+		-- 60 veces por segundo. Se escribe como mucho 4 veces por segundo (unos 18 s de juego: el sol
+		-- no se ve saltar), o antes si la hora cambia de golpe; la hora exacta se sigue llevando aquí.
+		clockTimer += dt
+		if clockTimer >= 0.25 or math.abs(clock - written) > 0.01 then
+			clockTimer = 0
+			written = clock
+			Lighting.ClockTime = clock
+		end
 		if clock < previous then
 			day += 1
 			workspace:SetAttribute("Day", day)

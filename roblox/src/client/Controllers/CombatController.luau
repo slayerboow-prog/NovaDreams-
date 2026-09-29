@@ -3,7 +3,8 @@
 -- Controles:
 --   Ordenador: X golpear (pulsa seguido para el combo de 3) · mantén Z para defenderte · Q esquivar ·
 --              V fijar objetivo (el más cercano; otra vez para soltarlo)
---   Mando:     RB golpear · mantén LB para defenderte · B esquivar (R3 es la linterna)
+--   Mando:     RB golpear · mantén LB para defenderte · B esquivar · R3 fijar objetivo en plena pelea
+--              (fuera de una pelea, R3 sigue siendo la linterna)
 --   Móvil:     botones Ataque, Defensa (mantener), Esquivar y Fijar objetivo del racimo (UI/TouchLayout)
 --   Menú de comandos: Atacar (y en plena pelea: Defender y Huir)
 -- Esquivar: un paso rápido (hacia donde vas, o hacia atrás) y un momento en que los golpes no te dan
@@ -25,6 +26,8 @@ local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
 local ReactMotion = require(script.Parent.ReactMotion)
 local PunchAnim = require(script.Parent.PunchAnim)
 local SoundFx = require(script.Parent.SoundFx)
+local CameraShake = require(script.Parent.CameraShake)
+local InventoryUI = require(script.Parent.InventoryUI)
 
 local CombatController = {}
 
@@ -89,6 +92,7 @@ function CombatController.canAttack(): boolean
 		and not player:GetAttribute("KO")
 		and not player:GetAttribute("InDialogue")
 		and not player:GetAttribute("Training") -- (entrenando en el gimnasio)
+		and not InventoryUI.isOpen() -- (con la mochila abierta, Q es tirar el objeto)
 		and (stage == nil or Stages.inRange(stage, Combat.MinStage, nil))
 end
 
@@ -392,15 +396,9 @@ local function flash(model: Model, blocked: boolean)
 	end)
 end
 
+-- Temblor compartido (CameraShake): va después de la cámara de Roblox, así que sí se ve
 local function shake(strength: number)
-	local camera = workspace.CurrentCamera
-	task.spawn(function()
-		for i = 1, 6 do
-			local fade = 1 - i / 6
-			camera.CFrame *= CFrame.new((math.random() - 0.5) * strength * fade, (math.random() - 0.5) * strength * fade, 0)
-			task.wait()
-		end
-	end)
+	CameraShake.shake(strength, 0.2)
 end
 
 -- K.O.: te caes, no puedes moverte y cuenta atrás; al acabar te levantas
@@ -529,8 +527,11 @@ function CombatController.init()
 		return Enum.ContextActionResult.Pass
 	end, false, Enum.KeyCode.X, Enum.KeyCode.ButtonR1)
 	ContextActionService:BindAction("CombatBlock", function(_, state)
-		if not typing() then
-			CombatController.setBlocking(state == Enum.UserInputState.Begin)
+		-- Soltar la tecla siempre cuenta (aunque se esté escribiendo): si no, la guardia se queda puesta
+		if state == Enum.UserInputState.End or state == Enum.UserInputState.Cancel then
+			CombatController.setBlocking(false)
+		elseif state == Enum.UserInputState.Begin and not typing() then
+			CombatController.setBlocking(true)
 		end
 		return Enum.ContextActionResult.Pass
 	end, false, Enum.KeyCode.Z, Enum.KeyCode.ButtonL1)
@@ -547,6 +548,39 @@ function CombatController.init()
 		end
 		return Enum.ContextActionResult.Pass
 	end, false, Enum.KeyCode.V)
+	-- Mando: R3 fija objetivo solo en plena pelea (y entonces no enciende la linterna); si no, pasa
+	ContextActionService:BindActionAtPriority("CombatLockPad", function(_, state)
+		if typing() or not (lockTarget or (CombatController.inCombat() and CombatController.canAttack())) then
+			return Enum.ContextActionResult.Pass
+		end
+		if state == Enum.UserInputState.Begin then
+			CombatController.toggleLock()
+		end
+		return Enum.ContextActionResult.Sink
+	end, false, Enum.ContextActionPriority.High.Value, Enum.KeyCode.ButtonR3)
+
+	-- La guardia se quita sola al empezar a hablar, montarse o sentarse (si no, se queda puesta)
+	local function dropGuard()
+		if blocking then
+			local humanoid = parts()
+			if player:GetAttribute("InDialogue") or player:GetAttribute("Riding") ~= nil or (humanoid and humanoid.SeatPart) then
+				CombatController.setBlocking(false)
+			end
+		end
+	end
+	for _, attribute in { "InDialogue", "Riding" } do
+		player:GetAttributeChangedSignal(attribute):Connect(dropGuard)
+	end
+	local function watchSeat(character: Model)
+		local humanoid = character:WaitForChild("Humanoid", 10) :: Humanoid?
+		if humanoid then
+			humanoid:GetPropertyChangedSignal("SeatPart"):Connect(dropGuard)
+		end
+	end
+	if player.Character then
+		task.spawn(watchSeat, player.Character)
+	end
+	player.CharacterAdded:Connect(watchSeat)
 
 	-- Botones del racimo (móvil) y pistas de teclas (ordenador): solo cuando se puede pelear
 	local function canFight(): boolean
@@ -562,7 +596,7 @@ function CombatController.init()
 		end,
 	})
 	TouchLayout.register({ Id = "Esquivar", Icon = "esquivar", Label = "Esquivar", Slot = "Esquivar", Priority = 5, Key = "Q", Pad = "B", Visible = canFight, Callback = CombatController.dodge })
-	TouchLayout.register({ Id = "Fijar", Icon = "objetivo", Label = "Fijar", Slot = "Fijar", Priority = 6, Key = "V", Visible = canFight, Active = CombatController.isLocked, Callback = CombatController.toggleLock })
+	TouchLayout.register({ Id = "Fijar", Icon = "objetivo", Label = "Fijar", Slot = "Fijar", Priority = 6, Key = "V", Pad = "R3", Visible = canFight, Active = CombatController.isLocked, Callback = CombatController.toggleLock })
 
 	player:GetAttributeChangedSignal("KO"):Connect(function()
 		local ko = player:GetAttribute("KO") == true

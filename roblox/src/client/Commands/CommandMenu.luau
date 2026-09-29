@@ -222,7 +222,8 @@ local function hint(): string
 	if UserInputService.GamepadEnabled and UserInputService:GetLastInputType().Name:find("Gamepad") then
 		return "Cruceta elegir · → aceptar · B volver · ← ocultar"
 	end
-	return "↑↓ elegir · Enter aceptar · E usar · Tab ocultar"
+	-- (↑↓ solo con el menú desplegado: si no, son para andar)
+	return if expanded then "↑↓ elegir · Enter aceptar · E usar · Tab ocultar" else "Clic elegir · Enter aceptar · E usar · Tab ocultar"
 end
 
 -- Enlaza las teclas y la cruceta (solo cuando el menú está a la vista y no se escribe en el chat)
@@ -249,16 +250,14 @@ local function bindInput()
 	end
 	-- ↑ ↓ del teclado también mueven al personaje (y aceleran/frenan el coche): solo se quedan
 	-- para el menú cuando está desplegado. Conduciendo, ni flechas ni cruceta (sirena, claxon…).
-	local function step(delta: number, state: Enum.UserInputState)
-		return handler(function()
+	local function arrows(delta: number)
+		local step = handler(function()
 			if not openIfCollapsed() then
 				move(delta)
 			end
 			return true
-		end)(nil, state)
-	end
-	local function arrows(delta: number)
-		return function(_, state: Enum.UserInputState, input: InputObject)
+		end)
+		return function(name: string, state: Enum.UserInputState, input: InputObject)
 			if player:GetAttribute("Riding") ~= nil then
 				return Enum.ContextActionResult.Pass
 			end
@@ -266,7 +265,7 @@ local function bindInput()
 			if keyboard and (not expanded or collapsed) then
 				return Enum.ContextActionResult.Pass
 			end
-			return step(delta, state)
+			return step(name, state)
 		end
 	end
 	ContextActionService:BindActionAtPriority("CommandUp", arrows(-1), false, 3000, Enum.KeyCode.Up, Enum.KeyCode.DPadUp)
@@ -369,6 +368,7 @@ function CommandMenu.init()
 	renderer.ExpandCallback = function()
 		expanded = not expanded
 		applyWindow()
+		renderer:setHint(hint())
 		UiAudio.open()
 	end
 

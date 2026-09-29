@@ -2972,12 +2972,13 @@ function processLater(player: Player, data: Data)
 			end
 			local quest = later.Start and Quests[later.Start]
 			if quest and not story.Active[later.Start] and not story.Completed[later.Start] then
-				local full = quest.Kind == "Side" and not quest.Canon and activeSideCount(story) >= CFG.MaxActiveSide
-				if not full and Conditions.check(quest.Requires, contextFor(player, data)) then
+				-- (las consecuencias de lo que hiciste llegan aunque lleves el máximo de secundarias: son
+				-- el resultado de tus actos, no una oferta que puedas rechazar)
+				if Conditions.check(quest.Requires, contextFor(player, data)) then
 					startQuest(player, data, later.Start)
 				else
-					-- Aún no se dan las condiciones (otra etapa, otra hora) o ya llevas el máximo de
-					-- secundarias: se vuelve a mirar más tarde (la marca y el recuerdo ya se dieron: no se repiten)
+					-- Aún no se dan las condiciones (otra etapa, otra hora): se vuelve a mirar más tarde (la
+					-- marca y el recuerdo ya se dieron: no se repiten)
 					table.insert(story.Later, { Start = later.Start, At = clock + 300, If = later.If, From = later.From })
 				end
 			end

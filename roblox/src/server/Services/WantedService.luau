@@ -317,8 +317,10 @@ local function setupHeist(entrance: Instance)
 	prompt.HoldDuration = Wanted.HeistHold
 	prompt.MaxActivationDistance = 8
 	prompt.RequiresLineOfSight = false
-	prompt.KeyboardKeyCode = Enum.KeyCode.V
-	prompt.GamepadKeyCode = Enum.KeyCode.ButtonY
+	-- Teclas libres: V es fijar objetivo y el Y del mando, tirar piedras. Y no la usa nada; X del
+	-- mando es la de siempre de los carteles (el menú de comandos reparte si coincide con otro)
+	prompt.KeyboardKeyCode = Enum.KeyCode.Y
+	prompt.GamepadKeyCode = Enum.KeyCode.ButtonX
 	prompt:SetAttribute("MinStage", Wanted.MinStage) -- (solo lo ven los mayores; JobPrompts)
 	prompt.Parent = entrance
 	prompt.Triggered:Connect(function(player)

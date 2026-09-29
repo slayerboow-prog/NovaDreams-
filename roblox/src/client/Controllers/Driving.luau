@@ -36,6 +36,7 @@ local Hud = require(script.Parent.Parent.UI.Hud)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
 local VehicleHud = require(script.Parent.VehicleHud)
+local CameraShake = require(script.Parent.CameraShake)
 
 local Driving = {}
 
@@ -308,7 +309,12 @@ local function stop()
 		return
 	end
 	if state.Pose then
-		state.Pose:Stop(0.3)
+		-- Se para y luego se destruye: cada vez que te subes se carga una nueva (si no, se acumulan)
+		local pose = state.Pose
+		pose:Stop(0.3)
+		task.delay(0.35, function()
+			pcall(pose.Destroy, pose)
+		end)
 	end
 	-- Al bajarse, el vehículo se queda quieto (aunque fuera lanzado: frena en seco y lo aparca el servidor)
 	local chassis = state.Chassis
@@ -454,6 +460,10 @@ local function step(dt: number)
 			local hit = workspace:Raycast(origin, heading * sign * length, params)
 			if hit and hit.Normal.Y < 0.6 then
 				SoundFx.crash(math.abs(s.Speed), s.Chassis)
+				-- Golpe en la cámara (y en el mando) según lo rápido que ibas; un roce lento, nada
+				if math.abs(s.Speed) > 6 then
+					CameraShake.shake(math.clamp(math.abs(s.Speed) / 35, 0.2, 1.4), 0.35)
+				end
 				s.Speed = -s.Speed * 0.15 -- rebote suave
 				s.Throttle = 0
 				move = Vector3.zero

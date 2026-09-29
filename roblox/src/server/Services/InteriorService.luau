@@ -416,6 +416,11 @@ local function teleport(player: Player, target: Vector3)
 	player:SetAttribute("LiftTower", nil)
 	teleporting[player] = (teleporting[player] or 0) + 1
 	player:SetAttribute("Teleporting", true)
+	-- Fundido a negro en su pantalla un momento antes del salto (sin él, es un corte en seco)
+	if Notify then
+		Notify:FireClient(player, "Travel", "")
+		task.wait(0.35)
+	end
 	pcall(SceneService.teleportTo, player, target)
 	local left = (teleporting[player] or 1) - 1
 	teleporting[player] = if left > 0 then left else nil

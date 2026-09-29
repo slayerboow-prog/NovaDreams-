@@ -466,6 +466,11 @@ local function jumpSpec(): Spec
 		Priority = 2,
 		Key = "Espacio",
 		Pad = "A",
+		-- Sentado (sobre todo en un coche en marcha) saltar te echa del asiento: fuera el botón
+		Visible = function()
+			local h = humanoid()
+			return h == nil or h.SeatPart == nil
+		end,
 		Hold = function(down: boolean)
 			holding = down
 			local h = humanoid()
@@ -547,11 +552,24 @@ function TouchLayout.init(parent: Instance?)
 			TouchLayout.refresh()
 		end
 	end)
-	UserInputService.LastInputTypeChanged:Connect(function()
+	-- Las letras del mando bajo los botones: solo con un mando conectado (se puede enchufar a mitad)
+	local function refreshPads()
+		for _, view in views do
+			local pad = view.Button:FindFirstChild("Pad")
+			if pad and pad:IsA("GuiObject") then
+				pad.Visible = UserInputService.GamepadEnabled
+			end
+		end
+	end
+	local function onInputChanged()
+		refreshPads()
 		if not touch then
 			TouchLayout.refresh()
 		end
-	end)
+	end
+	UserInputService.LastInputTypeChanged:Connect(onInputChanged)
+	UserInputService.GamepadConnected:Connect(onInputChanged)
+	UserInputService.GamepadDisconnected:Connect(onInputChanged)
 	local player = Players.LocalPlayer
 	for _, attribute in { "LifeStage", "Riding", "KO", "InDialogue" } do
 		player:GetAttributeChangedSignal(attribute):Connect(TouchLayout.refresh)

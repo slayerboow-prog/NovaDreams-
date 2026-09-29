@@ -1015,7 +1015,7 @@ local function setupLicenceDesk(desk: Instance, label: string)
 	prompt.MaxActivationDistance = 10
 	prompt.RequiresLineOfSight = false
 	prompt.KeyboardKeyCode = Enum.KeyCode.F
-	prompt.GamepadKeyCode = Enum.KeyCode.ButtonY
+	prompt.GamepadKeyCode = Enum.KeyCode.ButtonX -- (el Y del mando es tirar piedras)
 	prompt:SetAttribute("MinStage", Weapons.Licence.MinStage)
 	prompt.Parent = desk
 	prompt.Triggered:Connect(function(player)

@@ -23,6 +23,7 @@ local HospitalService = {}
 local Remote: RemoteEvent
 local diedAt: { [Player]: Vector3 } = {}
 local spots: { { Position: Vector3, Look: Vector3 } }? = nil
+local retryAt = 0 -- si no se encontró ningún hospital, no se vuelve a buscar hasta esta hora
 
 local function isHospital(model: Instance): boolean
 	local node: Instance? = model
@@ -38,6 +39,10 @@ end
 -- Sitios donde se reaparece: delante de la puerta de cada hospital y centro de salud
 local function hospitalSpots(): { { Position: Vector3, Look: Vector3 } }
 	if spots and #spots > 0 then
+		return spots
+	end
+	-- Sin hospitales: la búsqueda recorre todo el mapa, así que el "no hay" se recuerda 30 s
+	if spots and os.clock() < retryAt then
 		return spots
 	end
 	local found = {}
@@ -60,6 +65,9 @@ local function hospitalSpots(): { { Position: Vector3, Look: Vector3 } }
 		end
 	end
 	spots = found
+	if #found == 0 then
+		retryAt = os.clock() + 30
+	end
 	return found
 end
 

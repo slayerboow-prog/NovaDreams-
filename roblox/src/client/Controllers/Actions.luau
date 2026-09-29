@@ -353,6 +353,10 @@ function Actions.init()
 		Id = "Levantarse", Icon = "bajarse", Label = "Levantarse", Slot = "Saltar", Priority = 1, Key = "F", Pad = "B",
 		Always = true,
 		Visible = function()
+			-- En un vehículo no: para eso está Bajarse (Vehicles), que para con cuidado
+			if TouchLayout.aboard() then
+				return false
+			end
 			local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
 			return humanoid ~= nil and (humanoid.SeatPart ~= nil or humanoid.Sit)
 		end,
@@ -361,7 +365,8 @@ function Actions.init()
 	ContextActionService:BindAction("Levantarse", function(_, state)
 		if state == Enum.UserInputState.Begin then
 			local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-			if humanoid and (humanoid.SeatPart or humanoid.Sit) and not player:GetAttribute("Riding") then
+			-- (en un vehículo, F/B son de Bajarse: Vehicles)
+			if humanoid and (humanoid.SeatPart or humanoid.Sit) and not TouchLayout.aboard() then
 				Actions.standUp()
 				return Enum.ContextActionResult.Sink
 			end

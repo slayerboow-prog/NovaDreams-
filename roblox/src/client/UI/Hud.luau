@@ -1291,10 +1291,33 @@ local TOAST_COLORS = {
 	Sleep = C.Muted,
 }
 
+-- Avisos a la vista (el más viejo primero) y cuándo salió cada texto: el mismo aviso repetido
+-- (p. ej. al mantener una tecla) no se amontona, y nunca hay más de unos pocos a la vez
+local TOAST_MAX = 4
+local TOAST_REPEAT = 2
+local activeToasts: { Frame } = {}
+local recentToasts: { [string]: { At: number, Slot: Frame } } = {}
+
 function Hud.toast(kind: string, text: string)
+	local now = os.clock()
+	local recent = recentToasts[text]
+	if recent and now - recent.At < TOAST_REPEAT and recent.Slot.Parent ~= nil then
+		return
+	end
 	local color = TOAST_COLORS[kind] or C.Muted
+	-- Demasiados: se quita el más viejo
+	for i = #activeToasts, 1, -1 do
+		if activeToasts[i].Parent == nil then
+			table.remove(activeToasts, i)
+		end
+	end
+	while #activeToasts >= TOAST_MAX do
+		table.remove(activeToasts, 1):Destroy()
+	end
 	-- El aviso entra deslizándose desde arriba y se va desvaneciendo
 	local slot = create("Frame", { Size = UDim2.fromOffset(0, 40), AutomaticSize = Enum.AutomaticSize.X, BackgroundTransparency = 1, Parent = toastList })
+	table.insert(activeToasts, slot)
+	recentToasts[text] = { At = now, Slot = slot }
 	local toast = create("CanvasGroup", {
 		Size = UDim2.fromOffset(0, 40),
 		AutomaticSize = Enum.AutomaticSize.X,
@@ -1319,27 +1342,56 @@ function Hud.toast(kind: string, text: string)
 	})
 	TweenService:Create(toast, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Position = UDim2.fromOffset(0, 0), GroupTransparency = 0 }):Play()
 	task.delay(3, function()
+		if slot.Parent == nil then
+			return -- (ya se quitó por haber demasiados)
+		end
 		local fadeOut = TweenService:Create(toast, TweenInfo.new(0.4), { GroupTransparency = 1 })
 		fadeOut:Play()
 		fadeOut.Completed:Wait()
 		slot:Destroy()
+		local entry = recentToasts[text]
+		if entry and entry.Slot == slot then
+			recentToasts[text] = nil
+		end
 	end)
 end
 
--- Pantalla en negro con un texto (dormir, viajar…)
+-- Pantalla en negro con un texto (dormir, viajar…). Si llega otro fundido antes de acabar el
+-- anterior, manda el último: el viejo ya no quita la pantalla negra (ficha `fadeToken`)
+local fadeToken = 0
 function Hud.fade(text: string, seconds: number)
+	fadeToken += 1
+	local token = fadeToken
 	local caption = sleepOverlay:FindFirstChild("Caption") :: TextLabel?
 	if caption then
 		caption.Text = text
 	end
+	local already = sleepOverlay.Visible
 	sleepOverlay.Visible = true
-	sleepOverlay.BackgroundTransparency = 1
+	if not already then
+		sleepOverlay.BackgroundTransparency = 1
+		if caption then
+			caption.TextTransparency = 1
+		end
+	end
+	-- El texto aparece y se va a la vez que el fondo
 	TweenService:Create(sleepOverlay, TweenInfo.new(0.6), { BackgroundTransparency = 0 }):Play()
+	if caption then
+		TweenService:Create(caption, TweenInfo.new(0.6), { TextTransparency = 0 }):Play()
+	end
 	task.delay(math.max(seconds - 0.6, 0.6), function()
+		if token ~= fadeToken then
+			return
+		end
 		local tween = TweenService:Create(sleepOverlay, TweenInfo.new(0.6), { BackgroundTransparency = 1 })
 		tween:Play()
+		if caption then
+			TweenService:Create(caption, TweenInfo.new(0.6), { TextTransparency = 1 }):Play()
+		end
 		tween.Completed:Wait()
-		sleepOverlay.Visible = false
+		if token == fadeToken then
+			sleepOverlay.Visible = false
+		end
 	end)
 end
 
