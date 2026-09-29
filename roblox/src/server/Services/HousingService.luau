@@ -305,6 +305,168 @@ end
 HousingService.neighborAnswer = neighborAnswer
 
 ---------------------------------------------------------------------
+-- Vida en el portal: mientras hay alguien en la planta baja de un bloque, los vecinos entran y
+-- salen, miran el buzón, esperan el ascensor (y se suben), bajan la basura o llega un repartidor
+---------------------------------------------------------------------
+local Npc = require(script.Parent.Parent.World.Npc)
+
+HousingService.LobbyEvery = { 18, 40 } -- segundos entre escena y escena (al azar)
+local lobbies: { [number]: { NextAt: number, Running: number } } = {}
+
+local LINES = {
+	Buzon = { "A ver qué hay hoy… facturas. Siempre facturas.", "¡Por fin ha llegado mi carta!", "Propaganda, propaganda… y más propaganda." },
+	Sale = { "¡Buenos días! Me voy corriendo, que llego tarde.", "Hasta luego, vecino.", "Voy a por el pan, ¿necesitas algo?" },
+	Basura = { "Bajo la basura, que ya huele.", "¿Hoy toca reciclaje o era mañana?" },
+	Repartidor = { "¡Paquete para el %s! ¿Hay alguien?", "Traigo un pedido para el %s. Firme aquí, por favor." },
+	Charla = { "¿Has visto que van a pintar el portal?", "El ascensor hace un ruido raro, ¿no?", "¡Qué calor hace hoy en la escalera!", "Mañana hay reunión de vecinos, no faltes." },
+}
+
+local function pick(list: { string }): string
+	return list[math.random(1, #list)]
+end
+
+-- Los sitios del portal de un bloque (de su planta baja montada)
+local function lobbySpots(building: InteriorService.Building): { [string]: Vector3 }?
+	local inst = InteriorService.tower(building)
+	local built = inst and inst.Tower and inst.Tower.Built[0]
+	if not built then
+		return nil
+	end
+	local spots = {}
+	for _, d in built.Model:GetDescendants() do
+		if d:IsA("BasePart") then
+			if d:HasTag("InteriorEntry") then
+				spots.Door = d.Position
+			elseif d:HasTag("InteriorElevator") then
+				spots.Lift = d.Position
+			elseif d.Name == "MailboxWall" then
+				spots.Mail = d.Position
+			elseif d.Name == "Intercom" then
+				spots.Intercom = d.Position
+			end
+		end
+	end
+	if not spots.Door or not spots.Lift then
+		return nil
+	end
+	spots.Model = built.Model :: any
+	return spots
+end
+
+local function feet(point: Vector3, floorY: number): Vector3
+	return Vector3.new(point.X, floorY, point.Z)
+end
+
+-- Una escena en el portal (kind: Llega, Sale, Buzon, Basura, Repartidor, Charla). Devuelve el vecino.
+function HousingService.lobbyScene(building: InteriorService.Building, kind: string?): Model?
+	local spots = lobbySpots(building)
+	if not spots then
+		return nil
+	end
+	local inst = InteriorService.tower(building) :: any
+	local floorY = inst.Tower.Origin.Position.Y
+	local model = spots.Model :: any
+	-- Un vecino de verdad del edificio (con su nombre)
+	local floor = math.random(1, math.max(1, building.Floors - 1))
+	local units = Floors.units(building.Key, building.Kind, building.Upper, floor)
+	local unit = units[math.random(1, math.max(1, #units))]
+	local person = Residents.person(Properties.unitKey(building.Key, unit and unit.Id or tostring(floor)))
+	local which = kind or ({ "Llega", "Sale", "Buzon", "Basura", "Repartidor", "Charla" })[math.random(1, 6)]
+	local door, lift = feet(spots.Door, floorY), feet(spots.Lift, floorY)
+	local mail = if spots.Mail then feet(spots.Mail, floorY) + Vector3.new(0, 0, -2.2) else nil
+	local name = if which == "Repartidor" then "Repartidor" else person.Name
+	local start = if which == "Sale" or which == "Basura" then lift else door
+	local npc = Npc.create(name, model, CFrame.new(start + Vector3.new(0, 3, 0)))
+	npc:SetAttribute("LobbyNeighbor", which)
+	local function say(text: string)
+		pcall(Npc.say, npc, text, 4)
+	end
+	task.spawn(function()
+		local ok, err = pcall(function()
+			if which == "Llega" or which == "Buzon" then
+				if mail then
+					Npc.walkTo(npc, { mail })
+					say(pick(LINES.Buzon))
+					task.wait(3)
+				end
+				Npc.walkTo(npc, { lift })
+				-- Llama al ascensor y se sube cuando abre
+				pcall(InteriorService.callLift, inst, 0)
+				local waited = 0
+				while waited < 12 and npc.Parent and not (inst.Tower.Lift and inst.Tower.Lift.Floor == 0 and inst.Tower.Lift.DoorsOpen) do
+					waited += task.wait(0.5)
+				end
+				local cabin = inst.Tower.Lift and inst.Tower.Lift.Cabin.Model:FindFirstChild("CabinFloor")
+				if cabin and npc.Parent then
+					Npc.walkTo(npc, { feet(cabin.Position, floorY) })
+					task.wait(1.5)
+				end
+			elseif which == "Sale" or which == "Basura" then
+				if which == "Basura" then
+					pcall(Npc.work, npc, "Tray")
+				end
+				say(pick(LINES[which]))
+				Npc.walkTo(npc, { door })
+			elseif which == "Repartidor" then
+				pcall(Npc.work, npc, "Clipboard")
+				local target = if spots.Intercom then feet(spots.Intercom, floorY) + Vector3.new(0, 0, 2) else lift
+				Npc.walkTo(npc, { target })
+				say((pick(LINES.Repartidor)):format(unit and unit.Label or "primero"))
+				task.wait(5)
+				Npc.walkTo(npc, { door })
+			else -- Charla: dos vecinos junto a los buzones
+				local other = Npc.create(Residents.person(Properties.unitKey(building.Key, "charla" .. floor)).Name, model, CFrame.new(lift + Vector3.new(0, 3, 0)))
+				other:SetAttribute("LobbyNeighbor", "Charla")
+				local meet = mail or (door + lift) / 2
+				task.spawn(Npc.walkTo, other, { meet + Vector3.new(2, 0, 0) })
+				Npc.walkTo(npc, { meet })
+				for _ = 1, 3 do
+					say(pick(LINES.Charla))
+					task.wait(3.5)
+				end
+				task.spawn(Npc.walkTo, other, { lift })
+				Npc.walkTo(npc, { door })
+				task.delay(4, function()
+					if other.Parent then
+						other:Destroy()
+					end
+				end)
+			end
+		end)
+		if not ok then
+			warn("[Viviendas] portal: " .. tostring(err))
+		end
+		if npc.Parent then
+			npc:Destroy()
+		end
+	end)
+	return npc
+end
+
+local function stepLobbies()
+	local active: { [number]: boolean } = {}
+	for _, player in Players:GetPlayers() do
+		local key = player:GetAttribute("InteriorKey")
+		local id = type(key) == "string" and tonumber(string.match(key, "^(%d+):T$"))
+		if id and player:GetAttribute("TowerFloor") == 0 then
+			active[id] = true
+		end
+	end
+	for _, building in InteriorService.all() do
+		if not active[building.Id] or building.Upper ~= "Piso" then
+			continue
+		end
+		local state = lobbies[building.Id] or { NextAt = os.clock() + 4, Running = 0 }
+		lobbies[building.Id] = state
+		if os.clock() >= state.NextAt then
+			state.NextAt = os.clock() + math.random(HousingService.LobbyEvery[1], HousingService.LobbyEvery[2])
+			pcall(HousingService.lobbyScene, building)
+		end
+	end
+end
+HousingService.stepLobbies = stepLobbies
+
+---------------------------------------------------------------------
 function HousingService.init()
 	local remotes = ReplicatedStorage:WaitForChild("Remotes")
 	Remote = remotes:FindFirstChild("Housing") :: RemoteEvent
@@ -356,6 +518,13 @@ function HousingService.init()
 		data.Housing = data.Housing or {}
 		if HousingService.AutoAssign and not data.Housing.Assigned then
 			task.spawn(HousingService.assignStarter, player)
+		end
+	end)
+	-- Vida en los portales (solo donde hay alguien)
+	task.spawn(function()
+		while true do
+			task.wait(3)
+			pcall(stepLobbies)
 		end
 	end)
 	-- Cobro del alquiler (cada día de juego, mientras juegas)

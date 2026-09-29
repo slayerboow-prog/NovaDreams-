@@ -528,6 +528,17 @@ local function crowdAround(r: Room, n: number, works: { string })
 			placed += 1
 		end
 	end
+	-- En salas pequeñas y llenas puede que al azar no quepa nadie: se busca sitio en orden (siempre
+	-- tiene que haber al menos un cliente)
+	if placed == 0 then
+		for z = -r.HZ + 4, r.HZ - 2, 1.5 do
+			for x = -r.HX + 2, r.HX - 2, 1.5 do
+				if crowd(r, x, z, 0, -1, works[1]) then
+					return
+				end
+			end
+		end
+	end
 end
 
 ---------------------------------------------------------------------

@@ -4367,6 +4367,25 @@ check(#profiles[newcomers[1]].Properties == 1 and profiles[newcomers[1]].Propert
 check(PropertyService.goHome(newcomers[1]) and newcomers[1]:GetAttribute("InteriorKey") ~= nil, "«Ir a casa» te lleva a tu piso")
 InteriorService.leave(newcomers[1])
 InteriorService.leave(newcomers[1])
+-- Vida en el portal: vecinos que entran y salen y un repartidor que llama al portero
+InteriorService.goTo(visitor, tower, 0)
+InteriorService.stepTowers()
+local courier = HousingService.lobbyScene(tower, "Repartidor")
+local chat = HousingService.lobbyScene(tower, "Llega")
+check(courier ~= nil and courier.Parent ~= nil and courier:GetAttribute("LobbyNeighbor") == "Repartidor" and chat ~= nil and chat:GetAttribute("LobbyNeighbor") == "Llega",
+	"en el portal hay vida: llega un repartidor y un vecino que vuelve a casa")
+local t0l = os.clock()
+local delivered = false
+while os.clock() - t0l < 12 and not delivered do
+	for _, line in speechLog do
+		if type(line) == "table" and type(line.Text) == "string" and string.find(line.Text, "aquete para el", 1, true) then
+			delivered = true
+		end
+	end
+	task.wait(0.2)
+end
+check(delivered, "el repartidor llama al portero automático: «¡Paquete para el …!»")
+InteriorService.leave(visitor)
 -- Vecinos con su vida: a media mañana muchos están trabajando; por la noche, en casa (o durmiendo)
 local working, home23 = 0, 0
 for i = 1, 60 do
