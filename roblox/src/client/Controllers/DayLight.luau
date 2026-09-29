@@ -23,7 +23,8 @@ local UPDATE_EVERY = 0.1 -- segundos entre actualizaciones (10 veces por segundo
 type Key = { [string]: any }
 
 -- Cómo es la luz a cada hora. Los colores imitan la luz real de la costa mediterránea:
--- (De día la luz ambiente es baja y el sol fuerte: así las sombras tienen cuerpo y la ciudad no se ve plana.
+-- (De día el sol es fuerte y la luz de fuera (Outdoor) baja: así las sombras tienen cuerpo y la ciudad no se
+--  ve plana. Ambient (la luz de los interiores) no baja de día: si no, dentro de casa era más de noche que de noche.
 --  La luz del cielo la pone EnvironmentDiffuse; la bruma es la justa para dar distancia sin lavar los colores.)
 -- amaneceres rosados, mediodía blanco y limpio, atardeceres naranjas, hora azul y noche de luna.
 local KEYS: { { Hour: number, Key: Key } } = {
