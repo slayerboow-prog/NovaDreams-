@@ -160,7 +160,7 @@ end
 -- 1) Vía continua
 ---------------------------------------------------------------------
 print("▶ Vía")
-local gaps, bedGaps, water, bridge = 0, 0, 0, 0
+local gaps, water, bridge = 0, 0, 0
 local sleepers = 0
 for _, d in root:GetDescendants() do
 	if d:IsA("BasePart") and d.Name == "Sleeper" then
@@ -187,7 +187,7 @@ while s < length - 0.5 do
 			end
 		end
 	end
-	-- Debajo: balasto, paso a nivel (calle) o puente
+	-- Sobre el río, puente
 	if CityPlan.riverDistance(p.X, p.Z) < CityPlan.River.Width / 2 then
 		water += 1
 		for _, it in query(railGrid, p.X, p.Z) do
@@ -202,7 +202,6 @@ end
 check(gaps == 0, ("los dos carriles van de punta a punta sin cortes (%d studs de vía)"):format(math.floor(length)))
 check(sleepers >= length / 5 * 0.8, ("traviesas a lo largo de la vía (%d)"):format(sleepers))
 check(water > 0 and bridge == water, ("sobre el río, un puente con tablero (%d de %d puntos)"):format(bridge, water))
-local _ = bedGaps
 
 ---------------------------------------------------------------------
 -- 2) Pasos a nivel
@@ -349,14 +348,20 @@ index(solids, false, solidGrid, function(lo, hi)
 	end
 	return false
 end)
-for index_, id in Rail.Line.Stations do
+for _, id in Rail.Line.Stations do
 	local A = routes[id]
 	local model = root:FindFirstChild("Estacion_" .. id)
+	local entranceModel = model and model:FindFirstChild("EstacionCercanias")
 	local platform = model and model:FindFirstChild("Platform")
 	local deckOk = platform ~= nil and math.abs(platform.CFrame.Position.Y + platform.Size.Y / 2 - Rail.Deck) < 0.05
 	check(model ~= nil and deckOk, ("%s: andén a la altura del suelo del tren"):format(Rail.Stations[id].Name))
 	check(tagged("RailBoard", { Station = id }) == Rail.Cars and tagged("RailAlight", { Station = id }) == 1 and tagged("RailTicketMachine", { Station = id }) == 1 and tagged("RailDisplay", { Station = id }) == 1,
 		("%s: botones de subir, sitio para bajar, máquina de billetes y panel de salidas"):format(Rail.Stations[id].Name))
+	-- La entrada (modelo "EstacionCercanias": sale en el mapa y en el GPS) está en la calle, junto a la acera
+	local totem = entranceModel and entranceModel:FindFirstChild("Totem")
+	local street = Rail.entrance(id)
+	check(totem ~= nil and (Vector3.new(totem.CFrame.Position.X, 0, totem.CFrame.Position.Z) - Vector3.new(street.X, 0, street.Z)).Magnitude < 12,
+		("%s: la entrada con su tótem está junto a la acera (para el mapa y el GPS)"):format(Rail.Stations[id].Name))
 	local gapsHere, blockedHere = 0, 0
 	for k = 2, #A.Route do
 		local a, b = A.Route[k - 1], A.Route[k]
@@ -396,7 +401,6 @@ for index_, id in Rail.Line.Stations do
 		end
 	end
 	check(onWalk and gapsHere == 0 and blockedHere == 0, ("%s: de la acera al andén andando, sin huecos ni nada en medio"):format(Rail.Stations[id].Name))
-	local _ = index_
 end
 
 ---------------------------------------------------------------------

@@ -362,6 +362,10 @@ local function buildCrossings(parent: Instance)
 	for i, c in RailKit.crossings() do
 		local m = Builder.model("PasoANivel", parent)
 		m:AddTag("RailCrossing")
+		-- Se carga entero en cada ordenador (con las cuatro barreras): así el cliente las mueve todas
+		pcall(function()
+			(m :: any).ModelStreamingMode = Enum.ModelStreamingMode.Atomic
+		end)
 		m:SetAttribute("S", c.S)
 		m:SetAttribute("Line", Rail.Line.Id)
 		m:SetAttribute("Road", c.Name)
@@ -372,18 +376,38 @@ local function buildCrossings(parent: Instance)
 		m:SetAttribute("Stop", POST_OFFSET / sin + 3)
 		-- Carriles encastrados a ras del asfalto y de la acera (decorado: no se tropieza nadie) y el
 		-- relleno de goma entre los dos
-		local s = c.S0 - 1
-		while s < c.S1 + 1 do
-			local s1 = math.min(s + 2, c.S1 + 1)
-			local q, t = Rail.sample(points, (s + s1) / 2)
-			local f, v = roadAt(q)
-			local top = if f and v <= f.HalfRoad then Street.ROAD_TOP elseif f then Street.WALK_TOP else BED_TOP + 0.3
-			for _, side in { -1, 1 } do
-				local off = V3(-t.Z, 0, t.X) * side * half
-				decor(m, "Rail", V3(0.4, 0.16, s1 - s + 0.05), along(q + off, t, top + 0.06), STEEL, Enum.Material.Metal)
+		-- (trozos de 1 stud según lo que hay debajo de cada carril; los seguidos a la misma altura van en
+		-- una sola pieza)
+		local function runs(lateral: number): { { number } }
+			local list: { { number } } = {}
+			local s = c.S0 - 1
+			while s < c.S1 + 1 do
+				local s1 = math.min(s + 1, c.S1 + 1)
+				local q, t = Rail.sample(points, (s + s1) / 2)
+				local f, v = roadAt(q + V3(-t.Z, 0, t.X) * lateral)
+				local top = if f and v <= f.HalfRoad then Street.ROAD_TOP elseif f then Street.WALK_TOP else BED_TOP + 0.3
+				local last = list[#list]
+				local _, t0 = Rail.sample(points, if last then last[1] else s)
+				local _, t1 = Rail.sample(points, s1)
+				if last and last[3] == top and t0:Dot(t1) > 0.9998 then
+					last[2] = s1
+				else
+					table.insert(list, { s, s1, top })
+				end
+				s = s1
 			end
-			decor(m, "CrossingPanel", V3(Rail.Gauge - 0.6, 0.04, s1 - s + 0.05), along(q, t, top + 0.02), DARK, Enum.Material.Rubber)
-			s = s1
+			return list
+		end
+		for _, side in { -1, 1 } do
+			for _, run in runs(side * half) do
+				local q, t = Rail.sample(points, (run[1] + run[2]) / 2)
+				local off = V3(-t.Z, 0, t.X) * side * half
+				decor(m, "Rail", V3(0.4, 0.16, run[2] - run[1] + 0.05), along(q + off, t, run[3] + 0.06), STEEL, Enum.Material.Metal)
+			end
+		end
+		for _, run in runs(0) do
+			local q, t = Rail.sample(points, (run[1] + run[2]) / 2)
+			decor(m, "CrossingPanel", V3(Rail.Gauge - 0.6, 0.04, run[2] - run[1] + 0.05), along(q, t, run[3] + 0.02), DARK, Enum.Material.Rubber)
 		end
 		-- Cuatro postes con barrera (dos a cada lado de la vía)
 		local index = 0
@@ -550,10 +574,13 @@ local function station(parent: Instance, id: string, index: number)
 		foot = V3(last[1], 0, last[2]) - dir * 4 + V3(-dir.Z, 0, dir.X) * 4.5
 	end
 	local totem = Builder.facing(V3(foot.X, 0, foot.Z), f.RightVector)
-	part(m, "Totem", V3(1.6, 12, 1.6), totem * CFrame.new(0, 5, 0), RED, Enum.Material.Metal)
-	signBoard(m, totem * CFrame.new(0, 10, 0), V3(1.7, 3.4, 1.7), "🚆", RED, WHITE)
-	signBoard(m, totem * CFrame.new(0, 6.6, 0) * CFrame.Angles(0, math.rad(90), 0), V3(1.7, 1.4, 1.7), "C1", WHITE, RED)
-	local label = part(m, "EntranceSign", V3(6, 1.2, 0.2), totem * CFrame.new(0, 12.6, 0), rgb(30, 60, 140), Enum.Material.SmoothPlastic)
+	-- (el modelo "EstacionCercanias" sale en el mapa y en el GPS: está en la calle, en la entrada)
+	local entrance = Builder.model("EstacionCercanias", m)
+	entrance:SetAttribute("Station", id)
+	part(entrance, "Totem", V3(1.6, 12, 1.6), totem * CFrame.new(0, 5, 0), RED, Enum.Material.Metal)
+	signBoard(entrance, totem * CFrame.new(0, 10, 0), V3(1.7, 3.4, 1.7), "🚆", RED, WHITE)
+	signBoard(entrance, totem * CFrame.new(0, 6.6, 0) * CFrame.Angles(0, math.rad(90), 0), V3(1.7, 1.4, 1.7), "C1", WHITE, RED)
+	local label = part(entrance, "EntranceSign", V3(6, 1.2, 0.2), totem * CFrame.new(0, 12.6, 0), rgb(30, 60, 140), Enum.Material.SmoothPlastic)
 	Builder.sign(label, "Cercanías · " .. stationName(id), Enum.NormalId.Front)
 	Builder.sign(label, "Cercanías · " .. stationName(id), Enum.NormalId.Back)
 	-- Para el mapa y el GPS

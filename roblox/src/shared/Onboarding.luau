@@ -92,7 +92,7 @@ Onboarding.Tips = {
 	Vehiculo = "🚗 Vas en un vehículo. Muévete con el joystick (o W A S D). Para bajarte, toca «Bajarse» (tecla F).",
 	Tienda = "🛒 Estás en una tienda. Acércate a lo que quieras y toca el botón de acción para comprar.",
 	Gimnasio = "💪 Máquina del gimnasio. Úsala con el botón de acción y toca «¡YA!» cuando el marcador pase por la zona verde.",
-	Transporte = "🚏 Parada de bus o metro. Espera y sube con el botón de acción. En el bus, «Bajar en la próxima». El metro pide billete.",
+	Transporte = "🚏 Parada de bus, metro o Cercanías. Espera y sube con el botón de acción. En el bus, «Bajar en la próxima». El metro y el tren piden billete.",
 	Busqueda = "⭐ ¡La policía te busca! Aléjate y escóndete un rato: si no te ven, las estrellas se van solas.",
 	Necesidades = "🍎 Tienes hambre o estás cansado. Come algo (nevera, súper o cafetería) y duerme en tu cama.",
 } :: { [string]: string }

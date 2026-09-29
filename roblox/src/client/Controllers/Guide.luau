@@ -46,7 +46,7 @@ local NOTE_SECONDS = { Tip = 9, Hint = 10, Info = 5 }
 local MOVE_SECONDS = 1 -- andando este rato cuenta "muévete"
 local MISSION_APPROACH = 20 -- studs que hay que acercarse al objetivo para "sigue tu misión"
 local SHOP_KINDS = { Supermercado = 40, CentroComercial = 40, GranCentroComercial = 50, TiendaPesca = 25, Armeria = 25 }
-local STOP_KINDS = { ParadaBus = 14, BocaMetro = 22 }
+local STOP_KINDS = { ParadaBus = 14, BocaMetro = 22, EstacionCercanias = 22 }
 local STEP_ICONS = { Mover = "flecha", Correr = "correr", Interactuar = "interactuar", Mapa = "mapa", Mochila = "mochila", Ayuda = "ayuda", Mision = "misiones" }
 
 local hooks: Hooks = {}

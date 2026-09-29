@@ -113,7 +113,7 @@ local function teleport(player: Player, cf: CFrame)
 	end
 end
 
-local function stationId(train: Train, index: number): string
+local function stationId(_: Train, index: number): string
 	return Rail.Line.Stations[index]
 end
 
