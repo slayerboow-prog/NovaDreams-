@@ -4,11 +4,14 @@
 --   * Llaves (cartel «Llaves y visitas» dentro de tu casa): quién puede entrar (privacidad), los que
 --     tienen llave (Quitar), dar llave a los jugadores del servidor (Dar) y las visitas que están
 --     dentro (Echar). Se cierra con ✕ o al alejarte.
+--   * Encargos de los vecinos: el aviso «Un vecino te pide un favor» con «Aceptar» y «Ahora no», y
+--     mientras lo haces, un cartelito a la izquierda con lo que toca («Recoge el paquete…»).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
+local Format = require(ReplicatedStorage.Shared.Format)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local SoundFx = require(script.Parent.SoundFx)
 
@@ -22,6 +25,8 @@ local gui: ScreenGui
 local remote: RemoteEvent
 local panel: Frame?
 local bellCard: Frame?
+local errandCard: Frame?
+local errandTracker: Frame?
 
 local PRIVACY = {
 	{ Id = "Grupo", Label = "👥 Grupo y llaves", Hint = "Entran los de tu grupo y los que tienen llave." },
@@ -70,6 +75,62 @@ local function showBell(data: { [string]: any })
 			closeBell()
 		end
 	end)
+end
+
+---------------------------------------------------------------------
+-- Encargos de los vecinos
+---------------------------------------------------------------------
+local function closeErrandOffer()
+	if errandCard then
+		errandCard:Destroy()
+		errandCard = nil
+	end
+end
+
+local function showErrandOffer(data: { [string]: any })
+	closeErrandOffer()
+	play("MenuAbrir")
+	local card = Theme.panel({ Name = "ErrandOffer", AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 96), Size = UDim2.fromOffset(440, 168), Parent = gui })
+	errandCard = card
+	Theme.padding(12).Parent = card
+	Theme.title({ Size = UDim2.new(1, 0, 0, 24), Text = "🙋 " .. tostring(data.Title or "Un vecino te pide un favor"), TextSize = 18, TextTruncate = Enum.TextTruncate.AtEnd, Parent = card })
+	Theme.label({ Position = UDim2.fromOffset(0, 26), Size = UDim2.new(1, 0, 0, 58), Text = tostring(data.Text or ""), TextSize = 14, TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top, Parent = card })
+	Theme.label({ Position = UDim2.fromOffset(0, 86), Size = UDim2.new(1, 0, 0, 20), Text = ("Recompensa: %s y +%s de experiencia"):format(Format.money(tonumber(data.Money) or 0), tostring(data.Xp or 0)), TextSize = 13, TextColor3 = C.Muted, Parent = card })
+	local token = data.Token
+	local function answer(accept: boolean)
+		remote:FireServer("ErrandAnswer", token, accept)
+		closeErrandOffer()
+	end
+	local yes = Theme.button({ Name = "Accept", Position = UDim2.new(0, 0, 1, -34), Size = UDim2.new(0.5, -4, 0, 34), Text = "👍 Aceptar", TextSize = 16, Parent = card })
+	yes.Activated:Connect(function()
+		play("MenuOk")
+		answer(true)
+	end)
+	local no = Theme.button({ Name = "Decline", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 1, -34), Size = UDim2.new(0.5, -4, 0, 34), Text = "✋ Ahora no", TextSize = 16, Parent = card })
+	no.Activated:Connect(function()
+		answer(false)
+	end)
+	task.delay(30, function()
+		if errandCard == card then
+			closeErrandOffer()
+		end
+	end)
+end
+
+-- El cartelito del encargo en marcha (Done: se quita)
+local function showErrand(data: { [string]: any })
+	if errandTracker then
+		errandTracker:Destroy()
+		errandTracker = nil
+	end
+	if data.Done then
+		return
+	end
+	local frame = Theme.panel({ Name = "ErrandTracker", AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 16, 0.38, 0), Size = UDim2.fromOffset(300, 70), Parent = gui })
+	errandTracker = frame
+	Theme.padding(8).Parent = frame
+	Theme.title({ Size = UDim2.new(1, 0, 0, 20), Text = "📋 " .. tostring(data.Title or "Encargo"), TextSize = 15, TextTruncate = Enum.TextTruncate.AtEnd, Parent = frame })
+	Theme.label({ Name = "Goal", Position = UDim2.fromOffset(0, 22), Size = UDim2.new(1, 0, 1, -22), Text = tostring(data.Goal or ""), TextSize = 13, TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top, Parent = frame })
 end
 
 ---------------------------------------------------------------------
@@ -206,6 +267,10 @@ function HousingUI.init()
 			showBell(data)
 		elseif kind == "Keys" then
 			openKeys(data)
+		elseif kind == "ErrandOffer" then
+			showErrandOffer(data)
+		elseif kind == "Errand" then
+			showErrand(data)
 		end
 	end)
 end
@@ -216,6 +281,9 @@ HousingUI.isBellOpen = function(): boolean
 end
 HousingUI.isKeysOpen = function(): boolean
 	return panel ~= nil
+end
+HousingUI.isErrandShown = function(): boolean
+	return errandTracker ~= nil
 end
 
 return HousingUI

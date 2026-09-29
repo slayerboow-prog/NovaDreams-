@@ -4572,6 +4572,318 @@ if companyDoor then
 	check(string.find(visitor:GetAttribute("InteriorKey") or "", "^" .. offices.Id .. ":1") ~= nil, "en horario, entras en la oficina")
 	services.Lighting.ClockTime = 21
 end
+;(function() -- (en su propia función: la de fuera ya no tiene sitio para más variables)
+print("▶ Edificios, segunda fase: estilo por distrito, vecinos por la escalera y el ascensor, encargos")
+-- Estilo por distrito: el portal y los pasillos van con el distrito (lujo, obrero, moderno…)
+HousingService.LobbyLife = false -- (aquí mandan las pruebas)
+local TowerW = loadModule(ROOT .. "/server/World/Tower")
+local Errands = loadModule(ROOT .. "/shared/Errands")
+local luxPlan = TowerW.plan("Prueba_10_10", "🏢 Prueba", "Portal", "Piso", 6, "Oeste")
+local surPlan = TowerW.plan("Prueba_10_10", "🏢 Prueba", "Portal", "Piso", 6, "Sur")
+local offPlan = TowerW.plan("Prueba_10_10", "🏢 Prueba", "OficinaLobby", "Oficina", 6, "Oeste")
+local plainPlan = TowerW.plan("Prueba_10_10", "🏢 Prueba", "Portal", "Piso", 6, nil)
+check(luxPlan.Style.Theme == "Lujo" and surPlan.Style.Theme == "Obrero" and offPlan.Style.Theme == nil and plainPlan.Style.Theme == nil
+	and luxPlan.Style.Wall ~= surPlan.Style.Wall and luxPlan.Style.FloorMaterial ~= surPlan.Style.FloorMaterial,
+	"estilo por distrito: Oeste de lujo, Sur obrero (colores y suelo distintos); las oficinas, con el suyo")
+local centro1, centro2 = Floors.themeFor("Centro", "Portal_5_5"), Floors.themeFor("Centro", "Portal_5_5")
+check(centro1 == centro2 and (centro1 == "Clasico" or centro1 == "Moderno") and Floors.themeFor(nil, "x") == nil, "el mismo edificio, siempre con el mismo estilo (" .. tostring(centro1) .. ")")
+local function namesIn(model)
+	local out = {}
+	for _, d in model:GetDescendants() do
+		out[d.Name] = (out[d.Name] or 0) + 1
+	end
+	return out
+end
+local luxLobby = TowerW.buildFloor(lab, CFrame.new(0, 7000, 0), luxPlan, 0)
+local luxUp = TowerW.buildFloor(lab, CFrame.new(0, 7000, 0), luxPlan, 1)
+local surLobby = TowerW.buildFloor(lab, CFrame.new(400, 7000, 0), surPlan, 0)
+local surUp = TowerW.buildFloor(lab, CFrame.new(400, 7000, 0), surPlan, 1)
+local plainUp = TowerW.buildFloor(lab, CFrame.new(800, 7000, 0), plainPlan, 1)
+local nl, nlu, ns = namesIn(luxLobby.Model), namesIn(luxUp.Model), namesIn(surLobby.Model)
+check(luxLobby.Model:GetAttribute("Theme") == "Lujo" and nl.Chandelier == 1 and nl.LobbyMirror == 1 and nl.Runner == 1 and nlu.Runner == 1 and nlu.Chandelier == nil,
+	"portal de lujo: lámpara de araña, espejo y alfombra (y la alfombra en cada pasillo)")
+check(surLobby.Model:GetAttribute("Theme") == "Obrero" and ns.NoticeBoard == 1 and (ns.Wainscot or 0) >= 2, "portal obrero: tablón de la comunidad y pared pintada a media altura")
+-- (la pared pintada no tapa ninguna puerta)
+local wainOk = true
+for _, d in surUp.Model:GetDescendants() do
+	if d.Name == "Wainscot" then
+		for _, door in TowerW.doors(surPlan, 1) do
+			local x = 400 + door.CFrame.Position.X
+			local sameWall = math.abs((door.CFrame.Position.Z) - (d.Position.Z)) < 1
+			if sameWall and math.abs(d.Position.X - x) < d.Size.X / 2 then
+				wainOk = false
+			end
+		end
+	end
+end
+check(wainOk, "la pared pintada se corta en las puertas")
+check(surUp.Parts - plainUp.Parts <= 12 and luxUp.Parts - plainUp.Parts <= 12, ("el estilo cuesta pocas piezas por planta (+%d, +%d)"):format(surUp.Parts - plainUp.Parts, luxUp.Parts - plainUp.Parts))
+local towerDistrict = InteriorService.districtOf(tower)
+InteriorService.goTo(visitor, tower, 0)
+InteriorService.stepTowers()
+local towerInst = InteriorService.tower(tower)
+check(towerInst.Tower.Plan.Style.Theme == Floors.themeFor(towerDistrict, tower.Key), "cada bloque del mapa lleva el estilo de su distrito (" .. tostring(towerDistrict) .. ": " .. tostring(towerInst.Tower.Plan.Style.Theme) .. ")")
+-- La escalera andando: el camino va por encima de los escalones de verdad
+local stepParts = {}
+for _, m in { luxLobby.Model, luxUp.Model } do
+	for _, d in m:GetDescendants() do
+		if d:GetAttribute("Step") or d.Name == "MidLanding" or d.Name == "FloorSlab" then
+			table.insert(stepParts, d)
+		end
+	end
+end
+local path = Floors.stairPath(luxPlan.W, 0, 2)
+local onSteps, smooth = true, true
+for i, p in path do
+	local world = Vector3.new(p.X, 7000 + p.Y, p.Z)
+	if p.Y < 12 then
+		local found = false
+		for _, s in stepParts do
+			local l = world - s.Position
+			if math.abs(l.X) <= s.Size.X / 2 + 0.01 and math.abs(l.Z) <= s.Size.Z / 2 + 0.01 and math.abs((s.Position.Y + s.Size.Y / 2) - world.Y) < 0.02 then
+				found = true
+			end
+		end
+		onSteps = onSteps and found
+	end
+	if i > 1 then
+		local q = path[i - 1]
+		local run = math.sqrt((p.X - q.X) ^ 2 + (p.Z - q.Z) ^ 2)
+		smooth = smooth and math.abs(p.Y - q.Y) <= 0.75 * run + 0.01
+	end
+end
+local down = Floors.stairPath(luxPlan.W, 2, 0)
+check(onSteps and path[1].Y == 0 and path[#path].Y == 24 and down[1].Y == 24 and down[#down].Y == 0, "escalera andando: cada paso del camino pisa un escalón, el descansillo o el rellano (y se baja por el mismo)")
+check(smooth, "escalera andando: nunca sube más de 0,75 por cada stud (como los escalones)")
+for _, b in { luxLobby, luxUp, surLobby, surUp, plainUp } do
+	b.Model:Destroy()
+end
+
+-- Vecinos que suben de verdad: con alguien en el portal, un vecino llega, sube a su planta
+-- (montada) por la escalera o en el ascensor y entra por su puerta
+local function waitGone(npc, seconds, watch)
+	local t0 = os.clock()
+	while npc and npc.Parent and os.clock() - t0 < seconds do
+		if watch then
+			watch(npc)
+		end
+		task.wait(0.05)
+	end
+	return npc ~= nil and npc.Parent == nil
+end
+local builtNow = InteriorService.builtFloors(tower)
+check(#builtNow == 3 and builtNow[3] == 2, "con una visita en el portal: montadas la baja, la 1ª y la 2ª")
+local stairNpc = HousingService.lobbyScene(tower, "Llega", "Escalera")
+check(stairNpc ~= nil, "llega un vecino al portal")
+waitGone(stairNpc, 20)
+local reached = stairNpc and stairNpc:GetAttribute("HomeReached")
+local reachedFloor = reached and tonumber(string.match(reached, "^(%d+)"))
+check(stairNpc:GetAttribute("Travel") == "Escalera" and reachedFloor ~= nil and reachedFloor >= 1 and reachedFloor <= 2,
+	"sube andando por la escalera hasta su planta (montada) y entra por su puerta (" .. tostring(reached) .. ")")
+local lift = InteriorService.lift(tower)
+local topY = 0
+local liftNpc = HousingService.lobbyScene(tower, "Llega", "Ascensor")
+waitGone(liftNpc, 60, function(npc)
+	local root = npc.PrimaryPart
+	if root then
+		topY = math.max(topY, root.Position.Y)
+	end
+end)
+local liftHome = liftNpc and liftNpc:GetAttribute("HomeReached")
+local liftFloor = liftHome and tonumber(string.match(liftHome, "^(%d+)"))
+check(liftNpc ~= nil and liftNpc:GetAttribute("Travel") == "Ascensor" and liftFloor ~= nil and lift.Floor == liftFloor,
+	"otro coge el ascensor de verdad: lo llama, entra, la cabina sube a su planta y sale a su puerta (" .. tostring(liftHome) .. ")")
+check(topY > towerInst.Tower.Origin.Position.Y + Floors.Height * 0.8, "va dentro de la cabina mientras sube")
+local builtAfter = InteriorService.builtFloors(tower)
+check(#builtAfter == 3 and builtAfter[3] == 2, "los vecinos no hacen montar plantas: siguen la baja, la 1ª y la 2ª")
+-- Nunca aparece un vecino a menos de 5 studs de un jugador
+local blocker, blockerRoot = newPlayer(950, "Adulto", 100)
+blocker.DisplayName = "Encargada"
+for _, callback in loadedCallbacks do
+	pcall(callback, blocker, profiles[blocker])
+end
+InteriorService.goTo(blocker, tower, 0)
+local liftSpot, doorSpot
+for _, d in InteriorService.tower(tower).Tower.Built[0].Model:GetDescendants() do
+	if d:HasTag("InteriorElevator") then
+		liftSpot = d.Position
+	elseif d:HasTag("InteriorEntry") then
+		doorSpot = d.Position
+	end
+end
+visitorRoot.CFrame = CFrame.new(doorSpot)
+blockerRoot.CFrame = CFrame.new(liftSpot)
+check(HousingService.lobbyScene(tower, "Llega") == nil and HousingService.lobbyScene(tower, "Sale") == nil, "si hay jugadores en la puerta y en el ascensor, ningún vecino aparece encima")
+blockerRoot.CFrame = CFrame.new(liftSpot + Vector3.new(12, 0, 0))
+local okSpawn = HousingService.lobbyScene(tower, "Sale")
+local spawnFar = true
+local spawnedAt = okSpawn and okSpawn:GetAttribute("SpawnedAt")
+spawnFar = spawnedAt ~= nil
+if spawnedAt then
+	for _, p in { visitorRoot, blockerRoot } do
+		spawnFar = spawnFar and (Vector3.new(p.Position.X, 0, p.Position.Z) - Vector3.new(spawnedAt.X, 0, spawnedAt.Z)).Magnitude >= 5
+	end
+end
+check(okSpawn ~= nil and spawnFar, "con el ascensor libre, el vecino sale por él (a más de 5 studs de nadie)")
+waitGone(okSpawn, 5)
+InteriorService.leave(visitor)
+-- En las plantas de arriba: un vecino sale de su casa y baja por la escalera a la planta montada más baja
+InteriorService.goTo(blocker, tower, 6)
+InteriorService.stepTowers()
+local upBuilt = InteriorService.builtFloors(tower)
+local downNpc = HousingService.floorScene(tower, "Baja", "Escalera")
+waitGone(downNpc, 15)
+local upBuiltAfter = InteriorService.builtFloors(tower)
+check(downNpc ~= nil and downNpc:GetAttribute("Travel") == "Escalera" and upBuilt[1] == 4 and upBuiltAfter[1] == 4 and #upBuiltAfter == #upBuilt,
+	"en la 6ª: un vecino sale de su casa y baja andando (solo por las plantas montadas: " .. table.concat(upBuiltAfter, ",") .. ")")
+local upNpc = HousingService.floorScene(tower, "Sube", "Escalera")
+waitGone(upNpc, 15)
+local upHome = upNpc and upNpc:GetAttribute("HomeReached")
+check(upNpc ~= nil and upHome ~= nil and tonumber(string.match(upHome, "^(%d+)")) > 4, "y otro sube desde abajo hasta su puerta (" .. tostring(upHome) .. ")")
+
+-- Encargos de los vecinos
+check(not Errands.shouldOffer({ Since = 0 }, 10, 0) and Errands.shouldOffer({ Since = 0 }, 30, 0) and not Errands.shouldOffer({ Since = 0 }, 30, 0.99)
+	and not Errands.shouldOffer({ Since = 0, LastAt = 20 }, 60, 0) and not Errands.shouldOffer({ Since = 0, Active = true }, 999, 0),
+	"encargos: no nada más llegar, no a cada rato (espera entre uno y otro) y nunca con otro en marcha")
+local homesE = {
+	{ Floor = 1, Letter = "A", Label = "1ºA", UnitKey = "k#1" },
+	{ Floor = 1, Letter = "B", Label = "1ºB", UnitKey = "k#1B" },
+	{ Floor = 5, Letter = "B", Label = "5ºB", UnitKey = "k#5B" },
+}
+local picked = Errands.pick(homesE, { 0, 0, 0 }, "Entrega")
+check(picked ~= nil and picked.From.UnitKey == "k#1" and picked.To.Floor == 5 and Errands.title(picked) == "Entrega en el 5ºB", "encargos: el paquete va a otra planta («" .. (picked and Errands.title(picked) or "?") .. "»)")
+local errClock = 10000
+HousingService.errandClock = function()
+	return errClock
+end
+profiles[blocker].Housing = { Home = { Key = tower.Key, Floor = saleFloor, Letter = saleUnit.Letter } }
+InteriorService.goTo(blocker, tower, 0)
+check(HousingService.errandSpot(blocker) == "Portal", "encargos: tu portal cuenta como «en casa»")
+blocker:SetAttribute("InteriorKey", tower.Id .. ":" .. saleUnit.Id)
+check(HousingService.errandSpot(blocker) == "Casa", "y tu piso también")
+blocker:SetAttribute("InteriorKey", offices.Id .. ":T")
+check(HousingService.errandSpot(blocker) == nil, "en otro edificio, no")
+HousingService.stepErrands()
+InteriorService.goTo(blocker, tower, 0)
+local savedChance = Errands.Chance
+Errands.Chance = 1
+clearInbox(blocker)
+HousingService.stepErrands()
+local function offerIn(p)
+	for _, m in p.Inbox do
+		if m[1] == "ErrandOffer" and type(m[2]) == "table" then
+			return m[2]
+		end
+	end
+	return nil
+end
+check(offerIn(blocker) == nil, "encargos: nada más llegar al portal, nadie te pide nada")
+errClock += Errands.FirstDelay + 1
+HousingService.stepErrands()
+local autoOffer = offerIn(blocker)
+check(autoOffer ~= nil and type(autoOffer.Text) == "string" and autoOffer.Money > 0 and notified(blocker, "te para en el portal"), "encargos: al rato, un vecino te para en el portal y te pide un favor")
+task.wait(0.3)
+remotes.Housing.OnServerEvent:Fire(blocker, "ErrandAnswer", autoOffer.Token, false)
+check(HousingService.errandOf(blocker) == nil and notified(blocker, "Otro día"), "«Ahora no»: no pasa nada")
+clearInbox(blocker)
+errClock += 60
+HousingService.stepErrands()
+check(offerIn(blocker) == nil, "encargos: después, un buen rato sin pedirte nada (no es pesado)")
+Errands.Chance = savedChance
+-- Entrega en el …: recoger en los buzones y llevarlo a su puerta
+local function errandPrompt(action)
+	local inst = InteriorService.tower(tower)
+	for _, built in inst.Tower.Built do
+		for _, d in built.Model:GetDescendants() do
+			if d.ClassName == "ProximityPrompt" and d.Name == "ErrandPrompt" and d.ActionText == action then
+				return d
+			end
+		end
+	end
+	return nil
+end
+clearInbox(blocker)
+local offerE = HousingService.offerErrand(blocker, tower, "Entrega", "Casa")
+check(offerE ~= nil and notified(blocker, "Llaman a tu puerta"), "un vecino te llama a la puerta de casa para pedirte un favor")
+task.wait(0.3)
+remotes.Housing.OnServerEvent:Fire(blocker, "ErrandAnswer", offerIn(blocker).Token, true)
+local errand = HousingService.errandOf(blocker)
+check(errand ~= nil and errand.Kind == "Entrega" and errand.To.Id ~= nil and string.match(errand.To.Id, "^D%d%d%-E%d%d%d%-%d%d%d%d$") ~= nil, "aceptado: «" .. (errand and Errands.title(errand) or "?") .. "» (" .. tostring(errand and errand.To.Id) .. ")")
+local tracker
+for _, m in blocker.Inbox do
+	if m[1] == "Errand" and type(m[2]) == "table" and m[2].Title then
+		tracker = m[2]
+	end
+end
+check(tracker ~= nil and string.find(tracker.Goal, "buzones", 1, true) ~= nil, "en pantalla, lo que toca: recoger el paquete en los buzones")
+local mailPrompt = errandPrompt("Recoger paquete")
+check(mailPrompt ~= nil and mailPrompt:GetAttribute("OwnerUserId") == blocker.UserId and mailPrompt.Parent.Name == "MailboxWall", "en los buzones del portal: «Recoger paquete» (solo lo ves tú)")
+InteriorService.goTo(blocker, tower, errand.To.Floor)
+InteriorService.stepTowers()
+local deliverPrompt = errandPrompt("Entregar paquete")
+check(deliverPrompt ~= nil and deliverPrompt.Parent:GetAttribute("UnitId") == Floors.unitId(errand.To.Floor, errand.To.Letter), "en la puerta del " .. errand.To.Label .. ": «Entregar paquete»")
+clearInbox(blocker)
+deliverPrompt.Triggered:Fire(blocker)
+check(notified(blocker, "Primero recoge el paquete") and HousingService.errandOf(blocker) ~= nil, "sin el paquete no se puede entregar")
+InteriorService.goTo(blocker, tower, 0)
+InteriorService.stepTowers()
+mailPrompt = errandPrompt("Recoger paquete")
+mailPrompt.Triggered:Fire(visitor)
+check(not errand.HasPackage, "otro jugador no puede recoger tu paquete")
+mailPrompt.Triggered:Fire(blocker)
+check(errand.HasPackage and errandPrompt("Recoger paquete") == nil, "recoges el paquete")
+InteriorService.goTo(blocker, tower, errand.To.Floor)
+InteriorService.stepTowers()
+local money0 = profiles[blocker].Money
+clearInbox(blocker)
+errandPrompt("Entregar paquete").Triggered:Fire(blocker)
+check(HousingService.errandOf(blocker) == nil and profiles[blocker].Money == money0 + Errands.Rewards.Entrega.Money and notified(blocker, "Encargo hecho") and errandPrompt("Entregar paquete") == nil,
+	"entregado: te pagan y el encargo se acaba (" .. tostring(profiles[blocker].Money - money0) .. ")")
+-- Busca a … en su piso: solo si está en casa (su horario)
+task.wait(0.3)
+clearInbox(blocker)
+HousingService.offerErrand(blocker, tower, "Visita", "Portal")
+remotes.Housing.OnServerEvent:Fire(blocker, "ErrandAnswer", offerIn(blocker).Token, true)
+local visit = HousingService.errandOf(blocker)
+check(visit ~= nil and visit.Kind == "Visita" and string.find(Errands.title(visit), "Busca a ", 1, true) == 1, "otro encargo: «" .. (visit and Errands.title(visit) or "?") .. "»")
+local person = Residents.person(visit.To.UnitKey)
+local awayAt, homeAt
+for h = 0, 23.5, 0.5 do
+	local w = Residents.where(person, h)
+	if w ~= "Casa" and not awayAt then
+		awayAt = h
+	elseif w == "Casa" and not homeAt then
+		homeAt = h
+	end
+end
+InteriorService.goTo(blocker, tower, visit.To.Floor)
+InteriorService.stepTowers()
+local findPrompt = errandPrompt("Buscar a " .. Errands.firstName(person.Name))
+check(findPrompt ~= nil, "en su puerta: «Buscar a " .. Errands.firstName(person.Name) .. "»")
+services.Lighting.ClockTime = awayAt
+clearInbox(blocker)
+money0 = profiles[blocker].Money
+findPrompt.Triggered:Fire(blocker)
+check(notified(blocker, "Vuelve más tarde") and HousingService.errandOf(blocker) ~= nil and profiles[blocker].Money == money0, "si no está (trabajo, compra o durmiendo), te dicen dónde anda y que vuelvas luego")
+services.Lighting.ClockTime = homeAt
+findPrompt.Triggered:Fire(blocker)
+check(HousingService.errandOf(blocker) == nil and profiles[blocker].Money == money0 + Errands.Rewards.Visita.Money, "cuando está en casa, le das el recado y te pagan")
+services.Lighting.ClockTime = 21
+-- Caduca si no lo haces
+task.wait(0.3)
+clearInbox(blocker)
+HousingService.offerErrand(blocker, tower, "Entrega", "Portal")
+remotes.Housing.OnServerEvent:Fire(blocker, "ErrandAnswer", offerIn(blocker).Token, true)
+check(HousingService.errandOf(blocker) ~= nil, "otro encargo más")
+errClock += Errands.Expire + 1
+HousingService.stepErrands()
+check(HousingService.errandOf(blocker) == nil and notified(blocker, "Se acabó el tiempo") and errandPrompt("Recoger paquete") == nil and errandPrompt("Entregar paquete") == nil,
+	"si no lo haces a tiempo, caduca (y se quitan sus carteles)")
+HousingService.errandClock = os.clock
+HousingService.LobbyLife = true
+InteriorService.leave(blocker)
+InteriorService.leave(visitor)
+end)()
 -- Casa de dos plantas: escalera por dentro y arriba pasillo con puertas
 local Interiors2 = loadModule(ROOT .. "/server/World/Interiors")
 local house = Interiors2.Casa(lab, CFrame.new(0, 5000, 0), { Seed = "Casa_2_2:0", Floors = 2 })

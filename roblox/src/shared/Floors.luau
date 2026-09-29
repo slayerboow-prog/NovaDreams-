@@ -167,6 +167,66 @@ function Floors.steps(): { { Y: number, Z: number, Lane: number } }
 	return out
 end
 
+-- Camino andando por la escalera principal de la planta `from` a la `to` (sube o baja): puntos
+-- { X, Y, Z } a la altura de los pies, en coordenadas del edificio (planta baja en y = 0, centro del
+-- edificio en x = 0; W = ancho de la planta). Empieza y acaba en el rellano. Por los tramos, los
+-- pies van por encima de los escalones (0,75 de subida por cada stud de fondo).
+function Floors.stairPath(W: number, from: number, to: number): { { X: number, Y: number, Z: number } }
+	local out = {}
+	local left = -W / 2
+	local laneW = Floors.CoreWidth / 2 - 0.4
+	local lane1, lane2 = left + Floors.CoreWidth - laneW / 2, left + laneW / 2
+	local n, rise, run = Floors.StepsPerFlight, Floors.StepRise, Floors.StepRun
+	local zf = n * run / 2 -- los tramos van de z = -zf a +zf
+	local midZ = (zf + Floors.Depth / 2) / 2 -- centro del descansillo
+	local landingX, landingZ = left + Floors.CoreWidth / 2, -Floors.Depth / 2 + Floors.CorridorWidth / 2
+	local half = n * rise
+	local function add(x: number, y: number, z: number)
+		table.insert(out, { X = x, Y = y, Z = z })
+	end
+	local lo, hi = math.min(from, to), math.max(from, to)
+	add(landingX, lo * Floors.Height, landingZ)
+	for f = lo, hi - 1 do
+		local y0 = f * Floors.Height
+		add(lane1, y0, -zf - 0.5) -- al pie del primer tramo
+		add(lane1, y0 + rise, -zf + run / 2) -- primer escalón
+		add(lane1, y0 + half, zf - run / 2) -- último escalón del primer tramo
+		add(lane1, y0 + half, midZ) -- descansillo
+		add(lane2, y0 + half, midZ)
+		add(lane2, y0 + half + rise, zf - run / 2) -- primer escalón del tramo de vuelta
+		add(lane2, y0 + 2 * half, -zf + run / 2) -- último: a ras del rellano de arriba
+		add(lane2, y0 + Floors.Height, -zf - 1.5)
+		add(landingX, y0 + Floors.Height, landingZ)
+	end
+	if to < from then
+		-- Bajando: el mismo camino al revés
+		local rev = {}
+		for i = #out, 1, -1 do
+			table.insert(rev, out[i])
+		end
+		return rev
+	end
+	return out
+end
+
+-- Estilo del portal y los pasillos según el distrito (lujo, clásico, moderno, obrero…). El mismo
+-- edificio, siempre igual. districtId: el Id de CityPlan.Districts (Centro, Norte, Oeste…)
+Floors.DistrictThemes = {
+	Centro = { "Clasico", "Clasico", "Moderno" },
+	Norte = { "Familiar" },
+	Oeste = { "Lujo" },
+	Este = { "Moderno", "Familiar" },
+	Universitario = { "Joven" },
+	Sur = { "Obrero" },
+}
+function Floors.themeFor(districtId: string?, buildingKey: string): string?
+	local list = districtId and Floors.DistrictThemes[districtId]
+	if not list then
+		return nil
+	end
+	return list[Floors.hash("estilo:" .. buildingKey) % #list + 1]
+end
+
 -- Dueños posibles de una oficina (nombre en la puerta) o nil si está libre ("SE ALQUILA")
 local COMPANIES = {
 	"Grupo Valmar", "Nova Seguros", "Inmobiliaria Sol", "Tecnoval", "Banco del Puerto", "Consultores Atlántico",

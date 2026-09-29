@@ -51,14 +51,74 @@ export type Plan = {
 	Style: { [string]: any },
 }
 
--- Cómo es el edificio (ancho según la planta con más puertas, colores fijos)
-function Tower.plan(key: string, title: string, ground: string, upper: string, floors: number): Plan
+-- Estilos por distrito (shared/Floors.themeFor): colores del portal y los pasillos y sus detalles.
+--   Lujo (Oeste): mármol claro, puertas oscuras, barandillas doradas, alfombra en el pasillo,
+--     lámpara de araña y espejo en el portal.
+--   Clásico (Centro): suelo de madera, zócalo alto de madera, barandillas de hierro.
+--   Moderno (Este, algo del Centro): gris claro, puertas blancas, tira de luz en el pasillo.
+--   Familiar (Norte, Este): colores cálidos, macetas y el tablón de la comunidad.
+--   Joven (Universitario): paredes de color, tablón con carteles y aparcabicis en el portal.
+--   Obrero (Sur): terrazo, pared pintada a media altura, barandilla sencilla y el tablón.
+-- (Las oficinas tienen siempre su estilo de oficina.)
+Tower.Themes = {
+	Lujo = {
+		Wall = rgb(236, 228, 212), Floor = rgb(232, 230, 226), FloorMaterial = M.Marble, Door = rgb(60, 40, 30),
+		Stair = rgb(226, 222, 214), Rail = rgb(200, 164, 80), Accent = rgb(130, 30, 40),
+		Details = { "Runner", "Chandelier", "Mirror" },
+	},
+	Clasico = {
+		Wall = rgb(226, 214, 190), Floor = rgb(150, 110, 76), FloorMaterial = M.WoodPlanks, Door = rgb(96, 64, 40),
+		Stair = rgb(170, 160, 150), Rail = rgb(40, 42, 46), Accent = rgb(110, 76, 50),
+		Details = { "Wainscot" },
+	},
+	Moderno = {
+		Wall = rgb(232, 234, 236), Floor = rgb(170, 172, 176), FloorMaterial = M.Slate, Door = rgb(245, 245, 242),
+		Stair = rgb(200, 200, 204), Rail = rgb(200, 204, 210), Accent = rgb(120, 200, 255),
+		Details = { "LedStrip" },
+	},
+	Familiar = {
+		Wall = rgb(240, 222, 196), Floor = rgb(186, 176, 160), FloorMaterial = M.Slate, Door = rgb(150, 110, 76),
+		Stair = rgb(186, 176, 160), Rail = rgb(150, 110, 76), Accent = rgb(90, 140, 80),
+		Details = { "Pots", "Board" },
+	},
+	Joven = {
+		Wall = rgb(250, 214, 120), Floor = rgb(200, 196, 188), FloorMaterial = M.Concrete, Door = rgb(60, 120, 170),
+		Stair = rgb(160, 150, 140), Rail = rgb(220, 90, 60), Accent = rgb(220, 90, 60),
+		Details = { "Board", "BikeRack" },
+	},
+	Obrero = {
+		Wall = rgb(214, 222, 200), Floor = rgb(170, 160, 150), FloorMaterial = M.Granite, Door = rgb(120, 84, 56),
+		Stair = rgb(160, 150, 140), Rail = rgb(90, 96, 100), Accent = rgb(110, 140, 110),
+		Details = { "Wainscot", "Board" },
+	},
+}
+
+-- Cómo es el edificio (ancho según la planta con más puertas, colores fijos). district: el Id del
+-- distrito (CityPlan.Districts) para el estilo del portal y los pasillos; sin él, colores al azar.
+function Tower.plan(key: string, title: string, ground: string, upper: string, floors: number, district: string?): Plan
 	local most = 0
 	for f = 0, math.min(floors - 1, 40) do
 		most = math.max(most, #Floors.units(key, ground, upper, f))
 	end
 	local rand = Furniture.rng(key .. ":torre")
 	local office = upper == "Oficina"
+	local style: { [string]: any } = {
+		Wall = if office then rgb(236, 236, 232) else rand.pick(Furniture.Palette.Walls),
+		Floor = if office then rgb(120, 126, 140) else rand.pick({ rgb(200, 196, 188), rgb(186, 176, 160), rgb(170, 160, 150), rgb(214, 208, 196) }),
+		FloorMaterial = if office then M.Carpet else rand.pick({ M.Marble, M.Slate, M.WoodPlanks }),
+		Door = rand.pick({ rgb(96, 64, 40), rgb(150, 110, 76), rgb(240, 240, 236), rgb(70, 50, 36), rgb(120, 84, 56) }),
+		Stair = rand.pick({ rgb(200, 196, 188), rgb(160, 150, 140), rgb(150, 110, 76) }),
+		Rail = rand.pick({ rgb(40, 42, 46), rgb(200, 204, 210), rgb(150, 110, 76) }),
+		Details = {},
+	}
+	local theme = if office then nil else Floors.themeFor(district, key)
+	local t = theme and Tower.Themes[theme]
+	if t then
+		for k, v in t do
+			style[k] = v
+		end
+		style.Theme = theme
+	end
 	return {
 		Key = key,
 		Title = title,
@@ -66,15 +126,18 @@ function Tower.plan(key: string, title: string, ground: string, upper: string, f
 		Upper = upper,
 		Top = floors - 1,
 		W = Floors.width(most),
-		Style = {
-			Wall = if office then rgb(236, 236, 232) else rand.pick(Furniture.Palette.Walls),
-			Floor = if office then rgb(120, 126, 140) else rand.pick({ rgb(200, 196, 188), rgb(186, 176, 160), rgb(170, 160, 150), rgb(214, 208, 196) }),
-			FloorMaterial = if office then M.Carpet else rand.pick({ M.Marble, M.Slate, M.WoodPlanks }),
-			Door = rand.pick({ rgb(96, 64, 40), rgb(150, 110, 76), rgb(240, 240, 236), rgb(70, 50, 36), rgb(120, 84, 56) }),
-			Stair = rand.pick({ rgb(200, 196, 188), rgb(160, 150, 140), rgb(150, 110, 76) }),
-			Rail = rand.pick({ rgb(40, 42, 46), rgb(200, 204, 210), rgb(150, 110, 76) }),
-		},
+		Style = style,
 	}
+end
+
+-- Camino por la escalera principal de una planta a otra (en coordenadas del edificio: se multiplica
+-- por el origen de la torre), a la altura de los pies
+function Tower.stairRoute(plan: Plan, from: number, to: number): { Vector3 }
+	local out = {}
+	for _, p in Floors.stairPath(plan.W, from, to) do
+		table.insert(out, V(p.X, p.Y, p.Z))
+	end
+	return out
 end
 
 -- Las puertas de una planta: la mitad en la pared de fuera (-Z), el resto en la de dentro
@@ -324,6 +387,77 @@ corridorDetails = function(m: Model, plan: Plan, floor: number, at: (number, num
 	end
 end
 
+-- Los detalles del estilo del distrito (Tower.Themes): pocas piezas y sin colisión (móvil)
+local function themeDetails(m: Model, plan: Plan, floor: number, at: (number, number, number) -> CFrame, ctx: any, doors: { Door })
+	local style = plan.Style
+	local details = style.Details or {}
+	if #details == 0 then
+		return
+	end
+	m:SetAttribute("Theme", style.Theme)
+	local W = plan.W
+	local fz = (CORRIDOR_Z0 + CORRIDOR_Z1) / 2
+	local cx = (-W / 2 + CORE + W / 2) / 2 -- centro del pasillo
+	local sx = cx -- (la puerta de la calle, en la planta baja)
+	local accent = style.Accent or rgb(120, 90, 60)
+	local ex = Tower.elevatorAt(plan, floor).Position.X
+	-- Una banda a lo largo de una pared, cortada en los huecos de las puertas
+	local function band(name: string, z: number, gaps: { { number } }, height: number, y: number)
+		table.sort(gaps, function(a, b)
+			return a[1] < b[1]
+		end)
+		local x = -W / 2 + CORE + 0.6
+		local function piece(a: number, b: number)
+			if b - a > 0.3 then
+				deco(m, name, V(b - a, height, 0.08), at((a + b) / 2, y, z), accent, M.Wood)
+			end
+		end
+		for _, g in gaps do
+			piece(x, g[1])
+			x = math.max(x, g[2])
+		end
+		piece(x, W / 2)
+	end
+	for _, detail in details do
+		if detail == "Runner" then
+			deco(m, "Runner", V(W - CORE - 3, 0.06, 2.6), at(cx, 0.03, fz), accent, M.Fabric)
+		elseif detail == "LedStrip" then
+			deco(m, "LedStrip", V(W - CORE - 3, 0.12, 0.3), at(cx, FH - 0.15, fz), accent, M.Neon)
+		elseif detail == "Wainscot" then
+			local front, back = {}, {}
+			for _, d in doors do
+				local x = d.CFrame.Position.X
+				table.insert(if d.Front then front else back, { x - DOOR_W / 2 - 0.4, x + DOOR_W / 2 + 0.4 })
+			end
+			table.insert(back, { ex - 3.2, ex + 3.2 })
+			if floor == 0 then
+				table.insert(front, { sx - 3.4, sx + 3.4 })
+			end
+			band("Wainscot", CORRIDOR_Z0 + 0.05, front, 3.4, 1.7)
+			band("Wainscot", CORRIDOR_Z1 - 0.05, back, 3.4, 1.7)
+		elseif detail == "Pots" then
+			Furniture.plant(ctx, at(-W / 2 + 1.4, 0, CORRIDOR_Z0 + 1.2), 0.8)
+		elseif floor == 0 and detail == "Chandelier" then
+			local lamp = deco(m, "Chandelier", V(2.4, 1.2, 2.4), at(sx, FH - 1.8, fz), rgb(250, 230, 170), M.Neon)
+			local light = Instance.new("PointLight")
+			light.Range = 18
+			light.Brightness = 0.9
+			light.Color = rgb(255, 236, 200)
+			light.Parent = lamp
+		elseif floor == 0 and detail == "Mirror" then
+			deco(m, "LobbyMirror", V(4, 5.5, 0.1), at(sx - 7, 5, CORRIDOR_Z0 + 0.06), rgb(200, 220, 235), M.Glass).Transparency = 0.2
+		elseif floor == 0 and detail == "Board" then
+			local board = deco(m, "NoticeBoard", V(3, 2.2, 0.1), at(-W / 2 + CORE + 4.5, 5.2, CORRIDOR_Z0 + 0.06), rgb(180, 140, 90), M.Wood)
+			local text = if style.Theme == "Joven"
+				then "TABLÓN\n· Se busca compañero de piso\n· Clases de guitarra\n· Fiesta en el 3ºB (¡sin ruido!)"
+				else "COMUNIDAD DE VECINOS\n· Reunión el jueves, 20:00\n· No dejéis bicis en el portal"
+			Builder.sign(board, text, Enum.NormalId.Back, rgb(30, 30, 34))
+		elseif floor == 0 and detail == "BikeRack" then
+			deco(m, "BikeRack", V(4, 1.6, 0.3), at(W / 2 - 6, 0.8, CORRIDOR_Z1 - 0.6), rgb(90, 96, 100), M.Metal)
+		end
+	end
+end
+
 ---------------------------------------------------------------------
 -- Una planta
 ---------------------------------------------------------------------
@@ -461,6 +595,7 @@ function Tower.buildFloor(parent: Instance, towerCf: CFrame, plan: Plan, floor: 
 	Furniture.plant(ctx, at(W / 2 - 1.4, 0, CORRIDOR_Z0 + 1.1), 0.9)
 	deco(m, "Extinguisher", V(0.7, 1.5, 0.7), at(-W / 2 + CORE + 0.5, 2.2, CORRIDOR_Z0 + 0.5), rgb(210, 30, 30), M.Metal)
 	corridorDetails(m, plan, floor, at, ctx, doors)
+	themeDetails(m, plan, floor, at, ctx, doors)
 
 	-- Planta baja: puerta a la calle, buzones o recepción
 	if floor == 0 then
