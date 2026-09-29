@@ -48,6 +48,12 @@ type Stop = { At: number, Crime: string, Fled: boolean }
 type State = { Stars: number, LastSeen: number, LastPosition: Vector3?, CatchSince: number?, StealAt: number, Arresting: boolean, Crimes: { string }, Stop: Stop?, MisbehavedAt: number? }
 
 local states: { [Player]: State } = {}
+-- Pausas contra el abuso: un atraco cada HEIST_GAP por jugador y a la misma víctima no se le roba
+-- más de una vez cada VICTIM_GAP (antes se podía ir de tienda en tienda o robar sin parar)
+local HEIST_GAP = 300
+local VICTIM_GAP = 300
+local heistAt: { [Player]: number } = {}
+local robbedAt: { [Player]: { [Player]: number } } = {}
 local Notify = ReplicatedStorage.Remotes.Notify :: RemoteEvent
 local Remote: RemoteEvent
 
@@ -284,12 +290,32 @@ local function steal(thief: Player, victim: any)
 	if victim:GetAttribute("InDialogue") or victim:GetAttribute("LifeStage") == "Bebe" then
 		return
 	end
+	-- Los dos en el mismo sitio (misma casa o edificio, o los dos en la calle): acercarse
+	-- teletransportándose a otro interior no vale
+	if thief:GetAttribute("InteriorKey") ~= victim:GetAttribute("InteriorKey") then
+		return
+	end
+	-- Recién aparecido, sentado (en un vehículo o una silla) o en una zona segura: no se le roba
+	local CombatService = require(script.Parent.CombatService) :: any
+	local WeaponService = require(script.Parent.WeaponService) :: any
+	local vh = victim.Character and victim.Character:FindFirstChildOfClass("Humanoid")
+	if (vh and vh.SeatPart) or CombatService.isProtected(victim) or WeaponService.safeSpot(vr.Position) or WeaponService.safeSpot(tr.Position) then
+		Notify:FireClient(thief, "Error", "Aquí no puedes robar.")
+		return
+	end
+	local mine = robbedAt[thief]
+	if mine and os.clock() - (mine[victim] or -math.huge) < VICTIM_GAP then
+		Notify:FireClient(thief, "Error", "A esta persona ya le has robado hace poco.")
+		return
+	end
 	-- En la cárcel o en un juicio no se roba (dentro no viene la policía: saldría gratis)
 	if thief:GetAttribute("JailUntil") or thief:GetAttribute("OnTrial") or victim:GetAttribute("JailUntil") or victim:GetAttribute("OnTrial") then
 		Notify:FireClient(thief, "Error", "Aquí no puedes robar.")
 		return
 	end
 	state.StealAt = os.clock()
+	robbedAt[thief] = robbedAt[thief] or {}
+	robbedAt[thief][victim] = os.clock()
 	local data = DataService.get(victim)
 	local amount = Wanted.stealAmount(if data then data.Money else 0)
 	if amount <= 0 then
@@ -324,7 +350,17 @@ local function setupHeist(entrance: Instance)
 	prompt:SetAttribute("MinStage", Wanted.MinStage) -- (solo lo ven los mayores; JobPrompts)
 	prompt.Parent = entrance
 	prompt.Triggered:Connect(function(player)
-		if not oldEnough(player) then
+		if not oldEnough(player) or outOfReach(player) then
+			return
+		end
+		-- Con la policía ya detrás no se encadenan atracos, y cada jugador tiene su pausa
+		-- (si no, se iba de tienda en tienda vaciando cajas)
+		if stateOf(player).Stars >= 1 then
+			Notify:FireClient(player, "Error", "Te está buscando la policía: no es momento de atracar.")
+			return
+		end
+		if os.clock() - (heistAt[player] or -math.huge) < HEIST_GAP then
+			Notify:FireClient(player, "Error", "Demasiado pronto para otro atraco: espera un rato.")
 			return
 		end
 		local now = os.time()
@@ -333,6 +369,7 @@ local function setupHeist(entrance: Instance)
 			return
 		end
 		entrance:SetAttribute("RobbedUntil", now + Wanted.HeistCooldown)
+		heistAt[player] = os.clock()
 		local loot = math.random(Wanted.HeistLoot[1], Wanted.HeistLoot[2])
 		DataService.addMoney(player, loot)
 		Notify:FireClient(player, "Success", ("💰 Te llevas %s de la caja… ¡ha saltado la alarma!"):format(Format.money(loot)))
@@ -520,7 +557,9 @@ function WantedService.init()
 			steal(player, target)
 		elseif kind == "Arrest" and onDuty(player) and typeof(target) == "Instance" and target:IsA("Player") and target ~= player then
 			local a, b = rootOf(player), rootOf(target)
-			if a and b and (a.Position - b.Position).Magnitude <= 8 and stateOf(target).Stars > 0 then
+			-- Mismo sitio (misma casa o edificio, o los dos fuera): no vale teletransportarse al lado
+			local sameSpot = player:GetAttribute("InteriorKey") == target:GetAttribute("InteriorKey")
+			if a and b and sameSpot and (a.Position - b.Position).Magnitude <= 8 and stateOf(target).Stars > 0 then
 				WantedService.arrest(target, player)
 			end
 		end
@@ -551,6 +590,11 @@ function WantedService.init()
 	Players.PlayerRemoving:Connect(function(player)
 		PoliceUnits.dismiss(player)
 		states[player] = nil
+		heistAt[player] = nil
+		robbedAt[player] = nil
+		for _, list in robbedAt do
+			list[player] = nil
+		end
 	end)
 
 	task.spawn(function()

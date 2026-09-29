@@ -95,11 +95,22 @@ local NameTags = require(script.Parent.Controllers.NameTags)
 local gui = Hud.init(function()
 	Store.open()
 end)
-Store.init(gui)
-TaskMarker.init()
-require(script.Parent.UI.Perf).stripDetails() -- móvil: sin los detalles pequeños de la calle
-DayLight.init() -- luz realista según la hora (amanecer, mediodía, atardecer, noche)
-StoryAudio.init() -- música, efectos y voces de la historia (botón 🔊)
+-- (cada arranque protegido: si uno falla, los demás controladores siguen arrancando)
+local function safeInit(name: string, fn: () -> ())
+	local ok, err = pcall(fn)
+	if not ok then
+		warn(("[Main] %s no ha arrancado: %s"):format(name, tostring(err)))
+	end
+end
+safeInit("Store", function()
+	Store.init(gui)
+end)
+safeInit("TaskMarker", TaskMarker.init)
+safeInit("Perf", function()
+	require(script.Parent.UI.Perf).stripDetails() -- móvil: sin los detalles pequeños de la calle
+end)
+safeInit("DayLight", DayLight.init) -- luz realista según la hora (amanecer, mediodía, atardecer, noche)
+safeInit("StoryAudio", StoryAudio.init) -- música, efectos y voces de la historia
 task.spawn(SpeechBubbles.init) -- bocadillos encima de cada personaje que habla (lo que dice la gente del servidor)
 task.spawn(LifeStory.init) -- historia de vida (tarjeta "Tu vida", momentos, decisiones)
 task.spawn(Prologue.init) -- prólogo jugable («El sueño»): tarjeta de ayuda de cada control y "Saltar"

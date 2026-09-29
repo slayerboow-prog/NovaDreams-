@@ -124,6 +124,7 @@ local released: { [Player]: boolean } = {} -- ya se ha ido: los autoguardados pe
 local pendingRelease: { [number]: number } = {} -- (cuántos guardados de salida hay en marcha)
 local PENDING_RELEASE_WAIT = 30 -- (segundos máx.: los reintentos de salida tardan como mucho ~15 s)
 local lastPlayCredit: { [Player]: number } = {} -- última vez (os.clock) que se le sumó tiempo jugado
+local offline: { [Player]: number } = {} -- segundos que estuvo fuera del juego antes de esta sesión
 local loadedCallbacks: { (Player, { [string]: any }) -> () } = {}
 local beforeSaveCallbacks: { (Player, { [string]: any }) -> () } = {}
 local earningCallbacks: { (Player, number) -> () } = {}
@@ -142,12 +143,24 @@ local function deepCopy(value: any): any
 end
 
 -- Añade los campos nuevos que falten (para cuando actualices el juego).
+-- También arregla los de tipo equivocado de partidas viejas (un número guardado como texto, una
+-- tabla que era un número…): si no, el primer "x += 1" rompería el servicio de ese jugador.
+-- (Las tablas-mapa vacías de la plantilla solo se comprueban por fuera: su contenido es libre. Los
+-- booleanos no se tocan: algunos guardan a propósito otra cosa, p. ej. PrologueDone = os.time().)
 local function reconcile(data: { [string]: any }, template: { [string]: any })
 	for key, value in template do
-		if data[key] == nil then
+		local current = data[key]
+		local kind = type(value)
+		if current == nil then
 			data[key] = deepCopy(value)
-		elseif type(value) == "table" and type(data[key]) == "table" and next(value) ~= nil then
-			reconcile(data[key], value)
+		elseif kind == "boolean" or type(current) == kind then
+			if kind == "table" and next(value) ~= nil then
+				reconcile(current, value)
+			end
+		elseif kind == "number" and tonumber(current) then
+			data[key] = tonumber(current) -- ("50" guardado como texto: se conserva el número)
+		else
+			data[key] = deepCopy(value)
 		end
 	end
 end
@@ -237,6 +250,9 @@ function DataService.save(player: Player, release: boolean?): boolean
 	if not data then
 		return false
 	end
+	-- Última vez que se le vio jugando: al volver, lo que caduca con la hora real (cárcel, abonos,
+	-- alquiler…) se corre este tiempo para que no pase estando desconectado (offlineSeconds)
+	data.LastOnline = os.time()
 	for _, callback in beforeSaveCallbacks do
 		local ok, err = pcall(callback, player, data)
 		if not ok then
@@ -282,6 +298,13 @@ function DataService.waitFor(player: Player, timeout: number?): { [string]: any 
 		task.wait(0.1)
 	end
 	return profiles[player]
+end
+
+-- Segundos que el jugador estuvo desconectado antes de esta sesión (0 si no se sabe: partida nueva o
+-- guardada antes de existir LastOnline). Sirve para "congelar" los plazos mientras no juega: al
+-- cargar, cada servicio suma esto a sus horas de caducidad (Until += offlineSeconds).
+function DataService.offlineSeconds(player: Player): number
+	return offline[player] or 0
 end
 
 -- Registra una función que se llama cuando los datos de un jugador están listos.
@@ -396,6 +419,10 @@ local function onPlayerAdded(player: Player)
 	if type(data.Money) ~= "number" or data.Money ~= data.Money or data.Money == math.huge then
 		data.Money = 0 -- dinero roto (NaN) por un fallo antiguo
 	end
+	-- Cuánto tiempo ha estado fuera (se calcula una vez, antes de avisar a los servicios)
+	local lastOnline = data.LastOnline
+	offline[player] = if type(lastOnline) == "number" and lastOnline > 0 then math.max(0, os.time() - lastOnline) else 0
+	data.LastOnline = os.time()
 	profiles[player] = data
 	lastPlayCredit[player] = os.clock()
 	syncMoney(player, data)
@@ -432,16 +459,24 @@ end
 local function onPlayerRemoving(player: Player)
 	local data = profiles[player]
 	if data then
-		creditPlayTime(player, data)
+		-- (con pcall: unos datos rotos no deben impedir el guardado ni dejar el bloqueo puesto)
+		local ok, err = pcall(creditPlayTime, player, data)
+		if not ok then
+			warn("[DataService] Error sumando tiempo jugado:", err)
+		end
 		released[player] = true
 		markPending(player.UserId, 1)
 		-- Guardar al salir (con reintentos: si falla se perdería lo último)
-		saveReleaseWithRetries(player)
+		ok, err = pcall(saveReleaseWithRetries, player)
+		if not ok then
+			warn(("[DataService] Error guardando al salir %s: %s"):format(player.Name, tostring(err)))
+		end
 		profiles[player] = nil
 		released[player] = nil
 		markPending(player.UserId, -1)
 	end
 	lastPlayCredit[player] = nil
+	offline[player] = nil
 end
 
 -- "Empezar una vida nueva" (botón del Menú): borra la partida y vuelves a nacer bebé.
@@ -507,8 +542,17 @@ function DataService.init()
 		while true do
 			task.wait(Config.AutosaveSeconds)
 			for player, data in profiles do
-				creditPlayTime(player, data)
-				task.spawn(DataService.save, player)
+				-- (un perfil roto no para el autoguardado de los demás)
+				local ok, err = pcall(creditPlayTime, player, data)
+				if not ok then
+					warn("[DataService] Error sumando tiempo jugado:", err)
+				end
+				task.spawn(function()
+					local saved, saveErr = pcall(DataService.save, player)
+					if not saved then
+						warn(("[DataService] Error en el autoguardado de %s: %s"):format(player.Name, tostring(saveErr)))
+					end
+				end)
 			end
 		end
 	end)
@@ -517,10 +561,10 @@ function DataService.init()
 	game:BindToClose(function()
 		local pending = 0
 		for player, data in profiles do
-			creditPlayTime(player, data)
+			pcall(creditPlayTime, player, data)
 			pending += 1
 			task.spawn(function()
-				DataService.save(player, true)
+				pcall(DataService.save, player, true)
 				pending -= 1
 			end)
 		end
