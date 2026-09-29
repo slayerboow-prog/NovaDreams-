@@ -351,7 +351,7 @@ end
 
 local function priceText(good: Business.Good, price: number): string
 	if Business.priceStep(good) < 1 then
-		return ("$%.2f"):format(price)
+		return (("%.2f €"):format(price):gsub("%.", ",", 1)) -- (céntimos con coma, como en España)
 	end
 	return Format.money(price)
 end

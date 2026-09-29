@@ -41,6 +41,7 @@ local Interiors = require(script.Parent.Parent.World.Interiors)
 local Tower = require(script.Parent.Parent.World.Tower)
 local Lift = require(script.Parent.Parent.World.Lift)
 local Builder = require(script.Parent.Parent.World.Builder)
+local StoryMarks = require(script.Parent.Parent.World.Kit.StoryMarks)
 local SceneService = require(script.Parent.SceneService)
 
 local InteriorService = {}
@@ -1487,6 +1488,13 @@ local function hostResidences(list: { Building })
 			b.Title = "🛏 Residencia universitaria"
 			b.Residence = true
 			publishLandmark("Residencia", b.Door)
+			-- Marca de la historia en su puerta (antes no había: las misiones de la residencia pasaban
+			-- en la acera entre la facultad y el estadio)
+			pcall(function()
+				local out = if typeof(b.Out) == "Vector3" and b.Out.Magnitude > 0.1 then b.Out.Unit else Vector3.new(0, 0, 1)
+				local at = b.Door + out * 5 + Vector3.new(0, 2.5, 0)
+				StoryMarks.spot(b.Model, "Residencia", CFrame.lookAt(at, at + out))
+			end)
 		end
 	end
 end

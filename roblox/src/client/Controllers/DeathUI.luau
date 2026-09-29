@@ -97,7 +97,9 @@ function DeathUI.init()
 			task.spawn(show, tonumber(data.Seconds) or 6, data.Jailed == true)
 		elseif kind == "Revived" then
 			hide()
-			if data.Jailed then
+			if data.Trial then
+				Hud.toast("Info", "⚖️ Te han curado y vuelves al banquillo: el juicio sigue")
+			elseif data.Jailed then
 				Hud.toast("Info", "🏥 Te han curado en la enfermería de la prisión")
 			elseif (data.Bill or 0) > 0 then
 				Hud.toast("Money", ("🏥 Te has despertado en el hospital · factura: %s"):format(Format.money(data.Bill)))
