@@ -11,6 +11,7 @@
 -- Los carteles solo los ve el basurero de esa ruta (JobOnly / OwnerUserId).
 
 local CollectionService = game:GetService("CollectionService")
+local DataStoreService = game:GetService("DataStoreService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -31,6 +32,16 @@ local Notify = ReplicatedStorage.Remotes.Notify :: RemoteEvent
 local Remote = ReplicatedStorage.Remotes.Garbage :: RemoteEvent
 local G = Gameplay.Garbage
 
+-- Ritmo mínimo entre papeleras cobradas: quien se teletransporta de papelera en papelera cobraría
+-- la ruta en segundos. Entre una y la siguiente (o desde el Punto Limpio) hace falta al menos la
+-- distancia a PACE_SPEED studs/s (más que el camión por calle) y nunca menos de PACE_MIN segundos.
+-- Sin DataStore (Studio sin API, pruebas) no se guarda nada y no se mira.
+local PACE_SPEED = 60
+local PACE_MIN = 1.5
+local CHECK_PACE = pcall(function()
+	return DataStoreService:GetDataStore("PlayerData")
+end)
+
 type Stop = { Bin: BasePart, Done: boolean, Overflow: BasePart?, Prompt: ProximityPrompt? }
 type Route = {
 	Player: Player,
@@ -39,6 +50,8 @@ type Route = {
 	Bags: number,
 	Started: number,
 	Carry: BasePart?,
+	PaidAt: number?, -- última papelera cobrada (o salida del Punto Limpio) y dónde
+	PaidPos: Vector3?,
 }
 
 local routes: { [Player]: Route } = {}
@@ -142,11 +155,27 @@ local function clearStop(stop: Stop)
 	busyBins[stop.Bin] = nil
 end
 
+-- ¿Ha llegado demasiado rápido desde la última papelera (o desde el Punto Limpio)?
+local function tooFast(route: Route, point: Vector3): boolean
+	local at, from = route.PaidAt, route.PaidPos
+	if not CHECK_PACE or not at or not from then
+		return false
+	end
+	local flat = Vector3.new(point.X - from.X, 0, point.Z - from.Z).Magnitude
+	return os.clock() - at < math.max(PACE_MIN, flat / PACE_SPEED)
+end
+
 local function emptyBin(route: Route, stop: Stop)
 	if stop.Done or routes[route.Player] ~= route or route.Phase ~= "Collect" then
 		return
 	end
 	local player = route.Player
+	if tooFast(route, stop.Bin.Position) then
+		Notify:FireClient(player, "Error", "Demasiado rápido: espera un momento antes de vaciarla.")
+		return
+	end
+	route.PaidAt = os.clock()
+	route.PaidPos = stop.Bin.Position
 	stop.Done = true
 	clearStop(stop)
 	route.Bags += 1
@@ -193,6 +222,8 @@ local function makeRoute(route: Route)
 	route.Stops = {}
 	route.Phase = "Collect"
 	route.Started = os.clock()
+	route.PaidAt = route.Started
+	route.PaidPos = origin
 	for _ = 1, math.min(G.Bins, #candidates) do
 		local bin = table.remove(candidates, math.random(1, #candidates))
 		busyBins[bin] = true
@@ -249,7 +280,8 @@ local function onUnload(player: Player)
 		Notify:FireClient(player, "Info", "No llevas bolsas. Vacía las papeleras de tu ruta.")
 		return
 	end
-	local fast = route.Phase == "Unload" and os.clock() - route.Started <= G.RouteSeconds
+	-- El bonus doble pide que la vuelta al Punto Limpio también sea creíble (no teletransportada)
+	local fast = route.Phase == "Unload" and os.clock() - route.Started <= G.RouteSeconds and not (unloadPart and tooFast(route, unloadPart.Position))
 	local bonus = if route.Phase == "Unload" then G.UnloadBonus * (if fast then 2 else 1) else 0
 	pay(player, bonus, ("%d bolsas descargadas%s"):format(route.Bags, if fast then " (¡bonus por rapidez!)" else ""))
 	route.Bags = 0
@@ -283,6 +315,13 @@ local function setupBag(bag: Instance)
 		if not route or (bag.Transparency or 0) >= 1 then
 			return
 		end
+		-- (mismo ritmo que las papeleras: no vale ir de bolsa en bolsa teletransportándose)
+		if tooFast(route, bag.Position) then
+			Notify:FireClient(player, "Error", "Demasiado rápido: espera un momento antes de recogerla.")
+			return
+		end
+		route.PaidAt = os.clock()
+		route.PaidPos = bag.Position
 		bag.Transparency = 1
 		prompt.Enabled = false
 		route.Bags += 1

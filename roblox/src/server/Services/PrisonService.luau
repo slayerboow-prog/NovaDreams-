@@ -384,7 +384,22 @@ local function isolate(player: Player)
 	end
 	isolated[player] = os.clock() + Justice.IsolationSeconds
 	player:SetAttribute("Isolated", true)
+	-- Se apunta en la condena guardada: salir y volver a entrar no libra del aislamiento
+	local jail = JusticeService.jailData(player)
+	if jail then
+		jail.IsolationUntil = os.time() + Justice.IsolationSeconds
+	end
 	toIsolation(player)
+end
+
+-- Se acabó el aislamiento (o la condena): ya no se guarda
+local function endIsolation(player: Player)
+	isolated[player] = nil
+	player:SetAttribute("Isolated", nil)
+	local jail = JusticeService.jailData(player)
+	if jail then
+		jail.IsolationUntil = nil
+	end
 end
 
 -- Si está en aislamiento, de vuelta a su celda de aislamiento (al reaparecer; HospitalService)
@@ -423,8 +438,7 @@ function PrisonService.init()
 		player:GetAttributeChangedSignal("JailUntil"):Connect(function()
 			dress(player)
 			if not player:GetAttribute("JailUntil") then
-				isolated[player] = nil
-				player:SetAttribute("Isolated", nil)
+				endIsolation(player)
 				player:SetAttribute("Tunnel", nil)
 			else
 				local jail = JusticeService.jailData(player)
@@ -441,6 +455,32 @@ function PrisonService.init()
 	for _, player in Players:GetPlayers() do
 		watch(player)
 	end
+	-- Al volver con aislamiento pendiente (guardado en la condena): lo que le quedaba, en su celda de
+	-- aislamiento. Como la condena, solo corre mientras juegas (se corre lo que estuvo desconectado)
+	DataService.onLoaded(function(player, data)
+		local jail = data.Jail
+		if type(jail) ~= "table" or type(jail.IsolationUntil) ~= "number" then
+			return
+		end
+		local away = if DataService.offlineSeconds then DataService.offlineSeconds(player) else 0
+		jail.IsolationUntil += away
+		local left = jail.IsolationUntil - os.time()
+		if left <= 0 or #CollectionService:GetTagged("PrisonIsolation") == 0 then
+			jail.IsolationUntil = nil
+			return
+		end
+		-- Después de que PositionService y JusticeService le lleven a la prisión
+		local deadline = os.clock() + 15
+		while player.Parent and not player:GetAttribute("SpawnReady") and os.clock() < deadline do
+			task.wait(0.2)
+		end
+		task.wait(0.5)
+		if player.Parent and JusticeService.isJailed(player) and data.Jail == jail then
+			isolated[player] = os.clock() + math.min(left, Justice.IsolationSeconds)
+			player:SetAttribute("Isolated", true)
+			toIsolation(player)
+		end
+	end)
 	Players.PlayerRemoving:Connect(function(player)
 		cooldowns[player] = nil
 		isolated[player] = nil
@@ -454,8 +494,7 @@ function PrisonService.init()
 			task.wait(1)
 			for player, untilTime in isolated do
 				if os.clock() >= untilTime or not JusticeService.isJailed(player) then
-					isolated[player] = nil
-					player:SetAttribute("Isolated", nil)
+					endIsolation(player)
 					if JusticeService.isJailed(player) then
 						say(player, "Info", "⛓ Se acabó el aislamiento. Vuelves al módulo.")
 						JusticeService.sendToCell(player)

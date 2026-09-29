@@ -270,6 +270,10 @@ local function setupHome(home: Home)
 	end
 end
 
+-- Última vez que cada jugador habló con cada familiar (el aviso "Talk" da experiencia: con pausa)
+local TALK_GAP = 6
+local talkedAt: { [Player]: { [string]: number } } = {}
+
 -- Qué dice cada familiar según el momento del tutorial
 function onTalk(player: Player, home: Home, npc: string, nameKey: string)
 	local baby = babies[player]
@@ -303,6 +307,13 @@ function onTalk(player: Player, home: Home, npc: string, nameKey: string)
 			say(player, nameKey, "DLG.FAMILIA.GENERICO")
 		end
 	end
+	-- La frase sale siempre, pero para la historia (y la experiencia) cuenta una vez cada TALK_GAP
+	local mine = talkedAt[player] or {}
+	talkedAt[player] = mine
+	if os.clock() - (mine[npc] or -math.huge) < TALK_GAP then
+		return
+	end
+	mine[npc] = os.clock()
 	StoryEvents.emit(player, "Talk", { Npc = npc })
 end
 
@@ -528,6 +539,9 @@ function BabyService.init()
 		watch(player)
 	end
 	Players.PlayerRemoving:Connect(release)
+	Players.PlayerRemoving:Connect(function(player)
+		talkedAt[player] = nil
+	end)
 
 	task.spawn(function()
 		while true do

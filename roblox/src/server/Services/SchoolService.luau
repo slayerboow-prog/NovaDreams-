@@ -165,7 +165,11 @@ end
 local function onTalk(person: Person, player: Player)
 	local lines = SchoolLife.Lines[person.Id]
 	local nameKey = (Cast.People[person.Id] and Cast.People[person.Id].Name) or person.Id
-	if lines and SchoolService.canTalk(player, person.Id, os.clock()) then
+	-- Con la misma pausa que las frases: antes cada pulsación contaba (y daba experiencia) sin límite
+	if not SchoolService.canTalk(player, person.Id, os.clock()) then
+		return
+	end
+	if lines then
 		-- ¿Os conocéis ya? (de esta charla o de la historia: una misión juntos, una relación…)
 		local data = DataService.get(player)
 		local state = StoryState.of(data)
@@ -189,7 +193,7 @@ local function onTalk(person: Person, player: Player)
 			Npc.faceSmooth(person.Model, mine.Position)
 		end
 	end
-	-- Para la historia cuenta siempre (una misión puede pedir "habla con Nico")
+	-- Para la historia cuenta (una misión puede pedir "habla con Nico"), una vez por pausa
 	StoryEvents.emit(player, "Talk", { Npc = person.Id })
 end
 

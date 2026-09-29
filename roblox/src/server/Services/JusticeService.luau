@@ -343,6 +343,12 @@ function JusticeService.init()
 			data.Jail = nil
 			return
 		end
+		-- La condena solo corre mientras juegas: se corre el tiempo que estuvo desconectado (antes
+		-- salir del juego un rato era cumplirla entera)
+		local away = if DataService.offlineSeconds then DataService.offlineSeconds(player) else 0
+		if away > 0 then
+			jail.Until += away
+		end
 		player:SetAttribute("JailUntil", jail.Until)
 		local deadline = os.clock() + 12
 		while player.Parent and not player:GetAttribute("SpawnReady") and os.clock() < deadline do

@@ -350,6 +350,14 @@ local function buy(player: Player, building: InteriorService.Building, floor: nu
 		Notify:FireClient(player, "Error", ("¡Vaya! Alguien la acaba de %s."):format(if renting then "alquilar" else "comprar"))
 		return
 	end
+	-- Se ha ido (o ha empezado una vida nueva) mientras se registraba: su partida ya no es esta y no
+	-- se apuntaría en ella. Se deshace la compra para que la vivienda no se quede con un dueño que
+	-- no la tiene en su lista (el dinero vuelve si su guardado de salida aún no ha terminado)
+	if DataService.get(player) ~= data or not player.Parent then
+		claim(building.Key, slotOf(floor, letter), nil, player.UserId)
+		DataService.addMoney(player, pay)
+		return
+	end
 	table.insert(list, {
 		Key = building.Key, Floor = floor, Letter = letter or "A", Kind = kind, Title = titleOf(building, floor, letter),
 		Price = if renting then 0 else price, Contract = if renting then "Alquiler" else "Compra", Rent = if renting then rent else nil,

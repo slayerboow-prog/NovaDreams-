@@ -273,7 +273,14 @@ end
 
 function ConductService.init()
 	DataService.onLoaded(function(player, data)
-		publish(player, conductOf(data))
+		local c = conductOf(data)
+		-- El castigo solo corre mientras juegas: se corre el tiempo que estuvo desconectado
+		local away = if DataService.offlineSeconds then DataService.offlineSeconds(player) else 0
+		local groundedUntil = tonumber(c.GroundedUntil)
+		if groundedUntil and groundedUntil > 0 and away > 0 then
+			c.GroundedUntil = groundedUntil + away
+		end
+		publish(player, c)
 	end)
 	StoryEvents.connect(function(player: Player, name: string, payload: { [string]: any })
 		if name == "Crime" or name == "Misbehaved" then

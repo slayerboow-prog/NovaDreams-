@@ -385,6 +385,26 @@ function LifeStoryService.updateCamino(player: Player, story: Data)
 	end
 end
 
+-- Regalos que no cabían en la mochila (Story.PendingItems): se apuntan como mucho hasta el máximo
+-- de una casilla (Stack) y los objetos que ya no existen se tiran (si no, se quedaban para siempre)
+local function queuePending(story: Data, id: string, count: number)
+	local item = require(ReplicatedStorage.Shared.Items).get(id)
+	if not item then
+		return
+	end
+	story.PendingItems = story.PendingItems or {}
+	story.PendingItems[id] = math.min((story.PendingItems[id] or 0) + count, item.Stack)
+end
+
+-- Cuántos de `id` caben ahora mismo en la mochila (lo que falta para llenar su casilla, o una casilla libre)
+local function roomFor(player: Player, id: string): number
+	local item = require(ReplicatedStorage.Shared.Items).get(id)
+	if not item or not InventoryService.canAdd(player, id, 1) then
+		return 0
+	end
+	return math.max(0, item.Stack - InventoryService.count(player, id))
+end
+
 local function applyEffects(player: Player, data: Data, effects: { [string]: any }?, questId: string?)
 	if type(effects) ~= "table" then
 		return
@@ -427,9 +447,7 @@ local function applyEffects(player: Player, data: Data, effects: { [string]: any
 				end
 			end)
 			-- (se guarda con la partida: si sales antes de hacer hueco, te llega al volver)
-			local story = storyOf(data)
-			story.PendingItems = story.PendingItems or {}
-			story.PendingItems[id] = (story.PendingItems[id] or 0) + count
+			queuePending(storyOf(data), id, count)
 		end
 	end
 	for id, count in effects.Take or {} do
@@ -2575,16 +2593,30 @@ local function slowTick(player: Player, data: Data)
 	updateCanonMarks(player, data)
 	processLater(player, data)
 	-- Regalos de misiones que no cabían en la mochila: en cuanto hay hueco, llegan
+	-- (lo que quepa, aunque no sea todo: antes, si no cabía entero, no llegaba nunca)
 	local pending = storyOf(data).PendingItems
-	if pending then
+	if type(pending) == "table" then
 		for id, count in pending do
-			if InventoryService.add(player, id, count) then
-				pending[id] = nil
+			local item = if type(id) == "string" then require(ReplicatedStorage.Shared.Items).get(id) else nil
+			local n = if item and type(count) == "number" and count == count then math.min(math.floor(count), item.Stack) else 0
+			if n <= 0 then
+				pending[id] = nil -- (roto o ya no existe ese objeto)
+				continue
+			end
+			local give = math.min(n, roomFor(player, id))
+			if give > 0 and InventoryService.add(player, id, give) then
+				if give >= n then
+					pending[id] = nil
+				else
+					pending[id] = n - give
+				end
 			end
 		end
 		if next(pending) == nil then
 			storyOf(data).PendingItems = nil
 		end
+	elseif pending ~= nil then
+		storyOf(data).PendingItems = nil
 	end
 	refresh(player)
 end

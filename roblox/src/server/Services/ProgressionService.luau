@@ -30,6 +30,33 @@ local ST = P.Stamina
 type Runner = { Stamina: number, Wants: boolean, Sprinting: boolean, Rested: number, Shown: number }
 local runners: { [Player]: Runner } = {}
 
+-- Tope suave de experiencia por fuente: de lo que da XP por cada vez (P.Xp: Talk, Traveled,
+-- JobTaskDone…), como mucho XP_CAP_TIMES veces por minuto. Nadie jugando normal llega (sería una
+-- vez cada 4 segundos sin parar), pero repetir lo mismo a lo loco ya no sube de nivel sin límite.
+local XP_CAP_TIMES = 15
+local XP_WINDOW = 60
+local xpWindows: { [Player]: { [string]: { Start: number, Given: number } } } = {}
+
+-- Cuánta de esta experiencia cabe todavía en el minuto de esta fuente
+local function capped(player: Player, amount: number, reason: string?): number
+	local each = reason and P.Xp[reason]
+	if not each then
+		return amount -- (misiones y demás fuentes que no se repiten: sin tope)
+	end
+	local mine = xpWindows[player] or {}
+	xpWindows[player] = mine
+	local now = os.clock()
+	local window = mine[reason :: string]
+	if not window or now - window.Start >= XP_WINDOW then
+		window = { Start = now, Given = 0 }
+		mine[reason :: string] = window
+	end
+	local room = math.max(0, each * XP_CAP_TIMES - window.Given)
+	local give = math.min(amount, room)
+	window.Given += give
+	return give
+end
+
 local function ensure(data: { [string]: any }): { [string]: any }
 	data.Progress = data.Progress or {}
 	local progress = data.Progress
@@ -78,9 +105,13 @@ local function sync(player: Player)
 	player:SetAttribute("MaxStamina", maxStamina(player))
 end
 
-function ProgressionService.addXp(player: Player, amount: number, _reason: string?)
+function ProgressionService.addXp(player: Player, amount: number, reason: string?)
 	local data = DataService.get(player)
 	if not data or amount <= 0 then
+		return
+	end
+	amount = capped(player, amount, reason)
+	if amount <= 0 then
 		return
 	end
 	local progress = ensure(data)
@@ -244,9 +275,10 @@ function ProgressionService.init()
 		checkQuests(player)
 	end)
 
-	StoryEvents.connect(function(player, name)
+	StoryEvents.connect(function(player, name, payload)
 		local xp = P.Xp[name]
-		if xp then
+		-- NoXp: cuenta para la historia pero no da experiencia (p. ej. un viaje repetido enseguida)
+		if xp and not (type(payload) == "table" and payload.NoXp) then
 			ProgressionService.addXp(player, xp, name)
 		end
 	end)
@@ -271,6 +303,7 @@ function ProgressionService.init()
 
 	Players.PlayerRemoving:Connect(function(player)
 		runners[player] = nil
+		xpWindows[player] = nil
 	end)
 
 	task.spawn(function()

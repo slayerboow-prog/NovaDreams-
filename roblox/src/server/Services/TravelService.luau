@@ -17,6 +17,10 @@ local TRAVEL_SECONDS = 2
 
 local stops: { [string]: BasePart } = {}
 local traveling: { [Player]: boolean } = {}
+-- Viajar da experiencia, pero ir y volver sin parar no: solo cuenta si el último viaje con
+-- experiencia fue hace más de XP_GAP segundos (por UserId: salir y entrar no lo reinicia)
+local XP_GAP = 120
+local xpTripAt: { [number]: number } = {}
 
 function TravelService.travel(player: Player, destination: string)
 	local target = stops[destination]
@@ -44,7 +48,13 @@ function TravelService.travel(player: Player, destination: string)
 	task.wait(TRAVEL_SECONDS / 2)
 	traveling[player] = nil
 	if player.Parent then
-		StoryEvents.emit(player, "Traveled", { Town = destination })
+		-- Para la historia cuenta siempre (una misión puede pedir el viaje); la experiencia, con pausa
+		local now = os.clock()
+		local fresh = now - (xpTripAt[player.UserId] or -math.huge) >= XP_GAP
+		if fresh then
+			xpTripAt[player.UserId] = now
+		end
+		StoryEvents.emit(player, "Traveled", { Town = destination, NoXp = if fresh then nil else true })
 	end
 end
 

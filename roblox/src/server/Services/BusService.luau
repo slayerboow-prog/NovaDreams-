@@ -19,6 +19,7 @@
 --   * Los autobuses del juego siguen funcionando aunque no haya ningún conductor jugador.
 
 local CollectionService = game:GetService("CollectionService")
+local DataStoreService = game:GetService("DataStoreService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -65,7 +66,19 @@ type Bus = {
 	Requests: { [Player]: boolean },
 	Visit: number, -- cuántas veces ha parado (para pagar al conductor una vez por pasajero y parada)
 	Paid: { [Player]: number }, -- en qué parada (Visit) se pagó al conductor por este pasajero
+	PaidAt: number?, -- (conductor jugador) última parada cobrada (o salida) y dónde
+	PaidPos: Vector3?,
 }
+
+-- Ritmo mínimo entre paradas cobradas al conductor: quien mueve el autobús a golpe de
+-- teletransporte cobraría parada tras parada. Hace falta al menos la distancia a PACE_SPEED studs/s
+-- (más de lo que corre un autobús) y nunca menos de PACE_MIN segundos. Sin DataStore (Studio sin
+-- API, pruebas) no se guarda nada y no se mira.
+local PACE_SPEED = 60
+local PACE_MIN = 1.5
+local CHECK_PACE = pcall(function()
+	return DataStoreService:GetDataStore("PlayerData")
+end)
 
 local lines: { Line } = {}
 local stopsById: { [string]: Stop } = {}
@@ -894,6 +907,8 @@ local function hire(player: Player)
 	local bus = makeBus(line, cf :: CFrame, player)
 	bus.NextStop = nextStopAfter(line, at)
 	drivers[player] = bus
+	bus.PaidAt = os.clock()
+	bus.PaidPos = (cf :: CFrame).Position
 	if not VehicleService.driveModel(player, bus.Model, "Autobus") then
 		drivers[player] = nil
 		local i = table.find(buses, bus)
@@ -973,11 +988,20 @@ local function checkDrivers(dt: number)
 						bus.Wait = B.StopSeconds
 						local stop = bus.Line.Stops[k]
 						arrive(bus, k)
-						-- Pasajeros del juego que suben en la parada (también pagan al conductor)
-						local riders = math.random(0, 3)
-						pay(player, B.DriverPerStop + riders * B.DriverPerPassenger, ("parada %s · %d pasajeros"):format(stop.Name, riders))
-						NeedsService.change(player, 0, -1)
-						StoryEvents.emit(player, "JobTaskDone", { JobId = "Conductor" })
+						-- Demasiado rápido desde la parada anterior (teletransporte): para, pero no cobra
+						local from, since = bus.PaidPos, os.clock() - (bus.PaidAt or -math.huge)
+						local flat = if from then Vector3.new(point.X - from.X, 0, point.Z - from.Z).Magnitude else 0
+						if CHECK_PACE and since < math.max(PACE_MIN, flat / PACE_SPEED) then
+							Notify:FireClient(player, "Error", "🚌 Has llegado demasiado rápido: esta parada no se cobra.")
+						else
+							bus.PaidAt = os.clock()
+							bus.PaidPos = point
+							-- Pasajeros del juego que suben en la parada (también pagan al conductor)
+							local riders = math.random(0, 3)
+							pay(player, B.DriverPerStop + riders * B.DriverPerPassenger, ("parada %s · %d pasajeros"):format(stop.Name, riders))
+							NeedsService.change(player, 0, -1)
+							StoryEvents.emit(player, "JobTaskDone", { JobId = "Conductor" })
+						end
 						player:SetAttribute("TaskText", ("🚌 Parada «%s»: puertas abiertas… espera unos segundos"):format(stop.Name))
 					end
 				else

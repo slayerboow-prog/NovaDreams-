@@ -305,19 +305,23 @@ local function endGame(player: Player, token: any, result: any)
 		tickets = 0
 	end
 	-- Tope de tickets por hora (aunque la puntuación "cuele", no se puede farmear sin fin)
+	-- (la ventana se guarda en la partida, data.ArcadeWindow: cambiar de servidor no la reinicia)
 	local now = os.time()
-	local window = ticketWindow[player.UserId]
-	if not window or now - window.Start >= 3600 then
+	local data = DataService.get(player)
+	local window = if data then data.ArcadeWindow else ticketWindow[player.UserId]
+	if type(window) ~= "table" or type(window.Start) ~= "number" or type(window.Earned) ~= "number" or now - window.Start >= 3600 then
 		window = { Start = now, Earned = 0 }
-		ticketWindow[player.UserId] = window
 	end
+	if data then
+		data.ArcadeWindow = window
+	end
+	ticketWindow[player.UserId] = window
 	local capped = math.max(0, math.min(tickets, MAX_TICKETS_PER_HOUR - window.Earned))
 	if capped < tickets then
 		Notify:FireClient(player, "Info", "🎟 Has llegado al máximo de tickets por hora. ¡Vuelve más tarde!")
 	end
 	tickets = capped
 	window.Earned += tickets
-	local data = DataService.get(player)
 	if data then
 		ensure(data)
 		data.Tickets += tickets
