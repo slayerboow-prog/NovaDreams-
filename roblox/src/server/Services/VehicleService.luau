@@ -636,19 +636,33 @@ function VehicleService.exitAny(player: Player, silent: boolean?)
 		VehicleService.leavePassenger(player, silent)
 	elseif not orphanExit(player) then
 		exited(player, nil)
-		VehicleService.clearStale(player)
+		VehicleService.clearStale(player, true) -- («Bajarse»: ya mismo)
 	end
 end
 
 -- «Montado» sin vehículo (se perdió al bajarse o se borró el vehículo): se quita ese estado, que
 -- dejaba el panel del vehículo en pantalla y la velocidad del vehículo yendo a pie
-function VehicleService.clearStale(player: Player): boolean
+local staleSince: { [Player]: number } = {}
+function VehicleService.clearStale(player: Player, now: boolean?): boolean
 	if riding[player] or passengers[player] then
+		staleSince[player] = nil
 		return false
 	end
 	if player:GetAttribute("Riding") == nil and player:GetAttribute("VehicleSpeed") == nil and player:GetAttribute("Passenger") == nil then
+		staleSince[player] = nil
 		return false
 	end
+	-- (la vigilancia solo lo quita si sigue así en dos vueltas seguidas: nada a medio montar)
+	if not now then
+		local since = staleSince[player]
+		if not since then
+			staleSince[player] = os.clock()
+			return false
+		elseif os.clock() - since < 1.5 then
+			return false
+		end
+	end
+	staleSince[player] = nil
 	local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
 	local seat = humanoid and humanoid.SeatPart
 	if seat and seat:FindFirstAncestorOfClass("Model") and (seat:FindFirstAncestorOfClass("Model") :: Model):GetAttribute("Drivable") then

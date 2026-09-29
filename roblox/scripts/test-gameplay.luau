@@ -7388,7 +7388,9 @@ do
 	remotes.Vehicle.OnServerEvent:Fire(scooter, "Dismount")
 	check(scooter:GetAttribute("Riding") == nil and scooter:GetAttribute("VehicleSpeed") == nil and savedExited == 0, "«Bajarse» sin vehículo quita el panel y la velocidad del patinete")
 	scooter:SetAttribute("Riding", "Patinete")
-	check(VehicleService.clearStale(scooter) and scooter:GetAttribute("Riding") == nil, "la vigilancia quita un «montado» sin vehículo")
+	local first = VehicleService.clearStale(scooter)
+	task.wait(1.6)
+	check(not first and VehicleService.clearStale(scooter) and scooter:GetAttribute("Riding") == nil, "la vigilancia quita un «montado» sin vehículo (si sigue así un momento)")
 end
 -- Sin castigo: la paga llega cada día de juego
 task.wait(0.05)
