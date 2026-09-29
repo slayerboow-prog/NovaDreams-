@@ -2634,6 +2634,11 @@ function interactProp(player: Player, data: Data, questId: string, propId: strin
 	if not prog or not def then
 		return
 	end
+	-- Solo los objetos que están ahora en la escena (uno de un paso que aún no toca no se coge)
+	local _, sceneProps = sceneFor(player, data, questId)
+	if not table.find(sceneProps, propId) then
+		return
+	end
 	local step = stepsOf(questId, prog)[prog.Step]
 	-- ¿Tocar este objeto ES elegir? (sentarse en un sitio, coger una mochila…)
 	if step and step.Type == "Choice" then

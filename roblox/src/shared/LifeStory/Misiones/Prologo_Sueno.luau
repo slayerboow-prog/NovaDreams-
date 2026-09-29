@@ -40,7 +40,8 @@ return {
 		{ Type = "Reach", Place = "PrologoSalto", Beat = "Jump", Text = "Salta la valla de flores",
 			Hint = { Pc = "Pulsa Espacio para saltar", Touch = "Pulsa el botón de saltar (abajo a la derecha)" } },
 		{ Type = "Talk", Npc = "Cosme", Dialogue = "Sueno", Beat = "Talk", Text = "Habla con el señor de la bata",
-			Hint = { Pc = "Acércate a él y pulsa E", Touch = "Acércate a él y toca el botón que aparece" }, Props = { "Tornillo" } },
+			Hint = { Pc = "Acércate a él y pulsa E", Touch = "Acércate a él y toca el botón que aparece" } },
+		-- (el tornillo sale al acabar de hablar con Cosme: antes se podía coger antes y el paso se quedaba sin objeto)
 		{ Type = "Use", Prop = "Tornillo", Beat = "Use", Text = "Recoge el tornillo que brilla",
 			Hint = { Pc = "Acércate y pulsa E", Touch = "Acércate y toca el botón «Recoger»" } },
 		{ Type = "Reach", Place = "PrologoPuerta", Beat = "Follow", Text = "Sigue la línea de luz hasta la puerta del garaje",
