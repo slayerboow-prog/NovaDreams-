@@ -105,6 +105,8 @@ local function clockNow(): number
 end
 
 -- El suelo de verdad bajo un punto (o el punto, si no se encuentra)
+local SKY_Y = 3000 -- por encima están las salas de los edificios (interiores, juzgado…)
+
 local function groundAt(point: Vector3): Vector3
 	local ok, hit = pcall(function()
 		return Ground.cast(point + Vector3.new(0, 40, 0), Vector3.new(0, -90, 0))
@@ -963,6 +965,15 @@ local function tickJob(player: Player, job: Job)
 		fail(player, job, ("⏰ ¡Se acabó el tiempo! «%s» se queda sin hacer."):format(job.Template.Title), "¡Uy, ya es tarde! No pasa nada, otra vez será.")
 		return
 	end
+	-- Detenido o en juicio: el encargo se cancela (quien te lo pidió no te sigue a la cárcel)
+	if player:GetAttribute("JailUntil") ~= nil or player:GetAttribute("OnTrial") ~= nil then
+		fail(player, job, ("El encargo «%s» se ha cancelado."):format(job.Template.Title))
+		return
+	end
+	-- En el hospital o volando: el encargo espera (el tiempo sigue corriendo) y nadie te persigue
+	if player:GetAttribute("Dead") or player:GetAttribute("FlightLanding") ~= nil then
+		return
+	end
 	local me = positionOf(player)
 	if not me then
 		return
@@ -977,10 +988,11 @@ local function tickJob(player: Player, job: Job)
 		local model = job.Giver.Model
 		local at = model:GetPivot().Position
 		local gap = flat(at, me)
-		if gap > CFG.EscortLost then
+		-- (dentro de un edificio las salas están en el cielo: ahí no se le lleva)
+		if gap > CFG.EscortLost and me.Y <= SKY_Y then
 			local behind = me + Vector3.new(3, 0, 3)
 			Npc.placeFeet(model, CFrame.new(groundAt(behind)))
-		elseif gap > 6 and not Npc.isWalking(model) then
+		elseif gap > 6 and me.Y <= SKY_Y and not Npc.isWalking(model) then
 			local dir = Vector3.new(at.X - me.X, 0, at.Z - me.Z)
 			local goal = me + (if dir.Magnitude > 0.01 then dir.Unit * 4 else Vector3.new(4, 0, 0))
 			task.spawn(Npc.walkTo, model, { groundAt(goal) }, 16)

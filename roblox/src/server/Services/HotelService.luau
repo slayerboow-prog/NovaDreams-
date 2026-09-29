@@ -372,8 +372,15 @@ local function onElevator(player: Player, lobby: Lobby)
 			r.Anchored = false
 		end
 		NeedsService.change(player, 0, REST_ENERGY)
+		-- Si mientras tanto le han detenido (o está en juicio) o se lo han llevado lejos del
+		-- ascensor, no se le trae de vuelta al vestíbulo
+		local elevatorAt = point(lobby, "Elevator")
+		local away = r ~= nil and typeof(elevatorAt) == "Vector3" and (r.Position - elevatorAt).Magnitude > 30
+		if player:GetAttribute("JailUntil") ~= nil or player:GetAttribute("OnTrial") ~= nil or away then
+			return
+		end
 		standUpBefore(character)
-		;(character :: Model):PivotTo(CFrame.new(point(lobby, "Elevator") + Vector3.new(-3, 3, 0)))
+		;(character :: Model):PivotTo(CFrame.new(elevatorAt + Vector3.new(-3, 3, 0)))
 		Notify:FireClient(player, "Success", "😴 ¡Como nuevo! Has descansado en el hotel.")
 	end)
 end

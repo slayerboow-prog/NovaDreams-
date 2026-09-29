@@ -24,7 +24,6 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local DataService = require(script.Parent.DataService)
 local NeedsService = require(script.Parent.NeedsService)
 local ProgressionService = require(script.Parent.ProgressionService)
-local WorldService = require(script.Parent.WorldService)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 
 local SleepService = {}
@@ -34,6 +33,9 @@ local sleepers: { [Player]: boolean } = {} -- quién está en la cama esperando 
 local beds: { [Player]: BasePart } = {} -- la cama en la que duerme cada uno (para ver si se ha levantado)
 local lyingAt: { [Player]: Vector3 } = {} -- dónde estaba al acostarse
 local spawnBeds: { [Player]: BasePart } = {} -- la cama de su punto de reaparición (si se borra, no vale)
+-- Tumbados en la cama de un piso (InteractService): cuentan como dormidos mientras sigan en ella.
+-- Así hay una sola regla de noche para todo el servidor (antes el piso tenía la suya, de 21:00 a 7:00)
+local resting: { [Player]: () -> boolean } = {}
 
 local BED_RANGE = 10 -- si te alejas más que esto de donde te acostaste, ya no estás durmiendo
 local SKY_Y = 3000 -- por encima están las salas de los edificios: se rehacen y no son un sitio fijo
@@ -80,7 +82,11 @@ local function awakePlayers(): number
 		if sleepers[other] and not inBed(other) then
 			getUp(other)
 		end
-		if not sleepers[other] and other:GetAttribute("LifeStage") ~= "Bebe" and other.Character then
+		local still = resting[other]
+		if still and not still() then
+			resting[other] = nil
+		end
+		if not sleepers[other] and not resting[other] and other:GetAttribute("LifeStage") ~= "Bebe" and other.Character then
 			awake += 1
 		end
 	end
@@ -129,6 +135,8 @@ end
 
 -- Todos dormidos (o solo tú): amanece para todos
 local function passNight()
+	-- (se busca al usarlo: la cama del piso, InteractService, puede cargar este módulo muy pronto)
+	local WorldService = require(script.Parent.WorldService) :: any
 	local newDay = WorldService.skipTo(Config.WakeClockTime)
 	local text = ("☀️ ¡Buenos días! Son las %s%s. Energía y estamina al máximo."):format(
 		formatClock(Config.WakeClockTime),
@@ -137,6 +145,32 @@ local function passNight()
 	for sleeper in table.clone(sleepers) do
 		wake(sleeper, text)
 	end
+	for other in table.clone(resting) do
+		resting[other] = nil
+		if other.Parent and Notify then
+			Notify:FireClient(other, "Success", text)
+		end
+	end
+end
+
+-- La cama de un piso (InteractService): se tumba y cuenta como dormido mientras stillThere() sea
+-- verdad. Si es de noche y ya duermen todos, pasa la noche (la misma regla que SleepService.sleep).
+-- Devuelve true si ha pasado la noche.
+function SleepService.restInBed(player: Player, stillThere: () -> boolean): boolean
+	if player:GetAttribute("LifeStage") == "Bebe" then
+		return false
+	end
+	resting[player] = stillThere
+	if isNight(Lighting.ClockTime) and awakePlayers() == 0 then
+		passNight()
+		return true
+	end
+	return false
+end
+
+-- Se ha levantado de la cama del piso: ya no cuenta como dormido
+function SleepService.leaveBed(player: Player)
+	resting[player] = nil
 end
 
 function SleepService.sleep(player: Player, bed: BasePart)
@@ -344,6 +378,7 @@ function SleepService.init()
 		beds[player] = nil
 		lyingAt[player] = nil
 		spawnBeds[player] = nil
+		resting[player] = nil
 		-- Si se va el último despierto, los que esperaban en la cama ya pueden pasar la noche
 		task.defer(function()
 			if next(sleepers) and awakePlayers() == 0 then

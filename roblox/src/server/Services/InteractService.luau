@@ -373,6 +373,9 @@ InteractService.lieFrame = lieFrame
 local function standUp(player: Player, stand: CFrame)
 	local humanoid, root = rootOf(player)
 	player:SetAttribute("Sleeping", nil)
+	pcall(function()
+		(require(script.Parent.SleepService) :: any).leaveBed(player)
+	end)
 	if root then
 		if (root.Position - stand.Position).Magnitude < 15 then
 			-- Se incorpora junto a la cama (si se ha ido a otra sala, no se le trae de vuelta)
@@ -397,9 +400,16 @@ local function sleepNow(player: Player, use: Use)
 	end
 	player:SetAttribute("Sleeping", true)
 	Notify:FireClient(player, "Sleep", "Zzz...")
+	-- La noche la lleva SleepService (una sola lista de quién duerme y una sola hora de noche y de
+	-- despertar): mientras siga tumbado en esta cama, cuenta como dormido
 	task.delay(Config.SleepSeconds * 0.6, function()
+		if using[player] ~= use then
+			return
+		end
 		pcall(function()
-			(require(script.Parent.WorldService) :: any).trySkipNight()
+			(require(script.Parent.SleepService) :: any).restInBed(player, function()
+				return player.Parent ~= nil and using[player] == use
+			end)
 		end)
 	end)
 	task.delay(Config.SleepSeconds, function()

@@ -2495,7 +2495,7 @@ local function tickPlayer(player: Player, data: Data)
 			-- Clase: al llegar al aula empieza sola; si el aula no existe en el mapa, empieza igual a los 8 s
 			local rt = runtime[player]
 			local key = spotKey(questId, prog)
-			if not busy(player) then
+			if not busy(player) and not held(player) then
 				local arrived = checkReach(player, data, questId, prog, step)
 				if not arrived and not rt.Spots[key] then
 					rt.ClassWaitSince[key] = rt.ClassWaitSince[key] or os.clock()
@@ -2511,6 +2511,9 @@ local function tickPlayer(player: Player, data: Data)
 					end
 					local started = ClassService.start(player, { Subject = subjectId, Mode = step.Mode or "Clase", ExtraSeconds = extra }, function(result)
 						rt.ClassFor = nil
+						if result.Aborted then
+							return -- (cortada: murió, detenido… no cuenta y se repetirá)
+						end
 						local current = DataService.get(player)
 						local now = current and storyOf(current).Active[questId]
 						if now and now.Step == index then

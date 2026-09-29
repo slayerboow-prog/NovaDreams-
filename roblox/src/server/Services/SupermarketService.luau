@@ -94,6 +94,22 @@ local function rootOf(player: Player): BasePart?
 	return character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 end
 
+-- ¿El cajero sigue trabajando en esa caja? (de servicio y libre: ni detenido, ni en juicio, ni muerto)
+local function onDuty(player: Player, lane: Lane): boolean
+	local job = jobs[player]
+	return job ~= nil and job.Lane == lane and player:GetAttribute("Job") == "Cajero"
+		and player:GetAttribute("JailUntil") == nil and player:GetAttribute("OnTrial") == nil and player:GetAttribute("Dead") == nil
+end
+
+-- ¿Está junto a su caja? (para cobrar lo que se atasca: si se ha ido, no se le paga)
+local LANE_NEAR = 25
+local function atLane(player: Player, lane: Lane): boolean
+	local root = rootOf(player)
+	local spot = lane.Belt:GetAttribute("CashierSpot")
+	local at = if typeof(spot) == "Vector3" then spot else lane.Belt.Position
+	return root ~= nil and (root.Position - at).Magnitude <= LANE_NEAR
+end
+
 local function inside(store: Store, position: Vector3): boolean
 	local localPos = store.Bounds.CFrame:PointToObjectSpace(position)
 	local half = store.Bounds.Size / 2
@@ -471,6 +487,9 @@ local function onScan(player: Player, token: any, index: any)
 	if not session or session.Kind ~= "Lane" or session.Lane.Cashier ~= player or typeof(index) ~= "number" then
 		return
 	end
+	if not onDuty(player, session.Lane) then
+		return -- (detenido, en juicio o muerto: desde ahí no se cobra)
+	end
 	if not session.List[index] then
 		return
 	end
@@ -495,6 +514,9 @@ local function onChange(player: Player, token: any, choice: any)
 	local session = sessions[token]
 	if not session or session.Kind ~= "Lane" or session.Lane.Cashier ~= player or typeof(choice) ~= "number" or not session.Paid then
 		return
+	end
+	if not onDuty(player, session.Lane) then
+		return -- (detenido, en juicio o muerto: desde ahí no se cobra)
 	end
 	local correct = session.Paid - session.Total
 	if choice == correct then
@@ -1333,7 +1355,18 @@ function SupermarketService.init()
 							Remote:FireClient(session.Lane.Cashier, "CloseScan")
 						end
 					else
-						finishCustomer(session)
+						local cashier = session.Lane.Cashier
+						if cashier and not (onDuty(cashier, session.Lane) and atLane(cashier, session.Lane)) then
+							-- El cajero no está en su caja (se ha ido, le han detenido…): el cliente NPC
+							-- se va, pero al cajero no se le paga
+							endSession(session)
+							Remote:FireClient(cashier, "CloseScan")
+							if session.Customer.Done then
+								session.Customer.Done()
+							end
+						else
+							finishCustomer(session)
+						end
 					end
 				end
 			end

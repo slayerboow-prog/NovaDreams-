@@ -42,7 +42,7 @@ do
 end
 
 export type Spec = { Subject: string, Mode: string, ExtraSeconds: number? }
-export type Result = { Grade: number, Correct: number, Total: number }
+export type Result = { Grade: number, Correct: number, Total: number, Aborted: boolean? }
 
 type Session = {
 	Spec: Spec,
@@ -137,6 +137,25 @@ local function recordGrade(player: Player, spec: Spec, grade: number)
 	end
 end
 
+-- ¿Se ha tenido que ir de clase? (muerto, detenido o en juicio)
+local function interrupted(player: Player): boolean
+	return player:GetAttribute("Dead") ~= nil or player:GetAttribute("JailUntil") ~= nil or player:GetAttribute("OnTrial") ~= nil
+end
+
+-- La clase se corta sin nota: no cuenta y se podrá repetir (Aborted en el resultado)
+local function abort(player: Player, session: Session, teacher: RoleService.Assignment, onDone: (Result) -> ())
+	if sessions[player] == session then
+		sessions[player] = nil
+	end
+	RoleService.release(teacher)
+	if player.Parent then
+		-- (el panel se cierra con "End"; la nota no se apunta)
+		Remote:FireClient(player, "End", { Grade = 0, GradeKey = "CLASS.TIMEOUT", Correct = 0, Total = 0 })
+		Notify:FireClient(player, "Info", "La clase se ha interrumpido: no cuenta, podrás repetirla.")
+	end
+	task.spawn(onDone, { Grade = 0, Correct = 0, Total = 0, Aborted = true })
+end
+
 local function finish(player: Player, session: Session, correct: number, total: number, teacher: RoleService.Assignment, onDone: (Result) -> ())
 	local grade = if total > 0 then math.round(correct / total * 20) / 2 else 5
 	sessions[player] = nil
@@ -166,6 +185,10 @@ local function runQuiz(player: Player, session: Session, subject: Subjects.Subje
 		if not player.Parent then
 			break
 		end
+		if interrupted(player) then
+			abort(player, session, teacher, onDone)
+			return
+		end
 		session.Index = index
 		session.Answer = nil
 		Remote:FireClient(player, "Question", {
@@ -177,8 +200,12 @@ local function runQuiz(player: Player, session: Session, subject: Subjects.Subje
 		})
 		-- Quien ha estudiado tiene unos segundos más por pregunta (Bonus del paso de la misión)
 		local deadline = os.clock() + mode.Seconds + (session.Spec.ExtraSeconds or 0) + 1
-		while session.Answer == nil and os.clock() < deadline and player.Parent do
+		while session.Answer == nil and os.clock() < deadline and player.Parent and not interrupted(player) do
 			task.wait(0.1)
+		end
+		if interrupted(player) then
+			abort(player, session, teacher, onDone)
+			return
 		end
 		local right = session.Answer == question.Right
 		if right then
@@ -233,9 +260,17 @@ local function runCircuit(player: Player, session: Session, teacher: RoleService
 	session.Circuit = points
 	session.CircuitDone = 0
 	task.wait(3.5)
+	if interrupted(player) then
+		abort(player, session, teacher, onDone)
+		return
+	end
 	Remote:FireClient(player, "Circuit", { Points = points, Seconds = mode.Seconds })
 	local started = os.clock()
 	while player.Parent and session.CircuitDone < #points and os.clock() - started < mode.Seconds do
+		if interrupted(player) then
+			abort(player, session, teacher, onDone)
+			return
+		end
 		local root = rootOf(player)
 		local target = points[session.CircuitDone + 1]
 		if root then
