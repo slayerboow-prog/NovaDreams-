@@ -325,8 +325,33 @@ local function stop()
 end
 
 -- Suelo bajo un punto (ignora el vehículo, las personas y lo que no choca). nil = agua o vacío
+-- ¿Es parte de una persona (jugador o personaje: la abuela, un compañero, un peatón…)?
+local function personOf(part: Instance): Model?
+	local model = part:FindFirstAncestorOfClass("Model")
+	while model do
+		if model:FindFirstChildOfClass("Humanoid") then
+			return model
+		end
+		model = model.Parent and model.Parent:FindFirstAncestorOfClass("Model")
+	end
+	return nil
+end
+
 local function ground(params: RaycastParams, point: Vector3, top: number): RaycastResult?
-	local hit = workspace:Raycast(Vector3.new(point.X, top, point.Z), Vector3.new(0, -(top - point.Y) - 14, 0), params)
+	local from, dir = Vector3.new(point.X, top, point.Z), Vector3.new(0, -(top - point.Y) - 14, 0)
+	local hit = workspace:Raycast(from, dir, params)
+	-- Una persona no es suelo: si no, el coche se subía encima de quien estuviera delante y se ponía
+	-- de pie (con los personajes de la historia que te acompañan pasaba mucho)
+	for _ = 1, 4 do
+		local person = hit and personOf(hit.Instance)
+		if not person then
+			break
+		end
+		local ignore = params.FilterDescendantsInstances
+		table.insert(ignore, person)
+		params.FilterDescendantsInstances = ignore
+		hit = workspace:Raycast(from, dir, params)
+	end
 	if hit and hit.Material == Enum.Material.Water then
 		return nil
 	end
