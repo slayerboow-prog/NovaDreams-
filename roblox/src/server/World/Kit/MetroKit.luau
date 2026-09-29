@@ -92,13 +92,13 @@ local function planText(title: string): string
 	return table.concat(lines, "\n")
 end
 
-local function signBoard(parent: Instance, cf: CFrame, size: Vector3, text: string, color: Color3, both: boolean?): BasePart
+local function signBoard(parent: Instance, cf: CFrame, size: Vector3, text: string, color: Color3, both: boolean?): (BasePart, TextLabel)
 	local board = decor(parent, "Sign", size, cf, color)
-	Builder.sign(board, text, Enum.NormalId.Front)
+	local label = Builder.sign(board, text, Enum.NormalId.Front)
 	if both then
 		Builder.sign(board, text, Enum.NormalId.Back)
 	end
-	return board
+	return board, label
 end
 
 ---------------------------------------------------------------------
@@ -326,12 +326,62 @@ end
 ---------------------------------------------------------------------
 -- Estación subterránea
 ---------------------------------------------------------------------
+-- Personalidad de cada estación (según su barrio, Metro.StationInfo): color del azulejo, mural en lo
+-- alto de la pared de enfrente, cartel del vestíbulo y letra y colores del nombre. Plaza Mayor ya
+-- tiene su galería y se queda con el azulejo blanco de siempre.
+--   Tile = azulejo, Accent = franjas del mural, Mural = fondo del mural, NameBg / Name = cartel del
+--   nombre (fondo y letra), Font = tipo de letra del nombre, Motifs = dibujos del mural, Motto = lema
+local THEMES: { [string]: { [string]: any } } = {
+	PlayaDorada = { Tile = rgb(246, 232, 196), Accent = rgb(40, 160, 200), Mural = rgb(96, 190, 222), NameBg = rgb(20, 120, 170), Name = rgb(255, 230, 150), Font = Enum.Font.FredokaOne, Motifs = { "🌊", "☀️", "🐚", "⛱️" }, Motto = "El mar, a un paso" },
+	Campus = { Tile = rgb(222, 208, 186), Accent = rgb(120, 30, 40), Mural = rgb(56, 66, 108), NameBg = rgb(110, 30, 40), Name = rgb(240, 214, 150), Font = Enum.Font.Merriweather, Motifs = { "🎓", "📚", "🔬", "✏️" }, Motto = "Saber es viajar" },
+	Villaverde = { Tile = rgb(214, 232, 200), Accent = rgb(70, 140, 60), Mural = rgb(128, 184, 96), NameBg = rgb(60, 110, 50), Name = rgb(250, 240, 200), Font = Enum.Font.Cartoon, Motifs = { "🌾", "🐄", "🌻", "🚜" }, Motto = "Del campo a la ciudad" },
+	Puerto = { Tile = rgb(200, 214, 226), Accent = rgb(30, 60, 110), Mural = rgb(44, 82, 132), NameBg = rgb(25, 45, 85), Name = rgb(245, 110, 90), Font = Enum.Font.Oswald, Motifs = { "⚓", "🚢", "🦀", "🧭" }, Motto = "Barcos, grúas y gaviotas" },
+	Financiero = { Tile = rgb(206, 212, 220), Accent = rgb(90, 100, 115), Mural = rgb(58, 68, 84), NameBg = rgb(28, 32, 38), Name = rgb(120, 220, 255), Font = Enum.Font.SciFi, Motifs = { "🏙️", "📈", "💼", "🏦" }, Motto = "Cristal, acero y prisas" },
+	Norte = { Tile = rgb(240, 226, 212), Accent = rgb(200, 110, 60), Mural = rgb(112, 150, 100), NameBg = rgb(170, 90, 50), Name = rgb(255, 250, 240), Font = Enum.Font.Highway, Motifs = { "🏡", "🌲", "🎒", "🚲" }, Motto = "Tu barrio, tu casa" },
+	SanRoque = { Tile = rgb(238, 232, 214), Accent = rgb(30, 80, 170), Mural = rgb(44, 92, 172), NameBg = rgb(245, 240, 225), Name = rgb(30, 70, 160), Font = Enum.Font.Antique, Motifs = { "💐", "🍅", "⛪", "🧺" }, Motto = "Mercado, plaza y azulejo" },
+	Poniente = { Tile = rgb(248, 222, 200), Accent = rgb(230, 110, 60), Mural = rgb(236, 138, 82), NameBg = rgb(120, 50, 90), Name = rgb(255, 196, 120), Font = Enum.Font.Bangers, Motifs = { "🌅", "⛵", "🌴", "🍹" }, Motto = "Donde se pone el sol" },
+	Levante = { Tile = rgb(252, 242, 212), Accent = rgb(240, 170, 40), Mural = rgb(250, 200, 110), NameBg = rgb(240, 170, 40), Name = rgb(70, 36, 20), Font = Enum.Font.FredokaOne, Motifs = { "🌄", "🛍️", "🍕", "🎡" }, Motto = "Donde sale el sol" },
+}
+MetroKit.Themes = THEMES
+
+-- Mural de la estación: una franja con el lema y los dibujos del barrio en lo alto de la pared de
+-- enfrente (se ve desde todo el andén) y un cartel con lo que hay cerca en el vestíbulo
+local function mural(m: Instance, at: (number, number, number) -> CFrame, theme: { [string]: any }, st: Metro.Station, P: number, LZ: number)
+	local face = CFrame.Angles(0, math.rad(-90), 0) -- (mirando al andén)
+	decor(m, "Mural", Vector3.new(0.15, 4.6, P * 2 - 8), at(-5.42, 12.2, 0), theme.Mural)
+	for _, y in { 9.75, 14.65 } do
+		decor(m, "MuralTrim", Vector3.new(0.2, 0.3, P * 2 - 8), at(-5.4, y, 0), theme.Accent)
+	end
+	local n = #theme.Motifs
+	for i, z in { -54, -18, 18, 54 } do
+		local panel = decor(m, "MuralArt", Vector3.new(0.1, 3.6, 3.6), at(-5.36, 12.2, z) * face, theme.Accent)
+		Builder.sign(panel, theme.Motifs[(i - 1) % n + 1], Enum.NormalId.Front, Color3.new(1, 1, 1), theme.Accent)
+	end
+	for _, z in { -36, 36 } do
+		local motto = decor(m, "MuralMotto", Vector3.new(0.1, 2.4, 20), at(-5.36, 12.2, z) * face, theme.Mural)
+		local label = Builder.sign(motto, string.upper(theme.Motto), Enum.NormalId.Front, theme.Name, theme.Mural)
+		label.FontFace = Font.fromEnum(theme.Font)
+	end
+	-- Vestíbulo: cartel grande sobre la pared de las taquillas con el barrio y lo que hay cerca
+	local info = Metro.StationInfo[st.Id]
+	local serves = if info then table.concat(info.Serves, " · ") else ""
+	local banner = decor(m, "LobbyMural", Vector3.new(26, 2.8, 0.15), at(33, 11, LZ - 0.1), theme.NameBg)
+	local label = Builder.sign(banner, ("%s  %s\n%s"):format(theme.Motifs[1], string.upper(st.Name), serves), Enum.NormalId.Front, theme.Name, theme.NameBg)
+	label.FontFace = Font.fromEnum(theme.Font)
+	decor(m, "LobbyMuralTrim", Vector3.new(26.6, 0.3, 0.2), at(33, 9.45, LZ - 0.1), theme.Accent)
+end
+
 local function station(parent: Instance, line: Metro.Line, index: number): (Model, CFrame)
 	local id = line.Stations[index]
 	local st = Metro.Stations[id]
 	local m = Builder.model("Estacion_" .. line.Id .. "_" .. id, parent)
 	m:SetAttribute("Station", id)
 	m:SetAttribute("Line", line.Id)
+	local theme = if st.Hub then nil else THEMES[id]
+	local WALL = if theme then theme.Tile else TILE
+	if theme then
+		m:SetAttribute("Theme", id)
+	end
 	local c = Metro.center(id, line)
 	local d = Metro.direction(line, index)
 	local cf = Builder.facing(c, d)
@@ -350,12 +400,17 @@ local function station(parent: Instance, line: Metro.Line, index: number): (Mode
 	part(m, "Platform", Vector3.new(12, 2, P * 2), at(11, -1, 0), rgb(150, 148, 144), Enum.Material.Granite)
 	decor(m, "SafetyLine", Vector3.new(0.8, 0.05, P * 2), at(5.6, 0.02, 0), YELLOW, Enum.Material.SmoothPlastic)
 	-- Pared del otro lado de la vía, con el nombre de la estación
-	part(m, "FarWall", Vector3.new(1, 18, P * 2), at(-6, 7, 0), TILE, Enum.Material.Marble)
+	part(m, "FarWall", Vector3.new(1, 18, P * 2), at(-6, 7, 0), WALL, Enum.Material.Marble)
 	decor(m, "FarWallBand", Vector3.new(0.2, 1.4, P * 2), at(-5.45, 8.5, 0), line.Color)
 	for z = -P + 20, P - 20, 32 do
 		local board = decor(m, "StationName", Vector3.new(0.2, 2.2, 12), at(-5.4, 5.6, z) * CFrame.Angles(0, math.rad(90), 0), DARK)
 		local _ = board
-		signBoard(m, at(-5.35, 5.6, z) * CFrame.Angles(0, math.rad(-90), 0), Vector3.new(12, 2.2, 0.1), string.upper(st.Name), line.Color)
+		local _, nameLabel = signBoard(m, at(-5.35, 5.6, z) * CFrame.Angles(0, math.rad(-90), 0), Vector3.new(12, 2.2, 0.1), string.upper(st.Name), if theme then theme.NameBg else line.Color)
+		if theme then
+			-- (cada estación con su letra y sus colores)
+			nameLabel.TextColor3 = theme.Name
+			nameLabel.FontFace = Font.fromEnum(theme.Font)
+		end
 		decor(m, "AdPanel", Vector3.new(0.2, 4, 7), at(-5.45, 5.4, z + 14), rgb(math.random(60, 220), math.random(60, 220), math.random(60, 220)), Enum.Material.Neon, { Transparency = 0.1 })
 	end
 	-- Techo y luces
@@ -368,13 +423,13 @@ local function station(parent: Instance, line: Metro.Line, index: number): (Mode
 	local LZ = 25 -- medio ancho del vestíbulo
 	for _, zs in { { -P, -LZ }, { LZ, P } } do
 		local len = zs[2] - zs[1]
-		part(m, "PlatformWall", Vector3.new(1, 18, len), at(17.5, 7, (zs[1] + zs[2]) / 2), TILE, Enum.Material.Marble)
+		part(m, "PlatformWall", Vector3.new(1, 18, len), at(17.5, 7, (zs[1] + zs[2]) / 2), WALL, Enum.Material.Marble)
 		decor(m, "WallBand", Vector3.new(0.2, 1, len), at(16.95, 8.5, (zs[1] + zs[2]) / 2), line.Color)
 	end
 	-- Cierres del andén en los extremos (hasta la boca del túnel)
 	for _, z in { -P, P } do
-		part(m, "PlatformEnd", Vector3.new(12, 18, 1), at(11, 7, z), TILE, Enum.Material.Marble)
-		part(m, "TunnelHeader", Vector3.new(13, 4.5, 1), at(-0.5, 14.5, z), TILE, Enum.Material.Marble) -- cierra encima de la boca del túnel
+		part(m, "PlatformEnd", Vector3.new(12, 18, 1), at(11, 7, z), WALL, Enum.Material.Marble)
+		part(m, "TunnelHeader", Vector3.new(13, 4.5, 1), at(-0.5, 14.5, z), WALL, Enum.Material.Marble) -- cierra encima de la boca del túnel
 		decor(m, "TunnelMouth", Vector3.new(11, 1.2, 0.3), at(0, 12, z - math.sign(z) * 0.6), DARK)
 	end
 	-- Bancos, papeleras, reloj y plano de la red en el andén
@@ -446,20 +501,20 @@ local function station(parent: Instance, line: Metro.Line, index: number): (Mode
 		if shaftIn and not access.Shaft.Ceiling and math.sign(q.Z) == math.sign(z) then
 			-- Hueco para las escaleras mecánicas (con un dintel por encima)
 			local a, b = q.X - SW, q.X + SW
-			part(m, "LobbyWall", Vector3.new(a - X0, LH + 2, 1), at((X0 + a) / 2, LH / 2, z), TILE, Enum.Material.Marble)
-			part(m, "LobbyWall", Vector3.new(X1 - b, LH + 2, 1), at((b + X1) / 2, LH / 2, z), TILE, Enum.Material.Marble)
+			part(m, "LobbyWall", Vector3.new(a - X0, LH + 2, 1), at((X0 + a) / 2, LH / 2, z), WALL, Enum.Material.Marble)
+			part(m, "LobbyWall", Vector3.new(X1 - b, LH + 2, 1), at((b + X1) / 2, LH / 2, z), WALL, Enum.Material.Marble)
 			local hv = Metro.Shaft.Headroom
-			part(m, "LobbyWallTop", Vector3.new(b - a, LH + 1 - hv, 1), at((a + b) / 2, (hv + LH + 1) / 2, z), TILE, Enum.Material.Marble)
+			part(m, "LobbyWallTop", Vector3.new(b - a, LH + 1 - hv, 1), at((a + b) / 2, (hv + LH + 1) / 2, z), WALL, Enum.Material.Marble)
 		else
-			part(m, "LobbyWall", Vector3.new(X1 - X0, LH + 2, 1), at((X0 + X1) / 2, LH / 2, z), TILE, Enum.Material.Marble)
+			part(m, "LobbyWall", Vector3.new(X1 - X0, LH + 2, 1), at((X0 + X1) / 2, LH / 2, z), WALL, Enum.Material.Marble)
 		end
 	end
 	if not st.Hub or line.Id ~= "L1" then
-		part(m, "LobbyBack", Vector3.new(1, LH + 2, LZ * 2), at(X1 + 0.5, LH / 2, 0), TILE, Enum.Material.Marble)
+		part(m, "LobbyBack", Vector3.new(1, LH + 2, LZ * 2), at(X1 + 0.5, LH / 2, 0), WALL, Enum.Material.Marble)
 	end
 	-- Muro de los tornos (cristal abajo, pared arriba): solo se pasa con billete
 	part(m, "GateGlass", Vector3.new(0.4, 7, LZ * 2), at(X0, 3.5, 0), rgb(170, 210, 230), Enum.Material.Glass, { Transparency = 0.6 })
-	part(m, "GateWall", Vector3.new(1, 10, LZ * 2), at(X0, 12, 0), TILE, Enum.Material.Marble) -- hasta el techo del andén
+	part(m, "GateWall", Vector3.new(1, 10, LZ * 2), at(X0, 12, 0), WALL, Enum.Material.Marble) -- hasta el techo del andén
 	signBoard(m, at(X0 + 0.6, 9.5, 0) * CFrame.Angles(0, math.rad(-90), 0), Vector3.new(16, 2, 0.2), "🚇 " .. string.upper(st.Name) .. "   " .. line.Name, line.Color)
 	for i, z in { -9, -4.5, 0, 4.5 } do
 		local gate = part(m, "Turnstile", Vector3.new(1.6, 3.4, 1), at(X0 + 1.4, 1.7, z), rgb(80, 84, 92), Enum.Material.Metal, { Tags = { "MetroGate" } })
@@ -512,6 +567,10 @@ local function station(parent: Instance, line: Metro.Line, index: number): (Mode
 		part(m, "LiftDoor", Vector3.new(4, 7, 0.3), door * CFrame.new(0, 3.5, 0), STEEL, Enum.Material.Metal)
 		decor(m, "LiftSeam", Vector3.new(0.08, 6.8, 0.35), door * CFrame.new(0, 3.5, 0), DARK)
 		signBoard(m, at(X1 - 0.1, 8, 0) * CFrame.Angles(0, math.rad(90), 0), Vector3.new(12, 1.6, 0.2), "♿ ASCENSOR · GALERÍA · LÍNEA 1", rgb(215, 40, 50))
+	end
+	-- Personalidad de la estación: mural del barrio y cartel en el vestíbulo
+	if theme then
+		mural(m, at, theme, st, P, LZ)
 	end
 	-- Detalles: columnas, cámaras, anuncios, grafitis, ratas, aseos, guardias, taquillas… (MetroDetails)
 	local seed = index + (if line.Id == "L1" then 0 else 10)

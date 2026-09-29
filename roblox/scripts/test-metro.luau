@@ -140,6 +140,44 @@ for _ in Metro.Stations do
 end
 check(bocas == nStations, ("una boca de metro por estación (%d)"):format(bocas))
 check(belts == nStations * 2 and stepsModels == nStations * 2, "dos escaleras mecánicas por boca (una baja y otra sube) con sus peldaños")
+-- Taquilla con persona en el vestíbulo de cada boca (con sitio detrás para el taquillero/a)
+local booths = {}
+for _, d in (metroRoot :: any):GetDescendants() do
+	if d:IsA("BasePart") and d:HasTag("MetroTicketBooth") and typeof(d:GetAttribute("StaffSpot")) == "Vector3" then
+		booths[d:GetAttribute("Station")] = true
+	end
+end
+local boothsOk = true
+for id in Metro.Stations do
+	if not booths[id] then
+		boothsOk = false
+		print("     sin taquilla: " .. id)
+	end
+end
+check(boothsOk, "cada estación tiene su taquilla con persona")
+-- Estaciones con personalidad: cada una (menos Plaza Mayor) con su azulejo, su mural y su cartel
+local wallColors, themed, murals = {}, 0, true
+for _, st in (under :: any):GetChildren() do
+	local theme = st:GetAttribute("Theme")
+	if theme then
+		themed += 1
+		local wall = st:FindFirstChild("FarWall")
+		if wall then
+			local c = wall.Color
+			wallColors[("%d,%d,%d"):format(math.floor(c.R * 255 + 0.5), math.floor(c.G * 255 + 0.5), math.floor(c.B * 255 + 0.5))] = true
+		end
+		if not st:FindFirstChild("Mural") or not st:FindFirstChild("MuralArt") or not st:FindFirstChild("LobbyMural") then
+			murals = false
+			print("     sin mural: " .. st.Name)
+		end
+	end
+end
+local distinct = 0
+for _ in wallColors do
+	distinct += 1
+end
+check(themed == stations - 2 and murals, ("cada estación de calle tiene su mural y su cartel (%d)"):format(themed))
+check(distinct >= nStations - 1, ("cada estación con su color de azulejo (%d distintos)"):format(distinct))
 -- Recorrido andando: suelo debajo de cada paso y nada sólido a la altura del cuerpo
 local solid = {}
 for _, p in (metroRoot :: any):GetDescendants() do
