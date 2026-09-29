@@ -13,9 +13,6 @@ concurrency:
   group: publicar-roblox
   cancel-in-progress: true
 
-permissions:
-  contents: write # (para dejar la etiqueta pub/<hora>-<commit> del candado de publish.sh)
-
 jobs:
   publicar:
     runs-on: ubuntu-latest
