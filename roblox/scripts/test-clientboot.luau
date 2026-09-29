@@ -1672,6 +1672,20 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean })
 				end
 			end
 			table.insert(checks, { not still, "el bocadillo con duración se va solo" })
+			-- Durante una escena de cámara, la calle calla (sus frases sueltas no salen)
+			local speech2 = remotes:FindFirstChild("Speech")
+			if speech2 and b then
+				localPlayer:SetAttribute("InCinematic", true)
+				speech2.OnClientEvent:Fire({ Speaker = b, Text = "¡Oferta de melones!", Seconds = 3 })
+				local shown = false
+				for _, child in playerGui:GetChildren() do
+					if child.Name == "SpeechBubble" and child.Enabled and child.Adornee == b.Head then
+						shown = true
+					end
+				end
+				localPlayer:SetAttribute("InCinematic", nil)
+				table.insert(checks, { not shown, "durante una cinemática no salen los bocadillos de la calle" })
+			end
 			-- Peatones: en cada extremo de la acera siguen recto por la calle de enfrente (también si
 			-- está dibujada al revés) o, si no sigue ninguna, se dan la vuelta antes de la calzada que cruza
 			local controllers = client:FindFirstChild("Controllers")

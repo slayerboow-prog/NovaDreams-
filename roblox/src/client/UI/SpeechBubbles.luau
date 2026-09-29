@@ -464,6 +464,11 @@ function SpeechBubbles.init()
 		if seconds and not near(key) then
 			return
 		end
+		-- Durante una escena de cámara (cinemática), la calle calla: sus frases sueltas no se pisan
+		-- con la escena
+		if seconds and game:GetService("Players").LocalPlayer:GetAttribute("InCinematic") then
+			return
+		end
 		SpeechBubbles.show(key, text, {
 			Name = if type(payload.Name) == "string" then payload.Name else nil,
 			Seconds = seconds,
