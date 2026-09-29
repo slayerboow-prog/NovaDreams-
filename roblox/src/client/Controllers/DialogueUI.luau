@@ -430,14 +430,19 @@ local function showLine(line: { [string]: any })
 	end
 	if bubbled then
 		-- Si su bocadillo no se ve en tu pantalla (fuera de plano, tapado…), el texto va también en la caja
+		-- (y vuelve al bocadillo en cuanto se ve otra vez: nunca la misma frase en los dos sitios).
+		-- Solo cuenta si deja de verse un rato (al girarse la cámara hacia quien habla no)
 		task.spawn(function()
 			task.wait(0.35)
-			while lineSerial == serial and open and not textLabel.Visible do
-				if not SpeechBubbles.isOnScreen(speakingModel) then
-					setCompact(false)
-					nameTag.Visible = line.Name ~= nil
-					textLabel.Visible = true
-					break
+			local hiddenFor = 0
+			while lineSerial == serial and open do
+				local onScreen = SpeechBubbles.isOnScreen(speakingModel)
+				hiddenFor = if onScreen then 0 else hiddenFor + 0.25
+				local inBox = hiddenFor >= 1
+				if inBox ~= textLabel.Visible then
+					setCompact(not inBox)
+					nameTag.Visible = inBox and line.Name ~= nil
+					textLabel.Visible = inBox
 				end
 				task.wait(0.25)
 			end
@@ -467,6 +472,7 @@ local function showLine(line: { [string]: any })
 end
 
 local function ask(prompt: string?, options: { string }): number
+	lineSerial += 1 -- (la frase de antes ya no mueve la caja)
 	setCompact(false) -- las respuestas van en la caja entera
 	for _, child in optionsFrame:GetChildren() do
 		if child:IsA("TextButton") then

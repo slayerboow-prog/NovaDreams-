@@ -265,8 +265,9 @@ local function dress(area: BasePart)
 				local humanoid = cook:FindFirstChildOfClass("Humanoid")
 				if humanoid then
 					humanoid.DisplayName = "Cocinera"
-					humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.Viewer
-					humanoid.NameDisplayDistance = 25
+					-- (el nombre lo pinta el cliente: Controllers/NameTags)
+					humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+					CollectionService:AddTag(cook, "NamedActor")
 				end
 			end
 		end)

@@ -150,7 +150,9 @@ local function makeNpc(home: Home, spot: BasePart, nameKey: string, skin: Color3
 		local humanoid = model:FindFirstChildOfClass("Humanoid")
 		if humanoid then
 			humanoid.DisplayName = Strings.get(nameKey)
-			humanoid.NameDisplayDistance = 40
+			-- El nombre lo pinta el cliente (Controllers/NameTags: legible y sin pisar los bocadillos)
+			humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+			CollectionService:AddTag(model, "NamedActor")
 		end
 		local root = model:FindFirstChild("HumanoidRootPart") :: BasePart?
 		if root then

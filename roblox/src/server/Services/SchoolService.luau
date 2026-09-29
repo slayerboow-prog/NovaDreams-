@@ -220,7 +220,9 @@ local function makePerson(school: School, npcId: string, kid: boolean): Person?
 	local root = model:FindFirstChild("HumanoidRootPart") :: BasePart?
 	if humanoid then
 		humanoid.DisplayName = name
-		humanoid.NameDisplayDistance = 40
+		-- El nombre lo pinta el cliente (Controllers/NameTags: legible y sin pisar los bocadillos)
+		humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+		CollectionService:AddTag(model, "NamedActor")
 		humanoid.WalkSpeed = if kid then 11 else 9
 		humanoid.BreakJointsOnDeath = false
 		humanoid:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
