@@ -371,6 +371,7 @@ local remotes = {
 	Trade = remote(),
 	Fishing = remote(),
 	Metro = remote(),
+	Rail = remote(),
 	Bus = remote(),
 	Diving = remote(),
 	SeaEvent = remote(),
@@ -3746,6 +3747,239 @@ check(Fishing.spearable(Fishing.byId.Mero) and not Fishing.spearable(Fishing.byI
 Fishing.Dive.ShotGap = savedGap
 FishingService.isWater = realIsWater
 local _ = anaRoot
+end)()
+
+;(function()
+print("▶ Cercanías: billetes, tren en superficie, puertas, viajeros, pasos a nivel y vía")
+local Rail = loadModule(ROOT .. "/shared/Rail")
+local Items = loadModule(ROOT .. "/shared/Items")
+local R = remotes.Rail.OnServerEvent
+local L = Rail.Line
+local function rp(name, cf, tags, attrs, size)
+	local p = part(name, cf, tags, attrs)
+	p.Size = size or Vector3.new(4, 5, 2)
+	p.Parent = worldRoot
+	return p
+end
+check(Items.get(Rail.TicketItem) ~= nil, "el billete de Cercanías es un objeto de la mochila")
+-- Geometría compartida: la vía pasa por el centro de cada andén, en orden, y el andén queda a su lado
+do
+	local points, centers, length = Rail.path()
+	local inOrder, onTrack, sideOk = true, true, true
+	for i, id in L.Stations do
+		if i > 1 and centers[i] <= centers[i - 1] then
+			inOrder = false
+		end
+		if Rail.distance(Rail.center(id)) > 0.5 then
+			onTrack = false
+		end
+		local _, t = Rail.sample(points, centers[i])
+		local f = Rail.frame(id)
+		local side = Vector3.new(Rail.Stations[id].Side[1], 0, Rail.Stations[id].Side[2])
+		if math.abs(f.LookVector:Dot(t)) < 0.99 or f.RightVector:Dot(side) < 0.99 then
+			sideOk = false
+		end
+	end
+	check(inOrder and onTrack and centers[1] > Rail.halfTrain() and centers[#centers] < length - Rail.halfTrain(), "las estaciones están sobre la vía, en orden y con sitio para el tren entero")
+	check(sideOk, "el andén de cada estación queda a un lado de la vía, paralelo a ella")
+	local A = Rail.access("ValmarNorte")
+	check(#A.Route >= 4 and math.abs(A.Route[1].Y - Rail.WalkY) < 0.01 and math.abs(A.Route[#A.Route].Y - Rail.Deck) < 0.01, "de la acera (abajo) al andén (arriba) por la rampa")
+	local near = Rail.nearestStation(Rail.entrance("Levante") + Vector3.new(20, 0, 0))
+	check(near == "Levante", "la estación más cercana a una entrada es la suya")
+end
+-- Pasos a nivel: las barreras bajan antes de que llegue el tren y suben cuando ha pasado
+do
+	local T = Rail.travelTime(2000)
+	local leg = { Phase = "Move", From = 0, To = 2000, T0 = 0, Duration = T, Speed = Rail.Speed }
+	local function atS(target)
+		local lo, hi = 0, T
+		for _ = 1, 40 do
+			local mid = (lo + hi) / 2
+			if Rail.positionAt(leg, mid) < target then
+				lo = mid
+			else
+				hi = mid
+			end
+		end
+		return lo
+	end
+	check(not Rail.crossingClosed(leg, 1500, 0), "con el tren lejos, el paso a nivel está abierto")
+	check(Rail.crossingClosed(leg, 1500, atS(1000)), "el tren se acerca: se bajan las barreras")
+	check(Rail.crossingClosed(leg, 1500, atS(1500)), "mientras pasa el tren, cerrado")
+	check(not Rail.crossingClosed(leg, 1500, atS(1800)), "cuando el tren ha pasado, se abre")
+	check(not Rail.crossingClosed(leg, 2400, atS(1800)), "si el tren para antes (en el andén), no cierra el paso de después")
+	check(not Rail.crossingClosed({ Phase = "Dwell", S = 100, DwellEnd = 30 }, 400, 0), "con el tren parado lejos, abierto")
+end
+-- Estaciones (lo mínimo): botón de subir, sitio para bajar y panel; máquina en la primera
+local boards, displays = {}, {}
+for _, id in L.Stations do
+	local f = Rail.frame(id)
+	boards[id] = rp("RailBoard", f * CFrame.new(Rail.PlatformGap + 1.4, Rail.Deck + 2.5, 0), { "RailBoard" }, { Station = id, Line = L.Id })
+	rp("RailAlight", f * CFrame.new(Rail.PlatformGap + 5, Rail.Deck + 3, 8), { "RailAlight" }, { Station = id, Line = L.Id }, Vector3.new(2, 2, 2))
+	local display = rp("Departures", f * CFrame.new(9, Rail.Deck + 7, -30), { "RailDisplay" }, { Station = id, Line = L.Id })
+	local gui = fakeInstance("SurfaceGui")
+	gui.Parent = display
+	local label = fakeInstance("TextLabel")
+	label.Text = ""
+	label.Parent = gui
+	displays[id] = label
+end
+local first = L.Stations[1]
+local f1 = Rail.frame(first)
+local machine = rp("TicketMachine", f1 * CFrame.new(14, Rail.Deck + 2.8, -7), { "RailTicketMachine" }, { Station = first })
+-- Tren de 3 coches (un asiento y una puerta a cada lado en cada coche)
+local railPoints, centers = Rail.path()
+local base = Rail.sample(railPoints, centers[1])
+local trainModel = fakeInstance("Model")
+trainModel.Name = "Cercanias_C1"
+trainModel:SetAttribute("Line", L.Id)
+trainModel.Parent = worldRoot
+for k = 1, 3 do
+	local carModel = fakeInstance("Model")
+	carModel.Name = "Car" .. k
+	carModel.Parent = trainModel
+	local root = part("Root", CFrame.new(base), {})
+	root.Parent = carModel
+	local seat = fakeInstance("Seat")
+	seat.Name = "Seat"
+	seat.CFrame = CFrame.new(base)
+	seat.Parent = carModel
+	for _, x in { -4.4, 4.4 } do
+		local door = part("Door", CFrame.new(base + Vector3.new(x, 0, 0)), { "RailDoor" })
+		door.Parent = carModel
+	end
+end
+trainModel:AddTag("RailTrain")
+local RailService = loadModule(S .. "RailService")
+RailService.init()
+local train = RailService._trains[L.Id]
+check(train ~= nil and train.Phase == "Dwell" and train.Index == 1 and train.DoorsOpen, "el tren de Cercanías espera en " .. Rail.Stations[first].Name .. " con las puertas abiertas")
+local function doorsBySide(station)
+	local frame = Rail.frame(station)
+	local near, far, nearOpen, farClosed = 0, 0, true, true
+	for _, car in train.Cars do
+		local facing = if frame.RightVector:Dot(car.Root.CFrame.RightVector) >= 0 then 1 else -1
+		for _, door in car.Doors do
+			if (door:GetAttribute("Side") or 0) * facing > 0 then
+				near += 1
+				nearOpen = nearOpen and door.Transparency == 1 and door.CanCollide == false
+			else
+				far += 1
+				farClosed = farClosed and door.Transparency == 0 and door.CanCollide ~= false
+			end
+		end
+	end
+	return near > 0 and nearOpen, far > 0 and farClosed
+end
+do
+	local nearOpen, farClosed = doorsBySide(first)
+	check(nearOpen and farClosed, "solo se abren las puertas del lado del andén")
+end
+-- Billete
+local rider, riderRoot, riderHumanoid = newPlayer(981, "Adulto", 100)
+profiles[rider].Items = {}
+InventoryService.refresh(rider)
+moveTo(riderRoot, boards[first].Position + Vector3.new(0, -2, 0))
+promptOf(boards[first], "Subir al tren").Triggered:Fire(rider)
+check(RailService._riding[rider] == nil and notified(rider, "Necesitas un billete de Cercanías"), "sin billete no se sube al tren")
+moveTo(riderRoot, machine.Position)
+promptOf(machine, "Comprar billete").Triggered:Fire(rider)
+check(lastMessage(rider, "Tickets") ~= nil, "la máquina roja enseña los billetes")
+R:Fire(rider, "BuyTicket", "Sencillo")
+check(profiles[rider].Money == 97 and InventoryService.count(rider, Rail.TicketItem) == 1, "compra un billete de Cercanías")
+do
+	local far = newPlayer(985, "Adulto", 100)
+	R:Fire(far, "BuyTicket", "Sencillo")
+	check(profiles[far].Money == 100, "lejos de la máquina no se puede comprar")
+end
+-- Subir y viajar
+moveTo(riderRoot, boards[first].Position + Vector3.new(0, -2, 0))
+promptOf(boards[first], "Subir al tren").Triggered:Fire(rider)
+check(riderHumanoid.SeatPart ~= nil and RailService._riding[rider] == train and lastMessage(rider, "Board") ~= nil, "sube al tren y se sienta")
+check(InventoryService.count(rider, Rail.TicketItem) == 0, "al subir se gasta el billete")
+RailService._updateDisplays()
+check(string.find(displays[first].Text, "EN ANDÉN", 1, true) ~= nil and string.find(displays[L.Stations[2]].Text, "C1", 1, true) ~= nil, "los paneles de salidas: en andén aquí, y cuándo llega en las demás")
+local etaNext, toward = Rail.eta(train, 2)
+local waited, guard = 0, 0
+while not (train.Index == 2 and train.Phase == "Dwell") and guard < 4000 do
+	guard += 1
+	waited += 0.5
+	RailService._step(train, 0.5)
+end
+check(math.abs(waited - etaNext) <= 1.5 and toward == #L.Stations, ("el panel acierta cuándo llega el tren (%.1f s dicho, %.1f s de verdad)"):format(etaNext, waited))
+local arrived = lastMessage(rider, "Arrive")
+local second = L.Stations[2]
+check(arrived ~= nil and arrived[2].Station == Rail.Stations[second].Name, "el tren llega a " .. Rail.Stations[second].Name .. " y te avisa")
+local mid = train.Cars[2].Root.Position
+local c2 = Rail.center(second)
+check((Vector3.new(mid.X, 0, mid.Z) - Vector3.new(c2.X, 0, c2.Z)).Magnitude < 1 and math.abs(mid.Y - Rail.Deck) < 1, "el tren para con el centro en el andén, a su altura")
+do
+	local nearOpen, farClosed = doorsBySide(second)
+	check(nearOpen and farClosed, "en cada estación, puertas abiertas solo del lado del andén")
+end
+-- Un niño sube gratis
+local kid, kidRoot = newPlayer(983, "Nino", 0)
+moveTo(kidRoot, boards[second].Position + Vector3.new(0, -2, 0))
+promptOf(boards[second], "Subir al tren").Triggered:Fire(kid)
+check(RailService._riding[kid] == train, "los niños viajan gratis")
+-- Bajar
+R:Fire(rider, "Alight")
+task.wait()
+local alightSpot = nil
+for _, a in services.CollectionService:GetTagged("RailAlight") do
+	if a:GetAttribute("Station") == second then
+		alightSpot = a
+	end
+end
+check(RailService._riding[rider] == nil and lastMessage(rider, "Off") ~= nil, "bajas del tren en " .. Rail.Stations[second].Name)
+check(alightSpot ~= nil and (riderRoot.Position - alightSpot.Position).Magnitude < 1, "…y apareces en el andén")
+-- Colarse andando sin billete: multa del revisor
+local walker, walkerRoot = newPlayer(982, "Adolescente", 50)
+profiles[walker].Items = {}
+InventoryService.refresh(walker)
+moveTo(walkerRoot, train.Cars[3].Root.Position)
+RailService._step(train, train.Timer + 0.1)
+check(train.Phase == "Move" and RailService._riding[walker] == train, "quien entra andando viaja al cerrarse las puertas")
+check(profiles[walker].Money == 50 - Rail.Fine and notified(walker, "multa"), "sin billete, el revisor le pone una multa")
+check(train.Cars[1].Doors[1].Transparency == 0 and train.Cars[1].Doors[2].Transparency == 0, "el tren cierra todas las puertas y sigue")
+-- Nadie en la vía delante del tren
+do
+	local dir = if train.To >= train.From then 1 else -1
+	local ahead = Rail.sample(railPoints, train.S + dir * (Rail.halfTrain() + 15))
+	local behind = Rail.sample(railPoints, train.S - dir * 400)
+	local victim, victimRoot = newPlayer(984, "Adulto", 10)
+	local bystander, bystanderRoot = newPlayer(986, "Adulto", 10)
+	moveTo(victimRoot, Vector3.new(ahead.X, 0.6, ahead.Z))
+	moveTo(bystanderRoot, Vector3.new(behind.X, 0.6, behind.Z))
+	RailService._guardTracks()
+	local d = Rail.distance(victimRoot.Position)
+	check(d > Rail.CarWidth / 2 + 2 and notified(victim, "Cuidado con el tren"), "quien está en la vía delante del tren se aparta (con un aviso)")
+	check((bystanderRoot.Position - Vector3.new(behind.X, 3.6, behind.Z)).Magnitude < 0.5 and not notified(bystander, "Cuidado"), "lejos del tren, nadie te mueve")
+	check(RailService._riding[walker] == train, "a quien va dentro del tren no se le aparta")
+end
+-- Un viajero que sale del tren con el tren parado ha bajado
+guard = 0
+while train.Phase ~= "Dwell" and guard < 4000 do
+	guard += 1
+	RailService._step(train, 0.5)
+end
+moveTo(walkerRoot, Rail.center(L.Stations[train.Index]) + Vector3.new(0, 20, 0))
+RailService._checkPassengers()
+check(RailService._riding[walker] == nil, "si sales por la puerta con el tren parado, has bajado")
+-- De punta a punta y vuelta
+guard = 0
+local reachedEnd = false
+while guard < 20000 do
+	guard += 1
+	RailService._step(train, 0.5)
+	if train.Phase == "Dwell" and train.Index == #L.Stations then
+		reachedEnd = true
+	end
+	if reachedEnd and train.Phase == "Move" then
+		break
+	end
+end
+check(reachedEnd and train.Dir == -1 and train.Index == #L.Stations - 1, "el tren llega a " .. Rail.Stations[L.Stations[#L.Stations]].Name .. " y da la vuelta")
 end)()
 
 ;(function()

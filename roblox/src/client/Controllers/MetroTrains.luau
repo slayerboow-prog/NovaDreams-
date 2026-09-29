@@ -8,6 +8,8 @@
 --   * Megafonía: gong, voz ("Próxima estación: …", "Las puertas van a cerrarse") y subtítulo.
 --   * Sonido del tren en marcha (si hay ID en Config.Sounds.MetroTren) y pitido de las puertas.
 --   * De noche, las luces de las estaciones bajan un poco (tag MetroLamp).
+--   * El tren de Cercanías (Shared/Rail, tag RailTrain, estado en ReplicatedStorage.RailState) se mueve
+--     igual: mismas cuentas, y también te lleva si vas de pie.
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
@@ -15,16 +17,17 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Metro = require(ReplicatedStorage.Shared.Metro)
+local Rail = require(ReplicatedStorage.Shared.Rail)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local SoundFx = require(script.Parent.SoundFx)
 
 local MetroTrains = {}
 
 local player = Players.LocalPlayer
-local STEP = Metro.CarLength + Metro.CarGap
 local ACTIVE_RANGE = 900 -- solo se mueven los trenes que tienes a esta distancia (o en los que vas)
 
-type LineData = { Line: Metro.Line, Points: { Vector3 }, Centers: { number }, State: Instance? }
+-- Root: carpeta de ReplicatedStorage con el estado; Cars y Step: coches del tren y distancia entre ellos
+type LineData = { Line: { Id: string }, Points: { Vector3 }, Centers: { number }, State: Instance?, Root: string, Cars: number, Step: number }
 local lines: { [string]: LineData } = {}
 local cars: { [string]: { [number]: BasePart } } = {} -- línea -> coche -> Root
 local lastCF: { [BasePart]: CFrame } = {}
@@ -47,7 +50,7 @@ end
 local function stateOf(data: LineData): { [string]: any }?
 	local f = data.State
 	if not f then
-		local root = ReplicatedStorage:FindFirstChild("MetroState")
+		local root = ReplicatedStorage:FindFirstChild(data.Root)
 		f = root and root:FindFirstChild(data.Line.Id)
 		data.State = f
 	end
@@ -71,7 +74,7 @@ end
 
 -- Dónde va cada coche (el mismo cálculo que MetroService.placeTrain)
 local function carCFrame(data: LineData, s: number, k: number, count: number): CFrame
-	local offset = (k - (count + 1) / 2) * STEP
+	local offset = (k - (count + 1) / 2) * data.Step
 	local p, t = Metro.sample(data.Points, s - offset)
 	return CFrame.lookAt(p, p + t) * CFrame.new(0, -0.3, 0)
 end
@@ -81,9 +84,10 @@ local function collectTrain(model: Instance)
 	if typeof(lineId) ~= "string" then
 		return
 	end
+	local data = lines[lineId]
 	local list = cars[lineId] or {}
 	cars[lineId] = list
-	for k = 1, Metro.Cars do
+	for k = 1, if data then data.Cars else Metro.Cars do
 		local car = model:FindFirstChild("Car" .. k)
 		local root = car and car:FindFirstChild("Root")
 		if root and root:IsA("BasePart") then
@@ -93,8 +97,10 @@ local function collectTrain(model: Instance)
 end
 
 local function refreshTrains()
-	for _, model in CollectionService:GetTagged("MetroTrain") do
-		collectTrain(model)
+	for _, tag in { "MetroTrain", "RailTrain" } do
+		for _, model in CollectionService:GetTagged(tag) do
+			collectTrain(model)
+		end
 	end
 end
 
@@ -141,13 +147,13 @@ local function update()
 		local state = stateOf(data)
 		if list and state then
 			local s = Metro.positionAt(state, t)
-			local mid = list[math.ceil(Metro.Cars / 2)] or list[1]
+			local mid = list[math.ceil(data.Cars / 2)] or list[1]
 			local near = mid ~= nil and (mid.Position - eye).Magnitude < ACTIVE_RANGE
 			if near or (under ~= nil and table.find(list, under) ~= nil) then
 				for k, carRoot in list do
 					if carRoot.Parent then
 						table.insert(parts, carRoot)
-						table.insert(cframes, carCFrame(data, s, k, Metro.Cars))
+						table.insert(cframes, carCFrame(data, s, k, data.Cars))
 					end
 				end
 			end
@@ -271,10 +277,15 @@ end
 function MetroTrains.init()
 	for _, line in Metro.Lines do
 		local points, centers = Metro.path(line)
-		lines[line.Id] = { Line = line, Points = points, Centers = centers, State = nil }
+		lines[line.Id] = { Line = line, Points = points, Centers = centers, State = nil, Root = "MetroState", Cars = Metro.Cars, Step = Metro.CarLength + Metro.CarGap }
+	end
+	do
+		local points, centers = Rail.path()
+		lines[Rail.Line.Id] = { Line = Rail.Line, Points = points, Centers = centers, State = nil, Root = "RailState", Cars = Rail.Cars, Step = Rail.CarLength + Rail.CarGap }
 	end
 	refreshTrains()
 	CollectionService:GetInstanceAddedSignal("MetroTrain"):Connect(collectTrain)
+	CollectionService:GetInstanceAddedSignal("RailTrain"):Connect(collectTrain)
 	CollectionService:GetInstanceAddedSignal("MetroLamp"):Connect(lampLevel)
 	-- (con la carga por zonas los coches llegan poco a poco: se vuelven a buscar de vez en cuando)
 	task.spawn(function()
@@ -308,8 +319,8 @@ function MetroTrains.init()
 		Parent = gui,
 	})
 
-	local Remote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Metro") :: RemoteEvent
-	Remote.OnClientEvent:Connect(function(action, data)
+	-- Megafonía, puertas y sonidos del viaje: los mismos para el metro y para Cercanías
+	local function onRemote(action: any, data: any)
 		if action == "Announce" then
 			onAnnounce(data)
 		elseif action == "Doors" then
@@ -335,7 +346,14 @@ function MetroTrains.init()
 		elseif action == "Arrive" then
 			SoundFx.play("MetroFreno")
 		end
-	end)
+	end
+	local remotes = ReplicatedStorage:WaitForChild("Remotes")
+	local Remote = remotes:WaitForChild("Metro") :: RemoteEvent
+	Remote.OnClientEvent:Connect(onRemote)
+	local railRemote = remotes:FindFirstChild("Rail")
+	if railRemote and railRemote:IsA("RemoteEvent") then
+		railRemote.OnClientEvent:Connect(onRemote)
+	end
 
 	-- Antes de pintar (para que se vea fluido aunque llegue la posición del servidor) y antes de la
 	-- física (para que el coche te lleve). Moverlo dos veces no duplica nada: cada vez solo se aplica

@@ -125,9 +125,12 @@ function MetroKit.weldCar(model: Model, root: BasePart)
 	end
 end
 
-local function car(parent: Instance, cf: CFrame, line: Metro.Line, index: number, count: number): Model
+-- style (opcional, para el tren de Cercanías: RailKit): Length, Gap, DoorTag, SeatTag, Icon,
+-- StationNames (los nombres de la línea) y Ads. Sin style, el coche del metro de siempre.
+function MetroKit.car(parent: Instance, cf: CFrame, line: { Id: string, Name: string, Color: Color3, Stations: { string } }, index: number, count: number, style: { [string]: any }?): Model
+	local opts = style or {}
 	local m = Builder.model("Car" .. index, parent)
-	local L, W, H = Metro.CarLength, 9, 10
+	local L, W, H = opts.Length or Metro.CarLength, 9, 10
 	local function at(x: number, y: number, z: number): CFrame
 		return cf * CFrame.new(x, y, z)
 	end
@@ -159,7 +162,7 @@ local function car(parent: Instance, cf: CFrame, line: Metro.Line, index: number
 		decor(m, "Stripe", Vector3.new(0.35, 0.7, L), at(x, 3.6, 0), line.Color, Enum.Material.SmoothPlastic)
 		-- Puertas (MetroService las abre y las cierra)
 		for _, dz in doorsZ do
-			part(m, "Door", Vector3.new(0.25, 7.2, 4.4), at(x, 3.6, dz), rgb(210, 214, 220), Enum.Material.Metal, { Tags = { "MetroDoor" } })
+			part(m, "Door", Vector3.new(0.25, 7.2, 4.4), at(x, 3.6, dz), rgb(210, 214, 220), Enum.Material.Metal, { Tags = { opts.DoorTag or "MetroDoor" } })
 			decor(m, "DoorLight", Vector3.new(0.3, 0.3, 0.6), at(x + side * 0.1, 7.6, dz - 2.6), rgb(255, 180, 40), Enum.Material.Neon)
 		end
 	end
@@ -177,7 +180,7 @@ local function car(parent: Instance, cf: CFrame, line: Metro.Line, index: number
 			part(m, "EndTop", Vector3.new(GW, 2.4, 0.3), at(0, H - 1.2, z), WHITE)
 			decor(m, "GangwaySign", Vector3.new(GW - 0.4, 0.5, 0.1), at(0, H - 2.7, z - math.sign(z) * 0.2), rgb(30, 150, 70), Enum.Material.Neon, { Transparency = 0.2 })
 			-- Fuelle y suelo del paso (hasta la mitad del hueco con el coche de al lado)
-			local reach = Metro.CarGap / 2 + 0.3
+			local reach = (opts.Gap or Metro.CarGap) / 2 + 0.3
 			local zc = z + math.sign(z) * reach / 2
 			part(m, "GangwayFloor", Vector3.new(GW, 0.6, reach), at(0, -0.3, zc), rgb(80, 82, 88), Enum.Material.DiamondPlate)
 			for _, x in { -GW / 2 - 0.15, GW / 2 + 0.15 } do
@@ -189,10 +192,10 @@ local function car(parent: Instance, cf: CFrame, line: Metro.Line, index: number
 	-- Pantallas de información, publicidad, cámara, papeleras y panel de emergencia
 	for _, z in { -L / 4, L / 4 } do
 		local screen = decor(m, "InfoScreen", Vector3.new(2.6, 0.9, 0.12), at(0, H - 1.3, z + 3.2), DARK)
-		Builder.sign(screen, "🚇 " .. line.Name .. " · próxima estación en pantalla", Enum.NormalId.Front, rgb(255, 210, 60), DARK)
-		Builder.sign(screen, "🚇 " .. line.Name, Enum.NormalId.Back, rgb(255, 210, 60), DARK)
+		Builder.sign(screen, (opts.Icon or "🚇") .. " " .. line.Name .. " · próxima estación en pantalla", Enum.NormalId.Front, rgb(255, 210, 60), DARK)
+		Builder.sign(screen, (opts.Icon or "🚇") .. " " .. line.Name, Enum.NormalId.Back, rgb(255, 210, 60), DARK)
 	end
-	local ADS = { "¡Ven a la galería de Plaza Mayor!", "Cursos en el Campus Valmar", "Playa Dorada: tu verano", "Abono mensual: viaja sin límites", "Hospital de Valmar: cuídate" }
+	local ADS = opts.Ads or { "¡Ven a la galería de Plaza Mayor!", "Cursos en el Campus Valmar", "Playa Dorada: tu verano", "Abono mensual: viaja sin límites", "Hospital de Valmar: cuídate" }
 	for _, side in { -1, 1 } do
 		local ad = decor(m, "AdPanel", Vector3.new(0.1, 1.1, 5), at(side * (W / 2 - 0.35), H - 2.2, -L / 2 + 6) * CFrame.Angles(0, if side > 0 then math.rad(90) else math.rad(-90), 0), rgb(245, 245, 245))
 		Builder.sign(ad, ADS[(index + side + 5) % #ADS + 1], Enum.NormalId.Front, DARK, rgb(245, 245, 245))
@@ -223,7 +226,10 @@ local function car(parent: Instance, cf: CFrame, line: Metro.Line, index: number
 			seat.Color = line.Color
 			seat.Material = Enum.Material.Fabric
 			seat.Anchored = true
-			seat:AddTag("MetroSeat")
+			seat:AddTag("MetroSeat") -- (RidePose y RideCamera: postura y cámara de viajero)
+			if opts.SeatTag then
+				seat:AddTag(opts.SeatTag)
+			end
 			seat.Parent = m
 			decor(m, "SeatBack", Vector3.new(0.4, 2.2, 3.2), at(side * (W / 2 - 0.5), 2.6, z), line.Color:Lerp(DARK, 0.3), Enum.Material.Fabric)
 		end
@@ -239,7 +245,7 @@ local function car(parent: Instance, cf: CFrame, line: Metro.Line, index: number
 	light.Brightness = 1.2
 	light.Parent = strip
 	for _, side in { -1, 1 } do
-		signBoard(m, at(side * (W / 2 - 0.35), 8.2, 0) * CFrame.Angles(0, if side > 0 then math.rad(90) else math.rad(-90), 0), Vector3.new(10, 0.8, 0.1), line.Name .. " · " .. table.concat((function()
+		signBoard(m, at(side * (W / 2 - 0.35), 8.2, 0) * CFrame.Angles(0, if side > 0 then math.rad(90) else math.rad(-90), 0), Vector3.new(10, 0.8, 0.1), line.Name .. " · " .. table.concat(opts.StationNames or (function()
 			local names = {}
 			for _, id in line.Stations do
 				table.insert(names, Metro.Stations[id].Name)
@@ -267,7 +273,7 @@ function MetroKit.train(parent: Instance, line: Metro.Line): Model
 	for k = 1, Metro.Cars do
 		local offset = (k - (Metro.Cars + 1) / 2) * step
 		local p, t = Metro.sample(points, centers[1] - offset)
-		car(m, Builder.facing(p, t), line, k, Metro.Cars)
+		MetroKit.car(m, Builder.facing(p, t), line, k, Metro.Cars)
 	end
 	return m
 end

@@ -689,6 +689,9 @@ function TownBuilder.build(): Folder
 	-- Paradas de las líneas de autobús urbano (marquesinas, postes y paneles): también al final y
 	-- sin azar; se corren por la acera si hay una farola o un árbol, y despejan su carril
 	require(Kit.BusStops).build(world)
+	-- Tren de Cercanías (vía por el campo, pasos a nivel, estaciones y el tren): también al final y sin
+	-- azar; antes de montarlo quita los árboles y farolas que hayan quedado encima de la vía
+	require(Kit.RailKit).build(world)
 	-- Detalles de la calle que han quedado encima de otra cosa (paradas, bancos, portales…): fuera
 	require(Kit.StreetDetail).prune(world)
 	-- Plantas bajas bien decoradas y con sitio para su gente; tiendas vacías cerradas (Kit/Decor)
