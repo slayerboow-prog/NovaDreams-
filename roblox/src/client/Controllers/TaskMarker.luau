@@ -1,6 +1,7 @@
 -- TaskMarker: dibuja una línea (Beam) desde tu personaje hasta el objetivo del trabajo
 -- y un marcador flotante con la distancia. Solo lo ve el jugador local.
--- Si no estás trabajando, guía hacia el siguiente paso de tu historia de vida (StoryTarget).
+-- Si no estás trabajando, guía hacia tu encargo de la ciudad (CityErrandTarget) o, si no tienes,
+-- hacia el siguiente paso de tu historia de vida (StoryTarget).
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -92,6 +93,9 @@ local function update()
 	end
 	local target = player:GetAttribute("TaskTarget")
 	if typeof(target) ~= "Vector3" then
+		target = player:GetAttribute("CityErrandTarget") -- (el encargo de la ciudad que has aceptado)
+	end
+	if typeof(target) ~= "Vector3" then
 		target = player:GetAttribute("StoryTarget")
 	end
 	if typeof(target) ~= "Vector3" then
@@ -115,6 +119,7 @@ function TaskMarker.init()
 	build()
 	player:GetAttributeChangedSignal("TaskTarget"):Connect(update)
 	player:GetAttributeChangedSignal("StoryTarget"):Connect(update)
+	player:GetAttributeChangedSignal("CityErrandTarget"):Connect(update)
 	update()
 
 	RunService.RenderStepped:Connect(function()

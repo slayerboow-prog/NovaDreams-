@@ -27,6 +27,7 @@ local Icons = require(script.Parent.Parent.UI.Icons)
 local HudLayout = require(script.Parent.Parent.UI.HudLayout)
 local Gps = require(script.Parent.Gps)
 local CanonMarkers = require(script.Parent.CanonMarkers)
+local CityErrands = require(script.Parent.CityErrands)
 
 local create = Theme.create
 local C = Theme.Colors
@@ -610,8 +611,11 @@ local function updateLayer(layer: Layer, root: BasePart?, clampTo: number?)
 		layer.Me.Visible = false
 	end
 
-	-- Objetivo de la historia o del trabajo (el mismo que marca el haz de luz)
+	-- Objetivo del trabajo, del encargo o de la historia (el mismo que marca el haz de luz)
 	local target = player:GetAttribute("TaskTarget")
+	if typeof(target) ~= "Vector3" then
+		target = player:GetAttribute("CityErrandTarget")
+	end
 	if typeof(target) ~= "Vector3" then
 		target = player:GetAttribute("StoryTarget")
 	end
@@ -619,12 +623,20 @@ local function updateLayer(layer: Layer, root: BasePart?, clampTo: number?)
 	place(layer, layer.Waypoint, if waypoint then waypoint.Position else nil, root, clampTo)
 
 	-- Misiones canónicas pendientes: un ❗ dorado donde empiezan (siempre, hasta que las haces)
+	-- y los encargos de la ciudad que tienes cerca: un ! azul, más pequeño (Controllers/CityErrands)
 	local seenCanon = {}
+	local marks = {}
 	for _, mark in CanonMarkers.list() do
+		table.insert(marks, { Id = mark.Id, X = mark.X, Z = mark.Z, Errand = false })
+	end
+	for _, mark in CityErrands.list() do
+		table.insert(marks, { Id = "Encargo:" .. mark.Id, X = mark.X, Z = mark.Z, Errand = true })
+	end
+	for _, mark in marks do
 		seenCanon[mark.Id] = true
 		local label = layer.Canon[mark.Id]
 		if not label then
-			label = marker(layer, "❗", Color3.fromRGB(255, 200, 60), 18, 5)
+			label = if mark.Errand then marker(layer, "!", Color3.fromRGB(80, 210, 255), 15, 5) else marker(layer, "❗", Color3.fromRGB(255, 200, 60), 18, 5)
 			layer.Canon[mark.Id] = label
 		end
 		local p = toPixel(layer, mark.X, mark.Z)

@@ -1752,6 +1752,30 @@ local function canOffer(player: Player, data: Data, questId: string): boolean
 	return (Conditions.check(quest.Requires, contextFor(player, data)))
 end
 
+-- ¿Hay algo de la historia que impida que alguien de la calle te pida un favor ahora mismo? (los
+-- encargos de la ciudad, CityErrandService). Las mismas reglas que las secundarias: nada en mitad de
+-- una conversación, una escena, una clase o un minijuego, ni con una propuesta de la historia en
+-- pantalla, ni en el prólogo; y en horario de cole, si sigues una misión principal, tampoco (toca
+-- el cole). Devuelve el motivo ("Busy" o "Story") o nil si no hay nada.
+function LifeStoryService.errandBlock(player: Player): string?
+	local rt = runtime[player]
+	if busy(player) or held(player) or player:GetAttribute("InDialogue") or player:GetAttribute("InPrologue") then
+		return "Busy"
+	end
+	if rt and rt.PendingOffer then
+		return "Busy"
+	end
+	local data = DataService.get(player)
+	if data and Schedules.isSchoolTime(GameClock.now().ClockTime) then
+		local id = trackedQuest(data)
+		local quest = id and Quests[id]
+		if quest and quest.Kind == "Main" then
+			return "Story"
+		end
+	end
+	return nil
+end
+
 local function offer(player: Player, questId: string)
 	local rt = runtime[player]
 	local quest = Quests[questId]

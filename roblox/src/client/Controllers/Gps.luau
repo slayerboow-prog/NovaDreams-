@@ -2,7 +2,8 @@
 --
 --   * Destino: el sitio que marques en el mapa grande (un lugar de la lista o mantén pulsado en el
 --     mapa: "Ir aquí"), "Ruta a casa" del menú rápido o, si no, el objetivo de tu misión o de tu
---     trabajo (los atributos TaskTarget / StoryTarget, los mismos que usa el haz de luz).
+--     trabajo o del encargo de la ciudad que hayas aceptado (los atributos TaskTarget /
+--     CityErrandTarget / StoryTarget, los mismos que usa el haz de luz).
 --   * La ruta va por las calles (shared/Gps: grafo de las calles que publica el servidor en
 --     ReplicatedStorage.Ambient.Roads y A*). Se calcula al cambiar el destino o si te sales más de
 --     25 studs; bajo tierra (metro) o sin calles, una línea recta.
@@ -106,6 +107,10 @@ local function currentDestination(): Destination?
 	end
 	local target = player:GetAttribute("TaskTarget")
 	local name = "Tu trabajo"
+	if typeof(target) ~= "Vector3" then
+		target = player:GetAttribute("CityErrandTarget")
+		name = "Tu encargo"
+	end
 	if typeof(target) ~= "Vector3" then
 		target = player:GetAttribute("StoryTarget")
 		name = "Tu misión"
@@ -409,7 +414,7 @@ function Gps.init()
 	buildBanner()
 	Hud.addButton("🧭 Ruta a casa", rgb(20, 150, 140), 1.5, Gps.routeHome)
 	task.spawn(loadRoads)
-	for _, attribute in { "TaskTarget", "StoryTarget" } do
+	for _, attribute in { "TaskTarget", "CityErrandTarget", "StoryTarget" } do
 		player:GetAttributeChangedSignal(attribute):Connect(function()
 			route = nil
 		end)
