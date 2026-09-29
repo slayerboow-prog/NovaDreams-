@@ -599,6 +599,10 @@ function PoliceService.quit(player: Player, silent: boolean?)
 	if shift.Uniform then
 		shift.Uniform:Destroy()
 	end
+	-- El coche patrulla es de la comisaría: si va en él, se baja (y el coche se retira)
+	if VehicleService.ridingKind(player) == "Patrulla" then
+		VehicleService.dismount(player, true)
+	end
 	RoleService.offDuty(player, "Policia")
 	if player:GetAttribute("Job") == "Policia" then
 		player:SetAttribute("Job", nil)
@@ -651,7 +655,10 @@ local function setupStation(model: Instance)
 		p:SetAttribute("JobOnly", "Policia")
 		p.Parent = patrol
 		p.Triggered:Connect(function(player)
-			if shifts[player] and not VehicleService.mount(player, "Patrulla", { Rented = true }) then
+			if not shifts[player] or not VehicleService.spawnAllowed(player) then
+				return -- (sin pulsar en ráfaga: cada coche se construye entero en el servidor)
+			end
+			if not VehicleService.mount(player, "Patrulla", { Rented = true }) then
 				Notify:FireClient(player, "Info", "Ahora no puedes coger el coche patrulla.")
 			end
 		end)

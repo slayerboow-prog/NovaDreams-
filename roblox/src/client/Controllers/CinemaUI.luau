@@ -10,6 +10,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Theme = require(script.Parent.Parent.UI.Theme)
+local HudLayout = require(script.Parent.Parent.UI.HudLayout)
 local Dialog = require(script.Parent.Parent.UI.Dialog)
 local Format = require(ReplicatedStorage.Shared.Format)
 local Cinema = require(ReplicatedStorage.Shared.Cinema)
@@ -268,6 +269,8 @@ function CinemaUI.init()
 		Visible = false,
 		Parent = gui,
 	})
+	-- En el móvil va a la izquierda para no quedar bajo los botones táctiles.
+	HudLayout.jobPanel(panel)
 	Theme.padding(8).Parent = panel
 	Theme.label({ Size = UDim2.new(1, 0, 0, 22), Text = "🎟️ Taquilla · pedidos", Font = Theme.FontBold, TextSize = 16, Parent = panel })
 	list = create("Frame", { Position = UDim2.fromOffset(0, 26), Size = UDim2.new(1, 0, 1, -26), BackgroundTransparency = 1, Parent = panel })

@@ -25,13 +25,38 @@ local function root(): ScreenGui
 		local scale = create("UIScale", { Parent = g })
 		local camera = workspace.CurrentCamera
 		local function rescale()
-			scale.Scale = math.clamp(camera.ViewportSize.Y / 850, 0.65, 1.25)
+			-- Suelo bajo (0.4): en móviles pequeños la escala base no debe dejar la ventana fuera.
+			scale.Scale = math.clamp(camera.ViewportSize.Y / 850, 0.4, 1.25)
+			-- Cada ventana grande se encoge un poco más si aún no cabe.
+			for _, child in g:GetChildren() do
+				local fit = child:FindFirstChild("FitScale")
+				if fit then
+					Dialog._fit(child :: Frame)
+				end
+			end
 		end
+		gui = g
 		camera:GetPropertyChangedSignal("ViewportSize"):Connect(rescale)
 		rescale()
-		gui = g
 	end
 	return gui :: ScreenGui
+end
+
+-- Encoge una ventana para que quepa entera en pantalla: alto menos la barra de Roblox (~60)
+-- y ancho con un margen de 12 a cada lado. Así el ✖ nunca queda debajo de la barra superior.
+function Dialog._fit(window: Frame)
+	local g = gui
+	local fit = window:FindFirstChild("FitScale") :: UIScale?
+	if not g or not fit then
+		return
+	end
+	local viewport = workspace.CurrentCamera.ViewportSize
+	local base = (g:FindFirstChildOfClass("UIScale") :: UIScale).Scale
+	local size = window.Size
+	local w, h = math.max(size.X.Offset, 1), math.max(size.Y.Offset, 1)
+	local want = math.min((viewport.Y - 60) / h, (viewport.X - 24) / w)
+	-- UIScale se multiplica con la del ScreenGui: solo reducimos, nunca agrandamos.
+	fit.Scale = math.clamp(want / base, 0.3, 1)
 end
 
 -- Ventana centrada con título y ✖. Devuelve (ventana, contenido, botón cerrar).
@@ -48,6 +73,12 @@ function Dialog.window(name: string, title: string, size: Vector2): (Frame, Fram
 		BackgroundTransparency = 0.05,
 		Parent = root(),
 	})
+	create("UIScale", { Name = "FitScale", Parent = window })
+	Dialog._fit(window)
+	-- Algunas ventanas cambian de alto después (listas); se reajusta al vuelo.
+	window:GetPropertyChangedSignal("Size"):Connect(function()
+		Dialog._fit(window)
+	end)
 	Theme.label({
 		Name = "Title",
 		Size = UDim2.new(1, -60, 0, 40),

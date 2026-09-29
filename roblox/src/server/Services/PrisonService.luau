@@ -112,9 +112,9 @@ ACTIONS.Economato = function(player)
 	end
 	if DataService.spend(player, 10) then
 		NeedsService.change(player, 25, 10)
-		say(player, "Success", "🛒 Economato: bocadillo y refresco ($10).")
+		say(player, "Success", "🛒 Economato: bocadillo y refresco (10 €).")
 	else
-		say(player, "Error", "No tienes $10. Trabaja en los talleres para ganar peculio.")
+		say(player, "Error", "No tienes 10 €. Trabaja en los talleres para ganar peculio.")
 	end
 end
 

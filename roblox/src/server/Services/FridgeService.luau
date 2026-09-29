@@ -168,7 +168,11 @@ function FridgeService.takeOut(player: Player, id: string): boolean
 		return false
 	end
 	local stock = ctx.Owner and ctx.Key and FridgeService.stock(ctx.Owner, ctx.Key)
-	if not stock or (stock[id] or 0) <= 0 or not InventoryService.canAdd(player, id, 1) then
+	if not stock or (stock[id] or 0) <= 0 then
+		return false
+	end
+	if not InventoryService.canAdd(player, id, 1) then
+		Notify:FireClient(player, "Error", "🎒 No te cabe en la mochila.")
 		return false
 	end
 	Fridge.take(stock, id)

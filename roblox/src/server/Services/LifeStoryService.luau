@@ -417,7 +417,24 @@ local function applyEffects(player: Player, data: Data, effects: { [string]: any
 		LifeStoryService.addAffinity(player, entry.Npc, 1)
 	end
 	for id, count in effects.Items or {} do
-		InventoryService.add(player, id, count)
+		if not InventoryService.add(player, id, count) then
+			-- Mochila llena: se avisa y se guarda hasta que hagas hueco (antes el regalo se perdía)
+			pcall(function()
+				local notify = ReplicatedStorage.Remotes:FindFirstChild("Notify") :: RemoteEvent?
+				local item = require(ReplicatedStorage.Shared.Items).get(id)
+				if notify then
+					notify:FireClient(player, "Error", ("🎒 No te cabe «%s» en la mochila. Haz hueco y te llegará."):format(item and item.Name or id))
+				end
+			end)
+			task.spawn(function()
+				for _ = 1, 60 do
+					task.wait(5)
+					if not player.Parent or InventoryService.add(player, id, count) then
+						return
+					end
+				end
+			end)
+		end
 	end
 	for id, count in effects.Take or {} do
 		InventoryService.remove(player, id, math.min(count, InventoryService.count(player, id)))
@@ -1188,7 +1205,7 @@ local function enterStep(player: Player, data: Data, questId: string)
 			local duration = CinematicService.play(player, step.Id)
 			local index = prog.Step
 			-- (sigue cuando el jugador la termina o la salta; si su pantalla no avisa, al cabo de un rato)
-			CinematicService.waitFor(player, step.Id, duration + 20, function()
+			CinematicService.waitFor(player, step.Id, duration, function()
 				local current = DataService.get(player)
 				local now = current and storyOf(current).Active[questId]
 				if now and now.Step == index then
@@ -2955,9 +2972,13 @@ local function onRemote(player: Player, kind: any, questId: any, value: any)
 		return
 	end
 	local story = storyOf(data)
-	if kind == "CinematicDone" then
-		if type(questId) == "string" then
-			CinematicService.clientDone(player, questId)
+	if kind == "CinematicDone" or kind == "CinematicSeen" then
+		if type(questId) == "string" and #questId < 80 then
+			if kind == "CinematicDone" then
+				CinematicService.clientDone(player, questId)
+			else
+				CinematicService.clientSeen(player, questId)
+			end
 		end
 		return
 	end

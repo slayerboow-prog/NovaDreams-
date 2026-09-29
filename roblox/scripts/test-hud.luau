@@ -6,7 +6,7 @@
 -- Monta el HUD (UI/Hud), el menú de comandos (Commands/CommandMenu), los botones táctiles
 -- (UI/TouchLayout) y el joystick (Controllers/Joystick) con un Roblox de mentira en el que cada
 -- propiedad que se escribe se comprueba contra la base de datos de la API de Roblox. Lo monta como en
--- el ordenador (1920x1080, 1600x900, 1366x768) y como en el móvil y la tableta (844x390, 932x430,
+-- el ordenador (1920x1080, 1600x900, 1366x768) y como en el móvil y la tableta (640x360, 667x375, 844x390, 932x430,
 -- 1024x768) y comprueba que:
 --   * tu estado va arriba a la izquierda, la hora en el centro, la misión a la derecha y el menú de
 --     comandos abajo a la izquierda (en el móvil, justo encima del joystick); la barra rápida centrada
@@ -758,6 +758,8 @@ Hud.runCommand("Misiones")
 local quests = popups and popups:FindFirstChild("Quests")
 check(quests and textOf(quests, "MISIONES OPCIONALES"), "La flecha abre la lista de misiones (con las opcionales)")
 check(quests and textOf(quests, "después del cole"), "Las misiones que esperan a que acabe el cole siguen en la lista, marcadas «🏫 después del cole»")
+Hud.showQuests()
+check(popups and popups:FindFirstChild("Quests") == quests, "«Ver mis misiones» (Hud.showQuests) no cierra la lista si ya está abierta")
 Hud.runCommand("Misiones")
 check(popups and popups:FindFirstChild("Quests") == nil, "Y se cierra otra vez")
 
@@ -900,7 +902,7 @@ local function registerAll(TL)
 	end
 end
 
-for _, size in { { 844, 390 }, { 932, 430 }, { 1024, 768 } } do
+for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1024, 768 } } do
 	print(("\n▶ En el móvil / tableta (%dx%d)"):format(size[1], size[2]))
 	mods, ok, err = mount(true, size[1], size[2])
 	HudLayout, TouchLayout, CommandMenu, CommandRegistry = mods.HudLayout, mods.TouchLayout, mods.CommandMenu, mods.CommandRegistry
@@ -1129,12 +1131,16 @@ do
 	check(ringOn(layout.Items.Minimap), "El aro señala el minimapa")
 	fakeHooks.Map = true
 	Guide.tick(0.25)
+	check(not tcard.Visible, "Con el mapa grande abierto la tarjeta se aparta")
 	fakeHooks.Map = false
+	Guide.tick(0.25)
 	check(sent("Step", "Mapa") and tcard.Title.Text == "Abre la mochila", "Abrir el mapa grande cumple «Abre el mapa»")
 	check(ringOn(layout.Items.Commands), "El aro señala el menú COMANDOS (Objetos)")
 	fakeHooks.Bag = true
 	Guide.tick(0.25)
+	check(not tcard.Visible, "Con la mochila abierta la tarjeta no la tapa")
 	fakeHooks.Bag = false
+	Guide.tick(0.25)
 	check(sent("Step", "Mochila") and tcard.Title.Text == "¿No sabes qué hacer?", "Abrir la mochila cumple «Abre la mochila»")
 	check(ringOn(layout.Slots.Ayuda), "El aro señala el botón ❓")
 

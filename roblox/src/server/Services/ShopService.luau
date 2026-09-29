@@ -35,6 +35,14 @@ local function setup(entrance: Instance)
 	prompt.MaxActivationDistance = 10
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = entrance
+	-- Con la tienda cerrada, el botón de comprar no sale (antes salía y luego decía "cerrado")
+	task.spawn(function()
+		local hours = OpeningHours.forShop(shopId)
+		while prompt.Parent do
+			prompt.Enabled = OpeningHours.openNow(hours)
+			task.wait(5)
+		end
+	end)
 	prompt.Triggered:Connect(function(player)
 		-- Con la tienda cerrada no se vende (su dependiente no está: shared/OpeningHours)
 		local hours = OpeningHours.forShop(shopId)

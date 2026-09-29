@@ -646,6 +646,10 @@ local handlers: { [string]: (payload: { [string]: any }) -> () } = {
 	Cinematic = function(payload)
 		-- Cuenta como escena en marcha desde que llega (un diálogo no se abre mientras espera su turno)
 		local release = Cinematics.hold()
+		-- Aviso al servidor: la escena ha llegado y se va a ver (la historia espera a que acabe)
+		if Remote and type(payload.Id) == "string" then
+			Remote:FireServer("CinematicSeen", payload.Id)
+		end
 		queue(function()
 			pcall(Cinematics.play, payload)
 			release()

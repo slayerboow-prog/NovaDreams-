@@ -191,7 +191,7 @@ local function render()
 			line(3, "Where", if objective.Place then "📍 " .. objective.Place else "📍 No hay un sitio marcado: mira la lista de misiones.", 19, H.SelectLight)
 			bigButton(4, "Quests", "📋 Ver mis misiones", H.NavyLight, function()
 				HelpUI.close()
-				Hud.runCommand("Misiones")
+				Hud.showQuests() -- solo abre (no cierra si ya estaba abierta)
 			end)
 		end
 	else

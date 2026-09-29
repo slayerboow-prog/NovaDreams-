@@ -104,19 +104,19 @@ function QuestionGen.Contabilidad(rng: Random): Question
 	local kind = rng:NextInteger(1, 4)
 	if kind == 1 then
 		local price = rng:NextInteger(1, 20) * 100
-		return make(("Un producto cuesta %d $ sin IVA. ¿Cuánto es el IVA del 21 %%?"):format(price), price * 0.21, rng, 30)
+		return make(("Un producto cuesta %d € sin IVA. ¿Cuánto es el IVA del 21 %%?"):format(price), price * 0.21, rng, 30)
 	elseif kind == 2 then
 		local income = rng:NextInteger(20, 90) * 100
 		local costs = rng:NextInteger(5, math.floor(income / 100) - 1) * 100
-		return make(("Ingresos: %d $. Gastos: %d $. ¿Beneficio?"):format(income, costs), income - costs, rng, 400, true)
+		return make(("Ingresos: %d €. Gastos: %d €. ¿Beneficio?"):format(income, costs), income - costs, rng, 400, true)
 	elseif kind == 3 then
 		local capital = rng:NextInteger(1, 10) * 1000
 		local rate = rng:NextInteger(2, 6)
-		return make(("%d $ al %d %% anual durante 1 año. ¿Intereses?"):format(capital, rate), capital * rate / 100, rng, 40, true)
+		return make(("%d € al %d %% anual durante 1 año. ¿Intereses?"):format(capital, rate), capital * rate / 100, rng, 40, true)
 	end
 	local before = rng:NextInteger(4, 20) * 10
 	local pct = ({ 10, 20, 25, 50 })[rng:NextInteger(1, 4)]
-	return make(("Un precio de %d $ sube un %d %%. ¿Precio nuevo?"):format(before, pct), before * (1 + pct / 100), rng, 15)
+	return make(("Un precio de %d € sube un %d %%. ¿Precio nuevo?"):format(before, pct), before * (1 + pct / 100), rng, 15)
 end
 
 return QuestionGen

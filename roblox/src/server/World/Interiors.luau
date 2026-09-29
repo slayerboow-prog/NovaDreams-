@@ -1913,7 +1913,7 @@ function Interiors.Hacienda(parent: Instance, cf: CFrame, opts: Options?): Room
 		cabinet(r, r.at(r.W / 2 - 2, 0, front + 18 + k * 4) * ANG(0, math.rad(-90), 0)):AddTag("Pickup_Hacienda")
 	end
 	local board = solid(r, "TreasuryBoard", V(12, 4, 0.3), r.at(-r.W / 4, 8, back - 0.4) * ANG(0, PI, 0), rgb(20, 30, 40), nil, { Tags = { "TreasuryBoard" } })
-	Builder.sign(board, "TESORO PÚBLICO\n$0 recaudados", Enum.NormalId.Front, rgb(120, 230, 160))
+	Builder.sign(board, "TESORO PÚBLICO\n0 € recaudados", Enum.NormalId.Front, rgb(120, 230, 160))
 	Furniture.printer(r, face(r, r.W / 2 - 6, 0, back - 1.2, 0, -1))
 	Furniture.waterCooler(r, face(r, -r.W / 2 + 1.2, 0, back - 4, 1, 0))
 	for _, p in { { -r.W / 2 + 2, back - 2 }, { r.W / 2 - 2, front + 2 } } do

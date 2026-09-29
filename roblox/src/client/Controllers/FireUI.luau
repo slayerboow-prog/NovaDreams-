@@ -6,6 +6,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Theme = require(script.Parent.Parent.UI.Theme)
+local HudLayout = require(script.Parent.Parent.UI.HudLayout)
 
 local FireUI = {}
 
@@ -37,6 +38,8 @@ function FireUI.init()
 		Visible = false,
 		Parent = gui,
 	})
+	-- En el móvil va a la izquierda para no quedar bajo los botones táctiles.
+	HudLayout.jobPanel(panel)
 	Theme.padding(8).Parent = panel
 	Theme.label({ Size = UDim2.new(1, 0, 0, 22), Text = "🚒 Bomberos · aviso", Font = Theme.FontBold, TextSize = 16, Parent = panel })
 	body = Theme.label({

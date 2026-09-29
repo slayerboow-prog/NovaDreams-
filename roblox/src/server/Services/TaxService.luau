@@ -116,12 +116,13 @@ local function file(player: Player, window: BasePart)
 		return
 	end
 	local rest = taxOf(player).Pending
+	local settled = rest <= 0 -- (el agente cobra por declaración terminada, no por cada pago suelto)
 	Notify:FireClient(player, "Success", if rest > 0
 		then ("🏛 Has pagado %s. Aún debes %s."):format(Format.money(paid), Format.money(rest))
 		else ("🏛 Declaración presentada: has pagado %s. ¡Al día con Hacienda!"):format(Format.money(paid)))
 	StoryEvents.emit(player, "TaxFiled", { Paid = paid })
 	-- Los agentes que atienden en la oficina tramitan la declaración
-	for _, agent in agentsAt(window) do
+	for _, agent in (if settled then agentsAt(window) else {}) do
 		if agent ~= player then
 			DataService.addMoney(agent, Taxes.AgentPay, true)
 			Notify:FireClient(agent, "Money", ("🏛 Declaración de %s tramitada: +%s"):format(player.DisplayName, Format.money(Taxes.AgentPay)))
@@ -133,6 +134,7 @@ local function file(player: Player, window: BasePart)
 end
 
 -- Inspección: un agente de servicio junto a quien no ha declarado
+local lastInspection: { [number]: number } = {}
 local function inspect(agent: Player, target: any)
 	if typeof(target) ~= "Instance" or not target:IsA("Player") or target == agent or agent:GetAttribute("Job") ~= "Hacienda" then
 		return
@@ -145,7 +147,19 @@ local function inspect(agent: Player, target: any)
 		Notify:FireClient(agent, "Info", target.DisplayName .. " está al día con Hacienda.")
 		return
 	end
+	-- (una inspección por persona cada 2 minutos: antes se podía repetir sin parar)
+	local key = target.UserId
+	if lastInspection[key] and os.clock() - lastInspection[key] < 120 then
+		Notify:FireClient(agent, "Info", target.DisplayName .. " ya ha sido inspeccionado hace poco.")
+		return
+	end
+	lastInspection[key] = os.clock()
 	local paid = collect(target)
+	if paid <= 0 then
+		-- No tiene nada: no se cobra nada y tampoco hay paga para el inspector (antes cobraba igual)
+		Notify:FireClient(agent, "Info", ("🏛 %s no tiene dinero para pagar. Vuelve más tarde."):format(target.DisplayName))
+		return
+	end
 	Notify:FireClient(target, "Error", ("🏛 Inspección de Hacienda (%s): te han cobrado %s."):format(agent.DisplayName, Format.money(paid)))
 	DataService.addMoney(agent, Taxes.InspectorPay, true)
 	Notify:FireClient(agent, "Money", ("🏛 Inspección a %s: cobrados %s · +%s para ti"):format(target.DisplayName, Format.money(paid), Format.money(Taxes.InspectorPay)))
@@ -166,10 +180,13 @@ local function closeYear(player: Player)
 		sync(player)
 		return
 	end
+	local before = tax.Pending
 	tax.Pending += due
 	tax.Unfiled += 1
 	if tax.Unfiled > Taxes.Grace then
-		tax.Pending = Taxes.withSurcharge(tax.Pending)
+		-- Al abrir la inspección, recargo sobre todo lo que debes; después, solo sobre lo nuevo (antes se
+		-- volvía a aplicar a todo, recargos incluidos, cada año)
+		tax.Pending = if tax.Unfiled == Taxes.Grace + 1 then Taxes.withSurcharge(tax.Pending) else before + Taxes.withSurcharge(due)
 		Notify:FireClient(player, "Error", ("🏛 Hacienda te ha abierto una inspección: debes %s (con recargo)."):format(Format.money(tax.Pending)))
 		for _, agent in Players:GetPlayers() do
 			if agent:GetAttribute("Job") == "Hacienda" then

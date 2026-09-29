@@ -259,7 +259,8 @@ local function refresh()
 	if not panel or not noteView then
 		return
 	end
-	local blocked = quiet() or areaTaken() or safe(hooks.dialogOpen)
+	-- Con la mochila o el mapa abiertos la tarjeta se aparta: si no, tapaba lo que estás mirando.
+	local blocked = quiet() or areaTaken() or safe(hooks.dialogOpen) or safe(hooks.bagOpen) or safe(hooks.mapOpen)
 	local current = note
 	if current and not blocked then
 		noteView.Visible = true
@@ -539,7 +540,7 @@ local function checkStuck(dt: number)
 		end)
 	else
 		Guide.note("Hint", text .. " (mira la lista de misiones)", "📋 Ver misiones", function()
-			Hud.runCommand("Misiones")
+			Hud.showQuests() -- solo abre (no cierra si ya estaba abierta)
 		end)
 	end
 end

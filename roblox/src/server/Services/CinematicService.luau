@@ -124,11 +124,23 @@ function CinematicService.play(player: Player, id: string): number
 	return cinematic.Duration + STREAM_WAIT
 end
 
--- La historia espera a que la escena acabe en la pantalla del jugador (o que la salte). Si el
--- cliente no avisa, sigue sola al cabo de `fallback` segundos. onDone se llama una sola vez.
+-- La historia sigue cuando la escena acaba en la pantalla del jugador (o la salta). Si el cliente no
+-- avisa, sigue sola al cabo de `fallback` segundos; pero si su pantalla dijo que la está viendo (le
+-- llegó y va a salir, quizá detrás de otra pantalla), se le dan hasta EXTRA segundos más.
+-- onDone se llama una sola vez.
+local EXTRA = 20
 local waiting: { [Player]: { [string]: () -> () } } = {}
+local seen: { [Player]: { [string]: boolean } } = {}
+
+function CinematicService.clientSeen(player: Player, id: string)
+	seen[player] = seen[player] or {}
+	seen[player][id] = true
+end
 
 function CinematicService.waitFor(player: Player, id: string, fallback: number, onDone: () -> ())
+	if seen[player] then
+		seen[player][id] = nil -- (de una vez anterior no cuenta)
+	end
 	local called = false
 	local function once()
 		if called then
@@ -143,13 +155,22 @@ function CinematicService.waitFor(player: Player, id: string, fallback: number, 
 	end
 	waiting[player] = waiting[player] or {}
 	waiting[player][id] = once
-	task.delay(fallback, once)
+	task.delay(fallback, function()
+		if seen[player] and seen[player][id] then
+			task.delay(EXTRA, once)
+		else
+			once()
+		end
+	end)
 end
 
 -- El cliente dice que la escena `id` ha terminado (o se ha saltado)
 function CinematicService.clientDone(player: Player, id: string)
 	local list = waiting[player]
 	local done = list and list[id]
+	if seen[player] then
+		seen[player][id] = nil
+	end
 	if done then
 		task.spawn(done)
 	end
@@ -158,6 +179,7 @@ end
 function CinematicService.init()
 	game:GetService("Players").PlayerRemoving:Connect(function(player)
 		waiting[player] = nil
+		seen[player] = nil
 	end)
 end
 

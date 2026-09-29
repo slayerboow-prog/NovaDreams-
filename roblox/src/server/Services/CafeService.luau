@@ -296,6 +296,9 @@ local function deliver(cafe: Cafe, order: Order, by: Player?)
 		local wait = os.clock() - order.Created
 		local tip = if wait <= JOB.FastSeconds then JOB.TipFast else 0
 		local pay = math.floor((JOB.PerOrder + JOB.PerStep * #order.Tasks + tip) * MonetizationService.payMultiplier(by))
+		if order.Player and type(order.Paid) == "number" then
+			pay = math.min(pay, math.max(1, math.floor(order.Paid * 0.6))) -- (no más de lo que pagó el cliente)
+		end
 		DataService.addMoney(by, pay, true)
 		local data = DataService.get(by)
 		if data then

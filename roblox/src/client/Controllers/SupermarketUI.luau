@@ -10,6 +10,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local HttpService = game:GetService("HttpService")
 
 local Theme = require(script.Parent.Parent.UI.Theme)
+local HudLayout = require(script.Parent.Parent.UI.HudLayout)
 local Dialog = require(script.Parent.Parent.UI.Dialog)
 local SoundFx = require(script.Parent.SoundFx)
 local Format = require(ReplicatedStorage.Shared.Format)
@@ -262,6 +263,8 @@ function SupermarketUI.init()
 		Visible = false,
 		Parent = gui,
 	})
+	-- En el móvil va a la izquierda para no quedar bajo los botones táctiles.
+	HudLayout.jobPanel(cartPanel)
 	Theme.padding(8).Parent = cartPanel
 	Theme.label({ Size = UDim2.new(1, 0, 0, 22), Text = "🛒 Tu carrito", Font = Theme.FontBold, TextSize = 16, Parent = cartPanel })
 	cartList = create("ScrollingFrame", {

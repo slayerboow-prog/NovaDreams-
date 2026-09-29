@@ -51,6 +51,16 @@ local TOUCH = UserInputService.TouchEnabled and not UserInputService.KeyboardEna
 local gui: ScreenGui
 local popupGui: ScreenGui -- menú rápido, menú y controles: por encima del minimapa
 local toastList: Frame
+-- Avisos y cartel de zona van debajo de las estrellas de búsqueda (HudLayout.Items.Toasts);
+-- mientras sale el cartel de zona, los avisos bajan para no quedar debajo de él.
+local toastTop = 240
+local BANNER_ROOM = 96
+local bannerOn = false
+local function placeToasts()
+	if toastList then
+		toastList.Position = UDim2.new(0.5, 0, 0, toastTop + (if bannerOn then BANNER_ROOM else 0))
+	end
+end
 local sleepOverlay: Frame
 local actions: { [string]: () -> () } = {}
 local phoneApps: { { Text: string, Color: Color3?, Order: number, Callback: () -> () } } = {}
@@ -343,7 +353,7 @@ local function buildStatus(parent: Instance)
 		local tickets = player:GetAttribute("Tickets") or 0
 		local cash = player:GetAttribute("Money") or 0
 		setText(money, Format.money(cash) .. (if tickets > 0 then ("  🎟 %d"):format(tickets) else ""))
-		-- Dinero que entra: el número da un salto y sube un "+$50"
+		-- Dinero que entra: el número da un salto y sube un "+50 €"
 		if lastMoney ~= nil and cash ~= lastMoney then
 			local diff = cash - lastMoney
 			Theme.pop(money, if diff > 0 then 1.2 else 1.08)
@@ -693,12 +703,23 @@ local function openQuests()
 	quit.Activated:Connect(function()
 		(Remotes:WaitForChild("QuitJob") :: RemoteEvent):FireServer()
 	end)
-	local jobId = player:GetAttribute("Job")
-	local job = jobId and (Config.Jobs[jobId] or Gameplay.Jobs[jobId])
-	jobRow.Visible = job ~= nil
-	if job then
-		jobText.Text = ("💼 %s · %s\n%s"):format(job.DisplayName, Format.money(job.Pay), player:GetAttribute("TaskText") or "")
+	local function paintJob()
+		local jobId = player:GetAttribute("Job")
+		local job = jobId and (Config.Jobs[jobId] or Gameplay.Jobs[jobId])
+		jobRow.Visible = job ~= nil
+		if job then
+			jobText.Text = ("💼 %s · %s\n%s"):format(job.DisplayName, Format.money(job.Pay), player:GetAttribute("TaskText") or "")
+		end
 	end
+	paintJob()
+	-- Si coges o dejas un trabajo (o cambia la tarea) con la ventana abierta, la fila se actualiza.
+	-- Las conexiones se cortan al cerrar la ventana.
+	local jobConn = player:GetAttributeChangedSignal("Job"):Connect(paintJob)
+	local taskConn = player:GetAttributeChangedSignal("TaskText"):Connect(paintJob)
+	window.Destroying:Connect(function()
+		jobConn:Disconnect()
+		taskConn:Disconnect()
+	end)
 	questWindow = window
 	questList = list
 	renderQuestList(list, storyState)
@@ -790,6 +811,18 @@ local function buildMission(parent: Instance)
 	end)
 	actions.Misiones = openQuests
 	paintMission()
+end
+
+-- Abre la lista de misiones sin cerrarla si ya está abierta ("Ver mis misiones" de la ayuda y
+-- de las pistas: el comando "Misiones" alterna y la cerraba si ya estaba a la vista).
+function Hud.showQuests()
+	if questWindow and questWindow.Parent then
+		return
+	end
+	local action = actions.Misiones
+	if action then
+		action()
+	end
 end
 
 -- ¿Está abierta la lista de misiones? (el tutorial cuenta abrirla como "seguir la misión")
@@ -899,7 +932,7 @@ local function buildAreaBanner(parent: Instance)
 		Name = "AreaBanner",
 		AnchorPoint = Vector2.new(0.5, 0),
 		Size = UDim2.fromOffset(640, 86),
-		Position = UDim2.new(0.5, 0, 0, 150),
+		Position = UDim2.new(0.5, 0, 0, toastTop),
 		BackgroundTransparency = 1,
 		GroupTransparency = 1,
 		Visible = false,
@@ -924,8 +957,10 @@ local function buildAreaBanner(parent: Instance)
 		title.Text = text
 		sub.Text = subtitle
 		banner.Visible = true
-		banner.Position = UDim2.new(0.5, 0, 0, 162)
-		TweenService:Create(banner, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { GroupTransparency = 0, Position = UDim2.new(0.5, 0, 0, 150) }):Play()
+		bannerOn = true
+		placeToasts()
+		banner.Position = UDim2.new(0.5, 0, 0, toastTop + 12)
+		TweenService:Create(banner, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { GroupTransparency = 0, Position = UDim2.new(0.5, 0, 0, toastTop) }):Play()
 		task.delay(3, function()
 			if showing ~= id then
 				return
@@ -935,6 +970,8 @@ local function buildAreaBanner(parent: Instance)
 			out.Completed:Wait()
 			if showing == id then
 				banner.Visible = false
+				bannerOn = false
+				placeToasts()
 			end
 		end)
 	end
@@ -1329,6 +1366,8 @@ local function applyLayout(layout: HudLayout.Layout)
 	local activity = gui:FindFirstChild("Activity") :: Frame
 	HudLayout.apply(activity, items.Activity, true)
 	activity.Size = UDim2.fromOffset(0, items.Activity.Size.Y)
+	toastTop = items.Toasts.Position.Y.Offset
+	placeToasts()
 	HudLayout.apply(phone, items.Quick)
 	HudLayout.apply(phoneButton, items.QuickTab)
 	if layout.QuickOpen and phone.Visible == false and not busy then
@@ -1382,11 +1421,12 @@ function Hud.init(openStore: () -> ()): ScreenGui
 		Name = "Toasts",
 		AnchorPoint = Vector2.new(0.5, 0),
 		Size = UDim2.fromOffset(600, 200),
-		Position = UDim2.new(0.5, 0, 0, 150),
+		Position = UDim2.new(0.5, 0, 0, toastTop),
 		BackgroundTransparency = 1,
 		Active = false,
 		Parent = toastGui,
 	})
+	placeToasts()
 	create("UIListLayout", { Padding = UDim.new(0, 6), HorizontalAlignment = Enum.HorizontalAlignment.Center, Parent = toastList })
 
 	-- La pantalla negra de dormir va en su propio ScreenGui (sin UIScale) para cubrirlo todo

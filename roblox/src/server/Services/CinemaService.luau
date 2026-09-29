@@ -214,7 +214,11 @@ local function deliver(hall: Hall, order: Order, by: Player?)
 	end
 	if order.Player and order.Player.Parent then
 		local customer = order.Player
-		InventoryService.add(customer, Cinema.TicketItem, order.Tickets)
+		if not InventoryService.add(customer, Cinema.TicketItem, order.Tickets) then
+			-- (se llenó la mochila mientras esperaba: se le devuelve lo de las entradas)
+			DataService.addMoney(customer, Cinema.TicketPrice * order.Tickets)
+			Notify:FireClient(customer, "Info", "🎟️ No te cabían las entradas en la mochila: te devuelven su dinero.")
+		end
 		for _, id in order.Snacks do
 			if not InventoryService.add(customer, id, 1) then
 				local s = Cinema.snackById[id]
@@ -228,6 +232,11 @@ local function deliver(hall: Hall, order: Order, by: Player?)
 	-- El taquillero no cobra por venderse entradas a sí mismo
 	if by and order.Player ~= by then
 		local pay = math.floor((JOB.PerSale + JOB.PerTicket * order.Tickets + JOB.PerSnack * #order.Snacks) * MonetizationService.payMultiplier(by))
+		if order.Player and type(order.Paid) == "number" then
+			-- Cliente de verdad: el taquillero no cobra más de lo que pagó (si no, dos amigos se hacían
+			-- ricos comprándose entradas el uno al otro)
+			pay = math.min(pay, math.floor(order.Paid * 0.6))
+		end
 		DataService.addMoney(by, pay, true)
 		local data = DataService.get(by)
 		if data then
@@ -345,6 +354,11 @@ local function onBuy(player: Player, count: any, snacks: any)
 			Notify:FireClient(player, "Info", "Ya tienes un pedido en marcha.")
 			return
 		end
+	end
+	-- (antes se cobraban aunque no cupieran en la mochila, y las entradas se perdían)
+	if not InventoryService.canAdd(player, Cinema.TicketItem, count) then
+		Notify:FireClient(player, "Error", "No te caben más entradas en la mochila.")
+		return
 	end
 	if not DataService.spend(player, total) then
 		Notify:FireClient(player, "Error", "No tienes dinero suficiente.")

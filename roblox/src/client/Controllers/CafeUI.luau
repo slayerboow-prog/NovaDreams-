@@ -7,6 +7,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Theme = require(script.Parent.Parent.UI.Theme)
+local HudLayout = require(script.Parent.Parent.UI.HudLayout)
 local Dialog = require(script.Parent.Parent.UI.Dialog)
 local Format = require(ReplicatedStorage.Shared.Format)
 
@@ -169,6 +170,8 @@ function CafeUI.init()
 		Visible = false,
 		Parent = gui,
 	})
+	-- En el móvil va a la izquierda para no quedar bajo los botones táctiles.
+	HudLayout.jobPanel(panel)
 	Theme.padding(8).Parent = panel
 	Theme.label({ Size = UDim2.new(1, 0, 0, 22), Text = "☕ Barista · pedidos", Font = Theme.FontBold, TextSize = 16, Parent = panel })
 	hint = Theme.label({ Position = UDim2.fromOffset(0, 22), Size = UDim2.new(1, 0, 0, 30), Text = "", TextSize = 12, TextWrapped = true, TextColor3 = C.Muted, Parent = panel })

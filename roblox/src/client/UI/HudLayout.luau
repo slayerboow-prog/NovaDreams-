@@ -32,6 +32,7 @@ export type Layout = {
 local MARGIN = 16
 local WIDTH = 1700 -- ancho de diseño
 local HEIGHT = 780 -- alto mínimo de diseño (móvil apaisado)
+local ROBLOX_BUTTONS = 250 -- ancho (en píxeles reales) de los botones de Roblox de arriba a la izquierda
 
 -- Medidas (en unidades de lienzo)
 HudLayout.Sizes = {
@@ -75,7 +76,9 @@ local CLUSTER_RIGHT = 128 -- lo que sobresale el racimo a la derecha del centro 
 local CLUSTER_BOTTOM = 124 -- y por debajo
 
 function HudLayout.scaleFor(viewport: Vector2): number
-	return math.clamp(math.min(viewport.Y / HEIGHT, viewport.X / WIDTH), 0.45, 1.3)
+	-- Suelo 0.36: en móviles 16:9 pequeños (640x360) el lienzo sigue midiendo 1700 de ancho;
+	-- con un suelo más alto el lienzo se estrecha y el minimapa pisa el reloj.
+	return math.clamp(math.min(viewport.Y / HEIGHT, viewport.X / WIDTH), 0.36, 1.3)
 end
 
 local function place(anchor: Vector2, position: UDim2, size: Vector2): Placement
@@ -102,7 +105,13 @@ function HudLayout.compute(viewport: Vector2, options: Options?): Layout
 	-- Arriba
 	local statusTop = math.max(inset + 4, 64)
 	items.Status = place(Vector2.new(0, 0), UDim2.fromOffset(MARGIN, statusTop), s.Status)
-	items.Clock = place(Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 8), s.Clock)
+	-- En móviles muy estrechos (640x360) el reloj, centrado, llega hasta los botones de Roblox de
+	-- arriba a la izquierda: entonces la columna del centro (reloj, GPS, avisos) baja bajo esa barra.
+	local clockTop = 8
+	if W / 2 - s.Clock.X / 2 < ROBLOX_BUTTONS / scale + 8 then
+		clockTop = inset + 8
+	end
+	items.Clock = place(Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, clockTop), s.Clock)
 	local quickOpen = opts.QuickOpen ~= false
 	items.Quick = place(Vector2.new(1, 0), UDim2.new(1, -MARGIN, 0, 10), s.Quick)
 	items.QuickTab = place(Vector2.new(1, 0), UDim2.new(1, -MARGIN, 0, 10), s.QuickTab)
@@ -114,9 +123,12 @@ function HudLayout.compute(viewport: Vector2, options: Options?): Layout
 	local helpCenterX = MARGIN + s.Mission.X + 12 + s.Help / 2
 	items.Help = place(Vector2.new(0.5, 0.5), UDim2.new(1, -helpCenterX, 0, missionTop + s.Help / 2), Vector2.new(s.Help, s.Help))
 	-- Debajo del reloj: la indicación del GPS, avisos fijos (examen…) y estrellas de búsqueda
-	items.Gps = place(Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 8 + s.Clock.Y + 8), s.Gps)
-	items.Activity = place(Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 8 + s.Clock.Y + 8 + s.Gps.Y + 8), Vector2.new(0, 34))
-	items.Wanted = place(Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 8 + s.Clock.Y + 8 + s.Gps.Y + 50), Vector2.new(230, 40))
+	items.Gps = place(Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, clockTop + s.Clock.Y + 8), s.Gps)
+	items.Activity = place(Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, clockTop + s.Clock.Y + 8 + s.Gps.Y + 8), Vector2.new(0, 34))
+	items.Wanted = place(Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, clockTop + s.Clock.Y + 8 + s.Gps.Y + 50), Vector2.new(230, 40))
+	-- Avisos (toasts) y el cartel de zona: debajo de las estrellas, para no tapar nada de arriba
+	local toastTop = clockTop + s.Clock.Y + 8 + s.Gps.Y + 50 + 40 + 12
+	items.Toasts = place(Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, toastTop), Vector2.new(520, 0))
 
 	-- Abajo
 	items.Hotbar = place(Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, -MARGIN), s.Hotbar)
@@ -201,6 +213,18 @@ local scalers: { UIScale } = {}
 local function touchOnly(): boolean
 	local UserInputService = game:GetService("UserInputService")
 	return UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+end
+
+-- Paneles de trabajo (barista, taquilla, recepción…): a la derecha en el ordenador; en el móvil a la
+-- izquierda, bajo tu estado, porque a la derecha están los botones táctiles y los taparían.
+function HudLayout.jobPanel(panel: GuiObject)
+	if touchOnly() then
+		panel.AnchorPoint = Vector2.new(0, 0.5)
+		panel.Position = UDim2.new(0, 12, 0.6, 0)
+	else
+		panel.AnchorPoint = Vector2.new(1, 0.5)
+		panel.Position = UDim2.new(1, -12, 0.55, 0)
+	end
 end
 
 local function recompute()

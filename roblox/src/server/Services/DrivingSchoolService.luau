@@ -112,7 +112,11 @@ end
 
 local function startPractical(player: Player, session: Session)
 	local license = Gameplay.Licenses[session.License :: string]
-	session.Phase = "Practical"
+	-- Si iba en bici o patinete, se baja antes. La fase «Practical» se pone solo cuando ya está en el
+	-- coche del examen: si no, al bajarse de la bici (dentro de mount) se suspendía el examen.
+	if VehicleService.ridingKind(player) then
+		VehicleService.dismount(player, true)
+	end
 	-- Punto de la circunvalación más cercano a la autoescuela y los siguientes en orden
 	local nearest, best = 1, math.huge
 	for i, p in RING do
@@ -135,6 +139,7 @@ local function startPractical(player: Player, session: Session)
 		Notify:FireClient(player, "Error", "No se ha podido empezar el examen práctico. Te devolvemos el dinero.")
 		return
 	end
+	session.Phase = "Practical"
 	placeMarker(session, player)
 	Notify:FireClient(player, "Success", "¡Teórico aprobado! Examen práctico: pasa por los puntos amarillos.")
 end

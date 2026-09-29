@@ -12,6 +12,7 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 local Theme = require(script.Parent.Parent.UI.Theme)
+local HudLayout = require(script.Parent.Parent.UI.HudLayout)
 local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
 
 local PoliceUI = {}
@@ -93,6 +94,8 @@ function PoliceUI.init()
 		Visible = false,
 		Parent = gui,
 	})
+	-- En el móvil va a la izquierda para no quedar bajo los botones táctiles.
+	HudLayout.jobPanel(panel)
 	Theme.padding(8).Parent = panel
 	Theme.label({ Size = UDim2.new(1, 0, 0, 22), Text = "🚔 Policía · aviso", Font = Theme.FontBold, TextSize = 16, Parent = panel })
 	body = Theme.label({

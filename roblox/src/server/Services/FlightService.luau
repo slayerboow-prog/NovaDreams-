@@ -49,6 +49,11 @@ type Plane = {
 
 local planes: { [string]: Plane } = {}
 local riding: { [Player]: Plane } = {}
+-- Lo que pagó por el billete que lleva (para devolvérselo si lo cambia por otro)
+local ticketPaid: { [Player]: number } = {}
+-- Quiso comprar otro billete teniendo ya uno: si vuelve a pulsar enseguida, se cambia
+local swapAsk: { [Player]: { Route: string, At: number } } = {}
+local SWAP_CONFIRM = 10 -- segundos para confirmar el cambio de billete
 local stateFolder: Folder? = nil
 local LAST_CALL = 15 -- segundos antes de cerrar la puerta: último aviso
 
@@ -332,12 +337,32 @@ function FlightService.buyTicket(player: Player, routeId: string): boolean
 		Notify:FireClient(player, "Info", ("Ya tienes billete para %s. Ve a la puerta %d.\n"):format(route.Name, Airport.Gates[route.Kind].Number))
 		return false
 	end
+	-- Ya lleva billete para otra ruta: no se pisa sin avisar. Si vuelve a pulsar enseguida, se
+	-- cambia (y se le devuelve lo que pagó por el otro)
+	local held = player:GetAttribute("FlightTicket")
+	local swapping = false
+	if typeof(held) == "string" and held ~= routeId then
+		local ask = swapAsk[player]
+		if not ask or ask.Route ~= routeId or os.clock() - ask.At > SWAP_CONFIRM then
+			swapAsk[player] = { Route = routeId, At = os.clock() }
+			local heldRoute = Airport.Routes[held]
+			local heldName = if heldRoute then heldRoute.Name else held
+			Notify:FireClient(player, "Info", ("Ya tienes billete para %s: úsalo o vuelve a pulsar para cambiarlo por %s (te devolvemos el anterior)."):format(heldName, route.Name))
+			return false
+		end
+		swapping = true
+	end
+	swapAsk[player] = nil
 	local stage = player:GetAttribute("LifeStage")
 	local price = Airport.fare(route, if typeof(stage) == "string" then stage else nil)
 	if price > 0 and not DataService.spend(player, price) then
 		Notify:FireClient(player, "Info", ("El billete a %s cuesta %d €: no te llega el dinero."):format(route.Name, price))
 		return false
 	end
+	if swapping and (ticketPaid[player] or 0) > 0 then
+		DataService.addMoney(player, ticketPaid[player] :: number) -- se devuelve el billete anterior
+	end
+	ticketPaid[player] = price
 	player:SetAttribute("FlightTicket", routeId)
 	local eta = FlightService.eta(plane, route.From) or 0
 	local when = if eta <= 0 then "¡ya está embarcando!" else "embarca en unos " .. Airport.duration(eta)
@@ -377,6 +402,7 @@ function FlightService.board(player: Player, planeId: string, where: string): bo
 		require(script.Parent.VehicleService).standUp(player)
 	end)
 	player:SetAttribute("FlightTicket", nil)
+	ticketPaid[player] = nil
 	seat:Sit(humanoid)
 	plane.Passengers[player] = seat
 	riding[player] = plane
@@ -560,6 +586,8 @@ function FlightService.init()
 		end
 	end)
 	Players.PlayerRemoving:Connect(function(player)
+		ticketPaid[player] = nil
+		swapAsk[player] = nil
 		local plane = riding[player]
 		if plane then
 			plane.Passengers[player] = nil

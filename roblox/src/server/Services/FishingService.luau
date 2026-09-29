@@ -967,10 +967,7 @@ local function onBuy(player: Player, id: any)
 		Notify:FireClient(player, "Error", "No tienes dinero suficiente.")
 		return
 	end
-	InventoryService.add(player, id, count)
-	if Fishing.Rods[id] and lentRod[player] then
-		lentRod[player] = nil -- ya tiene la suya: la prestada se queda (se devuelve al acabar el turno)
-	end
+	InventoryService.add(player, id, count) -- (la prestada, si la hay, se devuelve igual al acabar el turno)
 	Notify:FireClient(player, "Success", ("🎣 Has comprado: %s."):format(if gear then gear.Name else ("%d de cebo"):format(count)))
 	Remote:FireClient(player, "Shop", shopList(player))
 end
@@ -1132,8 +1129,17 @@ function FishingService.start(player: Player)
 	end
 	JobService.quit(player, true)
 	onDuty[player] = true
-	if not rodOf(player) and InventoryService.add(player, "CanaPescar", 1) then
+	if player:GetAttribute("RodDebt") then
+		if DataService.spend(player, Fishing.Rods.CanaPescar.Price) then
+			player:SetAttribute("RodDebt", nil)
+			Notify:FireClient(player, "Info", ("🎣 Pagas la caña que no devolviste (%s)."):format(Format.money(Fishing.Rods.CanaPescar.Price)))
+		else
+			Notify:FireClient(player, "Error", "🎣 No te prestan caña hasta que pagues la que no devolviste.")
+		end
+	end
+	if not rodOf(player) and not player:GetAttribute("RodDebt") and InventoryService.add(player, "CanaPescar", 1) then
 		lentRod[player] = true
+		player:SetAttribute("LentRod", true)
 		Notify:FireClient(player, "Info", "🎣 Te prestan una caña de pescar mientras trabajas.")
 	end
 	RoleService.setOnDuty(player, "Pescador")
@@ -1150,12 +1156,18 @@ function FishingService.quit(player: Player, silent: boolean?)
 	onDuty[player] = nil
 	if lentRod[player] then
 		lentRod[player] = nil
+		player:SetAttribute("LentRod", nil)
 		stop(player, true)
-		-- Si ya no la tiene (la ha vendido o cambiado), se le cobra: así no se duplican cañas
+		-- Si ya no la tiene (la ha vendido o cambiado), se le cobra: así no se duplican cañas. Si no
+		-- tiene dinero, no le prestan otra hasta que pueda pagarla
 		if not InventoryService.remove(player, "CanaPescar", 1) then
 			local price = Fishing.Rods.CanaPescar.Price
-			DataService.addMoney(player, -price)
-			Notify:FireClient(player, "Error", ("🎣 No has devuelto la caña prestada: se te cobra (%s)."):format(Format.money(price)))
+			if DataService.spend(player, price) then
+				Notify:FireClient(player, "Error", ("🎣 No has devuelto la caña prestada: se te cobra (%s)."):format(Format.money(price)))
+			else
+				player:SetAttribute("RodDebt", true)
+				Notify:FireClient(player, "Error", "🎣 No has devuelto la caña prestada y no puedes pagarla: no te prestarán otra.")
+			end
 		end
 	end
 	RoleService.offDuty(player, "Pescador")

@@ -254,6 +254,11 @@ local function onTake(player: Player, shelf: BasePart)
 	if not store or not product then
 		return
 	end
+	-- Cerrado: no se coge nada de las estanterías (lo que ya llevas en el carrito sí se puede pagar)
+	if not isDay() then
+		Notify:FireClient(player, "Info", "🔒 El supermercado está cerrado. Abre de 9:00 a 22:00.")
+		return
+	end
 	local cart = carts[player]
 	if cart and cart.Store ~= store then
 		clearCart(player, true)
@@ -299,31 +304,45 @@ end
 ---------------------------------------------------------------------
 
 -- Cobra el carrito del jugador (ya pasado por caja) y lo mete en la mochila
-local function checkout(player: Player): boolean
+local function checkout(player: Player): (boolean, number)
 	local cart = carts[player]
 	if not cart or cart.Count == 0 then
-		return false
+		return false, 0
 	end
 	local list, total = itemsList(cart.Items)
 	for _, item in list do
 		if not InventoryService.canAdd(player, item.Id, item.Count) then
 			Notify:FireClient(player, "Error", "No te cabe todo en la mochila. Devuelve algo o haz hueco.")
-			return false
+			return false, 0
 		end
 	end
 	if not DataService.spend(player, total) then
 		Notify:FireClient(player, "Error", ("No tienes suficiente dinero (%s). Devuelve algo al carrito."):format(Format.money(total)))
-		return false
+		return false, 0
 	end
+	-- Uno a uno: lo que no quepa (cada cosa nueva ocupa un hueco) se devuelve y no se cobra
+	local refund = 0
 	for _, item in list do
-		InventoryService.add(player, item.Id, item.Count)
-		StoryEvents.emit(player, "BoughtItem", { ShopId = "Supermercado", Item = item.Id, Count = item.Count })
+		if InventoryService.add(player, item.Id, item.Count) then
+			StoryEvents.emit(player, "BoughtItem", { ShopId = "Supermercado", Item = item.Id, Count = item.Count })
+		else
+			refund += item.Price * item.Count
+			giveBack(cart.Store, item.Id, item.Count)
+		end
+	end
+	if refund > 0 then
+		DataService.addMoney(player, refund)
+		total -= refund
 	end
 	carts[player] = nil
 	publishCart(player)
-	Notify:FireClient(player, "Success", ("🧾 Pagado: %s. ¡Está todo en tu mochila!"):format(Format.money(total)))
+	if refund > 0 then
+		Notify:FireClient(player, "Info", ("🧾 Pagado: %s. Lo que no te cabía en la mochila se queda en la tienda (no se cobra)."):format(Format.money(total)))
+	else
+		Notify:FireClient(player, "Success", ("🧾 Pagado: %s. ¡Está todo en tu mochila!"):format(Format.money(total)))
+	end
 	StoryEvents.emit(player, "SupermarketPurchase", { Store = cart.Store.Name, Total = total })
-	return true
+	return true, total
 end
 
 -- Ticket para el cliente: la lista, el total y el botón de pagar
@@ -431,7 +450,13 @@ local function finishCustomer(session: any)
 	endSession(session)
 	if lane.Cashier then
 		local job = JOBS.Cajero
-		pay(lane.Cashier, job.PerCustomer + job.PerItem * #session.List, "cliente cobrado")
+		local amount = job.PerCustomer + job.PerItem * #session.List
+		if type(session.PaidTotal) == "number" then
+			-- Cliente jugador: el cajero no gana más de lo que se pagó de verdad (antes una barra de pan
+			-- de 1 € le daba 7 €, y dos amigos se hacían ricos)
+			amount = math.min(amount, math.max(1, math.floor(session.PaidTotal * 0.6)))
+		end
+		pay(lane.Cashier, amount, "cliente cobrado")
 		NeedsService.change(lane.Cashier, 0, -1)
 		StoryEvents.emit(lane.Cashier, "JobTaskDone", { JobId = "Cajero" })
 		Remote:FireClient(lane.Cashier, "CloseScan")
@@ -492,7 +517,9 @@ local function onPay(player: Player, token: any)
 	if not session or (session.Customer and session.Customer.Player ~= player and session.Customer ~= player) then
 		return
 	end
-	if not checkout(player) then
+	local ok, paid = checkout(player)
+	session.PaidTotal = paid
+	if not ok then
 		-- No ha podido pagar: libera la caja (tendrá que volver a ponerse en ella)
 		if session.Kind == "Lane" then
 			endSession(session)

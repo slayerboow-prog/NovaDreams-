@@ -1307,6 +1307,9 @@ local function spawnAllowed(player: Player): boolean
 	return true
 end
 
+-- (también lo usan otros sitios que sacan vehículos: el coche patrulla de la comisaría)
+VehicleService.spawnAllowed = spawnAllowed
+
 local function spawnOwned(player: Player, kind: string)
 	local data = DataService.get(player)
 	if not data or not Gameplay.Vehicles[kind] then
@@ -1338,7 +1341,8 @@ local function setupStation(station: Instance)
 		prompt.UIOffset = Vector2.new(0, (i - 1) * 58)
 		prompt.Triggered:Connect(function(player)
 			local ride = riding[player]
-			if (ride and ride.Exam) or not canSpawn(player) then
+			-- (el mismo límite que el menú: pulsar en ráfaga construye vehículos enteros en el servidor)
+			if (ride and ride.Exam) or not canSpawn(player) or not spawnAllowed(player) then
 				return
 			end
 			VehicleService.mount(player, kind, { Rented = true })

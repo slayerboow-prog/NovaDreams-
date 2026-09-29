@@ -2,7 +2,7 @@
 
 local Format = {}
 
--- 1234567 -> "$1.234.567"
+-- 1234567 -> "1.234.567 €" (en todo el juego el dinero va en euros, como en España)
 function Format.money(amount: number): string
 	local negative = amount < 0
 	local digits = tostring(math.floor(math.abs(amount)))
@@ -10,7 +10,7 @@ function Format.money(amount: number): string
 	if withDots:sub(1, 1) == "." then
 		withDots = withDots:sub(2)
 	end
-	return (if negative then "-$" else "$") .. withDots
+	return (if negative then "-" else "") .. withDots .. " €"
 end
 
 -- 13.5 -> "13:30"

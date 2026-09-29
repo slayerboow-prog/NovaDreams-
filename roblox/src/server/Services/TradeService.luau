@@ -309,7 +309,7 @@ local function onOffer(player: Player, offer: any, money: any)
 	end
 	local clean, kinds = {}, 0
 	for id, count in offer do
-		if not Trade.tradeable(id) then
+		if not Trade.tradeable(id) or (id == "CanaPescar" and player:GetAttribute("LentRod")) then
 			Notify:FireClient(player, "Error", "Eso no se puede intercambiar.")
 			return
 		end
@@ -430,7 +430,8 @@ local function onList(player: Player, id: any, count: any, price: any)
 	if not allowed(player) then
 		return
 	end
-	if not Trade.tradeable(id) then
+	if not Trade.tradeable(id) or (id == "CanaPescar" and player:GetAttribute("LentRod")) then
+		-- (la caña prestada del trabajo de pescador no es tuya: no se vende)
 		Notify:FireClient(player, "Error", "Eso no se puede vender aquí.")
 		return
 	end

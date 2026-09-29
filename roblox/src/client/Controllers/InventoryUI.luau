@@ -46,18 +46,33 @@ local MC = {
 	InUse = Color3.fromRGB(255, 196, 60),
 	Food = Color3.fromRGB(255, 170, 60),
 }
-local KIND_TEXT = {
-	Food = "Comida · clic derecho para comer",
-	Vehicle = "Vehículo · clic derecho para montarte",
-	Wear = "Ropa · clic derecho para ponértelo",
-	Thing = "Objeto",
-	Prize = "Premio",
-	Document = "Documento",
-	Keepsake = "Recuerdo de tu historia",
-	Weapon = "Arma · elígela en la barra rápida para empuñarla",
-	Ammo = "Munición · se gasta al recargar (R)",
-	Gadget = "Gadget exclusivo · clic derecho o tecla para usarlo",
-}
+-- Pantalla táctil sin teclado: allí no hay clic derecho ni teclas, se habla de los botones
+local TOUCH = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+local KIND_TEXT = if TOUCH
+	then {
+		Food = "Comida · toca «Comer» para comértela",
+		Vehicle = "Vehículo · toca «Montar» para montarte",
+		Wear = "Ropa · toca «Poner» para ponértela",
+		Thing = "Objeto",
+		Prize = "Premio",
+		Document = "Documento",
+		Keepsake = "Recuerdo de tu historia",
+		Weapon = "Arma · elígela en la barra rápida para empuñarla",
+		Ammo = "Munición · se gasta al recargar",
+		Gadget = "Gadget exclusivo · toca «Usar» para usarlo",
+	}
+	else {
+		Food = "Comida · clic derecho para comer",
+		Vehicle = "Vehículo · clic derecho para montarte",
+		Wear = "Ropa · clic derecho para ponértelo",
+		Thing = "Objeto",
+		Prize = "Premio",
+		Document = "Documento",
+		Keepsake = "Recuerdo de tu historia",
+		Weapon = "Arma · elígela en la barra rápida para empuñarla",
+		Ammo = "Munición · se gasta al recargar (R)",
+		Gadget = "Gadget exclusivo · clic derecho o tecla para usarlo",
+	}
 local NUMBER_KEYS = {
 	[Enum.KeyCode.One] = 1,
 	[Enum.KeyCode.Two] = 2,
@@ -347,6 +362,8 @@ local function buildHotbar()
 			selected = (selected - 1 + side[4]) % Items.Hotbar + 1
 			refreshHotbar()
 			showName(selected)
+			-- Igual que al elegir casilla: empuña o guarda el arma de la nueva casilla
+			notifyWeapon()
 		end)
 	end
 	for i = 1, Items.Hotbar do
@@ -417,7 +434,9 @@ local function refreshDetails()
 	if not item then
 		detailName.Text = "Mochila"
 		detailKind.Text = ""
-		detailDesc.Text = "Clic en un objeto para cogerlo y clic en otra casilla para dejarlo.\nClic derecho: usar · Q: tirar uno."
+		detailDesc.Text = if TOUCH
+			then "Toca un objeto para cogerlo y toca otra casilla para dejarlo.\nToca «Usar» o «Tirar uno» abajo."
+			else "Clic en un objeto para cogerlo y clic en otra casilla para dejarlo.\nClic derecho: usar · Q: tirar uno."
 		useButton.Visible = false
 		dropButton.Visible = false
 		return
