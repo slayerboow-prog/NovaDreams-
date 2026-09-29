@@ -52,7 +52,13 @@ type Train = {
 	DoorsOpen: boolean,
 	Warned: boolean,
 	Announced: boolean,
+	PlaceTimer: number?, -- tiempo desde la última vez que se colocaron los coches en marcha
 }
+
+-- En marcha, los coches se colocan en el servidor solo 5 veces por segundo: cada jugador ya mueve el
+-- tren en su pantalla, fluido (Controllers/MetroTrains). Al llegar, al salir, al pararse y antes de
+-- mirar quién va dentro se colocan en su sitio exacto.
+local PLACE_EVERY = 0.2
 
 local trains: { [string]: Train } = {}
 local riding: { [Player]: Train } = {}
@@ -309,7 +315,13 @@ local function step(train: Train, dt: number)
 	end
 	local d = Rail.travelled(math.abs(train.To - train.From), train.Elapsed, train.Duration, train.Speed)
 	train.S = train.From + (if train.To >= train.From then d else -d)
-	placeTrain(train)
+	local waited = (train.PlaceTimer or PLACE_EVERY) + dt
+	if waited >= PLACE_EVERY then
+		train.PlaceTimer = 0
+		placeTrain(train)
+	else
+		train.PlaceTimer = waited
+	end
 end
 
 local function setupTrain(model: Instance)
@@ -697,6 +709,13 @@ function RailService.init()
 		while true do
 			task.wait(1)
 			local ok, err = pcall(function()
+				-- (coches en su sitio exacto antes de ver quién va dentro)
+				for _, train in trains do
+					if train.Phase == "Move" then
+						train.PlaceTimer = 0
+						placeTrain(train)
+					end
+				end
 				checkPassengers()
 				guardTracks()
 				updateDisplays()
