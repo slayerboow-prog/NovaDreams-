@@ -154,6 +154,7 @@ local function startTheory(player: Player, session: Session, licenseKey: string)
 	if VehicleService.hasLicense(player, licenseKey) then
 		sessions[player] = nil
 		Notify:FireClient(player, "Info", "Ya tienes el " .. license.Name .. ".")
+		StoryEvents.emit(player, "LicenseEarned", { License = licenseKey, Already = true }) -- (la historia no se queda esperando)
 		return
 	end
 	if not DataService.spend(player, license.Price) then

@@ -238,7 +238,8 @@ local Quests: { [string]: Quest } = {
 		Description = "Una niña ha perdido su mochila en el parque y está muy preocupada. Ayúdala a encontrarla.",
 		Offer = { Place = "Colegio" },
 		OfferKey = "QUEST.MOCHILA.OFFER",
-		Requires = { Hours = { From = 8, To = 20 } },
+		-- (de niño, y después de la mochila de Cole02: antes se ofrecía a adultos, o a la vez que la otra)
+		Requires = { Stage = { Min = "Nino", Max = "Nino" }, Completed = { "Cole02_Mochila" }, Hours = { From = 8, To = 20 } },
 		Steps = {
 			{ Type = "Reach", Place = "Parque", TextKey = "QUEST.MOCHILA.BUSCA" },
 			{ Type = "Reach", Place = "Colegio", TextKey = "QUEST.MOCHILA.DEVUELVE" },

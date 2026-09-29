@@ -475,6 +475,21 @@ local function abandonErrand()
 	end
 end
 
+-- El contador: en un grupo, las que hacen falta (Need) y no todas las que hay; en un paso con
+-- cuenta propia ("Trabaja (2/3)"), esa cuenta (antes salía 3/6 al acabar o 0/1 a medias)
+local function countText(tracked: { [string]: any }, done: number, children: number): string
+	if children > 0 then
+		local need = if type(tracked.Need) == "number" and tracked.Need > 0 then math.min(tracked.Need, children) else children
+		return ("%d/%d"):format(math.min(done, need), need)
+	end
+	local args = tracked.Args
+	local count, total = type(args) == "table" and tonumber(args.count), type(args) == "table" and tonumber(args.total)
+	if count and total and total > 0 then
+		return ("%d/%d"):format(count, total)
+	end
+	return "0/1"
+end
+
 -- Lo que enseña el panel: título, nombre, paso actual y contador
 local function missionSummary(state: { [string]: any }): { Kind: string, Title: string, Step: string, Count: string }?
 	local tracked = state.Tracked
@@ -498,7 +513,7 @@ local function missionSummary(state: { [string]: any }): { Kind: string, Title: 
 			Kind = if tracked.Kind == "Side" then "MISIÓN OPCIONAL" else "MISIÓN PRINCIPAL",
 			Title = Strings.get(tracked.TitleKey),
 			Step = step,
-			Count = ("%d/%d"):format(done, math.max(#children, 1)),
+			Count = countText(tracked, done, #children),
 		}
 	elseif state.Waiting then
 		local waiting = state.Waiting
@@ -634,7 +649,21 @@ local function renderQuestList(list: Frame, state: { [string]: any })
 			objectiveRow(list, nextOrder(), "💤 Puedes dormir en tu cama para que pase antes el tiempo", false)
 		end
 	end
-	local others = state.Others or {}
+	-- La principal (si juegas una opcional) va en su propio apartado, no entre las opcionales
+	local others, mains = {}, {}
+	for _, other in state.Others or {} do
+		table.insert(if other.Kind == "Main" then mains else others, other)
+	end
+	for _, main in mains do
+		section(list, nextOrder(), "Misión principal (en pausa)", H.Gold)
+		local row = objectiveRow(list, nextOrder(), Strings.get(main.TitleKey) .. "  · toca para volver a ella", false)
+		if main.QuestId and not main.Later then
+			local pick = create("TextButton", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "", ZIndex = 3, Parent = row })
+			pick.Activated:Connect(function()
+				(Remotes:WaitForChild("LifeStory") :: RemoteEvent):FireServer("Track", main.QuestId)
+			end)
+		end
+	end
 	if #others > 0 then
 		section(list, nextOrder(), "Misiones opcionales", C.Purple)
 		for i = 1, math.min(6, #others) do

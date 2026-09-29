@@ -426,14 +426,10 @@ local function applyEffects(player: Player, data: Data, effects: { [string]: any
 					notify:FireClient(player, "Error", ("🎒 No te cabe «%s» en la mochila. Haz hueco y te llegará."):format(item and item.Name or id))
 				end
 			end)
-			task.spawn(function()
-				for _ = 1, 60 do
-					task.wait(5)
-					if not player.Parent or InventoryService.add(player, id, count) then
-						return
-					end
-				end
-			end)
+			-- (se guarda con la partida: si sales antes de hacer hueco, te llega al volver)
+			local story = storyOf(data)
+			story.PendingItems = story.PendingItems or {}
+			story.PendingItems[id] = (story.PendingItems[id] or 0) + count
 		end
 	end
 	for id, count in effects.Take or {} do
@@ -720,8 +716,20 @@ local function publish(player: Player, force: boolean?)
 			end
 			if step.Type == "Group" then
 				tracked.Children = {}
-				tracked.Need = step.Need
+				-- Solo las tareas que te tocan (antes salían también las de otras carreras o de amigos que
+				-- no hiciste, imposibles de cumplir, y el contador decía 0/12)
+				local ctx = contextFor(player, data)
+				local available = 0
+				for _, child in step.Steps do
+					if not child.If or Conditions.check(child.If, ctx) then
+						available += 1
+					end
+				end
+				tracked.Need = if step.Need then math.min(step.Need, available) else nil
 				for i, child in step.Steps do
+					if child.If and not Conditions.check(child.If, ctx) then
+						continue
+					end
 					local done = prog.Sub ~= nil and prog.Sub[tostring(i)] == true
 					table.insert(tracked.Children, { TextKey = child.Text or child.TextKey, Args = placeArgs(child, nil, story), Done = done })
 					if not done and not target then
@@ -772,6 +780,7 @@ local function publish(player: Player, force: boolean?)
 			table.insert(state.Others, {
 				QuestId = id,
 				TitleKey = titleOf(id, story.Active[id]),
+				Kind = Quests[id] and Quests[id].Kind or "Side",
 				Later = if visible then nil elseif inSchool then "AfterSchool" else "School",
 			})
 		end
@@ -1199,6 +1208,33 @@ local function enterStep(player: Player, data: Data, questId: string)
 		elseif step.Type == "Choice" then
 			if not worldChoice(step) then
 				sendChoice(player, questId, step)
+			end
+		elseif step.Type == "Use" and step.Prop and prog.Used and prog.Used[step.Prop] then
+			-- Ya lo cogiste antes de tiempo (se veía en el paso anterior): el paso está hecho (antes se
+			-- quedaba sin objeto que coger, sin GPS, esperando)
+			local index = prog.Step
+			task.defer(function()
+				local current = DataService.get(player)
+				local now = current and storyOf(current).Active[questId]
+				if now and now.Step == index then
+					advance(player, current, questId)
+				end
+			end)
+		elseif step.Type == "Event" and step.Event == "LicenseEarned" and type(step.Match) == "table" and type(step.Match.License) == "string" then
+			-- ¿Ya tienes ese carnet? Entonces el paso está hecho (antes la autoescuela no te dejaba
+			-- examinarte otra vez y la misión se quedaba atascada para siempre)
+			local ok, has = pcall(function()
+				return require(script.Parent.VehicleService).hasLicense(player, step.Match.License)
+			end)
+			if ok and has then
+				local index = prog.Step
+				task.defer(function()
+					local current = DataService.get(player)
+					local now = current and storyOf(current).Active[questId]
+					if now and now.Step == index then
+						advance(player, current, questId)
+					end
+				end)
 			end
 		elseif step.Type == "Cinematic" then
 			-- La escena se ve en el cliente; la historia sigue cuando termina
@@ -1831,6 +1867,12 @@ local function checkPlaceOffers(player: Player, data: Data)
 					-- Misión canónica: empieza sola al llegar (su marca estaba en el mapa)
 					moment(player, quest.OfferKey or quest.TitleKey, nil, "Momento")
 					startQuest(player, data, questId)
+					-- Y pasa a ser la que juegas (tarjeta, GPS y quién te acompaña), como al aceptar una
+					local story = storyOf(data)
+					if story.Active[questId] and not story.Active[PROLOGUE] then
+						story.Tracked = questId
+						publish(player)
+					end
 				else
 					offer(player, questId)
 				end
@@ -2522,6 +2564,18 @@ local function slowTick(player: Player, data: Data)
 	checkPlaceOffers(player, data)
 	updateCanonMarks(player, data)
 	processLater(player, data)
+	-- Regalos de misiones que no cabían en la mochila: en cuanto hay hueco, llegan
+	local pending = storyOf(data).PendingItems
+	if pending then
+		for id, count in pending do
+			if InventoryService.add(player, id, count) then
+				pending[id] = nil
+			end
+		end
+		if next(pending) == nil then
+			storyOf(data).PendingItems = nil
+		end
+	end
 	refresh(player)
 end
 
@@ -2903,12 +2957,13 @@ function processLater(player: Player, data: Data)
 			end
 			local quest = later.Start and Quests[later.Start]
 			if quest and not story.Active[later.Start] and not story.Completed[later.Start] then
-				if Conditions.check(quest.Requires, contextFor(player, data)) then
+				local full = quest.Kind == "Side" and not quest.Canon and activeSideCount(story) >= CFG.MaxActiveSide
+				if not full and Conditions.check(quest.Requires, contextFor(player, data)) then
 					startQuest(player, data, later.Start)
 				else
-					-- Aún no se dan las condiciones (otra etapa, otra hora): se vuelve a mirar más tarde
-					later.At = clock + 300
-					table.insert(story.Later, later)
+					-- Aún no se dan las condiciones (otra etapa, otra hora) o ya llevas el máximo de
+					-- secundarias: se vuelve a mirar más tarde (la marca y el recuerdo ya se dieron: no se repiten)
+					table.insert(story.Later, { Start = later.Start, At = clock + 300, If = later.If, From = later.From })
 				end
 			end
 			return -- una cosa cada vez
@@ -3118,10 +3173,15 @@ local function onLoaded(player: Player, data: Data)
 					advance(player, data, id)
 				end
 			end)
-		elseif stepsOf(id, prog)[prog.Step] and stepsOf(id, prog)[prog.Step].Type == "Choice" then
+		elseif stepsOf(id, prog)[prog.Step] and stepsOf(id, prog)[prog.Step].Type == "Choice" and not worldChoice(stepsOf(id, prog)[prog.Step]) then
+			-- (las decisiones "en el mundo" —sentarte en un sitio, ir con un grupo— se vuelven a hacer
+			-- andando, sin ventana; y se compara con el paso de ahora, no consigo mismo)
+			local index = prog.Step
 			task.delay(4, function()
-				if player.Parent and story.Active[id] and story.Active[id].Step == prog.Step then
-					sendChoice(player, id, stepsOf(id, prog)[prog.Step])
+				local now = story.Active[id]
+				local step = now and now.Step == index and stepsOf(id, now)[index]
+				if player.Parent and step and step.Type == "Choice" then
+					sendChoice(player, id, step)
 				end
 			end)
 		end

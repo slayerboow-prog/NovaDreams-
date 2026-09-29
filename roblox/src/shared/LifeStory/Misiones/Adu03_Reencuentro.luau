@@ -67,7 +67,9 @@ return {
 
 	Moment = "El reencuentro del grupo",
 	Memory = "ElReencuentro",
-	Rewards = { Items = { FotoReencuentro = 1 } },
+	-- (aquí empieza la vida adulta de verdad: sin esto nunca se llegaba a "Adulto" y el final de la
+	-- saga, los locos D y las rarezas de adulto no salían nunca)
+	Rewards = { Items = { FotoReencuentro = 1 }, SetStage = "Adulto" },
 
 	Steps = {
 		{ Type = "Transition", Text = "Unos meses después…", Seconds = 3 },
