@@ -121,6 +121,13 @@ local function right(d: Vector3): Vector3
 	return Vector3.new(-d.Z, 0, d.X)
 end
 
+-- Pasos a nivel cerrados (los pone Controllers/RailUI): los coches esperan antes de la barrera
+type RailStop = { Pos: Vector3, Stop: number }
+local railStops: { RailStop } = {}
+function Traffic.setRailStops(list: { RailStop })
+	railStops = list
+end
+
 local function focus(): Vector3?
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
@@ -485,6 +492,17 @@ local function freeGap(agent: Agent, pos: Vector3, dir: Vector3, me: BasePart?):
 		local toLine = stopAt - agent.S - agent.Length / 2
 		if toLine > -1 and (state == "Red" or (state == "Yellow" and toLine > 10)) then
 			gap = math.min(gap, math.max(toLine, 0))
+		end
+	end
+	-- Paso a nivel con las barreras bajadas: se para antes (si ya lo estaba cruzando, sigue)
+	for _, stop in railStops do
+		local rel = stop.Pos - pos
+		local ahead = rel:Dot(dir)
+		if ahead > 0 and math.abs(rel:Dot(right(dir))) < 16 then
+			local toLine = ahead - stop.Stop - agent.Length / 2
+			if toLine > -1 and toLine < 80 then
+				gap = math.min(gap, math.max(toLine, 0))
+			end
 		end
 	end
 	if me then

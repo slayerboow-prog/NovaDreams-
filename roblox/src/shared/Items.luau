@@ -28,6 +28,7 @@ local Cinema = require(script.Parent.Cinema)
 local Hotel = require(script.Parent.Hotel)
 local Fishing = require(script.Parent.Fishing)
 local Metro = require(script.Parent.Metro)
+local Rail = require(script.Parent.Rail)
 local Weapons = require(script.Parent.Weapons)
 local Farming = require(script.Parent.Farming)
 
@@ -276,6 +277,8 @@ list[Farming.Feed] = { Id = Farming.Feed, Name = "Saco de pienso", Icon = "🥣"
 
 -- Metro: el billete y lo que venden las tiendas subterráneas
 list[Metro.TicketItem] = { Id = Metro.TicketItem, Name = "Billete de metro", Icon = "🎫", Kind = "Thing", Desc = "Un viaje en metro. Se gasta al pasar el torno.", Stack = 50 }
+-- Cercanías: el billete del tren (Shared/Rail)
+list[Rail.TicketItem] = { Id = Rail.TicketItem, Name = "Billete de Cercanías", Icon = "🎫", Kind = "Thing", Desc = "Un viaje en el tren de Cercanías. Se gasta al subir al tren.", Stack = 50 }
 for id, p in Metro.Products do
 	list[id] = list[id] or {
 		Id = id,

@@ -103,6 +103,7 @@ local order = {
 	"BusinessService", -- negocios de jugadores: locales, gasolineras y hoteles con existencias, precios y clientes
 	"MetroService", -- metro subterráneo: trenes, galería, encargos y revisor
 	"FlightService", -- aeropuerto: aviones con horario, billetes, embarque y vuelos (Isla de las Gaviotas)
+	"RailService", -- tren de Cercanías en superficie: estaciones, billetes, pasos a nivel y viajeros
 	"GymService", -- gimnasios: recepción, máquinas, ritmo, fuerza que se nota en el cuerpo y monitor/a
 	"MetroLifeService", -- vida del metro: guardias, ratas, aseos, taquillas, fuente, piano…
 	"StaffService", -- cada sitio que atiende al público tiene a alguien (NPC si no hay jugador de ese oficio)

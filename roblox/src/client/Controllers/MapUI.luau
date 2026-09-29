@@ -20,6 +20,7 @@ local TweenService = game:GetService("TweenService")
 local MapInfo = require(ReplicatedStorage.Shared.MapInfo)
 local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
 local Airport = require(ReplicatedStorage.Shared.Airport)
+local Rail = require(ReplicatedStorage.Shared.Rail)
 local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Icons = require(script.Parent.Parent.UI.Icons)
@@ -390,6 +391,15 @@ local function buildLayer(parent: Instance, scale: number, detailed: boolean): L
 	for _, r in CityPlan.Roundabouts do
 		circle(layer, "Roundabout", r[1], r[2], 56, ROAD, 3)
 		circle(layer, "RoundaboutIsland", r[1], r[2], 22, LAND, 3)
+	end
+	-- Vía del tren de Cercanías (Shared/Rail): gris oscuro con el color de la línea por encima
+	local railPoints = Rail.path()
+	for k = 1, #railPoints - 1 do
+		local a, c = railPoints[k], railPoints[k + 1]
+		line(Vector2.new(a.X, a.Z), Vector2.new(c.X, c.Z), math.max(3, 9 / scale), rgb(60, 56, 62), 3)
+		if detailed then
+			line(Vector2.new(a.X, a.Z), Vector2.new(c.X, c.Z), math.max(1, 4 / scale), Rail.Line.Color, 3)
+		end
 	end
 	-- Nombre de cada distrito (solo en el mapa grande)
 	if detailed then
