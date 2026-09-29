@@ -693,6 +693,9 @@ function TownBuilder.build(): Folder
 	require(Kit.StreetDetail).prune(world)
 	-- Plantas bajas bien decoradas y con sitio para su gente; tiendas vacías cerradas (Kit/Decor)
 	require(Kit.Decor).dressTown(world)
+	-- Aeropuerto de Valmar (tierra ganada al mar, al suroeste) y aeródromo de la Isla de las Gaviotas,
+	-- con sus aviones: al final, para no cambiar nada más del mapa (Kit/Airport)
+	require(Kit.Airport).build(world)
 	-- Repaso final: que ninguna moldura, bordillo o cristalera parpadee contra la pared de detrás
 	-- (varias pasadas: al crecer una pieza puede quedar a ras de otra)
 	for _ = 1, 4 do

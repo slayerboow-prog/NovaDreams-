@@ -55,6 +55,11 @@ local function record(player: Player, data: { [string]: any })
 	if typeof(door) == "Vector3" then
 		position = door
 	end
+	-- Volando (FlightService): se guarda la sala de llegadas del vuelo, en el suelo
+	local landing = player:GetAttribute("FlightLanding")
+	if typeof(landing) == "Vector3" then
+		position = landing
+	end
 	local look = root.CFrame.LookVector
 	local saved = { X = position.X, Y = position.Y, Z = position.Z, Yaw = math.atan2(-look.X, -look.Z) }
 	if valid(saved) then

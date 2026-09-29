@@ -19,6 +19,7 @@ local TweenService = game:GetService("TweenService")
 
 local MapInfo = require(ReplicatedStorage.Shared.MapInfo)
 local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
+local Airport = require(ReplicatedStorage.Shared.Airport)
 local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Icons = require(script.Parent.Parent.UI.Icons)
@@ -343,6 +344,16 @@ local function buildLayer(parent: Instance, scale: number, detailed: boolean): L
 	for _, island in CityPlan.Islands do
 		circle(layer, "Island", island.X, island.Z, island.R, SAND, 1)
 		circle(layer, "IslandGrass", island.X, island.Z, island.R - 30, LAND, 1)
+	end
+	-- Aeropuerto (tierra ganada al mar) con su pista, y la pista del aeródromo de las Gaviotas
+	do
+		local L, R, S = Airport.Land, Airport.Runway, Airport.Strip
+		rect(layer, "Airport", L.X0, L.Z0, L.X1, L.Z1, LAND, 1)
+		rect(layer, "Runway", R.X0, R.Z - R.Width / 2, R.X1, R.Z + R.Width / 2, rgb(96, 98, 104), 3)
+		rect(layer, "Runway", S.X0, S.Z - S.Width / 2, S.X1, S.Z + S.Width / 2, rgb(96, 98, 104), 3)
+		local A, Ln = Airport.Access, Airport.Lane
+		line(Vector2.new(A.X, A.Z0), Vector2.new(A.X, (Ln.Z0 + Ln.Z1) / 2), math.max(2, 24 / scale), ROAD, 3)
+		line(Vector2.new(Ln.X0, (Ln.Z0 + Ln.Z1) / 2), Vector2.new(Ln.X1, (Ln.Z0 + Ln.Z1) / 2), math.max(2, 24 / scale), ROAD, 3)
 	end
 	-- Montañas (más oscuras, con la cima gris si es de roca)
 	for _, m in CityPlan.Mountains do
