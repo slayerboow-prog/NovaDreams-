@@ -456,6 +456,9 @@ function BattlePassRewardService.decorateHome(ownerUserId: number, inst: { [stri
 end
 
 function BattlePassRewardService.init()
+	if not require(ReplicatedStorage.Shared.BattlePass.Config).Enabled then
+		return -- pase apagado: sin ganchos en vehículos, ropa ni vivienda
+	end
 	-- Ganchos (si el servicio existe): pintar vehículos, ropa y vivienda con lo equipado
 	local vehicles = service("VehicleService")
 	if vehicles then

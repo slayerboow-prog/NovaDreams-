@@ -139,6 +139,9 @@ function BattlePassXPService.onEvent(player: Player, name: string, payload: { [s
 end
 
 function BattlePassXPService.init()
+	if not BPConfig.Enabled then
+		return -- pase apagado: no se escucha nada
+	end
 	StoryEvents.connect(function(player, name, payload)
 		BattlePassXPService.onEvent(player, name, payload)
 	end)

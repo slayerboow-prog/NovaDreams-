@@ -552,7 +552,7 @@ function VehicleService.dismount(player: Player, silent: boolean?)
 	saveFuel(player, ride)
 	clearFuel(player)
 	-- Kilómetros del viaje (misiones y XP del pase de temporada). No en el examen de la autoescuela.
-	if (ride.Driven or 0) > 50 and not ride.Exam then
+	if (ride.Driven or 0) > 50 and not ride.Exam and require(ReplicatedStorage.Shared.BattlePass.Config).Enabled then
 		StoryEvents.emit(player, "VehicleTrip", { Kind = ride.Kind, Km = (ride.Driven or 0) * FUEL.KmPerStud, Rented = ride.Rented })
 	end
 	if ride.Died then

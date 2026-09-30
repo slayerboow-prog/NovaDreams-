@@ -380,6 +380,18 @@ local TesterService = load(S .. "TesterService")
 local StoryEvents = load(ROOT .. "/server/LifeStory/StoryEvents")
 
 local S1 = BPConfig.Seasons[1]
+check(BPConfig.Enabled == false, "el pase viene APAGADO por defecto (BattlePassConfig.Enabled = false)")
+-- Apagado: los servicios no hacen nada (ni remoto, ni ganchos, ni escuchar eventos)
+do
+	for _, name in { "BattlePassRewardService", "BattlePassService", "BattlePassXPService" } do
+		load(S .. name).init()
+	end
+	local VehicleMock = mocks[S .. "VehicleService"]
+	check(remoteList.BattlePass == nil and #loaded == 0 and VehicleMock.PaintFor == nil, "apagado: sin remoto, sin datos al entrar y sin ganchos")
+	local Tester = load(S .. "TesterService")
+	check(load(S .. "BattlePassService").testerState({}) == nil, "apagado: el modo pruebas no enseña el pase")
+end
+BPConfig.Enabled = true -- (para el resto de la prueba, encendido)
 local clock = S1.StartsAt - 3600 -- una hora antes de empezar
 Season.setClock(function()
 	return clock
@@ -388,6 +400,7 @@ end)
 for _, name in { "BattlePassSeasonService", "BattlePassRewardService", "SeasonMissionService", "BattlePassService", "BattlePassXPService", "TesterService" } do
 	load(S .. name).init()
 end
+check(mocks[S .. "VehicleService"].PaintFor ~= nil and mocks[S .. "AvatarService"].OutfitFor ~= nil and mocks[S .. "PropertyService"].DecorateOwned ~= nil, "encendido: ganchos en vehículos, ropa y vivienda")
 local remote = remoteList.BattlePass
 
 local function lastSent(player, kind, remoteName: string?)
@@ -529,6 +542,7 @@ fire(ana, "SetLevel", 50)
 fire(ana, "AddXp", 99999)
 fire(ana, "Grant", "S1_P50")
 check(bp.Level == 12 and bp.PremiumOwned == premiumBefore and bp.TotalXp == Season.totalFor(S1, 12), "nivel, XP y premium no cambian por lo que mande el cliente")
+task.wait(BPConfig.RateLimit.Window + 0.1) -- (el límite de peticiones ya se ha gastado arriba)
 fire(ana, "Buy")
 check(lastSent(ana, "Result", "BattlePass").Code == "ComingSoon" and #market.prompts == 0, "comprar con GamePassId = 0: «Próximamente» y no se abre la compra")
 fire(ana, "Get")
@@ -545,13 +559,16 @@ end
 check(allowed <= 1, ("30 peticiones seguidas: se atiende %d (hueco mínimo)"):format(allowed))
 task.wait(BPConfig.RateLimit.Window + 0.1)
 allowed = 0
-for _ = 1, 30 do
+local startedAt = os.clock()
+local tries = 0
+while os.clock() - startedAt < BPConfig.RateLimit.Window - 0.3 do
+	tries += 1
 	if BattlePass.allow(ana) then
 		allowed += 1
 	end
 	task.wait(BPConfig.RateLimit.MinGap + 0.02)
 end
-check(allowed <= BPConfig.RateLimit.Burst + 1, ("30 peticiones en ráfaga: se atienden %d (tope %d cada %d s)"):format(allowed, BPConfig.RateLimit.Burst, BPConfig.RateLimit.Window))
+check(allowed == BPConfig.RateLimit.Burst, ("%d peticiones en %d s: se atienden %d (tope %d)"):format(tries, BPConfig.RateLimit.Window, allowed, BPConfig.RateLimit.Burst))
 task.wait(BPConfig.RateLimit.Window + 0.1)
 
 print("▶ Comprar el premium en el nivel 30")
@@ -597,10 +614,11 @@ check(money(bob) == bobMoney + premiumMoney, "avisos repetidos de la compra: no 
 check(bob:GetAttribute("BP_Premium") == true, "atributo BP_Premium")
 
 print("▶ Compra hecha fuera del juego / fallo al preguntar a Roblox")
-local cai = newPlayer("Cai", 1003, "Adulto")
-market.owns[cai.UserId] = true
+market.owns[1003] = true -- (lo compró en la web, sin estar en el juego)
 market.failures = 2
-check(BattlePass.checkOwnership(cai) == true and profiles[cai].BattlePass.PremiumOwned, "Roblox falla 2 veces: se reintenta y al final se activa")
+local cai = newPlayer("Cai", 1003, "Adulto")
+task.wait(3.5) -- (reintentos: 1 s y 2 s)
+check(profiles[cai].BattlePass.PremiumOwned, "al entrar se comprueba; Roblox falla 2 veces, se reintenta y se activa")
 local asks = market.asks
 BattlePass.checkOwnership(cai)
 check(market.asks == asks, "una vez sabido, no se vuelve a preguntar (caché)")
@@ -645,7 +663,7 @@ local tripBefore = danBp.TotalXp
 XP.onEvent(dan, "VehicleTrip", { Kind = "Coche", Km = 2 })
 check(danBp.TotalXp - tripBefore == 2 * BPConfig.Sources.Conducir.Events.VehicleTrip, "conducir: XP por km")
 XP.onEvent(dan, "VehicleTrip", { Kind = "Coche", Km = 0 / 0 })
-XP.onEvent(dan, "JobTaskDone", "no soy una tabla")
+XP.onEvent(dan, "VehicleTrip", "no soy una tabla")
 check(danBp.TotalXp == tripBefore + 50, "km raros (NaN) o datos rotos: nada")
 
 print("▶ Misiones")
@@ -679,7 +697,7 @@ check(evaM.Daily.Prog[dailyId] and evaM.Daily.Prog[dailyId].Done, "misión diari
 check(evaBp.TotalXp - xpBefore == dailyDef.Xp, ("da su XP una sola vez (+%d)"):format(dailyDef.Xp))
 check(lastSent(eva, "MissionDone", "BattlePass") ~= nil, "aviso de misión completada")
 -- Semanal de barrios distintos (si le ha tocado) y de temporada
-local distinct = { Id = "W_Test", Events = { "ZoneEntered" }, Measure = "Distinct", DistinctField = "Zone", Goal = 3, Xp = 10 }
+local distinct = { Id = "W_Test", Title = "Prueba de barrios", Events = { "ZoneEntered" }, Measure = "Distinct", DistinctField = "Zone", Goal = 3, Xp = 10 }
 table.insert(S1.Missions.Weekly, distinct)
 evaM.Weekly.Ids[1] = "W_Test"
 for _, zone in { "Valmar Centro", "Valmar Centro", "San Roque", "Los Pinos" } do

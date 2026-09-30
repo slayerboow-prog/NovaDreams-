@@ -648,7 +648,9 @@ local function finish(player: Player, job: Job)
 	end
 	setCooldown(player, job.Giver.Key, CFG.GiverCooldown)
 	notify(player, "Success", ("✅ ¡Encargo hecho! «%s»: +%s y +%d XP"):format(template.Title, Format.money(job.Money), job.Xp))
-	StoryEvents.emit(player, "ErrandDone", { Errand = template.Id }) -- (misiones y XP del pase de temporada)
+	if require(game:GetService("ReplicatedStorage").Shared.BattlePass.Config).Enabled then
+		StoryEvents.emit(player, "ErrandDone", { Errand = template.Id }) -- (misiones y XP del pase de temporada)
+	end
 	if job.Giver.Model and job.Giver.Model.Parent then
 		Npc.say(job.Giver.Model, template.Thanks or "¡Mil gracias!", 5)
 	end

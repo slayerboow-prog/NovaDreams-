@@ -222,7 +222,7 @@ local function completed(player: Player, bp: { [string]: any }, def: { [string]:
 		Rewards.sync(player)
 	end
 	local label = if kind == "Daily" then "Misión diaria" elseif kind == "Weekly" then "Misión semanal" elseif kind == "Event" then "Misión de evento" else "Misión de temporada"
-	notify(player, "Success", ("✅ %s: «%s» · +%d XP de pase%s"):format(label, def.Title, xp, if tokens > 0 then (" · +%d 🪙"):format(tokens) else ""))
+	notify(player, "Success", ("✅ %s: «%s» · +%d XP de pase%s"):format(label, tostring(def.Title or def.Id), xp, if tokens > 0 then (" · +%d 🪙"):format(tokens) else ""))
 	local remotes = ReplicatedStorage:FindFirstChild("Remotes")
 	local remote = remotes and remotes:FindFirstChild("BattlePass")
 	if remote then

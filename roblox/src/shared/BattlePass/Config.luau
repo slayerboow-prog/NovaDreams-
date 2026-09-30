@@ -11,6 +11,12 @@ local Season1 = require(script.Parent.Season1)
 
 local BattlePassConfig = {}
 
+-- INTERRUPTOR GENERAL del pase de temporada. false = apagado del todo: no se crea el remoto, no se
+-- escucha nada ni se da XP, no se entregan recompensas, no hay ganchos en vehículos/ropa/vivienda y
+-- la interfaz no aparece (solo quedan los valores por defecto en los datos guardados, que no hacen
+-- nada). Se enciende cuando esté lista la interfaz.
+BattlePassConfig.Enabled = false
+
 BattlePassConfig.ProductType = "GamePass"
 BattlePassConfig.PriceConfiguredExternally = true
 -- Solo orientativo (para el documento): el precio real se decide en el Creator Dashboard

@@ -26,9 +26,16 @@ local function fire(list: { (any) -> () }?, value: any)
 	end
 end
 
+function BattlePassClient.enabled(): boolean
+	local ok, config = pcall(function()
+		return require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("BattlePass"):WaitForChild("Config"))
+	end)
+	return ok and type(config) == "table" and config.Enabled == true
+end
+
 function BattlePassClient.start()
-	if started then
-		return
+	if started or not BattlePassClient.enabled() then
+		return -- (pase apagado: BattlePassConfig.Enabled)
 	end
 	started = true
 	task.spawn(function()

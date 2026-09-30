@@ -2619,7 +2619,9 @@ local function discoverZone(player: Player, data: Data)
 	-- Aviso al entrar en otro barrio (lo usan las misiones del pase de temporada: «visita 3 barrios»)
 	if lastZone[player] ~= zone then
 		lastZone[player] = zone
-		StoryEvents.emit(player, "ZoneEntered", { Zone = zone, First = first })
+		if require(game:GetService("ReplicatedStorage").Shared.BattlePass.Config).Enabled then
+			StoryEvents.emit(player, "ZoneEntered", { Zone = zone, First = first })
+		end
 	end
 end
 

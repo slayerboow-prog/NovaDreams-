@@ -660,7 +660,10 @@ end
 -- Modo pruebas (solo testers; lo llama TesterService)
 ---------------------------------------------------------------------
 
-function BattlePassService.testerState(player: Player): { [string]: any }
+function BattlePassService.testerState(player: Player): { [string]: any }?
+	if not BPConfig.Enabled then
+		return nil
+	end
 	local data = DataService.get(player)
 	local bp = data and type(data.BattlePass) == "table" and data.BattlePass
 	return {
@@ -673,7 +676,7 @@ end
 
 -- op = { Op = "Premium" | "AddXp" | "SetLevel" | "NextDay" | "NextWeek" | "ResetClock" | "Reset", Value = número }
 function BattlePassService.testerAction(player: Player, op: any): (boolean, string?)
-	if not TesterService.isTester(player) then
+	if not BPConfig.Enabled or not TesterService.isTester(player) then
 		return false, "BadRequest"
 	end
 	local spec = if type(op) == "table" then op else { Op = op }
@@ -835,7 +838,14 @@ local function buildPreviews()
 	folder.Parent = ReplicatedStorage
 end
 
+function BattlePassService.enabled(): boolean
+	return BPConfig.Enabled == true
+end
+
 function BattlePassService.init()
+	if not BPConfig.Enabled then
+		return -- pase apagado (BattlePassConfig.Enabled): ni remoto, ni compras, ni datos
+	end
 	Telemetry.configure(BPConfig.Telemetry)
 	local remotes = ReplicatedStorage:WaitForChild("Remotes")
 	notifyRemote = remotes:FindFirstChild("Notify") :: RemoteEvent?
