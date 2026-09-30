@@ -742,18 +742,10 @@ local function updateLayer(layer: Layer, root: BasePart?, clampTo: number?)
 		layer.Me.Visible = false
 	end
 
-	-- Objetivo del trabajo, del encargo o de la historia (el mismo que marca el haz de luz)
-	local target = player:GetAttribute("TaskTarget")
-	if typeof(target) ~= "Vector3" then
-		target = player:GetAttribute("CityErrandTarget")
-	end
-	if typeof(target) ~= "Vector3" then
-		target = player:GetAttribute("StoryTarget")
-	end
-	if typeof(target) ~= "Vector3" then
-		target = player:GetAttribute("SeasonTarget") -- (la misión del pase de temporada que sigues)
-	end
-	place(layer, layer.Target, if typeof(target) == "Vector3" then target else nil, root, clampTo)
+	-- Objetivo del trabajo, del encargo o de la historia (el mismo que marca el haz de luz). Mientras
+	-- sigues una ruta tuya no sale: solo su 📍 y su línea (una sola guía a la vez)
+	local target = Gps.missionMarker()
+	place(layer, layer.Target, target, root, clampTo)
 	place(layer, layer.Waypoint, if waypoint then waypoint.Position else nil, root, clampTo)
 
 	-- Misiones canónicas pendientes: un ❗ dorado donde empiezan (siempre, hasta que las haces)
@@ -1452,9 +1444,12 @@ function MapUI.init()
 			bigRouteDirty = true
 		end
 	end)
+	-- El 📍 va con la ruta marcada, la ponga quien la ponga (el mapa, "Ruta a casa", el plano del
+	-- metro, el ❓…) y se quita al llegar, con ✕ o con «Seguir misión»
 	Gps.onManual(function(place)
-		if not place and waypoint then
-			waypoint = nil
+		local same = (waypoint == nil and place == nil) or (waypoint ~= nil and place ~= nil and waypoint.Position == place.Position and waypoint.Name == place.Name)
+		if not same then
+			waypoint = if place then { Position = place.Position, Name = place.Name } else nil
 			refreshWaypointList()
 		end
 	end)

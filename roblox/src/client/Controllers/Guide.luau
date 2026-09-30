@@ -563,7 +563,9 @@ end
 local function checkStuck(dt: number)
 	local objective = Hud.objective()
 	local key = if objective and objective.Step ~= "" then objective.Key else nil
-	local blocked = quiet() or tutorialActive() or areaTaken() or safe(hooks.dialogOpen) or inVehicle()
+	-- (siguiendo una ruta que has elegido tú —el aeropuerto, tu casa…— alejarse de la misión es lo
+	-- normal: ni «te estás alejando» ni «Toca para ir», que te quitaba tu ruta)
+	local blocked = quiet() or tutorialActive() or areaTaken() or safe(hooks.dialogOpen) or inVehicle() or Gps.manual() ~= nil
 	local kind = Onboarding.stuckStep(stuck, dt, key, distanceTo(objective and objective.Target), blocked)
 	if not kind or not objective then
 		return
@@ -659,6 +661,13 @@ function Guide.init(options: Hooks?)
 		end
 	end)
 	readServer()
+	-- La misión cambia mientras sigues tu ruta: un aviso que se puede tocar para volver a ella
+	Gps.onNotice(function(text)
+		Guide.note("Hint", "🎯 " .. text, "🧭 Seguir misión", function()
+			Gps.follow()
+			pcall(Gps.update)
+		end)
+	end)
 
 	task.spawn(function()
 		local last = os.clock()

@@ -9,8 +9,12 @@
 --    semáforo pasan de uno en uno. Si llevan un rato parados detrás de ti, te pitan («¡Piii!»).
 --  * Aparecen y se retiran fuera de tu vista (detrás de la cámara o muy lejos), no delante de ti.
 --  * Con lluvia o nieve van más despacio (shared/Wetness).
---  * Semáforos: las luces cambian (verde, ámbar, rojo) igual para todos los jugadores y los
---    vehículos paran en rojo antes del cruce.
+--  * Semáforos (shared/TrafficSignals): las luces cambian (verde, ámbar, rojo y un momento en rojo
+--    los dos ejes) igual para todos los jugadores, los autobuses y las patrullas. Los vehículos paran
+--    antes del paso de cebra en rojo (y en ámbar si les da para parar), hacen cola sin montarse, no
+--    entran en el cruce si no pueden salir de él y, al girar a la izquierda, ceden el paso a los que
+--    vienen de frente. Qué cruces tienen semáforo sale de los datos de las calles (no de los modelos:
+--    con StreamingEnabled casi ninguno está cargado y antes nadie paraba).
 --  * En las rotondas dan la vuelta por el anillo (dejando la isla a la izquierda), a la velocidad de
 --    siempre, y salen por la calle que toque.
 --  * Detalles: luces de freno al frenar, intermitentes antes de girar, faros de noche,
@@ -25,6 +29,7 @@ local BusRoute = require(ReplicatedStorage.Shared.BusRoute)
 local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
 local Wetness = require(ReplicatedStorage.Shared.Wetness)
 local RideSpot = require(ReplicatedStorage.Shared.RideSpot)
+local TrafficSignals = require(ReplicatedStorage.Shared.TrafficSignals)
 local Perf = require(script.Parent.Parent.UI.Perf)
 local Nudge = require(script.Parent.Nudge)
 
@@ -154,23 +159,21 @@ local function focus(): Vector3?
 end
 
 ---------------------------------------------------------------------
--- Semáforos (mismo ciclo para todos: se calcula con la hora del servidor)
+-- Semáforos (mismo ciclo para todos: shared/TrafficSignals, con la hora del servidor)
 ---------------------------------------------------------------------
-local CYCLE = 30
+-- Hora del servidor del fotograma (se lee una vez por fotograma en step, no por vehículo)
+local frameNow = 0
+
+local function serverNow(): number
+	local ok, t = pcall(function()
+		return workspace:GetServerTimeNow()
+	end)
+	return if ok and type(t) == "number" then t else os.clock()
+end
 
 -- Estado del semáforo para quien circula a lo largo del eje X o Z (y cuántos segundos le quedan)
 local function signal(axis: string): (string, number)
-	local t = workspace:GetServerTimeNow() % CYCLE
-	if axis == "X" then
-		if t < 12 then
-			return "Green", 12 - t
-		end
-		return if t < 15 then "Yellow" else "Red", 0
-	end
-	if t < 15 then
-		return "Red", 0
-	end
-	return if t < 27 then "Green" else "Yellow", math.max(27 - t, 0)
+	return TrafficSignals.state(axis, serverNow())
 end
 Traffic.signal = signal
 
@@ -196,15 +199,32 @@ local function nearestNode(p: Vector3, maxDist: number): number?
 	return best
 end
 
+local function paintLight(light: Light, on: string)
+	for _, lamp in light.Lamps do
+		local lit = lamp.Role == on
+		lamp.Part.Color = if lit then LAMP_ON[lamp.Role] else LAMP_OFF[lamp.Role]
+		lamp.Part.Material = if lit then Enum.Material.Neon else Enum.Material.SmoothPlastic
+	end
+end
+
+-- Semáforos cuyo modelo ha llegado sin sus piezas (StreamingEnabled): se reintentan en refreshLights
+local pendingLights: { [Model]: boolean } = {}
+
+-- Las luces de un semáforo (solo para pintarlas: qué cruces tienen semáforo sale de las calles).
+-- Se puede llamar otra vez con el mismo modelo (si sus piezas vuelven a cargarse, se recogen de nuevo).
 local function addLight(model: Instance)
-	if not model:IsA("Model") or lights[model] then
+	if not model:IsA("Model") then
 		return
 	end
 	local arm = model:FindFirstChild("Arm") :: BasePart?
 	local box = model:FindFirstChild("Box") :: BasePart?
 	if not arm or not box then
+		-- (antes se descartaba para siempre: con StreamingEnabled el modelo llega antes que sus piezas)
+		lights[model] = nil
+		pendingLights[model] = true
 		return
 	end
+	pendingLights[model] = nil
 	local look = arm.CFrame.LookVector
 	-- Las luces miran perpendiculares al brazo: controlan el tráfico que va a lo largo de la calle de debajo
 	local light: Light = { Axis = if math.abs(look.X) > math.abs(look.Z) then "Z" else "X", Lamps = {} }
@@ -215,10 +235,7 @@ local function addLight(model: Instance)
 		end
 	end
 	lights[model] = light
-	local node = nearestNode(arm.CFrame.Position, 40)
-	if node then
-		lightNodes[node] = true
-	end
+	paintLight(light, (signal(light.Axis))) -- ya, sin esperar al siguiente cambio de luz
 end
 
 -- ¿Puede cruzar ya un peatón que va en dirección dir y llega al cruce de `at`? En los cruces con
@@ -229,8 +246,7 @@ function Traffic.mayCross(at: Vector3, dir: Vector3): boolean
 	if not node or not lightNodes[node] then
 		return true
 	end
-	local state, left = signal(if math.abs(dir.X) > math.abs(dir.Z) then "X" else "Z")
-	return state == "Green" and left > 4
+	return TrafficSignals.walk(TrafficSignals.axisOf(dir), serverNow())
 end
 
 -- Peatones cruzando la calzada ahora mismo (los pone Controllers/Ambient cada fotograma): los coches
@@ -254,21 +270,34 @@ Traffic.inView = inView
 
 local shown: { [string]: string } = {}
 local function refreshLights()
-	local state = { X = signal("X"), Z = signal("Z") }
-	if shown.X == state.X and shown.Z == state.Z then
-		return
+	-- Semáforos que llegaron sin piezas: se vuelven a mirar
+	for model in pendingLights do
+		if not model.Parent then
+			pendingLights[model] = nil
+		else
+			addLight(model)
+		end
 	end
+	local state = { X = signal("X"), Z = signal("Z") }
+	local changed = shown.X ~= state.X or shown.Z ~= state.Z
 	shown.X, shown.Z = state.X, state.Z
 	for model, light in lights do
 		if not model.Parent then
 			lights[model] = nil
 			continue
 		end
-		local on = state[light.Axis]
+		-- Si una luz se ha descargado (StreamingEnabled), se vuelven a recoger las del modelo
+		local stale = false
 		for _, lamp in light.Lamps do
-			local lit = lamp.Role == on
-			lamp.Part.Color = if lit then LAMP_ON[lamp.Role] else LAMP_OFF[lamp.Role]
-			lamp.Part.Material = if lit then Enum.Material.Neon else Enum.Material.SmoothPlastic
+			if lamp.Part.Parent ~= model then
+				stale = true
+				break
+			end
+		end
+		if stale or #light.Lamps == 0 then
+			addLight(model)
+		elseif changed then
+			paintLight(light, state[light.Axis])
 		end
 	end
 end

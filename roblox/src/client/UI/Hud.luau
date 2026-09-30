@@ -451,6 +451,28 @@ local missionParts: { [string]: any } = {}
 local storyState: { [string]: any } = {}
 local lastTracked: string? = nil
 local hasMission = false
+-- La ruta que has elegido tú (Controllers/Gps): la tarjeta se atenúa y enseña "📍 Ruta a …" con
+-- «Seguir misión» en el sitio del título pequeño (dentro de la tarjeta: no pisa nada)
+local routeChip: string? = nil
+local routeCancel: (() -> ())? = nil
+
+local function paintRouteChip()
+	local parts = missionParts
+	local chip = parts.Route
+	if not chip then
+		return
+	end
+	local on = routeChip ~= nil
+	chip.Visible = on
+	parts.Kind.Visible = not on
+	if on then
+		setText(parts.RouteText, routeChip :: string)
+	end
+	local fade = if on then 0.45 else 0
+	parts.Title.TextTransparency = fade
+	parts.Step.TextTransparency = fade
+	parts.Count.TextTransparency = fade
+end
 
 -- El encargo de la ciudad que estás haciendo (CityErrandService lo manda en el atributo CityErrand)
 local function errandState(): { [string]: any }?
@@ -571,6 +593,7 @@ local function paintMission()
 		end
 	end
 	parts.Pending.Visible = questPending
+	paintRouteChip()
 	refreshVisible()
 end
 
@@ -830,6 +853,23 @@ local function buildMission(parent: Instance)
 	open.Activated:Connect(openQuests)
 	chevronButton.Activated:Connect(openQuests)
 	Theme.pressable(chevronButton)
+	-- "📍 Ruta a …" (tu ruta manda sobre la de la misión) y «Seguir misión ✕» para volver a ella
+	local route = create("Frame", { Name = "RouteChip", Position = UDim2.fromOffset(40, 5), Size = UDim2.fromOffset(346, 30), BackgroundColor3 = rgb(16, 70, 88), BackgroundTransparency = 0.1, Visible = false, ZIndex = 4, Parent = mission }, {
+		create("UICorner", { CornerRadius = UDim.new(1, 0) }),
+		create("UIStroke", { Color = rgb(90, 220, 255), Thickness = 1.5, Transparency = 0.2 }),
+	})
+	parts.Route = route
+	parts.RouteText = Theme.label({ Name = "Text", Position = UDim2.fromOffset(12, 0), Size = UDim2.new(1, -150, 1, 0), Font = Theme.FontBold, TextSize = 16, TextColor3 = rgb(160, 240, 255), TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 5, Parent = route })
+	local follow = create("TextButton", { Name = "Follow", AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -3, 0.5, 0), Size = UDim2.fromOffset(136, 24), BackgroundColor3 = H.Gold, Text = "Seguir misión ✕", TextSize = 14, Font = Theme.FontBold, TextColor3 = rgb(30, 24, 8), AutoButtonColor = true, ZIndex = 6, Parent = route }, {
+		create("UICorner", { CornerRadius = UDim.new(1, 0) }),
+	})
+	Theme.pressable(follow)
+	follow.Activated:Connect(function()
+		local cancel = routeCancel
+		if cancel then
+			cancel()
+		end
+	end)
 
 	-- Los objetivos llegan de la historia (el mismo estado que usa LifeStory)
 	task.spawn(function()
@@ -884,6 +924,19 @@ local function buildMission(parent: Instance)
 	end)
 	actions.Misiones = openQuests
 	paintMission()
+end
+
+-- Controllers/Gps: la ruta que has elegido (texto de la etiqueta, p. ej. "📍 Ruta a Aeropuerto de
+-- Valmar"; nil = ninguna) y qué hacer con «Seguir misión ✕» (quitarla y volver a la misión)
+function Hud.setRouteChip(text: string?, onCancel: (() -> ())?)
+	routeChip = text
+	routeCancel = onCancel
+	paintRouteChip()
+end
+
+-- (pruebas y Guide) la etiqueta de la ruta que se ve en la tarjeta de la misión
+function Hud.routeChip(): string?
+	return routeChip
 end
 
 -- Abre la lista de misiones sin cerrarla si ya está abierta ("Ver mis misiones" de la ayuda y

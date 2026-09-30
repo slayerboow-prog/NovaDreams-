@@ -3,9 +3,13 @@
 -- Si no estás trabajando, guía hacia tu encargo de la ciudad (CityErrandTarget) o, si no tienes,
 -- hacia el siguiente paso de tu historia de vida (StoryTarget) o hacia la misión del pase de temporada
 -- que sigues (SeasonTarget).
+-- Mientras sigues una ruta que has elegido tú (Controllers/Gps: un lugar del mapa, "Ruta a casa"…)
+-- no se ve: una sola guía a la vez (vuelve sola al quitar esa ruta o al llegar).
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+
+local Gps = require(script.Parent.Gps)
 
 local TaskMarker = {}
 
@@ -92,16 +96,9 @@ local function update()
 		anchor.Parent = nil
 		return
 	end
-	local target = player:GetAttribute("TaskTarget")
-	if typeof(target) ~= "Vector3" then
-		target = player:GetAttribute("CityErrandTarget") -- (el encargo de la ciudad que has aceptado)
-	end
-	if typeof(target) ~= "Vector3" then
-		target = player:GetAttribute("StoryTarget")
-	end
-	if typeof(target) ~= "Vector3" then
-		target = player:GetAttribute("SeasonTarget") -- (la misión del pase de temporada que sigues)
-	end
+	-- Trabajo, encargo de la ciudad, historia o pase de temporada (shared/Gps.Targets); nada si
+	-- sigues tu propia ruta
+	local target = Gps.missionMarker()
 	if typeof(target) ~= "Vector3" then
 		anchor.Parent = nil
 		return
@@ -125,6 +122,9 @@ function TaskMarker.init()
 	player:GetAttributeChangedSignal("StoryTarget"):Connect(update)
 	player:GetAttributeChangedSignal("CityErrandTarget"):Connect(update)
 	player:GetAttributeChangedSignal("SeasonTarget"):Connect(update)
+	Gps.onManual(function()
+		update()
+	end)
 	update()
 
 	RunService.RenderStepped:Connect(function()
