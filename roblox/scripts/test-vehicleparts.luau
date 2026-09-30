@@ -728,6 +728,20 @@ VehicleBuild.clear(car)
 check(plateLabel.Text ~= "VALMAR 1" and car:FindFirstChild("Mod_Neon") == nil and car:GetAttribute("NeonColor") == nil, "clear quita el texto, el neón y el atributo")
 car:Destroy()
 
+-- Bici y monopatín: solo recolorear (cuadro / tabla, sillín / bujes, llantas / ruedas)
+local bike = makeModel("Bici", nil)
+VehicleBuild.apply(bike, { V = 1, Paint = "P_RosaChicle", Paint2 = "P_BlancoGlaciar", RimColor = "RC_Negro" })
+local pink, white = Color3.fromRGB(240, 120, 170), Color3.fromRGB(240, 242, 245)
+local function sameColor(a, b2)
+	return math.abs(a.R - b2.R) + math.abs(a.G - b2.G) + math.abs(a.B - b2.B) < 0.01
+end
+check(sameColor(bike:FindFirstChild("TopTube").Color, pink) and sameColor(bike:FindFirstChild("Seat").Color, white) and sameColor(bike:FindFirstChild("Rim").Color, Color3.fromRGB(25, 25, 28)), "bici: cuadro rosa, sillín blanco y llantas negras")
+bike:Destroy()
+local board = makeModel("Monopatin", nil)
+VehicleBuild.apply(board, { V = 1, Paint = "P_Celeste", RimColor = "RC_Bronce" })
+check(sameColor(board:FindFirstChild("Deck").Color, Color3.fromRGB(130, 190, 240)) and sameColor(board:FindFirstChild("Wheel").Color, Color3.fromRGB(150, 110, 60)), "monopatín: tabla celeste y ruedas bronce")
+board:Destroy()
+
 -- Aplicar sobre un vehículo YA preparado (vista previa / sustituir en el taller): se suelda
 local prepared = makeModel("Moto", nil)
 Rides.prepare(prepared, "Moto", CF)

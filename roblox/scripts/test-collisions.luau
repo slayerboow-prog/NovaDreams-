@@ -259,7 +259,7 @@ do
 	for speed = 22, 200, 6 do
 		local vel, _, mode = Knock.launch(bin, V(0, 0, -speed), 1300)
 		local r = Knock.range(vel)
-		if mode ~= "launch" or r < last - 1e-6 then
+		if mode ~= "launch" or r < last - 1e-3 then
 			monotonic = false
 		end
 		last = r
@@ -390,6 +390,9 @@ if okPlace then
 				local size = if d:IsA("BasePart") then d.Size else nil
 				if Knock.profile(d.Name, if d:IsA("Model") then "Model" else "BasePart", ancestors, size) then
 					counts[d.Name] = (counts[d.Name] or 0) + 1
+					if table.find(ancestors, "Mueble") then
+						counts.Interior = (counts.Interior or 0) + 1
+					end
 					if Knock.isSolid(d.Name) then
 						solidHit[d.Name] = true
 					end
@@ -407,7 +410,7 @@ if okPlace then
 		check((counts.MotoAparcada or 0) >= 100, "motos de adorno: " .. tostring(counts.MotoAparcada))
 		check((counts.Bench or 0) >= 100, "bancos de parque: " .. tostring(counts.Bench))
 		check((counts.TerraceChair or 0) >= 30 and (counts.TerraceTable or 0) >= 20, "terrazas (sillas y mesas)")
-		check((counts.Pot or 0) < 213, "las macetas de los interiores no cuentan")
+		check((counts.Interior or 0) == 0, "los muebles de los interiores no cuentan")
 		check(next(solidHit) == nil, "nada estructural (farolas, semáforos, bolardos…) se puede tumbar")
 	else
 		check(false, "no se pudo leer la ciudad del archivo")

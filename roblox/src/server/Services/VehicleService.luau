@@ -1251,7 +1251,7 @@ local function setupParkedCar(model: Instance)
 	if not body or not body:IsA("BasePart") then
 		return
 	end
-	model:AddTag("ParkedCar") -- (los choques lo encuentran sin recorrer la ciudad: Controllers/Collisions)
+	pcall(CollectionService.AddTag, CollectionService, model, "ParkedCar") -- (los choques lo encuentran sin recorrer la ciudad: Controllers/Collisions)
 	-- Carteles ligeros en la carrocería; el coche solo se prepara cuando alguien lo coge
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.Name = "DrivePrompt"
