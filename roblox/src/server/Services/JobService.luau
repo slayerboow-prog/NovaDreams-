@@ -256,6 +256,8 @@ local function setupBoard(board: Instance)
 		return
 	end
 	local prompt = Builder.prompt(board, "Trabajar", ("%s · %s"):format(job.DisplayName, job.PayText or (Format.money(job.Pay) .. "/entrega")), 0.5)
+	-- Los niños no ven el tablón (el cliente oculta avisos con MinStage por debajo de su etapa)
+	prompt:SetAttribute("MinStage", job.MinStage or Config.StageLimits.Work)
 	prompt.Triggered:Connect(function(player)
 		local own = handlers[jobId]
 		if own then
