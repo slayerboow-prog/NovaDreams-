@@ -29,6 +29,7 @@ Wanted.Crimes = {
 	Homicidio = { Stars = 3, Text = "Homicidio" },
 	Disparo = { Stars = 2, Text = "Disparar a una persona" }, -- (WeaponService)
 	Disparos = { Stars = 1, Text = "Disparos en la vía pública" },
+	Atropello = { Stars = 3, Text = "Atropellar a una persona" }, -- delito grave (KnockService: un vehículo contra alguien)
 	-- Al volante (Minors = también cuenta para los niños: la policía para a cualquiera que conduzca)
 	SinCarnet = { Stars = 1, Text = "Conducir sin carnet" },
 	MenorVolante = { Stars = 1, Text = "Menor al volante", Minors = true },

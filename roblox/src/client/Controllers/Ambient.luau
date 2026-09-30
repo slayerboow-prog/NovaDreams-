@@ -853,6 +853,12 @@ local function updatePeds(frameDt: number, center: Vector3)
 					ped.Knocked = { At = now, Hit = hit, Origin = pos, Axis = dir:Cross(Vector3.yAxis), Facing = heading(road, ped.Dir) }
 					ped.ReactAt = nil
 					Nudge.say(ped.Parts[ped.Index.Head], if hit.Mode == "launch" then "¡Aaah!" elseif hit.Mode == "fall" then "¡Ay!" else "¡Eh!", 1.8)
+					-- (atropello: delito grave; el servidor comprueba que de verdad ibas en un vehículo)
+					local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+					local knock = remotes and remotes:FindFirstChild("Knock")
+					if knock and knock:IsA("RemoteEvent") then
+						knock:FireServer("Ped", nil, { Pos = pos, Vel = carVel })
+					end
 				end
 			elseif (d < 3 or (car and d < 9)) and math.abs(myRoot.Position.Y - pos.Y) < 6 and (not ped.ReactAt or now - ped.ReactAt > 2.5) then
 				ped.ReactAt = now

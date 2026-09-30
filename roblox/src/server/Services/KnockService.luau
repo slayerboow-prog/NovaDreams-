@@ -350,6 +350,11 @@ function KnockService.person(attacker: Player, model: Model, relVel: Vector3, hi
 	local victim = Players:GetPlayerFromCharacter(model)
 	local dir = if flat(relVel).Magnitude > 1e-3 then flat(relVel).Unit else Vector3.new(0, 0, -1)
 	local CombatService = require(script.Parent.CombatService) :: any
+	-- Atropellar a alguien con un vehículo es delito grave (la víctima, si es un NPC, llama a la policía)
+	if hitterMass > Knock.CharacterMass * 2 and not (victim and (victim == attacker or humanoid.SeatPart)) then
+		local WantedService = require(script.Parent.WantedService) :: any
+		pcall(WantedService.crime, attacker, "Atropello", root.Position, { Witness = if victim then nil else model })
+	end
 	if victim then
 		if victim == attacker or humanoid.SeatPart then
 			return
@@ -470,6 +475,7 @@ local function onProp(player: Player, target: any, info: any)
 	KnockService.knock(unit, launch, spin)
 end
 
+local onPedestrian: (Player, any) -> ()
 local function onPerson(player: Player, target: any, info: any, shove: boolean)
 	if typeof(target) ~= "Instance" or not target:IsA("Model") or not target:IsDescendantOf(workspace) then
 		return
@@ -495,6 +501,27 @@ local function onPerson(player: Player, target: any, info: any, shove: boolean)
 		return
 	end
 	KnockService.person(player, target, vel - flat(root.AssemblyLinearVelocity), mass)
+end
+
+-- Un peatón de la calle (solo existe en la pantalla de quien conduce): el servidor no lo ve, así
+-- que solo se cree el aviso si vas en un vehículo, a velocidad de atropello y el sitio está a tu lado.
+local lastPed: { [Player]: number } = {}
+onPedestrian = function(player: Player, info: any)
+	local pos, reach, maxSpeed, mass, serverVel = hitter(player)
+	if not pos or mass <= Knock.CharacterMass * 2 or type(info) ~= "table" or typeof(info.Pos) ~= "Vector3" then
+		return
+	end
+	local now = os.clock()
+	if now - (lastPed[player] or -math.huge) < 4 then
+		return
+	end
+	local vel = velocityOf(info, maxSpeed, serverVel)
+	if not vel or vel.Magnitude < Knock.PersonSpeeds.Stumble or not Knock.plausible(pos, reach, info.Pos, 1.5, vel.Magnitude, maxSpeed) then
+		return
+	end
+	lastPed[player] = now
+	local WantedService = require(script.Parent.WantedService) :: any
+	pcall(WantedService.crime, player, "Atropello", info.Pos)
 end
 
 ---------------------------------------------------------------------
@@ -527,6 +554,8 @@ function KnockService.init()
 				onPerson(player, target, info, false)
 			elseif action == "Shove" then
 				onPerson(player, target, info, true)
+			elseif action == "Ped" then
+				onPedestrian(player, info)
 			end
 		end)
 		if not ok then
@@ -534,6 +563,7 @@ function KnockService.init()
 		end
 	end)
 	Players.PlayerRemoving:Connect(function(player)
+		lastPed[player] = nil
 		bursts[player] = nil
 	end)
 
