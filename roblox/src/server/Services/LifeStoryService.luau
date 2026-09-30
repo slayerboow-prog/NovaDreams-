@@ -3247,6 +3247,62 @@ function LifeStoryService.resetQuest(player: Player, questId: string?): (boolean
 	return true, id
 end
 
+-- (Modo pruebas: saltar de etapa) Deja las misiones en marcha que ya no pegan con la etapa nueva:
+-- las principales de un capítulo que no es de esa etapa (los recados del cole, el día de cole…) y
+-- las que piden otra edad. Si no, una principal de niño seguía activa y el capítulo de adulto no
+-- empezaba nunca. No cuentan como hechas (si vuelves a ser niño, se pueden jugar). Corta la
+-- conversación o el minijuego en marcha. Devuelve las misiones quitadas.
+function LifeStoryService.dropOutgrown(player: Player, stage: string): { string }
+	local data = DataService.get(player)
+	local rt = runtime[player]
+	local dropped = {}
+	if not data or not rt or not Stages.isValid(stage) then
+		return dropped
+	end
+	local story = storyOf(data)
+	-- Principales que caben en la etapa nueva: las de los capítulos que le tocan (y su día normal)
+	local fits: { [string]: boolean } = {}
+	for _, id in chapterOrder do
+		local chapter = Chapters[id]
+		if chapterFits(chapter, stage, story) then
+			for _, questId in chapter.Main do
+				fits[questId] = true
+			end
+			if chapter.Loop then
+				fits[chapter.Loop] = true
+			end
+		end
+	end
+	for id, prog in story.Active do
+		local quest = Quests[id]
+		local req = quest and quest.Requires
+		local wrongAge = type(req) == "table" and type(req.Stage) == "table" and not Stages.inRange(stage, req.Stage.Min, req.Stage.Max)
+		local wrongChapter = type(prog) == "table" and prog.Kind == "Main" and not fits[id]
+		if id ~= PROLOGUE and (not quest or wrongAge or wrongChapter) then
+			table.insert(dropped, id)
+		end
+	end
+	if #dropped == 0 then
+		return dropped
+	end
+	pcall(DialogueService.cancel, player, "etapa")
+	pcall(MiniGameService.cancel, player)
+	rt.Busy = false
+	rt.Waiting = nil
+	for _, id in dropped do
+		story.Active[id] = nil
+		if rt.Watch then
+			rt.Watch[id] = nil
+		end
+		if story.Tracked == id then
+			story.Tracked = nil
+		end
+		pcall(SceneService.clear, player, id)
+	end
+	Log.warn("DEBUG", "%s cambia a %s: deja %s", player.Name, stage, table.concat(dropped, ", "))
+	return dropped
+end
+
 -- Estado de la historia de un jugador para depurar (panel del dueño, /debug, pruebas)
 function LifeStoryService.debugState(player: Player): { [string]: any }?
 	local rt = runtime[player]

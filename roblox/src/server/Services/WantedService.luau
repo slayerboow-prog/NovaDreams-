@@ -497,7 +497,36 @@ local function policeSeesDriver(player: Player): (boolean, any)
 end
 WantedService.policeSeesDriver = policeSeesDriver
 
+-- Delitos de «requisitos» al volante (la edad o el carnet) y la huida de un «¡Alto!» por ellos: el
+-- modo pruebas con «Sin requisitos» no los comete (los de verdad, sí: answersAsAdult)
+local DRIVING_REQUIREMENT = { SinCarnet = true, MenorVolante = true, Huida = true }
+local DRIVING_TEXT: { [string]: boolean } = {}
+for key in DRIVING_REQUIREMENT do
+	DRIVING_TEXT[Wanted.Crimes[key].Text] = true
+end
+
+-- Tester con «Sin requisitos» al volante: ni «¡Alto!» ni estrellas por conducir sin edad o sin carnet.
+-- Si ya le buscaban SOLO por eso (le pararon antes de encender el interruptor), se le deja en paz.
+local function forgiveDriving(player: Player, state: State)
+	state.Stop = nil
+	if state.Stars <= 0 or #state.Crimes == 0 or state.Arresting then
+		return
+	end
+	for _, text in state.Crimes do
+		if not DRIVING_TEXT[text] then
+			return -- (hay algún delito de verdad: la búsqueda sigue)
+		end
+	end
+	state.Crimes = {}
+	setStars(player, 0)
+	Notify:FireClient(player, "Info", "🧪 Modo pruebas: sin requisitos no te buscan por conducir sin carnet ni por la edad.")
+end
+
 local function checkDriver(player: Player, state: State)
+	if TesterService.bypass(player) then
+		forgiveDriving(player, state)
+		return
+	end
 	local offence = VehicleService.drivingOffence(player)
 	if not offence or state.Arresting or player:GetAttribute("JailUntil") or player:GetAttribute("OnTrial") then
 		return

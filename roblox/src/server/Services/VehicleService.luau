@@ -964,9 +964,37 @@ function VehicleService.drivingOffence(player: Player): string?
 	if vehicle and vehicle.Hidden and player:GetAttribute("Job") then
 		return nil -- (el vehículo de tu trabajo, de servicio: autobús, patrulla, camión…)
 	end
+	return VehicleService.offenceFor(player, ride.Kind)
+end
+
+-- ¿Qué delito sería que ESTE jugador condujera este tipo de vehículo? ("MenorVolante", "SinCarnet"
+-- o nil). Modo pruebas con «Sin requisitos»: ninguno (ni la edad ni el carnet cuentan al volante;
+-- lo demás —disparar, atropellar, robar— sí, ver WantedService).
+function VehicleService.offenceFor(player: Player, kind: string): string?
+	if TesterService.bypass(player) then
+		return nil
+	end
+	local vehicle = Gameplay.Vehicles[kind]
 	local license = vehicle and vehicle.License
 	local has = license ~= nil and VehicleService.hasLicense(player, license)
-	return Gameplay.drivingOffence(player:GetAttribute("LifeStage"), has, ride.Kind)
+	return Gameplay.drivingOffence(player:GetAttribute("LifeStage"), has, kind)
+end
+
+-- Aviso al subirse sin el carnet que toca (o siendo menor), como mucho uno por minuto.
+-- Devuelve el delito del que se ha avisado (nil = ninguno o ya avisado hace poco).
+function VehicleService.licenceWarning(player: Player, kind: string): string?
+	local vehicle = Gameplay.Vehicles[kind]
+	local offence = VehicleService.offenceFor(player, kind)
+	if not vehicle or not offence or os.clock() - (warnedAt[player] or -math.huge) <= 60 then
+		return nil
+	end
+	warnedAt[player] = os.clock()
+	if offence == "MenorVolante" then
+		Notify:FireClient(player, "Error", "⚠️ Eres menor y no tienes carnet: si te ve la policía conduciendo, te parará y llamará a tu familia.")
+	else
+		Notify:FireClient(player, "Error", ("⚠️ Conduces sin el %s: si te ve una patrulla, te parará (es delito)."):format(Gameplay.Licenses[vehicle.License].Name))
+	end
+	return offence
 end
 
 -- Lo rápido que va su vehículo (studs/s, sin contar la altura)
@@ -1000,16 +1028,7 @@ local function allowed(player: Player, kind: string, exam: boolean?): boolean
 		return false
 	end
 	if vehicle.License and not exam then
-		local has = VehicleService.hasLicense(player, vehicle.License)
-		local offence = Gameplay.drivingOffence(player:GetAttribute("LifeStage"), has, kind)
-		if offence and os.clock() - (warnedAt[player] or -math.huge) > 60 then
-			warnedAt[player] = os.clock()
-			if offence == "MenorVolante" then
-				Notify:FireClient(player, "Error", "⚠️ Eres menor y no tienes carnet: si te ve la policía conduciendo, te parará y llamará a tu familia.")
-			else
-				Notify:FireClient(player, "Error", ("⚠️ Conduces sin el %s: si te ve una patrulla, te parará (es delito)."):format(Gameplay.Licenses[vehicle.License].Name))
-			end
-		end
+		VehicleService.licenceWarning(player, kind)
 	end
 	return true
 end

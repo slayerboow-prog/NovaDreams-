@@ -38,6 +38,7 @@ local RATE = 0.25 -- segundos mínimos entre dos peticiones del panel
 -- Etapas a las que se puede saltar desde el panel (Bebe no: el tutorial de bebé tiene su propia
 -- máquina de estados y solo se entra naciendo; ver BabyService)
 TesterService.Stages = { "Nino", "Adolescente", "AdultoJoven", "Adulto", "Mayor" }
+local STAGE_LABEL = { Nino = "niño", Adolescente = "adolescente", AdultoJoven = "adulto joven", Adulto = "adulto", Mayor = "mayor" }
 -- Lugares del teletransporte (ids de LifeStory/Locations; LocationService los busca en el mapa)
 TesterService.Places = {
 	{ Id = "Home", Name = "🏠 Mi casa" },
@@ -207,7 +208,8 @@ local function publishFlags(player: Player)
 	player:SetAttribute("TesterBypass", if s and s.Bypass then true else nil)
 end
 
-local function giveLicences(player: Player): number
+-- Carnets de conducir (moto, coche…): se guardan de verdad (data.Licenses)
+local function giveDrivingLicences(player: Player): number
 	local given = 0
 	local okV, VehicleService = pcall(service, "VehicleService")
 	local Gameplay = require(ReplicatedStorage.Shared.Gameplay)
@@ -219,6 +221,12 @@ local function giveLicences(player: Player): number
 			end
 		end
 	end
+	return given
+end
+
+-- Carnets de conducir y licencia de armas
+local function giveLicences(player: Player): number
+	local given = giveDrivingLicences(player)
 	local okW, WeaponService = pcall(service, "WeaponService")
 	if okW and WeaponService and WeaponService.grantLicence and WeaponService.grantLicence(player) then
 		given += 1
@@ -317,31 +325,58 @@ local function teleport(player: Player, placeId: any): boolean
 end
 
 -- Cambiar de etapa de vida por el camino de la historia (LifeStoryService.setStage: edad, atributo
--- LifeStage, biografía y capítulo que toca). No durante el prólogo ni en una conversación.
-local function setStage(player: Player, stage: any): boolean
+-- LifeStage —con él LifeService cambia el tamaño del cuerpo y AvatarService la ropa—, biografía y el
+-- capítulo que toca; se guarda con la partida). Para que funcione SIEMPRE (el dueño seguía siendo
+-- niño en mitad de «Recados por el barrio»):
+--   * una conversación o un minijuego en marcha se cortan (antes: «termina la conversación»);
+--   * el prólogo (el sueño) se da por terminado;
+--   * las misiones de la etapa anterior que ya no pegan (la principal de niño, el día de cole…) se
+--     dejan (LifeStoryService.dropOutgrown): si no, el capítulo nuevo no empezaba nunca.
+-- De bebé no: el tutorial de bebé tiene su propia máquina de estados (BabyService).
+-- Devuelve true si ahora estás en esa etapa, y el texto del aviso.
+local function setStage(player: Player, stage: any): (boolean, string?)
 	if type(stage) ~= "string" or not table.find(TesterService.Stages, stage) then
-		return false
+		return false, nil
 	end
 	local data = DataService.get(player)
 	if not data or type(data.Life) ~= "table" then
-		return false
+		return false, "Aún no han cargado tus datos: inténtalo en un momento."
+	end
+	if data.Life.Stage == stage then
+		-- (por si el atributo se quedó desfasado: se vuelve a poner)
+		player:SetAttribute("LifeStage", stage)
+		return true, nil
 	end
 	if data.Life.Stage == "Bebe" then
-		toast(player, "Error", "De bebé no: termina antes el tutorial de bebé.")
-		return false
+		return false, "De bebé no: termina antes el tutorial de bebé."
 	end
+	local LifeStoryService = service("LifeStoryService")
 	local StoryContext = require(ReplicatedStorage.Shared.LifeStory.StoryContext)
 	local story = type(data.Story) == "table" and data.Story or nil
 	if story and type(story.Active) == "table" and story.Active[StoryContext.PrologueId] then
-		toast(player, "Error", "Durante el prólogo no se puede cambiar de etapa.")
-		return false
+		pcall(LifeStoryService.endPrologue, player, "Skipped")
 	end
 	if player:GetAttribute("InDialogue") then
-		toast(player, "Error", "Termina la conversación antes de cambiar de etapa.")
-		return false
+		pcall(function()
+			local DialogueService = service("DialogueService")
+			DialogueService.cancel(player, "tester")
+			if not DialogueService.isBusy(player) then
+				player:SetAttribute("InDialogue", nil) -- (un atributo que se quedó puesto sin conversación)
+			end
+		end)
 	end
-	service("LifeStoryService").setStage(player, stage)
-	return data.Life.Stage == stage
+	pcall(LifeStoryService.dropOutgrown, player, stage)
+	LifeStoryService.setStage(player, stage)
+	if data.Life.Stage ~= stage then
+		return false, "No se ha podido cambiar de etapa."
+	end
+	return true, nil
+end
+
+local function stageToast(player: Player, stage: string)
+	local data = DataService.get(player)
+	local age = data and type(data.Life) == "table" and tonumber(data.Life.AgeYears)
+	toast(player, "Success", ("🎂 Ya eres %s%s"):format(STAGE_LABEL[stage] or stage, if age then (" (%d años)"):format(age) else ""))
 end
 
 local function setHour(player: Player, hour: any): boolean
@@ -403,7 +438,10 @@ function TesterService.handle(player: Player, kind: any, a: any, b: any): boolea
 		elseif a == "Bypass" then
 			s.Bypass = not s.Bypass
 			publishFlags(player)
-			toast(player, "Info", if s.Bypass then "🔓 Sin requisitos: todos los oficios, carnets y edades" else "🔒 Requisitos normales otra vez")
+			if s.Bypass then
+				giveDrivingLicences(player) -- (sin requisitos también al volante: ni edad ni carnet)
+			end
+			toast(player, "Info", if s.Bypass then "🔓 Sin requisitos: todos los oficios, carnets y edades (y conduces sin que te pare la policía)" else "🔒 Requisitos normales otra vez")
 		else
 			done = false
 		end
@@ -445,9 +483,25 @@ function TesterService.handle(player: Player, kind: any, a: any, b: any): boolea
 		elseif a == "Teleport" then
 			done = teleport(player, b)
 		elseif a == "Stage" then
-			done = setStage(player, b)
-			if done then
-				toast(player, "Success", "🎂 Etapa de vida: " .. tostring(b))
+			local ok, err = setStage(player, b)
+			done = ok
+			if ok then
+				stageToast(player, b)
+			elseif err then
+				toast(player, "Error", err)
+			end
+		elseif a == "MakeAdult" then
+			-- Un toque: adulto, con todos los carnets y sin búsqueda (para conducir sin la policía detrás)
+			local ok, err = setStage(player, "Adulto")
+			done = ok
+			if ok then
+				giveDrivingLicences(player)
+				clearWanted(player)
+				local data = DataService.get(player)
+				local age = data and type(data.Life) == "table" and tonumber(data.Life.AgeYears)
+				toast(player, "Success", ("🧑 Ya eres adulto%s, con todos los carnets y sin búsqueda: puedes conducir tranquilo"):format(if age then (" (%d años)"):format(age) else ""))
+			else
+				toast(player, "Error", err or "No se ha podido cambiar de etapa.")
 			end
 		elseif a == "BattlePass" then
 			-- Pase de temporada: b = { Op = "Premium" (simular, solo en memoria) | "AddXp" | "SetLevel" |
@@ -561,6 +615,10 @@ function TesterService.init()
 		if TesterService.isTester(player) then
 			publishFlags(player)
 			TesterService.topUp(player)
+			-- Sin requisitos: los carnets de conducir ya puestos (VehicleService.grantLicense los guarda)
+			if TesterService.bypass(player) then
+				task.defer(pcall, giveDrivingLicences, player)
+			end
 		end
 	end)
 	Players.PlayerAdded:Connect(setup)

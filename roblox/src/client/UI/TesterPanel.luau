@@ -170,6 +170,19 @@ local function build()
 		table.insert(refreshers, refresh)
 	end
 
+	-- Arriba del todo, un toque: adulto con todos los carnets y sin búsqueda (el servidor corta la
+	-- conversación o la misión de niño que hubiera a medias; TesterService "MakeAdult")
+	local adult = button(list, "🧑 Hazme adulto (carnets y sin policía)", function()
+		send("Action", "MakeAdult")
+	end)
+	adult.BackgroundColor3 = ON
+	local function refreshAdult()
+		local now = state and state.Stage
+		adult.Text = if now == "Adulto" then "🧑 Ya eres adulto · pulsa para carnets y quitar la policía" else "🧑 Hazme adulto (carnets y sin policía)"
+	end
+	refreshAdult()
+	table.insert(refreshers, refreshAdult)
+
 	section("INTERRUPTORES")
 	toggle("Money", "💰 Dinero infinito")
 	toggle("Bypass", "🔓 Sin requisitos (oficios, carnets, edad)")
@@ -213,7 +226,7 @@ local function build()
 			send("Action", "Stage", stage)
 		end, i)
 	end
-	note("Cambia la edad y el capítulo de tu historia (las misiones en marcha pueden quedar a medias).")
+	note("Cambia la edad, el cuerpo y el capítulo de tu historia (se guarda). Corta la conversación en marcha y deja las misiones de la etapa anterior.")
 
 	section("TELETRANSPORTE")
 	local places = grid()
