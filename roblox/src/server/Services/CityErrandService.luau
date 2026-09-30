@@ -28,6 +28,7 @@ local OpeningHours = require(ReplicatedStorage.Shared.OpeningHours)
 local Log = require(ReplicatedStorage.Shared.Log)
 local DataService = require(script.Parent.DataService)
 local ProgressionService = require(script.Parent.ProgressionService)
+local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 local DialogueService = require(script.Parent.DialogueService)
 local SceneService = require(script.Parent.SceneService)
 local LifeStoryService = require(script.Parent.LifeStoryService)
@@ -647,6 +648,7 @@ local function finish(player: Player, job: Job)
 	end
 	setCooldown(player, job.Giver.Key, CFG.GiverCooldown)
 	notify(player, "Success", ("✅ ¡Encargo hecho! «%s»: +%s y +%d XP"):format(template.Title, Format.money(job.Money), job.Xp))
+	StoryEvents.emit(player, "ErrandDone", { Errand = template.Id }) -- (misiones y XP del pase de temporada)
 	if job.Giver.Model and job.Giver.Model.Parent then
 		Npc.say(job.Giver.Model, template.Thanks or "¡Mil gracias!", 5)
 	end

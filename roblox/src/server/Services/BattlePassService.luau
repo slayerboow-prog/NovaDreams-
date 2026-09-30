@@ -56,6 +56,7 @@ local MESSAGES = {
 	AlreadyRerolled = "Hoy ya has cambiado una misión.",
 	NoData = "Tus datos todavía se están cargando.",
 	Compensated = "Esa recompensa ya no existe: te damos una compensación.",
+	NoPlace = "Esa misión no tiene un sitio concreto: se hace en cualquier parte.",
 }
 BattlePassService.Messages = MESSAGES
 
@@ -167,8 +168,17 @@ local function previewOf(def: { [string]: any }): { [string]: any }?
 	p.Color = p.Color or def.Color
 	p.Colors = p.Colors or def.Colors
 	p.Material = p.Material or def.Material
-	if def.Type == "VehicleSkin" or def.Type == "Decor" or (p.Kind == "Vehicle" and def.Type == "Bundle") then
+	if def.Type == "VehicleSkin" or def.Type == "Decor" then
 		p.Model = "BattlePassPreviews/" .. def.Id -- (modelo ya montado en ReplicatedStorage, si existe)
+	elseif def.Type == "Bundle" then
+		-- (el de un conjunto: el de su primer vehículo o decoración)
+		for _, item in def.Items or {} do
+			if (item.Type == "VehicleSkin" and p.Kind == "Vehicle") or (item.Type == "Decor" and p.Kind == "Decor") then
+				p.Model = "BattlePassPreviews/" .. item.Id
+				p.Color = p.Color or item.Color
+				break
+			end
+		end
 	end
 	if def.Type == "Emote" then
 		p.AnimationId = def.AnimationId
@@ -810,6 +820,14 @@ local function buildPreviews()
 				local model = Rides.build(def.Kind, nil, CFrame.new(), def.Color)
 				model.Name = def.Id
 				model:SetAttribute("RewardId", def.Id)
+				model.Parent = folder
+			end)
+		elseif def.Type == "Decor" then
+			pcall(function()
+				local model = Instance.new("Model")
+				model.Name = def.Id
+				model:SetAttribute("RewardId", def.Id)
+				Rewards.buildDecor(def, CFrame.new(), model)
 				model.Parent = folder
 			end)
 		end

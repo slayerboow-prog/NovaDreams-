@@ -94,7 +94,29 @@ local function hair(folder: Instance, head: BasePart, color: Color3, rng: Random
 	end
 end
 
+-- Conjunto de ropa equipado del pase de temporada (BattlePassRewardService.outfitFor): colores que
+-- cambian los del aspecto de Valmar (Hoodie, Tee, Pants, Shoes…). nil = el aspecto de siempre.
+AvatarService.OutfitFor = nil :: ((Player) -> { [string]: Color3 }?)?
+
+local function lookFor(player: Player): { [string]: any }
+	if not AvatarService.OutfitFor then
+		return LOOK
+	end
+	local ok, colors = pcall(AvatarService.OutfitFor, player)
+	if not ok or type(colors) ~= "table" then
+		return LOOK
+	end
+	local merged = table.clone(LOOK)
+	for key, color in colors do
+		if typeof(color) == "Color3" and typeof(LOOK[key]) == "Color3" and key ~= "Skin" then
+			merged[key] = color
+		end
+	end
+	return merged
+end
+
 local function dress(player: Player, character: Model)
+	local LOOK = lookFor(player)
 	local old = character:FindFirstChild("ValmarLook")
 	if old then
 		old:Destroy()

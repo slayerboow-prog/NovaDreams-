@@ -126,6 +126,12 @@ local order = {
 	"SceneService", -- actores y objetos de cada misión (solo para su jugador)
 	"LifeStoryService", -- la historia de vida escucha a todos los anteriores
 	"CityErrandService", -- encargos de la ciudad: gente con ❗ por todo el mapa que te pide pequeños favores
+	-- Pase de temporada (en este orden: temporada, recompensas, misiones, núcleo y la XP que escucha a todos)
+	"BattlePassSeasonService", -- temporada actual, estado, cambio de temporada y archivo
+	"BattlePassRewardService", -- entrega recompensas con los sistemas de siempre (vehículos, ropa, vivienda…)
+	"SeasonMissionService", -- misiones diarias, semanales, de temporada y la historia de temporada
+	"BattlePassService", -- niveles, reclamar, premium (Game Pass) y el remoto BattlePass
+	"BattlePassXPService", -- XP del pase por jugar normal (escucha StoryEvents), con topes diarios
 	"DebugService", -- herramientas de depuración SOLO para el dueño del juego (/debug, panel F8)
 	"TesterService", -- modo pruebas SOLO para el dueño (/pruebas): dinero infinito, armas, oficios sin requisitos…
 	"BabyService", -- tutorial de bebé (fase 2)
