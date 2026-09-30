@@ -97,14 +97,15 @@ function WeaponFx.soundAt(name: string, at: Vector3, volume: number, pitch: numb
 	if not id then
 		return
 	end
-	local entry = (require(ReplicatedStorage.Shared.Config).Sounds :: any)[name] or {}
+	-- (volumen y tono de Config, o de su Fallback si el audio aún no está subido)
+	local v, p = SoundFx.tune(name, id, volume, pitch)
 	local attachment = Instance.new("Attachment")
 	attachment.WorldPosition = at
 	attachment.Parent = workspace.Terrain
 	local sound = Instance.new("Sound")
 	sound.SoundId = id
-	sound.Volume = (entry.Volume or 0.5) * volume
-	sound.PlaybackSpeed = (entry.Pitch or 1) * (pitch or 1) * (0.96 + math.random() * 0.08)
+	sound.Volume = v
+	sound.PlaybackSpeed = p * (0.96 + math.random() * 0.08)
 	sound.RollOffMaxDistance = FX.HearDistance
 	sound.RollOffMinDistance = 12
 	sound.SoundGroup = SoundFx.group("SFX") -- (grupo de efectos: el silencio y el compresor también valen aquí)

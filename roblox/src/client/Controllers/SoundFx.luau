@@ -100,9 +100,11 @@ end
 -- (llega o se va un Sound, o cambia su SoundId o su nombre) o si llega o se va la carpeta.
 local resolvedFiles: { [string]: string | false } = {} -- SoundFx.resolve (por archivo)
 local resolvedNames: { [string]: string | false } = {} -- soundId (por nombre de Config.Sounds)
+local usingFallback: { [string]: boolean } = {} -- nombres que suenan con su Fallback (File sin subir)
 local function forget()
 	table.clear(resolvedFiles)
 	table.clear(resolvedNames)
+	table.clear(usingFallback)
 end
 do
 	local watched: Instance? = nil
@@ -196,7 +198,8 @@ function SoundFx.resolve(id: any, file: string?): string?
 end
 
 -- ID del sonido: un Sound en ReplicatedStorage.Sonidos con el nombre de Config (p. ej. "Motor") manda
--- siempre (así se cambia cualquier efecto sin tocar código); si no, Config.Sounds con SoundFx.resolve
+-- siempre (así se cambia cualquier efecto sin tocar código); si no, Config.Sounds con SoundFx.resolve;
+-- y si su audio (File) aún no está subido, el Fallback de Config (un sonido de Roblox retocado)
 local function soundId(name: string): string?
 	local known = resolvedNames[name]
 	if known ~= nil then
@@ -210,9 +213,31 @@ local function soundId(name: string): string?
 	else
 		local entry = SOUNDS[name]
 		found = if entry then SoundFx.resolve(entry.Id, entry.File) else nil
+		local fallback = entry and entry.Fallback
+		if not found and type(fallback) == "table" then
+			found = SoundFx.resolve(fallback.Id)
+			usingFallback[name] = found ~= nil
+		end
 	end
 	resolvedNames[name] = found or false
 	return found
+end
+
+-- collide.wav por debajo de este tono suena a explosión ("bomba atómica"): nunca más grave
+local COLLIDE = "rbxasset://sounds/collide.wav"
+local COLLIDE_MIN_PITCH = 0.9
+
+-- Volumen y tono de un sonido ya con el multiplicador (el de Config, o el de su Fallback si suena ese).
+-- id = el que va a sonar (SoundFx.id). Sin aleatorio: quien lo usa añade su variación.
+function SoundFx.tune(name: string, id: string, volume: number?, pitch: number?): (number, number)
+	local entry = SOUNDS[name] or {}
+	local base = if usingFallback[name] and type(entry.Fallback) == "table" then entry.Fallback else entry
+	local v = (base.Volume or 0.5) * (volume or 1)
+	local p = (base.Pitch or 1) * (pitch or 1)
+	if id == COLLIDE then
+		p = math.max(p, COLLIDE_MIN_PITCH)
+	end
+	return v, p
 end
 
 -- Clic automático de los botones: si el propio botón ya toca su sonido (en menos de 50 ms), el
@@ -236,12 +261,12 @@ function SoundFx.play(name: string, volume: number?, pitch: number?, at: BasePar
 			click.Sound:Destroy()
 		end
 	end
-	local entry = SOUNDS[name] or {}
+	-- (el multiplicador no pasa de 1: por encima satura)
+	local v, p = SoundFx.tune(name, id, math.min(volume or 1, 1), pitch)
 	local sound = Instance.new("Sound")
 	sound.SoundId = id
-	-- (el multiplicador no pasa de 1: por encima satura)
-	sound.Volume = (entry.Volume or 0.5) * math.min(volume or 1, 1)
-	sound.PlaybackSpeed = (entry.Pitch or 1) * (pitch or 1) * (0.95 + math.random() * 0.1)
+	sound.Volume = v
+	sound.PlaybackSpeed = p * (0.95 + math.random() * 0.1)
 	sound.RollOffMaxDistance = 120
 	sound.SoundGroup = SoundFx.group("SFX")
 	sound.Parent = at or folder
@@ -355,14 +380,14 @@ local function watchCharacter(character: Model)
 	end
 	local fallSpeed = 0
 	local lastSpeed = 0
+	local lastBump = 0
 	humanoid.StateChanged:Connect(function(_, new)
 		if new == Enum.HumanoidStateType.Jumping then
 			SoundFx.play("Salto", 1, nil, root)
 		elseif new == Enum.HumanoidStateType.Landed then
-			-- Cuanto más alta la caída, más fuerte el golpe
+			-- Caída alta: un solo "pof" del cuerpo, más fuerte cuanto más alta (con tope; nada de explosión)
 			if fallSpeed > 55 then
-				SoundFx.play("Aterrizaje", math.clamp(fallSpeed / 90, 0.6, 1.4), nil, root)
-				SoundFx.play("Golpe", math.clamp((fallSpeed - 55) / 60, 0.3, 1), 0.8, root)
+				SoundFx.play("GolpeCaida", SoundFx.landingVolume(fallSpeed), nil, root)
 			end
 		elseif new == Enum.HumanoidStateType.Swimming and fallSpeed > 20 then
 			SoundFx.play("Chapuzon", math.clamp(fallSpeed / 60, 0.5, 1.2), nil, root)
@@ -382,7 +407,8 @@ local function watchCharacter(character: Model)
 		end
 		-- Chocar corriendo contra algo: se para de golpe mientras sigue empujando
 		local speed = Vector3.new(velocity.X, 0, velocity.Z).Magnitude
-		if not humanoid.SeatPart and lastSpeed > 22 and speed < 4 and humanoid.MoveDirection.Magnitude > 0.5 then
+		if not humanoid.SeatPart and lastSpeed > 22 and speed < 4 and humanoid.MoveDirection.Magnitude > 0.5 and os.clock() - lastBump > 0.4 then
+			lastBump = os.clock()
 			SoundFx.play("Golpe", 0.6, 1.1, root)
 		end
 		lastSpeed = speed
@@ -447,10 +473,37 @@ function SoundFx.vehicleSpeed(ratio: number)
 	end
 end
 
-function SoundFx.crash(speed: number, at: BasePart?)
-	if speed > 8 then
-		SoundFx.play("Choque", math.clamp(speed / 50, 0.3, 1.3), nil, at)
+-- Choques: flojo o fuerte según la velocidad, con tope de volumen y como mucho uno cada CRASH_COOLDOWN
+-- por vehículo (al rebotar contra la pared se tocaba varias veces seguidas)
+local CRASH_MIN, CRASH_STRONG, CRASH_MAX_VOLUME, CRASH_COOLDOWN = 8, 30, 0.8, 0.35
+local lastCrash: { [any]: number } = setmetatable({}, { __mode = "k" }) :: any
+local NO_PART = {}
+
+-- Qué choque suena y a qué volumen (multiplicador 0..CRASH_MAX_VOLUME); nil = demasiado lento
+function SoundFx.crashSound(speed: number): (string?, number)
+	if speed <= CRASH_MIN then
+		return nil, 0
 	end
+	local name = if speed >= CRASH_STRONG then "ChoqueFuerte" else "ChoqueLeve"
+	return name, math.clamp(speed / 60, 0.3, CRASH_MAX_VOLUME)
+end
+
+function SoundFx.crash(speed: number, at: BasePart?)
+	local name, volume = SoundFx.crashSound(speed)
+	if not name then
+		return
+	end
+	local key = at or NO_PART
+	if os.clock() - (lastCrash[key] or -math.huge) < CRASH_COOLDOWN then
+		return
+	end
+	lastCrash[key] = os.clock()
+	SoundFx.play(name, volume, nil, at)
+end
+
+-- Volumen del golpe al caer desde alto (velocidad de caída en studs/s): de 0.4 a 1 como mucho
+function SoundFx.landingVolume(fallSpeed: number): number
+	return math.clamp(0.4 + (fallSpeed - 55) / 80, 0.4, 1)
 end
 
 function horn()

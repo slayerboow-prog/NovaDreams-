@@ -240,7 +240,7 @@ local function strike(pos: Vector3)
 	light.Brightness = 8
 	light.Color = rgb(210, 220, 255)
 	light.Parent = glow
-	pcall(SoundFx.play, "Golpe", 1, 0.4)
+	pcall(SoundFx.play, "Golpe", 1, 0.7) -- (más grave que un golpe normal, pero sin llegar a "bomba")
 	local root = rootOf()
 	if root and (root.Position - pos).Magnitude < 80 then
 		shake = math.max(shake, 0.8)
