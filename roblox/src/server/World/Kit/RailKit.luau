@@ -248,7 +248,7 @@ local function waterSpan(): (number?, number?)
 	return s0, s1
 end
 
-local CAUSEWAY_TOP = -1.8 -- la piedra asoma 0,2 sobre el agua (Y = -2)
+local CAUSEWAY_TOP = -1.6 -- la piedra asoma 0,4 sobre el agua (Y = -2)
 local CAUSEWAY_BOTTOM = -17 -- hasta el fondo del cauce (arena en -16)
 local DECK_TOP = -1.3 -- el balasto (de -1,5 a 0,1) se hunde un poco en el tablero
 local PARAPET_TOP = 0.3
