@@ -22,6 +22,7 @@ local Theme = require(script.Parent.Parent.UI.Theme)
 local Icons = require(script.Parent.Parent.UI.Icons)
 local HudLayout = require(script.Parent.Parent.UI.HudLayout)
 local Hud = require(script.Parent.Parent.UI.Hud)
+local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
 local ReactMotion = require(script.Parent.ReactMotion)
 
 local create = Theme.create
@@ -980,7 +981,8 @@ function InventoryUI.init()
 			return
 		end
 		local key = input.KeyCode
-		if key == Enum.KeyCode.E and (isOpen or keyFree(key)) then
+		-- (al volante, E es el intermitente derecho: Controllers/Driving)
+		if key == Enum.KeyCode.E and (isOpen or keyFree(key)) and not (TouchLayout.isDriving() and not isOpen) then
 			InventoryUI.toggle()
 		elseif key == Enum.KeyCode.Escape and isOpen then
 			InventoryUI.close()

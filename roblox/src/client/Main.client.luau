@@ -32,6 +32,7 @@ local Cinematics = require(script.Parent.Controllers.Cinematics)
 local NearShadows = require(script.Parent.Controllers.NearShadows)
 local Actions = require(script.Parent.Controllers.Actions)
 local Driving = require(script.Parent.Controllers.Driving)
+local VehicleLights = require(script.Parent.Controllers.VehicleLights)
 local SoundFx = require(script.Parent.Controllers.SoundFx)
 local SupermarketUI = require(script.Parent.Controllers.SupermarketUI)
 local CafeUI = require(script.Parent.Controllers.CafeUI)
@@ -191,6 +192,7 @@ task.spawn(SeaBiome.init) -- el fondo del mar y la luz bajo el agua (solo cuando
 task.spawn(SeaEventsUI.init) -- catástrofes marinas: alerta, ola del tsunami, rayos, remolino, tiburón y medusas
 task.spawn(JobPrompts.init) -- los carteles de cada oficio solo los ve quien trabaja en él
 task.spawn(Driving.init) -- conducir coches, motos, bicis, monopatines y patinetes (W/A/S/D)
+task.spawn(VehicleLights.init) -- faros, pilotos de freno y marcha atrás e intermitentes de los vehículos de los jugadores (todos los ven)
 task.spawn(Actions.init) -- gestos y bailes, linterna (L) y modo foto (P)
 task.spawn(CombatController.init) -- pelear: X/RB golpear (combo de 3), Z/LB defenderse, 👊 y 🛡 en el móvil
 task.spawn(WeaponController.init) -- armas: clic dcho/LT apuntar, clic/RT disparar, R recargar; Armerías y licencia
