@@ -240,6 +240,38 @@ function DefaultCommands.register()
 	})
 	-- (El antiguo «Teléfono» abría el menú rápido: sus apps son ahora filas de esta lista)
 
+	-- 🔧 «Modo pruebas»: solo para quien tiene el atributo Tester (lo pone el servidor). Abre el panel
+	-- de pruebas (UI/TesterPanel); se carga al tocarlo y dentro de un pcall: si falta, el HUD sigue igual
+	local me = Players.LocalPlayer
+	CommandRegistry.register({
+		Id = "ModoPruebas",
+		Label = "Modo pruebas",
+		Icon = "🔧",
+		Priority = 59,
+		When = function()
+			return me:GetAttribute("Tester") == true
+		end,
+		Run = function()
+			local ok, err = pcall(function()
+				local ui = script.Parent.Parent:FindFirstChild("UI")
+				local module = ui and ui:FindFirstChild("TesterPanel")
+				assert(module, "no está el módulo UI/TesterPanel")
+				require(module :: any).toggle()
+			end)
+			if not ok then
+				warn("[Comandos] Modo pruebas: " .. tostring(err))
+				Hud.toast("Error", "🔧 El panel de pruebas no está disponible")
+			end
+		end,
+	})
+	-- Al darte (o quitarte) el atributo, la fila sale (o se va) enseguida
+	me:GetAttributeChangedSignal("Tester"):Connect(function()
+		local ok, CommandMenu = pcall(require, script.Parent:FindFirstChild("CommandMenu") :: any)
+		if ok and CommandMenu and CommandMenu.refresh then
+			CommandMenu.refresh()
+		end
+	end)
+
 	-- "MÁS": lo que se usa de vez en cuando
 	local more: Command = {
 		Id = "Mas",

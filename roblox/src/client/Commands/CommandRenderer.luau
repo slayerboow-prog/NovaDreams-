@@ -44,6 +44,7 @@ function CommandRenderer.new(parent: Instance, touch: boolean)
 	self.Window = if touch then 4 else 5
 	self.Collapsed = false
 	self.Expanded = false
+	self.PageFirst = nil :: number? -- (móvil) primera fila de la página a la vista, pasada con ⌄
 	self.Visible = true
 	self.HoverCallback = nil :: ((number) -> ())?
 	self.ActivateCallback = nil :: ((number) -> ())?
@@ -228,7 +229,9 @@ function CommandRenderer:resize()
 	local height = HEADER + (if self.Collapsed then 0 else listH + footer + hint)
 	TweenService:Create(self.Root, FADE, { Size = UDim2.fromOffset(self.Width, height) }):Play()
 	self.ToggleIcon.Rotation = if self.Collapsed then -90 else 90
-	self.MoreIcon.Rotation = if self.Expanded then -90 else 90
+	-- (móvil: ⌄ pasa de página; en la última apunta hacia arriba: vuelve al principio)
+	local lastPage = self.Touch and self.First + self.Window > #self.Rows
+	self.MoreIcon.Rotation = if self.Expanded or lastPage then -90 else 90
 	local rail = self.Root:FindFirstChild("Rail") :: Frame?
 	if rail then
 		rail.Visible = not self.Collapsed
@@ -289,6 +292,9 @@ function CommandRenderer:setItems(items: { Item }, selected: number, motion: str
 	end
 	for _, row in self.Rows do
 		row.Button:Destroy()
+	end
+	if motion then
+		self.PageFirst = nil -- (submenú nuevo o vuelta atrás: desde arriba)
 	end
 	self.Rows = {}
 	self.Items = items
@@ -390,15 +396,20 @@ function CommandRenderer:setItems(items: { Item }, selected: number, motion: str
 	end
 end
 
--- Qué filas se ven (el elegido siempre dentro) y dónde va cada una
+-- Qué filas se ven (el elegido siempre dentro) y dónde va cada una. En el móvil, si has pasado de
+-- página con ⌄, se ve esa página (tocar una fila de ella la elige)
 function CommandRenderer:window(instant: boolean?)
 	local n = #self.Rows
 	local size = math.min(self.Window, n)
-	self.First = math.clamp(self.Selected - size + 1, 1, math.max(1, n - size + 1))
-	if self.Selected < self.First then
-		self.First = self.Selected
+	if self.Touch and self.PageFirst then
+		self.First = math.clamp(self.PageFirst, 1, math.max(1, n - size + 1))
+	else
+		self.First = math.clamp(self.Selected - size + 1, 1, math.max(1, n - size + 1))
+		if self.Selected < self.First then
+			self.First = self.Selected
+		end
+		self.First = math.clamp(self.First, 1, math.max(1, n - size + 1))
 	end
-	self.First = math.clamp(self.First, 1, math.max(1, n - size + 1))
 	for i, row in self.Rows do
 		local shown = i >= self.First and i < self.First + size
 		row.Button.Visible = shown
@@ -412,7 +423,8 @@ end
 
 function CommandRenderer:placeSelector(instant: boolean?)
 	local selector = self.Selector
-	if self.Selected < 1 or self.Selected > #self.Rows then
+	-- (en el móvil, el elegido puede quedar en otra página)
+	if self.Selected < 1 or self.Selected > #self.Rows or self.Selected < self.First or self.Selected >= self.First + math.min(self.Window, #self.Rows) then
 		selector.Visible = false
 		return
 	end
@@ -469,6 +481,21 @@ end
 function CommandRenderer:setCollapsed(collapsed: boolean)
 	self.Collapsed = collapsed
 	self:resize()
+end
+
+-- (móvil) La página siguiente de la lista (desde la última, vuelve a la primera)
+function CommandRenderer:nextPage()
+	local n = #self.Rows
+	local size = math.min(self.Window, n)
+	local first = self.First + size
+	if first > n then
+		first = 1
+	end
+	self.PageFirst = math.clamp(first, 1, math.max(1, n - size + 1))
+	if first == 1 then
+		self.PageFirst = 1
+	end
+	self:window()
 end
 
 function CommandRenderer:setExpanded(expanded: boolean, rows: number)
