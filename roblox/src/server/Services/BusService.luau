@@ -29,6 +29,7 @@ local Ground = require(ReplicatedStorage.Shared.Ground)
 local Format = require(ReplicatedStorage.Shared.Format)
 local BusLines = require(ReplicatedStorage.Shared.BusLines)
 local Rail = require(ReplicatedStorage.Shared.Rail)
+local TrafficSignals = require(ReplicatedStorage.Shared.TrafficSignals)
 local Rides = require(script.Parent.Parent.World.Kit.Rides)
 local DataService = require(script.Parent.DataService)
 local TesterService = require(script.Parent.TesterService) -- modo pruebas: se salta los requisitos
@@ -86,7 +87,10 @@ local CHECK_PACE = pcall(function()
 end)
 
 local lines: { Line } = {}
-local roadEnds: { Vector3 } = {} -- extremos de las calles (los cruces), para buscar los semáforos
+-- Cruces con semáforo (shared/TrafficSignals, con las calles publicadas). Antes se buscaban junto a
+-- los extremos de las calles y las calles de la cuadrícula cruzan varias calles por el medio: el
+-- autobús solo paraba en unos pocos semáforos.
+local signalIndex: TrafficSignals.Index = TrafficSignals.index({})
 local stopsById: { [string]: Stop } = {}
 local stopLines: { [string]: { Line } } = {}
 local buses: { Bus } = {}
@@ -157,10 +161,7 @@ local function buildNetwork(): boolean
 		return false
 	end
 	local roads = BusLines.roadsFrom(roadsFolder)
-	for _, road in roads do
-		table.insert(roadEnds, road.A)
-		table.insert(roadEnds, road.B)
-	end
+	signalIndex = TrafficSignals.index(TrafficSignals.fromFolder(roadsFolder))
 	-- Los postes de las paradas (Kit/BusStops). Si el mapa no los trae, se construyen ahora.
 	local signs: { [string]: BasePart } = {}
 	local function collect()
@@ -705,52 +706,12 @@ end
 ---------------------------------------------------------------------
 
 -- Semáforos: el mismo ciclo que los coches del tráfico (Controllers/Traffic) y las patrullas
--- (World/PoliceUnits), con la hora del servidor
-local CYCLE = 30
+-- (World/PoliceUnits): shared/TrafficSignals, con la hora del servidor
 local function serverNow(): number
 	local ok, t = pcall(function()
 		return workspace:GetServerTimeNow()
 	end)
 	return if ok and typeof(t) == "number" then t else os.clock()
-end
-local function signal(axis: string, now: number): string
-	local t = now % CYCLE
-	if axis == "X" then
-		return if t < 12 then "Green" elseif t < 15 then "Yellow" else "Red"
-	end
-	return if t < 15 then "Red" elseif t < 27 then "Green" else "Yellow"
-end
-
--- Cruces con semáforo: el extremo de calle más cercano a cada semáforo (como hace Traffic)
-local lightNodes: { Vector3 }? = nil
-local function lightNodesList(): { Vector3 }
-	if lightNodes then
-		return lightNodes
-	end
-	local list: { Vector3 } = {}
-	local seen: { [string]: boolean } = {}
-	for _, model in CollectionService:GetTagged("TrafficLight") do
-		local arm = model:FindFirstChild("Arm")
-		if arm and arm:IsA("BasePart") then
-			local p = arm.Position
-			local best, bestD = nil, 40
-			for _, e in roadEnds do
-				local d = Vector3.new(e.X - p.X, 0, e.Z - p.Z).Magnitude
-				if d < bestD then
-					best, bestD = e, d
-				end
-			end
-			if best then
-				local key = ("%d:%d"):format(math.floor(best.X + 0.5), math.floor(best.Z + 0.5))
-				if not seen[key] then
-					seen[key] = true
-					table.insert(list, best)
-				end
-			end
-		end
-	end
-	lightNodes = list
-	return list
 end
 
 -- Pasos a nivel cerrados ahora mismo ({ Pos, Stop }): se mira una vez por fotograma para todos
@@ -796,24 +757,9 @@ local function signalLimit(bus: Bus): number
 	look = look.Unit
 	local side = Vector3.new(-look.Z, 0, look.X)
 	local pos = pivot.Position
-	local gap = math.huge
-	local nodes = lightNodesList()
-	if #nodes > 0 then
-		local state = signal(if math.abs(look.X) > math.abs(look.Z) then "X" else "Z", serverNow())
-		if state ~= "Green" then
-			for _, node in nodes do
-				local rel = Vector3.new(node.X - pos.X, 0, node.Z - pos.Z)
-				local ahead = rel:Dot(look)
-				if ahead > 0 and ahead < 120 and math.abs(rel:Dot(side)) < 14 then
-					-- La línea de parada, 16 antes del centro del cruce (como los coches)
-					local toLine = ahead - 16 - HALF_LEN
-					if toLine > -1 and (state == "Red" or toLine > 10) then
-						gap = math.min(gap, math.max(toLine, 0))
-					end
-				end
-			end
-		end
-	end
+	-- Semáforo en rojo (o en ámbar, si le da para parar) en un cruce de su calle: para antes del
+	-- paso de cebra, como los coches
+	local gap = TrafficSignals.gapAhead(signalIndex, pos, look, HALF_LEN, bus.Speed, B.Brake, serverNow())
 	for _, stop in closedCrossings do
 		local rel = Vector3.new(stop.Pos.X - pos.X, 0, stop.Pos.Z - pos.Z)
 		local ahead = rel:Dot(look)
@@ -1349,10 +1295,6 @@ function BusService.init()
 		publishBoards()
 		ready = true
 
-		-- (si aparecen semáforos nuevos, se vuelven a buscar los cruces con semáforo)
-		CollectionService:GetInstanceAddedSignal("TrafficLight"):Connect(function()
-			lightNodes = nil
-		end)
 		local driverClock, boardClock, railClock = 0, 0, math.huge
 		RunService.Heartbeat:Connect(function(dt)
 			-- Barreras de los pasos a nivel: 5 veces por segundo basta

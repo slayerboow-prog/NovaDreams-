@@ -565,6 +565,11 @@ local function respawn(agent: Agent, center: Vector3, minDist: number)
 			local range = KINDS[agent.Kind].Cruise
 			agent.Cruise = range[1] + math.random() * (range[2] - range[1])
 			agent.Speed = agent.Cruise * 0.8
+			-- Que le dé para parar antes del cruce de delante (si aparece cerca de uno con semáforo)
+			if lightNodes[to] then
+				local toLine = edgeLength(from, to) - TrafficSignals.STOP_LINE - s - agent.Length / 2
+				agent.Speed = math.min(agent.Speed, math.sqrt(2 * DECEL * math.max(toLine - 1.5, 0)))
+			end
 			agent.Look, agent.StuckAt = nil, nil
 			-- Y a su sitio en el mismo fotograma: el modelo se copia de uno que está en el origen (0, 0: el
 			-- cruce grande de Valmar Centro) y, si algo retrasaba su primer paso, se quedaba allí a la vista
@@ -587,6 +592,44 @@ local function holds(holder: Agent, node: number): boolean
 		return true
 	end
 	return holder.From == node and holder.S < turnRadius(node, edgeLength(holder.From, holder.To)) + holder.Length
+end
+
+-- Radio de cada cruce (media calzada de la calle más ancha que llega + 2): hasta ahí se para en
+-- los cruces sin semáforo (antes siempre a 14: en la autovía, dentro de la calzada)
+local nodeBox: { [number]: number } = {}
+
+-- ¿Hay sitio al salir del cruce? Nadie parado (o casi) en su carril justo después del cruce
+local function exitClear(agent: Agent, node: number): boolean
+	local need = TrafficSignals.BOX + agent.Length + 1
+	local lane = laneOf(edgeOf(node, agent.Next), agent.Small)
+	for _, other in agents do
+		if other ~= agent and other.Active and other.From == node and other.To == agent.Next and other.Speed < 4 then
+			local otherLane = laneOf(edgeOf(other.From, other.To), other.Small)
+			if (other.Small == agent.Small or math.abs(otherLane - lane) < (other.Width + agent.Width) / 2) and other.S - other.Length / 2 < need then
+				return false
+			end
+		end
+	end
+	return true
+end
+
+-- Al girar a la izquierda: ¿viene alguien de frente (recto o a su derecha) que va a pasar ya?
+-- (los que están parados en su línea no cuentan; los que también giran a la izquierda, tampoco:
+-- se cruzan por delante sin tocarse)
+local function oncoming(agent: Agent, node: number, d: Vector3): boolean
+	for _, other in agents do
+		if other ~= agent and other.Active and other.To == node and other.Turn ~= -1 and other.From ~= agent.From then
+			local od = nodes[node] - nodes[other.From]
+			local Lo = od.Magnitude
+			if Lo > 0.01 and (od / Lo):Dot(d) < -0.7 then
+				local front = Lo - other.S - other.Length / 2 -- de su morro al centro del cruce
+				if front > -TrafficSignals.BOX / 2 and front < 70 and (other.Speed > 3 or front < TrafficSignals.STOP_LINE - 1) then
+					return true
+				end
+			end
+		end
+	end
+	return false
 end
 
 -- Algo por delante en la calzada (una persona o el coche de un jugador): { Pos, Box?, Size? }
@@ -623,10 +666,10 @@ local function freeGap(agent: Agent, pos: Vector3, dir: Vector3, obstacles: { Ob
 			gap = math.min(gap, ahead)
 		end
 	end
-	-- Cruce sin semáforo: de uno en uno
+	-- Cruce sin semáforo: de uno en uno (se para antes de la calzada de la calle que cruza)
 	local node = agent.To
 	if not lightNodes[node] and not roundabout[node] and #(edges[node] or {}) >= 3 then
-		local toLine = (L - 14) - agent.S - agent.Length / 2
+		local toLine = (L - (nodeBox[node] or 14)) - agent.S - agent.Length / 2
 		if toLine < 14 then
 			local claim = claims[node]
 			local now = os.clock()
@@ -639,14 +682,20 @@ local function freeGap(agent: Agent, pos: Vector3, dir: Vector3, obstacles: { Ob
 			end
 		end
 	end
-	-- Semáforo antes del cruce
-	if lightNodes[agent.To] then
-		local stopAt = L - 16
-		local d = (nodes[agent.To] - nodes[agent.From]).Unit
-		local state = signal(if math.abs(d.X) > math.abs(d.Z) then "X" else "Z")
-		local toLine = stopAt - agent.S - agent.Length / 2
-		if toLine > -1 and (state == "Red" or (state == "Yellow" and toLine > 10)) then
+	-- Semáforo antes del cruce (shared/TrafficSignals): para antes del paso de cebra en rojo, y en
+	-- ámbar si le da para parar; una vez pasada la línea, sigue y sale del cruce
+	if lightNodes[node] then
+		local d = (nodes[node] - nodes[agent.From]).Unit
+		local state = TrafficSignals.state(TrafficSignals.axisOf(d), frameNow)
+		local toLine = (L - TrafficSignals.STOP_LINE) - agent.S - agent.Length / 2
+		if TrafficSignals.mustStop(state, toLine, agent.Speed, DECEL) then
 			gap = math.min(gap, math.max(toLine, 0))
+		elseif toLine > -1 and toLine < 40 and TrafficSignals.canStop(toLine, agent.Speed, DECEL) then
+			-- En verde: no entra si al otro lado no hay sitio para él (no se queda parado dentro del
+			-- cruce) y, si gira a la izquierda, cede el paso a los que vienen de frente
+			if not exitClear(agent, node) or (agent.Turn == -1 and oncoming(agent, node, d)) then
+				gap = math.min(gap, math.max(toLine, 0))
+			end
 		end
 	end
 	-- Paso a nivel con las barreras bajadas: se para antes (si ya lo estaba cruzando, sigue)
@@ -793,8 +842,19 @@ local function busObstacles(list: { Obstacle }, center: Vector3, now: number)
 	if now - busesAt >= BUS_EVERY then
 		busesAt = now
 		table.clear(nearBuses)
-		local busFolder = workspace:FindFirstChild("Buses")
-		if busFolder then
+		-- (y las patrullas de ronda de la policía: World/PoliceUnits, que también paran en rojo; los
+		-- coches hacen cola detrás en vez de atravesarlas)
+		local police = workspace:FindFirstChild("PoliceResponse")
+		local folders: { Instance } = {}
+		local busRoot = workspace:FindFirstChild("Buses")
+		local patrolRoot = police and police:FindFirstChild("Patrullas")
+		if busRoot then
+			table.insert(folders, busRoot)
+		end
+		if patrolRoot then
+			table.insert(folders, patrolRoot)
+		end
+		for _, busFolder in folders do
 			for _, bus in busFolder:GetChildren() do
 				if bus:IsA("Model") then
 					local ok, pivot = pcall(bus.GetPivot, bus)
@@ -893,6 +953,7 @@ end
 local function step(dt: number, center: Vector3)
 	-- Jugadores (con sus vehículos) y peatones cruzando: una lista por fotograma para todos los coches
 	local now = os.clock()
+	frameNow = serverNow() -- (los semáforos: una lectura de la hora por fotograma)
 	table.clear(obstacles)
 	playerObstacles(obstacles, center, now)
 	busObstacles(obstacles, center, now)
@@ -976,13 +1037,30 @@ function Traffic.init(data: Instance)
 		local key = math.floor(p.X / CELL) .. ":" .. math.floor(p.Z / CELL)
 		cells[key] = cells[key] or {}
 		table.insert(cells[key], id)
+		local widest = 0
+		for _, e in edges[id] do
+			widest = math.max(widest, e.W)
+		end
+		nodeBox[id] = math.max(14, widest / 2 + 2)
+	end
+	-- Cruces con semáforo: los de la cuadrícula de calles (shared/TrafficSignals, con los datos de las
+	-- calles; antes se buscaban los modelos de los semáforos y, con StreamingEnabled, no llegaban)
+	for _, c in TrafficSignals.fromFolder(data:WaitForChild("Roads")) do
+		local node = nearestNode(c, 6)
+		if node and not roundabout[node] then
+			lightNodes[node] = true
+		end
+	end
+	-- (no aparece nadie entre la línea de parada y el cruce: se saltaría el semáforo)
+	local function margin(node: number, L: number): number
+		return if lightNodes[node] then TrafficSignals.STOP_LINE + 18 else turnRadius(node, L) + 5
 	end
 	for from, list in edges do
 		for _, e in list do
 			if from < e.To then
 				local L = e.Cost
-				local s = turnRadius(from, L) + 5
-				while s < L - turnRadius(e.To, L) - 5 do
+				local s = margin(from, L)
+				while s < L - margin(e.To, L) do
 					local p = nodes[from] + (nodes[e.To] - nodes[from]).Unit * s
 					local key = math.floor(p.X / CELL) .. ":" .. math.floor(p.Z / CELL)
 					spots[key] = spots[key] or {}
@@ -1030,6 +1108,8 @@ function Traffic.init(data: Instance)
 	for _, agent in agents do
 		respawn(agent, center, 30)
 	end
+	-- (pruebas: scripts/test-lights.luau)
+	Traffic._test = { Nodes = nodes, Edges = edges, LightNodes = lightNodes, NodeBox = nodeBox, Step = step, Pose = pose, EdgeLength = edgeLength, UpdateTurn = updateTurn, SetActive = setActive }
 
 	-- Faros y pilotos encendidos al anochecer; semáforos
 	task.spawn(function()

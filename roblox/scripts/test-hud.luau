@@ -790,6 +790,69 @@ localPlayer:SetAttribute("CityErrand", nil)
 localPlayer:SetAttribute("CityErrandTarget", nil)
 check(mission and mission.Kind.Text == "MISIÓN PRINCIPAL", "Al acabar el encargo vuelve la misión")
 
+-- UNA sola guía (Controllers/Gps): la ruta que eliges tú (el aeropuerto) manda sobre la de la misión
+-- en la indicación, la línea de los mapas y las flechas; la misión se atenúa con «📍 Ruta a …»
+do
+	local Gps, Guide = mods.Gps, mods.Guide
+	local banner = playerGui.GpsGui.GpsBanner
+	local chip = mission and mission:FindFirstChild("RouteChip")
+	local airport = roblox.Vector3.new(-400, 0, 300)
+	local function toastSaid(text: string): boolean
+		local toastGui = playerGui:FindFirstChild("HudToasts")
+		return toastGui ~= nil and textOf(toastGui, text)
+	end
+	local realDelay = fakeTask.delay
+	fakeTask.delay = function(seconds, fn, ...) -- (el aviso espera al paso nuevo: aquí, en el momento)
+		if seconds < 1 then
+			fn(...)
+		end
+	end
+	Gps.follow()
+	Gps.update()
+	check(banner.Visible and banner.Distance.Text:find("Tu misión", 1, true) ~= nil, "Sin ruta tuya, la indicación va a tu misión («" .. banner.Distance.Text .. "»)")
+	check(chip and not chip.Visible and mission.Kind.Visible and Gps.missionMarker() ~= nil, "La tarjeta de la misión normal y el haz de luz / ★ en la misión")
+	Gps.setManual(airport, "Aeropuerto de Valmar")
+	Gps.update()
+	local path = Gps.path()
+	check(banner.Visible and banner.Distance.Text:find("📍 Aeropuerto de Valmar", 1, true) ~= nil and banner.Distance.Text:find("Tu misión", 1, true) == nil, "Eliges el aeropuerto: la indicación dice «" .. banner.Distance.Text .. "» (no «Tu misión»)")
+	check(path and path[#path] == airport, "La línea de los mapas y las flechas del suelo van al aeropuerto")
+	check(Gps.missionMarker() == nil, "El haz de luz y la ★ de la misión se esconden")
+	check(chip and chip.Visible and chip.Text.Text == "📍 Ruta a Aeropuerto de Valmar" and not mission.Kind.Visible and mission.Title.TextTransparency > 0.3, "La tarjeta de la misión se queda, atenuada, con «📍 Ruta a Aeropuerto de Valmar»")
+	check(chip and chip:FindFirstChild("Follow") and chip.Follow.Text:find("Seguir misión", 1, true) ~= nil, "Y su botón «Seguir misión ✕»")
+	-- La misión cambia de paso mientras vas: no te quita la ruta, solo avisa
+	remote.OnClientEvent:Fire("State", {
+		Tracked = { QuestId = "Nino_Jornada", Kind = "Main", TitleKey = "QUEST.DIA_COLE.TITLE", TextKey = "Ve al patio del colegio", Args = {} },
+		Others = {},
+	})
+	localPlayer:SetAttribute("StoryTarget", roblox.Vector3.new(160, 0, -220))
+	Gps.update()
+	check(Gps.manual() ~= nil and banner.Distance.Text:find("Aeropuerto de Valmar", 1, true) ~= nil and Gps.missionMarker() == nil, "Un paso nuevo de la misión NO te quita la ruta al aeropuerto")
+	local notice = Gps.lastNotice() or ""
+	check(notice:find("Nueva misión: Ve al patio del colegio", 1, true) ~= nil and notice:find("toca para seguirla", 1, true) ~= nil, "Solo avisa: «" .. notice .. "»")
+	local note = Guide.currentNote()
+	check(note and note.Text:find("Nueva misión", 1, true) ~= nil and note.Button and note.Button:find("Seguir misión", 1, true) ~= nil, "El aviso sale en la nota de la guía, con «🧭 Seguir misión»")
+	Guide.dismissNote()
+	-- «Seguir misión ✕» de la tarjeta: vuelve la guía de la misión
+	chip.Follow.Activated:Fire()
+	Gps.update()
+	check(Gps.manual() == nil and banner.Distance.Text:find("Tu misión", 1, true) ~= nil and Gps.missionMarker() ~= nil, "«Seguir misión» quita tu ruta y vuelve sola la de la misión")
+	check(not chip.Visible and mission.Kind.Visible and mission.Title.TextTransparency == 0, "La tarjeta vuelve a verse normal")
+	check(toastSaid("Vuelves a la ruta de tu misión"), "Con el aviso «🧭 Vuelves a la ruta de tu misión»")
+	-- ✕ de la indicación con tu ruta: quita solo la tuya (la misión vuelve)
+	Gps.setManual(airport, "Aeropuerto de Valmar")
+	Gps.update()
+	banner.Clear.Activated:Fire()
+	Gps.update()
+	check(Gps.manual() == nil and banner.Visible and banner.Distance.Text:find("Tu misión", 1, true) ~= nil, "✕ en la indicación quita tu ruta y vuelve la de la misión")
+	-- Llegar a tu ruta: se quita sola, con aviso, y vuelve la misión
+	Gps.setManual(roblox.Vector3.new(2, 0, -6), "Tu casa")
+	Gps.update()
+	check(Gps.manual() == nil and toastSaid("Has llegado: Tu casa · vuelve la ruta de tu misión"), "Al llegar, tu ruta se quita sola («📍 Has llegado: Tu casa · vuelve la ruta de tu misión»)")
+	Gps.update()
+	check(banner.Visible and banner.Distance.Text:find("Tu misión", 1, true) ~= nil and not chip.Visible, "Y la indicación vuelve a tu misión")
+	fakeTask.delay = realDelay
+end
+
 -- Sin menú rápido junto al minimapa (sus apps son filas del menú de comandos: más abajo)
 check(popups and popups:FindFirstChild("Phone") == nil and popups:FindFirstChild("PhoneButton") == nil, "Sin el menú rápido (ni su botón) junto al minimapa")
 do

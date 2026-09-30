@@ -13,13 +13,13 @@
 --     se ponga delante, y giran en las esquinas poco a poco.
 -- Todo va anclado y lo mueve el servidor; las hélices y las luces las anima el cliente (WantedUI).
 
-local CollectionService = game:GetService("CollectionService")
 local PathfindingService = game:GetService("PathfindingService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Wanted = require(ReplicatedStorage.Shared.Wanted)
+local TrafficSignals = require(ReplicatedStorage.Shared.TrafficSignals)
 local Npc = require(script.Parent.Npc)
 local Roads = require(script.Parent.Kit.Roads)
 local Rides = require(script.Parent.Kit.Rides)
@@ -604,51 +604,34 @@ local function spawnPatrol(near: Vector3): Patrol?
 	return patrol
 end
 
--- Semáforos: el mismo ciclo que los coches del tráfico (Controllers/Traffic), con la hora del servidor
-local CYCLE = 30
-local function signal(axis: string): string
-	local t = workspace:GetServerTimeNow() % CYCLE
-	if axis == "X" then
-		return if t < 12 then "Green" elseif t < 15 then "Yellow" else "Red"
-	end
-	return if t < 15 then "Red" elseif t < 27 then "Green" else "Yellow"
-end
-
--- ¿Hay semáforo en ese cruce? (se mira una vez por cruce y se guarda)
-local lightAt: { [string]: boolean } = {}
-local function hasLight(point: Vector3): boolean
-	local key = PatrolRoutes.key(point)
-	local known = lightAt[key]
-	if known == nil then
-		known = false
-		for _, model in CollectionService:GetTagged("TrafficLight") do
-			local arm = model:FindFirstChild("Arm")
-			if arm and arm:IsA("BasePart") and flatDistance(arm.Position, point) < 40 then
-				known = true
-				break
-			end
+-- Semáforos: el mismo ciclo que los coches del tráfico (Controllers/Traffic) y los autobuses
+-- (shared/TrafficSignals, con la hora del servidor). Los cruces con semáforo salen de las calles
+-- publicadas (ReplicatedStorage.Ambient.Roads); se miran una vez.
+local signalIndex: TrafficSignals.Index? = nil
+local function signals(): TrafficSignals.Index
+	if not signalIndex then
+		local ambient = ReplicatedStorage:FindFirstChild("Ambient")
+		local roadsFolder = ambient and ambient:FindFirstChild("Roads")
+		if not roadsFolder then
+			return TrafficSignals.index({}) -- (aún no: se vuelve a mirar)
 		end
-		lightAt[key] = known
+		signalIndex = TrafficSignals.index(TrafficSignals.fromFolder(roadsFolder))
 	end
-	return known
+	return signalIndex :: TrafficSignals.Index
 end
 
 local PATROL_LENGTH = 14 -- (largo del coche patrulla, para guardar distancia)
 local PATROL_DECEL = 26
 local PATROL_TURN_RATE = 3.5 -- radianes por segundo al girar (media vuelta en menos de un segundo)
 
--- Espacio libre por delante: semáforo en rojo al final del tramo, la patrulla de delante o alguien
+-- Espacio libre por delante: semáforo en rojo en su calle, la patrulla de delante o alguien
 -- (un jugador) en su carril
-local function patrolGap(patrol: Patrol, segment: PatrolRoutes.Segment, length: number, dir: Vector3): number
-	local gap = math.huge
-	local left = (1 - patrol.T) * length
-	local ends = if patrol.From == "A" then segment.B else segment.A
-	if left < 80 and hasLight(ends) then
-		local state = signal(if math.abs(dir.X) > math.abs(dir.Z) then "X" else "Z")
-		local toLine = left - 16 - PATROL_LENGTH / 2
-		if toLine > -1 and (state == "Red" or (state == "Yellow" and toLine > 10)) then
-			gap = math.min(gap, math.max(toLine, 0))
-		end
+local function patrolGap(patrol: Patrol, _segment: PatrolRoutes.Segment, length: number, dir: Vector3): number
+	-- Semáforo en rojo (o en ámbar, si le da para parar) en un cruce de su calle: para antes del paso
+	-- de cebra. Con la sirena puesta (emergencia) no para: pasa despacio, con cuidado.
+	local gap = TrafficSignals.gapAhead(signals(), patrol.Position, dir, PATROL_LENGTH / 2, patrol.Speed or 0, PATROL_DECEL, workspace:GetServerTimeNow())
+	if gap < math.huge and patrol.Model:GetAttribute("Siren") == true then
+		gap = math.max(gap, 12 * 12 / (2 * PATROL_DECEL) + 1.5) -- (a unos 12 studs/s por el cruce)
 	end
 	for _, other in patrols do
 		if other ~= patrol and other.Index == patrol.Index and other.From == patrol.From and other.T > patrol.T then

@@ -9,6 +9,8 @@
 --   * el principio y el final se pegan a la calle más cercana y el último trozo va recto al sitio
 --   * salirse más de 25 studs de la ruta obliga a recalcularla
 --   * las indicaciones: izquierda, derecha, recto y "has llegado", según el ángulo
+--   * UNA sola guía: la ruta que eliges tú (el aeropuerto) manda sobre la de la misión (indicación,
+--     mapas y haz de luz); quitarla o llegar devuelve la de la misión; una misión nueva no la quita
 
 local fs = require("@lune/fs")
 local luau = require("@lune/luau")
@@ -112,6 +114,50 @@ print("\n▶ Flechas en el suelo")
 local marks = Gps.marks(route, 6, 120, 20)
 check(#marks == 20 and marks[1].Direction.X > 0.99, "Hasta 20 flechas en los próximos 120 studs, mirando hacia donde vas")
 check(math.abs(marks[2].Position.X - marks[1].Position.X - 6) < 0.01, "Una cada 6 studs")
+
+print("\n▶ Una sola guía: tu ruta manda sobre la de la misión")
+do
+	local attrs: { [string]: any } = { StoryTarget = v(150, -200) }
+	local function get(name: string): any
+		return attrs[name]
+	end
+	local airport = { Position = v(900, 400), Name = "Aeropuerto de Valmar" }
+	-- Sin ruta tuya: la misión
+	local dest = Gps.pickDestination(nil, get, {})
+	check(dest and dest.Name == "Tu misión" and not dest.Manual and dest.Position == v(150, -200), "Sin ruta marcada, el GPS lleva a tu misión («Tu misión»)")
+	check(Gps.missionMarker(nil, get) == v(150, -200), "Y el haz de luz y la ★ de los mapas marcan la misión")
+	-- Eliges el aeropuerto: manda
+	dest = Gps.pickDestination(airport, get, {})
+	check(dest and dest.Manual and dest.Name == "Aeropuerto de Valmar" and dest.Position == airport.Position, "Con el aeropuerto marcado, la indicación dice «Aeropuerto de Valmar» (no «Tu misión»)")
+	check(Gps.missionMarker(airport, get) == nil, "Y lo de la misión (haz de luz, ★, su ruta) se esconde")
+	check(Gps.routeChipText(airport.Name) == "📍 Ruta a Aeropuerto de Valmar", "La tarjeta de la misión dice «" .. Gps.routeChipText(airport.Name) .. "»")
+	-- La misión cambia de paso mientras vas al aeropuerto: no te quita la ruta
+	attrs.StoryTarget = v(-300, 80)
+	dest = Gps.pickDestination(airport, get, {})
+	check(dest and dest.Manual and dest.Name == "Aeropuerto de Valmar", "Un paso nuevo de la misión NO quita tu ruta")
+	local target, entry = Gps.missionTarget(get, nil)
+	local notice = Gps.noticeText(entry, "Ve al instituto")
+	check(target == v(-300, 80) and notice == "Nueva misión: Ve al instituto (toca para seguirla)", "Solo avisa: «" .. notice .. "»")
+	-- Un trabajo manda sobre la misión (orden de preferencia), pero tampoco sobre tu ruta
+	attrs.TaskTarget = v(10, 10)
+	check(Gps.pickDestination(nil, get, {}).Name == "Tu trabajo", "Sin ruta tuya, el trabajo va antes que la misión")
+	check(Gps.pickDestination(airport, get, {}).Manual, "Con tu ruta, tampoco el trabajo te la quita")
+	attrs.TaskTarget = nil
+	-- Quitas tu ruta (✕ o «Seguir misión»): vuelve la misión sola
+	dest = Gps.pickDestination(nil, get, {})
+	check(dest and dest.Name == "Tu misión" and dest.Position == v(-300, 80), "Al quitar tu ruta vuelve sola la de la misión")
+	check(Gps.missionMarker(nil, get) == v(-300, 80), "Y su haz de luz y su ★")
+	-- Llegar: los sitios del mapa no tienen altura (solo cuenta el plano)
+	local manualDest = { Position = v(900, 400), Name = "Aeropuerto de Valmar", Manual = true }
+	check(Gps.arrived(manualDest, Vector3.new(905, 40, 402), 14), "Al llegar al aeropuerto (aunque estés más alto) cuenta como llegado")
+	check(not Gps.arrived(manualDest, Vector3.new(960, 0, 400), 14), "A 60 studs todavía no")
+	check(not Gps.arrived({ Position = Vector3.new(0, 0, 0), Name = "Tu misión", Manual = false }, Vector3.new(3, 50, 0), 14), "Un objetivo de misión a otra altura (otro piso) no cuenta")
+	check(Gps.arrivalText("Aeropuerto de Valmar", true) == "📍 Has llegado: Aeropuerto de Valmar · vuelve la ruta de tu misión", "Al llegar: «" .. Gps.arrivalText("Aeropuerto de Valmar", true) .. "»")
+	-- Silenciados (✕ sin ruta tuya, o misión ya alcanzada): se salta al siguiente
+	attrs.SeasonTarget = v(50, 50)
+	dest = Gps.pickDestination(nil, get, { v(-300, 80) })
+	check(dest and dest.Name == "Misión de temporada", "Un objetivo silenciado (ya alcanzado o quitado con ✕) deja paso al siguiente")
+end
 
 print("\n▶ Una ciudad grande (rendimiento)")
 local big = {}

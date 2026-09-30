@@ -88,7 +88,10 @@ function Props.trafficLight(parent: Instance, cf: CFrame, armLength: number)
 		return asset
 	end
 	local m = Builder.model("TrafficLight", parent)
-	m:AddTag("TrafficLight") -- el cliente cambia las luces y el tráfico para en rojo (Traffic.luau)
+	m:AddTag("TrafficLight") -- el cliente cambia las luces (Traffic.luau; dónde se para sale de shared/TrafficSignals)
+	-- Llega entero al cliente (StreamingEnabled): antes llegaba el modelo sin sus piezas y sus luces
+	-- no cambiaban nunca
+	;(m :: any).ModelStreamingMode = Enum.ModelStreamingMode.Atomic
 	Builder.part({
 		Name = "Pole",
 		Shape = Enum.PartType.Cylinder,
