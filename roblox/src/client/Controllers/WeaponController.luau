@@ -31,6 +31,7 @@ local Weapons = require(ReplicatedStorage.Shared.Weapons)
 local Format = require(ReplicatedStorage.Shared.Format)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
+local HudLayout = require(script.Parent.Parent.UI.HudLayout)
 local WeaponFx = require(script.Parent.WeaponFx)
 local WeaponMotion = require(script.Parent.WeaponMotion)
 local FootCamera = require(script.Parent.FootCamera)
@@ -487,8 +488,15 @@ local function buildHud()
 	for _, angle in { 45, -45 } do
 		create("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.new(1, 0, 0, 3), Rotation = angle, BackgroundColor3 = Color3.new(1, 1, 1), BorderSizePixel = 0, Parent = marker })
 	end
-	-- Balas (abajo a la derecha, por encima de los botones)
-	ammoPanel = Theme.panel({ Name = "Balas", AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -24, 1, if TouchLayout.isTouch() then -330 else -120), Size = UDim2.fromOffset(170, 62), Visible = false, Parent = gui })
+	-- Balas: arriba a la derecha, a la izquierda del minimapa (HudLayout manda: Items.Ammo). En su
+	-- propia pantalla con la escala del HUD, como el minimapa y la barra rápida (antes iban en píxeles
+	-- fijos desde abajo y en un móvil apaisado de 390 de alto quedaban encima del minimapa).
+	local ammoGui = create("ScreenGui", { Name = "WeaponAmmo", ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = 1, Parent = player:WaitForChild("PlayerGui") })
+	HudLayout.scaleGui(ammoGui)
+	ammoPanel = Theme.panel({ Name = "Balas", Size = UDim2.fromOffset(HudLayout.Sizes.Ammo.X, HudLayout.Sizes.Ammo.Y), Visible = false, Parent = ammoGui })
+	HudLayout.onChanged(function(layout)
+		HudLayout.apply(ammoPanel, layout.Items.Ammo)
+	end)
 	ammoText = Theme.title({ Position = UDim2.fromOffset(12, 4), Size = UDim2.new(1, -24, 0, 32), Text = "0 / 0", TextSize = 28, TextXAlignment = Enum.TextXAlignment.Right, Parent = ammoPanel })
 	ammoInfo = Theme.label({ Position = UDim2.fromOffset(12, 36), Size = UDim2.new(1, -24, 0, 20), Text = "", TextSize = 13, TextColor3 = Theme.Colors.Muted, TextXAlignment = Enum.TextXAlignment.Right, Parent = ammoPanel })
 end

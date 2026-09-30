@@ -453,6 +453,25 @@ local function scareNpcs(position: Vector3, shooter: Player)
 	end
 end
 
+-- Lo que dice un personaje al que le dan (antes no decía nada: parecía que el disparo no llegaba)
+local HIT_LINES = { "😱 ¡Ay! ¡Me han disparado!", "😨 ¡Socorro!", "¡Llamad a la policía!" }
+local TOY_LINES = { Agua = "💦 ¡Eh, que me mojas!", Paintball = "🎨 ¡Oye, que me manchas!" }
+local function npcReacts(model: Model, w: Weapons.Weapon)
+	if not model.Parent then
+		return
+	end
+	local line
+	if w.Kind == "Toy" then
+		line = if model:GetAttribute("Officer") then "🙄 Muy gracioso…" else TOY_LINES[w.Class] or "¡Eh!"
+	elseif model:GetAttribute("Officer") then
+		return -- (el agente ya reacciona: cae o viene a por ti)
+	else
+		line = if w.Kind == "Taser" then "⚡ ¡Aaah!" else HIT_LINES[math.random(1, #HIT_LINES)]
+	end
+	lastPanic[model] = os.clock()
+	Npc.say(model, line, 1.4)
+end
+
 function WeaponService.fire(player: Player, target: any): boolean
 	if typeof(target) ~= "Vector3" or target ~= target then
 		return false
@@ -595,10 +614,19 @@ function WeaponService.fire(player: Player, target: any): boolean
 				if w.Kind == "Toy" then
 					Notify:FireClient(result.Player, "Info", if w.Class == "Agua" then "💦 ¡Te han mojado!" else "🎨 ¡Te han dado con una bola de pintura!")
 				end
+			else
+				-- Un personaje (NPC): con un arma de verdad es disparar a una persona (WantedService lo
+				-- denuncia con la víctima de testigo; no cuenta además como «disparos al aire»)
+				if w.Kind ~= "Toy" then
+					hitPerson = true
+				end
+				npcReacts(model, w)
 			end
 			table.insert(confirms, { Amount = result.Amount, At = entry.At, Zone = entry.Zone, KO = result.KO, Killed = result.Killed })
 		elseif not ok then
 			warn("[Armas] " .. tostring(result))
+		elseif w.Kind == "Toy" and model:GetAttribute("Officer") then
+			npcReacts(model, w) -- (a un agente, el agua o la pintura no le hacen nada, pero se nota)
 		end
 	end
 

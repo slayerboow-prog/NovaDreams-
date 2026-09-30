@@ -29,6 +29,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Wanted = require(ReplicatedStorage.Shared.Wanted)
 local Movement = require(ReplicatedStorage.Shared.Movement)
+local Weapons = require(ReplicatedStorage.Shared.Weapons)
 local Format = require(ReplicatedStorage.Shared.Format)
 local Stages = require(ReplicatedStorage.Shared.LifeStory.Stages)
 local Npc = require(script.Parent.Parent.World.Npc)
@@ -36,6 +37,7 @@ local PoliceUnits = require(script.Parent.Parent.World.PoliceUnits)
 local Roads = require(script.Parent.Parent.World.Kit.Roads)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 local DataService = require(script.Parent.DataService)
+local TesterService = require(script.Parent.TesterService) -- (hoja: sin dependencias circulares)
 local JusticeService = require(script.Parent.JusticeService)
 local CareerService = require(script.Parent.CareerService)
 local VehicleService = require(script.Parent.VehicleService)
@@ -45,13 +47,15 @@ local Conduct = require(ReplicatedStorage.Shared.Conduct)
 local WantedService = {}
 
 type Stop = { At: number, Crime: string, Fled: boolean }
-type State = { Stars: number, LastSeen: number, LastPosition: Vector3?, CatchSince: number?, StealAt: number, Arresting: boolean, Crimes: { string }, Stop: Stop?, MisbehavedAt: number? }
+type State = { Stars: number, LastSeen: number, LastPosition: Vector3?, CatchSince: number?, StealAt: number, Arresting: boolean, Crimes: { string }, Stop: Stop?, MisbehavedAt: number?, TesterAgeNoted: boolean?, NpcHits: { [Model]: number }? }
 
 local states: { [Player]: State } = {}
 -- Pausas contra el abuso: un atraco cada HEIST_GAP por jugador y a la misma víctima no se le roba
 -- más de una vez cada VICTIM_GAP (antes se podía ir de tienda en tienda o robar sin parar)
 local HEIST_GAP = 300
 local VICTIM_GAP = 300
+-- Disparar a un personaje (NPC): una denuncia por víctima como mucho cada tanto (una ráfaga no son 5★)
+local NPC_HIT_GAP = 8
 -- (por UserId: salir y volver a entrar no reinicia la pausa)
 local heistAt: { [number]: number } = {}
 local robbedAt: { [number]: { [number]: number } } = {}
@@ -75,6 +79,14 @@ end
 local function oldEnough(player: Player): boolean
 	local stage = player:GetAttribute("LifeStage")
 	return stage == nil or Stages.inRange(stage, Wanted.MinStage, nil)
+end
+
+-- ¿Cuentan sus delitos como los de un mayor? Modo pruebas con «Sin requisitos»: la edad no cuenta
+-- ni para llevar un arma de verdad ni para librarse de la policía (antes un niño tester podía
+-- disparar con un subfusil y solo salía «Si fueras mayor, vendría la policía»).
+local MINOR_LABEL = { Bebe = "un bebé", Nino = "un niño", Adolescente = "adolescente" }
+local function answersAsAdult(player: Player): boolean
+	return oldEnough(player) or TesterService.bypass(player)
 end
 
 local function onDuty(player: Player): boolean
@@ -192,7 +204,7 @@ function WantedService.crime(player: Player, crime: string, position: Vector3?, 
 		return
 	end
 	local at = position or (rootOf(player) and (rootOf(player) :: BasePart).Position)
-	if not Wanted.appliesTo(crime, oldEnough(player)) then
+	if not Wanted.appliesTo(crime, answersAsAdult(player)) then
 		Notify:FireClient(player, "Error", "¡Eso no se hace! Si fueras mayor, vendría la policía.")
 		-- Si alguien lo ha visto, tu familia se entera (historial de comportamiento)
 		local state = stateOf(player)
@@ -208,6 +220,14 @@ function WantedService.crime(player: Player, crime: string, position: Vector3?, 
 	if not at then
 		return
 	end
+	if not oldEnough(player) and not Wanted.appliesTo(crime, false) then
+		-- (solo llega aquí un tester menor con «Sin requisitos»: se le explica una vez)
+		local state = stateOf(player)
+		if not state.TesterAgeNoted then
+			state.TesterAgeNoted = true
+			Notify:FireClient(player, "Info", ("🧪 Modo pruebas: aunque eres %s, con «Sin requisitos» tus delitos cuentan como los de un adulto (viene la policía)."):format(MINOR_LABEL[player:GetAttribute("LifeStage")] or "menor"))
+		end
+	end
 	if crime == "AgresionPolicia" or policeSees(player, at) then
 		report(player, crime, "Police")
 		return
@@ -216,9 +236,17 @@ function WantedService.crime(player: Player, crime: string, position: Vector3?, 
 		task.delay(Wanted.CallDelay, report, player, crime, "Alarm")
 		return
 	end
-	local witness = witnessNear(player, at)
+	-- La víctima (un personaje al que le han disparado) siempre llama; si no, el testigo más cercano
+	local victim = options and options.Witness
+	local witness = if typeof(victim) == "Instance" and victim.Parent then victim else witnessNear(player, at)
 	if witness then
-		Npc.say(witness, "📞 ¡Policía! ¡Rápido, venid!")
+		-- (la víctima primero se queja del disparo: llama un momento después)
+		local called = witness
+		task.delay(if witness == victim then 1.5 else 0, function()
+			if called.Parent then
+				Npc.say(called, "📞 ¡Policía! ¡Rápido, venid!")
+			end
+		end)
 		task.delay(Wanted.CallDelay, function()
 			if witness.Parent then
 				Npc.say(witness, nil)
@@ -516,6 +544,29 @@ local function onStoryEvent(player: Player, name: string, payload: { [string]: a
 		return
 	end
 	if not payload.Target then
+		-- Disparar (o dar con el táser) a un personaje de la calle también es delito: antes solo
+		-- contaba si la víctima era un jugador, y a los NPC se les podía acribillar sin que nadie
+		-- llamase. La víctima llama a la policía (una denuncia por víctima cada NPC_HIT_GAP).
+		local w = Weapons.get(payload.Weapon)
+		if w and w.Kind ~= "Toy" and typeof(model) == "Instance" and model:IsA("Model") and not Players:GetPlayerFromCharacter(model) then
+			local state = stateOf(player)
+			state.NpcHits = state.NpcHits or {}
+			local hits = state.NpcHits :: { [Model]: number }
+			local now = os.clock()
+			if now - (hits[model] or -math.huge) < NPC_HIT_GAP then
+				return
+			end
+			for other, at in hits do
+				if now - at >= NPC_HIT_GAP then
+					hits[other] = nil
+				end
+			end
+			hits[model] = now
+			local root = model:FindFirstChild("HumanoidRootPart")
+			local at = if root and root:IsA("BasePart") then root.Position else nil
+			local r = rootOf(player)
+			WantedService.crime(player, if w.Kind == "Taser" then "Agresion" else "Disparo", if r then r.Position else at, { Witness = model })
+		end
 		return
 	end
 	local victim = Players:GetPlayerByUserId(payload.Target)

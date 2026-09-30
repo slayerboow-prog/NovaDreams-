@@ -253,6 +253,59 @@ local dm, um = WeaponPose.reloadCurve(0.25)
 local _, um2 = WeaponPose.reloadCurve(0.6)
 check(d0 == 0 and u0 == 0 and d1 == 0 and u1 == 0 and dm > 0.5 and um2 > 0.5 and um == 0, "recarga: mano al cinturón, al arma y vuelta")
 
+print("▶ Cámara al hombro: la mira nunca encima del personaje")
+do
+	-- Proyección de verdad: cámara mirando a la cabeza desde `d` studs y apartada `x` a la derecha (en
+	-- su eje). El borde derecho del personaje (medio ancho HalfWidth, con el arma en la mano derecha)
+	-- tiene que quedar a la izquierda de la mira (su radio exterior con las marcas), con hueco.
+	local S = Weapons.Shoulder
+	local function gapPx(x: number, d: number, fov: number, height: number): number
+		local halfTan = math.tan(math.rad(fov / 2))
+		return (x - S.HalfWidth) / (d * halfTan) * height / 2
+	end
+	-- La captura del móvil: cámara normal centrada en el personaje (x = 0) -> la mira sobre la cabeza
+	local revolverOuter = Weapons.reticleOuter(W.Revolver, Weapons.spread(W.Revolver, {}), 70, 390)
+	check(gapPx(0, 12.5, 70, 390) < -revolverOuter, "sin hombro (como en la captura) la mira cae encima del personaje")
+	local bad = {}
+	local cases = 0
+	for id, w in W do
+		for _, height in { 360, 375, 390, 430, 750, 768, 852, 900, 1080 } do
+			for _, st in { "Stand", "Crouch", "Prone" } do
+				for _, aim in { false, true } do
+					local fov = if aim then w.AimFov else 70
+					local outer = Weapons.reticleOuter(w, Weapons.spread(w, { Aiming = aim, Stance = st }), fov, height)
+					for _, d in (if aim then { 3, 5, Weapons.Aim.Zoom, 10 } else { 3, 5, 8, 12.5, 20, 35, 55 }) do
+						cases += 1
+						local x, y = Weapons.shoulderOffset(d, fov, height, outer, st)
+						if gapPx(x, d, fov, height) < outer + S.MarginPx - 0.01 or x < S.Min or x > S.Max then
+							table.insert(bad, ("%s %s %s h%d d%.1f: x %.2f"):format(id, st, if aim then "apuntando" else "cadera", height, d, x))
+						end
+						if st == "Crouch" and y >= S.Up.Stand then
+							table.insert(bad, id .. ": agachado la cámara no baja")
+						end
+					end
+				end
+			end
+		end
+	end
+	check(#bad == 0, ("%d casos (armas, pantallas de 360 a 1080 de alto, de pie, agachado y tumbado, cadera y apuntando, de 3 a 55 studs): la mira queda al lado del personaje%s"):format(cases, if #bad > 0 then ": " .. table.concat(bad, "; ", 1, math.min(#bad, 6)) else ""))
+	local x1 = Weapons.shoulderOffset(12.5, 70, 390, revolverOuter, "Stand")
+	local x2 = Weapons.shoulderOffset(40, 70, 390, revolverOuter, "Stand")
+	check(x2 > x1 and x1 >= S.Min, ("con la cámara más lejos, más al hombro (%.2f -> %.2f studs)"):format(x1, x2))
+	local fx, fy = Weapons.shoulderOffset(0.5, 70, 390, revolverOuter, "Stand")
+	check(fx == 0 and fy == 0, "en primera persona, sin hombro")
+	local _, yStand = Weapons.shoulderOffset(7, 55, 390, 30, "Stand")
+	local _, yCrouch = Weapons.shoulderOffset(7, 55, 390, 30, "Crouch")
+	local _, yProne = Weapons.shoulderOffset(7, 55, 390, 30, "Prone")
+	check(yStand > yCrouch and yCrouch > yProne, "agachado y tumbado, la cámara al hombro más baja")
+	-- El controlador: el hombro va en el eje de la cámara, después de la de Roblox, con choque contra
+	-- paredes, y se quita al montar, en cinemáticas/conversaciones (otra cámara) y en primera persona
+	local src = fs.readFile("src/client/Controllers/WeaponController.luau")
+	check(src:find("Weapons.shoulderOffset(", 1, true) ~= nil and src:find("camera.CameraSubject ~= humanoid", 1, true) ~= nil and src:find("S.FirstPerson", 1, true) ~= nil, "WeaponController pone el hombro con Weapons.shoulderOffset y lo quita con otra cámara o en primera persona")
+	check(src:find("humanoid.CameraOffset = (", 1, true) == nil, "ya no usa Humanoid.CameraOffset (gira con el cuerpo, no con la cámara)")
+	check(src:find("shoulderCamera(dt, false", 1, true) ~= nil and src:find("humanoid.SeatPart ~= nil", 1, true) ~= nil, "al guardar el arma o montar, la cámara vuelve del hombro suave")
+end
+
 print("▶ Armerías en la ciudad")
 local districts = fs.readFile("src/server/World/Kit/Districts.luau")
 local shops = 0

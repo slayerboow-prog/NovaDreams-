@@ -671,6 +671,8 @@ local function hudRects(mods)
 	add("Reloj", hud:FindFirstChild("Clock"))
 	add("Misión", hud:FindFirstChild("Mission"))
 	table.insert(list, { Name = "Minimapa", Rect = HudLayout.rect(layout.Items.Minimap, layout.Canvas) })
+	-- Las balas del arma: siempre (el peor caso: con el arma en la mano)
+	table.insert(list, { Name = "Balas del arma", Rect = HudLayout.rect(layout.Items.Ammo, layout.Canvas) })
 	table.insert(list, { Name = "Barra rápida", Rect = HudLayout.rect(layout.Items.Hotbar, layout.Canvas) })
 	local commands = playerGui:FindFirstChild("CommandMenuGui")
 	-- (el menú de comandos: su hueco entero, aunque tenga menos filas)
@@ -904,6 +906,13 @@ do
 	check(helpCard and not helpCard.Visible, "Y la cierra")
 end
 
+-- Las balas del arma las coloca HudLayout (Items.Ammo), con la escala del HUD: antes iban en píxeles
+-- fijos desde abajo (-330 en el móvil) y en un móvil apaisado quedaban encima del minimapa
+do
+	local weaponSrc = fs.readFile("src/client/Controllers/WeaponController.luau")
+	check(weaponSrc:find("layout.Items.Ammo", 1, true) ~= nil and weaponSrc:find("HudLayout.scaleGui(ammoGui)", 1, true) ~= nil and weaponSrc:find("-330", 1, true) == nil, "Las balas del arma van donde dice HudLayout (Items.Ammo), a la escala del HUD")
+end
+
 -- Nada se pisa, en varios tamaños de ordenador
 for _, size in { { 1920, 1080 }, { 1600, 900 }, { 1366, 768 } } do
 	setViewport(size[1], size[2])
@@ -1033,6 +1042,24 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 	end
 	local list = hudRects(mods)
 	noOverlaps(list, HudLayout, ("%dx%d"):format(size[1], size[2]))
+	do
+		-- Las balas (arma en la mano): arriba a la derecha, a la izquierda del minimapa, dentro de la
+		-- pantalla y lejos de los botones de disparar (la captura: encima del minimapa)
+		local ammo = HudLayout.rect(now.Items.Ammo, now.Canvas)
+		local mini = HudLayout.rect(now.Items.Minimap, now.Canvas)
+		local clockRect = HudLayout.rect(now.Items.Clock, now.Canvas)
+		check(ammo.X >= clockRect.X + clockRect.W and ammo.X + ammo.W <= mini.X and ammo.Y >= 0 and ammo.Y + ammo.H <= mini.Y + mini.H, ("Balas del arma %s: entre el reloj y el minimapa, sin pisar nada"):format(describe(ammo)))
+		-- La pista («Pista: …  [Toca para ir]») encima de la barra rápida, sin pisarla ni pisar los botones
+		local guideRect = HudLayout.rect(now.Items.Guide, now.Canvas)
+		local bar = HudLayout.rect(now.Items.Hotbar, now.Canvas)
+		local clash = {}
+		for name, slot in now.Slots do
+			if HudLayout.overlaps(guideRect, HudLayout.rect(slot, now.Canvas)) then
+				table.insert(clash, name)
+			end
+		end
+		check(guideRect.Y + guideRect.H <= bar.Y and #clash == 0, "La pista va encima de la barra rápida sin pisar los botones" .. (if #clash > 0 then ": " .. table.concat(clash, ", ") else ""))
+	end
 
 	-- Nunca dos botones iguales (la captura tenía dos «Agacharse»)
 	do
