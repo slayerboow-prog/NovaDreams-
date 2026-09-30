@@ -4,7 +4,17 @@
 -- SoundFx, Weather y StoryAudio lo miran cuando el Id de Config es 0. Si falta un nombre, se busca
 -- un Sound con ese nombre en ReplicatedStorage > Sonidos (o > Musica para la música).
 return {
+	choque_fuerte = "rbxassetid://124154748389599",
+	choque_leve = "rbxassetid://122239551118690",
 	claxon = "rbxassetid://133145598956621",
+	disparo_eco = "rbxassetid://112568199744275",
+	disparo_escopeta = "rbxassetid://106336953810710",
+	disparo_fusil = "rbxassetid://108095974953602",
+	disparo_pistola = "rbxassetid://120400611468297",
+	disparo_revolver = "rbxassetid://123122957287861",
+	disparo_subfusil = "rbxassetid://103181200902284",
+	golpe_caida = "rbxassetid://75686429377570",
+	golpe_choque = "rbxassetid://125669744370873",
 	lluvia = "rbxassetid://87569090674146",
 	metro_anden = "rbxassetid://135876824598541",
 	metro_freno = "rbxassetid://85680495035860",
