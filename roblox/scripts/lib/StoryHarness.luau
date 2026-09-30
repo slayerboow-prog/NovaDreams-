@@ -815,6 +815,7 @@ H.passes = passes
 H.questStep = questStep
 H.mainStep = mainStep
 H.doStep = doStep
+H.follow = follow
 H.playUntil = playUntil
 H.playQuest = playQuest
 H.said = said

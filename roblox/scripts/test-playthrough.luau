@@ -433,6 +433,48 @@ end
 local lives = if QUICK then 1 else 3
 local lifeDone = 0
 local lifeReports = {}
+
+-- El reloj del juego es de todos (las vidas se juegan a la vez en el mismo servidor). Una principal
+-- puede esperar una hora: un niño o adolescente hace lo que no es del cole al acabar las clases
+-- (17:00), el cole abre de lunes a viernes y hay un día normal por día de juego (LoopDay). Como en
+-- un servidor de verdad, el tiempo solo avanza: cuando TODAS las vidas que siguen están esperando
+-- una hora, se adelanta el reloj hasta la primera que alguna espera (o al día de clase siguiente).
+local lifeWaiting: { [number]: { [string]: any } } = {}
+local lastAdvance = 0
+local function hoursWait(player): { [string]: any }?
+	local dbg = Service.debugState(player)
+	local waiting = dbg and dbg.Waiting
+	if waiting and (waiting.Reason == "Hours" or waiting.Reason == "Weekdays") then
+		return waiting
+	end
+	return nil
+end
+local function allLivesWaiting(): boolean
+	local count = 0
+	for _ in lifeWaiting do
+		count += 1
+	end
+	return count > 0 and count == lives - lifeDone
+end
+local function advanceClock()
+	local now = H.lighting.ClockTime
+	local best: { [string]: any }? = nil
+	for _, waiting in lifeWaiting do
+		local from = if type(waiting.From) == "number" then waiting.From else Config.SchoolDay.Opens
+		local nextDay = waiting.Reason == "Weekdays" or from <= now
+		local hours = from - now + (if nextDay then 24 else 0)
+		if not best or hours < best.Hours then
+			best = { Hours = hours, From = from, NextDay = nextDay }
+		end
+	end
+	if best then
+		if best.NextDay then
+			H.nextSchoolDay()
+		end
+		H.lighting.ClockTime = best.From + 0.5
+	end
+	lastAdvance = os.clock()
+end
 for run = 1, lives do
 	task.spawn(function()
 		local player = H.newPlayer("Vida" .. run)
@@ -448,6 +490,12 @@ for run = 1, lives do
 				stuckAt, stuckSince = "(espera)", os.clock()
 			end
 			if questId and step then
+				lifeWaiting[run] = nil
+				-- Como un jugador: si seguía una secundaria, vuelve a la principal (panel de misiones)
+				local tracked = story.Tracked
+				if tracked and tracked ~= questId and story.Active[tracked] then
+					H.follow(player, questId)
+				end
 				local where = questId .. ":" .. prog.Step
 				if where ~= stuckAt then
 					stuckAt, stuckSince = where, os.clock()
@@ -462,8 +510,20 @@ for run = 1, lives do
 			elseif story.Chapter == nil then
 				finished = true
 				break
+			elseif hoursWait(player) and not (allLivesWaiting() and os.clock() - stuckSince > 30) then
+				-- Espera una hora. Mientras otras vidas siguen jugando, el reloj no corre (y esta no está
+				-- atascada); cuando todas esperan, se adelanta (y si en 30 s nadie tiene nada que hacer, sí)
+				lifeWaiting[run] = hoursWait(player)
+				if not allLivesWaiting() then
+					stuckSince = os.clock()
+				elseif os.clock() - lastAdvance > 3 then
+					advanceClock()
+				end
 			elseif os.clock() - stuckSince > 30 then
-				problem("(vida " .. run .. ")", "nada que hacer y la historia no sigue (capítulo " .. tostring(story.Chapter) .. ")")
+				local dbg = Service.debugState(player)
+				local waiting = dbg and dbg.Waiting
+				local why = if waiting then (" · espera %s: %s desde las %s, día %d"):format(tostring(waiting.QuestId), tostring(waiting.Reason), tostring(waiting.From), H.getDay()) else ""
+				problem("(vida " .. run .. ")", "nada que hacer y la historia no sigue (capítulo " .. tostring(story.Chapter) .. why .. ")")
 				break
 			end
 			-- Misiones de mitad de vida que no son principales (secundarias canónicas…): no se juegan aquí
@@ -491,6 +551,7 @@ for run = 1, lives do
 			return Chapters[a].Order < Chapters[b].Order
 		end)
 		lifeReports[run] = { Finished = finished, Chapters = chapters, Player = player }
+		lifeWaiting[run] = nil
 		lifeDone += 1
 	end)
 	task.wait(1.3)
@@ -868,20 +929,40 @@ local running = 0
 if QUICK then
 	mains = {} -- (rápido: sin la parte de romper cada misión)
 end
+-- Un niño o adolescente hace lo que no es del cole al acabar las clases (LifeStoryService.refresh:
+-- esperan a las 17:00 los recados, la noche con la pandilla…). El reloj es de todos: primero, a media
+-- mañana de un día de clase, las demás; luego, por la tarde, estas.
+local Schedules = loadModule(ROOT .. "/shared/LifeStory/Schedules")
+local function afterSchool(questId: string): boolean
+	local quest = Quests[questId]
+	local stage = Chapters[chapterOf[questId]].Stage.Min or "Adulto"
+	return (stage == "Nino" or stage == "Adolescente") and quest.Schedule ~= false and not Schedules.isSchool(Schedules.forQuest(quest))
+end
+local batches = { { Clock = 10, List = {} }, { Clock = Config.SchoolDay.End + 1, List = {} } }
 for i, questId in mains do
-	running += 1
-	task.spawn(function()
-		local ok, err = pcall(breakMission, questId, i)
-		if not ok then
-			breakProblem(questId, "error: " .. tostring(err))
-		end
-		running -= 1
-	end)
-	task.wait(0.25)
+	table.insert(batches[if afterSchool(questId) then 2 else 1].List, { Id = questId, Index = i })
 end
-while running > 0 do
-	task.wait(1)
+if (H.getDay() - 1) % 7 + 1 > 5 then
+	H.nextSchoolDay()
 end
+for _, batch in batches do
+	H.lighting.ClockTime = batch.Clock
+	for _, entry in batch.List do
+		running += 1
+		task.spawn(function()
+			local ok, err = pcall(breakMission, entry.Id, entry.Index)
+			if not ok then
+				breakProblem(entry.Id, "error: " .. tostring(err))
+			end
+			running -= 1
+		end)
+		task.wait(0.25)
+	end
+	while running > 0 do
+		task.wait(1)
+	end
+end
+H.lighting.ClockTime = 10
 local total, clean = 0, 0
 for _, questId in mains do
 	total += 1

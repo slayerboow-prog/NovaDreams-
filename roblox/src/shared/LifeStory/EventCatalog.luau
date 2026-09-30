@@ -23,11 +23,30 @@ EventCatalog.Names = {
 	FarmMade = true, FarmHarvest = true, MetroMissionDone = true,
 	-- Vehículos y carnés
 	VehicleBought = true, VehicleMounted = true, LicenseEarned = true, LicenseFailed = true, GotLicence = true,
+	-- Barcos (BoatService): sacar tu barco del amarre al agua ({ Boat = "Lancha" | … })
+	BoatLaunched = true,
+	-- Pase de temporada (ver PassOnly abajo): solo se emiten con BattlePass.Config.Enabled
+	VehicleTrip = true, ZoneEntered = true, ErrandDone = true,
 	-- Conducta, crimen y justicia
 	Misbehaved = true, ConductNoted = true, Vandalism = true, Crime = true, HitSomeone = true, GotHit = true,
 	ShotFired = true, KnockedOut = true, Died = true, Revived = true, Arrested = true, EvadedPolice = true,
 	Sentenced = true, Imprisoned = true, Released = true, PrisonWork = true, PrisonEscape = true, PrisonDegree = true,
 }
+
+-- Eventos que SOLO se emiten con el pase de temporada encendido (BattlePass.Config.Enabled); con el
+-- pase apagado nadie los manda, así que ninguna misión de la historia puede esperarlos (Validate lo
+-- rechaza). Los usan las misiones del pase (BattlePass/Season*.luau):
+--   VehicleTrip  (VehicleService, al bajarte tras más de 50 studs; no en el examen de la autoescuela):
+--                { Kind, Km, Rented }
+--   ZoneEntered  (LifeStoryService.discoverZone, al entrar en otro barrio): { Zone, First }
+--   ErrandDone   (CityErrandService, al terminar un encargo de un vecino): { Errand }
+EventCatalog.PassOnly = {
+	VehicleTrip = true, ZoneEntered = true, ErrandDone = true,
+}
+
+function EventCatalog.passOnly(name: any): boolean
+	return type(name) == "string" and EventCatalog.PassOnly[name] == true
+end
 
 function EventCatalog.has(name: any): boolean
 	return type(name) == "string" and EventCatalog.Names[name] == true

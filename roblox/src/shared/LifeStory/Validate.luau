@@ -517,6 +517,8 @@ function Validate.report(): Report
 		-- Eventos que alguien emite de verdad
 		if s.Type == "Event" and not EventCatalog.has(s.Event) then
 			err("%s: nadie emite el evento '%s' (EventCatalog)", where, tostring(s.Event))
+		elseif s.Type == "Event" and EventCatalog.passOnly(s.Event) then
+			err("%s: el evento '%s' solo se emite con el pase de temporada encendido (EventCatalog.PassOnly)", where, tostring(s.Event))
 		end
 		if s.Type == "Event" and s.Count ~= nil and (type(s.Count) ~= "number" or s.Count < 1) then
 			err("%s: Count debe ser 1 o más", where)
@@ -678,7 +680,7 @@ function Validate.report(): Report
 		if quest.Kind == "Side" and not quest.Offer and not startedLater[id] then
 			err("%s: secundaria sin Offer que nadie lanza (Later.Start)", id)
 		end
-		if quest.Kind == "Side" and quest.Offer and quest.Offer.Event and not EventCatalog.has(quest.Offer.Event) then
+		if quest.Kind == "Side" and quest.Offer and quest.Offer.Event and (not EventCatalog.has(quest.Offer.Event) or EventCatalog.passOnly(quest.Offer.Event)) then
 			currentQuest = id
 			err("%s: Offer con un evento que nadie emite '%s'", id, tostring(quest.Offer.Event))
 			currentQuest = nil
