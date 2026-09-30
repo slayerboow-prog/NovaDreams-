@@ -1,7 +1,12 @@
 -- MetroUI (cliente): el metro subterráneo.
---   * En el tren: panel arriba con la línea, la tira de estaciones (✓ pasadas, ● aquí, ○ próximas) y
---     un trenecito que avanza por ella en vivo; en cada parada, "Bajar en…"; y "🗺️ Plano" (MetroMapUI).
---   * Incidencias (Remote "Incident"): aviso arriba durante unos segundos (tocarlo abre los avisos).
+--   * En el tren: panel compacto abajo en el centro, encima de la barra rápida (HudLayout: Items.Ride,
+--     a la escala del HUD: no pisa ni los botones táctiles, ni el joystick, ni los comandos, ni la
+--     misión, ni el ❓) con la línea, la tira de estaciones (✓ pasadas, ● aquí, ○ próximas) y un
+--     trenecito que avanza por ella en vivo; en cada parada, "Bajar en…"; y "🗺️" (MetroMapUI). La
+--     incidencia de tu línea y el encargo con tiempo van dentro, en una línea pequeña. Mientras vas
+--     en el tren no salen los carteles de "Subir al metro" (antes asomaban detrás del panel).
+--   * Incidencias (Remote "Incident"): aviso arriba durante unos segundos (tocarlo abre los avisos);
+--     si vas en el tren, dentro de su panel.
 --   * Máquinas de billetes, tiendas, tablón de encargos (y el encargo que llevas, con su tiempo).
 --   * Fotomatón (flash) y escenario: minijuego de guitarra (pulsa cuando la marca está en verde).
 --   * Escaleras mecánicas de las bocas de metro: los peldaños se mueven (solo las que tienes cerca)
@@ -17,6 +22,7 @@ local TweenService = game:GetService("TweenService")
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Dialog = require(script.Parent.Parent.UI.Dialog)
 local Hud = require(script.Parent.Parent.UI.Hud)
+local HudLayout = require(script.Parent.Parent.UI.HudLayout)
 local Format = require(ReplicatedStorage.Shared.Format)
 local Metro = require(ReplicatedStorage.Shared.Metro)
 local MetroMapUI = require(script.Parent.MetroMapUI)
@@ -36,6 +42,9 @@ local rideStrip: Frame
 local rideMarker: Frame
 local rideArrow: TextLabel
 local alightButton: TextButton
+local rideInfo: TextLabel -- la línea pequeña de abajo (incidencia de tu línea, encargo con tiempo)
+local rideIncident = "" -- (texto de la incidencia de la línea en la que vas)
+local rideIncidentToken = 0
 local banner: TextButton
 local bannerText: TextLabel
 local bannerStripe: Frame
@@ -50,8 +59,12 @@ local markerFrac = 0.5 -- dónde va el trenecito de la tira (0-1)
 local missionDeadline: number? = nil
 local missionText = ""
 
-local RIDE_H = 110 -- alto del panel del tren
-local TRACK_Y = 30 -- la vía de la tira (dentro de rideStrip)
+-- Medidas del panel del tren (en unidades del lienzo del HUD; el tamaño máximo es HudLayout.Sizes.Ride)
+local RIDE_PAD = 10
+local RIDE_TITLE = 40 -- fila del título (con "Bajar en…" y 🗺️ a la derecha)
+local RIDE_STRIP = 58 -- la tira de estaciones
+local RIDE_LINE = 26 -- cada línea pequeña de abajo
+local TRACK_Y = 16 -- la vía de la tira (dentro de rideStrip)
 
 ---------------------------------------------------------------------
 -- En el tren: la tira de estaciones (✓ pasadas, ● aquí, ○ próximas) y el trenecito en vivo
@@ -120,9 +133,9 @@ local function drawStrip(current: string?, nextName: string?)
 		Theme.label({
 			AnchorPoint = Vector2.new(0.5, 0),
 			Position = UDim2.new((i - 0.5) / n, 0, 0, TRACK_Y + 15),
-			Size = UDim2.new(1 / n, -2, 0, 16),
+			Size = UDim2.new(1 / n, -2, 0, 22),
 			Text = name,
-			TextSize = 11,
+			TextSize = 16,
 			TextXAlignment = Enum.TextXAlignment.Center,
 			TextTruncate = Enum.TextTruncate.AtEnd,
 			TextColor3 = if here then Color3.new(1, 1, 1) elseif isNext then C.Gold elseif passed then rgb(120, 135, 160) else C.Muted,
@@ -177,6 +190,44 @@ local function updateMarker(dt: number)
 	rideArrow.Text = if dir < 0 then "◀🚇" else "🚇▶"
 end
 
+-- Las líneas pequeñas de abajo del panel (incidencia y encargo): el panel crece hacia arriba
+local function missionLine(): string
+	if not missionLabel or not missionLabel.Visible then
+		return ""
+	end
+	return missionLabel.Text
+end
+
+local function layoutRide()
+	if not ride then
+		return
+	end
+	local lines = {}
+	if rideIncident ~= "" then
+		table.insert(lines, rideIncident)
+	end
+	local mission = missionLine()
+	if mission ~= "" then
+		table.insert(lines, mission)
+	end
+	rideInfo.Text = table.concat(lines, "\n")
+	rideInfo.Visible = #lines > 0
+	rideInfo.Size = UDim2.new(1, 0, 0, RIDE_LINE * #lines)
+	local maxSize = HudLayout.Sizes.Ride
+	ride.Size = UDim2.fromOffset(maxSize.X, math.min(maxSize.Y, RIDE_PAD * 2 + RIDE_TITLE + RIDE_STRIP + RIDE_LINE * #lines))
+end
+
+-- Mientras vas en el tren, fuera los carteles de "Subir al metro" (solo en tu pantalla)
+local function boardPrompts(enabled: boolean)
+	for _, marker in CollectionService:GetTagged("MetroBoard") do
+		for _, p in marker:GetChildren() do
+			if p:IsA("ProximityPrompt") then
+				p.Enabled = enabled
+			end
+		end
+	end
+end
+
 local function onBoard(data: { [string]: any })
 	lineInfo = data
 	rideLast, rideNext, rideAt = nil, nil, nil
@@ -188,6 +239,12 @@ local function onBoard(data: { [string]: any })
 	rideMarker.BackgroundColor3 = data.Color or C.Accent
 	alightButton.Visible = true
 	alightButton.Text = "Bajar en " .. data.Station
+	-- (la incidencia que hubiera en otra línea no va en el panel; la de esta, sí)
+	if banner.Visible then
+		banner.Visible = false
+	end
+	boardPrompts(false)
+	layoutRide()
 end
 
 local function onArrive(data: { [string]: any })
@@ -213,6 +270,9 @@ local function onOff()
 	lineInfo = nil
 	rideAt, rideLast, rideNext = nil, nil, nil
 	ride.Visible = false
+	rideIncident = ""
+	boardPrompts(true)
+	missionLabel.Visible = missionDeadline ~= nil or missionText ~= ""
 end
 
 ---------------------------------------------------------------------
@@ -239,10 +299,33 @@ local function showIncident(data: any)
 	if type(data.Alt) == "string" and data.Alt ~= "" then
 		table.insert(parts, data.Alt)
 	end
+	-- En el tren: una línea pequeña dentro del panel (antes un cartel naranja debajo, pisando todo)
+	if ride.Visible then
+		if lineInfo and data.Line ~= nil and data.Line ~= lineInfo.Line then
+			return -- (de otra línea: se ve en los avisos del plano)
+		end
+		local short = { "⚠️ <b>Incidencia</b>" }
+		local stationName = station and station.Name
+		if body ~= "" then
+			table.insert(short, body)
+		elseif stationName then
+			table.insert(short, stationName)
+		end
+		rideIncident = '<font color="#FFC857">' .. table.concat(short, ": ") .. "</font>"
+		rideIncidentToken += 1
+		local token = rideIncidentToken
+		layoutRide()
+		task.delay(30, function()
+			if token == rideIncidentToken then
+				rideIncident = ""
+				layoutRide()
+			end
+		end)
+		return
+	end
 	bannerText.Text = table.concat(parts, " · ")
 	bannerStripe.BackgroundColor3 = if line then line.Color else C.Gold
-	-- Debajo del panel del tren si vas montado; si no, donde iría el panel
-	banner.Position = UDim2.new(0.5, 0, 0, if ride.Visible then 70 + RIDE_H + 56 else 70)
+	banner.Position = UDim2.new(0.5, 0, 0, 70)
 	banner.Visible = true
 	bannerToken += 1
 	local token = bannerToken
@@ -550,17 +633,24 @@ function MetroUI.init()
 	task.spawn(startEscalators)
 	gui = create("ScreenGui", { Name = "MetroGui", ResetOnSpawn = false, Parent = player:WaitForChild("PlayerGui") })
 	Theme.fit(gui)
+	-- Panel del tren: en su propia pantalla, a la escala del HUD y donde dice HudLayout (Items.Ride)
+	local rideGui = create("ScreenGui", { Name = "MetroRideGui", ResetOnSpawn = false, Parent = player:WaitForChild("PlayerGui") })
+	HudLayout.scaleGui(rideGui)
 	ride = Theme.panel({
 		Name = "Ride",
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 70),
-		Size = UDim2.fromOffset(560, RIDE_H),
+		Size = UDim2.fromOffset(HudLayout.Sizes.Ride.X, RIDE_PAD * 2 + RIDE_TITLE + RIDE_STRIP),
 		Visible = false,
-		Parent = gui,
+		Parent = rideGui,
 	})
-	Theme.padding(8).Parent = ride
-	rideTitle = Theme.label({ Size = UDim2.new(1, 0, 0, 24), Text = "", RichText = true, TextSize = 16, TextTruncate = Enum.TextTruncate.AtEnd, Parent = ride })
-	rideStrip = create("Frame", { Position = UDim2.fromOffset(0, 28), Size = UDim2.new(1, 0, 0, 64), BackgroundTransparency = 1, Parent = ride })
+	HudLayout.onChanged(function(layout)
+		local p = layout.Items.Ride
+		if p then
+			HudLayout.apply(ride, p, true) -- (el alto depende de las líneas pequeñas: crece hacia arriba)
+		end
+	end)
+	Theme.padding(RIDE_PAD).Parent = ride
+	rideTitle = Theme.label({ Size = UDim2.new(1, -262, 0, RIDE_TITLE), Text = "", RichText = true, TextSize = 22, TextTruncate = Enum.TextTruncate.AtEnd, Parent = ride })
+	rideStrip = create("Frame", { Position = UDim2.fromOffset(0, RIDE_TITLE), Size = UDim2.new(1, 0, 0, RIDE_STRIP), BackgroundTransparency = 1, Parent = ride })
 	rideMarker = create("Frame", {
 		Name = "Train",
 		AnchorPoint = Vector2.new(0.5, 0.5),
@@ -571,12 +661,26 @@ function MetroUI.init()
 		Parent = rideStrip,
 	}, { Theme.corner(6), create("UIStroke", { Color = Color3.new(1, 1, 1), Thickness = 1.5 }) })
 	rideArrow = Theme.label({ Size = UDim2.fromScale(1, 1), Text = "🚇▶", TextSize = 12, TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 3, Parent = rideMarker })
-	alightButton = Theme.button({
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 1, 6),
-		Size = UDim2.fromOffset(230, 42),
-		Text = "Bajar aquí",
+	rideInfo = Theme.label({
+		Name = "Info",
+		Position = UDim2.fromOffset(0, RIDE_TITLE + RIDE_STRIP),
+		Size = UDim2.new(1, 0, 0, RIDE_LINE),
+		Text = "",
+		RichText = true,
 		TextSize = 16,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+		TextColor3 = C.Muted,
+		Visible = false,
+		Parent = ride,
+	})
+	-- "Bajar en…" y el plano, dentro del panel (arriba a la derecha): nada cuelga por fuera
+	alightButton = Theme.button({
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -62, 0, 0),
+		Size = UDim2.fromOffset(190, RIDE_TITLE - 2),
+		Text = "Bajar aquí",
+		TextSize = 18,
+		TextTruncate = Enum.TextTruncate.AtEnd,
 		BackgroundColor3 = rgb(40, 170, 80),
 		Visible = false,
 		Parent = ride,
@@ -586,14 +690,20 @@ function MetroUI.init()
 	end)
 	local planButton = Theme.button({
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, 0, 1, 6),
-		Size = UDim2.fromOffset(120, 42),
-		Text = "🗺️ Plano",
-		TextSize = 15,
+		Position = UDim2.new(1, 0, 0, 0),
+		Size = UDim2.fromOffset(56, RIDE_TITLE - 2),
+		Text = "🗺️",
+		TextSize = 20,
 		Parent = ride,
 	})
 	planButton.Activated:Connect(function()
 		MetroMapUI.open("Ruta")
+	end)
+	-- (lo que entra en el metro después, con el panel ya abierto: tampoco sale "Subir al metro")
+	CollectionService:GetInstanceAddedSignal("MetroBoard"):Connect(function()
+		if ride.Visible then
+			task.defer(boardPrompts, false)
+		end
 	end)
 	RunService.RenderStepped:Connect(updateMarker)
 	banner = create("TextButton", {
@@ -661,8 +771,12 @@ function MetroUI.init()
 				missionDeadline = if data.Deadline then os.clock() + data.Deadline else nil
 				missionLabel.Visible = true
 			else
+				missionText = ""
 				missionDeadline = nil
 				missionLabel.Visible = false
+			end
+			if ride.Visible then
+				layoutRide()
 			end
 		elseif action == "Busk" then
 			busk(data)
@@ -693,9 +807,17 @@ function MetroUI.init()
 	task.spawn(function()
 		while true do
 			task.wait(0.5)
-			if missionLabel.Visible then
+			if missionText ~= "" then
 				local left = if missionDeadline then math.max(0, math.floor(missionDeadline - os.clock())) else nil
 				missionLabel.Text = "📌 " .. missionText .. (if left then ("  ⏱️ %d:%02d"):format(left // 60, left % 60) else "")
+			end
+			-- En el tren, el encargo va dentro del panel (una línea pequeña), no suelto por la pantalla
+			if ride.Visible then
+				missionLabel.Visible = false
+				local want = if missionText ~= "" then missionLabel.Text else ""
+				if want ~= "" and not string.find(rideInfo.Text, want, 1, true) or (want == "" and string.find(rideInfo.Text, "📌", 1, true)) then
+					layoutRide()
+				end
 			end
 		end
 	end)
