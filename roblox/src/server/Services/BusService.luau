@@ -277,7 +277,17 @@ local function exitCFrame(bus: Bus, seat: BasePart): CFrame?
 	return chassis.CFrame * CFrame.new(HALF_W + 3, 3.5, z)
 end
 
-local function riderOf(bus: Bus, humanoid: Humanoid): Player?
+local function riderOf(bus: Bus, humanoid: Humanoid, seat: Seat?): Player?
+	-- Primero por el asiento: si se levanta porque su cuerpo desaparece (muere y reaparece, se le
+	-- cambia el cuerpo al crecer), humanoid.Parent ya no es su personaje y no se le encontraba: se
+	-- quedaba con «BusLine» puesto y la historia creía que seguía en el autobús (RideState)
+	if seat then
+		for player, riderSeat in bus.Riders do
+			if riderSeat == seat then
+				return player
+			end
+		end
+	end
 	for player in bus.Riders do
 		if player.Character == humanoid.Parent then
 			return player
@@ -331,7 +341,7 @@ local function watchSeats(bus: Bus)
 				local occupant = seat.Occupant
 				if not occupant and last then
 					local humanoid = last
-					local player = riderOf(bus, humanoid)
+					local player = riderOf(bus, humanoid, seat :: Seat)
 					local root = humanoid.Parent and humanoid.Parent:FindFirstChild("HumanoidRootPart") :: BasePart?
 					local moving = rolling(bus)
 					if player then

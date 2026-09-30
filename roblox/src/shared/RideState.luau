@@ -5,7 +5,7 @@
 -- Lo usan la historia (LifeStoryService: una conversación o una escena NUNCA empieza sola mientras
 -- conduces o viajas; espera a que te bajes) y la caja de diálogo del cliente (DialogueUI: la cámara de
 -- conversación no se lleva la cámara del vehículo). Solo LEE lo que ya ponen los servicios de
--- vehículos: los atributos Riding / Passenger / BusLine y Humanoid.SeatPart. Sentarse en un banco,
+-- vehículos: los atributos Riding / Passenger / BusLine (solo si va sentado) y Humanoid.SeatPart. Sentarse en un banco,
 -- una silla o el váter NO cuenta como ir en un vehículo.
 -- Funciona igual en el servidor y en el cliente.
 
@@ -61,15 +61,18 @@ function RideState.vehicleOf(player: any): string?
 	if type(passenger) == "string" and passenger ~= "" then
 		return passenger
 	end
-	if attr(player, "BusLine") ~= nil then
-		return "Bus"
-	end
 	local ok, seat = pcall(function()
 		local character = player.Character
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 		return humanoid and humanoid.SeatPart
 	end)
-	if ok and seat then
+	seat = if ok then seat else nil
+	-- En el autobús: «BusLine» y sentado. Sin asiento, es un «BusLine» que se quedó puesto (se levantó
+	-- sin que BusService se enterase): no cuenta, o ninguna escena de la historia volvería a empezar
+	if attr(player, "BusLine") ~= nil and seat ~= nil then
+		return "Bus"
+	end
+	if seat then
 		return RideState.seatKind(seat)
 	end
 	return nil

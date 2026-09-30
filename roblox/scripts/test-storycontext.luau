@@ -479,7 +479,25 @@ do
 	check(RideState.inVehicle(fake), "RideState: de pasajero en un coche (Passenger)")
 	fake.Attributes.Passenger = nil
 	fake.Attributes.BusLine = "L1"
-	check(RideState.vehicleOf(fake) == "Bus", "RideState: en el autobús (BusLine)")
+	check(RideState.vehicleOf(fake) == nil, "RideState: un «BusLine» que se quedó puesto sin ir sentado no cuenta (la historia no se bloquea)")
+	local seat = { Name = "PassengerSeat" }
+	function seat:HasTag()
+		return false
+	end
+	function seat:FindFirstAncestorOfClass()
+		return nil
+	end
+	function seat:IsA()
+		return false
+	end
+	local humanoid = { SeatPart = seat }
+	fake.Character = {}
+	function fake.Character:FindFirstChildOfClass(class)
+		return if class == "Humanoid" then humanoid else nil
+	end
+	check(RideState.vehicleOf(fake) == "Bus", "RideState: en el autobús (BusLine y sentado)")
+	fake.Attributes.BusLine = nil
+	humanoid.SeatPart = nil
 
 	-- A) En la moto: llegar al parque SÍ cuenta; el minijuego y la conversación esperan a que te bajes
 	local moto = H.newPlayer("Moto", "Nino", 100)
@@ -529,8 +547,14 @@ do
 	local ok, why = Service.canAutoStart(moto, TIRA)
 	check(ok, "a pie y siguiéndola, lo de esta misión puede empezar solo")
 	moto:SetAttribute("BusLine", "L1")
+	moto.Character = fake.Character -- (sentado en un asiento del autobús)
+	humanoid.SeatPart = seat
 	ok, why = Service.canAutoStart(moto, TIRA)
 	check(not ok and why == "Ride", "de pasajero en el autobús, no (espera a que te bajes)")
+	humanoid.SeatPart = nil
+	ok = Service.canAutoStart(moto, TIRA)
+	check(ok, "ya de pie, con un «BusLine» que se quedó puesto (murió o le cambió el cuerpo en el autobús), sí")
+	moto.Character = nil
 	moto:SetAttribute("BusLine", nil)
 	moto:SetAttribute("Riding", "Moto")
 	local before2 = #moto.Said
