@@ -520,5 +520,70 @@ do
 	check(svc:find('RIDER_ICONS[math.random(1, #RIDER_ICONS)], true)', 1, true) ~= nil and svc:find('Npc.icon, npc, "👮", true)', 1, true) ~= nil, "los iconos de los viajeros y de la policía del metro no flotan a través de las paredes")
 end
 
+print("Estaciones holgadas y enterradas: nada asoma por la calle ni por el terreno")
+do
+	-- La superficie más baja por encima de una estación: el césped del terreno (Y = -1; las calzadas y
+	-- aceras van de 0 a 1). Todo lo de dentro (paredes, techos, carteles… y la cabeza de quien esté de pie
+	-- dentro: NPC_TOP studs sobre el suelo) queda al menos 1 stud por debajo.
+	local SURFACE, NPC_TOP = -1, 6.5
+	local function top(p: any): number
+		local c = { p.CFrame:GetComponents() }
+		local sz = p.Size
+		return c[2] + (math.abs(c[7]) * sz.X + math.abs(c[8]) * sz.Y + math.abs(c[9]) * sz.Z) / 2
+	end
+	local worst, worstName, parts = -math.huge, "", 0
+	local function scan(root: any)
+		for _, d in root:GetDescendants() do
+			if d:IsA("BasePart") then
+				parts += 1
+				local t = top(d)
+				if t > worst then
+					worst, worstName = t, d:GetFullName()
+				end
+			end
+		end
+	end
+	scan(under)
+	for _, d in (metroRoot :: any):GetDescendants() do
+		if d:IsA("Model") and (string.find(d.Name, "^Vestibulo_") or string.find(d.Name, "^Escaleras_")) then
+			scan(d)
+		end
+	end
+	check(parts > 0 and worst <= SURFACE - 1, ("nada de dentro de las estaciones llega a 1 stud de la superficie (lo más alto: %.1f, %s)"):format(worst, worstName))
+	-- Dónde se pone de pie la gente del metro (guardias, limpiadores, taquilleros, viajeros, policía…)
+	local spots, high = 0, 0
+	local function spot(y: number, what: string)
+		spots += 1
+		if y + NPC_TOP > SURFACE - 1 then
+			high += 1
+			print(("     %s: una persona de pie ahí asomaría por la calle (%.1f)"):format(what, y + NPC_TOP))
+		end
+	end
+	for _, d in (metroRoot :: any):GetDescendants() do
+		if d:IsA("BasePart") then
+			for _, attr in { "A", "B", "StaffSpot" } do
+				local v = d:GetAttribute(attr)
+				if typeof(v) == "Vector3" then
+					spot(v.Y, d:GetFullName())
+				end
+			end
+			if d:HasTag("MetroAlight") or d:HasTag("MetroStaff") or d:HasTag("MetroStatue") or d:HasTag("MetroArrival") then
+				spot(d.CFrame.Position.Y - d.Size.Y / 2, d:GetFullName())
+			end
+		end
+	end
+	check(spots > 0 and high == 0, ("nadie de pie dentro de una estación asoma por la calle (%d sitios)"):format(spots))
+	-- Holgura: escaleras de la calle anchas, vestíbulos altos
+	local narrow = 0
+	for id in Metro.Stations do
+		local A = Metro.access(id)
+		if A.Stair.Width < 8 or A.Hall.Max.Y - A.Hall.Min.Y < 10 then
+			narrow += 1
+		end
+	end
+	check(narrow == 0 and Metro.Lobby.Height >= 15 and Metro.Shaft.Stairs >= 4, ("escaleras de la calle de %d de ancho, vestíbulos de %d de alto y andenes con %d de techo"):format(Metro.StreetStairs.Width, Metro.HallHeight, Metro.Lobby.Height))
+	check(Metro.HallY + Metro.HallHeight + 0.5 <= SURFACE - 3, "el techo del vestíbulo de la calle queda bajo las calzadas (que llegan hasta Y = -4)")
+end
+
 print(if failures == 0 then "\nTodo bien ✅" else ("\n%d fallos ❌"):format(failures))
 process.exit(if failures == 0 then 0 else 1)

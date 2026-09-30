@@ -339,7 +339,7 @@ Metro.StreetY = 1 -- altura de la acera
 -- (más hondo y más alto que al principio: su techo, y la cabeza de quien esté dentro, quedan varios
 -- studs por debajo de las calzadas y del terreno: nada asoma por la calle. scripts/test-metro lo mira)
 Metro.HallY = -17 -- suelo del vestíbulo (bajo la calle: su techo queda por debajo de las calzadas)
-Metro.HallHeight = 10
+Metro.HallHeight = 12 -- (techo en -5: la parte al aire libre de la escalera no crece hacia los cruces)
 Metro.Underground = -10 -- por debajo de esto ya estás en el metro (no llueve, no se oye la lluvia)
 Metro.Slope = math.rad(30) -- pendiente de las escaleras mecánicas (y de la escalera fija de al lado)
 -- (8 de ancho: se baja cómodo, dos personas a la par; 12 + 12 peldaños hasta el vestíbulo, que está más hondo)
@@ -359,7 +359,7 @@ Metro.Lobby = { X0 = 17.5, X1 = 47.5, Z = 25, Height = 15 } -- (Height: techo de
 Metro.HubAccess = {
 	Line = "L1",
 	Shaft = { X = 41.2, Z = 18, Dir = { 0, 1 }, Ceiling = true }, -- borde de abajo y hacia dónde baja
-	Stair = { X = 6.4, Z = -40, Dir = { 1, 0 } }, -- arriba de la escalera de la calle
+	Stair = { X = 6.4, Z = -38.8, Dir = { 1, 0 } }, -- arriba de la escalera de la calle (apartada de la palmera de la plaza)
 	Grow = { XMax = 2, ZMin = 6 }, -- el vestíbulo, algo más grande (máquinas y plano)
 }
 

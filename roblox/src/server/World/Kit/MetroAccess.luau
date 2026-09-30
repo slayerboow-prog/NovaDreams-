@@ -339,7 +339,7 @@ local function mouth(root: Instance, A: any, station: Metro.Station): (Model, Ve
 		end
 	end
 	-- Plano de la red en un mupi junto a la barandilla
-	local mupi = at(roadSide * (W / 2 + 2.2), 0, S.Open * 0.72)
+	local mupi = at(roadSide * (W / 2 + 1.4), 0, S.Open * 0.72) -- (pegado a la barandilla: en la plaza, junto a un parterre)
 	part(m, "MapStand", V3(0.5, 6, 3.2), mupi * CFrame.new(0, street + 3, 0), DARK, Enum.Material.Metal)
 	local map = decor(m, "NetworkMap", V3(0.1, 4, 2.8), mupi * CFrame.new(0.3, street + 3.6, 0), rgb(245, 245, 240))
 	Builder.sign(map, "🚇 METRO\n\n🔴 L1\nPoniente · Plaza Mayor · Levante · Playa Dorada\n\n🔵 L2\nNorte · Plaza Mayor · San Roque · Puerto", Enum.NormalId.Right, DARK, rgb(245, 245, 240))
