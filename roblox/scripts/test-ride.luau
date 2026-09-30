@@ -27,12 +27,14 @@ local function check(ok: boolean, what: string)
 	end
 end
 
+-- shared/Joints (articulaciones Motor6D o AnimationConstraint): lo piden los módulos al cargarse
+local Joints = luau.load(fs.readFile("src/shared/Joints.luau"), { debugName = "Joints", environment = setmetatable({ CFrame = roblox.CFrame }, { __index = getfenv(1) }) })()
 local fakeGame = {
 	GetService = function(_, name)
 		if name == "Players" then
 			return { LocalPlayer = {} }
 		end
-		return {}
+		return { Shared = { Joints = Joints } }
 	end,
 }
 local baseEnv = { CFrame = CFrame, Vector3 = Vector3, Color3 = Color3, Enum = Enum, game = fakeGame }
@@ -48,8 +50,8 @@ local RideCamera = load("src/client/Controllers/RideCamera.luau")
 local WorkAnim = load("src/client/Controllers/WorkAnim.luau")
 local RidePose = load("src/client/Controllers/RidePose.luau", {
 	script = { Parent = { WorkAnim = "WorkAnim" } },
-	require = function()
-		return WorkAnim
+	require = function(what)
+		return if what == Joints then Joints else WorkAnim
 	end,
 })
 

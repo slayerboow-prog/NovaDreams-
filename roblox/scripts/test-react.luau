@@ -19,10 +19,15 @@ local roblox = require("@lune/roblox")
 
 local CFrame, Vector3, Enum = roblox.CFrame, roblox.Vector3, roblox.Enum
 
+-- shared/Joints (articulaciones Motor6D o AnimationConstraint): lo piden los módulos al cargarse
+local Joints = luau.load(fs.readFile("src/shared/Joints.luau"), { debugName = "Joints", environment = setmetatable({ CFrame = roblox.CFrame }, { __index = getfenv(1) }) })()
 local fakeGame = { GetService = function(_, name)
-	return { Name = name }
+	return { Name = name, Shared = { Joints = Joints } }
 end }
-local env = setmetatable({ CFrame = CFrame, Vector3 = Vector3, Color3 = roblox.Color3, Enum = Enum, game = fakeGame, workspace = {}, script = {}, RaycastParams = { new = function() return {} end } }, { __index = getfenv(1) })
+local env = setmetatable({ CFrame = CFrame, Vector3 = Vector3, Color3 = roblox.Color3, Enum = Enum, game = fakeGame, workspace = {}, script = {}, RaycastParams = { new = function() return {} end }, require = function(what)
+	assert(what == Joints, "ReactMotion solo debería pedir Joints al cargarse")
+	return Joints
+end }, { __index = getfenv(1) })
 local ReactMotion = luau.load(fs.readFile("src/client/Controllers/ReactMotion.luau"), { debugName = "ReactMotion", environment = env })()
 
 local failures = 0

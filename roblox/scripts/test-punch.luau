@@ -17,10 +17,15 @@ local process = require("@lune/process")
 local roblox = require("@lune/roblox")
 
 local CFrame = roblox.CFrame
+-- shared/Joints (articulaciones Motor6D o AnimationConstraint): lo piden los módulos al cargarse
+local Joints = luau.load(fs.readFile("src/shared/Joints.luau"), { debugName = "Joints", environment = setmetatable({ CFrame = roblox.CFrame }, { __index = getfenv(1) }) })()
 local fakeGame = { GetService = function(_, name)
-	return { Name = name }
+	return { Name = name, Shared = { Joints = Joints } }
 end }
-local env = setmetatable({ CFrame = CFrame, game = fakeGame }, { __index = getfenv(1) })
+local env = setmetatable({ CFrame = CFrame, game = fakeGame, require = function(what)
+	assert(what == Joints, "PunchAnim solo debería pedir Joints al cargarse")
+	return Joints
+end }, { __index = getfenv(1) })
 local PunchAnim = luau.load(fs.readFile("src/client/Controllers/PunchAnim.luau"), { debugName = "PunchAnim", environment = env })()
 
 local failures = 0

@@ -17,8 +17,10 @@ local roblox = require("@lune/roblox")
 
 local CFrame, Vector3, Enum = roblox.CFrame, roblox.Vector3, roblox.Enum
 
+-- shared/Joints (articulaciones Motor6D o AnimationConstraint): lo piden los módulos al cargarse
+local Joints = luau.load(fs.readFile("src/shared/Joints.luau"), { debugName = "Joints", environment = setmetatable({ CFrame = roblox.CFrame }, { __index = getfenv(1) }) })()
 local fakeGame = { GetService = function(_, name)
-	return { Name = name }
+	return { Name = name, Shared = { Joints = Joints } }
 end }
 -- WorkAnim de verdad (AgeMotion la usa para las tareas de los jugadores)
 local workEnv = setmetatable({ CFrame = CFrame, Vector3 = Vector3, Color3 = roblox.Color3, Enum = Enum }, { __index = getfenv(1) })
@@ -28,7 +30,9 @@ local fakeScript = { Parent = { WorkAnim = "WorkAnim", SeaMotion = "SeaMotion", 
 local env = setmetatable({
 	CFrame = CFrame, Vector3 = Vector3, Enum = Enum, game = fakeGame, workspace = {}, script = fakeScript,
 	require = function(what)
-		if what == "SeaMotion" then
+		if what == Joints then
+			return Joints
+		elseif what == "SeaMotion" then
 			return SeaMotion
 		elseif what == "SeaFx" then
 			return { new = function() return {} end, update = function() end, clear = function() end }

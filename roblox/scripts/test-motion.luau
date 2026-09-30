@@ -22,13 +22,20 @@ local roblox = require("@lune/roblox")
 
 local CFrame, Vector3, Enum = roblox.CFrame, roblox.Vector3, roblox.Enum
 
+-- shared/Joints (articulaciones Motor6D o AnimationConstraint): lo piden los módulos al cargarse
+local Joints = luau.load(fs.readFile("src/shared/Joints.luau"), { debugName = "Joints", environment = setmetatable({ CFrame = roblox.CFrame }, { __index = getfenv(1) }) })()
 local fakeGame = { GetService = function(_, name)
-	return { Name = name }
+	return { Name = name, Shared = { Joints = Joints } }
 end }
 local function load(path: string, extra: { [string]: any }?): any
 	local env = { CFrame = CFrame, Vector3 = Vector3, Color3 = roblox.Color3, Enum = Enum, game = fakeGame, workspace = {}, script = {}, RaycastParams = { new = function()
 		return {}
-	end } }
+	end }, require = function(what)
+		if what == Joints then
+			return Joints
+		end
+		return require(what)
+	end }
 	for key, value in extra or {} do
 		env[key] = value
 	end

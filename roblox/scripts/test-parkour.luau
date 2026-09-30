@@ -20,6 +20,8 @@ local roblox = require("@lune/roblox")
 
 local CFrame, Vector3, Enum = roblox.CFrame, roblox.Vector3, roblox.Enum
 
+-- shared/Joints (articulaciones Motor6D o AnimationConstraint): lo piden los módulos al cargarse
+local Joints = luau.load(fs.readFile("src/shared/Joints.luau"), { debugName = "Joints", environment = setmetatable({ CFrame = roblox.CFrame }, { __index = getfenv(1) }) })()
 local Movement = luau.load(fs.readFile("src/shared/Movement.luau"), {
 	debugName = "Movement",
 	environment = setmetatable({ Vector3 = Vector3 }, { __index = getfenv(1) }),
@@ -29,13 +31,16 @@ local function load(path: string): any
 	local env = {
 		CFrame = CFrame, Vector3 = Vector3, Enum = Enum, script = {}, workspace = {},
 		game = { GetService = function(_, name)
-			return { Name = name, Shared = { Movement = "Movement" } }
+			return { Name = name, Shared = { Movement = "Movement", Joints = Joints } }
 		end },
 		RaycastParams = { new = function()
 			return {}
 		end },
 		require = function(what)
-			assert(what == "Movement", "solo debería pedir Movement al cargarse: " .. tostring(what))
+			if what == Joints then
+				return Joints
+			end
+			assert(what == "Movement", "solo debería pedir Movement y Joints al cargarse: " .. tostring(what))
 			return Movement
 		end,
 	}
@@ -45,7 +50,12 @@ local Stances = load("src/client/Controllers/Stances.luau")
 local Parkour = load("src/client/Controllers/Parkour.luau")
 local Locomotion = luau.load(fs.readFile("src/client/Controllers/Locomotion.luau"), {
 	debugName = "Locomotion",
-	environment = setmetatable({ CFrame = CFrame, Vector3 = Vector3, Enum = Enum, script = {}, workspace = {} }, { __index = getfenv(1) }),
+	environment = setmetatable({ CFrame = CFrame, Vector3 = Vector3, Enum = Enum, script = {}, workspace = {}, game = { GetService = function()
+		return { Shared = { Joints = Joints } }
+	end }, require = function(what)
+		assert(what == Joints, "Locomotion solo debería pedir Joints al cargarse")
+		return Joints
+	end }, { __index = getfenv(1) }),
 })()
 
 local failures = 0
@@ -342,13 +352,16 @@ do
 			return if ceiling and dir.Y > 0.5 then { Position = from + dir * 0.5 } else nil
 		end },
 		game = { GetService = function(_, name)
-			return { Name = name, Shared = { Movement = "Movement" } }
+			return { Name = name, Shared = { Movement = "Movement", Joints = Joints } }
 		end },
 		RaycastParams = { new = function()
 			return {}
 		end },
 		require = function(what)
-			assert(what == "Movement", "solo Movement")
+			if what == Joints then
+				return Joints
+			end
+			assert(what == "Movement", "solo Movement y Joints")
 			return Movement
 		end,
 	}
@@ -729,13 +742,16 @@ do
 			fn()
 		end },
 		game = { GetService = function(_, name)
-			return { Name = name, Shared = { Movement = "Movement" } }
+			return { Name = name, Shared = { Movement = "Movement", Joints = Joints } }
 		end },
 		RaycastParams = { new = function()
 			return {}
 		end },
 		require = function(what)
-			assert(what == "Movement", "solo Movement")
+			if what == Joints then
+				return Joints
+			end
+			assert(what == "Movement", "solo Movement y Joints")
 			return Movement
 		end,
 	}

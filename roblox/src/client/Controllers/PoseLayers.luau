@@ -1,4 +1,6 @@
 -- PoseLayers (cliente): el sitio único donde se retoca Motor6D.Transform después de las animaciones.
+-- (Vale igual para Motor6D y para AnimationConstraint, las articulaciones nuevas de Roblox: las dos
+-- tienen Transform y lo usan igual, entre C0 —o Attachment0— y C1 —o Attachment1—; ver shared/Joints.)
 --
 -- Varios sistemas mueven el cuerpo con código encima de las animaciones de Roblox:
 --   10 AgeMotion   cada edad a su manera (gatear, encorvado, oficios…)

@@ -8,8 +8,15 @@
 --     personaje R15 las manos van donde deben (teclado, piano, grifo, cabeza en la ducha…) y
 --     tumbado el cuerpo queda recto
 --
+--   * con el mapa construido (opcional): cada casa, villa y bloque de pisos del mapa es un edificio
+--     visitable (World/Entrances, la regla de InteriorService), con su puerta de verdad a la vista y
+--     sitio para estar de pie delante; y en la villa se entra (sala, sitio de entrada sin paredes) y
+--     se sale a su terraza
+--
 -- Uso (desde la carpeta roblox/):
 --   lune run scripts/test-interiors.luau
+--   rojo build default.project.json -o /tmp/x.rbxl && lune run scripts/build-place.luau /tmp/x.rbxl
+--   lune run scripts/test-interiors.luau /tmp/x.rbxl
 
 local fs = require("@lune/fs")
 local luau = require("@lune/luau")
@@ -406,6 +413,235 @@ check(s:onWall(Vector3.new(-6, 6, 8), Vector3.new(0, 0, -1)), "se cuelga en la p
 check(not s:onWall(Vector3.new(6, 6, 8), Vector3.new(0, 0, -1)), "pero no en un hueco sin pared")
 local here = s:at(2, 0, 3)
 check((frame:PointToObjectSpace(here.Position) - Vector3.new(2, 0, 3)).Magnitude < 1e-3, "las posiciones de la sala van con la sala (girada y en su sitio)")
+
+---------------------------------------------------------------------
+-- Con el mapa construido (opcional): ninguna vivienda es solo fachada
+---------------------------------------------------------------------
+local placePath = process.args[1]
+if placePath then
+	local game = roblox.deserializePlace(fs.readFile(placePath))
+	local town = game:GetService("Workspace"):FindFirstChild("Town")
+	assert(town, "el mapa no tiene la ciudad construida (Workspace.Town)")
+	local Entrances = load("src/server/World/Entrances.luau", { typeof = typeof })
+
+	-- ¿Ese punto está dentro de alguna pieza sólida de la lista?
+	local function insideSolid(parts: { any }, point): any
+		for _, p in parts do
+			local l = p.CFrame:PointToObjectSpace(point)
+			if math.abs(l.X) < p.Size.X / 2 and math.abs(l.Y) < p.Size.Y / 2 and math.abs(l.Z) < p.Size.Z / 2 then
+				return p
+			end
+		end
+		return nil
+	end
+	-- Un cuerpo de pie (2 x 5 x 2 studs) sobre ese suelo: ¿choca con algo?
+	local function bodyBlocked(parts: { any }, ground): any
+		for _, y in { 0.8, 2.5, 4.5 } do
+			for _, dx in { -0.9, 0, 0.9 } do
+				for _, dz in { -0.9, 0, 0.9 } do
+					local hit = insideSolid(parts, ground + Vector3.new(dx, y, dz))
+					if hit then
+						return hit
+					end
+				end
+			end
+		end
+		return nil
+	end
+	local function solidsOf(model): { any }
+		local list = {}
+		for _, d in model:GetDescendants() do
+			if d:IsA("BasePart") and d.CanCollide and d.Transparency < 1 then
+				table.insert(list, d)
+			end
+		end
+		return list
+	end
+	local function bounds(model)
+		local lo, hi
+		for _, p in model:GetDescendants() do
+			if p:IsA("BasePart") then
+				local cf, sz = p.CFrame, p.Size
+				for _, sx in { -1, 1 } do
+					for _, sz2 in { -1, 1 } do
+						local c = cf * Vector3.new(sx * sz.X / 2, 0, sz2 * sz.Z / 2)
+						lo = if lo then Vector3.new(math.min(lo.X, c.X), 0, math.min(lo.Z, c.Z)) else c
+						hi = if hi then Vector3.new(math.max(hi.X, c.X), 0, math.max(hi.Z, c.Z)) else c
+					end
+				end
+			end
+		end
+		return lo, hi
+	end
+
+	print("Viviendas del mapa: todas se pueden visitar (" .. placePath .. ")")
+	local homes, byKind = 0, {}
+	local unclassified, noDoor, blockedDoor, overPool, walkIn, closedWalkIn = {}, {}, {}, {}, 0, {}
+	local villas = {}
+	for _, m in town:GetDescendants() do
+		if not m:IsA("Model") then
+			continue
+		end
+		local kind, _, upper = Entrances.classify(m)
+		local parentName = m.Parent and m.Parent.Name or ""
+		-- Casas, villas y bloques de pisos de los kits: tienen que salir como edificio visitable
+		if (m.Name == "Casa" or m.Name == "Villa" or m.Name == "Bloque") and not kind then
+			table.insert(unclassified, m.Name .. " < " .. parentName)
+		end
+		-- Casas de las parcelas (HouseService) y casas familiares (la historia): se entra andando,
+		-- por el hueco de la puerta (no hay puerta cerrada de mentira)
+		if m.Name == "CasaFamiliar" or (m.Name == "House" and m:GetAttribute("ShowHouse")) then
+			walkIn += 1
+			if Entrances.hasChild(m, "FakeDoor") or Entrances.hasChild(m, "DoorPanel") then
+				table.insert(closedWalkIn, m.Name .. " < " .. parentName)
+			end
+		end
+		if kind and Entrances.isHome(kind, upper) then
+			homes += 1
+			byKind[kind] = (byKind[kind] or 0) + 1
+			if kind == "Casa" or kind == "Villa" then
+				-- La puerta de verdad (visible) y, delante, el cartel "Entrar" y el sitio al salir
+				local door = Entrances.doorPart(m)
+				if not door or door.Transparency >= 0.5 then
+					table.insert(noDoor, kind .. " " .. m:GetFullName())
+					continue
+				end
+				local lo, hi = bounds(m)
+				local center = (lo + hi) / 2
+				local out = Entrances.doorOut(door, center)
+				if not out then
+					table.insert(noDoor, kind .. " (sin dirección) " .. m:GetFullName())
+					continue
+				end
+				local base = door.CFrame.Position - Vector3.new(0, door.Size.Y / 2, 0)
+				local solids = solidsOf(m)
+				local prompt = base + out * 2.5 -- InteriorService: Door = puerta + Out * 2.5
+				local exit = prompt + out * 3 -- al salir: Door + Out * 3
+				for _, spot in { prompt, exit } do
+					local hit = bodyBlocked(solids, spot)
+					if hit then
+						table.insert(blockedDoor, ("%s %s (choca con %s)"):format(kind, m:GetFullName(), hit.Name))
+						break
+					end
+				end
+				for _, p in m:GetDescendants() do
+					if p:IsA("BasePart") and p.Name == "PoolWater" then
+						local l = p.CFrame:PointToObjectSpace(Vector3.new(exit.X, p.CFrame.Position.Y, exit.Z))
+						if math.abs(l.X) < p.Size.X / 2 + 1 and math.abs(l.Z) < p.Size.Z / 2 + 1 then
+							table.insert(overPool, kind .. " " .. m:GetFullName())
+						end
+					end
+				end
+				if kind == "Villa" then
+					table.insert(villas, { Model = m, Door = door, Out = out, Exit = exit })
+				end
+			end
+		end
+	end
+	local parts = {}
+	for kind, n in byKind do
+		table.insert(parts, kind .. " " .. n)
+	end
+	table.sort(parts)
+	print(("    (%d viviendas: %s; y %d casas que se entran andando)"):format(homes, table.concat(parts, ", "), walkIn))
+	local function sample(list: { string }): string
+		return if #list == 0 then "" else " — " .. table.concat(list, "; ", 1, math.min(#list, 4))
+	end
+	check(homes > 1000 and (byKind.Casa or 0) > 400 and (byKind.Villa or 0) >= 40, "el mapa tiene casas, villas y bloques de pisos visitables")
+	check(#unclassified == 0, ("toda casa, villa y bloque de pisos del mapa es un edificio visitable (%d sin interior)"):format(#unclassified) .. sample(unclassified))
+	check(#noDoor == 0, ("cada casa y cada villa tiene su puerta de verdad a la vista (%d sin puerta)"):format(#noDoor) .. sample(noDoor))
+	check(#blockedDoor == 0, ("delante de cada puerta (cartel de entrar y sitio al salir) se cabe de pie (%d dentro de una pared)"):format(#blockedDoor) .. sample(blockedDoor))
+	check(#overPool == 0, ("al salir de una villa no apareces en la piscina (%d)"):format(#overPool) .. sample(overPool))
+	check(walkIn > 0 and #closedWalkIn == 0, "las casas de las parcelas y las familiares tienen el hueco de la puerta abierto" .. sample(closedWalkIn))
+
+	-- La villa: la puerta está en la casa (la cristalera), no en la cancela de la calle
+	local atHouse = 0
+	for _, v in villas do
+		local glass = v.Model:FindFirstChild("Glass")
+		local d = glass and (Vector3.new(glass.CFrame.Position.X, 0, glass.CFrame.Position.Z) - Vector3.new(v.Door.CFrame.Position.X, 0, v.Door.CFrame.Position.Z))
+		-- (misma fachada que la cristalera: a menos de 1 stud de su plano y dentro de su ancho)
+		local l = glass and glass.CFrame:PointToObjectSpace(v.Door.CFrame.Position)
+		if d and l and math.abs(l.Z) < 1 and math.abs(l.X) < glass.Size.X / 2 then
+			atHouse += 1
+		end
+	end
+	check(#villas > 0 and atHouse == #villas, ("la puerta de cada villa está en su cristalera, a la vista (%d de %d)"):format(atHouse, #villas))
+
+	-- Entrar en la villa: su sala (World/Interiors, la misma que monta InteriorService)
+	print("Entrar en una villa")
+	local baseEnv = getfenv(1)
+	local cache = {}
+	local requireModule
+	local function node(path: string, parent: any?): any
+		local self = { __path = path, Parent = parent }
+		if fs.isDir(path) then
+			for _, name in fs.readDir(path) do
+				local child = path .. "/" .. name
+				if fs.isDir(child) then
+					self[name] = node(child, self)
+				elseif name:match("%.luau$") and not name:match("%.server%.luau$") and not name:match("%.client%.luau$") then
+					self[(name:gsub("%.luau$", ""))] = node(child, self)
+				end
+			end
+		end
+		return self
+	end
+	function requireModule(target: any): any
+		if type(target) ~= "table" then
+			target = { __path = "src/shared/" .. target.Name .. ".luau" }
+		end
+		local path = rawget(target, "__path")
+		if cache[path] ~= nil then
+			return cache[path]
+		end
+		local env = setmetatable({
+			script = target, require = requireModule, game = game, workspace = game:GetService("Workspace"),
+			Instance = roblox.Instance, Vector3 = Vector3, Vector2 = roblox.Vector2, CFrame = CFrame, Color3 = roblox.Color3,
+			Enum = roblox.Enum, UDim = roblox.UDim, UDim2 = roblox.UDim2, Font = roblox.Font, NumberRange = roblox.NumberRange,
+			NumberSequence = roblox.NumberSequence, ColorSequence = roblox.ColorSequence,
+		}, { __index = baseEnv })
+		local result = luau.load(fs.readFile(path), { debugName = path, environment = env })()
+		cache[path] = result
+		return result
+	end
+	local world = node("src/server/World", nil)
+	local Interiors = requireModule(world.Interiors)
+	local lab = roblox.Instance.new("Folder")
+	local villa = villas[1]
+	local room = Interiors.Villa(lab, CFrame.new(0, 6000, 0), { Seed = "Villa_1_1:0", Floor = 0, Floors = 1 })
+	local entry, exitDoor, floor
+	for _, d in room.Model:GetDescendants() do
+		if d.Name == "InteriorEntry" then
+			entry = d
+		elseif d.Name == "InteriorExit" then
+			exitDoor = d
+		elseif d.Name == "Floor" and d.Parent == room.Model then
+			floor = d
+		end
+	end
+	check(entry ~= nil and exitDoor ~= nil and floor ~= nil, "la villa por dentro tiene sitio de entrada, puerta para salir y suelo")
+	if entry and exitDoor and floor then
+		local ground = Vector3.new(entry.CFrame.Position.X, floor.CFrame.Position.Y + floor.Size.Y / 2, entry.CFrame.Position.Z)
+		local l = floor.CFrame:PointToObjectSpace(ground)
+		check(math.abs(l.X) < floor.Size.X / 2 - 2 and math.abs(l.Z) < floor.Size.Z / 2 - 2, "al entrar apareces sobre el suelo de la villa (no fuera de la sala)")
+		local hit = bodyBlocked(solidsOf(room.Model), ground + Vector3.new(0, 0.05, 0))
+		check(hit == nil, "al entrar no apareces dentro de una pared ni de un mueble" .. (if hit then " (" .. hit.Name .. ")" else ""))
+		check((exitDoor.CFrame.Position - entry.CFrame.Position).Magnitude < 10, "la puerta para salir está a unos pasos de donde apareces")
+	end
+	if villa then
+		-- Al salir: en la terraza de la villa, delante de su puerta y sin chocar con nada del mapa
+		local near = {}
+		for _, p in town:GetDescendants() do
+			if p:IsA("BasePart") and p.CanCollide and p.Transparency < 1 and (Vector3.new(p.CFrame.Position.X, 0, p.CFrame.Position.Z) - Vector3.new(villa.Exit.X, 0, villa.Exit.Z)).Magnitude < 60 then
+				table.insert(near, p)
+			end
+		end
+		local hit = bodyBlocked(near, villa.Exit)
+		check(hit == nil, "al salir de la villa apareces delante de su puerta, sin chocar con nada" .. (if hit then " (" .. hit:GetFullName() .. ")" else ""))
+		check((villa.Exit - villa.Door.CFrame.Position).Magnitude < 9, "y a unos pasos de la puerta (el cartel de entrar sale al acercarse a ella)")
+	end
+	lab:Destroy()
+end
 
 print("")
 if failures == 0 then
