@@ -350,8 +350,74 @@ function Theme.hudPanel(props: { [string]: any }): Frame
 		Theme.create("UICorner", { CornerRadius = UDim.new(0, radius) }),
 		Theme.create("UIGradient", { Rotation = 90, Color = Theme.PanelSheen }),
 	})
-	Theme.edge(frame)
+	Theme.skinEdge(Theme.edge(frame))
 	return frame
+end
+
+---------------------------------------------------------------------
+-- Acentos de los cosméticos del pase (tema del HUD y del teléfono). Solo cambian COLORES (el filo de
+-- los paneles, la cabecera de COMANDOS): nunca tamaños ni posiciones. nil = el aspecto de siempre.
+-- Los pone UI/BattlePassCosmetics (solo con el pase encendido y con lo que el servidor dice que llevas).
+---------------------------------------------------------------------
+local accents: { [string]: Color3? } = {}
+local accentListeners: { [string]: { (Color3?) -> () } } = {}
+local skinnedEdges: { [UIStroke]: boolean } = setmetatable({}, { __mode = "k" }) :: any
+
+-- Degradado del filo con el acento del tema del HUD (nil = el de siempre)
+function Theme.edgeGradient(accent: Color3?): ColorSequence
+	if not accent then
+		return Theme.EdgeGradient
+	end
+	return ColorSequence.new({
+		ColorSequenceKeypoint.new(0, accent:Lerp(Color3.new(1, 1, 1), 0.45)),
+		ColorSequenceKeypoint.new(0.5, accent),
+		ColorSequenceKeypoint.new(1, accent:Lerp(Theme.Hud.Violet, 0.35)),
+	})
+end
+
+local function paintEdge(stroke: UIStroke)
+	local gradient = stroke:FindFirstChildOfClass("UIGradient")
+	if gradient then
+		gradient.Color = Theme.edgeGradient(accents.Hud)
+	end
+end
+
+-- El filo de un panel del HUD sigue el tema del HUD equipado
+function Theme.skinEdge(stroke: UIStroke): UIStroke
+	skinnedEdges[stroke] = true
+	if accents.Hud then
+		paintEdge(stroke)
+	end
+	return stroke
+end
+
+function Theme.accent(kind: string): Color3?
+	return accents[kind]
+end
+
+-- kind: "Hud" (filo de los paneles) o "Phone" (cabecera de COMANDOS)
+function Theme.setAccent(kind: string, color: Color3?)
+	if accents[kind] == color then
+		return
+	end
+	accents[kind] = color
+	if kind == "Hud" then
+		for stroke in skinnedEdges do
+			pcall(paintEdge, stroke)
+		end
+	end
+	for _, fn in accentListeners[kind] or {} do
+		pcall(fn, color)
+	end
+end
+
+-- Avisa cuando cambia ese acento (y enseguida con el de ahora, si hay)
+function Theme.onAccent(kind: string, fn: (Color3?) -> ())
+	accentListeners[kind] = accentListeners[kind] or {}
+	table.insert(accentListeners[kind], fn)
+	if accents[kind] then
+		pcall(fn, accents[kind])
+	end
 end
 
 -- Esquinas en bisel (las muescas en ángulo del marco de referencia): dos trazos brillantes

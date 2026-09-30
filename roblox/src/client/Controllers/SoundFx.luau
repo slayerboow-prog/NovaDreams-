@@ -420,7 +420,7 @@ function SoundFx.vehicleStart(kind: string, chassis: BasePart)
 		end,
 		Callback = horn,
 	})
-	if kind == "Coche" or kind == "Moto" or kind == "Autobus" or kind == "Camion" or kind == "Patrulla" or kind == "Bomberos" then
+	if kind == "Coche" or kind == "Moto" or kind == "Autobus" or kind == "Camion" or kind == "Patrulla" or kind == "Bomberos" or kind == "Lancha" or kind == "Gaviota" then
 		SoundFx.play("Arranque", 1, nil, chassis)
 		engine = SoundFx.loop("Motor", chassis)
 		if engine and kind == "Moto" then
@@ -460,8 +460,9 @@ function horn()
 	lastHorn = os.clock()
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
-	if vehicleKind == "Coche" or vehicleKind == "Moto" or vehicleKind == "Autobus" or vehicleKind == "Camion" or vehicleKind == "Patrulla" or vehicleKind == "Bomberos" then
-		SoundFx.play("Claxon", 1, if vehicleKind == "Moto" then 1.3 elseif vehicleKind == "Autobus" or vehicleKind == "Camion" or vehicleKind == "Bomberos" then 0.75 else 1, root)
+	if vehicleKind == "Coche" or vehicleKind == "Moto" or vehicleKind == "Autobus" or vehicleKind == "Camion" or vehicleKind == "Patrulla" or vehicleKind == "Bomberos" or vehicleKind == "Lancha" or vehicleKind == "Gaviota" then
+		-- (la bocina del barco, grave como la de los camiones)
+		SoundFx.play("Claxon", 1, if vehicleKind == "Moto" then 1.3 elseif vehicleKind == "Autobus" or vehicleKind == "Camion" or vehicleKind == "Bomberos" or vehicleKind == "Lancha" or vehicleKind == "Gaviota" then 0.75 else 1, root)
 	else
 		SoundFx.play("Timbre", 1, nil, root)
 	end

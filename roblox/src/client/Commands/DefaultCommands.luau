@@ -99,6 +99,33 @@ function DefaultCommands.register()
 		end,
 	})
 
+	-- Gestos del pase de temporada que tienes (junto a la app Gestos; sin pase o sin gestos, no sale)
+	CommandRegistry.register({
+		Id = "GestosPase",
+		Label = "Gestos del pase",
+		Icon = "gestos",
+		Priority = 53.75,
+		When = function(ctx)
+			return not baby(ctx) and not ctx.Seated and #Actions.passEmotes() > 0
+		end,
+		Open = function()
+			local list = {}
+			for i, emote in Actions.passEmotes() do
+				local id = emote.Pass :: string
+				table.insert(list, {
+					Id = "GestoPase_" .. id,
+					Label = emote.Name,
+					Icon = emote.Icon,
+					Priority = i,
+					Run = function()
+						Actions.emote(id)
+					end,
+				})
+			end
+			return list
+		end,
+	})
+
 	-- Montado en un vehículo: bajarse
 	CommandRegistry.register({
 		Id = "Bajarse",

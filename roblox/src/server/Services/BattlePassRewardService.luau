@@ -9,8 +9,8 @@
 --   Outfit       -> colores del aspecto de Valmar (AvatarService.OutfitFor)
 --   HomeTheme / Decor -> tu vivienda de siempre (PropertyService.DecorateOwned): colores de suelo y
 --                   paredes y hasta MAX_DECOR objetos. No crea casas nuevas ni toca el registro de dueños.
---   Boat         -> adaptador (todavía no hay barcos propios): se guarda como tuyo y, el día que exista
---                   Services/BoatService con grant(player, kind, def), se le pasa.
+--   Boat         -> BoatService.grant (barcos propios: se sacan en el puerto deportivo). Se guarda
+--                   también en la colección (así sigue siendo tuyo después de «Vida nueva»).
 --   Emote / Title / Nameplate / PhoneTheme / HudSkin / Story / Perk -> colección (data.Cosmetics) +
 --                   atributos del jugador para la interfaz.
 --   Tokens       -> data.Cosmetics.Tokens
@@ -24,6 +24,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local BPConfig = require(ReplicatedStorage.Shared.BattlePass.Config)
 local Catalog = require(ReplicatedStorage.Shared.BattlePass.Catalog)
 local DataService = require(script.Parent.DataService)
 local BattlePassSeasonService = require(script.Parent.BattlePassSeasonService)
@@ -70,21 +71,36 @@ end
 -- Atributos para la interfaz
 ---------------------------------------------------------------------
 
+-- Lo equipado en ese hueco, solo si es tuyo, sigue en el catálogo y es de ese tipo (si no, nada)
+local function equippedDef(c: { [string]: any }, slot: string): (string?, { [string]: any }?)
+	local id = c.Equipped[slot]
+	local def = Catalog.get(id)
+	if def and def.Type == slot and c.Owned[id] ~= nil then
+		return id, def
+	end
+	return nil, nil
+end
+
+-- Solo el servidor pone estos atributos (y solo con lo que tienes Y llevas equipado). Los pinta el
+-- cliente: título y placa encima de la cabeza (Controllers/NameTags, los ven todos), tema del
+-- teléfono y del HUD (UI/BattlePassCosmetics) y gestos del pase (Controllers/Actions).
 function BattlePassRewardService.sync(player: Player)
+	if not BPConfig.Enabled then
+		return -- (pase apagado: ni atributos ni cosméticos a la vista)
+	end
 	local data = DataService.get(player)
 	if not data then
 		return
 	end
 	local c = cosmeticsOf(data)
-	local eq = c.Equipped
-	local title = Catalog.get(eq.Title)
+	local _, title = equippedDef(c, "Title")
 	player:SetAttribute("BP_Title", if title then title.Text or title.Name else nil)
 	player:SetAttribute("BP_TitleColor", if title and typeof(title.Color) == "Color3" then title.Color else nil)
-	player:SetAttribute("BP_Nameplate", if Catalog.get(eq.Nameplate) then eq.Nameplate else nil)
-	player:SetAttribute("BP_PhoneTheme", if Catalog.get(eq.PhoneTheme) then eq.PhoneTheme else nil)
-	player:SetAttribute("BP_HudSkin", if Catalog.get(eq.HudSkin) then eq.HudSkin else nil)
-	player:SetAttribute("BP_Outfit", if Catalog.get(eq.Outfit) then eq.Outfit else nil)
-	player:SetAttribute("BP_HomeTheme", if Catalog.get(eq.HomeTheme) then eq.HomeTheme else nil)
+	player:SetAttribute("BP_Nameplate", (equippedDef(c, "Nameplate")))
+	player:SetAttribute("BP_PhoneTheme", (equippedDef(c, "PhoneTheme")))
+	player:SetAttribute("BP_HudSkin", (equippedDef(c, "HudSkin")))
+	player:SetAttribute("BP_Outfit", (equippedDef(c, "Outfit")))
+	player:SetAttribute("BP_HomeTheme", (equippedDef(c, "HomeTheme")))
 	local emotes = {}
 	for id, info in c.Owned do
 		if type(info) == "table" and info.Type == "Emote" and Catalog.get(id) then
@@ -100,8 +116,9 @@ end
 -- Adaptadores: el pase pide, cada sistema de siempre entrega
 ---------------------------------------------------------------------
 
--- Barcos: todavía no hay barcos propios en el juego. La recompensa se guarda como tuya y, cuando
--- exista Services/BoatService (con grant(player, kind, def) -> boolean), se entrega de verdad.
+-- Barcos: BoatService.grant(player, kind, def) -> boolean (def.Boat dice qué barco es). El barco
+-- aparece en el menú del puerto deportivo. (Si BoatService no cargara, queda en la colección y
+-- BoatService lo recupera de data.Cosmetics al volver.)
 local BoatAdapter = {}
 function BoatAdapter.available(): boolean
 	local boats = service("BoatService")

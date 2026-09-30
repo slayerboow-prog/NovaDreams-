@@ -20,7 +20,12 @@
 --     Controllers/Vehicles). Después, durante Gameplay.ExitCooldown nada te vuelve a sentar.
 --   * Todo el vehículo (con el conductor y los pasajeros) lo mueve el ordenador del conductor:
 --     así nadie tiembla (la base, "Chassis", es la raíz del conjunto: RootPriority).
+--   * Barcos (Gameplay.Vehicles con Boat = true: lancha y «Gaviota»): se conducen igual, pero solo se
+--     sacan y se guardan en el puerto deportivo (BoatService, VehicleService.launchAt) y navegan
+--     por el mar (Driving + shared/Boats). Al bajarse cerca de un pantalán se sale a él; en alta mar
+--     te quedas de pie en cubierta (el barco queda fondeado donde lo dejas).
 -- Datos guardados: data.Vehicles = { Bici = true, ... }, data.Licenses = { A = true, B = true }
+-- (los barcos van aparte: data.Boats, ver BoatService)
 
 local CollectionService = game:GetService("CollectionService")
 local Lighting = game:GetService("Lighting")
@@ -179,8 +184,9 @@ end
 -- Regala un vehículo (premios de los recreativos). Devuelve false si ya lo tenía.
 function VehicleService.grant(player: Player, kind: string): boolean
 	local data = DataService.get(player)
-	if not data or not Gameplay.Vehicles[kind] then
-		return false
+	local vehicle = Gameplay.Vehicles[kind]
+	if not data or not vehicle or vehicle.Boat then
+		return false -- (los barcos los da BoatService)
 	end
 	ensure(data)
 	if data.Vehicles[kind] then
@@ -271,7 +277,9 @@ local function placeBeside(character: Model, model: Model, kind: string, side: n
 	params.FilterDescendantsInstances = { model, character :: Instance }
 	params.RespectCanCollide = true
 	local height = humanoid.HipHeight + root.Size.Y / 2 + 0.5
-	local lift = Vector3.new(0, 2, 0) -- (a la altura del asiento)
+	-- (a la altura del asiento; en un barco, por encima del pantalán: su borde no es una pared)
+	local boat = spec ~= nil and spec.Boat == true
+	local lift = Vector3.new(0, if boat then 3.5 else 2, 0)
 	-- Su lado; si hay una pared, el otro; luego delante y detrás. Nunca a través de una pared
 	-- (rayo en horizontal desde el asiento) y siempre sobre suelo firme (rayo hacia abajo desde poco
 	-- más arriba del vehículo: así no acaba encima de un toldo o un tejado)
@@ -282,17 +290,31 @@ local function placeBeside(character: Model, model: Model, kind: string, side: n
 		{ chassis.Position, chassis.Position + look * (length / 2 + 2.5) },
 		{ chassis.Position, chassis.Position - look * (length / 2 + 2.5) },
 	}
+	if boat then
+		-- Un barco se arrima al pantalán con algo de hueco: también un poco más lejos
+		for _, extra in { 3, 6 } do
+			table.insert(tries, { seatAt, seatAt + flat * side * (gap + extra) })
+			table.insert(tries, { seatAt, seatAt - flat * side * (gap + extra) })
+			table.insert(tries, { chassis.Position, chassis.Position - look * (length / 2 + 2.5 + extra) })
+		end
+	end
 	local spot, ground = nil :: Vector3?, nil :: number?
 	for _, try in tries do
 		local from, to = try[1] + lift, try[2] + lift
 		local wall = workspace:Raycast(from, to - from, params)
 		if not wall or wall.Normal.Y >= 0.6 then -- (una cuesta no es una pared)
-			local hit = workspace:Raycast(try[2] + Vector3.new(0, 4, 0), Vector3.new(0, -40, 0), params)
-			if hit and not (hit.Instance == workspace.Terrain and hit.Position.Y < chassis.Position.Y - 3) then
+			local hit = workspace:Raycast(try[2] + Vector3.new(0, if boat then 5 else 4, 0), Vector3.new(0, -40, 0), params)
+			-- (el agua no es suelo: nadie se baja al mar)
+			if hit and hit.Material ~= Enum.Material.Water and not (hit.Instance == workspace.Terrain and hit.Position.Y < chassis.Position.Y - 3) then
 				spot, ground = try[2], math.max(hit.Position.Y, chassis.Position.Y - 2)
 				break
 			end
 		end
+	end
+	if (not spot or not ground) and spec and spec.Stand then
+		-- Barco en alta mar: de pie en su cubierta (queda fondeado; «Pilotar» para seguir)
+		local stand = (chassis.CFrame * CFrame.new(0, -chassis.Size.Y / 2, 0) * spec.Stand).Position
+		spot, ground = stand, stand.Y
 	end
 	if not spot or not ground then
 		-- nada firme alrededor: encima del propio vehículo (por encima del techo)
@@ -1034,9 +1056,9 @@ local function addDrivePrompt(model: Model, kind: string, owner: Player?)
 	local vehicle = Gameplay.Vehicles[kind]
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.Name = "DrivePrompt"
-	prompt.ActionText = if kind == "Coche" then "Conducir" else "Montar"
-	prompt.ObjectText = if owner then vehicle.Icon .. " Tu " .. string.lower(vehicle.Name) else vehicle.Icon .. " " .. vehicle.Name
-	prompt.MaxActivationDistance = if kind == "Coche" then 8 else 7 -- (de cerca y manteniendo: nadie se sube sin querer)
+	prompt.ActionText = if kind == "Coche" then "Conducir" elseif vehicle.Boat then "Pilotar" else "Montar"
+	prompt.ObjectText = if owner then vehicle.Icon .. " Tu " .. (if vehicle.Boat then vehicle.Name else string.lower(vehicle.Name)) else vehicle.Icon .. " " .. vehicle.Name
+	prompt.MaxActivationDistance = if kind == "Coche" then 8 elseif vehicle.Boat then 10 else 7 -- (de cerca y manteniendo: nadie se sube sin querer)
 	prompt.RequiresLineOfSight = false
 	prompt.HoldDuration = 0.5
 	prompt.Parent = chassis
@@ -1227,6 +1249,36 @@ function VehicleService.mount(player: Player, kind: string, opts: { Rented: bool
 	return true
 end
 
+-- Saca un vehículo ya colocado en su sitio (BoatService: el barco en su amarre del puerto deportivo)
+-- y sube a su dueño al volante. No mira si cabe (lo mira quien lo pide) ni cuenta como «tu vehículo»
+-- aparcado (ese es el de tierra). opts.Color = su pintura; opts.Decorate(model) se llama antes de
+-- soldar las piezas (el nombre en la popa). Devuelve el modelo, o nil si no se ha podido subir.
+function VehicleService.launchAt(player: Player, kind: string, cf: CFrame, opts: { Color: Color3?, Decorate: ((Model) -> ())? }?): Model?
+	local options = opts or {}
+	if not Gameplay.Vehicles[kind] or not Rides.Spec[kind] or not allowed(player, kind) then
+		return nil
+	end
+	switchOut(player)
+	local model = Rides.build(kind, nil, cf, options.Color)
+	model:SetAttribute("OwnerId", player.UserId)
+	if options.Decorate then
+		local ok, err = pcall(options.Decorate, model)
+		if not ok then
+			warn("[VehicleService] " .. tostring(err))
+		end
+	end
+	Rides.prepare(model, kind, cf)
+	addHeadlight(model)
+	setupSeats(model, kind)
+	model.Parent = folder
+	if not drive(player, model, kind, { Keep = true }) then
+		model:Destroy()
+		return nil
+	end
+	addDrivePrompt(model, kind, player)
+	return model
+end
+
 -- Coches de la calle abandonados lejos de su sitio: si llevan STREET_IDLE segundos sin nadie
 -- dentro y no hay nadie cerca (ni de él ni de su sitio), vuelven a su plaza con el depósito nuevo
 local STREET_IDLE = 300
@@ -1352,6 +1404,7 @@ end
 -- (también lo usan otros sitios que sacan vehículos: el coche patrulla de la comisaría)
 VehicleService.spawnAllowed = spawnAllowed
 VehicleService.spawnDone = spawnDone
+VehicleService.canSpawn = canSpawn
 
 local function spawnOwned(player: Player, kind: string)
 	local data = DataService.get(player)

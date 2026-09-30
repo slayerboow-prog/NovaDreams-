@@ -33,6 +33,16 @@ local LEFT = 16 -- sitio para el filo de la izquierda
 local SLIDE = TweenInfo.new(0.16, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 local FADE = TweenInfo.new(0.2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 
+local HEADER_TINT = ColorSequence.new(rgb(70, 60, 190), rgb(20, 90, 220))
+
+-- Color de la pestaña: el de siempre o con el acento del tema del teléfono equipado
+function CommandRenderer.headerTint(accent: Color3?): ColorSequence
+	if not accent then
+		return HEADER_TINT
+	end
+	return ColorSequence.new(rgb(70, 60, 190):Lerp(accent, 0.6), accent:Lerp(Color3.new(0, 0, 0), 0.15))
+end
+
 export type Item = { Label: string, Detail: string?, Icon: string, Group: boolean?, Accent: boolean?, Badge: boolean? }
 
 function CommandRenderer.new(parent: Instance, touch: boolean)
@@ -91,9 +101,16 @@ function CommandRenderer.new(parent: Instance, touch: boolean)
 		Parent = root,
 	}, {
 		create("UICorner", { CornerRadius = UDim.new(0, 12) }),
-		create("UIGradient", { Color = ColorSequence.new(rgb(70, 60, 190), rgb(20, 90, 220)), Transparency = NumberSequence.new(0.1, 0.5) }),
+		create("UIGradient", { Name = "Tint", Color = HEADER_TINT, Transparency = NumberSequence.new(0.1, 0.5) }),
 	})
 	self.Header = header
+	-- Tema del teléfono del pase (si llevas uno): solo el color de la pestaña (UI/BattlePassCosmetics)
+	Theme.onAccent("Phone", function(accent: Color3?)
+		local tint = header:FindFirstChild("Tint") :: UIGradient?
+		if tint then
+			tint.Color = CommandRenderer.headerTint(accent)
+		end
+	end)
 	Icons.new("corona", { Name = "Crown", Position = UDim2.fromOffset(12, 5), Size = UDim2.fromOffset(24, 24), ZIndex = 4, Parent = header })
 	self.HeaderText = Theme.title({
 		Name = "Title",

@@ -4,8 +4,9 @@
 --                                    no hace NADA: ni fila en COMANDOS, ni tecla, ni ventana, ni remoto.
 --   BattlePassUI.open(section?)   -> "Rewards" (por defecto) | "Missions" | "Shop"
 --   BattlePassUI.close() / toggle() / isOpen() / state()
---   BattlePassUI.swallowNotify(kind, text) -> Main.client no enseña el aviso de «¡nivel n!» del servidor
---                                    cuando ya sale el de «RECOMPENSA DESBLOQUEADA» (no se repite)
+--   Aviso de nivel: la interfaz se lo dice al servidor (BattlePassClient.setLevelUpToasts) y este ya no
+--                                    manda su Notify de «¡nivel n!»: solo sale «RECOMPENSA DESBLOQUEADA».
+--   Cosméticos equipados (tema del teléfono y del HUD): UI/BattlePassCosmetics, que se arranca aquí.
 --
 -- Entradas: la fila «🏆 Pase de temporada» del menú de COMANDOS (las «apps del teléfono» son esas filas:
 -- no hay otra ventana), la tecla N en el ordenador y el aviso de recompensa desbloqueada.
@@ -44,7 +45,6 @@ local BattlePassUI = {}
 local NAME = "BattlePass"
 local HOTKEY = Enum.KeyCode.N -- (B es la piedra, M el mapa, E usar, H ayuda, J historia)
 local ROW_ID = "PaseTemporada"
-local LEVEL_UP_PREFIX = "🎟 Pase de temporada: ¡nivel"
 
 local player = Players.LocalPlayer
 
@@ -948,6 +948,10 @@ local function onUnlocked(info: any)
 		end
 	end
 	if #ready == 0 then
+		-- (nada nuevo que reclamar: si el servidor no avisó, un aviso corto del nivel)
+		if info.Notified == false and tonumber(info.Level) then
+			toast("Success", ("🎟 Pase de temporada · Nv. %d"):format(tonumber(info.Level) :: number))
+		end
 		return
 	end
 	local hint = if Theme.isTouch() then "" else " · N para verla"
@@ -958,10 +962,6 @@ local function onUnlocked(info: any)
 		text = ("🏆 RECOMPENSAS DESBLOQUEADAS · Nv. %d · %d nuevas%s"):format(tonumber(info.Level) or 0, #ready, hint)
 	end
 	toast("Success", text)
-end
-
-function BattlePassUI.swallowNotify(_kind: string?, text: any): boolean
-	return enabled and started and type(text) == "string" and string.sub(text, 1, #LEVEL_UP_PREFIX) == LEVEL_UP_PREFIX
 end
 
 local function onState(new: { [string]: any })
@@ -1002,8 +1002,16 @@ function BattlePassUI.init()
 	end
 	started = true
 	BP = require(script.Parent.Parent.Controllers.BattlePassClient :: any)
+	BP.setLevelUpToasts(true) -- (el aviso de nivel lo enseña onUnlocked: el servidor no repite el suyo)
 	Dialog.registerBig(NAME, BattlePassUI.close)
 	registerRow()
+	-- Tu tema del HUD y del teléfono (solo colores; lo que llevas lo dice el servidor con atributos)
+	local okSkin, errSkin = pcall(function()
+		require(script.Parent.BattlePassCosmetics :: any).start()
+	end)
+	if not okSkin then
+		warn("[BattlePassUI] Temas: " .. tostring(errSkin))
+	end
 	BP.onState(onState)
 	BP.on("Unlocked", onUnlocked)
 	BP.on("Result", onResult)

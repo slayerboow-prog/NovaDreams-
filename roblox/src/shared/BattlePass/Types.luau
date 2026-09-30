@@ -33,7 +33,7 @@ Types.RewardType = {
 	Tokens = "Tokens", -- fichas de temporada (solo para cosméticos)
 	Vehicle = "Vehicle", -- un vehículo del juego (VehicleService)
 	VehicleSkin = "VehicleSkin", -- acabado exclusivo de un vehículo del juego (mismas prestaciones)
-	Boat = "Boat", -- barco (adaptador: todavía no hay barcos propios en el juego)
+	Boat = "Boat", -- barco propio (BoatService: se saca en el puerto deportivo; def.Boat = qué barco)
 	Wearable = "Wearable", -- gafas o gorra de los recreativos (ArcadeService)
 	Outfit = "Outfit", -- conjunto de ropa: colores del aspecto de Valmar (AvatarService)
 	Emote = "Emote", -- gesto nuevo para el menú de gestos

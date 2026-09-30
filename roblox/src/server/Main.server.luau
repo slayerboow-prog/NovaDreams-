@@ -78,6 +78,7 @@ local order = {
 	"SleepService", -- dormir en cualquier cama tuya: energía, estamina, reaparición y amanecer a las 8:30
 	"TravelService",
 	"VehicleService", -- bicis, monopatines, motos y coches
+	"BoatService", -- barcos propios: puerto deportivo (sacar, guardar, comprar) y la lancha del pase
 	"RestaurantService", -- camarero + barman (con NPC si falta alguien)
 	"DrivingSchoolService", -- autoescuela: carnet de moto y de coche
 	"BusService", -- autobús urbano L1: pasajeros con billete y oficio de conductor

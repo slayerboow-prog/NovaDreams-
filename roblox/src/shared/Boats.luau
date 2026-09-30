@@ -9,8 +9,10 @@
 -- Aquí va lo que usan a la vez el servidor (BoatService), el cliente (Driving) y las pruebas:
 -- qué barcos hay, la altura del mar y si un punto es mar abierto.
 
-local CityPlan = require(script.Parent.CityPlan)
-local Airport = require(script.Parent.Airport)
+-- (por ReplicatedStorage: así también lo cargan el constructor del mapa y las pruebas)
+local Shared = game:GetService("ReplicatedStorage").Shared
+local CityPlan = require(Shared.CityPlan)
+local Airport = require(Shared.Airport)
 
 local Boats = {}
 

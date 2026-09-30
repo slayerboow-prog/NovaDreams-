@@ -343,8 +343,6 @@ Notify.OnClientEvent:Connect(function(kind: string, text: string)
 		Hud.sleep()
 	elseif kind == "Travel" then
 		Hud.fade(text, 2)
-	elseif BattlePassUI and BattlePassUI.swallowNotify(kind, text) then
-		return -- (el pase ya enseña su «RECOMPENSA DESBLOQUEADA»: no se repite el aviso)
 	else
 		Hud.toast(kind, text)
 	end

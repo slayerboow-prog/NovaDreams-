@@ -115,6 +115,9 @@ local DEFAULT_DATA = {
 		Assigned = false,
 		Debt = 0,
 	},
+	-- Barcos propios (BoatService): { Lancha = true, Gaviota = true }. Se sacan en el puerto deportivo.
+	-- (Los del pase vuelven solos desde Cosmetics después de «Vida nueva»; los comprados, no.)
+	Boats = {},
 	-- Pase de temporada (BattlePassService): temporada, XP total (el nivel sale de aquí), si compró el
 	-- premium de esta temporada, recompensas reclamadas por nivel (["5"] = true), misiones y topes del
 	-- día. Al cambiar de temporada se archiva en SeasonArchive y empieza de cero.

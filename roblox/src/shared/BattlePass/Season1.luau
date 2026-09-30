@@ -177,9 +177,9 @@ add(34, P, { Type = "HudSkin", Name = "HUD Aurora", Icon = "🌌", Rarity = "Epi
 add(35, F, { Type = "Outfit", Name = "Sudadera Temporada 1", Icon = "👕", Rarity = "Rara",
 	Colors = { Hoodie = rgb(40, 90, 150), HoodLining = rgb(245, 245, 250), Tee = rgb(245, 245, 250), Pants = rgb(34, 36, 42), Shoes = rgb(245, 245, 245) },
 	Description = "La sudadera azul Valmar de la primera temporada.", Preview = { Kind = "Outfit" } })
-add(35, P, { Type = "Boat", Name = "Lancha «Gaviota»", Icon = "🚤", Rarity = "Epica", Kind = "Lancha", Color = rgb(245, 245, 250),
-	Description = "Una lancha blanca con tu nombre en la popa. Queda guardada para siempre y se podrá sacar en el puerto deportivo cuando abra (los barcos propios llegan en una actualización).",
-	Preview = { Kind = "Boat", Model = "Lancha" } })
+add(35, P, { Type = "Boat", Name = "Lancha «Gaviota»", Icon = "🚤", Rarity = "Epica", Kind = "Lancha", Boat = "Gaviota", Color = rgb(245, 245, 250),
+	Description = "Una lancha blanca y oro con cabina y tu nombre en la popa. Es tuya para siempre: sácala en el puerto deportivo (costa oeste) y navega con tus amigos. Mismas prestaciones que la lancha normal.",
+	Preview = { Kind = "Boat" } })
 add(36, F, { Type = "Tickets", Name = "120 tickets", Icon = "🎟️", Amount = 120, Description = "Más partidas en los recreativos." })
 add(36, P, { Type = "Decor", Name = "Barco en botella", Icon = "⛵", Shape = "Box", Size = Vector3.new(1.6, 0.8, 0.8), Color = rgb(170, 220, 230), Material = "Glass", Rarity = "Rara",
 	Description = "Un velero diminuto del puerto de Valmar.", Preview = { Kind = "Decor" } })

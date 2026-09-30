@@ -32,6 +32,9 @@ local BattlePassService = {}
 local remote: RemoteEvent? = nil
 local notifyRemote: RemoteEvent? = nil
 local simulated: { [Player]: boolean } = {} -- premium simulado (modo pruebas): SOLO en memoria
+-- Clientes cuya interfaz del pase enseña ella sola el aviso de nivel («RECOMPENSA DESBLOQUEADA»): lo
+-- dicen al pedir el estado (Get con "Ui"). A esos no se les manda además el Notify de «¡nivel n!».
+local uiToasts: { [Player]: boolean } = {}
 local rate: { [Player]: { Times: { number }, Last: number } } = {}
 local pushQueued: { [Player]: boolean } = {}
 local ownership: { [string]: { Owns: boolean, At: number } } = {} -- caché de UserOwnsGamePassAsync
@@ -168,7 +171,7 @@ local function previewOf(def: { [string]: any }): { [string]: any }?
 	p.Color = p.Color or def.Color
 	p.Colors = p.Colors or def.Colors
 	p.Material = p.Material or def.Material
-	if def.Type == "VehicleSkin" or def.Type == "Decor" then
+	if def.Type == "VehicleSkin" or def.Type == "Decor" or def.Type == "Boat" then
 		p.Model = "BattlePassPreviews/" .. def.Id -- (modelo ya montado en ReplicatedStorage, si existe)
 	elseif def.Type == "Bundle" then
 		-- (el de un conjunto: el de su primer vehículo o decoración)
@@ -211,7 +214,7 @@ local function rewardView(player: Player, bp: { [string]: any }, season: Season.
 	}
 	if def.Type == "Boat" then
 		view.Usable = Rewards.BoatAdapter.available()
-		view.UsableText = if view.Usable then nil else "Llega con el puerto deportivo"
+		view.UsableText = if view.Usable then "⚓ Se saca en el puerto deportivo" else "Llega con el puerto deportivo"
 	end
 	if def.Type == "Bundle" then
 		local items = {}
@@ -426,8 +429,11 @@ function BattlePassService.addXp(player: Player, amount: number, source: string?
 				end
 			end
 		end
-		send(player, "Unlocked", { From = before, Level = level, Rewards = unlocked })
-		notify(player, "Success", ("🎟 Pase de temporada: ¡nivel %d! Tienes recompensas para reclamar."):format(level))
+		local byUi = uiToasts[player] == true
+		send(player, "Unlocked", { From = before, Level = level, Rewards = unlocked, Notified = not byUi })
+		if not byUi then
+			notify(player, "Success", ("🎟 Pase de temporada: ¡nivel %d! Tienes recompensas para reclamar."):format(level))
+		end
 		Telemetry.count("LevelUp", nil, player, level - before)
 	end
 	syncAttributes(player, bp)
@@ -771,6 +777,9 @@ function BattlePassService.handle(player: Player, action: any, a: any, b: any, c
 		return
 	end
 	if action == "Get" then
+		if a == "Ui" then
+			uiToasts[player] = true -- (su interfaz ya avisa al subir de nivel)
+		end
 		Telemetry.count("Open", nil, player)
 		BattlePassService.push(player, true)
 	elseif action == "Claim" then
@@ -822,6 +831,15 @@ local function buildPreviews()
 		if def.Type == "VehicleSkin" and typeof(def.Color) == "Color3" then
 			pcall(function()
 				local model = Rides.build(def.Kind, nil, CFrame.new(), def.Color)
+				model.Name = def.Id
+				model:SetAttribute("RewardId", def.Id)
+				model.Parent = folder
+			end)
+		elseif def.Type == "Boat" then
+			-- (el barco de verdad: el mismo modelo que sale en el puerto deportivo)
+			pcall(function()
+				local kind = def.Boat or def.Kind
+				local model = Rides.build(kind, nil, CFrame.new(), if typeof(def.Color) == "Color3" then def.Color else nil)
 				model.Name = def.Id
 				model:SetAttribute("RewardId", def.Id)
 				model.Parent = folder
@@ -891,6 +909,7 @@ function BattlePassService.init()
 
 	Players.PlayerRemoving:Connect(function(player)
 		simulated[player] = nil
+		uiToasts[player] = nil
 		rate[player] = nil
 		pushQueued[player] = nil
 		Season.clearShift(player)

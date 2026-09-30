@@ -7,6 +7,7 @@
 --   BP.onState(function(state) ... end)        -- cada estado completo (Season, Premium, Progress…)
 --   BP.on("Unlocked", function(info) ... end)   -- también "Result", "MissionDone", "Premium"
 --   BP.refresh()                               -- pide el estado (al abrir el panel)
+--   BP.setLevelUpToasts(true)                  -- la interfaz avisa del nivel: el servidor no manda Notify
 --   BP.claim("Free", 5) · BP.claimAll() · BP.buy() · BP.equip("Title", id) · BP.track(missionId)
 --   BP.reroll(missionId) · BP.choose(storyId, optionId) · BP.buyToken(itemId)
 
@@ -20,6 +21,7 @@ local readyListeners: { () -> () } = {}
 local stateListeners: { ({ [string]: any }) -> () } = {}
 local listeners: { [string]: { (any) -> () } } = {}
 local started = false
+local levelUpToasts = false -- ¿la interfaz enseña ella el aviso de nivel? (se le dice al servidor)
 
 local function fire(list: { (any) -> () }?, value: any)
 	for _, fn in list or {} do
@@ -108,8 +110,14 @@ function BattlePassClient.request(action: string, a: any?, b: any?, c: any?): bo
 	return true
 end
 
+-- La interfaz del pase avisa ella sola al subir de nivel («RECOMPENSA DESBLOQUEADA»): el servidor lo
+-- sabe al pedir el estado (Get con "Ui") y ya no manda su Notify de «¡nivel n!» (no se repite).
+function BattlePassClient.setLevelUpToasts(on: boolean)
+	levelUpToasts = on == true
+end
+
 function BattlePassClient.refresh(): boolean
-	return BattlePassClient.request("Get")
+	return BattlePassClient.request("Get", if levelUpToasts then "Ui" else nil)
 end
 function BattlePassClient.claim(track: string, level: number): boolean
 	return BattlePassClient.request("Claim", track, level)

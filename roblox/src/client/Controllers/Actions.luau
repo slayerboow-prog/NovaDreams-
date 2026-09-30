@@ -1,6 +1,8 @@
 -- Actions (cliente): movimientos y acciones nuevas del personaje.
 --   * Gestos: los de Roblox (su menú de gestos: botón Gestos, app Gestos o comando Más > Gestos).
 --     Aquí queda "Saludar" para el menú de comandos (delante de alguien); se corta al andar o saltar.
+--     Los gestos del pase de temporada que tengas (UI/BattlePassCosmetics, solo con el pase encendido)
+--     se suman a esta lista y se hacen igual (COMANDOS > «Gestos del pase»).
 --   * Trepar y saltar vallas: ahora lo hace Controllers/Parkour (saltar vallas, muros, bordes…).
 --   * Linterna (tecla L, R3 en el mando): la ven todos los jugadores (y el brazo va delante,
 --     sujetándola: ReactMotion). La primera noche sale un aviso.
@@ -25,6 +27,7 @@ local Cinematics = require(script.Parent.Cinematics)
 local FootCamera = require(script.Parent.FootCamera)
 local SoundFx = require(script.Parent.SoundFx)
 local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
+local Cosmetics = require(script.Parent.Parent.UI.BattlePassCosmetics)
 local Vehicles = require(script.Parent.Vehicles)
 local StreetVoices = require(ReplicatedStorage.Shared.Config).StreetVoices
 
@@ -68,7 +71,7 @@ local function asset(id: number): string
 end
 
 -- Gestos: animación para R15 y para R6 (nil = ese tipo de personaje no la tiene)
-type Emote = { Name: string, Icon: string, R15: number, R6: number?, Loop: boolean?, Voice: string? }
+type Emote = { Name: string, Icon: string, R15: number, R6: number?, Loop: boolean?, Voice: string?, Speed: number?, Pass: string? }
 local EMOTES: { Emote } = {
 	{ Name = "Saludar", Icon = "👋", R15 = 507770239, R6 = 128777973, Voice = "Saludar" },
 	{ Name = "Señalar", Icon = "👉", R15 = 507770453, R6 = 128853357, Voice = "Senalar" },
@@ -147,6 +150,9 @@ local function playEmote(emote: Emote)
 	local track = load(humanoid, id, emote.Loop)
 	if track then
 		track:Play(0.3)
+		if emote.Speed and emote.Speed ~= 1 then
+			track:AdjustSpeed(emote.Speed)
+		end
 		playing = track
 	end
 	local line = emote.Voice and StreetVoices.Emotes[emote.Voice]
@@ -252,9 +258,27 @@ end
 
 ---------------------------------------------------------------------
 -- Para el menú de comandos: hacer un gesto por su nombre (Saludar)
+-- Los gestos del pase que tienes (los dice el servidor: atributo BP_Emotes). Son de R15.
+function Actions.passEmotes(): { Emote }
+	local list = {}
+	for _, def in Cosmetics.emotes(player) do
+		table.insert(list, { Name = def.Name, Icon = def.Icon, R15 = def.AnimationId, Loop = def.Loop, Speed = def.Speed, Pass = def.Id })
+	end
+	return list
+end
+
+-- Todos tus gestos: los de siempre y, detrás, los del pase
+local function allEmotes(): { Emote }
+	local list = table.clone(EMOTES)
+	for _, emote in Actions.passEmotes() do
+		table.insert(list, emote)
+	end
+	return list
+end
+
 function Actions.emote(name: string)
-	for _, emote in EMOTES do
-		if emote.Name == name then
+	for _, emote in allEmotes() do
+		if emote.Name == name or emote.Pass == name then
 			playEmote(emote)
 			return
 		end
@@ -268,10 +292,10 @@ function Actions.openEmotes()
 	end)
 end
 
-function Actions.emotes(): { { Name: string, Icon: string } }
+function Actions.emotes(): { { Name: string, Icon: string, Pass: string? } }
 	local list = {}
-	for _, emote in EMOTES do
-		table.insert(list, { Name = emote.Name, Icon = emote.Icon })
+	for _, emote in allEmotes() do
+		table.insert(list, { Name = emote.Name, Icon = emote.Icon, Pass = emote.Pass })
 	end
 	return list
 end

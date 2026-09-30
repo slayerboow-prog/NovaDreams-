@@ -61,6 +61,9 @@ Locations.Places = {
 	-- Metro (MetroKit): la boca más cercana, estaciones concretas y la galería de Plaza Mayor
 	-- Aeropuerto (Kit/Airport): la terminal, los mostradores y el aeródromo de la isla
 	Aeropuerto = { NameKey = "Aeropuerto de Valmar", Model = "Aeropuerto", Radius = 60 },
+	-- Puerto deportivo: la oficina «⚓ Barcos» (BoatService), delante de su puerta
+	PuertoDeportivo = { NameKey = "Puerto deportivo", Tag = "BoatMarina", Offset = Vector3.new(0, 0, -6), Radius = 12, Fallback = "Marina" },
+	Marina = { NameKey = "Puerto deportivo", Model = "Marina", Radius = 60 },
 	AeropuertoMostrador = { NameKey = "Mostradores del aeropuerto", Tag = "FlightCheckIn", Attribute = { Place = "Valmar" }, Radius = 10, Fallback = "Aeropuerto" },
 	Aerodromo = { NameKey = "Aeródromo de las Gaviotas", Model = "Aerodromo", Radius = 60 },
 	MetroBoca = { NameKey = "Boca de metro", Tag = "MetroEntrance", Radius = 12, Fallback = "ParadaBus" },

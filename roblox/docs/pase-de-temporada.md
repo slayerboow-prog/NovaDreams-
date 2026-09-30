@@ -32,8 +32,8 @@ Diseño, reglas y contrato del **pase de temporada** de Real Life Simulator. La 
 **Lo que no existía** (y cómo se ha resuelto sin inventar un sistema incompatible):
 
 - **Barcos propios:** no hay. Solo existen el barco de pesca y el ferry, y no son de nadie. La recompensa «Lancha Gaviota» se guarda como tuya y pasa por `BoatAdapter` (en `BattlePassRewardService`). El día que exista `Services/BoatService` con `grant(player, kind, def)`, se entregará sola. Mientras tanto, la interfaz enseña «Llega con el puerto deportivo» (`Usable = false`).
-- **Títulos, placas y temas del teléfono y del HUD:** no había. Se guardan en la colección y se publican como atributos del jugador (`BP_Title`, `BP_Nameplate`, `BP_PhoneTheme`, `BP_HudSkin`…) para que la interfaz los pinte. `BP_Title` y `BP_TitleColor` también los ven los demás jugadores.
-- **Gestos nuevos:** `Actions` tiene una lista fija. Los gestos del pase van en `BP_Emotes`, que es una lista de Ids con su `AnimationId`. La interfaz los añade al menú de gestos. Ahora usan animaciones públicas de Roblox, algunas con otra velocidad; el dueño puede cambiarlas por animaciones propias en `Season1.luau`.
+- **Títulos, placas y temas del teléfono y del HUD:** no había. Se guardan en la colección y se publican como atributos del jugador (`BP_Title`, `BP_Nameplate`, `BP_PhoneTheme`, `BP_HudSkin`…) para que la interfaz los pinte. `BP_Title` y `BP_TitleColor` también los ven los demás jugadores. Solo el servidor los pone y solo con lo que tienes **y** llevas equipado. Se pintan así: título y placa en el cartel de nombre de siempre (`Controllers/NameTags`, sobre los demás jugadores); tema del HUD = color del filo de los paneles (`Theme.setAccent("Hud")`); tema del teléfono = color de la pestaña de COMANDOS (`Theme.setAccent("Phone")`). Lo lee `UI/BattlePassCosmetics`; con el pase apagado no se pinta nada.
+- **Gestos nuevos:** `Actions` tiene una lista fija. Los gestos del pase van en `BP_Emotes`, que es una lista de Ids con su `AnimationId`. `Controllers/Actions` los suma a sus gestos y salen en COMANDOS > «Gestos del pase». Ahora usan animaciones públicas de Roblox, algunas con otra velocidad; el dueño puede cambiarlas por animaciones propias en `Season1.luau`.
 - **Analítica:** no había. `server/BattlePass/Telemetry.luau` guarda contadores en memoria y, si se activa `Telemetry.UseAnalyticsService`, los manda a AnalyticsService.
 
 ## 3. Módulos nuevos
@@ -77,7 +77,7 @@ Los servicios se arrancan en `Main.server.luau` justo después de `CityErrandSer
 | `TesterService` | Acción `"BattlePass"` y `state().BattlePass`. | Probar el pase desde el panel. | Con el pase apagado devuelven `false` / `nil`. |
 | `TaskMarker` (cliente) | También sigue `SeasonTarget`, después de `StoryTarget` (y escucha sus cambios). | GPS de las misiones del pase. | Sin ese atributo, nada cambia. |
 | `Gps` y `MapUI` (cliente) | `SeasonTarget` como último objetivo (ruta por las calles y marca en el mapa). | GPS de las misiones del pase. | Sin ese atributo, nada cambia. |
-| `Main.client` | Arranca `UI/BattlePassUI` con `safeInit` y no repite el aviso «¡nivel n!» del servidor (ya sale «RECOMPENSA DESBLOQUEADA»). | Interfaz del pase. | Con el pase apagado, `init` vuelve enseguida y el aviso sale como siempre. |
+| `Main.client` | Arranca `UI/BattlePassUI` con `safeInit`. La interfaz pide el estado con `Get` + `"Ui"` y entonces el servidor ya no manda el `Notify` «¡nivel n!» (sale solo «RECOMPENSA DESBLOQUEADA»; `Unlocked.Notified` dice si el servidor avisó). | Interfaz del pase. | Con el pase apagado, `init` vuelve enseguida. |
 | `TesterPanel` (cliente) | Sección «PASE DE TEMPORADA» (premium simulado, +XP, nivel, reloj, reiniciar, abrir el pase). Solo sale si el servidor manda `BattlePass`. | Probar el pase. | Con el pase apagado no sale. |
 
 ## 4. Recompensas de la temporada 1 «Luces de Valmar»
@@ -241,7 +241,7 @@ Remoto: `ReplicatedStorage.Remotes.BattlePass` (RemoteEvent). El servidor lo cre
 
 | action | a | b | c |
 |---|---|---|---|
-| `"Get"` | — | — | — |
+| `"Get"` | `"Ui"` (opcional: la interfaz enseña el aviso de nivel; el servidor no manda su `Notify`) | — | — |
 | `"Claim"` | `"Free"` / `"Premium"` | nivel (número entero) | — |
 | `"ClaimAll"` | — | — | — |
 | `"Buy"` | — | — | — |

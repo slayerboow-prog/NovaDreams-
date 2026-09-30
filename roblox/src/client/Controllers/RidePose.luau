@@ -21,7 +21,7 @@ local angles = CFrame.Angles
 local ACTIVE_DISTANCE = 150
 local MAX_ACTIVE = 16
 
-local WHEEL = { Coche = true, Patrulla = true, Autobus = true, Camion = true, Bomberos = true }
+local WHEEL = { Coche = true, Patrulla = true, Autobus = true, Camion = true, Bomberos = true, Lancha = true, Gaviota = true }
 local BARS = { Moto = true, Bici = true, Patinete = true }
 local STANDING = { Patinete = true, Monopatin = true }
 

@@ -816,7 +816,21 @@ do
 	check(not UI.isOpen() and (dialogs == nil or dialogs:FindFirstChild("BattlePass") == nil), "La ventana no se abre ni con open() ni con la tecla")
 	userInput.InputBegan:Fire({ KeyCode = roblox.Enum.KeyCode.N, UserInputType = roblox.Enum.UserInputType.Keyboard }, false)
 	check(not UI.isOpen(), "La tecla N no hace nada")
-	check(not UI.swallowNotify("Success", "🎟 Pase de temporada: ¡nivel 3! Tienes recompensas para reclamar."), "No se come ningún aviso del servidor")
+	check(UI.swallowNotify == nil, "Ya no hay filtro de avisos por texto (el servidor no manda el de nivel si la interfaz lo enseña)")
+	-- Cosméticos equipados: apagado, nada se pinta aunque haya atributos
+	localPlayer:SetAttribute("BP_HudSkin", "S1_P08")
+	localPlayer:SetAttribute("BP_PhoneTheme", "S1_P03")
+	localPlayer:SetAttribute("BP_Title", "Vecino/a de Valmar")
+	localPlayer:SetAttribute("BP_Emotes", "S1_P02")
+	local Cos = loadModule("src/client/UI/BattlePassCosmetics")
+	local ThemeOff = loadModule("src/client/UI/Theme")
+	Cos.start()
+	check(ThemeOff.accent("Hud") == nil and ThemeOff.accent("Phone") == nil, "Apagado: ni tema del HUD ni del teléfono")
+	check(Cos.title(localPlayer) == nil and Cos.nameplate(localPlayer) == nil and not Cos.hasTag(localPlayer), "Apagado: ni título ni placa encima de la cabeza")
+	check(#Cos.emotes(localPlayer) == 0, "Apagado: ningún gesto del pase")
+	for _, key in { "BP_HudSkin", "BP_PhoneTheme", "BP_Title", "BP_Emotes" } do
+		localPlayer:SetAttribute(key, nil)
+	end
 	check(#toasts == 0 and playerGui:FindFirstChild("BattlePassTip") == nil, "Ni avisos ni tooltips")
 end
 
@@ -824,7 +838,7 @@ end
 print("\n▶ Ordenador (1920x1080), pase encendido")
 local UI, registry, ok, err = mount(false, 1920, 1080, true)
 check(ok, "BattlePassUI.init no falla" .. (if ok then "" else ": " .. tostring(err)))
-check(sentHas("Get"), "Al conectar pide el estado al servidor («Get»)")
+check(sentHas("Get", "Ui"), "Al conectar pide el estado al servidor («Get») y le dice que el aviso de nivel lo enseña la interfaz")
 check(rowFor(registry) == nil, "Sin estado todavía: no sale la fila")
 push(snapshot({ Level = 12, ClaimedFree = levels(1, 5), Status = "Upcoming" }))
 check(rowFor(registry) == nil, "Temporada que aún no ha empezado: no sale la fila")
@@ -1001,8 +1015,67 @@ siblingsClear(shop.Item_S1_T_Title, "1920x1080 · artículo de la tienda")
 table.clear(toasts)
 bpRemote.OnClientEvent:Fire("Unlocked", { From = 12, Level = 13, Rewards = { { Level = 13, Track = "Free", Id = "S1_F13", Name = "250 €", Icon = "💶", Rarity = "Comun", Premium = false, State = "AVAILABLE" }, { Level = 13, Track = "Premium", Id = "S1_P13", Name = "Conjunto Playa Dorada", Premium = true, State = "PREMIUM_LOCKED" } } })
 check(#toasts == 1 and toasts[1]:find("RECOMPENSA DESBLOQUEADA", 1, true) ~= nil and toasts[1]:find("250 €", 1, true) ~= nil, "Aviso discreto «RECOMPENSA DESBLOQUEADA» (" .. tostring(toasts[1]) .. ")")
-check(UI.swallowNotify("Success", "🎟 Pase de temporada: ¡nivel 13! Tienes recompensas para reclamar."), "El aviso de «¡nivel n!» del servidor no se repite")
-check(not UI.swallowNotify("Success", "🎁 ¡Recompensa: 250 €!"), "Los demás avisos sí salen")
+table.clear(toasts)
+bpRemote.OnClientEvent:Fire("Unlocked", { From = 13, Level = 14, Notified = false, Rewards = { { Level = 14, Track = "Premium", Id = "S1_P14", Name = "Tema", Premium = true, State = "PREMIUM_LOCKED" } } })
+check(#toasts == 1 and toasts[1]:find("Nv. 14", 1, true) ~= nil, "Nada que reclamar y sin aviso del servidor: sale un aviso corto del nivel (" .. tostring(toasts[1]) .. ")")
+table.clear(toasts)
+bpRemote.OnClientEvent:Fire("Unlocked", { From = 14, Level = 15, Notified = true, Rewards = {} })
+check(#toasts == 0, "Si el servidor ya avisó, no se repite")
+do
+	local main = fs.readFile("src/client/Main.client.luau")
+	local uiSource = fs.readFile("src/client/UI/BattlePassUI.luau")
+	check(main:find("swallowNotify", 1, true) == nil and uiSource:find("Pase de temporada: ¡nivel", 1, true) == nil, "Main.client ya no se come avisos por su texto")
+end
+
+-- Cosméticos equipados (encendido): los atributos los pone el servidor; aquí solo se pintan
+do
+	local Cos = loadModule("src/client/UI/BattlePassCosmetics")
+	local ThemeOn = loadModule("src/client/UI/Theme")
+	local Renderer = loadModule("src/client/Commands/CommandRenderer")
+	local Catalog = loadModule("src/shared/BattlePass/Catalog")
+	local hud, phone, plate = Catalog.get("S1_P08"), Catalog.get("S1_P03"), Catalog.get("S1_F10")
+	local stroke = newInstance("UIStroke")
+	local gradient = newInstance("UIGradient")
+	gradient.Color = ThemeOn.EdgeGradient
+	gradient.Parent = stroke
+	ThemeOn.skinEdge(stroke)
+	local tint, tinted = nil, 0
+	ThemeOn.onAccent("Phone", function(color)
+		tint = color
+		tinted += 1
+	end)
+	localPlayer:SetAttribute("BP_HudSkin", "S1_P08")
+	localPlayer:SetAttribute("BP_PhoneTheme", "S1_P03")
+	Cos.start()
+	check(ThemeOn.accent("Hud") == hud.Colors.Accent and gradient.Color ~= ThemeOn.EdgeGradient, "Tema del HUD: el filo de los paneles toma su color (" .. hud.Name .. ")")
+	check(ThemeOn.accent("Phone") == phone.Colors.Accent and tint == phone.Colors.Accent, "Tema del teléfono: la pestaña de COMANDOS toma su color (" .. phone.Name .. ")")
+	check(Renderer.headerTint(nil) ~= Renderer.headerTint(phone.Colors.Accent), "La pestaña cambia de color con el tema (y vuelve a la de siempre sin él)")
+	localPlayer:SetAttribute("BP_HudSkin", "S1_P03") -- (un tema de teléfono no es de HUD)
+	check(ThemeOn.accent("Hud") == nil and gradient.Color == ThemeOn.EdgeGradient, "Algo que no es un tema de HUD no cambia nada (y el filo vuelve al de siempre)")
+	localPlayer:SetAttribute("BP_PhoneTheme", nil)
+	check(ThemeOn.accent("Phone") == nil and tint == nil and tinted == 2, "Sin tema del teléfono: la pestaña de siempre")
+	localPlayer:SetAttribute("BP_HudSkin", nil)
+	-- Título y placa (encima de la cabeza: Controllers/NameTags)
+	local other = newInstance("Player")
+	check(not Cos.hasTag(other), "Sin título ni placa: el nombre de siempre")
+	other:SetAttribute("BP_Title", "Vecino/a de Valmar")
+	other:SetAttribute("BP_TitleColor", roblox.Color3.fromRGB(230, 230, 235))
+	other:SetAttribute("BP_Nameplate", "S1_F10")
+	local text, color = Cos.title(other)
+	local colors = Cos.nameplate(other)
+	check(text == "Vecino/a de Valmar" and color ~= nil and colors == plate.Colors and Cos.hasTag(other), "Título y placa de otro jugador (" .. plate.Name .. ")")
+	other:SetAttribute("BP_Nameplate", "S1_P08")
+	check(Cos.nameplate(other) == nil, "Una placa que no es placa no se pinta")
+	-- Gestos del pase
+	other:SetAttribute("BP_Emotes", "S1_P02,S1_F07,NoExiste,S1_P08")
+	local emotes = Cos.emotes(other)
+	check(#emotes == 2 and emotes[1].Id == "S1_P02" and type(emotes[1].AnimationId) == "number" and emotes[2].Name == "Aplauso de la plaza", "Gestos del pase: solo los que existen y son gestos")
+	local actions = fs.readFile("src/client/Controllers/Actions.luau")
+	local commands = fs.readFile("src/client/Commands/DefaultCommands.luau")
+	local tags = fs.readFile("src/client/Controllers/NameTags.luau")
+	check(actions:find("Cosmetics.emotes(player)", 1, true) ~= nil and commands:find("GestosPase", 1, true) ~= nil, "Los gestos del pase van con los del juego (Actions) y salen en COMANDOS")
+	check(tags:find("Cosmetics.hasTag", 1, true) ~= nil and tags:find("BillboardGui", 1, true) ~= nil, "El título y la placa van en el cartel de nombres de siempre (NameTags), no en otro")
+end
 
 -- Tecla N
 userInput.InputBegan:Fire({ KeyCode = roblox.Enum.KeyCode.N, UserInputType = roblox.Enum.UserInputType.Keyboard }, false)

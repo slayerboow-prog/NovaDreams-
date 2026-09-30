@@ -16,6 +16,9 @@
 --   * Motos y bicis se inclinan en las curvas; en el monopatín y el patinete vas de pie
 --   * Cuadro de mandos (VehicleHud): velocímetro de aguja, marcha, combustible y kilómetros.
 --     Sin gasolina (o batería) el vehículo apenas avanza
+--   * Barcos (lancha, «Gaviota»): los mismos mandos. Flotan a la altura del mar con un balanceo
+--     suave, escoran en las curvas y solo avanzan por agua honda: se paran en la orilla, la arena,
+--     los pantalanes y contra otros barcos (shared/Boats + un rayo hacia abajo sin contar el agua)
 --   * Lluvia y nieve (shared/Wetness): con el suelo mojado o nevado agarra menos. Acelera y frena
 --     peor, gira menos y derrapa en las curvas (va un poco hacia donde iba, no hacia donde apunta).
 --     Las motos, bicis y patinetes resbalan más.
@@ -30,6 +33,7 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 local Gameplay = require(ReplicatedStorage.Shared.Gameplay)
+local Boats = require(ReplicatedStorage.Shared.Boats)
 local Wetness = require(ReplicatedStorage.Shared.Wetness)
 local SoundFx = require(script.Parent.SoundFx)
 local Hud = require(script.Parent.Parent.UI.Hud)
@@ -289,7 +293,9 @@ local function start(seat: VehicleSeat, humanoid: Humanoid)
 	VehicleHud.show(kind)
 	SoundFx.vehicleStart(kind, chassis)
 	releasePedals()
-	warnRoad()
+	if not Gameplay.Driving[kind].Boat then
+		warnRoad() -- (en el mar da igual que llueva)
+	end
 end
 
 -- Aviso al subir si el suelo está mojado o nevado (una vez por cada cosa)
@@ -364,6 +370,76 @@ local function ground(params: RaycastParams, point: Vector3, top: number): Rayca
 	return hit
 end
 
+---------------------------------------------------------------------
+-- Barcos
+---------------------------------------------------------------------
+-- En el agua: sin lluvia ni nieve que valgan, pero derrapa un poco (va hacia donde iba)
+local BOAT_ROAD = { Accel = 1, Brake = 1, Turn = 1, MaxSpeed = 1, Traction = 3.5 }
+
+-- ¿Hay agua honda aquí? Rayo hacia abajo SIN contar el agua: si da en el fondo muy abajo (o en nada),
+-- sí; si da en arena, tierra, un pantalán o un barco amarrado a flor de agua, no
+local deepParams = RaycastParams.new()
+deepParams.FilterType = Enum.RaycastFilterType.Exclude
+deepParams.RespectCanCollide = true
+deepParams.IgnoreWater = true
+local function deepEnough(ignore: { Instance }, point: Vector3): boolean
+	deepParams.FilterDescendantsInstances = ignore
+	local top = Boats.SeaLevel + 3.2
+	local hit = workspace:Raycast(Vector3.new(point.X, top, point.Z), Vector3.new(0, -30, 0), deepParams)
+	return hit == nil or hit.Position.Y < Boats.SeaLevel - Boats.Draft
+end
+
+-- ¿Puede el barco ir de base a target? (el plano de la costa y el fondo, en el centro y en la proa)
+-- Si ya está en un sitio malo (lo han dejado así), puede moverse para salir.
+local function boatCanGo(ignore: { Instance }, base: Vector3, target: Vector3, forward: Vector3, sign: number, size: Vector3): boolean
+	local right = Vector3.new(-forward.Z, 0, forward.X)
+	local function clear(at: Vector3): boolean
+		if not Boats.hullAtSea(at, forward, size) then
+			return false
+		end
+		local nose = at + forward * sign * (size.Z / 2)
+		for _, p in { at, nose, nose + right * size.X * 0.4, nose - right * size.X * 0.4 } do
+			if not deepEnough(ignore, p) then
+				return false
+			end
+		end
+		return true
+	end
+	if not clear(base) then
+		return true
+	end
+	return Boats.canMove(base, target, forward, size) and clear(target)
+end
+
+-- Coloca el barco: a la altura del mar con su balanceo, escorando en las curvas
+local function boatStep(s: State, ignore: { Instance }, forward: Vector3, heading: Vector3, move: Vector3, steer: number, maxSpeed: number, tuning: { [string]: any }, dt: number)
+	local size = s.Chassis.Size
+	local base = Vector3.new(s.Base.X, Boats.SeaLevel, s.Base.Z)
+	local target = base + Vector3.new(move.X, 0, move.Z)
+	if move.Magnitude > 0.001 then
+		local sign = if s.Speed >= 0 then 1 else -1
+		if not boatCanGo(ignore, base, target, forward, sign, size) then
+			if math.abs(s.Speed) > 10 then
+				SoundFx.crash(math.abs(s.Speed), s.Chassis)
+				CameraShake.shake(math.clamp(math.abs(s.Speed) / 45, 0.2, 1), 0.3)
+			end
+			s.Speed = 0
+			s.Throttle = 0
+			target = base
+		end
+	end
+	local leanTarget = -steer * math.rad(tuning.Lean or 0) * math.clamp(math.abs(s.Speed) / (maxSpeed * 0.6), 0, 1)
+	s.Lean += (leanTarget - s.Lean) * math.min(1, dt * 3)
+	local heave, pitch, roll = Boats.bob(os.clock(), s.Speed)
+	s.Base = target
+	s.Up = Vector3.yAxis
+	local position = target + Vector3.new(0, heave, 0)
+	local oriented = CFrame.lookAt(position, position + forward) * CFrame.Angles(-pitch, 0, roll + s.Lean)
+	s.Chassis.CFrame = oriented * CFrame.new(0, size.Y / 2, 0)
+	s.Chassis.AssemblyLinearVelocity = heading * s.Speed
+	s.Chassis.AssemblyAngularVelocity = Vector3.zero
+end
+
 local function step(dt: number)
 	local s = state
 	if not s then
@@ -376,7 +452,7 @@ local function step(dt: number)
 	local tuning = Gameplay.Driving[s.Kind]
 	-- Lluvia y nieve: menos agarre
 	local grip = Wetness.grip(s.Kind, workspace:GetAttribute("Wet") or 0, workspace:GetAttribute("Snow") or 0)
-	local road = Wetness.drive(grip)
+	local road = if tuning.Boat then BOAT_ROAD else Wetness.drive(grip)
 	local maxSpeed = Gameplay.Vehicles[s.Kind].Speed * road.MaxSpeed
 	if player:GetAttribute("OutOfFuel") then
 		maxSpeed = 4 -- sin gasolina (o batería) apenas avanza: hay que llegar a una gasolinera
@@ -470,6 +546,13 @@ local function step(dt: number)
 				break
 			end
 		end
+	end
+
+	if tuning.Boat then
+		boatStep(s, ignore, forward, heading, move, steer, maxSpeed, tuning, dt)
+		SoundFx.vehicleSpeed(math.clamp(math.abs(s.Speed) / maxSpeed, 0, 1))
+		VehicleHud.update(s.Speed, dt)
+		return
 	end
 
 	-- Suelo: delante y detrás (para la cuesta) y en el centro

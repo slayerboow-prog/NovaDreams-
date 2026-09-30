@@ -58,6 +58,7 @@ TesterService.Places = {
 	{ Id = "Playa", Name = "🏖 Playa" },
 	{ Id = "Granja", Name = "🐄 Granja" },
 	{ Id = "Aeropuerto", Name = "✈ Aeropuerto" },
+	{ Id = "PuertoDeportivo", Name = "⛵ Puerto deportivo" },
 }
 -- Horas del día (WorldService.skipTo: el reloj salta para TODO el servidor; no cambia la duración
 -- del día, Config.DayLengthMinutes)
@@ -239,6 +240,14 @@ local function giveVehicles(player: Player): number
 			given += 1
 		end
 	end
+	-- Y los barcos (se sacan en el puerto deportivo)
+	local okB, BoatService = pcall(service, "BoatService")
+	if okB and BoatService and BoatService.grantAll then
+		local okG, boats = pcall(BoatService.grantAll, player)
+		if okG and type(boats) == "number" then
+			given += boats
+		end
+	end
 	return given
 end
 
@@ -407,7 +416,7 @@ function TesterService.handle(player: Player, kind: any, a: any, b: any): boolea
 			local given = giveLicences(player)
 			toast(player, "Success", ("🪪 Carnets y licencias: %d nuevos"):format(given))
 		elseif a == "Vehicles" then
-			toast(player, "Success", ("🚗 Vehículos: %d nuevos"):format(giveVehicles(player)))
+			toast(player, "Success", ("🚗 Vehículos y barcos: %d nuevos"):format(giveVehicles(player)))
 		elseif a == "MaxLevel" then
 			if maxLevel(player) then
 				toast(player, "Success", "⭐ Nivel máximo")

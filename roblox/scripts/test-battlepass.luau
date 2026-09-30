@@ -528,6 +528,55 @@ local given = BattlePass.claimAll(ana)
 check(#given == 10, ("«Reclamar todo» da las 10 gratis que faltaban (dio %d)"):format(#given))
 check(ana:GetAttribute("BP_Level") == 12, "atributo BP_Level para el HUD")
 
+print("▶ Aviso de nivel: sin repetirse con el de la interfaz")
+do
+	local uma = newPlayer("Uma", 1098, "Adulto")
+	local function levelNotices(from: number): number
+		local n = 0
+		for i = from + 1, #sent do
+			local s = sent[i]
+			if s.Player == uma and s.Remote == "Notify" and type(s.Payload) == "string" and s.Payload:find("¡nivel", 1, true) then
+				n += 1
+			end
+		end
+		return n
+	end
+	local mark = #sent
+	BattlePass.addXp(uma, Season.totalFor(S1, 2), "Test")
+	local info = lastSent(uma, "Unlocked", "BattlePass")
+	check(info and info.Notified == true and levelNotices(mark) == 1, "sin interfaz del pase: el servidor avisa con su Notify (y lo dice: Notified)")
+	fire(uma, "Get", "Ui")
+	mark = #sent
+	BattlePass.addXp(uma, Season.totalFor(S1, 3) - profiles[uma].BattlePass.TotalXp, "Test")
+	info = lastSent(uma, "Unlocked", "BattlePass")
+	check(info and info.Level == 3 and info.Notified == false and levelNotices(mark) == 0, "con la interfaz del pase (Get con \"Ui\"): solo su «RECOMPENSA DESBLOQUEADA», sin el Notify de «¡nivel n!»")
+	removePlayer(uma)
+end
+
+print("▶ Cosméticos a la vista: solo lo tuyo y equipado")
+do
+	local vera = newPlayer("Vera", 1099, "Adulto")
+	local cos = profiles[vera].Cosmetics
+	cos.Equipped.Nameplate = "S1_F10" -- (equipado a mano sin tenerlo: datos tocados)
+	cos.Equipped.HudSkin = "S1_P08"
+	cos.Equipped.PhoneTheme = "S1_F10" -- (una placa en el hueco del teléfono)
+	Rewards.sync(vera)
+	check(vera:GetAttribute("BP_Nameplate") == nil and vera:GetAttribute("BP_HudSkin") == nil and vera:GetAttribute("BP_PhoneTheme") == nil, "lo equipado que no es tuyo no se ve (placa, temas)")
+	cos.Owned.S1_F10 = { Type = "Nameplate", Season = "S1", At = 0 }
+	Rewards.sync(vera)
+	check(vera:GetAttribute("BP_Nameplate") == "S1_F10" and vera:GetAttribute("BP_PhoneTheme") == nil, "tuyo y equipado: se ve; en el hueco equivocado, no")
+	cos.Equipped.HudSkin = nil
+	check(not Rewards.equip(vera, "HudSkin", "S1_P08") and vera:GetAttribute("BP_HudSkin") == nil, "no se equipa un tema de HUD que no tienes")
+	BPConfig.Enabled = false
+	cos.Equipped.Nameplate = nil
+	Rewards.sync(vera)
+	check(vera:GetAttribute("BP_Nameplate") == "S1_F10", "pase apagado: sync no toca nada")
+	BPConfig.Enabled = true
+	Rewards.sync(vera)
+	check(vera:GetAttribute("BP_Nameplate") == nil, "y encendido otra vez vuelve a lo de verdad")
+	removePlayer(vera)
+end
+
 print("▶ El remoto no se fía del cliente")
 local premiumBefore = bp.PremiumOwned
 fire(ana, "Claim", "Premium", 5)

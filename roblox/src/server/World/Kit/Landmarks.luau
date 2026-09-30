@@ -310,6 +310,77 @@ end
 ---------------------------------------------------------------------
 -- Puerto deportivo (costa oeste): pantalanes con yates y club náutico
 ---------------------------------------------------------------------
+
+-- Barcos propios (BoatService): la oficina «⚓ Barcos» en la esquina del muelle (tag BoatMarina, con
+-- el cartel «Barcos» para sacar, guardar y comprar), el pantalán de amarres hacia el norte y sus
+-- amarres (tag BoatSlip: a la altura del mar, mirando a mar abierto; Slip = orden). Al lado, una
+-- lancha en venta sobre su remolque.
+Landmarks.BoatSlips = 8
+local function boatBerths(m: Instance, shore: number, c: Vector3)
+	local SEA = require(game:GetService("ReplicatedStorage").Shared.Boats).SeaLevel
+	local px = shore - 6 -- eje del pantalán (6 de ancho: x de shore - 9 a shore - 3)
+	local z0, z1 = c.Z - 60, c.Z - 140 -- del borde norte del muelle hacia el norte
+	-- Oficina (mira al muelle, al este)
+	local office = Builder.part({
+		Name = "OficinaBarcos",
+		Size = Vector3.new(6, 6, 6),
+		CFrame = Builder.facing(Vector3.new(px, 4, c.Z - 50), Vector3.new(1, 0, 0)),
+		Color = WHITE,
+		Tags = { "BoatMarina" },
+		Parent = m,
+	})
+	Builder.decor({ Name = "OfficeRoof", Size = Vector3.new(7.4, 0.6, 7.4), CFrame = CFrame.new(px, 7.3, c.Z - 50), Color = rgb(40, 90, 150), Parent = m })
+	Builder.decor({ Name = "OfficeWindow", Size = Vector3.new(0.1, 2, 3.6), CFrame = CFrame.new(px + 3.02, 4.5, c.Z - 50), Color = rgb(60, 100, 140), Material = Enum.Material.Glass, Parent = m })
+	board(m, CFrame.new(px, 9.2, c.Z - 50) * CFrame.Angles(0, math.rad(90), 0), 7, 1.8, "⚓ BARCOS", rgb(20, 70, 130))
+	-- Pantalán de amarres, con postes, bolardos y un cartel al principio
+	Builder.part({ Name = "BoatPier", Size = Vector3.new(6, 1, z0 - z1), CFrame = CFrame.new(px, 0.5, (z0 + z1) / 2), Color = WOOD, Material = Enum.Material.WoodPlanks, Parent = m })
+	for z = z1 + 2, z0 - 2, 13 do
+		for _, dx in { -3.3, 3.3 } do
+			Builder.decor({ Name = "Post", Size = Vector3.new(0.9, 9, 0.9), CFrame = CFrame.new(px + dx, -3.5, z), Color = DARK_WOOD, Material = Enum.Material.Wood, Parent = m })
+		end
+		Builder.decor({ Name = "Cleat", Size = Vector3.new(0.4, 0.3, 1.2), CFrame = CFrame.new(px - 2.6, 1.15, z + 6), Color = rgb(40, 44, 50), Material = Enum.Material.Metal, Parent = m })
+	end
+	-- (en el borde este del pantalán: no estorba al pasar)
+	board(m, CFrame.new(px + 2.75, 3.4, z0 - 4) * CFrame.Angles(0, math.rad(90), 0), 5, 1.2, "AMARRES · BARCOS PROPIOS", rgb(20, 70, 130))
+	for _, dz in { -2.4, 2.4 } do
+		Builder.part({ Name = "SignPost", Size = Vector3.new(0.3, 2.8, 0.3), CFrame = CFrame.new(px + 2.75, 1.4, z0 - 4 + dz), Color = DARK_WOOD, Parent = m })
+	end
+	-- Amarres: primero los que tocan al pantalán (se baja a él), luego una segunda fila
+	local n = 0
+	for _, x in { px - 3 - 1.5 - 10, px - 3 - 1.5 - 10 - 23.5 } do
+		for i = 0, 3 do
+			n += 1
+			Builder.part({
+				Name = "BoatSlip",
+				Size = Vector3.new(7, 0.2, 20),
+				CFrame = Builder.facing(Vector3.new(x, SEA, z0 - 15 - i * 20), Vector3.new(-1, 0, 0)),
+				Transparency = 1,
+				CanCollide = false,
+				CanQuery = false,
+				CanTouch = false,
+				Tags = { "BoatSlip" },
+				Attributes = { Slip = n },
+				Parent = m,
+			})
+		end
+	end
+	-- Boyas que marcan la salida
+	for i = 0, 3 do
+		local buoy = Builder.decor({ Name = "Buoy", Shape = Enum.PartType.Ball, Size = Vector3.new(1.6, 1.6, 1.6), CFrame = CFrame.new(px - 62, SEA + 0.3, z0 - 5 - i * 22), Color = if i % 2 == 0 then RED else rgb(40, 150, 70), Parent = m })
+		buoy.CanCollide = false
+	end
+	-- Lancha en venta sobre su remolque, en el muelle
+	local Rides = require(script.Parent.Rides)
+	local trailer = CFrame.new(shore + 16, 1, c.Z - 44) * CFrame.Angles(0, math.rad(90), 0)
+	for _, dx in { -1.6, 1.6 } do
+		Builder.decor({ Name = "TrailerRail", Size = Vector3.new(0.4, 0.4, 15), CFrame = trailer * CFrame.new(dx, 0.9, 0), Color = rgb(60, 62, 66), Material = Enum.Material.Metal, Parent = m })
+		Builder.decor({ Name = "TrailerWheel", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.6, 1.4, 1.4), CFrame = trailer * CFrame.new(dx * 1.9, 0.7, 1.5), Color = rgb(26, 26, 28), Material = Enum.Material.Rubber, Parent = m })
+	end
+	local display = Rides.build("Lancha", m, trailer * CFrame.new(0, 2.3, 0), rgb(30, 90, 170))
+	display.Name = "LanchaEnVenta"
+	board(m, Builder.facing(Vector3.new(shore + 16, 2, c.Z - 34), Vector3.new(1, 0, 0)), 4, 1.4, "EN VENTA · 7.500 €", rgb(20, 70, 130))
+	return office
+end
 local function buildMarina(world: Instance)
 	local m = Builder.model("Marina", world)
 	local c = place("Marina")
@@ -333,6 +404,7 @@ local function buildMarina(world: Instance)
 	for _, z in { c.Z - 40, c.Z + 40 } do
 		Props.lamp(m, Builder.facing(Vector3.new(shore - 60, 1, z / 2 + c.Z / 2), Vector3.new(0, 0, 1)))
 	end
+	boatBerths(m, shore, c)
 	return m
 end
 
