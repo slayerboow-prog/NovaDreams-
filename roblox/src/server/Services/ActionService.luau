@@ -111,7 +111,7 @@ function ActionService.setStance(player: Player, stance: any): boolean
 	rate.Count += 1
 	local ok, why = Movement.allowed(stance, stanceContext(player))
 	if rate.Count > 8 then
-		ok, why = false, nil
+		ok, why = false, "Más despacio: espera un momento para cambiar de postura."
 	end
 	if not ok then
 		Remote:FireClient(player, "Stance", player:GetAttribute("Stance") or "Stand", why)

@@ -232,11 +232,11 @@ function RideSpot.watchSeat(w: { Since: number?, Asked: string? }, now: number, 
 	return nil
 end
 
--- Atasco: pisando el acelerador (o la marcha atrás) sin moverse. Devuelve true cuando toca desatascar.
--- s = { Stuck: number }
+-- Atasco: pisando el acelerador (o la marcha atrás) sin moverse. speed = lo que se ha movido de
+-- verdad (studs/s). Devuelve true cuando toca desatascar. s = { Stuck: number }
 RideSpot.StuckAfter = 1.8
-function RideSpot.stuckStep(s: { Stuck: number }, wantThrottle: number, moved: number, dt: number): boolean
-	if math.abs(wantThrottle) > 0.3 and moved < 0.03 then
+function RideSpot.stuckStep(s: { Stuck: number }, wantThrottle: number, speed: number, dt: number): boolean
+	if math.abs(wantThrottle) > 0.3 and speed < 0.8 then
 		s.Stuck += dt
 	else
 		s.Stuck = math.max(0, s.Stuck - dt * 2)

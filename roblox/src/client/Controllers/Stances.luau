@@ -461,23 +461,36 @@ end
 
 -- Pide una postura. Devuelve si se ha puesto.
 function Stances.request(stance: string, quiet: boolean?): boolean
+	if stance == current then
+		return true
+	end
+	-- (si no se puede, siempre se dice por qué: nunca "pulso y no pasa nada")
 	local humanoid, root = parts()
-	if not humanoid or not root or stance == current then
-		return stance == current
+	if not humanoid or not root then
+		if not quiet then
+			toast("Espera a que aparezca tu personaje.")
+		end
+		return false
 	end
 	if stance ~= "Stand" and Parkour and Parkour.isVaulting() then
-		return false -- a mitad de un salto de valla no
+		if not quiet then
+			toast("Primero termina el salto.") -- a mitad de un salto de valla no
+		end
+		return false
 	end
 	local ok, why = Movement.allowed(stance, context(humanoid))
 	if not ok then
-		if why and not quiet then
-			toast(why)
+		if not quiet then
+			toast(why or "Ahora no te puedes agachar.")
 		end
 		return false
 	end
 	if stance == "Prone" and isR6(humanoid) then
 		stance = "Crouch" -- (los personajes R6 no tienen rodillas ni codos: se quedan agachados)
 		if current == "Crouch" then
+			if not quiet then
+				toast("Con este personaje no te puedes tumbar.")
+			end
 			return false
 		end
 	end
@@ -542,11 +555,25 @@ Stances.press = press
 ---------------------------------------------------------------------
 -- La postura en el cuerpo (todos los jugadores cercanos)
 ---------------------------------------------------------------------
-local function bodyOf(model: Model, owner: Player): Body?
-	local body = bodies[model]
-	if body then
-		return body
+-- ¿Siguen siendo suyas las articulaciones apuntadas? (al aplicar el aspecto —AvatarService, al
+-- aparecer y al cambiar de edad— Roblox cambia las piezas del cuerpo y con ellas las articulaciones:
+-- las viejas ya no mueven nada)
+local function stale(body: Body): boolean
+	for _, joint in body.Joints do
+		if typeof(joint) == "Instance" and not joint:IsDescendantOf(body.Model) then
+			return true
+		end
 	end
+	return false
+end
+
+local watchedModels: { [Model]: boolean } = setmetatable({}, { __mode = "k" }) :: any
+local function bodyOf(model: Model, owner: Player): Body?
+	local old = bodies[model]
+	if old and not stale(old) then
+		return old
+	end
+	bodies[model] = nil
 	local humanoid = model:FindFirstChildOfClass("Humanoid")
 	local root = model:FindFirstChild("HumanoidRootPart") :: BasePart?
 	if not humanoid or not root then
@@ -556,19 +583,11 @@ local function bodyOf(model: Model, owner: Player): Body?
 	local joints = {}
 	if r6 then
 		for name, where in JOINTS_R6 do
-			local p = model:FindFirstChild(where[1])
-			local motor = p and p:FindFirstChild(where[2])
-			if motor and motor:IsA("Motor6D") then
-				joints[name] = motor
-			end
+			joints[name] = findJoint(model, where[1], where[2])
 		end
 	else
 		for name, part in JOINTS do
-			local p = model:FindFirstChild(part)
-			local motor = p and p:FindFirstChild(name)
-			if motor and motor:IsA("Motor6D") then
-				joints[name] = motor
-			end
+			joints[name] = findJoint(model, part, name)
 		end
 	end
 	if not joints.Root then
@@ -583,7 +602,7 @@ local function bodyOf(model: Model, owner: Player): Body?
 			table.insert(legs, { Side = side, Hip = hip, Knee = knee :: any, Ankle = ankle :: any, Ground = 0, Normal = Vector3.yAxis })
 		end
 	end
-	body = {
+	local body: Body = {
 		Model = model,
 		Humanoid = humanoid,
 		Root = root,
@@ -591,8 +610,9 @@ local function bodyOf(model: Model, owner: Player): Body?
 		R6 = r6,
 		Joints = joints,
 		Legs = legs,
-		Crouch = 0,
-		Prone = 0,
+		-- (si se rehace por piezas nuevas, la postura sigue donde iba: sin saltos)
+		Crouch = if old then old.Crouch else 0,
+		Prone = if old then old.Prone else 0,
 		Phase = 0,
 		Step = 0,
 		Move = 0,
@@ -608,13 +628,17 @@ local function bodyOf(model: Model, owner: Player): Body?
 		Scale = model:GetScale(),
 	}
 	bodies[model] = body
-	model.AncestryChanged:Connect(function(_, parent)
-		if not parent then
-			bodies[model] = nil
-		end
-	end)
+	if not watchedModels[model] then
+		watchedModels[model] = true
+		model.AncestryChanged:Connect(function(_, parent)
+			if not parent then
+				bodies[model] = nil
+			end
+		end)
+	end
 	return body
 end
+Stances._bodyOf = bodyOf
 
 -- Punto más bajo del cuerpo tumbado (sin bajarlo), respecto a la cadera
 local function proneLowest(body: Body): number
@@ -624,9 +648,9 @@ local function proneLowest(body: Body): number
 	end
 	local shape = { Joints = {}, Sizes = {} }
 	for name, joint in body.Joints do
-		local p0, p1 = joint.Part0, joint.Part1
+		local p0, p1 = jointPart0(joint), jointPart1(joint)
 		if p0 and p1 then
-			shape.Joints[name] = { Part0 = p0.Name, Part1 = p1.Name, C0 = joint.C0, C1 = joint.C1 }
+			shape.Joints[name] = { Part0 = p0.Name, Part1 = p1.Name, C0 = jointC0(joint), C1 = jointC1(joint) }
 			shape.Sizes[p1.Name] = p1.Size
 		end
 	end
@@ -645,12 +669,12 @@ groundParams.RespectCanCollide = true
 -- articulaciones: si el personaje crece (niño → adulto) o cambia de ropa, sigue cuadrando.
 local function limbs(leg: Leg, r6: boolean): (number, number)
 	if r6 then
-		local part = leg.Hip.Part1
-		local l = if part then math.abs(leg.Hip.C1.Position.Y) + part.Size.Y / 2 else 2
+		local part = jointPart1(leg.Hip)
+		local l = if part then math.abs(jointC1(leg.Hip).Position.Y) + part.Size.Y / 2 else 2
 		return l, 0
 	end
-	local thigh = max((leg.Knee.C0.Position - leg.Hip.C1.Position).Magnitude, 0.2)
-	local shin = max((leg.Ankle.C0.Position - leg.Knee.C1.Position).Magnitude, 0.2)
+	local thigh = max((jointC0(leg.Knee).Position - jointC1(leg.Hip).Position).Magnitude, 0.2)
+	local shin = max((jointC0(leg.Ankle).Position - jointC1(leg.Knee).Position).Magnitude, 0.2)
 	return thigh, shin
 end
 
@@ -683,7 +707,7 @@ end
 -- De un giro en el espacio del padre (la raíz, el torso…) al de la articulación (su C0 puede ir girado,
 -- como en R6)
 local function jointSpace(joint: Motor6D, cf: CFrame): CFrame
-	local r = joint.C0.Rotation
+	local r = jointC0(joint).Rotation
 	return r:Inverse() * cf * r
 end
 
@@ -873,8 +897,9 @@ local function update(body: Body, dt: number, now: number)
 	-- Piernas: cada tobillo a su sitio (apoyado en el suelo o dando el paso) con IK de dos huesos
 	local legOut: { [Motor6D]: CFrame } = {}
 	if #body.Legs > 0 then
-		local pelvisCF = rootJ.C0 * rootOut * rootJ.C1:Inverse()
-		local restPelvis = rootJ.C0 * rootJ.C1:Inverse()
+		local rootC0, rootC1 = jointC0(rootJ), jointC1(rootJ)
+		local pelvisCF = rootC0 * rootOut * rootC1:Inverse()
+		local restPelvis = rootC0 * rootC1:Inverse()
 		local reach = 0.45 * L
 		-- El suelo bajo el cuerpo. Los demás jugadores: lo que ha bajado su cuerpo se mide (su posición
 		-- llega por la red y su HipHeight aquí es la de pie), así las piernas cuadran con lo que se ve
@@ -897,14 +922,17 @@ local function update(body: Body, dt: number, now: number)
 		for _, leg in body.Legs do
 			local hipJ, kneeJ, ankleJ = leg.Hip, leg.Knee, leg.Ankle
 			local thigh, shin = limbs(leg, false)
-			local restHip = restPelvis * hipJ.C0
-			local restAnkle = restHip * hipJ.C1:Inverse() * kneeJ.C0 * kneeJ.C1:Inverse() * ankleJ.C0
+			local hipC0, hipC1 = jointC0(hipJ), jointC1(hipJ)
+			local kneeC0, kneeC1 = jointC0(kneeJ), jointC1(kneeJ)
+			local ankleC0 = jointC0(ankleJ)
+			local restHip = restPelvis * hipC0
+			local restAnkle = restHip * hipC1:Inverse() * kneeC0 * kneeC1:Inverse() * ankleC0
 			-- Otro jugador: cuánto tiene que subir este tobillo para pisar el suelo que se ve bajo su
 			-- cuerpo, con las medidas de su pie (sin fiarse de su HipHeight, que aquí no cambia)
 			local legDrop = drop
-			local foot = ankleJ.Part1
+			local foot = jointPart1(ankleJ)
 			if not mine and centerY and foot then
-				local sole = ankleJ.C1.Position.Y + foot.Size.Y / 2
+				local sole = jointC1(ankleJ).Position.Y + foot.Size.Y / 2
 				local need = (centerY :: number) - root.Position.Y + sole - restAnkle.Position.Y
 				if need > -0.2 * L and need < 0.9 * L then
 					legDrop = clamp(need, 0, 0.75 * L)
@@ -930,7 +958,7 @@ local function update(body: Body, dt: number, now: number)
 			-- (pasos cortos, poco levantados)
 			local lift = up * G.Lift * L * c * clamp(stride / (0.6 * L), 0, 1)
 			local target = flat + Vector3.new(0, legDrop + leg.Ground * c + lift, 0)
-			local hipFrame = pelvisCF * hipJ.C0
+			local hipFrame = pelvisCF * hipC0
 			local hipT, kneeT = Stances.legIK(hipFrame:PointToObjectSpace(target), thigh, shin)
 			-- El pie plano sobre el suelo (con su cuesta); por el aire, la punta algo abajo
 			local n = leg.Normal
@@ -939,7 +967,7 @@ local function update(body: Body, dt: number, now: number)
 			if axis.Magnitude > 1e-3 then
 				tilt = CFrame.fromAxisAngle(axis.Unit, math.min(math.asin(math.min(axis.Magnitude, 1)), 0.35) * c)
 			end
-			local parent = (hipFrame * hipT * hipJ.C1:Inverse() * kneeJ.C0 * kneeT * kneeJ.C1:Inverse() * ankleJ.C0).Rotation
+			local parent = (hipFrame * hipT * hipC1:Inverse() * kneeC0 * kneeT * kneeC1:Inverse() * ankleC0).Rotation
 			local ankleT = parent:Inverse() * tilt * angles(-0.35 * up * c * move, 0, 0) * restAnkle.Rotation
 			legOut[hipJ] = hipT
 			legOut[kneeJ] = kneeT

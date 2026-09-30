@@ -222,12 +222,13 @@ function Parkour.isVaulting(model: Model?): boolean
 	return playing[model] ~= nil
 end
 
-local function jointsOf(model: Model): { [string]: Motor6D }
+local function jointsOf(model: Model): { [string]: any }
 	local joints = {}
 	for name, partName in JOINTS do
 		local p = model:FindFirstChild(partName)
 		local motor = p and p:FindFirstChild(name)
-		if motor and motor:IsA("Motor6D") then
+		-- (Motor6D o AnimationConstraint, las articulaciones nuevas de Roblox: las dos tienen Transform)
+		if motor and (motor:IsA("Motor6D") or motor:IsA("AnimationConstraint")) then
 			joints[name] = motor
 		end
 	end

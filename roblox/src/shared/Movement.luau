@@ -57,8 +57,15 @@ function Movement.allowed(stance: any, ctx: StanceContext): (boolean, string?)
 	if stance == "Stand" then
 		return true, nil
 	end
-	if ctx.Dead or ctx.KO or ctx.Ragdoll or ctx.Busy then
-		return false, nil
+	-- (siempre con un porqué: el jugador nunca pulsa y no pasa nada sin saber la razón)
+	if ctx.Dead then
+		return false, "Ahora no te puedes agachar."
+	elseif ctx.KO then
+		return false, "💫 Estás aturdido: espera a recuperarte."
+	elseif ctx.Ragdoll then
+		return false, "Primero levántate del suelo."
+	elseif ctx.Busy then
+		return false, "Ahora no te puedes agachar (estás en una escena o entrenando)."
 	elseif ctx.Stage == "Bebe" or ctx.Crawling then
 		return false, "👶 Los bebés ya van a gatas."
 	elseif ctx.Riding or ctx.Seated then

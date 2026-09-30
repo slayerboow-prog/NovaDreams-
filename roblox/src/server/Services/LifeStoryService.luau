@@ -68,6 +68,7 @@ local Memories = require(LifeStory.Memories)
 local StoryContext = require(LifeStory.StoryContext)
 local Log = require(ReplicatedStorage.Shared.Log)
 local RideState = require(ReplicatedStorage.Shared.RideState)
+local Strings = require(LifeStory.Strings)
 
 local LifeStoryService = {}
 
@@ -938,6 +939,120 @@ local function dialogueContext(player: Player, data: Data, questId: string, labe
 	}
 end
 
+---------------------------------------------------------------------
+-- Lo que empieza SOLO (escenas, minijuegos, escenas de cine, decisiones, el plan B de un «habla
+-- con…») nunca interrumpe:
+--   · mientras vas en un vehículo (conduciendo o de pasajero: coche, moto, patinete, barco, autobús,
+--     metro, tren, avión) espera a que te bajes, y te llega un aviso pequeño de móvil
+--     («📱 Abu Rosa quiere hablar contigo — bájate para hablar»). Salvo los pasos pensados para
+--     pasar dentro de un vehículo (InVehicle = true en el paso).
+--   · de una misión que NO sigues, no empieza nunca sola: solo si hablas con alguien de su escena,
+--     si la sigues (panel de misiones) o si acabas de hacer algo en ella (Engaged: hablaste con su
+--     personaje, usaste su objeto, elegiste… y lo siguiente es una escena de esa misma misión).
+-- Llegar a un sitio («Reach») sí se cumple al pasar conduciendo; lo que venga después espera.
+---------------------------------------------------------------------
+LifeStoryService.EngagedSeconds = 90 -- lo que dura «acabas de hacer algo en esta misión»
+
+local function engage(player: Player, questId: string)
+	local rt = runtime[player]
+	if rt then
+		rt.Engaged = rt.Engaged or {}
+		;(rt.Engaged :: any)[questId] = os.clock()
+	end
+end
+
+-- ¿Puede empezar ya solo este paso? Si no, por qué: "Ride" (va en un vehículo) o "Untracked"
+-- (es de una misión que no sigue)
+local function canAutoStart(player: Player, data: Data, questId: string, step: { [string]: any }?): (boolean, string?)
+	if not (step and step.InVehicle) and RideState.inVehicle(player) then
+		return false, "Ride"
+	end
+	if questId == PROLOGUE then
+		return true, nil
+	end
+	if trackedQuest(data) == questId then
+		return true, nil
+	end
+	local rt = runtime[player]
+	local at = rt and rt.Engaged and rt.Engaged[questId]
+	if at and os.clock() - at <= LifeStoryService.EngagedSeconds then
+		return true, nil
+	end
+	return false, "Untracked"
+end
+LifeStoryService.canAutoStart = function(player: Player, questId: string): (boolean, string?)
+	local data = DataService.get(player)
+	local prog = data and storyOf(data).Active[questId]
+	if not data or not prog then
+		return false, nil
+	end
+	return canAutoStart(player, data, questId, stepsOf(questId, prog)[prog.Step])
+end
+
+-- Quién habla primero en la conversación de un paso (para el aviso del móvil)
+local function firstSpeaker(questId: string, step: { [string]: any }): string?
+	local dialogue = step.Dialogue and questDialogue(questId, step.Dialogue)
+	for _, line in (dialogue and (dialogue.Lines or dialogue)) or {} do
+		if type(line) == "table" and type(line.S) == "string" and line.S ~= "Narrador" and line.S ~= "Yo" then
+			return line.S
+		end
+	end
+	if step.Type == "Talk" and type(step.Npc) == "string" then
+		return step.Npc
+	end
+	return nil
+end
+
+-- Aviso pequeño, sin parar el juego (una vez por paso y motivo), de que algo de la historia te espera
+local function holdNotice(player: Player, questId: string, step: { [string]: any }, stepIndex: number, reason: string)
+	local rt = runtime[player]
+	if not rt then
+		return
+	end
+	rt.HeldNotice = rt.HeldNotice or {}
+	local key = ("%s:%d:%s"):format(questId, stepIndex, reason)
+	if (rt.HeldNotice :: any)[key] then
+		return
+	end
+	;(rt.HeldNotice :: any)[key] = true
+	local quest = Quests[questId]
+	local abu = DialogueService.speaker(player, "Abu")
+	local familia = DialogueService.speaker(player, "Familia")
+	local title = Strings.get(quest and quest.TitleKey or questId, { abu = abu or "", familia = familia or "" })
+	local speakerId = firstSpeaker(questId, step)
+	local who = if speakerId then DialogueService.speaker(player, speakerId) else nil
+	local text
+	if reason == "Ride" then
+		text = if who then ("📱 %s quiere hablar contigo — bájate para hablar"):format(who)
+			else ("📱 «%s» sigue cuando te bajes del vehículo"):format(title)
+	else
+		text = if who then ("📱 %s quiere hablar contigo («%s»). Ve a hablar con %s o síguela en Misiones."):format(who, title, who)
+			else ("📱 «%s» te espera: síguela en Misiones para continuar."):format(title)
+	end
+	Log.info("MISSION", "%s: paso %d en espera (%s) · %s", questId, stepIndex, reason, player.Name)
+	notify("Held", player, questId, { Step = stepIndex, Type = step.Type, Reason = reason })
+	send(player, "Ping", { Icon = "📱", Text = text, Reason = reason, QuestId = questId })
+end
+
+-- La ventana de una decisión que sale sola: conduciendo o de una misión que no sigues, espera (y
+-- se vuelve a intentar enseguida: ChoiceSentAt = 0)
+local function autoChoice(player: Player, data: Data, questId: string, step: { [string]: any }): boolean
+	local ok, why = canAutoStart(player, data, questId, step)
+	if not ok then
+		local rt = runtime[player]
+		local prog = storyOf(data).Active[questId]
+		if rt then
+			rt.ChoiceSentAt[questId] = 0
+		end
+		if prog then
+			holdNotice(player, questId, step, prog.Step, why or "Untracked")
+		end
+		return false
+	end
+	sendChoice(player, questId, step)
+	return true
+end
+
 -- Juega una conversación de la misión; onDone cuando termine. Si ya hay otra, se reintenta luego.
 -- label: de dónde sale la conversación si viene escrita en el paso (para recordar sus efectos)
 local function playDialogue(player: Player, data: Data, questId: string, name: any, onDone: () -> (), label: string?): boolean
@@ -1166,6 +1281,23 @@ local function returnToScene(player: Player, data: Data)
 end
 
 local startInteractive -- se define más abajo
+
+-- Escena de cine de un paso: se ve en el cliente y la historia sigue cuando termina (o la salta;
+-- si su pantalla no avisa, al cabo de un rato)
+local function playCinematicStep(player: Player, questId: string, step: { [string]: any }, index: number)
+	local rt = runtime[player]
+	if rt and rt.CineHeld then
+		rt.CineHeld[questId] = nil
+	end
+	local duration = CinematicService.play(player, step.Id)
+	CinematicService.waitFor(player, step.Id, duration, function()
+		local current = DataService.get(player)
+		local now = current and storyOf(current).Active[questId]
+		if now and now.Step == index then
+			advance(player, current, questId)
+		end
+	end)
+end
 local story_defaults -- se define más abajo
 local processLater -- se define más abajo
 local resumeAll -- se define más abajo
@@ -1244,7 +1376,7 @@ local function enterStep(player: Player, data: Data, questId: string)
 			prog.Hits = {}
 		elseif step.Type == "Choice" then
 			if not worldChoice(step) then
-				sendChoice(player, questId, step)
+				autoChoice(player, data, questId, step)
 			end
 		elseif step.Type == "Use" and step.Prop and prog.Used and prog.Used[step.Prop] then
 			-- Ya lo cogiste antes de tiempo (se veía en el paso anterior): el paso está hecho (antes se
@@ -1284,17 +1416,16 @@ local function enterStep(player: Player, data: Data, questId: string)
 				end)
 			end
 		elseif step.Type == "Cinematic" then
-			-- La escena se ve en el cliente; la historia sigue cuando termina
-			local duration = CinematicService.play(player, step.Id)
-			local index = prog.Step
-			-- (sigue cuando el jugador la termina o la salta; si su pantalla no avisa, al cabo de un rato)
-			CinematicService.waitFor(player, step.Id, duration, function()
-				local current = DataService.get(player)
-				local now = current and storyOf(current).Active[questId]
-				if now and now.Step == index then
-					advance(player, current, questId)
-				end
-			end)
+			-- La escena se ve en el cliente; la historia sigue cuando termina. Conduciendo (o de una
+			-- misión que no sigues) espera: se ve al bajarte (stepTimers la lanza)
+			local ok, why = canAutoStart(player, data, questId, step)
+			if ok then
+				playCinematicStep(player, questId, step, prog.Step)
+			elseif rt then
+				rt.CineHeld = rt.CineHeld or {}
+				;(rt.CineHeld :: any)[questId] = prog.Step
+				holdNotice(player, questId, step, prog.Step, why or "Untracked")
+			end
 		end
 		break
 	end
@@ -1328,6 +1459,14 @@ function startInteractive(player: Player, data: Data, questId: string)
 	end
 	if player:GetAttribute("Dead") then
 		return -- en el hospital no empieza ninguna escena (se reintenta al volver)
+	end
+	if step.Type == "Scene" or step.Type == "MiniGame" then
+		-- Conduciendo, o de una misión que no sigues: espera (se reintenta en cada vuelta: stepTimers)
+		local ok, why = canAutoStart(player, data, questId, step)
+		if not ok then
+			holdNotice(player, questId, step, index, why or "Untracked")
+			return
+		end
 	end
 	if step.Type == "Scene" then
 		playDialogue(player, data, questId, step.Dialogue, function()
@@ -1377,6 +1516,12 @@ function advance(player: Player, data: Data, questId: string)
 			applyEffects(player, data, step.Effects, questId)
 			notify("StepDone", player, questId, { Step = prog.Step, Type = step.Type })
 			Log.info("OBJECTIVE", "%s: paso %d (%s) completado · %s", questId, prog.Step, tostring(step.Type), player.Name)
+			-- Lo has cumplido tú (hablar, usar, elegir, jugar…): lo que siga de esta misión puede
+			-- empezar solo aunque no sea la que sigues. Llegar a un sitio o esperar no cuenta (se
+			-- cumple al pasar por delante conduciendo: la escena que venga espera a que la sigas).
+			if step.Type ~= "Reach" and step.Type ~= "Wait" then
+				engage(player, questId)
+			end
 		end
 		if storyOf(data).Active[questId] == prog then
 			prog.Step += 1
@@ -2205,7 +2350,7 @@ local function stepTimers(player: Player, data: Data, questId: string, prog: Pro
 	-- La ventana de una decisión puede perderse (otra ventana encima, un toque rechazado porque había
 	-- una conversación): mientras no se elija, se vuelve a mandar
 	if step.Type == "Choice" and (not worldChoice(step) or rt.Fallback[questId]) and os.clock() - (rt.ChoiceSentAt[questId] or 0) > 15 then
-		sendChoice(player, questId, step)
+		autoChoice(player, data, questId, step)
 	end
 	if rt.Fallback[questId] then
 		return false
@@ -2226,7 +2371,7 @@ local function stepTimers(player: Player, data: Data, questId: string, prog: Pro
 		end
 		if not present then
 			rt.Fallback[questId] = true
-			sendChoice(player, questId, step)
+			autoChoice(player, data, questId, step)
 		end
 	elseif step.Type == "Group" and since > 25 then
 		-- Lo que no está en el mapa se da por hecho
@@ -2424,7 +2569,7 @@ local function watchdog(player: Player, data: Data, questId: string, prog: Progr
 	if step.Type == "Choice" and not worldChoice(step) and stalled > W.ChoiceResend * ((watch.Resent or 0) + 1) then
 		watch.Resent = (watch.Resent or 0) + 1
 		if watch.Resent <= 3 then
-			sendChoice(player, questId, step)
+			autoChoice(player, data, questId, step)
 			Log.info("WATCHDOG", "%s · %s: decisión sin respuesta, se vuelve a mostrar", player.Name, questId)
 		end
 	end
@@ -3320,7 +3465,7 @@ local function onLoaded(player: Player, data: Data)
 				local now = story.Active[id]
 				local step = now and now.Step == index and stepsOf(id, now)[index]
 				if player.Parent and step and step.Type == "Choice" then
-					sendChoice(player, id, step)
+					autoChoice(player, data, id, step)
 				end
 			end)
 		end

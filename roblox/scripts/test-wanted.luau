@@ -123,39 +123,57 @@ print("▶ Las patrullas miran hacia donde van (también tras dar la vuelta)")
 -- look:Lerp(dir): en un callejón sin salida dir = -look y la mezcla nunca cambiaba de sentido,
 -- así que el coche seguía mirando hacia atrás (circulaba marcha atrás) hasta el siguiente cruce.
 do
-	local function drive(segments, startIndex: number, seconds: number): (number, number)
+	-- Simula PoliceUnits.stepPatrol: avanza por la calle, se arrima al carril poco a poco (blend) y
+	-- gira con `turn`. Devuelve los segundos mirando hacia atrás (LookVector·velocidad < 0), el
+	-- peor valor y cuántas medias vueltas ha dado.
+	local function drive(segments, startIndex: number, seconds: number, turn): (number, number, number)
 		local g = Routes.graph(segments)
 		local index, fromSide, t = startIndex, "A", 0.5
-		local _, look = Routes.point(g.Segments[index], fromSide, t, 5)
-		local pos = Routes.point(g.Segments[index], fromSide, t, 5)
+		local pos, look = Routes.point(g.Segments[index], fromSide, t, 5)
 		local dt, speed = 1 / 30, 24
-		local backwards, worst = 0, 1
+		local backwards, worst, uTurns, backDist = 0, 1, 0, 0
 		for _ = 1, math.floor(seconds / dt) do
-			local seg = g.Segments[index]
-			t += speed * dt / Routes.length(seg)
+			t += speed * dt / Routes.length(g.Segments[index])
 			if t >= 1 then
-				index, fromSide = Routes.next(g, index, if fromSide == "A" then "B" else "A", function()
+				local before = index
+				local arrived = if fromSide == "A" then "B" else "A"
+				index, fromSide = Routes.next(g, index, arrived, function()
 					return 1
 				end)
-				t = 0
+				if index == before and fromSide == arrived then
+					uTurns += 1
+				end
+				t = Routes.entry(g.Segments[index], fromSide, pos)
 			end
 			local point, dir = Routes.point(g.Segments[index], fromSide, t, 5)
-			local velocity = point - pos
-			pos = point
-			look = Routes.turnToward(look, dir, 3.5 * dt)
+			local nextPos = pos:Lerp(point, math.min(1, dt * 6))
+			local velocity = nextPos - pos
+			pos = nextPos
+			look = turn(look, dir, dt)
 			if velocity.Magnitude > 0.05 then
 				local dot = look:Dot(velocity.Unit)
 				worst = math.min(worst, dot)
 				if dot < 0 then
 					backwards += dt
+					backDist += velocity.Magnitude
 				end
 			end
 		end
-		return backwards, worst
+		return backwards, worst, uTurns, backDist
 	end
-	-- Una calle sin salida (da la vuelta dos veces)
-	local backwards, _ = drive({ { A = V(0, 0, 0), B = V(0, 0, -120) } }, 1, 20)
-	check(backwards < 1.2, ("en un callejón sin salida da media vuelta en menos de un segundo (%.2f s mirando atrás)"):format(backwards))
+	local function newTurn(look, dir, dt)
+		return Routes.turnToward(look, dir, 3.5 * dt)
+	end
+	local function oldTurn(look, dir, dt) -- (lo de antes en PoliceUnits.stepPatrol)
+		local turned = look:Lerp(dir, math.min(1, dt * 4))
+		return if turned.Magnitude > 0.01 then turned.Unit else dir
+	end
+	-- Una calle sin salida: va y vuelve (una media vuelta en cada punta)
+	local deadEnd = { { A = V(0, 0, 0), B = V(0, 0, -120) } }
+	local oldBack = drive(deadEnd, 1, 20, oldTurn)
+	check(oldBack > 8, ("(antes: tras la primera media vuelta iba marcha atrás: %.1f de 20 s)"):format(oldBack))
+	local backwards, _, uTurns = drive(deadEnd, 1, 20, newTurn)
+	check(uTurns >= 3 and backwards / uTurns < 0.7, ("en un callejón sin salida da media vuelta enseguida (%.2f s mirando atrás en cada una)"):format(backwards / math.max(uTurns, 1)))
 	local turned = Routes.turnToward(V(0, 0, -1), V(0, 0, 1), 0.2)
 	check(turned:Dot(V(0, 0, -1)) < 0.999 and math.abs(turned.Magnitude - 1) < 1e-3, "en media vuelta exacta empieza a girar (antes se quedaba mirando atrás)")
 	local done = V(0, 0, -1)
@@ -171,8 +189,8 @@ do
 		{ A = V(200, 0, 200), B = V(0, 0, 200) },
 		{ A = V(0, 0, 200), B = V(0, 0, 0) },
 	}
-	local back2, worst2 = drive(square, 1, 60)
-	check(back2 == 0 and worst2 > 0, ("dando vueltas a la manzana nunca va marcha atrás (peor LookVector·velocidad = %.2f)"):format(worst2))
+	local _, _, _, backDist = drive(square, 1, 60, newTurn)
+	check(backDist < 1, ("dando vueltas a la manzana no va marcha atrás (%.1f studs hacia atrás en 60 s; antes, un saltito atrás en cada giro)"):format(backDist))
 	local source = fs.readFile("src/server/World/PoliceUnits.luau")
 	check(source:find("PatrolRoutes.turnToward", 1, true) ~= nil and not source:find("look:Lerp(dir", 1, true), "PoliceUnits gira las patrullas con turnToward (no con Lerp)")
 end

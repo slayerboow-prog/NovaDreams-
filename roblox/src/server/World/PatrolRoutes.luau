@@ -89,6 +89,20 @@ function PatrolRoutes.turnToward(look: Vector3, dir: Vector3, maxAngle: number):
 	return Vector3.new(math.sin(angle), 0, math.cos(angle))
 end
 
+-- Por dónde se entra en un tramo nuevo (t de 0 a 0.5) viniendo desde `position`: lo ya recorrido
+-- a lo largo de la calle (antes siempre t = 0: en un giro a la derecha el carril nuevo empezaba
+-- detrás del coche, que daba un saltito hacia atrás en cada esquina)
+function PatrolRoutes.entry(segment: Segment, from: string, position: Vector3): number
+	local a = if from == "A" then segment.A else segment.B
+	local b = if from == "A" then segment.B else segment.A
+	local along = Vector3.new(b.X - a.X, 0, b.Z - a.Z)
+	if along.Magnitude < 0.01 then
+		return 0
+	end
+	local ahead = Vector3.new(position.X - a.X, 0, position.Z - a.Z):Dot(along.Unit)
+	return math.clamp(ahead / along.Magnitude, 0, 0.5)
+end
+
 function PatrolRoutes.length(segment: Segment): number
 	return Vector3.new(segment.B.X - segment.A.X, 0, segment.B.Z - segment.A.Z).Magnitude
 end

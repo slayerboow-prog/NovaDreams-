@@ -688,8 +688,8 @@ local function stepPatrol(patrol: Patrol, dt: number)
 		-- Final del tramo: sigue por otra calle del cruce (o da la vuelta si no hay salida)
 		local arrived = if patrol.From == "A" then "B" else "A"
 		patrol.Index, patrol.From = PatrolRoutes.next(g, patrol.Index, arrived)
-		patrol.T = 0
 		segment = g.Segments[patrol.Index]
+		patrol.T = PatrolRoutes.entry(segment, patrol.From, patrol.Position)
 		patrol.Lane = (Roads.Kinds[segment.Kind] and Roads.Kinds[segment.Kind].Road or 22) / 4
 	end
 	local point, dir = PatrolRoutes.point(segment, patrol.From, patrol.T, patrol.Lane)
