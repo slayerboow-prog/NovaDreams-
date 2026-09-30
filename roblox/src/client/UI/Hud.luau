@@ -428,6 +428,7 @@ local function storyText(key: string?, args: { [string]: any }?): string
 	end
 	resolved.nombre = resolved.nombre or player.DisplayName
 	resolved.familia = resolved.familia or Strings.get(player:GetAttribute("FamilyKey") or "NPC.MAMA")
+	resolved.abu = resolved.abu or Strings.get(player:GetAttribute("AbuKey") or "NPC.ABU_ROSA") -- (si no, salía «{abu}» tal cual)
 	if resolved.subjectKey then
 		resolved.subject = Strings.get(resolved.subjectKey)
 	end

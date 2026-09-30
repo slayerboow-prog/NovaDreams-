@@ -114,7 +114,7 @@ local function showErrandOffer(data: { [string]: any })
 	Theme.padding(12).Parent = card
 	Theme.title({ Size = UDim2.new(1, 0, 0, 24), Text = "🙋 " .. tostring(data.Title or "Un vecino te pide un favor"), TextSize = 18, TextTruncate = Enum.TextTruncate.AtEnd, Parent = card })
 	Theme.label({ Position = UDim2.fromOffset(0, 26), Size = UDim2.new(1, 0, 0, 58), Text = tostring(data.Text or ""), TextSize = 14, TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top, Parent = card })
-	Theme.label({ Position = UDim2.fromOffset(0, 86), Size = UDim2.new(1, 0, 0, 20), Text = ("Recompensa: %s y +%s de experiencia"):format(Format.money(tonumber(data.Money) or 0), tostring(data.Xp or 0)), TextSize = 13, TextColor3 = C.Muted, Parent = card })
+	Theme.label({ Position = UDim2.fromOffset(0, 86), Size = UDim2.new(1, 0, 0, 20), Text = ("Recompensa: %s y +%s XP"):format(Format.money(tonumber(data.Money) or 0), tostring(data.Xp or 0)), TextSize = 13, TextColor3 = C.Muted, Parent = card })
 	local token = data.Token
 	local function answer(accept: boolean)
 		remote:FireServer("ErrandAnswer", token, accept)
