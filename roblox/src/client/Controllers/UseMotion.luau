@@ -11,6 +11,7 @@
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
+local Joints = require(game:GetService("ReplicatedStorage").Shared.Joints)
 
 local UseAnim = require(script.Parent.UseAnim)
 
@@ -46,6 +47,10 @@ end
 local function bodyOf(model: Model): Body?
 	local body = bodies[model]
 	if body then
+		-- (al aplicar el aspecto Roblox cambia las piezas y sus articulaciones: se vuelven a buscar)
+		if Joints.stale(body.Joints, model) then
+			body.Joints = Joints.collect(model, JOINTS)
+		end
 		return body
 	end
 	local humanoid = model:FindFirstChildOfClass("Humanoid")
@@ -55,16 +60,10 @@ local function bodyOf(model: Model): Body?
 	body = {
 		Model = model,
 		Player = Players:GetPlayerFromCharacter(model),
-		Joints = {},
+		Joints = Joints.collect(model, JOINTS), -- Motor6D o AnimationConstraint (shared/Joints)
 		Layers = {},
 		Seed = math.random() * 10,
 	}
-	for _, name in JOINTS do
-		local joint = model:FindFirstChild(name, true)
-		if joint and (joint:IsA("Motor6D") or joint:IsA("AnimationConstraint")) then
-			body.Joints[name] = joint
-		end
-	end
 	bodies[model] = body
 	model.AncestryChanged:Connect(function(_, parent)
 		if parent == nil then

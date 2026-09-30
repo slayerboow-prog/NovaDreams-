@@ -19,6 +19,8 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
+local Joints = require(ReplicatedStorage.Shared.Joints)
+
 local Npc = {}
 
 local rgb = Color3.fromRGB
@@ -618,19 +620,27 @@ Npc.setPose = setPose
 
 local LEG_JOINTS = { LeftHip = 90, RightHip = 90, LeftKnee = -90, RightKnee = -90 }
 
+-- Dobla las piernas para sentarse (y guarda la postura original en "BaseC0"). Motor6D o
+-- AnimationConstraint (si el NPC lleva las articulaciones nuevas de Roblox: su C0 es el CFrame de
+-- Attachment0; shared/Joints)
+local function bendLegs(npc: Model)
+	for name, angle in LEG_JOINTS do
+		local joint = Joints.find(npc, name)
+		if joint and not joint:GetAttribute("BaseC0") then
+			local c0 = Joints.c0(joint)
+			joint:SetAttribute("BaseC0", c0)
+			Joints.setC0(joint, c0 * CFrame.Angles(math.rad(angle), 0, 0))
+		end
+	end
+end
+
 -- Se sienta en la silla (seat: la pieza del asiento, mirando hacia la mesa)
 function Npc.sit(npc: Model, seat: BasePart)
 	local root = npc.PrimaryPart
 	if not root then
 		return
 	end
-	for name, angle in LEG_JOINTS do
-		local joint = npc:FindFirstChild(name, true)
-		if joint and joint:IsA("Motor6D") and not joint:GetAttribute("BaseC0") then
-			joint:SetAttribute("BaseC0", joint.C0)
-			joint.C0 = joint.C0 * CFrame.Angles(math.rad(angle), 0, 0)
-		end
-	end
+	bendLegs(npc)
 	turning[npc] = (turning[npc] or 0) + 1
 	root.CFrame = seat.CFrame * CFrame.new(0, seat.Size.Y / 2 + 1.35, 0.4)
 	setPose(npc, "Sit")
@@ -643,13 +653,7 @@ function Npc.sitAt(npc: Model, cf: CFrame)
 	if not root then
 		return
 	end
-	for name, angle in LEG_JOINTS do
-		local joint = npc:FindFirstChild(name, true)
-		if joint and joint:IsA("Motor6D") and not joint:GetAttribute("BaseC0") then
-			joint:SetAttribute("BaseC0", joint.C0)
-			joint.C0 = joint.C0 * CFrame.Angles(math.rad(angle), 0, 0)
-		end
-	end
+	bendLegs(npc)
 	turning[npc] = (turning[npc] or 0) + 1
 	local lift = root.Size.Y / 2 + 0.25
 	npc:PivotTo(cf * CFrame.new(0, lift, 0) * root.CFrame:ToObjectSpace(npc:GetPivot()))
@@ -661,11 +665,11 @@ function Npc.stand(npc: Model, feet: Vector3?)
 		setPose(npc, nil)
 	end
 	for name in LEG_JOINTS do
-		local joint = npc:FindFirstChild(name, true)
-		if joint and joint:IsA("Motor6D") then
+		local joint = Joints.find(npc, name)
+		if joint then
 			local base = joint:GetAttribute("BaseC0")
 			if typeof(base) == "CFrame" then
-				joint.C0 = base
+				Joints.setC0(joint, base)
 				joint:SetAttribute("BaseC0", nil)
 			end
 		end
