@@ -68,6 +68,9 @@ Config.Debug = {
 -- todos los oficios sin requisitos… Ya lo tienen Studio, el creador del juego y el dueño del grupo;
 -- aquí se añaden otros UserId de confianza.
 Config.Testers = {} :: { number }
+-- …y nombres de usuario de Roblox (sin @; da igual mayúsculas). El número de usuario es más seguro
+-- (el nombre se puede cambiar), pero con esto basta mientras no lo tengamos.
+Config.TesterNames = { "Sibuastian" } :: { string }
 
 Config.LifeStory = {
 	-- Un personaje NUEVO nace bebé (tutorial de bebé, fase 2). Quien ya jugaba antes de la

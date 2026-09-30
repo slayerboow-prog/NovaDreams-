@@ -387,6 +387,14 @@ check(TesterService.bypass(owner) and not TesterService.bypass(other), "solo el 
 Config.Testers = { 4242 }
 check(TesterService.isTester(other), "un UserId de Config.Testers también es tester")
 Config.Testers = {}
+do
+	local savedNames = Config.TesterNames
+	Config.TesterNames = {}
+	check(not TesterService.isTester(other), "sin estar en ninguna lista, no es tester")
+	Config.TesterNames = { string.upper(other.Name) }
+	check(TesterService.isTester(other), "un nombre de Config.TesterNames también es tester (sin mirar mayúsculas)")
+	Config.TesterNames = savedNames
+end
 
 print("▶ Un jugador normal no puede usar el modo pruebas")
 local before = #sent

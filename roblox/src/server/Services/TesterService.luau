@@ -93,6 +93,14 @@ function TesterService.isTester(player: Player): boolean
 			return true
 		end
 	end
+	local name = (player :: any).Name
+	if type(name) == "string" then
+		for _, n in Config.TesterNames or {} do
+			if type(n) == "string" and string.lower(n) == string.lower(name) then
+				return true
+			end
+		end
+	end
 	if game.CreatorType == Enum.CreatorType.User then
 		return game.CreatorId ~= 0 and userId == game.CreatorId
 	elseif game.CreatorType == Enum.CreatorType.Group then
