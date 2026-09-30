@@ -1338,8 +1338,18 @@ function BusService.init()
 		publishBoards()
 		ready = true
 
-		local driverClock, boardClock = 0, 0
+		-- (si aparecen semáforos nuevos, se vuelven a buscar los cruces con semáforo)
+		CollectionService:GetInstanceAddedSignal("TrafficLight"):Connect(function()
+			lightNodes = nil
+		end)
+		local driverClock, boardClock, railClock = 0, 0, math.huge
 		RunService.Heartbeat:Connect(function(dt)
+			-- Barreras de los pasos a nivel: 5 veces por segundo basta
+			railClock += dt
+			if railClock >= 0.2 then
+				railClock = 0
+				updateCrossings()
+			end
 			for _, bus in buses do
 				if not bus.Driver and bus.Model.Parent then
 					stepNpc(bus, dt)

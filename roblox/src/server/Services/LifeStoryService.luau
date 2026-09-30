@@ -475,6 +475,10 @@ local function applyEffects(player: Player, data: Data, effects: { [string]: any
 	if effects.Teleport and not held(player) then
 		SceneService.teleport(player, effects.Teleport) -- un atajo, una escena que empieza en otro sitio
 	end
+	if type(effects.Conduct) == "string" then
+		-- Algo que va a tu historial de comportamiento (llegar tarde al cole…): ConductService lo apunta
+		StoryEvents.emit(player, "Misbehaved", { Crime = effects.Conduct })
+	end
 	story.Later = story.Later or {}
 	for _, later in effects.Later or {} do
 		local seconds = (later.AfterHours or 0) * 3600 + (later.AfterMinutes or 0) * 60
@@ -558,7 +562,8 @@ local function closedWindow(player: Player, data: Data, questId: string, prog: P
 		placeId = stepPlace(step, story)
 		window = Schedules.forPlace(placeId)
 	end
-	if not window or Schedules.isOpen(window, GameClock.now().ClockTime) then
+	local now = GameClock.now()
+	if not window or Schedules.isOpen(window, now.ClockTime, now.Weekday) then
 		return nil
 	end
 	-- ¿Ya estás allí? (dentro del colegio cuando cierra: puedes terminar lo que hacías)
@@ -589,6 +594,9 @@ end
 -- sitio (esperar, hablar con alguien…), depende de si la misión es del cole.
 local function schoolStep(questId: string, prog: Progress): boolean
 	local step = stepsOf(questId, prog)[prog.Step]
+	if step and step.Schedule == false then
+		return false -- un paso que se hace fuera del cole (el trabajo al salir del instituto)
+	end
 	if step and Quests[questId].Schedule ~= false then
 		local window = Schedules.forStep(step, prog.Sub)
 		if window then
@@ -608,7 +616,8 @@ end
 -- Qué misiones se ven: en horario de cole, un niño o adolescente solo ve las misiones del cole;
 -- cuando se acaba el cole, lo que toca hacer en el cole desaparece y vuelven las demás.
 local function visibleQuest(data: Data, questId: string, prog: Progress): boolean
-	if Schedules.isSchoolTime(GameClock.now().ClockTime) then
+	local now = GameClock.now()
+	if Schedules.isSchoolTime(now.ClockTime, now.Weekday) then
 		local stage = data.Life.Stage
 		return schoolQuest(questId) or (stage ~= "Nino" and stage ~= "Adolescente")
 	end
@@ -791,7 +800,7 @@ local function publish(player: Player, force: boolean?)
 	-- Las demás misiones. Las que no tocan ahora (en horario de cole solo se hacen las del cole; fuera
 	-- de él, las que te mandan al cole esperan) siguen en la lista, marcadas: antes se escondían y
 	-- parecía que habían desaparecido.
-	local inSchool = Schedules.isSchoolTime(GameClock.now().ClockTime)
+	local inSchool = Schedules.isSchoolTime(GameClock.now().ClockTime, GameClock.now().Weekday)
 	for id, prog in story.Active do
 		if id ~= trackedId then
 			local visible = visibleQuest(data, id, prog)
@@ -1423,10 +1432,20 @@ local function giveRewards(player: Player, data: Data, rewards: { [string]: any 
 		-- Título conseguido ("$Carrera.Titulo" -> "Grado_Medicina") con la nota media de la carrera
 		local title = Subjects.resolve(rewards.Degree, degreeOf(story))
 		if title then
+			-- (solo las asignaturas de tu carrera: antes contaban también las del cole y el instituto)
+			local degree = Subjects.Degrees[degreeOf(story) or ""]
+			local own: { [string]: boolean } = {}
+			for _, key in { "Asignatura1", "Asignatura2", "Practica", "Fisico" } do
+				if degree and degree[key] then
+					own[degree[key]] = true
+				end
+			end
 			local sum, count = 0, 0
-			for _, entry in data.Education.Subjects do
-				sum += entry.Avg
-				count += 1
+			for subjectId, entry in data.Education.Subjects do
+				if own[subjectId] and type(entry.Avg) == "number" then
+					sum += entry.Avg
+					count += 1
+				end
 			end
 			data.Education.Degrees[title] = { Grade = if count > 0 then math.round(sum / count * 10) / 10 else 5, At = os.time() }
 		end
@@ -1443,6 +1462,9 @@ function completeQuest(player: Player, data: Data, questId: string)
 	story.Completed[questId] = os.time()
 	if story.Tracked == questId then
 		story.Tracked = nil
+	end
+	if quest.DayPlan then
+		story.LoopDay = GameClock.now().Day -- un día normal (cole, instituto, uni) por día de juego
 	end
 	Log.info("MISSION", "completed %s (%s)", questId, player.Name)
 	notify("QuestDone", player, questId, nil)
@@ -1837,7 +1859,7 @@ local function canOffer(player: Player, data: Data, questId: string): boolean
 	-- Solo las rutinas (DayPlan o Schedule) esperan a que abra el sitio: no se ofrece ir al colegio de
 	-- noche. Las de la historia y las locas pasan cuando pasan (la saga cose el cielo en el patio a las 21:00)
 	local routine = quest.DayPlan ~= nil or quest.Schedule == true or type(quest.Schedule) == "string"
-	if routine and not Schedules.isOpen(Schedules.forQuest(quest), GameClock.now().ClockTime) then
+	if routine and not Schedules.isOpen(Schedules.forQuest(quest), GameClock.now().ClockTime, GameClock.now().Weekday) then
 		return false
 	end
 	return (Conditions.check(quest.Requires, contextFor(player, data)))
@@ -1857,7 +1879,7 @@ function LifeStoryService.errandBlock(player: Player): string?
 		return "Busy"
 	end
 	local data = DataService.get(player)
-	if data and Schedules.isSchoolTime(GameClock.now().ClockTime) then
+	if data and Schedules.isSchoolTime(GameClock.now().ClockTime, GameClock.now().Weekday) then
 		local id = trackedQuest(data)
 		local quest = id and Quests[id]
 		if quest and quest.Kind == "Main" then
@@ -2517,7 +2539,10 @@ local function tickPlayer(player: Player, data: Data)
 						local current = DataService.get(player)
 						local now = current and storyOf(current).Active[questId]
 						if now and now.Step == index then
-							storyOf(current).LastGrade = result.Grade
+							-- (la nota que miran las misiones es la del último examen, no la de cualquier clase)
+							if (step.Mode or "Clase") == "Examen" then
+								storyOf(current).LastGrade = result.Grade
+							end
 							advance(player, current, questId)
 						end
 					end)

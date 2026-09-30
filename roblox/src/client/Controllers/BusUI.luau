@@ -43,14 +43,25 @@ end
 
 local pressedAt = 0
 
+-- ¿Has pedido tú la parada? (el servidor lo marca en tu jugador: aunque otro pasajero ya la haya
+-- pedido, tú también tienes que pedirla para bajarte)
+local function mine(): boolean
+	return player:GetAttribute("BusStopRequested") == true
+end
+
 local function request()
 	local bus = currentBus()
-	if bus and Remote and not bus:GetAttribute("StopRequested") then
-		Remote:FireServer("Request")
+	if not bus or not Remote then
+		return
+	end
+	-- Siempre se avisa al servidor (con la puerta abierta en la parada: bajar ya)
+	Remote:FireServer("Request")
+	if not mine() and not bus:GetAttribute("DoorsOpen") then
 		pressedAt = os.clock()
-		ring()
-	elseif bus and Remote and bus:GetAttribute("DoorsOpen") then
-		Remote:FireServer("Request") -- en la parada con la puerta abierta: bajar ya
+		-- (si otro ya la había pedido, el timbre ya sonó: no se repite)
+		if not bus:GetAttribute("StopRequested") then
+			ring()
+		end
 	end
 end
 
@@ -95,13 +106,13 @@ function BusUI.init()
 			return currentBus() ~= nil
 		end,
 		Active = function()
-			local bus = currentBus()
-			return bus ~= nil and bus:GetAttribute("StopRequested") == true
+			return currentBus() ~= nil and mine()
 		end,
 		Callback = request,
 	})
 	local bound = false
 	local lastRequested = false
+	local lastMine = false
 	local lastBus: Model? = nil
 
 	-- 5 veces por segundo basta
@@ -132,6 +143,7 @@ function BusUI.init()
 		if not bus then
 			gui.Enabled = false
 			lastRequested = false
+			lastMine = false
 			return
 		end
 		gui.Enabled = true
@@ -151,6 +163,12 @@ function BusUI.init()
 			end
 		end
 		lastRequested = requested
+		-- Tu botón (y el del móvil) se ve pulsado solo si la has pedido tú
+		local asked = mine()
+		if asked ~= lastMine then
+			lastMine = asked
+			TouchLayout.refresh()
+		end
 		local current = bus:GetAttribute("CurrentStop")
 		if current and bus:GetAttribute("DoorsOpen") then
 			Theme.setText(status, ("🚏 Parada: %s · puertas abiertas"):format(current))
@@ -158,7 +176,7 @@ function BusUI.init()
 		else
 			local nextStop = tostring(bus:GetAttribute("NextStop") or "…")
 			Theme.setText(status, if requested then ("🔔 Parada solicitada · próxima: %s"):format(nextStop) else ("Próxima parada: %s"):format(nextStop))
-			Theme.setText(button, if requested then "🔔 Parada solicitada" else "🔔 Bajar en la próxima")
+			Theme.setText(button, if asked then "🔔 Parada solicitada" else "🔔 Bajar en la próxima")
 		end
 	end)
 end
