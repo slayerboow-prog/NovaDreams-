@@ -1,7 +1,8 @@
 -- Prueba: todos los scripts del juego compilan (sin errores de escritura) FUERA de Roblox, con Lune.
 --
 -- Uso (desde la carpeta roblox/):
---   lune run scripts/test-compile.luau
+--   lune run scripts/test-compile.luau                       (mira src/)
+--   lune run scripts/test-compile.luau src scripts/cloud     (o las carpetas que se digan)
 --
 -- Un solo error de escritura en un módulo del cliente hace que Main.client se pare al cargarlo y
 -- el jugador se queda sin interfaz (ni botones, ni mapa, ni comandos). Esta prueba lo detecta.
@@ -26,7 +27,10 @@ local function walk(dir: string)
 		end
 	end
 end
-walk("src")
+local roots = if #process.args > 0 then process.args else { "src" }
+for _, root in roots do
+	walk(root)
+end
 print("")
 if bad > 0 then
 	print(string.format("❌ %d de %d archivos no compilan", bad, total))

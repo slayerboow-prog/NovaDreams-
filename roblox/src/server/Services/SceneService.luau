@@ -1192,6 +1192,20 @@ function applySet(player: Player, questId: string, actors: { { [string]: any } }
 		-- Acompañante: aparece a tu lado solo si su misión es la que juegas ahora y vas a pie (si no,
 		-- en su sitio de la escena); cada uno en un hueco distinto (antes salían todos en el mismo punto)
 		local me = playerRoot(player)
+		-- Acompañante (sin sitio propio) de una misión que no juegas ahora: no sale delante de ti. Antes
+		-- caía en "CercaDeTi" (el lugar por defecto) y se quedaba plantado en la calle esperándote
+		-- ({abu} del tirachinas salía en la acera mientras jugabas otra misión). Si ya estaba en la
+		-- escena, se queda donde está (en casa, en el parque…); si no, aparece cuando juegues su misión.
+		if spec.Mode == "Follow" and spec.Place == nil and not focusOn(player, questId) then
+			if actor then
+				actor.Spec = spec
+				actor.Key = key
+				if actor.Root then
+					table.insert(placedNow, actor.Root.Position)
+				end
+			end
+			continue
+		end
 		local nearMe = spec.Mode == "Follow" and me ~= nil and focusOn(player, questId) and onFoot(player)
 		local cf = if nearMe then (me :: BasePart).CFrame * CFrame.new(3 + #placedNow * 2.5, -3, 5) else placement(player, spec)
 		if nearMe and cf then
