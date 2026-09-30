@@ -214,6 +214,13 @@ local function standUpLocally(placed: CFrame?)
 		local base = if chassis then chassis.Position else seat.Position
 		local offset = seat.Position - base
 		local spot = base + right * sign * (width / 2 + 2.5) + look * offset:Dot(look) + Vector3.new(0, humanoid.HipHeight + root.Size.Y / 2 + 0.5, 0)
+		local kind = model and model:GetAttribute("Kind")
+		local vehicle = typeof(kind) == "string" and Gameplay.Vehicles[kind]
+		if vehicle and vehicle.Boat then
+			-- Barco: de pie a bordo, donde estaba sentado (nunca al agua); el servidor dice luego si
+			-- hay un pantalán al lado
+			spot = seat.Position + Vector3.new(0, humanoid.HipHeight + root.Size.Y / 2 + 0.6, 0)
+		end
 		placed = CFrame.lookAt(spot, spot + look)
 	end
 	if seat then
