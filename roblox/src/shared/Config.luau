@@ -564,28 +564,10 @@ Config.HouseTiers = {
 -- 3. Copia aquí sus IDs. Mientras el ID sea 0, el artículo aparece
 --    en la tienda como "Próximamente" y no se puede comprar.
 ---------------------------------------------------------------------
-Config.GamePasses = {
-	VIP = {
-		Id = 0,
-		Name = "VIP",
-		Description = "Cobras el DOBLE en todos los trabajos.",
-		Robux = 199,
-		PayMultiplier = 2,
-	},
-	Metabolismo = {
-		Id = 0,
-		Name = "Metabolismo Pro",
-		Description = "El hambre y el cansancio bajan a la mitad de velocidad.",
-		Robux = 99,
-		NeedsMultiplier = 0.5,
-	},
-}
-
-Config.DevProducts = {
-	-- Paquetes de dinero del juego (se pueden comprar muchas veces)
-	{ Key = "Cash1", Id = 0, Name = "Bolsa de dinero", Cash = 1000, Robux = 25 },
-	{ Key = "Cash2", Id = 0, Name = "Maletín de dinero", Cash = 6000, Robux = 99 },
-	{ Key = "Cash3", Id = 0, Name = "Caja fuerte", Cash = 35000, Robux = 399 },
-}
+-- Sin pases VIP ni paquetes de dinero: pagar da VALOR (cosméticos del pase de temporada), nunca
+-- más sueldo, más dinero ni ventajas. El pase de temporada tiene su propio Game Pass en
+-- Shared/BattlePass. Aquí quedan las listas (vacías) por si algún día hay otro artículo cosmético.
+Config.GamePasses = {} :: { [string]: { Id: number, Name: string, Description: string, Robux: number } }
+Config.DevProducts = {} :: { { Key: string, Id: number, Name: string, Cash: number, Robux: number } }
 
 return Config

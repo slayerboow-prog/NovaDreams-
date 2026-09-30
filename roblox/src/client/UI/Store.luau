@@ -110,12 +110,14 @@ function Store.open()
 		Theme.label({ Size = UDim2.new(1, 0, 0, 22), Text = text, Font = Theme.FontBold, TextColor3 = C.Gold, LayoutOrder = order, Parent = list })
 	end
 
-	section("PASES (para siempre)")
 	local passKeys = {}
 	for key in Config.GamePasses do
 		table.insert(passKeys, key)
 	end
 	table.sort(passKeys)
+	if #passKeys > 0 then
+		section("PASES (para siempre)")
+	end
 	for _, key in passKeys do
 		local pass = Config.GamePasses[key]
 		order += 1
@@ -127,7 +129,22 @@ function Store.open()
 		table.insert(connections, player:GetAttributeChangedSignal("Pass_" .. key):Connect(refresh))
 	end
 
-	section("DINERO")
+	if #passKeys == 0 and #Config.DevProducts == 0 then
+		section("PASE DE TEMPORADA")
+		order += 1
+		Theme.label({
+			Size = UDim2.new(1, 0, 0, 60),
+			Text = "Aquí no se vende dinero ni ventajas: todo se gana jugando. Pronto llegará el pase de temporada, con recompensas gratis para todos y una parte premium de cosméticos.",
+			TextWrapped = true,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextYAlignment = Enum.TextYAlignment.Top,
+			LayoutOrder = order,
+			Parent = list,
+		})
+	end
+	if #Config.DevProducts > 0 then
+		section("DINERO")
+	end
 	for _, product in Config.DevProducts do
 		order += 1
 		card(list, order, product.Name, "+" .. Format.money(product.Cash) .. " para gastar en la ciudad.", product.Robux, product.Id, function()

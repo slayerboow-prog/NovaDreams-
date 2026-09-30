@@ -24,21 +24,14 @@ function MonetizationService.hasPass(player: Player, key: string): boolean
 	return player:GetAttribute(passAttribute(key)) == true
 end
 
--- Multiplicador de sueldo (VIP cobra el doble)
+-- Multiplicador de sueldo: SOLO la Suerte del personaje (ProgressionService, +2% por punto).
+-- Nada de pases que paguen más: comprar con Robux nunca da más dinero.
 function MonetizationService.payMultiplier(player: Player): number
-	-- La Suerte del personaje (ProgressionService) suma un 2% por punto
-	local luck = 1 + 0.02 * (player:GetAttribute("Stat_Suerte") or 0)
-	if MonetizationService.hasPass(player, "VIP") then
-		return Config.GamePasses.VIP.PayMultiplier * luck
-	end
-	return luck
+	return 1 + 0.02 * (player:GetAttribute("Stat_Suerte") or 0)
 end
 
--- Multiplicador de gasto de hambre/energía (Metabolismo Pro gasta la mitad)
-function MonetizationService.needsMultiplier(player: Player): number
-	if MonetizationService.hasPass(player, "Metabolismo") then
-		return Config.GamePasses.Metabolismo.NeedsMultiplier
-	end
+-- Gasto de hambre/energía: igual para todos (sin pases que lo reduzcan)
+function MonetizationService.needsMultiplier(_player: Player): number
 	return 1
 end
 
