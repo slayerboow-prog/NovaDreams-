@@ -730,6 +730,39 @@ local function playerObstacles(list: { Obstacle }, center: Vector3, now: number)
 	end
 end
 
+-- Autobuses de las líneas (servidor: BusService, carpeta workspace.Buses): también son obstáculos
+-- (antes los coches parados en un semáforo se dejaban atravesar por el autobús). La lista de los
+-- cercanos se rehace cada medio segundo; su caja sale de vehicleBox (guardada, se remide cada 2 s).
+local BUS_EVERY = 0.5
+local nearBuses: { Model } = {}
+local busesAt = -math.huge
+local function busObstacles(list: { Obstacle }, center: Vector3, now: number)
+	if now - busesAt >= BUS_EVERY then
+		busesAt = now
+		table.clear(nearBuses)
+		local busFolder = workspace:FindFirstChild("Buses")
+		if busFolder then
+			for _, bus in busFolder:GetChildren() do
+				if bus:IsA("Model") then
+					local ok, pivot = pcall(bus.GetPivot, bus)
+					if ok and Vector3.new(pivot.X - center.X, 0, pivot.Z - center.Z).Magnitude <= PLAYER_REACH then
+						table.insert(nearBuses, bus)
+					end
+				end
+			end
+		end
+	end
+	for _, bus in nearBuses do
+		if bus.Parent then
+			local box, size = vehicleBox(bus, now)
+			if box and size and size.Magnitude < 80 then
+				local o = obstacleAt(list, box.Position)
+				o.Box, o.Size = box, size
+			end
+		end
+	end
+end
+
 local blink = 0
 local obstacles: { Obstacle } = {} -- (la misma tabla en cada fotograma)
 local function step(dt: number, center: Vector3)
@@ -737,6 +770,7 @@ local function step(dt: number, center: Vector3)
 	local now = os.clock()
 	table.clear(obstacles)
 	playerObstacles(obstacles, center, now)
+	busObstacles(obstacles, center, now)
 	for _, w in walkers do
 		obstacleAt(obstacles, w)
 	end
