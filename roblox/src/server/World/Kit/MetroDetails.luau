@@ -440,7 +440,7 @@ function MetroDetails.lobby(m: Instance, cf: CFrame, line: Metro.Line, stationId
 	local function at(x: number, y: number, z: number): CFrame
 		return cf * CFrame.new(x, y, z)
 	end
-	local X0, X1, LZ, LH = 17.5, 47.5, 25, 13
+	local X0, X1, LZ, LH = 17.5, 47.5, 25, Metro.Lobby.Height
 	-- Aseos en el rincón del fondo (en Plaza Mayor están en la galería)
 	if not hub then
 		MetroDetails.restroom(m, at(42.9, 0, -4) * CFrame.Angles(0, math.rad(90), 0), 16, 8.6, 8.5, 2)

@@ -287,6 +287,8 @@ function Npc.create(name: string, parent: Instance, cf: CFrame, look: Look?): Mo
 	return model
 end
 
+local UNDERGROUND_Y = -12 -- (la calle está a y ≈ 0; el metro, a -41 y -65)
+
 local function billboard(npc: Model, name: string, offset: number, size: UDim2, quiet: boolean?): TextLabel?
 	local head = npc:FindFirstChild("Head") :: BasePart?
 	if not head then
@@ -300,8 +302,11 @@ local function billboard(npc: Model, name: string, offset: number, size: UDim2, 
 		g.StudsOffset = Vector3.new(0, offset, 0)
 		-- Callado (un oficio normal: dependiente, cajero…): solo de cerca y tapado por las paredes;
 		-- si no, el icono se veía desde toda la calle a través de los edificios
-		g.MaxDistance = if quiet then 15 else 70
-		g.AlwaysOnTop = not quiet
+		-- Bajo tierra (metro: vestíbulos y andenes uno encima de otro, vagones) también callado: por encima
+		-- de todo se veían los iconos flotando a través de techos, suelos y paredes del tren
+		local hidden = quiet == true or head.Position.Y < UNDERGROUND_Y
+		g.MaxDistance = if hidden then 15 else 70
+		g.AlwaysOnTop = not hidden
 		g.Parent = head
 		local label = Instance.new("TextLabel")
 		label.Size = UDim2.fromScale(1, 1)

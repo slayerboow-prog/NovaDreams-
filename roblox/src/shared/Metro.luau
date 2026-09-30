@@ -29,16 +29,16 @@ local rgb = Color3.fromRGB
 --   Stair = X del centro de las escaleras de la calle (junto a la acera)
 --   Edge  = X del borde de la acera (la boca se pavimenta hasta ahí)
 Metro.Stations = {
-	Poniente = { Id = "Poniente", Name = "Poniente", Surface = { -1800, 17.5 }, Facing = { 0, -1 }, Access = { Side = -1, Lanes = 26, Stair = 7.5, Edge = 3.5 } },
+	Poniente = { Id = "Poniente", Name = "Poniente", Surface = { -1800, 17.5 }, Facing = { 0, -1 }, Access = { Side = -1, Lanes = 26, Stair = 8.5, Edge = 3.5 } },
 	PlazaMayor = { Id = "PlazaMayor", Name = "Plaza Mayor", Surface = { -80, -66 }, Facing = { 1, 0 }, Hub = true },
-	Levante = { Id = "Levante", Name = "Levante", Surface = { 1900, 17.5 }, Facing = { 0, -1 }, Access = { Side = -1, Lanes = 26, Stair = 7.5, Edge = 3.5 } },
-	PlayaDorada = { Id = "PlayaDorada", Name = "Playa Dorada", Surface = { 3564, -400 }, Facing = { -1, 0 }, Access = { Side = -1, Lanes = 26, Stair = 7, Edge = 3 } },
-	Norte = { Id = "Norte", Name = "Norte", Surface = { 17.5, -1800 }, Facing = { -1, 0 }, Access = { Side = -1, Lanes = 26, Stair = 7.5, Edge = 3.5 } },
-	SanRoque = { Id = "SanRoque", Name = "San Roque", Surface = { 17.5, 2000 }, Facing = { -1, 0 }, Access = { Side = -1, Lanes = 26, Stair = 7.5, Edge = 3.5 } },
-	Puerto = { Id = "Puerto", Name = "Puerto", Surface = { 700, 3164 }, Facing = { 0, -1 }, Access = { Side = -1, Lanes = 26, Stair = 7, Edge = 3 } },
-	Villaverde = { Id = "Villaverde", Name = "Villaverde", Surface = { -2150, -1832.5 }, Facing = { 0, -1 }, Access = { Side = -1, Lanes = 26, Stair = 7.5, Edge = 3.5 } },
-	Financiero = { Id = "Financiero", Name = "Distrito Financiero", Surface = { 16, -360 }, Facing = { -1, 0 }, Access = { Side = -1, Lanes = 26, Stair = 7.5, Edge = 4 } },
-	Campus = { Id = "Campus", Name = "Campus", Surface = { 2100, 1317.5 }, Facing = { 0, -1 }, Access = { Side = -1, Lanes = 26, Stair = 7.5, Edge = 3.5 } },
+	Levante = { Id = "Levante", Name = "Levante", Surface = { 1900, 17.5 }, Facing = { 0, -1 }, Access = { Side = -1, Lanes = 26, Stair = 8.5, Edge = 3.5 } },
+	PlayaDorada = { Id = "PlayaDorada", Name = "Playa Dorada", Surface = { 3564, -400 }, Facing = { -1, 0 }, Access = { Side = -1, Lanes = 26, Stair = 8, Edge = 3 } },
+	Norte = { Id = "Norte", Name = "Norte", Surface = { 17.5, -1800 }, Facing = { -1, 0 }, Access = { Side = -1, Lanes = 26, Stair = 8.5, Edge = 3.5 } },
+	SanRoque = { Id = "SanRoque", Name = "San Roque", Surface = { 17.5, 2000 }, Facing = { -1, 0 }, Access = { Side = -1, Lanes = 26, Stair = 8.5, Edge = 3.5 } },
+	Puerto = { Id = "Puerto", Name = "Puerto", Surface = { 700, 3164 }, Facing = { 0, -1 }, Access = { Side = -1, Lanes = 26, Stair = 8, Edge = 3 } },
+	Villaverde = { Id = "Villaverde", Name = "Villaverde", Surface = { -2150, -1832.5 }, Facing = { 0, -1 }, Access = { Side = -1, Lanes = 26, Stair = 8.5, Edge = 3.5 } },
+	Financiero = { Id = "Financiero", Name = "Distrito Financiero", Surface = { 16, -360 }, Facing = { -1, 0 }, Access = { Side = -1, Lanes = 26, Stair = 8.5, Edge = 4 } },
+	Campus = { Id = "Campus", Name = "Campus", Surface = { 2100, 1317.5 }, Facing = { 0, -1 }, Access = { Side = -1, Lanes = 26, Stair = 8.5, Edge = 3.5 } },
 } :: { [string]: Station }
 
 -- A qué distrito da servicio cada estación y qué hay cerca (plano, planificador y paneles)
@@ -336,20 +336,23 @@ end
 ---------------------------------------------------------------------
 
 Metro.StreetY = 1 -- altura de la acera
-Metro.HallY = -14 -- suelo del vestíbulo (bajo la calle: su techo queda por debajo de las calzadas)
-Metro.HallHeight = 9
+-- (más hondo y más alto que al principio: su techo, y la cabeza de quien esté dentro, quedan varios
+-- studs por debajo de las calzadas y del terreno: nada asoma por la calle. scripts/test-metro lo mira)
+Metro.HallY = -17 -- suelo del vestíbulo (bajo la calle: su techo queda por debajo de las calzadas)
+Metro.HallHeight = 10
 Metro.Underground = -10 -- por debajo de esto ya estás en el metro (no llueve, no se oye la lluvia)
 Metro.Slope = math.rad(30) -- pendiente de las escaleras mecánicas (y de la escalera fija de al lado)
-Metro.StreetStairs = { Rise = 0.75, Run = 1.2, Flights = { 10, 10 }, Landing = 3.6, Width = 6 }
+-- (8 de ancho: se baja cómodo, dos personas a la par; 12 + 12 peldaños hasta el vestíbulo, que está más hondo)
+Metro.StreetStairs = { Rise = 0.75, Run = 1.2, Flights = { 12, 12 }, Landing = 3.6, Width = 8 }
 Metro.MaxRise = 1.2 -- ningún peldaño más alto que esto
 -- Pozo de las escaleras mecánicas (de izquierda a derecha mirando hacia abajo): mecánica de bajada,
 -- barandilla, escalera fija, barandilla, mecánica de subida. Más las paredes.
-Metro.Shaft = { Escalator = 3, Balustrade = 0.5, Stairs = 3.6, Wall = 0.5, Headroom = 8.8, Speed = 7 }
+Metro.Shaft = { Escalator = 3, Balustrade = 0.5, Stairs = 4.4, Wall = 0.5, Headroom = 8.8, Speed = 7 }
 Metro.Shaft.Width = Metro.Shaft.Escalator * 2 + Metro.Shaft.Balustrade * 2 + Metro.Shaft.Stairs + Metro.Shaft.Wall * 2
 Metro.LandingLength = 5 -- rellanos arriba y abajo de las escaleras mecánicas
 Metro.HallLength = 10 -- vestíbulo entre las escaleras de la calle y las mecánicas
 -- Vestíbulo de andenes (en el marco de la estación)
-Metro.Lobby = { X0 = 17.5, X1 = 47.5, Z = 25, Height = 13 }
+Metro.Lobby = { X0 = 17.5, X1 = 47.5, Z = 25, Height = 15 } -- (Height: techo del vestíbulo de andenes)
 
 -- Plaza Mayor: la boca está en la plaza y las escaleras mecánicas bajan al vestíbulo de la Línea 1
 -- saliendo de su techo (marco de la Línea 1: X hacia el sur, Z hacia el oeste)
@@ -493,7 +496,7 @@ function Metro.access(stationId: string): any
 	-- Un poco más grande por los lados por donde no se entra (y lo que pida la estación)
 	local grow = spec.Grow or {}
 	local function side(axis: Vector3, positive: boolean, localGrow: number?)
-		local amount = 1.5 + (localGrow or 0)
+		local amount = 3 + (localGrow or 0) -- (vestíbulo holgado)
 		-- ¿Por este lado entran las escaleras de la calle o salen las mecánicas? Entonces no crece.
 		local out = if positive then axis else -axis
 		if out:Dot(-sd) > 0.5 or out:Dot(ed) > 0.5 then

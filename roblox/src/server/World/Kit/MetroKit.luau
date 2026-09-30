@@ -473,7 +473,7 @@ local function station(parent: Instance, line: Metro.Line, index: number): (Mode
 	marker(m, "Alight", at(12, 3, 0), "MetroAlight", { Station = id, Line = line.Id })
 
 	-- Vestíbulo (detrás del andén)
-	local X0, X1, LH = 17.5, 47.5, 13
+	local X0, X1, LH = 17.5, 47.5, Metro.Lobby.Height
 	part(m, "LobbyFloor", Vector3.new(X1 - X0, 2, LZ * 2), at((X0 + X1) / 2, -1, 0), rgb(210, 206, 198), Enum.Material.Marble)
 	-- Por dónde llegan las escaleras mecánicas de la boca: por una pared lateral o, en Plaza Mayor,
 	-- bajando del techo
@@ -624,7 +624,7 @@ local function galleria(parent: Instance, cf: CFrame)
 	local function at(x: number, y: number, z: number): CFrame
 		return cf * CFrame.new(x, y, z)
 	end
-	local X0, X1, Z, H = 47.5, 160, 25, 14
+	local X0, X1, Z, H = 47.5, 160, 25, Metro.Lobby.Height
 	part(m, "MallFloor", Vector3.new(X1 - X0, 2, Z * 2 + 22), at((X0 + X1) / 2, -1, 0), rgb(226, 220, 208), Enum.Material.Marble)
 	part(m, "MallCeiling", Vector3.new(X1 - X0 + 2, 1, Z * 2 + 22), at((X0 + X1) / 2, H + 0.5, 0), rgb(40, 44, 54), Enum.Material.SmoothPlastic)
 	part(m, "MallEnd", Vector3.new(1, H + 2, Z * 2 + 20), at(X1 + 0.5, H / 2, 0), TILE, Enum.Material.Marble)
