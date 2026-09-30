@@ -4,6 +4,8 @@
 --   Arriba en el centro    -> la cápsula de la hora, la fecha y el tiempo (y el GPS justo debajo)
 --   Arriba a la derecha    -> el minimapa, pegado a la esquina (las apps del antiguo menú rápido
 --                             están ahora en el menú de comandos)
+--   Junto al minimapa      -> con un arma en la mano, las balas («6 / 120», el arma y SEMI/AUTO), a su
+--                             izquierda, arriba: ni encima del minimapa ni de los botones de disparar
 --   Derecha                -> la misión, justo debajo del minimapa
 --   Izquierda              -> el menú de comandos: en el ordenador abajo a la izquierda; en el móvil
 --                             justo debajo de tu estado (y el joystick abajo a la izquierda)
@@ -56,6 +58,7 @@ HudLayout.Sizes = {
 	Gps = Vector2.new(440, 58), -- indicación del GPS, bajo la cápsula de la hora
 	Help = 76, -- diámetro del botón ❓ "¿Qué hago ahora?"
 	Guide = Vector2.new(640, 150), -- tarjeta de los primeros pasos, pistas y consejos
+	Ammo = Vector2.new(210, 64), -- las balas del arma (Controllers/WeaponController)
 }
 
 -- Racimo de botones táctiles (abajo a la derecha): centro de cada hueco respecto al de Ataque y su radio.
@@ -117,6 +120,8 @@ function HudLayout.compute(viewport: Vector2, options: Options?): Layout
 	items.Clock = place(Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, clockTop), s.Clock)
 	-- El minimapa pegado a la esquina (con el nombre de la zona debajo)
 	items.Minimap = place(Vector2.new(1, 0), UDim2.new(1, -MARGIN, 0, 10), Vector2.new(s.Minimap, s.Minimap + s.MinimapLabel))
+	-- Las balas del arma, a la izquierda del minimapa (entre el reloj y el minimapa)
+	items.Ammo = place(Vector2.new(1, 0), UDim2.new(1, -(MARGIN + s.Minimap + 12), 0, 10), s.Ammo)
 	local missionTop = 10 + s.Minimap + s.MinimapLabel + 10
 	items.Mission = place(Vector2.new(1, 0), UDim2.new(1, -MARGIN, 0, missionTop), s.Mission)
 	-- El botón ❓ a la izquierda de la misión (siempre ahí, aunque no haya misión)

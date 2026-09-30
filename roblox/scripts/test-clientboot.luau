@@ -57,7 +57,7 @@ local CF = setmetatable({
 }, { __index = roblox.CFrame })
 
 local serverLog: { any } = {} -- lo que el cliente manda al servidor (FireServer)
-local SIM_SECONDS = 40 -- tiempo de juego simulado en cada modo
+local SIM_SECONDS = 46 -- tiempo de juego simulado en cada modo
 local FPS = 20
 local REAL_BUDGET = 120 -- segundos reales como mucho en cada modo
 local ROOT = "src"
@@ -2059,6 +2059,32 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean })
 			local mission = hud and hud:FindFirstChild("Mission")
 			local tab = playerGui:FindFirstChild("LifeStoryTab", true)
 			table.insert(checks, { not mode.Touch or not (mission and mission.Visible) or not (tab and tab.Visible), "móvil: con la misión a la vista, la pestaña «Tu vida» se aparta" })
+		end,
+		[math.floor(40.5 * FPS)] = function()
+			local tg = playerGui:FindFirstChild("TouchLayout")
+			local list = {}
+			for _, b in (tg and tg:GetChildren()) or {} do
+				local cap = b:FindFirstChild("Caption")
+				table.insert(list, tostring(b.Name) .. "=" .. tostring(b.Visible) .. ":" .. tostring(cap and cap.Text))
+			end
+			print("PROBE buttons", mode.Name, table.concat(list, ", "))
+			print("PROBE attrs", localPlayer:GetAttribute("StanceLocal"), localPlayer:GetAttribute("InDialogue"), localPlayer:GetAttribute("LifeStage"))
+			local btn = tg and tg:FindFirstChild("Agacharse")
+			if btn then
+				local input = new("InputObject", "InputObject")
+				rawget(input, "__props").UserInputType = Enum.UserInputType.Touch
+				rawget(input, "__props").UserInputState = Enum.UserInputState.Begin
+				table.clear(serverLog)
+				signalOf(btn, "InputBegan"):Fire(input)
+				fakeTask.wait(0.1)
+				rawget(input, "__props").UserInputState = Enum.UserInputState.End
+				signalOf(btn, "InputEnded"):Fire(input)
+				signalOf(uis, "InputEnded"):Fire(input, true)
+				signalOf(btn, "Activated"):Fire(input, 1)
+				fakeTask.wait(0.2)
+				print("PROBE after tap", localPlayer:GetAttribute("StanceLocal"))
+				for _, call in serverLog do print("PROBE server", call.Remote, call.Args[1], call.Args[2]) end
+			end
 		end,
 		[math.floor(39.6 * FPS)] = function()
 			table.insert(checks, { not rowLabels()["Modo pruebas"], "COMANDOS: al quitar Tester, «Modo pruebas» se va" })

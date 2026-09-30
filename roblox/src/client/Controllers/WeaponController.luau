@@ -9,13 +9,14 @@
 --              Recargar (TouchLayout), y arrastrar en la derecha de la pantalla sigue moviendo la cámara.
 --   Menú de comandos: Disparar, Apuntar, Recargar, Objetos, Defensa, Huir.
 --
--- Apuntar (~0,17 s): la cámara se pone por encima del hombro derecho (Humanoid.CameraOffset) y se
--- acerca, el campo de visión se cierra (FootCamera.setAim; con mira telescópica mucho más), el
--- personaje mira hacia donde mira la cámara (AutoRotate apagado), anda más despacio (servidor) y el
--- tronco y los brazos siguen la inclinación de la cámara (WeaponMotion). En ordenador el ratón se
--- queda en el centro mientras apuntas.
+-- Con el arma en la mano la cámara va al hombro derecho (shoulderCamera: la mira del centro queda al
+-- lado del personaje, nunca encima). Apuntar (~0,17 s): la cámara se acerca, el campo de visión se
+-- cierra (FootCamera.setAim; con mira telescópica mucho más), el personaje mira hacia donde mira la
+-- cámara (AutoRotate apagado), anda más despacio (servidor) y el tronco y los brazos siguen la
+-- inclinación de la cámara (WeaponMotion). En ordenador el ratón se queda en el centro mientras apuntas.
 -- Mira: círculo con 4 marcas que se abre con la dispersión (moverte, saltar, disparar seguido) y se
--- pone roja encima de alguien; aspa al acertar. Balas: "12 / 36" abajo a la derecha.
+-- pone roja encima de alguien (apagada si algo se cruza entre el arma y lo que miras); aspa al
+-- acertar. Balas: "12 / 36" arriba a la derecha, junto al minimapa (UI/HudLayout: Items.Ammo).
 -- Retroceso: la cámara salta arriba (y a un lado según el dibujo del arma) y vuelve con un muelle;
 -- el cuerpo lo acusa (WeaponMotion). Agachado y tumbado (atributo Stance) se tiene menos dispersión
 -- y retroceso; tumbado no se apunta hacia atrás ni al suelo. Corriendo o saltando una valla
@@ -68,7 +69,14 @@ local autoRotateSaved: boolean? = nil
 -- Retroceso y balanceo que se pusieron en la cámara el fotograma anterior: la cámara de Roblox parte
 -- de donde la dejamos, así que cada fotograma solo se añade la diferencia (si no, se acumula y se va)
 local lastKick = CFrame.identity
-local aimOffset: Vector3? = nil -- desplazamiento de la cámara apuntando (suavizado al cambiar de postura)
+-- Cámara al hombro (con el arma en la mano, apuntando o no; ver shoulderCamera): cuánto está puesta
+-- (0..1), el desplazamiento (derecha, arriba) que pide el arma suavizado (agacharte o apuntar no hace
+-- saltar la cámara) y la parte que cabe sin meterse en una pared (entra de golpe, sale suave)
+local shoulderAlpha = 0
+local aimOffset: Vector2? = nil
+local shoulderReach = 1
+local baseDistance: number? = nil -- de la cámara de Roblox a tu cabeza, sin el hombro
+local WALL_GAP = 0.6
 
 -- Interfaz
 local gui: ScreenGui
@@ -154,7 +162,8 @@ function WeaponController.setAim(on: boolean)
 	wantAim = want
 	if want then
 		local camera = workspace.CurrentCamera
-		startDistance = (camera.CFrame.Position - camera.Focus.Position).Magnitude
+		-- (la distancia de la cámara de Roblox, sin contar el hombro: si no, crecería cada vez)
+		startDistance = baseDistance or (camera.CFrame.Position - camera.Focus.Position).Magnitude
 		savedMax = savedMax or player.CameraMaxZoomDistance
 	end
 	if Remote then
@@ -185,16 +194,40 @@ local function ignore(): { Instance }
 	return list
 end
 
--- Hacia dónde apunta la mira: (punto, pieza)
+-- Hacia dónde apunta la mira: (punto, pieza). El rayo sale del centro de la pantalla (la cámara va
+-- al hombro, así que la mira queda al lado del personaje), pero empieza a la altura de tu cabeza a lo
+-- largo del rayo: lo que haya entre la cámara y tú (una farola, una esquina) no cuenta. Luego la bala
+-- va de la boca del arma (el servidor: de la cabeza) a ese punto.
 local function aimPoint(range: number): (Vector3, Instance?)
 	local camera = workspace.CurrentCamera
 	local ray = camera:ViewportPointToRay(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
+	local origin = ray.Origin
+	local _, _, head = parts()
+	if head then
+		origin += ray.Direction * math.max(0, (head.Position - ray.Origin):Dot(ray.Direction) - 1)
+	end
 	rayParams.FilterDescendantsInstances = ignore()
-	local result = workspace:Raycast(ray.Origin, ray.Direction * (range + 20), rayParams)
+	local result = workspace:Raycast(origin, ray.Direction * (range + 20), rayParams)
 	if result then
 		return result.Position, result.Instance
 	end
-	return ray.Origin + ray.Direction * range, nil
+	return origin + ray.Direction * range, nil
+end
+
+-- ¿Choca la bala con algo antes de llegar a donde mira la mira? (de la cabeza, como el servidor)
+-- Devuelve dónde choca o nil si el camino está libre.
+local function blockedAt(target: Vector3): Vector3?
+	local _, _, head = parts()
+	if not head then
+		return nil
+	end
+	local path = target - head.Position
+	if path.Magnitude < 1.5 then
+		return nil
+	end
+	rayParams.FilterDescendantsInstances = ignore()
+	local hit = workspace:Raycast(head.Position, path.Unit * (path.Magnitude - 1), rayParams)
+	return if hit then hit.Position else nil
 end
 
 local function isPerson(part: Instance?): boolean
@@ -263,12 +296,14 @@ function WeaponController.fire()
 	-- Lo que se ve y se oye al momento en tu pantalla
 	local model = gunModel(player.Character)
 	local muzzle = muzzleOf(model) or head.CFrame
-	local shotCf = CFrame.lookAt(muzzle.Position, target)
+	-- (la bala sale del arma: si algo se cruza antes del punto de la mira, el trazo acaba ahí)
+	local shown = blockedAt(target) or target
+	local shotCf = CFrame.lookAt(muzzle.Position, shown)
 	WeaponFx.muzzle(shotCf, w)
 	for _ = 1, math.min(w.Pellets, 4) do
 		local spread = Weapons.spread(w, { Aiming = aimAlpha > 0.5, Speed = Vector3.new(root.AssemblyLinearVelocity.X, 0, root.AssemblyLinearVelocity.Z).Magnitude, Stance = st, Bloom = bloom })
-		local d = Weapons.scatter((target - muzzle.Position).Unit, spread, math.random(), math.random())
-		WeaponFx.tracer(muzzle.Position, muzzle.Position + d * (target - muzzle.Position).Magnitude, w)
+		local d = Weapons.scatter((shown - muzzle.Position).Unit, spread, math.random(), math.random())
+		WeaponFx.tracer(muzzle.Position, muzzle.Position + d * (shown - muzzle.Position).Magnitude, w)
 	end
 	WeaponFx.shotSound(w, muzzle.Position)
 	WeaponFx.casings(model, w, "Shot")
@@ -491,15 +526,18 @@ local function updateReticle(w: Weapons.Weapon?, speed: number)
 	for i, tick in ticks do
 		tick.Position = UDim2.new(0.5, offsets[i].X, 0.5, offsets[i].Y)
 	end
-	local _, part = aimPoint(w.Range)
-	local onTarget = isPerson(part)
+	local point, part = aimPoint(w.Range)
+	-- Si algo se cruza entre el arma y lo que miras (una esquina a tu derecha), la mira se apaga un poco
+	-- y no se pone roja: la bala daría en eso
+	local blocked = blockedAt(point) ~= nil
+	local onTarget = isPerson(part) and not blocked
 	local color = if onTarget then rgb(255, 60, 60) else Color3.new(1, 1, 1)
 	ring.Color = color
 	dot.BackgroundColor3 = color
 	for _, tick in ticks do
 		tick.BackgroundColor3 = color
 	end
-	ring.Transparency = if lowered() then 0.7 else 0.15
+	ring.Transparency = if lowered() then 0.7 elseif blocked then 0.55 else 0.15
 	-- Aspa de acierto (blanca; roja si le has dejado K.O.)
 	local age = os.clock() - hitMarker
 	marker.Visible = age < 0.25
@@ -649,6 +687,77 @@ local function releaseCamera()
 	end
 end
 
+-- Cámara al hombro. Corre justo después de la cámara de Roblox (que mira a tu cabeza desde detrás):
+-- la aparta a la derecha en SU eje (no en el del cuerpo, que gira al andar) y arriba o abajo según la
+-- postura, lo justo para que la mira del centro quede al lado del personaje y no encima
+-- (Weapons.shoulderOffset). Entra y sale suave (Shoulder.Blend); primera persona, otra cámara
+-- (vehículo, cinemática, conversación: CameraType o CameraSubject distintos) = sin hombro al momento.
+-- Choque: de la cabeza al hombro y del hombro a la cámara, sin atravesar paredes (entra de golpe,
+-- vuelve suave). La posición de la cámara la recalcula Roblox cada fotograma: no se acumula.
+local camParams = RaycastParams.new()
+camParams.FilterType = Enum.RaycastFilterType.Exclude
+camParams.IgnoreWater = true
+camParams.RespectCanCollide = true
+
+local function shoulderCamera(dt: number, want: boolean, w: Weapons.Weapon?, humanoid: Humanoid, aimEased: number, camStance: string?)
+	local S = Weapons.Shoulder
+	local camera = workspace.CurrentCamera
+	if camera.CameraType ~= Enum.CameraType.Custom or camera.CameraSubject ~= humanoid then
+		shoulderAlpha, shoulderReach, aimOffset, baseDistance = 0, 1, nil, nil
+		return
+	end
+	local cf = camera.CFrame
+	local focus = camera.Focus.Position
+	local distance = (cf.Position - focus).Magnitude
+	baseDistance = distance
+	if distance < S.FirstPerson then
+		shoulderAlpha, aimOffset = 0, nil
+		return
+	end
+	shoulderAlpha = math.clamp(shoulderAlpha + (if want then dt else -dt) / S.Blend, 0, 1)
+	if shoulderAlpha <= 0 then
+		aimOffset = nil
+		return
+	end
+	if w then
+		-- Lo que abre la mira quieto (desde la cadera o apuntando): el personaje, fuera de ella
+		local height, fov = camera.ViewportSize.Y, camera.FieldOfView
+		local hipOuter = Weapons.reticleOuter(w, Weapons.spread(w, { Stance = camStance }), fov, height)
+		local aimOuter = Weapons.reticleOuter(w, Weapons.spread(w, { Aiming = true, Stance = camStance }), fov, height)
+		local x, y = Weapons.shoulderOffset(distance, fov, height, hipOuter + (aimOuter - hipOuter) * aimEased, camStance)
+		local goal = Vector2.new(x, y)
+		aimOffset = if aimOffset then aimOffset:Lerp(goal, 1 - math.exp(-10 * dt)) else goal
+	end
+	local offset = aimOffset
+	local right = Vector3.new(cf.RightVector.X, 0, cf.RightVector.Z)
+	if not offset or right.Magnitude < 1e-3 then
+		return
+	end
+	local e = shoulderAlpha * shoulderAlpha * (3 - 2 * shoulderAlpha)
+	-- (arriba en el eje de la cámara: el desplazamiento no cambia la distancia a la cabeza)
+	local shift = right.Unit * (offset.X * e) + cf.UpVector * (offset.Y * e)
+	camParams.FilterDescendantsInstances = ignore()
+	local length = shift.Magnitude
+	local reach = 1
+	if length > 1e-3 then
+		local hit = workspace:Raycast(focus, shift.Unit * (length + WALL_GAP), camParams)
+		if hit then
+			reach = math.max(0, hit.Distance - WALL_GAP) / length
+		end
+	end
+	shoulderReach = if reach < shoulderReach then reach else math.min(reach, shoulderReach + dt * 2.5)
+	local pivot = focus + shift * shoulderReach
+	local position = cf.Position + shift * shoulderReach
+	local back = position - pivot
+	if back.Magnitude > 1e-3 then
+		local hit = workspace:Raycast(pivot, back.Unit * (back.Magnitude + WALL_GAP), camParams)
+		if hit then
+			position = pivot + back.Unit * math.max(0.5, hit.Distance - WALL_GAP)
+		end
+	end
+	camera.CFrame = CFrame.new(position) * cf.Rotation
+end
+
 local function frame(dt: number)
 	local w = weapon()
 	local humanoid, root, head = parts()
@@ -668,6 +777,10 @@ local function frame(dt: number)
 		lastKick = CFrame.identity
 		updateReticle(nil, 0)
 		WeaponMotion.setLocal(0, 0, 0, 0, 0)
+		-- Al guardar el arma la cámara vuelve del hombro poco a poco
+		if humanoid then
+			shoulderCamera(dt, false, nil, humanoid, 0, nil)
+		end
 		return
 	end
 	local st = stance()
@@ -675,13 +788,10 @@ local function frame(dt: number)
 	aimAlpha = math.clamp(aimAlpha + (if aiming then dt else -dt) / AIM.BlendTime, 0, 1)
 	local eased = aimAlpha * aimAlpha * (3 - 2 * aimAlpha)
 
-	-- Cámara al hombro (tumbado, más baja) y más cerca; campo de visión más cerrado
-	-- (la postura de tu pantalla, sin esperar al servidor; y con transición: agacharte apuntando no
-	-- hace saltar la cámara)
+	-- Apuntando: la cámara se acerca y el campo de visión se cierra (el hombro lo pone shoulderCamera,
+	-- más abajo, con la postura de tu pantalla sin esperar al servidor y con transición: agacharte
+	-- apuntando no hace saltar la cámara)
 	local camStance = player:GetAttribute("StanceLocal") or st
-	local offset = if camStance == "Prone" then Vector3.new(1.4, -1.2, 0) elseif camStance == "Crouch" then Vector3.new(1.8, -0.2, 0) else AIM.CameraOffset
-	aimOffset = if aimOffset and aimAlpha > 0 then aimOffset:Lerp(offset, 1 - math.exp(-10 * dt)) else offset
-	humanoid.CameraOffset = (aimOffset :: Vector3) * eased
 	local fov = if w.Scope and holdBreath then w.AimFov * 0.85 else w.AimFov
 	FootCamera.setAim(eased, fov)
 	if aimAlpha > 0 then
@@ -716,6 +826,9 @@ local function frame(dt: number)
 	local kick = CFrame.Angles(camPitch + math.rad(swayUp) * swayK, camYaw + math.rad(swaySide) * swayK, 0)
 	camera.CFrame = camera.CFrame * lastKick:Inverse() * kick
 	lastKick = kick
+	-- Al hombro con el arma en la mano (apuntando o no); no montado, sentado ni K.O.
+	local mounted = humanoid.SeatPart ~= nil or player:GetAttribute("Riding") ~= nil or player:GetAttribute("Passenger") ~= nil
+	shoulderCamera(dt, not mounted and not player:GetAttribute("KO"), w, humanoid, eased, if type(camStance) == "string" then camStance else nil)
 	-- Sin apuntar y con el muelle ya quieto: se empieza de cero la próxima vez
 	if aimAlpha <= 0 and math.abs(camPitch) + math.abs(camYaw) < 1e-4 then
 		lastKick = CFrame.identity

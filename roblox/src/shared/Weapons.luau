@@ -117,11 +117,49 @@ Weapons.Fx = {
 -- Postura y cámara al apuntar
 Weapons.Aim = {
 	BlendTime = 0.17, -- lo que tarda en ponerse al hombro
-	CameraOffset = Vector3.new(1.9, 0.35, 0), -- por encima del hombro derecho
 	Zoom = 7, -- distancia de la cámara apuntando
 	WalkFactor = 0.55, -- andar apuntando es más lento
 	Fov = 55,
 }
+
+-- Cámara al hombro con el arma en la mano (apuntando o no): la mira va en el centro de la pantalla y
+-- la cámara se aparta a la derecha (en el eje de la cámara, no del cuerpo) lo justo para que el
+-- personaje quede a la izquierda de la mira y nunca debajo de ella. WeaponController la aplica
+-- después de la cámara de Roblox, con choque contra paredes; aquí solo las cuentas (test-weapons).
+Weapons.Shoulder = {
+	HalfWidth = 1.7, -- medio ancho del personaje con el arma en la mano derecha (studs)
+	TickPx = 14, -- lo que asoman las marcas de la mira fuera del círculo (con su borde)
+	MarginPx = 10, -- hueco mínimo entre la mira y el personaje (píxeles)
+	Min = 1.9, -- nunca menos que esto (el hombro de siempre)
+	Max = 16, -- ni más (con la cámara muy lejos)
+	FirstPerson = 1.6, -- con la cámara más cerca que esto es primera persona: sin hombro
+	Blend = 0.3, -- lo que tarda en ponerse o quitarse (s)
+	Up = { Stand = 0.35, Crouch = -0.2, Prone = -1.2 }, -- altura sobre la cabeza según la postura
+}
+
+-- Radio exterior de la mira en píxeles (círculo con sus topes + las marcas)
+function Weapons.reticleOuter(w: Weapon, spreadDeg: number, fov: number, viewportHeight: number): number
+	local radius = math.clamp(Weapons.reticleRadius(spreadDeg, fov, viewportHeight), 6, 140)
+	if w.Pellets > 1 then
+		radius = math.max(radius, 22)
+	end
+	return radius + Weapons.Shoulder.TickPx
+end
+
+-- Desplazamiento de la cámara al hombro, en el eje de la cámara: (a la derecha, arriba) en studs.
+-- distance = de la cámara a la cabeza; outerPx = Weapons.reticleOuter. El personaje (medio ancho
+-- HalfWidth) queda a la izquierda del centro con al menos outerPx + MarginPx de hueco.
+function Weapons.shoulderOffset(distance: number, fov: number, viewportHeight: number, outerPx: number, stance: string?): (number, number)
+	local S = Weapons.Shoulder
+	if distance < S.FirstPerson then
+		return 0, 0
+	end
+	local halfTan = math.tan(math.rad(fov / 2))
+	local clearTan = (outerPx + S.MarginPx) / math.max(viewportHeight / 2, 1) * halfTan
+	local right = math.clamp(S.HalfWidth + distance * clearTan, S.Min, S.Max)
+	local up = S.Up[stance or "Stand"] or S.Up.Stand
+	return right, up
+end
 
 ---------------------------------------------------------------------
 -- Modelos (hechos con piezas; empuñadura en el origen, cañón hacia -Z)
