@@ -608,7 +608,6 @@ if placePath then
 	local world = node("src/server/World", nil)
 	local Interiors = requireModule(world.Interiors)
 	local lab = roblox.Instance.new("Folder")
-	local villa = villas[1]
 	local room = Interiors.Villa(lab, CFrame.new(0, 6000, 0), { Seed = "Villa_1_1:0", Floor = 0, Floors = 1 })
 	local entry, exitDoor, floor
 	for _, d in room.Model:GetDescendants() do
@@ -629,17 +628,35 @@ if placePath then
 		check(hit == nil, "al entrar no apareces dentro de una pared ni de un mueble" .. (if hit then " (" .. hit.Name .. ")" else ""))
 		check((exitDoor.CFrame.Position - entry.CFrame.Position).Magnitude < 10, "la puerta para salir está a unos pasos de donde apareces")
 	end
-	if villa then
-		-- Al salir: en la terraza de la villa, delante de su puerta y sin chocar con nada del mapa
-		local near = {}
+	if #villas > 0 then
+		-- Al salir: en la terraza de cada villa, delante de su puerta y sin chocar con nada del mapa
+		local near: { [number]: { any } } = {}
+		for i in villas do
+			near[i] = {}
+		end
 		for _, p in town:GetDescendants() do
-			if p:IsA("BasePart") and p.CanCollide and p.Transparency < 1 and (Vector3.new(p.CFrame.Position.X, 0, p.CFrame.Position.Z) - Vector3.new(villa.Exit.X, 0, villa.Exit.Z)).Magnitude < 60 then
-				table.insert(near, p)
+			if p:IsA("BasePart") and p.CanCollide and p.Transparency < 1 then
+				local at = p.CFrame.Position
+				local reach = 30 + math.max(p.Size.X, p.Size.Z) / 2
+				for i, v in villas do
+					if math.abs(at.X - v.Exit.X) < reach and math.abs(at.Z - v.Exit.Z) < reach then
+						table.insert(near[i], p)
+					end
+				end
 			end
 		end
-		local hit = bodyBlocked(near, villa.Exit)
-		check(hit == nil, "al salir de la villa apareces delante de su puerta, sin chocar con nada" .. (if hit then " (" .. hit:GetFullName() .. ")" else ""))
-		check((villa.Exit - villa.Door.CFrame.Position).Magnitude < 9, "y a unos pasos de la puerta (el cartel de entrar sale al acercarse a ella)")
+		local bad, far = {}, 0
+		for i, v in villas do
+			local hit = bodyBlocked(near[i], v.Exit)
+			if hit then
+				table.insert(bad, hit:GetFullName())
+			end
+			if (v.Exit - v.Door.CFrame.Position).Magnitude >= 9 then
+				far += 1
+			end
+		end
+		check(#bad == 0, ("al salir de una villa apareces delante de su puerta, sin chocar con nada (%d de %d chocan)"):format(#bad, #villas) .. sample(bad))
+		check(far == 0, "y a unos pasos de la puerta (el cartel de entrar sale al acercarse a ella)")
 	end
 	lab:Destroy()
 end

@@ -237,5 +237,176 @@ for id in Metro.Stations do
 	check(gaps == 0 and blocks == 0, id .. ": de la acera al andén andando, sin huecos ni nada en medio")
 end
 
+print("Tornos: pasar y quedarse en el andén (niño, adulto con y sin billete, modo pruebas)")
+-- Lo mismo que hace MetroService con los tornos (Metro.gatePass / gateSide / gatePromptAt / gateLanding)
+-- sobre los tornos de verdad del mapa. Un "toque de Interactuar" pulsa el cartel que va primero en
+-- COMANDOS: el de más prioridad (MenuLogic.byPriority) y, a igualdad, el más cercano, entre los que
+-- llegan hasta ti (MaxActivationDistance de cada cartel, como en MetroService/MetroLifeService).
+local MenuLogic = luau.load(fs.readFile("src/client/Commands/MenuLogic.luau"), { debugName = "MenuLogic", environment = env })()
+local G = Metro.Gate
+local function stationKey(p: any): string
+	local node = p
+	while node and not string.find(node.Name, "^Estacion_") do
+		node = node.Parent
+	end
+	return if node then node.Name else "?"
+end
+type P = { Kind: string, Action: string, At: Vector3, Reach: number, Priority: number, Part: any }
+local byStation: { [string]: { P } } = {}
+local function add(p: any, entry: P)
+	local key = stationKey(p)
+	byStation[key] = byStation[key] or {}
+	table.insert(byStation[key], entry)
+end
+for _, g in tagged.MetroGate or {} do
+	add(g, { Kind = "Gate", Action = "Pasar (billete)", At = Metro.gatePromptAt(g.CFrame.Position, g:GetAttribute("Through")), Reach = G.Reach, Priority = G.Priority, Part = g })
+end
+for _, g in tagged.MetroGateExit or {} do
+	add(g, { Kind = "Exit", Action = "Salir", At = Metro.gatePromptAt(g.CFrame.Position, g:GetAttribute("Through")), Reach = G.ExitReach, Priority = G.Priority, Part = g })
+end
+for _, b in tagged.MetroBoard or {} do
+	add(b, { Kind = "Board", Action = "Subir al metro", At = b.CFrame.Position, Reach = 7, Priority = G.Priority, Part = b })
+end
+for _, b in tagged.MetroIntercom or {} do
+	add(b, { Kind = "SOS", Action = "Pulsar SOS", At = b.CFrame.Position, Reach = 6, Priority = Metro.AmbientPriority, Part = b })
+end
+for _, b in tagged.MetroBin or {} do
+	add(b, { Kind = "Bin", Action = "Rebuscar", At = b.CFrame.Position, Reach = 7, Priority = Metro.AmbientPriority, Part = b })
+end
+for _, nest in tagged.MetroRatNest or {} do
+	-- La rata corretea entre A y B (a ras de suelo): se prueba el tramo entero
+	local a, b = nest:GetAttribute("A"), nest:GetAttribute("B")
+	for i = 0, 10 do
+		add(nest, { Kind = "Rat", Action = "Espantar", At = a:Lerp(b, i / 10) + Vector3.new(0, 0.35, 0), Reach = 7, Priority = Metro.AmbientPriority, Part = nest })
+	end
+end
+-- El primero de COMANDOS desde una posición (o nil)
+local function interact(key: string, at: Vector3): P?
+	local list = {}
+	for _, p in byStation[key] or {} do
+		local d = (p.At - at).Magnitude
+		if d <= p.Reach then
+			table.insert(list, { P = p, Distance = d })
+		end
+	end
+	table.sort(list, function(x, y)
+		return x.Distance < y.Distance
+	end)
+	local ordered = MenuLogic.byPriority(list, function(t)
+		return t.P.Priority
+	end)
+	return ordered[1] and ordered[1].P
+end
+local function reachable(key: string, at: Vector3, kind: string): boolean
+	for _, p in byStation[key] or {} do
+		if p.Kind == kind and (p.At - at).Magnitude <= p.Reach + 0.3 then
+			return true
+		end
+	end
+	return false
+end
+local function hasFloor(q: Vector3): boolean
+	for _, p in (under :: any):GetDescendants() do
+		if p:IsA("BasePart") and p.CanCollide and inside(p, q, 0.02) then
+			return true
+		end
+	end
+	return false
+end
+local glassOf: { [string]: any } = {}
+for _, p in (under :: any):GetDescendants() do
+	if p:IsA("BasePart") and p.Name == "GateGlass" then
+		glassOf[stationKey(p)] = p
+	end
+end
+local WHO = {
+	{ Name = "niño", Who = { Stage = "Nino", Tickets = 0 }, Mode = "Gratis" },
+	{ Name = "adulto con billete", Who = { Stage = "Adulto", Tickets = 1 }, Mode = "Billete" },
+	{ Name = "adulto sin billete", Who = { Stage = "Adulto", Tickets = 0 }, Mode = nil },
+	{ Name = "modo pruebas", Who = { Stage = "Adulto", Tickets = 0, Tester = true }, Mode = "Pruebas" },
+	{ Name = "con abono", Who = { Stage = "Adulto", Tickets = 0, Pass = true }, Mode = "Abono" },
+}
+for _, case in WHO do
+	check(Metro.gatePass(case.Who) == case.Mode, ("%s: %s"):format(case.Name, tostring(case.Mode or "no pasa")))
+end
+local gatesOk, sideOk, stayOk, reachOk, stealOk, exitOk, floorOk = 0, 0, 0, 0, 0, 0, 0
+local nGates, nExits = #(tagged.MetroGate or {}), #(tagged.MetroGateExit or {})
+local shown = 0
+local function fail(text: string)
+	shown += 1
+	if shown <= 12 then
+		print("     " .. text)
+	end
+end
+for _, g in tagged.MetroGate or {} do
+	local key = stationKey(g)
+	local through = g:GetAttribute("Through")
+	local glass = glassOf[key]
+	local dir = Metro.gateDirection(g.CFrame.Position, through)
+	-- 1) Delante del torno (vestíbulo), el primer comando es "Pasar (billete)" (ni ratas ni SOS)
+	local front = Metro.gatePromptAt(g.CFrame.Position, through) + Vector3.new(0, 1.3 - G.PromptHeight, 0) - dir * 0.5
+	local first = interact(key, front)
+	if first and first.Kind == "Gate" then
+		stealOk += 1
+	else
+		fail(("%s: delante del torno el primer comando es %s"):format(key, if first then first.Action else "nada"))
+	end
+	-- 2) El torno le usa desde el vestíbulo; te deja al otro lado del cristal, con suelo y en el andén
+	local landing = Metro.gateLanding(g.CFrame.Position, through)
+	local sideGlass = glass and Metro.gateSide(g.CFrame.Position, through, glass.CFrame.Position) or math.huge
+	if Metro.gateSide(g.CFrame.Position, through, front) < 0 and Metro.gateSide(g.CFrame.Position, through, landing.Position) > sideGlass + 1 then
+		sideOk += 1
+	else
+		fail(key .. ": el torno no te deja al otro lado del cristal")
+	end
+	if hasFloor(through - Vector3.new(0, 3.25, 0)) then
+		floorOk += 1
+	else
+		fail(key .. ": sin suelo donde te deja el torno")
+	end
+	if landing.LookVector:Dot(dir) > 0.99 then
+		gatesOk += 1
+	else
+		fail(key .. ": te deja mirando al torno")
+	end
+	-- 3) Ya en el andén: el torno no llega ("Pasar (billete)" no sale) y un segundo toque de
+	--    Interactuar no te devuelve al vestíbulo (ni "Salir" ni "Pasar" van primero)
+	local again = interact(key, landing.Position)
+	if not reachable(key, landing.Position, "Gate") and not reachable(key, landing.Position, "Exit") and not (again and (again.Kind == "Gate" or again.Kind == "Exit")) then
+		stayOk += 1
+	else
+		fail(("%s: en el andén el primer comando es %s"):format(key, if again then again.Action else "nada"))
+	end
+	-- 4) Pegado al cristal por el lado del andén, "Pasar (billete)" tampoco llega
+	local platformSide = g.CFrame.Position + dir * (sideGlass + 1) + Vector3.new(0, 1.3, 0)
+	if not reachable(key, platformSide, "Gate") then
+		reachOk += 1
+	else
+		fail(key .. ": 'Pasar (billete)' se ve desde el andén")
+	end
+end
+for _, g in tagged.MetroGateExit or {} do
+	local key = stationKey(g)
+	local through = g:GetAttribute("Through")
+	local glass = glassOf[key]
+	local dir = Metro.gateDirection(g.CFrame.Position, through)
+	local sideGlass = glass and Metro.gateSide(g.CFrame.Position, through, glass.CFrame.Position) or math.huge
+	local lobbySide = g.CFrame.Position + dir * (sideGlass + 1) + Vector3.new(0, 1.3, 0)
+	local landing = Metro.gateLanding(g.CFrame.Position, through).Position
+	-- "Salir" solo desde el andén, y te deja en el vestíbulo con suelo
+	if not reachable(key, lobbySide, "Exit") and Metro.gateSide(g.CFrame.Position, through, landing) > sideGlass + 1 and hasFloor(through - Vector3.new(0, 3.25, 0)) then
+		exitOk += 1
+	else
+		fail(key .. ": el torno de salida se ve desde el vestíbulo o no te deja en él")
+	end
+end
+check(nGates > 0 and stealOk == nGates, ("delante de cada torno, Interactuar pulsa «Pasar (billete)» (%d/%d)"):format(stealOk, nGates))
+check(sideOk == nGates and floorOk == nGates and gatesOk == nGates, ("el torno te deja en el andén, con suelo y mirando hacia delante (%d/%d)"):format(math.min(sideOk, floorOk, gatesOk), nGates))
+check(stayOk == nGates, ("en el andén, ni «Pasar (billete)» ni «Salir» te devuelven con otro toque (%d/%d)"):format(stayOk, nGates))
+check(reachOk == nGates, ("«Pasar (billete)» no se ve desde el andén (%d/%d)"):format(reachOk, nGates))
+check(nExits > 0 and exitOk == nExits, ("«Salir» solo desde el andén y te deja en el vestíbulo (%d/%d)"):format(exitOk, nExits))
+check(Metro.gateSide(Vector3.new(0, 0, 0), Vector3.new(-4, 0, 0), Vector3.new(3, 0, 0)) < 0 and Metro.gateSide(Vector3.new(0, 0, 0), Vector3.new(-4, 0, 0), Vector3.new(-4, 0, 0)) > 0, "desde el otro lado, el torno no hace nada (ni cobra ni te mueve)")
+check(G.Grace >= 1.5, "tras cruzar un torno, un segundo toque no te devuelve (Metro.Gate.Grace)")
+
 print(if failures == 0 then "\nTodo bien ✅" else ("\n%d fallos ❌"):format(failures))
 process.exit(if failures == 0 then 0 else 1)

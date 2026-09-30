@@ -678,7 +678,7 @@ local function onTransfer(player: Player, marker: BasePart)
 	end
 end
 
--- Cuándo pasó cada jugador un torno de entrada (el de salida no le devuelve al vestíbulo enseguida)
+-- Cuándo cruzó cada jugador un torno (un segundo toque de Interactuar no le devuelve al otro lado)
 local passedGateAt: { [Player]: number } = {}
 Players.PlayerRemoving:Connect(function(player)
 	passedGateAt[player] = nil
@@ -706,8 +706,9 @@ local function onUseSide(player: Player, gate: BasePart): boolean
 end
 
 local function onGate(player: Player, gate: BasePart)
-	if not onUseSide(player, gate) then
-		return -- (ya está en el andén: el torno no le vuelve a pasar ni le cobra otro billete)
+	-- (ya está en el andén, o acaba de salir por el torno de salida: ni le vuelve a pasar ni le cobra)
+	if not onUseSide(player, gate) or os.clock() - (passedGateAt[player] or -math.huge) < Metro.Gate.Grace then
+		return
 	end
 	local job = player:GetAttribute("Job")
 	local pass = MetroService.passOf(player)
@@ -747,6 +748,7 @@ local function onGateExit(player: Player, gate: BasePart)
 		return
 	end
 	crossGate(player, gate)
+	passedGateAt[player] = os.clock()
 	player:SetAttribute("MetroTicket", nil)
 end
 

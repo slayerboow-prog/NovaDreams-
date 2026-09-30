@@ -93,9 +93,9 @@ Metro.FreeStages = { Bebe = true, Nino = true }
 Metro.Gate = {
 	Reach = 5, -- alcance del cartel de "Pasar (billete)"
 	ExitReach = 4, -- alcance del de "Salir"
-	PromptOffset = 2.5, -- el cartel, a esta distancia del torno (hacia el lado desde el que se usa)
+	PromptOffset = 3, -- el cartel, a esta distancia del torno (hacia el lado desde el que se usa)
 	PromptHeight = 1, -- …y esto por encima de su centro
-	Grace = 2.5, -- segundos tras pasar en los que el torno de salida no te devuelve al vestíbulo
+	Grace = 2.5, -- segundos tras cruzar un torno en los que otro no te devuelve (doble toque sin querer)
 	Priority = 1, -- PromptPriority de los carteles de los tornos (van antes que ratas, interfonos…)
 }
 -- Cosas "de ambiente" (ratas, interfono, papeleras): nunca le quitan el botón Interactuar a un torno
@@ -123,7 +123,8 @@ end
 
 -- Dónde y mirando a dónde te deja el torno (de espaldas al torno, hacia el andén o el vestíbulo)
 function Metro.gateLanding(gatePos: Vector3, through: Vector3): CFrame
-	return CFrame.lookAt(through, through + Metro.gateDirection(gatePos, through))
+	local d = Metro.gateDirection(gatePos, through)
+	return CFrame.new(through) * CFrame.Angles(0, math.atan2(-d.X, -d.Z), 0)
 end
 
 -- ¿Pasa el torno y cómo? who: { Stage, Job, FreeJob, Pass, Tester, Tickets }. Devuelve el modo

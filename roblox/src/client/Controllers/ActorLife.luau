@@ -245,6 +245,22 @@ local function rigJoints(model: Model): ({ [string]: any }, any?)
 	return joints, rootJoint
 end
 
+-- Al aplicar el aspecto (AvatarService, al aparecer y al cambiar de edad) Roblox cambia las piezas
+-- del cuerpo y con ellas las articulaciones: las viejas ya no mueven nada. Se vuelven a buscar.
+-- Devuelve true si ha cambiado algo.
+local function refreshJoints(rig: any): boolean
+	if not Joints.stale(rig.Joints, rig.Model) then
+		return false
+	end
+	local joints, rootJoint = rigJoints(rig.Model)
+	if not joints.Neck then
+		return false
+	end
+	rig.Joints, rig.RootJoint = joints, rootJoint
+	rig.Hip = Joints.find(rig.Model, "LeftHip") or rig.Model:FindFirstChild("LeftHip", true)
+	return true
+end
+
 -- Registra a un personaje. Devuelve "wait" si aún no ha llegado entero a tu pantalla (se reintenta)
 local function register(model: Model): string
 	if rigs[model] then
@@ -1285,14 +1301,7 @@ function ActorLife.init()
 			for _, rig in nextActive do
 				if not rig.Active then
 					rig.Active = true
-					-- (al aplicar el aspecto Roblox cambia las piezas y sus articulaciones: se vuelven a buscar)
-					if Joints.stale(rig.Joints, rig.Model) then
-						local joints, rootJoint = rigJoints(rig.Model)
-						if joints.Neck then
-							rig.Joints, rig.RootJoint = joints, rootJoint
-							rig.Hip = Joints.find(rig.Model, "LeftHip") or rig.Model:FindFirstChild("LeftHip", true)
-						end
-					end
+					refreshJoints(rig)
 					-- La postura base se lee al empezar (quieto está como lo dejó el servidor: si le cambiaron
 					-- el tamaño, se usa el nuevo). Con la guardia puesta no: los brazos en guardia se quedarían
 					-- como su postura de descanso; entonces se deja la que tenía
@@ -1315,6 +1324,12 @@ function ActorLife.init()
 							rig.Own = false
 						end
 					end
+				elseif refreshJoints(rig) then
+					-- Piezas nuevas: su C0 de ahora es su postura base (nadie las ha tocado aún)
+					for name, joint in rig.Joints do
+						rig.Base[name] = Joints.c0(joint)
+					end
+					rig.Scale = scaleOf(rig.Model)
 				else
 					pcall(rescale, rig)
 				end
@@ -1360,5 +1375,8 @@ function ActorLife.init()
 		task.delay(1, tryRegister, character, 0)
 	end)
 end
+
+-- Para las pruebas (scripts/test-joints.luau)
+ActorLife._rigJoints = rigJoints
 
 return ActorLife

@@ -3990,16 +3990,19 @@ end
 check(InventoryService.count(leo, "Pez_TiburonAzul") == 1, "a varios arponazos saca el tiburón azul")
 -- Sin estar bajo el agua no se dispara
 local t2 = DivingService.spawn(ana, Fishing.byId.Trucha, where + Vector3.new(4, 0, 0), "Rio")
-ana.Character.Head.CFrame = CFrame.new(where + Vector3.new(0, 20, 0))
+anaRoot.CFrame = CFrame.new(where + Vector3.new(0, 20, 0)) -- (bajo el agua se mira el centro del cuerpo: Shared/Swim)
+ana.Character.Head.CFrame = CFrame.new(where + Vector3.new(0, 21.5, 0))
 D:Fire(ana, "Shoot", t2)
 check(t2.Parent ~= nil and InventoryService.count(ana, "Pez_Trucha") == 1, "fuera del agua no se dispara")
 -- Aire: sin aire pierdes vida; al salir se recupera; con gafas aguantas más
+anaRoot.CFrame = CFrame.new(where)
 ana.Character.Head.CFrame = CFrame.new(where + Vector3.new(0, 1.5, 0))
 ana:SetAttribute("Oxygen", 1)
 local health = anaHum.Health
 task.wait(2.2)
 check(anaHum.Health < health and notified(ana, "sin aire"), "sin aire pierdes vida")
-ana.Character.Head.CFrame = CFrame.new(where + Vector3.new(0, 20, 0))
+anaRoot.CFrame = CFrame.new(where + Vector3.new(0, 20, 0))
+ana.Character.Head.CFrame = CFrame.new(where + Vector3.new(0, 21.5, 0))
 task.wait(1.2)
 check(ana:GetAttribute("Oxygen") > 0, "al sacar la cabeza recuperas el aire")
 InventoryService.add(ana, "Gafas", 1)
@@ -4382,6 +4385,21 @@ building("Ocio", "Ocio_Local", Vector3.new(2200, 10, 2200), Vector3.new(50, 20, 
 building("Manzana_Downtown", "Bloque", Vector3.new(2400, 75, 2200), Vector3.new(40, 150, 40)) -- 12 plantas
 building("Manzana_Towers", "Bloque", Vector3.new(2600, 30, 2200), Vector3.new(40, 60, 40))
 building("Manzana_Campus", "Bloque", Vector3.new(2800, 30, 2200), Vector3.new(40, 60, 40))
+-- Villa (Kit/Lite): la puerta está en la cristalera, a un lado (DoorOut: da a la calle, -Z). En venta
+-- (no de vecinos), para entrar a verla
+do
+	local villaX = 3000
+	while Properties.isNeighborHome(("Villa_%d_2400#0"):format(villaX)) do
+		villaX += 10
+	end
+	local villaModel = building("Manzana_Villas", "Villa", Vector3.new(villaX, 10, 2400), Vector3.new(60, 20, 40))
+	local villaDoor = fakeInstance("Part")
+	villaDoor.Name = "Door"
+	villaDoor.Size = Vector3.new(3.8, 7.4, 0.3)
+	villaDoor.CFrame = CFrame.new(villaX - 20, 4, 2379.7)
+	villaDoor:SetAttribute("DoorOut", Vector3.new(0, 0, -1))
+	villaDoor.Parent = villaModel
+end
 services.RunService = services.RunService or {
 	IsStudio = function()
 		return true
@@ -4679,6 +4697,29 @@ for _, d in neighborInst.Room.Model:GetChildren() do
 	end
 end
 check(residents >= 1, "en las casas de vecinos hay vecinos")
+-- Villa: el cartel "Entrar" está delante de su puerta (no en la cancela ni en un lateral); se entra
+-- a su sala y al salir vuelves delante de la puerta
+do
+	local villa
+	for _, b in InteriorService.all() do
+		if b.Kind == "Villa" then
+			villa = b
+		end
+	end
+	local villaDoor = villa and villa.Model:FindFirstChild("Door")
+	local doorAt = villaDoor and Vector3.new(villaDoor.Position.X, 0, villaDoor.Position.Z) or Vector3.new(0, 0, 0)
+	check(villaDoor ~= nil and (villa.Out - Vector3.new(0, 0, -1)).Magnitude < 1e-3 and (Vector3.new(villa.Door.X, 0, villa.Door.Z) - (doorAt + villa.Out * 2.5)).Magnitude < 0.1,
+		"la villa se abre por su puerta (el cartel de entrar, justo delante, mirando a la calle)")
+	InteriorService.leave(friend)
+	InteriorService.enter(friend, villa)
+	local villaInst = villa and InteriorService.instance(villa, 0)
+	local villaEntry = villaInst and villaInst.Room.Model:FindFirstChild("InteriorEntry", true)
+	check(villaInst ~= nil and friend:GetAttribute("InteriorKey") == villa.Id .. ":0" and villaInst.Room.Model.Name == "Interior_Villa" and villaEntry ~= nil
+		and (friendRoot.Position - villaEntry.Position).Magnitude < 5, "una villa en venta se visita: se monta su sala y apareces en su entrada")
+	InteriorService.leave(friend)
+	check(friend:GetAttribute("InteriorKey") == nil and villa ~= nil and (Vector3.new(friendRoot.Position.X, 0, friendRoot.Position.Z) - (doorAt + villa.Out * 5.5)).Magnitude < 1,
+		"al salir de la villa vuelves a la calle, delante de su puerta")
+end
 -- Bar: la nevera de bebidas se paga
 InteriorService.enter(stranger, ocio)
 local bar = InteriorService.instance(ocio, 0)

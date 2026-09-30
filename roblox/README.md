@@ -139,6 +139,7 @@ lune run scripts/test-lifestory.luau   # simula vidas completas con la historia 
 lune run scripts/test-workanim.luau    # tareas de los personajes (barrer, cobrar…): posturas y objetos
 lune run scripts/test-agemotion.luau   # cómo se mueve cada edad: el bebé gatea, el mayor va encorvado…
 lune run scripts/test-motion.luau      # andar fluido: arrancar y frenar, inclinarse, aterrizar, gestos y capas de posturas
+lune run scripts/test-joints.luau      # articulaciones Motor6D y AnimationConstraint (las nuevas): cada postura hecha con código se ve con las dos
 lune run scripts/test-parkour.luau     # agacharse, tumbarse y parkour: qué salto toca, el camino del salto, cuestas e IK
 lune run scripts/test-gps.luau        # GPS: grafo de calles, ruta más corta (A*), recalcular e indicaciones de giro
 lune run scripts/test-hud.luau        # el HUD en ordenador, móvil y tableta: que nada se pise, comandos, joystick y botones

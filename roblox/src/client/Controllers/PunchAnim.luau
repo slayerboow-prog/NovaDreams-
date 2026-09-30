@@ -169,12 +169,23 @@ local function same(a: CFrame, b: CFrame): boolean
 	return (a.Position - b.Position).Magnitude < 1e-3 and a.LookVector:Dot(b.LookVector) > 0.99999 and a.UpVector:Dot(b.UpVector) > 0.99999
 end
 
+-- Al aplicar el aspecto Roblox cambia las piezas y sus articulaciones: se vuelven a buscar (las C0
+-- de las nuevas son las de partida)
+local function refresh(body: Body, model: Model)
+	if Joints.stale(body.Joints, model) then
+		body.Joints = Joints.collect(model, JOINTS)
+		table.clear(body.Written)
+		table.clear(body.Original)
+	end
+end
+
 local function bodyOf(model: Model?): Body?
 	if not model or not model.Parent then
 		return nil
 	end
 	local existing = bodies[model]
 	if existing then
+		refresh(existing, model)
 		return existing
 	end
 	-- Motor6D o AnimationConstraint (antes solo Motor6D: con las articulaciones nuevas no golpeaba)
@@ -206,6 +217,7 @@ local function step(dt: number)
 			bodies[model] = nil
 			continue
 		end
+		refresh(body, model)
 		-- Pesos de las posturas mantenidas (entran rápido y salen suave)
 		for name in PunchAnim.Holds do
 			local target = if body.Want[name] then 1 else 0

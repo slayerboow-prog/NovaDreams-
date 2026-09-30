@@ -57,7 +57,7 @@ local CF = setmetatable({
 }, { __index = roblox.CFrame })
 
 local serverLog: { any } = {} -- lo que el cliente manda al servidor (FireServer)
-local SIM_SECONDS = 46 -- tiempo de juego simulado en cada modo
+local SIM_SECONDS = 48 -- tiempo de juego simulado en cada modo
 local FPS = 20
 local REAL_BUDGET = 120 -- segundos reales como mucho en cada modo
 local ROOT = "src"
@@ -2163,6 +2163,45 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean })
 			table.insert(checks, { shoot ~= nil and shoot.Visible, "móvil con el revólver: salen los botones del arma (Disparar)" })
 			probe("con el revólver")
 			localPlayer:SetAttribute("Weapon", nil)
+			-- Al volante de un coche (articulaciones nuevas de Roblox, AnimationConstraint): RidePose pone
+			-- las manos en el volante escribiendo Transform en esas articulaciones (antes solo buscaba
+			-- Motor6D y se iba sentado sin postura)
+			local shoulder = character and character:FindFirstChild("RightShoulder", true)
+			if not (okLayers and humanoid and shoulder) then
+				table.insert(checks, { false, "móvil al volante: falta el personaje o PoseLayers" })
+				return
+			end
+			local car = new("Model", "Coche")
+			car:SetAttribute("Drivable", true)
+			car:SetAttribute("Kind", "Coche")
+			local seat = new("VehicleSeat", "DriverSeat")
+			seat.Parent = car
+			car.Parent = workspace
+			local hp = rawget(humanoid, "__props")
+			hp.SeatPart = seat
+			hp.Sit = true
+			local worst = 0
+			-- (RidePose solo mira a quien está cerca de la cámara: aquí la cámara de mentira se queda lejos)
+			local camera = workspace.CurrentCamera
+			local root = character:FindFirstChild("HumanoidRootPart")
+			for _ = 1, 24 do
+				if camera and root then
+					rawget(camera, "__props").CFrame = root.CFrame * CF.new(0, 5, 12)
+				end
+				fakeTask.wait(0.05)
+				Layers.step(0.05, now)
+				local rx = select(1, shoulder.Transform:ToEulerAnglesXYZ())
+				worst = math.max(worst, math.abs(rx))
+			end
+			table.insert(checks, { shoulder.ClassName == "AnimationConstraint" and worst > 0.3,
+				("móvil al volante: con AnimationConstraint las manos van al volante (hombro %.2f rad)"):format(worst) })
+			hp.SeatPart = nil
+			hp.Sit = false
+			car.Parent = nil
+			for _ = 1, 10 do
+				fakeTask.wait(0.05)
+				Layers.step(0.05, now)
+			end
 		end,
 		[math.floor(39.6 * FPS)] = function()
 			table.insert(checks, { not rowLabels()["Modo pruebas"], "COMANDOS: al quitar Tester, «Modo pruebas» se va" })

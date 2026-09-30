@@ -450,6 +450,9 @@ function GymMotion.init()
 					release(body)
 				else
 					body.Near = (body.Root.Position - from).Magnitude < ACTIVE_DISTANCE
+					if Joints.stale(body.Joints, model) then
+						findJoints(body) -- (al aplicar el aspecto Roblox cambia las piezas y sus articulaciones)
+					end
 					if body.Want and (model:GetAttribute("GymExercise") ~= body.Kind or (body.Machine == nil and model:GetAttribute("GymMachine") ~= nil)) then
 						pcall(watch, model)
 					end

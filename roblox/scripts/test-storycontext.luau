@@ -440,6 +440,175 @@ do
 	end
 end
 
+---------------------------------------------------------------------
+print("\n▶ 7. Conduciendo o sin seguirla: la historia no interrumpe")
+---------------------------------------------------------------------
+-- (bug del dueño: «me saltan misiones mientras conduzco»: en la moto, en la acera junto al parque, saltó
+-- la conversación de las palomas robot de «El tirachinas del campeón» —que ni siquiera seguía— y la
+-- cámara de diálogo se llevó la de la moto)
+do
+	local RideState = H.loadModule(ROOT .. "/shared/RideState")
+	local TIRA = "Loco_N6_Tirachinas"
+	local function pings(player, reason: string?): { any }
+		local list = {}
+		for _, payload in inbox(player, "Ping") do
+			if reason == nil or payload.Reason == reason then
+				table.insert(list, payload)
+			end
+		end
+		return list
+	end
+	local function inject(player, questId: string, stepIndex: number)
+		H.profiles[player].Story.Active[questId] = { Step = stepIndex, Count = 0, Started = os.time(), Kind = Quests[questId].Kind }
+	end
+	local function stepOf(player, questId: string): number?
+		local prog = H.profiles[player].Story.Active[questId]
+		return prog and prog.Step
+	end
+
+	-- RideState: lo que ya ponen los servicios de vehículos (Riding, Passenger, BusLine, SeatPart)
+	local fake = { Attributes = {} }
+	function fake:GetAttribute(key)
+		return self.Attributes[key]
+	end
+	check(RideState.vehicleOf(fake) == nil, "RideState: a pie no va en ningún vehículo")
+	fake.Attributes.Riding = "Moto"
+	check(RideState.vehicleOf(fake) == "Moto", "RideState: conduciendo la moto (Riding)")
+	fake.Attributes.Riding = nil
+	fake.Attributes.Passenger = "Coche"
+	check(RideState.inVehicle(fake), "RideState: de pasajero en un coche (Passenger)")
+	fake.Attributes.Passenger = nil
+	fake.Attributes.BusLine = "L1"
+	check(RideState.vehicleOf(fake) == "Bus", "RideState: en el autobús (BusLine)")
+
+	-- A) En la moto: llegar al parque SÍ cuenta; el minijuego y la conversación esperan a que te bajes
+	local moto = H.newPlayer("Moto", "Nino", 100)
+	task.wait(1.5)
+	inject(moto, TIRA, 3) -- «Vamos al parque a practicar con latas»
+	H.fromClient(moto, "Track", TIRA)
+	moto.Answer = H.preferAnswer(moto)
+	moto:SetAttribute("Riding", "Moto")
+	moto.At = "Parque"
+	check(waitFor(function()
+		return stepOf(moto, TIRA) == 4
+	end, 5), "conduciendo, pasar por el parque cumple «ve al parque» (Reach)")
+	task.wait(3)
+	check(#moto.Games == 0, "…pero el minijuego que viene después NO empieza mientras vas en la moto")
+	check(#pings(moto, "Ride") >= 1 and (pings(moto, "Ride")[1].Text or ""):find("📱", 1, true) ~= nil,
+		"te llega un aviso pequeño de móvil (sin parar nada)")
+	moto:SetAttribute("Riding", nil)
+	check(waitFor(function()
+		return #moto.Games >= 1
+	end, 6), "al bajarte, el minijuego empieza")
+	moto:SetAttribute("Riding", "Moto") -- (vuelve a subirse mientras juega)
+	check(waitFor(function()
+		return stepOf(moto, TIRA) == 5
+	end, 10), "acaba el minijuego: toca la escena de las palomas robot")
+	task.wait(3)
+	check(not H.said(moto, "Son robots, no palomas") and not DialogueService.isBusy(moto),
+		"montado en la moto, la conversación de las palomas NO sale (espera)")
+	local waiting = nil
+	for _, payload in pings(moto, "Ride") do
+		if (payload.Text or ""):find("quiere hablar contigo — bájate para hablar", 1, true) then
+			waiting = payload.Text
+		end
+	end
+	check(waiting ~= nil, ("«📱 … quiere hablar contigo — bájate para hablar» (%s)"):format(tostring(waiting)))
+	local before = #pings(moto, "Ride")
+	task.wait(2)
+	check(#pings(moto, "Ride") == before, "el aviso sale una vez, no en cada vuelta")
+	moto:SetAttribute("Riding", nil)
+	check(waitFor(function()
+		return H.said(moto, "Son robots, no palomas")
+	end, 6), "al bajarte, la conversación llega (estaba en cola, no se pierde)")
+	check(waitFor(function()
+		return stepOf(moto, TIRA) == 6
+	end, 6), "y la misión sigue con su paso siguiente")
+
+	-- De pasajero (autobús) tampoco: el plan B de «habla con…» y las decisiones también esperan
+	local ok, why = Service.canAutoStart(moto, TIRA)
+	check(ok, "a pie y siguiéndola, lo de esta misión puede empezar solo")
+	moto:SetAttribute("BusLine", "L1")
+	ok, why = Service.canAutoStart(moto, TIRA)
+	check(not ok and why == "Ride", "de pasajero en el autobús, no (espera a que te bajes)")
+	moto:SetAttribute("BusLine", nil)
+	moto:SetAttribute("Riding", "Moto")
+	local before2 = #moto.Said
+	Service.interact(moto, "Actor", TIRA, "Abu")
+	task.wait(0.5)
+	check(#moto.Said == before2 and not DialogueService.isBusy(moto), "desde la moto no se abre ninguna conversación al tocar a un personaje")
+	moto:SetAttribute("Riding", nil)
+
+	-- B) Misión que NO sigues: no empieza sola nunca; hablando con alguien de su escena, sí
+	local nino = H.newPlayer("NoLaSigue", "Nino", 100)
+	task.wait(1.5)
+	nino.Answer = H.preferAnswer(nino)
+	inject(nino, "Loco_N1_Cosme", 1) -- la que sigue: «El vecino del garaje»
+	inject(nino, TIRA, 3)
+	H.fromClient(nino, "Track", "Loco_N1_Cosme")
+	task.wait(0.6)
+	nino.At = "Parque" -- (a pie)
+	check(waitFor(function()
+		return stepOf(nino, TIRA) == 4
+	end, 5), "pasar por el parque cumple el paso de llegar de otra misión (Reach)")
+	task.wait(3.5)
+	check(#nino.Games == 0 and not H.said(nino, "Son robots"), "pero su minijuego/escena NO empieza solo: sigues «El vecino del garaje»")
+	check(#pings(nino, "Untracked") == 1, "te avisa una vez (sin abrir nada) de que esa misión te espera")
+	local okU, whyU = Service.canAutoStart(nino, TIRA)
+	check(not okU and whyU == "Untracked", "canAutoStart: no la sigues")
+	Service.interact(nino, "Actor", TIRA, "Abu")
+	check(waitFor(function()
+		return #nino.Games >= 1
+	end, 4), "hablar con alguien de su escena (tu abu) la empieza")
+	check(waitFor(function()
+		return H.said(nino, "Son robots, no palomas")
+	end, 12), "y lo que va justo detrás (la escena de las palomas) sigue solo: la estás jugando")
+
+	-- Seguirla desde el panel también la empieza
+	local otro = H.newPlayer("LaSigueLuego", "Nino", 100)
+	task.wait(1.5)
+	otro.Answer = H.preferAnswer(otro)
+	inject(otro, "Loco_N1_Cosme", 1)
+	inject(otro, TIRA, 3)
+	H.fromClient(otro, "Track", "Loco_N1_Cosme")
+	task.wait(0.6)
+	otro.At = "Parque"
+	task.wait(4)
+	check(stepOf(otro, TIRA) == 4 and #otro.Games == 0, "el minijuego de una misión que no sigues no salta solo")
+	H.fromClient(otro, "Track", TIRA)
+	check(waitFor(function()
+		return #otro.Games >= 1
+	end, 6), "al seguirla (panel de misiones), empieza")
+	check(waitFor(function()
+		return H.said(otro, "Son robots, no palomas")
+	end, 12), "y después su escena")
+
+	-- C) Pasos pensados para dentro de un vehículo: siguen funcionando (Adu02: «¡Carnet nuevo! Toma las llaves»)
+	local adulto = H.newPlayer("Carnet", "AdultoJoven", 100)
+	task.wait(1.5)
+	adulto.Answer = H.preferAnswer(adulto)
+	local adu = "Adu02_Atardecer"
+	local steps = Quests[adu].Steps
+	local licenseStep = nil
+	for i, s in steps do
+		if s.Type == "Event" and s.Event == "LicenseEarned" then
+			licenseStep = i
+		end
+	end
+	check(licenseStep ~= nil and steps[licenseStep + 1].Dialogue == "Coche" and steps[licenseStep + 1].InVehicle == true,
+		"la escena «Coche» de Adu02 está marcada para poder pasar dentro de un vehículo (InVehicle)")
+	H.profiles[adulto].Story.Choices.ViajeAbu = { V = "Coche", D = 1 }
+	inject(adulto, adu, licenseStep :: number)
+	H.fromClient(adulto, "Track", adu)
+	adulto:SetAttribute("Riding", "Coche") -- sigue sentado en el coche del examen
+	task.wait(0.4)
+	StoryEvents.emit(adulto, "LicenseEarned", { License = "B" })
+	check(waitFor(function()
+		return H.said(adulto, "Toma las llaves del coche viejo")
+	end, 6), "aprobar el carnet sentado en el coche: su escena sale igual (paso pensado para el vehículo)")
+	adulto:SetAttribute("Riding", nil)
+end
+
 print("")
 if H.failures > 0 then
 	print(("❌ %d comprobaciones fallan"):format(H.failures))
