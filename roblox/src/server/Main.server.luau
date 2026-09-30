@@ -82,6 +82,8 @@ local order = {
 	"RestaurantService", -- camarero + barman (con NPC si falta alguien)
 	"DrivingSchoolService", -- autoescuela: carnet de moto y de coche
 	"BusService", -- autobús urbano L1: pasajeros con billete y oficio de conductor
+	"CrashService", -- choques entre vehículos: el servidor valida los golpes y reparte el empujón (shared/Crash)
+	"KnockService", -- lo que sale despedido: papeleras, conos, terrazas, motos de adorno, personas (shared/Knock)
 	"ArcadeService", -- recreativos: juegos de bolas, tickets y premios
 	"ProgressionService", -- nivel, experiencia, estadísticas, vida y estamina
 	"LocationService",

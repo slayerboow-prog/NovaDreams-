@@ -35,6 +35,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Gameplay = require(ReplicatedStorage.Shared.Gameplay)
 local Ground = require(ReplicatedStorage.Shared.Ground)
 local RideSpot = require(ReplicatedStorage.Shared.RideSpot)
+local VehicleControls = require(ReplicatedStorage.Shared.VehicleControls)
 local Format = require(ReplicatedStorage.Shared.Format)
 local Stages = require(ReplicatedStorage.Shared.LifeStory.Stages)
 local Builder = require(script.Parent.Parent.World.Builder)
@@ -594,6 +595,38 @@ local function refuel(player: Player, pump: BasePart)
 	end
 end
 
+-- Luces, intermitentes y pilotos que pide el ordenador del conductor (shared/VehicleControls). Solo del
+-- vehículo que conduce, con valores limpios y como mucho LAMPS_PER_SECOND veces por segundo; se ponen
+-- como atributos del vehículo y cada ordenador los pinta (Controllers/VehicleLights).
+local LAMPS_PER_SECOND = 20
+local lampBudget: { [Player]: { At: number, Count: number } } = setmetatable({}, { __mode = "k" }) :: any
+function VehicleService.setLamps(player: Player, payload: any)
+	local ride = riding[player]
+	if not ride or not ride.Model.Parent then
+		return
+	end
+	local now = os.clock()
+	local budget = lampBudget[player]
+	if not budget or now - budget.At >= 1 then
+		budget = { At = now, Count = 0 }
+		lampBudget[player] = budget
+	end
+	budget.Count += 1
+	if budget.Count > LAMPS_PER_SECOND then
+		return
+	end
+	local state = VehicleControls.sanitize(payload)
+	if state then
+		VehicleControls.write(ride.Model, state)
+		-- El faro al momento (el repaso de cada 2 s también lo mira)
+		local lens = ride.Model:FindFirstChild("Headlight")
+		local light = lens and lens:FindFirstChildOfClass("SpotLight")
+		if light then
+			light.Enabled = state.Lights > 0
+		end
+	end
+end
+
 function VehicleService.dismount(player: Player, silent: boolean?)
 	local ride = riding[player]
 	if not ride then
@@ -602,6 +635,8 @@ function VehicleService.dismount(player: Player, silent: boolean?)
 	riding[player] = nil
 	saveFuel(player, ride)
 	clearFuel(player)
+	-- Aparcado: luces e intermitentes apagados, sin pilotos de freno y con el freno de mano echado
+	pcall(VehicleControls.reset, ride.Model, true)
 	-- Kilómetros del viaje (misiones y XP del pase de temporada). No en el examen de la autoescuela.
 	if (ride.Driven or 0) > 50 and not ride.Exam and require(ReplicatedStorage.Shared.BattlePass.Config).Enabled then
 		StoryEvents.emit(player, "VehicleTrip", { Kind = ride.Kind, Km = (ride.Driven or 0) * FUEL.KmPerStud, Rented = ride.Rented })
@@ -781,7 +816,8 @@ local function parkOrphans()
 	end
 	for _, model in folder:GetChildren() do
 		local chassis = model:IsA("Model") and model.PrimaryPart
-		if chassis and not chassis.Anchored and not driven[model :: Model] then
+		-- (Knocked: ha salido despedido de un golpe y aún vuela; CrashService lo suelta al pararse)
+		if chassis and not chassis.Anchored and not driven[model :: Model] and not model:GetAttribute("Knocked") then
 			pcall(park, model :: Model)
 		end
 	end
@@ -1084,6 +1120,10 @@ local function drive(player: Player, model: Model, kind: string, opts: { Rented:
 	model.Parent = folder
 	chassis.Anchored = false
 	model:SetAttribute("Driver", player.UserId)
+	-- Luces, intermitentes y pilotos: todo apagado al subirse; los cambia su ordenador ("Lamps") y los
+	-- pinta cada ordenador (Controllers/VehicleLights)
+	VehicleControls.reset(model, false)
+	CollectionService:AddTag(model, "VehicleLamps")
 
 	sitDriver(humanoid, root, seat, kind)
 	Rides.setStand(model, false) -- en marcha: la pata de cabra (o el caballete) arriba
@@ -1211,6 +1251,7 @@ local function setupParkedCar(model: Instance)
 	if not body or not body:IsA("BasePart") then
 		return
 	end
+	model:AddTag("ParkedCar") -- (los choques lo encuentran sin recorrer la ciudad: Controllers/Collisions)
 	-- Carteles ligeros en la carrocería; el coche solo se prepara cuando alguien lo coge
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.Name = "DrivePrompt"
@@ -1672,6 +1713,8 @@ function VehicleService.init()
 			VehicleService.exitAny(player)
 		elseif action == "Reseat" then
 			VehicleService.reseat(player)
+		elseif action == "Lamps" then
+			VehicleService.setLamps(player, kind)
 		elseif action == "Spawn" and typeof(kind) == "string" then
 			spawnOwned(player, kind)
 		elseif action == "Buy" and typeof(kind) == "string" then
@@ -1758,9 +1801,11 @@ function VehicleService.init()
 			for player, ride in riding do
 				-- Un vehículo con error no para las luces ni las bajadas del resto
 				local ok, err = pcall(function()
+					-- (el faro lo enciende el conductor: atributo Lights; sin él, de noche)
+					local lights = ride.Model:GetAttribute("Lights")
 					for _, light in ride.Model:GetDescendants() do
 						if light:IsA("SpotLight") then
-							light.Enabled = dark
+							light.Enabled = if typeof(lights) == "number" then lights > 0 else dark
 						end
 					end
 					if player:GetAttribute("Crawling") or not stageAllows(player, Gameplay.DriveMinStage, true) then

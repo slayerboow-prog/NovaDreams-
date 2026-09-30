@@ -3,7 +3,7 @@
 --   Tres carrocerías: "Berlina", "Compacto" y "Todoterreno" (misma planta, distinta silueta).
 --   Frontal y trasera redondeados, parabrisas y luneta inclinados, ventanillas con marcos y
 --   montantes, techo, retrovisores, manillas, líneas de puertas, faros y pilotos LED,
---   intermitentes, rejilla, parachoques, matrículas, ruedas con llanta y paso de rueda,
+--   intermitentes, luces de marcha atrás, rejilla, parachoques, matrículas, ruedas con llanta y paso de rueda,
 --   taloneras y escape. Con Interior = true (tu coche): asientos, volante, salpicadero y
 --   matrícula con texto.
 --
@@ -118,6 +118,8 @@ function CarModel.build(parent: Instance?, cf: CFrame, paint: Color3, options: O
 			detail("IndicatorFront", Vector3.new(0.35, 0.3, 0.12), at(sx * (HW - 0.15), 2.75, -HL + 0.1), rgb(255, 150, 20), Enum.Material.Neon)
 			detail("IndicatorRear", Vector3.new(0.35, 0.3, 0.12), at(sx * (HW - 0.15), 2.8, HL - 0.1), rgb(255, 150, 20), Enum.Material.Neon)
 			detail("Reflector", Vector3.new(0.5, 0.15, 0.08), at(x, 1.55, HL + 0.12), rgb(170, 20, 25), Enum.Material.Neon)
+			-- Luz de marcha atrás (blanca; la enciende Controllers/VehicleLights al ir hacia atrás)
+			detail("Reverse", Vector3.new(0.5, 0.3, 0.3), at(sx * 0.95, 2.8, HL - 0.2), rgb(215, 218, 224))
 		end
 	end
 	if full then

@@ -123,6 +123,12 @@
         "Vehicle": {
           "$className": "RemoteEvent"
         },
+        "Crash": {
+          "$className": "RemoteEvent"
+        },
+        "Knock": {
+          "$className": "RemoteEvent"
+        },
         "DrivingSchool": {
           "$className": "RemoteEvent"
         },

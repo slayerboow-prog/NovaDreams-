@@ -1,6 +1,7 @@
 -- VehicleHud (cliente): el cuadro de mandos cuando conduces.
 --   * Velocímetro de aguja (0 → velocidad máxima del vehículo) con la velocidad en números
---   * Marcha: D (adelante), R (marcha atrás) o N (parado)
+--   * Marcha: D (adelante), R (marcha atrás), N (parado) o P (freno de mano echado)
+--   * Testigos: intermitentes ⬅ ➡ (parpadean en verde), luces (cortas / largas) y freno de mano
 --   * Combustible (⛽ gasolina) o batería (🔋 patinete) que baja según conduces, con luz de reserva
 --   * Cuentakilómetros total del vehículo y parcial del viaje
 -- Los datos de combustible y kilómetros los pone el servidor (VehicleService) en atributos del
@@ -37,6 +38,9 @@ local odoText: TextLabel
 local tripText: TextLabel
 local maxSpeed = 72
 local blink = 0
+local telltales: Frame
+local tell: { [string]: TextLabel } = {}
+local parked = false
 
 local ARC = 240 -- grados de la esfera
 -- Móvil: el cuadro va pequeño arriba, bajo el reloj, para dejar ver la calle, el personaje y los botones
@@ -194,7 +198,16 @@ function VehicleHud.init(parent: Instance)
 	tripText = Theme.label({ Position = UDim2.fromOffset(158, 106), Size = UDim2.fromOffset(290, 18), Font = Enum.Font.Code, TextSize = 13, TextColor3 = C.Muted, Text = "", Parent = panel })
 	if not TOUCH then
 		-- (en el móvil se conduce con el joystick y los botones: no hacen falta las teclas)
-		Theme.label({ Position = UDim2.fromOffset(158, 128), Size = UDim2.fromOffset(290, 16), Text = "W/S acelerar y frenar · A/D girar · H claxon · F bajarse", TextSize = 11, TextColor3 = C.Muted, Parent = panel })
+		Theme.label({
+			Name = "Keys",
+			Position = UDim2.fromOffset(158, 124),
+			Size = UDim2.fromOffset(290, 24),
+			Text = "W/S pedales · A/D girar · Espacio freno de mano · L luces\nQ/E intermitentes · X emergencia · H claxon · F bajarse",
+			TextSize = 10,
+			TextWrapped = true,
+			TextColor3 = C.Muted,
+			Parent = panel,
+		})
 	else
 		-- Móvil: en 640x360 el cuadro entero tapaba media calle. Queda una cápsula baja con la
 		-- velocidad, la marcha y el combustible (la esfera, el nombre y los kilómetros se esconden).
@@ -220,6 +233,50 @@ function VehicleHud.init(parent: Instance)
 		warning.Size = UDim2.fromOffset(136, 12)
 		warning.TextScaled = true
 	end
+
+	-- Testigos (intermitentes, luces, freno de mano): una tira fina encima del cuadro (en el móvil,
+	-- debajo de la cápsula, que va arriba)
+	telltales = create("Frame", {
+		Name = "Telltales",
+		AnchorPoint = Vector2.new(0.5, if TOUCH then 0 else 1),
+		Position = if TOUCH then UDim2.new(0.5, 0, 1, 16) else UDim2.new(0.5, 0, 0, -14),
+		Size = UDim2.fromOffset(176, 26),
+		BackgroundTransparency = 1,
+		Parent = panel,
+	})
+	create("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Center, Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder, Parent = telltales })
+	for i, def in { { "Left", "⬅️" }, { "Lights", "💡" }, { "Park", "🅿️" }, { "Right", "➡️" } } do
+		local label = create("TextLabel", {
+			Name = def[1],
+			Size = UDim2.fromOffset(38, 26),
+			BackgroundColor3 = rgb(14, 18, 28),
+			BackgroundTransparency = 0.25,
+			Font = Theme.FontBold,
+			TextScaled = true,
+			Text = def[2],
+			TextColor3 = Color3.new(1, 1, 1),
+			LayoutOrder = i,
+			Visible = false,
+			Parent = telltales,
+		})
+		create("UICorner", { CornerRadius = UDim.new(0, 8), Parent = label })
+		tell[def[1]] = label
+	end
+end
+
+-- Los testigos (desde Driving, cada fotograma): Left / Right = el intermitente luce ahora;
+-- Lights = 0, 1, 2; Parked = freno de mano echado (P en la marcha); Handbrake = tirando de él
+function VehicleHud.setStatus(status: { Left: boolean, Right: boolean, Lights: number, Parked: boolean, Handbrake: boolean })
+	if not telltales then
+		return
+	end
+	parked = status.Parked
+	tell.Left.Visible = status.Left
+	tell.Right.Visible = status.Right
+	tell.Lights.Visible = status.Lights > 0
+	tell.Lights.BackgroundColor3 = if status.Lights == 2 then rgb(40, 90, 200) else rgb(14, 18, 28)
+	tell.Park.Visible = status.Parked or status.Handbrake
+	tell.Park.BackgroundColor3 = if status.Parked or status.Handbrake then rgb(170, 40, 40) else rgb(14, 18, 28)
 end
 
 function VehicleHud.show(kind: string)
@@ -232,6 +289,7 @@ end
 
 function VehicleHud.hide()
 	gui.Enabled = false
+	VehicleHud.setStatus({ Left = false, Right = false, Lights = 0, Parked = false, Handbrake = false })
 end
 
 -- Cada fotograma (desde Driving.luau): speed en studs/s (negativa = marcha atrás)
@@ -245,8 +303,8 @@ function VehicleHud.update(speed: number, dt: number)
 	local a = math.rad(angleFor(kmh) - 90)
 	needle.Position = UDim2.new(0.5, math.cos(a) * 27, 0.5, math.sin(a) * 27 + 27)
 	speedText.Text = tostring(math.floor(kmh + 0.5))
-	gearText.Text = if speed < -0.5 then "R" elseif math.abs(speed) < 0.5 then "N" else "D"
-	gearText.TextColor3 = if speed < -0.5 then rgb(255, 170, 40) else rgb(245, 247, 250)
+	gearText.Text = if speed < -0.5 then "R" elseif math.abs(speed) < 0.5 then (if parked then "P" else "N") else "D"
+	gearText.TextColor3 = if speed < -0.5 then rgb(255, 170, 40) elseif parked and math.abs(speed) < 0.5 then rgb(255, 90, 80) else rgb(245, 247, 250)
 
 	local fuel = player:GetAttribute("Fuel")
 	if typeof(fuel) == "number" then

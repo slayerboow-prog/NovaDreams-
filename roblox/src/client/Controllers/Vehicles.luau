@@ -317,6 +317,7 @@ function Vehicles.init()
 		Icon = "bajarse",
 		Label = "Bajarse",
 		Slot = "Correr",
+		DriveSlot = "Bajarse", -- (al volante en el móvil: abajo, junto al freno de mano)
 		Priority = 4,
 		Key = "F",
 		Pad = "B",

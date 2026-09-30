@@ -693,10 +693,11 @@ local function drive(name: string, halfLen: number, cruise: number, accel: numbe
 				end
 			end
 		end
-		if s > r.To - 10 then
-			sign = -1
-		elseif s < r.From + 10 then
-			sign = 1
+		-- (al final de la calle da la vuelta: parado)
+		if s > r.To - 10 and sign > 0 then
+			sign, speed = -1, 0
+		elseif s < r.From + 10 and sign < 0 then
+			sign, speed = 1, 0
 		end
 	end
 	print(("  (%s: %d cruces pasados en 5 min por una calle con %d semáforos)"):format(name, passes, bestCount))

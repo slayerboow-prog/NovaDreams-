@@ -2,11 +2,21 @@
 --
 -- Cuando te sientas en el asiento de conductor ("DriverSeat") de un vehículo con el atributo
 -- Drivable, este script lo mueve cada fotograma:
---   * W/S o ↑/↓: acelerar, frenar y marcha atrás · A/D o ←/→: girar · Ctrl: freno de mano
+--   * W/S o ↑/↓: acelerar, frenar y marcha atrás · A/D o ←/→: girar · Espacio (o Ctrl): freno de mano
+--     · L: luces (mantener: largas) · Q / E: intermitente izquierdo / derecho · X: emergencia · H: claxon
 --   * Mando: gatillo derecho acelera, gatillo izquierdo frena (los dos a medias, poco a poco),
---     joystick izquierdo gira y LB es el freno de mano
---   * Móvil: el joystick de Roblox es el volante y, a la derecha, pedales en pantalla (acelerador,
---     freno / marcha atrás y freno de mano) en el arco del botón de saltar (UI/TouchLayout)
+--     joystick izquierdo gira, A es el freno de mano, LB / RB los intermitentes, Y la emergencia y
+--     R3 (pulsar el joystick derecho) las luces
+--   * Móvil (al volante): a la izquierda dos flechas ◀ ▶ para girar (el joystick se esconde; arrastrar
+--     el dedo por la pantalla sigue moviendo la cámara) y a la derecha los pedales ACELERAR y FRENO,
+--     el freno de mano, las luces, los intermitentes ⬅ ➡ y la emergencia ⚠, Bajarse y el claxon
+--     (UI/DriveButtons, colocados por UI/TouchLayout en HudLayout.Drive: nada se pisa)
+--   * Freno: frena y, ya parado, si lo sigues pisando da marcha atrás (igual con S y con el gatillo)
+--   * Freno de mano: mantenido en marcha bloquea las ruedas de atrás (derrapa); tocado parado se
+--     queda echado (P) hasta que aceleras, frenas o lo vuelves a tocar (shared/VehicleControls)
+--   * Luces, intermitentes (se apagan solos al acabar el giro), pilotos de freno y de marcha atrás:
+--     el servidor los pone como atributos del vehículo y todos los ven (Controllers/VehicleLights).
+--     De noche, con las luces apagadas, se sugiere una vez encenderlas
 --   * Todo entra suave: el acelerador y el volante no saltan de 0 a 1, van subiendo y bajando
 --     (y el volante vuelve solo al centro). Cuanto más rápido vas, menos y más despacio gira.
 --   * Freno de mano: frena en seco; en coche, si giras a la vez, la trasera derrapa un poco
@@ -27,11 +37,13 @@
 --     watchSeat). Los pedales solo salen conduciendo de verdad.
 --   * Atascado (pisando sin moverte, metido en un murete, una farola o alguien): te saca a un sitio
 --     libre al lado (RideSpot.unstick). Con el tráfico se choca (Traffic.blocking): no se atraviesa.
--- Saltar (Espacio) o F para bajarse (en el móvil, el botón "Bajarse"; lo hace Controllers/Vehicles
+-- F (o B en el mando) para bajarse (en el móvil, el botón "Bajarse"; lo hace Controllers/Vehicles
 -- y funciona siempre a la primera). El servidor
 -- (VehicleService) le da el control a tu ordenador, así que se mueve sin retraso y los demás
 -- (también tus pasajeros) lo ven igual. La cámara la lleva RideCamera.luau.
 
+local ContextActionService = game:GetService("ContextActionService")
+local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -41,7 +53,11 @@ local Gameplay = require(ReplicatedStorage.Shared.Gameplay)
 local Boats = require(ReplicatedStorage.Shared.Boats)
 local Wetness = require(ReplicatedStorage.Shared.Wetness)
 local RideSpot = require(ReplicatedStorage.Shared.RideSpot)
+local VehicleControls = require(ReplicatedStorage.Shared.VehicleControls)
 local Traffic = require(script.Parent.Traffic)
+local Joystick = require(script.Parent.Joystick)
+local VehicleLights = require(script.Parent.VehicleLights)
+local DriveButtons = require(script.Parent.Parent.UI.DriveButtons)
 local SoundFx = require(script.Parent.SoundFx)
 local Hud = require(script.Parent.Parent.UI.Hud)
 local Theme = require(script.Parent.Parent.UI.Theme)
@@ -73,18 +89,21 @@ type State = {
 	Start: Vector3, -- dónde se subió (si no se ha movido de ahí, un atasco es de salida)
 	Blocker: string?, -- con qué chocó en el último fotograma ("Persona", "Trafico", "Pared")
 	WarnedAt: number?,
+	Controls: VehicleControls.Controls, -- luces, intermitentes y freno de mano echado
+	Handbrake: boolean, -- el freno de mano actúa ahora (pulsado o echado)
+	Braking: boolean,
+	Blink: boolean, -- el intermitente luce en este instante (para el tic-tac)
+	Sent: { [string]: any }?, -- lo último mandado al servidor
+	SentAt: number,
 }
 local state: State? = nil
 local warnRoad: () -> ()
 local unstick: (State, Vector3) -> ()
 
--- Pedales en pantalla (móvil): qué dedo pisa cada uno
-local touch = { Gas = nil :: InputObject?, Brake = nil :: InputObject?, Handbrake = nil :: InputObject? }
-local pedalUpdates: { () -> () } = {} -- (se vuelven a mirar al empezar y dejar de conducir)
+-- Mandos en pantalla (móvil, UI/DriveButtons): lo que se mantiene pulsado ahora
+local touch = { Gas = false, Brake = false, Left = false, Right = false, Handbrake = false }
 local function refreshPedals()
-	for _, update in pedalUpdates do
-		pcall(update)
-	end
+	pcall(TouchLayout.refresh)
 end
 
 local function yawOf(cf: CFrame): number
@@ -105,10 +124,6 @@ Driving.approach = approach
 ---------------------------------------------------------------------
 -- Mandos: teclado, mando y pantalla
 ---------------------------------------------------------------------
-
-local function held(input: InputObject?): boolean
-	return input ~= nil and input.UserInputState ~= Enum.UserInputState.End and input.UserInputState ~= Enum.UserInputState.Cancel
-end
 
 local function keyDown(...: Enum.KeyCode): boolean
 	for _, key in { ... } do
@@ -136,7 +151,7 @@ local function readInput(seat: VehicleSeat): (number, number, boolean)
 		if keyDown(Enum.KeyCode.A, Enum.KeyCode.Left) then
 			steer -= 1
 		end
-		handbrake = keyDown(Enum.KeyCode.LeftControl, Enum.KeyCode.RightControl)
+		handbrake = keyDown(Enum.KeyCode.Space, Enum.KeyCode.LeftControl, Enum.KeyCode.RightControl)
 	end
 	-- Mando: gatillos analógicos y joystick (con zona muerta)
 	if UserInputService.GamepadEnabled then
@@ -157,16 +172,12 @@ local function readInput(seat: VehicleSeat): (number, number, boolean)
 				end
 			end
 		end
-		handbrake = handbrake or UserInputService:IsGamepadButtonDown(Enum.UserInputType.Gamepad1, Enum.KeyCode.ButtonL1)
+		handbrake = handbrake or UserInputService:IsGamepadButtonDown(Enum.UserInputType.Gamepad1, Enum.KeyCode.ButtonA)
 	end
-	-- Pantalla (móvil)
-	if held(touch.Gas) then
-		throttle += 1
-	end
-	if held(touch.Brake) then
-		throttle -= 1
-	end
-	handbrake = handbrake or held(touch.Handbrake)
+	-- Pantalla (móvil): pedales y flechas
+	throttle += VehicleControls.pedalThrottle(touch.Gas, touch.Brake)
+	steer += VehicleControls.arrowSteer(touch.Left, touch.Right)
+	handbrake = handbrake or touch.Handbrake
 	-- Si nada de lo anterior, lo que diga Roblox (el joystick del móvil gira y, hacia delante o
 	-- atrás, también acelera y frena)
 	if math.abs(throttle) < 0.05 then
@@ -207,60 +218,171 @@ end
 -- Pedales en pantalla (móvil)
 ---------------------------------------------------------------------
 
--- Botón redondo que se mantiene pulsado (con varios dedos a la vez: acelerar y girar con el joystick)
-local function pedal(parent: Instance, name: string, text: string, color: Color3, slot: string, id: string)
-	local button = Theme.button({
-		Name = name,
-		Text = text,
-		TextSize = 24,
-		TextWrapped = true,
-		BackgroundColor3 = color,
-		BackgroundTransparency = 0.25,
-		AutoButtonColor = false,
-		Parent = parent,
-	})
-	local corner = button:FindFirstChildOfClass("UICorner")
-	if corner then
-		corner.CornerRadius = UDim.new(0.5, 0)
-	end
-	TouchLayout.place(button, id)
-	-- Solo conduciendo de verdad (sentado al volante), no solo porque el servidor diga «montado»
-	table.insert(pedalUpdates, TouchLayout.showWhen(button, "Vehiculo", function()
-		return state ~= nil
-	end))
-	button.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-			(touch :: any)[slot] = input
-			button.BackgroundTransparency = 0
-		end
-	end)
-	-- (se suelta cuando ese dedo se levanta: lo mira readInput con held)
-	RunService.RenderStepped:Connect(function()
-		if (touch :: any)[slot] ~= nil and not held((touch :: any)[slot]) then
-			(touch :: any)[slot] = nil
-			button.BackgroundTransparency = 0.25
-		end
-	end)
-	return button
-end
-
--- Acelerador, freno / marcha atrás y freno de mano en el arco del botón de saltar (TouchLayout);
--- el volante es el joystick de Roblox. Solo se ven conduciendo.
+-- Mandos en pantalla (UI/DriveButtons): flechas, pedales, freno de mano, luces e intermitentes.
+-- Los coloca TouchLayout (al volante, HudLayout.Drive) y solo se ven conduciendo de verdad.
+local toggleLights: (boolean) -> ()
+local toggleIndicator: (string) -> ()
 local function buildTouch()
-	if not UserInputService.TouchEnabled then
-		return
-	end
-	local gui = Theme.create("ScreenGui", { Name = "DrivingControls", ResetOnSpawn = false, DisplayOrder = 4, Parent = player:WaitForChild("PlayerGui") })
-	local rgb = Color3.fromRGB
-	pedal(gui, "Gas", "⬆", rgb(0, 140, 80), "Gas", "Acelerar")
-	pedal(gui, "Brake", "🛑", rgb(170, 60, 50), "Brake", "Frenar")
-	local hand = pedal(gui, "Handbrake", "🅿", rgb(90, 90, 100), "Handbrake", "FrenoMano")
-	hand.TextSize = 20
+	DriveButtons.register(TouchLayout, {
+		Driving = function()
+			return state ~= nil
+		end,
+		Kind = function()
+			return if state then state.Kind else nil
+		end,
+		Hold = function(slot: string, down: boolean)
+			(touch :: any)[slot] = down
+		end,
+		Lights = function(long: boolean)
+			toggleLights(long)
+		end,
+		Indicator = function(side: string)
+			toggleIndicator(side)
+		end,
+		Status = function()
+			local s = state
+			if not s then
+				return { Lights = 0, Indicator = "", Hazard = false, Parked = false, Reversing = false }
+			end
+			local c = s.Controls
+			return { Lights = c.Lights, Indicator = c.Indicator, Hazard = c.Hazard, Parked = c.Parked, Reversing = s.Speed < -0.5 }
+		end,
+	})
 end
 
 local function releasePedals()
 	for slot in touch do
-		(touch :: any)[slot] = nil
+		(touch :: any)[slot] = false
+	end
+end
+
+---------------------------------------------------------------------
+-- Luces, intermitentes y freno de mano (shared/VehicleControls)
+---------------------------------------------------------------------
+local lightsHinted = false -- «Enciende las luces»: una vez por partida
+
+function toggleLights(long: boolean)
+	local s = state
+	if not s or not VehicleControls.features(s.Kind).Lights then
+		return
+	end
+	s.Controls.Lights = VehicleControls.nextLights(s.Controls.Lights, long)
+	lightsHinted = true -- (ya sabe dónde están)
+	SoundFx.lightSwitch()
+	refreshPedals()
+end
+
+function toggleIndicator(side: string)
+	local s = state
+	if not s or not VehicleControls.features(s.Kind).Indicators then
+		return
+	end
+	VehicleControls.toggleIndicator(s.Controls, side)
+	SoundFx.indicatorTick(VehicleControls.indicatorShown(s.Controls) ~= "")
+	refreshPedals()
+end
+
+-- De noche y con las luces apagadas: se sugiere encenderlas (una vez por partida)
+local function hintLights()
+	local s = state
+	if s and VehicleControls.shouldHint(Lighting.ClockTime, s.Controls.Lights, lightsHinted, s.Kind) then
+		lightsHinted = true
+		Hud.toast("Info", if TouchLayout.isTouch() then "💡 Es de noche: enciende las luces (botón «Luces»)." else "💡 Es de noche: enciende las luces (L).")
+	end
+end
+
+-- Lo que se ve del vehículo: se pinta ya en tu pantalla (VehicleLights.setLocal) y se manda al
+-- servidor (que lo pone para todos) solo cuando cambia, como mucho 10 veces por segundo
+local SEND_EVERY = 0.1
+local function publishLamps(s: State)
+	local c = s.Controls
+	local lamps = {
+		Lights = c.Lights,
+		Indicator = VehicleControls.indicatorShown(c),
+		Braking = s.Braking,
+		Reversing = s.Speed < -0.3,
+		Handbrake = s.Handbrake,
+	}
+	VehicleLights.setLocal(s.Model, lamps)
+	-- Testigos del cuadro y el tic-tac del intermitente
+	local blink = lamps.Indicator ~= "" and VehicleControls.blinkOn(os.clock())
+	if blink ~= s.Blink then
+		s.Blink = blink
+		SoundFx.indicatorTick(blink)
+	end
+	VehicleHud.setStatus({
+		Left = blink and (lamps.Indicator == "L" or lamps.Indicator == "H"),
+		Right = blink and (lamps.Indicator == "R" or lamps.Indicator == "H"),
+		Lights = c.Lights,
+		Parked = c.Parked,
+		Handbrake = s.Handbrake,
+	})
+	local now = os.clock()
+	if VehicleControls.same(s.Sent, lamps) or now - s.SentAt < SEND_EVERY then
+		return
+	end
+	s.Sent = lamps
+	s.SentAt = now
+	local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+	local remote = remotes and remotes:FindFirstChild("Vehicle")
+	if remote and remote:IsA("RemoteEvent") then
+		remote:FireServer("Lamps", lamps)
+	end
+end
+
+-- Teclas y botones del mando mientras conduces (por encima de agacharse, la linterna, pelear, los
+-- menús…). Espacio y A ya no te bajan del asiento: son el freno de mano (bajarse es F / B).
+local DRIVE_PRIORITY = 3200
+local DRIVE_ACTIONS = { "DriveHandbrake", "DriveLights", "DriveIndicatorLeft", "DriveIndicatorRight", "DriveHazards" }
+local lightsDownAt: number? = nil
+local function bindDriveKeys()
+	local function sink(fn: ((Enum.UserInputState) -> ())?)
+		return function(_, inputState: Enum.UserInputState)
+			if UserInputService:GetFocusedTextBox() then
+				return Enum.ContextActionResult.Pass
+			end
+			if fn then
+				fn(inputState)
+			end
+			return Enum.ContextActionResult.Sink
+		end
+	end
+	-- (el freno de mano se lee en readInput: aquí solo se evita que Espacio / A salten del asiento)
+	ContextActionService:BindActionAtPriority("DriveHandbrake", sink(nil), false, DRIVE_PRIORITY, Enum.KeyCode.Space, Enum.KeyCode.ButtonA)
+	-- Luces: tocar = cortas / apagar; mantener = largas
+	ContextActionService:BindActionAtPriority("DriveLights", sink(function(inputState)
+		if inputState == Enum.UserInputState.Begin then
+			local at = os.clock()
+			lightsDownAt = at
+			task.delay(VehicleControls.HIGH_BEAM_HOLD, function()
+				if lightsDownAt == at then
+					lightsDownAt = nil
+					toggleLights(true)
+				end
+			end)
+		elseif inputState == Enum.UserInputState.End and lightsDownAt then
+			lightsDownAt = nil
+			toggleLights(false)
+		end
+	end), false, DRIVE_PRIORITY, Enum.KeyCode.L, Enum.KeyCode.ButtonR3)
+	local function indicatorKey(side: string)
+		return sink(function(inputState)
+			if inputState == Enum.UserInputState.Begin then
+				toggleIndicator(side)
+			end
+		end)
+	end
+	ContextActionService:BindActionAtPriority("DriveIndicatorLeft", indicatorKey("L"), false, DRIVE_PRIORITY, Enum.KeyCode.Q, Enum.KeyCode.ButtonL1)
+	ContextActionService:BindActionAtPriority("DriveIndicatorRight", indicatorKey("R"), false, DRIVE_PRIORITY, Enum.KeyCode.E, Enum.KeyCode.ButtonR1)
+	ContextActionService:BindActionAtPriority("DriveHazards", indicatorKey("H"), false, DRIVE_PRIORITY, Enum.KeyCode.X, Enum.KeyCode.ButtonY)
+end
+
+local function unbindDriveKeys()
+	lightsDownAt = nil
+	for _, action in DRIVE_ACTIONS do
+		pcall(function()
+			ContextActionService:UnbindAction(action)
+		end)
 	end
 end
 
@@ -293,6 +415,11 @@ local function start(seat: VehicleSeat, humanoid: Humanoid)
 		Steer = 0,
 		Stuck = 0,
 		Start = chassis.Position,
+		Controls = VehicleControls.new(),
+		Handbrake = false,
+		Braking = false,
+		Blink = false,
+		SentAt = -math.huge,
 	}
 	-- De pie: se tapa la postura de sentado con la de estar de pie
 	if Gameplay.Driving[kind].Standing then
@@ -316,7 +443,12 @@ local function start(seat: VehicleSeat, humanoid: Humanoid)
 	VehicleHud.show(kind)
 	SoundFx.vehicleStart(kind, chassis)
 	releasePedals()
+	-- Al volante: flechas y pedales en pantalla (sin joystick) y las teclas del coche
+	Joystick.setDriving(true)
+	TouchLayout.setDriving(true)
+	bindDriveKeys()
 	refreshPedals()
+	hintLights()
 	if not Gameplay.Driving[kind].Boat then
 		warnRoad() -- (en el mar da igual que llueva)
 	end
@@ -354,10 +486,14 @@ local function stop()
 			chassis.AssemblyAngularVelocity = Vector3.zero
 		end)
 	end
+	VehicleLights.setLocal(state.Model, nil)
 	state = nil
 	VehicleHud.hide()
 	SoundFx.vehicleStop()
 	releasePedals()
+	unbindDriveKeys()
+	Joystick.setDriving(false)
+	TouchLayout.setDriving(false)
 	refreshPedals()
 end
 
@@ -578,7 +714,21 @@ local function step(dt: number)
 	if player:GetAttribute("OutOfFuel") then
 		maxSpeed = 4 -- sin gasolina (o batería) apenas avanza: hay que llegar a una gasolinera
 	end
-	local wantThrottle, wantSteer, handbrake = readInput(s.Seat)
+	local wantThrottle, wantSteer, handbrakeDown = readInput(s.Seat)
+	-- Freno de mano: mantenido actúa; tocado parado se queda echado (y se quita al pisar un pedal)
+	local handbrake = handbrakeDown
+	if VehicleControls.features(s.Kind).Handbrake then
+		local event
+		handbrake, event = VehicleControls.handbrakeStep(s.Controls, handbrakeDown, s.Speed, wantThrottle)
+		if event then
+			SoundFx.handbrake(event == "Echado")
+			refreshPedals()
+		end
+		if s.Controls.Parked then
+			wantThrottle = 0
+		end
+	end
+	s.Handbrake = handbrake
 	local fast = math.clamp(math.abs(s.Speed) / math.max(maxSpeed, 1), 0, 1)
 	s.Throttle, s.Steer = Driving.smoothInputs(s.Throttle, s.Steer, wantThrottle, wantSteer, fast, dt)
 	local throttle, steer = s.Throttle, s.Steer
@@ -621,7 +771,15 @@ local function step(dt: number)
 	-- Con el freno de mano, el coche gira más (la trasera se va) y derrapa un poco
 	local drift = handbrake and fourWheels and math.abs(s.Speed) > 8
 	local turn = tuning.Turn * road.Turn * moving * gentle * (if drift then 1.5 else 1)
-	s.Yaw -= steer * turn * direction * dt
+	local turnedRight = steer * turn * direction * dt
+	s.Yaw -= turnedRight
+	-- Intermitente: se apaga solo al acabar el giro (girado hacia su lado y el volante de vuelta)
+	if VehicleControls.indicatorStep(s.Controls, turnedRight, steer) then
+		refreshPedals()
+	end
+	-- Pilotos: frenando (pedal contra la marcha o el freno de mano en marcha) y marcha atrás
+	s.Braking = VehicleControls.pedalMeaning(wantThrottle, s.Speed) == "Frena" or (handbrake and math.abs(s.Speed) > 0.5)
+	publishLamps(s)
 	-- Hacia dónde va de verdad: con buen agarre, hacia donde apunta; si resbala, se queda atrás
 	s.Travel = Wetness.slide(s.Travel, s.Yaw, road.Traction * (if drift then 0.3 else 1), dt)
 
@@ -825,6 +983,7 @@ function Driving.init()
 			start(seat :: VehicleSeat, humanoid)
 		end
 		local alive = humanoid ~= nil and humanoid.Health > 0
+		hintLights() -- (si se hace de noche conduciendo)
 		local action = RideSpot.watchSeat(watch, os.clock(), alive and player:GetAttribute("Riding") ~= nil, atWheel)
 		if action then
 			local remotes = ReplicatedStorage:FindFirstChild("Remotes")

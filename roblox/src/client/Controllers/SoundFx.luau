@@ -3,7 +3,7 @@
 --     contra una pared, chapuzón al caer al agua y trepar
 --   * Interfaz: clic en los botones y un "ding" en los avisos (otro tono en los errores)
 --   * Vehículos: arranque, choques según la velocidad, motor en bucle (sube de tono al acelerar)
---     y claxon / timbre con la tecla H
+--     y claxon / timbre con la tecla H; intermitente (tic-tac suave), freno de mano y luces
 --   * Gente: los trabajadores de la ciudad dicen sus frases en voz alta al hablar con ellos y,
 --     de vez en cuando, alguien cercano comenta algo (voz sintetizada de Roblox, como la historia).
 --     Los gestos (saludar, reír…) también tienen voz. Murmullo de gente en el centro si hay audio.
@@ -439,6 +439,7 @@ function SoundFx.vehicleStart(kind: string, chassis: BasePart)
 		Icon = if bell then "timbre" else "claxon",
 		Label = if bell then "Timbre" else "Claxon",
 		Slot = "Gestos", -- (el hueco grande del Ataque es el acelerador)
+		DriveSlot = "Claxon", -- (al volante en el móvil: junto a Bajarse, UI/HudLayout.Drive)
 		Priority = 2.5,
 		Key = "H",
 		Visible = function()
@@ -499,6 +500,24 @@ function SoundFx.crash(speed: number, at: BasePart?)
 	end
 	lastCrash[key] = os.clock()
 	SoundFx.play(name, volume, nil, at)
+end
+
+-- Intermitente: «tic» al encenderse y «tac» (más grave) al apagarse, muy suave (solo lo oye el conductor)
+function SoundFx.indicatorTick(on: boolean)
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	SoundFx.play("Intermitente", 1, if on then 1 else 0.8, root)
+end
+
+-- Freno de mano echado o quitado (el «clac» de la palanca) y el interruptor de las luces
+function SoundFx.handbrake(engaged: boolean)
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	SoundFx.play("FrenoMano", 1, if engaged then 1 else 1.25, root)
+end
+
+function SoundFx.lightSwitch()
+	SoundFx.play("LucesCoche")
 end
 
 -- Volumen del golpe al caer desde alto (velocidad de caída en studs/s): de 0.4 a 1 como mucho

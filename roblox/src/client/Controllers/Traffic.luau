@@ -550,10 +550,10 @@ local function respawn(agent: Agent, center: Vector3, minDist: number)
 		if not e or (agent.Small and e.Kind == "Autovia") then
 			continue
 		end
-		-- Que no aparezca encima de otro
+		-- Que no aparezca encima de otro (ni tan cerca que el de detrás no pueda frenar: antes, a 16)
 		local clash = false
 		for _, other in agents do
-			if other ~= agent and other.Active and other.From == from and other.To == to and math.abs(other.S - s) < 16 then
+			if other ~= agent and other.Active and other.From == from and other.To == to and math.abs(other.S - s) < 40 then
 				clash = true
 				break
 			end
@@ -632,6 +632,32 @@ local function oncoming(agent: Agent, node: number, d: Vector3): boolean
 	return false
 end
 
+-- ¿Hay alguien de la otra calle todavía dentro del cruce? (entró con ámbar y aún no ha salido):
+-- en verde se espera en la línea a que lo deje libre, en vez de meterse y cruzarse con él
+local function boxBusy(agent: Agent, node: number, d: Vector3): boolean
+	local axis = TrafficSignals.axisOf(d)
+	for _, other in agents do
+		if other == agent or not other.Active then
+			continue
+		end
+		if other.To == node and other.From ~= agent.From then
+			-- Aún no ha llegado al centro (o está girando): cuenta si viene por la otra calle y ya ha
+			-- pasado su línea
+			local od = nodes[node] - nodes[other.From]
+			local Lo = od.Magnitude
+			if Lo > 0.01 and TrafficSignals.axisOf(od) ~= axis and Lo - TrafficSignals.STOP_LINE - other.S - other.Length / 2 <= -1 then
+				return true
+			end
+		elseif other.From == node and other.S < TrafficSignals.BOX + other.Length / 2 then
+			-- Saliendo: cuenta si sale a lo largo de la otra calle (cruza por delante)
+			if TrafficSignals.axisOf(nodes[other.To] - nodes[node]) ~= axis then
+				return true
+			end
+		end
+	end
+	return false
+end
+
 -- Algo por delante en la calzada (una persona o el coche de un jugador): { Pos, Box?, Size? }
 type Obstacle = { Pos: Vector3, Box: CFrame?, Size: Vector3?, Mine: boolean? }
 
@@ -692,8 +718,9 @@ local function freeGap(agent: Agent, pos: Vector3, dir: Vector3, obstacles: { Ob
 			gap = math.min(gap, math.max(toLine, 0))
 		elseif toLine > -1 and toLine < 40 and TrafficSignals.canStop(toLine, agent.Speed, DECEL) then
 			-- En verde: no entra si al otro lado no hay sitio para él (no se queda parado dentro del
-			-- cruce) y, si gira a la izquierda, cede el paso a los que vienen de frente
-			if not exitClear(agent, node) or (agent.Turn == -1 and oncoming(agent, node, d)) then
+			-- cruce), si aún hay alguien de la otra calle dentro y, si gira a la izquierda, cede el paso
+			-- a los que vienen de frente
+			if not exitClear(agent, node) or boxBusy(agent, node, d) or (agent.Turn == -1 and oncoming(agent, node, d)) then
 				gap = math.min(gap, math.max(toLine, 0))
 			end
 		end

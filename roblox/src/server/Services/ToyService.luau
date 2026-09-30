@@ -98,6 +98,26 @@ local function kick(toy: Toy, hit: BasePart)
 	end
 end
 
+-- Un vehículo le da (KnockService, ya validado): sale con esta velocidad (y este giro)
+function ToyService.push(part: BasePart, velocity: Vector3, spin: Vector3?): boolean
+	local toy = toys[part]
+	if not toy or not part.Parent then
+		return false
+	end
+	wake(toy)
+	toy.LastKick = os.clock()
+	part.AssemblyLinearVelocity = velocity
+	if spin then
+		part.AssemblyAngularVelocity = spin
+	end
+	local s = part:FindFirstChild("Kick") :: Sound?
+	if s then
+		s.PlaybackSpeed = 0.8 + math.random() * 0.2
+		s:Play()
+	end
+	return true
+end
+
 local function add(instance: Instance)
 	if not instance:IsA("BasePart") or toys[instance] then
 		return

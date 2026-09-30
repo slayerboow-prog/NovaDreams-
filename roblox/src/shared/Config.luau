@@ -194,6 +194,10 @@ Config.Sounds = {
 	ChoqueLeve = { Id = 0, File = "choque_leve", Volume = 0.55, Pitch = 1, Fallback = { Id = "rbxasset://sounds/collide.wav", Volume = 0.25, Pitch = 1.2 } },
 	ChoqueFuerte = { Id = 0, File = "choque_fuerte", Volume = 0.75, Pitch = 1, Fallback = { Id = "rbxasset://sounds/collide.wav", Volume = 0.35, Pitch = 1 } },
 	Arranque = { Id = "rbxasset://sounds/switch.wav", Volume = 0.5, Pitch = 0.7 },
+	-- Mandos del vehículo (SoundFx: intermitente «tic-tac» suave, freno de mano y el interruptor de las luces)
+	Intermitente = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.12, Pitch = 1.7 },
+	FrenoMano = { Id = "rbxasset://sounds/switch.wav", Volume = 0.35, Pitch = 0.55 },
+	LucesCoche = { Id = "rbxasset://sounds/switch.wav", Volume = 0.3, Pitch = 1.25 },
 	-- Armas (shared/Weapons: Sound.Shot). Los disparos son nuestros (audio/sfx/disparo_*); hasta que se
 	-- suban suena el Fallback. Para otro, pon un Sound con ese nombre en ReplicatedStorage > Sonidos.
 	DisparoPistola = { Id = 0, File = "disparo_pistola", Volume = 0.9, Pitch = 1, Fallback = { Id = "rbxasset://sounds/collide.wav", Volume = 0.7, Pitch = 1.9 } },
