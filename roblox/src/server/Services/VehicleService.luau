@@ -1123,7 +1123,7 @@ local function drive(player: Player, model: Model, kind: string, opts: { Rented:
 	-- Luces, intermitentes y pilotos: todo apagado al subirse; los cambia su ordenador ("Lamps") y los
 	-- pinta cada ordenador (Controllers/VehicleLights)
 	VehicleControls.reset(model, false)
-	CollectionService:AddTag(model, "VehicleLamps")
+	pcall(CollectionService.AddTag, CollectionService, model, "VehicleLamps") -- (Controllers/VehicleLights)
 
 	sitDriver(humanoid, root, seat, kind)
 	Rides.setStand(model, false) -- en marcha: la pata de cabra (o el caballete) arriba
