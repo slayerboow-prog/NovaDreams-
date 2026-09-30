@@ -168,13 +168,18 @@ Config.Baby = {
 --   * "rbxasset://sounds/..." -> sonidos que vienen instalados con Roblox (funcionan siempre)
 --   * un número -> ID de un audio de Roblox (de la Caja de herramientas o subido por ti)
 --   * 0 -> busca el audio de File (audio/sfx) en shared/SoundIds y en ReplicatedStorage > Sonidos;
---          si no está, no suena
+--          si no está, no suena (o suena Fallback, si lo tiene: ver abajo)
+-- Fallback = { Id, Volume, Pitch }: lo que suena mientras el audio de File no esté subido. Solo sonidos
+-- de Roblox retocados con cuidado: collide.wav nunca por debajo de Pitch 0.9 (grave suena a "bomba").
 -- También se puede arrastrar un Sound a ReplicatedStorage > Sonidos con el mismo nombre
 -- (por ejemplo "Motor"): ese tiene preferencia.
 Config.Sounds = {
 	Salto = { Id = "rbxasset://sounds/swoosh.wav", Volume = 0.25, Pitch = 1.3 },
 	Aterrizaje = { Id = "rbxasset://sounds/action_jump_land.mp3", Volume = 0.7, Pitch = 0.8 },
-	Golpe = { Id = "rbxasset://sounds/collide.wav", Volume = 0.6, Pitch = 1 },
+	-- Golpes del personaje: chocar corriendo con una pared, puñetazos… ("tuc" seco) y caer desde alto
+	-- ("pof" del cuerpo; sustituye al Aterrizaje cuando la caída es fuerte, no se suman)
+	Golpe = { Id = 0, File = "golpe_choque", Volume = 0.55, Pitch = 1, Fallback = { Id = "rbxasset://sounds/collide.wav", Volume = 0.3, Pitch = 1.15 } },
+	GolpeCaida = { Id = 0, File = "golpe_caida", Volume = 0.7, Pitch = 1, Fallback = { Id = "rbxasset://sounds/action_jump_land.mp3", Volume = 0.6, Pitch = 0.9 } },
 	Chapuzon = { Id = "rbxasset://sounds/impact_water.mp3", Volume = 0.7, Pitch = 1 },
 	Trepar = { Id = "rbxasset://sounds/action_get_up.mp3", Volume = 0.6, Pitch = 1.1 },
 	Clic = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.3, Pitch = 1 },
@@ -185,20 +190,22 @@ Config.Sounds = {
 	MenuOk = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.3, Pitch = 1.6 },
 	MenuAtras = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.28, Pitch = 0.75 },
 	MenuAbrir = { Id = "rbxasset://sounds/swoosh.wav", Volume = 0.2, Pitch = 1.8 },
-	Choque = { Id = "rbxasset://sounds/collide.wav", Volume = 1, Pitch = 0.55 },
+	-- Choques de vehículos (SoundFx.crash): flojo o fuerte según la velocidad
+	ChoqueLeve = { Id = 0, File = "choque_leve", Volume = 0.55, Pitch = 1, Fallback = { Id = "rbxasset://sounds/collide.wav", Volume = 0.25, Pitch = 1.2 } },
+	ChoqueFuerte = { Id = 0, File = "choque_fuerte", Volume = 0.75, Pitch = 1, Fallback = { Id = "rbxasset://sounds/collide.wav", Volume = 0.35, Pitch = 1 } },
 	Arranque = { Id = "rbxasset://sounds/switch.wav", Volume = 0.5, Pitch = 0.7 },
-	-- Armas (shared/Weapons: Sound.Shot). Suenan con sonidos de Roblox retocados; para uno de verdad,
-	-- pon un Sound con ese nombre en ReplicatedStorage > Sonidos.
-	DisparoPistola = { Id = "rbxasset://sounds/collide.wav", Volume = 1, Pitch = 1.9 },
-	DisparoRevolver = { Id = "rbxasset://sounds/collide.wav", Volume = 1, Pitch = 1.4 },
-	DisparoEscopeta = { Id = "rbxasset://sounds/collide.wav", Volume = 1, Pitch = 0.8 },
-	DisparoSubfusil = { Id = "rbxasset://sounds/collide.wav", Volume = 0.8, Pitch = 2.2 },
-	DisparoFusil = { Id = "rbxasset://sounds/collide.wav", Volume = 1, Pitch = 1.7 },
-	DisparoFrancotirador = { Id = "rbxasset://sounds/collide.wav", Volume = 1, Pitch = 1.1 },
+	-- Armas (shared/Weapons: Sound.Shot). Los disparos son nuestros (audio/sfx/disparo_*); hasta que se
+	-- suban suena el Fallback. Para otro, pon un Sound con ese nombre en ReplicatedStorage > Sonidos.
+	DisparoPistola = { Id = 0, File = "disparo_pistola", Volume = 0.9, Pitch = 1, Fallback = { Id = "rbxasset://sounds/collide.wav", Volume = 0.7, Pitch = 1.9 } },
+	DisparoRevolver = { Id = 0, File = "disparo_revolver", Volume = 0.95, Pitch = 1, Fallback = { Id = "rbxasset://sounds/collide.wav", Volume = 0.75, Pitch = 1.4 } },
+	DisparoEscopeta = { Id = 0, File = "disparo_escopeta", Volume = 0.95, Pitch = 1, Fallback = { Id = "rbxasset://sounds/collide.wav", Volume = 0.75, Pitch = 1 } },
+	DisparoSubfusil = { Id = 0, File = "disparo_subfusil", Volume = 0.75, Pitch = 1, Fallback = { Id = "rbxasset://sounds/collide.wav", Volume = 0.6, Pitch = 2.2 } },
+	DisparoFusil = { Id = 0, File = "disparo_fusil", Volume = 0.95, Pitch = 1, Fallback = { Id = "rbxasset://sounds/collide.wav", Volume = 0.75, Pitch = 1.7 } },
+	DisparoFrancotirador = { Id = 0, File = "disparo_fusil", Volume = 1, Pitch = 0.9, Fallback = { Id = "rbxasset://sounds/collide.wav", Volume = 0.75, Pitch = 1.1 } }, -- (el del fusil, más lento)
 	DisparoTaser = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.5, Pitch = 2.5 },
 	DisparoAgua = { Id = "rbxasset://sounds/impact_water.mp3", Volume = 0.3, Pitch = 2 },
 	DisparoPaintball = { Id = "rbxasset://sounds/paintball.wav", Volume = 0.6, Pitch = 1 },
-	EcoDisparo = { Id = "rbxasset://sounds/collide.wav", Volume = 0.45, Pitch = 0.45 }, -- cola / eco del disparo
+	EcoDisparo = { Id = 0, File = "disparo_eco", Volume = 0.45, Pitch = 1 }, -- cola / eco del disparo (sin subir: no suena)
 	ArmaSeco = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.5, Pitch = 0.7 }, -- sin balas
 	CargadorFuera = { Id = "rbxasset://sounds/switch.wav", Volume = 0.5, Pitch = 1.3 },
 	CargadorDentro = { Id = "rbxasset://sounds/switch.wav", Volume = 0.6, Pitch = 0.9 },

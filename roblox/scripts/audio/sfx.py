@@ -559,7 +559,7 @@ def choque(strong: bool):
     crunch_len = 0.16 if strong else 0.05
     grains = (rng.random(n) < (0.03 if strong else 0.015)).astype(float) * rng.uniform(0.3, 1, n)
     grains = band(grains + 0.15 * rnoise(rng, total), 500, 6000) * decay(total, crunch_len / 2.5)
-    sig = unit(thump) * 1.0 + unit(metal) * 0.55 + unit(grains) * (0.8 if strong else 0.45)
+    sig = unit(thump) * (0.8 if strong else 0.9) + unit(metal) * (0.8 if strong else 0.6) + unit(grains) * (1.0 if strong else 0.5)
     # 4) traqueteo de trozos sueltos y (el fuerte) cristalitos
     sig += debris(rng, total, 14 if strong else 5, 0.06, 0.035, 1500, 6000) * (0.22 if strong else 0.14)
     if strong:
@@ -624,8 +624,10 @@ def gunshot(name: str, seed: int, total: float, crack: float, blast_tau: float, 
         sig[:w // 2] += np.linspace(0.8, -0.8, w // 2)
     # estampido: ruido con la envolvente del gas saliendo del cañón
     blast = band(rnoise(rng, total), lo, hi) * decay(total, blast_tau, 0.0003)
-    blast += 0.35 * band(rnoise(rng, total), hi * 0.6, 12000) * decay(total, blast_tau / 4, 0.0002)
-    sig += unit(blast) * 1.0
+    blast += 0.12 * band(rnoise(rng, total), hi * 0.6, 12000) * decay(total, blast_tau / 4, 0.0002)
+    # el "pum" del gas: medios (200-1200 Hz), que es lo que da peso al disparo sin ser un bombazo
+    thud = band(rnoise(rng, total), max(lo, 180), 1200) * decay(total, blast_tau * 1.4, 0.0006)
+    sig += unit(blast) * 0.8 + unit(thud) * 0.9
     # cuerpo (corredera, cañón, cartucho)
     sig += unit(modes(rng, total, body)) * 0.35
     sig = np.tanh(unit(sig) * drive)
@@ -674,10 +676,10 @@ def disparo_eco():
     sig = np.zeros(n_of(total))
     # unas cuantas reflexiones (cada vez más flojas y más apagadas) sobre un fondo difuso
     for i, at in enumerate(np.sort(rng.uniform(0.0, 0.5, 9))):
-        hit = band(rnoise(rng, 0.2), 200, 3000 - i * 220) * decay(0.2, 0.03, 0.004)
+        hit = band(rnoise(rng, 0.25), 200, 3000 - i * 220) * decay(0.25, 0.05, 0.004)
         add_at(sig, unit(hit) * (0.9 ** i) * rng.uniform(0.5, 1), at)
     diffuse = band(rnoise(rng, total), 180, 1800) * np.exp(-t / 0.28) * np.clip(t / 0.05, 0, 1)
-    sig = unit(sig) * 0.7 + unit(diffuse) * 0.5
+    sig = unit(sig) * 0.6 + unit(diffuse) * 0.8
     sig = no_boom(sig, 120)
     sig *= adsr(len(sig), 0.01, 0.35)
     write("disparo_eco.ogg", sig, loop=False)
