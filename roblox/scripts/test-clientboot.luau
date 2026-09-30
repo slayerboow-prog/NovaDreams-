@@ -1505,7 +1505,22 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean })
 			limbs[side .. "LowerLeg"] = part(side .. "LowerLeg", V3.new(1, 1.2, 1), V3.new(x / 3, -2.2, 0))
 			limbs[side .. "Foot"] = part(side .. "Foot", V3.new(1, 0.3, 1), V3.new(x / 3, -2.9, 0))
 		end
-		local function motor(name: string, owner: any, part0: any)
+		-- Ordenador: Motor6D. Móvil: las articulaciones nuevas de Roblox (AnimationConstraint entre dos
+		-- Attachment, sin C0/C1/Part0/Part1), como los avatares del juego publicado: así se prueba que lo
+		-- que mueve el cuerpo con código (agacharse…) funciona con las dos.
+		local function motor(name: string, owner: any, part0: any, c0: any?, c1: any?)
+			if mode.Touch then
+				local a0 = new("Attachment", name .. "RigAttachment")
+				a0.CFrame = c0 or CF.new()
+				a0.Parent = part0
+				local a1 = new("Attachment", name .. "RigAttachment")
+				a1.CFrame = c1 or CF.new()
+				a1.Parent = owner
+				local m = new("AnimationConstraint", name)
+				m.Attachment0, m.Attachment1, m.Transform = a0, a1, CF.new()
+				m.Parent = owner
+				return
+			end
 			local m = new("Motor6D", name)
 			m.Part0, m.Part1 = part0, owner
 			m.C0, m.C1, m.Transform = CF.new(), CF.new(), CF.new()
@@ -1515,12 +1530,14 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean })
 		motor("Waist", upper, lower)
 		motor("Neck", head, upper)
 		for _, side in { "Left", "Right" } do
+			local x = if side == "Left" then -0.5 else 0.5
 			motor(side .. "Shoulder", limbs[side .. "UpperArm"], upper)
 			motor(side .. "Elbow", limbs[side .. "LowerArm"], limbs[side .. "UpperArm"])
 			motor(side .. "Wrist", limbs[side .. "Hand"], limbs[side .. "LowerArm"])
-			motor(side .. "Hip", limbs[side .. "UpperLeg"], lower)
-			motor(side .. "Knee", limbs[side .. "LowerLeg"], limbs[side .. "UpperLeg"])
-			motor(side .. "Ankle", limbs[side .. "Foot"], limbs[side .. "LowerLeg"])
+			-- (piernas con medidas de R15: cadera → rodilla → tobillo)
+			motor(side .. "Hip", limbs[side .. "UpperLeg"], lower, CF.new(x, -0.2, 0), CF.new(0, 0.45, 0))
+			motor(side .. "Knee", limbs[side .. "LowerLeg"], limbs[side .. "UpperLeg"], CF.new(0, -0.45, 0), CF.new(0, 0.4, 0))
+			motor(side .. "Ankle", limbs[side .. "Foot"], limbs[side .. "LowerLeg"], CF.new(0, -0.45, 0), CF.new(0, 0.1, 0))
 		end
 		local humanoid = new("Humanoid", "Humanoid")
 		local hp = rawget(humanoid, "__props")
@@ -2060,39 +2077,92 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean })
 			local tab = playerGui:FindFirstChild("LifeStoryTab", true)
 			table.insert(checks, { not mode.Touch or not (mission and mission.Visible) or not (tab and tab.Visible), "móvil: con la misión a la vista, la pestaña «Tu vida» se aparta" })
 		end,
+		-- Móvil: el botón «Agacharse» (el de verdad: TouchLayout → Controllers/Stances). Tocarlo agacha y
+		-- volver a tocarlo levanta, sin arma y con el revólver en la mano; solo hay UN botón así y el
+		-- cuerpo baja de verdad (con las articulaciones nuevas de Roblox del personaje de móvil)
 		[math.floor(40.5 * FPS)] = function()
-			local tg = playerGui:FindFirstChild("TouchLayout")
-			local list = {}
-			for _, b in (tg and tg:GetChildren()) or {} do
-				local cap = b:FindFirstChild("Caption")
-				table.insert(list, tostring(b.Name) .. "=" .. tostring(b.Visible) .. ":" .. tostring(cap and cap.Text))
+			if not mode.Touch then
+				return
 			end
-			print("PROBE buttons", mode.Name, table.concat(list, ", "))
-			print("PROBE attrs", localPlayer:GetAttribute("StanceLocal"), localPlayer:GetAttribute("InDialogue"), localPlayer:GetAttribute("LifeStage"))
-			local btn = tg and tg:FindFirstChild("Agacharse")
-			if btn then
+			local controllersF = client:FindFirstChild("Controllers")
+			local okLayers, Layers = pcall(requireFn, controllersF and controllersF:FindFirstChild("PoseLayers"))
+			local character = localPlayer.Character
+			local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+			local knee = character and character:FindFirstChild("RightKnee", true)
+			local CAPTIONS = { Agacharse = true, Agachado = true, Tumbado = true }
+			local function crouchButtons(): { any }
+				local out = {}
+				local touchGui = playerGui:FindFirstChild("TouchLayout")
+				for _, b in (touchGui and touchGui:GetChildren()) or {} do
+					local caption = b:FindFirstChild("Caption")
+					if b.Visible and caption and CAPTIONS[tostring(caption.Text)] then
+						table.insert(out, b)
+					end
+				end
+				return out
+			end
+			-- Pasa el tiempo con las capas de postura (PoseLayers no arranca solo fuera de Roblox)
+			local function run(seconds: number)
+				for _ = 1, math.ceil(seconds / 0.05) do
+					fakeTask.wait(0.05)
+					if okLayers then
+						Layers.step(0.05, now)
+					end
+				end
+			end
+			-- Un toque con el dedo, como en el móvil
+			local function tap(button: any)
 				local input = new("InputObject", "InputObject")
 				rawget(input, "__props").UserInputType = Enum.UserInputType.Touch
 				rawget(input, "__props").UserInputState = Enum.UserInputState.Begin
-				table.clear(serverLog)
-				signalOf(btn, "InputBegan"):Fire(input)
+				signalOf(button, "InputBegan"):Fire(input)
 				fakeTask.wait(0.1)
 				rawget(input, "__props").UserInputState = Enum.UserInputState.End
-				signalOf(btn, "InputEnded"):Fire(input)
+				signalOf(button, "InputEnded"):Fire(input)
 				signalOf(uis, "InputEnded"):Fire(input, true)
-				signalOf(btn, "Activated"):Fire(input, 1)
-				fakeTask.wait(0.2)
-				print("PROBE after tap", localPlayer:GetAttribute("StanceLocal"))
-				local controllersF = client:FindFirstChild("Controllers")
-				local okL, Layers = pcall(requireFn, controllersF:FindFirstChild("PoseLayers"))
-				for i = 1, 40 do
-					fakeTask.wait(0.05)
-					if okL then local ok2, e2 = pcall(Layers.step, 0.05, now) if not ok2 then print("PROBE step err", e2) end end
-				end
-				local hum = localPlayer.Character and localPlayer.Character:FindFirstChildOfClass("Humanoid")
-				print("PROBE 2s later", localPlayer:GetAttribute("StanceLocal"), hum and hum.HipHeight)
-				for _, call in serverLog do print("PROBE server", call.Remote, call.Args[1], call.Args[2]) end
+				signalOf(button, "Activated"):Fire(input, 1)
+				run(0.6)
 			end
+			local function sentStance(): string?
+				local last = nil
+				for _, call in serverLog do
+					if call.Remote == "Actions" and call.Args[1] == "Stance" then
+						last = call.Args[2]
+					end
+				end
+				return last
+			end
+			local function probe(tag: string)
+				local list = crouchButtons()
+				table.insert(checks, { #list == 1 and list[1].Name == "Agacharse", ("móvil %s: hay un solo botón «Agacharse» y es el de Stances (%d)"):format(tag, #list) })
+				if #list ~= 1 or not humanoid then
+					return
+				end
+				local standHip = humanoid.HipHeight
+				table.clear(serverLog)
+				tap(list[1])
+				local crouchedHip = humanoid.HipHeight
+				local bent = knee ~= nil and select(1, knee.Transform:ToEulerAnglesXYZ()) < -0.3
+				table.insert(checks, { localPlayer:GetAttribute("StanceLocal") == "Crouch" and sentStance() == "Crouch",
+					("móvil %s: tocar «Agacharse» agacha (%s) y se lo dice al servidor (%s)"):format(tag, tostring(localPlayer:GetAttribute("StanceLocal")), tostring(sentStance())) })
+				table.insert(checks, { crouchedHip < standHip - 0.2 and bent,
+					("móvil %s: el cuerpo baja de verdad (cadera %.2f → %.2f) y dobla las rodillas (%s)"):format(tag, standHip, crouchedHip, tostring(bent)) })
+				local again = crouchButtons()
+				table.insert(checks, { #again == 1 and tostring(again[1]:FindFirstChild("Caption").Text) == "Agachado", ("móvil %s: agachado, el botón dice «Agachado» (sigue siendo uno)"):format(tag) })
+				if #again == 1 then
+					tap(again[1])
+				end
+				table.insert(checks, { localPlayer:GetAttribute("StanceLocal") == "Stand" and sentStance() == "Stand" and math.abs(humanoid.HipHeight - standHip) < 0.01,
+					("móvil %s: tocarlo otra vez te levanta (%s, cadera %.2f)"):format(tag, tostring(localPlayer:GetAttribute("StanceLocal")), humanoid.HipHeight) })
+			end
+			probe("sin arma")
+			localPlayer:SetAttribute("Weapon", "Revolver")
+			fakeTask.wait(1)
+			local touchGui = playerGui:FindFirstChild("TouchLayout")
+			local shoot = touchGui and touchGui:FindFirstChild("Disparar")
+			table.insert(checks, { shoot ~= nil and shoot.Visible, "móvil con el revólver: salen los botones del arma (Disparar)" })
+			probe("con el revólver")
+			localPlayer:SetAttribute("Weapon", nil)
 		end,
 		[math.floor(39.6 * FPS)] = function()
 			table.insert(checks, { not rowLabels()["Modo pruebas"], "COMANDOS: al quitar Tester, «Modo pruebas» se va" })

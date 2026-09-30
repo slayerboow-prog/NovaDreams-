@@ -23,6 +23,7 @@ local DayLight = require(script.Parent.DayLight)
 local SpeechBubbles = require(script.Parent.Parent.UI.SpeechBubbles)
 local Controls = require(script.Parent.Controls)
 local CineCamera = require(script.Parent.CineCamera)
+local RideState = require(ReplicatedStorage.Shared.RideState)
 
 local create = Theme.create
 local C = Theme.Colors
@@ -162,6 +163,11 @@ local function frame(line: { [string]: any })
 		them = headOf(lastActor) or them
 	end
 	if not me or not them or line.Narrator or (me - them).Magnitude > 60 then
+		return
+	end
+	-- Sentado en un vehículo (conduciendo o de pasajero) la cámara sigue siendo la del vehículo: la de
+	-- conversación nunca se la lleva (antes, en la moto, saltaba a un plano de diálogo)
+	if RideState.inVehicle(player) then
 		return
 	end
 	if not savedCamera then

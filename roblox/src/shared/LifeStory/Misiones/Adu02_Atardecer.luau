@@ -56,7 +56,9 @@ return {
 		-- El camino
 		{ Type = "Event", Event = "LicenseEarned", Match = { License = "B" }, Place = "Autoescuela", Text = "Sácate el carnet de coche en la autoescuela", If = COCHE,
 			Nudge = { After = 240, Every = 240, S = "Familia", T = "(mensaje) {abu} pregunta cada día si ya tienes el carnet. Dice que conduces seguro mejor que yo." } },
-		{ Type = "Scene", Dialogue = "Coche", If = COCHE,
+		-- (InVehicle: justo al aprobar puedes seguir sentado en el coche del examen; esta escena sí
+		-- puede pasar dentro de un vehículo, no espera a que te bajes)
+		{ Type = "Scene", Dialogue = "Coche", If = COCHE, InVehicle = true,
 			Actors = { { Npc = "Familia", Place = "CercaDeTi", Offset = V(-3, 0, -4) }, { Npc = "Abu", Place = "CercaDeTi", Offset = V(3, 0, -4) } } },
 		{ Type = "Scene", Dialogue = "Autobus", If = BUS,
 			Actors = { { Npc = "Abu", Place = "ParadaBus", Offset = V(2, 0, 3), Mode = "Sit" } } },

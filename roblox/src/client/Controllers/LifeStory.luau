@@ -18,6 +18,7 @@ local HudLayout = require(script.Parent.Parent.UI.HudLayout)
 local StoryAudio = require(script.Parent.StoryAudio)
 local Cinematics = require(script.Parent.Cinematics)
 local StoryJournal = require(script.Parent.StoryJournal)
+local RideState = require(ReplicatedStorage.Shared.RideState)
 
 local create = Theme.create
 local C = Theme.Colors
@@ -359,24 +360,89 @@ end
 -- Momentos, capítulos y transiciones
 ---------------------------------------------------------------------
 
-local momentQueue: { () -> () } = {}
+local momentQueue: { { Show: () -> (), Blocking: boolean } } = {}
 local showingMoment = false
 
-local function queue(show: () -> ())
-	table.insert(momentQueue, show)
+-- blocking = pantalla que tapa el juego (capítulo, transición, escena de cine, resumen, tarjeta de
+-- misión): mientras vas en un vehículo espera a que te bajes (nunca tapa la carretera). Los momentos
+-- pequeños (frases que se desvanecen) salen igual, adelantándose a lo que espera.
+local function queue(show: () -> (), blocking: boolean?)
+	table.insert(momentQueue, { Show = show, Blocking = blocking == true })
 	if showingMoment then
 		return
 	end
 	showingMoment = true
 	task.spawn(function()
 		while #momentQueue > 0 do
+			local index = 1
+			if RideState.inVehicle(player) then
+				index = 0
+				for i, item in momentQueue do
+					if not item.Blocking then
+						index = i
+						break
+					end
+				end
+			end
+			if index == 0 then
+				task.wait(0.5) -- (todo lo que queda tapa la pantalla: al bajarte)
+				continue
+			end
 			-- Si uno falla, la cola sigue (si no, se quedaba parada y los diálogos esperando)
-			local ok, err = pcall(table.remove(momentQueue, 1))
+			local item = table.remove(momentQueue, index)
+			local ok, err = pcall(item.Show)
 			if not ok then
 				warn("[LifeStory] " .. tostring(err))
 			end
 		end
 		showingMoment = false
+	end)
+end
+
+-- Aviso pequeño de móvil arriba («📱 Abu Rosa quiere hablar contigo — bájate para hablar»): no para
+-- nada ni se toca; se va solo
+local pingSerial = 0
+local function showPing(message: string)
+	pingSerial += 1
+	local serial = pingSerial
+	local old = gui:FindFirstChild("StoryPing")
+	if old then
+		old:Destroy()
+	end
+	local label = Theme.label({
+		Name = "StoryPing",
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 58),
+		Size = UDim2.new(0.6, 0, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		Text = message,
+		Font = Theme.FontBold,
+		TextSize = 16,
+		TextScaled = false,
+		TextWrapped = true,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		TextColor3 = Color3.new(1, 1, 1),
+		BackgroundColor3 = Color3.fromRGB(20, 24, 34),
+		BackgroundTransparency = 0.2,
+		Active = false,
+		ZIndex = 25,
+		Parent = gui,
+	})
+	create("UICorner", { CornerRadius = UDim.new(0, 10), Parent = label })
+	create("UIPadding", {
+		PaddingTop = UDim.new(0, 6),
+		PaddingBottom = UDim.new(0, 6),
+		PaddingLeft = UDim.new(0, 12),
+		PaddingRight = UDim.new(0, 12),
+		Parent = label,
+	})
+	task.delay(5, function()
+		if serial == pingSerial and label.Parent then
+			local out = TweenService:Create(label, TweenInfo.new(0.5), { TextTransparency = 1, BackgroundTransparency = 1 })
+			out:Play()
+			out.Completed:Wait()
+			label:Destroy()
+		end
 	end)
 end
 
@@ -721,19 +787,24 @@ local handlers: { [string]: (payload: { [string]: any }) -> () } = {
 		queue(function()
 			pcall(Cinematics.play, payload)
 			release()
-		end)
+		end, true)
 	end,
 	Chapter = function(payload)
 		queue(function()
 			StoryAudio.sting("Capitulo")
 			local small = if payload.Phase == "Intro" then Strings.get("STORY.CHAPTER.LABEL") else nil
 			showScreen(small, Strings.get(payload.TitleKey), Strings.get(payload.TextKey), 3.5)
-		end)
+		end, true)
 	end,
 	Transition = function(payload)
 		queue(function()
 			showScreen(nil, Strings.get(payload.TextKey), nil, payload.Seconds or 4)
-		end)
+		end, true)
+	end,
+	Ping = function(payload)
+		if type(payload.Text) == "string" then
+			showPing(payload.Text)
+		end
 	end,
 	Discover = function(payload)
 		queue(function()
@@ -811,12 +882,12 @@ local handlers: { [string]: (payload: { [string]: any }) -> () } = {
 	QuestIntro = function(payload)
 		queue(function()
 			showIntro(payload)
-		end)
+		end, true)
 	end,
 	Recap = function(payload)
 		queue(function()
 			showRecap(payload)
-		end)
+		end, true)
 	end,
 	Journal = function(payload)
 		StoryJournal.show(payload)

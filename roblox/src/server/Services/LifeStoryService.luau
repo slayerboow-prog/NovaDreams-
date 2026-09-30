@@ -2067,6 +2067,9 @@ end
 local function offer(player: Player, questId: string)
 	local rt = runtime[player]
 	local quest = Quests[questId]
+	if RideState.inVehicle(player) then
+		return -- (conduciendo no sale ninguna tarjeta con botones: se ofrecerá cuando vayas a pie)
+	end
 	rt.PendingOffer = questId
 	rt.OfferedAt = os.clock()
 	-- Con su contexto: tipo (⭐/🌀/❗), quién te lo pide y por qué (Description)
@@ -2084,6 +2087,9 @@ local function offer(player: Player, questId: string)
 end
 
 local function checkPlaceOffers(player: Player, data: Data)
+	if RideState.inVehicle(player) then
+		return -- (pasar por delante conduciendo no ofrece ni empieza nada: al bajarte allí, sí)
+	end
 	for questId, quest in Quests do
 		if quest.Kind == "Side" and quest.Offer and quest.Offer.Place and canOffer(player, data, questId) then
 			local spot = LocationService.resolve(player, quest.Offer.Place)
@@ -2347,6 +2353,16 @@ local function stepTimers(player: Player, data: Data, questId: string, prog: Pro
 		startInteractive(player, data, questId)
 		return false
 	end
+	-- Escena de cine que esperaba (ibas conduciendo, o no seguías la misión): en cuanto se pueda
+	if step.Type == "Cinematic" and rt.CineHeld and rt.CineHeld[questId] == prog.Step then
+		local ok, why = canAutoStart(player, data, questId, step)
+		if ok then
+			playCinematicStep(player, questId, step, prog.Step)
+		else
+			holdNotice(player, questId, step, prog.Step, why or "Untracked")
+		end
+		return false
+	end
 	-- La ventana de una decisión puede perderse (otra ventana encima, un toque rechazado porque había
 	-- una conversación): mientras no se elija, se vuelve a mandar
 	if step.Type == "Choice" and (not worldChoice(step) or rt.Fallback[questId]) and os.clock() - (rt.ChoiceSentAt[questId] or 0) > 15 then
@@ -2356,12 +2372,23 @@ local function stepTimers(player: Player, data: Data, questId: string, prog: Pro
 		return false
 	end
 	-- Planes B cuando el mapa no tiene el sitio del actor o del objeto
-	if step.Type == "Talk" and step.Dialogue and since > 15 and not SceneService.actorOf(player, step.Npc) then
+	-- (la conversación o el objeto del plan B salen solos: conduciendo o sin seguir la misión, esperan)
+	local planB = (step.Type == "Talk" and step.Dialogue and since > 15 and not SceneService.actorOf(player, step.Npc))
+		or (step.Type == "Use" and since > 20 and not SceneService.hasProp(player, questId, step.Prop))
+	local planOk, planWhy = true, nil
+	if planB then
+		planOk, planWhy = canAutoStart(player, data, questId, step)
+		if not planOk then
+			holdNotice(player, questId, step, prog.Step, planWhy or "Untracked")
+			return false
+		end
+	end
+	if step.Type == "Talk" and planB then
 		rt.Fallback[questId] = true
 		playDialogue(player, data, questId, step.Dialogue, function()
 			StoryEvents.emit(player, "TalkDone", { Npc = step.Npc, Quest = questId })
 		end, "Talk:" .. tostring(step.Npc))
-	elseif step.Type == "Use" and since > 20 and not SceneService.hasProp(player, questId, step.Prop) then
+	elseif step.Type == "Use" and planB then
 		rt.Fallback[questId] = true
 		interactProp(player, data, questId, step.Prop)
 	elseif step.Type == "Choice" and worldChoice(step) and since > 20 then
@@ -2706,7 +2733,8 @@ local function tickPlayer(player: Player, data: Data)
 			-- Clase: al llegar al aula empieza sola; si el aula no existe en el mapa, empieza igual a los 8 s
 			local rt = runtime[player]
 			local key = spotKey(questId, prog)
-			if not busy(player) and not held(player) then
+			-- (conduciendo o en el autobús no empieza: la clase espera a que te bajes)
+			if not busy(player) and not held(player) and not RideState.inVehicle(player) then
 				local arrived = checkReach(player, data, questId, prog, step)
 				if not arrived and not rt.Spots[key] then
 					rt.ClassWaitSince[key] = rt.ClassWaitSince[key] or os.clock()
@@ -3069,9 +3097,38 @@ function LifeStoryService.interact(player: Player, kind: string, questId: string
 	if not LifeStoryService.Guard.allow(rt, kind .. ":" .. id, os.clock()) then
 		return
 	end
+	-- Desde un vehículo no se habla ni se usa nada de la historia (se abriría la conversación con la
+	-- cámara encima mientras conduces): primero bájate
+	if not (step and step.InVehicle) and RideState.inVehicle(player) then
+		pcall(function()
+			local remote = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("Notify")
+			if remote then
+				(remote :: RemoteEvent):FireClient(player, "Info", "Bájate del vehículo para hablar.")
+			end
+		end)
+		return
+	end
+	-- Lo has tocado tú: esta misión es la que estás haciendo ahora (lo que siga puede empezar solo)
+	engage(player, questId)
 	if kind == "Prop" then
 		interactProp(player, data, questId, id)
 		return
+	end
+	-- 0b) Una escena que esperaba (no sigues esta misión, o ibas conduciendo): hablar con alguien
+	-- de la escena la empieza
+	if step and (step.Type == "Scene" or step.Type == "MiniGame") then
+		local inScene = false
+		for _, list in { quest.Actors or {}, step.Actors or {} } do
+			for _, spec in list do
+				if spec.Npc == id then
+					inScene = true
+				end
+			end
+		end
+		if inScene then
+			startInteractive(player, data, questId)
+			return
+		end
 	end
 	-- 1) Hablar con este personaje ES elegir (unirte a un grupo del recreo…)
 	if step and step.Type == "Choice" then

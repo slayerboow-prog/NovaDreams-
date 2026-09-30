@@ -62,7 +62,7 @@ local missionBest: number? = nil
 local stuck = Onboarding.newStuck()
 local promptedTips: { [string]: boolean } = {} -- consejos que ha pedido un cartel (PromptShown)
 
-type Note = { Kind: string, Text: string, Button: string?, Go: (() -> ())? }
+type Note = { Kind: string, Text: string, Button: string?, Go: (() -> ())?, TipId: string? }
 local queue: { Note } = {}
 local note: Note? = nil
 local noteLeft = 0
@@ -128,6 +128,19 @@ local function areaTaken(): boolean
 		end
 	end
 	return false
+end
+
+-- Conduciendo o de pasajero: la tarjeta abajo en el centro tapaba la carretera. Fuera mientras vas
+-- en un vehículo (vuelve al bajarte); solo se deja el consejo del propio vehículo (sale al subir).
+local function inVehicle(): boolean
+	if player:GetAttribute("Riding") ~= nil or player:GetAttribute("Passenger") ~= nil then
+		return true
+	end
+	local character = player.Character
+	local h = character and character:FindFirstChildOfClass("Humanoid")
+	local seat = h and h.SeatPart
+	local model = seat and seat:FindFirstAncestorOfClass("Model")
+	return model ~= nil and model:GetAttribute("Drivable") == true
 end
 
 local function tutorialActive(): boolean
@@ -276,6 +289,10 @@ local function refresh()
 	-- Con la mochila o el mapa abiertos la tarjeta se aparta: si no, tapaba lo que estás mirando.
 	local blocked = quiet() or areaTaken() or safe(hooks.dialogOpen) or safe(hooks.bagOpen) or safe(hooks.mapOpen)
 	local current = note
+	local driving = inVehicle()
+	if driving and not (current and current.TipId == "Vehiculo") then
+		blocked = true
+	end
 	if current and not blocked then
 		noteView.Visible = true
 		Theme.setText(noteParts.Text, current.Text)
@@ -311,8 +328,8 @@ local function nextNote()
 	refresh()
 end
 
-function Guide.note(kind: string, text: string, button: string?, go: (() -> ())?)
-	table.insert(queue, { Kind = kind, Text = text, Button = button, Go = go })
+function Guide.note(kind: string, text: string, button: string?, go: (() -> ())?, tipId: string?)
+	table.insert(queue, { Kind = kind, Text = text, Button = button, Go = go, TipId = tipId })
 	if not note then
 		nextNote()
 	end
@@ -405,7 +422,7 @@ function Guide.tip(id: string)
 	end
 	tipsSeen[id] = true
 	send("Tip", id)
-	Guide.note("Tip", Onboarding.Tips[id], "Vale 👍")
+	Guide.note("Tip", Onboarding.Tips[id], "Vale 👍", nil, id)
 end
 
 -- ¿Qué consejo pide lo que tienes delante? (el cartel de un objeto: máquina, tienda, parada…)
@@ -540,7 +557,7 @@ end
 local function checkStuck(dt: number)
 	local objective = Hud.objective()
 	local key = if objective and objective.Step ~= "" then objective.Key else nil
-	local blocked = quiet() or tutorialActive() or areaTaken() or safe(hooks.dialogOpen)
+	local blocked = quiet() or tutorialActive() or areaTaken() or safe(hooks.dialogOpen) or inVehicle()
 	local kind = Onboarding.stuckStep(stuck, dt, key, distanceTo(objective and objective.Target), blocked)
 	if not kind or not objective then
 		return

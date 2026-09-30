@@ -160,12 +160,78 @@ local function classify(seat: BasePart): (BasePart?, View?)
 	return model.PrimaryPart, RideCamera.view(if ok then size else model.PrimaryPart.Size, false)
 end
 
+-- Postes finos (farolas, semáforos, señales, troncos) entre la cámara y tu vehículo: en tu pantalla
+-- se ven casi transparentes (como la Invisicam de Roblox), en vez de tapar el vehículo entero. Las
+-- paredes no: de esas se encarga la cámara de Roblox, que se acerca.
+local FADE = 0.75
+local faded: { [BasePart]: boolean } = {}
+local fadeParams = RaycastParams.new()
+fadeParams.FilterType = Enum.RaycastFilterType.Exclude
+fadeParams.RespectCanCollide = false
+
+-- ¿Es un poste (fino en dos medidas) y no una pared o un suelo?
+function RideCamera.isThin(size: Vector3): boolean
+	local dims = { size.X, size.Y, size.Z }
+	table.sort(dims)
+	return dims[2] <= 2.5 and dims[3] > dims[2]
+end
+
+local function unfadeAll()
+	for part in faded do
+		if part.Parent then
+			part.LocalTransparencyModifier = 0
+		end
+	end
+	table.clear(faded)
+end
+
+local function fadeThin(a: Active)
+	local camera = workspace.CurrentCamera
+	local from = a.Focus
+	local offset = camera.CFrame.Position - from
+	local now: { [BasePart]: boolean } = {}
+	if offset.Magnitude > 0.5 then
+		local ignore: { Instance } = { a.Root:FindFirstAncestorOfClass("Model") or a.Root }
+		if player.Character then
+			table.insert(ignore, player.Character)
+		end
+		if anchor then
+			table.insert(ignore, anchor)
+		end
+		for _ = 1, 5 do
+			fadeParams.FilterDescendantsInstances = ignore
+			local hit = workspace:Raycast(from, offset, fadeParams)
+			if not hit then
+				break
+			end
+			local part = hit.Instance
+			if part:IsA("BasePart") and part ~= workspace.Terrain and RideCamera.isThin(part.Size) then
+				now[part] = true
+			end
+			table.insert(ignore, part)
+		end
+	end
+	for part in faded do
+		if not now[part] then
+			faded[part] = nil
+			if part.Parent then
+				part.LocalTransparencyModifier = 0
+			end
+		end
+	end
+	for part in now do
+		faded[part] = true
+		part.LocalTransparencyModifier = FADE
+	end
+end
+
 local function leave()
 	local a = active
 	if not a then
 		return
 	end
 	active = nil
+	unfadeAll()
 	local camera = workspace.CurrentCamera
 	local humanoid = humanoidOf()
 	if camera.CameraType == Enum.CameraType.Custom then
@@ -346,6 +412,7 @@ local function afterCamera(dt: number)
 	if camera.CameraType ~= Enum.CameraType.Custom or camera.CameraSubject ~= anchor then
 		return
 	end
+	pcall(fadeThin, a)
 	local forward = flat(a.Root.CFrame.LookVector)
 	local look = flat(camera.CFrame.LookVector)
 	if not forward or not look then

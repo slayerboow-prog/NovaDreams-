@@ -131,7 +131,7 @@ do
 		local index, fromSide, t = startIndex, "A", 0.5
 		local pos, look = Routes.point(g.Segments[index], fromSide, t, 5)
 		local dt, speed = 1 / 30, 24
-		local backwards, worst, uTurns, backDist = 0, 1, 0, 0
+		local backwards, worst, uTurns, streak, longest = 0, 1, 0, 0, 0
 		for _ = 1, math.floor(seconds / dt) do
 			t += speed * dt / Routes.length(g.Segments[index])
 			if t >= 1 then
@@ -155,11 +155,14 @@ do
 				worst = math.min(worst, dot)
 				if dot < 0 then
 					backwards += dt
-					backDist += velocity.Magnitude
+					streak += dt
+					longest = math.max(longest, streak)
+				else
+					streak = 0
 				end
 			end
 		end
-		return backwards, worst, uTurns, backDist
+		return backwards, worst, uTurns, longest
 	end
 	local function newTurn(look, dir, dt)
 		return Routes.turnToward(look, dir, 3.5 * dt)
@@ -189,8 +192,8 @@ do
 		{ A = V(200, 0, 200), B = V(0, 0, 200) },
 		{ A = V(0, 0, 200), B = V(0, 0, 0) },
 	}
-	local _, _, _, backDist = drive(square, 1, 60, newTurn)
-	check(backDist < 1, ("dando vueltas a la manzana no va marcha atrás (%.1f studs hacia atrás en 60 s; antes, un saltito atrás en cada giro)"):format(backDist))
+	local _, _, _, longest = drive(square, 1, 60, newTurn)
+	check(longest < 0.4, ("dando vueltas a la manzana no va marcha atrás (como mucho %.2f s seguidos mirando atrás: el giro de la esquina)"):format(longest))
 	local source = fs.readFile("src/server/World/PoliceUnits.luau")
 	check(source:find("PatrolRoutes.turnToward", 1, true) ~= nil and not source:find("look:Lerp(dir", 1, true), "PoliceUnits gira las patrullas con turnToward (no con Lerp)")
 end
