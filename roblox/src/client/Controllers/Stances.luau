@@ -560,8 +560,11 @@ Stances.press = press
 -- las viejas ya no mueven nada)
 local function stale(body: Body): boolean
 	for _, joint in body.Joints do
-		if typeof(joint) == "Instance" and not joint:IsDescendantOf(body.Model) then
-			return true
+		if typeof(joint) == "Instance" then
+			local ok, inside = pcall(joint.IsDescendantOf, joint, body.Model)
+			if not ok or not inside then
+				return true
+			end
 		end
 	end
 	return false

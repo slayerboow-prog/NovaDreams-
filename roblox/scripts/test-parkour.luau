@@ -710,6 +710,139 @@ check(Locomotion.landing(120, 20) == "Roll", "Desde muy alto corriendo: volteret
 check(Locomotion.landing(120, 2) == "Stumble", "Desde muy alto parado: traspiés")
 check(Locomotion.landing(50, 20) == "Land", "Un salto normal corriendo: solo se agacha un poco")
 
+---------------------------------------------------------------------
+print("\n▶ Articulaciones nuevas de Roblox (AnimationConstraint) y piezas cambiadas")
+-- Los avatares del juego publicado no llevan Motor6D sino AnimationConstraint (entre dos Attachment,
+-- sin C0/C1/Part0/Part1). Stances solo buscaba Motor6D: no encontraba el cuerpo y agacharse no hacía
+-- nada. Aquí, un R15 de verdad (instancias de Lune) con las dos clases de articulación.
+do
+	local Instance = roblox.Instance
+	pcall(roblox.implementMethod, "Model", "GetScale", function()
+		return 1
+	end)
+	pcall(roblox.implementProperty, "Model", "AncestryChanged", function()
+		return { Connect = function() end }
+	end)
+	local env = {
+		CFrame = CFrame, Vector3 = Vector3, Enum = Enum, script = {}, workspace = {},
+		task = { delay = function() end, defer = function(fn)
+			fn()
+		end },
+		game = { GetService = function(_, name)
+			return { Name = name, Shared = { Movement = "Movement" } }
+		end },
+		RaycastParams = { new = function()
+			return {}
+		end },
+		require = function(what)
+			assert(what == "Movement", "solo Movement")
+			return Movement
+		end,
+	}
+	local S = luau.load(fs.readFile("src/client/Controllers/Stances.luau"), { debugName = "Stances(articulaciones)", environment = setmetatable(env, { __index = getfenv(1) }) })()
+	local LEGS = {
+		Hip = { "UpperLeg", "LowerTorso", CFrame.new(0.5, -0.2, 0), CFrame.new(0, 0.45, 0) },
+		Knee = { "LowerLeg", "UpperLeg", CFrame.new(0, -0.45, 0), CFrame.new(0, 0.4, 0) },
+		Ankle = { "Foot", "LowerLeg", CFrame.new(0, -0.45, 0), CFrame.new(0, 0.1, 0) },
+	}
+	local function joint(kind: string, name: string, part0: any, part1: any, c0: any, c1: any)
+		if kind == "Motor6D" then
+			local m = Instance.new("Motor6D")
+			m.Name, m.Part0, m.Part1, m.C0, m.C1 = name, part0, part1, c0, c1
+			m.Parent = part1
+			return m
+		end
+		local a0 = Instance.new("Attachment")
+		a0.Name, a0.CFrame, a0.Parent = name .. "RigAttachment", c0, part0
+		local a1 = Instance.new("Attachment")
+		a1.Name, a1.CFrame, a1.Parent = name .. "RigAttachment", c1, part1
+		local m = Instance.new("AnimationConstraint")
+		m.Name, m.Attachment0, m.Attachment1 = name, a0, a1
+		m.Parent = part1
+		return m
+	end
+	local function leg(model: any, kind: string, side: string)
+		local parts = {}
+		for _, name in { "UpperLeg", "LowerLeg", "Foot" } do
+			local p = Instance.new("Part")
+			p.Name, p.Size, p.Parent = side .. name, Vector3.new(1, 0.9, 1), model
+			parts[name] = p
+		end
+		parts.LowerTorso = model:FindFirstChild("LowerTorso")
+		for name, def in LEGS do
+			local x = if side == "Left" then -1 else 1
+			joint(kind, side .. name, parts[def[2]], parts[def[1]], if name == "Hip" then CFrame.new(0.5 * x, -0.2, 0) else def[3], def[4])
+		end
+	end
+	local function rig(kind: string): any
+		local model = Instance.new("Model")
+		local root = Instance.new("Part")
+		root.Name, root.Size, root.Parent = "HumanoidRootPart", Vector3.new(2, 2, 1), model
+		root.Position = Vector3.new(0, 3, 0)
+		local lower = Instance.new("Part")
+		lower.Name, lower.Parent = "LowerTorso", model
+		local upper = Instance.new("Part")
+		upper.Name, upper.Parent = "UpperTorso", model
+		joint(kind, "Root", root, lower, CFrame.new(0, -0.2, 0), CFrame.new(0, 0.2, 0))
+		joint(kind, "Waist", lower, upper, CFrame.new(0, 0.2, 0), CFrame.new(0, -0.8, 0))
+		leg(model, kind, "Right")
+		leg(model, kind, "Left")
+		local humanoid = Instance.new("Humanoid")
+		humanoid.RigType = Enum.HumanoidRigType.R15
+		humanoid.Parent = model
+		return model
+	end
+	local owner = { Name = "Ana" }
+	for _, kind in { "Motor6D", "AnimationConstraint" } do
+		local model = rig(kind)
+		local body = S._bodyOf(model, owner)
+		local knee = body and body.Legs[1] and body.Legs[1].Knee
+		check(body ~= nil and body.Joints.Root ~= nil and #body.Legs == 2 and knee ~= nil and knee.ClassName == kind,
+			("Con %s se encuentra el cuerpo: la raíz y las dos piernas"):format(kind))
+		if knee then
+			local c0, c1 = S._jointC0(knee), S._jointC1(knee)
+			check((c0.Position - Vector3.new(0, -0.45, 0)).Magnitude < 1e-4 and (c1.Position - Vector3.new(0, 0.4, 0)).Magnitude < 1e-4
+				and S._jointPart1(knee) == model:FindFirstChild(if body.Legs[1].Side > 0 then "RightLowerLeg" else "LeftLowerLeg"),
+				("Con %s se leen sus medidas (C0/C1) y su pieza"):format(kind))
+		end
+		-- Al aplicar el aspecto (AvatarService) Roblox cambia las piezas: las articulaciones viejas ya no
+		-- mueven nada. El cuerpo se vuelve a buscar (y la postura sigue donde iba)
+		if body then
+			body.Crouch = 0.7
+			for _, name in { "RightUpperLeg", "RightLowerLeg", "RightFoot" } do
+				model:FindFirstChild(name):Destroy()
+			end
+			leg(model, kind, "Right")
+			local again = S._bodyOf(model, owner)
+			local fresh = again ~= nil and again ~= body
+			for _, l in (again and again.Legs) or {} do
+				fresh = fresh and l.Hip:IsDescendantOf(model) and l.Knee:IsDescendantOf(model) and l.Ankle:IsDescendantOf(model)
+			end
+			check(fresh and again.Crouch == 0.7, ("Con %s, si cambian las piezas del cuerpo se usan las articulaciones nuevas (sin perder la postura)"):format(kind))
+			check(S._bodyOf(model, owner) == again, ("Con %s, si no cambia nada se sigue usando el mismo"):format(kind))
+		end
+	end
+end
+
+---------------------------------------------------------------------
+print("\n▶ Si no te puedes agachar, se dice por qué (nunca pulsar y que no pase nada)")
+do
+	local reasons = {
+		{ { Stage = "Adulto", Dead = true }, "muerto" },
+		{ { Stage = "Adulto", KO = true }, "aturdido" },
+		{ { Stage = "Adulto", Ragdoll = true }, "en el suelo" },
+		{ { Stage = "Adulto", Busy = true }, "en una escena" },
+		{ { Stage = "Bebe" }, "bebé" },
+		{ { Stage = "Adulto", Seated = true }, "sentado" },
+		{ { Stage = "Adulto", Swimming = true }, "nadando" },
+		{ { Stage = "Adulto", Climbing = true }, "en una escalera" },
+	}
+	for _, entry in reasons do
+		local ok, why = Movement.allowed("Crouch", entry[1])
+		check(not ok and type(why) == "string" and #why > 0, ("No te puedes agachar %s, y se explica por qué: %s"):format(entry[2], tostring(why)))
+	end
+end
+
 print("")
 if failures > 0 then
 	print(("❌ %d fallo(s)"):format(failures))

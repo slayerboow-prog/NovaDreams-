@@ -643,6 +643,9 @@ function VehicleService.dismount(player: Player, silent: boolean?)
 	if not ok then
 		warn("[VehicleService] Al bajarse:", err)
 		pcall(exited, player, nil, nil)
+		if ride.Keep and ride.Model.Parent then
+			pcall(park, ride.Model) -- (nunca se queda suelto: se hundiría)
+		end
 	end
 	player:SetAttribute("Riding", nil)
 	player:SetAttribute("VehicleSpeed", nil)
@@ -764,6 +767,27 @@ function VehicleService.passengerKind(player: Player): string?
 	return if entry then entry.Kind else nil
 end
 
+-- Vehículos sueltos sin conductor (su conductor se bajó a medias, se desconectó, falló algo al
+-- aparcar): se aparcan (quietos, rectos, a ras de suelo y anclados). Suelto y sin nadie que lo
+-- lleve, un vehículo se hundía en la calle poco a poco (sus piezas no chocan) con quien fuera
+-- dentro de pasajero, hasta caer bajo el mapa.
+local function parkOrphans()
+	if not folder then
+		return
+	end
+	local driven: { [Model]: boolean } = {}
+	for _, ride in riding do
+		driven[ride.Model] = true
+	end
+	for _, model in folder:GetChildren() do
+		local chassis = model:IsA("Model") and model.PrimaryPart
+		if chassis and not chassis.Anchored and not driven[model :: Model] then
+			pcall(park, model :: Model)
+		end
+	end
+end
+VehicleService.parkOrphans = parkOrphans
+
 -- Se baja del asiento de pasajero. place = false: no se le recoloca (se cambia de asiento,
 -- se muere o se va del juego)
 function VehicleService.leavePassenger(player: Player, silent: boolean?, place: boolean?)
@@ -870,6 +894,8 @@ function VehicleService.board(player: Player, seat: Seat): boolean
 	if humanoid.SeatPart then
 		unseat(humanoid, humanoid.SeatPart)
 	end
+	-- Nadie lo conduce: primero se aparca (suelto, se hundía con el pasajero dentro)
+	parkOrphans()
 	root.CFrame = seat.CFrame * CFrame.new(0, 3, 0)
 	seat:Sit(humanoid)
 	local entry: Passenger = { Model = model, Seat = seat, Kind = kind, Humanoid = humanoid }
@@ -1709,6 +1735,7 @@ function VehicleService.init()
 		while true do
 			task.wait(2)
 			local dark = isDark()
+			pcall(parkOrphans)
 			for player, ride in riding do
 				-- Un vehículo con error no para las luces ni las bajadas del resto
 				local ok, err = pcall(function()
