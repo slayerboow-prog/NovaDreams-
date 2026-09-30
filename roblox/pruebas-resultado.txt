@@ -1,0 +1,128 @@
+🧪 Pruebas en los servidores de Roblox: arranque fisica mundo transporte
+   Juego: universo 10767975237, lugar 113359543879512 (última versión publicada). Cada prueba tarda de 1 a 5 minutos.
+
+━━━ arranque (última versión publicada) ━━━
+  En marcha en Roblox.... 17s.... 34s... → COMPLETE en 47 s
+
+  ✅ Mundo preparado (terreno, ciudad, decoración, isla, tráfico)
+       6 pasos en 4.3 s
+  ✅ La ciudad viene dentro del juego publicado (workspace.Town)
+       386908 piezas
+  ✅ Servicios iniciados (79)
+       todos bien en 5.6 s
+  ⚠️  Servicios que tardan en iniciar (≥ 3 s)
+       BusinessService 3.6 s
+  ⏭️  Servicios no arrancados a propósito
+       UpdateService (avisaría a los servidores del juego de verdad)
+  ✅ Lo que los servicios dejan preparado
+       autobuses, tráfico, metro y cercanías
+  ✅ Sin errores en la consola del servidor
+       ninguno
+  ✅ Sin avisos (warn) en la consola del servidor
+       ninguno
+  ℹ️  heartbeats en espera: 1447, piezas en workspace: 455397, segundos: 35.5, segundos mundo: 4.3, segundos servicios: 5.6
+  → 6 bien, 0 mal, 1 avisos, 1 sin comprobar
+  Consola del servidor:
+       [Interiores] 2030 edificios visitables
+       [Granja] 30 fincas y 7 cooperativas en Villaverde
+       [Negocios] 513 locales, 7 gasolineras y 8 hoteles
+  (registro completo: /tmp/cloud-test/arranque.log)
+
+━━━ fisica (última versión publicada) ━━━
+  En marcha en Roblox.... 17s → COMPLETE en 21 s
+
+  ✅ Se puede estar de pie en los sitios clave
+       plaza (SpawnLocation)
+       puerta de casa (SalirCasa LosPinos_480_-2260_1)
+       entrada del colegio (Los Pinos.Colegio.Edificio)
+       parada de bus Los Pinos · Casas
+       parada de bus Plaza Mayor
+       boca de metro (arriba de la escalera, PlazaMayor)
+       delante de los tornos
+       pasados los tornos
+       andén del metro (PlazaMayor L1)
+  ✅ Se llega andando entre los sitios clave (8 caminos)
+       casa → colegio: 380 studs andando (250 en línea recta, 2.3 s)
+       casa → parada: 68 studs andando (65 en línea recta, 0.1 s)
+       parada → colegio: 296 studs andando (227 en línea recta, 0.1 s)
+       plaza → parada_plaza: 138 studs andando (138 en línea recta, 0.2 s)
+       plaza → metro_boca: 42 studs andando (34 en línea recta, 0.1 s)
+       metro_boca → metro_torno: 132 studs andando (64 en línea recta, 0.1 s)
+       metro_torno_dentro → metro_anden: 5 studs andando (5 en línea recta, 0.1 s)
+       plaza → casa: 2346 studs andando (2209 en línea recta, 2.4 s)
+  ✅ Se baja andando de la calle al vestíbulo de andenes (PlazaMayor)
+       108 pasos de (-40, 1, -60) a (-103, -42, -25)
+  ℹ️  segundos: 10.3, sitio casa: (505, 4, -2168), sitio colegio: (580, 4, -1930), sitio metro anden: (-80, -39, -54), sitio metro boca: (-40, 2, -60), sitio metro torno: (-84, -39, -45), sitio metro torno dentro: (-84, -39, -51), sitio parada: (569, 2, -2156), sitio parada plaza: (-189, 2, 16), sitio plaza: (-60, 2, -32)
+  → 3 bien, 0 mal, 0 avisos, 0 sin comprobar
+  (registro completo: /tmp/cloud-test/fisica.log)
+
+━━━ mundo (última versión publicada) ━━━
+  En marcha en Roblox... → COMPLETE en 14 s
+
+  ✅ Suelo bajo cada StorySpot
+       369 revisados
+  ✅ Suelo bajo los sitios de la historia (23 etiquetas)
+       1077 revisados, 9 modelos sin mirar
+  ✅ Suelo en las paradas de bus (parada y marquesina)
+       114 revisados
+  ✅ Se llega de pie a las puertas y entradas
+       77 revisadas
+  ✅ Se llega a los avisos (ProximityPrompt)
+       2 de 2 revisados
+  ✅ Nada flotando en el aire cerca de donde aparece la gente (28 sitios, radio 90)
+       6479 piezas revisadas
+  ✅ Mobiliario de la calle fuera de las paredes
+       467 objetos junto a calles revisados
+  ℹ️  avisos en el mapa: 2, mobiliario junto a calles: 467, paradas bus: 57, piezas mirando si flotan: 6479, puertas en el mapa: CinemaDoor=8 MetroEntrance=10 RestaurantDoor=1 SchoolEntrance=11 Shop=250 SuperDoor=12 TravelStop=10, rayos ven el terreno: no (se lee el terreno en vóxeles), segundos: 5.4, storyspots: 369, suelo de terreno leido en voxeles: 6
+  → 7 bien, 0 mal, 0 avisos, 0 sin comprobar
+  (registro completo: /tmp/cloud-test/mundo.log)
+
+━━━ transporte (última versión publicada) ━━━
+  En marcha en Roblox.... 17s.... 34s.... 50s → COMPLETE en 54 s
+
+  ✅ Hay autobuses del juego circulando (workspace.Buses)
+       5 líneas
+  ✅ Hay trenes de metro (etiqueta MetroTrain)
+       2 líneas
+  ✅ autobús L1 se mueve y va por el suelo/la vía
+       888 studs en 30 s, parado 13% del tiempo, ahora en (692, 1, 5)
+  ✅ autobús L2 se mueve y va por el suelo/la vía
+       931 studs en 30 s, parado 8% del tiempo, ahora en (-134, 1, -1895)
+  ✅ autobús L3 se mueve y va por el suelo/la vía
+       709 studs en 30 s, parado 24% del tiempo, ahora en (-1851, 1, -1371)
+  ✅ autobús L4 se mueve y va por el suelo/la vía
+       481 studs en 30 s, parado 20% del tiempo, ahora en (2266, 1, 1267)
+  ✅ autobús L5 se mueve y va por el suelo/la vía
+       530 studs en 30 s, parado 34% del tiempo, ahora en (530, 1, -2144)
+  ✅ metro L1 se mueve y va por el suelo/la vía
+       1951 studs en 30 s, parado 20% del tiempo, ahora en (-1948, -42, -19)
+  ✅ metro L2 se mueve y va por el suelo/la vía
+       1440 studs en 30 s, parado 34% del tiempo, ahora en (16, -66, -324)
+  ✅ Sin errores de BusService/MetroService/RailService
+       ninguno
+  ℹ️  errores totales en consola: 0, heartbeats en 2s: 85, segundos: 41.9
+  → 10 bien, 0 mal, 0 avisos, 0 sin comprobar
+  Consola del servidor:
+       [Interiores] 2030 edificios visitables
+       [Granja] 30 fincas y 7 cooperativas en Villaverde
+       [Negocios] 513 locales, 7 gasolineras y 8 hoteles
+  (registro completo: /tmp/cloud-test/transporte.log)
+
+━━━ Resumen ━━━
+  ✅ Bien: arranque fisica mundo transporte
+  Todo correcto.
+exit=0
+
+===== arranque.log =====
+[OUTPUT] [Interiores] 2030 edificios visitables
+[OUTPUT] [Granja] 30 fincas y 7 cooperativas en Villaverde
+[OUTPUT] [Negocios] 513 locales, 7 gasolineras y 8 hoteles
+
+===== fisica.log =====
+
+===== mundo.log =====
+
+===== transporte.log =====
+[OUTPUT] [Interiores] 2030 edificios visitables
+[OUTPUT] [Granja] 30 fincas y 7 cooperativas en Villaverde
+[OUTPUT] [Negocios] 513 locales, 7 gasolineras y 8 hoteles
