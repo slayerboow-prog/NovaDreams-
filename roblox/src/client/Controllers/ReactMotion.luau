@@ -41,6 +41,7 @@
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
+local Joints = require(game:GetService("ReplicatedStorage").Shared.Joints)
 
 local ReactMotion = {}
 local Layers: any = nil -- PoseLayers (se carga en init: las pruebas cargan este módulo sin Roblox)
@@ -630,6 +631,10 @@ local function bodyOf(model: Model?): Body?
 	end
 	local body = bodies[model]
 	if body then
+		-- (al aplicar el aspecto Roblox cambia las piezas y sus articulaciones: se vuelven a buscar)
+		if Joints.stale(body.Joints, model) then
+			body.Joints = Joints.collect(model, JOINTS)
+		end
 		return body
 	end
 	local humanoid = model:FindFirstChildOfClass("Humanoid")
@@ -637,15 +642,8 @@ local function bodyOf(model: Model?): Body?
 	if not humanoid or not root or humanoid.RigType ~= Enum.HumanoidRigType.R15 then
 		return nil
 	end
-	local joints = {}
-	for name, partName in JOINTS do
-		local p = model:FindFirstChild(partName)
-		local motor = p and p:FindFirstChild(name)
-		-- Con las articulaciones nuevas de Roblox los Motor6D pasan a ser AnimationConstraint
-		if motor and (motor:IsA("Motor6D") or motor:IsA("AnimationConstraint")) then
-			joints[name] = motor
-		end
-	end
+	-- Con las articulaciones nuevas de Roblox los Motor6D pasan a ser AnimationConstraint (shared/Joints)
+	local joints = Joints.collect(model, JOINTS)
 	if not joints.RightShoulder or not joints.LeftShoulder then
 		return nil -- sin brazos que mover: quien llama usa una animación normal de Roblox
 	end

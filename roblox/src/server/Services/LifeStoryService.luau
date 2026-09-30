@@ -970,7 +970,15 @@ local function canAutoStart(player: Player, data: Data, questId: string, step: {
 	if questId == PROLOGUE then
 		return true, nil
 	end
-	if trackedQuest(data) == questId then
+	-- La que sigues (aunque ahora no se vea en la tarjeta, p. ej. la del cole antes de ir) o la que
+	-- enseña la tarjeta (en horario de cole, el día de cole)
+	local story = storyOf(data)
+	if story.Tracked == questId or trackedQuest(data) == questId then
+		return true, nil
+	end
+	-- Sin ninguna seguida, la historia principal es la tuya
+	local prog = story.Active[questId]
+	if prog and prog.Kind == "Main" and not (story.Tracked and story.Active[story.Tracked]) then
 		return true, nil
 	end
 	local rt = runtime[player]

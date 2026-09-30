@@ -22,6 +22,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Movement = require(ReplicatedStorage.Shared.Movement)
+local Joints = require(ReplicatedStorage.Shared.Joints)
 
 local Parkour = {}
 
@@ -207,7 +208,7 @@ local JOINTS = {
 }
 local CLIMB_ANIM = { R15 = 507765644, R6 = 180436334 } -- (R6: sin posturas propias, la de trepar de Roblox)
 
-type Playing = { Kind: string, Start: number, Duration: number, Joints: { [string]: Motor6D } }
+type Playing = { Kind: string, Start: number, Duration: number, Joints: { [string]: any } } -- Motor6D o AnimationConstraint
 local playing: { [Model]: Playing } = {}
 local Layers: any, ReactMotion: any, Stances: any, Cinematics: any
 local player: Player
@@ -223,16 +224,8 @@ function Parkour.isVaulting(model: Model?): boolean
 end
 
 local function jointsOf(model: Model): { [string]: any }
-	local joints = {}
-	for name, partName in JOINTS do
-		local p = model:FindFirstChild(partName)
-		local motor = p and p:FindFirstChild(name)
-		-- (Motor6D o AnimationConstraint, las articulaciones nuevas de Roblox: las dos tienen Transform)
-		if motor and (motor:IsA("Motor6D") or motor:IsA("AnimationConstraint")) then
-			joints[name] = motor
-		end
-	end
-	return joints
+	-- (Motor6D o AnimationConstraint, las articulaciones nuevas de Roblox: las dos tienen Transform)
+	return Joints.collect(model, JOINTS)
 end
 
 local function startPose(model: Model, kind: string, start: number, duration: number)

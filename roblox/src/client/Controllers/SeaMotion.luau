@@ -132,11 +132,22 @@ function SeaMotion.crawl(phase: number, t: number, seed: number): Pose
 	}
 end
 
+-- Cuánto se tumba el cuerpo buceando (ángulo X de Root: −π/2 = horizontal boca abajo). Bajando va
+-- de cabeza, subiendo mira arriba y quieto se pone más de pie; pero nunca más de MaxHeadDown por
+-- debajo de horizontal (antes llegaba a 125°: se veía boca abajo, con los pies para arriba).
+SeaMotion.MaxHeadDown = 0.5
+SeaMotion.MaxHeadUp = 1.0
+function SeaMotion.bodyPitch(vertical: number, moving: number): number
+	local tilt = clamp(-vertical / 10, -1, 1) -- 1 bajando, −1 subiendo
+	local pitch = -HALF_PI - tilt * (if tilt > 0 then SeaMotion.MaxHeadDown else 0.6) + (1 - clamp(moving, 0, 1)) * 0.5
+	return clamp(pitch, -HALF_PI - SeaMotion.MaxHeadDown, -HALF_PI + SeaMotion.MaxHeadUp)
+end
+
 -- Buceando: cuerpo horizontal (o de cabeza si bajas), braza con los brazos y delfín con las piernas
 function SeaMotion.dive(phase: number, t: number, seed: number, vertical: number, moving: number): Pose
 	-- Inclinación: baja → de cabeza; sube → mirando arriba
-	local tilt = clamp(-vertical / 12, -1, 1)
-	local body = -HALF_PI - tilt * 0.75 + (1 - moving) * 0.55 -- quieto se pone más de pie
+	local tilt = clamp(-vertical / 10, -1, 1)
+	local body = SeaMotion.bodyPitch(vertical, moving)
 	local cycle = phase % (2 * PI)
 	-- Braza: brazos delante juntos, se abren hacia fuera y vuelven al pecho, y otra vez delante
 	local sweep = bump(cycle, 0, PI) -- abrir y tirar
@@ -170,7 +181,7 @@ function SeaMotion.aim(t: number, seed: number, vertical: number, shotAgo: numbe
 	local tilt = clamp(-vertical / 12, -1, 1)
 	local kick = sin(t * 4.5 + seed)
 	return {
-		Root = angles(-HALF_PI + 0.35 - tilt * 0.5 + recoil * 0.25, 0, 0),
+		Root = angles(clamp(-HALF_PI + 0.35 - tilt * 0.5 + recoil * 0.25, -HALF_PI - SeaMotion.MaxHeadDown, -0.3), 0, 0),
 		Waist = angles(recoil * 0.2, 0, 0),
 		Neck = angles(0.75, 0, 0), -- mira por encima del arma
 		-- El brazo derecho sujeta el arma estirado; el izquierdo la acompaña por debajo

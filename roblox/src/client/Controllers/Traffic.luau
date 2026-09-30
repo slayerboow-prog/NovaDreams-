@@ -87,6 +87,7 @@ local edges: { { Edge } } = {}
 local cells: { [string]: { number } } = {}
 local lightNodes: { [number]: boolean } = {}
 local agents: { Agent } = {}
+Traffic._agents = agents -- (pruebas: scripts/test-ride.luau)
 local folder: Folder
 local night = false
 

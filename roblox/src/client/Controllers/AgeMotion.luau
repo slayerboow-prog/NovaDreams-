@@ -24,6 +24,7 @@
 
 local Players = game:GetService("Players")
 
+local Joints = require(game:GetService("ReplicatedStorage").Shared.Joints)
 local WorkAnim = require(script.Parent.WorkAnim)
 local SeaMotion = require(script.Parent.SeaMotion)
 local SeaFx = require(script.Parent.SeaFx)
@@ -267,6 +268,9 @@ type Body = {
 	SeaPhase: number,
 	WaterAt: number, -- cuándo se miró por última vez si hay agua debajo
 	Water: boolean,
+	Floor: number?, -- el fondo debajo (arena del terreno), si hay agua
+	Under: boolean, -- con la cabeza bajo el agua (con margen: Shared/Swim)
+	SeaV: number, -- velocidad vertical suavizada (la postura no tiembla con cada frame)
 	LastY: number?,
 	Fx: any,
 }
@@ -312,6 +316,9 @@ local function register(model: Model)
 		SeaPhase = 0,
 		WaterAt = 0,
 		Water = false,
+		Floor = nil,
+		Under = false,
+		SeaV = 0,
 		LastY = nil,
 		Fx = SeaFx.new(),
 	}
@@ -324,13 +331,8 @@ local function register(model: Model)
 end
 
 local function findJoints(body: Body)
-	table.clear(body.Joints)
-	for _, name in JOINTS do
-		local joint = body.Model:FindFirstChild(name, true)
-		if joint and (joint:IsA("Motor6D") or joint:IsA("AnimationConstraint")) then -- (articulaciones nuevas de Roblox)
-			body.Joints[name] = joint
-		end
-	end
+	-- Motor6D o AnimationConstraint (las articulaciones nuevas de Roblox): shared/Joints
+	body.Joints = Joints.collect(body.Model, JOINTS)
 end
 
 -- Edad y si gatea: de su jugador, o del atributo "Age" si es un personaje
@@ -361,14 +363,8 @@ local function crawlDrop(body: Body): number
 	if body.Drop and body.DropScale and abs(body.DropScale - scale) < 0.01 then
 		return body.Drop
 	end
-	local shape: RigShape = { Joints = {}, Sizes = {} }
-	for name, joint in body.Joints do
-		local p0, p1 = joint.Part0, joint.Part1
-		if p0 and p1 then
-			shape.Joints[name] = { Part0 = p0.Name, Part1 = p1.Name, C0 = joint.C0, C1 = joint.C1 }
-			shape.Sizes[p1.Name] = p1.Size
-		end
-	end
+	-- (C0/C1 y piezas de Motor6D o de los Attachment de una AnimationConstraint)
+	local shape: RigShape = Joints.shape(body.Joints)
 	local floor = -(body.Humanoid.HipHeight + body.Root.Size.Y / 2)
 	local lowest = AgeMotion.lowestPoint(shape, AgeMotion.crawlPose(0, 0, 0))
 	-- (un poquito por encima del suelo, para que no roce)
@@ -441,6 +437,8 @@ end
 -- Agua y pesca
 ---------------------------------------------------------------------
 local waterParams: RaycastParams? = nil
+local floorParams: RaycastParams? = nil
+local Swim: any = nil -- Shared/Swim (se carga en init: las pruebas cargan este módulo sin Roblox)
 
 -- ¿Hay agua debajo? (se mira como mucho dos veces por segundo)
 local function waterBelow(body: Body, position: Vector3, t: number): boolean
@@ -455,8 +453,22 @@ local function waterBelow(body: Body, position: Vector3, t: number): boolean
 		params.IgnoreWater = false
 		waterParams = params
 	end
-	local hit = workspace:Raycast(Vector3.new(position.X, SeaMotion.Surface + 14, position.Z), Vector3.new(0, -30, 0), waterParams)
+	local from = Vector3.new(position.X, SeaMotion.Surface + 14, position.Z)
+	local hit = workspace:Raycast(from, Vector3.new(0, -30, 0), waterParams)
 	body.Water = hit ~= nil and hit.Material == Enum.Material.Water
+	-- Y el fondo (¿se hace pie?)
+	body.Floor = nil
+	if body.Water then
+		if not floorParams then
+			local params = RaycastParams.new()
+			params.FilterType = Enum.RaycastFilterType.Include
+			params.FilterDescendantsInstances = { workspace.Terrain }
+			params.IgnoreWater = true
+			floorParams = params
+		end
+		local floor = workspace:Raycast(from, Vector3.new(0, -60, 0), floorParams)
+		body.Floor = if floor then floor.Position.Y else nil
+	end
 	return body.Water
 end
 
@@ -474,10 +486,25 @@ local function seaPose(body: Body, t: number, dt: number, speed: number, vertica
 		SeaFx.update(body.Fx, { Model = body.Model, Player = player, State = nil, InWater = false, Underwater = false, Vertical = 0, Fishing = false })
 		return nil
 	end
+	-- Nadando: se mira el centro del cuerpo (la postura no lo mueve). Con la cabeza, al tumbarse a
+	-- nadar la cabeza bajaba "bajo el agua", la postura pasaba a bucear, el cuerpo se ponía de pie,
+	-- la cabeza salía… y el cuerpo daba vueltas sin parar. Tu personaje: lo que dice Swimming.
 	local position = body.Root.Position
-	local head = body.Model:FindFirstChild("Head") :: BasePart?
-	local inWater = position.Y < SeaMotion.Surface + 0.4 and waterBelow(body, position, t)
-	local underwater = inWater and head ~= nil and head.Position.Y < SeaMotion.Surface - 0.8
+	local scale = math.max(body.Model:GetScale(), 0.3)
+	local inWater: boolean
+	if player == Players.LocalPlayer then
+		inWater = player:GetAttribute("SwimMode") ~= nil
+	else
+		inWater = position.Y < SeaMotion.Surface + 0.4 * scale and waterBelow(body, position, t) and (Swim == nil or Swim.deepEnough(body.Floor, scale))
+	end
+	local underwater = false
+	if inWater then
+		underwater = if Swim then Swim.isUnderwater(position.Y, scale, body.Under) else position.Y < SeaMotion.Surface - 2 * scale
+	end
+	body.Under = underwater
+	-- La velocidad vertical, suave (con la de cada frame la postura saltaba de bajar a subir)
+	body.SeaV += (vertical - body.SeaV) * (1 - math.exp(-5 * dt))
+	vertical = body.SeaV
 	local now = serverNow()
 	local spearAt = player:GetAttribute("SpearAt")
 	local fish = player:GetAttribute("FishAnim")
@@ -634,6 +661,7 @@ end
 
 function AgeMotion.init()
 	Layers = require(script.Parent.PoseLayers)
+	Swim = require(game:GetService("ReplicatedStorage").Shared.Swim)
 	local function consider(instance: Instance)
 		if instance:IsA("Humanoid") then
 			local model = instance.Parent
@@ -692,6 +720,9 @@ function AgeMotion.init()
 				if not body.Active then
 					body.Active = true
 					findJoints(body)
+					body.Drop = nil
+				elseif Joints.stale(body.Joints, body.Model) then
+					findJoints(body) -- (al aplicar el aspecto Roblox cambia las piezas y sus articulaciones)
 					body.Drop = nil
 				end
 			end

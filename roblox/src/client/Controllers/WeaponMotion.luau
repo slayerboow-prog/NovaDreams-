@@ -12,6 +12,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Weapons = require(ReplicatedStorage.Shared.Weapons)
+local Joints = require(ReplicatedStorage.Shared.Joints)
 local WeaponPose = require(script.Parent.WeaponPose)
 local PoseLayers = require(script.Parent.PoseLayers)
 
@@ -57,6 +58,10 @@ local function bodyOf(model: Model?, owner: Player): Body?
 	end
 	local body = bodies[model]
 	if body then
+		-- (al aplicar el aspecto Roblox cambia las piezas y sus articulaciones: se vuelven a buscar)
+		if Joints.stale(body.Joints, model) then
+			body.Joints = Joints.collect(model, JOINTS)
+		end
 		return body
 	end
 	local humanoid = model:FindFirstChildOfClass("Humanoid")
@@ -64,14 +69,7 @@ local function bodyOf(model: Model?, owner: Player): Body?
 	if not humanoid or not root or humanoid.RigType ~= Enum.HumanoidRigType.R15 then
 		return nil
 	end
-	local joints = {}
-	for name, partName in JOINTS do
-		local p = model:FindFirstChild(partName)
-		local motor = p and p:FindFirstChild(name)
-		if motor and (motor:IsA("Motor6D") or motor:IsA("AnimationConstraint")) then
-			joints[name] = motor
-		end
-	end
+	local joints = Joints.collect(model, JOINTS) -- (Motor6D o AnimationConstraint)
 	if not joints.RightShoulder then
 		return nil
 	end

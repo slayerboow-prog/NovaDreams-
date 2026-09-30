@@ -13,6 +13,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Fishing = require(ReplicatedStorage.Shared.Fishing)
+local Swim = require(ReplicatedStorage.Shared.Swim)
 local InventoryService = require(script.Parent.InventoryService)
 local FishingService = require(script.Parent.FishingService)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
@@ -29,6 +30,7 @@ type Fish = { Part: BasePart, Owner: Player, Species: any, Water: string, Home: 
 local fishes: { [BasePart]: Fish } = {}
 local lastShot: { [Player]: number } = {}
 local drowning: { [Player]: boolean } = {}
+local under: { [Player]: boolean } = {}
 local folder: Folder? = nil
 
 local rng = {}
@@ -42,18 +44,20 @@ local function rootOf(player: Player): BasePart?
 	return character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 end
 
-local function headOf(player: Player): BasePart?
-	local character = player.Character
-	return character and (character:FindFirstChild("Head") or character:FindFirstChild("HumanoidRootPart")) :: BasePart?
-end
-
--- ¿Tiene la cabeza bajo el agua?
+-- ¿Tiene la cabeza bajo el agua? Se mira el centro del cuerpo (HumanoidRootPart), no la cabeza: al
+-- nadar tumbado la cabeza baja a la altura de la cadera y parecía que buceabas (el aire bajaba y
+-- subía nadando en la superficie). Con margen (Swim.isUnderwater) para que no cambie a cada segundo.
 function DivingService.underwater(player: Player): boolean
-	local head = headOf(player)
-	if not head or head.Position.Y > DIVE.Surface - 0.8 then
+	local root = rootOf(player)
+	local character = player.Character
+	if not root or not character then
+		under[player] = nil
 		return false
 	end
-	return FishingService.isWater(head.Position)
+	local was = under[player] == true
+	local now = Swim.isUnderwater(root.Position.Y, character:GetScale(), was) and FishingService.isWater(root.Position)
+	under[player] = now or nil
+	return now
 end
 
 local function oxygenMax(player: Player): number
@@ -305,6 +309,7 @@ function DivingService.init()
 	Players.PlayerRemoving:Connect(function(player)
 		lastShot[player] = nil
 		drowning[player] = nil
+		under[player] = nil
 		for _, fish in fishes do
 			if fish.Owner == player then
 				despawn(fish)

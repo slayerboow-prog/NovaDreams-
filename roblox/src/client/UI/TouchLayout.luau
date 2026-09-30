@@ -69,6 +69,7 @@ local order: { string } = {}
 local views: { [string]: View } = {}
 local labels: { [string]: string } = {}
 local busy = false
+local swimHidden: { [string]: boolean }? = nil -- nadando: estos no salen (DivingUI, Shared/Swim.HiddenButtons)
 local gui: ScreenGui? = nil
 local hintsPanel: Frame? = nil
 local touch = false
@@ -321,7 +322,7 @@ local function visibleSpecs(): { Spec }
 	for _, id in order do
 		local spec = specs[id]
 		-- En conversaciones y cinemáticas solo quedan los botones marcados Always (levantarse)
-		if spec and (not busy or (spec :: any).Always) and safe(spec.Visible, true) then
+		if spec and (not busy or (spec :: any).Always) and not (swimHidden and swimHidden[id]) and safe(spec.Visible, true) then
 			table.insert(list, spec)
 		end
 	end
@@ -467,6 +468,17 @@ end
 -- En conversaciones y cinemáticas no hay botones
 function TouchLayout.setBusy(value: boolean)
 	busy = value
+	TouchLayout.refresh()
+end
+
+-- Nadando (DivingUI): fuera los botones de `hidden` (pelear, armas, gestos…); sus huecos quedan
+-- para Bucear y Subir
+function TouchLayout.setSwimming(on: boolean, hidden: { [string]: boolean }?)
+	local want = if on then hidden or {} else nil
+	if (want == nil) == (swimHidden == nil) then
+		return
+	end
+	swimHidden = want
 	TouchLayout.refresh()
 end
 
@@ -745,6 +757,7 @@ end
 function TouchLayout._reset()
 	specs, order, views, labels = {}, {}, {}, {}
 	busy, gui, hintsPanel, started = false, nil, nil, false
+	swimHidden = nil
 	extraPage, moreBadge = 1, nil
 end
 

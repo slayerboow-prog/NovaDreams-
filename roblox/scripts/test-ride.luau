@@ -328,6 +328,30 @@ check(not RideSpot.boxesOverlap(Vector3.new(0, 0, 0), Vector3.new(0, 0, -1), 5.8
 check(RideSpot.boxesOverlap(Vector3.new(0, 0, 0), Vector3.new(0, 0, -1), 13.5, 6.2, Vector3.new(6, 0, 0), Vector3.new(1, 0, 0), 13.5, 6.6), "coche cruzado en el costado: se tocan")
 check(not RideSpot.boxesOverlap(Vector3.new(0, 0, 0), Vector3.new(0, 0, -1), 13.5, 6.2, Vector3.new(7, 0, 0), Vector3.new(0, 0, -1), 13.5, 6.6), "en el carril de al lado: no")
 
+-- El tráfico de verdad (Controllers/Traffic): tu vehículo choca con sus coches
+do
+	local stub = setmetatable({}, { __index = function()
+		return function() end
+	end })
+	local Traffic = load("src/client/Controllers/Traffic.luau", {
+		game = { GetService = function(_, name)
+			if name == "Players" then
+				return { LocalPlayer = {} }
+			end
+			return { Shared = { RideSpot = "RideSpot" } }
+		end },
+		script = { Parent = { Parent = { UI = {} } } },
+		require = function(what)
+			return if what == "RideSpot" then RideSpot else stub
+		end,
+	})
+	table.insert(Traffic._agents, { Active = true, Pos = Vector3.new(0, 0.4, -10), Dir = Vector3.new(0, 0, 1), Length = 13.5, Width = 6.6 })
+	check(Traffic.blocking(Vector3.new(0, 0.4, -2), Vector3.new(0, 0, -1), 5.8, 1.6) ~= nil, "tu moto contra un coche del tráfico: choca (no lo atraviesa)")
+	check(Traffic.blocking(Vector3.new(9, 0.4, -2), Vector3.new(0, 0, -1), 5.8, 1.6) == nil, "por el carril de al lado pasa")
+	Traffic._agents[1].Active = false
+	check(Traffic.blocking(Vector3.new(0, 0.4, -2), Vector3.new(0, 0, -1), 5.8, 1.6) == nil, "un coche retirado no cuenta")
+end
+
 print("Pata de cabra y caballete")
 local function fakePart(props)
 	local attrs = {}

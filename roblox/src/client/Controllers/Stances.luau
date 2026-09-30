@@ -33,6 +33,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Movement = require(ReplicatedStorage.Shared.Movement)
+local Joints = require(ReplicatedStorage.Shared.Joints)
 
 local Stances = {}
 
@@ -175,56 +176,12 @@ local TAU = math.pi * 2
 -- Articulaciones: Motor6D o AnimationConstraint (las articulaciones nuevas de los avatares de Roblox,
 -- las que tiene el juego publicado). Antes solo se aceptaba Motor6D: con las nuevas no se encontraba
 -- ninguna, el cuerpo no se llevaba y agacharse no hacía nada (ni bajar ni doblar las piernas).
--- Las dos tienen Transform; C0/C1 y las piezas de una AnimationConstraint salen de sus Attachment.
-local motorKind: { [any]: boolean } = setmetatable({}, { __mode = "k" }) :: any
-local function isMotor(joint: any): boolean
-	local known = motorKind[joint]
-	if known == nil then
-		known = typeof(joint) ~= "Instance" or joint:IsA("Motor6D") -- (las pruebas usan tablas con C0/C1)
-		motorKind[joint] = known
-	end
-	return known
-end
-local function isJoint(object: Instance?): boolean
-	return object ~= nil and (object:IsA("Motor6D") or object:IsA("AnimationConstraint"))
-end
-local function jointC0(joint: any): CFrame
-	if isMotor(joint) then
-		return joint.C0
-	end
-	local a = joint.Attachment0
-	return if a then a.CFrame else CFrame.identity
-end
-local function jointC1(joint: any): CFrame
-	if isMotor(joint) then
-		return joint.C1
-	end
-	local a = joint.Attachment1
-	return if a then a.CFrame else CFrame.identity
-end
-local function jointPart0(joint: any): BasePart?
-	if isMotor(joint) then
-		return joint.Part0
-	end
-	local a = joint.Attachment0
-	return a and a.Parent :: any
-end
-local function jointPart1(joint: any): BasePart?
-	if isMotor(joint) then
-		return joint.Part1
-	end
-	local a = joint.Attachment1
-	return a and a.Parent :: any
-end
+-- Las dos tienen Transform; C0/C1 y las piezas de una AnimationConstraint salen de sus Attachment
+-- (shared/Joints).
+local jointC0, jointC1, jointPart1 = Joints.c0, Joints.c1, Joints.part1
 -- La articulación `name` en su pieza (o, si no está ahí, en cualquier parte del personaje)
 local function findJoint(model: Model, partName: string, name: string): any
-	local part = model:FindFirstChild(partName)
-	local joint = part and part:FindFirstChild(name)
-	if isJoint(joint) then
-		return joint
-	end
-	joint = model:FindFirstChild(name, true)
-	return if isJoint(joint) then joint else nil
+	return Joints.find(model, name, partName)
 end
 Stances._jointC0, Stances._jointC1, Stances._jointPart1 = jointC0, jointC1, jointPart1
 
@@ -363,7 +320,7 @@ local function context(humanoid: Humanoid): Movement.StanceContext
 		Crawling = player:GetAttribute("Crawling") == true,
 		Riding = player:GetAttribute("Riding") ~= nil or player:GetAttribute("Passenger") ~= nil,
 		Seated = humanoid.SeatPart ~= nil or humanoid.Sit,
-		Swimming = state == Enum.HumanoidStateType.Swimming,
+		Swimming = state == Enum.HumanoidStateType.Swimming or player:GetAttribute("SwimMode") ~= nil, -- (Swimming.luau)
 		Climbing = state == Enum.HumanoidStateType.Climbing,
 		Ragdoll = humanoid.PlatformStand or RAGDOLL_STATES[state] == true,
 		Busy = scene or player:GetAttribute("Training") ~= nil,
@@ -559,15 +516,7 @@ Stances.press = press
 -- aparecer y al cambiar de edad— Roblox cambia las piezas del cuerpo y con ellas las articulaciones:
 -- las viejas ya no mueven nada)
 local function stale(body: Body): boolean
-	for _, joint in body.Joints do
-		if typeof(joint) == "Instance" then
-			local ok, inside = pcall(joint.IsDescendantOf, joint, body.Model)
-			if not ok or not inside then
-				return true
-			end
-		end
-	end
-	return false
+	return Joints.stale(body.Joints, body.Model)
 end
 
 local watchedModels: { [Model]: boolean } = setmetatable({}, { __mode = "k" }) :: any
@@ -649,15 +598,7 @@ local function proneLowest(body: Body): number
 	if body.Lowest and math.abs(scale - body.Scale) < 0.01 then
 		return body.Lowest
 	end
-	local shape = { Joints = {}, Sizes = {} }
-	for name, joint in body.Joints do
-		local p0, p1 = jointPart0(joint), jointPart1(joint)
-		if p0 and p1 then
-			shape.Joints[name] = { Part0 = p0.Name, Part1 = p1.Name, C0 = jointC0(joint), C1 = jointC1(joint) }
-			shape.Sizes[p1.Name] = p1.Size
-		end
-	end
-	local lowest = AgeMotion.lowestPoint(shape, Stances.pronePose(0, 0, 0, 0, 0))
+	local lowest = AgeMotion.lowestPoint(Joints.shape(body.Joints), Stances.pronePose(0, 0, 0, 0, 0))
 	body.Lowest = if lowest == math.huge then 0 else lowest
 	body.Scale = scale
 	return body.Lowest :: number
