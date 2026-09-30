@@ -115,7 +115,7 @@ def compose(prelude, main_server, test, out):
             sys.stderr.write("⚠️  No se pudo poner el orden de los servicios en _comun.luau (se usa el alfabético)\n")
     else:
         sys.stderr.write("⚠️  No encuentro la lista 'order' en Main.server.luau (se arranca en orden alfabético)\n")
-    body = "local Cloud = (function()\n" + pre + "\nend)()\n" + open(test, encoding="utf-8").read()
+    body = "local Cloud = (function()\n" + pre.rstrip("\n") + "\nend)()\n" + open(test, encoding="utf-8").read()
     with open(out, "w", encoding="utf-8") as f:
         f.write(body)
     print(len(order))
@@ -169,7 +169,7 @@ ERRORES = {
     "INTERNAL_ERROR": "fallo interno de Roblox (vuelve a lanzarla)",
 }
 
-def report(name, task_path, log_path, verbose):
+def report(name, task_path, log_path, verbose, offset="0"):
     task = load(task_path) or {}
     state = task.get("state", "?")
     failed = False
@@ -180,6 +180,7 @@ def report(name, task_path, log_path, verbose):
         print("  ❌ La prueba no terminó bien (%s): %s" % (state, ERRORES.get(code, code or "sin detalles")))
         if err.get("message"):
             print("     " + err["message"].strip().replace("\n", "\n     ")[:1500])
+            print("     (en los números de línea, la prueba %s.luau empieza en la línea %s: resta %d)" % (name, int(offset) + 1, int(offset)))
         failed = True
     else:
         results = (task.get("output") or {}).get("results") or []
@@ -243,7 +244,7 @@ elif cmd == "error":
 elif cmd == "logs":
     logs(sys.argv[2], sys.argv[3], sys.argv[4])
 elif cmd == "report":
-    report(*sys.argv[2:6])
+    report(*sys.argv[2:7])
 PY
 
 # ---------------------------------------------------------------------------
@@ -294,7 +295,7 @@ else
 	TARGET="última versión publicada"
 fi
 
-# run_test <nombre> -> 0 bien, 1 falla, 2 no se pudo probar, 3 la clave no vale o no tiene permiso
+# run_test <nombre> -> 0 bien, 1 falla, 2 no se pudo probar, 3 no se puede probar ninguna (clave, permiso o red)
 run_test() {
 	local name="$1" script="$WORK/$1.luau" body="$WORK/$1.json" out="$WORK/$1.out" task="$WORK/$1.task"
 	local log="$LOGDIR/$1.log" code path state tries start elapsed dots token
@@ -307,6 +308,15 @@ run_test() {
 		echo "  ❌ El script ocupa $size bytes (Roblox acepta hasta 4 MB)."
 		return 2
 	fi
+	# Si está Lune, se comprueba antes que el script compila (así no se gasta una prueba en Roblox)
+	if command -v lune >/dev/null 2>&1; then
+		mkdir -p "$WORK/check-$name" && cp "$script" "$WORK/check-$name/"
+		if ! lune run scripts/test-compile.luau "$WORK/check-$name" > "$WORK/check.out" 2>&1; then
+			echo "  ❌ El script no compila (líneas desplazadas $(($(wc -l < "$DIR/_comun.luau") + 2)) por _comun.luau):"
+			sed -n 's|^.*\.luau: |     |p' "$WORK/check.out" | head -5
+			return 1
+		fi
+	fi
 	python3 "$HELPER" body "$script" "$body"
 
 	# 1) Crear la tarea (con reintentos si Roblox está ocupado)
@@ -317,6 +327,9 @@ run_test() {
 		explain "$code" "$out" "crear la prueba"
 		{ [ "$code" = "401" ] || [ "$code" = "403" ]; } && return 3
 		tries=$((tries + 1))
+		if [ "$code" = "000" ] && [ "$tries" -ge 2 ]; then
+			return 3 # sin red: tampoco irán las demás
+		fi
 		if retryable "$code" && [ "$tries" -lt 6 ]; then
 			echo "     Reintento en $((tries * 10)) s…"
 			sleep $((tries * 10))
@@ -375,7 +388,8 @@ run_test() {
 	done
 
 	# 4) Resultado
-	python3 "$HELPER" report "$name" "$task" "$log" "$VERBOSE"
+	# (la prueba va detrás de _comun.luau y de una línea: sus líneas van desplazadas)
+	python3 "$HELPER" report "$name" "$task" "$log" "$VERBOSE" "$(($(wc -l < "$DIR/_comun.luau") + 2))"
 }
 
 echo "🧪 Pruebas en los servidores de Roblox: ${NAMES[*]}"
@@ -392,7 +406,7 @@ for name in "${NAMES[@]}"; do
 		0) PASSED+=("$name") ;;
 		1) FAILED+=("$name") ;;
 		3)
-			# Sin clave válida o sin permiso no tiene sentido seguir con las demás
+			# Sin clave válida, sin permiso o sin red no tiene sentido seguir con las demás
 			BROKEN+=("$name")
 			break
 			;;
