@@ -14,6 +14,7 @@
 -- Las funciones puras (seatPoseFor, steerFor) se prueban fuera de Roblox: scripts/test-ride.luau
 
 local WorkAnim = require(script.Parent.WorkAnim)
+local Joints = require(game:GetService("ReplicatedStorage").Shared.Joints)
 
 local RidePose = {}
 
@@ -92,7 +93,7 @@ local ARMS = { RightShoulder = true, LeftShoulder = true, RightElbow = true, Lef
 type Body = {
 	Model: Model,
 	Humanoid: Humanoid,
-	Joints: { [string]: Motor6D },
+	Joints: { [string]: any }, -- Motor6D o AnimationConstraint
 	Weight: number, -- 0..1, suave
 	Name: string?,
 	Standing: boolean,
@@ -178,16 +179,20 @@ local function update(body: Body, t: number, dt: number)
 end
 
 local function track(model: Model, humanoid: Humanoid)
-	if bodies[model] or humanoid.RigType ~= Enum.HumanoidRigType.R15 then
+	local old = bodies[model]
+	if old then
+		-- (al aplicar el aspecto Roblox cambia las piezas y sus articulaciones: se vuelven a buscar)
+		if Joints.stale(old.Joints, model) then
+			old.Joints = Joints.collect(model, JOINTS)
+		end
 		return
 	end
-	local joints = {}
-	for _, name in JOINTS do
-		local joint = model:FindFirstChild(name, true)
-		if joint and joint:IsA("Motor6D") then
-			joints[name] = joint
-		end
+	if humanoid.RigType ~= Enum.HumanoidRigType.R15 then
+		return
 	end
+	-- Motor6D o AnimationConstraint (antes solo Motor6D: con las articulaciones nuevas de Roblox
+	-- se iba sentado sin postura, sin manos en el volante ni piernas dobladas)
+	local joints = Joints.collect(model, JOINTS)
 	local body: Body = {
 		Model = model,
 		Humanoid = humanoid,
@@ -244,6 +249,12 @@ function RidePose.init()
 			end
 		end
 	end)
+end
+
+-- Para las pruebas (scripts/test-joints.luau): buscar el cuerpo y ponerle la postura sin Roblox
+RidePose._track, RidePose._update, RidePose._bodies = track, update, bodies
+function RidePose._useLayers(layers: any)
+	Layers = layers
 end
 
 return RidePose

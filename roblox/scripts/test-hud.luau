@@ -1129,6 +1129,30 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 		check(not TouchLayout.buttons().MasBotones.Visible and TouchLayout.buttons().Sirena.Visible, "Con 5 o menos, sin «Más»")
 	end
 
+	-- Nadando (DivingUI → TouchLayout.setSwimming): fuera pelear y gestos; Bucear en el hueco grande
+	do
+		local Swim = require("../src/shared/Swim")
+		local swimming = false
+		TouchLayout.register({ Id = "BucearBajar", Icon = "bajarse", Label = "Bucear", Slot = "Ataque", Priority = 8, Visible = function()
+			return swimming
+		end, Hold = function() end })
+		TouchLayout.register({ Id = "BucearSubir", Icon = "flecha", Label = "Subir", Slot = "Defender", Priority = 7, Visible = function()
+			return swimming
+		end, Hold = function() end })
+		swimming = true
+		TouchLayout.setSwimming(true, Swim.HiddenButtons)
+		local tl = TouchLayout.buttons()
+		local combatGone = not tl.Ataque.Visible and not tl.Defender.Visible and not tl.Esquivar.Visible and not tl.Fijar.Visible and not tl.Gestos.Visible
+		check(combatGone and tl.Saltar.Visible and tl.Correr.Visible, "Nadando: fuera Ataque, Defensa, Esquivar, Fijar y Gestos; quedan Saltar y Correr")
+		check(tl.BucearBajar.Visible and tl.BucearBajar:GetAttribute("Slot") == "Ataque" and tl.BucearSubir.Visible and tl.BucearSubir:GetAttribute("Slot") == "Defender", "Bucear en el hueco grande y Subir al lado")
+		swimming = false
+		TouchLayout.setSwimming(false)
+		tl = TouchLayout.buttons()
+		check(tl.Ataque.Visible and tl.Defender.Visible and not tl.BucearBajar.Visible and tl.Ataque:GetAttribute("Slot") == "Ataque", "Al salir del agua vuelven los de siempre")
+		TouchLayout.unregister("BucearBajar")
+		TouchLayout.unregister("BucearSubir")
+	end
+
 	-- Ventanas del HUD en el móvil: más grandes que el HUD y con el ✖ de al menos ~36 px
 	do
 		mods.Hud.showQuests()

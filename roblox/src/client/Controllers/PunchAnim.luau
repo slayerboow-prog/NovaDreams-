@@ -1,8 +1,9 @@
 -- PunchAnim (cliente): puñetazos, patada y guardia que se ven siempre.
 --
--- Mueve Motor6D.C0 (la unión fija de cada articulación) en vez de Motor6D.Transform: C0 no lo toca
--- ninguna animación de Roblox ni ninguna capa de PoseLayers, así que el golpe se ve pase lo que pase
--- con el orden en que se animan las cosas. Se suma encima de la animación que esté sonando (andar,
+-- Mueve C0 (la unión fija de cada articulación: Motor6D.C0, o Attachment0.CFrame en las
+-- AnimationConstraint, las articulaciones nuevas de Roblox; ver shared/Joints) en vez de Transform:
+-- C0 no lo toca ninguna animación de Roblox ni ninguna capa de PoseLayers, así que el golpe se ve
+-- pase lo que pase con el orden en que se animan las cosas. Se suma encima de la animación que esté sonando (andar,
 -- correr…) y, al acabar, cada articulación vuelve exactamente a su C0 de antes.
 --
 --   Combo: 1 directo (derecha) · 2 cruzado (izquierda) · 3 patada (golpe fuerte, empuja)
@@ -17,6 +18,7 @@
 --   Waist y > 0 gira el torso a su izquierda · Waist x > 0 se echa hacia atrás
 
 local RunService = game:GetService("RunService")
+local Joints = require(game:GetService("ReplicatedStorage").Shared.Joints)
 
 local PunchAnim = {}
 
@@ -149,7 +151,7 @@ local JOINTS = {
 }
 
 type Body = {
-	Joints: { [string]: Motor6D },
+	Joints: { [string]: any }, -- Motor6D o AnimationConstraint
 	Original: { [string]: CFrame }, -- C0 de antes de tocarlo
 	Written: { [string]: CFrame }, -- C0 que pusimos (si alguien lo cambia, se respeta el suyo)
 	Move: string?,
@@ -175,16 +177,10 @@ local function bodyOf(model: Model?): Body?
 	if existing then
 		return existing
 	end
-	local joints = {}
-	for name, partName in JOINTS do
-		local part = model:FindFirstChild(partName)
-		local motor = part and part:FindFirstChild(name)
-		if motor and motor:IsA("Motor6D") then
-			joints[name] = motor
-		end
-	end
+	-- Motor6D o AnimationConstraint (antes solo Motor6D: con las articulaciones nuevas no golpeaba)
+	local joints = Joints.collect(model, JOINTS)
 	if not joints.RightShoulder or not joints.LeftShoulder then
-		return nil -- sin Motor6D (R6 o articulaciones nuevas): quien llama usa otra cosa
+		return nil -- sin brazos (R6): quien llama usa otra cosa
 	end
 	local body: Body = { Joints = joints, Original = {}, Written = {}, Move = nil, Start = 0, Duration = 1, Want = {}, Holds = {} }
 	bodies[model] = body
@@ -195,8 +191,8 @@ end
 local function release(body: Body)
 	for name, joint in body.Joints do
 		local written = body.Written[name]
-		if written and joint.Parent and same(joint.C0, written) then
-			joint.C0 = body.Original[name]
+		if written and joint.Parent and same(Joints.c0(joint), written) then
+			Joints.setC0(joint, body.Original[name])
 		end
 	end
 	table.clear(body.Written)
@@ -231,11 +227,12 @@ local function step(dt: number)
 			local offset = pose[name]
 			local written = body.Written[name]
 			-- Si otro sistema ha cambiado el C0 (p. ej. al crecer), ese es el nuevo de partida
-			if not written or not same(joint.C0, written) then
-				body.Original[name] = joint.C0
+			local c0 = Joints.c0(joint)
+			if not written or not same(c0, written) then
+				body.Original[name] = c0
 			end
 			local value = if offset then body.Original[name] * offset else body.Original[name]
-			joint.C0 = value
+			Joints.setC0(joint, value)
 			body.Written[name] = value
 		end
 	end
@@ -249,7 +246,7 @@ local function start()
 	RunService.RenderStepped:Connect(step)
 end
 
--- Golpe en un personaje ("Jab", "Cross" o "Kick"). Devuelve false si no se puede (sin Motor6D).
+-- Golpe en un personaje ("Jab", "Cross" o "Kick"). Devuelve false si no se puede (sin articulaciones).
 function PunchAnim.play(model: Model?, move: string): boolean
 	local def = PunchAnim.Moves[move]
 	local body = bodyOf(model)
@@ -273,5 +270,9 @@ function PunchAnim.hold(model: Model?, name: string, on: boolean): boolean
 	body.Want[name] = on or nil
 	return true
 end
+
+-- Para las pruebas (scripts/test-joints.luau)
+PunchAnim._bodyOf = bodyOf
+PunchAnim._step = step
 
 return PunchAnim

@@ -20,6 +20,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Gym = require(ReplicatedStorage.Shared.Gym)
+local Joints = require(ReplicatedStorage.Shared.Joints)
 local GymPoses = require(script.Parent.GymPoses)
 
 local GymMotion = {}
@@ -35,7 +36,7 @@ type Body = {
 	Model: Model,
 	Humanoid: Humanoid,
 	Root: BasePart,
-	Joints: { [string]: Motor6D },
+	Joints: { [string]: any }, -- Motor6D o AnimationConstraint
 	Kind: string?,
 	Want: boolean,
 	Weight: number,
@@ -274,13 +275,9 @@ end
 -- Personajes
 ---------------------------------------------------------------------
 local function findJoints(body: Body)
-	table.clear(body.Joints)
-	for _, name in GymPoses.Joints do
-		local joint = body.Model:FindFirstChild(name, true)
-		if joint and joint:IsA("Motor6D") then
-			body.Joints[name] = joint
-		end
-	end
+	-- Motor6D o AnimationConstraint (las articulaciones nuevas de Roblox; antes solo Motor6D y con
+	-- las nuevas el ejercicio no movía el cuerpo)
+	body.Joints = Joints.collect(body.Model, GymPoses.Joints)
 end
 
 local function release(body: Body)
@@ -321,6 +318,8 @@ local function watch(model: Instance)
 		}
 		bodies[model] = body
 		findJoints(body)
+	elseif Joints.stale(body.Joints, model) then
+		findJoints(body) -- (al aplicar el aspecto Roblox cambia las piezas y sus articulaciones)
 	end
 	local b = body :: Body
 	b.Want = true
@@ -494,6 +493,12 @@ function GymMotion.init()
 			end
 		end
 	end)
+end
+
+-- Para las pruebas (scripts/test-joints.luau): buscar el cuerpo y ponerle la postura sin Roblox
+GymMotion._findJoints, GymMotion._step = findJoints, step
+function GymMotion._useLayers(layers: any)
+	Layers = layers
 end
 
 return GymMotion

@@ -238,8 +238,9 @@ function Lite.villa(parent: Instance, cf: CFrame, w: number, d: number): Model
 	up:SetAttribute("NightColor", rgb(255, 214, 150))
 	up:SetAttribute("OnAt", 19 + math.random())
 	up:SetAttribute("OffAt", 23 + math.random() * 1.5)
+	-- (las dos hamacas juntas a la derecha de la piscina: a la izquierda va el paso a la puerta)
 	for i = -1, 1, 2 do
-		local l = pool * CFrame.new(i * w * 0.3, 0.6, 0) * CFrame.Angles(0, math.rad(90), 0)
+		local l = pool * CFrame.new(w * 0.3, 0.6, i * 1.6) * CFrame.Angles(0, math.rad(90), 0)
 		part(m, "Lounger", l * CFrame.new(0, 0.4, 0), Vector3.new(2, 0.4, 5.5), rgb(245, 245, 242), Enum.Material.Plastic, true)
 		part(m, "LoungerBack", l * CFrame.new(0, 1.1, 2.3) * CFrame.Angles(math.rad(-35), 0, 0), Vector3.new(2, 0.3, 2), rgb(245, 245, 242), Enum.Material.Plastic, true)
 		part(m, "Towel", l * CFrame.new(0, 0.65, -0.5), Vector3.new(1.6, 0.08, 3), if i < 0 then rgb(60, 140, 200) else rgb(240, 120, 90), Enum.Material.Fabric, true)
@@ -247,7 +248,27 @@ function Lite.villa(parent: Instance, cf: CFrame, w: number, d: number): Model
 	local umbrella = pool * CFrame.new(w * 0.3, 0.6, d * 0.1)
 	part(m, "UmbrellaPole", umbrella * CFrame.new(0, 3.5, 0), Vector3.new(0.25, 7, 0.25), rgb(236, 236, 232), Enum.Material.Metal, true)
 	Builder.decor({ Name = "Umbrella", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.5, 8, 8), CFrame = umbrella * CFrame.new(0, 7, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = rgb(236, 226, 206), Material = Enum.Material.Fabric, Parent = m })
-	for _, x in { -w * 0.3, w * 0.1 } do
+	-- Puerta de entrada en la cristalera, a la izquierda de la piscina (InteriorService entra por la
+	-- pieza "Door"; DoorOut: da a la calle, no hacia el centro de la villa)
+	local doorX = -w * 0.34
+	local doorZ = d * 0.1 - d * 0.275 - 0.5
+	local out = cf:VectorToWorldSpace(Vector3.new(0, 0, -1))
+	part(m, "DoorFrame", cf * CFrame.new(doorX, 4.7, doorZ + 0.12), Vector3.new(4.6, 8.2, 0.25), dark, Enum.Material.Metal, true)
+	local door = part(m, "Door", cf * CFrame.new(doorX, 4.3, doorZ), Vector3.new(3.8, 7.4, 0.3), rgb(58, 46, 38), Enum.Material.Wood)
+	door:SetAttribute("DoorOut", out)
+	part(m, "DoorHandle", cf * CFrame.new(doorX + 1.3, 4.2, doorZ - 0.25), Vector3.new(0.2, 1.6, 0.2), rgb(200, 200, 204), Enum.Material.Metal, true)
+	part(m, "Doormat", cf * CFrame.new(doorX, 0.63, doorZ - 1.2), Vector3.new(3, 0.06, 1.4), rgb(120, 90, 60), Enum.Material.Fabric, true)
+	local porch = part(m, "WallLamp", cf * CFrame.new(doorX - 2.9, 7, doorZ - 0.1), Vector3.new(0.5, 0.8, 0.5), rgb(255, 226, 170), Enum.Material.Neon, true)
+	porch:AddTag("NightWindow")
+	porch:SetAttribute("DayColor", rgb(230, 226, 214))
+	porch:SetAttribute("NightColor", rgb(255, 214, 150))
+	porch:SetAttribute("OnAt", 19)
+	porch:SetAttribute("OffAt", 23.5)
+	-- Camino de la cancela a la terraza (la cancela, en línea con la puerta)
+	local deckFront = -d * 0.3 - d * 0.13
+	local gateZ = -d / 2 + 0.5
+	part(m, "Path", cf * CFrame.new(doorX, 0.1, (gateZ + deckFront) / 2), Vector3.new(3.4, 0.2, deckFront - gateZ), rgb(206, 196, 178), Enum.Material.Pavement, true)
+	for _, x in { doorX - 2.6, doorX + 2.6 } do
 		local lampPart = part(m, "GardenSpot", cf * CFrame.new(x, 0.6, -d * 0.46), Vector3.new(0.6, 1.2, 0.6), rgb(255, 230, 170), Enum.Material.Neon, true)
 		lampPart:AddTag("NightWindow")
 		lampPart:SetAttribute("DayColor", rgb(90, 90, 94))
@@ -255,11 +276,13 @@ function Lite.villa(parent: Instance, cf: CFrame, w: number, d: number): Model
 		lampPart:SetAttribute("OnAt", 19)
 		lampPart:SetAttribute("OffAt", 24)
 	end
+	for _, span in { { -w / 2, doorX - 3.6 }, { doorX + 3.6, w / 2 } } do
+		local wx, wl = (span[1] + span[2]) / 2, span[2] - span[1]
+		part(m, "Wall", cf * CFrame.new(wx, 1.5, gateZ), Vector3.new(wl, 3, 0.8), white, Enum.Material.Plaster)
+		part(m, "WallCap", cf * CFrame.new(wx, 3.1, gateZ), Vector3.new(wl + 0.2, 0.25, 1.1), rgb(200, 190, 170), Enum.Material.Limestone, true)
+	end
 	for _, side in { -1, 1 } do
-		local wx, wl = (3.6 + w / 2) / 2, w / 2 - 3.6
-		part(m, "Wall", cf * CFrame.new(side * wx, 1.5, -d / 2 + 0.5), Vector3.new(wl, 3, 0.8), white, Enum.Material.Plaster)
-		part(m, "WallCap", cf * CFrame.new(side * wx, 3.1, -d / 2 + 0.5), Vector3.new(wl + 0.2, 0.25, 1.1), rgb(200, 190, 170), Enum.Material.Limestone, true)
-		part(m, "GatePillar", cf * CFrame.new(side * 3, 2, -d / 2 + 0.5), Vector3.new(1.2, 4, 1.2), white, Enum.Material.Plaster)
+		part(m, "GatePillar", cf * CFrame.new(doorX + side * 3, 2, gateZ), Vector3.new(1.2, 4, 1.2), white, Enum.Material.Plaster)
 	end
 	return m
 end

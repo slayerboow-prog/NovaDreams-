@@ -19,6 +19,8 @@
 -- leanPose, lookPose, landing, glideOffset, fade, ease…) se prueban fuera de Roblox:
 -- scripts/test-motion.luau
 
+local Joints = require(game:GetService("ReplicatedStorage").Shared.Joints)
+
 local Locomotion = {}
 
 local abs, exp, clamp, atan2 = math.abs, math.exp, math.clamp, math.atan2
@@ -161,7 +163,7 @@ type Body = {
 	Humanoid: Humanoid,
 	Root: BasePart,
 	Player: Player?,
-	Joints: { [string]: Motor6D },
+	Joints: { [string]: any }, -- Motor6D o AnimationConstraint
 	Yaw: number,
 	Turn: number,
 	Speed: number,
@@ -197,9 +199,14 @@ local function gesturing(humanoid: Humanoid): boolean
 	return false
 end
 
+local BODY_JOINTS = { Root = "LowerTorso", Waist = "UpperTorso", Neck = "Head" }
 local function bodyOf(model: Model): Body?
 	local body = bodies[model]
 	if body then
+		-- (al aplicar el aspecto Roblox cambia las piezas y sus articulaciones: se vuelven a buscar)
+		if Joints.stale(body.Joints, model) then
+			body.Joints = Joints.collect(model, BODY_JOINTS)
+		end
 		return body
 	end
 	local humanoid = model:FindFirstChildOfClass("Humanoid")
@@ -207,14 +214,9 @@ local function bodyOf(model: Model): Body?
 	if not humanoid or not root or humanoid.RigType ~= Enum.HumanoidRigType.R15 then
 		return nil
 	end
-	local joints = {}
-	for name, part in { Root = "LowerTorso", Waist = "UpperTorso", Neck = "Head" } do
-		local p = model:FindFirstChild(part)
-		local motor = p and p:FindFirstChild(name)
-		if motor and motor:IsA("Motor6D") then
-			joints[name] = motor
-		end
-	end
+	-- Motor6D o AnimationConstraint (las articulaciones nuevas de Roblox; antes solo Motor6D y con
+	-- las nuevas no se inclinaba, ni miraba a la cámara, ni se deslizaba al asiento)
+	local joints = Joints.collect(model, BODY_JOINTS)
 	local newBody: Body = {
 		Model = model,
 		Humanoid = humanoid,
@@ -351,7 +353,7 @@ local function update(body: Body, dt: number, now: number)
 		if t >= 1 or jump > 10 then
 			body.GlideFrom = nil -- (un salto enorme es un viaje: no se desliza)
 		elseif jump > 0.05 and body.Joints.Root then
-			glide = Locomotion.glideOffset(root.CFrame, body.GlideFrom, body.Joints.Root.C0, t)
+			glide = Locomotion.glideOffset(root.CFrame, body.GlideFrom, Joints.c0(body.Joints.Root), t)
 		end
 	end
 	if glide then
@@ -613,5 +615,8 @@ function Locomotion.init()
 		end
 	end)
 end
+
+-- Para las pruebas (scripts/test-joints.luau)
+Locomotion._bodyOf = bodyOf
 
 return Locomotion

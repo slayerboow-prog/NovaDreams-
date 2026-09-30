@@ -34,6 +34,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Emotion = require(ReplicatedStorage.Shared.LifeStory.Emotion)
+local Joints = require(ReplicatedStorage.Shared.Joints)
 local WorkAnim = require(script.Parent.WorkAnim)
 local SpeechBubbles = require(script.Parent.Parent.UI.SpeechBubbles)
 
@@ -68,7 +69,7 @@ type Rig = {
 	Humanoid: Humanoid,
 	Root: BasePart,
 	Head: BasePart,
-	Joints: { [string]: Motor6D },
+	Joints: { [string]: any }, -- Motor6D o AnimationConstraint (shared/Joints)
 	Base: { [string]: CFrame },
 	Hip: Instance?,
 	Own: boolean, -- el cliente pone la animación base (andar, estar de pie): NPCs fijos del mapa
@@ -100,7 +101,7 @@ type Rig = {
 	Props: { WorkAnim.HeldProp },
 	Scale: number, -- tamaño (Model:GetScale): un niño da pasos más cortos
 	LastPosAt: number,
-	RootJoint: Motor6D?, -- LowerTorso.Root: para girar el cuerpo entero sin mover la raíz
+	RootJoint: any?, -- LowerTorso.Root: para girar el cuerpo entero sin mover la raíz
 	BodyYaw: number, -- cuánto está girado el cuerpo respecto a la raíz (radianes)
 	BodyWorld: number, -- hacia dónde mira el cuerpo en el mundo (así no salta si el servidor gira la raíz)
 	BodyGoal: number?, -- hacia dónde quiere mirar el cuerpo (mundo); nil = de frente
@@ -227,6 +228,23 @@ local function watchFade(model: Model)
 	end)
 end
 
+-- Sus articulaciones: Motor6D o AnimationConstraint (las articulaciones nuevas de Roblox: su C0 es el
+-- CFrame de Attachment0; shared/Joints). Antes solo Motor6D: con las nuevas no respiraban, ni
+-- miraban, ni gesticulaban. Root: la de la cadera con la raíz (gira todo el cuerpo), en LowerTorso.
+local function rigJoints(model: Model): ({ [string]: any }, any?)
+	local joints = {}
+	for _, name in JOINTS do
+		joints[name] = Joints.find(model, name)
+	end
+	local rootJoint = Joints.find(model, "Root", "LowerTorso")
+	if rootJoint and Joints.part1(rootJoint) == model:FindFirstChild("LowerTorso") then
+		joints.Root = rootJoint
+	else
+		rootJoint = nil
+	end
+	return joints, rootJoint
+end
+
 -- Registra a un personaje. Devuelve "wait" si aún no ha llegado entero a tu pantalla (se reintenta)
 local function register(model: Model): string
 	if rigs[model] then
@@ -248,25 +266,13 @@ local function register(model: Model): string
 	if not root or not head then
 		return "wait"
 	end
-	local joints, base = {}, {}
-	for _, name in JOINTS do
-		local joint = model:FindFirstChild(name, true)
-		if joint and joint:IsA("Motor6D") then
-			joints[name] = joint
-			base[name] = joint.C0
-		end
-	end
+	local joints, rootJoint = rigJoints(model)
 	if not joints.Neck then
 		return "wait"
 	end
-	-- La articulación de la cadera con la raíz (gira todo el cuerpo): está en LowerTorso
-	local lower = model:FindFirstChild("LowerTorso")
-	local rootJoint = lower and lower:FindFirstChild("Root")
-	if rootJoint and rootJoint:IsA("Motor6D") then
-		joints.Root = rootJoint
-		base.Root = rootJoint.C0
-	else
-		rootJoint = nil
+	local base = {}
+	for name, joint in joints do
+		base[name] = Joints.c0(joint)
 	end
 	local t = now()
 	local rig: Rig = {
@@ -276,7 +282,7 @@ local function register(model: Model): string
 		Head = head,
 		Joints = joints,
 		Base = base,
-		Hip = model:FindFirstChild("LeftHip", true),
+		Hip = Joints.find(model, "LeftHip") or model:FindFirstChild("LeftHip", true),
 		Own = owner == nil and not isScene(model),
 		Me = owner == player,
 		Seed = math.random() * 100,
@@ -306,7 +312,7 @@ local function register(model: Model): string
 		Props = {},
 		Scale = scaleOf(model),
 		LastPosAt = t,
-		RootJoint = rootJoint :: Motor6D?,
+		RootJoint = rootJoint,
 		BodyYaw = 0,
 		BodyWorld = headingOf(root.CFrame),
 		BodyGoal = nil,
@@ -1000,30 +1006,30 @@ local function update(rig: Rig, t: number, dt: number)
 
 	-- Aplicar (encima de la animación: C0 es la postura base de cada articulación)
 	local J, B = rig.Joints, rig.Base
-	J.Neck.C0 = B.Neck * CFrame.Angles(neckPitch, neckYaw, neckRoll)
+	Joints.setC0(J.Neck, B.Neck * CFrame.Angles(neckPitch, neckYaw, neckRoll))
 	if J.Waist then
-		J.Waist.C0 = B.Waist * CFrame.Angles(waistPitch, waistYaw, waistRoll)
+		Joints.setC0(J.Waist, B.Waist * CFrame.Angles(waistPitch, waistYaw, waistRoll))
 	end
 	if J.Root and not rig.Me then
-		J.Root.C0 = B.Root * CFrame.Angles(0, rig.BodyYaw, 0)
+		Joints.setC0(J.Root, B.Root * CFrame.Angles(0, rig.BodyYaw, 0))
 	end
 	if J.RightShoulder then
-		J.RightShoulder.C0 = B.RightShoulder * CFrame.new(0, shoulderUp, 0) * CFrame.Angles(rX, rTwist, rZ)
+		Joints.setC0(J.RightShoulder, B.RightShoulder * CFrame.new(0, shoulderUp, 0) * CFrame.Angles(rX, rTwist, rZ))
 	end
 	if J.LeftShoulder then
-		J.LeftShoulder.C0 = B.LeftShoulder * CFrame.new(0, shoulderUp, 0) * CFrame.Angles(lX, -lTwist, -lZ)
+		Joints.setC0(J.LeftShoulder, B.LeftShoulder * CFrame.new(0, shoulderUp, 0) * CFrame.Angles(lX, -lTwist, -lZ))
 	end
 	if J.RightElbow then
-		J.RightElbow.C0 = B.RightElbow * CFrame.Angles(rElbow, 0, 0)
+		Joints.setC0(J.RightElbow, B.RightElbow * CFrame.Angles(rElbow, 0, 0))
 	end
 	if J.LeftElbow then
-		J.LeftElbow.C0 = B.LeftElbow * CFrame.Angles(lElbow, 0, 0)
+		Joints.setC0(J.LeftElbow, B.LeftElbow * CFrame.Angles(lElbow, 0, 0))
 	end
 end
 
 local function rest(rig: Rig)
 	for name, joint in rig.Joints do
-		joint.C0 = rig.Base[name]
+		Joints.setC0(joint, rig.Base[name])
 	end
 	-- Lejos no se ve: fuera objetos (se vuelven a poner al acercarte)
 	clearProps(rig)
@@ -1279,6 +1285,14 @@ function ActorLife.init()
 			for _, rig in nextActive do
 				if not rig.Active then
 					rig.Active = true
+					-- (al aplicar el aspecto Roblox cambia las piezas y sus articulaciones: se vuelven a buscar)
+					if Joints.stale(rig.Joints, rig.Model) then
+						local joints, rootJoint = rigJoints(rig.Model)
+						if joints.Neck then
+							rig.Joints, rig.RootJoint = joints, rootJoint
+							rig.Hip = Joints.find(rig.Model, "LeftHip") or rig.Model:FindFirstChild("LeftHip", true)
+						end
+					end
 					-- La postura base se lee al empezar (quieto está como lo dejó el servidor: si le cambiaron
 					-- el tamaño, se usa el nuevo). Con la guardia puesta no: los brazos en guardia se quedarían
 					-- como su postura de descanso; entonces se deja la que tenía
@@ -1289,7 +1303,7 @@ function ActorLife.init()
 						pcall(rescale, rig) -- (la de antes, al tamaño de ahora)
 					else
 						for name, joint in rig.Joints do
-							rig.Base[name] = joint.C0
+							rig.Base[name] = Joints.c0(joint)
 						end
 						rig.Scale = scaleOf(rig.Model)
 					end

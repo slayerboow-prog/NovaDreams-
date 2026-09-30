@@ -41,6 +41,7 @@ local Interiors = require(script.Parent.Parent.World.Interiors)
 local Tower = require(script.Parent.Parent.World.Tower)
 local Lift = require(script.Parent.Parent.World.Lift)
 local Builder = require(script.Parent.Parent.World.Builder)
+local Entrances = require(script.Parent.Parent.World.Entrances)
 local StoryMarks = require(script.Parent.Parent.World.Kit.StoryMarks)
 local SceneService = require(script.Parent.SceneService)
 
@@ -127,75 +128,9 @@ end
 ---------------------------------------------------------------------
 -- Qué hay dentro de cada edificio
 ---------------------------------------------------------------------
-local function hasChild(model: Model, name: string): BasePart?
-	local child = model:FindFirstChild(name)
-	return if child and child:IsA("BasePart") then child else nil
-end
-
--- Lo que pone el cartel del edificio (tiendas: su interior va a juego)
-local function signText(model: Instance): string?
-	local sign = model:FindFirstChild("Sign")
-	local gui = sign and sign:FindFirstChildOfClass("SurfaceGui")
-	local label = gui and gui:FindFirstChildOfClass("TextLabel")
-	return if label and label:IsA("TextLabel") then label.Text else nil
-end
-
--- Tipo de interior, título y plantas de arriba (nil = este modelo no es un edificio visitable)
-local function classify(model: Model): (string?, string?, string?)
-	local name, parent = model.Name, (model.Parent and model.Parent.Name or "")
-	if name == "Casa" and (parent == "Manzana_Casas" or parent == "Vivienda") then
-		return "Casa", "🏠 Casa", nil
-	elseif name == "Villa" then
-		return "Villa", "🏡 Villa", nil
-	elseif name == "Bloque" then
-		if parent == "Manzana_Comercio" then
-			return "Local", "🏬 Comercio y viviendas", "Piso"
-		elseif parent == "Manzana_Campus" then
-			return "Aula", "🎓 Facultad", "Aula"
-		elseif parent == "Manzana_Towers" then
-			return "OficinaLobby", "🏢 Oficinas", "Oficina"
-		elseif parent == "Manzana_Downtown" then
-			return "Portal", "🏢 Viviendas y oficinas", "Piso"
-		elseif parent == "Manzana_Residencia" or parent == "Manzana_Pisos" then
-			return "Portal", "🏢 Edificio de viviendas", "Piso"
-		end
-	elseif name == "Rascacielos" or name == "Oficinas" then
-		return "OficinaLobby", "🏙 Oficinas", "Oficina"
-	elseif name == "Nave" then
-		return "Nave", "🏭 Nave industrial", nil
-	elseif name == "Taller" then
-		return "Taller", "🔧 Taller mecánico", nil
-	elseif name == "Ocio_Local" then
-		return "Ocio", "🎶 Local de ocio", nil
-	elseif name == "TorreValmar" then
-		return "OficinaLobby", "🏙 Torre de Valmar", "Oficina"
-	elseif name == "Ayuntamiento" then
-		return "Ayuntamiento", "🏛 Ayuntamiento", nil
-	elseif name == "Museo" then
-		return "Museo", "🖼 Museo de Valmar", nil
-	elseif name == "Teatro" then
-		return "Teatro", "🎭 Teatro Principal", nil
-	elseif name == "EstacionCentral" then
-		return "Estacion", "🚆 Estación Central", nil
-	elseif name == "GranCentroComercial" then
-		return "CentroComercial", "🛍 Centro Comercial Valmar", "Local"
-	elseif name == "Edificio" or name:match("^Edificio_%d+$") then
-		if hasChild(model, "ShopDoor") then
-			-- Tienda de la calle con su puerta de cristal (Kit/Decor): se entra a su interior
-			local shop = signText(model)
-			return "Local", "🏬 " .. (if shop and shop ~= "" then shop else "Comercio"), "Piso"
-		end
-		if hasChild(model, "GarageDoor") and not hasChild(model, "DoorPanel") then
-			return "Nave", "🚒 Cocheras", nil
-		elseif hasChild(model, "DoorPanel") then
-			return "Portal", "🏢 Edificio de viviendas", "Piso"
-		end
-		-- Planta baja de verdad (tienda, colegio, hospital…): solo el ascensor
-		local civic = parent == "Colegio" or parent == "Hospital" or parent == "CentroSalud" or parent == "Policia" or parent == "Facultad" or parent == "CentroComercial"
-		return "Walk", "🏢 Edificio", if parent == "Facultad" or parent == "Colegio" then "Aula" elseif civic then "Oficina" else "Piso"
-	end
-	return nil, nil, nil
-end
+-- (la regla es de World/Entrances: la misma que usan las pruebas con el mapa construido)
+local signText = Entrances.signText
+local classify = Entrances.classify
 
 local function boundingBox(model: Model): (CFrame?, Vector3?)
 	local ok, cf, size = pcall(function()
@@ -249,10 +184,10 @@ end
 -- Dónde está la puerta: la pieza "Door" si la hay; si no, la fachada que da a la calle más cercana
 local function findDoor(model: Model, cf: CFrame, size: Vector3): (Vector3, Vector3)
 	local center = cf.Position
-	local doorPart = hasChild(model, "ShopDoor") or hasChild(model, "Door") or hasChild(model, "DoorPanel") or hasChild(model, "FakeDoor")
+	local doorPart = Entrances.doorPart(model)
 	if doorPart then
-		local offset = Vector3.new(doorPart.Position.X - center.X, 0, doorPart.Position.Z - center.Z)
-		local out = if offset.Magnitude > 0.5 then offset.Unit else cf.LookVector
+		-- (hacia fuera: el atributo DoorOut del kit, o del centro hacia la puerta)
+		local out = Entrances.doorOut(doorPart, center) or cf.LookVector
 		return Vector3.new(doorPart.Position.X, center.Y - size.Y / 2, doorPart.Position.Z), out
 	end
 	local faces = {

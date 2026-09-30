@@ -137,8 +137,10 @@ end
 function Swimming.init()
 	local waterCheckAt, waterHere = 0, false
 	local floorY: number? = nil
+	local clock = 0 -- tiempo de juego (suma de los frames)
 
-	RunService.Heartbeat:Connect(function()
+	RunService.Heartbeat:Connect(function(dt: number)
+		clock += math.min(dt or 0, 0.1)
 		local ok, err = pcall(function()
 			local character = player.Character
 			local humanoid = character and character:FindFirstChildOfClass("Humanoid")
@@ -154,7 +156,7 @@ function Swimming.init()
 			local scale = math.max((character :: Model):GetScale(), 0.3)
 			local pos = root.Position
 			local state = humanoid:GetState()
-			local now = os.clock()
+			local now = clock
 			if now - waterCheckAt > 0.25 then
 				waterCheckAt = now
 				waterHere = pos.Y < Swim.Surface + 1 * scale and waterAt(pos.X, pos.Z)
