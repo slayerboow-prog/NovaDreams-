@@ -362,6 +362,36 @@ local function redeem(player: Player, prizeId: any)
 	StoryEvents.emit(player, "PrizeRedeemed", { Prize = prizeId })
 end
 
+-- Regala un premio de ropa (gafas, gorra) sin tickets (pase de temporada). false si ya lo tenía.
+function ArcadeService.grantPrize(player: Player, prizeId: string): boolean
+	local prize = Gameplay.Prizes[prizeId]
+	local data = DataService.get(player)
+	if not prize or prize.Kind ~= "Wear" or not data then
+		return false
+	end
+	ensure(data)
+	if data.Prizes[prizeId] then
+		return false
+	end
+	data.Prizes[prizeId] = true
+	data.Wearing[prizeId] = true
+	applyWearables(player)
+	sync(player)
+	return true
+end
+
+-- Suma tickets (pase de temporada). Devuelve false si no hay datos o la cantidad no vale.
+function ArcadeService.addTickets(player: Player, amount: number): boolean
+	local data = DataService.get(player)
+	if not data or type(amount) ~= "number" or amount ~= amount or amount <= 0 or amount > 100000 then
+		return false
+	end
+	ensure(data)
+	data.Tickets += math.floor(amount)
+	sync(player)
+	return true
+end
+
 local function toggleWear(player: Player, prizeId: any)
 	local prize = typeof(prizeId) == "string" and Gameplay.Prizes[prizeId]
 	local data = DataService.get(player)

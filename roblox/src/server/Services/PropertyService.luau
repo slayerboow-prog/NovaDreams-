@@ -35,6 +35,10 @@ local InteriorService = require(script.Parent.InteriorService)
 
 local PropertyService = {}
 
+-- Pase de temporada (BattlePassRewardService.decorateHome): tema y decoración en la vivienda de un
+-- jugador al montar su sala. (ownerUserId, instancia de la sala)
+PropertyService.DecorateOwned = nil :: ((number, any) -> ())?
+
 -- Kind: "Compra" (suya), "Alquiler" (paga cada día de juego) o "Inicial" (la que le tocó al llegar).
 -- Access: quién tiene llave (UserId en texto -> nombre). Privacy: "Grupo" (su grupo, si el dueño
 -- es el líder, y los que tienen llave), "Llaves" (solo los que tienen llave) o "Cerrada" (nadie más).
@@ -572,6 +576,13 @@ local function decorate(inst: InteriorService.Instance_)
 				PropertyService.OnKeysPanel(player, building, floor, letter)
 			end
 		end)
+		-- Tema y decoración del pase de temporada (solo aspecto: no cambia dueño, precio ni acceso)
+		if PropertyService.DecorateOwned then
+			local ok, err = pcall(PropertyService.DecorateOwned, owner.UserId, inst)
+			if not ok then
+				warn("[PropertyService] Tema de la vivienda: " .. tostring(err))
+			end
+		end
 		return
 	end
 	if Properties.isNeighborHome(unit) then

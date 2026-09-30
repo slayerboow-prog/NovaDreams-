@@ -115,6 +115,31 @@ local DEFAULT_DATA = {
 		Assigned = false,
 		Debt = 0,
 	},
+	-- Pase de temporada (BattlePassService): temporada, XP total (el nivel sale de aquí), si compró el
+	-- premium de esta temporada, recompensas reclamadas por nivel (["5"] = true), misiones y topes del
+	-- día. Al cambiar de temporada se archiva en SeasonArchive y empieza de cero.
+	BattlePass = {
+		Version = 1,
+		SeasonId = "",
+		TotalXp = 0,
+		Level = 1,
+		PremiumOwned = false,
+		ClaimedFree = {},
+		ClaimedPremium = {},
+		Missions = {},
+		Daily = {},
+		Zones = {},
+		Shop = {},
+	},
+	-- Lo conseguido con el pase (de todas las temporadas: nunca se borra), lo equipado y las fichas
+	Cosmetics = {
+		Owned = {},
+		Equipped = {},
+		Perks = {},
+		Tokens = 0,
+	},
+	-- Resumen de cada temporada ya terminada (por SeasonId)
+	SeasonArchive = {},
 }
 
 local profiles: { [Player]: { [string]: any } } = {}
@@ -502,6 +527,10 @@ function DataService.newLife(player: Player)
 	fresh.Housing = data.Housing -- (su piso y su deuda del alquiler, Housing.Debt, siguen siendo suyos)
 	-- Hacienda tampoco se olvida: renacer no borra lo pendiente ni las declaraciones sin presentar
 	fresh.Tax = data.Tax
+	-- El pase de temporada y lo conseguido con él (puede estar pagado con Robux) tampoco se pierden
+	fresh.BattlePass = data.BattlePass
+	fresh.Cosmetics = data.Cosmetics
+	fresh.SeasonArchive = data.SeasonArchive
 	fresh.Life.Stage = Config.LifeStory.NewCharacterStage
 	-- El prólogo (tutorial) ya lo vio: no se repite solo (se puede volver a jugar desde «Mi historia»)
 	if data.Story and data.Story.PrologueDone then

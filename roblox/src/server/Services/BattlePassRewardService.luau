@@ -387,7 +387,7 @@ local function material(name: any): Enum.Material?
 end
 
 -- Monta un objeto de decoración sencillo (piezas básicas: no hace falta subir modelos)
-local function buildDecor(def: { [string]: any }, cf: CFrame, parent: Instance)
+function BattlePassRewardService.buildDecor(def: { [string]: any }, cf: CFrame, parent: Instance)
 	local part = Instance.new("Part")
 	part.Name = "BPDecor_" .. def.Id
 	part.Anchored = true
@@ -449,7 +449,7 @@ function BattlePassRewardService.decorateHome(ownerUserId: number, inst: { [stri
 			if def and def.Type == "Decor" and count < MAX_DECOR then
 				count += 1
 				local x = -room.W / 2 + 2.5 + (count - 1) * math.max(3, (room.W - 5) / MAX_DECOR)
-				pcall(buildDecor, def, room.at(x, 0, room.D / 2 - 1.8), room.Model)
+				pcall(BattlePassRewardService.buildDecor, def, room.at(x, 0, room.D / 2 - 1.8), room.Model)
 			end
 		end
 	end

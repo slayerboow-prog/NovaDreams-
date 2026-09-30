@@ -40,6 +40,10 @@ local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 
 local VehicleService = {}
 
+-- Acabado de los vehículos propios (pase de temporada, BattlePassRewardService.paintFor): color con el
+-- que sale tu vehículo al sacarlo. Solo cambia el aspecto (mismas prestaciones). nil = color al azar.
+VehicleService.PaintFor = nil :: ((Player, string) -> Color3?)?
+
 -- Gasolineras de jugadores (BusinessService): precio y litros que quedan, y aviso de la venta
 VehicleService.FuelSeller = nil :: { quote: (BasePart) -> (number?, number?), sold: (BasePart, number, number) -> () }?
 
@@ -63,6 +67,7 @@ type Ride = {
 	Odometer: number?,
 	Trip: number?,
 	Owned: boolean?,
+	Driven: number?, -- studs recorridos en este viaje (todos los vehículos; lo usa el pase de temporada)
 	LastPos: Vector3?,
 	LastCFrame: CFrame?, -- último sitio bueno de la base (si salta de golpe, vuelve aquí)
 	LastAt: number?,
@@ -460,6 +465,13 @@ local function burnFuel()
 			ride.LastCFrame = chassis.CFrame
 			ride.LastAt = now
 		end
+		-- Distancia del viaje (cualquier vehículo; un salto grande es un teletransporte, no cuenta)
+		if chassis and last then
+			local moved = Vector3.new(chassis.Position.X - last.X, 0, chassis.Position.Z - last.Z).Magnitude
+			if moved > 0.05 and moved < 200 then
+				ride.Driven = (ride.Driven or 0) + moved
+			end
+		end
 		local spec = FUEL.Kinds[ride.Kind]
 		if spec and ride.Fuel and chassis then
 			local pos = chassis.Position
@@ -539,6 +551,10 @@ function VehicleService.dismount(player: Player, silent: boolean?)
 	riding[player] = nil
 	saveFuel(player, ride)
 	clearFuel(player)
+	-- Kilómetros del viaje (misiones y XP del pase de temporada). No en el examen de la autoescuela.
+	if (ride.Driven or 0) > 50 and not ride.Exam then
+		StoryEvents.emit(player, "VehicleTrip", { Kind = ride.Kind, Km = (ride.Driven or 0) * FUEL.KmPerStud, Rented = ride.Rented })
+	end
 	if ride.Died then
 		ride.Died:Disconnect()
 	end
@@ -1184,7 +1200,12 @@ function VehicleService.mount(player: Player, kind: string, opts: { Rented: bool
 		Notify:FireClient(player, "Error", "Aquí no cabe: busca un sitio más despejado para sacar el vehículo.")
 		return false
 	end
-	local model = Rides.build(kind, nil, cf)
+	local paint: Color3? = nil
+	if VehicleService.PaintFor and not options.Rented and not options.Exam then
+		local okPaint, color = pcall(VehicleService.PaintFor, player, kind)
+		paint = if okPaint and typeof(color) == "Color3" then color else nil
+	end
+	local model = Rides.build(kind, nil, cf, paint)
 	model:SetAttribute("OwnerId", player.UserId)
 	Rides.prepare(model, kind, cf)
 	addHeadlight(model)
