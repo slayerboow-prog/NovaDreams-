@@ -18,6 +18,7 @@
 --     arreglan solos al aparcar (a los 15 s) o a los 2 minutos.
 -- Los barcos no pasan por aquí (tienen su propia regla en el agua).
 
+local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -56,10 +57,20 @@ function CrashService.kindOf(model: Instance): string?
 	if typeof(kind) == "string" then
 		return kind
 	end
+	if Gameplay.Vehicles[model.Name] then
+		return model.Name -- (las patrullas del juego se llaman como su tipo)
+	end
 	if model.Name == "ParkedCar" or model.Name == "PoliceCar" then
 		return "Coche"
 	end
 	return nil
+end
+
+-- ¿Es un vehículo aparcado de jugadores o de la ciudad? (los del juego, autobuses y patrullas, nunca
+-- se mueven por un aviso de un cliente)
+local function parkedVehicle(model: Model): boolean
+	local rides = workspace:FindFirstChild("Rides")
+	return (rides ~= nil and model.Parent == rides) or CollectionService:HasTag(model, "ParkedCar")
 end
 
 function CrashService.maxSpeed(kind: string?): number
@@ -280,7 +291,7 @@ local function onHit(player: Player, target: any, info: any)
 			Point = c.Point,
 			Type = r.Type,
 		})
-	elseif b.Kinematic and typeof(driverId) ~= "number" then
+	elseif b.Kinematic and typeof(driverId) ~= "number" and parkedVehicle(target) then
 		-- Aparcado: las motos y bicis salen volando; los coches se mueven un poco
 		local rel = a.Vel - b.Vel
 		if not (Crash.FallSpeed[b.Kind or ""] and launchParked(target, rel, a.Mass, flat(b.Pos - a.Pos))) then

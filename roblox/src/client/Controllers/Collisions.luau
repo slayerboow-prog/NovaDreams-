@@ -146,17 +146,35 @@ local function boxOf(model: Model, now: number): (Vector3?, Vector3?, number, nu
 	return box.Position - Vector3.new(0, cached.Size.Y / 2, 0), box.LookVector, cached.Size.Z, cached.Size.X, model.PrimaryPart
 end
 
-local function consider(model: Instance, mine: Model?, center: Vector3, seen: { [Instance]: boolean })
+-- Dónde están los coches aparcados de la ciudad (casi nunca se mueven: se mira cada 10 s; así la
+-- búsqueda no pide la posición de cientos de coches 4 veces por segundo)
+local parkedAt: { [Instance]: { Pos: Vector3, At: number } } = setmetatable({}, { __mode = "k" }) :: any
+
+local function consider(model: Instance, mine: Model?, center: Vector3, seen: { [Instance]: boolean }, static: boolean?)
 	if seen[model] or model == mine or not model:IsA("Model") then
 		return
 	end
 	seen[model] = true
-	local kind = kindOf(model)
-	if not kind or not Crash.collides(kind) then
+	local pos: Vector3
+	local now = os.clock()
+	local cached = if static then parkedAt[model] else nil
+	if cached and now - cached.At < 10 then
+		pos = cached.Pos
+	else
+		local ok, pivot = pcall(model.GetPivot, model)
+		if not ok then
+			return
+		end
+		pos = pivot.Position
+		if static then
+			parkedAt[model] = { Pos = pos, At = now }
+		end
+	end
+	if flat(pos - center).Magnitude > BROAD_RADIUS then
 		return
 	end
-	local ok, pivot = pcall(model.GetPivot, model)
-	if not ok or flat(pivot.Position - center).Magnitude > BROAD_RADIUS then
+	local kind = kindOf(model)
+	if not kind or not Crash.collides(kind) then
 		return
 	end
 	table.insert(nearModels, model :: Model)
@@ -183,7 +201,7 @@ local function gather(mine: Model?, center: Vector3)
 		end
 	end
 	for _, m in CollectionService:GetTagged("ParkedCar") do
-		consider(m, mine, center, seen)
+		consider(m, mine, center, seen, true)
 	end
 	table.clear(rayIgnore)
 	for _, m in nearModels do
