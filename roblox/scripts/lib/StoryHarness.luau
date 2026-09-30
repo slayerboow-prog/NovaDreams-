@@ -679,6 +679,17 @@ local function playUntil(player, done: () -> boolean, choice: string?, maxSteps:
 		local id, _, step = mainStep(player)
 		if id and step then
 			doStep(player, id, step, choice)
+		else
+			-- Ninguna principal en marcha porque la siguiente espera una hora (a que acabe el cole, a que
+			-- abra el colegio, al día siguiente): como un jugador que espera o duerme, se adelanta el reloj
+			local dbg = Service.debugState(player)
+			local waiting = dbg and dbg.Waiting
+			if waiting and waiting.Reason == "Hours" and type(waiting.From) == "number" then
+				if waiting.From <= lighting.ClockTime then
+					H.nextSchoolDay()
+				end
+				lighting.ClockTime = waiting.From + 0.5
+			end
 		end
 		task.wait(0.6)
 	end

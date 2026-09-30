@@ -411,6 +411,8 @@ do
 end
 
 print("\n▶ Consecuencia diferida: una hora después, Mateo te busca")
+check(leoData.Story.Active.Nino_Jornada == nil and leoData.Story.LoopDay == H.getDay(), "Un día de cole por día de juego: hoy ya no empieza otro")
+H.nextSchoolDay() -- (el siguiente, mañana)
 passTime(leo, 3700)
 check(leoData.Story.Active.Eco_MateoDibujo ~= nil, "Pasada una hora de juego, empieza «Un regalo de Mateo»")
 state = lastState(leo)

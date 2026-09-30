@@ -3265,6 +3265,9 @@ local function onLoaded(player: Player, data: Data)
 	story_defaults(data)
 
 	local story = storyOf(data)
+	-- El día de juego empieza de cero en cada servidor: el día del último día normal (LoopDay) de
+	-- otro servidor no sirve aquí (podría coincidir con el número de hoy y dejarte sin día de cole)
+	story.LoopDay = nil
 	-- Cuánto tiempo ha estado fuera (para «Anteriormente en tu vida…»)
 	runtime[player].AwaySeconds = os.time() - (tonumber(story.LastSeen) or 0)
 	-- Se fue en mitad del prólogo: cuenta como visto y vuelve a su vida (se puede repetir desde «Mi historia»)
