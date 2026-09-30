@@ -98,12 +98,47 @@ sitio("parada", "parada de bus " .. tostring(paradaCasa and paradaCasa:GetAttrib
 local paradaPlaza = nearest(CollectionService:GetTagged("BusStop"), spawnP)
 sitio("parada_plaza", "parada de bus " .. tostring(paradaPlaza and paradaPlaza:GetAttribute("StopName") or ""), frenteParada(paradaPlaza))
 
--- Metro: la boca más cercana a la plaza y el andén de esa estación (el MetroAlight más cercano)
+-- Metro: la boca de la estación más cercana a la plaza. Se baja ANDANDO por la escalera de la calle
+-- y la escalera fija del pozo (Shared/Metro.access(...).Route) hasta el vestíbulo de andenes. Allí el
+-- muro de cristal de los tornos (World/Kit/MetroKit: GateGlass) separa a propósito el vestíbulo del
+-- andén: se cruza tocando un torno (MetroService.onGate teletransporta al atributo Through). Por eso
+-- el camino andando va de la boca a la fila de tornos, y otro del otro lado del torno al andén.
+-- (La pieza MetroEntrance es el ascensor: un atajo con teletransporte, dentro de una caseta de
+-- cristal de 4.4 studs; no sirve como punto de partida andando.)
+local Metro = nil
+pcall(function()
+	Metro = require(game:GetService("ReplicatedStorage").Shared.Metro) :: any
+end)
 local boca = nearest(CollectionService:GetTagged("MetroEntrance"), spawnP)
-local bocaP = boca and Cloud.posicion(boca)
-sitio("metro_boca", "boca de metro", bocaP)
-local anden = nearest(CollectionService:GetTagged("MetroAlight"), bocaP)
-sitio("metro_anden", "andén del metro" .. (if anden then " (" .. tostring(anden:GetAttribute("Station") or "?") .. ")" else ""), anden and Cloud.posicion(anden))
+local estacion = boca and boca:GetAttribute("Station")
+local acceso: any = nil
+if Metro and type(estacion) == "string" then
+	pcall(function()
+		acceso = (Metro :: any).access(estacion)
+	end)
+end
+local rutaMetro: { Vector3 }? = acceso and acceso.Route
+local lineaMetro = acceso and acceso.Line and acceso.Line.Id
+sitio("metro_boca", "boca de metro (arriba de la escalera, " .. tostring(estacion or "?") .. ")", if rutaMetro then rutaMetro[1] + Vector3.new(0, 1, 0) else boca and Cloud.posicion(boca))
+-- Delante del torno (lado del vestíbulo) y detrás (lado del andén)
+local torno = nearest(CollectionService:GetTagged("MetroGate"), if rutaMetro then rutaMetro[#rutaMetro] else nil, function(g)
+	return g:GetAttribute("Station") == estacion and (lineaMetro == nil or g:GetAttribute("Line") == lineaMetro)
+end)
+local tornoFuera, tornoDentro = nil, nil
+if torno and torno:IsA("BasePart") and typeof(torno:GetAttribute("Through")) == "Vector3" then
+	local through = torno:GetAttribute("Through") :: Vector3
+	local d = Vector3.new(torno.Position.X - through.X, 0, torno.Position.Z - through.Z)
+	if d.Magnitude > 0 then
+		tornoFuera = Vector3.new(torno.Position.X, through.Y, torno.Position.Z) + d.Unit * 2.5
+	end
+	tornoDentro = through
+end
+sitio("metro_torno", "delante de los tornos", tornoFuera)
+sitio("metro_torno_dentro", "pasados los tornos", tornoDentro)
+local anden = nearest(CollectionService:GetTagged("MetroAlight"), tornoDentro, function(a)
+	return a:GetAttribute("Station") == estacion and (lineaMetro == nil or a:GetAttribute("Line") == lineaMetro)
+end)
+sitio("metro_anden", "andén del metro" .. (if anden then " (" .. tostring(anden:GetAttribute("Station") or "?") .. " " .. tostring(anden:GetAttribute("Line") or "") .. ")" else ""), anden and Cloud.posicion(anden))
 
 ---------------------------------------------------------------------
 -- 1) Suelo y sitio para estar de pie en cada uno
@@ -136,13 +171,17 @@ Cloud.check("Se puede estar de pie en los sitios clave", #malos == 0, if #malos 
 ---------------------------------------------------------------------
 -- 2) Caminos
 ---------------------------------------------------------------------
+-- (Los caminos del metro son solo un aviso si falla PathfindingService pero la bajada andando
+-- —comprobación 3— está bien: su malla de navegación va en celdas de 4 studs y la escalera fija del
+-- pozo mide 3.6 de ancho, así que el cálculo puede no pasar por donde una persona sí pasa.)
 local PAREJAS = {
 	{ "casa", "colegio" },
 	{ "casa", "parada" },
 	{ "parada", "colegio" },
 	{ "plaza", "parada_plaza" },
 	{ "plaza", "metro_boca" },
-	{ "metro_boca", "metro_anden" },
+	{ "metro_boca", "metro_torno", metro = true },
+	{ "metro_torno_dentro", "metro_anden", metro = true },
 	{ "plaza", "casa" },
 }
 
@@ -154,10 +193,19 @@ local path = PathfindingService:CreatePath({
 	WaypointSpacing = 8,
 	Costs = { Water = 20 },
 })
+-- En el metro, del ancho de un personaje (2 studs): las escaleras miden 3.6 y 6 de ancho
+local pathMetro = PathfindingService:CreatePath({
+	AgentRadius = 1,
+	AgentHeight = 5,
+	AgentCanJump = true,
+	AgentCanClimb = false,
+	WaypointSpacing = 4,
+})
 
-local rotos, bien, errores = {}, {}, {}
+local rotos, bien, errores, rotosMetro = {}, {}, {}, {}
 local calculados = 0
 for _, pair in PAREJAS do
+	local path = if pair.metro then pathMetro else path
 	local a, b = pie[pair[1]], pie[pair[2]]
 	local la, lb = pair[1], pair[2]
 	if not a or not b then
@@ -190,7 +238,7 @@ for _, pair in PAREJAS do
 		table.insert(bien, ("%s → %s: %.0f studs andando (%.0f en línea recta, %.1f s)"):format(la, lb, largo, recta, secs))
 	else
 		local lejos = if recta > 3000 then " (muy lejos: el cálculo puede no llegar)" else ""
-		table.insert(rotos, ("%s → %s: %s, se queda a %.0f studs de %.0f%s"):format(la, lb, status.Name, falta, recta, lejos))
+		table.insert(if pair.metro then rotosMetro else rotos, ("%s → %s: %s, se queda a %.0f studs de %.0f%s"):format(la, lb, status.Name, falta, recta, lejos))
 	end
 end
 
@@ -201,6 +249,56 @@ else
 		Cloud.check("PathfindingService calcula sin errores", false, Cloud.lista(errores, 5))
 	end
 	Cloud.check(("Se llega andando entre los sitios clave (%d caminos)"):format(calculados), #rotos == 0 and calculados > 0, if #rotos == 0 then Cloud.lista(bien, 8) else ("sin camino: %s"):format(Cloud.lista(rotos, 8)))
+end
+
+---------------------------------------------------------------------
+-- 3) Bajar andando al metro: suelo y sitio para el cuerpo en cada paso de la bajada
+---------------------------------------------------------------------
+-- Cada studs por Metro.access(...).Route (calle → escalera → vestíbulo → escalera fija del pozo →
+-- vestíbulo de andenes), con rayos y la forma de verdad de las piezas: sin huecos (suelo a menos de
+-- 1.5 studs) y nada sólido a la altura del cuerpo (una caja de 1.6 × 3.6 que empieza a 1 stud del
+-- suelo, para que los peldaños y la rampa de la escalera no cuenten).
+local bajadaOk = true
+if rutaMetro and #rutaMetro >= 2 then
+	local huecos, tapones = {}, {}
+	local pasos = 0
+	for k = 2, #rutaMetro do
+		local a, b = rutaMetro[k - 1], rutaMetro[k]
+		local n = math.max(1, math.ceil((b - a).Magnitude / 1))
+		for i = 0, n - 1 do
+			local q = a:Lerp(b, i / n)
+			pasos += 1
+			local hit = Cloud.suelo(q + Vector3.new(0, 0.5, 0), 1.5, 2)
+			if not hit or math.abs(hit.Position.Y - q.Y) > 1.5 then
+				table.insert(huecos, Cloud.v3(q))
+			else
+				local cabe, estorbo = Cloud.cabe(hit.Position, nil, Vector3.new(1.6, 3.6, 1.6), 1)
+				if not cabe then
+					table.insert(tapones, ("%s (%s)"):format(Cloud.v3(q), Cloud.nombre(estorbo)))
+				end
+			end
+		end
+	end
+	bajadaOk = #huecos == 0 and #tapones == 0
+	local detalle = ("%d pasos de %s a %s"):format(pasos, Cloud.v3(rutaMetro[1]), Cloud.v3(rutaMetro[#rutaMetro]))
+	if #huecos > 0 then
+		detalle ..= "; sin suelo en: " .. Cloud.lista(huecos, 5)
+	end
+	if #tapones > 0 then
+		detalle ..= "; algo estorba en: " .. Cloud.lista(tapones, 5)
+	end
+	Cloud.check("Se baja andando de la calle al vestíbulo de andenes (" .. tostring(estacion) .. ")", bajadaOk, detalle)
+elseif boca then
+	Cloud.salta("Se baja andando de la calle al vestíbulo de andenes", "no se ha podido leer Shared/Metro.access en el juego publicado")
+end
+
+-- Caminos del metro con PathfindingService: aviso si solo falla el cálculo y la bajada está bien
+if #rotosMetro > 0 then
+	if bajadaOk and rutaMetro then
+		Cloud.aviso("PathfindingService encuentra el camino por el metro", false, Cloud.lista(rotosMetro, 4) .. " (la bajada andando sí está bien: mira la comprobación de arriba)")
+	else
+		Cloud.check("Se llega andando por el metro (PathfindingService)", false, Cloud.lista(rotosMetro, 4))
+	end
 end
 
 for key, s in sitios do

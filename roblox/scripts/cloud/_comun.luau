@@ -277,25 +277,102 @@ end
 local Ground = require(Cloud.Shared:WaitForChild("Ground")) :: any
 Cloud.Ground = Ground
 
+-- Terreno leído en vóxeles, sin rayos. En estas pruebas la física no corre y el terreno que
+-- TerrainBuilder acaba de poner puede no verse con workspace:Raycast (en la prueba "mundo" contra
+-- la v66, los 6 StorySpot "sin suelo debajo, ni a 200 studs" eran justo los que solo tienen terreno
+-- debajo: el pie y la cima del Monte del Silencio y dos colegios con una franja de hierba delante).
+-- Por eso, si el rayo no da con nada, se mira el terreno leyendo sus vóxeles.
+-- Cloud.info("suelo_de_terreno_leido_en_voxeles", n) cuenta cuántas veces ha hecho falta.
+local terrenoPorVoxeles = 0
+local SOLIDO_NO = { [Enum.Material.Air] = true, [Enum.Material.Water] = true }
+local function terrenoBajo(p: Vector3, arriba: number, abajo: number): { [string]: any }?
+	local ok, result = pcall(function()
+		local terrain = workspace.Terrain
+		local lo = Vector3.new(p.X - 1, p.Y - abajo, p.Z - 1)
+		local hi = Vector3.new(p.X + 1, p.Y + arriba, p.Z + 1)
+		local region = Region3.new(lo, hi):ExpandToGrid(4)
+		local materials, occupancies = terrain:ReadVoxels(region, 4)
+		local size = materials.Size
+		local y0 = region.CFrame.Position.Y - region.Size.Y / 2
+		-- De arriba abajo: el primer vóxel sólido (no aire ni agua) es el suelo
+		for y = size.Y, 1, -1 do
+			local material = materials[1][y][1]
+			local occ = occupancies[1][y][1]
+			if not SOLIDO_NO[material] and occ > 0.05 then
+				local top = y0 + (y - 1) * 4 + 4 * math.clamp(occ, 0, 1)
+				if top <= p.Y + arriba and top >= p.Y - abajo then
+					return { Position = Vector3.new(p.X, top, p.Z), Normal = Vector3.new(0, 1, 0), Instance = terrain, Material = material, Distance = p.Y - top }
+				end
+				return nil
+			end
+		end
+		return nil
+	end)
+	if ok and result then
+		terrenoPorVoxeles += 1
+		Cloud.info("suelo_de_terreno_leido_en_voxeles", terrenoPorVoxeles)
+		return result
+	end
+	return nil
+end
+
 -- Suelo de verdad debajo de un punto (salta lo que no choca, vehículos y personajes).
 -- Devuelve el impacto (o nil), mirando desde `arriba` studs por encima hasta `abajo` por debajo.
-function Cloud.suelo(p: Vector3, arriba: number?, abajo: number?, ignorar: { Instance }?): RaycastResult?
+-- (Si el rayo no ve nada, mira el terreno por sus vóxeles: devuelve entonces una tabla con los
+-- mismos campos que un RaycastResult: Position, Normal, Instance = workspace.Terrain, Material.)
+function Cloud.suelo(p: Vector3, arriba: number?, abajo: number?, ignorar: { Instance }?): any
 	local up, down = arriba or 3, abajo or 8
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = if ignorar then table.clone(ignorar) else {}
-	return Ground.cast(p + Vector3.new(0, up, 0), Vector3.new(0, -(up + down), 0), params, 12)
+	local hit = Ground.cast(p + Vector3.new(0, up, 0), Vector3.new(0, -(up + down), 0), params, 12)
+	if hit then
+		return hit
+	end
+	return terrenoBajo(p, up, down)
 end
 
 -- ¿Cabe una persona de pie en este suelo? Devuelve (cabe, lo que estorba)
+-- Con la forma de verdad de cada pieza (GetPartsInPart): con GetPartBoundsInBox una pieza redonda
+-- (el borde de la fuente de la plaza) estorbaba por su caja, aunque la persona quedara fuera.
+-- `talla`: ancho y alto de la persona (por defecto 2 × 4.6); `holgura`: a cuánto del suelo empieza
+-- la caja (por defecto 0.4; en escaleras y rampas hace falta más).
 local PERSONA = Vector3.new(2, 4.6, 2)
-function Cloud.cabe(pie: Vector3, ignorar: { Instance }?): (boolean, BasePart?)
+local sonda: BasePart? = nil
+local function laSonda(): BasePart
+	if sonda and sonda.Parent then
+		return sonda
+	end
+	local p = Instance.new("Part")
+	p.Name = "SondaPrueba"
+	p.Anchored = true
+	p.CanCollide = false
+	p.CanTouch = false
+	p.CanQuery = false
+	p.Transparency = 1
+	p.Parent = workspace
+	sonda = p
+	return p
+end
+function Cloud.cabe(pie: Vector3, ignorar: { Instance }?, talla: Vector3?, holgura: number?): (boolean, BasePart?)
+	local size = talla or PERSONA
 	local params = OverlapParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
-	params.FilterDescendantsInstances = ignorar or {}
+	local lista = if ignorar then table.clone(ignorar) else {}
+	local probe = laSonda()
+	table.insert(lista, probe)
+	params.FilterDescendantsInstances = lista
 	params.RespectCanCollide = true
 	params.MaxParts = 8
-	local parts = workspace:GetPartBoundsInBox(CFrame.new(pie + Vector3.new(0, 0.4 + PERSONA.Y / 2, 0)), PERSONA, params)
+	local cf = CFrame.new(pie + Vector3.new(0, (holgura or 0.4) + size.Y / 2, 0))
+	local ok, parts = pcall(function()
+		probe.Size = size
+		probe.CFrame = cf
+		return workspace:GetPartsInPart(probe, params)
+	end)
+	if not ok then
+		parts = workspace:GetPartBoundsInBox(cf, size, params)
+	end
 	for _, part in parts do
 		if part ~= workspace.Terrain and Ground.skipOf(part) == nil then
 			return false, part

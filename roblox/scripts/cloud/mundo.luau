@@ -28,6 +28,21 @@ for _, p in pasos do
 		Cloud.check("Preparar el mundo: " .. p.name, false, p.err)
 	end
 end
+-- ¿Ven los rayos el terreno en este servidor? (en la cima de la primera montaña solo hay terreno)
+do
+	local okPlan, CityPlan = pcall(function()
+		return require(ReplicatedStorage.Shared.CityPlan) :: any
+	end)
+	local m = okPlan and CityPlan.Mountains and CityPlan.Mountains[1]
+	if m then
+		local params = RaycastParams.new()
+		params.FilterType = Enum.RaycastFilterType.Include
+		params.FilterDescendantsInstances = { workspace.Terrain }
+		local hit = workspace:Raycast(Vector3.new(m.X, m.H + 60, m.Z), Vector3.new(0, -(m.H + 120), 0), params)
+		Cloud.info("rayos_ven_el_terreno", if hit then ("sí (cima a Y=%.0f)"):format(hit.Position.Y) else "no (se lee el terreno en vóxeles)")
+	end
+end
+
 local town = workspace:FindFirstChild("Town")
 if not town then
 	Cloud.check("La ciudad está en el juego publicado", false, "no hay workspace.Town")
@@ -170,12 +185,14 @@ local function visible(from: Vector3, to: Vector3, ignorar: { Instance }): boole
 end
 
 -- Busca un sitio de pie desde el que se llegue a `target` (a `distancias` studs alrededor)
-local function accesible(target: Vector3, ignorar: { Instance }, distancias: { number }, alcance: number, vista: boolean): (boolean, string?)
+-- (`ignorarSuelo`: lo que no cuenta como suelo; por defecto lo mismo que `ignorar`. Para los avisos
+-- es {}: el aviso puede estar en la misma pieza que se pisa, como el embarcadero de la Isla del Faro.)
+local function accesible(target: Vector3, ignorar: { Instance }, distancias: { number }, alcance: number, vista: boolean, ignorarSuelo: { Instance }?): (boolean, string?)
 	local motivo = "sin suelo alrededor"
 	for _, d in distancias do
 		for _, dir in DIRS do
 			local p = target + dir * d
-			local hit = Cloud.suelo(Vector3.new(p.X, target.Y, p.Z), 2, 10, ignorar)
+			local hit = Cloud.suelo(Vector3.new(p.X, target.Y, p.Z), 2, 10, ignorarSuelo or ignorar)
 			if hit and hit.Normal.Y >= PENDIENTE_MIN then
 				local pie = hit.Position
 				local cabe, estorbo = Cloud.cabe(pie, ignorar)
@@ -258,9 +275,23 @@ for i = 1, #prompts, step do
 		continue
 	end
 	revisados += 1
-	local owner = parent:FindFirstAncestorOfClass("Model") or parent
+	-- Se ignora solo lo que lleva el aviso (la pieza, o un modelo pequeño como una máquina), no el
+	-- modelo entero: el aviso "Volver al puerto" está en el embarcadero del modelo Faro y el de la
+	-- barca en la taquilla del modelo Puerto; ignorando el modelo entero se quitaba también el
+	-- embarcadero y el pantalán donde se está de pie ("sin suelo alrededor" sin serlo).
+	local holder: Instance = if parent:IsA("Attachment") and parent.Parent then parent.Parent else parent
+	local ignorar: { Instance } = { holder }
+	local owner = holder:FindFirstAncestorOfClass("Model")
+	if owner and owner ~= town then
+		local okBox, _, size = pcall(function()
+			return (owner :: Model):GetBoundingBox()
+		end)
+		if okBox and size and math.max(size.X, size.Y, size.Z) <= 16 then
+			ignorar = { owner }
+		end
+	end
 	local alcance = math.max(3, prompt.MaxActivationDistance)
-	local ok, why = accesible(p, { owner }, { 2.5, 4, math.min(alcance - 0.5, 7) }, alcance, prompt.RequiresLineOfSight)
+	local ok, why = accesible(p, ignorar, { 2.5, 4, math.min(alcance - 0.5, 7) }, alcance, prompt.RequiresLineOfSight, {})
 	if not ok then
 		table.insert(malosPrompts, ("\"%s\" en %s %s: %s"):format(prompt.ActionText, Cloud.nombre(parent), Cloud.v3(p), why or "?"))
 	end
@@ -293,6 +324,26 @@ for _, part in CollectionService:GetTagged("SchoolEntrance") do
 end
 
 local RADIO = 90
+local FLOTA_MIN = 1.5 -- studs: más cerca del suelo que esto no se cuenta (asientos, repisas, zócalos)
+
+-- ¿Alguna pieza del mismo modelo (aunque no se pueda consultar) toca a esta? Cajas alineadas con
+-- el mundo, con 0.3 studs de margen.
+local function apoyadoEnHermanas(part: BasePart): boolean
+	local parent = part.Parent
+	if not parent then
+		return false
+	end
+	local c, e = part.Position, part.ExtentsSize / 2 + Vector3.new(0.3, 0.3, 0.3)
+	for _, other in parent:GetChildren() do
+		if other ~= part and other:IsA("BasePart") then
+			local d, oe = other.Position - c, other.ExtentsSize / 2
+			if math.abs(d.X) <= e.X + oe.X and math.abs(d.Y) <= e.Y + oe.Y and math.abs(d.Z) <= e.Z + oe.Z then
+				return true
+			end
+		end
+	end
+	return false
+end
 local vistos: { [BasePart]: boolean } = {}
 local flotando = {}
 local mirados = 0
@@ -321,6 +372,12 @@ for _, origen in origenes do
 		if #touching > 0 then
 			continue
 		end
+		-- ¿Lo sujeta un adorno de su mismo modelo? Las patas de los bancos y del piano, la cabina de
+		-- los teléfonos de pared… son Builder.decor (CanQuery = false): las consultas de arriba no
+		-- las ven, así que se miran a mano las piezas hermanas.
+		if apoyadoEnHermanas(part) then
+			continue
+		end
 		-- ¿Toca el terreno o tiene algo justo debajo?
 		local bottom = part.Position.Y - part.ExtentsSize.Y / 2
 		local params = RaycastParams.new()
@@ -328,13 +385,13 @@ for _, origen in origenes do
 		params.FilterDescendantsInstances = { part }
 		local hit = workspace:Raycast(Vector3.new(part.Position.X, bottom + 0.1, part.Position.Z), Vector3.new(0, -300, 0), params)
 		local gap = if hit then bottom - hit.Position.Y else math.huge
-		if gap > 1 then
+		if gap > FLOTA_MIN then
 			table.insert(flotando, ("%s %s a %s del suelo (cerca de %s)"):format(Cloud.nombre(part), Cloud.v3(part.Position), if gap == math.huge then "∞" else ("%.0f"):format(gap), origen.label))
 		end
 	end
 end
 Cloud.info("piezas_mirando_si_flotan", mirados)
-Cloud.aviso(("Nada flotando en el aire cerca de donde aparece la gente (%d sitios, radio %d)"):format(#origenes, RADIO), #flotando == 0, if #flotando == 0 then ("%d piezas revisadas"):format(mirados) else ("%d piezas sueltas en el aire: %s"):format(#flotando, Cloud.lista(flotando, 12)))
+Cloud.aviso(("Nada flotando en el aire cerca de donde aparece la gente (%d sitios, radio %d)"):format(#origenes, RADIO), #flotando == 0, if #flotando == 0 then ("%d piezas revisadas"):format(mirados) else ("%d piezas sueltas en el aire (a más de %.1f studs del suelo, sin nada que las sujete): %s"):format(#flotando, FLOTA_MIN, Cloud.lista(flotando, 12)))
 
 ---------------------------------------------------------------------
 -- 4) Mobiliario de la calle metido en paredes

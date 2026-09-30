@@ -549,6 +549,10 @@ function MetroDetails.galleria(m: Instance, cf: CFrame)
 	end
 	decor(m, "PianoLeg", Vector3.new(0.35, 2.6, 0.35), at(px, 1.3, pz - 2.2), rgb(15, 15, 18))
 	part(m, "PianoStool", Vector3.new(2.4, 0.4, 1.2), at(px, 1.9, pz + 4.6), rgb(15, 15, 18))
+	-- (sin patas, la banqueta quedaba flotando a 1.7 studs del suelo)
+	for _, dx in { -0.9, 0.9 } do
+		decor(m, "StoolLeg", Vector3.new(0.3, 1.7, 0.9), at(px + dx, 0.85, pz + 4.6), rgb(15, 15, 18))
+	end
 	sign(m, at(px, 7.4, pz - 2.8) * CFrame.Angles(0, math.rad(180), 0), Vector3.new(6, 1, 0.15), "🎹 PIANO LIBRE · ¡TÓCALO!", rgb(20, 20, 26))
 	-- Limpiabotas
 	part(m, "ShineChair", Vector3.new(2.6, 1, 2.2), at(70, 2.8, -22), rgb(120, 30, 30), Enum.Material.Fabric, { Tags = { "MetroShine" } })
