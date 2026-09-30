@@ -57,7 +57,7 @@ local CF = setmetatable({
 }, { __index = roblox.CFrame })
 
 local serverLog: { any } = {} -- lo que el cliente manda al servidor (FireServer)
-local SIM_SECONDS = 48 -- tiempo de juego simulado en cada modo
+local SIM_SECONDS = 110 -- tiempo de juego simulado en cada modo (el móvil conduce cada vehículo al final)
 local FPS = 20
 local REAL_BUDGET = 120 -- segundos reales como mucho en cada modo
 local ROOT = "src"
@@ -2077,6 +2077,85 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean })
 			local tab = playerGui:FindFirstChild("LifeStoryTab", true)
 			table.insert(checks, { not mode.Touch or not (mission and mission.Visible) or not (tab and tab.Visible), "móvil: con la misión a la vista, la pestaña «Tu vida» se aparta" })
 		end,
+		-- Ordenador: al volante, W acelera y A / D giran (teclado; sin botones en pantalla)
+		[math.floor(40.2 * FPS)] = function()
+			if mode.Touch then
+				return
+			end
+			local character = localPlayer.Character
+			local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+			if not humanoid then
+				table.insert(checks, { false, "ordenador al volante: falta el personaje" })
+				return
+			end
+			local ground = new("Part", "Suelo")
+			ground.Parent = workspace
+			fn(workspace, "Raycast", function(_, origin, direction)
+				if direction.Y < -0.5 and origin.Y >= 0 and origin.Y + direction.Y <= 0 then
+					local t = origin.Y / -direction.Y
+					return { Instance = ground, Position = origin + direction * t, Normal = V3.yAxis, Material = Enum.Material.Asphalt, Distance = direction.Magnitude * t }
+				end
+				return nil
+			end)
+			local held: { [any]: boolean } = {}
+			fn(uis, "IsKeyDown", function(_, key)
+				return held[key.Name] == true
+			end)
+			local function wait(seconds: number)
+				for _ = 1, math.ceil(seconds / 0.05) do
+					fakeTask.wait(0.05)
+				end
+			end
+			local function yawOf(cf: any): number
+				local look = cf.LookVector
+				return math.atan2(-look.X, -look.Z)
+			end
+			local vehicle = new("Model", "Coche")
+			vehicle:SetAttribute("Drivable", true)
+			vehicle:SetAttribute("Kind", "Coche")
+			local chassis = new("Part", "Chassis")
+			rawget(chassis, "__props").Size = V3.new(6.4, 2, 13.6)
+			rawget(chassis, "__props").CFrame = CF.new(0, 1, 0)
+			rawget(chassis, "__props").Anchored = false
+			chassis.Parent = vehicle
+			rawget(vehicle, "__props").PrimaryPart = chassis
+			local seat = new("VehicleSeat", "DriverSeat")
+			seat.Parent = vehicle
+			vehicle.Parent = workspace
+			local hp = rawget(humanoid, "__props")
+			hp.SeatPart = seat
+			hp.Sit = true
+			signalOf(humanoid, "Seated"):Fire(true, seat)
+			wait(0.5)
+			local from = chassis.CFrame.Position
+			held["W"] = true
+			wait(1.5)
+			local ahead = (chassis.CFrame.Position - from):Dot(chassis.CFrame.LookVector)
+			table.insert(checks, { ahead > 3, ("ordenador al volante: W arranca hacia delante (%.1f studs)"):format(ahead) })
+			local yaw0 = yawOf(chassis.CFrame)
+			held["D"] = true
+			wait(1)
+			local right = yawOf(chassis.CFrame) - yaw0
+			held["D"] = nil
+			held["A"] = true
+			local yaw1 = yawOf(chassis.CFrame)
+			wait(1)
+			local left = yawOf(chassis.CFrame) - yaw1
+			held = {}
+			table.insert(checks, { right < -0.2 and left > 0.2, ("ordenador al volante: D gira a la derecha (%.2f rad) y A a la izquierda (%.2f rad)"):format(right, left) })
+			hp.SeatPart = nil
+			hp.Sit = false
+			signalOf(humanoid, "Seated"):Fire(false, nil)
+			wait(0.3)
+			vehicle.Parent = nil
+			fn(uis, "IsKeyDown", function()
+				return false
+			end)
+			fn(workspace, "Raycast", function()
+				return nil
+			end)
+			ground.Parent = nil
+		end,
 		-- Móvil: el botón «Agacharse» (el de verdad: TouchLayout → Controllers/Stances). Tocarlo agacha y
 		-- volver a tocarlo levanta, sin arma y con el revólver en la mano; solo hay UN botón así y el
 		-- cuerpo baja de verdad (con las articulaciones nuevas de Roblox del personaje de móvil)
@@ -2201,6 +2280,142 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean })
 			for _ = 1, 10 do
 				fakeTask.wait(0.05)
 				Layers.step(0.05, now)
+			end
+			-- Al volante en el móvil, en CADA vehículo que se conduce: salen las flechas y los pedales
+			-- (y el joystick solo se esconde si salen); ACELERAR anda, ▶ / ◀ giran, y al bajarse
+			-- vuelve el joystick (Controllers/Driving + UI/DriveButtons + UI/TouchLayout)
+			do
+				local touchGui = playerGui:FindFirstChild("TouchLayout")
+				local stickGui = playerGui:FindFirstChild("JoystickGui")
+				local stick = stickGui and stickGui:FindFirstChild("Joystick")
+				-- Suelo plano a y = 0 (los rayos hacia abajo dan en él)
+				local ground = new("Part", "Suelo")
+				ground.Parent = workspace
+				fn(workspace, "Raycast", function(_, origin, direction)
+					if direction.Y < -0.5 and origin.Y >= 0 and origin.Y + direction.Y <= 0 then
+						local t = origin.Y / -direction.Y
+						return { Instance = ground, Position = origin + direction * t, Normal = V3.yAxis, Material = Enum.Material.Asphalt, Distance = direction.Magnitude * t }
+					end
+					return nil
+				end)
+				local function shown(id: string): boolean
+					local b = touchGui and touchGui:FindFirstChild(id)
+					return b ~= nil and b.Visible == true
+				end
+				local function hold(id: string, down: boolean, input: any?): any
+					local b = touchGui and touchGui:FindFirstChild(id)
+					if not b then
+						return nil
+					end
+					local i = input or new("InputObject", "InputObject")
+					rawget(i, "__props").UserInputType = Enum.UserInputType.Touch
+					if down then
+						rawget(i, "__props").UserInputState = Enum.UserInputState.Begin
+						signalOf(b, "InputBegan"):Fire(i)
+					else
+						rawget(i, "__props").UserInputState = Enum.UserInputState.End
+						signalOf(b, "InputEnded"):Fire(i)
+						signalOf(uis, "InputEnded"):Fire(i, true)
+					end
+					return i
+				end
+				local function yawOf(cf: any): number
+					local look = cf.LookVector
+					return math.atan2(-look.X, -look.Z)
+				end
+				local sizes = { Coche = V3.new(6.4, 2, 13.6), Patrulla = V3.new(6.4, 2, 13.6), Moto = V3.new(2.6, 2, 5.8), Bici = V3.new(2, 2, 5), Patinete = V3.new(1.6, 1, 4), Monopatin = V3.new(1.6, 0.6, 3.4), Autobus = V3.new(11, 3, 34), Camion = V3.new(9, 3, 26), Bomberos = V3.new(9, 3, 28) }
+				local seatedSignal = signalOf(humanoid, "Seated")
+				for _, kind in { "Coche", "Moto", "Bici", "Patinete", "Monopatin", "Patrulla", "Autobus", "Camion", "Bomberos" } do
+					local vehicle = new("Model", kind)
+					vehicle:SetAttribute("Drivable", true)
+					vehicle:SetAttribute("Kind", kind)
+					local chassis = new("Part", "Chassis")
+					rawget(chassis, "__props").Size = sizes[kind]
+					rawget(chassis, "__props").CFrame = CF.new(0, sizes[kind].Y / 2, 0)
+					rawget(chassis, "__props").Anchored = false
+					chassis.Parent = vehicle
+					rawget(vehicle, "__props").PrimaryPart = chassis
+					local driverSeat = new("VehicleSeat", "DriverSeat")
+					driverSeat.Parent = vehicle
+					vehicle.Parent = workspace
+					hp.SeatPart = driverSeat
+					hp.Sit = true
+					seatedSignal:Fire(true, driverSeat)
+					run(0.6)
+					local arrows = shown("GiroIzq") and shown("GiroDer")
+					local pedals = shown("Acelerar") and shown("Frenar")
+					table.insert(checks, { arrows and pedals, ("móvil al volante (%s): salen las flechas ◀ ▶ y los pedales ACELERAR / FRENO (%s, %s)"):format(kind, tostring(arrows), tostring(pedals)) })
+					table.insert(checks, { stick ~= nil and stick.Visible == not (arrows and pedals), ("móvil al volante (%s): el joystick solo se esconde si salen los mandos (joystick %s)"):format(kind, tostring(stick and stick.Visible)) })
+					-- Parado: ACELERAR anda hacia delante
+					local startPos = chassis.CFrame.Position
+					local startYaw = yawOf(chassis.CFrame)
+					local gas = hold("Acelerar", true)
+					run(1.5)
+					local moved = (chassis.CFrame.Position - startPos)
+					local ahead = moved:Dot(startPos + chassis.CFrame.LookVector - startPos)
+					table.insert(checks, { ahead > 3, ("móvil al volante (%s): mantener ACELERAR parado arranca hacia delante (%.1f studs)"):format(kind, ahead) })
+					-- Acelerando y manteniendo ▶: gira a la derecha (dos dedos a la vez)
+					local right = hold("GiroDer", true)
+					run(1)
+					local turned = yawOf(chassis.CFrame) - startYaw
+					table.insert(checks, { turned < -0.2, ("móvil al volante (%s): con ACELERAR y ▶ a la vez gira a la derecha (%.2f rad)"):format(kind, turned) })
+					hold("GiroDer", false, right)
+					hold("Acelerar", false, gas)
+					-- Despacio, ◀ también gira
+					local yaw0 = yawOf(chassis.CFrame)
+					local left = hold("GiroIzq", true)
+					run(0.8)
+					local turnedLeft = yawOf(chassis.CFrame) - yaw0
+					table.insert(checks, { turnedLeft > 0.02, ("móvil al volante (%s): soltando el pedal (despacio), ◀ gira a la izquierda (%.2f rad)"):format(kind, turnedLeft) })
+					hold("GiroIzq", false, left)
+					-- Bajarse: fuera los mandos y vuelve el joystick
+					hp.SeatPart = nil
+					hp.Sit = false
+					seatedSignal:Fire(false, nil)
+					run(0.6)
+					table.insert(checks, { not shown("Acelerar") and not shown("GiroIzq") and stick ~= nil and stick.Visible, ("móvil (%s): al bajarse se quitan los mandos y vuelve el joystick"):format(kind) })
+					-- Si las flechas no salen (lo que sea que falle), el joystick NO se esconde y conduce
+					if kind == "Coche" and stick then
+						local uiF = client:FindFirstChild("UI")
+						local okTL, TL = pcall(requireFn, uiF and uiF:FindFirstChild("TouchLayout"))
+						local saved = if okTL then { TL._spec("GiroIzq"), TL._spec("GiroDer") } else {}
+						if okTL then
+							TL.unregister("GiroIzq")
+							TL.unregister("GiroDer")
+						end
+						hp.SeatPart = driverSeat
+						hp.Sit = true
+						seatedSignal:Fire(true, driverSeat)
+						run(0.6)
+						table.insert(checks, { okTL and not shown("GiroIzq") and stick.Visible, ("móvil al volante (%s) sin flechas en pantalla: el joystick sigue a la vista (%s)"):format(kind, tostring(stick.Visible)) })
+						local from = chassis.CFrame.Position
+						local finger = new("InputObject", "InputObject")
+						rawget(finger, "__props").UserInputType = Enum.UserInputType.Touch
+						rawget(finger, "__props").UserInputState = Enum.UserInputState.Begin
+						local centre = stick.AbsolutePosition + stick.AbsoluteSize / 2
+						rawget(finger, "__props").Position = V3.new(centre.X + 30, centre.Y - 60, 0)
+						signalOf(stick, "InputBegan"):Fire(finger)
+						run(1.5)
+						local went = (chassis.CFrame.Position - from).Magnitude
+						rawget(finger, "__props").UserInputState = Enum.UserInputState.End
+						signalOf(uis, "InputEnded"):Fire(finger, false)
+						table.insert(checks, { went > 3, ("móvil al volante (%s) sin flechas: el joystick hace andar el vehículo (%.1f studs)"):format(kind, went) })
+						for _, spec in saved do
+							TL.register(spec)
+						end
+						run(0.6)
+						table.insert(checks, { shown("GiroIzq") and not stick.Visible, ("móvil al volante (%s): al volver las flechas, el joystick se vuelve a esconder"):format(kind) })
+						hp.SeatPart = nil
+						hp.Sit = false
+						seatedSignal:Fire(false, nil)
+						run(0.6)
+					end
+					vehicle.Parent = nil
+				end
+				fn(workspace, "Raycast", function()
+					return nil
+				end)
+				ground.Parent = nil
 			end
 		end,
 		[math.floor(39.6 * FPS)] = function()

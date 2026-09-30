@@ -417,6 +417,146 @@ if okPlace then
 	end
 end
 
+---------------------------------------------------------------------
+-- Controllers/Collisions de verdad (con un mundo de mentira): lo que hay AL LADO o DETRÁS no bloquea
+-- el coche (un contenedor, una señal, un banco, un coche aparcado); solo lo que tiene DELANTE
+---------------------------------------------------------------------
+print("Lo que hay al lado no bloquea (Controllers/Collisions)")
+do
+	local task = require("@lune/task")
+	local CFrame = roblox.CFrame
+	local Knock = luau.load(fs.readFile("src/shared/Knock.luau"), { debugName = "Knock", environment = env })()
+	local Gameplay = luau.load(fs.readFile("src/shared/Gameplay.luau"), { debugName = "Gameplay", environment = setmetatable({ Vector3 = Vector3, CFrame = CFrame, Color3 = roblox.Color3, Enum = roblox.Enum }, { __index = getfenv(1) }) })()
+	local props: { any } = {}
+	local parked: { any } = {}
+	local fired: { string } = {}
+	local function part(kind: string, id: number, pos: any, size: any)
+		local attrs = { Knock = id, KnockKind = kind }
+		return { Position = pos, Size = size, GetAttribute = function(_, k)
+			return attrs[k]
+		end }
+	end
+	local function car(pos: any, look: any)
+		local cf = CFrame.new(pos + Vector3.new(0, 0.5, 0), pos + Vector3.new(0, 0.5, 0) + look)
+		local chassis = { Size = Vector3.new(6.2, 1, 13.5), CFrame = cf, Anchored = true, AssemblyLinearVelocity = Vector3.zero, IsA = function(_, c)
+			return c == "BasePart"
+		end }
+		local attrs = { Drivable = true, Kind = "Coche" }
+		local m
+		m = {
+			Name = "Coche",
+			Parent = true,
+			PrimaryPart = chassis,
+			IsA = function(_, c)
+				return c == "Model"
+			end,
+			GetAttribute = function(_, k)
+				return attrs[k]
+			end,
+			GetPivot = function()
+				return chassis.CFrame
+			end,
+			FindFirstChild = function(_, name)
+				return if name == "Chassis" then chassis else nil
+			end,
+		}
+		return m
+	end
+	local stub
+	stub = setmetatable({}, { __index = function()
+		return stub
+	end, __call = function()
+		return stub
+	end })
+	local services = {
+		Players = { LocalPlayer = { UserId = 1, Character = nil } },
+		ReplicatedStorage = { Shared = { Crash = Crash, Knock = Knock, Gameplay = Gameplay }, FindFirstChild = function()
+			return nil
+		end },
+		CollectionService = { GetTagged = function(_, tag)
+			return if tag == "ParkedCar" then parked else {}
+		end },
+		PhysicsService = { IsCollisionGroupRegistered = function()
+			return true
+		end },
+		RunService = stub,
+	}
+	local fakeWorkspace = {
+		FindFirstChild = function()
+			return nil
+		end,
+		GetPartBoundsInBox = function(_, cf, size)
+			local out = {}
+			for _, p in props do
+				local l = cf:PointToObjectSpace(p.Position)
+				if math.abs(l.X) <= size.X / 2 + p.Size.X / 2 and math.abs(l.Y) <= size.Y / 2 + p.Size.Y / 2 and math.abs(l.Z) <= size.Z / 2 + p.Size.Z / 2 then
+					table.insert(out, p)
+				end
+			end
+			return out
+		end,
+	}
+	local Traffic = { near = function() end, hit = function() end }
+	local Collisions = luau.load(fs.readFile("src/client/Controllers/Collisions.luau"), {
+		debugName = "Collisions",
+		environment = setmetatable({
+			Vector3 = Vector3,
+			CFrame = CFrame,
+			Enum = roblox.Enum,
+			game = { GetService = function(_, name)
+				return services[name] or stub
+			end },
+			workspace = fakeWorkspace,
+			OverlapParams = { new = function()
+				return {}
+			end },
+			script = { Parent = { Traffic = Traffic, SoundFx = stub, CameraShake = stub, CrashFx = stub, Nudge = stub } },
+			require = function(what)
+				if what == Traffic then
+					return Traffic
+				end
+				return if type(what) == "table" and rawget(what, "Count") ~= nil then what else what
+			end,
+		}, { __index = getfenv(1) }),
+	})()
+	local function driver(speed: number)
+		local m = car(Vector3.zero, Vector3.new(0, 0, -1))
+		return { Model = m, Chassis = m.PrimaryPart, Kind = "Coche", Speed = speed, Travel = 0, Yaw = 0, Push = Vector3.zero, Spin = 0 }
+	end
+	local forward = Vector3.new(0, 0, -1)
+	-- Pesados (Knock.Catalog con MinSpeed): contenedor al lado, señal detrás, banco delante
+	for _, case in {
+		{ "Container", Vector3.new(3.1 + 1.1 + 0.1, 1.7, 0), 8, true, "un contenedor de reciclaje pegado al lado" },
+		{ "Senal", Vector3.new(2.5, 3, 6.4), 8, true, "una señal junto a la esquina de atrás" },
+		{ "Container", Vector3.new(0, 1.7, 7.2), -6, false, "marcha atrás contra un contenedor que está detrás" },
+		{ "Bench", Vector3.new(0, 1, -7.4), 8, false, "un banco justo delante" },
+	} do
+		table.clear(props)
+		table.insert(props, part(case[1], #props + 1, case[2], Vector3.new(2.2, 3.4, 2.2)))
+		local s = driver(case[3])
+		task.wait(0.11) -- (touchProps mira cada 0,1 s)
+		Collisions.touchProps(s, Vector3.zero, forward, s.Speed)
+		local free = s.Speed == case[3]
+		if case[4] then
+			check(free, ("%s no bloquea el coche (velocidad %.1f → %.1f)"):format(case[5], case[3], s.Speed))
+		else
+			check(not free and math.abs(s.Speed) < math.abs(case[3]), ("%s sí para el coche (velocidad %.1f → %.1f)"):format(case[5], case[3], s.Speed))
+		end
+	end
+	-- Coches aparcados: uno al lado (cordón, 0,6 studs de hueco) no frena; uno delante, sí
+	table.clear(props)
+	parked = { car(Vector3.new(6.2 + 0.6, 0, 0), forward) }
+	local s = driver(10)
+	local move = forward * 10 / 60
+	local out = Collisions.solve(s, Vector3.zero, move, forward, 1 / 60, 72)
+	check((out - move).Magnitude < 1e-6 and s.Speed == 10, ("un coche aparcado al lado no frena ni desvía (paso %.3f, velocidad %.1f)"):format(out.Magnitude, s.Speed))
+	parked = { car(Vector3.new(0, 0, -13.6), forward) }
+	task.wait(0.3) -- (la búsqueda de cercanos se repite cada 0,25 s)
+	s = driver(10)
+	out = Collisions.solve(s, Vector3.zero, move, forward, 1 / 60, 72)
+	check(out:Dot(forward) < move:Dot(forward) or s.Speed < 10, ("un coche aparcado delante sí para (paso %.3f, velocidad %.1f)"):format(out:Dot(forward), s.Speed))
+end
+
 print("El juego usa todo esto (lectura del código)")
 local function read(path: string): string
 	local ok, text = pcall(fs.readFile, path)

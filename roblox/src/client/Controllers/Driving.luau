@@ -114,6 +114,7 @@ local unstick: (State, Vector3) -> ()
 
 -- Mandos en pantalla (móvil, UI/DriveButtons): lo que se mantiene pulsado ahora
 local touch = { Gas = false, Brake = false, Left = false, Right = false, Handbrake = false }
+local syncJoystick: () -> ()
 local function refreshPedals()
 	pcall(TouchLayout.refresh)
 end
@@ -190,8 +191,16 @@ local function readInput(seat: VehicleSeat): (number, number, boolean)
 	throttle += VehicleControls.pedalThrottle(touch.Gas, touch.Brake)
 	steer += VehicleControls.arrowSteer(touch.Left, touch.Right)
 	handbrake = handbrake or touch.Handbrake
-	-- Si nada de lo anterior, lo que diga Roblox (el joystick del móvil gira y, hacia delante o
-	-- atrás, también acelera y frena)
+	-- El joystick del móvil (cuando está a la vista: sin flechas ni pedales en pantalla) gira y, hacia
+	-- delante o atrás, acelera y frena. Se lee directamente (el asiento lo pueden pisar los controles
+	-- de Roblox en cada fotograma)
+	if math.abs(throttle) < 0.05 and math.abs(steer) < 0.05 then
+		local ok, stick = pcall(Joystick.moveVector)
+		if ok and typeof(stick) == "Vector3" and stick.Magnitude > 0.05 then
+			throttle, steer = -stick.Z, stick.X
+		end
+	end
+	-- Si nada de lo anterior, lo que diga Roblox (el asiento)
 	if math.abs(throttle) < 0.05 then
 		throttle = seat.ThrottleFloat
 	end
@@ -266,6 +275,20 @@ local function releasePedals()
 	for slot in touch do
 		(touch :: any)[slot] = false
 	end
+end
+
+-- El joystick se esconde SOLO si las flechas y los pedales se ven de verdad en pantalla. Si no han
+-- salido (un fallo, una pantalla rara…), el joystick sigue ahí y conduce (readInput lo lee): nunca
+-- te quedas al volante sin forma de girar ni de andar. Se revisa al subir y 4 veces por segundo.
+local DRIVE_IDS = { "GiroIzq", "GiroDer", "Acelerar", "Frenar" }
+function syncJoystick()
+	local ok, shown = pcall(TouchLayout.shows, DRIVE_IDS)
+	local hide = state ~= nil and ok and shown == true
+	if not hide then
+		-- (sin los botones, lo que estuviera pulsado no se puede soltar: fuera)
+		touch.Gas, touch.Brake, touch.Left, touch.Right = false, false, false, false
+	end
+	pcall(Joystick.setDriving, hide)
 end
 
 ---------------------------------------------------------------------
@@ -404,14 +427,19 @@ end
 
 local function start(seat: VehicleSeat, humanoid: Humanoid)
 	local model = seat.Parent
-	if not model or not model:IsA("Model") or not model:GetAttribute("Drivable") or not model.PrimaryPart then
+	if not model or not model:IsA("Model") or not model:GetAttribute("Drivable") then
 		return
+	end
+	-- La base: PrimaryPart o, si esa referencia aún no ha llegado (StreamingEnabled), la pieza "Chassis"
+	local base = model.PrimaryPart or model:FindFirstChild("Chassis")
+	if not base or not base:IsA("BasePart") then
+		return -- (aún no ha llegado: la vigilancia de Driving.init lo vuelve a intentar enseguida)
 	end
 	local kind = model:GetAttribute("Kind")
 	if typeof(kind) ~= "string" or not Gameplay.Driving[kind] then
 		return
 	end
-	local chassis = model.PrimaryPart :: BasePart
+	local chassis = base :: BasePart
 	local s: State = {
 		Model = model,
 		Chassis = chassis,
@@ -454,18 +482,32 @@ local function start(seat: VehicleSeat, humanoid: Humanoid)
 		end
 	end
 	state = s
-	VehicleHud.show(kind)
-	SoundFx.vehicleStart(kind, chassis)
 	releasePedals()
-	-- Al volante: flechas y pedales en pantalla (sin joystick) y las teclas del coche
-	Joystick.setDriving(true)
-	TouchLayout.setDriving(true)
-	bindDriveKeys()
-	refreshPedals()
-	hintLights()
-	if not Gameplay.Driving[kind].Boat then
-		warnRoad() -- (en el mar da igual que llueva)
+	-- Lo primero, los mandos: flechas y pedales en pantalla y las teclas del coche. Lo demás (cuadro,
+	-- sonido, avisos) va protegido: si algo de eso falla, nunca te quedas al volante sin mandos
+	pcall(TouchLayout.setDriving, true)
+	pcall(bindDriveKeys)
+	for _, extra in {
+		function()
+			VehicleHud.show(kind)
+		end,
+		function()
+			SoundFx.vehicleStart(kind, chassis)
+		end,
+		hintLights,
+		function()
+			if not Gameplay.Driving[kind].Boat then
+				warnRoad() -- (en el mar da igual que llueva)
+			end
+		end,
+	} do
+		local ok, err = pcall(extra)
+		if not ok then
+			warn("[Driving] " .. tostring(err))
+		end
 	end
+	refreshPedals()
+	syncJoystick()
 end
 
 -- Aviso al subir si el suelo está mojado o nevado (una vez por cada cosa)
@@ -506,8 +548,8 @@ local function stop()
 	SoundFx.vehicleStop()
 	releasePedals()
 	unbindDriveKeys()
-	Joystick.setDriving(false)
-	TouchLayout.setDriving(false)
+	pcall(Joystick.setDriving, false)
+	pcall(TouchLayout.setDriving, false)
 	refreshPedals()
 end
 
@@ -1024,6 +1066,9 @@ function Driving.init()
 			start(seat :: VehicleSeat, humanoid)
 		end
 		local alive = humanoid ~= nil and humanoid.Health > 0
+		if state then
+			syncJoystick() -- (¿siguen a la vista las flechas y los pedales? si no, vuelve el joystick)
+		end
 		hintLights() -- (si se hace de noche conduciendo)
 		local action = RideSpot.watchSeat(watch, os.clock(), alive and player:GetAttribute("Riding") ~= nil, atWheel)
 		if action then

@@ -562,7 +562,15 @@ function Collisions.touchProps(s: any, base: Vector3, forward: Vector3, speed: n
 		if type(id) == "number" then
 			local profile = Knock.Catalog[part:GetAttribute("KnockKind") or ""]
 			if profile and profile.MinSpeed and math.abs(speed) < profile.MinSpeed then
-				-- Pesado y despacio: es como una pared (los rayos no lo ven: se para aquí)
+				-- Pesado y despacio: es como una pared (los rayos no lo ven: se para aquí). Solo si está
+				-- DELANTE (hacia donde vas): una señal o un contenedor al lado o detrás no te bloquea
+				-- (antes, aparcado junto a uno, no había forma de salir ni hacia delante ni hacia atrás)
+				local rel = flat(part.Position - base)
+				local along = rel:Dot(forward * sign)
+				local across = math.abs(rel:Dot(Vector3.new(-forward.Z, 0, forward.X)))
+				if along < size.Z / 2 - 0.5 or across > size.X / 2 + part.Size.Magnitude / 2 then
+					continue
+				end
 				if cool("solid" .. id, now, 0.5) then
 					feel(s, part.Position, -forward * sign, math.abs(speed), "Frontal")
 				end

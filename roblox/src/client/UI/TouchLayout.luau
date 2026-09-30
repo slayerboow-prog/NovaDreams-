@@ -365,6 +365,9 @@ local function visibleSpecs(): { Spec }
 	return list
 end
 
+local warned: { [string]: boolean } = {}
+local placeButton: (string, string?, { [string]: any }) -> ()
+
 function TouchLayout.refresh()
 	if not started then
 		return
@@ -422,38 +425,50 @@ function TouchLayout.refresh()
 			end
 		end
 	end
+	-- Cada botón por separado: si uno falla (un icono, una función suya…), los demás salen igual
+	-- (antes un error a medias dejaba sin pedales ni flechas al volante)
 	for _, id in order do
-		local spec = specs[id]
-		local slot = placed[id]
-		local view = views[id]
-		if slot and not view then
-			view = buildView(spec)
-			views[id] = view
+		local ok, err = pcall(placeButton, id, placed[id], slots)
+		if not ok and not warned[id] then
+			warned[id] = true
+			warn("[Botones] " .. id .. ": " .. tostring(err))
 		end
-		if view then
-			local was = view.Button.Visible
-			view.Button.Visible = slot ~= nil
-			if slot then
-				HudLayout.apply(view.Button, slots[slot])
-				view.Button:SetAttribute("Slot", slot)
-				if not was then
-					-- aparece con un pequeño salto
-					Theme.pop(view.Button, 1.12)
-				end
-				paintActive(view, safe(spec.Active, false))
-				local meter = safe(spec.Meter, nil)
-				view.Meter.Visible = type(meter) == "number"
-				if type(meter) == "number" then
-					view.MeterFill.Size = UDim2.fromScale(math.clamp(meter, 0, 1), 1)
-					view.MeterFill.BackgroundColor3 = if meter < 0.2 then rgb(230, 80, 60) else H.SelectLight
-				end
-				local badge = safe(spec.Badge, nil)
-				view.Badge.Visible = type(badge) == "string" and badge ~= ""
-				if view.Badge.Visible then
-					Theme.setText(view.Badge, badge)
-				end
-				Theme.setText(view.Label, labels[id] or spec.Label)
+	end
+end
+
+function placeButton(id: string, slot: string?, slots: { [string]: any })
+	local spec = specs[id]
+	local view = views[id]
+	if slot and not slots[slot] then
+		slot = nil -- (un hueco que no existe en esta colocación: mejor escondido que un error)
+	end
+	if slot and not view then
+		view = buildView(spec)
+		views[id] = view
+	end
+	if view then
+		local was = view.Button.Visible
+		view.Button.Visible = slot ~= nil
+		if slot then
+			HudLayout.apply(view.Button, slots[slot :: string])
+			view.Button:SetAttribute("Slot", slot)
+			if not was then
+				-- aparece con un pequeño salto
+				Theme.pop(view.Button, 1.12)
 			end
+			paintActive(view, safe(spec.Active, false))
+			local meter = safe(spec.Meter, nil)
+			view.Meter.Visible = type(meter) == "number"
+			if type(meter) == "number" then
+				view.MeterFill.Size = UDim2.fromScale(math.clamp(meter, 0, 1), 1)
+				view.MeterFill.BackgroundColor3 = if meter < 0.2 then rgb(230, 80, 60) else H.SelectLight
+			end
+			local badge = safe(spec.Badge, nil)
+			view.Badge.Visible = type(badge) == "string" and badge ~= ""
+			if view.Badge.Visible then
+				Theme.setText(view.Badge, badge)
+			end
+			Theme.setText(view.Label, labels[id] or spec.Label)
 		end
 	end
 end
@@ -530,6 +545,21 @@ end
 
 function TouchLayout.isDriving(): boolean
 	return driving
+end
+
+-- ¿Se ven de verdad en pantalla todos estos botones? (Driving: el joystick solo se esconde si las
+-- flechas y los pedales han salido; si algo falla, nunca te quedas sin forma de conducir)
+function TouchLayout.shows(ids: { string }): boolean
+	if not started or not touch then
+		return false
+	end
+	for _, id in ids do
+		local view = views[id]
+		if not view or not view.Button.Parent or not view.Button.Visible then
+			return false
+		end
+	end
+	return true
 end
 
 function TouchLayout.isTouch(): boolean
@@ -801,6 +831,11 @@ function TouchLayout.showWhen(button: GuiObject, when: string, extra: (() -> boo
 	Players.LocalPlayer:GetAttributeChangedSignal("Passenger"):Connect(update)
 	update()
 	return update
+end
+
+-- (pruebas) la definición de un botón (para quitarlo y volverlo a poner)
+function TouchLayout._spec(id: string): Spec?
+	return specs[id]
 end
 
 -- (pruebas) empezar de cero
