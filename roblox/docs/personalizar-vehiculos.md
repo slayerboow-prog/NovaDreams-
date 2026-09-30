@@ -2,7 +2,7 @@
 
 Propuesta de diseño para que cada vehículo de Real Life Simulator esté **hecho por piezas** y cada jugador lo deje a su gusto: pintura, llantas, alerón, parachoques, lunas tintadas, neón, matrícula…
 
-> **Estado:** solo diseño. No hay código todavía. Este documento no cambia nada del juego.
+> **Estado:** fase 0 hecha (catálogo, validación y «aplicar al modelo» en `src/shared/`, con su prueba). Todavía **no está conectado** al juego: el taller está apagado (`VehicleParts.Enabled = false`) y ningún servicio lo usa. Ver «C6. Plan por fases».
 > **Petición del dueño:** «Estaría muy bien que los vehículos estén hechos por partes para poder implementar llantas diferentes y modificar el coche a gusto del usuario para que sea único.»
 
 ---
@@ -51,6 +51,8 @@ La moto, la bici, el patinete y el monopatín tienen menos huecos (color, llanta
 - En bici y patinete todo cuesta menos (×0,3); en la moto, ×0,6.
 
 ### A4. Qué decides tú (preguntas abiertas)
+
+> **Decidido por el dueño:** (1) «Vida nueva» **borra** las piezas compradas (las del pase, en `Cosmetics`, se quedan); (2) **paleta fija de 20 colores** + 4 acabados (brillante, metalizado, mate, perlado); (3) **ningún tuning**: las piezas son solo aspecto, sin ningún cambio de prestaciones.
 
 1. **¿«Vida nueva» borra las piezas compradas?** Hoy «Vida nueva» borra los vehículos comprados, así que lo lógico es que se borren también sus piezas. Las del pase de temporada **no** se borran nunca (igual que ahora).
 2. **¿Pintura a medida (cualquier color) o solo una paleta de 20?** Recomiendo empezar con la paleta: se ve mejor y es más fácil de controlar.
@@ -212,7 +214,7 @@ Build = {
 
 #### Validación (servidor, siempre)
 
-`VehicleParts.validate(kind, build, unlocked) -> (Build limpia, { avisos })`, **pura** (sin servicios, probada con Lune):
+`VehicleBuild.validate(build, ownedParts, kind) -> (Build limpia, { avisos })`, **pura** (sin servicios, probada con Lune):
 
 1. `kind` tiene que ser personalizable (`Coche`, `Moto`, `Bici`, `Patinete`, `Monopatin`; barcos en fase 3). Nada de trabajo, alquiler, examen ni coches de la calle.
 2. Cada campo: si el id no existe, no es de ese hueco, no vale para ese `kind`/`Body`, o el jugador no lo tiene desbloqueado → **se ignora** (vuelve a serie) y se apunta un aviso. Nunca da error ni rompe la carga.
@@ -239,7 +241,7 @@ model:SetAttribute("OwnerId", player.UserId)
 Rides.prepare(model, kind, cf)
 ```
 
-`GarageService.styleFor(player, kind)` lee `data.Garage.Builds[kind]`, la valida y devuelve `function(model) VehicleStyle.apply(model, kind, build) end`. El modelo se marca con `model:SetAttribute("Style", json)` (≤ 1 KB) y `StyleV`.
+`GarageService.styleFor(player, kind)` lee `data.Garage.Builds[kind]`, la valida y devuelve `function(model) VehicleBuild.apply(model, build, { Kind = kind }) end`. El modelo se marca con `model:SetAttribute("Style", json)` (≤ 1 KB) y `StyleV`.
 
 La **carrocería** (`Body`) necesita que `Rides.coche` acepte la variante (hoy fija `Berlina`) y que los asientos de pasajero la lean (`REAR_Z` ya lo hace con el atributo `Variant`). Es un cambio en `Rides.luau`: fase 2.
 
@@ -249,7 +251,7 @@ La **carrocería** (`Body`) necesita que `Rides.coche` acepte la variante (hoy f
 
 Las piezas las crea el **servidor** en el modelo, así que llegan a todos los clientes como cualquier pieza (el modelo ya es `ModelStreamingMode.Atomic`). Solo los efectos que dependen de la noche o la distancia (neón, color de la luz) los hace cada cliente leyendo `NeonColor` / `LightColor` del modelo. La interfaz del taller recibe las builds y lo desbloqueado por el remoto (no por atributos del jugador).
 
-`VehicleStyle.apply` vive en **`src/shared/`** y solo usa la API de instancias (con su propio `decor()` mínimo), para que la misma función la usen el servidor (al sacar el vehículo) y el cliente (vista previa). Misma entrada → mismas piezas (sin `math.random`).
+`VehicleBuild.apply` (en el diseño, «VehicleStyle») vive en **`src/shared/`** y solo usa la API de instancias (con su propio `decor()` mínimo), para que la misma función la usen el servidor (al sacar el vehículo) y el cliente (vista previa). Misma entrada → mismas piezas (sin `math.random`).
 
 #### Pase de temporada: piezas que se desbloquean
 
@@ -291,7 +293,7 @@ Las piezas las crea el **servidor** en el modelo, así que llegan a todos los cl
 - Todo lo que tocas se **prueba al momento en la vista 3D** (cliente, sin coste, sin llamar al servidor). El servidor solo interviene al pulsar «Comprar y aplicar» (una sola petición con la build entera y el total que el cliente cree; el servidor recalcula el precio y cobra solo si coincide).
 - Botones grandes (≥ 44 px), textos ≥ 14 px en móvil, sin nada debajo del joystick ni de los botones del HUD (`HudLayout`/`TouchLayout`).
 - Reutiliza: `Dialog.window`, `Theme`, el `mountViewport` de `UI/BattlePassPreview` (sacarlo a un módulo común `UI/ModelViewport.luau`), y el patrón de medidas puras de `BattlePassLayout` (`UI/GarageLayout.luau`, probado en 10 pantallas).
-- Los modelos base para la vista previa: el servidor deja en `ReplicatedStorage.GaragePreviews` un modelo de cada tipo y carrocería (como `BattlePassPreviews`), y el cliente les aplica la build con el mismo `VehicleStyle.apply`.
+- Los modelos base para la vista previa: el servidor deja en `ReplicatedStorage.GaragePreviews` un modelo de cada tipo y carrocería (como `BattlePassPreviews`), y el cliente les aplica la build con el mismo `VehicleBuild.apply`.
 - Desbloqueos: por **nivel de personaje** (atributo `Level`, ya existe), por **pase** (`Cosmetics.Owned`), por **fichas** (tienda de fichas) o por **dinero**. Lo bloqueado se ve y se puede probar en la vista 3D, con el candado y el motivo.
 
 ### C4. Economía
@@ -348,20 +350,28 @@ Referencias del juego: tareas de trabajo 25–45 € (`Config.Jobs`), dinero ini
 
 ### C6. Plan por fases
 
-#### Fase 0 — ya se puede hacer (solo archivos nuevos, sin tocar código de vehículos)
+#### Fase 0 — ✅ HECHA (solo archivos nuevos, sin tocar código de vehículos)
 
-| Archivo nuevo | Qué |
-|---|---|
-| `src/shared/VehicleParts.luau` | Solo datos + funciones puras: `Enabled = false` (interruptor general, como el pase), huecos, zonas por nombre, anclas, catálogo (pinturas, llantas…), precios, desbloqueos, `validate`, `migrate`, `price(kind, from, to)`. |
-| `src/shared/VehicleStyle.luau` | `apply(model, kind, build)`: recolorea zonas, reemplaza llantas, añade piezas `Mod_`. Solo API de instancias. Determinista. |
-| `scripts/test-vehicleparts.luau` | Pruebas con Lune (abajo). Carga `Rides`/`CarModel` de verdad como ya hace `test-boats.luau` (`loadModule`). |
+| Archivo nuevo | Qué | Estado |
+|---|---|---|
+| `src/shared/VehicleParts.luau` | Solo datos + funciones puras: `Enabled = false`, `Kinds`, `Reserved`, `Zones` (piezas de serie por nombre), `Anchors` (medidas de CarModel/Rides), `Wheels`, `Reference` (pieza para saber dónde está el vehículo antes de `Rides.prepare`), `Budget`, `PriceFactor`, catálogo (`Parts`/`List`: id, nombre, `Slot`, `Attach`, `Price`, `Charge` Once/Each, `Unlock` Shop/Level/Pass, `Kinds`, `Bodies`, `Requires`), `Tints`, `Plate` + `plateText`, `fits`, `isOwned`, `isUsable`, `canBuy`, `price(kind, from, to, owned)`. | ✅ |
+| `src/shared/VehicleBuild.luau` (en el diseño, «VehicleStyle») | Esquema `Build` versionado (`VERSION = 1`, `default`, `migrate[0]`), `validate(build, ownedParts, kind)`, `apply(model, build, options?)` (antes o después de `Rides.prepare`; si ya está preparado, suelda las piezas al `Chassis`) y `clear(model)` (deja el modelo exactamente como de serie). | ✅ |
+| `scripts/test-vehicleparts.luau` | Pruebas con Lune sobre los modelos DE VERDAD (`Builder`, `Palette`, `CarModel`, `Rides` con instancias de Lune): catálogo, anclas contra el modelo, validación, JSON, precios, y aplicar/quitar cada pieza en berlina, compacto, todoterreno, moto, bici, patinete y monopatín. | ✅ |
 
-#### Fase 1 — cuando terminen los agentes de vehículos (MVP jugable)
+Catálogo v1 que ya existe: 20 pinturas + 4 del pase (Brisa Marina, Verde Villaverde bici, Brisa de Playa Dorada, Perla Faro: se tienen si la recompensa `S1_…` está en `Cosmetics.Owned`), 4 acabados, 12 llantas (4 también en la moto) × 6 colores, 3 neumáticos, 3 alerones, 2 parachoques por carrocería y punta, lunas (kit + 4 niveles), neón (kit + 8 colores), carrocería (berlina/compacto/todoterreno; aplicarla espera a la fase 2) y matrícula (1–8 `[A-Z0-9 ]`).
+
+Cómo lo hace (decisiones de la fase 0):
+- **Nada de lo de serie se borra**: lo que se «sustituye» (llantas, parachoques deportivos) se **esconde** (`Transparency = 1`) y guarda cómo era en atributos `ModOrig*`. Así la colisión, los nombres y las soldaduras no cambian y `clear` lo devuelve todo. Piezas de serie: +0 piezas; las nuevas `Mod_` como mucho `Budget` (coche completo: 52 de 70; moto 17 de 30).
+- Los nombres reservados (`Headlight*`, `Taillight`, `Indicator*`, `Reverse`, `ThirdBrake`, `Kickstand`, `Chassis`, `DriverSeat`, `RideSeat`…) no se tocan. **`Body` solo se pinta** (color, material, brillo), nunca se mueve, esconde ni cambia su colisión.
+- Pintura, acabado, color de llanta y color de neón son **mano de obra** (`Charge = "Each"`): valen sin «tenerlos» y se cobran al aplicar (`price`). El resto se compra una vez por tipo de vehículo (`data.Garage.Parts["Coche:Rims_Turbina"] = true`).
+- La matrícula va en la Build (`Plate`), **ya filtrada**: `validate`/`apply` solo miran el formato; el filtro de Roblox es cosa del servidor (fase 1).
+
+#### Fase 1 — cuando terminen los agentes de vehículos (MVP jugable) — ⏳ pendiente
 
 | Archivo | Cambio |
 |---|---|
 | `src/server/Services/DataService.luau` | `Garage` en `DEFAULT_DATA`. `newLife` no lo conserva (decisión del dueño, A4). |
-| `src/server/Services/VehicleService.luau` | Gancho `StyleFor` en `mount` (≈ 5 líneas). `rebuildParked(player)`. `LightColor` en `addHeadlight`. |
+| `src/server/Services/VehicleService.luau` | Gancho `StyleFor` en `mount` (≈ 5 líneas): `VehicleBuild.apply(model, build, { Kind = kind })` entre `Rides.build` y `Rides.prepare`. `rebuildParked(player)`. `LightColor` en `addHeadlight`. |
 | `src/server/Services/GarageService.luau` (nuevo) | Remoto `Garage` (`Get`, `Buy`, `Apply`, `SetPlate`) con límite de peticiones; comprueba que estás en un `VehicleWorkshop`; recalcula precios; `DataService.spend`; filtro de texto; `styleFor`; `GaragePreviews`. Evento `StoryEvents.emit(player, "VehicleStyled")` (misiones del pase). Arranca en `Main.server.luau`. |
 | `src/server/World/Kit/Civic.luau` | Nave del taller en `gasStation` + tag `VehicleWorkshop`. |
 | `src/shared/MapInfo.luau` / `LifeStory/Locations.luau` | «🔧 Taller» en el mapa y el GPS. |
@@ -370,15 +380,17 @@ Referencias del juego: tareas de trabajo 25–45 € (`Config.Jobs`), dinero ini
 | `src/client/Controllers/…` (nuevo `VehicleNeon.luau`) | Neón y color de faros de noche, por distancia. |
 | `src/server/Services/TesterService.luau` + `UI/TesterPanel.luau` | Acción «Taller»: desbloquear todo, dinero, forzar noche. |
 
-#### Fase 2
+#### Fase 2 — ⏳ pendiente
 
 `CarModel.luau` (atributo `Zone` en cada pieza, variante `Descapotable`), `Rides.luau` (`coche` con variante), parachoques, faldones, capó, escape, vinilos, faros, carrocería; `BattlePass/Types` + `BattlePassRewardService` (tipo `VehiclePart`, kit «Faro de Valmar», `Equip` de `VehicleSkin` → build); tienda de fichas con piezas.
 
-#### Fase 3
+#### Fase 3 — ⏳ pendiente
 
 Bocina (cuando la tenga `Driving`), altura de suspensión (cuando el choque no dependa de `Body`), barcos (franja, cojines, nombre en la popa de la lancha normal, luz bajo el agua) en `BoatService`, variedad en el tráfico usando el catálogo, 3 «estilos guardados» por vehículo.
 
 #### Pruebas que hay que escribir (`scripts/test-vehicleparts.luau`, sin Roblox, con Lune)
+
+Hechas en la fase 0: **1** (catálogo y anclas), **2** (validación), **3** (aplicar y quitar), **4** (sin cambio de rendimiento: chasis, asientos y colisión iguales; ninguna pieza con campos de rendimiento; los módulos no cargan `Gameplay`), **5** en parte (JSON como el DataStore y tamaño < 400 bytes; falta `reconcile`/«Vida nueva», fase 1) y **6** en parte (determinista en dos modelos; falta el atributo `Style`, fase 1). Faltan 7, 8 y 9 (fases 1–2).
 
 1. **Catálogo:** ids únicos; cada pieza tiene hueco, tipos válidos, precio ≥ 0 o `Pass = true`; ningún campo de Robux; textos en español; todas las anclas existen para cada tipo/carrocería y **coinciden con el modelo construido** (ruedas, parachoques, matrícula a < 0,1 studs).
 2. **Validación:** ids desconocidos → se ignoran; pieza de otro tipo o carrocería → fuera; pieza bloqueada → fuera; `Tint = 99` → 3; tipos basura (texto en vez de número, tablas anidadas, 10.000 campos) no rompen; migración `V0 → V1`; `V` futura se conserva; matrícula con símbolos o larga → rechazada.

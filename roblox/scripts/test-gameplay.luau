@@ -326,6 +326,15 @@ end
 function collection:GetInstanceAddedSignal()
 	return signal()
 end
+function collection:AddTag(instance, tag)
+	instance:AddTag(tag)
+end
+function collection:RemoveTag(instance, tag)
+	instance.__tags[tag] = nil
+end
+function collection:HasTag(instance, tag)
+	return instance:HasTag(tag)
+end
 
 local function remote()
 	local r = { OnServerEvent = signal() }
