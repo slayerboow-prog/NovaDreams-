@@ -4,15 +4,17 @@
 --                             nivel y dinero, la experiencia y las barras de Energía, Hambre, Ánimo
 --                             (o Estamina) y Salud con su número
 --   Arriba en el centro    -> cápsula con la hora, la fecha, el día de tu historia y el tiempo (°C)
---   Arriba a la derecha    -> minimapa (MapUI) y, a su lado, el menú rápido del teléfono (Ir a casa,
---                             Tienda, Vehículos, Gestos, Mercadillo…). En el móvil se abre con 📱.
+--   Arriba a la derecha    -> minimapa (MapUI), pegado a la esquina
 --   Derecha                -> la misión que sigues (o tu trabajo, o el encargo de la ciudad que has
---                             aceptado: atributo CityErrand); › abre la lista de misiones
+--                             aceptado: atributo CityErrand), justo debajo del minimapa; › abre la
+--                             lista de misiones
 --   Abajo                  -> menú de comandos (client/Commands), barra rápida (InventoryUI) y los
 --                             botones táctiles (UI/TouchLayout)
+--   Las apps del antiguo menú rápido (Ir a casa, Ruta a casa, Tienda, Vehículos, Gestos, Metro,
+--   Mercadillo, Guía de pesca…) son filas del menú de comandos, antes de «Más» (Hud.addButton).
 --   Al llegar a un sitio nuevo, su nombre aparece en grande. Avisos arriba y pantalla negra para dormir.
 -- Dónde va cada cosa lo calcula UI/HudLayout (así nada se pisa en ningún tamaño de pantalla).
--- Otros sistemas se enganchan con Hud.setAction (comandos) y Hud.addButton (apps del menú rápido).
+-- Otros sistemas se enganchan con Hud.setAction (comandos) y Hud.addButton (filas del menú de comandos).
 
 local CollectionService = game:GetService("CollectionService")
 local HttpService = game:GetService("HttpService")
@@ -34,6 +36,7 @@ local Icons = require(script.Parent.Icons)
 local HudLayout = require(script.Parent.HudLayout)
 local TouchLayout = require(script.Parent.TouchLayout)
 local Dialog = require(script.Parent.Dialog)
+local CommandRegistry = require(script.Parent.Parent.Commands.CommandRegistry)
 
 local create = Theme.create
 local setText = Theme.setText
@@ -50,7 +53,7 @@ local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 local TOUCH = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 
 local gui: ScreenGui
-local popupGui: ScreenGui -- menú rápido, menú y controles: por encima del minimapa
+local popupGui: ScreenGui -- menú, controles y misiones: por encima del minimapa
 local toastList: Frame
 -- Avisos y cartel de zona van debajo de las estrellas de búsqueda (HudLayout.Items.Toasts);
 -- mientras sale el cartel de zona, los avisos bajan para no quedar debajo de él.
@@ -64,7 +67,6 @@ local function placeToasts()
 end
 local sleepOverlay: Frame
 local actions: { [string]: () -> () } = {}
-local phoneApps: { { Text: string, Color: Color3?, Order: number, Callback: () -> () } } = {}
 local questTitleShown = ""
 local busy = false -- en una conversación o cinemática
 local refreshVisible: () -> () -- se define más abajo
@@ -1110,11 +1112,8 @@ local function buildAreaBanner(parent: Instance)
 end
 
 ---------------------------------------------------------------------
--- Menú rápido (las apps del teléfono), menú de ajustes y controles
+-- Menú de ajustes y controles (las apps del antiguo menú rápido son filas del menú de comandos)
 ---------------------------------------------------------------------
-local phone: Frame
-local phoneButton: TextButton
-local phoneGrid: ScrollingFrame
 local menu: Frame
 local controlsPanel: Frame
 
@@ -1136,114 +1135,6 @@ local function splitApp(text: string): (string, string)
 		return rest, APP_ICONS[rest] or first
 	end
 	return text, APP_ICONS[text] or "telefono"
-end
-
-local function setQuickOpen(open: boolean)
-	HudLayout.setQuickOpen(open)
-end
-
-local function buildPhone(parent: Instance)
-	phone = Theme.hudPanel({ Name = "Phone", BackgroundTransparency = 0.38, Visible = false, ZIndex = 20, Parent = parent })
-	Theme.bevel(phone)
-	phoneGrid = create("ScrollingFrame", {
-		Name = "Apps",
-		Position = UDim2.fromOffset(8, 8),
-		Size = UDim2.new(1, -16, 1, -16),
-		BackgroundTransparency = 1,
-		BorderSizePixel = 0,
-		ScrollBarThickness = 3,
-		AutomaticCanvasSize = Enum.AutomaticSize.Y,
-		CanvasSize = UDim2.new(),
-		ZIndex = 20,
-		Parent = phone,
-	})
-	create("UIGridLayout", { CellSize = UDim2.new(0.5, -3, 0, 50), CellPadding = UDim2.fromOffset(6, 6), SortOrder = Enum.SortOrder.LayoutOrder, Parent = phoneGrid })
-	-- Botón para cerrarlo (esquina de arriba)
-	local close = create("TextButton", { Name = "Close", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(1, -2, 0, 2), Size = UDim2.fromOffset(26, 26), BackgroundColor3 = H.Navy, Text = "", ZIndex = 25, Parent = phone }, {
-		create("UICorner", { CornerRadius = UDim.new(1, 0) }),
-	})
-	Theme.edge(close, H.Glow, 1.5)
-	Icons.minus({ AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(12, 12), Thickness = 2.5, ZIndex = 26, Parent = close })
-	close.Activated:Connect(function()
-		setQuickOpen(false)
-	end)
-	if TOUCH then
-		-- Móvil: con 26 unidades el botón medía 10-13 px. Ahora ~36 px en pantalla, dentro de la
-		-- esquina (fuera tapaba la misión o se salía); las apps van en una columna a su izquierda.
-		local grid = phoneGrid:FindFirstChildOfClass("UIGridLayout") :: UIGridLayout
-		HudLayout.onChanged(function(layout)
-			local side = math.ceil(36 / layout.Scale)
-			close.AnchorPoint = Vector2.new(1, 0)
-			close.Position = UDim2.new(1, -4, 0, 4)
-			close.Size = UDim2.fromOffset(side, side)
-			for _, icon in close:GetChildren() do
-				if icon:IsA("Frame") then
-					icon.Size = UDim2.fromScale(0.45, 0.45)
-				end
-			end
-			phoneGrid.Size = UDim2.new(1, -16 - side - 4, 1, -16)
-			grid.CellSize = UDim2.new(1, -3, 0, 50)
-		end)
-	end
-
-	-- Botón del teléfono: abre el menú rápido cuando está cerrado
-	phoneButton = create("TextButton", { Name = "PhoneButton", BackgroundColor3 = H.Navy, BackgroundTransparency = 0.25, Text = "", ZIndex = 20, Parent = parent }, {
-		create("UICorner", { CornerRadius = UDim.new(0, 16) }),
-		create("UIGradient", { Rotation = 90, Color = Theme.PanelSheen }),
-	})
-	Theme.edge(phoneButton, nil, 2)
-	Icons.new("telefono", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromScale(0.6, 0.6), ZIndex = 21, Parent = phoneButton })
-	Theme.pressable(phoneButton)
-	phoneButton.Activated:Connect(function()
-		setQuickOpen(true)
-	end)
-
-	actions.Telefono = function()
-		setQuickOpen(not HudLayout.current().QuickOpen)
-		if menu then
-			menu.Visible = false
-		end
-	end
-end
-
-local function refreshPhone()
-	for _, child in phoneGrid:GetChildren() do
-		if child:IsA("TextButton") then
-			child:Destroy()
-		end
-	end
-	table.sort(phoneApps, function(a, b)
-		return a.Order < b.Order
-	end)
-	for i, app in phoneApps do
-		local text, iconName = splitApp(app.Text)
-		local color = app.Color or H.Edge
-		local tile = create("TextButton", {
-			Name = text,
-			BackgroundColor3 = color,
-			BackgroundTransparency = 0.15,
-			AutoButtonColor = false,
-			Text = "",
-			LayoutOrder = i,
-			ZIndex = 21,
-			Parent = phoneGrid,
-		}, {
-			create("UICorner", { CornerRadius = UDim.new(0, 9) }),
-			create("UIGradient", { Rotation = 90, Color = ColorSequence.new(Color3.new(1, 1, 1), rgb(120, 130, 160)) }),
-			create("UIStroke", { Color = color:Lerp(Color3.new(1, 1, 1), 0.45), Thickness = 1.5, Transparency = 0.15, ApplyStrokeMode = Enum.ApplyStrokeMode.Border }),
-		})
-		Icons.new(iconName, { Position = UDim2.fromOffset(8, 11), Size = UDim2.fromOffset(28, 28), ZIndex = 22, Parent = tile })
-		Theme.label({ Name = "Label", Position = UDim2.fromOffset(40, 0), Size = UDim2.new(1, -44, 1, 0), Text = text, Font = Theme.FontBold, TextSize = 15, TextWrapped = true, TextStrokeTransparency = 0.55, ZIndex = 22, Parent = tile })
-		Theme.pressable(tile)
-		Theme.hover(tile, tile:FindFirstChildOfClass("UIStroke"))
-		tile.Activated:Connect(function()
-			-- En el móvil se cierra al usarlo (deja ver el mundo); en el ordenador se queda
-			if TOUCH then
-				setQuickOpen(false)
-			end
-			app.Callback()
-		end)
-	end
 end
 
 local function popupPanel(name: string, title: string, iconName: string, size: Vector2): (Frame, Frame)
@@ -1355,12 +1246,24 @@ function Hud.setAction(id: string, callback: () -> ())
 	actions[id] = callback
 end
 
--- Añade una app al menú rápido del teléfono
-function Hud.addButton(text: string, color: Color3?, order: number, callback: () -> ()): TextButton?
-	table.insert(phoneApps, { Text = text, Color = color, Order = order, Callback = callback })
-	if phoneGrid then
-		refreshPhone()
-	end
+-- Añade una app (Ir a casa, Tienda, Vehículos…) como fila del menú de comandos, después de Objetos y
+-- Mapa y antes de «Más», en el orden de `order`. Hace lo mismo que el botón del antiguo menú rápido.
+-- (El color ya no se usa: las filas tienen todas el mismo estilo.)
+function Hud.addButton(text: string, _color: Color3?, order: number, callback: () -> ()): TextButton?
+	local label, iconName = splitApp(text)
+	CommandRegistry.register({
+		Id = "App" .. label,
+		Label = label,
+		Icon = iconName,
+		-- Mapa es 51 y Más 60: las apps van en medio (order 1-7 -> 52-55,5)
+		Priority = 51.5 + math.clamp(order, 0, 16) * 0.5,
+		When = function(ctx)
+			return ctx.Stage ~= "Bebe"
+		end,
+		Run = function()
+			callback()
+		end,
+	})
 	return nil
 end
 
@@ -1505,8 +1408,19 @@ end
 
 ---------------------------------------------------------------------
 
--- De bebé casi todo sobra (solo la hora); en conversaciones y cinemáticas tu estado, la misión y el
--- menú rápido se apartan para dejar ver la escena
+-- Quien quiere saber si la tarjeta de la misión está a la vista (LifeStory: en el móvil, la pestaña
+-- «Tu vida» se aparta mientras se ve la misión, que dice lo mismo)
+local missionListeners: { () -> () } = {}
+local missionWasShown = false
+function Hud.missionShown(): boolean
+	return mission ~= nil and mission.Visible == true and mission.Parent ~= nil
+end
+function Hud.onMissionShown(listener: () -> ())
+	table.insert(missionListeners, listener)
+end
+
+-- De bebé casi todo sobra (solo la hora); en conversaciones y cinemáticas tu estado y la misión se
+-- apartan para dejar ver la escena
 function refreshVisible()
 	if not gui then
 		return
@@ -1517,10 +1431,12 @@ function refreshVisible()
 	if mission then
 		mission.Visible = show and hasMission
 	end
-	if phone then
-		local open = HudLayout.current().QuickOpen
-		phone.Visible = show and open
-		phoneButton.Visible = show and not open
+	local shown = Hud.missionShown()
+	if shown ~= missionWasShown then
+		missionWasShown = shown
+		for _, listener in missionListeners do
+			task.spawn(listener)
+		end
 	end
 end
 
@@ -1534,11 +1450,6 @@ local function applyLayout(layout: HudLayout.Layout)
 	activity.Size = UDim2.fromOffset(0, items.Activity.Size.Y)
 	toastTop = items.Toasts.Position.Y.Offset
 	placeToasts()
-	HudLayout.apply(phone, items.Quick)
-	HudLayout.apply(phoneButton, items.QuickTab)
-	if layout.QuickOpen and phone.Visible == false and not busy then
-		Theme.appear(phone, items.Quick.Position + UDim2.fromOffset(30, 0))
-	end
 	refreshVisible()
 end
 
@@ -1559,22 +1470,20 @@ function Hud.init(openStore: () -> ()): ScreenGui
 	buildStatus(gui)
 	buildMission(gui)
 	buildAreaBanner(gui)
-	-- Menú rápido, menú y controles en su propia capa, por encima del minimapa (que es de MapUI)
+	-- Menú, controles y misiones en su propia capa, por encima del minimapa (que es de MapUI)
 	popupGui = create("ScreenGui", { Name = "HudPopups", ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = 4, ZIndexBehavior = Enum.ZIndexBehavior.Sibling, Parent = playerGui })
 	HudLayout.scaleGui(popupGui)
-	buildPhone(popupGui)
 	buildControls()
 	buildMenu()
 	TouchLayout.init(playerGui)
 
 	HudLayout.onChanged(applyLayout)
 
-	-- Apps del menú rápido que pone el propio HUD
+	-- Apps que pone el propio HUD (filas del menú de comandos)
 	Hud.addButton("🏠 Ir a casa", rgb(40, 110, 220), 1, function()
 		(Remotes:WaitForChild("GoHome") :: RemoteEvent):FireServer()
 	end)
 	Hud.addButton("🛒 Tienda", rgb(200, 145, 20), 2, openStore)
-	refreshPhone()
 
 	-- Los avisos van en su propia capa, por encima de las ventanas (tiendas, vehículos…): si no, un
 	-- "no tienes dinero" quedaba escondido detrás de la ventana y parecía que el botón no hacía nada

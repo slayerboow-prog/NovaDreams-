@@ -5,7 +5,9 @@
 --   1-3   lo que tienes delante (un comando por cada cosa cercana: hablar, entrar, montar…)
 --   4     más cosas cercanas, en un grupo "AQUÍ ▸"
 --   5-9   lo que depende de la situación (saludar a alguien, bajarte del vehículo, atacar…)
---   50+   lo de siempre: objetos, mapa, teléfono y "MÁS ▸" (misiones, personaje, gestos, menú)
+--   50+   lo de siempre: objetos, mapa, las apps (Ir a casa, Ruta a casa, Tienda, Vehículos, Gestos,
+--         Metro, Mercadillo…: las pone cada sistema con Hud.addButton, entre 52 y 56) y
+--         "MÁS ▸" (misiones, mi historia, personaje, menú)
 -- La complejidad crece con la edad: de bebé solo lo que tienes delante.
 
 local CommandRegistry = require(script.Parent.CommandRegistry)
@@ -15,6 +17,7 @@ local Vehicles = require(script.Parent.Parent.Controllers.Vehicles)
 local CombatController = require(script.Parent.Parent.Controllers.CombatController)
 local WeaponController = require(script.Parent.Parent.Controllers.WeaponController)
 local InstitutionsUI = require(script.Parent.Parent.Controllers.InstitutionsUI)
+local StoryJournal = require(script.Parent.Parent.Controllers.StoryJournal)
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Stages = require(ReplicatedStorage.Shared.LifeStory.Stages)
@@ -235,18 +238,7 @@ function DefaultCommands.register()
 			Hud.runCommand("Mapa")
 		end,
 	})
-	CommandRegistry.register({
-		Id = "Telefono",
-		Label = "Teléfono",
-		Icon = "telefono",
-		Priority = 52,
-		When = function(ctx)
-			return not baby(ctx)
-		end,
-		Run = function()
-			Hud.runCommand("Telefono")
-		end,
-	})
+	-- (El antiguo «Teléfono» abría el menú rápido: sus apps son ahora filas de esta lista)
 
 	-- "MÁS": lo que se usa de vez en cuando
 	local more: Command = {
@@ -259,11 +251,12 @@ function DefaultCommands.register()
 				{ Id = "Misiones", Label = "Misiones", Icon = "misiones", Priority = 1, Badge = Hud.questPending(), Run = function()
 					Hud.runCommand("Misiones")
 				end } :: any,
+				-- 📖 «Mi historia» (el diario): en el móvil la pestaña «Tu vida» se aparta, así que va aquí
+				{ Id = "Historia", Label = "Mi historia", Icon = "📖", Priority = 1.5, Run = function()
+					StoryJournal.open()
+				end },
 				{ Id = "Personaje", Label = "Personaje", Icon = "personaje", Priority = 2, Run = function()
 					Hud.runCommand("Personaje")
-				end },
-				{ Id = "Vehiculos", Label = "Vehículos", Icon = "coche", Priority = 3, Run = function()
-					Vehicles.open()
 				end },
 				{ Id = "Viviendas", Label = "Mis viviendas", Icon = "viviendas", Priority = 4.4, Run = function()
 					local homes = Players.LocalPlayer:GetAttribute("Homes")
@@ -277,9 +270,6 @@ function DefaultCommands.register()
 				end },
 				{ Id = "Carrera", Label = "Mi carrera", Icon = "carrera", Priority = 4.5, Run = function()
 					InstitutionsUI.showCareer()
-				end },
-				{ Id = "Gestos", Label = "Gestos", Icon = "gestos", Priority = 3.5, Run = function()
-					Actions.openEmotes()
 				end },
 				{ Id = "Controles", Label = "Controles", Icon = "mando", Priority = 4.8, Run = function()
 					Hud.runCommand("Controles")

@@ -1,19 +1,17 @@
 -- HudLayout: dónde va cada pieza del HUD, calculado en un solo sitio para que nada se pise.
 --
 --   Arriba a la izquierda  -> tu estado (debajo de los botones de Roblox)
---   Arriba en el centro    -> la cápsula de la hora, la fecha y el tiempo
---   Arriba a la derecha    -> minimapa y, a su derecha, el menú rápido (o el botón del teléfono)
---   Derecha                -> la misión, debajo del minimapa
---   Abajo a la izquierda   -> el menú de comandos (en el móvil, encima del joystick)
---   Abajo en el centro     -> la barra rápida del inventario
---   Abajo a la derecha     -> los botones táctiles en racimo (en el ordenador, las teclas)
+--   Arriba en el centro    -> la cápsula de la hora, la fecha y el tiempo (y el GPS justo debajo)
+--   Arriba a la derecha    -> el minimapa, pegado a la esquina (las apps del antiguo menú rápido
+--                             están ahora en el menú de comandos)
+--   Derecha                -> la misión, justo debajo del minimapa
+--   Izquierda              -> el menú de comandos: en el ordenador abajo a la izquierda; en el móvil
+--                             justo debajo de tu estado (y el joystick abajo a la izquierda)
+--   Abajo en el centro     -> la barra rápida del inventario (en el móvil, pegada al borde)
+--   Abajo a la derecha     -> los botones táctiles en racimo, pegados a la esquina (en el ordenador,
+--                             las teclas)
 --   Junto a la misión      -> el botón ❓ "¿Qué hago ahora?" (a su izquierda, bajo el minimapa)
 --   Abajo en el centro     -> encima de la barra rápida: la tarjeta de los primeros pasos, pistas y consejos
---
--- Móvil (táctil): un HUD más compacto para que se vea más el juego (HudLayout.TouchSizes): tu estado
--- pequeño, la hora en una línea, el minimapa algo menor con el botón «⋯» (menú rápido) a su lado, la
--- misión en una línea (se despliega al tocarla), el menú de comandos plegado en una pastilla, la barra
--- rápida con 5 casillas y el racimo con pocos botones (lo demás en «Más»). El ordenador no cambia.
 --
 -- Todo se mide en "unidades de lienzo": cada pantalla del HUD lleva un UIScale con HudLayout.scale()
 -- y el lienzo mide ViewportSize / escala (unos 1700 de ancho siempre; en el móvil unos 785 de alto).
@@ -22,17 +20,17 @@
 local HudLayout = {}
 
 export type Placement = { Anchor: Vector2, Position: UDim2, Size: Vector2 }
-export type Options = { Touch: boolean?, Inset: number?, QuickOpen: boolean? }
+export type Options = { Touch: boolean?, Inset: number? }
 export type Layout = {
 	Scale: number,
-	Sizes: { [string]: any }, -- las medidas que se han usado (en el móvil, con las de TouchSizes)
 	Canvas: Vector2,
 	Touch: boolean,
-	QuickOpen: boolean,
 	Items: { [string]: Placement },
 	Slots: { [string]: Placement },
 	CommandRows: number,
-	CommandTop: number, -- hasta dónde puede crecer el menú de comandos al desplegarlo
+	-- La franja en la que cabe el menú de comandos al desplegarlo (⌄): de CommandTop a CommandBottom
+	CommandTop: number,
+	CommandBottom: number,
 }
 
 local MARGIN = 16
@@ -46,8 +44,6 @@ HudLayout.Sizes = {
 	Clock = Vector2.new(600, 64),
 	Minimap = 210, -- diámetro del círculo
 	MinimapLabel = 24, -- el nombre de la zona, debajo
-	Quick = Vector2.new(280, 178),
-	QuickTab = Vector2.new(64, 64),
 	Mission = Vector2.new(440, 110),
 	CommandWidth = 340,
 	CommandHeader = 34,
@@ -62,54 +58,23 @@ HudLayout.Sizes = {
 	Guide = Vector2.new(640, 150), -- tarjeta de los primeros pasos, pistas y consejos
 }
 
--- Móvil: medidas más pequeñas (lo que no está aquí, como en el ordenador). Los textos siguen siendo
--- legibles: el HUD del móvil va a escala ~0,5, así que un texto de 24 unidades mide ~12 px.
-HudLayout.TouchSizes = {
-	Status = Vector2.new(340, 112), -- foto pequeña, nombre, nivel y dinero, y barras finas
-	Clock = Vector2.new(330, 48), -- "09:30 · Lun · 🌧 14°" en una línea
-	Minimap = 170,
-	Quick = Vector2.new(260, 250), -- lista del botón «⋯» (debajo de él)
-	QuickTab = Vector2.new(72, 72), -- el botón redondo «⋯»
-	Mission = Vector2.new(440, 64), -- una línea: título, paso y contador (al tocarla se despliega)
-	MissionOpen = Vector2.new(440, 110), -- desplegada: como en el ordenador
-	Gps = Vector2.new(400, 44),
-	Help = 80, -- el ❓, pegado a la izquierda de la misión
-	Hotbar = Vector2.new(430, 86), -- 5 casillas con las flechas ‹ ›
-	CommandPill = Vector2.new(220, 64), -- el menú de comandos plegado (una pastilla)
-}
-
--- Las medidas para el ordenador o el móvil
-function HudLayout.sizesFor(touch: boolean): { [string]: any }
-	if not touch then
-		return HudLayout.Sizes
-	end
-	local out = table.clone(HudLayout.Sizes)
-	for key, value in HudLayout.TouchSizes do
-		out[key] = value
-	end
-	return out
-end
-
 -- Racimo de botones táctiles (abajo a la derecha): centro de cada hueco respecto al de Ataque y su radio.
--- Correr y Saltar en fila encima del botón grande; Interactuar arriba; Defensa a la izquierda de Correr;
--- Gestos (o «Más») a la izquierda del botón grande; Esquivar abajo a la izquierda y Fijar a la derecha.
--- Fuera de una pelea el botón grande es el de contexto (Hablar, Coger…: UI/TouchLayout) y Defensa,
--- Esquivar y Fijar van en «Más». Los botones de contexto (linterna, bajarse…) van en una columna a la
--- izquierda, llenándose desde abajo (Extra5 es el de más abajo).
+-- Igual que la imagen de referencia: Interactuar arriba; Correr, Defensa y Saltar en fila; Gestos a la
+-- izquierda del Ataque grande; Esquivar abajo a la izquierda y Fijar objetivo a la derecha, un poco más abajo.
+-- Los botones de contexto (linterna, foto, piedra, bajarse…) van en una columna a la izquierda, pegada al
+-- racimo y llenándose DESDE ABAJO (Extra1 es el de abajo del todo): así, con pocos, quedan en la esquina.
 HudLayout.Cluster = {
 	Ataque = { 0, 0, 64 },
 	Interactuar = { -60, -225, 44 },
-	Correr = { -62, -128, 44 },
-	Defender = { -178, -128, 44 },
+	Correr = { -178, -128, 44 },
+	Defender = { -62, -128, 44 },
 	Saltar = { 62, -128, 46 },
 	Gestos = { -175, -12, 44 },
-	Mas = { -175, -12, 44 }, -- «Más» (el cajón): en el hueco de Gestos, que en el móvil va dentro
 	Esquivar = { -120, 82, 44 },
 	Fijar = { 96, 72, 32 },
 }
 HudLayout.ExtraSlots = 5
--- Columna de contexto: botones de ~40 px en el móvil; Extra5 abajo del todo y Extra1 arriba
-local EXTRA_X, EXTRA_R, EXTRA_STEP, EXTRA_LAST = -285, 40, 88, 92
+local EXTRA_X, EXTRA_R, EXTRA_STEP, EXTRA_FIRST = -270, 32, 72, 92
 local CLUSTER_RIGHT = 128 -- lo que sobresale el racimo a la derecha del centro del Ataque
 local CLUSTER_BOTTOM = 124 -- y por debajo
 
@@ -135,7 +100,7 @@ function HudLayout.compute(viewport: Vector2, options: Options?): Layout
 	local scale = HudLayout.scaleFor(viewport)
 	local canvas = viewport / scale
 	local inset = (opts.Inset or 58) / scale
-	local s = HudLayout.sizesFor(touch)
+	local s = HudLayout.Sizes
 	local W, H = canvas.X, canvas.Y
 	local items: { [string]: Placement } = {}
 	local slots: { [string]: Placement } = {}
@@ -150,62 +115,51 @@ function HudLayout.compute(viewport: Vector2, options: Options?): Layout
 		clockTop = inset + 8
 	end
 	items.Clock = place(Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, clockTop), s.Clock)
-	local quickOpen = opts.QuickOpen ~= false
+	-- El minimapa pegado a la esquina (con el nombre de la zona debajo)
+	items.Minimap = place(Vector2.new(1, 0), UDim2.new(1, -MARGIN, 0, 10), Vector2.new(s.Minimap, s.Minimap + s.MinimapLabel))
 	local missionTop = 10 + s.Minimap + s.MinimapLabel + 10
-	if touch then
-		-- Móvil: el minimapa en la esquina; a su izquierda el botón redondo «⋯» y, debajo de él, su
-		-- lista (Ir a casa, Ruta a casa, Tienda…). La lista no llega a la columna de botones de contexto.
-		items.Minimap = place(Vector2.new(1, 0), UDim2.new(1, -MARGIN, 0, 10), Vector2.new(s.Minimap, s.Minimap + s.MinimapLabel))
-		local tabRight = MARGIN + s.Minimap + 12
-		items.QuickTab = place(Vector2.new(1, 0), UDim2.new(1, -tabRight, 0, 10), s.QuickTab)
-		items.Quick = place(Vector2.new(1, 0), UDim2.new(1, -tabRight, 0, 10 + s.QuickTab.Y + 8), s.Quick)
-		-- La misión en una línea; desplegada (al tocarla) crece hacia abajo
-		items.Mission = place(Vector2.new(1, 0), UDim2.new(1, -MARGIN, 0, missionTop), s.Mission)
-		items.MissionOpen = place(Vector2.new(1, 0), UDim2.new(1, -MARGIN, 0, missionTop), s.MissionOpen)
-		-- El ❓ pegado a la izquierda de la misión, a la altura de su línea
-		local helpCenterX = MARGIN + s.Mission.X + 10 + s.Help / 2
-		items.Help = place(Vector2.new(0.5, 0.5), UDim2.new(1, -helpCenterX, 0, missionTop + s.Mission.Y / 2), Vector2.new(s.Help, s.Help))
-	else
-		items.Quick = place(Vector2.new(1, 0), UDim2.new(1, -MARGIN, 0, 10), s.Quick)
-		items.QuickTab = place(Vector2.new(1, 0), UDim2.new(1, -MARGIN, 0, 10), s.QuickTab)
-		local miniRight = MARGIN + s.Quick.X + 12
-		items.Minimap = place(Vector2.new(1, 0), UDim2.new(1, -miniRight, 0, 10), Vector2.new(s.Minimap, s.Minimap + s.MinimapLabel))
-		items.Mission = place(Vector2.new(1, 0), UDim2.new(1, -MARGIN, 0, missionTop), s.Mission)
-		-- El botón ❓ a la izquierda de la misión (siempre ahí, aunque no haya misión)
-		local helpCenterX = MARGIN + s.Mission.X + 12 + s.Help / 2
-		items.Help = place(Vector2.new(0.5, 0.5), UDim2.new(1, -helpCenterX, 0, missionTop + s.Help / 2), Vector2.new(s.Help, s.Help))
-	end
+	items.Mission = place(Vector2.new(1, 0), UDim2.new(1, -MARGIN, 0, missionTop), s.Mission)
+	-- El botón ❓ a la izquierda de la misión (siempre ahí, aunque no haya misión)
+	local helpCenterX = MARGIN + s.Mission.X + 12 + s.Help / 2
+	items.Help = place(Vector2.new(0.5, 0.5), UDim2.new(1, -helpCenterX, 0, missionTop + s.Help / 2), Vector2.new(s.Help, s.Help))
 	-- Debajo del reloj: la indicación del GPS, avisos fijos (examen…) y estrellas de búsqueda
-	items.Gps = place(Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, clockTop + s.Clock.Y + 8), s.Gps)
-	items.Activity = place(Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, clockTop + s.Clock.Y + 8 + s.Gps.Y + 8), Vector2.new(0, 34))
-	items.Wanted = place(Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, clockTop + s.Clock.Y + 8 + s.Gps.Y + 50), Vector2.new(230, 40))
+	-- (en el móvil, el GPS casi pegado al reloj: la columna del centro ocupa menos)
+	local gpsTop = clockTop + s.Clock.Y + (if touch then 4 else 8)
+	items.Gps = place(Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, gpsTop), s.Gps)
+	items.Activity = place(Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, gpsTop + s.Gps.Y + 8), Vector2.new(0, 34))
+	items.Wanted = place(Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, gpsTop + s.Gps.Y + 50), Vector2.new(230, 40))
 	-- Avisos (toasts) y el cartel de zona: debajo de las estrellas, para no tapar nada de arriba
-	local toastTop = clockTop + s.Clock.Y + 8 + s.Gps.Y + 50 + 40 + 12
+	local toastTop = gpsTop + s.Gps.Y + 50 + 40 + 12
 	items.Toasts = place(Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, toastTop), Vector2.new(520, 0))
 
-	-- Abajo
-	items.Hotbar = place(Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, -MARGIN), s.Hotbar)
+	-- Abajo (en el móvil la barra rápida va pegada al borde de abajo)
+	local hotbarGap = if touch then 8 else MARGIN
+	items.Hotbar = place(Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, -hotbarGap), s.Hotbar)
 	-- Encima de la barra rápida: tarjeta de los primeros pasos, pistas y consejos (Controllers/Guide)
-	items.Guide = place(Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, -(MARGIN + s.Hotbar.Y + 14)), s.Guide)
+	items.Guide = place(Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, -(hotbarGap + s.Hotbar.Y + 14)), s.Guide)
 	local statusBottom = statusTop + s.Status.Y
-	local commandBottom: number
+	local commandTop = statusBottom + 12
+	local commandBottom: number -- (desde abajo)
 	if touch then
 		local stick = s.Joystick
 		items.Joystick = place(Vector2.new(0, 1), UDim2.new(0, 145, 1, -20), Vector2.new(stick, stick))
 		commandBottom = 20 + stick + 10
+		commandTop = statusBottom + 8
 	else
 		commandBottom = MARGIN
 	end
-	-- Cuántas filas caben entre tu estado y el hueco de abajo (4 o 5, las demás con ⌄)
-	local room = H - commandBottom - (statusBottom + 12)
+	-- Cuántas filas caben entre tu estado y el hueco de abajo (4 o 5; las demás, bajando la lista)
+	local room = H - commandBottom - commandTop
 	local rows = if touch then 4 else 5
 	while rows > 2 and HudLayout.commandHeight(rows, touch) > room do
 		rows -= 1
 	end
-	items.Commands = place(Vector2.new(0, 1), UDim2.new(0, MARGIN, 1, -commandBottom), Vector2.new(s.CommandWidth, HudLayout.commandHeight(rows, touch)))
+	local commandSize = Vector2.new(s.CommandWidth, HudLayout.commandHeight(rows, touch))
 	if touch then
-		-- Plegado (como empieza en el móvil) solo se ve esta pastilla, en la esquina de abajo del hueco
-		items.CommandPill = place(Vector2.new(0, 1), UDim2.new(0, MARGIN, 1, -commandBottom), s.CommandPill)
+		-- Móvil: justo debajo de tu estado (crece hacia abajo, hasta encima del joystick)
+		items.Commands = place(Vector2.new(0, 0), UDim2.new(0, MARGIN, 0, commandTop), commandSize)
+	else
+		items.Commands = place(Vector2.new(0, 1), UDim2.new(0, MARGIN, 1, -commandBottom), commandSize)
 	end
 
 	if touch then
@@ -218,7 +172,7 @@ function HudLayout.compute(viewport: Vector2, options: Options?): Layout
 		-- El botón ❓ también es un hueco (TouchLayout lo dibuja como los demás botones redondos)
 		slots.Ayuda = items.Help
 		for i = 1, HudLayout.ExtraSlots do
-			local y = ay + EXTRA_LAST - (HudLayout.ExtraSlots - i) * EXTRA_STEP
+			local y = ay + EXTRA_FIRST - (i - 1) * EXTRA_STEP
 			slots["Extra" .. i] = place(Vector2.new(0.5, 0.5), UDim2.new(1, -(W - (ax + EXTRA_X)), 1, -(H - y)), Vector2.new(EXTRA_R * 2, EXTRA_R * 2))
 		end
 	else
@@ -227,14 +181,13 @@ function HudLayout.compute(viewport: Vector2, options: Options?): Layout
 
 	return {
 		Scale = scale,
-		Sizes = s,
 		Canvas = canvas,
 		Touch = touch,
-		QuickOpen = quickOpen,
 		Items = items,
 		Slots = slots,
 		CommandRows = rows,
-		CommandTop = statusBottom + 12,
+		CommandTop = commandTop,
+		CommandBottom = H - commandBottom,
 	}
 end
 
@@ -264,7 +217,7 @@ end
 ---------------------------------------------------------------------
 local current: Layout? = nil
 local listeners: { (Layout) -> () } = {}
-local options: Options = { QuickOpen = nil }
+
 local started = false
 local scalers: { UIScale } = {}
 
@@ -466,12 +419,7 @@ local function recompute()
 	pcall(function()
 		inset = game:GetService("GuiService"):GetGuiInset().Y
 	end)
-	local touch = touchOnly()
-	if options.QuickOpen == nil then
-		-- En el móvil el menú rápido empieza cerrado (se abre con el botón del teléfono)
-		options.QuickOpen = not touch
-	end
-	current = HudLayout.compute(viewport, { Touch = touch, Inset = inset, QuickOpen = options.QuickOpen })
+	current = HudLayout.compute(viewport, { Touch = touchOnly(), Inset = inset })
 	for _, scaler in scalers do
 		scaler.Scale = (current :: Layout).Scale
 	end
@@ -521,18 +469,10 @@ function HudLayout.scaleGui(gui: ScreenGui): UIScale
 	return scaler
 end
 
-function HudLayout.setQuickOpen(open: boolean)
-	if options.QuickOpen ~= open then
-		options.QuickOpen = open
-		recompute()
-	end
-end
-
 -- (pruebas) empezar de cero
 function HudLayout._reset()
 	current = nil
 	listeners = {}
-	options = { QuickOpen = nil }
 	started = false
 	scalers = {}
 	jobPanels = {}
