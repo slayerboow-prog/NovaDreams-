@@ -193,7 +193,7 @@ if placePath then
 		if arm then
 			local look = arm.CFrame.LookVector
 			local axis = if math.abs(look.X) > math.abs(look.Z) then "Z" else "X" -- (como Traffic.addLight)
-			local c = TS.near(index, arm.Position, 25)
+			local c = TS.near(index, arm.CFrame.Position, 25)
 			if c then
 				byCrossing[c] = byCrossing[c] or { X = 0, Z = 0 }
 				byCrossing[c][axis] += 1

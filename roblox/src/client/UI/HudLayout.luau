@@ -108,8 +108,8 @@ HudLayout.Drive = {
 	Extra5 = { -60, -365, 60, 60 },
 }
 HudLayout.DriveLeft = {
-	GiroIzq = { 85, -95, 150, 170 },
-	GiroDer = { 265, -95, 150, 170 },
+	GiroIzq = { 85, -89, 150, 170 },
+	GiroDer = { 265, -89, 150, 170 },
 }
 local CLUSTER_RIGHT = 128 -- lo que sobresale el racimo a la derecha del centro del Ataque
 local CLUSTER_BOTTOM = 124 -- y por debajo

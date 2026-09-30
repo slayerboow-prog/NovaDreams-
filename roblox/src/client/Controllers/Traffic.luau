@@ -85,6 +85,12 @@ type Agent = {
 	HonkAt: number?,
 	Pos: Vector3?, -- dónde se colocó en el último fotograma (para que tu vehículo choque con él)
 	Dir: Vector3?,
+	-- Golpe de tu vehículo (Traffic.hit, desde Controllers/Collisions)
+	HitUntil: number?, -- se queda parado hasta entonces
+	Shove: Vector3?, -- desplazado de su carril por el golpe (vuelve poco a poco)
+	ShoveVel: Vector3?, -- lo que aún se desliza de lado
+	Twist: number?, -- girado por el golpe (radianes; se endereza solo)
+	SaidAt: number?,
 }
 
 local nodes: { Vector3 } = {}
@@ -571,6 +577,7 @@ local function respawn(agent: Agent, center: Vector3, minDist: number)
 				agent.Speed = math.min(agent.Speed, math.sqrt(2 * DECEL * math.max(toLine - 1.5, 0)))
 			end
 			agent.Look, agent.StuckAt = nil, nil
+			agent.HitUntil, agent.Shove, agent.ShoveVel, agent.Twist = nil, nil, nil, nil
 			-- Y a su sitio en el mismo fotograma: el modelo se copia de uno que está en el origen (0, 0: el
 			-- cruce grande de Valmar Centro) y, si algo retrasaba su primer paso, se quedaba allí a la vista
 			setActive(agent, true)
@@ -940,6 +947,10 @@ local function stepAgent(agent: Agent, dt: number, center: Vector3, now: number,
 		agent.StuckAt = nil
 	end
 	local target = math.min(cruise, math.sqrt(2 * DECEL * math.max(gap - 1.5, 0)))
+	local hit = agent.HitUntil ~= nil and now < agent.HitUntil
+	if hit then
+		target = 0 -- (le acabas de dar: se para)
+	end
 	local change = math.clamp(target - agent.Speed, -DECEL * 2 * dt, 14 * dt)
 	agent.Speed = math.max(agent.Speed + change, 0)
 	setBraking(agent, change < -1 * dt or agent.Speed < 0.5)
@@ -972,6 +983,26 @@ local function stepAgent(agent: Agent, dt: number, center: Vector3, now: number,
 			ind.On = on
 			ind.Part.Color = if on then IND_ON else IND_OFF
 			ind.Part.Material = if on then Enum.Material.Neon else Enum.Material.SmoothPlastic
+		end
+	end
+	-- Después de un golpe: se desliza un poco de lado, girado, y luego vuelve a su carril
+	if agent.Shove or agent.Twist then
+		local shove = (agent.Shove or Vector3.zero) + (agent.ShoveVel or Vector3.zero) * dt
+		agent.ShoveVel = (agent.ShoveVel or Vector3.zero) * math.exp(-5 * dt)
+		if not hit and shove.Magnitude > 0 then
+			shove = shove * math.max(0, 1 - dt * 1.2 / math.max(shove.Magnitude, 0.2))
+		end
+		if shove.Magnitude > 3 then
+			shove = shove.Unit * 3
+		end
+		local twist = (agent.Twist or 0) * math.exp(-(if hit then 0.8 else 2.5) * dt)
+		if shove.Magnitude < 0.02 and (agent.ShoveVel :: Vector3).Magnitude < 0.05 and math.abs(twist) < 0.005 then
+			agent.Shove, agent.ShoveVel, agent.Twist = nil, nil, nil
+		else
+			agent.Shove, agent.Twist = shove, twist
+			pos += shove
+			local c, sn = math.cos(twist), math.sin(twist)
+			dir = Vector3.new(dir.X * c + dir.Z * sn, 0, -dir.X * sn + dir.Z * c)
 		end
 	end
 	place(agent, pos, dir)
@@ -1025,6 +1056,59 @@ function Traffic.blocking(pos: Vector3, dir: Vector3, length: number, width: num
 		end
 	end
 	return nil
+end
+
+-- Los vehículos del tráfico a menos de radius de pos (en la tabla out, que se vacía antes): para los
+-- choques de tu vehículo (Controllers/Collisions)
+function Traffic.near(pos: Vector3, radius: number, out: { Agent }): { Agent }
+	table.clear(out)
+	for _, agent in agents do
+		local at = agent.Pos
+		if agent.Active and at and agent.Dir then
+			local dx, dz = at.X - pos.X, at.Z - pos.Z
+			if dx * dx + dz * dz <= radius * radius and math.abs(pos.Y - ROAD_TOP) < 12 then
+				table.insert(out, agent)
+			end
+		end
+	end
+	return out
+end
+
+-- Tu vehículo le ha dado (Controllers/Collisions, con shared/Crash): vel = su velocidad después del
+-- golpe, spin = su giro, move = cuánto se aparta para no quedar metidos, closing = lo fuerte que ha
+-- sido. Se para un rato, se desliza y gira un poco y protesta (¡Eh!). Devuelve si ha dicho algo.
+local HIT_LINES = { "¡Eh!", "¡Mira por dónde vas!", "¡Pero bueno!", "¡Que me das!" }
+local FALL_LINES = { "¡Ay!", "¡Ay, mi bici!", "¡Socorro!" }
+function Traffic.hit(agent: Agent, vel: Vector3, spin: number, move: Vector3, closing: number): boolean
+	if not agent.Active or not agent.Dir then
+		return false
+	end
+	local now = os.clock()
+	local along = vel:Dot(agent.Dir)
+	agent.Speed = math.clamp(along, 0, agent.Cruise + 10)
+	local side = Vector3.new(vel.X, 0, vel.Z) - agent.Dir * along
+	if side.Magnitude > 30 then
+		side = side.Unit * 30
+	end
+	agent.ShoveVel = (agent.ShoveVel or Vector3.zero) + side
+	local shove = (agent.Shove or Vector3.zero) + Vector3.new(move.X, 0, move.Z)
+	agent.Shove = if shove.Magnitude > 3 then shove.Unit * 3 else shove
+	agent.Twist = math.clamp((agent.Twist or 0) + spin * 0.15, -0.4, 0.4)
+	if closing < 3 then
+		return false
+	end
+	agent.HitUntil = math.max(agent.HitUntil or 0, now + math.clamp(1.5 + closing / 12, 1.5, 5))
+	setBraking(agent, true)
+	if closing >= 4 and now - (agent.SaidAt or -math.huge) > 4 then
+		agent.SaidAt = now
+		local body = agent.Parts[1]
+		local fell = agent.Small and closing > 14
+		if body then
+			pcall(Nudge.say, body, if fell then FALL_LINES[math.random(1, #FALL_LINES)] else HIT_LINES[math.random(1, #HIT_LINES)], 1.8)
+		end
+		return true
+	end
+	return false
 end
 
 function Traffic.init(data: Instance)

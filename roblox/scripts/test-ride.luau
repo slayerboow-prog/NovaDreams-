@@ -9,6 +9,12 @@
 --     teletransporte y solo se coloca detrás cuando vas en marcha y no la mueves tú
 --   * cada asiento pone su postura (Controllers/RidePose): volante, manillar, pasajero, detrás en la moto
 --   * los asientos de pasajero (World/Kit/Rides) caben dentro de cada vehículo y se bajan por su lado
+--   * los mandos (shared/VehicleControls, Controllers/Driving): las flechas giran suave y el volante
+--     vuelve solo al centro, los pedales (el freno da marcha atrás parado), el freno de mano (echado
+--     parado, se quita al acelerar), luces cortas / largas, la sugerencia de noche, intermitentes que
+--     se apagan solos al acabar el giro, la emergencia y el parpadeo a 1,5 Hz
+--   * lo que ve todo el mundo: el servidor copia el estado en atributos del vehículo y otro ordenador
+--     pinta faros, foco, pilotos de freno, marcha atrás e intermitentes en su lado (Controllers/VehicleLights)
 
 local fs = require("@lune/fs")
 local luau = require("@lune/luau")
@@ -403,6 +409,248 @@ print("Cámara: postes finos")
 local RideCameraThin = RideCamera.isThin
 check(RideCameraThin(Vector3.new(0.6, 14, 0.6)) and RideCameraThin(Vector3.new(1.2, 3, 1.2)), "una farola o un semáforo son postes finos (se ven transparentes)")
 check(not RideCameraThin(Vector3.new(1, 12, 30)) and not RideCameraThin(Vector3.new(40, 1, 40)), "una pared o un suelo no")
+
+---------------------------------------------------------------------
+-- Mandos del vehículo: flechas, pedales, freno de mano, luces e intermitentes (shared/VehicleControls,
+-- Controllers/Driving) y cómo se ven en los demás ordenadores (Controllers/VehicleLights)
+---------------------------------------------------------------------
+print("Mandos del vehículo")
+local VehicleControls = load("src/shared/VehicleControls.luau")
+do
+	-- Driving (con todo lo demás de mentira: aquí solo interesa cómo suaviza el volante y los pedales)
+	local stub
+	stub = setmetatable({}, {
+		__index = function()
+			return stub
+		end,
+		__call = function()
+			return stub
+		end,
+	})
+	local SHARED = { VehicleControls = VehicleControls }
+	local Driving = load("src/client/Controllers/Driving.luau", {
+		game = { GetService = function(_, name)
+			if name == "ReplicatedStorage" then
+				return { Shared = SHARED }
+			end
+			return stub
+		end },
+		script = stub,
+		require = function(what)
+			return if what == VehicleControls then VehicleControls else stub
+		end,
+		RaycastParams = { new = function()
+			return {}
+		end },
+	})
+	-- Flechas: ◀ = -1, ▶ = 1, las dos = recto; y el volante entra suave y vuelve solo al centro
+	check(VehicleControls.arrowSteer(true, false) == -1 and VehicleControls.arrowSteer(false, true) == 1 and VehicleControls.arrowSteer(true, true) == 0 and VehicleControls.arrowSteer(false, false) == 0, "flechas: ◀ gira a la izquierda, ▶ a la derecha, las dos o ninguna = recto")
+	local steer, throttle = 0, 0
+	for _ = 1, 6 do -- 0,1 s manteniendo ▶
+		throttle, steer = Driving.smoothInputs(throttle, steer, 0, VehicleControls.arrowSteer(false, true), 0, 1 / 60)
+	end
+	local early = steer
+	for _ = 1, 30 do -- medio segundo más
+		throttle, steer = Driving.smoothInputs(throttle, steer, 0, VehicleControls.arrowSteer(false, true), 0, 1 / 60)
+	end
+	check(early > 0.2 and early < 0.6 and steer > 0.99, ("manteniendo ▶ el volante entra poco a poco (%.2f a los 0,1 s) hasta girar del todo"):format(early))
+	for _ = 1, 15 do -- se suelta 0,25 s
+		throttle, steer = Driving.smoothInputs(throttle, steer, 0, VehicleControls.arrowSteer(false, false), 0, 1 / 60)
+	end
+	check(math.abs(steer) < 1e-6, "al soltar la flecha, el volante vuelve solo al centro")
+	local fastSteer = 0
+	for _ = 1, 6 do
+		throttle, fastSteer = Driving.smoothInputs(throttle, fastSteer, 0, 1, 1, 1 / 60)
+	end
+	check(fastSteer < early, "rápido gira más despacio que parado (no da volantazos)")
+	-- Pedales
+	check(VehicleControls.pedalThrottle(true, false) == 1 and VehicleControls.pedalThrottle(false, true) == -1 and VehicleControls.pedalThrottle(false, false) == 0, "pedales: ACELERAR = 1, FRENO = -1")
+	check(VehicleControls.pedalMeaning(-1, 20) == "Frena" and VehicleControls.pedalMeaning(-1, 0) == "Atras" and VehicleControls.pedalMeaning(1, -5) == "Frena" and VehicleControls.pedalMeaning(1, 0) == "Acelera",
+		"FRENO en marcha frena; parado, marcha atrás (como S y el gatillo izquierdo); ACELERAR yendo hacia atrás frena")
+	throttle = 0
+	for _ = 1, 12 do
+		throttle = Driving.smoothInputs(throttle, 0, VehicleControls.pedalThrottle(true, false), 0, 0, 1 / 60)
+	end
+	check(throttle > 0.4 and throttle < 0.9, ("el acelerador también entra suave (%.2f a los 0,2 s)"):format(throttle))
+end
+
+-- Freno de mano: en marcha actúa mientras se mantiene; parado se queda echado
+do
+	local c = VehicleControls.new()
+	local active, event = VehicleControls.handbrakeStep(c, true, 30, 0)
+	check(active and not c.Parked and event == nil, "en marcha, mantener el freno de mano lo bloquea (derrapa), sin echarlo")
+	active = VehicleControls.handbrakeStep(c, false, 25, 0)
+	check(not active, "al soltarlo en marcha, se suelta")
+	active, event = VehicleControls.handbrakeStep(c, true, 0, 0)
+	check(active and c.Parked and event == "Echado", "parado, tocarlo lo deja echado (P)")
+	active = VehicleControls.handbrakeStep(c, false, 0, 0)
+	check(active and c.Parked, "y sigue echado al soltarlo")
+	active, event = VehicleControls.handbrakeStep(c, false, 0, 1)
+	check(not active and not c.Parked and event == "Quitado", "al acelerar se quita solo")
+	VehicleControls.handbrakeStep(c, true, 0, 0)
+	VehicleControls.handbrakeStep(c, false, 0, 0)
+	active, event = VehicleControls.handbrakeStep(c, true, 0, 0)
+	check(c.Parked == false and event == "Quitado", "echado, volver a tocarlo lo quita")
+	check(VehicleControls.features("Coche").Handbrake and VehicleControls.features("Moto").Handbrake and not VehicleControls.features("Bici").Handbrake and not VehicleControls.features("Monopatin").Lights,
+		"coche y moto con freno de mano, luces e intermitentes; la bici con luz; el monopatín sin nada")
+end
+
+-- Luces: tocar = cortas / apagar; mantener = largas. Y la sugerencia de noche
+do
+	check(VehicleControls.nextLights(0, false) == 1 and VehicleControls.nextLights(1, false) == 0 and VehicleControls.nextLights(2, false) == 0, "tocar Luces: apagadas ↔ cortas (y de largas, apagadas)")
+	check(VehicleControls.nextLights(0, true) == 2 and VehicleControls.nextLights(1, true) == 2 and VehicleControls.nextLights(2, true) == 1, "mantener Luces: largas (y de largas, cortas)")
+	check(VehicleControls.shouldHint(22, 0, false, "Coche") and VehicleControls.shouldHint(5, 0, false, "Moto"), "de noche con las luces apagadas: «Enciende las luces (L)»")
+	check(not VehicleControls.shouldHint(13, 0, false, "Coche") and not VehicleControls.shouldHint(22, 1, false, "Coche") and not VehicleControls.shouldHint(22, 0, true, "Coche") and not VehicleControls.shouldHint(22, 0, false, "Monopatin"),
+		"pero no de día, ni con las luces puestas, ni dos veces, ni en el monopatín")
+end
+
+-- Intermitentes: se ponen y se quitan; se apagan solos al acabar el giro
+do
+	local c = VehicleControls.new()
+	VehicleControls.toggleIndicator(c, "L")
+	check(VehicleControls.indicatorShown(c) == "L", "Q / ⬅: intermitente izquierdo")
+	VehicleControls.toggleIndicator(c, "R")
+	check(VehicleControls.indicatorShown(c) == "R", "E / ➡ con el izquierdo puesto: pasa al derecho")
+	VehicleControls.toggleIndicator(c, "R")
+	check(VehicleControls.indicatorShown(c) == "", "pulsar otra vez el mismo lo quita")
+	VehicleControls.toggleIndicator(c, "R")
+	-- Girando a la izquierda (el otro lado): no se apaga
+	local cancelled = false
+	for _ = 1, 60 do
+		cancelled = VehicleControls.indicatorStep(c, -math.rad(2), -1) or cancelled
+	end
+	cancelled = VehicleControls.indicatorStep(c, 0, 0) or cancelled
+	check(not cancelled and c.Indicator == "R", "girar hacia el otro lado no apaga el intermitente")
+	-- Girando a la derecha 90°: mientras el volante sigue girado, sigue puesto
+	for _ = 1, 45 do
+		cancelled = VehicleControls.indicatorStep(c, math.rad(2), 1) or cancelled
+	end
+	check(not cancelled and c.Indicator == "R", "durante el giro sigue puesto")
+	for i = 1, 20 do
+		cancelled = VehicleControls.indicatorStep(c, math.rad(0.5), 1 - i / 20) or cancelled
+	end
+	check(cancelled and c.Indicator == "", "al acabar el giro (volante al centro) se apaga solo")
+	-- Un cambio de carril (poco giro) no lo apaga
+	VehicleControls.toggleIndicator(c, "L")
+	for _ = 1, 20 do
+		VehicleControls.indicatorStep(c, -math.rad(0.5), -0.4)
+	end
+	check(not VehicleControls.indicatorStep(c, 0, 0) and c.Indicator == "L", "un cambio de carril (girar poco) no lo apaga")
+	-- Emergencia: los cuatro, y el giro no la quita
+	VehicleControls.toggleIndicator(c, "H")
+	for _ = 1, 60 do
+		VehicleControls.indicatorStep(c, -math.rad(2), -1)
+	end
+	VehicleControls.indicatorStep(c, 0, 0)
+	check(VehicleControls.indicatorShown(c) == "H", "X / ⚠: emergencia (manda sobre el intermitente y no se apaga sola)")
+	VehicleControls.toggleIndicator(c, "H")
+	check(VehicleControls.indicatorShown(c) == "", "y se quita volviéndola a pulsar")
+	-- Parpadeo a 1,5 Hz
+	local flips, last = 0, VehicleControls.blinkOn(0)
+	for i = 1, 240 do
+		local now = VehicleControls.blinkOn(i / 60)
+		if now ~= last then
+			flips += 1
+			last = now
+		end
+	end
+	check(flips == 12, ("parpadea a 1,5 Hz (%d cambios en 4 s)"):format(flips))
+end
+
+-- Lo que ve cada ordenador y lo que acepta el servidor
+do
+	local lamps = VehicleControls.lamps({ Lights = 1, Indicator = "L", Braking = false, Reversing = false }, 0.1)
+	check(lamps.Head == 1 and lamps.Tail == "On" and lamps.Left and not lamps.Right, "cortas: faros y pilotos de posición; intermitente izquierdo encendido a su tiempo")
+	lamps = VehicleControls.lamps({ Lights = 0, Indicator = "H", Braking = true, Reversing = true }, 0.1)
+	check(lamps.Head == 0 and lamps.Tail == "Brake" and lamps.Reverse and lamps.Left and lamps.Right, "frenando: pilotos de freno; marcha atrás: luces blancas; emergencia: los cuatro")
+	check(not VehicleControls.lamps({ Indicator = "H" }, 0.5).Left, "(y en la mitad apagada del parpadeo, apagados)")
+	check(VehicleControls.sanitize("hola") == nil and VehicleControls.sanitize({ Lights = 1, Indicator = "Z" }) == nil and VehicleControls.sanitize({ Lights = 0 / 0, Indicator = "" }) == nil, "el servidor no acepta basura (ni textos, ni lados raros, ni NaN)")
+	local clean = VehicleControls.sanitize({ Lights = 9, Indicator = "R", Braking = "sí", Reversing = true, Handbrake = 1 })
+	check(clean and clean.Lights == 2 and clean.Indicator == "R" and clean.Braking == false and clean.Reversing == true and clean.Handbrake == false, "y deja los valores limpios (luces 0-2, solo true cuenta)")
+end
+
+-- De punta a punta: el conductor manda su estado, el servidor lo pone en el vehículo y el ordenador
+-- de otro jugador lo pinta (faro, foco, pilotos, marcha atrás e intermitentes en su lado)
+do
+	local function signal()
+		return { Connect = function()
+			return { Disconnect = function() end }
+		end }
+	end
+	local function fakePartAt(name: string, className: string, position: Vector3, color: Color3)
+		local obj = { Name = name, ClassName = className, Position = position, Color = color, Material = Enum.Material.Neon }
+		function obj:IsA(c)
+			return c == className or (c == "BasePart" and className == "Part")
+		end
+		return obj
+	end
+	local chassis = fakePartAt("Body", "Part", Vector3.zero, Color3.new(1, 1, 1))
+	chassis.CFrame = CFrame.new(0, 2, 0)
+	local head = fakePartAt("Headlight", "Part", Vector3.new(-2, 2.7, -6.5), Color3.fromRGB(255, 250, 235))
+	local spot = fakePartAt("SpotLight", "SpotLight", Vector3.zero, Color3.new(1, 1, 1))
+	spot.Parent = head
+	spot.Enabled = false
+	local tail = fakePartAt("Taillight", "Part", Vector3.new(-2, 2.8, 6.5), Color3.fromRGB(200, 20, 30))
+	local reverse = fakePartAt("Reverse", "Part", Vector3.new(1, 2.8, 6.5), Color3.fromRGB(215, 218, 224))
+	local leftInd = fakePartAt("IndicatorFront", "Part", Vector3.new(-2.9, 2.7, -6.6), Color3.fromRGB(255, 150, 20))
+	local rightInd = fakePartAt("IndicatorRear", "Part", Vector3.new(2.9, 2.8, 6.6), Color3.fromRGB(255, 150, 20))
+	local parts = { chassis, head, spot, tail, reverse, leftInd, rightInd }
+	local attrs = {}
+	local model = { Name = "Coche", Parent = {}, PrimaryPart = chassis, DescendantAdded = signal(), DescendantRemoving = signal() }
+	function model:IsA(c)
+		return c == "Model"
+	end
+	function model:GetDescendants()
+		return parts
+	end
+	function model:GetAttribute(k)
+		return attrs[k]
+	end
+	function model:SetAttribute(k, v)
+		attrs[k] = v
+	end
+	function model:GetPivot()
+		return chassis.CFrame
+	end
+	-- Al subirse: todo apagado (VehicleService)
+	VehicleControls.reset(model, false)
+	check(attrs.Lights == 0 and attrs.Indicator == "" and attrs.Braking == false and attrs.Handbrake == false, "al subirse, el servidor lo pone todo apagado en el vehículo")
+	-- El conductor enciende las luces, pone el intermitente derecho y frena marcha atrás
+	local sent = VehicleControls.sanitize({ Lights = 2, Indicator = "R", Braking = true, Reversing = true, Handbrake = false })
+	VehicleControls.write(model, sent)
+	check(attrs.Lights == 2 and attrs.Indicator == "R" and attrs.Braking == true and attrs.Reversing == true, "el servidor lo copia en los atributos del vehículo (llegan a todos)")
+	-- Otro ordenador lo pinta
+	local VehicleLights = load("src/client/Controllers/VehicleLights.luau", {
+		game = { GetService = function(_, name)
+			if name == "ReplicatedStorage" then
+				return { Shared = { VehicleControls = VehicleControls } }
+			end
+			return {}
+		end },
+		require = function()
+			return VehicleControls
+		end,
+	})
+	VehicleLights.track(model)
+	local entry = VehicleLights._entry(model)
+	VehicleLights.step() -- (busca las luces)
+	VehicleLights.apply(entry, attrs, 0.1) -- (en la mitad encendida del parpadeo)
+	check(head.Material == Enum.Material.Neon and spot.Enabled == true and spot.Range > 60, "los faros se encienden (largas: el foco llega más lejos)")
+	check(tail.Material == Enum.Material.Neon and tail.Color == Color3.fromRGB(255, 36, 44), "los pilotos de freno se ponen rojo intenso")
+	check(reverse.Material == Enum.Material.Neon, "la luz de marcha atrás se enciende")
+	check(rightInd.Material == Enum.Material.Neon and leftInd.Material == Enum.Material.SmoothPlastic, "el intermitente derecho parpadea en su lado (el izquierdo no)")
+	VehicleLights.apply(entry, attrs, 0.5)
+	check(rightInd.Material == Enum.Material.SmoothPlastic, "y se apaga en la otra mitad del parpadeo")
+	-- Aparcado: todo apagado
+	VehicleControls.reset(model, true)
+	VehicleLights.apply(entry, attrs, 0.1)
+	check(head.Material == Enum.Material.SmoothPlastic and spot.Enabled == false and tail.Material == Enum.Material.SmoothPlastic and reverse.Material == Enum.Material.SmoothPlastic and attrs.Handbrake == true,
+		"al aparcarlo: faros, pilotos e intermitentes apagados y el freno de mano echado")
+	-- Tu propio coche: lo que dice tu ordenador (sin esperar al servidor)
+	VehicleLights.setLocal(model, { Lights = 1, Indicator = "", Braking = true, Reversing = false, Handbrake = false })
+	VehicleLights.step()
+	check(tail.Color == Color3.fromRGB(255, 36, 44) and head.Material == Enum.Material.Neon, "tu coche se pinta al momento con tu estado")
+end
 
 print("")
 if failures == 0 then

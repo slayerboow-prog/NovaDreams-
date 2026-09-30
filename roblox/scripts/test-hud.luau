@@ -16,6 +16,8 @@
 --     comandos, entre Mapa y «Más», y hacen lo mismo; el minimapa va pegado a la esquina y la misión
 --     justo debajo; en el móvil el menú de comandos va justo debajo de tu estado (y ⌄ pasa de página)
 --   * nunca salen dos botones táctiles con el mismo texto (p. ej. dos «Agacharse»)
+--   * al volante (móvil): flechas ◀ ▶ a la izquierda en lugar del joystick y, a la derecha, pedales,
+--     freno de mano, luces, intermitentes, emergencia, Bajarse y claxon, grandes y sin pisar nada
 --   * las barras, el dinero, la experiencia y la misión siguen a los atributos
 --   * el menú de comandos se oculta y se muestra con su botón, y ⌄ despliega todos
 --   * el joystick mueve al personaje (Humanoid:Move relativo)
@@ -1105,6 +1107,106 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 	end
 	local list = hudRects(mods)
 	noOverlaps(list, HudLayout, ("%dx%d"):format(size[1], size[2]))
+	-- Al volante (móvil): flechas ◀ ▶ a la izquierda (sin joystick) y, a la derecha, ACELERAR, FRENO,
+	-- freno de mano, luces, intermitentes, emergencia, Bajarse y el claxon (UI/DriveButtons y
+	-- HudLayout.Drive). Todo grande, al alcance del pulgar y sin pisar nada.
+	do
+		local DriveButtons = loadModule("src/client/UI/DriveButtons")
+		local held: { [string]: boolean } = {}
+		local calls: { string } = {}
+		local status = { Lights = 0, Indicator = "", Hazard = false, Parked = false, Reversing = false }
+		DriveButtons.register(TouchLayout, {
+			Driving = function()
+				return true
+			end,
+			Kind = function()
+				return "Coche"
+			end,
+			Hold = function(slot, down)
+				held[slot] = down
+			end,
+			Lights = function(long)
+				table.insert(calls, if long then "Largas" else "Luces")
+			end,
+			Indicator = function(side)
+				table.insert(calls, side)
+			end,
+			Status = function()
+				return status
+			end,
+		})
+		-- (como Controllers/Vehicles y SoundFx: Bajarse y el claxon tienen hueco al volante)
+		TouchLayout.register({ Id = "Bajarse", Icon = "bajarse", Label = "Bajarse", Slot = "Correr", DriveSlot = "Bajarse", Priority = 4, Callback = function() end })
+		TouchLayout.register({ Id = "Claxon", Icon = "claxon", Label = "Claxon", Slot = "Gestos", DriveSlot = "Claxon", Priority = 2.5, Callback = function() end })
+		-- (los botones de ir a pie se esconden solos en un vehículo: aquí se quitan)
+		for _, id in { "Ataque", "Defender", "Correr", "Gestos", "Esquivar", "Fijar" } do
+			TouchLayout.unregister(id)
+		end
+		mods.Joystick.setDriving(true)
+		TouchLayout.setDriving(true)
+		local driveButtons = TouchLayout.buttons()
+		local want = { "GiroIzq", "GiroDer", "Acelerar", "Frenar", "FrenoMano", "Luces", "IntIzq", "IntDer", "Emergencia", "Bajarse", "Claxon" }
+		local missing = {}
+		for _, id in want do
+			local b = driveButtons[id]
+			if not (b and b.Visible and b:GetAttribute("Slot") == id) then
+				table.insert(missing, id)
+			end
+		end
+		check(#missing == 0, "Al volante: flechas, pedales, freno de mano, luces, intermitentes, emergencia, Bajarse y claxon en su sitio" .. (if #missing > 0 then " (faltan: " .. table.concat(missing, ", ") .. ")" else ""))
+		local joy = playerGui:FindFirstChild("JoystickGui")
+		joy = joy and joy:FindFirstChild("Joystick")
+		check(joy and joy.Visible == false, "Al volante el joystick se esconde (se gira con las flechas)")
+		local drive = HudLayout.current()
+		drive.HudLayoutModule = HudLayout
+		local function rectFor(id: string)
+			return rectOf(driveButtons[id], drive)
+		end
+		local gas, brake = rectFor("Acelerar"), rectFor("Frenar")
+		local left, right = rectFor("GiroIzq"), rectFor("GiroDer")
+		check(drive.Canvas.X - (gas.X + gas.W) <= 16.5 and drive.Canvas.Y - (gas.Y + gas.H) <= 16.5 and gas.H >= 1.8 * gas.W and brake.X + brake.W <= gas.X and brake.H < gas.H,
+			"ACELERAR alto en la esquina de abajo a la derecha y FRENO a su izquierda (más bajo)")
+		check(left.X + left.W <= right.X and right.X + right.W < drive.Canvas.X * 0.3 and drive.Canvas.Y - (left.Y + left.H) <= 20, "Las flechas ◀ ▶ abajo a la izquierda (donde estaba el joystick)")
+		local small = {}
+		for _, id in { "Acelerar", "Frenar", "GiroIzq", "GiroDer" } do
+			local r = rectFor(id)
+			if math.min(r.W, r.H) * drive.Scale < 44 then
+				table.insert(small, ("%s %d px"):format(id, math.min(r.W, r.H) * drive.Scale))
+			end
+		end
+		check(#small == 0, "Pedales y flechas grandes para el pulgar (44 px o más)" .. (if #small > 0 then ": " .. table.concat(small, ", ") else ""))
+		local arrowIcon = driveButtons.GiroIzq:FindFirstChild("Icon")
+		check(arrowIcon and arrowIcon.Rotation == 180 and driveButtons.GiroDer:FindFirstChild("Icon").Rotation == 0, "Las flechas se dibujan (◀ y ▶), sin depender de la fuente")
+		noOverlaps(hudRects(mods), HudLayout, ("%dx%d al volante"):format(size[1], size[2]))
+		-- Mantener pulsado: varios dedos a la vez (acelerar y girar)
+		local gasTouch = { UserInputType = roblox.Enum.UserInputType.Touch, UserInputState = roblox.Enum.UserInputState.Begin }
+		local leftTouch = { UserInputType = roblox.Enum.UserInputType.Touch, UserInputState = roblox.Enum.UserInputState.Begin }
+		driveButtons.Acelerar.InputBegan:Fire(gasTouch)
+		driveButtons.GiroIzq.InputBegan:Fire(leftTouch)
+		check(held.Gas == true and held.Left == true, "Acelerar y girar a la vez (dos dedos)")
+		userInput.InputEnded:Fire(leftTouch)
+		check(held.Left == false and held.Gas == true, "Al soltar la flecha deja de girar, sin soltar el acelerador")
+		userInput.InputEnded:Fire(gasTouch)
+		check(held.Gas == false, "Y al soltar el pedal deja de acelerar")
+		local lightTouch = { UserInputType = roblox.Enum.UserInputType.Touch, UserInputState = roblox.Enum.UserInputState.Begin }
+		driveButtons.Luces.InputBegan:Fire(lightTouch)
+		userInput.InputEnded:Fire(lightTouch)
+		driveButtons.IntIzq.Activated:Fire()
+		driveButtons.Emergencia.Activated:Fire()
+		check(calls[1] == "Luces" and calls[2] == "L" and calls[3] == "H", "Tocar Luces enciende las luces; los intermitentes y la emergencia responden")
+		status.Lights, status.Indicator, status.Hazard, status.Reversing = 2, "L", true, true
+		TouchLayout.refresh()
+		check(driveButtons.Luces.Badge.Visible and driveButtons.Luces.Badge.Text == "Largas" and driveButtons.Frenar.Badge.Text == "R", "Con las largas, «Largas» en el botón; marcha atrás, «R» en el freno")
+		-- Fuera del coche todo vuelve a su sitio
+		TouchLayout.setDriving(false)
+		mods.Joystick.setDriving(false)
+		for _, id in DriveButtons.Ids do
+			TouchLayout.unregister(id)
+		end
+		TouchLayout.unregister("Claxon")
+		registerAll(TouchLayout)
+		check(joy and joy.Visible and TouchLayout.buttons().Ataque.Visible and TouchLayout.buttons().GiroIzq == nil, "Al bajarse vuelven el joystick y los botones de ir a pie")
+	end
 	do
 		-- Las balas (arma en la mano): arriba a la derecha, a la izquierda del minimapa, dentro de la
 		-- pantalla y lejos de los botones de disparar (la captura: encima del minimapa)
@@ -1276,7 +1378,10 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 			local w, h = panel.Size.X.Offset * k, panel.Size.Y.Offset * k
 			local x = panel.Position.X.Scale * size[1] + panel.Position.X.Offset - panel.AnchorPoint.X * w
 			local y = panel.Position.Y.Scale * size[2] + panel.Position.Y.Offset - panel.AnchorPoint.Y * h
-			local mine = { X = x / s, Y = y / s, W = w / s, H = h / s } -- (en el lienzo del HUD)
+			-- (con la tira de testigos debajo: intermitentes, luces y freno de mano)
+			local strip = panel:FindFirstChild("Telltales")
+			local below = if strip then (strip.Position.Y.Offset + strip.Size.Y.Offset) * k else 0
+			local mine = { X = x / s, Y = y / s, W = w / s, H = (h + below) / s } -- (en el lienzo del HUD)
 			local clashes = {}
 			local others = hudRects(mods)
 			for _, name in if stars > 0 then { "Gps", "Activity", "Wanted" } else { "Gps", "Activity" } do
@@ -1284,6 +1389,10 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 			end
 			for name, slot in now.Slots do
 				table.insert(others, { Name = "Hueco " .. name, Rect = HudLayout.rect(slot, now.Canvas) })
+			end
+			-- (al volante: pedales, flechas, luces, intermitentes…)
+			for name, slot in now.DriveSlots do
+				table.insert(others, { Name = "Hueco al volante " .. name, Rect = HudLayout.rect(slot, now.Canvas) })
 			end
 			for _, other in others do
 				if HudLayout.overlaps(mine, other.Rect) then

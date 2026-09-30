@@ -247,6 +247,173 @@ print("Daños y lo que se nota")
 check(Crash.strength(2) == 0 and Crash.strength(20) > 0 and Crash.strength(200) == 1, "fuerza del golpe: 0 en un roce, 1 como mucho")
 check(Crash.damageLevel(10) == 0 and Crash.damageLevel(25) == 1 and Crash.damageLevel(50) == 2, "daños: nada, abolladura, cristal rajado")
 
+---------------------------------------------------------------------
+-- Objetos y personas (shared/Knock)
+---------------------------------------------------------------------
+local Knock = luau.load(fs.readFile("src/shared/Knock.luau"), { debugName = "Knock", environment = env })()
+
+print("Objetos: cuanto más rápido, más lejos")
+do
+	local bin = Knock.Catalog.Bin
+	local last, monotonic = -1, true
+	for speed = 22, 200, 6 do
+		local vel, _, mode = Knock.launch(bin, V(0, 0, -speed), 1300)
+		local r = Knock.range(vel)
+		if mode ~= "launch" or r < last - 1e-6 then
+			monotonic = false
+		end
+		last = r
+	end
+	check(monotonic, "la distancia crece con la velocidad (sin bajar nunca)")
+	local slow, _, slowMode = Knock.launch(bin, V(0, 0, -10), 1300)
+	local fast, _, fastMode = Knock.launch(bin, V(0, 0, -100), 1300)
+	check(slowMode == "tip" and Knock.range(slow) < 1.5, ("a 10 km/h la papelera solo se vuelca (%.1f studs)"):format(Knock.range(slow)))
+	check(fastMode == "launch" and Knock.range(fast) > 15, ("a 100 km/h sale volando (%.0f studs)"):format(Knock.range(fast)))
+	local capped = Knock.launch(bin, V(0, 0, -5000), 12000)
+	check(Vector3.new(capped.X, 0, capped.Z).Magnitude <= Knock.MaxLaunch + 1e-6 and capped.Y <= Knock.MaxLift + 1e-6, "con topes: nunca más de MaxLaunch de lado ni MaxLift hacia arriba")
+	local nan = Knock.launch(bin, V(0 / 0, 0, 0), 1300)
+	check(nan == Vector3.zero, "una velocidad rara (NaN) no lanza nada")
+	local walk, _, walkMode = Knock.launch(bin, V(0, 0, -16), Knock.CharacterMass)
+	check(walkMode == "tip" and walk.Magnitude < 10, "andando contra una papelera: se vuelca, no sale disparada")
+	local cone = Knock.launch(Knock.Catalog.Cone, V(0, 0, -60), 1300)
+	local bench = Knock.launch(Knock.Catalog.Bench, V(0, 0, -60), 1300)
+	check(cone.Magnitude > bench.Magnitude, "un cono sale más lejos que un banco")
+	local _, _, benchSlow = Knock.launch(Knock.Catalog.Bench, V(0, 0, -10), 1300)
+	check(benchSlow == "none", "un banco a 10 studs/s ni se mueve (pesado)")
+	local motoVel = Knock.launch({ Mass = Crash.Mass.Moto }, V(0, 0, -60), Crash.Mass.Coche)
+	local motoSlow, _, motoSlowMode = Knock.launch({ Mass = Crash.Mass.Moto }, V(0, 0, -12), Crash.Mass.Coche)
+	check(motoSlowMode == "tip" and Knock.range(motoVel) > Knock.range(motoSlow), "moto aparcada: despacio se cae; rápido sale volando")
+	local up = Knock.launch(bin, V(0, 0, -80), 1300)
+	check(up.Y > 0 and up.Z < 0, "sale hacia donde ibas y un poco hacia arriba")
+end
+
+print("Qué se puede tumbar y qué no")
+do
+	check(Knock.profile("Bin", "Part", { "Streets", "Town" }, V(2.6, 1.4, 1.4)) ~= nil, "papelera de la calle: sí")
+	check(Knock.profile("Bin", "Part", { "Casa", "Manzana_Casas" }, V(1.4, 2.4, 1.4)) ~= nil, "cubo de basura de una casa: sí")
+	check(Knock.profile("Cone", "Part", { "Obras", "Detalles" }, V(0.8, 1.6, 0.8)) ~= nil, "cono de obras: sí")
+	check(Knock.profile("TerraceChair", "Part", { "Escaparate", "Edificio" }, V(1.3, 1.8, 1.3)) ~= nil, "silla de terraza: sí")
+	check(Knock.profile("MotoAparcada", "Model", { "Detalles", "Streets" }, V(1.2, 3, 5)) ~= nil, "moto aparcada de adorno: sí (entera)")
+	check(Knock.profile("MotoAparcada", "Part", { "Detalles" }, V(1, 1, 1)) == nil, "una pieza suelta llamada como un Model: no")
+	check(Knock.profile("Bench", "Model", { "Jardin", "Manzana_Parque" }, V(6, 3.4, 2)) ~= nil, "banco del parque: sí (pesado)")
+	check(Knock.profile("Bench", "Model", { "Decor", "Edificio" }, V(6, 3.4, 2)) == nil, "banco de dentro de un edificio: no")
+	check(Knock.profile("Pot", "Part", { "Plant", "Mueble" }, V(2.4, 2.4, 2.4)) == nil, "maceta de un interior: no")
+	check(Knock.profile("Chair", "Part", { "Edificio", "Colegio" }, V(1.8, 1.6, 1.8)) == nil, "silla del colegio: no")
+	check(Knock.profile("Box", "Part", { "TrafficLight", "Streets" }, V(1.4, 3.6, 1.2)) == nil, "la caja de un semáforo: no")
+	for _, name in { "Bollard", "StreetLamp", "TrafficLight", "Planter", "Hydrant", "KioskBody", "Tree", "Wall" } do
+		check(Knock.profile(name, "Part", { "Streets", "Detalles" }, V(1, 1, 1)) == nil and Knock.profile(name, "Model", { "Streets", "Detalles" }, V(1, 1, 1)) == nil and Knock.isSolid(name), name .. ": sólido")
+	end
+	check(Knock.profile("Bin", "Part", { "Streets" }, V(40, 2, 2)) == nil, "algo enorme con nombre de papelera: no")
+end
+
+print("Personas")
+do
+	local graze = Knock.person(V(0, 0, -3), 1300)
+	local slow = Knock.person(V(0, 0, -10), 1300)
+	local mid = Knock.person(V(0, 0, -20), 1300)
+	local fast = Knock.person(V(0, 0, -60), 1300)
+	check(graze.Mode == "none", "un roce: nada")
+	check(slow.Mode == "stumble" and slow.Damage == 0, "despacio: un traspiés, sin daño")
+	check(mid.Mode == "fall" and mid.Down > 0 and mid.Damage > 0, "a 20: al suelo y se levanta")
+	check(fast.Mode == "launch" and fast.Vel.Y > mid.Vel.Y and fast.Damage > mid.Damage, "a 60: por los aires (más daño)")
+	local crazy = Knock.person(V(0, 0, -9000), 12000)
+	check(Vector3.new(crazy.Vel.X, 0, crazy.Vel.Z).Magnitude <= 55 and crazy.Vel.Y <= 34 and crazy.Damage <= 60, "con topes (nadie sale al cielo)")
+	check(Knock.person(V(0, 0, -30), Knock.CharacterMass).Mode == "stumble", "otra persona corriendo solo empuja")
+	-- La animación de la caída: se va, se queda en el suelo y se levanta
+	local tEnd = Knock.personTime(fast)
+	local o1, lie1 = Knock.personPose(0.05, fast)
+	local oMid, lieMid, doneMid = Knock.personPose(tEnd * 0.6, fast)
+	local _, lieEnd, doneEnd = Knock.personPose(tEnd + 0.1, fast)
+	check(o1.Y > 0 and lie1 > 0 and lie1 < 1, "sale por el aire girando")
+	check(lieMid == 1 and not doneMid and oMid.Magnitude > 3, ("en el suelo, lejos de donde estaba (%.1f studs)"):format(oMid.Magnitude))
+	check(lieEnd == 0 and doneEnd, "al final está de pie")
+	local _, _, stumbleDone = Knock.personPose(0.7, slow)
+	check(stumbleDone, "el traspiés dura poco")
+end
+
+print("Vuelven a su sitio")
+do
+	local home = V(0, 1, 0)
+	local st = { Since = 0 }
+	Knock.rest(st, 1, 10)
+	check(st.RestSince == nil, "moviéndose: no está quieto")
+	Knock.rest(st, 2, 0.1)
+	check(st.RestSince == 2, "quieto desde que se para")
+	check(not Knock.shouldRespawn(st, 10, V(20, 1, 0), home, false), "a los 8 s quieto: aún no vuelve")
+	check(Knock.shouldRespawn(st, 2 + Knock.RestSeconds, V(20, 1, 0), home, false), ("a los %d s quieto: vuelve"):format(Knock.RestSeconds))
+	check(not Knock.shouldRespawn(st, 2 + Knock.RestSeconds, V(20, 1, 0), home, true), "con alguien encima de su sitio: espera")
+	local moving = { Since = 0 }
+	check(Knock.shouldRespawn(moving, Knock.MaxLife, V(5, 1, 0), home, false), "aunque siga rodando, como mucho MaxLife fuera")
+	check(Knock.shouldRespawn({ Since = 99 }, 100, V(0, -200, 0), home, false), "caído del mapa: vuelve ya")
+	-- Presupuesto
+	local loose = {}
+	for i = 1, Knock.Budget do
+		loose["o" .. i] = { Since = 100 + i }
+	end
+	local ok, oldest = Knock.admit(loose)
+	check(not ok and oldest == "o1", "con " .. Knock.Budget .. " sueltos: el más antiguo vuelve para dejar sitio")
+	loose.o1 = nil
+	check((Knock.admit(loose)), "con uno menos, cabe otro")
+end
+
+print("Servidor: golpes a objetos y personas")
+do
+	check((Knock.plausible(V(0, 0, 0), 7, V(0, 0, -9), 1, 30, 72)), "tu coche junto a la papelera: vale")
+	local okFar, whyFar = Knock.plausible(V(0, 0, 0), 7, V(0, 0, -200), 1, 30, 72)
+	check(not okFar and whyFar == "lejos", "una papelera a 200 studs: rechazado")
+	local okFast, whyFast = Knock.plausible(V(0, 0, 0), 7, V(0, 0, -9), 1, 500, 72)
+	check(not okFast and whyFast == "velocidad imposible", "diciendo ir a 500: rechazado")
+	local okHigh = Knock.plausible(V(0, 0, 0), 7, V(0, 40, -5), 1, 30, 72)
+	check(not okHigh, "algo en otro piso: rechazado")
+	check(not (Knock.plausible(V(0, 0, 0), 7, V(0, 0, -9), 1, 0 / 0, 72)), "velocidad NaN: rechazado")
+end
+
+-- La ciudad de verdad (RealLifeSimulator.rbxl, solo lectura): qué encontraría KnockService
+local okPlace, placeData = pcall(fs.readFile, "RealLifeSimulator.rbxl")
+if okPlace then
+	print("La ciudad del juego (lo que se puede tumbar)")
+	local okGame, game = pcall(roblox.deserializePlace, placeData)
+	local town = okGame and game.Workspace:FindFirstChild("Town")
+	if town then
+		local counts, solidHit = {}, {}
+		for _, d in town:GetDescendants() do
+			if (d:IsA("BasePart") or d:IsA("Model")) and (Knock.Catalog[d.Name] or Knock.isSolid(d.Name)) then
+				local ancestors = {}
+				local node = d.Parent
+				for _ = 1, 5 do
+					if not node or node == game.Workspace then
+						break
+					end
+					table.insert(ancestors, node.Name)
+					node = node.Parent
+				end
+				local size = if d:IsA("BasePart") then d.Size else nil
+				if Knock.profile(d.Name, if d:IsA("Model") then "Model" else "BasePart", ancestors, size) then
+					counts[d.Name] = (counts[d.Name] or 0) + 1
+					if Knock.isSolid(d.Name) then
+						solidHit[d.Name] = true
+					end
+				end
+			end
+		end
+		local summary = {}
+		for name, n in counts do
+			table.insert(summary, name .. "=" .. n)
+		end
+		table.sort(summary)
+		print("    " .. table.concat(summary, ", "))
+		check((counts.Bin or 0) >= 800, "papeleras y cubos: " .. tostring(counts.Bin))
+		check((counts.Cone or 0) >= 100, "conos de obra: " .. tostring(counts.Cone))
+		check((counts.MotoAparcada or 0) >= 100, "motos de adorno: " .. tostring(counts.MotoAparcada))
+		check((counts.Bench or 0) >= 100, "bancos de parque: " .. tostring(counts.Bench))
+		check((counts.TerraceChair or 0) >= 30 and (counts.TerraceTable or 0) >= 20, "terrazas (sillas y mesas)")
+		check((counts.Pot or 0) < 213, "las macetas de los interiores no cuentan")
+		check(next(solidHit) == nil, "nada estructural (farolas, semáforos, bolardos…) se puede tumbar")
+	else
+		check(false, "no se pudo leer la ciudad del archivo")
+	end
+end
+
 print("El juego usa todo esto (lectura del código)")
 local function read(path: string): string
 	local ok, text = pcall(fs.readFile, path)
@@ -266,7 +433,21 @@ check(string.find(traffic, "function Traffic.hit", 1, true) ~= nil and string.fi
 check(string.find(service, "Crash.judge", 1, true) ~= nil and string.find(service, "Crash.burst", 1, true) ~= nil, "CrashService valida los avisos con Crash.judge y limita el spam")
 check(string.find(service, "rideModel", 1, true) ~= nil, "CrashService usa el vehículo que conduces según el servidor (no el que diga el cliente)")
 check(string.find(main, "\"CrashService\"", 1, true) ~= nil, "CrashService arranca con el servidor")
-check(string.find(project, "\"Crash\"", 1, true) ~= nil, "el remoto Crash está en el proyecto")
+check(string.find(project, "\"Crash\"", 1, true) ~= nil and string.find(project, "\"Knock\"", 1, true) ~= nil, "los remotos Crash y Knock están en el proyecto")
+local knockService = read("src/server/Services/KnockService.luau")
+local ambient = read("src/client/Controllers/Ambient.luau")
+local vehicles = read("src/client/Controllers/Vehicles.luau")
+local vehicleService = read("src/server/Services/VehicleService.luau")
+local toy = read("src/server/Services/ToyService.luau")
+check(string.find(knockService, "Knock.plausible", 1, true) ~= nil and string.find(knockService, "Knock.admit", 1, true) ~= nil, "KnockService valida los golpes y respeta el presupuesto")
+check(string.find(knockService, "CombatService.applyHit", 1, true) ~= nil, "atropellar a un jugador pasa por las reglas de siempre (K.O., protección, delitos)")
+check(string.find(knockService, "Knock.shouldRespawn", 1, true) ~= nil and string.find(knockService, "Knock.RayGroup", 1, true) ~= nil, "los objetos vuelven a su sitio y los rayos del coche no los ven")
+check(string.find(main, "\"KnockService\"", 1, true) ~= nil, "KnockService arranca con el servidor")
+check(string.find(ambient, "Knock.personPose", 1, true) ~= nil, "los peatones de la calle caen y se levantan")
+check(string.find(vehicles, "Collisions.exitVehicle", 1, true) ~= nil, "en moto, un golpe fuerte te baja del vehículo")
+check(string.find(vehicleService, "GetAttribute(\"Knocked\")", 1, true) ~= nil, "VehicleService no aparca una moto mientras vuela")
+check(string.find(toy, "function ToyService.push", 1, true) ~= nil, "los balones también salen con el coche")
+check(string.find(driving, "Collisions.touchProps", 1, true) ~= nil and string.find(driving, "Collisions.rayGroup", 1, true) ~= nil, "Driving lanza lo que toca y sus rayos no frenan contra una papelera")
 
 print("")
 if failures > 0 then

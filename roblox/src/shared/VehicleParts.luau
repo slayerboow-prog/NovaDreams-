@@ -219,7 +219,7 @@ end
 VehicleParts.PaletteSize = #PAINTS
 
 -- Acabados (mano de obra de pintar: se paga cada vez que cambia la pintura o el acabado)
-add({ Id = "F_Brillante", Name = "Brillante", Slot = "Finish", Attach = "Zone:Primary", Kinds = ALL, Price = 250, Charge = "Each", Default = true, Material = "SmoothPlastic", Reflectance = 0.08, Lighten = 0 })
+add({ Id = "F_Brillante", Name = "Brillante", Slot = "Finish", Attach = "Zone:Primary", Kinds = ALL, Price = 250, Charge = "Each", Material = "SmoothPlastic", Reflectance = 0.08, Lighten = 0 })
 add({ Id = "F_Mate", Name = "Mate", Slot = "Finish", Attach = "Zone:Primary", Kinds = ALL, Price = 450, Charge = "Each", Material = "SmoothPlastic", Reflectance = 0, Lighten = 0 })
 add({ Id = "F_Metalizado", Name = "Metalizado", Slot = "Finish", Attach = "Zone:Primary", Kinds = ALL, Price = 550, Charge = "Each", Material = "SmoothPlastic", Reflectance = 0.25, Lighten = 0 })
 add({ Id = "F_Perlado", Name = "Perlado", Slot = "Finish", Attach = "Zone:Primary", Kinds = ALL, Price = 850, Charge = "Each", Material = "SmoothPlastic", Reflectance = 0.35, Lighten = 0.08 })
@@ -248,7 +248,7 @@ add({ Id = "Rims_Faro", Name = "Faro dorada", Slot = "Rims", Attach = "Wheels", 
 	Design = { Lip = true, Face = "Dark", Arms = 5, Width = 0.22, Hub = 0.4, FixedColor = { 255, 196, 64 }, FixedMaterial = "Metal" } })
 
 -- Color de las llantas (mano de obra, cada vez). En bici, patinete y monopatín pinta las de serie.
-add({ Id = "RC_Cromo", Name = "Cromo", Slot = "RimColor", Attach = "Wheels", Kinds = ALL, Price = 100, Charge = "Each", Default = true, Color = { 205, 208, 214 }, Material = "Metal" })
+add({ Id = "RC_Cromo", Name = "Cromo", Slot = "RimColor", Attach = "Wheels", Kinds = ALL, Price = 100, Charge = "Each", Color = { 205, 208, 214 }, Material = "Metal" })
 add({ Id = "RC_Negro", Name = "Negro", Slot = "RimColor", Attach = "Wheels", Kinds = ALL, Price = 100, Charge = "Each", Color = { 25, 25, 28 }, Material = "SmoothPlastic" })
 add({ Id = "RC_Grafito", Name = "Grafito", Slot = "RimColor", Attach = "Wheels", Kinds = ALL, Price = 100, Charge = "Each", Color = { 70, 72, 78 }, Material = "Metal" })
 add({ Id = "RC_Bronce", Name = "Bronce", Slot = "RimColor", Attach = "Wheels", Kinds = ALL, Price = 100, Charge = "Each", Color = { 150, 110, 60 }, Material = "Metal" })
@@ -395,7 +395,7 @@ end
 
 -- ¿Se puede comprar ahora? (nivel de personaje, pase)
 function VehicleParts.canBuy(part: { [string]: any }, kind: string, level: number?): (boolean, string?)
-	if not VehicleParts.fits(part, kind, nil) and not (part.Bodies and table.find(part.Kinds, kind)) then
+	if not table.find(part.Kinds, kind) then
 		return false, "No vale para este vehículo."
 	end
 	if part.Unlock.Source == "Pass" then
@@ -460,7 +460,7 @@ function VehicleParts.price(kind: string, from: { [string]: any }?, to: { [strin
 			end
 		end
 	end
-	if (to.Tint or 0) > 0 and not VehicleParts.isOwned(VehicleParts.Parts.Kit_Tint, kind, owned) then
+	if (to.Tint or 0) > 0 and (before.Tint or 0) == 0 and not VehicleParts.isOwned(VehicleParts.Parts.Kit_Tint, kind, owned) then
 		charge("Kit_Tint", VehicleParts.Parts.Kit_Tint.Name, VehicleParts.Parts.Kit_Tint.Price)
 	end
 	if changed("Plate") and (to.Plate or "") ~= "" then

@@ -22,6 +22,8 @@ local Traffic = require(script.Parent.Traffic)
 local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
 local Sidewalk = require(ReplicatedStorage.Shared.Sidewalk)
 local Nudge = require(script.Parent.Nudge)
+local Knock = require(ReplicatedStorage.Shared.Knock)
+local Crash = require(ReplicatedStorage.Shared.Crash)
 local TimeContext = require(ReplicatedStorage.Shared.LifeStory.TimeContext)
 
 local Ambient = {}
@@ -83,6 +85,7 @@ type Agent = {
 	ReactAt: number?, -- cuándo empezó el último traspiés (choque contigo o con tu coche)
 	ReactSide: number?, -- +1: le llegaste por su derecha
 	ReactDive: boolean?,
+	Knocked: { At: number, Hit: Knock.PersonHit, Origin: Vector3, Axis: Vector3, Facing: CFrame }?, -- atropellado por tu vehículo (shared/Knock)
 	Shove: number?, -- cuánto se aparta de su sitio en la acera (de lado)
 	ShoveNow: number?,
 	TurnAt: number?, -- cuándo empezó a darse la vuelta (al final de la acera)
@@ -654,9 +657,21 @@ local function updatePeds(frameDt: number, center: Vector3)
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	local seat = humanoid and humanoid.SeatPart
 	local carSpeed = 0
+	local carVel = Vector3.zero
+	local carCf: CFrame? = nil
+	local carSize = Vector3.zero
+	local carMass = Crash.DefaultMass
 	if seat then
 		local v = seat.AssemblyLinearVelocity
-		carSpeed = Vector3.new(v.X, 0, v.Z).Magnitude
+		carVel = Vector3.new(v.X, 0, v.Z)
+		carSpeed = carVel.Magnitude
+		-- La caja de tu vehículo (para saber si le das de verdad a alguien, no solo si pasas cerca)
+		local vehicle = seat:FindFirstAncestorOfClass("Model")
+		local chassis = vehicle and vehicle.PrimaryPart
+		if vehicle and chassis and vehicle:GetAttribute("Drivable") then
+			carCf, carSize = chassis.CFrame, chassis.Size
+			carMass = Crash.mass(vehicle:GetAttribute("Kind")) or Crash.DefaultMass
+		end
 	end
 	for i, ped in peds do
 		-- Según la hora y el tiempo sale más o menos gente (Ambient.density); de noche, ningún niño
@@ -695,6 +710,22 @@ local function updatePeds(frameDt: number, center: Vector3)
 			dt = ped.Acc :: number
 		end
 		ped.Acc, ped.Skip = 0, 0
+		-- Atropellado: sale despedido, se queda en el suelo un momento y se levanta (Knock.personPose)
+		local knocked = ped.Knocked
+		if knocked then
+			local t = now - knocked.At
+			local offset, lie, done = Knock.personPose(t, knocked.Hit)
+			if done then
+				ped.Knocked = nil
+			else
+				local total = Knock.personTime(knocked.Hit)
+				local back = if lie < 1 and t > total - Knock.GetUp then 1 - lie else 0
+				local at = knocked.Origin + offset * (1 - back) + Vector3.new(0, lie * 0.6, 0)
+				posePed(ped, CFrame.new(at) * CFrame.fromAxisAngle(knocked.Axis, -lie * math.pi / 2) * knocked.Facing, 0, true)
+				ped.LastPos = at
+				continue
+			end
+		end
 		if ped.PanicUntil then
 			-- Asustado por unos disparos: corre y luego vuelve a su paso
 			if os.clock() > ped.PanicUntil then
@@ -809,7 +840,21 @@ local function updatePeds(frameDt: number, center: Vector3)
 			local rel = Vector3.new(myRoot.Position.X - pos.X, 0, myRoot.Position.Z - pos.Z)
 			local d = rel.Magnitude
 			local car = carSpeed > 10
-			if (d < 3 or (car and d < 9)) and math.abs(myRoot.Position.Y - pos.Y) < 6 and (not ped.ReactAt or now - ped.ReactAt > 2.5) then
+			-- ¿Le ha dado tu vehículo de verdad? (dentro de su caja, con un poco de margen)
+			local struck = false
+			if carCf and carSpeed >= Knock.PersonSpeeds.Stumble and not ped.Knocked then
+				local lp = carCf:PointToObjectSpace(Vector3.new(pos.X, carCf.Position.Y, pos.Z))
+				struck = math.abs(lp.X) < carSize.X / 2 + 1 and math.abs(lp.Z) < carSize.Z / 2 + 1 and math.abs(myRoot.Position.Y - pos.Y) < 8
+			end
+			if struck then
+				local hit = Knock.person(carVel, carMass)
+				if hit.Mode ~= "none" then
+					local dir = if carVel.Magnitude > 1e-3 then carVel.Unit else Vector3.new(0, 0, -1)
+					ped.Knocked = { At = now, Hit = hit, Origin = pos, Axis = dir:Cross(Vector3.yAxis), Facing = heading(road, ped.Dir) }
+					ped.ReactAt = nil
+					Nudge.say(ped.Parts[ped.Index.Head], if hit.Mode == "launch" then "¡Aaah!" elseif hit.Mode == "fall" then "¡Ay!" else "¡Eh!", 1.8)
+				end
+			elseif (d < 3 or (car and d < 9)) and math.abs(myRoot.Position.Y - pos.Y) < 6 and (not ped.ReactAt or now - ped.ReactAt > 2.5) then
 				ped.ReactAt = now
 				ped.ReactDive = car
 				-- Hacia qué lado de la acera se aparta: lejos de ti (sin salirse de la acera)

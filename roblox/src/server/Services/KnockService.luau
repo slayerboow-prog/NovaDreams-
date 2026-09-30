@@ -156,6 +156,7 @@ function KnockService.register(seed: Instance): Unit?
 		unit.Homes[i] = part.CFrame
 		unit.Saved[i] = { Anchored = part.Anchored, CanCollide = part.CanCollide, Transparency = part.Transparency }
 		part:SetAttribute("Knock", nextId)
+		part:SetAttribute("KnockKind", seed.Name) -- (el cliente sabe si es pesado: Knock.Catalog)
 		setGroup(part)
 	end
 	claimed[seed] = true

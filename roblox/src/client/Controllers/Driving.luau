@@ -36,7 +36,14 @@
 --     volante, al momento se pide que te vuelva a sentar y, si tampoco, te bajas del todo (RideSpot.
 --     watchSeat). Los pedales solo salen conduciendo de verdad.
 --   * Atascado (pisando sin moverte, metido en un murete, una farola o alguien): te saca a un sitio
---     libre al lado (RideSpot.unstick). Con el tráfico se choca (Traffic.blocking): no se atraviesa.
+--     libre al lado (RideSpot.unstick).
+--   * Choques con otros vehículos (Controllers/Collisions + shared/Crash): el tráfico, los coches de
+--     otros jugadores, los aparcados, autobuses y patrullas. Impulso según las masas y la velocidad,
+--     rebote pequeño, giro si el golpe es descentrado, empujón de lado que se va apagando (Push,
+--     Spin) y nunca metidos uno en otro. En moto o bici, un golpe fuerte te tira al suelo.
+--   * Papeleras, conos, terrazas, motos de adorno… y personas: el coche no frena en seco contra
+--     ellos; salen despedidos (Collisions.touchProps → KnockService). Los rayos no los ven (grupo
+--     de choque Knock.RayGroup).
 -- F (o B en el mando) para bajarse (en el móvil, el botón "Bajarse"; lo hace Controllers/Vehicles
 -- y funciona siempre a la primera). El servidor
 -- (VehicleService) le da el control a tu ordenador, así que se mueve sin retraso y los demás
@@ -52,9 +59,11 @@ local UserInputService = game:GetService("UserInputService")
 local Gameplay = require(ReplicatedStorage.Shared.Gameplay)
 local Boats = require(ReplicatedStorage.Shared.Boats)
 local Wetness = require(ReplicatedStorage.Shared.Wetness)
+local Crash = require(ReplicatedStorage.Shared.Crash)
 local RideSpot = require(ReplicatedStorage.Shared.RideSpot)
 local VehicleControls = require(ReplicatedStorage.Shared.VehicleControls)
 local Traffic = require(script.Parent.Traffic)
+local Collisions = require(script.Parent.Collisions)
 local Joystick = require(script.Parent.Joystick)
 local VehicleLights = require(script.Parent.VehicleLights)
 local DriveButtons = require(script.Parent.Parent.UI.DriveButtons)
@@ -95,6 +104,9 @@ type State = {
 	Blink: boolean, -- el intermitente luce en este instante (para el tic-tac)
 	Sent: { [string]: any }?, -- lo último mandado al servidor
 	SentAt: number,
+	Push: Vector3, -- empujón de lado de un choque (se apaga solo: Crash.settle)
+	Spin: number, -- giro por un choque (rad/s)
+	Thrown: boolean?, -- ya te has caído de la moto con este golpe
 }
 local state: State? = nil
 local warnRoad: () -> ()
@@ -420,6 +432,8 @@ local function start(seat: VehicleSeat, humanoid: Humanoid)
 		Braking = false,
 		Blink = false,
 		SentAt = -math.huge,
+		Push = Vector3.zero,
+		Spin = 0,
 	}
 	-- De pie: se tapa la postura de sentado con la de estar de pie
 	if Gameplay.Driving[kind].Standing then
@@ -780,6 +794,12 @@ local function step(dt: number)
 	-- Pilotos: frenando (pedal contra la marcha o el freno de mano en marcha) y marcha atrás
 	s.Braking = VehicleControls.pedalMeaning(wantThrottle, s.Speed) == "Frena" or (handbrake and math.abs(s.Speed) > 0.5)
 	publishLamps(s)
+	-- Un choque descentrado hace girar (y se apaga con el agarre de las ruedas)
+	if s.Spin ~= 0 then
+		s.Yaw += s.Spin * dt
+		s.Travel += s.Spin * dt
+	end
+	s.Push, s.Spin = Crash.settle(s.Push, s.Spin, dt)
 	-- Hacia dónde va de verdad: con buen agarre, hacia donde apunta; si resbala, se queda atrás
 	s.Travel = Wetness.slide(s.Travel, s.Yaw, road.Traction * (if drift then 0.3 else 1), dt)
 
@@ -791,15 +811,24 @@ local function step(dt: number)
 			table.insert(ignore, other.Character)
 		end
 	end
+	-- (los vehículos cercanos no son paredes: de ellos se encarga el choque de verdad, Collisions)
+	for _, m in Collisions.rayIgnore() do
+		table.insert(ignore, m)
+	end
 	params.FilterDescendantsInstances = ignore
 	params.RespectCanCollide = true
 	params.IgnoreWater = false
+	-- Lo que se puede tumbar (papeleras, conos, terrazas…) no para el coche: sale despedido
+	local rayGroup = Collisions.rayGroup()
+	if rayGroup then
+		params.CollisionGroup = rayGroup
+	end
 
 	local size = s.Chassis.Size
 	local base = s.Base -- punto a ras de suelo
 	local forward = Vector3.new(-math.sin(s.Yaw), 0, -math.cos(s.Yaw))
 	local heading = Vector3.new(-math.sin(s.Travel), 0, -math.cos(s.Travel))
-	local move = heading * s.Speed * dt
+	local move = heading * s.Speed * dt + s.Push * dt
 
 	-- Choques: un rayo por delante (o por detrás) a media altura, desde las dos esquinas, y otro
 	-- desde el centro de la base hasta el morro (lo fino que pase entre las esquinas, o algo que ya
@@ -814,37 +843,45 @@ local function step(dt: number)
 			local length = if side == 0 then size.Z / 2 - 0.5 + reach else reach
 			local origin = base + Vector3.new(0, 1.6, 0) + right * size.X * side + forward * sign * nose
 			local hit = workspace:Raycast(origin, heading * sign * length, params)
-			if hit and hit.Normal.Y < 0.6 then
-				s.Blocker = if personOf(hit.Instance) then "Persona" else "Pared"
+			if hit and hit.Normal.Y < 0.6 and personOf(hit.Instance) then
+				-- Una persona no es una pared: sale despedida (Collisions.touchProps)
+				s.Blocker = "Persona"
+			elseif hit and hit.Normal.Y < 0.6 then
+				s.Blocker = "Pared"
 				SoundFx.crash(math.abs(s.Speed), s.Chassis)
+				pcall(Collisions.wall, s, hit.Position, hit.Normal, math.abs(s.Speed))
 				-- Golpe en la cámara (y en el mando) según lo rápido que ibas; un roce lento, nada
 				if math.abs(s.Speed) > 6 then
 					CameraShake.shake(math.clamp(math.abs(s.Speed) / 35, 0.2, 1.4), 0.35)
 				end
 				s.Speed = -s.Speed * 0.15 -- rebote suave
 				s.Throttle = 0
+				s.Push = Vector3.zero
 				move = Vector3.zero
 				break
 			end
 		end
 	end
 
-	-- El tráfico (lo mueve cada ordenador y sus piezas no chocan): si el siguiente paso se mete en un
-	-- coche, una moto o una bici del tráfico, choca como con una pared. (Si ya estabais tocándoos,
-	-- se puede salir: solo para lo que te acerca más a él.)
-	if not tuning.Boat and move.Magnitude > 1e-4 then
-		local nextBase = base + move
-		local ok, hitAt = pcall(Traffic.blocking, nextBase, forward, size.Z, size.X)
-		if ok and hitAt and (hitAt - nextBase).Magnitude < (hitAt - base).Magnitude + 1e-3 then
-			s.Blocker = "Trafico"
-			SoundFx.crash(math.abs(s.Speed), s.Chassis)
-			if math.abs(s.Speed) > 6 then
-				CameraShake.shake(math.clamp(math.abs(s.Speed) / 35, 0.2, 1.4), 0.35)
-			end
-			s.Speed = -s.Speed * 0.15
-			s.Throttle = 0
-			move = Vector3.zero
+	-- Empujado de lado contra una pared: el empujón se acaba ahí (no se mete en ella)
+	if s.Push.Magnitude > 1 then
+		local hit = workspace:Raycast(base + Vector3.new(0, 1.6, 0), s.Push.Unit * (size.X / 2 + s.Push.Magnitude * dt + 0.3), params)
+		if hit and hit.Normal.Y < 0.6 and not personOf(hit.Instance) then
+			move -= s.Push * dt
+			s.Push = Vector3.zero
 		end
+	end
+
+	-- Otros vehículos (el tráfico, otros jugadores, aparcados, autobuses, patrullas): choque de verdad
+	-- con masas, rebote, giro y sin quedar metidos (Collisions + shared/Crash). Los barcos no: tienen
+	-- su propia regla en el agua.
+	if not tuning.Boat then
+		local okSolve, solved = pcall(Collisions.solve, s, base, move, forward, dt, maxSpeed)
+		if okSolve and typeof(solved) == "Vector3" then
+			move = solved
+		end
+		-- Papeleras, conos, terrazas, balones, personas…: salen despedidos
+		pcall(Collisions.touchProps, s, base, forward, s.Speed)
 	end
 
 	if tuning.Boat then
@@ -904,7 +941,7 @@ local function step(dt: number)
 	local look = (forward - s.Up * forward:Dot(s.Up)).Unit
 	local oriented = CFrame.lookAt(position, position + look, s.Up) * CFrame.Angles(0, 0, s.Lean)
 	s.Chassis.CFrame = oriented * CFrame.new(0, size.Y / 2, 0)
-	s.Chassis.AssemblyLinearVelocity = heading * s.Speed
+	s.Chassis.AssemblyLinearVelocity = heading * s.Speed + s.Push
 	s.Chassis.AssemblyAngularVelocity = Vector3.zero
 
 	-- Pisando y sin moverse un rato: atascado (se saca a un sitio libre al lado)
@@ -934,6 +971,10 @@ end
 function Driving.init()
 	VehicleHud.init(player:WaitForChild("PlayerGui"))
 	buildTouch()
+	-- Choques: el servidor avisa de golpes de otros jugadores ("Impact") y de atropellos ("Knocked")
+	Collisions.init(function()
+		return state
+	end)
 
 	local function watch(character: Model)
 		local humanoid = character:WaitForChild("Humanoid", 10) :: Humanoid?

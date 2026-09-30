@@ -89,7 +89,7 @@ end
 
 -- Consejos de la primera vez (uno por cosa nueva; se guardan para no repetirlos)
 Onboarding.Tips = {
-	Vehiculo = "🚗 Vas en un vehículo. Muévete con el joystick (o W A S D). Para bajarte, toca «Bajarse» (tecla F).",
+	Vehiculo = "🚗 Vas en un vehículo. Al volante: flechas para girar y pedales ACELERAR y FRENO (o W A S D). Para bajarte, toca «Bajarse» (tecla F).",
 	Tienda = "🛒 Estás en una tienda. Coge lo que quieras con el botón de acción y paga en una caja antes de salir.",
 	Gimnasio = "💪 Máquina del gimnasio. Úsala con el botón de acción y toca «¡YA!» cuando el marcador pase por la zona verde.",
 	Transporte = "🚏 Parada de bus, metro o Cercanías. Espera y sube con el botón de acción. En el bus, «Bajar en la próxima». El metro y el tren piden billete.",

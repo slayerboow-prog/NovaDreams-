@@ -20,6 +20,7 @@ local Dialog = require(script.Parent.Parent.UI.Dialog)
 local Hud = require(script.Parent.Parent.UI.Hud)
 local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
 local Driving = require(script.Parent.Driving)
+local Collisions = require(script.Parent.Collisions)
 
 local create = Theme.create
 local C = Theme.Colors
@@ -309,6 +310,14 @@ local function hidePromptsOf(model: Instance?)
 end
 
 function Vehicles.init()
+	-- Un golpe fuerte en moto, bici, patinete o monopatín te tira al suelo: primero te bajas
+	-- (Controllers/Collisions)
+	Collisions.exitVehicle = function()
+		if inVehicle() then
+			Vehicles.exit()
+			Hud.toast("Info", "💥 ¡Te has caído! Levántate y vuelve a subir.")
+		end
+	end
 	Hud.addButton("🚲 Vehículos", Color3.fromRGB(0, 120, 170), 3, open)
 
 	-- Bajarse mientras vas montado o de pasajero: botón del racimo (móvil, donde a pie está Correr) o tecla F / B

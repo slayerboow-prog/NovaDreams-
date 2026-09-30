@@ -186,6 +186,12 @@ function VehicleLights.step()
 	end
 end
 
+-- (pruebas) seguir un vehículo y ver lo que se sabe de él
+VehicleLights.track = track
+function VehicleLights._entry(model: Model): Entry?
+	return entries[model]
+end
+
 function VehicleLights.init()
 	for _, model in CollectionService:GetTagged(VehicleLights.TAG) do
 		track(model)
