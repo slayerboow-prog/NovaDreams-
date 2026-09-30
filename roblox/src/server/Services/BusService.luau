@@ -28,6 +28,7 @@ local Gameplay = require(ReplicatedStorage.Shared.Gameplay)
 local Ground = require(ReplicatedStorage.Shared.Ground)
 local Format = require(ReplicatedStorage.Shared.Format)
 local BusLines = require(ReplicatedStorage.Shared.BusLines)
+local Rail = require(ReplicatedStorage.Shared.Rail)
 local Rides = require(script.Parent.Parent.World.Kit.Rides)
 local DataService = require(script.Parent.DataService)
 local LifeService = require(script.Parent.LifeService)
@@ -68,19 +69,23 @@ type Bus = {
 	Paid: { [Player]: number }, -- en qué parada (Visit) se pagó al conductor por este pasajero
 	PaidAt: number?, -- (conductor jugador) última parada cobrada (o salida) y dónde
 	PaidPos: Vector3?,
+	SinceDepart: number, -- (autobuses del juego) segundos desde que cerró las puertas y arrancó
+	Blocked: number, -- (autobuses del juego) segundos parado por alguien que no se aparta de delante
+	Stuck: boolean?, -- (autobuses del juego) lleva mucho parado en la calle: puertas abiertas para bajar
 }
 
 -- Ritmo mínimo entre paradas cobradas al conductor: quien mueve el autobús a golpe de
 -- teletransporte cobraría parada tras parada. Hace falta al menos la distancia a PACE_SPEED studs/s
 -- (más de lo que corre un autobús) y nunca menos de PACE_MIN segundos. Sin DataStore (Studio sin
 -- API, pruebas) no se guarda nada y no se mira.
-local PACE_SPEED = 60
+local PACE_SPEED = 90
 local PACE_MIN = 1.5
 local CHECK_PACE = pcall(function()
 	return DataStoreService:GetDataStore("PlayerData")
 end)
 
 local lines: { Line } = {}
+local roadEnds: { Vector3 } = {} -- extremos de las calles (los cruces), para buscar los semáforos
 local stopsById: { [string]: Stop } = {}
 local stopLines: { [string]: { Line } } = {}
 local buses: { Bus } = {}
@@ -151,6 +156,10 @@ local function buildNetwork(): boolean
 		return false
 	end
 	local roads = BusLines.roadsFrom(roadsFolder)
+	for _, road in roads do
+		table.insert(roadEnds, road.A)
+		table.insert(roadEnds, road.B)
+	end
 	-- Los postes de las paradas (Kit/BusStops). Si el mapa no los trae, se construyen ahora.
 	local signs: { [string]: BasePart } = {}
 	local function collect()
@@ -287,6 +296,7 @@ local function requestStop(bus: Bus, player: Player)
 	end
 	bus.Requests[player] = true
 	bus.Model:SetAttribute("StopRequested", true)
+	player:SetAttribute("BusStopRequested", true) -- (su botón se ve pulsado: lo ha pedido él)
 	local stop = bus.Line.Stops[bus.NextStop]
 	Notify:FireClient(player, "Info", ("🔔 Parada solicitada: te bajas en «%s»."):format(stop.Name))
 end
@@ -298,7 +308,9 @@ local function rolling(bus: Bus): boolean
 		return false
 	end
 	if not bus.Driver then
-		return true -- (los del juego, con las puertas cerradas, van de ruta: acaban de arrancar o frenan un momento)
+		-- Los del juego: si se mueven, o si acaban de arrancar (en los 2 primeros segundos aún van
+		-- cogiendo velocidad). Parados en un atasco o en un semáforo, se puede bajar.
+		return bus.Speed > 1 or bus.SinceDepart < 2
 	end
 	local chassis = bus.Model.PrimaryPart
 	if not chassis or VehicleService.ridingKind(bus.Driver) ~= "Autobus" then
@@ -325,11 +337,20 @@ local function watchSeats(bus: Bus)
 						bus.Riders[player] = nil
 						bus.Requests[player] = nil
 						player:SetAttribute("BusLine", nil)
+						player:SetAttribute("BusStopRequested", nil)
 					end
-					if root and moving and player and humanoid.Health > 0 and bus.Model.Parent then
+					-- Lo están llevando a otro sitio (teletransporte, cárcel, juicio): ni se le vuelve a
+					-- sentar ni se le pone junto a la puerta (si no, se deshacía el salto)
+					local function away(): boolean
+						return player ~= nil
+							and (player:GetAttribute("Teleporting") ~= nil or player:GetAttribute("JailUntil") ~= nil or player:GetAttribute("OnTrial") ~= nil)
+					end
+					if away() then
+						-- (nada: ya se encarga quien lo mueve)
+					elseif root and moving and player and humanoid.Health > 0 and bus.Model.Parent then
 						task.defer(function()
 							local near = root.Parent ~= nil and (root.Position - seat.Position).Magnitude < 15
-							if near and not seat.Occupant and rolling(bus) and humanoid.Health > 0 and not humanoid.SeatPart then
+							if near and not away() and not seat.Occupant and rolling(bus) and humanoid.Health > 0 and not humanoid.SeatPart then
 								seat:Sit(humanoid)
 								bus.Riders[player] = seat
 								player:SetAttribute("BusLine", bus.Line.Def.Id)
@@ -340,6 +361,9 @@ local function watchSeats(bus: Bus)
 						local cf = exitCFrame(bus, seat)
 						if cf then
 							task.defer(function()
+								if away() then
+									return
+								end
 								root.CFrame = cf
 								root.AssemblyLinearVelocity = Vector3.zero
 							end)
@@ -362,6 +386,16 @@ function BusService.board(bus: Bus, player: Player): boolean
 		return false
 	end
 	if bus.Riders[player] then
+		return false
+	end
+	-- Autobús de un jugador sin nadie al volante: no va a salir, así que no se cobra el billete
+	if bus.Driver and VehicleService.ridingKind(bus.Driver) ~= "Autobus" then
+		Notify:FireClient(player, "Error", "Este autobús no tiene a nadie al volante. Espera al siguiente.")
+		return false
+	end
+	-- (uno del juego parado en mitad de la calle con las puertas abiertas: se sube en la parada)
+	if bus.Stuck then
+		Notify:FireClient(player, "Error", "El autobús está parado en mitad de la calle. Súbete en la parada.")
 		return false
 	end
 	if not LifeService.allows(player, "Travel") then
@@ -482,6 +516,8 @@ local function makeBus(line: Line, cf: CFrame, driver: Player?): Bus
 		Requests = {},
 		Visit = 0,
 		Paid = {},
+		SinceDepart = math.huge,
+		Blocked = 0,
 	}
 	for _, door in model:GetDescendants() do
 		if door.Name == "BusDoor" and door:IsA("BasePart") and door:GetAttribute("Leaf") ~= 2 then
@@ -526,6 +562,8 @@ local function arrive(bus: Bus, k: number)
 	bus.AtStop = k
 	bus.Held = 0
 	bus.Visit += 1
+	bus.Stuck = nil
+	bus.Blocked = 0
 	setDoors(bus, true)
 	bus.Model:SetAttribute("CurrentStop", stop.Name)
 	bus.NextStop = k % #line.Stops + 1
@@ -537,12 +575,14 @@ local function arrive(bus: Bus, k: number)
 			humanoid.Sit = false
 			Notify:FireClient(player, "Info", ("🚏 Has bajado en «%s»."):format(stop.Name))
 		end
+		player:SetAttribute("BusStopRequested", nil)
 	end
 	table.clear(bus.Requests)
 end
 
 local function depart(bus: Bus)
 	setDoors(bus, false)
+	bus.SinceDepart = 0
 	bus.AtStop = nil
 	bus.Model:SetAttribute("CurrentStop", nil)
 	bus.Model:SetAttribute("StopRequested", false)
@@ -591,6 +631,13 @@ end
 -- Hasta qué velocidad puede ir sin llevarse por delante a un jugador que esté en su carril
 -- (los del juego van anclados y se mueven con PivotTo: no chocan, atravesarían a la gente)
 local LOOK_AHEAD = 30 -- studs por delante del morro que mira
+local HALF_LEN = 17 -- medio autobús (mide 34 de largo)
+
+-- Cuánto sobresale una caja (cf, size) a lo largo de la dirección dir, desde su centro
+local function extent(cf: CFrame, size: Vector3, dir: Vector3): number
+	return math.abs(dir:Dot(cf.RightVector)) * size.X / 2 + math.abs(dir:Dot(cf.UpVector)) * size.Y / 2 + math.abs(dir:Dot(cf.LookVector)) * size.Z / 2
+end
+
 local function clearAhead(bus: Bus): number
 	local pivot = bus.Model:GetPivot()
 	local look = Vector3.new(pivot.LookVector.X, 0, pivot.LookVector.Z)
@@ -598,23 +645,183 @@ local function clearAhead(bus: Bus): number
 		return math.huge
 	end
 	look = look.Unit
-	local nose = pivot.Position + look * 17 -- (el autobús mide 34 de largo)
+	local side = Vector3.new(-look.Z, 0, look.X)
+	local nose = pivot.Position + look * HALF_LEN
 	local limit = math.huge
 	for _, player in Players:GetPlayers() do
 		local root = rootOf(player)
 		if root and not bus.Riders[player] then
-			local rel = root.Position - nose
-			local along = rel.X * look.X + rel.Z * look.Z
-			local side = math.abs(rel.X * look.Z - rel.Z * look.X)
-			if along > -4 and along < LOOK_AHEAD and side < HALF_W + 1.5 and math.abs(rel.Y) < 10 then
-				-- Si va en coche o en bici, el morro de su vehículo está más cerca: más margen
-				local gap = if VehicleService.ridingKind(player) then 10 else 5
-				limit = math.min(limit, math.max(0, (along - gap) * 0.8))
+			local kind = VehicleService.ridingKind(player)
+			local ride = if kind then VehicleService.rideModel(player) else nil
+			local box: CFrame?, size: Vector3? = nil, nil
+			if ride and ride ~= bus.Model then
+				local ok, cf, sz = pcall(function()
+					return (ride :: Model):GetBoundingBox()
+				end)
+				if ok and typeof(cf) == "CFrame" and typeof(sz) == "Vector3" then
+					box, size = cf, sz
+				end
+			end
+			if box and size then
+				-- Va en un vehículo: cuenta su caja entera (un autobús mide 34 de largo: con el centro
+				-- del conductor no bastaba, se le metía dentro)
+				local rel = box.Position - nose
+				local along = rel:Dot(look)
+				local long = extent(box, size, look)
+				local wide = extent(box, size, side)
+				local lateral = math.abs(rel:Dot(side)) - wide
+				if along + long > -4 and along - long < LOOK_AHEAD + long and lateral < HALF_W + 1.5 and math.abs(rel.Y) < 12 then
+					limit = math.min(limit, math.max(0, (along - long - 3) * 0.8))
+				end
+			else
+				local rel = root.Position - nose
+				local along = rel.X * look.X + rel.Z * look.Z
+				local lateral = math.abs(rel.X * look.Z - rel.Z * look.X)
+				if along > -4 and along < LOOK_AHEAD + (if kind == "Autobus" then 40 else 10) and lateral < HALF_W + 1.5 and math.abs(rel.Y) < 10 then
+					-- Si va en coche o en bici, el morro de su vehículo está más cerca: más margen
+					-- (sin caja: un autobús, unos 40 studs)
+					local gap = if kind == "Autobus" then 40 elseif kind then 10 else 5
+					limit = math.min(limit, math.max(0, (along - gap) * 0.8))
+				end
 			end
 		end
 	end
 	return limit
 end
+
+---------------------------------------------------------------------
+-- Semáforos y pasos a nivel (los autobuses del juego también paran)
+---------------------------------------------------------------------
+
+-- Semáforos: el mismo ciclo que los coches del tráfico (Controllers/Traffic) y las patrullas
+-- (World/PoliceUnits), con la hora del servidor
+local CYCLE = 30
+local function serverNow(): number
+	local ok, t = pcall(function()
+		return workspace:GetServerTimeNow()
+	end)
+	return if ok and typeof(t) == "number" then t else os.clock()
+end
+local function signal(axis: string, now: number): string
+	local t = now % CYCLE
+	if axis == "X" then
+		return if t < 12 then "Green" elseif t < 15 then "Yellow" else "Red"
+	end
+	return if t < 15 then "Red" elseif t < 27 then "Green" else "Yellow"
+end
+
+-- Cruces con semáforo: el extremo de calle más cercano a cada semáforo (como hace Traffic)
+local lightNodes: { Vector3 }? = nil
+local function lightNodesList(): { Vector3 }
+	if lightNodes then
+		return lightNodes
+	end
+	local list: { Vector3 } = {}
+	local seen: { [string]: boolean } = {}
+	for _, model in CollectionService:GetTagged("TrafficLight") do
+		local arm = model:FindFirstChild("Arm")
+		if arm and arm:IsA("BasePart") then
+			local p = arm.Position
+			local best, bestD = nil, 40
+			for _, e in roadEnds do
+				local d = Vector3.new(e.X - p.X, 0, e.Z - p.Z).Magnitude
+				if d < bestD then
+					best, bestD = e, d
+				end
+			end
+			if best then
+				local key = ("%d:%d"):format(math.floor(best.X + 0.5), math.floor(best.Z + 0.5))
+				if not seen[key] then
+					seen[key] = true
+					table.insert(list, best)
+				end
+			end
+		end
+	end
+	lightNodes = list
+	return list
+end
+
+-- Pasos a nivel cerrados ahora mismo ({ Pos, Stop }): se mira una vez por fotograma para todos
+type RailStop = { Pos: Vector3, Stop: number }
+local closedCrossings: { RailStop } = {}
+local function updateCrossings()
+	table.clear(closedCrossings)
+	local root = ReplicatedStorage:FindFirstChild("RailState")
+	local f = root and root:FindFirstChild(Rail.Line.Id)
+	local phase = f and f:GetAttribute("Phase")
+	if not f or not phase then
+		return
+	end
+	local state = {
+		Phase = phase,
+		S = f:GetAttribute("S") or 0,
+		From = f:GetAttribute("From") or 0,
+		To = f:GetAttribute("To") or 0,
+		Duration = f:GetAttribute("Duration") or 1,
+		T0 = f:GetAttribute("T0") or 0,
+		Speed = f:GetAttribute("Speed"),
+		DwellEnd = f:GetAttribute("DwellEnd") or 0,
+	}
+	local now = serverNow()
+	for _, model in CollectionService:GetTagged("RailCrossing") do
+		local s, center = model:GetAttribute("S"), model:GetAttribute("Center")
+		if typeof(s) == "number" and typeof(center) == "Vector3" then
+			local ok, closed = pcall(Rail.crossingClosed, state, s, now)
+			if ok and closed then
+				table.insert(closedCrossings, { Pos = center, Stop = model:GetAttribute("Stop") or 12 })
+			end
+		end
+	end
+end
+
+-- Hasta qué velocidad puede ir para parar antes del semáforo en rojo o del paso a nivel cerrado
+local function signalLimit(bus: Bus): number
+	local pivot = bus.Model:GetPivot()
+	local look = Vector3.new(pivot.LookVector.X, 0, pivot.LookVector.Z)
+	if look.Magnitude < 0.1 then
+		return math.huge
+	end
+	look = look.Unit
+	local side = Vector3.new(-look.Z, 0, look.X)
+	local pos = pivot.Position
+	local gap = math.huge
+	local nodes = lightNodesList()
+	if #nodes > 0 then
+		local state = signal(if math.abs(look.X) > math.abs(look.Z) then "X" else "Z", serverNow())
+		if state ~= "Green" then
+			for _, node in nodes do
+				local rel = Vector3.new(node.X - pos.X, 0, node.Z - pos.Z)
+				local ahead = rel:Dot(look)
+				if ahead > 0 and ahead < 120 and math.abs(rel:Dot(side)) < 14 then
+					-- La línea de parada, 16 antes del centro del cruce (como los coches)
+					local toLine = ahead - 16 - HALF_LEN
+					if toLine > -1 and (state == "Red" or toLine > 10) then
+						gap = math.min(gap, math.max(toLine, 0))
+					end
+				end
+			end
+		end
+	end
+	for _, stop in closedCrossings do
+		local rel = Vector3.new(stop.Pos.X - pos.X, 0, stop.Pos.Z - pos.Z)
+		local ahead = rel:Dot(look)
+		if ahead > 0 and math.abs(rel:Dot(side)) < 16 then
+			local toLine = ahead - stop.Stop - HALF_LEN
+			if toLine > -1 and toLine < 80 then
+				gap = math.min(gap, math.max(toLine, 0))
+			end
+		end
+	end
+	if gap == math.huge then
+		return math.huge
+	end
+	return math.sqrt(2 * B.Brake * gap)
+end
+
+-- Tras STUCK_AFTER segundos parado por alguien que no se aparta, abre las puertas: los pasajeros
+-- pueden bajarse (si no, se quedaban encerrados)
+local STUCK_AFTER = 8
 
 local function stepNpc(bus: Bus, dt: number)
 	local line = bus.Line
@@ -631,6 +838,7 @@ local function stepNpc(bus: Bus, dt: number)
 		end
 		return
 	end
+	bus.SinceDepart += dt
 	local stop = line.Stops[bus.NextStop]
 	local toStop = (stop.S - bus.S) % total
 	-- Frena al llegar, va más despacio en las curvas y no se pega al autobús de delante
@@ -643,8 +851,11 @@ local function stepNpc(bus: Bus, dt: number)
 	elseif turn < 0.85 then
 		target = math.min(target, 15)
 	end
+	-- Semáforo en rojo o paso a nivel cerrado por delante: para antes
+	target = math.min(target, signalLimit(bus))
 	-- Alguien en el carril por delante (a pie o en su vehículo): frena y, si hace falta, se para
-	target = math.min(target, clearAhead(bus))
+	local ahead = clearAhead(bus)
+	target = math.min(target, ahead)
 	for _, other in buses do
 		if other ~= bus and other.Line == line and not other.Driver then
 			local gap = (other.S - bus.S) % total
@@ -657,6 +868,27 @@ local function stepNpc(bus: Bus, dt: number)
 		bus.Speed = math.min(target, bus.Speed + B.Accel * dt)
 	else
 		bus.Speed = math.max(target, bus.Speed - B.Brake * 2 * dt)
+	end
+	-- Parado por alguien que no se aparta: al rato abre las puertas; cuando se va, las cierra y sigue
+	if ahead < 1 and bus.Speed < 0.5 then
+		bus.Blocked += dt
+		if bus.Blocked >= STUCK_AFTER and not bus.DoorsOpen then
+			bus.Stuck = true
+			setDoors(bus, true)
+			for player in bus.Riders do
+				Notify:FireClient(player, "Info", "🚌 El autobús está parado: si quieres, puedes bajarte aquí.")
+			end
+		end
+	else
+		bus.Blocked = 0
+		if bus.Stuck then
+			bus.Stuck = nil
+			setDoors(bus, false)
+			bus.SinceDepart = 0
+		end
+	end
+	if bus.Stuck then
+		return -- (con las puertas abiertas no se mueve)
 	end
 	local advance = bus.Speed * dt
 	if advance >= toStop or toStop < 0.3 then
@@ -907,7 +1139,8 @@ local function hire(player: Player)
 	local bus = makeBus(line, cf :: CFrame, player)
 	bus.NextStop = nextStopAfter(line, at)
 	drivers[player] = bus
-	bus.PaidAt = os.clock()
+	-- (el reloj empieza ya con PACE_MIN de margen: si la primera parada está muy cerca, también se cobra)
+	bus.PaidAt = os.clock() - PACE_MIN
 	bus.PaidPos = (cf :: CFrame).Position
 	if not VehicleService.driveModel(player, bus.Model, "Autobus") then
 		drivers[player] = nil
@@ -1146,6 +1379,7 @@ function BusService.init()
 			bus.Requests[player] = nil
 			bus.Paid[player] = nil
 		end
+		player:SetAttribute("BusStopRequested", nil)
 	end)
 end
 

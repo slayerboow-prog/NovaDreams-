@@ -590,6 +590,23 @@ function WantedService.init()
 	Players.PlayerRemoving:Connect(function(player)
 		PoliceUnits.dismiss(player)
 		states[player] = nil
+		-- (las esperas van por UserId para que salir y entrar no las reinicie; las ya cumplidas se borran)
+		local now = os.clock()
+		for id, at in heistAt do
+			if now - at >= HEIST_GAP then
+				heistAt[id] = nil
+			end
+		end
+		for thief, victims in robbedAt do
+			for victim, at in victims do
+				if now - at >= VICTIM_GAP then
+					victims[victim] = nil
+				end
+			end
+			if next(victims) == nil then
+				robbedAt[thief] = nil
+			end
+		end
 	end)
 
 	task.spawn(function()

@@ -58,7 +58,7 @@ type Incident = {
 	Done: boolean,
 }
 type Station = { Model: Model, Base: BasePart, Truck: BasePart? }
-type Shift = { Player: Player, Station: Station, Incident: Incident?, Uniform: Folder? }
+type Shift = { Player: Player, Station: Station, Incident: Incident?, Uniform: Folder?, LastTry: number? } -- LastTry: cuándo se buscó aviso por última vez
 
 local stations: { Station } = {}
 local shifts: { [Player]: Shift } = {}
@@ -265,6 +265,7 @@ local function solve(shift: Shift)
 	inc.Done = true
 	local player = shift.Player
 	shift.Incident = nil
+	shift.LastTry = os.clock() -- (el siguiente aviso llega enseguida: el vigilante no se adelanta)
 	for _, d in inc.Folder:GetDescendants() do
 		if d:IsA("ProximityPrompt") then
 			d:Destroy()
@@ -399,13 +400,17 @@ function BUILD.Casa(shift: Shift, inc: Incident, origin: Vector3): boolean
 	local cf, size = body.CFrame, body.Size
 	inc.Position = (mailbox:GetAttribute("DoorSpot") or mailbox.Position) :: Vector3
 	-- Llamas en las ventanas de delante, en un lateral y en el tejado; ventanas iluminadas de naranja
+	-- Todas al alcance de la manguera desde el suelo (el aviso llega a 14 studs): en una casa de dos
+	-- plantas el tejado quedaba demasiado alto y el fuego no se podía apagar. Ahí la llama "del tejado"
+	-- sale por la fachada, a 8 studs del suelo, y la ventana de arriba a 11 como mucho.
+	local roof = if size.Y > 12 then cf * CFrame.new(0, -size.Y / 2 + 8, -size.Z / 2 - 0.6) else cf * CFrame.new(0, size.Y / 2 + 1.5, 0)
 	local spots = {
 		cf * CFrame.new(size.X / 4, -size.Y / 2 + 4.5, -size.Z / 2 - 0.6),
 		cf * CFrame.new(-size.X / 2 - 0.6, 0, 0),
-		cf * CFrame.new(0, size.Y / 2 + 1.5, 0),
+		roof,
 	}
 	if size.Y > 14 then
-		table.insert(spots, cf * CFrame.new(-size.X / 4, size.Y / 2 - 4, -size.Z / 2 - 0.6))
+		table.insert(spots, cf * CFrame.new(-size.X / 4, math.min(size.Y / 2 - 4, -size.Y / 2 + 11), -size.Z / 2 - 0.6))
 	end
 	for i, spot in spots do
 		local flame = flameWithPrompt(shift, inc, spot.Position, F.FlameHits + (if i == 3 then 1 else 0))
@@ -483,6 +488,7 @@ function BUILD.Gato(shift: Shift, inc: Incident, origin: Vector3): boolean
 end
 
 function newIncident(shift: Shift)
+	shift.LastTry = os.clock()
 	if shift.Incident then
 		shift.Incident.Folder:Destroy()
 		shift.Incident = nil
@@ -678,6 +684,11 @@ function FireService.init()
 				-- Un turno con error no para los avisos del resto
 				local ok, err = pcall(function()
 					local inc = shift.Incident
+					-- Sin aviso (no se pudo montar ninguno): se vuelve a probar cada 15 s
+					if not inc and os.clock() - (shift.LastTry or 0) > 15 then
+						newIncident(shift)
+						return
+					end
 					if inc and not inc.Done then
 						if os.clock() - inc.Started > F.TimeLimit then
 							Notify:FireClient(player, "Info", "🚨 Otra dotación se ha hecho cargo. Hay un aviso nuevo.")

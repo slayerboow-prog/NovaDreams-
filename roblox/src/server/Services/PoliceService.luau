@@ -62,7 +62,7 @@ type Incident = {
 	Npc: Model?,
 	Fleeing: boolean?,
 }
-type Shift = { Player: Player, Station: Station, Incident: Incident?, Uniform: Folder? }
+type Shift = { Player: Player, Station: Station, Incident: Incident?, Uniform: Folder?, LastTry: number? } -- LastTry: cuándo se buscó aviso por última vez
 
 local stations: { Station } = {}
 local shifts: { [Player]: Shift } = {}
@@ -255,6 +255,7 @@ local function solve(shift: Shift)
 	end
 	local player = shift.Player
 	shift.Incident = nil
+	shift.LastTry = os.clock() -- (el siguiente aviso llega enseguida: el vigilante no se adelanta)
 	clearIncident(inc, 15)
 	local pay = math.floor(((P.Pay[inc.Kind] or 20) + inc.Distance * P.PerStud) * MonetizationService.payMultiplier(player))
 	DataService.addMoney(player, pay, true)
@@ -472,7 +473,8 @@ function BUILD.Perdido(shift: Shift, inc: Incident)
 	end)
 end
 
-function newIncident(shift: Shift)
+function newIncident(shift: Shift, retry: boolean?)
+	shift.LastTry = os.clock()
 	if shift.Incident then
 		clearIncident(shift.Incident)
 		shift.Incident = nil
@@ -480,7 +482,9 @@ function newIncident(shift: Shift)
 	local origin = shift.Station.Desk.Position
 	local position, along, toRoad = sidewalkSpot(origin)
 	if not position then
-		Notify:FireClient(shift.Player, "Info", "Todo tranquilo por ahora.")
+		if not retry then -- (al reintentar no se repite cada 15 s)
+			Notify:FireClient(shift.Player, "Info", "Todo tranquilo por ahora.")
+		end
 		publish(shift)
 		return
 	end
@@ -717,7 +721,10 @@ function PoliceService.init()
 				-- Un turno con error no para los avisos del resto
 				local ok, err = pcall(function()
 					local inc = shift.Incident
-					if inc and not inc.Busy and os.clock() - inc.Started > P.TimeLimit then
+					if not inc and os.clock() - (shift.LastTry or 0) > 15 then
+						-- Sin aviso (no se encontró sitio): se vuelve a probar cada 15 s
+						newIncident(shift, true)
+					elseif inc and not inc.Busy and os.clock() - inc.Started > P.TimeLimit then
 						Notify:FireClient(player, "Info", "📻 El aviso lo ha cogido otra patrulla. Hay uno nuevo.")
 						newIncident(shift)
 					else

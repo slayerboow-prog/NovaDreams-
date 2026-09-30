@@ -224,6 +224,19 @@ local function editAccess(player: Player, key: string, floor: number, letter: st
 	return ok
 end
 
+-- Quita de una tabla "UserId>UserId" las parejas de ese jugador y las que ya pasaron su espera
+-- (si no, en un servidor que dura mucho la tabla solo crece)
+local function prunePairs(list: { [string]: number }, userId: number, gap: number)
+	local id = tostring(userId)
+	local now = os.clock()
+	for pair, at in list do
+		local a, b = string.match(pair, "^(%d+)>(%d+)$")
+		if a == id or b == id or now - at >= gap then
+			list[pair] = nil
+		end
+	end
+end
+
 function HousingService.giveKey(player: Player, key: string, floor: number, letter: string?, target: Player): boolean
 	if target == player then
 		return false
@@ -408,8 +421,14 @@ function HousingService.answer(owner: Player, token: string, open: boolean): boo
 	if open then
 		-- Solo se abre desde el edificio (la casa, su pasillo o su portal): antes se podía abrir
 		-- desde cualquier punto de la ciudad. El aviso sigue ahí por si vuelve a tiempo.
+		-- (en una planta baja que se pisa de verdad no hay InteriorKey: vale estar junto a la puerta)
 		local at = owner:GetAttribute("InteriorKey")
-		if type(at) ~= "string" or string.sub(at, 1, #tostring(bell.Building.Id) + 1) ~= bell.Building.Id .. ":" then
+		local inside = type(at) == "string" and string.sub(at, 1, #tostring(bell.Building.Id) + 1) == bell.Building.Id .. ":"
+		if not inside and at == nil then
+			local root = owner.Character and owner.Character:FindFirstChild("HumanoidRootPart")
+			inside = root ~= nil and root:IsA("BasePart") and typeof(bell.Building.Door) == "Vector3" and (root.Position - bell.Building.Door).Magnitude < 40
+		end
+		if not inside then
 			Notify:FireClient(owner, "Error", "🚪 Para abrir la puerta tienes que estar en casa.")
 			-- (el aviso vuelve a salir con el tiempo que le queda)
 			local left = bell.Until - os.clock()
@@ -1276,6 +1295,7 @@ function HousingService.init()
 				end
 			end
 		end
+		prunePairs(keyNoticeAt, player.UserId, HousingService.KeyNoticeGap)
 		local prefix = player.UserId .. "@"
 		for k in bellWait do
 			if string.sub(k, 1, #prefix) == prefix then

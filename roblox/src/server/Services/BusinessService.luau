@@ -2086,6 +2086,12 @@ function BusinessService.init()
 	Players.PlayerRemoving:Connect(function(player)
 		lastRequest[player] = nil
 		storeTokens[player] = nil
+		-- (esperas ya cumplidas de "recoger la caja": fuera, para que la tabla no crezca siempre)
+		for id, at in collectTaskAt do
+			if os.clock() - at >= COLLECT_TASK_GAP then
+				collectTaskAt[id] = nil
+			end
+		end
 		lastPromptRead[player] = nil
 		lastOfferTo[player] = nil
 		lastName[player] = nil

@@ -153,8 +153,9 @@ local function startTheory(player: Player, session: Session, licenseKey: string)
 	end
 	if VehicleService.hasLicense(player, licenseKey) then
 		sessions[player] = nil
-		-- (sin "LicenseEarned": daba XP cada vez que se abría el menú. La historia ya avanza sola si
-		-- tienes el carné: LifeStoryService.enterStep)
+		-- Se avisa a la historia (una partida antigua podía tener el paso "sácate el carnet" ya empezado
+		-- con el carné en el bolsillo), pero SIN experiencia: si no, abrir el menú daba XP sin parar
+		StoryEvents.emit(player, "LicenseEarned", { License = licenseKey, Already = true, NoXp = true })
 		Notify:FireClient(player, "Info", "Ya tienes el " .. license.Name .. ".")
 		return
 	end

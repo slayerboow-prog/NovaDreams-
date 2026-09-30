@@ -39,7 +39,7 @@ local P = Gameplay.Post
 -- segundos. Entre una entrega y la siguiente (o desde Correos) hace falta al menos la distancia a
 -- PACE_SPEED studs/s (más que la moto o el coche por calle, contando paradas) y nunca menos de
 -- PACE_MIN segundos. Sin DataStore (Studio sin API, pruebas) no se guarda nada y no se mira.
-local PACE_SPEED = 60
+local PACE_SPEED = 90 -- (por encima del coche, 72, y de la patrulla, 80)
 local PACE_MIN = 1.5
 local CHECK_PACE = pcall(function()
 	return DataStoreService:GetDataStore("PlayerData")

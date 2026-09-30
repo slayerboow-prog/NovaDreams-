@@ -271,6 +271,19 @@ end
 local INVITE_GAP = 30
 local invitedAt: { [string]: number } = {}
 
+-- Quita de una tabla "UserId>UserId" las parejas de ese jugador y las que ya pasaron su espera
+-- (si no, en un servidor que dura mucho la tabla solo crece)
+local function prunePairs(list: { [string]: number }, userId: number, gap: number)
+	local id = tostring(userId)
+	local now = os.clock()
+	for pair, at in list do
+		local a, b = string.match(pair, "^(%d+)>(%d+)$")
+		if a == id or b == id or now - at >= gap then
+			list[pair] = nil
+		end
+	end
+end
+
 local function onRequest(player: Player, userId: any)
 	if typeof(userId) ~= "number" or sessionOf[player] or not allowed(player) then
 		return
@@ -639,6 +652,7 @@ function TradeService.init()
 			end
 		end
 		policyCache[player] = nil
+		prunePairs(invitedAt, player.UserId, INVITE_GAP)
 		local changed = false
 		for i = #listings, 1, -1 do
 			if listings[i].Seller == player then

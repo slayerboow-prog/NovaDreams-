@@ -109,6 +109,12 @@ function TravelService.init()
 
 	game:GetService("Players").PlayerRemoving:Connect(function(player)
 		traveling[player] = nil
+		-- (esperas de experiencia ya cumplidas: fuera, para que la tabla no crezca siempre)
+		for id, at in xpTripAt do
+			if os.clock() - at >= XP_GAP then
+				xpTripAt[id] = nil
+			end
+		end
 	end)
 end
 

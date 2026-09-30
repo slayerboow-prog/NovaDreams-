@@ -34,9 +34,9 @@ local G = Gameplay.Garbage
 
 -- Ritmo mínimo entre papeleras cobradas: quien se teletransporta de papelera en papelera cobraría
 -- la ruta en segundos. Entre una y la siguiente (o desde el Punto Limpio) hace falta al menos la
--- distancia a PACE_SPEED studs/s (más que el camión por calle) y nunca menos de PACE_MIN segundos.
--- Sin DataStore (Studio sin API, pruebas) no se guarda nada y no se mira.
-local PACE_SPEED = 60
+-- distancia a PACE_SPEED studs/s (más que el camión y que el coche del jugador, que va a 72) y nunca
+-- menos de PACE_MIN segundos. Sin DataStore (Studio sin API, pruebas) no se guarda nada y no se mira.
+local PACE_SPEED = 90
 local PACE_MIN = 1.5
 local CHECK_PACE = pcall(function()
 	return DataStoreService:GetDataStore("PlayerData")
@@ -283,7 +283,12 @@ local function onUnload(player: Player)
 	-- El bonus doble pide que la vuelta al Punto Limpio también sea creíble (no teletransportada)
 	local fast = route.Phase == "Unload" and os.clock() - route.Started <= G.RouteSeconds and not (unloadPart and tooFast(route, unloadPart.Position))
 	local bonus = if route.Phase == "Unload" then G.UnloadBonus * (if fast then 2 else 1) else 0
-	pay(player, bonus, ("%d bolsas descargadas%s"):format(route.Bags, if fast then " (¡bonus por rapidez!)" else ""))
+	if bonus > 0 then
+		pay(player, bonus, ("%d bolsas descargadas%s"):format(route.Bags, if fast then " (¡bonus por rapidez!)" else ""))
+	else
+		-- A mitad de ruta no hay bonus (se cobra al terminarla): nada de "+0 €"
+		Notify:FireClient(player, "Info", ("🗑️ %d bolsas descargadas. El bonus se cobra al descargar la ruta entera."):format(route.Bags))
+	end
 	route.Bags = 0
 	refreshCarry(route)
 	if route.Phase == "Unload" then

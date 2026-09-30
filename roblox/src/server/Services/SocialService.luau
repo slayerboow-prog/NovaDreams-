@@ -183,6 +183,19 @@ end
 local INVITE_GAP = 30
 local invitedAt: { [string]: number } = {}
 
+-- Quita de una tabla "UserId>UserId" las parejas de ese jugador y las que ya pasaron su espera
+-- (si no, en un servidor que dura mucho la tabla solo crece)
+local function prunePairs(list: { [string]: number }, userId: number, gap: number)
+	local id = tostring(userId)
+	local now = os.clock()
+	for pair, at in list do
+		local a, b = string.match(pair, "^(%d+)>(%d+)$")
+		if a == id or b == id or now - at >= gap then
+			list[pair] = nil
+		end
+	end
+end
+
 local function onInvite(player: Player, userId: any)
 	if typeof(userId) ~= "number" or tooFast(player) then
 		return
@@ -368,6 +381,8 @@ function SocialService.init()
 			end
 		end
 		lastAsk[player] = nil
+		prunePairs(invitedAt, player.UserId, INVITE_GAP)
+		prunePairs(chatNoticeAt, player.UserId, CHAT_NOTICE_GAP)
 		dropPrivateChats(player)
 	end)
 end
