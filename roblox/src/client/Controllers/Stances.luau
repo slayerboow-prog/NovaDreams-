@@ -843,6 +843,17 @@ local function update(body: Body, dt: number, now: number)
 			local thigh, shin = limbs(leg, false)
 			local restHip = restPelvis * hipJ.C0
 			local restAnkle = restHip * hipJ.C1:Inverse() * kneeJ.C0 * kneeJ.C1:Inverse() * ankleJ.C0
+			-- Otro jugador: cuánto tiene que subir este tobillo para pisar el suelo que se ve bajo su
+			-- cuerpo, con las medidas de su pie (sin fiarse de su HipHeight, que aquí no cambia)
+			local legDrop = drop
+			local foot = ankleJ.Part1
+			if not mine and centerY and foot then
+				local sole = ankleJ.C1.Position.Y + foot.Size.Y / 2
+				local need = (centerY :: number) - root.Position.Y + sole - restAnkle.Position.Y
+				if need > -0.2 * L and need < 0.9 * L then
+					legDrop = clamp(need, 0, 0.75 * L)
+				end
+			end
 			local along, up = Stances.gaitFoot(u + (if leg.Side > 0 then 0 else 0.5), G.Duty)
 			-- Quieto: un pie algo adelantado y el otro atrás, las rodillas un poco abiertas
 			local idle = (if leg.Side > 0 then 0.12 else -0.1) * L * (1 - move)
@@ -862,7 +873,7 @@ local function update(body: Body, dt: number, now: number)
 			end
 			-- (pasos cortos, poco levantados)
 			local lift = up * G.Lift * L * c * clamp(stride / (0.6 * L), 0, 1)
-			local target = flat + Vector3.new(0, drop + leg.Ground * c + lift, 0)
+			local target = flat + Vector3.new(0, legDrop + leg.Ground * c + lift, 0)
 			local hipFrame = pelvisCF * hipJ.C0
 			local hipT, kneeT = Stances.legIK(hipFrame:PointToObjectSpace(target), thigh, shin)
 			-- El pie plano sobre el suelo (con su cuesta); por el aire, la punta algo abajo

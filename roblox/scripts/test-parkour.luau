@@ -455,9 +455,12 @@ do
 			LeftHip = motor(CFrame.new(-0.5 * k, -0.2 * k, 0), CFrame.new(0, 0.6 * k, 0)),
 			RightKnee = motor(CFrame.new(0, -0.6 * k, 0), CFrame.new(0, 0.5 * k, 0)),
 			LeftKnee = motor(CFrame.new(0, -0.6 * k, 0), CFrame.new(0, 0.5 * k, 0)),
-			RightAnkle = motor(CFrame.new(0, -0.5 * k, 0), CFrame.new(0, 0.1 * k, 0)),
-			LeftAnkle = motor(CFrame.new(0, -0.5 * k, 0), CFrame.new(0, 0.1 * k, 0)),
+			RightAnkle = motor(CFrame.new(0, -0.5 * k, 0), CFrame.new(0, 0.05 * k, 0)),
+			LeftAnkle = motor(CFrame.new(0, -0.5 * k, 0), CFrame.new(0, 0.05 * k, 0)),
 		}
+		-- (el pie: la suela 0,1 por debajo del tobillo)
+		joints.RightAnkle.Part1 = { Size = Vector3.new(1 * k, 0.1 * k, 1.4 * k) }
+		joints.LeftAnkle.Part1 = { Size = Vector3.new(1 * k, 0.1 * k, 1.4 * k) }
 		local fakeLayers = {
 			read = function(j)
 				return j.Transform
@@ -600,7 +603,8 @@ do
 			return if key == "Stance" then "Crouch" else nil
 		end }
 		local lowered = standHipHeight - humanoid.HipHeight
-		humanoid.HipHeight = standHipHeight
+		-- (su HipHeight aquí da igual: ni la de pie ni la agachada; se mide su suelo)
+		humanoid.HipHeight = standHipHeight + 0.37
 		body.Player = other
 		local worstOther = 0
 		for i = 1, 45 do
