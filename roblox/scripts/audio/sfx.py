@@ -19,6 +19,16 @@ Archivos (mono, 44.1 kHz, ogg vorbis, pico a -3 dBFS):
   trueno.ogg       trueno                                                          4 s
   pajaros.ogg      pájaros (pocos cantos, sueltos)                               · bucle 8 s
   viento.ogg       viento                                                        · bucle 8 s
+  choque_leve.ogg  choque de coche flojo: "tunk" de chapa y algún trasto que suena  0.45 s
+  choque_fuerte.ogg choque fuerte: crujido de chapa, traqueteo y cristalitos          0.9 s
+  golpe_caida.ogg  caer al suelo desde alto: "pof" corto del cuerpo                0.26 s
+  golpe_choque.ogg chocar corriendo con una pared / puñetazo: "tuc" seco          0.2 s
+  disparo_pistola.ogg / _revolver / _escopeta / _subfusil / _fusil: disparos (chasquido + estampido
+                   + cuerpo del arma + sala corta), cada uno con su carácter        0.28-0.85 s
+  disparo_eco.ogg  eco del disparo rebotando en los edificios (apagado)            1.1 s
+
+Solo algunos:          python3 scripts/audio/sfx.py choque_leve choque_fuerte
+Golpes y disparos: sin subgraves (corte fuerte por debajo de 75-140 Hz) y colas cortas.
 
 Los bucles no hacen "clic" al repetirse: el final se funde con el principio.
 """
@@ -462,6 +472,218 @@ def viento():
 
 
 # ---------------------------------------------------------------------------
+# Golpes, choques y disparos
+# Cada uno lleva su propia semilla (rng): así se pueden rehacer solos sin cambiar los demás.
+# Nada de "bum" grave: se quita todo lo que está por debajo de ~70-90 Hz y las colas son cortas.
+# ---------------------------------------------------------------------------
+
+def rnoise(rng: np.random.Generator, seconds: float) -> np.ndarray:
+    return rng.normal(0, 1, n_of(seconds))
+
+
+def decay(seconds: float, tau: float, attack: float = 0.0008) -> np.ndarray:
+    """Envolvente de golpe: sube en attack (s) y se apaga con constante tau (s)."""
+    t = t_of(seconds)
+    return np.exp(-t / tau) * np.clip(t / max(attack, 1e-6), 0, 1)
+
+
+def modes(rng: np.random.Generator, seconds: float, parts) -> np.ndarray:
+    """Resonancias (chapa, cristal, madera): parts = [(Hz, amplitud, tau)]. Cada una desafinada un pelín."""
+    t = t_of(seconds)
+    sig = np.zeros(len(t))
+    for f, amp, tau in parts:
+        f *= rng.uniform(0.97, 1.03)
+        sig += amp * np.sin(2 * np.pi * f * t + rng.uniform(0, 2 * np.pi)) * np.exp(-t / tau)
+    return sig
+
+
+def unit(x: np.ndarray) -> np.ndarray:
+    return x / (np.max(np.abs(x)) + 1e-12)
+
+
+def room(rng: np.random.Generator, x: np.ndarray, seconds: float, wet: float, bright: float) -> np.ndarray:
+    """Sala pequeña (como reverb() pero con su semilla): unas pocas reflexiones que se apagan rápido."""
+    t = t_of(seconds)
+    ir = rng.normal(0, 1, len(t)) * np.exp(-t / (seconds / 5))
+    ir = spectral(ir, lambda f: lowpass_gain(f, bright, 1) * highpass_gain(f, 150, 1))
+    ir /= np.sqrt(np.sum(ir**2))
+    size = 1 << int(np.ceil(np.log2(len(x) + len(ir))))
+    w = np.fft.irfft(np.fft.rfft(x, size) * np.fft.rfft(ir, size), size)[: len(x)]
+    return x * (1 - wet * 0.5) + w * wet * np.max(np.abs(x)) / (np.max(np.abs(w)) + 1e-12)
+
+
+def no_boom(x: np.ndarray, fc: float) -> np.ndarray:
+    """Quita los graves de debajo de fc (el "bum" de bomba) con un corte fuerte."""
+    return spectral(x, lambda f: highpass_gain(f, fc, 4))
+
+
+def debris(rng: np.random.Generator, seconds: float, count: int, start: float, spread: float, lo: float, hi: float) -> np.ndarray:
+    """Trozos de plástico / tornillos que traquetean: clics cortos cada vez más flojos y separados."""
+    buf = np.zeros(n_of(seconds))
+    at = start
+    for i in range(count):
+        d = rng.uniform(0.004, 0.012)
+        click = band(rnoise(rng, d + 0.01), lo, hi) * decay(d + 0.01, d / 3)
+        click += modes(rng, d + 0.01, [(rng.uniform(lo, hi), 0.5 * np.std(click) * 3, d / 2)])
+        add_at(buf, unit(click) * (1 - i / count) ** 1.5 * rng.uniform(0.4, 1), at)
+        at += rng.exponential(spread) * (1 + i / count)
+        if at > seconds - 0.02:
+            break
+    return buf
+
+
+def glass(rng: np.random.Generator, seconds: float, count: int, start: float) -> np.ndarray:
+    """Cristalitos que caen: "tintineos" agudos, flojos y cortos (nada de estruendo)."""
+    buf = np.zeros(n_of(seconds))
+    for i in range(count):
+        at = start + rng.uniform(0, seconds - start - 0.1) * (i / count) ** 0.7
+        f = rng.uniform(3200, 7500)
+        d = rng.uniform(0.05, 0.14)
+        ping = modes(rng, d, [(f, 1.0, d / 4), (f * 1.52, 0.5, d / 6), (f * 2.31, 0.25, d / 8)])
+        ping[: n_of(0.002)] += rnoise(rng, 0.002) * 0.4
+        add_at(buf, ping * rng.uniform(0.3, 1) * (1 - 0.6 * i / count), at)
+    return buf
+
+
+def choque(strong: bool):
+    rng = np.random.default_rng(1101 if strong else 1102)
+    total = 0.9 if strong else 0.45
+    n = n_of(total)
+    # 1) el golpe seco del parachoques (medio-grave, muy corto: "tunk", no "bum")
+    thump = band(rnoise(rng, total), 110, 900) * decay(total, 0.035 if strong else 0.025)
+    thump += 0.6 * modes(rng, total, [(150, 1, 0.03), (230, 0.6, 0.025)])
+    # 2) la chapa: resonancias metálicas que se apagan enseguida
+    metal = modes(rng, total, [(420, 1.0, 0.09), (780, 0.8, 0.07), (1330, 0.6, 0.05), (2080, 0.45, 0.035), (3150, 0.3, 0.025)])
+    metal *= 1 if strong else 0.6
+    # 3) el crujido: ráfaga de micro-golpes (la chapa que se arruga), solo en el fuerte suena largo
+    crunch_len = 0.16 if strong else 0.05
+    grains = (rng.random(n) < (0.03 if strong else 0.015)).astype(float) * rng.uniform(0.3, 1, n)
+    grains = band(grains + 0.15 * rnoise(rng, total), 500, 6000) * decay(total, crunch_len / 2.5)
+    sig = unit(thump) * 1.0 + unit(metal) * 0.55 + unit(grains) * (0.8 if strong else 0.45)
+    # 4) traqueteo de trozos sueltos y (el fuerte) cristalitos
+    sig += debris(rng, total, 14 if strong else 5, 0.06, 0.035, 1500, 6000) * (0.22 if strong else 0.14)
+    if strong:
+        sig += glass(rng, total, 16, 0.07) * 0.16
+    sig = np.tanh(unit(sig) * 1.6)  # algo de saturación: suena más "de verdad"
+    sig = no_boom(sig, 90)
+    sig = spectral(sig, lambda f: lowpass_gain(f, 11000, 2))
+    sig = room(rng, sig, 0.25, 0.12, 5000)
+    sig *= adsr(n, 0.0005, total * 0.35)
+    write("choque_fuerte.ogg" if strong else "choque_leve.ogg", sig, loop=False)
+
+
+def choque_leve():
+    choque(False)
+
+
+def choque_fuerte():
+    choque(True)
+
+
+def golpe_caida():
+    # El cuerpo que cae al suelo: "pof" corto y apagado (ropa + cuerpo), con un roce de zapatilla
+    rng = np.random.default_rng(1201)
+    total = 0.26
+    body = band(rnoise(rng, total), 80, 700) * decay(total, 0.032, 0.002)
+    body += 0.8 * modes(rng, total, [(115, 1, 0.035), (190, 0.6, 0.03), (310, 0.35, 0.02)])
+    scuff = band(rnoise(rng, total), 1200, 4500) * decay(total, 0.012, 0.001) * 0.25
+    step = np.zeros(n_of(total))
+    add_at(step, band(rnoise(rng, 0.05), 300, 2500) * decay(0.05, 0.01) * 0.3, 0.035)  # el segundo pie
+    sig = unit(body) + unit(scuff) * 0.3 + unit(step + 1e-12) * 0.25
+    sig = np.tanh(unit(sig) * 1.3)
+    sig = no_boom(sig, 75)
+    sig = spectral(sig, lambda f: lowpass_gain(f, 5000, 2))
+    write("golpe_caida.ogg", sig * adsr(len(sig), 0.0005, 0.08), loop=False)
+
+
+def golpe_choque():
+    # Chocar corriendo con una pared (y los puñetazos): "tuc" más ligero y seco
+    rng = np.random.default_rng(1202)
+    total = 0.2
+    body = band(rnoise(rng, total), 180, 2200) * decay(total, 0.022, 0.001)
+    body += 0.7 * modes(rng, total, [(260, 1, 0.03), (520, 0.5, 0.02), (880, 0.25, 0.012)])
+    slap = band(rnoise(rng, total), 1500, 6000) * decay(total, 0.006, 0.0005) * 0.5
+    sig = np.tanh(unit(unit(body) + unit(slap) * 0.35) * 1.4)
+    sig = no_boom(sig, 110)
+    sig = spectral(sig, lambda f: lowpass_gain(f, 7000, 2))
+    write("golpe_choque.ogg", sig * adsr(len(sig), 0.0005, 0.06), loop=False)
+
+
+def gunshot(name: str, seed: int, total: float, crack: float, blast_tau: float, lo: float, hi: float,
+            body: list, tail: float, tail_wet: float, low_cut: float, drive: float, supersonic: bool = False):
+    """Un disparo: chasquido (onda en N, muy agudo) + estampido (ruido que se apaga en decenas de ms)
+    + cuerpo del arma (resonancias) + reflexiones cortas. Nada de subgraves."""
+    rng = np.random.default_rng(seed)
+    n = n_of(total)
+    sig = np.zeros(n)
+    # chasquido: una onda en N de pocos cientos de microsegundos (lo que da el "crack")
+    w = max(4, n_of(crack))
+    nwave = np.linspace(1, -1, w)
+    sig[:w] += nwave * 1.2
+    if supersonic:  # la bala que rompe la barrera del sonido: un segundo chasquido seco justo antes
+        sig[:w // 2] += np.linspace(0.8, -0.8, w // 2)
+    # estampido: ruido con la envolvente del gas saliendo del cañón
+    blast = band(rnoise(rng, total), lo, hi) * decay(total, blast_tau, 0.0003)
+    blast += 0.35 * band(rnoise(rng, total), hi * 0.6, 12000) * decay(total, blast_tau / 4, 0.0002)
+    sig += unit(blast) * 1.0
+    # cuerpo (corredera, cañón, cartucho)
+    sig += unit(modes(rng, total, body)) * 0.35
+    sig = np.tanh(unit(sig) * drive)
+    sig = no_boom(sig, low_cut)
+    sig = spectral(sig, lambda f: lowpass_gain(f, 13000, 2))
+    # las paredes de alrededor (el eco largo lo pone EcoDisparo aparte)
+    sig = room(rng, sig, tail, tail_wet, 4000)
+    sig *= adsr(n, 0.0002, total * 0.4)
+    write(name, sig, loop=False)
+
+
+def disparo_pistola():
+    gunshot("disparo_pistola.ogg", 1301, 0.45, 0.0004, 0.022, 250, 7000,
+            [(1100, 1, 0.012), (2300, 0.6, 0.008), (3700, 0.3, 0.006)], 0.35, 0.22, 110, 2.2)
+
+
+def disparo_revolver():
+    # más grave y "gordo" que la pistola, con más cola
+    gunshot("disparo_revolver.ogg", 1302, 0.65, 0.0006, 0.04, 160, 5500,
+            [(620, 1, 0.02), (1450, 0.6, 0.014), (2900, 0.3, 0.008)], 0.55, 0.3, 90, 2.6)
+
+
+def disparo_escopeta():
+    # estampido ancho y largo (muchos perdigones y mucha pólvora), pero sin bajo retumbante
+    gunshot("disparo_escopeta.ogg", 1303, 0.85, 0.0008, 0.07, 110, 4200,
+            [(380, 1, 0.03), (900, 0.7, 0.02), (1900, 0.35, 0.012)], 0.7, 0.35, 80, 3.0)
+
+
+def disparo_subfusil():
+    # corto y seco (dispara en ráfaga: cada tiro tiene que acabar antes del siguiente)
+    gunshot("disparo_subfusil.ogg", 1304, 0.28, 0.0003, 0.013, 350, 8000,
+            [(1500, 1, 0.008), (3100, 0.5, 0.006)], 0.2, 0.15, 140, 2.0)
+
+
+def disparo_fusil():
+    # chasquido supersónico muy agudo y estampido medio (también vale para el francotirador, más lento)
+    gunshot("disparo_fusil.ogg", 1305, 0.7, 0.0003, 0.03, 220, 9000,
+            [(800, 1, 0.015), (1900, 0.6, 0.01), (4200, 0.3, 0.006)], 0.6, 0.3, 100, 2.8, supersonic=True)
+
+
+def disparo_eco():
+    # Eco del disparo (lo que se oye rebotar en los edificios): difuso, apagado y que se va
+    rng = np.random.default_rng(1306)
+    total = 1.1
+    t = t_of(total)
+    sig = np.zeros(n_of(total))
+    # unas cuantas reflexiones (cada vez más flojas y más apagadas) sobre un fondo difuso
+    for i, at in enumerate(np.sort(rng.uniform(0.0, 0.5, 9))):
+        hit = band(rnoise(rng, 0.2), 200, 3000 - i * 220) * decay(0.2, 0.03, 0.004)
+        add_at(sig, unit(hit) * (0.9 ** i) * rng.uniform(0.5, 1), at)
+    diffuse = band(rnoise(rng, total), 180, 1800) * np.exp(-t / 0.28) * np.clip(t / 0.05, 0, 1)
+    sig = unit(sig) * 0.7 + unit(diffuse) * 0.5
+    sig = no_boom(sig, 120)
+    sig *= adsr(len(sig), 0.01, 0.35)
+    write("disparo_eco.ogg", sig, loop=False)
+
+
+# ---------------------------------------------------------------------------
 # Comprobación (no se puede escuchar aquí, así que se miran los números)
 # ---------------------------------------------------------------------------
 
@@ -486,9 +708,24 @@ def check():
         print(f"{path.name:18s} {len(x) / sr:5.2f} {peak:6.1f}  {rms:6.1f}  {path.stat().st_size / 1024:5.0f}  {seam}")
 
 
+ALL = (motor, claxon, timbre, tele, multitud, metro_tren, metro_freno, metro_anden, lluvia, trueno, pajaros, viento,
+       choque_leve, choque_fuerte, golpe_caida, golpe_choque,
+       disparo_pistola, disparo_revolver, disparo_escopeta, disparo_subfusil, disparo_fusil, disparo_eco)
+
+
 if __name__ == "__main__":
+    import sys
+
+    # Sin nombres: todos. Con nombres (python3 scripts/audio/sfx.py choque_leve disparo_pistola): solo esos
+    # (los que ya están subidos no se tocan).
+    wanted = {a.removesuffix(".ogg") for a in sys.argv[1:]}
+    unknown = wanted - {m.__name__ for m in ALL}
+    if unknown:
+        sys.exit(f"No conozco: {', '.join(sorted(unknown))}")
     print(f"Sintetizando efectos en {OUT}")
-    for make in (motor, claxon, timbre, tele, multitud, metro_tren, metro_freno, metro_anden, lluvia, trueno, pajaros, viento):
+    for make in ALL:
+        if wanted and make.__name__ not in wanted:
+            continue
         make()
         print(f"  {make.__name__}")
     check()
