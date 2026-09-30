@@ -816,45 +816,51 @@ local function npcWaiterStep()
 	end
 	npcWaiterBusy = true
 	task.spawn(function()
-		local home = floorOf(place.WaiterSpot)
-		local function near(seat: BasePart): Vector3
-			return Vector3.new(seat.Position.X, home.Y, seat.Position.Z) + seat.CFrame.LookVector * 1.7 + seat.CFrame.RightVector * 2.4
-		end
-		-- ¿Sigue siendo el camarero? (si se ha retirado a medias, lo suelta todo para quien le sustituya)
-		local function still(): boolean
-			return npcWaiter == waiter and waiter.Parent ~= nil
-		end
-		if readyOrder then
-			local customer = customers[readyOrder.CustomerId]
-			local pass = place.Pass.Position
-			Npc.walkTo(waiter, { Vector3.new(pass.X, home.Y, pass.Z) + place.Pass.CFrame.LookVector * 3 }, 12)
-			if still() and customer and customer.Order == readyOrder then
-				-- (el plato se queda en el pase hasta servirlo: si se retira por el camino, sigue ahí)
-				Npc.walkTo(waiter, { near(customer.Seat) }, 12)
-				if still() and customers[customer.Id] and customer.Order == readyOrder then
-					serve(customer, nil)
+		-- Protegido: aunque falle, el camarero queda libre para la siguiente tarea
+		local ok, err = pcall(function()
+			local home = floorOf(place.WaiterSpot)
+			local function near(seat: BasePart): Vector3
+				return Vector3.new(seat.Position.X, home.Y, seat.Position.Z) + seat.CFrame.LookVector * 1.7 + seat.CFrame.RightVector * 2.4
+			end
+			-- ¿Sigue siendo el camarero? (si se ha retirado a medias, lo suelta todo para quien le sustituya)
+			local function still(): boolean
+				return npcWaiter == waiter and waiter.Parent ~= nil
+			end
+			if readyOrder then
+				local customer = customers[readyOrder.CustomerId]
+				local pass = place.Pass.Position
+				Npc.walkTo(waiter, { Vector3.new(pass.X, home.Y, pass.Z) + place.Pass.CFrame.LookVector * 3 }, 12)
+				if still() and customer and customer.Order == readyOrder then
+					-- (el plato se queda en el pase hasta servirlo: si se retira por el camino, sigue ahí)
+					Npc.walkTo(waiter, { near(customer.Seat) }, 12)
+					if still() and customers[customer.Id] and customer.Order == readyOrder then
+						serve(customer, nil)
+					end
+				end
+			elseif target then
+				setState(target, "Ordering")
+				Npc.walkTo(waiter, { near(target.Seat) }, 12)
+				if still() and customers[target.Id] and target.State == "Ordering" then
+					speakOrder(target)
+					Npc.say(waiter, "Apuntado 📝")
+					task.wait(R.NpcWaiterSeconds)
+					if still() then
+						Npc.say(waiter, nil)
+					end
+					if customers[target.Id] and target.State == "Ordering" then
+						Npc.say(target.Model, nil)
+						sendToBar(target) -- (ya lo tenía apuntado: la comanda va a la barra igual)
+					end
+				elseif customers[target.Id] and target.State == "Ordering" and not target.Choice then
+					setState(target, "WaitingOrder") -- (no llegó a tomar nota: la mesa vuelve a llamar ✋)
 				end
 			end
-		elseif target then
-			setState(target, "Ordering")
-			Npc.walkTo(waiter, { near(target.Seat) }, 12)
-			if still() and customers[target.Id] and target.State == "Ordering" then
-				speakOrder(target)
-				Npc.say(waiter, "Apuntado 📝")
-				task.wait(R.NpcWaiterSeconds)
-				if still() then
-					Npc.say(waiter, nil)
-				end
-				if customers[target.Id] and target.State == "Ordering" then
-					Npc.say(target.Model, nil)
-					sendToBar(target) -- (ya lo tenía apuntado: la comanda va a la barra igual)
-				end
-			elseif customers[target.Id] and target.State == "Ordering" and not target.Choice then
-				setState(target, "WaitingOrder") -- (no llegó a tomar nota: la mesa vuelve a llamar ✋)
+			if still() then
+				Npc.walkTo(waiter, { home }, 12)
 			end
-		end
-		if still() then
-			Npc.walkTo(waiter, { home }, 12)
+		end)
+		if not ok then
+			warn("[RestaurantService] " .. tostring(err))
 		end
 		npcWaiterBusy = false
 	end)
@@ -873,14 +879,20 @@ local function npcBarmanStep()
 					npcBarmanBusy = true
 					local npc = npcBarman :: Model
 					task.spawn(function()
-						Npc.say(npc, "Marchando " .. string.lower((Gameplay.dish(order.Items[index]) or { Name = "" }).Name) .. "…")
-						task.wait(R.NpcBarmanSeconds)
-						-- (si se ha retirado mientras, el plato sigue pendiente para el barman que le sustituya)
-						if npcBarman == npc then
-							Npc.say(npc, nil)
-							if table.find(orders, order) and not order.Done[index] then
-								markPrepared(order, index, nil)
+						-- Protegido: aunque falle, el barman queda libre para el siguiente plato
+						local ok, err = pcall(function()
+							Npc.say(npc, "Marchando " .. string.lower((Gameplay.dish(order.Items[index]) or { Name = "" }).Name) .. "…")
+							task.wait(R.NpcBarmanSeconds)
+							-- (si se ha retirado mientras, el plato sigue pendiente para el barman que le sustituya)
+							if npcBarman == npc then
+								Npc.say(npc, nil)
+								if table.find(orders, order) and not order.Done[index] then
+									markPrepared(order, index, nil)
+								end
 							end
+						end)
+						if not ok then
+							warn("[RestaurantService] " .. tostring(err))
 						end
 						npcBarmanBusy = false
 					end)
@@ -1035,8 +1047,13 @@ function RestaurantService.init()
 	task.spawn(function()
 		while true do
 			task.wait(math.random(R.SpawnEvery[1], R.SpawnEvery[2]))
-			if isOpen() then
-				spawnCustomer()
+			local ok, err = pcall(function()
+				if isOpen() then
+					spawnCustomer()
+				end
+			end)
+			if not ok then
+				warn("[RestaurantService] " .. tostring(err))
 			end
 		end
 	end)
@@ -1045,15 +1062,21 @@ function RestaurantService.init()
 	task.spawn(function()
 		while true do
 			task.wait(0.5)
-			for _, customer in customers do
-				local waiting = customer.State == "WaitingOrder" or customer.State == "WaitingFood"
-				if waiting and os.clock() - customer.Arrived > R.Patience then
-					leave(customer, true)
+			-- Protegido: un error no para el restaurante de todo el servidor
+			local ok, err = pcall(function()
+				for _, customer in customers do
+					local waiting = customer.State == "WaitingOrder" or customer.State == "WaitingFood"
+					if waiting and os.clock() - customer.Arrived > R.Patience then
+						leave(customer, true)
+					end
 				end
+				npcWaiterStep()
+				npcBarmanStep()
+				updateTargets()
+			end)
+			if not ok then
+				warn("[RestaurantService] " .. tostring(err))
 			end
-			npcWaiterStep()
-			npcBarmanStep()
-			updateTargets()
 		end
 	end)
 end

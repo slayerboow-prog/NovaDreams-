@@ -1290,19 +1290,30 @@ function SupermarketService.init()
 		while true do
 			task.wait(0.3)
 			for _, store in stores do
-				for _, door in store.Doors or {} do
-					local open = someoneNear(door.Closed.Position, store)
-					if open ~= door.IsOpen then
-						door.IsOpen = open
-						TweenService:Create(door.Part, TweenInfo.new(0.5, Enum.EasingStyle.Quad), { CFrame = if open then door.Open else door.Closed }):Play()
+				-- Una tienda con error no para al resto
+				local ok, err = pcall(function()
+					for _, door in store.Doors or {} do
+						local open = someoneNear(door.Closed.Position, store)
+						if open ~= door.IsOpen then
+							door.IsOpen = open
+							TweenService:Create(door.Part, TweenInfo.new(0.5, Enum.EasingStyle.Quad), { CFrame = if open then door.Open else door.Closed }):Play()
+						end
 					end
+				end)
+				if not ok then
+					warn("[SupermarketService] " .. tostring(err))
 				end
 			end
 			for player, cart in carts do
-				local root = rootOf(player)
-				if root and not inside(cart.Store, root.Position) then
-					clearCart(player, true)
-					Notify:FireClient(player, "Error", "🚨 ¡Pi-pi-pi! Has salido sin pagar: los productos se quedan en la tienda.")
+				local ok, err = pcall(function()
+					local root = rootOf(player)
+					if root and not inside(cart.Store, root.Position) then
+						clearCart(player, true)
+						Notify:FireClient(player, "Error", "🚨 ¡Pi-pi-pi! Has salido sin pagar: los productos se quedan en la tienda.")
+					end
+				end)
+				if not ok then
+					warn("[SupermarketService] " .. tostring(err))
 				end
 			end
 		end
@@ -1314,60 +1325,71 @@ function SupermarketService.init()
 		while true do
 			task.wait(2)
 			for _, store in stores do
-				local active = false
-				for _, player in Players:GetPlayers() do
-					local root = rootOf(player)
-					if root and (root.Position - store.Bounds.Position).Magnitude < ACTIVE_RANGE then
-						active = true
-						break
-					end
-				end
-				refreshStaff(store, active)
-				if active and isDay() and #store.Customers < MAX_NPC and math.random() < 0.18 then
-					spawnCustomer(store)
-				end
-				-- Reposición NPC si nadie repone en esta tienda
-				local restocker = false
-				for _, player in Players:GetPlayers() do
-					local shift = JobService.shiftOf(player)
-					if shift and shift.JobId == "Reponedor" and shift.Context and shift.Context.Store == store then
-						restocker = true
-					end
-				end
-				if not restocker and os.clock() - (lastRestock[store] or 0) > Groceries.NpcRestockEvery then
-					lastRestock[store] = os.clock()
-					for _, shelf in store.Shelves do
-						if (shelf:GetAttribute("Stock") or 0) <= 2 and not isFishShelf(shelf) then
-							setStock(shelf, Groceries.StockMax)
+				-- Una tienda con error no para al resto
+				local ok, err = pcall(function()
+					local active = false
+					for _, player in Players:GetPlayers() do
+						local root = rootOf(player)
+						if root and (root.Position - store.Bounds.Position).Magnitude < ACTIVE_RANGE then
+							active = true
 							break
 						end
 					end
+					refreshStaff(store, active)
+					if active and isDay() and #store.Customers < MAX_NPC and math.random() < 0.18 then
+						spawnCustomer(store)
+					end
+					-- Reposición NPC si nadie repone en esta tienda
+					local restocker = false
+					for _, player in Players:GetPlayers() do
+						local shift = JobService.shiftOf(player)
+						if shift and shift.JobId == "Reponedor" and shift.Context and shift.Context.Store == store then
+							restocker = true
+						end
+					end
+					if not restocker and os.clock() - (lastRestock[store] or 0) > Groceries.NpcRestockEvery then
+						lastRestock[store] = os.clock()
+						for _, shelf in store.Shelves do
+							if (shelf:GetAttribute("Stock") or 0) <= 2 and not isFishShelf(shelf) then
+								setStock(shelf, Groceries.StockMax)
+								break
+							end
+						end
+					end
+				end)
+				if not ok then
+					warn("[SupermarketService] " .. tostring(err))
 				end
 			end
 			-- Cobros que se atascan (el cajero se ha ido): los termina el sistema
 			for _, session in sessions do
-				if session.Kind == "Lane" and os.clock() - session.Started > 120 then
-					if session.Customer.Player then
-						-- Un jugador que no paga (se ha ido, ha muerto…) no bloquea la caja para siempre
-						endSession(session)
-						Remote:FireClient(session.Customer.Player, "Waiting", nil)
-						if session.Lane.Cashier then
-							Remote:FireClient(session.Lane.Cashier, "CloseScan")
-						end
-					else
-						local cashier = session.Lane.Cashier
-						if cashier and not (onDuty(cashier, session.Lane) and atLane(cashier, session.Lane)) then
-							-- El cajero no está en su caja (se ha ido, le han detenido…): el cliente NPC
-							-- se va, pero al cajero no se le paga
+				local ok, err = pcall(function()
+					if session.Kind == "Lane" and os.clock() - session.Started > 120 then
+						if session.Customer.Player then
+							-- Un jugador que no paga (se ha ido, ha muerto…) no bloquea la caja para siempre
 							endSession(session)
-							Remote:FireClient(cashier, "CloseScan")
-							if session.Customer.Done then
-								session.Customer.Done()
+							Remote:FireClient(session.Customer.Player, "Waiting", nil)
+							if session.Lane.Cashier then
+								Remote:FireClient(session.Lane.Cashier, "CloseScan")
 							end
 						else
-							finishCustomer(session)
+							local cashier = session.Lane.Cashier
+							if cashier and not (onDuty(cashier, session.Lane) and atLane(cashier, session.Lane)) then
+								-- El cajero no está en su caja (se ha ido, le han detenido…): el cliente NPC
+								-- se va, pero al cajero no se le paga
+								endSession(session)
+								Remote:FireClient(cashier, "CloseScan")
+								if session.Customer.Done then
+									session.Customer.Done()
+								end
+							else
+								finishCustomer(session)
+							end
 						end
 					end
+				end)
+				if not ok then
+					warn("[SupermarketService] " .. tostring(err))
 				end
 			end
 		end

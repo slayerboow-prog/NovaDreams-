@@ -96,19 +96,25 @@ function NeedsService.init()
 		while true do
 			task.wait(TICK)
 			for _, player in Players:GetPlayers() do
-				local data = DataService.get(player)
-				if data and not player:GetAttribute("Sleeping") then
-					local multiplier = MonetizationService.needsMultiplier(player)
-					data.Hunger = clamp(data.Hunger - Config.Needs.HungerPerMinute / 60 * TICK * multiplier)
-					-- Sentado en un banco se descansa: la energía sube un poco en vez de bajar
-					local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-					local seat = humanoid and humanoid.SeatPart
-					if seat and seat.Parent and seat.Parent:HasTag("Bench") then
-						data.Energy = clamp(data.Energy + 3 / 60 * TICK)
-					else
-						data.Energy = clamp(data.Energy - Config.Needs.EnergyPerMinute / 60 * TICK * multiplier)
+				-- Un jugador con error no para las necesidades del resto
+				local ok, err = pcall(function()
+					local data = DataService.get(player)
+					if data and not player:GetAttribute("Sleeping") then
+						local multiplier = MonetizationService.needsMultiplier(player)
+						data.Hunger = clamp(data.Hunger - Config.Needs.HungerPerMinute / 60 * TICK * multiplier)
+						-- Sentado en un banco se descansa: la energía sube un poco en vez de bajar
+						local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+						local seat = humanoid and humanoid.SeatPart
+						if seat and seat.Parent and seat.Parent:HasTag("Bench") then
+							data.Energy = clamp(data.Energy + 3 / 60 * TICK)
+						else
+							data.Energy = clamp(data.Energy - Config.Needs.EnergyPerMinute / 60 * TICK * multiplier)
+						end
+						sync(player, data)
 					end
-					sync(player, data)
+				end)
+				if not ok then
+					warn("[NeedsService] " .. tostring(err))
 				end
 			end
 		end

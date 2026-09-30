@@ -910,12 +910,17 @@ function InteractService.init()
 		while true do
 			task.wait(1)
 			for player, use in using do
-				if (use.Pose == "Sofa" or use.Pose == "Sit") and player.Parent then
-					local inst = instanceOf(use.Part)
-					local access = InteractService.accessOf(player, inst)
-					if access == "Owner" or access == "Guest" then
-						NeedsService.change(player, 0, Interact.RestPerSecond)
+				local ok, err = pcall(function()
+					if (use.Pose == "Sofa" or use.Pose == "Sit") and player.Parent then
+						local inst = instanceOf(use.Part)
+						local access = InteractService.accessOf(player, inst)
+						if access == "Owner" or access == "Guest" then
+							NeedsService.change(player, 0, Interact.RestPerSecond)
+						end
 					end
+				end)
+				if not ok then
+					warn("[InteractService] " .. tostring(err))
 				end
 			end
 		end

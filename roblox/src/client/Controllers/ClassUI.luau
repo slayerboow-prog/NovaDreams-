@@ -337,8 +337,15 @@ function handlers.End(data)
 	setAnswersVisible(false)
 	progress.Text = ""
 	timerBar.Size = UDim2.fromScale(0, 1)
-	question.Text = Strings.get("CLASS.GRADE", { grade = fmtGrade(data.Grade) }) .. " · " .. Strings.get(data.GradeKey)
-	if data.Total and data.Total > 0 and data.Correct == math.floor(data.Correct) then
+	-- Clase cortada por el servidor (ClassService.abort): no hay nota, se podrá repetir. El servidor
+	-- la manda con GradeKey "CLASS.TIMEOUT" (y quizá Aborted): no enseñar "Nota: 0"
+	local aborted = data.Aborted == true or data.GradeKey == "CLASS.TIMEOUT"
+	if aborted then
+		question.Text = "Clase interrumpida: podrás repetirla."
+	else
+		question.Text = Strings.get("CLASS.GRADE", { grade = fmtGrade(data.Grade) }) .. " · " .. Strings.get(data.GradeKey)
+	end
+	if not aborted and data.Total and data.Total > 0 and data.Correct == math.floor(data.Correct) then
 		feedback.Text = Strings.get("CLASS.CORRECT_COUNT", { correct = data.Correct, total = data.Total })
 	else
 		feedback.Text = ""

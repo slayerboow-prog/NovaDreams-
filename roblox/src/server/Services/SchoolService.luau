@@ -796,7 +796,12 @@ function SchoolService.init()
 		end)
 		while true do
 			task.wait(TICK)
-			tick()
+			local ok, err = pcall(function()
+				tick()
+			end)
+			if not ok then
+				warn("[SchoolService] " .. tostring(err))
+			end
 		end
 	end)
 end

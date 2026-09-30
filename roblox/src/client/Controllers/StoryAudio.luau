@@ -5,7 +5,8 @@
 --     (AudioTextToSpeech) si el motor lo permite. Mientras alguien habla, la música baja.
 --   * Música on/off: StoryAudio.setMusicOn / isMusicOn (el interruptor está en el menú del HUD).
 --     Silencia los grupos Music y Voice (SoundService), así se calla también lo que ya suena.
--- Los IDs de los audios están en Config.Audio. Con Id = 0 ese audio no suena (sin errores).
+-- Los IDs de los audios están en Config.Audio. Con Id = 0 se busca en shared/SoundIds y en
+-- ReplicatedStorage.Musica; si no hay, ese audio no suena (sin errores).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -49,8 +50,13 @@ local function fromFolder(file: string?): string?
 	return nil
 end
 
+-- Por orden: el Id de Config.Audio, el de shared/SoundIds (scripts/upload-audio.sh --music, por el
+-- nombre del archivo) y la copia de ReplicatedStorage.Musica
 local function assetId(id: number?, file: string?): string?
-	return if id and id > 0 then "rbxassetid://" .. id else fromFolder(file)
+	if id and id > 0 then
+		return "rbxassetid://" .. id
+	end
+	return SoundFx.uploaded(file) or fromFolder(file)
 end
 
 local function targetVolume(base: number): number
@@ -122,9 +128,13 @@ local function playMusic(cue: string?, volumeScale: number)
 		if waitLoaded(sound, LOAD_TIMEOUT) or not sound.Parent then
 			return
 		end
-		local fallback = fromFolder(track.File)
+		-- (otra copia: la subida con scripts/upload-audio.sh --music o la de ReplicatedStorage.Musica)
+		local fallback = SoundFx.uploaded(track.File) or fromFolder(track.File)
+		if fallback == id then
+			fallback = fromFolder(track.File)
+		end
 		if fallback and fallback ~= id then
-			warn(("[Música] No se ha podido cargar «%s» (%s): se usa la copia local."):format(cue :: string, id))
+			warn(("[Música] No se ha podido cargar «%s» (%s): se usa otra copia (%s)."):format(cue :: string, id, fallback))
 			sound.SoundId = fallback
 			sound:Play()
 			if waitLoaded(sound, LOAD_TIMEOUT) or not sound.Parent then

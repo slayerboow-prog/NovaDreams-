@@ -408,18 +408,24 @@ function JusticeService.init()
 			task.wait(1)
 			local area = tagged("PrisonArea")
 			for _, player in Players:GetPlayers() do
-				local untilTime = player:GetAttribute("JailUntil")
-				if type(untilTime) == "number" then
-					if os.time() >= untilTime then
-						Notify:FireClient(player, "Success", "🔓 Has cumplido tu condena. Eres libre.")
-						JusticeService.release(player, "Condena cumplida")
-					else
-						local root = rootOf(player)
-						if area and root and not insideBox(area, root.Position) and not player:GetAttribute("OnTrial") then
-							Notify:FireClient(player, "Error", "⛓ No puedes salir de la prisión hasta cumplir tu condena.")
-							JusticeService.sendToCell(player)
+				-- Un preso con error no para la vigilancia del resto
+				local ok, err = pcall(function()
+					local untilTime = player:GetAttribute("JailUntil")
+					if type(untilTime) == "number" then
+						if os.time() >= untilTime then
+							Notify:FireClient(player, "Success", "🔓 Has cumplido tu condena. Eres libre.")
+							JusticeService.release(player, "Condena cumplida")
+						else
+							local root = rootOf(player)
+							if area and root and not insideBox(area, root.Position) and not player:GetAttribute("OnTrial") then
+								Notify:FireClient(player, "Error", "⛓ No puedes salir de la prisión hasta cumplir tu condena.")
+								JusticeService.sendToCell(player)
+							end
 						end
 					end
+				end)
+				if not ok then
+					warn("[JusticeService] " .. tostring(err))
 				end
 			end
 		end

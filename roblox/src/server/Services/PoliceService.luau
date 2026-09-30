@@ -504,6 +504,15 @@ function newIncident(shift: Shift)
 	if not ok then
 		warn("[PoliceService] " .. tostring(err))
 	end
+	-- Montar el aviso puede esperar (yield): si mientras tanto el agente ha dejado el servicio (o ya
+	-- hay otro aviso), se quita lo montado y no se vuelve a pintar la línea de la tarea
+	if shifts[shift.Player] ~= shift or shift.Incident ~= inc then
+		if shift.Incident == inc then
+			shift.Incident = nil
+		end
+		clearIncident(inc)
+		return
+	end
 	Notify:FireClient(shift.Player, "Info", ("📻 Aviso: %s %s"):format(KINDS[kind].Icon, KINDS[kind].Title))
 	publish(shift)
 end
@@ -701,12 +710,18 @@ function PoliceService.init()
 		while true do
 			task.wait(2)
 			for player, shift in shifts do
-				local inc = shift.Incident
-				if inc and not inc.Busy and os.clock() - inc.Started > P.TimeLimit then
-					Notify:FireClient(player, "Info", "📻 El aviso lo ha cogido otra patrulla. Hay uno nuevo.")
-					newIncident(shift)
-				else
-					publish(shift)
+				-- Un turno con error no para los avisos del resto
+				local ok, err = pcall(function()
+					local inc = shift.Incident
+					if inc and not inc.Busy and os.clock() - inc.Started > P.TimeLimit then
+						Notify:FireClient(player, "Info", "📻 El aviso lo ha cogido otra patrulla. Hay uno nuevo.")
+						newIncident(shift)
+					else
+						publish(shift)
+					end
+				end)
+				if not ok then
+					warn("[PoliceService] " .. tostring(err))
 				end
 			end
 		end

@@ -1449,13 +1449,23 @@ function VehicleService.init()
 	task.spawn(function()
 		while true do
 			task.wait(0.5)
-			burnFuel()
+			local ok, err = pcall(function()
+				burnFuel()
+			end)
+			if not ok then
+				warn("[VehicleService] " .. tostring(err))
+			end
 		end
 	end)
 	task.spawn(function()
 		while true do
 			task.wait(15)
-			returnStreetCars()
+			local ok, err = pcall(function()
+				returnStreetCars()
+			end)
+			if not ok then
+				warn("[VehicleService] " .. tostring(err))
+			end
 		end
 	end)
 
@@ -1465,13 +1475,19 @@ function VehicleService.init()
 			task.wait(2)
 			local dark = isDark()
 			for player, ride in riding do
-				for _, light in ride.Model:GetDescendants() do
-					if light:IsA("SpotLight") then
-						light.Enabled = dark
+				-- Un vehículo con error no para las luces ni las bajadas del resto
+				local ok, err = pcall(function()
+					for _, light in ride.Model:GetDescendants() do
+						if light:IsA("SpotLight") then
+							light.Enabled = dark
+						end
 					end
-				end
-				if player:GetAttribute("Crawling") or not stageAllows(player, Gameplay.DriveMinStage, true) then
-					VehicleService.dismount(player, true)
+					if player:GetAttribute("Crawling") or not stageAllows(player, Gameplay.DriveMinStage, true) then
+						VehicleService.dismount(player, true)
+					end
+				end)
+				if not ok then
+					warn("[VehicleService] " .. tostring(err))
 				end
 			end
 		end

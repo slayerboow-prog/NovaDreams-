@@ -1259,15 +1259,18 @@ function FarmService.init()
 			for _, finca in fincas do
 				local owner = finca.Owner
 				if owner then
-					if raining then
-						for i = 1, Farming.Plots do
-							local plot = plotOf(owner, i)
-							if plot and not plot.Watered then
-								Farming.water(plot, now())
+					-- El riego con lluvia también va dentro del pcall: un error no para las fincas
+					local ok, err = pcall(function()
+						if raining then
+							for i = 1, Farming.Plots do
+								local plot = plotOf(owner, i)
+								if plot and not plot.Watered then
+									Farming.water(plot, now())
+								end
 							end
 						end
-					end
-					local ok, err = pcall(refreshFinca, finca)
+						refreshFinca(finca)
+					end)
 					if not ok then
 						warn("[Granja] " .. tostring(err))
 					end

@@ -6,7 +6,8 @@
 --     cambiar de coche por los pasos entre coches y mirar por las ventanas.
 --   * Los viajeros NPC sentados (tag MetroRider) van con su coche.
 --   * Megafonía: gong, voz ("Próxima estación: …", "Las puertas van a cerrarse") y subtítulo.
---   * Sonido del tren en marcha (si hay ID en Config.Sounds.MetroTren) y pitido de las puertas.
+--   * Sonido del tren en marcha (Config.Sounds.MetroTren), frenazo, pitido de las puertas y el
+--     ambiente del andén bajo tierra (MetroAnden).
 --   * De noche, las luces de las estaciones bajan un poco (tag MetroLamp).
 --   * El tren de Cercanías (Shared/Rail, tag RailTrain, estado en ReplicatedStorage.RailState) se mueve
 --     igual: mismas cuentas, y también te lleva si vas de pie.
@@ -245,6 +246,35 @@ local function setRiding(value: boolean)
 	end
 end
 
+-- Ambiente del andén (Config.Sounds.MetroAnden: rumor lejano y gente) mientras estás bajo tierra
+-- y no vas en el tren. Va en el grupo Ambience.
+local function platformAmbience()
+	local sound = SoundFx.loop("MetroAnden", nil, "Ambience")
+	if not sound then
+		return
+	end
+	local base = sound.Volume
+	sound.Volume = 0
+	while sound.Parent do
+		task.wait(0.25)
+		local character = player.Character
+		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+		local below = false
+		if root and root.Position.Y < Metro.Underground then
+			-- (solo cerca de una estación: bajo el mar o en otro sitio hondo no suena el andén)
+			for _, station in Metro.Stations do
+				local surface = station.Surface
+				if surface and Vector2.new(root.Position.X - surface[1], root.Position.Z - surface[2]).Magnitude < 160 then
+					below = true
+					break
+				end
+			end
+		end
+		local target = if below and not riding then base else 0
+		sound.Volume += (target - sound.Volume) * 0.25 -- (entra y sale poco a poco)
+	end
+end
+
 ---------------------------------------------------------------------
 -- De noche, luz más baja en las estaciones
 ---------------------------------------------------------------------
@@ -294,6 +324,7 @@ function MetroTrains.init()
 	CollectionService:GetInstanceAddedSignal("MetroTrain"):Connect(collectTrain)
 	CollectionService:GetInstanceAddedSignal("RailTrain"):Connect(collectTrain)
 	CollectionService:GetInstanceAddedSignal("MetroLamp"):Connect(lampLevel)
+	task.spawn(platformAmbience)
 	-- (con la carga por zonas los coches llegan poco a poco: se vuelven a buscar de vez en cuando)
 	task.spawn(function()
 		while true do

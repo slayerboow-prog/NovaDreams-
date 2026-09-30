@@ -46,8 +46,11 @@ Config.Seasons = {
 	DaysPerSeason = 7,
 	WeatherHours = 6, -- cada cuántas horas de juego puede cambiar el tiempo
 	Start = "Primavera", -- estación del día 1
-	-- Sonidos (opcional): pon el ID de un audio subido a Roblox. Con 0 no suena nada.
+	-- Sonidos (client/Controllers/Weather). Con Id = 0 se usa el archivo de audio/sfx que dice
+	-- SoundFiles: su ID en SoundIds (scripts/upload-audio.sh) o un Sound con ese nombre en
+	-- ReplicatedStorage > Sonidos. Si no hay ninguno, no suena nada.
 	Sounds = { Rain = 0, Thunder = 0, Birds = 0, Wind = 0 },
+	SoundFiles = { Rain = "lluvia", Thunder = "trueno", Birds = "pajaros", Wind = "viento" },
 }
 
 ---------------------------------------------------------------------
@@ -148,13 +151,15 @@ Config.Baby = {
 -- La música es original y está en roblox/audio/. Para que suene:
 -- 1. En Studio: Window > Asset Manager > Bulk Import (o create.roblox.com > Creations > Audio)
 --    y sube los .ogg de roblox/audio/.
--- 2. Copia el ID de cada audio aquí (campo Id). Mientras sea 0, ese audio no suena
---    (todo lo demás funciona igual). También me los puedes pasar y los pongo yo.
+-- 2. Copia el ID de cada audio aquí (campo Id), o arrastra los audios a ReplicatedStorage > Musica,
+--    o usa scripts/upload-audio.sh --music (escribe los IDs en shared/SoundIds). Si no hay ninguno,
+--    ese audio no suena (todo lo demás funciona igual).
 ---------------------------------------------------------------------
 -- Efectos de sonido del juego (client/Controllers/SoundFx.luau). Cada uno puede ser:
 --   * "rbxasset://sounds/..." -> sonidos que vienen instalados con Roblox (funcionan siempre)
 --   * un número -> ID de un audio de Roblox (de la Caja de herramientas o subido por ti)
---   * 0 -> no suena
+--   * 0 -> busca el audio de File (audio/sfx) en shared/SoundIds y en ReplicatedStorage > Sonidos;
+--          si no está, no suena
 -- También se puede arrastrar un Sound a ReplicatedStorage > Sonidos con el mismo nombre
 -- (por ejemplo "Motor"): ese tiene preferencia.
 Config.Sounds = {
@@ -199,19 +204,21 @@ Config.Sounds = {
 	Agua = { Id = "rbxasset://sounds/action_swim.mp3", Volume = 0.25, Pitch = 1.6 },
 	Piano = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.35, Pitch = 1 },
 	Tecla = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.12, Pitch = 1.8 },
-	Tele = { Id = 0, Volume = 0.3, Pitch = 1 }, -- (pon un ID para oír la tele encendida)
-	-- Estos no vienen con Roblox: pon un ID (o un Sound en ReplicatedStorage > Sonidos) para oírlos
-	Motor = { Id = 0, Volume = 0.45, Pitch = 1 }, -- en bucle mientras conduces un coche o una moto
-	Claxon = { Id = 0, Volume = 0.8, Pitch = 1 }, -- tecla H en coche o moto
-	Timbre = { Id = 0, Volume = 0.6, Pitch = 1 }, -- tecla H en bici o patinete
-	Multitud = { Id = 0, Volume = 0.25, Pitch = 1 }, -- murmullo de gente en el centro
-	-- Metro (MetroTrains): gong de megafonía, pitido de cierre de puertas y, si pones un ID, el
-	-- traqueteo del tren en marcha, el frenazo y el murmullo del andén
+	Tele = { Id = 0, File = "tele", Volume = 0.3, Pitch = 1 }, -- tele encendida (bucle)
+	-- Estos no vienen con Roblox: son nuestros, de audio/sfx (File = nombre del archivo sin .ogg).
+	-- Con Id = 0 se usa el ID de SoundIds (scripts/upload-audio.sh) o el Sound con ese nombre en
+	-- ReplicatedStorage > Sonidos. Ver audio/README.md.
+	Motor = { Id = 0, File = "motor", Volume = 0.45, Pitch = 1 }, -- en bucle mientras conduces un coche o una moto
+	Claxon = { Id = 0, File = "claxon", Volume = 0.8, Pitch = 1 }, -- tecla H en coche o moto
+	Timbre = { Id = 0, File = "timbre", Volume = 0.6, Pitch = 1 }, -- tecla H en bici o patinete
+	Multitud = { Id = 0, File = "multitud", Volume = 0.25, Pitch = 1 }, -- murmullo de gente en el centro
+	-- Metro (MetroTrains): gong de megafonía, pitido de cierre de puertas, el traqueteo del tren en
+	-- marcha, el frenazo y el ambiente del andén
 	MetroGong = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.45, Pitch = 0.75 },
 	MetroPuertas = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.35, Pitch = 1.9 },
-	MetroTren = { Id = 0, Volume = 0.4, Pitch = 1 }, -- en bucle mientras vas en el tren
-	MetroFreno = { Id = 0, Volume = 0.5, Pitch = 1 },
-	MetroAnden = { Id = 0, Volume = 0.25, Pitch = 1 }, -- en bucle en los andenes (gente, anuncios de fondo)
+	MetroTren = { Id = 0, File = "metro_tren", Volume = 0.4, Pitch = 1 }, -- en bucle mientras vas en el tren
+	MetroFreno = { Id = 0, File = "metro_freno", Volume = 0.5, Pitch = 1 },
+	MetroAnden = { Id = 0, File = "metro_anden", Volume = 0.25, Pitch = 1 }, -- en bucle en los andenes (gente, anuncios de fondo)
 	-- Ascensor (LiftRide): "ding" al llegar a la planta
 	Ascensor = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.35, Pitch = 1.4 },
 }

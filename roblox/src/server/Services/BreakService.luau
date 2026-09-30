@@ -468,7 +468,9 @@ local function throw(player: Player, target: any)
 	end
 	lastThrow[player] = os.clock()
 	setStones(player, count - 1)
-	local from = head.Position + Vector3.new(0, 0.3, 0) + Vector3.new(toTarget.X, 0, toTarget.Z).Unit * 1.5
+	-- (si el blanco está justo encima o debajo, .Unit daría NaN: se usa hacia dónde mira)
+	local flat = Vector3.new(toTarget.X, 0, toTarget.Z)
+	local from = head.Position + Vector3.new(0, 0.3, 0) + (if flat.Magnitude > 0.01 then flat.Unit else head.CFrame.LookVector) * 1.5
 	local velocity = Breakables.launch(from, target, Breakables.ThrowSpeed, gravity())
 	nextId += 1
 	local stone: Stone = { Id = nextId, Player = player, From = from, Velocity = velocity, Start = workspace:GetServerTimeNow(), Last = from }

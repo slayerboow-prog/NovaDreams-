@@ -71,7 +71,71 @@ end
 -- Reproducir
 ---------------------------------------------------------------------
 
--- ID del sonido: primero un Sound en ReplicatedStorage.Sonidos con ese nombre; luego Config.Sounds
+-- Nombre sin mayúsculas, espacios, guiones, puntos ni extensión ("Metro_Tren.ogg" = "metrotren")
+local function normalize(name: string): string
+	return (string.gsub(string.lower((string.gsub(name, "%.%a%w*$", ""))), "[%s_%-%.]", ""))
+end
+
+-- Un Sound con ese nombre dentro de ReplicatedStorage.Sonidos (también en subcarpetas)
+local function fromSonidos(name: string): string?
+	local custom = ReplicatedStorage:FindFirstChild("Sonidos")
+	if not custom then
+		return nil
+	end
+	local direct = custom:FindFirstChild(name)
+	if direct and direct:IsA("Sound") and direct.SoundId ~= "" then
+		return direct.SoundId
+	end
+	local wanted = normalize(name)
+	for _, sound in custom:GetDescendants() do
+		if sound:IsA("Sound") and sound.SoundId ~= "" and normalize(sound.Name) == wanted then
+			return sound.SoundId
+		end
+	end
+	return nil
+end
+
+-- IDs subidos por scripts/upload-audio.sh (nombre del archivo -> "rbxassetid://…")
+local uploaded: { [string]: string } = {}
+do
+	local module = ReplicatedStorage:FindFirstChild("Shared") and ReplicatedStorage.Shared:FindFirstChild("SoundIds")
+	if module and module:IsA("ModuleScript") then
+		local ok, ids = pcall(require, module)
+		if ok and type(ids) == "table" then
+			uploaded = ids
+		end
+	end
+end
+
+-- ID subido con scripts/upload-audio.sh para un archivo ("motor", "tema_valmar.ogg"…), o nil
+function SoundFx.uploaded(file: string?): string?
+	if not file or file == "" then
+		return nil
+	end
+	local known = uploaded[(string.gsub(file, "%.%a%w*$", ""))]
+	return if type(known) == "string" and known ~= "" then known else nil
+end
+
+-- ID de un audio que puede no tener ID todavía. Por orden:
+--   1. id (el de Config) si no es 0
+--   2. SoundIds[file] (lo que escribe scripts/upload-audio.sh)
+--   3. un Sound llamado como el archivo en ReplicatedStorage.Sonidos (arrastrado desde el Asset Manager)
+--   4. nada (no suena, sin errores)
+-- file = nombre del archivo de audio/sfx sin ".ogg" (p. ej. "motor", "lluvia").
+function SoundFx.resolve(id: any, file: string?): string?
+	if typeof(id) == "number" and id > 0 then
+		return "rbxassetid://" .. id
+	elseif typeof(id) == "string" and id ~= "" and id ~= "0" then
+		return id
+	end
+	if not file or file == "" then
+		return nil
+	end
+	return SoundFx.uploaded(file) or fromSonidos((string.gsub(file, "%.%a%w*$", "")))
+end
+
+-- ID del sonido: un Sound en ReplicatedStorage.Sonidos con el nombre de Config (p. ej. "Motor") manda
+-- siempre (así se cambia cualquier efecto sin tocar código); si no, Config.Sounds con SoundFx.resolve
 local function soundId(name: string): string?
 	local custom = ReplicatedStorage:FindFirstChild("Sonidos")
 	local sound = custom and custom:FindFirstChild(name)
@@ -82,11 +146,7 @@ local function soundId(name: string): string?
 	if not entry then
 		return nil
 	end
-	local id = entry.Id
-	if typeof(id) == "number" then
-		return if id > 0 then "rbxassetid://" .. id else nil
-	end
-	return if typeof(id) == "string" and id ~= "" then id else nil
+	return SoundFx.resolve(entry.Id, entry.File)
 end
 
 -- Clic automático de los botones: si el propio botón ya toca su sonido (en menos de 50 ms), el

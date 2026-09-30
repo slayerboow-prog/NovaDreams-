@@ -530,7 +530,12 @@ function PostService.init()
 		while true do
 			task.wait(5)
 			for _, route in routes do
-				publish(route)
+				local ok, err = pcall(function()
+					publish(route)
+				end)
+				if not ok then
+					warn("[PostService] " .. tostring(err))
+				end
 			end
 		end
 	end)

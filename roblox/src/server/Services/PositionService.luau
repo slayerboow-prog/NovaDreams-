@@ -114,9 +114,14 @@ function PositionService.init()
 		while true do
 			task.wait(RECORD_SECONDS)
 			for _, player in Players:GetPlayers() do
-				local data = DataService.get(player)
-				if data then
-					record(player, data)
+				local ok, err = pcall(function()
+					local data = DataService.get(player)
+					if data then
+						record(player, data)
+					end
+				end)
+				if not ok then
+					warn("[PositionService] " .. tostring(err))
 				end
 			end
 		end

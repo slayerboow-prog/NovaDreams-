@@ -150,20 +150,26 @@ function ToyService.init()
 				end
 			end
 			for part, toy in toys do
-				if not part.Parent then
-					toys[part] = nil
-					continue
-				end
-				local distance = nearest(part.Position, roots)
-				local homeDistance = nearest(toy.Home.Position, roots)
-				if toy.Awake then
-					if Toys.shouldReset(part.Position, toy.Home.Position, math.min(distance, homeDistance)) then
-						sleep(toy)
-					elseif distance > WAKE_DISTANCE * 1.5 and homeDistance > WAKE_DISTANCE * 1.5 and (part.Position - toy.Home.Position).Magnitude < 3 then
-						sleep(toy) -- en su sitio y sin nadie: a dormir
+				-- Un juguete con error no para al resto
+				local ok, err = pcall(function()
+					if not part.Parent then
+						toys[part] = nil
+						return -- (dentro del pcall: pasa al siguiente juguete)
 					end
-				elseif homeDistance < WAKE_DISTANCE then
-					wake(toy)
+					local distance = nearest(part.Position, roots)
+					local homeDistance = nearest(toy.Home.Position, roots)
+					if toy.Awake then
+						if Toys.shouldReset(part.Position, toy.Home.Position, math.min(distance, homeDistance)) then
+							sleep(toy)
+						elseif distance > WAKE_DISTANCE * 1.5 and homeDistance > WAKE_DISTANCE * 1.5 and (part.Position - toy.Home.Position).Magnitude < 3 then
+							sleep(toy) -- en su sitio y sin nadie: a dormir
+						end
+					elseif homeDistance < WAKE_DISTANCE then
+						wake(toy)
+					end
+				end)
+				if not ok then
+					warn("[ToyService] " .. tostring(err))
 				end
 			end
 		end

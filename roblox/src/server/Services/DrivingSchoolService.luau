@@ -300,24 +300,30 @@ function DrivingSchoolService.init()
 		while true do
 			task.wait(0.2)
 			for player, session in sessions do
-				if session.Phase == "Practical" and session.Checkpoints then
-					local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
-					local left = session.Deadline - os.clock()
-					if left <= 0 then
-						finish(player, false, "se ha acabado el tiempo.")
-					elseif root then
-						local target = session.Checkpoints[session.Index]
-						local offset = root.Position - target
-						if Vector3.new(offset.X, 0, offset.Z).Magnitude <= Gameplay.Practical.ReachDistance then
-							session.Index += 1
-							if session.Index > #session.Checkpoints then
-								finish(player, true)
-								continue
+				-- Un examen con error no para al resto
+				local ok, err = pcall(function()
+					if session.Phase == "Practical" and session.Checkpoints then
+						local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+						local left = session.Deadline - os.clock()
+						if left <= 0 then
+							finish(player, false, "se ha acabado el tiempo.")
+						elseif root then
+							local target = session.Checkpoints[session.Index]
+							local offset = root.Position - target
+							if Vector3.new(offset.X, 0, offset.Z).Magnitude <= Gameplay.Practical.ReachDistance then
+								session.Index += 1
+								if session.Index > #session.Checkpoints then
+									finish(player, true)
+									return -- (dentro del pcall: pasa al siguiente examen)
+								end
+								placeMarker(session, player)
 							end
-							placeMarker(session, player)
+							player:SetAttribute("ActivityText", ("🚦 Examen práctico · punto %d de %d · %d s"):format(session.Index, #session.Checkpoints, math.ceil(left)))
 						end
-						player:SetAttribute("ActivityText", ("🚦 Examen práctico · punto %d de %d · %d s"):format(session.Index, #session.Checkpoints, math.ceil(left)))
 					end
+				end)
+				if not ok then
+					warn("[DrivingSchoolService] " .. tostring(err))
 				end
 			end
 		end

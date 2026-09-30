@@ -675,30 +675,36 @@ function FireService.init()
 		while true do
 			task.wait(2)
 			for player, shift in shifts do
-				local inc = shift.Incident
-				if inc and not inc.Done then
-					if os.clock() - inc.Started > F.TimeLimit then
-						Notify:FireClient(player, "Info", "🚨 Otra dotación se ha hecho cargo. Hay un aviso nuevo.")
-						newIncident(shift)
-						continue
-					end
-					if #inc.Flames > 0 and os.clock() - inc.LastGrow > F.GrowEvery then
-						inc.LastGrow = os.clock()
-						local burning = {}
-						for _, flame in inc.Flames do
-							if flame.Hits > 0 and flame.Hits < F.MaxHits then
-								table.insert(burning, flame)
+				-- Un turno con error no para los avisos del resto
+				local ok, err = pcall(function()
+					local inc = shift.Incident
+					if inc and not inc.Done then
+						if os.clock() - inc.Started > F.TimeLimit then
+							Notify:FireClient(player, "Info", "🚨 Otra dotación se ha hecho cargo. Hay un aviso nuevo.")
+							newIncident(shift)
+							return -- (dentro del pcall: pasa al siguiente turno)
+						end
+						if #inc.Flames > 0 and os.clock() - inc.LastGrow > F.GrowEvery then
+							inc.LastGrow = os.clock()
+							local burning = {}
+							for _, flame in inc.Flames do
+								if flame.Hits > 0 and flame.Hits < F.MaxHits then
+									table.insert(burning, flame)
+								end
+							end
+							if #burning > 0 then
+								local flame = burning[math.random(1, #burning)]
+								flame.Hits += 1
+								refreshFlame(flame)
+								Notify:FireClient(player, "Error", "🔥 ¡El fuego está creciendo! Date prisa.")
 							end
 						end
-						if #burning > 0 then
-							local flame = burning[math.random(1, #burning)]
-							flame.Hits += 1
-							refreshFlame(flame)
-							Notify:FireClient(player, "Error", "🔥 ¡El fuego está creciendo! Date prisa.")
-						end
 					end
+					publish(shift)
+				end)
+				if not ok then
+					warn("[FireService] " .. tostring(err))
 				end
-				publish(shift)
 			end
 		end
 	end)

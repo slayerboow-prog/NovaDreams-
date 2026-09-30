@@ -1,6 +1,7 @@
 -- Weather (cliente): pinta la estación y el tiempo que decide el servidor (WeatherService).
 --  * Lluvia, tormenta (con relámpagos), nieve, niebla: partículas alrededor de la cámara (no dentro de casa)
 --  * Pétalos en primavera y hojas cayendo en otoño
+--  * Sonidos: lluvia, trueno, viento y pájaros (Config.Seasons.Sounds; sin ID, los de audio/sfx)
 --  * Las copas de los árboles, los arbustos y la hierba cambian de color con la estación y la nieve
 --  * El cielo: nubes, luz y color (a través de DayLight.setModifier)
 --  * El tiempo y la temperatura se ven en la cápsula de la hora del HUD (UI/Hud lee workspace)
@@ -8,6 +9,7 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Lighting = game:GetService("Lighting")
 local RunService = game:GetService("RunService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
@@ -31,6 +33,9 @@ local snow: ParticleEmitter
 local falling: ParticleEmitter
 local rainSound: Sound?
 local thunderSound: Sound?
+local windSound: Sound?
+local birdsSound: Sound?
+local thunderVolume = 0.6 -- (más flojo dentro de casa y en el metro)
 local started = false -- (los avisos de cambio de tiempo no salen al entrar al juego)
 
 local season = "Primavera"
@@ -91,6 +96,28 @@ local function emitter(name: string, props: { [string]: any }): ParticleEmitter
 	return e
 end
 
+-- Un sonido del tiempo (Config.Seasons.Sounds): su Id o, si es 0, el archivo de audio/sfx
+-- (SoundIds o ReplicatedStorage > Sonidos, ver SoundFx.resolve). nil si no hay audio.
+local function ambientSound(key: string, looped: boolean): Sound?
+	local ids = Config.Seasons and Config.Seasons.Sounds or {}
+	local files = Config.Seasons and Config.Seasons.SoundFiles or {}
+	local id = SoundFx.resolve(ids[key], files[key])
+	if not id then
+		return nil
+	end
+	local sound = Instance.new("Sound")
+	sound.Name = "Weather" .. key
+	sound.SoundId = id
+	sound.Looped = looped
+	sound.Volume = if looped then 0 else 0.6
+	sound.SoundGroup = SoundFx.group("Ambience")
+	sound.Parent = workspace.CurrentCamera
+	if looped then
+		sound:Play()
+	end
+	return sound
+end
+
 local function buildEmitters()
 	emitterPart = Instance.new("Part")
 	emitterPart.Name = "WeatherSky"
@@ -147,23 +174,12 @@ local function buildEmitters()
 		RotSpeed = NumberRange.new(-120, 120),
 		Rate = 0,
 	})
-	local sounds = Config.Seasons and Config.Seasons.Sounds or {}
-	if (sounds.Rain or 0) ~= 0 then
-		rainSound = Instance.new("Sound")
-		rainSound.SoundId = "rbxassetid://" .. sounds.Rain
-		rainSound.Looped = true
-		rainSound.Volume = 0
-		rainSound.SoundGroup = SoundFx.group("Ambience") -- (así «Sonidos: no» también calla la lluvia)
-		rainSound.Parent = workspace.CurrentCamera
-		rainSound:Play()
-	end
-	if (sounds.Thunder or 0) ~= 0 then
-		thunderSound = Instance.new("Sound")
-		thunderSound.SoundId = "rbxassetid://" .. sounds.Thunder
-		thunderSound.Volume = 0.6
-		thunderSound.SoundGroup = SoundFx.group("Ambience")
-		thunderSound.Parent = workspace.CurrentCamera
-	end
+	-- Sonidos: lluvia, viento y pájaros en bucle (el volumen lo pone updateParticles) y el trueno.
+	-- Todos en el grupo Ambience (así «Sonidos: no» también los calla).
+	rainSound = ambientSound("Rain", true)
+	windSound = ambientSound("Wind", true)
+	birdsSound = ambientSound("Birds", true)
+	thunderSound = ambientSound("Thunder", false)
 end
 
 -- ¿Hay techo encima de la cámara? (dentro de casa no llueve)
@@ -177,6 +193,14 @@ local function underRoof(): boolean
 	rayParams.RespectCanCollide = true
 	local hit = workspace:Raycast(camera.CFrame.Position, Vector3.new(0, 80, 0), rayParams)
 	return hit ~= nil and hit.Instance.Transparency < 0.5 and hit.Material ~= Enum.Material.LeafyGrass
+end
+
+-- Volumen del viento según el tiempo
+local WIND = { Despejado = 0.08, Nublado = 0.14, Lluvia = 0.18, Tormenta = 0.4, Nieve = 0.22, Niebla = 0.1 }
+
+-- Cambio suave de volumen (se llama cada 0.1 s): sin saltos al entrar en casa o cambiar el tiempo
+local function fadeTowards(current: number, target: number): number
+	return current + (target - current) * 0.12
 end
 
 local function updateParticles()
@@ -204,6 +228,28 @@ local function updateParticles()
 	if rainSound then
 		rainSound.Volume = if info.Rain and not off then 0.5 * info.Rain else (if info.Rain and not underground then 0.15 else 0)
 	end
+	-- Viento: más con tormenta, nieve o en lo alto; flojito dentro de casa; nada en el metro
+	if windSound then
+		local wind = WIND[weather] or 0.08
+		if seasonInfo and seasonInfo.Cold then
+			wind += 0.05
+		end
+		wind *= 1 + math.clamp((position.Y - 60) / 200, 0, 1)
+		local target = if underground then 0 elseif indoor then wind * 0.25 else wind
+		windSound.Volume = fadeTowards(windSound.Volume, math.min(target, 0.6))
+	end
+	-- Pájaros: de día y con buen tiempo; más en primavera, pocos en invierno (Seasons.Info.Birds)
+	if birdsSound then
+		local hour = Lighting.ClockTime
+		local day = hour > 6.5 and hour < 20.5
+		local calm = weather == "Despejado" or weather == "Nublado"
+		local amount = if day and calm and not underground then 0.3 * (seasonInfo and seasonInfo.Birds or 1) else 0
+		if indoor then
+			amount *= 0.3
+		end
+		birdsSound.Volume = fadeTowards(birdsSound.Volume, amount)
+	end
+	thunderVolume = if underground then 0.12 elseif indoor then 0.35 else 0.6
 end
 
 ---------------------------------------------------------------------
@@ -305,8 +351,11 @@ function Weather.init()
 			nextLightning = os.clock() + 8 + math.random() * 12
 			flash = 1
 			if thunderSound then
+				local sound = thunderSound
 				task.delay(0.6 + math.random() * 1.5, function()
-					thunderSound:Play()
+					sound.Volume = thunderVolume
+					sound.PlaybackSpeed = 0.85 + math.random() * 0.3 -- (cada trueno un poco distinto)
+					sound:Play()
 				end)
 			end
 		end

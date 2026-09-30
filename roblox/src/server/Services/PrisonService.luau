@@ -493,23 +493,29 @@ function PrisonService.init()
 		while true do
 			task.wait(1)
 			for player, untilTime in isolated do
-				if os.clock() >= untilTime or not JusticeService.isJailed(player) then
-					endIsolation(player)
-					if JusticeService.isJailed(player) then
-						say(player, "Info", "⛓ Se acabó el aislamiento. Vuelves al módulo.")
-						JusticeService.sendToCell(player)
-					end
-				else
-					local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
-					local nearest = math.huge
-					for _, cell in CollectionService:GetTagged("PrisonIsolation") do
-						if root then
-							nearest = math.min(nearest, (root.Position - (cell :: BasePart).Position).Magnitude)
+				-- Un preso con error no para el aislamiento del resto
+				local ok, err = pcall(function()
+					if os.clock() >= untilTime or not JusticeService.isJailed(player) then
+						endIsolation(player)
+						if JusticeService.isJailed(player) then
+							say(player, "Info", "⛓ Se acabó el aislamiento. Vuelves al módulo.")
+							JusticeService.sendToCell(player)
+						end
+					else
+						local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+						local nearest = math.huge
+						for _, cell in CollectionService:GetTagged("PrisonIsolation") do
+							if root then
+								nearest = math.min(nearest, (root.Position - (cell :: BasePart).Position).Magnitude)
+							end
+						end
+						if root and nearest > 12 then
+							toIsolation(player) -- (solo volver: el tiempo no se reinicia)
 						end
 					end
-					if root and nearest > 12 then
-						toIsolation(player) -- (solo volver: el tiempo no se reinicia)
-					end
+				end)
+				if not ok then
+					warn("[PrisonService] " .. tostring(err))
 				end
 			end
 		end

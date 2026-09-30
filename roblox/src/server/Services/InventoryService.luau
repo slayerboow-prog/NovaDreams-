@@ -250,7 +250,12 @@ function InventoryService.init()
 		while true do
 			task.wait(5)
 			for _, player in Players:GetPlayers() do
-				sync(player)
+				local ok, err = pcall(function()
+					sync(player)
+				end)
+				if not ok then
+					warn("[InventoryService] " .. tostring(err))
+				end
 			end
 		end
 	end)

@@ -257,12 +257,18 @@ function TaxService.init()
 				end
 			end
 			for _, player in Players:GetPlayers() do
-				local tax = taxOf(player)
-				if tax then
-					tax.Clock += TICK
-					if tax.Clock >= Taxes.Period then
-						closeYear(player)
+				-- Un jugador con error no para el reloj del resto
+				local ok, err = pcall(function()
+					local tax = taxOf(player)
+					if tax then
+						tax.Clock += TICK
+						if tax.Clock >= Taxes.Period then
+							closeYear(player)
+						end
 					end
+				end)
+				if not ok then
+					warn("[TaxService] " .. tostring(err))
 				end
 			end
 		end

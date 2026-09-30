@@ -190,7 +190,18 @@ local function reached(player: Player, shift: Shift)
 	if shift.Phase == "Pickup" then
 		giveCarry(player, shift)
 		local provider = providers[shift.JobId]
-		local target = if provider then provider.Dropoff(player, shift) else pickTarget("Dropoff_" .. shift.JobId, shift.Target)
+		local target: BasePart? = nil
+		if provider then
+			-- Protegido: si el trabajo falla, no rompemos el bucle de llegadas
+			local ok, result = pcall(provider.Dropoff, player, shift)
+			if ok then
+				target = result
+			else
+				warn("[JobService] Dropoff de " .. tostring(shift.JobId) .. ": " .. tostring(result))
+			end
+		else
+			target = pickTarget("Dropoff_" .. shift.JobId, shift.Target)
+		end
 		if not target then
 			return
 		end
@@ -204,7 +215,11 @@ local function reached(player: Player, shift: Shift)
 	removeCarry(shift)
 	local provider = providers[shift.JobId]
 	if provider and provider.Done then
-		provider.Done(player, shift)
+		-- Protegido: si falla, se cobra igual y avisamos en la consola
+		local ok, err = pcall(provider.Done, player, shift)
+		if not ok then
+			warn("[JobService] Done de " .. tostring(shift.JobId) .. ": " .. tostring(err))
+		end
 	end
 	local pay = math.floor(job.Pay * MonetizationService.payMultiplier(player))
 	DataService.addMoney(player, pay, true)
@@ -289,14 +304,20 @@ function JobService.init()
 		while true do
 			task.wait(0.25)
 			for player, shift in shifts do
-				local character = player.Character
-				local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
-				if root and shift.Target.Parent then
-					local offset = root.Position - shift.Target.Position
-					local flat = Vector3.new(offset.X, 0, offset.Z).Magnitude
-					if flat <= Config.TaskReachDistance and math.abs(offset.Y) < 12 then
-						reached(player, shift)
+				-- Un error con un jugador no debe parar los trabajos del resto
+				local ok, err = pcall(function()
+					local character = player.Character
+					local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+					if root and shift.Target.Parent then
+						local offset = root.Position - shift.Target.Position
+						local flat = Vector3.new(offset.X, 0, offset.Z).Magnitude
+						if flat <= Config.TaskReachDistance and math.abs(offset.Y) < 12 then
+							reached(player, shift)
+						end
 					end
+				end)
+				if not ok then
+					warn("[JobService] " .. tostring(err))
 				end
 			end
 		end

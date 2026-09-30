@@ -150,7 +150,7 @@ local function abort(player: Player, session: Session, teacher: RoleService.Assi
 	RoleService.release(teacher)
 	if player.Parent then
 		-- (el panel se cierra con "End"; la nota no se apunta)
-		Remote:FireClient(player, "End", { Grade = 0, GradeKey = "CLASS.TIMEOUT", Correct = 0, Total = 0 })
+		Remote:FireClient(player, "End", { Grade = 0, GradeKey = "CLASS.TIMEOUT", Correct = 0, Total = 0, Aborted = true })
 		Notify:FireClient(player, "Info", "La clase se ha interrumpido: no cuenta, podrás repetirla.")
 	end
 	task.spawn(onDone, { Grade = 0, Correct = 0, Total = 0, Aborted = true })

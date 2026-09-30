@@ -111,6 +111,35 @@ function Street.along(road: Road, sign: number): Vector3
 	return if road.Axis == "X" then Vector3.new(sign, 0, 0) else Vector3.new(0, 0, sign)
 end
 
+-- Árboles de alineación ya plantados (para quitar luego los que caen dentro de una manzana)
+local streetTrees: { { Base: Vector3, Tree: Instance?, Pit: BasePart? } } = {}
+
+-- Quita los árboles de alineación cuyo tronco cae dentro (o casi en el borde) de una manzana:
+-- una calle que se pegó a otra con árboles metía su acera unos studs en la manzana y los árboles
+-- salían por los escaparates. Se quitan DESPUÉS de plantarlos (y no se deja de llamar a
+-- Nature.tree), así el azar del resto del mapa sigue igual. Devuelve cuántos se quitaron.
+function Street.pruneTrees(rects: { { X0: number, X1: number, Z0: number, Z1: number } }, margin: number?): number
+	local m = margin or 1.5
+	local removed = 0
+	for _, t in streetTrees do
+		local x, z = t.Base.X, t.Base.Z
+		for _, r in rects do
+			if x > r.X0 - m and x < r.X1 + m and z > r.Z0 - m and z < r.Z1 + m then
+				if t.Tree then
+					t.Tree:Destroy()
+				end
+				if t.Pit then
+					t.Pit:Destroy()
+				end
+				removed += 1
+				break
+			end
+		end
+	end
+	table.clear(streetTrees)
+	return removed
+end
+
 local function asphalt()
 	return { Name = "Road", Color = G.Asphalt, Material = Enum.Material.Asphalt }
 end
@@ -221,8 +250,11 @@ local function segment(parent: Instance, road: Road, u0: number, u1: number, lim
 					continue
 				end
 				local v = s * (H - 2.6)
-				rbox(parent, road, tu - 1.8, tu + 1.8, v - 1.8, v + 1.8, WALK_TOP, WALK_TOP + 0.05, { Name = "TreePit", Color = Color3.fromRGB(84, 64, 46), Material = Enum.Material.Ground }, true)
-				Nature.tree(parent, Street.point(road, tu, v, WALK_TOP), 0.75 + math.random() * 0.2)
+				local pit = rbox(parent, road, tu - 1.8, tu + 1.8, v - 1.8, v + 1.8, WALK_TOP, WALK_TOP + 0.05, { Name = "TreePit", Color = Color3.fromRGB(84, 64, 46), Material = Enum.Material.Ground }, true)
+				local base = Street.point(road, tu, v, WALK_TOP)
+				local tree = Nature.tree(parent, base, 0.75 + math.random() * 0.2)
+				-- Se apunta: si luego cae dentro de una manzana, Street.pruneTrees lo quita
+				table.insert(streetTrees, { Base = base, Tree = tree, Pit = pit })
 			end
 			tu += 36
 		end
@@ -301,6 +333,7 @@ end
 ---------------------------------------------------------------------
 
 function Street.build(parent: Instance, roads: { Road })
+	table.clear(streetTrees)
 	local folder = Builder.model("Streets", parent)
 	local cuts: { [Road]: { number } } = {}
 	for _, road in roads do

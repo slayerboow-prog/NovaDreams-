@@ -436,8 +436,14 @@ function GarbageService.init()
 		while true do
 			task.wait(2)
 			for _, route in routes do
-				refreshCarry(route)
-				publish(route)
+				-- Una ruta con error no para al resto
+				local ok, err = pcall(function()
+					refreshCarry(route)
+					publish(route)
+				end)
+				if not ok then
+					warn("[GarbageService] " .. tostring(err))
+				end
 			end
 		end
 	end)

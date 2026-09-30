@@ -624,11 +624,17 @@ function TradeService.init()
 			task.wait(1)
 			local seen = {}
 			for _, session in sessionOf do
-				if not seen[session] then
-					seen[session] = true
-					if distance(session.A.Player, session.B.Player) > Trade.KeepRange then
-						close(session, "Os habéis alejado demasiado. Intercambio cancelado.")
+				-- Un intercambio con error no para al resto
+				local ok, err = pcall(function()
+					if not seen[session] then
+						seen[session] = true
+						if distance(session.A.Player, session.B.Player) > Trade.KeepRange then
+							close(session, "Os habéis alejado demasiado. Intercambio cancelado.")
+						end
 					end
+				end)
+				if not ok then
+					warn("[TradeService] " .. tostring(err))
 				end
 			end
 		end

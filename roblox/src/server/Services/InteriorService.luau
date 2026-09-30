@@ -1749,7 +1749,11 @@ function InteriorService.init()
 	task.spawn(function()
 		while true do
 			task.wait(0.5)
-			InteriorService.stepTowers()
+			-- Protegido: un error en una torre no debe parar las plantas de todo el servidor
+			local ok, err = pcall(InteriorService.stepTowers)
+			if not ok then
+				warn("[InteriorService] " .. tostring(err))
+			end
 			pcall(stepLifts)
 		end
 	end)

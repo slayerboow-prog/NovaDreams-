@@ -1052,51 +1052,57 @@ local function buildAreaBanner(parent: Instance)
 	task.spawn(function()
 		while true do
 			task.wait(1)
-			local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
-			if not root or busy then
-				continue
-			end
-			local position = root.Position
-			local zone, zoneDistance = nearestZone(position)
-			local district = MapInfo.districtAt(position.X, position.Z)
-			local districtName = if district then district.Name else "Naturaleza de Valmar"
-			local near = zone ~= nil and zoneDistance < 650
-			local t = if near then zone :: string else districtName
-			local s = if near then districtName else (if district then district.Theme else "Montes y costa")
-			local homeId = player:GetAttribute("FamilyHomeId")
-			local found = false
-			for _, room in CollectionService:GetTagged("Room") do
-				if inside(room, position) then
-					local mine = homeId ~= nil and room:GetAttribute("HomeId") == homeId
-					t, s, found = if mine then "Tu casa" else "Casa", ROOM_NAMES[room:GetAttribute("Room")] or "Zona residencial", true
-					break
+			-- Protegido: un error no deja sin cartel de zona el resto de la partida
+			local ok, err = pcall(function()
+				local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+				if not root or busy then
+					return -- (dentro del pcall: espera al siguiente segundo)
 				end
-			end
-			if not found then
-				for _, area in CollectionService:GetTagged("StoryArea") do
-					local names = AREA_NAMES[area:GetAttribute("AreaId")]
-					if names and inside(area, position) then
-						t, s, found = names[1], names[2], true
+				local position = root.Position
+				local zone, zoneDistance = nearestZone(position)
+				local district = MapInfo.districtAt(position.X, position.Z)
+				local districtName = if district then district.Name else "Naturaleza de Valmar"
+				local near = zone ~= nil and zoneDistance < 650
+				local t = if near then zone :: string else districtName
+				local s = if near then districtName else (if district then district.Theme else "Montes y costa")
+				local homeId = player:GetAttribute("FamilyHomeId")
+				local found = false
+				for _, room in CollectionService:GetTagged("Room") do
+					if inside(room, position) then
+						local mine = homeId ~= nil and room:GetAttribute("HomeId") == homeId
+						t, s, found = if mine then "Tu casa" else "Casa", ROOM_NAMES[room:GetAttribute("Room")] or "Zona residencial", true
 						break
 					end
 				end
-			end
-			if not found then
-				for _, classroom in CollectionService:GetTagged("Classroom") do
-					if inside(classroom, position) then
-						t, s = "Colegio", "Aula"
-						break
+				if not found then
+					for _, area in CollectionService:GetTagged("StoryArea") do
+						local names = AREA_NAMES[area:GetAttribute("AreaId")]
+						if names and inside(area, position) then
+							t, s, found = names[1], names[2], true
+							break
+						end
 					end
 				end
-			end
-			if t ~= pending then
-				pending, stable = t, 0
-			else
-				stable += 1
-			end
-			if stable == 2 and t ~= shown then
-				shown = t
-				show(t, s)
+				if not found then
+					for _, classroom in CollectionService:GetTagged("Classroom") do
+						if inside(classroom, position) then
+							t, s = "Colegio", "Aula"
+							break
+						end
+					end
+				end
+				if t ~= pending then
+					pending, stable = t, 0
+				else
+					stable += 1
+				end
+				if stable == 2 and t ~= shown then
+					shown = t
+					show(t, s)
+				end
+			end)
+			if not ok then
+				warn("[Hud] " .. tostring(err))
 			end
 		end
 	end)

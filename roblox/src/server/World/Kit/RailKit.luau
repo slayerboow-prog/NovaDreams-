@@ -1,7 +1,7 @@
 -- RailKit: el tren de Cercanías de Valmar (datos en Shared/Rail.luau; lo mueve RailService).
 --
 --   * Vía en superficie: balasto, traviesas y dos carriles, en trozos largos (pocas piezas). Sobre el
---     río, un puente con barandillas y pilares.
+--     río, un pedraplén bajo (base de piedra en el agua, tablero, pretiles con barandilla y estribos).
 --   * Pasos a nivel donde la vía cruza una calle: el asfalto y las aceras siguen enteros (los carriles
 --     van encastrados, sin chocar), con cuatro barreras (tag RailCrossing: las mueve el cliente,
 --     Controllers/RailUI) y postes con la cruz de San Andrés y dos luces rojas que parpadean.
@@ -233,6 +233,85 @@ local function openSpans(): { { number } }
 	return spans
 end
 
+-- Tramo del recorrido sobre el río (con 6 studs de más en cada orilla): s0, s1 (o nil si no cruza)
+local function waterSpan(): (number?, number?)
+	local points, _, length = Rail.path()
+	local s0, s1 = nil, nil
+	local s = 0
+	while s <= length do
+		if overWater((Rail.sample(points, s))) then
+			s0 = s0 or s
+			s1 = s
+		end
+		s += 1
+	end
+	return s0, s1
+end
+
+local CAUSEWAY_TOP = -1.8 -- la piedra asoma 0,2 sobre el agua (Y = -2)
+local CAUSEWAY_BOTTOM = -17 -- hasta el fondo del cauce (arena en -16)
+local DECK_TOP = -1.3 -- el balasto (de -1,5 a 0,1) se hunde un poco en el tablero
+local PARAPET_TOP = 0.3
+
+local function buildCauseway(parent: Instance)
+	local s0, s1 = waterSpan()
+	if not s0 or not s1 then
+		return
+	end
+	local points = Rail.path()
+	local b = Builder.model("PuenteCercanias", parent)
+	local STONE = rgb(122, 116, 108)
+	-- Trozos rectos. Donde dos trozos siguen igual de rectos se tocan justo (sin solaparse: si no,
+	-- las caras iguales parpadean); en la curva se alargan medio stud para tapar la rendija de fuera.
+	local list = pieces(s0, s1, 12)
+	for i, piece in list do
+		local a, bb = piece.A, piece.B
+		local dir = flat(bb - a).Unit
+		local function bends(other: { A: Vector3, B: Vector3 }?): boolean
+			return other ~= nil and flat(other.B - other.A).Unit:Dot(dir) < 0.99999
+		end
+		local back = if bends(list[i - 1]) then 0.5 else 0
+		local front = if bends(list[i + 1]) then 0.5 else 0
+		local len = flat(bb - a).Magnitude + back + front
+		local mid = (a + bb) / 2 + dir * (front - back) / 2
+		-- (uno sí y otro no, 0,04 más alto: en la curva se solapan y sus caras de arriba no parpadean)
+		local cf = along(mid, dir, (i % 2) * 0.04)
+		-- Base de piedra (se ve metida en el agua, más ancha que el tablero)
+		part(b, "Causeway", V3(15.5, CAUSEWAY_TOP - CAUSEWAY_BOTTOM, len), cf * CFrame.new(0, (CAUSEWAY_TOP + CAUSEWAY_BOTTOM) / 2, 0), STONE, Enum.Material.Slate)
+		-- Tablero de hormigón (lo usa la prueba: "Deck")
+		part(b, "Deck", V3(13, 1.2, len), cf * CFrame.new(0, DECK_TOP - 0.6, 0), CONCRETE, Enum.Material.Concrete)
+		for _, side in { -1, 1 } do
+			-- Pretil bajo con la barandilla encima, sobre postes
+			part(b, "Parapet", V3(0.5, PARAPET_TOP - DECK_TOP, len), cf * CFrame.new(side * 6.25, (PARAPET_TOP + DECK_TOP) / 2, 0), CONCRETE, Enum.Material.Concrete)
+			decor(b, "Handrail", V3(0.3, 0.3, len), cf * CFrame.new(side * 6.25, PARAPET_TOP + 0.9, 0), STEEL, Enum.Material.Metal)
+			-- Alcantarilla (boca oscura a ras del agua, en la cara de la piedra) cada dos trozos
+			if i % 2 == 0 then
+				decor(b, "Culvert", V3(0.1, 0.8, 4), cf * CFrame.new(side * 7.8, CAUSEWAY_TOP - 0.4, 0), DARK, Enum.Material.Slate)
+			end
+		end
+	end
+	-- Postes de la barandilla cada 5 studs (del pretil a la barandilla)
+	local s = s0 + 1
+	while s <= s1 - 1 do
+		local p, t = Rail.sample(points, s)
+		local cf = along(p, t, 0)
+		for _, side in { -1, 1 } do
+			decor(b, "RailPost", V3(0.2, 0.8, 0.2), cf * CFrame.new(side * 6.25, PARAPET_TOP + 0.4, 0), STEEL, Enum.Material.Metal)
+		end
+		s += 5
+	end
+	-- Estribos: un bloque de piedra en cada orilla (tapa el corte del cauce) con dos pilastras
+	-- (centrado 5 studs hacia el río desde el final del tramo: cubre el borde del agua)
+	for _, e in { { s0, 1 }, { s1, -1 } } do
+		local p, t = Rail.sample(points, e[1] + e[2] * 5)
+		local cf = along(p, t, 0)
+		part(b, "Abutment", V3(17, -0.8 - CAUSEWAY_BOTTOM, 10), cf * CFrame.new(0, (-0.8 + CAUSEWAY_BOTTOM) / 2, 0), STONE, Enum.Material.Slate)
+		for _, side in { -1, 1 } do
+			part(b, "AbutmentPost", V3(1.2, 2.3, 1.2), cf * CFrame.new(side * 7.4, -0.8 + 1.15, e[2] * 4), CONCRETE, Enum.Material.Concrete)
+		end
+	end
+end
+
 local function buildTrack(parent: Instance)
 	local m = Builder.model("Via", parent)
 	local points, _, length = Rail.path()
@@ -268,26 +347,9 @@ local function buildTrack(parent: Instance)
 		decor(m, "BufferStripe", V3(8.1, 0.6, 2.1), cf * CFrame.new(0, 2.4, 1), WHITE)
 		decor(m, "BufferLamp", V3(0.8, 0.8, 0.3), cf * CFrame.new(0, 3.5, 0.5), rgb(255, 40, 40), Enum.Material.Neon)
 	end
-	-- Puente sobre el río: tablero, barandillas y pilares (cada 10 studs se mira si hay agua debajo)
-	local bridge: Model? = nil
-	local s2 = 0
-	while s2 < length do
-		local p, t = Rail.sample(points, s2 + 5)
-		if overWater(p) then
-			bridge = bridge or Builder.model("PuenteCercanias", parent)
-			local b = bridge :: Model
-			local cf = along(p, t, 0)
-			part(b, "Deck", V3(12, 1.2, 10.4), cf * CFrame.new(0, BED_BOTTOM - 0.6, 0), CONCRETE, Enum.Material.Concrete)
-			for _, side in { -1, 1 } do
-				part(b, "Parapet", V3(0.5, 3.2, 10.4), cf * CFrame.new(side * 6.25, BED_BOTTOM + 1, 0), CONCRETE, Enum.Material.Concrete)
-				decor(b, "Handrail", V3(0.3, 0.3, 10.4), cf * CFrame.new(side * 6.25, BED_BOTTOM + 2.8, 0), STEEL, Enum.Material.Metal)
-			end
-			if math.floor(s2 / 10) % 3 == 0 then
-				part(b, "Pier", V3(6, 14, 3), cf * CFrame.new(0, BED_BOTTOM - 8.2, 0), CONCRETE, Enum.Material.Concrete)
-			end
-		end
-		s2 += 10
-	end
+	-- Paso sobre el río: un pedraplén bajo (a propósito, la vía va a ras del suelo): base de piedra
+	-- que sale del agua, tablero encima, pretiles con barandilla y un estribo en cada orilla
+	buildCauseway(parent)
 	return m
 end
 

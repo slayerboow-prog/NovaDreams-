@@ -33,13 +33,22 @@ MiniGameService.Games = {
 -- elapsed: segundos desde que empezó. El resultado lo manda el cliente: aquí al menos se comprueba
 -- que sea posible (cada jugada da como mucho un gol, para uno u otro) y que haya dado tiempo a
 -- jugar lo que dice haber jugado; si no, no cuenta como ganado.
+-- Número limpio del cliente: sin NaN ni infinitos (0/0 pasa tonumber y math.clamp y llegaría a los datos)
+local function safeNumber(x: any): number
+	local n = tonumber(x) or 0
+	if n ~= n or n == math.huge or n == -math.huge then
+		n = 0
+	end
+	return n
+end
+
 local function evaluate(spec: Spec, raw: any, elapsed: number): Result
 	raw = if type(raw) == "table" then raw else {}
 	local rules = MiniGameService.Games[spec.Game]
 	if spec.Game == "Futbol" then
 		local plays = spec.Plays or 6
-		local goals = math.clamp(math.floor(tonumber(raw.Goals) or 0), 0, plays)
-		local against = math.clamp(math.floor(tonumber(raw.Against) or 0), 0, plays)
+		local goals = math.clamp(math.floor(safeNumber(raw.Goals)), 0, plays)
+		local against = math.clamp(math.floor(safeNumber(raw.Against)), 0, plays)
 		if goals + against > plays then
 			return { Won = false, Score = 0, Against = plays, Detail = { Draw = false } }
 		end
@@ -47,7 +56,7 @@ local function evaluate(spec: Spec, raw: any, elapsed: number): Result
 		return { Won = goals > against, Score = goals, Against = against, Detail = { Draw = goals == against } }
 	end
 	local rounds = spec.Rounds or 3
-	local hits = math.clamp(math.floor(tonumber(raw.Hits) or 0), 0, rounds)
+	local hits = math.clamp(math.floor(safeNumber(raw.Hits)), 0, rounds)
 	-- Cada acierto es una ronda jugada: tiene que haber dado tiempo a jugarlas
 	local played = elapsed >= rules.MinSecondsPerRound * math.max(hits, 1)
 	return { Won = played and hits >= (spec.Need or 1), Score = hits }

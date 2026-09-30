@@ -477,7 +477,12 @@ function ArcadeService.init()
 
 	task.spawn(function()
 		while true do
-			refreshGlobal()
+			local ok, err = pcall(function()
+				refreshGlobal()
+			end)
+			if not ok then
+				warn("[ArcadeService] " .. tostring(err))
+			end
 			task.wait(60)
 		end
 	end)
