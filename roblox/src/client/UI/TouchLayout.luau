@@ -18,10 +18,10 @@
 --   TouchLayout.refresh()        -- vuelve a mirar Visible/Active/Badge (también se hace solo, 2 veces por segundo)
 --   TouchLayout.setLabel(id, t)  -- cambia el texto (p. ej. Interactuar -> "Hablar")
 --
--- Móvil y tableta: botones redondos con icono y texto, en racimo abajo a la derecha (HudLayout.Cluster):
--- Interactuar arriba; Correr, Defensa y Saltar; Gestos y el Ataque grande; Esquivar y Fijar objetivo.
--- Los de contexto (linterna, foto, piedra, bajarse, sirena…) en una columna a la izquierda, solo cuando
--- sirven. Ordenador y mando: sin botones; en su lugar, una lista pequeña de teclas abajo a la derecha.
+-- Móvil y tableta: botones redondos con icono y texto, en racimo pegado a la esquina de abajo a la
+-- derecha (HudLayout.Cluster): Interactuar arriba; Correr, Defensa y Saltar; Gestos y el Ataque grande;
+-- Esquivar y Fijar objetivo. Los de contexto (linterna, foto, piedra, bajarse, sirena…) en una columna a
+-- la izquierda que se llena desde abajo, solo cuando sirven. Nunca salen dos botones con el mismo texto. Ordenador y mando: sin botones; en su lugar, una lista pequeña de teclas abajo a la derecha.
 -- Si hay un mando conectado, debajo de cada botón redondo sale su letra (Y, A, X, RB…).
 --
 -- Huecos: Ataque, Interactuar, Correr, Defender, Saltar, Gestos, Esquivar, Fijar (y Extra1-5).
@@ -344,7 +344,15 @@ function TouchLayout.refresh()
 	local taken: { [string]: boolean } = {}
 	local placed: { [string]: string } = {}
 	local extras: { Spec } = {}
+	-- Nunca dos botones iguales a la vez (p. ej. dos «Agacharse»): si dos visibles dicen lo mismo, se
+	-- queda el de Priority más baja
+	local captions: { [string]: boolean } = {}
 	for _, spec in visible do
+		local caption = labels[spec.Id] or spec.Label
+		if captions[caption] then
+			continue
+		end
+		captions[caption] = true
 		local slot = if spec.Slot then (SLOT_ALIAS[spec.Slot] or spec.Slot) else nil
 		if slot and layout.Slots[slot] and not taken[slot] then
 			taken[slot] = true

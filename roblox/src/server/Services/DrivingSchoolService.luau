@@ -16,6 +16,7 @@ local Stages = require(ReplicatedStorage.Shared.LifeStory.Stages)
 local Builder = require(script.Parent.Parent.World.Builder)
 local Region = require(script.Parent.Parent.World.Region)
 local DataService = require(script.Parent.DataService)
+local TesterService = require(script.Parent.TesterService) -- modo pruebas: se salta los requisitos
 local JobService = require(script.Parent.JobService)
 local VehicleService = require(script.Parent.VehicleService)
 local RestaurantService = require(script.Parent.RestaurantService)
@@ -216,7 +217,7 @@ local function setupSchool(part: Instance)
 			Notify:FireClient(player, "Info", "Ya estás haciendo un examen.")
 			return
 		end
-		if not Stages.allows(player:GetAttribute("LifeStage"), "License", { License = Gameplay.LicenseStage }) then
+		if not Stages.allows(player:GetAttribute("LifeStage"), "License", { License = Gameplay.LicenseStage }) and not TesterService.bypass(player) then
 			Notify:FireClient(player, "Error", "Para sacarte el carnet tienes que ser mayor de edad.")
 			return
 		end

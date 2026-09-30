@@ -16,11 +16,17 @@ local clamp, sqrt, acos, atan2 = math.clamp, math.sqrt, math.acos, math.atan2
 -- Posturas
 ---------------------------------------------------------------------
 Movement.Stances = { Stand = true, Crouch = true, Prone = true }
-Movement.Speed = { Stand = 1, Crouch = 0.55, Prone = 0.25 } -- velocidad respecto a andar
+-- Velocidad respecto a andar (Controllers/Locomotion la aplica; agachado nunca pasa de andar, aunque
+-- lleves Shift pulsado: no hay "correr agachado")
+Movement.Speed = { Stand = 1, Crouch = 0.45, Prone = 0.25 }
 Movement.Witness = { Stand = 1, Crouch = 0.5, Prone = 0.5 } -- radio de los testigos (más discreto)
 Movement.Transition = { Stand = 0.3, Crouch = 0.3, Prone = 0.45 } -- segundos para llegar a esa postura
 Movement.HoldToProne = 0.5 -- mantener la tecla de agacharse este tiempo = tumbarse
 Movement.MaxProneSlope = 25 -- grados: en cuestas más empinadas no se puede tumbar
+-- Agachado, la cadera baja esta parte de lo que mide la pierna (cadera a tobillo): rodillas a ~95°,
+-- muslo a ~50° (Stances lo usa a la vez para la HipHeight y para doblar las piernas: los pies no se
+-- hunden ni flotan con ningún tamaño de personaje)
+Movement.CrouchDepth = 0.34
 
 function Movement.speedFactor(stance: any): number
 	return Movement.Speed[stance] or 1
@@ -38,6 +44,9 @@ export type StanceContext = {
 	Swimming: boolean?,
 	Dead: boolean?,
 	KO: boolean?,
+	Climbing: boolean?, -- en una escalera de mano (solo lo sabe el cliente)
+	Ragdoll: boolean?, -- sin control del cuerpo (PlatformStand, caído)
+	Busy: boolean?, -- en una escena, entrenando…: la postura la pone otro sistema
 }
 
 -- ¿Puede ponerse en esa postura ahora? (el servidor lo comprueba; de pie siempre se puede)
@@ -48,7 +57,7 @@ function Movement.allowed(stance: any, ctx: StanceContext): (boolean, string?)
 	if stance == "Stand" then
 		return true, nil
 	end
-	if ctx.Dead or ctx.KO then
+	if ctx.Dead or ctx.KO or ctx.Ragdoll or ctx.Busy then
 		return false, nil
 	elseif ctx.Stage == "Bebe" or ctx.Crawling then
 		return false, "👶 Los bebés ya van a gatas."
@@ -56,6 +65,8 @@ function Movement.allowed(stance: any, ctx: StanceContext): (boolean, string?)
 		return false, "🪑 Primero levántate o bájate del vehículo."
 	elseif ctx.Swimming then
 		return false, "🌊 En el agua no te puedes agachar."
+	elseif ctx.Climbing then
+		return false, "🪜 Primero baja de la escalera."
 	end
 	return true, nil
 end

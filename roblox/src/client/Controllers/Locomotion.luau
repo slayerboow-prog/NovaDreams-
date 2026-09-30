@@ -178,7 +178,7 @@ type Body = {
 }
 
 local bodies: { [Model]: Body } = {}
-local Layers: any, ReactMotion: any, Cinematics: any, Joystick: any, Stances: any, Parkour: any
+local Layers: any, ReactMotion: any, Cinematics: any, Joystick: any, Stances: any, Parkour: any, Movement: any
 local player: Player
 local stumbleUntil = 0
 local faceYaw: number? = nil
@@ -327,6 +327,13 @@ local function update(body: Body, dt: number, now: number)
 	local pose: { [string]: CFrame } = {}
 	if body.Weight > 0.01 then
 		local lean = Locomotion.leanPose(body.Turn, speed / walk, body.Accel, body.Sprint)
+		-- Agachado, las piernas las pone Stances con los pies clavados en el suelo: inclinar la cadera
+		-- (Root) los arrastraría. Se inclina el pecho (Waist) en su lugar.
+		local crouched = if Stances then Stances.crouchWeight(body.Model) or 0 else 0
+		if crouched > 0.001 then
+			lean.Waist = CFrame.identity:Lerp(lean.Root, crouched) * lean.Waist
+			lean.Root = CFrame.identity:Lerp(lean.Root, 1 - crouched)
+		end
 		for name, cf in lean do
 			pose[name] = CFrame.identity:Lerp(cf, body.Weight)
 		end
@@ -428,9 +435,21 @@ local function moveStep(dt: number)
 		velocity = Vector3.zero
 		return
 	end
-	-- Agachado o tumbado se va más despacio (Stances); tras un traspiés, un momento más lento
-	local factor = (if now < stumbleUntil then 0.35 else 1) * (if Stances then Stances.speedFactor() else 1)
-	local target = wanted * walk * factor
+	-- Agachado o tumbado se va más despacio (Stances); tras un traspiés, un momento más lento.
+	-- Agachado se cuenta desde la velocidad de andar de tu edad, no desde la de correr: con Shift
+	-- pulsado (o sin sitio para levantarte al correr) no se "corre agachado". El cansancio (que baja
+	-- WalkSpeed) sí se nota también agachado.
+	local stanceFactor = if Stances then Stances.speedFactor() else 1
+	local base = walk
+	if stanceFactor < 0.999 then
+		local stageWalk = tonumber(player:GetAttribute("StageWalkSpeed"))
+		if Movement and stageWalk and stageWalk > 0 and stageWalk < walk then
+			local k = clamp((1 - stanceFactor) / math.max(1 - Movement.Speed.Crouch, 1e-3), 0, 1)
+			base = walk + (stageWalk - walk) * k
+		end
+	end
+	local factor = (if now < stumbleUntil then 0.35 else 1) * stanceFactor
+	local target = wanted * base * factor
 	velocity = Locomotion.approach(velocity, target, dt, ACCEL, DECEL)
 	if velocity.Magnitude > walk then
 		velocity = velocity.Unit * walk
@@ -525,6 +544,7 @@ function Locomotion.init()
 	Joystick = require(script.Parent.Joystick)
 	Stances = require(script.Parent.Stances)
 	StancesModule = Stances
+	Movement = require(game:GetService("ReplicatedStorage").Shared.Movement)
 	Parkour = require(script.Parent.Parkour)
 
 	-- El control de Roblox (teclado, joystick y mando): lo que pide cada frame

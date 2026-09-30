@@ -34,6 +34,7 @@ local Stages = require(ReplicatedStorage.Shared.LifeStory.Stages)
 local Builder = require(script.Parent.Parent.World.Builder)
 local Rides = require(script.Parent.Parent.World.Kit.Rides)
 local DataService = require(script.Parent.DataService)
+local TesterService = require(script.Parent.TesterService) -- modo pruebas: se salta los requisitos
 local LifeService = require(script.Parent.LifeService)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 
@@ -196,7 +197,7 @@ function VehicleService.ridingKind(player: Player): string?
 end
 
 local function stageAllows(player: Player, stage: string, silent: boolean?): boolean
-	if Stages.allows(player:GetAttribute("LifeStage"), "Ride", { Ride = stage }) then
+	if Stages.allows(player:GetAttribute("LifeStage"), "Ride", { Ride = stage }) or TesterService.bypass(player) then
 		return true
 	end
 	if not silent then

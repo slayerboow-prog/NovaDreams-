@@ -10,11 +10,15 @@
 -- 1024x768) y comprueba que:
 --   * tu estado va arriba a la izquierda, la hora en el centro, la misión a la derecha y el menú de
 --     comandos abajo a la izquierda (en el móvil, justo encima del joystick); la barra rápida centrada
---   * NADA SE PISA: estado, reloj, minimapa, menú rápido, misión, comandos, barra rápida, joystick,
---     cada botón táctil y los botones de Roblox
+--   * NADA SE PISA: estado, reloj, minimapa, misión, comandos, barra rápida, joystick, cada botón
+--     táctil y los botones de Roblox (también en móviles grandes: 1334x750, 1846x852, 2400x1080)
+--   * ya no hay menú rápido junto al minimapa: sus apps (Ir a casa, Tienda…) son filas del menú de
+--     comandos, entre Mapa y «Más», y hacen lo mismo; el minimapa va pegado a la esquina y la misión
+--     justo debajo; en el móvil el menú de comandos va justo debajo de tu estado (y ⌄ pasa de página)
+--   * nunca salen dos botones táctiles con el mismo texto (p. ej. dos «Agacharse»)
 --   * las barras, el dinero, la experiencia y la misión siguen a los atributos
 --   * el menú de comandos se oculta y se muestra con su botón, y ⌄ despliega todos
---   * el menú rápido no tapa el minimapa; el joystick mueve al personaje (Humanoid:Move relativo)
+--   * el joystick mueve al personaje (Humanoid:Move relativo)
 --   * en conversaciones y de bebé se aparta lo que tapa la escena
 --   * el GPS (Controllers/Gps) da la indicación bajo la reloj sin pisar nada
 --   * primeros pasos (Controllers/Guide), el botón ❓ (Controllers/HelpUI) y las pistas: la tarjeta sale
@@ -614,6 +618,20 @@ local function textOf(root, text: string): boolean
 	return false
 end
 
+-- Las filas del menú de comandos (todas, se vean o no) por orden: { Nombre -> índice } y la lista
+local function commandRows(menuFrame): ({ [string]: number }, { any })
+	local index, list = {}, {}
+	local holder = menuFrame and menuFrame.List.Rows
+	local i = 1
+	while holder and holder:FindFirstChild("Row" .. i) do
+		local row = holder:FindFirstChild("Row" .. i)
+		index[row.Label.Text] = i
+		table.insert(list, row)
+		i += 1
+	end
+	return index, list
+end
+
 -- Rectángulo en el lienzo de un objeto que cuelga directamente de una pantalla
 local function rectOf(object, layout)
 	local size = object.Size
@@ -638,12 +656,11 @@ local function noOverlaps(rects: { { Name: string, Rect: any } }, HudLayout, whe
 end
 
 -- Todo lo que se ve del HUD (en el lienzo)
-local function hudRects(mods, withQuick: boolean?)
+local function hudRects(mods)
 	local HudLayout = mods.HudLayout
 	local layout = HudLayout.current()
 	layout.HudLayoutModule = HudLayout
 	local hud = playerGui:FindFirstChild("MainHud")
-	local popups = playerGui:FindFirstChild("HudPopups")
 	local list = {}
 	local function add(name: string, object)
 		if object and object.Visible ~= false then
@@ -655,12 +672,6 @@ local function hudRects(mods, withQuick: boolean?)
 	add("Misión", hud:FindFirstChild("Mission"))
 	table.insert(list, { Name = "Minimapa", Rect = HudLayout.rect(layout.Items.Minimap, layout.Canvas) })
 	table.insert(list, { Name = "Barra rápida", Rect = HudLayout.rect(layout.Items.Hotbar, layout.Canvas) })
-	local phone = popups:FindFirstChild("Phone")
-	local phoneButton = popups:FindFirstChild("PhoneButton")
-	if withQuick ~= false then
-		add("Menú rápido", phone)
-		add("Botón del teléfono", phoneButton)
-	end
 	local commands = playerGui:FindFirstChild("CommandMenuGui")
 	-- (el menú de comandos: su hueco entero, aunque tenga menos filas)
 	if commands then
@@ -777,24 +788,41 @@ localPlayer:SetAttribute("CityErrand", nil)
 localPlayer:SetAttribute("CityErrandTarget", nil)
 check(mission and mission.Kind.Text == "MISIÓN PRINCIPAL", "Al acabar el encargo vuelve la misión")
 
--- Menú rápido: abierto en el ordenador, al lado del minimapa
-local phone = popups and popups:FindFirstChild("Phone")
-check(phone and phone.Visible and popups.PhoneButton.Visible == false, "Menú rápido abierto en el ordenador")
-local tienda = phone and phone:FindFirstChild("Apps"):FindFirstChild("Tienda")
-check(tienda and textOf(tienda, "Tienda"), "Con la app «Tienda» (icono y texto)")
-if tienda then
-	tienda.Activated:Fire()
+-- Sin menú rápido junto al minimapa (sus apps son filas del menú de comandos: más abajo)
+check(popups and popups:FindFirstChild("Phone") == nil and popups:FindFirstChild("PhoneButton") == nil, "Sin el menú rápido (ni su botón) junto al minimapa")
+do
+	local mini = HudLayout.rect(layout.Items.Minimap, layout.Canvas)
+	local mrect = rectOf(mission, (function()
+		layout.HudLayoutModule = HudLayout
+		return layout
+	end)())
+	check(math.abs(mini.X + mini.W - (layout.Canvas.X - 16)) < 0.5 and mini.Y <= 10, "El minimapa pegado a la esquina de arriba a la derecha")
+	check(math.abs(mrect.X + mrect.W - (layout.Canvas.X - 16)) < 0.5 and mrect.Y >= mini.Y + mini.H and mrect.Y - (mini.Y + mini.H) <= 12, "La misión justo debajo del minimapa, en el borde derecho")
 end
-check(storeOpened(), "La app Tienda abre la tienda")
-check(phone and phone.Visible, "En el ordenador se queda abierto al usar una app")
 
--- Menú de comandos: abajo a la izquierda, con la pestaña COMANDOS
-for i, name in { "Atacar", "Objetos", "Mapa", "Telefono", "Mas", "Extra" } do
-	CommandRegistry.register({ Id = name, Label = name, Icon = "espada", Priority = i, Run = function() end })
+-- Menú de comandos: abajo a la izquierda, con la pestaña COMANDOS (con las prioridades del juego:
+-- Atacar 7, Objetos 50, Mapa 51, las apps 52-56 y Más 60)
+for name, priority in { Atacar = 7, Objetos = 50, Mapa = 51, Mas = 60, Extra = 61 } do
+	CommandRegistry.register({ Id = name, Label = name, Icon = "espada", Priority = priority, Run = function() end })
 end
 CommandMenu.refresh()
 local commandGui = playerGui:FindFirstChild("CommandMenuGui")
 local commands = commandGui and commandGui:FindFirstChild("CommandMenu")
+do
+	-- Las apps del antiguo menú rápido: filas entre Mapa y Más, con su icono, y hacen lo mismo
+	local index, rowList = commandRows(commands)
+	check(index["Ir a casa"] and index["Tienda"] and index["Mapa"] < index["Ir a casa"] and index["Ir a casa"] < index["Tienda"] and index["Tienda"] < index["Mas"],
+		"Las apps (Ir a casa, Tienda) son filas del menú de comandos, entre Mapa y «Más»")
+	local tiendaRow = index["Tienda"] and rowList[index["Tienda"]]
+	check(tiendaRow and tiendaRow:FindFirstChild("Icon") and textOf(tiendaRow.Icon, "🛒"), "Con su icono, como las demás filas")
+	if tiendaRow then
+		tiendaRow.MouseEnter:Fire()
+		tiendaRow.Activated:Fire()
+	end
+	check(storeOpened(), "La fila Tienda abre la tienda (como el botón de antes)")
+	-- (vuelve a elegir la primera fila para lo que sigue)
+	commands.List.Rows.Row1.MouseEnter:Fire()
+end
 check(commands and commands.AnchorPoint == roblox.Vector2.new(0, 1) and commands.Position.Y.Scale == 1 and commands.Position.X.Offset == 16 and commands.Position.Y.Offset == -16, "Menú de comandos abajo a la izquierda")
 check(commands and commands.Visible, "Visible con comandos")
 check(commands and commands.Header.Title.Text == "COMANDOS" and commands.Header:FindFirstChild("Crown") ~= nil, "Con la pestaña «COMANDOS» y la corona")
@@ -806,6 +834,7 @@ for _, row in if rows then rows:GetChildren() else {} do
 	end
 end
 check(shown == 5 and commands.More.Visible, "Se ven 5 comandos y el desplegable ⌄ para los demás")
+local totalRows = #select(2, commandRows(commands))
 local selector = commands and commands.List.Selector
 check(selector and selector.Visible and selector.Position.Y.Offset == 0, "El elegido lleva el selector azul (primera fila)")
 if rows then
@@ -819,7 +848,7 @@ for _, row in rows:GetChildren() do
 		shown += 1
 	end
 end
-check(shown == 6, "⌄ despliega todos los comandos")
+check(shown == totalRows and totalRows >= 8 and commandRows(commands)["Ruta a casa"] ~= nil, ("⌄ despliega todos los comandos (%d de %d, con «Ruta a casa» del GPS)"):format(shown, totalRows))
 commands.More.Activated:Fire()
 local fullHeight = commands.Size.Y.Offset
 commands.Header.Toggle.Activated:Fire()
@@ -844,10 +873,10 @@ check(hints and hints.Visible and textOf(hints, "Espacio") and textOf(hints, "Sa
 -- Conversaciones y bebé
 Hud.setBusy(true)
 CommandMenu.setBusy(true)
-check(status.Visible == false and mission.Visible == false and phone.Visible == false and commands.Visible == false, "En una conversación se apartan estado, misión, menú rápido y comandos")
+check(status.Visible == false and mission.Visible == false and commands.Visible == false, "En una conversación se apartan estado, misión y comandos")
 Hud.setBusy(false)
 CommandMenu.setBusy(false)
-check(status.Visible and mission.Visible and phone.Visible and commands.Visible, "Y vuelven al acabar")
+check(status.Visible and mission.Visible and commands.Visible, "Y vuelven al acabar")
 localPlayer:SetAttribute("LifeStage", "Bebe")
 check(status.Visible == false and mission.Visible == false, "De bebé no hay estado ni misión")
 localPlayer:SetAttribute("LifeStage", "Nino")
@@ -880,9 +909,6 @@ for _, size in { { 1920, 1080 }, { 1600, 900 }, { 1366, 768 } } do
 	setViewport(size[1], size[2])
 	local list, now = hudRects(mods)
 	noOverlaps(list, HudLayout, ("%dx%d"):format(size[1], size[2]))
-	local mini = HudLayout.rect(now.Items.Minimap, now.Canvas)
-	local quick = rectOf(phone, now)
-	check(not HudLayout.overlaps(mini, quick), ("%dx%d: el menú rápido no tapa el minimapa"):format(size[1], size[2]))
 	local bar = HudLayout.rect(now.Items.Hotbar, now.Canvas)
 	check(math.abs(bar.X + bar.W / 2 - now.Canvas.X / 2) < 0.5, ("%dx%d: barra rápida centrada"):format(size[1], size[2]))
 end
@@ -902,15 +928,16 @@ local function registerAll(TL)
 	end
 end
 
-for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1024, 768 } } do
+for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334, 750 }, { 1846, 852 }, { 2400, 1080 }, { 1024, 768 } } do
 	print(("\n▶ En el móvil / tableta (%dx%d)"):format(size[1], size[2]))
-	mods, ok, err = mount(true, size[1], size[2])
+	local touchStore
+	mods, ok, err, touchStore = mount(true, size[1], size[2])
 	HudLayout, TouchLayout, CommandMenu, CommandRegistry = mods.HudLayout, mods.TouchLayout, mods.CommandMenu, mods.CommandRegistry
 	check(ok, "Se monta sin errores" .. (if ok then "" else ": " .. tostring(err)))
 	check(#badWrites == 0, "Todas las propiedades existen en Roblox" .. (if #badWrites > 0 then ": " .. table.concat(badWrites, ", ") else ""))
 	registerAll(TouchLayout)
-	for i, name in { "Atacar", "Objetos", "Mapa", "Telefono", "Mas" } do
-		CommandRegistry.register({ Id = name, Label = name, Icon = "espada", Priority = i, Run = function() end })
+	for name, priority in { Atacar = 7, Objetos = 50, Mapa = 51, Mas = 60 } do
+		CommandRegistry.register({ Id = name, Label = name, Icon = "espada", Priority = priority, Run = function() end })
 	end
 	CommandMenu.refresh()
 	TouchLayout.refresh()
@@ -938,7 +965,9 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1024,
 	end)())
 	local commandRect = HudLayout.rect(now.Items.Commands, now.Canvas)
 	check(stickRect and stickRect.X < now.Canvas.X * 0.3 and stickRect.Y + stickRect.H > now.Canvas.Y * 0.9, "El joystick abajo a la izquierda")
-	check(stickRect and commandRect.Y + commandRect.H <= stickRect.Y and commandRect.X <= 20, "El menú de comandos a la izquierda, justo encima del joystick")
+	check(stickRect and commandRect.Y + commandRect.H <= stickRect.Y and commandRect.X <= 20, "El menú de comandos a la izquierda, encima del joystick")
+	local statusRect = HudLayout.rect(now.Items.Status, now.Canvas)
+	check(commandRect.Y >= statusRect.Y + statusRect.H and commandRect.Y - (statusRect.Y + statusRect.H) <= 12, "Y justo debajo de tu estado")
 	-- Ocultar los comandos en el móvil: el botón ˅ es diminuto; tocar la pestaña entera también vale
 	local phoneCommands = playerGui:FindFirstChild("CommandMenuGui")
 	phoneCommands = phoneCommands and phoneCommands:FindFirstChild("CommandMenu")
@@ -952,19 +981,75 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1024,
 		check(false, "Falta la pestaña de los comandos")
 	end
 	local popupsGui = playerGui:FindFirstChild("HudPopups")
-	check(popupsGui.Phone.Visible == false and popupsGui.PhoneButton.Visible, "En el móvil el menú rápido empieza cerrado (botón del teléfono)")
-	local list = hudRects(mods)
-	noOverlaps(list, HudLayout, ("%dx%d con el menú rápido cerrado"):format(size[1], size[2]))
-	-- Abrir el menú rápido con el botón del teléfono
-	popupsGui.PhoneButton.Activated:Fire()
-	check(popupsGui.Phone.Visible, "El botón del teléfono abre el menú rápido")
-	list = hudRects(mods)
-	noOverlaps(list, HudLayout, ("%dx%d con el menú rápido abierto"):format(size[1], size[2]))
-	local tile = popupsGui.Phone.Apps:FindFirstChild("Ir a casa")
-	if tile then
-		tile.Activated:Fire()
+	check(popupsGui:FindFirstChild("Phone") == nil and popupsGui:FindFirstChild("PhoneButton") == nil, "Sin el menú rápido ni su botón junto al minimapa")
+	do
+		now.HudLayoutModule = HudLayout
+		local mini = HudLayout.rect(now.Items.Minimap, now.Canvas)
+		local mrect = HudLayout.rect(now.Items.Mission, now.Canvas)
+		check(math.abs(mini.X + mini.W - (now.Canvas.X - 16)) < 0.5 and mini.Y <= 10, "El minimapa pegado a la esquina de arriba a la derecha")
+		check(math.abs(mrect.X + mrect.W - (now.Canvas.X - 16)) < 0.5 and mrect.Y >= mini.Y + mini.H and mrect.Y - (mini.Y + mini.H) <= 12, "La misión justo debajo del minimapa")
+		local bar = HudLayout.rect(now.Items.Hotbar, now.Canvas)
+		check(now.Canvas.Y - (bar.Y + bar.H) <= 8.5 and math.abs(bar.X + bar.W / 2 - now.Canvas.X / 2) < 0.5, "La barra rápida centrada y pegada al borde de abajo")
+		-- El racimo, pegado a la esquina de abajo a la derecha
+		local right, bottom = 0, 0
+		for name, slot in now.Slots do
+			if name ~= "Ayuda" then
+				local r = HudLayout.rect(slot, now.Canvas)
+				right = math.max(right, r.X + r.W)
+				bottom = math.max(bottom, r.Y + r.H)
+			end
+		end
+		check(now.Canvas.X - right <= 16.5 and now.Canvas.Y - bottom <= 20, ("Los botones pegados a la esquina de abajo a la derecha (a %d y %d del borde)"):format(now.Canvas.X - right, now.Canvas.Y - bottom))
 	end
-	check(popupsGui.Phone.Visible == false, "En el móvil se cierra al usar una app (deja ver el mundo)")
+	-- Las apps son filas del menú de comandos; ⌄ pasa de página hasta llegar a ellas y a «Más»
+	do
+		local index, rowList = commandRows(phoneCommands)
+		check(index["Ir a casa"] and index["Tienda"] and index["Mapa"] < index["Ir a casa"] and index["Tienda"] < index["Mas"], "Las apps (Ir a casa, Tienda…) son filas del menú de comandos, entre Mapa y «Más»")
+		local tiendaRow = rowList[index["Tienda"] or 0]
+		local turns = 0
+		while tiendaRow and not tiendaRow.Visible and turns < 10 do
+			phoneCommands.More.Activated:Fire()
+			turns += 1
+		end
+		check(tiendaRow and tiendaRow.Visible and turns > 0 and phoneCommands.More.Visible, ("⌄ pasa de página hasta la fila Tienda (%d toques)"):format(turns))
+		if tiendaRow then
+			tiendaRow.Activated:Fire() -- (un toque la elige…)
+			tiendaRow.Activated:Fire() -- (…y otro la hace)
+		end
+		check(touchStore and touchStore(), "Y tocarla abre la tienda, como el botón de antes")
+		local more = rowList[index["Mas"] or 0]
+		while more and not more.Visible and turns < 20 do
+			phoneCommands.More.Activated:Fire()
+			turns += 1
+		end
+		check(more and more.Visible, "«Más» también se alcanza")
+		for _ = 1, 10 do
+			if rowList[1].Visible then
+				break
+			end
+			phoneCommands.More.Activated:Fire()
+		end
+		check(rowList[1].Visible, "Y desde la última página, ⌄ vuelve al principio")
+	end
+	local list = hudRects(mods)
+	noOverlaps(list, HudLayout, ("%dx%d"):format(size[1], size[2]))
+
+	-- Nunca dos botones iguales (la captura tenía dos «Agacharse»)
+	do
+		TouchLayout.register({ Id = "Agacharse", Icon = "agacharse", Label = "Agacharse", Priority = 10.5, Callback = function() end })
+		TouchLayout.register({ Id = "Agacharse", Icon = "agacharse", Label = "Agacharse", Priority = 10.5, Callback = function() end })
+		TouchLayout.register({ Id = "AgacharseCopia", Icon = "agacharse", Label = "Agacharse", Priority = 10.6, Callback = function() end })
+		TouchLayout.refresh()
+		local count = 0
+		for _, button in TouchLayout.buttons() do
+			if button.Visible and button:FindFirstChild("Caption") and button.Caption.Text == "Agacharse" then
+				count += 1
+			end
+		end
+		check(count == 1, ("Un solo botón «Agacharse» aunque se registre dos veces o con otro nombre (%d)"):format(count))
+		TouchLayout.unregister("Agacharse")
+		TouchLayout.unregister("AgacharseCopia")
+	end
 
 	-- Paneles de trabajo (UI/HudLayout.jobPanel): a la derecha del menú de comandos, entre tu estado y
 	-- la barra rápida, por encima de los comandos (DisplayOrder 3); si es alto, su lista se desplaza
@@ -987,7 +1072,7 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1024,
 			H = jobPanel.Size.Y.Offset * k / sc,
 		}
 		local clashes = {}
-		for _, other in hudRects(mods, false) do
+		for _, other in hudRects(mods) do
 			if HudLayout.overlaps(jobRect, other.Rect) and other.Name ~= "Tarjeta de primeros pasos" then
 				table.insert(clashes, other.Name .. describe(other.Rect))
 			end
@@ -1024,11 +1109,10 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1024,
 		local press = questsWin and questsWin:FindFirstChild("PressScale")
 		local k = if press then press:GetAttribute("Base") or 1 else 1
 		local closePx = questsWin and questsWin.Close.Size.X.Offset * now.Scale * k
-		check(questsWin and k > 1 and closePx and closePx >= 35.9, ("Misiones: ventana agrandada (x%.2f) y ✖ de %d px"):format(k, closePx or 0))
+		-- (en pantallas grandes, 2400x1080, el HUD ya va a escala 1,3: no hace falta agrandarla)
+		check(questsWin and (k > 1 or now.Scale >= 1.2) and closePx and closePx >= 35.9, ("Misiones: ventana agrandada (x%.2f) y ✖ de %d px"):format(k, closePx or 0))
 		mods.Hud.runCommand("Misiones")
 		check(popupsGui:FindFirstChild("Quests") == nil, "Y se cierra")
-		local phoneClose = popupsGui.Phone.Close
-		check(phoneClose.Size.X.Offset * now.Scale >= 35.9, ("Menú rápido: ✖ de %d px"):format(phoneClose.Size.X.Offset * now.Scale))
 	end
 
 	-- El joystick mueve al personaje (relativo a la cámara)

@@ -32,6 +32,7 @@ local Builder = require(script.Parent.Parent.World.Builder)
 local Npc = require(script.Parent.Parent.World.Npc)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 local DataService = require(script.Parent.DataService)
+local TesterService = require(script.Parent.TesterService) -- modo pruebas: se salta los requisitos
 local InventoryService = require(script.Parent.InventoryService)
 local SupermarketService = require(script.Parent.SupermarketService)
 
@@ -93,7 +94,7 @@ end
 
 local function canFarm(player: Player): boolean
 	local stage = player:GetAttribute("LifeStage")
-	if type(stage) == "string" and Stages.isValid(stage) and not Stages.inRange(stage, Farming.MinStage, nil) then
+	if type(stage) == "string" and Stages.isValid(stage) and not Stages.inRange(stage, Farming.MinStage, nil) and not TesterService.bypass(player) then
 		Notify:FireClient(player, "Info", "Todavía eres muy pequeño para trabajar en el campo. 🍼")
 		return false
 	end

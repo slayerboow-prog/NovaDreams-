@@ -30,6 +30,7 @@ local Builder = require(script.Parent.Parent.World.Builder)
 local Npc = require(script.Parent.Parent.World.Npc)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 local DataService = require(script.Parent.DataService)
+local TesterService = require(script.Parent.TesterService) -- modo pruebas: se salta los requisitos
 local InteriorService = require(script.Parent.InteriorService)
 
 local PropertyService = {}
@@ -367,7 +368,7 @@ local function buy(player: Player, building: InteriorService.Building, floor: nu
 	local renting = mode == "Alquiler"
 	local unit = unitKeyOf(building, floor, letter)
 	local stage = player:GetAttribute("LifeStage")
-	if stage and not Stages.inRange(stage, Properties.MinStage, nil) then
+	if stage and not Stages.inRange(stage, Properties.MinStage, nil) and not TesterService.bypass(player) then
 		Notify:FireClient(player, "Error", ("Para %s una vivienda hay que ser mayor de edad."):format(if renting then "alquilar" else "comprar"))
 		return
 	end

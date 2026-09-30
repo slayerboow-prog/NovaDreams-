@@ -64,6 +64,11 @@ Config.Debug = {
 	DebugUserIds = {} :: { number },
 }
 
+-- Modo pruebas (TesterService, panel «Modo pruebas» con /pruebas): dinero infinito, todas las armas,
+-- todos los oficios sin requisitos… Ya lo tienen Studio, el creador del juego y el dueño del grupo;
+-- aquí se añaden otros UserId de confianza.
+Config.Testers = {} :: { number }
+
 Config.LifeStory = {
 	-- Un personaje NUEVO nace bebé (tutorial de bebé, fase 2). Quien ya jugaba antes de la
 	-- historia de vida (tiene tiempo jugado guardado) sigue siendo adulto.

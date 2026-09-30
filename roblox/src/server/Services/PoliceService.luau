@@ -25,6 +25,7 @@ local Stages = require(ReplicatedStorage.Shared.LifeStory.Stages)
 local Npc = require(script.Parent.Parent.World.Npc)
 local CarModel = require(script.Parent.Parent.World.Kit.CarModel)
 local DataService = require(script.Parent.DataService)
+local TesterService = require(script.Parent.TesterService) -- modo pruebas: se salta los requisitos
 local NeedsService = require(script.Parent.NeedsService)
 local LifeService = require(script.Parent.LifeService)
 local MonetizationService = require(script.Parent.MonetizationService)
@@ -567,16 +568,17 @@ function PoliceService.start(player: Player)
 	if not DataService.get(player) or not LifeService.allows(player, "Work") then
 		return
 	end
-	if not Stages.inRange(player:GetAttribute("LifeStage") or "", P.MinStage, nil) then
+	local tester = TesterService.bypass(player)
+	if not tester and not Stages.inRange(player:GetAttribute("LifeStage") or "", P.MinStage, nil) then
 		Notify:FireClient(player, "Error", "Para ser policía hay que ser mayor de edad.")
 		return
 	end
 	-- (como en CareerService.canJoin: ni buscado ni preso)
-	if player:GetAttribute("Wanted") then
+	if not tester and player:GetAttribute("Wanted") then
 		Notify:FireClient(player, "Error", "Con la policía buscándote no te van a contratar.")
 		return
 	end
-	if player:GetAttribute("JailUntil") then
+	if not tester and player:GetAttribute("JailUntil") then
 		Notify:FireClient(player, "Error", "Primero cumple tu condena.")
 		return
 	end

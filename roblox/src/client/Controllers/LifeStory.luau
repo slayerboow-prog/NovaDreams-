@@ -71,9 +71,27 @@ end
 -- Tarjeta "Tu vida": pestaña vertical en el borde derecho que despliega un panel pequeño
 ---------------------------------------------------------------------
 
+-- El HUD (UI/Hud), si ya está: en el móvil la pestaña «Tu vida» se aparta mientras se ve la tarjeta de
+-- la misión (dicen lo mismo y así se ve más el juego). «Mi historia» sigue en el menú de comandos (Más).
+local function hudModule(): any
+	local ok, Hud = pcall(function()
+		return require(script.Parent.Parent.UI.Hud) :: any
+	end)
+	return if ok and type(Hud) == "table" then Hud else nil
+end
+
+local function hiddenByMission(): boolean
+	if not Theme.isTouch() then
+		return false
+	end
+	local Hud = hudModule()
+	return Hud ~= nil and Hud.missionShown ~= nil and Hud.missionShown() == true
+end
+
 local function refreshVisibility()
-	card.Visible = expanded and hasContent
-	tab.Visible = hasContent
+	local hide = hiddenByMission()
+	card.Visible = expanded and hasContent and not hide
+	tab.Visible = hasContent and not hide
 	-- (en el móvil la pestaña está a la izquierda: las flechas al revés)
 	local opens = if Theme.isTouch() then "▶" else "◀"
 	tabArrow.Text = if expanded then (if opens == "▶" then "◀" else "▶") else opens
@@ -243,6 +261,15 @@ local function buildCard()
 		switchButton.TextSize, switchButton.Size = 14, UDim2.new(1, 0, 0, 30)
 		journalButton.TextSize, journalButton.Size = 14, UDim2.new(1, 0, 0, 32)
 		card.Size = UDim2.fromOffset(230, 0)
+		-- Mientras se vea la misión, fuera (y vuelve cuando no hay misión)
+		local Hud = hudModule()
+		if Hud and Hud.onMissionShown then
+			Hud.onMissionShown(function()
+				if card then
+					refreshVisibility()
+				end
+			end)
+		end
 		-- Pegada a la derecha de tu estado; la pestaña no más ancha que el hueco hasta el reloj
 		HudLayout.onChanged(function(layout)
 			local status = HudLayout.rect(layout.Items.Status, layout.Canvas)

@@ -1,10 +1,13 @@
--- CommandMenu: el menú de comandos, siempre abajo a la izquierda mientras juegas (en el móvil, justo
--- encima del joystick; dónde exactamente lo dice UI/HudLayout).
+-- CommandMenu: el menú de comandos, a la izquierda mientras juegas: en el ordenador abajo a la
+-- izquierda; en el móvil justo debajo de tu estado, encima del joystick (dónde exactamente lo dice
+-- UI/HudLayout).
 --
 --   * Panel con la pestaña "👑 COMANDOS"; el elegido va en azul brillante y el selector se desliza.
 --   * Cambia con el contexto (ContextDetector): lo que tienes delante sale arriba del todo.
 --   * Los grupos (Más…) abren submenús; "Volver" (o ← / Retroceso / B) regresa.
---   * Se ven 4-5 comandos; ⌄ despliega todos. El botón de la pestaña lo oculta (se recuerda en la sesión).
+--   * Se ven 4-5 comandos; ⌄ despliega todos (en el móvil, ⌄ pasa a la página siguiente: así se
+--     llega a todos, también a las apps como Ir a casa o Tienda y a «Más»). El botón de la pestaña lo
+--     oculta (se recuerda en la sesión).
 --   * El comando elegido es también lo que hace la tecla E / el botón X del mando / el botón Interactuar.
 --
 -- Controles:
@@ -129,9 +132,7 @@ local function applyWindow()
 	local layout = HudLayout.current()
 	local rows = layout.CommandRows
 	if expanded then
-		local placement = layout.Items.Commands
-		local bottom = layout.Canvas.Y + placement.Position.Y.Offset
-		local room = bottom - layout.CommandTop - HudLayout.commandHeight(0, layout.Touch)
+		local room = layout.CommandBottom - layout.CommandTop - HudLayout.commandHeight(0, layout.Touch)
 		rows = math.max(rows, math.floor(room / HudLayout.Sizes.CommandPitch))
 	end
 	renderer:setExpanded(expanded, rows)
@@ -359,13 +360,19 @@ function CommandMenu.init()
 	})
 	HudLayout.scaleGui(gui)
 	renderer = CommandRenderer.new(gui, TOUCH)
-	-- Abajo a la izquierda en todos los dispositivos (en el móvil, encima del joystick)
+	-- A la izquierda (en el ordenador abajo; en el móvil bajo tu estado, encima del joystick)
 	HudLayout.onChanged(function(layout)
 		HudLayout.apply(renderer.Root, layout.Items.Commands, true)
 		applyWindow()
 	end)
 	renderer.ToggleCallback = CommandMenu.toggle
 	renderer.ExpandCallback = function()
+		if TOUCH then
+			-- Móvil: no cabe desplegado entero entre tu estado y el joystick: ⌄ pasa de página
+			renderer:nextPage()
+			UiAudio.move()
+			return
+		end
 		expanded = not expanded
 		applyWindow()
 		renderer:setHint(hint())

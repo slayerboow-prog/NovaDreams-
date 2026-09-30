@@ -68,6 +68,7 @@ local autoRotateSaved: boolean? = nil
 -- Retroceso y balanceo que se pusieron en la cámara el fotograma anterior: la cámara de Roblox parte
 -- de donde la dejamos, así que cada fotograma solo se añade la diferencia (si no, se acumula y se va)
 local lastKick = CFrame.identity
+local aimOffset: Vector3? = nil -- desplazamiento de la cámara apuntando (suavizado al cambiar de postura)
 
 -- Interfaz
 local gui: ScreenGui
@@ -675,8 +676,12 @@ local function frame(dt: number)
 	local eased = aimAlpha * aimAlpha * (3 - 2 * aimAlpha)
 
 	-- Cámara al hombro (tumbado, más baja) y más cerca; campo de visión más cerrado
-	local offset = if st == "Prone" then Vector3.new(1.4, -1.2, 0) elseif st == "Crouch" then Vector3.new(1.8, -0.2, 0) else AIM.CameraOffset
-	humanoid.CameraOffset = offset * eased
+	-- (la postura de tu pantalla, sin esperar al servidor; y con transición: agacharte apuntando no
+	-- hace saltar la cámara)
+	local camStance = player:GetAttribute("StanceLocal") or st
+	local offset = if camStance == "Prone" then Vector3.new(1.4, -1.2, 0) elseif camStance == "Crouch" then Vector3.new(1.8, -0.2, 0) else AIM.CameraOffset
+	aimOffset = if aimOffset and aimAlpha > 0 then aimOffset:Lerp(offset, 1 - math.exp(-10 * dt)) else offset
+	humanoid.CameraOffset = (aimOffset :: Vector3) * eased
 	local fov = if w.Scope and holdBreath then w.AimFov * 0.85 else w.AimFov
 	FootCamera.setAim(eased, fov)
 	if aimAlpha > 0 then

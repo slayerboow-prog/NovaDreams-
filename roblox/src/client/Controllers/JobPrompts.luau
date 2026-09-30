@@ -23,7 +23,8 @@ local function visible(prompt: ProximityPrompt): boolean
 	end
 	local minStage = prompt:GetAttribute("MinStage")
 	local stage = player:GetAttribute("LifeStage")
-	if minStage and stage and not Stages.inRange(stage, minStage, nil) then
+	-- (modo pruebas: el tester ve los carteles de cualquier edad; el servidor lo vuelve a comprobar)
+	if minStage and stage and not Stages.inRange(stage, minStage, nil) and not player:GetAttribute("TesterBypass") then
 		return false
 	end
 	return (job == nil or player:GetAttribute("Job") == job) and (owner == nil or owner == player.UserId)
@@ -55,6 +56,7 @@ function JobPrompts.init()
 	player:GetAttributeChangedSignal("Job"):Connect(refresh)
 	player:GetAttributeChangedSignal("LifeStage"):Connect(refresh)
 	player:GetAttributeChangedSignal("JailUntil"):Connect(refresh)
+	player:GetAttributeChangedSignal("TesterBypass"):Connect(refresh)
 end
 
 return JobPrompts

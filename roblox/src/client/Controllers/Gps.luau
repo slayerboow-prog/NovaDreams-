@@ -1,7 +1,7 @@
 -- Gps (cliente): te lleva por las calles hasta donde tienes que ir, como el GPS de un coche.
 --
 --   * Destino: el sitio que marques en el mapa grande (un lugar de la lista o mantén pulsado en el
---     mapa: "Ir aquí"), "Ruta a casa" del menú rápido o, si no, el objetivo de tu misión o de tu
+--     mapa: "Ir aquí"), "Ruta a casa" del menú de comandos o, si no, el objetivo de tu misión o de tu
 --     trabajo o del encargo de la ciudad que hayas aceptado (los atributos TaskTarget /
 --     CityErrandTarget / StoryTarget, los mismos que usa el haz de luz).
 --   * La ruta va por las calles (shared/Gps: grafo de las calles que publica el servidor en

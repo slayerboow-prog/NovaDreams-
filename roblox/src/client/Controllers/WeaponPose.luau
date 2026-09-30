@@ -53,6 +53,8 @@ local RUN_TWO = { RightShoulder = V(0.2, 0, 0.05), RightElbow = V(1.35, 0, 0), L
 -- y los antebrazos hacia delante sujetando el arma
 local PRONE = { RightShoulder = V(1.45, 0, 0.3), RightElbow = V(1.45, 0, 0), LeftShoulder = V(1.6, 0, 0.15), LeftElbow = V(1.2, 0, 0) }
 local ARMS = { "RightShoulder", "RightElbow", "LeftShoulder", "LeftElbow" }
+-- Lo que se inclina el cuerpo agachado (Controllers/Stances.crouchPose: Pelvis + Waist, y Neck)
+local CROUCH_LEAN, CROUCH_NECK = 0.42, 0.36
 
 local function lerp(a: Vector3, b: Vector3, t: number): Vector3
 	return a + (b - a) * t
@@ -92,8 +94,12 @@ function WeaponPose.pose(s: State): Pose
 	end
 	local add: { [string]: Vector3 } = { Waist = V(0, 0, 0), Neck = V(0, 0, 0) }
 
-	-- Agachado: el tronco un poco hacia delante
-	add.Waist += V(-0.07 * crouch, 0, 0)
+	-- Agachado: Stances inclina la cadera y el pecho ~0,42 rad y levanta la cabeza ~0,36 para mirar
+	-- al frente. Con el arma, el tronco se endereza (postura táctica): a medias preparado y del todo
+	-- apuntando, para que el arma apunte adonde mira la cámara y no al suelo.
+	local upright = crouch * (0.5 + 0.5 * smooth(aim)) * (1 - prone)
+	add.Waist += V(CROUCH_LEAN * upright, 0, 0)
+	add.Neck += V(-CROUCH_NECK * upright, 0, 0)
 	-- Tumbado: la cabeza levantada para mirar al frente
 	add.Neck += V(0.55 * prone, 0, 0)
 

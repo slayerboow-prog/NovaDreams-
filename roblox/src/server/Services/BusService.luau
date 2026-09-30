@@ -31,6 +31,7 @@ local BusLines = require(ReplicatedStorage.Shared.BusLines)
 local Rail = require(ReplicatedStorage.Shared.Rail)
 local Rides = require(script.Parent.Parent.World.Kit.Rides)
 local DataService = require(script.Parent.DataService)
+local TesterService = require(script.Parent.TesterService) -- modo pruebas: se salta los requisitos
 local LifeService = require(script.Parent.LifeService)
 local NeedsService = require(script.Parent.NeedsService)
 local MonetizationService = require(script.Parent.MonetizationService)
@@ -1096,7 +1097,7 @@ local function hire(player: Player)
 		Notify:FireClient(player, "Error", "Te falta energía o tienes demasiada hambre para trabajar.")
 		return
 	end
-	if not VehicleService.hasLicense(player, "B") then
+	if not VehicleService.hasLicense(player, "B") and not TesterService.bypass(player) then
 		Notify:FireClient(player, "Error", "Para conducir el autobús necesitas el carnet de coche. Sácatelo en la autoescuela.")
 		return
 	end

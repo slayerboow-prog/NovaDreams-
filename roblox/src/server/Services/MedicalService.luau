@@ -25,6 +25,7 @@ local Format = require(ReplicatedStorage.Shared.Format)
 local Stages = require(ReplicatedStorage.Shared.LifeStory.Stages)
 local Npc = require(script.Parent.Parent.World.Npc)
 local DataService = require(script.Parent.DataService)
+local TesterService = require(script.Parent.TesterService) -- modo pruebas: se salta los requisitos
 local NeedsService = require(script.Parent.NeedsService)
 local LifeService = require(script.Parent.LifeService)
 local MonetizationService = require(script.Parent.MonetizationService)
@@ -570,7 +571,7 @@ function MedicalService.start(player: Player)
 	if not DataService.get(player) or not LifeService.allows(player, "Work") then
 		return
 	end
-	if not Stages.inRange(player:GetAttribute("LifeStage") or "", JOB.MinStage, nil) then
+	if not Stages.inRange(player:GetAttribute("LifeStage") or "", JOB.MinStage, nil) and not TesterService.bypass(player) then
 		Notify:FireClient(player, "Error", "Para trabajar de médico hay que ser mayor de edad.")
 		return
 	end

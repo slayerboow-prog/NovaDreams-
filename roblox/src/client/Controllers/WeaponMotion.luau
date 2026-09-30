@@ -111,6 +111,8 @@ function WeaponMotion.reload(model: Model?, seconds: number)
 	end
 end
 
+local StancesModule: any = nil
+
 local function step(body: Body, dt: number, now: number)
 	local owner = body.Owner
 	local w = Weapons.get(owner:GetAttribute("Weapon"))
@@ -131,7 +133,19 @@ local function step(body: Body, dt: number, now: number)
 	-- Correr baja el arma; al soltar o al apuntar vuelve arriba rápido (~0,2 s)
 	body.Sprint = approach(body.Sprint, if sprinting then 1 else 0, if sprinting then 6 else 12, dt)
 	body.Busy = approach(body.Busy, if busy then 1 else 0, 12, dt)
-	body.Crouch = approach(body.Crouch, if stance == "Crouch" then 1 else 0, 8, dt)
+	-- Agachado: el mismo peso con el que Stances dobla el cuerpo (si lo lleva), para que el tronco y
+	-- los brazos vayan a la par que las piernas; si no, por el atributo
+	local seen = nil
+	if StancesModule == nil then
+		local ok, module = pcall(function()
+			return require(script.Parent.Stances)
+		end)
+		StancesModule = if ok then module else false
+	end
+	if StancesModule then
+		seen = StancesModule.crouchWeight(body.Model)
+	end
+	body.Crouch = if type(seen) == "number" then seen else approach(body.Crouch, if stance == "Crouch" then 1 else 0, 8, dt)
 	body.Prone = approach(body.Prone, if stance == "Prone" then 1 else 0, 6, dt)
 	local aimTarget, pitchTarget
 	if mine then

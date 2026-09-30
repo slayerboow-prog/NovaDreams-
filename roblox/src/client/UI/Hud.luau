@@ -161,7 +161,7 @@ local function buildClock(parent: Instance)
 end
 
 ---------------------------------------------------------------------
--- Comandos (Mochila, Personaje, Mapa, Misiones, Teléfono, Menú): los usa el menú de comandos
+-- Comandos (Mochila, Personaje, Mapa, Misiones, Menú): los usa el menú de comandos
 ---------------------------------------------------------------------
 local questPending = false
 

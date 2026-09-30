@@ -33,6 +33,7 @@ local Stages = require(ReplicatedStorage.Shared.LifeStory.Stages)
 local Builder = require(script.Parent.Parent.World.Builder)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 local DataService = require(script.Parent.DataService)
+local TesterService = require(script.Parent.TesterService) -- modo pruebas: se salta los requisitos
 local InventoryService = require(script.Parent.InventoryService)
 local InteriorService = require(script.Parent.InteriorService)
 local FarmService = require(script.Parent.FarmService)
@@ -345,6 +346,9 @@ local function rootOf(player: Player): BasePart?
 end
 
 local function isAdult(player: Player): boolean
+	if TesterService.bypass(player) then
+		return true
+	end
 	local stage = player:GetAttribute("LifeStage")
 	return not (type(stage) == "string" and Stages.isValid(stage) and not Stages.inRange(stage, Business.MinStage, nil))
 end

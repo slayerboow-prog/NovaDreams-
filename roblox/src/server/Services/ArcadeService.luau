@@ -16,6 +16,7 @@ local Format = require(ReplicatedStorage.Shared.Format)
 local Stages = require(ReplicatedStorage.Shared.LifeStory.Stages)
 local Builder = require(script.Parent.Parent.World.Builder)
 local DataService = require(script.Parent.DataService)
+local TesterService = require(script.Parent.TesterService) -- modo pruebas: se salta los requisitos
 local VehicleService = require(script.Parent.VehicleService)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 
@@ -249,7 +250,7 @@ local function startGame(player: Player, gameId: string)
 	if not info or sessions[player] or not DataService.get(player) then
 		return
 	end
-	if not Stages.allows(player:GetAttribute("LifeStage"), "Arcade", { Arcade = Arcade.Stage }) then
+	if not Stages.allows(player:GetAttribute("LifeStage"), "Arcade", { Arcade = Arcade.Stage }) and not TesterService.bypass(player) then
 		Notify:FireClient(player, "Error", "Aún no tienes edad para jugar a las máquinas.")
 		return
 	end

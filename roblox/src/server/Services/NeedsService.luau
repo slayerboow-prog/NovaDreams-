@@ -9,6 +9,7 @@ local Gameplay = require(ReplicatedStorage.Shared.Gameplay)
 local Weapons = require(ReplicatedStorage.Shared.Weapons)
 local DataService = require(script.Parent.DataService)
 local MonetizationService = require(script.Parent.MonetizationService)
+local TesterService = require(script.Parent.TesterService)
 
 local NeedsService = {}
 
@@ -76,6 +77,9 @@ end
 
 function NeedsService.canWork(player: Player): boolean
 	local data = DataService.get(player)
+	if data ~= nil and TesterService.bypass(player) then
+		return true -- (modo pruebas: se trabaja aunque falte energía o haya hambre)
+	end
 	return data ~= nil
 		and data.Hunger > Config.Needs.CantWorkThreshold
 		and data.Energy > Config.Needs.CantWorkThreshold

@@ -1590,6 +1590,19 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean })
 	local realStart = realClock()
 	local frames = math.floor(SIM_SECONDS * FPS)
 	local dt = 1 / FPS
+	-- Los textos de las filas del menú de comandos (todas, se vean o no)
+	local function rowLabels(): { [string]: boolean }
+		local out = {}
+		local menu = playerGui:FindFirstChild("CommandMenuGui")
+		local rows = menu and menu:FindFirstChild("Rows", true)
+		for _, row in (rows and rows:GetChildren()) or {} do
+			local label = row:FindFirstChild("Label")
+			if label then
+				out[tostring(label.Text)] = true
+			end
+		end
+		return out
+	end
 	local events = {
 		[math.floor(2 * FPS)] = function()
 			spawnCharacter()
@@ -2023,6 +2036,28 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean })
 		[math.floor(38 * FPS)] = function()
 			local hg = playerGui:FindFirstChild("HousingGui")
 			table.insert(checks, { hg ~= nil and hg:FindFirstChild("ErrandTracker") == nil, "encargo: al acabar, el cartelito se quita" })
+		end,
+		-- Sin menú rápido junto al minimapa: sus apps son filas del menú de comandos; y la fila
+		-- «Modo pruebas» solo sale con el atributo Tester
+		[math.floor(38.4 * FPS)] = function()
+			local popups = playerGui:FindFirstChild("HudPopups")
+			table.insert(checks, { popups ~= nil and popups:FindFirstChild("Phone") == nil and popups:FindFirstChild("PhoneButton") == nil, "HUD: ya no hay menú rápido junto al minimapa" })
+			local labels = rowLabels()
+			table.insert(checks, { labels["Ir a casa"] and labels["Tienda"] and labels["Vehículos"] and labels["Gestos"] and labels["Ruta a casa"], "HUD: sus apps (Ir a casa, Ruta a casa, Tienda, Vehículos, Gestos…) son filas del menú de comandos" })
+			table.insert(checks, { not labels["Modo pruebas"], "COMANDOS: sin el atributo Tester no sale «Modo pruebas»" })
+			localPlayer:SetAttribute("Tester", true)
+		end,
+		[math.floor(39 * FPS)] = function()
+			table.insert(checks, { rowLabels()["Modo pruebas"] == true, "COMANDOS: con Tester = true sale la fila «Modo pruebas»" })
+			localPlayer:SetAttribute("Tester", nil)
+			-- Móvil: la pestaña «Tu vida» se aparta mientras se ve la tarjeta de la misión
+			local hud = playerGui:FindFirstChild("MainHud")
+			local mission = hud and hud:FindFirstChild("Mission")
+			local tab = playerGui:FindFirstChild("LifeStoryTab", true)
+			table.insert(checks, { not mode.Touch or not (mission and mission.Visible) or not (tab and tab.Visible), "móvil: con la misión a la vista, la pestaña «Tu vida» se aparta" })
+		end,
+		[math.floor(39.6 * FPS)] = function()
+			table.insert(checks, { not rowLabels()["Modo pruebas"], "COMANDOS: al quitar Tester, «Modo pruebas» se va" })
 		end,
 	}
 	for frame = 1, frames do

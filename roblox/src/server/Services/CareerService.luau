@@ -21,6 +21,7 @@ local Format = require(ReplicatedStorage.Shared.Format)
 local Stages = require(ReplicatedStorage.Shared.LifeStory.Stages)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 local DataService = require(script.Parent.DataService)
+local TesterService = require(script.Parent.TesterService) -- modo pruebas: se salta los requisitos
 local JobService = require(script.Parent.JobService)
 
 local CareerService = {}
@@ -195,6 +196,9 @@ local function pick(tag: string, avoid: BasePart?): BasePart?
 end
 
 local function canJoin(player: Player, inst: Institutions.Institution): boolean
+	if TesterService.bypass(player) then
+		return true -- (modo pruebas: sin edad mínima, ni aunque te busquen o estés preso)
+	end
 	local stage = player:GetAttribute("LifeStage")
 	if stage and not Stages.inRange(stage, inst.MinStage, nil) then
 		Notify:FireClient(player, "Error", ("Para trabajar en %s hay que ser mayor."):format(inst.Name))

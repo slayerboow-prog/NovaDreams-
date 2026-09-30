@@ -40,6 +40,7 @@ local WeaponModel = require(script.Parent.Parent.World.Kit.WeaponModel)
 local Npc = require(script.Parent.Parent.World.Npc)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 local DataService = require(script.Parent.DataService)
+local TesterService = require(script.Parent.TesterService) -- modo pruebas: se salta los requisitos
 local InventoryService = require(script.Parent.InventoryService)
 local CombatService = require(script.Parent.CombatService)
 local WantedService = require(script.Parent.WantedService)
@@ -283,16 +284,17 @@ local function canEquip(player: Player, w: Weapons.Weapon): (boolean, string?)
 	if not humanoid or humanoid.Health <= 0 then
 		return false, nil
 	end
-	if not Weapons.canHold(w, player:GetAttribute("LifeStage")) then
+	local tester = TesterService.bypass(player)
+	if not tester and not Weapons.canHold(w, player:GetAttribute("LifeStage")) then
 		return false, if w.Kind == "Toy" then "Aún no tienes edad para esto." else "Las armas de verdad no son para niños."
 	end
 	if not owns(player, w) then
 		return false, nil
 	end
-	if w.Licence and not hasLicence(player) then
+	if w.Licence and not hasLicence(player) and not tester then
 		return false, "Sin licencia de armas no puedes llevarla encima."
 	end
-	if w.Duty and not WantedService.onDuty(player) then
+	if w.Duty and not WantedService.onDuty(player) and not tester then
 		return false, "Es un arma de servicio: solo de turno."
 	end
 	if player:GetAttribute("JailUntil") or player:GetAttribute("OnTrial") then
@@ -668,9 +670,11 @@ end
 
 local function buyerOf(player: Player): Weapons.Buyer
 	local data = DataService.get(player)
+	-- (modo pruebas: se le vende todo como a un adulto con licencia)
+	local tester = TesterService.bypass(player)
 	return {
-		Stage = player:GetAttribute("LifeStage"),
-		Licence = hasLicence(player),
+		Stage = if tester then "Adulto" else player:GetAttribute("LifeStage"),
+		Licence = tester or hasLicence(player),
 		Stars = WantedService.stars(player),
 		Records = if data and type(data.Record) == "table" then #data.Record else (player:GetAttribute("Records") or 0),
 		Money = if data then data.Money else 0,
@@ -858,6 +862,60 @@ local function revokeLicence(player: Player)
 	publish(player)
 end
 
+-- Modo pruebas (TesterService): la licencia de armas sin test. Devuelve true si es nueva.
+function WeaponService.grantLicence(player: Player): boolean
+	if not DataService.get(player) or hasLicence(player) then
+		return false
+	end
+	local ok = InventoryService.add(player, Weapons.Licence.Item, 1)
+	publish(player)
+	return ok
+end
+
+-- Modo pruebas (TesterService): todas las armas de Weapons.List (con el cargador lleno), la
+-- munición de cada tipo hasta el máximo de la casilla y la licencia. Por la mochila de siempre
+-- (InventoryService), como una compra. Devuelve (cosas añadidas, cosas que no caben).
+function WeaponService.grantAll(player: Player): (number, number)
+	if not DataService.get(player) then
+		return 0, 0
+	end
+	local given, missing = 0, 0
+	if WeaponService.grantLicence(player) then
+		given += 1
+	end
+	local ids = {}
+	for id in Weapons.List do
+		table.insert(ids, id)
+	end
+	table.sort(ids)
+	for _, id in ids do
+		local w = Weapons.List[id]
+		if not owns(player, w) then
+			if InventoryService.add(player, Weapons.itemId(id), 1) then
+				given += 1
+			else
+				missing += 1
+			end
+		end
+		if owns(player, w) then
+			mags(player)[id] = w.Magazine
+		end
+	end
+	for _, ammoId in Weapons.AmmoOrder do
+		local ammo = Weapons.AmmoTypes[ammoId]
+		local room = ammo.Stack - InventoryService.count(player, ammoId)
+		if room > 0 then
+			if InventoryService.add(player, ammoId, room) then
+				given += 1
+			else
+				missing += 1
+			end
+		end
+	end
+	publish(player)
+	return given, missing
+end
+
 -- Policía de servicio: pistola reglamentaria y táser (y se devuelven al acabar)
 local DUTY = { "PistolaPolicia", "Taser" }
 local function dutyWeapons(player: Player, on: boolean)
@@ -876,10 +934,11 @@ local function dutyWeapons(player: Player, on: boolean)
 	else
 		local s = stateOf(player)
 		local current = Weapons.get(s.Equipped)
-		if current and current.Duty then
+		if current and current.Duty and not TesterService.bypass(player) then
 			WeaponService.holster(player)
 		end
-		for _, id in DUTY do
+		-- (modo pruebas: el tester se queda sus armas de servicio al dejar el turno)
+		for _, id in if TesterService.bypass(player) then {} else DUTY do
 			if InventoryService.count(player, Weapons.itemId(id)) > 0 then
 				InventoryService.remove(player, Weapons.itemId(id), 1)
 			end
@@ -948,7 +1007,7 @@ function WeaponService.startClerk(player: Player)
 	if not DataService.get(player) or not LifeService.allows(player, "Work") then
 		return
 	end
-	if not Weapons.stageAtLeast(player:GetAttribute("LifeStage"), "AdultoJoven") then
+	if not Weapons.stageAtLeast(player:GetAttribute("LifeStage"), "AdultoJoven") and not TesterService.bypass(player) then
 		Notify:FireClient(player, "Error", "Para trabajar en la Armería hay que ser mayor de edad.")
 		return
 	end
@@ -1173,7 +1232,7 @@ function WeaponService.init()
 	end
 	DataService.onLoaded(function(player)
 		-- Armas de servicio que se quedaron en la mochila (salió a mitad de turno)
-		if player:GetAttribute("Job") ~= "Policia" then
+		if player:GetAttribute("Job") ~= "Policia" and not TesterService.isTester(player) then
 			for _, id in DUTY do
 				if InventoryService.count(player, Weapons.itemId(id)) > 0 then
 					InventoryService.remove(player, Weapons.itemId(id), 1)

@@ -1,5 +1,5 @@
 -- MapUI (cliente): el mapa de Valmar, con el estilo del mapa ilustrado de la ciudad.
---   * Minimapa redondo arriba a la derecha (junto al menú rápido, UI/HudLayout): aro brillante con la N,
+--   * Minimapa redondo arriba a la derecha (pegado a la esquina, UI/HudLayout): aro brillante con la N,
 --     marcas de los puntos cardinales, botones + y − para acercar, el sol (o la luna) al lado y, dentro,
 --     distritos de colores, calles, mar, lugares, tu flecha, tu objetivo (★), el sitio que marques (📍)
 --     y los demás jugadores. Si el objetivo está lejos, se queda en el borde señalando hacia dónde ir.

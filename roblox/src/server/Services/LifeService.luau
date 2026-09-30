@@ -14,6 +14,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Stages = require(ReplicatedStorage.Shared.LifeStory.Stages)
 local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 local Gym = require(ReplicatedStorage.Shared.Gym)
+local TesterService = require(script.Parent.TesterService)
 
 local LifeService = {}
 
@@ -114,7 +115,8 @@ end
 
 -- ¿Puede este jugador hacer esto a su edad? Si no, se le explica con un aviso.
 function LifeService.allows(player: Player, action: string, silent: boolean?): boolean
-	local ok = Stages.allows(player:GetAttribute("LifeStage"), action, Config.StageLimits)
+	-- (modo pruebas: el tester se salta los límites de edad)
+	local ok = Stages.allows(player:GetAttribute("LifeStage"), action, Config.StageLimits) or TesterService.bypass(player)
 	if not ok and not silent then
 		Notify:FireClient(player, "Error", Strings.get("LIMIT." .. action))
 	end
@@ -137,12 +139,12 @@ local function dropForbidden(player: Player)
 	if player:GetAttribute("Riding") or player:GetAttribute("Passenger") then
 		pcall(function()
 			local Gameplay = require(ReplicatedStorage.Shared.Gameplay)
-			if not Stages.inRange(stage, Gameplay.DriveMinStage, nil) then
+			if not Stages.inRange(stage, Gameplay.DriveMinStage, nil) and not TesterService.bypass(player) then
 				require(services.VehicleService).exitAny(player, true)
 			end
 		end)
 	end
-	if player:GetAttribute("Job") and not Stages.allows(stage, "Work", Config.StageLimits) then
+	if player:GetAttribute("Job") and not Stages.allows(stage, "Work", Config.StageLimits) and not TesterService.bypass(player) then
 		pcall(function()
 			require(services.JobService).quit(player, true)
 		end)
@@ -152,7 +154,7 @@ local function dropForbidden(player: Player)
 		pcall(function()
 			local Weapons = require(ReplicatedStorage.Shared.Weapons)
 			local weapon = Weapons.get(weaponId)
-			if weapon and not Weapons.canHold(weapon, stage) then
+			if weapon and not Weapons.canHold(weapon, stage) and not TesterService.bypass(player) then
 				require(services.WeaponService).holster(player)
 			end
 		end)

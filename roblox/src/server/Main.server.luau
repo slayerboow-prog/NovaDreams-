@@ -127,6 +127,7 @@ local order = {
 	"LifeStoryService", -- la historia de vida escucha a todos los anteriores
 	"CityErrandService", -- encargos de la ciudad: gente con ❗ por todo el mapa que te pide pequeños favores
 	"DebugService", -- herramientas de depuración SOLO para el dueño del juego (/debug, panel F8)
+	"TesterService", -- modo pruebas SOLO para el dueño (/pruebas): dinero infinito, armas, oficios sin requisitos…
 	"BabyService", -- tutorial de bebé (fase 2)
 	"CanteenService", -- comedor de cada colegio: comida gratis para los alumnos, cocinera y mesas puestas
 	"SchoolService", -- compañeros y profe en cada colegio: siguen el horario y van a buscarte si tu misión lo pide
