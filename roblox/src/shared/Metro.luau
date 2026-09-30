@@ -85,6 +85,64 @@ Metro.Dwell = 14 -- segundos con las puertas abiertas en cada estación
 -- Los bebés y los niños no pagan (pasan el torno sin billete)
 Metro.FreeStages = { Bebe = true, Nino = true }
 
+-- Tornos (MetroService los monta; MetroKit los pone en el muro entre vestíbulo y andén). Cada torno
+-- tiene un atributo Through: dónde te deja al otro lado. Su cartel flota DELANTE del torno, en el lado
+-- desde el que se usa, y llega poco: desde el andén no se ve "Pasar (billete)" (solo "Salir") ni desde el
+-- vestíbulo "Salir". Antes llegaban los dos a los dos lados, el botón Interactuar del móvil pulsaba el
+-- que tocara y el niño que acababa de pasar volvía al vestíbulo con el siguiente toque.
+Metro.Gate = {
+	Reach = 5, -- alcance del cartel de "Pasar (billete)"
+	ExitReach = 4, -- alcance del de "Salir"
+	PromptOffset = 2.5, -- el cartel, a esta distancia del torno (hacia el lado desde el que se usa)
+	PromptHeight = 1, -- …y esto por encima de su centro
+	Grace = 2.5, -- segundos tras pasar en los que el torno de salida no te devuelve al vestíbulo
+	Priority = 1, -- PromptPriority de los carteles de los tornos (van antes que ratas, interfonos…)
+}
+-- Cosas "de ambiente" (ratas, interfono, papeleras): nunca le quitan el botón Interactuar a un torno
+Metro.AmbientPriority = -1
+
+local function flat(v: Vector3): Vector3
+	return Vector3.new(v.X, 0, v.Z)
+end
+
+-- Hacia dónde se cruza un torno (unitario, horizontal): de su lado de uso hacia Through
+function Metro.gateDirection(gatePos: Vector3, through: Vector3): Vector3
+	local d = flat(through - gatePos)
+	return if d.Magnitude > 1e-3 then d.Unit else Vector3.new(-1, 0, 0)
+end
+
+-- > 0: ya estás al otro lado (el de Through); < 0: en el lado desde el que se usa
+function Metro.gateSide(gatePos: Vector3, through: Vector3, pos: Vector3): number
+	return flat(pos - gatePos):Dot(Metro.gateDirection(gatePos, through))
+end
+
+-- Dónde va el cartel del torno (en el mundo)
+function Metro.gatePromptAt(gatePos: Vector3, through: Vector3): Vector3
+	return gatePos - Metro.gateDirection(gatePos, through) * Metro.Gate.PromptOffset + Vector3.new(0, Metro.Gate.PromptHeight, 0)
+end
+
+-- Dónde y mirando a dónde te deja el torno (de espaldas al torno, hacia el andén o el vestíbulo)
+function Metro.gateLanding(gatePos: Vector3, through: Vector3): CFrame
+	return CFrame.lookAt(through, through + Metro.gateDirection(gatePos, through))
+end
+
+-- ¿Pasa el torno y cómo? who: { Stage, Job, FreeJob, Pass, Tester, Tickets }. Devuelve el modo
+-- ("Gratis", "Abono", "Servicio", "Pruebas", "Billete") o nil si no puede pasar. Solo "Billete" gasta.
+function Metro.gatePass(who: { [string]: any }): string?
+	if Metro.FreeStages[who.Stage or ""] then
+		return "Gratis"
+	elseif who.Pass then
+		return "Abono"
+	elseif who.FreeJob then
+		return "Servicio"
+	elseif (who.Tickets or 0) >= 1 then
+		return "Billete"
+	elseif who.Tester then
+		return "Pruebas" -- modo pruebas (TesterService.bypass): pasa sin billete
+	end
+	return nil
+end
+
 -- Billetes (máquinas del vestíbulo)
 Metro.TicketItem = "BilleteMetro"
 Metro.Tickets = {

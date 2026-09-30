@@ -38,6 +38,7 @@ local RoleService = require(script.Parent.RoleService)
 local JobService = require(script.Parent.JobService)
 local StaffService = require(script.Parent.StaffService)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
+local TesterService = require(script.Parent.TesterService) -- modo pruebas: pasa el torno sin billete
 
 local MetroService = {}
 
@@ -677,50 +678,98 @@ local function onTransfer(player: Player, marker: BasePart)
 	end
 end
 
-local function onGate(player: Player, gate: BasePart)
-	-- Los niños viajan gratis (con un adulto o solos: en Valmar el metro es seguro)
-	if Metro.FreeStages[player:GetAttribute("LifeStage") or ""] then
-		local through = gate:GetAttribute("Through")
-		if typeof(through) == "Vector3" then
-			teleport(player, CFrame.new(through))
-		end
-		player:SetAttribute("MetroTicket", true)
-		StoryEvents.emit(player, "MetroGate", { Station = gate:GetAttribute("Station"), Pass = "Gratis" })
-		Notify:FireClient(player, "Info", "🎫 Los niños viajan gratis en el metro. ¡Buen viaje!")
-		return
+-- Cuándo pasó cada jugador un torno de entrada (el de salida no le devuelve al vestíbulo enseguida)
+local passedGateAt: { [Player]: number } = {}
+Players.PlayerRemoving:Connect(function(player)
+	passedGateAt[player] = nil
+end)
+
+-- Al otro lado del torno, de espaldas a él (el cartel del otro lado no le llega: Metro.Gate)
+local function crossGate(player: Player, gate: BasePart): boolean
+	local through = gate:GetAttribute("Through")
+	if typeof(through) ~= "Vector3" then
+		return false
 	end
-	-- De servicio (revisor, policía…) o con abono en vigor: pasa sin gastar billete
+	local root = rootOf(player)
+	if root then
+		root.AssemblyLinearVelocity = Vector3.zero
+	end
+	teleport(player, Metro.gateLanding(gate.Position, through))
+	return true
+end
+
+-- ¿Está en el lado desde el que se usa el torno? (desde el otro lado no hace nada: ni cobra ni te mueve)
+local function onUseSide(player: Player, gate: BasePart): boolean
+	local through = gate:GetAttribute("Through")
+	local root = rootOf(player)
+	return typeof(through) == "Vector3" and root ~= nil and Metro.gateSide(gate.Position, through, root.Position) < 0
+end
+
+local function onGate(player: Player, gate: BasePart)
+	if not onUseSide(player, gate) then
+		return -- (ya está en el andén: el torno no le vuelve a pasar ni le cobra otro billete)
+	end
 	local job = player:GetAttribute("Job")
 	local pass = MetroService.passOf(player)
-	if (typeof(job) == "string" and Metro.FreeJobs[job]) or pass then
-		local through = gate:GetAttribute("Through")
-		if typeof(through) == "Vector3" then
-			teleport(player, CFrame.new(through))
-		end
-		player:SetAttribute("MetroTicket", true)
-		StoryEvents.emit(player, "MetroGate", { Station = gate:GetAttribute("Station"), Pass = pass and pass.Id or "Servicio" })
-		Notify:FireClient(player, "Info", if pass then ("%s %s: ¡buen viaje!"):format(pass.Icon, pass.Name) else "🚇 Vas de servicio: el metro es gratis para ti.")
-		return
-	end
-	if InventoryService.count(player, Metro.TicketItem) < 1 then
+	local mode = Metro.gatePass({
+		Stage = player:GetAttribute("LifeStage"),
+		FreeJob = typeof(job) == "string" and Metro.FreeJobs[job] == true,
+		Pass = pass ~= nil,
+		Tickets = InventoryService.count(player, Metro.TicketItem),
+		Tester = TesterService.bypass(player),
+	})
+	if not mode then
 		Notify:FireClient(player, "Info", "Necesitas un billete o un abono: cómpralo en las máquinas azules del vestíbulo 🎫")
 		return
 	end
-	InventoryService.remove(player, Metro.TicketItem, 1)
-	local through = gate:GetAttribute("Through")
-	if typeof(through) == "Vector3" then
-		teleport(player, CFrame.new(through))
+	if mode == "Billete" then
+		InventoryService.remove(player, Metro.TicketItem, 1)
 	end
+	crossGate(player, gate)
+	passedGateAt[player] = os.clock()
 	player:SetAttribute("MetroTicket", true) -- (para el revisor: tiene billete validado)
-	StoryEvents.emit(player, "MetroGate", { Station = gate:GetAttribute("Station"), Pass = "Billete" })
+	StoryEvents.emit(player, "MetroGate", { Station = gate:GetAttribute("Station"), Pass = if mode == "Abono" and pass then pass.Id else mode })
+	if mode == "Gratis" then
+		-- Los niños viajan gratis (con un adulto o solos: en Valmar el metro es seguro)
+		Notify:FireClient(player, "Info", "🎫 Los niños viajan gratis en el metro. ¡Buen viaje!")
+	elseif mode == "Abono" and pass then
+		Notify:FireClient(player, "Info", ("%s %s: ¡buen viaje!"):format(pass.Icon, pass.Name))
+	elseif mode == "Servicio" then
+		Notify:FireClient(player, "Info", "🚇 Vas de servicio: el metro es gratis para ti.")
+	elseif mode == "Pruebas" then
+		Notify:FireClient(player, "Info", "🧪 Modo pruebas: pasas el torno sin billete.")
+	end
 end
 
 local function onGateExit(player: Player, gate: BasePart)
-	local through = gate:GetAttribute("Through")
-	if typeof(through) == "Vector3" then
-		teleport(player, CFrame.new(through))
+	-- Recién pasado el torno de entrada, un segundo toque de Interactuar no le devuelve al vestíbulo
+	if os.clock() - (passedGateAt[player] or -math.huge) < Metro.Gate.Grace or not onUseSide(player, gate) then
+		return
 	end
+	crossGate(player, gate)
 	player:SetAttribute("MetroTicket", nil)
+end
+
+-- Cartel de un torno: flota delante, en el lado desde el que se usa, y llega poco (Metro.Gate)
+local function gatePrompt(gate: BasePart, action: string, object: string, reach: number): ProximityPrompt
+	local through = gate:GetAttribute("Through")
+	local holder: Instance = gate
+	if typeof(through) == "Vector3" then
+		local att = Instance.new("Attachment")
+		att.Name = "GatePrompt"
+		att.Position = gate.CFrame:PointToObjectSpace(Metro.gatePromptAt(gate.Position, through))
+		att.Parent = gate
+		holder = att
+	end
+	local p = Instance.new("ProximityPrompt")
+	p.ActionText = action
+	p.ObjectText = object
+	p.HoldDuration = 0.3
+	p.MaxActivationDistance = reach
+	p.RequiresLineOfSight = false
+	p:SetAttribute("PromptPriority", Metro.Gate.Priority)
+	p.Parent = holder
+	return p
 end
 
 -- ¿Está junto a una máquina de billetes o a una taquilla? (las dos venden lo mismo)
@@ -1989,12 +2038,12 @@ local SETUP: { [string]: (BasePart) -> () } = {
 		end)
 	end,
 	MetroGate = function(gate)
-		prompt(gate, "Pasar (billete)", "🎫 Torno", 0.3, 7).Triggered:Connect(function(player)
+		gatePrompt(gate, "Pasar (billete)", "🎫 Torno", Metro.Gate.Reach).Triggered:Connect(function(player)
 			onGate(player, gate)
 		end)
 	end,
 	MetroGateExit = function(gate)
-		prompt(gate, "Salir", "🚪 Salida", 0.3, 7).Triggered:Connect(function(player)
+		gatePrompt(gate, "Salir", "🚪 Salida", Metro.Gate.ExitReach).Triggered:Connect(function(player)
 			onGateExit(player, gate)
 		end)
 	end,
@@ -2017,7 +2066,9 @@ local SETUP: { [string]: (BasePart) -> () } = {
 	end,
 	MetroBoard = function(marker)
 		local line = Metro.lineById[marker:GetAttribute("Line")]
-		prompt(marker, "Subir al metro", "🚇 " .. (if line then line.Name else "Metro"), 0.2, 7).Triggered:Connect(function(player)
+		local p = prompt(marker, "Subir al metro", "🚇 " .. (if line then line.Name else "Metro"), 0.2, 7)
+		p:SetAttribute("PromptPriority", Metro.Gate.Priority)
+		p.Triggered:Connect(function(player)
 			onBoard(player, marker)
 		end)
 	end,

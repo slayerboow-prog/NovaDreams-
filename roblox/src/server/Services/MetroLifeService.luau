@@ -330,7 +330,8 @@ local function spawnRat(nest: BasePart)
 	local list = nests[nest] or {}
 	nests[nest] = list
 	table.insert(list, rat)
-	local p = prompt(rat.Body, "Espantar", "🐀 Rata", 0, 10)
+	local p = prompt(rat.Body, "Espantar", "🐀 Rata", 0, 7)
+	p:SetAttribute("PromptPriority", Metro.AmbientPriority) -- (nunca le quita el botón Interactuar a un torno)
 	p.Triggered:Connect(function(player)
 		if rat.Fleeing then
 			return
@@ -528,7 +529,9 @@ local SETUP: { [string]: (BasePart) -> () } = {
 		end)
 	end,
 	MetroBin = function(bin)
-		prompt(bin, "Rebuscar", "🗑️ Papelera", 0.8, 7).Triggered:Connect(function(player)
+		local p = prompt(bin, "Rebuscar", "🗑️ Papelera", 0.8, 7)
+		p:SetAttribute("PromptPriority", Metro.AmbientPriority)
+		p.Triggered:Connect(function(player)
 			if not ready(player, "Bin", LIFE.BinCooldown) then
 				info(player, "🗑️ Ya has rebuscado hace nada. Qué asco, por cierto.")
 				return
@@ -542,7 +545,9 @@ local SETUP: { [string]: (BasePart) -> () } = {
 		end)
 	end,
 	MetroIntercom = function(box)
-		prompt(box, "Pulsar SOS", "📢 Interfono", 0.6, 7).Triggered:Connect(function(player)
+		local p = prompt(box, "Pulsar SOS", "📢 Interfono", 0.6, 6)
+		p:SetAttribute("PromptPriority", Metro.AmbientPriority)
+		p.Triggered:Connect(function(player)
 			if not ready(player, "Intercom", 5) then
 				return
 			end

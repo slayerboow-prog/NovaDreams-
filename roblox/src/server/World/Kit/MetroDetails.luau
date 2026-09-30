@@ -393,7 +393,9 @@ function MetroDetails.platform(m: Instance, cf: CFrame, line: Metro.Line, statio
 		speaker(m, at(9, 15.6, z))
 	end
 	extinguisher(m, at(16.5, 0, -8) * faceTrack)
-	intercom(m, at(16.75, 0, 10) * faceTrack)
+	-- (el interfono, lejos de los tornos: pegado a ellos, su "Pulsar SOS" le quitaba el botón
+	-- Interactuar al torno en el móvil, a los dos lados del cristal)
+	intercom(m, at(16.75, 0, 46) * faceTrack)
 	phone(m, at(16.2, 0, -22) * faceTrack)
 	for _, z in { -58, -12, 22, 60 } do
 		advert(m, at(16.9, 6, z) * faceTrack, Vector2.new(6, 4))
@@ -457,7 +459,7 @@ function MetroDetails.lobby(m: Instance, cf: CFrame, line: Metro.Line, stationId
 	lockers(m, at(22, 0, LZ - 0.8), 3, 2)
 	atm(m, at(30.5, 0, LZ - 0.7))
 	bin(m, at(33, 0, LZ - 2))
-	bin(m, at(X0 + 3, 0, -12))
+	bin(m, at(X0 + 1.2, 0, -19)) -- (apartada de los tornos)
 	-- Puesto de comida (cada estación el suyo)
 	local shop = LOBBY_SHOPS[stationId]
 	if shop and not hub then
@@ -481,8 +483,13 @@ function MetroDetails.lobby(m: Instance, cf: CFrame, line: Metro.Line, stationId
 	-- Gotera y un poco de basura
 	drip(m, at(26, LH, 6 - (seed % 3) * 3), at(0, 0, 0).Position.Y)
 	litter(m, at(32, 0, 0), 5, Vector2.new(10, 18), seed * 11 + 5)
-	-- Ratilla junto a la pared
-	ratNest(m, at(X0 + 1, 0, 21).Position, at(X0 + 1, 0, 7).Position)
+	-- Ratilla junto a la pared del fondo (antes correteaba pegada a los tornos y su "Espantar" tapaba
+	-- el torno en el móvil). En Plaza Mayor, por la pared -Z (por el +Z bajan las escaleras mecánicas)
+	if hub then
+		ratNest(m, at(30, 0, -LZ + 1.7).Position, at(38.5, 0, -LZ + 1.7).Position)
+	else
+		ratNest(m, at(35.5, 0, LZ - 1.7).Position, at(45, 0, LZ - 1.7).Position)
+	end
 	local _ = line
 end
 

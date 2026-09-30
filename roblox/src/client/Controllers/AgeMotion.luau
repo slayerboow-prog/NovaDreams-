@@ -761,4 +761,7 @@ function AgeMotion.init()
 	end
 end
 
+-- Para las pruebas (scripts/test-joints.luau): buscar las articulaciones y medir el gateo sin Roblox
+AgeMotion._findJoints, AgeMotion._crawlDrop = findJoints, crawlDrop
+
 return AgeMotion

@@ -73,6 +73,27 @@ function MenuLogic.orderTargets<T>(previous: { any }, list: { T }, keyOf: (T) ->
 	return out, keys
 end
 
+-- Prioridad de los carteles (atributo PromptPriority del ProximityPrompt; 0 si no tiene): los de más
+-- prioridad van delante SIEMPRE (tornos y "Subir al metro" antes que una rata o el interfono que pasen
+-- por al lado); dentro de la misma prioridad se respeta el orden que venía (orderTargets). Estable.
+function MenuLogic.byPriority<T>(list: { T }, priorityOf: (T) -> number): { T }
+	local indexed = {}
+	for i, item in list do
+		table.insert(indexed, { Item = item, Index = i, Priority = priorityOf(item) })
+	end
+	table.sort(indexed, function(a, b)
+		if a.Priority ~= b.Priority then
+			return a.Priority > b.Priority
+		end
+		return a.Index < b.Index
+	end)
+	local out = {}
+	for _, entry in indexed do
+		table.insert(out, entry.Item)
+	end
+	return out
+end
+
 local function isTarget(command: any): boolean
 	return command ~= nil and (command.Prompt ~= nil or command.Target == true)
 end

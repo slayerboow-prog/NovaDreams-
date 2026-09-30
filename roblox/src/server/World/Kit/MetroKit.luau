@@ -526,7 +526,8 @@ local function station(parent: Instance, line: Metro.Line, index: number): (Mode
 		local gate = part(m, "Turnstile", Vector3.new(1.6, 3.4, 1), at(X0 + 1.4, 1.7, z), rgb(80, 84, 92), Enum.Material.Metal, { Tags = { "MetroGate" } })
 		gate:SetAttribute("Station", id)
 		gate:SetAttribute("Line", line.Id)
-		gate:SetAttribute("Through", (at(X0 - 3, 3, z)).Position)
+		-- (te deja en el andén, lejos del alcance de los carteles de los tornos: Metro.Gate)
+		gate:SetAttribute("Through", (at(X0 - 4, 3, z)).Position)
 		decor(m, "GateLight", Vector3.new(0.4, 0.3, 0.4), at(X0 + 2.1, 3.5, z), if i % 2 == 0 then rgb(60, 220, 90) else rgb(60, 220, 90), Enum.Material.Neon)
 	end
 	local exitGate = part(m, "ExitGate", Vector3.new(1.6, 3.4, 1.2), at(X0 - 1.4, 1.7, 9), rgb(80, 84, 92), Enum.Material.Metal, { Tags = { "MetroGateExit" } })

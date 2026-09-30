@@ -176,7 +176,11 @@ function ContextDetector.targets(): { Target }
 		return target.Prompt
 	end)
 	lastOrder = keys
-	return ordered
+	-- Lo importante delante (tornos del metro antes que ratas o interfonos: atributo PromptPriority)
+	return MenuLogic.byPriority(ordered, function(target: Target)
+		local priority = target.Prompt:GetAttribute("PromptPriority")
+		return if type(priority) == "number" then priority else 0
+	end)
 end
 
 -- Todo lo que el menú necesita saber para decidir qué comandos enseñar

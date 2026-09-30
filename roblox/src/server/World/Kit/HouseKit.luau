@@ -253,6 +253,10 @@ function HouseKit.build(parent: Instance, cf: CFrame, w: number, d: number, opti
 	bit("DoorFrame", Vector3.new(4.6, 8.2, 0.25), door * CFrame.new(0, 4.1, -0.12), style.Trim)
 	local doorColor = if shutter then shutter else pick({ rgb(90, 60, 40), rgb(40, 50, 60), rgb(150, 40, 40) })
 	local doorPart = solid("Door", Vector3.new(3.8, 7.4, 0.3), door * CFrame.new(0, 3.9, -0.25), doorColor, Enum.Material.Wood)
+	-- Da a la calle (InteriorService pone el cartel "Entrar" y te deja al salir justo delante; sin
+	-- esto lo calcula desde el centro de la casa y, con la puerta a un lado, salía en diagonal, contra
+	-- la propia puerta o la pared)
+	doorPart:SetAttribute("DoorOut", door:VectorToWorldSpace(Vector3.new(0, 0, -1)))
 	-- Dirección de la casa: el buzón (o la puerta si no hay buzón) lleva la etiqueta Buzon
 	local address, number = HouseKit.address()
 	m:SetAttribute("Address", address)

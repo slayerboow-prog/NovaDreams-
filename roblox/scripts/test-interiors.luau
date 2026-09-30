@@ -499,13 +499,14 @@ if placePath then
 		if kind and Entrances.isHome(kind, upper) then
 			homes += 1
 			byKind[kind] = (byKind[kind] or 0) + 1
-			if kind == "Casa" or kind == "Villa" then
-				-- La puerta de verdad (visible) y, delante, el cartel "Entrar" y el sitio al salir
-				local door = Entrances.doorPart(m)
-				if not door or door.Transparency >= 0.5 then
-					table.insert(noDoor, kind .. " " .. m:GetFullName())
-					continue
-				end
+			-- La puerta de verdad (visible) y, delante, el cartel "Entrar" y el sitio al salir (casas y
+			-- villas siempre la tienen; los bloques, si su kit la pone)
+			local door = Entrances.doorPart(m)
+			if (kind == "Casa" or kind == "Villa") and (not door or door.Transparency >= 0.5) then
+				table.insert(noDoor, kind .. " " .. m:GetFullName())
+				continue
+			end
+			if door then
 				local lo, hi = bounds(m)
 				local center = (lo + hi) / 2
 				local out = Entrances.doorOut(door, center)
