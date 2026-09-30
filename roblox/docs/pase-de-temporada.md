@@ -51,7 +51,14 @@ Diseño, reglas y contrato del **pase de temporada** de Real Life Simulator. La 
 | `Services/SeasonMissionService.luau` | Misiones diarias, semanales, de temporada, de evento e historia por fases. GPS y cambio de diaria. |
 | `Services/BattlePassService.luau` | Núcleo: niveles, reclamar, premium, remoto con límite, estado para la interfaz, modo pruebas y vistas previas 3D. |
 | `Services/BattlePassXPService.luau` | XP por jugar, con topes y anti-spam. Reenvía cada evento a las misiones. |
-| `src/client/Controllers/BattlePassClient.luau` | Envoltorio del remoto para la interfaz. No pinta nada. |
+| `src/client/Controllers/BattlePassClient.luau` | Envoltorio del remoto para la interfaz. No pinta nada. Al conectar pide el primer estado (`Get`). |
+| `src/client/UI/BattlePassUI.luau` | La ventana del pase y sus entradas (fila de COMANDOS, tecla N, aviso «RECOMPENSA DESBLOQUEADA»). Con el pase apagado no hace nada. |
+| `src/client/UI/BattlePassLayout.luau` | Medidas de la ventana en el ordenador y en el móvil (puro: lo prueba `test-battlepassui`). |
+| `src/client/UI/BattlePassView.luau` | Textos y cuentas de la interfaz (estados, días, siguiente recompensa, misión destacada…). |
+| `src/client/UI/BattlePassRewardCard.luau` | La tarjeta de cada recompensa de la fila 01…50. |
+| `src/client/UI/BattlePassPages.luau` | Las secciones MISIONES y FICHAS. |
+| `src/client/UI/BattlePassPreview.luau` | Vista previa 3D que se gira (ViewportFrame) o, si no hay modelo, icono y muestra de colores. |
+| `scripts/test-battlepassui.luau` | Prueba de la interfaz con Lune: estados, peticiones y que nada se pise en 10 tamaños de pantalla. |
 | `scripts/test-battlepass.luau` | Prueba con Lune (126 comprobaciones). |
 
 Los servicios se arrancan en `Main.server.luau` justo después de `CityErrandService`.
@@ -68,7 +75,10 @@ Los servicios se arrancan en `Main.server.luau` justo después de `CityErrandSer
 | `LifeStoryService` | `discoverZone` emite `ZoneEntered` al cambiar de barrio, solo con el pase encendido. | Misiones de barrios y explorar. | El descubrimiento de siempre no cambia. |
 | `CityErrandService` | `finish` emite `ErrandDone`, solo con el pase encendido. | Misiones de encargos. | Nada más. |
 | `TesterService` | Acción `"BattlePass"` y `state().BattlePass`. | Probar el pase desde el panel. | Con el pase apagado devuelven `false` / `nil`. |
-| `TaskMarker` (cliente) | También sigue `SeasonTarget`, después de `StoryTarget`. | GPS de las misiones del pase. | Sin ese atributo, nada cambia. |
+| `TaskMarker` (cliente) | También sigue `SeasonTarget`, después de `StoryTarget` (y escucha sus cambios). | GPS de las misiones del pase. | Sin ese atributo, nada cambia. |
+| `Gps` y `MapUI` (cliente) | `SeasonTarget` como último objetivo (ruta por las calles y marca en el mapa). | GPS de las misiones del pase. | Sin ese atributo, nada cambia. |
+| `Main.client` | Arranca `UI/BattlePassUI` con `safeInit` y no repite el aviso «¡nivel n!» del servidor (ya sale «RECOMPENSA DESBLOQUEADA»). | Interfaz del pase. | Con el pase apagado, `init` vuelve enseguida y el aviso sale como siempre. |
+| `TesterPanel` (cliente) | Sección «PASE DE TEMPORADA» (premium simulado, +XP, nivel, reloj, reiniciar, abrir el pase). Solo sale si el servidor manda `BattlePass`. | Probar el pase. | Con el pase apagado no sale. |
 
 ## 4. Recompensas de la temporada 1 «Luces de Valmar»
 
@@ -225,7 +235,7 @@ Lo que ya comprueba **`lune run scripts/test-battlepass.luau`**: pase apagado in
 
 ## 12. Contrato de la interfaz (para el agente de UI)
 
-Remoto: `ReplicatedStorage.Remotes.BattlePass` (RemoteEvent). El servidor lo crea solo si `Enabled = true`. En el cliente, usa `src/client/Controllers/BattlePassClient.luau`: `start()`, `onState(fn)`, `on(kind, fn)`, `refresh()`, `claim(track, level)`, `claimAll()`, `buy()`, `equip(slot, id, kind?)`, `track(missionId | nil)`, `reroll(missionId)`, `choose(storyId, optionId)` y `buyToken(itemId)`. `start()` no hace nada si el pase está apagado, y `Main.client` todavía no lo carga.
+Remoto: `ReplicatedStorage.Remotes.BattlePass` (RemoteEvent). El servidor lo crea solo si `Enabled = true`. En el cliente, usa `src/client/Controllers/BattlePassClient.luau`: `start()`, `onState(fn)`, `on(kind, fn)`, `refresh()`, `claim(track, level)`, `claimAll()`, `buy()`, `equip(slot, id, kind?)`, `track(missionId | nil)`, `reroll(missionId)`, `choose(storyId, optionId)` y `buyToken(itemId)`. `start()` no hace nada si el pase está apagado. Lo arranca `UI/BattlePassUI` (desde `Main.client`), solo con el pase encendido.
 
 ### Cliente → servidor (`FireServer(action, a, b, c)`)
 
@@ -284,5 +294,7 @@ Remoto: `ReplicatedStorage.Remotes.BattlePass` (RemoteEvent). El servidor lo cre
 **Atributos del jugador:** `BP_Season`, `BP_Level`, `BP_Premium`, `BP_PremiumSimulated`, `BP_Title`, `BP_TitleColor`, `BP_Nameplate`, `BP_PhoneTheme`, `BP_HudSkin`, `BP_Outfit`, `BP_HomeTheme`, `BP_Emotes` (Ids separados por comas), `BP_Tokens`, `SeasonTarget` (Vector3), `SeasonTargetName`.
 
 **Modo pruebas:** remoto `Tester` → `FireServer("Action", "BattlePass", { Op = "Premium" | "AddXp" | "SetLevel" | "NextDay" | "NextWeek" | "ResetClock" | "Reset", Value = n })`. `TesterService.state(player).BattlePass` trae el estado para el panel.
+
+**Interfaz hecha (`UI/BattlePassUI`):** ventana compacta del estilo del HUD. Arriba «🏆 TEMPORADA 1 · LUCES DE VALMAR», los días que quedan, «NIVEL x / 50» con su barra de XP y tres secciones: **RECOMPENSAS** (la elegida en grande con vista previa 3D, rareza, tipo, nivel, pista, estado y RECLAMAR / EQUIPAR / PROBAR; carriles GRATIS y ⭐ PREMIUM; «RECLAMAR TODO»; la franja con la oferta sin presión o la siguiente recompensa; la fila 01…50 y, en el ordenador, la misión destacada), **MISIONES** (historia con su decisión, diarias con «CAMBIAR» si tienes la comodidad, evento, semanales y de temporada, con «📍 SEGUIR») y **FICHAS** (la tienda). Se entra por la fila «🏆 Pase de temporada» de COMANDOS (sale con la temporada en marcha o en el periodo para reclamar, con punto rojo si hay algo que reclamar; las «apps del teléfono» son esas filas, así que no hay otra ventana), con la tecla **N** en el ordenador (B es la piedra) y desde el panel de pruebas. En el móvil es una hoja de todo el alto, con botones y textos más grandes y sin la misión destacada. Solo se repinta al llegar un estado del servidor.
 
 **UX (§23–29):** panel compacto (no a pantalla completa), con título, «TEMPORADA 01», barra de XP, «NIVEL x/50», pestañas GRATIS / PREMIUM, la recompensa actual con [RECLAMAR], una fila de niveles y una misión destacada. La compra se presenta sin presión: «PASE PREMIUM · Temporada 1 · 50 recompensas · [Vista previa] [Comprar]». Si `ComingSoon`, «Próximamente». En móvil, botones grandes y desplazamiento táctil; en PC, hover, tooltips y una tecla rápida.

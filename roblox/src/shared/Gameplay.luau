@@ -26,6 +26,10 @@ Gameplay.Vehicles = {
 	Camion = { Name = "Camión de la basura", Icon = "🚛", Price = 0, Speed = 42, Stage = "AdultoJoven", License = "B", Order = 10, Hidden = true },
 	Patrulla = { Name = "Coche patrulla", Icon = "🚓", Price = 0, Speed = 80, Stage = "AdultoJoven", License = "B", Order = 11, Hidden = true },
 	Bomberos = { Name = "Camión de bomberos", Icon = "🚒", Price = 0, Speed = 56, Stage = "AdultoJoven", License = "B", Order = 12, Hidden = true },
+	-- Barcos propios (Boat = true): no salen en el menú «Vehículos»; se compran, se sacan y se guardan
+	-- en el puerto deportivo (BoatService, shared/Boats) y solo navegan por el mar. Sin carnet.
+	Lancha = { Name = "Lancha", Icon = "🚤", Price = 7500, Speed = 50, Stage = "AdultoJoven", Order = 13, Hidden = true, Boat = true },
+	Gaviota = { Name = "Lancha «Gaviota»", Icon = "🚤", Price = 0, Speed = 50, Stage = "AdultoJoven", Order = 14, Hidden = true, Boat = true },
 }
 Gameplay.RentalVehicles = { "Bici", "Monopatin", "Patinete" } -- los que se cogen gratis en las estaciones públicas
 
@@ -42,6 +46,9 @@ Gameplay.Driving = {
 	Camion = { Accel = 10, Brake = 32, Reverse = 6, Turn = 1.2, Lean = 0 },
 	Patrulla = { Accel = 26, Brake = 60, Reverse = 18, Turn = 1.8, Lean = 0 },
 	Bomberos = { Accel = 13, Brake = 36, Reverse = 6, Turn = 1.2, Lean = 0 },
+	-- Barcos: frenan despacio (no hay ruedas), derrapan un poco sobre el agua y escoran en las curvas
+	Lancha = { Accel = 14, Brake = 18, Reverse = 8, Turn = 1.4, Lean = 6, Boat = true },
+	Gaviota = { Accel = 14, Brake = 18, Reverse = 8, Turn = 1.3, Lean = 5, Boat = true },
 }
 
 -- Combustible y cuentakilómetros (VehicleService gasta; se reposta en las gasolineras)

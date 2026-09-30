@@ -822,7 +822,12 @@ local function build()
 	-- Si la pantalla cambia de tamaño (girar el móvil), se vuelve a montar a la medida
 	table.insert(u.Connections, workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
 		task.defer(function()
-			if ui == u and BattlePassUI.isOpen() then
+			if ui ~= u or not BattlePassUI.isOpen() then
+				return
+			end
+			-- (solo si cambia la medida de la ventana: arrastrar el borde no la rehace a cada paso)
+			local now = Layout.compute(workspace.CurrentCamera.ViewportSize, touch, Dialog.baseScale())
+			if now.Window ~= u.Layout.Window then
 				local keep = section
 				BattlePassUI.close()
 				BattlePassUI.open(keep)

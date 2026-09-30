@@ -1092,6 +1092,62 @@ for _, size in SIZES do
 	check(#clashes == 0, where .. ": BattlePassLayout sin choques" .. (if #clashes > 0 then ": " .. table.concat(clashes, ", ") else ""))
 end
 
+---------------------------------------------------------------------
+print("\n▶ Panel de pruebas (UI/TesterPanel): sección del pase")
+do
+	mount(false, 1920, 1080, true)
+	local testerRemote = remotes:FindFirstChild("Tester") or newInstance("RemoteEvent")
+	testerRemote.Name = "Tester"
+	testerRemote.Parent = remotes
+	local testerSent = {}
+	rawset(testerRemote, "FireServer", function(_, ...)
+		table.insert(testerSent, { ... })
+	end)
+	rawget(testerRemote, "__signals").OnClientEvent = nil
+	localPlayer:SetAttribute("Tester", true)
+	local Panel = loadModule("src/client/UI/TesterPanel")
+	local okInit, errInit = pcall(Panel.init)
+	check(okInit, "El panel arranca" .. (if okInit then "" else ": " .. tostring(errInit)))
+	local base = { Money = false, Bypass = false, Stage = "Adulto", Stages = { "Nino", "Adulto" }, Places = {}, Hours = { 8 } }
+	local withBp = table.clone(base)
+	withBp.BattlePass = { SimulatedPremium = false, RealPremium = false, Level = 12, ClockShift = 0 }
+	testerRemote.OnClientEvent:Fire("Open", withBp)
+	local dialogs = playerGui:FindFirstChild("Dialogs")
+	local panel = dialogs and dialogs:FindFirstChild("TesterPanel")
+	check(panel ~= nil and textOf(panel, "PASE DE TEMPORADA · nivel 12") and textOf(panel, "Premium simulado: NO"), "Con el pase encendido: sección «PASE DE TEMPORADA» con nivel y premium simulado")
+	local function press(text: string)
+		for _, object in panel:GetDescendants() do
+			if rawget(object, "__class") == "TextButton" and object.Text == text then
+				object.Activated:Fire()
+				return true
+			end
+		end
+		return false
+	end
+	local function testerHas(op: string, value: any?): boolean
+		for _, entry in testerSent do
+			if entry[1] == "Action" and entry[2] == "BattlePass" and type(entry[3]) == "table" and entry[3].Op == op and (value == nil or entry[3].Value == value) then
+				return true
+			end
+		end
+		return false
+	end
+	press("⭐ Premium simulado: NO")
+	press("🎟 +1.000 XP")
+	press("Nivel 30")
+	press("🕒 Día siguiente")
+	press("♻ Reiniciar el pase")
+	check(testerHas("Premium") and testerHas("AddXp", 1000) and testerHas("SetLevel", 30) and testerHas("NextDay") and testerHas("Reset"), "Premium simulado, +XP, nivel, reloj y reiniciar piden su acción a TesterService")
+	withBp.BattlePass = { SimulatedPremium = true, RealPremium = false, Level = 30, ClockShift = 86400 }
+	testerRemote.OnClientEvent:Fire("State", withBp)
+	check(textOf(panel, "Premium simulado: SÍ") and textOf(panel, "nivel 30") and textOf(panel, "reloj +24 h"), "Se actualiza con el estado del servidor")
+	check(#badWrites == 0, "Todas las propiedades existen en Roblox" .. (if #badWrites > 0 then ": " .. table.concat(badWrites, ", ") else ""))
+	Panel.close()
+	testerRemote.OnClientEvent:Fire("Open", base)
+	panel = playerGui:FindFirstChild("Dialogs"):FindFirstChild("TesterPanel")
+	check(panel ~= nil and not textOf(panel, "PASE DE TEMPORADA"), "Con el pase apagado (sin BattlePass en el estado) no sale la sección")
+end
+
 print()
 if failures > 0 then
 	print(("❌ %d fallo(s)"):format(failures))
