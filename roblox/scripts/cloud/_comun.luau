@@ -294,16 +294,20 @@ local function terrenoBajo(p: Vector3, arriba: number, abajo: number): { [string
 		local materials, occupancies = terrain:ReadVoxels(region, 4)
 		local size = materials.Size
 		local y0 = region.CFrame.Position.Y - region.Size.Y / 2
-		-- De arriba abajo: el primer vóxel sólido (no aire ni agua) es el suelo
+		-- De arriba abajo: el primer vóxel sólido (no aire ni agua) que queda por debajo del punto
+		-- (o a menos de 1 stud por encima) es el suelo. Lo sólido por encima (roca sobre un túnel)
+		-- no cuenta.
 		for y = size.Y, 1, -1 do
 			local material = materials[1][y][1]
 			local occ = occupancies[1][y][1]
 			if not SOLIDO_NO[material] and occ > 0.05 then
 				local top = y0 + (y - 1) * 4 + 4 * math.clamp(occ, 0, 1)
-				if top <= p.Y + arriba and top >= p.Y - abajo then
-					return { Position = Vector3.new(p.X, top, p.Z), Normal = Vector3.new(0, 1, 0), Instance = terrain, Material = material, Distance = p.Y - top }
+				if top <= p.Y + 1 then
+					if top >= p.Y - abajo then
+						return { Position = Vector3.new(p.X, top, p.Z), Normal = Vector3.new(0, 1, 0), Instance = terrain, Material = material, Distance = p.Y - top }
+					end
+					return nil
 				end
-				return nil
 			end
 		end
 		return nil

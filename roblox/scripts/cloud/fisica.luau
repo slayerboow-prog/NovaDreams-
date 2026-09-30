@@ -265,14 +265,26 @@ if rutaMetro and #rutaMetro >= 2 then
 	for k = 2, #rutaMetro do
 		local a, b = rutaMetro[k - 1], rutaMetro[k]
 		local n = math.max(1, math.ceil((b - a).Magnitude / 1))
-		for i = 0, n - 1 do
+		local dir = Vector3.new(b.X - a.X, 0, b.Z - a.Z)
+		local lado = if dir.Magnitude > 0 then Vector3.new(-dir.Z, 0, dir.X).Unit else Vector3.new(1, 0, 0)
+		for i = 0, if k == #rutaMetro then n else n - 1 do
 			local q = a:Lerp(b, i / n)
 			pasos += 1
 			local hit = Cloud.suelo(q + Vector3.new(0, 0.5, 0), 1.5, 2)
 			if not hit or math.abs(hit.Position.Y - q.Y) > 1.5 then
 				table.insert(huecos, Cloud.v3(q))
 			else
-				local cabe, estorbo = Cloud.cabe(hit.Position, nil, Vector3.new(1.6, 3.6, 1.6), 1)
+				-- Sitio para el cuerpo en el paso, o a 1 stud a un lado (en los giros del vestíbulo
+				-- el camino pasa rozando las máquinas de billetes: una persona se aparta un poco)
+				local cabe, estorbo = false, nil
+				for _, desvio in { 0, 1, -1 } do
+					local ok, what = Cloud.cabe(hit.Position + lado * desvio, nil, Vector3.new(1.6, 3.6, 1.6), 1)
+					if ok then
+						cabe = true
+						break
+					end
+					estorbo = estorbo or what
+				end
 				if not cabe then
 					table.insert(tapones, ("%s (%s)"):format(Cloud.v3(q), Cloud.nombre(estorbo)))
 				end

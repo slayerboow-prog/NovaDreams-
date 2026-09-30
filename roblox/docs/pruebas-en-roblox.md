@@ -51,7 +51,7 @@ añadir.
 |---|---|
 | `arranque` | Hace lo mismo que `Main.server.luau`: terreno, ciudad, decoración, isla del sueño, datos del tráfico y los ~80 servicios en su orden. Dice cuáles fallan, cuáles tardan mucho, si quedan preparados los autobuses, el metro y el cercanías, y cuenta los errores y avisos de la consola. |
 | `mundo` | Con rayos y cajas del motor: hay suelo andable debajo de cada `StorySpot`, de cada sitio con etiqueta que usa la historia (`LifeStory/Locations`) y de cada parada de bus; se llega de pie a las puertas y entradas y a los avisos (ProximityPrompt) del mapa; no hay piezas sueltas flotando cerca de donde aparece la gente; el mobiliario de la calle no está metido en una pared. |
-| `fisica` | Sitios clave (plaza, puerta de casa, colegio, parada de bus, boca y andén del metro): se puede estar de pie en ellos y **PathfindingService** encuentra camino andando entre ellos. Dice qué parejas no tienen camino. |
+| `fisica` | Sitios clave (plaza, puerta de casa, colegio, parada de bus; en el metro: arriba de la escalera de la boca, delante de los tornos, pasados los tornos y el andén): se puede estar de pie en ellos y **PathfindingService** encuentra camino andando entre ellos. En el metro, además, recorre paso a paso la bajada andando (`Shared/Metro.access(...).Route`) con rayos y la forma de verdad de las piezas. Los tornos no se cruzan andando a propósito (muro de cristal; el torno te pasa al otro lado): por eso hay un camino hasta los tornos y otro desde detrás de ellos al andén. |
 | `transporte` | Arranca el servidor y sigue ~30 s a un autobús de cada línea y a un tren de cada línea de metro: que se muevan, que tengan suelo o vía debajo y que no den saltos raros. |
 
 Las pruebas son archivos de `scripts/cloud/`. `_comun.luau` no es una prueba: son las ayudas que el
@@ -81,7 +81,16 @@ Según la documentación de Roblox:
 
 Las comprobaciones de "flotando" y "metido en una pared" son aproximadas: por eso salen como aviso
 (⚠️) y no hacen fallar la prueba. Si una marca algo que está bien a propósito, se puede afinar en
-`scripts/cloud/mundo.luau`.
+`scripts/cloud/mundo.luau`. ("Flotando" ya no cuenta lo que está a 1.5 studs o menos del suelo ni lo
+que sujeta un adorno de su modelo —las patas de los bancos son `Builder.decor`, que las consultas
+del motor no ven—.)
+
+Otras cosas que saber al leer el resultado:
+- **Servicios aún no publicados**: si `Main.server.luau` de tu rama arranca un servicio que el juego
+  publicado todavía no trae, `arranque` lo enseña como ⏭️ "aún no publicado", no como fallo.
+- **Terreno**: en estos servidores la física no corre y los rayos pueden no ver el terreno que
+  `TerrainBuilder` acaba de poner. Si un rayo no da con nada, las pruebas leen el terreno en vóxeles
+  (`Terrain:ReadVoxels`); `mundo` dice en `rayos ven el terreno` si hizo falta.
 
 ## Cómo funciona por dentro (API)
 
