@@ -43,6 +43,12 @@ local same = Properties.neighbors("Portal_1_2#3")
 check(same[1] == names[1], "La misma vivienda, los mismos nombres")
 check(Properties.unitKey("Casa_1_2", 0) == "Casa_1_2#0", "Cada vivienda tiene su nombre (edificio + planta)")
 
+print("▶ Qué edificios son viviendas (World/Entrances, la regla de InteriorService)")
+local Entrances = luau.load(fs.readFile("src/server/World/Entrances.luau"), { debugName = "Entrances" })()
+check(Entrances.isHome("Casa", nil) and Entrances.isHome("Villa", nil), "Casas y villas son viviendas (se compran, se alquilan y tienen timbre)")
+check(Entrances.isHome("Portal", "Piso") and Entrances.isHome("Local", "Piso") and Entrances.isHome("Portal", "Dorm"), "Los bloques con pisos (y la residencia) tienen viviendas arriba")
+check(not Entrances.isHome("Nave", nil) and not Entrances.isHome("Ocio", nil) and not Entrances.isHome("OficinaLobby", "Oficina"), "Naves, bares y oficinas no son viviendas")
+
 print()
 if failures == 0 then
 	print("✅ Todo correcto")
