@@ -616,6 +616,7 @@ local function build()
 	title.TextTruncate = Enum.TextTruncate.AtEnd
 	u.Title = title
 	u.Close = close
+	close.AnchorPoint = Vector2.new(0, 0)
 	place(close, L.Close)
 	u.Days = Theme.label({ Name = "Days", Text = "", TextSize = T.Small, TextColor3 = H.Glow, TextXAlignment = Enum.TextXAlignment.Right, Parent = frame })
 	place(u.Days, L.Days)
@@ -645,7 +646,7 @@ local function build()
 		local tab = button(tabs, entry[1] .. "Tab", entry[2], T.Button)
 		tab.TextWrapped = false
 		place(tab, { X = (i - 1) * (L.TabWidth + 8), Y = 0, W = L.TabWidth, H = L.Button })
-		local dot = Theme.label({ Name = "Dot", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(1, -4, 0, 4), Size = UDim2.fromOffset(22, 22), BackgroundTransparency = 0, BackgroundColor3 = Color3.fromRGB(230, 60, 80), Text = "", Font = Theme.FontBold, TextSize = 13, TextXAlignment = Enum.TextXAlignment.Center, Visible = false, ZIndex = 3, Parent = tab })
+		local dot = Theme.label({ Name = "Dot", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(1, -4, 0, 4), Size = UDim2.fromOffset(24, 24), BackgroundTransparency = 0, BackgroundColor3 = Color3.fromRGB(230, 60, 80), Text = "", Font = Theme.FontBold, TextSize = math.max(T.Small - 2, 13), TextXAlignment = Enum.TextXAlignment.Center, Visible = false, ZIndex = 3, Parent = tab })
 		create("UICorner", { CornerRadius = UDim.new(1, 0), Parent = dot })
 		tab.Activated:Connect(function()
 			setSection(entry[1])
@@ -723,14 +724,14 @@ local function build()
 	create("UIStroke", { Color = View.Colors.Premium, Transparency = 0.45, Thickness = 1.5, ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = offer })
 	create("UICorner", { CornerRadius = UDim.new(0, 10), Parent = offer })
 	local btnW = if touch then 180 else 150
-	local buttonH = R.Strip.H - 8
+	local buttonH = R.Strip.H - 4
 	u.OfferText = Theme.label({ Name = "OfferText", Position = UDim2.fromOffset(12, 0), Size = UDim2.new(1, -(24 + btnW * 2 + 8), 1, 0), Text = "", Font = Theme.FontBold, TextScaled = true, TextWrapped = true, TextColor3 = View.Colors.Premium, Parent = offer })
 	create("UITextSizeConstraint", { MaxTextSize = T.Body, MinTextSize = math.max(10, T.Small - 3), Parent = u.OfferText })
 	local previewButton = button(offer, "PreviewButton", "Vista previa", T.Button)
-	place(previewButton, { X = R.Strip.W - 8 - btnW * 2 - 8, Y = 4, W = btnW, H = buttonH })
+	place(previewButton, { X = R.Strip.W - 8 - btnW * 2 - 8, Y = 2, W = btnW, H = buttonH })
 	previewButton.Activated:Connect(previewPremium)
 	u.BuyButton = button(offer, "Buy", "Comprar", T.Button)
-	place(u.BuyButton, { X = R.Strip.W - 8 - btnW, Y = 4, W = btnW, H = buttonH })
+	place(u.BuyButton, { X = R.Strip.W - 8 - btnW, Y = 2, W = btnW, H = buttonH })
 	u.BuyButton.Activated:Connect(buy)
 	u.Offer = offer
 

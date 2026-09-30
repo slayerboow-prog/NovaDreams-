@@ -53,12 +53,12 @@ function BattlePassLayout.compute(viewport: Vector2, touch: boolean, scale: numb
 		Scale = s,
 		Touch = touch,
 		Window = Vector2.new(W, H),
-		Button = if touch then 48 else 34, -- alto de los botones
+		Button = if touch then 48 else 36, -- alto de los botones
 		Text = {
 			Title = if touch then 26 else 22,
 			Big = if touch then 26 else 22,
 			Body = if touch then 20 else 15,
-			Small = if touch then 17 else 13,
+			Small = if touch then 17 else 14,
 			Button = if touch then 18 else 14,
 		},
 	}
@@ -69,8 +69,10 @@ function BattlePassLayout.compute(viewport: Vector2, touch: boolean, scale: numb
 	L.Days = rect(W - 10 - closeW - 12 - daysW, 12, daysW, 32)
 	L.Title = rect(16, 8, L.Days.X - 8 - 16, 40)
 	-- Contenido (el de Dialog)
-	local cw, ch = W - 32, H - 64
-	L.Content = rect(16, 56, cw, ch)
+	-- (en el móvil el ✖ es más grande: el contenido empieza un poco más abajo)
+	local contentTop = if touch then 64 else 56
+	local cw, ch = W - 32, H - contentTop - 8
+	L.Content = rect(16, contentTop, cw, ch)
 	local headerH = if touch then 56 else 60
 	local tabW = if touch then 148 else 132
 	local tabsW = tabW * 3 + 8 * 2
@@ -110,7 +112,7 @@ function BattlePassLayout.compute(viewport: Vector2, touch: boolean, scale: numb
 	local card = R.Card
 	local pad = 8
 	local chip = if touch then 22 else 20
-	local btn = if touch then 40 else 30
+	local btn = if touch then 44 else 32
 	local nameH = if touch then 44 else 36
 	local metaH = if touch then 20 else 18
 	local iconSize = math.max(28, math.min(card.X - 2 * pad, card.Y - (pad + chip + 6) - (nameH + metaH + btn + pad + 12)))

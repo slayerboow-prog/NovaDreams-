@@ -122,7 +122,7 @@ function Pages.missions(list: ScrollingFrame, layout: { [string]: any }, state: 
 		Theme.label({ Name = "Description", Position = UDim2.fromOffset(56, 29), Size = UDim2.fromOffset(textW, 18), Text = tostring(mission.Description or ""), TextSize = T.Small, TextColor3 = C.Muted, TextTruncate = Enum.TextTruncate.AtEnd, Parent = frame })
 		local barW = math.max(40, textW - 96)
 		bar(frame, 56, M.Row - 18, barW, 8, View.missionFraction(mission), if mission.Done then View.Colors.Claimed else nil)
-		Theme.label({ Name = "Progress", Position = UDim2.fromOffset(56 + barW + 8, M.Row - 25), Size = UDim2.fromOffset(88, 22), Text = View.missionProgress(mission), TextSize = T.Small, TextColor3 = if mission.Done then View.Colors.Claimed else C.Text, Parent = frame })
+		Theme.label({ Name = "Progress", Position = UDim2.fromOffset(56 + barW + 8, M.Row - 22), Size = UDim2.fromOffset(88, 18), Text = View.missionProgress(mission), TextSize = T.Small, TextColor3 = if mission.Done then View.Colors.Claimed else C.Text, Parent = frame })
 		local right = width - 8 - M.ButtonW
 		Theme.label({ Name = "Xp", Position = UDim2.fromOffset(width - rightW, 6), Size = UDim2.fromOffset(rightW - 8, 20), Text = View.missionReward(mission), Font = Theme.FontBold, TextSize = T.Small, TextColor3 = H.Gold, TextXAlignment = Enum.TextXAlignment.Right, Parent = frame })
 		local by = M.Row - btnH - 6
@@ -164,7 +164,7 @@ function Pages.missions(list: ScrollingFrame, layout: { [string]: any }, state: 
 			local fake = { Progress = current.Progress, Goal = current.Goal, Done = false }
 			local barW = math.max(40, textW - 96)
 			bar(frame, 56, M.Row - 18, barW, 8, View.missionFraction(fake))
-			Theme.label({ Name = "Progress", Position = UDim2.fromOffset(56 + barW + 8, M.Row - 25), Size = UDim2.fromOffset(88, 22), Text = View.missionProgress(fake), TextSize = T.Small, Parent = frame })
+			Theme.label({ Name = "Progress", Position = UDim2.fromOffset(56 + barW + 8, M.Row - 22), Size = UDim2.fromOffset(88, 18), Text = View.missionProgress(fake), TextSize = T.Small, Parent = frame })
 			Theme.label({ Name = "Xp", Position = UDim2.fromOffset(width - rightW, 6), Size = UDim2.fromOffset(rightW - 8, 20), Text = View.missionReward({ Xp = current.Xp }), Font = Theme.FontBold, TextSize = T.Small, TextColor3 = H.Gold, TextXAlignment = Enum.TextXAlignment.Right, Parent = frame })
 			if current.Place then
 				local follow = smallButton(frame, "Track", if story.Tracked then "✔ SIGUIENDO" else "📍 SEGUIR", { width - 8 - M.ButtonW, M.Row - btnH - 6, M.ButtonW, btnH }, T.Button, story.Tracked)
