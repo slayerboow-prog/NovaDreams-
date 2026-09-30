@@ -26,6 +26,10 @@ Rides.Spec = {
 	Camion = { Seat = CFrame.new(-1.8, 4.2, -9.2), Size = Vector3.new(8, 1, 27) },
 	Patrulla = { Seat = CFrame.new(-1.4, 1.6, -0.6), Size = Vector3.new(6.2, 1, 13.5) },
 	Bomberos = { Seat = CFrame.new(-1.8, 4.3, -10.4), Size = Vector3.new(8, 1, 27) },
+	-- Barcos (shared/Boats): el CFrame es el centro a la altura del agua. Stand = dónde se queda de pie
+	-- quien se baja en alta mar (en cubierta, delante del parabrisas)
+	Lancha = { Seat = CFrame.new(-1.1, 1.8, 0.6), Size = Vector3.new(6, 1, 16), Stand = CFrame.new(0, 1.2, -2.8), Boat = true },
+	Gaviota = { Seat = CFrame.new(-1.3, 2.1, 2.4), Size = Vector3.new(7, 1, 20), Stand = CFrame.new(0, 1.4, 5.2), Boat = true },
 }
 
 -- Asientos de pasajero ("RideSeat", Seat de verdad) de cada vehículo: dónde van (como Seat de
@@ -49,6 +53,19 @@ function Rides.passengerSeats(kind: string, variant: string?): { { Seat: CFrame,
 		return { { Seat = CFrame.new(0, 2.7, 1.95), Side = -1, Label = "Subir detrás", Pose = "Pillion" } }
 	elseif kind == "Camion" then
 		return { { Seat = CFrame.new(1.8, 4.2, -9.2), Side = 1, Label = "Subir de copiloto", Pose = "Passenger" } }
+	elseif kind == "Lancha" then
+		return {
+			{ Seat = CFrame.new(1.1, 1.8, 0.6), Side = 1, Label = "Subir a bordo", Pose = "Passenger" },
+			{ Seat = CFrame.new(-1.3, 1.8, 5.2), Side = -1, Label = "Subir a bordo", Pose = "Passenger" },
+			{ Seat = CFrame.new(1.3, 1.8, 5.2), Side = 1, Label = "Subir a bordo", Pose = "Passenger" },
+		}
+	elseif kind == "Gaviota" then
+		return {
+			{ Seat = CFrame.new(1.3, 2.1, 2.4), Side = 1, Label = "Subir a bordo", Pose = "Passenger" },
+			{ Seat = CFrame.new(-1.8, 2.1, 7.8), Side = -1, Label = "Subir a bordo", Pose = "Passenger" },
+			{ Seat = CFrame.new(0, 2.1, 7.8), Side = -1, Label = "Subir a bordo", Pose = "Passenger" },
+			{ Seat = CFrame.new(1.8, 2.1, 7.8), Side = 1, Label = "Subir a bordo", Pose = "Passenger" },
+		}
 	elseif kind == "Bomberos" then
 		return {
 			{ Seat = CFrame.new(1.8, 4.3, -10.4), Side = 1, Label = "Subir de copiloto", Pose = "Passenger" },
@@ -812,7 +829,125 @@ local function bomberos(m: Model, cf: CFrame, color: Color3)
 	m:AddTag("SirenCar")
 end
 
-local BUILDERS = { Monopatin = monopatin, Patinete = patinete, Bici = bici, Moto = moto, Coche = coche, Autobus = autobus, Camion = camion, Patrulla = patrulla, Bomberos = bomberos }
+---------------------------------------------------------------------
+-- Barcos: casco con proa en punta (dos cuñas tumbadas), cubierta de madera, borda, asientos acolchados
+-- y luces de navegación (roja a babor, verde a estribor). cf = centro a la altura del agua.
+---------------------------------------------------------------------
+local WHITE = rgb(246, 246, 244)
+local TEAK = rgb(170, 120, 72)
+local CHROME = rgb(205, 208, 214)
+local GLASS = rgb(70, 110, 140)
+
+-- Casco de ancho w y largo total len (con la proa de largo bow), de y0 a y1 respecto al agua
+local function hull(m: Model, cf: CFrame, w: number, len: number, bow: number, y0: number, y1: number, color: Color3)
+	local h = y1 - y0
+	local yc = (y0 + y1) / 2
+	local rectLen = len - bow
+	local rectZ = len / 2 - rectLen / 2
+	box(m, "Hull", Vector3.new(w, h, rectLen), cf * CFrame.new(0, yc, rectZ), color)
+	-- Proa: dos cuñas tumbadas que se juntan en punta en el centro (vista desde arriba, una V)
+	for _, sx in { -1, 1 } do
+		Builder.part({
+			Name = "Bow",
+			ClassName = "WedgePart",
+			Size = Vector3.new(h, w / 2, bow),
+			CFrame = cf * CFrame.new(sx * w / 4, yc, -len / 2 + bow / 2) * CFrame.Angles(0, 0, sx * -math.pi / 2),
+			Color = color,
+			Material = Enum.Material.SmoothPlastic,
+			Parent = m,
+		})
+	end
+	return rectLen, rectZ
+end
+
+local function navLights(m: Model, cf: CFrame, w: number, y: number, z: number)
+	bit(m, "NavPort", Vector3.new(0.15, 0.3, 0.5), cf * CFrame.new(-w / 2 - 0.05, y, z), rgb(230, 30, 30), Enum.Material.Neon)
+	bit(m, "NavStarboard", Vector3.new(0.15, 0.3, 0.5), cf * CFrame.new(w / 2 + 0.05, y, z), rgb(30, 210, 70), Enum.Material.Neon)
+end
+
+-- Asiento acolchado (y respaldo mirando a la proa)
+local function cushion(m: Model, cf: CFrame, x: number, top: number, z: number, width: number, color: Color3)
+	box(m, "Cushion", Vector3.new(width, 0.5, 1.5), cf * CFrame.new(x, top - 0.25, z), color, Enum.Material.Fabric)
+	bit(m, "Backrest", Vector3.new(width, 1.1, 0.3), cf * CFrame.new(x, top + 0.45, z + 0.75) * CFrame.Angles(math.rad(-12), 0, 0), color, Enum.Material.Fabric)
+end
+
+-- Lancha: casco blanco con franja de color, consola con parabrisas y volante, banco de popa y fueraborda
+local function lancha(m: Model, cf: CFrame, color: Color3)
+	local W, L = 6, 16
+	local rectLen, rectZ = hull(m, cf, W, L, 5, -1.2, 1.0, WHITE)
+	bit(m, "Stripe", Vector3.new(W + 0.06, 0.35, rectLen + 0.02), cf * CFrame.new(0, 0.45, rectZ), color)
+	bit(m, "Boot", Vector3.new(W + 0.06, 0.4, rectLen + 0.02), cf * CFrame.new(0, -0.55, rectZ), rgb(30, 40, 60))
+	box(m, "Deck", Vector3.new(W - 0.8, 0.2, rectLen - 0.6), cf * CFrame.new(0, 1.1, rectZ), TEAK, Enum.Material.WoodPlanks)
+	-- Borda (baja: se ve el mar) y popa
+	for _, sx in { -1, 1 } do
+		box(m, "Gunwale", Vector3.new(0.35, 0.7, rectLen), cf * CFrame.new(sx * (W / 2 - 0.18), 1.35, rectZ), WHITE)
+		bit(m, "Rail", Vector3.new(0.12, 0.12, 4.6), cf * CFrame.new(sx * 1.3, 1.7, -5.4) * CFrame.Angles(0, sx * math.rad(-16), 0), CHROME, Enum.Material.Metal)
+	end
+	box(m, "Transom", Vector3.new(W, 0.7, 0.35), cf * CFrame.new(0, 1.35, L / 2 - 0.18), WHITE)
+	-- Consola del piloto con parabrisas y volante
+	box(m, "Console", Vector3.new(2, 1.3, 1.1), cf * CFrame.new(-1.1, 1.85, -0.7), WHITE)
+	bit(m, "Dash", Vector3.new(1.8, 0.1, 0.8), cf * CFrame.new(-1.1, 2.52, -0.75) * CFrame.Angles(math.rad(-20), 0, 0), rgb(30, 32, 36))
+	cyl(m, "Wheel", 0.12, 0.9, cf * CFrame.new(-1.1, 2.45, -0.1) * CFrame.Angles(math.rad(35), 0, 0) * CFrame.Angles(0, math.rad(90), 0), rgb(30, 32, 36))
+	box(m, "Console2", Vector3.new(2, 1.0, 1.1), cf * CFrame.new(1.1, 1.7, -0.7), WHITE)
+	bit(m, "Windshield", Vector3.new(W - 1.2, 1.0, 0.12), cf * CFrame.new(0, 2.75, -1.3) * CFrame.Angles(math.rad(-25), 0, 0), GLASS, Enum.Material.Glass, 0.4)
+	-- Asientos: piloto y acompañante delante, banco corrido detrás
+	cushion(m, cf, -1.1, 1.7, 0.6, 1.6, color)
+	cushion(m, cf, 1.1, 1.7, 0.6, 1.6, color)
+	cushion(m, cf, 0, 1.7, 5.2, W - 1.2, color)
+	-- Fueraborda
+	box(m, "Motor", Vector3.new(1.2, 1.6, 1.3), cf * CFrame.new(0, 1.6, L / 2 + 0.6), rgb(30, 32, 36))
+	bit(m, "MotorCap", Vector3.new(1.25, 0.25, 1.35), cf * CFrame.new(0, 2.45, L / 2 + 0.6), color)
+	bit(m, "Shaft", Vector3.new(0.35, 2.2, 0.4), cf * CFrame.new(0, -0.3, L / 2 + 0.7), rgb(60, 62, 66), Enum.Material.Metal)
+	navLights(m, cf, W, 1.2, -3.4)
+	bit(m, "Headlight", Vector3.new(0.5, 0.35, 0.2), cf * CFrame.new(0, 1.15, -L / 2 + 0.9), rgb(255, 250, 230), Enum.Material.Neon)
+	bit(m, "Cleat", Vector3.new(0.8, 0.2, 0.25), cf * CFrame.new(0, 1.1, -L / 2 + 2), CHROME, Enum.Material.Metal)
+end
+
+-- Lancha «Gaviota» (pase de temporada): más larga, blanca y oro, con cabina en la proa, puesto de
+-- mando, bañera con banco, plataforma de baño y su nombre en la popa (NamePlate)
+local function gaviota(m: Model, cf: CFrame, color: Color3)
+	local W, L = 7, 20
+	local GOLD = rgb(214, 172, 64)
+	local rectLen, rectZ = hull(m, cf, W, L, 6, -1.4, 1.2, color)
+	bit(m, "GoldStripe", Vector3.new(W + 0.06, 0.3, rectLen + 0.02), cf * CFrame.new(0, 0.55, rectZ), GOLD, Enum.Material.Metal)
+	bit(m, "Boot", Vector3.new(W + 0.06, 0.45, rectLen + 0.02), cf * CFrame.new(0, -0.6, rectZ), rgb(20, 36, 70))
+	box(m, "Deck", Vector3.new(W - 0.8, 0.2, rectLen - 0.6), cf * CFrame.new(0, 1.3, rectZ), TEAK, Enum.Material.WoodPlanks)
+	for _, sx in { -1, 1 } do
+		box(m, "Gunwale", Vector3.new(0.35, 0.8, rectLen - 5), cf * CFrame.new(sx * (W / 2 - 0.18), 1.6, rectZ + 2.5), color)
+		bit(m, "Rail", Vector3.new(0.12, 0.12, 6), cf * CFrame.new(sx * 1.6, 2.9, -6.6) * CFrame.Angles(0, sx * math.rad(-14), 0), CHROME, Enum.Material.Metal)
+		bit(m, "CabinWindow", Vector3.new(0.08, 0.5, 3.2), cf * CFrame.new(sx * 2.81, 2.35, -2.2), GLASS, Enum.Material.Glass, 0.2)
+	end
+	-- Cabina baja en la proa (se puede andar por encima) y parabrisas del puesto de mando
+	box(m, "Cabin", Vector3.new(5.6, 1.4, 5.6), cf * CFrame.new(0, 2.1, -2.2), color)
+	box(m, "CabinTop", Vector3.new(5.8, 0.15, 5.8), cf * CFrame.new(0, 2.85, -2.2), color)
+	bit(m, "Hatch", Vector3.new(1.8, 0.1, 1.8), cf * CFrame.new(0, 2.95, -3), GLASS, Enum.Material.Glass, 0.2)
+	bit(m, "Windshield", Vector3.new(5.6, 1.1, 0.12), cf * CFrame.new(0, 3.4, 0.7) * CFrame.Angles(math.rad(-30), 0, 0), GLASS, Enum.Material.Glass, 0.35)
+	bit(m, "WindshieldFrame", Vector3.new(5.7, 0.12, 0.2), cf * CFrame.new(0, 3.9, 0.95) * CFrame.Angles(math.rad(-30), 0, 0), GOLD, Enum.Material.Metal)
+	box(m, "Helm", Vector3.new(2, 1.3, 1), cf * CFrame.new(-1.3, 2.05, 1.3), color)
+	bit(m, "Dash", Vector3.new(1.8, 0.1, 0.8), cf * CFrame.new(-1.3, 2.72, 1.25) * CFrame.Angles(math.rad(-20), 0, 0), rgb(30, 32, 36))
+	cyl(m, "Wheel", 0.12, 0.95, cf * CFrame.new(-1.3, 2.7, 1.85) * CFrame.Angles(math.rad(35), 0, 0) * CFrame.Angles(0, math.rad(90), 0), GOLD, Enum.Material.Metal)
+	box(m, "Helm2", Vector3.new(2, 1.0, 1), cf * CFrame.new(1.3, 1.9, 1.3), color)
+	-- Asientos (cuero color arena) y banco de popa
+	local leather = rgb(236, 226, 204)
+	cushion(m, cf, -1.3, 2.0, 2.4, 1.7, leather)
+	cushion(m, cf, 1.3, 2.0, 2.4, 1.7, leather)
+	cushion(m, cf, 0, 2.0, 7.8, W - 1.2, leather)
+	box(m, "Transom", Vector3.new(W, 0.8, 0.35), cf * CFrame.new(0, 1.6, L / 2 - 0.18), color)
+	-- Plataforma de baño con escalerilla y el nombre en la popa
+	box(m, "SwimPlatform", Vector3.new(W - 0.4, 0.3, 1.4), cf * CFrame.new(0, 0.3, L / 2 + 0.7), TEAK, Enum.Material.WoodPlanks)
+	for _, x in { -0.4, 0.4 } do
+		bit(m, "Ladder", Vector3.new(0.1, 1.6, 0.1), cf * CFrame.new(2.2 + x, -0.3, L / 2 + 1.3), CHROME, Enum.Material.Metal)
+	end
+	local plate = bit(m, "NamePlate", Vector3.new(4.4, 0.8, 0.1), cf * CFrame.new(0, 0.1, L / 2 + 0.03), color)
+	Builder.sign(plate, "GAVIOTA", Enum.NormalId.Back, GOLD)
+	navLights(m, cf, W, 1.4, -4.2)
+	bit(m, "Headlight", Vector3.new(0.5, 0.35, 0.2), cf * CFrame.new(0, 1.35, -L / 2 + 1.2), rgb(255, 250, 230), Enum.Material.Neon)
+	bit(m, "Mast", Vector3.new(0.15, 1.6, 0.15), cf * CFrame.new(0, 4.4, 1.6), CHROME, Enum.Material.Metal)
+	bit(m, "MastLight", Vector3.new(0.3, 0.3, 0.3), cf * CFrame.new(0, 5.3, 1.6), rgb(255, 250, 235), Enum.Material.Neon)
+	bit(m, "Pennant", Vector3.new(0.05, 0.5, 0.9), cf * CFrame.new(0, 4.9, 2.1), GOLD)
+end
+
+local BUILDERS = { Lancha = lancha, Gaviota = gaviota, Monopatin = monopatin, Patinete = patinete, Bici = bici, Moto = moto, Coche = coche, Autobus = autobus, Camion = camion, Patrulla = patrulla, Bomberos = bomberos }
 local COLORS = {
 	Monopatin = { rgb(220, 70, 60), rgb(40, 140, 220), rgb(250, 200, 40), rgb(60, 170, 90) },
 	Bici = { rgb(30, 110, 200), rgb(210, 50, 60), rgb(40, 160, 90), rgb(240, 240, 240) },
@@ -821,6 +956,8 @@ local COLORS = {
 	Autobus = { rgb(200, 40, 45) },
 	Camion = { rgb(245, 245, 242) },
 	Bomberos = { rgb(196, 30, 30) },
+	Lancha = { rgb(30, 90, 170), rgb(200, 50, 50), rgb(20, 140, 140), rgb(240, 170, 40) },
+	Gaviota = { rgb(245, 245, 250) },
 }
 
 -- Crea el modelo del vehículo (anclado). kind: "Monopatin" | "Bici" | "Moto" | "Coche"
