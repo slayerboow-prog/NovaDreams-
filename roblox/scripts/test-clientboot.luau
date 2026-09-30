@@ -2045,6 +2045,10 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean })
 			local labels = rowLabels()
 			table.insert(checks, { labels["Ir a casa"] and labels["Tienda"] and labels["Vehículos"] and labels["Gestos"] and labels["Ruta a casa"], "HUD: sus apps (Ir a casa, Ruta a casa, Tienda, Vehículos, Gestos…) son filas del menú de comandos" })
 			table.insert(checks, { not labels["Modo pruebas"], "COMANDOS: sin el atributo Tester no sale «Modo pruebas»" })
+			-- Pase de temporada apagado (BattlePassConfig.Enabled = false): ni fila, ni ventana, ni remoto
+			local bpRemote = remotes:FindFirstChild("BattlePass")
+			local dialogs = playerGui:FindFirstChild("Dialogs")
+			table.insert(checks, { not labels["Pase de temporada"] and bpRemote == nil and (dialogs == nil or dialogs:FindFirstChild("BattlePass") == nil) and playerGui:FindFirstChild("BattlePassTip") == nil, "pase de temporada apagado: sin fila «Pase de temporada», sin ventana y sin remoto" })
 			localPlayer:SetAttribute("Tester", true)
 		end,
 		[math.floor(39 * FPS)] = function()

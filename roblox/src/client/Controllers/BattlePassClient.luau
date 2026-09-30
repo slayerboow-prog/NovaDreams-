@@ -16,6 +16,7 @@ local BattlePassClient = {}
 
 local remote: RemoteEvent? = nil
 local current: { [string]: any }? = nil
+local readyListeners: { () -> () } = {}
 local stateListeners: { ({ [string]: any }) -> () } = {}
 local listeners: { [string]: { (any) -> () } } = {}
 local started = false
@@ -26,11 +27,22 @@ local function fire(list: { (any) -> () }?, value: any)
 	end
 end
 
-function BattlePassClient.enabled(): boolean
+-- La configuración compartida del pase (nil si no se puede cargar)
+function BattlePassClient.config(): { [string]: any }?
 	local ok, config = pcall(function()
-		return require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("BattlePass"):WaitForChild("Config"))
+		return require((ReplicatedStorage :: any).Shared.BattlePass.Config)
 	end)
-	return ok and type(config) == "table" and config.Enabled == true
+	if not ok then
+		ok, config = pcall(function()
+			return require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("BattlePass"):WaitForChild("Config"))
+		end)
+	end
+	return if ok and type(config) == "table" then config else nil
+end
+
+function BattlePassClient.enabled(): boolean
+	local config = BattlePassClient.config()
+	return config ~= nil and config.Enabled == true
 end
 
 function BattlePassClient.start()
@@ -52,7 +64,23 @@ function BattlePassClient.start()
 			end
 			fire(listeners[kind], payload)
 		end)
+		-- Primer estado: el servidor no lo manda solo al entrar (se pide)
+		BattlePassClient.refresh()
+		fire(readyListeners :: any, nil)
 	end)
+end
+
+-- ¿Ya está conectado al remoto del servidor?
+function BattlePassClient.ready(): boolean
+	return remote ~= nil
+end
+
+-- Avisa cuando el remoto está listo (enseguida si ya lo está)
+function BattlePassClient.onReady(fn: () -> ())
+	table.insert(readyListeners, fn)
+	if remote then
+		task.spawn(fn)
+	end
 end
 
 -- Último estado recibido (nil hasta el primero)

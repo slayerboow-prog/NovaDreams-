@@ -231,6 +231,67 @@ local function build()
 		end, i)
 	end
 	note("La hora cambia para todo el servidor.")
+
+	-- Pase de temporada (solo si está encendido: el servidor manda state.BattlePass)
+	if state and type(state.BattlePass) == "table" then
+		local bpTitle = section("PASE DE TEMPORADA")
+		local function bp(op: string, value: number?)
+			send("Action", "BattlePass", { Op = op, Value = value })
+		end
+		local function refreshBattlePass()
+			local info = state and state.BattlePass
+			if type(info) == "table" then
+				local shift = tonumber(info.ClockShift) or 0
+				bpTitle.Text = ("PASE DE TEMPORADA · nivel %s%s%s"):format(tostring(info.Level or "-"), if info.RealPremium then " · premium comprado" elseif info.SimulatedPremium then " · premium simulado" else "", if math.abs(shift) >= 3600 then (" · reloj +%d h"):format(math.floor(shift / 3600)) else "")
+			end
+		end
+		refreshBattlePass()
+		table.insert(refreshers, refreshBattlePass)
+		local premiumButton = button(list, "", function()
+			bp("Premium")
+		end)
+		local function refreshPremium()
+			local on = state ~= nil and type(state.BattlePass) == "table" and state.BattlePass.SimulatedPremium == true
+			premiumButton.Text = ("⭐ Premium simulado: %s"):format(if on then "SÍ" else "NO")
+			premiumButton.BackgroundColor3 = if on then ON else H.NavyLight
+		end
+		refreshPremium()
+		table.insert(refreshers, refreshPremium)
+		local xp = grid()
+		for i, item in {
+			{ "AddXp", 1000, "🎟 +1.000 XP" },
+			{ "AddXp", 10000, "🎟 +10.000 XP" },
+			{ "SetLevel", 1, "Nivel 1" },
+			{ "SetLevel", 10, "Nivel 10" },
+			{ "SetLevel", 30, "Nivel 30" },
+			{ "SetLevel", 49, "Nivel 49" },
+			{ "SetLevel", 50, "Nivel 50" },
+		} do
+			button(xp, item[3], function()
+				bp(item[1], item[2])
+			end, i)
+		end
+		local clock = grid()
+		for i, item in {
+			{ "NextDay", "🕒 Día siguiente" },
+			{ "NextWeek", "🗓 Semana siguiente" },
+			{ "ResetClock", "🕒 Reloj normal" },
+			{ "Reset", "♻ Reiniciar el pase" },
+		} do
+			button(clock, item[2], function()
+				bp(item[1])
+			end, i)
+		end
+		button(list, "🏆 Abrir el pase de temporada", function()
+			local ok, err = pcall(function()
+				require(script.Parent.BattlePassUI :: any).open()
+			end)
+			if not ok then
+				warn("[TesterPanel] " .. tostring(err))
+			end
+		end)
+		note("El premium simulado solo vive en esta sesión: no cuenta como compra y lo reclamado con él queda marcado. El reloj adelantado es solo tuyo (misiones diarias y semanales, fin de temporada).")
+	end
 end
 
 local function refreshAll()

@@ -795,6 +795,7 @@ function BattlePassService.handle(player: Player, action: any, a: any, b: any, c
 	elseif action == "Track" then
 		local ok, code = Missions.track(player, a)
 		result(player, action, ok, code, { Mission = a })
+		BattlePassService.push(player) -- (la interfaz enseña qué misión sigues)
 	elseif action == "Reroll" then
 		local ok, code = Missions.reroll(player, a)
 		result(player, action, ok, code, { Mission = a })

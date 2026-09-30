@@ -124,6 +124,7 @@ function TaskMarker.init()
 	player:GetAttributeChangedSignal("TaskTarget"):Connect(update)
 	player:GetAttributeChangedSignal("StoryTarget"):Connect(update)
 	player:GetAttributeChangedSignal("CityErrandTarget"):Connect(update)
+	player:GetAttributeChangedSignal("SeasonTarget"):Connect(update)
 	update()
 
 	RunService.RenderStepped:Connect(function()

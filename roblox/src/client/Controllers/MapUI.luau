@@ -750,6 +750,9 @@ local function updateLayer(layer: Layer, root: BasePart?, clampTo: number?)
 	if typeof(target) ~= "Vector3" then
 		target = player:GetAttribute("StoryTarget")
 	end
+	if typeof(target) ~= "Vector3" then
+		target = player:GetAttribute("SeasonTarget") -- (la misión del pase de temporada que sigues)
+	end
 	place(layer, layer.Target, if typeof(target) == "Vector3" then target else nil, root, clampTo)
 	place(layer, layer.Waypoint, if waypoint then waypoint.Position else nil, root, clampTo)
 

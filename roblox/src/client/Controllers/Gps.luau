@@ -121,6 +121,7 @@ local TARGETS = {
 	{ Attribute = "TaskTarget", Name = "Tu trabajo" },
 	{ Attribute = "CityErrandTarget", Name = "Tu encargo" },
 	{ Attribute = "StoryTarget", Name = "Tu misión" },
+	{ Attribute = "SeasonTarget", Name = "Misión de temporada" }, -- (la que sigues en el pase de temporada)
 }
 
 local function currentDestination(): Destination?

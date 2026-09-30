@@ -222,6 +222,14 @@ DefaultCommands.register()
 CommandMenu.onFocus(Prompts.setFocus)
 task.spawn(CommandMenu.init)
 
+-- 🏆 Pase de temporada: fila en COMANDOS, tecla N y ventana. Con BattlePassConfig.Enabled = false no
+-- hace nada (ni fila, ni tecla, ni remoto)
+local BattlePassUI: any = nil
+safeInit("BattlePassUI", function()
+	BattlePassUI = require(script.Parent.UI.BattlePassUI)
+	BattlePassUI.init()
+end)
+
 -- Acciones de los comandos (Objetos y Mapa)
 Hud.setAction("Mochila", InventoryUI.toggle)
 Hud.setAction("Mapa", MapUI.toggleBig)
@@ -335,6 +343,8 @@ Notify.OnClientEvent:Connect(function(kind: string, text: string)
 		Hud.sleep()
 	elseif kind == "Travel" then
 		Hud.fade(text, 2)
+	elseif BattlePassUI and BattlePassUI.swallowNotify(kind, text) then
+		return -- (el pase ya enseña su «RECOMPENSA DESBLOQUEADA»: no se repite el aviso)
 	else
 		Hud.toast(kind, text)
 	end
