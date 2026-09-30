@@ -1,7 +1,8 @@
 -- TaskMarker: dibuja una línea (Beam) desde tu personaje hasta el objetivo del trabajo
 -- y un marcador flotante con la distancia. Solo lo ve el jugador local.
 -- Si no estás trabajando, guía hacia tu encargo de la ciudad (CityErrandTarget) o, si no tienes,
--- hacia el siguiente paso de tu historia de vida (StoryTarget).
+-- hacia el siguiente paso de tu historia de vida (StoryTarget) o hacia la misión del pase de temporada
+-- que sigues (SeasonTarget).
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -97,6 +98,9 @@ local function update()
 	end
 	if typeof(target) ~= "Vector3" then
 		target = player:GetAttribute("StoryTarget")
+	end
+	if typeof(target) ~= "Vector3" then
+		target = player:GetAttribute("SeasonTarget") -- (la misión del pase de temporada que sigues)
 	end
 	if typeof(target) ~= "Vector3" then
 		anchor.Parent = nil

@@ -2,7 +2,8 @@
 --
 -- Sirve para revisar todo el juego sin tener que progresar: dinero infinito, todas las armas, todos
 -- los oficios sin requisitos, todos los carnets, nivel máximo, cambiar de etapa de vida, rellenar las
--- necesidades, quitar la búsqueda policial, teletransporte y hora del día.
+-- necesidades, quitar la búsqueda policial, teletransporte, hora del día y el pase de temporada
+-- (premium SIMULADO que nunca se guarda como compra, sumar XP, poner nivel, adelantar el reloj).
 --
 -- Quién es tester (lo decide SIEMPRE el servidor; el atributo "Tester" solo le sirve al cliente
 -- para enseñar el panel):
@@ -348,6 +349,13 @@ function TesterService.state(player: Player): { [string]: any }
 		Stages = stages,
 		Places = TesterService.Places,
 		Hours = TesterService.Hours,
+		-- Pase de temporada (premium simulado, nivel…): ver BattlePassService.testerState
+		BattlePass = (function()
+			local ok, state = pcall(function()
+				return service("BattlePassService").testerState(player)
+			end)
+			return if ok then state else nil
+		end)(),
 	}
 end
 
@@ -424,6 +432,13 @@ function TesterService.handle(player: Player, kind: any, a: any, b: any): boolea
 			if done then
 				toast(player, "Success", "🎂 Etapa de vida: " .. tostring(b))
 			end
+		elseif a == "BattlePass" then
+			-- Pase de temporada: b = { Op = "Premium" (simular, solo en memoria) | "AddXp" | "SetLevel" |
+			-- "NextDay" | "NextWeek" | "ResetClock" | "Reset", Value = número }
+			local ok, result = pcall(function()
+				return (service("BattlePassService").testerAction(player, b))
+			end)
+			done = ok and result == true
 		elseif a == "Hour" then
 			done = setHour(player, b)
 			if done then
