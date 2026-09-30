@@ -160,6 +160,224 @@ for _, variant in { "Berlina", "Compacto", "Todoterreno" } do
 end
 check(#Rides.passengerSeats("Bici", nil) == 0 and #Rides.passengerSeats("Monopatin", nil) == 0 and #Rides.passengerSeats("Patinete", nil) == 0, "bici, monopatín y patinete: solo una persona")
 
+---------------------------------------------------------------------
+-- Sacar el vehículo (shared/RideSpot): llano, libre y en la calzada; nunca inclinado ni hundido
+---------------------------------------------------------------------
+print("Sacar el vehículo (RideSpot)")
+local RideSpot = load("src/shared/RideSpot.luau")
+local SIZES = {}
+for _, kind in { "Coche", "Moto", "Patinete", "Monopatin", "Bici" } do
+	SIZES[kind] = Rides.Spec[kind].Size
+end
+
+-- Un mundo de mentira: calzada (a lo largo de Z) de x = -11 a 11 a y = 0; acera a 0.5 hasta x = 17;
+-- un murete de 0.6 de ancho y 1.2 de alto en x = 17.3; césped (a 0.5) detrás. Obstáculos: cajas.
+type Box = { C: Vector3, H: Vector3, Person: boolean? }
+local function makeWorld(heightAt: (number, number) -> number, road: (number, number) -> boolean, obstacles: { Box })
+	return {
+		ground = function(x: number, z: number, top: number, bottom: number)
+			local y = heightAt(x, z)
+			if y > top or y < bottom then
+				return nil, nil, false
+			end
+			return y, if road(x, z) then Vector3.new(0, 0, -1) else nil, false
+		end,
+		blocked = function(cf: CFrame, size: Vector3)
+			local lo = cf.Position.Y + RideSpot.Lift
+			local hi = lo + RideSpot.Height
+			for _, o in obstacles do
+				if o.C.Y + o.H.Y > lo and o.C.Y - o.H.Y < hi then
+					if RideSpot.boxesOverlap(cf.Position, cf.LookVector, size.Z, size.X, o.C, Vector3.new(0, 0, -1), o.H.Z * 2, o.H.X * 2) then
+						return true
+					end
+				end
+			end
+			return false
+		end,
+	}
+end
+local function street(x: number, _z: number): number
+	if math.abs(x - 17.3) <= 0.3 then
+		return 1.7 -- el murete
+	end
+	return if math.abs(x) <= 11 then 0 else 0.5
+end
+local function onRoad(x: number, _z: number): boolean
+	return math.abs(x) <= 11
+end
+local WALL: Box = { C = Vector3.new(17.3, 1.1, 0), H = Vector3.new(0.3, 0.6, 200) }
+
+-- ¿Bien puesto? derecho, apoyado en el suelo en todas sus esquinas y sin nada dentro
+local function goodSpot(world, cf: CFrame?, size: Vector3, heightAt): (boolean, string)
+	if not cf then
+		return false, "no sale"
+	end
+	if cf.UpVector.Y <= 0.95 then
+		return false, ("inclinado (%.2f)"):format(cf.UpVector.Y)
+	end
+	for _, fx in { -0.5, 0, 0.5 } do
+		for _, fz in { -0.5, 0, 0.5 } do
+			local p = cf * Vector3.new(fx * size.X, 0, fz * size.Z)
+			local g = heightAt(p.X, p.Z)
+			if math.abs(p.Y - g) > 0.35 then
+				return false, ("esquina %.2f sobre un suelo a %.2f"):format(p.Y, g)
+			end
+		end
+	end
+	if world.blocked(cf, size) then
+		return false, "con algo dentro"
+	end
+	return true, ""
+end
+
+for kind, size in SIZES do
+	-- En la calzada, mirando en diagonal: sale en la calzada, a lo largo de la calle
+	local flatWorld = makeWorld(street, onRoad, { WALL })
+	local look = Vector3.new(1, 0, -1).Unit
+	local cf = RideSpot.choose(flatWorld, Vector3.new(0, 2.5, 0), 0, look, size)
+	local ok, why = goodSpot(flatWorld, cf, size, street)
+	check(ok and cf ~= nil and math.abs(cf.LookVector.Z) > 0.95 and math.abs(cf.Position.X) + size.X / 2 <= 11.01, kind .. ": en la calle sale derecho, en la calzada y a lo largo de la calle " .. why)
+
+	-- En la acera junto al murete, con una farola, una papelera y alguien delante (el vídeo de la moto)
+	local stuff: { Box } = {
+		WALL,
+		{ C = Vector3.new(15.5, 3, -2.5), H = Vector3.new(0.3, 3, 0.3) }, -- farola
+		{ C = Vector3.new(15.5, 1, 1.5), H = Vector3.new(0.5, 0.8, 0.5) }, -- papelera
+		{ C = Vector3.new(14, 2.9, -2), H = Vector3.new(0.6, 2.5, 0.4), Person = true }, -- alguien delante
+	}
+	local kerbWorld = makeWorld(street, onRoad, stuff)
+	local cf2 = RideSpot.choose(kerbWorld, Vector3.new(14, 3, 0), 0.5, Vector3.new(1, 0, 0), size)
+	local ok2, why2 = goodSpot(kerbWorld, cf2, size, street)
+	check(ok2, kind .. ": junto al murete, la farola y una persona, sale en un sitio llano y libre " .. why2)
+
+	-- En una cuesta (10 %): inclinado lo justo, apoyado en el suelo
+	local function slope(x: number, z: number): number
+		return if math.abs(x) <= 11 then -0.1 * z else 0.5 - 0.1 * z
+	end
+	local hill = makeWorld(slope, onRoad, {})
+	local cf3 = RideSpot.choose(hill, Vector3.new(0, 2.5, 0), 0, Vector3.new(0, 0, -1), size)
+	local ok3, why3 = goodSpot(hill, cf3, size, slope)
+	check(ok3, kind .. ": en una cuesta sale apoyado en el suelo, sin hundirse " .. why3)
+
+	-- Atascado dentro de una farola: se le saca a un sitio libre al lado
+	local lamp: Box = { C = Vector3.new(0, 3, -1), H = Vector3.new(0.3, 3, 0.3) }
+	local stuckWorld = makeWorld(street, onRoad, { lamp })
+	local here = RideSpot.frame(Vector3.new(0, 0, 0), Vector3.new(0, 0, -1))
+	check(stuckWorld.blocked(here, size), kind .. ": (la farola está dentro)")
+	local out = RideSpot.unstick(stuckWorld, here, size)
+	local ok4, why4 = goodSpot(stuckWorld, out, size, street)
+	check(ok4 and out ~= nil and (out.Position - here.Position).Magnitude < 8, kind .. ": atascado en una farola, se desatasca al lado " .. why4)
+end
+-- Rodeado de paredes: no sale (antes salía metido en ellas)
+local boxed = makeWorld(function()
+	return 0
+end, function()
+	return true
+end, { { C = Vector3.new(0, 2, 0), H = Vector3.new(40, 2, 40) } })
+check(RideSpot.choose(boxed, Vector3.new(0, 2.5, 0), 0, Vector3.new(0, 0, -1), SIZES.Coche) == nil, "sin sitio libre alrededor, no sale")
+-- Sobre el agua (sin suelo en ninguna parte cercana... pero sí lejos): no sale en el agua
+local sea = {
+	ground = function(x: number, z: number)
+		return nil, nil, true
+	end,
+	blocked = function()
+		return false
+	end,
+}
+check(RideSpot.choose(sea, Vector3.new(0, 2.5, 0), 0, Vector3.new(0, 0, -1), SIZES.Moto) == nil, "en el agua no sale")
+
+print("Vigilancia del conductor (RideSpot.watchSeat)")
+local w = {}
+check(RideSpot.watchSeat(w, 0, true, true) == nil, "sentado al volante: nada")
+check(RideSpot.watchSeat(w, 1, true, false) == nil and RideSpot.watchSeat(w, 2, true, false) == nil, "montado sin estar sentado: se espera un momento")
+check(RideSpot.watchSeat(w, 2.6, true, false) == "Reseat", "…y se pide volver a sentarle")
+check(RideSpot.watchSeat(w, 3.5, true, false) == nil, "(una sola vez)")
+check(RideSpot.watchSeat(w, 4.6, true, false) == "Dismount" and RideSpot.watchSeat(w, 6, true, false) == nil, "si sigue sin sentarse, se baja del todo (pedales y velocidad fuera)")
+check(RideSpot.watchSeat(w, 7, false, false) == nil and w.Since == nil, "ya bajado: se olvida")
+local w2 = {}
+RideSpot.watchSeat(w2, 0, true, false)
+check(RideSpot.watchSeat(w2, 1, true, true) == nil and RideSpot.watchSeat(w2, 5, true, true) == nil, "si se sienta a tiempo, no se le baja")
+
+print("Atascos (RideSpot.stuckStep)")
+local st = { Stuck = 0 }
+local fired = false
+for _ = 1, 60 do
+	fired = RideSpot.stuckStep(st, 1, 0, 1 / 60) or fired
+end
+check(not fired, "pisando 1 s sin moverse: aún no")
+for _ = 1, 60 do
+	fired = RideSpot.stuckStep(st, 1, 0, 1 / 60) or fired
+end
+check(fired, "pisando 2 s sin moverse: se desatasca")
+local st2 = { Stuck = 0 }
+local moving = false
+for _ = 1, 240 do
+	moving = RideSpot.stuckStep(st2, 1, 4, 1 / 60) or moving
+end
+check(not moving, "sin gasolina (a 4 studs/s) no cuenta como atasco")
+local st3 = { Stuck = 0 }
+local idle = false
+for _ = 1, 240 do
+	idle = RideSpot.stuckStep(st3, 0, 0, 1 / 60) or idle
+end
+check(not idle, "parado sin pisar: no es un atasco")
+
+print("Choques con el tráfico (cajas vistas desde arriba)")
+check(RideSpot.boxesOverlap(Vector3.new(0, 0, 0), Vector3.new(0, 0, -1), 5.8, 1.6, Vector3.new(0, 0, -8), Vector3.new(0, 0, 1), 13.5, 6.6), "moto contra un coche de frente: se tocan")
+check(not RideSpot.boxesOverlap(Vector3.new(0, 0, 0), Vector3.new(0, 0, -1), 5.8, 1.6, Vector3.new(0, 0, -12), Vector3.new(0, 0, 1), 13.5, 6.6), "separados: no")
+check(RideSpot.boxesOverlap(Vector3.new(0, 0, 0), Vector3.new(0, 0, -1), 13.5, 6.2, Vector3.new(6, 0, 0), Vector3.new(1, 0, 0), 13.5, 6.6), "coche cruzado en el costado: se tocan")
+check(not RideSpot.boxesOverlap(Vector3.new(0, 0, 0), Vector3.new(0, 0, -1), 13.5, 6.2, Vector3.new(7, 0, 0), Vector3.new(0, 0, -1), 13.5, 6.6), "en el carril de al lado: no")
+
+print("Pata de cabra y caballete")
+local function fakePart(props)
+	local attrs = {}
+	local obj = props
+	function obj:GetAttribute(k)
+		return attrs[k]
+	end
+	function obj:SetAttribute(k, v)
+		attrs[k] = v
+	end
+	function obj:IsA(c)
+		return c == "BasePart" and obj.ClassName ~= "Weld" or c == obj.ClassName
+	end
+	function obj:FindFirstChild(name)
+		return if obj.Child and obj.Child.Name == name then obj.Child else nil
+	end
+	return obj
+end
+for kind, ends in {
+	Moto = { Vector3.new(-0.5, 0.9, 0.2), Vector3.new(-0.9, 0.1, 0.4) },
+	Patinete = { Vector3.new(-0.45, 0.5, 0.3), Vector3.new(-0.7, 0.05, 0.6) },
+} do
+	local a, b = ends[1], ends[2]
+	local len = (b - a).Magnitude
+	local folded = a + Vector3.new((b.X - a.X) * 0.25, 0.08, len)
+	local down, up = Rides.tubeFrame(a, b), Rides.tubeFrame(a, folded)
+	local function lowest(cf: CFrame): number
+		return math.min((cf * Vector3.new(0, 0, len / 2)).Y, (cf * Vector3.new(0, 0, -len / 2)).Y)
+	end
+	check(lowest(down) < 0.15 and lowest(up) > 0.4, ("%s: aparcada la pata llega al suelo (%.2f); recogida queda arriba (%.2f)"):format(kind, lowest(down), lowest(up)))
+	local weld = fakePart({ Name = "StandWeld", ClassName = "Weld", C0 = down })
+	local stand = fakePart({ Name = "Kickstand", ClassName = "Part", Child = weld })
+	stand:SetAttribute("StandDown", down)
+	stand:SetAttribute("StandUp", up)
+	local model = {
+		GetDescendants = function()
+			return { stand, weld }
+		end,
+	}
+	Rides.setStand(model, false)
+	check(weld.C0 == up and stand:GetAttribute("StandIsDown") == false, kind .. ": al subirse y arrancar, la pata se recoge")
+	Rides.setStand(model, true)
+	check(weld.C0 == down and stand:GetAttribute("StandIsDown") == true, kind .. ": aparcada sin nadie, la pata baja")
+end
+
+print("Cámara: postes finos")
+local RideCameraThin = RideCamera.isThin
+check(RideCameraThin(Vector3.new(0.6, 14, 0.6)) and RideCameraThin(Vector3.new(1.2, 3, 1.2)), "una farola o un semáforo son postes finos (se ven transparentes)")
+check(not RideCameraThin(Vector3.new(1, 12, 30)) and not RideCameraThin(Vector3.new(40, 1, 40)), "una pared o un suelo no")
+
 print("")
 if failures == 0 then
 	print("✅ Todo correcto")

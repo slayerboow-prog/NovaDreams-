@@ -7398,6 +7398,51 @@ do
 	task.wait(1.6)
 	check(not first and VehicleService.clearStale(scooter) and scooter:GetAttribute("Riding") == nil, "la vigilancia quita un «montado» sin vehículo (si sigue así un momento)")
 end
+-- Sacar tu propio coche, moto o patinete (barra rápida / menú «Spawn"): al volante (no de pasajero),
+-- la pata recogida, sin «Conducir» encima mientras lo llevas; si el personaje no llega a sentarse,
+-- se le vuelve a sentar y, si no, queda todo limpio; nada suelto sin conductor (se hundía)
+do
+	for i, who in { { 409, "Nino" }, { 410, "AdultoJoven" } } do
+		local owner, ownerRoot, ownerHum = join(who[1], who[2], 0)
+		profiles[owner].Vehicles = { Coche = true, Moto = true, Patinete = true }
+		for j, kind in { "Coche", "Moto", "Patinete" } do
+			moveTo(ownerRoot, Vector3.new(9800 + i * 200, 0, 9000 + j * 60))
+			task.wait(2.1) -- (sin ráfagas: como mucho 3 vehículos cada 6 s)
+			remotes.Vehicle.OnServerEvent:Fire(owner, "Spawn", kind)
+			local model = VehicleService.rideModel(owner)
+			local seat = model and model:FindFirstChild("DriverSeat")
+			local chassis = model and model.PrimaryPart
+			local prompt = chassis and chassis:FindFirstChild("DrivePrompt")
+			local label = who[2] .. " · " .. kind
+			check(model ~= nil and owner:GetAttribute("Riding") == kind and ownerHum.SeatPart == seat and seat.Occupant == ownerHum and owner:GetAttribute("Passenger") == nil, label .. ": al sacarlo va al volante (no de pasajero)")
+			check(chassis ~= nil and not chassis.Anchored and chassis.CFrame.UpVector.Y > 0.95, label .. ": sale derecho y suelto para conducir")
+			check(prompt ~= nil and prompt.Enabled == false, label .. ": mientras lo llevas no sale «Conducir» encima")
+			local stand = model and model:FindFirstChild("Kickstand", true)
+			if kind ~= "Coche" then
+				check(stand ~= nil and stand:GetAttribute("StandIsDown") == false, label .. ": la pata (o el caballete) va recogida")
+			end
+			-- Su ordenador no llegó a sentarle (la soldadura llegó sin sentarse): «Reseat» le vuelve a sentar
+			rawget(ownerHum, "__props").SeatPart = nil
+			remotes.Vehicle.OnServerEvent:Fire(owner, "Reseat")
+			check(ownerHum.SeatPart == seat and seat.Occupant == ownerHum and VehicleService.rideModel(owner) == model, label .. ": si no llegó a sentarse, se le vuelve a sentar al volante")
+			-- …y si tampoco, su ordenador pide bajarse: todo limpio y el vehículo aparcado
+			remotes.Vehicle.OnServerEvent:Fire(owner, "Reseat")
+			check(VehicleService.rideModel(owner) == model, label .. ": (volver a sentar, solo una vez)")
+			remotes.Vehicle.OnServerEvent:Fire(owner, "Dismount")
+			check(owner:GetAttribute("Riding") == nil and owner:GetAttribute("VehicleSpeed") == nil and ownerHum.SeatPart == nil, label .. ": al bajarse no queda nada de «montado» (ni pedales ni velocidad)")
+			check(chassis ~= nil and chassis.Anchored and prompt ~= nil and prompt.Enabled, label .. ": aparcado y anclado, con su «Conducir»")
+			if kind ~= "Coche" then
+				check(stand ~= nil and stand:GetAttribute("StandIsDown") == true, label .. ": aparcado sin nadie, la pata abajo")
+			end
+			-- Suelto sin conductor (algo falló a medias): la vigilancia lo aparca, nunca se hunde
+			if chassis then
+				chassis.Anchored = false
+				VehicleService.parkOrphans()
+				check(chassis.Anchored, label .. ": un vehículo suelto sin conductor se aparca solo")
+			end
+		end
+	end
+end
 -- Sin castigo: la paga llega cada día de juego
 task.wait(0.05)
 local kidData = profiles[kidDriver]

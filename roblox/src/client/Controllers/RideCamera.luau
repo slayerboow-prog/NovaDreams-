@@ -165,9 +165,7 @@ end
 -- paredes no: de esas se encarga la cámara de Roblox, que se acerca.
 local FADE = 0.75
 local faded: { [BasePart]: boolean } = {}
-local fadeParams = RaycastParams.new()
-fadeParams.FilterType = Enum.RaycastFilterType.Exclude
-fadeParams.RespectCanCollide = false
+local fadeParams: RaycastParams? = nil
 
 -- ¿Es un poste (fino en dos medidas) y no una pared o un suelo?
 function RideCamera.isThin(size: Vector3): boolean
@@ -190,6 +188,13 @@ local function fadeThin(a: Active)
 	local from = a.Focus
 	local offset = camera.CFrame.Position - from
 	local now: { [BasePart]: boolean } = {}
+	if not fadeParams then
+		local p = RaycastParams.new()
+		p.FilterType = Enum.RaycastFilterType.Exclude
+		p.RespectCanCollide = false
+		fadeParams = p
+	end
+	local params = fadeParams :: RaycastParams
 	if offset.Magnitude > 0.5 then
 		local ignore: { Instance } = { a.Root:FindFirstAncestorOfClass("Model") or a.Root }
 		if player.Character then
@@ -199,8 +204,8 @@ local function fadeThin(a: Active)
 			table.insert(ignore, anchor)
 		end
 		for _ = 1, 5 do
-			fadeParams.FilterDescendantsInstances = ignore
-			local hit = workspace:Raycast(from, offset, fadeParams)
+			params.FilterDescendantsInstances = ignore
+			local hit = workspace:Raycast(from, offset, params)
 			if not hit then
 				break
 			end

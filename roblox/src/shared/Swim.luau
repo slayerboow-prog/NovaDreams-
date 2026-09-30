@@ -28,11 +28,7 @@ Swim.Shallow = 4.2 -- agua con menos fondo que esto: se hace pie (andas por el f
 Swim.DiveSpeed = 9 -- bajando (Bucear)
 Swim.RiseSpeed = 10 -- subiendo (Subir)
 Swim.FloatSpeed = 6 -- lo más rápido que te lleva la flotación a la superficie
-Swim.Accel = 70 -- aceleración vertical máxima que aplica el control (studs/s²): suave, sin tirones
-
--- Postura: inclinación máxima del cuerpo buceando respecto a horizontal (radianes)
-Swim.MaxHeadDown = 0.55 -- bajando: de cabeza, pero nunca boca abajo del todo
-Swim.MaxHeadUp = 0.95 -- subiendo o quieto: más de pie
+Swim.Accel = 70 -- aceleración vertical máxima que aplica el control (studs/s², además de la gravedad): suave
 
 Swim.CameraClear = 1.2 -- la cámara nunca baja de esto sobre el fondo
 
@@ -116,15 +112,6 @@ function Swim.step(s: Step): (Mode, number)
 		vy = math.min(vy, (float - s.RootY) * 4 + 0.5)
 	end
 	return mode, vy
-end
-
--- Cuánto se tumba el cuerpo (ángulo X de la articulación Root: −π/2 = horizontal boca abajo).
--- vertical: velocidad vertical (> 0 sube, suavizada); moving 0..1. Nunca boca abajo del todo.
-function Swim.bodyPitch(vertical: number, moving: number): number
-	local tilt = math.clamp(-vertical / 10, -1, 1) -- 1 bajando, −1 subiendo
-	local k = math.clamp(moving, 0, 1)
-	local pitch = -math.pi / 2 - tilt * Swim.MaxHeadDown * (if tilt > 0 then 1 else 0.9) + (1 - k) * 0.5
-	return math.clamp(pitch, -math.pi / 2 - Swim.MaxHeadDown, -math.pi / 2 + Swim.MaxHeadUp)
 end
 
 -- La cámara no se mete en el fondo: si está por debajo de floorY + CameraClear, se acerca al

@@ -114,14 +114,15 @@ end
 -- Si no hay ningún suelo en ninguna parte (el mundo aún no está), sale delante a la altura de los pies.
 function RideSpot.choose(world: World, origin: Vector3, feet: number, look: Vector3, size: Vector3): CFrame?
 	local top, bottom = feet + 3, feet - 10
-	local anyGround = false
+	local anyGround, anyWater = false, false
 	local best: CFrame?, bestScore = nil, math.huge
 	for pass = 1, 2 do
 		local tolerance = if pass == 1 then RideSpot.Step else RideSpot.Step * 2
 		for i, offset in RideSpot.candidates(look, size) do
 			local center = Vector3.new(origin.X, feet, origin.Z) + offset
-			local y, axis = world.ground(center.X, center.Z, top, bottom)
+			local y, axis, water = world.ground(center.X, center.Z, top, bottom)
 			if not y then
+				anyWater = anyWater or water == true
 				continue
 			end
 			anyGround = true
@@ -151,7 +152,7 @@ function RideSpot.choose(world: World, origin: Vector3, feet: number, look: Vect
 			return best
 		end
 	end
-	if not anyGround then
+	if not anyGround and not anyWater then
 		local at = Vector3.new(origin.X, feet, origin.Z) + look * 2
 		return RideSpot.frame(at, look)
 	end
