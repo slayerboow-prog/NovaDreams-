@@ -499,6 +499,131 @@ for key in Gameplay.Licenses do
 end
 check(allLicences, "tiene todos los carnets de conducir (Gameplay.Licenses)")
 
+print("▶ Al volante: sin requisitos no hay delito por la edad ni por el carnet")
+local function toastsTo(player, from: number, needle: string): boolean
+	for i = from + 1, #sent do
+		local m = sent[i]
+		if m.Player == player and m.Remote == "Notify" and type(m.Payload) == "string" and m.Payload:find(needle, 1, true) then
+			return true
+		end
+	end
+	return false
+end
+-- (el dueño es un niño tester sin carnets: se los quitamos para probar lo de la edad Y el carnet)
+profiles[owner].Licenses = {}
+check(TesterService.bypass(owner) and owner:GetAttribute("LifeStage") == "Nino", "(el dueño es un niño con «Sin requisitos»)")
+check(VehicleService.offenceFor(owner, "Coche") == nil and VehicleService.offenceFor(owner, "Moto") == nil, "un niño tester al volante de un coche o una moto no comete delito")
+before = #sent
+check(VehicleService.licenceWarning(owner, "Coche") == nil and not toastsTo(owner, before, "Eres menor"), "ni le sale el aviso «Eres menor y no tienes carnet»")
+check(VehicleService.offenceFor(other, "Coche") == "MenorVolante", "un niño normal al volante de un coche: «Menor al volante»")
+before = #sent
+check(VehicleService.licenceWarning(other, "Coche") == "MenorVolante" and toastsTo(other, before, "Eres menor"), "y a él sí le avisa («la policía te parará y llamará a tu familia»)")
+check(VehicleService.offenceFor(other, "Bici") == nil, "(la bici no pide carnet a nadie)")
+fire(owner, "Toggle", "Bypass")
+check(not TesterService.bypass(owner), "«Sin requisitos» apagado…")
+check(VehicleService.offenceFor(owner, "Coche") == "MenorVolante", "…el niño tester vuelve a ser un menor al volante (reglas normales)")
+before = #sent
+check(VehicleService.licenceWarning(owner, "Coche") == "MenorVolante" and toastsTo(owner, before, "Eres menor"), "…y le sale el aviso de siempre")
+fire(owner, "Toggle", "Bypass")
+local autoLicences = true
+for key in Gameplay.Licenses do
+	autoLicences = autoLicences and VehicleService.hasLicense(owner, key)
+end
+check(TesterService.bypass(owner) and autoLicences, "al encender «Sin requisitos» se le dan todos los carnets de conducir")
+do
+	-- Al entrar al juego con «Sin requisitos»: carnets puestos
+	local newcomer = newPlayer("Dueño2", CREATOR, "Nino")
+	for _, fn in loaded do
+		fn(newcomer, profiles[newcomer])
+	end
+	task.wait(0.1)
+	local all = true
+	for key in Gameplay.Licenses do
+		all = all and VehicleService.hasLicense(newcomer, key)
+	end
+	check(all, "un tester que entra con «Sin requisitos» ya tiene los carnets de conducir")
+	check(InventoryService.count(newcomer, Weapons.Licence.Item) == 0, "(sin meterle nada en la mochila: la licencia de armas solo con el botón)")
+	table.remove(active, table.find(active, newcomer))
+end
+
+---------------------------------------------------------------------
+-- Cambiar de etapa con la historia de verdad (scripts/lib/StoryHarness: LifeStoryService real).
+-- Como el dueño en la versión publicada: niño en el capítulo del colegio, con «Recados por el
+-- barrio» (principal) en marcha y «El vecino del garaje» (secundaria) seguida.
+---------------------------------------------------------------------
+local okStory, storyError = pcall(function()
+	local H = require("./lib/StoryHarness")
+	local Story = H.boot()
+	local Tester = H.loadModule(H.ROOT .. "/server/Services/TesterService")
+	local StoryConfig = H.Config
+	local kid = H.newPlayer("DueñoNiño", "Nino", 100)
+	StoryConfig.Testers = { kid.UserId }
+	local data = H.profiles[kid]
+	local story = data.Story
+	task.wait(0.5)
+
+	local function prepare(player)
+		local st = H.profiles[player].Story
+		for _, q in { "Cole01_PrimerDia", "Cole02_Mochila", "Cole03_Grupo", "Cole04_Malotes", "Cole05_Venganza", "Cole06_Examen" } do
+			st.Completed[q] = os.time()
+			st.Active[q] = nil
+		end
+		for id, prog in st.Active do
+			if prog.Kind == "Main" then
+				st.Active[id] = nil
+			end
+		end
+		st.Active.Nino_Recados = { Kind = "Main" }
+		Story.resetQuest(player, "Nino_Recados")
+		st.Active.Loco_N1_Cosme = { Kind = "Side" }
+		Story.resetQuest(player, "Loco_N1_Cosme")
+		st.Tracked = "Loco_N1_Cosme"
+		task.wait(0.3)
+	end
+
+	print("▶ Cambiar de etapa a Adulto en mitad de una misión de niño")
+	prepare(kid)
+	check(story.Chapter == "Nino_ElColegio" and story.Active.Nino_Recados ~= nil and story.Active.Loco_N1_Cosme ~= nil, "(niño en el colegio con «Recados por el barrio» y «El vecino del garaje»)")
+	kid:SetAttribute("InDialogue", true) -- (hablando con alguien: antes eso lo bloqueaba)
+	check(Tester.handle(kid, "Action", "Stage", "Adulto") == true, "el panel acepta «Adulto» aunque esté en una conversación")
+	task.wait(0.5)
+	check(data.Life.Stage == "Adulto" and kid:GetAttribute("LifeStage") == "Adulto", "ya es adulto (datos y atributo LifeStage, del que tiran el cuerpo y la ropa)")
+	local ages = StoryConfig.LifeStory.AgeRange.Adulto
+	check(data.Life.AgeYears >= ages[1] and data.Life.AgeYears <= ages[2] and kid:GetAttribute("AgeYears") == data.Life.AgeYears, ("con edad de adulto (%d años)"):format(data.Life.AgeYears))
+	check(kid:GetAttribute("InDialogue") == nil, "la conversación se corta")
+	check(story.Active.Nino_Recados == nil and story.Completed.Nino_Recados == nil, "«Recados por el barrio» (de niño) se deja, sin contar como hecha")
+	check(story.Active.Loco_N1_Cosme ~= nil, "«El vecino del garaje» (sin límite de edad) sigue en marcha")
+	check(story.Chapter ~= "Nino_ElColegio" and story.Chapter ~= nil, ("capítulo de adulto (%s)"):format(tostring(story.Chapter)))
+	local adultMain = nil
+	for id, prog in story.Active do
+		if prog.Kind == "Main" then
+			adultMain = id
+		end
+	end
+	check(adultMain ~= nil and adultMain ~= "Nino_Recados" and adultMain ~= "Nino_Jornada", ("empieza la principal del capítulo de adulto (%s)"):format(tostring(adultMain)))
+
+	print("▶ Se guarda: salir y volver a entrar")
+	local saved = H.leave(kid)
+	local back = H.rejoin(kid, saved)
+	task.wait(0.5)
+	local d2 = H.profiles[back]
+	check(d2.Life.Stage == "Adulto" and back:GetAttribute("LifeStage") == "Adulto", "al volver sigue siendo adulto")
+	check(d2.Life.AgeYears == data.Life.AgeYears and back:GetAttribute("AgeYears") == d2.Life.AgeYears, "con la misma edad")
+	check(d2.Story.Chapter == story.Chapter and d2.Story.Active.Nino_Recados == nil, "en el mismo capítulo, sin la misión de niño")
+
+	print("▶ «Hazme adulto» (un toque) y los que no son testers")
+	local kid2 = H.newPlayer("DueñoNiño2", "Nino", 100)
+	StoryConfig.Testers = { kid.UserId, kid2.UserId }
+	task.wait(0.3)
+	prepare(kid2)
+	check(Tester.handle(kid2, "Action", "MakeAdult") == true and H.profiles[kid2].Life.Stage == "Adulto", "«Hazme adulto» le hace adulto")
+	check(H.profiles[kid2].Story.Active.Nino_Recados == nil, "y deja la misión de niño")
+	local normal = H.newPlayer("NiñoNormal", "Nino", 100)
+	task.wait(0.3)
+	check(Tester.handle(normal, "Action", "MakeAdult") == false and H.profiles[normal].Life.Stage == "Nino", "a un jugador normal no le hace nada")
+end)
+check(okStory, "las pruebas de etapa con la historia de verdad terminan sin errores" .. (if okStory then "" else ": " .. tostring(storyError)))
+
 print()
 if failures == 0 then
 	print("✅ Todo correcto")

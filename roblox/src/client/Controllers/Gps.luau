@@ -11,6 +11,14 @@
 --     brillan en los próximos 120 studs) y bajo la cápsula de la hora: "Gira a la derecha en 40 m",
 --     la distancia y el tiempo. Al llegar: "Has llegado" y la ruta se quita.
 --   * Menú: "GPS: sí / no". Botón ✕ de la indicación o "Quitar ruta" del mapa grande: la quita.
+--   * UNA sola guía a la vez (shared/Gps.pickDestination): la ruta que eliges tú MANDA sobre la de la
+--     misión. Mientras la sigues, la indicación dice su nombre ("· 📍 Aeropuerto de Valmar"), los mapas
+--     enseñan su línea y su 📍, las flechas del suelo van allí y lo de la misión (haz de luz de
+--     TaskMarker, ★ de MapUI, pistas «Toca para ir» de Guide) se esconde; la tarjeta de la misión se
+--     atenúa con la etiqueta "📍 Ruta a …" y su botón «Seguir misión» (Hud.setRouteChip). ✕, llegar o
+--     «Seguir misión» quitan tu ruta y vuelve sola la guía de la misión. Si la misión cambia mientras
+--     tanto, no te la quita: sale un aviso "Nueva misión: … (toca para seguirla)" (Gps.onNotice → Guide).
+--     La ruta marcada sigue al reaparecer (morir), pero no entre partidas (vive solo en el cliente).
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
@@ -36,7 +44,7 @@ local ARRIVE = 14 -- studs para "has llegado" (a pie)
 local MARKS = 20 -- flechas en el suelo (2 piezas cada una: 40 en total)
 local MARK_STEP = 6
 
-type Destination = { Position: Vector3, Name: string, Manual: boolean }
+type Destination = GpsMath.Destination
 
 local graph: GpsMath.Graph? = nil
 local manual: { Position: Vector3, Name: string }? = nil
@@ -49,16 +57,10 @@ local lastReroute = 0
 -- Objetivos ya alcanzados (o quitados con ✕): no vuelven hasta que cambien. Una lista, no uno solo:
 -- si no, con trabajo y misión a la vez, ✕ solo pasaba de uno a otro y nunca quitaba la ruta
 local suppressed: { Vector3 } = {}
-local function isSuppressed(target: Vector3): boolean
-	for _, p in suppressed do
-		if (p - target).Magnitude < 1 then
-			return true
-		end
-	end
-	return false
-end
 local listeners: { (({ Vector3 })?, ({ Vector3 })?, number?) -> () } = {}
 local manualListeners: { (({ Position: Vector3, Name: string })?) -> () } = {}
+local noticeListeners: { (string) -> () } = {}
+local lastNotice: string? = nil
 
 local banner: Frame? = nil
 local bannerParts: { [string]: any } = {}
@@ -99,6 +101,21 @@ end
 ---------------------------------------------------------------------
 -- Destino
 ---------------------------------------------------------------------
+local function attribute(name: string): any
+	return player:GetAttribute(name)
+end
+
+-- ¿Hay objetivo de misión/trabajo (sin silenciar) al que volver?
+local function missionWaiting(): boolean
+	return (GpsMath.missionTarget(attribute, suppressed)) ~= nil
+end
+
+-- Quita la ruta marcada y vuelve la guía de la misión (✕ de la etiqueta de la tarjeta de la misión)
+local function followMission()
+	Gps.setManual(nil)
+	Hud.toast("Info", if missionWaiting() then "🧭 Vuelves a la ruta de tu misión" else "🧭 Ruta quitada")
+end
+
 function Gps.setManual(position: Vector3?, name: string?)
 	if position then
 		manual = { Position = position, Name = name or "Sitio marcado" }
@@ -107,6 +124,8 @@ function Gps.setManual(position: Vector3?, name: string?)
 		manual = nil
 	end
 	route = nil -- (se recalcula en la próxima vuelta)
+	-- La tarjeta de la misión: atenuada con "📍 Ruta a …" mientras sigues tu ruta
+	pcall(Hud.setRouteChip, if manual then GpsMath.routeChipText(manual.Name) else nil, followMission)
 	for _, listener in manualListeners do
 		task.spawn(listener, manual)
 	end
@@ -116,34 +135,33 @@ function Gps.manual(): { Position: Vector3, Name: string }?
 	return manual
 end
 
--- Los objetivos que pone el servidor, por orden de preferencia
-local TARGETS = {
-	{ Attribute = "TaskTarget", Name = "Tu trabajo" },
-	{ Attribute = "CityErrandTarget", Name = "Tu encargo" },
-	{ Attribute = "StoryTarget", Name = "Tu misión" },
-	{ Attribute = "SeasonTarget", Name = "Misión de temporada" }, -- (la que sigues en el pase de temporada)
-}
+-- Dónde marca la misión (haz de luz, ★ de los mapas): nil mientras sigues una ruta tuya
+function Gps.missionMarker(): Vector3?
+	return GpsMath.missionMarker(manual, attribute)
+end
+
+-- fn(texto) cuando la misión cambia mientras sigues tu ruta ("Nueva misión: … (toca para seguirla)")
+function Gps.onNotice(fn: (string) -> ())
+	table.insert(noticeListeners, fn)
+end
+
+-- (pruebas) el último aviso
+function Gps.lastNotice(): string?
+	return lastNotice
+end
 
 local function currentDestination(): Destination?
-	if manual then
-		return { Position = manual.Position, Name = manual.Name, Manual = true }
-	end
-	-- El primer objetivo que haya y que no esté silenciado (si el trabajo ya se alcanzó, sigue con
-	-- el encargo o la misión en vez de quedarse sin ruta)
-	for _, entry in TARGETS do
-		local target = player:GetAttribute(entry.Attribute)
-		if typeof(target) == "Vector3" and not isSuppressed(target) then
-			return { Position = target, Name = entry.Name, Manual = false }
-		end
-	end
-	return nil
+	-- La ruta marcada manda; si no, el primer objetivo que haya y que no esté silenciado (si el
+	-- trabajo ya se alcanzó, sigue con el encargo o la misión en vez de quedarse sin ruta)
+	return GpsMath.pickDestination(manual, attribute, suppressed)
 end
 
 -- Quitar la ruta (el sitio marcado, o el objetivo actual hasta que cambie)
 function Gps.clear()
-	-- ✕ quita la ruta de verdad: se silencian todos los objetivos de ahora
+	-- ✕ con una ruta tuya: se quita solo esa (vuelve la de la misión). Sin ella, ✕ quita la ruta de
+	-- verdad: se silencian todos los objetivos de ahora
 	if not manual then
-		for _, entry in TARGETS do
+		for _, entry in GpsMath.Targets do
 			local target = player:GetAttribute(entry.Attribute)
 			if typeof(target) == "Vector3" then
 				table.insert(suppressed, target)
@@ -311,8 +329,9 @@ local function buildBanner()
 	Icons.plus({ AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(14, 14), Rotation = 45, Thickness = 2.5, Parent = close })
 	Theme.pressable(close)
 	close.Activated:Connect(function()
+		local wasManual = manual ~= nil
 		Gps.clear()
-		Hud.toast("Info", "🧭 Ruta quitada")
+		Hud.toast("Info", if wasManual and missionWaiting() then "🧭 Ruta quitada: vuelves a tu misión" else "🧭 Ruta quitada")
 	end)
 	HudLayout.onChanged(function(layout)
 		HudLayout.apply(panel, layout.Items.Gps)
@@ -331,7 +350,8 @@ local function showBanner(turn: { Kind: string, Distance: number, Remaining: num
 	end
 	bannerParts.Arrow.Rotation = TURN_ROTATION[turn.Kind] or -90
 	Theme.setText(bannerParts.Title, GpsMath.instructionText(turn))
-	Theme.setText(bannerParts.Sub, GpsMath.distanceText(turn.Remaining, speed) .. " · " .. dest.Name)
+	-- (la ruta que elegiste tú, con su 📍: así se distingue de la de la misión)
+	Theme.setText(bannerParts.Sub, GpsMath.distanceText(turn.Remaining, speed) .. " · " .. (if dest.Manual then "📍 " else "") .. dest.Name)
 end
 
 ---------------------------------------------------------------------
@@ -367,13 +387,13 @@ local function update()
 
 	-- ¿Has llegado? (los sitios marcados en el mapa y los lugares de la lista no tienen altura de
 	-- verdad (Y = 0): con ellos solo cuenta la distancia en el plano)
-	local flat = Vector3.new(dest.Position.X - position.X, 0, dest.Position.Z - position.Z)
-	local sameHeight = dest.Manual or math.abs(dest.Position.Y - position.Y) < 30
-	if flat.Magnitude < (if seated then ARRIVE * 1.8 else ARRIVE) and sameHeight then
-		Hud.toast("Success", "📍 Has llegado: " .. dest.Name)
+	if GpsMath.arrived(dest, position, if seated then ARRIVE * 1.8 else ARRIVE) then
 		if dest.Manual then
+			-- Tu ruta se quita sola y vuelve la guía de la misión (si hay)
 			Gps.setManual(nil)
+			Hud.toast("Success", GpsMath.arrivalText(dest.Name, missionWaiting()))
 		else
+			Hud.toast("Success", GpsMath.arrivalText(dest.Name, false))
 			table.insert(suppressed, dest.Position)
 		end
 		route = nil
@@ -453,6 +473,26 @@ local function loadRoads()
 	end
 end
 
+-- Aviso de misión nueva mientras sigues tu ruta. Se espera un poco: el paso nuevo (Hud.objective)
+-- llega por otro camino, justo después del objetivo
+local noticeToken = 0
+local function noticeFor(entry: { [string]: string })
+	noticeToken += 1
+	local token = noticeToken
+	task.delay(0.6, function()
+		if token ~= noticeToken or not manual then
+			return
+		end
+		local ok, objective = pcall(Hud.objective)
+		local step = if ok and objective then (if objective.Step ~= "" then objective.Step else objective.Title) else nil
+		local text = GpsMath.noticeText(entry, step)
+		lastNotice = text
+		for _, listener in noticeListeners do
+			task.spawn(listener, text)
+		end
+	end)
+end
+
 function Gps.init()
 	folder = Instance.new("Folder")
 	folder.Name = "GpsRuta"
@@ -460,11 +500,18 @@ function Gps.init()
 	buildBanner()
 	Hud.addButton("🧭 Ruta a casa", rgb(20, 150, 140), 1.5, Gps.routeHome)
 	task.spawn(loadRoads)
-	for _, entry in TARGETS do
+	for _, entry in GpsMath.Targets do
 		player:GetAttributeChangedSignal(entry.Attribute):Connect(function()
 			route = nil
 			-- Objetivo nuevo: lo que se silenció al llegar (o con ✕) ya no vale
 			table.clear(suppressed)
+			-- Siguiendo tu ruta, la misión nueva NO te la quita: solo avisa (si es la que guiaría)
+			if manual then
+				local target, current = GpsMath.missionTarget(attribute, nil)
+				if target and current and current.Attribute == entry.Attribute then
+					noticeFor(current)
+				end
+			end
 		end)
 	end
 	-- Al entrar o salir de un interior, la ruta sale de otro sitio

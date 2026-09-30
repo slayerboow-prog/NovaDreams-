@@ -408,4 +408,88 @@ function Gps.marks(path: { Vector3 }, step: number, reach: number, maxCount: num
 	return out
 end
 
+---------------------------------------------------------------------
+-- Prioridad de la navegación: UNA sola guía a la vez
+---------------------------------------------------------------------
+-- Si tú eliges un destino (un lugar del mapa, "Ir aquí", "Ruta a casa", el plano del metro…), esa
+-- ruta MANDA: la indicación dice su nombre, los mapas enseñan su línea y su 📍 y las flechas del
+-- suelo llevan allí; lo de la misión (su haz de luz, su ★ en los mapas y su ruta) se esconde hasta que
+-- quites la ruta (✕), llegues o elijas «Seguir misión». Una misión nueva no te la quita: solo avisa.
+
+-- Los objetivos que pone el servidor (atributos del jugador), por orden de preferencia
+Gps.Targets = {
+	{ Attribute = "TaskTarget", Name = "Tu trabajo", Notice = "Nueva tarea del trabajo" },
+	{ Attribute = "CityErrandTarget", Name = "Tu encargo", Notice = "Nuevo paso del encargo" },
+	{ Attribute = "StoryTarget", Name = "Tu misión", Notice = "Nueva misión" },
+	{ Attribute = "SeasonTarget", Name = "Misión de temporada", Notice = "Nueva misión de temporada" }, -- (la que sigues en el pase de temporada)
+}
+
+export type Place = { Position: Vector3, Name: string }
+export type Destination = { Position: Vector3, Name: string, Manual: boolean }
+
+local function listed(list: { Vector3 }?, target: Vector3): boolean
+	for _, p in list or {} do
+		if (p - target).Magnitude < 1 then
+			return true
+		end
+	end
+	return false
+end
+
+-- El objetivo de la misión/trabajo que toca ahora (sin mirar la ruta marcada): el primero que haya y
+-- que no esté silenciado. get(atributo) -> valor. Devuelve la posición y su entrada de Gps.Targets
+function Gps.missionTarget(get: (string) -> any, suppressed: { Vector3 }?): (Vector3?, { [string]: string }?)
+	for _, entry in Gps.Targets do
+		local target = get(entry.Attribute)
+		if typeof(target) == "Vector3" and not listed(suppressed, target) then
+			return target, entry
+		end
+	end
+	return nil, nil
+end
+
+-- Adónde lleva el GPS: la ruta que marcaste manda; si no hay, el objetivo de la misión/trabajo
+function Gps.pickDestination(manual: Place?, get: (string) -> any, suppressed: { Vector3 }?): Destination?
+	if manual then
+		return { Position = manual.Position, Name = manual.Name, Manual = true }
+	end
+	local target, entry = Gps.missionTarget(get, suppressed)
+	if target and entry then
+		return { Position = target, Name = entry.Name, Manual = false }
+	end
+	return nil
+end
+
+-- Lo que marca la misión en el mundo y en los mapas (haz de luz, ★): nada mientras sigues tu ruta
+function Gps.missionMarker(manual: Place?, get: (string) -> any): Vector3?
+	if manual then
+		return nil
+	end
+	return (Gps.missionTarget(get, nil))
+end
+
+-- ¿Has llegado? (los sitios del mapa no tienen altura de verdad: con ellos solo cuenta el plano)
+function Gps.arrived(dest: Destination, position: Vector3, arriveDistance: number): boolean
+	local flat = flatDistance(dest.Position, position)
+	local sameHeight = dest.Manual or math.abs(dest.Position.Y - position.Y) < 30
+	return flat < arriveDistance and sameHeight
+end
+
+-- La etiqueta de la ruta marcada en la tarjeta de la misión ("📍 Ruta a Aeropuerto de Valmar")
+function Gps.routeChipText(name: string): string
+	return "📍 Ruta a " .. name
+end
+
+-- El aviso cuando la misión cambia mientras sigues tu ruta (no te la quita)
+function Gps.noticeText(entry: { [string]: string }?, step: string?): string
+	local head = if entry then entry.Notice else "Nuevo objetivo"
+	local what = if step and step ~= "" then ": " .. step else ""
+	return head .. what .. " (toca para seguirla)"
+end
+
+-- Al llegar a tu ruta: el aviso (y si vuelve la guía de la misión)
+function Gps.arrivalText(name: string, missionBack: boolean): string
+	return "📍 Has llegado: " .. name .. (if missionBack then " · vuelve la ruta de tu misión" else "")
+end
+
 return Gps

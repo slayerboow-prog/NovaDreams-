@@ -235,6 +235,66 @@ local okRun, runError = pcall(function()
 	H.profiles[owner].Tester.Bypass = true
 	check(witness.Parent ~= nil, "(el testigo sigue ahí)")
 
+	print("▶ Al volante: el modo pruebas no le para por la edad ni por el carnet")
+	-- (VehicleService es un doble: dice qué conduce cada uno y qué delito de «requisitos» sería;
+	-- la patrulla de ronda le ve siempre. VehicleService.offenceFor de verdad: test-tester)
+	local Vehicles = H.mocks["src/server/Services/VehicleService"]
+	local PoliceMock = H.mocks["src/server/World/PoliceUnits"]
+	local driving: { [any]: string } = {}
+	local pulled: { [any]: number } = {}
+	Vehicles.ridingKind = function(p)
+		return driving[p]
+	end
+	Vehicles.drivingOffence = function(p)
+		return if driving[p] then "MenorVolante" else nil
+	end
+	Vehicles.rideSpeed = function()
+		return 30
+	end
+	PoliceMock.seesDriver = function()
+		return true, nil
+	end
+	PoliceMock.pullOver = function(p)
+		pulled[p] = (pulled[p] or 0) + 1
+	end
+	W.clear(owner)
+	driving[owner] = "Coche"
+	mark = #H.sent
+	W.checkDrivers()
+	task.wait(0.1)
+	check(owner:GetAttribute("Wanted") == nil and H.dispatch[owner] == nil and pulled[owner] == nil, "un niño tester con «Sin requisitos» conduce: ni estrellas, ni patrulla, ni «¡Alto!»")
+	check(not H.noticeHas(owner, "¡Alto!", mark) and not H.noticeHas(owner, "Eres menor", mark), "y ningún aviso")
+	H.profiles[owner].Tester.Bypass = false
+	mark = #H.sent
+	W.checkDrivers()
+	task.wait(0.1)
+	check(owner:GetAttribute("Wanted") == H.Wanted.Crimes.MenorVolante.Stars and pulled[owner] == 1, "con «Sin requisitos» apagado: reglas normales (la patrulla le para, 1 estrella)")
+	check(H.noticeHas(owner, "¡Alto!", mark), "con su «¡Alto! ¡Policía!»")
+	H.profiles[owner].Tester.Bypass = true
+	W.checkDrivers()
+	task.wait(0.1)
+	check(owner:GetAttribute("Wanted") == nil and H.dispatch[owner] == nil, "al volver a encenderlo, la búsqueda solo por conducir se le quita")
+	-- Un delito de verdad (agresión) sigue contando aunque vaya al volante con «Sin requisitos»
+	H.npc("Testigo3", V(500, 0, -8))
+	W.crime(owner, "Agresion")
+	task.wait(wait)
+	W.checkDrivers()
+	task.wait(0.1)
+	check(owner:GetAttribute("Wanted") == H.Wanted.Crimes.Agresion.Stars, "los delitos de verdad (pegar, disparar, robar) le siguen buscando como a un adulto")
+	W.clear(owner)
+	local kid2 = H.player("Niño2", 6010, "Nino", V(3000, 0, 0))
+	driving[kid2] = "Coche"
+	W.checkDrivers()
+	task.wait(0.1)
+	check(kid2:GetAttribute("Wanted") == H.Wanted.Crimes.MenorVolante.Stars and pulled[kid2] == 1, "un niño normal al volante: la patrulla le para (Menor al volante)")
+	driving = {}
+	Vehicles.ridingKind = function()
+		return nil
+	end
+	Vehicles.drivingOffence = function()
+		return nil
+	end
+
 	print("▶ Agredir a un agente de policía")
 	local adult = H.player("Adulto", 6002, "Adulto", V(1000, 0, 0))
 	local officer = H.officer(V(1000, 0, -5))

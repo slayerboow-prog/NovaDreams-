@@ -19,7 +19,8 @@
 -- solo es delito si te ve la policía (una patrulla de ronda, agentes o un policía jugador de
 -- servicio a menos de Wanted.DriveSight y sin nada en medio). Entonces: «¡Alto!», la patrulla
 -- enciende la sirena y te sigue, y 1 estrella. Si Wanted.StopSeconds después sigues conduciendo,
--- huida (+1). Si paras, bajan los agentes y te detienen.
+-- huida (+1). Si paras, bajan los agentes y te detienen. Modo pruebas con «Sin requisitos»: ni la
+-- edad ni el carnet cuentan al volante (forgiveDriving); los delitos de verdad, sí (answersAsAdult).
 -- Lo que se sabe de ti también va a tu historial de comportamiento (ConductService).
 -- Las estrellas se guardan: salir del juego no borra la búsqueda.
 
@@ -616,6 +617,7 @@ end
 -- Sin estrellas
 function WantedService.clear(player: Player)
 	setStars(player, 0)
+	stateOf(player).Crimes = {} -- (lo de antes ya no cuenta para la próxima vez)
 end
 
 -- ¿Es policía de servicio? (disparar a alguien buscado no es delito para ellos)
