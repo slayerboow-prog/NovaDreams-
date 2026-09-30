@@ -56,9 +56,121 @@ check(Hospital.RespawnSeconds > 0 and table.find(Hospital.Models, "Hospital") ~=
 local server = fs.readFile("src/server/Services/CombatService.luau")
 check(server:find("Killed = true", 1, true) ~= nil, "Rematar a alguien K.O. lo mata (homicidio)")
 
+-- Disparar de verdad (WeaponService.fire -> CombatService.applyHit -> WantedService), con los
+-- servicios reales en un Roblox de mentira (scripts/lib/CrimeHarness). Antes: un niño en modo pruebas
+-- con un subfusil disparaba a la gente y solo salía «Si fueras mayor, vendría la policía»; y a un
+-- NPC de la calle se le podía acribillar sin que la víctima llamase (solo contaba como disparos al aire).
+do
+	local roblox = require("@lune/roblox")
+	local task = require("@lune/task")
+	local H = require("./lib/CrimeHarness")
+	H.boot()
+	local V = roblox.Vector3.new
+	local Wanted = H.Wanted
+	local wait = Wanted.CallDelay + 0.6
+
+	print("▶ Disparar a la gente con el modo pruebas (niño tester, «Sin requisitos»)")
+	local owner = H.player("Dueño", H.CREATOR, "Nino", V(0, 0, 0))
+	check(H.TesterService.bypass(owner), "el dueño es tester con «Sin requisitos» encendido")
+	H.give(owner, "Subfusil")
+	check(H.WeaponService.equip(owner, "Subfusil"), "el niño tester puede empuñar el subfusil (se salta la edad)")
+	local walker = H.npc("Paseante", V(0, 0, -20))
+	local mark = #H.sent
+	check(H.shoot(owner, walker), "dispara")
+	check(H.saidAny(walker, "¡"), "la víctima reacciona al disparo (dice algo)")
+	task.wait(wait)
+	check((owner:GetAttribute("Wanted") or 0) >= Wanted.Crimes.Disparo.Stars, "le buscan: estrellas por disparar a una persona")
+	check((H.dispatch[owner] or 0) >= 1, "y salen patrullas a por él (PoliceUnits.ensure)")
+	check(H.saidAny(walker, "📞"), "la víctima llama a la policía")
+	check(not H.noticeHas(owner, "Si fueras mayor", mark), "ya no sale «Si fueras mayor, vendría la policía»")
+	check(H.noticeHas(owner, "Modo pruebas", mark), "se le explica que en modo pruebas sus delitos cuentan como de adulto")
+
+	print("▶ Lo mismo sin modo pruebas (adulto con licencia)")
+	local adult = H.player("Adulto", 5001, "Adulto", V(300, 0, 0))
+	check(not H.TesterService.isTester(adult), "no es tester")
+	H.licence(adult)
+	H.give(adult, "Pistola")
+	check(H.WeaponService.equip(adult, "Pistola"), "empuña su pistola")
+	local victim = H.npc("Paseante2", V(300, 0, -25))
+	check(H.shoot(adult, victim), "dispara")
+	task.wait(wait)
+	check((adult:GetAttribute("Wanted") or 0) >= Wanted.Crimes.Disparo.Stars, "estrellas por disparar a una persona")
+	check((H.dispatch[adult] or 0) >= 1, "y salen patrullas")
+
+	print("▶ Una ráfaga a la misma persona es una denuncia, no cinco")
+	local burst = H.player("Rafaga", 5002, "Adulto", V(600, 0, 0))
+	H.licence(burst)
+	H.give(burst, "Pistola")
+	H.WeaponService.equip(burst, "Pistola")
+	local target = H.npc("Paseante3", V(600, 0, -20))
+	H.shoot(burst, target)
+	H.shoot(burst, target)
+	task.wait(wait)
+	check(burst:GetAttribute("Wanted") == Wanted.Crimes.Disparo.Stars, "dos disparos seguidos a la misma víctima: una denuncia")
+
+	print("▶ Disparar a un agente de policía")
+	local cop = H.officer(V(300, 0, 25))
+	local before = adult:GetAttribute("Wanted") or 0
+	check(H.shoot(adult, cop), "dispara al agente")
+	check((adult:GetAttribute("Wanted") or 0) > before, "sube la búsqueda al momento (agresión a un agente)")
+	check((cop:GetAttribute("Hp") or 0) < 40, "el agente recibe el daño")
+
+	print("▶ Niño sin modo pruebas: las armas de verdad no")
+	local kid = H.player("Niño", 5003, "Nino", V(900, 0, 0))
+	H.give(kid, "Pistola")
+	mark = #H.sent
+	check(not H.WeaponService.equip(kid, "Pistola"), "un niño normal no puede empuñar una pistola")
+	check(H.noticeHas(kid, "no son para niños", mark), "y se le dice por qué")
+	local profile = H.profiles[owner]
+	profile.Tester.Bypass = false
+	H.WeaponService.holster(owner)
+	check(not H.WeaponService.equip(owner, "Subfusil"), "con «Sin requisitos» apagado, el niño tester tampoco")
+	profile.Tester.Bypass = true
+
+	print("▶ Armas de juguete: no son delito, pero se nota")
+	local splash = H.player("Mojador", 5004, "Adulto", V(1200, 0, 0))
+	H.give(splash, "PistolaAgua")
+	check(H.WeaponService.equip(splash, "PistolaAgua"), "empuña la pistola de agua")
+	local wet = H.npc("Paseante4", V(1200, 0, -20))
+	check(H.shoot(splash, wet), "moja a un paseante")
+	local copWet = H.officer(V(1200, 0, 20))
+	check(H.shoot(splash, copWet), "y a un agente")
+	task.wait(wait)
+	check(splash:GetAttribute("Wanted") == nil and H.dispatch[splash] == nil, "sin estrellas ni patrullas")
+	check(H.saidAny(wet, "💦"), "el paseante se queja del agua")
+	check(H.saidAny(copWet, "gracioso"), "el agente también reacciona")
+	check(copWet:GetAttribute("Hp") == 40, "y no pierde vida")
+
+	print("▶ Armas de servicio (la pistola reglamentaria)")
+	local civil = H.player("Civil", 5005, "Adulto", V(1500, 0, 0))
+	H.give(civil, "PistolaPolicia")
+	mark = #H.sent
+	check(not H.WeaponService.equip(civil, "PistolaPolicia"), "fuera de turno un jugador normal no la empuña")
+	check(H.noticeHas(civil, "solo de turno", mark), "y se le dice: «solo de turno»")
+	H.give(owner, "PistolaPolicia")
+	mark = #H.sent
+	check(H.WeaponService.equip(owner, "PistolaPolicia"), "el tester sí (se la queda al dejar el turno)")
+	check(H.noticeHas(owner, "fuera de turno", mark), "con el aviso de que fuera de turno disparar a alguien es delito")
+
+	print("▶ Policía de servicio")
+	local officer = H.player("Agente", 5006, "Adulto", V(1800, 0, 0))
+	officer:SetAttribute("Job", "Policia")
+	check(H.InventoryService.count(officer, H.Weapons.itemId("Taser")) == 1, "al empezar el turno le dan el táser y la pistola")
+	check(H.WeaponService.equip(officer, "Taser"), "empuña el táser")
+	local thief = H.npc("Ladron", V(1800, 0, -15), { Suspect = true })
+	H.shoot(officer, thief)
+	task.wait(wait)
+	check(officer:GetAttribute("Wanted") == nil, "reducir al sospechoso de su aviso con el táser no es delito")
+	local bystander = H.npc("Paseante5", V(1800, 0, 15))
+	H.shoot(officer, bystander)
+	task.wait(wait)
+	check((officer:GetAttribute("Wanted") or 0) >= 1, "pero a un paseante, sí (agresión)")
+end
+
 print()
 if failures == 0 then
 	print("✅ Todo correcto")
+	process.exit(0)
 else
 	print(("❌ %d fallos"):format(failures))
 	process.exit(1)

@@ -61,6 +61,34 @@ function PatrolRoutes.point(segment: Segment, from: string, t: number, lane: num
 	return p, dir
 end
 
+-- Gira la dirección `look` (en horizontal) hacia `dir` como mucho `maxAngle` radianes, por el lado más
+-- corto. Antes se mezclaba look:Lerp(dir): al dar la vuelta en un callejón (dir = -look) la mezcla
+-- nunca cambiaba de sentido y el coche patrulla seguía para siempre mirando hacia atrás (marcha
+-- atrás por toda la ciudad). En media vuelta exacta gira por la izquierda.
+function PatrolRoutes.turnToward(look: Vector3, dir: Vector3, maxAngle: number): Vector3
+	local a = Vector3.new(look.X, 0, look.Z)
+	local b = Vector3.new(dir.X, 0, dir.Z)
+	if b.Magnitude < 1e-4 then
+		return if a.Magnitude > 1e-4 then a.Unit else Vector3.new(0, 0, -1)
+	end
+	b = b.Unit
+	if a.Magnitude < 1e-4 then
+		return b
+	end
+	a = a.Unit
+	local angleA = math.atan2(a.X, a.Z)
+	local angleB = math.atan2(b.X, b.Z)
+	local delta = (angleB - angleA + math.pi) % (2 * math.pi) - math.pi
+	if math.abs(delta) >= math.pi - 1e-3 then
+		delta = math.pi -- (media vuelta: siempre por el mismo lado)
+	end
+	if math.abs(delta) <= maxAngle then
+		return b
+	end
+	local angle = angleA + math.sign(delta) * maxAngle
+	return Vector3.new(math.sin(angle), 0, math.cos(angle))
+end
+
 function PatrolRoutes.length(segment: Segment): number
 	return Vector3.new(segment.B.X - segment.A.X, 0, segment.B.Z - segment.A.Z).Magnitude
 end

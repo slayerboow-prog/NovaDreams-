@@ -351,6 +351,10 @@ function WeaponService.equip(player: Player, id: any): boolean
 	end
 	attachModel(player, w, true)
 	publish(player)
+	if w.Duty and not WantedService.onDuty(player) then
+		-- (solo llega aquí el modo pruebas: fuera de turno es un arma más y disparar a alguien es delito)
+		Notify:FireClient(player, "Info", "🧪 Arma de servicio fuera de turno: disparar a alguien es delito, como con cualquier arma.")
+	end
 	return true
 end
 

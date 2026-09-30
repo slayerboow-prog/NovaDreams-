@@ -315,6 +315,7 @@ function BUILD.Robo(shift: Shift, inc: Incident)
 	local cf = CFrame.lookAt(inc.Position, inc.Position + inc.Along)
 	local thief = Npc.create("Ladron", inc.Folder, cf, { Shirt = Color3.fromRGB(30, 30, 34), Pants = Color3.fromRGB(40, 40, 46) })
 	inc.Npc = thief
+	thief:SetAttribute("Suspect", true) -- (reducirlo con el táser o la pistola de servicio no es delito: WantedService)
 	local root = thief.PrimaryPart :: BasePart
 	-- Bolso robado en la mano y la víctima gritando
 	local bag = Instance.new("Part")

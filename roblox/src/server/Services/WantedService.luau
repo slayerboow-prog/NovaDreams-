@@ -549,6 +549,9 @@ local function onStoryEvent(player: Player, name: string, payload: { [string]: a
 		-- llamase. La víctima llama a la policía (una denuncia por víctima cada NPC_HIT_GAP).
 		local w = Weapons.get(payload.Weapon)
 		if w and w.Kind ~= "Toy" and typeof(model) == "Instance" and model:IsA("Model") and not Players:GetPlayerFromCharacter(model) then
+			if onDuty(player) and model:GetAttribute("Suspect") then
+				return -- (la policía de servicio reduciendo al sospechoso de su aviso)
+			end
 			local state = stateOf(player)
 			state.NpcHits = state.NpcHits or {}
 			local hits = state.NpcHits :: { [Model]: number }

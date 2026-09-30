@@ -635,6 +635,7 @@ end
 
 local PATROL_LENGTH = 14 -- (largo del coche patrulla, para guardar distancia)
 local PATROL_DECEL = 26
+local PATROL_TURN_RATE = 3.5 -- radianes por segundo al girar (media vuelta en menos de un segundo)
 
 -- Espacio libre por delante: semáforo en rojo al final del tramo, la patrulla de delante o alguien
 -- (un jugador) en su carril
@@ -702,13 +703,13 @@ local function stepPatrol(patrol: Patrol, dt: number)
 	-- En las esquinas gira y se arrima a su carril poco a poco (antes daba un salto y un giro en seco)
 	local blend = math.min(1, dt * 6)
 	local flat = V(patrol.Position.X, 0, patrol.Position.Z):Lerp(V(point.X, 0, point.Z), blend)
-	if flatDistance(flat, point) > 20 then
+	local jumped = flatDistance(flat, point) > 20
+	if jumped then
 		flat = V(point.X, 0, point.Z) -- (un salto grande: callejón sin salida o recién puesta)
 	end
 	patrol.Position = V(flat.X, y, flat.Z)
-	local look = patrol.Look or dir
-	local turned = look:Lerp(dir, math.min(1, dt * 4))
-	look = if turned.Magnitude > 0.01 then turned.Unit else dir
+	-- (gira de verdad hacia donde va: con Lerp, tras una media vuelta seguía mirando hacia atrás)
+	local look = if jumped then dir else PatrolRoutes.turnToward(patrol.Look or dir, dir, PATROL_TURN_RATE * dt)
 	patrol.Look = look
 	patrol.Model:PivotTo(CFrame.lookAt(patrol.Position, patrol.Position + look) * patrol.Offset)
 end

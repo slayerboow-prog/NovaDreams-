@@ -2083,6 +2083,14 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean })
 				signalOf(btn, "Activated"):Fire(input, 1)
 				fakeTask.wait(0.2)
 				print("PROBE after tap", localPlayer:GetAttribute("StanceLocal"))
+				local controllersF = client:FindFirstChild("Controllers")
+				local okL, Layers = pcall(requireFn, controllersF:FindFirstChild("PoseLayers"))
+				for i = 1, 40 do
+					fakeTask.wait(0.05)
+					if okL then local ok2, e2 = pcall(Layers.step, 0.05, now) if not ok2 then print("PROBE step err", e2) end end
+				end
+				local hum = localPlayer.Character and localPlayer.Character:FindFirstChildOfClass("Humanoid")
+				print("PROBE 2s later", localPlayer:GetAttribute("StanceLocal"), hum and hum.HipHeight)
 				for _, call in serverLog do print("PROBE server", call.Remote, call.Args[1], call.Args[2]) end
 			end
 		end,
