@@ -89,6 +89,16 @@ Icons.Fallback = {
 	agacharse = "🔽", -- (agacharse y tumbarse: Controllers/Stances)
 	tumbarse = "⏬",
 	ayuda = "❓", -- (botón "¿Qué hago ahora?": Controllers/HelpUI)
+	-- Mandos del vehículo en pantalla (UI/DriveButtons)
+	acelerar = "⏫",
+	frenar = "🛑",
+	frenomano = "🅿️",
+	luces = "💡",
+	intizq = "⬅️",
+	intder = "➡️",
+	emergencia = "⚠️",
+	izquierda = "◀️",
+	derecha = "▶️",
 }
 
 -- Tipos del tiempo (shared/Seasons) -> icono

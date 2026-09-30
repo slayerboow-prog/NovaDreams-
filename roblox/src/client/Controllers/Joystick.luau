@@ -3,7 +3,8 @@
 --   * Aro azul brillante con flechas ▲▼◀▶ dibujadas y un pomo azul que sigue al dedo.
 --   * Mueve al personaje con Humanoid:Move(dirección, true): relativo a la cámara, con zona muerta
 --     y velocidad según lo lejos que lleves el pomo. Al soltar, el pomo vuelve al centro.
---   * Montado en un vehículo: el mismo joystick acelera, frena y gira (ThrottleFloat / SteerFloat).
+--   * Montado en un vehículo: el mismo joystick acelera, frena y gira (ThrottleFloat / SteerFloat). Al
+--     volante de un vehículo con los mandos en pantalla (flechas y pedales: Driving) se esconde.
 --   * El resto de la pantalla sigue moviendo la cámara (pulgar derecho); los botones y el joystick no.
 --   * Se usa en lugar del joystick de Roblox (DevTouchMovementMode = Scriptable). Si Roblox no deja
 --     cambiarlo, no se crea y se queda el de Roblox, que sigue funcionando.
@@ -36,6 +37,7 @@ local active: InputObject? = nil
 local vector = Vector2.zero -- (-1..1, -1..1): x a la derecha, y hacia abajo
 local rawPush = 0 -- lo lejos que está el dedo del centro (sin zona muerta; 1 = el borde)
 local busy = false
+local driving = false -- al volante con las flechas en pantalla: el joystick se esconde
 local stepping = false
 
 local function humanoid(): Humanoid?
@@ -199,7 +201,7 @@ local function build(parent: Instance)
 	})
 
 	base.InputBegan:Connect(function(input)
-		if input.UserInputType ~= Enum.UserInputType.Touch or active or busy then
+		if input.UserInputType ~= Enum.UserInputType.Touch or active or busy or driving then
 			return
 		end
 		active = input
@@ -235,7 +237,19 @@ function Joystick.setBusy(value: boolean)
 		release()
 	end
 	if base then
-		base.Visible = not value
+		base.Visible = not value and not driving
+	end
+end
+
+-- Al volante (Controllers/Driving): se gira con las flechas ◀ ▶ y se acelera con los pedales, así que
+-- el joystick se esconde (y suelta). La cámara se sigue moviendo arrastrando el dedo por la pantalla.
+function Joystick.setDriving(value: boolean)
+	driving = value
+	if value and active then
+		release()
+	end
+	if base then
+		base.Visible = not value and not busy
 	end
 end
 

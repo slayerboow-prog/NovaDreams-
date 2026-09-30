@@ -17,6 +17,12 @@
 --   })
 --   TouchLayout.refresh()        -- vuelve a mirar Visible/Active/Badge (también se hace solo, 2 veces por segundo)
 --   TouchLayout.setLabel(id, t)  -- cambia el texto (p. ej. Interactuar -> "Hablar")
+--   TouchLayout.setDriving(true) -- al volante (móvil): otra colocación (HudLayout.DriveSlots). Solo tienen
+--                                   hueco los que dicen DriveSlot = "…" (pedales, flechas, luces…); los
+--                                   demás van a los huecos de contexto de esa colocación
+-- Campos para conducir: DriveSlot (hueco al volante), Shape = "Pedal" | "Arrow" (rectángulo redondeado en
+-- lugar de círculo; "Arrow" dibuja una flecha grande), Chevron (giro de la flecha: 180 = ◀, 0 = ▶) y
+-- Tint (color del disco interior cuando no está encendido: verde el acelerador, rojo el freno…).
 --
 -- Móvil y tableta: botones redondos con icono y texto, en racimo pegado a la esquina de abajo a la
 -- derecha (HudLayout.Cluster): Interactuar arriba; Correr, Defensa y Saltar; Gestos y el Ataque grande;
@@ -60,9 +66,13 @@ export type Spec = {
 	Badge: (() -> string?)?,
 	Key: string?,
 	Pad: string?,
+	DriveSlot: string?,
+	Shape: string?,
+	Chevron: number?,
+	Tint: Color3?,
 }
 
-type View = { Button: TextButton, Label: TextLabel, Icon: Frame, Badge: TextLabel, Stroke: UIStroke, Fill: Frame, Meter: Frame, MeterFill: Frame, Active: any }
+type View = { Button: TextButton, Label: TextLabel, Icon: Frame, Badge: TextLabel, Stroke: UIStroke, Fill: Frame, Meter: Frame, MeterFill: Frame, Active: any, Tint: Color3? }
 
 local specs: { [string]: Spec } = {}
 local order: { string } = {}
@@ -74,6 +84,7 @@ local gui: ScreenGui? = nil
 local hintsPanel: Frame? = nil
 local touch = false
 local started = false
+local driving = false -- al volante (móvil): colocación de conducir
 
 -- Botón «⋯» (móvil): cuando hay más botones de contexto que huecos, pasa de página
 local MORE_ID = "MasBotones"
@@ -99,6 +110,9 @@ end
 ---------------------------------------------------------------------
 local function buildView(spec: Spec): View
 	local big = spec.Slot ~= nil and (SLOT_ALIAS[spec.Slot] or spec.Slot) == "Ataque"
+	-- Pedales y flechas: rectángulos redondeados (el resto, círculos)
+	local boxy = spec.Shape == "Pedal" or spec.Shape == "Arrow"
+	local round = if boxy then UDim.new(0.22, 0) else UDim.new(1, 0)
 	local button = create("TextButton", {
 		Name = spec.Id,
 		AnchorPoint = Vector2.new(0.5, 0.5),
@@ -110,33 +124,51 @@ local function buildView(spec: Spec): View
 		Visible = false,
 		Parent = gui,
 	}, {
-		create("UICorner", { CornerRadius = UDim.new(1, 0) }),
+		create("UICorner", { CornerRadius = round }),
 		create("UIGradient", { Rotation = 90, Color = ColorSequence.new(rgb(120, 170, 255), rgb(40, 60, 120)) }),
 	})
-	local stroke = Theme.edge(button, nil, if big then 4 else 2.5)
-	Theme.halo(button, H.Glow, if big then 10 else 6, 999)
+	local stroke = Theme.edge(button, nil, if big or boxy then 4 else 2.5)
+	Theme.halo(button, H.Glow, if big then 10 else 6, if boxy then 18 else 999)
 	-- Disco interior más oscuro (da relieve de botón)
 	local fill = create("Frame", {
 		Name = "Fill",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromScale(0.84, 0.84),
-		BackgroundColor3 = H.Navy,
-		BackgroundTransparency = 0.45,
+		Size = if boxy then UDim2.fromScale(0.9, 0.92) else UDim2.fromScale(0.84, 0.84),
+		BackgroundColor3 = spec.Tint or H.Navy,
+		BackgroundTransparency = if spec.Tint then 0.2 else 0.45,
 		BorderSizePixel = 0,
 		Parent = button,
-	}, { create("UICorner", { CornerRadius = UDim.new(1, 0) }) })
-	local icon = Icons.new(spec.Icon, {
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.4),
-		Size = UDim2.fromScale(0.44, 0.44),
-		Parent = button,
-	})
+	}, { create("UICorner", { CornerRadius = round }) })
+	local icon: Frame
+	if spec.Chevron then
+		-- Flecha de girar: dibujada (grande y sin depender de la fuente)
+		icon = Icons.chevron({
+			Name = "Icon",
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.42),
+			Size = UDim2.fromScale(0.5, 0.5),
+			Rotation = spec.Chevron,
+			Thickness = 7,
+			Parent = button,
+		})
+		create("UIAspectRatioConstraint", { AspectRatio = 1, Parent = icon })
+	else
+		icon = Icons.new(spec.Icon, {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, if boxy then 0.38 else 0.4),
+			Size = if boxy then UDim2.fromScale(0.6, 0.34) else UDim2.fromScale(0.44, 0.44),
+			Parent = button,
+		})
+		if boxy then
+			create("UIAspectRatioConstraint", { AspectRatio = 1, Parent = icon })
+		end
+	end
 	local label = Theme.label({
 		Name = "Caption",
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.fromScale(0.5, 0.66),
-		Size = UDim2.fromScale(0.96, 0.2),
+		Position = UDim2.fromScale(0.5, if boxy then 0.74 else 0.66),
+		Size = if boxy then UDim2.fromScale(0.9, 0.14) else UDim2.fromScale(0.96, 0.2),
 		Text = spec.Label,
 		Font = Theme.FontBold,
 		TextScaled = true,
@@ -223,7 +255,7 @@ local function buildView(spec: Spec): View
 		-- (si el dedo sale del botón, InputEnded llega igual a UserInputService)
 		UserInputService.InputEnded:Connect(release)
 	end
-	return { Button = button, Label = label, Icon = icon, Badge = badge, Stroke = stroke, Fill = fill, Meter = meter, MeterFill = meterFill }
+	return { Button = button, Label = label, Icon = icon, Badge = badge, Stroke = stroke, Fill = fill, Meter = meter, MeterFill = meterFill, Tint = spec.Tint }
 end
 
 local WAIT = rgb(200, 145, 30) -- pedido pero aún no (ámbar)
@@ -235,9 +267,10 @@ local function paintActive(view: View, state: any)
 		return
 	end
 	view.Active = key
+	local tint = view.Tint
 	TweenService:Create(view.Fill, Theme.Fast, {
-		BackgroundColor3 = if on then H.Select elseif waiting then WAIT else H.Navy,
-		BackgroundTransparency = if on or waiting then 0.15 else 0.45,
+		BackgroundColor3 = if on then (if tint then tint:Lerp(Color3.new(1, 1, 1), 0.35) else H.Select) elseif waiting then WAIT else tint or H.Navy,
+		BackgroundTransparency = if on or waiting then 0.05 elseif tint then 0.2 else 0.45,
 	}):Play()
 end
 
@@ -342,6 +375,8 @@ function TouchLayout.refresh()
 		return
 	end
 	local layout = HudLayout.current()
+	-- Al volante: los huecos de conducir (pedales, flechas, luces…); solo los que piden DriveSlot
+	local slots = if driving and layout.DriveSlots then layout.DriveSlots else layout.Slots
 	local taken: { [string]: boolean } = {}
 	local placed: { [string]: string } = {}
 	local extras: { Spec } = {}
@@ -354,8 +389,8 @@ function TouchLayout.refresh()
 			continue
 		end
 		captions[caption] = true
-		local slot = if spec.Slot then (SLOT_ALIAS[spec.Slot] or spec.Slot) else nil
-		if slot and layout.Slots[slot] and not taken[slot] then
+		local slot = if driving then spec.DriveSlot elseif spec.Slot then (SLOT_ALIAS[spec.Slot] or spec.Slot) else nil
+		if slot and slots[slot] and not taken[slot] then
 			taken[slot] = true
 			placed[spec.Id] = slot
 		else
@@ -399,7 +434,7 @@ function TouchLayout.refresh()
 			local was = view.Button.Visible
 			view.Button.Visible = slot ~= nil
 			if slot then
-				HudLayout.apply(view.Button, layout.Slots[slot])
+				HudLayout.apply(view.Button, slots[slot])
 				view.Button:SetAttribute("Slot", slot)
 				if not was then
 					-- aparece con un pequeño salto
@@ -480,6 +515,21 @@ function TouchLayout.setSwimming(on: boolean, hidden: { [string]: boolean }?)
 	end
 	swimHidden = want
 	TouchLayout.refresh()
+end
+
+-- Al volante (Driving): otra colocación en el móvil. Devuelve si ha cambiado.
+function TouchLayout.setDriving(on: boolean): boolean
+	if driving == on then
+		return false
+	end
+	driving = on
+	extraPage = 1
+	TouchLayout.refresh()
+	return true
+end
+
+function TouchLayout.isDriving(): boolean
+	return driving
 end
 
 function TouchLayout.isTouch(): boolean
@@ -757,6 +807,7 @@ end
 function TouchLayout._reset()
 	specs, order, views, labels = {}, {}, {}, {}
 	busy, gui, hintsPanel, started = false, nil, nil, false
+	driving = false
 	swimHidden = nil
 	extraPage, moreBadge = 1, nil
 end

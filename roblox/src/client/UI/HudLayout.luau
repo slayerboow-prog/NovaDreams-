@@ -11,8 +11,9 @@
 --                             justo debajo de tu estado (y el joystick abajo a la izquierda)
 --   Abajo en el centro     -> la barra rápida del inventario (en el móvil, pegada al borde)
 --   Abajo a la derecha     -> los botones táctiles en racimo, pegados a la esquina (en el ordenador,
---                             las teclas)
---   Junto a la misión      -> el botón ❓ "¿Qué hago ahora?" (a su izquierda, bajo el minimapa)
+--                             las teclas). Al volante (móvil): pedales, freno de mano, luces e
+--                             intermitentes a la derecha y las flechas de girar a la izquierda (DriveSlots)
+--   Junto a la misión     -> el botón ❓ "¿Qué hago ahora?" (a su izquierda, bajo el minimapa)
 --   Abajo en el centro     -> encima de la barra rápida: la tarjeta de los primeros pasos, pistas y consejos
 --                             (y, en el metro, el panel del tren: Items.Ride)
 --
@@ -30,6 +31,7 @@ export type Layout = {
 	Touch: boolean,
 	Items: { [string]: Placement },
 	Slots: { [string]: Placement },
+	DriveSlots: { [string]: Placement }, -- (móvil, al volante: HudLayout.Drive y DriveLeft)
 	CommandRows: number,
 	-- La franja en la que cabe el menú de comandos al desplegarlo (⌄): de CommandTop a CommandBottom
 	CommandTop: number,
@@ -80,6 +82,35 @@ HudLayout.Cluster = {
 }
 HudLayout.ExtraSlots = 5
 local EXTRA_X, EXTRA_R, EXTRA_STEP, EXTRA_FIRST = -270, 32, 72, 92
+
+-- Conduciendo (móvil, al volante): otra colocación (TouchLayout.setDriving). { x, y, ancho, alto } del
+-- centro de cada hueco respecto a la esquina de abajo a la derecha (menos el margen):
+--   abajo, los pedales: FRENO y el ACELERAR alto pegado a la esquina (el pulgar derecho los pisa sin
+--   mirar); a su izquierda el freno de mano y las luces, y luego Bajarse y el claxon; encima de los
+--   pedales, la fila de intermitentes ⬅ ⚠ ➡; y arriba, los de contexto (sirena, linterna…).
+-- A la izquierda (en lugar del joystick, que se esconde) las dos flechas de girar ◀ ▶: HudLayout.DriveLeft,
+-- respecto a la esquina de abajo a la izquierda. Todo cabe entre la barra rápida, la misión y el menú
+-- de comandos en todas las pantallas (scripts/test-hud.luau lo comprueba).
+HudLayout.Drive = {
+	Acelerar = { -60, -120, 120, 240 },
+	Frenar = { -190, -90, 120, 180 },
+	FrenoMano = { -310, -50, 92, 92 },
+	Luces = { -310, -150, 80, 80 },
+	Bajarse = { -405, -50, 80, 80 },
+	Claxon = { -405, -150, 80, 80 },
+	IntIzq = { -310, -285, 72, 72 },
+	Emergencia = { -190, -285, 72, 72 },
+	IntDer = { -60, -285, 72, 72 },
+	Extra1 = { -405, -250, 64, 64 },
+	Extra2 = { -405, -330, 64, 64 },
+	Extra3 = { -310, -365, 60, 60 },
+	Extra4 = { -190, -365, 60, 60 },
+	Extra5 = { -60, -365, 60, 60 },
+}
+HudLayout.DriveLeft = {
+	GiroIzq = { 85, -95, 150, 170 },
+	GiroDer = { 265, -95, 150, 170 },
+}
 local CLUSTER_RIGHT = 128 -- lo que sobresale el racimo a la derecha del centro del Ataque
 local CLUSTER_BOTTOM = 124 -- y por debajo
 
@@ -109,6 +140,7 @@ function HudLayout.compute(viewport: Vector2, options: Options?): Layout
 	local W, H = canvas.X, canvas.Y
 	local items: { [string]: Placement } = {}
 	local slots: { [string]: Placement } = {}
+	local drive: { [string]: Placement } = {}
 
 	-- Arriba
 	local statusTop = math.max(inset + 4, 64)
@@ -184,6 +216,14 @@ function HudLayout.compute(viewport: Vector2, options: Options?): Layout
 			local y = ay + EXTRA_FIRST - (i - 1) * EXTRA_STEP
 			slots["Extra" .. i] = place(Vector2.new(0.5, 0.5), UDim2.new(1, -(W - (ax + EXTRA_X)), 1, -(H - y)), Vector2.new(EXTRA_R * 2, EXTRA_R * 2))
 		end
+		-- Al volante
+		for id, def in HudLayout.Drive do
+			drive[id] = place(Vector2.new(0.5, 0.5), UDim2.new(1, -MARGIN + def[1], 1, -MARGIN + def[2]), Vector2.new(def[3], def[4]))
+		end
+		for id, def in HudLayout.DriveLeft do
+			drive[id] = place(Vector2.new(0.5, 0.5), UDim2.new(0, MARGIN + def[1], 1, -MARGIN + def[2]), Vector2.new(def[3], def[4]))
+		end
+		drive.Ayuda = items.Help
 	else
 		items.Hints = place(Vector2.new(1, 1), UDim2.new(1, -MARGIN, 1, -MARGIN), s.Hints)
 	end
@@ -194,6 +234,7 @@ function HudLayout.compute(viewport: Vector2, options: Options?): Layout
 		Touch = touch,
 		Items = items,
 		Slots = slots,
+		DriveSlots = drive,
 		CommandRows = rows,
 		CommandTop = commandTop,
 		CommandBottom = H - commandBottom,
