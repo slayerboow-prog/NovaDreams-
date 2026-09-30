@@ -260,6 +260,7 @@ function Ambient.publish(roads: { { [string]: any } }, segments: { { [string]: a
 	for kind, count in { Moto = 3, Bici = 4, Patinete = 3 } do
 		for i = 1, count do
 			local model = Rides.build(kind, riders, CFrame.new())
+			Rides.foldStand(model, CFrame.new()) -- (en marcha: la pata recogida)
 			model.Name = kind .. i
 			model:SetAttribute("Kind", kind)
 			rider(model, kind)

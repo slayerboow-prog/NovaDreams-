@@ -24,6 +24,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local BusRoute = require(ReplicatedStorage.Shared.BusRoute)
 local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
 local Wetness = require(ReplicatedStorage.Shared.Wetness)
+local RideSpot = require(ReplicatedStorage.Shared.RideSpot)
 local Perf = require(script.Parent.Parent.UI.Perf)
 local Nudge = require(script.Parent.Nudge)
 
@@ -77,6 +78,8 @@ type Agent = {
 	Look: Vector3?, -- hacia dónde mira el morro (suavizado)
 	StuckAt: number?, -- desde cuándo está parado detrás del jugador
 	HonkAt: number?,
+	Pos: Vector3?, -- dónde se colocó en el último fotograma (para que tu vehículo choque con él)
+	Dir: Vector3?,
 }
 
 local nodes: { Vector3 } = {}
@@ -339,6 +342,20 @@ local function makeAgent(template: Model, kind: string): Agent
 			end
 		elseif d:IsA("Seat") or d:IsA("VehicleSeat") or d:IsA("ProximityPrompt") then
 			d:Destroy()
+		end
+	end
+	-- La carrocería (la pieza más grande) es sólida: a pie no se atraviesa un coche del tráfico.
+	-- (Tu vehículo choca con ellos con Traffic.blocking; siguen sin contar para los rayos: CanQuery.)
+	if kind == "Car" then
+		local body, volume = nil :: BasePart?, 0
+		for _, part in agent.Parts do
+			local v = part.Size.X * part.Size.Y * part.Size.Z
+			if part.Transparency < 0.5 and v > volume then
+				body, volume = part, v
+			end
+		end
+		if body then
+			body.CanCollide = true
 		end
 	end
 	return agent
@@ -646,6 +663,7 @@ local function setBraking(agent: Agent, braking: boolean)
 end
 
 local function place(agent: Agent, pos: Vector3, dir: Vector3)
+	agent.Pos, agent.Dir = pos, dir
 	local root = CFrame.lookAt(Vector3.new(pos.X, ROAD_TOP, pos.Z), Vector3.new(pos.X + dir.X, ROAD_TOP, pos.Z + dir.Z))
 	local cframes = table.create(#agent.Parts)
 	for i, offset in agent.Offsets do
@@ -851,6 +869,25 @@ local function step(dt: number, center: Vector3)
 end
 
 ---------------------------------------------------------------------
+
+-- ¿Toca tu vehículo (caja vista desde arriba: centro, hacia dónde mira, largo y ancho) algún
+-- vehículo del tráfico? Devuelve dónde está el primero que toca (nil = ninguno). Lo usa Driving:
+-- así tu coche o tu moto no atraviesan el tráfico (sus piezas no chocan: las mueve este script).
+function Traffic.blocking(pos: Vector3, dir: Vector3, length: number, width: number): Vector3?
+	for _, agent in agents do
+		local at, facing = agent.Pos, agent.Dir
+		if agent.Active and at and facing then
+			local reachSq = (length + agent.Length) * (length + agent.Length) / 4 + (width + agent.Width) * (width + agent.Width)
+			local dx, dz = at.X - pos.X, at.Z - pos.Z
+			if dx * dx + dz * dz <= reachSq and math.abs(pos.Y - ROAD_TOP) < 12 then
+				if RideSpot.boxesOverlap(pos, dir, length, width, at, facing, agent.Length, agent.Width) then
+					return Vector3.new(at.X, pos.Y, at.Z)
+				end
+			end
+		end
+	end
+	return nil
+end
 
 function Traffic.init(data: Instance)
 	local roads = {}

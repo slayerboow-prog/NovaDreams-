@@ -60,7 +60,7 @@ check(server:find("Killed = true", 1, true) ~= nil, "Rematar a alguien K.O. lo m
 -- servicios reales en un Roblox de mentira (scripts/lib/CrimeHarness). Antes: un niño en modo pruebas
 -- con un subfusil disparaba a la gente y solo salía «Si fueras mayor, vendría la policía»; y a un
 -- NPC de la calle se le podía acribillar sin que la víctima llamase (solo contaba como disparos al aire).
-do
+local okRun, runError = pcall(function()
 	local roblox = require("@lune/roblox")
 	local task = require("@lune/task")
 	local H = require("./lib/CrimeHarness")
@@ -122,6 +122,7 @@ do
 	check(not H.WeaponService.equip(kid, "Pistola"), "un niño normal no puede empuñar una pistola")
 	check(H.noticeHas(kid, "no son para niños", mark), "y se le dice por qué")
 	local profile = H.profiles[owner]
+	profile.Tester = profile.Tester or {}
 	profile.Tester.Bypass = false
 	H.WeaponService.holster(owner)
 	check(not H.WeaponService.equip(owner, "Subfusil"), "con «Sin requisitos» apagado, el niño tester tampoco")
@@ -158,14 +159,16 @@ do
 	check(H.InventoryService.count(officer, H.Weapons.itemId("Taser")) == 1, "al empezar el turno le dan el táser y la pistola")
 	check(H.WeaponService.equip(officer, "Taser"), "empuña el táser")
 	local thief = H.npc("Ladron", V(1800, 0, -15), { Suspect = true })
-	H.shoot(officer, thief)
+	check(H.shoot(officer, thief), "le da con el táser al ladrón de su aviso")
 	task.wait(wait)
 	check(officer:GetAttribute("Wanted") == nil, "reducir al sospechoso de su aviso con el táser no es delito")
 	local bystander = H.npc("Paseante5", V(1800, 0, 15))
-	H.shoot(officer, bystander)
+	H.profiles[officer].WeaponMags.Taser = H.Weapons.get("Taser").Magazine -- (recargado)
+	check(H.shoot(officer, bystander), "le da con el táser a un paseante")
 	task.wait(wait)
 	check((officer:GetAttribute("Wanted") or 0) >= 1, "pero a un paseante, sí (agresión)")
-end
+end)
+check(okRun, "las pruebas de disparos terminan sin errores" .. (if okRun then "" else ": " .. tostring(runError)))
 
 print()
 if failures == 0 then

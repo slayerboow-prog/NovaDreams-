@@ -172,6 +172,62 @@ local JOINTS_R6 = {
 local ARM_JOINTS = { RightShoulder = true, LeftShoulder = true, RightElbow = true, LeftElbow = true }
 local TAU = math.pi * 2
 
+-- Articulaciones: Motor6D o AnimationConstraint (las articulaciones nuevas de los avatares de Roblox,
+-- las que tiene el juego publicado). Antes solo se aceptaba Motor6D: con las nuevas no se encontraba
+-- ninguna, el cuerpo no se llevaba y agacharse no hacía nada (ni bajar ni doblar las piernas).
+-- Las dos tienen Transform; C0/C1 y las piezas de una AnimationConstraint salen de sus Attachment.
+local motorKind: { [any]: boolean } = setmetatable({}, { __mode = "k" }) :: any
+local function isMotor(joint: any): boolean
+	local known = motorKind[joint]
+	if known == nil then
+		known = typeof(joint) ~= "Instance" or joint:IsA("Motor6D") -- (las pruebas usan tablas con C0/C1)
+		motorKind[joint] = known
+	end
+	return known
+end
+local function isJoint(object: Instance?): boolean
+	return object ~= nil and (object:IsA("Motor6D") or object:IsA("AnimationConstraint"))
+end
+local function jointC0(joint: any): CFrame
+	if isMotor(joint) then
+		return joint.C0
+	end
+	local a = joint.Attachment0
+	return if a then a.CFrame else CFrame.identity
+end
+local function jointC1(joint: any): CFrame
+	if isMotor(joint) then
+		return joint.C1
+	end
+	local a = joint.Attachment1
+	return if a then a.CFrame else CFrame.identity
+end
+local function jointPart0(joint: any): BasePart?
+	if isMotor(joint) then
+		return joint.Part0
+	end
+	local a = joint.Attachment0
+	return a and a.Parent :: any
+end
+local function jointPart1(joint: any): BasePart?
+	if isMotor(joint) then
+		return joint.Part1
+	end
+	local a = joint.Attachment1
+	return a and a.Parent :: any
+end
+-- La articulación `name` en su pieza (o, si no está ahí, en cualquier parte del personaje)
+local function findJoint(model: Model, partName: string, name: string): any
+	local part = model:FindFirstChild(partName)
+	local joint = part and part:FindFirstChild(name)
+	if isJoint(joint) then
+		return joint
+	end
+	joint = model:FindFirstChild(name, true)
+	return if isJoint(joint) then joint else nil
+end
+Stances._jointC0, Stances._jointC1, Stances._jointPart1 = jointC0, jointC1, jointPart1
+
 type Leg = {
 	Side: number, -- 1 derecha, -1 izquierda
 	Hip: Motor6D,

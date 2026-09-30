@@ -58,6 +58,19 @@ inventadas, sin palabras. Son cortos, en mono y ocupan poco. Los que van en bucl
 | `trueno.ogg` | Trueno (4 s) | Tormenta, tras cada relámpago | `Seasons.Sounds.Thunder` |
 | `pajaros.ogg` | Pájaros, pocos cantos (bucle 8 s) | De día con buen tiempo (más en primavera) | `Seasons.Sounds.Birds` |
 | `viento.ogg` | Viento (bucle 8 s) | Siempre flojito; más con tormenta, nieve o en lo alto | `Seasons.Sounds.Wind` |
+| `choque_leve.ogg` | Choque flojo de coche: "tunk" de chapa y algún trasto (0,45 s) | Chocar despacio (menos de 30) | `Sounds.ChoqueLeve` |
+| `choque_fuerte.ogg` | Choque fuerte: crujido de chapa, traqueteo y cristalitos (0,9 s) | Chocar rápido | `Sounds.ChoqueFuerte` |
+| `golpe_caida.ogg` | "Pof" corto del cuerpo al caer (0,26 s) | Caer desde alto | `Sounds.GolpeCaida` |
+| `golpe_choque.ogg` | "Tuc" seco (0,2 s) | Chocar corriendo con una pared, puñetazos | `Sounds.Golpe` |
+| `disparo_pistola.ogg` | Disparo de pistola, seco y agudo (0,45 s) | Pistola y pistola de policía | `Sounds.DisparoPistola` |
+| `disparo_revolver.ogg` | Disparo de revólver, más gordo (0,65 s) | Revólver | `Sounds.DisparoRevolver` |
+| `disparo_escopeta.ogg` | Estampido ancho de escopeta (0,85 s) | Escopeta | `Sounds.DisparoEscopeta` |
+| `disparo_subfusil.ogg` | Disparo corto y seco para ráfagas (0,28 s) | Subfusil | `Sounds.DisparoSubfusil` |
+| `disparo_fusil.ogg` | Chasquido supersónico + estampido (0,7 s) | Fusil y (más lento) francotirador | `Sounds.DisparoFusil`, `Sounds.DisparoFrancotirador` |
+| `disparo_eco.ogg` | Eco del disparo en los edificios, apagado (1,1 s) | Detrás de cada disparo | `Sounds.EcoDisparo` |
+
+Golpes, choques y disparos no tienen subgraves (nada de "bum" de bomba). Mientras no estén subidos suena su
+`Fallback` de Config (un sonido de Roblox agudo y flojo) y el eco no suena.
 
 Los de ambiente (multitud, andén, lluvia, trueno, pájaros, viento) van al grupo **Ambience**; los demás, a
 **SFX**. El botón «Sonidos: no» los calla todos.
@@ -65,7 +78,7 @@ Los de ambiente (multitud, andén, lluvia, trueno, pájaros, viento) van al grup
 ## Cómo ponerlos en el juego — forma fácil (Studio, sin copiar IDs)
 
 1. Abre el juego en Roblox Studio.
-2. **Window → Asset Manager → Bulk Import** y elige los 12 archivos `.ogg` de la carpeta `audio/sfx`.
+2. **Window → Asset Manager → Bulk Import** y elige los archivos `.ogg` de la carpeta `audio/sfx`.
 3. Si no existe, crea una carpeta **Sonidos** dentro de **ReplicatedStorage** (clic derecho → Insert
    Object → Folder, y le cambias el nombre).
 4. En el Asset Manager, carpeta **Audio**, arrastra cada audio al **Explorer**, dentro de

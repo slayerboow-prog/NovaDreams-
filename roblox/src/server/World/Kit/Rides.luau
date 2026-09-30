@@ -107,13 +107,31 @@ end
 local function cyl(m: Model, name: string, length: number, diameter: number, cf: CFrame, color: Color3, material: Enum.Material?): BasePart
 	return Builder.decor({ Name = name, Shape = Enum.PartType.Cylinder, Size = Vector3.new(length, diameter, diameter), CFrame = cf, Color = color, Material = material or Enum.Material.SmoothPlastic, Parent = m })
 end
--- Tubo de a hasta b (puntos en coordenadas del vehículo: x, y, z)
-local function tube(m: Model, cf: CFrame, name: string, a: Vector3, b: Vector3, thickness: number, color: Color3, material: Enum.Material?)
+-- Dónde va un tubo de a hasta b (puntos en coordenadas del vehículo: x, y, z), a lo largo de su Z
+local function tubeFrame(a: Vector3, b: Vector3): CFrame
 	local d = b - a
-	local len = d.Magnitude
 	local angle = math.atan2(-d.Y, d.Z)
 	local yaw = math.atan2(d.X, math.sqrt(d.Y * d.Y + d.Z * d.Z))
-	return bit(m, name, Vector3.new(thickness, thickness, len), cf * CFrame.new((a + b) / 2) * CFrame.Angles(angle, 0, 0) * CFrame.Angles(0, yaw, 0), color, material or Enum.Material.Metal)
+	return CFrame.new((a + b) / 2) * CFrame.Angles(angle, 0, 0) * CFrame.Angles(0, yaw, 0)
+end
+Rides.tubeFrame = tubeFrame
+
+-- Tubo de a hasta b (puntos en coordenadas del vehículo: x, y, z)
+local function tube(m: Model, cf: CFrame, name: string, a: Vector3, b: Vector3, thickness: number, color: Color3, material: Enum.Material?)
+	local len = (b - a).Magnitude
+	return bit(m, name, Vector3.new(thickness, thickness, len), cf * tubeFrame(a, b), color, material or Enum.Material.Metal)
+end
+
+-- Pata de cabra (moto) o caballete (patinete): un tubo que gira en a. Abajo (aparcado) llega al
+-- suelo en b; recogida (en marcha) queda tumbada hacia atrás, pegada a la carrocería.
+-- Rides.prepare la suelda con una Weld (StandWeld) y Rides.setStand la sube o la baja.
+local function kickstand(m: Model, cf: CFrame, a: Vector3, b: Vector3, thickness: number, color: Color3)
+	local part = tube(m, cf, "Kickstand", a, b, thickness, color)
+	local len = (b - a).Magnitude
+	part:SetAttribute("StandA", a)
+	part:SetAttribute("StandB", b)
+	part:SetAttribute("StandFolded", a + Vector3.new((b.X - a.X) * 0.25, 0.08, len))
+	return part
 end
 -- Rueda con radios (bici): neumático, llanta, buje y radios
 local function spokedWheel(m: Model, cf: CFrame, radius: number, width: number, rimColor: Color3, spokes: number)
@@ -258,7 +276,7 @@ local function moto(m: Model, cf: CFrame, color: Color3)
 	-- Escape cromado y caballete
 	tube(m, cf, "Exhaust", Vector3.new(0.6, 0.9, -0.2), Vector3.new(0.65, 1.2, 1.9), 0.3, CH)
 	cyl(m, "ExhaustTip", 0.3, 0.35, cf * CFrame.new(0.65, 1.22, 2.05) * CFrame.Angles(0, math.rad(90), 0), rgb(60, 60, 64), Enum.Material.Metal)
-	tube(m, cf, "Kickstand", Vector3.new(-0.5, 0.9, 0.2), Vector3.new(-0.9, 0.1, 0.4), 0.1, DARK)
+	kickstand(m, cf, Vector3.new(-0.5, 0.9, 0.2), Vector3.new(-0.9, 0.1, 0.4), 0.1, DARK)
 end
 
 local function patinete(m: Model, cf: CFrame, color: Color3)
@@ -294,7 +312,7 @@ local function patinete(m: Model, cf: CFrame, color: Color3)
 	bit(m, "Display", Vector3.new(0.4, 0.06, 0.3), cf * CFrame.new(0, 4.12, -1.72), rgb(60, 180, 255), Enum.Material.Neon)
 	box(m, "Headlight", Vector3.new(0.4, 0.3, 0.2), cf * CFrame.new(0, 3.5, -1.72), rgb(255, 250, 230), Enum.Material.Neon)
 	bit(m, "Logo", Vector3.new(0.05, 0.6, 0.3), cf * CFrame.new(0.13, 2.5, -1.56), rgb(250, 250, 250))
-	tube(m, cf, "Kickstand", Vector3.new(-0.45, 0.5, 0.3), Vector3.new(-0.7, 0.05, 0.6), 0.08, DARK)
+	kickstand(m, cf, Vector3.new(-0.45, 0.5, 0.3), Vector3.new(-0.7, 0.05, 0.6), 0.08, DARK)
 end
 
 local function coche(m: Model, cf: CFrame, color: Color3)
@@ -1019,10 +1037,27 @@ function Rides.prepare(model: Model, kind: string, groundCf: CFrame): (BasePart,
 			part.Anchored = false
 			part.Massless = true
 			part.CanTouch = false
-			local weld = Instance.new("WeldConstraint")
-			weld.Part0 = chassis
-			weld.Part1 = part
-			weld.Parent = part
+			local a, b, folded = part:GetAttribute("StandA"), part:GetAttribute("StandB"), part:GetAttribute("StandFolded")
+			if part.Name == "Kickstand" and typeof(a) == "Vector3" and typeof(b) == "Vector3" and typeof(folded) == "Vector3" then
+				-- La pata gira: Weld con su sitio abajo y recogida (respecto a la base)
+				local toChassis = CFrame.new(0, -spec.Size.Y / 2, 0)
+				local down = toChassis * tubeFrame(a, b)
+				local up = toChassis * tubeFrame(a, folded)
+				part:SetAttribute("StandDown", down)
+				part:SetAttribute("StandUp", up)
+				local weld = Instance.new("Weld")
+				weld.Name = "StandWeld"
+				weld.Part0 = chassis
+				weld.Part1 = part
+				weld.C0 = down
+				weld.C1 = CFrame.new()
+				weld.Parent = part
+			else
+				local weld = Instance.new("WeldConstraint")
+				weld.Part0 = chassis
+				weld.Part1 = part
+				weld.Parent = part
+			end
 		end
 	end
 	model.PrimaryPart = chassis
@@ -1032,6 +1067,41 @@ function Rides.prepare(model: Model, kind: string, groundCf: CFrame): (BasePart,
 	model:SetAttribute("Drivable", true)
 	model:SetAttribute("Kind", kind)
 	return chassis, seat
+end
+
+-- Pata de cabra de la moto / caballete del patinete: down = true la baja (aparcado, sin nadie),
+-- false la recoge (en marcha). Se mueve en un momento (tween), no de golpe.
+function Rides.setStand(model: Model, down: boolean)
+	for _, part in model:GetDescendants() do
+		if part.Name ~= "Kickstand" or not part:IsA("BasePart") then
+			continue
+		end
+		local weld = part:FindFirstChild("StandWeld")
+		local goal = part:GetAttribute(if down then "StandDown" else "StandUp")
+		if not weld or not weld:IsA("Weld") or typeof(goal) ~= "CFrame" then
+			continue
+		end
+		part:SetAttribute("StandIsDown", down)
+		local ok = pcall(function()
+			local TweenService = game:GetService("TweenService")
+			TweenService:Create(weld, TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { C0 = goal }):Play()
+		end)
+		if not ok then
+			weld.C0 = goal
+		end
+	end
+end
+
+-- Recoge la pata de un modelo que no se conduce con Rides.prepare (las motos y patinetes del tráfico,
+-- que siempre van en marcha). cf = el CFrame con el que se construyó.
+function Rides.foldStand(model: Model, cf: CFrame)
+	for _, part in model:GetDescendants() do
+		local a, folded = part:GetAttribute("StandA"), part:GetAttribute("StandFolded")
+		if part.Name == "Kickstand" and part:IsA("BasePart") and typeof(a) == "Vector3" and typeof(folded) == "Vector3" then
+			part.CFrame = cf * tubeFrame(a, folded)
+			part:SetAttribute("StandIsDown", false)
+		end
+	end
 end
 
 -- Estación pública de bicis y monopatines (tag RentalStation). La usa VehicleService.

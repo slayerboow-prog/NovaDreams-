@@ -118,9 +118,133 @@ check(math.abs(p0.X) < 0.01 and math.abs(p0.Z - 5) < 0.01 and dir.X > 0.99, "va 
 check(math.abs(p1.X - 100) < 0.01 and math.abs(p1.Z + 5) < 0.01, "en sentido contrario, por el otro carril")
 check(math.abs(Routes.length(segs[3]) - 100) < 0.01, "largo de un tramo")
 
+print("▶ Las patrullas miran hacia donde van (también tras dar la vuelta)")
+-- El coche patrulla se orienta con PatrolRoutes.turnToward (PoliceUnits.stepPatrol). Antes era
+-- look:Lerp(dir): en un callejón sin salida dir = -look y la mezcla nunca cambiaba de sentido,
+-- así que el coche seguía mirando hacia atrás (circulaba marcha atrás) hasta el siguiente cruce.
+do
+	local function drive(segments, startIndex: number, seconds: number): (number, number)
+		local g = Routes.graph(segments)
+		local index, fromSide, t = startIndex, "A", 0.5
+		local _, look = Routes.point(g.Segments[index], fromSide, t, 5)
+		local pos = Routes.point(g.Segments[index], fromSide, t, 5)
+		local dt, speed = 1 / 30, 24
+		local backwards, worst = 0, 1
+		for _ = 1, math.floor(seconds / dt) do
+			local seg = g.Segments[index]
+			t += speed * dt / Routes.length(seg)
+			if t >= 1 then
+				index, fromSide = Routes.next(g, index, if fromSide == "A" then "B" else "A", function()
+					return 1
+				end)
+				t = 0
+			end
+			local point, dir = Routes.point(g.Segments[index], fromSide, t, 5)
+			local velocity = point - pos
+			pos = point
+			look = Routes.turnToward(look, dir, 3.5 * dt)
+			if velocity.Magnitude > 0.05 then
+				local dot = look:Dot(velocity.Unit)
+				worst = math.min(worst, dot)
+				if dot < 0 then
+					backwards += dt
+				end
+			end
+		end
+		return backwards, worst
+	end
+	-- Una calle sin salida (da la vuelta dos veces)
+	local backwards, _ = drive({ { A = V(0, 0, 0), B = V(0, 0, -120) } }, 1, 20)
+	check(backwards < 1.2, ("en un callejón sin salida da media vuelta en menos de un segundo (%.2f s mirando atrás)"):format(backwards))
+	local turned = Routes.turnToward(V(0, 0, -1), V(0, 0, 1), 0.2)
+	check(turned:Dot(V(0, 0, -1)) < 0.999 and math.abs(turned.Magnitude - 1) < 1e-3, "en media vuelta exacta empieza a girar (antes se quedaba mirando atrás)")
+	local done = V(0, 0, -1)
+	for _ = 1, 40 do
+		done = Routes.turnToward(done, V(0, 0, 1), 0.12)
+	end
+	check(done:Dot(V(0, 0, 1)) > 0.999, "y acaba mirando hacia donde va")
+	check(Routes.turnToward(V(1, 0, 0), V(0, 0, -1), 10):Dot(V(0, 0, -1)) > 0.999, "un giro pequeño se hace entero")
+	-- Una vuelta a la manzana: cuatro calles en cuadrado
+	local square = {
+		{ A = V(0, 0, 0), B = V(200, 0, 0) },
+		{ A = V(200, 0, 0), B = V(200, 0, 200) },
+		{ A = V(200, 0, 200), B = V(0, 0, 200) },
+		{ A = V(0, 0, 200), B = V(0, 0, 0) },
+	}
+	local back2, worst2 = drive(square, 1, 60)
+	check(back2 == 0 and worst2 > 0, ("dando vueltas a la manzana nunca va marcha atrás (peor LookVector·velocidad = %.2f)"):format(worst2))
+	local source = fs.readFile("src/server/World/PoliceUnits.luau")
+	check(source:find("PatrolRoutes.turnToward", 1, true) ~= nil and not source:find("look:Lerp(dir", 1, true), "PoliceUnits gira las patrullas con turnToward (no con Lerp)")
+end
+
+-- Delitos con los servicios de verdad (scripts/lib/CrimeHarness): el modo pruebas no libra a un
+-- niño de la policía, un niño normal sí se libra (solo aviso), y agredir a un agente escala.
+local okRun, runError = pcall(function()
+	local task = require("@lune/task")
+	local H = require("./lib/CrimeHarness")
+	H.boot()
+	local W = H.WantedService
+	local wait = H.Wanted.CallDelay + 0.6
+
+	print("▶ Menores y modo pruebas")
+	local kid = H.player("Niño", 6001, "Nino", V(0, 0, 0))
+	local witness = H.npc("Testigo", V(0, 0, -10))
+	local mark = #H.sent
+	W.crime(kid, "Agresion")
+	task.wait(wait)
+	check(kid:GetAttribute("Wanted") == nil and H.dispatch[kid] == nil, "un niño normal no tiene estrellas (sin modo pruebas)")
+	check(H.noticeHas(kid, "Si fueras mayor", mark), "solo el aviso «Si fueras mayor, vendría la policía»")
+	local owner = H.player("Dueño", H.CREATOR, "Nino", V(500, 0, 0))
+	H.npc("Testigo2", V(500, 0, -10))
+	mark = #H.sent
+	W.crime(owner, "Agresion")
+	task.wait(wait)
+	check(owner:GetAttribute("Wanted") == 1 and H.dispatch[owner] == 1, "un niño tester con «Sin requisitos»: 1 estrella y una patrulla")
+	check(not H.noticeHas(owner, "Si fueras mayor", mark) and H.noticeHas(owner, "Modo pruebas", mark), "con el aviso del modo pruebas, no el de «Si fueras mayor»")
+	mark = #H.sent
+	W.crime(owner, "Agresion")
+	task.wait(wait)
+	check(#H.notices(owner, mark) == 0 or not H.noticeHas(owner, "Modo pruebas", mark), "el aviso del modo pruebas sale una sola vez")
+	W.clear(owner)
+	check(owner:GetAttribute("Wanted") == nil and H.dispatch[owner] == nil, "quitar la búsqueda retira las patrullas")
+	H.profiles[owner].Tester = { Bypass = false }
+	W.crime(owner, "Agresion")
+	task.wait(wait)
+	check(owner:GetAttribute("Wanted") == nil, "con «Sin requisitos» apagado vuelve a ser un niño para la policía")
+	H.profiles[owner].Tester.Bypass = true
+	check(witness.Parent ~= nil, "(el testigo sigue ahí)")
+
+	print("▶ Agredir a un agente de policía")
+	local adult = H.player("Adulto", 6002, "Adulto", V(1000, 0, 0))
+	local officer = H.officer(V(1000, 0, -5))
+	local result = H.CombatService.applyHit(adult, officer, { Amount = 25, Direction = V(0, 0, -1), Weapon = "Pistola" })
+	task.wait(0.1)
+	check(result.Hit and officer:GetAttribute("Hp") == 15, "el agente recibe el daño")
+	check(adult:GetAttribute("Wanted") == H.Wanted.Crimes.AgresionPolicia.Stars, "al momento: estrellas por agredir a un agente (sin esperar testigos)")
+	check(H.dispatch[adult] == adult:GetAttribute("Wanted"), "y salen las patrullas de esas estrellas")
+	H.CombatService.applyHit(adult, officer, { Amount = 25, Direction = V(0, 0, -1), Weapon = "Pistola" })
+	task.wait(0.1)
+	check(adult:GetAttribute("Wanted") == 2 * H.Wanted.Crimes.AgresionPolicia.Stars, "otro disparo al agente: la búsqueda escala")
+	check(officer:GetAttribute("Down") == true, "el agente cae al quedarse sin vida")
+
+	print("▶ Disparar a un personaje de la calle (sin jugador de por medio)")
+	local shooter = H.player("Tirador", 6003, "Adulto", V(1500, 0, 0))
+	local passer = H.npc("Paseante", V(1500, 0, -80)) -- (lejos: ningún otro testigo cerca)
+	H.CombatService.applyHit(shooter, passer, { Amount = 30, Direction = V(0, 0, -1), Weapon = "Fusil" })
+	task.wait(wait)
+	check(shooter:GetAttribute("Wanted") == H.Wanted.Crimes.Disparo.Stars, "la víctima llama aunque esté lejos: «Disparar a una persona»")
+	local toy = H.player("Juguete", 6004, "Adulto", V(2000, 0, 0))
+	local wet = H.npc("Mojado", V(2000, 0, -10))
+	H.CombatService.applyHit(toy, wet, { Amount = 0, Direction = V(0, 0, -1), Weapon = "PistolaAgua", Toy = true })
+	task.wait(wait)
+	check(toy:GetAttribute("Wanted") == nil, "una pistola de agua no es delito")
+end)
+check(okRun, "las pruebas con los servicios terminan sin errores" .. (if okRun then "" else ": " .. tostring(runError)))
+
 print()
 if failures == 0 then
 	print("✅ Todo correcto")
+	process.exit(0)
 else
 	print(("❌ %d fallos"):format(failures))
 	process.exit(1)

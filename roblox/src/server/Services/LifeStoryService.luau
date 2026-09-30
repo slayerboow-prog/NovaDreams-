@@ -67,6 +67,7 @@ local NeedsService = require(script.Parent.NeedsService)
 local Memories = require(LifeStory.Memories)
 local StoryContext = require(LifeStory.StoryContext)
 local Log = require(ReplicatedStorage.Shared.Log)
+local RideState = require(ReplicatedStorage.Shared.RideState)
 
 local LifeStoryService = {}
 
@@ -134,6 +135,10 @@ type Runtime = {
 	AwaySeconds: number?, -- cuánto tiempo llevaba fuera al entrar
 	RecapPending: boolean?, -- toca enseñar el resumen en cuanto no esté ocupado
 	JustOffered: string?, -- misión que acaba de aceptar en una oferta (ya vio su contexto)
+	-- Escenas que esperan (conduces, o es una misión que no sigues): ver canAutoStart
+	Engaged: { [string]: number }?, -- misión -> la última vez que el jugador hizo algo en ella (os.clock)
+	HeldNotice: { [string]: boolean }?, -- avisos «📱 … quiere hablar contigo» ya mandados (misión:paso:motivo)
+	CineHeld: { [string]: number }?, -- misión -> paso de escena de cine que espera a poder verse
 }
 local runtime: { [Player]: Runtime } = {}
 local PROLOGUE = StoryContext.PrologueId

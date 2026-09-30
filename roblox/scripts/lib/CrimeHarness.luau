@@ -84,10 +84,10 @@ function remotes:WaitForChild(name)
 end
 H.remotes = remoteList
 
--- Avisos (Notify) que ha recibido un jugador desde el índice `from` de H.sent
+-- Avisos (Notify) que ha recibido un jugador después de la marca `from` (= #H.sent de antes)
 function H.notices(player, from: number?): { string }
 	local list = {}
-	for i = from or 1, #H.sent do
+	for i = (from or 0) + 1, #H.sent do
 		local m = H.sent[i]
 		if m.Player == player and m.Remote == "Notify" and type(m.Payload) == "string" then
 			table.insert(list, m.Payload)

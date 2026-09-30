@@ -322,6 +322,55 @@ for _, tag in { '"GunShop"', '"GunLicence"', '"ShootingRange"', '"RangeTarget"',
 	check(kit:find(tag, 1, true) ~= nil, "la Armería tiene " .. tag)
 end
 
+print("▶ Sonidos de disparos, choques y golpes (nada de \"bomba atómica\")")
+do
+	local Config = luau.load(fs.readFile("src/shared/Config.luau"), {
+		debugName = "Config",
+		environment = setmetatable({ Vector3 = Vector3, CFrame = CFrame, Color3 = roblox.Color3, Enum = roblox.Enum, UDim2 = roblox.UDim2, NumberRange = roblox.NumberRange, script = {} }, { __index = getfenv(1) }),
+	})()
+	local S = Config.Sounds
+	local COLLIDE = "rbxasset://sounds/collide.wav"
+	-- collide.wav grave (Pitch < 0.9) es el "bum" feo: ni en el sonido ni en su Fallback
+	local low = {}
+	for name, entry in S do
+		for _, e in { entry, entry.Fallback or {} } do
+			if e.Id == COLLIDE and (e.Pitch or 1) < 0.9 then
+				table.insert(low, name)
+			end
+		end
+	end
+	check(#low == 0, "ningún sonido usa collide.wav con Pitch < 0.9" .. (if #low > 0 then " (" .. table.concat(low, ", ") .. ")" else ""))
+	-- Los de impacto y los disparos son nuestros (audio/sfx) y el archivo existe
+	local ours = { "Golpe", "GolpeCaida", "ChoqueLeve", "ChoqueFuerte", "EcoDisparo" }
+	for _, w in W do
+		if w.Kind == "Real" then
+			table.insert(ours, w.Sound.Shot)
+		end
+	end
+	for _, name in ours do
+		local e = S[name]
+		local okFile = e ~= nil and e.Id == 0 and type(e.File) == "string" and fs.isFile("audio/sfx/" .. e.File .. ".ogg")
+		check(okFile, name .. ": Id = 0 + File de audio/sfx (" .. tostring(e and e.File) .. ".ogg existe)")
+		if e and e.Fallback then
+			check(e.Fallback.Id ~= COLLIDE or ((e.Fallback.Volume or 1) <= 0.8 and (e.Fallback.Pitch or 1) >= 0.9), name .. ": Fallback suave (collide.wav agudo y flojo)")
+		end
+	end
+	check(S.Choque == nil, "ya no existe el Choque viejo (collide.wav a Pitch 0.55)")
+	-- Los multiplicadores de tono de las armas no lo vuelven grave
+	for id, w in W do
+		local e = S[w.Sound.Shot]
+		if e and e.Id == COLLIDE then
+			check((e.Pitch or 1) * (w.Sound.Pitch or 1) >= 0.9, id .. ": su disparo no baja collide.wav de 0.9")
+		end
+	end
+	-- SoundFx: choques con tope de volumen, espera por vehículo y dos clips; caída: un solo sonido
+	local src = fs.readFile("src/client/Controllers/SoundFx.luau")
+	check(src:find("CRASH_MAX_VOLUME, CRASH_COOLDOWN = 8, 30, 0.8, 0.35", 1, true) ~= nil, "SoundFx.crash: volumen ≤ 0.8, uno cada 0.35 s por vehículo, flojo/fuerte a partir de 30")
+	check(src:find('SoundFx.play("Aterrizaje"', 1, true) == nil and src:find('SoundFx.play("GolpeCaida", SoundFx.landingVolume(fallSpeed)', 1, true) ~= nil, "caer desde alto toca un solo sonido (GolpeCaida) con volumen según la caída")
+	check(src:find("COLLIDE_MIN_PITCH = 0.9", 1, true) ~= nil, "SoundFx nunca toca collide.wav por debajo de 0.9 (aunque lo pida quien llama)")
+	check(fs.readFile("src/client/Controllers/WeaponFx.luau"):find("SoundFx.tune(name, id", 1, true) ~= nil, "WeaponFx usa el volumen/tono del Fallback si el audio aún no está subido")
+end
+
 print()
 if failures == 0 then
 	print("✅ Todo correcto")

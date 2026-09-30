@@ -29,12 +29,8 @@ local function applyWalkSpeed(player: Player)
 	if not data or not humanoid then
 		return
 	end
-	-- Montado en un vehículo manda la velocidad del vehículo (VehicleService)
-	local vehicleSpeed = player:GetAttribute("VehicleSpeed")
-	if typeof(vehicleSpeed) == "number" then
-		humanoid.WalkSpeed = vehicleSpeed
-		return
-	end
+	-- (Montado en un vehículo NO se toca: al vehículo lo mueve Controllers/Driving, no el andar. Antes
+	-- se ponía la velocidad del vehículo y, si el personaje no llegaba a sentarse, corría a 80 a pie.)
 	local tired = data.Hunger <= Config.Needs.LowThreshold or data.Energy <= Config.Needs.LowThreshold
 	-- La velocidad base depende de la etapa de vida (LifeService); si estás agotado, vas más lento
 	local base = player:GetAttribute("StageWalkSpeed") or Config.WalkSpeed
