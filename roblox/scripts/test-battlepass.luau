@@ -717,27 +717,28 @@ check(profiles[eva].BattlePass.Missions.Weekly.Key ~= oldWeek and next(profiles[
 
 print("▶ Historia de temporada por fases")
 local story = S1.Missions.Story[1]
+local iris = newPlayer("Iris", 1013, "Adulto")
 local st = function()
-	return profiles[eva].BattlePass.Missions.Story[story.Id]
+	return profiles[iris].BattlePass.Missions.Story[story.Id]
 end
-BattlePass.ensure(eva)
-Missions.onEvent(eva, "ZoneEntered", { Zone = "San Roque" })
+BattlePass.ensure(iris)
+Missions.onEvent(iris, "ZoneEntered", { Zone = "San Roque" })
 check((st() == nil or st().Phase == 1), "fase 1: ir a otro barrio no vale")
-check(Missions.track(eva, story.Id) and eva:GetAttribute("SeasonTarget") ~= nil, "«Seguir» la fase pone el destino en el GPS (SeasonTarget)")
-Missions.onEvent(eva, "ZoneEntered", { Zone = "Valmar Centro" })
-check(st().Phase == 2 and eva:GetAttribute("SeasonTarget") == nil, "fase 1 hecha en la Plaza del Centro (el GPS se quita)")
-Missions.onEvent(eva, "Talk", { Npc = "Mateo" })
-Missions.onEvent(eva, "RodeMetro", { Station = "Levante" })
+check(Missions.track(iris, story.Id) and iris:GetAttribute("SeasonTarget") ~= nil, "«Seguir» la fase pone el destino en el GPS (SeasonTarget)")
+Missions.onEvent(iris, "ZoneEntered", { Zone = "Valmar Centro" })
+check(st().Phase == 2 and iris:GetAttribute("SeasonTarget") == nil, "fase 1 hecha en la Plaza del Centro (el GPS se quita)")
+Missions.onEvent(iris, "Talk", { Npc = "Mateo" })
+Missions.onEvent(iris, "RodeMetro", { Station = "Levante" })
 for _ = 1, 5 do
-	Missions.onEvent(eva, "JobTaskDone", { JobId = "Barista" })
+	Missions.onEvent(iris, "JobTaskDone", { JobId = "Barista" })
 end
-Missions.onEvent(eva, "ZoneEntered", { Zone = "Playa Dorada" })
-Missions.onEvent(eva, "ZoneEntered", { Zone = "Villaverde" })
+Missions.onEvent(iris, "ZoneEntered", { Zone = "Playa Dorada" })
+Missions.onEvent(iris, "ZoneEntered", { Zone = "Villaverde" })
 check(st().Phase == #story.Phases and not st().Done, "llega a la decisión final")
-local okChoice, codeChoice = Missions.choose(eva, story.Id, "Inventada")
+local okChoice, codeChoice = Missions.choose(iris, story.Id, "Inventada")
 check(not okChoice and codeChoice == "BadRequest", "una opción que no existe no vale")
-check(Missions.choose(eva, story.Id, "Modernizar") and st().Done and st().Choice == "Modernizar", "decide y la historia se completa")
-check(profiles[eva].Cosmetics.Owned[story.Reward.Id] ~= nil, "recibe el título de recuerdo «" .. story.Reward.Name .. "»")
+check(Missions.choose(iris, story.Id, "Modernizar") and st().Done and st().Choice == "Modernizar", "decide y la historia se completa")
+check(profiles[iris].Cosmetics.Owned[story.Reward.Id] ~= nil, "recibe el título de recuerdo «" .. story.Reward.Name .. "»")
 
 print("▶ Evento de temporada")
 local event = S1.Events[1]
@@ -754,10 +755,10 @@ clock = saved
 print("▶ Equipar y colección")
 local okEquip, codeEquip = Rewards.equip(eva, "Title", "S1_P50_Title")
 check(not okEquip and codeEquip == "NotOwned", "no se puede equipar lo que no tienes")
-check(Rewards.equip(eva, "Title", story.Reward.Id) and eva:GetAttribute("BP_Title") == story.Reward.Text, "equipar un título tuyo")
-okEquip = Rewards.equip(eva, "Nameplate", story.Reward.Id)
+check(Rewards.equip(iris, "Title", story.Reward.Id) and iris:GetAttribute("BP_Title") == story.Reward.Text, "equipar un título tuyo")
+okEquip = Rewards.equip(iris, "Nameplate", story.Reward.Id)
 check(not okEquip, "un título no va en el hueco de la placa")
-check(Rewards.equip(eva, "Title", nil) and eva:GetAttribute("BP_Title") == nil, "quitarse el título")
+check(Rewards.equip(iris, "Title", nil) and iris:GetAttribute("BP_Title") == nil, "quitarse el título")
 
 print("▶ Recompensa que ya no existe")
 local removed = table.clone(S1.Rewards)
