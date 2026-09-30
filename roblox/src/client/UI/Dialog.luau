@@ -90,6 +90,15 @@ function Dialog._fit(window: Frame)
 	fit.Scale = math.clamp(want / base, 0.3, 1)
 end
 
+-- Ventanas que NO cierran las demás: preguntas y avisos que llegan solos (una invitación, un
+-- intercambio) y ventanas de trabajo (caja del súper, barra, charcutería…). Si cerraran la tienda o
+-- la lista de misiones, cada invitación te echaba de lo que estabas mirando.
+local chooseCount = 0
+local KEEP_OTHERS = {
+	Choose = true, Trade = true, SuperScan = true, SuperReceipt = true, SuperDeli = true,
+	SuperDeliWork = true, Bar = true, ArcadeGame = true, MetroBusk = true, MedicalMeds = true,
+}
+
 -- Ventana centrada con título y ✖. Devuelve (ventana, contenido, botón cerrar).
 function Dialog.window(name: string, title: string, size: Vector2): (Frame, Frame, TextButton)
 	local existing = root():FindFirstChild(name)
@@ -97,7 +106,9 @@ function Dialog.window(name: string, title: string, size: Vector2): (Frame, Fram
 		existing:Destroy()
 	end
 	-- Fuera el menú, los controles, las misiones o la tienda que hubiera abiertos
-	Dialog.closeOthers(name)
+	if not KEEP_OTHERS[name] and name:sub(1, 6) ~= "Choose" then
+		Dialog.closeOthers(name)
+	end
 	local window = Theme.panel({
 		Name = name,
 		AnchorPoint = Vector2.new(0.5, 0.5),
@@ -152,7 +163,10 @@ function Dialog.choose(title: string, body: string?, options: { string }): numbe
 	-- (antes FitScale la encogía hasta que el texto no se leía)
 	local viewport = workspace.CurrentCamera.ViewportSize
 	local maxHeight = math.max(240, math.floor((viewport.Y - 60) / Dialog.baseScale()))
-	local window, content = Dialog.window("Choose", title, Vector2.new(460, math.min(height, maxHeight)))
+	-- (cada pregunta con su nombre: antes una invitación que llegaba cerraba la pregunta abierta
+	-- —una del examen de conducir contaba como fallada— y la siguiente cerraba la invitación)
+	chooseCount += 1
+	local window, content = Dialog.window("Choose" .. chooseCount, title, Vector2.new(460, math.min(height, maxHeight)))
 	local list = create("ScrollingFrame", {
 		Name = "Options",
 		Size = UDim2.fromScale(1, 1),

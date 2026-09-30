@@ -208,7 +208,7 @@ function ConductService.takeHome(player: Player, crimes: { string }?)
 		local dialogue = lazy("DialogueService")
 		local played = dialogue and dialogue.play and dialogue.play(player, { Lines = Conduct.HomeScene }, { args = { crimen = crime } })
 		if not played then
-			Notify:FireClient(player, "Error", ("🏠 %s: ¿%s? ¡Estás castigado/a!"):format(familyName(player), crime))
+			Notify:FireClient(player, "Error", ("🏠 %s: ¿Cómo que «%s»? ¡Estás castigado/a!"):format(familyName(player), crime))
 		end
 		local data = DataService.get(player)
 		local left = if data then math.max(0, (tonumber(conductOf(data).GroundedUntil) or 0) - os.time()) else 0

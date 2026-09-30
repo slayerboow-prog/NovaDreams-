@@ -5875,7 +5875,7 @@ G:Fire(kid, "Stop")
 -- Cansado: no se entrena
 profiles[athlete].Energy = 5
 promptOf(cinta, "Entrenar").Triggered:Fire(athlete)
-check(athlete:GetAttribute("Training") == nil and notified(athlete, "cansado"), "con muy poca energía no se puede entrenar")
+check(athlete:GetAttribute("Training") == nil and notified(athlete, "Te falta energía para entrenar"), "con muy poca energía no se puede entrenar")
 profiles[athlete].Energy = 100
 
 -- Deportistas (NPC) cuando hay alguien cerca, y te dejan su máquina

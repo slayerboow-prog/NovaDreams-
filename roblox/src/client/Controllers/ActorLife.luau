@@ -475,9 +475,9 @@ local function updateBase(rig: Rig, t: number)
 		return
 	end
 	local scale = rig.Scale
-	-- Correr empieza por encima de 12,5 y se deja por debajo de 11 (con un solo umbral parpadeaba entre
-	-- andar y correr; y los de Speed 14 tienen que correr). BaseAnim recuerda si ya iba corriendo.
-	local runFrom = (if rig.BaseAnim == "Run" then 11 else 12.5) * scale
+	-- Correr empieza por encima de 13 y se deja por debajo de 12 (con un solo umbral parpadeaba entre
+	-- andar y correr; los de Speed 14 corren y los de 12 andan). BaseAnim recuerda si ya iba corriendo.
+	local runFrom = (if rig.BaseAnim == "Run" then 12 else 13) * scale
 	if sitting(rig) then
 		setBase(rig, nil)
 	elseif rig.Speed > runFrom then

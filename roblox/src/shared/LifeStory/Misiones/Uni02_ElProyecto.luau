@@ -219,7 +219,7 @@ return {
 			{ S = "Beltran", T = "Aprobado. El trabajo cumple. El equipo… está en construcción.", If = { LastGradeBelow = 8, NotFlags = { "HacesTodo" } } },
 			{ S = "Adrian", T = "¡Mantengo la beca! Gracias. En serio. A todos. Hasta a Pablo." },
 			{ S = "Julia", T = "He dormido ocho horas esta semana. Seguidas. Es la primera vez desde el instituto.", If = { Flags = { "JuliaDelega" } } },
-			{ S = "Narrador", T = "Estás agotado o agotada. Has sacado el proyecto adelante, pero casi a solas. La próxima vez, quizá, pedirás ayuda antes.", If = HACES_TODO },
+			{ S = "Narrador", T = "Acabas sin fuerzas. Has sacado el proyecto adelante, pero casi a solas. La próxima vez, quizá, pedirás ayuda antes.", If = HACES_TODO },
 			{ S = "Carla", T = "¿Una foto del grupo cuatro? Para el recuerdo. Pablo, deja la guitarra un segundo." },
 		} },
 	},

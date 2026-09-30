@@ -306,8 +306,17 @@ task.spawn(function()
 			end
 		end
 	end
+	-- (en el móvil la tarjeta vive en su propia pantalla, "LifeStoryDock"; en el ordenador, dentro de
+	-- "LifeStory". Se busca en los dos sitios: el HUD ya enseña la misión)
 	local story = playerGui:WaitForChild("LifeStory", 30)
-	local dock = story and story:WaitForChild("LifeStoryDock", 30)
+	local dock = (story and story:FindFirstChild("LifeStoryDock"))
+	if not dock then
+		local own = playerGui:WaitForChild("LifeStoryDock", 5)
+		dock = if own and own:IsA("ScreenGui") then own:FindFirstChildWhichIsA("GuiObject") else own
+	end
+	if not dock and story then
+		dock = story:WaitForChild("LifeStoryDock", 25)
+	end
 	if dock and dock:IsA("GuiObject") then
 		dock.Visible = false
 		dock:GetPropertyChangedSignal("Visible"):Connect(function()

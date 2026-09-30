@@ -861,7 +861,7 @@ local function hire(player: Player)
 		return
 	end
 	if not NeedsService.canWork(player) then
-		Notify:FireClient(player, "Error", "Estás demasiado cansado o hambriento para trabajar.")
+		Notify:FireClient(player, "Error", "Te falta energía o tienes demasiada hambre para trabajar.")
 		return
 	end
 	if not VehicleService.hasLicense(player, "B") then
@@ -933,7 +933,7 @@ local function hire(player: Player)
 			VehicleService.driveModel(player, bus.Model, "Autobus")
 		end
 	end)
-	Notify:FireClient(player, "Success", ("🚌 ¡Contratado de conductor en la %s (%s)! Sigue la línea azul hasta cada parada y para al lado."):format(line.Def.Id, line.Def.Name))
+	Notify:FireClient(player, "Success", ("🚌 ¡Te han contratado como conductor/a en la %s (%s)! Sigue la línea azul hasta cada parada y para al lado."):format(line.Def.Id, line.Def.Name))
 end
 
 -- Cada medio segundo: ¿ha parado el conductor en su parada? (y si deja el autobús abandonado

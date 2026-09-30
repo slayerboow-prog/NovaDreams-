@@ -953,7 +953,7 @@ function WeaponService.startClerk(player: Player)
 		return
 	end
 	if not NeedsService.canWork(player) then
-		Notify:FireClient(player, "Error", "Estás demasiado cansado o hambriento para trabajar.")
+		Notify:FireClient(player, "Error", "Te falta energía o tienes demasiada hambre para trabajar.")
 		return
 	end
 	local counter = counterNear(player, 60)

@@ -94,7 +94,7 @@ return {
 		Colarse = { Kind = "Marcador", Name = "La puerta del fondo", Prompt = "Colarte en el recreo", Place = "SalaCerradaPuerta", Offset = V(0, 0, 1) },
 		Pupitre = { Kind = "Asiento", Name = "Un pupitre viejo", Prompt = "Mirar el pupitre", Place = "SalaCerrada", Offset = V(-4, 0, -2), Dialogue = "Dentro_Pupitre", Once = true },
 		Caja = { Kind = "Caja", Name = "Una caja de lata", Prompt = "Abrir la caja", Place = "SalaCerrada", Offset = V(4, 0, -2), Color = Color3.fromRGB(200, 170, 60), Dialogue = "Dentro_Caja", Once = true },
-		Estanteria = { Kind = "Trofeo", Name = "Trofeos y medallas", Prompt = "Mirar los trofeos", Place = "SalaCerrada", Offset = V(0, 0, 2.4), Dialogue = "Dentro_Trofeos", Once = true },
+		Estanteria = { Kind = "Trofeo", Name = "Trofeos y medallas", Prompt = "Mirar los trofeos", Place = "SalaCerrada", Offset = V(0.3, 0, 2.4), Dialogue = "Dentro_Trofeos", Once = true },
 		Foto = { Kind = "Papel", Name = "Una foto enmarcada", Prompt = "Mirar la foto", Place = "SalaCerrada", Offset = V(5.2, 0, -0.3), Once = true },
 	},
 

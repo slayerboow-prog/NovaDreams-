@@ -63,7 +63,7 @@ Conduct.Calls = {
 Conduct.HomeScene = {
 	{ S = "Narrador", T = "El coche patrulla se para delante de casa. {familia} ya te espera en la puerta." },
 	{ S = "Familia", T = "Gracias, agentes. Ya nos encargamos nosotros." },
-	{ S = "Familia", T = "¿{crimen}? ¿Pero tú en qué estabas pensando? ¡Podías haberte hecho daño… o hacérselo a alguien!" },
+	{ S = "Familia", T = "¿Cómo que «{crimen}»? ¿Pero tú en qué estabas pensando? ¡Podías haberte hecho daño… o hacérselo a alguien!" },
 	{ S = "Familia", T = "Estás castigado/a: sin paga y a casa antes de que se haga de noche. Y ya hablaremos de esto." },
 }
 

@@ -357,7 +357,7 @@ CityErrands.Templates = {
 		Id = "Cafe_Oficina", Site = "Cafeteria", Title = "Cafés para la oficina",
 		Giver = { Name = "Barista Dani", Look = { Shirt = rgb(96, 60, 38) } }, Min = "Adolescente",
 		Lines = { "Una oficina me ha pedido seis cafés y mi repartidor se ha ido de vacaciones. A Tailandia.", "Llévalos rápido, que un café frío es un crimen." },
-		Thanks = "¡Gracias! Ni una gota derramada. Contratado. Bueno, casi.",
+		Thanks = "¡Gracias! Ni una gota derramada. Te contrataría. Bueno, casi.",
 		Reward = { Money = 25, Xp = 14 }, Give = "Bandeja de cafés",
 		Steps = {
 			{ Do = "Deliver", To = { "Oficinas", "CentroComercial" }, Npc = "Oficinista Marta", Line = "¡Cafés calentitos! Hoy la reunión va a ser hasta agradable.", Time = "Trip", Text = "Lleva los cafés a las oficinas antes de que se enfríen" },

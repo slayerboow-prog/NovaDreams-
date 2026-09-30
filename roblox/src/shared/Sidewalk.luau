@@ -64,6 +64,40 @@ end
 local scratchBlocks: { Obstacle } = {}
 local scratchCandidates: { number } = {}
 
+-- Lo más largo que mide un estorbo de cada lista (a lo largo de la calle). Con eso se sabe desde
+-- dónde empezar a mirar sin recorrer la lista desde el principio en cada fotograma. Tabla débil: si
+-- la lista deja de usarse, se olvida sola.
+local longest: { [{ Obstacle }]: number } = setmetatable({}, { __mode = "k" }) :: any
+
+local function longestOf(list: { Obstacle }): number
+	local known = longest[list]
+	if known then
+		return known
+	end
+	local best = 0
+	for _, o in list do
+		best = math.max(best, o.U1 - o.U0)
+	end
+	longest[list] = best
+	return best
+end
+
+-- El primer estorbo (de la lista ordenada por U0) que puede llegar hasta a: los de antes empiezan
+-- tan atrás que ni el más largo lo alcanza (búsqueda binaria)
+local function firstFrom(list: { Obstacle }, a: number): number
+	local from = a - longestOf(list) - 1e-6
+	local lo, hi = 1, #list + 1
+	while lo < hi do
+		local mid = (lo + hi) // 2
+		if list[mid].U0 < from then
+			lo = mid + 1
+		else
+			hi = mid
+		end
+	end
+	return lo
+end
+
 -- Por dónde ir. list: los estorbos de la calle (ordenados por U0); u: dónde está; dir: +1/-1 (hacia
 -- dónde anda); look: cuánto mira por delante; want: el v que querría llevar; lo..hi: el trozo de la
 -- acera por el que puede ir (su v); radius: medio ancho de la persona.
@@ -76,7 +110,9 @@ function Sidewalk.lane(list: { Obstacle }, u: number, dir: number, look: number,
 	-- llama en cada fotograma por cada peatón)
 	local blocks = scratchBlocks
 	table.clear(blocks)
-	for _, o in list do
+	-- (la lista no cambia después de decode: se empieza cerca de u, no desde el principio)
+	for k = firstFrom(list, a), #list do
+		local o = list[k]
 		if o.U0 > b then
 			break
 		end

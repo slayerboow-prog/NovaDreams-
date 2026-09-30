@@ -57,7 +57,7 @@ local function isSuppressed(target: Vector3): boolean
 	end
 	return false
 end
-local listeners: { (({ Vector3 })?) -> () } = {}
+local listeners: { (({ Vector3 })?, ({ Vector3 })?, number?) -> () } = {}
 local manualListeners: { (({ Position: Vector3, Name: string })?) -> () } = {}
 
 local banner: Frame? = nil
@@ -69,14 +69,18 @@ local lastMarkPosition: Vector3? = nil
 ---------------------------------------------------------------------
 -- Avisar a quien dibuja la ruta (MapUI)
 ---------------------------------------------------------------------
-local function notify(path: { Vector3 }?)
+-- (full e index: la ruta entera y el tramo en el que vas, para que MapUI reutilice las piezas de la
+-- línea mientras la ruta sea la misma)
+local function notify(path: { Vector3 }?, full: { Vector3 }?, index: number?)
 	for _, listener in listeners do
-		task.spawn(listener, path)
+		task.spawn(listener, path, full, index)
 	end
 end
 
--- fn(path) cada vez que cambia lo que queda de ruta (nil = sin ruta)
-function Gps.onChanged(fn: (({ Vector3 })?) -> ())
+-- fn(path, full, index) cada vez que cambia lo que queda de ruta (nil = sin ruta). full: la ruta
+-- entera (la misma tabla mientras no se recalcule); path[i] es full[index + i - 1] (salvo path[1],
+-- que es donde estás)
+function Gps.onChanged(fn: (({ Vector3 })?, ({ Vector3 })?, number?) -> ())
 	table.insert(listeners, fn)
 	if route then
 		task.spawn(fn, route)
@@ -213,26 +217,36 @@ end
 
 -- El suelo de verdad debajo de un punto: se salta lo que no es suelo (hojas de los árboles, farolas,
 -- techos de coches, personas, marcas invisibles…) y sigue mirando hacia abajo
-local function groundBelow(from: Vector3, params: RaycastParams): Vector3?
-	local skip = table.clone(params.FilterDescendantsInstances)
+-- base: la lista que ya lleva params (si hay que saltarse algo, se amplía y al terminar se deja
+-- otra vez como estaba)
+local function groundBelow(from: Vector3, params: RaycastParams, base: { Instance }): Vector3?
+	local skip: { Instance }? = nil
 	local origin = from
+	local function done(result: Vector3?): Vector3?
+		if skip then
+			params.FilterDescendantsInstances = base
+		end
+		return result
+	end
 	for _ = 1, 6 do
 		local hit = workspace:Raycast(origin, Vector3.new(0, -60, 0), params)
 		if not hit then
-			return nil
+			return done(nil)
 		end
 		local part = hit.Instance
 		local model = part:FindFirstAncestorOfClass("Model")
 		local isBody = (model ~= nil and model:FindFirstChildOfClass("Humanoid") ~= nil) or Ground.skipOf(part) ~= nil -- (personas y vehículos)
 		local flatEnough = hit.Normal.Y > 0.7
 		if hit.Material == Enum.Material.Water or (part.CanCollide and part.Transparency < 0.9 and not isBody and flatEnough and part.Size.Y < 40) or part:IsA("Terrain") then
-			return hit.Position
+			return done(hit.Position)
 		end
-		table.insert(skip, part)
-		params.FilterDescendantsInstances = skip
+		local list = skip or table.clone(base)
+		skip = list
+		table.insert(list, part)
+		params.FilterDescendantsInstances = list
 		origin = hit.Position + Vector3.new(0, -0.05, 0)
 	end
-	return nil
+	return done(nil)
 end
 
 local function placeMarks(path: { Vector3 }, position: Vector3)
@@ -243,8 +257,10 @@ local function placeMarks(path: { Vector3 }, position: Vector3)
 	local list = GpsMath.marks(ahead, MARK_STEP, 120, MARKS)
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
-	params.FilterDescendantsInstances = { player.Character :: Instance, folder :: Instance, workspace.CurrentCamera :: Instance }
 	params.IgnoreWater = true
+	-- (la lista se pone una vez, fuera del bucle: groundBelow la deja como estaba al terminar)
+	local exclude = { player.Character :: Instance, folder :: Instance, workspace.CurrentCamera :: Instance }
+	params.FilterDescendantsInstances = exclude
 	for i = 1, MARKS do
 		local pair = marks[i]
 		if not pair then
@@ -259,8 +275,7 @@ local function placeMarks(path: { Vector3 }, position: Vector3)
 		end
 		-- En el suelo de verdad (acera, calle, césped…)
 		local from = Vector3.new(mark.Position.X, math.max(mark.Position.Y, position.Y) + 6, mark.Position.Z)
-		params.FilterDescendantsInstances = { player.Character :: Instance, folder :: Instance, workspace.CurrentCamera :: Instance }
-		local ground = groundBelow(from, params) or Vector3.new(mark.Position.X, position.Y - 2.8, mark.Position.Z)
+		local ground = groundBelow(from, params, exclude) or Vector3.new(mark.Position.X, position.Y - 2.8, mark.Position.Z)
 		local base = CFrame.lookAt(ground + Vector3.new(0, 0.12, 0), ground + Vector3.new(0, 0.12, 0) + mark.Direction)
 		-- ">" en el suelo: dos barras que se juntan en la punta
 		pair[1].CFrame = base * CFrame.new(-0.55, 0, 0) * CFrame.Angles(0, math.rad(-40), 0)
@@ -386,7 +401,12 @@ local function update()
 	local at = GpsMath.progress(path, position)
 	if at.Index ~= lastIndex then
 		lastIndex = at.Index
-		notify(GpsMath.ahead(path, position))
+		-- (lo mismo que GpsMath.ahead, sin volver a calcular el progreso)
+		local ahead = { at.Point }
+		for i = at.Index + 1, #path do
+			table.insert(ahead, path[i])
+		end
+		notify(ahead, path, at.Index)
 	end
 
 	-- Flechas en el suelo (si te has movido un poco). Dentro de un interior no: la ruta empieza en

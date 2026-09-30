@@ -28,9 +28,18 @@ local function decode(name: string): any
 	return if ok then value else nil
 end
 
+-- La lista se guarda ya descifrada y solo se vuelve a descifrar cuando cambia el atributo (MapUI la
+-- pide 10 veces por segundo: antes era un JSONDecode cada vez). No la cambies: es compartida.
+local marksRaw: any = nil
+local marksList: { Mark } = {}
 function CityErrands.list(): { Mark }
-	local marks = decode("CityErrandMarks")
-	return if type(marks) == "table" then marks else {}
+	local raw = player:GetAttribute("CityErrandMarks")
+	if raw ~= marksRaw then
+		marksRaw = raw
+		local marks = decode("CityErrandMarks")
+		marksList = if type(marks) == "table" then marks else {}
+	end
+	return marksList
 end
 
 function CityErrands.current(): State?

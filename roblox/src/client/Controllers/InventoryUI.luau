@@ -64,7 +64,7 @@ local KIND_TEXT = if TOUCH
 	else {
 		Food = "Comida · clic derecho para comer",
 		Vehicle = "Vehículo · clic derecho para montarte",
-		Wear = "Ropa · clic derecho para ponértelo",
+		Wear = "Ropa · clic derecho para ponértela",
 		Thing = "Objeto",
 		Prize = "Premio",
 		Document = "Documento",

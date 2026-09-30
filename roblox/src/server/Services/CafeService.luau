@@ -310,7 +310,7 @@ local function deliver(cafe: Cafe, order: Order, by: Player?)
 		removeTray(by)
 		if not NeedsService.canWork(by) then
 			CafeService.quit(by, true)
-			Notify:FireClient(by, "Error", "Estás agotado. Come algo o duerme antes de seguir trabajando.")
+			Notify:FireClient(by, "Error", "Te has quedado sin energía. Come algo o duerme antes de seguir trabajando.")
 			return
 		end
 	end
@@ -672,7 +672,7 @@ function CafeService.start(player: Player)
 		return
 	end
 	if not NeedsService.canWork(player) then
-		Notify:FireClient(player, "Error", "Estás demasiado cansado o hambriento para trabajar.")
+		Notify:FireClient(player, "Error", "Te falta energía o tienes demasiada hambre para trabajar.")
 		return
 	end
 	local root = rootOf(player)
@@ -691,7 +691,7 @@ function CafeService.start(player: Player)
 	player:SetAttribute("Job", "Barista")
 	refreshStaff(cafe, true)
 	Remote:FireClient(player, "Start", JOB.Text)
-	Notify:FireClient(player, "Success", "¡Contratado como barista! Los pedidos salen en tu panel.")
+	Notify:FireClient(player, "Success", "¡Te han contratado como barista! Los pedidos salen en tu panel.")
 	publish(cafe)
 end
 

@@ -302,7 +302,7 @@ Config.Jobs = {
 		CarrySize = Vector3.new(0.8, 1, 0.8),
 	},
 	Reponedor = {
-		DisplayName = "Reponedor",
+		DisplayName = "Reponedor/a",
 		Place = "Supermercado",
 		Pay = 30,
 		EnergyCost = 3,
@@ -312,7 +312,7 @@ Config.Jobs = {
 		CarrySize = Vector3.new(2, 1.6, 1.6),
 	},
 	Basurero = {
-		DisplayName = "Basurero",
+		DisplayName = "Basurero/a",
 		Place = "Punto Limpio",
 		Pay = 45,
 		EnergyCost = 4,
@@ -404,7 +404,7 @@ Config.Jobs = {
 		CarrySize = Vector3.new(1, 1, 1),
 	},
 	Revisor = {
-		DisplayName = "Revisor",
+		DisplayName = "Revisor/a",
 		Place = "Metro",
 		Pay = 4,
 		EnergyCost = 1,
@@ -424,7 +424,7 @@ Config.Jobs = {
 		CarrySize = Vector3.new(1, 1, 1),
 	},
 	Pescador = {
-		DisplayName = "Pescador",
+		DisplayName = "Pescador/a",
 		Place = "Puerto",
 		Pay = 10,
 		EnergyCost = 1,
@@ -455,7 +455,7 @@ Config.Jobs = {
 		CarrySize = Vector3.new(1, 1, 1),
 	},
 	Repartidor = {
-		DisplayName = "Repartidor",
+		DisplayName = "Repartidor/a",
 		Place = "Correos",
 		Pay = 70,
 		EnergyCost = 5,

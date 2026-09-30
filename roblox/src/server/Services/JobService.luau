@@ -163,7 +163,7 @@ function JobService.start(player: Player, jobId: string, context: any?)
 		return
 	end
 	if not NeedsService.canWork(player) then
-		Notify:FireClient(player, "Error", "Estás demasiado cansado o hambriento para trabajar.")
+		Notify:FireClient(player, "Error", "Te falta energía o tienes demasiada hambre para trabajar.")
 		return
 	end
 	local custom = providers[jobId]
@@ -182,7 +182,7 @@ function JobService.start(player: Player, jobId: string, context: any?)
 	RoleService.setOnDuty(player, jobId)
 	player:SetAttribute("Job", jobId)
 	publish(player, shift)
-	Notify:FireClient(player, "Success", ("¡Contratado como %s! Sigue la línea azul."):format(job.DisplayName))
+	Notify:FireClient(player, "Success", ("¡Te han contratado como %s! Sigue la línea azul."):format(job.DisplayName))
 end
 
 local function reached(player: Player, shift: Shift)
@@ -233,7 +233,7 @@ local function reached(player: Player, shift: Shift)
 
 	if not NeedsService.canWork(player) then
 		JobService.quit(player, true)
-		Notify:FireClient(player, "Error", "Estás agotado. Come algo o duerme antes de seguir trabajando.")
+		Notify:FireClient(player, "Error", "Te has quedado sin energía. Come algo o duerme antes de seguir trabajando.")
 		return
 	end
 	nextTask(player, shift, shift.Target)

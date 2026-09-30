@@ -327,7 +327,7 @@ function deliver(route: Route)
 	StoryEvents.emit(player, "JobTaskDone", { JobId = "Repartidor", Pay = pay })
 	if not NeedsService.canWork(player) then
 		PostService.quit(player, true)
-		Notify:FireClient(player, "Error", "Estás agotado. Come algo o duerme antes de seguir trabajando.")
+		Notify:FireClient(player, "Error", "Te has quedado sin energía. Come algo o duerme antes de seguir trabajando.")
 		return
 	end
 	route.Index += 1
@@ -405,7 +405,7 @@ function PostService.start(player: Player)
 		return
 	end
 	if not NeedsService.canWork(player) then
-		Notify:FireClient(player, "Error", "Estás demasiado cansado o hambriento para trabajar.")
+		Notify:FireClient(player, "Error", "Te falta energía o tienes demasiada hambre para trabajar.")
 		return
 	end
 	local root = rootOf(player)
@@ -420,7 +420,7 @@ function PostService.start(player: Player)
 	RoleService.setOnDuty(player, "Repartidor")
 	player:SetAttribute("Job", "Repartidor")
 	Remote:FireClient(player, "Start")
-	Notify:FireClient(player, "Success", "¡Contratado como repartidor! Carga los paquetes en la mesa del escáner.")
+	Notify:FireClient(player, "Success", "¡Te han contratado como repartidor/a! Carga los paquetes en la mesa del escáner.")
 	publish(route)
 end
 

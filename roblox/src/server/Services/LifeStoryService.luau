@@ -729,7 +729,7 @@ local function publish(player: Player, force: boolean?)
 				if step.TextHere then
 					tracked.TextKey = step.TextHere
 				elseif type(text) == "string" and (text:find("^Ve al colegio") or text:find("^Ve al cole") or text:find("^Ve al instituto")) then
-					tracked.TextKey = "Ya estás aquí: ve a {place}"
+					tracked.TextKey = "Ya estás en {place}: entra y busca tu aula"
 				end
 			end
 			if step.Type == "Group" then

@@ -571,42 +571,131 @@ end
 local ROUTE = rgb(80, 210, 255)
 local ROUTE_GLOW = rgb(20, 120, 255)
 local MAX_ROUTE_PIECES = 80
-local routePath: { Vector3 }? = nil
+local routePath: { Vector3 }? = nil -- lo que queda de ruta (desde donde estás)
+local routeFull: { Vector3 }? = nil -- la ruta entera (la misma tabla mientras no cambie)
+local routeIndex = 1 -- en qué tramo de la ruta entera vas
+local bigRouteDirty = false -- el mapa grande está cerrado: se redibuja al abrirlo
+
+-- La línea se hace con piezas (un brillo y la línea encima) que se guardan y se reutilizan: antes se
+-- borraba y se volvía a crear entera cada vez que pasabas de un tramo a otro. Ahora, con la misma
+-- ruta, solo se esconden los tramos que ya has pasado y se recoloca el primero (desde donde estás).
+type RoutePiece = { Glow: Frame, Line: Frame }
+type RouteDraw = {
+	Holder: Frame,
+	Route: { Vector3 }?, -- para qué ruta son las piezas de Segments
+	Head: RoutePiece?, -- el primer trozo: de donde estás al final de tu tramo
+	Segments: { [number]: RoutePiece | false }, -- tramo j de la ruta entera (false: muy corto, sin pieza)
+	Pool: { RoutePiece },
+}
+local routeDraws: { [Layer]: RouteDraw } = {}
+
+local function newPiece(holderFrame: Frame): RoutePiece
+	local pair = {}
+	for k, style in { { 0.6, 5 }, { 0, 6 } } do
+		pair[k] = create("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			BackgroundColor3 = if k == 1 then ROUTE_GLOW else ROUTE,
+			BackgroundTransparency = style[1],
+			BorderSizePixel = 0,
+			ZIndex = style[2],
+			Parent = holderFrame,
+		}, { create("UICorner", { CornerRadius = UDim.new(1, 0) }) })
+	end
+	return { Glow = pair[1], Line = pair[2] }
+end
+
+local function takePiece(draw: RouteDraw): RoutePiece
+	local piece = table.remove(draw.Pool)
+	return piece or newPiece(draw.Holder)
+end
+
+local function releasePiece(draw: RouteDraw, piece: RoutePiece)
+	piece.Glow.Visible = false
+	piece.Line.Visible = false
+	table.insert(draw.Pool, piece)
+end
+
+-- Coloca una pieza de a a b (en píxeles del mapa); false si es tan corta que no se dibuja
+local function setPiece(layer: Layer, piece: RoutePiece, from: Vector3, to: Vector3): boolean
+	local a = toPixel(layer, from.X, from.Z)
+	local b = toPixel(layer, to.X, to.Z)
+	local d = b - a
+	local length = d.Magnitude
+	if length <= 0.3 then
+		piece.Glow.Visible = false
+		piece.Line.Visible = false
+		return false
+	end
+	local thick = if layer == miniLayer then 6 else 5
+	local middle = (a + b) / 2
+	local rotation = math.deg(math.atan2(d.Y, d.X))
+	for k, part in { piece.Glow, piece.Line } do
+		local width = if k == 1 then thick + 7 else thick
+		part.Position = UDim2.fromOffset(middle.X, middle.Y)
+		part.Size = UDim2.fromOffset(length + width, width)
+		part.Rotation = rotation
+		part.Visible = true
+	end
+	return true
+end
 
 local function drawRoute(layer: Layer?)
 	if not layer then
 		return
 	end
-	local old = layer.Frame:FindFirstChild("Route")
-	if old then
-		old:Destroy()
-	end
+	local draw = routeDraws[layer]
 	local path = routePath
-	if not path or #path < 2 then
+	if not draw then
+		if not path or #path < 2 then
+			return
+		end
+		local holderFrame = create("Frame", { Name = "Route", Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ZIndex = 5, Parent = layer.Frame })
+		draw = { Holder = holderFrame, Route = nil, Head = nil, Segments = {}, Pool = {} }
+		routeDraws[layer] = draw
+	end
+	local d = draw :: RouteDraw
+	local full = routeFull or path
+	local index = if routeFull then routeIndex else 1
+	-- Ruta nueva (o sin ruta): todas las piezas vuelven al montón
+	if d.Route ~= full or not path or #path < 2 then
+		for _, piece in d.Segments do
+			if piece then
+				releasePiece(d, piece)
+			end
+		end
+		table.clear(d.Segments)
+		d.Route = full
+	end
+	if not path or #path < 2 or not full then
+		d.Holder.Visible = false
 		return
 	end
-	local holderFrame = create("Frame", { Name = "Route", Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ZIndex = 5, Parent = layer.Frame })
-	local thick = if layer == miniLayer then 6 else 5
-	for i = 1, math.min(#path - 1, MAX_ROUTE_PIECES) do
-		local a = toPixel(layer, path[i].X, path[i].Z)
-		local b = toPixel(layer, path[i + 1].X, path[i + 1].Z)
-		local d = b - a
-		local length = d.Magnitude
-		if length > 0.3 then
-			local middle = (a + b) / 2
-			for _, style in { { thick + 7, ROUTE_GLOW, 0.6, 5 }, { thick, ROUTE, 0, 6 } } do
-				create("Frame", {
-					AnchorPoint = Vector2.new(0.5, 0.5),
-					Position = UDim2.fromOffset(middle.X, middle.Y),
-					Size = UDim2.fromOffset(length + style[1], style[1]),
-					Rotation = math.deg(math.atan2(d.Y, d.X)),
-					BackgroundColor3 = style[2],
-					BackgroundTransparency = style[3],
-					BorderSizePixel = 0,
-					ZIndex = style[4],
-					Parent = holderFrame,
-				}, { create("UICorner", { CornerRadius = UDim.new(1, 0) }) })
+	d.Holder.Visible = true
+	-- Primer trozo: de donde estás al final del tramo
+	local head = d.Head or takePiece(d)
+	d.Head = head
+	setPiece(layer, head, path[1], path[2])
+	-- El resto: tramos enteros de la ruta (path[i] es full[index + i - 1]); hasta MAX_ROUTE_PIECES
+	local last = index + math.min(#path - 1, MAX_ROUTE_PIECES) - 1
+	for j, piece in d.Segments do
+		if piece and (j <= index or j > last) then
+			piece.Glow.Visible = false
+			piece.Line.Visible = false
+		end
+	end
+	for j = index + 1, last do
+		local piece = d.Segments[j]
+		if piece == nil then
+			local fresh = takePiece(d)
+			if setPiece(layer, fresh, full[j], full[j + 1]) then
+				d.Segments[j] = fresh
+			else
+				releasePiece(d, fresh)
+				d.Segments[j] = false
 			end
+		elseif piece then
+			piece.Glow.Visible = true
+			piece.Line.Visible = true
 		end
 	end
 end
@@ -808,6 +897,7 @@ local function ensureBigLayer()
 	local layer = bigLayer :: Layer
 	create("UIScale", { Name = "Zoom", Parent = layer.Frame })
 	drawRoute(layer)
+	bigRouteDirty = false
 	refreshLegend()
 	fitAll()
 end
@@ -817,6 +907,11 @@ local function setBigOpen(open: boolean)
 	bigGui.Enabled = open
 	if open then
 		ensureBigLayer()
+		-- (la ruta del mapa grande solo se redibuja al abrirlo, si cambió mientras estaba cerrado)
+		if bigRouteDirty then
+			bigRouteDirty = false
+			drawRoute(bigLayer)
+		end
 		local root = mapRoot(player, player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?)
 		if root and zoom <= 1 then
 			centerOn(root.Position, 1.6)
@@ -1343,10 +1438,16 @@ function MapUI.init()
 	buildMini()
 	buildBig()
 	-- GPS: la línea de la ruta en los dos mapas, y el sitio marcado se quita al llegar
-	Gps.onChanged(function(path)
+	Gps.onChanged(function(path, full, index)
 		routePath = path
+		routeFull = if path then full else nil
+		routeIndex = index or 1
 		drawRoute(miniLayer)
-		drawRoute(bigLayer)
+		if bigOpen then
+			drawRoute(bigLayer)
+		else
+			bigRouteDirty = true
+		end
 	end)
 	Gps.onManual(function(place)
 		if not place and waypoint then
@@ -1362,6 +1463,7 @@ function MapUI.init()
 	end)
 
 	local elapsed = 0
+	local miniAt: Vector2? = nil -- dónde se puso el minimapa la última vez
 	RunService.Heartbeat:Connect(function(dt)
 		if next(spins) then
 			stepSpins(dt)
@@ -1378,7 +1480,12 @@ function MapUI.init()
 		local zoom = MINI_ZOOMS[miniZoom]
 		if root then
 			local p = toPixel(miniLayer, root.Position.X, root.Position.Z)
-			miniLayer.Frame.Position = UDim2.fromOffset(inner / 2 - p.X * zoom, inner / 2 - p.Y * zoom)
+			-- (si se ha movido menos de 1 píxel no se toca: cada cambio de Position recoloca todo el mapa)
+			local at = Vector2.new(inner / 2 - p.X * zoom, inner / 2 - p.Y * zoom)
+			if not miniAt or (at - miniAt).Magnitude >= 1 then
+				miniAt = at
+				miniLayer.Frame.Position = UDim2.fromOffset(at.X, at.Y)
+			end
 			local current = waypoint
 			if current then
 				local distance = Vector3.new(current.Position.X - root.Position.X, 0, current.Position.Z - root.Position.Z).Magnitude

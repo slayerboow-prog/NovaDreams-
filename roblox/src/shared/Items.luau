@@ -97,7 +97,7 @@ for key, vehicle in Gameplay.Vehicles do
 		Name = vehicle.Name,
 		Icon = vehicle.Icon,
 		Kind = "Vehicle",
-		Desc = ("Tu %s. Úsalo para montarte o bajarte. Velocidad %d."):format(vehicle.Name:lower(), vehicle.Speed),
+		Desc = ("Tu %s. Pulsa «Montar» para subirte. Velocidad %d."):format(vehicle.Name:lower(), vehicle.Speed),
 		Stack = 1,
 		Ref = key,
 	}
@@ -110,7 +110,7 @@ for key, prize in Gameplay.Prizes do
 			Name = prize.Name,
 			Icon = prize.Icon,
 			Kind = if prize.Kind == "Wear" then "Wear" else "Prize",
-			Desc = if prize.Kind == "Wear" then "Premio de los recreativos. Úsalo para ponértelo o quitártelo." else "Premio de los recreativos. ¡Un recuerdo de tu récord!",
+			Desc = if prize.Kind == "Wear" then "Premio de los recreativos. Pulsa «Poner» o «Quitar» en la mochila." else "Premio de los recreativos. ¡Un recuerdo de tu récord!",
 			Stack = 1,
 			Ref = key,
 		}

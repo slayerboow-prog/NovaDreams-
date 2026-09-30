@@ -248,7 +248,7 @@ local function deliver(hall: Hall, order: Order, by: Player?)
 		StoryEvents.emit(by, "JobTaskDone", { JobId = "Taquillero", Pay = pay })
 		if not NeedsService.canWork(by) then
 			CinemaService.quit(by, true)
-			Notify:FireClient(by, "Error", "Estás agotado. Come algo o duerme antes de seguir trabajando.")
+			Notify:FireClient(by, "Error", "Te has quedado sin energía. Come algo o duerme antes de seguir trabajando.")
 			return
 		end
 	end
@@ -622,7 +622,7 @@ function CinemaService.start(player: Player)
 		return
 	end
 	if not NeedsService.canWork(player) then
-		Notify:FireClient(player, "Error", "Estás demasiado cansado o hambriento para trabajar.")
+		Notify:FireClient(player, "Error", "Te falta energía o tienes demasiada hambre para trabajar.")
 		return
 	end
 	local root = rootOf(player)

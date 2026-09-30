@@ -94,7 +94,7 @@ Onboarding.Tips = {
 	Gimnasio = "💪 Máquina del gimnasio. Úsala con el botón de acción y toca «¡YA!» cuando el marcador pase por la zona verde.",
 	Transporte = "🚏 Parada de bus, metro o Cercanías. Espera y sube con el botón de acción. En el bus, «Bajar en la próxima». El metro y el tren piden billete.",
 	Busqueda = "⭐ ¡La policía te busca! Aléjate y escóndete un rato: si no te ven, las estrellas se van solas.",
-	Necesidades = "🍎 Tienes hambre o estás cansado. Come algo (nevera, súper o cafetería) y duerme en tu cama.",
+	Necesidades = "🍎 Tienes hambre o sueño. Come algo (nevera, súper o cafetería) y duerme en tu cama.",
 } :: { [string]: string }
 
 ---------------------------------------------------------------------
@@ -193,7 +193,7 @@ function Onboarding.suggest(ctx: Context): { Suggestion }
 		return candidates
 	end
 	if (ctx.Energy or 100) < 30 or night then
-		add("Dormir", if night then "💤 Es de noche: vete a dormir a tu cama." else "💤 Estás muy cansado: duerme un rato en tu cama.", "Casa", "Tu casa")
+		add("Dormir", if night then "💤 Es de noche: vete a dormir a tu cama." else "💤 Tienes mucho sueño: duerme un rato en tu cama.", "Casa", "Tu casa")
 	end
 	if (ctx.Hunger or 100) < 40 then
 		if not kid(stage) and OpeningHours.isOpen(Onboarding.PlaceHours.Supermercado, clock) then

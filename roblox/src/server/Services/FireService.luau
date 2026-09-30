@@ -286,7 +286,7 @@ local function solve(shift: Shift)
 	publish(shift)
 	if not NeedsService.canWork(player) then
 		FireService.quit(player, true)
-		Notify:FireClient(player, "Error", "Estás agotado. Come algo o duerme antes de seguir trabajando.")
+		Notify:FireClient(player, "Error", "Te has quedado sin energía. Come algo o duerme antes de seguir trabajando.")
 		return
 	end
 	task.delay(6, function()
@@ -562,7 +562,7 @@ function FireService.start(player: Player)
 		return
 	end
 	if not NeedsService.canWork(player) then
-		Notify:FireClient(player, "Error", "Estás demasiado cansado o hambriento para trabajar.")
+		Notify:FireClient(player, "Error", "Te falta energía o tienes demasiada hambre para trabajar.")
 		return
 	end
 	local root = rootOf(player)

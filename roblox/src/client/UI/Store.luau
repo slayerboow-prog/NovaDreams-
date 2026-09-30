@@ -78,8 +78,8 @@ function Store.close()
 end
 
 function Store.open()
-	-- (Dialog.window ya cierra el menú, los controles y las misiones; aquí también las otras ventanas)
-	Dialog.closeAll("Store")
+	-- (Dialog.window ya cierra el menú, los controles y las misiones; las demás ventanas —una
+	-- pregunta del examen, un intercambio, la caja del súper— se quedan: cerrarlas perdía la respuesta)
 	local frame, content = Dialog.window("Store", "🛒 Tienda", Vector2.new(460, 440))
 	window = frame
 	local connections: { RBXScriptConnection } = {}

@@ -973,7 +973,7 @@ local function startRole(player: Player, store: Store, role: string)
 		return
 	end
 	if not NeedsService.canWork(player) then
-		Notify:FireClient(player, "Error", "Estás demasiado cansado o hambriento para trabajar.")
+		Notify:FireClient(player, "Error", "Te falta energía o tienes demasiada hambre para trabajar.")
 		return
 	end
 	if role == "Reponedor" then
@@ -1001,7 +1001,7 @@ local function startRole(player: Player, store: Store, role: string)
 		player:SetAttribute("Job", "Cajero")
 		player:SetAttribute("TaskTarget", lane.Belt:GetAttribute("CashierSpot"))
 		player:SetAttribute("TaskText", ("Caja %d: %s"):format(lane.Index, JOBS.Cajero.Text))
-		Notify:FireClient(player, "Success", ("🧾 ¡Contratado de cajero! Ponte en la caja %d. Los clientes vendrán a tu cola."):format(lane.Index))
+		Notify:FireClient(player, "Success", ("🧾 ¡Te han contratado como cajero/a! Ponte en la caja %d. Los clientes vendrán a tu cola."):format(lane.Index))
 	elseif role == "Charcutero" then
 		if not store.Deli then
 			return
@@ -1015,7 +1015,7 @@ local function startRole(player: Player, store: Store, role: string)
 		player:SetAttribute("Job", "Charcutero")
 		player:SetAttribute("TaskTarget", store.Deli:GetAttribute("StaffSpot"))
 		player:SetAttribute("TaskText", JOBS.Charcutero.Text)
-		Notify:FireClient(player, "Success", "🔪 ¡Contratado de charcutero! Ponte detrás del mostrador.")
+		Notify:FireClient(player, "Success", "🔪 ¡Te han contratado como charcutero/a! Ponte detrás del mostrador.")
 		for _, order in store.DeliQueue do
 			order.Serving = false
 		end

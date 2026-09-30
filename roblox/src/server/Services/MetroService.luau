@@ -1220,7 +1220,7 @@ local function spawnPassenger(player: Player, alight: BasePart)
 			end)
 			if not NeedsService.canWork(player) then
 				MetroService.quitRevisor(player, true)
-				Notify:FireClient(player, "Error", "Estás agotado. Come algo o duerme antes de seguir trabajando.")
+				Notify:FireClient(player, "Error", "Te has quedado sin energía. Come algo o duerme antes de seguir trabajando.")
 			end
 		end)
 	end
@@ -1273,7 +1273,7 @@ function MetroService.startRevisor(player: Player)
 		return
 	end
 	if not NeedsService.canWork(player) then
-		Notify:FireClient(player, "Error", "Estás demasiado cansado o hambriento para trabajar.")
+		Notify:FireClient(player, "Error", "Te falta energía o tienes demasiada hambre para trabajar.")
 		return
 	end
 	JobService.quit(player, true)

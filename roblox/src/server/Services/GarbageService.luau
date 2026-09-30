@@ -200,7 +200,7 @@ local function emptyBin(route: Route, stop: Stop)
 	publish(route)
 	if not NeedsService.canWork(player) then
 		GarbageService.quit(player, true)
-		Notify:FireClient(player, "Error", "Estás agotado. Come algo o duerme antes de seguir trabajando.")
+		Notify:FireClient(player, "Error", "Te has quedado sin energía. Come algo o duerme antes de seguir trabajando.")
 	end
 end
 
@@ -344,7 +344,7 @@ function GarbageService.start(player: Player)
 		return
 	end
 	if not NeedsService.canWork(player) then
-		Notify:FireClient(player, "Error", "Estás demasiado cansado o hambriento para trabajar.")
+		Notify:FireClient(player, "Error", "Te falta energía o tienes demasiada hambre para trabajar.")
 		return
 	end
 	JobService.quit(player, true)
@@ -354,7 +354,7 @@ function GarbageService.start(player: Player)
 	RoleService.setOnDuty(player, "Basurero")
 	player:SetAttribute("Job", "Basurero")
 	Remote:FireClient(player, "Start")
-	Notify:FireClient(player, "Success", ("¡Contratado como basurero! Hay %d papeleras llenas. Con carnet B, coge el camión."):format(#route.Stops))
+	Notify:FireClient(player, "Success", ("¡Te han contratado como basurero/a! Hay %d papeleras llenas. Con carnet B, coge el camión."):format(#route.Stops))
 	publish(route)
 end
 

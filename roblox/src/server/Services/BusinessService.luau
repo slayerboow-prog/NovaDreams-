@@ -1300,7 +1300,7 @@ local function answerOffer(player: Player, key: string, accept: boolean)
 		Notify:FireClient(player, "Error", why or "No se ha podido aceptar ahora.")
 		return
 	end
-	Notify:FireClient(player, "Success", "💼 ¡Contratado/a! Ve al negocio y en «Gestionar» empieza tu turno.")
+	Notify:FireClient(player, "Success", "💼 ¡Te han contratado! Ve al negocio y en «Gestionar» empieza tu turno.")
 	if boss.Parent then
 		Notify:FireClient(boss, "Success", ("🤝 %s trabaja ahora en tu negocio."):format(nameOf(player)))
 	end

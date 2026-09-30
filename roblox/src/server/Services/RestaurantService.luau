@@ -700,7 +700,7 @@ local function start(player: Player, role: "Camarero" | "Barman")
 		return
 	end
 	if not NeedsService.canWork(player) then
-		Notify:FireClient(player, "Error", "Estás demasiado cansado o hambriento para trabajar.")
+		Notify:FireClient(player, "Error", "Te falta energía o tienes demasiada hambre para trabajar.")
 		return
 	end
 	if staff[role] then
@@ -713,10 +713,10 @@ local function start(player: Player, role: "Camarero" | "Barman")
 	player:SetAttribute("Job", role)
 	if role == "Camarero" then
 		player:SetAttribute("TaskText", "Atiende las mesas con ✋ y lleva los platos del pase.")
-		Notify:FireClient(player, "Success", "¡Contratado de camarero! Acércate a los clientes con ✋ para tomar nota.")
+		Notify:FireClient(player, "Success", "¡Te han contratado como camarero/a! Acércate a los clientes con ✋ para tomar nota.")
 	else
 		player:SetAttribute("TaskText", "Prepara las comandas en la barra.")
-		Notify:FireClient(player, "Success", "¡Contratado de barman! Ponte detrás de la barra para preparar las comandas.")
+		Notify:FireClient(player, "Success", "¡Te han contratado como barman! Ponte detrás de la barra para preparar las comandas.")
 	end
 	ensureNpcStaff()
 end

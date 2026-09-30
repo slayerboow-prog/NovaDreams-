@@ -66,6 +66,7 @@ type Agent = {
 	Model: Model,
 	Parts: { BasePart },
 	Offsets: { CFrame },
+	Poses: { CFrame }, -- (tabla reutilizada para BulkMoveTo: una por peatón, no una por fotograma)
 	Road: Road?,
 	U: number,
 	Dir: number,
@@ -89,6 +90,10 @@ type Agent = {
 	Dodge: number?, -- lo que se aparta de su sitio para esquivar una farola, una papelera…
 	Lateral: number?, -- dónde iba en la acera el último fotograma (para adelantar)
 	PassUntil: number?, -- adelantando por la izquierda hasta entonces
+	Far: boolean?, -- lejos (o fuera de la vista) el último fotograma: se mueve 1 de cada 3 (LOD)
+	Skip: number?, -- fotogramas saltados desde la última vez que se movió
+	Acc: number?, -- tiempo acumulado mientras se salta fotogramas
+	LastPos: Vector3?, -- dónde estaba la última vez que se movió
 }
 
 local roads: { Road } = {}
@@ -260,6 +265,7 @@ local function makePed(): Agent
 		Model = model,
 		Parts = parts,
 		Offsets = {},
+		Poses = table.create(#parts),
 		Road = nil,
 		U = 0,
 		Dir = 1,
@@ -363,7 +369,7 @@ local function reactWeight(agent: Agent, now: number): number
 	return if t < 0.2 then math.sin(t / 0.2 * math.pi / 2) else math.cos((t - 0.2) / 0.8 * math.pi / 2)
 end
 
-local function posePed(agent: Agent, root: CFrame, react: number?)
+local function posePed(agent: Agent, root: CFrame, react: number?, still: boolean?)
 	local k = react or 0
 	if k > 0.001 then
 		-- Se echa hacia el lado contrario al choque (mucho más si se tira por un coche)
@@ -372,7 +378,8 @@ local function posePed(agent: Agent, root: CFrame, react: number?)
 	end
 	local s = agent.Scale
 	local jog = agent.Style == "Jog"
-	local swing = math.sin(agent.Phase) * (if jog then 0.95 else 0.55)
+	-- (fuera de la vista no hace falta mover brazos y piernas: nadie lo ve)
+	local swing = if still then 0 else math.sin(agent.Phase) * (if jog then 0.95 else 0.55)
 	local bob = math.abs(math.cos(agent.Phase)) * (if jog then 0.35 else 0.12) * s
 	local base = root * CFrame.new(0, bob, 0)
 	if jog then
@@ -401,21 +408,27 @@ local function posePed(agent: Agent, root: CFrame, react: number?)
 		end
 		headTurn = CFrame.Angles(0, -(agent.ReactSide or 1) * 0.7 * k, 0)
 	end
-	local cframes = {
-		at(0, 3.55, 0), -- torso
-		at(0, 5.35, 0) * headTurn, -- cabeza
-		at(0, 5.35, 0) * headTurn * CFrame.new(0, 0.6 * s, 0.05 * s), -- pelo
-		at(-0.48, 2.4, 0) * CFrame.Angles(swing, 0, 0) * CFrame.new(0, -1.2 * s, 0),
-		at(0.48, 2.4, 0) * CFrame.Angles(-swing, 0, 0) * CFrame.new(0, -1.2 * s, 0),
-		armL,
-		armR,
-	}
+	local cframes = agent.Poses
+	cframes[1] = at(0, 3.55, 0) -- torso
+	cframes[2] = at(0, 5.35, 0) * headTurn -- cabeza
+	cframes[3] = at(0, 5.35, 0) * headTurn * CFrame.new(0, 0.6 * s, 0.05 * s) -- pelo
+	cframes[4] = at(-0.48, 2.4, 0) * CFrame.Angles(swing, 0, 0) * CFrame.new(0, -1.2 * s, 0)
+	cframes[5] = at(0.48, 2.4, 0) * CFrame.Angles(-swing, 0, 0) * CFrame.new(0, -1.2 * s, 0)
+	cframes[6] = armL
+	cframes[7] = armR
 	local rot = base.Rotation
-	-- Paraguas en la mano izquierda, abierto encima de la cabeza
-	local handL = (armL * CFrame.new(0, -1.05 * s, 0)).Position
-	local stickTop = handL + Vector3.new(0, 3, 0)
-	cframes[8] = CFrame.new(handL + Vector3.new(0, 1.5, 0)) * rot
-	cframes[9] = CFrame.new(stickTop + Vector3.new(0, 0.1, 0)) * rot * CFrame.Angles(0, 0, math.rad(90))
+	-- Paraguas en la mano izquierda, abierto encima de la cabeza (sin paraguas no se ve: se deja donde
+	-- está y no se calcula)
+	if agent.Umbrella then
+		local handL = (armL * CFrame.new(0, -1.05 * s, 0)).Position
+		local stickTop = handL + Vector3.new(0, 3, 0)
+		cframes[8] = CFrame.new(handL + Vector3.new(0, 1.5, 0)) * rot
+		cframes[9] = CFrame.new(stickTop + Vector3.new(0, 0.1, 0)) * rot * CFrame.Angles(0, 0, math.rad(90))
+	else
+		local parts = agent.Parts
+		cframes[8] = parts[8].CFrame
+		cframes[9] = parts[9].CFrame
+	end
 	local handR = (armR * CFrame.new(0, -1.05 * s, 0)).Position
 	local i = agent.Index
 	if i.Bag then
@@ -572,13 +585,40 @@ end
 
 local lastRain: boolean? = nil
 
-local function updatePeds(dt: number, center: Vector3)
+-- Tablas reutilizadas en cada fotograma (antes se creaban nuevas: basura para el recolector)
+local byRoad: { [Road]: { Agent } } = {}
+local walkers: { Vector3 } = {}
+local NO_ONE: { Agent } = {}
+local NO_WALKERS: { Vector3 } = {}
+
+-- La densidad y la lluvia cambian despacio: se miran una vez por segundo, no en cada fotograma
+local share = 1
+local rainNow = false
+local nextCheck = 0
+
+-- Nivel de detalle: lejos (más de LOD_NEAR) o fuera de la vista, un peatón se mueve solo 1 de cada
+-- LOD_EVERY fotogramas (con el tiempo acumulado, así va a la misma velocidad). Muy cerca de ti
+-- (LOD_CLOSE), siempre en cada fotograma (por si le das sin mirarle).
+local LOD_NEAR = 80
+local LOD_CLOSE = 20
+local LOD_EVERY = 3
+
+local function updatePeds(frameDt: number, center: Vector3)
 	local clock = Lighting.ClockTime
 	-- Los niños, solo de 8:00 a 19:30 (de noche no hay críos solos por la calle)
 	local kidsOut = clock >= 8 and clock < 19.5
 	local now = os.clock()
+	if now >= nextCheck then
+		nextCheck = now + 1
+		rainNow = raining()
+		local weekday = nil
+		pcall(function()
+			weekday = ((workspace:GetAttribute("Day") or 1) - 1) % 7 + 1
+		end)
+		share = Ambient.density(clock, workspace:GetAttribute("Weather"), weekday)
+	end
 	-- Cambia el tiempo: sacan o guardan el paraguas
-	local rain = raining()
+	local rain = rainNow
 	if lastRain ~= nil and rain ~= lastRain then
 		for _, ped in peds do
 			setUmbrella(ped, rain)
@@ -588,7 +628,9 @@ local function updatePeds(dt: number, center: Vector3)
 	-- Con lluvia, aprietan el paso (los que corren ya van deprisa)
 	local hurry = if rain then 1.3 else 1
 	-- Quién va por cada calle (para adelantar al que va más despacio)
-	local byRoad: { [Road]: { Agent } } = {}
+	for _, list in byRoad do
+		table.clear(list)
+	end
 	for _, ped in peds do
 		local r = ped.Road
 		if ped.Active and r then
@@ -600,12 +642,7 @@ local function updatePeds(dt: number, center: Vector3)
 			table.insert(list, ped)
 		end
 	end
-	local walkers: { Vector3 } = {}
-	local weekday = nil
-	pcall(function()
-		weekday = ((workspace:GetAttribute("Day") or 1) - 1) % 7 + 1
-	end)
-	local share = Ambient.density(clock, workspace:GetAttribute("Weather"), weekday)
+	table.clear(walkers)
 	-- Dónde estás tú (y si vas en coche, a qué velocidad)
 	local character = player.Character
 	local myRoot = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
@@ -634,8 +671,25 @@ local function updatePeds(dt: number, center: Vector3)
 		local road = ped.Road
 		if not road then
 			respawnPed(ped, center, false)
+			ped.Far, ped.Skip, ped.Acc, ped.LastPos = nil, nil, nil, nil
 			continue
 		end
+		local dt = frameDt
+		if ped.Far then
+			-- Lejos o sin verle: se salta fotogramas y luego avanza con todo el tiempo acumulado
+			ped.Acc = (ped.Acc or 0) + frameDt
+			ped.Skip = (ped.Skip or 0) + 1
+			if ped.Skip < LOD_EVERY then
+				-- (si estaba cruzando, los coches le siguen viendo donde estaba)
+				local last = ped.LastPos
+				if last and crossing(ped, road) and (last - center).Magnitude < 260 then
+					table.insert(walkers, last)
+				end
+				continue
+			end
+			dt = ped.Acc :: number
+		end
+		ped.Acc, ped.Skip = 0, 0
 		if ped.PanicUntil then
 			-- Asustado por unos disparos: corre y luego vuelve a su paso
 			if os.clock() > ped.PanicUntil then
@@ -666,7 +720,7 @@ local function updatePeds(dt: number, center: Vector3)
 		-- Adelantar: si alcanza a alguien más lento que va por su mismo lado, le pasa por la izquierda
 		-- (antes se atravesaban)
 		if not turning and not stunned and ped.Lateral then
-			for _, other in byRoad[road] or {} do
+			for _, other in byRoad[road] or NO_ONE do
 				if other ~= ped and other.Dir == ped.Dir and other.Side == ped.Side and other.Lateral then
 					local ahead = (other.U - ped.U) * ped.Dir
 					if ahead > 0 and ahead < 3.5 and math.abs(other.Lateral - ped.Lateral) < 1.6 and ped.Speed > other.Speed + 0.3 then
@@ -717,6 +771,7 @@ local function updatePeds(dt: number, center: Vector3)
 			-- Lejos del jugador: se recicla cerca de él (aquí nadie lo ve irse)
 			respawnPed(ped, center, false)
 			ped.ReactAt, ped.Shove, ped.ShoveNow, ped.TurnAt, ped.Keep, ped.Dodge = nil, nil, nil, nil, nil, nil
+			ped.Far, ped.LastPos = nil, nil
 			continue
 		elseif pastEnd or pastStart then
 			-- A la vista: sigue recto por la acera de la calle de enfrente (cruzando por el paso de
@@ -778,7 +833,12 @@ local function updatePeds(dt: number, center: Vector3)
 				facing = facing * CFrame.Angles(0, math.pi * (1 - ease), 0)
 			end
 		end
-		posePed(ped, CFrame.new(pos) * facing, reactWeight(ped, now))
+		-- (fuera de la vista, sin balancear brazos y piernas; lejos o sin verle, menos a menudo)
+		local visible = inView(pos)
+		local here = (pos - center).Magnitude
+		ped.Far = here > LOD_NEAR or (here > LOD_CLOSE and not visible)
+		ped.LastPos = pos
+		posePed(ped, CFrame.new(pos) * facing, reactWeight(ped, now), not visible)
 		if ped.Road and crossing(ped, ped.Road) and dist < 260 then
 			table.insert(walkers, pos)
 		end
@@ -949,7 +1009,7 @@ function Ambient.init()
 		Traffic.update(dt)
 		-- Dentro de un edificio (salas en el cielo) no hay peatones que mover: se quedan en su sitio
 		if c.Y > 3000 then
-			Traffic.setWalkers({})
+			Traffic.setWalkers(NO_WALKERS)
 			return
 		end
 		updatePeds(math.min(dt, 0.1), c)

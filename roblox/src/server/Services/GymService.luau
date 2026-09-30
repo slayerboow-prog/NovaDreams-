@@ -312,7 +312,7 @@ local function start(player: Player, machine: Model)
 		return
 	end
 	if (data.Energy or 100) < Gym.MinEnergy then
-		Notify:FireClient(player, "Error", "😴 Estás demasiado cansado para entrenar. Descansa o duerme un poco.")
+		Notify:FireClient(player, "Error", "😴 Te falta energía para entrenar. Descansa o duerme un poco.")
 		return
 	elseif (data.Hunger or 100) < Gym.MinHunger then
 		Notify:FireClient(player, "Error", "🍔 Tienes demasiada hambre para entrenar. Come algo antes.")
@@ -425,7 +425,7 @@ local function completeSet(player: Player, s: Session)
 	local data = DataService.get(player)
 	if data and ((data.Energy or 100) < Gym.MinEnergy or (data.Hunger or 100) < Gym.MinHunger) then
 		GymService.stop(player)
-		Notify:FireClient(player, "Error", "🥵 ¡Agotado! Come algo y descansa antes de seguir entrenando.")
+		Notify:FireClient(player, "Error", "🥵 ¡Sin energía! Come algo y descansa antes de seguir entrenando.")
 	end
 end
 
@@ -649,7 +649,7 @@ local function help(monitor: Player, info: GymInfo, npc: Model)
 	info.NextRequest = GymService._clock() + 6 + math.random() * 6
 	if not NeedsService.canWork(monitor) then
 		GymService.quitJob(monitor, true)
-		Notify:FireClient(monitor, "Error", "Estás agotado. Come algo o duerme antes de seguir trabajando.")
+		Notify:FireClient(monitor, "Error", "Te has quedado sin energía. Come algo o duerme antes de seguir trabajando.")
 	end
 end
 
@@ -722,14 +722,14 @@ function GymService.startJob(player: Player)
 		return
 	end
 	if not NeedsService.canWork(player) then
-		Notify:FireClient(player, "Error", "Estás demasiado cansado o hambriento para trabajar.")
+		Notify:FireClient(player, "Error", "Te falta energía o tienes demasiada hambre para trabajar.")
 		return
 	end
 	JobService.quit(player, true)
 	monitors[player] = true
 	RoleService.setOnDuty(player, JOB)
 	player:SetAttribute("Job", JOB)
-	Notify:FireClient(player, "Success", "¡Contratado como monitor/a de gimnasio! Ayuda a quien levante la mano (🙋). Además, entrenas gratis.")
+	Notify:FireClient(player, "Success", "¡Te han contratado como monitor/a de gimnasio! Ayuda a quien levante la mano (🙋). Además, entrenas gratis.")
 	guideMonitor(player)
 end
 

@@ -28,7 +28,7 @@ local function openMenu(menu: { [string]: any })
 	local window, content, close = Dialog.window("HotelMenu", "🛎️ " .. tostring(menu.Hotel), Vector2.new(420, 300))
 	Theme.label({
 		Size = UDim2.new(1, 0, 0, 36),
-		Text = "¿Qué habitación quiere?" .. (if menu.Staff then ("\nLe atiende %s."):format(menu.Staff) else ""),
+		Text = "¿Qué habitación quieres?" .. (if menu.Staff then ("\nTe atiende %s."):format(menu.Staff) else ""),
 		TextSize = 14,
 		TextWrapped = true,
 		Parent = content,

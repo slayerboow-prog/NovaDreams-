@@ -21,7 +21,7 @@ local function menu(token: string, licenses: { any })
 			table.insert(keys, license.Key)
 		end
 	end
-	local choice = Dialog.choose("🚦 Autoescuela", "Primero un examen teórico (5 preguntas) y después el práctico por las calles del pueblo.", options)
+	local choice = Dialog.choose("🚦 Autoescuela", "Primero un examen teórico (5 preguntas) y después el práctico por las calles de la ciudad.", options)
 	local key = choice and keys[choice]
 	Remote:FireServer("Choose", token, if key then key else nil)
 end

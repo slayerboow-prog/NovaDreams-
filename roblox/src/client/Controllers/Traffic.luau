@@ -63,7 +63,7 @@ type Agent = {
 	Offsets: { CFrame },
 	Pedals: { { Index: number, Pivot: Vector3, Side: number } },
 	Tails: { BasePart },
-	Indicators: { { Part: BasePart, Side: number } },
+	Indicators: { { Part: BasePart, Side: number, On: boolean? } },
 	Active: boolean,
 	From: number,
 	To: number,
@@ -659,41 +659,91 @@ local function place(agent: Agent, pos: Vector3, dir: Vector3)
 	workspace:BulkMoveTo(agent.Parts, cframes, Enum.BulkMoveMode.FireCFrameChanged)
 end
 
+-- La caja de cada vehículo, guardada respecto a su pivote (GetBoundingBox recorre todas sus piezas:
+-- antes se hacía en cada fotograma por cada jugador sentado). Se vuelve a medir cada 2 s por si el
+-- vehículo cambia. Tabla débil: si el vehículo se destruye, se olvida solo.
+type Extent = { Offset: CFrame, Size: Vector3, At: number }
+local extents: { [Model]: Extent } = setmetatable({}, { __mode = "k" }) :: any
+local EXTENT_EVERY = 2
+
+local function vehicleBox(vehicle: Model, now: number): (CFrame?, Vector3?)
+	local ok, pivot = pcall(vehicle.GetPivot, vehicle)
+	if not ok then
+		return nil, nil
+	end
+	local cached = extents[vehicle]
+	if not cached or now - cached.At > EXTENT_EVERY then
+		local okBox, box, size = pcall(function()
+			return vehicle:GetBoundingBox()
+		end)
+		if not okBox or not box then
+			extents[vehicle] = nil
+			return nil, nil
+		end
+		cached = { Offset = pivot:ToObjectSpace(box), Size = size, At = now }
+		extents[vehicle] = cached
+	end
+	return pivot * cached.Offset, cached.Size
+end
+
+-- Fichas de obstáculo reutilizadas (antes se creaban tablas nuevas en cada fotograma)
+local obstaclePool: { Obstacle } = {}
+local function obstacleAt(list: { Obstacle }, pos: Vector3): Obstacle
+	local n = #list + 1
+	local o = obstaclePool[n]
+	if not o then
+		o = { Pos = pos }
+		obstaclePool[n] = o
+	end
+	o.Pos, o.Box, o.Size, o.Mine = pos, nil, nil, nil
+	list[n] = o
+	return o
+end
+
+-- Un jugador más lejos que esto no puede estar delante de ningún vehículo (todos están a menos de
+-- DESPAWN; la caja de un vehículo mide menos de 80)
+local PLAYER_REACH = DESPAWN + 22 + 80
+
 -- Lo que ocupa cada jugador en la calle: su cuerpo o, si va en un vehículo, la caja entera del vehículo
-local function playerObstacles(list: { Obstacle })
+local function playerObstacles(list: { Obstacle }, center: Vector3, now: number)
 	for _, p in Players:GetPlayers() do
 		local character = p.Character
 		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 		if not root then
 			continue
 		end
+		local rp = root.Position
+		if Vector3.new(rp.X - center.X, 0, rp.Z - center.Z).Magnitude > PLAYER_REACH then
+			continue
+		end
 		local humanoid = character:FindFirstChildOfClass("Humanoid")
 		local seat = humanoid and humanoid.SeatPart
 		local vehicle = seat and seat:FindFirstAncestorOfClass("Model")
-		local o: Obstacle = { Pos = root.Position, Mine = p == player }
+		local o = obstacleAt(list, rp)
+		o.Mine = p == player
 		if vehicle and vehicle ~= character then
-			local ok, box, size = pcall(function()
-				return (vehicle :: Model):GetBoundingBox()
-			end)
-			if ok and box and size.Magnitude < 80 then
+			local box, size = vehicleBox(vehicle :: Model, now)
+			if box and size and size.Magnitude < 80 then
 				o.Pos, o.Box, o.Size = box.Position, box, size
 			end
 		end
-		table.insert(list, o)
 	end
 end
 
 local blink = 0
+local obstacles: { Obstacle } = {} -- (la misma tabla en cada fotograma)
 local function step(dt: number, center: Vector3)
 	-- Jugadores (con sus vehículos) y peatones cruzando: una lista por fotograma para todos los coches
-	local obstacles: { Obstacle } = {}
-	playerObstacles(obstacles)
-	for _, w in walkers do
-		table.insert(obstacles, { Pos = w })
-	end
 	local now = os.clock()
+	table.clear(obstacles)
+	playerObstacles(obstacles, center, now)
+	for _, w in walkers do
+		obstacleAt(obstacles, w)
+	end
 	blink += dt
 	local blinkOn = (blink % 0.8) < 0.4
+	-- Con lluvia o nieve, todos más despacio (una vez por fotograma, no por vehículo)
+	local wetSpeed = Wetness.trafficSpeed(workspace:GetAttribute("Wet") or 0, workspace:GetAttribute("Snow") or 0)
 	for _, agent in agents do
 		if not agent.Active then
 			if math.random() < 0.1 then -- no buscar sitio en cada fotograma
@@ -709,8 +759,7 @@ local function step(dt: number, center: Vector3)
 		end
 		local edge = edgeOf(agent.From, agent.To)
 		local cruise = agent.Cruise * (if edge and edge.Kind == "Autovia" and not agent.Small then 1.5 else 1)
-		-- Con lluvia o nieve, todos más despacio
-		cruise *= Wetness.trafficSpeed(workspace:GetAttribute("Wet") or 0, workspace:GetAttribute("Snow") or 0)
+		cruise *= wetSpeed
 		if agent.Turn ~= 0 then
 			cruise = math.min(cruise, 24) -- más despacio al girar
 		end
@@ -756,8 +805,12 @@ local function step(dt: number, center: Vector3)
 		local signalling = agent.Turn ~= 0 and L - agent.S < 45 and blinkOn
 		for _, ind in agent.Indicators do
 			local on = signalling and ind.Side == agent.Turn
-			ind.Part.Color = if on then IND_ON else IND_OFF
-			ind.Part.Material = if on then Enum.Material.Neon else Enum.Material.SmoothPlastic
+			-- (solo se pinta cuando cambia: escribir Color y Material cada fotograma cuesta)
+			if ind.On ~= on then
+				ind.On = on
+				ind.Part.Color = if on then IND_ON else IND_OFF
+				ind.Part.Material = if on then Enum.Material.Neon else Enum.Material.SmoothPlastic
+			end
 		end
 		place(agent, pos, dir)
 	end
