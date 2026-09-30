@@ -14,11 +14,14 @@ local SCHOOL = Config.SchoolDay
 
 local Schedules = {}
 
-export type Window = { Id: string, Name: string, From: number, To: number }
+export type Window = { Id: string, Name: string, From: number, To: number, Weekdays: { number }? }
+
+-- Días de clase: de lunes a viernes (1 = lunes … 7 = domingo). El fin de semana no hay cole.
+Schedules.SchoolWeekdays = { 1, 2, 3, 4, 5 }
 
 Schedules.Windows = {
-	Colegio = { Id = "Colegio", Name = "El colegio", From = SCHOOL.Opens, To = SCHOOL.End },
-	Instituto = { Id = "Instituto", Name = "El instituto", From = SCHOOL.Opens, To = SCHOOL.End },
+	Colegio = { Id = "Colegio", Name = "El colegio", From = SCHOOL.Opens, To = SCHOOL.End, Weekdays = Schedules.SchoolWeekdays },
+	Instituto = { Id = "Instituto", Name = "El instituto", From = SCHOOL.Opens, To = SCHOOL.End, Weekdays = Schedules.SchoolWeekdays },
 	Universidad = { Id = "Universidad", Name = "La universidad", From = 8, To = 21 },
 	Oficina = { Id = "Oficina", Name = "La oficina", From = 8.5, To = 19 },
 } :: { [string]: Window }
@@ -115,15 +118,29 @@ function Schedules.isSchool(window: Window?): boolean
 	return window ~= nil and (window.Id == "Colegio" or window.Id == "Instituto")
 end
 
--- ¿Es horario de cole ahora? (de que abren las puertas a que suena el último timbre)
-function Schedules.isSchoolTime(clockTime: number): boolean
-	return clockTime >= SCHOOL.Opens and clockTime < SCHOOL.End
+-- ¿Es día de clase? (sin día de la semana, se da por bueno)
+function Schedules.isSchoolDay(weekday: number?): boolean
+	return weekday == nil or table.find(Schedules.SchoolWeekdays, weekday) ~= nil
 end
 
--- ¿Está abierto a esta hora? (admite horarios que pasan la medianoche)
-function Schedules.isOpen(window: Window?, clockTime: number): boolean
+-- ¿Es horario de cole ahora? (de que abren las puertas a que suena el último timbre, de lunes a viernes)
+function Schedules.isSchoolTime(clockTime: number, weekday: number?): boolean
+	return Schedules.isSchoolDay(weekday) and clockTime >= SCHOOL.Opens and clockTime < SCHOOL.End
+end
+
+-- ¿Abre ese día de la semana? (sin Weekdays, todos los días; sin día, no se mira)
+function Schedules.opensOn(window: Window?, weekday: number?): boolean
+	return window == nil or window.Weekdays == nil or weekday == nil or table.find(window.Weekdays, weekday) ~= nil
+end
+
+-- ¿Está abierto a esta hora? (admite horarios que pasan la medianoche). Con weekday, mira también
+-- si ese día abre (el colegio y el instituto, solo de lunes a viernes).
+function Schedules.isOpen(window: Window?, clockTime: number, weekday: number?): boolean
 	if not window then
 		return true
+	end
+	if not Schedules.opensOn(window, weekday) then
+		return false
 	end
 	if window.From <= window.To then
 		return clockTime >= window.From and clockTime < window.To

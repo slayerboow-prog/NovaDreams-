@@ -152,6 +152,11 @@ function Restaurant.init()
 			if bar and bar.Token == token and bar.Window.Parent then
 				bar.Rebuild(a)
 			end
+		elseif action == "CloseBar" then
+			-- Has dejado el turno de barman: se cierra el panel de la barra
+			if bar and bar.Window.Parent then
+				bar.Window:Destroy()
+			end
 		end
 	end)
 end

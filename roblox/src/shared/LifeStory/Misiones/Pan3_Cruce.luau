@@ -6,7 +6,7 @@
 --  * Entrar en el negocio → Camino_Delincuente (dinero fácil, Rebeldía; en el estadio te ve Nico: aún
 --    puedes echarte atrás). Si sigues, 3 h después la policía desmantela el puesto (Eco_Redada).
 --  * Alejarte y ayudar a Nerea → Camino_Trabajador (Carmen le abre un taller de cómic).
---  * Intentar sacar a Rayo → Camino_Trabajador + RayoCambia (Tomás le ofrece aprender en su taller).
+--  * Intentar sacar a Rayo → Camino_Trabajador + RayoCambia (Tobías le ofrece aprender en su taller).
 -- Años después, ya de adulto, Rayo vuelve a aparecer (Eco_RayoAdulto) y lo que pase depende de esto.
 
 local V = Vector3.new
@@ -65,9 +65,9 @@ return {
 			Actors = { { Npc = "Carmen", Place = "AulaInstituto", Offset = V(0, 0, -6) }, { Npc = "Nerea", Place = "AulaInstituto", Offset = V(2, 0, -3) } } },
 
 		-- Salvar a Rayo
-		{ Type = "Reach", Place = "Gasolinera", Text = "Ve al taller de Tomás (gasolinera): a Rayo le encantan los motores", If = SALVAR,
+		{ Type = "Reach", Place = "Gasolinera", Text = "Ve al taller de Tobías (gasolinera): a Rayo le encantan los motores", If = SALVAR,
 			Actors = { { Npc = "Tomas", Place = "Gasolinera", Offset = V(0, 0, 4) } } },
-		{ Type = "Talk", Npc = "Tomas", Dialogue = "Tomas", Text = "Habla con Tomás", If = SALVAR, Actors = { { Npc = "Tomas", Place = "Gasolinera", Offset = V(0, 0, 4) } } },
+		{ Type = "Talk", Npc = "Tomas", Dialogue = "Tomas", Text = "Habla con Tobías", If = SALVAR, Actors = { { Npc = "Tomas", Place = "Gasolinera", Offset = V(0, 0, 4) } } },
 		{ Type = "Reach", Place = "Parque", Text = "Vuelve al parque: díselo a Rayo", If = SALVAR, Actors = { { Npc = "Rayo", Place = "Parque", Offset = V(-12, 0, 8), Mode = "Sit" } } },
 		{ Type = "Talk", Npc = "Rayo", Dialogue = "Salvar", Text = "Habla con Rayo", If = SALVAR, Actors = { { Npc = "Rayo", Place = "Parque", Offset = V(-12, 0, 8), Mode = "Sit" } } },
 
@@ -121,7 +121,7 @@ return {
 		} },
 		Salvar = { Lines = {
 			{ S = "Rayo", T = "¿Tú otra vez? ¿Vienes a comprarme una camiseta?" },
-			{ S = "Narrador", T = "Le cuentas lo de Tomás. Un taller de verdad. Motores de verdad. Mañana a las ocho." },
+			{ S = "Narrador", T = "Le cuentas lo de Tobías. Un taller de verdad. Motores de verdad. Mañana a las ocho." },
 			{ S = "Rayo", T = "¿Por qué haces esto? Tú siempre me has dicho que no a todo. Eres la única persona que no me ha dejado tirado. Qué raro.", If = { RelBelow = { Rayo = 5 } } },
 			{ S = "Rayo", T = "¿Por qué haces esto? Estabas en todo conmigo. Podrías seguir. Y vienes a sacarme a mí.", If = { Rel = { Rayo = 5 } } },
 			{ Ask = "¿Qué le dices?", Options = {
@@ -143,7 +143,7 @@ return {
 				If = { Flags = { "Camino_Trabajador" }, Traits = { Rebeldia = 2 } }, Effects = { Flags = { "Redimido" } } },
 			{ S = "Narrador", T = "Nunca te dejaste arrastrar. Y hoy, además, has tendido la mano a alguien. Así se construye una persona.", If = { Flags = { "Camino_Trabajador" }, TraitsBelow = { Rebeldia = 2 } } },
 			{ S = "Familia", T = "Me ha llamado la madre de Nerea. Dice que su hija ha vuelto a dibujar. Que ha sido gracias a ti. …Ven aquí. Abrazo. No te escapes.", If = ALEJARSE },
-			{ S = "Familia", T = "Me ha contado Tomás, el del taller, que le has llevado a un chaval. Que llegó a las ocho menos cuarto. Qué orgullo me das.", If = SALVAR },
+			{ S = "Familia", T = "Me ha contado Tobías, el del taller, que le has llevado a un chaval. Que llegó a las ocho menos cuarto. Qué orgullo me das.", If = SALVAR },
 		} },
 	},
 }

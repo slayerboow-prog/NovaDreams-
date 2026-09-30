@@ -32,7 +32,7 @@ local errandCard: Frame?
 local errandTracker: Frame?
 
 local PRIVACY = {
-	{ Id = "Grupo", Label = "👥 Grupo y llaves", Hint = "Entran los de tu grupo y los que tienen llave." },
+	{ Id = "Grupo", Label = "👥 Grupo y llaves", Hint = "Entran los que tienen llave y los de tu grupo si el líder eres tú." },
 	{ Id = "Llaves", Label = "🔑 Solo llaves", Hint = "Solo entran los que tienen llave." },
 	{ Id = "Cerrada", Label = "🔒 Cerrada", Hint = "No entra nadie más que tú (el timbre sigue sonando)." },
 }

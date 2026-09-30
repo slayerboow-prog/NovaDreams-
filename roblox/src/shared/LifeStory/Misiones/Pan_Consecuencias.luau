@@ -103,8 +103,8 @@ return {
 		},
 		Dialogues = {
 			Vuelve = { Lines = {
-				-- Rayo cambió (le llevaste al taller de Tomás)
-				{ S = "Rayo", T = "¡Eh! ¿Te acuerdas de mí? Mira: «Taller Rayo». Mío. Tomás se jubiló y me lo dejó. El viejo al final me quería.", If = CAMBIO },
+				-- Rayo cambió (le llevaste al taller de Tobías)
+				{ S = "Rayo", T = "¡Eh! ¿Te acuerdas de mí? Mira: «Taller Rayo». Mío. Tobías se jubiló y me lo dejó. El viejo al final me quería.", If = CAMBIO },
 				{ S = "Rayo", T = "Llegué a las ocho menos cuarto aquel día. Y todos los días después. Si alguna vez se te rompe el coche, es gratis. Para siempre.", If = CAMBIO },
 				{ S = "Rayo", T = "Nunca te lo dije: me salvaste. Así, tal cual. Ya está. No me hagas repetirlo.", If = CAMBIO },
 				-- Sigues en el mal camino

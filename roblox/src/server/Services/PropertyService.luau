@@ -35,8 +35,8 @@ local InteriorService = require(script.Parent.InteriorService)
 local PropertyService = {}
 
 -- Kind: "Compra" (suya), "Alquiler" (paga cada día de juego) o "Inicial" (la que le tocó al llegar).
--- Access: quién tiene llave (UserId en texto -> nombre). Privacy: "Grupo" (su grupo y los que
--- tienen llave), "Llaves" (solo los que tienen llave) o "Cerrada" (nadie más).
+-- Access: quién tiene llave (UserId en texto -> nombre). Privacy: "Grupo" (su grupo, si el dueño
+-- es el líder, y los que tienen llave), "Llaves" (solo los que tienen llave) o "Cerrada" (nadie más).
 type Owner = { UserId: number, Name: string, Price: number, Since: number, Kind: string?, Rent: number?, Access: { [string]: string }?, Privacy: string? }
 type Registry = { [string]: Owner } -- planta (texto) -> dueño
 

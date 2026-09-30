@@ -72,6 +72,10 @@ local customers: { [number]: Customer } = {}
 local orders: { Order } = {}
 local carrying: { [Player]: { Order: Order, Part: BasePart } } = {}
 local barToken: { [Player]: string } = {}
+-- Segundos que lleva cada trabajador lejos de su puesto (si se va demasiado tiempo, fin del turno)
+local awayTime: { [Player]: number } = {}
+local AWAY_RANGE = 60
+local AWAY_LIMIT = 120
 local nextId = 0
 local npcWaiter: Model? = nil
 local npcBarman: Model? = nil
@@ -495,6 +499,11 @@ local function onCustomerPrompt(customer: Customer, player: Player)
 			carry.Part:Destroy()
 			carrying[player] = nil
 			serve(customer, player)
+			-- Sin energía (o con demasiada hambre): se acaba el turno
+			if staff.Camarero == player and not NeedsService.canWork(player) then
+				RestaurantService.quit(player, true)
+				Notify:FireClient(player, "Error", "Te has quedado sin energía. Come algo o duerme antes de seguir trabajando.")
+			end
 		end
 	end
 end
@@ -577,6 +586,11 @@ local function onPrepare(player: Player, token: any, orderId: any, index: any, c
 	if ok then
 		Notify:FireClient(player, "Success", "✅ " .. dish.Name .. " preparado.")
 		markPrepared(order, index, player)
+		-- Sin energía (o con demasiada hambre): se acaba el turno
+		if staff.Barman == player and not NeedsService.canWork(player) then
+			RestaurantService.quit(player, true)
+			Notify:FireClient(player, "Error", "Te has quedado sin energía. Come algo o duerme antes de seguir trabajando.")
+		end
 	else
 		for _, customer in customers do
 			if customer.Id == order.CustomerId then
@@ -667,6 +681,11 @@ function RestaurantService.quit(player: Player, silent: boolean?)
 		return
 	end
 	dropCarry(player)
+	awayTime[player] = nil
+	if role == "Barman" then
+		-- Se cierra el panel de la barra si lo tenía abierto (ya no puede preparar nada)
+		Remote:FireClient(player, "CloseBar")
+	end
 	barToken[player] = nil
 	-- Las notas a medias vuelven a esperar
 	for _, customer in customers do
@@ -940,6 +959,25 @@ local function updateTargets()
 	end
 end
 
+-- Camarero o barman que se ha ido del restaurante: tras un rato fuera, fin del turno
+-- (se mira cada medio segundo, desde el bucle del restaurante)
+local function checkAway(worker: Player?, spot: BasePart)
+	if not worker then
+		return
+	end
+	local character = worker.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if root and (root.Position - spot.Position).Magnitude <= AWAY_RANGE then
+		awayTime[worker] = nil
+		return
+	end
+	awayTime[worker] = (awayTime[worker] or 0) + 0.5
+	if (awayTime[worker] :: number) >= AWAY_LIMIT then
+		RestaurantService.quit(worker, true)
+		Notify:FireClient(worker, "Info", "Has dejado el puesto vacío demasiado tiempo: fin del turno.")
+	end
+end
+
 local function findPlace(): Place?
 	local function first(tag: string): BasePart?
 		local list = CollectionService:GetTagged(tag)
@@ -1073,6 +1111,9 @@ function RestaurantService.init()
 				npcWaiterStep()
 				npcBarmanStep()
 				updateTargets()
+				-- Camarero o barman que se ha ido del restaurante: tras un rato fuera, fin del turno
+				checkAway(staff.Camarero, p.WaiterSpot)
+				checkAway(staff.Barman, p.BarmanSpot)
 			end)
 			if not ok then
 				warn("[RestaurantService] " .. tostring(err))

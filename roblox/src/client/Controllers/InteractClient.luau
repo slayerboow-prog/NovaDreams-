@@ -29,7 +29,12 @@ local STANDING = { Tap = true, Fridge = true, Shower = true, Window = true }
 
 type Screen = { Part: BasePart, Gui: SurfaceGui, Kind: string, Shapes: { Frame }, Lines: { TextLabel }?, Ticker: TextLabel?, Label: TextLabel?, Background: Frame }
 local screens: { [BasePart]: Screen } = {}
-local loops: { [BasePart]: Sound } = {}
+-- (tablas débiles: si la pieza desaparece sin avisar, se olvida sola)
+local loops: { [BasePart]: Sound } = setmetatable({}, { __mode = "k" }) :: any
+-- Grifos y duchas abiertos (y de qué tipo): el bucle del agua solo existe si estás cerca
+local waterOn: { [BasePart]: string } = setmetatable({}, { __mode = "k" }) :: any
+local WATER_NEAR = 60 -- se crea el bucle (se oye hasta 40 studs: SoundFx.loop)
+local WATER_FAR = 80 -- se quita (un poco más lejos, para no crearlo y quitarlo sin parar)
 local pianos: { [BasePart]: boolean } = {}
 
 local function near(part: BasePart, distance: number?): boolean
@@ -171,6 +176,32 @@ local function stopLoop(part: BasePart)
 	end
 end
 
+local function startWater(target: BasePart, use: string)
+	local sound = SoundFx.loop("Agua", target)
+	if sound then
+		if use == "Shower" then
+			sound.PlaybackSpeed = 1.1
+		end
+		loops[target] = sound
+	end
+end
+
+-- Cada medio segundo: pone o quita el sonido del agua según lo cerca que estés
+local function refreshWaterLoops()
+	for target, use in waterOn do
+		if not target.Parent then
+			waterOn[target] = nil
+			stopLoop(target)
+		elseif loops[target] then
+			if not near(target, WATER_FAR) then
+				stopLoop(target)
+			end
+		elseif near(target, WATER_NEAR) then
+			startWater(target, use)
+		end
+	end
+end
+
 local function playPiano(part: BasePart)
 	if pianos[part] then
 		return
@@ -282,16 +313,15 @@ local function watch(part: Instance)
 		local function refreshWater()
 			if target:GetAttribute("Running") then
 				stopLoop(target)
-				-- Siempre se crea (aunque estés lejos): el bucle 3D solo se oye cerca, así al acercarte
-				-- ya suena sin tener que estar allí cuando se abrió el grifo
-				local sound = SoundFx.loop("Agua", target)
-				if sound then
-					if use == "Shower" then
-						sound.PlaybackSpeed = 1.1
-					end
-					loops[target] = sound
+				-- Solo se crea cerca (a menos de WATER_NEAR, antes de que se oiga): antes se creaba en
+				-- cada grifo abierto de la ciudad. Al acercarte lo crea el bucle de InteractClient.init,
+				-- así ya suena sin tener que estar allí cuando se abrió el grifo
+				waterOn[target] = use
+				if near(target, WATER_NEAR) then
+					startWater(target, use)
 				end
 			else
+				waterOn[target] = nil
 				stopLoop(target)
 			end
 		end
@@ -312,6 +342,7 @@ local function watch(part: Instance)
 	part.AncestryChanged:Connect(function(_, parent)
 		if parent == nil then
 			removeScreen(part)
+			waterOn[part] = nil
 			stopLoop(part)
 		end
 	end)
@@ -407,6 +438,7 @@ function InteractClient.init()
 	CollectionService:GetInstanceRemovedSignal("Interact"):Connect(function(part)
 		if part:IsA("BasePart") then
 			removeScreen(part)
+			waterOn[part] = nil
 			stopLoop(part)
 		end
 	end)
@@ -425,9 +457,17 @@ function InteractClient.init()
 		end
 	end)
 
-	-- Pantallas: se animan de cerca, 20 veces por segundo
+	-- Pantallas: se animan de cerca, 20 veces por segundo (y el agua, cada medio segundo)
 	task.spawn(function()
+		local ticks = 0
 		while true do
+			ticks += 1
+			if ticks % 10 == 0 then
+				local ok, err = pcall(refreshWaterLoops)
+				if not ok then
+					warn("[InteractClient] " .. tostring(err))
+				end
+			end
 			local now = os.clock()
 			for part, screen in screens do
 				if not part.Parent then

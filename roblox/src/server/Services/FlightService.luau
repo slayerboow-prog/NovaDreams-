@@ -61,6 +61,8 @@ local lastRoot: { [Player]: Vector3 } = {}
 local AWAY = 30 -- a más de esto del asiento (y de golpe), ya no está en el avión
 -- Lo que pagó por el billete que lleva (para devolvérselo si lo cambia por otro)
 local ticketPaid: { [Player]: number } = {}
+-- Lo que pagó por el billete con el que ha embarcado (si se baja antes de despegar, lo recupera)
+local boardedPaid: { [Player]: number } = {}
 -- Quiso comprar otro billete teniendo ya uno: si vuelve a pulsar enseguida, se cambia
 local swapAsk: { [Player]: { Route: string, At: number } } = {}
 local SWAP_CONFIRM = 10 -- segundos para confirmar el cambio de billete
@@ -208,6 +210,7 @@ local function stopRiding(player: Player, plane: Plane)
 	end
 	player:SetAttribute("FlightLanding", nil)
 	lastRoot[player] = nil
+	boardedPaid[player] = nil
 	local humanoid = humanoidOf(player)
 	if humanoid and seat and humanoid.SeatPart == seat then
 		humanoid.Sit = false
@@ -290,12 +293,24 @@ function FlightService._step(plane: Plane, dt: number)
 		end
 		for player, seat in if anyOff then table.clone(plane.Passengers) else NOBODY do
 			if not player.Parent or not seated(player, seat) then
+				local paid = boardedPaid[player]
 				stopRiding(player, plane)
+				-- Aún no ha despegado: conserva su billete (y lo que pagó, por si se va del juego)
+				if player.Parent and paid then
+					local other = player:GetAttribute("FlightTicket")
+					if other == nil then
+						player:SetAttribute("FlightTicket", plane.Route.Id)
+						ticketPaid[player] = paid
+					elseif paid > 0 then
+						DataService.addMoney(player, paid) -- (ya tiene otro billete: se le devuelve este)
+					end
+				end
 				local gate = tagged("FlightGate", { Plane = plane.Spec.Id, Place = plane.Route.From })
 				local character = player.Character
-				if gate and character and player.Parent then
+				-- (si lo han llevado a otro sitio, a la cárcel o a un juicio, no se le devuelve a la puerta)
+				if gate and character and player.Parent and not held(player) and not player:GetAttribute("Teleporting") then
 					character:PivotTo(gate.CFrame * CFrame.new(0, 0, -4))
-					Notify:FireClient(player, "Info", "Has bajado del avión. Si quieres volar, compra otro billete 🎫")
+					Notify:FireClient(player, "Info", "Has bajado del avión. Conservas tu billete: puedes volver a embarcar antes de que salga 🎫")
 				end
 			end
 		end
@@ -338,7 +353,8 @@ function FlightService._step(plane: Plane, dt: number)
 		if not player.Parent or not humanoid or (humanoid.Health or 0) <= 0 or held(player) then
 			stopRiding(player, plane)
 		elseif humanoid.SeatPart ~= seat then
-			if teleported then
+			-- (a mitad de un salto: SceneService.teleportTo o InteriorService lo llevan a otro sitio)
+			if teleported or player:GetAttribute("Teleporting") then
 				stopRiding(player, plane)
 			else
 				seat:Sit(humanoid)
@@ -465,6 +481,7 @@ function FlightService.board(player: Player, planeId: string, where: string): bo
 		require(script.Parent.VehicleService).standUp(player)
 	end)
 	player:SetAttribute("FlightTicket", nil)
+	boardedPaid[player] = ticketPaid[player] or 0
 	ticketPaid[player] = nil
 	seat:Sit(humanoid)
 	plane.Passengers[player] = seat
@@ -651,14 +668,16 @@ function FlightService.init()
 	Players.PlayerRemoving:Connect(function(player)
 		-- El billete sin usar solo vive en este servidor (un atributo): se le devuelve lo que pagó antes
 		-- del guardado de salida, como en la cafetería y el cine (al embarcar ya se borró: no se devuelve)
-		local paid = ticketPaid[player]
-		if paid and paid > 0 then
+		-- (si se va embarcado pero antes de despegar, también se le devuelve)
+		local plane = riding[player]
+		local paid = (ticketPaid[player] or 0) + (if plane and plane.Phase == "Boarding" then boardedPaid[player] or 0 else 0)
+		if paid > 0 then
 			DataService.addMoney(player, paid)
 		end
 		ticketPaid[player] = nil
+		boardedPaid[player] = nil
 		swapAsk[player] = nil
 		lastRoot[player] = nil
-		local plane = riding[player]
 		if plane then
 			plane.Passengers[player] = nil
 			riding[player] = nil

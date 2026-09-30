@@ -199,7 +199,8 @@ local People: { [string]: Person } = {
 
 	-- La semana de las profesiones
 	Nuria = { Name = "Doctora Nuria", Voice = "Profe", Skin = rgb(230, 190, 160), Shirt = rgb(245, 245, 245), Pants = rgb(80, 150, 170), Hair = rgb(60, 40, 30), LongHair = true, Bio = "Médica de urgencias. Rápida, cálida, habla con las manos." },
-	Tomas = { Name = "Tomás", Voice = "Abu", Skin = rgb(190, 140, 100), Shirt = rgb(40, 70, 130), Pants = rgb(40, 70, 130), Hair = rgb(120, 120, 120), Bio = "Mecánico de toda la vida. Manos negras de grasa y paciencia infinita." },
+	-- (el mecánico se llama Tobías para no confundirlo con Abu Tomás; su id sigue siendo "Tomas")
+	Tomas = { Name = "Tobías", Voice = "Abu", Skin = rgb(190, 140, 100), Shirt = rgb(40, 70, 130), Pants = rgb(40, 70, 130), Hair = rgb(120, 120, 120), Bio = "Mecánico de toda la vida. Manos negras de grasa y paciencia infinita." },
 	Ines = { Name = "Agente Inés", Voice = "Profe", Skin = rgb(210, 165, 125), Shirt = rgb(30, 50, 110), Pants = rgb(30, 40, 70), Hair = rgb(30, 25, 20), Bio = "Policía de barrio. Conoce a todo el mundo por su nombre." },
 	Marcos = { Name = "Marcos", Voice = "Profe", Skin = rgb(240, 205, 175), Shirt = rgb(250, 250, 250), Pants = rgb(40, 40, 60), Hair = rgb(200, 170, 110), Bio = "Dirige una pequeña empresa de bicicletas. Todo lo convierte en un plan." },
 	Lola = { Name = "Chef Lola", Voice = "Familia", Skin = rgb(180, 125, 90), Shirt = rgb(250, 250, 250), Pants = rgb(30, 30, 30), Hair = rgb(20, 20, 22), LongHair = true, Bio = "Cocinera. Grita en la cocina y abraza fuera de ella." },

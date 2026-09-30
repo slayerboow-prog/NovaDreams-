@@ -154,7 +154,7 @@ return {
 			teVes("Interes_Economia", "Marcos", "Estudia números y aprende a escuchar. Con eso se montan las mejores empresas.", "Normal. Esto no es para todo el mundo. Yo tampoco sabía que era para mí."),
 		} },
 		Taller = { Lines = {
-			{ S = "Tomas", T = "Pasa, que no muerdo. El coche sí, si le metes la mano donde no es. Soy Tomás. Cuarenta años arreglando motores." },
+			{ S = "Tomas", T = "Pasa, que no muerdo. El coche sí, si le metes la mano donde no es. Soy Tobías. Cuarenta años arreglando motores." },
 			{ S = "Tomas", T = "Este no arranca. Escucha: ¿oyes ese clic-clic? ¿Qué crees que es?" },
 			{ Ask = "¿Qué crees?", Options = {
 				{ T = "La batería", Effects = { Traits = { Curiosidad = 1 } }, Then = {
@@ -218,7 +218,7 @@ return {
 			{ S = "Carmen", T = "Sofía me ha dicho que tus puentes aguantan más que los suyos. Eso no lo dice nunca.", If = { Flags = { "Interes_Ingenieria" } } },
 			{ S = "Carmen", T = "Inés dice que escuchas a las dos partes. Eso vale para la policía y para el derecho.", If = { Flags = { "Interes_Derecho" } } },
 			{ S = "Carmen", T = "Marcos va a pintar las bicis de azul. Por tu culpa. Está encantado.", If = { Flags = { "Interes_Economia" } } },
-			{ S = "Carmen", T = "Tomás pregunta si vas a volver al taller. Eso con Tomás es casi una oferta de trabajo.", If = { Flags = { "Interes_Oficio" } } },
+			{ S = "Carmen", T = "Tobías pregunta si vas a volver al taller. Eso con Tobías es casi una oferta de trabajo.", If = { Flags = { "Interes_Oficio" } } },
 			{ S = "Carmen", T = "Lola dice que tienes cabeza de cocina. No sé qué significa, pero suena a piropo.", If = { Flags = { "Interes_Cocina" } } },
 			{ S = "Carmen", T = "Irene te ha visto cuidar a alguien antes que a una medalla. Eso es saber entrenar.", If = { Flags = { "Interes_Deporte" } } },
 			{ S = "Carmen", T = "Toni ya te llama «la cámara». Viniendo de él, es un título.", If = { Flags = { "Interes_Audiovisual" } } },

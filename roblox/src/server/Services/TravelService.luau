@@ -33,7 +33,15 @@ function TravelService.travel(player: Player, destination: string)
 	end
 	-- Primero se baja del vehículo (o se levanta del banco): si no, se lo llevaría con él
 	-- (require aquí dentro: así no hay requires en círculo)
-	require(script.Parent.VehicleService).standUp(player)
+	-- Mientras dura el viaje lleva "Teleporting" (el mismo que InteriorService): así el autobús
+	-- urbano o el avión no lo vuelven a sentar al levantarse
+	local mine = not player:GetAttribute("Teleporting")
+	if mine then
+		player:SetAttribute("Teleporting", true)
+	end
+	pcall(function()
+		require(script.Parent.VehicleService).standUp(player)
+	end)
 	traveling[player] = true
 	Notify:FireClient(player, "Travel", "🚌 Viajando a " .. destination .. "…")
 	task.wait(TRAVEL_SECONDS / 2)
@@ -44,6 +52,9 @@ function TravelService.travel(player: Player, destination: string)
 		end)
 		-- Bajamos del autobús en la acera, delante de la parada
 		player.Character:PivotTo(target.CFrame * CFrame.new(0, 2, -3))
+	end
+	if mine and player.Parent then
+		player:SetAttribute("Teleporting", nil)
 	end
 	task.wait(TRAVEL_SECONDS / 2)
 	traveling[player] = nil

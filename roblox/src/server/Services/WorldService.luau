@@ -207,10 +207,26 @@ local function setupFerry(prompt: Instance)
 	prompt.Triggered:Connect(function(player)
 		local target = prompt:GetAttribute("Target")
 		local character = player.Character
-		if ferryBusy[player] or typeof(target) ~= "Vector3" or not character or player:GetAttribute("Riding") then
+		if ferryBusy[player] or typeof(target) ~= "Vector3" or not character then
+			return
+		end
+		-- Los bebés no viajan solos (como en el autobús y el avión: avisa LifeService)
+		-- (require aquí dentro: así no hay requires en círculo)
+		local allowed = true
+		pcall(function()
+			allowed = require(script.Parent.LifeService).allows(player, "Travel")
+		end)
+		if not allowed then
 			return
 		end
 		ferryBusy[player] = true
+		-- Si iba en un vehículo (o sentado), se baja primero, como en el autobús interurbano. Mientras
+		-- dura el viaje lleva "Teleporting": así el autobús o el avión no lo vuelven a sentar
+		local mine = not player:GetAttribute("Teleporting")
+		if mine then
+			player:SetAttribute("Teleporting", true)
+		end
+		standUpBefore(character)
 		local notify = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("Notify")
 		if notify then
 			(notify :: RemoteEvent):FireClient(player, "Travel", "⛵ " .. prompt.ActionText .. "...")
@@ -219,6 +235,9 @@ local function setupFerry(prompt: Instance)
 		if character.Parent then
 			standUpBefore(character)
 			character:PivotTo(CFrame.new(target))
+		end
+		if mine and player.Parent then
+			player:SetAttribute("Teleporting", nil)
 		end
 		ferryBusy[player] = nil
 	end)

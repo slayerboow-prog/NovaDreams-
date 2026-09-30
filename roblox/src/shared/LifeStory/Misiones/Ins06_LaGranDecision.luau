@@ -178,7 +178,7 @@ return {
 			{ S = "Carmen", T = "Sofía todavía habla de tu puente de palillos. Eso es ingeniería pura.", If = interes("Interes_Ingenieria") },
 			{ S = "Carmen", T = "Inés dijo que escuchabas a las dos partes. Eso es derecho, o policía, o mediación.", If = interes("Interes_Derecho") },
 			{ S = "Carmen", T = "Marcos pintó las bicis de azul por tu idea. Economía, empresa… lo llevas dentro.", If = interes("Interes_Economia") },
-			{ S = "Carmen", T = "Tomás, Lola, Irene, Toni… hay profesiones que se aprenden trabajando. No son menos: son otro camino.", If = { Flags = { "Interes_Oficio" } } },
+			{ S = "Carmen", T = "Tobías, Lola, Irene, Toni… hay profesiones que se aprenden trabajando. No son menos: son otro camino.", If = { Flags = { "Interes_Oficio" } } },
 			{ S = "Carmen", T = "Y tu primer trabajo de verano. Eso también dice mucho de ti.", If = { Memories = { "PrimerSueldo" } } },
 			{ S = "Carmen", T = "Sé lo del estadio y lo de Rayo. No te voy a sermonear. Solo te digo una cosa: todavía puedes elegir otro camino. Siempre se puede.", If = { Flags = { "Camino_Delincuente" } } },
 			{ S = "Carmen", T = "Y sé que saliste de algo difícil hace unos años. Eso dice más de ti que cualquier nota.", If = { Flags = { "Redimido" } } },

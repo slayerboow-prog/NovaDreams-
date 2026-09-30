@@ -775,6 +775,11 @@ local handlers: { [string]: (payload: { [string]: any }) -> () } = {
 				closeDialog("Offer", panel)
 			end
 		end)
+		-- (y si la tarjeta se cierra por otro lado —contestas, caduca o llega otra—, también se suelta:
+		-- antes quedaba conectada hasta el próximo cambio de InDialogue)
+		panel.Destroying:Once(function()
+			talk:Disconnect()
+		end)
 	end,
 	QuestIntro = function(payload)
 		queue(function()

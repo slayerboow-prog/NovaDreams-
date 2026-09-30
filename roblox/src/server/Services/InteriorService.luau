@@ -916,7 +916,12 @@ local function goToUnit(player: Player, building: Building, floor: number, lette
 	local gate = InteriorService.Hooks.Gate
 	if gate then
 		local ok, allowed, why = pcall(gate, player, building, floor, letter)
-		if ok and allowed == false then
+		if not ok then
+			-- (si falla la comprobación, mejor no dejar entrar: antes se entraba en cualquier casa)
+			warn("[Interiores] gate: " .. tostring(allowed))
+			Notify:FireClient(player, "Error", "🔒 Ahora no se puede entrar. Prueba otra vez en un momento.")
+			return
+		elseif allowed == false then
 			Notify:FireClient(player, "Error", why or "🔒 No puedes entrar.")
 			return
 		end
@@ -979,7 +984,12 @@ local function goTo(player: Player, building: Building, floor: number, byElevato
 	local gate = InteriorService.Hooks.Gate
 	if gate then
 		local ok, allowed, why = pcall(gate, player, building, floor, nil)
-		if ok and allowed == false then
+		if not ok then
+			-- (si falla la comprobación, mejor no dejar entrar)
+			warn("[Interiores] gate: " .. tostring(allowed))
+			Notify:FireClient(player, "Error", "🔒 Ahora no se puede entrar. Prueba otra vez en un momento.")
+			return
+		elseif allowed == false then
 			-- Casa de otro jugador: suena el timbre (el dueño decide); si no, puerta cerrada
 			local bell = InteriorService.Hooks.Doorbell
 			local okBell, handled = false, false
@@ -1616,7 +1626,8 @@ function InteriorService.checkIntruders()
 		return
 	end
 	local half = SLOT / 2
-	for key, inst in instances do
+	-- (sobre una copia: gate puede esperar y mientras tanto se pueden montar o quitar salas)
+	for key, inst in table.clone(instances) do
 		if inst.Tower or inst.Building.Persistent or not inst.Room.Model.Parent then
 			continue
 		end
@@ -1635,7 +1646,9 @@ function InteriorService.checkIntruders()
 			end
 			local building = inst.Building
 			local ok, allowed = pcall(gate, player, building, inst.Floor, if isTower(building) then inst.Unit else nil)
-			if ok and allowed == false then
+			-- (si falla la comprobación, no se echa a nadie; y si mientras tanto se ha ido o ha
+			-- entrado por la puerta, tampoco)
+			if ok and allowed == false and player.Parent and player:GetAttribute("InteriorKey") ~= key then
 				player:SetAttribute("InteriorKey", nil)
 				player:SetAttribute("InteriorDoor", nil)
 				player:SetAttribute("TowerFloor", nil)

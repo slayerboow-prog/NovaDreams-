@@ -1596,6 +1596,12 @@ function SceneService.teleportTo(player: Player, target: Vector3)
 	if not root then
 		return
 	end
+	-- Mientras dura el salto lleva "Teleporting" (el mismo que pone InteriorService): así el autobús
+	-- o el avión no lo vuelven a sentar al levantarse. Solo se quita si lo ha puesto aquí.
+	local mine = not player:GetAttribute("Teleporting")
+	if mine then
+		player:SetAttribute("Teleporting", true)
+	end
 	-- Primero se baja del vehículo (o se levanta del banco): si no, se lo llevaría con él (y a quien
 	-- vaya dentro) o se quedaría soldado al asiento. (require aquí dentro: sin requires en círculo)
 	pcall(function()
@@ -1610,9 +1616,17 @@ function SceneService.teleportTo(player: Player, target: Vector3)
 	pcall(function()
 		player:RequestStreamAroundAsync(target, 3)
 	end)
-	local position = groundAt(target + V(0, 1, 0), { player.Character :: Instance })
-	root.AssemblyLinearVelocity = Vector3.zero
-	;(player.Character :: Model):PivotTo(CFrame.new(position + V(0, 3, 0)) * root.CFrame.Rotation)
+	local ok = pcall(function()
+		local position = groundAt(target + V(0, 1, 0), { player.Character :: Instance })
+		root.AssemblyLinearVelocity = Vector3.zero
+		;(player.Character :: Model):PivotTo(CFrame.new(position + V(0, 3, 0)) * root.CFrame.Rotation)
+	end)
+	if mine and player.Parent then
+		player:SetAttribute("Teleporting", nil)
+	end
+	if not ok then
+		warn("[SceneService] No se pudo llevar a " .. player.Name .. " a su sitio")
+	end
 end
 
 ---------------------------------------------------------------------

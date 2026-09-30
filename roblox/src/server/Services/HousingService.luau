@@ -31,6 +31,7 @@ local Format = require(ReplicatedStorage.Shared.Format)
 local Housing = require(ReplicatedStorage.Shared.Housing)
 local Properties = require(ReplicatedStorage.Shared.Properties)
 local Residents = require(ReplicatedStorage.Shared.Residents)
+local Stages = require(ReplicatedStorage.Shared.LifeStory.Stages)
 local DataService = require(script.Parent.DataService)
 local InteriorService = require(script.Parent.InteriorService)
 local PropertyService = require(script.Parent.PropertyService)
@@ -101,6 +102,29 @@ function HousingService.assignStarter(player: Player, rng: Random?): { [string]:
 		end
 	end
 	return nil
+end
+
+-- Vivienda al llegar, pero solo con edad para tener casa (Properties.MinStage: antes a los bebés
+-- les llegaba «¡Ya tienes casa en Valmar!»). En la etapa de la universidad, quien tiene habitación
+-- en la residencia vive allí («Ir a casa» le lleva a ella); el piso le llega al pasar a Adulto.
+-- Se mira al cargar la partida y cada vez que cambia la etapa (LifeStage).
+function HousingService.maybeAssignStarter(player: Player)
+	if not HousingService.AutoAssign or not player.Parent then
+		return
+	end
+	local data = DataService.get(player)
+	if not data or (data.Housing and data.Housing.Assigned) then
+		return
+	end
+	local stage = player:GetAttribute("LifeStage")
+	if type(stage) ~= "string" or not Stages.isValid(stage) or not Stages.inRange(stage, Properties.MinStage, nil) then
+		return
+	end
+	local okRes, ResidenceService = pcall(require, script.Parent.ResidenceService)
+	if okRes and ResidenceService and ResidenceService.Stages and ResidenceService.Stages[stage] and ResidenceService.roomFor and ResidenceService.roomFor(player.UserId) then
+		return
+	end
+	HousingService.assignStarter(player)
 end
 
 ---------------------------------------------------------------------
@@ -387,6 +411,11 @@ function HousingService.answer(owner: Player, token: string, open: boolean): boo
 		local at = owner:GetAttribute("InteriorKey")
 		if type(at) ~= "string" or string.sub(at, 1, #tostring(bell.Building.Id) + 1) ~= bell.Building.Id .. ":" then
 			Notify:FireClient(owner, "Error", "🚪 Para abrir la puerta tienes que estar en casa.")
+			-- (el aviso vuelve a salir con el tiempo que le queda)
+			local left = bell.Until - os.clock()
+			if left > 1 then
+				Remote:FireClient(owner, "Doorbell", { Token = token, From = bell.Visitor.DisplayName, Title = bell.Title, Seconds = left })
+			end
 			return false
 		end
 		bells[token] = nil
@@ -1273,9 +1302,19 @@ function HousingService.init()
 			end
 		end
 		if HousingService.AutoAssign and not data.Housing.Assigned then
-			task.spawn(HousingService.assignStarter, player)
+			task.spawn(HousingService.maybeAssignStarter, player)
 		end
 	end)
+	-- Al cumplir la edad (o salir de la universidad), la vivienda que le toca
+	local function watchStage(player: Player)
+		player:GetAttributeChangedSignal("LifeStage"):Connect(function()
+			task.spawn(HousingService.maybeAssignStarter, player)
+		end)
+	end
+	for _, player in Players:GetPlayers() do
+		watchStage(player)
+	end
+	Players.PlayerAdded:Connect(watchStage)
 	-- Vida en los portales (solo donde hay alguien)
 	task.spawn(function()
 		while true do

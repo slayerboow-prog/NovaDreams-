@@ -13,7 +13,6 @@
 
 local V = Vector3.new
 
-local NINO = { Stage = { Min = "Nino", Max = "Nino" } }
 local function after(...)
 	return { Stage = { Min = "Nino", Max = "Nino" }, Completed = { ... } }
 end
@@ -35,7 +34,8 @@ return {
 		Npcs = { "Cosme", "Bigotes" },
 		Offer = { Place = "GarajeCosme" },
 		OfferKey = "¡BUM! Humo verde en el garaje del vecino…",
-		Requires = NINO,
+		-- (desde niño y sin límite: si no la hiciste de pequeño, la saga sigue esperándote de mayor)
+		Requires = { Stage = { Min = "Nino" } },
 		Moment = "Conociste a Cosme, el inventor del garaje",
 		Memory = "ConociCosme",
 		Rewards = { Items = { PistolaBurbujas = 1 }, Flags = { "AmigoDeCosme", "GrietaVista" } },
