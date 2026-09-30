@@ -346,10 +346,17 @@ for _, g in tagged.MetroGate or {} do
 	-- 1) Delante del torno (vestíbulo), el primer comando es "Pasar (billete)" (ni ratas ni SOS)
 	local front = Metro.gatePromptAt(g.CFrame.Position, through) + Vector3.new(0, 1.3 - G.PromptHeight, 0) - dir * 0.5
 	local first = interact(key, front)
-	if first and first.Kind == "Gate" then
+	-- (y ni siquiera se ven al lado: ni ratas, ni interfono, ni papeleras, que en el móvil tapan el torno)
+	local ambient = nil
+	for _, kind in { "SOS", "Rat", "Bin" } do
+		if reachable(key, front, kind) or reachable(key, Metro.gateLanding(g.CFrame.Position, through).Position, kind) then
+			ambient = kind
+		end
+	end
+	if first and first.Kind == "Gate" and not ambient then
 		stealOk += 1
 	else
-		fail(("%s: delante del torno el primer comando es %s"):format(key, if first then first.Action else "nada"))
+		fail(("%s: delante del torno el primer comando es %s%s"):format(key, if first then first.Action else "nada", if ambient then " (y se ve " .. ambient .. ")" else ""))
 	end
 	-- 2) El torno le usa desde el vestíbulo; te deja al otro lado del cristal, con suelo y en el andén
 	local landing = Metro.gateLanding(g.CFrame.Position, through)
@@ -400,7 +407,7 @@ for _, g in tagged.MetroGateExit or {} do
 		fail(key .. ": el torno de salida se ve desde el vestíbulo o no te deja en él")
 	end
 end
-check(nGates > 0 and stealOk == nGates, ("delante de cada torno, Interactuar pulsa «Pasar (billete)» (%d/%d)"):format(stealOk, nGates))
+check(nGates > 0 and stealOk == nGates, ("delante de cada torno, Interactuar pulsa «Pasar (billete)» y no hay ratas, SOS ni papeleras al lado (%d/%d)"):format(stealOk, nGates))
 check(sideOk == nGates and floorOk == nGates and gatesOk == nGates, ("el torno te deja en el andén, con suelo y mirando hacia delante (%d/%d)"):format(math.min(sideOk, floorOk, gatesOk), nGates))
 check(stayOk == nGates, ("en el andén, ni «Pasar (billete)» ni «Salir» te devuelven con otro toque (%d/%d)"):format(stayOk, nGates))
 check(reachOk == nGates, ("«Pasar (billete)» no se ve desde el andén (%d/%d)"):format(reachOk, nGates))
