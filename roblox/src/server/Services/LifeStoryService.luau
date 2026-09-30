@@ -140,6 +140,7 @@ type Runtime = {
 	Engaged: { [string]: number }?, -- misión -> la última vez que el jugador hizo algo en ella (os.clock)
 	HeldNotice: { [string]: boolean }?, -- avisos «📱 … quiere hablar contigo» ya mandados (misión:paso:motivo)
 	CineHeld: { [string]: number }?, -- misión -> paso de escena de cine que espera a poder verse
+	UntrackedPingAt: number?, -- último aviso de una misión que no sigues (como mucho uno por minuto)
 }
 local runtime: { [Player]: Runtime } = {}
 local PROLOGUE = StoryContext.PrologueId
@@ -1021,6 +1022,13 @@ local function holdNotice(player: Player, questId: string, step: { [string]: any
 	local key = ("%s:%d:%s"):format(questId, stepIndex, reason)
 	if (rt.HeldNotice :: any)[key] then
 		return
+	end
+	-- (de misiones que no sigues, como mucho un aviso por minuto: al entrar puede haber varias esperando)
+	if reason == "Untracked" then
+		if rt.UntrackedPingAt and os.clock() - rt.UntrackedPingAt < 60 then
+			return
+		end
+		rt.UntrackedPingAt = os.clock()
 	end
 	;(rt.HeldNotice :: any)[key] = true
 	local quest = Quests[questId]

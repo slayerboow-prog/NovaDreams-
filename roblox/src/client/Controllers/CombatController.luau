@@ -487,6 +487,13 @@ local function updateShield(other: Player)
 	-- (tu propia guardia sigue a tu dedo, aunque el servidor tarde en confirmarla)
 	guardPose(other.Character, on or (other == player and blocking))
 	local existing = shields[other]
+	-- (el de un personaje que ya no está —reapareció, se fue lejos— se quita: si no, se quedaba
+	-- colgado y el nuevo personaje ya no recibía el suyo)
+	if existing and not (existing.Adornee and existing.Adornee:IsDescendantOf(workspace)) then
+		existing:Destroy()
+		shields[other] = nil
+		existing = nil
+	end
 	if on and not existing then
 		local head = other.Character and other.Character:FindFirstChild("Head")
 		if head then
@@ -620,6 +627,17 @@ function CombatController.init()
 
 	local function watch(other: Player)
 		other:GetAttributeChangedSignal("Blocking"):Connect(function()
+			updateShield(other)
+		end)
+		-- Al reaparecer (o al quitarse el personaje), el 🛡 del cuerpo anterior se quita
+		other.CharacterRemoving:Connect(function()
+			if shields[other] then
+				shields[other]:Destroy()
+				shields[other] = nil
+			end
+		end)
+		other.CharacterAdded:Connect(function(character)
+			character:WaitForChild("Head", 10)
 			updateShield(other)
 		end)
 	end

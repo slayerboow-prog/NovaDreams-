@@ -14,6 +14,7 @@
 --                             las teclas)
 --   Junto a la misión      -> el botón ❓ "¿Qué hago ahora?" (a su izquierda, bajo el minimapa)
 --   Abajo en el centro     -> encima de la barra rápida: la tarjeta de los primeros pasos, pistas y consejos
+--                             (y, en el metro, el panel del tren: Items.Ride)
 --
 -- Todo se mide en "unidades de lienzo": cada pantalla del HUD lleva un UIScale con HudLayout.scale()
 -- y el lienzo mide ViewportSize / escala (unos 1700 de ancho siempre; en el móvil unos 785 de alto).
@@ -59,6 +60,7 @@ HudLayout.Sizes = {
 	Help = 76, -- diámetro del botón ❓ "¿Qué hago ahora?"
 	Guide = Vector2.new(640, 150), -- tarjeta de los primeros pasos, pistas y consejos
 	Ammo = Vector2.new(210, 64), -- las balas del arma (Controllers/WeaponController)
+	Ride = Vector2.new(660, 176), -- panel del metro en el tren (Controllers/MetroUI): ancho y alto MÁXIMO
 }
 
 -- Racimo de botones táctiles (abajo a la derecha): centro de cada hueco respecto al de Ataque y su radio.
@@ -142,6 +144,8 @@ function HudLayout.compute(viewport: Vector2, options: Options?): Layout
 	items.Hotbar = place(Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, -hotbarGap), s.Hotbar)
 	-- Encima de la barra rápida: tarjeta de los primeros pasos, pistas y consejos (Controllers/Guide)
 	items.Guide = place(Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, -(hotbarGap + s.Hotbar.Y + 14)), s.Guide)
+	-- En el metro, el panel del tren va en ese mismo sitio (la tarjeta se quita mientras vas en él: Guide)
+	items.Ride = place(Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, -(hotbarGap + s.Hotbar.Y + 14)), s.Ride)
 	local statusBottom = statusTop + s.Status.Y
 	local commandTop = statusBottom + 12
 	local commandBottom: number -- (desde abajo)

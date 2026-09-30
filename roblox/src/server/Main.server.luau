@@ -140,6 +140,7 @@ local order = {
 	"SchoolService", -- compañeros y profe en cada colegio: siguen el horario y van a buscarte si tu misión lo pide
 	"UpdateService", -- versión nueva publicada: los servidores viejos llevan a sus jugadores a uno nuevo
 	"ActionService", -- linterna (los gestos, trepar y sentarse van en el cliente)
+	"SweepService", -- barrendero: las piezas sueltas que se quedan quietas por el suelo (en la calle, en un cruce…) se retiran
 }
 
 for _, name in order do

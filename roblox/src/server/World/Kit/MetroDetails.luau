@@ -94,7 +94,8 @@ local function drip(parent: Instance, top: CFrame, floorY: number)
 	e.Transparency = NumberSequence.new(0.3)
 	e.LightEmission = 0.2
 	e.Parent = p
-	local puddle = decor(parent, "Puddle", Vector3.new(0.05, 3.2, 3.8), CFrame.new(top.Position.X, floorY + 0.03, top.Position.Z) * CFrame.Angles(0, 0, math.rad(90)), rgb(70, 90, 110), Enum.Material.Glass, { Shape = Enum.PartType.Cylinder, Transparency = 0.35, Reflectance = 0.25 })
+	-- (charco oscuro y mate: de cristal, en el móvil con gráficos bajos se veía como un óvalo blanco)
+	local puddle = decor(parent, "Puddle", Vector3.new(0.05, 3.2, 3.8), CFrame.new(top.Position.X, floorY + 0.03, top.Position.Z) * CFrame.Angles(0, 0, math.rad(90)), rgb(48, 58, 68), Enum.Material.SmoothPlastic, { Shape = Enum.PartType.Cylinder, Transparency = 0.45, Reflectance = 0.12 })
 	local _ = puddle
 end
 
@@ -171,7 +172,8 @@ local function litter(parent: Instance, cf: CFrame, count: number, spread: Vecto
 		if kind == 1 then
 			decor(parent, "Can", Vector3.new(0.8, 0.45, 0.45), cf * CFrame.new(x, 0.23, z) * CFrame.Angles(0, between(0, 6.28), 0), Color3.fromHSV(rand(), 0.7, 0.8), Enum.Material.Metal, { Shape = Enum.PartType.Cylinder })
 		elseif kind == 2 then
-			decor(parent, "Paper", Vector3.new(0.6, 0.5, 0.6), cf * CFrame.new(x, 0.25, z), rgb(235, 232, 220), Enum.Material.SmoothPlastic, { Shape = Enum.PartType.Ball })
+			-- (papel arrugado: pequeño y grisáceo; blanco y redondo parecía un huevo en el suelo)
+			decor(parent, "Paper", Vector3.new(0.45, 0.35, 0.4), cf * CFrame.new(x, 0.18, z) * CFrame.Angles(between(0, 1), between(0, 6.28), 0), rgb(196, 192, 180), Enum.Material.Fabric)
 		else
 			decor(parent, "Gum", Vector3.new(0.4, 0.05, 0.4), cf * CFrame.new(x, 0.03, z), rgb(60, 60, 64))
 		end

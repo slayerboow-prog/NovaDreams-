@@ -118,6 +118,12 @@ local function areaTaken(): boolean
 		return true
 	end
 	local gui = player:FindFirstChild("PlayerGui")
+	-- (en el metro: el panel del tren va ahí, HudLayout.Items.Ride)
+	local metro = gui and gui:FindFirstChild("MetroRideGui")
+	local ridePanel = metro and metro:FindFirstChild("Ride")
+	if ridePanel and ridePanel:IsA("GuiObject") and ridePanel.Visible then
+		return true
+	end
 	local class = gui and gui:FindFirstChild("ClassUI")
 	if class then
 		for _, name in { "Class", "Circuit" } do

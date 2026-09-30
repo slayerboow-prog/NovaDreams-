@@ -3485,6 +3485,15 @@ check(profiles[rider].Money == 98 and InventoryService.count(rider, "BilleteMetr
 promptOf(gate, "Pasar (billete)").Triggered:Fire(rider)
 check(InventoryService.count(rider, "BilleteMetro") == 0 and rider:GetAttribute("MetroTicket") == true, "el torno gasta el billete")
 do
+	-- Ya al otro lado (en el andén): el torno no le devuelve ni le cobra otro billete (captura del niño
+	-- que no podía entrar: un segundo toque de Interactuar le sacaba otra vez al vestíbulo)
+	local landed = riderRoot.Position
+	InventoryService.add(rider, "BilleteMetro", 1)
+	promptOf(gate, "Pasar (billete)").Triggered:Fire(rider)
+	check(landed.X < gate.Position.X - 3 and InventoryService.count(rider, "BilleteMetro") == 1 and (riderRoot.Position - landed).Magnitude < 0.1, "pasado el torno, te quedas en el andén: otro toque no te mueve ni te cobra")
+	InventoryService.remove(rider, "BilleteMetro", 1)
+end
+do
 	local kid = newPlayer(93, "Nino", 0)
 	promptOf(gate, "Pasar (billete)").Triggered:Fire(kid)
 	check(kid:GetAttribute("MetroTicket") == true and notified(kid, "gratis"), "los niños pasan el torno gratis")
@@ -3694,16 +3703,19 @@ do
 	M:Fire(commuter, "BuyPass", "Semana")
 	local week = Metro.passById.Semana
 	check(profiles[commuter].Money == 100 - week.Price and profiles[commuter].Metro.PassKind == "Semana" and profiles[commuter].Metro.PassUntil > os.time(), "compra un abono semanal en la máquina")
-	moveTo(commuterRoot, gate.Position)
+	local lobby = gate.Position + Vector3.new(3, -2, 0) -- (delante del torno, en el vestíbulo)
+	moveTo(commuterRoot, lobby)
 	promptOf(gate, "Pasar (billete)").Triggered:Fire(commuter)
 	check(commuter:GetAttribute("MetroTicket") == true and InventoryService.count(commuter, Metro.TicketItem) == 0, "con abono pasa el torno sin billete")
 	profiles[commuter].Metro.PassUntil = os.time() - 1
 	commuter:SetAttribute("MetroTicket", nil)
+	moveTo(commuterRoot, lobby)
+	MetroService._passedGateAt[commuter] = nil -- (sin esperar Metro.Gate.Grace)
 	promptOf(gate, "Pasar (billete)").Triggered:Fire(commuter)
 	check(commuter:GetAttribute("MetroTicket") == nil and notified(commuter, "billete o un abono"), "el abono caducado ya no vale")
 	local cop, copRoot = newPlayer(97, "Adulto", 0)
 	cop:SetAttribute("Job", "Policia")
-	moveTo(copRoot, gate.Position)
+	moveTo(copRoot, gate.Position + Vector3.new(3, -2, 0))
 	promptOf(gate, "Pasar (billete)").Triggered:Fire(cop)
 	check(cop:GetAttribute("MetroTicket") == true and notified(cop, "servicio"), "de servicio (policía) el metro es gratis")
 end

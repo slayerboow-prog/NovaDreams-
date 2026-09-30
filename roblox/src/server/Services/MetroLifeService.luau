@@ -181,7 +181,9 @@ local function spawnPatrol(post: BasePart)
 	local cleaner = role == "Cleaner"
 	local npc = Npc.create(if cleaner then "Limpiador" else "Guardia", post.Parent :: Instance, CFrame.new(a), if cleaner then CLEANER_LOOK else GUARD_LOOK)
 	Npc.face(npc, b)
-	Npc.icon(npc, if cleaner then "🧽" else "🛡️")
+	-- Sin icono encima de la cabeza: el uniforme ya dice quién es (y su cartel, "🛡️ Seguridad" /
+	-- "🧽 Limpieza"). Aunque fuera "callado", en el móvil el 🛡️ azul y la 🧽 amarilla se veían flotando
+	-- por el vestíbulo y parecían objetos sueltos (capturas de Norte)
 	posts[post] = npc
 	local root = npc.PrimaryPart
 	if root then
@@ -243,9 +245,9 @@ local function spawnStatic(marker: BasePart)
 	end
 	if statue then
 		Npc.work(npc, "Present")
-		Npc.icon(npc, "🗿")
+		Npc.icon(npc, "🗿", true)
 	else
-		Npc.icon(npc, "👞")
+		Npc.icon(npc, "👞", true)
 	end
 	statics[marker] = npc
 end

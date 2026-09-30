@@ -535,7 +535,7 @@ local function station(parent: Instance, line: Metro.Line, index: number): (Mode
 	-- Máquinas de billetes
 	for _, z in { -20, -16 } do
 		local machine = part(m, "TicketMachine", Vector3.new(2, 5.6, 3), at(X1 - 1.4, 2.8, z), rgb(30, 90, 170), Enum.Material.SmoothPlastic, { Tags = { "MetroTicketMachine" } })
-		local _ = machine
+		machine:SetAttribute("PromptAt", at(X1 - 3.2, 3, z).Position) -- (el cartel, delante de la pantalla)
 		decor(m, "TicketScreen", Vector3.new(0.1, 1.6, 2), at(X1 - 2.45, 3.8, z), rgb(120, 200, 255), Enum.Material.Neon)
 	end
 	-- Quiosco (y punto de entrega de paquetes). En Plaza Mayor, al otro lado: por el +Z bajan las

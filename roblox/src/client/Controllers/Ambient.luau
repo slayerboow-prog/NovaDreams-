@@ -315,6 +315,8 @@ local function inSight(road: Road, u: number, center: Vector3): boolean
 	return (at - center).Magnitude <= 170 and inView(at)
 end
 
+local posePed: (Agent, CFrame, number?, boolean?) -> () -- (más abajo)
+
 local function respawnPed(agent: Agent, center: Vector3, initial: boolean)
 	local road, u = spawnPoint(center, if initial then 10 else 90, 200)
 	-- Nunca aparece a la vista (salvo lejos): antes salía gente de la nada a 90 studs delante de ti
@@ -353,6 +355,9 @@ local function respawnPed(agent: Agent, center: Vector3, initial: boolean)
 	agent.Speed = agent.Cruise
 	setUmbrella(agent, raining())
 	setActive(agent, true)
+	-- Y ya en su sitio: sus piezas nacen en el origen (0, 0: el cruce grande de Valmar Centro) y, hasta
+	-- su primer paso (que no llega si estás dentro de un edificio), se veían allí amontonadas
+	posePed(agent, CFrame.new(point(road, u, agent.Side * (road.Walk or 15.5), WALK_TOP)) * heading(road, agent.Dir), 0, true)
 end
 
 -- Traspiés: 0 → 1 → 0 en "dur" segundos (sube rápido y baja suave)
@@ -369,7 +374,7 @@ local function reactWeight(agent: Agent, now: number): number
 	return if t < 0.2 then math.sin(t / 0.2 * math.pi / 2) else math.cos((t - 0.2) / 0.8 * math.pi / 2)
 end
 
-local function posePed(agent: Agent, root: CFrame, react: number?, still: boolean?)
+function posePed(agent: Agent, root: CFrame, react: number?, still: boolean?)
 	local k = react or 0
 	if k > 0.001 then
 		-- Se echa hacia el lado contrario al choque (mucho más si se tira por un coche)

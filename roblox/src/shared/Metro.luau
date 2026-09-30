@@ -98,6 +98,8 @@ Metro.Gate = {
 	Grace = 2.5, -- segundos tras cruzar un torno en los que otro no te devuelve (doble toque sin querer)
 	Priority = 1, -- PromptPriority de los carteles de los tornos (van antes que ratas, interfonos…)
 }
+-- Alcance del cartel de las máquinas de billetes y taquillas (el cartel va delante de ellas)
+Metro.SellerReach = 6
 -- Cosas "de ambiente" (ratas, interfono, papeleras): nunca le quitan el botón Interactuar a un torno
 Metro.AmbientPriority = -1
 

@@ -494,6 +494,8 @@ local function nearbySpots(center: Vector3, maxDist: number): { Spot }
 	return list
 end
 
+local place: (Agent, Vector3, Vector3) -> () -- (más abajo)
+
 local function respawn(agent: Agent, center: Vector3, minDist: number)
 	local list = nearbySpots(center, SPAWN_MAX)
 	local flat = Vector3.new(center.X, 0, center.Z)
@@ -535,7 +537,10 @@ local function respawn(agent: Agent, center: Vector3, minDist: number)
 			agent.Cruise = range[1] + math.random() * (range[2] - range[1])
 			agent.Speed = agent.Cruise * 0.8
 			agent.Look, agent.StuckAt = nil, nil
+			-- Y a su sitio en el mismo fotograma: el modelo se copia de uno que está en el origen (0, 0: el
+			-- cruce grande de Valmar Centro) y, si algo retrasaba su primer paso, se quedaba allí a la vista
 			setActive(agent, true)
+			place(agent, pose(agent))
 			return
 		end
 	end
@@ -663,7 +668,7 @@ local function setBraking(agent: Agent, braking: boolean)
 	end
 end
 
-local function place(agent: Agent, pos: Vector3, dir: Vector3)
+function place(agent: Agent, pos: Vector3, dir: Vector3)
 	agent.Pos, agent.Dir = pos, dir
 	local root = CFrame.lookAt(Vector3.new(pos.X, ROAD_TOP, pos.Z), Vector3.new(pos.X + dir.X, ROAD_TOP, pos.Z + dir.Z))
 	local cframes = table.create(#agent.Parts)
@@ -784,6 +789,78 @@ end
 
 local blink = 0
 local obstacles: { Obstacle } = {} -- (la misma tabla en cada fotograma)
+local warnedStep = false
+local function stepAgent(agent: Agent, dt: number, center: Vector3, now: number, blinkOn: boolean, wetSpeed: number)
+	if not agent.Active then
+		if math.random() < 0.1 then -- no buscar sitio en cada fotograma
+			respawn(agent, center, SPAWN_MIN)
+		end
+		return
+	end
+	local pos, dir = pose(agent)
+	local away = (pos - Vector3.new(center.X, 0, center.Z)).Magnitude
+	if away > DESPAWN or (away > SPAWN_MAX and not inView(Vector3.new(pos.X, ROAD_TOP, pos.Z))) then
+		respawn(agent, center, SPAWN_MIN)
+		return
+	end
+	local edge = edgeOf(agent.From, agent.To)
+	local cruise = agent.Cruise * (if edge and edge.Kind == "Autovia" and not agent.Small then 1.5 else 1)
+	cruise *= wetSpeed
+	if agent.Turn ~= 0 then
+		cruise = math.min(cruise, 24) -- más despacio al girar
+	end
+	local gap, byPlayer = freeGap(agent, pos, dir, obstacles)
+	-- Parado detrás del jugador más de 2 s: le pita (sin sonido de claxon en el juego: el bocadillo)
+	if byPlayer and agent.Speed < 0.5 and agent.Kind == "Car" then
+		agent.StuckAt = agent.StuckAt or now
+		if now - agent.StuckAt > 2 and now - (agent.HonkAt or 0) > 8 then
+			agent.HonkAt = now
+			local body = agent.Parts[1]
+			if body then
+				pcall(Nudge.say, body, "¡Piii, piii!", 1.4)
+			end
+		end
+	else
+		agent.StuckAt = nil
+	end
+	local target = math.min(cruise, math.sqrt(2 * DECEL * math.max(gap - 1.5, 0)))
+	local change = math.clamp(target - agent.Speed, -DECEL * 2 * dt, 14 * dt)
+	agent.Speed = math.max(agent.Speed + change, 0)
+	setBraking(agent, change < -1 * dt or agent.Speed < 0.5)
+	agent.S += agent.Speed * dt * arcFactor(agent)
+	agent.Phase += dt * agent.Speed * 0.55
+
+	local L = edgeLength(agent.From, agent.To)
+	local L2 = edgeLength(agent.To, agent.Next)
+	if agent.S >= L + turnRadius(agent.To, L2) then
+		-- Pasa al siguiente tramo
+		agent.S -= L
+		agent.From, agent.To = agent.To, agent.Next
+		agent.Next = chooseNext(agent)
+		updateTurn(agent)
+		pos, dir = pose(agent)
+	end
+	-- El morro gira poco a poco hacia donde va (sin tirones al pasar de un tramo a otro)
+	local look = agent.Look
+	if look and look:Dot(dir) > -0.5 then
+		local blend = look:Lerp(dir, math.min(1, dt * 12))
+		dir = if blend.Magnitude > 0.01 then blend.Unit else dir
+	end
+	agent.Look = dir
+	-- Intermitentes en los últimos metros antes de girar
+	local signalling = agent.Turn ~= 0 and L - agent.S < 45 and blinkOn
+	for _, ind in agent.Indicators do
+		local on = signalling and ind.Side == agent.Turn
+		-- (solo se pinta cuando cambia: escribir Color y Material cada fotograma cuesta)
+		if ind.On ~= on then
+			ind.On = on
+			ind.Part.Color = if on then IND_ON else IND_OFF
+			ind.Part.Material = if on then Enum.Material.Neon else Enum.Material.SmoothPlastic
+		end
+	end
+	place(agent, pos, dir)
+end
+
 local function step(dt: number, center: Vector3)
 	-- Jugadores (con sus vehículos) y peatones cruzando: una lista por fotograma para todos los coches
 	local now = os.clock()
@@ -798,74 +875,17 @@ local function step(dt: number, center: Vector3)
 	-- Con lluvia o nieve, todos más despacio (una vez por fotograma, no por vehículo)
 	local wetSpeed = Wetness.trafficSpeed(workspace:GetAttribute("Wet") or 0, workspace:GetAttribute("Snow") or 0)
 	for _, agent in agents do
-		if not agent.Active then
-			if math.random() < 0.1 then -- no buscar sitio en cada fotograma
-				respawn(agent, center, SPAWN_MIN)
+		-- Uno a uno y protegido: si uno falla, se retira ese (antes el error cortaba el fotograma y los
+		-- que iban detrás en la lista se quedaban quietos donde estuvieran; recién creados, en el origen:
+		-- el cruce grande de Valmar Centro, lleno de piezas de coche)
+		local ok, err = pcall(stepAgent, agent, dt, center, now, blinkOn, wetSpeed)
+		if not ok then
+			if not warnedStep then
+				warnedStep = true
+				warn("[Traffic] " .. tostring(err))
 			end
-			continue
+			setActive(agent, false)
 		end
-		local pos, dir = pose(agent)
-		local away = (pos - Vector3.new(center.X, 0, center.Z)).Magnitude
-		if away > DESPAWN or (away > SPAWN_MAX and not inView(Vector3.new(pos.X, ROAD_TOP, pos.Z))) then
-			respawn(agent, center, SPAWN_MIN)
-			continue
-		end
-		local edge = edgeOf(agent.From, agent.To)
-		local cruise = agent.Cruise * (if edge and edge.Kind == "Autovia" and not agent.Small then 1.5 else 1)
-		cruise *= wetSpeed
-		if agent.Turn ~= 0 then
-			cruise = math.min(cruise, 24) -- más despacio al girar
-		end
-		local gap, byPlayer = freeGap(agent, pos, dir, obstacles)
-		-- Parado detrás del jugador más de 2 s: le pita (sin sonido de claxon en el juego: el bocadillo)
-		if byPlayer and agent.Speed < 0.5 and agent.Kind == "Car" then
-			agent.StuckAt = agent.StuckAt or now
-			if now - agent.StuckAt > 2 and now - (agent.HonkAt or 0) > 8 then
-				agent.HonkAt = now
-				local body = agent.Parts[1]
-				if body then
-					pcall(Nudge.say, body, "¡Piii, piii!", 1.4)
-				end
-			end
-		else
-			agent.StuckAt = nil
-		end
-		local target = math.min(cruise, math.sqrt(2 * DECEL * math.max(gap - 1.5, 0)))
-		local change = math.clamp(target - agent.Speed, -DECEL * 2 * dt, 14 * dt)
-		agent.Speed = math.max(agent.Speed + change, 0)
-		setBraking(agent, change < -1 * dt or agent.Speed < 0.5)
-		agent.S += agent.Speed * dt * arcFactor(agent)
-		agent.Phase += dt * agent.Speed * 0.55
-
-		local L = edgeLength(agent.From, agent.To)
-		local L2 = edgeLength(agent.To, agent.Next)
-		if agent.S >= L + turnRadius(agent.To, L2) then
-			-- Pasa al siguiente tramo
-			agent.S -= L
-			agent.From, agent.To = agent.To, agent.Next
-			agent.Next = chooseNext(agent)
-			updateTurn(agent)
-			pos, dir = pose(agent)
-		end
-		-- El morro gira poco a poco hacia donde va (sin tirones al pasar de un tramo a otro)
-		local look = agent.Look
-		if look and look:Dot(dir) > -0.5 then
-			local blend = look:Lerp(dir, math.min(1, dt * 12))
-			dir = if blend.Magnitude > 0.01 then blend.Unit else dir
-		end
-		agent.Look = dir
-		-- Intermitentes en los últimos metros antes de girar
-		local signalling = agent.Turn ~= 0 and L - agent.S < 45 and blinkOn
-		for _, ind in agent.Indicators do
-			local on = signalling and ind.Side == agent.Turn
-			-- (solo se pinta cuando cambia: escribir Color y Material cada fotograma cuesta)
-			if ind.On ~= on then
-				ind.On = on
-				ind.Part.Color = if on then IND_ON else IND_OFF
-				ind.Part.Material = if on then Enum.Material.Neon else Enum.Material.SmoothPlastic
-			end
-		end
-		place(agent, pos, dir)
 	end
 end
 

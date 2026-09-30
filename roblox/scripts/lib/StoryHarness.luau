@@ -670,6 +670,19 @@ local function doStep(player, questId, step, choice)
 end
 
 -- Juega hasta que se cumpla la condición (o se rinde tras muchos intentos)
+-- Como un jugador de verdad: la misión que juega es la que sigue (las escenas de las que no sigues no
+-- empiezan solas: LifeStoryService.canAutoStart). Si sigue otra, cambia a esta (panel de misiones).
+local function follow(player, questId: string)
+	local story = profiles[player].Story
+	local prologue = false
+	for id in story.Active do
+		prologue = prologue or (Quests[id] ~= nil and Quests[id].Prologue == true)
+	end
+	if story.Active[questId] and story.Tracked ~= questId and not prologue then
+		fromClient(player, "Track", questId)
+	end
+end
+
 local function playUntil(player, done: () -> boolean, choice: string?, maxSteps: number?): boolean
 	player.Answer = preferAnswer(player)
 	for _ = 1, maxSteps or 300 do
@@ -678,6 +691,10 @@ local function playUntil(player, done: () -> boolean, choice: string?, maxSteps:
 		end
 		local id, _, step = mainStep(player)
 		if id and step then
+			local tracked = profiles[player].Story.Tracked
+			if tracked and tracked ~= id and profiles[player].Story.Active[tracked] then
+				follow(player, id) -- (seguía una secundaria: vuelve a la historia principal)
+			end
 			doStep(player, id, step, choice)
 		else
 			-- Ninguna principal en marcha porque la siguiente espera una hora (a que acabe el cole, a que
@@ -706,6 +723,7 @@ local function playQuest(player, questId: string, maxSteps: number?): boolean
 		end
 		local _, step = questStep(player, questId)
 		if step then
+			follow(player, questId)
 			doStep(player, questId, step)
 		end
 		task.wait(0.6)

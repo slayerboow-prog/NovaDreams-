@@ -501,8 +501,8 @@ local function onBoard(player: Player, marker: BasePart)
 	local line = marker:GetAttribute("Line")
 	local train = trains[line]
 	local humanoid = humanoidOf(player)
-	if not train or not humanoid or humanoid.Health <= 0 then
-		return
+	if not train or not humanoid or humanoid.Health <= 0 or riding[player] == train then
+		return -- (ya va en este tren: el cartel de subir no se ve dentro, pero por si acaso)
 	end
 	local here = table.find(train.Line.Stations, marker:GetAttribute("Station"))
 	if train.Phase ~= "Dwell" or train.Index ~= here then
@@ -1675,7 +1675,8 @@ local function spawnRider(train: Train): boolean
 	npc:SetAttribute("MetroOffset", pick.Car.Root.CFrame:ToObjectSpace(npc:GetPivot()))
 	npc:AddTag("MetroRider")
 	if math.random() < 0.5 then
-		pcall(Npc.icon, npc, RIDER_ICONS[math.random(1, #RIDER_ICONS)])
+		-- (callado: solo de cerca y tapado por paredes; si no, se veía flotar a través del túnel y del andén)
+		pcall(Npc.icon, npc, RIDER_ICONS[math.random(1, #RIDER_ICONS)], true)
 	end
 	table.insert(train.Riders, npc)
 	return true
@@ -1914,7 +1915,7 @@ local function spawnPolice(inc: { [string]: any })
 			-- (sin NamedActor: un agente sin nombre propio no lleva cartel con su nombre encima)
 			npc:SetAttribute("MetroPolice", true)
 			npc:SetAttribute("Home", feet)
-			pcall(Npc.icon, npc, "👮")
+			pcall(Npc.icon, npc, "👮", true) -- (callado: no flota por el vestíbulo a través de las paredes)
 			table.insert(inc.Police, npc)
 			task.spawn(function()
 				task.wait(n * 0.6)
@@ -2007,6 +2008,29 @@ local function prompt(parent: BasePart, action: string, object: string, hold: nu
 	return p
 end
 
+-- Máquinas de billetes y taquillas: el cartel va delante (atributo PromptAt, lo pone el constructor) y
+-- llega poco (Metro.SellerReach): antes, en la boca de metro, "Comprar billete" salía bajando por la
+-- escalera de la calle, al otro lado de la pared del vestíbulo
+local function sellerPrompt(part: BasePart, action: string, object: string): ProximityPrompt
+	local at = part:GetAttribute("PromptAt")
+	local holder: Instance = part
+	if typeof(at) == "Vector3" then
+		local att = Instance.new("Attachment")
+		att.Name = "SellerPrompt"
+		att.Position = part.CFrame:PointToObjectSpace(at)
+		att.Parent = part
+		holder = att
+	end
+	local p = Instance.new("ProximityPrompt")
+	p.ActionText = action
+	p.ObjectText = object
+	p.HoldDuration = 0.3
+	p.MaxActivationDistance = Metro.SellerReach
+	p.RequiresLineOfSight = false
+	p.Parent = holder
+	return p
+end
+
 -- Escaleras mecánicas: su suelo invisible es una cinta transportadora (lleva a quien se sube)
 local function setupEscalator(belt: BasePart)
 	local v = belt:GetAttribute("Velocity")
@@ -2050,11 +2074,11 @@ local SETUP: { [string]: (BasePart) -> () } = {
 		end)
 	end,
 	MetroTicketMachine = function(machine)
-		prompt(machine, "Comprar billete", "🎫 Máquina de billetes", 0.3, 8).Triggered:Connect(openTickets)
+		sellerPrompt(machine, "Comprar billete", "🎫 Máquina de billetes").Triggered:Connect(openTickets)
 	end,
 	MetroTicketBooth = function(counter)
 		-- La taquilla abre la misma compra que la máquina; el taquillero/a saluda
-		prompt(counter, "Comprar billete", "🎫 Taquilla", 0.3, 8).Triggered:Connect(function(player)
+		sellerPrompt(counter, "Comprar billete", "🎫 Taquilla").Triggered:Connect(function(player)
 			local clerk = boothClerks[counter]
 			if clerk and clerk.Parent then
 				pcall(Npc.say, clerk, BOOTH_LINES[math.random(1, #BOOTH_LINES)], 4)
@@ -2237,6 +2261,7 @@ MetroService._ambientTick = function()
 end
 MetroService._trains = trains
 MetroService._riding = riding
+MetroService._passedGateAt = passedGateAt
 MetroService._missions = missions
 MetroService._step = step
 MetroService._guardTracks = guardTracks

@@ -415,5 +415,110 @@ check(nExits > 0 and exitOk == nExits, ("«Salir» solo desde el andén y te dej
 check(Metro.gateSide(Vector3.new(0, 0, 0), Vector3.new(-4, 0, 0), Vector3.new(3, 0, 0)) < 0 and Metro.gateSide(Vector3.new(0, 0, 0), Vector3.new(-4, 0, 0), Vector3.new(-4, 0, 0)) > 0, "desde el otro lado, el torno no hace nada (ni cobra ni te mueve)")
 check(G.Grace >= 1.5, "tras cruzar un torno, un segundo toque no te devuelve (Metro.Gate.Grace)")
 
+print("Máquinas de billetes: el cartel no se ve desde la escalera de la calle")
+do
+	local sellers = {}
+	for _, d in (metroRoot :: any):GetDescendants() do
+		if d:IsA("BasePart") and (d:HasTag("MetroTicketMachine") or d:HasTag("MetroTicketBooth")) then
+			table.insert(sellers, d)
+		end
+	end
+	local withPrompt, leaks = 0, 0
+	for _, d in sellers do
+		if typeof(d:GetAttribute("PromptAt")) == "Vector3" then
+			withPrompt += 1
+		end
+	end
+	for id in Metro.Stations do
+		local A = Metro.access(id)
+		local lo, hi = A.Hall.Min, A.Hall.Max
+		for k = 2, #A.Route do
+			local a, b = A.Route[k - 1], A.Route[k]
+			local n = math.max(1, math.ceil((b - a).Magnitude / 1))
+			for i = 0, n do
+				local q = a:Lerp(b, i / n)
+				local inHall = q.X > lo.X - 0.5 and q.X < hi.X + 0.5 and q.Z > lo.Z - 0.5 and q.Z < hi.Z + 0.5 and q.Y > lo.Y - 1 and q.Y < hi.Y
+				if not inHall then
+					local root = q + Vector3.new(0, 2.5, 0)
+					for _, d in sellers do
+						local at = d:GetAttribute("PromptAt")
+						if typeof(at) == "Vector3" and (at - root).Magnitude <= Metro.SellerReach + 0.3 then
+							leaks += 1
+							if leaks <= 4 then
+								print(("     %s: «Comprar billete» se ve desde (%.1f, %.1f, %.1f), fuera del vestíbulo"):format(id, q.X, q.Y, q.Z))
+							end
+						end
+					end
+				end
+			end
+		end
+	end
+	check(#sellers > 0 and withPrompt == #sellers, ("cada máquina y taquilla tiene su cartel delante (%d/%d)"):format(withPrompt, #sellers))
+	check(leaks == 0, "«Comprar billete» no se ve desde la escalera de la calle ni desde el pozo de las mecánicas")
+end
+
+print("Panel del tren: compacto y sin pisar nada (móvil y ordenador)")
+do
+	local layoutEnv = setmetatable({ Vector3 = Vector3, CFrame = CFrame, Vector2 = roblox.Vector2, UDim2 = roblox.UDim2 }, { __index = getfenv(1) })
+	local HudLayout = luau.load(fs.readFile("src/client/UI/HudLayout.luau"), { debugName = "HudLayout", environment = layoutEnv })()
+	local sizes = { { 640, 360, true }, { 844, 390, true }, { 932, 430, true }, { 1024, 768, true }, { 1366, 768, false }, { 1920, 1080, false } }
+	for _, size in sizes do
+		local layout = HudLayout.compute(roblox.Vector2.new(size[1], size[2]), { Touch = size[3] })
+		local ride = layout.Items.Ride
+		local clashes = {}
+		if not ride then
+			table.insert(clashes, "sin Items.Ride")
+		else
+			local r = HudLayout.rect(ride, layout.Canvas)
+			if r.X < 0 or r.Y < 0 or r.X + r.W > layout.Canvas.X or r.Y + r.H > layout.Canvas.Y then
+				table.insert(clashes, "se sale de la pantalla")
+			end
+			-- (la tarjeta de primeros pasos se quita mientras vas en el tren: Guide.areaTaken)
+			for name, p in layout.Items do
+				if name ~= "Ride" and name ~= "Guide" and p.Size.X > 0 and p.Size.Y > 0 and HudLayout.overlaps(r, HudLayout.rect(p, layout.Canvas)) then
+					table.insert(clashes, name)
+				end
+			end
+			for name, p in layout.Slots do
+				if HudLayout.overlaps(r, HudLayout.rect(p, layout.Canvas)) then
+					table.insert(clashes, "botón " .. name)
+				end
+			end
+		end
+		check(#clashes == 0, ("%dx%d%s: el panel del tren no pisa nada%s"):format(size[1], size[2], if size[3] then " (móvil)" else "", if #clashes > 0 then " (" .. table.concat(clashes, ", ") .. ")" else ""))
+	end
+	local ui = fs.readFile("src/client/Controllers/MetroUI.luau")
+	check(ui:find("layout.Items.Ride", 1, true) ~= nil and ui:find("HudLayout.scaleGui(rideGui)", 1, true) ~= nil, "el panel del tren va donde dice HudLayout (Items.Ride), a la escala del HUD")
+	check(ui:find("boardPrompts(false)", 1, true) ~= nil and ui:find("boardPrompts(true)", 1, true) ~= nil, "dentro del tren no sale «Subir al metro»")
+	check(ui:find("rideIncident", 1, true) ~= nil, "la incidencia de tu línea va dentro del panel del tren, en una línea pequeña")
+	local guide = fs.readFile("src/client/Controllers/Guide.luau")
+	check(guide:find("MetroRideGui", 1, true) ~= nil, "la tarjeta de primeros pasos se aparta mientras vas en el tren")
+end
+
+print("Bocas y vestíbulos: sin terreno asomando ni cosas raras flotando")
+do
+	local backs, glassPuddles, nStations = 0, 0, 0
+	for _ in Metro.Stations do
+		nStations += 1
+	end
+	for _, d in game:GetService("Workspace"):GetDescendants() do
+		if d:IsA("BasePart") then
+			if d.Name == "StairWallBack" and d.CanCollide then
+				backs += 1
+			elseif d.Name == "Puddle" and d.Material == roblox.Enum.Material.Glass then
+				glassPuddles += 1
+			end
+		end
+	end
+	check(backs == nStations * 2, ("las paredes del hueco de la escalera llevan trasdós (el terreno no asoma) (%d/%d)"):format(backs, nStations * 2))
+	local access = fs.readFile("src/server/World/Kit/MetroAccess.luau")
+	check(access:find("W + MARGIN", 1, true) ~= nil and access:find("hi.X - lo.X + 1.4 + MARGIN", 1, true) ~= nil, "se vacía un cubo de terreno de margen alrededor de la escalera, el vestíbulo y el pozo")
+	check(glassPuddles == 0, "los charcos no son de cristal (en el móvil se veían como óvalos blancos)")
+	local life = fs.readFile("src/server/Services/MetroLifeService.luau")
+	check(life:find('Npc.icon(npc, if cleaner', 1, true) == nil, "guardias y limpiadores sin 🛡️/🧽 flotando encima")
+	local svc = fs.readFile("src/server/Services/MetroService.luau")
+	check(svc:find('RIDER_ICONS[math.random(1, #RIDER_ICONS)], true)', 1, true) ~= nil and svc:find('Npc.icon, npc, "👮", true)', 1, true) ~= nil, "los iconos de los viajeros y de la policía del metro no flotan a través de las paredes")
+end
+
 print(if failures == 0 then "\nTodo bien ✅" else ("\n%d fallos ❌"):format(failures))
 process.exit(if failures == 0 then 0 else 1)

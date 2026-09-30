@@ -45,6 +45,7 @@ local alightButton: TextButton
 local rideInfo: TextLabel -- la línea pequeña de abajo (incidencia de tu línea, encargo con tiempo)
 local rideIncident = "" -- (texto de la incidencia de la línea en la que vas)
 local rideIncidentToken = 0
+local lastIncident: { Data: any, At: number }? = nil -- (la última, por si subes al tren con ella en marcha)
 local banner: TextButton
 local bannerText: TextLabel
 local bannerStripe: Frame
@@ -192,7 +193,7 @@ end
 
 -- Las líneas pequeñas de abajo del panel (incidencia y encargo): el panel crece hacia arriba
 local function missionLine(): string
-	if not missionLabel or not missionLabel.Visible then
+	if missionText == "" or not missionLabel then
 		return ""
 	end
 	return missionLabel.Text
@@ -228,6 +229,8 @@ local function boardPrompts(enabled: boolean)
 	end
 end
 
+local showIncident: (data: any) -> () -- (más abajo)
+
 local function onBoard(data: { [string]: any })
 	lineInfo = data
 	rideLast, rideNext, rideAt = nil, nil, nil
@@ -244,7 +247,13 @@ local function onBoard(data: { [string]: any })
 		banner.Visible = false
 	end
 	boardPrompts(false)
+	missionLabel.Visible = false -- (el encargo va dentro del panel)
 	layoutRide()
+	-- Si hay una incidencia reciente en esta línea, dentro del panel
+	local recent = lastIncident
+	if recent and os.clock() - recent.At < 30 and recent.Data.Line == data.Line then
+		task.defer(showIncident, recent.Data)
+	end
 end
 
 local function onArrive(data: { [string]: any })
@@ -272,17 +281,18 @@ local function onOff()
 	ride.Visible = false
 	rideIncident = ""
 	boardPrompts(true)
-	missionLabel.Visible = missionDeadline ~= nil or missionText ~= ""
+	missionLabel.Visible = missionText ~= ""
 end
 
 ---------------------------------------------------------------------
 -- Incidencias: aviso arriba ("⚠️ INCIDENCIA · Línea 1 · Retraso de 2 min · Se recomienda…")
 ---------------------------------------------------------------------
-local function showIncident(data: any)
+function showIncident(data: any)
 	if type(data) ~= "table" then
 		banner.Visible = false
 		return
 	end
+	lastIncident = { Data = data, At = os.clock() }
 	local line = Metro.lineById[data.Line or ""]
 	local parts = { "⚠️ <b>INCIDENCIA</b>" }
 	if line then
@@ -759,6 +769,12 @@ function MetroUI.init()
 			onOff()
 		elseif action == "Incident" then
 			showIncident(data)
+		elseif action == "IncidentEnd" then
+			lastIncident = nil
+			if type(data) == "table" and lineInfo and (data.Line == nil or data.Line == lineInfo.Line) and rideIncident ~= "" then
+				rideIncident = ""
+				layoutRide()
+			end
 		elseif action == "Tickets" then
 			openTickets(data, extra)
 		elseif action == "Shop" then

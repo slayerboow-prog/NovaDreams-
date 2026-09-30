@@ -258,6 +258,10 @@ local function mouth(root: Instance, A: any, station: Metro.Station): (Model, Ve
 	local bottomY = Metro.HallY - 1
 	for _, side in { -1, 1 } do
 		part(m, "StairWall", V3(0.6, street - bottomY, S.Length + 0.6), at(side * (W / 2 + 0.3), (street + bottomY) / 2, S.Length / 2 - 0.3), TILE, Enum.Material.Marble)
+		-- Trasdós (escondido detrás de la pared, bajo la superficie): el terreno va en cubos de 4 studs y
+		-- al vaciarlo su borde no queda exacto; sin esto, la hierba y la arena asomaban por la pared del
+		-- hueco de la escalera (captura de Norte)
+		part(m, "StairWallBack", V3(2.4, -1.2 - bottomY, S.Length + 0.6), at(side * (W / 2 + 0.6 + 1.2), (-1.2 + bottomY) / 2, S.Length / 2 - 0.3), rgb(110, 108, 104), Enum.Material.Concrete)
 		decor(m, "WallBand", V3(0.1, 0.8, S.Length), at(side * (W / 2 + 0.02), -9, S.Length / 2), lines[1].Color)
 		-- Pasamanos pegados a la pared, siguiendo cada tramo
 		for _, f in S.Flights do
@@ -561,7 +565,10 @@ local function hall(root: Instance, A: any, station: Metro.Station): Model
 			local cf = take(5.4)
 			if cf then
 				for _, x in { -1.35, 1.35 } do
-					part(m, "TicketMachine", V3(2.2, 5.6, 1.6), cf * CFrame.new(x, 2.8, -0.8), rgb(30, 90, 170), Enum.Material.SmoothPlastic, { Tags = { "MetroTicketMachine" } })
+					local machine = part(m, "TicketMachine", V3(2.2, 5.6, 1.6), cf * CFrame.new(x, 2.8, -0.8), rgb(30, 90, 170), Enum.Material.SmoothPlastic, { Tags = { "MetroTicketMachine" } })
+					-- (el cartel de comprar, delante de la pantalla: desde la escalera de la calle, al otro
+					-- lado de la pared, no llega)
+					machine:SetAttribute("PromptAt", (cf * CFrame.new(x, 3, -2.4)).Position)
 					decor(m, "TicketScreen", V3(1.6, 1.4, 0.1), cf * CFrame.new(x, 3.9, -1.65), rgb(120, 200, 255), Enum.Material.Neon)
 				end
 				signBoard(m, cf * CFrame.new(0, 6.6, -0.1), V3(5, 0.9, 0.1), "🎫 BILLETES", rgb(30, 90, 170))
@@ -578,6 +585,7 @@ local function hall(root: Instance, A: any, station: Metro.Station): Model
 				local counter = part(m, "BoothCounter", V3(5.8, 3.4, 1), cf * CFrame.new(0, 1.7, -3), rgb(220, 224, 230), Enum.Material.SmoothPlastic, { Tags = { "MetroTicketBooth" } })
 				counter:SetAttribute("Station", station.Id)
 				counter:SetAttribute("StaffSpot", (cf * CFrame.new(0, 0.2, -1.3)).Position)
+				counter:SetAttribute("PromptAt", (cf * CFrame.new(0, 3, -4.2)).Position)
 				decor(m, "BoothTop", V3(6, 0.2, 1.4), cf * CFrame.new(0, 3.5, -3), rgb(140, 100, 64), Enum.Material.Wood)
 				decor(m, "BoothGlass", V3(5.8, 2.6, 0.1), cf * CFrame.new(0, 5.2, -3.3), rgb(190, 225, 240), Enum.Material.Glass, { Transparency = 0.6 })
 				part(m, "BoothRoof", V3(6.4, 0.4, 3.6), cf * CFrame.new(0, 7.2, -1.8), BLUE, Enum.Material.SmoothPlastic)
@@ -785,15 +793,19 @@ function MetroAccess.carveBoxes(stationId: string): { { any } }
 		local c = p + dir * ((d0 + d1) / 2)
 		table.insert(boxes, { Builder.facing(V3(c.X, (ya + yb) / 2, c.Z), dir), V3(width, yb - ya, d1 - d0) })
 	end
+	-- (bajo la superficie, con un cubo de terreno de margen a cada lado: que no asome por las paredes;
+	-- por encima de -4 no, que se vería la zanja desde la calle: ahí lo tapa el trasdós de la pared)
+	local MARGIN = 8
 	along(S.Top, S.Dir, -1, S.Open, W, Metro.HallY - 2, 10)
 	along(S.Top, S.Dir, S.Open, S.Length + 0.5, W, Metro.HallY - 2, Metro.HallY + Metro.HallHeight + 0.5)
+	along(S.Top, S.Dir, -1, S.Length + 0.5, W + MARGIN, Metro.HallY - 2, -4.5)
 	local lo, hi = A.Hall.Min, A.Hall.Max
-	table.insert(boxes, { CFrame.new((lo.X + hi.X) / 2, (Metro.HallY - 2 + hi.Y + 0.5) / 2, (lo.Z + hi.Z) / 2), V3(hi.X - lo.X + 1.4, hi.Y + 0.5 - (Metro.HallY - 2), hi.Z - lo.Z + 1.4) })
+	table.insert(boxes, { CFrame.new((lo.X + hi.X) / 2, (Metro.HallY - 2 + hi.Y + 0.5) / 2, (lo.Z + hi.Z) / 2), V3(hi.X - lo.X + 1.4 + MARGIN, hi.Y + 0.5 - (Metro.HallY - 2), hi.Z - lo.Z + 1.4 + MARGIN) })
 	-- Pozo: hasta donde su techo baja de la arena del fondo (-24)
 	local tan = K.Rise / K.Run
 	local deep = math.min(K.Length, (Metro.HallY + Metro.Shaft.Headroom + 1 + 24) / tan + 2)
 	local ya = math.max(K.Bottom.Y, Metro.HallY - deep * tan) - 2
-	along(K.Top, K.Dir, -1, deep, K.Width + 1.5, ya, Metro.HallY + Metro.HallHeight + 0.5)
+	along(K.Top, K.Dir, -1, deep, K.Width + 1.5 + MARGIN, ya, Metro.HallY + Metro.HallHeight + 0.5)
 	return boxes
 end
 
