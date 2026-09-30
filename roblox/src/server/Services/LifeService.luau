@@ -125,6 +125,41 @@ function LifeService.refresh(player: Player)
 	applyBody(player)
 end
 
+-- Al cambiar de etapa (también hacia atrás: en el sueño del prólogo el bebé es niño y al despertar
+-- vuelve a ser bebé) se deja lo que ya no puedes usar a esa edad: bajarte del vehículo, dejar el
+-- trabajo y guardar el arma. Los servicios se cargan aquí dentro (ellos ya cargan LifeService).
+local function dropForbidden(player: Player)
+	local stage = player:GetAttribute("LifeStage")
+	if type(stage) ~= "string" or not Stages.isValid(stage) then
+		return
+	end
+	local services = script.Parent
+	if player:GetAttribute("Riding") or player:GetAttribute("Passenger") then
+		pcall(function()
+			local Gameplay = require(ReplicatedStorage.Shared.Gameplay)
+			if not Stages.inRange(stage, Gameplay.DriveMinStage, nil) then
+				require(services.VehicleService).exitAny(player, true)
+			end
+		end)
+	end
+	if player:GetAttribute("Job") and not Stages.allows(stage, "Work", Config.StageLimits) then
+		pcall(function()
+			require(services.JobService).quit(player, true)
+		end)
+	end
+	local weaponId = player:GetAttribute("Weapon")
+	if weaponId then
+		pcall(function()
+			local Weapons = require(ReplicatedStorage.Shared.Weapons)
+			local weapon = Weapons.get(weaponId)
+			if weapon and not Weapons.canHold(weapon, stage) then
+				require(services.WeaponService).holster(player)
+			end
+		end)
+	end
+end
+LifeService.dropForbidden = dropForbidden
+
 local function watch(player: Player)
 	player.CharacterAdded:Connect(function(character)
 		character:WaitForChild("Humanoid", 10)
@@ -132,6 +167,7 @@ local function watch(player: Player)
 	end)
 	player:GetAttributeChangedSignal("LifeStage"):Connect(function()
 		applyBody(player)
+		task.defer(dropForbidden, player)
 	end)
 	player:GetAttributeChangedSignal("Crawling"):Connect(function()
 		applySpeed(player)

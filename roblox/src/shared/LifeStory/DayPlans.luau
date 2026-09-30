@@ -18,6 +18,13 @@ DayPlans.MaxWaitSeconds = 120
 
 type Step = { [string]: any }
 
+-- Llegar tarde: si tardas más de esto (segundos reales, sin contar cuando el cole está cerrado) en
+-- llegar a la puerta, queda la marca y va a tu historial (ConductService: se entera tu familia)
+DayPlans.LateSeconds = 240
+local function late(): { [string]: any }
+	return { After = DayPlans.LateSeconds, Flags = { "LlegasTardeAlCole" }, Conduct = "LlegarTarde" }
+end
+
 local function class(subject: string, mode: string, place: string, textKey: string?): Step
 	return { Type = "Class", Subject = subject, Mode = mode, Place = place, TextKey = textKey or "QUEST.COLE.CLASE" }
 end
@@ -82,7 +89,7 @@ end
 
 local function schoolDay(rng: Random)
 	local roll = rng:NextNumber()
-	local steps: { Step } = { { Type = "Reach", Place = "EntradaColegio", TextKey = "QUEST.DIA.LLEGA_COLE" } }
+	local steps: { Step } = { { Type = "Reach", Place = "EntradaColegio", TextKey = "QUEST.DIA.LLEGA_COLE", Late = late() } }
 	local title = "QUEST.DIA_COLE.TITLE"
 	local subjects = pickMany(rng, SCHOOL_SUBJECTS, 3)
 	if roll < 0.15 then
@@ -133,13 +140,14 @@ local HIGH_SUBJECTS = { "HistoriaInstituto", "MatematicasInstituto", "Tecnologia
 
 local function highSchoolDay(rng: Random)
 	local roll = rng:NextNumber()
-	local steps: { Step } = { { Type = "Reach", Place = "Instituto", TextKey = "QUEST.DIA.LLEGA_INSTITUTO" } }
+	local steps: { Step } = { { Type = "Reach", Place = "Instituto", TextKey = "QUEST.DIA.LLEGA_INSTITUTO", Late = late() } }
 	local title = "QUEST.DIA_INSTITUTO.TITLE"
 	local subjects = pickMany(rng, HIGH_SUBJECTS, 3)
+	local work = false
 	if roll < 0.2 then
 		title = "QUEST.DIA_TRABAJO.TITLE"
 		table.insert(steps, class(subjects[1], "Clase", "AulaInstituto"))
-		table.insert(steps, { Type = "Event", Event = "JobTaskDone", Count = 2, TextKey = "QUEST.DIA.TRABAJO" })
+		work = true -- el trabajo, al salir de clase (abajo)
 	elseif roll < 0.35 then
 		title = "QUEST.DIA_ENTRENO.TITLE"
 		table.insert(steps, class("EducacionFisica", "Circuito", "PistaInstituto", "QUEST.DIA.ENTRENO"))
@@ -157,6 +165,11 @@ local function highSchoolDay(rng: Random)
 	-- Comida en el comedor del instituto con el grupo
 	lunch(steps, friend, "Instituto")
 	table.insert(steps, class(subjects[3], "Clase", "AulaInstituto"))
+	if work then
+		-- Después de la última clase, a trabajar. Schedule = false: no es un paso del instituto (antes iba
+		-- entre clases y a las 17:00, al cerrar el instituto, el día desaparecía de la lista)
+		table.insert(steps, { Type = "Event", Event = "JobTaskDone", Count = 2, TextKey = "QUEST.DIA.TRABAJO", Schedule = false })
+	end
 	return { TitleKey = title, Steps = steps }
 end
 
@@ -190,10 +203,35 @@ local function universityDay(rng: Random)
 	return { TitleKey = title, Steps = steps }
 end
 
+---------------------------------------------------------------------
+-- Vida adulta: un día normal (trabajo, recados o una tarde libre). Sin horario: uno por día de juego.
+---------------------------------------------------------------------
+local function adultDay(rng: Random)
+	local roll = rng:NextNumber()
+	local steps: { Step } = {}
+	local title
+	if roll < 0.5 then
+		title = "Un día de trabajo"
+		table.insert(steps, { Type = "Event", Event = "JobTaskDone", Count = 3, Text = "Trabaja: haz 3 tareas de tu trabajo ({count}/{total}) · los tablones de «Trabajar» están por toda la ciudad" })
+		table.insert(steps, { Type = "Event", Event = "Ate", Text = "Después del trabajo, come algo" })
+	elseif roll < 0.75 then
+		title = "Día de recados"
+		table.insert(steps, { Type = "Event", Event = "BoughtItem", Text = "Haz la compra: compra algo en una tienda" })
+		table.insert(steps, { Type = "Event", Event = "Ate", Text = "Come algo en casa o fuera" })
+	else
+		title = "Tarde libre"
+		local place = pick(rng, { "Playa", "Parque" })
+		table.insert(steps, { Type = "Reach", Place = place, Text = "Tarde libre: ve a {place}" })
+		table.insert(steps, { Type = "Wait", GameMinutes = 30, MaxSeconds = 90, Text = "Disfruta de la tarde (Cosme sigue en su garaje, por si te aburres)" })
+	end
+	return { TitleKey = title, Steps = steps }
+end
+
 DayPlans.Plans = {
 	SchoolDay = schoolDay,
 	HighSchoolDay = highSchoolDay,
 	UniversityDay = universityDay,
+	AdultDay = adultDay,
 }
 
 function DayPlans.generate(planId: string, rng: Random): { TitleKey: string, Steps: { Step } }?

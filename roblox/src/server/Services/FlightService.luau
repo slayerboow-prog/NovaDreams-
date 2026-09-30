@@ -251,10 +251,12 @@ local function arrive(plane: Plane)
 	-- Todos abajo, en la sala de llegadas
 	local index = 0
 	for player, seat in table.clone(plane.Passengers) do
-		-- A bordo = cerca de su asiento (quien se soltó en el último momento aún no ha vuelto a
-		-- sentarse, pero sigue en el avión: también aterriza)
+		-- A bordo = sentado en su asiento o cerca de él (quien se soltó en el último momento aún no
+		-- ha vuelto a sentarse, pero sigue en el avión: también aterriza)
+		local humanoid = humanoidOf(player)
 		local root = rootOf(player)
-		local aboard = not held(player) and root ~= nil and (root.Position - seat.Position).Magnitude <= AWAY
+		local near = root ~= nil and (root.Position - seat.Position).Magnitude <= AWAY
+		local aboard = not held(player) and humanoid ~= nil and (humanoid.SeatPart == seat or near)
 		stopRiding(player, plane)
 		if not aboard then
 			continue -- (quien ya no iba a bordo no aterriza ni cuenta el vuelo)

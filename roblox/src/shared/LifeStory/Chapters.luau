@@ -151,6 +151,23 @@ local Chapters: { [string]: Chapter } = {
 		IntroCinematic = "Adulto_Llegada",
 		OutroCinematic = "Adulto_TuCiudad",
 	},
+
+	-- Adulto: después de «Volar del nido» (o de «Una nueva vida», los veteranos). Tu vida sigue: días
+	-- normales (trabajo, recados, tardes libres) mientras pasan los años (Config.LifeStory.StageHours.Adulto),
+	-- y cuando ya has vivido casi toda la etapa, mirar atrás. La saga, las misiones locas y los trabajos
+	-- siguen en el mapa todo el tiempo.
+	Adulto_TuVida = {
+		Id = "Adulto_TuVida",
+		Order = 60,
+		Stage = { Min = "Adulto" },
+		Enabled = true,
+		TitleKey = "Tu vida",
+		IntroKey = "Ahora tu vida es tuya: trabaja, compra una casa, conoce la región… Y Cosme sigue en su garaje: la Saga de la Grieta y las misiones locas te esperan en el mapa.",
+		OutroKey = "Toda una vida en Valmar. Y la historia sigue: la ciudad no se para.",
+		Main = { "Adulto_MirarAtras" },
+		Loop = "Adulto_Jornada",
+		Music = "VidaAdulta",
+	},
 }
 
 return Chapters

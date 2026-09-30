@@ -210,6 +210,7 @@ local function setupSchool(part: Instance)
 		return
 	end
 	local prompt = Builder.prompt(part, "Sacarse el carnet", "Autoescuela", 0.3)
+	prompt:SetAttribute("MinStage", Gameplay.LicenseStage) -- (solo lo ven los mayores de edad; JobPrompts)
 	prompt.Triggered:Connect(function(player)
 		if sessions[player] then
 			Notify:FireClient(player, "Info", "Ya estás haciendo un examen.")

@@ -643,7 +643,10 @@ local function doStep(player, questId, step, choice)
 	elseif step.Type == "Escape" then
 		player.At = place(step.Place)
 	elseif step.Type == "Wait" then
-		day += 1 -- pasa un día de juego
+		day += 1 -- pasa un día de juego…
+		while (day - 1) % 7 + 1 > 5 do
+			day += 1 -- …de lunes a viernes (el fin de semana no hay cole: las pruebas juegan días de clase)
+		end
 	elseif step.Type == "Choice" then
 		local pick = (player.Picks and player.Picks[step.Key]) or choice
 		if type(pick) == "function" then
@@ -741,6 +744,13 @@ function H.getDay()
 end
 function H.setDay(value: number)
 	day = value
+end
+-- El día de clase siguiente (salta el fin de semana)
+function H.nextSchoolDay()
+	day += 1
+	while (day - 1) % 7 + 1 > 5 do
+		day += 1
+	end
 end
 
 H.ROOT = ROOT

@@ -91,7 +91,7 @@ local TRAITS = { Humor = true, Empatia = true, Valentia = true, Responsabilidad 
 local EFFECTS = {
 	Flags = true, Unflags = true, Rel = true, Traits = true, Memory = true, Remember = true, Items = true, Take = true,
 	Needs = true, Money = true, Spend = true, Choice = true, Gesture = true, Say = true, Later = true, After = true,
-	OnlyIfUntouched = true, Degree = true, SetStage = true, Teleport = true,
+	OnlyIfUntouched = true, Degree = true, SetStage = true, Teleport = true, Conduct = true,
 }
 -- Una clave de texto es MAYÚSCULAS.CON.PUNTOS; cualquier otra cosa es un texto ya escrito
 local function isKey(value: string): boolean

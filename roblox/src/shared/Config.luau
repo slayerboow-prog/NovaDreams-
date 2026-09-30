@@ -87,6 +87,7 @@ Config.LifeStory = {
 		Nino = 5, -- el colegio
 		Adolescente = 5, -- el instituto
 		AdultoJoven = 8, -- la universidad (o los primeros años de trabajo): residencia, cursos, exámenes, secundarias
+		Adulto = 40, -- la vida adulta (capítulo «Tu vida»): más o menos un cumpleaños por hora de juego
 	},
 	-- Edad al empezar y al terminar cada etapa (un cumpleaños cada StageHours / años)
 	AgeRange = {
@@ -94,7 +95,7 @@ Config.LifeStory = {
 		Nino = { 6, 12 },
 		Adolescente = { 13, 17 },
 		AdultoJoven = { 18, 22 },
-		Adulto = { 30, 64 },
+		Adulto = { 23, 64 }, -- (justo después de la etapa anterior: antes saltaba de 22 a 30)
 		Mayor = { 65, 90 },
 	},
 }

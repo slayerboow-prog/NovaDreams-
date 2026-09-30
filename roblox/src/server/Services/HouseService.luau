@@ -367,6 +367,8 @@ function HouseService.init()
 		local sign = model:FindFirstChild("PlotSign") :: BasePart
 		local label = sign:FindFirstChild("Label", true) :: TextLabel
 		local prompt = Builder.prompt(sign, "Reclamar casa", "", 0.5)
+		-- (los niños no lo ven: JobPrompts esconde los carteles con MinStage; el servidor lo comprueba igual)
+		prompt:SetAttribute("MinStage", Config.StageLimits.ClaimHome)
 		local plot: Plot = {
 			Id = id,
 			Model = model,

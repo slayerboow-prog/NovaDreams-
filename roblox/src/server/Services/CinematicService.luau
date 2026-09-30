@@ -7,6 +7,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Cinematics = require(ReplicatedStorage.Shared.LifeStory.Cinematics)
+local Family = require(ReplicatedStorage.Shared.LifeStory.Family)
 local LocationService = require(script.Parent.LocationService)
 local SceneService = require(script.Parent.SceneService)
 
@@ -69,12 +70,19 @@ function CinematicService.play(player: Player, id: string): number
 		return 0
 	end
 	local anchors = CinematicService.resolveAnchors(player, cinematic)
+	-- Tu familia (siempre una pareja que existe: Papá y Abu Rosa, o Mamá y Abu Tomás)
+	local life = nil
+	pcall(function()
+		local data = require(script.Parent.DataService).get(player)
+		life = data and data.Life
+	end)
+	local familyKey, abuKey = Family.keysOf(player, life)
 	local payload = {
 		Id = id,
 		Anchors = anchors,
 		Names = {
-			Abu = player:GetAttribute("AbuKey") or "NPC.ABU_ROSA",
-			Familia = player:GetAttribute("FamilyKey") or "NPC.MAMA",
+			Abu = abuKey,
+			Familia = familyKey,
 			Profe = "NPC.PROFE_LUCIA",
 			Rectora = "NPC.AMAIA",
 		},

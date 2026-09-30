@@ -163,6 +163,31 @@ local Quests: { [string]: Quest } = {
 	},
 
 	-----------------------------------------------------------------
+	-- VIDA ADULTA (capítulo «Tu vida»): días normales mientras pasan los años, y al final, mirar atrás
+	-----------------------------------------------------------------
+	Adulto_Jornada = {
+		Kind = "Main",
+		TitleKey = "Un día de tu vida",
+		Description = "Un día normal de tu vida adulta: trabajar, hacer recados o descansar. La saga, las misiones locas y los trabajos siguen en el mapa.",
+		DayPlan = "AdultDay",
+		Repeatable = true,
+		Steps = {},
+		MomentKey = "Otro día de tu vida en Valmar",
+		MomentSting = false,
+	},
+	Adulto_MirarAtras = {
+		Kind = "Main",
+		TitleKey = "Mirar atrás",
+		Description = "Han pasado muchos años. Vuelve a la casa donde creciste y mira todo lo que has vivido.",
+		Requires = { StageProgress = 0.95 },
+		Steps = {
+			{ Type = "Reach", Place = "CasaFamiliar", Text = "Vuelve a la casa donde creciste" },
+			{ Type = "Moment", Text = "Toda una vida en Valmar. Y todavía queda mucho por vivir." },
+		},
+		MomentKey = "Miraste atrás: toda una vida en Valmar",
+	},
+
+	-----------------------------------------------------------------
 	-- PUENTE TEMPORAL DE NIÑO (hasta que existan las fases 4-8)
 	-----------------------------------------------------------------
 	Nino_TuBarrio = {

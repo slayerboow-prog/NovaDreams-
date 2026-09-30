@@ -16,6 +16,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
+local Family = require(ReplicatedStorage.Shared.LifeStory.Family)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 local DataService = require(script.Parent.DataService)
 local NeedsService = require(script.Parent.NeedsService)
@@ -199,8 +200,7 @@ local function setupHome(home: Home)
 		return
 	end
 	home.Ready = true
-	local abuKey = if home.Index % 2 == 1 then "NPC.ABU_ROSA" else "NPC.ABU_TOMAS"
-	local familyKey = if home.Index % 2 == 1 then "NPC.PAPA" else "NPC.MAMA"
+	local familyKey, abuKey = Family.keysFor(home.Index)
 	-- Work: la abuela teje en el salón y papá/mamá cocina en la cocina (lo anima el cliente)
 	local people = {
 		{ Npc = "Familia_Abu", NameKey = abuKey, Skin = Color3.fromRGB(234, 196, 160), Work = "Knit" },
@@ -382,6 +382,16 @@ local function release(player: Player)
 	player:SetAttribute("BabyCanStand", nil)
 end
 
+-- Los nombres de tu familia (atributos FamilyKey y AbuKey), sacados de la casa y guardados en
+-- data.Life: así los demás (escenas, historial de conducta) usan siempre la misma pareja
+local function setFamily(player: Player, data: { [string]: any }, home: Home)
+	local familyKey, abuKey = Family.keysFor(home.Index)
+	data.Life.FamilyKey = familyKey
+	data.Life.AbuKey = abuKey
+	player:SetAttribute("AbuKey", abuKey)
+	player:SetAttribute("FamilyKey", familyKey)
+end
+
 local function start(player: Player)
 	if babies[player] or player:GetAttribute("LifeStage") ~= "Bebe" then
 		return
@@ -402,8 +412,7 @@ local function start(player: Player)
 	local baby: Baby = { HomeId = home.Id, Stood = stood, Walked = 0, Busy = false, LastWarn = 0 }
 	babies[player] = baby
 	player:SetAttribute("FamilyHomeId", home.Id)
-	player:SetAttribute("AbuKey", if home.Index % 2 == 1 then "NPC.ABU_ROSA" else "NPC.ABU_TOMAS")
-	player:SetAttribute("FamilyKey", if home.Index % 2 == 1 then "NPC.PAPA" else "NPC.MAMA")
+	setFamily(player, data, home)
 	player:SetAttribute("Crawling", if stood then nil else true)
 	player:SetAttribute("BabyCanStand", if stood then nil else true)
 	spawnAtCrib(player, baby)
@@ -416,7 +425,7 @@ local function start(player: Player)
 			end
 			task.wait(1.5)
 			if babies[player] == baby and not baby.Stood then
-				say(player, if home.Index % 2 == 1 then "NPC.ABU_ROSA" else "NPC.ABU_TOMAS", "DLG.ABU.BEBE.LEVANTATE")
+				say(player, select(2, Family.keysFor(home.Index)), "DLG.ABU.BEBE.LEVANTATE")
 			end
 		end)
 	end
@@ -437,8 +446,7 @@ local function ensureFamily(player: Player)
 	data.Life.FamilyHomeId = home.Id
 	setupHome(home)
 	player:SetAttribute("FamilyHomeId", home.Id)
-	player:SetAttribute("AbuKey", if home.Index % 2 == 1 then "NPC.ABU_ROSA" else "NPC.ABU_TOMAS")
-	player:SetAttribute("FamilyKey", if home.Index % 2 == 1 then "NPC.PAPA" else "NPC.MAMA")
+	setFamily(player, data, home)
 end
 
 local function stand(player: Player)
@@ -454,7 +462,7 @@ local function stand(player: Player)
 	player:SetAttribute("Crawling", nil)
 	player:SetAttribute("BabyCanStand", nil)
 	local home = homes[baby.HomeId]
-	say(player, if home and home.Index % 2 == 1 then "NPC.ABU_ROSA" else "NPC.ABU_TOMAS", "DLG.ABU.BEBE.VEN")
+	say(player, select(2, Family.keysFor(home and home.Index)), "DLG.ABU.BEBE.VEN")
 	StoryEvents.emit(player, "BabyStood", {})
 end
 

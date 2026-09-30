@@ -25,6 +25,7 @@ local Wanted = require(ReplicatedStorage.Shared.Wanted)
 local Format = require(ReplicatedStorage.Shared.Format)
 local Cast = require(ReplicatedStorage.Shared.LifeStory.Cast)
 local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
+local Family = require(ReplicatedStorage.Shared.LifeStory.Family)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 local DataService = require(script.Parent.DataService)
 
@@ -67,12 +68,21 @@ local function conductOf(data: { [string]: any }): { [string]: any }
 end
 
 local function familyName(player: Player): string
-	return Strings.get(Cast.nameOf("Familia", { FamilyKey = player:GetAttribute("FamilyKey") or "NPC.MAMA" }))
+	-- (sin atributo: lo guardado o la pareja de la primera casa, la misma que usa BabyService)
+	local data = DataService.get(player)
+	local familyKey = Family.keysOf(player, data and data.Life)
+	return Strings.get(Cast.nameOf("Familia", { FamilyKey = familyKey }))
 end
+
+-- Cosas del cole que también van al historial (la historia de vida: LifeStoryService, días de cole)
+local SCHOOL = {
+	LlegarTarde = { Points = 1, Text = "Llegar tarde al cole" },
+	Novillos = { Points = 2, Text = "Hacer novillos (no ir al cole)" },
+}
 
 local function textOf(kind: string): string
 	local crime = Wanted.Crimes[kind]
-	return Conduct.Texts[kind] or (crime and crime.Text) or kind
+	return Conduct.Texts[kind] or (SCHOOL[kind] and SCHOOL[kind].Text) or (crime and crime.Text) or kind
 end
 
 local function grounded(c: { [string]: any }): boolean
@@ -143,7 +153,7 @@ function ConductService.note(player: Player, kind: string, options: { [string]: 
 		return
 	end
 	local c = conductOf(data)
-	local points = Conduct.pointsOf(kind)
+	local points = if SCHOOL[kind] and not Conduct.Points[kind] then SCHOOL[kind].Points else Conduct.pointsOf(kind)
 	c.Points += points
 	c.CalmAt = os.time()
 	local stage = player:GetAttribute("LifeStage")

@@ -8,12 +8,15 @@
 --     Atributos: DormUnit ("clave del edificio#habitación") y DormTitle.
 --   * Tu habitación tiene su nevera (FridgeService): allí guardas lo que compras en el supermercado.
 --   * "Ir a casa" te lleva a tu habitación si no tienes otra vivienda.
+--   * Solo si vas a la universidad (marca VaALaUniversidad de la historia): quien eligió trabajar
+--     al acabar el instituto no tiene residencia.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Floors = require(ReplicatedStorage.Shared.Floors)
 local InteriorService = require(script.Parent.InteriorService)
+local DataService = require(script.Parent.DataService)
 
 local ResidenceService = {}
 
@@ -47,9 +50,22 @@ function ResidenceService.roomFor(userId: number): Room?
 	return list[Floors.hash("habitacion:" .. userId) % #list + 1]
 end
 
+-- ¿Estudia en la universidad? (sin historia guardada —partidas antiguas o de prueba—, se da por hecho)
+local function student(player: Player): boolean
+	local data = DataService.get(player)
+	if not data then
+		return false -- (aún cargando: se vuelve a mirar cuando llegue su etapa)
+	end
+	local story = data.Story
+	if type(story) ~= "table" then
+		return true
+	end
+	return type(story.Flags) == "table" and story.Flags.VaALaUniversidad == true
+end
+
 function ResidenceService.assign(player: Player)
 	local stage = player:GetAttribute("LifeStage")
-	if type(stage) ~= "string" or not ResidenceService.Stages[stage] then
+	if type(stage) ~= "string" or not ResidenceService.Stages[stage] or not student(player) then
 		player:SetAttribute("DormUnit", nil)
 		player:SetAttribute("DormTitle", nil)
 		return

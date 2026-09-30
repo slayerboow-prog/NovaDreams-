@@ -320,11 +320,16 @@ function LifeStoryService.setStage(player: Player, stage: string)
 	if not data or not Stages.isValid(stage) or data.Life.Stage == stage then
 		return
 	end
+	local before = data.Life.Stage
+	local previousAge = tonumber(data.Life.AgeYears) or 0
 	data.Life.Stage = stage
 	data.Life.StageSeconds = 0
 	local ages = Config.LifeStory.AgeRange[stage]
 	if ages then
-		data.Life.AgeYears = ages[1]
+		-- Al crecer, la edad de la etapa nueva… pero sin saltos de años de golpe: como mucho un año
+		-- más que antes (si la etapa empieza más tarde, se toma su primera edad)
+		local growing = Stages.isValid(before) and Stages.Rank[stage] > Stages.Rank[before]
+		data.Life.AgeYears = if growing then math.max(ages[1], math.min(previousAge + 1, ages[2])) else ages[1]
 	end
 	player:SetAttribute("LifeStage", stage)
 	player:SetAttribute("AgeYears", data.Life.AgeYears)
@@ -1505,6 +1510,14 @@ local function chapterFits(chapter: Chapters.Chapter, stage: string, story: Data
 	}))
 end
 
+-- Por qué espera una misión con horario: está cerrado a esta hora, o hoy no abre (el fin de semana)
+local function closedWait(questId: string, window: Schedules.Window?, weekday: number): { [string]: any }
+	if window and not Schedules.opensOn(window, weekday) then
+		return { QuestId = questId, Reason = "Weekdays" }
+	end
+	return { QuestId = questId, Reason = "Hours", From = window and window.From, To = window and window.To }
+end
+
 local function pickChapter(story: Data, stage: string): string?
 	for _, id in chapterOrder do
 		if not story.Chapters[id] and chapterFits(Chapters[id], stage, story) then
@@ -1611,22 +1624,34 @@ function refresh(player: Player)
 			continue
 		end
 		local ok, reason = Conditions.check(Quests[pending].Requires, contextFor(player, data))
-		local clock = GameClock.now().ClockTime
+		local now = GameClock.now()
+		local clock, weekday = now.ClockTime, now.Weekday
 		local window = Schedules.forQuest(Quests[pending])
-		if ok and not Schedules.isOpen(window, clock) then
-			-- Toca, pero el sitio está cerrado a esta hora (el colegio no abre de noche)
-			rt.Waiting = { QuestId = pending, Reason = "Hours", From = window and window.From, To = window and window.To }
+		-- Un niño o adolescente en horario de cole solo ve las misiones del cole: una principal que no
+		-- es del cole (los recados, la noche con la pandilla) espera a que acabe el cole (antes empezaba
+		-- y no se veía hasta las 17:00)
+		local afterSchool = (stage == "Nino" or stage == "Adolescente") and Quests[pending].Schedule ~= false
+			and not Schedules.isSchool(window) and Schedules.isSchoolTime(clock, weekday)
+		if ok and not Schedules.isOpen(window, clock, weekday) then
+			-- Toca, pero el sitio está cerrado a esta hora (el colegio no abre de noche ni el fin de semana)
+			rt.Waiting = closedWait(pending, window, weekday)
+		elseif ok and afterSchool then
+			rt.Waiting = { QuestId = pending, Reason = "Hours", From = Config.SchoolDay.End }
 		elseif ok then
 			startQuest(player, data, pending)
 			return -- startQuest ya publica
 		elseif reason == "StageProgress" and chapter.Loop and Quests[chapter.Loop] then
-			-- Aún no toca el siguiente gran momento: se vive un día normal (colegio, instituto, universidad)
+			-- Aún no toca el siguiente gran momento: se vive un día normal (colegio, instituto, universidad),
+			-- uno por día de juego: si el de hoy ya está hecho, el siguiente es mañana cuando abra
 			local loopWindow = Schedules.forQuest(Quests[chapter.Loop])
-			if Schedules.isOpen(loopWindow, clock) then
+			if story.LoopDay == now.Day then
+				rt.Waiting = { QuestId = chapter.Loop, Reason = "Hours", From = if loopWindow then loopWindow.From else Config.SchoolDay.Opens }
+			elseif Schedules.isOpen(loopWindow, clock, weekday) then
 				startQuest(player, data, chapter.Loop)
 				return
+			else
+				rt.Waiting = closedWait(chapter.Loop, loopWindow, weekday)
 			end
-			rt.Waiting = { QuestId = chapter.Loop, Reason = "Hours", From = loopWindow and loopWindow.From, To = loopWindow and loopWindow.To }
 		elseif Conditions.isWaitOnly(reason) then
 			rt.Waiting = { QuestId = pending, Reason = reason :: string }
 		end
@@ -2408,6 +2433,10 @@ local function watchdog(player: Player, data: Data, questId: string, prog: Progr
 	return false
 end
 
+-- Segundos reales que tiene que haber estado abierto el cole para contar como novillos (si el día de
+-- cole empezó justo antes de cerrar, no cuenta)
+local NOVILLOS_SECONDS = 150
+
 local function tickPlayer(player: Player, data: Data)
 	local story = storyOf(data)
 	local ids = {}
@@ -2430,10 +2459,20 @@ local function tickPlayer(player: Player, data: Data)
 		if not prog or not step then
 			continue
 		end
-		if closedWindow(player, data, questId, prog) then
+		local closed = closedWindow(player, data, questId, prog)
+		if closed then
 			-- El sitio al que toca ir está cerrado: se sigue cuando abra (y el reloj de "llegas tarde"
 			-- no corre mientras tanto)
 			local rt = runtime[player]
+			-- Novillos: tenías un día de cole por delante, no llegaste ni a la puerta y el cole ya ha
+			-- cerrado. Se entera tu familia (ConductService) y queda la marca. Solo una vez por día.
+			if rt and Quests[questId].DayPlan and Schedules.isSchool(closed) and prog.Step == 1 and not prog.Novillos then
+				local since = os.clock() - (rt.StepStart[questId] or os.clock())
+				if GameClock.now().ClockTime >= closed.To and since >= NOVILLOS_SECONDS then
+					prog.Novillos = true
+					applyEffects(player, data, { Flags = { "HizoNovillos" }, Conduct = "Novillos" }, questId)
+				end
+			end
 			if rt then
 				rt.StepStart[questId] = os.clock()
 			end
@@ -3202,6 +3241,12 @@ local function onLoaded(player: Player, data: Data)
 		local veteran = data.Stats and data.Stats.PlaySeconds and data.Stats.PlaySeconds > 0
 		data.Life.Stage = if veteran then CFG.VeteranStage else CFG.NewCharacterStage
 		LifeStoryService.logEvent(player, "STAGE." .. data.Life.Stage, nil, "Stage")
+	end
+	-- Edad: si no tiene (o es menor que la de su etapa, como los veteranos que cargaban con 0 años),
+	-- la primera edad de su etapa
+	local ages = CFG.AgeRange[data.Life.Stage]
+	if ages and (tonumber(data.Life.AgeYears) or 0) < ages[1] then
+		data.Life.AgeYears = ages[1]
 	end
 	player:SetAttribute("LifeStage", data.Life.Stage)
 	player:SetAttribute("AgeYears", data.Life.AgeYears)
