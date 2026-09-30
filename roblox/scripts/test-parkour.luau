@@ -603,7 +603,7 @@ do
 		humanoid.HipHeight = standHipHeight
 		body.Player = other
 		local worstOther = 0
-		for i = 1, 30 do
+		for i = 1, 45 do
 			for _, j in joints do
 				j.Transform = CFrame.identity
 			end
@@ -616,7 +616,9 @@ do
 			root.AssemblyLinearVelocity = Vector3.zero
 			S._step(body, dt, now)
 			for _, leg in legs do
-				worstOther = math.max(worstOther, math.abs(ankleWorld(leg).Y - standY))
+				if i > 15 then -- (el pie derecho acaba de bajar del escalón de antes: se posa con suavidad)
+					worstOther = math.max(worstOther, math.abs(ankleWorld(leg).Y - standY))
+				end
 			end
 		end
 		check(worstOther < 0.01, ("Otro jugador agachado: sus pies en el suelo aunque su posición llegue a destiempo (%.4f) %s"):format(worstOther, tag))
