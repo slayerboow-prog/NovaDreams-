@@ -295,7 +295,7 @@ local POSTERS: { [string]: { string } } = {
 	Clinic = { "LÁVATE LAS MANOS", "VACÚNATE", "BEBE AGUA", "SILENCIO, POR FAVOR", "PIDE CITA EN ADMISIÓN", "DONA SANGRE", "CUIDA TU CORAZÓN" },
 	Police = { "SE BUSCA", "DENUNCIA AQUÍ", "112 EMERGENCIAS", "CIUDAD SEGURA", "OBJETOS PERDIDOS", "CINTURÓN SIEMPRE" },
 	Post = { "ENVÍOS URGENTES", "SELLOS", "PAQUETERÍA", "APARTADOS", "RECOGIDA DE AVISOS", "CARTAS AL MUNDO" },
-	Arcade = { "¡RÉCORD!", "INSERT COIN", "GAME OVER", "NIVEL 99", "¡JUEGA YA!", "TICKETS x2" },
+	Arcade = { "¡RÉCORD!", "INSERTA MONEDA", "FIN DE LA PARTIDA", "NIVEL 99", "¡JUEGA YA!", "TICKETS x2" },
 	DrivingSchool = { "STOP", "CEDA EL PASO", "PROHIBIDO ADELANTAR", "50", "CURVA PELIGROSA", "PASO DE CEBRA" },
 	Burger = { "MENÚ MEGA", "¡NUEVA!", "PATATAS XL", "2x1 MARTES", "BATIDOS", "HELADOS" },
 	Restaurant = { "MENÚ DEL DÍA", "VINOS", "POSTRES CASEROS", "RESERVAS" },
@@ -303,7 +303,7 @@ local POSTERS: { [string]: { string } } = {
 	Cinema = { "ESTRENO", "PRÓXIMAMENTE", "PALOMITAS", "SESIÓN GOLFA", "3D", "¡TAQUILLAZO!" },
 	FishShop = { "CAÑAS", "CEBOS", "CONCURSO DE PESCA", "RÉCORD: 12 KG", "CARRETES" },
 	Mall = { "REBAJAS", "-30 %", "NUEVA COLECCIÓN", "¡OFERTAS!", "ABIERTO 10-22 H", "ASEOS", "SALIDA", "INFORMACIÓN" },
-	GasShop = { "¡OFERTAS!", "CAFÉ 1 $", "HIELO", "PRENSA", "LAVADO" },
+	GasShop = { "¡OFERTAS!", "CAFÉ 1 €", "HIELO", "PRENSA", "LAVADO" },
 	Lobby = { "BIENVENIDOS", "PLANTAS 1-20", "RECEPCIÓN", "SALIDA" },
 	Faculty = { "MATRÍCULA ABIERTA", "CONFERENCIA HOY", "BECAS", "TUTORÍAS", "EXÁMENES", "CLUB DE DEBATE", "SALIDA" },
 	Library = { "SILENCIO", "PRÉSTAMO", "NOVEDADES", "SALA DE LECTURA", "HEMEROTECA" },
@@ -912,7 +912,7 @@ Kinds.Burger = function(r)
 	for k = -1, 1 do
 		if r.Space:claim(V(k * 7, r.H - 3, r.HZ - 0.5), V(6, 3, 1)) then
 			local board = bit(r, "MenuBoard", V(5.6, 2.6, 0.2), at(r, k * 7, r.H - 3, r.HZ - 0.4, 0, -1), DARK)
-			signOn(board, ({ "🍔 MEGA 5 $", "🍟 PATATAS 2 $", "🥤 REFRESCO 1 $" })[k + 2], rgb(250, 200, 60))
+			signOn(board, ({ "🍔 MEGA 5 €", "🍟 PATATAS 2 €", "🥤 REFRESCO 1 €" })[k + 2], rgb(250, 200, 60))
 		end
 	end
 	dressWalls(r, { Poster = 3, Clock = 1 }, 5)

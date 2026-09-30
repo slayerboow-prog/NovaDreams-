@@ -51,7 +51,7 @@ Business.Categories = {
 	Verdura = { Name = "Verdura", Icon = "🥬" },
 	Lacteo = { Name = "Lácteos y huevos", Icon = "🥛" },
 	Panaderia = { Name = "Panadería", Icon = "🥖" },
-	Despensa = { Name = "Despensa", Icon = "🫙" },
+	Despensa = { Name = "Despensa", Icon = "🥫" },
 	Bebida = { Name = "Bebidas", Icon = "🥤" },
 	Snack = { Name = "Snacks", Icon = "🍫" },
 	Plato = { Name = "Platos", Icon = "🍽️" },

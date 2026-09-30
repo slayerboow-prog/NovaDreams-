@@ -84,6 +84,19 @@ local carts: { [Player]: Cart } = {}
 local sessions: { [string]: any } = {}
 local jobs: { [Player]: { Role: string, Store: Store, Lane: Lane? } } = {}
 local isFishShelf: (Instance) -> boolean
+local quitRole: (Player, boolean?) -> () -- se define más abajo (Oficios)
+-- Segundos que lleva el cajero o el charcutero lejos de su puesto (si se va demasiado tiempo, fin del turno)
+local awayTime: { [Player]: number } = {}
+local AWAY_RANGE = 60
+local AWAY_LIMIT = 120
+
+-- Tras cobrar una tarea: si ya no puede más (energía o hambre), se acaba el turno
+local function tiredCheck(player: Player)
+	if jobs[player] and not NeedsService.canWork(player) then
+		quitRole(player, true)
+		Notify:FireClient(player, "Error", "Te has quedado sin energía. Come algo o duerme antes de seguir trabajando.")
+	end
+end
 
 ---------------------------------------------------------------------
 -- Utilidades
@@ -476,6 +489,7 @@ local function finishCustomer(session: any)
 		NeedsService.change(lane.Cashier, 0, -1)
 		StoryEvents.emit(lane.Cashier, "JobTaskDone", { JobId = "Cajero" })
 		Remote:FireClient(lane.Cashier, "CloseScan")
+		tiredCheck(lane.Cashier)
 	end
 	if customer.Done then
 		customer.Done()
@@ -671,6 +685,7 @@ local function onDeliServe(player: Player, token: any, id: any, grams: any)
 		pay(player, JOBS.Charcutero.PerOrder, "pedido de charcutería")
 		NeedsService.change(player, 0, -1)
 		StoryEvents.emit(player, "JobTaskDone", { JobId = "Charcutero" })
+		tiredCheck(player)
 	else
 		Notify:FireClient(player, "Info", "El cliente no ha podido pagar el pedido.")
 	end
@@ -922,12 +937,13 @@ end
 -- Oficios
 ---------------------------------------------------------------------
 
-local function quitRole(player: Player, silent: boolean?)
+function quitRole(player: Player, silent: boolean?)
 	local job = jobs[player]
 	if not job then
 		return
 	end
 	jobs[player] = nil
+	awayTime[player] = nil
 	if job.Lane then
 		local lane = job.Lane
 		lane.Cashier = nil
@@ -969,6 +985,11 @@ local function startRole(player: Player, store: Store, role: string)
 		quitRole(player)
 		return
 	end
+	-- Ya reponiendo: el mismo tablón deja el turno (antes lo volvía a empezar)
+	if role == "Reponedor" and player:GetAttribute("Job") == "Reponedor" then
+		JobService.quit(player)
+		return
+	end
 	if not DataService.get(player) or not LifeService.allows(player, "Work") then
 		return
 	end
@@ -977,12 +998,12 @@ local function startRole(player: Player, store: Store, role: string)
 		return
 	end
 	if role == "Reponedor" then
-		quitRole(player, true)
+		-- (JobService.start deja el puesto de antes solo si el turno nuevo empieza de verdad)
 		JobService.start(player, "Reponedor", { Store = store })
 		return
 	end
-	JobService.quit(player, true)
-	quitRole(player, true)
+	-- Primero se mira si hay sitio; solo entonces se deja el trabajo de antes (si no, te quedabas
+	-- sin ninguno de los dos)
 	if role == "Cajero" then
 		local free: Lane? = nil
 		for _, lane in store.Lanes do
@@ -995,6 +1016,8 @@ local function startRole(player: Player, store: Store, role: string)
 			Notify:FireClient(player, "Error", "Todas las cajas tienen cajero. ¡Prueba otro puesto!")
 			return
 		end
+		JobService.quit(player, true)
+		quitRole(player, true)
 		local lane = free :: Lane
 		lane.Cashier = player -- (el cajero NPC se aparta y se va andando: refreshStaff, abajo)
 		jobs[player] = { Role = "Cajero", Store = store, Lane = lane }
@@ -1010,6 +1033,8 @@ local function startRole(player: Player, store: Store, role: string)
 			Notify:FireClient(player, "Error", "La charcutería ya tiene charcutero. ¡Prueba otro puesto!")
 			return
 		end
+		JobService.quit(player, true)
+		quitRole(player, true)
 		store.DeliWorker = player -- (el charcutero NPC se aparta y se va andando: refreshStaff, abajo)
 		jobs[player] = { Role = "Charcutero", Store = store }
 		player:SetAttribute("Job", "Charcutero")
@@ -1324,6 +1349,21 @@ function SupermarketService.init()
 		local lastRestock: { [Store]: number } = {}
 		while true do
 			task.wait(2)
+			-- Cajeros y charcuteros que se han ido de su puesto: tras un rato fuera, se acaba el turno
+			for player, job in jobs do
+				local spot = if job.Lane then job.Lane.Belt:GetAttribute("CashierSpot") elseif job.Store.Deli then job.Store.Deli:GetAttribute("StaffSpot") else nil
+				local at = if typeof(spot) == "Vector3" then spot elseif job.Lane then job.Lane.Belt.Position elseif job.Store.Deli then job.Store.Deli.Position else nil
+				local root = rootOf(player)
+				if at == nil or (root and (root.Position - at).Magnitude <= AWAY_RANGE) then
+					awayTime[player] = nil
+				else
+					awayTime[player] = (awayTime[player] or 0) + 2
+					if (awayTime[player] :: number) >= AWAY_LIMIT then
+						quitRole(player, true)
+						Notify:FireClient(player, "Info", "Has dejado el puesto vacío demasiado tiempo: fin del turno.")
+					end
+				end
+			end
 			for _, store in stores do
 				-- Una tienda con error no para al resto
 				local ok, err = pcall(function()

@@ -59,7 +59,7 @@ local KIND_TEXT = if TOUCH
 		Keepsake = "Recuerdo de tu historia",
 		Weapon = "Arma · elígela en la barra rápida para empuñarla",
 		Ammo = "Munición · se gasta al recargar",
-		Gadget = "Gadget exclusivo · toca «Usar» para usarlo",
+		Gadget = "Invento exclusivo · toca «Usar» para usarlo",
 	}
 	else {
 		Food = "Comida · clic derecho para comer",
@@ -71,7 +71,7 @@ local KIND_TEXT = if TOUCH
 		Keepsake = "Recuerdo de tu historia",
 		Weapon = "Arma · elígela en la barra rápida para empuñarla",
 		Ammo = "Munición · se gasta al recargar (R)",
-		Gadget = "Gadget exclusivo · clic derecho o tecla para usarlo",
+		Gadget = "Invento exclusivo · clic derecho o tecla para usarlo",
 	}
 local NUMBER_KEYS = {
 	[Enum.KeyCode.One] = 1,

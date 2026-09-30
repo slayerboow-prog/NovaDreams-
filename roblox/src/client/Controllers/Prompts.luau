@@ -28,7 +28,19 @@ local TAP_STILL = 0.15 -- (carteles de mantener: el dedo quieto encima este rato
 -- los que usan otra tecla: esos también se activan al pulsarla, así que tienen que verse
 local focus: ProximityPrompt? = nil
 local managed = false -- hasta que el menú de comandos elija, se ven todos (por si no arrancara)
-local shown: { [ProximityPrompt]: { Billboard: BillboardGui, Key: TextLabel, InputType: Enum.ProximityPromptInputType } } = {}
+-- Cada cartel a la vista. Billboard/Key: nil hasta que se construye (solo cuando se va a ver: si
+-- relayout lo iba a esconder nada más crearlo, no se construye). Cleanup: lo quita todo (una vez).
+type Entry = {
+	Prompt: ProximityPrompt,
+	Gui: Instance,
+	Billboard: BillboardGui?,
+	Key: TextLabel?,
+	InputType: Enum.ProximityPromptInputType,
+	Connections: { RBXScriptConnection },
+	Cleanup: () -> (),
+}
+local shown: { [ProximityPrompt]: Entry } = {}
+local build: (entry: Entry, fresh: boolean) -> ()
 
 local GAMEPAD_NAMES = {
 	[Enum.KeyCode.ButtonA] = "A",
@@ -58,12 +70,14 @@ local function relayout()
 	local extras = {}
 	for prompt, entry in shown do
 		if not managed or prompt == focus then
-			entry.Billboard.Enabled = true
-			entry.Billboard.SizeOffset = Vector2.zero
+			build(entry, false)
+			local billboard = entry.Billboard :: BillboardGui
+			billboard.Enabled = true
+			billboard.SizeOffset = Vector2.zero
 		elseif prompt.KeyboardKeyCode ~= focusKey and prompt.KeyboardKeyCode ~= Enum.KeyCode.Unknown then
 			-- (Unknown: el menú de comandos le quitó la tecla por coincidir con la del foco)
 			table.insert(extras, prompt)
-		else
+		elseif entry.Billboard then
 			entry.Billboard.Enabled = false
 		end
 	end
@@ -73,10 +87,12 @@ local function relayout()
 	end)
 	for i, prompt in extras do
 		local entry = shown[prompt]
-		entry.Billboard.Enabled = true
-		entry.Key.Text = keyText(prompt, entry.InputType)
+		build(entry, false)
+		local billboard = entry.Billboard :: BillboardGui
+		billboard.Enabled = true;
+		(entry.Key :: TextLabel).Text = keyText(prompt, entry.InputType)
 		-- (SizeOffset va en alturas del cartel: cada uno, una fila más arriba)
-		entry.Billboard.SizeOffset = Vector2.new(0, if focus then i else i - 1)
+		billboard.SizeOffset = Vector2.new(0, if focus then i else i - 1)
 	end
 end
 
@@ -90,11 +106,14 @@ local function adornee(prompt: ProximityPrompt): Instance?
 	return nil
 end
 
-local function show(prompt: ProximityPrompt, inputType: Enum.ProximityPromptInputType, gui: Instance)
-	local target = adornee(prompt)
-	if not target then
+-- Construye el cartel de verdad (una vez). fresh: acaba de aparecer (con el saltito); si no, es uno
+-- que estaba escondido y ahora se ve (sale ya a su tamaño, como antes)
+build = function(entry: Entry, fresh: boolean)
+	if entry.Billboard then
 		return
 	end
+	local prompt, inputType, gui = entry.Prompt, entry.InputType, entry.Gui
+	local target = adornee(prompt)
 	local billboard = create("BillboardGui", {
 		Name = "Prompt",
 		AlwaysOnTop = true,
@@ -123,8 +142,10 @@ local function show(prompt: ProximityPrompt, inputType: Enum.ProximityPromptInpu
 	})
 	-- Más pequeño en pantallas bajas (móvil)
 	local size = math.clamp(workspace.CurrentCamera.ViewportSize.Y / 850, 0.6, 1)
-	local scale = create("UIScale", { Scale = size * 0.8, Parent = card })
-	TweenService:Create(scale, TweenInfo.new(0.15, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = size }):Play()
+	local scale = create("UIScale", { Scale = if fresh then size * 0.8 else size, Parent = card })
+	if fresh then
+		TweenService:Create(scale, TweenInfo.new(0.15, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = size }):Play()
+	end
 
 	local key = create("Frame", {
 		Size = UDim2.fromOffset(42, 42),
@@ -133,8 +154,7 @@ local function show(prompt: ProximityPrompt, inputType: Enum.ProximityPromptInpu
 		Parent = card,
 	}, { Theme.corner(10), create("UIStroke", { Color = C.Accent, Thickness = 2 }) })
 	local keyLabel = Theme.label({ Size = UDim2.fromScale(1, 1), Text = keyText(prompt, inputType), Font = Theme.FontBold, TextSize = 20, TextXAlignment = Enum.TextXAlignment.Center, Parent = key })
-	shown[prompt] = { Billboard = billboard, Key = keyLabel, InputType = inputType }
-	relayout()
+	entry.Billboard, entry.Key = billboard :: BillboardGui, keyLabel
 	local texts = create("Frame", {
 		Position = UDim2.fromOffset(54, 0),
 		Size = UDim2.fromOffset(0, 56),
@@ -160,7 +180,8 @@ local function show(prompt: ProximityPrompt, inputType: Enum.ProximityPromptInpu
 	}, { Theme.corner(2) })
 	local fill = create("Frame", { Size = UDim2.fromScale(0, 1), BackgroundColor3 = C.Accent, BorderSizePixel = 0, Parent = track }, { Theme.corner(2) })
 	local holdTween: Tween? = nil
-	local connections = {
+	local connections = entry.Connections
+	for _, connection in {
 		prompt.PromptButtonHoldBegan:Connect(function()
 			if prompt.HoldDuration > 0 then
 				holdTween = TweenService:Create(fill, TweenInfo.new(prompt.HoldDuration, Enum.EasingStyle.Linear), { Size = UDim2.fromScale(1, 1) })
@@ -179,7 +200,9 @@ local function show(prompt: ProximityPrompt, inputType: Enum.ProximityPromptInpu
 		prompt.TriggerEnded:Connect(function()
 			TweenService:Create(key, TweenInfo.new(0.2), { BackgroundColor3 = rgb(20, 36, 70) }):Play()
 		end),
-	}
+	} do
+		table.insert(connections, connection)
+	end
 	-- Tocar el cartel (móvil) o hacer clic en él. En el móvil solo cuenta un toque de verdad: el
 	-- cartel flota en medio del mundo y el dedo que gira la cámara o mueve al personaje pasaba
 	-- por encima y lo activaba solo. Así que: tocar y soltar sin arrastrar (o, si hay que mantener,
@@ -240,14 +263,52 @@ local function show(prompt: ProximityPrompt, inputType: Enum.ProximityPromptInpu
 		end
 	end))
 
-	prompt.PromptHidden:Once(function()
-		shown[prompt] = nil
-		for _, connection in connections do
+end
+
+local function show(prompt: ProximityPrompt, inputType: Enum.ProximityPromptInputType, gui: Instance)
+	if not adornee(prompt) then
+		return
+	end
+	-- (si ya había uno de este cartel, se quita antes)
+	local old = shown[prompt]
+	if old then
+		old.Cleanup()
+	end
+	local closed = false
+	local entry: Entry
+	-- Se quita al esconderse, al destruirse el ProximityPrompt o al sacarlo del juego (antes solo al
+	-- esconderse: si se destruía a la vista, el cartel y sus conexiones se quedaban para siempre)
+	local function cleanup()
+		if closed then
+			return
+		end
+		closed = true
+		if shown[prompt] == entry then
+			shown[prompt] = nil
+		end
+		for _, connection in entry.Connections do
 			connection:Disconnect()
 		end
-		billboard:Destroy()
+		table.clear(entry.Connections)
+		if entry.Billboard then
+			entry.Billboard:Destroy()
+		end
 		relayout()
-	end)
+	end
+	entry = { Prompt = prompt, Gui = gui, Billboard = nil, Key = nil, InputType = inputType, Connections = {}, Cleanup = cleanup }
+	shown[prompt] = entry
+	table.insert(entry.Connections, prompt.PromptHidden:Once(cleanup))
+	table.insert(entry.Connections, prompt.Destroying:Once(cleanup))
+	table.insert(entry.Connections, prompt.AncestryChanged:Connect(function()
+		if not prompt:IsDescendantOf(game) then
+			cleanup()
+		end
+	end))
+	-- Se construye ya si se va a ver (lo decide relayout, como antes); si no, cuando toque
+	if not managed or prompt == focus or (prompt.KeyboardKeyCode ~= (if focus then focus.KeyboardKeyCode else Enum.KeyCode.E) and prompt.KeyboardKeyCode ~= Enum.KeyCode.Unknown) then
+		build(entry, true)
+	end
+	relayout()
 end
 
 local function customize(instance: Instance)
@@ -261,7 +322,7 @@ function Prompts.setFocus(prompt: ProximityPrompt?)
 	focus = prompt
 	managed = true
 	local entry = prompt and shown[prompt]
-	if entry then
+	if entry and entry.Key then
 		entry.Key.Text = keyText(prompt :: ProximityPrompt, entry.InputType)
 	end
 	relayout()

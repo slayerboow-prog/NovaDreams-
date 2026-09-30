@@ -247,34 +247,82 @@ end
 -- Llaves que da el timbre (quien abre desde dentro): unidad -> UserId -> hasta cuándo
 local tempAccess: { [string]: { [number]: number } } = {}
 
+-- Echados por el dueño: unidad -> UserId -> hasta cuándo no pueden entrar (ni con el grupo ni con llave)
+local banned: { [string]: { [number]: number } } = {}
+PropertyService.BanSeconds = 5 * 60
+
+-- El dueño abre desde el timbre: pasa aunque la casa esté «Cerrada» (lo ha decidido él) y se le
+-- quita un veto que tuviera (si el dueño le abre, es que quiere que entre)
 function PropertyService.grantTemp(building: InteriorService.Building, floor: number, letter: string?, userId: number, seconds: number?)
 	local key = unitKeyOf(building, floor, letter)
 	tempAccess[key] = tempAccess[key] or {}
 	tempAccess[key][userId] = os.clock() + (seconds or Housing.TempAccessSeconds)
+	if banned[key] then
+		banned[key][userId] = nil
+	end
 end
 
--- ¿Puede entrar (y usar la casa como invitado)? El dueño, los que tienen llave, los de su grupo
--- (si la privacidad lo deja) y a quien acaba de abrir desde el timbre
+-- Quita el permiso del timbre (al echarle: antes podía volver a entrar enseguida)
+function PropertyService.revokeTemp(building: InteriorService.Building, floor: number, letter: string?, userId: number)
+	local key = unitKeyOf(building, floor, letter)
+	local temp = tempAccess[key]
+	if temp then
+		temp[userId] = nil
+		if next(temp) == nil then
+			tempAccess[key] = nil
+		end
+	end
+end
+
+-- No le deja entrar en esa casa durante un rato (al echarle)
+function PropertyService.ban(building: InteriorService.Building, floor: number, letter: string?, userId: number, seconds: number?)
+	local key = unitKeyOf(building, floor, letter)
+	banned[key] = banned[key] or {}
+	banned[key][userId] = os.clock() + (seconds or PropertyService.BanSeconds)
+end
+
+function PropertyService.isBanned(building: InteriorService.Building, floor: number, letter: string?, userId: number): boolean
+	local list = banned[unitKeyOf(building, floor, letter)]
+	local untilAt = list and list[userId]
+	if untilAt and os.clock() >= untilAt then
+		list[userId] = nil
+		return false
+	end
+	return untilAt ~= nil
+end
+
+-- ¿Puede entrar (y usar la casa como invitado)? El dueño, a quien acaba de abrir desde el timbre
+-- (aunque esté «Cerrada»: lo decide el dueño), los que tienen llave y los de su grupo (si la
+-- privacidad lo deja). Antes que nada: si el dueño le ha echado hace poco, no.
 local function welcome(player: Player, building: InteriorService.Building, floor: number, letter: string?, owner: Owner): boolean
 	if owner.UserId == player.UserId then
 		return true
 	end
-	local privacy = owner.Privacy or "Grupo"
-	if privacy == "Cerrada" then
+	if PropertyService.isBanned(building, floor, letter, player.UserId) then
 		return false
 	end
 	local temp = tempAccess[unitKeyOf(building, floor, letter)]
 	if temp and temp[player.UserId] and os.clock() < temp[player.UserId] then
 		return true
 	end
+	local privacy = owner.Privacy or "Grupo"
+	if privacy == "Cerrada" then
+		return false
+	end
 	if owner.Access and owner.Access[tostring(player.UserId)] then
 		return true
 	end
 	if privacy == "Grupo" then
+		-- Solo si el dueño es el LÍDER del grupo en el que estáis los dos (antes cualquiera del grupo
+		-- podía meter a desconocidos en tu casa invitándolos a él). GroupLeader lo pone SocialService
+		-- a la vez que GroupId; un GroupId sin líder solo sale en las pruebas.
 		local ownerPlayer = Players:GetPlayerByUserId(owner.UserId)
 		local group = player:GetAttribute("GroupId")
 		if ownerPlayer and group ~= nil and ownerPlayer:GetAttribute("GroupId") == group then
-			return true
+			local leader = ownerPlayer:GetAttribute("GroupLeader")
+			if leader == nil or leader == owner.UserId then
+				return true
+			end
 		end
 	end
 	return false
@@ -572,12 +620,15 @@ local function decorate(inst: InteriorService.Instance_)
 	local sale = signAt(inst, ("SE VENDE · %s\nSE ALQUILA · %s/día%s"):format(Format.money(price), Format.money(rent), info), Color3.fromRGB(180, 40, 40), -8)
 	local prompt = Builder.prompt(sale, "Comprar vivienda", ("🏷 %s · %s"):format(titleOf(building, floor, letter), Format.money(price)), 1.5)
 	prompt.MaxActivationDistance = 10
+	-- (los niños no lo ven: JobPrompts esconde los carteles con MinStage)
+	prompt:SetAttribute("MinStage", Properties.MinStage)
 	prompt.Triggered:Connect(function(player)
 		buy(player, building, floor, letter)
 	end)
 	local rentPrompt = Builder.prompt(sale, "Alquilar vivienda", ("🔑 %s al día"):format(Format.money(rent)), 1)
 	rentPrompt.KeyboardKeyCode = Enum.KeyCode.R
 	rentPrompt.MaxActivationDistance = 10
+	rentPrompt:SetAttribute("MinStage", Properties.MinStage)
 	rentPrompt.Triggered:Connect(function(player)
 		buy(player, building, floor, letter, "Alquiler")
 	end)
@@ -698,8 +749,38 @@ local function occupant(building: InteriorService.Building, unit: any): { Type: 
 end
 PropertyService.occupant = occupant
 
--- "Ir a casa": a tu vivienda (la primera que compraste)
+-- Menores: «Ir a casa» les lleva a la casa de su familia (la de ConductService.homeSpot)
+local function goFamilyHome(player: Player): boolean
+	local stage = player:GetAttribute("LifeStage")
+	if type(stage) ~= "string" or not Stages.isValid(stage) or Stages.inRange(stage, Properties.MinStage, nil) then
+		return false
+	end
+	if player:GetAttribute("FamilyHomeId") == nil then
+		return false -- (sin casa familiar: a la suya, si tiene)
+	end
+	local okConduct, ConductService = pcall(require, script.Parent.ConductService)
+	local spot = okConduct and ConductService and ConductService.homeSpot and ConductService.homeSpot(player)
+	if not spot then
+		return false
+	end
+	local okScene, SceneService = pcall(require, script.Parent.SceneService)
+	if okScene and SceneService and SceneService.teleportTo and pcall(SceneService.teleportTo, player, spot) then
+		return true
+	end
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if root then
+		root.CFrame = CFrame.new(spot + Vector3.new(0, 3, 0))
+		return true
+	end
+	return false
+end
+
+-- "Ir a casa": a tu vivienda (la primera que compraste). Si eres menor, a casa de tu familia.
+-- (Sin vivienda, HouseService prueba después la residencia de la universidad.)
 function PropertyService.goHome(player: Player): boolean
+	if goFamilyHome(player) then
+		return true
+	end
 	local list = ownedList(player)
 	-- La que eligió como casa (HousingService); si no, la primera
 	local data = DataService.get(player)

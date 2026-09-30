@@ -146,14 +146,14 @@ for k = 1, 200 do
 			end
 			seen[u.Id], seen[u.Label] = true, true
 			local floor, letter = Floors.parseUnit(u.Id)
-			if floor ~= f or letter ~= u.Letter or u.Label ~= ("%dº%s"):format(f, u.Letter) then
+			if floor ~= f or letter ~= u.Letter or u.Label ~= ("%d.º %s"):format(f, u.Letter) then
 				unique = false
 			end
 		end
 	end
 end
 check(okUnits, "de 3 a 6 viviendas por planta")
-check(unique, "cada puerta con su nombre (3ºA, 3ºB…) y su clave, que se lee al revés")
+check(unique, "cada puerta con su nombre (3.º A, 3.º B…) y su clave, que se lee al revés")
 check(Floors.unitId(3, "A") == "3" and Floors.unitId(3, "B") == "3B" and Floors.unitId(0, nil) == "0", "la A de cada planta es la vivienda de antes (una por planta)")
 check(#Floors.units("X", "Portal", "Piso", 0) == 0 and #Floors.units("X", "Local", "Piso", 0) == 1 and Floors.units("X", "Local", "Piso", 0)[1].Ground, "en la planta baja: el portal (o la tienda de la calle)")
 check(string.match(Floors.units("X", "OficinaLobby", "Oficina", 3)[1].Label, "^Oficina 301$") ~= nil and Floors.units("R", "Portal", "Dorm", 2)[1].Kind == "Dorm", "oficinas numeradas y habitaciones de residencia")

@@ -11,7 +11,9 @@
 --     (CanUsersDirectChatAsync) si pueden chatear en privado: respeta la edad y los ajustes de chat.
 --   * Los mensajes los manda y filtra el propio chat de Roblox (TextChannel:SendAsync en el cliente).
 --
--- Para el cliente: evento "Group" con los miembros (o nil) y atributo "GroupId" en cada jugador.
+-- Para el cliente: evento "Group" con los miembros (o nil) y atributos "GroupId" y "GroupLeader"
+-- (UserId del líder) en cada jugador. PropertyService mira GroupLeader: con la privacidad «Grupo»
+-- solo entran en tu casa los de tu grupo si el líder eres tú.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -27,7 +29,9 @@ type Group = { Id: number, Members: { Player }, Channel: Instance? }
 
 local groups: { [number]: Group } = {}
 local groupOf: { [Player]: Group } = {}
-local invites: { [Player]: { From: Player, Until: number } } = {}
+-- Invitaciones pendientes: a quién -> quién invita -> hasta cuándo (varias a la vez: antes la
+-- segunda borraba la primera sin avisar)
+local invites: { [Player]: { [Player]: number } } = {}
 local lastAsk: { [Player]: number } = {}
 local nextGroup = 0
 
@@ -123,8 +127,10 @@ end
 
 local function publish(group: Group)
 	local data = groupData(group)
+	local leader = group.Members[1]
 	for _, member in group.Members do
 		member:SetAttribute("GroupId", group.Id)
+		member:SetAttribute("GroupLeader", leader and leader.UserId)
 		Remote:FireClient(member, "Group", data)
 	end
 end
@@ -132,6 +138,7 @@ end
 local function forget(player: Player)
 	if player.Parent then
 		player:SetAttribute("GroupId", nil)
+		player:SetAttribute("GroupLeader", nil)
 		Remote:FireClient(player, "Group", nil)
 	end
 end
@@ -197,8 +204,8 @@ local function onInvite(player: Player, userId: any)
 		Notify:FireClient(player, "Error", ("Tu grupo está lleno (máximo %d)."):format(Social.MaxGroup))
 		return
 	end
-	local pending = invites[target]
-	if pending and pending.From == player and os.clock() < pending.Until then
+	local pending = invites[target] and invites[target][player]
+	if pending and os.clock() < pending then
 		Notify:FireClient(player, "Info", "Ya le has invitado. Espera a que conteste.")
 		return
 	end
@@ -208,19 +215,27 @@ local function onInvite(player: Player, userId: any)
 		return
 	end
 	invitedAt[pair] = os.clock()
-	invites[target] = { From = player, Until = os.clock() + Social.InviteSeconds }
+	invites[target] = invites[target] or {}
+	invites[target][player] = os.clock() + Social.InviteSeconds
 	Remote:FireClient(target, "GroupInvite", { Name = nameOf(player), UserId = player.UserId, Seconds = Social.InviteSeconds })
 	Notify:FireClient(player, "Info", ("👥 Invitación enviada a %s."):format(nameOf(target)))
 end
 
 local function onAnswer(player: Player, userId: any, yes: any)
-	local invite = invites[player]
-	if not invite or typeof(userId) ~= "number" or invite.From.UserId ~= userId then
+	if typeof(userId) ~= "number" then
 		return
 	end
-	invites[player] = nil
-	local from = invite.From
-	if os.clock() > invite.Until or not from.Parent then
+	local mine = invites[player]
+	local from = Players:GetPlayerByUserId(userId)
+	local deadline = mine and from and mine[from]
+	if not deadline then
+		return
+	end
+	mine[from] = nil
+	if next(mine) == nil then
+		invites[player] = nil
+	end
+	if os.clock() > deadline or not from.Parent then
 		Notify:FireClient(player, "Info", "La invitación ha caducado.")
 		return
 	end
@@ -270,6 +285,9 @@ local function canDirectChat(a: Player, b: Player): boolean?
 	return table.find(allowed, b.UserId) ~= nil
 end
 
+local CHAT_NOTICE_GAP = 30
+local chatNoticeAt: { [string]: number } = {}
+
 local function onChat(player: Player, userId: any)
 	if typeof(userId) ~= "number" or tooFast(player) then
 		return
@@ -298,6 +316,14 @@ local function onChat(player: Player, userId: any)
 	addToChannel(channel, player)
 	addToChannel(channel, target)
 	Remote:FireClient(player, "ChatOpen", { Channel = name, Title = "💬 " .. nameOf(target) })
+	-- Al otro también le llega (antes no sabía que le escribías y no podía contestar). No le cambia
+	-- el canal en el que escribe: le sale un aviso y el chat en su panel para contestar.
+	-- (una vez cada CHAT_NOTICE_GAP segundos por pareja, para no llenarle la pantalla)
+	local pair = player.UserId .. ">" .. target.UserId
+	if os.clock() - (chatNoticeAt[pair] or -math.huge) >= CHAT_NOTICE_GAP then
+		chatNoticeAt[pair] = os.clock()
+		Remote:FireClient(target, "ChatIncoming", { Channel = name, Title = "💬 " .. nameOf(player), From = nameOf(player) })
+	end
 end
 
 -- Quita los chats privados de alguien que se va
@@ -335,6 +361,12 @@ function SocialService.init()
 	Players.PlayerRemoving:Connect(function(player)
 		leave(player, ("👥 %s se ha ido del juego."):format(nameOf(player)))
 		invites[player] = nil
+		for target, list in invites do
+			list[player] = nil
+			if next(list) == nil then
+				invites[target] = nil
+			end
+		end
 		lastAsk[player] = nil
 		dropPrivateChats(player)
 	end)

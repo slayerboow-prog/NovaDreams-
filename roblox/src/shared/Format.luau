@@ -17,7 +17,7 @@ end
 function Format.clock(clockTime: number): string
 	local hours = math.floor(clockTime) % 24
 	local minutes = math.floor((clockTime - math.floor(clockTime)) * 60)
-	return string.format("%02d:%02d", hours, minutes)
+	return string.format("%d:%02d", hours, minutes)
 end
 
 return Format

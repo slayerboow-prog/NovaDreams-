@@ -678,7 +678,7 @@ function Civic.gasStation(parent: Instance, lot: Lot)
 	-- Tótem de precios
 	local pylon = lot.facing(L / 2 - 4, 3, 0)
 	Builder.part({ Name = "Pylon", Size = Vector3.new(1, 12, 1), CFrame = pylon * CFrame.new(0, 6, 0), Color = rgb(60, 60, 64), Parent = m })
-	signBoard(m, pylon * CFrame.new(0, 12, 0), "GASOLINA 1,59\nDIÉSEL 1,49", 7, rgb(30, 150, 80))
+	signBoard(m, pylon * CFrame.new(0, 12, 0), "GASOLINA 1,50\nDIÉSEL 1,49", 7, rgb(30, 150, 80))
 	Props.car(m, lot.along(-12, 11, 0.5))
 	return m
 end
@@ -850,7 +850,7 @@ function Civic.welcome(parent: Instance, cf: CFrame, townName: string)
 	for _, x in { -7, 7 } do
 		Builder.part({ Name = "Post", Size = Vector3.new(0.6, 9, 0.6), CFrame = cf * CFrame.new(x, 4.5, 0), Color = Palette.Street.Metal, Parent = m })
 	end
-	signBoard(m, cf * CFrame.new(0, 8, 0), "BIENVENIDO A\n" .. string.upper(townName), 16, rgb(30, 100, 60))
+	signBoard(m, cf * CFrame.new(0, 8, 0), "BIENVENIDOS A\n" .. string.upper(townName), 16, rgb(30, 100, 60))
 	return m
 end
 

@@ -95,7 +95,7 @@ product("Zanahoria", "Zanahoria", "🥕", 2, "Verdura", 8, 0, "Zanahoria", "Cruj
 product("Tomate", "Tomate", "🍅", 3, "Verdura", 8, 0, "Tomate", "Tomate de huerta, del que sabe a tomate.")
 product("Patata", "Patata", "🥔", 2, "Verdura", 10, 0, "Patatas", "Para freír, cocer o hacer tortilla.")
 product("Maiz", "Mazorca de maíz", "🌽", 4, "Verdura", 10, 2, nil, "Dulce. También es pienso y hace palomitas.")
-product("Pimiento", "Pimiento", "🫑", 4, "Verdura", 6, 0, nil, "Verde y brillante.")
+product("Pimiento", "Pimiento", "🌶️", 4, "Verdura", 6, 0, nil, "Verde y brillante.")
 product("Fresa", "Fresas", "🍓", 5, "Fruta", 8, 2, nil, "Rojas y dulces. En el obrador se hace mermelada.")
 product("Calabaza", "Calabaza", "🎃", 14, "Verdura", 20, 0, nil, "Enorme. Para cremas y tartas.")
 product("Girasol", "Pipas de girasol", "🌻", 5, "Despensa", 6, 2, nil, "En la almazara se hace aceite de girasol.")
@@ -103,7 +103,7 @@ product("Sandia", "Sandía", "🍉", 18, "Fruta", 25, 0, "Sandia", "Para el vera
 product("Manzana", "Manzana", "🍎", 3, "Fruta", 12, 0, "Manzana", "De tu manzano.")
 product("Naranja", "Naranja", "🍊", 3, "Fruta", 12, 2, "Naranja", "De tu naranjo. Se exprime en el obrador.")
 product("Uvas", "Uvas", "🍇", 5, "Fruta", 12, 0, "Uvas", "De tu viña.")
-product("Aceitunas", "Aceitunas", "🫒", 4, "Despensa", 4, 0, nil, "En la almazara se hace aceite de oliva.")
+product("Aceitunas", "Aceitunas", "🍈", 4, "Despensa", 4, 0, nil, "En la almazara se hace aceite de oliva.")
 -- Animales
 product("Huevos", "Huevos", "🥚", 2, "Lacteo", 10, 0, "Huevos", "De tus gallinas.")
 product("Leche", "Leche fresca", "🥛", 3, "Lacteo", 8, 4, "Leche", "De tus vacas. En la quesería se hace queso, yogur y mantequilla.")
@@ -120,7 +120,7 @@ product("Queso", "Queso de vaca", "🧀", 12, "Lacteo", 18, 0, "Queso", "Curado 
 product("QuesoCabra", "Queso de cabra", "🧀", 16, "Lacteo", 18, 0, nil, "Suave y cremoso.")
 product("Yogur", "Yogur natural", "🍶", 4, "Lacteo", 10, 3, "Yogur", "Hecho con tu leche.")
 product("Mantequilla", "Mantequilla", "🧈", 7, "Lacteo", 10, 0, "Mantequilla", "Para untar y para hornear.")
-product("Aceite", "Aceite de oliva", "🫒", 20, "Despensa", 5, 0, "Aceite", "Virgen extra, de tus olivos.")
+product("Aceite", "Aceite de oliva", "🍈", 20, "Despensa", 5, 0, "Aceite", "Virgen extra, de tus olivos.")
 product("AceiteGirasol", "Aceite de girasol", "🌻", 17, "Despensa", 5, 0, nil, "Para freír.")
 product("Mermelada", "Mermelada de fresa", "🍓", 24, "Despensa", 8, 3, "Mermelada", "Casera, con tus fresas y tu miel.")
 product("TomateFrito", "Tomate frito casero", "🥫", 14, "Despensa", 6, 0, "Tomatico", "Para la pizza y los macarrones.")
@@ -185,7 +185,7 @@ Farming.Crops = {
 	crop("Tomate", "Tomatera", "🍅", 2, 4, 240, { 6, 10 }, "Tomate", rgb(220, 50, 40)),
 	crop("Patata", "Patatas", "🥔", 3, 4, 300, { 8, 12 }, "Patata", rgb(110, 150, 70)),
 	crop("Maiz", "Maíz", "🌽", 4, 5, 300, { 5, 8 }, "Maiz", rgb(240, 210, 70)),
-	crop("Pimiento", "Pimientos", "🫑", 5, 5, 270, { 5, 8 }, "Pimiento", rgb(60, 160, 60)),
+	crop("Pimiento", "Pimientos", "🌶️", 5, 5, 270, { 5, 8 }, "Pimiento", rgb(60, 160, 60)),
 	crop("Fresa", "Fresas", "🍓", 6, 8, 360, { 6, 10 }, "Fresa", rgb(230, 40, 70)),
 	crop("Manzano", "Manzano", "🍎", 7, 60, 600, { 6, 9 }, "Manzana", rgb(200, 40, 40), 300),
 	crop("Calabaza", "Calabazas", "🎃", 8, 10, 480, { 2, 4 }, "Calabaza", rgb(240, 140, 30)),
@@ -193,7 +193,7 @@ Farming.Crops = {
 	crop("Sandia", "Sandías", "🍉", 10, 12, 540, { 2, 3 }, "Sandia", rgb(60, 140, 60)),
 	crop("Naranjo", "Naranjo", "🍊", 11, 70, 600, { 6, 9 }, "Naranja", rgb(245, 150, 30), 300),
 	crop("Vid", "Viña", "🍇", 12, 80, 720, { 5, 8 }, "Uvas", rgb(120, 50, 140), 360),
-	crop("Olivo", "Olivo", "🫒", 14, 120, 900, { 8, 12 }, "Aceitunas", rgb(110, 130, 50), 420),
+	crop("Olivo", "Olivo", "🍈", 14, 120, 900, { 8, 12 }, "Aceitunas", rgb(110, 130, 50), 420),
 } :: { Crop }
 
 Farming.cropById = {} :: { [string]: Crop }
@@ -256,8 +256,8 @@ Farming.Stations = {
 	Molino = { Name = "Molino", Icon = "⚙️" },
 	Horno = { Name = "Horno", Icon = "🔥" },
 	Queseria = { Name = "Quesería", Icon = "🧀" },
-	Almazara = { Name = "Almazara", Icon = "🫒" },
-	Conservas = { Name = "Conservas", Icon = "🫙" },
+	Almazara = { Name = "Almazara", Icon = "🍈" },
+	Conservas = { Name = "Conservas", Icon = "🥫" },
 	Exprimidor = { Name = "Exprimidor", Icon = "🧃" },
 	Telar = { Name = "Telar", Icon = "🧵" },
 	Cocina = { Name = "Cocina", Icon = "🍳" },

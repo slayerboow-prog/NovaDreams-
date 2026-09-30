@@ -69,6 +69,10 @@ type Session = {
 local clinics: { Clinic } = {}
 local sessions: { [Player]: Session } = {}
 local playerPatients: { [Player]: any } = {}
+-- Segundos que lleva el médico lejos de su consulta (si se va demasiado tiempo, fin de la guardia)
+local awayTime: { [Player]: number } = {}
+local AWAY_RANGE = 60
+local AWAY_LIMIT = 120
 local nextPatient = 0
 
 local NAMES = { "Antonio", "Pilar", "Manuel", "Lola", "Rafael", "Elena", "Jorge", "Sofía", "Luis", "Teresa", "Hugo", "Alba" }
@@ -444,7 +448,7 @@ local function onReception(player: Player, clinic: Clinic)
 	task.delay(3, function()
 		if player.Parent then
 			healPlayer(player)
-			Notify:FireClient(player, "Success", "🏥 Revisión hecha: estás como nuevo.")
+			Notify:FireClient(player, "Success", "🏥 Revisión hecha: todo en orden.")
 		end
 	end)
 end
@@ -497,6 +501,25 @@ local function spawnPatient(clinic: Clinic)
 end
 
 local function refreshStaff(clinic: Clinic, active: boolean)
+	-- Jugadores con cita y ya sin médico jugador (se fue a mitad): los atiende el médico de guardia
+	-- (gratis, ya tenían la cita). Si no, se quedaban esperando para siempre
+	if not hasDoctor(clinic) then
+		for i = #clinic.Waiting, 1, -1 do
+			local p = clinic.Waiting[i]
+			if p.Player and not p.Model then
+				table.remove(clinic.Waiting, i)
+				p.State = "Done"
+				local who = p.Player :: Player
+				Notify:FireClient(who, "Info", "🏥 El médico de guardia te atiende en un momento…")
+				task.delay(3, function()
+					if who.Parent and playerPatients[who] == p then
+						healPlayer(who)
+						Notify:FireClient(who, "Success", "🏥 Revisión hecha: todo en orden.")
+					end
+				end)
+			end
+		end
+	end
 	local want = active and not hasDoctor(clinic) -- (de guardia día y noche)
 	if want and not clinic.NpcDoctor then
 		local spot = point(clinic, "Reception") + Vector3.new(0, 0, 5)
@@ -590,6 +613,7 @@ function MedicalService.quit(player: Player, silent: boolean?)
 		return
 	end
 	sessions[player] = nil
+	awayTime[player] = nil
 	s.Room.Doctor = nil
 	if s.Patient then
 		-- El paciente vuelve a la sala de espera (lo atenderá otro)
@@ -735,6 +759,19 @@ function MedicalService.init()
 	task.spawn(function()
 		while true do
 			task.wait(2)
+			-- Médicos que se han ido de la consulta: tras un rato fuera, se acaba la guardia
+			for player, s in sessions do
+				local root = rootOf(player)
+				if root and (root.Position - s.Room.Desk.Position).Magnitude <= AWAY_RANGE then
+					awayTime[player] = nil
+				else
+					awayTime[player] = (awayTime[player] or 0) + 2
+					if (awayTime[player] :: number) >= AWAY_LIMIT then
+						MedicalService.quit(player, true)
+						Notify:FireClient(player, "Info", "Has dejado el puesto vacío demasiado tiempo: fin del turno.")
+					end
+				end
+			end
 			for _, clinic in clinics do
 				local ok, err = pcall(function()
 					local active = anyoneNear(clinic)

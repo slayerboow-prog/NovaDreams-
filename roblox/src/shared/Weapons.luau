@@ -415,7 +415,7 @@ function Weapons.buyCheck(w: Weapon, b: Buyer): (boolean, string?)
 	if not w.Price then
 		return false, "Esto no se vende."
 	elseif not stageAtLeast(b.Stage, w.MinStage) then
-		return false, if w.Kind == "Real" then "Las armas de verdad solo se venden a adultos con licencia." else "Eres demasiado pequeño para esto."
+		return false, if w.Kind == "Real" then "Las armas de verdad solo se venden a adultos con licencia." else "Aún no tienes edad para esto."
 	elseif w.Licence and not b.Licence then
 		return false, "Necesitas la licencia de armas (comisaría o mostrador de la Armería)."
 	elseif w.Kind == "Real" and ((b.Stars or 0) > 0 or b.Jailed) then

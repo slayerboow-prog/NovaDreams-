@@ -451,7 +451,7 @@ leoData.Life.StageSeconds = 0.09 * HOURS.Nino * 3600
 check(playUntil(leo, function()
 	return leoData.Story.Completed.Cole02_Mochila ~= nil
 end), "Misión 02 completa")
-check(said(leo, "(Ya no está en tu inventario.)") and leoData.Items.MochilaCole == 1, "La mochila desaparece del inventario… y vuelve al final")
+check(said(leo, "(Ya no la tienes.)") and leoData.Items.MochilaCole == 1, "La mochila desaparece del inventario… y vuelve al final")
 check(said(leo, "Fue Rubén. Bruno le dijo que lo hiciera"), "Mateo (tu amigo) te da una pista extra")
 check(leoData.Story.Flags.PistaR and leoData.Story.Flags.PistaB, "Pistas del patio: la «R» y el llavero de la «B»")
 local basket = nil

@@ -334,7 +334,7 @@ return {
 			{ S = "Familia", T = "¡Con la sudadera del cole! Pareces de sexto.", If = { Choices = { Ropa = "Sudadera" } } },
 			{ S = "Familia", T = "Aunque… ¡mira qué hora es! ¡Corre!", If = { Flags = { "LlegasTarde" } } },
 			{ S = "Familia", T = "El cole está cerca. ¿Quieres que te acompañe?" },
-			{ Ask = "¿Vas solo o acompañado?", Options = {
+			{ Ask = "¿Vas por tu cuenta o con compañía?", Options = {
 				{ T = "Sí, acompáñame, porfa.", Effects = { Choice = { Acompanante = "Familia" }, Rel = { Familia = 3 } }, Then = {
 					{ S = "Familia", T = "¡Claro que sí! Pero en la puerta me das un beso rapidito, que ya sé que da vergüenza." },
 				} },

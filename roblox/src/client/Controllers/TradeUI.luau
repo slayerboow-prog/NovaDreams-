@@ -363,13 +363,47 @@ end
 
 ---------------------------------------------------------------------
 
+-- Pregunta de Dialog.choose que se cierra sola a los `seconds` (cuando la invitación caduca en el
+-- servidor). onAnswer recibe la elección (o nil si la cierra); si caduca, no se llama.
+local function chooseFor(seconds: number?, title: string, body: string?, options: { string }, onAnswer: (number?) -> ())
+	local playerGui = player:FindFirstChildOfClass("PlayerGui")
+	local before: { [Instance]: boolean } = {}
+	local dialogs = playerGui and playerGui:FindFirstChild("Dialogs")
+	for _, child in (if dialogs then dialogs:GetChildren() else {}) do
+		before[child] = true
+	end
+	local expired = false
+	task.spawn(function()
+		local choice = Dialog.choose(title, body, options)
+		if not expired then
+			onAnswer(choice)
+		end
+	end)
+	-- (Dialog.choose crea su ventana antes de esperar: la ventana nueva es la de esta pregunta)
+	dialogs = playerGui and playerGui:FindFirstChild("Dialogs")
+	local window: Instance? = nil
+	for _, child in (if dialogs then dialogs:GetChildren() else {}) do
+		if not before[child] and string.sub(child.Name, 1, 6) == "Choose" then
+			window = child
+		end
+	end
+	if window and type(seconds) == "number" and seconds > 0 then
+		task.delay(seconds, function()
+			if window.Parent then
+				expired = true
+				window:Destroy()
+			end
+		end)
+	end
+end
+
 function TradeUI.init()
 	Hud.addButton("🛍️ Mercadillo", rgb(190, 90, 150), 6, openMarket)
 
 	Remote.OnClientEvent:Connect(function(action, a)
 		if action == "Invite" then
-			task.spawn(function()
-				local choice = Dialog.choose("🤝 " .. a.Name .. " quiere intercambiar", "¿Abrir la ventana de intercambio? Nada cambia de manos hasta que los dos aceptéis.", { "Sí, vamos", "Ahora no" })
+			-- (se cierra sola cuando caduca la invitación)
+			chooseFor(a.Seconds, "🤝 " .. a.Name .. " quiere intercambiar", "¿Abrir la ventana de intercambio? Nada cambia de manos hasta que los dos aceptéis.", { "Sí, vamos", "Ahora no" }, function(choice)
 				Remote:FireServer("Answer", a.UserId, choice == 1)
 			end)
 		elseif action == "Session" then

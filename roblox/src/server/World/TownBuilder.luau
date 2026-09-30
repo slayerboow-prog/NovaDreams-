@@ -374,7 +374,7 @@ local function buildPlaza(world: Instance)
 		Color = rgb(28, 34, 48),
 		Parent = plaza,
 	})
-	Builder.sign(welcome, "Bienvenido a VALMAR", Enum.NormalId.Front)
+	Builder.sign(welcome, "BIENVENIDOS A VALMAR", Enum.NormalId.Front)
 	for _, x in { -10, 10 } do
 		Builder.part({ Name = "SignPost", Size = Vector3.new(0.8, 10, 0.8), CFrame = CFrame.new(cx + x, WALK + 5, -80), Color = Palette.Street.Metal, Material = Enum.Material.Metal, Parent = plaza })
 	end

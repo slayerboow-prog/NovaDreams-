@@ -297,7 +297,7 @@ function DivingUI.init()
 
 	Remote.OnClientEvent:Connect(function(action, data)
 		if action == "Caught" then
-			Hud.toast("Money", ("%s ¡Cazado: %s de %s kg! %s · +%d exp · 🎒 (%s)"):format(data.Icon, string.lower(data.Name), (string.gsub(tostring(data.Kg), "%.", ",")), data.Rarity, data.Xp, Format.money(data.Price)))
+			Hud.toast("Money", ("%s ¡Cazado: %s de %s kg! %s · +%d XP · 🎒 (%s)"):format(data.Icon, string.lower(data.Name), (string.gsub(tostring(data.Kg), "%.", ",")), data.Rarity, data.Xp, Format.money(data.Price)))
 			pcall(SoundFx.play, "Aviso", 1, 1.8)
 		elseif action == "Hit" then
 			Hud.toast("Info", ("🔱 ¡Tocado! Le quedan %d. ¡Otra vez!"):format(data.Hp))

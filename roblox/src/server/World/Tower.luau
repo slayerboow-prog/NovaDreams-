@@ -449,7 +449,7 @@ local function themeDetails(m: Model, plan: Plan, floor: number, at: (number, nu
 		elseif floor == 0 and detail == "Board" then
 			local board = deco(m, "NoticeBoard", V(3, 2.2, 0.1), at(-W / 2 + CORE + 4.5, 5.2, CORRIDOR_Z0 + 0.06), rgb(180, 140, 90), M.Wood)
 			local text = if style.Theme == "Joven"
-				then "TABLÓN\n· Se busca compañero de piso\n· Clases de guitarra\n· Fiesta en el 3ºB (¡sin ruido!)"
+				then "TABLÓN\n· Se busca compañero de piso\n· Clases de guitarra\n· Fiesta en el 3.º B (¡sin ruido!)"
 				else "COMUNIDAD DE VECINOS\n· Reunión el jueves, 20:00\n· No dejéis bicis en el portal"
 			Builder.sign(board, text, Enum.NormalId.Back, rgb(30, 30, 34))
 		elseif floor == 0 and detail == "BikeRack" then

@@ -279,7 +279,7 @@ function HouseService.claim(player: Player, plot: Plot)
 	player:SetAttribute("PlotId", plot.Id)
 	buildHouse(plot, data.HouseTier)
 	refreshSign(plot)
-	Notify:FireClient(player, "Success", "¡Bienvenido a tu nueva casa! Pulsa 'Casa' para volver cuando quieras.")
+	Notify:FireClient(player, "Success", "¡Te damos la bienvenida a tu nueva casa! Pulsa 'Casa' para volver cuando quieras.")
 	StoryEvents.emit(player, "HomeClaimed", { PlotId = plot.Id })
 end
 

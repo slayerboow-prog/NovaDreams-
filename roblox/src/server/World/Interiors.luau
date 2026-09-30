@@ -701,7 +701,7 @@ end
 ---------------------------------------------------------------------
 -- Oficinas
 ---------------------------------------------------------------------
-local COMPANIES = { "GRUPO VALMAR", "NOVA SEGUROS", "INMOBILIARIA SOL", "TECNOVAL", "BANCO DEL PUERTO", "CONSULTORES ATLÁNTICO", "VALMAR MEDIA", "LOGÍSTICA NORTE" }
+local COMPANIES = { "GRUPO VALMAR", "VELA SEGUROS", "INMOBILIARIA SOL", "TECNOVAL", "BANCO DEL PUERTO", "CONSULTORES ATLÁNTICO", "VALMAR MEDIA", "LOGÍSTICA NORTE" }
 
 -- Bloque de 4 mesas (dos y dos, enfrentadas, con mampara en medio)
 local function deskCluster(r: Room, cx: number, cz: number)

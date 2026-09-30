@@ -20,7 +20,7 @@ Strings.es = {
 	["STAGE.Bebe"] = "Has nacido.",
 	["STAGE.Nino"] = "Ya no eres un bebé: ¡empieza la infancia!",
 	["STAGE.Adolescente"] = "Ya eres adolescente.",
-	["STAGE.AdultoJoven"] = "Ya eres adulto.",
+	["STAGE.AdultoJoven"] = "Ya eres mayor de edad.",
 	["STAGE.Adulto"] = "Has entrado en la madurez.",
 	["STAGE.Mayor"] = "Has llegado a la edad de la experiencia.",
 
@@ -208,7 +208,7 @@ Strings.es = {
 	["QUEST.DIA.PARTIDO"] = "Partido en {place}",
 	["QUEST.DIA.EXCURSION"] = "Excursión: ve con tu clase a {place}",
 	["QUEST.DIA.EXCURSION_DISFRUTA"] = "Disfruta de la excursión",
-	["QUEST.COLE.COMEDOR"] = "¡Las 2! Hora de comer: ve a {place}",
+	["QUEST.COLE.COMEDOR"] = "¡Las 14:00! Hora de comer: ve a {place}",
 	["QUEST.COLE.COMIENDO"] = "Termina de comer… las clases vuelven a las 15:00",
 	["QUEST.COLE.BANDEJA"] = "Coge tu bandeja en {place} («Coger comida»)",
 	["QUEST.COLE.COME_NICO"] = "Siéntate a comer con Nico",

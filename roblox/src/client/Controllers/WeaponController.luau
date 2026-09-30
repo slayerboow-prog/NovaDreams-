@@ -603,7 +603,7 @@ local function openQuiz(token: string, data: { [string]: any })
 			closeQuiz()
 			return
 		end
-		title.Text = ("🪪 Test de seguridad · %d/%d (aprobado con %d)"):format(index, #questions, data.ToPass or 4)
+		title.Text = ("💳 Test de seguridad · %d/%d (aprobado con %d)"):format(index, #questions, data.ToPass or 4)
 		text.Text = q.Text
 		for i, button in buttons do
 			button.Visible = q.Options[i] ~= nil

@@ -344,7 +344,7 @@ local function tick()
 			Remolino = "🌀 El remolino se ha deshecho.",
 			MareaNegra = "🛢️ La marea negra se ha dispersado mar adentro.",
 			Tiburon = "🦈 El tiburón se ha ido mar adentro. Ya se puede volver al agua.",
-			Medusas = "🪼 Las medusas se han ido con la corriente.",
+			Medusas = "🌊 Las medusas se han ido con la corriente.",
 		}
 		finish(endings[e.Kind.Id] or "El mar vuelve a la calma.")
 		return
@@ -397,7 +397,7 @@ local function tick()
 			if not protected and swimming(player) and flatDistance(pos, e.Center) < kind.Radius and rng:NextNumber() < kind.StingChance * TICK / 2 then
 				hurt(player, kind.Damage)
 				Remote:FireClient(player, "Bite", { Kind = "Medusas" })
-				Notify:FireClient(player, "Error", "🪼 ¡Te ha picado una medusa! ¡Qué escozor!")
+				Notify:FireClient(player, "Error", "🌊 ¡Te ha picado una medusa! ¡Qué escozor!")
 			end
 		end
 	end

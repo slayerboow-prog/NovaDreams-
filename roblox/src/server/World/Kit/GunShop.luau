@@ -101,7 +101,7 @@ function GunShop.build(parent: Instance, cf: CFrame, W: number, D: number, name:
 		Parent = parent,
 	})
 	local _ = desk
-	poster(parent, at(-8, 5.6, -4.9), Vector3.new(5, 1.4, 0.2), "🪪 LICENCIAS", rgb(30, 60, 120))
+	poster(parent, at(-8, 5.6, -4.9), Vector3.new(5, 1.4, 0.2), "💳 LICENCIAS", rgb(30, 60, 120))
 
 	-- Tablón del oficio (junto a la puerta)
 	Builder.part({ Name = "JobBoard", Size = Vector3.new(4, 3, 0.3), CFrame = at(W / 2 - 2.5, 4.8, -D / 2 + 1.6) * CFrame.Angles(0, math.rad(180), 0), Color = rgb(34, 108, 196), Tags = { "JobBoard" }, Attributes = { JobId = "Armero" }, Parent = parent })

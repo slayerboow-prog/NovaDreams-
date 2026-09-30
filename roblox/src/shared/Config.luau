@@ -289,10 +289,13 @@ Config.TiredWalkSpeed = 10
 -- Trabajos
 -- Cada trabajo es un circuito: recoger algo en un punto (Pickup)
 -- y llevarlo a otro (Dropoff). Los puntos se marcan con tags en el mapa.
+-- PayText (opcional): lo que pone el tablón de lo que se cobra. Los oficios con su propio sistema
+-- no pagan Pay por entrega, así que lo dicen con su texto. Sin PayText, el tablón pone "Pay/entrega".
 ---------------------------------------------------------------------
 Config.Jobs = {
 	Barista = {
 		DisplayName = "Barista",
+		PayText = "10 € + 2 € por paso", -- lo que se ve en el tablón (lo que se cobra de verdad)
 		Place = "Cafetería Central",
 		Pay = 25,
 		EnergyCost = 2,
@@ -313,6 +316,7 @@ Config.Jobs = {
 	},
 	Basurero = {
 		DisplayName = "Basurero/a",
+		PayText = "7 € por papelera", -- lo que se ve en el tablón (lo que se cobra de verdad)
 		Place = "Punto Limpio",
 		Pay = 45,
 		EnergyCost = 4,
@@ -324,6 +328,7 @@ Config.Jobs = {
 	-- Médico/a: consultas del hospital (MedicalService: su propio sistema, no este circuito)
 	Medico = {
 		DisplayName = "Médico/a",
+		PayText = "hasta 30 € por paciente", -- lo que se ve en el tablón (lo que se cobra de verdad)
 		Place = "Hospital",
 		Pay = 30,
 		EnergyCost = 3,
@@ -334,6 +339,7 @@ Config.Jobs = {
 	},
 	Policia = {
 		DisplayName = "Policía",
+		PayText = "15–30 € por aviso + distancia", -- lo que se ve en el tablón (lo que se cobra de verdad)
 		Place = "Comisaría",
 		Pay = 30,
 		EnergyCost = 3,
@@ -385,6 +391,7 @@ Config.Jobs = {
 	},
 	Bombero = {
 		DisplayName = "Bombero/a",
+		PayText = "15–45 € por aviso + distancia", -- lo que se ve en el tablón (lo que se cobra de verdad)
 		Place = "Parque de bomberos",
 		Pay = 30,
 		EnergyCost = 4,
@@ -395,6 +402,7 @@ Config.Jobs = {
 	},
 	Taquillero = {
 		DisplayName = "Taquillero/a",
+		PayText = "6 € + 2 € por entrada", -- lo que se ve en el tablón (lo que se cobra de verdad)
 		Place = "Cine",
 		Pay = 12,
 		EnergyCost = 2,
@@ -405,6 +413,7 @@ Config.Jobs = {
 	},
 	Revisor = {
 		DisplayName = "Revisor/a",
+		PayText = "2 € por billete, 6 € por multa", -- lo que se ve en el tablón (lo que se cobra de verdad)
 		Place = "Metro",
 		Pay = 4,
 		EnergyCost = 1,
@@ -425,6 +434,7 @@ Config.Jobs = {
 	},
 	Pescador = {
 		DisplayName = "Pescador/a",
+		PayText = "según lo que pesques", -- lo que se ve en el tablón (lo que se cobra de verdad)
 		Place = "Puerto",
 		Pay = 10,
 		EnergyCost = 1,
@@ -446,6 +456,7 @@ Config.Jobs = {
 	},
 	Recepcionista = {
 		DisplayName = "Recepcionista",
+		PayText = "6–8 € por huésped", -- lo que se ve en el tablón (lo que se cobra de verdad)
 		Place = "Hotel",
 		Pay = 10,
 		EnergyCost = 2,
@@ -456,6 +467,7 @@ Config.Jobs = {
 	},
 	Repartidor = {
 		DisplayName = "Repartidor/a",
+		PayText = "10 € + distancia", -- lo que se ve en el tablón (lo que se cobra de verdad)
 		Place = "Correos",
 		Pay = 70,
 		EnergyCost = 5,
@@ -463,6 +475,41 @@ Config.Jobs = {
 		DropoffText = "Entrega el paquete en el buzón marcado",
 		CarryColor = Color3.fromRGB(170, 120, 70),
 		CarrySize = Vector3.new(1.8, 1.4, 1.8),
+	},
+	-- Oficios con su propio sistema que no tienen tablón aquí (supermercado y autobús). Están para
+	-- que el HUD los reconozca. Pay es solo lo básico por tarea (el HUD aún lo enseña con Format.money)
+	Cajero = {
+		DisplayName = "Cajero/a",
+		PayText = "6 € por cliente + 1 € por producto",
+		Place = "Supermercado",
+		Pay = 6,
+		EnergyCost = 1,
+		PickupText = "",
+		DropoffText = "",
+		CarryColor = Color3.fromRGB(250, 250, 250),
+		CarrySize = Vector3.new(1, 1, 1),
+	},
+	Charcutero = {
+		DisplayName = "Charcutero/a",
+		PayText = "8 € por pedido",
+		Place = "Supermercado",
+		Pay = 8,
+		EnergyCost = 1,
+		PickupText = "",
+		DropoffText = "",
+		CarryColor = Color3.fromRGB(250, 250, 250),
+		CarrySize = Vector3.new(1, 1, 1),
+	},
+	Conductor = {
+		DisplayName = "Conductor/a de autobús",
+		PayText = "12 € por parada + 2 € por pasajero",
+		Place = "Cocheras de autobuses",
+		Pay = 12,
+		EnergyCost = 1,
+		PickupText = "",
+		DropoffText = "",
+		CarryColor = Color3.fromRGB(250, 250, 250),
+		CarrySize = Vector3.new(1, 1, 1),
 	},
 }
 Config.TaskReachDistance = 7 -- a cuántos studs del objetivo cuenta como "llegado"

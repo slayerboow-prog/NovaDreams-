@@ -10,7 +10,12 @@
 --     elige la privacidad (su grupo y los que tienen llave / solo los que tienen llave / cerrada) y
 --     puede echar a las visitas.
 --   * Timbre: si llamas a la casa de otro jugador sin llave, le llega el aviso con «Abrir» o «No
---     abrir». Si abre, la puerta queda abierta para ti un par de minutos.
+--     abrir». Si abre, la puerta queda abierta para ti un par de minutos (aunque la casa esté
+--     «Cerrada»: lo decide el dueño). Solo puede abrir si está en ese edificio. Si no te abren (o no
+--     contestan), no puedes volver a llamar a esa casa hasta dentro de un rato, y cada dueño tiene
+--     como mucho unos pocos timbres pendientes a la vez.
+--   * Echar a una visita le quita el permiso del timbre y no le deja volver en unos minutos. Si
+--     cambias la privacidad o quitas una llave, salen las visitas que ya no pueden estar.
 --   * Vecinos con su vida (shared/Residents): si llamas y están trabajando o durmiendo, no abren.
 --   * Vida en el portal y en los pasillos: los vecinos suben a su casa y bajan de ella por la
 --     escalera o en el ascensor de verdad (solo por plantas montadas).
@@ -36,6 +41,10 @@ local HousingService = {}
 HousingService.AutoAssign = true -- (las pruebas lo apagan para elegir ellas)
 HousingService.StarterTries = 12
 HousingService.BellSeconds = 30 -- lo que espera el timbre a que el dueño conteste
+HousingService.BellCooldown = 60 -- sin abrir (o sin contestar): tiempo hasta poder llamar otra vez a esa casa
+HousingService.BellStrikes = 2 -- «No abrir» seguidos que se aguantan antes de esa espera (el primero puede ser sin querer)
+HousingService.MaxBells = 3 -- timbres pendientes a la vez por dueño
+HousingService.KeyNoticeGap = 60 -- un aviso de «te ha dado una llave» cada tanto por pareja
 
 local Notify = ReplicatedStorage.Remotes.Notify :: RemoteEvent
 local Remote: RemoteEvent
@@ -43,6 +52,10 @@ local Remote: RemoteEvent
 type Bell = { Visitor: Player, Owner: Player, Building: InteriorService.Building, Floor: number, Letter: string?, Title: string, Until: number }
 local bells: { [string]: Bell } = {}
 local nextBell = 0
+-- Por visita y casa ("UserId@edificio:unidad"): hasta cuándo no puede llamar y cuántos «No abrir» lleva
+local bellWait: { [string]: number } = {}
+local bellStrikes: { [string]: { Count: number, At: number } } = {}
+local keyNoticeAt: { [string]: number } = {}
 
 local function dayLength(): number
 	return (Config.DayLengthMinutes or 20) * 60
@@ -206,11 +219,39 @@ function HousingService.giveKey(player: Player, key: string, floor: number, lett
 	end)
 	if ok and not full then
 		Notify:FireClient(player, "Success", ("🔑 Has dado una llave a %s."):format(target.DisplayName))
-		Notify:FireClient(target, "Success", ("🔑 %s te ha dado una llave de su casa."):format(player.DisplayName))
+		-- (al que la recibe, un aviso cada KeyNoticeGap segundos: antes dar y quitar sin parar le
+		-- llenaba la pantalla)
+		local pair = player.UserId .. ">" .. target.UserId
+		if os.clock() - (keyNoticeAt[pair] or -math.huge) >= HousingService.KeyNoticeGap then
+			keyNoticeAt[pair] = os.clock()
+			Notify:FireClient(target, "Success", ("🔑 %s te ha dado una llave de su casa."):format(player.DisplayName))
+		end
 	elseif full then
 		Notify:FireClient(player, "Error", ("Ya has repartido %d llaves (el máximo)."):format(Housing.MaxKeys))
 	end
 	return ok and not full
+end
+
+-- Saca a una visita de la casa (vuelve al pasillo o a la calle) y la avisa
+local function sendOut(target: Player, text: string)
+	InteriorService.leave(target)
+	Notify:FireClient(target, "Info", text)
+end
+
+-- Tras cambiar la privacidad o las llaves: salen las visitas que ya no pueden estar dentro
+-- (antes se quedaban aunque el dueño cerrara la casa)
+local function sendOutUnwelcome(owner: Player, building: InteriorService.Building, floor: number, letter: string?)
+	local here = building.Id .. ":" .. Floors.unitId(floor, letter)
+	local any = false
+	for _, other in Players:GetPlayers() do
+		if other ~= owner and other:GetAttribute("InteriorKey") == here and PropertyService.access(other, building, floor, letter) == "Stranger" then
+			any = true
+			pcall(sendOut, other, ("🚪 %s ha cerrado su casa: tienes que salir."):format(owner.DisplayName))
+		end
+	end
+	if any then
+		keysPanel(owner, building, floor, letter)
+	end
 end
 
 function HousingService.takeKey(player: Player, key: string, floor: number, letter: string?, userId: number): boolean
@@ -221,6 +262,10 @@ function HousingService.takeKey(player: Player, key: string, floor: number, lett
 	end)
 	if ok then
 		Notify:FireClient(player, "Info", "🔑 Llave retirada.")
+		local building = InteriorService.byKey(key)
+		if building then
+			sendOutUnwelcome(player, building, floor, letter)
+		end
 	end
 	return ok
 end
@@ -231,9 +276,14 @@ function HousingService.setPrivacy(player: Player, key: string, floor: number, l
 	if not HousingService.PrivacyModes[mode] then
 		return false
 	end
-	return editAccess(player, key, floor, letter, function(owner)
+	local ok = editAccess(player, key, floor, letter, function(owner)
 		owner.Privacy = mode
 	end)
+	local building = InteriorService.byKey(key)
+	if ok and building then
+		sendOutUnwelcome(player, building, floor, letter)
+	end
+	return ok
 end
 
 -- Echa a una visita que está dentro de tu casa (vuelve al pasillo)
@@ -246,8 +296,10 @@ function HousingService.kick(player: Player, key: string, floor: number, letter:
 	if target:GetAttribute("InteriorKey") ~= here then
 		return false
 	end
-	InteriorService.leave(target)
-	Notify:FireClient(target, "Info", ("🚪 %s te ha pedido que te vayas."):format(player.DisplayName))
+	-- Se le quita el permiso del timbre y no puede volver en un rato (antes volvía a entrar enseguida)
+	PropertyService.revokeTemp(building, floor, letter, target.UserId)
+	PropertyService.ban(building, floor, letter, target.UserId)
+	sendOut(target, ("🚪 %s te ha pedido que te vayas."):format(player.DisplayName))
 	keysPanel(player, building, floor, letter)
 	return true
 end
@@ -255,6 +307,10 @@ end
 ---------------------------------------------------------------------
 -- Timbre
 ---------------------------------------------------------------------
+local function bellKey(visitor: Player, building: InteriorService.Building, floor: number, letter: string?): string
+	return visitor.UserId .. "@" .. building.Id .. ":" .. Floors.unitId(floor, letter)
+end
+
 local function ring(visitor: Player, building: InteriorService.Building, floor: number, letter: string?): boolean
 	local owner = PropertyService.ownerOf(building, floor, letter)
 	if not owner then
@@ -266,21 +322,46 @@ local function ring(visitor: Player, building: InteriorService.Building, floor: 
 		Notify:FireClient(visitor, "Info", ("🔔 Ding, dong… Es la casa de %s. No hay nadie."):format(owner.Name))
 		return true
 	end
-	-- (un timbre a la vez por visita y casa)
+	-- Te han echado hace poco: no se llama
+	if PropertyService.isBanned(building, floor, letter, visitor.UserId) then
+		Notify:FireClient(visitor, "Info", ("🚪 %s te ha pedido que te vayas. Vuelve más tarde."):format(owner.Name))
+		return true
+	end
+	-- Hace poco que no te abrieron: espera antes de volver a llamar
+	local waitKey = bellKey(visitor, building, floor, letter)
+	local waitUntil = bellWait[waitKey]
+	if waitUntil and os.clock() < waitUntil then
+		Notify:FireClient(visitor, "Info", ("🔔 Acabas de llamar. Espera %d s antes de volver a llamar."):format(math.ceil(waitUntil - os.clock())))
+		return true
+	end
+	-- (un timbre a la vez por visita y casa; y como mucho MaxBells pendientes por dueño)
+	local pending = 0
 	for _, bell in bells do
-		if bell.Visitor == visitor and bell.Owner == ownerPlayer and os.clock() < bell.Until then
-			Notify:FireClient(visitor, "Info", "🔔 Ya has llamado. Espera a que te abran.")
-			return true
+		if bell.Owner == ownerPlayer and os.clock() < bell.Until then
+			if bell.Visitor == visitor then
+				Notify:FireClient(visitor, "Info", "🔔 Ya has llamado. Espera a que te abran.")
+				return true
+			end
+			pending += 1
 		end
+	end
+	if pending >= HousingService.MaxBells then
+		Notify:FireClient(visitor, "Info", ("🔔 %s está atendiendo otras visitas. Prueba en un rato."):format(owner.Name))
+		return true
 	end
 	nextBell += 1
 	local token = tostring(nextBell)
 	bells[token] = { Visitor = visitor, Owner = ownerPlayer, Building = building, Floor = floor, Letter = letter, Title = title, Until = os.clock() + HousingService.BellSeconds }
-	Remote:FireClient(ownerPlayer, "Doorbell", { Token = token, From = visitor.DisplayName, Title = title })
+	Remote:FireClient(ownerPlayer, "Doorbell", { Token = token, From = visitor.DisplayName, Title = title, Seconds = HousingService.BellSeconds })
 	Notify:FireClient(visitor, "Info", ("🔔 Ding, dong… Has llamado a casa de %s. Espera a que te abran."):format(owner.Name))
 	task.delay(HousingService.BellSeconds, function()
 		if bells[token] then
 			bells[token] = nil
+			-- Sin contestar: espera antes de volver a llamar
+			bellWait[waitKey] = os.clock() + HousingService.BellCooldown
+			if ownerPlayer.Parent then
+				Remote:FireClient(ownerPlayer, "DoorbellGone", { Token = token })
+			end
 			if visitor.Parent then
 				Notify:FireClient(visitor, "Info", "🔔 No abre nadie.")
 			end
@@ -295,21 +376,43 @@ function HousingService.answer(owner: Player, token: string, open: boolean): boo
 	if not bell or bell.Owner ~= owner then
 		return false
 	end
-	bells[token] = nil
 	if not bell.Visitor.Parent then
+		bells[token] = nil
 		return false
 	end
+	local waitKey = bellKey(bell.Visitor, bell.Building, bell.Floor, bell.Letter)
 	if open then
+		-- Solo se abre desde el edificio (la casa, su pasillo o su portal): antes se podía abrir
+		-- desde cualquier punto de la ciudad. El aviso sigue ahí por si vuelve a tiempo.
+		local at = owner:GetAttribute("InteriorKey")
+		if type(at) ~= "string" or string.sub(at, 1, #tostring(bell.Building.Id) + 1) ~= bell.Building.Id .. ":" then
+			Notify:FireClient(owner, "Error", "🚪 Para abrir la puerta tienes que estar en casa.")
+			return false
+		end
+		bells[token] = nil
 		-- Solo si sigue en la puerta (en ese rato se ha podido ir a otra planta, a la calle o a otra casa)
 		if not InteriorService.atDoor(bell.Visitor, bell.Building, bell.Floor, bell.Letter) then
 			Notify:FireClient(owner, "Info", ("🚪 %s ya no está en la puerta."):format(bell.Visitor.DisplayName))
 			return true
 		end
+		bellWait[waitKey], bellStrikes[waitKey] = nil, nil
 		PropertyService.grantTemp(bell.Building, bell.Floor, bell.Letter, bell.Visitor.UserId)
 		Notify:FireClient(bell.Visitor, "Success", ("🚪 %s te abre la puerta. ¡Pasa!"):format(owner.DisplayName))
 		-- (entra solo: como si le abrieran desde dentro)
 		pcall(InteriorService.goToUnit, bell.Visitor, bell.Building, bell.Floor, bell.Letter)
 	else
+		bells[token] = nil
+		-- «No abrir»: a partir del BellStrikes-ésimo seguido (en 5 min), espera antes de volver a llamar
+		local strikes = bellStrikes[waitKey]
+		if not strikes or os.clock() - strikes.At > 300 then
+			strikes = { Count = 0, At = 0 }
+		end
+		strikes.Count += 1
+		strikes.At = os.clock()
+		bellStrikes[waitKey] = strikes
+		if strikes.Count >= HousingService.BellStrikes then
+			bellWait[waitKey] = os.clock() + HousingService.BellCooldown
+		end
 		Notify:FireClient(bell.Visitor, "Info", ("🚪 %s no puede abrirte ahora."):format(owner.DisplayName))
 	end
 	return true
@@ -1138,6 +1241,21 @@ function HousingService.init()
 		for token, bell in bells do
 			if bell.Visitor == player or bell.Owner == player then
 				bells[token] = nil
+				-- (al dueño se le quita el aviso de quien ya no está)
+				if bell.Owner ~= player and bell.Owner.Parent then
+					Remote:FireClient(bell.Owner, "DoorbellGone", { Token = token })
+				end
+			end
+		end
+		local prefix = player.UserId .. "@"
+		for k in bellWait do
+			if string.sub(k, 1, #prefix) == prefix then
+				bellWait[k] = nil
+			end
+		end
+		for k in bellStrikes do
+			if string.sub(k, 1, #prefix) == prefix then
+				bellStrikes[k] = nil
 			end
 		end
 	end)

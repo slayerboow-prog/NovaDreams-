@@ -121,7 +121,7 @@ local ADS = {
 	{ "🏥 Hospital de Valmar\nDona sangre, salva vidas", rgb(200, 40, 60) },
 	{ "🎡 FERIA DE VALMAR\nNoria gratis los domingos", rgb(240, 180, 30) },
 	{ "🥛 Leche La Vaquita\nFresca de verdad", rgb(80, 160, 90) },
-	{ "🚗 AUTOESCUELA VALMAR\n¡Saca el carné ya!", rgb(30, 90, 170) },
+	{ "🚗 AUTOESCUELA VALMAR\n¡Saca el carnet ya!", rgb(30, 90, 170) },
 	{ "🐾 ADOPTA\nRefugio de animales de Valmar", rgb(150, 100, 60) },
 	{ "💤 COLCHONES NUBE\nDuerme como un bebé", rgb(110, 140, 220) },
 }

@@ -184,7 +184,7 @@ local function drawBoards()
 		for i, entry in topFor(gameId) do
 			table.insert(row, ("%d. %s %d"):format(i, entry.Name, entry.Score))
 		end
-		table.insert(lines, info.Name .. ": " .. (if #row > 0 then table.concat(row, "   ") else "¡sé el primero!"))
+		table.insert(lines, info.Name .. ": " .. (if #row > 0 then table.concat(row, "   ") else "¡estrena el marcador!"))
 	end
 	local text = table.concat(lines, "\n")
 	for _, board in boards do
@@ -250,7 +250,7 @@ local function startGame(player: Player, gameId: string)
 		return
 	end
 	if not Stages.allows(player:GetAttribute("LifeStage"), "Arcade", { Arcade = Arcade.Stage }) then
-		Notify:FireClient(player, "Error", "Eres demasiado pequeño para jugar a las máquinas.")
+		Notify:FireClient(player, "Error", "Aún no tienes edad para jugar a las máquinas.")
 		return
 	end
 	if not DataService.spend(player, info.Price) then

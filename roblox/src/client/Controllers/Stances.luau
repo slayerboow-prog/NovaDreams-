@@ -234,7 +234,7 @@ local function proneBlocker(humanoid: Humanoid, root: BasePart): string?
 	local low = ground.Position + Vector3.new(0, 0.7 * scale, 0)
 	local center = Vector3.new(root.Position.X, low.Y, root.Position.Z)
 	if workspace:Raycast(center, flat * 3.2 * scale, params) or workspace:Raycast(center, -flat * 2.8 * scale, params) then
-		return "No cabes tumbado aquí."
+		return "Aquí no hay sitio para tumbarte."
 	end
 	return nil
 end

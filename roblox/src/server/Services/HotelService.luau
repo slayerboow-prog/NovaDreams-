@@ -88,6 +88,10 @@ local lobbies: { Lobby } = {}
 local staffOf: { [Player]: Lobby } = {}
 local roomOf: { [Player]: { Lobby: Lobby, Room: number } } = {}
 local resting: { [Player]: boolean } = {}
+-- Segundos que lleva el recepcionista lejos del mostrador (si se va demasiado tiempo, fin del turno)
+local awayTime: { [Player]: number } = {}
+local AWAY_RANGE = 60
+local AWAY_LIMIT = 120
 local nextId = 0
 
 local function rootOf(player: Player): BasePart?
@@ -120,6 +124,18 @@ local function freeRooms(lobby: Lobby, typeId: string): { number }
 	return list
 end
 
+-- Habitaciones de un tipo que quedan de verdad: las libres menos las que ya piden los de la cola
+-- (si no, se cobraba a alguien sin habitación para él y la petición atascaba la cola)
+local function spareRooms(lobby: Lobby, typeId: string): number
+	local n = #freeRooms(lobby, typeId)
+	for _, r in lobby.Requests do
+		if r.Kind == "In" and r.Type == typeId then
+			n -= 1
+		end
+	end
+	return n
+end
+
 local function requestText(r: Request): string
 	if r.Kind == "In" then
 		return ("quiere una habitación %s"):format(string.lower(Hotel.typeById[r.Type :: string].Name))
@@ -131,6 +147,19 @@ local function removeRequest(lobby: Lobby, r: Request)
 	local i = table.find(lobby.Requests, r)
 	if i then
 		table.remove(lobby.Requests, i)
+	end
+end
+
+-- Una entrada que no se puede atender (no queda habitación de ese tipo): se quita de la cola, al
+-- jugador se le devuelve lo que pagó (la caja del hotel solo cobra al dar la llave, así que aún no lo
+-- tenía) y el huésped NPC se va
+local function dropUnservable(lobby: Lobby, r: Request)
+	removeRequest(lobby, r)
+	if r.Player and r.Player.Parent then
+		DataService.addMoney(r.Player, r.Price or 0)
+		Notify:FireClient(r.Player, "Error", "🛎️ No queda ninguna habitación de ese tipo: te devuelven el dinero.")
+	elseif r.Customer then
+		r.Customer.Rejected = true
 	end
 end
 
@@ -243,6 +272,13 @@ local function onAssign(player: Player, room: any)
 		Notify:FireClient(player, "Info", "Vuelve al mostrador para atender.")
 		return
 	end
+	if r.Kind == "In" and #freeRooms(lobby, r.Type :: string) == 0 then
+		-- No queda ninguna libre de ese tipo: se le devuelve el dinero y se pasa al siguiente
+		dropUnservable(lobby, r)
+		Notify:FireClient(player, "Info", ("No quedan habitaciones %s: a %s le devuelven el dinero."):format(string.lower(Hotel.typeById[r.Type :: string].Name), r.Name))
+		publish(lobby)
+		return
+	end
 	if r.Kind == "In" then
 		if Hotel.typeOfRoom[room] ~= r.Type then
 			Notify:FireClient(player, "Error", ("Esa no es: %s %s."):format(r.Name, requestText(r)))
@@ -266,7 +302,7 @@ end
 local function onDesk(player: Player, lobby: Lobby)
 	local types = {}
 	for _, t in Hotel.Types do
-		table.insert(types, { Id = t.Id, Name = t.Name, Icon = t.Icon, Price = t.Price, Free = #freeRooms(lobby, t.Id) })
+		table.insert(types, { Id = t.Id, Name = t.Name, Icon = t.Icon, Price = t.Price, Free = math.max(0, spareRooms(lobby, t.Id)) })
 	end
 	Remote:FireClient(player, "Menu", { Hotel = lobby.Name, Types = types, Staff = if lobby.Staff then lobby.Staff.DisplayName or lobby.Staff.Name else nil })
 end
@@ -295,7 +331,7 @@ local function onBook(player: Player, typeId: any)
 			return
 		end
 	end
-	if #freeRooms(lobby, t.Id) == 0 then
+	if spareRooms(lobby, t.Id) <= 0 then
 		Notify:FireClient(player, "Error", "No quedan habitaciones de ese tipo. Prueba otra.")
 		return
 	end
@@ -381,7 +417,7 @@ local function onElevator(player: Player, lobby: Lobby)
 		end
 		standUpBefore(character)
 		;(character :: Model):PivotTo(CFrame.new(elevatorAt + Vector3.new(-3, 3, 0)))
-		Notify:FireClient(player, "Success", "😴 ¡Como nuevo! Has descansado en el hotel.")
+		Notify:FireClient(player, "Success", "😴 Has descansado en el hotel: ¡energía a tope!")
 	end)
 end
 
@@ -410,7 +446,8 @@ local function npcWork(lobby: Lobby)
 		if room then
 			serve(lobby, r, room, nil)
 		else
-			removeRequest(lobby, r)
+			dropUnservable(lobby, r)
+			publish(lobby)
 		end
 		npcWork(lobby)
 	end)
@@ -467,6 +504,9 @@ end
 local function waitServed(lobby: Lobby, customer: any, r: Request): boolean
 	local start = os.clock()
 	while customer.Model.Parent and not customer.Served do
+		if customer.Rejected then
+			return false
+		end
 		if os.clock() - start > 150 then
 			removeRequest(lobby, r)
 			publish(lobby)
@@ -516,7 +556,7 @@ local function customerLife(lobby: Lobby, customer: any)
 		-- Pide un tipo que quede libre (dejando siempre una de cada tipo para los jugadores)
 		local options = {}
 		for _, t in Hotel.Types do
-			if #freeRooms(lobby, t.Id) > 1 then
+			if spareRooms(lobby, t.Id) > 1 then
 				table.insert(options, t)
 			end
 		end
@@ -531,7 +571,7 @@ local function customerLife(lobby: Lobby, customer: any)
 	publish(lobby)
 	npcWork(lobby)
 	if not waitServed(lobby, customer, r) then
-		return leave("Tardan mucho… me voy.")
+		return leave(if customer.Rejected then "¿Ya no quedan? Vaya… otro día." else "Tardan mucho… me voy.")
 	end
 	leaveQueue(lobby, customer)
 	if r.Kind == "Out" then
@@ -640,6 +680,7 @@ function HotelService.quit(player: Player, silent: boolean?)
 		return
 	end
 	staffOf[player] = nil
+	awayTime[player] = nil
 	if lobby.Staff == player then
 		lobby.Staff = nil
 	end
@@ -751,6 +792,19 @@ function HotelService.init()
 	task.spawn(function()
 		while true do
 			task.wait(1)
+			-- Recepcionistas que se han ido del mostrador: tras un rato fuera, se acaba el turno
+			for player, lobby in staffOf do
+				local root = rootOf(player)
+				if root and (root.Position - lobby.Desk.Position).Magnitude <= AWAY_RANGE then
+					awayTime[player] = nil
+				else
+					awayTime[player] = (awayTime[player] or 0) + 1
+					if (awayTime[player] :: number) >= AWAY_LIMIT then
+						HotelService.quit(player, true)
+						Notify:FireClient(player, "Info", "Has dejado el puesto vacío demasiado tiempo: fin del turno.")
+					end
+				end
+			end
 			for _, lobby in lobbies do
 				local ok, err = pcall(function()
 					local active = anyoneNear(lobby)

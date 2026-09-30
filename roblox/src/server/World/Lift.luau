@@ -10,6 +10,7 @@
 --   * Las puertas solo se abren con la cabina parada en esa planta: no hay forma de caer por el hueco.
 -- Medidas en coordenadas de la planta (Floors): el hueco va de z = Z0 a Z0 + DEPTH, centrado en x.
 
+local CollectionService = game:GetService("CollectionService")
 local LiftMath = require(game:GetService("ReplicatedStorage").Shared.LiftMath)
 local Builder = require(script.Parent.Builder)
 
@@ -98,6 +99,8 @@ function Lift.build(parent: Instance, base: CFrame): Cabin
 	model:SetAttribute("Floor", 0)
 	model:SetAttribute("Doors", "Closed")
 	model:SetAttribute("Base", base)
+	-- (etiqueta para que el cliente, Controllers/LiftRide, la encuentre sin recorrer todo el mapa)
+	CollectionService:AddTag(model, "LiftCabin")
 	model.Parent = parent
 	return { Model = model, Base = base, Doors = { doorL, doorR }, Display = display, Panel = panel, Parts = parts }
 end

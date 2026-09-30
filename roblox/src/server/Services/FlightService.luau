@@ -21,6 +21,7 @@ local RunService = game:GetService("RunService")
 
 local Airport = require(ReplicatedStorage.Shared.Airport)
 local Ground = require(ReplicatedStorage.Shared.Ground)
+local Format = require(ReplicatedStorage.Shared.Format)
 local Builder = require(script.Parent.Parent.World.Builder)
 local AirportKit = require(script.Parent.Parent.World.Kit.Airport)
 local DataService = require(script.Parent.DataService)
@@ -255,7 +256,7 @@ local function arrive(plane: Plane)
 		end
 		index += 1
 		landPlayer(player, route.To, index)
-		Notify:FireClient(player, "Success", ("✈️ Bienvenido/a a %s. ¡Gracias por volar con Valmar Air!"):format(placeName(route.To)))
+		Notify:FireClient(player, "Success", ("✈️ Te damos la bienvenida a %s. ¡Gracias por volar con Valmar Air!"):format(placeName(route.To)))
 		StoryEvents.emit(player, "Flew", { Route = route.Id, From = route.From, To = route.To })
 	end
 	-- Siguiente vuelo del avión: embarque en esta puerta
@@ -418,7 +419,7 @@ function FlightService.buyTicket(player: Player, routeId: string): boolean
 	local stage = player:GetAttribute("LifeStage")
 	local price = Airport.fare(route, if typeof(stage) == "string" then stage else nil)
 	if price > 0 and not DataService.spend(player, price) then
-		Notify:FireClient(player, "Info", ("El billete a %s cuesta %d €: no te llega el dinero."):format(route.Name, price))
+		Notify:FireClient(player, "Info", ("El billete a %s cuesta %s: no te llega el dinero."):format(route.Name, Format.money(price)))
 		return false
 	end
 	if swapping and (ticketPaid[player] or 0) > 0 then
@@ -432,7 +433,7 @@ function FlightService.buyTicket(player: Player, routeId: string): boolean
 	if price <= 0 then
 		Notify:FireClient(player, "Success", ("🎫 Billete infantil gratis para %s. Vuelo %s: %s (%s)."):format(route.Name, plane.Spec.Id, when, gate))
 	else
-		Notify:FireClient(player, "Success", ("🎫 Billete para %s (%d €). Vuelo %s: %s (%s)."):format(route.Name, price, plane.Spec.Id, when, gate))
+		Notify:FireClient(player, "Success", ("🎫 Billete para %s (%s). Vuelo %s: %s (%s)."):format(route.Name, Format.money(price), plane.Spec.Id, when, gate))
 	end
 	StoryEvents.emit(player, "BoughtItem", { ShopId = "Aeropuerto", ItemId = routeId })
 	return true
@@ -480,7 +481,7 @@ function FlightService.board(player: Player, planeId: string, where: string): bo
 		To = placeName(plane.Route.To),
 		BoardEnd = FlightService._now() + math.max(0, plane.Timer),
 	})
-	Notify:FireClient(player, "Info", ("✈️ Bienvenido/a a bordo del %s. Salimos en %s."):format(flightName(plane), Airport.duration(plane.Timer)))
+	Notify:FireClient(player, "Info", ("✈️ Te damos la bienvenida a bordo del %s. Salimos en %s."):format(flightName(plane), Airport.duration(plane.Timer)))
 	StoryEvents.emit(player, "BoardedFlight", { Route = plane.Route.Id })
 	return true
 end
@@ -599,7 +600,7 @@ local function setupDesk(desk: Instance)
 	if not route then
 		return
 	end
-	local prompt = Builder.prompt(desk, "Comprar billete", ("✈️ %s · %d € (niños gratis)"):format(route.Name, route.Price), 0.3)
+	local prompt = Builder.prompt(desk, "Comprar billete", ("✈️ %s · %s (niños gratis)"):format(route.Name, Format.money(route.Price)), 0.3)
 	prompt.MaxActivationDistance = 9
 	prompt.Triggered:Connect(function(player)
 		FlightService.buyTicket(player, route.Id)

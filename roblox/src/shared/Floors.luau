@@ -59,7 +59,7 @@ end
 export type Unit = {
 	Letter: string,
 	Id: string, -- unitId
-	Label: string, -- lo que pone en la puerta ("3ºB", "Oficina 301")
+	Label: string, -- lo que pone en la puerta ("3.º B", "Oficina 301")
 	Kind: string, -- sala que hay detrás (Interiors: Piso, Oficina, Aula, Local, CentroComercial)
 	Ground: boolean?, -- la sala de la planta baja (la tienda que da a la calle)
 }
@@ -89,7 +89,7 @@ function Floors.units(buildingKey: string, ground: string, upper: string?, floor
 	if upper == "Piso" then
 		local n = 3 + h % 4 -- de 3 a 6 viviendas por planta
 		for i = 1, n do
-			add(i, ("%dº%s"):format(floor, LETTERS[i]), "Piso")
+			add(i, ("%d.º %s"):format(floor, LETTERS[i]), "Piso")
 		end
 	elseif upper == "Oficina" then
 		local n = 2 + h % 3

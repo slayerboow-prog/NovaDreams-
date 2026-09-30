@@ -609,7 +609,7 @@ local function managePanel(player: Player, key: string, rec: Record, tab: string
 	elseif tab == "Personal" then
 		local npc = rec.Npc or 0
 		table.insert(rows, {
-			Icon = "🧑‍💼",
+			Icon = "💼",
 			Title = ("Dependientes: %d/%d"):format(npc, Business.MaxNpc),
 			Text = ("Cada uno atiende a un %d %% más de clientes y cobra %s/h de la caja."):format(math.floor(Business.NpcBoost * 100), Format.money(Business.NpcWage)),
 			Buttons = { button("Contratar", "HireNpc", { key, 1 }, "Accent", npc >= Business.MaxNpc), button("Despedir", "HireNpc", { key, -1 }, "Danger", npc <= 0) },

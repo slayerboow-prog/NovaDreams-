@@ -84,6 +84,10 @@ type Cafe = {
 local cafes: { Cafe } = {}
 local baristaOf: { [Player]: Cafe } = {}
 local trays: { [Player]: Model } = {}
+-- Segundos que lleva el barista lejos de la barra (si se va demasiado tiempo, fin del turno)
+local awayTime: { [Player]: number } = {}
+local AWAY_RANGE = 60
+local AWAY_LIMIT = 120
 local nextOrderId = 0
 
 local function rootOf(player: Player): BasePart?
@@ -340,7 +344,8 @@ local function onStation(player: Player, cafe: Cafe, stationId: string)
 		Notify:FireClient(player, "Error", ("Ahora no toca eso: %s."):format(string.lower(STATIONS[t.Station].Name)))
 		return
 	end
-	if order.Done == 0 or not trays[player] then
+	-- (si ha muerto, la bandeja se quedó en el personaje viejo: se le hace otra)
+	if order.Done == 0 or not trays[player] or trays[player].Parent ~= player.Character then
 		trayFor(player, order)
 	end
 	order.Done += 1
@@ -701,6 +706,7 @@ function CafeService.quit(player: Player, silent: boolean?)
 		return
 	end
 	baristaOf[player] = nil
+	awayTime[player] = nil
 	if cafe.Barista == player then
 		cafe.Barista = nil
 	end
@@ -869,6 +875,19 @@ function CafeService.init()
 	task.spawn(function()
 		while true do
 			task.wait(1)
+			-- Baristas que se han ido de la barra: tras un rato fuera, se acaba el turno
+			for player, cafe in baristaOf do
+				local root = rootOf(player)
+				if root and (root.Position - cafe.Register.Position).Magnitude <= AWAY_RANGE then
+					awayTime[player] = nil
+				else
+					awayTime[player] = (awayTime[player] or 0) + 1
+					if (awayTime[player] :: number) >= AWAY_LIMIT then
+						CafeService.quit(player, true)
+						Notify:FireClient(player, "Info", "Has dejado el puesto vacío demasiado tiempo: fin del turno.")
+					end
+				end
+			end
 			for _, cafe in cafes do
 				local ok, err = pcall(function()
 					local active = anyoneNear(cafe)

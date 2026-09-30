@@ -684,8 +684,8 @@ function MetroUI.init()
 			local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 			if root and root.Position.Y < Metro.Underground then
 				local stage = player:GetAttribute("LifeStage")
-				local ticket = if Metro.FreeStages[stage or ""] then "Los niños pasan el torno gratis." else "Compra el billete (🎫 BilleteMetro) en las máquinas azules y pásalo por el torno."
-				Hud.toast("Info", "🚇 ¡Bienvenido al metro! " .. ticket .. " En el andén, mira el panel del próximo tren y pulsa «Subir al metro» (o entra por la puerta). Para bajar: «Bajar en…». Las escaleras mecánicas te llevan solas.")
+				local ticket = if Metro.FreeStages[stage or ""] then "Pasas el torno gratis." else "Compra el billete en las máquinas azules."
+				Hud.toast("Info", "🚇 ¡Te damos la bienvenida al metro! " .. ticket .. " Pulsa «Subir al metro» en el andén.")
 				break
 			end
 		end

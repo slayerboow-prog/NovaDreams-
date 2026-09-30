@@ -104,9 +104,9 @@ local function onEvent(kind: string, data: any)
 			detail = (if detail then detail .. "\n" else "") .. "Historial: " .. record
 		end
 		if data.Minor then
-			bigScreen("¡PILLADO!", ("Te ha parado la policía%s · te llevan a casa con tu familia"):format(by), rgb(255, 190, 90), detail)
+			bigScreen("¡TE HAN PILLADO!", ("Te ha parado la policía%s · te llevan a casa con tu familia"):format(by), rgb(255, 190, 90), detail)
 		else
-			bigScreen("DETENIDO", ("Te han detenido%s · pasas a disposición judicial"):format(by), rgb(120, 170, 255), detail)
+			bigScreen("DETENCIÓN", ("Te han detenido%s · pasas a disposición judicial"):format(by), rgb(120, 170, 255), detail)
 		end
 	elseif kind == "Alarm" then
 		local entrance = data :: BasePart

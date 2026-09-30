@@ -31,6 +31,7 @@ local Metro = require(script.Parent.Metro)
 local Rail = require(script.Parent.Rail)
 local Weapons = require(script.Parent.Weapons)
 local Farming = require(script.Parent.Farming)
+local Format = require(script.Parent.Format)
 
 local Items = {}
 
@@ -231,7 +232,7 @@ for _, boss in Fishing.Bosses do
 		Name = boss.Name,
 		Icon = boss.Icon,
 		Kind = "Thing",
-		Desc = ("¡Un trofeo legendario! La lonja de la pescadería lo compra por %d €."):format(boss.Price),
+		Desc = ("¡Un trofeo legendario! La lonja de la pescadería lo compra por %s."):format(Format.money(boss.Price)),
 		Stack = 5,
 	}
 end
@@ -242,7 +243,7 @@ for _, s in Fishing.Species do
 		Name = s.Name,
 		Icon = s.Icon,
 		Kind = "Thing",
-		Desc = ("%s · pescado fresco. Véndelo en la pescadería del supermercado (%d € cada uno)."):format(s.Rarity, s.Price),
+		Desc = ("%s · pescado fresco. Véndelo en la pescadería del supermercado (%s cada uno)."):format(s.Rarity, Format.money(s.Price)),
 		Stack = 64, -- como los demás objetos: caben muchos antes de tener que venderlos
 	}
 end
@@ -256,7 +257,7 @@ for _, id in Farming.ProductOrder do
 		Name = p.Name,
 		Icon = p.Icon,
 		Kind = if food then "Food" else "Thing",
-		Desc = ("%s La cooperativa lo paga a %d €; el supermercado, a %d €."):format(p.Desc, Farming.sellPrice(id, "Coop"), Farming.sellPrice(id, "Super")),
+		Desc = ("%s La cooperativa lo paga a %s; el supermercado, a %s."):format(p.Desc, Format.money(Farming.sellPrice(id, "Coop")), Format.money(Farming.sellPrice(id, "Super"))),
 		Stack = 99,
 		Hunger = p.Hunger,
 		Energy = p.Energy,
@@ -306,7 +307,7 @@ end
 list[Weapons.Licence.Item] = {
 	Id = Weapons.Licence.Item,
 	Name = "Licencia de armas",
-	Icon = "🪪",
+	Icon = "💳",
 	Kind = "Document",
 	Desc = "Te permite comprar y llevar armas de fuego. Se retira si te condenan.",
 	Stack = 1,
@@ -319,7 +320,7 @@ local KEEPSAKES = {
 	{ "DibujoMateo", "Dibujo de Mateo", "🖼️", "Mateo te dibujó pasándole el balón a Dani. Pone: «Para mi primer amigo»." },
 	{ "FotoGrupo", "Foto del grupo", "📸", "Todos en el parque, haciendo muecas. La primera foto de tu grupo." },
 	{ "CuadernoOmar", "Dibujo de Omar", "✏️", "Omar dibujó el partido. Tú sales marcando (aunque no fuera exactamente así)." },
-	{ "LibroPiratas", "Libro de piratas de Hugo", "🏴‍☠️", "«La isla de las mil llaves». Hugo lo ha leído seis veces. Dice que ahora te toca a ti." },
+	{ "LibroPiratas", "Libro de piratas de Hugo", "☠️", "«La isla de las mil llaves». Hugo lo ha leído seis veces. Dice que ahora te toca a ti." },
 	{ "ApuntesBiblioteca", "Apuntes de la biblioteca", "📒", "Los apuntes de Matemáticas de la biblioteca. Hay que devolverlos después del examen." },
 	{ "Lupa", "Lupa de detective", "🔍", "Lucía te la dio por resolver el misterio de las bromas." },
 	{ "FotoExcursion", "Foto de la excursión", "🐄", "Toda la clase delante del granero de Villaverde. Hay una gallina en primer plano." },
@@ -336,7 +337,7 @@ local KEEPSAKES = {
 	{ "PrimerSobre", "Sobre de tu primer sueldo", "✉️", "Vacío. Pero lo guardas en un cajón y no sabes muy bien por qué." },
 	{ "PulseraGrupo", "Pulsera del grupo", "🧶", "La hizo Omar para todos. «Por si se nos olvida quiénes somos.»" },
 	{ "OrlaInstituto", "Orla del instituto", "🖼️", "Omar con los ojos cerrados, Nico saltando, Sara en su sitio exacto. Y tú, en medio." },
-	{ "CartaRecomendacion", "Carta de recomendación", "📄", "De tu jefe del primer verano. «Puntual, honesto y con ganas de aprender.»" },
+	{ "CartaRecomendacion", "Carta de recomendación", "📄", "De tu jefe del primer verano. «Puntual, con palabra y con ganas de aprender.»" },
 	{ "CarnetUniversitario", "Carnet universitario", "🎫", "Tu foto de carnet de la universidad. Sales igual de mal que en la del instituto." },
 	{ "RelojAbu", "El reloj de tu abuelo o abuela", "⌚", "Viejo, con la correa gastada. Todavía hace tic-tac muy bajito." },
 	{ "FotoEquipoUni", "Foto del grupo cuatro", "📸", "Julia, Adrián, Carla, Pablo con su guitarra… y tú." },
@@ -352,19 +353,19 @@ local KEEPSAKES = {
 	{ "TFG", "Tu trabajo de fin de grado", "📘", "Encuadernado en azul. Cuatro años de carrera caben en noventa páginas (y una bibliografía muy larga)." },
 	{ "ZumoMora", "Botella de zumo de mora", "🍇", "De la abuela de Iván. Moras del Monte del Silencio. No beber de madrugada (da sonambulismo)." },
 	{ "TazaCampamento", "Taza de campamento del grupo", "⛺", "Cuatro nombres y un dibujo de un alienígena, hecho por Julia. Nadie os creyó." },
-	{ "PinzaDeOro", "Pinza de oro de Don Pinzas", "🦀", "Se le cayó al cangrejo abogado. Según el tratado de 1734, ahora eres dueño de un metro de playa." },
+	{ "PinzaDeOro", "Pinza de oro de Don Pinzas", "🦀", "Se le cayó al cangrejo abogado. Según el tratado de 1734, ahora un metro de playa es tuyo." },
 	{ "FotoCosmeCosimo", "Foto de Cosme y Cósimo, jóvenes", "📸", "«La noche antes de la prueba». Dos jóvenes con bata delante de una máquina. Uno de ellos, con una sonrisa de anuncio." },
 	-- Saga de la Grieta
 	{ "MonedaPerilla", "Moneda de la 66-B", "🪙", "Caliente, como recién salida de un horno. En una cara, la cara de Cosme… con perilla." },
 	{ "EscamaBrillante", "Escama brillante", "✨", "Regalo de Don Escamas: «Por si necesitas un contable. O un amigo. Soy las dos cosas»." },
 	{ "SelloAduana", "Sello de la Aduana del Tiempo", "📄", "De repuesto. «Nunca se sabe cuándo hay que sellar algo.» — Agente Cronos." },
 	{ "CalcetinSolitario", "Calcetín solitario", "🧦", "Verde. Sin pareja. Del Monstruo de los Calcetines Desparejados. Te mira." },
-	{ "CredencialAyudante", "Credencial de ayudante oficial", "🪪", "«Laboratorio Cosme. Nivel: casi de confianza». Sales fatal en la foto." },
+	{ "CredencialAyudante", "Credencial de ayudante oficial", "💳", "«Laboratorio Cosme. Nivel: casi de confianza». Sales fatal en la foto." },
 	{ "FolletoMegaVerso", "Folleto de MegaVerso", "📄", "«¡Cambia de vida sin cambiar de casa!». Letra pequeña: la dimensión pasa a ser de ellos." },
 	{ "CintaArchivo", "La cinta de «La noche»", "📼", "La noche en que naciste. La noche en que se abrió la Grieta. Tu historia." },
 	{ "RelojArena", "Reloj de arena de Cronos", "⏳", "Gíralo cuando la cosa se ponga fea. Llegará. Tarde, pero llegará." },
 	{ "BataChamuscada", "La bata chamuscada de Cosme", "🥼", "La recogió Omar del suelo del patio. Todavía huele a batido de apio." },
-	{ "CuadernoCosme", "El cuaderno de Cosme", "📓", "Fórmulas, dibujos de gallinas y, en la última página: «Si me pasa algo, que lo lea el crío». Eres tú." },
+	{ "CuadernoCosme", "El cuaderno de Cosme", "📓", "Fórmulas, dibujos de gallinas y, en la última página: «Si me pasa algo, que lo lea la criatura». Eres tú." },
 	{ "CollarDiplomatico", "Collar diplomático de Gatonia", "📿", "Regalo del Presidente Bigotes. Con él, cualquier gato te trata de usted." },
 	{ "PaseVIP", "Pase VIP del reality", "🎟️", "«Abducidos: edición especial». Temporada 3, capítulo 8. Sales en los créditos." },
 	{ "MapaMalvado", "Mapa de la 66-B", "🗺️", "Dibujado por tu versión malvada. Las calles son las mismas; los carteles, no." },
@@ -411,7 +412,7 @@ local KEEPSAKES = {
 	-- Misiones de aliados
 	{ "BandaCanciller", "Banda de Canciller de Gatonia", "🎗️", "Regalo del presidente Bigotes. Sueldo: una siesta al sol por semana. Huele a atún." },
 	{ "TarjetaRex", "Tarjeta de Rex, abogado", "📇", "«Rex. Abogado. Especialista en Anclas y jamón.» Tiene un mordisco en una esquina: es su firma." },
-	{ "CarnetSindical", "Carnet del Sindicato de Roedores", "🪪", "Socio de honor. Firmado por el Ratón Pérez y por la rata, que ahora es jefa de turno." },
+	{ "CarnetSindical", "Carnet del Sindicato de Roedores", "💳", "Miembro de honor. Firmado por el Ratón Pérez y por la rata, que ahora es jefa de turno." },
 	{ "Formulario42B", "Formulario 42-B (sellado)", "📋", "El expediente del agente Cronos, archivado. Por detrás pone «Gracias». Con sello." },
 	{ "ClaquetaAlien", "Claqueta alienígena", "🎬", "«Terrícolas en apuros · Final de temporada · Toma 1 de 1»." },
 	{ "GorroGnomo", "Gorro de gnomo honorario", "🔺", "Te queda un poco pequeño. A todos los gnomos les queda un poco pequeño. Es la tradición." },
@@ -425,7 +426,7 @@ end
 --   Effect = Sling (bellota en arco) | Beam (rayo) | Bubbles (burbujas) | Teleport (salto de dimensión) | Message (dice algo) | Sparkle (brillo)
 local GADGETS = {
 	{ "Tirachinas", "El tirachinas de tu abu", "🪃", "El de verdad, el del Gran Torneo de 1962. Dispara bellotas que vuelan en arco y hacen «¡plof!». Regla de oro: nunca a personas ni a animales de verdad.", { Effect = "Sling", Cooldown = 0.8 } },
-	{ "PistolaBurbujas", "Pistola de burbujas cuánticas", "🫧", "Invento de Cosme. Las burbujas existen en tres dimensiones a la vez. Explotan en las tres.", { Effect = "Bubbles" } },
+	{ "PistolaBurbujas", "Pistola de burbujas cuánticas", "🔵", "Invento de Cosme. Las burbujas existen en tres dimensiones a la vez. Explotan en las tres.", { Effect = "Bubbles" } },
 	{ "RayoEncogedor", "Rayo encogedor", "🔬", "El rayo que convirtió un pollo de 6 metros en un pollo normal. Ahora solo hace «bzzzt» y da cosquillas.", { Effect = "Beam", Color = { 190, 90, 255 }, Cooldown = 1 } },
 	{ "MovilFuturo", "Móvil del futuro", "📱", "Recibe mensajes de ti dentro de 10 años. Casi todos son sobre qué no comer.", { Effect = "Message", Lines = "Futuro", Cooldown = 4 } },
 	{ "CascosAntiHipnosis", "Cascos anti-hipnosis", "🎧", "Suena una canción tan pegadiza que anula cualquier otra. Incluidas las de los alienígenas.", { Effect = "Sparkle", Color = { 255, 120, 220 }, Cooldown = 2 } },

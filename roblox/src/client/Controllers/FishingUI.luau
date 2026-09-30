@@ -214,7 +214,7 @@ local function onResult(data: { [string]: any })
 	s.Fight = false
 	fightBar.Visible = false
 	if data.Kind == "Catch" then
-		status.Text = ("%s ¡Has pescado %s de %s kg! %s · +%d exp · 🎒 a la mochila (%s)"):format(data.Icon, string.lower(data.Name), (string.gsub(tostring(data.Kg), "%.", ",")), data.Rarity or "", data.Xp or 0, Format.money(data.Price))
+		status.Text = ("%s ¡Has pescado %s de %s kg! %s · +%d XP · 🎒 a la mochila (%s)"):format(data.Icon, string.lower(data.Name), (string.gsub(tostring(data.Kg), "%.", ",")), data.Rarity or "", data.Xp or 0, Format.money(data.Price))
 		status.TextColor3 = Fishing.RarityColors[data.Rarity] or C.Money
 		pcall(SoundFx.play, "Aviso", 1, 1.8)
 	elseif data.Kind == "Junk" then
@@ -407,7 +407,7 @@ local function openGuide()
 	-- Nivel y experiencia
 	local nextXp = Fishing.xpFor(level + 1)
 	local prevXp = Fishing.xpFor(level)
-	Theme.label({ Size = UDim2.new(1, 0, 0, 22), Text = if level >= Fishing.MaxLevel then ("🎣 Nivel %d (¡el máximo!) · %d exp"):format(level, xp) else ("🎣 Nivel de pesca %d · %d / %d exp para el nivel %d"):format(level, xp, nextXp, level + 1), Font = Theme.FontBold, TextSize = 15, Parent = content })
+	Theme.label({ Size = UDim2.new(1, 0, 0, 22), Text = if level >= Fishing.MaxLevel then ("🎣 Nivel %d (¡el máximo!) · %d XP"):format(level, xp) else ("🎣 Nivel de pesca %d · %d / %d XP para el nivel %d"):format(level, xp, nextXp, level + 1), Font = Theme.FontBold, TextSize = 15, Parent = content })
 	local bar = create("Frame", { Position = UDim2.fromOffset(0, 24), Size = UDim2.new(1, 0, 0, 10), BackgroundColor3 = rgb(8, 14, 28), BorderSizePixel = 0, Parent = content }, { Theme.corner(5) })
 	create("Frame", { Size = UDim2.fromScale(if level >= Fishing.MaxLevel then 1 else math.clamp((xp - prevXp) / math.max(nextXp - prevXp, 1), 0, 1), 1), BackgroundColor3 = C.Money, BorderSizePixel = 0, Parent = bar }, { Theme.corner(5) })
 	local seen = 0

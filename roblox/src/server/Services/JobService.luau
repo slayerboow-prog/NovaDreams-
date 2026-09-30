@@ -10,6 +10,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Roles = require(ReplicatedStorage.Shared.Roles)
 local Format = require(ReplicatedStorage.Shared.Format)
 local Builder = require(script.Parent.Parent.World.Builder)
 local DataService = require(script.Parent.DataService)
@@ -170,16 +171,21 @@ function JobService.start(player: Player, jobId: string, context: any?)
 	if custom and custom.Start and not custom.Start(player) then
 		return
 	end
-	JobService.quit(player, true)
-
+	-- Primero se busca la primera tarea y solo si la hay se deja el trabajo de antes (si no, te
+	-- quedabas sin ninguno de los dos sin saber por qué)
 	local shift: Shift = { JobId = jobId, Phase = "Pickup", Target = nil :: any, Context = context }
 	local target = pickupFor(player, shift, nil)
 	if not target then
+		Notify:FireClient(player, "Error", ("Ahora no hay trabajo de %s. Prueba más tarde."):format(job.DisplayName))
 		return
 	end
+	JobService.quit(player, true)
 	shift.Target = target
 	shifts[player] = shift
-	RoleService.setOnDuty(player, jobId)
+	-- (las carreras del Estado, como Juez o Militar, no son puestos de Roles: no se marcan de servicio)
+	if Roles[jobId] then
+		RoleService.setOnDuty(player, jobId)
+	end
 	player:SetAttribute("Job", jobId)
 	publish(player, shift)
 	Notify:FireClient(player, "Success", ("¡Te han contratado como %s! Sigue la línea azul."):format(job.DisplayName))
@@ -249,7 +255,7 @@ local function setupBoard(board: Instance)
 		warn("[JobService] JobBoard con JobId desconocido:", jobId)
 		return
 	end
-	local prompt = Builder.prompt(board, "Trabajar", ("%s · %s/entrega"):format(job.DisplayName, Format.money(job.Pay)), 0.5)
+	local prompt = Builder.prompt(board, "Trabajar", ("%s · %s"):format(job.DisplayName, job.PayText or (Format.money(job.Pay) .. "/entrega")), 0.5)
 	prompt.Triggered:Connect(function(player)
 		local own = handlers[jobId]
 		if own then

@@ -49,13 +49,41 @@ local indoor = false
 -- Colores de la naturaleza según la estación
 ---------------------------------------------------------------------
 
-local foliage: { [BasePart]: Color3 } = {} -- color original de cada copa, arbusto o seto
+-- Color original de cada copa, arbusto o seto. Tabla débil (si la pieza desaparece, se olvida sola)
+-- y además se quita al salir del mapa (workspace.DescendantRemoving): antes crecía sin parar con lo
+-- que entraba y salía del streaming.
+local foliage: { [BasePart]: Color3 } = setmetatable({}, { __mode = "k" }) :: any
+-- Las que han salido del mapa: su color original se guarda aparte (también tabla débil) por si
+-- vuelven a entrar (ya están pintadas: sin esto se tomaría el color pintado como el original)
+local parked: { [BasePart]: Color3 } = setmetatable({}, { __mode = "k" }) :: any
 local terrainBase: { [Enum.Material]: Color3 } = {}
 local NATURE_NAMES = { Leaves = true, Bush = true, Hedge = true, Plant = true }
 
+-- El color de una planta con la estación y la nieve de ahora
+local function paint(part: BasePart, base: Color3, info: any)
+	local color = base:Lerp(info.Leaves, info.LeafMix)
+	part.Color = color:Lerp(SNOW_WHITE, snowCover * 0.75)
+end
+
 local function track(part: Instance)
 	if part:IsA("BasePart") and NATURE_NAMES[part.Name] and part.Material == Enum.Material.LeafyGrass and not foliage[part] then
-		foliage[part] = part.Color
+		local base = parked[part] or part.Color
+		parked[part] = nil
+		foliage[part] = base
+		-- (la que llega nueva con el streaming se pinta ya con la estación y la nieve de ahora, sin
+		-- esperar al próximo cambio)
+		local info = Seasons.Info[season]
+		if info then
+			paint(part, base, info)
+		end
+	end
+end
+
+local function untrack(part: Instance)
+	local base = foliage[part :: BasePart]
+	if base then
+		foliage[part :: BasePart] = nil
+		parked[part :: BasePart] = base
 	end
 end
 
@@ -66,8 +94,7 @@ local function repaint()
 	end
 	for part, base in foliage do
 		if part.Parent then
-			local color = base:Lerp(info.Leaves, info.LeafMix)
-			part.Color = color:Lerp(SNOW_WHITE, snowCover * 0.75)
+			paint(part, base, info)
 		else
 			foliage[part] = nil
 		end
@@ -203,6 +230,15 @@ local function fadeTowards(current: number, target: number): number
 	return current + (target - current) * 0.12
 end
 
+-- Lo último que se puso en las partículas: solo se escribe si cambia (antes, 10 veces por segundo
+-- aunque fuera lo mismo; el ColorSequence de las hojas se creaba nuevo cada vez)
+local shownRain, shownSnow = -1, -1
+local shownFalling: string? = nil -- "Hojas", "Petalos"… o nil (apagadas)
+local FALLING_COLORS = {
+	Hojas = ColorSequence.new(rgb(214, 120, 44)),
+	Otras = ColorSequence.new(rgb(250, 196, 214)),
+}
+
 local function updateParticles()
 	local info = Seasons.Weather[weather] or Seasons.Weather.Despejado
 	local seasonInfo = Seasons.Info[season]
@@ -213,17 +249,29 @@ local function updateParticles()
 	emitterPart.CFrame = CFrame.new(position + ahead + Vector3.new(0, if info.Snow then 35 else 45, 0))
 	local underground = position.Y < Metro.Underground -- bajando al metro (vestíbulos, escaleras, andenes)
 	local off = indoor or underground
-	rain.Rate = if off then 0 else (info.Rain or 0) * 900
-	rain.Enabled = rain.Rate > 0
-	snow.Rate = if off then 0 else (info.Snow or 0) * 260
-	snow.Enabled = snow.Rate > 0
+	local rainRate = if off then 0 else (info.Rain or 0) * 900
+	if rainRate ~= shownRain then
+		shownRain = rainRate
+		rain.Rate = rainRate
+		rain.Enabled = rain.Rate > 0
+	end
+	local snowRate = if off then 0 else (info.Snow or 0) * 260
+	if snowRate ~= shownSnow then
+		shownSnow = snowRate
+		snow.Rate = snowRate
+		snow.Enabled = snow.Rate > 0
+	end
 	local kind = seasonInfo and seasonInfo.Particles
-	if kind and not off and not info.Rain and not info.Snow then
-		falling.Color = ColorSequence.new(if kind == "Hojas" then rgb(214, 120, 44) else rgb(250, 196, 214))
-		falling.Rate = if kind == "Hojas" then 14 else 8
-		falling.Enabled = true
-	else
-		falling.Enabled = false
+	local fallingNow = if kind and not off and not info.Rain and not info.Snow then kind else nil
+	if fallingNow ~= shownFalling then
+		shownFalling = fallingNow
+		if fallingNow then
+			falling.Color = if fallingNow == "Hojas" then FALLING_COLORS.Hojas else FALLING_COLORS.Otras
+			falling.Rate = if fallingNow == "Hojas" then 14 else 8
+			falling.Enabled = true
+		else
+			falling.Enabled = false
+		end
 	end
 	if rainSound then
 		rainSound.Volume = if info.Rain and not off then 0.5 * info.Rain else (if info.Rain and not underground then 0.15 else 0)
@@ -326,6 +374,7 @@ function Weather.init()
 		repaint()
 	end)
 	workspace.DescendantAdded:Connect(track)
+	workspace.DescendantRemoving:Connect(untrack)
 	for _, attribute in { "Season", "Weather", "Snow" } do
 		workspace:GetAttributeChangedSignal(attribute):Connect(refreshState)
 	end

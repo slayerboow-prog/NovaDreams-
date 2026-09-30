@@ -3211,7 +3211,7 @@ do
 	check(flyerHum.SeatPart == nil and kidHum.SeatPart == nil and FlightService._riding[flyer] == nil and lastMessage(flyer, "Off") ~= nil, "al llegar, los pasajeros bajan del avión")
 	local dist = (Vector3.new(flyerRoot.Position.X, 0, flyerRoot.Position.Z) - Vector3.new(arrivalV.Position.X, 0, arrivalV.Position.Z)).Magnitude
 	check(flyer:GetAttribute("FlightLanding") == nil, "al bajar ya no hay sala de llegadas pendiente")
-	check(dist < 8 and (kidRoot.Position - flyerRoot.Position).Magnitude > 0.5 and notified(flyer, "Bienvenido/a a Aeropuerto de Valmar"), "y aparecen en la sala de llegadas (cada uno en su sitio)")
+	check(dist < 8 and (kidRoot.Position - flyerRoot.Position).Magnitude > 0.5 and notified(flyer, "Te damos la bienvenida a Aeropuerto de Valmar"), "y aparecen en la sala de llegadas (cada uno en su sitio)")
 
 	-- Avioneta: ida a la Isla de las Gaviotas y vuelta
 	local otherRoot = other.Character.HumanoidRootPart
@@ -3579,7 +3579,7 @@ check(m ~= nil and m.Thing ~= nil, "aparece el objeto perdido en otra estación"
 promptOf(m.Thing, "Recoger").Triggered:Fire(rider)
 check(InventoryService.count(rider, "CarteraPerdida") == 1, "lo recoges")
 local before = profiles[rider].Money
-promptOf(lostOffice, "Objetos perdidos").Triggered:Fire(rider)
+promptOf(lostOffice, "Objetos Perdidos").Triggered:Fire(rider)
 check(profiles[rider].Money == before + Metro.Missions.Perdido.Reward and InventoryService.count(rider, "CarteraPerdida") == 0, "en Objetos Perdidos te pagan")
 M:Fire(rider, "Accept", "Paquete")
 m = MetroService._missions[rider]

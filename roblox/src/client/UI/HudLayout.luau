@@ -257,25 +257,34 @@ local function mountJobPanel(panel: GuiObject)
 	scroll.Parent = panel
 	local padding = panel:FindFirstChildOfClass("UIPadding")
 	local design = panel.Size.Y.Offset -- alto que pide el panel (lo cambian al añadir filas)
+	-- El alto que puso apply() la última vez. Un cambio de Size a ese alto es el nuestro y no cuenta
+	-- como alto de diseño. (Antes se usaba una bandera «busy», pero con las señales diferidas de
+	-- Roblox el aviso llega cuando la bandera ya está apagada: el alto recortado pasaba a ser el de
+	-- diseño y la lista no se podía desplazar en el móvil.)
+	local lastApplied: number? = nil
 	local busy = false
 	local function apply()
 		local ui = gui and gui:FindFirstChildOfClass("UIScale")
 		local k = if ui then ui.Scale else 1
 		local area = HudLayout.jobArea(HudLayout.current())
 		local pad = if padding then padding.PaddingTop.Offset + padding.PaddingBottom.Offset else 0
+		local height = math.max(60, math.min(design, math.floor(area.H / k)))
+		lastApplied = height
 		busy = true
 		panel.AnchorPoint = Vector2.new(0, 0)
 		panel.Position = UDim2.fromOffset(math.floor(area.X / k), math.floor(area.Y / k))
-		panel.Size = UDim2.fromOffset(panel.Size.X.Offset, math.max(60, math.min(design, math.floor(area.H / k))))
+		panel.Size = UDim2.fromOffset(panel.Size.X.Offset, height)
 		busy = false
 		-- (los hijos con tamaño en escala se miden contra el lienzo: el alto de diseño)
 		scroll.CanvasSize = UDim2.fromOffset(0, math.max(0, design - pad))
 	end
 	panel:GetPropertyChangedSignal("Size"):Connect(function()
-		if not busy then
-			design = panel.Size.Y.Offset
-			apply()
+		local height = panel.Size.Y.Offset
+		if busy or height == lastApplied then
+			return
 		end
+		design = height
+		apply()
 	end)
 	local ui = gui and gui:FindFirstChildOfClass("UIScale")
 	if ui then
@@ -307,6 +316,24 @@ end
 -- (TextScaled con tope), para que nada se salga ni se pise.
 ---------------------------------------------------------------------
 local TEXT_BOOST = 1.5
+
+-- Cuánto se agranda (o encoge) un objeto por los UIScale de él y de sus padres hasta su pantalla
+local function scaleOf(object: Instance): number
+	local k = 1
+	local node: Instance? = object
+	while node do
+		local scaler = node:FindFirstChildOfClass("UIScale")
+		if scaler then
+			k *= scaler.Scale
+		end
+		if node:IsA("LayerCollector") then
+			break
+		end
+		node = node.Parent
+	end
+	return k
+end
+
 function HudLayout.boostText(object: Instance)
 	if not (object:IsA("TextLabel") or object:IsA("TextButton")) then
 		return
@@ -325,11 +352,46 @@ function HudLayout.boostText(object: Instance)
 		end
 		return
 	end
-	local limit = Instance.new("UITextSizeConstraint")
-	limit.MinTextSize = math.max(1, math.min(size, 100))
-	limit.MaxTextSize = math.clamp(math.floor(size * TEXT_BOOST), 1, 100)
-	limit.Parent = label
-	label.TextScaled = true
+	-- Sin TextScaled (se recalculaba en cada cambio de texto: la zona del minimapa 10 veces por
+	-- segundo, la distancia del GPS, el dinero que sube…): un tamaño fijo según el alto de la caja,
+	-- entre el suyo y 1,5 veces. Solo se vuelve a mirar si cambia la caja (AbsoluteSize) o el texto;
+	-- si con el texto nuevo no cabe (TextFits), se encoge un punto cada vez hasta su tamaño de siempre.
+	local minSize = math.max(1, math.min(size, 100))
+	local maxSize = math.clamp(math.floor(size * TEXT_BOOST), 1, 100)
+	local height: number? = nil -- alto de la caja (en las mismas unidades que TextSize)
+	local busy = false
+	local function measure()
+		if label.Size.Y.Scale == 0 then
+			height = label.Size.Y.Offset
+			return
+		end
+		local absolute = label.AbsoluteSize
+		if typeof(absolute) == "Vector2" and absolute.Y > 0 then
+			height = absolute.Y / math.max(scaleOf(label), 1e-3)
+		end
+	end
+	local function fit()
+		if busy or not height then
+			return
+		end
+		busy = true
+		local target = math.clamp(math.floor(math.min(maxSize, (height :: number) - 2)), minSize, maxSize)
+		if label.TextSize ~= target then
+			label.TextSize = target
+		end
+		while target > minSize and label.TextFits == false do
+			target -= 1
+			label.TextSize = target
+		end
+		busy = false
+	end
+	measure()
+	fit()
+	label:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+		measure()
+		fit()
+	end)
+	label:GetPropertyChangedSignal("Text"):Connect(fit)
 end
 
 local function boostGui(gui: ScreenGui)

@@ -17,6 +17,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Rail = require(ReplicatedStorage.Shared.Rail)
+local Format = require(ReplicatedStorage.Shared.Format)
+local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
 local MetroKit = require(script.Parent.Parent.World.Kit.MetroKit)
 local DataService = require(script.Parent.DataService)
 local InventoryService = require(script.Parent.InventoryService)
@@ -496,7 +498,7 @@ function boardWalkIns(train: Train)
 			if not payFare(player) then
 				paid[player] = true
 				if DataService.spend(player, Rail.Fine) then
-					Notify:FireClient(player, "Error", ("🎫 El revisor te ha pillado sin billete: multa de %d €."):format(Rail.Fine))
+					Notify:FireClient(player, "Error", ("🎫 El revisor te ha pillado sin billete: multa de %s."):format(Format.money(Rail.Fine)))
 				else
 					Notify:FireClient(player, "Error", "🎫 El revisor te ha pillado sin billete (y no llevas para la multa). ¡Que no se repita!")
 				end
@@ -566,7 +568,10 @@ local function guardTracks()
 					local q, t = Rail.sample(train.Points, s)
 					local n = Vector3.new(-t.Z, 0, t.X)
 					local side = if (Vector3.new(p.X - q.X, 0, p.Z - q.Z)):Dot(n) >= 0 then 1 else -1
-					local to = Vector3.new(q.X, 3.5, q.Z) + n * side * (Rail.Clearance + 2)
+					-- Sobre el río (el puente de piedra, RailKit.waterSpan) el pretil está a 6,25 del eje: se
+					-- aparta justo por dentro, al borde del tablero (si no, caería al agua)
+					local overWater = CityPlan.riverDistance(q.X, q.Z) < CityPlan.River.Width / 2 + 6
+					local to = Vector3.new(q.X, 3.5, q.Z) + n * side * (if overWater then 5.6 else Rail.Clearance + 2)
 					root.AssemblyLinearVelocity = Vector3.zero
 					character:PivotTo(CFrame.new(to))
 					Notify:FireClient(player, "Error", "⚠️ ¡Cuidado con el tren! No te quedes en la vía.")

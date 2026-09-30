@@ -825,7 +825,8 @@ local function onBuyPass(player: Player, id: any)
 		return
 	end
 	data.Metro = data.Metro or {}
-	local from = math.max(os.time(), if data.Metro.PassKind == pass.Id then data.Metro.PassUntil or 0 else 0)
+	-- Si aún le queda abono (del tipo que sea), los días nuevos se suman: no se pierde lo que quedaba
+	local from = math.max(os.time(), if data.Metro.PassKind then data.Metro.PassUntil or 0 else 0)
 	data.Metro.PassKind = pass.Id
 	data.Metro.PassUntil = from + passSeconds(pass.Days)
 	syncPass(player)
@@ -2049,7 +2050,7 @@ local SETUP: { [string]: (BasePart) -> () } = {
 		prompt(board, "Ver encargos", "📌 Tablón del metro", 0.3, 10).Triggered:Connect(onMissionBoard)
 	end,
 	MetroLostOffice = function(counter)
-		prompt(counter, "Objetos perdidos", "👛 Ventanilla", 0.4, 9).Triggered:Connect(onLostOffice)
+		prompt(counter, "Objetos Perdidos", "👛 Ventanilla", 0.4, 9).Triggered:Connect(onLostOffice)
 	end,
 	MetroMapSign = function(sign)
 		prompt(sign, "Ver plano del metro", "🗺️ Plano de la red", 0.2, 10).Triggered:Connect(function(player)

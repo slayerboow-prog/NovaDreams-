@@ -66,8 +66,8 @@ function ResidenceService.assign(player: Player)
 	player:SetAttribute("DormTitle", ("Residencia · %s (%s)"):format(room.Label, if room.Single then "individual" else "compartida"))
 	local Notify = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Notify") :: RemoteEvent
 	Notify:FireClient(player, "Success", if room.Single
-		then ("🛏 ¡Qué suerte! En la residencia te toca la %s, para ti solo."):format(room.Label)
-		else ("🛏 En la residencia te toca la %s, compartida con un compañero."):format(room.Label))
+		then ("🛏 ¡Qué suerte! En la residencia te toca la %s, solo para ti."):format(room.Label)
+		else ("🛏 En la residencia te toca la %s, compartida con otra persona."):format(room.Label))
 end
 
 -- "Ir a casa" a la habitación de la residencia (false si no tienes)

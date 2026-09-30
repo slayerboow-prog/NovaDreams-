@@ -177,7 +177,7 @@ local function addXp(player: Player, xp: number)
 			end
 		end
 		local extra = if #unlocked > 0 then " Nuevo: " .. table.concat(unlocked, ", ") .. "." else ""
-		Notify:FireClient(player, "Success", ("🌾 ¡Nivel %d de agricultor!%s"):format(after, extra))
+		Notify:FireClient(player, "Success", ("🌾 ¡Nivel %d de agricultura!%s"):format(after, extra))
 	end
 end
 
@@ -409,7 +409,7 @@ end
 
 local function onSign(player: Player, finca: Finca)
 	if finca.Owner == player then
-		Notify:FireClient(player, "Info", "🌾 Tu finca: 4 bancales (estacas de cada fila) y el corral (abrevadero). Semillas, animales y obrador en la cooperativa, junto al granero.")
+		Notify:FireClient(player, "Info", "🌾 Tu finca: 4 bancales y un corral. Semillas y animales, en la cooperativa.")
 		return
 	end
 	if finca.Owner then
@@ -565,7 +565,7 @@ local function coopPanel(player: Player, tab: string?): { [string]: any }
 	return {
 		Remote = "Farm",
 		Id = "Coop",
-		Title = "🧑‍🌾 Cooperativa agrícola de Villaverde",
+		Title = "🌾 Cooperativa agrícola de Villaverde",
 		Subtitle = ("Agricultor/a nivel %d · %s"):format(level, Format.money(DataService.get(player) and DataService.get(player).Money or 0)),
 		Tabs = { { Id = "Semillas", Text = "🌱 Semillas" }, { Id = "Animales", Text = "🐄 Animales" }, { Id = "Vender", Text = "💰 Vender" }, { Id = "Obrador", Text = "🏭 Obrador" } },
 		Tab = tab,
@@ -890,7 +890,7 @@ local function sellSuper(player: Player, point: BasePart)
 		end
 	end
 	if sold == 0 then
-		Notify:FireClient(player, "Info", if others > 0 then "El supermercado solo compra fruta, verdura, huevos, leche, queso, pan y lo que tiene en sus estanterías. Lo demás, a la cooperativa o a tu tienda." else "No llevas productos del campo.")
+		Notify:FireClient(player, "Info", if others > 0 then "El súper solo compra fruta, verdura, huevos, leche, queso y pan. Lo demás, a la cooperativa." else "No llevas productos del campo.")
 		return
 	end
 	DataService.addMoney(player, total, true)
@@ -1143,7 +1143,7 @@ local function setupStockroom(point: Instance)
 	if not point:IsA("BasePart") or point:GetAttribute("Index") ~= 1 or point:FindFirstChild("FarmPrompt") then
 		return
 	end
-	local p = prompt(point, "Entregar productos del campo", "🧑‍🌾 Almacén · pagan más que la cooperativa", 0.5, 10, Enum.KeyCode.F)
+	local p = prompt(point, "Entregar productos del campo", "🌾 Almacén · pagan más que la cooperativa", 0.5, 10, Enum.KeyCode.F)
 	p.Name = "FarmPrompt"
 	p.Triggered:Connect(function(player)
 		sellSuper(player, point)

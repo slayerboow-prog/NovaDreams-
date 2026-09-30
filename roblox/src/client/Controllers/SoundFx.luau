@@ -95,6 +95,61 @@ local function fromSonidos(name: string): string?
 	return nil
 end
 
+-- Lo ya buscado: nombre -> ID (false = no hay). Buscar en Sonidos recorre toda la carpeta, y se
+-- pedía en cada sonido que se tocaba. Se olvida todo si algo cambia en ReplicatedStorage.Sonidos
+-- (llega o se va un Sound, o cambia su SoundId o su nombre) o si llega o se va la carpeta.
+local resolvedFiles: { [string]: string | false } = {} -- SoundFx.resolve (por archivo)
+local resolvedNames: { [string]: string | false } = {} -- soundId (por nombre de Config.Sounds)
+local function forget()
+	table.clear(resolvedFiles)
+	table.clear(resolvedNames)
+end
+do
+	local watched: Instance? = nil
+	local links: { RBXScriptConnection } = {}
+	local function hook(d: Instance)
+		if d:IsA("Sound") then
+			table.insert(links, d:GetPropertyChangedSignal("SoundId"):Connect(forget))
+			table.insert(links, d:GetPropertyChangedSignal("Name"):Connect(forget))
+		end
+	end
+	local function watch()
+		local custom = ReplicatedStorage:FindFirstChild("Sonidos")
+		if custom == watched then
+			return
+		end
+		watched = custom
+		forget()
+		for _, link in links do
+			link:Disconnect()
+		end
+		table.clear(links)
+		if custom then
+			for _, d in custom:GetDescendants() do
+				hook(d)
+			end
+			table.insert(links, custom.DescendantAdded:Connect(function(d)
+				forget()
+				hook(d)
+			end))
+			table.insert(links, custom.DescendantRemoving:Connect(forget))
+		end
+	end
+	pcall(function()
+		watch()
+		ReplicatedStorage.ChildAdded:Connect(function(child)
+			if child.Name == "Sonidos" then
+				watch()
+			end
+		end)
+		ReplicatedStorage.ChildRemoved:Connect(function(child)
+			if child.Name == "Sonidos" then
+				watch()
+			end
+		end)
+	end)
+end
+
 -- IDs subidos por scripts/upload-audio.sh (nombre del archivo -> "rbxassetid://…")
 local uploaded: { [string]: string } = {}
 do
@@ -131,22 +186,33 @@ function SoundFx.resolve(id: any, file: string?): string?
 	if not file or file == "" then
 		return nil
 	end
-	return SoundFx.uploaded(file) or fromSonidos((string.gsub(file, "%.%a%w*$", "")))
+	local known = resolvedFiles[file]
+	if known ~= nil then
+		return known or nil
+	end
+	local found = SoundFx.uploaded(file) or fromSonidos((string.gsub(file, "%.%a%w*$", "")))
+	resolvedFiles[file] = found or false
+	return found
 end
 
 -- ID del sonido: un Sound en ReplicatedStorage.Sonidos con el nombre de Config (p. ej. "Motor") manda
 -- siempre (así se cambia cualquier efecto sin tocar código); si no, Config.Sounds con SoundFx.resolve
 local function soundId(name: string): string?
+	local known = resolvedNames[name]
+	if known ~= nil then
+		return known or nil
+	end
+	local found: string? = nil
 	local custom = ReplicatedStorage:FindFirstChild("Sonidos")
 	local sound = custom and custom:FindFirstChild(name)
 	if sound and sound:IsA("Sound") and sound.SoundId ~= "" then
-		return sound.SoundId
+		found = sound.SoundId
+	else
+		local entry = SOUNDS[name]
+		found = if entry then SoundFx.resolve(entry.Id, entry.File) else nil
 	end
-	local entry = SOUNDS[name]
-	if not entry then
-		return nil
-	end
-	return SoundFx.resolve(entry.Id, entry.File)
+	resolvedNames[name] = found or false
+	return found
 end
 
 -- Clic automático de los botones: si el propio botón ya toca su sonido (en menos de 50 ms), el
@@ -404,7 +470,8 @@ end
 ---------------------------------------------------------------------
 -- Gente de la ciudad
 ---------------------------------------------------------------------
-local pitches: { [Instance]: number } = {}
+-- (tabla débil: aunque no llegue el Destroying, lo que desaparece se olvida solo)
+local pitches: { [Instance]: number } = setmetatable({}, { __mode = "k" }) :: any
 local function pitchOf(npc: Instance): number
 	if not pitches[npc] then
 		pitches[npc] = 0.85 + math.random() * 0.35
@@ -542,8 +609,12 @@ function SoundFx.init()
 
 	workspace.DescendantAdded:Connect(tagServerSound)
 	task.spawn(function()
-		for _, obj in workspace:GetDescendants() do
+		-- (poco a poco, como Weather: sin congelar el arranque con un mapa grande)
+		for i, obj in workspace:GetDescendants() do
 			tagServerSound(obj)
+			if i % 4000 == 0 then
+				task.wait()
+			end
 		end
 	end)
 

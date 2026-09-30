@@ -36,7 +36,9 @@ type Session = { A: Side, B: Side, Token: number, Counting: boolean }
 type Listing = { Id: number, Seller: Player, SellerName: string, Item: string, Count: number, Price: number }
 
 local sessionOf: { [Player]: Session } = {}
-local invites: { [Player]: { From: Player, Until: number } } = {}
+-- Invitaciones pendientes: a quién -> quién invita -> hasta cuándo (varias a la vez: antes la
+-- segunda borraba la primera sin avisar)
+local invites: { [Player]: { [Player]: number } } = {}
 local listings: { Listing } = {}
 local nextListing = 0
 local policyCache: { [Player]: boolean } = {}
@@ -295,19 +297,27 @@ local function onRequest(player: Player, userId: any)
 		return
 	end
 	invitedAt[pair] = os.clock()
-	invites[target] = { From = player, Until = os.clock() + Trade.InviteSeconds }
+	invites[target] = invites[target] or {}
+	invites[target][player] = os.clock() + Trade.InviteSeconds
 	Remote:FireClient(target, "Invite", { Name = nameOf(player), UserId = player.UserId, Seconds = Trade.InviteSeconds })
 	Notify:FireClient(player, "Info", ("Invitación enviada a %s. Esperando…"):format(nameOf(target)))
 end
 
 local function onAnswer(player: Player, userId: any, yes: any)
-	local invite = invites[player]
-	if not invite or typeof(userId) ~= "number" or invite.From.UserId ~= userId then
+	if typeof(userId) ~= "number" then
 		return
 	end
-	invites[player] = nil
-	local from = invite.From
-	if os.clock() > invite.Until or not from.Parent then
+	local mine = invites[player]
+	local from = Players:GetPlayerByUserId(userId)
+	local deadline = mine and from and mine[from]
+	if not deadline then
+		return
+	end
+	mine[from] = nil
+	if next(mine) == nil then
+		invites[player] = nil
+	end
+	if os.clock() > deadline or not from.Parent then
 		Notify:FireClient(player, "Info", "La invitación ha caducado.")
 		return
 	end
@@ -316,7 +326,23 @@ local function onAnswer(player: Player, userId: any, yes: any)
 		return
 	end
 	invitedAt[from.UserId .. ">" .. player.UserId] = nil -- (ha aceptado: puede volver a invitarle cuando quiera)
-	if sessionOf[player] or sessionOf[from] or not allowed(player) or not allowed(from, true) then
+	-- Si alguno ya está intercambiando con otro, se avisa a los dos (antes no pasaba nada)
+	if sessionOf[player] or sessionOf[from] then
+		local busy = if sessionOf[player] then player else from
+		local text = if busy == player
+			then "Ya estás intercambiando con alguien. Termina ese intercambio primero."
+			else ("%s ya está intercambiando con alguien."):format(nameOf(from))
+		Notify:FireClient(player, "Info", text)
+		Notify:FireClient(from, "Info", if busy == from
+			then ("%s ha aceptado, pero ya estás intercambiando con alguien."):format(nameOf(player))
+			else ("%s ya está intercambiando con alguien."):format(nameOf(player)))
+		return
+	end
+	if not allowed(player) then
+		return
+	end
+	if not allowed(from, true) then
+		Notify:FireClient(player, "Info", nameOf(from) .. " no puede intercambiar ahora.")
 		return
 	end
 	if distance(player, from) > Trade.KeepRange then
@@ -606,6 +632,12 @@ function TradeService.init()
 		savedAt[player] = nil
 		cancel(player, nameOf(player) .. " se ha ido.")
 		invites[player] = nil
+		for target, list in invites do
+			list[player] = nil
+			if next(list) == nil then
+				invites[target] = nil
+			end
+		end
 		policyCache[player] = nil
 		local changed = false
 		for i = #listings, 1, -1 do

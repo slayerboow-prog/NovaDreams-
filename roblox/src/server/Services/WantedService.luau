@@ -281,7 +281,7 @@ local function steal(thief: Player, victim: any)
 		return
 	end
 	if not oldEnough(thief) then
-		Notify:FireClient(thief, "Error", "Eres demasiado pequeño para eso.")
+		Notify:FireClient(thief, "Error", "Aún no tienes edad para esto.")
 		return
 	end
 	if os.clock() - state.StealAt < Wanted.StealCooldown then

@@ -4,6 +4,7 @@
 -- mismas cuentas (shared/LiftMath) dónde está la cabina y se pone ahí en tu pantalla; si vas dentro
 -- (atributo LiftTower), tu personaje sube o baja con ella sin tirones ni caídas.
 
+local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -37,17 +38,46 @@ local function cabinOf(key: string): Model?
 		return nil
 	end
 	missedAt[key] = os.clock()
-	for _, d in workspace:GetDescendants() do
-		if d:IsA("Model") and d.Name == "Interior_Tower" and d:GetAttribute("Key") == key then
-			local cabin = d:FindFirstChild("Ascensor")
-			if cabin and cabin:IsA("Model") then
-				cabinCache[key] = cabin
-				missedAt[key] = nil
-				return cabin
-			end
+	-- Las cabinas llevan la etiqueta LiftCabin (World/Lift): antes se recorría workspace entero
+	for _, cabin in CollectionService:GetTagged("LiftCabin") do
+		local tower = cabin.Parent
+		if cabin:IsA("Model") and cabin.Name == "Ascensor" and tower and tower:IsA("Model") and tower.Name == "Interior_Tower" and tower:GetAttribute("Key") == key then
+			cabinCache[key] = cabin
+			missedAt[key] = nil
+			return cabin
 		end
 	end
 	return nil
+end
+
+-- Las piezas de cada cabina, guardadas (antes, GetDescendants en cada fotograma del viaje). Se
+-- vuelven a buscar solo si a la cabina le llega o se le va alguna pieza (carga por zonas). Tabla
+-- débil: si la cabina desaparece, se olvida sola.
+type CabinParts = { Parts: { BasePart }, CFrames: { CFrame }, Dirty: boolean }
+local cabinParts: { [Model]: CabinParts } = setmetatable({}, { __mode = "k" }) :: any
+local function partsOf(cabin: Model): CabinParts
+	local entry = cabinParts[cabin]
+	if not entry then
+		local fresh: CabinParts = { Parts = {}, CFrames = {}, Dirty = true }
+		entry = fresh
+		cabinParts[cabin] = fresh
+		local function dirty()
+			fresh.Dirty = true
+		end
+		cabin.DescendantAdded:Connect(dirty)
+		cabin.DescendantRemoving:Connect(dirty)
+	end
+	local e = entry :: CabinParts
+	if e.Dirty then
+		e.Dirty = false
+		table.clear(e.Parts)
+		for _, p in cabin:GetDescendants() do
+			if p:IsA("BasePart") then
+				table.insert(e.Parts, p)
+			end
+		end
+	end
+	return e
 end
 
 local riding: { Cabin: Model, LastFloorY: number, Character: Model }? = nil
@@ -75,11 +105,15 @@ local function placeLocal(cabin: Model, height: number)
 	if math.abs(dy) < 1e-4 then
 		return
 	end
-	for _, p in cabin:GetDescendants() do
-		if p:IsA("BasePart") then
-			p.CFrame = p.CFrame + Vector3.new(0, dy, 0)
-		end
+	-- Todas a la vez con BulkMoveTo (mucho más barato que pieza a pieza)
+	local entry = partsOf(cabin)
+	local parts, cframes = entry.Parts, entry.CFrames
+	local offset = Vector3.new(0, dy, 0)
+	table.clear(cframes)
+	for i, p in parts do
+		cframes[i] = p.CFrame + offset
 	end
+	workspace:BulkMoveTo(parts, cframes, Enum.BulkMoveMode.FireCFrameChanged)
 end
 
 local function step()

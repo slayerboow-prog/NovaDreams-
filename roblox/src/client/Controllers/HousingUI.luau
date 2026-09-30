@@ -1,6 +1,7 @@
 -- HousingUI (cliente): el timbre y las llaves de tu vivienda (HousingService).
 --   * Timbre: cuando alguien llama a tu puerta sale arriba «🔔 Ana llama a tu puerta (3ºB)» con
---     «Abrir» y «No abrir» (se va solo a los 30 s: la visita oye «No abre nadie»).
+--     «Abrir» y «No abrir» (se va solo a los 30 s: la visita oye «No abre nadie»). Si llaman
+--     varios, los avisos se apilan (uno por timbre); antes el segundo borraba el del primero.
 --   * Llaves (cartel «Llaves y visitas» dentro de tu casa): quién puede entrar (privacidad), los que
 --     tienen llave (Quitar), dar llave a los jugadores del servidor (Dar) y las visitas que están
 --     dentro (Echar). Se cierra con ✕ o al alejarte.
@@ -24,7 +25,9 @@ local C = Theme.Colors
 local gui: ScreenGui
 local remote: RemoteEvent
 local panel: Frame?
-local bellCard: Frame?
+-- Avisos del timbre abiertos, en orden de llegada (cada uno con su Token)
+local bellCards: { { Token: string, Card: Frame } } = {}
+local MAX_BELLS = 4
 local errandCard: Frame?
 local errandTracker: Frame?
 
@@ -41,25 +44,41 @@ end
 ---------------------------------------------------------------------
 -- Timbre
 ---------------------------------------------------------------------
-local function closeBell()
-	if bellCard then
-		bellCard:Destroy()
-		bellCard = nil
+-- Coloca los avisos uno debajo de otro
+local function stackBells()
+	for i, entry in bellCards do
+		entry.Card.Position = UDim2.new(0.5, 0, 0, 96 + (i - 1) * 120)
 	end
 end
 
+local function closeBell(token: string)
+	for i, entry in bellCards do
+		if entry.Token == token then
+			table.remove(bellCards, i)
+			entry.Card:Destroy()
+			break
+		end
+	end
+	stackBells()
+end
+
 local function showBell(data: { [string]: any })
-	closeBell()
+	local token = tostring(data.Token)
+	closeBell(token) -- (el mismo timbre otra vez: se cambia)
+	-- Como mucho MAX_BELLS a la vez: se quita el más antiguo
+	while #bellCards >= MAX_BELLS do
+		closeBell(bellCards[1].Token)
+	end
 	play("MenuAbrir")
 	local card = Theme.panel({ Name = "Doorbell", AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 96), Size = UDim2.fromOffset(420, 112), Parent = gui })
-	bellCard = card
+	table.insert(bellCards, { Token = token, Card = card })
+	stackBells()
 	Theme.padding(12).Parent = card
 	Theme.title({ Size = UDim2.new(1, 0, 0, 26), Text = "🔔 Llaman a tu puerta", TextSize = 19, Parent = card })
 	Theme.label({ Position = UDim2.fromOffset(0, 28), Size = UDim2.new(1, 0, 0, 22), Text = ("%s quiere entrar · %s"):format(tostring(data.From or "Alguien"), tostring(data.Title or "")), TextSize = 15, TextTruncate = Enum.TextTruncate.AtEnd, Parent = card })
-	local token = data.Token
 	local function answer(open: boolean)
-		remote:FireServer("Answer", token, open)
-		closeBell()
+		remote:FireServer("Answer", data.Token, open)
+		closeBell(token)
 	end
 	local yes = Theme.button({ Name = "Open", Position = UDim2.new(0, 0, 1, -34), Size = UDim2.new(0.5, -4, 0, 34), Text = "🚪 Abrir", TextSize = 16, Parent = card })
 	yes.Activated:Connect(function()
@@ -70,9 +89,9 @@ local function showBell(data: { [string]: any })
 	no.Activated:Connect(function()
 		answer(false)
 	end)
-	task.delay(30, function()
-		if bellCard == card then
-			closeBell()
+	task.delay(tonumber(data.Seconds) or 30, function()
+		if card.Parent then
+			closeBell(token)
 		end
 	end)
 end
@@ -265,6 +284,9 @@ function HousingUI.init()
 		end
 		if kind == "Doorbell" then
 			showBell(data)
+		elseif kind == "DoorbellGone" then
+			-- (la visita se ha ido o el timbre ha caducado en el servidor)
+			closeBell(tostring(data.Token))
 		elseif kind == "Keys" then
 			openKeys(data)
 		elseif kind == "ErrandOffer" then
@@ -277,7 +299,7 @@ end
 
 -- (para las pruebas)
 HousingUI.isBellOpen = function(): boolean
-	return bellCard ~= nil
+	return #bellCards > 0
 end
 HousingUI.isKeysOpen = function(): boolean
 	return panel ~= nil

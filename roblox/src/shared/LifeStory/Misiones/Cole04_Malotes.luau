@@ -176,12 +176,12 @@ return {
 		SinCromo = { Lines = {
 			{ S = "Narrador", T = "Vuelves a clase. Abres el bolsillo pequeño de la mochila, el de las emergencias…" },
 			{ S = "Yo", T = "¿Mi cromo? ¿Dónde está mi cromo de la suerte?" },
-			{ S = "Narrador", T = "No está. El portero legendario ha desaparecido. (Ya no está en tu inventario.)" },
+			{ S = "Narrador", T = "No está. El portero legendario ha desaparecido. (Ya no está en tu mochila.)" },
 		} },
 		SinFoto = { Lines = {
 			{ S = "Narrador", T = "Vuelves a clase y buscas en la mochila la foto del grupo, la del parque…" },
 			{ S = "Yo", T = "¿Y la foto? Estaba aquí. ¡Estaba AQUÍ!" },
-			{ S = "Narrador", T = "No está. La foto del grupo ha desaparecido. (Ya no está en tu inventario.)" },
+			{ S = "Narrador", T = "No está. La foto del grupo ha desaparecido. (Ya no está en tu mochila.)" },
 		} },
 
 		Pista_Mateo = { Lines = {
@@ -242,7 +242,7 @@ return {
 		} },
 		Devuelve = { Lines = {
 			{ S = "Hugo", T = "Toma. Es tuyo. Lo siento. De verdad." },
-			{ S = "Narrador", T = "Lo recuperas. (Vuelve a estar en tu inventario.)" },
+			{ S = "Narrador", T = "Lo recuperas. (Vuelve a estar en tu mochila.)" },
 		} },
 		Decision = { Lines = {
 			{ S = "Hugo", T = "¿Y ahora qué vas a hacer?" },

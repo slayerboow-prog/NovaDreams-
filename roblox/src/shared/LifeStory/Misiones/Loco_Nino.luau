@@ -1,7 +1,7 @@
 -- MISIONES LOCAS · INFANCIA (secundarias). Ciencia ficción gamberra con Cosme, el vecino del garaje.
 -- Ficha de diseño: docs/historia/12-misiones-locas.md
 --
---   Loco_N1_Cosme     «El vecino del garaje»          el microondas temporal → 🫧 Pistola de burbujas cuánticas
+--   Loco_N1_Cosme     «El vecino del garaje»          el microondas temporal → 🔵 Pistola de burbujas cuánticas
 --   Loco_N2_Bigotes   «Bigotes, emperador de Gatonia» cucarachas cazarrecompensas → 👑 Corona del emperador
 --   Loco_N3_Pollo     «La gallina de seis metros»     huir y encoger a Petra → 🔬 Rayo encogedor
 --   Loco_N4_Clones    «Deberes clónicos»              tres clones en el cole → 📸 Foto con tus clones
@@ -101,7 +101,7 @@ return {
 				{ S = "Narrador", T = "El microondas zumba. Brilla. Hace «ding». Dentro hay un bocadillo… un poco mordido." },
 				{ S = "Cosme", T = "¿Quién ha mordido mi bocadillo en el pasado? …Fui yo. El martes pasado. Ya decía yo que el martes tenía hambre." },
 				{ S = "Cosme", T = "Toma, criatura. Por las piezas. Iba a ser un desintegrador de materia, pero solo hace burbujas. Burbujas cuánticas. Existen en tres dimensiones a la vez.", A = "Point" },
-				{ S = "Narrador", T = "Recibes la 🫧 Pistola de burbujas cuánticas (úsala desde tu mochila)." },
+				{ S = "Narrador", T = "Recibes la 🔵 Pistola de burbujas cuánticas (úsala desde tu mochila)." },
 				{ Ask = "Cosme te mira muy serio: «¿Se lo vas a contar a tu familia?»", Options = {
 					{ T = "«Será nuestro secreto de vecinos.»", Effects = { Flags = { "SecretoCosme" }, Rel = { Cosme = 5 } }, Then = {
 						{ S = "Cosme", T = "Buena criatura. Pásate cuando quieras. Pero llama antes. Tres veces. Luego dos. Luego tararea algo." },

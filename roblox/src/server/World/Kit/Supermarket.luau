@@ -17,6 +17,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Builder = require(script.Parent.Parent.Builder)
 local Groceries = require(ReplicatedStorage.Shared.Groceries)
+local Format = require(ReplicatedStorage.Shared.Format)
 
 local Supermarket = {}
 
@@ -303,7 +304,7 @@ function Supermarket.build(parent: Instance, cf: CFrame, size: string, name: str
 			})
 		end
 		local tag = deco("PriceTag", Vector3.new(2.4, 1, 0.1), table_ * CFrame.new(0, 2.6, -2.05), rgb(250, 230, 70))
-		sign(tag, ("%s %s  %d€"):format(product.Icon, product.Name, product.Price))
+		sign(tag, ("%s %s  %s"):format(product.Icon, product.Name, Format.money(product.Price)))
 	end
 	local fruitSign = deco("SectionSign", Vector3.new(0.3, 2.2, 12), at(W / 2 - 1, H - 4, front + 30), rgb(220, 70, 60))
 	Builder.sign(fruitSign, "🍎 FRUTERÍA", Enum.NormalId.Left)

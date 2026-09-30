@@ -86,7 +86,7 @@ return {
 				{ S = "Cosme", T = "Hilachas. La costura se deshace y se escapan los hilos. Y un anuncio de MegaVerso que solo ven los que han visto la Grieta. Muy listos. Muy malvados. Muy de él." },
 				{ S = "Yo", T = "¿De Cósimo?" },
 				{ S = "Cosme", T = "…Sí. De Cósimo. Te prometí contártelo cuando fueras mayor. Aún no eres tan mayor. Pero Pip tiene un archivo. Algún día." },
-				{ S = "Narrador", T = "Recibes 🪪 la Credencial de ayudante oficial. Es oficial: trabajas para un inventor loco. Sin sueldo." },
+				{ S = "Narrador", T = "Recibes 💳 la Credencial de ayudante oficial. Es oficial: trabajas para un inventor loco. Sin sueldo." },
 			} },
 		},
 	},

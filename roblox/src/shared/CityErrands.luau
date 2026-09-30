@@ -115,7 +115,7 @@ CityErrands.Templates = {
 		Id = "Tienda_Pan", Site = "Tienda", Title = "Pan recién hecho para el bar",
 		Giver = { Name = "Panadera Maribel" }, Min = "Nino",
 		Lines = { "El bar de la esquina me ha pedido pan y yo no puedo dejar el mostrador.", "Llévaselo calentito, que si llega frío me echan la bronca a mí." },
-		Thanks = "¡Llegó calentito! Eres más rápido que mi repartidor.",
+		Thanks = "¡Llegó calentito! Más rápido que mi repartidor.",
 		Reward = { Money = 18, Xp = 10 }, Give = "Bolsa de barras de pan",
 		Steps = {
 			{ Do = "Deliver", To = "Cafeteria", Npc = "Camarero Julián", Line = "¡Por fin! Sin pan no hay bocatas, y sin bocatas no hay vida.", Time = "Trip", Text = "Lleva el pan a la cafetería antes de que se enfríe" },
@@ -280,7 +280,7 @@ CityErrands.Templates = {
 		Id = "Colegio_Deberes", Site = "Colegio", Title = "Los deberes de Paula",
 		Giver = { Name = "Profe Marisa", Look = { Shirt = rgb(150, 80, 170) } }, Min = "Nino", Max = "Adolescente",
 		Lines = { "Paula está en casa con fiebre y no quiero que se quede atrás con los deberes.", "¿Le llevas el cuaderno? Dile que no hace falta que los haga hoy. Mañana, sí." },
-		Thanks = "¡Gracias! Eres un compañero de diez.",
+		Thanks = "¡Gracias! Eres de diez.",
 		Reward = { Money = 10, Xp = 12 }, Give = "Cuaderno de deberes",
 		Steps = {
 			{ Do = "Deliver", To = "Barrio", Npc = "Paula", Kid = true, Line = "¿Deberes? ¡Qué ilusión! …Es broma. Pero gracias por venir.", Text = "Lleva los deberes a casa de Paula" },

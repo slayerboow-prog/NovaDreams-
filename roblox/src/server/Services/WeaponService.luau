@@ -284,7 +284,7 @@ local function canEquip(player: Player, w: Weapons.Weapon): (boolean, string?)
 		return false, nil
 	end
 	if not Weapons.canHold(w, player:GetAttribute("LifeStage")) then
-		return false, if w.Kind == "Toy" then "Eres demasiado pequeño para esto." else "Las armas de verdad no son para niños."
+		return false, if w.Kind == "Toy" then "Aún no tienes edad para esto." else "Las armas de verdad no son para niños."
 	end
 	if not owns(player, w) then
 		return false, nil
@@ -684,7 +684,7 @@ function WeaponService.catalog(player: Player): { { [string]: any } }
 	local list = {}
 	local okLicence, whyLicence = Weapons.licenceCheck(buyer)
 	table.insert(list, {
-		Id = "Licencia", Kind = "Licence", Name = "Licencia de armas", Icon = "🪪", Price = Weapons.Licence.Price,
+		Id = "Licencia", Kind = "Licence", Name = "Licencia de armas", Icon = "💳", Price = Weapons.Licence.Price,
 		Desc = ("Tasa + test de seguridad (%d de %d preguntas)."):format(Weapons.Licence.ToPass, Weapons.Licence.Questions),
 		Ok = okLicence, Reason = whyLicence, Owned = buyer.Licence,
 	})
@@ -834,7 +834,7 @@ local function gradeLicence(player: Player, token: any, answers: any)
 	s.Quiz = nil
 	local right, passed = Weapons.gradeQuiz(quiz.Correct, answers)
 	if passed and InventoryService.add(player, Weapons.Licence.Item, 1) then
-		Notify:FireClient(player, "Success", ("🪪 ¡Licencia de armas aprobada! (%d de %d)"):format(right, #quiz.Correct))
+		Notify:FireClient(player, "Success", ("💳 ¡Licencia de armas aprobada! (%d de %d)"):format(right, #quiz.Correct))
 		Remote:FireClient(player, "QuizResult", true, right, #quiz.Correct)
 		StoryEvents.emit(player, "GotLicence", { Kind = "Armas" })
 	else
@@ -854,7 +854,7 @@ local function revokeLicence(player: Player)
 	if w and w.Licence then
 		WeaponService.holster(player)
 	end
-	Notify:FireClient(player, "Error", "🪪 Te han retirado la licencia de armas por tus antecedentes.")
+	Notify:FireClient(player, "Error", "💳 Te han retirado la licencia de armas por tus antecedentes.")
 	publish(player)
 end
 
@@ -1028,7 +1028,7 @@ local function setupLicenceDesk(desk: Instance, label: string)
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.Name = "LicencePrompt"
 	prompt.ActionText = "Licencia de armas"
-	prompt.ObjectText = ("🪪 %s · %s + test"):format(label, Format.money(Weapons.Licence.Price))
+	prompt.ObjectText = ("💳 %s · %s + test"):format(label, Format.money(Weapons.Licence.Price))
 	prompt.HoldDuration = 0.6
 	prompt.MaxActivationDistance = 10
 	prompt.RequiresLineOfSight = false

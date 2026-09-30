@@ -139,7 +139,7 @@ return {
 				} },
 				{ T = "Habláis y hacéis un reparto justo", Effects = { Traits = { Empatia = 1 }, Choice = { Convivencia = "Hablar" }, Rel = { Sara = 3, Luca = 3 } }, Then = {
 					{ S = "Sara", T = "Propuesta aceptada. Añado una columna al cuadrante: «Quien cocina no friega». Es justo.", If = SARA },
-					{ S = "Luca", T = "Ok, ok. Yo cocino para dos. No para ocho. Bueno, para cuatro. Por si viene alguien.", If = LUCA },
+					{ S = "Luca", T = "Vale, vale. Yo cocino para dos. No para ocho. Bueno, para cuatro. Por si viene alguien.", If = LUCA },
 					{ S = "Narrador", T = "Hablas contigo: «¿Quién friega hoy?» «Yo.» «Vale.» Te ríes. Es un buen reparto.", If = SOLO },
 				} },
 				{ T = "Llamas a tu familia", Effects = { Rel = { Familia = 4 }, Choice = { Convivencia = "Llamar" } }, Then = {

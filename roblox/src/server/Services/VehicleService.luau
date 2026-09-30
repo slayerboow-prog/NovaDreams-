@@ -1292,10 +1292,17 @@ end
 
 -- El menú no se puede pulsar en ráfaga (cada vehículo sacado se construye entero en el servidor)
 -- (bucket: cada forma de sacar vehículos lleva su propia cuenta: alquilar una bici no te quita
--- sacar la tuya)
+-- sacar la tuya, ni coger el coche patrulla)
 local rentedAt: { [Player]: { number } } = {}
+local patrolAt: { [Player]: { number } } = {}
+local function spawnStore(bucket: string?): { [Player]: { number } }
+	return if bucket == "Rent" then rentedAt elseif bucket == "Patrol" then patrolAt else spawnedAt
+end
+
+-- ¿Puede sacar otro vehículo ya? Si no, se le avisa. Solo mira: la cuenta se apunta con spawnDone
+-- cuando el vehículo sale de verdad (si falla, no le cuenta)
 local function spawnAllowed(player: Player, bucket: string?): boolean
-	local store = if bucket == "Rent" then rentedAt else spawnedAt
+	local store = spawnStore(bucket)
 	local now = os.clock()
 	local recent = {}
 	for _, at in store[player] or {} do
@@ -1305,14 +1312,24 @@ local function spawnAllowed(player: Player, bucket: string?): boolean
 	end
 	store[player] = recent
 	if #recent >= SPAWN_BURST then
+		local wait = math.max(1, math.ceil(SPAWN_WINDOW - (now - recent[1])))
+		Notify:FireClient(player, "Error", ("Espera un momento: has sacado varios vehículos seguidos. Prueba en %d s."):format(wait))
 		return false
 	end
-	table.insert(recent, now)
 	return true
+end
+
+-- Apunta un vehículo sacado (después de subirse con éxito)
+local function spawnDone(player: Player, bucket: string?)
+	local store = spawnStore(bucket)
+	local recent = store[player] or {}
+	table.insert(recent, os.clock())
+	store[player] = recent
 end
 
 -- (también lo usan otros sitios que sacan vehículos: el coche patrulla de la comisaría)
 VehicleService.spawnAllowed = spawnAllowed
+VehicleService.spawnDone = spawnDone
 
 local function spawnOwned(player: Player, kind: string)
 	local data = DataService.get(player)
@@ -1331,7 +1348,9 @@ local function spawnOwned(player: Player, kind: string)
 	if not canSpawn(player) or not spawnAllowed(player) then
 		return
 	end
-	VehicleService.mount(player, kind)
+	if VehicleService.mount(player, kind) then
+		spawnDone(player)
+	end
 end
 
 local function setupStation(station: Instance)
@@ -1349,7 +1368,9 @@ local function setupStation(station: Instance)
 			if (ride and ride.Exam) or not canSpawn(player) or not spawnAllowed(player, "Rent") then
 				return
 			end
-			VehicleService.mount(player, kind, { Rented = true })
+			if VehicleService.mount(player, kind, { Rented = true }) then
+				spawnDone(player, "Rent")
+			end
 		end)
 	end
 end
@@ -1422,6 +1443,7 @@ function VehicleService.init()
 		leftModel[player] = nil
 		spawnedAt[player] = nil
 		rentedAt[player] = nil
+		patrolAt[player] = nil
 		switching[player] = nil
 	end)
 

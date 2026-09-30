@@ -90,6 +90,10 @@ type Hall = {
 
 local halls: { Hall } = {}
 local staffOf: { [Player]: Hall } = {}
+-- Segundos que lleva el taquillero lejos de la taquilla (si se va demasiado tiempo, fin del turno)
+local awayTime: { [Player]: number } = {}
+local AWAY_RANGE = 60
+local AWAY_LIMIT = 120
 local nextOrder = 0
 
 local function now(): number
@@ -651,6 +655,7 @@ function CinemaService.quit(player: Player, silent: boolean?)
 		return
 	end
 	staffOf[player] = nil
+	awayTime[player] = nil
 	if hall.Staff == player then
 		hall.Staff = nil
 	end
@@ -780,6 +785,19 @@ function CinemaService.init()
 	task.spawn(function()
 		while true do
 			task.wait(1)
+			-- Taquilleros que se han ido de la taquilla: tras un rato fuera, se acaba el turno
+			for player, hall in staffOf do
+				local root = rootOf(player)
+				if root and (root.Position - hall.Register.Position).Magnitude <= AWAY_RANGE then
+					awayTime[player] = nil
+				else
+					awayTime[player] = (awayTime[player] or 0) + 1
+					if (awayTime[player] :: number) >= AWAY_LIMIT then
+						CinemaService.quit(player, true)
+						Notify:FireClient(player, "Info", "Has dejado el puesto vacío demasiado tiempo: fin del turno.")
+					end
+				end
+			end
 			local _, phase = Cinema.session(now())
 			for _, hall in halls do
 				local ok, err = pcall(function()

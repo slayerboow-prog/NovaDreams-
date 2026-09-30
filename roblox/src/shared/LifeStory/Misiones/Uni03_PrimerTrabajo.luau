@@ -118,7 +118,7 @@ return {
 		} },
 		Perfil = { Lines = {
 			{ S = "Narrador", T = "Nombre, estudios, disponibilidad: tardes libres y fines de semana. Y la parte difícil: «¿Qué te hace especial?»" },
-			{ S = "Narrador", T = "Adjuntas la carta de recomendación de tu primer verano. «Puntual, honesto y con ganas de aprender.» Valía oro, sí.", If = CARTA },
+			{ S = "Narrador", T = "Adjuntas la carta de recomendación de tu primer verano. «Puntual, con palabra y con ganas de aprender.» Valía oro, sí.", If = CARTA },
 			{ S = "Narrador", T = "Pones tu primer trabajo de verano. Y el club del instituto. Todo cuenta.", If = { NotFlags = { "TieneCartaRecomendacion" } } },
 		} },
 		Oferta_Cafe = { Lines = { { S = "Narrador", T = "«Cafetería Central busca camarero/a de tardes. Horario flexible para estudiantes. Preguntar por Lola.»" } } },
