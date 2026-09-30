@@ -29,11 +29,13 @@ Cloud.check("La ciudad viene dentro del juego publicado (workspace.Town)", works
 
 -- 2) Servicios
 local servicios = Cloud.arrancarServicios()
-local mal, lentos, saltados = {}, {}, {}
+local mal, lentos, saltados, noPublicados = {}, {}, {}, {}
 local tServicios = 0
 for _, s in servicios do
 	tServicios += s.s
-	if s.saltado then
+	if s.noPublicado then
+		table.insert(noPublicados, s.name)
+	elseif s.saltado then
 		table.insert(saltados, s.name)
 	elseif not s.ok then
 		table.insert(mal, ("%s: %s"):format(s.name, s.err))
@@ -41,9 +43,12 @@ for _, s in servicios do
 		table.insert(lentos, ("%s %.1f s"):format(s.name, s.s))
 	end
 end
-Cloud.check(("Servicios iniciados (%d)"):format(#servicios - #saltados), #mal == 0, if #mal == 0 then ("todos bien en %.1f s"):format(tServicios) else ("%d fallan: %s"):format(#mal, Cloud.lista(mal, 10)))
+Cloud.check(("Servicios iniciados (%d)"):format(#servicios - #saltados - #noPublicados), #mal == 0, if #mal == 0 then ("todos bien en %.1f s"):format(tServicios) else ("%d fallan: %s"):format(#mal, Cloud.lista(mal, 10)))
 if #lentos > 0 then
 	Cloud.aviso("Servicios que tardan en iniciar (≥ 3 s)", false, Cloud.lista(lentos, 8))
+end
+if #noPublicados > 0 then
+	Cloud.salta("Servicios nuevos aún no publicados", table.concat(noPublicados, ", ") .. " (están en Main.server.luau de esta rama, pero no en la última versión publicada: aún no publicado)")
 end
 if #saltados > 0 then
 	Cloud.salta("Servicios no arrancados a propósito", table.concat(saltados, ", ") .. " (avisaría a los servidores del juego de verdad)")

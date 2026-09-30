@@ -234,13 +234,20 @@ function Cloud.ordenServicios(): { string }
 end
 
 -- Arranca los servicios en el orden de Main.server.luau (cada uno en su pcall, como allí).
--- Devuelve { { name, ok, err, s } }
+-- Devuelve { { name, ok, err, s, saltado?, noPublicado? } }
+--   noPublicado = true: el servicio está en la lista de Main.server.luau de esta rama, pero el
+--   juego publicado (con el que corre la prueba) todavía no trae su módulo. No es un fallo: se
+--   salta ("aún no publicado") hasta que se publique la versión nueva.
 function Cloud.arrancarServicios(): { { [string]: any } }
 	local Services = Cloud.Server:WaitForChild("Services") :: Folder
 	local out = {}
 	for _, name in Cloud.ordenServicios() do
 		if Cloud.NO_ARRANCAR[name] then
 			table.insert(out, { name = name, ok = true, saltado = true, s = 0 })
+			continue
+		end
+		if not Services:FindFirstChild(name) then
+			table.insert(out, { name = name, ok = true, saltado = true, noPublicado = true, s = 0 })
 			continue
 		end
 		local t = os.clock()
