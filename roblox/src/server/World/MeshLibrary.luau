@@ -343,6 +343,7 @@ local function placeCopy(template: Template, foot: Vector3, yaw: number, factor:
 	end)
 	return copy
 end
+MeshLibrary.placeCopy = placeCopy -- (también lo usan los edificios: World/Buildings3D)
 
 local function copyStreaming(from: Instance, to: Instance)
 	pcall(function()

@@ -55,6 +55,17 @@ task.spawn(function()
 		warn("[MaterialLook] " .. tostring(err))
 	end
 end)
+-- Materiales PBR realistas que eligió el dueño en la Tienda de creadores (packs de MaterialVariant):
+-- sustituyen a los nuestros en asfalto, aceras, césped, fachadas, tejas, terreno… (World/UserMaterials,
+-- tabla en shared/UserMaterialChoice). Si no cargan, se queda todo como está.
+task.spawn(function()
+	local ok, err = pcall(function()
+		require(World.UserMaterials).start()
+	end)
+	if not ok then
+		warn("[UserMaterials] " .. tostring(err))
+	end
+end)
 task.spawn(function()
 	local ok, err = pcall(function()
 		local Shared = game:GetService("ReplicatedStorage").Shared

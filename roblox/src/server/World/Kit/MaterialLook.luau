@@ -9,6 +9,8 @@
 --     coches. Se llama al construir la ciudad (TownBuilder) y al arrancar el servidor si la ciudad del
 --     archivo se construyó con otros ids (atributo TextureSet de la ciudad).
 --   * MaterialLook.tuneVehicle(model): laca y cristal con reflejo en un coche (los que aparecen luego).
+--   * Los materiales que sustituye un variant de los packs del dueño (World/UserMaterials: atributo
+--     "UserOverride_<Material>" en MaterialService) se quedan con el suyo: aquí solo se crea el nuestro.
 --   * Sin ids (aún no subidas o 0): no crea nada ni cambia ninguna pieza (solo el reflejo del cristal
 --     de los coches, que no depende de las texturas).
 
@@ -16,6 +18,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Textures = require(ReplicatedStorage.Shared.Textures)
 local TextureIds = require(ReplicatedStorage.Shared.TextureIds)
 local Images = require(ReplicatedStorage.Shared.Images)
+local UserMaterialChoice = require(ReplicatedStorage.Shared.UserMaterialChoice)
 
 local MaterialLook = {}
 
@@ -47,7 +50,8 @@ function MaterialLook.setup(service: Instance?, ids: { [string]: string }?): { s
 		variant:SetAttribute("DryRoughnessId", maps.RoughnessMap or "")
 		variant:SetAttribute("WetRoughnessId", Textures.wetMap(name, source) or "")
 		variant.Parent = target
-		if def.Override then
+		-- (si el material ya lo sustituye un variant del dueño, World/UserMaterials, gana el suyo)
+		if def.Override and not target:GetAttribute(UserMaterialChoice.attribute(def.Base)) then
 			local base = (Enum.Material :: any)[def.Base]
 			local ok = pcall(function()
 				target:SetBaseMaterialOverride(base, name)

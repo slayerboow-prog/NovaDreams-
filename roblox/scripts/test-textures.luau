@@ -50,7 +50,7 @@ local TextureIds = load("src/shared/TextureIds.luau")
 local Graphics = load("src/shared/Graphics.luau")
 
 local function materialLook(): any
-	local shared = { Textures = Textures, TextureIds = TextureIds }
+	local shared = { Textures = Textures, TextureIds = TextureIds, UserMaterialChoice = load("src/shared/UserMaterialChoice.luau") }
 	local fakeGame = {
 		GetService = function(_, name)
 			if name == "ReplicatedStorage" then
