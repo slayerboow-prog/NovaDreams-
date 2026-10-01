@@ -9,7 +9,10 @@
 --   * En las cinemáticas, enfoque de cine (el fondo se desenfoca un poco) y algo más de contraste.
 --   * Según el nivel gráfico (UI/Perf, shared/Graphics): Bajo sin sombras del sol, desenfoque ni rayos
 --     de sol y con menos nube; Medio con desenfoque solo en las cinemáticas; Alto con todo.
---   * Las curvas de luz y color (y lo que cambia el tiempo) están en shared/DayGrade.
+--   * Las curvas de luz y color (y lo que cambia el tiempo) están en shared/DayGrade: sol cálido con
+--     dirección (ColorShift_Top), sombras azuladas, bruma que azula lo lejano y etalonaje suave.
+--   * Cielo de fotos (skybox) de día y de noche si el servidor lo ha cargado (shared/SkyChoice,
+--     World/SkyLoader): se copian sus caras al Sky de Lighting; si no hay, el cielo de siempre.
 --   * Bajo el agua (SeaBiome llama a setUnderwater): bruma verde azulada, colores apagados, menos
 --     sol y el fondo desenfocado, como en el mar de verdad.
 -- El reloj lo mueve el servidor (WorldService); aquí solo se lee Lighting.ClockTime.
@@ -18,7 +21,9 @@ local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
-local DayGrade = require(game:GetService("ReplicatedStorage").Shared.DayGrade)
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local DayGrade = require(ReplicatedStorage.Shared.DayGrade)
+local SkyChoice = require(ReplicatedStorage.Shared.SkyChoice)
 local Perf = require(script.Parent.Parent.UI.Perf)
 
 local DayLight = {}
@@ -34,7 +39,43 @@ local sample = DayGrade.sample
 -- Nubes del día: cada día de juego es un poco distinto (igual para todo el servidor)
 local function dailyClouds(day: number): number
 	local x = math.sin(day * 12.9898) * 43758.5453
-	return (x - math.floor(x) - 0.5) * 0.3 -- entre -0.15 y +0.15
+	return (x - math.floor(x) - 0.5) * 0.2 -- entre -0.1 y +0.1 (nunca un cielo vacío de día)
+end
+
+-- Cielo de fotos: copia las 6 caras del Sky cargado (o las de siempre) al Sky de Lighting.
+-- El sol, la luna y las estrellas no se tocan.
+local originalFaces: { [string]: string }? = nil
+local skyShown: string? = nil -- "Day" / "Night" / nil (= el de siempre)
+local function updateSky(hour: number)
+	local sky = Lighting:FindFirstChildOfClass("Sky")
+	local library = ReplicatedStorage:FindFirstChild(SkyChoice.Library)
+	if not sky or (not library and skyShown == nil) then
+		return
+	end
+	local have = {}
+	if library then
+		for _, item in library:GetChildren() do
+			if item:IsA("Sky") then
+				have[item.Name] = true
+			end
+		end
+	end
+	local want = SkyChoice.pick(hour, have)
+	if want == skyShown then
+		return
+	end
+	if not originalFaces then
+		local saved = {}
+		for _, face in SkyChoice.Faces do
+			saved[face] = (sky :: any)[face]
+		end
+		originalFaces = saved
+	end
+	local source: any = if want and library then library:FindFirstChild(want) else nil
+	for _, face in SkyChoice.Faces do
+		(sky :: any)[face] = if source then source[face] else (originalFaces :: any)[face]
+	end
+	skyShown = want
 end
 
 ---------------------------------------------------------------------
@@ -103,6 +144,13 @@ local function apply(k: Key, dt: number)
 	Lighting.EnvironmentDiffuseScale = k.EnvDiffuse
 	Lighting.EnvironmentSpecularScale = k.EnvSpecular
 	Lighting.ShadowSoftness = k.Shadow
+	-- Sol cálido en las caras que mira (y un toque azul en las contrarias): luz con dirección
+	if k.SunTint then
+		Lighting.ColorShift_Top = k.SunTint
+	end
+	if k.ShadeTint then
+		Lighting.ColorShift_Bottom = k.ShadeTint
+	end
 	if Lighting.GlobalShadows ~= tier.GlobalShadows then
 		Lighting.GlobalShadows = tier.GlobalShadows -- (nivel Bajo: sin sombras del sol, lo que más cuesta)
 	end
@@ -165,7 +213,7 @@ local function apply(k: Key, dt: number)
 		local day = workspace:GetAttribute("Day") or 1
 		-- (además, el cielo «respira»: un poco más o menos tapado cada pocos minutos, nunca quieto)
 		local drift = 0.035 * math.sin(os.clock() / 75) + 0.02 * math.sin(os.clock() / 31 + 1.3)
-		clouds.Cover = math.clamp(k.Cover + dailyClouds(day) + drift, 0.2, 0.85)
+		clouds.Cover = math.clamp(k.Cover + dailyClouds(day) + drift, 0.35, 0.88)
 		clouds.Density = k.CloudDensity * tier.Clouds
 		clouds.Color = k.CloudColor
 	end
@@ -224,6 +272,7 @@ function DayLight.init()
 				k = DayGrade.mix(k, underwaterKey(k), underwater)
 			end
 			apply(k, since)
+			updateSky(Lighting.ClockTime)
 		end)
 		since = 0
 		if not ok then

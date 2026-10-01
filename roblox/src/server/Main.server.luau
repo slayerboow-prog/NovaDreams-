@@ -70,6 +70,16 @@ task.spawn(function()
 		warn("[UserMaterials] " .. tostring(err))
 	end
 end)
+-- Cielo de fotos (skybox realista) de día y de noche (World/SkyLoader, ids en shared/SkyChoice):
+-- lo pone cada cliente según la hora (Controllers/DayLight). Sin ids o si falla, el cielo de siempre.
+task.spawn(function()
+	local ok, err = pcall(function()
+		require(World.SkyLoader).start()
+	end)
+	if not ok then
+		warn("[SkyLoader] " .. tostring(err))
+	end
+end)
 task.spawn(function()
 	local ok, err = pcall(function()
 		local Shared = game:GetService("ReplicatedStorage").Shared

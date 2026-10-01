@@ -77,8 +77,8 @@ local function setupLighting()
 	terrain.WaterWaveSpeed = 12
 	-- Nubes de verdad (volumétricas); su cantidad y color los ajusta cada jugador según la hora
 	local clouds = terrain:FindFirstChildOfClass("Clouds") or Instance.new("Clouds")
-	clouds.Cover = 0.45
-	clouds.Density = 0.3
+	clouds.Cover = 0.58
+	clouds.Density = 0.45
 	clouds.Parent = terrain
 end
 
