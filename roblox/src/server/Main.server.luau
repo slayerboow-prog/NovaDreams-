@@ -60,7 +60,11 @@ end)
 -- tabla en shared/UserMaterialChoice). Si no cargan, se queda todo como está.
 task.spawn(function()
 	local ok, err = pcall(function()
-		require(World.UserMaterials).start()
+		-- (y con ellos, cada tipo de calle con su asfalto, adoquín o baldosa, y las señales y tapas del
+		-- «Realistic road pack»: World/StreetDress, shared/StreetLook)
+		require(World.UserMaterials).start(nil, function(service, library, load, unpack)
+			require(World.StreetDress).start(service, library, load, unpack, nil, require(World.Region).Highways)
+		end)
 	end)
 	if not ok then
 		warn("[UserMaterials] " .. tostring(err))

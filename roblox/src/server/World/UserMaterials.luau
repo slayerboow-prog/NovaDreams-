@@ -266,7 +266,9 @@ function UserMaterials.tint(root: Instance, amounts: { [string]: number }, seen:
 end
 
 -- Arranque (servidor, espera: llamar en un hilo aparte). load(id) se puede cambiar en las pruebas.
-function UserMaterials.start(load: ((number) -> Instance?)?)
+-- dress (opcional): lo que se hace con los packs ya cargados ANTES de aclarar (World/StreetDress: cada
+-- calle con su aspecto; lo que lleva variant propio no se aclara aquí).
+function UserMaterials.start(load: ((number) -> Instance?)?, dress: ((Instance, Instance, (number) -> Instance?, any) -> ())?)
 	local library = ServerStorage:FindFirstChild(LIBRARY)
 	if not library then
 		library = Instance.new("Folder")
@@ -297,6 +299,12 @@ function UserMaterials.start(load: ((number) -> Instance?)?)
 		table.insert(list, ("%s=%s"):format(pick.Material, pick.VariantName))
 	end
 	print(("[UserMaterials] %d/%d packs, %d materiales sustituidos: %s"):format(count, #Choice.Packs, #applied, table.concat(list, ", ")))
+	if dress then
+		local ok, err = pcall(dress, game:GetService("MaterialService"), library, load or download, UserMaterials.unpack)
+		if not ok then
+			warn("[UserMaterials] calles: " .. tostring(err))
+		end
+	end
 	if #applied == 0 then
 		return
 	end

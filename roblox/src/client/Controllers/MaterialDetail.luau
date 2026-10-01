@@ -68,8 +68,9 @@ local function applyGrass(tier: Graphics.Tier)
 end
 
 -- Detalle que el nivel Bajo esconde (solo en esta pantalla): etiqueta -> campo del nivel
-local DETAIL_TAGS = { LeafDetail = "LeafDetail", CityDetail = "CityDetail", BuildingMesh = "CityDetail", BuildingShell = "CityDetail" }
-local hidden: { [string]: boolean } = { LeafDetail = false, CityDetail = false, BuildingMesh = false, BuildingShell = false }
+-- (StreetSign: las señales de tráfico de World/StreetDress; su poste deja de chocar al esconderse)
+local DETAIL_TAGS = { LeafDetail = "LeafDetail", CityDetail = "CityDetail", BuildingMesh = "CityDetail", BuildingShell = "CityDetail", StreetSign = "CityDetail" }
+local hidden: { [string]: boolean } = { LeafDetail = false, CityDetail = false, BuildingMesh = false, BuildingShell = false, StreetSign = false }
 local function applyDetail(part: Instance, hide: boolean, tag: string?)
 	if not part:IsA("BasePart") then
 		return
@@ -79,6 +80,15 @@ local function applyDetail(part: Instance, hide: boolean, tag: string?)
 		part.Transparency = if hide then 0 else 1
 	else
 		part.LocalTransparencyModifier = if hide then 1 else 0
+		-- (las imágenes pegadas a la pieza, como las señales y las tapas del road pack, van aparte)
+		for _, child in part:GetChildren() do
+			if child:IsA("Decal") then
+				child.LocalTransparencyModifier = if hide then 1 else 0
+			end
+		end
+		if tag == "StreetSign" and part:GetAttribute("Solid") then
+			part.CanCollide = not hide -- (sin poste invisible con el que chocar)
+		end
 	end
 end
 
