@@ -205,7 +205,7 @@ local function weldProblems(model: any): { string }
 			table.insert(bad, p.Name .. " sin soldar al cuerpo")
 		elseif p.CanCollide or not p.Massless or p.CanTouch or p.CanQuery or p.Anchored then
 			table.insert(bad, p.Name .. " con colisión o masa")
-		elseif (p.Position - body.Position).Magnitude > 6 * (body.Size.Magnitude / 2 + 1) then
+		elseif (p.CFrame.Position - body.CFrame.Position).Magnitude > 6 * (body.Size.Magnitude / 2 + 1) then
 			table.insert(bad, p.Name .. " lejos de su parte")
 		end
 		if #bad > 5 then
@@ -656,6 +656,9 @@ mocks["server/Services/BattlePassSeasonService"] = {
 		return {}
 	end,
 }
+mocks["server/Services/VehicleService"] = { grant = function()
+	return true
+end }
 BPConfig.Enabled = true
 local Rewards = resolve("server/Services/BattlePassRewardService")
 local leo = newPlayer("Leo", 502, "Adulto")

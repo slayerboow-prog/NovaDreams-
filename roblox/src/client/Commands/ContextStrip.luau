@@ -300,7 +300,7 @@ function ContextStrip:setItems(items: { Item }, selected: number, title: string?
 	if same then
 		for i, item in items do
 			local old = self.Items[i]
-			if old.Label ~= item.Label or old.Detail ~= item.Detail or old.Icon ~= item.Icon or old.Key ~= item.Key or old.Accent ~= item.Accent or old.Group ~= item.Group then
+			if old.Label ~= item.Label or old.Detail ~= item.Detail or old.Icon ~= item.Icon or old.Accent ~= item.Accent or old.Group ~= item.Group then
 				same = false
 				break
 			end
@@ -308,7 +308,15 @@ function ContextStrip:setItems(items: { Item }, selected: number, title: string?
 	end
 	self.Items = items
 	self.Title = title or "Acciones"
-	if not same then
+	if same then
+		-- Lo mismo de antes: solo cambia la tecla de la elegida (sin rehacer las píldoras bajo el ratón)
+		for i, chip in self.Chips do
+			local key = chip:FindFirstChild("Key") :: TextLabel?
+			if key and items[i] then
+				Theme.setText(key, items[i].Key or "")
+			end
+		end
+	else
 		self:render()
 	end
 	self:select(selected)

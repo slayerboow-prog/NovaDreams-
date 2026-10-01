@@ -43,7 +43,7 @@ Outfits.SuspendJobs = {
 -- Palabras que no pueden salir en ningún conjunto (marcas reales y el nombre del logo de la hoja)
 Outfits.Forbidden = {
 	"nova", "novalife", "nike", "adidas", "puma", "reebok", "jordan", "supreme", "gucci", "prada", "chanel", "dior",
-	"vans", "converse", "balenciaga", "versace", "lacoste", "nba", "fila", "champion", "levi", "zara",
+	"vans", "converse", "balenciaga", "versace", "lacoste", "nba", "champion", "levi", "zara",
 }
 
 local list = {

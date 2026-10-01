@@ -147,7 +147,13 @@ class Canvas:
 
     def finish(self):
         """Tela (ruido), sombras difuminadas y brillo de neón, solo donde hay ropa."""
-        alpha = self.img.getchannel("A")
+        # Solo dentro de las caras de la plantilla (los estampados no se salen)
+        mask = Image.new("L", (W, H), 0)
+        mdraw = ImageDraw.Draw(mask)
+        for faces in (TORSO, RIGHT, LEFT):
+            for x, y, w, h in faces.values():
+                mdraw.rectangle([x, y, x + w - 1, y + h - 1], fill=255)
+        alpha = ImageChops.multiply(self.img.getchannel("A"), mask)
         rgb = self.img.convert("RGB")
         noise = Image.effect_noise((W, H), 22).convert("RGB")
         textured = ImageChops.overlay(rgb, noise)
