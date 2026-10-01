@@ -2,7 +2,7 @@
 
 Diseño, reglas y contrato del **pase de temporada** de Real Life Simulator. La temporada 1 se llama **«Luces de Valmar»**.
 
-> **Interruptor general:** `BattlePassConfig.Enabled` (en `src/shared/BattlePass/Config.luau`) está **encendido** (`true`) desde el 1-oct-2026 (la Temporada 1 empieza el 5-oct-2026). Apagado (`false`), el pase no hace nada: no se crea el remoto, no se escuchan eventos, no se entregan recompensas, no hay ganchos en vehículos, ropa ni vivienda, y la interfaz no aparece. En los datos guardados solo quedan los valores por defecto, que no hacen nada. Con `false` se apaga del todo.
+> **Interruptor general:** `BattlePassConfig.Enabled` (en `src/shared/BattlePass/Config.luau`) está **encendido** (`true`) desde el 1-oct-2026 (la Temporada 1 va del 1-oct-2026 al 7-dic-2026). Apagado (`false`), el pase no hace nada: no se crea el remoto, no se escuchan eventos, no se entregan recompensas, no hay ganchos en vehículos, ropa ni vivienda, y la interfaz no aparece. En los datos guardados solo quedan los valores por defecto, que no hacen nada. Con `false` se apaga del todo.
 
 ## 1. Idea en pocas palabras
 
