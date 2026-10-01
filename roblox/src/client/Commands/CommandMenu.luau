@@ -34,6 +34,7 @@ local ContextStrip = require(script.Parent.ContextStrip)
 local PhoneApps = require(script.Parent.PhoneApps)
 local UiAudio = require(script.Parent.UiAudio)
 local MenuLogic = require(script.Parent.MenuLogic)
+local SettingsRows = require(script.Parent.SettingsRows)
 
 local CommandMenu = {}
 
@@ -347,15 +348,46 @@ local function money(amount: number): string
 end
 
 -- Pantallas propias del teléfono
+local function perf(): any
+	local ok, module = pcall(require, script.Parent.Parent.UI.Perf :: any)
+	return if ok then module else nil
+end
+
+-- (por secciones, con interruptores y selectores: Commands/SettingsRows)
+local settingKinds: { string } = {}
 local function showAjustes()
-	settings = {}
 	local Hud = hud()
-	local rows = {}
-	for _, toggle in (Hud and Hud.menuToggles and Hud.menuToggles()) or {} do
-		table.insert(settings, toggle)
-		table.insert(rows, { Label = toggle.Text })
-	end
+	local Perf = perf()
+	local choice = if Perf and Perf.choice then Perf.choice() else nil
+	local rows
+	rows, settings, settingKinds = SettingsRows.build((Hud and Hud.menuToggles and Hud.menuToggles()) or {}, choice)
 	Phone.showScreen("Ajustes", "Ajustes", rows, "Sin ajustes por ahora")
+end
+
+-- Tocar una opción de un selector de Ajustes (Gráficos: Auto/Bajo/Medio/Alto; Ropa: Valmar/mi avatar)
+local function onSegment(screen: string, index: number, option: number, row: any)
+	if screen ~= "Ajustes" then
+		return
+	end
+	local toggle, kind = settings[index], settingKinds[index]
+	if not toggle or row.Selected == option then
+		return
+	end
+	UiAudio.confirm()
+	local Hud = hud()
+	local Perf = perf()
+	if kind == "Graphics" and Perf and Perf.setChoice then
+		Perf.setChoice(SettingsRows.GraphicsChoices[option])
+		if Hud and Hud.syncMenuToggles then
+			Hud.syncMenuToggles()
+		end
+		if Hud and Hud.toast and Perf.choiceLabel then
+			Hud.toast("Info", Perf.choiceLabel())
+		end
+	else
+		pcall(toggle.Press)
+	end
+	showAjustes()
 end
 
 local function showMensajes()
@@ -432,15 +464,19 @@ local function onRow(screen: string, index: number, row: any)
 		local toggle = settings[index]
 		if toggle then
 			local before = toggle.Text
-			local ok, text = pcall(toggle.Press)
-			if ok and type(text) == "string" then
-				Phone.setRowLabel(index, text)
+			if row.Segments then
+				-- (con teclado o mando: la siguiente opción)
+				onSegment(screen, index, (row.Selected or 0) % #row.Segments + 1, row)
+				return
 			end
+			local ok, text = pcall(toggle.Press)
 			UiAudio.confirm()
 			-- Las que no cambian de texto son acciones que abren algo (Mi historia, ver el tutorial):
 			-- el teléfono se guarda para que se vea
 			if ok and text == before then
 				Phone.close()
+			elseif ok then
+				showAjustes()
 			end
 		end
 	elseif screen == "Mensajes" then
@@ -762,6 +798,7 @@ function CommandMenu.init()
 
 	Phone.LaunchCallback = launch
 	Phone.RowCallback = onRow
+	Phone.SegmentCallback = onSegment
 	Phone.OpenedCallback = function(open: boolean)
 		if open then
 			UiAudio.open()

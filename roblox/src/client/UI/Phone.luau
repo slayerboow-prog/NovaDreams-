@@ -66,7 +66,27 @@ export type App = {
 	Screen: string?,
 	Group: boolean?,
 }
-export type Row = { Id: string?, Icon: string?, Label: string, Detail: string?, Value: string?, Color: { number }?, Unread: boolean?, Wrap: boolean? }
+-- Filas de una pantalla. Con Section, las filas seguidas de la misma sección van juntas en una
+-- tarjeta con su título encima (como los ajustes de un móvil). Switch: interruptor sí/no a la
+-- derecha; Segments: selector de opciones debajo del nombre (Selected = la elegida); Danger: en rojo;
+-- Action: flecha a la derecha (abre algo).
+export type Row = {
+	Id: string?,
+	Icon: string?,
+	Label: string,
+	Detail: string?,
+	Value: string?,
+	ValueColor: { number }?,
+	Color: { number }?,
+	Unread: boolean?,
+	Wrap: boolean?,
+	Section: string?,
+	Switch: boolean?,
+	Segments: { string }?,
+	Selected: number?,
+	Danger: boolean?,
+	Action: boolean?,
+}
 
 -- Fondo de pantalla: el de la marca o, con un tema de teléfono del pase, su color (UI/BattlePassCosmetics)
 function Phone.wallpaper(accent: Color3?): ColorSequence
@@ -108,6 +128,7 @@ local bannerApp: string? = nil
 -- Lo que conecta Commands/CommandMenu
 Phone.LaunchCallback = nil :: ((string) -> ())? -- tocar una app (id)
 Phone.RowCallback = nil :: ((string, number, Row) -> ())? -- tocar una fila de una pantalla (pantalla, índice, fila)
+Phone.SegmentCallback = nil :: ((string, number, number, Row) -> ())? -- tocar una opción de un selector (pantalla, fila, opción, fila)
 Phone.OpenedCallback = nil :: ((boolean) -> ())? -- se abre / se cierra
 Phone.BlockedCallback = nil :: (() -> ())? -- se intenta abrir en marcha
 
@@ -700,21 +721,106 @@ local function clearRows()
 	for _, row in parts.Rows or {} do
 		row:Destroy()
 	end
+	for _, card in parts.Cards or {} do
+		card:Destroy()
+	end
 	parts.Rows = {}
+	parts.Cards = {}
 end
 
-local function buildRow(index: number, row: Row, y: number, width: number): (TextButton, number)
-	local tall = if row.Wrap then 76 else 58
+local SWITCH_ON = rgb(52, 199, 89)
+local SWITCH_OFF = rgb(88, 92, 108)
+local DANGER = rgb(255, 99, 88)
+
+-- Interruptor sí/no (verde encendido, gris apagado)
+local function switchOf(parent: Instance, on: boolean, z: number): Frame
+	local pill = create("Frame", {
+		Name = "Switch",
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -14, 0.5, 0),
+		Size = UDim2.fromOffset(50, 30),
+		BackgroundColor3 = if on then SWITCH_ON else SWITCH_OFF,
+		BorderSizePixel = 0,
+		ZIndex = z,
+		Parent = parent,
+	}, { create("UICorner", { CornerRadius = UDim.new(1, 0) }) })
+	pill:SetAttribute("On", on)
+	create("Frame", {
+		Name = "Knob",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = if on then UDim2.new(1, -15, 0.5, 0) else UDim2.new(0, 15, 0.5, 0),
+		Size = UDim2.fromOffset(26, 26),
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		BorderSizePixel = 0,
+		ZIndex = z + 1,
+		Parent = pill,
+	}, {
+		create("UICorner", { CornerRadius = UDim.new(1, 0) }),
+		create("UIStroke", { Color = Color3.new(0, 0, 0), Transparency = 0.85, Thickness = 1 }),
+	})
+	return pill
+end
+
+-- Selector de opciones (Auto · Bajo · Medio · Alto): la elegida resaltada
+local function segmentsOf(button: TextButton, index: number, row: Row, top: number, z: number)
+	local options = row.Segments :: { string }
+	local bar = create("Frame", {
+		Name = "Segments",
+		Position = UDim2.fromOffset(12, top),
+		Size = UDim2.new(1, -24, 0, 34),
+		BackgroundColor3 = Color3.new(0, 0, 0),
+		BackgroundTransparency = 0.55,
+		BorderSizePixel = 0,
+		ZIndex = z,
+		Parent = button,
+	}, {
+		corner(10),
+		create("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 3) }),
+		create("UIPadding", { PaddingLeft = UDim.new(0, 3), PaddingRight = UDim.new(0, 3), PaddingTop = UDim.new(0, 3), PaddingBottom = UDim.new(0, 3) }),
+	})
+	local share = 1 / #options
+	local gap = math.ceil(3 * (#options - 1) / #options)
+	for i, option in options do
+		local on = row.Selected == i
+		local segment = create("TextButton", {
+			Name = "Seg" .. i,
+			LayoutOrder = i,
+			Size = UDim2.new(share, -gap, 1, 0),
+			BackgroundColor3 = if on then color(BRAND.Accent) else Color3.new(1, 1, 1),
+			BackgroundTransparency = if on then 0 else 1,
+			AutoButtonColor = false,
+			Font = if on then Theme.FontBold else Theme.Font,
+			TextSize = 14,
+			TextColor3 = if on then Color3.new(1, 1, 1) else C.Muted,
+			Text = option,
+			TextTruncate = Enum.TextTruncate.AtEnd,
+			ZIndex = z + 1,
+			Parent = bar,
+		}, { corner(8) })
+		segment:SetAttribute("Selected", on)
+		segment.Activated:Connect(function()
+			rowFocus = index
+			if Phone.SegmentCallback and screen then
+				Phone.SegmentCallback(screen, index, i, row)
+			end
+		end)
+	end
+end
+
+local function buildRow(index: number, row: Row, y: number, width: number, card: Frame?): (TextButton, number)
+	local segments = row.Segments ~= nil and #(row.Segments :: { string }) > 0
+	local tall = if segments then (if row.Detail then 112 else 96) elseif row.Wrap then 76 else 58
+	local rest = if card then 1 else 0.9
 	local button = create("TextButton", {
 		Name = "Row" .. index,
-		Position = UDim2.fromOffset(10, y),
+		Position = if card then UDim2.fromOffset(0, y) else UDim2.fromOffset(10, y),
 		Size = UDim2.fromOffset(width - 20, tall),
 		BackgroundColor3 = Color3.new(1, 1, 1),
-		BackgroundTransparency = 0.9,
+		BackgroundTransparency = rest,
 		AutoButtonColor = false,
 		Text = "",
 		ZIndex = 12,
-		Parent = parts.AppList,
+		Parent = card or parts.AppList,
 	}, { corner(16) })
 	create("UIStroke", { Name = "Focus", Color = color(BRAND.Accent), Thickness = 2, Enabled = false, Parent = button })
 	local x = 12
@@ -724,14 +830,24 @@ local function buildRow(index: number, row: Row, y: number, width: number): (Tex
 		tile.Position = UDim2.new(0, 10, 0.5, 0)
 		x = 58
 	end
+	if segments and row.Icon then
+		local tile = button:FindFirstChild("Tile") :: Frame?
+		if tile then
+			tile.AnchorPoint = Vector2.new(0, 0)
+			tile.Position = UDim2.fromOffset(10, 10)
+		end
+	end
 	local hasValue = row.Value ~= nil and row.Value ~= ""
+	local right = if hasValue then 100 elseif row.Switch ~= nil then 76 else 34
+	local headTall = if segments then 58 else tall -- (con selector: nombre arriba, opciones debajo)
 	local label = Theme.label({
 		Name = "Label",
-		Position = UDim2.fromOffset(x, if row.Detail then 8 else 0),
-		Size = UDim2.new(1, -(x + (if hasValue then 100 else 34)), 0, if row.Detail then 22 else tall),
+		Position = UDim2.fromOffset(x, if row.Detail then 8 elseif segments then 0 else 0),
+		Size = UDim2.new(1, -(x + right), 0, if row.Detail then 22 else headTall),
 		Font = Theme.FontBold,
 		TextSize = 15,
 		Text = row.Label,
+		TextColor3 = if row.Danger then DANGER else nil,
 		TextTruncate = Enum.TextTruncate.AtEnd,
 		ZIndex = 13,
 		Parent = button,
@@ -740,7 +856,7 @@ local function buildRow(index: number, row: Row, y: number, width: number): (Tex
 		Theme.label({
 			Name = "Detail",
 			Position = UDim2.fromOffset(x, 30),
-			Size = UDim2.new(1, -(x + (if hasValue then 100 else 34)), 0, tall - 36),
+			Size = UDim2.new(1, -(x + right), 0, (if segments then 58 else tall) - 36),
 			TextSize = 13,
 			Text = row.Detail,
 			TextColor3 = C.Muted,
@@ -751,9 +867,14 @@ local function buildRow(index: number, row: Row, y: number, width: number): (Tex
 			Parent = button,
 		})
 	end
+	if segments then
+		segmentsOf(button, index, row, tall - 46, 13)
+	end
 	if hasValue then
-		Theme.label({ Name = "Value", AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -14, 0.5, 0), Size = UDim2.fromOffset(92, 24), Font = Theme.FontBold, TextSize = 15, Text = row.Value :: string, TextColor3 = C.Money, TextXAlignment = Enum.TextXAlignment.Right, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 13, Parent = button })
-	elseif row.Id ~= nil then
+		Theme.label({ Name = "Value", AnchorPoint = Vector2.new(1, 0.5), Position = if segments then UDim2.new(1, -14, 0, 29) else UDim2.new(1, -14, 0.5, 0), Size = UDim2.fromOffset(92, 24), Font = Theme.FontBold, TextSize = 15, Text = row.Value :: string, TextColor3 = if row.ValueColor then color(row.ValueColor) else C.Money, TextXAlignment = Enum.TextXAlignment.Right, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 13, Parent = button })
+	elseif row.Switch ~= nil then
+		switchOf(button, row.Switch == true, 13)
+	elseif row.Id ~= nil or row.Action then
 		Icons.chevron({ Name = "Go", AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -14, 0.5, 0), Size = UDim2.fromOffset(9, 14), Thickness = 2.5, Color = C.Muted, ZIndex = 13, Parent = button })
 	end
 	if row.Unread then
@@ -762,10 +883,10 @@ local function buildRow(index: number, row: Row, y: number, width: number): (Tex
 		})
 	end
 	button.MouseEnter:Connect(function()
-		TweenService:Create(button, QUICK, { BackgroundTransparency = 0.78 }):Play()
+		TweenService:Create(button, QUICK, { BackgroundTransparency = if card then 0.9 else 0.78 }):Play()
 	end)
 	button.MouseLeave:Connect(function()
-		TweenService:Create(button, QUICK, { BackgroundTransparency = 0.9 }):Play()
+		TweenService:Create(button, QUICK, { BackgroundTransparency = rest }):Play()
 	end)
 	button.Activated:Connect(function()
 		rowFocus = index
@@ -790,11 +911,64 @@ function Phone.showScreen(name: string, title: string, list: { Row }, empty: str
 	Theme.setText(parts.AppTitle, title)
 	local width = HudLayout.current().Items.PhoneOpen.Size.X - 18
 	local y = 6
-	for i, row in list do
-		local button, tall = buildRow(i, row, y, width)
-		table.insert(parts.Rows, button)
-		y += tall + 8
+	local card: Frame? = nil
+	local cardY, inCard = 0, 0
+	local section: string? = nil
+	local function closeCard()
+		if card then
+			card.Size = UDim2.fromOffset(width - 20, inCard)
+			y = cardY + inCard + 8
+			card = nil
+		end
 	end
+	for i, row in list do
+		if row.Section then
+			if row.Section ~= section or not card then
+				closeCard()
+				section = row.Section
+				y += if i > 1 then 10 else 0
+				local header = Theme.label({
+					Name = "Section",
+					Position = UDim2.fromOffset(22, y),
+					Size = UDim2.new(1, -44, 0, 18),
+					Font = Theme.FontBold,
+					TextSize = 12,
+					Text = string.upper(row.Section :: string),
+					TextColor3 = C.Muted,
+					ZIndex = 12,
+					Parent = parts.AppList,
+				})
+				table.insert(parts.Cards, header)
+				y += 22
+				cardY, inCard = y, 0
+				card = create("Frame", {
+					Name = "Card",
+					Position = UDim2.fromOffset(10, y),
+					Size = UDim2.fromOffset(width - 20, 0),
+					BackgroundColor3 = Color3.new(1, 1, 1),
+					BackgroundTransparency = 0.9,
+					BorderSizePixel = 0,
+					ClipsDescendants = true,
+					ZIndex = 11,
+					Parent = parts.AppList,
+				}, { corner(16), create("UIStroke", { Color = Color3.new(1, 1, 1), Transparency = 0.88, Thickness = 1 }) })
+				table.insert(parts.Cards, card :: Frame)
+			elseif inCard > 0 then
+				-- raya fina entre filas de la misma tarjeta
+				create("Frame", { Name = "Divider", Position = UDim2.fromOffset(if row.Icon then 58 else 14, inCard), Size = UDim2.new(1, -(if row.Icon then 58 else 14), 0, 1), BackgroundColor3 = Color3.new(1, 1, 1), BackgroundTransparency = 0.88, BorderSizePixel = 0, ZIndex = 13, Parent = card })
+			end
+			local button, tall = buildRow(i, row, inCard, width, card)
+			table.insert(parts.Rows, button)
+			inCard += tall
+		else
+			closeCard()
+			section = nil
+			local button, tall = buildRow(i, row, y, width)
+			table.insert(parts.Rows, button)
+			y += tall + 8
+		end
+	end
+	closeCard()
 	if #list == 0 and empty then
 		local note = Theme.label({ Name = "Empty", Position = UDim2.fromOffset(20, 30), Size = UDim2.new(1, -40, 0, 60), Text = empty, TextColor3 = C.Muted, TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 12, Parent = parts.AppList })
 		table.insert(parts.Rows, note :: any)

@@ -940,10 +940,31 @@ check(ran.Extra == 1 and not CommandMenu.isPhoneOpen(), "Cada app hace lo mismo 
 peek.Activated:Fire()
 appTile("Menu").Activated:Fire()
 local appScreen = body.Screen.App
-check(appScreen.Visible and appScreen.Header.Title.Text == "Ajustes" and textOf(appScreen, "Música: sí"), "Ajustes se abre DENTRO del teléfono, con las opciones del menú")
-appScreen.List.Row1.Activated:Fire()
-check(textOf(appScreen, "Música: no") and CommandMenu.isPhoneOpen(), "Tocar una opción la cambia («🔇 Música: no») sin cerrar el teléfono")
+local musicRow = deep(appScreen, "Row1")
+check(appScreen.Visible and appScreen.Header.Title.Text == "Ajustes" and textOf(appScreen, "Música") and textOf(appScreen, "SONIDO") and musicRow and musicRow.Parent.Name == "Card", "Ajustes se abre DENTRO del teléfono, por secciones (SONIDO) en tarjetas, con las opciones del menú")
+check(musicRow and musicRow.Switch and musicRow.Switch:GetAttribute("On") == true and not textOf(appScreen, "Música: sí"), "Sí/no es un interruptor (encendido), no un texto «Música: sí»")
+musicRow.Activated:Fire()
+musicRow = deep(appScreen, "Row1")
+check(musicRow and musicRow.Switch:GetAttribute("On") == false and CommandMenu.isPhoneOpen(), "Tocarla apaga el interruptor sin cerrar el teléfono")
 check(textOf(playerGui.HudPopups.Menu, "Música: no"), "Y la ventana MENÚ dice lo mismo")
+do
+	-- Cómo se ven las opciones de verdad (Main.client) en Ajustes
+	local SettingsRows = loadModule("src/client/Commands/SettingsRows")
+	local noop = function()
+		return ""
+	end
+	local rows, _, kinds = SettingsRows.build({
+		{ Text = "📖 Mi historia", Order = 0, Press = noop },
+		{ Text = "🔊 Música: sí", Order = 1, Press = noop },
+		{ Text = "🔕 Sonidos: no", Order = 2, Press = noop },
+		{ Text = "👕 Ropa: mi avatar de Roblox", Order = 3, Press = noop },
+		{ Text = "✨ Gráficos: Auto (Alto)", Order = 3.3, Press = noop },
+		{ Text = "⚠️ Se borra la partida. Pulsa otra vez", Order = 4, Press = noop },
+	}, "Auto")
+	check(rows[1].Label == "Música" and rows[1].Switch == true and rows[2].Label == "Sonidos" and rows[2].Switch == false and rows[1].Section == "Sonido", "Sonido primero: Música y Sonidos con interruptor (sin emoji ni «: sí»)")
+	check(rows[3].Label == "Gráficos" and kinds[3] == "Graphics" and rows[3].Selected == 1 and #rows[3].Segments == 4 and rows[3].Detail:find("Alto") ~= nil, "Gráficos: selector Auto · Bajo · Medio · Alto (y lo que usa ahora el Auto)")
+	check(rows[4].Selected == 2 and rows[5].Action and rows[6].Danger and rows[6].Label == "Empezar una vida nueva" and rows[6].Detail:find("Pulsa otra vez") ~= nil, "Ropa con selector; Mi historia con flecha; la vida nueva en rojo, al final, y pidiendo confirmación")
+end
 appScreen.Header.Back.Activated:Fire()
 check(not appScreen.Visible and body.Screen.Home.Visible and CommandMenu.isPhoneOpen(), "‹ vuelve al inicio")
 appTile("Menu").Activated:Fire()

@@ -1296,9 +1296,11 @@ end
 
 -- Añade una opción al menú (la usa el cliente para la música, los sonidos, la ropa…). Sale en la app
 -- Ajustes del ValPhone (Hud.menuToggles) y en la ventana MENÚ de siempre.
-type MenuToggle = { Text: string, Order: number, Press: () -> string }
+-- current (opcional): devuelve el texto de ahora, por si el ajuste cambia por otro lado (Hud.syncMenuToggles).
+type MenuToggle = { Text: string, Order: number, Press: () -> string, Current: (() -> string)? }
 local menuToggles: { MenuToggle } = {}
-function Hud.addMenuToggle(text: string, order: number, callback: () -> string)
+local menuButtons: { [MenuToggle]: TextButton } = {}
+function Hud.addMenuToggle(text: string, order: number, callback: () -> string, current: (() -> string)?)
 	local content = menu:FindFirstChild("Content") :: Frame
 	local button = Theme.button({ Size = UDim2.new(1, 0, 0, 36), Text = text, TextSize = 14, TextWrapped = true, LayoutOrder = order, ZIndex = 31, Parent = content })
 	local entry: MenuToggle
@@ -1311,8 +1313,10 @@ function Hud.addMenuToggle(text: string, order: number, callback: () -> string)
 			button.Text = now
 			return now
 		end,
+		Current = current,
 	}
 	table.insert(menuToggles, entry)
+	menuButtons[entry] = button
 	button.Activated:Connect(function()
 		entry.Press()
 	end)
@@ -1325,6 +1329,22 @@ function Hud.menuToggles(): { MenuToggle }
 		return a.Order < b.Order
 	end)
 	return list
+end
+
+-- Vuelve a leer el texto de los ajustes que saben el suyo (p. ej. los gráficos elegidos en Ajustes)
+function Hud.syncMenuToggles()
+	for _, entry in menuToggles do
+		if entry.Current then
+			local ok, now = pcall(entry.Current)
+			if ok and type(now) == "string" then
+				entry.Text = now
+				local button = menuButtons[entry]
+				if button then
+					button.Text = now
+				end
+			end
+		end
+	end
 end
 
 -- Cierra la ventana MENÚ si está abierta (p. ej. al volver a ver el tutorial)

@@ -297,7 +297,7 @@ do
 		Perf.setChoice(Graphics.nextChoice(Perf.choice()))
 		Hud.toast("Info", Perf.choiceLabel())
 		return Perf.choiceLabel()
-	end)
+	end, Perf.choiceLabel)
 end
 
 -- Móvil: correr al empujar el joystick hasta el borde (sí por defecto)
