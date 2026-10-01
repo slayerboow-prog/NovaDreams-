@@ -7,8 +7,9 @@
 --              (fuera de una pelea, R3 sigue siendo la linterna)
 --   Móvil:     botones Ataque, Defensa (mantener), Esquivar y Fijar objetivo del racimo (UI/TouchLayout)
 --   Menú de comandos: Atacar (y en plena pelea: Defender y Huir)
--- Esquivar: un paso rápido (hacia donde vas, o hacia atrás) y un momento en que los golpes no te dan
--- (el servidor lo comprueba: CombatService).
+-- Esquivar: una voltereta por el suelo (hacia donde vas, o hacia delante si estás quieto; al huir, hacia
+-- atrás) con un momento en que los golpes no te dan (el servidor lo comprueba: CombatService). La
+-- voltereta (postura e impulso) es Controllers/RollMotion.
 -- Quien decide si el golpe entra es el servidor (CombatService); aquí solo se anima y se enseña:
 -- el golpe (animación y sonido), el número de daño, el destello rojo, el empujón y el K.O.
 -- Los disparos (WeaponService) llegan por aquí también ("Hit" con Weapon): número donde da la bala.
@@ -24,6 +25,7 @@ local Stages = require(ReplicatedStorage.Shared.LifeStory.Stages)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
 local ReactMotion = require(script.Parent.ReactMotion)
+local RollMotion = require(script.Parent.RollMotion)
 local PunchAnim = require(script.Parent.PunchAnim)
 local SoundFx = require(script.Parent.SoundFx)
 local CameraShake = require(script.Parent.CameraShake)
@@ -182,45 +184,28 @@ function CombatController.guard(seconds: number)
 	end)
 end
 
--- Esquivar: paso rápido hacia donde vas (o hacia atrás si estás quieto) con un instante sin recibir golpes
-function CombatController.dodge()
+-- Esquivar: una voltereta por el suelo (Controllers/RollMotion) hacia donde vas o, si estás quieto,
+-- hacia delante, con un instante sin recibir golpes (el servidor lo comprueba: CombatService)
+function CombatController.dodge(backwards: boolean?)
 	local humanoid, root = parts()
 	if not humanoid or not root or not CombatController.canAttack() then
 		return
 	end
 	local now = os.clock()
-	if now - lastDodge < Combat.DodgeCooldown then
+	if now - lastDodge < Combat.DodgeCooldown or RollMotion.isLocalRolling() then
 		return
+	end
+	local move = Vector3.new(humanoid.MoveDirection.X, 0, humanoid.MoveDirection.Z)
+	local look = Vector3.new(root.CFrame.LookVector.X, 0, root.CFrame.LookVector.Z)
+	local direction = if move.Magnitude > 0.1 then move.Unit elseif backwards then -look else look
+	if not RollMotion.roll(direction) then
+		return -- (en el aire, sentado, nadando…: ahora no se puede rodar)
 	end
 	lastDodge = now
 	if blocking then
 		CombatController.setBlocking(false)
 	end
-	local move = Vector3.new(humanoid.MoveDirection.X, 0, humanoid.MoveDirection.Z)
-	local direction = if move.Magnitude > 0.1 then move.Unit else -Vector3.new(root.CFrame.LookVector.X, 0, root.CFrame.LookVector.Z).Unit
-	-- Empujón corto con un LinearVelocity (el personaje lo mueve tu dispositivo)
-	local attachment = root:FindFirstChild("RootAttachment") :: Attachment?
-	if not attachment then
-		attachment = create("Attachment", { Name = "DodgeAttachment", Parent = root })
-	end
-	local push = create("LinearVelocity", {
-		Name = "Dodge",
-		Attachment0 = attachment,
-		RelativeTo = Enum.ActuatorRelativeTo.World,
-		VelocityConstraintMode = Enum.VelocityConstraintMode.Plane,
-		PrimaryTangentAxis = Vector3.new(1, 0, 0),
-		SecondaryTangentAxis = Vector3.new(0, 0, 1),
-		PlaneVelocity = Vector2.new(direction.X, direction.Z) * Combat.DodgeSpeed,
-		MaxForce = 60000,
-		Parent = root,
-	})
-	task.delay(Combat.DodgeTime, function()
-		push:Destroy()
-	end)
-	pcall(function()
-		ReactMotion.play(player.Character, "Dodge")
-	end)
-	SoundFx.play("Salto", 0.6, 1.4, root)
+	SoundFx.play("Salto", 0.6, 0.8, root)
 	Remote:FireServer("Dodge")
 	TouchLayout.refresh()
 end
@@ -228,7 +213,7 @@ end
 -- Huir: esquivar hacia atrás y soltar al fijado
 function CombatController.flee()
 	CombatController.setLock(nil)
-	CombatController.dodge()
+	CombatController.dodge(true)
 end
 
 ---------------------------------------------------------------------
@@ -511,6 +496,11 @@ end
 -- Controles
 ---------------------------------------------------------------------
 function CombatController.init()
+	-- La voltereta de esquivar (la tuya y la de los demás)
+	local okRoll, errRoll = pcall(RollMotion.init)
+	if not okRoll then
+		warn("[Combate] Voltereta: " .. tostring(errRoll))
+	end
 	Remote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Combat", 30) :: RemoteEvent
 	if not Remote then
 		warn("[Combate] No está el remoto Combat")

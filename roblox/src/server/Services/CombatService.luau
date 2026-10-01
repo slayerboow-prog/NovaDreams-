@@ -1,7 +1,8 @@
 -- CombatService: golpes entre jugadores (y a los personajes de tus misiones), siempre decidido aquí.
 --
 -- El cliente solo avisa: "Attack" (he pulsado golpear), "Block" (me defiendo / dejo de defenderme) y
--- "Dodge" (esquivo: un instante en que los golpes no me dan, con su pausa).
+-- "Dodge" (esquivo: la voltereta, un instante en que los golpes no me dan, con su pausa; pone el
+-- atributo "Roll" para que los demás vean rodar).
 -- El servidor comprueba todo (pausas entre golpes, distancia, que esté delante, quién puede recibir),
 -- calcula el daño (shared/Combat) y avisa a todos para que se vea y se oiga el golpe.
 --
@@ -419,6 +420,8 @@ function CombatService.init()
 				state.DodgeAt = now
 				state.Blocking = false
 				player:SetAttribute("Blocking", nil)
+				-- La voltereta la ven todos (Controllers/RollMotion la dibuja con esta hora del servidor)
+				player:SetAttribute("Roll", workspace:GetServerTimeNow())
 			end
 		end
 	end)

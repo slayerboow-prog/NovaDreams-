@@ -1242,7 +1242,7 @@ local function buildControls()
 		line(1, "flecha", "Pulgar izquierdo", "Movimiento: el joystick de abajo a la izquierda (hasta el borde: corres)")
 		line(2, "interactuar", "Pulgar derecho", "Cámara (arrastra) y acciones: los botones redondos")
 		line(3, "espada", "Ataque · Defensa", "Golpea (seguido = combo) · mantén el escudo para recibir menos daño")
-		line(4, "esquivar", "Esquivar · Saltar", "Evita un golpe con un paso rápido · salta y trepa muros bajos")
+		line(4, "esquivar", "Esquivar · Saltar", "Voltereta por el suelo para evitar un golpe · salta (también corriendo) y trepa muros bajos")
 		line(5, "hablar", "Interactuar", "Hablar, abrir, usar objetos y entrar en sitios (lo que tengas delante)")
 		line(6, "objetivo", "Fijar objetivo", "Miras siempre a quien tienes más cerca; otra vez para soltarlo")
 	else
