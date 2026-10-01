@@ -105,6 +105,7 @@ function Props.trafficLight(parent: Instance, cf: CFrame, armLength: number)
 		Parent = m,
 	})
 	Builder.decor({ Name = "Arm", Size = Vector3.new(0.4, 0.4, armLength), CFrame = cf * CFrame.new(0, 14.6, -armLength / 2), Color = S.Metal, Material = Enum.Material.Metal, Parent = m })
+	CityDetail.poleFoot(m, cf, S.Metal, 1.4) -- (pie de fundición: Kit/CityDetail)
 	local box = cf * CFrame.new(0, 13, -armLength + 1)
 	Builder.decor({ Name = "Box", Size = Vector3.new(1.4, 3.6, 1.2), CFrame = box, Color = Color3.fromRGB(28, 30, 32), Parent = m })
 	local lights = {

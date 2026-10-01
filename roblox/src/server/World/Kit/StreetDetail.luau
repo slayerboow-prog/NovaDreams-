@@ -20,6 +20,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Builder = require(script.Parent.Parent.Builder)
 local MetroAccess = require(script.Parent.MetroAccess)
 local Props = require(script.Parent.Props)
+local CityDetail = require(script.Parent.CityDetail)
 local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
 
 local StreetDetail = {}
@@ -194,6 +195,11 @@ Kinds.Sign = function(parent, cf, r)
 	solid(m, "SignPole", V3(0.25, 7, 0.25), cf * CFrame.new(0, 3.5, 0), rgb(150, 154, 160), Enum.Material.Metal)
 	local blue = r < 0.6
 	local plate = decor(m, "SignPlate", V3(1.8, 1.8, 0.1), cf * CFrame.new(0, 6.2, -0.1), if blue then rgb(30, 90, 190) else rgb(240, 240, 240))
+	-- Pie y abrazaderas de la placa (Kit/CityDetail)
+	CityDetail.poleFoot(m, cf, rgb(150, 154, 160), 0.8)
+	for _, y in { 5.7, 6.7 } do
+		CityDetail.clamp(m, cf * CFrame.new(0, y, -0.1), rgb(120, 124, 130))
+	end
 	Builder.sign(plate, if blue then "P\nZONA AZUL" else "🚚\nCARGA Y\nDESCARGA", Enum.NormalId.Front, if blue then Color3.new(1, 1, 1) else rgb(30, 90, 190))
 end
 

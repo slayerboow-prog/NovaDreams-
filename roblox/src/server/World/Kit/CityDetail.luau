@@ -7,7 +7,8 @@
 --     dintel y escalón.
 --   * Calle: desgaste del asfalto (parches, manchas de aceite y grietas finas) y rejillas en los
 --     alcorques de los árboles.
---   * Farolas: base con pie de fundición y tornapuntas bajo el brazo.
+--   * Farolas: base con pie de fundición y tornapuntas bajo el brazo; semáforos y señales con pie
+--     y abrazaderas.
 --
 -- Rendimiento: todo es decorativo (Builder.decor: sin colisiones ni consultas; los planos y pequeños
 -- sin sombra) y casi todo lleva la etiqueta CityDetail: con el nivel gráfico Bajo el cliente lo
@@ -230,6 +231,16 @@ function CityDetail.lamp(parent: Instance, cf: CFrame, metal: Color3)
 	-- Pie de fundición (más ancho abajo) y tornapuntas bajo el brazo
 	bit(parent, "LampFoot", V3(0.5, 1.7, 1.7), cf * CFrame.new(0, 0.25, 0) * CFrame.Angles(0, 0, math.rad(90)), metal:Lerp(Color3.new(0, 0, 0), 0.15), Enum.Material.Metal, { Shape = Enum.PartType.Cylinder })
 	bit(parent, "LampBrace", V3(0.2, 0.2, 2.4), cf * CFrame.new(0, 13.35, -0.85) * CFrame.Angles(math.rad(45), 0, 0), metal, Enum.Material.Metal)
+end
+
+-- Pie de un poste (semáforos y señales): disco de fundición a ras de acera
+function CityDetail.poleFoot(parent: Instance, cf: CFrame, metal: Color3, diameter: number)
+	bit(parent, "PoleFoot", V3(0.4, diameter, diameter), cf * CFrame.new(0, 0.2, 0) * CFrame.Angles(0, 0, math.rad(90)), metal:Lerp(Color3.new(0, 0, 0), 0.15), Enum.Material.Metal, { Shape = Enum.PartType.Cylinder })
+end
+
+-- Abrazadera de una placa a su poste (cf = centro de la placa; la placa mira a -Z, el poste detrás)
+function CityDetail.clamp(parent: Instance, cf: CFrame, metal: Color3)
+	bit(parent, "SignClamp", V3(0.5, 0.25, 0.35), cf * CFrame.new(0, 0, 0.15), metal, Enum.Material.Metal)
 end
 
 return CityDetail
