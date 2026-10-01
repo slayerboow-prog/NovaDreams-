@@ -274,7 +274,7 @@
       "Terrain": {
         "$className": "Terrain",
         "$properties": {
-          "Decoration": true
+          "Decoration": false
         }
       }
     },

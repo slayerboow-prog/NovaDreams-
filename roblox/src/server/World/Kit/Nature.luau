@@ -59,6 +59,7 @@ local function cluster(m: Instance, rng: Rng, center: Vector3, d: number, tone: 
 	if detail then
 		table.insert(tags, "LeafDetail")
 	end
+	block = false -- (los bloques girados se veían como cubos en el juego, v77: todo bolas)
 	local leaves = Builder.decor({
 		Name = "Leaves",
 		Shape = if block then Enum.PartType.Block else Enum.PartType.Ball,

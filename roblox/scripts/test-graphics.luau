@@ -439,7 +439,7 @@ end
 ---------------------------------------------------------------------
 print("Gráficos fase 1: césped 3D, árboles, cielo, suelo mojado y horizonte")
 ---------------------------------------------------------------------
-check(not T.Low.GrassBlades and T.Medium.GrassBlades and T.High.GrassBlades, "césped 3D (briznas del terreno) en Medio y Alto; en Bajo no")
+check(not T.Low.GrassBlades and not T.Medium.GrassBlades and not T.High.GrassBlades, "sin briznas de césped 3D en ningún nivel (asomaban por calles y aceras)")
 check(not T.Low.LeafDetail and T.Medium.LeafDetail and T.High.LeafDetail, "racimos de relleno de los árboles en Medio y Alto; en Bajo se esconden")
 check(not T.Low.WetGloss and T.Medium.WetGloss and T.High.WetGloss and not T.Low.FarRange and T.High.FarRange, "suelo mojado que refleja y sierra lejana en Medio y Alto")
 local detail = fs.readFile("src/client/Controllers/MaterialDetail.luau")

@@ -194,7 +194,7 @@ check(withRoots > #trees * 0.4 and withRoots < #trees, ("raíces en algunos árb
 check(minLeaves >= 8 and maxLeaves <= 16 and maxLeaves > minLeaves + 3, ("copa de %d a %d racimos según el tamaño"):format(minLeaves, maxLeaves))
 check(okLeaves and okTags, "racimos de LeafyGrass (la estación los pinta), sin colisión ni consultas, que se mecen (Sway + Pivot)")
 check(okShadow, "la copa echa sombra (casi todos los racimos)")
-check(blocks > 0 and balls > blocks, ("formas variadas: %d bolas y %d bloques girados"):format(balls, blocks))
+check(blocks == 0 and balls > 0, ("copa redonda: %d bolas y ningún bloque (se veían como cubos): %d"):format(balls, blocks))
 check(tones[1] >= 6, ("cada racimo con su tono de verde (como mínimo %d tonos por árbol)"):format(tones[1]))
 check(okDetail and okSilhouette, "el relleno lleva LeafDetail y sin él queda la silueta (núcleo, ramas y copete)")
 check(okNames, "solo piezas con nombre conocido (Trunk, Branch, Root, Leaves)")
