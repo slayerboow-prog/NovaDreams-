@@ -75,7 +75,7 @@ function BattlePassLayout.compute(viewport: Vector2, touch: boolean, scale: numb
 	L.Close = rect(W - 10 - closeW, math.floor((topH - closeW) / 2), closeW, closeW)
 	local moneyW = if touch then 150 else 170
 	L.Money = rect(L.Close.X - 10 - moneyW, math.floor((topH - L.Button) / 2), moneyW, L.Button)
-	local tabW = if touch then 124 else 132
+	local tabW = if touch then 132 else 132
 	local tabsW = tabW * 3 + 8 * 2
 	L.TabWidth = tabW
 	L.Tabs = rect(L.Money.X - 14 - tabsW, math.floor((topH - L.Button) / 2), tabsW, L.Button)
@@ -95,7 +95,7 @@ function BattlePassLayout.compute(viewport: Vector2, touch: boolean, scale: numb
 	local heroMin = if touch then 150 else 200
 	local rowsSpace = ch - footH - heroMin - 2 * gap
 	local cardH = math.clamp(math.floor((rowsSpace - lineH - scrollBar) / 2), 64, if touch then 118 else 128)
-	local cardW = if touch then math.max(84, math.min(104, cardH)) else math.max(96, math.min(122, cardH))
+	local cardW = if touch then math.max(100, math.min(108, cardH)) else math.max(100, math.min(122, cardH))
 	local rowsH = 2 * cardH + lineH + scrollBar
 	local heroH = math.max(heroMin, ch - footH - rowsH - 2 * gap)
 	local compact = heroH < 230
@@ -112,35 +112,38 @@ function BattlePassLayout.compute(viewport: Vector2, touch: boolean, scale: numb
 	-- Dentro de Info
 	do
 		local pad = if touch then 8 else 12
-		local emblem = if compact then math.min(heroH - 2 * pad - L.Button - 8, 76) else math.min(118, math.floor(heroH * 0.42))
+		local emblem = if compact then math.min(heroH - 2 * pad - L.Button - 8, 76) else math.min(130, math.floor(heroH * 0.4))
 		emblem = math.max(emblem, 48)
 		local tx = pad + emblem + 12
 		local tw = infoW - tx - pad
 		local I: { [string]: any } = {}
 		I.Emblem = rect(pad, pad, emblem, emblem)
 		local kickerH = if touch then 18 else 20
-		local titleH = if compact then (if touch then 30 else 34) else 46
 		local y = pad
 		I.Kicker = rect(tx, y, tw, kickerH)
 		y += kickerH + 2
+		if not compact then
+			-- (como la referencia: dos líneas grandes, «PASE DE TEMPORADA» en blanco y el nombre en oro)
+			I.PassTitle = rect(tx, y, tw, 40)
+			y += 40 + 2
+		end
+		local titleH = if compact then (if touch then 30 else 34) else 52
 		I.Name = rect(tx, y, tw, titleH)
 		y += titleH + 2
-		local subH = if compact then (if touch then 18 else 20) else 40
-		local subX = if compact then tx else pad
-		local subY = if compact then y else math.max(y, pad + emblem + 6)
-		I.Subtitle = rect(subX, subY, infoW - subX - pad, subH)
 		local buyH = if touch then L.Button else (if compact then 40 else 48)
 		local bottom = heroH - pad
 		if compact then
-			-- Cuenta atrás y botón en una fila, abajo
-			local countW = math.floor((infoW - 2 * pad) * 0.42)
+			-- Cuenta atrás y botón en una fila, abajo; el subtítulo (hasta dos líneas) encima
+			local countW = math.floor((infoW - 2 * pad) * 0.46)
 			I.Countdown = rect(pad, bottom - buyH, countW, buyH)
 			I.Buy = rect(pad + countW + 8, bottom - buyH, infoW - 2 * pad - countW - 8, buyH)
+			I.Subtitle = rect(tx, y, infoW - tx - pad, math.max(16, I.Countdown.Y - 4 - y))
 		else
 			local countH = 36
-			I.Buy = rect(pad, bottom - buyH, math.min(infoW - 2 * pad, 380), buyH)
-			I.Countdown = rect(pad, I.Buy.Y - 8 - countH, math.min(infoW - 2 * pad, 320), countH)
-			I.Subtitle.H = math.max(18, math.min(I.Subtitle.H, I.Countdown.Y - 6 - I.Subtitle.Y))
+			I.Buy = rect(pad, bottom - buyH, math.min(infoW - 2 * pad, 400), buyH)
+			I.Countdown = rect(pad, I.Buy.Y - 8 - countH, math.min(infoW - 2 * pad, 330), countH)
+			local subY = math.max(y, pad + emblem) + 6
+			I.Subtitle = rect(pad, subY, infoW - 2 * pad, math.max(18, math.min(42, I.Countdown.Y - 6 - subY)))
 		end
 		Hero.InfoParts = I
 	end
@@ -173,7 +176,7 @@ function BattlePassLayout.compute(viewport: Vector2, touch: boolean, scale: numb
 	L.Hero = Hero
 
 	-- Filas
-	local laneW = if touch then 112 else 168
+	local laneW = if touch then 150 else 168
 	local rowsY = heroH + gap
 	local scrollX = laneW + gap
 	local Rows: { [string]: any } = {
@@ -222,13 +225,23 @@ function BattlePassLayout.compute(viewport: Vector2, touch: boolean, scale: numb
 		local premiumW = math.floor(cw * (if touch then 0.38 else 0.36))
 		Fo.Premium = rect(cw - premiumW, 0, premiumW, footH)
 		local claimW = if touch then 150 else 170
-		local jumpW = if touch then 130 else 150
-		Fo.ClaimAll = rect(Fo.Premium.X - 10 - claimW, by, claimW, btn)
-		Fo.Jump = rect(Fo.ClaimAll.X - 8 - jumpW, by, jumpW, btn)
+		local jumpW = if touch then 120 else 150
 		local xpX = hex + 10
-		Fo.Xp = rect(xpX, 0, math.max(60, Fo.Jump.X - 12 - xpX), footH)
+		if touch then
+			-- (móvil: la XP con su ancho justo y la caja del premium se queda con el resto)
+			Fo.Xp = rect(xpX, 0, 170, footH)
+			Fo.Jump = rect(Fo.Xp.X + Fo.Xp.W + 12, by, jumpW, btn)
+			Fo.ClaimAll = rect(Fo.Jump.X + jumpW + 8, by, claimW, btn)
+			local px = Fo.ClaimAll.X + claimW + 10
+			Fo.Premium = rect(px, 0, cw - px, footH)
+			premiumW = Fo.Premium.W
+		else
+			Fo.ClaimAll = rect(Fo.Premium.X - 10 - claimW, by, claimW, btn)
+			Fo.Jump = rect(Fo.ClaimAll.X - 8 - jumpW, by, jumpW, btn)
+			Fo.Xp = rect(xpX, 0, math.max(60, Fo.Jump.X - 12 - xpX), footH)
+		end
 		-- Dentro de la caja del premium
-		local bw = if touch then 150 else 160
+		local bw = if touch then 164 else 160
 		Fo.PremiumButton = rect(premiumW - 8 - bw, math.floor((footH - btn) / 2), bw, btn)
 		Fo.PremiumIcon = rect(8, math.floor((footH - 24) / 2), 24, 24)
 		Fo.PremiumText = rect(38, 4, Fo.PremiumButton.X - 8 - 38, footH - 8)
@@ -287,8 +300,10 @@ end
 -- Las piezas de dentro de la cabecera (para las pruebas)
 function BattlePassLayout.heroParts(L: { [string]: any }): { { Name: string, Rect: Rect } }
 	local out = {}
-	for _, key in { "Emblem", "Kicker", "Name", "Subtitle", "Countdown", "Buy" } do
-		table.insert(out, { Name = "Info." .. key, Rect = L.Hero.InfoParts[key] })
+	for _, key in { "Emblem", "Kicker", "PassTitle", "Name", "Subtitle", "Countdown", "Buy" } do
+		if L.Hero.InfoParts[key] then
+			table.insert(out, { Name = "Info." .. key, Rect = L.Hero.InfoParts[key] })
+		end
 	end
 	return out
 end
