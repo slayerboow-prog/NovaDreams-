@@ -1623,6 +1623,8 @@ function InteriorService.init()
 		end
 	end
 	print(("[Interiores] %d edificios visitables"):format(#list))
+	-- Ya están las claves (salen de la caja de cada edificio): World/Buildings3D puede cambiar fachadas
+	workspace:SetAttribute("InteriorsScanned", true)
 
 	Remote.OnServerEvent:Connect(function(player: Player, kind: any, value: any)
 		if kind == "Floor" and type(value) == "number" then
