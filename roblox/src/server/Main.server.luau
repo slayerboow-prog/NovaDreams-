@@ -117,6 +117,17 @@ task.spawn(function()
 		warn("[MeshLibrary] " .. tostring(err))
 	end
 end)
+-- 4c) Bloques de pisos y rascacielos con edificios 3D de verdad (Modular Building Kit – Modern City,
+--     World/Buildings3D) y los MaterialVariant de Modern City en MaterialService. Espera a que
+--     InteriorService haya mirado los edificios. Si la carga falla, se quedan los bloques de siempre.
+task.spawn(function()
+	local ok, err = pcall(function()
+		require(World.Buildings3D).start(segments)
+	end)
+	if not ok then
+		warn("[Buildings3D] " .. tostring(err))
+	end
+end)
 
 local order = {
 	"DataService",

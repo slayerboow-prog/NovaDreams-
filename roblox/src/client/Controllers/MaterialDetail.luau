@@ -15,6 +15,8 @@
 --   * Ciudad: las tejas con relieve, cornisas, zócalos, portales, el desgaste del asfalto y los
 --     adornos de las farolas (etiqueta CityDetail, Kit/CityDetail) también se esconden en Bajo:
 --     queda la ciudad lisa de antes.
+--   * Edificios 3D (World/Buildings3D): en Bajo se esconden sus mallas (etiqueta BuildingMesh) y se
+--     enseña la caja de siempre (BuildingShell, invisible en Medio y Alto): no pesa más que antes.
 
 local CollectionService = game:GetService("CollectionService")
 local MaterialService = game:GetService("MaterialService")
@@ -66,10 +68,16 @@ local function applyGrass(tier: Graphics.Tier)
 end
 
 -- Detalle que el nivel Bajo esconde (solo en esta pantalla): etiqueta -> campo del nivel
-local DETAIL_TAGS = { LeafDetail = "LeafDetail", CityDetail = "CityDetail" }
-local hidden: { [string]: boolean } = { LeafDetail = false, CityDetail = false }
-local function applyDetail(part: Instance, hide: boolean)
-	if part:IsA("BasePart") then
+local DETAIL_TAGS = { LeafDetail = "LeafDetail", CityDetail = "CityDetail", BuildingMesh = "CityDetail", BuildingShell = "CityDetail" }
+local hidden: { [string]: boolean } = { LeafDetail = false, CityDetail = false, BuildingMesh = false, BuildingShell = false }
+local function applyDetail(part: Instance, hide: boolean, tag: string?)
+	if not part:IsA("BasePart") then
+		return
+	end
+	if tag == "BuildingShell" then
+		-- (al revés: la caja de antes solo se ve cuando se esconde el detalle; cambio local)
+		part.Transparency = if hide then 0 else 1
+	else
 		part.LocalTransparencyModifier = if hide then 1 else 0
 	end
 end
@@ -85,7 +93,7 @@ function MaterialDetail.apply(tierName: Graphics.TierName)
 		if hide ~= hidden[tag] then
 			hidden[tag] = hide
 			for _, part in CollectionService:GetTagged(tag) do
-				applyDetail(part, hide)
+				applyDetail(part, hide, tag)
 			end
 		end
 	end
@@ -108,7 +116,7 @@ function MaterialDetail.init()
 	for tag in DETAIL_TAGS do
 		CollectionService:GetInstanceAddedSignal(tag):Connect(function(part)
 			if hidden[tag] then
-				applyDetail(part, true)
+				applyDetail(part, true, tag)
 			end
 		end)
 	end
