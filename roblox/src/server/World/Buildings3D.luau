@@ -71,10 +71,10 @@ Buildings3D.MaxCopies = 100 -- prefabs colocados en total
 Buildings3D.MaxParts = 30000 -- piezas de malla en total
 Buildings3D.Batch = 3 -- bloques por tanda (luego task.wait)
 Buildings3D.MaxRow = 3 -- prefabs en fila como mucho en un bloque largo
-Buildings3D.MinScale = 0.5 -- más pequeño, las puertas se quedan de juguete
-Buildings3D.MaxScale = 1.5 -- más grande, las ventanas parecen de gigante
+Buildings3D.MinScale = 0.6 -- más pequeño, las puertas se quedan de juguete
+Buildings3D.MaxScale = 1.4 -- más grande, las ventanas parecen de gigante
 Buildings3D.MinFill = 0.75 -- el prefab tiene que llenar al menos esto del ancho de la fachada
-Buildings3D.HeightRange = { 0.55, 2.1 } -- altura del prefab / altura del bloque permitida
+Buildings3D.HeightRange = { 0.55, 1.9 } -- altura del prefab / altura del bloque permitida
 Buildings3D.Fit = 0.98 -- (un pelín más pequeño que la huella: nunca sale a la acera)
 Buildings3D.ShadowSize = 10 -- solo dan sombra las piezas que miden al menos esto
 Buildings3D.ScanWait = 180 -- segundos esperando a InteriorService como mucho
@@ -419,22 +419,22 @@ function Buildings3D.info(model: Instance, segments: { Segment }?): Info?
 			if not main or area > main.Size.X * main.Size.Z then
 				main = child
 			end
-			top = math.max(top, child.Position.Y + child.Size.Y / 2)
+			top = math.max(top, child.CFrame.Position.Y + child.Size.Y / 2)
 		end
 	end
 	if not main then
 		return nil
 	end
 	local body = main :: BasePart
-	local bottom = body.Position.Y - body.Size.Y / 2
-	local center = Vector3.new(body.Position.X, bottom, body.Position.Z)
+	local bottom = body.CFrame.Position.Y - body.Size.Y / 2
+	local center = Vector3.new(body.CFrame.Position.X, bottom, body.CFrame.Position.Z)
 	-- Fachada: la cara de la puerta (o del escaparate…)
 	local localFront: Vector3? = nil
 	local why = ""
 	for _, name in HINTS do
 		local hint = model:FindFirstChild(name)
 		if hint and hint:IsA("BasePart") then
-			local rel = body.CFrame:VectorToObjectSpace(hint.Position - body.Position)
+			local rel = body.CFrame:VectorToObjectSpace(hint.CFrame.Position - body.CFrame.Position)
 			if Vector3.new(rel.X, 0, rel.Z).Magnitude > 1 then
 				localFront = snap(rel)
 				why = name
@@ -669,7 +669,7 @@ end
 local function centerOf(model: Instance): Vector3
 	for _, child in model:GetChildren() do
 		if child:IsA("BasePart") and SHELLS[child.Name] then
-			return child.Position
+			return child.CFrame.Position
 		end
 	end
 	local list = parts(model)

@@ -103,7 +103,7 @@ local function prefab(parent: any, name: string, dims: { number }, front: string
 	local m = Instance.new("Model")
 	m.Name = name
 	local x, y, z = dims[1], dims[2], dims[3]
-	local wall = mesh(m, "Bldg_Wall_Low_A", Vector3.new(x - 1, y, z - 1), OFFSET + Vector3.new(0, y / 2, 0))
+	local wall = mesh(m, "Bldg_Wall_Low_A", Vector3.new(x, y, z), OFFSET + Vector3.new(0, y / 2, 0))
 	pcall(function()
 		(wall :: any).MaterialVariant = "Plaster_A"
 	end)
@@ -289,7 +289,7 @@ for name, t in byName do
 end
 check(frontsOk, "fachada de cada prefab: la de los toldos y la puerta (C mira a +X; el resto a -Z)")
 check(byName.C and math.abs(byName.C.FW - 70) < 0.01 and math.abs(byName.C.FD - 55) < 0.01, "C: ancho de fachada 70 y fondo 55 (mira a +X)")
-check(byName.A.Parts == 5 and byName.A.H > 93 and byName.A.H < 95, ("piezas y alto medidos (A: %d piezas, %.0f de alto)"):format(byName.A.Parts, byName.A.H))
+check(byName.A.Parts == 6 and byName.A.H > 93 and byName.A.H < 95, ("piezas y alto medidos (A: %d piezas, %.0f de alto)"):format(byName.A.Parts, byName.A.H))
 -- Materiales
 local nVariants, clash = 0, false
 local Textures = load("src/shared/Textures.luau", env({}))
@@ -380,7 +380,7 @@ local function verify(model: any, frame: any, w: number, d: number, bottom: numb
 	-- (frame: -Z = fachada) los toldos y la puerta del prefab, delante; la escalera de incendios, detrás
 	for _, p in model:GetDescendants() do
 		if isMesh(p) then
-			local z = frame:PointToObjectSpace(p.Position).Z
+			local z = frame:PointToObjectSpace(p.CFrame.Position).Z
 			if (p.Name == "Bldg_Addon_Awning_A" or p.Name == "Bldg_Door_A") and z > -d / 2 + 5 then
 				r.Front = false
 			elseif p.Name == "Bldg_Addon_FireEscape_A" and z < 0 then
