@@ -131,6 +131,17 @@ task.spawn(function()
 		warn("[MeshLibrary] " .. tostring(err))
 	end
 end)
+-- 4b2) Talleres mecánicos con el «Realistic Autoservice Props Pack» (4ª tanda de Sebastián, revisado
+--      limpio: World/WorkshopProps): grúa de motor, gatos, caballetes, foco… en cada sala de taller.
+--      Si no carga, los talleres se quedan como estaban.
+task.spawn(function()
+	local ok, err = pcall(function()
+		require(World.WorkshopProps).start()
+	end)
+	if not ok then
+		warn("[WorkshopProps] " .. tostring(err))
+	end
+end)
 -- 4c) Bloques de pisos y rascacielos con edificios 3D de verdad (Modular Building Kit – Modern City,
 --     World/Buildings3D) y los MaterialVariant de Modern City en MaterialService. Espera a que
 --     InteriorService haya mirado los edificios. Si la carga falla, se quedan los bloques de siempre.
