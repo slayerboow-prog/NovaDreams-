@@ -20,6 +20,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Builder = require(script.Parent.Parent.Builder)
 local Palette = require(script.Parent.Palette)
 local Props = require(script.Parent.Props)
+local PlaneModel = require(script.Parent.PlaneModel)
 local Plan = require(ReplicatedStorage.Shared.Airport)
 
 local AirportKit = {}
@@ -116,102 +117,6 @@ local function wallX(parent: Instance, name: string, x0: number, x1: number, z: 
 	end
 end
 
----------------------------------------------------------------------
--- Aviones de piezas (estilo de Kit/Rides): cf = a ras de suelo (las ruedas), el morro mira a -Z
----------------------------------------------------------------------
-type PlaneOptions = { Static: boolean? }
-
-local function planeParts(kind: string, color: Color3, cf: CFrame, m: Model, opts: PlaneOptions?)
-	local spec = Plan.Kinds[kind]
-	local static = opts and opts.Static
-	local function at(x: number, y: number, z: number): CFrame
-		return cf * CFrame.new(x, y, z)
-	end
-	local function solid(name: string, size: Vector3, c: CFrame, col: Color3, material: Enum.Material?, class: string?): BasePart
-		return Builder.part({ ClassName = class, Name = name, Size = size, CFrame = c, Color = col, Material = material or Enum.Material.SmoothPlastic, Parent = m })
-	end
-	local function bit(name: string, size: Vector3, c: CFrame, col: Color3, material: Enum.Material?, class: string?, shape: Enum.PartType?): BasePart
-		return Builder.decor({ ClassName = class, Name = name, Size = size, CFrame = c, Color = col, Material = material or Enum.Material.SmoothPlastic, Shape = shape, Parent = m })
-	end
-	local function wheel(x: number, z: number, r: number)
-		bit("Wheel", Vector3.new(0.9, r * 2, r * 2), at(x, r, z), DARK, Enum.Material.Rubber, nil, Enum.PartType.Cylinder)
-	end
-	local root = solid("Root", Vector3.new(if kind == "Avion" then 8 else 3.6, 0.6, if kind == "Avion" then 44 else 9), Plan.rootCFrame(kind, cf), rgb(120, 124, 130), Enum.Material.DiamondPlate)
-	m.PrimaryPart = root
-	local seats = {}
-	if kind == "Avion" then
-		-- Fuselaje redondo, morro, cola levantada, alas en flecha con motores, estabilizadores y deriva
-		local body = bit("Fuselage", Vector3.new(46, 10, 10), at(0, 8, -1) * CFrame.Angles(0, math.rad(90), 0), WHITE, Enum.Material.SmoothPlastic, nil, Enum.PartType.Cylinder)
-		body.CastShadow = true
-		bit("Nose", Vector3.new(10, 10, 10), at(0, 8, -24), WHITE, nil, nil, Enum.PartType.Ball)
-		bit("Cockpit", Vector3.new(5.6, 1.4, 2.2), at(0, 10.6, -27.2) * CFrame.Angles(math.rad(-38), 0, 0), DARK, Enum.Material.Glass)
-		bit("Tail", Vector3.new(10, 10, 14), at(0, 8, 29) * CFrame.Angles(math.pi, 0, 0), WHITE, nil, "WedgePart")
-		bit("Windows", Vector3.new(10.15, 1.1, 36), at(0, 9.2, -3), DARK, Enum.Material.Glass)
-		bit("Stripe", Vector3.new(10.2, 0.8, 44), at(0, 6.4, -1), color)
-		bit("Door", Vector3.new(0.2, 5, 2.6), at(-5.02, 7.6, -17), rgb(190, 192, 196))
-		for _, side in { -1, 1 } do
-			local sweep = math.rad(15) * -side
-			solid("Wing", Vector3.new(26, 0.8, 11), at(side * 17.2, 5.4, 4.5) * CFrame.Angles(0, sweep, 0), WHITE, Enum.Material.Metal)
-			bit("WingTip", Vector3.new(0.6, 3, 3), at(side * 29.4, 6.8, 8.2), color)
-			bit("Engine", Vector3.new(8, 3.6, 3.6), at(side * 11, 3.2, 0.5) * CFrame.Angles(0, math.rad(90), 0), rgb(214, 216, 222), Enum.Material.Metal, nil, Enum.PartType.Cylinder)
-			bit("Intake", Vector3.new(0.2, 3, 3), at(side * 11, 3.2, -3.6) * CFrame.Angles(0, math.rad(90), 0), DARK, nil, nil, Enum.PartType.Cylinder)
-			bit("Stabilizer", Vector3.new(9, 0.5, 5), at(side * 8.5, 11.6, 32) * CFrame.Angles(0, math.rad(20) * -side, 0), WHITE, Enum.Material.Metal)
-			bit("NavLight", Vector3.new(0.6, 0.6, 0.6), at(side * 29.6, 5.4, 7.8), if side < 0 then rgb(255, 40, 40) else rgb(40, 255, 90), Enum.Material.Neon)
-			-- Tren principal: pata y dos ruedas
-			bit("Strut", Vector3.new(0.6, 3, 0.6), at(side * 4, 2.1, 4), METAL, Enum.Material.Metal)
-			wheel(side * 3.3, 4, 0.9)
-			wheel(side * 4.7, 4, 0.9)
-		end
-		bit("Fin", Vector3.new(0.8, 11, 9), at(0, 18, 32) * CFrame.Angles(math.rad(25), 0, 0), color)
-		bit("Beacon", Vector3.new(0.7, 0.5, 0.7), at(0, 13.2, 0), rgb(255, 40, 40), Enum.Material.Neon)
-		bit("NoseStrut", Vector3.new(0.5, 2.6, 0.5), at(0, 2, -20), METAL, Enum.Material.Metal)
-		wheel(0, -20, 0.8)
-		-- Cabina de pasajeros: 6 filas de 2 asientos mirando al morro
-		for row = 0, 5 do
-			for _, x in { -2.2, 2.2 } do
-				local z = -14 + row * 5
-				table.insert(seats, { x, z })
-			end
-		end
-	else
-		-- Avioneta de ala alta: cabina, capó con hélice, cola, ala con puntas de color
-		bit("Cabin", Vector3.new(4.6, 4.2, 12), at(0, 4.6, -1), WHITE)
-		bit("Windows", Vector3.new(4.7, 1.5, 6), at(0, 5.6, -2), DARK, Enum.Material.Glass)
-		bit("Stripe", Vector3.new(4.7, 0.6, 12.1), at(0, 3.9, -1), color)
-		bit("Cowl", Vector3.new(4, 3.4, 4), at(0, 4.4, -9), WHITE)
-		bit("Spinner", Vector3.new(1.6, 1.6, 1.6), at(0, 4.4, -11.2), color, nil, nil, Enum.PartType.Ball)
-		bit("Propeller", Vector3.new(0.4, 7, 0.5), at(0, 4.4, -11.5), DARK)
-		bit("Boom", Vector3.new(2.8, 3.2, 11), at(0, 5.1, 10.5) * CFrame.Angles(math.pi, 0, 0), WHITE, nil, "WedgePart")
-		bit("Fin", Vector3.new(0.5, 5, 4), at(0, 8.6, 14.6) * CFrame.Angles(math.rad(20), 0, 0), color)
-		bit("Stabilizer", Vector3.new(11, 0.4, 3), at(0, 6.8, 15), WHITE)
-		solid("Wing", Vector3.new(34, 0.6, 5), at(0, 7, -2.5), WHITE, Enum.Material.Metal)
-		for _, side in { -1, 1 } do
-			bit("WingTip", Vector3.new(2, 0.62, 5.02), at(side * 16, 7, -2.5), color)
-			bit("NavLight", Vector3.new(0.5, 0.5, 0.5), at(side * 17.1, 7, -2.5), if side < 0 then rgb(255, 40, 40) else rgb(40, 255, 90), Enum.Material.Neon)
-			bit("Strut", Vector3.new(0.4, 2, 0.4), at(side * 3, 1.6, -1), METAL, Enum.Material.Metal)
-			wheel(side * 3.2, -1, 0.8)
-		end
-		bit("NoseStrut", Vector3.new(0.4, 1.6, 0.4), at(0, 1.6, -8.5), METAL, Enum.Material.Metal)
-		wheel(0, -8.5, 0.7)
-		for _, z in { -3.6, 0.4 } do
-			for _, x in { -1.1, 1.1 } do
-				table.insert(seats, { x, z })
-			end
-		end
-	end
-	if static then
-		return root
-	end
-	for i, s in seats do
-		local seat = solid("Seat", Vector3.new(1.8, 0.5, 1.8), at(s[1], spec.FloorY + 0.9, s[2]), rgb(40, 70, 130), Enum.Material.Fabric, "Seat")
-		seat.CanTouch = false -- (solo se sienta quien embarca con billete: FlightService)
-		seat:SetAttribute("SeatIndex", i)
-		seat:AddTag("PlaneSeat")
-		bit("SeatBack", Vector3.new(1.8, 2.4, 0.4), at(s[1], spec.FloorY + 2.2, s[2] + 1.05), rgb(34, 58, 110), Enum.Material.Fabric)
-	end
-	return root
-end
-
 -- Avión que vuela (FlightService lo mueve): siempre cargado entero en cada pantalla
 function AirportKit.plane(parent: Instance, plane: { [string]: any }, cf: CFrame): Model
 	local m = Instance.new("Model")
@@ -224,7 +129,38 @@ function AirportKit.plane(parent: Instance, plane: { [string]: any }, cf: CFrame
 		(m :: any).ModelStreamingMode = Enum.ModelStreamingMode.Persistent
 	end)
 	m.Parent = parent
-	planeParts(plane.Kind, plane.Color, cf, m)
+	PlaneModel.build(plane.Kind, plane.Color, cf, m, { Registration = "EC-" .. string.sub(plane.Id, -3) })
+	return m
+end
+
+-- Avión que pilota un jugador (AviationService): espera en su sitio (Airport.PilotPlanes), aparte de
+-- los de los vuelos. Se carga entero o nada (Atomic) cerca de cada jugador.
+function AirportKit.pilotPlane(parent: Instance, spec: { [string]: any }): Model
+	local m = Instance.new("Model")
+	m.Name = spec.Id
+	m:SetAttribute("PilotPlane", spec.Id)
+	m:SetAttribute("Kind", spec.Kind)
+	m:SetAttribute("NeedsWeld", true)
+	m:AddTag("PilotPlane")
+	pcall(function()
+		(m :: any).ModelStreamingMode = Enum.ModelStreamingMode.Atomic
+	end)
+	m.Parent = parent
+	PlaneModel.build(spec.Kind, spec.Color, spec.Pose, m, { Pilot = true, Registration = spec.Id })
+	-- Punto para subir (junto a la puerta del piloto): los carteles «Pilotar» y «Subir a bordo»
+	local k = Plan.Kinds[spec.Kind]
+	local door = if spec.Kind == "Avion" then Vector3.new(-6.5, 3, -20) else Vector3.new(-3.6, 3, -1.5)
+	Builder.part({
+		Name = "BoardPoint",
+		Size = Vector3.new(2, 2, 2),
+		CFrame = spec.Pose * CFrame.new(door),
+		Transparency = 1,
+		CanCollide = false,
+		CanQuery = false,
+		CanTouch = false,
+		Attributes = { FloorY = k.FloorY },
+		Parent = m,
+	})
 	return m
 end
 
@@ -423,14 +359,25 @@ local function hangar(m: Model)
 	local wall = rgb(196, 204, 210)
 	box(m, "HangarWall", h.X0, h.X0 + 1.5, G, H, h.Z0, h.Z1, wall, Enum.Material.CorrodedMetal)
 	box(m, "HangarWall", h.X1 - 1.5, h.X1, G, H, h.Z0, h.Z1, wall, Enum.Material.CorrodedMetal)
-	box(m, "HangarWall", h.X0, h.X1, G, H, h.Z0, h.Z0 + 1.5, wall, Enum.Material.CorrodedMetal)
+	-- (pared del fondo con la puerta del aeroclub, que da a la torre de control)
+	local club = Plan.Aeroclub
+	box(m, "HangarWall", h.X0, club.X - 3, G, H, h.Z0, h.Z0 + 1.5, wall, Enum.Material.CorrodedMetal)
+	box(m, "HangarWall", club.X + 3, h.X1, G, H, h.Z0, h.Z0 + 1.5, wall, Enum.Material.CorrodedMetal)
+	box(m, "HangarWall", club.X - 3, club.X + 3, 8, H, h.Z0, h.Z0 + 1.5, wall, Enum.Material.CorrodedMetal)
 	box(m, "HangarFascia", h.X0, h.X1, H - 5, H, h.Z1 - 1.5, h.Z1, wall, Enum.Material.CorrodedMetal)
 	box(m, "HangarRoof", h.X0 - 1, h.X1 + 1, H, H + 1.5, h.Z0 - 1, h.Z1 + 1, rgb(120, 126, 134), Enum.Material.CorrodedMetal)
 	board(m, Builder.facing(Vector3.new((h.X0 + h.X1) / 2, H - 2.5, h.Z1 + 0.3), Vector3.new(0, 0, 1)), 30, 3.4, "HANGAR · AEROCLUB VALMAR", BLUE, false)
 	local lamp = box(m, "HangarLamp", (h.X0 + h.X1) / 2 - 6, (h.X0 + h.X1) / 2 + 6, H - 1, H - 0.6, (h.Z0 + h.Z1) / 2 - 0.5, (h.Z0 + h.Z1) / 2 + 0.5, rgb(250, 250, 240), Enum.Material.Neon, { Decor = true })
 	light(lamp, 40, 1)
-	local parked = Builder.model("AvionetaHangar", m)
-	planeParts("Avioneta", rgb(40, 140, 90), Builder.facing(Vector3.new((h.X0 + h.X1) / 2, G, (h.Z0 + h.Z1) / 2), Vector3.new(0, 0, 1)), parked, { Static = true })
+	-- Mostrador del aeroclub (junto a la puerta del fondo): curso de piloto, alquiler de avionetas y
+	-- el avión de línea de prácticas (AviationService, tag Aeroclub)
+	local cx, cz = club.X, h.Z0 + 1.5
+	box(m, "ClubFloor", club.X - 10, club.X + 10, G, WALK, h.Z0 - 6, h.Z0 + 14, rgb(200, 196, 188), Enum.Material.Pavement)
+	box(m, "ClubDesk", cx - 6, cx + 6, WALK, WALK + 3.6, cz + 9, cz + 11, rgb(230, 232, 236), Enum.Material.SmoothPlastic)
+	box(m, "ClubDeskTop", cx - 6.2, cx + 6.2, WALK + 3.6, WALK + 3.9, cz + 8.8, cz + 11.2, BLUE, Enum.Material.SmoothPlastic, { Decor = true })
+	marker(m, "AeroclubDesk", Vector3.new(cx, WALK + 3, cz + 12.5), "Aeroclub", { Place = "Valmar" })
+	board(m, Builder.facing(Vector3.new(cx, 13, cz + 0.4), Vector3.new(0, 0, 1)), 22, 3, "✈ AEROCLUB · CURSO DE PILOTO · ALQUILER", BLUE, false)
+	board(m, Builder.facing(Vector3.new(cx, 10, h.Z0 - 0.4), Vector3.new(0, 0, -1)), 12, 2, "AEROCLUB VALMAR", BLUE, false)
 end
 
 -- Terminal: zona pública (mostradores, cafetería), control de seguridad y puertas de embarque
@@ -693,6 +640,10 @@ function AirportKit.buildPlanes(world: Instance): Folder
 	for _, plane in Plan.Planes do
 		local route = Plan.Routes[plane.Routes[1]]
 		AirportKit.plane(folder, plane, Plan.parkPose(route))
+	end
+	-- Y los que pilotan los jugadores (avionetas del aeroclub y el avión de línea de prácticas)
+	for _, spec in Plan.PilotPlanes do
+		AirportKit.pilotPlane(folder, spec)
 	end
 	return folder
 end

@@ -90,6 +90,9 @@
         "Flight": {
           "$className": "RemoteEvent"
         },
+        "Aviation": {
+          "$className": "RemoteEvent"
+        },
         "Rail": {
           "$className": "RemoteEvent"
         },

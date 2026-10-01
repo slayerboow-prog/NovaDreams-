@@ -324,7 +324,15 @@ local aimed: any = nil
 function H.aimAt(model: any?)
 	aimed = model
 end
+-- O en una pieza cualquiera (un cristal, una puerta: BreakService)
+local aimedPart: any = nil
+function H.aimAtPart(part: any?)
+	aimedPart = part
+end
 function fakeWorkspace:Raycast(origin, direction, _params)
+	if aimedPart and aimedPart.Parent then
+		return { Instance = aimedPart, Position = aimedPart.Position, Normal = V(0, 0, 1), Material = aimedPart.Material or roblox.Enum.Material.Glass, Distance = (aimedPart.Position - origin).Magnitude }
+	end
 	if aimed and aimed.Parent then
 		local part = aimed:FindFirstChild("UpperTorso")
 		return { Instance = part, Position = part.Position, Normal = V(0, 0, 1), Material = roblox.Enum.Material.Plastic, Distance = (part.Position - origin).Magnitude }
@@ -371,6 +379,7 @@ nodeMeta.__index = function(self, key)
 	return node(path .. "/" .. key)
 end
 replicatedStorage.Shared = node(ROOT .. "/shared")
+H.replicatedStorage = replicatedStorage
 replicatedStorage.Remotes = remotes
 
 local function load(path: string): any
@@ -512,9 +521,18 @@ end }
 mocks[S .. "MiniGameService"] = { isRunning = function()
 	return false
 end }
-mocks[S .. "BreakService"] = { hitStructure = function()
-	return false
-end }
+-- BreakService: apunta lo que le llega (balas y golpes) para comprobarlo; dice que se ha roto
+H.breakCalls = {} :: { { Kind: string, Player: any, Part: any, Weapon: string?, Heavy: boolean? } }
+mocks[S .. "BreakService"] = {
+	hitStructure = function(player, part, _at, _vel, weaponKind)
+		table.insert(H.breakCalls, { Kind = "Bullet", Player = player, Part = part, Weapon = weaponKind })
+		return if part and part.Breakable then "Glass" else nil
+	end,
+	meleeHit = function(player, _origin, _look, _reach, heavy)
+		table.insert(H.breakCalls, { Kind = "Melee", Player = player, Heavy = heavy })
+		return nil
+	end,
+}
 mocks[S .. "ProgressionService"] = { stat = function()
 	return 0
 end }
@@ -645,6 +663,26 @@ end
 
 function H.licence(player)
 	H.InventoryService.add(player, H.Weapons.Licence.Item, 1)
+end
+
+-- Dispara a una pieza (un cristal…): igual que a un NPC
+function H.shootPart(player, part)
+	task.wait(1.3)
+	H.aimAtPart(part)
+	local ok = H.WeaponService.fire(player, part.Position)
+	H.aimAtPart(nil)
+	return ok
+end
+
+-- Una pieza de mentira (cristal, puerta) en el mundo
+function H.part(name: string, position: Vector3, size: Vector3, material: any?)
+	local p = inst("Part", name, fakeWorkspace)
+	p.Position = position
+	p.CFrame = roblox.CFrame.new(position)
+	p.Size = size
+	p.Material = material or roblox.Enum.Material.Glass
+	p.Anchored = true
+	return p
 end
 
 -- Dispara al NPC (espera la cadencia del arma para que el disparo salga siempre)

@@ -37,6 +37,7 @@ local Ground = require(ReplicatedStorage.Shared.Ground)
 local RideSpot = require(ReplicatedStorage.Shared.RideSpot)
 local VehicleControls = require(ReplicatedStorage.Shared.VehicleControls)
 local Format = require(ReplicatedStorage.Shared.Format)
+local Tyres = require(ReplicatedStorage.Shared.Tyres)
 local Stages = require(ReplicatedStorage.Shared.LifeStory.Stages)
 local Builder = require(script.Parent.Parent.World.Builder)
 local Rides = require(script.Parent.Parent.World.Kit.Rides)
@@ -44,6 +45,7 @@ local DataService = require(script.Parent.DataService)
 local TesterService = require(script.Parent.TesterService) -- modo pruebas: se salta los requisitos
 local LifeService = require(script.Parent.LifeService)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
+local TyreService = require(script.Parent.TyreService) -- pinchazos (shared/Tyres)
 
 local VehicleService = {}
 
@@ -411,6 +413,7 @@ end
 -- Combustible y cuentakilómetros
 ---------------------------------------------------------------------
 local FUEL = Gameplay.Fuel
+local repairTyres: (Player, BasePart) -> () -- (más abajo)
 
 local function publishFuel(player: Player, ride: Ride)
 	local spec = FUEL.Kinds[ride.Kind]
@@ -522,6 +525,10 @@ local function burnFuel()
 			local moved = Vector3.new(chassis.Position.X - last.X, 0, chassis.Position.Z - last.Z).Magnitude
 			if moved > 0.05 and moved < 200 then
 				ride.Driven = (ride.Driven or 0) + moved
+				-- Muy de vez en cuando, un pinchazo por mala suerte (nunca en el examen)
+				if not ride.Exam then
+					pcall(TyreService.travelled, ride.Model, moved)
+				end
 			end
 		end
 		local spec = FUEL.Kinds[ride.Kind]
@@ -530,7 +537,8 @@ local function burnFuel()
 			last = last or pos
 			local d = Vector3.new(pos.X - last.X, 0, pos.Z - last.Z).Magnitude
 			if d > 0.05 and d < 200 then -- (un salto grande es un teletransporte, no un viaje)
-				ride.Fuel = math.max(0, ride.Fuel - d / 1000 * spec.Per1000)
+				-- (los de pago gastan menos: Gameplay.Fuel.PremiumFactor)
+				ride.Fuel = math.max(0, ride.Fuel - Gameplay.fuelUse(ride.Kind, d, TyreService.isPremium(ride.Model)))
 				local km = d * FUEL.KmPerStud
 				ride.Odometer = (ride.Odometer or 0) + km
 				ride.Trip = (ride.Trip or 0) + km
@@ -558,7 +566,7 @@ local function refuel(player: Player, pump: BasePart)
 		return
 	end
 	local missing = spec.Tank - ride.Fuel
-	if missing < 0.5 then
+	if missing < 0.1 then -- (gasta poco: con unos minutos ya se puede repostar)
 		Notify:FireClient(player, "Info", if spec.Type == "Bateria" then "La batería ya está llena." else "El depósito ya está lleno.")
 		return
 	end
@@ -574,7 +582,7 @@ local function refuel(player: Player, pump: BasePart)
 	local data = DataService.get(player)
 	local money = data and data.Money or 0
 	local amount = math.min(missing, math.floor(money / price), left)
-	if amount < 0.5 then
+	if amount < 0.1 then
 		Notify:FireClient(player, "Error", "No tienes dinero para repostar.")
 		return
 	end
@@ -1327,6 +1335,19 @@ end
 -- Tu vehículo aparcado (solo uno a la vez: al sacar otro, el anterior desaparece)
 local parked: { [Player]: Model } = {}
 
+-- Surtidor: repara las ruedas pinchadas del vehículo en el que vas (o el tuyo, aparcado al lado)
+function repairTyres(player: Player, pump: BasePart)
+	local ride = riding[player]
+	local model = if ride then ride.Model else parked[player]
+	local chassis = model and model.PrimaryPart
+	if not model or not chassis or (chassis.Position - pump.Position).Magnitude > 24 then
+		model = nil
+	end
+	TyreService.repairAt(player, model, function(cost: number): boolean
+		return DataService.spend(player, cost)
+	end)
+end
+
 -- ¿Cabe un vehículo de este tamaño aquí (cf a ras de suelo)? Nada que choque donde irá: paredes,
 -- farolas, otros coches, personas (sin contar el suelo ni lo que haya en ignore)
 local function fits(size: Vector3, cf: CFrame, ignore: { Instance }): boolean
@@ -1540,6 +1561,7 @@ local function returnStreetCars()
 			if not seen and fits(size, home.CFrame * CFrame.new(0, -size.Y / 2, 0), { model, workspace.Terrain }) then
 				chassis.CFrame = home.CFrame
 				model:SetAttribute("Fuel", nil) -- (depósito nuevo al volver a cogerlo)
+				TyreService.repair(model) -- (y las ruedas arregladas)
 				home.Since = now
 			end
 		end
@@ -1763,6 +1785,21 @@ function VehicleService.init()
 		prompt.Parent = pump
 		prompt.Triggered:Connect(function(player)
 			refuel(player, pump)
+		end)
+		-- Reparar las ruedas pinchadas (shared/Tyres). Solo lo ve quien llega con una pinchada
+		-- (Controllers/WheelSpin lo enciende en su pantalla)
+		local tyre = Instance.new("ProximityPrompt")
+		tyre.Name = "TyrePrompt"
+		tyre.ActionText = "Reparar rueda"
+		tyre.ObjectText = ("🛞 %d € por rueda"):format(Tyres.RepairPrice)
+		tyre.HoldDuration = 1.5
+		tyre.MaxActivationDistance = 16
+		tyre.RequiresLineOfSight = false
+		tyre.UIOffset = Vector2.new(0, 72)
+		tyre.Enabled = false
+		tyre.Parent = pump
+		tyre.Triggered:Connect(function(player)
+			repairTyres(player, pump)
 		end)
 	end
 	for _, pump in CollectionService:GetTagged("FuelPump") do

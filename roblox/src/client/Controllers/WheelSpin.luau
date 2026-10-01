@@ -15,17 +15,23 @@
 --     Los anclados (patrullas de ronda) se colocan con BulkMoveTo. Nunca cambia la colisión, el
 --     tamaño, los nombres ni nada en el servidor; al salir de la vista, todo vuelve a su sitio.
 --   * El tráfico de la ciudad (Controllers/Traffic) gira sus ruedas él mismo, con las mismas cuentas.
+--   * Ruedas pinchadas (atributo Flat_<rueda> del servidor, shared/Tyres): la rueda baja y se ve la
+--     goma chafada contra el suelo (una pieza solo de este ordenador, sin colisión). Si la tuya tiene
+--     una pinchada, en los surtidores sale «Reparar rueda» (TyrePrompt, solo en tu pantalla).
 
 local CollectionService = game:GetService("CollectionService")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local WheelRig = require(ReplicatedStorage.Shared.WheelRig)
+local Tyres = require(ReplicatedStorage.Shared.Tyres)
 local Driving = require(script.Parent.Driving)
 
 local WheelSpin = {}
 
 local JOINT = "WheelSpinJoint"
+local BULGE = "WheelSpinBulge"
 local LOD_EVERY = 0.25
 local FOLDERS = { "Rides", "Buses" } -- vehículos de los jugadores (y los de trabajo) y autobuses
 local TAGS = { "VehicleLamps", "PoliceCar" } -- los que conduce alguien y las patrullas
@@ -46,6 +52,9 @@ type Entry = {
 	Speed: number,
 	Steer: number,
 	ShownSteer: number?,
+	Ids: { string }, -- nombre de cada rueda (shared/Tyres.ids): "1L", "2R"…
+	Flat: { [number]: boolean }, -- ruedas pinchadas (por índice de rueda)
+	Bulges: { [number]: { Part: BasePart, Joint: Weld?, Rest: CFrame } },
 }
 
 local entries: { [Model]: Entry } = {}
@@ -147,6 +156,10 @@ local function restore(entry: Entry)
 	for _, w in rig.Wheels do
 		w.Angle = 0
 	end
+	for _, bulge in entry.Bulges do
+		bulge.Part:Destroy()
+	end
+	entry.Bulges, entry.Flat = {}, {}
 	entry.Steer = 0
 	entry.ShownSteer = nil
 end
@@ -182,6 +195,11 @@ function WheelSpin.rig(entry: Entry)
 		return
 	end
 	entry.Rig = rig
+	local hubs = {}
+	for k, w in rig.Wheels do
+		hubs[k] = w.Hub.Position
+	end
+	entry.Ids = Tyres.ids(hubs)
 	if mode == "Weld" then
 		for _, w in rig.Wheels do
 			local wheel = entry.Parts[w.Index]
@@ -196,6 +214,72 @@ function WheelSpin.rig(entry: Entry)
 			end
 		end
 	end
+end
+
+-- La goma chafada de una rueda pinchada (solo en este ordenador: sin colisión, sin masa)
+local function addBulge(entry: Entry, k: number)
+	local rig, ref = entry.Rig, entry.Ref
+	if not rig or not ref or entry.Bulges[k] then
+		return
+	end
+	local w = rig.Wheels[k]
+	local tyre = entry.Parts[w.Index]
+	local r = w.Radius
+	local hub = w.Hub.Position
+	local rest = CFrame.new(hub.X, hub.Y - r + r * 0.17, hub.Z)
+	local part = Instance.new("Part")
+	part.Name = BULGE
+	part.Size = Vector3.new(tyre.Size.X * 1.12, r * 0.34, r * 1.05)
+	part.Color = tyre.Color
+	part.Material = Enum.Material.Rubber
+	part.CanCollide = false
+	part.CanQuery = false
+	part.CanTouch = false
+	part.CastShadow = false
+	part.Massless = true
+	local joint: Weld? = nil
+	if entry.Mode == "Weld" then
+		part.Anchored = false
+		part.CFrame = ref.CFrame * rest
+		local j = Instance.new("Weld")
+		j.Name = JOINT
+		j.Part0 = ref
+		j.Part1 = part
+		j.C0 = rest
+		j.Parent = part
+		joint = j
+	else
+		part.Anchored = true
+		part.CFrame = ref.CFrame * rest
+	end
+	part.Parent = tyre
+	entry.Bulges[k] = { Part = part, Joint = joint, Rest = rest }
+end
+
+-- ¿Qué ruedas están pinchadas? (atributos del servidor). Devuelve si ha cambiado algo.
+function WheelSpin.refreshFlats(entry: Entry): boolean
+	local rig = entry.Rig
+	if not rig or not entry.Ids then
+		return false
+	end
+	local changed = false
+	for k in rig.Wheels do
+		local flat = entry.Model:GetAttribute(Tyres.PREFIX .. (entry.Ids[k] or "")) == true
+		if (entry.Flat[k] == true) ~= flat then
+			changed = true
+			entry.Flat[k] = flat
+			if flat then
+				addBulge(entry, k)
+			elseif entry.Bulges[k] then
+				entry.Bulges[k].Part:Destroy()
+				entry.Bulges[k] = nil
+			end
+		end
+	end
+	if changed then
+		entry.ShownSteer = nil -- (que se vuelva a colocar todo)
+	end
+	return changed
 end
 
 function WheelSpin.move(parts: { BasePart }, cframes: { CFrame })
@@ -243,9 +327,10 @@ function WheelSpin.step(entry: Entry, dt: number, own: { Steer: number, Handbrak
 	local handbrake = if own then own.Handbrake else entry.Model:GetAttribute("Handbrake") == true
 	local rolled = false
 	if dist ~= 0 then
-		for _, w in rig.Wheels do
+		for k, w in rig.Wheels do
 			if not WheelRig.locked(w.Rear, handbrake, entry.Speed) then
-				w.Angle = WheelRig.advance(w.Angle, dist, w.Radius)
+				-- (pinchada, rueda con menos radio: gira un poco más)
+				w.Angle = WheelRig.advance(w.Angle, dist, w.Radius * (if entry.Flat[k] then 1 - Tyres.Drop else 1))
 				rolled = true
 			end
 		end
@@ -257,10 +342,10 @@ function WheelSpin.step(entry: Entry, dt: number, own: { Steer: number, Handbrak
 	end
 	entry.ShownSteer = steer
 	if entry.Mode == "Weld" then
-		for _, w in rig.Wheels do
+		for k, w in rig.Wheels do
 			local joint = entry.Joints[w.Index]
 			if joint then
-				joint.C0 = WheelRig.hubPose(w, steer)
+				joint.C0 = WheelRig.hubPose(w, steer, if entry.Flat[k] then w.Radius * Tyres.Drop else nil)
 			end
 			if steered then
 				for _, i in w.Steer do
@@ -269,13 +354,22 @@ function WheelSpin.step(entry: Entry, dt: number, own: { Steer: number, Handbrak
 						j.C0 = WheelRig.steerPose(w, steer, entry.Rest[i])
 					end
 				end
+				local bulge = entry.Bulges[k]
+				if bulge and bulge.Joint then
+					bulge.Joint.C0 = WheelRig.steerPose(w, steer, bulge.Rest)
+				end
 			end
 		end
 	else
 		-- Anclado: lo coloca el servidor cada vez que se mueve; aquí, la rueda girada encima
 		local parts, cframes = {}, {}
-		for _, w in rig.Wheels do
-			local hub = cf * WheelRig.hubPose(w, steer)
+		for k, w in rig.Wheels do
+			local hub = cf * WheelRig.hubPose(w, steer, if entry.Flat[k] then w.Radius * Tyres.Drop else nil)
+			local bulge = entry.Bulges[k]
+			if bulge then
+				table.insert(parts, bulge.Part)
+				table.insert(cframes, cf * WheelRig.steerPose(w, steer, bulge.Rest))
+			end
 			for _, i in w.Spin do
 				table.insert(parts, entry.Parts[i])
 				table.insert(cframes, hub * w.Hub:ToObjectSpace(entry.Rest[i]))
@@ -323,6 +417,9 @@ function WheelSpin.track(model: Instance): Entry?
 		Links = {},
 		Speed = 0,
 		Steer = 0,
+		Ids = {},
+		Flat = {},
+		Bulges = {},
 	}
 	entries[model :: Model] = entry
 	return entry
@@ -336,7 +433,7 @@ local function setActive(entry: Entry, on: boolean)
 	if on then
 		-- Si cambian sus piezas (el taller, la versión completa del coche…), se vuelven a buscar
 		local function dirty(d: Instance)
-			if d.Name ~= JOINT then
+			if d.Name ~= JOINT and d.Name ~= BULGE then
 				entry.Dirty = true
 			end
 		end
@@ -384,10 +481,39 @@ function WheelSpin.lod(camera: { CFrame: CFrame, FieldOfView: number, Aspect: nu
 		chosen[entry] = true
 	end
 	table.clear(active)
-	for _, entry in entries do
+	local me = Players.LocalPlayer
+	local mineFlat = false
+	for model, entry in entries do
 		setActive(entry, chosen[entry] == true)
 		if entry.Active then
 			table.insert(active, entry)
+			if entry.Rig and not entry.Dirty then
+				WheelSpin.refreshFlats(entry)
+			end
+		end
+		-- ¿Tu vehículo (el que llevas o el tuyo) tiene una rueda pinchada?
+		if model == ownModel or (me ~= nil and model:GetAttribute("OwnerId") == me.UserId) then
+			for key, value in model:GetAttributes() do
+				if value == true and string.sub(key, 1, #Tyres.PREFIX) == Tyres.PREFIX then
+					mineFlat = true
+				end
+			end
+		end
+	end
+	WheelSpin.tyrePrompts(mineFlat)
+end
+
+-- «Reparar rueda» en los surtidores: solo en tu pantalla y solo si tu vehículo tiene una pinchada
+local promptsOn = false
+function WheelSpin.tyrePrompts(on: boolean)
+	if on == promptsOn then
+		return
+	end
+	promptsOn = on
+	for _, pump in CollectionService:GetTagged("FuelPump") do
+		local prompt = pump:FindFirstChild("TyrePrompt")
+		if prompt and prompt:IsA("ProximityPrompt") then
+			prompt.Enabled = on
 		end
 	end
 end
@@ -404,6 +530,8 @@ function WheelSpin.frame(dt: number)
 			if not ok then
 				warn("[WheelSpin] " .. tostring(err))
 				entry.Mode, entry.Rig, entry.Dirty = "None", nil, false
+			else
+				pcall(WheelSpin.refreshFlats, entry)
 			end
 		end
 		if entry.Rig and entry.Ref and entry.Ref.Parent then

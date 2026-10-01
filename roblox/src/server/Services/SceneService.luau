@@ -80,6 +80,7 @@ type Actor = {
 	Playing: string?,
 	NextWander: number,
 	StuckSince: number?, -- cuándo empezó a andar hasta su sitio
+	KerbSince: number?, -- esperando en el bordillo para cruzar desde entonces (World/RoadGuard)
 	StunnedUntil: number?, -- (Hunt) aturdido tras un impacto
 	Walk: string?, -- nil (quieto o en su modo) · "Walk" (va a su sitio) · "Settle" (se coloca) · "Fade" (fundido)
 	WalkId: number, -- cambia con cada paseo: las tareas de uno viejo no tocan el nuevo

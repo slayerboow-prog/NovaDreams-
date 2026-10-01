@@ -198,6 +198,8 @@ Config.Sounds = {
 	Intermitente = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.12, Pitch = 1.7 },
 	FrenoMano = { Id = "rbxasset://sounds/switch.wav", Volume = 0.35, Pitch = 0.55 },
 	LucesCoche = { Id = "rbxasset://sounds/switch.wav", Volume = 0.3, Pitch = 1.25 },
+	-- Rueda pinchada (Driving): el «flap» de la goma una vez por vuelta
+	PinchazoFlap = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.3, Pitch = 0.4 },
 	-- Armas (shared/Weapons: Sound.Shot). Los disparos son nuestros (audio/sfx/disparo_*); hasta que se
 	-- suban suena el Fallback. Para otro, pon un Sound con ese nombre en ReplicatedStorage > Sonidos.
 	DisparoPistola = { Id = 0, File = "disparo_pistola", Volume = 0.9, Pitch = 1, Fallback = { Id = "rbxasset://sounds/collide.wav", Volume = 0.7, Pitch = 1.9 } },
@@ -229,6 +231,7 @@ Config.Sounds = {
 	-- Con Id = 0 se usa el ID de SoundIds (scripts/upload-audio.sh) o el Sound con ese nombre en
 	-- ReplicatedStorage > Sonidos. Ver audio/README.md.
 	Motor = { Id = 0, File = "motor", Volume = 0.45, Pitch = 1 }, -- en bucle mientras conduces un coche o una moto
+	Helicoptero = { Id = 0, File = "motor", Volume = 0.55, Pitch = 0.42 }, -- rotor de los helicópteros (Controllers/Helicopters): el motor, muy grave
 	Claxon = { Id = 0, File = "claxon", Volume = 0.8, Pitch = 1 }, -- tecla H en coche o moto
 	Timbre = { Id = 0, File = "timbre", Volume = 0.6, Pitch = 1 }, -- tecla H en bici o patinete
 	Multitud = { Id = 0, File = "multitud", Volume = 0.25, Pitch = 1 }, -- murmullo de gente en el centro

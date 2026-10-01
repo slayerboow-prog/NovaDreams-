@@ -20,6 +20,9 @@
 --   TouchLayout.setDriving(true) -- al volante (móvil): otra colocación (HudLayout.DriveSlots). Solo tienen
 --                                   hueco los que dicen DriveSlot = "…" (pedales, flechas, luces…); los
 --                                   demás van a los huecos de contexto de esa colocación
+--   TouchLayout.setFlying(true)  -- a los mandos de un avión (Controllers/Flying): HudLayout.FlySlots. Solo
+--                                   salen los que dicen FlySlot = "…" (motor, timón, frenos, tren…); los
+--                                   demás se esconden (en el ordenador, la lista de teclas igual)
 -- Campos para conducir: DriveSlot (hueco al volante), Shape = "Pedal" | "Arrow" (rectángulo redondeado en
 -- lugar de círculo; "Arrow" dibuja una flecha grande), Chevron (giro de la flecha: 180 = ◀, 0 = ▶) y
 -- Tint (color del disco interior cuando no está encendido: verde el acelerador, rojo el freno…).
@@ -67,6 +70,7 @@ export type Spec = {
 	Key: string?,
 	Pad: string?,
 	DriveSlot: string?,
+	FlySlot: string?,
 	Shape: string?,
 	Chevron: number?,
 	Tint: Color3?,
@@ -85,6 +89,7 @@ local hintsPanel: Frame? = nil
 local touch = false
 local started = false
 local driving = false -- al volante (móvil): colocación de conducir
+local flying = false -- a los mandos de un avión: colocación de volar (manda sobre la de conducir)
 
 -- Botón «⋯» (móvil): cuando hay más botones de contexto que huecos, pasa de página
 local MORE_ID = "MasBotones"
@@ -373,13 +378,24 @@ function TouchLayout.refresh()
 		return
 	end
 	local visible = visibleSpecs()
+	if flying then
+		-- Volando solo cuentan los mandos del avión
+		local only = {}
+		for _, spec in visible do
+			if spec.FlySlot then
+				table.insert(only, spec)
+			end
+		end
+		visible = only
+	end
 	if not touch then
 		refreshHints(visible)
 		return
 	end
 	local layout = HudLayout.current()
-	-- Al volante: los huecos de conducir (pedales, flechas, luces…); solo los que piden DriveSlot
-	local slots = if driving and layout.DriveSlots then layout.DriveSlots else layout.Slots
+	-- Al volante: los huecos de conducir (pedales, flechas, luces…); solo los que piden DriveSlot.
+	-- Volando: los de volar (FlySlot)
+	local slots = if flying and layout.FlySlots then layout.FlySlots elseif driving and layout.DriveSlots then layout.DriveSlots else layout.Slots
 	local taken: { [string]: boolean } = {}
 	local placed: { [string]: string } = {}
 	local extras: { Spec } = {}
@@ -392,7 +408,7 @@ function TouchLayout.refresh()
 			continue
 		end
 		captions[caption] = true
-		local slot = if driving then spec.DriveSlot elseif spec.Slot then (SLOT_ALIAS[spec.Slot] or spec.Slot) else nil
+		local slot = if flying then spec.FlySlot elseif driving then spec.DriveSlot elseif spec.Slot then (SLOT_ALIAS[spec.Slot] or spec.Slot) else nil
 		if slot and slots[slot] and not taken[slot] then
 			taken[slot] = true
 			placed[spec.Id] = slot
@@ -545,6 +561,21 @@ end
 
 function TouchLayout.isDriving(): boolean
 	return driving
+end
+
+-- A los mandos de un avión (Controllers/Flying): colocación de volar. Devuelve si ha cambiado.
+function TouchLayout.setFlying(on: boolean): boolean
+	if flying == on then
+		return false
+	end
+	flying = on
+	extraPage = 1
+	TouchLayout.refresh()
+	return true
+end
+
+function TouchLayout.isFlying(): boolean
+	return flying
 end
 
 -- ¿Se ven de verdad en pantalla todos estos botones? (Driving: el joystick solo se esconde si las
@@ -843,6 +874,7 @@ function TouchLayout._reset()
 	specs, order, views, labels = {}, {}, {}, {}
 	busy, gui, hintsPanel, started = false, nil, nil, false
 	driving = false
+	flying = false
 	swimHidden = nil
 	extraPage, moreBadge = 1, nil
 end

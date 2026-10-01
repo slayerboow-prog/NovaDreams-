@@ -121,6 +121,12 @@ local DEFAULT_DATA = {
 	-- Barcos propios (BoatService): { Lancha = true, Gaviota = true }. Se sacan en el puerto deportivo.
 	-- (Los del pase vuelven solos desde Cosmetics después de «Vida nueva»; los comprados, no.)
 	Boats = {},
+	-- Aeroclub (AviationService): teórico del curso de piloto aprobado y aterrizajes suaves en avioneta
+	-- con licencia (con 3, el avión de línea). La licencia va con los carnets: Licenses.Piloto.
+	Aviation = {
+		Theory = false,
+		Landings = 0,
+	},
 	-- Pase de temporada (BattlePassService): temporada, XP total (el nivel sale de aquí), si compró el
 	-- premium de esta temporada, recompensas reclamadas por nivel (["5"] = true), misiones y topes del
 	-- día. Al cambiar de temporada se archiva en SeasonArchive y empieza de cero.
@@ -424,6 +430,11 @@ function DataService.save(player: Player, release: boolean?): boolean
 		end)
 	end
 	return ok and wrote
+end
+
+-- Copia de la plantilla de una partida nueva (para pruebas y herramientas)
+function DataService.defaultData(): { [string]: any }
+	return deepCopy(DEFAULT_DATA)
 end
 
 -- Devuelve los datos del jugador (nil si todavía no han cargado).

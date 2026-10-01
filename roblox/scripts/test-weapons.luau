@@ -51,6 +51,24 @@ check(W.Francotirador.Scope and W.Francotirador.AimFov < 30, "el francotirador t
 check(table.find(W.Fusil.Modes, "Auto") and table.find(W.Fusil.Modes, "Semi") and #W.Pistola.Modes == 1, "selector semi/auto donde toca")
 check(Weapons.fromItem("Arma_Fusil") == W.Fusil and Weapons.fromItem("Pan") == nil, "objeto de la mochila <-> arma")
 
+print("▶ Romper cristales y puertas (shared/Breakables)")
+local Breakables = luau.load(fs.readFile("src/shared/Breakables.luau"), { debugName = "Breakables", environment = env })()
+local realOnes, toyOnes = 0, 0
+for id, w in W do
+	if w.Kind == "Real" then
+		realOnes += 1
+		check(Breakables.bulletBreaks(w.Kind), id .. ": sus balas rompen cristales")
+	else
+		toyOnes += 1
+		check(not Breakables.bulletBreaks(w.Kind), id .. ": no rompe nada (" .. tostring(w.Kind) .. ")")
+	end
+end
+check(realOnes >= 6 and toyOnes >= 2, "hay armas de verdad y de juguete/táser")
+check(Breakables.breaksGlass("Bullet") and Breakables.breaksGlass("Stone") and Breakables.breaksGlass("MeleeHeavy"), "balas, piedras y golpes fuertes rompen cristales")
+check(not Breakables.breaksGlass("Melee"), "un puñetazo flojo no")
+local shots = math.ceil(Breakables.DoorHealth / Breakables.doorDamageFrom("Bullet"))
+check(shots >= 3 and shots <= 5, ("una puerta cae a tiros en unos pocos balazos (%d)"):format(shots))
+
 print("▶ Cadencia")
 check(near(Weapons.interval(W.Fusil), 60 / 700), "el fusil dispara 700 por minuto")
 check(not Weapons.ready(W.Pistola, 10, 10.1), "no se puede disparar antes de tiempo")

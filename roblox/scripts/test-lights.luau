@@ -31,9 +31,10 @@ local Vector3, CFrame, Color3 = roblox.Vector3, roblox.CFrame, roblox.Color3
 ---------------------------------------------------------------------
 -- Cargador: módulos de src/shared y de src/server/World (solo datos, sin construir nada)
 ---------------------------------------------------------------------
-local sharedProxy = setmetatable({}, {
+local sharedProxy
+sharedProxy = setmetatable({}, {
 	__index = function(_, name)
-		return { __path = "src/shared/" .. name .. ".luau" }
+		return { __path = "src/shared/" .. name .. ".luau", Parent = sharedProxy }
 	end,
 })
 local fakeGame = {
@@ -729,6 +730,159 @@ do
 		end
 	end
 	check(bad == 0, "en un cruce con semáforo, solo cruzan con los coches de esa calle en rojo")
+end
+
+---------------------------------------------------------------------
+print("▶ Peatones en los pasos de cebra (shared/Crossing, como Controllers/Ambient)")
+local Crossing = requireModule(sharedProxy.Crossing)
+do
+	-- Unos minutos en varios cruces de la ciudad: cada peatón llega por la acera, espera en el
+	-- bordillo y cruza recto (27 studs: del bordillo de un lado al del otro). Pasos y fotogramas al
+	-- azar (también los "lejos", que se mueven de 3 en 3 fotogramas). Se mira que: nadie empieza a
+	-- cruzar sin su verde (o con los coches de esa calle sin rojo), nadie está en la calzada cuando a
+	-- los coches de esa calle se les pone verde (o ámbar), nadie se para en medio y todos acaban.
+	math.randomseed(7)
+	local LINE, FAR = 13.5, 13.5
+	local starts, badStart, inRoadGreen, stopped, finished, unfinished, hurried = 0, 0, 0, 0, 0, 0, 0
+	local junctions = {}
+	for i = 1, #crossings, math.max(1, math.floor(#crossings / 12)) do
+		table.insert(junctions, crossings[i])
+	end
+	for j, _ in junctions do
+		for _, axis in { "X", "Z" } do
+			local other = if axis == "X" then "Z" else "X"
+			local t = 5000 + j * 7.3 + (if axis == "X" then 0 else 3.1)
+			local stop = t + 240 -- 4 minutos por acera
+			while t < stop do
+				-- Un peatón nuevo a 5-40 studs del bordillo
+				local base = ({ 3.5, 4.5, 5.5, 7, 9.5, 11 })[math.random(1, 6)] * (if math.random() < 0.3 then 1.3 else 1)
+				local u = -LINE - 5 - math.random() * 35
+				local crossingNow = false
+				local guard = 0
+				while u < FAR and guard < 20000 do
+					guard += 1
+					local dt = if math.random() < 0.3 then 0.1 else 1 / 60
+					t += dt
+					local pace = base
+					if crossingNow then
+						pace = Crossing.pace(base, FAR - u, true, axis, t, nil)
+						if pace > base * 1.05 then
+							hurried += 1
+						end
+					end
+					local nextU = u + pace * dt
+					if u <= -LINE and nextU > -LINE then
+						local need = (2 * LINE) / pace
+						if not Crossing.signalStart(axis, t, need) or not Crossing.gapClear(Vector3.new(0, 0, -LINE), Vector3.new(0, 0, LINE), need, {}) then
+							nextU = u -- espera en el bordillo
+						else
+							starts += 1
+							crossingNow = true
+							if not TS.walk(axis, t) or TS.state(other, t) ~= "Red" then
+								badStart += 1
+							end
+						end
+					end
+					if crossingNow and nextU <= u then
+						stopped += 1
+					end
+					u = nextU
+					if u > -12 and u < 12 and TS.state(other, t) ~= "Red" then
+						inRoadGreen += 1 -- (en la calzada de la otra calle con sus coches en verde o ámbar)
+					end
+				end
+				if u >= FAR then
+					finished += 1
+				else
+					unfinished += 1
+				end
+				t += math.random() * 3
+			end
+		end
+	end
+	print(("  (%d cruces, %d travesías empezadas, %d instantes apretando el paso al cambiar la luz)"):format(#junctions, starts, hurried))
+	check(starts > 200 and badStart == 0, ("nadie empieza a cruzar sin su verde (%d de %d)"):format(badStart, starts))
+	check(inRoadGreen == 0, ("nadie está en la calzada cuando a sus coches se les pone verde o ámbar (%d instantes)"):format(inRoadGreen))
+	check(stopped == 0, "nadie se para en medio de la calzada")
+	check(unfinished == 0 and finished == starts, ("todos acaban de cruzar (%d de %d)"):format(finished, starts))
+	check(not Crossing.signalStart("X", 9000 * TS.CYCLE + TS.GREEN - 2, 3), "en los últimos segundos del verde ya no se empieza a cruzar")
+	check(not Crossing.signalStart("X", 9000 * TS.CYCLE + 5, 20), "si no le da tiempo a llegar al otro lado (muy despacio), espera al siguiente verde")
+	check(Crossing.pace(4, 20, true, "X", 9000 * TS.CYCLE + TS.GREEN + 1, nil) > 4 * 1.4, "si la luz cambia cruzando, aprieta el paso")
+end
+
+print("▶ Pasos sin semáforo: mirar a los dos lados (Crossing.gapClear)")
+do
+	local p0, p1 = Vector3.new(0, 0, -13.5), Vector3.new(0, 0, 13.5)
+	local need = 27 / 4.5
+	local function car(x: number, z: number, vx: number)
+		return { Pos = Vector3.new(x, 0, z), Vel = Vector3.new(vx, 0, 0) }
+	end
+	check(Crossing.gapClear(p0, p1, need, {}), "sin nadie, cruza")
+	check(not Crossing.gapClear(p0, p1, need, { car(-120, 6, 30) }), "un coche a 120 studs a 30 studs/s (4 s): espera")
+	check(not Crossing.gapClear(p0, p1, need, { car(150, -6, -35) }), "también si viene por el otro lado")
+	check(Crossing.gapClear(p0, p1, need, { car(-500, 6, 30) }), "uno muy lejos (17 s): cruza")
+	check(Crossing.gapClear(p0, p1, need, { car(40, 6, 30) }), "uno que ya ha pasado y se aleja: cruza")
+	check(Crossing.gapClear(p0, p1, need, { car(-30, 6, 0) }), "uno parado esperando lejos del paso: cruza")
+	check(not Crossing.gapClear(p0, p1, need, { car(1, 6, 0) }), "uno parado encima del paso: espera")
+	check(not Crossing.gapClear(p0, p1, need, { car(-200, 6, 70) }), "tu coche a toda velocidad (70) a 200 studs: espera")
+	-- Minutos de coches que NO frenan (como un jugador despistado) en los dos sentidos: los peatones
+	-- solo cruzan con hueco y nunca les pilla ninguno
+	math.randomseed(11)
+	local cars = {}
+	local t, nextCar = 0, 0
+	local u, waits, crossings2, hits = -20, 0, 0, 0
+	local base = 4.5
+	while t < 600 do
+		local dt = 1 / 30
+		t += dt
+		if t >= nextCar then
+			local dir = if math.random() < 0.5 then 1 else -1
+			table.insert(cars, { X = -dir * 400, Z = dir * 6, V = dir * (20 + math.random() * 50) })
+			nextCar = t + 1.5 + math.random() * 7
+		end
+		local movers = {}
+		for i = #cars, 1, -1 do
+			local c = cars[i]
+			c.X += c.V * dt
+			if math.abs(c.X) > 450 then
+				table.remove(cars, i)
+			else
+				table.insert(movers, { Pos = Vector3.new(c.X, 0, c.Z), Vel = Vector3.new(c.V, 0, 0) })
+			end
+		end
+		local pace = base
+		local inRoad = u > -13.5 and u < 13.5
+		if inRoad then
+			local _, eta = Crossing.gapClear(Vector3.new(0, 0, u), p1, 0, movers)
+			pace = Crossing.pace(base, 13.5 - u, false, nil, t, eta)
+		end
+		local nextU = u + pace * dt
+		if u <= -13.5 and nextU > -13.5 then
+			if not Crossing.gapClear(p0, p1, 27 / pace, movers) then
+				nextU = u
+				waits += 1
+			else
+				crossings2 += 1
+			end
+		end
+		u = nextU
+		for _, c in cars do
+			if math.abs(c.X) < 7 + 1 and math.abs(u - c.Z) < 3.5 then
+				hits += 1
+			end
+		end
+		if u > 20 then
+			u = -20 -- (vuelta a empezar desde la acera)
+		end
+	end
+	check(crossings2 > 20 and hits == 0, ("10 minutos de coches sin frenar: %d travesías y ningún peatón alcanzado (%d)"):format(crossings2, hits))
+	check(waits > 100, ("y esperan en el bordillo cuando viene alguien (%d instantes)"):format(waits))
+end
+
+do
+	local source = fs.readFile("src/client/Controllers/Ambient.luau")
+	check(source:find("Crossing.signalStart", 1, true) ~= nil and source:find("Crossing.gapClear", 1, true) ~= nil and source:find("Crossing.pace", 1, true) ~= nil, "Ambient usa esas mismas reglas (Crossing.signalStart, gapClear y pace)")
+	check(source:find("offCrossing", 1, true) ~= nil and not source:find("Traffic.mayCross(", 1, true), "y nadie aparece en medio de un paso de cebra")
 end
 
 print()

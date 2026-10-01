@@ -167,6 +167,52 @@ local okRun, runError = pcall(function()
 	check(H.shoot(officer, bystander), "le da con el táser a un paseante")
 	task.wait(wait)
 	check((officer:GetAttribute("Wanted") or 0) >= 1, "pero a un paseante, sí (agresión)")
+
+	print("▶ Cristales y puertas: las balas de verdad los rompen; las de juguete no")
+	local vandal = H.player("Cristalero", 5007, "Adulto", V(2100, 0, 0))
+	H.licence(vandal)
+	H.give(vandal, "Pistola")
+	H.WeaponService.equip(vandal, "Pistola")
+	local pane = H.part("Glass", V(2100, 3, -15), V(4, 6, 0.2))
+	pane.Breakable = true
+	table.clear(H.breakCalls)
+	check(H.shootPart(vandal, pane), "dispara al escaparate")
+	local call = H.breakCalls[1]
+	check(call ~= nil and call.Kind == "Bullet" and call.Part == pane and call.Weapon == "Real", "la bala llega a BreakService (cristal, arma de verdad)")
+	H.give(vandal, "Escopeta")
+	H.WeaponService.equip(vandal, "Escopeta")
+	table.clear(H.breakCalls)
+	H.shootPart(vandal, pane)
+	check(#H.breakCalls == 1, ("los perdigones de la escopeta golpean la pieza una vez por disparo (%d)"):format(#H.breakCalls))
+	local wetter = H.player("Mojador2", 5008, "Adulto", V(2400, 0, 0))
+	H.give(wetter, "PistolaAgua")
+	H.WeaponService.equip(wetter, "PistolaAgua")
+	local pane2 = H.part("Glass", V(2400, 3, -15), V(4, 6, 0.2))
+	table.clear(H.breakCalls)
+	check(H.shootPart(wetter, pane2), "dispara con la pistola de agua al cristal")
+	check(#H.breakCalls == 0, "el agua no rompe cristales (ni llega a BreakService)")
+	H.give(wetter, "Paintball")
+	H.WeaponService.equip(wetter, "Paintball")
+	H.shootPart(wetter, pane2)
+	check(#H.breakCalls == 0, "la pintura tampoco")
+
+	print("▶ Golpes sin nadie delante: patadas a puertas y cristales")
+	local kicker = H.player("Pateador", 5009, "Adulto", V(2700, 0, 0))
+	table.clear(H.breakCalls)
+	local combat = H.remotes.Combat
+	for _ = 1, 3 do
+		combat.OnServerEvent:Fire(kicker, "Attack")
+		task.wait(0.5)
+	end
+	local melee, heavy = 0, false
+	for _, c in H.breakCalls do
+		if c.Kind == "Melee" and c.Player == kicker then
+			melee += 1
+			heavy = heavy or c.Heavy == true
+		end
+	end
+	check(melee >= 3, ("cada golpe al aire mira si hay un cristal o una puerta delante (%d)"):format(melee))
+	check(heavy, "el tercero del combo es el golpe fuerte (rompe cristales)")
 end)
 check(okRun, "las pruebas de disparos terminan sin errores" .. (if okRun then "" else ": " .. tostring(runError)))
 

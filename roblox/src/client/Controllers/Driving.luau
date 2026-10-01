@@ -62,6 +62,7 @@ local Wetness = require(ReplicatedStorage.Shared.Wetness)
 local Crash = require(ReplicatedStorage.Shared.Crash)
 local RideSpot = require(ReplicatedStorage.Shared.RideSpot)
 local VehicleControls = require(ReplicatedStorage.Shared.VehicleControls)
+local Tyres = require(ReplicatedStorage.Shared.Tyres)
 local Traffic = require(script.Parent.Traffic)
 local Collisions = require(script.Parent.Collisions)
 local Joystick = require(script.Parent.Joystick)
@@ -107,6 +108,9 @@ type State = {
 	Push: Vector3, -- empujón de lado de un choque (se apaga solo: Crash.settle)
 	Spin: number, -- giro por un choque (rad/s)
 	Thrown: boolean?, -- ya te has caído de la moto con este golpe
+	Tyre: { MaxSpeed: number, Turn: number, Traction: number, Pull: number, Count: number }?, -- ruedas pinchadas (shared/Tyres)
+	TyreAt: number?,
+	Flap: number?, -- lo que ha rodado desde el último «flap» de la rueda pinchada
 }
 local state: State? = nil
 local warnRoad: () -> ()
@@ -767,6 +771,16 @@ local function step(dt: number)
 	local grip = Wetness.grip(s.Kind, workspace:GetAttribute("Wet") or 0, workspace:GetAttribute("Snow") or 0)
 	local road = if tuning.Boat then BOAT_ROAD else Wetness.drive(grip)
 	local maxSpeed = Gameplay.Vehicles[s.Kind].Speed * road.MaxSpeed
+	-- Ruedas pinchadas (atributos Flat_… que pone el servidor): corre y agarra menos y tira hacia
+	-- ese lado (se mira 4 veces por segundo)
+	local now = os.clock()
+	if not s.Tyre or now - (s.TyreAt or 0) > 0.25 then
+		s.TyreAt = now
+		s.Tyre = if tuning.Boat then Tyres.effects({}) else Tyres.effects(Tyres.flats(s.Model:GetAttributes()))
+	end
+	local tyre = s.Tyre :: any
+	local topSpeed = maxSpeed
+	maxSpeed *= tyre.MaxSpeed
 	if player:GetAttribute("OutOfFuel") then
 		maxSpeed = 4 -- sin gasolina (o batería) apenas avanza: hay que llegar a una gasolinera
 	end
@@ -826,9 +840,18 @@ local function step(dt: number)
 	local fourWheels = tuning.Lean == 0 and not tuning.Standing
 	-- Con el freno de mano, el coche gira más (la trasera se va) y derrapa un poco
 	local drift = handbrake and fourWheels and math.abs(s.Speed) > 8
-	local turn = tuning.Turn * road.Turn * moving * gentle * (if drift then 1.5 else 1)
+	local turn = tuning.Turn * road.Turn * tyre.Turn * moving * gentle * (if drift then 1.5 else 1)
 	local turnedRight = steer * turn * direction * dt
 	s.Yaw -= turnedRight
+	-- Con una rueda pinchada, tira hacia su lado (más cuanto más rápido) y suena el «flap» de la goma
+	if tyre.Count > 0 then
+		s.Yaw += tyre.Pull * direction * math.clamp(math.abs(s.Speed) / math.max(topSpeed, 1), 0, 1) * dt
+		s.Flap = (s.Flap or 0) + math.abs(s.Speed) * dt
+		if s.Flap > 8 then -- (una vuelta de rueda, más o menos)
+			s.Flap = 0
+			SoundFx.play("PinchazoFlap", 0.6 + 0.4 * fast, nil, s.Chassis)
+		end
+	end
 	-- Intermitente: se apaga solo al acabar el giro (girado hacia su lado y el volante de vuelta)
 	if VehicleControls.indicatorStep(s.Controls, turnedRight, steer) then
 		refreshPedals()
@@ -843,7 +866,7 @@ local function step(dt: number)
 	end
 	s.Push, s.Spin = Crash.settle(s.Push, s.Spin, dt)
 	-- Hacia dónde va de verdad: con buen agarre, hacia donde apunta; si resbala, se queda atrás
-	s.Travel = Wetness.slide(s.Travel, s.Yaw, road.Traction * (if drift then 0.3 else 1), dt)
+	s.Travel = Wetness.slide(s.Travel, s.Yaw, road.Traction * tyre.Traction * (if drift then 0.3 else 1), dt)
 
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude

@@ -49,6 +49,7 @@ local JobService = require(script.Parent.JobService)
 local RoleService = require(script.Parent.RoleService)
 local LifeService = require(script.Parent.LifeService)
 local BreakService = require(script.Parent.BreakService)
+local TyreService = require(script.Parent.TyreService) -- una bala que atraviesa una rueda la revienta
 
 local WeaponService = {}
 
@@ -554,6 +555,10 @@ function WeaponService.fire(player: Player, target: any): boolean
 	for _ = 1, w.Pellets do
 		local d = Weapons.scatter(direction, spread, math.random(), math.random())
 		local result = workspace:Raycast(origin, d * w.Range, params)
+		-- Ruedas de los vehículos que atraviesa la bala (su goma no se ve en el rayo: se mira el tramo)
+		if w.Kind == "Real" then
+			pcall(TyreService.shot, origin, if result then result.Position else origin + d * w.Range)
+		end
 		if result then
 			local part = result.Instance
 			local distance = (result.Position - origin).Magnitude

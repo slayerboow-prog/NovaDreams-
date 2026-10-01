@@ -43,6 +43,10 @@ Airport.Gates = {
 	Avioneta = { Number = 2, X = -2780 },
 }
 
+-- Aeroclub (en el hangar): curso de piloto, alquiler de avionetas y el avión de línea de prácticas
+-- (Services/AviationService). Se entra por la puerta del fondo del hangar, junto a la torre.
+Airport.Aeroclub = { X = -3160 }
+
 -- Aeródromo de la Isla de las Gaviotas (CityPlan.Islands): pista corta y caseta
 Airport.Strip = { X0 = 2740, X1 = 3060, Z = -3950, Width = 24 }
 Airport.StripApron = { X0 = 2995, X1 = 3060, Z0 = -4015, Z1 = -3962 }
@@ -58,10 +62,10 @@ Airport.Places = {
 -- Aviones y billetes
 ---------------------------------------------------------------------
 -- FloorY: altura del suelo de la cabina (la pieza Root) sobre el suelo, con el tren de aterrizaje.
+-- RootZ: dónde va el centro de la pieza Root (a lo largo del avión). Los modelos: Kit/PlaneModel.
 Airport.Kinds = {
--- RootZ: dónde va el centro de la pieza Root (a lo largo del avión)
-	Avion = { Name = "Avión", Length = 64, Span = 60, FloorY = 5, RootZ = -2, Seats = 12 },
-	Avioneta = { Name = "Avioneta", Length = 26, Span = 34, FloorY = 3, RootZ = -1, Seats = 4 },
+	Avion = { Name = "Avión", Length = 72, Span = 66, FloorY = 5.6, RootZ = -2, Seats = 12 },
+	Avioneta = { Name = "Avioneta", Length = 26, Span = 34, FloorY = 2.6, RootZ = -1, Seats = 4 },
 }
 
 -- Dónde va la pieza Root del avión cuando sus ruedas están en "pose"
@@ -81,6 +85,26 @@ Airport.Planes = {
 	{ Id = "VLM101", Kind = "Avion", Color = Color3.fromRGB(30, 90, 170), Routes = { "Vuelta" }, Board = 50, Pilot = nil },
 	{ Id = "VLM205", Kind = "Avioneta", Color = Color3.fromRGB(220, 60, 50), Routes = { "IdaGaviotas", "VueltaGaviotas" }, Board = 40, Pilot = nil },
 }
+
+-- Aviones que pilotan los jugadores (AviationService): aparte de los de los vuelos con horario (esos
+-- nunca los pilota nadie). Pose = dónde esperan (el suelo bajo las ruedas, como Airport.pose):
+-- dos avionetas de alquiler dentro del hangar del aeroclub, con el morro hacia la puerta, y el avión
+-- de línea de prácticas en la plataforma este, con el morro hacia la calle de rodaje.
+local SOUTH = CFrame.Angles(0, math.pi, 0)
+Airport.PilotPlanes = {
+	{ Id = "EC-VAL1", Kind = "Avioneta", Color = Color3.fromRGB(30, 90, 170), Pose = CFrame.new(-3195, Airport.GROUND, 3238) * SOUTH },
+	{ Id = "EC-VAL2", Kind = "Avioneta", Color = Color3.fromRGB(230, 130, 30), Pose = CFrame.new(-3125, Airport.GROUND, 3238) * SOUTH },
+	{ Id = "EC-VLA", Kind = "Avion", Color = Color3.fromRGB(18, 44, 96), Pose = CFrame.new(-2620, Airport.GROUND, 3242) * SOUTH },
+}
+
+function Airport.pilotPlane(id: string): { [string]: any }?
+	for _, spec in Airport.PilotPlanes do
+		if spec.Id == id then
+			return spec
+		end
+	end
+	return nil
+end
 
 ---------------------------------------------------------------------
 -- Rutas: tramos por puntos con velocidad al empezar y al acabar (acelera o frena poco a poco)

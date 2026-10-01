@@ -30,6 +30,8 @@ local Crash = require(ReplicatedStorage.Shared.Crash)
 local Toys = require(ReplicatedStorage.Shared.Toys)
 local VehicleService = require(script.Parent.VehicleService)
 local CrashService = require(script.Parent.CrashService)
+local Crossing = require(ReplicatedStorage.Shared.Crossing)
+local RoadGuard = require(script.Parent.Parent.World.RoadGuard)
 
 local KnockService = {}
 
@@ -337,7 +339,52 @@ local function knockNpc(model: Model, hit: Knock.PersonHit)
 	end)
 end
 
-function KnockService.person(attacker: Player, model: Model, relVel: Vector3, hitterMass: number)
+-- Atropello: ¿culpa de quien conduce? (shared/Crossing con lo que ve el servidor: hora de los
+-- semáforos, calles publicadas y el coche según el servidor; del cliente solo se mira lo que dice
+-- para compararlo). Si es culpa suya, es delito SOLO si lo ve la policía en ese momento
+-- (WantedService.crime con PoliceOnly: ni la víctima ni testigos llaman). Si no es culpa suya
+-- (el peatón cruzaba en rojo o a mitad de calle y tú con verde y a velocidad normal), es un
+-- accidente: el peatón se queja y ya está.
+local ACCIDENT_LINES = { "¡Que estaba en rojo, perdona!", "¡Uy! Mea culpa…", "¡Ay! Tenía que haber esperado…" }
+function KnockService.runOver(attacker: Player, at: Vector3, carPos: Vector3, carVel: Vector3, claim: any?, witness: Model?): Crossing.Verdict
+	local clean: Crossing.Claim? = nil
+	if type(claim) == "table" then
+		clean = {
+			Ped = if type(claim.Ped) == "string" then claim.Ped else nil,
+			Signal = if type(claim.Signal) == "string" then claim.Signal else nil,
+			At = if type(claim.At) == "number" then claim.At else nil,
+		}
+	end
+	local verdict = RoadGuard.judge(at, carPos, carVel, clean)
+	KnockService._lastVerdict = verdict -- (pruebas)
+	if verdict.Fault then
+		local WantedService = require(script.Parent.WantedService) :: any
+		pcall(WantedService.crime, attacker, "Atropello", at, { PoliceOnly = true })
+	else
+		if witness and witness.Parent then
+			local ok, Npc = pcall(function()
+				return require(script.Parent.Parent.World.Npc)
+			end)
+			if ok and Npc then
+				task.delay(1.2, function()
+					if witness.Parent then
+						pcall(Npc.say, witness, ACCIDENT_LINES[math.random(1, #ACCIDENT_LINES)], 2.5)
+					end
+				end)
+			end
+		end
+		local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+		local notify = remotes and remotes:FindFirstChild("Notify")
+		if notify then
+			pcall(function()
+				(notify :: RemoteEvent):FireClient(attacker, "Info", "Ha sido un accidente: el peatón cruzaba sin paso y tú circulabas bien. No es delito.")
+			end)
+		end
+	end
+	return verdict
+end
+
+function KnockService.person(attacker: Player, model: Model, relVel: Vector3, hitterMass: number, car: { Pos: Vector3, Vel: Vector3 }?)
 	local humanoid = model:FindFirstChildOfClass("Humanoid")
 	local root = model:FindFirstChild("HumanoidRootPart")
 	if not humanoid or humanoid.Health <= 0 or not root or not root:IsA("BasePart") then
@@ -350,10 +397,13 @@ function KnockService.person(attacker: Player, model: Model, relVel: Vector3, hi
 	local victim = Players:GetPlayerFromCharacter(model)
 	local dir = if flat(relVel).Magnitude > 1e-3 then flat(relVel).Unit else Vector3.new(0, 0, -1)
 	local CombatService = require(script.Parent.CombatService) :: any
-	-- Atropellar a alguien con un vehículo es delito grave (la víctima, si es un NPC, llama a la policía)
-	if hitterMass > Knock.CharacterMass * 2 and not (victim and (victim == attacker or humanoid.SeatPart)) then
-		local WantedService = require(script.Parent.WantedService) :: any
-		pcall(WantedService.crime, attacker, "Atropello", root.Position, { Witness = if victim then nil else model })
+	-- Atropellar a alguien con un vehículo: delito grave si es culpa tuya y lo ve la policía
+	-- (KnockService.runOver; la misma regla para jugadores y personajes del servidor)
+	local byVehicle = hitterMass > Knock.CharacterMass * 2
+	if byVehicle and not (victim and (victim == attacker or humanoid.SeatPart)) then
+		local carPos = if car then car.Pos else root.Position
+		local carVel = if car then car.Vel else relVel
+		KnockService.runOver(attacker, root.Position, carPos, carVel, nil, if victim then nil else model)
 	end
 	if victim then
 		if victim == attacker or humanoid.SeatPart then
@@ -361,7 +411,7 @@ function KnockService.person(attacker: Player, model: Model, relVel: Vector3, hi
 		end
 		if hit.Damage > 0 then
 			-- Las reglas de siempre: protección, K.O., rematar y delitos (HitSomeone → WantedService)
-			local ok, result = pcall(CombatService.applyHit, attacker, model, { Amount = hit.Damage, Direction = dir, Heavy = hit.Mode == "launch", At = root.Position })
+			local ok, result = pcall(CombatService.applyHit, attacker, model, { Amount = hit.Damage, Direction = dir, Heavy = hit.Mode == "launch", At = root.Position, Vehicle = byVehicle or nil })
 			if not ok or not result or not result.Hit then
 				return
 			end
@@ -372,7 +422,7 @@ function KnockService.person(attacker: Player, model: Model, relVel: Vector3, hi
 		return
 	end
 	if model:GetAttribute("Officer") and hit.Damage > 0 then
-		pcall(CombatService.applyHit, attacker, model, { Amount = hit.Damage, Direction = dir, Heavy = true, At = root.Position })
+		pcall(CombatService.applyHit, attacker, model, { Amount = hit.Damage, Direction = dir, Heavy = true, At = root.Position, Vehicle = byVehicle or nil })
 	end
 	if model.Parent and not model:GetAttribute("Down") then
 		knockNpc(model, hit)
@@ -528,7 +578,9 @@ local function onPerson(player: Player, target: any, info: any, shove: boolean)
 	if not Knock.plausible(pos, reach, feet, 1.5, vel.Magnitude, maxSpeed) then
 		return
 	end
-	KnockService.person(player, target, vel - flat(root.AssemblyLinearVelocity), mass)
+	-- (el coche según el servidor; si el servidor no le ve moverse, la velocidad que dice, ya con tope)
+	local carVel = if flat(serverVel).Magnitude >= vel.Magnitude then flat(serverVel) else vel
+	KnockService.person(player, target, vel - flat(root.AssemblyLinearVelocity), mass, { Pos = pos, Vel = carVel })
 end
 
 -- Un peatón de la calle (solo existe en la pantalla de quien conduce): el servidor no lo ve, así
@@ -548,8 +600,10 @@ onPedestrian = function(player: Player, info: any)
 		return
 	end
 	lastPed[player] = now
-	local WantedService = require(script.Parent.WantedService) :: any
-	pcall(WantedService.crime, player, "Atropello", info.Pos)
+	-- ¿Culpa tuya? Lo decide el servidor (KnockService.runOver). Lo que cuenta el cliente (Ped: en la
+	-- acera / en el paso / cruzando mal; Signal: tu semáforo; At: la hora del golpe) solo se compara.
+	local carVel = if flat(serverVel).Magnitude >= vel.Magnitude then flat(serverVel) else vel
+	KnockService.runOver(player, info.Pos, pos, carVel, { Ped = info.Ped, Signal = info.Signal, At = info.At }, nil)
 end
 
 ---------------------------------------------------------------------

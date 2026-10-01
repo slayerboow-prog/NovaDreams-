@@ -130,6 +130,17 @@ for key, license in Gameplay.Licenses do
 	}
 end
 
+-- Licencia de piloto (aeroclub del Aeropuerto de Valmar, Services/AviationService): va con los carnets
+list["Carnet_Piloto"] = {
+	Id = "Carnet_Piloto",
+	Name = "Licencia de piloto",
+	Icon = "✈️",
+	Kind = "Document",
+	Desc = "Aprobada en el aeroclub de Valmar. Te deja alquilar las avionetas y, con práctica, pilotar el avión de línea.",
+	Stack = 1,
+	Ref = "Piloto",
+}
+
 for _, degree in Subjects.Degrees do
 	list["Titulo_" .. degree.Titulo] = {
 		Id = "Titulo_" .. degree.Titulo,

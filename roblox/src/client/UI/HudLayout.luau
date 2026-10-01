@@ -32,6 +32,7 @@ export type Layout = {
 	Items: { [string]: Placement },
 	Slots: { [string]: Placement },
 	DriveSlots: { [string]: Placement }, -- (móvil, al volante: HudLayout.Drive y DriveLeft)
+	FlySlots: { [string]: Placement }, -- (móvil, a los mandos de un avión: HudLayout.Fly)
 	CommandRows: number,
 	-- La franja en la que cabe el menú de comandos al desplegarlo (⌄): de CommandTop a CommandBottom
 	CommandTop: number,
@@ -63,6 +64,7 @@ HudLayout.Sizes = {
 	Guide = Vector2.new(640, 150), -- tarjeta de los primeros pasos, pistas y consejos
 	Ammo = Vector2.new(210, 64), -- las balas del arma (Controllers/WeaponController)
 	Ride = Vector2.new(660, 176), -- panel del metro en el tren (Controllers/MetroUI): ancho y alto MÁXIMO
+	Flight = Vector2.new(580, 96), -- instrumentos del avión (Controllers/Flying): velocidad, altitud, rumbo…
 }
 
 -- Racimo de botones táctiles (abajo a la derecha): centro de cada hueco respecto al de Ataque y su radio.
@@ -111,6 +113,21 @@ HudLayout.DriveLeft = {
 	GiroIzq = { 85, -89, 150, 170 },
 	GiroDer = { 265, -89, 150, 170 },
 }
+-- Volando (móvil, a los mandos de un avión: TouchLayout.setFlying). Como Drive, desde la esquina de abajo
+-- a la derecha: el MOTOR + (alto) y MOTOR − pegados a la esquina; a su izquierda los FRENOS y, encima, el
+-- timón ◀ ▶; luego el tren y los flaps, y en la última columna la cámara y Bajarse. El joystick de la
+-- izquierda (el de andar) es la palanca: alabeo y cabeceo. Nada pisa la barra rápida ni la misión.
+HudLayout.Fly = {
+	MotorMas = { -60, -230, 110, 150 },
+	MotorMenos = { -60, -85, 110, 120 },
+	Frenos = { -190, -75, 100, 100 },
+	TimonIzq = { -310, -195, 90, 90 },
+	TimonDer = { -190, -195, 90, 90 },
+	Tren = { -310, -75, 80, 80 },
+	Flaps = { -405, -75, 72, 72 },
+	Camara = { -405, -165, 72, 72 },
+	Bajarse = { -405, -255, 72, 72 },
+}
 local CLUSTER_RIGHT = 128 -- lo que sobresale el racimo a la derecha del centro del Ataque
 local CLUSTER_BOTTOM = 124 -- y por debajo
 
@@ -141,6 +158,7 @@ function HudLayout.compute(viewport: Vector2, options: Options?): Layout
 	local items: { [string]: Placement } = {}
 	local slots: { [string]: Placement } = {}
 	local drive: { [string]: Placement } = {}
+	local fly: { [string]: Placement } = {}
 
 	-- Arriba
 	local statusTop = math.max(inset + 4, 64)
@@ -170,6 +188,8 @@ function HudLayout.compute(viewport: Vector2, options: Options?): Layout
 	-- Avisos (toasts) y el cartel de zona: debajo de las estrellas, para no tapar nada de arriba
 	local toastTop = gpsTop + s.Gps.Y + 50 + 40 + 12
 	items.Toasts = place(Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, toastTop), Vector2.new(520, 0))
+	-- Volando: los instrumentos del avión, debajo de las estrellas (arriba en el centro, siempre a la vista)
+	items.Flight = place(Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, gpsTop + s.Gps.Y + 50 + 40 + 8), s.Flight)
 
 	-- Abajo (en el móvil la barra rápida va pegada al borde de abajo)
 	local hotbarGap = if touch then 8 else MARGIN
@@ -224,6 +244,11 @@ function HudLayout.compute(viewport: Vector2, options: Options?): Layout
 			drive[id] = place(Vector2.new(0.5, 0.5), UDim2.new(0, MARGIN + def[1], 1, -MARGIN + def[2]), Vector2.new(def[3], def[4]))
 		end
 		drive.Ayuda = items.Help
+		-- Volando
+		for id, def in HudLayout.Fly do
+			fly[id] = place(Vector2.new(0.5, 0.5), UDim2.new(1, -MARGIN + def[1], 1, -MARGIN + def[2]), Vector2.new(def[3], def[4]))
+		end
+		fly.Ayuda = items.Help
 	else
 		items.Hints = place(Vector2.new(1, 1), UDim2.new(1, -MARGIN, 1, -MARGIN), s.Hints)
 	end
@@ -235,6 +260,7 @@ function HudLayout.compute(viewport: Vector2, options: Options?): Layout
 		Items = items,
 		Slots = slots,
 		DriveSlots = drive,
+		FlySlots = fly,
 		CommandRows = rows,
 		CommandTop = commandTop,
 		CommandBottom = H - commandBottom,

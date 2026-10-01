@@ -289,6 +289,9 @@ local function kindOf(part: Instance): string?
 	if not plainPart(part) then
 		return nil
 	end
+	if segmentOf[part] then
+		return "Glass" -- (un tramo se rompe entero, aunque sea grande)
+	end
 	local glass = Breakables.glassKind(part.Name, part.Material, part.Size)
 	if glass == "Pane" then
 		return "Glass"
@@ -678,8 +681,11 @@ function BreakService.hit(player: Player, part: Instance, hitAt: Vector3, veloci
 			return nil
 		end
 		if kind == "Segmented" then
-			local half = opts and opts.Half or 0
-			for _, seg in segmentsHit(p, hitAt, half) do
+			local list = segmentsHit(p, hitAt, opts and opts.Half or 0)
+			if #list == 0 then
+				return nil -- (ese tramo ya estaba roto)
+			end
+			for _, seg in list do
 				breakPane(seg, hitAt, velocity)
 			end
 		else

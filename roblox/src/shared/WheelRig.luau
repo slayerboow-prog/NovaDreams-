@@ -205,14 +205,20 @@ end
 function WheelRig.pose(wheel: Wheel, steer: number, rest: CFrame): CFrame
 	return WheelRig.hubPose(wheel, steer) * wheel.Hub:ToObjectSpace(rest)
 end
--- El centro de la rueda girado (volante) y rodado (Angle)
-function WheelRig.hubPose(wheel: Wheel, steer: number): CFrame
+-- El centro de la rueda girado (volante) y rodado (Angle). drop: cuánto baja (rueda pinchada, studs)
+function WheelRig.hubPose(wheel: Wheel, steer: number, drop: number?): CFrame
 	local hub = wheel.Hub
+	local pose
 	if wheel.Front and steer ~= 0 then
 		local c = hub.Position
-		return CFrame.new(c) * CFrame.Angles(0, steer, 0) * CFrame.new(-c) * hub * CFrame.Angles(wheel.Angle, 0, 0)
+		pose = CFrame.new(c) * CFrame.Angles(0, steer, 0) * CFrame.new(-c) * hub * CFrame.Angles(wheel.Angle, 0, 0)
+	else
+		pose = hub * CFrame.Angles(wheel.Angle, 0, 0)
 	end
-	return hub * CFrame.Angles(wheel.Angle, 0, 0)
+	if drop and drop ~= 0 then
+		pose = CFrame.new(0, -drop, 0) * pose
+	end
+	return pose
 end
 -- Pieza que solo gira con el volante (horquilla)
 function WheelRig.steerPose(wheel: Wheel, steer: number, rest: CFrame): CFrame

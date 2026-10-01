@@ -4,9 +4,9 @@
 --   * Avisos: "🚨 La policía te ha visto", "📞 Un testigo ha llamado…", "Has despistado a la policía".
 --   * Pantalla de DETENIDO: tus delitos y tu historial de comportamiento (😇/😈). Si eres menor,
 --     la policía te lleva a casa con tu familia (no hay juicio).
---   * Las hélices de los helicópteros giran y la alarma de la tienda suena (efectos solo aquí).
+--   * La alarma de la tienda suena (efecto solo aquí). Los helicópteros (rotores, sonido y foco) los
+--     arranca de aquí Controllers/Helicopters.
 
-local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -17,6 +17,7 @@ local Theme = require(script.Parent.Parent.UI.Theme)
 local HudLayout = require(script.Parent.Parent.UI.HudLayout)
 local Hud = require(script.Parent.Parent.UI.Hud)
 local SoundFx = require(script.Parent.SoundFx)
+local Helicopters = require(script.Parent.Helicopters)
 
 local WantedUI = {}
 
@@ -120,20 +121,6 @@ local function onEvent(kind: string, data: any)
 	end
 end
 
--- Hélices de los helicópteros de la policía (el servidor mueve el helicóptero; aquí giran)
-local blades: { [BasePart]: { Hub: BasePart, Phase: number } } = {}
-local function trackBlade(blade: Instance)
-	if not blade:IsA("BasePart") then
-		return
-	end
-	local hub = blade.Parent and blade.Parent:FindFirstChild("RotorHub") :: BasePart?
-	if hub then
-		local rel = hub.CFrame:ToObjectSpace(blade.CFrame)
-		local _, yaw = rel:ToEulerAnglesYXZ()
-		blades[blade] = { Hub = hub, Phase = yaw }
-	end
-end
-
 function WantedUI.init()
 	local gui = create("ScreenGui", { Name = "WantedGui", ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = 3, Parent = player:WaitForChild("PlayerGui") })
 	HudLayout.scaleGui(gui)
@@ -169,21 +156,11 @@ function WantedUI.init()
 	player:GetAttributeChangedSignal("Wanted"):Connect(paint)
 	paint()
 
-	for _, blade in CollectionService:GetTagged("HeliBlade") do
-		trackBlade(blade)
-	end
-	CollectionService:GetInstanceAddedSignal("HeliBlade"):Connect(trackBlade)
+	-- Helicópteros de la policía: rotores que giran, su sonido y el foco (Controllers/Helicopters)
+	Helicopters.init()
 	RunService.RenderStepped:Connect(function()
 		if bar.Visible then
 			paint()
-		end
-		local spin = os.clock() * 28
-		for blade, info in blades do
-			if not blade.Parent or not info.Hub.Parent then
-				blades[blade] = nil
-			else
-				blade.CFrame = info.Hub.CFrame * CFrame.Angles(0, info.Phase + spin, 0)
-			end
 		end
 	end)
 end

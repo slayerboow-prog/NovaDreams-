@@ -198,6 +198,96 @@ do
 	check(source:find("PatrolRoutes.turnToward", 1, true) ~= nil and not source:find("look:Lerp(dir", 1, true), "PoliceUnits gira las patrullas con turnToward (no con Lerp)")
 end
 
+
+print("▶ Atropellos: ¿culpa de quien conduce? (shared/Crossing)")
+local TS = luau.load(fs.readFile("src/shared/TrafficSignals.luau"), { debugName = "TrafficSignals", environment = env })()
+local Crossing = luau.load(fs.readFile("src/shared/Crossing.luau"), {
+	debugName = "Crossing",
+	environment = setmetatable({
+		Vector3 = roblox.Vector3,
+		script = { Parent = { TrafficSignals = TS } },
+		require = function(m)
+			return m
+		end,
+	}, { __index = _G }),
+})()
+do
+	local V3 = roblox.Vector3.new
+	-- Un cruce con semáforo en (0, 0): calle en X (de oeste a este) y calle en Z, con aceras de 12 a 20
+	local function grid(axis: string, at: number)
+		local a = if axis == "X" then V3(-300, 0, at) else V3(at, 0, -300)
+		local b = if axis == "X" then V3(300, 0, at) else V3(at, 0, 300)
+		return { A = a, B = b, Width = 24, WalkIn = 12, WalkOut = 20, Axis = axis, At = at, From = -300, To = 300 }
+	end
+	local world = Crossing.world({ grid("X", 0), grid("Z", 0) })
+	-- Y un cruce de dos avenidas sin semáforo en (5000, 0)
+	local plain = Crossing.world({
+		{ A = V3(4700, 0, 0), B = V3(5300, 0, 0), Width = 28, WalkIn = 14, WalkOut = 21, Kind = "Avenida" },
+		{ A = V3(5000, 0, -300), B = V3(5000, 0, 300), Width = 28, WalkIn = 14, WalkOut = 21, Kind = "Avenida" },
+	})
+	local greenX = 1000 * TS.CYCLE + 5 -- X en verde (Z en rojo)
+	local greenZ = 1000 * TS.CYCLE + TS.CYCLE / 2 + 5 -- Z en verde (X en rojo desde hace 7 s)
+	local amberEnd = 1000 * TS.CYCLE + TS.GREEN + TS.YELLOW + 1 -- X en rojo desde hace 1 s (los dos en rojo)
+	check(TS.state("X", greenX) == "Green" and TS.state("X", greenZ) == "Red" and TS.state("Z", amberEnd) == "Red", "(horas de la prueba: X en verde / Z en verde / los dos en rojo)")
+	-- Sitios
+	local sidewalk = V3(60, 0, 16) -- acera de la calle en X
+	local zebraX = V3(-15.5, 0, 4) -- paso de cebra sobre la calle en X (lo cruza quien anda a lo largo de Z)
+	local midBlock = V3(-80, 0, 3) -- calzada de la calle en X a mitad de manzana
+	local box = V3(3, 0, -4) -- en medio del cruce
+	local z1 = Crossing.zone(world, zebraX)
+	check(Crossing.zone(world, sidewalk).Zone == "Sidewalk", "la acera es acera")
+	check(z1.Zone == "Crosswalk" and z1.Signalled and z1.DriverAxis == "X" and z1.PedAxis == "Z", "el paso de cebra: lo pisan los coches en X y lo cruzan los que andan en Z, con semáforo")
+	check(Crossing.zone(world, midBlock).Zone == "Road" and Crossing.zone(world, box).Zone == "Road", "a mitad de manzana o en medio del cruce es calzada (no paso de cebra)")
+	check(Crossing.zone(plain, V3(4982.5, 0, 5)).Zone == "Crosswalk" and not Crossing.zone(plain, V3(4982.5, 0, 5)).Signalled, "en un cruce sin semáforo también hay paso de cebra")
+
+	local carX = V3(1, 0, 0)
+	local function judge(ped, now, speed, carPos, claim, w)
+		return Crossing.judge(w or world, ped, carPos or (ped - V3(6, 0, 0)), carX * speed, now, claim)
+	end
+	local v = judge(V3(60, 0, 16), greenX, 30, V3(60, 0, 15))
+	check(v.Fault and v.Reason == "Sidewalk", "en la acera: culpa de quien conduce (aunque tenga verde)")
+	v = judge(zebraX, greenZ, 30)
+	check(v.Fault and v.Reason == "Walk" and v.PedWalk, "en el paso de cebra con los peatones con paso: culpa de quien conduce")
+	v = judge(zebraX, greenX, 30)
+	check(not v.Fault and v.Reason == "Jaywalk" and v.Signal == "Green", "el peatón cruzaba en rojo y tú con verde a velocidad normal: accidente, sin delito")
+	v = judge(midBlock, greenX, 30)
+	check(not v.Fault and v.Zone == "Road", "a mitad de calle con tu verde: accidente, sin delito")
+	v = judge(box, greenZ, 30)
+	check(v.Fault and v.Reason == "RedLight", "te saltas el rojo (rojo desde hace rato): culpa tuya aunque el peatón no fuera por el paso")
+	v = judge(box, amberEnd, 30)
+	check(not v.Fault and v.Reason == "Amber", "entraste con ámbar y aún salías del cruce: accidente")
+	v = judge(midBlock, greenX, 75)
+	check(v.Fault and v.Reason == "Speeding", "a mitad de calle pero a 75 (límite 40): temerario, culpa tuya")
+	v = judge(midBlock, greenX, 55)
+	check(not v.Fault, "a 55 (menos de 1,5 veces el límite) no es temerario")
+	v = judge(V3(-80, 0, 3), greenX, 30, V3(-80, 0, 15))
+	check(v.Fault and v.Reason == "Sidewalk", "con el coche subido a la acera: culpa tuya")
+	v = Crossing.judge(plain, V3(4982.5, 0, 5), V3(4976, 0, 5), V3(30, 0, 0), greenX, nil)
+	check(v.Fault and v.Reason == "Zebra", "en un paso de cebra sin semáforo el peatón tiene preferencia: culpa tuya")
+	-- Lo que dice el cliente no manda: el servidor recalcula el semáforo con su hora
+	v = judge(zebraX, greenZ, 30, nil, { Ped = "Jaywalk", Signal = "Green", At = greenZ })
+	check(v.Fault and v.Rejected and v.Signal == "Red", "si el cliente dice «cruzaba mal y yo en verde» pero el servidor ve paso para los peatones: rechazado y culpa tuya")
+	v = judge(zebraX, greenX, 30, nil, { Ped = "Jaywalk", Signal = "Green", At = greenX })
+	check(not v.Fault and not v.Rejected, "si cuadra con lo que ve el servidor: accidente")
+	v = judge(zebraX, greenZ, 30, nil, { Ped = "Jaywalk", Signal = "Green", At = greenZ - 30 })
+	check(v.Fault and v.At == greenZ, "la hora del golpe que dice el cliente solo vale si es de hace un momento (no se puede elegir otra fase)")
+	v = judge(zebraX, greenX + 0.3, 30, nil, { At = greenX })
+	check(v.At == greenX, "(un poco de retraso de la red sí se acepta)")
+
+	-- Personajes del servidor que andan (World/RoadGuard → Crossing.mustWait): por el paso de cebra
+	-- sobre la calle en X (andando a lo largo de Z) y a mitad de manzana
+	local from, to = V3(-15.5, 0, -16), V3(-15.5, 0, 16)
+	local leg = Crossing.legAcross(world, from, to)
+	check(leg ~= nil and math.abs(leg.Entry.Z + 12) <= 2.5 and math.abs(leg.Exit.Z - 12) <= 2.5, "un tramo que cruza la calzada: dónde entra y dónde sale")
+	check(Crossing.legAcross(world, V3(60, 0, 16), V3(120, 0, 16)) == nil, "un tramo por la acera no cruza nada")
+	check(Crossing.mustWait(world, from, to, 6, greenX, {}), "con el verde de los coches que pasan por ahí, el personaje espera en el bordillo")
+	check(not Crossing.mustWait(world, from, to, 6, greenZ, {}), "con su verde (y sin coches), cruza")
+	local coming = { { Pos = V3(-150, 0, -6), Vel = V3(40, 0, 0) } }
+	check(Crossing.mustWait(world, from, to, 6, greenZ, coming), "con su verde pero viene un coche que se lo salta: espera")
+	local midFrom, midTo = V3(-80, 0, -16), V3(-80, 0, 16)
+	check(not Crossing.mustWait(world, midFrom, midTo, 6, greenX, {}) and Crossing.mustWait(world, midFrom, midTo, 6, greenX, coming), "a mitad de calle: solo si no viene nadie")
+end
+
 -- Delitos con los servicios de verdad (scripts/lib/CrimeHarness): el modo pruebas no libra a un
 -- niño de la policía, un niño normal sí se libra (solo aviso), y agredir a un agente escala.
 local okRun, runError = pcall(function()
@@ -321,6 +411,149 @@ local okRun, runError = pcall(function()
 	check(toy:GetAttribute("Wanted") == nil, "una pistola de agua no es delito")
 end)
 check(okRun, "las pruebas con los servicios terminan sin errores" .. (if okRun then "" else ": " .. tostring(runError)))
+
+-- Atropellos con los servicios de verdad (KnockService → RoadGuard/Crossing → WantedService con
+-- PoliceOnly): solo hay estrellas si es culpa tuya Y lo ve la policía en ese momento.
+local okRun2, runError2 = pcall(function()
+	local task = require("@lune/task")
+	local H = require("./lib/CrimeHarness")
+	local W = H.WantedService
+	local V3 = roblox.Vector3.new
+	local PoliceMock = H.mocks["src/server/World/PoliceUnits"]
+	PoliceMock.seesDriver = function()
+		return H.policeWatching, nil
+	end
+	-- Las calles publicadas (ReplicatedStorage.Ambient.Roads): un cruce con semáforo en (0, 0)
+	local ambient = H.inst("Folder", "Ambient")
+	local roadsFolder = H.inst("Folder", "Roads", ambient)
+	for i, axis in { "X", "Z" } do
+		local config = H.inst("Configuration", "Road" .. i, roadsFolder)
+		local a = if axis == "X" then V3(-300, 0, 0) else V3(0, 0, -300)
+		local b = if axis == "X" then V3(300, 0, 0) else V3(0, 0, 300)
+		for k, value in { A = a, B = b, Width = 24, WalkIn = 12, WalkOut = 20, Axis = axis, At = 0, From = -300, To = 300 } do
+			config:SetAttribute(k, value)
+		end
+	end
+	H.replicatedStorage.Ambient = ambient -- (el ReplicatedStorage del arnés es una tabla: se le cuelga la carpeta)
+	H.load("src/server/World/RoadGuard").reset()
+	-- El coche de cada conductor según el servidor (VehicleService/CrashService de mentira)
+	local cars: { [any]: { Pos: Vector3, Vel: Vector3 } } = {}
+	local Vehicles = H.mocks["src/server/Services/VehicleService"]
+	local current: any = nil
+	Vehicles.rideModel = function(p)
+		current = cars[p]
+		return if current then H.inst("Model", "Coche") else nil
+	end
+	H.mocks["src/server/Services/CrashService"] = {
+		bodyOf = function()
+			return { Pos = current.Pos, Vel = current.Vel, Kind = "Coche", Length = 13, Width = 6, Mass = 1300 }
+		end,
+		maxSpeed = function()
+			return 72
+		end,
+		kindOf = function()
+			return "Coche"
+		end,
+	}
+	local Knock = H.load("src/server/Services/KnockService")
+	Knock.init()
+	local remote = H.remotes.Knock
+	local TS = H.load("src/shared/TrafficSignals")
+	local clock = 2000 * TS.CYCLE
+	H.workspace.GetServerTimeNow = function()
+		return clock
+	end
+	local greenX = 2000 * TS.CYCLE + 5
+	local greenZ = 2000 * TS.CYCLE + TS.CYCLE / 2 + 5
+	local wait = H.Wanted.CallDelay + 2.5
+	local zebraX = V3(-15.5, 0, 4)
+	local userId = 7000
+	local function driver(name: string, at: Vector3, vel: Vector3)
+		userId += 1
+		local p = H.player(name, userId, "Adulto", at + V3(0, 2, 0))
+		cars[p] = { Pos = at, Vel = vel }
+		return p
+	end
+	local function runOver(p, ped: Vector3, now: number, claim: { [string]: any }?)
+		clock = now
+		local info = { Pos = ped, Vel = cars[p].Vel }
+		for k, value in claim or {} do
+			info[k] = value
+		end
+		remote.OnServerEvent:Fire(p, "Ped", nil, info)
+	end
+
+	print("▶ Atropellar (KnockService): solo si es culpa tuya y lo ve la policía")
+	H.policeWatching = true
+	local d1 = driver("Conductor1", zebraX - V3(5, 0, 0), V3(30, 0, 0))
+	runOver(d1, zebraX, greenZ, { Ped = "OnCrosswalk", Signal = "Red", At = greenZ })
+	task.wait(0.1)
+	check(d1:GetAttribute("Wanted") == H.Wanted.Crimes.Atropello.Stars, "culpa tuya (paso de cebra con los peatones con paso) y con la policía delante: 3 estrellas")
+
+	H.policeWatching = false
+	local d2 = driver("Conductor2", zebraX - V3(5, 0, 0), V3(30, 0, 0))
+	local watcher = H.npc("Mirón", zebraX + V3(0, 0, 8)) -- (un personaje al lado: antes llamaba él)
+	local mark = #H.sent
+	runOver(d2, zebraX, greenZ, { Ped = "OnCrosswalk", Signal = "Red", At = greenZ })
+	task.wait(wait)
+	check(d2:GetAttribute("Wanted") == nil and H.dispatch[d2] == nil, "culpa tuya pero sin policía que lo vea: ni estrellas ni patrullas (tampoco al rato)")
+	check(not H.saidAny(watcher, "Policía") and #H.notices(d2, mark) == 0, "nadie llama a la policía (ni testigos ni transeúntes)")
+
+	local cop = H.player("Agente1", 7900, "Adulto", zebraX + V3(0, 0, 40))
+	cop:SetAttribute("Job", "Policia")
+	local d3 = driver("Conductor3", zebraX - V3(5, 0, 0), V3(30, 0, 0))
+	local raycast = H.workspace.Raycast
+	H.workspace.Raycast = function(_, origin)
+		return { Instance = H.inst("Part", "Pared"), Position = origin, Normal = V3(0, 1, 0), Distance = 1 }
+	end
+	runOver(d3, zebraX, greenZ)
+	task.wait(wait)
+	check(d3:GetAttribute("Wanted") == nil, "un policía de servicio cerca pero con una pared en medio: no lo ve, sin estrellas")
+	H.workspace.Raycast = raycast
+	local d4 = driver("Conductor4", zebraX - V3(5, 0, 0), V3(30, 0, 0))
+	runOver(d4, zebraX, greenZ)
+	task.wait(0.1)
+	check(d4:GetAttribute("Wanted") == H.Wanted.Crimes.Atropello.Stars, "el mismo policía sin nada en medio: lo ve, 3 estrellas")
+	cop:SetAttribute("Job", nil)
+
+	print("▶ Atropellar: accidente si el peatón cruzaba sin paso")
+	H.policeWatching = true
+	local d5 = driver("Conductor5", zebraX - V3(5, 0, 0), V3(30, 0, 0))
+	mark = #H.sent
+	runOver(d5, zebraX, greenX, { Ped = "Jaywalk", Signal = "Green", At = greenX })
+	task.wait(0.1)
+	check(d5:GetAttribute("Wanted") == nil, "el peatón cruzaba en rojo y tú con verde: sin estrellas aunque la policía lo vea")
+	check(H.noticeHas(d5, "accidente", mark), "con el aviso «Ha sido un accidente»")
+	local d6 = driver("Conductor6", zebraX - V3(5, 0, 0), V3(30, 0, 0))
+	runOver(d6, zebraX, greenZ, { Ped = "Jaywalk", Signal = "Green", At = greenZ })
+	task.wait(0.1)
+	check(Knock._lastVerdict and Knock._lastVerdict.Rejected and d6:GetAttribute("Wanted") == H.Wanted.Crimes.Atropello.Stars, "si el cliente dice «cruzaba en rojo» pero el servidor ve que tenía paso: no se le cree (3 estrellas)")
+	local d7 = driver("Conductor7", V3(-80, 0, 3) - V3(5, 0, 0), V3(70, 0, 0))
+	runOver(d7, V3(-80, 0, 3), greenX, { Ped = "Jaywalk", Signal = "Green" })
+	task.wait(0.1)
+	check(d7:GetAttribute("Wanted") == H.Wanted.Crimes.Atropello.Stars, "a mitad de calle pero a 70 (temerario): culpa tuya")
+
+	print("▶ Atropellar a un personaje del servidor o a otro jugador: la misma regla")
+	local d8 = driver("Conductor8", zebraX - V3(5, 0, 0), V3(30, 0, 0))
+	local npcVictim = H.npc("Peatón", zebraX + V3(0, 3, 0))
+	clock = greenX
+	Knock.person(d8, npcVictim, V3(30, 0, 0), 1300, { Pos = zebraX - V3(5, 0, 0), Vel = V3(30, 0, 0) })
+	task.wait(0.1)
+	check(d8:GetAttribute("Wanted") == nil, "un personaje que cruza en rojo con tu verde: accidente")
+	clock = greenZ
+	local npc2 = H.npc("Peatón2", zebraX + V3(0, 3, 0))
+	Knock.person(d8, npc2, V3(30, 0, 0), 1300, { Pos = zebraX - V3(5, 0, 0), Vel = V3(30, 0, 0) })
+	task.wait(0.1)
+	check(d8:GetAttribute("Wanted") == H.Wanted.Crimes.Atropello.Stars, "un personaje en el paso con su verde y la policía delante: 3 estrellas")
+	local d9 = driver("Conductor9", zebraX - V3(5, 0, 0), V3(30, 0, 0))
+	local walker = H.player("Andarín", 7950, "Adulto", zebraX + V3(0, 3, 0))
+	clock = greenX
+	Knock.person(d9, walker.Character, V3(30, 0, 0), 1300, { Pos = zebraX - V3(5, 0, 0), Vel = V3(30, 0, 0) })
+	task.wait(wait)
+	check(d9:GetAttribute("Wanted") == nil, "otro jugador cruzando en rojo con tu verde: ni atropello ni «agresión» (el golpe del coche no es una pelea)")
+	H.policeWatching = false
+end)
+check(okRun2, "las pruebas de atropellos terminan sin errores" .. (if okRun2 then "" else ": " .. tostring(runError2)))
 
 print()
 if failures == 0 then

@@ -108,9 +108,12 @@ function CalendarService.init()
 		end
 	end)
 	Players.PlayerRemoving:Connect(function(player)
-		-- (DataService guarda al salir antes de olvidarlo: beforeSave lo apunta todo)
-		task.defer(function()
-			seen[player] = nil
+		-- (se olvida un rato después: el guardado de salida de DataService —con reintentos— todavía
+		-- pasa por beforeSave y apunta su día y su hora)
+		task.delay(60, function()
+			if not player.Parent then
+				seen[player] = nil
+			end
 		end)
 	end)
 end

@@ -71,6 +71,7 @@ local Rides = load("src/server/World/Kit/Rides.luau", "Rides")
 local VehicleParts = load("src/shared/VehicleParts.luau", "VehicleParts")
 local VehicleBuild = load("src/shared/VehicleBuild.luau", "VehicleBuild")
 local WheelRig = load("src/shared/WheelRig.luau", "WheelRig")
+local Tyres = load("src/shared/Tyres.luau", "Tyres")
 
 local CF = CFrame.new(120, 4, -35) * CFrame.Angles(0, 0.7, 0) -- sitio girado: las cuentas no dependen del origen
 
@@ -278,7 +279,7 @@ mods.Driving = {
 local fakeGame = {
 	GetService = function(_, name)
 		if name == "ReplicatedStorage" then
-			return { Shared = { WheelRig = "WheelRig" } }
+			return { Shared = { WheelRig = "WheelRig", Tyres = "Tyres" } }
 		elseif name == "CollectionService" then
 			return { GetTagged = function()
 				return {}
@@ -419,6 +420,29 @@ do
 		end
 	end
 	check(modSpin > 0, "llantas del taller puestas después: también giran (" .. modSpin .. " piezas)")
+	-- Rueda pinchada (el servidor pone Flat_1L): baja y se ve la goma chafada; al repararla, vuelve
+	local k1L
+	for k, id in entry.Ids do
+		if id == "1L" then
+			k1L = k
+		end
+	end
+	check(k1L ~= nil and entry.Rig.Wheels[k1L].Front and entry.Rig.Wheels[k1L].Hub.Position.X < 0, "las ruedas se llaman como en el servidor (1L = delante a la izquierda)")
+	local before2 = physics(model)
+	model:SetAttribute("Flat_1L", true)
+	WheelSpin.lod(cameraAt(chassis.CFrame.Position, 40), nil, { model })
+	chassis.CFrame = chassis.CFrame * CFrame.new(0, 0, -0.5)
+	WheelSpin.frame(1 / 60)
+	local w1 = entry.Rig.Wheels[k1L]
+	local c0 = entry.Joints[w1.Index].C0
+	local bulge = entry.Bulges[k1L]
+	check(entry.Flat[k1L] and c0.Position.Y < w1.Hub.Position.Y - w1.Radius * 0.2 and bulge ~= nil and bulge.Part.CanCollide == false and bulge.Part.CanQuery == false,
+		"pinchada: la rueda baja y aparece la goma chafada (sin colisión)")
+	check(same(before2, physics(model)) or #physics(model) == #before2 + 1, "la física de las piezas del coche no cambia (solo se añade la goma, sin colisión)")
+	model:SetAttribute("Flat_1L", nil)
+	WheelSpin.lod(cameraAt(chassis.CFrame.Position, 40), nil, { model })
+	WheelSpin.frame(1 / 60)
+	check(not entry.Flat[k1L] and entry.Bulges[k1L] == nil and bulge.Part.Parent == nil, "reparada: la goma chafada se va y la rueda vuelve a su altura")
 end
 
 do

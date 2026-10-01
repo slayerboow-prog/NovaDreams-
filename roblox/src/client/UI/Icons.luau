@@ -99,6 +99,9 @@ Icons.Fallback = {
 	emergencia = "⚠️",
 	izquierda = "◀️",
 	derecha = "▶️",
+	avion = "✈️", -- (volar: Controllers/Flying)
+	tren = "🛬",
+	flaps = "🔻",
 }
 
 -- Tipos del tiempo (shared/Seasons) -> icono

@@ -4,7 +4,10 @@
 --  * Se apunta cada pocos segundos y justo antes de cada guardado (DataService.beforeSave),
 --    así vale también si el móvil se desconecta de golpe.
 --  * Los bebés no: siempre despiertan en su cuna (BabyService).
---  * Si debajo del punto guardado ya no hay suelo (el mapa ha cambiado), se aparece en la plaza.
+--  * Solo se apuntan sitios seguros: nadando, en un barco en el agua, cayendo o en el aire no (se
+--    queda el último en tierra firme); dentro de un edificio, su puerta; en la cárcel, el de antes.
+--  * Si debajo del punto guardado ya no hay suelo (el mapa ha cambiado) o es agua, a tu cama (si
+--    has dormido en alguna); si no, a la entrada del juego.
 --  * Al terminar pone el atributo "SpawnReady" en el jugador: la historia (LifeStoryService)
 --    espera a eso para montar las escenas donde de verdad estás.
 
@@ -66,6 +69,11 @@ local function record(player: Player, data: { [string]: any })
 	end
 	if player:GetAttribute("InPrologue") then
 		return -- en el sueño del prólogo: se guarda donde estaba antes de dormirse
+	end
+	if player:GetAttribute("JailUntil") ~= nil or player:GetAttribute("OnTrial") ~= nil then
+		-- En la cárcel (o en un juicio): se queda el sitio de antes. Si al volver la condena sigue,
+		-- JusticeService le lleva a su celda; si ya se ha cumplido, aparece en la calle, no en la celda.
+		return
 	end
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?

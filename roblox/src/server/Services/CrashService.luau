@@ -26,6 +26,7 @@ local Crash = require(ReplicatedStorage.Shared.Crash)
 local Knock = require(ReplicatedStorage.Shared.Knock)
 local Gameplay = require(ReplicatedStorage.Shared.Gameplay)
 local VehicleService = require(script.Parent.VehicleService)
+local TyreService = require(script.Parent.TyreService) -- un golpe muy fuerte puede pinchar una rueda
 
 local CrashService = {}
 
@@ -120,6 +121,8 @@ function CrashService.damage(model: Model, point: Vector3, closing: number)
 	if level == 0 or not model.Parent then
 		return
 	end
+	-- Muy fuerte: a veces revienta la rueda más cercana al golpe (shared/Tyres; los de pago, no)
+	pcall(TyreService.crash, model, point, closing)
 	local rec = damaged[model]
 	if not rec then
 		rec = { At = 0, Parts = {}, Hits = {} }
