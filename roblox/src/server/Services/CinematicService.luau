@@ -64,6 +64,16 @@ local STREAM_WAIT = 2.5
 -- esperar a quien llama (la historia sigue su curso); lo que devuelve incluye esa espera.
 function CinematicService.play(player: Player, id: string): number
 	local cinematic = Cinematics[id]
+	if not cinematic then
+		-- ¿Es una ESCENA del motor (planos + efectos + actores + consecuencias)? La dirige HappeningService,
+		-- que avisa con clientDone al acabar (shared/LifeStory/HappeningIndex)
+		local ok, HappeningService = pcall(function()
+			return require(script.Parent.HappeningService)
+		end)
+		if ok and HappeningService.has(id) then
+			return HappeningService.play(player, id)
+		end
+	end
 	local remote = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("LifeStory")
 	if not cinematic or not remote then
 		warn("[CinematicService] No se puede reproducir", id)

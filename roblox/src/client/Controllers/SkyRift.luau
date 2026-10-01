@@ -262,9 +262,23 @@ local function applyGeometry()
 	appliedOpen = open
 end
 
+-- Escenas de la historia: la Grieta se enciende un momento (SkyRift.flare)
+local flareStart, flareSeconds, flareStrength = 0, 0, 0
+local function flareNow(now: number): number
+	if flareSeconds <= 0 then
+		return 0
+	end
+	local u = (now - flareStart) / flareSeconds
+	if u < 0 or u > 1 then
+		return 0
+	end
+	return flareStrength * math.sin(u * math.pi)
+end
+
 -- Brillo, transparencia y pulso
 local function applyLook(now: number)
 	local sky = Rift.skyFactor(Lighting.ClockTime)
+	local intensity = math.min(1.6, intensity * (1 + flareNow(now)))
 	local function paint(list: { Piece })
 		for _, piece in list do
 			local pulse = Rift.pulse(now, piece.Key)
@@ -331,6 +345,29 @@ end
 -- Modo pruebas: ver una fase sin jugarla (nil = la de tu historia)
 function SkyRift.preview(name: string?)
 	preview = if name and Rift.Phases[name] then name else nil
+end
+
+-- Escenas: la Grieta se enciende un momento (strength 1 = el doble de brillo en el pico)
+function SkyRift.flare(strength: number?, seconds: number?)
+	flareStart = os.clock()
+	flareSeconds = math.max(seconds or 2, 0.1)
+	flareStrength = math.clamp(strength or 1, 0, 3)
+end
+
+-- Escenas: dónde está la Grieta en el mundo ahora (de ella salen las estrellas fugaces). Aunque no se
+-- vea (fase Ninguna), devuelve el punto del cielo donde estaría.
+function SkyRift.worldPoint(): Vector3?
+	local p = placement()
+	if mode == "Dream" then
+		local c = p.Center
+		return Vector3.new(c[1], c[2], c[3])
+	end
+	local camera = workspace.CurrentCamera
+	if not camera then
+		return nil
+	end
+	local d = p.Direction
+	return camera.CFrame.Position + Vector3.new(d[1], d[2], d[3]).Unit * p.Distance
 end
 
 function SkyRift.phaseName(): string

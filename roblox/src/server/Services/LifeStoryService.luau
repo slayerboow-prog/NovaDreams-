@@ -224,6 +224,7 @@ local function contextFor(player: Player, data: Data): Conditions.Context
 		StageProgress = stageProgress(data),
 		Season = workspace:GetAttribute("Season"),
 		Weather = workspace:GetAttribute("Weather"),
+		World = story.World, -- memoria del mundo (WorldMemoryService): condiciones World / NotWorld
 	}
 end
 
@@ -498,6 +499,18 @@ local function applyEffects(player: Player, data: Data, effects: { [string]: any
 	end
 	if effects.Teleport and not held(player) then
 		SceneService.teleport(player, effects.Teleport) -- un atajo, una escena que empieza en otro sitio
+	end
+	if type(effects.World) == "table" then
+		-- Lo que queda en el mundo (un cráter, alguien que se queda a vivir…): WorldMemoryService
+		pcall(function()
+			require(script.Parent.WorldMemoryService).apply(player, effects.World)
+		end)
+	end
+	if type(effects.Scene) == "string" then
+		-- Una escena del motor que no para la historia (efectos, actores…): HappeningService
+		pcall(function()
+			require(script.Parent.HappeningService).play(player, effects.Scene)
+		end)
 	end
 	if type(effects.Conduct) == "string" then
 		-- Algo que va a tu historial de comportamiento (llegar tarde al cole…): ConductService lo apunta
