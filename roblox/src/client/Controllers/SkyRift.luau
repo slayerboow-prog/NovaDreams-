@@ -243,7 +243,7 @@ local function destroy()
 	if folder then
 		folder:Destroy()
 	end
-	folder, anchor, gui = nil, nil, nil
+	folder, anchor, gui, textures = nil, nil, nil, nil
 	images, fades, rimSegs, columns, dots, stars, nebula = {}, {}, {}, {}, {}, {}, {}
 	star, backdrop, bolts, rocks, emitters, halos = {}, {}, {}, {}, {}, {}
 	planet, galaxyCore = nil, nil
