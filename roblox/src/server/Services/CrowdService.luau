@@ -26,6 +26,7 @@ local TimeContext = require(game:GetService("ReplicatedStorage").Shared.LifeStor
 local OpeningHours = require(game:GetService("ReplicatedStorage").Shared.OpeningHours)
 local Floors = require(game:GetService("ReplicatedStorage").Shared.Floors)
 local Ground = require(game:GetService("ReplicatedStorage").Shared.Ground)
+local Pets = require(game:GetService("ReplicatedStorage").Shared.Pets)
 
 local CrowdService = {}
 
@@ -800,6 +801,12 @@ local function spawnFeature(f: Feature)
 		if walker then
 			table.insert(f.Npcs, walker)
 			local body = dog(walker, CFrame.new(a + Vector3.new(2, 0, 0)))
+			-- Con correa: de su mano al collar (shared/Pets.leash). Ningún perro va suelto
+			local head = body.Parent and body.Parent:FindFirstChild("DogHead") :: BasePart?
+			local hand = (walker:FindFirstChild("RightHand") or walker:FindFirstChild("Right Arm")) :: BasePart?
+			if head and hand then
+				pcall(Pets.leash, hand, CFrame.new(0, if hand.Name == "RightHand" then -0.2 else -0.9, 0), head, CFrame.new(0, -0.3, 0.45))
+			end
 			task.spawn(function()
 				local points, i = { a, b }, 1
 				while walker.Parent do

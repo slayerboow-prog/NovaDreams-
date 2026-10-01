@@ -23,6 +23,7 @@ local TweenService = game:GetService("TweenService")
 
 local Npc = require(script.Parent.Parent.World.Npc)
 local PlaceLife = require(ReplicatedStorage.Shared.PlaceLife)
+local Pets = require(ReplicatedStorage.Shared.Pets)
 local TimeContext = require(ReplicatedStorage.Shared.LifeStory.TimeContext)
 local Ground = require(ReplicatedStorage.Shared.Ground)
 local GameClock = require(ReplicatedStorage.Shared.GameClock)
@@ -347,6 +348,12 @@ local function dogFor(npc: Model)
 	carry(npc, "PerroCuerpo", Vector3.new(0.9, 0.9, 2.1), CFrame.new(2.2, -1.7, -1), fur)
 	carry(npc, "PerroCabeza", Vector3.new(0.8, 0.8, 0.9), CFrame.new(2.2, -1.1, -2.3), fur)
 	carry(npc, "PerroCola", Vector3.new(0.18, 0.18, 0.8), CFrame.new(2.2, -1.2, 0.2) * CFrame.Angles(math.rad(35), 0, 0), fur)
+	-- Correa de su mano al collar (shared/Pets.leash): ningún perro va suelto
+	local head = npc:FindFirstChild("PerroCabeza") :: BasePart?
+	local hand = (npc:FindFirstChild("RightHand") or npc:FindFirstChild("Right Arm")) :: BasePart?
+	if head and hand then
+		pcall(Pets.leash, hand, CFrame.new(0, if hand.Name == "RightHand" then -0.2 else -0.9, 0), head, CFrame.new(0, -0.25, 0.4))
+	end
 end
 
 -- Una persona del sitio. cf: pies en el suelo, mirando hacia donde mira

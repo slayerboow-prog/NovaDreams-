@@ -1,4 +1,5 @@
--- EconomyUI (cliente): las ventanas de la granja (Remote "Farm") y de los negocios (Remote "Business").
+-- EconomyUI (cliente): las ventanas de la granja (Remote "Farm"), de los negocios (Remote "Business")
+-- y de la protectora y tus mascotas (Remote "Pets").
 --
 -- El servidor manda la ventana ya hecha (título, pestañas y filas con botones) y aquí solo se
 -- dibuja. Cada botón le devuelve al servidor su acción; el servidor lo comprueba todo y manda la
@@ -240,6 +241,7 @@ end
 function EconomyUI.init()
 	task.spawn(listen, "Farm")
 	task.spawn(listen, "Business")
+	task.spawn(listen, "Pets") -- protectora y mascotas (PetService)
 end
 
 return EconomyUI

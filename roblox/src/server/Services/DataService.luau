@@ -118,6 +118,11 @@ local DEFAULT_DATA = {
 		Assigned = false,
 		Debt = 0,
 	},
+	-- Mascotas (PetService, shared/Pets): las adoptadas (como mucho Pets.MAX_OWNED) y cuál va contigo
+	Pets = {
+		Owned = {},
+		Out = "",
+	},
 	-- Barcos propios (BoatService): { Lancha = true, Gaviota = true }. Se sacan en el puerto deportivo.
 	-- (Los del pase vuelven solos desde Cosmetics después de «Vida nueva»; los comprados, no.)
 	Boats = {},

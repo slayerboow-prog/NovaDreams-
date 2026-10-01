@@ -4,7 +4,12 @@
 --  * Palomas y gorriones en el suelo: picotean, dan saltitos y salen volando si te acercas
 --  * Mariposas en primavera y verano; luciérnagas en las noches de verano
 --  * Patos y gaviotas flotando en el agua (lagos, estanques y el mar)
---  * Perros y gatos paseando por las ciudades; vacas, ovejas y gallinas en Villaverde
+--  * Gallinas en Villaverde. Los perros y gatos ya NO salen sueltos alrededor de cada jugador (antes 2 y 2
+--    en cualquier sitio, también en el metro y dentro de casas y tiendas): los perros van con su dueño
+--    y con correa (Ambient, CrowdService, PlaceLifeService), y los gatos de casa, los vagabundos, las
+--    mascotas de los jugadores y los animales de granja en sus cercados los lleva Controllers/PetLife.
+--  * Nada en el suelo bajo techo ni bajo tierra: en el metro no sale ninguno, y un sitio con techo
+--    encima (portal, tienda, casa) no vale (underRoof).
 --  * Cómo se mueve cada uno (patas, cabeza, cola; sentarse, pastar, olfatear…): AnimalPose.
 --    El perro a veces se acerca a ti, se sienta a tu lado y mueve la cola.
 --  * Los que andan por la ciudad (perros, gatos, palomas…) van por aceras, parques y plazas: nunca
@@ -135,7 +140,26 @@ local function zoneAt(position: Vector3): string?
 	return best
 end
 
--- Un punto de suelo "de calle" cerca (no en un tejado), o nil. En tierra, nunca en la calzada y,
+-- ¿Hay techo encima? (dentro de un edificio, un portal, una marquesina, el metro): ahí no sale nada
+local upParams = RaycastParams.new()
+upParams.FilterType = Enum.RaycastFilterType.Exclude
+local function underRoof(at: Vector3): boolean
+	upParams.FilterDescendantsInstances = { folder, workspace.CurrentCamera, player.Character :: any }
+	local origin = at + Vector3.new(0, 1, 0)
+	for _ = 1, 4 do
+		local hit = workspace:Raycast(origin, Vector3.new(0, 80, 0), upParams)
+		if not hit then
+			return false
+		end
+		if Ground.isGround(hit) and hit.Instance.CanCollide then
+			return true
+		end
+		origin = hit.Position + Vector3.new(0, 0.05, 0) -- (hojas, toldos finos: se sigue mirando)
+	end
+	return false
+end
+
+-- Un punto de suelo "de calle" cerca (no en un tejado ni bajo techo), o nil. En tierra, nunca en la calzada y,
 -- si se da "from", que se pueda llegar en línea recta sin cruzar la calle; "home" = no alejarse de ahí
 local function groundSpot(around: Vector3, minR: number, maxR: number, wantWater: boolean?, from: Vector3?, home: Vector3?): (Vector3?, Enum.Material?)
 	for _ = 1, if wantWater then 4 else 7 do
@@ -153,7 +177,7 @@ local function groundSpot(around: Vector3, minR: number, maxR: number, wantWater
 		local hit = ground(x, z, around.Y + 40)
 		if hit and hit.Position.Y < around.Y + 6 and hit.Normal.Y > 0.8 then
 			local isWater = hit.Material == Enum.Material.Water
-			if isWater == (wantWater == true) then
+			if isWater == (wantWater == true) and (isWater or not underRoof(hit.Position)) then
 				return hit.Position, hit.Material
 			end
 		end
@@ -443,14 +467,24 @@ end
 
 ---------------------------------------------------------------------
 
-local KINDS = { "Pajaro", "Gaviota", "Paloma", "Mariposa", "Luciernaga", "Pato", "Perro", "Gato", "Vaca", "Oveja", "Gallina" }
-local MAX = { Pajaro = 18, Gaviota = 8, Paloma = 8, Mariposa = 8, Luciernaga = 14, Pato = 5, Perro = 2, Gato = 2, Vaca = 3, Oveja = 4, Gallina = 5 }
+-- (sin perros, gatos, vacas ni ovejas sueltos: ver Controllers/PetLife)
+local KINDS = { "Pajaro", "Gaviota", "Paloma", "Mariposa", "Luciernaga", "Pato", "Gallina" }
+local MAX = { Pajaro = 18, Gaviota = 8, Paloma = 8, Mariposa = 8, Luciernaga = 14, Pato = 5, Gallina = 4 }
+Wildlife.Kinds = KINDS
+Wildlife.Max = MAX
 local DESPAWN = 110 -- más lejos que esto, el animal desaparece y sale otro cerca
 
 local function update(t: number, dt: number)
 	local around = playerPosition()
-	-- Dentro de un edificio (salas en el cielo) no salen animales en el suelo de la sala
-	if not around or around.Y > 3000 then
+	-- Dentro de un edificio (salas en el cielo) o en el metro (bajo tierra) no sale ningún animal
+	if not around or around.Y > 3000 or around.Y < -12 then
+		for _, kind in KINDS do
+			for _, a in animals[kind] do
+				if a.Active then
+					hide(a)
+				end
+			end
+		end
 		return
 	end
 	local where = zoneAt(around)

@@ -4,7 +4,7 @@
 --  * Vehículos (coches, taxis, motos, bicis y patinetes): ver Traffic.luau.
 --  * Peatones: caminan por las aceras con animación de pasos. Hay más en las horas punta (entrada y
 --    salida del trabajo, la comida), algo menos a media tarde, pocos de noche y menos con lluvia
---    (Ambient.density). Paseando, corriendo, con el perro, con bolsas, al móvil, niños, parejas de la
+--    (Ambient.density). Paseando, corriendo, con el perro (pocos, siempre con correa), con bolsas, al móvil, niños, parejas de la
 --    mano y repartidores con la caja a la espalda. De vez en cuando alguien cerca suelta una frase.
 --    Si chocas con uno (o lo empujas), se aparta de lado con un traspiés, te mira y a veces suelta
 --    un "¡Eh!"; luego sigue su camino. Si llega tu coche, se tira a un lado.
@@ -30,6 +30,7 @@ local Crash = require(ReplicatedStorage.Shared.Crash)
 local TimeContext = require(ReplicatedStorage.Shared.LifeStory.TimeContext)
 local TrafficSignals = require(ReplicatedStorage.Shared.TrafficSignals)
 local Crossing = require(ReplicatedStorage.Shared.Crossing)
+local Pets = require(ReplicatedStorage.Shared.Pets)
 
 local Ambient = {}
 
@@ -180,7 +181,8 @@ local JOG_SHIRTS = { Color3.fromRGB(250, 120, 40), Color3.fromRGB(60, 200, 220),
 
 -- Tipos de peatón (con su probabilidad): paseando, corriendo, con el perro, con bolsas de la
 -- compra, mirando el móvil o niños. Si llueve, casi todos sacan el paraguas.
-local STYLES = { { "Walk", 28 }, { "Jog", 9 }, { "Dog", 11 }, { "Bag", 15 }, { "Phone", 13 }, { "Kid", 11 }, { "Couple", 8 }, { "Delivery", 5 } }
+-- (con perro, pocos: ~6 de cada 100, shared/Pets.WALKER_SHARE; todos con su correa)
+local STYLES = { { "Walk", 30 }, { "Jog", 9 }, { "Dog", 6 }, { "Bag", 16 }, { "Phone", 14 }, { "Kid", 11 }, { "Couple", 9 }, { "Delivery", 5 } }
 local DOG_COLORS = { Color3.fromRGB(150, 100, 60), Color3.fromRGB(40, 36, 34), Color3.fromRGB(230, 220, 200), Color3.fromRGB(200, 150, 80) }
 local UMBRELLA_COLORS = { Color3.fromRGB(30, 30, 34), Color3.fromRGB(200, 40, 50), Color3.fromRGB(40, 80, 170), Color3.fromRGB(240, 200, 40), Color3.fromRGB(120, 60, 140) }
 
@@ -254,7 +256,7 @@ local function makePed(): Agent
 			table.insert(specs, { name, Vector3.new(0.28, 0.9, 0.28), fur, Enum.PartType.Block })
 		end
 		table.insert(specs, { "DogTail", Vector3.new(0.18, 0.18, 0.9), fur, Enum.PartType.Block })
-		table.insert(specs, { "Leash", Vector3.new(0.08, 0.08, 1), Color3.fromRGB(200, 40, 40), Enum.PartType.Block })
+		table.insert(specs, { "DogCollar", Vector3.new(0.85, 0.2, 0.5), Color3.fromRGB(200, 40, 40), Enum.PartType.Block })
 	end
 	local parts, index = {}, {}
 	for _, spec in specs do
@@ -268,10 +270,14 @@ local function makePed(): Agent
 		p.CanCollide = false
 		p.CanQuery = false
 		p.CanTouch = false
-		p.CastShadow = spec[1] ~= "Leash"
+		p.CastShadow = spec[1] ~= "DogCollar"
 		p.Parent = model
 		table.insert(parts, p)
 		index[spec[1]] = #parts
+	end
+	if index.DogHead then
+		-- Correa de la mano derecha al collar (un Beam: se ve siempre y cuelga un poco)
+		Pets.leash(parts[index.ArmR], CFrame.new(0, -1.05 * scale, 0), parts[index.DogCollar], CFrame.new(0, 0, 0))
 	end
 	return {
 		Model = model,
@@ -478,14 +484,7 @@ function posePed(agent: Agent, root: CFrame, react: number?, still: boolean?)
 		cframes[i.DogLegBL] = dog * CFrame.new(-0.3, 0.9, 0.75) * CFrame.Angles(-leg, 0, 0) * CFrame.new(0, -0.45, 0)
 		cframes[i.DogLegBR] = dog * CFrame.new(0.3, 0.9, 0.75) * CFrame.Angles(leg, 0, 0) * CFrame.new(0, -0.45, 0)
 		cframes[i.DogTail] = dog * CFrame.new(0, 1.85, 1.3) * CFrame.Angles(math.rad(35), math.sin(agent.Phase * 4) * 0.5, 0)
-		local collar = (dog * CFrame.new(0, 1.7, -0.9)).Position
-		local mid = (handR + collar) / 2
-		local leash = agent.Parts[i.Leash]
-		local length = (collar - handR).Magnitude
-		if math.abs(leash.Size.Z - length) > 0.05 then
-			leash.Size = Vector3.new(0.08, 0.08, length)
-		end
-		cframes[i.Leash] = CFrame.lookAt(mid, collar)
+		cframes[i.DogCollar] = dog * CFrame.new(0, 1.65, -0.95) -- (la correa va del brazo a aquí)
 	elseif i.Box then
 		cframes[i.Box] = at(0, 3.9, 1.25)
 	elseif i.P_Torso then

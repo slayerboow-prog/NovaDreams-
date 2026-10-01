@@ -47,6 +47,9 @@ local COLORES = {
 	Brillo = rgb(255, 255, 255),
 }
 
+-- Las piezas que hacen sombra (en una gallina grande): el bulto del cuerpo, la cabeza y las alas
+local SOMBRA = { Cuerpo = true, Pecho = true, Grupa = true, Vientre = true, Cabeza = true, AlaL = true, AlaR = true, Cola = true }
+
 type Ctx = { model: Model, at: CFrame, k: number, big: boolean }
 
 -- Una pieza en coordenadas del dibujo (unidades; los pies en y = 0, el pico hacia -Z)
@@ -76,7 +79,7 @@ local function piece(ctx: Ctx, name: string, shape: string, size: Vector3, cf: C
 	p.CanTouch = false
 	p.Massless = true
 	-- Solo lo grande de una gallina grande hace sombra (lo pequeño casi no se nota y cuesta)
-	p.CastShadow = ctx.big and math.max(size.X, size.Y, size.Z) * ctx.k >= 4
+	p.CastShadow = ctx.big and SOMBRA[name] == true
 	p.Parent = ctx.model
 	return p
 end

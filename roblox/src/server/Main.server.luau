@@ -206,6 +206,7 @@ local order = {
 	"SocialService", -- grupos de jugadores y chat privado (menú al tocar a un jugador)
 	"FishingService", -- pesca, tienda de pesca, barco y oficio de pescador
 	"FarmService", -- agricultores y ganaderos: fincas de Villaverde, cooperativa, obrador y venta a supermercados
+	"PetService", -- mascotas: protectora (adoptar perro o gato), vagabundos, tu mascota contigo y montar a caballo
 	"BusinessService", -- negocios de jugadores: locales, gasolineras y hoteles con existencias, precios y clientes
 	"MetroService", -- metro subterráneo: trenes, galería, encargos y revisor
 	"FlightService", -- aeropuerto: aviones con horario, billetes, embarque y vuelos (Isla de las Gaviotas)

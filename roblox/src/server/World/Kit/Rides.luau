@@ -30,6 +30,8 @@ Rides.Spec = {
 	-- quien se baja en alta mar (en cubierta, delante del parabrisas)
 	Lancha = { Seat = CFrame.new(-1.1, 1.8, 0.6), Size = Vector3.new(6, 1, 16), Stand = CFrame.new(0, 1.2, -2.8), Boat = true },
 	Gaviota = { Seat = CFrame.new(-1.3, 2.1, 2.4), Size = Vector3.new(7, 1, 20), Stand = CFrame.new(0, 1.4, 5.2), Boat = true },
+	-- Caballo de los Campos de Valmar (shared/FarmAnimals): se monta en la silla, a horcajadas
+	Caballo = { Seat = CFrame.new(0, 4.75, 0.1), Size = Vector3.new(1.8, 1, 5.6) },
 }
 
 -- Asientos de pasajero ("RideSeat", Seat de verdad) de cada vehículo: dónde van (como Seat de
@@ -1002,7 +1004,47 @@ local function gaviota(m: Model, cf: CFrame, color: Color3)
 	bit(m, "Pennant", Vector3.new(0.05, 0.5, 0.9), cf * CFrame.new(0, 4.9, 2.1), GOLD)
 end
 
-local BUILDERS = { Lancha = lancha, Gaviota = gaviota, Monopatin = monopatin, Patinete = patinete, Bici = bici, Moto = moto, Coche = coche, Autobus = autobus, Camion = camion, Patrulla = patrulla, Bomberos = bomberos }
+-- Caballo ensillado (Campos de Valmar). Las patas llevan Leg (1 delantera izq., 2 delantera dcha.,
+-- 3 trasera izq., 4 trasera dcha.) y Hip (la cadera, en coordenadas del caballo): Rides.prepare las
+-- suelda con una Weld que gira desde la cadera, y el cliente (Wildlife) las mueve al paso, al trote
+-- o al galope según la velocidad (shared/FarmAnimals.legSwing).
+local function caballo(m: Model, cf: CFrame, color: Color3)
+	local hair = color:Lerp(Color3.new(0, 0, 0), 0.6)
+	local hoofColor = rgb(45, 40, 38)
+	local A = CFrame.Angles
+	box(m, "Body", Vector3.new(1.6, 1.8, 4.3), cf * CFrame.new(0, 3.4, 0), color)
+	box(m, "Rump", Vector3.new(1.7, 1.6, 1.3), cf * CFrame.new(0, 3.45, 1.75), color)
+	bit(m, "Neck", Vector3.new(0.85, 2.3, 1.05), cf * CFrame.new(0, 4.65, -2.15) * A(-0.55, 0, 0), color)
+	bit(m, "Mane", Vector3.new(0.22, 2.2, 0.4), cf * CFrame.new(0, 4.85, -1.85) * A(-0.55, 0, 0), hair)
+	bit(m, "Head", Vector3.new(0.72, 0.78, 1.75), cf * CFrame.new(0, 5.6, -3.15) * A(-0.65, 0, 0), color)
+	bit(m, "Muzzle", Vector3.new(0.62, 0.55, 0.55), cf * CFrame.new(0, 5.02, -3.78), color:Lerp(Color3.new(0, 0, 0), 0.35))
+	for _, x in { -0.22, 0.22 } do
+		bit(m, "Ear", Vector3.new(0.14, 0.4, 0.14), cf * CFrame.new(x, 6.35, -2.7), color)
+		bit(m, "Eye", Vector3.new(0.05, 0.14, 0.14), cf * CFrame.new(x * 1.65, 5.75, -3.25), rgb(20, 18, 16))
+	end
+	bit(m, "Tail", Vector3.new(0.36, 2.3, 0.36), cf * CFrame.new(0, 3.1, 2.55) * A(0.25, 0, 0), hair)
+	-- Silla, manta, estribos y riendas
+	bit(m, "SaddleBlanket", Vector3.new(1.9, 0.15, 2.2), cf * CFrame.new(0, 4.33, -0.1), rgb(170, 40, 40), Enum.Material.Fabric)
+	bit(m, "Saddle", Vector3.new(1.5, 0.35, 1.7), cf * CFrame.new(0, 4.5, -0.1), rgb(92, 52, 30), Enum.Material.Leather)
+	bit(m, "SaddleHorn", Vector3.new(0.3, 0.5, 0.3), cf * CFrame.new(0, 4.85, -0.85), rgb(92, 52, 30), Enum.Material.Leather)
+	for _, x in { -0.95, 0.95 } do
+		bit(m, "StirrupStrap", Vector3.new(0.08, 1.2, 0.2), cf * CFrame.new(x, 3.7, -0.1), rgb(70, 40, 24), Enum.Material.Leather)
+		bit(m, "Stirrup", Vector3.new(0.12, 0.25, 0.5), cf * CFrame.new(x, 3.05, -0.1), METAL, Enum.Material.Metal)
+	end
+	tube(m, cf, "Rein", Vector3.new(-0.38, 5.15, -3.6), Vector3.new(-0.3, 4.9, -0.95), 0.07, rgb(60, 36, 22))
+	tube(m, cf, "Rein", Vector3.new(0.38, 5.15, -3.6), Vector3.new(0.3, 4.9, -0.95), 0.07, rgb(60, 36, 22))
+	for i, p in { Vector3.new(-0.5, 0, -1.55), Vector3.new(0.5, 0, -1.55), Vector3.new(-0.5, 0, 1.6), Vector3.new(0.5, 0, 1.6) } do
+		local hip = Vector3.new(p.X, 2.5, p.Z)
+		local leg = bit(m, "HorseLeg", Vector3.new(0.42, 2.5, 0.46), cf * CFrame.new(p.X, 1.25, p.Z), color)
+		local hoof = bit(m, "Hoof", Vector3.new(0.47, 0.3, 0.52), cf * CFrame.new(p.X, 0.15, p.Z), hoofColor)
+		for _, part in { leg, hoof } do
+			part:SetAttribute("Leg", i)
+			part:SetAttribute("Hip", hip)
+		end
+	end
+end
+
+local BUILDERS = { Caballo = caballo, Lancha = lancha, Gaviota = gaviota, Monopatin = monopatin, Patinete = patinete, Bici = bici, Moto = moto, Coche = coche, Autobus = autobus, Camion = camion, Patrulla = patrulla, Bomberos = bomberos }
 local COLORS = {
 	Monopatin = { rgb(220, 70, 60), rgb(40, 140, 220), rgb(250, 200, 40), rgb(60, 170, 90) },
 	Bici = { rgb(30, 110, 200), rgb(210, 50, 60), rgb(40, 160, 90), rgb(240, 240, 240) },
@@ -1013,6 +1055,7 @@ local COLORS = {
 	Bomberos = { rgb(196, 30, 30) },
 	Lancha = { rgb(30, 90, 170), rgb(200, 50, 50), rgb(20, 140, 140), rgb(240, 170, 40) },
 	Gaviota = { rgb(245, 245, 250) },
+	Caballo = { rgb(120, 72, 40), rgb(60, 40, 30), rgb(200, 190, 175), rgb(160, 110, 60) },
 }
 
 -- Crea el modelo del vehículo (anclado). kind: "Monopatin" | "Bici" | "Moto" | "Coche"
@@ -1084,7 +1127,20 @@ function Rides.prepare(model: Model, kind: string, groundCf: CFrame): (BasePart,
 			part.Massless = true
 			part.CanTouch = false
 			local a, b, folded = part:GetAttribute("StandA"), part:GetAttribute("StandB"), part:GetAttribute("StandFolded")
-			if part.Name == "Kickstand" and typeof(a) == "Vector3" and typeof(b) == "Vector3" and typeof(folded) == "Vector3" then
+			local legIndex, hip = part:GetAttribute("Leg"), part:GetAttribute("Hip")
+			if typeof(legIndex) == "number" and typeof(hip) == "Vector3" then
+				-- Pata del caballo: gira desde la cadera (el cliente cambia C0; HipC0 = de pie)
+				local hipWorld = groundCf * CFrame.new(hip)
+				local weld = Instance.new("Weld")
+				weld.Name = "LegWeld"
+				weld.Part0 = chassis
+				weld.Part1 = part
+				weld.C0 = chassis.CFrame:Inverse() * hipWorld
+				weld.C1 = part.CFrame:Inverse() * hipWorld
+				weld:SetAttribute("HipC0", weld.C0)
+				weld:SetAttribute("Leg", legIndex)
+				weld.Parent = part
+			elseif part.Name == "Kickstand" and typeof(a) == "Vector3" and typeof(b) == "Vector3" and typeof(folded) == "Vector3" then
 				-- La pata gira: Weld con su sitio abajo y recogida (respecto a la base)
 				local toChassis = CFrame.new(0, -spec.Size.Y / 2, 0)
 				local down = toChassis * tubeFrame(a, b)

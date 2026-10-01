@@ -23,7 +23,7 @@ local ACTIVE_DISTANCE = 150
 local MAX_ACTIVE = 16
 
 local WHEEL = { Coche = true, Patrulla = true, Autobus = true, Camion = true, Bomberos = true, Lancha = true, Gaviota = true }
-local BARS = { Moto = true, Bici = true, Patinete = true }
+local BARS = { Moto = true, Bici = true, Patinete = true, Caballo = true } -- (a caballo: riendas en la mano, a horcajadas)
 local STANDING = { Patinete = true, Monopatin = true }
 
 -- Qué postura toca en ese asiento:

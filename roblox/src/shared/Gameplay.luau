@@ -30,6 +30,9 @@ Gameplay.Vehicles = {
 	-- en el puerto deportivo (BoatService, shared/Boats) y solo navegan por el mar. Sin carnet.
 	Lancha = { Name = "Lancha", Icon = "🚤", Price = 7500, Speed = 50, Stage = "AdultoJoven", Order = 13, Hidden = true, Boat = true },
 	Gaviota = { Name = "Lancha «Gaviota»", Icon = "🚤", Price = 0, Speed = 50, Stage = "AdultoJoven", Order = 14, Hidden = true, Boat = true },
+	-- Caballo: no se compra; se monta gratis en el picadero de los Campos de Valmar (PetService,
+	-- shared/FarmAnimals). Al paso, al trote y al galope según lo que aceleres.
+	Caballo = { Name = "Caballo", Icon = "🐴", Price = 0, Speed = 36, Stage = "Nino", Order = 15, Hidden = true },
 }
 Gameplay.RentalVehicles = { "Bici", "Monopatin", "Patinete" } -- los que se cogen gratis en las estaciones públicas
 
@@ -49,6 +52,7 @@ Gameplay.Driving = {
 	-- Barcos: frenan despacio (no hay ruedas), derrapan un poco sobre el agua y escoran en las curvas
 	Lancha = { Accel = 14, Brake = 18, Reverse = 8, Turn = 1.4, Lean = 6, Boat = true },
 	Gaviota = { Accel = 14, Brake = 18, Reverse = 8, Turn = 1.3, Lean = 5, Boat = true },
+	Caballo = { Accel = 9, Brake = 26, Reverse = 3, Turn = 2.3, Lean = 0 },
 }
 
 -- Combustible y cuentakilómetros (VehicleService gasta; se reposta en las gasolineras)
