@@ -731,6 +731,39 @@ la ciudad se vea realista, por orden:
 **No hay palmeras, casas ni cielos limpios en esta tanda.** Para palmeras seguir con las de la 3ª tanda
 (13388285234 «Realistic Terrain Asset Pack» y las `PalmtreeVar0/1` de 8553512581).
 
+## Después: revisión de las tandas 1-3 y lo que ya está en el juego
+
+### Las tandas 1-3, con los trucos nuevos
+
+Script: `scripts/cloud/assets-trucos.luau` → `bash scripts/cloud-test.sh -v assets-trucos`. Vuelve a cargar
+los 43 assets de `docs/assets-usuario.md`, `-2` y `-3`, más los packs de materiales que ya usa el juego
+(`shared/UserMaterialChoice`, `shared/StreetLook`, `World/Buildings3D`). Busca solo los trucos de esta
+tanda: `NumberPose`, `require(algo.Value)`, `require(número)`, código al revés o largo en atributos,
+`GetObjects`, `HttpEnabled`, `string.char`, «CoreValidation», «Texture Streaming», «TextureConfiguration»,
+y los nombres `SkyLink`, `PoseLink`, `BloomDefect`, `VFXParticles`, `FXBuilder`.
+
+Resultado (2026-10-01): **no aparece ninguna puerta trasera nueva**. Solo salen otra vez las 2 ya
+conocidas de la 3ª tanda: 123553303846741 (familia 3, `GetObjects(103102799768392)`) y 82042358715900
+(familia 3, `GetObjects(124350878966495)`). El resto de avisos son inofensivos: textos de historia en
+atributos (`LoreText` del pack de muebles 13262637537), listas de huesos (`Roots` de 96924659951632), la
+radio `AudioPlayerScript` del pack de coches 9432856072 (ya conocida) y un `:Kick(` del sistema de armas
+117850698505269 (ya en «no usar»). Los packs que ya usa el juego (materiales, Realistic road pack,
+Modern City) están limpios.
+
+### En el juego: talleres mecánicos (World/WorkshopProps)
+
+El «Realistic Autoservice Props Pack» (130967743753364) va dentro de cada sala de taller
+(`World/Interiors.Taller`). Al arrancar, el servidor carga el pack, copia **solo** `MeshPart` y
+`SurfaceAppearance`, y no usa nada si encuentra scripts, `NumberPose`, `PlaneConstraint` o atributos.
+Junta las piezas sueltas en objetos (por nombre y cercanía) y pone 8 en huecos libres: grúa de motor,
+gato de caja de cambios, desmontadora de ruedas, 2 caballetes, foco con trípode, recogedor de aceite y
+camilla. Probado en un servidor de Roblox con la sala de verdad (3 salas distintas): los 8 quedan en el
+suelo, dentro de la sala y sin chocar con los muebles. Hasta que se publique el juego no se verá.
+
+Lo demás de «Lo mejor de esta tanda» se queda como propuesta: los coches de 97902046131324 y el CHP
+llevan modelos y marcas reales (hay que decidir si se usan), el juego ya tiene su propio cielo e
+iluminación (`shared/SkyChoice`, `World/SkyLoader`) y los pasos de SCP:CB piden dar crédito.
+
 ## Nunca usar
 
 - **Los 32 con puerta trasera** (familias 1-5), sobre todo los que activan `HttpEnabled`
