@@ -133,7 +133,7 @@ return {
 			Fx = {
 				{ At = 1, Play = "Explosion", Anchor = "Yo", Offset = V(14, 0, -10) },
 				{ At = 4.2, Play = "GroundCrack", Anchor = "Yo", Offset = V(0, 0, -14), Seconds = 7 },
-				{ At = 8.2, Play = "Portal", Key = "Portal", Anchor = "Yo", Offset = V(0, 0, -24), Seconds = 14, Params = { Teleport = { "Yo", V(0, 0, 40) } } },
+				{ At = 8.2, Play = "Portal", Key = "Portal", Anchor = "Yo", Offset = V(0, 0, -24), Seconds = 13.5, Params = { Teleport = { "Yo", V(0, 0, 40) } } },
 				{ At = 9, Play = "MysticOrb", Anchor = "Yo", Offset = V(-6, 3, -8), Seconds = 6 },
 				{ At = 9.5, Play = "EnergyAura", Anchor = "Player", Seconds = 5 },
 				{ At = 12, Play = "LocalStorm", Anchor = "Yo", Seconds = 9 },

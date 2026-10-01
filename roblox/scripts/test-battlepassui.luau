@@ -959,8 +959,8 @@ check(window.Money.Amount.Text == "💶 2.450 €", "Tu dinero arriba a la derec
 check(window.Close.Text == "✖", "Y el ✖ para cerrar")
 -- Cabecera
 check(info.Emblem ~= nil and deep(info.Emblem, "Side3") ~= nil and deep(info.Emblem, "Icon").Text == "👑", "Emblema dorado (hexágono con corona)")
-check(info.Kicker.Text == "TEMPORADA 1 · PASE DE TEMPORADA", "«TEMPORADA 1 · PASE DE TEMPORADA» (" .. info.Kicker.Text .. ")")
-check(info.SeasonName.Text == "LUCES DE VALMAR", "Título grande con el nombre real: «LUCES DE VALMAR»")
+check(info.Kicker.Text == "TEMPORADA 1", "«TEMPORADA 1» (" .. info.Kicker.Text .. ")")
+check(info.PassTitle.Text == "PASE DE TEMPORADA" and info.SeasonName.Text == "LUCES DE VALMAR", "Título grande en dos líneas: «PASE DE TEMPORADA» y el nombre real «LUCES DE VALMAR»")
 check(info.Subtitle.Text == "Completa misiones, sube de nivel y desbloquea recompensas exclusivas.", "Subtítulo de la referencia")
 check(info.Countdown.Prefix.Text == "Termina en:" and info.Countdown.Left.Text == "23 días 14 horas", "Cuenta atrás real hasta el fin de temporada: «Termina en: 23 días 14 horas» (" .. info.Countdown.Left.Text .. ")")
 check(info.Buy.Text == "👑 COMPRAR PASE PREMIUM · R$ 449" and info.Buy.Active and info.Buy:GetAttribute("Kind") == "Buy", "Botón dorado grande «👑 COMPRAR PASE PREMIUM · R$ 449» (" .. info.Buy.Text .. ")")
@@ -1023,7 +1023,7 @@ check(math.abs(line.Track.Fill.Size.X.Scale - 11 / 49) < 0.001, "La línea se ll
 check(footer.Hex.Number.Text == "12" and deep(footer.Hex, "Side1") ~= nil, "Pie: hexágono con tu nivel (12)")
 check(footer.Xp.Label.Text == "TU NIVEL" and footer.Xp.XpText.Text == "300 / 1.320 XP" and math.abs(footer.Xp.XpBar.Fill.Size.X.Scale - 300 / 1320) < 0.001, "«TU NIVEL», barra de XP y «300 / 1.320 XP»")
 check(footer.PremiumBox.Text.Text == "Desbloquea el pase premium para obtener todas las recompensas" and footer.PremiumBox.SeeBenefits.Text == "VER BENEFICIOS", "Caja «Desbloquea el pase premium…» con «VER BENEFICIOS»")
-check(footer.ClaimAll.Text:find("RECLAMAR TODO", 1, true) ~= nil and footer.Jump.Text:find("IR A MI NIVEL", 1, true) ~= nil, "RECLAMAR TODO e IR A MI NIVEL")
+check(footer.ClaimAll.Text:find("RECLAMAR TODO", 1, true) ~= nil and footer.Jump.Text:find("MI NIVEL", 1, true) ~= nil, "RECLAMAR TODO e IR A MI NIVEL")
 
 -- Saltar a tu nivel
 do

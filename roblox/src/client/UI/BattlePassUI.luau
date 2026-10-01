@@ -451,8 +451,15 @@ local function renderCountdown()
 		return
 	end
 	local prefix, left = View.countdown(state and state.Season, serverNow())
-	Theme.setText(ui.CountPrefix, prefix)
-	Theme.setText(ui.CountText, left)
+	if ui.Layout.Hero.Compact then
+		-- «Termina en: 23 d 14 h» (corto, para que quepa en el móvil)
+		left = left:gsub(" días?", " d"):gsub(" horas?", " h")
+		Theme.setText(ui.CountPrefix, prefix)
+		Theme.setText(ui.CountText, if left ~= "" then prefix .. " " .. left else prefix)
+	else
+		Theme.setText(ui.CountPrefix, prefix)
+		Theme.setText(ui.CountText, left)
+	end
 end
 
 local function renderFeatured()
@@ -479,7 +486,8 @@ local function renderFeatured()
 		return
 	end
 	local track = View.trackName(reward.Track)
-	Theme.setText(F.Kicker, if isStar then ("RECOMPENSA ESTRELLA · NIVEL %d"):format(reward.Level or 50) else ("NIVEL %s · %s"):format(View.levelText(reward.Level or 1), track))
+	local starText = if ui.Layout.Touch then ("★ ESTRELLA · NIVEL %d"):format(reward.Level or 50) else ("RECOMPENSA ESTRELLA · NIVEL %d"):format(reward.Level or 50)
+	Theme.setText(F.Kicker, if isStar then starText else ("NIVEL %s · %s"):format(View.levelText(reward.Level or 1), track))
 	F.Kicker.TextColor3 = if reward.Track == "Premium" then GOLD else SILVER
 	Theme.setText(F.Name, tostring(reward.Name or ""))
 	local rarity = if typeof(reward.RarityColor) == "Color3" then reward.RarityColor else C.Muted
@@ -540,7 +548,8 @@ local function renderHero()
 		return
 	end
 	local season = state and state.Season
-	Theme.setText(ui.Kicker, ("TEMPORADA %s · PASE DE TEMPORADA"):format(tostring(season and season.Number or 1)))
+	local number = tostring(season and season.Number or 1)
+	Theme.setText(ui.Kicker, if ui.PassTitle then ("TEMPORADA %s"):format(number) else ("TEMPORADA %s · PASE DE TEMPORADA"):format(number))
 	Theme.setText(ui.SeasonName, string.upper(tostring(season and season.Name or "Pase de temporada")))
 	renderCountdown()
 	local info = View.heroBuy(state and state.Premium)
@@ -622,7 +631,8 @@ local function renderFooter()
 	Theme.setText(ui.XpText, xpText)
 	ui.XpFill.Size = UDim2.fromScale(if progress and progress.IsMax then 1 else math.clamp(xp / math.max(1, need), 0, 1), 1)
 	local total = View.available(state)
-	setButton(ui.ClaimAll, if claimAllPending then "…" elseif total > 0 then ("RECLAMAR TODO · %d"):format(total) else "RECLAMAR TODO", total > 0 and not claimAllPending, if total > 0 then "Primary" else nil)
+	local claimText = if ui.Layout.Touch then "RECLAMAR" else "RECLAMAR TODO"
+	setButton(ui.ClaimAll, if claimAllPending then "…" elseif total > 0 then ("%s · %d"):format(claimText, total) else claimText, total > 0 and not claimAllPending, if total > 0 then "Primary" else nil)
 	local premium = state and state.Premium
 	local owned = premium ~= nil and premium.Owned
 	Theme.setText(ui.PremiumIcon, if owned then "👑" else "🔒")
@@ -778,9 +788,14 @@ local function buildHero(u: Ui, parent: Instance)
 	badge.Position = UDim2.fromOffset(I.Emblem.X + math.floor((I.Emblem.W - math.floor(I.Emblem.H * 0.866)) / 2), I.Emblem.Y)
 	u.Kicker = Theme.label({ Name = "Kicker", Text = "", Font = Theme.FontBold, TextSize = T.Small, TextColor3 = SILVER, TextTruncate = Enum.TextTruncate.AtEnd, Parent = info })
 	place(u.Kicker, I.Kicker)
+	if I.PassTitle then
+		u.PassTitle = Theme.label({ Name = "PassTitle", Text = "PASE DE TEMPORADA", FontFace = Theme.TitleFace, TextScaled = true, TextColor3 = C.Text, Parent = info })
+		place(u.PassTitle, I.PassTitle)
+		create("UITextSizeConstraint", { MaxTextSize = 36, MinTextSize = 14, Parent = u.PassTitle })
+	end
 	u.SeasonName = Theme.label({ Name = "SeasonName", Text = "", FontFace = Theme.TitleFace, TextScaled = true, TextColor3 = rgb(255, 255, 255), Parent = info })
 	place(u.SeasonName, I.Name)
-	create("UITextSizeConstraint", { MaxTextSize = if Hh.Compact then (if L.Touch then 28 else 32) else 44, MinTextSize = 14, Parent = u.SeasonName })
+	create("UITextSizeConstraint", { MaxTextSize = if Hh.Compact then (if L.Touch then 28 else 32) else 48, MinTextSize = 14, Parent = u.SeasonName })
 	create("UIGradient", { Rotation = 90, Color = ColorSequence.new(rgb(255, 236, 170), GOLD_DEEP), Parent = u.SeasonName })
 	u.Subtitle = Theme.label({
 		Name = "Subtitle",
@@ -799,9 +814,12 @@ local function buildHero(u: Ui, parent: Instance)
 	stroke(count, C.Stroke, 0.55, 1)
 	Theme.label({ Name = "Clock", Position = UDim2.fromOffset(8, 0), Size = UDim2.new(0, 22, 1, 0), Text = "⏱", TextScaled = true, TextXAlignment = Enum.TextXAlignment.Center, Parent = count })
 	local textW = I.Countdown.W - 38
-	local prefixW = math.min(math.floor(textW * 0.45), if L.Touch then 92 else 100)
+	-- (en la cabecera compacta, «Termina en: 23 d 14 h» en una sola etiqueta)
+	local prefixW = if Hh.Compact then 0 else math.min(math.floor(textW * 0.45), 100)
 	u.CountPrefix = Theme.label({ Name = "Prefix", Position = UDim2.fromOffset(34, 0), Size = UDim2.new(0, prefixW, 1, 0), Text = "", TextSize = T.Small, TextColor3 = C.Muted, TextTruncate = Enum.TextTruncate.AtEnd, Parent = count })
-	u.CountText = Theme.label({ Name = "Left", Position = UDim2.fromOffset(34 + prefixW + 4, 0), Size = UDim2.new(0, textW - prefixW - 8, 1, 0), Text = "", Font = Theme.FontBold, TextSize = T.Small, TextColor3 = C.Text, TextTruncate = Enum.TextTruncate.AtEnd, Parent = count })
+	u.CountPrefix.Visible = not Hh.Compact
+	local leftX = if Hh.Compact then 34 else 34 + prefixW + 4
+	u.CountText = Theme.label({ Name = "Left", Position = UDim2.fromOffset(leftX, 0), Size = UDim2.new(0, I.Countdown.W - leftX - 6, 1, 0), Text = "", Font = Theme.FontBold, TextSize = T.Small, TextColor3 = C.Text, TextTruncate = Enum.TextTruncate.AtEnd, Parent = count })
 	-- Botón dorado
 	u.Buy = button(info, "Buy", "", T.Button + (if Hh.Compact then 0 else 2))
 	place(u.Buy, I.Buy)
@@ -1051,7 +1069,7 @@ local function buildFooter(u: Ui, parent: Instance)
 		create("UIGradient", { Color = ColorSequence.new(rgb(255, 230, 150), rgb(255, 170, 40)) }),
 	})
 	-- Ir a mi nivel y reclamar todo
-	local jump = button(foot, "Jump", "📍 IR A MI NIVEL", T.Button)
+	local jump = button(foot, "Jump", if L.Touch then "📍 MI NIVEL" else "📍 IR A MI NIVEL", T.Button)
 	jump.TextWrapped = false
 	place(jump, Fo.Jump)
 	jump.Activated:Connect(jumpToMine)
