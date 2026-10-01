@@ -314,15 +314,17 @@ do
 	end
 	check(allOk, "cada uno está en MaterialService, sobre su material, puesto como override y apuntado en el atributo")
 	check(overrideOf(w.service, "Grass") == "U_Cesped_MaterialVariant3" and w.service.U_Cesped_MaterialVariant3.MaterialPattern == Enum.MaterialPattern.Organic, "césped (piezas y terreno): el 2k del dueño, orgánico")
-	local asphalt = w.service:FindFirstChild("U_Tyler_Asphalt2")
-	check(asphalt and asphalt.BaseMaterial == Enum.Material.Asphalt and overrideOf(w.service, "Asphalt") == "U_Tyler_Asphalt2" and asphalt.StudsPerTile == 17, "asfalto: Asphalt2 de Tyler, pasado de Concrete a Asphalt, 17 studs")
-	check(overrideOf(w.service, "Pavement") == "U_Tyler_Pavement2" and overrideOf(w.service, "Plaster") == "U_Mega_SmoothStucco" and overrideOf(w.service, "ClayRoofTiles") == "U_Mega_ClayShingles", "acera de Tyler, estuco liso y tejas de barro del Mega Pack")
+	-- (en un servidor real no se puede cambiar BaseMaterial a un variant de la Tienda: ganan los que
+	-- ya vienen sobre el material bueno)
+	local asphalt = w.service:FindFirstChild("U_Real_Asphalt")
+	check(asphalt and asphalt.BaseMaterial == Enum.Material.Asphalt and overrideOf(w.service, "Asphalt") == "U_Real_Asphalt" and asphalt.StudsPerTile == 17, "asfalto: el Asphalt del pack de piedras (ya es Asphalt), 17 studs")
+	check(overrideOf(w.service, "Pavement") == "U_Mega_StoneTiles" and overrideOf(w.service, "Plaster") == "U_Mega_SmoothStucco" and overrideOf(w.service, "ClayRoofTiles") == "U_Mega_ClayShingles", "acera de losas de piedra, estuco liso y tejas de barro del Mega Pack")
 	check(w.storage.Mega:FindFirstChild("U_Mega_RedBricks") ~= nil and w.service:FindFirstChild("U_Mega_RedBricks") == nil, "los no elegidos se quedan en ServerStorage (no se replican)")
 	-- Lo nuestro
 	check(overrideOf(w.service, "Metal") == "MetalPintado" and overrideOf(w.service, "Granite") == "Bordillo", "el metal pintado y el bordillo de granito siguen siendo nuestros")
 	check(w.service:FindFirstChild("Asfalto") ~= nil and w.service:FindFirstChild("PinturaVial") ~= nil, "nuestros variants siguen en MaterialService (pieza a pieza y respaldo)")
 	MaterialLook.setup(w.service, OURS) -- (MaterialLook también puede arrancar después)
-	check(overrideOf(w.service, "Asphalt") == "U_Tyler_Asphalt2" and overrideOf(w.service, "Grass") == "U_Cesped_MaterialVariant3", "si MaterialLook arranca después, no pisa los del dueño")
+	check(overrideOf(w.service, "Asphalt") == "U_Real_Asphalt" and overrideOf(w.service, "Grass") == "U_Cesped_MaterialVariant3", "si MaterialLook arranca después, no pisa los del dueño")
 	check(curb.MaterialVariant == "Bordillo" and marking.MaterialVariant == "PinturaVial" and door.MaterialVariant == "MaderaVeta", "las piezas con variant nuestro (bordillo, pintura vial, madera de la puerta) no cambian")
 
 	-- Aclarar
@@ -366,7 +368,7 @@ do
 	UserMaterials.start(function(id)
 		return if ids[id] then fakePack(id) else nil
 	end)
-	check(overrideOf(w.service, "Asphalt") == "U_Tyler_Asphalt2" and road.Color.R > 0.6 and w.storage:FindFirstChild("UserMaterials") ~= nil, "carga, sustituye, aclara y guarda la biblioteca en ServerStorage.UserMaterials")
+	check(overrideOf(w.service, "Asphalt") == "U_Real_Asphalt" and road.Color.R > 0.6 and w.storage:FindFirstChild("UserMaterials") ~= nil, "carga, sustituye, aclara y guarda la biblioteca en ServerStorage.UserMaterials")
 end
 
 print("Cableado")

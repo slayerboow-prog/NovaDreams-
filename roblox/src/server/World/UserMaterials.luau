@@ -124,36 +124,89 @@ end
 
 -- Pone los elegidos en MaterialService. loaded: lo que devolvió unpack por pack.
 -- Devuelve lo que se ha puesto (Pick de shared/UserMaterialChoice con VariantName).
-function UserMaterials.apply(service: Instance, library: Instance, loaded: { [string]: { [string]: boolean } }): { any }
-	local applied = {}
-	for _, pick in Choice.choose(loaded) do
-		local variant: any = findVariant(library, pick.Pack, pick.Name)
-		if not variant then
-			-- (ya movido a MaterialService por otra elección: se clona para este material)
-			for _, item in service:GetChildren() do
-				if item:GetAttribute("SourcePack") == pick.Pack and item:GetAttribute("SourceName") == pick.Name then
-					variant = item:Clone()
-					variant.Name = item.Name .. "_" .. pick.Material
-					break
-				end
+-- En un servidor real, cambiar BaseMaterial a un variant cargado de la Tienda FALLA (probado en v80:
+-- por eso no se puso ninguno). Así que cada paso va en su propio pcall, primero se prueban los
+-- candidatos que ya vienen sobre el material bueno (From == Material) y, si uno no se puede poner,
+-- se pasa al siguiente.
+local function tryPick(service: any, library: Instance, choice: any, cand: any): any?
+	local variant: any = findVariant(library, cand.Pack, cand.Name)
+	if not variant then
+		-- (ya movido a MaterialService por otra elección: se clona para este material)
+		for _, item in service:GetChildren() do
+			if item:GetAttribute("SourcePack") == cand.Pack and item:GetAttribute("SourceName") == cand.Name then
+				variant = item:Clone()
+				variant.Name = item.Name .. "_" .. choice.Material
+				break
 			end
 		end
-		if variant then
-			local ok = pcall(function()
-				variant.BaseMaterial = (Enum.Material :: any)[pick.Material]
-				if pick.Studs then
-					variant.StudsPerTile = pick.Studs
+	end
+	if not variant then
+		return nil
+	end
+	local base = (Enum.Material :: any)[choice.Material]
+	if variant.BaseMaterial ~= base then
+		local ok = pcall(function()
+			variant.BaseMaterial = base
+		end)
+		if not ok or variant.BaseMaterial ~= base then
+			return nil
+		end
+	end
+	if choice.Studs then
+		pcall(function()
+			variant.StudsPerTile = choice.Studs
+		end)
+	end
+	if choice.Pattern then
+		pcall(function()
+			variant.MaterialPattern = (Enum.MaterialPattern :: any)[choice.Pattern]
+		end)
+	end
+	local parented = pcall(function()
+		variant.Parent = service
+	end)
+	if not parented or variant.Parent ~= service then
+		return nil
+	end
+	if not setOverride(service, choice.Material, variant.Name) then
+		return nil
+	end
+	return variant
+end
+
+function UserMaterials.apply(service: Instance, library: Instance, loaded: { [string]: { [string]: boolean } }): { any }
+	local applied = {}
+	for _, choice in Choice.Table do
+		-- primero los que ya vienen sobre este material
+		local ordered = {}
+		for _, cand in choice.Candidates do
+			if cand.From == choice.Material then
+				table.insert(ordered, cand)
+			end
+		end
+		for _, cand in choice.Candidates do
+			if cand.From ~= choice.Material then
+				table.insert(ordered, cand)
+			end
+		end
+		for _, cand in ordered do
+			local pack = loaded[cand.Pack]
+			if pack and pack[cand.Name] then
+				local variant = tryPick(service, library, choice, cand)
+				if variant then
+					service:SetAttribute(Choice.attribute(choice.Material), variant.Name)
+					table.insert(applied, {
+						Material = choice.Material,
+						Pack = cand.Pack,
+						Name = cand.Name,
+						From = cand.From,
+						Studs = choice.Studs,
+						Pattern = choice.Pattern,
+						Whiten = choice.Whiten,
+						VariantName = variant.Name,
+					})
+					break
 				end
-				if pick.Pattern then
-					variant.MaterialPattern = (Enum.MaterialPattern :: any)[pick.Pattern]
-				end
-				variant.Parent = service
-			end)
-			if ok and setOverride(service, pick.Material, variant.Name) then
-				service:SetAttribute(Choice.attribute(pick.Material), variant.Name)
-				local done = table.clone(pick) :: any
-				done.VariantName = variant.Name
-				table.insert(applied, done)
 			end
 		end
 	end

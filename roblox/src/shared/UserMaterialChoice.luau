@@ -86,10 +86,12 @@ UserMaterialChoice.Table = {
 	},
 	{
 		Material = "Asphalt",
-		-- Tyler's es el pack «de asfaltos»: su Asphalt2 (orgánico, 17 studs: algo más que un carril, sin
-		-- repetición) viene sobre Concrete y se pasa a Asphalt. Respaldo: el Asphalt del pack de piedras.
+		-- El Asphalt del pack de piedras ya viene sobre Asphalt (en un servidor real no se puede cambiar el
+		-- BaseMaterial de un variant de la Tienda: el Asphalt2 de Tyler, sobre Concrete, queda de respaldo
+		-- por si algún día se puede). 17 studs: algo más que un carril, sin repetición visible.
 		-- (Los del Mega Pack son asfaltos pintados/rotos o de colores «Lab»: no para una calle normal.)
-		Candidates = { c("Tyler", "Asphalt2", "Concrete"), c("Real", "Asphalt", "Asphalt") },
+		Candidates = { c("Real", "Asphalt", "Asphalt"), c("Tyler", "Asphalt2", "Concrete") },
+		Studs = 17,
 		Whiten = 0.65,
 		Why = "asfalto de calle del pack de asfaltos de Tyler, a escala de carril",
 	},
