@@ -69,7 +69,7 @@ Buildings3D.VariantPrefix = "ModernCity_"
 -- edificio). Se cambian antes los del centro y los de las avenidas; los demás se quedan como estaban.
 Buildings3D.MaxCopies = 100 -- prefabs colocados en total
 Buildings3D.MaxParts = 30000 -- piezas de malla en total
-Buildings3D.Batch = 3 -- bloques por tanda (luego task.wait)
+Buildings3D.Batch = 1 -- bloques por tanda (luego task.wait: cada prefab son cientos de piezas)
 Buildings3D.MaxRow = 3 -- prefabs en fila como mucho en un bloque largo
 Buildings3D.MinScale = 0.6 -- más pequeño, las puertas se quedan de juguete
 Buildings3D.MaxScale = 1.4 -- más grande, las ventanas parecen de gigante
