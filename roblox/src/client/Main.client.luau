@@ -158,6 +158,7 @@ task.spawn(FootCamera.init) -- cámara a pie: zoom corto dentro de edificios y c
 task.spawn(RideCamera.init) -- cámara en un vehículo, el autobús o el metro: detrás, suave y sin meterse dentro
 task.spawn(RidePose.init) -- postura en un vehículo: manos al volante o al manillar, pasajeros sentados
 task.spawn(ObjectMotion.init) -- árboles que se mecen, columpios, banderas, noria, carrusel, fuentes
+task.spawn(require(script.Parent.Controllers.GiantHen).init) -- las gallinas de código (Petra, la gigante) respiran, picotean y andan
 task.spawn(WetWorld.init) -- con lluvia: suelo que brilla, charcos, gente y cosas mojadas; con nieve, todo blanco
 task.spawn(StoneThrow.init) -- coger piedras del suelo y lanzarlas (tecla B o botón 🥌)
 task.spawn(Ambient.init) -- tráfico y peatones
