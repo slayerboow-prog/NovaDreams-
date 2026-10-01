@@ -225,6 +225,8 @@ do
 	local asf = service:FindFirstChild("Asfalto")
 	check(asf and asf:IsA("MaterialVariant") and asf.BaseMaterial == Enum.Material.Asphalt and asf.ColorMap == FAKE.Asfalto_color and asf.NormalMap == FAKE.Asfalto_normal and asf.RoughnessMap == FAKE.Asfalto_roughness and asf.StudsPerTile == 14, "Asfalto: sobre Asphalt, con color, normal y rugosidad, 14 studs")
 	check(asf and asf.MaterialPattern == Enum.MaterialPattern.Organic and asf:GetAttribute("NormalMapId") == FAKE.Asfalto_normal, "Asfalto: patrón orgánico (sin repetición visible) y guarda su mapa normal para el nivel gráfico")
+	local brick = service:FindFirstChild("Ladrillo")
+	check(asf and asf:GetAttribute("DryRoughnessId") == FAKE.Asfalto_roughness and asf:GetAttribute("WetRoughnessId") == FAKE.Asfalto_wet and FAKE.Asfalto_wet ~= nil and brick and brick:GetAttribute("WetRoughnessId") == "", "Asfalto guarda su rugosidad seca y la mojada (wet.png) para la lluvia; el ladrillo no tiene mojada")
 	local veta = service:FindFirstChild("MaderaVeta")
 	check(veta and veta.BaseMaterial == Enum.Material.Wood and veta.ColorMap == FAKE.Madera_color, "MaderaVeta usa las tablas de Madera sobre Wood")
 	local steel = service:FindFirstChild("MetalCepillado")

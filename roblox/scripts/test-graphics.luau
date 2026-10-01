@@ -436,6 +436,51 @@ if place then
 	check(place:GetService("Lighting").Technology == Enum.Technology.Future, "mapa: iluminación Future")
 end
 
+---------------------------------------------------------------------
+print("Gráficos fase 1: césped 3D, árboles, cielo, suelo mojado y horizonte")
+---------------------------------------------------------------------
+check(not T.Low.GrassBlades and T.Medium.GrassBlades and T.High.GrassBlades, "césped 3D (briznas del terreno) en Medio y Alto; en Bajo no")
+check(not T.Low.LeafDetail and T.Medium.LeafDetail and T.High.LeafDetail, "racimos de relleno de los árboles en Medio y Alto; en Bajo se esconden")
+check(not T.Low.WetGloss and T.Medium.WetGloss and T.High.WetGloss and not T.Low.FarRange and T.High.FarRange, "suelo mojado que refleja y sierra lejana en Medio y Alto")
+local detail = fs.readFile("src/client/Controllers/MaterialDetail.luau")
+check(detail:find("Decoration", 1, true) and detail:find("LeafDetail", 1, true) and detail:find("LocalTransparencyModifier", 1, true) and detail:find("WetRoughnessId", 1, true) and detail:find("Perf.onTier", 1, true), "el cliente (MaterialDetail) pone el césped 3D, esconde el relleno de los árboles y cambia la rugosidad con la lluvia según el nivel")
+local terrainSrc = fs.readFile("src/server/World/TerrainBuilder.luau")
+check(terrainSrc:find("SetMaterialColor(Enum.Material.Grass", 1, true) and terrainSrc:find("SetMaterialColor(Enum.Material.LeafyGrass", 1, true), "el césped del terreno tiene su verde (y la hierba alta otro)")
+-- Sombras más suaves de día y hora dorada cinematográfica, sin pasarse
+local shadowsOk, gradeOk = true, true
+for h = 7.5, 17.6, 0.1 do
+	local k = DayGrade.sample(h)
+	if k.Shadow < 0.17 or k.Shadow > 0.26 then
+		shadowsOk = false
+	end
+end
+for h = 0, 23.9, 0.1 do
+	local k = DayGrade.sample(h)
+	if k.Saturation > 0.3 or k.Saturation < -0.1 or k.Contrast > 0.25 or k.Exposure > 0.4 then
+		gradeOk = false
+	end
+end
+local proj = L["$properties"].ShadowSoftness or 0
+check(shadowsOk and proj >= 0.18 and proj <= 0.25, ("sombras del sol algo suaves de día (0,17-0,26; archivo %.2f)"):format(proj))
+check(gradeOk, "sin filtros exagerados: saturación ≤ 0,3, contraste ≤ 0,25 y exposición contenida a todas horas")
+check(golden.Outdoor.R > golden.Outdoor.B * 1.5 and golden.CloudColor.B < golden.CloudColor.R * 0.75 and golden.Glare > noon.Glare, "hora dorada: luz de fuera y nubes cálidas, con deslumbre del sol")
+check(DayGrade.sample(13).CloudDensity >= 0.35 and DayGrade.sample(13).Cover >= 0.4, "nubes con cuerpo de día (densidad y cobertura)")
+check(rainNoon.CloudDensity > clearNoon.CloudDensity + 0.15 and DayGrade.weather(noon, W.Tormenta, nil, 0, 1).CloudDensity > rainNoon.CloudDensity, "con lluvia las nubes se hacen gruesas; con tormenta, más")
+local calm, storm = DayGrade.wind("Despejado", 12), DayGrade.wind("Tormenta", 12)
+check(calm.Magnitude > 2 and storm.Magnitude > calm.Magnitude * 2.5 and calm.Y == 0, ("viento para las nubes: %.0f en calma, %.0f con tormenta"):format(calm.Magnitude, storm.Magnitude))
+check(fs.readFile("src/client/Controllers/DayLight.luau"):find("GlobalWind", 1, true) ~= nil, "DayLight mueve las nubes con el viento (GlobalWind)")
+-- Rugosidad mojada (shared/Textures)
+local Textures = load("src/shared/Textures.luau")
+local ids = { Asfalto_color = "rbxassetid://1", Asfalto_roughness = "rbxassetid://2", Asfalto_wet = "rbxassetid://3", Ladrillo_color = "rbxassetid://4", Ladrillo_wet = "rbxassetid://5" }
+check(Textures.wetMap("Asfalto", ids) == "rbxassetid://3" and Textures.wetMap("Asfalto", { Asfalto_color = "rbxassetid://1" }) == nil and Textures.wetMap("Ladrillo", ids) == nil, "rugosidad mojada solo en la calle (asfalto, acera, bordillo) y solo si está subida")
+check(Textures.roughnessFor("d", "w", 1, true) == "w" and Textures.roughnessFor("d", "w", 0.1, true) == "d" and Textures.roughnessFor("d", "w", 1, false) == "d" and Textures.roughnessFor("d", nil, 1, true) == "d", "con lluvia se pone la mojada; seco, en Bajo o sin id, la de siempre")
+for set in Textures.WetSets do
+	check(fs.isFile(("textures/%s/wet.png"):format(set)), ("textures/%s/wet.png existe (python3 scripts/textures/gen.py --wet)"):format(set))
+end
+check(fs.readFile("src/server/World/Kit/MaterialLook.luau"):find("WetRoughnessId", 1, true) ~= nil, "el servidor apunta en cada material su rugosidad seca y mojada")
+local wetFloor = select(2, Wetness.surface(Enum.Material.Asphalt, 1, 0, true))
+check(wetFloor >= 0.35 and wetFloor <= 0.45, ("asfalto empapado: reflejo de espejo oscuro (%.2f)"):format(wetFloor))
+
 print("")
 if failures > 0 then
 	print(("❌ %d comprobaciones fallan"):format(failures))

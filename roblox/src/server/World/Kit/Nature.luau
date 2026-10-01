@@ -143,8 +143,8 @@ function Nature.tree(parent: Instance, base: Vector3, scale: number?)
 		table.insert(tips, (from * CFrame.new(length, 0, 0)).Position)
 	end
 	-- Copa: núcleo grande, un racimo en la punta de cada rama, copete y relleno alrededor.
-	-- Cuántos racimos, según el tamaño del árbol (8 a 18).
-	local total = math.clamp(math.floor(8 + (s - 0.8) * 14 + rng:NextInteger(0, 3)), 8, 18)
+	-- Cuántos racimos, según el tamaño del árbol (8 a 16).
+	local total = math.clamp(math.floor(8 + (s - 0.8) * 12 + rng:NextInteger(0, 2)), 8, 16)
 	local crown = top + up * (1.4 * s)
 	local made = 0
 	local function add(center: Vector3, d: number, detail: boolean, block: boolean)
