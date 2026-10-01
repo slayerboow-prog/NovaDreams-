@@ -7,6 +7,8 @@
 --   * Suelo mojado: con lluvia (workspace "Wet") el asfalto, las aceras y los bordillos cambian su
 --     rugosidad por la «mojada» (shared/Textures.WetSets): casi lisos, y con la iluminación Future
 --     reflejan el cielo, las fachadas y las farolas. Al secarse vuelven a la normal. En Bajo no.
+--     (Solo en NUESTROS variants: los de los packs del dueño, World/UserMaterials, no dejan cambiar
+--     sus mapas; ahí el mojado lo pone Controllers/WetWorld: más oscuro, reflejo y charcos.)
 --   * Césped 3D: las briznas del terreno (Terrain.Decoration) solo en Medio y Alto.
 --   * Árboles: los racimos de relleno de las copas y las raíces (etiqueta LeafDetail, Kit/Nature)
 --     se esconden en el nivel Bajo (no se pintan: la mitad de piezas por árbol).
