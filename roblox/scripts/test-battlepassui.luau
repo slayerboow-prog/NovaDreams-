@@ -1378,6 +1378,9 @@ for _, size in SIZES do
 		local L = u.Layout
 		check(L.Touch == touch, where .. ": diseño " .. (if touch then "móvil" else "ordenador"))
 		local rw = u.Window.Content.Page.Rewards
+		if L.Hero.Compact then
+			check(rw.Hero.Info.Countdown.Left.Text == "Termina en: 23 d 14 h", where .. ": cuenta atrás corta en la cabecera compacta (" .. rw.Hero.Info.Countdown.Left.Text .. ")")
+		end
 		if touch then
 			check(playerGui:FindFirstChild("BattlePassTip") == nil, where .. ": sin tooltips de ratón")
 			check(rw.Rows.Scroll.ScrollingDirection == roblox.Enum.ScrollingDirection.X and rw.Rows.Scroll.ScrollBarThickness >= 8, where .. ": filas que se arrastran con el dedo")
