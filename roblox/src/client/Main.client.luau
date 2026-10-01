@@ -221,13 +221,14 @@ task.spawn(FridgeUI.init) -- nevera de casa: lo que hay dentro (comer, coger) y 
 task.spawn(HousingUI.init) -- el timbre de tu casa (Abrir / No abrir) y el panel de llaves y visitas
 task.spawn(LiftRide.init) -- el ascensor sube y baja fluido contigo dentro
 
--- Menú de comandos (abajo a la izquierda): cambia según lo que tienes delante; el comando elegido
--- es también lo que hace la tecla E, y su cartel es el único que se dibuja
+-- Comandos: las acciones de ahora van en la tira junto a los botones (la elegida es también lo que
+-- hace la tecla E, y su cartel es el único que se dibuja) y todo lo demás son apps del ValPhone, el
+-- teléfono que asoma abajo a la izquierda (Tab / Select / tocarlo)
 DefaultCommands.register()
 CommandMenu.onFocus(Prompts.setFocus)
 task.spawn(CommandMenu.init)
 
--- 🏆 Pase de temporada: fila en COMANDOS, tecla N y ventana. Con BattlePassConfig.Enabled = false no
+-- 🏆 Pase de temporada: app del ValPhone, tecla N y ventana. Con BattlePassConfig.Enabled = false no
 -- hace nada (ni fila, ni tecla, ni remoto)
 local BattlePassUI: any = nil
 safeInit("BattlePassUI", function()
@@ -239,7 +240,7 @@ end)
 Hud.setAction("Mochila", InventoryUI.toggle)
 Hud.setAction("Mapa", MapUI.toggleBig)
 
--- 📖 «Mi historia» en el menú (capítulos, personajes y recuerdos; también en la tarjeta "Tu vida" y con J)
+-- 📖 «Mi historia» en Ajustes (capítulos, personajes y recuerdos; también su app, la tarjeta "Tu vida" y J)
 Hud.addMenuToggle("📖 Mi historia", 0, function()
 	LifeStory.openJournal()
 	return "📖 Mi historia"
@@ -262,11 +263,12 @@ Hud.addMenuToggle(effectsLabel(), 2, function()
 	return effectsLabel()
 end)
 
--- Primeros pasos: volver a ver el tutorial (se cierra el menú para que se vea la tarjeta)
+-- Primeros pasos: volver a ver el tutorial (se cierran el menú y el ValPhone para que se vea la tarjeta)
 local REPLAY = "🎓 Ver tutorial otra vez"
 Hud.addMenuToggle(REPLAY, 0.5, function()
 	Guide.restart()
-	Hud.runCommand("Menu")
+	Hud.closeMenu()
+	CommandMenu.closePhone()
 	Hud.toast("Info", "🎓 Empezamos los primeros pasos otra vez")
 	return REPLAY
 end)

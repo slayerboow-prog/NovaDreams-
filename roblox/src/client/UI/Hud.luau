@@ -8,13 +8,15 @@
 --   Derecha                -> la misión que sigues (o tu trabajo, o el encargo de la ciudad que has
 --                             aceptado: atributo CityErrand), justo debajo del minimapa; › abre la
 --                             lista de misiones
---   Abajo                  -> menú de comandos (client/Commands), barra rápida (InventoryUI) y los
---                             botones táctiles (UI/TouchLayout)
---   Las apps del antiguo menú rápido (Ir a casa, Ruta a casa, Tienda, Vehículos, Gestos, Metro,
---   Mercadillo, Guía de pesca…) son filas del menú de comandos, antes de «Más» (Hud.addButton).
+--   Abajo                  -> el ValPhone asomando a la izquierda (UI/Phone: el menú del juego son sus
+--                             apps), barra rápida (InventoryUI), los botones táctiles (UI/TouchLayout)
+--                             y la tira de acciones de ahora junto a ellos (Commands/ContextStrip)
+--   Las apps (Ir a casa, Ruta a casa, Tienda, Vehículos, Gestos, Metro, Mercadillo, Guía de pesca…)
+--   son apps del ValPhone (Hud.addButton); las opciones del menú (música, sonidos, ropa, GPS,
+--   Gráficos…) salen en su app Ajustes (Hud.addMenuToggle).
 --   Al llegar a un sitio nuevo, su nombre aparece en grande. Avisos arriba y pantalla negra para dormir.
 -- Dónde va cada cosa lo calcula UI/HudLayout (así nada se pisa en ningún tamaño de pantalla).
--- Otros sistemas se enganchan con Hud.setAction (comandos) y Hud.addButton (filas del menú de comandos).
+-- Otros sistemas se enganchan con Hud.setAction (comandos) y Hud.addButton (apps del ValPhone).
 
 local CollectionService = game:GetService("CollectionService")
 local HttpService = game:GetService("HttpService")
@@ -168,7 +170,7 @@ local function buildClock(parent: Instance)
 end
 
 ---------------------------------------------------------------------
--- Comandos (Mochila, Personaje, Mapa, Misiones, Menú): los usa el menú de comandos
+-- Comandos (Mochila, Personaje, Mapa, Misiones, Menú): los usan las apps del ValPhone
 ---------------------------------------------------------------------
 local questPending = false
 
@@ -179,7 +181,7 @@ function Hud.runCommand(id: string)
 	end
 end
 
--- ¿Hay una misión nueva sin mirar? (el menú de comandos pone un punto rojo en MISIONES)
+-- ¿Hay una misión nueva sin mirar? (el ValPhone pone un punto rojo en la app Misiones)
 function Hud.questPending(): boolean
 	return questPending
 end
@@ -1172,7 +1174,7 @@ local function buildAreaBanner(parent: Instance)
 end
 
 ---------------------------------------------------------------------
--- Menú de ajustes y controles (las apps del antiguo menú rápido son filas del menú de comandos)
+-- Menú de ajustes y controles (las apps del antiguo menú rápido son apps del ValPhone)
 ---------------------------------------------------------------------
 local menu: Frame
 local controlsPanel: Frame
@@ -1246,10 +1248,10 @@ local function buildControls()
 	else
 		line(1, "flecha", "Teclado", "WASD moverse · mantén Mayús correr · Espacio saltar · E usar lo de delante")
 		line(2, "espada", "Pelear", "X golpear · Z defenderse · Q esquivar · V fijar objetivo")
-		line(3, "menu", "Comandos", "Flechas y Enter: menú de comandos · Tab lo oculta o lo muestra")
+		line(3, "telefono", "ValPhone", "Tab abre el teléfono (flechas y Enter dentro) · Enter hace la acción elegida de la tira")
 		line(4, "mapa", "Atajos", "M mapa · 1-9 barra rápida · L linterna · P foto · B piedra · F bajarse · H claxon")
 		line(5, "mando", "Mando", "L3 correr · RB golpear · LB defenderse · B esquivar o bajarse · A saltar")
-		line(6, "linterna", "Mando (más)", "R3 linterna · LT foto · Y piedra · RT recoger sedal · cruceta: comandos")
+		line(6, "linterna", "Mando (más)", "R3 linterna · LT foto · Y piedra · RT recoger sedal · Select: ValPhone · cruceta: acciones")
 	end
 end
 
@@ -1292,13 +1294,44 @@ local function buildMenu()
 	end)
 end
 
--- Añade una opción al menú (la usa el cliente para la música, los sonidos, la ropa…)
+-- Añade una opción al menú (la usa el cliente para la música, los sonidos, la ropa…). Sale en la app
+-- Ajustes del ValPhone (Hud.menuToggles) y en la ventana MENÚ de siempre.
+type MenuToggle = { Text: string, Order: number, Press: () -> string }
+local menuToggles: { MenuToggle } = {}
 function Hud.addMenuToggle(text: string, order: number, callback: () -> string)
 	local content = menu:FindFirstChild("Content") :: Frame
 	local button = Theme.button({ Size = UDim2.new(1, 0, 0, 36), Text = text, TextSize = 14, TextWrapped = true, LayoutOrder = order, ZIndex = 31, Parent = content })
+	local entry: MenuToggle
+	entry = {
+		Text = text,
+		Order = order,
+		Press = function(): string
+			local now = callback()
+			entry.Text = now
+			button.Text = now
+			return now
+		end,
+	}
+	table.insert(menuToggles, entry)
 	button.Activated:Connect(function()
-		button.Text = callback()
+		entry.Press()
 	end)
+end
+
+-- Las opciones del menú en orden (app Ajustes del ValPhone): { Text, Order, Press() -> texto nuevo }
+function Hud.menuToggles(): { MenuToggle }
+	local list = table.clone(menuToggles)
+	table.sort(list, function(a, b)
+		return a.Order < b.Order
+	end)
+	return list
+end
+
+-- Cierra la ventana MENÚ si está abierta (p. ej. al volver a ver el tutorial)
+function Hud.closeMenu()
+	if menu and menu.Visible then
+		menu.Visible = false
+	end
 end
 
 -- Acciones de los comandos (Mochila, Mapa, Personaje…): las conecta cada sistema
@@ -1306,9 +1339,9 @@ function Hud.setAction(id: string, callback: () -> ())
 	actions[id] = callback
 end
 
--- Añade una app (Ir a casa, Tienda, Vehículos…) como fila del menú de comandos, después de Objetos y
--- Mapa y antes de «Más», en el orden de `order`. Hace lo mismo que el botón del antiguo menú rápido.
--- (El color ya no se usa: las filas tienen todas el mismo estilo.)
+-- Añade una app (Ir a casa, Tienda, Vehículos…) al ValPhone, después de Mochila y Mapa y antes de las
+-- de «Más», en el orden de `order` (su icono y color: Commands/PhoneApps.Catalog). Hace lo mismo que
+-- el botón del antiguo menú rápido. (El color de aquí ya no se usa.)
 function Hud.addButton(text: string, _color: Color3?, order: number, callback: () -> ()): TextButton?
 	local label, iconName = splitApp(text)
 	CommandRegistry.register({
@@ -1539,7 +1572,7 @@ function Hud.init(openStore: () -> ()): ScreenGui
 
 	HudLayout.onChanged(applyLayout)
 
-	-- Apps que pone el propio HUD (filas del menú de comandos)
+	-- Apps que pone el propio HUD (en el ValPhone)
 	Hud.addButton("🏠 Ir a casa", rgb(40, 110, 220), 1, function()
 		(Remotes:WaitForChild("GoHome") :: RemoteEvent):FireServer()
 	end)
