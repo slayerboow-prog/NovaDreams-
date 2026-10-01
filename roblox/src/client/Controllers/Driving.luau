@@ -459,7 +459,11 @@ local function start(seat: VehicleSeat, humanoid: Humanoid)
 		Steer = 0,
 		Stuck = 0,
 		Start = chassis.Position,
-		Controls = VehicleControls.new(),
+		Controls = (function()
+			local c = VehicleControls.new()
+			c.Hazard = model:GetAttribute("Indicator") == "H" -- (si las dejaste puestas al bajarte, siguen)
+			return c
+		end)(),
 		Handbrake = false,
 		Braking = false,
 		Blink = false,

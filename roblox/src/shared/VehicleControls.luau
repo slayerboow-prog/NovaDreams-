@@ -240,8 +240,10 @@ function VehicleControls.write(model: any, state: { [string]: any })
 end
 
 -- Al subirse (todo apagado) y al aparcar (todo apagado, con el freno de mano echado)
+-- (las luces de emergencia que estaban puestas siguen parpadeando al aparcar y al volver a subir)
 function VehicleControls.reset(model: any, parked: boolean?)
-	VehicleControls.write(model, { Lights = 0, Indicator = "", Braking = false, Reversing = false, Handbrake = parked == true })
+	local keepHazard = model:GetAttribute("Indicator") == "H"
+	VehicleControls.write(model, { Lights = 0, Indicator = if keepHazard then "H" else "", Braking = false, Reversing = false, Handbrake = parked == true })
 end
 
 return VehicleControls
