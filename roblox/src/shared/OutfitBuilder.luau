@@ -23,6 +23,7 @@
 local OutfitBuilder = {}
 
 local OutfitIds = require(script.Parent.OutfitIds)
+local Images = require(script.Parent.Images)
 
 local FABRIC = Enum.Material.Fabric
 local SMOOTH = Enum.Material.SmoothPlastic
@@ -835,7 +836,8 @@ function OutfitBuilder.idsFor(key: string?): (string?, string?)
 	end
 	local base = string.lower(key)
 	local shirt, pants = (OutfitIds :: any)[base .. "_shirt"], (OutfitIds :: any)[base .. "_pants"]
-	return (if type(shirt) == "string" and shirt ~= "" then shirt else nil), (if type(pants) == "string" and pants ~= "" then pants else nil)
+	-- (Images.of: del id del Decal al de su imagen, si el servidor ya lo ha resuelto)
+	return (if type(shirt) == "string" and shirt ~= "" then Images.of(shirt) else nil), (if type(pants) == "string" and pants ~= "" then Images.of(pants) else nil)
 end
 
 -- Quita la ropa clásica que puso el aspecto de Valmar (all = cualquier Shirt/Pants del personaje)

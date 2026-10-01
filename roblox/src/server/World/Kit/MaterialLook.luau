@@ -15,6 +15,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Textures = require(ReplicatedStorage.Shared.Textures)
 local TextureIds = require(ReplicatedStorage.Shared.TextureIds)
+local Images = require(ReplicatedStorage.Shared.Images)
 
 local MaterialLook = {}
 
@@ -138,8 +139,13 @@ function MaterialLook.tuneVehicle(model: Instance, ids: { [string]: string }?)
 end
 
 -- Arranque del servidor: variants, la ciudad si hace falta y los coches que aparezcan luego.
+-- Primero pasa los ids de Decal a ids de imagen (shared/Images): espera, así que se llama en un hilo aparte.
 function MaterialLook.start(town: Instance?)
-	local made = MaterialLook.setup()
+	local converted = Images.resolve(TextureIds)
+	if converted > 0 then
+		print(("[MaterialLook] %d texturas pasadas de Decal a imagen"):format(converted))
+	end
+	local made = MaterialLook.setup(nil, Images.map(TextureIds))
 	if town and town:GetAttribute("TextureSet") ~= Textures.signature(TextureIds) then
 		MaterialLook.assign(town)
 	end

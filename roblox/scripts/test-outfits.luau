@@ -479,8 +479,8 @@ print("▶ Talla de niño")
 do
 	local adult, kid = rig("R15"), rig("R15", 0.65)
 	local coast = Outfits.get("O02")
-	Builder.dress(adult, coast, { Stage = "Adulto", Skin = SKIN })
-	Builder.dress(kid, coast, { Stage = "Nino", Skin = SKIN })
+	Builder.dress(adult, coast, { Stage = "Adulto", Skin = SKIN, Ids = {} }) -- (modo de piezas, sin plantillas)
+	Builder.dress(kid, coast, { Stage = "Nino", Skin = SKIN, Ids = {} })
 	check(named(adult, "Crop") == 1 and adult.UpperTorso.Color == SKIN, "adulto: top corto con el ombligo al aire")
 	check(named(kid, "Crop") == 0 and kid.UpperTorso.Color == coast.Top.Color, "niño: el top le tapa la tripa")
 	local elegance = Outfits.get("O12")
@@ -517,10 +517,10 @@ do
 	check(shirt and shirt:IsA("Shirt") and shirt.ShirtTemplate == "rbxassetid://111" and pants and pants:IsA("Pants") and pants.PantsTemplate == "rbxassetid://222", "Shirt y Pants con sus plantillas")
 	check(named(model, "Number") == 0 and named(model, "Basketball") == 1 and model.ValmarLook:GetAttribute("Textured") == true, "los estampados los pone la plantilla (no piezas); los accesorios 3D siguen")
 	check(model.UpperTorso.Color == SKIN, "debajo de la plantilla, piel")
-	Builder.dress(model, o, { Stage = "Adulto", Skin = SKIN })
+	Builder.dress(model, o, { Stage = "Adulto", Skin = SKIN, Ids = {} })
 	check(model:FindFirstChild("ValmarShirt") == nil and named(model, "Number") == 1, "sin plantillas: fuera la ropa clásica y vuelve el modo de colores y piezas")
 	local a, b = Builder.idsFor("O01")
-	check(a == nil and b == nil, "OutfitIds vacío hasta subirlas (scripts/upload-outfits.sh): ningún conjunto se rompe")
+	check((a == nil) == (b == nil) and (a == nil or (a:match("^rbxassetid://%d+$") ~= nil and b:match("^rbxassetid://%d+$") ~= nil)), "OutfitIds: o las dos plantillas (rbxassetid) o ninguna (sin subir): ningún conjunto se rompe")
 end
 
 ---------------------------------------------------------------------

@@ -117,7 +117,7 @@ fi
 # en tenerla lista: se reintenta.
 image_of_decal() {
 	local decal="$1" xml image
-	for _ in 1 2 3 4 5 6; do
+	for _ in 1 2; do
 		xml="$(curl -sS -L "https://assetdelivery.roblox.com/v1/asset/?id=${decal}" -H "@${HEADERS}" 2>/dev/null || true)"
 		image="$(printf '%s' "$xml" | grep -oE 'id=[0-9]+' | head -1 | cut -d= -f2 || true)"
 		if [ -n "$image" ]; then
@@ -126,7 +126,7 @@ image_of_decal() {
 		fi
 		sleep 3
 	done
-	echo "  ⚠️  no se encontró la imagen del decal ${decal}; se guarda el id del decal" >&2
+	echo "  ⚠️  no se encontró la imagen del decal ${decal}; se guarda el id del decal (el juego lo pasa a imagen al arrancar: shared/Images)" >&2
 	echo "$decal"
 }
 

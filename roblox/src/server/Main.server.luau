@@ -45,14 +45,35 @@ end
 -- Texturas PBR de verdad (MaterialService): un MaterialVariant por material con ids subidos, en lugar
 -- del material de Roblox; las piezas sueltas (pintura vial, bordillos, coches…) si la ciudad del archivo
 -- se construyó con otros ids. Sin ids no cambia nada (Kit/MaterialLook, shared/Textures).
-do
+-- (en un hilo aparte: antes pasa los ids de Decal a imagen con InsertService, shared/Images; y lo
+-- mismo con la ropa del pase, shared/OutfitIds)
+task.spawn(function()
 	local ok, err = pcall(function()
 		require(World.Kit.MaterialLook).start(workspace:FindFirstChild("Town"))
 	end)
 	if not ok then
 		warn("[MaterialLook] " .. tostring(err))
 	end
-end
+end)
+task.spawn(function()
+	local ok, err = pcall(function()
+		local Shared = game:GetService("ReplicatedStorage").Shared
+		local Images = require(Shared.Images)
+		if Images.resolve(require(Shared.OutfitIds)) > 0 then
+			-- la ropa que se puso antes de acabar
+			for _, item in workspace:GetDescendants() do
+				if item.Name == "ValmarShirt" and item:IsA("Shirt") then
+					item.ShirtTemplate = Images.of(item.ShirtTemplate)
+				elseif item.Name == "ValmarPants" and item:IsA("Pants") then
+					item.PantsTemplate = Images.of(item.PantsTemplate)
+				end
+			end
+		end
+	end)
+	if not ok then
+		warn("[Images] " .. tostring(err))
+	end
+end)
 TerrainBuilder.removeGroundPart()
 
 -- 3b) El sueño del prólogo: una isla pequeña en el cielo donde los personajes nuevos aprenden los
