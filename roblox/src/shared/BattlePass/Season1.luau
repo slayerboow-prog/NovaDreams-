@@ -7,6 +7,8 @@
 -- premium) es el conjunto legendario «Faro de Valmar» (con el superdeportivo Aurora X «Faro de Valmar»).
 -- Vehículos premium (shared/PremiumVehicles): 11 en la pista premium (4, 12, 16, 24, 28, 32, 36, 39,
 -- 42, 44 y 49), el Kairo S gratis en el 25 y el Aurora X dentro del conjunto del 50.
+-- Conjuntos de ropa (shared/Outfits, los 30 de la hoja): 24 sueltos en la pista premium, Neon en el
+-- conjunto del 20, Ángel en el del 50 y 4 en la gratis (9, 22, 35 y 41).
 --
 -- Para una temporada nueva: copia este archivo como Season2.luau, cambia Id, fechas, GamePassId,
 -- recompensas y misiones, y añádelo a la lista Seasons de BattlePass/Config.
@@ -71,12 +73,39 @@ local function vehicle(level: number, track: string, id: string, extra: { [strin
 	add(level, track, vehicleReward(id, extra))
 end
 
+-- Los 30 conjuntos de ropa de la hoja (shared/Outfits; los viste shared/OutfitBuilder). Id fijo por
+-- conjunto ("S1_O05"), salga en el nivel que salga. 26 en la pista premium (uno, el Ángel, dentro del
+-- conjunto legendario del 50 y otro, Neon, en el del 20) y 4 raros en la gratis (9, 22, 35 y 41).
+-- Los tres «Estilo …» de oficios son solo ropa: no dan el trabajo ni sus permisos.
+local Outfits = require(script.Parent.Parent.Outfits)
+local function outfitReward(key: string, extra: { [string]: any }?): { [string]: any }
+	local o = Outfits.get(key)
+	assert(o, "conjunto desconocido: " .. key)
+	local row: { [string]: any } = {
+		Id = "S1_" .. key,
+		Type = "Outfit",
+		Name = o.Name,
+		Icon = o.Icon,
+		Rarity = o.Rarity,
+		Outfit = key,
+		Costume = o.Costume,
+		Colors = table.clone(o.Colors),
+		Description = o.Description,
+		Preview = { Kind = "Outfit", Outfit = key },
+	}
+	for k, value in extra or {} do
+		row[k] = value
+	end
+	return row
+end
+local function outfit(level: number, track: string, key: string)
+	add(level, track, outfitReward(key))
+end
+
 -- Nivel 1-10 ----------------------------------------------------------------
 add(1, F, { Type = "Title", Name = "Vecino/a de Valmar", Icon = "🏙️", Text = "Vecino/a de Valmar", Color = rgb(230, 230, 235),
 	Description = "Tu primer título de temporada. Se ve junto a tu nombre." })
-add(1, P, { Type = "Outfit", Name = "Chaqueta Luces de Valmar", Icon = "🧥", Rarity = "Rara",
-	Colors = { Hoodie = rgb(28, 36, 72), HoodLining = rgb(255, 196, 64), Tee = rgb(245, 245, 250), Pants = rgb(30, 32, 40), Shoes = rgb(255, 196, 64) },
-	Description = "Azul noche con forro dorado, como las farolas del paseo.", Preview = { Kind = "Outfit" } })
+outfit(1, P, "O01")
 add(2, F, { Type = "Money", Name = "150 €", Icon = "💶", Amount = 150, Description = "Un pequeño empujón para empezar." })
 add(2, P, { Type = "Emote", Name = "Saludo del faro", Icon = "🗼", Rarity = "Rara", AnimationId = 3344650532, Loop = false,
 	Description = "Un saludo amplio, como la luz del faro barriendo el puerto.", Preview = { Kind = "Emote" } })
@@ -93,25 +122,18 @@ add(5, P, { Type = "VehicleSkin", Name = "Patinete Brisa Marina", Icon = "🛴",
 	Description = "Turquesa con detalles blancos. Mismas prestaciones que cualquier patinete: solo cambia el estilo.",
 	Preview = { Kind = "Vehicle", Vehicle = "Patinete" } })
 add(6, F, { Type = "CharacterXp", Name = "+150 XP de personaje", Icon = "⭐", Amount = 150, Description = "Experiencia para tu personaje." })
-add(6, P, { Type = "Decor", Name = "Lámpara de pie Altamar", Icon = "💡", Shape = "Lamp", Size = Vector3.new(1.2, 5, 1.2), Color = rgb(240, 200, 120), Light = true, Rarity = "Rara",
-	Description = "Luz cálida como la de las torres de noche.", Preview = { Kind = "Decor" } })
+outfit(6, P, "O02")
 add(7, F, { Type = "Emote", Name = "Aplauso de la plaza", Icon = "👏", AnimationId = 507770677, Loop = false,
 	Description = "Aplaude como en las fiestas de la Plaza del Centro.", Preview = { Kind = "Emote" } })
-add(7, P, { Type = "Nameplate", Name = "Placa Atardecer", Icon = "🌅", Rarity = "Rara", Colors = { Background = rgb(255, 140, 80), Stroke = rgb(120, 40, 60), Text = rgb(255, 255, 255) },
-	Description = "El marco de tu nombre con los colores del atardecer en Playa Dorada." })
+outfit(7, P, "O04")
 add(8, F, { Type = "Money", Name = "200 €", Icon = "💶", Amount = 200, Description = "Para un café en la Cafetería Central (o unos cuantos)." })
 add(8, P, { Type = "HudSkin", Name = "HUD Noche de Valmar", Icon = "🌃", Rarity = "Rara", Colors = { Panel = rgb(16, 20, 40), Accent = rgb(90, 160, 255), Text = rgb(235, 240, 255) },
 	Description = "La interfaz en azul noche." })
-add(9, F, { Type = "Decor", Name = "Póster del Estadio Altamar", Icon = "🖼️", Shape = "Poster", Size = Vector3.new(3, 4, 0.2), Color = rgb(200, 40, 50),
-	Description = "El póster del último partido del Estadio Altamar.", Preview = { Kind = "Decor" } })
-add(9, P, { Type = "Title", Name = "Alma de San Roque", Icon = "🏘️", Text = "Alma de San Roque", Color = rgb(255, 180, 90), Rarity = "Rara",
-	Description = "Para quien conoce cada esquina de San Roque." })
+outfit(9, F, "O05")
+outfit(9, P, "O11")
 add(10, F, { Type = "Nameplate", Name = "Placa Valmar Clásica", Icon = "🏷️", Rarity = "Rara", Colors = { Background = rgb(40, 90, 150), Stroke = rgb(255, 255, 255), Text = rgb(255, 255, 255) },
 	Description = "El azul de los carteles de la ciudad." })
-add(10, P, { Type = "HomeTheme", Name = "Loft del Puerto", Icon = "⚓", Rarity = "Epica",
-	Floor = rgb(120, 86, 60), FloorMaterial = "WoodPlanks", Wall = rgb(70, 80, 95), WallMaterial = "Brick",
-	Description = "Tu vivienda de siempre con ladrillo visto y madera de barco. Se aplica a la que tú elijas.",
-	Preview = { Kind = "HomeTheme" } })
+outfit(10, P, "O13")
 
 -- Nivel 11-20 ---------------------------------------------------------------
 add(11, F, { Type = "Tickets", Name = "60 tickets", Icon = "🎟️", Amount = 60, Description = "Más partidas en los recreativos." })
@@ -121,13 +143,10 @@ add(12, F, { Type = "Title", Name = "Madrugador/a", Icon = "🌄", Text = "Madru
 	Description = "Para quien abre Valmar antes que nadie." })
 vehicle(12, P, "NexusR")
 add(13, F, { Type = "Money", Name = "250 €", Icon = "💶", Amount = 250, Description = "Un pequeño ahorro." })
-add(13, P, { Type = "Outfit", Name = "Conjunto Playa Dorada", Icon = "🩳", Rarity = "Epica",
-	Colors = { Hoodie = rgb(250, 250, 245), HoodLining = rgb(80, 200, 210), Tee = rgb(255, 170, 90), Pants = rgb(70, 150, 200), Shoes = rgb(250, 250, 245) },
-	Description = "Blanco, turquesa y naranja: verano en la playa.", Preview = { Kind = "Outfit" } })
+outfit(13, P, "O18")
 add(14, F, { Type = "Decor", Name = "Cojines de Los Pinos", Icon = "🛋️", Shape = "Cushion", Size = Vector3.new(1.6, 0.6, 1.6), Color = rgb(90, 130, 80),
 	Description = "Cojines verdes con olor a pino.", Preview = { Kind = "Decor" } })
-add(14, P, { Type = "PhoneTheme", Name = "Atardecer en Playa Dorada", Icon = "🌅", Rarity = "Rara", Colors = { Background = rgb(60, 30, 60), Accent = rgb(255, 150, 80), Text = rgb(255, 240, 230) },
-	Description = "Naranja y violeta para tu teléfono." })
+outfit(14, P, "O03")
 add(15, F, { Type = "VehicleSkin", Name = "Bici Verde Villaverde", Icon = "🚲", Kind = "Bici", Rarity = "Rara", GrantsBase = true,
 	Color = rgb(60, 150, 80),
 	Description = "Una bici verde campo. Mismas prestaciones que cualquier bici.", Preview = { Kind = "Vehicle", Vehicle = "Bici" } })
@@ -139,38 +158,30 @@ add(16, F, { Type = "CharacterXp", Name = "+200 XP de personaje", Icon = "⭐", 
 vehicle(16, P, "Zenith")
 add(17, F, { Type = "Emote", Name = "Estiramiento del parque", Icon = "🧘", AnimationId = 3334538554, Loop = false,
 	Description = "Estírate como en las mañanas del parque.", Preview = { Kind = "Emote" } })
-add(17, P, { Type = "Decor", Name = "Acuario de la Isla de las Gaviotas", Icon = "🐠", Shape = "Box", Size = Vector3.new(3, 2, 1.4), Color = rgb(80, 170, 230), Material = "Glass", Rarity = "Epica",
-	Description = "Peces de colores de la Isla de las Gaviotas.", Preview = { Kind = "Decor" } })
+outfit(17, P, "O10")
 add(18, F, { Type = "Money", Name = "250 €", Icon = "💶", Amount = 250, Description = "Un pequeño ahorro." })
-add(18, P, { Type = "Title", Name = "Ruta del Metro", Icon = "🚇", Text = "Ruta del Metro", Color = rgb(230, 60, 60), Rarity = "Rara",
-	Description = "Para quien se sabe todas las estaciones." })
+outfit(18, P, "O07")
 add(19, F, { Type = "PhoneTheme", Name = "Clásico de Valmar", Icon = "📱", Colors = { Background = rgb(235, 238, 245), Accent = rgb(40, 90, 150), Text = rgb(20, 25, 40) },
 	Description = "Blanco y azul ciudad." })
-add(19, P, { Type = "HudSkin", Name = "HUD Faro Dorado", Icon = "✨", Rarity = "Epica", Colors = { Panel = rgb(30, 24, 12), Accent = rgb(255, 200, 80), Text = rgb(255, 245, 225) },
-	Description = "La interfaz en negro y oro." })
+outfit(19, P, "O15")
 add(20, F, { Type = "Wearable", Name = "Gorra", Icon = "🧢", Kind = "Gorra", Rarity = "Rara",
 	Description = "La gorra de los recreativos, gratis. Si ya la tienes, te damos 150 tickets.", Fallback = { Type = "Tickets", Amount = 150 } })
 add(20, P, { Type = "Bundle", Name = "Colección Noche en el Centro", Icon = "🌆", Rarity = "Epica",
-	Description = "Un conjunto para salir de noche y un título a juego.",
+	Description = "El conjunto Neon (chaqueta negra con paneles flúor, cargo neón y gafas de ventisca) para salir de noche y un título a juego.",
 	Items = {
-		{ Id = "S1_P20_Outfit", Type = "Outfit", Name = "Conjunto Noche en el Centro", Icon = "🧥",
-			Colors = { Hoodie = rgb(20, 20, 24), HoodLining = rgb(255, 64, 160), Tee = rgb(40, 40, 48), Pants = rgb(20, 20, 24), Shoes = rgb(255, 64, 160) } },
+		outfitReward("O26"),
 		{ Id = "S1_P20_Title", Type = "Title", Name = "Noches del Centro", Icon = "🌆", Text = "Noches del Centro", Color = rgb(255, 90, 170) },
 	},
-	Preview = { Kind = "Outfit" } })
+	Preview = { Kind = "Outfit", Outfit = "O26" } })
 
 -- Nivel 21-30 ---------------------------------------------------------------
 add(21, F, { Type = "Tickets", Name = "80 tickets", Icon = "🎟️", Amount = 80, Description = "Más partidas en los recreativos." })
-add(21, P, { Type = "Emote", Name = "Paso del Distrito", Icon = "🕺", Rarity = "Rara", AnimationId = 507776043, Loop = true, Speed = 0.9,
-	Description = "El baile tranquilo de los afterwork del Distrito Financiero.", Preview = { Kind = "Emote" } })
-add(22, F, { Type = "Decor", Name = "Reloj de la estación", Icon = "🕰️", Shape = "Clock", Size = Vector3.new(2, 2, 0.3), Color = rgb(245, 240, 225),
-	Description = "Como el de la estación de Cercanías.", Preview = { Kind = "Decor" } })
-add(22, P, { Type = "Nameplate", Name = "Placa Neón", Icon = "💜", Rarity = "Epica", Colors = { Background = rgb(25, 10, 45), Stroke = rgb(255, 64, 200), Text = rgb(255, 230, 255) },
-	Description = "Tu nombre en neón rosa." })
+outfit(21, P, "O06")
+outfit(22, F, "O14")
+outfit(22, P, "O08")
 add(23, F, { Type = "Title", Name = "Explorador/a de distritos", Icon = "🧭", Text = "Explorador/a de distritos", Color = rgb(140, 220, 160),
 	Description = "Para quien ha pisado todos los barrios." })
-add(23, P, { Type = "Decor", Name = "Mesa de terraza", Icon = "☕", Shape = "Table", Size = Vector3.new(2.4, 2.4, 2.4), Color = rgb(200, 200, 205), Material = "Metal", Rarity = "Rara",
-	Description = "Una mesa como las de las terrazas de la plaza.", Preview = { Kind = "Decor" } })
+outfit(23, P, "O17")
 add(24, F, { Type = "HomeTheme", Name = "Piso luminoso de Valmar Norte", Icon = "🏠", Rarity = "Rara",
 	Floor = rgb(225, 205, 170), FloorMaterial = "WoodPlanks", Wall = rgb(245, 243, 235), WallMaterial = "SmoothPlastic",
 	Description = "Paredes claras y madera de roble para tu vivienda de siempre.", Preview = { Kind = "HomeTheme" } })
@@ -181,19 +192,15 @@ add(25, P, { Type = "HomeTheme", Name = "Ático Distrito Financiero", Icon = "�
 	Description = "Mármol oscuro y paredes gris perla, como en las torres. Se aplica a tu vivienda (no es una casa nueva).",
 	Preview = { Kind = "HomeTheme" } })
 add(26, F, { Type = "CharacterXp", Name = "+250 XP de personaje", Icon = "⭐", Amount = 250, Description = "Experiencia para tu personaje." })
-add(26, P, { Type = "Outfit", Name = "Traje de gala de Altamar", Icon = "🤵", Rarity = "Epica",
-	Colors = { Hoodie = rgb(22, 24, 30), HoodLining = rgb(22, 24, 30), Tee = rgb(250, 250, 250), Pants = rgb(22, 24, 30), Shoes = rgb(10, 10, 12) },
-	Description = "Elegante para la gala del Estadio Altamar.", Preview = { Kind = "Outfit" } })
+outfit(26, P, "O12")
 add(27, F, { Type = "Emote", Name = "Foto de turista", Icon = "📸", AnimationId = 507770453, Loop = false,
 	Description = "Señala el monumento y haz la foto.", Preview = { Kind = "Emote" } })
-add(27, P, { Type = "Decor", Name = "Maqueta del Cercanías", Icon = "🚆", Shape = "Box", Size = Vector3.new(3, 1, 1), Color = rgb(200, 40, 45), Rarity = "Rara",
-	Description = "Una maqueta del tren de Cercanías.", Preview = { Kind = "Decor" } })
+outfit(27, P, "O19")
 add(28, F, { Type = "Decor", Name = "Estantería del Campus", Icon = "📚", Shape = "Shelf", Size = Vector3.new(3, 5, 1.2), Color = rgb(130, 90, 60),
 	Description = "Llena de apuntes de la Universidad.", Preview = { Kind = "Decor" } })
 vehicle(28, P, "Blaze1000")
 add(29, F, { Type = "Tickets", Name = "100 tickets", Icon = "🎟️", Amount = 100, Description = "Más partidas en los recreativos." })
-add(29, P, { Type = "PhoneTheme", Name = "Mar de Valmar", Icon = "🌊", Rarity = "Rara", Colors = { Background = rgb(10, 40, 70), Accent = rgb(80, 200, 210), Text = rgb(230, 250, 255) },
-	Description = "Azul mar para tu teléfono." })
+outfit(29, P, "O23")
 add(30, F, { Type = "Nameplate", Name = "Placa Temporada 1", Icon = "🏷️", Rarity = "Rara", Colors = { Background = rgb(28, 36, 72), Stroke = rgb(255, 196, 64), Text = rgb(255, 255, 255) },
 	Description = "La placa de la primera temporada." })
 add(30, P, { Type = "Perk", Name = "Cambio de misión diaria", Icon = "🔄", Rarity = "Epica", Perk = "RerollDaily",
@@ -201,21 +208,16 @@ add(30, P, { Type = "Perk", Name = "Cambio de misión diaria", Icon = "🔄", Ra
 
 -- Nivel 31-40 ---------------------------------------------------------------
 add(31, F, { Type = "Money", Name = "300 €", Icon = "💶", Amount = 300, Description = "Un pequeño ahorro." })
-add(31, P, { Type = "Emote", Name = "Celebración del estadio", Icon = "🏟️", Rarity = "Epica", AnimationId = 3338055167, Loop = false,
-	Description = "Como la grada del Estadio Altamar cuando marca el equipo.", Preview = { Kind = "Emote" } })
+outfit(31, P, "O20")
 add(32, F, { Type = "Title", Name = "Currante de Valmar", Icon = "🛠️", Text = "Currante de Valmar", Color = rgb(255, 200, 120),
 	Description = "Para quien no falta a su turno." })
 vehicle(32, P, "RavenT7")
 add(33, F, { Type = "Decor", Name = "Alfombra de playa", Icon = "🏖️", Shape = "Rug", Size = Vector3.new(5, 0.1, 3), Color = rgb(80, 200, 210),
 	Description = "Rayas de toalla de Playa Dorada.", Preview = { Kind = "Decor" } })
-add(33, P, { Type = "Title", Name = "Noctámbulo/a", Icon = "🌙", Text = "Noctámbulo/a", Color = rgb(170, 150, 255), Rarity = "Rara",
-	Description = "Valmar de noche no tiene secretos para ti." })
+outfit(33, P, "O28")
 add(34, F, { Type = "CharacterXp", Name = "+300 XP de personaje", Icon = "⭐", Amount = 300, Description = "Experiencia para tu personaje." })
-add(34, P, { Type = "HudSkin", Name = "HUD Aurora", Icon = "🌌", Rarity = "Epica", Colors = { Panel = rgb(12, 30, 36), Accent = rgb(120, 255, 200), Text = rgb(230, 255, 245) },
-	Description = "Verde aurora para la interfaz." })
-add(35, F, { Type = "Outfit", Name = "Sudadera Temporada 1", Icon = "👕", Rarity = "Rara",
-	Colors = { Hoodie = rgb(40, 90, 150), HoodLining = rgb(245, 245, 250), Tee = rgb(245, 245, 250), Pants = rgb(34, 36, 42), Shoes = rgb(245, 245, 245) },
-	Description = "La sudadera azul Valmar de la primera temporada.", Preview = { Kind = "Outfit" } })
+outfit(34, P, "O09")
+outfit(35, F, "O27")
 add(35, P, { Type = "Boat", Name = "Lancha «Gaviota»", Icon = "🚤", Rarity = "Epica", Kind = "Lancha", Boat = "Gaviota", Color = rgb(245, 245, 250),
 	Description = "Una lancha blanca y oro con cabina y tu nombre en la popa. Es tuya para siempre: sácala en el puerto deportivo (costa oeste) y navega con tus amigos. Mismas prestaciones que la lancha normal.",
 	Preview = { Kind = "Boat" } })
@@ -223,12 +225,9 @@ add(36, F, { Type = "Tickets", Name = "120 tickets", Icon = "🎟️", Amount = 
 vehicle(36, P, "Inferno")
 add(37, F, { Type = "Emote", Name = "Saludo marinero", Icon = "⚓", AnimationId = 3333474484, Loop = false, Speed = 0.8,
 	Description = "El saludo de la gente del puerto.", Preview = { Kind = "Emote" } })
-add(37, P, { Type = "Nameplate", Name = "Placa Marina", Icon = "🌊", Rarity = "Epica", Colors = { Background = rgb(10, 50, 80), Stroke = rgb(120, 230, 240), Text = rgb(255, 255, 255) },
-	Description = "Olas y espuma alrededor de tu nombre." })
+outfit(37, P, "O16")
 add(38, F, { Type = "Money", Name = "350 €", Icon = "💶", Amount = 350, Description = "Un pequeño ahorro." })
-add(38, P, { Type = "Outfit", Name = "Cortavientos del puerto", Icon = "🧥", Rarity = "Epica",
-	Colors = { Hoodie = rgb(230, 70, 50), HoodLining = rgb(245, 245, 250), Tee = rgb(245, 245, 250), Pants = rgb(30, 50, 80), Shoes = rgb(245, 245, 250) },
-	Description = "Rojo marinero para los días de viento.", Preview = { Kind = "Outfit" } })
+outfit(38, P, "O21")
 add(39, F, { Type = "PhoneTheme", Name = "Mapa de Valmar", Icon = "🗺️", Rarity = "Rara", Colors = { Background = rgb(230, 225, 205), Accent = rgb(60, 120, 80), Text = rgb(40, 40, 35) },
 	Description = "Tu teléfono con el plano de la ciudad." })
 vehicle(39, P, "Obsidian")
@@ -244,22 +243,18 @@ add(40, P, { Type = "Bundle", Name = "Terraza del Faro", Icon = "🗼", Rarity =
 	Preview = { Kind = "HomeTheme" } })
 
 -- Nivel 41-50 ---------------------------------------------------------------
-add(41, F, { Type = "Decor", Name = "Banco del parque", Icon = "🪑", Shape = "Bench", Size = Vector3.new(4, 2, 1.4), Color = rgb(120, 80, 50),
-	Description = "Un banco como los del parque.", Preview = { Kind = "Decor" } })
+outfit(41, F, "O24")
 add(41, P, { Type = "Emote", Name = "Baile del faro", Icon = "💫", Rarity = "Epica", AnimationId = 507771019, Loop = true, Speed = 1.25,
 	Description = "Gira como la luz del faro.", Preview = { Kind = "Emote" } })
 add(42, F, { Type = "Money", Name = "350 €", Icon = "💶", Amount = 350, Description = "Un pequeño ahorro." })
 vehicle(42, P, "Storm")
 add(43, F, { Type = "Tickets", Name = "150 tickets", Icon = "🎟️", Amount = 150, Description = "Más partidas en los recreativos." })
-add(43, P, { Type = "Title", Name = "Leyenda del Monte", Icon = "⛰️", Text = "Leyenda del Monte", Color = rgb(180, 230, 255), Rarity = "Epica",
-	Description = "Solo quien ha subido a la cima lo entiende." })
+outfit(43, P, "O25")
 add(44, F, { Type = "CharacterXp", Name = "+350 XP de personaje", Icon = "⭐", Amount = 350, Description = "Experiencia para tu personaje." })
 vehicle(44, P, "ViboraGT")
 add(45, F, { Type = "Nameplate", Name = "Placa Plata", Icon = "🥈", Rarity = "Epica", Colors = { Background = rgb(180, 185, 195), Stroke = rgb(80, 85, 95), Text = rgb(20, 20, 25) },
 	Description = "Una placa de plata para veteranos de la temporada." })
-add(45, P, { Type = "Outfit", Name = "Conjunto Faro de Valmar", Icon = "🗼", Rarity = "Epica",
-	Colors = { Hoodie = rgb(245, 245, 240), HoodLining = rgb(255, 196, 64), Tee = rgb(28, 36, 72), Pants = rgb(245, 245, 240), Shoes = rgb(255, 196, 64) },
-	Description = "Blanco perla y oro, como el faro al anochecer.", Preview = { Kind = "Outfit" } })
+outfit(45, P, "O22")
 add(46, F, { Type = "Emote", Name = "Reverencia", Icon = "🙇", AnimationId = 507770239, Loop = false, Speed = 0.7,
 	Description = "Una reverencia para despedirte con estilo.", Preview = { Kind = "Emote" } })
 add(46, P, { Type = "Story", Name = "Postal: la noche del faro", Icon = "💌", Rarity = "Rara",
@@ -270,8 +265,7 @@ add(47, P, { Type = "HudSkin", Name = "HUD Leyenda", Icon = "🏆", Rarity = "Ep
 	Description = "La interfaz de quien ha llegado lejos." })
 add(48, F, { Type = "Decor", Name = "Trofeo de la temporada", Icon = "🏆", Shape = "Trophy", Size = Vector3.new(1, 2, 1), Color = rgb(200, 205, 215), Material = "Metal",
 	Description = "Para la estantería.", Preview = { Kind = "Decor" } })
-add(48, P, { Type = "Nameplate", Name = "Placa Oro", Icon = "🥇", Rarity = "Epica", Colors = { Background = rgb(255, 200, 80), Stroke = rgb(120, 80, 20), Text = rgb(40, 25, 5) },
-	Description = "Oro de ley alrededor de tu nombre." })
+outfit(48, P, "O29")
 add(49, F, { Type = "Tokens", Name = "3 fichas de temporada", Icon = "🪙", Amount = 3, Description = "Para la tienda de fichas (solo cosméticos)." })
 vehicle(49, P, "ShadowF1")
 add(50, F, { Type = "Bundle", Name = "Recuerdo de la Temporada 1", Icon = "🎖️", Rarity = "Epica",
@@ -281,13 +275,14 @@ add(50, F, { Type = "Bundle", Name = "Recuerdo de la Temporada 1", Icon = "🎖�
 		{ Id = "S1_F50_Decor", Type = "Decor", Name = "Placa conmemorativa", Icon = "🎖️", Shape = "Poster", Size = Vector3.new(2, 1.4, 0.2), Color = rgb(200, 170, 90), Material = "Metal" },
 	} })
 add(50, P, { Type = "Bundle", Name = "Faro de Valmar", Icon = "🗼", Rarity = "Legendaria",
-	Description = "La recompensa legendaria de la temporada: el superdeportivo Aurora X «Faro de Valmar» (blanco perla con negro y detalles en oro), el título «Leyenda de Valmar», su placa y un faro en miniatura para tu casa. Corre igual que cualquier coche: se nota en el estilo, no en la carrera.",
+	Description = "La recompensa legendaria de la temporada: el superdeportivo Aurora X «Faro de Valmar» (blanco perla con negro y detalles en oro), el conjunto Ángel (alas con brillo suave y aureola dorada), el título «Leyenda de Valmar», su placa y un faro en miniatura para tu casa. Corre igual que cualquier coche: se nota en el estilo, no en la carrera.",
 	Items = {
 		vehicleReward("AuroraX", { Id = "S1_P50_Car", Name = "Aurora X «Faro de Valmar»", Color = rgb(245, 242, 232), Trim = rgb(255, 196, 64) }),
 		{ Id = "S1_P50_Title", Type = "Title", Name = "Leyenda de Valmar", Icon = "🗼", Text = "Leyenda de Valmar", Color = rgb(255, 210, 90) },
 		{ Id = "S1_P50_Plate", Type = "Nameplate", Name = "Placa Faro", Icon = "🗼",
 			Colors = { Background = rgb(245, 242, 232), Stroke = rgb(255, 196, 64), Text = rgb(28, 36, 72) } },
 		{ Id = "S1_P50_Decor", Type = "Decor", Name = "Faro en miniatura", Icon = "🗼", Shape = "Lighthouse", Size = Vector3.new(1.2, 4, 1.2), Color = rgb(245, 245, 245), Light = true },
+		outfitReward("O30"),
 	},
 	Preview = { Kind = "Vehicle", Vehicle = "Coche", Color = rgb(245, 242, 232) } })
 

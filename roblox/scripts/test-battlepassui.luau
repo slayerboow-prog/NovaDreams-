@@ -8,7 +8,7 @@
 -- manda estados del servidor de mentira con la forma del contrato (docs/pase-de-temporada.md §12),
 -- hechos con las recompensas de verdad de la temporada 1. Comprueba que:
 --   * con BattlePassConfig.Enabled = false no aparece NADA (ni fila, ni ventana, ni tecla, ni peticiones)
---   * encendido: la fila «🏆 Pase de temporada» sale en COMANDOS solo con la temporada en marcha, con el
+--   * encendido: la fila «🏆 Pase de temporada» sale como app del ValPhone solo con la temporada en marcha, con el
 --     punto rojo si hay algo que reclamar; y la ventana se abre desde ella y con la tecla N
 --   * cabecera (temporada, nivel, XP, días), fila 01…50, estados BLOQUEADA / DISPONIBLE / RECLAMADA /
 --     PREMIUM BLOQUEADA, rareza con su color, la actual y la siguiente resaltadas
@@ -809,7 +809,7 @@ do
 	local UI, registry, ok, err = mount(false, 1920, 1080, false)
 	check(ok, "BattlePassUI.init no falla" .. (if ok then "" else ": " .. tostring(err)))
 	check(#sent == 0, "No pide nada al servidor")
-	check(rowFor(registry) == nil, "No sale la fila «Pase de temporada» en COMANDOS")
+	check(rowFor(registry) == nil, "No sale la app «Pase de temporada» en el ValPhone")
 	UI.open()
 	UI.toggle()
 	local dialogs = playerGui:FindFirstChild("Dialogs")
@@ -844,7 +844,7 @@ push(snapshot({ Level = 12, ClaimedFree = levels(1, 5), Status = "Upcoming" }))
 check(rowFor(registry) == nil, "Temporada que aún no ha empezado: no sale la fila")
 push(snapshot({ Level = 12, ClaimedFree = levels(1, 5) }))
 local row = rowFor(registry)
-check(row ~= nil and row.Label == "Pase de temporada" and row.Icon == "🏆", "Temporada en marcha: sale la fila «🏆 Pase de temporada» en COMANDOS")
+check(row ~= nil and row.Label == "Pase de temporada" and row.Icon == "🏆", "Temporada en marcha: sale la app «🏆 Pase de temporada» en el ValPhone")
 check(row and row.Badge == true and tostring(row.Detail):find("por reclamar", 1, true) ~= nil, "Con punto rojo y «Nv. 12 · n por reclamar» (" .. tostring(row and row.Detail) .. ")")
 check(row and row.Priority > 51 and row.Priority < 59, "Va con las apps (después de Mapa, antes de Modo pruebas y Más)")
 check(menuRefreshes > 0, "El menú de comandos se refresca al cambiar")
@@ -1031,7 +1031,7 @@ end
 do
 	local Cos = loadModule("src/client/UI/BattlePassCosmetics")
 	local ThemeOn = loadModule("src/client/UI/Theme")
-	local Renderer = loadModule("src/client/Commands/CommandRenderer")
+	local PhoneUI = loadModule("src/client/UI/Phone")
 	local Catalog = loadModule("src/shared/BattlePass/Catalog")
 	local hud, phone, plate = Catalog.get("S1_P08"), Catalog.get("S1_P03"), Catalog.get("S1_F10")
 	local stroke = newInstance("UIStroke")
@@ -1048,12 +1048,12 @@ do
 	localPlayer:SetAttribute("BP_PhoneTheme", "S1_P03")
 	Cos.start()
 	check(ThemeOn.accent("Hud") == hud.Colors.Accent and gradient.Color ~= ThemeOn.EdgeGradient, "Tema del HUD: el filo de los paneles toma su color (" .. hud.Name .. ")")
-	check(ThemeOn.accent("Phone") == phone.Colors.Accent and tint == phone.Colors.Accent, "Tema del teléfono: la pestaña de COMANDOS toma su color (" .. phone.Name .. ")")
-	check(Renderer.headerTint(nil) ~= Renderer.headerTint(phone.Colors.Accent), "La pestaña cambia de color con el tema (y vuelve a la de siempre sin él)")
+	check(ThemeOn.accent("Phone") == phone.Colors.Accent and tint == phone.Colors.Accent, "Tema del teléfono: el ValPhone toma su color (" .. phone.Name .. ")")
+	check(PhoneUI.wallpaper(nil) ~= PhoneUI.wallpaper(phone.Colors.Accent), "El fondo de pantalla del ValPhone cambia con el tema (y vuelve al de la marca sin él)")
 	localPlayer:SetAttribute("BP_HudSkin", "S1_P03") -- (un tema de teléfono no es de HUD)
 	check(ThemeOn.accent("Hud") == nil and gradient.Color == ThemeOn.EdgeGradient, "Algo que no es un tema de HUD no cambia nada (y el filo vuelve al de siempre)")
 	localPlayer:SetAttribute("BP_PhoneTheme", nil)
-	check(ThemeOn.accent("Phone") == nil and tint == nil and tinted == 2, "Sin tema del teléfono: la pestaña de siempre")
+	check(ThemeOn.accent("Phone") == nil and tint == nil and tinted == 2, "Sin tema del teléfono: el ValPhone de siempre")
 	localPlayer:SetAttribute("BP_HudSkin", nil)
 	-- Título y placa (encima de la cabeza: Controllers/NameTags)
 	local other = newInstance("Player")
@@ -1073,7 +1073,7 @@ do
 	local actions = fs.readFile("src/client/Controllers/Actions.luau")
 	local commands = fs.readFile("src/client/Commands/DefaultCommands.luau")
 	local tags = fs.readFile("src/client/Controllers/NameTags.luau")
-	check(actions:find("Cosmetics.emotes(player)", 1, true) ~= nil and commands:find("GestosPase", 1, true) ~= nil, "Los gestos del pase van con los del juego (Actions) y salen en COMANDOS")
+	check(actions:find("Cosmetics.emotes(player)", 1, true) ~= nil and commands:find("GestosPase", 1, true) ~= nil, "Los gestos del pase van con los del juego (Actions) y salen en el ValPhone")
 	check(tags:find("Cosmetics.hasTag", 1, true) ~= nil and tags:find("BillboardGui", 1, true) ~= nil, "El título y la placa van en el cartel de nombres de siempre (NameTags), no en otro")
 end
 
@@ -1113,7 +1113,7 @@ for _, size in SIZES do
 	check(okMount, where .. ": se monta sin errores" .. (if okMount then "" else ": " .. tostring(errMount)))
 	push(snapshot({ Level = 12, ClaimedFree = levels(1, 5), CanReroll = true }))
 	local r = rowFor(reg)
-	check(r ~= nil, where .. ": fila en COMANDOS")
+	check(r ~= nil, where .. ": app en el ValPhone")
 	r.Run({})
 	layoutChecks(U, where, x, y, touch)
 	local u = U._debug().Ui

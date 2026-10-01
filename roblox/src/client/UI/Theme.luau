@@ -356,7 +356,7 @@ end
 
 ---------------------------------------------------------------------
 -- Acentos de los cosméticos del pase (tema del HUD y del teléfono). Solo cambian COLORES (el filo de
--- los paneles, la cabecera de COMANDOS): nunca tamaños ni posiciones. nil = el aspecto de siempre.
+-- los paneles, el fondo de pantalla del ValPhone): nunca tamaños ni posiciones. nil = el aspecto de siempre.
 -- Los pone UI/BattlePassCosmetics (solo con el pase encendido y con lo que el servidor dice que llevas).
 ---------------------------------------------------------------------
 local accents: { [string]: Color3? } = {}
@@ -395,7 +395,7 @@ function Theme.accent(kind: string): Color3?
 	return accents[kind]
 end
 
--- kind: "Hud" (filo de los paneles) o "Phone" (cabecera de COMANDOS)
+-- kind: "Hud" (filo de los paneles) o "Phone" (el ValPhone: fondo de pantalla, UI/Phone)
 function Theme.setAccent(kind: string, color: Color3?)
 	if accents[kind] == color then
 		return

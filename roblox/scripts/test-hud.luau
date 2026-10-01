@@ -3,23 +3,25 @@
 -- Uso (desde la carpeta roblox/):
 --   lune run scripts/test-hud.luau
 --
--- Monta el HUD (UI/Hud), el menú de comandos (Commands/CommandMenu), los botones táctiles
+-- Monta el HUD (UI/Hud), el ValPhone y la tira de acciones (Commands/CommandMenu), los botones táctiles
 -- (UI/TouchLayout) y el joystick (Controllers/Joystick) con un Roblox de mentira en el que cada
 -- propiedad que se escribe se comprueba contra la base de datos de la API de Roblox. Lo monta como en
 -- el ordenador (1920x1080, 1600x900, 1366x768) y como en el móvil y la tableta (640x360, 667x375, 844x390, 932x430,
 -- 1024x768) y comprueba que:
---   * tu estado va arriba a la izquierda, la hora en el centro, la misión a la derecha y el menú de
---     comandos abajo a la izquierda (en el móvil, justo encima del joystick); la barra rápida centrada
---   * NADA SE PISA: estado, reloj, minimapa, misión, comandos, barra rápida, joystick, cada botón
---     táctil y los botones de Roblox (también en móviles grandes: 1334x750, 1846x852, 2400x1080)
---   * ya no hay menú rápido junto al minimapa: sus apps (Ir a casa, Tienda…) son filas del menú de
---     comandos, entre Mapa y «Más», y hacen lo mismo; el minimapa va pegado a la esquina y la misión
---     justo debajo; en el móvil el menú de comandos va justo debajo de tu estado (y ⌄ pasa de página)
+--   * tu estado va arriba a la izquierda, la hora en el centro, la misión a la derecha y el ValPhone
+--     asomando abajo a la izquierda (en el móvil, a la izquierda del joystick); la barra rápida centrada
+--   * NADA SE PISA: estado, reloj, minimapa, misión, el ValPhone y su aviso, la tira de acciones,
+--     barra rápida, joystick, cada botón táctil y los botones de Roblox (también en móviles grandes:
+--     1334x750, 1846x852, 2400x1080)
+--   * ya no hay menú COMANDOS ni menú rápido: todo son apps del ValPhone (Ir a casa, Tienda, Mapa,
+--     Mochila, Ajustes, Mensajes…) que hacen lo mismo; se abre con un muelle, se cierra tocando fuera
+--     o con la barra de inicio; las notificaciones bajan del teléfono (mensajes, pase); las acciones
+--     de ahora (Atacar, Saludar…) van en la tira junto a las teclas o en la burbuja «Acciones» del móvil;
+--     al volante el teléfono asoma debajo de tu estado y en marcha no se abre
 --   * nunca salen dos botones táctiles con el mismo texto (p. ej. dos «Agacharse»)
 --   * al volante (móvil): flechas ◀ ▶ a la izquierda en lugar del joystick y, a la derecha, pedales,
 --     freno de mano, luces, intermitentes, emergencia, Bajarse y claxon, grandes y sin pisar nada
 --   * las barras, el dinero, la experiencia y la misión siguen a los atributos
---   * el menú de comandos se oculta y se muestra con su botón, y ⌄ despliega todos
 --   * el joystick mueve al personaje (Humanoid:Move relativo)
 --   * en conversaciones y de bebé se aparta lo que tapa la escena
 --   * el GPS (Controllers/Gps) da la indicación bajo la reloj sin pisar nada
@@ -620,18 +622,14 @@ local function textOf(root, text: string): boolean
 	return false
 end
 
--- Las filas del menú de comandos (todas, se vean o no) por orden: { Nombre -> índice } y la lista
-local function commandRows(menuFrame): ({ [string]: number }, { any })
-	local index, list = {}, {}
-	local holder = menuFrame and menuFrame.List.Rows
-	local i = 1
-	while holder and holder:FindFirstChild("Row" .. i) do
-		local row = holder:FindFirstChild("Row" .. i)
-		index[row.Label.Text] = i
-		table.insert(list, row)
-		i += 1
+-- Un descendiente por su nombre (FindFirstChild(nombre, true) de Roblox)
+local function deep(root, name: string)
+	for _, object in if root then root:GetDescendants() else {} do
+		if object.Name == name then
+			return object
+		end
 	end
-	return index, list
+	return nil
 end
 
 -- Rectángulo en el lienzo de un objeto que cuelga directamente de una pantalla
@@ -676,10 +674,13 @@ local function hudRects(mods)
 	-- Las balas del arma: siempre (el peor caso: con el arma en la mano)
 	table.insert(list, { Name = "Balas del arma", Rect = HudLayout.rect(layout.Items.Ammo, layout.Canvas) })
 	table.insert(list, { Name = "Barra rápida", Rect = HudLayout.rect(layout.Items.Hotbar, layout.Canvas) })
-	local commands = playerGui:FindFirstChild("CommandMenuGui")
-	-- (el menú de comandos: su hueco entero, aunque tenga menos filas)
-	if commands then
-		table.insert(list, { Name = "Comandos", Rect = HudLayout.rect(layout.Items.Commands, layout.Canvas) })
+	-- El ValPhone que asoma y el hueco de su aviso (aunque no esté); en el ordenador, el hueco entero
+	-- de la tira de acciones (en el móvil es la burbuja del racimo y su lista se abre encima)
+	local phoneGui = playerGui:FindFirstChild("PhoneGui")
+	add("ValPhone", phoneGui and phoneGui:FindFirstChild("PhonePeek"))
+	table.insert(list, { Name = "Aviso del ValPhone", Rect = HudLayout.rect(layout.Items.PhoneBanner, layout.Canvas) })
+	if not layout.Touch then
+		table.insert(list, { Name = "Tira de acciones", Rect = HudLayout.rect(layout.Items.Context, layout.Canvas) })
 	end
 	local stick = playerGui:FindFirstChild("JoystickGui")
 	add("Joystick", stick and stick:FindFirstChild("Joystick"))
@@ -867,62 +868,124 @@ do
 	check(math.abs(mrect.X + mrect.W - (layout.Canvas.X - 16)) < 0.5 and mrect.Y >= mini.Y + mini.H and mrect.Y - (mini.Y + mini.H) <= 12, "La misión justo debajo del minimapa, en el borde derecho")
 end
 
--- Menú de comandos: abajo a la izquierda, con la pestaña COMANDOS (con las prioridades del juego:
--- Atacar 7, Objetos 50, Mapa 51, las apps 52-56 y Más 60)
+-- El ValPhone (en lugar del menú COMANDOS): asoma abajo a la izquierda y todo el menú son sus apps.
+-- Las acciones de ahora van en la tira de acciones, encima de las teclas (Commands/ContextStrip).
+-- (con las prioridades del juego: Atacar 7, Objetos 50, Mapa 51, las apps 52-56 y Más 60)
+local ran: { [string]: number } = {}
+local function track(id: string)
+	return function()
+		ran[id] = (ran[id] or 0) + 1
+	end
+end
 for name, priority in { Atacar = 7, Objetos = 50, Mapa = 51, Mas = 60, Extra = 61 } do
-	CommandRegistry.register({ Id = name, Label = name, Icon = "espada", Priority = priority, Run = function() end })
+	CommandRegistry.register({ Id = name, Label = name, Icon = "espada", Priority = priority, Run = track(name) })
 end
+-- La app Ajustes (en el juego, «Menú» dentro de «Más») con una opción del menú
+local music = true
+Hud.addMenuToggle("🔊 Música: sí", 1, function()
+	music = not music
+	return if music then "🔊 Música: sí" else "🔇 Música: no"
+end)
+CommandRegistry.register({ Id = "Menu", Label = "Ajustes", Icon = "menu", Priority = 59.9, Screen = "Ajustes", Run = function() end } :: any)
+-- Mensajes, con su punto rojo (como en DefaultCommands)
+local PhoneInbox = loadModule("src/client/UI/PhoneInbox")
+CommandRegistry.addProvider(function()
+	local unread = PhoneInbox.unread()
+	return { { Id = "Mensajes", Label = "Mensajes", Icon = "hablar", Priority = 50.2, Screen = "Mensajes", Badge = if unread > 0 then unread else nil } :: any }
+end)
 CommandMenu.refresh()
-local commandGui = playerGui:FindFirstChild("CommandMenuGui")
-local commands = commandGui and commandGui:FindFirstChild("CommandMenu")
+local phoneGui = playerGui:FindFirstChild("PhoneGui")
+local peek = phoneGui and phoneGui:FindFirstChild("PhonePeek")
+local body = phoneGui and phoneGui:FindFirstChild("ValPhone")
+local function appTile(id: string)
+	return deep(body, "App_" .. id)
+end
+check(playerGui:FindFirstChild("CommandMenuGui") == nil, "Ya no está el panel COMANDOS de la izquierda")
+check(peek and peek.Visible and peek.AnchorPoint == roblox.Vector2.new(0, 1) and peek.Position.X.Offset == 16 and peek.Position.Y.Scale == 1 and peek.Position.Y.Offset == -16, "El ValPhone asoma abajo a la izquierda")
+check(peek and textOf(peek, "ValPhone") and textOf(peek, "Tab"), "Con su marca («ValPhone», la de los carteles del metro) y su tecla (Tab)")
+check(body and not body.Visible and body:GetAttribute("Open") == false, "Cerrado, el teléfono no tapa nada")
 do
-	-- Las apps del antiguo menú rápido: filas entre Mapa y Más, con su icono, y hacen lo mismo
-	local index, rowList = commandRows(commands)
-	check(index["Ir a casa"] and index["Tienda"] and index["Mapa"] < index["Ir a casa"] and index["Ir a casa"] < index["Tienda"] and index["Tienda"] < index["Mas"],
-		"Las apps (Ir a casa, Tienda) son filas del menú de comandos, entre Mapa y «Más»")
-	local tiendaRow = index["Tienda"] and rowList[index["Tienda"]]
-	check(tiendaRow and tiendaRow:FindFirstChild("Icon") and textOf(tiendaRow.Icon, "🛒"), "Con su icono, como las demás filas")
-	if tiendaRow then
-		tiendaRow.MouseEnter:Fire()
-		tiendaRow.Activated:Fire()
+	local missing = {}
+	for _, id in { "AppIr a casa", "AppTienda", "AppRuta a casa", "Mapa", "Objetos", "Mas", "Extra", "Menu", "Mensajes" } do
+		if not appTile(id) then
+			table.insert(missing, id)
+		end
 	end
-	check(storeOpened(), "La fila Tienda abre la tienda (como el botón de antes)")
-	-- (vuelve a elegir la primera fila para lo que sigue)
-	commands.List.Rows.Row1.MouseEnter:Fire()
+	check(#missing == 0, "Todo el menú son apps del teléfono (Ir a casa, Tienda, Ruta a casa del GPS, Mapa, Mochila, Ajustes, Mensajes…)" .. (if #missing > 0 then ": faltan " .. table.concat(missing, ", ") else ""))
 end
-check(commands and commands.AnchorPoint == roblox.Vector2.new(0, 1) and commands.Position.Y.Scale == 1 and commands.Position.X.Offset == 16 and commands.Position.Y.Offset == -16, "Menú de comandos abajo a la izquierda")
-check(commands and commands.Visible, "Visible con comandos")
-check(commands and commands.Header.Title.Text == "COMANDOS" and commands.Header:FindFirstChild("Crown") ~= nil, "Con la pestaña «COMANDOS» y la corona")
-local rows = commands and commands.List.Rows
-local shown = 0
-for _, row in if rows then rows:GetChildren() else {} do
-	if row.Visible then
-		shown += 1
-	end
+check(appTile("Objetos") and appTile("Objetos").Label.Text == "Mochila" and textOf(appTile("AppTienda").Tile, "🛒") and appTile("AppTienda").Label.Text == "Tienda", "Cada app con su nombre corto y su icono («Mochila», 🛒 «Tienda»)")
+check(appTile("Mapa") and appTile("Mapa").Parent.Name == "Dock" and appTile("Menu").Parent.Name == "Dock" and appTile("Mensajes").Parent.Name == "Dock", "Mapa, Mensajes y Ajustes en el dock de abajo")
+check(appTile("Atacar") == nil, "Las acciones de ahora (Atacar) no van dentro del teléfono")
+-- Abrir: sube entero con un muelle
+peek.Activated:Fire()
+do
+	local open = HudLayout.current().Items.PhoneOpen
+	check(CommandMenu.isPhoneOpen() and body.Visible and body:GetAttribute("Open") and body.Position == open.Position and phoneGui.Scrim.Visible, "Tocarlo lo sube entero (y oscurece un poco el juego detrás)")
+	local r = HudLayout.rect(open, layout.Canvas)
+	check(r.Y >= 0 and r.X >= 0 and r.X + r.W < layout.Canvas.X / 3 and r.H >= 520 and math.abs(r.H / r.W - 2) < 0.05, ("Con forma de teléfono (%dx%d) y dentro de la pantalla"):format(r.W, r.H))
 end
-check(shown == 5 and commands.More.Visible, "Se ven 5 comandos y el desplegable ⌄ para los demás")
-local totalRows = #select(2, commandRows(commands))
-local selector = commands and commands.List.Selector
-check(selector and selector.Visible and selector.Position.Y.Offset == 0, "El elegido lleva el selector azul (primera fila)")
-if rows then
-	rows.Row3.MouseEnter:Fire()
-end
-check(selector and selector.Position.Y.Offset == 2 * HudLayout.Sizes.CommandPitch, "El selector se desliza al comando bajo el ratón")
-commands.More.Activated:Fire()
-shown = 0
-for _, row in rows:GetChildren() do
-	if row.Visible then
-		shown += 1
-	end
-end
-check(shown == totalRows and totalRows >= 8 and commandRows(commands)["Ruta a casa"] ~= nil, ("⌄ despliega todos los comandos (%d de %d, con «Ruta a casa» del GPS)"):format(shown, totalRows))
-commands.More.Activated:Fire()
-local fullHeight = commands.Size.Y.Offset
-commands.Header.Toggle.Activated:Fire()
-check(CommandMenu.isCollapsed() and commands.List.Visible == false and commands.Size.Y.Offset == HudLayout.Sizes.CommandHeader, "El botón de la pestaña oculta los comandos (queda solo la pestaña)")
-commands.Header.Toggle.Activated:Fire()
-check(not CommandMenu.isCollapsed() and commands.List.Visible and commands.Size.Y.Offset == fullHeight, "Y los vuelve a mostrar")
-check(commands and commands.Hint.Visible and commands.Hint.Text:find("Tab", 1, true) ~= nil, "Pista de teclas en el ordenador (Tab oculta)")
+check(not peek.Visible, "Abierto, el que asoma se esconde")
+check(textOf(body.Screen.StatusBar, "10:00") and body.Screen.StatusBar.Battery:GetAttribute("Level") == 25, "Barra de estado: la hora del juego y la batería (= tu energía: 25 %)")
+check(textOf(body.Screen.Home.Widget, "ValPhone 12"), "Con el reloj grande y el modelo («ValPhone 12»)")
+appTile("AppTienda").MouseEnter:Fire()
+check(appTile("AppTienda").Tile.Ring.Visible, "Al pasar el ratón por una app se ilumina")
+appTile("AppTienda").MouseLeave:Fire()
+check(not appTile("AppTienda").Tile.Ring.Visible, "Y se apaga al salir")
+appTile("AppTienda").Activated:Fire()
+check(storeOpened() and not CommandMenu.isPhoneOpen() and peek.Visible, "La app Tienda guarda el teléfono y abre la tienda (como el botón de antes)")
+peek.Activated:Fire()
+appTile("Extra").Activated:Fire()
+check(ran.Extra == 1 and not CommandMenu.isPhoneOpen(), "Cada app hace lo mismo que su fila de antes")
+-- Ajustes: dentro del teléfono
+peek.Activated:Fire()
+appTile("Menu").Activated:Fire()
+local appScreen = body.Screen.App
+check(appScreen.Visible and appScreen.Header.Title.Text == "Ajustes" and textOf(appScreen, "Música: sí"), "Ajustes se abre DENTRO del teléfono, con las opciones del menú")
+appScreen.List.Row1.Activated:Fire()
+check(textOf(appScreen, "Música: no") and CommandMenu.isPhoneOpen(), "Tocar una opción la cambia («🔇 Música: no») sin cerrar el teléfono")
+check(textOf(playerGui.HudPopups.Menu, "Música: no"), "Y la ventana MENÚ dice lo mismo")
+appScreen.Header.Back.Activated:Fire()
+check(not appScreen.Visible and body.Screen.Home.Visible and CommandMenu.isPhoneOpen(), "‹ vuelve al inicio")
+appTile("Menu").Activated:Fire()
+body.Screen.HomeBar.Activated:Fire()
+check(not appScreen.Visible and body.Screen.Home.Visible and CommandMenu.isPhoneOpen(), "La barra de inicio también vuelve al inicio…")
+body.Screen.HomeBar.Activated:Fire()
+check(not CommandMenu.isPhoneOpen(), "…y en el inicio guarda el teléfono")
+peek.Activated:Fire()
+phoneGui.Scrim.Activated:Fire()
+check(not CommandMenu.isPhoneOpen(), "Tocar fuera del teléfono lo guarda")
+CommandMenu.toggle()
+check(CommandMenu.isPhoneOpen(), "Tab (o Select del mando) lo abre…")
+CommandMenu.toggle()
+check(not CommandMenu.isPhoneOpen(), "…y lo guarda")
+-- Un mensaje con el teléfono guardado: baja una notificación y la app enciende su punto
+local banner = phoneGui:FindFirstChild("PhoneBanner")
+PhoneInbox.push({ Icon = "📱", From = "Abu Rosa", Text = "Abu Rosa quiere hablar contigo — bájate para hablar", Open = "Misiones" })
+check(banner and banner.Visible and textOf(banner, "Abu Rosa quiere hablar contigo") and textOf(banner, "ABU ROSA"), "Un mensaje nuevo («📱 Abu Rosa quiere hablar contigo») baja como notificación del teléfono")
+check(peek.Badge.Visible and peek.Badge.Count.Text == "1" and appTile("Mensajes").Tile.Badge.Visible, "El teléfono y la app Mensajes enseñan el aviso (1)")
+banner.Hit.Activated:Fire()
+check(CommandMenu.isPhoneOpen() and appScreen.Visible and appScreen.Header.Title.Text == "Mensajes" and textOf(appScreen, "Abu Rosa"), "Tocar la notificación abre Mensajes")
+check(PhoneInbox.unread() == 0 and not banner.Visible, "Al verlo ya no queda nada sin leer")
+CommandMenu.closePhone()
+check(not peek.Badge.Visible and not appTile("Mensajes").Tile.Badge.Visible, "…y el aviso del teléfono se apaga")
+-- Recompensas del pase por reclamar: aviso que baja del teléfono y punto rojo en su app
+local passReady = false
+CommandRegistry.addProvider(function()
+	return { { Id = "PaseTemporada", Label = "Pase de temporada", Icon = "🏆", Priority = 55.5, Badge = passReady, Run = function() end } :: any }
+end)
+CommandMenu.refresh()
+check(not banner.Visible, "Sin nada nuevo, ningún aviso")
+passReady = true
+CommandMenu.refresh()
+check(banner.Visible and textOf(banner, "recompensas del pase") and appTile("PaseTemporada").Tile.Badge.Visible, "Recompensas del pase por reclamar: baja un aviso del teléfono y su app lleva el punto")
+-- La tira de acciones: encima de las teclas, abajo a la derecha
+local stripGui = playerGui:FindFirstChild("ContextStripGui")
+local strip = stripGui and stripGui:FindFirstChild("ContextStrip")
+check(strip and strip.Visible and strip:FindFirstChild("Chip1") and strip.Chip1.Label.Text == "Atacar", "Las acciones de ahora (Atacar) van en la tira de acciones")
+check(strip and strip.AnchorPoint == roblox.Vector2.new(1, 1) and strip.Position == HudLayout.current().Items.Context.Position, "La tira, abajo a la derecha (encima de las teclas)")
+check(strip and strip.Chip1.Key.Visible and strip.Chip1.Key.Text == "Enter", "La elegida va resaltada y dice su tecla («Enter»)")
+strip.Chip1.Activated:Fire()
+check(ran.Atacar == 1, "Hacer clic (o Enter) la hace")
 
 -- Ordenador: sin botones táctiles ni joystick; lista de teclas
 local touchGui = playerGui:FindFirstChild("TouchLayout")
@@ -940,10 +1003,10 @@ check(hints and hints.Visible and textOf(hints, "Espacio") and textOf(hints, "Sa
 -- Conversaciones y bebé
 Hud.setBusy(true)
 CommandMenu.setBusy(true)
-check(status.Visible == false and mission.Visible == false and commands.Visible == false, "En una conversación se apartan estado, misión y comandos")
+check(status.Visible == false and mission.Visible == false and not peek.Visible and not strip.Visible, "En una conversación se apartan estado, misión, el ValPhone y la tira de acciones")
 Hud.setBusy(false)
 CommandMenu.setBusy(false)
-check(status.Visible and mission.Visible and commands.Visible, "Y vuelven al acabar")
+check(status.Visible and mission.Visible and peek.Visible and strip.Visible, "Y vuelven al acabar")
 localPlayer:SetAttribute("LifeStage", "Bebe")
 check(status.Visible == false and mission.Visible == false, "De bebé no hay estado ni misión")
 localPlayer:SetAttribute("LifeStage", "Nino")
@@ -1010,8 +1073,14 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 	check(ok, "Se monta sin errores" .. (if ok then "" else ": " .. tostring(err)))
 	check(#badWrites == 0, "Todas las propiedades existen en Roblox" .. (if #badWrites > 0 then ": " .. table.concat(badWrites, ", ") else ""))
 	registerAll(TouchLayout)
+	local ranTouch: { [string]: number } = {}
+	local function trackTouch(id: string)
+		return function()
+			ranTouch[id] = (ranTouch[id] or 0) + 1
+		end
+	end
 	for name, priority in { Atacar = 7, Objetos = 50, Mapa = 51, Mas = 60 } do
-		CommandRegistry.register({ Id = name, Label = name, Icon = "espada", Priority = priority, Run = function() end })
+		CommandRegistry.register({ Id = name, Label = name, Icon = "espada", Priority = priority, Run = trackTouch(name) })
 	end
 	CommandMenu.refresh()
 	TouchLayout.refresh()
@@ -1022,7 +1091,7 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 			visible += 1
 		end
 	end
-	check(visible == 14, "Racimo con Interactuar, Saltar, los 6 de siempre, 5 de contexto y el ❓ (" .. visible .. ")")
+	check(visible == 15, "Racimo con Interactuar, la burbuja «Acciones», Saltar, los 6 de siempre, 5 de contexto y el ❓ (" .. visible .. ")")
 	check(buttons.Ayuda and buttons.Ayuda.Visible and buttons.Ayuda:FindFirstChild("Caption").Text == "¿Qué hago?", "Botón ❓ «¿Qué hago?» junto a la misión")
 	local guideCard = playerGui:FindFirstChild("GuideGui") and playerGui.GuideGui:FindFirstChild("TutorialCard")
 	check(guideCard and guideCard.Visible, "Jugador nuevo: la tarjeta de los primeros pasos se ve (y entra en la prueba de que nada se pisa)")
@@ -1037,22 +1106,72 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 		now.HudLayoutModule = HudLayout
 		return now
 	end)())
-	local commandRect = HudLayout.rect(now.Items.Commands, now.Canvas)
 	check(stickRect and stickRect.X < now.Canvas.X * 0.3 and stickRect.Y + stickRect.H > now.Canvas.Y * 0.9, "El joystick abajo a la izquierda")
-	check(stickRect and commandRect.Y + commandRect.H <= stickRect.Y and commandRect.X <= 20, "El menú de comandos a la izquierda, encima del joystick")
-	local statusRect = HudLayout.rect(now.Items.Status, now.Canvas)
-	check(commandRect.Y >= statusRect.Y + statusRect.H and commandRect.Y - (statusRect.Y + statusRect.H) <= 12, "Y justo debajo de tu estado")
-	-- Ocultar los comandos en el móvil: el botón ˅ es diminuto; tocar la pestaña entera también vale
-	local phoneCommands = playerGui:FindFirstChild("CommandMenuGui")
-	phoneCommands = phoneCommands and phoneCommands:FindFirstChild("CommandMenu")
-	local tab = phoneCommands and phoneCommands.Header:FindFirstChild("HeaderHit")
-	if tab then
-		tab.Activated:Fire()
-		local hidden = CommandMenu.isCollapsed() and phoneCommands.List.Visible == false
-		tab.Activated:Fire()
-		check(hidden and not CommandMenu.isCollapsed() and phoneCommands.List.Visible, "Tocar la pestaña COMANDOS los oculta y los vuelve a mostrar")
-	else
-		check(false, "Falta la pestaña de los comandos")
+	-- El ValPhone asoma en la esquina, a la izquierda del joystick (sin taparlo)
+	local phoneGui = playerGui:FindFirstChild("PhoneGui")
+	local peek = phoneGui and phoneGui:FindFirstChild("PhonePeek")
+	local peekRect = peek and rectOf(peek, now)
+	check(peek and peek.Visible and peekRect and stickRect and peekRect.X + peekRect.W <= stickRect.X and now.Canvas.Y - (peekRect.Y + peekRect.H) <= 16.5 and peekRect.X <= 16.5, "El ValPhone asoma abajo a la izquierda, sin tapar el joystick")
+	check(peekRect and math.min(peekRect.W, peekRect.H) * now.Scale >= 40, ("Y se toca bien con el pulgar (%d px)"):format(if peekRect then math.min(peekRect.W, peekRect.H) * now.Scale else 0))
+	-- La burbuja «Acciones», a la izquierda de Interactuar: con una acción la hace al momento
+	local bubble = buttons.Contexto
+	check(bubble and bubble.Visible and bubble:GetAttribute("Slot") == "Contexto" and bubble.Caption.Text == "Atacar" and not bubble.Badge.Visible, "La burbuja de acciones junto a Interactuar, con la acción de ahora («Atacar»)")
+	if bubble then
+		bubble.Activated:Fire()
+	end
+	check(ranTouch.Atacar == 1, "Con una sola acción, un toque la hace")
+	CommandRegistry.register({ Id = "Saludar", Label = "Saludar", Icon = "saludar", Priority = 5, Run = trackTouch("Saludar") })
+	CommandMenu.refresh()
+	TouchLayout.refresh()
+	check(bubble and bubble.Badge.Visible and bubble.Badge.Text == "2" and bubble.Caption.Text == "Acciones", "Con varias: «Acciones» y cuántas hay (2)")
+	local stripGui = playerGui:FindFirstChild("ContextStripGui")
+	local strip = stripGui and stripGui:FindFirstChild("ContextStrip")
+	check(strip and not strip.Visible, "La lista de acciones no tapa nada hasta que se pide")
+	if bubble then
+		bubble.Activated:Fire()
+	end
+	check(strip and strip.Visible and strip:FindFirstChild("Chip1") and strip:FindFirstChild("Chip2") and strip.Chip1.Label.Text == "Saludar", "Un toque en la burbuja abre la lista de acciones")
+	do
+		local sr = strip and rectOf(strip, now)
+		local br = bubble and rectOf(bubble, now)
+		check(sr and br and sr.X + sr.W <= br.X and sr.Y + sr.H <= br.Y + br.H + 0.5 and sr.Y >= 0, "…a la izquierda de la burbuja, hacia arriba")
+	end
+	if strip and strip:FindFirstChild("Chip1") then
+		strip.Chip1.Activated:Fire()
+	end
+	check(ranTouch.Saludar == 1 and not strip.Visible, "Un toque en una acción la hace y la lista se cierra")
+	if bubble then
+		bubble.Activated:Fire()
+	end
+	strip.Parent.ContextScrim.Activated:Fire()
+	check(not strip.Visible, "Tocar fuera la cierra sin hacer nada")
+	CommandRegistry.register({ Id = "Saludar", Label = "Saludar", Icon = "saludar", Priority = 5, When = function()
+		return false
+	end })
+	CommandMenu.refresh()
+	-- El teléfono: sube por la izquierda sin tapar los botones ni la barra rápida
+	if peek then
+		peek.Activated:Fire()
+	end
+	do
+		local openRect = HudLayout.rect(now.Items.PhoneOpen, now.Canvas)
+		local covers = {}
+		for name, slot in now.Slots do
+			if name ~= "Ayuda" and HudLayout.overlaps(openRect, HudLayout.rect(slot, now.Canvas)) then
+				table.insert(covers, name)
+			end
+		end
+		if HudLayout.overlaps(openRect, HudLayout.rect(now.Items.Hotbar, now.Canvas)) then
+			table.insert(covers, "Barra rápida")
+		end
+		check(CommandMenu.isPhoneOpen() and openRect.Y >= 0 and #covers == 0, "Abierto, el ValPhone sube por la izquierda sin tapar los botones ni la barra rápida" .. (if #covers > 0 then ": tapa " .. table.concat(covers, ", ") else ""))
+		local tienda = phoneGui and deep(phoneGui.ValPhone, "App_AppTienda")
+		local home = phoneGui and deep(phoneGui.ValPhone, "App_AppIr a casa")
+		check(tienda and home and tienda.Label.Text == "Tienda", "Con las apps (Ir a casa, Tienda…)")
+		if tienda then
+			tienda.Activated:Fire()
+		end
+		check(touchStore and touchStore() and not CommandMenu.isPhoneOpen(), "Y la app Tienda abre la tienda, como el botón de antes")
 	end
 	local popupsGui = playerGui:FindFirstChild("HudPopups")
 	check(popupsGui:FindFirstChild("Phone") == nil and popupsGui:FindFirstChild("PhoneButton") == nil, "Sin el menú rápido ni su botón junto al minimapa")
@@ -1074,36 +1193,6 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 			end
 		end
 		check(now.Canvas.X - right <= 16.5 and now.Canvas.Y - bottom <= 20, ("Los botones pegados a la esquina de abajo a la derecha (a %d y %d del borde)"):format(now.Canvas.X - right, now.Canvas.Y - bottom))
-	end
-	-- Las apps son filas del menú de comandos; ⌄ pasa de página hasta llegar a ellas y a «Más»
-	do
-		local index, rowList = commandRows(phoneCommands)
-		check(index["Ir a casa"] and index["Tienda"] and index["Mapa"] < index["Ir a casa"] and index["Tienda"] < index["Mas"], "Las apps (Ir a casa, Tienda…) son filas del menú de comandos, entre Mapa y «Más»")
-		local tiendaRow = rowList[index["Tienda"] or 0]
-		local turns = 0
-		while tiendaRow and not tiendaRow.Visible and turns < 10 do
-			phoneCommands.More.Activated:Fire()
-			turns += 1
-		end
-		check(tiendaRow and tiendaRow.Visible and turns > 0 and phoneCommands.More.Visible, ("⌄ pasa de página hasta la fila Tienda (%d toques)"):format(turns))
-		if tiendaRow then
-			tiendaRow.Activated:Fire() -- (un toque la elige…)
-			tiendaRow.Activated:Fire() -- (…y otro la hace)
-		end
-		check(touchStore and touchStore(), "Y tocarla abre la tienda, como el botón de antes")
-		local more = rowList[index["Mas"] or 0]
-		while more and not more.Visible and turns < 20 do
-			phoneCommands.More.Activated:Fire()
-			turns += 1
-		end
-		check(more and more.Visible, "«Más» también se alcanza")
-		for _ = 1, 10 do
-			if rowList[1].Visible then
-				break
-			end
-			phoneCommands.More.Activated:Fire()
-		end
-		check(rowList[1].Visible, "Y desde la última página, ⌄ vuelve al principio")
 	end
 	local list = hudRects(mods)
 	noOverlaps(list, HudLayout, ("%dx%d"):format(size[1], size[2]))
@@ -1144,6 +1233,7 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 		end
 		mods.Joystick.setDriving(true)
 		TouchLayout.setDriving(true)
+		mods.CommandMenu._state().Vehicle() -- (en el juego lo avisa el atributo Riding, o la revisión de cada 0,4 s)
 		local driveButtons = TouchLayout.buttons()
 		local want = { "GiroIzq", "GiroDer", "Acelerar", "Frenar", "FrenoMano", "Luces", "IntIzq", "IntDer", "Emergencia", "Bajarse", "Claxon" }
 		local missing = {}
@@ -1178,6 +1268,28 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 		local arrowIcon = driveButtons.GiroIzq:FindFirstChild("Icon")
 		check(arrowIcon and arrowIcon.Rotation == 180 and driveButtons.GiroDer:FindFirstChild("Icon").Rotation == 0, "Las flechas se dibujan (◀ y ▶), sin depender de la fuente")
 		noOverlaps(hudRects(mods), HudLayout, ("%dx%d al volante"):format(size[1], size[2]))
+		-- El ValPhone al volante: asoma debajo de tu estado (abajo van las flechas); en marcha no se abre
+		do
+			local vehicle = mods.CommandMenu._state().Vehicle
+			vehicle()
+			local phonePeek = playerGui.PhoneGui.PhonePeek
+			local spot = HudLayout.rect(drive.Items.PhoneDrive, drive.Canvas)
+			local r = rectOf(phonePeek, drive)
+			check(phonePeek.Visible and math.abs(r.X - spot.X) < 0.5 and math.abs(r.Y - spot.Y) < 0.5, "Al volante el ValPhone asoma debajo de tu estado (sin tapar las flechas)")
+			noOverlaps(hudRects(mods), HudLayout, ("%dx%d al volante, con el ValPhone"):format(size[1], size[2]))
+			local seat = newInstance("Part")
+			rawget(seat, "__props").AssemblyLinearVelocity = roblox.Vector3.new(18, 0, 0)
+			rawget(humanoid, "__props").SeatPart = seat
+			vehicle()
+			check(phonePeek:GetAttribute("Locked") == true and mods.CommandMenu.openPhone() == false and not mods.CommandMenu.isPhoneOpen(), "En marcha el teléfono no se abre (nunca tapa los mandos)")
+			rawget(seat, "__props").AssemblyLinearVelocity = roblox.Vector3.new(0, 0, 0)
+			vehicle()
+			check(mods.CommandMenu.openPhone() and mods.CommandMenu.isPhoneOpen(), "Parado sí se abre")
+			rawget(seat, "__props").AssemblyLinearVelocity = roblox.Vector3.new(0, 0, 25)
+			vehicle()
+			check(not mods.CommandMenu.isPhoneOpen(), "Y si arrancas con él abierto, se guarda solo")
+			rawget(humanoid, "__props").SeatPart = nil
+		end
 		-- Mantener pulsado: varios dedos a la vez (acelerar y girar)
 		local gasTouch = { UserInputType = roblox.Enum.UserInputType.Touch, UserInputState = roblox.Enum.UserInputState.Begin }
 		local leftTouch = { UserInputType = roblox.Enum.UserInputType.Touch, UserInputState = roblox.Enum.UserInputState.Begin }
@@ -1600,7 +1712,7 @@ do
 	fakeHooks.Map = false
 	Guide.tick(0.25)
 	check(sent("Step", "Mapa") and tcard.Title.Text == "Abre la mochila", "Abrir el mapa grande cumple «Abre el mapa»")
-	check(ringOn(layout.Items.Commands), "El aro señala el menú COMANDOS (Objetos)")
+	check(ringOn(layout.Items.Phone), "El aro señala el ValPhone (la app Mochila)")
 	fakeHooks.Bag = true
 	Guide.tick(0.25)
 	check(not tcard.Visible, "Con la mochila abierta la tarjeta no la tapa")

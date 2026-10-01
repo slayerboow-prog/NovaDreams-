@@ -17,7 +17,6 @@
 --                misión nueva… Tocarla abre esa app.
 -- Ordenador: el ratón ilumina cada app al pasar; flechas para moverse, Enter para abrir.
 
-local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
@@ -193,8 +192,16 @@ local function setBadge(dot: Frame, count: number)
 	end
 end
 
+-- (Lighting se pide al usarlo: el fondo de pantalla, Phone.wallpaper, sirve también sin él)
+local function clockTime(): number
+	local ok, value = pcall(function()
+		return game:GetService("Lighting").ClockTime
+	end)
+	return if ok and type(value) == "number" then value else 12
+end
+
 local function clockText(): string
-	return Format.clock(Lighting.ClockTime)
+	return Format.clock(clockTime())
 end
 
 local function dateText(): string
@@ -1056,7 +1063,7 @@ function Phone.mount(parent: ScreenGui, isTouch: boolean)
 			paintStatus(parts.StatusBar)
 		end
 	end
-	Lighting:GetPropertyChangedSignal("ClockTime"):Connect(tick)
+	game:GetService("Lighting"):GetPropertyChangedSignal("ClockTime"):Connect(tick)
 	player:GetAttributeChangedSignal("Energy"):Connect(function()
 		paintStatus(parts.StatusBar)
 	end)

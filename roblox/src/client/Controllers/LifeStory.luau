@@ -19,6 +19,7 @@ local StoryAudio = require(script.Parent.StoryAudio)
 local Cinematics = require(script.Parent.Cinematics)
 local StoryJournal = require(script.Parent.StoryJournal)
 local RideState = require(ReplicatedStorage.Shared.RideState)
+local PhoneInbox = require(script.Parent.Parent.UI.PhoneInbox)
 
 local create = Theme.create
 local C = Theme.Colors
@@ -801,9 +802,20 @@ local handlers: { [string]: (payload: { [string]: any }) -> () } = {
 			showScreen(nil, Strings.get(payload.TextKey), nil, payload.Seconds or 4)
 		end, true)
 	end,
+	-- «📱 Abu Rosa quiere hablar contigo…»: un mensaje al ValPhone (baja como notificación y queda en
+	-- Mensajes; tocarlo abre Misiones). Sin teléfono a la vista, el aviso pequeño de siempre.
 	Ping = function(payload)
 		if type(payload.Text) == "string" then
-			showPing(payload.Text)
+			local body = string.gsub(payload.Text, "^📱%s*", "")
+			PhoneInbox.push({
+				Icon = if type(payload.Icon) == "string" then payload.Icon else "📱",
+				From = string.match(body, "^(.-) quiere hablar contigo"),
+				Text = body,
+				Open = "Misiones",
+			})
+			if not PhoneInbox.hasDisplay() then
+				showPing(payload.Text)
+			end
 		end
 	end,
 	Discover = function(payload)

@@ -7,11 +7,18 @@
 --     (se guarda en su partida: data.OwnAvatar).
 -- La ropa son piezas pegadas al cuerpo (carpeta "ValmarLook" dentro del personaje): no hace
 -- falta subir nada a Roblox. Si algún día subes una cara o ropa, pon sus IDs en Config.DefaultLook.
+--   * Conjuntos del pase (shared/Outfits, 30): si llevas uno equipado, lo viste shared/OutfitBuilder
+--     (con sus plantillas de ropa si ya están subidas: shared/OutfitIds; si no, con colores y piezas).
+--     El bebé sigue con su pelele; de niño, en talla de niño. De servicio en un oficio con uniforme
+--     (Outfits.SuspendJobs) o en prisión se guarda y llevas el aspecto de siempre bajo el uniforme;
+--     al acabar el turno vuelve solo. La ropa nunca da un trabajo ni sus permisos (eso es el atributo Job).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local OutfitBuilder = require(ReplicatedStorage.Shared.OutfitBuilder)
+local Outfits = require(ReplicatedStorage.Shared.Outfits)
 local DataService = require(script.Parent.DataService)
 local LifeService = require(script.Parent.LifeService)
 
@@ -61,49 +68,23 @@ local function attach(folder: Instance, to: BasePart, name: string, size: Vector
 	return part
 end
 
-local function hair(folder: Instance, head: BasePart, color: Color3, rng: Random, baby: boolean)
-	local s = head.Size
-	local fabric = Enum.Material.Fabric
-	if baby then
-		-- Un mechón de bebé
-		attach(folder, head, "Hair", Vector3.new(s.X * 0.5, s.Y * 0.16, s.Z * 0.5), CFrame.new(0, s.Y * 0.47, 0), color, fabric)
-		attach(folder, head, "HairCurl", Vector3.new(s.X * 0.2, s.Y * 0.2, s.Z * 0.12), CFrame.new(0, s.Y * 0.52, -s.Z * 0.22) * CFrame.Angles(math.rad(-30), 0, 0), color, fabric)
-		return
+-- Conjunto de ropa equipado del pase de temporada (BattlePassRewardService.outfitFor): su
+-- definición (Outfit = clave de shared/Outfits, Colors = colores del aspecto de Valmar) o, en
+-- versiones viejas, solo los colores. nil = el aspecto de siempre.
+AvatarService.OutfitFor = nil :: ((Player) -> { [string]: any }?)?
+
+-- Lo equipado ahora (nil si no hay, si el gancho falla o si está guardado por el uniforme/prisión)
+function AvatarService.outfitOf(player: Player): { [string]: any }?
+	if not AvatarService.OutfitFor or Outfits.suspended(player) then
+		return nil
 	end
-	-- Base: casquete, nuca y patillas
-	attach(folder, head, "Hair", Vector3.new(s.X * 1.08, s.Y * 0.42, s.Z * 1.1), CFrame.new(0, s.Y * 0.34, 0.02 * s.Z), color, fabric)
-	attach(folder, head, "HairBack", Vector3.new(s.X * 1.06, s.Y * 0.6, s.Z * 0.32), CFrame.new(0, s.Y * 0.08, s.Z * 0.42), color, fabric)
-	for _, sx in { -1, 1 } do
-		attach(folder, head, "HairSide", Vector3.new(s.X * 0.14, s.Y * 0.42, s.Z * 0.75), CFrame.new(sx * s.X * 0.5, s.Y * 0.14, s.Z * 0.08), color, fabric)
-	end
-	-- Flequillo despeinado: mechones que caen sobre la frente
-	for i, x in { -0.32, -0.12, 0.08, 0.28 } do
-		local tilt = CFrame.Angles(math.rad(-15 - rng:NextNumber() * 20), 0, math.rad((rng:NextNumber() - 0.5) * 40))
-		local h = s.Y * (0.26 + (i % 2) * 0.08)
-		attach(folder, head, "Fringe", Vector3.new(s.X * 0.26, h, s.Z * 0.16), CFrame.new(x * s.X, s.Y * 0.3, -s.Z * 0.5) * tilt * CFrame.new(0, -h * 0.35, 0), color, fabric)
-	end
-	-- Puntas de arriba y de atrás (el toque "recién levantado")
-	for _ = 1, 7 do
-		local x = (rng:NextNumber() - 0.5) * s.X * 0.9
-		local z = (rng:NextNumber() - 0.3) * s.Z * 0.9
-		local tilt = CFrame.Angles(math.rad((rng:NextNumber() - 0.5) * 70), math.rad(rng:NextNumber() * 90), math.rad((rng:NextNumber() - 0.5) * 70))
-		attach(folder, head, "HairTuft", Vector3.new(s.X * 0.22, s.Y * 0.28, s.Z * 0.22), CFrame.new(x, s.Y * 0.52, z) * tilt, color, fabric)
-	end
-	for _, sx in { -1, 1 } do
-		attach(folder, head, "HairTuft", Vector3.new(s.X * 0.24, s.Y * 0.3, s.Z * 0.2), CFrame.new(sx * s.X * 0.3, -s.Y * 0.12, s.Z * 0.5) * CFrame.Angles(math.rad(20), 0, math.rad(sx * 25)), color, fabric)
-	end
+	local ok, def = pcall(AvatarService.OutfitFor, player)
+	return if ok and type(def) == "table" then def else nil
 end
 
--- Conjunto de ropa equipado del pase de temporada (BattlePassRewardService.outfitFor): colores que
--- cambian los del aspecto de Valmar (Hoodie, Tee, Pants, Shoes…). nil = el aspecto de siempre.
-AvatarService.OutfitFor = nil :: ((Player) -> { [string]: Color3 }?)?
-
-local function lookFor(player: Player): { [string]: any }
-	if not AvatarService.OutfitFor then
-		return LOOK
-	end
-	local ok, colors = pcall(AvatarService.OutfitFor, player)
-	if not ok or type(colors) ~= "table" then
+local function lookFor(outfit: { [string]: any }?): { [string]: any }
+	local colors = if outfit and type(outfit.Colors) == "table" then outfit.Colors else outfit
+	if type(colors) ~= "table" then
 		return LOOK
 	end
 	local merged = table.clone(LOOK)
@@ -116,11 +97,11 @@ local function lookFor(player: Player): { [string]: any }
 end
 
 local function dress(player: Player, character: Model)
-	local LOOK = lookFor(player)
 	local old = character:FindFirstChild("ValmarLook")
 	if old then
 		old:Destroy()
 	end
+	OutfitBuilder.clearClothes(character)
 	if useOwn(player) then
 		return
 	end
@@ -128,16 +109,35 @@ local function dress(player: Player, character: Model)
 	local baby = stage == "Bebe"
 	local kid = stage == "Nino"
 	local isOld = stage == "Mayor"
+	local outfit = AvatarService.outfitOf(player)
+	local full = outfit and Outfits.get(outfit.Outfit)
+	if full and not baby then
+		-- Conjunto del pase (con su talla según la edad)
+		paint(character, { "Head" }, LOOK.Skin)
+		local ok, err = pcall(OutfitBuilder.dress, character, full, {
+			Stage = stage,
+			Skin = LOOK.Skin,
+			HairColor = if isOld then LOOK.HairOld else LOOK.Hair,
+			Seed = player.UserId,
+		})
+		if ok then
+			return
+		end
+		warn("[AvatarService] No se pudo poner el conjunto " .. tostring(full.Key) .. ": " .. tostring(err))
+		local broken = character:FindFirstChild("ValmarLook")
+		if broken then
+			broken:Destroy()
+		end
+		OutfitBuilder.clearClothes(character, true)
+	end
+	local LOOK = lookFor(if full then nil else outfit)
 	local folder = Instance.new("Folder")
 	folder.Name = "ValmarLook"
 	local rng = Random.new(player.UserId)
 	local fabric = Enum.Material.Fabric
 
 	paint(character, { "Head", "LeftHand", "RightHand", "Head", "Left Arm", "Right Arm" }, LOOK.Skin)
-	local head = character:FindFirstChild("Head") :: BasePart?
-	if head then
-		hair(folder, head, if isOld then LOOK.HairOld else LOOK.Hair, rng, baby)
-	end
+	OutfitBuilder.hair(folder, character, "Messy", if isOld then LOOK.HairOld else LOOK.Hair, rng, baby)
 
 	if baby then
 		-- Pelele de una pieza con botones
@@ -246,6 +246,8 @@ local function dress(player: Player, character: Model)
 	folder.Parent = character
 end
 
+AvatarService._dress = dress -- (pruebas)
+
 ---------------------------------------------------------------------
 
 local function description(player: Player): HumanoidDescription?
@@ -313,6 +315,25 @@ local function watch(player: Player)
 			end
 		end
 	end)
+	-- Empezar o acabar un turno con uniforme (o entrar/salir de prisión): el conjunto del pase se
+	-- guarda y vuelve (solo si cambia algo y llevas uno equipado)
+	local wasSuspended = Outfits.suspended(player)
+	local function onDuty()
+		local now = Outfits.suspended(player)
+		if now == wasSuspended then
+			return
+		end
+		wasSuspended = now
+		local character = player.Character
+		if character and not useOwn(player) and AvatarService.OutfitFor then
+			local ok, def = pcall(AvatarService.OutfitFor, player)
+			if ok and type(def) == "table" then
+				dress(player, character)
+			end
+		end
+	end
+	player:GetAttributeChangedSignal("Job"):Connect(onDuty)
+	player:GetAttributeChangedSignal("JailUntil"):Connect(onDuty)
 end
 
 local lastToggle: { [Player]: number } = {}

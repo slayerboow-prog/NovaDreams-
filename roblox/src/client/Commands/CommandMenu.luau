@@ -431,11 +431,17 @@ local function onRow(screen: string, index: number, row: any)
 	if screen == "Ajustes" then
 		local toggle = settings[index]
 		if toggle then
+			local before = toggle.Text
 			local ok, text = pcall(toggle.Press)
 			if ok and type(text) == "string" then
 				Phone.setRowLabel(index, text)
 			end
 			UiAudio.confirm()
+			-- Las que no cambian de texto son acciones que abren algo (Mi historia, ver el tutorial):
+			-- el teléfono se guarda para que se vea
+			if ok and text == before then
+				Phone.close()
+			end
 		end
 	elseif screen == "Mensajes" then
 		-- Un mensaje que lleva a algo (p. ej. «síguela en Misiones»): abre esa app
@@ -703,6 +709,7 @@ function CommandMenu._state(): { [string]: any }
 		Launch = launch,
 		AcceptStrip = acceptStrip,
 		Bubble = onBubble,
+		Vehicle = vehicleState,
 	}
 end
 

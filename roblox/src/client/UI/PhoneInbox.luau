@@ -8,7 +8,8 @@
 
 local PhoneInbox = {}
 
-export type Message = { Id: number, Icon: string, From: string?, Text: string, App: string, At: number, Read: boolean }
+-- Open: la app que abre tocar el mensaje (p. ej. "Misiones")
+export type Message = { Id: number, Icon: string, From: string?, Text: string, App: string, Open: string?, At: number, Read: boolean }
 
 local MAX = 30
 local messages: { Message } = {}
@@ -34,6 +35,7 @@ function PhoneInbox.push(data: { [string]: any }): Message
 		From = if type(data.From) == "string" then data.From else nil,
 		Text = tostring(data.Text or ""),
 		App = if type(data.App) == "string" then data.App else "Mensajes",
+		Open = if type(data.Open) == "string" then data.Open else nil,
 		At = if type(data.At) == "number" then data.At else os.clock(),
 		Read = false,
 	}

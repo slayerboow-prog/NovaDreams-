@@ -378,6 +378,11 @@ function BattlePassRewardService.equip(player: Player, slot: any, id: any, kind:
 		end
 		c.Equipped[slot] = id
 		if slot == "Outfit" then
+			if id ~= nil and data.OwnAvatar == true then
+				-- (quien se pone un conjunto lo quiere ver: deja el avatar propio de Roblox)
+				data.OwnAvatar = false
+				player:SetAttribute("OwnAvatar", false)
+			end
 			applyOutfit(player)
 		end
 	else
@@ -447,8 +452,9 @@ function BattlePassRewardService.chooseVehicle(player: Player, kind: any, id: an
 	return true
 end
 
--- Colores del conjunto equipado (AvatarService: se mezclan con el aspecto de Valmar)
-function BattlePassRewardService.outfitFor(player: Player): { [string]: Color3 }?
+-- Conjunto equipado (AvatarService): su definición del catálogo. Los 30 conjuntos de la hoja traen
+-- Outfit (clave de shared/Outfits: los viste OutfitBuilder); todos traen Colors (aspecto de Valmar).
+function BattlePassRewardService.outfitFor(player: Player): { [string]: any }?
 	local data = DataService.get(player)
 	if not data or not BattlePassSeasonService.activeFor(player) then
 		return nil
@@ -456,7 +462,7 @@ function BattlePassRewardService.outfitFor(player: Player): { [string]: Color3 }
 	local c = cosmeticsOf(data)
 	local id = c.Equipped.Outfit
 	local def = id and c.Owned[id] and Catalog.get(id)
-	return if def and type(def.Colors) == "table" then def.Colors else nil
+	return if def and def.Type == "Outfit" and type(def.Colors) == "table" then def else nil
 end
 
 local function material(name: any): Enum.Material?

@@ -7,7 +7,8 @@
 --
 -- 3D: el servidor deja un modelo por cada acabado de vehículo y cada decoración en
 -- ReplicatedStorage.BattlePassPreviews (con el Id de la recompensa); los conjuntos apuntan al de
--- dentro (Preview.Model). La ropa y los gestos se ven sobre un clon de TU personaje. Se gira
+-- dentro (Preview.Model). La ropa y los gestos se ven sobre un clon de TU personaje (los conjuntos de
+-- la hoja, vestidos de verdad con shared/OutfitBuilder: piezas 3D y plantillas de ropa si las hay). Se gira
 -- arrastrando (ratón o dedo) y, en el ordenador, la rueda acerca y aleja. Nada va por fotograma: la
 -- cámara solo se mueve cuando arrastras. Si algo falla o no hay modelo, sale el icono (nunca un error).
 
@@ -79,6 +80,44 @@ local function paintOutfit(model: Model, colors: { [string]: any })
 			end
 		end
 	end
+end
+
+-- Los 30 conjuntos de la hoja (Preview.Outfit = clave de shared/Outfits): el clon se viste con
+-- shared/OutfitBuilder, igual que en el servidor (en tu talla: de niño, en talla de niño). Devuelve
+-- false si no se pudo (y entonces se pintan solo los colores).
+local UNIFORMS = { PoliceUniform = true, FireUniform = true, InstitutionUniform = true, PrisonUniform = true, ValmarLook = true }
+local function dressOutfit(model: Model, key: any): boolean
+	if type(key) ~= "string" then
+		return false
+	end
+	local ok, result = pcall(function()
+		local shared = (ReplicatedStorage :: any).Shared
+		local Outfits = require(shared.Outfits)
+		local Builder = require(shared.OutfitBuilder)
+		local look = require(shared.Config).DefaultLook
+		local def = Outfits.get(key)
+		if not def then
+			return false
+		end
+		-- Fuera lo que llevaba: aspecto de Valmar, uniforme de trabajo, accesorios y ropa del avatar propio
+		for _, item in model:GetChildren() do
+			if UNIFORMS[item.Name] or item:IsA("Accessory") or item:IsA("Shirt") or item:IsA("Pants") or item:IsA("ShirtGraphic") then
+				item:Destroy()
+			end
+		end
+		local stage = Players.LocalPlayer:GetAttribute("LifeStage")
+		Builder.dress(model, def, {
+			Stage = if stage == "Bebe" then "Nino" else stage,
+			Skin = look.Skin,
+			HairColor = if stage == "Mayor" then look.HairOld else look.Hair,
+			Seed = Players.LocalPlayer.UserId,
+		})
+		return true
+	end)
+	if not ok then
+		warn("[BattlePassPreview] " .. tostring(result))
+	end
+	return ok and result == true
 end
 
 -- Muestra de colores (temas de vivienda, del teléfono, del HUD, placas) debajo del icono
@@ -270,7 +309,7 @@ function BattlePassPreview.mount(frame: GuiObject, reward: { [string]: any }?, o
 			end
 		elseif kind == "Outfit" or kind == "Emote" then
 			model = cloneCharacter()
-			if model and kind == "Outfit" and type(preview.Colors) == "table" then
+			if model and kind == "Outfit" and not dressOutfit(model, preview.Outfit) and type(preview.Colors) == "table" then
 				paintOutfit(model, preview.Colors)
 			end
 			if model and kind == "Emote" then

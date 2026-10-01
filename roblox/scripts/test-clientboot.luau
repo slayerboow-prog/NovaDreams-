@@ -1613,15 +1613,18 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean })
 	local realStart = realClock()
 	local frames = math.floor(SIM_SECONDS * FPS)
 	local dt = 1 / FPS
-	-- Los textos de las filas del menú de comandos (todas, se vean o no)
+	-- Las apps del ValPhone (todas, se vean o no): por su nombre («Tienda») y por su comando («AppTienda»)
 	local function rowLabels(): { [string]: boolean }
 		local out = {}
-		local menu = playerGui:FindFirstChild("CommandMenuGui")
-		local rows = menu and menu:FindFirstChild("Rows", true)
-		for _, row in (rows and rows:GetChildren()) or {} do
-			local label = row:FindFirstChild("Label")
-			if label then
-				out[tostring(label.Text)] = true
+		local phone = playerGui:FindFirstChild("PhoneGui")
+		for _, object in (phone and phone:GetDescendants()) or {} do
+			local command = object:GetAttribute("Command")
+			if command then
+				out[tostring(command)] = true
+				local label = object:FindFirstChild("Label")
+				if label then
+					out[tostring(label.Text)] = true
+				end
 			end
 		end
 		return out
@@ -2084,22 +2087,46 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean })
 			local hg = playerGui:FindFirstChild("HousingGui")
 			table.insert(checks, { hg ~= nil and hg:FindFirstChild("ErrandTracker") == nil, "encargo: al acabar, el cartelito se quita" })
 		end,
-		-- Sin menú rápido junto al minimapa: sus apps son filas del menú de comandos; y la fila
-		-- «Modo pruebas» solo sale con el atributo Tester
+		-- Sin menú rápido junto al minimapa ni menú COMANDOS: todo son apps del ValPhone; y «Modo
+		-- pruebas» solo sale con el atributo Tester
 		[math.floor(38.4 * FPS)] = function()
 			local popups = playerGui:FindFirstChild("HudPopups")
 			table.insert(checks, { popups ~= nil and popups:FindFirstChild("Phone") == nil and popups:FindFirstChild("PhoneButton") == nil, "HUD: ya no hay menú rápido junto al minimapa" })
+			table.insert(checks, { playerGui:FindFirstChild("CommandMenuGui") == nil and playerGui:FindFirstChild("PhoneGui") ~= nil and playerGui:FindFirstChild("ContextStripGui") ~= nil, "HUD: sin el panel COMANDOS; en su lugar el ValPhone y la tira de acciones" })
 			local labels = rowLabels()
-			table.insert(checks, { labels["Ir a casa"] and labels["Tienda"] and labels["Vehículos"] and labels["Gestos"] and labels["Ruta a casa"], "HUD: sus apps (Ir a casa, Ruta a casa, Tienda, Vehículos, Gestos…) son filas del menú de comandos" })
-			table.insert(checks, { not labels["Modo pruebas"], "COMANDOS: sin el atributo Tester no sale «Modo pruebas»" })
-			-- Pase de temporada apagado (BattlePassConfig.Enabled = false): ni fila, ni ventana, ni remoto
+			table.insert(checks, { labels["Ir a casa"] and labels["Tienda"] and labels["Vehículos"] and labels["Gestos"] and labels["Ruta a casa"], "ValPhone: las apps de siempre (Ir a casa, Ruta a casa, Tienda, Vehículos, Gestos…)" })
+			-- Todo lo que había en COMANDOS (menos lo de ahora, que va en la tira) es una app
+			local missing = {}
+			for _, id in { "Mapa", "Objetos", "AppIr a casa", "AppRuta a casa", "AppTienda", "AppVehículos", "AppGestos", "AppMetro", "AppMercadillo", "AppGuía de pesca", "Misiones", "Historia", "Personaje", "Viviendas", "Carrera", "Controles", "Menu", "Mensajes", "Cartera", "Ayuda" } do
+				if not labels[id] then
+					table.insert(missing, id)
+				end
+			end
+			table.insert(checks, { #missing == 0, "ValPhone: todo lo de COMANDOS es una app (Mapa, Mochila, Metro, Mercadillo, Pesca, Misiones, Mi historia, Personaje, Viviendas, Carrera, Controles, Ajustes…) y además Mensajes, Cartera y Ayuda" .. (if #missing > 0 then ": faltan " .. table.concat(missing, ", ") else "") })
+			table.insert(checks, { not labels["Modo pruebas"] and not labels.ModoPruebas, "ValPhone: sin el atributo Tester no sale «Modo pruebas»" })
+			-- Pase de temporada apagado (BattlePassConfig.Enabled = false): ni app, ni ventana, ni remoto
 			local bpRemote = remotes:FindFirstChild("BattlePass")
 			local dialogs = playerGui:FindFirstChild("Dialogs")
-			table.insert(checks, { not labels["Pase de temporada"] and bpRemote == nil and (dialogs == nil or dialogs:FindFirstChild("BattlePass") == nil) and playerGui:FindFirstChild("BattlePassTip") == nil, "pase de temporada apagado: sin fila «Pase de temporada», sin ventana y sin remoto" })
+			table.insert(checks, { not labels.PaseTemporada and bpRemote == nil and (dialogs == nil or dialogs:FindFirstChild("BattlePass") == nil) and playerGui:FindFirstChild("BattlePassTip") == nil, "pase de temporada apagado: sin app «Pase», sin ventana y sin remoto" })
 			localPlayer:SetAttribute("Tester", true)
+			-- «📱 Abu Rosa quiere hablar contigo»: llega al ValPhone como mensaje
+			local story = remotes:FindFirstChild("LifeStory")
+			if story then
+				story.OnClientEvent:Fire("Ping", { Icon = "📱", Text = "📱 Abu Rosa quiere hablar contigo — bájate para hablar", Reason = "Ride", QuestId = "Q" })
+			end
 		end,
 		[math.floor(39 * FPS)] = function()
-			table.insert(checks, { rowLabels()["Modo pruebas"] == true, "COMANDOS: con Tester = true sale la fila «Modo pruebas»" })
+			table.insert(checks, { rowLabels()["Modo pruebas"] == true, "ValPhone: con Tester = true sale la app «Modo pruebas»" })
+			local phone = playerGui:FindFirstChild("PhoneGui")
+			local banner = phone and phone:FindFirstChild("PhoneBanner")
+			local said = false
+			for _, d in (banner and banner:GetDescendants()) or {} do
+				if rawget(d, "__class") == "TextLabel" and tostring(d.Text):find("Abu Rosa quiere hablar contigo", 1, true) then
+					said = true
+				end
+			end
+			local lifeGui = playerGui:FindFirstChild("LifeStory")
+			table.insert(checks, { banner ~= nil and banner.Visible and said and (lifeGui == nil or lifeGui:FindFirstChild("StoryPing") == nil), "ValPhone: «📱 Abu Rosa quiere hablar contigo» baja como notificación del teléfono (y queda en Mensajes)" })
 			localPlayer:SetAttribute("Tester", nil)
 			-- Móvil: la pestaña «Tu vida» se aparta mientras se ve la tarjeta de la misión
 			local hud = playerGui:FindFirstChild("MainHud")
@@ -2449,7 +2476,7 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean })
 			end
 		end,
 		[math.floor(39.6 * FPS)] = function()
-			table.insert(checks, { not rowLabels()["Modo pruebas"], "COMANDOS: al quitar Tester, «Modo pruebas» se va" })
+			table.insert(checks, { not rowLabels()["Modo pruebas"], "ValPhone: al quitar Tester, «Modo pruebas» se va" })
 		end,
 	}
 	for frame = 1, frames do

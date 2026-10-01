@@ -2,7 +2,7 @@
 --   * Gestos: los de Roblox (su menú de gestos: botón Gestos, app Gestos o comando Más > Gestos).
 --     Aquí queda "Saludar" para el menú de comandos (delante de alguien); se corta al andar o saltar.
 --     Los gestos del pase de temporada que tengas (UI/BattlePassCosmetics, solo con el pase encendido)
---     se suman a esta lista y se hacen igual (COMANDOS > «Gestos del pase»).
+--     se suman a esta lista y se hacen igual (app «Gestos pase» del ValPhone).
 --   * Trepar y saltar vallas: ahora lo hace Controllers/Parkour (saltar vallas, muros, bordes…).
 --   * Linterna (tecla L, R3 en el mando): la ven todos los jugadores (y el brazo va delante,
 --     sujetándola: ReactMotion). La primera noche sale un aviso.

@@ -61,9 +61,9 @@ Onboarding.Steps = {
 	{
 		Id = "Mochila",
 		Title = "Abre la mochila",
-		Touch = "Toca «Objetos» en el menú COMANDOS (abajo a la izquierda).",
-		Keys = "Pulsa E cuando no tengas nada delante, o elige «Objetos» en COMANDOS.",
-		Target = { Touch = "Items.Commands", Keys = "Items.Hotbar" },
+		Touch = "Toca tu ValPhone (abajo a la izquierda) y abre la app «Mochila».",
+		Keys = "Pulsa E cuando no tengas nada delante, o abre el ValPhone (Tab) y elige «Mochila».",
+		Target = { Touch = "Items.Phone", Keys = "Items.Hotbar" },
 	},
 	{
 		Id = "Ayuda",
