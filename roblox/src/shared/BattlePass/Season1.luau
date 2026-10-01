@@ -395,7 +395,7 @@ return {
 	Xp = { Base = 1100, Step = 20 },
 	-- Game Pass de ESTA temporada (cada temporada tiene el suyo: un Game Pass es para siempre).
 	-- 0 = compra desactivada: la interfaz enseña «Próximamente».
-	GamePassId = 0,
+	GamePassId = 2002430944,
 	Colors = { Primary = rgb(28, 36, 72), Accent = rgb(255, 196, 64), Text = rgb(245, 245, 250) },
 	Rewards = rewards,
 	Missions = {

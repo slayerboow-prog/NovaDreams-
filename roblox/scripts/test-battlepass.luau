@@ -389,7 +389,11 @@ local function lastSentAfter(index: number, player, kind)
 end
 
 local S1 = BPConfig.Seasons[1]
-check(BPConfig.Enabled == false, "el pase viene APAGADO por defecto (BattlePassConfig.Enabled = false)")
+check(BPConfig.Enabled == true and S1.GamePassId == 2002430944, "el pase viene ENCENDIDO con el Game Pass de la Temporada 1")
+-- Se prueba primero apagado y sin Game Pass (más abajo se enciende y se pone un pase de prueba)
+BPConfig.Enabled = false
+local realPassId = S1.GamePassId
+S1.GamePassId = 0
 -- Apagado: los servicios no hacen nada (ni remoto, ni ganchos, ni escuchar eventos)
 do
 	for _, name in { "BattlePassRewardService", "BattlePassService", "BattlePassXPService" } do
@@ -520,7 +524,7 @@ do
 		end
 	end
 	check(moneyFree <= 3000 and moneyPremium <= 2000, ("poco dinero: %d € gratis y %d € premium en toda la temporada"):format(moneyFree, moneyPremium))
-	check(S1.GamePassId == 0 and BPConfig.PriceConfiguredExternally == true, "el precio no está en el código (GamePassId = 0 de momento)")
+	check(type(realPassId) == "number" and realPassId > 0 and BPConfig.PriceConfiguredExternally == true, "el precio no está en el código (solo el id del Game Pass)")
 	check(Catalog.get("S1_P50_Car") ~= nil and Catalog.get("S1_P50_Car").Parent == "S1_P50", "el catálogo conoce lo que va dentro de los conjuntos")
 end
 

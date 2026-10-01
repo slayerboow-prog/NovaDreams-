@@ -2,7 +2,7 @@
 
 Diseño, reglas y contrato del **pase de temporada** de Real Life Simulator. La temporada 1 se llama **«Luces de Valmar»**.
 
-> **Interruptor general:** `BattlePassConfig.Enabled` (en `src/shared/BattlePass/Config.luau`) viene **apagado** (`false`). Apagado, el pase no hace nada: no se crea el remoto, no se escuchan eventos, no se entregan recompensas, no hay ganchos en vehículos, ropa ni vivienda, y la interfaz no aparece. En los datos guardados solo quedan los valores por defecto, que no hacen nada. Se enciende cuando la interfaz esté lista.
+> **Interruptor general:** `BattlePassConfig.Enabled` (en `src/shared/BattlePass/Config.luau`) está **encendido** (`true`) desde el 1-oct-2026 (la Temporada 1 empieza el 5-oct-2026). Apagado (`false`), el pase no hace nada: no se crea el remoto, no se escuchan eventos, no se entregan recompensas, no hay ganchos en vehículos, ropa ni vivienda, y la interfaz no aparece. En los datos guardados solo quedan los valores por defecto, que no hacen nada. Con `false` se apaga del todo.
 
 ## 1. Idea en pocas palabras
 
@@ -256,11 +256,11 @@ Lo que ya comprueba **`lune run scripts/test-battlepass.luau`**: pase apagado in
 
 ## 11. Pasos para el dueño
 
-1. **Crear el Game Pass:** create.roblox.com → tu experiencia → *Monetización* → *Pases* → *Crear un pase*.
+1. **Crear el Game Pass** ✅ *Hecho (1-oct-2026): «Pase Premium · Temporada 1», id **2002430944**, **449 Robux**, a la venta, icono `assets/icons/pase-premium.png`. Creado con Open Cloud (`POST https://apis.roblox.com/game-passes/v1/universes/{universeId}/game-passes`; la clave necesita el sistema **game-passes** con `game-pass:read` y `game-pass:write`).* A mano: create.roblox.com → tu experiencia → *Monetización* → *Pases* → *Crear un pase*.
    - Nombre: «Pase Premium · Temporada 1: Luces de Valmar». Descripción: las 50 recompensas premium, **sin presión** («Consigue el conjunto legendario Faro de Valmar y 50 recompensas premium»). Icono 512×512.
    - Ponlo **a la venta** y elige el precio. Para unos 4,99 € de valor, entre **399 y 499 Robux** (se puede cambiar cuando quieras sin tocar el código).
-2. **Copiar su ID** (el número de la URL del pase) en `src/shared/BattlePass/Season1.luau` → `GamePassId = …`. Con 0, la compra está desactivada y la interfaz enseña «Próximamente».
-3. **Encender el pase** cuando esté la interfaz: `BattlePassConfig.Enabled = true` en `src/shared/BattlePass/Config.luau`.
+2. ✅ *Hecho: `GamePassId = 2002430944`.* **Copiar su ID** (el número de la URL del pase) en `src/shared/BattlePass/Season1.luau` → `GamePassId = …`. Con 0, la compra está desactivada y la interfaz enseña «Próximamente».
+3. ✅ *Hecho.* **Encender el pase**: `BattlePassConfig.Enabled = true` en `src/shared/BattlePass/Config.luau`.
 4. **Probar en Studio** con `/pruebas` → Pase de temporada: *Premium simulado*, *+XP*, *Nivel* y *Día siguiente*. Todo eso es solo para ti y no cuenta como compra.
 5. **Temporada 2:** copia `Season1.luau` como `Season2.luau`, cambia Id, fechas, `GamePassId` (un pase **nuevo**), recompensas (Ids nuevos, **nunca** reutilizar) y misiones, y añádela a `BattlePassConfig.Seasons`.
 
