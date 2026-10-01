@@ -33,10 +33,11 @@ end
 
 function TerrainBuilder.build()
 	local terrain = workspace.Terrain
-	-- Sin briznas de hierba: atravesarían las calles y los suelos.
-	-- (Desde un script no siempre se puede cambiar: por eso también va en default.project.json.)
+	-- Briznas de hierba 3D (césped de verdad): encendidas en default.project.json, porque desde un
+	-- script Roblox no deja cambiarlas. El terreno va 4 studs por debajo de calles y manzanas, así que
+	-- no asoman por los suelos; el cliente intenta quitarlas en el nivel Bajo (Controllers/MaterialDetail).
 	pcall(function()
-		terrain.Decoration = false
+		terrain.Decoration = true
 	end)
 	-- Colores de campo mediterráneo: verdes apagados, tierra seca y arena clara
 	-- (algo más vivos que antes: de noche y con el etalonaje se veían grises)
