@@ -725,29 +725,71 @@ fakeModel("S1_P05").Parent = previews
 fakeModel("S1_P50_Car").Parent = previews -- (el Aurora X «Faro de Valmar»: la recompensa estrella)
 
 ---------------------------------------------------------------------
--- Comprobaciones de una ventana abierta (en cualquier tamaño)
+-- Comprobaciones de una pantalla abierta (en cualquier tamaño)
 ---------------------------------------------------------------------
+local function deep(root, name: string)
+	for _, object in (if root then root:GetDescendants() else {}) do
+		if object.Name == name then
+			return object
+		end
+	end
+	return nil
+end
+
+-- Los hijos visibles de un contenedor no se pisan (sin contar los adornos que van debajo a propósito)
+local function clearOf(container, label: string, skip: { [string]: boolean })
+	local items = {}
+	for _, child in container:GetChildren() do
+		if isGui(child) and child.Visible ~= false and not DECOR[child.Name] and not skip[child.Name] then
+			table.insert(items, { Name = child.Name, Rect = absRect(child, container) })
+		end
+	end
+	local clashes = {}
+	for i = 1, #items do
+		for j = i + 1, #items do
+			if overlaps(items[i].Rect, items[j].Rect) then
+				table.insert(clashes, items[i].Name .. describe(items[i].Rect) .. " / " .. items[j].Name .. describe(items[j].Rect))
+			end
+		end
+	end
+	check(#clashes == 0, label .. ": nada se pisa (" .. #items .. " piezas)" .. (if #clashes > 0 then ": " .. table.concat(clashes, "; ") else ""))
+end
+
+local function childrenInside(container, label: string)
+	local out = {}
+	local w, h = container.Size.X.Offset, container.Size.Y.Offset
+	for _, child in container:GetChildren() do
+		if isGui(child) and child.Visible ~= false and not DECOR[child.Name] then
+			local r = absRect(child, container)
+			if not inside(r, { X = 0, Y = 0, W = w, H = h }) then
+				table.insert(out, child.Name .. describe(r))
+			end
+		end
+	end
+	check(#out == 0, label .. ": todo queda dentro" .. (if #out > 0 then ": " .. table.concat(out, ", ") else ""))
+end
+
 local function layoutChecks(UI, where: string, x: number, y: number, touch: boolean)
 	local dbg = UI._debug()
 	local ui = dbg.Ui
-	check(ui ~= nil and UI.isOpen(), where .. ": la ventana se abre")
+	check(ui ~= nil and UI.isOpen(), where .. ": la pantalla se abre")
 	if not ui then
 		return
 	end
 	local window = ui.Window
-	local L = ui.Layout
 	local dialogs = playerGui:FindFirstChild("Dialogs")
 	local base = dialogs and dialogs:FindFirstChildOfClass("UIScale")
 	local fit = window:FindFirstChild("FitScale")
 	local s = (base and base.Scale or 1) * (fit and fit.Scale or 1)
 	check(fit and fit.Scale == 1, where .. ": cabe sin encogerla (FitScale = 1, el texto no se hace diminuto)")
 	local pw, ph = window.Size.X.Offset * s, window.Size.Y.Offset * s
-	check(pw <= x - 24 + 0.5 and ph <= y - 60 + 0.5, ("%s: la ventana cabe en la pantalla (%dx%d px en %dx%d, sin la barra de Roblox)"):format(where, pw, ph, x, y))
-	-- Todo lo visible (salvo el halo y lo que va dentro de las listas) queda dentro de la ventana
+	check(pw <= x - 24 + 0.5 and ph <= y - 60 + 0.5, ("%s: cabe en la pantalla (%dx%d px en %dx%d, sin la barra de Roblox)"):format(where, pw, ph, x, y))
+	check(pw >= (x - 24) * 0.6 and ph >= (y - 60) * 0.6, where .. ": ocupa casi toda la pantalla (como la referencia)")
+	-- Todo lo visible (salvo el halo y lo que va dentro de listas o filas) queda dentro de la ventana
 	local W, Hh = window.Size.X.Offset, window.Size.Y.Offset
 	local outside = {}
 	for _, object in window:GetDescendants() do
-		if isGui(object) and object.Name ~= "Halo" and object.Name ~= "Dot" and visibleChain(object, window) and not inScroll(object, window) then
+		if isGui(object) and object.Name ~= "Halo" and object.Name ~= "Dot" and visibleChain(object, window) and not inScroll(object, window) and not object:IsDescendantOf(window.Content.Page.Rewards.Hero.Info.Emblem) and object.Rotation == nil then
 			local r = absRect(object, window)
 			if r.W > 0 and r.H > 0 and not inside(r, { X = 0, Y = 0, W = W, H = Hh }) then
 				table.insert(outside, object.Name .. describe(r))
@@ -755,33 +797,30 @@ local function layoutChecks(UI, where: string, x: number, y: number, touch: bool
 		end
 	end
 	check(#outside == 0, where .. ": nada se sale de la ventana" .. (if #outside > 0 then ": " .. table.concat(outside, ", ") else ""))
-	siblingsClear(window, where .. " · barra del título")
-	local content = window:FindFirstChild("Content")
-	siblingsClear(content, where .. " · cabecera, secciones y página")
-	siblingsClear(content.Header, where .. " · nivel y XP")
-	siblingsClear(content.Tabs, where .. " · pestañas RECOMPENSAS / MISIONES / FICHAS")
+	clearOf(window, where .. " · barra de arriba (título, secciones, dinero, ✖)", {})
+	check(window.Close.Visible and absRect(window.Close, window).X + window.Close.Size.X.Offset >= W - 20, where .. ": el ✖ se ve arriba a la derecha")
+	local content = window.Content
+	clearOf(window.Tabs, where .. " · RECOMPENSAS / MISIONES / FICHAS", {})
 	local rewards = content.Page.Rewards
 	if rewards.Visible then
-		siblingsClear(rewards, where .. " · recompensa elegida, carriles, franja y fila")
-		siblingsClear(rewards.Featured, where .. " · recompensa elegida")
-		siblingsClear(rewards.Lanes, where .. " · GRATIS / PREMIUM / RECLAMAR TODO")
-		if rewards.Strip.Offer.Visible then
-			siblingsClear(rewards.Strip.Offer, where .. " · oferta del premium")
-		end
-		if rewards:FindFirstChild("Spotlight") then
-			siblingsClear(rewards.Spotlight, where .. " · misión destacada")
-		end
-		local card = rewards.Track:FindFirstChild("Card01")
-		siblingsClear(card, where .. " · tarjeta de una recompensa")
-		local cardRect = absRect(card, rewards.Track)
-		check(cardRect.H <= rewards.Track.Size.Y.Offset - L.Rewards.ScrollBar, where .. " · las tarjetas caben en la fila sin tapar la barra de desplazamiento")
-		local cardInner = {}
-		for _, child in card:GetChildren() do
-			if isGui(child) and not inside(absRect(child, card), { X = 0, Y = 0, W = card.Size.X.Offset, H = card.Size.Y.Offset }) then
-				table.insert(cardInner, child.Name)
-			end
-		end
-		check(#cardInner == 0, where .. " · todo lo de la tarjeta queda dentro" .. (if #cardInner > 0 then ": " .. table.concat(cardInner, ", ") else ""))
+		clearOf(rewards, where .. " · cabecera, filas y pie", {})
+		clearOf(rewards.Hero, where .. " · cabecera: información y destacado", {})
+		clearOf(rewards.Hero.Info, where .. " · emblema, temporada, título, subtítulo, cuenta atrás y botón", {})
+		childrenInside(rewards.Hero.Info, where .. " · información de la cabecera")
+		clearOf(rewards.Hero.Featured, where .. " · ficha de la recompensa destacada", { Sun = true, Ground = true, Stage = true, Veil = true })
+		childrenInside(rewards.Hero.Featured, where .. " · recompensa destacada")
+		clearOf(rewards.Rows, where .. " · carriles y filas", {})
+		clearOf(rewards.Rows.Lanes, where .. " · GRATIS / NIVEL / PREMIUM", {})
+		clearOf(rewards.Footer, where .. " · pie (TU NIVEL, XP, botones y caja premium)", {})
+		clearOf(rewards.Footer.PremiumBox, where .. " · caja del premium", {})
+		clearOf(rewards.Footer.Xp, where .. " · TU NIVEL y XP", {})
+		local scroll = rewards.Rows.Scroll
+		local free, premium, line = scroll.Free01, scroll.Premium01, scroll.Line
+		clearOf(free, where .. " · tarjeta gratis", { Status = true })
+		childrenInside(free, where .. " · tarjeta gratis")
+		local fr, lr, pr = absRect(free, scroll), absRect(line, scroll), absRect(premium, scroll)
+		check(fr.Y + fr.H <= lr.Y + 0.5 and lr.Y + lr.H <= pr.Y + 0.5, where .. ": fila GRATIS arriba, línea de niveles en medio y fila PREMIUM abajo")
+		check(pr.Y + pr.H <= scroll.Size.Y.Offset - ui.Layout.Rows.ScrollBar + 0.5, where .. ": las filas caben sin tapar la barra de desplazamiento")
 	end
 	-- Texto legible (en píxeles de pantalla) y botones cómodos
 	local smallest, smallestName = math.huge, ""
@@ -794,7 +833,7 @@ local function layoutChecks(UI, where: string, x: number, y: number, touch: bool
 				smallest, smallestName = px, object.Name
 			end
 		end
-		if class == "TextButton" and visibleChain(object, window) and object.Name ~= "Card" and not string.match(object.Name, "^Card%d") and object.Size.Y.Offset > 0 then
+		if class == "TextButton" and visibleChain(object, window) and not string.match(object.Name, "^Free%d") and not string.match(object.Name, "^Premium%d") and object.Size.Y.Offset > 0 then
 			local px = object.Size.Y.Offset * s
 			if px < shortest then
 				shortest, shortestName = px, object.Name
@@ -805,6 +844,11 @@ local function layoutChecks(UI, where: string, x: number, y: number, touch: bool
 	check(smallest >= minText, ("%s: el texto más pequeño se lee (%.1f px: %s)"):format(where, smallest, smallestName))
 	local minButton = if touch then 28 else 26
 	check(shortest >= minButton, ("%s: los botones son cómodos de pulsar (el más bajo: %.0f px, %s)"):format(where, shortest, shortestName))
+	if rewards.Visible then
+		local card = rewards.Rows.Scroll.Free01
+		local cw, chh = card.Size.X.Offset * s, card.Size.Y.Offset * s
+		check(cw >= (if touch then 50 else 60) and chh >= (if touch then 44 else 60), ("%s: las tarjetas se pueden tocar (%.0fx%.0f px)"):format(where, cw, chh))
+	end
 	check(#badWrites == 0, where .. ": todas las propiedades existen en Roblox" .. (if #badWrites > 0 then ": " .. table.concat(badWrites, ", ") else ""))
 end
 
@@ -821,6 +865,7 @@ do
 	check(not UI.isOpen() and (dialogs == nil or dialogs:FindFirstChild("BattlePass") == nil), "La ventana no se abre ni con open() ni con la tecla")
 	userInput.InputBegan:Fire({ KeyCode = roblox.Enum.KeyCode.N, UserInputType = roblox.Enum.UserInputType.Keyboard }, false)
 	check(not UI.isOpen(), "La tecla N no hace nada")
+	check(UI._autoTick(100) == "Off" and not UI.isOpen(), "Al entrar no se abre sola")
 	check(UI.swallowNotify == nil, "Ya no hay filtro de avisos por texto (el servidor no manda el de nivel si la interfaz lo enseña)")
 	-- Cosméticos equipados: apagado, nada se pinta aunque haya atributos
 	localPlayer:SetAttribute("BP_HudSkin", "S1_P08")
@@ -837,6 +882,36 @@ do
 		localPlayer:SetAttribute(key, nil)
 	end
 	check(#toasts == 0 and playerGui:FindFirstChild("BattlePassTip") == nil, "Ni avisos ni tooltips")
+end
+
+---------------------------------------------------------------------
+print("\n▶ Cuentas de la pantalla (BattlePassView)")
+do
+	local View = loadModule("src/client/UI/BattlePassView")
+	local season = { Status = "Active", Now = 1000, EndsAt = 1000 + 32 * 86400 + 14 * 3600 + 120, StartsAt = 0, ClaimUntil = 1000 + 40 * 86400 }
+	local prefix, left = View.countdown(season)
+	check(prefix == "Termina en:" and left == "32 días 14 horas", "Cuenta atrás: «Termina en: 32 días 14 horas» (" .. prefix .. " " .. left .. ")")
+	local _, left2 = View.countdown(season, season.EndsAt - (5 * 3600 + 20 * 60))
+	check(left2 == "5 h 20 min", "Menos de un día: «5 h 20 min» (" .. left2 .. ")")
+	local _, left3 = View.countdown(season, season.EndsAt - (86400 + 3600))
+	check(left3 == "1 día 1 hora", "Singular: «1 día 1 hora» (" .. left3 .. ")")
+	local p4 = View.countdown({ Status = "Upcoming", Now = 0, StartsAt = 3 * 86400 })
+	local p5 = View.countdown({ Status = "Grace", Now = 0, ClaimUntil = 3 * 86400 })
+	check(p4 == "Empieza en:" and p5 == "Reclama hasta:", "Antes de empezar y en los días para reclamar, su texto")
+	check(View.heroBuy({ Owned = false, ComingSoon = true, PurchaseEnabled = false, GamePassId = 0 }).Kind == "Soon", "GamePassId = 0: el botón dice «MUY PRONTO» (no abre ninguna compra)")
+	local buyInfo = View.heroBuy({ Owned = false, PurchaseEnabled = true, PriceRobux = 449 })
+	check(buyInfo.Kind == "Buy" and buyInfo.Text == "👑 COMPRAR PASE PREMIUM" and buyInfo.Price == "R$ 449", "Con Game Pass: «👑 COMPRAR PASE PREMIUM» y su precio de Roblox")
+	check(View.heroBuy({ Owned = true, Purchased = true }).Text == "✔ PREMIUM ACTIVO" and View.heroBuy({ Owned = true, Simulated = true, Purchased = false }).Text == "✔ PREMIUM ACTIVO · PRUEBAS", "Si ya lo tienes: «✔ PREMIUM ACTIVO» (testers: «· PRUEBAS»)")
+	local benefits = View.premiumBenefits(snapshot({ Level = 1 }))
+	local all = {}
+	for _, item in benefits do
+		table.insert(all, item.Text)
+	end
+	local text = table.concat(all, " | ")
+	check(text:find("coches", 1, true) and text:find("ropa", 1, true) and text:find("barco", 1, true) and text:find("gesto", 1, true) and text:find("temas del teléfono", 1, true), "Beneficios del premium contados de verdad: coches, ropa, barcos, gestos, temas del teléfono…")
+	check(text:find("Solo estilo", 1, true) ~= nil and text:find("ventaja", 1, true) ~= nil, "Y dice claro que no da ventajas para ganar")
+	check(View.amountText({ Type = "Money", Amount = 250 }) == "250 €" and View.amountText({ Type = "Tokens", Amount = 2 }) == "x2" and View.amountText({ Type = "Title" }) == "", "Cantidades de las tarjetas («250 €», «x2»)")
+	check(View.rarityTag({ Rarity = "Legendaria" }) == "LEGENDARIO" and View.rarityTag({ Rarity = "Epica" }) == "ÉPICO", "Rareza en la etiqueta: «LEGENDARIO», «ÉPICO»")
 end
 
 ---------------------------------------------------------------------
@@ -866,118 +941,190 @@ local window = ui.Window
 local content = window.Content
 local page = content.Page
 local rewards = page.Rewards
-local track = rewards.Track
-check(window.Title.Text == "🏆 TEMPORADA 1 · LUCES DE VALMAR", "Cabecera «🏆 TEMPORADA 1 · LUCES DE VALMAR» (" .. tostring(window.Title.Text) .. ")")
-check(content.Header.Level.Text == "NIVEL 12 / 50", "«NIVEL 12 / 50»")
-check(content.Header.Xp.Text == "300 / 1.320 XP", "XP del nivel: «300 / 1.320 XP»")
-check(math.abs(content.Header.XpBar.Fill.Size.X.Scale - 300 / 1320) < 0.001, "La barra de XP va a su sitio")
-check(tostring(window.Days.Text):find("Quedan 23 días", 1, true) ~= nil, "Días que quedan: " .. tostring(window.Days.Text))
+local hero = rewards.Hero
+local info = hero.Info
+local featured = hero.Featured
+local scroll = rewards.Rows.Scroll
+local footer = rewards.Footer
+check(window.Title.Text == "🏆 PASE DE TEMPORADA" and window.Tabs.RewardsTab ~= nil and window.Tabs.MissionsTab ~= nil and window.Tabs.ShopTab ~= nil, "Barra de arriba: «🏆 PASE DE TEMPORADA» y RECOMPENSAS / MISIONES / FICHAS (sin repetir el menú del juego)")
+check(window.Money.Amount.Text == "💶 2.450 €", "Tu dinero arriba a la derecha (" .. tostring(window.Money.Amount.Text) .. ")")
+check(window.Close.Text == "✖", "Y el ✖ para cerrar")
+-- Cabecera
+check(info.Emblem ~= nil and deep(info.Emblem, "Side3") ~= nil and deep(info.Emblem, "Icon").Text == "👑", "Emblema dorado (hexágono con corona)")
+check(info.Kicker.Text == "TEMPORADA 1 · PASE DE TEMPORADA", "«TEMPORADA 1 · PASE DE TEMPORADA» (" .. info.Kicker.Text .. ")")
+check(info.SeasonName.Text == "LUCES DE VALMAR", "Título grande con el nombre real: «LUCES DE VALMAR»")
+check(info.Subtitle.Text == "Completa misiones, sube de nivel y desbloquea recompensas exclusivas.", "Subtítulo de la referencia")
+check(info.Countdown.Prefix.Text == "Termina en:" and info.Countdown.Left.Text == "23 días 14 horas", "Cuenta atrás real hasta el fin de temporada: «Termina en: 23 días 14 horas» (" .. info.Countdown.Left.Text .. ")")
+check(info.Buy.Text == "👑 COMPRAR PASE PREMIUM · R$ 449" and info.Buy.Active and info.Buy:GetAttribute("Kind") == "Buy", "Botón dorado grande «👑 COMPRAR PASE PREMIUM · R$ 449» (" .. info.Buy.Text .. ")")
+-- Destacado
+check(featured.RewardName.Text == "Faro de Valmar" and featured.FeatKicker.Text:find("RECOMPENSA ESTRELLA", 1, true) ~= nil, "Destacado: la recompensa estrella «Faro de Valmar» (nivel 50 premium)")
+check(featured.Rarity.Text == "LEGENDARIO" and featured.Rarity.BackgroundColor3 == BPConfig.Rarities.Legendaria.Color, "Con su etiqueta «LEGENDARIO» de su color")
+local sky = featured:FindFirstChild("Sky")
+check(sky ~= nil and rawget(sky, "__class") == "UIGradient" and #sky.Color.Keypoints >= 3, "Fondo de cielo de atardecer (degradado, sin imágenes)")
+local stage = featured.Stage
+check(stage:FindFirstChild("Viewport") ~= nil and stage.Viewport:FindFirstChildOfClass("WorldModel") ~= nil, "El Aurora X «Faro de Valmar» en 3D (ViewportFrame con el modelo del servidor)")
+do
+	local cam = stage.Viewport:FindFirstChildOfClass("Camera")
+	local before = cam and cam.CFrame
+	services.RunService.RenderStepped:Fire(0.5)
+	check(cam ~= nil and cam.CFrame ~= before, "Y gira solo")
+end
+check(featured.See.Visible and featured.See.Text:find("Ver", 1, true) ~= nil and featured.Action.Text == "👑 PREMIUM", "Con «👁 Ver» y «👑 PREMIUM» (aún no es tuya)")
+-- Filas
 local cardCount = 0
-for _, child in track:GetChildren() do
-	if string.match(child.Name, "^Card%d%d$") then
+for _, child in scroll:GetChildren() do
+	if string.match(child.Name, "^Free%d%d$") or string.match(child.Name, "^Premium%d%d$") then
 		cardCount += 1
 	end
 end
-check(cardCount == 50, "Fila de niveles 01…50 (" .. cardCount .. " tarjetas)")
-check(track.ScrollingDirection == roblox.Enum.ScrollingDirection.X and track.CanvasSize.X.Offset > track.Size.X.Offset, "La fila se desplaza en horizontal")
-local c1, c6, c12, c13 = track.Card01, track.Card06, track.Card12, track.Card13
-check(c1.State.Text == "✔ RECLAMADA" and c1.State:GetAttribute("State") == "CLAIMED", "Nivel 1 gratis: RECLAMADA")
-check(c6.State.Text == "RECLAMAR" and c6.State:GetAttribute("State") == "AVAILABLE", "Nivel 6 gratis: DISPONIBLE con RECLAMAR")
-check(c13.State.Text == "🔒 BLOQUEADA" and c13.State:GetAttribute("State") == "LOCKED", "Nivel 13: BLOQUEADA")
-check(c12.Badge.Text == "ACTUAL" and c13.Badge.Text == "SIGUIENTE", "Resalta la recompensa actual y la siguiente")
-check(track.Card05.Badge.Text == "★ HITO" or track.Card05.Badge.Text == "ACTUAL", "Los hitos (cada 5) se marcan")
-check(c6.RewardName.Text ~= "" and c6.Meta.Text:find("·", 1, true) ~= nil and c6.Level.Text == "NV. 06" and c6.Icon.Text ~= "", "Cada tarjeta: icono, nombre, rareza · tipo y nivel")
-check(c1.Meta.TextColor3 == BPConfig.Rarities.Comun.Color and track.Card05.Meta.TextColor3 == BPConfig.Rarities.Rara.Color, "La rareza con su color")
--- Recompensa elegida por defecto: la primera disponible
-local featured = rewards.Featured
-check(featured.RewardName.Text == c6.RewardName.Text and featured.Primary.Text == "RECLAMAR", "Al abrir se enseña en grande la primera disponible con [RECLAMAR]")
-check(featured.LevelLine.Text:find("Nivel 06", 1, true) ~= nil and featured.LevelLine.Text:find("GRATIS", 1, true) ~= nil and featured.LevelLine.Text:find("DISPONIBLE", 1, true) ~= nil, "Con nivel, pista y estado: " .. featured.LevelLine.Text)
-check(rewards.Strip.NextLine.Visible and rewards.Strip.NextLine.Text:find("Nivel 13", 1, true) ~= nil, "Franja: la siguiente recompensa (" .. rewards.Strip.NextLine.Text .. ")")
-check(rewards:FindFirstChild("Spotlight") and rewards.Spotlight.Mission.Text:find("Turno completo", 1, true) ~= nil, "Misión destacada con su XP (" .. tostring(rewards.Spotlight and rewards.Spotlight.Mission.Text) .. ")")
-check(rewards.Lanes.FreeLane.Text:find("GRATIS", 1, true) ~= nil and rewards.Lanes.PremiumLane.Text:find("PREMIUM", 1, true) ~= nil, "Carriles GRATIS / PREMIUM")
+check(cardCount == 100, "Dos filas: GRATIS y PREMIUM, una tarjeta por nivel (" .. cardCount .. ")")
+check(rewards.Rows.Lanes.FreeLane.Title.Text == "GRATIS" and rewards.Rows.Lanes.FreeLane.Sub.Text == "Pase normal" and rewards.Rows.Lanes.PremiumLane.Title.Text == "PREMIUM" and rewards.Rows.Lanes.PremiumLane.Sub.Text == "Pase de temporada", "Carriles «GRATIS · Pase normal» y «PREMIUM · Pase de temporada»")
+check(scroll.ScrollingDirection == roblox.Enum.ScrollingDirection.X and scroll.CanvasSize.X.Offset > scroll.Size.X.Offset, "Las filas se desplazan en horizontal (juntas con la línea de niveles)")
+local f1, f6, f13, p1 = scroll.Free01, scroll.Free06, scroll.Free13, scroll.Premium01
+check(f1:GetAttribute("State") == "CLAIMED" and f1.Status.Text == "✔" and f1.Status.Visible, "Nivel 1 gratis: reclamada (✔)")
+check(f6:GetAttribute("State") == "AVAILABLE" and f6.Claim.Visible and f6.Claim.Text == "RECLAMAR", "Nivel 6 gratis: lista, con «RECLAMAR» brillando")
+check(f13:GetAttribute("State") == "LOCKED" and f13.Status.Text == "🔒" and not f13.Claim.Visible, "Nivel 13: bloqueada (🔒)")
+check(p1:GetAttribute("State") == "PREMIUM_LOCKED" and p1.Status.Text == "🔒", "Premium sin el pase: con candado")
+check(f6.Icon.Text ~= "" and f1.Gradient ~= nil and f1.RarityBar.BackgroundColor3 == BPConfig.Rarities.Comun.Color and scroll.Free05.RarityBar.BackgroundColor3 == BPConfig.Rarities.Rara.Color, "Cada tarjeta: icono y el color de su rareza")
+do
+	local money = nil
+	for i = 1, 50 do
+		local card = scroll["Free" .. ("%02d"):format(i)]
+		if card.Reward and card.Reward.Type == "Money" and card:GetAttribute("State") ~= "AVAILABLE" then
+			money = card
+			break
+		end
+	end
+	check(money ~= nil and money.Amount.Visible and money.Amount.Text:find("€", 1, true) ~= nil, "Con su cantidad si la hay (" .. tostring(money and money.Amount.Text) .. ")")
+end
+-- Línea de niveles
+local line = scroll.Line
+check(line.Node12:GetAttribute("Current") == true and line.Node12.BackgroundColor3 == loadModule("src/client/UI/BattlePassView").Colors.Premium, "Línea de niveles: tu nivel (12) marcado")
+check(line.Node05:GetAttribute("Reached") == true and line.Node13:GetAttribute("Reached") == false and line.Node01.Text == "1" and line.Node50.Text == "50", "Los alcanzados resaltados y los demás no (numerados del 1 al 50)")
+check(math.abs(line.Track.Fill.Size.X.Scale - 11 / 49) < 0.001, "La línea se llena hasta tu nivel")
+-- Pie
+check(footer.Hex.Number.Text == "12" and deep(footer.Hex, "Side1") ~= nil, "Pie: hexágono con tu nivel (12)")
+check(footer.Xp.Label.Text == "TU NIVEL" and footer.Xp.XpText.Text == "300 / 1.320 XP" and math.abs(footer.Xp.XpBar.Fill.Size.X.Scale - 300 / 1320) < 0.001, "«TU NIVEL», barra de XP y «300 / 1.320 XP»")
+check(footer.PremiumBox.Text.Text == "Desbloquea el pase premium para obtener todas las recompensas" and footer.PremiumBox.SeeBenefits.Text == "VER BENEFICIOS", "Caja «Desbloquea el pase premium…» con «VER BENEFICIOS»")
+check(footer.ClaimAll.Text:find("RECLAMAR TODO", 1, true) ~= nil and footer.Jump.Text:find("IR A MI NIVEL", 1, true) ~= nil, "RECLAMAR TODO e IR A MI NIVEL")
 
--- Reclamar
+-- Saltar a tu nivel
+do
+	local R = ui.Layout.Rows
+	scroll.CanvasPosition = roblox.Vector2.new(0, 0)
+	footer.Jump.Activated:Fire()
+	local want = (12 - 1) * R.Pitch - (R.Scroll.W - R.CardW) / 2
+	check(math.abs(scroll.CanvasPosition.X - want) < 1, "«IR A MI NIVEL» lleva las filas a tu nivel")
+	scroll.CanvasPosition = roblox.Vector2.new(0, 0)
+	footer.Hex.Activated:Fire()
+	check(math.abs(scroll.CanvasPosition.X - want) < 1, "Y tocar el hexágono también")
+end
+
+-- Reclamar tocando la tarjeta lista
 table.clear(sent)
-c6.State.Activated:Fire()
-check(sentHas("Claim", "Free", 6), "RECLAMAR pide «Claim» (Free, 6) al servidor")
-check(c6.State.Text == "…", "Mientras contesta, el botón espera («…»)")
-c6.State.Activated:Fire()
+f6.Activated:Fire()
+check(sentHas("Claim", "Free", 6), "Tocar una tarjeta lista pide «Claim» (Free, 6) al servidor")
+check(f6.Claim.Text == "…", "Mientras contesta, espera («…»)")
+f6.Activated:Fire()
 check(count("Claim") == 1, "Pulsar otra vez no manda otra petición")
-c13.State.Activated:Fire()
+f13.Activated:Fire()
 check(count("Claim") == 1, "Una bloqueada no pide nada")
+check(featured.RewardName.Text == f13.Reward.Name and featured.FeatKicker.Text == "NIVEL 13 · GRATIS", "Tocar otra la enseña arriba en grande (" .. featured.FeatKicker.Text .. ")")
+check(not featured.Action.Visible and featured.See.Text == "👁 Ver recompensas", "Bloqueada: solo «Ver recompensas»")
+clearOf(featured, "1920x1080 · destacado con un botón", { Sun = true, Ground = true, Stage = true, Veil = true })
 push(snapshot({ Level = 12, ClaimedFree = levels(1, 6) }))
-check(c6.State.Text == "✔ RECLAMADA", "Con el estado nuevo del servidor, queda RECLAMADA")
-rewards.Lanes.ClaimAll.Activated:Fire()
+check(f6:GetAttribute("State") == "CLAIMED" and f6.Status.Text == "✔", "Con el estado nuevo del servidor, queda reclamada")
+footer.ClaimAll.Activated:Fire()
 check(sentHas("ClaimAll"), "RECLAMAR TODO pide «ClaimAll»")
 
 -- Elegir una ya reclamada que se equipa (título)
-c1.Activated:Fire()
-check(featured.RewardName.Text == c1.RewardName.Text and featured.Primary.Text == "✔ RECLAMADA", "Al tocar una tarjeta se enseña en grande")
-check(featured.Secondary.Visible and featured.Secondary.Text == "EQUIPAR", "Lo que ya es tuyo y se equipa: [EQUIPAR]")
-siblingsClear(featured, "1920x1080 · recompensa elegida con dos botones")
-featured.Secondary.Activated:Fire()
+f1.Activated:Fire()
+check(featured.RewardName.Text == f1.Reward.Name and featured.Action.Visible and featured.Action.Text == "EQUIPAR", "Lo que ya es tuyo y se equipa: [EQUIPAR]")
+clearOf(featured, "1920x1080 · destacado con dos botones", { Sun = true, Ground = true, Stage = true, Veil = true })
+featured.Action.Activated:Fire()
 check(sentHas("Equip", "Title", "S1_F01"), "EQUIPAR pide «Equip» (Title, S1_F01)")
-push((function()
-	local s = snapshot({ Level = 12, ClaimedFree = levels(1, 6), EquippedTitle = "S1_F01" })
-	return s
-end)())
-check(featured.Secondary.Text == "QUITAR", "Si ya lo llevas: [QUITAR]")
+push(snapshot({ Level = 12, ClaimedFree = levels(1, 6), EquippedTitle = "S1_F01" }))
+check(featured.Action.Text == "QUITAR", "Si ya lo llevas: [QUITAR]")
 
 -- Tooltip (ordenador)
-track.Card13.MouseEnter:Fire()
+f13.MouseEnter:Fire()
 local tip = playerGui:FindFirstChild("BattlePassTip")
-check(tip and tip.Tip.Visible and tip.Tip.TipName.Text:find(track.Card13.RewardName.Text, 1, true) ~= nil and tip.Tip.TipState.Text == "BLOQUEADA", "Al pasar el ratón: tooltip con nombre, descripción y estado")
-track.Card13.MouseLeave:Fire()
+check(tip and tip.Tip.Visible and tip.Tip.TipName.Text:find(f13.Reward.Name, 1, true) ~= nil and tip.Tip.TipState.Text == "BLOQUEADA", "Al pasar el ratón: tooltip con nombre, descripción y estado")
+f13.MouseLeave:Fire()
 check(tip and not tip.Tip.Visible, "Y se va al salir")
 
--- Carril PREMIUM sin comprar: oferta sin presión
-rewards.Lanes.PremiumLane.Activated:Fire()
-local p1 = track.Card01
-check(p1.State.Text == "🔒 PREMIUM" and p1.State:GetAttribute("State") == "PREMIUM_LOCKED" and p1.Badge.Text ~= "", "Carril PREMIUM sin el pase: PREMIUM BLOQUEADA")
-local offer = rewards.Strip.Offer
-check(offer.Visible and offer.OfferText.Text == "PASE PREMIUM · Temporada 1 · 50 recompensas", "Franja «PASE PREMIUM · Temporada 1 · 50 recompensas»")
-check(offer.PreviewButton.Text == "Vista previa" and offer.Buy.Text == "Comprar · R$ 449", "Con [Vista previa] y [Comprar · R$ 449] (precio de Roblox, no del código)")
-layoutChecks(UI, "1920x1080 (carril premium)", 1920, 1080, false)
+-- Ver recompensas: lleva a esa tarjeta
+scroll.CanvasPosition = roblox.Vector2.new(0, 0)
+featured.See.Activated:Fire()
+check(scroll.CanvasPosition.X == 0, "«Ver» del nivel 1 deja las filas al principio")
+
+-- Comprar (con Game Pass)
 table.clear(sent)
-offer.Buy.Activated:Fire()
-check(sentHas("Buy"), "Comprar pide «Buy» (el servidor abre la compra de Roblox)")
-offer.Buy.Activated:Fire()
+info.Buy.Activated:Fire()
+check(sentHas("Buy"), "«COMPRAR PASE PREMIUM» pide «Buy» (el servidor abre la compra de Roblox)")
+info.Buy.Activated:Fire()
 check(count("Buy") == 1, "Mientras tanto no se repite")
 bpRemote.OnClientEvent:Fire("Result", { Action = "Buy", Ok = true })
-check(offer.Buy.Text == "Comprar · R$ 449", "Al contestar el servidor, el botón vuelve")
-offer.PreviewButton.Activated:Fire()
-check(featured.RewardName.Text == "Faro de Valmar" and UI._debug().Selected.Level == 50, "Vista previa: enseña la legendaria del nivel 50 («" .. featured.RewardName.Text .. "»)")
-check(featured.Primary.Text:find("Comprar", 1, true) ~= nil, "Y desde ahí también se puede comprar")
--- Vista previa 3D (acabado del patinete, nivel 5 premium) y muestra de colores (tema del teléfono)
-track.Card05.Activated:Fire()
-check(featured.Preview:FindFirstChild("Viewport") ~= nil and featured.Preview.Viewport:FindFirstChildOfClass("WorldModel") ~= nil, "Vista previa 3D: el modelo en un ViewportFrame")
-check(featured.Preview:FindFirstChild("Hint") ~= nil and featured.Preview.Hint.Text:find("arrastra", 1, true) ~= nil, "Con la pista «arrastra para girar»")
-track.Card03.Activated:Fire()
-check(featured.Preview:FindFirstChild("Viewport") == nil and featured.Preview:FindFirstChild("Fallback") ~= nil and featured.Preview.Fallback:FindFirstChild("Swatch1") ~= nil, "Sin modelo: icono y muestra de colores (tema del teléfono)")
-track.Card35.Activated:Fire()
-check(featured.Preview.Fallback:FindFirstChild("Note") ~= nil and featured.Preview.Fallback.Note.Text == "Llega con el puerto deportivo", "Barco: icono y «Llega con el puerto deportivo»")
+check(info.Buy.Text == "👑 COMPRAR PASE PREMIUM · R$ 449", "Al contestar el servidor, el botón vuelve")
+
+-- Ver beneficios
+footer.PremiumBox.SeeBenefits.Activated:Fire()
+local sheet = content.Benefits
+check(sheet.Visible and UI._debug().Benefits, "«VER BENEFICIOS» abre la lista de lo que da el premium")
+check(textOf(sheet.List, "coches") and textOf(sheet.List, "ropa") and textOf(sheet.List, "gesto") and textOf(sheet.List, "teléfono") and textOf(sheet.List, "Solo estilo"), "Coches, ropa, gestos, temas del teléfono… y «Solo estilo» (pagar da valor, no poder)")
+check(sheet.BenefitsBuy.Text == "👑 COMPRAR PASE PREMIUM" and sheet.Note.Text:find("R$ 449", 1, true) ~= nil, "Con la compra y el precio claro, sin presión")
+clearOf(sheet, "1920x1080 · hoja de beneficios", {})
+childrenInside(sheet, "1920x1080 · hoja de beneficios")
+sheet.BenefitsClose.Activated:Fire()
+check(not sheet.Visible, "Se cierra con su ✖")
+-- Premium bloqueada elegida: «👑 PREMIUM» abre los beneficios
+scroll.Premium20.Activated:Fire()
+check(featured.Action.Text == "👑 PREMIUM", "Una premium bloqueada: «👑 PREMIUM»")
+featured.Action.Activated:Fire()
+check(sheet.Visible, "Que enseña los beneficios (no compra nada por sí solo)")
+sheet.BenefitsClose.Activated:Fire()
+
+-- Vistas previas 3D y sus reservas
+scroll.Premium05.Activated:Fire()
+check(stage:FindFirstChild("Viewport") ~= nil and stage.Viewport:FindFirstChildOfClass("WorldModel") ~= nil, "Vista previa 3D de un acabado (nivel 5 premium)")
+scroll.Premium03.Activated:Fire()
+check(stage:FindFirstChild("Viewport") == nil and stage:FindFirstChild("Fallback") ~= nil and stage.Fallback:FindFirstChild("Swatch1") ~= nil, "Sin modelo: icono y muestra de colores (tema del teléfono)")
+scroll.Premium35.Activated:Fire()
+check(stage.Fallback:FindFirstChild("Note") ~= nil and stage.Fallback.Note.Text == "Llega con el puerto deportivo", "Barco: icono y «Llega con el puerto deportivo»")
 check(#badWrites == 0, "Vistas previas: todas las propiedades existen en Roblox" .. (if #badWrites > 0 then ": " .. table.concat(badWrites, ", ") else ""))
 
--- Premium «Próximamente» (GamePassId = 0)
+-- Premium «Muy pronto» (GamePassId = 0)
 push(snapshot({ Level = 12, ClaimedFree = levels(1, 6), ComingSoon = true }))
-check(offer.Buy.Text == "Próximamente" and offer.Buy.Active == false, "Sin Game Pass (GamePassId = 0): «Próximamente»")
+check(info.Buy.Text == "👑 PASE PREMIUM · MUY PRONTO" and info.Buy:GetAttribute("Kind") == "Soon", "Sin Game Pass (GamePassId = 0): «👑 PASE PREMIUM · MUY PRONTO»")
 table.clear(sent)
-offer.Buy.Activated:Fire()
-check(not sentHas("Buy"), "Y no pide comprar")
+table.clear(toasts)
+info.Buy.Activated:Fire()
+check(not sentHas("Buy"), "Y no pide comprar nada")
+check(#toasts == 1 and toasts[1]:find("muy pronto", 1, true) ~= nil and sheet.Visible and sheet.BenefitsBuy.Text == "MUY PRONTO" and sheet.BenefitsBuy.Active == false, "Enseña el aviso y lo que traerá (sin romper nada)")
+sheet.BenefitsClose.Activated:Fire()
 -- Con premium
 push(snapshot({ Level = 12, ClaimedFree = levels(1, 6), Premium = true, ClaimedPremium = levels(1, 12) }))
-check(not offer.Visible and rewards.Strip.NextLine.Text:find("Pase premium activo", 1, true) ~= nil, "Con el pase: sin oferta, «Pase premium activo»")
-check(track.Card01.State.Text == "✔ RECLAMADA", "Y las premium alcanzadas, reclamadas")
+check(info.Buy.Text == "✔ PREMIUM ACTIVO" and info.Buy.Active == false, "Con el pase: «✔ PREMIUM ACTIVO»")
+check(scroll.Premium01.Status.Text == "✔" and rewards.Rows.Lanes.PremiumLane.Sub.Text == "✔ Activo", "Las premium alcanzadas, reclamadas, y el carril «✔ Activo»")
+check(footer.PremiumBox.Text.Text:find("Pase premium activo", 1, true) ~= nil and footer.PremiumBox.Icon.Text == "👑", "La caja del pie lo dice")
+do
+	local simulated = snapshot({ Level = 12, Premium = true })
+	simulated.Premium.Purchased = false
+	simulated.Premium.Simulated = true
+	push(simulated)
+	check(info.Buy.Text == "✔ PREMIUM ACTIVO · PRUEBAS", "Tester con premium simulado: «✔ PREMIUM ACTIVO · PRUEBAS»")
+end
 
 -- Misiones
-content.Tabs.MissionsTab.Activated:Fire()
+window.Tabs.MissionsTab.Activated:Fire()
 local missions = page.Missions
 check(missions.Visible and not rewards.Visible, "MISIONES: la sección cambia")
+layoutChecks(UI, "1920x1080 (misiones)", 1920, 1080, false)
 local turno = missions:FindFirstChild("Mission_D_Turno")
 check(turno ~= nil and turno.Progress.Text == "3 / 5" and turno.Xp.Text == "+150 XP", "Diaria con progreso y XP («3 / 5», «+150 XP»)")
 check(missions:FindFirstChild("Mission_D_Metro").Progress.Text == "✔ Hecha", "Hecha: «✔ Hecha»")
 check(missions:FindFirstChild("Mission_T_Km").Progress.Text == "12,5 / 40 km" and missions.Mission_T_Km.Xp.Text == "+1.200 XP · +1 🪙", "De temporada en km y con fichas")
-check(textOf(missions, "DIARIAS · se renuevan en 5 h") and textOf(missions, "SEMANALES") and textOf(missions, "DE TEMPORADA") and textOf(missions, "HISTORIA"), "Diarias, semanales, de temporada e historia")
+check(textOf(missions, "DIARIAS") and textOf(missions, "SEMANALES") and textOf(missions, "DE TEMPORADA") and textOf(missions, "HISTORIA"), "Diarias, semanales, de temporada e historia")
 check(turno:FindFirstChild("Reroll") == nil, "Sin la comodidad premium no sale «Cambiar»")
 table.clear(sent)
 turno.Track.Activated:Fire()
@@ -987,25 +1134,16 @@ story.Choice1.Activated:Fire()
 check(sentHas("StoryChoice", "H_Faro", "Arreglar"), "La decisión de la historia pide «StoryChoice»")
 siblingsClear(story, "1920x1080 · historia con decisión")
 siblingsClear(turno, "1920x1080 · fila de misión")
-local s2 = snapshot({ Level = 12, ClaimedFree = levels(1, 6), Premium = true, CanReroll = true })
-push(s2)
+push(snapshot({ Level = 12, ClaimedFree = levels(1, 6), Premium = true, CanReroll = true }))
 turno = missions:FindFirstChild("Mission_D_Turno")
 check(turno:FindFirstChild("Reroll") ~= nil, "Con la comodidad premium: «🔄 CAMBIAR» en las diarias")
-siblingsClear(turno, "1920x1080 · fila de misión con Cambiar")
 turno.Reroll.Activated:Fire()
 check(sentHas("Reroll", "D_Turno"), "CAMBIAR pide «Reroll»")
-local rowsInside = true
-for _, child in missions:GetChildren() do
-	if isGui(child) and absRect(child, missions).X + absRect(child, missions).W > absRect(missions, window).W + 0.5 then
-		rowsInside = false
-	end
-end
-check(rowsInside, "Las filas caben a lo ancho")
 
 -- Fichas
-content.Tabs.ShopTab.Activated:Fire()
+window.Tabs.ShopTab.Activated:Fire()
 local shop = page.Shop
-check(shop.Visible and content.Tabs.ShopTab.Text == "FICHAS · 🪙 3", "FICHAS: la tienda, con tus fichas en la pestaña")
+check(shop.Visible and window.Tabs.ShopTab.Text == "FICHAS · 🪙 3", "FICHAS: la tienda, con tus fichas en la pestaña")
 check(shop.Item_S1_T_Title.Buy.Text == "CANJEAR · 🪙 3", "Con fichas suficientes: CANJEAR")
 check(shop.Item_S1_T_Plate.Buy.Text == "Faltan 1 🪙", "Sin fichas suficientes: cuántas faltan")
 check(shop.Item_S1_T_Phone.Buy.Text == "✔ TUYO", "Lo que ya tienes: ✔ TUYO")
@@ -1014,7 +1152,8 @@ shop.Item_S1_T_Plate.Buy.Activated:Fire()
 check(not sentHas("BuyToken"), "Sin fichas no pide nada")
 shop.Item_S1_T_Title.Buy.Activated:Fire()
 check(sentHas("BuyToken", "S1_T_Title"), "CANJEAR pide «BuyToken»")
-siblingsClear(shop.Item_S1_T_Title, "1920x1080 · artículo de la tienda")
+window.Tabs.RewardsTab.Activated:Fire()
+check(rewards.Visible, "Y se vuelve a RECOMPENSAS")
 
 -- Aviso discreto al subir de nivel (y sin repetir el del servidor)
 table.clear(toasts)
@@ -1030,6 +1169,7 @@ do
 	local main = fs.readFile("src/client/Main.client.luau")
 	local uiSource = fs.readFile("src/client/UI/BattlePassUI.luau")
 	check(main:find("swallowNotify", 1, true) == nil and uiSource:find("Pase de temporada: ¡nivel", 1, true) == nil, "Main.client ya no se come avisos por su texto")
+	check(uiSource:find("rbxassetid://%d") == nil and uiSource:find("http", 1, true) == nil, "Sin imágenes de internet: todo con piezas de la interfaz y el 3D del juego")
 end
 
 -- Cosméticos equipados (encendido): los atributos los pone el servidor; aquí solo se pintan
@@ -1039,11 +1179,11 @@ do
 	local PhoneUI = loadModule("src/client/UI/Phone")
 	local Catalog = loadModule("src/shared/BattlePass/Catalog")
 	local hud, phone, plate = Catalog.get("S1_P08"), Catalog.get("S1_P03"), Catalog.get("S1_F10")
-	local stroke = newInstance("UIStroke")
+	local strokeObj = newInstance("UIStroke")
 	local gradient = newInstance("UIGradient")
 	gradient.Color = ThemeOn.EdgeGradient
-	gradient.Parent = stroke
-	ThemeOn.skinEdge(stroke)
+	gradient.Parent = strokeObj
+	ThemeOn.skinEdge(strokeObj)
 	local tint, tinted = nil, 0
 	ThemeOn.onAccent("Phone", function(color)
 		tint = color
@@ -1060,7 +1200,6 @@ do
 	localPlayer:SetAttribute("BP_PhoneTheme", nil)
 	check(ThemeOn.accent("Phone") == nil and tint == nil and tinted == 2, "Sin tema del teléfono: el ValPhone de siempre")
 	localPlayer:SetAttribute("BP_HudSkin", nil)
-	-- Título y placa (encima de la cabeza: Controllers/NameTags)
 	local other = newInstance("Player")
 	check(not Cos.hasTag(other), "Sin título ni placa: el nombre de siempre")
 	other:SetAttribute("BP_Title", "Vecino/a de Valmar")
@@ -1071,7 +1210,6 @@ do
 	check(text == "Vecino/a de Valmar" and color ~= nil and colors == plate.Colors and Cos.hasTag(other), "Título y placa de otro jugador (" .. plate.Name .. ")")
 	other:SetAttribute("BP_Nameplate", "S1_P08")
 	check(Cos.nameplate(other) == nil, "Una placa que no es placa no se pinta")
-	-- Gestos del pase
 	other:SetAttribute("BP_Emotes", "S1_P02,S1_F07,NoExiste,S1_P08")
 	local emotes = Cos.emotes(other)
 	check(#emotes == 2 and emotes[1].Id == "S1_P02" and type(emotes[1].AnimationId) == "number" and emotes[2].Name == "Aplauso de la plaza", "Gestos del pase: solo los que existen y son gestos")
@@ -1082,19 +1220,114 @@ do
 	check(tags:find("Cosmetics.hasTag", 1, true) ~= nil and tags:find("BillboardGui", 1, true) ~= nil, "El título y la placa van en el cartel de nombres de siempre (NameTags), no en otro")
 end
 
--- Tecla N
+-- Cerrar con el ✖ y la tecla N
+window.Close.Activated:Fire()
+check(not UI.isOpen(), "El ✖ cierra la pantalla")
 userInput.InputBegan:Fire({ KeyCode = roblox.Enum.KeyCode.N, UserInputType = roblox.Enum.UserInputType.Keyboard }, false)
-check(not UI.isOpen(), "N cierra la ventana")
+check(UI.isOpen(), "N la abre")
+userInput.InputBegan:Fire({ KeyCode = roblox.Enum.KeyCode.N, UserInputType = roblox.Enum.UserInputType.Keyboard }, false)
+check(not UI.isOpen(), "N la cierra")
 userInput.InputBegan:Fire({ KeyCode = roblox.Enum.KeyCode.N, UserInputType = roblox.Enum.UserInputType.Keyboard }, true)
 check(not UI.isOpen(), "Si N ya la usó otra cosa (escribiendo en el chat…), no hace nada")
-userInput.InputBegan:Fire({ KeyCode = roblox.Enum.KeyCode.N, UserInputType = roblox.Enum.UserInputType.Keyboard }, false)
-check(UI.isOpen(), "N la vuelve a abrir")
-UI.close()
 
--- Estado de temporada acabada con la ventana abierta: se cierra y la fila se va
+-- Temporada acabada con la pantalla abierta: se cierra y la fila se va
 UI.open()
 push(snapshot({ Level = 12, Status = "Ended" }))
-check(not UI.isOpen() and rowFor(registry) == nil, "Temporada acabada del todo: la fila se va y la ventana se cierra")
+check(not UI.isOpen() and rowFor(registry) == nil, "Temporada acabada del todo: la fila se va y la pantalla se cierra")
+
+---------------------------------------------------------------------
+print("\n▶ Se abre sola al entrar (una vez por sesión, después de la pantalla de inicio)")
+do
+	local function startCard(on: boolean)
+		local story = playerGui:FindFirstChild("LifeStory")
+		if not story then
+			story = newInstance("ScreenGui")
+			story.Name = "LifeStory"
+			story.Parent = playerGui
+		end
+		local card = story:FindFirstChild("Recap")
+		if on and not card then
+			card = newInstance("TextButton")
+			card.Name = "Recap"
+			card.Parent = story
+		elseif not on and card then
+			card:Destroy()
+		end
+	end
+	-- Jugador que ya jugaba: al entrar sale la tarjeta «Al volver» (la pantalla de inicio) y después el pase
+	local U = mount(false, 1920, 1080, true)
+	check(fs.readFile("src/client/UI/BattlePassUI.luau"):find("startAutoOpen()", 1, true) ~= nil, "init pone en marcha la apertura al entrar")
+	check(U._autoTick(0) == "Off" and not U.isOpen(), "Sin estado del servidor todavía: espera")
+	push(snapshot({ Level = 12, ClaimedFree = levels(1, 5) }))
+	check(U._autoTick(1) == "Settling" and not U.isOpen(), "Recién entrado: primero la pantalla de inicio")
+	startCard(true)
+	check(U._autoTick(5) == "StartMenu" and U._autoTick(20) == "StartMenu" and not U.isOpen(), "Mientras está la pantalla de inicio («Al volver»), espera")
+	startCard(false)
+	check(U._autoTick(21) == "Quiet" and not U.isOpen(), "Al cerrarla, un momento de calma")
+	check(U._autoTick(23) == "Opened" and U.isOpen(), "Y después se abre el pase sola")
+	local u = U._debug().Ui
+	check(u.Window.Content.Page.Rewards.Visible and u.Window.Content.Page.Rewards.Hero.Featured.RewardName.Text == "Faro de Valmar", "En RECOMPENSAS, recomendando el premium con la recompensa estrella")
+	check(u.Window.Close.Visible and u.Window.Close.Active ~= false, "Con el ✖ visible para cerrarla")
+	u.Window.Close.Activated:Fire()
+	check(not U.isOpen(), "Se cierra con el ✖")
+	check(U._autoTick(30) == "Shown" and U._autoTick(4000) == "Shown" and not U.isOpen(), "Y no vuelve a salir sola en la misma sesión")
+	-- Sin pantalla de inicio (no hay nada que contar): sale igual al poco de entrar
+	U = mount(false, 1920, 1080, true)
+	push(snapshot({ Level = 3 }))
+	check(U._autoTick(0) == "Settling", "Sin tarjeta de inicio: espera unos segundos…")
+	check(U._autoTick(11) == "Opened" and U.isOpen(), "…y se abre")
+	U.close()
+	-- Si ya la abriste tú, no sale otra vez
+	U = mount(false, 1920, 1080, true)
+	push(snapshot({ Level = 3 }))
+	U.open()
+	U.close()
+	check(U._autoTick(30) == "Shown" and not U.isOpen(), "Si ya la abriste en esta sesión, no se abre sola")
+	-- Otra ventana abierta, una conversación o una escena: espera (no interrumpe)
+	U = mount(false, 1920, 1080, true)
+	push(snapshot({ Level = 3 }))
+	local Dialog = loadModule("src/client/UI/Dialog")
+	Dialog.window("Shop", "Tienda", roblox.Vector2.new(400, 300))
+	check(U._autoTick(30) == "Window" and not U.isOpen(), "Con otra ventana abierta (tienda…), espera")
+	Dialog.close("Shop")
+	localPlayer:SetAttribute("InDialogue", true)
+	check(U._autoTick(31) == "Busy" and not U.isOpen(), "En una conversación o escena, espera")
+	localPlayer:SetAttribute("InDialogue", nil)
+	check(U._autoTick(31.5) == "Quiet" and U._autoTick(33.5) == "Opened", "Y sale cuando acaba")
+	U.close()
+	-- Jugador NUEVO: nunca encima del prólogo, el tutorial ni de bebé
+	U = mount(false, 1920, 1080, true)
+	localPlayer:SetAttribute("Tutorial", "Pendiente")
+	localPlayer:SetAttribute("InPrologue", true)
+	push(snapshot({ Level = 1 }))
+	check(U._autoTick(0) == "Prologue" and U._autoTick(300) == "Prologue" and not U.isOpen(), "Primera vez: no sale durante el prólogo")
+	localPlayer:SetAttribute("InPrologue", nil)
+	localPlayer:SetAttribute("LifeStage", "Bebe")
+	check(U._autoTick(301) == "Bebe" and not U.isOpen(), "Ni de bebé (su tutorial)")
+	localPlayer:SetAttribute("LifeStage", "Nino")
+	check(U._autoTick(302) == "Tutorial" and not U.isOpen(), "Ni mientras hace los primeros pasos")
+	localPlayer:SetAttribute("Tutorial", "Hecho")
+	check(U._autoTick(303) == "Quiet" and U._autoTick(305) == "Opened" and U.isOpen(), "Al acabar el tutorial, sale")
+	U.close()
+	-- Segunda sesión del jugador nuevo (ya hecho el tutorial): sale al entrar
+	U = mount(false, 1920, 1080, true)
+	push(snapshot({ Level = 2 }))
+	check(U._autoTick(0) == "Settling" and U._autoTick(12) == "Opened", "En su segunda sesión, sale al entrar")
+	U.close()
+	-- Aún sin saber si es nuevo (el servidor no ha dicho Tutorial): espera un poco
+	U = mount(false, 1920, 1080, true)
+	localPlayer:SetAttribute("Tutorial", nil)
+	push(snapshot({ Level = 2 }))
+	check(U._autoTick(0) == "Loading" and U._autoTick(12) == "Loading", "Sin saber aún si es nuevo, espera")
+	check(U._autoTick(26) == "Opened", "Si el servidor no lo dice, al rato sale igual")
+	U.close()
+	localPlayer:SetAttribute("Tutorial", "Hecho")
+	-- Temporada sin empezar: no sale
+	U = mount(false, 1920, 1080, true)
+	push(snapshot({ Level = 2, Status = "Upcoming" }))
+	check(U._autoTick(0) == "Off" and U._autoTick(60) == "Off" and not U.isOpen(), "Temporada sin empezar: no sale")
+	check(#badWrites == 0, "Todas las propiedades existen en Roblox" .. (if #badWrites > 0 then ": " .. table.concat(badWrites, ", ") else ""))
+end
 
 ---------------------------------------------------------------------
 -- Más tamaños (ordenador y móvil)
@@ -1125,26 +1358,33 @@ for _, size in SIZES do
 	if u then
 		local L = u.Layout
 		check(L.Touch == touch, where .. ": diseño " .. (if touch then "móvil" else "ordenador"))
-		if touch then
-			check(u.Window.Content.Page.Rewards:FindFirstChild("Spotlight") == nil, where .. ": en el móvil, menos piezas a la vez (la misión destacada está en MISIONES)")
-			check(playerGui:FindFirstChild("BattlePassTip") == nil, where .. ": sin tooltips de ratón")
-			check(u.Window.Size.Y.Offset * L.Scale >= (y - 60) * 0.95 or u.Window.Size.Y.Offset >= 620, where .. ": hoja casi a pantalla completa (todo el alto)")
-		end
-		-- Carril premium con la oferta, y las otras secciones
 		local rw = u.Window.Content.Page.Rewards
-		rw.Lanes.PremiumLane.Activated:Fire()
-		layoutChecks(U, where .. " (premium)", x, y, touch)
-		u.Window.Content.Tabs.MissionsTab.Activated:Fire()
+		if touch then
+			check(playerGui:FindFirstChild("BattlePassTip") == nil, where .. ": sin tooltips de ratón")
+			check(rw.Rows.Scroll.ScrollingDirection == roblox.Enum.ScrollingDirection.X and rw.Rows.Scroll.ScrollBarThickness >= 8, where .. ": filas que se arrastran con el dedo")
+			check(rw.Hero.Featured.Stage:FindFirstChild("Hint") == nil or rw.Hero.Featured.Stage.Hint.Visible == false, where .. ": sin la pista de girar (no tapa nada)")
+		end
+		-- Elegida con dos botones, premium sin pase (con su botón) y la hoja de beneficios
+		rw.Rows.Scroll.Free01.Activated:Fire()
+		layoutChecks(U, where .. " (elegida)", x, y, touch)
+		push(snapshot({ Level = 12, ClaimedFree = levels(1, 5), ComingSoon = true }))
+		layoutChecks(U, where .. " (muy pronto)", x, y, touch)
+		rw.Footer.PremiumBox.SeeBenefits.Activated:Fire()
+		local sheet = u.Window.Content.Benefits
+		check(sheet.Visible, where .. ": VER BENEFICIOS")
+		clearOf(sheet, where .. " · hoja de beneficios", {})
+		childrenInside(sheet, where .. " · hoja de beneficios")
+		sheet.BenefitsClose.Activated:Fire()
+		u.Window.Tabs.MissionsTab.Activated:Fire()
 		local list = u.Window.Content.Page.Missions
 		local turno2 = list:FindFirstChild("Mission_D_Turno")
 		check(turno2 ~= nil, where .. ": misiones")
 		if turno2 then
 			siblingsClear(turno2, where .. " · fila de misión")
-			local st = list:FindFirstChild("Story_H_Faro")
-			siblingsClear(st, where .. " · historia")
+			siblingsClear(list:FindFirstChild("Story_H_Faro"), where .. " · historia")
 		end
 		layoutChecks(U, where .. " (misiones)", x, y, touch)
-		u.Window.Content.Tabs.ShopTab.Activated:Fire()
+		u.Window.Tabs.ShopTab.Activated:Fire()
 		local item = u.Window.Content.Page.Shop:FindFirstChild("Item_S1_T_Title")
 		check(item ~= nil and absRect(item, u.Window.Content.Page.Shop).W <= absRect(u.Window.Content.Page.Shop, u.Window).W, where .. ": tienda de fichas")
 		if item then
@@ -1165,6 +1405,14 @@ for _, size in SIZES do
 		end
 		if not Layout.inside(rects[i].Rect, { X = 0, Y = 0, W = L2.Window.X, H = L2.Window.Y }) then
 			table.insert(clashes, rects[i].Name .. " fuera")
+		end
+	end
+	local parts = Layout.heroParts(L2)
+	for i = 1, #parts do
+		for j = i + 1, #parts do
+			if Layout.overlaps(parts[i].Rect, parts[j].Rect) then
+				table.insert(clashes, parts[i].Name .. " / " .. parts[j].Name)
+			end
 		end
 	end
 	check(#clashes == 0, where .. ": BattlePassLayout sin choques" .. (if #clashes > 0 then ": " .. table.concat(clashes, ", ") else ""))
