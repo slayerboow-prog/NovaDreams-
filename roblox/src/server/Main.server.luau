@@ -95,6 +95,18 @@ for _, segment in Roads.segments() do
 end
 require(World.Ambient).publish(TownBuilder.roads(), segments)
 
+-- 4b) Vegetación con modelos 3D de verdad (packs oficiales de Roblox, World/MeshLibrary): carga los
+--     packs una vez y cambia en tandas los árboles, arbustos y flores procedurales, primero los de
+--     cerca de las calles. Si la carga falla, se queda todo como está.
+task.spawn(function()
+	local ok, err = pcall(function()
+		require(World.MeshLibrary).start(segments)
+	end)
+	if not ok then
+		warn("[MeshLibrary] " .. tostring(err))
+	end
+end)
+
 local order = {
 	"DataService",
 	"OnboardingService", -- primeros pasos: tutorial guiado y consejos de la primera vez (lo guardado)
