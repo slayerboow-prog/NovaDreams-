@@ -7,11 +7,15 @@
 --     las demás siguen brillando (la bombilla es de neón y el resplandor la hace brillar), que de lejos
 --     es lo que se ve. Alto 40, Medio 18, Bajo 8. Encendidas o no lo dice el servidor (WorldService)
 --     con el material de la bombilla: neón = encendida.
+--   * Al construir la ciudad solo 1 de cada 2 farolas lleva luz (para ahorrar): aquí cada bombilla sin
+--     luz recibe la suya (solo en esta pantalla). Como el presupuesto manda, no cuesta más, pero las
+--     farolas cercanas que se encienden son el doble de seguidas: calles con charcos de luz continuos.
 --   * Cada farola tiene su luz: la mayoría LED cálido y alguna de sodio, más naranja (siempre la misma
 --     para la misma farola), con el foco hacia abajo y el alcance justo para pintar la acera y la calzada.
 --   * Sombras: solo las luces más cercanas echan sombra (Alto 8, Medio 2, Bajo ninguna).
 --   * Carteles de las tiendas: de noche resplandecen un poco (no en el nivel Bajo).
 
+local CollectionService = game:GetService("CollectionService")
 local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -70,6 +74,9 @@ local function add(instance: Instance)
 	-- (también la usan las pruebas: NearShadows.add)
 	if instance:IsA("SpotLight") or instance:IsA("PointLight") or instance:IsA("SurfaceLight") then
 		local light = instance :: Light
+		if lamps[light] or others[light] then
+			return
+		end
 		local bulb = light.Parent
 		light.Shadows = false
 		if bulb and bulb:IsA("BasePart") and bulb:HasTag("StreetLamp") then
@@ -188,11 +195,34 @@ end
 
 NearShadows.add = add
 
+-- Una bombilla de farola sin luz (Kit/Props pone luz en 1 de cada 2): se le pone una aquí
+function NearShadows.fillLamp(bulb: Instance)
+	if not bulb:IsA("BasePart") or not bulb.Parent or bulb:FindFirstChildWhichIsA("Light") then
+		return
+	end
+	local light = Instance.new("SpotLight")
+	light.Name = "LuzLocal"
+	light.Face = Enum.NormalId.Bottom
+	light.Shadows = false
+	light.Enabled = false
+	light.Parent = bulb
+	if not lamps[light] then
+		add(light) -- (en Roblox ya llega por DescendantAdded; así también sin él)
+	end
+end
+
 function NearShadows.init()
 	for _, instance in workspace:GetDescendants() do
 		add(instance)
 	end
 	workspace.DescendantAdded:Connect(add)
+	for _, bulb in CollectionService:GetTagged("StreetLamp") do
+		NearShadows.fillLamp(bulb)
+	end
+	CollectionService:GetInstanceAddedSignal("StreetLamp"):Connect(function(bulb)
+		-- (un momento después: con la carga por zonas, la luz del servidor puede llegar justo detrás)
+		task.delay(1, NearShadows.fillLamp, bulb)
+	end)
 	Perf.onTier(function()
 		signNight = nil -- (que se vuelvan a pintar los carteles con el nivel nuevo)
 	end)

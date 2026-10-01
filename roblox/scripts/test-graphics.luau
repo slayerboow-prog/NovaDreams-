@@ -240,7 +240,9 @@ local lightingMock = setmetatable({}, {
 local CONFIG = { __module = "Config" }
 local GRAPHICS = { __module = "Graphics" }
 local PERF = { __module = "Perf" }
-local NearShadows = load("src/client/Controllers/NearShadows.luau", {
+local NearShadows: any
+local function nearEnv(extra: { [string]: any }): { [string]: any }
+	local env = {
 	script = { Parent = { Parent = { UI = { Perf = PERF } } } },
 	game = {
 		GetService = function(_, name)
@@ -261,34 +263,72 @@ local NearShadows = load("src/client/Controllers/NearShadows.luau", {
 		error("require inesperado")
 	end,
 	workspace = { GetDescendants = function() return {} end, DescendantAdded = signal() },
-})
+}
+	for k, v in extra do
+		env[k] = v
+	end
+	return env
+end
 
--- Las farolas: del mapa construido (si se pasa) o una cuadrícula de calles cada 40 studs
-local lampSpots: { Vector3 } = {}
+-- Las farolas: del mapa construido (si se pasa) o una cuadrícula de calles cada 40 studs (la mitad
+-- sin luz, como las construye Kit/Props: NearShadows les pone la suya)
+local lampSpots: { { Position: Vector3, HasLight: boolean } } = {}
 local placePath = process.args[1]
 local place: any = nil
 if placePath then
 	place = roblox.deserializePlace(fs.readFile(placePath))
 	for _, d in place:GetService("Workspace"):GetDescendants() do
-		if d:IsA("Light") and d.Parent and d.Parent:IsA("BasePart") and d.Parent:HasTag("StreetLamp") then
-			table.insert(lampSpots, d.Parent.Position)
+		if d:IsA("BasePart") and d:HasTag("StreetLamp") then
+			table.insert(lampSpots, { Position = d.CFrame.Position, HasLight = d:FindFirstChildWhichIsA("Light") ~= nil }) -- (Lune no da .Position)
 		end
 	end
-	print(("  (farolas con luz en el mapa: %d)"):format(#lampSpots))
 else
+	local i = 0
 	for x = -800, 800, 40 do
 		for z = -800, 800, 80 do
-			table.insert(lampSpots, Vector3.new(x, 14, z))
+			i += 1
+			table.insert(lampSpots, { Position = Vector3.new(x, 14, z), HasLight = i % 2 == 0 })
 		end
 	end
 end
 local lights = {}
-for _, p in lampSpots do
-	local bulb = fakeInstance({ Position = p, Material = Enum.Material.Neon, Transparency = 0, Color = Color3.new(1, 1, 1), __tags = { StreetLamp = true } }, "Part", { BasePart = true })
-	local light = fakeInstance({ Parent = bulb, Enabled = true, Shadows = false, Range = 46, Brightness = 3, Angle = 120, Color = Color3.new(1, 1, 1) }, "SpotLight", { Light = true })
+local function newLight(class: string, bulb: any): any
+	local light = fakeInstance({ Parent = bulb, Enabled = true, Shadows = false, Range = 46, Brightness = 3, Angle = 120, Color = Color3.new(1, 1, 1) }, class, { Light = true })
+	bulb.__light = light
 	table.insert(lights, light)
-	NearShadows.add(light)
+	return light
 end
+NearShadows = load("src/client/Controllers/NearShadows.luau", nearEnv({
+	Instance = {
+		new = function(class)
+			local light = fakeInstance({ Enabled = true, Shadows = false, Range = 8, Brightness = 1, Angle = 90, Color = Color3.new(1, 1, 1) }, class, { Light = true })
+			-- (al ponerle Parent, se apunta en la bombilla)
+			return setmetatable({}, {
+				__index = light,
+				__newindex = function(_, k, v)
+					light[k] = v
+					if k == "Parent" and v then
+						v.__light = light
+						table.insert(lights, light)
+					end
+				end,
+			})
+		end,
+	},
+}))
+local withLight = 0
+for _, spot in lampSpots do
+	local bulb = fakeInstance({ Parent = {}, Position = spot.Position, Material = Enum.Material.Neon, Transparency = 0, Color = Color3.new(1, 1, 1), __tags = { StreetLamp = true } }, "Part", { BasePart = true })
+	bulb.FindFirstChildWhichIsA = function(self)
+		return self.__light
+	end
+	if spot.HasLight then
+		withLight += 1
+		NearShadows.add(newLight("SpotLight", bulb))
+	end
+	NearShadows.fillLamp(bulb)
+end
+check(#lights == #lampSpots and withLight < #lampSpots, ("cada farola tiene su luz (%d de %d la traían; el resto se la pone el cliente)"):format(withLight, #lampSpots))
 -- Una luz de techo cerca (no es farola: solo puede llevar sombra)
 local ceiling = fakeInstance({ Parent = fakeInstance({ Position = Vector3.new(5, 8, 5) }, "Part", { BasePart = true }), Enabled = true, Shadows = false }, "PointLight", { Light = true })
 NearShadows.add(ceiling)
@@ -298,15 +338,15 @@ local eye = Vector3.new(0, 20, 0)
 if #lampSpots > 0 then
 	local sum = Vector3.zero
 	for _, p in lampSpots do
-		sum += p
+		sum += p.Position
 	end
 	eye = sum / #lampSpots + Vector3.new(0, 6, 0)
 	-- (al lado de la farola más cercana al centro: rodeado de calles)
 	local best, bestD = eye, math.huge
 	for _, p in lampSpots do
-		local d = (p - eye).Magnitude
+		local d = (p.Position - eye).Magnitude
 		if d < bestD then
-			best, bestD = p, d
+			best, bestD = p.Position, d
 		end
 	end
 	eye = best + Vector3.new(4, 4, 4)
