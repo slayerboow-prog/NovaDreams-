@@ -6,7 +6,8 @@
 --                                           cerca y sin verse a través de las paredes (oficios normales)
 --   Npc.outfits(n) / Npc.tint(look)      -> ropa sin repetir en un grupo / un uniforme con el tono un poco cambiado
 --   Npc.vary(npc)                        -> un poco más alto o más bajo (±6 %), con los pies en su sitio
---   Npc.walkTo(npc, { Vector3 }, speed)  -> camina por esos puntos (espera hasta llegar)
+--   Npc.walkTo(npc, { Vector3 }, speed)  -> camina por esos puntos (espera hasta llegar; antes de bajar
+--                                           a la calzada espera a su semáforo y a que no venga nadie)
 --   Npc.sit(npc, seat) / Npc.stand(npc)  -> sentarse en una silla y levantarse (el cliente le pone la
 --                                           postura de sentado: atributo UsePose, Controllers/UseMotion)
 --   Npc.sitAt(npc, cf)                   -> sentarse en un punto (banco o silla sin Seat)
@@ -20,6 +21,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
 local Joints = require(ReplicatedStorage.Shared.Joints)
+local RoadGuard = require(script.Parent.RoadGuard)
 
 local Npc = {}
 
@@ -482,9 +484,31 @@ function Npc.walkTo(npc: Model, points: { Vector3 }, speed: number?)
 	local function superseded(): boolean
 		return walkSeq[npc] ~= token or not npc.Parent
 	end
-	for _, point in points do
+	local queue = table.clone(points)
+	local qi = 0
+	while qi < #queue do
+		qi += 1
+		local point = queue[qi]
 		if superseded() then
 			break
+		end
+		-- Si el tramo baja a la calzada: primero hasta el bordillo y allí espera a su semáforo y a que
+		-- no venga ningún vehículo (World/RoadGuard, shared/Crossing). Quien huye corriendo (más de
+		-- 10) no espera.
+		if pace <= 10 then
+			local feet = root.Position - Vector3.new(0, height, 0)
+			local okKerb, kerb, crosses = pcall(RoadGuard.kerb, feet, point)
+			if okKerb and kerb then
+				table.insert(queue, qi, kerb) -- (este tramo, hasta el bordillo; luego, el que cruza)
+				point = kerb
+			elseif okKerb and crosses then
+				pcall(RoadGuard.waitToCross, feet, point, pace, 40, function()
+					return not superseded()
+				end)
+				if superseded() then
+					break
+				end
+			end
 		end
 		local target = point + Vector3.new(0, height, 0)
 		local from = root.Position

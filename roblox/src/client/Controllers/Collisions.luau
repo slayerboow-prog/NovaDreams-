@@ -17,6 +17,9 @@
 --   * Objetos y personas (shared/Knock, KnockService): lo que tu vehículo (o tú andando) toca de lo
 --     que se puede tumbar (atributo Knock, balones y conos de juguete) o a una persona se le avisa al
 --     servidor, que lo valida y lo lanza. Si te atropellan a ti ("Knocked"), caes al suelo.
+--   * Cristales y puertas (shared/Breakables, BreakService): a velocidad, tu vehículo los rompe
+--     ("Break"). En tu pantalla el cristal deja de verse para los rayos al momento (pasas sin
+--     frenar en seco); si el servidor no lo rompe, vuelve a estar a los 0.6 s.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -26,6 +29,7 @@ local RunService = game:GetService("RunService")
 
 local Crash = require(ReplicatedStorage.Shared.Crash)
 local Knock = require(ReplicatedStorage.Shared.Knock)
+local Breakables = require(ReplicatedStorage.Shared.Breakables)
 local Gameplay = require(ReplicatedStorage.Shared.Gameplay)
 local Traffic = require(script.Parent.Traffic)
 local SoundFx = require(script.Parent.SoundFx)
@@ -528,6 +532,33 @@ local function cool(key: any, now: number, gap: number): boolean
 	return true
 end
 
+-- ¿Es un cristal o una puerta que un vehículo puede romper? (el servidor lo vuelve a mirar)
+local function breakKind(part: BasePart): string?
+	if not part.Anchored or part:GetAttribute("Broken") then
+		return nil
+	end
+	if Breakables.glassKind(part.Name, part.Material, part.Size) then
+		return "Glass"
+	elseif Breakables.isDoor(part.Name, part.Size) then
+		return "Door"
+	end
+	return nil
+end
+
+-- En tu pantalla el hueco queda libre al momento (los rayos de Driving no lo ven): si el servidor no
+-- lo rompe (atributo Broken), vuelve como estaba
+local function passThrough(part: BasePart)
+	local query, collide = part.CanQuery, part.CanCollide
+	part.CanQuery = false
+	part.CanCollide = false
+	task.delay(0.6, function()
+		if part.Parent and not part:GetAttribute("Broken") then
+			part.CanQuery = query
+			part.CanCollide = collide
+		end
+	end)
+end
+
 -- Tu vehículo toca algo que se puede tumbar, un balón o una persona (Driving, cada fotograma)
 function Collisions.touchProps(s: any, base: Vector3, forward: Vector3, speed: number)
 	local now = os.clock()
@@ -593,6 +624,18 @@ function Collisions.touchProps(s: any, base: Vector3, forward: Vector3, speed: n
 		elseif part:GetAttribute("Toy") ~= nil then
 			if cool(part, now, 0.3) then
 				fire("Knock", "Prop", part, { Vel = vel })
+			end
+		elseif breakKind(part) then
+			local spd = math.abs(speed)
+			local kind = breakKind(part)
+			local through = if kind == "Glass" then Breakables.breaksGlass("Vehicle", spd) else Breakables.doorDamageFrom("Vehicle", spd) >= Breakables.DoorHealth
+			if (through or (kind == "Door" and Breakables.doorDamageFrom("Vehicle", spd) > 0)) and cool(part, now, 0.4) then
+				fire("Knock", "Break", part, { Vel = vel })
+				if through then
+					passThrough(part)
+					s.Speed *= if kind == "Glass" then 0.92 else 0.8
+					CameraShake.shake(if kind == "Glass" then 0.12 else 0.3, 0.2)
+				end
 			end
 		else
 			local person = personOf(part)

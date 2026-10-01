@@ -213,6 +213,11 @@ function CarModel.build(parent: Instance?, cf: CFrame, paint: Color3, options: O
 					local a = k * math.pi * 2 / 5
 					detail("Spoke", Vector3.new(1.16, 0.12, 0.7), at(x, r + math.cos(a) * 0.5, z + math.sin(a) * 0.5) * CFrame.Angles(a, 0, 0), rgb(150, 154, 160), Enum.Material.Metal)
 				end
+			elseif full then
+				-- Radios de la llanta (tres barras = seis radios): se ve que la rueda gira (Controllers/WheelSpin)
+				for k = 0, 2 do
+					detail("Spoke", Vector3.new(1.16, 0.14, r * 1.25), at(x, r, z) * CFrame.Angles(k * math.pi / 3, 0, 0), rgb(110, 114, 120), Enum.Material.Metal)
+				end
 			end
 		end
 	end

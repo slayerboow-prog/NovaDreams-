@@ -12,6 +12,9 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
 local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
+-- Lo que el DataStore no sabe guardar (Vector3, NaN, tablas mezcladas…) y el tamaño: si una sola
+-- cosa no vale, Roblox rechaza el guardado ENTERO y al volver todo está como antes
+local SaveCheck = require(game:GetService("ReplicatedStorage").Shared.SaveCheck)
 
 local DataService = {}
 
@@ -271,6 +274,97 @@ local function validAmount(x: any): boolean
 end
 DataService.validAmount = validAmount
 
+---------------------------------------------------------------------
+-- Errores de guardado: siempre en la consola (con el motivo) y, una vez por sesión, un aviso en
+-- pantalla al dueño / testers («⚠ No se pudo guardar la partida»), para enterarnos en producción.
+---------------------------------------------------------------------
+local saveWarned: { [Player]: boolean } = setmetatable({}, { __mode = "k" }) :: any
+local problemsWarned: { [Player]: boolean } = setmetatable({}, { __mode = "k" }) :: any
+local lastSaveError: { [Player]: string } = setmetatable({}, { __mode = "k" }) :: any
+
+local function isTester(player: Player): boolean
+	local ok, result = pcall(function()
+		return require(script.Parent.TesterService).isTester(player)
+	end)
+	return ok and result == true
+end
+
+-- Recorta un texto sin partir una letra con tilde o un emoji por la mitad (UTF-8)
+local function shorten(text: string, max: number): string
+	if #text <= max then
+		return text
+	end
+	local cut = max
+	while cut > 0 and utf8.len(string.sub(text, 1, cut)) == nil do
+		cut -= 1
+	end
+	return string.sub(text, 1, cut) .. "…"
+end
+
+local function reportSaveFailure(player: Player, reason: string)
+	lastSaveError[player] = reason
+	warn(("[DataService] ⚠ NO SE HA GUARDADO la partida de %s (%d): %s"):format(player.Name, player.UserId, reason))
+	pcall(function()
+		player:SetAttribute("SaveError", shorten(reason, 200))
+	end)
+	if saveWarned[player] or not player.Parent or not isTester(player) then
+		return
+	end
+	saveWarned[player] = true
+	pcall(function()
+		local Notify = game:GetService("ReplicatedStorage").Remotes:FindFirstChild("Notify") :: RemoteEvent?
+		if Notify then
+			Notify:FireClient(player, "Error", "⚠ No se pudo guardar la partida (" .. shorten(reason, 120) .. ")")
+		end
+	end)
+end
+
+-- El último error de guardado de este jugador (nil si el último guardado fue bien)
+function DataService.lastSaveError(player: Player): string?
+	return lastSaveError[player]
+end
+
+-- Copia guardable de los datos: sin nada que el DataStore rechace y por debajo del tamaño máximo
+-- (recortando historiales). Devuelve nil y el motivo si no hay forma de que quepa.
+local function prepare(player: Player, data: { [string]: any }): ({ [string]: any }?, string?)
+	local clean, problems = SaveCheck.sanitize(data)
+	if #problems > 0 and not problemsWarned[player] then
+		problemsWarned[player] = true
+		local lines = {}
+		for i = 1, math.min(#problems, 12) do
+			table.insert(lines, problems[i].Path .. " (" .. problems[i].Reason .. ")")
+		end
+		warn(("[DataService] La partida de %s tenía %d valor(es) que el DataStore no acepta; se guardan corregidos: %s"):format(
+			player.Name, #problems, table.concat(lines, ", ")))
+	end
+	if type(clean) ~= "table" then
+		return nil, "datos vacíos"
+	end
+	local okSize, size = pcall(SaveCheck.size, clean)
+	if not okSize then
+		return nil, "no se puede convertir a JSON: " .. tostring(size)
+	end
+	if size > SaveCheck.SOFT_CHARS then
+		local before = size
+		local okTrim, after, removed = pcall(SaveCheck.trim, clean, SaveCheck.SOFT_CHARS)
+		size = if okTrim then after else size
+		warn(("[DataService] La partida de %s ocupaba %d caracteres: se recortan historiales (%s elementos) → %d"):format(
+			player.Name, before, tostring(removed), size))
+		if okTrim then
+			-- (también en memoria, para no recortar en cada guardado)
+			local okLive = pcall(SaveCheck.trim, data, SaveCheck.SOFT_CHARS)
+			if not okLive then
+				warn("[DataService] No se pudo recortar la partida en memoria de " .. player.Name)
+			end
+		end
+	end
+	if size > SaveCheck.MAX_CHARS then
+		return nil, ("la partida ocupa %d caracteres (máximo %d)"):format(size, SaveCheck.MAX_CHARS)
+	end
+	return clean, nil
+end
+DataService.prepare = prepare
+
 -- Guarda los datos. release = true suelta el session lock (al salir).
 -- Devuelve true solo si de verdad se ha escrito.
 function DataService.save(player: Player, release: boolean?): boolean
@@ -291,25 +385,43 @@ function DataService.save(player: Player, release: boolean?): boolean
 		return true -- en Studio sin API damos el guardado por bueno
 	end
 
+	-- Copia limpia y medida ANTES de llamar al DataStore (si no, un solo Vector3 o NaN hace que
+	-- UpdateAsync falle y no se guarde nada: la historia, el sitio y el día volvían atrás)
+	local okPrepare, prepared, why = pcall(prepare, player, data)
+	if not okPrepare or not prepared then
+		reportSaveFailure(player, if okPrepare then tostring(why) else "error preparando: " .. tostring(prepared))
+		return false
+	end
+	local toSave = prepared :: { [string]: any }
+
 	local wrote = false
+	local lockedOut = false
 	local ok, err = pcall(function()
 		(store :: DataStore):UpdateAsync(keyFor(player), function(old)
 			wrote = false
+			lockedOut = false
 			if type(old) == "table" and old.SessionLock and old.SessionLock.JobId ~= game.JobId then
+				lockedOut = true
 				return nil -- otro servidor se ha quedado los datos: no pisarlos
 			end
 			-- Un autoguardado que acaba después de que el jugador se haya ido no vuelve a bloquear sus datos
 			if not release and (not player.Parent or released[player]) then
 				return nil
 			end
-			local toSave = deepCopy(data)
 			toSave.SessionLock = if release then nil else { JobId = game.JobId, Time = os.time() }
 			wrote = true
 			return toSave
 		end)
 	end)
 	if not ok then
-		warn(("[DataService] Error guardando %s: %s"):format(player.Name, tostring(err)))
+		reportSaveFailure(player, "UpdateAsync: " .. tostring(err))
+	elseif lockedOut then
+		reportSaveFailure(player, "otro servidor tiene ahora los datos (bloqueo de sesión)")
+	elseif wrote then
+		lastSaveError[player] = nil
+		pcall(function()
+			player:SetAttribute("SaveError", nil)
+		end)
 	end
 	return ok and wrote
 end
@@ -443,6 +555,11 @@ local function onPlayerAdded(player: Player)
 		return
 	end
 
+	-- (las tablas con claves numéricas se guardaron con claves de texto: vuelven a ser números)
+	local okRestore, restoreErr = pcall(SaveCheck.restore, data)
+	if not okRestore then
+		warn("[DataService] Error restaurando los datos de " .. player.Name .. ": " .. tostring(restoreErr))
+	end
 	reconcile(data, DEFAULT_DATA)
 	if type(data.Money) ~= "number" or data.Money ~= data.Money or data.Money == math.huge then
 		data.Money = 0 -- dinero roto (NaN) por un fallo antiguo
@@ -477,6 +594,8 @@ local function saveReleaseWithRetries(player: Player): boolean
 		end
 		task.wait(attempt * 2)
 	end
+	warn(("[DataService] ⚠ Tras 3 intentos NO se ha podido guardar la partida de %s al salir: %s"):format(
+		player.Name, tostring(lastSaveError[player] or "sin motivo")))
 	return false
 end
 
@@ -584,9 +703,16 @@ function DataService.init()
 					warn("[DataService] Error sumando tiempo jugado:", err)
 				end
 				task.spawn(function()
-					local saved, saveErr = pcall(DataService.save, player)
-					if not saved then
-						warn(("[DataService] Error en el autoguardado de %s: %s"):format(player.Name, tostring(saveErr)))
+					-- (si falla, un reintento a los pocos segundos: si no, se esperaba al siguiente autoguardado)
+					for attempt = 1, 2 do
+						local saved, result = pcall(DataService.save, player)
+						if not saved then
+							warn(("[DataService] Error en el autoguardado de %s: %s"):format(player.Name, tostring(result)))
+						end
+						if (saved and result) or not profiles[player] or released[player] or attempt == 2 then
+							break
+						end
+						task.wait(6)
 					end
 				end)
 			end

@@ -19,6 +19,8 @@
 --    siempre, y salen por la calle que toque.
 --  * Detalles: luces de freno al frenar, intermitentes antes de girar, faros de noche,
 --    taxis con la luz verde, ciclistas pedaleando y conductores con ropa y casco variados.
+--  * Las ruedas ruedan según lo que avanzan y las de delante giran en las curvas (shared/WheelRig,
+--    como Controllers/WheelSpin): solo los que se ven a menos de WheelRig.RANGE studs.
 
 local CollectionService = game:GetService("CollectionService")
 local Lighting = game:GetService("Lighting")
@@ -30,6 +32,7 @@ local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
 local Wetness = require(ReplicatedStorage.Shared.Wetness)
 local RideSpot = require(ReplicatedStorage.Shared.RideSpot)
 local TrafficSignals = require(ReplicatedStorage.Shared.TrafficSignals)
+local WheelRig = require(ReplicatedStorage.Shared.WheelRig)
 local Perf = require(script.Parent.Parent.UI.Perf)
 local Nudge = require(script.Parent.Nudge)
 
@@ -91,6 +94,12 @@ type Agent = {
 	ShoveVel: Vector3?, -- lo que aún se desliza de lado
 	Twist: number?, -- girado por el golpe (radianes; se endereza solo)
 	SaidAt: number?,
+	-- Ruedas (shared/WheelRig): cuáles son, dónde va cada pieza respecto a su rueda, el volante y si
+	-- se animan en este fotograma (cerca y a la vista)
+	Wheels: WheelRig.Rig?,
+	WheelLocal: { [number]: CFrame }?,
+	Steer: number?,
+	Spin: boolean?,
 }
 
 local nodes: { Vector3 } = {}
@@ -380,6 +389,21 @@ local function makeAgent(template: Model, kind: string): Agent
 			d:Destroy()
 		end
 	end
+	-- Ruedas que giran: dónde está cada una y lo que va con ella (llanta, radios, horquilla…)
+	local infos = table.create(#agent.Parts)
+	for i, part in agent.Parts do
+		infos[i] = { Name = part.Name, CFrame = agent.Offsets[i], Size = part.Size }
+	end
+	local rig = WheelRig.find(infos, WheelRig.TrafficKind[kind] or kind)
+	if #rig.Wheels > 0 then
+		local locals = {}
+		for _, w in rig.Wheels do
+			for _, i in w.Spin do
+				locals[i] = w.Hub:ToObjectSpace(agent.Offsets[i])
+			end
+		end
+		agent.Wheels, agent.WheelLocal, agent.Steer = rig, locals, 0
+	end
 	-- La carrocería (la pieza más grande) es sólida: a pie no se atraviesa un coche del tráfico.
 	-- (Tu vehículo choca con ellos con Traffic.blocking; siguen sin contar para los rayos: CanQuery.)
 	if kind == "Car" then
@@ -530,6 +554,8 @@ local function nearbySpots(center: Vector3, maxDist: number): { Spot }
 end
 
 local place: (Agent, Vector3, Vector3) -> () -- (más abajo)
+local wheelCam: CFrame? = nil -- la cámara en este fotograma (ruedas: cerca y a la vista)
+local wheelFov, wheelAspect = math.rad(70), 16 / 9
 
 local function respawn(agent: Agent, center: Vector3, minDist: number)
 	local list = nearbySpots(center, SPAWN_MAX)
@@ -792,6 +818,20 @@ function place(agent: Agent, pos: Vector3, dir: Vector3)
 		local swing = math.sin(agent.Phase + (if pedal.Side > 0 then 0 else math.pi)) * 0.45
 		cframes[pedal.Index] = root * CFrame.new(pedal.Pivot) * CFrame.Angles(swing, 0, 0) * CFrame.new(-pedal.Pivot) * agent.Offsets[pedal.Index]
 	end
+	-- Ruedas: rodando y, las de delante, con el volante (solo cerca y a la vista; si no, quietas)
+	local rig, locals = agent.Wheels, agent.WheelLocal
+	if rig and locals and agent.Spin then
+		local steer = agent.Steer or 0
+		for _, w in rig.Wheels do
+			local hub = root * WheelRig.hubPose(w, steer)
+			for _, i in w.Spin do
+				cframes[i] = hub * locals[i]
+			end
+			for _, i in w.Steer do
+				cframes[i] = root * WheelRig.steerPose(w, steer, agent.Offsets[i])
+			end
+		end
+	end
 	workspace:BulkMoveTo(agent.Parts, cframes, Enum.BulkMoveMode.FireCFrameChanged)
 end
 
@@ -973,6 +1013,20 @@ local function stepAgent(agent: Agent, dt: number, center: Vector3, now: number,
 		local blend = look:Lerp(dir, math.min(1, dt * 12))
 		dir = if blend.Magnitude > 0.01 then blend.Unit else dir
 	end
+	-- Ruedas: lo que avanza las hace rodar; lo que gira para lo que avanza, el volante
+	local rig = agent.Wheels
+	if rig and dt > 0 then
+		local distance = agent.Speed * dt
+		for _, w in rig.Wheels do
+			w.Angle = WheelRig.advance(w.Angle, distance, w.Radius)
+		end
+		local want = if look then WheelRig.steerFromYaw(rig, WheelRig.yawBetween(look, dir) / dt, agent.Speed) else nil
+		if want then
+			agent.Steer = (agent.Steer or 0) + (want - (agent.Steer or 0)) * math.min(1, dt * 8)
+		end
+		agent.Spin = wheelCam ~= nil and (pos - wheelCam.Position).Magnitude < WheelRig.RANGE
+			and WheelRig.visible(wheelCam, wheelFov, wheelAspect, Vector3.new(pos.X, ROAD_TOP + 2, pos.Z), agent.Length)
+	end
 	agent.Look = dir
 	-- Intermitentes en los últimos metros antes de girar
 	local signalling = agent.Turn ~= 0 and L - agent.S < 45 and blinkOn
@@ -1011,6 +1065,14 @@ end
 local function step(dt: number, center: Vector3)
 	-- Jugadores (con sus vehículos) y peatones cruzando: una lista por fotograma para todos los coches
 	local now = os.clock()
+	-- La cámara (para animar las ruedas solo de los que se ven cerca)
+	local camera = workspace.CurrentCamera
+	wheelCam = if camera then camera.CFrame else nil
+	if camera then
+		local size = camera.ViewportSize
+		wheelFov = math.rad(camera.FieldOfView)
+		wheelAspect = if size.Y > 0 then size.X / size.Y else 16 / 9
+	end
 	frameNow = serverNow() -- (los semáforos: una lectura de la hora por fotograma)
 	table.clear(obstacles)
 	playerObstacles(obstacles, center, now)

@@ -33,6 +33,7 @@ local NearShadows = require(script.Parent.Controllers.NearShadows)
 local Actions = require(script.Parent.Controllers.Actions)
 local Driving = require(script.Parent.Controllers.Driving)
 local VehicleLights = require(script.Parent.Controllers.VehicleLights)
+local WheelSpin = require(script.Parent.Controllers.WheelSpin)
 local SoundFx = require(script.Parent.Controllers.SoundFx)
 local SupermarketUI = require(script.Parent.Controllers.SupermarketUI)
 local CafeUI = require(script.Parent.Controllers.CafeUI)
@@ -193,6 +194,7 @@ task.spawn(SeaEventsUI.init) -- catástrofes marinas: alerta, ola del tsunami, r
 task.spawn(JobPrompts.init) -- los carteles de cada oficio solo los ve quien trabaja en él
 task.spawn(Driving.init) -- conducir coches, motos, bicis, monopatines y patinetes (W/A/S/D)
 task.spawn(VehicleLights.init) -- faros, pilotos de freno y marcha atrás e intermitentes de los vehículos de los jugadores (todos los ven)
+task.spawn(WheelSpin.init) -- las ruedas de los vehículos cercanos ruedan y las de delante giran con el volante (todos los ven)
 task.spawn(Actions.init) -- gestos y bailes, linterna (L) y modo foto (P)
 task.spawn(CombatController.init) -- pelear: X/RB golpear (combo de 3), Z/LB defenderse, 👊 y 🛡 en el móvil
 task.spawn(WeaponController.init) -- armas: clic dcho/LT apuntar, clic/RT disparar, R recargar; Armerías y licencia

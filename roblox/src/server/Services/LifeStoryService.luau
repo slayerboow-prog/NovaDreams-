@@ -189,6 +189,17 @@ local function stageProgress(data: Data): number
 	return (data.Life.StageSeconds or 0) / (hours * 3600)
 end
 
+-- Día de la vida del jugador (atributo LifeDay de CalendarService: se guarda con la partida y sigue
+-- contando en cualquier servidor). Sin él (aún no ha cargado, pruebas), el día del servidor.
+local function lifeDay(player: Player): number
+	local day = player:GetAttribute("LifeDay")
+	if type(day) == "number" and day >= 1 then
+		return day
+	end
+	return GameClock.now().Day
+end
+LifeStoryService.lifeDay = lifeDay
+
 local function contextFor(player: Player, data: Data): Conditions.Context
 	local now = GameClock.now()
 	local story = storyOf(data)
@@ -236,7 +247,7 @@ function LifeStoryService.logEvent(player: Player, key: string, args: { [string]
 		A = args,
 		Y = kind or "Moment",
 		S = data.Life.Stage,
-		D = GameClock.now().Day,
+		D = lifeDay(player),
 		T = os.time(),
 	})
 	while #events > CFG.MaxLifeEvents do
@@ -275,7 +286,7 @@ function LifeStoryService.remember(player: Player, npcId: string, fact: string)
 	end
 	local memory = storyOf(data).NpcMemory
 	memory[npcId] = memory[npcId] or { Facts = {}, Affinity = 0 }
-	memory[npcId].Facts[fact] = GameClock.now().Day
+	memory[npcId].Facts[fact] = lifeDay(player)
 end
 
 function LifeStoryService.recall(player: Player, npcId: string, fact: string): boolean
@@ -362,7 +373,7 @@ function LifeStoryService.addMemory(player: Player, key: string, questId: string
 	if story.Memories[key] then
 		return
 	end
-	story.Memories[key] = { D = GameClock.now().Day, T = os.time(), Q = questId, S = data.Life.Stage }
+	story.Memories[key] = { D = lifeDay(player), T = os.time(), Q = questId, S = data.Life.Stage }
 	local memory = Memories[key]
 	LifeStoryService.logEvent(player, if memory then memory.Text else key, nil, "Memory")
 end
@@ -476,7 +487,7 @@ local function applyEffects(player: Player, data: Data, effects: { [string]: any
 		story.Flags.SinDinero = if DataService.spend(player, effects.Spend) then nil else true
 	end
 	for key, value in effects.Choice or {} do
-		story.Choices[key] = { V = value, D = GameClock.now().Day }
+		story.Choices[key] = { V = value, D = lifeDay(player) }
 	end
 	if effects.Gesture then
 		SceneService.gesture(player, effects.Gesture.Npc, effects.Gesture.Anim or "Wave")
@@ -1238,11 +1249,13 @@ local function sceneAnchor(player: Player, data: Data, questId: string): Vector3
 	local actors, props = sceneFor(player, data, questId)
 	local quest = Quests[questId]
 	local sum, count = Vector3.zero, 0
+	local points = {}
 	local function add(spec: { [string]: any }?)
 		local position = spec and spec.Place and placePosition(player, spec)
 		if position then
 			sum += position
 			count += 1
+			table.insert(points, position)
 		end
 	end
 	for _, spec in actors do
@@ -1252,7 +1265,18 @@ local function sceneAnchor(player: Player, data: Data, questId: string): Vector3
 		add(quest.Props and quest.Props[id])
 	end
 	if count > 0 then
-		return sum / count
+		local center = sum / count
+		-- Un paso repartido por la ciudad (un grupo de tareas: el tornillo en el parque, la bobina en
+		-- la heladería, el chip en el colegio…) no tiene UN sitio: el centro de todos es un punto
+		-- cualquiera entre medias. Antes te llevaba ahí cada vez que entrabas («apareces siempre en
+		-- el mismo sitio»); ahora te quedas donde lo dejaste y el GPS te guía.
+		for _, position in points do
+			local offset = position - center
+			if Vector3.new(offset.X, 0, offset.Z).Magnitude > RETURN_DISTANCE then
+				return nil
+			end
+		end
+		return center
 	end
 	-- Si no, el último sitio al que te llevó la misión
 	local ctx = contextFor(player, data)
@@ -1635,7 +1659,10 @@ function completeQuest(player: Player, data: Data, questId: string)
 		story.Tracked = nil
 	end
 	if quest.DayPlan then
-		story.LoopDay = GameClock.now().Day -- un día normal (cole, instituto, uni) por día de juego
+		-- un día normal (cole, instituto, uni) por día de TU vida (CalendarService: se guarda con la
+		-- partida; antes era el día del servidor y al volver a entrar se olvidaba)
+		story.LoopDay = lifeDay(player)
+		story.LoopLife = if player:GetAttribute("LifeDay") ~= nil then true else nil
 	end
 	Log.info("MISSION", "completed %s (%s)", questId, player.Name)
 	notify("QuestDone", player, questId, nil)
@@ -1810,7 +1837,7 @@ function refresh(player: Player)
 			-- Aún no toca el siguiente gran momento: se vive un día normal (colegio, instituto, universidad),
 			-- uno por día de juego: si el de hoy ya está hecho, el siguiente es mañana cuando abra
 			local loopWindow = Schedules.forQuest(Quests[chapter.Loop])
-			if story.LoopDay == now.Day then
+			if story.LoopDay == lifeDay(player) then
 				rt.Waiting = { QuestId = chapter.Loop, Reason = "Hours", From = if loopWindow then loopWindow.From else Config.SchoolDay.Opens }
 			elseif Schedules.isOpen(loopWindow, clock, weekday) then
 				startQuest(player, data, chapter.Loop)
@@ -2920,7 +2947,7 @@ local function chooseOption(player: Player, data: Data, questId: string, optionI
 					end
 					return
 				end
-				story.Choices[step.Key] = { V = optionId, D = GameClock.now().Day }
+				story.Choices[step.Key] = { V = optionId, D = lifeDay(player) }
 				for _, flag in option.Flags or {} do
 					story.Flags[flag] = true
 				end
@@ -3553,9 +3580,13 @@ local function onLoaded(player: Player, data: Data)
 	story_defaults(data)
 
 	local story = storyOf(data)
-	-- El día de juego empieza de cero en cada servidor: el día del último día normal (LoopDay) de
-	-- otro servidor no sirve aquí (podría coincidir con el número de hoy y dejarte sin día de cole)
-	story.LoopDay = nil
+	-- El último día normal (LoopDay) se cuenta en días de TU vida (CalendarService, se guarda): vale
+	-- en cualquier servidor. Los de partidas viejas eran días del servidor (empezaba de cero en cada
+	-- uno): esos no sirven aquí (podrían coincidir con el número de hoy y dejarte sin día de cole)
+	if not (story.LoopLife and player:GetAttribute("LifeDay") ~= nil) then
+		story.LoopDay = nil
+		story.LoopLife = nil
+	end
 	-- Cuánto tiempo ha estado fuera (para «Anteriormente en tu vida…»)
 	runtime[player].AwaySeconds = os.time() - (tonumber(story.LastSeen) or 0)
 	-- Se fue en mitad del prólogo: cuenta como visto y vuelve a su vida (se puede repetir desde «Mi historia»)

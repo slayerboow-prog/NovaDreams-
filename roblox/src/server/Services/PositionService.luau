@@ -31,6 +31,30 @@ local function valid(saved: any): boolean
 	return saved.Y > workspace.FallenPartsDestroyHeight + 20
 end
 
+-- ¿Es un buen sitio para volver a aparecer? En el agua (nadando, buceando, en un barco) o en el
+-- aire (saltando, cayendo, en parapente…) no: se guarda el último sitio en tierra firme.
+local function safeSpot(humanoid: Humanoid): boolean
+	local ok, safe = pcall(function()
+		local state = humanoid:GetState()
+		if state == Enum.HumanoidStateType.Swimming or state == Enum.HumanoidStateType.Freefall
+			or state == Enum.HumanoidStateType.FallingDown or state == Enum.HumanoidStateType.Jumping
+			or state == Enum.HumanoidStateType.Flying then
+			return false
+		end
+		local floor = humanoid.FloorMaterial
+		if floor == Enum.Material.Water then
+			return false
+		end
+		local seat = humanoid.SeatPart
+		if seat then
+			-- En un vehículo: vale si está en tierra (no un barco en el agua ni un avión en el aire)
+			return floor ~= Enum.Material.Air or seat.AssemblyLinearVelocity.Magnitude < 1
+		end
+		return floor ~= Enum.Material.Air
+	end)
+	return not ok or safe == true
+end
+
 -- Apunta en los datos dónde está ahora el jugador (si está vivo y en el mapa)
 local function record(player: Player, data: { [string]: any })
 	if not player:GetAttribute("SpawnReady") then
@@ -52,13 +76,14 @@ local function record(player: Player, data: { [string]: any })
 	local position = root.Position
 	-- Dentro de un edificio (sala de InteriorService): se guarda la puerta, en la calle
 	local door = player:GetAttribute("InteriorDoor")
-	if typeof(door) == "Vector3" then
-		position = door
-	end
 	-- Volando (FlightService): se guarda la sala de llegadas del vuelo, en el suelo
 	local landing = player:GetAttribute("FlightLanding")
-	if typeof(landing) == "Vector3" then
+	if typeof(door) == "Vector3" then
+		position = door
+	elseif typeof(landing) == "Vector3" then
 		position = landing
+	elseif not safeSpot(humanoid) then
+		return -- nadando, en un barco o en el aire: se queda el último sitio seguro que se apuntó
 	end
 	local look = root.CFrame.LookVector
 	local saved = { X = position.X, Y = position.Y, Z = position.Z, Yaw = math.atan2(-look.X, -look.Z) }
@@ -91,6 +116,19 @@ local function restore(player: Player, data: { [string]: any })
 			-- Suelo justo debajo de los pies (desde poco más arriba: dentro de un edificio daría con el techo)
 			-- (solo suelo de verdad: no encima de un coche aparcado o de un personaje)
 			local hit = Ground.cast(position + V(0, 1, 0), V(0, -40, 0), params)
+			if hit and hit.Material == Enum.Material.Water then
+				hit = nil -- (en el agua no: mejor la cama o la plaza)
+			end
+			-- Sin suelo debajo (el mapa ha cambiado, era el agua…): a tu cama si tienes, si no se
+			-- queda en la entrada del juego
+			local bed = data.SpawnPoint
+			if not hit and valid(bed) then
+				position = V(bed.X, bed.Y, bed.Z)
+				pcall(function()
+					player:RequestStreamAroundAsync(position, 5)
+				end)
+				hit = Ground.cast(position + V(0, 1, 0), V(0, -40, 0), params)
+			end
 			if hit then
 				local height = position.Y - hit.Position.Y
 				local lift = math.clamp(height, 2, 5)

@@ -548,6 +548,8 @@ function WeaponService.fire(player: Player, target: any): boolean
 	type Fx = { P: Vector3, N: Vector3?, M: string?, K: string }
 	local fx: { Fx } = {}
 	local hitModels: { [Model]: { Amount: number, At: Vector3, Zone: string } } = {}
+	-- Lo que ha roto (o golpeado) este disparo: los perdigones de la escopeta cuentan una vez por pieza
+	local struck: { [Instance]: string | false } = {}
 	local order: { Model } = {}
 	for _ = 1, w.Pellets do
 		local d = Weapons.scatter(direction, spread, math.random(), math.random())
@@ -572,10 +574,16 @@ function WeaponService.fire(player: Player, target: any): boolean
 				table.insert(fx, { P = result.Position, N = result.Normal, K = "Char" })
 			else
 				local kind = "World"
+				-- Cristales y puertas (BreakService): solo las balas de verdad (ni agua ni pintura)
 				if w.Kind == "Real" then
-					local okBreak, broke = pcall(BreakService.hitStructure, player, part, result.Position, d * 300)
-					if okBreak and broke then
-						kind = broke
+					local before = struck[part]
+					if before == nil then
+						local okBreak, broke = pcall(BreakService.hitStructure, player, part, result.Position, d * 300, w.Kind)
+						before = if okBreak and broke then broke else false
+						struck[part] = before
+					end
+					if before then
+						kind = before
 					end
 				end
 				if part:HasTag("RangeTarget") and part:IsA("BasePart") then

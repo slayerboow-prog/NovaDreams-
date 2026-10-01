@@ -62,6 +62,7 @@ local order = {
 	"PositionService", -- al volver a entrar apareces donde lo dejaste
 	"NeedsService",
 	"WorldService",
+	"CalendarService", -- el día de tu vida se guarda: un servidor vacío sigue tu calendario (antes: siempre «Día 1»)
 	"InteriorService", -- todos los edificios por dentro (salas al entrar, ascensores e instituciones)
 	"PropertyService", -- casas y pisos que se compran, y los vecinos que viven en ellos
 	"HousingService", -- vivienda al llegar, alquiler, llaves, timbre y horario de los vecinos

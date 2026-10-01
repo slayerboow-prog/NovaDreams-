@@ -75,7 +75,7 @@ VehicleParts.Zones = {
 	Moto = {
 		Primary = { "Body", "Tail", "Shield", "FenderFront", "Stem" },
 		Secondary = { "SeatPiping", "SidePanelLine" },
-		Rim = { "Rim", "Hub" },
+		Rim = { "Rim", "Hub", "Spoke" },
 		Tire = { "Wheel" },
 		PlateRear = { "Plate" },
 	},
@@ -87,7 +87,7 @@ VehicleParts.Zones = {
 	},
 	Patinete = {
 		Primary = { "Battery", "DeckTrim", "FenderRear", "FenderFront", "Stem" },
-		Rim = { "Rim" },
+		Rim = { "Rim", "Spoke" },
 		Tire = { "Wheel" },
 	},
 	Monopatin = {

@@ -232,6 +232,10 @@ local function moto(m: Model, cf: CFrame, color: Color3)
 		wheel(m, c, 1, 0.6)
 		cyl(m, "Rim", 0.64, 1.3, c, CH, Enum.Material.Metal)
 		cyl(m, "Hub", 0.7, 0.4, c, rgb(90, 92, 98), Enum.Material.Metal)
+		-- Radios de la llanta: se ve que la rueda gira (Controllers/WheelSpin)
+		for k = 0, 4 do
+			bit(m, "Spoke", Vector3.new(0.68, 0.45, 0.12), c * CFrame.Angles(k * math.pi * 2 / 5, 0, 0) * CFrame.new(0, 0.33, 0), rgb(60, 62, 68), Enum.Material.Metal)
+		end
 		cyl(m, "BrakeDisc", 0.06, 1.05, c * CFrame.new(-0.38, 0, 0), rgb(160, 162, 168), Enum.Material.Metal)
 		bit(m, "Caliper", Vector3.new(0.14, 0.4, 0.3), c * CFrame.new(-0.42, 0.35, 0.3), rgb(200, 40, 40), Enum.Material.Metal)
 	end
@@ -285,6 +289,9 @@ local function patinete(m: Model, cf: CFrame, color: Color3)
 		local c = cf * CFrame.new(0, 0.38, z)
 		wheel(m, c, 0.38, 0.3)
 		cyl(m, "Rim", 0.34, 0.5, c, rgb(60, 60, 64), Enum.Material.Metal)
+		for k = 0, 2 do
+			bit(m, "Spoke", Vector3.new(0.36, 0.17, 0.07), c * CFrame.Angles(k * math.pi * 2 / 3, 0, 0) * CFrame.new(0, 0.12, 0), rgb(170, 172, 178), Enum.Material.Metal)
+		end
 	end
 	-- Plataforma con batería debajo y lija
 	box(m, "Deck", Vector3.new(1, 0.2, 2.9), cf * CFrame.new(0, 0.58, 0.1), DARK)
@@ -676,6 +683,11 @@ local function camion(m: Model, cf: CFrame, color: Color3)
 			wheel(m, c, 1.7, 1.2)
 			cyl(m, "Rim", 1.26, 1.9, c, STEEL, Enum.Material.Metal)
 			cyl(m, "Hub", 1.3, 0.6, c, DARK, Enum.Material.Metal)
+			-- Tuercas: se ve que la rueda gira (Controllers/WheelSpin)
+			for k = 0, 4 do
+				local a = k * math.pi * 2 / 5
+				bit(m, "Nut", Vector3.new(1.32, 0.16, 0.16), c * CFrame.new(0, math.cos(a) * 0.55, math.sin(a) * 0.55), rgb(60, 60, 64), Enum.Material.Metal)
+			end
 		end
 	end
 	-- Cabina
@@ -771,6 +783,11 @@ local function bomberos(m: Model, cf: CFrame, color: Color3)
 			wheel(m, c, 1.7, 1.2)
 			cyl(m, "Rim", 1.26, 1.9, c, STEEL, Enum.Material.Metal)
 			cyl(m, "Hub", 1.3, 0.6, c, DARK, Enum.Material.Metal)
+			-- Tuercas: se ve que la rueda gira (Controllers/WheelSpin)
+			for k = 0, 4 do
+				local a = k * math.pi * 2 / 5
+				bit(m, "Nut", Vector3.new(1.32, 0.16, 0.16), c * CFrame.new(0, math.cos(a) * 0.55, math.sin(a) * 0.55), rgb(60, 60, 64), Enum.Material.Metal)
+			end
 		end
 	end
 	-- Cabina doble (para toda la dotación)

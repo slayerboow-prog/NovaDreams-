@@ -340,8 +340,10 @@ local function setActive(entry: Entry, on: boolean)
 				entry.Dirty = true
 			end
 		end
-		table.insert(entry.Links, entry.Model.DescendantAdded:Connect(dirty))
-		table.insert(entry.Links, entry.Model.DescendantRemoving:Connect(dirty))
+		pcall(function()
+			table.insert(entry.Links, entry.Model.DescendantAdded:Connect(dirty))
+			table.insert(entry.Links, entry.Model.DescendantRemoving:Connect(dirty))
+		end)
 		entry.Dirty = true
 		entry.LastCF = nil
 	else
@@ -369,7 +371,7 @@ function WheelSpin.lod(camera: { CFrame: CFrame, FieldOfView: number, Aspect: nu
 		if not ref then
 			continue
 		end
-		local pos = ref.Position
+		local pos = ref.CFrame.Position
 		table.insert(list, {
 			Key = entry,
 			Position = pos,

@@ -8,8 +8,11 @@
 --    mano y repartidores con la caja a la espalda. De vez en cuando alguien cerca suelta una frase.
 --    Si chocas con uno (o lo empujas), se aparta de lado con un traspiés, te mira y a veces suelta
 --    un "¡Eh!"; luego sigue su camino. Si llega tu coche, se tira a un lado.
---    En los cruces con semáforo esperan en el bordillo a tener verde (Traffic.mayCross) y, cruzando,
---    los coches los ven y frenan (Traffic.setWalkers). Si alguien va más despacio delante, le
+--    Solo cruzan por los pasos de cebra de los cruces (shared/Crossing): con semáforo, esperan en el
+--    bordillo hasta su verde y solo empiezan si les da tiempo (no en los últimos segundos); si la
+--    luz cambia mientras cruzan, aprietan el paso (nunca se paran en medio). Sin semáforo miran a los
+--    dos lados y solo cruzan si no viene ningún vehículo (tampoco el tuyo). Nunca cruzan a mitad de
+--    calle. Cruzando, los coches los ven y frenan (Traffic.setWalkers). Si alguien va más despacio delante, le
 --    adelantan por la izquierda. Si empieza a llover sacan el paraguas (y aprietan el paso); si
 --    para, lo guardan. Aparecen y se retiran fuera de tu vista. Los niños, a casa a las 19:30.
 
@@ -25,6 +28,8 @@ local Nudge = require(script.Parent.Nudge)
 local Knock = require(ReplicatedStorage.Shared.Knock)
 local Crash = require(ReplicatedStorage.Shared.Crash)
 local TimeContext = require(ReplicatedStorage.Shared.LifeStory.TimeContext)
+local TrafficSignals = require(ReplicatedStorage.Shared.TrafficSignals)
+local Crossing = require(ReplicatedStorage.Shared.Crossing)
 
 local Ambient = {}
 
@@ -60,6 +65,8 @@ type Road = {
 	EndMargin: number,
 	CrossStart: number?, -- lo que ocupa la calzada de la calle que cruza al principio / al final
 	CrossEnd: number?, -- (el paso de peatones: ahí se espera al verde y ahí los coches frenan)
+	SigStart: Vector3?, -- el cruce con semáforo del principio / del final (nil: paso sin semáforo)
+	SigEnd: Vector3?,
 	WalkIn: number?, -- la acera va de WalkIn a WalkOut del centro (a los dos lados)
 	WalkOut: number?,
 	Obstacles: { Sidewalk.Obstacle }, -- farolas, papeleras, quioscos… (shared/Sidewalk)
@@ -97,11 +104,13 @@ type Agent = {
 	Skip: number?, -- fotogramas saltados desde la última vez que se movió
 	Acc: number?, -- tiempo acumulado mientras se salta fotogramas
 	LastPos: Vector3?, -- dónde estaba la última vez que se movió
+	WaitSince: number?, -- esperando en el bordillo desde entonces
 }
 
 local roads: { Road } = {}
 local peds: { Agent } = {}
 local folder: Folder
+local world: Crossing.World? = nil -- las calles para shared/Crossing (zonas y cruces con semáforo)
 
 local function point(road: Road, u: number, v: number, y: number): Vector3
 	local p = road.A + road.Dir * u + road.Perp * v
@@ -320,6 +329,18 @@ end
 
 local posePed: (Agent, CFrame, number?, boolean?) -> () -- (más abajo)
 
+-- Nadie aparece en medio de un paso de cebra (en la calzada): antes salía gente cruzando con el
+-- semáforo de los coches en verde, y si les atropellabas parecía culpa tuya
+local function offCrossing(road: Road, u: number): number
+	if road.Ahead and (road.CrossEnd or 0) > 0 and u > road.To - (road.CrossEnd :: number) - 1 then
+		u = road.To - (road.CrossEnd :: number) - 1.5 - math.random() * 6
+	end
+	if road.Behind and (road.CrossStart or 0) > 0 and u < road.From + (road.CrossStart :: number) + 1 then
+		u = road.From + (road.CrossStart :: number) + 1.5 + math.random() * 6
+	end
+	return math.clamp(u, road.From, road.To)
+end
+
 local function respawnPed(agent: Agent, center: Vector3, initial: boolean)
 	local road, u = spawnPoint(center, if initial then 10 else 90, 200)
 	-- Nunca aparece a la vista (salvo lejos): antes salía gente de la nada a 90 studs delante de ti
@@ -342,7 +363,8 @@ local function respawnPed(agent: Agent, center: Vector3, initial: boolean)
 		setActive(agent, false)
 		return
 	end
-	agent.U = u
+	agent.U = offCrossing(road, u)
+	agent.WaitSince = nil
 	agent.Dir = if math.random() < 0.5 then 1 else -1
 	agent.Side = if math.random() < 0.5 then 1 else -1
 	agent.TurnAt, agent.Keep, agent.Dodge, agent.PassUntil, agent.Lateral = nil, nil, nil, nil, nil
@@ -360,7 +382,7 @@ local function respawnPed(agent: Agent, center: Vector3, initial: boolean)
 	setActive(agent, true)
 	-- Y ya en su sitio: sus piezas nacen en el origen (0, 0: el cruce grande de Valmar Centro) y, hasta
 	-- su primer paso (que no llega si estás dentro de un edificio), se veían allí amontonadas
-	posePed(agent, CFrame.new(point(road, u, agent.Side * (road.Walk or 15.5), WALK_TOP)) * heading(road, agent.Dir), 0, true)
+	posePed(agent, CFrame.new(point(road, agent.U, agent.Side * (road.Walk or 15.5), WALK_TOP)) * heading(road, agent.Dir), 0, true)
 end
 
 -- Traspiés: 0 → 1 → 0 en "dur" segundos (sube rápido y baja suave)
@@ -560,35 +582,150 @@ local function chatter(center: Vector3)
 	end
 end
 
--- ¿Espera en el bordillo? Va a pisar la calzada de la calle que cruza (paso de peatones) y el semáforo
--- no le deja (Traffic.mayCross). Una vez cruzando, sigue.
-local function waitsAtCurb(ped: Agent, road: Road, nextU: number): boolean
+-- Hora del servidor (la de los semáforos: shared/TrafficSignals)
+local function serverNow(): number
+	local ok, t = pcall(function()
+		return workspace:GetServerTimeNow()
+	end)
+	return if ok and type(t) == "number" then t else os.clock()
+end
+
+-- Lo que cruza la calle de enfrente al seguir recto por un enlace (el otro trozo del paso de cebra)
+local function nextCross(link: Link?, fromEnd: boolean): number
+	if not link then
+		return 0
+	end
+	local q = link.Road :: Road
+	local atStart = if fromEnd then not link.Flip else link.Flip
+	return (if atStart then q.CrossStart else q.CrossEnd) or 0
+end
+
+-- ¿Está en la calzada, cruzando por el paso? Devuelve también lo que le queda hasta el otro
+-- bordillo y el cruce con semáforo (nil si el paso no tiene)
+local function crossState(ped: Agent, road: Road): (boolean, number, Vector3?)
+	local u = ped.U
+	local inEnd = road.Ahead ~= nil and (road.CrossEnd or 0) > 0 and u > road.To - (road.CrossEnd :: number)
+	local inStart = road.Behind ~= nil and (road.CrossStart or 0) > 0 and u < road.From + (road.CrossStart :: number)
+	if ped.Dir > 0 then
+		if inEnd then
+			return true, (road.To - u) + nextCross(road.Ahead, true), road.SigEnd
+		elseif inStart then
+			return true, road.From + (road.CrossStart :: number) - u, road.SigStart
+		end
+	else
+		if inStart then
+			return true, (u - road.From) + nextCross(road.Behind, false), road.SigStart
+		elseif inEnd then
+			return true, u - (road.To - (road.CrossEnd :: number)), road.SigEnd
+		end
+	end
+	return false, 0, nil
+end
+
+-- ¿Está en la calzada, cruzando? (para que los coches le vean)
+local function crossing(ped: Agent, road: Road): boolean
+	return (crossState(ped, road))
+end
+
+-- Vehículos que se mueven cerca (los del tráfico, los de los jugadores —también el tuyo— y los
+-- autobuses), para mirar a los dos lados antes de cruzar. Se recogen como mucho una vez por
+-- fotograma y solo si alguien está en un bordillo.
+local movers: { Crossing.Mover } = {}
+local moverPool: { Crossing.Mover } = {}
+local moversFrame = -1
+local frameId = 0
+local nearBuffer = {}
+local busLast: { [Model]: Vector3 } = setmetatable({}, { __mode = "k" }) :: any
+local busAt = 0
+local function addMover(pos: Vector3, vel: Vector3)
+	local n = #movers + 1
+	local m = moverPool[n]
+	if not m then
+		m = { Pos = pos, Vel = vel }
+		moverPool[n] = m
+	end
+	m.Pos, m.Vel = pos, vel
+	movers[n] = m
+end
+local function moversNear(center: Vector3): { Crossing.Mover }
+	if moversFrame == frameId then
+		return movers
+	end
+	moversFrame = frameId
+	table.clear(movers)
+	for _, a in Traffic.near(Vector3.new(center.X, 0.4, center.Z), 320, nearBuffer) do
+		if a.Pos and a.Dir then
+			addMover(a.Pos, a.Dir * (a.Speed or 0))
+		end
+	end
+	for _, p in Players:GetPlayers() do
+		local character = p.Character
+		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+		local seat = humanoid and humanoid.SeatPart
+		if seat then
+			addMover(seat.Position, seat.AssemblyLinearVelocity)
+		end
+	end
+	local buses = workspace:FindFirstChild("Buses")
+	if buses then
+		local now = os.clock()
+		local dt = math.max(now - busAt, 1 / 120)
+		busAt = now
+		for _, bus in buses:GetChildren() do
+			if bus:IsA("Model") then
+				local ok, pivot = pcall(bus.GetPivot, bus)
+				if ok then
+					local pos = pivot.Position
+					local last = busLast[bus]
+					busLast[bus] = pos
+					local vel = if last and dt < 0.5 then (pos - last) / dt else Vector3.zero
+					addMover(pos, vel)
+				end
+			end
+		end
+	end
+	return movers
+end
+
+-- ¿Espera en el bordillo? Va a pisar la calzada de la calle que cruza (el paso de cebra) y:
+--   * con semáforo: no es su verde o no le da tiempo a cruzar entero (Crossing.signalStart);
+--   * con o sin semáforo: viene un vehículo que llegaría antes de que acabe de cruzar
+--     (Crossing.gapClear: mira a los dos lados; también tu coche, aunque te saltes el rojo).
+-- Una vez cruzando, sigue (no se para en medio).
+local function waitsAtCurb(ped: Agent, road: Road, nextU: number, pace: number, center: Vector3): boolean
+	local walk = ped.Side * (road.Walk or 15.5)
+	local line, total, junction, p0, p1
 	if ped.Dir > 0 then
 		local cross = road.CrossEnd
 		if not road.Ahead or not cross or cross <= 0 then
 			return false
 		end
-		local line = road.To - cross
+		line = road.To - cross
 		if ped.U > line or nextU <= line then
 			return false
 		end
-		return not Traffic.mayCross(point(road, road.To, 0, 0), road.Dir)
+		local further = nextCross(road.Ahead, true)
+		total, junction = cross + further, road.SigEnd
+		p0, p1 = point(road, line, walk, 0), point(road, road.To + further, walk, 0)
+	else
+		local cross = road.CrossStart
+		if not road.Behind or not cross or cross <= 0 then
+			return false
+		end
+		line = road.From + cross
+		if ped.U < line or nextU >= line then
+			return false
+		end
+		local further = nextCross(road.Behind, false)
+		total, junction = cross + further, road.SigStart
+		p0, p1 = point(road, line, walk, 0), point(road, road.From - further, walk, 0)
 	end
-	local cross = road.CrossStart
-	if not road.Behind or not cross or cross <= 0 then
-		return false
+	local need = total / math.max(pace, 0.5)
+	if junction and not Crossing.signalStart(TrafficSignals.axisOf(road.Dir), serverNow(), need) then
+		return true
 	end
-	local line = road.From + cross
-	if ped.U < line or nextU >= line then
-		return false
-	end
-	return not Traffic.mayCross(point(road, road.From, 0, 0), road.Dir)
-end
-
--- ¿Está en la calzada, cruzando? (para que los coches le vean)
-local function crossing(ped: Agent, road: Road): boolean
-	return (road.CrossEnd ~= nil and road.CrossEnd > 0 and road.Ahead ~= nil and ped.U > road.To - road.CrossEnd)
-		or (road.CrossStart ~= nil and road.CrossStart > 0 and road.Behind ~= nil and ped.U < road.From + road.CrossStart)
+	local clear = Crossing.gapClear(p0, p1, need, moversNear(center))
+	return not clear
 end
 
 local lastRain: boolean? = nil
@@ -612,6 +749,7 @@ local LOD_CLOSE = 20
 local LOD_EVERY = 3
 
 local function updatePeds(frameDt: number, center: Vector3)
+	frameId += 1
 	local clock = Lighting.ClockTime
 	-- Los niños, solo de 8:00 a 19:30 (de noche no hay críos solos por la calle)
 	local kidsOut = clock >= 8 and clock < 19.5
@@ -734,15 +872,36 @@ local function updatePeds(frameDt: number, center: Vector3)
 			end
 		end
 		-- Parado un momento mientras se recupera del traspiés (o mientras se da la vuelta)
-		local stunned = ped.ReactAt ~= nil and now - ped.ReactAt < (if ped.ReactDive then 1.1 else 0.7)
+		-- Cruzando la calzada nunca se para en medio (ni por un traspiés): sigue y, si la luz cambia o
+		-- viene un coche, aprieta el paso (Crossing.pace)
+		local inCrossing, remaining, junction = crossState(ped, road)
+		local stunned = not inCrossing and ped.ReactAt ~= nil and now - ped.ReactAt < (if ped.ReactDive then 1.1 else 0.7)
 		local turning = ped.TurnAt ~= nil and now - ped.TurnAt < TURN_TIME
 		if turning then
 			ped.Phase += dt * 3 -- (unos pasitos en el sitio al girar)
 		elseif not stunned then
 			local pace = ped.Speed * (if ped.Style == "Jog" or ped.PanicUntil then 1 else hurry)
+			if inCrossing then
+				local threat = nil
+				if not junction then
+					local walk = ped.Side * (road.Walk or 15.5)
+					local _, eta = Crossing.gapClear(point(road, ped.U, walk, 0), point(road, ped.U + ped.Dir * remaining, walk, 0), 0, moversNear(center))
+					threat = eta
+				end
+				pace = Crossing.pace(pace, remaining, junction ~= nil, TrafficSignals.axisOf(road.Dir), serverNow(), threat)
+			end
 			local step = ped.Dir * pace * dt
-			if not ped.PanicUntil and waitsAtCurb(ped, road, ped.U + step) then
-				step = 0 -- (espera al verde en el bordillo)
+			if waitsAtCurb(ped, road, ped.U + step, pace, center) then
+				step = 0 -- (espera en el bordillo: a su verde o a que no venga nadie)
+				ped.WaitSince = ped.WaitSince or now
+				-- Si no hay forma (un coche parado encima del paso…), al rato se da la vuelta
+				if now - (ped.WaitSince :: number) > (if junction then 50 else 25) and not ped.TurnAt then
+					ped.Dir = -ped.Dir
+					ped.TurnAt = now
+					ped.WaitSince = nil
+				end
+			else
+				ped.WaitSince = nil
 			end
 			ped.U += step
 			if step ~= 0 then
@@ -774,7 +933,7 @@ local function updatePeds(frameDt: number, center: Vector3)
 		-- haberse apartado; si no cabe por ningún lado, se da la vuelta. Nunca lo atraviesa.
 		local base = ped.Side * (road.Walk or 15.5) + (ped.Keep or 0)
 		local dodgeTarget = 0
-		if #road.Obstacles > 0 and road.WalkIn and road.WalkOut then
+		if not inCrossing and #road.Obstacles > 0 and road.WalkIn and road.WalkOut then
 			local inner, outer = road.WalkIn + BODY + 0.15, road.WalkOut - BODY - 0.15
 			local lo, hi = if ped.Side > 0 then inner else -outer, if ped.Side > 0 then outer else -inner
 			local now_ = base + (ped.Dodge or 0) + (ped.ShoveNow or 0)
@@ -853,11 +1012,21 @@ local function updatePeds(frameDt: number, center: Vector3)
 					ped.Knocked = { At = now, Hit = hit, Origin = pos, Axis = dir:Cross(Vector3.yAxis), Facing = heading(road, ped.Dir) }
 					ped.ReactAt = nil
 					Nudge.say(ped.Parts[ped.Index.Head], if hit.Mode == "launch" then "¡Aaah!" elseif hit.Mode == "fall" then "¡Ay!" else "¡Eh!", 1.8)
-					-- (atropello: delito grave; el servidor comprueba que de verdad ibas en un vehículo)
+					-- (atropello: el servidor decide si es culpa tuya —acera, paso de cebra con los peatones
+					-- con paso, saltarte un rojo, ir demasiado deprisa— o un accidente, con su hora, las calles y
+					-- tu coche según él; y solo hay delito si lo ve la policía. Aquí se le cuenta lo que se ve.)
 					local remotes = ReplicatedStorage:FindFirstChild("Remotes")
 					local knock = remotes and remotes:FindFirstChild("Knock")
 					if knock and knock:IsA("RemoteEvent") then
-						knock:FireServer("Ped", nil, { Pos = pos, Vel = carVel })
+						local sNow = serverNow()
+						local onCross = crossing(ped, road)
+						local offset = math.abs(ped.Lateral or (road.Walk or 15.5))
+						local state = if onCross then "OnCrosswalk" elseif offset < road.Half then "Jaywalk" else "OnSidewalk"
+						local signal = "None"
+						if world and TrafficSignals.near((world :: Crossing.World).Signals, pos, TrafficSignals.BOX + 14) then
+							signal = (TrafficSignals.state(TrafficSignals.axisOf(carVel), sNow))
+						end
+						knock:FireServer("Ped", nil, { Pos = pos, Vel = carVel, Ped = state, Signal = signal, At = sNow })
 					end
 				end
 			elseif (d < 3 or (car and d < 9)) and math.abs(myRoot.Position.Y - pos.Y) < 6 and (not ped.ReactAt or now - ped.ReactAt > 2.5) then
@@ -929,7 +1098,7 @@ end
 function Ambient.panic(position: Vector3, radius: number)
 	for _, ped in peds do
 		local road = ped.Road
-		if road and ped.Active then
+		if road and ped.Active and not crossing(ped, road) then -- (quien está cruzando, acaba de cruzar)
 			local pos = point(road, ped.U, ped.Side * (road.Walk or 15.5), WALK_TOP)
 			local away = pos - position
 			if away.Magnitude < radius then
@@ -989,6 +1158,21 @@ function Ambient.link(list: { Road })
 	end
 end
 
+-- Qué pasos de cebra (extremos de calle que siguen recto al otro lado) son de un cruce con semáforo
+function Ambient.signalize(list: { Road }, signals: TrafficSignals.Index?)
+	for _, r in list do
+		r.SigEnd, r.SigStart = nil, nil
+		if signals then
+			if r.Ahead then
+				r.SigEnd = TrafficSignals.near(signals, r.A + r.Dir * r.Len, 8)
+			end
+			if r.Behind then
+				r.SigStart = TrafficSignals.near(signals, r.A, 8)
+			end
+		end
+	end
+end
+
 function Ambient.init()
 	task.spawn(trimCrowd)
 	local data = ReplicatedStorage:WaitForChild("Ambient", 60)
@@ -1040,6 +1224,14 @@ function Ambient.init()
 		return
 	end
 	Ambient.link(roads)
+	-- Cruces con semáforo de cada paso de cebra (los mismos que Traffic: shared/Crossing)
+	local rings = {}
+	for _, rb in CityPlan.Roundabouts do
+		table.insert(rings, Vector3.new(rb[1], 0, rb[2]))
+	end
+	local okWorld, built = pcall(Crossing.fromFolder, data:WaitForChild("Roads"), rings)
+	world = if okWorld then built else nil
+	Ambient.signalize(roads, if world then world.Signals else nil)
 
 	folder = Instance.new("Folder")
 	folder.Name = "AmbientLife"

@@ -145,6 +145,44 @@ local function policeSees(offender: Player, position: Vector3): boolean
 	return PoliceUnits.sees(offender) or PoliceUnits.anyNear(position, Wanted.PoliceSight, offender)
 end
 
+-- ¿Lo ve la policía AHORA? (para los delitos que solo cuentan si los ve: options.PoliceOnly)
+-- Un policía jugador de servicio a menos de Wanted.PoliceSight con línea de vista hasta el sitio
+-- (los vehículos no tapan: se ve por las ventanillas), los agentes, coches y helicópteros de la
+-- persecución de quien lo hace o de cualquier otra (PoliceUnits.sees / anyNear) y las patrullas de
+-- ronda o agentes que le ven al volante (PoliceUnits.seesDriver, a Wanted.DriveSight).
+function WantedService.policeWitness(offender: Player, position: Vector3): boolean
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	local ignore: { Instance } = {}
+	for _, p in Players:GetPlayers() do
+		if p.Character then
+			table.insert(ignore, p.Character)
+		end
+	end
+	for _, name in { "Rides", "Buses" } do
+		local folder = workspace:FindFirstChild(name)
+		if folder then
+			table.insert(ignore, folder)
+		end
+	end
+	params.FilterDescendantsInstances = ignore
+	local target = position + Vector3.new(0, 2, 0)
+	for _, cop in Players:GetPlayers() do
+		local r = rootOf(cop)
+		if cop ~= offender and onDuty(cop) and r and (r.Position - target).Magnitude <= Wanted.PoliceSight then
+			if not workspace:Raycast(r.Position, target - r.Position, params) then
+				Notify:FireClient(cop, "Info", ("🚨 Has visto un delito: %s"):format(offender.DisplayName))
+				return true
+			end
+		end
+	end
+	if PoliceUnits.sees(offender) or PoliceUnits.anyNear(position, Wanted.PoliceSight, offender) then
+		return true
+	end
+	local seen = PoliceUnits.seesDriver(offender, Wanted.DriveSight)
+	return seen == true
+end
+
 -- Un personaje cercano que lo ha visto (para que llame)
 local function witnessNear(offender: Player, position: Vector3): Model?
 	local params = OverlapParams.new()
@@ -200,11 +238,25 @@ end
 
 -- Algo malo: ¿lo ha visto alguien? Si sí, a la policía (ahora o cuando llame el testigo)
 -- options.Alarm = true: siempre llega el aviso (la alarma de una tienda)
-function WantedService.crime(player: Player, crime: string, position: Vector3?, options: { [string]: any }?)
+-- options.PoliceOnly = true: solo cuenta si lo ve la policía EN ESE MOMENTO (un agente, una patrulla
+-- —de ronda o de una persecución—, el helicóptero o un policía jugador de servicio, a su distancia de
+-- vista y sin nada en medio). Si no, no pasa nada: ni testigos que llamen, ni la víctima, ni un
+-- transeúnte (atropellos: KnockService). Devuelve si se ha denunciado.
+function WantedService.crime(player: Player, crime: string, position: Vector3?, options: { [string]: any }?): boolean?
 	if not Wanted.Crimes[crime] or not player.Parent then
-		return
+		return false
 	end
 	local at = position or (rootOf(player) and (rootOf(player) :: BasePart).Position)
+	if options and options.PoliceOnly then
+		if not at or not Wanted.appliesTo(crime, answersAsAdult(player)) or player:GetAttribute("JailUntil") or player:GetAttribute("OnTrial") then
+			return false
+		end
+		if WantedService.policeWitness(player, at) then
+			report(player, crime, "Police")
+			return true
+		end
+		return false
+	end
 	if not Wanted.appliesTo(crime, answersAsAdult(player)) then
 		Notify:FireClient(player, "Error", "¡Eso no se hace! Si fueras mayor, vendría la policía.")
 		-- Si alguien lo ha visto, tu familia se entera (historial de comportamiento)
@@ -567,6 +619,9 @@ end
 local function onStoryEvent(player: Player, name: string, payload: { [string]: any })
 	if name ~= "HitSomeone" then
 		return
+	end
+	if payload.Vehicle then
+		return -- (atropello: lo decide KnockService con Crossing —¿culpa tuya?— y solo si lo ve la policía)
 	end
 	local model = payload.Model
 	if typeof(model) == "Instance" and model:GetAttribute("Officer") then

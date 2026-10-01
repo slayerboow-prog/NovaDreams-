@@ -4,18 +4,35 @@
 --     3, y se ve la piedra en tu mano.
 --   * Lanzar (otra vez B): hacia donde apuntas. La piedra la calcula el servidor (con rayos, para no
 --     atravesar cristales finos) y cada jugador la dibuja volando (Vandal "Stone").
---   * Cristales (ventanas de casas y edificios, de coches, de balcones…): se rompen en trozos que
---     caen al suelo. Puertas: aguantan unos golpes y se caen. Todo se arregla solo al rato.
+--   * Qué rompe (BreakService.hit, reglas en shared/Breakables):
+--       - piedras, balas de armas de verdad (WeaponService; las de agua y pintura no), golpes fuertes
+--         (CombatService.attack -> BreakService.meleeHit) y vehículos a velocidad (cliente
+--         Collisions -> KnockService "Break" -> BreakService.vehicleHit).
+--       - Cristales (ventanas de casas y edificios, escaparates, puertas de cristal, marquesinas del
+--         bus, balcones…): se rompen en trozos con física que se desvanecen, con su sonido. Los
+--         escaparates y las franjas de ventanas grandes se parten en tramos y solo se rompe el tramo
+--         donde das (o los que toca el coche). Mientras está roto, el hueco NO choca: se puede pasar
+--         (huir por un escaparate). Si detrás no hay hueco (un cristal pegado a la fachada), queda
+--         un hueco oscuro.
+--       - Puertas (de madera de los edificios, las de las salas por dentro): aguantan unos golpes
+--         (12 pedradas, 4 balazos, 5 patadas) y se caen (las de dentro se abren de golpe). Un
+--         vehículo rápido la tira de una.
+--   * Todo se arregla solo y rápido: cristal a los 20–30 s, puertas a los 30–45 s, nunca con alguien
+--     en el hueco, apareciendo poco a poco.
+--   * Topes: cada jugador rompe como mucho Breakables.Budget.PerPlayer cosas cada pocos segundos; si
+--     hay demasiadas rotas a la vez, la más antigua se arregla ya; y un máximo de trozos volando.
 --   * Consecuencias: los policías de servicio reciben el aviso («🚨 Vandalismo en …»), los
---     personajes a los que das se quejan y va a tu historial de comportamiento (ConductService).
---   * Las balas (WeaponService) rompen lo mismo con BreakService.hitStructure.
--- Las reglas (qué se rompe, cómo vuela la piedra) están en shared/Breakables.
+--     personajes a los que das se quejan, va a tu historial de comportamiento (ConductService) y,
+--     si lo ve alguien y nadie te buscaba, «Daños» (1 estrella, WantedService; no con balas: eso ya
+--     es «Disparos en la vía pública»).
+-- Las reglas (qué se rompe, cómo vuela la piedra, tiempos y topes) están en shared/Breakables.
 
 local CollectionService = game:GetService("CollectionService")
 local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 
 local Breakables = require(ReplicatedStorage.Shared.Breakables)
 local Npc = require(script.Parent.Parent.World.Npc)
@@ -31,19 +48,54 @@ local PICK_COOLDOWN = 0.7
 local THROW_COOLDOWN = 0.45
 local MAX_RANGE = 250
 local MAX_FLIGHT = 4 -- segundos
+local HOLE_COLOR = Color3.fromRGB(22, 24, 28) -- hueco oscuro de un cristal pegado a la fachada
 
 local lastPick: { [Player]: number } = {}
 local lastThrow: { [Player]: number } = {}
 local lastAlert: { [Player]: number } = {}
+local lastVandal: { [Player]: number } = {}
+local history: { [Player]: { number } } = {}
 
-type Broken = { Transparency: number, CanCollide: boolean, CanQuery: boolean, CFrame: CFrame, Anchored: boolean, Color: Color3 }
-local broken: { [BasePart]: Broken } = {}
--- Golpes de cada puerta: cuántos, cuándo el último, y su color y sitio de antes de golpearla
-local doorHits: { [BasePart]: { Hits: number, Last: number, Color: Color3, CFrame: CFrame } } = {}
+-- Cómo estaba cada pieza antes de romperse (para dejarla igual)
+type Saved = {
+	Transparency: number,
+	CanCollide: boolean,
+	CanQuery: boolean,
+	CFrame: CFrame,
+	Anchored: boolean,
+	Color: Color3,
+	Material: Enum.Material,
+	Reflectance: number,
+}
+-- Lo roto: qué es, cómo estaba, cuándo se arregla y lo que se cayó con ella (pomo, tirador…)
+type Piece = {
+	Kind: string, -- "Glass", "Door" (se cae) o "Swing" (puerta de dentro: se abre de golpe)
+	Saved: Saved,
+	Size: Vector3,
+	BrokenAt: number,
+	RepairAt: number,
+	Extra: { BasePart },
+	ExtraSaved: { Saved },
+}
+local broken: { [BasePart]: Piece } = {}
+local brokenCount = 0
+-- Golpes de cada puerta: aguante, cuándo el último, y su color y sitio de antes de golpearla
+type DoorState = { Health: number, Last: number, Color: Color3, CFrame: CFrame }
+local doorState: { [BasePart]: DoorState } = {}
+-- Cristales grandes partidos en tramos: el original queda escondido mientras haya tramos
+type Split = { Segments: { BasePart }, Axis: string, Length: number, N: number, Saved: Saved }
+local split: { [BasePart]: Split } = {}
+local segmentOf: { [BasePart]: BasePart } = {}
+local liveShards = 0
 
 type Stone = { Id: number, Player: Player, From: Vector3, Velocity: Vector3, Start: number, Last: Vector3 }
 local stones: { Stone } = {}
 local nextId = 0
+
+-- (pruebas)
+BreakService._broken = broken
+BreakService._split = split
+BreakService._doors = doorState
 
 ---------------------------------------------------------------------
 -- La piedra en la mano
@@ -97,7 +149,7 @@ local function setStones(player: Player, count: number)
 end
 
 ---------------------------------------------------------------------
--- Romper
+-- Sonido, trozos y fundidos
 ---------------------------------------------------------------------
 
 local function sound(at: Vector3, id: string, volume: number, pitch: number)
@@ -122,118 +174,82 @@ local function sound(at: Vector3, id: string, volume: number, pitch: number)
 	Debris:AddItem(anchor, 3)
 end
 
-local function remember(part: BasePart)
-	if not broken[part] then
-		broken[part] = { Transparency = part.Transparency, CanCollide = part.CanCollide, CanQuery = part.CanQuery, CFrame = part.CFrame, Anchored = part.Anchored, Color = part.Color }
+-- Cristal que estalla: un golpe seco y agudo y el tintineo de los trozos
+local function glassSound(at: Vector3)
+	sound(at, "rbxasset://sounds/collide.wav", 0.9, 2.1 + math.random() * 0.3)
+	sound(at, "rbxasset://sounds/electronicpingshort.wav", 0.18, 3.2 + math.random() * 0.6)
+end
+
+local function fade(part: BasePart, goal: number, seconds: number)
+	local ok = pcall(function()
+		TweenService:Create(part, TweenInfo.new(seconds, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Transparency = goal }):Play()
+	end)
+	if not ok then
+		part.Transparency = goal
 	end
 end
 
-local function repairLater(part: BasePart, extra: { BasePart }?)
-	task.delay(Breakables.RepairSeconds + math.random() * 60, function()
-		for _, p in { part, table.unpack(extra or {}) } do
-			local was = broken[p]
-			if was and p.Parent then
-				p.Anchored = true
-				p.AssemblyLinearVelocity = Vector3.zero
-				p.AssemblyAngularVelocity = Vector3.zero
-				p.CFrame = was.CFrame
-				p.Transparency = was.Transparency
-				p.CanCollide = was.CanCollide
-				p.CanQuery = was.CanQuery
-				p.Color = was.Color
-			end
-			broken[p] = nil
-		end
-		doorHits[part] = nil
-	end)
+local function remember(part: BasePart): Saved
+	return {
+		Transparency = part.Transparency,
+		CanCollide = part.CanCollide,
+		CanQuery = part.CanQuery,
+		CFrame = part.CFrame,
+		Anchored = part.Anchored,
+		Color = part.Color,
+		Material = part.Material,
+		Reflectance = part.Reflectance,
+	}
 end
 
-local function breakGlass(part: BasePart, hitAt: Vector3, velocity: Vector3)
-	remember(part)
-	local color, alpha = part.Color, part.Transparency
-	part.Transparency = 1
-	part.CanCollide = false
-	part.CanQuery = false
-	sound(hitAt, "rbxasset://sounds/collide.wav", 0.9, 1.9)
-	-- Trozos de cristal que caen
+-- Trozos de cristal que salen volando y caen (con física), y se desvanecen a los 4–6 s
+local function shards(part: BasePart, color: Color3, alpha: number, velocity: Vector3)
 	local size = part.Size
-	for _ = 1, Breakables.shards(size) do
+	local count = math.min(Breakables.shards(size), Breakables.Budget.MaxShards - liveShards)
+	if count <= 0 then
+		return
+	end
+	liveShards += count
+	local push = if velocity.Magnitude > 0.01 then velocity.Unit else Vector3.zero
+	local life = 4 + math.random() * 2
+	for _ = 1, count do
 		local shard = Instance.new("WedgePart")
 		shard.Name = "Cristal"
 		shard.Size = Vector3.new(0.05, 0.3 + math.random() * 0.6, 0.3 + math.random() * 0.6)
 		shard.Color = color
 		shard.Material = Enum.Material.Glass
-		shard.Transparency = math.min(alpha, 0.6)
+		shard.Reflectance = 0.2
+		shard.Transparency = math.clamp(alpha, 0.15, 0.6)
 		shard.CanQuery = false
 		shard.CanTouch = false
+		shard.CastShadow = false
+		shard.Massless = true
 		local offset = Vector3.new((math.random() - 0.5) * size.X, (math.random() - 0.5) * size.Y, (math.random() - 0.5) * size.Z)
 		shard.CFrame = part.CFrame * CFrame.new(offset) * CFrame.Angles(math.random() * 6, math.random() * 6, math.random() * 6)
-		shard.AssemblyLinearVelocity = velocity * 0.12 + Vector3.new((math.random() - 0.5) * 8, math.random() * 4, (math.random() - 0.5) * 8)
+		shard.AssemblyLinearVelocity = push * (8 + math.random() * 10) + Vector3.new((math.random() - 0.5) * 8, math.random() * 5, (math.random() - 0.5) * 8)
+		shard.AssemblyAngularVelocity = Vector3.new(math.random() - 0.5, math.random() - 0.5, math.random() - 0.5) * 20
 		shard.Parent = workspace
-		Debris:AddItem(shard, 4 + math.random() * 2)
+		task.delay(life - 0.9, function()
+			if shard.Parent then
+				fade(shard, 1, 0.8)
+			end
+		end)
+		Debris:AddItem(shard, life)
 	end
-	repairLater(part)
+	task.delay(life, function()
+		liveShards = math.max(0, liveShards - count)
+	end)
 end
 
-local function hitDoor(part: BasePart, hitAt: Vector3, velocity: Vector3): boolean
-	local entry = doorHits[part]
-	if not entry then
-		entry = { Hits = 0, Last = 0, Color = part.Color, CFrame = part.CFrame }
-		doorHits[part] = entry
-	end
-	local door = entry :: { Hits: number, Last: number, Color: Color3, CFrame: CFrame }
-	door.Hits = Breakables.doorHits(door.Hits, os.clock() - door.Last)
-	door.Last = os.clock()
-	sound(hitAt, "rbxasset://sounds/collide.wav", 0.8, 0.6)
-	if door.Hits < Breakables.DoorHits then
-		-- Aguanta: tiembla un momento y se va viendo más estropeada
-		part.Color = door.Color:Lerp(Color3.new(0, 0, 0), Breakables.doorDamage(door.Hits))
-		local push = velocity.Unit * 0.12
-		part.CFrame = door.CFrame + push
-		task.delay(0.08, function()
-			if doorHits[part] == door and not broken[part] then
-				part.CFrame = door.CFrame
-			end
-		end)
-		-- Si nadie la vuelve a golpear en un rato, se «recupera»
-		local last = door.Last
-		task.delay(Breakables.DoorHeal + 0.5, function()
-			if doorHits[part] == door and door.Last == last and not broken[part] then
-				part.Color = door.Color
-				doorHits[part] = nil
-			end
-		end)
-		return false
-	end
-	-- Vuelve a su color y a su sitio antes de caerse (para dejarla como estaba al arreglarla)
-	part.Color = door.Color
-	part.CFrame = door.CFrame
-	-- Se cae: la puerta y su pomo (si lo tiene al lado)
-	local extra = {}
-	local parent = part.Parent
-	if parent then
-		for _, sibling in parent:GetChildren() do
-			if sibling:IsA("BasePart") and sibling ~= part and (sibling.Name:find("Knob") or sibling.Name:find("Handle")) and (sibling.Position - part.Position).Magnitude < 4 then
-				table.insert(extra, sibling)
-			end
-		end
-	end
-	for _, p in { part, table.unpack(extra) } do
-		remember(p)
-		p.Anchored = false
-		p.CanCollide = true
-	end
-	part.AssemblyLinearVelocity = velocity.Unit * 12
-	sound(hitAt, "rbxasset://sounds/collide.wav", 1, 0.45)
-	repairLater(part, extra)
-	return true
-end
+---------------------------------------------------------------------
+-- Qué se puede romper
+---------------------------------------------------------------------
 
 -- ¿Se puede romper? (no lo que tiene cartel para usarse o una etiqueta de algún sistema; las
--- ventanas que se encienden de noche, sí)
+-- ventanas que se encienden de noche, sí). Las puertas de las salas (Interact "Door") van aparte.
 local HARMLESS_TAGS = { NightWindow = true }
-local function usable(part: BasePart): boolean
-	if broken[part] or not part.Anchored then
+local function plainPart(part: BasePart): boolean
+	if broken[part] or not part.Anchored or split[part] then
 		return false
 	end
 	if part:FindFirstChildWhichIsA("ProximityPrompt", true) then
@@ -247,13 +263,359 @@ local function usable(part: BasePart): boolean
 	return true
 end
 
+-- Puerta con bisagra de una sala por dentro (World/Furniture.door): se abre de golpe a patadas o a
+-- tiros. Las de las viviendas (UnitDoor: tienen dueño y llave) no.
+local function swingDoor(part: BasePart): boolean
+	return not broken[part]
+		and part:HasTag("Interact")
+		and part:GetAttribute("Use") == "Door"
+		and typeof(part:GetAttribute("Hinge")) == "CFrame"
+		and typeof(part:GetAttribute("Closed")) == "CFrame"
+		and not part:HasTag("UnitDoor")
+		and part:GetAttribute("Open") ~= true
+end
+
+-- "Glass", "Segmented", "Door", "Swing" o nil
+local function kindOf(part: Instance): string?
+	if not part:IsA("BasePart") then
+		return nil
+	end
+	if split[part] then
+		return "Segmented" -- (el original de un escaparate ya partido: un coche lo pudo ver antes)
+	end
+	if swingDoor(part) then
+		return "Swing"
+	end
+	if not plainPart(part) then
+		return nil
+	end
+	local glass = Breakables.glassKind(part.Name, part.Material, part.Size)
+	if glass == "Pane" then
+		return "Glass"
+	elseif glass == "Segmented" then
+		return "Segmented"
+	elseif Breakables.isDoor(part.Name, part.Size) then
+		return "Door"
+	end
+	return nil
+end
+BreakService.kindOf = kindOf
+
 -- Las ventanas y puertas de decoración no las ven los rayos (CanQuery = false): se les activa para
--- que la piedra choque con ellas (siguen sin chocar con las personas: CanCollide no cambia)
+-- que la piedra, las balas y los coches choquen con ellas (siguen sin chocar con las personas:
+-- CanCollide no cambia)
 local function makeHittable(part: Instance)
-	if part:IsA("BasePart") and not part.CanQuery and (Breakables.isGlass(part.Name, part.Material, part.Size) or Breakables.isDoor(part.Name, part.Size)) then
+	if part:IsA("BasePart") and not part.CanQuery and (Breakables.glassKind(part.Name, part.Material, part.Size) ~= nil or Breakables.isDoor(part.Name, part.Size)) then
 		part.CanQuery = true
 	end
 end
+
+---------------------------------------------------------------------
+-- Romper
+---------------------------------------------------------------------
+
+local function track(part: BasePart, kind: string, saved: Saved, extra: { BasePart }?, extraSaved: { Saved }?)
+	local now = os.clock()
+	broken[part] = {
+		Kind = kind,
+		Saved = saved,
+		Size = part.Size,
+		BrokenAt = now,
+		RepairAt = now + Breakables.repairDelay(if kind == "Glass" then "Glass" else "Door", math.random()),
+		Extra = extra or {},
+		ExtraSaved = extraSaved or {},
+	}
+	brokenCount += 1
+	part:SetAttribute("Broken", true)
+end
+
+-- Un cristal entero (o un tramo) se rompe: trozos, sonido y hueco (que no choca: se puede pasar)
+local function breakPane(part: BasePart, hitAt: Vector3, velocity: Vector3)
+	local saved = remember(part)
+	-- Cristal de decoración pegado a la fachada (no choca): detrás no hay nada, queda un hueco oscuro
+	local backed = not part.CanCollide
+	track(part, "Glass", saved)
+	shards(part, saved.Color, saved.Transparency, velocity)
+	if backed then
+		part.Material = Enum.Material.SmoothPlastic
+		part.Color = HOLE_COLOR
+		part.Reflectance = 0
+		part.Transparency = 0.05
+	else
+		part.Transparency = 1
+	end
+	part.CanCollide = false
+	part.CanQuery = false
+	glassSound(hitAt)
+end
+
+-- Parte un escaparate (o una franja de ventanas) en tramos: el original se esconde y en su sitio
+-- quedan copias de un tramo cada una (iguales: color, material, luz de noche…)
+local function splitGlass(original: BasePart): Split
+	local existing = split[original]
+	if existing then
+		return existing
+	end
+	local axis, n, width = Breakables.segmentLayout(original.Size)
+	local length = if axis == "X" then original.Size.X else original.Size.Z
+	local info: Split = { Segments = {}, Axis = axis, Length = length, N = n, Saved = remember(original) }
+	for i = 1, n do
+		local seg = original:Clone()
+		for _, child in seg:GetChildren() do
+			child:Destroy()
+		end
+		local along = -length / 2 + (i - 0.5) * width
+		if axis == "X" then
+			seg.Size = Vector3.new(width, original.Size.Y, original.Size.Z)
+			seg.CFrame = original.CFrame * CFrame.new(along, 0, 0)
+		else
+			seg.Size = Vector3.new(original.Size.X, original.Size.Y, width)
+			seg.CFrame = original.CFrame * CFrame.new(0, 0, along)
+		end
+		seg:SetAttribute("Segment", i)
+		seg.Parent = original.Parent
+		segmentOf[seg] = original
+		info.Segments[i] = seg
+	end
+	split[original] = info
+	original:SetAttribute("Broken", true)
+	original.Transparency = 1
+	original.CanCollide = false
+	original.CanQuery = false
+	return info
+end
+
+-- Cuando todos sus tramos están arreglados, vuelve el cristal entero (una sola pieza, como siempre)
+local function mergeGlass(original: BasePart)
+	local info = split[original]
+	if not info then
+		return
+	end
+	for _, seg in info.Segments do
+		if broken[seg] then
+			return
+		end
+	end
+	for _, seg in info.Segments do
+		segmentOf[seg] = nil
+		seg:Destroy()
+	end
+	split[original] = nil
+	local saved = info.Saved
+	original.CanCollide = saved.CanCollide
+	original.CanQuery = saved.CanQuery
+	original.Transparency = saved.Transparency
+	original:SetAttribute("Broken", nil)
+end
+
+-- Tramos que rompe un golpe en `at` (half = medio ancho de lo que golpea: un coche rompe varios)
+local function segmentsHit(original: BasePart, at: Vector3, half: number): { BasePart }
+	local info = splitGlass(original)
+	local localAt = original.CFrame:PointToObjectSpace(at)
+	local coord = if info.Axis == "X" then localAt.X else localAt.Z
+	local list = {}
+	for _, i in Breakables.segmentsAround(coord, half, info.Length, info.N) do
+		local seg = info.Segments[i]
+		if seg and not broken[seg] then
+			table.insert(list, seg)
+		end
+	end
+	return list
+end
+
+-- Una puerta recibe un golpe: se va estropeando y, sin aguante, se cae (o se abre de golpe, las de
+-- las salas). Devuelve true si ha cedido.
+local function hitDoor(part: BasePart, hitAt: Vector3, velocity: Vector3, damage: number, swing: boolean): boolean
+	if damage <= 0 then
+		return false
+	end
+	local now = os.clock()
+	local door = doorState[part]
+	if not door then
+		door = { Health = Breakables.DoorHealth, Last = now, Color = part.Color, CFrame = part.CFrame }
+		doorState[part] = door
+	end
+	local state = door :: DoorState
+	state.Health = Breakables.doorHealthAfter(state.Health, damage, now - state.Last)
+	state.Last = now
+	sound(hitAt, "rbxasset://sounds/collide.wav", 0.8, 0.95)
+	local push = if velocity.Magnitude > 0.01 then velocity.Unit else Vector3.zero
+	if state.Health > 0 then
+		-- Aguanta: tiembla un momento y se va viendo más estropeada
+		part.Color = state.Color:Lerp(Color3.new(0, 0, 0), Breakables.doorShade(state.Health))
+		if not swing then
+			part.CFrame = state.CFrame + push * 0.12
+			task.delay(0.08, function()
+				if doorState[part] == state and not broken[part] then
+					part.CFrame = state.CFrame
+				end
+			end)
+		end
+		-- Si nadie la vuelve a golpear en un rato, se «recupera»
+		local last = state.Last
+		task.delay(Breakables.DoorHeal + 0.5, function()
+			if doorState[part] == state and state.Last == last and not broken[part] then
+				part.Color = state.Color
+				doorState[part] = nil
+			end
+		end)
+		return false
+	end
+	-- Vuelve a su color (y a su sitio) antes de ceder (para dejarla como estaba al arreglarla)
+	part.Color = state.Color
+	if swing then
+		local saved = remember(part)
+		track(part, "Swing", saved)
+		part:SetAttribute("Forced", true)
+		local InteractService = require(script.Parent.InteractService) :: any
+		pcall(InteractService.swing, part, true, 0.25)
+		sound(hitAt, "rbxasset://sounds/collide.wav", 1, 0.9)
+		return true
+	end
+	part.CFrame = state.CFrame
+	-- Se cae: la puerta y su pomo (si lo tiene al lado)
+	local extra: { BasePart } = {}
+	local parent = part.Parent
+	if parent then
+		for _, sibling in parent:GetChildren() do
+			if sibling:IsA("BasePart") and sibling ~= part and (sibling.Name:find("Knob") or sibling.Name:find("Handle")) and (sibling.Position - part.Position).Magnitude < 4 and not broken[sibling] then
+				table.insert(extra, sibling)
+			end
+		end
+	end
+	local extraSaved = {}
+	for i, p in extra do
+		extraSaved[i] = remember(p)
+	end
+	track(part, "Door", remember(part), extra, extraSaved)
+	for _, p in { part, table.unpack(extra) } do
+		p.Anchored = false
+		-- (sigue chocando con el suelo, pero el hueco queda libre: no vuelve a su sitio)
+		p.CanCollide = true
+		p.CanQuery = false
+	end
+	part.AssemblyLinearVelocity = push * 14 + Vector3.new(0, 4, 0)
+	sound(hitAt, "rbxasset://sounds/collide.wav", 1, 0.9)
+	return true
+end
+
+---------------------------------------------------------------------
+-- Arreglar
+---------------------------------------------------------------------
+
+local function restoreProps(p: BasePart, saved: Saved, fadeIn: boolean)
+	p.Anchored = true -- (todo lo que se rompe estaba anclado: plainPart)
+	p.AssemblyLinearVelocity = Vector3.zero
+	p.AssemblyAngularVelocity = Vector3.zero
+	p.CFrame = saved.CFrame
+	p.Color = saved.Color
+	p.Material = saved.Material
+	p.Reflectance = saved.Reflectance
+	p.CanCollide = saved.CanCollide
+	p.CanQuery = saved.CanQuery
+	-- Las franjas «Soft» (WorldService) cambian de transparencia con la luz de noche
+	local target = saved.Transparency
+	if p:GetAttribute("Soft") and p:HasTag("NightWindow") then
+		target = if p.Material == Enum.Material.Neon then 0.45 else 0
+	end
+	if fadeIn then
+		p.Transparency = 1
+		fade(p, target, Breakables.FadeIn)
+	else
+		p.Transparency = target
+	end
+end
+
+local function repair(part: BasePart, piece: Piece)
+	broken[part] = nil
+	brokenCount = math.max(0, brokenCount - 1)
+	part:SetAttribute("Broken", nil)
+	if not part.Parent then
+		doorState[part] = nil
+		return
+	end
+	if piece.Kind == "Swing" then
+		part:SetAttribute("Forced", nil)
+		doorState[part] = nil
+		if part:GetAttribute("Open") == true then
+			local InteractService = require(script.Parent.InteractService) :: any
+			pcall(InteractService.swing, part, false)
+		end
+		return
+	end
+	restoreProps(part, piece.Saved, true)
+	for i, p in piece.Extra do
+		local saved = piece.ExtraSaved[i]
+		if saved and p.Parent then
+			restoreProps(p, saved, true)
+		end
+	end
+	doorState[part] = nil
+	local original = segmentOf[part]
+	if original then
+		task.delay(Breakables.FadeIn + 0.1, function()
+			if split[original] then
+				mergeGlass(original)
+			end
+		end)
+	end
+end
+
+-- Dónde está la gente (para no arreglar nada con alguien en el hueco)
+local function peoplePoints(): { Vector3 }
+	local points = {}
+	for _, player in Players:GetPlayers() do
+		local character = player.Character
+		local root = character and character:FindFirstChild("HumanoidRootPart")
+		if root and root:IsA("BasePart") then
+			table.insert(points, root.Position)
+		end
+	end
+	return points
+end
+
+-- Cada medio segundo: lo que toca arreglar (si el hueco está libre). points: dónde está la gente
+-- (las pruebas lo pasan; si no, los jugadores)
+function BreakService.stepRepairs(now: number?, points: { Vector3 }?)
+	local t = now or os.clock()
+	local people = points or peoplePoints()
+	-- Demasiadas cosas rotas a la vez: la más antigua se arregla ya (si el hueco está libre)
+	if brokenCount > Breakables.Budget.MaxBroken then
+		local oldest, oldestAt = nil, math.huge
+		for part, piece in broken do
+			if piece.BrokenAt < oldestAt then
+				oldest, oldestAt = part, piece.BrokenAt
+			end
+		end
+		if oldest then
+			broken[oldest].RepairAt = math.min(broken[oldest].RepairAt, t)
+		end
+	end
+	local due = {}
+	for part, piece in broken do
+		if piece.RepairAt <= t then
+			table.insert(due, part)
+		end
+	end
+	for _, part in due do
+		local piece = broken[part]
+		if piece then
+			local home = if piece.Kind == "Swing" then part:GetAttribute("Closed") else piece.Saved.CFrame
+			if typeof(home) == "CFrame" and Breakables.occupied(home, piece.Size, people) then
+				piece.RepairAt = t + Breakables.RepairRetry
+			else
+				local ok, err = pcall(repair, part, piece)
+				if not ok then
+					warn("[BreakService] " .. tostring(err))
+				end
+			end
+		end
+	end
+end
+
+---------------------------------------------------------------------
+-- Consecuencias
+---------------------------------------------------------------------
 
 local function personOf(part: BasePart): (Model?, Player?)
 	local model = part:FindFirstAncestorOfClass("Model")
@@ -266,34 +628,120 @@ local function personOf(part: BasePart): (Model?, Player?)
 	return nil, nil
 end
 
-local function alertPolice(thrower: Player, at: Vector3, what: string)
-	if os.clock() - (lastAlert[thrower] or 0) < 20 then
+local function alertPolice(player: Player, at: Vector3, what: string, source: string)
+	-- «Daños» si lo ve alguien (WantedService decide: testigos, policía, edad, modo pruebas)
+	local stars = player:GetAttribute("Wanted")
+	local crime = Breakables.vandalCrime(source, if type(stars) == "number" then stars else 0, os.clock() - (lastVandal[player] or -math.huge))
+	if crime then
+		lastVandal[player] = os.clock()
+		local WantedService = require(script.Parent.WantedService) :: any
+		task.spawn(function()
+			local ok, err = pcall(WantedService.crime, player, crime, at)
+			if not ok then
+				warn("[BreakService] " .. tostring(err))
+			end
+		end)
+	end
+	if os.clock() - (lastAlert[player] or 0) < 20 then
 		return
 	end
-	lastAlert[thrower] = os.clock()
-	thrower:SetAttribute("Vandalismo", (thrower:GetAttribute("Vandalismo") or 0) + 1)
-	StoryEvents.emit(thrower, "Vandalism", { What = what }) -- (al historial de comportamiento)
+	lastAlert[player] = os.clock()
+	player:SetAttribute("Vandalismo", (player:GetAttribute("Vandalismo") or 0) + 1)
+	StoryEvents.emit(player, "Vandalism", { What = what }) -- (al historial de comportamiento)
 	local zone = LocationService.zoneAt(at) or "la ciudad"
 	for _, other in Players:GetPlayers() do
-		if other ~= thrower and other:GetAttribute("Job") == "Policia" then
+		if other ~= player and other:GetAttribute("Job") == "Policia" and Notify then
 			Notify:FireClient(other, "Info", ("🚨 Vandalismo en %s: %s"):format(zone, what))
 		end
 	end
 end
 
+local HOW = { Stone = "", Bullet = " a tiros", Melee = " a golpes", MeleeHeavy = " a golpes", Vehicle = " con un coche" }
+
+-- Algo golpea una pieza. source: "Stone", "Bullet", "Melee", "MeleeHeavy" o "Vehicle".
+-- opts.Speed (vehículo: studs/s) y opts.Half (medio ancho de lo que golpea: un coche rompe varios
+-- tramos de un escaparate). Devuelve "Glass", "Door" o nil (no se rompe / no le hace nada).
+function BreakService.hit(player: Player, part: Instance, hitAt: Vector3, velocity: Vector3, source: string, opts: { Speed: number?, Half: number? }?): string?
+	local kind = kindOf(part)
+	if not kind then
+		return nil
+	end
+	local p = part :: BasePart
+	local speed = opts and opts.Speed
+	if kind == "Glass" or kind == "Segmented" then
+		if not Breakables.breaksGlass(source, speed) then
+			sound(hitAt, "rbxasset://sounds/collide.wav", 0.4, 1.8)
+			return nil
+		end
+		history[player] = history[player] or {}
+		if not Breakables.allow(history[player], os.clock()) then
+			return nil
+		end
+		if kind == "Segmented" then
+			local half = opts and opts.Half or 0
+			for _, seg in segmentsHit(p, hitAt, half) do
+				breakPane(seg, hitAt, velocity)
+			end
+		else
+			breakPane(p, hitAt, velocity)
+		end
+		alertPolice(player, hitAt, "han roto un cristal" .. (HOW[source] or ""), source)
+		return "Glass"
+	end
+	-- Puertas
+	local damage = Breakables.doorDamageFrom(source, speed)
+	if damage <= 0 then
+		return nil
+	end
+	local state = doorState[p]
+	local wouldBreak = (state and Breakables.doorHealthAfter(state.Health, damage, os.clock() - state.Last) or Breakables.DoorHealth - damage) <= 0
+	if wouldBreak then
+		history[player] = history[player] or {}
+		if not Breakables.allow(history[player], os.clock()) then
+			return nil
+		end
+	end
+	if hitDoor(p, hitAt, velocity, damage, kind == "Swing") then
+		alertPolice(player, hitAt, (if kind == "Swing" then "han reventado una puerta" else "han tirado una puerta abajo") .. (HOW[source] or ""), source)
+	end
+	return "Door"
+end
+
+-- Una bala de WeaponService: rompe cristales y castiga puertas. weaponKind: Kind del arma (solo
+-- "Real": las de agua y de pintura no rompen nada). Devuelve "Glass", "Door" o nil.
+function BreakService.hitStructure(player: Player, part: Instance, hitAt: Vector3, velocity: Vector3, weaponKind: string?): string?
+	if weaponKind ~= nil and not Breakables.bulletBreaks(weaponKind) then
+		return nil
+	end
+	return BreakService.hit(player, part, hitAt, velocity, "Bullet")
+end
+
+-- Un golpe cuerpo a cuerpo que no ha dado a nadie (CombatService): ¿hay delante un cristal o una
+-- puerta? heavy = el golpe fuerte del combo (rompe cristales; los flojos solo dañan puertas)
+function BreakService.meleeHit(player: Player, origin: Vector3, look: Vector3, reach: number, heavy: boolean): string?
+	if look.Magnitude < 0.01 then
+		return nil
+	end
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = { player.Character :: Instance }
+	local result = workspace:Raycast(origin, look.Unit * reach, params)
+	if not result then
+		return nil
+	end
+	return BreakService.hit(player, result.Instance, result.Position, look.Unit * 30, if heavy then "MeleeHeavy" else "Melee")
+end
+
+-- Un vehículo (KnockService ya ha comprobado que es de verdad: que está al lado y a esa velocidad)
+function BreakService.vehicleHit(player: Player, part: Instance, at: Vector3, velocity: Vector3, half: number): string?
+	return BreakService.hit(player, part, at, velocity, "Vehicle", { Speed = velocity.Magnitude, Half = half })
+end
+
 local function impact(stone: Stone, result: RaycastResult, velocity: Vector3)
 	local part = result.Instance
-	if part:IsA("BasePart") and usable(part) then
-		if Breakables.isGlass(part.Name, part.Material, part.Size) then
-			breakGlass(part, result.Position, velocity)
-			alertPolice(stone.Player, result.Position, "han roto una ventana")
-			return
-		elseif Breakables.isDoor(part.Name, part.Size) then
-			if hitDoor(part, result.Position, velocity) then
-				alertPolice(stone.Player, result.Position, "han tirado una puerta abajo")
-			end
-			return
-		end
+	local what = BreakService.hit(stone.Player, part, result.Position, velocity, "Stone")
+	if what then
+		return
 	end
 	if part:IsA("BasePart") then
 		local model, victim = personOf(part)
@@ -309,25 +757,6 @@ local function impact(stone: Stone, result: RaycastResult, velocity: Vector3)
 		end
 	end
 	sound(result.Position, "rbxasset://sounds/collide.wav", 0.5, 1.3)
-end
-
--- Otra cosa que golpea una pieza (una bala de WeaponService): rompe cristales y castiga puertas
--- igual que una piedra. Devuelve "Glass", "Door" o nil (no era rompible).
-function BreakService.hitStructure(player: Player, part: Instance, hitAt: Vector3, velocity: Vector3): string?
-	if not part:IsA("BasePart") or not usable(part) then
-		return nil
-	end
-	if Breakables.isGlass(part.Name, part.Material, part.Size) then
-		breakGlass(part, hitAt, velocity)
-		alertPolice(player, hitAt, "han roto una ventana a tiros")
-		return "Glass"
-	elseif Breakables.isDoor(part.Name, part.Size) then
-		if hitDoor(part, hitAt, velocity) then
-			alertPolice(player, hitAt, "han tirado una puerta abajo a tiros")
-		end
-		return "Door"
-	end
-	return nil
 end
 
 -- Una piedra que ha chocado se queda en el suelo un rato
@@ -504,6 +933,8 @@ function BreakService.init()
 		lastPick[player] = nil
 		lastThrow[player] = nil
 		lastAlert[player] = nil
+		lastVandal[player] = nil
+		history[player] = nil
 		for i = #stones, 1, -1 do
 			if stones[i].Player == player then
 				table.remove(stones, i)
@@ -515,6 +946,16 @@ function BreakService.init()
 			makeHittable(part)
 			if i % 5000 == 0 then
 				task.wait()
+			end
+		end
+	end)
+	-- Lo roto se arregla solo (cada medio segundo se mira qué toca y si el hueco está libre)
+	task.spawn(function()
+		while true do
+			task.wait(0.5)
+			local ok, err = pcall(BreakService.stepRepairs)
+			if not ok then
+				warn("[BreakService] " .. tostring(err))
 			end
 		end
 	end)

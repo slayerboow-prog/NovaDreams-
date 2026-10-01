@@ -33,7 +33,7 @@ local rgb = Color3.fromRGB
 type Officer = { Model: Model, Root: BasePart, Height: number, Path: { Vector3 }, PathAt: number, Car: any? }
 type Car = { Model: Model, Offset: CFrame, Officers: { Officer }, Arrived: boolean, Chase: boolean?, Position: Vector3?, Look: Vector3? }
 type Patrol = { Model: Model, Offset: CFrame, Index: number, From: string, T: number, Lane: number, Position: Vector3, GroundAt: number, Speed: number, Look: Vector3? }
-type Heli = { Model: Model, Offset: CFrame, Beam: BasePart, Angle: number, Position: Vector3 }
+type Heli = { Model: Model, Offset: CFrame, Angle: number, Position: Vector3, SpotAt: Vector3? }
 type Force = { Cars: { Car }, Helis: { Heli }, Officers: { Officer }, Target: Vector3?, Stars: number, Folder: Folder }
 
 local forces: { [Player]: Force } = {}
@@ -318,7 +318,10 @@ local function part(model: Model, name: string, size: Vector3, cf: CFrame, color
 	return p
 end
 
-local function buildHeli(parent: Instance, cf: CFrame): (Model, BasePart)
+-- El helicóptero: el servidor solo lo mueve (todo anclado). Cada pantalla gira los rotores, pone el
+-- sonido y dibuja el foco (Controllers/Helicopters con shared/Helicopter): el haz, la luz y la mancha
+-- en el suelo que sigue a quien buscan (atributos SpotTarget y SpotUser).
+local function buildHeli(parent: Instance, cf: CFrame, player: Player): Model
 	local m = Instance.new("Model")
 	m.Name = "Helicoptero"
 	local navy, white = rgb(24, 40, 96), rgb(235, 238, 245)
@@ -333,7 +336,8 @@ local function buildHeli(parent: Instance, cf: CFrame): (Model, BasePart)
 		part(m, "Strut", V(0.3, 1.2, 0.3), cf * CFrame.new(x, -2.4, -2), rgb(60, 60, 66), Enum.Material.Metal)
 		part(m, "Strut", V(0.3, 1.2, 0.3), cf * CFrame.new(x, -2.4, 2), rgb(60, 60, 66), Enum.Material.Metal)
 	end
-	local hub = part(m, "RotorHub", V(0.8, 0.8, 0.8), cf * CFrame.new(0, 2.6, 0), rgb(40, 40, 44), Enum.Material.Metal)
+	part(m, "Mast", V(0.5, 1, 0.5), cf * CFrame.new(0, 2.6, 0), rgb(50, 50, 54), Enum.Material.Metal)
+	local hub = part(m, "RotorHub", V(0.8, 0.8, 0.8), cf * CFrame.new(0, 3.1, 0), rgb(40, 40, 44), Enum.Material.Metal)
 	for i = 0, 1 do
 		local blade = part(m, "Blade", V(26, 0.15, 1), hub.CFrame * CFrame.Angles(0, i * math.pi / 2, 0), rgb(30, 30, 34))
 		blade:AddTag("HeliBlade")
@@ -341,22 +345,19 @@ local function buildHeli(parent: Instance, cf: CFrame): (Model, BasePart)
 	for _, x in { -2.6, 2.6 } do
 		part(m, if x < 0 then "SirenBlue" else "SirenRed", V(0.4, 0.4, 0.6), cf * CFrame.new(x, -1.8, -3.5), if x < 0 then rgb(40, 60, 140) else rgb(140, 30, 30))
 	end
-	-- Foco: luz hacia abajo y un haz que llega hasta ti
-	local lamp = part(m, "Searchlight", V(0.8, 0.6, 0.8), cf * CFrame.new(0, -2.3, -3.5), rgb(255, 250, 220), Enum.Material.Neon)
-	local spot = Instance.new("SpotLight")
-	spot.Face = Enum.NormalId.Bottom
-	spot.Angle = 35
-	spot.Range = 60
-	spot.Brightness = 6
-	spot.Color = rgb(255, 250, 225)
-	spot.Parent = lamp
-	local beam = part(m, "Beam", V(4, 4, 10), cf, rgb(255, 250, 215), Enum.Material.Neon, 0.88)
-	beam.Shape = Enum.PartType.Cylinder
+	-- La lámpara del foco (el haz y la luz los pone cada pantalla)
+	part(m, "Searchlight", V(0.9, 0.7, 0.9), cf * CFrame.new(0, -2.3, -3.5), rgb(255, 250, 220), Enum.Material.Neon)
 	m.PrimaryPart = body
 	m:AddTag("PoliceCar") -- (para que el cliente haga parpadear sus luces)
+	m:AddTag("Helicopter") -- (rotores, sonido y foco: Controllers/Helicopters)
 	m:SetAttribute("Siren", true)
+	m:SetAttribute("SpotUser", player.UserId)
+	-- Llega entero a cada pantalla (sin rotor a medias por el streaming)
+	pcall(function()
+		(m :: any).ModelStreamingMode = Enum.ModelStreamingMode.Atomic
+	end)
 	m.Parent = parent
-	return m, beam
+	return m
 end
 
 local function spawnHeli(player: Player, force: Force)
@@ -367,8 +368,8 @@ local function spawnHeli(player: Player, force: Force)
 	local angle = math.random() * math.pi * 2
 	local from = r.Position + V(math.cos(angle) * 260, 90, math.sin(angle) * 260)
 	local cf = CFrame.lookAt(from, V(r.Position.X, from.Y, r.Position.Z))
-	local model, beam = buildHeli(force.Folder, cf)
-	table.insert(force.Helis, { Model = model, Offset = cf:ToObjectSpace(model:GetPivot()), Beam = beam, Angle = angle, Position = from })
+	local model = buildHeli(force.Folder, cf, player)
+	table.insert(force.Helis, { Model = model, Offset = cf:ToObjectSpace(model:GetPivot()), Angle = angle, Position = from })
 end
 
 local function stepHeli(heli: Heli, target: Vector3?, dt: number, index: number)
@@ -389,11 +390,11 @@ local function stepHeli(heli: Heli, target: Vector3?, dt: number, index: number)
 	local look = V(ground.X, heli.Position.Y, ground.Z)
 	local cf = CFrame.lookAt(heli.Position, look) * CFrame.Angles(math.rad(-8), 0, 0)
 	heli.Model:PivotTo(cf * heli.Offset)
-	-- El haz del foco, desde el helicóptero hasta ti
-	local lampPos = heli.Position + V(0, -2.5, 0)
-	local length = (ground - lampPos).Magnitude
-	heli.Beam.Size = V(length, 6, 6)
-	heli.Beam.CFrame = CFrame.lookAt(lampPos:Lerp(ground, 0.5), ground) * CFrame.Angles(0, math.pi / 2, 0)
+	-- A dónde apunta el foco (cada pantalla lo sigue con suavidad): solo se avisa si cambia algo
+	if not heli.SpotAt or (heli.SpotAt - ground).Magnitude > 0.5 then
+		heli.SpotAt = ground
+		heli.Model:SetAttribute("SpotTarget", ground)
+	end
 end
 
 ---------------------------------------------------------------------

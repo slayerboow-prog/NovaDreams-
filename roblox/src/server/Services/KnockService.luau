@@ -475,6 +475,34 @@ local function onProp(player: Player, target: any, info: any)
 	KnockService.knock(unit, launch, spin)
 end
 
+-- Tu vehículo entra en un cristal o una puerta (BreakService: escaparates, puertas de los edificios…).
+-- Solo en vehículo, al lado de verdad y a una velocidad que puede llevar; BreakService decide si se
+-- rompe (según la velocidad) y lleva su propio tope de roturas.
+local function onBreak(player: Player, target: any, info: any)
+	if typeof(target) ~= "Instance" or not target:IsA("BasePart") or not target:IsDescendantOf(workspace) then
+		return
+	end
+	local now = os.clock()
+	local pos, reach, maxSpeed, mass, serverVel = hitter(player)
+	if not pos or mass <= Knock.CharacterMass * 2 then
+		return -- (andando no: a pie se rompe a golpes, CombatService)
+	end
+	local vel = velocityOf(info, maxSpeed, serverVel)
+	if not vel or not allowed(player, "b" .. player.UserId .. ":" .. target:GetFullName(), now) then
+		return
+	end
+	-- Punto de la pieza más cerca del vehículo
+	local half = target.Size / 2
+	local l = target.CFrame:PointToObjectSpace(pos)
+	local contact = target.CFrame:PointToWorldSpace(Vector3.new(math.clamp(l.X, -half.X, half.X), math.clamp(l.Y, -half.Y, half.Y), math.clamp(l.Z, -half.Z, half.Z)))
+	if not Knock.plausible(pos, reach, contact, 1, vel.Magnitude, maxSpeed) then
+		return
+	end
+	local BreakService = require(script.Parent.BreakService) :: any
+	BreakService.vehicleHit(player, target, contact, vel, math.min(reach, 4))
+end
+KnockService._onBreak = onBreak -- (pruebas)
+
 local onPedestrian: (Player, any) -> ()
 local function onPerson(player: Player, target: any, info: any, shove: boolean)
 	if typeof(target) ~= "Instance" or not target:IsA("Model") or not target:IsDescendantOf(workspace) then
@@ -556,6 +584,8 @@ function KnockService.init()
 				onPerson(player, target, info, true)
 			elseif action == "Ped" then
 				onPedestrian(player, info)
+			elseif action == "Break" then
+				onBreak(player, target, info)
 			end
 		end)
 		if not ok then

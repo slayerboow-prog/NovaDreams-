@@ -28,6 +28,12 @@ end
 local WorldService = {}
 
 local day = 1 -- día absoluto (atributo "Day" de workspace)
+-- (CalendarService puede poner el día del servidor al de la vida del primer jugador que llega a un
+-- servidor vacío: se lee del atributo para seguir contando desde ahí)
+local function currentDay(): number
+	local attr = workspace:GetAttribute("Day")
+	return if type(attr) == "number" and attr >= 1 then math.floor(attr) else day
+end
 
 local function ensure(className: string, props: { [string]: any })
 	local instance = Lighting:FindFirstChildOfClass(className) or Instance.new(className)
@@ -119,6 +125,9 @@ end
 local function setWindow(window: BasePart, info: WindowInfo, on: boolean)
 	if windowOn[window] == on then
 		return
+	end
+	if window:GetAttribute("Broken") then
+		return -- roto (BreakService): no se toca; al arreglarse, la siguiente revisión lo enciende o apaga
 	end
 	windowOn[window] = on
 	window.Material = if on then Enum.Material.Neon else Enum.Material.Glass
@@ -397,7 +406,7 @@ end
 function WorldService.skipTo(clockTime: number): boolean
 	local newDay = Lighting.ClockTime > clockTime
 	if newDay then
-		day += 1
+		day = currentDay() + 1
 		workspace:SetAttribute("Day", day)
 	end
 	Lighting.ClockTime = clockTime
@@ -475,7 +484,7 @@ function WorldService.init()
 			Lighting.ClockTime = clock
 		end
 		if clock < previous then
-			day += 1
+			day = currentDay() + 1
 			workspace:SetAttribute("Day", day)
 		end
 

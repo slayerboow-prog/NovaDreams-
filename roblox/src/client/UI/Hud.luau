@@ -134,7 +134,10 @@ local function buildClock(parent: Instance)
 		setText(time, Format.clock(clock))
 		local now = GameClock.now()
 		setText(date, ("%s, %d de %s"):format(WEEKDAYS[now.Weekday] or "", now.DayOfMonth, MONTHS[now.Month] or ""))
-		setText(sub, "Día " .. tostring(now.Day) .. (if questTitleShown ~= "" then " · " .. questTitleShown else ""))
+		-- (el día de TU vida, que se guarda con la partida: CalendarService; si aún no ha llegado, el del mundo)
+		local lifeDay = player:GetAttribute("LifeDay")
+		local dayNumber = if type(lifeDay) == "number" and lifeDay >= 1 then lifeDay else now.Day
+		setText(sub, "Día " .. tostring(dayNumber) .. (if questTitleShown ~= "" then " · " .. questTitleShown else ""))
 		local hour = math.floor(clock)
 		if hour ~= shownHour then
 			shownHour = hour
@@ -149,6 +152,10 @@ local function buildClock(parent: Instance)
 			tick()
 		end)
 	end
+	player:GetAttributeChangedSignal("LifeDay"):Connect(function()
+		shownMinute = -1
+		tick()
+	end)
 	tick()
 	-- (por si el reloj del juego avanza sin cambiar ClockTime: un repaso cada pocos segundos)
 	task.spawn(function()

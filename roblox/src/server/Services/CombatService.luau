@@ -261,6 +261,19 @@ local function attack(player: Player)
 			StoryEvents.emit(player, "HitSomeone", { Npc = npcId or model.Name, Model = model })
 		end
 	end
+	-- Sin nadie delante: ¿un cristal o una puerta? (patadas a la puerta; el golpe fuerte rompe cristales)
+	if hits == 0 and not attackerSafe then
+		local BreakService = require(script.Parent.BreakService) :: any
+		local look = Vector3.new(root.CFrame.LookVector.X, 0, root.CFrame.LookVector.Z)
+		if BreakService.meleeHit and look.Magnitude > 0.01 then
+			for _, up in { 0, 1.6 } do
+				local ok, what = pcall(BreakService.meleeHit, player, root.Position + Vector3.new(0, up, 0), look.Unit, Combat.Range + 1.5, combo >= #Combat.Knockback)
+				if ok and what then
+					break
+				end
+			end
+		end
+	end
 end
 
 local function setBlocking(player: Player, value: boolean)
@@ -282,6 +295,7 @@ export type HitInfo = {
 	Toy: boolean?, -- de juguete: solo reacciona
 	At: Vector3?, -- dónde ha dado (para el número de daño)
 	Zone: string?,
+	Vehicle: boolean?, -- atropello (KnockService): el delito lo decide KnockService (culpa + policía delante)
 }
 export type HitResult = { Hit: boolean, Amount: number, KO: boolean, Killed: boolean, Player: Player? }
 
@@ -323,7 +337,7 @@ function CombatService.applyHit(attacker: Player, model: Model, info: HitInfo): 
 			-- Rematar a alguien que está K.O.: muere
 			targetHumanoid.Health = 0
 			show(info.Amount, true)
-			StoryEvents.emit(attacker, "HitSomeone", { Target = victim.UserId, Model = model, KO = true, Killed = true, Weapon = info.Weapon })
+			StoryEvents.emit(attacker, "HitSomeone", { Target = victim.UserId, Model = model, KO = true, Killed = true, Weapon = info.Weapon, Vehicle = info.Vehicle })
 			StoryEvents.emit(victim, "GotHit", { By = attacker.UserId })
 			return { Hit = true, Amount = info.Amount, KO = true, Killed = true, Player = victim }
 		end
@@ -338,7 +352,7 @@ function CombatService.applyHit(attacker: Player, model: Model, info: HitInfo): 
 			ko = true
 		end
 		show(amount, ko)
-		StoryEvents.emit(attacker, "HitSomeone", { Target = victim.UserId, Model = model, KO = ko, Weapon = info.Weapon })
+		StoryEvents.emit(attacker, "HitSomeone", { Target = victim.UserId, Model = model, KO = ko, Weapon = info.Weapon, Vehicle = info.Vehicle })
 		StoryEvents.emit(victim, "GotHit", { By = attacker.UserId })
 		if ko then
 			knockOut(victim, targetHumanoid, if stunned then info.Stun else nil)
@@ -357,7 +371,7 @@ function CombatService.applyHit(attacker: Player, model: Model, info: HitInfo): 
 		if hp <= 0 then
 			PoliceUnits.knockDown(model)
 		end
-		StoryEvents.emit(attacker, "HitSomeone", { Model = model, KO = hp <= 0, Weapon = info.Weapon })
+		StoryEvents.emit(attacker, "HitSomeone", { Model = model, KO = hp <= 0, Weapon = info.Weapon, Vehicle = info.Vehicle })
 		return { Hit = true, Amount = info.Amount, KO = hp <= 0, Killed = false, Player = nil }
 	elseif npcBelongsTo(model, attacker) then
 		-- Personajes (de misión, del cole…): reaccionan pero no se hacen daño

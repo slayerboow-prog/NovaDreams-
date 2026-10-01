@@ -405,12 +405,18 @@ local function check(condition: any, message: string)
 	end
 end
 
+H.defaultAttributes = {} :: { [string]: any }
+
 -- stage = nil: personaje recién creado (playSeconds 0 -> nace bebé; > 0 -> jugador veterano, adulto)
 local nextUserId = 1000
 local function newPlayer(name: string, stage: string?, playSeconds: number?, profile: any?)
 	-- SpawnReady: ya ha aparecido donde lo dejó (en el juego lo pone PositionService)
 	nextUserId += 1
 	local player = { Name = name, DisplayName = name, UserId = nextUserId, Parent = true, Inbox = {}, Attributes = { SpawnReady = true }, Said = {}, Games = {}, Barks = {} }
+	-- (atributos que pondrían otros servicios antes de cargar la historia, p. ej. LifeDay de CalendarService)
+	for key, value in H.defaultAttributes do
+		player.Attributes[key] = value
+	end
 	function player:SetAttribute(key, value)
 		self.Attributes[key] = value
 	end

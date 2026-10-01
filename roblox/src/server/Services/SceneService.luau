@@ -33,6 +33,7 @@ local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 local Locations = require(ReplicatedStorage.Shared.LifeStory.Locations)
 local LocationService = require(script.Parent.LocationService)
 local Npc = require(script.Parent.Parent.World.Npc) -- ropa, pelo y pies en el suelo (lo comparte todo el juego)
+local RoadGuard = require(script.Parent.Parent.World.RoadGuard) -- no bajar a la calzada si viene alguien
 local Log = require(ReplicatedStorage.Shared.Log)
 
 local SceneService = {}
@@ -695,6 +696,28 @@ local function stepWalk(actor: Actor)
 			humanoid.Jump = true
 		end
 		humanoid:MoveTo(target)
+	end
+	-- En el bordillo: no baja a la calzada si su semáforo no le deja o viene un vehículo
+	-- (World/RoadGuard). Esperando (hasta 40 s) no cuenta como atascado.
+	local ahead = target
+	for i = index, #path do
+		if flatDistance(root.Position, path[i]) > 40 then
+			break
+		end
+		ahead = path[i]
+	end
+	local feet = root.Position - V(0, humanoid.HipHeight + root.Size.Y / 2, 0)
+	local okKerb, kerb, crosses = pcall(RoadGuard.kerb, feet, ahead)
+	if okKerb and crosses and not kerb and now - (actor.KerbSince or now) < 40 and RoadGuard.mustWait(feet, ahead, humanoid.WalkSpeed) then
+		actor.KerbSince = actor.KerbSince or now
+		humanoid:MoveTo(root.Position)
+		actor.LastProgress = now
+		actor.StuckSince = (actor.StuckSince :: number) + 0.3
+		actor.LastPosition = root.Position
+		return
+	end
+	if not (okKerb and crosses) then
+		actor.KerbSince = nil
 	end
 	if humanoid.MoveDirection.Magnitude < 0.1 then
 		humanoid:MoveTo(target) -- (MoveTo se rinde a los 8 s: se vuelve a pedir)
