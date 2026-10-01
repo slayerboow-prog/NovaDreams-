@@ -3,16 +3,31 @@
 -- No es una prueba del juego: sirve para saber qué hay dentro de cada modelo gratis de
 -- docs/modelos-tienda.md (nombres, clases, tamaños, MeshParts, SurfaceAppearance, scripts…)
 -- antes de usarlo desde código. El volcado sale por la consola (usa -v) y queda en el registro.
--- Resultado escrito a mano en docs/modelos-tienda-contenido.md.
+-- Resultado escrito a mano en docs/modelos-tienda-contenido.md (primera tanda, de la comunidad)
+-- y docs/modelos-oficiales-2.md (segunda tanda: modelos oficiales de Roblox).
 --
 -- Uso: bash scripts/cloud-test.sh -v modelos
 
 local Cloud = Cloud :: any -- (lo pone scripts/cloud-test.sh delante: scripts/cloud/_comun.luau)
 local InsertService = game:GetService("InsertService")
 
+-- Primera tanda (docs/modelos-tienda-contenido.md):
+-- 6432306802, 6370681139, 10840661513, 6432233485, 3256343670, 9271152246, 10131972958, 10562894034,
+-- 471214939, 12637929826, 185280084, 404475960, 8916801819, 11508587471, 8975295794, 5295646823, 12169860688
+-- Segunda tanda (docs/modelos-oficiales-2.md): oficiales de Roblox (usuario 1 y grupo Roblox Resources)
 local IDS = {
-	6432306802, 6370681139, 10840661513, 6432233485, 3256343670, 9271152246, 10131972958, 10562894034,
-	471214939, 12637929826, 185280084, 404475960, 8916801819, 11508587471, 8975295794, 5295646823, 12169860688,
+	-- edificios, casas y materiales
+	13168370735, 6418277837, 6933556508, 13168345645, 10841357434, 10840642581,
+	-- muebles
+	10847897579,
+	-- coches
+	6418239833, 6433323089, 6418225759, 6418234850, 6418221666, 6433330180, 6433316269, 6418230807, 6433272094,
+	-- grupo Roblox Resources (3529469)
+	14215126016, 14447738661, 3703494811,
+	-- plantillas (tienda y ciudad)
+	12931234517, 12930997548,
+	-- cielos
+	311580, 47339, 47344, 47410,
 }
 local NIVELES = 3 -- niveles del árbol que se enseñan
 local MAX_HIJOS = 80 -- hijos enseñados por nodo como mucho
@@ -55,7 +70,7 @@ end
 
 -- Resumen de los descendientes (incluido el propio nodo)
 local function resumen(inst: Instance): string
-	local piezas, mesh, sa, tex, scripts, otros = 0, 0, 0, 0, 0, 0
+	local piezas, mesh, sa, tex, scripts, otros, mv, asientos, luces = 0, 0, 0, 0, 0, 0, 0, 0, 0
 	local function mira(d: Instance)
 		if d:IsA("BasePart") then
 			piezas += 1
@@ -70,6 +85,13 @@ local function resumen(inst: Instance): string
 			scripts += 1
 		elseif d:IsA("SpecialMesh") then
 			otros += 1
+		elseif d:IsA("MaterialVariant") then
+			mv += 1
+		elseif d:IsA("Light") then
+			luces += 1
+		end
+		if d:IsA("VehicleSeat") then
+			asientos += 1
 		end
 	end
 	mira(inst)
@@ -89,6 +111,15 @@ local function resumen(inst: Instance): string
 	if tex > 0 then
 		table.insert(t, "Decal/Texture=" .. tex)
 	end
+	if mv > 0 then
+		table.insert(t, "MaterialVariant=" .. mv)
+	end
+	if asientos > 0 then
+		table.insert(t, "VehicleSeat=" .. asientos)
+	end
+	if luces > 0 then
+		table.insert(t, "Light=" .. luces)
+	end
 	if scripts > 0 then
 		table.insert(t, "⚠SCRIPTS=" .. scripts)
 	end
@@ -104,6 +135,22 @@ local function linea(inst: Instance, ruta: string, nivel: number)
 		end
 	elseif inst:IsA("LuaSourceContainer") then
 		extra = if inst:IsA("BaseScript") then (" Enabled=" .. tostring(inst.Enabled)) else ""
+	elseif inst:IsA("Sky") then
+		local sky = inst :: any
+		local ok, txt = pcall(function()
+			return (" Bk=%s Dn=%s Ft=%s Lf=%s Rt=%s Up=%s Sun=%s Moon=%s SunAngular=%s CelestialBodies=%s StarCount=%d"):format(
+				sky.SkyboxBk, sky.SkyboxDn, sky.SkyboxFt, sky.SkyboxLf, sky.SkyboxRt, sky.SkyboxUp,
+				sky.SunTextureId, sky.MoonTextureId, tostring(sky.SunAngularSize), tostring(sky.CelestialBodiesShown),
+				sky.StarCount
+			)
+		end)
+		extra = if ok then txt else " (no se pudieron leer las propiedades: " .. tostring(txt) .. ")"
+	elseif inst:IsA("MaterialVariant") then
+		local m = inst :: any
+		local ok, txt = pcall(function()
+			return (" Base=%s StudsPerTile=%s"):format(m.BaseMaterial.Name, tostring(m.StudsPerTile))
+		end)
+		extra = if ok then txt else ""
 	end
 	local s = tamano(inst)
 	print(("%s%s [%s]%s%s %s"):format(
