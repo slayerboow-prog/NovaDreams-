@@ -73,8 +73,12 @@ local function rootOf(player: Player): BasePart?
 	return character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 end
 
-local function serverNow(): number
+-- Hora del servidor (la misma que ven los clientes con GetServerTimeNow); las pruebas la cambian
+PetService.clock = function(): number
 	return workspace:GetServerTimeNow()
+end
+local function serverNow(): number
+	return PetService.clock()
 end
 
 ---------------------------------------------------------------------

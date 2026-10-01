@@ -276,8 +276,8 @@ end
 -- Vagabundos (3 en toda la ciudad). At = { x, z } (la altura la busca el cliente con un rayo).
 -- Radius = cuánto se alejan de su sitio
 Pets.Strays = {
-	{ Id = "Canela", Kind = "Perro", Breed = "Mestizo", Coat = 1, At = { -262, -362 }, Radius = 6, Where = "Puerta de la protectora" },
-	{ Id = "Tizon", Kind = "Gato", Breed = "Negro", Coat = 1, At = { -296, -318 }, Radius = 4, Where = "Callejón de la protectora" },
+	{ Id = "Canela", Kind = "Perro", Breed = "Mestizo", Coat = 1, At = { -216, -345 }, Radius = 4, Where = "Puerta de la protectora" },
+	{ Id = "Tizon", Kind = "Gato", Breed = "Negro", Coat = 1, At = { -292, -316 }, Radius = 3, Where = "Callejón de la protectora" },
 	{ Id = "Lucas", Kind = "Perro", Breed = "Beagle", Coat = 1, At = { 122, -470 }, Radius = 10, Where = "Parque del Distrito Financiero" },
 }
 Pets.STRAY_MAX = 4 -- (prueba: nunca más que esto)

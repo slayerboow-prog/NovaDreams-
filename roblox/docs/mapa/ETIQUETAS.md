@@ -83,6 +83,11 @@ se usan así, sin tocar el mapa: `{ Tag = "StoryArea", Attribute = { AreaId = "B
     antiguos y trofeos), StorySpot `SalaCerrada_Puerta` (puerta con candado y cartel "NO ENTRAR", mirando al pasillo)
     y `SalaCerrada_Dentro`; StoryProp `FotoAntigua` (en la pared). La puerta es decorativa: la historia te mete dentro.
 - Granja (Villaverde): el modelo `Granja` tiene los hijos `Granero` y `Silo`.
+  La granja de Julián (`Kit/GranjaJulian`, atributo `Julian = true`, una sola) es la de la historia:
+  granero grande en el que se entra (portón abierto de 26 × 25,6, cabe Petra), silo (Model), gallinero,
+  tractor… y las marcas `StorySpot_Granja_Patio` (delante del portón), `StorySpot_Granja_Nido` (nido de
+  paja de Petra, dentro) y `StorySpot_Granja_Comedero` (donde come Petra, dentro). Lugares: `Granja`,
+  `GranjaGranero`, `GranjaSilo`, `GranjaPatio`, `GranjaNido`, `GranjaComedero`.
 - Ya existían: `SchoolEntrance`, `Classroom`/`Desk`/`Board`/`TeacherSpot` (+`ClassroomId`), `MusicRoom`, `RecessArea`, `PEArea`
 
 **Parques** (atributo `Town`; 8 parques)

@@ -14,6 +14,15 @@
 --   * los animales sueltos no van por la calzada: con las calles de verdad del mapa (Kit/Roads y las
 --     de los barrios), ningún sitio al que deciden ir (ni al huir) cae en la calzada ni cruza la calle,
 --     y las vacas, ovejas y gallinas no se alejan de su granja
+--   * granja (cerdo, caballo, cabra, toro): de pie y andando pisan el suelo, en diagonal, pastan /
+--     hozan con la boca en el suelo, se tumban sin atravesarlo, suaves y con susto
+--   * razas (shared/Pets): grandes o pequeñas, las patas siguen tocando el suelo
+--   * POCOS animales sueltos: Wildlife ya no saca perros ni gatos al azar; vagabundos <= Pets.STRAY_MAX;
+--     gatos de casa uno por casa y como mucho 2 a la vista; en el metro o en una sala no sale ninguno;
+--     los perros de los peatones son pocos (<= 7 %) y todos llevan correa (Beam de la mano al collar)
+--   * cercados (shared/FarmAnimals): no se pisan, comedero y abrevadero dentro, pocos por cercado,
+--     los animales nunca eligen un sitio fuera, el rebaño va junto, aires del caballo y patas al galope
+--   * tu mascota te sigue (Pets.stepFollow), corre si se queda atrás y aparece a tu lado si te alejas
 
 local fs = require("@lune/fs")
 local luau = require("@lune/luau")
@@ -80,7 +89,7 @@ local function isHead(p)
 	return p.Role == "Head"
 end
 
-local WALKERS = { "Perro", "Gato", "Vaca", "Oveja", "Gallina", "Paloma" }
+local WALKERS = { "Perro", "Gato", "Vaca", "Oveja", "Gallina", "Paloma", "Cerdo", "Caballo", "Cabra", "Toro" }
 
 print("De pie y andando")
 for _, kind in WALKERS do
@@ -110,7 +119,7 @@ for _, kind in WALKERS do
 end
 
 print("Andar en diagonal")
-for _, kind in { "Perro", "Gato", "Vaca", "Oveja" } do
+for _, kind in { "Perro", "Gato", "Vaca", "Oveja", "Cerdo", "Caballo", "Cabra", "Toro" } do
 	local pieces, info = AnimalPose.build(kind)
 	local s = AnimalPose.newState(kind)
 	s.State = "walk"
@@ -150,7 +159,7 @@ do
 	local low = lowest(pieces, out)
 	check(low > ground - 0.25 and low < ground + 0.25, "Gato: tumbado en el suelo")
 end
-for _, kind in { "Vaca", "Oveja" } do
+for _, kind in { "Vaca", "Oveja", "Caballo", "Cabra", "Toro" } do
 	local ground = -AnimalPose.Stand[kind]
 	local pieces, _, _, out = posed(kind, function(s)
 		s.Action = "graze"
@@ -177,7 +186,7 @@ do
 end
 
 print("Suave, sin tirones")
-for _, kind in { "Perro", "Gato", "Vaca", "Oveja", "Gallina", "Paloma", "Pato", "Pajaro", "Mariposa" } do
+for _, kind in { "Perro", "Gato", "Vaca", "Oveja", "Gallina", "Paloma", "Pato", "Pajaro", "Mariposa", "Cerdo", "Caballo", "Cabra", "Toro" } do
 	local pieces, info = AnimalPose.build(kind)
 	local s = AnimalPose.newState(kind)
 	local before = nil
@@ -209,7 +218,7 @@ end
 
 
 print("Susto al pasar a su lado")
-for _, kind in { "Perro", "Gato", "Vaca", "Oveja", "Gallina", "Paloma", "Pato" } do
+for _, kind in { "Perro", "Gato", "Vaca", "Oveja", "Gallina", "Paloma", "Pato", "Cerdo", "Caballo", "Cabra", "Toro" } do
 	local finite, peak = true, 0
 	for i = 0, 50 do
 		local r = AnimalPose.reaction(kind, 1 - i / 50)
@@ -418,6 +427,218 @@ do
 		end
 	end
 	check(far == 0, "las vacas, ovejas y gallinas no se alejan de su granja")
+end
+
+-- Módulos compartidos sueltos (Pets, FarmAnimals…) con sus require entre ellos
+local sharedCache = {}
+local function shared(name: string): any
+	if sharedCache[name] then
+		return sharedCache[name]
+	end
+	local scriptProxy = { Parent = setmetatable({}, { __index = function(_, n)
+		return { __shared = n }
+	end }) }
+	local senv = setmetatable({
+		script = scriptProxy,
+		require = function(target)
+			return shared(target.__shared)
+		end,
+		game = { GetService = function()
+			return { Shared = setmetatable({}, { __index = function(_, n)
+				return { __shared = n }
+			end }) }
+		end },
+		Instance = roblox.Instance, Vector3 = roblox.Vector3, CFrame = roblox.CFrame, Color3 = roblox.Color3, Enum = roblox.Enum,
+		ColorSequence = roblox.ColorSequence,
+	}, { __index = getfenv(1) })
+	local result = luau.load(fs.readFile("src/shared/" .. name .. ".luau"), { debugName = name, environment = senv })()
+	sharedCache[name] = result
+	return result
+end
+local Pets = shared("Pets")
+local FarmAnimals = shared("FarmAnimals")
+local V3 = roblox.Vector3.new
+
+print("Tumbados, hozando y escarbando (granja)")
+for _, kind in { "Vaca", "Oveja", "Cerdo", "Caballo", "Cabra" } do
+	local ground = -AnimalPose.Stand[kind]
+	local pieces, _, _, out = posed(kind, function(s)
+		s.Action = "lie"
+	end)
+	local low = lowest(pieces, out)
+	check(low > ground - 0.3 and low < ground + 0.6, (kind .. ": tumbado, en el suelo sin atravesarlo (%.2f)"):format(low - ground))
+end
+do
+	local ground = -AnimalPose.Stand.Cerdo
+	local pieces, _, _, out = posed("Cerdo", function(s)
+		s.Action = "root"
+	end)
+	local head = lowest(pieces, out, isHead)
+	check(head < ground + 0.6 and head > ground - 0.3, "Cerdo: al hozar, el hocico llega al suelo")
+	local pieces2, _, _, out2 = posed("Toro", function(s)
+		s.Action = "paw"
+	end, 0.3)
+	local feet = lowest(pieces2, out2, isLeg)
+	check(feet > -AnimalPose.Stand.Toro - 0.3, "Toro: al escarbar no mete la pata en el suelo")
+end
+
+print("Razas: grandes o pequeñas, pisan el suelo")
+for _, spec in { { "Perro", "Chihuahua" }, { "Perro", "Pastor" }, { "Perro", "Dalmata" }, { "Gato", "Persa" } } do
+	local kind, breed = spec[1], spec[2]
+	local l = Pets.look(kind, breed, 1)
+	local look = { Coat = roblox.Color3.fromRGB(l.Coat[1], l.Coat[2], l.Coat[3]), Scale = l.Scale, Spots = l.Spots, Fluffy = l.Fluffy, Collar = roblox.Color3.new(1, 0, 0) }
+	local pieces, info = AnimalPose.build(kind, look)
+	local s = AnimalPose.newState(kind)
+	s.Action = "stand"
+	for _ = 1, 120 do
+		AnimalPose.step(s, 1 / 60, 2, nil, false)
+	end
+	local out = {}
+	AnimalPose.pose(pieces, info, s, 0, out)
+	local feet = lowest(pieces, out, isLeg)
+	check(math.abs(feet + info.Stand) < 0.2, ("%s %s (×%.2f): las patas tocan el suelo"):format(kind, breed, info.Scale))
+	check(info.Collar ~= nil, kind .. " " .. breed .. ": lleva collar (para la correa)")
+end
+
+print("Pocos animales sueltos, y en su sitio")
+do
+	local wildlife = fs.readFile("src/client/Controllers/Wildlife.luau")
+	local kinds = wildlife:match("local KINDS = (%b{})") or ""
+	check(kinds ~= "" and not kinds:find("Perro") and not kinds:find("Gato") and not kinds:find("Vaca") and not kinds:find("Oveja"), "Wildlife ya no saca perros, gatos, vacas ni ovejas al azar alrededor del jugador")
+	check(wildlife:find("around.Y < %-12") ~= nil and wildlife:find("underRoof") ~= nil, "en el metro no sale ningún animal y nunca bajo techo (portal, tienda, casa)")
+	check(#Pets.Strays <= Pets.STRAY_MAX and #Pets.Strays >= 2, ("vagabundos en toda la ciudad: %d (máximo %d)"):format(#Pets.Strays, Pets.STRAY_MAX))
+	local houses = {}
+	local dupe = false
+	for _, spot in Pets.HouseCats do
+		local k = math.floor(spot[1] / 30) .. ":" .. math.floor(spot[2] / 30)
+		if houses[k] then
+			dupe = true
+		end
+		houses[k] = true
+	end
+	check(not dupe, ("gatos de casa: %d, uno por casa como mucho"):format(#Pets.HouseCats))
+	check(Pets.HOUSE_CATS_VISIBLE <= 2, "como mucho 2 gatos de casa a la vista a la vez")
+	-- Todos fuera del metro y del cielo
+	check(Pets.looseSpotOk(1) and not Pets.looseSpotOk(-40) and not Pets.looseSpotOk(4000), "un animal suelto nunca está bajo tierra (metro) ni en una sala (cielo)")
+	check(Pets.ownerPlace(-40, false) == "hidden" and Pets.ownerPlace(4000, false) == "hidden", "tu mascota no entra en el metro ni en las salas de los edificios")
+	check(Pets.ownerPlace(1, true) == "indoors" and Pets.ownerPlace(1, false) == "outside", "bajo techo (tienda, portal) te espera fuera")
+	-- Peatones con perro: pocos, y todos con correa
+	local ambient = fs.readFile("src/client/Controllers/Ambient.luau")
+	local styles = ambient:match("local STYLES = (%b{})") or ""
+	local total, dog = 0, 0
+	for name, weight in styles:gmatch('{ "(%a+)", (%d+) }') do
+		total += tonumber(weight) :: number
+		if name == "Dog" then
+			dog = tonumber(weight) :: number
+		end
+	end
+	check(total > 0 and dog / total <= 0.07, ("peatones con perro: %.0f %% (antes 11 %%)"):format(dog / math.max(total, 1) * 100))
+	check(ambient:find("Pets.leash") ~= nil and not ambient:find('"Leash"'), "los perros de los peatones llevan correa (Beam de la mano al collar)")
+	check(fs.readFile("src/server/Services/CrowdService.luau"):find("Pets.leash") ~= nil, "los perros de los parques (CrowdService) llevan correa")
+	check(fs.readFile("src/server/Services/PlaceLifeService.luau"):find("Pets.leash") ~= nil, "los perros de los corros (PlaceLifeService) llevan correa")
+	-- La correa de verdad: Beam entre dos Attachment
+	local hand = roblox.Instance.new("Part")
+	local collar = roblox.Instance.new("Part")
+	local beam = Pets.leash(hand, roblox.CFrame.new(0, -1, 0), collar, roblox.CFrame.new())
+	local a0, a1 = beam.Attachment0, beam.Attachment1
+	check(beam.ClassName == "Beam" and a0 and a1 and a0.Parent == hand and a1.Parent == collar, "la correa es un Beam de la mano al collar")
+end
+
+print("Cercados de la granja")
+do
+	local function overlap(a, b)
+		return a.X0 < b.X1 and b.X0 < a.X1 and a.Z0 < b.Z1 and b.Z0 < a.Z1
+	end
+	local bad, kinds = false, {}
+	for i, a in FarmAnimals.Pens do
+		for j, b in FarmAnimals.Pens do
+			if i < j and overlap(a, b) then
+				bad = true
+			end
+		end
+		for kind, n in a.Animals do
+			kinds[kind] = (kinds[kind] or 0) + n
+			check(n <= FarmAnimals.MAX_PER_PEN, ("%s: %d %s (pocos por grupo)"):format(a.Name, n, kind))
+		end
+		check(FarmAnimals.inside(a, a.Feeder[1], a.Feeder[2], 1) and FarmAnimals.inside(a, a.Trough[1], a.Trough[2], 1), a.Name .. ": comedero y abrevadero dentro")
+		check(a.Z0 > FarmAnimals.ROAD_Z + 40, a.Name .. ": lejos de la carretera")
+	end
+	check(not bad, "los cercados no se pisan entre ellos")
+	for _, kind in { "Cerdo", "Caballo", "Oveja", "Cabra", "Vaca", "Toro" } do
+		check((kinds[kind] or 0) > 0, ("hay %s en los campos (%d)"):format(kind, kinds[kind] or 0))
+	end
+	local bull = FarmAnimals.pen("Toro")
+	check(bull ~= nil and bull.Fence == "Fuerte" and bull.Animals.Toro == 1 and #bull.Order == 1, "el toro tiene su cercado para él solo, con valla fuerte")
+	-- Nunca eligen un sitio fuera del cercado (también en rebaño)
+	local seed = 99
+	local function rnd()
+		seed = (seed * 1103515245 + 12345) % 2147483648
+		return seed / 2147483648
+	end
+	local outside, far = 0, 0
+	for _, pen in FarmAnimals.Pens do
+		for _ = 1, 300 do
+			local x, z = FarmAnimals.pick(pen, rnd)
+			if not FarmAnimals.inside(pen, x, z, FarmAnimals.MARGIN) then
+				outside += 1
+			end
+			local cx, cz = FarmAnimals.center(pen)
+			local fx, fz = FarmAnimals.pick(pen, rnd, { cx, cz, FarmAnimals.FLOCK_RADIUS })
+			if not FarmAnimals.inside(pen, fx, fz, FarmAnimals.MARGIN) then
+				outside += 1
+			end
+			if math.sqrt((fx - cx) ^ 2 + (fz - cz) ^ 2) > FarmAnimals.FLOCK_RADIUS + 0.01 then
+				far += 1
+			end
+			local ox, oz = FarmAnimals.clamp(pen, pen.X0 - 50, pen.Z1 + 50)
+			if not FarmAnimals.inside(pen, ox, oz, FarmAnimals.MARGIN - 0.01) then
+				outside += 1
+			end
+		end
+	end
+	check(outside == 0, ("ningún animal elige un sitio fuera de su cercado (%d mal)"):format(outside))
+	check(far == 0, "el rebaño no se separa (cada oveja cerca de las demás)")
+	-- Caballo: aires y patas
+	check(FarmAnimals.gait(0).Name == "Parado" and FarmAnimals.gait(5).Name == "Al paso" and FarmAnimals.gait(14).Name == "Al trote" and FarmAnimals.gait(30).Name == "Al galope", "caballo: parado, al paso, al trote y al galope según la velocidad")
+	local trot = { FarmAnimals.legSwing(1, 1, 14), FarmAnimals.legSwing(2, 1, 14), FarmAnimals.legSwing(3, 1, 14), FarmAnimals.legSwing(4, 1, 14) }
+	check(math.abs(trot[1] - trot[4]) < 1e-6 and math.abs(trot[2] - trot[3]) < 1e-6 and trot[1] * trot[2] < 0, "al trote, las patas en diagonal")
+	check(FarmAnimals.legSwing(1, 1, 0) == 0, "parado, las patas quietas")
+	local gallop = math.abs(FarmAnimals.legSwing(1, 1, 30) - FarmAnimals.legSwing(2, 1, 30))
+	check(gallop < 0.4 and math.abs(FarmAnimals.legSwing(1, 1, 30)) <= 0.75, "al galope, las delanteras casi juntas")
+end
+
+print("Tu mascota te sigue")
+do
+	local f = { Pos = V3(0, 1, 0), Speed = 0, Moving = false, Facing = V3(0, 0, -1) }
+	local owner, look = V3(0, 1, 0), V3(0, 0, -1)
+	local maxGap, jumps, last = 0, 0, f.Pos
+	for step = 1, 60 * 30 do
+		local dt = 1 / 60
+		owner += look * 7 * dt -- andando a 7 studs/s
+		if step % 600 == 0 then
+			look = V3(-look.Z, 0, look.X) -- dobla una esquina
+		end
+		local target = Pets.heel(owner, look)
+		Pets.stepFollow(f, target, dt)
+		if step > 180 then
+			maxGap = math.max(maxGap, (f.Pos - target).Magnitude)
+		end
+		if (f.Pos - last).Magnitude > 22 * dt + 0.05 then
+			jumps += 1
+		end
+		last = f.Pos
+	end
+	check(maxGap < 8, ("te sigue de cerca andando y al doblar esquinas (se separa como mucho %.1f studs)"):format(maxGap))
+	check(jumps == 0, "sin saltos: anda o corre, no se teletransporta si estás cerca")
+	-- Te vas lejos: aparece a tu lado
+	local result = Pets.stepFollow(f, f.Pos + V3(200, 0, 0), 1 / 60)
+	check(result == "teleport", "si te vas lejos (coche, viaje), aparece a tu lado")
+	-- Parado a tu lado
+	local f2 = { Pos = V3(0, 1, 0), Speed = 0, Moving = false, Facing = V3(0, 0, -1) }
+	for _ = 1, 600 do
+		Pets.stepFollow(f2, V3(4, 1, 0), 1 / 60)
+	end
+	check((f2.Pos - V3(4, 1, 0)).Magnitude < Pets.Follow.Stop + 0.01 and not f2.Moving, "llega a tu lado y se para")
 end
 
 print("")

@@ -9,6 +9,7 @@ local TaskMarker = require(script.Parent.Controllers.TaskMarker)
 local Ambient = require(script.Parent.Controllers.Ambient)
 local Weather = require(script.Parent.Controllers.Weather)
 local Wildlife = require(script.Parent.Controllers.Wildlife)
+local PetLife = require(script.Parent.Controllers.PetLife)
 local Nudge = require(script.Parent.Controllers.Nudge)
 local StoryAudio = require(script.Parent.Controllers.StoryAudio)
 local DayLight = require(script.Parent.Controllers.DayLight)
@@ -163,7 +164,8 @@ task.spawn(WetWorld.init) -- con lluvia: suelo que brilla, charcos, gente y cosa
 task.spawn(StoneThrow.init) -- coger piedras del suelo y lanzarlas (tecla B o botón 🥌)
 task.spawn(Ambient.init) -- tráfico y peatones
 task.spawn(Weather.init) -- estaciones y tiempo: lluvia, tormenta, nieve, hojas de otoño
-task.spawn(Wildlife.init) -- pájaros, palomas, mariposas, patos, perros, gatos y animales de granja
+task.spawn(Wildlife.init) -- pájaros, palomas, mariposas, patos y gallinas
+task.spawn(PetLife.init) -- mascotas, vagabundos, gatos de casa, protectora, animales de granja y caballo montado
 task.spawn(Nudge.init) -- los NPC se apartan (con traspiés) si chocas con ellos o pasa tu coche
 task.spawn(Vehicles.init) -- bicis, monopatines, motos y coches
 task.spawn(Arcade.init) -- recreativos

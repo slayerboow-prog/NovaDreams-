@@ -152,7 +152,7 @@ function GallinaGigante.build(height: number, at: CFrame?, opts: { Simple: boole
 					local z = -1.5 + col * 1.05 + (row % 2) * 0.5
 					local r = 2.45 - math.abs(y - 5.2) * 0.35
 					local color = if (row + col) % 2 == 0 then P.Pluma else P.Sombra
-					table.insert(cuerpoPartes, piece(ctx, "Pluma", "Ball", V(1.25, 1.05, 1.4), C(s * r, y, z), color, Enum.Material.Fabric))
+					table.insert(cuerpoPartes, piece(ctx, "Pluma", "Ball", V(1.3, 1.3, 1.3), C(s * r, y, z), color, Enum.Material.Fabric))
 				end
 			end
 		end

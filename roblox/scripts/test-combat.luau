@@ -207,8 +207,9 @@ local okRun, runError = pcall(function()
 	local kicker = H.player("Pateador", 5009, "Adulto", V(2700, 0, 0))
 	table.clear(H.breakCalls)
 	local combat = H.remotes.Combat
-	for _ = 1, 3 do
-		combat.OnServerEvent:Fire(kicker, "Attack")
+	-- (ligero, ligero y fuerte: el final es un golpe fuerte; "Attack" es el ligero de antes)
+	for _, kind in { "Attack", "Light", "Heavy" } do
+		combat.OnServerEvent:Fire(kicker, kind)
 		task.wait(0.5)
 	end
 	local melee, heavy = 0, false
@@ -219,7 +220,7 @@ local okRun, runError = pcall(function()
 		end
 	end
 	check(melee >= 3, ("cada golpe al aire mira si hay un cristal o una puerta delante (%d)"):format(melee))
-	check(heavy, "el tercero del combo es el golpe fuerte (rompe cristales)")
+	check(heavy, "el final con el golpe fuerte rompe cristales (Heavy)")
 end)
 check(okRun, "las pruebas de disparos terminan sin errores" .. (if okRun then "" else ": " .. tostring(runError)))
 
