@@ -105,7 +105,7 @@ Region.Towns = {
 		Entry = { Offset = Vector3.new(30, 0, 380), Facing = Vector3.new(0, 0, 1) },
 		Plan = {
 			{ T("Farm", "S"), T("Farm", "S"), T("Farm", "S"), T("Farm", "S") },
-			{ T("FirePolice", "E"), T("Downtown"), T("School", "S"), T("Farm", "W") },
+			{ T("FirePolice", "E"), T("Downtown"), T("School", "S"), T("Farm", "W", "Julian") }, -- (la granja de Julián: Kit/GranjaJulian)
 			{ T("Clinic", "E"), T("Park", "N"), T("Mall", "N"), T("Farm", "W") },
 			{ T("Gas", "E"), T("Houses"), T("Leisure", "N"), T("Farm", "W") },
 		},

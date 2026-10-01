@@ -33,6 +33,7 @@ local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 local Locations = require(ReplicatedStorage.Shared.LifeStory.Locations)
 local LocationService = require(script.Parent.LocationService)
 local Npc = require(script.Parent.Parent.World.Npc) -- ropa, pelo y pies en el suelo (lo comparte todo el juego)
+local GallinaGigante = require(script.Parent.Parent.World.Kit.GallinaGigante) -- Petra (Cast: Body = "GallinaGigante")
 local RoadGuard = require(script.Parent.Parent.World.RoadGuard) -- no bajar a la calzada si viene alguien
 local Log = require(ReplicatedStorage.Shared.Log)
 
@@ -326,7 +327,8 @@ local function buildModel(npc: string, player: Player, forcedScale: number?): Mo
 		head.Parent = model
 		model.PrimaryPart = body
 	end
-	if ok and model and person then
+	local body = person and person.Body
+	if ok and model and person and not body then
 		-- Siempre la misma ropa y el mismo pelo para cada personaje (Cast), en todas sus escenas
 		local familyKey = player:GetAttribute(person.NameAttr or "") :: string?
 		pcall(Npc.dress, model, {
@@ -346,13 +348,19 @@ local function buildModel(npc: string, player: Player, forcedScale: number?): Mo
 	}))
 	model.Name = name
 	model:SetAttribute("NpcId", npc)
+	if ok and body == "GallinaGigante" then
+		-- Petra: el cuerpo de persona se esconde y se ve una gallina (anda, persigue y se encoge igual)
+		pcall(GallinaGigante.costume, model)
+	end
 	Npc.atomic(model) -- que llegue entero a tu pantalla (si no, a veces no se le podía animar)
 	local humanoid = model:FindFirstChildOfClass("Humanoid")
 	if humanoid then
 		humanoid.DisplayName = name
 		-- El nombre lo pinta el cliente (Controllers/NameTags: más legible y se esconde mientras habla)
 		humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
-		CollectionService:AddTag(model, "NamedActor")
+		if not body then
+			CollectionService:AddTag(model, "NamedActor") -- (a una gallina gigante se la reconoce sin cartel)
+		end
 		humanoid.WalkSpeed = if person and person.Kid then 15 else 13
 	end
 	-- Los compañeros de clase (Kid) crecen contigo: niños en el colegio, adolescentes en el instituto
@@ -964,6 +972,68 @@ local BUILDERS: { [string]: (Model, { [string]: any }) -> () } = {
 	Huevo = function(m, spec)
 		part(m, V(2.4, 3.2, 2.4), C(0, 1.6, 0), spec.Color or rgb(230, 240, 200), Enum.Material.SmoothPlastic, Enum.PartType.Ball)
 	end,
+	-- Los huevos de Petra en su nido (Loco_N3_Pollo): uno de 7,2 de alto (más que tú: unos dos metros),
+	-- calentito y con «NO TOCAR» escrito con barro, otros dos más pequeños (uno tumbado) y dos plumas
+	-- gigantes en la paja. spec.Brilla: el de en medio da luz (el que hay que mirar).
+	HuevoGigante = function(m, spec)
+		local shell = spec.Color or rgb(246, 236, 214)
+		local function egg(at: CFrame, h: number, solid: boolean): Part
+			local bottom = part(m, V(0.73 * h, 0.73 * h, 0.73 * h), at * C(0, 0.365 * h, 0), shell, Enum.Material.SmoothPlastic, Enum.PartType.Ball)
+			part(m, V(0.6 * h, 0.6 * h, 0.6 * h), at * C(0, 0.6 * h, 0), shell, Enum.Material.SmoothPlastic, Enum.PartType.Ball)
+			part(m, V(0.42 * h, 0.42 * h, 0.42 * h), at * C(0, 0.79 * h, 0), shell, Enum.Material.SmoothPlastic, Enum.PartType.Ball)
+			for i = 1, 4 do
+				local a = i * 1.9
+				local y = 0.2 * h + (i % 3) * 0.17 * h
+				local r = 0.36 * h - math.abs(y - 0.365 * h) * 0.35
+				part(m, V(0.05 * h, 0.05 * h, 0.05 * h), at * C(math.cos(a) * r, y, math.sin(a) * r), rgb(196, 160, 120), Enum.Material.SmoothPlastic, Enum.PartType.Ball)
+			end
+			for _, p in m:GetChildren() do
+				if solid and p:IsA("BasePart") and p.Size.X >= 0.4 * h then
+					p.CanCollide = true
+					p.CastShadow = true
+				end
+			end
+			return bottom
+		end
+		local main = egg(CFrame.new(), 7.2, true)
+		egg(C(4.7, 0, 1.8) * CFrame.Angles(0, 0, math.rad(-8)), 5.6, false)
+		egg(C(-4.4, 1.85, 2.6) * CFrame.Angles(0, math.rad(30), math.rad(78)), 5, false)
+		-- «NO TOCAR», con barro y con pata de gallina
+		local label = part(m, V(3.6, 1.3, 0.05), C(0, 4.5, -2.3), shell)
+		label.Transparency = 1
+		local gui = Instance.new("SurfaceGui")
+		gui.Face = Enum.NormalId.Front
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		gui.PixelsPerStud = 30
+		gui.Parent = label
+		local text = Instance.new("TextLabel")
+		text.Size = UDim2.fromScale(1, 1)
+		text.BackgroundTransparency = 1
+		text.Text = "NO TOCAR"
+		text.TextScaled = true
+		text.Font = Enum.Font.Cartoon
+		text.TextColor3 = rgb(96, 64, 36)
+		text.Rotation = -6
+		text.Parent = gui
+		-- Plumas gigantes (de Petra) en la paja
+		for i, p in { { -3, -4.5, 30 }, { 6.5, -3.5, -50 } } do
+			local feather = C(p[1], 0.75, p[2]) * CFrame.Angles(0, math.rad(p[3]), math.rad(if i == 1 then 8 else -6))
+			part(m, V(1.8, 0.12, 6), feather, rgb(250, 247, 238), Enum.Material.Fabric)
+			part(m, V(0.18, 0.18, 7), feather * C(0, 0.1, 0.4), rgb(236, 228, 208))
+		end
+		if spec.Brilla then
+			-- Calentito: da una luz cálida
+			local light = Instance.new("PointLight")
+			light.Color = rgb(255, 196, 120)
+			light.Range = 12
+			light.Brightness = 1.2
+			light.Parent = main
+		end
+	end,
+	-- Una gallina de verdad (Petra cuando ya mide lo que mide una gallina), de World/Kit/GallinaGigante
+	Gallina = function(m, spec)
+		GallinaGigante.build(spec.Height or 2.2).Parent = m
+	end,
 	-- Cristal que brilla
 	Cristal = function(m, spec)
 		local color = spec.Color or rgb(120, 220, 255)
@@ -1523,8 +1593,9 @@ function SceneService.caught(player: Player, questId: string, radius: number): s
 	return nil
 end
 
--- Un rayo desde tu mano hasta el enemigo: destello, retrocede y se queda aturdido un momento
-function SceneService.hit(player: Player, questId: string, npc: string, color: Color3?)
+-- Un rayo desde tu mano hasta el enemigo: destello, retrocede y se queda aturdido un momento.
+-- scale: si se da, el enemigo cambia a ese tamaño (el rayo encogedor: Petra mengua a cada disparo)
+function SceneService.hit(player: Player, questId: string, npc: string, color: Color3?, scale: number?)
 	local scene = scenes[player] and scenes[player][questId]
 	local actor = scene and scene.Actors[npc]
 	local character = player.Character
@@ -1561,6 +1632,17 @@ function SceneService.hit(player: Player, questId: string, npc: string, color: C
 		flash:Destroy()
 	end)
 	actor.StunnedUntil = os.clock() + 1.2
+	if scale and scale > 0 then
+		pcall(function()
+			-- Encoge sin hundirse ni flotar: los pies se quedan donde estaban
+			local root = actor.Root :: BasePart
+			local humanoid = actor.Humanoid
+			local feet = root.Position.Y - root.Size.Y / 2 - (if humanoid then humanoid.HipHeight else 0)
+			actor.Model:ScaleTo(scale)
+			local now = root.Position.Y - root.Size.Y / 2 - (if humanoid then humanoid.HipHeight else 0)
+			actor.Model:PivotTo(actor.Model:GetPivot() + V(0, feet - now, 0))
+		end)
+	end
 	local me = playerRoot(player)
 	if me and not actor.Root.Anchored then
 		local away = V(actor.Root.Position.X - me.Position.X, 0, actor.Root.Position.Z - me.Position.Z)
@@ -1570,8 +1652,9 @@ function SceneService.hit(player: Player, questId: string, npc: string, color: C
 	end
 end
 
--- Derrotado: chispas, sube flotando y desaparece (vuelve teletransportado a su nave / su dimensión)
-function SceneService.defeat(player: Player, questId: string, npc: string)
+-- Derrotado: chispas, sube flotando y desaparece (vuelve teletransportado a su nave / su dimensión).
+-- style = "Shrink": en vez de flotar, se encoge hasta su tamaño de verdad y se va (Petra al gallinero)
+function SceneService.defeat(player: Player, questId: string, npc: string, style: string?)
 	local scene = scenes[player] and scenes[player][questId]
 	local actor = scene and scene.Actors[npc]
 	if not actor then
@@ -1599,11 +1682,28 @@ function SceneService.defeat(player: Player, questId: string, npc: string)
 		end
 	end
 	task.spawn(function()
+		if style == "Shrink" then
+			-- Mengua del todo (de pie en el suelo) y luego se desvanece
+			for _ = 1, 10 do
+				if not model.Parent then
+					return
+				end
+				pcall(function()
+					local before = model:GetPivot().Position.Y - model:GetScale() * 3
+					model:ScaleTo(math.max(0.25, model:GetScale() * 0.85))
+					local after = model:GetPivot().Position.Y - model:GetScale() * 3
+					model:PivotTo(model:GetPivot() + V(0, before - after, 0))
+				end)
+				task.wait(0.06)
+			end
+		end
 		for i = 1, 12 do
 			if not model.Parent then
 				return
 			end
-			model:PivotTo(model:GetPivot() + V(0, 0.5, 0))
+			if style ~= "Shrink" then
+				model:PivotTo(model:GetPivot() + V(0, 0.5, 0))
+			end
 			for _, piece in model:GetDescendants() do
 				if piece:IsA("BasePart") and piece.Name ~= "HumanoidRootPart" then
 					piece.Transparency = math.max(piece.Transparency, i / 12)

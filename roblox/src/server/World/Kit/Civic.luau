@@ -18,6 +18,7 @@ local Clinic = require(script.Parent.Clinic)
 local PoliceStation = require(script.Parent.PoliceStation)
 local CinemaHall = require(script.Parent.CinemaHall)
 local GymKit = require(script.Parent.GymKit)
+local GranjaJulian = require(script.Parent.GranjaJulian)
 
 local Civic = {}
 
@@ -771,17 +772,24 @@ end
 ---------------------------------------------------------------------
 -- Campo: granja con cultivos, granero y silo
 ---------------------------------------------------------------------
-function Civic.farm(parent: Instance, lot: Lot)
+-- (title = "Julian": la granja de Julián, la de la historia: granero grande en el que se entra,
+-- silo, gallinero… ver Kit/GranjaJulian)
+function Civic.farm(parent: Instance, lot: Lot, title: string?)
 	local m = Builder.model("Granja", parent)
 	local L, Dp = lot.Length, lot.Depth
 	local crops = { rgb(120, 90, 60), rgb(96, 140, 60), rgb(200, 176, 90), rgb(110, 150, 70) }
 	local rowW = 6
-	local u = -L / 2 + 6
+	local julian = title == "Julian"
+	local u = if julian then GranjaJulian.CultivosDesde else -L / 2 + 6
 	local i = 0
 	while u + rowW <= L / 2 - 6 do
 		i += 1
 		slab(m, lot, u, u + rowW - 1, 30, Dp - 6, 0.5, crops[(math.floor(i / 4) % #crops) + 1], Enum.Material.Ground, "Crop")
 		u += rowW
+	end
+	if julian then
+		GranjaJulian.build(m, lot)
+		return m
 	end
 	-- Granero rojo y silo
 	Building.build({

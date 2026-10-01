@@ -635,7 +635,10 @@ local function onStoryEvent(player: Player, name: string, payload: { [string]: a
 		-- contaba si la víctima era un jugador, y a los NPC se les podía acribillar sin que nadie
 		-- llamase. La víctima llama a la policía (una denuncia por víctima cada NPC_HIT_GAP).
 		local w = Weapons.get(payload.Weapon)
-		if w and w.Kind ~= "Toy" and typeof(model) == "Instance" and model:IsA("Model") and not Players:GetPlayerFromCharacter(model) then
+		-- Pegar (a puñetazos o con un poder) a un paseante de la calle (CrowdService) también es
+		-- agresión: llama a la policía igual. A un rival de entrenamiento (FighterService), no.
+		local street = payload.Street == true and not payload.Rival and not payload.Weapon
+		if (street or (w and w.Kind ~= "Toy")) and typeof(model) == "Instance" and model:IsA("Model") and not Players:GetPlayerFromCharacter(model) then
 			if onDuty(player) and model:GetAttribute("Suspect") then
 				return -- (la policía de servicio reduciendo al sospechoso de su aviso)
 			end
@@ -655,7 +658,8 @@ local function onStoryEvent(player: Player, name: string, payload: { [string]: a
 			local root = model:FindFirstChild("HumanoidRootPart")
 			local at = if root and root:IsA("BasePart") then root.Position else nil
 			local r = rootOf(player)
-			WantedService.crime(player, if w.Kind == "Taser" then "Agresion" else "Disparo", if r then r.Position else at, { Witness = model })
+			local crime = if street then "Agresion" elseif w and w.Kind == "Taser" then "Agresion" else "Disparo"
+			WantedService.crime(player, crime, if r then r.Position else at, { Witness = model })
 		end
 		return
 	end

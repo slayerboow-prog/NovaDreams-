@@ -589,6 +589,23 @@ function TesterService.handle(player: Player, kind: any, a: any, b: any): boolea
 		elseif a == "PassVehiclesAll" then
 			local n = givePassVehicles(player)
 			toast(player, "Success", ("🏎️ Vehículos del pase: %d nuevos. Elige cuál sacar en «Mis vehículos»."):format(n))
+		elseif a == "Rival" then
+			-- Un rival de entrenamiento delante (FighterService): b = "Facil" | "Normal" | "Dificil"
+			local ok, model = pcall(function()
+				return service("FighterService").spawn(player, nil, if type(b) == "string" then b else "Normal")
+			end)
+			done = ok and model ~= nil
+			if done then
+				toast(player, "Success", "🥊 Rival de entrenamiento: fíjalo y pelea (pegarle no es delito)")
+			else
+				toast(player, "Error", "No se ha podido sacar el rival aquí")
+			end
+		elseif a == "Energy" then
+			-- Energía, aguante y guardia llenos (los poderes ya los tienes con «Sin requisitos»)
+			pcall(function()
+				service("CombatService").fillEnergy(player)
+			end)
+			toast(player, "Success", "⚡ Energía, aguante y guardia al máximo")
 		elseif a == "Hour" then
 			done = setHour(player, b)
 			if done then

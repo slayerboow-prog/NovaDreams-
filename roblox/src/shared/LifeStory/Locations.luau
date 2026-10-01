@@ -215,9 +215,15 @@ Locations.Places = {
 	EstadioAltamar = { NameKey = "PLACE.ESTADIO_ALTAMAR", Model = "Estadio", Zone = "Distrito Financiero" },
 	PlazaFinanciera = { NameKey = "PLACE.PLAZA_FINANCIERA", Model = "PlazaFinanciera", Zone = "Distrito Financiero" },
 	Playa = { NameKey = "PLACE.PLAYA", Model = "Playa", Zone = "Playa Dorada" },
-	Granja = { NameKey = "PLACE.GRANJA", Model = "Granja", Zone = "Villaverde" },
-	GranjaGranero = { NameKey = "Granero", Model = "Granja", Child = "Granero", Zone = "Villaverde", Fallback = "Granja" },
-	GranjaSilo = { NameKey = "Silo", Model = "Granja", Child = "Silo", Zone = "Villaverde", Fallback = "Granja" },
+	-- La granja de Julián (la «Granja escuela», World/Kit/GranjaJulian): la única granja con el atributo
+	-- Julian. Ahí pasan la excursión del cole, «La gallina de seis metros» y la visita a Petra.
+	Granja = { NameKey = "PLACE.GRANJA", Model = "Granja", Attribute = { Julian = true }, Zone = "Villaverde", Fallback = "GranjaCualquiera" },
+	GranjaCualquiera = { NameKey = "PLACE.GRANJA", Model = "Granja", Zone = "Villaverde" },
+	GranjaGranero = { NameKey = "Granero", Model = "Granja", Attribute = { Julian = true }, Child = "Granero", Zone = "Villaverde", Fallback = "Granja" },
+	GranjaSilo = { NameKey = "Silo", Model = "Granja", Attribute = { Julian = true }, Child = "Silo", Zone = "Villaverde", Fallback = "Granja" },
+	GranjaPatio = { NameKey = "Patio de la granja", Model = "Granja", Attribute = { Julian = true }, Child = "StorySpot_Granja_Patio", Zone = "Villaverde", Radius = 14, Fallback = "Granja" },
+	GranjaNido = { NameKey = "Nido de Petra (granero)", Model = "Granja", Attribute = { Julian = true }, Child = "StorySpot_Granja_Nido", Zone = "Villaverde", Radius = 10, Fallback = "GranjaGranero" },
+	GranjaComedero = { NameKey = "Comederos del granero", Model = "Granja", Attribute = { Julian = true }, Child = "StorySpot_Granja_Comedero", Zone = "Villaverde", Radius = 10, Fallback = "GranjaGranero" },
 
 	-- El sueño del prólogo: una isla pequeña en el cielo (World/Kit/DreamIsland). Sin Fallback: si la
 	-- isla no existe, el prólogo no empieza (y el vigilante da por hechos los pasos que falten).

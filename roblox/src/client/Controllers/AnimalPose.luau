@@ -10,14 +10,17 @@
 --       Vaca y oveja: pastan (cabeza abajo, rumiando) o miran alrededor; la cola espanta moscas.
 --       Gallina: picotea o escarba con una pata. Paloma: picotea.
 --       Pato: nada o mete la cabeza en el agua con la cola hacia arriba.
---   * Si te acercas, el perro, el gato, la vaca y la oveja te miran. Las orejas se mueven de vez
---     en cuando.
+--       Granja (shared/FarmAnimals): el cerdo hoza (hocico al suelo, moviéndolo de lado a lado) y se
+--       tumba; vaca, oveja, cabra y caballo pastan, miran y se tumban; el toro escarba con una pata.
+--   * Si te acercas, el perro, el gato y los de granja te miran. Las orejas se mueven de vez en cuando.
+--   * Aspecto (look, opcional): color, color de detalle, manchas, pelo largo y tamaño (las razas de
+--     shared/Pets). Con collar = mascota con dueño (la correa se engancha en "Collar").
 --
 -- Se prueba fuera de Roblox: scripts/test-animals.luau
 
 local AnimalPose = {}
 
-export type Piece = { Part: BasePart, Offset: CFrame, Role: string? }
+export type Piece = { Part: BasePart, Offset: CFrame, Role: string?, Hip: Vector3? }
 
 local rgb = Color3.fromRGB
 local V = Vector3.new
@@ -29,7 +32,7 @@ local angles = CFrame.Angles
 -- Carpeta donde se crean las piezas (la pone Wildlife: solo existe para este jugador)
 AnimalPose.folder = nil :: Instance?
 
-local function piece(list: { Piece }, size: Vector3, color: Color3, offset: CFrame, role: string?, shape: Enum.PartType?, material: Enum.Material?)
+local function piece(list: { Piece }, size: Vector3, color: Color3, offset: CFrame, role: string?, shape: Enum.PartType?, material: Enum.Material?, hip: Vector3?)
 	local p = Instance.new("Part")
 	p.Anchored = true
 	p.CanCollide = false
@@ -45,13 +48,23 @@ local function piece(list: { Piece }, size: Vector3, color: Color3, offset: CFra
 	p.TopSurface = Enum.SurfaceType.Smooth
 	p.BottomSurface = Enum.SurfaceType.Smooth
 	p.Parent = AnimalPose.folder
-	table.insert(list, { Part = p, Offset = offset, Role = role })
+	table.insert(list, { Part = p, Offset = offset, Role = role, Hip = hip })
+end
+
+export type Look = { Coat: Color3?, Accent: Color3?, Scale: number?, Spots: boolean?, Fluffy: boolean?, Collar: Color3? }
+
+-- Pata con pezuña (o pie) de otro color: la pezuña gira con la pata (misma cadera)
+local function hoofLeg(l: { Piece }, i: number, pos: Vector3, size: Vector3, color: Color3, hoofColor: Color3, hoofH: number)
+	local hip = pos + V(0, size.Y / 2, 0)
+	piece(l, size, color, C(pos), "Leg" .. i)
+	local bottom = pos.Y - size.Y / 2
+	piece(l, V(size.X * 1.12, hoofH, size.Z * 1.12), hoofColor, C(pos.X, bottom + hoofH / 2 - 0.02, pos.Z), "Leg" .. i, nil, nil, hip)
 end
 
 -- Modelos hechos con piezas (sin mallas: ligeros y siempre disponibles).
 -- Roles: Head (se mueve con el cuello), Ear (con la cabeza, y se agita), Tail, Leg1..4
 -- (1 delantera izq., 2 delantera dcha., 3 trasera izq., 4 trasera dcha.), WingL/WingR, Glow.
-local BUILDERS: { [string]: (list: { Piece }) -> () } = {
+local BUILDERS: { [string]: (list: { Piece }, look: Look) -> () } = {
 	-- Pájaro pequeño (gorrión, golondrina)
 	Pajaro = function(l)
 		local body, wing = rgb(96, 74, 56), rgb(70, 54, 42)
@@ -99,26 +112,49 @@ local BUILDERS: { [string]: (list: { Piece }) -> () } = {
 		piece(l, V(0.3, 0.1, 0.3), rgb(250, 250, 250), C(0, 0.25, -0.35))
 		piece(l, V(0.35, 0.12, 0.4), rgb(90, 70, 50), C(0, 0.12, 0.72), "Tail")
 	end,
-	Perro = function(l)
-		local coat = ({ rgb(200, 150, 90), rgb(60, 50, 45), rgb(230, 220, 200) })[math.random(1, 3)]
-		piece(l, V(0.9, 0.8, 1.8), coat, C(0, 0, 0))
+	Perro = function(l, look)
+		local coat = look.Coat or ({ rgb(200, 150, 90), rgb(60, 50, 45), rgb(230, 220, 200) })[math.random(1, 3)]
+		local accent = look.Accent or coat:Lerp(Color3.new(0, 0, 0), 0.2)
+		piece(l, V(0.9, 0.8, 1.8), coat, C(0, 0, 0), nil, nil, if look.Fluffy then Enum.Material.Fabric else nil)
+		if look.Accent and not look.Spots then
+			piece(l, V(0.94, 0.3, 1.2), accent, C(0, 0.3, 0.15)) -- manta del lomo (pastor, beagle)
+		end
+		if look.Spots then
+			for _, sp in { V(0.46, 0.15, -0.4), V(-0.46, 0.05, 0.3), V(0.46, -0.1, 0.5), V(-0.46, 0.2, -0.5), V(0, 0.41, 0.1) } do
+				local flat = if sp.Y > 0.4 then V(0.3, 0.02, 0.28) else V(0.02, 0.26, 0.3)
+				piece(l, flat, accent, C(sp))
+			end
+		end
 		piece(l, V(0.7, 0.7, 0.7), coat, C(0, 0.45, -1.1), "Head")
 		piece(l, V(0.35, 0.3, 0.4), coat:Lerp(Color3.new(0, 0, 0), 0.2), C(0, 0.3, -1.55), "Head")
 		piece(l, V(0.12, 0.1, 0.06), rgb(20, 20, 22), C(0, 0.4, -1.76), "Head") -- hocico
-		piece(l, V(0.2, 0.35, 0.15), coat:Lerp(Color3.new(0, 0, 0), 0.3), C(-0.25, 0.9, -1.05), "EarL")
-		piece(l, V(0.2, 0.35, 0.15), coat:Lerp(Color3.new(0, 0, 0), 0.3), C(0.25, 0.9, -1.05), "EarR")
+		piece(l, V(0.2, 0.35, 0.15), accent:Lerp(Color3.new(0, 0, 0), 0.15), C(-0.25, 0.9, -1.05), "EarL")
+		piece(l, V(0.2, 0.35, 0.15), accent:Lerp(Color3.new(0, 0, 0), 0.15), C(0.25, 0.9, -1.05), "EarR")
+		if look.Collar then
+			piece(l, V(0.76, 0.14, 0.5), look.Collar, C(0, 0.25, -0.86), "Collar") -- collar (aquí va la correa)
+		end
 		piece(l, V(0.15, 0.15, 0.7), coat, C(0, 0.35, 1.1) * angles(math.rad(35), 0, 0), "Tail")
 		for i, pos in { V(-0.3, -0.7, -0.6), V(0.3, -0.7, -0.6), V(-0.3, -0.7, 0.6), V(0.3, -0.7, 0.6) } do
 			piece(l, V(0.22, 0.7, 0.22), coat, C(pos), "Leg" .. i)
 		end
 	end,
-	Gato = function(l)
-		local coat = ({ rgb(230, 140, 50), rgb(40, 40, 44), rgb(160, 160, 165), rgb(245, 240, 230) })[math.random(1, 4)]
-		piece(l, V(0.6, 0.55, 1.3), coat, C(0, 0, 0))
-		piece(l, V(0.55, 0.5, 0.5), coat, C(0, 0.35, -0.8), "Head")
-		piece(l, V(0.12, 0.2, 0.08), coat, C(-0.17, 0.68, -0.8), "EarL")
-		piece(l, V(0.12, 0.2, 0.08), coat, C(0.17, 0.68, -0.8), "EarR")
-		piece(l, V(0.1, 0.1, 0.9), coat, C(0, 0.45, 0.95) * angles(math.rad(-50), 0, 0), "Tail")
+	Gato = function(l, look)
+		local coat = look.Coat or ({ rgb(230, 140, 50), rgb(40, 40, 44), rgb(160, 160, 165), rgb(245, 240, 230) })[math.random(1, 4)]
+		local accent = look.Accent or coat
+		local fur = if look.Fluffy then Enum.Material.Fabric else nil
+		piece(l, if look.Fluffy then V(0.7, 0.62, 1.35) else V(0.6, 0.55, 1.3), coat, C(0, 0, 0), nil, nil, fur)
+		if look.Accent then
+			piece(l, V(0.64, 0.2, 0.8), accent, C(0, 0.2, 0.15)) -- manchas del lomo
+		end
+		piece(l, V(0.55, 0.5, 0.5), coat, C(0, 0.35, -0.8), "Head", nil, fur)
+		piece(l, V(0.3, 0.2, 0.08), if look.Accent then accent else coat:Lerp(Color3.new(1, 1, 1), 0.3), C(0, 0.27, -1.06), "Head") -- hocico
+		piece(l, V(0.06, 0.06, 0.04), rgb(220, 120, 130), C(0, 0.33, -1.1), "Head") -- nariz
+		piece(l, V(0.12, 0.2, 0.08), accent, C(-0.17, 0.68, -0.8), "EarL")
+		piece(l, V(0.12, 0.2, 0.08), accent, C(0.17, 0.68, -0.8), "EarR")
+		if look.Collar then
+			piece(l, V(0.5, 0.1, 0.36), look.Collar, C(0, 0.15, -0.62), "Collar")
+		end
+		piece(l, V(0.1, 0.1, 0.9), accent, C(0, 0.45, 0.95) * angles(math.rad(-50), 0, 0), "Tail")
 		for i, pos in { V(-0.2, -0.45, -0.45), V(0.2, -0.45, -0.45), V(-0.2, -0.45, 0.45), V(0.2, -0.45, 0.45) } do
 			piece(l, V(0.14, 0.45, 0.14), coat, C(pos), "Leg" .. i)
 		end
@@ -149,6 +185,79 @@ local BUILDERS: { [string]: (list: { Piece }) -> () } = {
 			piece(l, V(0.2, 0.8, 0.2), face, C(pos), "Leg" .. i)
 		end
 	end,
+	-- Cerdo rosado: hocico chato, orejas caídas y rabito
+	Cerdo = function(l, look)
+		local pink = look.Coat or ({ rgb(240, 170, 165), rgb(232, 158, 150), rgb(214, 150, 130) })[math.random(1, 3)]
+		local dark = pink:Lerp(rgb(150, 70, 70), 0.3)
+		piece(l, V(1.4, 1.15, 2.3), pink, C(0, 0, 0))
+		piece(l, V(1.2, 0.95, 0.6), pink, C(0, 0.02, 1.0)) -- culo redondo
+		piece(l, V(0.95, 0.9, 0.75), pink, C(0, 0.12, -1.42), "Head")
+		piece(l, V(0.55, 0.42, 0.28), dark, C(0, -0.02, -1.92), "Head") -- hocico
+		piece(l, V(0.08, 0.1, 0.04), rgb(90, 40, 40), C(-0.12, -0.02, -2.07), "Head")
+		piece(l, V(0.08, 0.1, 0.04), rgb(90, 40, 40), C(0.12, -0.02, -2.07), "Head")
+		piece(l, V(0.36, 0.08, 0.32), dark, C(-0.36, 0.55, -1.42) * angles(0.5, 0, 0.35), "EarL")
+		piece(l, V(0.36, 0.08, 0.32), dark, C(0.36, 0.55, -1.42) * angles(0.5, 0, -0.35), "EarR")
+		piece(l, V(0.1, 0.1, 0.4), dark, C(0, 0.35, 1.38) * angles(math.rad(50), 0, 0), "Tail")
+		for i, pos in { V(-0.42, -0.72, -0.7), V(0.42, -0.72, -0.7), V(-0.42, -0.72, 0.75), V(0.42, -0.72, 0.75) } do
+			hoofLeg(l, i, pos, V(0.3, 0.56, 0.3), pink, rgb(120, 80, 70), 0.12)
+		end
+	end,
+	-- Caballo: cuello largo, crin, cola de crin y cascos oscuros
+	Caballo = function(l, look)
+		local coat = look.Coat or ({ rgb(120, 72, 40), rgb(60, 40, 30), rgb(200, 190, 175), rgb(160, 110, 60) })[math.random(1, 4)]
+		local hair = look.Accent or coat:Lerp(Color3.new(0, 0, 0), 0.6)
+		piece(l, V(1.6, 1.8, 4.3), coat, C(0, 0, 0))
+		piece(l, V(1.7, 1.6, 1.3), coat, C(0, 0.05, 1.75)) -- grupa
+		piece(l, V(0.85, 2.3, 1.05), coat, C(0, 1.25, -2.15) * angles(-0.55, 0, 0), "Head") -- cuello
+		piece(l, V(0.22, 2.2, 0.4), hair, C(0, 1.45, -1.85) * angles(-0.55, 0, 0), "Head") -- crin
+		piece(l, V(0.72, 0.78, 1.75), coat, C(0, 2.2, -3.15) * angles(-0.65, 0, 0), "Head") -- cabeza
+		piece(l, V(0.62, 0.55, 0.55), coat:Lerp(Color3.new(0, 0, 0), 0.35), C(0, 1.62, -3.78), "Head") -- morro
+		piece(l, V(0.14, 0.4, 0.14), coat, C(-0.22, 2.95, -2.7), "EarL")
+		piece(l, V(0.14, 0.4, 0.14), coat, C(0.22, 2.95, -2.7), "EarR")
+		if look.Collar then
+			piece(l, V(1.0, 1.0, 0.12), look.Collar, C(0, 0.05, -2.6) * angles(-0.55, 0, 0), "Collar")
+		end
+		piece(l, V(0.36, 2.3, 0.36), hair, C(0, -0.3, 2.55) * angles(0.25, 0, 0), "Tail")
+		local hoof = rgb(45, 40, 38)
+		for i, pos in { V(-0.5, -2.15, -1.55), V(0.5, -2.15, -1.55), V(-0.5, -2.15, 1.6), V(0.5, -2.15, 1.6) } do
+			hoofLeg(l, i, pos, V(0.42, 2.5, 0.46), coat, hoof, 0.3)
+		end
+	end,
+	-- Cabra: pequeña, barba, cuernos hacia atrás y rabo corto y tieso
+	Cabra = function(l, look)
+		local coat = look.Coat or ({ rgb(240, 236, 228), rgb(150, 110, 75), rgb(70, 60, 55) })[math.random(1, 3)]
+		local horn = rgb(170, 150, 120)
+		piece(l, V(1.05, 1.0, 1.75), coat, C(0, 0, 0))
+		piece(l, V(0.5, 0.6, 0.75), coat, C(0, 0.6, -1.12), "Head")
+		piece(l, V(0.36, 0.34, 0.3), coat:Lerp(Color3.new(0, 0, 0), 0.15), C(0, 0.42, -1.55), "Head")
+		piece(l, V(0.14, 0.38, 0.14), coat:Lerp(Color3.new(1, 1, 1), 0.2), C(0, 0.12, -1.48), "Head") -- barba
+		piece(l, V(0.1, 0.55, 0.1), horn, C(-0.13, 1.08, -1.0) * angles(0.6, 0, -0.1), "Head")
+		piece(l, V(0.1, 0.55, 0.1), horn, C(0.13, 1.08, -1.0) * angles(0.6, 0, 0.1), "Head")
+		piece(l, V(0.36, 0.1, 0.16), coat, C(-0.38, 0.72, -1.05), "EarL")
+		piece(l, V(0.36, 0.1, 0.16), coat, C(0.38, 0.72, -1.05), "EarR")
+		piece(l, V(0.14, 0.32, 0.12), coat, C(0, 0.55, 0.9) * angles(-0.4, 0, 0), "Tail")
+		for i, pos in { V(-0.32, -0.95, -0.58), V(0.32, -0.95, -0.58), V(-0.32, -0.95, 0.6), V(0.32, -0.95, 0.6) } do
+			hoofLeg(l, i, pos, V(0.17, 0.95, 0.17), coat, rgb(60, 50, 45), 0.12)
+		end
+	end,
+	-- Toro: negro y fuerte, con morrillo, cuernos hacia delante y aro en la nariz
+	Toro = function(l, look)
+		local coat = look.Coat or ({ rgb(30, 26, 26), rgb(70, 40, 28) })[math.random(1, 2)]
+		local horn = rgb(232, 222, 196)
+		piece(l, V(2.3, 2.0, 3.6), coat, C(0, 0, 0))
+		piece(l, V(1.9, 0.7, 1.4), coat, C(0, 1.1, -0.9)) -- morrillo
+		piece(l, V(1.35, 1.25, 1.35), coat, C(0, 0.45, -2.15), "Head")
+		piece(l, V(1.0, 0.6, 0.4), coat:Lerp(rgb(180, 120, 110), 0.35), C(0, 0.12, -2.95), "Head")
+		piece(l, V(0.45, 0.45, 0.08), rgb(210, 175, 70), C(0, -0.22, -3.15), "Head", nil, Enum.Material.Metal) -- aro
+		piece(l, V(0.9, 0.24, 0.24), horn, C(-0.95, 1.05, -2.15) * angles(0, 0.35, 0.5), "Head")
+		piece(l, V(0.9, 0.24, 0.24), horn, C(0.95, 1.05, -2.15) * angles(0, -0.35, -0.5), "Head")
+		piece(l, V(0.4, 0.15, 0.3), coat, C(-0.82, 0.62, -1.95), "EarL")
+		piece(l, V(0.4, 0.15, 0.3), coat, C(0.82, 0.62, -1.95), "EarR")
+		piece(l, V(0.16, 1.5, 0.16), coat, C(0, -0.1, 1.85), "Tail")
+		for i, pos in { V(-0.75, -1.45, -1.2), V(0.75, -1.45, -1.2), V(-0.75, -1.45, 1.2), V(0.75, -1.45, 1.2) } do
+			hoofLeg(l, i, pos, V(0.46, 1.3, 0.46), coat, rgb(40, 36, 34), 0.2)
+		end
+	end,
 	Gallina = function(l)
 		local body = ({ rgb(250, 245, 235), rgb(170, 90, 40) })[math.random(1, 2)]
 		piece(l, V(0.7, 0.7, 0.9), body, C(0, 0, 0), nil, BALL)
@@ -163,22 +272,26 @@ local BUILDERS: { [string]: (list: { Piece }) -> () } = {
 
 -- Altura del centro del cuerpo sobre el suelo: justo lo que miden las patas, para que toquen el
 -- suelo (antes el perro, la vaca y la oveja flotaban un poco)
-AnimalPose.Stand = { Paloma = 0.62, Perro = 1.05, Gato = 0.68, Vaca = 2.05, Oveja = 1.3, Gallina = 0.68, Pato = 0.15, Gaviota = 0.25 }
-AnimalPose.WalkSpeed = { Paloma = 1.2, Perro = 5, Gato = 3, Vaca = 1.6, Oveja = 2, Gallina = 2.2 }
+AnimalPose.Stand = { Paloma = 0.62, Perro = 1.05, Gato = 0.68, Vaca = 2.05, Oveja = 1.3, Gallina = 0.68, Pato = 0.15, Gaviota = 0.25, Cerdo = 1.0, Caballo = 3.4, Cabra = 1.425, Toro = 2.1 }
+AnimalPose.WalkSpeed = { Paloma = 1.2, Perro = 5, Gato = 3, Vaca = 1.6, Oveja = 2, Gallina = 2.2, Cerdo = 1.8, Caballo = 3.2, Cabra = 2.2, Toro = 1.5 }
 
 -- Qué pueden hacer quietos (se elige una al azar cada vez que se paran)
 AnimalPose.Actions = {
 	Perro = { "stand", "sit", "sit", "sniff" },
 	Gato = { "stand", "sit", "lie", "lie", "groom" },
-	Vaca = { "graze", "graze", "stand" },
-	Oveja = { "graze", "graze", "stand" },
+	Vaca = { "graze", "graze", "stand", "lie" },
+	Oveja = { "graze", "graze", "stand", "lie" },
+	Cerdo = { "root", "root", "stand", "lie" },
+	Caballo = { "graze", "graze", "stand", "stand" },
+	Cabra = { "graze", "stand", "stand", "lie" },
+	Toro = { "stand", "graze", "paw" },
 	Gallina = { "peck", "peck", "scratch" },
 	Paloma = { "peck" },
 	Pato = { "swim", "swim", "dabble" },
 }
 
 -- Te miran si te acercas
-AnimalPose.Lookers = { Perro = true, Gato = true, Vaca = true, Oveja = true }
+AnimalPose.Lookers = { Perro = true, Gato = true, Vaca = true, Oveja = true, Cerdo = true, Caballo = true, Cabra = true, Toro = true }
 
 -- Dónde gira la cabeza (el cuello), en el espacio del cuerpo
 local NECK = {
@@ -189,10 +302,16 @@ local NECK = {
 	Gallina = V(0, 0.3, -0.2),
 	Paloma = V(0, 0.25, -0.3),
 	Pato = V(0, 0.3, -0.4),
+	Cerdo = V(0, 0.15, -1.05),
+	Caballo = V(0, 0.45, -1.8),
+	Cabra = V(0, 0.35, -0.8),
+	Toro = V(0, 0.6, -1.5),
 }
 
-local POSES = { "sit", "lie", "graze", "sniff", "groom", "peck", "scratch", "dabble" }
+local POSES = { "sit", "lie", "graze", "sniff", "groom", "peck", "scratch", "dabble", "root", "paw" }
 local GRAZE_PITCH = -0.95
+-- (el caballo tiene el cuello muy largo: lo baja más para llegar a la hierba)
+local GRAZE_BY_KIND = { Caballo = -1.65 }
 local PECK_PITCH = -0.9
 
 export type Info = {
@@ -204,6 +323,9 @@ export type Info = {
 	Quadruped: boolean,
 	GrazeDrop: number, -- cuánto más baja la cabeza para llegar a la hierba (además de inclinarse)
 	PeckDrop: number,
+	Stand: number, -- altura del centro del cuerpo sobre el suelo (con su tamaño)
+	Scale: number,
+	Collar: number?, -- índice de la pieza del collar (si lleva)
 }
 
 export type State = {
@@ -221,25 +343,41 @@ export type State = {
 }
 
 -- Crea las piezas de un animal y mide su cuerpo (caderas, cuello, cola)
-function AnimalPose.build(kind: string): ({ Piece }, Info)
+function AnimalPose.build(kind: string, look: Look?): ({ Piece }, Info)
 	local list: { Piece } = {}
-	BUILDERS[kind](list)
-	local info: Info = { LegLen = 0, Legs = {}, Pivots = {}, Back = Vector3.zero, Neck = NECK[kind] or V(0, 0.3, -0.5), Quadruped = false, GrazeDrop = 0, PeckDrop = 0 }
+	local lk = look or {}
+	BUILDERS[kind](list, lk)
+	local scale = math.clamp(tonumber(lk.Scale) or 1, 0.4, 2)
+	local neck = NECK[kind] or V(0, 0.3, -0.5)
+	if scale ~= 1 then
+		-- Más grande o más pequeño (razas): todo a escala, también dónde gira cada cosa
+		for _, p in list do
+			p.Part.Size *= scale
+			p.Offset = CFrame.new(p.Offset.Position * scale) * p.Offset.Rotation
+			if p.Hip then
+				p.Hip *= scale
+			end
+		end
+		neck *= scale
+	end
+	local info: Info = { LegLen = 0, Legs = {}, Pivots = {}, Back = Vector3.zero, Neck = neck, Quadruped = false, GrazeDrop = 0, PeckDrop = 0, Stand = (AnimalPose.Stand[kind] or 0) * scale, Scale = scale }
 	local back, backCount = Vector3.zero, 0
 	for i, p in list do
 		local role = p.Role
 		local size = p.Part.Size
 		if role and role:sub(1, 3) == "Leg" then
-			local hip = p.Offset.Position + V(0, size.Y / 2, 0)
+			local hip = p.Hip or (p.Offset.Position + V(0, size.Y / 2, 0))
 			info.Legs[i] = hip
 			info.LegLen = math.max(info.LegLen, size.Y)
 			if tonumber(role:sub(4)) == 4 then
 				info.Quadruped = true
 			end
-			if hip.Z > 0 then
+			if hip.Z > 0 and not p.Hip then
 				back += hip
 				backCount += 1
 			end
+		elseif role == "Collar" then
+			info.Collar = i
 		elseif role == "Tail" then
 			-- La cola gira desde donde toca el cuerpo (su punta delantera)
 			local long = if size.Y > size.Z then V(0, size.Y / 2, 0) else V(0, 0, -size.Z / 2)
@@ -250,7 +388,7 @@ function AnimalPose.build(kind: string): ({ Piece }, Info)
 	end
 	info.Back = if backCount > 0 then back / backCount else V(0, 0, 0.5)
 	-- Cuánto tiene que bajar la cabeza (además de inclinarla) para que la boca llegue al suelo
-	local ground = -(AnimalPose.Stand[kind] or 0)
+	local ground = -info.Stand
 	local function reach(pitch: number): number
 		local rotation = CFrame.new(info.Neck) * angles(pitch, 0, 0) * CFrame.new(-info.Neck)
 		local low = math.huge
@@ -269,7 +407,7 @@ function AnimalPose.build(kind: string): ({ Piece }, Info)
 		end
 		return if low == math.huge then 0 else math.max(0, low - (ground + 0.1))
 	end
-	info.GrazeDrop = reach(GRAZE_PITCH)
+	info.GrazeDrop = reach(GRAZE_BY_KIND[kind] or GRAZE_PITCH)
 	info.PeckDrop = reach(PECK_PITCH)
 	return list, info
 end
@@ -289,8 +427,8 @@ function AnimalPose.chooseAction(kind: string): string?
 end
 
 -- Susto: cuánto dura y lo alto que salta cada uno (el gato, el que más)
-AnimalPose.StartleTime = { Perro = 0.6, Gato = 0.55, Vaca = 0.8, Oveja = 0.6, Gallina = 0.7, Paloma = 0.5, Pato = 0.6 }
-local HOP = { Perro = 0.9, Gato = 1.3, Vaca = 0.35, Oveja = 0.7, Gallina = 0.8, Paloma = 0.5, Pato = 0.3 }
+AnimalPose.StartleTime = { Perro = 0.6, Gato = 0.55, Vaca = 0.8, Oveja = 0.6, Gallina = 0.7, Paloma = 0.5, Pato = 0.6, Cerdo = 0.6, Caballo = 0.8, Cabra = 0.6, Toro = 0.9 }
+local HOP = { Perro = 0.9, Gato = 1.3, Vaca = 0.35, Oveja = 0.7, Gallina = 0.8, Paloma = 0.5, Pato = 0.3, Cerdo = 0.5, Caballo = 0.45, Cabra = 0.9, Toro = 0.3 }
 
 -- Empieza un susto (lo lleva AnimalPose.step)
 function AnimalPose.startle(s: State)
@@ -400,12 +538,15 @@ function AnimalPose.pose(pieces: { Piece }, info: Info, s: State, t: number, out
 
 	-- Cabeza: mirar, pastar, olfatear, lamerse, picotear
 	local headPitch, headYaw, headRoll = 0, 0, 0
-	local busyHead = W.graze + W.sniff + W.groom + W.peck
+	local busyHead = W.graze + W.sniff + W.groom + W.peck + W.root
 	local free = math.max(0, 1 - busyHead)
 	headYaw += s.LookYaw * s.Looking * free
 	headPitch += 0.1 * s.Looking * free
-	headPitch += W.graze * (GRAZE_PITCH + sin(t * 5 + ph) * 0.06) -- rumiando
+	headPitch += W.graze * ((GRAZE_BY_KIND[kind] or GRAZE_PITCH) + sin(t * 5 + ph) * 0.06) -- rumiando
 	headPitch += W.sniff * -0.6
+	-- Hozar (cerdo): el hocico al suelo, moviéndolo de lado a lado
+	headPitch += W.root * (GRAZE_PITCH * 0.8 + sin(t * 4 + ph) * 0.08)
+	headYaw += W.root * sin(t * 2.6 + ph) * 0.35
 	headYaw += W.sniff * sin(t * 2 + ph) * 0.45
 	headPitch += W.groom * (-0.45 + sin(t * 9 + ph) * 0.08)
 	headYaw += W.groom * 1.3
@@ -415,7 +556,7 @@ function AnimalPose.pose(pieces: { Piece }, info: Info, s: State, t: number, out
 	headPitch += react.HeadPitch
 	local head = around(info.Neck, angles(headPitch, headYaw, headRoll))
 	-- Al pastar o picotear, el cuello baja hasta que la boca toca el suelo
-	local drop = info.GrazeDrop * W.graze + info.PeckDrop * pk
+	local drop = info.GrazeDrop * W.graze + info.GrazeDrop * 0.85 * W.root + info.PeckDrop * pk
 	if drop > 0.001 then
 		head = C(0, -drop, 0) * head
 	end
@@ -436,7 +577,9 @@ function AnimalPose.pose(pieces: { Piece }, info: Info, s: State, t: number, out
 	elseif kind == "Gato" then
 		tailYaw = sin(t * 1.2 + ph) * 0.45
 		tailPitch = sin(t * 0.7 + ph) * 0.15
-	elseif kind == "Vaca" or kind == "Oveja" then
+	elseif kind == "Cerdo" then
+		tailYaw = sin(t * 6 + ph) * 0.4
+	elseif kind == "Vaca" or kind == "Oveja" or kind == "Caballo" or kind == "Toro" or kind == "Cabra" then
 		-- Espanta moscas a ratos
 		tailYaw = sin(t * 3 + ph) * 0.35 * math.max(0, sin(t * 0.4 + ph))
 	elseif kind == "Pato" then
@@ -479,6 +622,10 @@ function AnimalPose.pose(pieces: { Piece }, info: Info, s: State, t: number, out
 			-- Escarbar (gallina): la pata izquierda rasca hacia atrás
 			if n == 1 and W.scratch > 0.001 then
 				swing -= math.max(0, sin(t * 7 + ph)) * 0.9 * W.scratch
+			end
+			-- El toro escarba: la delantera derecha adelante y atrás, rozando el suelo
+			if n == 2 and W.paw > 0.001 then
+				swing += sin(t * 5 + ph) * 0.45 * W.paw
 			end
 			offset = around(hip, angles(swing, 0, 0)) * offset
 		end

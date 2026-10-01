@@ -3055,8 +3055,11 @@ function hitEnemy(player: Player, data: Data, questId: string, prog: Progress, s
 	local hits = prog.Hits or {}
 	prog.Hits = hits
 	hits[enemy.Npc] = (hits[enemy.Npc] or 0) + 1
-	SceneService.hit(player, questId, enemy.Npc, step.BeamColor)
-	if hits[enemy.Npc] < (enemy.HP or step.HP or 3) then
+	local hp = enemy.HP or step.HP or 3
+	-- Shrink = 0.4: el rayo encogedor lo deja en el 40 % de su tamaño en el último disparo
+	local shrinkTo = if enemy.Shrink then (enemy.Scale or 1) * (1 - (1 - enemy.Shrink) * math.min(hits[enemy.Npc], hp) / hp) else nil
+	SceneService.hit(player, questId, enemy.Npc, step.BeamColor, shrinkTo)
+	if hits[enemy.Npc] < hp then
 		if enemy.Hurt and hits[enemy.Npc] == 1 then
 			DialogueService.bark(player, enemy.Npc, enemy.Hurt)
 		end
@@ -3066,7 +3069,7 @@ function hitEnemy(player: Player, data: Data, questId: string, prog: Progress, s
 	prog.Sub = sub
 	sub[enemy.Npc] = true
 	prog.Count += 1
-	SceneService.defeat(player, questId, enemy.Npc)
+	SceneService.defeat(player, questId, enemy.Npc, if enemy.Shrink then "Shrink" else nil)
 	if enemy.Bye then
 		DialogueService.bark(player, enemy.Npc, enemy.Bye)
 	end

@@ -39,8 +39,8 @@ local BUSQUEDA = {
 	{ Npc = "Sara", Mode = "Follow" },
 	{ Npc = "Omar", Mode = "Follow", If = AMIGO_MATEO },
 }
-local PERDIDO_MATEO = { Npc = "Mateo", Place = "GranjaGranero", Offset = V(-14, 0, 10), If = AMIGO_MATEO }
-local PERDIDO_OMAR = { Npc = "Omar", Place = "GranjaGranero", Offset = V(-14, 0, 10), If = SIN_MATEO }
+local PERDIDO_MATEO = { Npc = "Mateo", Place = "GranjaGranero", Offset = V(-14, 0, 30), If = AMIGO_MATEO }
+local PERDIDO_OMAR = { Npc = "Omar", Place = "GranjaGranero", Offset = V(-14, 0, 30), If = SIN_MATEO }
 
 return {
 	Id = "Cole07_Excursion",
@@ -70,7 +70,7 @@ return {
 		PistaMochila = { Kind = "Mochila", Name = "Una mochila en la hierba", Prompt = "Examinar", Place = "Granja", Offset = V(-10, 0, 14), Color = Color3.fromRGB(90, 90, 200), Dialogue = "Pista_Mochila", Once = true },
 		PistaBotella = { Kind = "Marcador", Name = "Una botella de agua", Prompt = "Examinar", Place = "GranjaSilo", Offset = V(-8, 0, -4), Dialogue = "Pista_Botella", Once = true },
 		PistaMapa = { Kind = "Papel", Name = "Un mapa dibujado", Prompt = "Examinar", Place = "GranjaGranero", Offset = V(-8, 0, 4), Dialogue = "Pista_Mapa", Once = true },
-		Corderito = { Kind = "Animal", Name = "Un corderito", Prompt = false, Place = "GranjaGranero", Offset = V(-12, 0, 12), Color = Color3.fromRGB(245, 245, 245) },
+		Corderito = { Kind = "Animal", Name = "Un corderito", Prompt = false, Place = "GranjaGranero", Offset = V(-11, 0, 32), Color = Color3.fromRGB(245, 245, 245) },
 	},
 
 	Steps = {

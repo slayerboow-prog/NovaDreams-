@@ -64,13 +64,13 @@ return {
 		Rewards = { Unflags = { "CosmeSinMemoria" }, Flags = { "CosmeRecuerda" }, Items = { AlbumRecuerdos = 1 } },
 		Props = {
 			Microondas = { Kind = "Maquina", Name = "El microondas temporal (reparado por Pip)", Prompt = "Calentar un bocadillo", Place = "GarajeCosme", Offset = V(-3, 0, 0), Dialogue = "Microondas", Once = true },
-			Gallinero = { Kind = "Huevo", Name = "El gallinero de Petra", Prompt = "Enseñarle a Petra", Place = "GranjaGranero", Offset = V(4, 0, 4), Dialogue = "Gallina", Once = true },
+			Gallinero = { Kind = "Gallina", Name = "Petra, en su nido", Prompt = "Enseñarle a Petra", Place = "GranjaNido", Dialogue = "Gallina", Once = true },
 			Cielo = { Kind = "Cristal", Name = "El viejo anclaje del parque", Prompt = "Tocar el anclaje", Place = "Parque", Offset = V(0, 0, 8), Dialogue = "Anclaje", Once = true },
 		},
 		Steps = {
 			{ Type = "Talk", Npc = "Pip", Dialogue = "Lista", Text = "Habla con Pip", Actors = { COSME, PIP, ESCAMAS } },
 			{ Type = "Group", Text = "Lleva a Cosme a los sitios de vuestros recuerdos",
-				Actors = { { Npc = "Cosme", Mode = "Follow" }, { Npc = "Julian", Place = "GranjaGranero", Offset = V(-3, 0, 3) } },
+				Actors = { { Npc = "Cosme", Mode = "Follow" }, { Npc = "Julian", Place = "GranjaNido", Offset = V(-6, 0, -6) } },
 				Steps = {
 					{ Type = "Use", Prop = "Microondas", Text = "El garaje: el microondas temporal" },
 					{ Type = "Use", Prop = "Gallinero", Text = "La granja de Villaverde: Petra" },

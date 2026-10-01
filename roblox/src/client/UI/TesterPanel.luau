@@ -213,6 +213,24 @@ local function build()
 		send("Action", "ClearWanted")
 	end, 2)
 
+	-- Pelea (CombatService / FighterService): un rival con IA y los poderes de la Grieta a mano
+	section("COMBATE")
+	local fight = grid()
+	for i, item in {
+		{ "Facil", "🥊 Rival fácil" },
+		{ "Normal", "🥊 Rival normal" },
+		{ "Dificil", "🥊 Rival difícil" },
+	} do
+		button(fight, item[2], function()
+			send("Action", "Rival", item[1])
+			TesterPanel.close()
+		end, i)
+	end
+	button(fight, "⚡ Energía y aguante llenos", function()
+		send("Action", "Energy")
+	end, 4)
+	note("Con «Sin requisitos» tienes todos los poderes de la Grieta (sin jugar la saga). Al rival no te persigue la policía.")
+
 	local stageTitle = section("CAMBIAR ETAPA DE VIDA")
 	local function refreshStage()
 		local current = state and state.Stage

@@ -18,6 +18,8 @@ local function after(...)
 end
 
 local COSME_GARAJE = { Npc = "Cosme", Place = "GarajeCosme", Offset = V(0, 0, 3) }
+-- Petra, la gallina de seis metros, comiendo en los comederos del granero de Julián (se ve desde el patio)
+local PETRA_COMIENDO = { Npc = "PolloGigante", Place = "GranjaComedero", Scale = 2.4, Prompt = false }
 
 return {
 	---------------------------------------------------------------------
@@ -203,30 +205,36 @@ return {
 		Moment = "Encogiste a una gallina gigante",
 		Memory = "GallinaGigante",
 		Rewards = { Items = { RayoEncogedor = 1 } },
+		-- La granja de Julián (World/Kit/GranjaJulian): Petra (6 m, Cast: Body = "GallinaGigante") come en
+		-- los comederos del granero y sus huevos gigantes están en el nido de paja del fondo.
 		Props = {
-			Huevo = { Kind = "Huevo", Name = "Un huevo del tamaño de una lavadora", Prompt = "Mirar el huevo", Place = "GranjaGranero", Offset = V(4, 0, 4), Dialogue = "Huevo", Once = true },
+			Huevos = { Kind = "HuevoGigante", Name = "Los huevos de Petra", Prompt = false, Place = "GranjaNido" },
+			Huevo = { Kind = "HuevoGigante", Brilla = true, Name = "Un huevo más alto que tú", Prompt = "Mirar el huevo", Place = "GranjaNido", Dialogue = "Huevo", Once = true },
 		},
 		Steps = {
 			{ Type = "Talk", Npc = "Cosme", Dialogue = "Culpa", Text = "Cosme quiere contarte algo (con cara de culpable)", Actors = { COSME_GARAJE } },
-			{ Type = "Transition", Text = "Cosme conduce su furgoneta. Que vuela. Un poquito. Solo en las curvas.", Seconds = 4, Teleport = "Granja" },
+			{ Type = "Transition", Text = "Cosme conduce su furgoneta. Que vuela. Un poquito. Solo en las curvas.", Seconds = 4, Teleport = "GranjaPatio" },
 			{ Type = "Talk", Npc = "Julian", Dialogue = "Granjero", Text = "Habla con Julián, el granjero",
-				Actors = { { Npc = "Julian", Place = "Granja", Offset = V(3, 0, 3) }, { Npc = "Cosme", Place = "Granja", Offset = V(-3, 0, 3) } } },
-			{ Type = "Use", Prop = "Huevo", Text = "Algo enorme hay junto al granero…",
-				Actors = { { Npc = "Cosme", Mode = "Follow" } } },
-			{ Type = "Escape", Place = "GranjaSilo", Respawn = "GranjaGranero", Catch = 5, Text = "¡PETRA TE HA VISTO! ¡Corre hasta el silo!",
-				CaughtLine = "¡¡¡CLOC!!! (Te ha cogido con el pico y te ha dejado otra vez junto al granero. Con cariño. Mucho cariño.)",
-				Actors = { { Npc = "PolloGigante", Place = "GranjaGranero", Offset = V(-10, 0, -6), Mode = "Hunt", Speed = 12, Scale = 2.4, Prompt = false } } },
+				Actors = { { Npc = "Julian", Place = "GranjaPatio", Offset = V(4, 0, -3) }, { Npc = "Cosme", Place = "GranjaPatio", Offset = V(-4, 0, -3) }, PETRA_COMIENDO },
+				Props = { "Huevos" } },
+			{ Type = "Use", Prop = "Huevo", Text = "Entra en el granero: en el nido de paja del fondo hay algo enorme…",
+				Actors = { { Npc = "Cosme", Mode = "Follow" }, PETRA_COMIENDO } },
+			{ Type = "Escape", Place = "GranjaSilo", Respawn = "GranjaPatio", Catch = 7, Text = "¡PETRA TE HA VISTO! ¡Sal del granero y corre hasta el silo!",
+				CaughtLine = "¡¡¡CLOC!!! (Te ha cogido con el pico y te ha dejado otra vez en la puerta del granero. Con cariño. Mucho cariño.)",
+				Actors = { { Npc = "PolloGigante", Place = "GranjaComedero", Mode = "Hunt", Speed = 12, Scale = 2.4, Prompt = false } },
+				Props = { "Huevos" } },
 			{ Type = "Talk", Npc = "Cosme", Dialogue = "Rayo", Text = "¡Cosme está en el silo con algo en la mano!",
-				Actors = { { Npc = "Cosme", Place = "GranjaSilo", Offset = V(3, 0, 2) } } },
-			{ Type = "Fight", Place = "GranjaSilo", Respawn = "GranjaSilo", Action = "Disparar el rayo encogedor", HP = 5, BeamColor = Color3.fromRGB(190, 90, 255), Catch = 5,
+				Actors = { { Npc = "Cosme", Place = "GranjaSilo", Offset = V(7, 0, -5) } } },
+			{ Type = "Fight", Place = "GranjaSilo", Respawn = "GranjaSilo", Action = "Disparar el rayo encogedor", HP = 5, BeamColor = Color3.fromRGB(190, 90, 255), Catch = 6,
 				Text = "Encoge a Petra con el rayo ({count}/{total})",
 				CaughtLine = "¡¡CLOC!! (Te ha dado un abrazo de ala. Pesa como un sofá.)",
-				Actors = { { Npc = "Cosme", Place = "GranjaSilo", Offset = V(3, 0, 2), Mode = "Cheer" } },
+				Actors = { { Npc = "Cosme", Place = "GranjaSilo", Offset = V(7, 0, -5), Mode = "Cheer" } },
 				Enemies = {
-					{ Npc = "PolloGigante", Offset = V(-12, 0, -8), Speed = 10, Scale = 2.4, HP = 5, Hurt = "¿¿Cloc?? (Ha bajado un poco. Del tamaño de un camión a una furgoneta.)", Bye = "¡Pío! (Petra vuelve a medir lo que mide una gallina. Se va corriendo al gallinero, ofendidísima.)" },
+					-- Shrink: a cada disparo mengua (de 6 m al 40 %), y al final se queda del tamaño de una gallina
+					{ Npc = "PolloGigante", Offset = V(-12, 0, -8), Speed = 10, Scale = 2.4, Shrink = 0.4, HP = 5, Hurt = "¿¿Cloc?? (Ha bajado un poco. Del tamaño de un camión a una furgoneta.)", Bye = "¡Pío! (Petra vuelve a medir lo que mide una gallina. Se va corriendo al gallinero, ofendidísima.)" },
 				} },
 			{ Type = "Scene", Dialogue = "Final",
-				Actors = { { Npc = "Cosme", Place = "GranjaSilo", Offset = V(3, 0, 2) }, { Npc = "Julian", Place = "GranjaSilo", Offset = V(-3, 0, 3) } } },
+				Actors = { { Npc = "Cosme", Place = "GranjaSilo", Offset = V(7, 0, -5) }, { Npc = "Julian", Place = "GranjaSilo", Offset = V(-6, 0, -8) } } },
 		},
 		Dialogues = {
 			Culpa = { Lines = {
@@ -238,12 +246,12 @@ return {
 			} },
 			Granjero = { Lines = {
 				{ S = "Julian", T = "Hombre, Cosme. Ya sabía yo que esto era cosa tuya. Esta mañana tenía doce gallinas. Ahora tengo once… y un edificio con plumas." },
-				{ S = "Julian", T = "Petra está en el granero. Pone huevos del tamaño de una lavadora. No es mala. Solo está muy asustada. Y es muy, muy grande." },
+				{ S = "Julian", T = "Petra está en el granero. ¿La ves, ahí dentro, en los comederos? Pone huevos más altos que tú. No es mala. Solo está muy asustada. Y es muy, muy grande." },
 				{ S = "Cosme", T = "Tranquilo, Julián. Tengo un plan. Tengo un rayo encogedor. Bueno, tengo las piezas de un rayo encogedor. Y un destornillador. Dame cinco minutos." },
 			} },
 			Huevo = { Lines = {
-				{ S = "Narrador", T = "Un huevo gigante, calentito. Encima, alguien ha escrito con barro: «NO TOCAR». Con una pata de gallina." },
-				{ S = "Narrador", T = "Detrás de ti, el suelo tiembla. Una sombra enorme. Un «CLOC» que hace vibrar las ventanas." },
+				{ S = "Narrador", T = "Un huevo gigante, más alto que tú, calentito. Encima, alguien ha escrito con barro: «NO TOCAR». Con una pata de gallina." },
+				{ S = "Narrador", T = "Detrás de ti, el suelo tiembla. Petra ha dejado de comer. Te mira. Un «CLOC» que hace temblar las vigas del granero." },
 				{ S = "Cosme", T = "¡Criatura! ¡Mamá gallina te ha visto con su huevo! ¡CORRE HACIA EL SILO! ¡Yo… yo tengo que ir a por una cosa! ¡Muy importante! ¡No es huir!" },
 			} },
 			Rayo = { Lines = {

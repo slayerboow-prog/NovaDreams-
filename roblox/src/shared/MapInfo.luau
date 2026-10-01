@@ -96,6 +96,9 @@ MapInfo.Kinds = {
 	{ Model = "AgenciaTributaria", Icon = "🏛", Name = "Agencia Tributaria", Important = true },
 	-- Residencia universitaria (bloques del campus: ResidenceService)
 	{ Model = "Residencia", Icon = "🛏", Name = "Residencia universitaria" },
+	-- Animales: protectora (adopción) y campos con animales de granja (Kit/AnimalKit)
+	{ Model = "Protectora", Icon = "🐾", Name = "Protectora de animales", Important = true },
+	{ Model = "CampoAnimales", Icon = "🐴", Name = "Campos de Valmar (animales)", Important = true },
 } :: { Kind }
 
 MapInfo.KindByModel = {} :: { [string]: Kind }
@@ -108,7 +111,7 @@ MapInfo.Legend = {
 	{ Name = "Salud y emergencias", Icon = "🏥", Models = { "Hospital", "CentroSalud", "Policia", "Bomberos" } },
 	{ Name = "Estudios", Icon = "🏫", Models = { "Colegio", "Facultad", "Autoescuela" } },
 	{ Name = "Tiendas y comida", Icon = "🛍️", Models = { "CentroComercial", "Supermercado", "Restaurante", "Gasolinera", "PlazaFinanciera", "TiendaPesca", "Armeria", "Hotel" } },
-	{ Name = "Ocio y naturaleza", Icon = "🌳", Models = { "Parque", "Estadio", "Playa", "Granja", "Recreativos", "Plaza", "Mirador", "Faro", "Puerto", "Feria", "Camping", "Marina", "Museo", "Teatro", "ZonaPesca", "GimnasioValmar" } },
+	{ Name = "Ocio y naturaleza", Icon = "🌳", Models = { "Parque", "Estadio", "Playa", "Granja", "Recreativos", "Plaza", "Mirador", "Faro", "Puerto", "Feria", "Camping", "Marina", "Museo", "Teatro", "ZonaPesca", "GimnasioValmar", "Protectora", "CampoAnimales" } },
 	{ Name = "Ciudad y transporte", Icon = "🏛️", Models = { "TorreValmar", "Ayuntamiento", "EstacionCentral", "EstacionAutobuses", "GranCentroComercial", "ParadaBus", "Aeropuerto", "Aerodromo" } },
 	{ Name = "Metro y Cercanías", Icon = "🚇", Models = { "BocaMetro", "EstacionCercanias" } },
 	{ Name = "Instituciones", Icon = "⚖️", Models = { "PalacioJusticia", "CentroPenitenciario", "CuartelEjercito", "AgenciaTributaria" } },
