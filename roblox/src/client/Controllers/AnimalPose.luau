@@ -455,6 +455,11 @@ function AnimalPose.reaction(kind: string, startle: number): { Hop: number, Head
 	}
 end
 
+-- Los de patas largas dan pasos más lentos (si no, la pezuña iría a saltos) y cambian de postura
+-- más despacio (el cuello del caballo es muy largo)
+local STRIDE = { Caballo = 0.55, Toro = 0.85 }
+local POSE_RATE = { Caballo = 1.5 }
+
 local function smooth(current: number, target: number, rate: number, dt: number): number
 	return current + (target - current) * (1 - math.exp(-rate * dt))
 end
@@ -464,11 +469,11 @@ function AnimalPose.step(s: State, dt: number, speed: number, lookYaw: number?, 
 	local walking = s.State == "walk"
 	s.Moving = smooth(s.Moving, if walking then 1 else 0, 8, dt)
 	if s.Moving > 0.01 then
-		s.Stride = (s.Stride + dt * speed * 3) % (math.pi * 2)
+		s.Stride = (s.Stride + dt * speed * 3 * (STRIDE[s.Kind] or 1)) % (math.pi * 2)
 	end
 	for _, name in POSES do
 		local want = if not walking and s.Action == name then 1 else 0
-		s.Weights[name] = smooth(s.Weights[name], want, 3, dt)
+		s.Weights[name] = smooth(s.Weights[name], want, POSE_RATE[s.Kind] or 3, dt)
 	end
 	local looking = lookYaw ~= nil and AnimalPose.Lookers[s.Kind] == true
 	s.Looking = smooth(s.Looking, if looking then 1 else 0, 3, dt)
@@ -529,7 +534,7 @@ function AnimalPose.pose(pieces: { Piece }, info: Info, s: State, t: number, out
 	end
 	-- Susto: se encoge, pega un salto y cae
 	if react.Hop > 0.001 or react.Crouch > 0.001 then
-		body = C(0, react.Hop - react.Crouch * legLen, 0) * body
+		body = C(0, react.Hop - react.Crouch * math.min(legLen, 1.6), 0) * body
 	end
 	-- Respira (quieto)
 	if not flying and legLen > 0 then

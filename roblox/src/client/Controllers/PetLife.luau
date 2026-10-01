@@ -4,7 +4,8 @@
 --   * Tu mascota y las de los demás (workspace.Mascotas, PetService): te sigue un poco por detrás y a
 --     un lado (shared/Pets.stepFollow: anda, corre para alcanzarte y, si te vas lejos, aparece a tu
 --     lado). Bajo techo (tienda, portal) te espera sentada en la puerta; en el metro o en una sala de
---     un edificio no entra (te espera y reaparece contigo al salir). «Sentarse»: se queda donde
+--     un edificio no entra (te espera y reaparece contigo al salir); si vas en coche, moto o a
+--     caballo, tampoco corre detrás: aparece a tu lado al bajarte. «Sentarse»: se queda donde
 --     estaba. «A casa»: en el jardín de tu parcela o contigo dentro de tu vivienda. Su nombre encima.
 --     Cartel para su dueño: «Sentarse / Seguir» y «Mis mascotas».
 --   * Vagabundos (Pets.Strays, 3): en su sitio (protectora, callejón, parque). «Llamar» → te sigue;
@@ -414,6 +415,11 @@ local function stepPet(config: Configuration, t: number, dt: number, around: Vec
 			visible = false
 		end
 	else
+		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+		local seat = humanoid and humanoid.SeatPart
+		if seat and (seat:IsA("VehicleSeat") or seat.Name == "RideSeat") then
+			place = "hidden" -- vas en coche, en moto o a caballo: te espera y aparece contigo al bajar
+		end
 		if place == "hidden" then
 			visible = false -- en el metro o en una sala: no entra
 			info.Hidden = true
@@ -452,7 +458,7 @@ local function stepPet(config: Configuration, t: number, dt: number, around: Vec
 	end
 	if target then
 		-- El suelo donde tiene que estar
-		local hit = ground(target.X, target.Z, math.max(target.Y, f.Pos.Y) + 4, 30)
+		local hit = ground(target.X, target.Z, target.Y + 4, 30)
 		local goal = if hit then hit.Position + Vector3.new(0, c.Stand, 0) else Vector3.new(target.X, f.Pos.Y, target.Z)
 		if f.Pos.Y < -400 then
 			f.Pos = goal

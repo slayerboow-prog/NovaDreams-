@@ -481,7 +481,10 @@ local function handle(player: Player, action: any, ...)
 		send(player, minePanel(player, a))
 	elseif action == "ReleaseYes" then
 		local pd = petData(player)
-		local pet, index = if pd then Pets.find(pd.Owned, a) else nil, nil
+		local pet, index = nil, nil
+		if pd then
+			pet, index = Pets.find(pd.Owned, a)
+		end
 		if pd and pet and index then
 			table.remove(pd.Owned, index)
 			if pd.Out == pet.Id then

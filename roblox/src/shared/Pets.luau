@@ -17,7 +17,8 @@
 --
 -- Funciones puras (sin Roblox salvo Vector3): las prueban scripts/test-animals.luau y test-adoption.luau.
 
-local NameFilter = require(script.Parent.NameFilter)
+-- (por ReplicatedStorage y no por script.Parent: así también lo carga el constructor del mapa)
+local NameFilter = require(game:GetService("ReplicatedStorage").Shared.NameFilter)
 
 local Pets = {}
 
