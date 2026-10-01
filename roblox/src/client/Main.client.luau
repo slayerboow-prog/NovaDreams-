@@ -286,6 +286,18 @@ Hud.addMenuToggle("🧭 GPS: sí", 3.2, function()
 	return if Gps.isEnabled() then "🧭 GPS: sí" else "🧭 GPS: no"
 end)
 
+-- ✨ Gráficos: Auto (según los fps) → Bajo → Medio → Alto (UI/Perf, presupuestos en shared/Graphics)
+do
+	local Perf = require(script.Parent.UI.Perf)
+	local Graphics = require(ReplicatedStorage.Shared.Graphics)
+	safeInit("PerfAuto", Perf.startAuto)
+	Hud.addMenuToggle(Perf.choiceLabel(), 3.3, function()
+		Perf.setChoice(Graphics.nextChoice(Perf.choice()))
+		Hud.toast("Info", Perf.choiceLabel())
+		return Perf.choiceLabel()
+	end)
+end
+
 -- Móvil: correr al empujar el joystick hasta el borde (sí por defecto)
 local function autoRunText(): string
 	return if game:GetService("Players").LocalPlayer:GetAttribute("AutoRun") == false then "🏃 Correr al empujar el joystick: no" else "🏃 Correr al empujar el joystick: sí"

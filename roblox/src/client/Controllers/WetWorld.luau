@@ -8,18 +8,20 @@
 --   * Personas (jugadores y personajes): bajo la lluvia se mojan (ropa y pelo más oscuros y
 --     gotean); a cubierto se secan.
 --   * El coche que conduces levanta agua al pasar por el suelo mojado.
---   * La luz: con todo mojado, los reflejos del entorno se notan más.
+--   * La luz: con todo mojado, los reflejos del entorno se notan más (eso lo pinta DayLight con
+--     shared/DayGrade.weather; antes se escribía también aquí y las dos se pisaban: parpadeaba de noche).
+--   * Nivel gráfico (UI/Perf): cuántos charcos y en qué radio se moja el suelo (shared/Graphics).
 --
 -- Cuánto está mojado todo lo decide el servidor (workspace "Wet" y "Snow": WeatherService), así
 -- que todos lo ven igual. Los cambios se hacen solo en tu pantalla y solo cerca de ti. Las cuentas
 -- (cuánto oscurecer, cuánto brillar) están en shared/Wetness.
 
-local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Seasons = require(ReplicatedStorage.Shared.Seasons)
 local Wetness = require(ReplicatedStorage.Shared.Wetness)
+local Perf = require(script.Parent.Parent.UI.Perf)
 
 local WetWorld = {}
 
@@ -29,9 +31,9 @@ local BLACK = Color3.new(0, 0, 0)
 local SNOW = rgb(240, 244, 250)
 local SMOKE = "rbxasset://textures/particles/smoke_main.dds"
 
-local RADIUS = 100 -- superficies que se mojan alrededor de la cámara
+local RADIUS = 100 -- superficies que se mojan alrededor de la cámara (como mucho: lo baja el nivel gráfico)
 local NEW_PER_TICK = 350 -- piezas nuevas que se revisan cada vez (con un rayo hacia el cielo)
-local PUDDLES = 16
+local PUDDLES = 16 -- (como mucho: el nivel gráfico dice cuántos se usan)
 local PEOPLE = 24
 
 local folder: Folder
@@ -150,7 +152,7 @@ local function surfacesTick()
 		return
 	end
 	overlap.FilterDescendantsInstances = ignore
-	local near = workspace:GetPartBoundsInRadius(camera.CFrame.Position, RADIUS, overlap)
+	local near = workspace:GetPartBoundsInRadius(camera.CFrame.Position, math.min(RADIUS, Perf.tier().WetRadius), overlap)
 	local seen: { [BasePart]: boolean } = {}
 	local checks = 0
 	for _, part in near do
@@ -287,10 +289,11 @@ local function puddlesTick(wet: number, rain: number, indoor: boolean)
 	-- Charcos: aparecen cuando ya está bastante mojado y crecen con la lluvia
 	local grow = math.clamp((wet - 0.3) / 0.7, 0, 1)
 	local tries = 0
-	for _, puddle in puddles do
+	local budget = Perf.tier().Puddles
+	for i, puddle in puddles do
 		local p = puddle.Part
 		local far = (p.Position - around).Magnitude > 75
-		if grow <= 0 then
+		if grow <= 0 or i > budget then
 			if puddle.Placed then
 				p.Transparency = 1
 				p.CFrame = CFrame.new(0, -500, 0)
@@ -516,16 +519,11 @@ end
 
 ---------------------------------------------------------------------
 
-local baseSpecular = 1
-local baseDiffuse = 1
-
 function WetWorld.init()
 	folder = Instance.new("Folder")
 	folder.Name = "WetWorld"
 	folder.Parent = workspace.CurrentCamera -- solo para este jugador
 	buildPuddles()
-	baseSpecular = Lighting.EnvironmentSpecularScale
-	baseDiffuse = Lighting.EnvironmentDiffuseScale
 
 	-- Superficies: cada segundo y medio
 	task.spawn(function()
@@ -558,9 +556,6 @@ function WetWorld.init()
 				puddlesTick(wet, rain, indoor)
 				peopleTick(dt, rain)
 				sprayTick(wet)
-				-- Con todo mojado, los reflejos del entorno brillan más
-				Lighting.EnvironmentSpecularScale = baseSpecular + (1 - baseSpecular) * 0.8 * wet
-				Lighting.EnvironmentDiffuseScale = baseDiffuse * (1 - 0.15 * wet)
 			end)
 			if not ok then
 				warn("[WetWorld] " .. tostring(err))

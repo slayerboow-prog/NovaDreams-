@@ -31,6 +31,17 @@ do
 		end
 	end
 end
+-- Ciudad construida antes de los acabados (cristal de fachada con reflejo): se aplican ahora, una vez
+do
+	local built = workspace:FindFirstChild("Town")
+	local Polish = require(World.Kit.Polish)
+	if built and (built:GetAttribute("SurfaceVersion") or 0) < Polish.SurfaceVersion then
+		local ok, err = pcall(Polish.surfaces, built)
+		if not ok then
+			warn("[Polish] " .. tostring(err))
+		end
+	end
+end
 TerrainBuilder.removeGroundPart()
 
 -- 3b) El sueño del prólogo: una isla pequeña en el cielo donde los personajes nuevos aprenden los

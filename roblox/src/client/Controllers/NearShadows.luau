@@ -1,31 +1,106 @@
--- NearShadows: sombras de las luces solo cerca del jugador.
+-- NearShadows: presupuesto de luces de la noche (solo en la pantalla de cada jugador).
 --
--- La ciudad tiene casi 600 luces (farolas, luces de techo, faros). Si todas proyectan sombra a la vez,
--- el ordenador se ahoga. Pero la sombra de una farola solo se aprecia de cerca: aquí se encienden
--- las sombras de las luces más cercanas a la cámara (hasta MAX) y se apagan las demás.
--- Se ve igual que con todas encendidas y el juego va mucho más fluido.
+-- La ciudad tiene más de 3.000 farolas (unas 1.600 con luz de verdad) y cientos de luces de techo.
+-- Encenderlas todas a la vez (y con sombras) hunde los fps, sobre todo en el móvil. Aquí, cada medio
+-- segundo y según el nivel gráfico (UI/Perf, presupuestos en shared/Graphics):
+--   * Farolas: solo las N más cercanas a la cámara iluminan el suelo de verdad (charco de luz cálida);
+--     las demás siguen brillando (la bombilla es de neón y el resplandor la hace brillar), que de lejos
+--     es lo que se ve. Alto 40, Medio 18, Bajo 8. Encendidas o no lo dice el servidor (WorldService)
+--     con el material de la bombilla: neón = encendida.
+--   * Cada farola tiene su luz: la mayoría LED cálido y alguna de sodio, más naranja (siempre la misma
+--     para la misma farola), con el foco hacia abajo y el alcance justo para pintar la acera y la calzada.
+--   * Sombras: solo las luces más cercanas echan sombra (Alto 8, Medio 2, Bajo ninguna).
+--   * Carteles de las tiendas: de noche resplandecen un poco (no en el nivel Bajo).
+
+local Lighting = game:GetService("Lighting")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Config = require(ReplicatedStorage.Shared.Config)
+local Graphics = require(ReplicatedStorage.Shared.Graphics)
+local Perf = require(script.Parent.Parent.UI.Perf)
 
 local NearShadows = {}
 
-local LITE = require(script.Parent.Parent.UI.Perf).lite
-local MAX = if LITE then 4 else 12 -- luces con sombra a la vez (en móvil, menos)
-local RANGE = 160 -- más lejos de esto, sin sombra
--- Modo ligero (móvil): de noche solo dan luz de verdad las farolas cercanas. Las lejanas siguen
--- brillando (la bombilla es de neón), pero sin iluminar el suelo, que es lo que cuesta.
--- El servidor dice si toca que estén encendidas con el material de la bombilla (neón = encendida).
-local LAMP_RANGE = 200
+local TICK = 0.5
+local LAMP_BRIGHTNESS = { Led = 3.4, Sodium = 3.8 }
+local LAMP_RANGE = 50 -- alcance de la luz de una farola (la bombilla está a unos 14 studs)
+local LAMP_ANGLE = 125
+local SIGN_NIGHT = 1.7 -- brillo de los carteles de noche (de día, 1)
+local SIGN_PARTS = { Sign = true, Banner = true, Advert = true, MupiAd = true, AdPanel = true }
 
-local tracked: { [Light]: boolean } = {}
+type Lamp = { Light: Light, Bulb: BasePart }
 
-local function add(light: Instance)
-	if light:IsA("SpotLight") or light:IsA("PointLight") or light:IsA("SurfaceLight") then
-		tracked[light] = true
+local others: { [Light]: boolean } = {} -- luces que no son farolas (solo se les quitan o ponen sombras)
+local lamps: { [Light]: Lamp } = {}
+local signs: { [SurfaceGui]: boolean } = setmetatable({}, { __mode = "k" }) :: any
+local signNight: boolean? = nil
+local desired: { [Light]: boolean } = {} -- lo que este presupuesto quiere para cada farola
+
+local function rgb(t: { number }): Color3
+	return Color3.fromRGB(t[1], t[2], t[3])
+end
+
+local function isNight(): boolean
+	local clock = Lighting.ClockTime
+	return clock >= Config.LampsOnAt or clock < Config.LampsOffAt
+end
+
+local function styleLamp(light: Light, bulb: BasePart)
+	local kind = Graphics.lampKind(bulb.Position)
+	local color = rgb(if kind == "Sodium" then Graphics.LampSodium else Graphics.LampLed)
+	light.Color = color
+	light.Brightness = LAMP_BRIGHTNESS[kind]
+	light.Range = LAMP_RANGE
+	if light:IsA("SpotLight") then
+		light.Angle = LAMP_ANGLE
+	end
+	if bulb.Transparency < 1 then
+		bulb.Color = color -- la bombilla, del mismo color que su luz
+	end
+end
+
+local function setSign(gui: SurfaceGui, night: boolean)
+	local want = if night and Perf.tier().SignGlow then SIGN_NIGHT else 1
+	if gui.Brightness ~= want then
+		gui.Brightness = want
+	end
+end
+
+local function add(instance: Instance)
+	-- (también la usan las pruebas: NearShadows.add)
+	if instance:IsA("SpotLight") or instance:IsA("PointLight") or instance:IsA("SurfaceLight") then
+		local light = instance :: Light
+		local bulb = light.Parent
 		light.Shadows = false
+		if bulb and bulb:IsA("BasePart") and bulb:HasTag("StreetLamp") then
+			lamps[light] = { Light = light, Bulb = bulb }
+			styleLamp(light, bulb)
+			-- El servidor enciende todas las farolas al anochecer: aquí se vuelve enseguida a lo que
+			-- toca (sin esperar a la siguiente vuelta, que se notaría un tirón con todas encendidas)
+			light:GetPropertyChangedSignal("Enabled"):Connect(function()
+				local want = desired[light]
+				if want ~= nil and light.Enabled ~= want then
+					light.Enabled = want
+				end
+			end)
+		else
+			others[light] = true
+		end
 		light.AncestryChanged:Connect(function(_, parent)
 			if not parent then
-				tracked[light] = nil
+				lamps[light] = nil
+				others[light] = nil
+				desired[light] = nil
 			end
 		end)
+	elseif instance:IsA("SurfaceGui") then
+		local parent = instance.Parent
+		if parent and SIGN_PARTS[parent.Name] and instance.LightInfluence == 0 then
+			signs[instance] = true
+			if signNight ~= nil then
+				setSign(instance, signNight)
+			end
+		end
 	end
 end
 
@@ -39,52 +114,96 @@ local function position(light: Light): Vector3?
 	return nil
 end
 
+-- Una vuelta del presupuesto (la usan también las pruebas). Devuelve cuántas farolas dan luz.
+function NearShadows.step(eye: Vector3): number
+	local tier = Perf.tier()
+	-- Farolas encendidas (bombilla de neón) y, de ellas, las más cercanas dan luz de verdad
+	local list: { Lamp } = {}
+	local points: { Vector3 } = {}
+	for _, lamp in lamps do
+		if lamp.Bulb.Material == Enum.Material.Neon then
+			table.insert(list, lamp)
+			table.insert(points, lamp.Bulb.Position)
+		end
+	end
+	local chosen = Graphics.nearest(points, eye, tier.LampLights, tier.LampRange)
+	local lit = 0
+	local onSet: { [Light]: boolean } = {}
+	for i, lamp in list do
+		if chosen[i] then
+			onSet[lamp.Light] = true
+			lit += 1
+		end
+	end
+	for light in lamps do
+		local want = onSet[light] == true
+		desired[light] = want
+		if light.Enabled ~= want then
+			light.Enabled = want
+		end
+	end
+	-- Sombras: las luces encendidas más cercanas
+	local shadowPoints: { Vector3 } = {}
+	local shadowLights: { Light } = {}
+	if tier.ShadowLights > 0 then
+		for light in onSet do
+			table.insert(shadowLights, light)
+			table.insert(shadowPoints, lamps[light].Bulb.Position)
+		end
+		for light in others do
+			if light.Enabled then
+				local p = position(light)
+				if p then
+					table.insert(shadowLights, light)
+					table.insert(shadowPoints, p)
+				end
+			end
+		end
+	end
+	local withShadow = Graphics.nearest(shadowPoints, eye, tier.ShadowLights, tier.ShadowRange)
+	local shadowOn: { [Light]: boolean } = {}
+	for i in withShadow do
+		shadowOn[shadowLights[i]] = true
+	end
+	for _, group in { lamps, others } :: { { [Light]: any } } do
+		for light in group do
+			local want = shadowOn[light] == true
+			if light.Shadows ~= want then
+				light.Shadows = want
+			end
+		end
+	end
+	-- Carteles: solo cuando cambia la noche (o el nivel)
+	local night = isNight()
+	if night ~= signNight then
+		signNight = night
+		for gui in signs do
+			if gui.Parent then
+				setSign(gui, night)
+			end
+		end
+	end
+	return lit
+end
+
+NearShadows.add = add
+
 function NearShadows.init()
 	for _, instance in workspace:GetDescendants() do
 		add(instance)
 	end
 	workspace.DescendantAdded:Connect(add)
+	Perf.onTier(function()
+		signNight = nil -- (que se vuelvan a pintar los carteles con el nivel nuevo)
+	end)
 
 	while true do
-		task.wait(0.5)
+		task.wait(TICK)
 		local camera = workspace.CurrentCamera
-		local eye = camera and camera.CFrame.Position
-		if eye and LITE then
-			for light in tracked do
-				local bulb = light.Parent
-				if bulb and bulb:IsA("BasePart") and bulb:HasTag("StreetLamp") then
-					local want = bulb.Material == Enum.Material.Neon and (bulb.Position - eye).Magnitude < LAMP_RANGE
-					if light.Enabled ~= want then
-						light.Enabled = want
-					end
-				end
-			end
-		end
-		if eye then
-			local near = {}
-			for light in tracked do
-				if light.Enabled then
-					local p = position(light)
-					if p then
-						local d = (p - eye).Magnitude
-						if d < RANGE then
-							table.insert(near, { Light = light, D = d })
-						end
-					end
-				end
-			end
-			table.sort(near, function(a, b)
-				return a.D < b.D
-			end)
-			local on = {}
-			for i = 1, math.min(MAX, #near) do
-				on[near[i].Light] = true
-			end
-			for light in tracked do
-				local want = on[light] == true
-				if light.Shadows ~= want then
-					light.Shadows = want
-				end
+		if camera then
+			local ok, err = pcall(NearShadows.step, camera.CFrame.Position)
+			if not ok then
+				warn("[NearShadows] " .. tostring(err))
 			end
 		end
 	end

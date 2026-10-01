@@ -1137,9 +1137,15 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean })
 	fn(lighting, "GetMoonDirection", function()
 		return V3.new(-0.3, 0.9, -0.2).Unit
 	end)
-	for _, className in { "Atmosphere", "Sky", "BloomEffect", "SunRaysEffect", "ColorCorrectionEffect" } do
-		local name = ({ BloomEffect = "Bloom", SunRaysEffect = "SunRays", ColorCorrectionEffect = "ColorCorrection" })[className] or className
+	for _, className in { "Atmosphere", "Sky", "BloomEffect", "SunRaysEffect", "ColorCorrectionEffect", "DepthOfFieldEffect" } do
+		local name = ({ BloomEffect = "Bloom", SunRaysEffect = "SunRays", ColorCorrectionEffect = "ColorCorrection", DepthOfFieldEffect = "DepthOfField" })[className] or className
 		new(className, name).Parent = lighting
+	end
+	-- La tecnología de luz, como la pone el archivo del juego (default.project.json)
+	do
+		local project = serde.decode("json", fs.readFile("default.project.json"))
+		local tech = project.tree.Lighting["$properties"].Technology
+		rawget(lighting, "__props").Technology = (Enum.Technology :: any)[tech]
 	end
 
 	local http = service("HttpService")
@@ -1627,6 +1633,30 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean })
 		[math.floor(3 * FPS)] = function()
 			-- Una misión canónica pendiente (LifeStoryService): su ❗ en el minimapa
 			localPlayer:SetAttribute("CanonMarks", '[{"Id":"Grieta01","Title":"La grieta","X":40,"Y":0,"Z":-60}]')
+		end,
+		[math.floor(23 * FPS)] = function()
+			-- Gráficos: DayLight pinta los efectos de imagen y el menú tiene «✨ Gráficos»
+			local lightingNow = game:GetService("Lighting")
+			local bloom = lightingNow:FindFirstChild("Bloom")
+			local cc = lightingNow:FindFirstChild("ColorCorrection")
+			table.insert(checks, {
+				bloom ~= nil and bloom.Intensity > 0 and cc ~= nil and cc.Contrast > 0,
+				"gráficos: la luz de la hora llega a los efectos (resplandor y color)",
+			})
+			local menuRow = false
+			for _, d in playerGui:GetDescendants() do
+				if rawget(d, "__class") == "TextButton" and string.find(tostring(d.Text), "Gráficos", 1, true) then
+					menuRow = true
+				end
+			end
+			table.insert(checks, { menuRow, "gráficos: el menú tiene la opción «✨ Gráficos»" })
+			-- (aquí el juego va a 20 fotogramas por segundo simulados: el modo «Auto» baja de nivel
+			-- solo, como en un móvil lento; las sombras del sol tienen que seguir al nivel que toque)
+			local tier = localPlayer:GetAttribute("GraphicsTier")
+			table.insert(checks, {
+				tier == "Low" and lightingNow.GlobalShadows == false,
+				("gráficos: con pocos fps el modo Auto baja a Bajo y quita las sombras del sol (%s, sombras %s)"):format(tostring(tier), tostring(lightingNow.GlobalShadows)),
+			})
 		end,
 		[math.floor(5 * FPS)] = function()
 			local found = false

@@ -244,8 +244,24 @@
           ]
         }
       },
+      "DepthOfField": {
+        "$className": "DepthOfFieldEffect",
+        "$properties": {
+          "Enabled": false,
+          "FarIntensity": 0.05,
+          "FocusDistance": 80,
+          "InFocusRadius": 170,
+          "NearIntensity": 0
+        }
+      },
       "Sky": {
-        "$className": "Sky"
+        "$className": "Sky",
+        "$properties": {
+          "SunAngularSize": 12,
+          "MoonAngularSize": 11,
+          "StarCount": 3000,
+          "CelestialBodiesShown": true
+        }
       }
     },
     "Workspace": {

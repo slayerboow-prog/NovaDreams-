@@ -7,9 +7,11 @@ local rgb = Color3.fromRGB
 
 Palette.Ground = {
 	-- Verdes apagados, de clima mediterráneo (los verdes chillones hacen que todo parezca de juguete)
-	Grass = rgb(108, 132, 74),
-	Lawn = rgb(104, 140, 72),
-	Asphalt = rgb(52, 54, 58),
+	Grass = rgb(104, 138, 70),
+	Lawn = rgb(100, 146, 70),
+	-- Asfalto oscuro y algo frío (el gris claro se veía plano y apagaba las marcas blancas; mojado,
+	-- el oscuro refleja mejor las luces)
+	Asphalt = rgb(46, 48, 53),
 	Sidewalk = rgb(196, 192, 184),
 	Curb = rgb(214, 211, 204),
 	Marking = rgb(236, 236, 230),

@@ -16,6 +16,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Seasons = require(ReplicatedStorage.Shared.Seasons)
 local Metro = require(ReplicatedStorage.Shared.Metro)
 local DayLight = require(script.Parent.DayLight)
+local DayGrade = require(ReplicatedStorage.Shared.DayGrade)
 local Hud = require(script.Parent.Parent.UI.Hud)
 local SoundFx = require(script.Parent.SoundFx)
 
@@ -304,27 +305,10 @@ end
 -- El cielo: se lo pasamos a DayLight para que lo mezcle con la luz de la hora
 ---------------------------------------------------------------------
 
+-- (Las cuentas están en shared/DayGrade.weather: lluvia gris y fría, bruma, suelo mojado que refleja…)
 local function skyModifier(k: { [string]: any }): { [string]: any }
 	local info = Seasons.Weather[weather] or Seasons.Weather.Despejado
-	local seasonInfo = Seasons.Info[season] or {}
-	local out = table.clone(k)
-	out.Brightness = k.Brightness * info.Brightness + flash * 4
-	out.Exposure = k.Exposure + flash * 0.6
-	out.Saturation = k.Saturation + info.Saturation
-	out.Density = math.clamp(k.Density + info.Density, 0, 0.8)
-	if info.Cover then
-		out.Cover = math.max(k.Cover, info.Cover)
-		out.CloudColor = k.CloudColor:Lerp(rgb(110, 114, 124), (info.Rain or 0) * 0.5 + (if info.Lightning then 0.2 else 0))
-	end
-	if seasonInfo.Warm then
-		out.Tint = k.Tint:Lerp(rgb(255, 236, 214), seasonInfo.Warm)
-	elseif seasonInfo.Cold then
-		out.Tint = k.Tint:Lerp(rgb(220, 232, 255), seasonInfo.Cold)
-	end
-	if info.Rain then
-		out.Tint = out.Tint:Lerp(rgb(214, 222, 236), 0.25)
-	end
-	return out
+	return DayGrade.weather(k, info, Seasons.Info[season], flash, workspace:GetAttribute("Wet") or 0)
 end
 
 ---------------------------------------------------------------------

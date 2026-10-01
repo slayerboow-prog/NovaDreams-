@@ -39,8 +39,9 @@ function TerrainBuilder.build()
 		terrain.Decoration = false
 	end)
 	-- Colores de campo mediterráneo: verdes apagados, tierra seca y arena clara
-	terrain:SetMaterialColor(Enum.Material.Grass, Color3.fromRGB(108, 132, 74))
-	terrain:SetMaterialColor(Enum.Material.LeafyGrass, Color3.fromRGB(88, 114, 60))
+	-- (algo más vivos que antes: de noche y con el etalonaje se veían grises)
+	terrain:SetMaterialColor(Enum.Material.Grass, Color3.fromRGB(102, 138, 68))
+	terrain:SetMaterialColor(Enum.Material.LeafyGrass, Color3.fromRGB(86, 118, 58))
 	terrain:SetMaterialColor(Enum.Material.Rock, Color3.fromRGB(132, 124, 112))
 	terrain:SetMaterialColor(Enum.Material.Sand, Color3.fromRGB(230, 212, 170))
 	terrain:SetMaterialColor(Enum.Material.Ground, Color3.fromRGB(138, 120, 88))

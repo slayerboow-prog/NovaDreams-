@@ -196,4 +196,28 @@ function Polish.tone(root: Instance): number
 	return changed
 end
 
+-- Acabados: el cristal de las fachadas refleja un poco el cielo (con la iluminación Future se ve el
+-- reflejo del entorno; sin él, las cristaleras parecían plástico azul). Solo cristal opaco o casi, y
+-- solo si no tenía ya su reflejo. Las ventanas que se encienden de noche (NightWindow) pierden el
+-- reflejo al encenderse (WorldService). No cambia colores (así no aparecen parpadeos nuevos entre
+-- piezas a ras). Devuelve cuántas piezas cambió.
+Polish.SurfaceVersion = 1
+Polish.FacadeGlass = { Windows = true, Glass = true, ShopGlass = true, WindowGlass = true, SideWindows = true, BackWindows = true, Core = true }
+Polish.GlassReflectance = 0.12
+function Polish.surfaces(root: Instance): number
+	local changed = 0
+	for _, part in root:GetDescendants() do
+		if part:IsA("BasePart") and part.Material == Enum.Material.Glass and Polish.FacadeGlass[part.Name] then
+			if part.Reflectance < 0.05 and part.Transparency < 0.6 then
+				part.Reflectance = Polish.GlassReflectance
+				changed += 1
+			end
+		end
+	end
+	if root:IsA("Model") or root:IsA("Folder") then
+		root:SetAttribute("SurfaceVersion", Polish.SurfaceVersion)
+	end
+	return changed
+end
+
 return Polish

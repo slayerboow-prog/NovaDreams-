@@ -711,6 +711,7 @@ function TownBuilder.build(): Folder
 		end
 	end
 	require(Kit.Polish).tone(world)
+	require(Kit.Polish).surfaces(world) -- cristal de fachada con reflejo
 	require(Kit.Polish).optimize(world)
 
 	return world

@@ -52,8 +52,15 @@ local function setupLighting()
 	ensure("BloomEffect", {})
 	ensure("SunRaysEffect", {})
 	ensure("ColorCorrectionEffect", {})
-	ensure("DepthOfFieldEffect", { FarIntensity = 0, NearIntensity = 0, InFocusRadius = 120, FocusDistance = 60 })
-	ensure("Sky", { SunAngularSize = 14, MoonAngularSize = 9, StarCount = 3000 })
+	-- (desenfoque apagado hasta que DayLight lo encienda según el nivel gráfico de cada jugador)
+	ensure("DepthOfFieldEffect", { Enabled = false, FarIntensity = 0.05, NearIntensity = 0, InFocusRadius = 170, FocusDistance = 80 })
+	-- Sol algo más pequeño y nítido (el de serie parece una mancha), luna grande y cielo estrellado
+	ensure("Sky", { SunAngularSize = 12, MoonAngularSize = 11, StarCount = 3000, CelestialBodiesShown = true })
+	-- La iluminación «Future» (luces con sombra, reflejos) va en default.project.json; desde un script
+	-- normalmente no se puede escribir, pero si se puede (Studio, pruebas), se asegura aquí
+	pcall(function()
+		Lighting.Technology = Enum.Technology.Future
+	end)
 	-- Estilo de luz realista (propiedades recientes de Roblox: si no existen, no pasa nada)
 	pcall(function()
 		(Lighting :: any).LightingStyle = Enum.LightingStyle.Realistic
@@ -94,7 +101,7 @@ end
 -- la ciudad se va encendiendo poco a poco al anochecer y apagando de madrugada, como una de verdad.
 -- Hay más de 5.000: su horario y colores se leen una sola vez y se guardan en esta tabla, así la
 -- revisión de cada segundo solo compara números (antes leía 2 o 3 atributos de cada ventana).
-type WindowInfo = { OnAt: number, OffAt: number, NightColor: Color3, DayColor: Color3? }
+type WindowInfo = { OnAt: number, OffAt: number, NightColor: Color3, DayColor: Color3?, Reflectance: number }
 local windows: { [BasePart]: WindowInfo } = {}
 
 local function track(window: Instance): WindowInfo?
@@ -110,6 +117,8 @@ local function track(window: Instance): WindowInfo?
 			OffAt = if typeof(offAt) == "number" then offAt else (Config.LampsOffAt + 24),
 			NightColor = if typeof(nightColor) == "Color3" then nightColor else NIGHT_WINDOW_COLOR,
 			DayColor = if typeof(dayColor) == "Color3" then dayColor else nil,
+			-- (el reflejo del cristal de día; encendida no refleja: es luz)
+			Reflectance = if window.Material == Enum.Material.Neon then 0 else window.Reflectance,
 		}
 		windows[window] = info
 	end
@@ -132,6 +141,7 @@ local function setWindow(window: BasePart, info: WindowInfo, on: boolean)
 	windowOn[window] = on
 	window.Material = if on then Enum.Material.Neon else Enum.Material.Glass
 	window.Color = if on then info.NightColor else (info.DayColor or window.Color)
+	window.Reflectance = if on then 0 else info.Reflectance
 	-- Las ventanas grandes (franjas de una planta entera, paneles de oficina) llevan "Soft": neón
 	-- medio transparente, así se ven encendidas sin que la fachada entera deslumbre
 	if window:GetAttribute("Soft") then
