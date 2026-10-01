@@ -110,13 +110,13 @@ local function prefab(parent: any, name: string, dims: { number }, front: string
 	-- Fachada: toldos, puerta y escaparate abajo; detrás, la escalera de incendios y el aire
 	local fx, fz = 0, -z / 2 + 1.5
 	local ax, az = 0, z / 2 - 1.5
-	local awningSize = Vector3.new(x * 0.6, 1, 3)
+	local awningSize, doorSize = Vector3.new(x * 0.6, 1, 3), Vector3.new(4, 8, 1)
 	if front == "+X" then
 		fx, fz, ax, az = x / 2 - 1.5, 0, -x / 2 + 1.5, 0
-		awningSize = Vector3.new(3, 1, z * 0.6)
+		awningSize, doorSize = Vector3.new(3, 1, z * 0.6), Vector3.new(1, 8, 4)
 	end
 	mesh(m, "Bldg_Addon_Awning_A", awningSize, OFFSET + Vector3.new(fx, 10, fz))
-	mesh(m, "Bldg_Door_A", Vector3.new(4, 8, 1), OFFSET + Vector3.new(fx * 0.98, 4, fz * 0.98))
+	mesh(m, "Bldg_Door_A", doorSize, OFFSET + Vector3.new(fx, 4, fz))
 	mesh(m, "Bldg_Addon_FireEscape_A", Vector3.new(6, y * 0.6, 2), OFFSET + Vector3.new(ax, y * 0.4, az))
 	mesh(m, "Bldg_Addon_ACUnit_A", Vector3.new(3, 3, 2), OFFSET + Vector3.new(ax * 0.9, 20, az * 0.9))
 	-- Detalle pequeño (tornillería: sin sombra)
@@ -368,13 +368,13 @@ local function isMesh(p: any): boolean
 end
 
 -- Comprueba un bloque cambiado: dentro de la huella, fachada a la calle, en el suelo
-local function verify(model: any, frame: any, w: number, d: number, bottom: number): { [string]: boolean }
+local function verify(model: any, frame: any, w: number, d: number): { [string]: boolean }
 	local r = { Inside = true, Front = true, Ground = true }
 	local lo, hi = localBounds(model, frame, isMesh)
 	if lo.X < -w / 2 - 0.5 or hi.X > w / 2 + 0.5 or lo.Z < -d / 2 - 0.5 or hi.Z > d / 2 + 0.5 then
 		r.Inside = false
 	end
-	if math.abs(lo.Y - bottom) > 0.05 then
+	if math.abs(lo.Y) > 0.05 then -- (el marco está en el suelo del bloque)
 		r.Ground = false
 	end
 	-- (frame: -Z = fachada) los toldos y la puerta del prefab, delante; la escalera de incendios, detrás
@@ -406,7 +406,7 @@ do
 	local plan = Buildings3D.replace(block, templates, nil)
 	check(plan ~= nil and block:GetAttribute("Prefab3D") == "E", "cambiado por el E (" .. tostring(block:GetAttribute("Prefab3D")) .. ")")
 	local frame = (info :: any).CFrame
-	local r = verify(block, frame, 62, 62, 2)
+	local r = verify(block, frame, 62, 62)
 	check(r.Inside, "dentro de la huella del bloque (nunca más de 0,5 fuera: no pisa la acera)")
 	check(r.Front, "la fachada del prefab (toldos, puerta) mira a la calle; la escalera de incendios, detrás")
 	check(r.Ground, "apoyado en el suelo del bloque")
@@ -602,11 +602,10 @@ if placePath then
 		local info = Buildings3D.info(b, nil)
 		local kind = Entrances.classify(b)
 		local door = Entrances.doorPart(b)
-		local bottom = info and info.CFrame.Position.Y or 0
 		local ok, plan = pcall(Buildings3D.replace, b, templates, nil)
 		if ok and plan then
 			n += 1
-			local r = verify(b, (info :: any).CFrame, info.W, info.D, bottom)
+			local r = verify(b, (info :: any).CFrame, info.W, info.D)
 			if not (r.Inside and r.Front and r.Ground) then
 				bad += 1
 			end
