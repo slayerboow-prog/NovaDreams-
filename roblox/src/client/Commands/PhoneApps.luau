@@ -47,6 +47,7 @@ PhoneApps.Catalog = {
 	["AppRuta a casa"] = { Name = "Ruta a casa", Icon = "lugar", Color = { 20, 160, 150 } },
 	AppTienda = { Name = "Tienda", Icon = "tienda", Color = { 255, 159, 10 } },
 	["AppVehículos"] = { Name = "Vehículos", Icon = "coche", Color = { 0, 122, 255 } },
+	["AppMascotas"] = { Name = "Mascotas", Icon = "🐾", Color = { 175, 120, 70 } },
 	AppGestos = { Name = "Gestos", Icon = "gestos", Color = { 230, 180, 20 } },
 	GestosPase = { Name = "Gestos pase", Icon = "gestos", Color = { 175, 82, 222 } },
 	AppMetro = { Name = "Metro", Icon = "🚇", Color = { 210, 40, 60 } },
