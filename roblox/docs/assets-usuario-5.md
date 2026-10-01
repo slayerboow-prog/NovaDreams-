@@ -47,12 +47,12 @@ Notas generales:
 | 5033818552 | Realistic Footstep Sounds (Elg0n) | ✅ | 25 `Sound` | ⚠ 1 | **no usar** — 20 de 25 audios **no son públicos** (no suenan en nuestro juego) y son de **Garry's Mod** y **Black Mesa**. |
 | 979423743 | lightning & thunder cloud | ✅ | 3 Part / 854 tris | 0 | **no usar** — no hay partículas ni rayos: una nube de malla y una `PointLight` apagada. Sin script no hace nada. |
 | 1076538396 | Best Gun Meshes: ~60 armas | ✅ | 179 piezas / 390 412 tris | ⚠ 1 (readme) | **no usar** — armas de **Counter-Strike** («Credit to VALVe»). |
-| 546753609 | TurboFusion Gun Kit (P90) | ✅ | 0 piezas | ⚠ 3 | **no usar** — kit de arma. Sin virus (`string.char` = teclas), pero es un arma. |
+| 546753609 | TurboFusion Gun Kit (P90) | ✅ | 0 piezas | ⚠ 3 | **útil con cuidado** — kit de arma (P90) sin virus (`string.char` = teclas) y no sacado de otro juego. El juego ya tiene armas: revisar que encaja con nuestro sistema de combate. |
 | 1305075170 | stash: 17 fajos de billetes | ✅ | 34 piezas / 7 888 tris | 0 | **útil con cuidado** — fajos «$10,000» (`TextBox` en `SurfaceGui`). Limpio. Para un banco o una caja fuerte. |
 | 991205683 | Pillow | ✅ | 1 Union 1.6×1.0×1.7 | 0 | **útil con cuidado** — una almohada pequeña (una sola `Union`, 304 tris). |
 | 4927992927 | Meteors! | ✅ | 0 piezas | ⚠ 1 | **no usar** — lluvia de meteoritos que **hace daño** (50) a los jugadores. |
 | 994161570 | Shading V.2 | ✅ | 0 piezas | ⚠ 2 | **útil con cuidado** — crea Bloom, SunRays, ColorCorrection y Blur 1 según la hora. Limpio. Copiar valores; el juego ya tiene su iluminación. |
-| 480927087 | Red Dot Sight | ✅ | 6 piezas | 0 | **no usar** — mira de arma. |
+| 480927087 | Red Dot Sight | ✅ | 6 piezas | 0 | **útil con cuidado** — mira de punto rojo de bloques, limpia. Para las armas del juego. |
 | 5674029686 | Mueble (xJavisDonasx) | ✅ | 82 Part / 7 536 tris | 0 | **útil con cuidado** — mueble de 8.8×3.2×2.9 de bloques. Limpio. |
 | 9876129164 | «basuraaaa…»: cubo de basura | ✅ | 1 MeshPart 3.6×3.6×7.3 / 172 tris | 0 | **útil** — contenedor ligero con textura (malla del propio autor, 2022). Limpio. |
 | 5677783820 | MuebleComputadora | ✅ | 40 Part / 2 664 tris | 0 | **útil con cuidado** — mesa de ordenador de bloques. Limpia. |
@@ -71,7 +71,7 @@ Notas generales:
 | 5411055653 | Construction Asset Pack | ✅ | 173 piezas (45 MeshPart) / 100 738 tris | 0 | **útil** — obra: contenedores, bidones, vallas, conos, palés, andamios… Limpio. Mallas del propio autor. Los bidones ponen «Roblox General Technologies» (inventado). |
 | 12152263865 | Bronze PBR Pack | ✅ | 6 MeshPart PBR | 0 | **útil** — 3 tipos de bronce (limpio, de estatua, gastado) en esfera y bloque. **No es MaterialVariant**: son `SurfaceAppearance`. Para estatuas. |
 | 11330013072 | PBR Moai | ✅ | 1 MeshPart PBR / 846 tris | 0 | **útil con cuidado** — estatua de 2.8×6.1. Limpia, pero sacada de **Splatoon 3** (lo dice la descripción). |
-| 11156149162 | PBR C4 | ✅ | 1 MeshPart PBR / 3 353 tris | 0 | **no usar** — explosivo (y su nombre es «Cee Four» para esquivar filtros). |
+| 11156149162 | PBR C4 | ✅ | 1 MeshPart PBR / 3 353 tris | 0 | **útil con cuidado** — explosivo PBR limpio y ligero. Su nombre es «Cee Four» (para esquivar filtros): ponerle otro. Solo si el juego tiene atracos o misiones con explosivos. |
 | 11444948273 | PBR Wooden Door | ✅ | 1 MeshPart PBR / 350 tris | 0 | **útil con cuidado** — puerta de madera PBR de 3.6×7.5, muy ligera. Sacada de **Resident Evil 7**. |
 | 11329271645 | PBR Clipboard | ✅ | 1 MeshPart PBR / 318 tris | 0 | **útil con cuidado** — portapapeles de 1.1×1.6. Sacado de **Predator: Hunting Grounds**. |
 | 9408271791 | PBR_Textures: 20 MaterialVariant | ✅ | 41 Part de muestra | ⚠ 1 (readme) | **útil** — 20 `MaterialVariant` limpios (ver detalle), uno por material de Roblox. 0 👍 / 10 👎. |
@@ -383,18 +383,29 @@ cuando otras imágenes del mismo año sí salen) y no se pueden leer por dentro 
 permission»). Es un Panzer IV de la Wehrmacht: lo normal sería una cruz de hierro, pero **no se puede
 descartar una esvástica**. Y aunque no la tenga, es un tanque nazi que dispara. **No usar.**
 
-### Armas y otros (no usar)
+### Armas y otros
 
 - **1076538396 — Best Gun Meshes**: ~60 armas (Glock 18, M4A1-S, AWP…) de **Counter-Strike**
   («Credit to VALVe»), mallas de PrimeFIRE94 (2016).
-- **546753609 — TurboFusion Gun Kit**: GUI y scripts de un P90 (112 260 letras). `string.char` son
-  teclas (17-20 = flechas, 48 = «0»); sin virus.
 - **9700798278 — (RCM) M16 Pack**: 5 fusiles, 70 sonidos de **Escape from Tarkov** (no públicos).
-- **480927087 — Red Dot Sight**, **11156149162 — C4**, **4927992927 — Meteors!** (hace 50 de daño).
+- **4927992927 — Meteors!** (hace 50 de daño).
 - **1119962617 — skool**: «Roblox High School v1», 2 981 bloques de varios constructores.
 - **10491752124 — SCP-087-B Hallway**: pasillo de terror de 40×9.5×6 con 24 `Texture`.
 - **132859014**, **26972564**: trozos de mapas viejos sin uso.
 - **223224044**: agua de 2015 hecha con bloques que cambian de tamaño.
+
+### Armas que sí se pueden usar (útil con cuidado)
+
+El juego ya tiene armas y peleas, así que un arma no se descarta solo por serlo. Estas tres no son de
+otros juegos ni tienen virus:
+
+- **546753609 — TurboFusion Gun Kit**: GUI y scripts de un P90 (112 260 letras). `string.char` son
+  teclas (17-20 = flechas, 48 = «0»); sin virus.
+- **480927087 — Red Dot Sight**: mira de 1.2×1.2×1.1 (6 piezas, un `Decal` 240080271 y un punto `Neon`).
+- **11156149162 — C4**: una MeshPart PBR de 1.7×0.5×0.8 (3 353 tris). Cambiarle el nombre «Cee Four».
+
+Las armas que **no** se pueden usar son las copiadas de otros juegos (Counter-Strike, Tarkov). El tanque
+266515007 tampoco, por ser nazi y tener imágenes sin revisar; un tanque hecho por nosotros sí se podría.
 
 ## Lo mejor de esta tanda
 
@@ -426,8 +437,8 @@ el logo «hyundai», la matrícula y los sonidos.
 
 ## Nunca usar
 
-- **Armas y explosivos**: 1076538396 (Counter-Strike), 546753609, 480927087, 9700798278 (Tarkov),
-  11156149162 (C4), 4927992927 (meteoritos que hacen daño).
+- **Armas sacadas de otros juegos**: 1076538396 (Counter-Strike), 9700798278 (Tarkov). Y 4927992927
+  (meteoritos que hacen daño).
 - **Símbolos o temas de odio**: **266515007** (tanque nazi con imágenes que no se pueden revisar).
 - **Sacados de otros juegos**: 195181959 (EVE Online), 1119962617 (Roblox High School), 5033818552
   (sonidos de Garry's Mod y Black Mesa, casi todos privados).
