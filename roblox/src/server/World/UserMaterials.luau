@@ -23,6 +23,7 @@
 --   * Después de las calles (World/StreetDress) viste las casas, el colegio, los edificios públicos y
 --     las naves pieza a pieza (World/HouseDress, shared/HouseLook): los overrides de Plaster y
 --     ClayRoofTiles no se pueden poner en un servidor real (sus variants vienen sobre otro material).
+--   * Y después, los interiores (suelos, paredes, techos…): World/InteriorDress, shared/InteriorLook.
 --   * Si no carga ningún pack (o falla todo), no se cambia nada: siguen nuestras texturas.
 
 local AssetService = game:GetService("AssetService")
@@ -317,6 +318,18 @@ function UserMaterials.start(load: ((number) -> Instance?)?, dress: ((Instance, 
 		end)
 		if not ok then
 			warn("[UserMaterials] edificios: " .. tostring(err))
+		end
+	end
+	-- Interiores (casas, pisos, tiendas, bares, oficinas, hospital, colegio, hotel…): suelos, paredes,
+	-- techos, encimeras y rodapiés pieza a pieza (World/InteriorDress, tabla en shared/InteriorLook),
+	-- también las salas que se monten luego. Carga además Duvall Drive y Modern City Materials.
+	local interiors = script and script.Parent and script.Parent:FindFirstChild("InteriorDress")
+	if interiors then
+		local ok, err = pcall(function()
+			require(interiors :: any).start(game:GetService("MaterialService"), library, load or download, UserMaterials.unpack)
+		end)
+		if not ok then
+			warn("[UserMaterials] interiores: " .. tostring(err))
 		end
 	end
 	if #applied == 0 then
