@@ -1,12 +1,13 @@
--- BattlePassRewardCard: la tarjeta de UNA recompensa en la fila de niveles del pase de temporada.
+-- BattlePassRewardCard: la tarjeta de UNA recompensa en las filas del pase de temporada (GRATIS arriba
+-- y PREMIUM abajo, una por nivel).
 --
---   local card = RewardCard.new(parent, layout, position)   -- se crea una vez por nivel
---   card:set(reward, { Current = bool, Next = bool, Selected = bool, Pending = bool })
---   card.Button.Activated   -> elegirla (la ventana la enseña en grande)
---   card.Claim.Activated    -> RECLAMAR (solo cuando el servidor dice DISPONIBLE)
+--   local card = RewardCard.new(parent, layout, position, name)   -- se crea una vez por nivel y pista
+--   card:set(reward, { Current = bool, Selected = bool, Pending = bool })
+--   card.Button.Activated   -> la ventana decide: si está DISPONIBLE la reclama; si no, la enseña en grande
 --
--- Enseña icono, nombre, rareza (con su color), tipo, nivel, pista (GRATIS / PREMIUM) y estado
--- (BLOQUEADA / DISPONIBLE / RECLAMADA / PREMIUM BLOQUEADA). Todo lo decide el servidor: aquí solo se pinta.
+-- Enseña el icono (con el color de su rareza en el fondo y en el filo), la cantidad si la hay (250 €,
+-- x2…), un candado si aún no es tuya, un ✔ si ya la reclamaste y «RECLAMAR» brillando si está lista.
+-- Todo lo decide el servidor: aquí solo se pinta.
 
 local Theme = require(script.Parent.Theme)
 local View = require(script.Parent.BattlePassView)
@@ -23,25 +24,31 @@ local function place(object: GuiObject, r: { X: number, Y: number, W: number, H:
 	object.Size = UDim2.fromOffset(r.W, r.H)
 end
 
-function RewardCard.new(parent: Instance, layout: { [string]: any }, position: Vector2, name: string?)
-	local size = layout.Rewards.Card
+function RewardCard.new(parent: Instance, layout: { [string]: any }, position: Vector2, name: string?, premium: boolean?)
+	local R = layout.Rows
 	local inner = layout.Card
 	local text = layout.Text
 	local self = setmetatable({}, RewardCard)
-	-- La tarjeta entera es un botón (elegirla); el de RECLAMAR va encima
+	local base = if premium then View.Colors.PremiumDark else H.NavyLight
+	-- La tarjeta entera es un botón
 	local button = create("TextButton", {
 		Name = name or "Card",
 		Position = UDim2.fromOffset(position.X, position.Y),
-		Size = UDim2.fromOffset(size.X, size.Y),
-		BackgroundColor3 = H.Navy,
-		BackgroundTransparency = 0.25,
+		Size = UDim2.fromOffset(R.CardW, R.CardH),
+		BackgroundColor3 = base,
+		BackgroundTransparency = 0.15,
 		BorderSizePixel = 0,
 		AutoButtonColor = false,
 		Text = "",
 		Parent = parent,
 	}, {
 		create("UICorner", { CornerRadius = UDim.new(0, 10) }),
-		create("UIGradient", { Rotation = 90, Color = Theme.PanelSheen }),
+	})
+	-- Fondo: brillo de la rareza abajo (degradado de abajo arriba)
+	local gradient = create("UIGradient", {
+		Rotation = 270,
+		Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.new(1, 1, 1)),
+		Parent = button,
 	})
 	local stroke = create("UIStroke", {
 		Name = "Edge",
@@ -51,34 +58,13 @@ function RewardCard.new(parent: Instance, layout: { [string]: any }, position: V
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 		Parent = button,
 	})
-	-- Franja de rareza arriba (el color de la rareza, discreto)
 	local rarityBar = create("Frame", {
 		Name = "RarityBar",
-		Position = UDim2.fromOffset(10, 0),
-		Size = UDim2.new(1, -20, 0, 3),
 		BackgroundColor3 = C.Muted,
 		BorderSizePixel = 0,
 		Parent = button,
 	}, { create("UICorner", { CornerRadius = UDim.new(1, 0) }) })
-	local level = Theme.label({
-		Name = "Level",
-		Text = "NV. 01",
-		Font = Theme.FontBold,
-		TextSize = text.Small,
-		TextColor3 = C.Text,
-		Parent = button,
-	})
-	place(level, inner.Level)
-	local badge = Theme.label({
-		Name = "Badge",
-		Text = "",
-		Font = Theme.FontBold,
-		TextSize = text.Small - 1,
-		TextColor3 = H.Glow,
-		TextXAlignment = Enum.TextXAlignment.Right,
-		Parent = button,
-	})
-	place(badge, inner.Badge)
+	place(rarityBar, inner.Rarity)
 	local icon = Theme.label({
 		Name = "Icon",
 		Text = "🎁",
@@ -87,67 +73,64 @@ function RewardCard.new(parent: Instance, layout: { [string]: any }, position: V
 		Parent = button,
 	})
 	place(icon, inner.Icon)
-	local title = Theme.label({
-		Name = "RewardName",
+	local status = Theme.label({
+		Name = "Status",
 		Text = "",
-		Font = Theme.FontBold,
-		TextSize = text.Body - 1,
-		TextWrapped = true,
-		TextTruncate = Enum.TextTruncate.AtEnd,
+		TextScaled = true,
 		TextXAlignment = Enum.TextXAlignment.Center,
-		TextYAlignment = Enum.TextYAlignment.Bottom,
+		BackgroundColor3 = H.Navy,
+		BackgroundTransparency = 0.25,
+		ZIndex = 3,
 		Parent = button,
 	})
-	place(title, inner.Name)
-	local meta = Theme.label({
-		Name = "Meta",
+	create("UICorner", { CornerRadius = UDim.new(1, 0), Parent = status })
+	place(status, inner.Status)
+	local amount = Theme.label({
+		Name = "Amount",
 		Text = "",
-		TextSize = text.Small - 1,
-		TextColor3 = C.Muted,
-		TextTruncate = Enum.TextTruncate.AtEnd,
-		TextXAlignment = Enum.TextXAlignment.Center,
-		Parent = button,
-	})
-	place(meta, inner.Meta)
-	-- Estado: botón RECLAMAR (disponible) o una etiqueta (bloqueada, reclamada, premium)
-	local claim = create("TextButton", {
-		Name = "State",
-		BackgroundColor3 = H.NavyLight,
-		BackgroundTransparency = 0.2,
-		BorderSizePixel = 0,
-		AutoButtonColor = false,
 		Font = Theme.FontBold,
-		TextSize = text.Button,
+		TextSize = text.Small,
 		TextColor3 = C.Text,
-		Text = "",
+		TextStrokeTransparency = 0.4,
+		TextXAlignment = Enum.TextXAlignment.Right,
+		ZIndex = 2,
 		Parent = button,
-	}, { create("UICorner", { CornerRadius = UDim.new(0, 8) }) })
-	place(claim, inner.State)
-	local claimStroke = create("UIStroke", {
-		Color = H.Glow,
-		Thickness = 1.5,
-		Transparency = 1,
-		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-		Parent = claim,
 	})
-	Theme.pressable(claim)
+	place(amount, inner.Amount)
+	-- «RECLAMAR» (solo cuando está lista): una franja que brilla
+	local claim = Theme.label({
+		Name = "Claim",
+		Text = "RECLAMAR",
+		Font = Theme.FontBold,
+		TextSize = text.Small,
+		TextColor3 = C.Text,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		BackgroundColor3 = View.Colors.Claim,
+		BackgroundTransparency = 0,
+		Visible = false,
+		ZIndex = 3,
+		Parent = button,
+	})
+	create("UICorner", { CornerRadius = UDim.new(0, 6), Parent = claim })
+	create("UIStroke", { Color = H.Glow, Thickness = 1.5, Transparency = 0.05, ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = claim })
+	place(claim, inner.Claim)
+	Theme.pressable(button)
 	Theme.hover(button, nil)
 
 	self.Button = button
-	self.Claim = claim
+	self.Claim = claim -- (etiqueta: la tarjeta entera es la que se pulsa)
 	self.Stroke = stroke
-	self.ClaimStroke = claimStroke
+	self.Gradient = gradient
 	self.RarityBar = rarityBar
-	self.LevelLabel = level
-	self.Badge = badge
 	self.Icon = icon
-	self.Title = title
-	self.Meta = meta
+	self.Status = status
+	self.Amount = amount
+	self.Premium = premium == true
 	self.Reward = nil
 	return self
 end
 
--- Pinta la recompensa (y resalta la actual, la siguiente y la elegida)
+-- Pinta la recompensa (y resalta la del nivel actual y la elegida)
 function RewardCard:set(reward: { [string]: any }?, flags: { [string]: any }?)
 	local f = flags or {}
 	self.Reward = reward
@@ -156,45 +139,37 @@ function RewardCard:set(reward: { [string]: any }?, flags: { [string]: any }?)
 		return
 	end
 	local rarity = if typeof(reward.RarityColor) == "Color3" then reward.RarityColor else C.Muted
-	local info = View.stateInfo(reward.State)
-	local premium = reward.Track == "Premium"
-	Theme.setText(self.LevelLabel, "NV. " .. View.levelText(reward.Level))
+	local state = reward.State
+	local available = state == "AVAILABLE"
+	local claimed = state == "CLAIMED"
+	local locked = state == "LOCKED" or state == "PREMIUM_LOCKED"
+	self.Button:SetAttribute("State", state)
 	Theme.setText(self.Icon, tostring(reward.Icon or "🎁"))
-	Theme.setText(self.Title, tostring(reward.Name or ""))
-	Theme.setText(self.Meta, ("%s · %s"):format(tostring(reward.RarityName or reward.Rarity or ""), tostring(reward.TypeName or reward.Type or "")))
-	self.Meta.TextColor3 = rarity
 	self.RarityBar.BackgroundColor3 = rarity
-	-- Arriba a la derecha: ACTUAL / SIGUIENTE / ★ (hito cada 5) / la pista
-	local badge = if f.Current then "ACTUAL" elseif f.Next then "SIGUIENTE" elseif reward.Milestone then "★ HITO" else View.trackName(reward.Track)
-	Theme.setText(self.Badge, badge)
-	self.Badge.TextColor3 = if f.Current or f.Next then H.Glow elseif premium then View.Colors.Premium else C.Muted
-	-- Estado
-	local text = if f.Pending then "…" else info.Text
-	Theme.setText(self.Claim, text)
-	self.Claim:SetAttribute("State", reward.State)
-	self.Claim.AutoButtonColor = info.Claim == true
-	self.Claim.Active = info.Claim == true and not f.Pending
-	if info.Claim then
-		self.Claim.BackgroundColor3 = View.Colors.Claim
-		self.Claim.BackgroundTransparency = 0
-		self.Claim.TextColor3 = C.Text
-		self.ClaimStroke.Transparency = 0.1
-	else
-		self.Claim.BackgroundColor3 = if reward.State == "PREMIUM_LOCKED" then View.Colors.PremiumDark else H.NavyLight
-		self.Claim.BackgroundTransparency = 0.35
-		self.Claim.TextColor3 = info.Color
-		self.ClaimStroke.Transparency = 1
-	end
-	-- Borde: la elegida brilla; la disponible, cian; la legendaria, dorada; el resto, suave
-	local edge = if f.Selected then H.Glow elseif reward.State == "AVAILABLE" then H.SelectLight elseif reward.Rarity == "Legendaria" then View.Colors.Premium else C.Stroke
+	-- Fondo: el color de la rareza sube desde abajo (más fuerte en las raras y mejores)
+	local base = if self.Premium then View.Colors.PremiumDark else H.NavyLight
+	local strength = if reward.Rarity == "Legendaria" then 0.55 elseif reward.Rarity == "Epica" then 0.45 elseif reward.Rarity == "Rara" then 0.35 else 0.18
+	self.Button.BackgroundColor3 = Color3.new(1, 1, 1) -- (el color lo pone el degradado)
+	self.Gradient.Color = ColorSequence.new(base:Lerp(rarity, strength), base)
+	-- Esquina: candado (aún no) o ✔ (reclamada)
+	local corner = if claimed then "✔" elseif locked then "🔒" else ""
+	Theme.setText(self.Status, corner)
+	self.Status.Visible = corner ~= ""
+	self.Status.TextColor3 = if claimed then View.Colors.Claimed else C.Text
+	-- Cantidad o RECLAMAR
+	local amount = View.amountText(reward)
+	self.Claim.Visible = available
+	Theme.setText(self.Claim, if f.Pending then "…" else "RECLAMAR")
+	Theme.setText(self.Amount, amount)
+	self.Amount.Visible = not available and amount ~= ""
+	-- Borde: la elegida y la lista brillan; la legendaria, dorada; el resto, suave
+	local edge = if f.Selected then H.Glow elseif available then H.SelectLight elseif reward.Rarity == "Legendaria" then View.Colors.Premium elseif self.Premium then View.Colors.Premium else C.Stroke
 	self.Stroke.Color = edge
-	self.Stroke.Thickness = if f.Selected then 2.5 else 1.5
-	self.Stroke.Transparency = if f.Selected or reward.State == "AVAILABLE" then 0 else 0.45
-	-- Lo que aún no tienes se ve un poco apagado (sin esconderlo: se ve qué vas a conseguir)
-	local dim = reward.State == "LOCKED" or reward.State == "PREMIUM_LOCKED"
-	self.Icon.TextTransparency = if dim then 0.3 else 0
-	self.Title.TextColor3 = if dim then C.Muted else C.Text
-	self.Button.BackgroundTransparency = if f.Current then 0.12 else 0.25
+	self.Stroke.Thickness = if f.Selected or available then 2.5 else 1.5
+	self.Stroke.Transparency = if f.Selected or available then 0 elseif self.Premium then 0.35 else 0.55
+	-- Lo que aún no tienes se ve apagado (sin esconderlo: se ve qué vas a conseguir)
+	self.Icon.TextTransparency = if locked then 0.35 elseif claimed then 0.15 else 0
+	self.Button.BackgroundTransparency = if f.Current then 0.02 elseif locked then 0.3 else 0.15
 end
 
 return RewardCard

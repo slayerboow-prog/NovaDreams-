@@ -26,6 +26,7 @@ local push: LinearVelocity? = nil
 local pushConnection: RBXScriptConnection? = nil
 local downToken = 0
 local dashesLeft = Combat.AirDashes
+local lastDash = 0
 local onWall: ((Vector3) -> ())? = nil
 
 local function parts(): (Humanoid?, BasePart?)
@@ -295,6 +296,10 @@ function HitReaction.airDash(dir: Vector3): boolean
 	if not humanoid or not root or humanoid.FloorMaterial ~= Enum.Material.Air or dashesLeft <= 0 or humanoid.PlatformStand then
 		return false
 	end
+	if os.clock() - lastDash < 0.3 then
+		return false
+	end
+	lastDash = os.clock()
 	dashesLeft -= 1
 	local flat = Vector3.new(dir.X, 0, dir.Z)
 	flat = if flat.Magnitude > 0.1 then flat.Unit else Vector3.zero

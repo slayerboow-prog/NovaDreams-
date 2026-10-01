@@ -667,12 +667,13 @@ function CombatController.setLock(target: Model?)
 	end)
 end
 
--- Fijar: el más cercano; con alguien fijado, el siguiente (si no hay otro, se suelta)
+-- Fijar: el más cercano; con alguien fijado, el siguiente (después del último, se suelta)
 function CombatController.toggleLock()
 	if lockTarget then
 		local list = candidates()
 		local i = table.find(list, lockTarget)
-		local nextOne = if i then list[i + 1] or (if i > 1 then list[1] else nil) else list[1]
+		-- (después del último, se suelta: así en el móvil el mismo botón cambia y suelta)
+		local nextOne = if i then list[i + 1] else list[1]
 		if nextOne and nextOne ~= lockTarget then
 			CombatController.setLock(nextOne)
 		else
@@ -1023,6 +1024,10 @@ end
 local function updateCharging(other: Player)
 	local on = other:GetAttribute("Charging") == true
 	local character = other.Character
+	-- (el servidor ha cortado tu carga: un golpe, aturdido… se suelta también aquí)
+	if other == player and not on and charging then
+		CombatController.charge(false)
+	end
 	if other == player and powerHeld then
 		return -- (cargando la onda: ya tiene su aura)
 	end
@@ -1324,9 +1329,13 @@ function CombatController.init()
 		end
 		return nil
 	end)
-	UserInputService.JumpRequest:Connect(function()
-		if TouchLayout.isTouch() then
-			return -- (en el móvil lo lleva el botón Saltar: onJump)
+	-- Ordenador y mando: Espacio / A otra vez en el aire (una pulsación nueva: mantenerla no gasta impulsos)
+	UserInputService.InputBegan:Connect(function(input, processed)
+		if processed or typing() or TouchLayout.isTouch() then
+			return
+		end
+		if input.KeyCode ~= Enum.KeyCode.Space and input.KeyCode ~= Enum.KeyCode.ButtonA then
+			return
 		end
 		local humanoid = parts()
 		if humanoid and powerSet().AirDash and humanoid.FloorMaterial == Enum.Material.Air and stamina() >= Combat.AirDashCost and handsFree() then

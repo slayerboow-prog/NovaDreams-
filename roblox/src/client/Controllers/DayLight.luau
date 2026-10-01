@@ -236,6 +236,48 @@ function DayLight.setModifier(fn: ((Key) -> Key)?)
 	modifier = fn
 end
 
+-- Capas de cielo de la historia (shared/SkyMoods): cambios puntuales ENCIMA de la luz de la hora y del
+-- tiempo (no rompen el ciclo del día). Las ponen y quitan las escenas (Controllers/HappeningClient,
+-- StoryFx). Cada capa entra y sale con un fundido de `fade` segundos.
+type Layer = { Mood: { [string]: any }, W: number, Target: number, Rate: number }
+local layers: { [string]: Layer } = {}
+function DayLight.pushLayer(id: string, mood: { [string]: any }, fade: number?)
+	local layer = layers[id]
+	local rate = 1 / math.max(fade or 1, 0.05)
+	if layer then
+		layer.Mood, layer.Target, layer.Rate = mood, 1, rate
+	else
+		layers[id] = { Mood = mood, W = 0, Target = 1, Rate = rate }
+	end
+end
+function DayLight.popLayer(id: string, fade: number?)
+	local layer = layers[id]
+	if layer then
+		layer.Target = 0
+		layer.Rate = 1 / math.max(fade or 1, 0.05)
+	end
+end
+function DayLight.layerWeight(id: string): number
+	local layer = layers[id]
+	return if layer then layer.W else 0
+end
+local function applyLayers(k: Key, dt: number): Key
+	if next(layers) == nil then
+		return k
+	end
+	local SkyMoods = require(ReplicatedStorage.Shared.SkyMoods)
+	for id, layer in layers do
+		local step = layer.Rate * dt
+		layer.W = if layer.W < layer.Target then math.min(layer.Target, layer.W + step) else math.max(layer.Target, layer.W - step)
+		if layer.W <= 0.001 and layer.Target <= 0 then
+			layers[id] = nil
+		else
+			k = SkyMoods.apply(k, layer.Mood, layer.W, DayGrade.mix)
+		end
+	end
+	return k
+end
+
 -- Cuánto está la cámara bajo el agua (0..1): lo pone SeaBiome
 function DayLight.setUnderwater(value: number)
 	underwater = math.clamp(value, 0, 1)
@@ -268,6 +310,7 @@ function DayLight.init()
 			if modifier then
 				k = modifier(k)
 			end
+			k = applyLayers(k, since)
 			if underwater > 0.001 then
 				k = DayGrade.mix(k, underwaterKey(k), underwater)
 			end

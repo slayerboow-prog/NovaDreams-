@@ -64,6 +64,16 @@ function CombatAI.decide(view: View, level: Level, roll: () -> number): string
 	if not view.CanAct then
 		return "Wait"
 	end
+	-- Ha parado un golpe: contraataca (o sigue cubierto)
+	if view.Blocking then
+		if view.JustBlocked and roll() < level.Counter then
+			return "Light"
+		end
+		if not view.TargetAttacking or view.TargetAttackAge > 0.6 then
+			return "Unblock"
+		end
+		return "Block"
+	end
 	-- Le van a pegar: cubrirse, rodar o desvanecerse (si le da tiempo a reaccionar)
 	if view.TargetAttacking and view.Distance <= level.Range + 3 and view.TargetAttackAge >= level.React * 0.5 then
 		local r = roll()
@@ -78,16 +88,6 @@ function CombatAI.decide(view: View, level: Level, roll: () -> number): string
 		if r < level.Dodge then
 			return "Roll"
 		end
-	end
-	-- Ha parado un golpe: contraataca (o sigue cubierto)
-	if view.Blocking then
-		if view.JustBlocked and roll() < level.Counter then
-			return "Light"
-		end
-		if not view.TargetAttacking or view.TargetAttackAge > 0.6 then
-			return "Unblock"
-		end
-		return "Block"
 	end
 	if view.TargetDown then
 		-- No se pega a quien está en el suelo: espera a que se levante (a un paso)

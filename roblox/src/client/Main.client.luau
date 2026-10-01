@@ -206,7 +206,7 @@ task.spawn(Driving.init) -- conducir coches, motos, bicis, monopatines y patinet
 task.spawn(VehicleLights.init) -- faros, pilotos de freno y marcha atrás e intermitentes de los vehículos de los jugadores (todos los ven)
 task.spawn(WheelSpin.init) -- las ruedas de los vehículos cercanos ruedan y las de delante giran con el volante (todos los ven)
 task.spawn(Actions.init) -- gestos y bailes, linterna (L) y modo foto (P)
-task.spawn(CombatController.init) -- pelear: X/RB golpear (combo de 3), Z/LB defenderse, 👊 y 🛡 en el móvil
+task.spawn(CombatController.init) -- pelear: combos de ligeros y fuertes con sus finales, guardia, esquivar/desvanecerse, fijar, poderes de la Grieta
 task.spawn(WeaponController.init) -- armas: clic dcho/LT apuntar, clic/RT disparar, R recargar; Armerías y licencia
 task.spawn(WantedUI.init) -- estrellas de búsqueda bajo el reloj, avisos de delito, DETENIDO y hélices
 task.spawn(DeathUI.init) -- pantalla de HAS MUERTO y despertar en el hospital

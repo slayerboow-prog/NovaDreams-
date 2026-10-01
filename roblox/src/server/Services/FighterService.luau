@@ -70,11 +70,11 @@ end
 local function groundAt(f: Fighter, at: Vector3): number
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
-	params.FilterDescendantsInstances = { f.Folder }
+	params.FilterDescendantsInstances = { f.Folder, f.Owner.Character :: any }
 	local ok, hit = pcall(function()
 		return workspace:Raycast(at + Vector3.new(0, 4, 0), Vector3.new(0, -40, 0), params)
 	end)
-	if ok and hit and hit.Instance and not hit.Instance:IsDescendantOf(f.Owner.Character or f.Folder) then
+	if ok and hit and hit.Instance then
 		return hit.Position.Y
 	end
 	return f.GroundY
@@ -362,12 +362,19 @@ function FighterService.spawn(owner: Player, at: Vector3?, levelId: string?, opt
 	local id = if CombatAI.Levels[levelId :: any] then levelId :: string else "Normal"
 	local o = opts or {}
 	local look = flat(ownerRoot_.CFrame.LookVector)
-	local where = at or (ownerRoot_.Position + look * 10)
+	local where = at
+	if not where then
+		-- Delante de él, con los pies a la altura de los suyos (su raíz está a la altura de la cadera)
+		local ownerHumanoid = (character :: Model):FindFirstChildOfClass("Humanoid")
+		local hip = if ownerHumanoid then ownerHumanoid.HipHeight + ownerRoot_.Size.Y / 2 else 3
+		where = ownerRoot_.Position + look * 10 - Vector3.new(0, hip, 0)
+	end
+	local feet = where :: Vector3
 	local folder = Instance.new("Folder")
 	folder.Name = "Rival_" .. tostring(owner.UserId)
 	folder:SetAttribute("Owner", owner.UserId)
 	folder.Parent = workspace
-	local model = Npc.create(o.Name or ("Rival (" .. level.Name .. ")"), folder, CFrame.lookAt(where, ownerRoot_.Position), o.Look)
+	local model = Npc.create(o.Name or ("Rival (" .. level.Name .. ")"), folder, CFrame.lookAt(feet, Vector3.new(ownerRoot_.Position.X, feet.Y, ownerRoot_.Position.Z)), o.Look)
 	model:SetAttribute("Fighter", id)
 	model:SetAttribute("NpcId", o.NpcId or "Rival")
 	local humanoid = model:FindFirstChildOfClass("Humanoid") :: Humanoid

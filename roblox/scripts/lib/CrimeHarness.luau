@@ -382,7 +382,7 @@ replicatedStorage.Shared = node(ROOT .. "/shared")
 H.replicatedStorage = replicatedStorage
 replicatedStorage.Remotes = remotes
 
-local function load(path: string): any
+local function load(path: string, overrides: { [string]: any }?): any
 	if mocks[path] ~= nil then
 		return mocks[path]
 	end
@@ -430,6 +430,9 @@ local function load(path: string): any
 			print("[warn]", ...)
 		end,
 	}, { __index = _G })
+	for k, v in overrides or {} do
+		env[k] = v
+	end
 	local file = path .. ".luau"
 	if not fs.isFile(file) then
 		error("Módulo no encontrado: " .. path)
@@ -439,6 +442,11 @@ local function load(path: string): any
 	return result
 end
 H.load = load
+-- Carga un módulo con algo distinto en su entorno (p. ej. un CFrame.lookAt como el de Roblox:
+-- el de Lune mira al revés). test-combos lo usa con FighterService.
+function H.loadWith(path: string, overrides: { [string]: any }): any
+	return load(path, overrides)
+end
 
 ---------------------------------------------------------------------
 -- Dobles que apuntan lo que pasa

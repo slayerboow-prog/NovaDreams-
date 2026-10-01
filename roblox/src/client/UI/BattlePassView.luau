@@ -302,4 +302,164 @@ function BattlePassView.statsText(stats: any): string
 	return ("Velocidad %s · Manejo %s · Estética %s"):format(bar(stats.Velocidad), bar(stats.Manejo), bar(stats.Estetica))
 end
 
+---------------------------------------------------------------------
+-- Pantalla grande del pase (cabecera, filas, pie y apertura al entrar)
+---------------------------------------------------------------------
+
+-- Cuenta atrás de la cabecera: «32 días 14 horas», «5 h 20 min», «Empieza en 3 días 2 horas»…
+-- now = la hora del servidor de ahora (si no se da, la del estado). Devuelve (prefijo, cuenta).
+function BattlePassView.countdown(season: { [string]: any }?, now: number?): (string, string)
+	if type(season) ~= "table" then
+		return "", ""
+	end
+	local t = now or tonumber(season.Now) or 0
+	local function span(until_: any): string
+		local left = math.max(0, (tonumber(until_) or t) - t)
+		local days = math.floor(left / 86400)
+		local hours = math.floor((left % 86400) / 3600)
+		if days >= 1 then
+			return ("%d %s %d %s"):format(days, if days == 1 then "día" else "días", hours, if hours == 1 then "hora" else "horas")
+		end
+		local minutes = math.floor((left % 3600) / 60)
+		return if hours >= 1 then ("%d h %d min"):format(hours, minutes) else ("%d min"):format(math.max(1, minutes))
+	end
+	local status = season.Status
+	if status == "Upcoming" then
+		return "Empieza en:", span(season.StartsAt)
+	elseif status == "Grace" then
+		return "Reclama hasta:", span(season.ClaimUntil)
+	elseif status == "Ended" then
+		return "Temporada terminada", ""
+	end
+	return "Termina en:", span(season.EndsAt)
+end
+
+-- El botón grande de la cabecera: qué dice, si pide la compra y su estilo.
+--   Kind = "Owned" (ya lo tienes), "Buy" (abre la compra de Roblox), "Soon" (Game Pass aún sin poner:
+--   enseña el aviso, sin pedir nada) u "Off" (no se puede comprar ahora)
+function BattlePassView.heroBuy(premium: { [string]: any }?): { Text: string, Kind: string, Price: string? }
+	if type(premium) ~= "table" then
+		return { Text = "👑 PASE PREMIUM · MUY PRONTO", Kind = "Soon" }
+	end
+	if premium.Owned then
+		local test = premium.Simulated and not premium.Purchased
+		return { Text = if test then "✔ PREMIUM ACTIVO · PRUEBAS" else "✔ PREMIUM ACTIVO", Kind = "Owned" }
+	end
+	if premium.ComingSoon then
+		return { Text = "👑 PASE PREMIUM · MUY PRONTO", Kind = "Soon" }
+	end
+	if not premium.PurchaseEnabled then
+		return { Text = "PREMIUM NO DISPONIBLE AHORA", Kind = "Off" }
+	end
+	local price = if type(premium.PriceRobux) == "number" then ("R$ %s"):format(BattlePassView.number(premium.PriceRobux)) else nil
+	return { Text = "👑 COMPRAR PASE PREMIUM", Kind = "Buy", Price = price }
+end
+
+-- Lo que trae el premium, contado de las recompensas de verdad de la pista premium (para «VER
+-- BENEFICIOS»). Solo estilo: nada que dé ventaja para ganar.
+local BENEFIT_GROUPS = {
+	{ Types = { "VehicleSkin", "Vehicle" }, Icon = "🏎️", One = "coche o moto exclusivo", Many = "coches y motos exclusivos" },
+	{ Types = { "Outfit", "Wearable" }, Icon = "👕", One = "conjunto de ropa", Many = "conjuntos de ropa y accesorios" },
+	{ Types = { "Boat" }, Icon = "⛵", One = "barco", Many = "barcos" },
+	{ Types = { "Emote" }, Icon = "💃", One = "gesto", Many = "gestos y bailes" },
+	{ Types = { "PhoneTheme" }, Icon = "📱", One = "tema del teléfono", Many = "temas del teléfono" },
+	{ Types = { "HudSkin" }, Icon = "🎨", One = "estilo de la interfaz", Many = "estilos de la interfaz" },
+	{ Types = { "HomeTheme", "Decor" }, Icon = "🏠", One = "tema o decoración de casa", Many = "temas y decoración para tu casa" },
+	{ Types = { "Title", "Nameplate" }, Icon = "🏷️", One = "título o placa", Many = "títulos y placas de nombre" },
+	{ Types = { "Bundle" }, Icon = "🎁", One = "conjunto especial", Many = "conjuntos especiales" },
+}
+function BattlePassView.premiumBenefits(state: { [string]: any }?): { { Icon: string, Text: string } }
+	local counts: { [string]: number } = {}
+	local total = 0
+	for _, reward in (state and state.Rewards) or {} do
+		if reward.Track == "Premium" then
+			counts[reward.Type or ""] = (counts[reward.Type or ""] or 0) + 1
+			total += 1
+		end
+	end
+	local out = {}
+	if total > 0 then
+		table.insert(out, { Icon = "⭐", Text = ("%d recompensas premium, una por nivel (además de las gratis)"):format(total) })
+	end
+	for _, group in BENEFIT_GROUPS do
+		local n = 0
+		for _, kind in group.Types do
+			n += counts[kind] or 0
+		end
+		if n > 0 then
+			table.insert(out, { Icon = group.Icon, Text = ("%d %s"):format(n, if n == 1 then group.One else group.Many) })
+		end
+	end
+	local star = BattlePassView.premiumHighlight(state)
+	if star and star.Rarity == "Legendaria" then
+		table.insert(out, { Icon = "🏆", Text = ("Nivel %d: «%s» (legendaria)"):format(star.Level or 50, tostring(star.Name or "")) })
+	end
+	table.insert(out, { Icon = "✅", Text = "Lo que ya hayas alcanzado se entrega al momento" })
+	table.insert(out, { Icon = "⚖️", Text = "Solo estilo: los coches corren igual y nada da ventaja para ganar" })
+	return out
+end
+
+-- Cantidad pequeña de la tarjeta: «250 €», «x2», «+500 XP»… ("" si no hay)
+function BattlePassView.amountText(reward: { [string]: any }?): string
+	if type(reward) ~= "table" then
+		return ""
+	end
+	local amount = tonumber(reward.Amount)
+	if not amount or amount <= 0 then
+		return ""
+	end
+	if reward.Type == "Money" then
+		return BattlePassView.number(amount) .. " €"
+	elseif reward.Type == "CharacterXp" then
+		return ("+%s XP"):format(BattlePassView.number(amount))
+	end
+	return "x" .. BattlePassView.number(amount)
+end
+
+-- Etiqueta de rareza en mayúsculas para la recompensa destacada: «LEGENDARIO», «ÉPICO»…
+local RARITY_TAG = { Comun = "COMÚN", Rara = "RARO", Epica = "ÉPICO", Legendaria = "LEGENDARIO" }
+function BattlePassView.rarityTag(reward: { [string]: any }?): string
+	if type(reward) ~= "table" then
+		return ""
+	end
+	return RARITY_TAG[reward.Rarity or ""] or string.upper(tostring(reward.RarityName or ""))
+end
+
+-- ¿Se puede abrir sola la pantalla del pase al entrar? Devuelve nil si sí, o el motivo para esperar.
+-- Una vez por sesión, después de la pantalla de inicio (la tarjeta «Al volver» de la historia) y
+-- NUNCA encima del prólogo, el tutorial de un jugador nuevo, la etapa de bebé, una conversación, una
+-- escena u otra ventana abierta. info:
+--   Enabled, Visible (temporada en marcha), Shown (ya se abrió en esta sesión), Stage, InPrologue,
+--   Tutorial ("Pendiente", "Hecho", "Saltado", "Veterano" o nil), Busy (conversación o escena),
+--   StartCard (la pantalla de inicio sigue en pantalla), OtherWindow, Elapsed (s desde que arrancó),
+--   FreeFor (s seguidos sin nada en pantalla)
+BattlePassView.AutoOpen = { Settle = 8, Quiet = 1.5, TutorialWait = 25 }
+function BattlePassView.autoOpenBlock(info: { [string]: any }): string?
+	local A = BattlePassView.AutoOpen
+	if not info.Enabled or not info.Visible then
+		return "Off"
+	elseif info.Shown then
+		return "Shown"
+	elseif info.Stage == "Bebe" then
+		return "Bebe"
+	elseif info.InPrologue then
+		return "Prologue"
+	elseif info.Tutorial == "Pendiente" then
+		return "Tutorial"
+	elseif info.Tutorial == nil and (tonumber(info.Elapsed) or 0) < A.TutorialWait then
+		return "Loading" -- (el servidor aún no ha dicho si eres nuevo)
+	elseif info.Busy then
+		return "Busy"
+	elseif info.StartCard then
+		return "StartMenu"
+	elseif info.OtherWindow then
+		return "Window"
+	elseif (tonumber(info.Elapsed) or 0) < A.Settle then
+		return "Settling" -- (primero sale la pantalla de inicio)
+	elseif (tonumber(info.FreeFor) or 0) < A.Quiet then
+		return "Quiet"
+	end
+	return nil
+end
+
 return BattlePassView

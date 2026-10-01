@@ -172,6 +172,12 @@ function DefaultCommands.register()
 				CombatController.attack()
 			end, Stay = true } :: any)
 		end
+		if fighting and not armed then
+			-- El golpe fuerte (final del combo: lanzador, empujón lejano, al suelo…)
+			table.insert(out, { Id = "GolpeFuerte", Label = "Golpe fuerte", Icon = "espada", Priority = 0.11, Run = function()
+				CombatController.heavyTap()
+			end, Stay = true } :: any)
+		end
 		if fighting then
 			table.insert(out, { Id = "Habilidades", Label = "Habilidades", Icon = "habilidades", Priority = 0.15, Run = function()
 				Hud.runCommand("Personaje")

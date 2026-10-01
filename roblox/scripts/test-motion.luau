@@ -429,7 +429,7 @@ do
 	end
 	PoseLayers.reset()
 	local controller = fs.readFile("src/client/Controllers/CombatController.luau")
-	check(controller:find("RollMotion.roll(direction)", 1, true) ~= nil and controller:find("Remote:FireServer(\"Dodge\")", 1, true) ~= nil, "Esquivar = voltereta (RollMotion.roll) y el servidor da la invulnerabilidad (\"Dodge\")")
+	check(controller:find("RollMotion.roll(direction)", 1, true) ~= nil and (controller:find("Remote:FireServer(\"Dodge\")", 1, true) ~= nil or controller:find("send(\"Dodge\"", 1, true) ~= nil), "Esquivar = voltereta (RollMotion.roll) y el servidor da la invulnerabilidad (\"Dodge\")")
 	local roll = fs.readFile("src/client/Controllers/RollMotion.luau")
 	check(roll:find("VelocityConstraintMode.Plane", 1, true) ~= nil and roll:find("root.CFrame = CFrame.new(", 1, true) == nil, "El impulso es física en el plano (respeta paredes, no teletransporta)")
 	local server = fs.readFile("src/server/Services/CombatService.luau")

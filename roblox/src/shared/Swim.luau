@@ -157,6 +157,12 @@ Swim.HiddenButtons = {
 	Recargar = true,
 	Gestos = true,
 	Agacharse = true,
+	-- (la pelea con el estilo de combos: CombatController)
+	Fuerte = true,
+	Cargar = true,
+	Poder = true,
+	CambiarPoder = true,
+	Definitiva = true,
 }
 
 return Swim

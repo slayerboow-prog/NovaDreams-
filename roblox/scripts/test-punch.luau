@@ -102,6 +102,38 @@ local kick = peak("Kick", "RightHip")
 check(kick > 1.2, ("Patada: la pierna derecha sube (%.2f rad)"):format(kick))
 check(amount(PunchAnim.pose("Kick", 0.12, {}).RightKnee) > 0.4, "Patada: primero recoge la rodilla")
 
+print("Combo largo, finales y poderes")
+for _, move in { "Hook", "Knee", "Elbow", "Uppercut", "SpinKick", "Slam", "Charged", "Blast" } do
+	check(PunchAnim.Moves[move] ~= nil, move .. " existe")
+	check(rest(PunchAnim.pose(move, 0, {})) and rest(PunchAnim.pose(move, 1, {})), move .. " empieza y acaba en postura normal")
+	check(sane(move), move .. " sin ángulos locos")
+end
+local upper = peak("Uppercut", "RightShoulder")
+check(upper > 2, ("Lanzador: el puño sube hacia el cielo (%.2f rad)"):format(upper))
+local knee = peak("Knee", "RightHip")
+check(knee > 1.3, ("Rodillazo: la rodilla sube (%.2f rad)"):format(knee))
+local slamUp = peak("Slam", "LeftShoulder")
+check(slamUp > 2 and pitch(PunchAnim.pose("Slam", 0.75, {}).Waist) < 0, "Al suelo: los dos puños arriba y luego el cuerpo se echa hacia delante")
+local spin = 0
+for i = 0, 40 do
+	local _, y = PunchAnim.pose("SpinKick", i / 40, {}).Waist:ToEulerAnglesYXZ()
+	spin = math.max(spin, math.abs(y))
+end
+check(spin > 1, ("Patada giratoria: la cintura gira (%.2f rad)"):format(spin))
+-- Combat.Moves usa estas posturas
+local Combat = luau.load(fs.readFile("src/shared/Combat.luau"), { debugName = "Combat" })()
+local missing = {}
+for name, move in Combat.Moves do
+	if not PunchAnim.Moves[move.Anim] then
+		table.insert(missing, name .. "→" .. move.Anim)
+	end
+end
+check(#missing == 0, "cada golpe de shared/Combat tiene su postura" .. (if #missing > 0 then ": " .. table.concat(missing, ", ") else ""))
+for _, hold in { "Windup", "Charge", "Aim" } do
+	check(PunchAnim.Holds[hold] ~= nil and not rest(PunchAnim.pose(nil, 0, { [hold] = 1 })) and rest(PunchAnim.pose(nil, 0, { [hold] = 0 })), "Postura mantenida " .. hold .. " (y sin ella, normal)")
+end
+check(type(PunchAnim.freeze) == "function", "Congelación del impacto (PunchAnim.freeze)")
+
 print("Guardia")
 local guard = PunchAnim.pose(nil, 0, { Guard = 1 })
 check(pitch(guard.RightShoulder) > 1 and pitch(guard.LeftShoulder) > 1, "Los dos brazos suben")

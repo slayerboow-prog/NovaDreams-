@@ -221,6 +221,17 @@ local okRun, runError = pcall(function()
 	end
 	check(melee >= 3, ("cada golpe al aire mira si hay un cristal o una puerta delante (%d)"):format(melee))
 	check(heavy, "el final con el golpe fuerte rompe cristales (Heavy)")
+
+	print("▶ El estilo de combos (más en scripts/test-combos.luau)")
+	task.wait(1)
+	check(H.CombatService.handle(kicker, "Attack") == "L1", "«Attack» (el de antes) es el primer golpe ligero del combo")
+	task.wait(0.3)
+	check(H.CombatService.handle(kicker, "Light") == "L2", "y «Light» sigue el combo")
+	task.wait(0.3)
+	check(H.CombatService.handle(kicker, "Heavy", false) == "Lanzador", "ligero ×2 + fuerte: el lanzador")
+	local bars = kicker:GetAttribute("Aguante") ~= nil and kicker:GetAttribute("Guardia") ~= nil
+	check(bars, "el cliente recibe las barras de aguante y guardia (atributos)")
+	check(kicker:GetAttribute("Energia") == nil, "sin la energía despierta (Saga de la Grieta) no hay barra de energía")
 end)
 check(okRun, "las pruebas de disparos terminan sin errores" .. (if okRun then "" else ": " .. tostring(runError)))
 

@@ -192,7 +192,7 @@ local function calmList()
 end
 local function fightList()
 	return sorted({
-		cmd("Disparar", 0.1, { Stay = true }), cmd("Apuntar", 0.12), cmd("Recargar", 0.14), cmd("Habilidades", 0.15),
+		cmd("Disparar", 0.1, { Stay = true }), cmd("GolpeFuerte", 0.11, { Stay = true }), cmd("Apuntar", 0.12), cmd("Recargar", 0.14), cmd("Habilidades", 0.15),
 		cmd("Objetos", 0.18), cmd("Defender", 0.2), cmd("Huir", 0.3), cmd("GuardarArma", 0.35),
 		cmd("Mapa", 51), group("Mas", 60, MORE_CHILDREN, true),
 	})
@@ -214,7 +214,7 @@ local function has(list, id: string): boolean
 end
 local FORMER = {
 	"Aqui1", "Aqui2", "Aqui3", "AquiMas", "Saludar", "GestosPase", "Bajarse", "Disparar", "Apuntar", "Recargar",
-	"GuardarArma", "Atacar", "Habilidades", "Defender", "Huir", "Liberar", "Registrar", "Inspeccionar", "Detener",
+	"GuardarArma", "Atacar", "GolpeFuerte", "Habilidades", "Defender", "Huir", "Liberar", "Registrar", "Inspeccionar", "Detener",
 	"Robar", "Objetos", "Mapa", "ModoPruebas", "PaseTemporada",
 }
 for _, id in APPS do

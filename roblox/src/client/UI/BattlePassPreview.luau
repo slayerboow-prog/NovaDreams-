@@ -1,6 +1,6 @@
 -- BattlePassPreview: vista previa de una recompensa del pase de temporada (§26).
 --
---   local preview = BattlePassPreview.mount(frame, reward, { Touch = bool, TextSize = n })
+--   local preview = BattlePassPreview.mount(frame, reward, { Touch = bool, TextSize = n, Spin = grados/s?, Hint = bool? })
 --   preview.Kind      -> "Model" (3D que se gira), "Character" (tu personaje con la ropa o el gesto),
 --                        "Swatch" (muestra de colores) o "Icon" (el icono grande)
 --   preview:destroy()
@@ -14,6 +14,7 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 local Theme = require(script.Parent.Theme)
@@ -250,6 +251,17 @@ local function mountViewport(frame: GuiObject, model: Model, animate: { [string]
 			last = nil
 		end
 	end))
+	-- Giro solo (la recompensa destacada de la cabecera): da vueltas despacio mientras no la arrastras.
+	-- Solo existe mientras la pantalla del pase está abierta (al cerrarla se desconecta).
+	if opts.Spin then
+		local speed = math.rad(tonumber(opts.Spin) or 20)
+		table.insert(connections, RunService.RenderStepped:Connect(function(dt)
+			if not dragging then
+				yaw += speed * math.min(dt, 0.1)
+				aim()
+			end
+		end))
+	end
 	-- Gesto: se reproduce en el clon (dentro del WorldModel las animaciones funcionan)
 	if animate and animate.AnimationId then
 		pcall(function()
@@ -270,6 +282,7 @@ local function mountViewport(frame: GuiObject, model: Model, animate: { [string]
 		Position = UDim2.new(1, -6, 1, -4),
 		Size = UDim2.fromOffset(140, 16),
 		Text = if opts.Touch then "↻ desliza para girar" else "↻ arrastra para girar",
+		Visible = opts.Hint ~= false,
 		TextSize = opts.HintSize or 12,
 		TextColor3 = C.Muted,
 		TextTransparency = 0.2,

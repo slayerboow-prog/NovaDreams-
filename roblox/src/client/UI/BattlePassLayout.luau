@@ -1,22 +1,24 @@
--- BattlePassLayout: dónde va cada pieza de la ventana del pase de temporada, calculado en un solo
+-- BattlePassLayout: dónde va cada pieza de la pantalla del pase de temporada, calculado en un solo
 -- sitio y SIN tocar Roblox (solo números y Vector2): así scripts/test-battlepassui.luau comprueba que
 -- nada se pisa ni se sale de la pantalla en el ordenador y en el móvil.
 --
--- La ventana es una de UI/Dialog (su escala es Dialog.baseScale()). Todo se mide en unidades de esa
--- ventana; los rectángulos son { X, Y, W, H } relativos a su contenedor:
---   Window            tamaño de la ventana (Dialog.window)
---   Title / Days      título y «Quedan n días» (en la barra del título, a la izquierda del ✖)
---   Content           el marco de contenido de Dialog (16, 56)
---   Header, Tabs      dentro del contenido: nivel + barra de XP, y las secciones (RECOMPENSAS…)
---   Page              lo de debajo (cada sección ocupa la página entera)
---   Rewards.*         dentro de la página: recompensa elegida (Featured), carriles GRATIS/PREMIUM
---                     (Lanes), franja del premium o de la siguiente (Strip), fila de niveles (Track)
---                     y misión destacada (Spotlight; solo en el ordenador)
---   Featured.*        dentro de Featured: vista previa, nombre, textos y botones
+-- La ventana es una de UI/Dialog (su escala es Dialog.baseScale()) casi a pantalla completa. Todo se
+-- mide en unidades de esa ventana; los rectángulos son { X, Y, W, H } relativos a su contenedor:
+--   Window              tamaño de la ventana
+--   Title, Tabs, Money, Close   la barra de arriba: «🏆 PASE DE TEMPORADA», las secciones (RECOMPENSAS,
+--                       MISIONES, FICHAS), tu dinero y el ✖ (sin repetir el menú del juego ni el ValPhone)
+--   Content             debajo de la barra; Page = el contenido entero (cada sección lo ocupa)
+--   Hero.*              cabecera grande: Info (emblema, «TEMPORADA 1», título, subtítulo, cuenta atrás
+--                       y botón dorado) y Featured (la recompensa estrella en 3D con cielo de atardecer)
+--   Rows.*              las dos filas que se desplazan: Lanes (GRATIS / PREMIUM a la izquierda) y Scroll
+--                       (fila gratis, línea de niveles y fila premium, que se mueven juntas)
+--   Footer.*            pie: hexágono TU NIVEL, barra de XP, IR A MI NIVEL, RECLAMAR TODO y la caja
+--                       del premium con VER BENEFICIOS
+--   Card                dentro de cada tarjeta (icono, cantidad, candado/check y RECLAMAR)
 --
--- En el móvil la ventana es una hoja casi a pantalla completa (alto entero, botones grandes, texto
--- más grande y menos piezas a la vez: sin misión destacada, que está en MISIONES). En el ordenador es
--- una ventana compacta en el centro.
+-- Móvil (pantalla horizontal pequeña): la ventana ocupa toda la pantalla, botones de 44 unidades
+-- (unos 28 px como mínimo), texto más grande y la cabecera se compacta (cuenta atrás y botón en una
+-- fila). Ordenador: más aire, cabecera alta y tarjetas grandes.
 
 local BattlePassLayout = {}
 
@@ -41,115 +43,193 @@ function BattlePassLayout.compute(viewport: Vector2, touch: boolean, scale: numb
 	local s = scale or BattlePassLayout.dialogScale(viewport, touch)
 	local maxW = math.floor((viewport.X - SIDE) / s)
 	local maxH = math.floor((viewport.Y - TOPBAR) / s)
-	local W, H
-	if touch then
-		W = math.min(maxW, 1000)
-		H = math.min(maxH, 620)
-	else
-		W = math.min(maxW, 940)
-		H = math.min(maxH, 560)
-	end
+	local W = math.min(maxW, if touch then 1180 else 1240)
+	local H = math.min(maxH, if touch then 720 else 780)
 	local L: { [string]: any } = {
 		Scale = s,
 		Touch = touch,
 		Window = Vector2.new(W, H),
-		Button = if touch then 48 else 36, -- alto de los botones
+		Button = if touch then 44 else 36, -- alto de los botones
 		Text = {
-			Title = if touch then 26 else 22,
-			Big = if touch then 26 else 22,
-			Body = if touch then 20 else 15,
-			Small = if touch then 17 else 14,
-			Button = if touch then 18 else 14,
+			Title = if touch then 20 else 20,
+			Big = if touch then 24 else 22,
+			Body = if touch then 17 else 15,
+			Small = if touch then 15 else 13,
+			Button = if touch then 16 else 14,
 		},
 	}
-	-- Barra del título (de Dialog: título en (16, 8) de 40 de alto; ✖ arriba a la derecha)
-	local closeW = if touch then 50 else 36
-	local daysW = if touch then 230 else 220
-	L.Close = rect(W - 10 - closeW, 10, closeW, closeW)
-	L.Days = rect(W - 10 - closeW - 12 - daysW, 12, daysW, 32)
-	L.Title = rect(16, 8, L.Days.X - 8 - 16, 40)
-	-- Contenido (el de Dialog)
-	-- (en el móvil el ✖ es más grande: el contenido empieza un poco más abajo)
-	local contentTop = if touch then 64 else 56
-	local cw, ch = W - 32, H - contentTop - 8
-	L.Content = rect(16, contentTop, cw, ch)
-	local headerH = if touch then 56 else 60
-	local tabW = if touch then 148 else 132
+	local T = L.Text
+
+	-- Barra de arriba (de derecha a izquierda: ✖, dinero, secciones y el título con lo que sobra)
+	local topH = if touch then 54 else 52
+	local closeW = if touch then 44 else 36
+	L.TopBar = topH
+	L.Close = rect(W - 10 - closeW, math.floor((topH - closeW) / 2), closeW, closeW)
+	local moneyW = if touch then 150 else 170
+	L.Money = rect(L.Close.X - 10 - moneyW, math.floor((topH - L.Button) / 2), moneyW, L.Button)
+	local tabW = if touch then 124 else 132
 	local tabsW = tabW * 3 + 8 * 2
 	L.TabWidth = tabW
-	L.Tabs = rect(cw - tabsW, math.floor((headerH - L.Button) / 2), tabsW, L.Button)
-	L.Header = rect(0, 0, cw - tabsW - 16, headerH)
-	local pageY = headerH + 8
-	L.Page = rect(0, pageY, cw, ch - pageY - 4)
-	local pw, ph = L.Page.W, L.Page.H
+	L.Tabs = rect(L.Money.X - 14 - tabsW, math.floor((topH - L.Button) / 2), tabsW, L.Button)
+	L.Title = rect(16, math.floor((topH - 36) / 2), math.max(0, L.Tabs.X - 12 - 16), 36)
 
-	-- Recompensas
-	local featuredW = if touch then 250 else 280
-	local gap = 10
-	local rx = featuredW + 12
-	local rw = pw - rx
-	local laneH = L.Button
-	local stripH = L.Button
-	local spotlightH = if touch then 0 else 50
-	local trackY = laneH + 6 + stripH + 6
-	local trackH = ph - trackY - (if spotlightH > 0 then spotlightH + 8 else 0)
-	local R: { [string]: any } = {
-		Featured = rect(0, 0, featuredW, ph),
-		Lanes = rect(rx, 0, rw, laneH),
-		Strip = rect(rx, laneH + 6, rw, stripH),
-		Track = rect(rx, trackY, rw, trackH),
-		Spotlight = if spotlightH > 0 then rect(rx, trackY + trackH + 8, rw, spotlightH) else nil,
+	-- Contenido
+	local cw, ch = W - 32, H - topH - 8
+	L.Content = rect(16, topH, cw, ch)
+	L.Page = rect(0, 0, cw, ch)
+	local gap = if touch then 6 else 10
+
+	-- Pie
+	local footH = if touch then 50 else 60
+	-- Filas: tarjetas del alto que quepa (sin pasarse), el resto para la cabecera
+	local lineH = if touch then 32 else 38
+	local scrollBar = if touch then 8 else 6
+	local heroMin = if touch then 150 else 200
+	local rowsSpace = ch - footH - heroMin - 2 * gap
+	local cardH = math.clamp(math.floor((rowsSpace - lineH - scrollBar) / 2), 64, if touch then 118 else 128)
+	local cardW = if touch then math.max(84, math.min(104, cardH)) else math.max(96, math.min(122, cardH))
+	local rowsH = 2 * cardH + lineH + scrollBar
+	local heroH = math.max(heroMin, ch - footH - rowsH - 2 * gap)
+	local compact = heroH < 230
+
+	-- Cabecera
+	local featuredW = math.floor(cw * (if touch then 0.44 else 0.46))
+	local infoW = cw - featuredW - gap
+	local Hero: { [string]: any } = {
+		Frame = rect(0, 0, cw, heroH),
+		Info = rect(0, 0, infoW, heroH),
+		Featured = rect(infoW + gap, 0, featuredW, heroH),
+		Compact = compact,
 	}
-	local scrollBar = if touch then 10 else 6
-	R.ScrollBar = scrollBar
-	R.CardGap = gap
-	R.Card = Vector2.new(if touch then 150 else 138, trackH - scrollBar - 6)
-	R.LaneTab = Vector2.new(if touch then 170 else 140, laneH)
-	R.ClaimAll = Vector2.new(if touch then 210 else 180, laneH)
-	L.Rewards = R
+	-- Dentro de Info
+	do
+		local pad = if touch then 8 else 12
+		local emblem = if compact then math.min(heroH - 2 * pad - L.Button - 8, 76) else math.min(118, math.floor(heroH * 0.42))
+		emblem = math.max(emblem, 48)
+		local tx = pad + emblem + 12
+		local tw = infoW - tx - pad
+		local I: { [string]: any } = {}
+		I.Emblem = rect(pad, pad, emblem, emblem)
+		local kickerH = if touch then 18 else 20
+		local titleH = if compact then (if touch then 30 else 34) else 46
+		local y = pad
+		I.Kicker = rect(tx, y, tw, kickerH)
+		y += kickerH + 2
+		I.Name = rect(tx, y, tw, titleH)
+		y += titleH + 2
+		local subH = if compact then (if touch then 18 else 20) else 40
+		local subX = if compact then tx else pad
+		local subY = if compact then y else math.max(y, pad + emblem + 6)
+		I.Subtitle = rect(subX, subY, infoW - subX - pad, subH)
+		local buyH = if touch then L.Button else (if compact then 40 else 48)
+		local bottom = heroH - pad
+		if compact then
+			-- Cuenta atrás y botón en una fila, abajo
+			local countW = math.floor((infoW - 2 * pad) * 0.42)
+			I.Countdown = rect(pad, bottom - buyH, countW, buyH)
+			I.Buy = rect(pad + countW + 8, bottom - buyH, infoW - 2 * pad - countW - 8, buyH)
+		else
+			local countH = 36
+			I.Buy = rect(pad, bottom - buyH, math.min(infoW - 2 * pad, 380), buyH)
+			I.Countdown = rect(pad, I.Buy.Y - 8 - countH, math.min(infoW - 2 * pad, 320), countH)
+			I.Subtitle.H = math.max(18, math.min(I.Subtitle.H, I.Countdown.Y - 6 - I.Subtitle.Y))
+		end
+		Hero.InfoParts = I
+	end
+	-- Dentro de Featured: el 3D ocupa todo; a la derecha, el texto y los botones
+	do
+		local fw, fh = featuredW, heroH
+		local pad = if touch then 8 else 12
+		local colW = math.min(if touch then 210 else 250, math.floor(fw * 0.52))
+		local cx = fw - pad - colW
+		local F: { [string]: any } = {}
+		F.Sky = rect(0, 0, fw, fh)
+		F.Viewport = rect(0, 0, cx, fh)
+		local y = pad
+		F.Kicker = rect(cx, y, colW, if touch then 18 else 18)
+		y += F.Kicker.H + 2
+		local nameH = if fh >= 230 then 52 else (if touch then 24 else 28)
+		F.Name = rect(cx, y, colW, nameH)
+		y += nameH + 4
+		F.Rarity = rect(cx, y, math.min(colW, if touch then 120 else 130), if touch then 22 else 24)
+		y += F.Rarity.H + 4
+		local btnH = L.Button
+		F.Buttons = rect(cx, fh - pad - btnH, colW, btnH)
+		local half = math.floor((colW - 6) / 2)
+		F.See = rect(cx, fh - pad - btnH, colW, btnH)
+		F.SeeHalf = rect(cx, fh - pad - btnH, half, btnH)
+		F.Action = rect(cx + half + 6, fh - pad - btnH, colW - half - 6, btnH)
+		F.Detail = rect(cx, y, colW, math.max(0, F.Buttons.Y - 4 - y))
+		Hero.FeaturedParts = F
+	end
+	L.Hero = Hero
 
-	-- Dentro de la tarjeta de cada recompensa
-	local card = R.Card
-	local pad = 8
-	local chip = if touch then 22 else 20
-	local btn = if touch then 44 else 32
-	local nameH = if touch then 44 else 36
-	local metaH = if touch then 20 else 18
-	local iconSize = math.max(28, math.min(card.X - 2 * pad, card.Y - (pad + chip + 6) - (nameH + metaH + btn + pad + 12)))
-	L.Card = {
-		Level = rect(pad, pad, 56, chip),
-		Badge = rect(card.X - pad - 64, pad, 64, chip),
-		Icon = rect(math.floor((card.X - iconSize) / 2), pad + chip + 4, iconSize, iconSize),
-		Name = rect(pad, card.Y - pad - btn - 6 - metaH - nameH, card.X - 2 * pad, nameH),
-		Meta = rect(pad, card.Y - pad - btn - 6 - metaH, card.X - 2 * pad, metaH),
-		State = rect(pad, card.Y - pad - btn, card.X - 2 * pad, btn),
+	-- Filas
+	local laneW = if touch then 112 else 168
+	local rowsY = heroH + gap
+	local scrollX = laneW + gap
+	local Rows: { [string]: any } = {
+		Frame = rect(0, rowsY, cw, rowsH),
+		Lanes = rect(0, 0, laneW, rowsH),
+		Scroll = rect(scrollX, 0, cw - scrollX, rowsH),
+		CardW = cardW,
+		CardH = cardH,
+		LineH = lineH,
+		Gap = if touch then 8 else 10,
+		ScrollBar = scrollBar,
+		Free = rect(0, 0, laneW, cardH),
+		Premium = rect(0, cardH + lineH, laneW, cardH),
+		LineLabel = rect(0, cardH, laneW, lineH),
 	}
+	Rows.Pitch = cardW + Rows.Gap
+	L.Rows = Rows
 
-	-- Dentro de la recompensa elegida (Featured)
-	local fw, fh = R.Featured.W, R.Featured.H
-	local fpad = 10
-	local inner = fw - 2 * fpad
-	local buttonsH = L.Button
-	local previewH = if touch then math.min(130, math.max(80, fh - 250)) else 150
-	local y = fpad
-	local F: { [string]: any } = {}
-	F.Preview = rect(fpad, y, inner, previewH)
-	y += previewH + 8
-	F.Name = rect(fpad, y, inner, if touch then 28 else 26)
-	y += F.Name.H + 2
-	F.Meta = rect(fpad, y, inner, if touch then 20 else 18)
-	y += F.Meta.H + 2
-	F.Level = rect(fpad, y, inner, if touch then 20 else 18)
-	y += F.Level.H + 4
-	local buttonsY = fh - fpad - buttonsH
-	F.Description = rect(fpad, y, inner, math.max(0, buttonsY - 6 - y))
-	-- Botones en una fila: el principal (RECLAMAR…) y, si hace falta, uno secundario a su derecha
-	-- (EQUIPAR, PROBAR); sin secundario, el principal ocupa toda la fila
-	F.Buttons = rect(fpad, buttonsY, inner, L.Button)
-	local secondaryW = math.floor(inner * 0.42)
-	F.Primary = rect(fpad, buttonsY, inner - secondaryW - 8, L.Button)
-	F.Secondary = rect(fpad + inner - secondaryW, buttonsY, secondaryW, L.Button)
-	L.Featured = F
+	-- Dentro de cada tarjeta
+	do
+		local pad = 6
+		local status = if touch then 22 else 22
+		local amountH = if touch then 18 else 18
+		local claimH = if touch then 22 else 24
+		local icon = math.max(24, math.min(cardW - 2 * pad, cardH - pad - amountH - 8))
+		L.Card = {
+			Icon = rect(math.floor((cardW - icon) / 2), pad, icon, icon),
+			Status = rect(cardW - pad - status, pad, status, status),
+			Amount = rect(pad, cardH - pad - 4 - amountH, cardW - 2 * pad, amountH),
+			Claim = rect(pad, cardH - pad - 4 - claimH, cardW - 2 * pad, claimH),
+			Rarity = rect(8, cardH - 4, cardW - 16, 3),
+		}
+	end
+
+	-- Pie
+	do
+		local fy = rowsY + rowsH + gap
+		local Fo: { [string]: any } = { Frame = rect(0, fy, cw, footH) }
+		local hex = footH
+		Fo.Hex = rect(0, 0, hex, hex)
+		local btn = L.Button
+		local by = math.floor((footH - btn) / 2)
+		local premiumW = math.floor(cw * (if touch then 0.38 else 0.36))
+		Fo.Premium = rect(cw - premiumW, 0, premiumW, footH)
+		local claimW = if touch then 150 else 170
+		local jumpW = if touch then 130 else 150
+		Fo.ClaimAll = rect(Fo.Premium.X - 10 - claimW, by, claimW, btn)
+		Fo.Jump = rect(Fo.ClaimAll.X - 8 - jumpW, by, jumpW, btn)
+		local xpX = hex + 10
+		Fo.Xp = rect(xpX, 0, math.max(60, Fo.Jump.X - 12 - xpX), footH)
+		-- Dentro de la caja del premium
+		local bw = if touch then 150 else 160
+		Fo.PremiumButton = rect(premiumW - 8 - bw, math.floor((footH - btn) / 2), bw, btn)
+		Fo.PremiumIcon = rect(8, math.floor((footH - 24) / 2), 24, 24)
+		Fo.PremiumText = rect(38, 4, Fo.PremiumButton.X - 8 - 38, footH - 8)
+		L.Footer = Fo
+	end
+
+	-- «VER BENEFICIOS»: hoja encima del contenido
+	do
+		local bw = math.min(cw - 40, if touch then 640 else 620)
+		local bh = math.min(ch - 16, if touch then 400 else 470)
+		L.Benefits = rect(math.floor((cw - bw) / 2), math.floor((ch - bh) / 2), bw, bh)
+	end
 
 	-- Misiones y fichas (listas con desplazamiento vertical, a lo ancho de la página)
 	L.Missions = {
@@ -178,13 +258,26 @@ function BattlePassLayout.flatten(L: { [string]: any }): { { Name: string, Rect:
 	end
 	local c = L.Content
 	add("Title", L.Title, 0, 0)
-	add("Days", L.Days, 0, 0)
+	add("Tabs", L.Tabs, 0, 0)
+	add("Money", L.Money, 0, 0)
 	add("Close", L.Close, 0, 0)
-	add("Header", L.Header, c.X, c.Y)
-	add("Tabs", L.Tabs, c.X, c.Y)
-	local px, py = c.X + L.Page.X, c.Y + L.Page.Y
-	for _, key in { "Featured", "Lanes", "Strip", "Track", "Spotlight" } do
-		add("Rewards." .. key, L.Rewards[key], px, py)
+	add("Hero.Info", L.Hero.Info, c.X, c.Y)
+	add("Hero.Featured", L.Hero.Featured, c.X, c.Y)
+	local r = L.Rows.Frame
+	add("Rows.Lanes", L.Rows.Lanes, c.X + r.X, c.Y + r.Y)
+	add("Rows.Scroll", L.Rows.Scroll, c.X + r.X, c.Y + r.Y)
+	local f = L.Footer.Frame
+	for _, key in { "Hex", "Xp", "Jump", "ClaimAll", "Premium" } do
+		add("Footer." .. key, L.Footer[key], c.X + f.X, c.Y + f.Y)
+	end
+	return out
+end
+
+-- Las piezas de dentro de la cabecera (para las pruebas)
+function BattlePassLayout.heroParts(L: { [string]: any }): { { Name: string, Rect: Rect } }
+	local out = {}
+	for _, key in { "Emblem", "Kicker", "Name", "Subtitle", "Countdown", "Buy" } do
+		table.insert(out, { Name = "Info." .. key, Rect = L.Hero.InfoParts[key] })
 	end
 	return out
 end

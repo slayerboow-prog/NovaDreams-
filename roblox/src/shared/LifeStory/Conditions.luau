@@ -24,9 +24,12 @@
 --   LastGradeBelow = 5 / LastGradeAtLeast = 7    nota de la última clase o examen
 --   Season      = "Invierno" o { "Otono", "Invierno" }   estación del año (shared/Seasons)
 --   Weather     = "Lluvia" o { "Lluvia", "Tormenta" }     el tiempo que hace ahora
+--   World       = { ["Cielo.Crater.Parque"] = "Frio" }   memoria del mundo del jugador (shared/LifeStory/WorldState)
+--   NotWorld    = { "Garaje.Cerrado" }                   (true = que exista; ver WorldState.matches)
 
 local Stages = require(script.Parent.Stages)
 local GameClock = require(script.Parent.Parent.GameClock)
+local WorldState = require(script.Parent.WorldState)
 
 local Conditions = {}
 
@@ -46,6 +49,7 @@ export type Context = {
 	LastGrade: number?,
 	Season: string?,
 	Weather: string?,
+	World: { [string]: any }?,
 }
 
 -- Devuelve true, o false y el motivo ("Stage", "Hours", "Weekdays", "Completed"...).
@@ -156,6 +160,9 @@ function Conditions.check(req: { [string]: any }?, ctx: Context): (boolean, stri
 	end
 	if req.LastGradeAtLeast and not (ctx.LastGrade and ctx.LastGrade >= req.LastGradeAtLeast) then
 		return false, "Grade"
+	end
+	if (req.World or req.NotWorld) and not WorldState.matches(req, ctx.World) then
+		return false, "World"
 	end
 	if req.StageProgress and (ctx.StageProgress or 0) < req.StageProgress then
 		return false, "StageProgress"
