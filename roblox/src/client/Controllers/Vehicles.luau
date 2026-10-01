@@ -280,33 +280,56 @@ function Vehicles.dismount()
 end
 Vehicles.open = open
 
--- Los carteles del vehículo en el que vas se apagan en tu pantalla (y vuelven al bajarte)
+-- Los carteles del vehículo en el que vas se apagan en tu pantalla (y vuelven al bajarte).
+-- Se vigilan: si el servidor los vuelve a encender (otro asiento se ocupa o se libera) o llegan
+-- más tarde por streaming, se apagan otra vez mientras sigas dentro.
 local hiddenPrompts: { [ProximityPrompt]: boolean } = {}
-local function hidePromptsOf(model: Instance?)
-	for prompt in hiddenPrompts do
-		local parent = prompt.Parent
-		if parent then
-			-- (como los deja el servidor: el asiento libre, o el volante si nadie conduce)
-			if prompt.Name == "SeatPrompt" and parent:IsA("Seat") then
-				prompt.Enabled = parent.Occupant == nil
-			else
-				local vehicle = prompt:FindFirstAncestorOfClass("Model")
-				prompt.Enabled = vehicle == nil or vehicle:GetAttribute("Driver") == nil
-			end
+local hideConns: { RBXScriptConnection } = {}
+local function restorePrompt(prompt: ProximityPrompt)
+	local parent = prompt.Parent
+	if parent then
+		-- (como los deja el servidor: el asiento libre, o el volante si nadie conduce)
+		if prompt.Name == "SeatPrompt" and parent:IsA("Seat") then
+			prompt.Enabled = parent.Occupant == nil
+		else
+			local vehicle = prompt:FindFirstAncestorOfClass("Model")
+			prompt.Enabled = vehicle == nil or vehicle:GetAttribute("Driver") == nil
 		end
+	end
+end
+local function hidePromptsOf(model: Instance?)
+	for _, c in hideConns do
+		c:Disconnect()
+	end
+	table.clear(hideConns)
+	for prompt in hiddenPrompts do
+		restorePrompt(prompt)
 	end
 	table.clear(hiddenPrompts)
 	if not model then
 		return
 	end
-	for _, prompt in model:GetDescendants() do
+	local function consider(prompt: Instance)
+		if not prompt:IsA("ProximityPrompt") or hiddenPrompts[prompt] then
+			return
+		end
 		-- (el de conducir se le deja al pasajero: si el coche es suyo, se puede pasar al volante)
 		local mine = prompt.Name == "SeatPrompt" or (prompt.Name == "DrivePrompt" and player:GetAttribute("Riding") ~= nil)
-		if prompt:IsA("ProximityPrompt") and mine and prompt.Enabled then
-			prompt.Enabled = false
-			hiddenPrompts[prompt] = true
+		if not mine then
+			return
 		end
+		hiddenPrompts[prompt] = true
+		prompt.Enabled = false
+		table.insert(hideConns, prompt:GetPropertyChangedSignal("Enabled"):Connect(function()
+			if hiddenPrompts[prompt] and prompt.Enabled then
+				prompt.Enabled = false
+			end
+		end))
 	end
+	for _, d in model:GetDescendants() do
+		consider(d)
+	end
+	table.insert(hideConns, model.DescendantAdded:Connect(consider))
 end
 
 function Vehicles.init()
@@ -387,6 +410,19 @@ function Vehicles.init()
 			refresh()
 		end
 	end
+	-- Yendo en un vehículo tampoco se ofrecen los asientos de OTROS vehículos (al pasar al lado de
+	-- un coche aparcado salía «Subir de copiloto»): se apagan en tu pantalla hasta que te bajes
+	game:GetService("ProximityPromptService").PromptShown:Connect(function(prompt)
+		if aboard() and (prompt.Name == "SeatPrompt" or prompt.Name == "DrivePrompt") and not hiddenPrompts[prompt] then
+			hiddenPrompts[prompt] = true
+			prompt.Enabled = false
+			table.insert(hideConns, prompt:GetPropertyChangedSignal("Enabled"):Connect(function()
+				if hiddenPrompts[prompt] and prompt.Enabled then
+					prompt.Enabled = false
+				end
+			end))
+		end
+	end)
 	for _, attribute in { "Riding", "Passenger", "OwnedVehicles", "Licenses", "Money", "LifeStage" } do
 		player:GetAttributeChangedSignal(attribute):Connect(update)
 	end
