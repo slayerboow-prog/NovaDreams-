@@ -511,6 +511,26 @@ function H.leave(player): string
 	return saved
 end
 
+-- Lo que el DataStore de Roblox rechazaría de las partidas de todos los jugadores de la prueba
+-- (Vector3, NaN, tablas con claves numéricas sueltas…: un solo problema y no se guarda NADA) y el
+-- tamaño de la mayor (ver src/shared/SaveCheck)
+function H.saveProblems(): ({ string }, number)
+	local SaveCheck = loadModule(ROOT .. "/shared/SaveCheck")
+	local seen, list, biggest = {}, {}, 0
+	for _, profile in profiles do
+		for _, problem in SaveCheck.scan(profile) do
+			local text = problem.Path .. ": " .. problem.Reason
+			if not seen[text] then
+				seen[text] = true
+				table.insert(list, text)
+			end
+		end
+		biggest = math.max(biggest, SaveCheck.size((SaveCheck.sanitize(profile))))
+	end
+	table.sort(list)
+	return list, biggest
+end
+
 -- Vuelve a entrar con lo guardado (un jugador nuevo con el mismo nombre y UserId)
 function H.rejoin(old, saved: string)
 	local profile = serde.decode("json", saved)

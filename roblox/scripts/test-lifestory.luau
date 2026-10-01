@@ -1542,5 +1542,14 @@ for _, quest in QuestsData do
 end
 check(exclusive == 21, "21 misiones locas (6 de infancia y 5 en cada otra etapa), todas con recompensa exclusiva")
 
+print("\n▶ Las partidas se pueden guardar (DataStore/JSON: nada que Roblox rechace, tamaño)")
+do
+	local problems, biggest = H.saveProblems()
+	for _, text in problems do
+		print("    · " .. text)
+	end
+	H.check(#problems == 0, ("nada que el DataStore rechace (%d problemas)"):format(#problems))
+	H.check(biggest < 3500000, ("la mayor partida ocupa %d caracteres (límite 4.194.304)"):format(biggest))
+end
 print(("\n%s"):format(if H.failures == 0 then "✅ Todo correcto" else ("❌ %d fallos"):format(H.failures)))
 process.exit(if H.failures == 0 then 0 else 1)

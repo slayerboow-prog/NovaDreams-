@@ -72,7 +72,7 @@ export type Wheel = {
 	Hub: CFrame, -- centro y eje de la rueda (respecto al vehículo)
 	Radius: number,
 	Front: boolean, -- eje delantero (gira con el volante si el tipo lo tiene)
-	Rear: boolean, -- detrás del centro (se bloquea con el freno de mano)
+	Rear: boolean, -- detrás del centro de las ruedas (se bloquea con el freno de mano)
 	Spin: { number }, -- piezas que ruedan con ella (incluida la propia rueda)
 	Steer: { number }, -- piezas que solo giran con el volante
 	Angle: number,
@@ -95,7 +95,7 @@ function WheelRig.find(parts: { PartInfo }, kind: string): Rig
 				Hub = info.CFrame,
 				Radius = info.Size.Y / 2,
 				Front = false,
-				Rear = info.CFrame.Position.Z > 0.5,
+				Rear = false,
 				Spin = { i },
 				Steer = {},
 				Angle = 0,
@@ -106,20 +106,24 @@ function WheelRig.find(parts: { PartInfo }, kind: string): Rig
 	if #wheels == 0 then
 		return { Wheels = wheels, Wheelbase = 0, Steers = false, MaxSteer = 0 }
 	end
-	-- Eje delantero: el de más adelante (si está por delante del centro)
-	local minZ, rearSum, rearCount = math.huge, 0, 0
+	-- Delante / detrás respecto al centro de las ruedas (la pieza de referencia puede no estar en
+	-- el centro: la cabina del camión). Eje delantero: el de más adelante.
+	local minZ, maxZ, rearSum, rearCount = math.huge, -math.huge, 0, 0
 	for _, w in wheels do
 		minZ = math.min(minZ, w.Hub.Position.Z)
+		maxZ = math.max(maxZ, w.Hub.Position.Z)
 	end
+	local mid = (minZ + maxZ) / 2
 	for _, w in wheels do
 		local z = w.Hub.Position.Z
-		w.Front = minZ < -0.5 and z < minZ + 1
+		w.Front = minZ < mid - 0.5 and z < minZ + 1
+		w.Rear = z > mid + 0.5
 		if w.Rear then
 			rearSum += z
 			rearCount += 1
 		end
 	end
-	local wheelbase = if rearCount > 0 and minZ < 0 then rearSum / rearCount - minZ else 0
+	local wheelbase = if rearCount > 0 and minZ < mid then rearSum / rearCount - minZ else 0
 	local maxSteer = WheelRig.MaxSteer[kind] or 0
 	local steers = maxSteer > 0 and wheelbase > 0
 	-- Cada pieza que rueda, con la rueda en cuyo disco cae (la más cercana)

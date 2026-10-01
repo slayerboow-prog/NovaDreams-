@@ -1001,13 +1001,14 @@ function Driving.release()
 	stop()
 end
 
--- Para la cámara y las posturas: el volante (-1..1) y la velocidad del vehículo que conduces
-function Driving.current(): (Model?, number, number)
+-- Para la cámara, las posturas y las ruedas (Controllers/WheelSpin): el volante (-1..1), la velocidad
+-- y el freno de mano del vehículo que conduces
+function Driving.current(): (Model?, number, number, boolean)
 	local s = state
 	if not s then
-		return nil, 0, 0
+		return nil, 0, 0, false
 	end
-	return s.Model, s.Steer, s.Speed
+	return s.Model, s.Steer, s.Speed, s.Handbrake
 end
 
 function Driving.init()
