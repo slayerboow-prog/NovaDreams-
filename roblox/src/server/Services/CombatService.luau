@@ -87,6 +87,7 @@ export type State = {
 	DamageMul: number,
 	Defeated: boolean?,
 	OwnerId: number?, -- (rivales: el jugador con el que pelean)
+	WallAt: number?, -- (último aviso de «contra la pared»: no se repite enseguida)
 }
 
 local states: { [Player]: State } = {}
@@ -1386,7 +1387,9 @@ function CombatService.handle(player: Player, kind: any, value: any, extra: any)
 		state.Lock = target
 	elseif kind == "Wall" then
 		-- Tu personaje se ha estampado contra una pared (lo mueve tu dispositivo): los demás lo ven
-		if typeof(value) == "Vector3" and os.clock() - state.LastHitAt < 2 then
+		local now = os.clock()
+		if typeof(value) == "Vector3" and now - state.LastHitAt < 2 and now - (state.WallAt or -math.huge) > 0.5 then
+			state.WallAt = now
 			Remote:FireAllClients("Wall", player.Character, value)
 		end
 	end
