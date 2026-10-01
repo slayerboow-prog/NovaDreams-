@@ -566,10 +566,15 @@ function BattlePassRewardService.installHooks()
 	end
 end
 
+local initialized = false
 function BattlePassRewardService.init()
 	if require(ReplicatedStorage.Shared.BattlePass.Config).Enabled then
 		BattlePassRewardService.installHooks()
 	end
+	if initialized then
+		return
+	end
+	initialized = true
 	-- (sync no hace nada a quien no tiene el pase: con el pase apagado, solo a los testers)
 	DataService.onLoaded(function(player)
 		BattlePassRewardService.sync(player)

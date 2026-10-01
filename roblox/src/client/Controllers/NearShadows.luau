@@ -212,6 +212,13 @@ function NearShadows.fillLamp(bulb: Instance)
 end
 
 function NearShadows.init()
+	-- Relieve de las texturas PBR según el nivel (sin mapas normales en el Bajo)
+	local ok, err = pcall(function()
+		require(script.Parent.MaterialDetail).init()
+	end)
+	if not ok then
+		warn("[MaterialDetail] " .. tostring(err))
+	end
 	for _, instance in workspace:GetDescendants() do
 		add(instance)
 	end

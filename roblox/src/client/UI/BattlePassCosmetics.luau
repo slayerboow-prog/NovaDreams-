@@ -30,7 +30,8 @@ end
 
 function Cosmetics.enabled(): boolean
 	config = config or shared("Config")
-	return config ~= nil and config.Enabled == true
+	-- (pase apagado: solo los testers, modo pruebas)
+	return config ~= nil and (config.Enabled == true or Players.LocalPlayer:GetAttribute("Tester") == true)
 end
 
 -- La definición de un cosmético, solo si existe y es de ese tipo (y con el pase encendido)

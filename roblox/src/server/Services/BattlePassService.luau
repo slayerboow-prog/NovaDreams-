@@ -922,7 +922,15 @@ function BattlePassService.activate()
 	end)
 end
 
+local initialized = false
 function BattlePassService.init()
+	if initialized then
+		if BPConfig.Enabled then
+			BattlePassService.activate()
+		end
+		return
+	end
+	initialized = true
 	-- Con el pase apagado, nada para los jugadores normales (ni remoto, ni compras, ni datos); a un
 	-- tester se le enciende solo a él al entrar
 	DataService.onLoaded(function(player, data)

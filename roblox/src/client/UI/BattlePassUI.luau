@@ -998,11 +998,22 @@ local function onResult(result: any)
 	end
 end
 
+local watchingTester = false
 function BattlePassUI.init()
 	config = loadConfig()
-	enabled = config ~= nil and config.Enabled == true
+	-- Apagado (BattlePassConfig.Enabled = false) -> nada de nada, salvo a los testers (atributo Tester,
+	-- modo pruebas: el servidor solo les atiende a ellos). El atributo puede llegar después.
+	enabled = config ~= nil and (config.Enabled == true or player:GetAttribute("Tester") == true)
+	if config ~= nil and not enabled and not watchingTester then
+		watchingTester = true
+		player:GetAttributeChangedSignal("Tester"):Connect(function()
+			if player:GetAttribute("Tester") == true and not started then
+				BattlePassUI.init()
+			end
+		end)
+	end
 	if not enabled or started then
-		return -- (pase apagado: BattlePassConfig.Enabled = false -> nada de nada)
+		return
 	end
 	started = true
 	BP = require(script.Parent.Parent.Controllers.BattlePassClient :: any)

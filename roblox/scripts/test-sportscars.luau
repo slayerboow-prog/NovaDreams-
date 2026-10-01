@@ -643,6 +643,23 @@ for _, p in named(faro, "Caliper") do
 	end
 end
 check(gold == 4 and faro:FindFirstChild("Body").Color == car50.Color, "Aurora X «Faro de Valmar»: blanco perla con pinzas doradas")
+-- Modo pruebas («🏎️ Vehículos del pase»): los 14 que se sacan desde el panel (Catalog.vehicles) salen
+-- igual que VehicleService.mount los monta (Rides.build con su pintura y su modelo, y Rides.prepare)
+local passList = Catalog.vehicles()
+local passOk = 0
+for _, entry in passList do
+	local ok, model = pcall(Rides.build, entry.Kind, nil, CF, entry.Color, { Model = entry.Model, Accent = entry.Trim })
+	local prepared = ok and pcall(Rides.prepare, model, entry.Kind, CF)
+	local wheels = if ok then #named(model, "Wheel") else 0
+	if ok and prepared and model:GetAttribute("Premium") == true and model:GetAttribute("PremiumModel") == entry.Model
+		and #named(model, "Headlight") == 1 and #named(model, "Taillight") >= 1 and wheels >= (if entry.Kind == "Coche" then 4 else 2)
+		and model:FindFirstChild("Body").Color == entry.Color then
+		passOk += 1
+	else
+		print("    (" .. tostring(entry.Id) .. " no sale bien)")
+	end
+end
+check(#passList == 14 and passOk == 14, ("modo pruebas: los 14 vehículos del pase salen con su modelo, Premium, faros, pilotos, ruedas y su pintura (%d de %d)"):format(passOk, #passList))
 
 ---------------------------------------------------------------------
 print("Sin «Nova» ni marcas reales")

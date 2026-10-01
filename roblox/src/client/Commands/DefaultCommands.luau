@@ -1,14 +1,17 @@
 -- DefaultCommands: los comandos del juego. Para añadir uno nuevo basta con registrarlo aquí
 -- (o desde cualquier otro módulo) con CommandRegistry.register.
 --
--- Orden (Priority, de arriba abajo):
+-- Orden (Priority) y a dónde va cada uno (Commands/PhoneApps.split):
 --   1-3   lo que tienes delante (un comando por cada cosa cercana: hablar, entrar, montar…)
---   4     más cosas cercanas, en un grupo "AQUÍ ▸"
+--   4     más cosas cercanas, en un grupo "Aquí ▸"
 --   5-9   lo que depende de la situación (saludar a alguien, bajarte del vehículo, atacar…)
---   50+   lo de siempre: objetos, mapa, las apps (Ir a casa, Ruta a casa, Tienda, Vehículos, Gestos,
---         Metro, Mercadillo…: las pone cada sistema con Hud.addButton, entre 52 y 56) y
---         "MÁS ▸" (misiones, mi historia, personaje, menú)
--- La complejidad crece con la edad: de bebé solo lo que tienes delante.
+--         -> todo lo de menos de 50 va a la TIRA DE ACCIONES, junto a los botones (al momento)
+--   50+   lo de siempre -> APPS DEL VALPHONE: Mochila (Objetos), Mensajes, Mapa, las apps (Ir a casa,
+--         Ruta a casa, Tienda, Vehículos, Gestos, Metro, Mercadillo…: las pone cada sistema con
+--         Hud.addButton, entre 52 y 56), Pase de temporada, Cartera, Ayuda, Modo pruebas y el grupo
+--         «Más» (Flatten: cada hijo es una app: Misiones, Mi historia, Personaje, Viviendas, Carrera,
+--         Controles y Ajustes)
+-- La complejidad crece con la edad: de bebé solo lo que tienes delante (y sin teléfono).
 
 local CommandRegistry = require(script.Parent.CommandRegistry)
 local Hud = require(script.Parent.Parent.UI.Hud)
@@ -22,6 +25,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Stages = require(ReplicatedStorage.Shared.LifeStory.Stages)
 local Wanted = require(ReplicatedStorage.Shared.Wanted)
+local PhoneInbox = require(script.Parent.Parent.UI.PhoneInbox)
 
 type Command = CommandRegistry.Command
 
@@ -265,7 +269,47 @@ function DefaultCommands.register()
 			Hud.runCommand("Mapa")
 		end,
 	})
-	-- (El antiguo «Teléfono» abría el menú rápido: sus apps son ahora filas de esta lista)
+	-- 📱 Apps propias del ValPhone: Mensajes (los avisos «X quiere hablar contigo» y demás, con su
+	-- punto rojo), Cartera (dinero, nivel, trabajo y viviendas) y Ayuda (el ❓ «¿Qué hago ahora?»)
+	CommandRegistry.addProvider(function(ctx)
+		if baby(ctx) then
+			return {}
+		end
+		local unread = PhoneInbox.unread()
+		return {
+			{ Id = "Mensajes", Label = "Mensajes", Icon = "hablar", Priority = 50.2, Screen = "Mensajes", Badge = if unread > 0 then unread else nil } :: any,
+		}
+	end)
+	CommandRegistry.register({
+		Id = "Cartera",
+		Label = "Cartera",
+		Icon = "dinero",
+		Priority = 56.5,
+		Screen = "Cartera",
+		When = function(ctx)
+			return not baby(ctx)
+		end,
+	} :: any)
+	CommandRegistry.register({
+		Id = "Ayuda",
+		Label = "Ayuda",
+		Icon = "ayuda",
+		Priority = 58.5,
+		When = function(ctx)
+			return not baby(ctx)
+		end,
+		Run = function()
+			local ok, err = pcall(function()
+				local controllers = script.Parent.Parent:FindFirstChild("Controllers")
+				local module = controllers and controllers:FindFirstChild("HelpUI")
+				assert(module, "no está Controllers/HelpUI")
+				require(module :: any).open()
+			end)
+			if not ok then
+				warn("[Comandos] Ayuda: " .. tostring(err))
+			end
+		end,
+	})
 
 	-- 🔧 «Modo pruebas»: solo para quien tiene el atributo Tester (lo pone el servidor). Abre el panel
 	-- de pruebas (UI/TesterPanel); se carga al tocarlo y dentro de un pcall: si falta, el HUD sigue igual
@@ -299,12 +343,13 @@ function DefaultCommands.register()
 		end
 	end)
 
-	-- "MÁS": lo que se usa de vez en cuando
+	-- "MÁS": lo que se usa de vez en cuando (en el ValPhone, Flatten: cada hijo es una app)
 	local more: Command = {
 		Id = "Mas",
 		Label = "Más",
 		Icon = "mas",
 		Priority = 60,
+		Flatten = true,
 		Open = function()
 			return {
 				{ Id = "Misiones", Label = "Misiones", Icon = "misiones", Priority = 1, Badge = Hud.questPending(), Run = function()
@@ -333,9 +378,10 @@ function DefaultCommands.register()
 				{ Id = "Controles", Label = "Controles", Icon = "mando", Priority = 4.8, Run = function()
 					Hud.runCommand("Controles")
 				end },
-				{ Id = "Menu", Label = "Menú", Icon = "menu", Priority = 5, Run = function()
+				-- (en el ValPhone es la app Ajustes, con sus opciones dentro del teléfono: Screen)
+				{ Id = "Menu", Label = "Ajustes", Icon = "menu", Priority = 5, Screen = "Ajustes", Run = function()
 					Hud.runCommand("Menu")
-				end },
+				end } :: any,
 			}
 		end,
 	}

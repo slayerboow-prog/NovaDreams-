@@ -7,8 +7,16 @@
 --   Junto al minimapa      -> con un arma en la mano, las balas («6 / 120», el arma y SEMI/AUTO), a su
 --                             izquierda, arriba: ni encima del minimapa ni de los botones de disparar
 --   Derecha                -> la misión, justo debajo del minimapa
---   Izquierda              -> el menú de comandos: en el ordenador abajo a la izquierda; en el móvil
---                             justo debajo de tu estado (y el joystick abajo a la izquierda)
+--   Abajo a la izquierda   -> el ValPhone (UI/Phone): asoma pegado a la esquina (a la izquierda del
+--                             joystick en el móvil) y al tocarlo (Tab / Select) sube entero con todas
+--                             las apps (Items.Phone, Items.PhoneOpen). Al volante o a los mandos de un
+--                             avión asoma debajo de tu estado (Items.PhoneDrive: abajo van las flechas).
+--                             Sus notificaciones bajan encima (Items.PhoneBanner). El resto de la
+--                             izquierda queda libre (ya no está el menú COMANDOS)
+--   Junto a los botones    -> la tira de acciones de AHORA (Hablar con Marta, Comprar billete,
+--                             Disparar…: Commands/ContextStrip). Móvil: la burbuja «Acciones» del
+--                             racimo, a la izquierda de Interactuar (Cluster.Contexto), y su lista
+--                             (Items.Context) se abre a su izquierda. Ordenador: encima de las teclas
 --   Abajo en el centro     -> la barra rápida del inventario (en el móvil, pegada al borde)
 --   Abajo a la derecha     -> los botones táctiles en racimo, pegados a la esquina (en el ordenador,
 --                             las teclas). Al volante (móvil): pedales, freno de mano, luces e
@@ -33,10 +41,7 @@ export type Layout = {
 	Slots: { [string]: Placement },
 	DriveSlots: { [string]: Placement }, -- (móvil, al volante: HudLayout.Drive y DriveLeft)
 	FlySlots: { [string]: Placement }, -- (móvil, a los mandos de un avión: HudLayout.Fly)
-	CommandRows: number,
-	-- La franja en la que cabe el menú de comandos al desplegarlo (⌄): de CommandTop a CommandBottom
-	CommandTop: number,
-	CommandBottom: number,
+	ContextRows: number, -- acciones que caben a la vista en la tira (Items.Context)
 }
 
 local MARGIN = 16
@@ -51,11 +56,11 @@ HudLayout.Sizes = {
 	Minimap = 210, -- diámetro del círculo
 	MinimapLabel = 24, -- el nombre de la zona, debajo
 	Mission = Vector2.new(440, 110),
-	CommandWidth = 340,
-	CommandHeader = 34,
-	CommandPitch = 40, -- alto de cada fila + separación
-	CommandFooter = 26, -- el desplegable ⌄ y el relleno
-	CommandHint = 18, -- (ordenador) la línea de teclas
+	LeftColumn = 340, -- columna izquierda que no usan los paneles de trabajo en el móvil (jobArea)
+	PhonePeek = Vector2.new(112, 140), -- el ValPhone cerrado, asomando en la esquina
+	PhoneBanner = Vector2.new(380, 92), -- la notificación que baja del teléfono
+	ContextWidth = 300, -- la tira de acciones
+	ContextPitch = 50, -- alto de cada acción + separación
 	Hotbar = Vector2.new(718, 86),
 	Joystick = 210,
 	Hints = Vector2.new(300, 196),
@@ -72,9 +77,12 @@ HudLayout.Sizes = {
 -- izquierda del Ataque grande; Esquivar abajo a la izquierda y Fijar objetivo a la derecha, un poco más abajo.
 -- Los botones de contexto (linterna, foto, piedra, bajarse…) van en una columna a la izquierda, pegada al
 -- racimo y llenándose DESDE ABAJO (Extra1 es el de abajo del todo): así, con pocos, quedan en la esquina.
+-- Contexto: la burbuja «Acciones» de la tira de acciones (Commands/ContextStrip), a la izquierda de
+-- Interactuar, por encima de Correr y sin tocar la misión.
 HudLayout.Cluster = {
 	Ataque = { 0, 0, 64 },
 	Interactuar = { -60, -225, 44 },
+	Contexto = { -150, -235, 34 },
 	Correr = { -178, -128, 44 },
 	Defender = { -62, -128, 44 },
 	Saltar = { 62, -128, 46 },
@@ -91,8 +99,8 @@ local EXTRA_X, EXTRA_R, EXTRA_STEP, EXTRA_FIRST = -270, 32, 72, 92
 --   mirar); a su izquierda el freno de mano y las luces, y luego Bajarse y el claxon; encima de los
 --   pedales, la fila de intermitentes ⬅ ⚠ ➡; y arriba, los de contexto (sirena, linterna…).
 -- A la izquierda (en lugar del joystick, que se esconde) las dos flechas de girar ◀ ▶: HudLayout.DriveLeft,
--- respecto a la esquina de abajo a la izquierda. Todo cabe entre la barra rápida, la misión y el menú
--- de comandos en todas las pantallas (scripts/test-hud.luau lo comprueba).
+-- respecto a la esquina de abajo a la izquierda. Todo cabe entre la barra rápida, la misión y el
+-- ValPhone en todas las pantallas (scripts/test-hud.luau lo comprueba).
 HudLayout.Drive = {
 	Acelerar = { -60, -120, 120, 240 },
 	Frenar = { -190, -90, 120, 180 },
@@ -128,6 +136,7 @@ HudLayout.Fly = {
 	Camara = { -405, -165, 72, 72 },
 	Bajarse = { -405, -255, 72, 72 },
 }
+local CONTEXT_CAPTION = 24 -- el título «ACCIONES» encima de la tira
 local CLUSTER_RIGHT = 128 -- lo que sobresale el racimo a la derecha del centro del Ataque
 local CLUSTER_BOTTOM = 124 -- y por debajo
 
@@ -141,10 +150,10 @@ local function place(anchor: Vector2, position: UDim2, size: Vector2): Placement
 	return { Anchor = anchor, Position = position, Size = size }
 end
 
--- Filas visibles del menú de comandos (sin desplegar)
-function HudLayout.commandHeight(rows: number, touch: boolean): number
-	local s = HudLayout.Sizes
-	return s.CommandHeader + rows * s.CommandPitch + s.CommandFooter + (if touch then 0 else s.CommandHint)
+-- Tamaño del ValPhone abierto en un lienzo de alto `height` (proporción de teléfono, 1:2)
+function HudLayout.phoneSize(height: number): Vector2
+	local h = math.clamp(math.floor(height - 130), 520, 720)
+	return Vector2.new(math.floor(h * 0.5), h)
 end
 
 function HudLayout.compute(viewport: Vector2, options: Options?): Layout
@@ -199,28 +208,39 @@ function HudLayout.compute(viewport: Vector2, options: Options?): Layout
 	-- En el metro, el panel del tren va en ese mismo sitio (la tarjeta se quita mientras vas en él: Guide)
 	items.Ride = place(Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, -(hotbarGap + s.Hotbar.Y + 14)), s.Ride)
 	local statusBottom = statusTop + s.Status.Y
-	local commandTop = statusBottom + 12
-	local commandBottom: number -- (desde abajo)
+	local missionBottom = missionTop + s.Mission.Y
+	-- El ValPhone: cerrado asoma en la esquina de abajo a la izquierda (en el móvil, a la izquierda del
+	-- joystick); abierto sube entero desde ahí. Al volante (móvil) asoma debajo de tu estado: abajo van
+	-- las flechas de girar. Sus notificaciones bajan encima (en el móvil, encima del joystick).
+	items.Phone = place(Vector2.new(0, 1), UDim2.new(0, MARGIN, 1, -MARGIN), s.PhonePeek)
+	items.PhoneOpen = place(Vector2.new(0, 1), UDim2.new(0, MARGIN, 1, -MARGIN), HudLayout.phoneSize(H))
 	if touch then
 		local stick = s.Joystick
 		items.Joystick = place(Vector2.new(0, 1), UDim2.new(0, 145, 1, -20), Vector2.new(stick, stick))
-		commandBottom = 20 + stick + 10
-		commandTop = statusBottom + 8
+		items.PhoneDrive = place(Vector2.new(0, 0), UDim2.new(0, MARGIN, 0, statusBottom + 12), s.PhonePeek)
+		items.PhoneBanner = place(Vector2.new(0, 1), UDim2.new(0, MARGIN, 1, -(20 + stick + 12)), s.PhoneBanner)
 	else
-		commandBottom = MARGIN
+		items.PhoneDrive = items.Phone
+		items.PhoneBanner = place(Vector2.new(0, 1), UDim2.new(0, MARGIN, 1, -(MARGIN + s.PhonePeek.Y + 12)), s.PhoneBanner)
 	end
-	-- Cuántas filas caben entre tu estado y el hueco de abajo (4 o 5; las demás, bajando la lista)
-	local room = H - commandBottom - commandTop
-	local rows = if touch then 4 else 5
-	while rows > 2 and HudLayout.commandHeight(rows, touch) > room do
-		rows -= 1
-	end
-	local commandSize = Vector2.new(s.CommandWidth, HudLayout.commandHeight(rows, touch))
+	-- La tira de acciones de AHORA (Commands/ContextStrip)
+	local contextRows: number
 	if touch then
-		-- Móvil: justo debajo de tu estado (crece hacia abajo, hasta encima del joystick)
-		items.Commands = place(Vector2.new(0, 0), UDim2.new(0, MARGIN, 0, commandTop), commandSize)
+		-- Móvil: la lista de la burbuja «Acciones» (Cluster.Contexto) se abre a su izquierda, hacia
+		-- arriba (encima de lo que haya: se cierra sola al usar una acción)
+		local ax, ay = W - MARGIN - CLUSTER_RIGHT, H - MARGIN - CLUSTER_BOTTOM
+		local bubble = HudLayout.Cluster.Contexto
+		local right = ax + bubble[1] - bubble[3] - 10
+		local bottom = ay + bubble[2] + bubble[3]
+		local room = bottom - (statusTop + 8) - CONTEXT_CAPTION
+		contextRows = math.max(1, math.min(6, math.floor((room + 6) / s.ContextPitch)))
+		items.Context = place(Vector2.new(1, 1), UDim2.new(1, -(W - right), 1, -(H - bottom)), Vector2.new(s.ContextWidth, CONTEXT_CAPTION + contextRows * s.ContextPitch))
 	else
-		items.Commands = place(Vector2.new(0, 1), UDim2.new(0, MARGIN, 1, -commandBottom), commandSize)
+		-- Ordenador: encima de la lista de teclas, abajo a la derecha (debajo de la misión)
+		local bottom = MARGIN + s.Hints.Y + 12
+		local room = H - bottom - (missionBottom + 12) - CONTEXT_CAPTION
+		contextRows = math.max(1, math.min(7, math.floor((room + 6) / s.ContextPitch)))
+		items.Context = place(Vector2.new(1, 1), UDim2.new(1, -MARGIN, 1, -bottom), Vector2.new(s.ContextWidth, CONTEXT_CAPTION + contextRows * s.ContextPitch))
 	end
 
 	if touch then
@@ -261,9 +281,7 @@ function HudLayout.compute(viewport: Vector2, options: Options?): Layout
 		Slots = slots,
 		DriveSlots = drive,
 		FlySlots = fly,
-		CommandRows = rows,
-		CommandTop = commandTop,
-		CommandBottom = H - commandBottom,
+		ContextRows = contextRows,
 	}
 end
 
@@ -288,7 +306,7 @@ function HudLayout.apply(object: GuiObject, p: Placement, keepSize: boolean?)
 end
 
 ---------------------------------------------------------------------
--- Estado en vivo (la pantalla de verdad): lo usan el HUD, el minimapa, la barra rápida, los comandos,
+-- Estado en vivo (la pantalla de verdad): lo usan el HUD, el minimapa, la barra rápida, el ValPhone,
 -- el joystick y los botones táctiles. Cada uno se recoloca cuando cambia algo.
 ---------------------------------------------------------------------
 local current: Layout? = nil
@@ -303,7 +321,7 @@ local function touchOnly(): boolean
 end
 
 -- Paneles de trabajo (barista, taquilla, recepción…): a la derecha en el ordenador. En el móvil, a la
--- derecha del menú de comandos (a la izquierda del todo están los comandos y el joystick, y a la derecha
+-- derecha de la columna izquierda (allí asoman el ValPhone y sus avisos y está el joystick; a la derecha
 -- los botones táctiles): desde el pie de tu estado hasta encima de la barra rápida. Si el panel es más
 -- alto que ese hueco, su contenido va en una lista que se desplaza. Llamar con el panel ya montado.
 local jobPanels: { [GuiObject]: () -> () } = {}
@@ -313,7 +331,7 @@ function HudLayout.jobArea(layout: Layout): { X: number, Y: number, W: number, H
 	local s = layout.Scale
 	local status = HudLayout.rect(layout.Items.Status, layout.Canvas)
 	local hotbar = HudLayout.rect(layout.Items.Hotbar, layout.Canvas)
-	local left = MARGIN + HudLayout.Sizes.CommandWidth + 12
+	local left = MARGIN + HudLayout.Sizes.LeftColumn + 12
 	local top = status.Y + status.H + 10
 	local bottom = hotbar.Y - 10
 	return { X = left * s, Y = top * s, W = (layout.Canvas.X / 2 - left) * s, H = (bottom - top) * s }
@@ -322,7 +340,7 @@ end
 local function mountJobPanel(panel: GuiObject)
 	local gui = panel.Parent
 	if gui and gui:IsA("ScreenGui") then
-		-- Encima del HUD, los comandos (2) y la tarjeta de tu vida; debajo de los botones táctiles (4)
+		-- Encima del HUD, la tira de acciones (2) y la tarjeta de tu vida; debajo de los botones táctiles (4)
 		gui.DisplayOrder = 3
 		gui.IgnoreGuiInset = true
 	end

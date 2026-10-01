@@ -52,6 +52,32 @@ end
 
 local refresh: (() -> ())? = nil
 
+-- Tus vehículos premium del pase de ese tipo (el servidor los pone en BP_VehicleModels; los nombres
+-- salen del catálogo del pase): { { Id, Name } }
+local function premiumModels(kind: string): { { Id: string, Name: string } }
+	local out = {}
+	local list = player:GetAttribute("BP_VehicleModels")
+	if typeof(list) ~= "string" or list == "" then
+		return out
+	end
+	local ok, Catalog = pcall(function()
+		return require((ReplicatedStorage :: any).Shared.BattlePass.Catalog)
+	end)
+	if not ok or type(Catalog) ~= "table" then
+		return out
+	end
+	for id in string.gmatch(list, "[^,]+") do
+		local def = Catalog.get(id)
+		if def and def.Kind == kind and type(def.Model) == "string" then
+			table.insert(out, { Id = id, Name = tostring(def.Name) })
+		end
+	end
+	table.sort(out, function(a, b)
+		return a.Name < b.Name
+	end)
+	return out
+end
+
 -- Por qué no puedes comprarlo ahora (nil = sí puedes). Se enseña en la propia ventana: antes solo
 -- salía un aviso arriba, tapado por la ventana, y parecía que el botón no hacía nada.
 local function whyNot(vehicle: { [string]: any }): string?
@@ -80,15 +106,56 @@ local function open()
 	})
 
 	local rows = {}
+	local extra = 0
 	for i, key in sorted() do
 		local vehicle = Gameplay.Vehicles[key]
 		local row = Theme.panel({
 			Size = UDim2.new(1, 0, 0, 70),
 			BackgroundColor3 = C.PanelLight,
 			BackgroundTransparency = 0,
-			LayoutOrder = i,
+			LayoutOrder = i * 2,
 			Parent = list,
 		})
+		-- Vehículos premium del pase de este tipo: eliges cuál sacar (se queda elegido)
+		local models = premiumModels(key)
+		if #models > 0 and has("OwnedVehicles", key) then
+			extra += 52
+			local chooser = create("ScrollingFrame", {
+				Name = "Models_" .. key,
+				Size = UDim2.new(1, 0, 0, 44),
+				BackgroundTransparency = 1,
+				BorderSizePixel = 0,
+				ScrollBarThickness = 4,
+				ScrollingDirection = Enum.ScrollingDirection.X,
+				AutomaticCanvasSize = Enum.AutomaticSize.X,
+				CanvasSize = UDim2.new(),
+				LayoutOrder = i * 2 + 1,
+				Parent = list,
+			})
+			create("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder, Parent = chooser })
+			local current = player:GetAttribute("BP_VehicleModel_" .. key)
+			local options = { { Id = "", Name = "De siempre" } }
+			for _, m in models do
+				table.insert(options, m)
+			end
+			for j, option in options do
+				local chosen = (option.Id == "" and current == nil) or option.Id == current
+				local pick = Theme.button({
+					Name = "Model_" .. (if option.Id == "" then "Normal" else option.Id),
+					Size = UDim2.fromOffset(140, 38),
+					Text = (if chosen then "✔ " else "") .. option.Name,
+					TextSize = 13,
+					TextWrapped = true,
+					BackgroundColor3 = if chosen then Color3.fromRGB(0, 150, 80) else Color3.fromRGB(0, 140, 200),
+					LayoutOrder = j,
+					Parent = chooser,
+				})
+				pick.Activated:Connect(function()
+					Remote:FireServer("Spawn", key, option.Id)
+					window:Destroy()
+				end)
+			end
+		end
 		Theme.padding(10).Parent = row
 		Theme.label({ Size = UDim2.new(1, -130, 0, 24), Text = vehicle.Icon .. "  " .. vehicle.Name, Font = Theme.FontBold, TextSize = 18, Parent = row })
 		local info = Theme.label({
@@ -132,6 +199,9 @@ local function open()
 			end
 		end)
 		rows[key] = { Info = info, Button = button }
+	end
+	if extra > 0 then
+		window.Size = UDim2.fromOffset(480, 520 + extra)
 	end
 
 	refresh = function()

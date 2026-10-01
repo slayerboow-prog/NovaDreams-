@@ -245,6 +245,25 @@ local function build()
 	end
 	note("La hora cambia para todo el servidor.")
 
+	-- Vehículos premium del pase: sacar cada uno a tu lado y dártelos todos (TesterService)
+	local passVehicles = (state and state.PassVehicles) or {}
+	if #passVehicles > 0 then
+		section("🏎️ Vehículos del pase")
+		local giveAll = button(list, "🎁 Darme todos (salen en «Mis vehículos»)", function()
+			send("Action", "PassVehiclesAll")
+		end)
+		giveAll.Name = "PassVehiclesAll"
+		local cars = grid()
+		for i, entry in passVehicles do
+			local b = button(cars, ("Sacar %s %s"):format(tostring(entry.Icon or "🏎️"), tostring(entry.Name)), function()
+				send("Action", "PassVehicle", entry.Id)
+				TesterPanel.close()
+			end, i)
+			b.Name = "PassVehicle_" .. tostring(entry.Id)
+		end
+		note("«Sacar» lo pone a tu lado aunque no lo tengas (mejor en la calle). «Darme todos» te los da de verdad: en «Mis vehículos» eliges cuál sale al montar el coche o la moto.")
+	end
+
 	-- Pase de temporada (solo si está encendido: el servidor manda state.BattlePass)
 	if state and type(state.BattlePass) == "table" then
 		local bpTitle = section("PASE DE TEMPORADA")

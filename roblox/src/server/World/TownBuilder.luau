@@ -712,6 +712,9 @@ function TownBuilder.build(): Folder
 	end
 	require(Kit.Polish).tone(world)
 	require(Kit.Polish).surfaces(world) -- cristal de fachada con reflejo
+	-- Texturas PBR pieza a pieza (pintura vial, bordillos de granito, laca de coches…): solo con ids
+	-- subidos (shared/TextureIds); sin ellos no cambia nada (Kit/MaterialLook)
+	require(Kit.MaterialLook).assign(world)
 	require(Kit.Polish).optimize(world)
 
 	return world

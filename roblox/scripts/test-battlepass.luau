@@ -379,6 +379,15 @@ local XP = load(S .. "BattlePassXPService")
 local TesterService = load(S .. "TesterService")
 local StoryEvents = load(ROOT .. "/server/LifeStory/StoryEvents")
 
+local function lastSentAfter(index: number, player, kind)
+	for i = #sent, index + 1, -1 do
+		if sent[i].Player == player and sent[i].Kind == kind and sent[i].Remote == "BattlePass" then
+			return sent[i].Payload
+		end
+	end
+	return nil
+end
+
 local S1 = BPConfig.Seasons[1]
 check(BPConfig.Enabled == false, "el pase viene APAGADO por defecto (BattlePassConfig.Enabled = false)")
 -- Apagado: los servicios no hacen nada (ni remoto, ni ganchos, ni escuchar eventos)
@@ -387,9 +396,48 @@ do
 		load(S .. name).init()
 	end
 	local VehicleMock = mocks[S .. "VehicleService"]
-	check(remoteList.BattlePass == nil and #loaded == 0 and VehicleMock.PaintFor == nil, "apagado: sin remoto, sin datos al entrar y sin ganchos")
-	local Tester = load(S .. "TesterService")
-	check(load(S .. "BattlePassService").testerState({}) == nil, "apagado: el modo pruebas no enseña el pase")
+	Season.setClock(function()
+		return S1.StartsAt - 3 * 86400 -- (la temporada aún no ha empezado: «Próximamente»)
+	end)
+	local normal = newPlayer("Normal", 1100, "Adulto")
+	check(remoteList.BattlePass == nil and profiles[normal].BattlePass == nil and VehicleMock.PaintFor == nil, "apagado: un jugador normal entra y no hay remoto, ni datos del pase, ni ganchos")
+	check(not Season.activeFor(normal) and BattlePass.testerState(normal) == nil and BattlePass.testerState({}) == nil, "apagado: el modo pruebas no enseña el pase a quien no es tester")
+
+	print("▶ Pase apagado: modo pruebas (solo el tester lo tiene)")
+	local boss = newPlayer("DueñoApagado", CREATOR, "Adulto")
+	local bpRemote = remoteList.BattlePass
+	check(Season.activeFor(boss) and bpRemote ~= nil and VehicleMock.ModelFor ~= nil and profiles[boss].BattlePass ~= nil, "al entrar un tester, el pase se enciende solo para él (remoto, ganchos y sus datos)")
+	check(Season.status(S1) == "Upcoming" and Season.status(S1, Season.now(boss)) == "Active" and Season.status(S1, Season.now(normal)) == "Upcoming", "para el tester la temporada «Próximamente» ya está en marcha; para los demás, no")
+	local before = #sent
+	bpRemote.OnServerEvent:Fire(normal, "Get")
+	task.wait(0.2)
+	check(lastSentAfter(before, normal, "State") == nil, "el remoto no le contesta a un jugador normal")
+	bpRemote.OnServerEvent:Fire(boss, "Get")
+	task.wait(0.2)
+	local bossState = lastSentAfter(before, boss, "State")
+	check(bossState and bossState.Season.Status == "Active" and bossState.Tester ~= nil, "al tester sí: estado del pase con la temporada en marcha y sus herramientas de pruebas")
+	check(BattlePass.testerState(boss) ~= nil and BattlePass.testerAction(boss, { Op = "Premium" }) and BattlePass.isPremium(boss), "herramientas del pase: premium simulado")
+	check(BattlePass.testerAction(boss, { Op = "SetLevel", Value = 50 }) and profiles[boss].BattlePass.Level == 50, "herramientas del pase: nivel 50")
+	local given = BattlePass.claimAll(boss)
+	check(#given == #S1.Rewards and profiles[boss].Cosmetics.Owned.S1_P50_Car ~= nil, ("herramientas del pase: reclamar todo (%d recompensas, con el Aurora X «Faro de Valmar»)"):format(#given))
+	check(Rewards.modelFor(boss, "Coche") ~= nil and boss:GetAttribute("BP_VehicleModels") ~= nil, "su coche premium sale al sacarlo y aparece en «Mis vehículos»")
+	-- «Mis vehículos»: elegir cuál de los premium sale (VehicleService.ChooseModel) o el de siempre
+	local vehicles = Catalog.vehicles()
+	check(#vehicles == 14 and vehicles[#vehicles].Id ~= nil, ("los vehículos del pase para el modo pruebas: %d (13 modelos + el Aurora X «Faro de Valmar»)"):format(#vehicles))
+	local choices = 0
+	for _, entry in vehicles do
+		if entry.RewardId and VehicleMock.ChooseModel(boss, entry.Kind, entry.RewardId) and Rewards.modelFor(boss, entry.Kind) == entry.Model and boss:GetAttribute("BP_VehicleModel_" .. entry.Kind) == entry.RewardId then
+			choices += 1
+		end
+	end
+	check(choices == 13, ("en «Mis vehículos» se elige cada premium que tienes y sale ese modelo (%d de 13)"):format(choices))
+	check(VehicleMock.ChooseModel(boss, "Moto", "") and Rewards.modelFor(boss, "Moto") == nil and boss:GetAttribute("BP_VehicleModel_Moto") == nil, "y «De siempre» vuelve a la moto normal")
+	check(not VehicleMock.ChooseModel(boss, "Moto", "S1_P04") and not VehicleMock.ChooseModel(normal, "Coche", "S1_P04"), "no se elige un coche en la moto, ni nada si no tienes el pase")
+	check(Rewards.modelFor(normal, "Coche") == nil and Rewards.paintFor(normal, "Coche") == nil and normal:GetAttribute("BP_VehicleModels") == nil, "a un jugador normal los ganchos no le cambian nada")
+	BattlePass.testerAction(boss, { Op = "Premium" })
+	removePlayer(boss)
+	removePlayer(normal)
+	table.clear(granted.Vehicles)
 end
 BPConfig.Enabled = true -- (para el resto de la prueba, encendido)
 local clock = S1.StartsAt - 3600 -- una hora antes de empezar

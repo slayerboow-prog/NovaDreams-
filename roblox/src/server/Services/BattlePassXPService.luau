@@ -164,12 +164,17 @@ local function listen()
 	end)
 end
 
+local waiting = false
 function BattlePassXPService.init()
 	if BPConfig.Enabled then
 		listen()
 		return
 	end
 	-- Pase apagado: no se escucha nada… hasta que entra un tester (modo pruebas: el pase solo para él)
+	if waiting then
+		return
+	end
+	waiting = true
 	DataService.onLoaded(function(player)
 		if Season.activeFor(player) then
 			listen()

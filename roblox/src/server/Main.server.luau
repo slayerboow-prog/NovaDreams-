@@ -42,6 +42,17 @@ do
 		end
 	end
 end
+-- Texturas PBR de verdad (MaterialService): un MaterialVariant por material con ids subidos, en lugar
+-- del material de Roblox; las piezas sueltas (pintura vial, bordillos, coches…) si la ciudad del archivo
+-- se construyó con otros ids. Sin ids no cambia nada (Kit/MaterialLook, shared/Textures).
+do
+	local ok, err = pcall(function()
+		require(World.Kit.MaterialLook).start(workspace:FindFirstChild("Town"))
+	end)
+	if not ok then
+		warn("[MaterialLook] " .. tostring(err))
+	end
+end
 TerrainBuilder.removeGroundPart()
 
 -- 3b) El sueño del prólogo: una isla pequeña en el cielo donde los personajes nuevos aprenden los

@@ -17,6 +17,7 @@
 --   })
 --   TouchLayout.refresh()        -- vuelve a mirar Visible/Active/Badge (también se hace solo, 2 veces por segundo)
 --   TouchLayout.setLabel(id, t)  -- cambia el texto (p. ej. Interactuar -> "Hablar")
+--   TouchLayout.setIcon(id, i)   -- cambia el icono (la burbuja «Acciones» enseña el de la primera acción)
 --   TouchLayout.setDriving(true) -- al volante (móvil): otra colocación (HudLayout.DriveSlots). Solo tienen
 --                                   hueco los que dicen DriveSlot = "…" (pedales, flechas, luces…); los
 --                                   demás van a los huecos de contexto de esa colocación
@@ -82,6 +83,7 @@ local specs: { [string]: Spec } = {}
 local order: { string } = {}
 local views: { [string]: View } = {}
 local labels: { [string]: string } = {}
+local icons: { [string]: string } = {} -- iconos cambiados con setIcon
 local busy = false
 local swimHidden: { [string]: boolean }? = nil -- nadando: estos no salen (DivingUI, Shared/Swim.HiddenButtons)
 local gui: ScreenGui? = nil
@@ -461,6 +463,9 @@ function placeButton(id: string, slot: string?, slots: { [string]: any })
 	if slot and not view then
 		view = buildView(spec)
 		views[id] = view
+		if icons[id] and not spec.Chevron then
+			Icons.set(view.Icon, icons[id])
+		end
 	end
 	if view then
 		local was = view.Button.Visible
@@ -519,6 +524,15 @@ function TouchLayout.setLabel(id: string, text: string?)
 	local spec = specs[id]
 	if view and spec then
 		Theme.setText(view.Label, text or spec.Label)
+	end
+end
+
+function TouchLayout.setIcon(id: string, icon: string?)
+	icons[id] = icon
+	local view = views[id]
+	local spec = specs[id]
+	if view and spec and not spec.Chevron then
+		Icons.set(view.Icon, icon or spec.Icon)
 	end
 end
 
@@ -871,7 +885,7 @@ end
 
 -- (pruebas) empezar de cero
 function TouchLayout._reset()
-	specs, order, views, labels = {}, {}, {}, {}
+	specs, order, views, labels, icons = {}, {}, {}, {}, {}
 	busy, gui, hintsPanel, started = false, nil, nil, false
 	driving = false
 	flying = false

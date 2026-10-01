@@ -42,9 +42,18 @@ function BattlePassClient.config(): { [string]: any }?
 	return if ok and type(config) == "table" then config else nil
 end
 
+-- ¿Hay pase para este jugador? Encendido (BattlePassConfig.Enabled) para todos; apagado, solo para
+-- los testers (atributo Tester: modo pruebas). Lo de verdad lo decide el servidor (su remoto solo
+-- atiende a quien tiene el pase).
 function BattlePassClient.enabled(): boolean
 	local config = BattlePassClient.config()
-	return config ~= nil and config.Enabled == true
+	if config ~= nil and config.Enabled == true then
+		return true
+	end
+	local ok, tester = pcall(function()
+		return (game:GetService("Players").LocalPlayer :: any):GetAttribute("Tester") == true
+	end)
+	return config ~= nil and ok and tester == true
 end
 
 function BattlePassClient.start()

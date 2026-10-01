@@ -28,6 +28,7 @@ export type Tier = {
 	Puddles: number, -- charcos con reflejo a la vez cuando llueve
 	WetRadius: number, -- radio (studs) en el que el suelo se ve mojado
 	SignGlow: boolean, -- los carteles de las tiendas resplandecen de noche
+	NormalMaps: boolean, -- relieve (mapa normal) de las texturas PBR de los materiales
 }
 
 Graphics.Order = { "Low", "Medium", "High" } :: { TierName }
@@ -51,6 +52,7 @@ Graphics.Tiers = {
 		Puddles = 4,
 		WetRadius = 60,
 		SignGlow = false,
+		NormalMaps = false,
 	},
 	Medium = {
 		LampLights = 18,
@@ -65,6 +67,7 @@ Graphics.Tiers = {
 		Puddles = 10,
 		WetRadius = 80,
 		SignGlow = true,
+		NormalMaps = true,
 	},
 	High = {
 		LampLights = 40,
@@ -79,6 +82,7 @@ Graphics.Tiers = {
 		Puddles = 16,
 		WetRadius = 100,
 		SignGlow = true,
+		NormalMaps = true,
 	},
 } :: { [TierName]: Tier }
 

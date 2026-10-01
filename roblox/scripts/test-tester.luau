@@ -547,6 +547,110 @@ do
 end
 
 ---------------------------------------------------------------------
+-- Pase de temporada apagado (BattlePassConfig.Enabled = false): el tester lo tiene igual, y los
+-- vehículos del pase se sacan y se dan desde el panel («🏎️ Vehículos del pase»)
+---------------------------------------------------------------------
+print("▶ Pase apagado: el tester lo tiene, un jugador normal no")
+do
+	local BPConfig = load(ROOT .. "/shared/BattlePass/Config")
+	local Catalog = load(ROOT .. "/shared/BattlePass/Catalog")
+	local BattlePassService = load(S .. "BattlePassService")
+	local Season = load(S .. "BattlePassSeasonService")
+	local Rewards = load(S .. "BattlePassRewardService")
+	local S1 = BPConfig.Seasons[1]
+	check(BPConfig.Enabled == false, "(el pase sigue apagado para todos)")
+	Season.setClock(function()
+		return S1.StartsAt - 4 * 86400 -- (antes de que empiece: «Próximamente»)
+	end)
+	local state = TesterService.state(owner)
+	check(type(state.BattlePass) == "table" and Season.activeFor(owner), "el panel del tester trae la sección del pase (premium simulado, nivel, reclamar…)")
+	check(not Season.activeFor(other) and BattlePassService.testerState(other) == nil, "un jugador normal no tiene pase")
+	local ownerSnap = BattlePassService.snapshot(owner)
+	check(ownerSnap and ownerSnap.Season.Status == "Active" and Season.status(S1, Season.now(other)) == "Upcoming", "para el tester la temporada ya está en marcha (aunque empiece el 5 de octubre); para los demás no")
+	fire(owner, "Action", "BattlePass", { Op = "SetLevel", Value = 50 })
+	check(profiles[owner].BattlePass.Level == 50, "el tester pone el nivel 50 con el pase apagado")
+	fire(other, "Action", "BattlePass", { Op = "SetLevel", Value = 50 })
+	check(profiles[other].BattlePass == nil or profiles[other].BattlePass.Level ~= 50, "a un jugador normal no le hace nada")
+
+	print("▶ Vehículos del pase: sacar cada uno")
+	local list = state.PassVehicles or {}
+	check(#list == 14, ("el panel lista los 14 vehículos del pase (%d)"):format(#list))
+	local names = {}
+	for _, entry in list do
+		names[entry.Name] = true
+	end
+	check(names["Voltex GT-R"] and names["Storm"] and names["Aurora X «Faro de Valmar»"] and names["Aurora X"], "del Voltex GT-R al Storm, y el Aurora X «Faro de Valmar»")
+	-- (el doble de VehicleService.mount apunta lo que se saca; lo demás es el camino de verdad)
+	local realMount = VehicleService.mount
+	local mounted = {}
+	VehicleService.mount = function(player, kind, opts)
+		table.insert(mounted, { Player = player, Kind = kind, Opts = opts })
+		return true
+	end
+	local humanoid = { Health = 100, SeatPart = nil }
+	owner.Character = { FindFirstChildOfClass = function()
+		return humanoid
+	end }
+	local byId = {}
+	for _, entry in Catalog.vehicles() do
+		byId[entry.Id] = entry
+	end
+	local good = 0
+	for _, entry in list do
+		local n = #mounted
+		task.wait(2.1) -- (como el menú: como mucho 3 cada 6 s)
+		TesterService.handle(owner, "Action", "PassVehicle", entry.Id)
+		local m = mounted[n + 1]
+		local spec = byId[entry.Id]
+		local opts = m and m.Opts
+		if m and m.Player == owner and spec and m.Kind == spec.Kind and opts and opts.Style and opts.Style.Model == spec.Model and opts.Style.Accent == spec.Trim and opts.Paint == spec.Color then
+			good += 1
+		else
+			print("    (no salió bien: " .. tostring(entry.Id) .. ")")
+		end
+	end
+	check(good == 14, ("el tester saca cada uno con su modelo, su pintura y sus detalles (%d de 14)"):format(good))
+	local faro = byId.S1_P50_Car
+	check(faro and faro.Model == "AuroraX" and faro.Trim ~= nil, "el «Faro de Valmar» sale como Aurora X con detalles en oro")
+	local n = #mounted
+	TesterService.handle(other, "Action", "PassVehicle", "VoltexGTR")
+	check(#mounted == n, "un jugador normal no saca nada")
+	VehicleService.mount = realMount
+	owner.Character = nil
+
+	print("▶ Vehículos del pase: «Darme todos»")
+	TesterService.handle(owner, "Action", "PassVehiclesAll")
+	local owned = profiles[owner].Cosmetics.Owned
+	local count = 0
+	for _, entry in Catalog.vehicles() do
+		if entry.RewardId and owned[entry.RewardId] then
+			count += 1
+		end
+	end
+	check(count == 13 and owned.S1_P50_Car ~= nil, ("se le dan como recompensas del pase de verdad (%d de 13, con el «Faro de Valmar»)"):format(count))
+	check(profiles[owner].Vehicles.Coche and profiles[owner].Vehicles.Moto, "con el coche y la moto de base (salen en «Mis vehículos»)")
+	local models = owner:GetAttribute("BP_VehicleModels")
+	local listed = 0
+	for _ in string.gmatch(models or "", "[^,]+") do
+		listed += 1
+	end
+	check(listed == 13, ("«Mis vehículos» los lista para elegir (%d)"):format(listed))
+	check(VehicleService.ChooseModel ~= nil and VehicleService.ChooseModel(owner, "Coche", "S1_P49") and Rewards.modelFor(owner, "Coche") == "ShadowF1", "y se elige cuál sale: el Shadow F1")
+	check(VehicleService.ChooseModel(owner, "Moto", "S1_P42") and Rewards.modelFor(owner, "Moto") == "Storm", "o la Storm en la moto")
+	check(not VehicleService.ChooseModel(other, "Coche", "S1_P49"), "un jugador normal no elige nada")
+	local again = TesterService.handle(owner, "Action", "PassVehiclesAll")
+	check(again, "pulsarlo otra vez no rompe nada (no los duplica)")
+	TesterService.handle(other, "Action", "PassVehiclesAll")
+	check(profiles[other].Cosmetics == nil or next(profiles[other].Cosmetics.Owned or {}) == nil, "a un jugador normal no le da nada")
+	-- «Todos los vehículos» también los da
+	local fresh = newPlayer("Dueño3", CREATOR, "Adulto")
+	TesterService.handle(fresh, "Action", "Vehicles")
+	check(profiles[fresh].Cosmetics and profiles[fresh].Cosmetics.Owned.S1_P04 and profiles[fresh].Cosmetics.Owned.S1_P50_Car, "«Todos los vehículos» incluye los del pase")
+	table.remove(active, table.find(active, fresh))
+	Season.setClock(nil)
+end
+
+---------------------------------------------------------------------
 -- Cambiar de etapa con la historia de verdad (scripts/lib/StoryHarness: LifeStoryService real).
 -- Como el dueño en la versión publicada: niño en el capítulo del colegio, con «Recados por el
 -- barrio» (principal) en marcha y «El vecino del garaje» (secundaria) seguida.

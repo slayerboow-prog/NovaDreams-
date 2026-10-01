@@ -649,8 +649,8 @@ local function mount(touch: boolean, x: number, y: number, enabledFlag: boolean)
 	localPlayer:SetAttribute("LifeStage", "Adulto")
 	local config = loadModule("src/shared/BattlePass/Config")
 	config.Enabled = enabledFlag
-	-- (como el servidor: el remoto solo existe con el pase encendido)
-	if enabledFlag then
+	-- (como el servidor: el remoto solo existe con el pase encendido o, apagado, para un tester)
+	if enabledFlag or localPlayer:GetAttribute("Tester") == true then
 		bpRemote.Parent = remotes
 	end
 	local registry = loadModule("src/client/Commands/CommandRegistry")
@@ -1219,6 +1219,75 @@ do
 	testerRemote.OnClientEvent:Fire("Open", base)
 	panel = playerGui:FindFirstChild("Dialogs"):FindFirstChild("TesterPanel")
 	check(panel ~= nil and not textOf(panel, "PASE DE TEMPORADA"), "Con el pase apagado (sin BattlePass en el estado) no sale la sección")
+end
+
+---------------------------------------------------------------------
+print("\n▶ Panel de pruebas: «🏎️ Vehículos del pase»")
+do
+	local testerRemote = remotes:FindFirstChild("Tester")
+	local testerSent = {}
+	rawset(testerRemote, "FireServer", function(_, ...)
+		table.insert(testerSent, { ... })
+	end)
+	local Catalog = loadModule("src/shared/BattlePass/Catalog")
+	local list = {}
+	for _, entry in Catalog.vehicles() do
+		table.insert(list, { Id = entry.Id, Name = entry.Name, Icon = entry.Icon, Kind = entry.Kind, Rarity = entry.Rarity })
+	end
+	local function deep(root, name: string)
+		for _, object in (if root then root:GetDescendants() else {}) do
+			if object.Name == name then
+				return object
+			end
+		end
+		return nil
+	end
+	local Panel = loadModule("src/client/UI/TesterPanel")
+	Panel.close()
+	testerRemote.OnClientEvent:Fire("Open", { Money = false, Bypass = false, Stage = "Adulto", Stages = {}, Places = {}, Hours = {}, PassVehicles = list })
+	local panel = playerGui:FindFirstChild("Dialogs"):FindFirstChild("TesterPanel")
+	local buttons = 0
+	for _, entry in list do
+		local b = deep(panel, "PassVehicle_" .. entry.Id)
+		if b and string.find(b.Text, entry.Name, 1, true) then
+			buttons += 1
+		end
+	end
+	check(panel ~= nil and textOf(panel, "🏎️ Vehículos del pase") and buttons == 14, ("Sección «🏎️ Vehículos del pase» con un «Sacar» por vehículo (%d de 14)"):format(buttons))
+	local all = deep(panel, "PassVehiclesAll")
+	check(all ~= nil and string.find(all.Text, "Darme todos", 1, true) ~= nil, "Y el botón «Darme todos»")
+	if all then
+		all.Activated:Fire()
+	end
+	local storm = deep(panel, "PassVehicle_Storm")
+	if storm then
+		storm.Activated:Fire()
+	end
+	local askedAll, askedStorm = false, false
+	for _, entry in testerSent do
+		askedAll = askedAll or (entry[1] == "Action" and entry[2] == "PassVehiclesAll")
+		askedStorm = askedStorm or (entry[1] == "Action" and entry[2] == "PassVehicle" and entry[3] == "Storm")
+	end
+	check(askedAll and askedStorm, "«Darme todos» y «Sacar» piden su acción a TesterService (con el id del vehículo)")
+	check(not Panel.isOpen(), "Al sacar uno, el panel se cierra (para verlo)")
+	check(#badWrites == 0, "Todas las propiedades existen en Roblox" .. (if #badWrites > 0 then ": " .. table.concat(badWrites, ", ") else ""))
+end
+
+---------------------------------------------------------------------
+print("\n▶ Pase APAGADO pero eres tester (modo pruebas)")
+do
+	localPlayer:SetAttribute("Tester", true)
+	local UI, registry, ok, err = mount(false, 1920, 1080, false)
+	check(ok, "BattlePassUI.init no falla" .. (if ok then "" else ": " .. tostring(err)))
+	check(UI.enabled() and sentHas("Get", "Ui"), "Para el tester el pase está activo: pide su estado al servidor")
+	push(snapshot({ Level = 50 }))
+	check(rowFor(registry) ~= nil, "Sale la fila «Pase de temporada»")
+	UI.open()
+	check(UI.isOpen(), "Y la ventana del pase se abre (vistas previas, reclamar…)")
+	UI.close()
+	localPlayer:SetAttribute("Tester", nil)
+	local UI2, registry2 = mount(false, 1920, 1080, false)
+	check(not UI2.enabled() and #sent == 0 and rowFor(registry2) == nil, "Sin el atributo Tester, apagado: nada (ni petición ni fila)")
 end
 
 print()

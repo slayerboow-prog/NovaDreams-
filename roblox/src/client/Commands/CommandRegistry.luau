@@ -1,6 +1,8 @@
--- CommandRegistry: el registro central de comandos del menú de comandos.
+-- CommandRegistry: el registro central de comandos del juego.
 --
--- Un comando se registra una vez y el menú decide solo cuándo sale, según el contexto
+-- Un comando se registra una vez y Commands/CommandMenu decide solo cuándo sale y dónde: con
+-- Priority < 50 es una acción de ahora (la tira de acciones junto a los botones); con 50 o más, una
+-- app del ValPhone (Commands/PhoneApps). Cuándo sale depende del contexto
 -- (ContextDetector): lo que tienes delante, tu edad, si conduces, si estás en una conversación…
 --
 --   CommandRegistry.register({
@@ -27,6 +29,10 @@ export type Command = {
 	Open: ((Context) -> { Command })?,
 	Prompt: ProximityPrompt?, -- si el comando dispara un cartel de interacción del mapa
 	Accent: boolean?, -- resaltado (lo que hay delante de ti)
+	Badge: (boolean | number)?, -- punto rojo (en el ValPhone: el numerito de la app)
+	Stay: boolean?, -- (tira de acciones) se puede repetir sin cerrar la lista: disparar, atacar…
+	Screen: string?, -- (ValPhone) la app se abre dentro del teléfono: "Ajustes", "Mensajes", "Cartera"
+	Flatten: boolean?, -- (ValPhone) grupo cuyos hijos son apps sueltas (el antiguo «Más»)
 }
 
 local commands: { Command } = {}

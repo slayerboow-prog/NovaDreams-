@@ -1,0 +1,165 @@
+{
+ "Asfalto": {
+  "size": 1024,
+  "maps": [
+   "color",
+   "normal",
+   "roughness"
+  ],
+  "meanColor": 0.8,
+  "meanRoughness": 0.892
+ },
+ "AceraBaldosa": {
+  "size": 1024,
+  "maps": [
+   "color",
+   "normal",
+   "roughness"
+  ],
+  "meanColor": 0.82,
+  "meanRoughness": 0.828
+ },
+ "Bordillo": {
+  "size": 512,
+  "maps": [
+   "color",
+   "normal",
+   "roughness"
+  ],
+  "meanColor": 0.792,
+  "meanRoughness": 0.57
+ },
+ "Hormigon": {
+  "size": 512,
+  "maps": [
+   "color",
+   "normal",
+   "roughness"
+  ],
+  "meanColor": 0.82,
+  "meanRoughness": 0.857
+ },
+ "Ladrillo": {
+  "size": 512,
+  "maps": [
+   "color",
+   "normal",
+   "roughness"
+  ],
+  "meanColor": 0.76,
+  "meanRoughness": 0.874
+ },
+ "Estuco": {
+  "size": 512,
+  "maps": [
+   "color",
+   "normal",
+   "roughness"
+  ],
+  "meanColor": 0.84,
+  "meanRoughness": 0.887
+ },
+ "Teja": {
+  "size": 512,
+  "maps": [
+   "color",
+   "normal",
+   "roughness"
+  ],
+  "meanColor": 0.772,
+  "meanRoughness": 0.828
+ },
+ "MetalPintado": {
+  "size": 512,
+  "maps": [
+   "color",
+   "metalness",
+   "normal",
+   "roughness"
+  ],
+  "meanColor": 0.84,
+  "meanRoughness": 0.447
+ },
+ "MetalCepillado": {
+  "size": 512,
+  "maps": [
+   "color",
+   "metalness",
+   "normal",
+   "roughness"
+  ],
+  "meanColor": 0.86,
+  "meanRoughness": 0.3
+ },
+ "Madera": {
+  "size": 512,
+  "maps": [
+   "color",
+   "normal",
+   "roughness"
+  ],
+  "meanColor": 0.78,
+  "meanRoughness": 0.58
+ },
+ "Marmol": {
+  "size": 512,
+  "maps": [
+   "color",
+   "normal",
+   "roughness"
+  ],
+  "meanColor": 0.86,
+  "meanRoughness": 0.136
+ },
+ "CespedSuelo": {
+  "size": 1024,
+  "maps": [
+   "color",
+   "normal",
+   "roughness"
+  ],
+  "meanColor": 0.778,
+  "meanRoughness": 0.876
+ },
+ "Arena": {
+  "size": 512,
+  "maps": [
+   "color",
+   "normal",
+   "roughness"
+  ],
+  "meanColor": 0.839,
+  "meanRoughness": 0.94
+ },
+ "Azulejo": {
+  "size": 512,
+  "maps": [
+   "color",
+   "normal",
+   "roughness"
+  ],
+  "meanColor": 0.88,
+  "meanRoughness": 0.204
+ },
+ "PinturaCoche": {
+  "size": 256,
+  "maps": [
+   "color",
+   "metalness",
+   "normal",
+   "roughness"
+  ],
+  "meanColor": 0.94,
+  "meanRoughness": 0.159
+ },
+ "PinturaVial": {
+  "size": 512,
+  "maps": [
+   "color",
+   "normal",
+   "roughness"
+  ],
+  "meanColor": 0.86,
+  "meanRoughness": 0.633
+ }
+}
