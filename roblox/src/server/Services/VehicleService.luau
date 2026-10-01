@@ -56,6 +56,9 @@ VehicleService.PaintFor = nil :: ((Player, string) -> Color3?)?
 -- de shared/PremiumVehicles y su color de detalle. Es un coche / una moto del juego con otro diseño:
 -- conduce igual (sin pagar para ganar). nil = el modelo de siempre.
 VehicleService.ModelFor = nil :: ((Player, string) -> (string?, Color3?))?
+-- Elegir cuál de tus vehículos premium sale al sacar ese tipo (BattlePassRewardService.chooseVehicle;
+-- id "" = el de siempre). Lo pide el menú «Mis vehículos». Devuelve true si se ha elegido.
+VehicleService.ChooseModel = nil :: ((Player, string, string) -> boolean)?
 
 -- Gasolineras de jugadores (BusinessService): precio y litros que quedan, y aviso de la venta
 VehicleService.FuelSeller = nil :: { quote: (BasePart) -> (number?, number?), sold: (BasePart, number, number) -> () }?
@@ -1440,7 +1443,9 @@ end
 
 -- Crea un vehículo al lado del jugador y le sube. opts.Rented = de una estación pública;
 -- opts.Exam = examen práctico (sin carnet). Los tuyos se quedan aparcados al bajarte.
-function VehicleService.mount(player: Player, kind: string, opts: { Rented: boolean?, Exam: boolean? }?): boolean
+-- opts.Style / opts.Paint (modo pruebas: «Vehículos del pase»): ese modelo premium y esa pintura
+-- en vez de los equipados.
+function VehicleService.mount(player: Player, kind: string, opts: { Rented: boolean?, Exam: boolean?, Style: { Model: string?, Accent: Color3? }?, Paint: Color3? }?): boolean
 	local options = opts or {}
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
@@ -1473,7 +1478,10 @@ function VehicleService.mount(player: Player, kind: string, opts: { Rented: bool
 		paint = if okPaint and typeof(color) == "Color3" then color else nil
 	end
 	local style: { Model: string?, Accent: Color3? }? = nil
-	if VehicleService.ModelFor and not options.Rented and not options.Exam then
+	if options.Style then
+		style = options.Style
+		paint = options.Paint
+	elseif VehicleService.ModelFor and not options.Rented and not options.Exam then
 		local okModel, id, accent = pcall(VehicleService.ModelFor, player, kind)
 		if okModel and type(id) == "string" then
 			style = { Model = id, Accent = if typeof(accent) == "Color3" then accent else nil }
@@ -1664,7 +1672,7 @@ VehicleService.spawnAllowed = spawnAllowed
 VehicleService.spawnDone = spawnDone
 VehicleService.canSpawn = canSpawn
 
-local function spawnOwned(player: Player, kind: string)
+local function spawnOwned(player: Player, kind: string, model: any?)
 	local data = DataService.get(player)
 	if not data or not Gameplay.Vehicles[kind] then
 		return
@@ -1673,6 +1681,10 @@ local function spawnOwned(player: Player, kind: string)
 	if not data.Vehicles[kind] then
 		Notify:FireClient(player, "Error", "Todavía no tienes ese vehículo.")
 		return
+	end
+	-- «Mis vehículos»: cuál de tus premium (o "" = el de siempre). Se queda elegido para la próxima vez.
+	if type(model) == "string" and #model <= 64 and VehicleService.ChooseModel then
+		pcall(VehicleService.ChooseModel, player, kind, model)
 	end
 	local ride = riding[player]
 	if ride and ride.Exam then
@@ -1684,6 +1696,24 @@ local function spawnOwned(player: Player, kind: string)
 	if VehicleService.mount(player, kind) then
 		spawnDone(player)
 	end
+end
+
+-- Modo pruebas («Vehículos del pase»): saca ese modelo premium (shared/PremiumVehicles) con su
+-- pintura y su color de detalle, por el camino de siempre (mount: sitio libre, luces, asientos,
+-- ruedas). No hace falta tenerlo. Devuelve true si ha salido.
+function VehicleService.spawnStyled(player: Player, kind: string, style: { Model: string, Accent: Color3? }, paint: Color3?): boolean
+	if not Gameplay.Vehicles[kind] or type(style) ~= "table" or type(style.Model) ~= "string" then
+		return false
+	end
+	local ride = riding[player]
+	if (ride and ride.Exam) or not canSpawn(player) or not spawnAllowed(player) then
+		return false
+	end
+	if VehicleService.mount(player, kind, { Style = style, Paint = paint }) then
+		spawnDone(player)
+		return true
+	end
+	return false
 end
 
 local function setupStation(station: Instance)
@@ -1744,7 +1774,7 @@ function VehicleService.init()
 		end
 	end)
 
-	Remote.OnServerEvent:Connect(function(player, action, kind)
+	Remote.OnServerEvent:Connect(function(player, action, kind, model)
 		if action == "Dismount" then
 			VehicleService.exitAny(player)
 		elseif action == "Reseat" then
@@ -1752,7 +1782,7 @@ function VehicleService.init()
 		elseif action == "Lamps" then
 			VehicleService.setLamps(player, kind)
 		elseif action == "Spawn" and typeof(kind) == "string" then
-			spawnOwned(player, kind)
+			spawnOwned(player, kind, model)
 		elseif action == "Buy" and typeof(kind) == "string" then
 			VehicleService.buy(player, kind)
 		end

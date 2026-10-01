@@ -239,6 +239,65 @@ local function giveWeapons(player: Player): (number, number)
 	return WeaponService.grantAll(player)
 end
 
+---------------------------------------------------------------------
+-- Vehículos del pase (los premium de shared/PremiumVehicles): sacarlos y dártelos
+---------------------------------------------------------------------
+
+-- Los 14 (los 13 modelos con su pintura y el Aurora X «Faro de Valmar»): BattlePass/Catalog.vehicles
+local function passVehicles(): { { [string]: any } }
+	local ok, list = pcall(function()
+		return require(ReplicatedStorage.Shared.BattlePass.Catalog).vehicles()
+	end)
+	return if ok and type(list) == "table" then list else {}
+end
+
+-- Saca ese vehículo del pase a tu lado (VehicleService.spawnStyled: el camino de siempre, con su
+-- modelo, su pintura y su color de detalle). No hace falta tenerlo.
+local function spawnPassVehicle(player: Player, id: any): boolean
+	if type(id) ~= "string" then
+		return false
+	end
+	for _, entry in passVehicles() do
+		if entry.Id == id then
+			local VehicleService = service("VehicleService")
+			local style = { Model = entry.Model, Accent = entry.Trim }
+			if VehicleService.spawnStyled(player, entry.Kind, style, entry.Color) then
+				toast(player, "Success", ("%s %s"):format(entry.Icon or "🏎️", entry.Name))
+				return true
+			end
+			if not VehicleService.canSpawn(player) then
+				toast(player, "Error", "Ahora no puedes sacar un vehículo (bájate de donde estés o sal del edificio).")
+			end
+			return false
+		end
+	end
+	return false
+end
+
+-- Te da todos los vehículos del pase como recompensas de verdad (data.Cosmetics, con su coche o su
+-- moto de base): salen en «Mis vehículos», donde eliges cuál sacar. Devuelve cuántos son nuevos.
+local function givePassVehicles(player: Player): number
+	local data = DataService.get(player)
+	if not data then
+		return 0
+	end
+	local BattlePassService = service("BattlePassService")
+	BattlePassService.activate() -- (pase apagado: se enciende solo para los testers)
+	local Rewards = service("BattlePassRewardService")
+	local Catalog = require(ReplicatedStorage.Shared.BattlePass.Catalog)
+	local given = 0
+	for _, entry in passVehicles() do
+		local def = entry.RewardId and Catalog.get(entry.RewardId)
+		if def then
+			local owned = type(data.Cosmetics) == "table" and type(data.Cosmetics.Owned) == "table" and data.Cosmetics.Owned[def.Id] ~= nil
+			if not owned and Rewards.grant(player, def, def.Season) then
+				given += 1
+			end
+		end
+	end
+	return given
+end
+
 local function giveVehicles(player: Player): number
 	local VehicleService = service("VehicleService")
 	local Gameplay = require(ReplicatedStorage.Shared.Gameplay)
@@ -247,6 +306,13 @@ local function giveVehicles(player: Player): number
 		if not vehicle.Hidden and VehicleService.grant(player, kind) then
 			given += 1
 		end
+	end
+	-- Los vehículos del pase (premium), para elegirlos en «Mis vehículos»
+	local okP, pass = pcall(givePassVehicles, player)
+	if okP then
+		given += pass
+	else
+		warn("[TesterService] " .. tostring(pass))
 	end
 	-- Y los barcos (se sacan en el puerto deportivo)
 	local okB, BoatService = pcall(service, "BoatService")
@@ -401,6 +467,14 @@ function TesterService.state(player: Player): { [string]: any }
 		Stages = stages,
 		Places = TesterService.Places,
 		Hours = TesterService.Hours,
+		-- Vehículos del pase para sacar uno a uno («Vehículos del pase»)
+		PassVehicles = (function()
+			local list = {}
+			for _, entry in passVehicles() do
+				table.insert(list, { Id = entry.Id, Name = entry.Name, Icon = entry.Icon, Kind = entry.Kind, Rarity = entry.Rarity })
+			end
+			return list
+		end)(),
 		-- Pase de temporada (premium simulado, nivel…): ver BattlePassService.testerState
 		BattlePass = (function()
 			local ok, state = pcall(function()
@@ -510,6 +584,11 @@ function TesterService.handle(player: Player, kind: any, a: any, b: any): boolea
 				return (service("BattlePassService").testerAction(player, b))
 			end)
 			done = ok and result == true
+		elseif a == "PassVehicle" then
+			done = spawnPassVehicle(player, b)
+		elseif a == "PassVehiclesAll" then
+			local n = givePassVehicles(player)
+			toast(player, "Success", ("🏎️ Vehículos del pase: %d nuevos. Elige cuál sacar en «Mis vehículos»."):format(n))
 		elseif a == "Hour" then
 			done = setHour(player, b)
 			if done then

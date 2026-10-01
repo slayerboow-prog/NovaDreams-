@@ -26,8 +26,33 @@ local baseClock: (() -> number)? = nil -- (pruebas: reloj fijo)
 -- Reloj y temporada
 ---------------------------------------------------------------------
 
+-- ¿Es tester? (TesterService; se carga al usarlo para no crear dependencias al arrancar)
+local function isTester(player: any): boolean
+	if player == nil then
+		return false
+	end
+	local ok, result = pcall(function()
+		return require(script.Parent.TesterService).isTester(player)
+	end)
+	return ok and result == true
+end
+
+-- ¿Tiene este jugador el pase? Con el pase encendido (BattlePassConfig.Enabled), todos; apagado, solo
+-- los testers (modo pruebas: ven y prueban el pase sin que les salga a los demás). Lo decide el servidor.
+function BattlePassSeasonService.activeFor(player: Player?): boolean
+	return BPConfig.Enabled == true or isTester(player)
+end
+
+-- Hora del pase para un jugador. Para los testers, una temporada que aún no ha empezado
+-- («Próximamente») cuenta como ya empezada: así la prueban antes de la fecha (solo ellos).
 function BattlePassSeasonService.now(player: Player?): number
 	local base = if baseClock then baseClock() else os.time()
+	if player and isTester(player) then
+		local season = BattlePassSeasonService.current(base)
+		if base < season.StartsAt then
+			base = season.StartsAt
+		end
+	end
 	return base + (if player then offsets[player] or 0 else 0)
 end
 

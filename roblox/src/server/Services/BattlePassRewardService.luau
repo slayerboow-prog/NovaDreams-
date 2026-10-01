@@ -87,8 +87,8 @@ end
 -- cliente: título y placa encima de la cabeza (Controllers/NameTags, los ven todos), tema del
 -- teléfono y del HUD (UI/BattlePassCosmetics) y gestos del pase (Controllers/Actions).
 function BattlePassRewardService.sync(player: Player)
-	if not BPConfig.Enabled then
-		return -- (pase apagado: ni atributos ni cosméticos a la vista)
+	if not BattlePassSeasonService.activeFor(player) then
+		return -- (pase apagado: ni atributos ni cosméticos a la vista; salvo a los testers)
 	end
 	local data = DataService.get(player)
 	if not data then
@@ -112,6 +112,22 @@ function BattlePassRewardService.sync(player: Player)
 	table.sort(emotes)
 	player:SetAttribute("BP_Emotes", table.concat(emotes, ","))
 	player:SetAttribute("BP_Tokens", c.Tokens)
+	-- Vehículos premium tuyos (con su propio modelo) y cuál sale al sacar cada tipo: el menú
+	-- «Mis vehículos» deja elegir entre ellos (VehicleService "Spawn" con el id)
+	local models = {}
+	for id, info in c.Owned do
+		local def = type(info) == "table" and Catalog.get(id)
+		if def and def.Type == "VehicleSkin" and type(def.Model) == "string" then
+			table.insert(models, id)
+		end
+	end
+	table.sort(models)
+	player:SetAttribute("BP_VehicleModels", if #models > 0 then table.concat(models, ",") else nil)
+	for _, kind in { "Coche", "Moto" } do
+		local id = c.Equipped.VehicleSkin[kind]
+		local def = id and c.Owned[id] and Catalog.get(id)
+		player:SetAttribute("BP_VehicleModel_" .. kind, if def and type(def.Model) == "string" then id else nil)
+	end
 end
 
 ---------------------------------------------------------------------
@@ -378,7 +394,7 @@ end
 -- Color del vehículo al sacarlo (VehicleService.mount): el acabado equipado para ese tipo
 function BattlePassRewardService.paintFor(player: Player, kind: string): Color3?
 	local data = DataService.get(player)
-	if not data then
+	if not data or not BattlePassSeasonService.activeFor(player) then
 		return nil
 	end
 	local c = cosmeticsOf(data)
@@ -391,7 +407,7 @@ end
 -- shared/PremiumVehicles) y su color de detalle (Trim). nil = el modelo de siempre.
 function BattlePassRewardService.modelFor(player: Player, kind: string): (string?, Color3?)
 	local data = DataService.get(player)
-	if not data then
+	if not data or not BattlePassSeasonService.activeFor(player) then
 		return nil, nil
 	end
 	local c = cosmeticsOf(data)
@@ -403,10 +419,38 @@ function BattlePassRewardService.modelFor(player: Player, kind: string): (string
 	return nil, nil
 end
 
+-- Elige qué vehículo sale al sacar ese tipo («Mis vehículos»): id = un vehículo premium tuyo de ese
+-- tipo, o "" / nil para el de siempre (vuelve el acabado de color que tengas de ese tipo, si hay).
+function BattlePassRewardService.chooseVehicle(player: Player, kind: any, id: any): boolean
+	local data = DataService.get(player)
+	if not data or type(kind) ~= "string" or not BattlePassSeasonService.activeFor(player) then
+		return false
+	end
+	local c = cosmeticsOf(data)
+	if type(id) == "string" and id ~= "" then
+		local def = Catalog.get(id)
+		if not def or def.Type ~= "VehicleSkin" or def.Kind ~= kind or type(def.Model) ~= "string" or not c.Owned[id] then
+			return false
+		end
+		c.Equipped.VehicleSkin[kind] = id
+	else
+		local plain = nil
+		for owned in c.Owned do
+			local def = Catalog.get(owned)
+			if def and def.Type == "VehicleSkin" and def.Kind == kind and type(def.Model) ~= "string" and (not plain or owned < plain) then
+				plain = owned
+			end
+		end
+		c.Equipped.VehicleSkin[kind] = plain
+	end
+	BattlePassRewardService.sync(player)
+	return true
+end
+
 -- Colores del conjunto equipado (AvatarService: se mezclan con el aspecto de Valmar)
 function BattlePassRewardService.outfitFor(player: Player): { [string]: Color3 }?
 	local data = DataService.get(player)
-	if not data then
+	if not data or not BattlePassSeasonService.activeFor(player) then
 		return nil
 	end
 	local c = cosmeticsOf(data)
@@ -459,6 +503,9 @@ end
 -- Tema y decoración en la vivienda de un jugador (PropertyService.DecorateOwned, al montar la sala).
 -- Solo si el dueño está conectado (sus datos están cargados).
 function BattlePassRewardService.decorateHome(ownerUserId: number, inst: { [string]: any })
+	if not BattlePassSeasonService.activeFor(Players:GetPlayerByUserId(ownerUserId)) then
+		return -- (pase apagado: solo los testers)
+	end
 	local owner = Players:GetPlayerByUserId(ownerUserId)
 	local data = owner and DataService.get(owner)
 	local room = inst and inst.Room
@@ -494,15 +541,20 @@ function BattlePassRewardService.decorateHome(ownerUserId: number, inst: { [stri
 	end
 end
 
-function BattlePassRewardService.init()
-	if not require(ReplicatedStorage.Shared.BattlePass.Config).Enabled then
-		return -- pase apagado: sin ganchos en vehículos, ropa ni vivienda
+-- Ganchos (si el servicio existe): pintar vehículos, ropa y vivienda con lo equipado. Con el pase
+-- apagado los pone BattlePassService.activate cuando entra un tester (y solo valen para los testers:
+-- cada gancho mira activeFor).
+local hooked = false
+function BattlePassRewardService.installHooks()
+	if hooked then
+		return
 	end
-	-- Ganchos (si el servicio existe): pintar vehículos, ropa y vivienda con lo equipado
+	hooked = true
 	local vehicles = service("VehicleService")
 	if vehicles then
 		vehicles.PaintFor = BattlePassRewardService.paintFor
 		vehicles.ModelFor = BattlePassRewardService.modelFor
+		vehicles.ChooseModel = BattlePassRewardService.chooseVehicle
 	end
 	local avatar = service("AvatarService")
 	if avatar then
@@ -512,6 +564,13 @@ function BattlePassRewardService.init()
 	if property then
 		property.DecorateOwned = BattlePassRewardService.decorateHome
 	end
+end
+
+function BattlePassRewardService.init()
+	if require(ReplicatedStorage.Shared.BattlePass.Config).Enabled then
+		BattlePassRewardService.installHooks()
+	end
+	-- (sync no hace nada a quien no tiene el pase: con el pase apagado, solo a los testers)
 	DataService.onLoaded(function(player)
 		BattlePassRewardService.sync(player)
 	end)

@@ -669,9 +669,10 @@ end
 ---------------------------------------------------------------------
 
 function BattlePassService.testerState(player: Player): { [string]: any }?
-	if not BPConfig.Enabled then
+	if not Season.activeFor(player) then
 		return nil
 	end
+	BattlePassService.activate() -- (pase apagado: el tester lo enciende solo para él)
 	local data = DataService.get(player)
 	local bp = data and type(data.BattlePass) == "table" and data.BattlePass
 	return {
@@ -684,9 +685,10 @@ end
 
 -- op = { Op = "Premium" | "AddXp" | "SetLevel" | "NextDay" | "NextWeek" | "ResetClock" | "Reset", Value = número }
 function BattlePassService.testerAction(player: Player, op: any): (boolean, string?)
-	if not BPConfig.Enabled or not TesterService.isTester(player) then
+	if not TesterService.isTester(player) then
 		return false, "BadRequest"
 	end
+	BattlePassService.activate()
 	local spec = if type(op) == "table" then op else { Op = op }
 	local kind, value = spec.Op, spec.Value
 	local data = DataService.get(player)
@@ -775,8 +777,8 @@ end
 
 -- Atiende una petición del cliente. Todo lo que manda se comprueba; lo que no se entiende se ignora.
 function BattlePassService.handle(player: Player, action: any, a: any, b: any, c: any)
-	if type(action) ~= "string" or not DataService.get(player) then
-		return
+	if type(action) ~= "string" or not DataService.get(player) or not Season.activeFor(player) then
+		return -- (pase apagado: solo atiende a los testers)
 	end
 	if action == "Get" then
 		if a == "Ui" then
@@ -865,10 +867,15 @@ function BattlePassService.enabled(): boolean
 	return BPConfig.Enabled == true
 end
 
-function BattlePassService.init()
-	if not BPConfig.Enabled then
-		return -- pase apagado (BattlePassConfig.Enabled): ni remoto, ni compras, ni datos
+-- Pone en marcha el pase (remoto, ganchos en vehículos/ropa/vivienda, compras y vistas previas). Con
+-- el pase encendido, al arrancar; apagado (BattlePassConfig.Enabled = false), solo cuando entra un
+-- tester (modo pruebas): el remoto atiende únicamente a quien tiene el pase (Season.activeFor).
+local activated = false
+function BattlePassService.activate()
+	if activated then
+		return
 	end
+	activated = true
 	Telemetry.configure(BPConfig.Telemetry)
 	local remotes = ReplicatedStorage:WaitForChild("Remotes")
 	notifyRemote = remotes:FindFirstChild("Notify") :: RemoteEvent?
@@ -890,21 +897,6 @@ function BattlePassService.init()
 		end
 	end)
 
-	DataService.onLoaded(function(player, data)
-		local ok, err = pcall(function()
-			local bp = BattlePassService.ensure(player, data)
-			if bp then
-				syncAttributes(player, bp)
-			end
-		end)
-		if not ok then
-			warn("[BattlePassService] " .. tostring(err))
-		end
-		task.spawn(function()
-			pcall(BattlePassService.checkOwnership, player)
-		end)
-	end)
-
 	pcall(function()
 		MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player, passId, purchased)
 			BattlePassService.onPurchaseFinished(player, passId, purchased)
@@ -919,12 +911,41 @@ function BattlePassService.init()
 		Season.clearShift(player)
 	end)
 
+	pcall(function()
+		Rewards.installHooks()
+	end)
 	task.spawn(function()
 		local ok, err = pcall(buildPreviews)
 		if not ok then
 			warn("[BattlePassService] Vistas previas: " .. tostring(err))
 		end
 	end)
+end
+
+function BattlePassService.init()
+	-- Con el pase apagado, nada para los jugadores normales (ni remoto, ni compras, ni datos); a un
+	-- tester se le enciende solo a él al entrar
+	DataService.onLoaded(function(player, data)
+		if not Season.activeFor(player) then
+			return
+		end
+		BattlePassService.activate()
+		local ok, err = pcall(function()
+			local bp = BattlePassService.ensure(player, data)
+			if bp then
+				syncAttributes(player, bp)
+			end
+		end)
+		if not ok then
+			warn("[BattlePassService] " .. tostring(err))
+		end
+		task.spawn(function()
+			pcall(BattlePassService.checkOwnership, player)
+		end)
+	end)
+	if BPConfig.Enabled then
+		BattlePassService.activate()
+	end
 end
 
 return BattlePassService

@@ -127,6 +127,9 @@ function BattlePassXPService.onEvent(player: Player, name: string, payload: { [s
 	if typeof(player) ~= "Instance" and type(player) ~= "table" then
 		return
 	end
+	if not Season.activeFor(player) then
+		return -- (pase apagado: solo cuenta para los testers)
+	end
 	local body = if type(payload) == "table" then payload else {}
 	local ok, err = pcall(Missions.onEvent, player, name, body)
 	if not ok then
@@ -138,10 +141,13 @@ function BattlePassXPService.onEvent(player: Player, name: string, payload: { [s
 	end
 end
 
-function BattlePassXPService.init()
-	if not BPConfig.Enabled then
-		return -- pase apagado: no se escucha nada
+-- Empieza a escuchar los eventos del juego (una vez)
+local listening = false
+local function listen()
+	if listening then
+		return
 	end
+	listening = true
 	StoryEvents.connect(function(player, name, payload)
 		BattlePassXPService.onEvent(player, name, payload)
 	end)
@@ -155,6 +161,19 @@ function BattlePassXPService.init()
 	end)
 	Players.PlayerRemoving:Connect(function(player)
 		lastAt[player] = nil
+	end)
+end
+
+function BattlePassXPService.init()
+	if BPConfig.Enabled then
+		listen()
+		return
+	end
+	-- Pase apagado: no se escucha nada… hasta que entra un tester (modo pruebas: el pase solo para él)
+	DataService.onLoaded(function(player)
+		if Season.activeFor(player) then
+			listen()
+		end
 	end)
 end
 
