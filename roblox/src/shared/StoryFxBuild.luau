@@ -843,7 +843,7 @@ Kinds.Aura = function(b: Build): Handle
 			Adornee = model,
 		}, b.Folder)
 	end
-	emit(b, "Sound", r.Sound, holder.Position)
+	emit(b, "Sound", r.Sound, holder.CFrame.Position)
 	local seconds = ctx.Seconds or r.Seconds or 0
 	local fading = false
 	local fadeT = 0
@@ -877,7 +877,7 @@ Kinds.Aura = function(b: Build): Handle
 	end, function()
 		fading = true
 	end, function()
-		return holder.Position
+		return holder.CFrame.Position
 	end)
 	local destroy = h.Destroy
 	h.Destroy = function()
