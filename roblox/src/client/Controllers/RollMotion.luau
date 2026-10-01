@@ -171,18 +171,15 @@ function RollMotion.isRolling(model: Model?): boolean
 end
 
 -- ¿Hay algo que corte la voltereta? (también para la de los demás)
-local STOP_STATES: { [any]: boolean } = {
-	[Enum.HumanoidStateType.Dead] = true,
-	[Enum.HumanoidStateType.Seated] = true,
-	[Enum.HumanoidStateType.Swimming] = true,
-	[Enum.HumanoidStateType.Climbing] = true,
-	[Enum.HumanoidStateType.Physics] = true,
-}
+local function stopState(state: Enum.HumanoidStateType): boolean
+	local S = Enum.HumanoidStateType
+	return state == S.Dead or state == S.Seated or state == S.Swimming or state == S.Climbing or state == S.Physics
+end
 function RollMotion.blocked(humanoid: Humanoid, owner: Player?): boolean
 	if humanoid.Health <= 0 or humanoid.SeatPart ~= nil or humanoid.Sit or humanoid.PlatformStand then
 		return true
 	end
-	if STOP_STATES[humanoid:GetState()] then
+	if stopState(humanoid:GetState()) then
 		return true
 	end
 	if owner and (owner:GetAttribute("KO") or owner:GetAttribute("InDialogue") or owner:GetAttribute("InCinematic") or owner:GetAttribute("Riding")) then
@@ -334,6 +331,14 @@ function RollMotion.roll(direction: Vector3): boolean
 		finish(true)
 	end)
 	return true
+end
+
+-- (pruebas: scripts/test-motion.luau) capas de mentira y un personaje ya preparado
+function RollMotion._attach(layers: any)
+	Layers = layers
+end
+function RollMotion._add(model: any, humanoid: any, rig: string, joints: { [string]: any }, start: number, duration: number?)
+	playing[model] = { Start = start, Duration = duration or Combat.RollTime, Rig = rig, Scale = 1, Joints = joints, Humanoid = humanoid }
 end
 
 function RollMotion.isLocalRolling(): boolean

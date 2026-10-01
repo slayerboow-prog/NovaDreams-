@@ -1620,6 +1620,73 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 	check(last and last.Vector.Magnitude < 1e-6 and renderSteps.ValmarJoystick == nil, "Al soltar, se para")
 	check(mods.Joystick.vectorFrom(roblox.Vector2.new(5, 0), 100).Magnitude == 0, "Con zona muerta en el centro")
 
+	-- El botón Saltar salta de verdad. Antes solo ponía Humanoid.Jump = true, que el control de Roblox
+	-- vuelve a escribir cada fotograma (y el botón no dispara JumpRequest): en el móvil no saltaba.
+	do
+		local E = roblox.Enum
+		local props = rawget(humanoid, "__props")
+		local states: { any } = {}
+		local enabled = true
+		props.FloorMaterial = E.Material.Plastic
+		props.JumpHeight = 7.2
+		props.Jump = false
+		rawset(humanoid, "GetState", function()
+			return E.HumanoidStateType.Running
+		end)
+		rawset(humanoid, "GetStateEnabled", function(_, kind)
+			return if kind == E.HumanoidStateType.Jumping then enabled else true
+		end)
+		rawset(humanoid, "ChangeState", function(_, kind)
+			table.insert(states, kind)
+		end)
+		local jumpButton = TouchLayout.buttons().Saltar
+		local press = { UserInputType = E.UserInputType.Touch, Position = roblox.Vector3.new(0, 0, 0) }
+		local function tap()
+			jumpButton.InputBegan:Fire(press)
+			local step = renderSteps.SaltarTactil
+			props.Jump = false -- (lo que hace el control de Roblox cada fotograma: su botón no está pulsado)
+			if step then
+				step(1 / 60)
+			end
+			local held = humanoid.Jump
+			userInput.InputEnded:Fire(press)
+			return held
+		end
+		local held = tap()
+		check(states[#states] == E.HumanoidStateType.Jumping, "Tocar Saltar de pie en el suelo salta (Humanoid:ChangeState(Jumping), sin depender de Humanoid.Jump)")
+		check(held == true, "Mantenido: Jump = true en cada fotograma después del control de Roblox (Input + 2), como su botón")
+		check(renderSteps.SaltarTactil == nil and humanoid.Jump == false, "Al soltar se deja de pedir el salto (no queda un salto pendiente)")
+		-- Corriendo (y con la energía a 0) también
+		table.clear(states)
+		localPlayer:SetAttribute("Sprinting", true)
+		localPlayer:SetAttribute("Energy", 0)
+		tap()
+		check(states[#states] == E.HumanoidStateType.Jumping, "Corriendo y sin energía también se salta (saltar no gasta ni pide energía)")
+		localPlayer:SetAttribute("Sprinting", nil)
+		localPlayer:SetAttribute("Energy", nil)
+		-- En el aire, en una conversación o sentado, no
+		table.clear(states)
+		props.FloorMaterial = E.Material.Air
+		tap()
+		props.FloorMaterial = E.Material.Plastic
+		localPlayer:SetAttribute("InDialogue", true)
+		tap()
+		localPlayer:SetAttribute("InDialogue", nil)
+		localPlayer:SetAttribute("InCinematic", true)
+		tap()
+		localPlayer:SetAttribute("InCinematic", nil)
+		check(#states == 0, "En el aire, en una conversación o en una cinemática no salta")
+		-- Quien se encarga del botón (parkour con obstáculo delante, levantarse de agachado…) lo dice
+		local got: { boolean } = {}
+		TouchLayout.onJump(function(down: boolean)
+			table.insert(got, down)
+			return down
+		end)
+		tap()
+		check(#states == 0 and got[1] == true and got[2] == false, "Si alguien se encarga (TouchLayout.onJump devuelve true), no salta además; se avisa al pulsar y al soltar")
+		props.Jump = false
+	end
+
 	-- Conversaciones: sin botones ni joystick
 	mods.Hud.setBusy(true)
 	mods.Joystick.setBusy(true)

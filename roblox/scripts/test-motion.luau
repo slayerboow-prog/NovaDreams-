@@ -329,6 +329,113 @@ check(pitch(high.RightShoulder) > pitch(low.RightShoulder), "Alcanzar algo alto 
 check(ReactMotion.Kinds.PickUp.Pose(0.45, {}).Root.Position.Y < -0.5, "Para coger del suelo se agacha")
 check(amount(ReactMotion.Holds.Flashlight(0, 0)) < 1e-6 and amount(ReactMotion.Holds.Rod(0, 2)) < 1e-6, "Linterna y caña con peso 0 no hacen nada")
 
+---------------------------------------------------------------------
+print("\n▶ Voltereta de esquivar (Controllers/RollMotion)")
+do
+	local Combat = luau.load(fs.readFile("src/shared/Combat.luau"), { debugName = "Combat" })()
+	local rollGame = { GetService = function(_, name)
+		return { Name = name, Shared = { Joints = Joints, Combat = Combat }, GetPlayerFromCharacter = function()
+			return nil
+		end }
+	end }
+	local RollMotion = load("src/client/Controllers/RollMotion.luau", { game = rollGame, require = function(what)
+		if what == Joints then
+			return Joints
+		elseif what == Combat then
+			return Combat
+		end
+		return require(what)
+	end })
+	local function near(a: CFrame, b: CFrame): boolean
+		return (a.Position - b.Position).Magnitude < 1e-3 and a.LookVector:Dot(b.LookVector) > 0.9999 and a.UpVector:Dot(b.UpVector) > 0.9999
+	end
+	check(Combat.RollTime >= 0.6 and Combat.RollTime <= 0.8, ("Dura entre 0,6 y 0,8 s (%.2f)"):format(Combat.RollTime))
+	for _, rig in { "R15", "R6" } do
+		check(amount(RollMotion.pose(0, rig)) < 1e-4 and amount(RollMotion.pose(1, rig)) < 1e-4, rig .. ": empieza y acaba en la postura normal (no deja el cuerpo torcido)")
+		local fine = true
+		for i = 0, 40 do
+			fine = fine and poseFinite(RollMotion.pose(i / 40, rig))
+		end
+		check(fine, rig .. ": valores normales en toda la voltereta")
+		local mid = RollMotion.pose(0.5, rig)
+		-- (gira alrededor del centro de la bola, un poco por encima de la raíz en el R15: ese centro baja)
+		local c = RollMotion.Pivot[rig]
+		local center = mid.Root:PointToWorldSpace(Vector3.new(0, c, 0)).Y - c
+		check(center < -0.5 and mid.RightHip and pitch(mid.RightHip) > 1.2, rig .. ": a mitad, el cuerpo baja y las piernas se recogen (hecho bola)")
+		check(RollMotion.pose(0.3, rig).Root.UpVector.Z < -0.5, rig .. ": rueda hacia DELANTE (la cabeza va hacia delante y abajo)")
+	end
+	check(RollMotion.pose(0.5, "R6").RightKnee == nil and RollMotion.pose(0.5, "R15").RightKnee ~= nil, "El R6 no tiene rodillas ni codos: no se piden")
+	check(math.abs(RollMotion.spin(1) + 2 * math.pi) < 1e-6 and math.abs(RollMotion.spin(0)) < 1e-6, "Una vuelta entera (2π) sobre el eje X")
+	local monotonic = true
+	for i = 1, 40 do
+		monotonic = monotonic and RollMotion.spin(i / 40) <= RollMotion.spin((i - 1) / 40) + 1e-9
+	end
+	check(monotonic, "Gira siempre hacia el mismo lado (sin ir y volver)")
+	check(RollMotion.weight(0) == 0 and RollMotion.weight(1) == 0 and RollMotion.weight(0.5) == 1, "Entra y sale suave (peso 0 → 1 → 0)")
+	check(Combat.rollSpeed(0) == Combat.RollSpeed and Combat.rollSpeed(1) < Combat.RollSpeed * 0.5 and Combat.rollSpeed(1) > 0, "Sale con impulso y frena rodando (sin pararse en seco)")
+	check(Combat.DodgeCooldown > Combat.RollTime and Combat.DodgeInvulnerable > 0 and Combat.DodgeInvulnerable < Combat.RollTime, "Con enfriamiento (más que la voltereta) y una invulnerabilidad corta")
+	-- Las articulaciones del R6 tienen el C0 girado: el giro pedido en los ejes del torso tiene que salir igual
+	local r6Root = CFrame.new(0, 0, 0, -1, 0, 0, 0, 0, 1, 0, 1, 0)
+	local r6Hip = CFrame.new(1, -1, 0) * CFrame.Angles(0, math.pi / 2, 0)
+	local want = CFrame.Angles(-1.1, 0, 0) * CFrame.new(0, -0.4, 0)
+	check(near(r6Root * RollMotion.toJoint(r6Root, want), r6Root.Rotation * CFrame.new(r6Root.Position) * want * r6Root.Rotation)
+		or near(r6Root.Rotation * RollMotion.toJoint(r6Root, want), want * r6Root.Rotation), "R6: el giro pasa bien a los ejes del RootJoint (C0 girado)")
+	local leg = (r6Hip.Rotation * RollMotion.toJoint(r6Hip, CFrame.Angles(1.2, 0, 0))):VectorToWorldSpace(Vector3.new(0, -1, 0))
+	check(leg.Z < -0.5, "R6: la pierna se recoge hacia delante (no hacia un lado)")
+	check(near(RollMotion.toJoint(CFrame.new(0, -1, 0), want), want), "R15 (C0 sin girar): el giro va tal cual")
+
+	-- Con PoseLayers: mientras rueda se escriben las articulaciones; al acabar o al cortarse vuelven solas
+	PoseLayers.reset()
+	RollMotion._attach(PoseLayers)
+	local anim = CFrame.Angles(0.15, 0, 0) -- lo que dejó la animación
+	local function rig(): { [string]: any }
+		local out = {}
+		for name in RollMotion.Rigs.R15 do
+			out[name] = { Transform = anim, C0 = CFrame.new(0, -1, 0), C1 = CFrame.identity }
+		end
+		return out
+	end
+	local state = Enum.HumanoidStateType.Running
+	local model = { Parent = {} }
+	local humanoid = { Parent = model, Health = 100, SeatPart = nil, Sit = false, PlatformStand = false, GetState = function()
+		return state
+	end }
+	local joints = rig()
+	PoseLayers.add("RollMotion", 35, function(_, now)
+		RollMotion.step(now)
+	end)
+	RollMotion._add(model, humanoid, "R15", joints, 0, 0.7)
+	PoseLayers.step(1 / 60, 0.35)
+	check(not PoseLayers.same(joints.Root.Transform, anim) and RollMotion.isRolling(model :: any), "Rodando: la raíz gira (Transform de la articulación)")
+	PoseLayers.step(1 / 60, 0.8)
+	check(not RollMotion.isRolling(model :: any) and PoseLayers.same(joints.Root.Transform, anim) and PoseLayers.same(joints.RightKnee.Transform, anim), "Al acabar, todas las articulaciones vuelven a la animación")
+	for _, cut in { "Health", "Sit", "SeatPart", "Swimming" } do
+		joints = rig()
+		RollMotion._add(model, humanoid, "R15", joints, 0, 0.7)
+		PoseLayers.step(1 / 60, 0.3)
+		local moved = not PoseLayers.same(joints.Root.Transform, anim)
+		if cut == "Health" then
+			humanoid.Health = 0
+		elseif cut == "Sit" then
+			humanoid.Sit = true
+		elseif cut == "SeatPart" then
+			humanoid.SeatPart = {}
+		else
+			state = Enum.HumanoidStateType.Swimming
+		end
+		PoseLayers.step(1 / 60, 0.35)
+		check(moved and not RollMotion.isRolling(model :: any) and PoseLayers.same(joints.Root.Transform, anim), "Si " .. ({ Health = "muere", Sit = "se sienta", SeatPart = "sube a un asiento", Swimming = "cae al agua" })[cut] .. " a mitad, se corta y el cuerpo vuelve a su sitio")
+		humanoid.Health, humanoid.Sit, humanoid.SeatPart, state = 100, false, nil, Enum.HumanoidStateType.Running
+	end
+	PoseLayers.reset()
+	local controller = fs.readFile("src/client/Controllers/CombatController.luau")
+	check(controller:find("RollMotion.roll(direction)", 1, true) ~= nil and controller:find("Remote:FireServer(\"Dodge\")", 1, true) ~= nil, "Esquivar = voltereta (RollMotion.roll) y el servidor da la invulnerabilidad (\"Dodge\")")
+	local roll = fs.readFile("src/client/Controllers/RollMotion.luau")
+	check(roll:find("VelocityConstraintMode.Plane", 1, true) ~= nil and roll:find("root.CFrame = CFrame.new(", 1, true) == nil, "El impulso es física en el plano (respeta paredes, no teletransporta)")
+	local server = fs.readFile("src/server/Services/CombatService.luau")
+	check(server:find("SetAttribute(\"Roll\"", 1, true) ~= nil and roll:find("GetAttributeChangedSignal(\"Roll\")", 1, true) ~= nil, "Los demás la ven: el servidor pone \"Roll\" y cada pantalla la dibuja")
+end
+
 print("")
 if failures > 0 then
 	print(("❌ %d fallo(s)"):format(failures))

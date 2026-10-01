@@ -646,12 +646,11 @@ function TouchLayout.onJump(listener: (down: boolean, humanoid: Humanoid) -> boo
 	table.insert(jumpListeners, listener)
 end
 
-local JUMP_FROM: { [any]: boolean } = {
-	[Enum.HumanoidStateType.Running] = true,
-	[Enum.HumanoidStateType.RunningNoPhysics] = true,
-	[Enum.HumanoidStateType.Landed] = true,
-	[Enum.HumanoidStateType.GettingUp] = true,
-}
+-- Desde dónde se salta (de pie: andando, corriendo, parado, recién caído o levantándose)
+local function jumpFrom(state: Enum.HumanoidStateType): boolean
+	local S = Enum.HumanoidStateType
+	return state == S.Running or state == S.RunningNoPhysics or state == S.Landed or state == S.GettingUp
+end
 
 -- ¿Puede saltar ahora mismo? (de pie en el suelo y sin nada que lo impida)
 function TouchLayout.canJump(h: Humanoid): boolean
@@ -665,7 +664,7 @@ function TouchLayout.canJump(h: Humanoid): boolean
 	if not h:GetStateEnabled(Enum.HumanoidStateType.Jumping) then
 		return false -- (agachado, parkour delante, volando…: lo lleva otro sistema)
 	end
-	return h.FloorMaterial ~= Enum.Material.Air and JUMP_FROM[h:GetState()] == true
+	return h.FloorMaterial ~= Enum.Material.Air and jumpFrom(h:GetState())
 end
 
 -- Pulsar (down = true) o soltar el botón Saltar. Devuelve true si se ha saltado (o alguien se ha encargado).
