@@ -151,11 +151,11 @@ do
 	check(cl("Road", "Asphalt", "Streets", -700, -1900 + 240) == "Barrio" and cl("Road", "Asphalt", "Streets", 600, 600) == "Barrio", "calles de barrio: asfalto gastado")
 	check(cl("Road", "Asphalt", "Streets", sr[1] + 240, sr[2]) == "Casco" and cl("Road", "Asphalt", "Streets", vv[1], vv[2] - 240) == "Casco", "San Roque y Villaverde: adoquín")
 	check(cl("Road", "Asphalt", "MainRoads", sr[1] + 200, sr[2]) ~= "Casco", "las carreteras principales que llegan al casco siguen de asfalto")
-	check(cl("Road", "Asphalt", "MainRoads", -3540, -600) == "Campo" and cl("Road", "Asphalt", "Streets", -3200, 1500) == "Campo", "afueras y campo: asfalto viejo")
+	check(cl("Road", "Asphalt", "MainRoads", -900, -2750) == "Campo" and cl("Road", "Asphalt", "MainRoads", -3550, -1100) == "Campo" and cl("Road", "Asphalt", "Streets", -900, -2900) == "Campo", "afueras y campo (Carretera de los Montes, Paseo de Poniente): asfalto viejo")
 	check(cl("Sidewalk", "Pavement", "Streets", 100, 100) == "AceraCentro" and cl("Sidewalk", "Pavement", "MainRoads", 3000, -1000) == "AceraCentro", "aceras del centro y del Este: baldosa")
-	check(cl("Sidewalk", "Pavement", "Streets", -700, -1700) == "AceraBarrio" and cl("RingSidewalk", "Pavement", "MainRoads", 0, -2750) == "AceraBarrio", "aceras de barrio")
+	check(cl("Sidewalk", "Pavement", "Streets", -700, -1700) == "AceraBarrio" and cl("Sidewalk", "Pavement", "MainRoads", 100, -1890) == "AceraBarrio", "aceras de barrio")
 	check(cl("Sidewalk", "Pavement", "Streets", sr[1], sr[2] + 20) == "AceraCasco" and cl("KerbRamp", "Pavement", "Streets", sr[1], sr[2] + 20) == "AceraCasco", "aceras y rampas del casco: losas")
-	check(cl("Sidewalk", "Pavement", "MainRoads", -3540, -600) == "AceraCampo", "aceras del campo: hormigón")
+	check(cl("Sidewalk", "Pavement", "MainRoads", -3550, -1100) == "AceraCampo" and cl("Sidewalk", "Pavement", "MainRoads", -900, -2750) == "AceraCampo", "aceras del campo: hormigón")
 	check(cl("PlazaFloor", "Pavement", nil, 0, -60) == "Plaza" and cl("Plaza", "Pavement", "Distrito", 500, 500) == "Plaza", "plazas: losas de piedra")
 	local untouched = true
 	for _, n in { "Marking", "Zebra", "Curb", "RoadKerb", "RingCurb", "IslandCurb", "AsphaltPatch", "Manhole", "Drain", "Median", "BusLaneMark", "StopLine", "TreePit" } do
@@ -298,13 +298,13 @@ local function buildTown(): any
 		town = town,
 		roadBarrio = part(streets, "Road", "Asphalt", V3(-700, 0, -1660)),
 		roadCasco = part(streets, "Road", "Asphalt", V3(SR[1] + 240, 0, SR[2])),
-		roadCampo = part(streets, "Road", "Asphalt", V3(-3200, 0, 1500)),
+		roadCampo = part(main, "Road", "Asphalt", V3(-900, 0, -2750)),
 		roadAv = part(main, "Road", "Asphalt", V3(0, 0, -1250)),
 		junction = part(main, "Junction", "Asphalt", V3(1250, 0, 0)),
 		walkCentro = part(streets, "Sidewalk", "Pavement", V3(100, 0.5, 100), Color3.fromRGB(196, 192, 184)),
 		walkBarrio = part(streets, "Sidewalk", "Pavement", V3(-700, 0.5, -1700), Color3.fromRGB(196, 192, 184)),
 		walkCasco = part(streets, "Sidewalk", "Pavement", V3(SR[1], 0.5, SR[2] + 20), Color3.fromRGB(196, 192, 184)),
-		walkCampo = part(main, "Sidewalk", "Pavement", V3(-3540, 0.5, -600), Color3.fromRGB(196, 192, 184)),
+		walkCampo = part(main, "Sidewalk", "Pavement", V3(-3550, 0.5, -1100), Color3.fromRGB(196, 192, 184)),
 		plaza = part(town, "PlazaFloor", "Pavement", V3(0, 0.5, -60), Color3.fromRGB(214, 202, 182)),
 		marking = part(streets, "Marking", "SmoothPlastic", V3(600, 0.42, 600), Color3.fromRGB(236, 236, 230)),
 		curb = part(streets, "Curb", "Granite", V3(600, 0.7, 612), Color3.fromRGB(214, 211, 204)),
@@ -326,7 +326,7 @@ local function buildTown(): any
 	for i = 1, 300 do
 		local m = part(det, "Manhole", "DiamondPlate", V3(-1000 + i * 7, 0.43, NORTE_Z - 300), Color3.fromRGB(44, 44, 46), V3(0.06, 2.6, 2.6))
 		m.Shape = Enum.PartType.Cylinder
-		m.CFrame = CFrame.new(m.Position) * CFrame.Angles(0, 0, math.rad(90))
+		m.CFrame = CFrame.new(m.CFrame.Position) * CFrame.Angles(0, 0, math.rad(90))
 	end
 	for i = 1, 150 do
 		part(det, "Drain", "DiamondPlate", V3(-1000 + i * 9, 0.43, NORTE_Z - 320), Color3.fromRGB(40, 40, 42), V3(1, 0.06, 2.4))
@@ -480,7 +480,7 @@ do
 			if not pole then
 				okPlace = false
 			else
-				local p = pole.Position
+				local p = pole.CFrame.Position
 				if StreetLook.inCrossing(p, crossings, 0.5) or not probe(p) then
 					okPlace = false
 				end
@@ -510,7 +510,7 @@ do
 			if not dec or StreetLook.decalKind(dec.Texture) ~= kind or dec.Face ~= Enum.NormalId.Top or item.CanCollide or item.CanQuery or not item:HasTag("CityDetail") then
 				okDecals = false
 			end
-			if StreetLook.inCrossing(item.Position, crossings, 0) then
+			if StreetLook.inCrossing(item.CFrame.Position, crossings, 0) then
 				zebraPlate = true
 			end
 		end
