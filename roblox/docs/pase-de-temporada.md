@@ -20,7 +20,7 @@ Diseño, reglas y contrato del **pase de temporada** de Real Life Simulator. La 
 | `StoryEvents` (tablón de avisos) | Toda la XP y las misiones salen de los avisos que ya mandan los sistemas: `JobTaskDone`, `LessonCompleted`, `RodeMetro`, `BusRide`, `Flew`, `CaughtFish`, `GymSet`… |
 | `LifeStoryService.observe` | Misiones de la historia de vida completadas (`QuestDone`). |
 | `MarketplaceService` + la forma de `MonetizationService` | Game Pass: `UserOwnsGamePassAsync` y `PromptGamePassPurchaseFinished`. |
-| `VehicleService.grant` + `Rides.build(…, color)` | Vehículos del juego y su acabado exclusivo (el mismo modelo con otro color). |
+| `VehicleService.grant` + `Rides.build(…, color, style)` | Vehículos del juego y su acabado exclusivo (el mismo modelo con otro color); los 13 premium, con su propio modelo (`style.Model`). |
 | `ArcadeService` (gafas, gorra, tickets) | Accesorios y tickets. Se han añadido `grantPrize` y `addTickets`. |
 | `AvatarService` (aspecto de Valmar) | Conjuntos de ropa: son colores que cambian los del aspecto de Valmar. |
 | `PropertyService` (interiores de las viviendas) | Tema de vivienda (opción B de la especificación) y decoración, en tu vivienda de siempre. |
@@ -68,7 +68,7 @@ Los servicios se arrancan en `Main.server.luau` justo después de `CityErrandSer
 | Archivo | Cambio | Por qué | Riesgo |
 |---|---|---|---|
 | `DataService` | Añade `BattlePass`, `Cosmetics` y `SeasonArchive` a `DEFAULT_DATA`. `newLife` las conserva. | Guardar el pase en la misma partida. Lo conseguido no se pierde con una vida nueva. | Solo campos nuevos. `reconcile` ya los crea en las partidas viejas. |
-| `VehicleService` | Gancho `PaintFor` en `mount` (el color del acabado equipado). Cuenta la distancia de cada viaje (`ride.Driven`) y emite `VehicleTrip` al bajarse, solo si el pase está encendido. | Acabados exclusivos y misiones de km. | Sin gancho, el color sigue saliendo al azar. Los saltos de más de 200 studs (teletransportes) no cuentan. |
+| `VehicleService` | Ganchos `PaintFor` (el color del acabado equipado) y `ModelFor` (el vehículo premium equipado) en `mount`. Cuenta la distancia de cada viaje (`ride.Driven`) y emite `VehicleTrip` al bajarse, solo si el pase está encendido. | Acabados exclusivos y misiones de km. | Sin gancho, el color sigue saliendo al azar. Los saltos de más de 200 studs (teletransportes) no cuentan. |
 | `AvatarService` | Gancho `OutfitFor`, mezclado con `Config.DefaultLook` dentro de `dress`. | Conjuntos de ropa. | Sin gancho, el aspecto no cambia. La piel no se toca. |
 | `PropertyService` | Gancho `DecorateOwned` en `decorate` (solo viviendas con dueño), con `pcall`. | Tema de vivienda y decoración. | Solo cambia colores y añade piezas decorativas sin colisión. No toca el registro de dueños. |
 | `ArcadeService` | Nuevas `grantPrize` y `addTickets`. | Entregar accesorios y tickets. | Funciones nuevas: no cambian nada de lo que ya había. |
@@ -82,14 +82,14 @@ Los servicios se arrancan en `Main.server.luau` justo después de `CityErrandSer
 
 ## 4. Recompensas de la temporada 1 «Luces de Valmar»
 
-Hay un hito cada 5 niveles (en negrita). El nivel 50 premium es el conjunto **legendario «Faro de Valmar»**: el descapotable «Faro de Valmar» (blanco perla y oro), el título «Leyenda de Valmar», su placa y un faro en miniatura para tu casa.
+Hay un hito cada 5 niveles (en negrita). El nivel 50 premium es el conjunto **legendario «Faro de Valmar»**: el superdeportivo **Aurora X «Faro de Valmar»** (blanco perla con negro y detalles en oro), el título «Leyenda de Valmar», su placa y un faro en miniatura para tu casa.
 
 | Nivel | Gratis | Premium |
 |---|---|---|
 | 1 | 🏙️ Vecino/a de Valmar (Título) | 🧥 Chaqueta Luces de Valmar (Ropa, Rara) |
 | 2 | 💶 150 € (Dinero) | 🗼 Saludo del faro (Gesto, Rara) |
 | 3 | 🪴 Planta de Villaverde (Decoración) | 📱 Neón del Centro (Tema teléfono, Rara) |
-| 4 | 🎟️ 40 tickets (Tickets) | 💶 200 € (Dinero) |
+| 4 | 🎟️ 40 tickets (Tickets) | 🏎️ Voltex GT-R (Deportivo premium, Rara) |
 | **5** | 🕶️ Gafas de sol (Accesorio, Rara) | 🛴 Patinete Brisa Marina (Vehículo exclusivo, Épica) |
 | 6 | ⭐ +150 XP de personaje (XP personaje) | 💡 Lámpara de pie Altamar (Decoración, Rara) |
 | 7 | 👏 Aplauso de la plaza (Gesto) | 🌅 Placa Atardecer (Placa, Rara) |
@@ -97,11 +97,11 @@ Hay un hito cada 5 niveles (en negrita). El nivel 50 premium es el conjunto **le
 | 9 | 🖼️ Póster del Estadio Altamar (Decoración) | 🏘️ Alma de San Roque (Título, Rara) |
 | **10** | 🏷️ Placa Valmar Clásica (Placa, Rara) | ⚓ Loft del Puerto (Tema vivienda, Épica) |
 | 11 | 🎟️ 60 tickets (Tickets) | 💃 Baile de verbena (Gesto, Rara) |
-| 12 | 🌄 Madrugador/a (Título) | 🏮 Farol del muelle (Decoración, Rara) |
+| 12 | 🌄 Madrugador/a (Título) | 🏍️ Nexus R (Moto premium, Rara) |
 | 13 | 💶 250 € (Dinero) | 🩳 Conjunto Playa Dorada (Ropa, Épica) |
 | 14 | 🛋️ Cojines de Los Pinos (Decoración) | 🌅 Atardecer en Playa Dorada (Tema teléfono, Rara) |
 | **15** | 🚲 Bici Verde Villaverde (Vehículo exclusivo, Rara) | 🛵 Moto Brisa de Playa Dorada (Vehículo exclusivo, Épica) |
-| 16 | ⭐ +200 XP de personaje (XP personaje) | 💶 250 € (Dinero) |
+| 16 | ⭐ +200 XP de personaje (XP personaje) | 🏎️ Zenith (Deportivo premium, Rara) |
 | 17 | 🧘 Estiramiento del parque (Gesto) | 🐠 Acuario de la Isla de las Gaviotas (Decoración, Épica) |
 | 18 | 💶 250 € (Dinero) | 🚇 Ruta del Metro (Título, Rara) |
 | 19 | 📱 Clásico de Valmar (Tema teléfono) | ✨ HUD Faro Dorado (Estilo HUD, Épica) |
@@ -109,36 +109,67 @@ Hay un hito cada 5 niveles (en negrita). El nivel 50 premium es el conjunto **le
 | 21 | 🎟️ 80 tickets (Tickets) | 🕺 Paso del Distrito (Gesto, Rara) |
 | 22 | 🕰️ Reloj de la estación (Decoración) | 💜 Placa Neón (Placa, Épica) |
 | 23 | 🧭 Explorador/a de distritos (Título) | ☕ Mesa de terraza (Decoración, Rara) |
-| 24 | 💶 300 € (Dinero) | ⭐ +300 XP de personaje (XP personaje) |
-| **25** | 🏠 Piso luminoso de Valmar Norte (Tema vivienda, Rara) | 🏙️ Ático Distrito Financiero (Tema vivienda, Épica) |
+| 24 | 🏠 Piso luminoso de Valmar Norte (Tema vivienda, Rara) | 🏎️ Strato RS (Deportivo premium, Épica) |
+| **25** | 🏎️ **Kairo S (Deportivo, Rara: ¡gratis para todos!)** | 🏙️ Ático Distrito Financiero (Tema vivienda, Épica) |
 | 26 | ⭐ +250 XP de personaje (XP personaje) | 🤵 Traje de gala de Altamar (Ropa, Épica) |
 | 27 | 📸 Foto de turista (Gesto) | 🚆 Maqueta del Cercanías (Decoración, Rara) |
-| 28 | 📚 Estantería del Campus (Decoración) | 💶 300 € (Dinero) |
+| 28 | 📚 Estantería del Campus (Decoración) | 🏍️ Blaze 1000 (Moto premium, Épica) |
 | 29 | 🎟️ 100 tickets (Tickets) | 🌊 Mar de Valmar (Tema teléfono, Rara) |
 | **30** | 🏷️ Placa Temporada 1 (Placa, Rara) | 🔄 Cambio de misión diaria (Comodidad, Épica) |
 | 31 | 💶 300 € (Dinero) | 🏟️ Celebración del estadio (Gesto, Épica) |
-| 32 | 🛠️ Currante de Valmar (Título) | 🏮 Farola antigua (Decoración, Rara) |
+| 32 | 🛠️ Currante de Valmar (Título) | 🏎️ Raven T7 (Deportivo premium, Épica) |
 | 33 | 🏖️ Alfombra de playa (Decoración) | 🌙 Noctámbulo/a (Título, Rara) |
 | 34 | ⭐ +300 XP de personaje (XP personaje) | 🌌 HUD Aurora (Estilo HUD, Épica) |
 | **35** | 👕 Sudadera Temporada 1 (Ropa, Rara) | 🚤 Lancha «Gaviota» (Barco, Épica) |
-| 36 | 🎟️ 120 tickets (Tickets) | ⛵ Barco en botella (Decoración, Rara) |
+| 36 | 🎟️ 120 tickets (Tickets) | 🏎️ Inferno (Superdeportivo premium, Épica) |
 | 37 | ⚓ Saludo marinero (Gesto) | 🌊 Placa Marina (Placa, Épica) |
 | 38 | 💶 350 € (Dinero) | 🧥 Cortavientos del puerto (Ropa, Épica) |
-| 39 | 🗺️ Mapa de Valmar (Tema teléfono, Rara) | 💶 350 € (Dinero) |
+| 39 | 🗺️ Mapa de Valmar (Tema teléfono, Rara) | 🏎️ Obsidian (Superdeportivo premium, Épica) |
 | **40** | ❤️ Corazón de Valmar (Título, Rara) | 🗼 Terraza del Faro (Conjunto, Épica) |
 | 41 | 🪑 Banco del parque (Decoración) | 💫 Baile del faro (Gesto, Épica) |
-| 42 | 💶 350 € (Dinero) | 🔭 Telescopio del Monte (Decoración, Épica) |
+| 42 | 💶 350 € (Dinero) | 🏍️ Storm (Moto premium, Legendaria) |
 | 43 | 🎟️ 150 tickets (Tickets) | ⛰️ Leyenda del Monte (Título, Épica) |
-| 44 | ⭐ +350 XP de personaje (XP personaje) | 📱 Oro de Valmar (Tema teléfono, Épica) |
+| 44 | ⭐ +350 XP de personaje (XP personaje) | 🏎️ Víbora GT (Superdeportivo premium, Legendaria) |
 | **45** | 🥈 Placa Plata (Placa, Épica) | 🗼 Conjunto Faro de Valmar (Ropa, Épica) |
 | 46 | 🙇 Reverencia (Gesto) | 💌 Postal: la noche del faro (Recuerdo, Rara) |
 | 47 | 💶 400 € (Dinero) | 🏆 HUD Leyenda (Estilo HUD, Épica) |
 | 48 | 🏆 Trofeo de la temporada (Decoración) | 🥇 Placa Oro (Placa, Épica) |
-| 49 | 🪙 3 fichas de temporada (Fichas) | 💶 400 € (Dinero) |
+| 49 | 🪙 3 fichas de temporada (Fichas) | 🏎️ Shadow F1 (Superdeportivo premium, Legendaria) |
 | **50** | 🎖️ Recuerdo de la Temporada 1 (Conjunto, Épica) | 🗼 Faro de Valmar (Conjunto, Legendaria) |
 
-**Dinero:** 2.550 € en toda la pista gratis y 1.500 € en la premium. Es poco: un coche cuesta 9.000 €. Casi todo lo demás son cosméticos.
-**Vehículos:** los acabados exclusivos (patinete del 5, bici del 15, moto del 15 premium, coche del 50 premium) son el **mismo vehículo del juego** con otro color. Tienen la misma velocidad y el mismo manejo: se diferencian en el diseño y el prestigio (§9). Con `GrantsBase = true` también dan el vehículo normal si no lo tenías. Para conducir siguen haciendo falta la edad y el carnet de siempre.
+**Dinero:** 2.250 € en toda la pista gratis y nada en la premium (donde había dinero ahora hay vehículos). Es poco: un coche cuesta 9.000 €. Casi todo lo demás son cosméticos.
+**Vehículos:** los acabados exclusivos (patinete del 5, bici del 15, moto del 15 premium) son el **mismo vehículo del juego** con otro color. Tienen la misma velocidad y el mismo manejo: se diferencian en el diseño y el prestigio (§9). Con `GrantsBase = true` también dan el vehículo normal si no lo tenías. Para conducir siguen haciendo falta la edad y el carnet de siempre.
+
+### 4.1 Los 13 vehículos premium
+
+La hoja del dueño trae 5 deportivos, 5 superdeportivos y 3 motos. Son las recompensas que se pagan, así que son **los vehículos con más detalle del juego** (hasta 220 piezas cada coche y 140 cada moto, solo primitivas). Los datos están en `src/shared/PremiumVehicles.luau` y los construye `src/server/World/Kit/SportsCars.luau` (lo llama `Rides.build(kind, …, { Model = id })`). En la recompensa van como `VehicleSkin` con `Model = id` (y `Color`, `Stats`, `Premium = true`, `GrantsBase = true`).
+
+- **Sin pagar para ganar (regla del dueño):** cada uno es un **«Coche» o una «Moto» del juego** con otro diseño. Corre, acelera, frena y gira **exactamente igual** que el coche (o la moto) que se compra con dinero del juego, que ya es el más rápido de los que se ganan jugando. Las barras de la interfaz lo dicen: Velocidad y Manejo iguales a las del coche / la moto de siempre; la **Estética** es donde brillan (4 raros, 5 épicos y legendarios). Las diferencias: diseño, firma de luces, tono del motor (`EnginePitch`) y prestigio.
+- **Premium = true** (en la ficha y como atributo del modelo): no se pinchan y gastan menos (`shared/Tyres`, `Gameplay.Fuel.PremiumFactor`). Lo decidió el dueño.
+- **Sin marcas:** ningún logo ni insignia (las matrículas dicen VALMAR y la zaga lleva el nombre del modelo en letras cromadas). Dos nombres de la hoja coincidían con modelos de verdad y se han cambiado: **Strato RS** y **Víbora GT**. El muscle car tiene silueta propia y la parrilla no lleva emblema. El logo de la hoja no es del juego y no aparece en ningún sitio.
+- **Cómo se sacan:** el que tengas equipado en el hueco `VehicleSkin` de su tipo (`Coche` o `Moto`) sale al sacar ese vehículo (`VehicleService.ModelFor` ← `BattlePassRewardService.modelFor`). El primero se equipa solo, y uno con modelo propio sustituye a un acabado que es solo color. Se cambia desde el pase («Equipar»).
+- **Taller:** admiten pintura (también la secundaria: franjas y techo negro), acabado, llantas y su color, neumáticos, lunas tintadas, neón y matrícula, con sus propias anclas y ruedas (`VehicleParts.anchorsFor / wheelsFor / zonesFor / referenceFor`). Alerones y parachoques del taller no: ya traen los suyos.
+- **Vistas previas 3D:** `BattlePassService` monta cada uno en `ReplicatedStorage.BattlePassPreviews` con su modelo.
+
+| Nº | Vehículo | Tipo | Rareza | Nivel | Firma |
+|---|---|---|---|---|---|
+| 01 | Voltex GT-R (azul) | Deportivo 2+2 | Rara | 4 premium | Faros afilados con luz diurna en bumerán, 4 pilotos redondos, alerón GT, 2 rejillas en el capó, aletines, llantas de 10 radios, pinzas rojas, escape cuádruple. 4 plazas. |
+| 02 | Strato RS (rojo) | Deportivo | Épica | 24 premium | Morro bajo y redondo, luces diurnas en colmillo, cola de pato, pilotos partidos, branquias laterales, escape doble central, pinzas amarillas. |
+| 03 | Kairo S (plata) | Deportivo | Rara | **25 gratis** | Dos franjas negras de punta a punta, faros redondos con aro de luz, piloto de lado a lado, labio trasero, llantas bronce en Y. |
+| 04 | Raven T7 (amarillo) | Muscle car | Épica | 32 premium | Silueta propia: frontal recto, faros dentro de la parrilla con barra de luz, toma de aire en el capó, franjas y techo negros, cola de pato, molduras cromadas, escape cuádruple, motor grave. 4 plazas. |
+| 05 | Zenith (turquesa) | Deportivo | Rara | 16 premium | Barra de luz de lado a lado delante y detrás, branquias, labio trasero, llantas de malla color cobre, motor agudo. |
+| 06 | Shadow F1 (negro mate) | Superdeportivo | Legendaria | 49 premium | Líneas de luz cian (taloneras, hombros, splitter, difusor, tomas), neón cian debajo, flechas de luz diurna, toma de aire de monoplaza en el techo con aleta de tiburón, alerón de cuello de cisne, escape central y luz de lluvia. |
+| 07 | Inferno (rojo) | Superdeportivo | Épica | 36 premium | Luces en Y delante y detrás, rejillas negras en el capó, tomas laterales, aletines, alerón GT, escapes altos. |
+| 08 | Aurora X (blanco) | Superdeportivo | Legendaria | 50 premium (conjunto «Faro de Valmar») | Capó con franja negra, techo y bajos negros, firma de luz en X delante y detrás, alerón activo. En el conjunto: blanco perla con pinzas y detalles en oro. |
+| 09 | Obsidian (negro morado) | Superdeportivo | Épica | 39 premium | Líneas de luz violeta, neón violeta debajo, cristales tintados en violeta, 6 lamas en la tapa del motor, flechas de luz diurna. |
+| 10 | Víbora GT (verde) | Superdeportivo | Legendaria | 44 premium | Colmillos de luz, techo de doble burbuja, rejillas enormes en el capó, alerón de cuello de cisne, aletines, pinzas amarillas. |
+| 11 | Nexus R (azul noche) | Moto naked | Rara | 12 premium | Chasis multitubular a la vista, faro desnudo con luz diurna, manillar ancho, horquilla dorada, retrovisores, escape bajo el motor. |
+| 12 | Blaze 1000 (roja) | Moto deportiva | Épica | 28 premium | Carenado completo con rejillas y franja, doble faro, cúpula ahumada, semimanillares, colín afilado con LED en V. |
+| 13 | Storm (blanca y morada) | Moto deportiva | Legendaria | 42 premium | Alerones en el carenado, líneas de luz violeta, llantas moradas, colín con LED. |
+
+Todos los coches llevan: carrocería por perfiles con los pasos de rueda abiertos, splitter, taloneras, tomas de aire, difusor con 4 aletas, escapes, retrovisores con espejo, cristales con montantes, interior (asientos baquet con costura de color, volante, salpicadero con brillo, pantalla y cuadro), matrículas VALMAR, nombre en la zaga, intermitentes, marcha atrás, freno central y ruedas de perfil bajo con llanta de radios, disco y pinza de color (las pinzas giran con el volante, no ruedan). Las motos llevan horquilla invertida, discos y pinzas, basculante, amortiguador con muelle de color, motor, radiador, escape, depósito, asiento y asiento de pasajero, colín, estriberas, cadena y pata de cabra.
+
+**¿Por qué el «Faro de Valmar» sigue en el 50?** La temporada entera cuenta la historia del faro: el 50 tenía que seguir siendo ese conjunto. Antes su coche era una berlina pintada; ahora es el superdeportivo legendario Aurora X con el acabado «Faro de Valmar» (mismo Id `S1_P50_Car`, así que la pintura «Perla Faro» y las llantas «Faro dorada» del taller siguen desbloqueándose con él).
 **Accesorios repetidos:** si ya tienes las gafas o la gorra, recibes tickets en su lugar (`Fallback`).
 
 ## 5. XP: curva, fuentes y topes

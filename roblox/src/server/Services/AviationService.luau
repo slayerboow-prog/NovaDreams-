@@ -159,6 +159,26 @@ local function atHome(plane: Plane): boolean
 	return (plane.Root.Position - home(plane).Position).Magnitude < 25
 end
 
+-- El mostrador del aeroclub (donde te rescatan tras un accidente)
+local function deskPosition(): Vector3?
+	for _, d in CollectionService:GetTagged("Aeroclub") do
+		if d:IsA("BasePart") then
+			return d.Position
+		end
+	end
+	return nil
+end
+
+-- Volando: si se sale del juego, al volver aparece en el aeroclub (PositionService, como los vuelos)
+local function setLanding(player: Player, on: boolean)
+	local desk = deskPosition()
+	if on and desk then
+		player:SetAttribute("FlightLanding", desk + Vector3.new(0, 0, 4))
+	elseif not on and player:GetAttribute("FlightLanding") == (if desk then desk + Vector3.new(0, 0, 4) else nil) then
+		player:SetAttribute("FlightLanding", nil)
+	end
+end
+
 local function setActivity(player: Player, text: string?, target: Vector3?)
 	player:SetAttribute("ActivityText", text)
 	player:SetAttribute("TaskTarget", target)
@@ -208,6 +228,25 @@ local function anchorAt(plane: Plane, cf: CFrame)
 	plane.Root.AssemblyAngularVelocity = Vector3.zero
 end
 
+-- Rayo al suelo sin contar el propio avión (si no, la avioneta de ala alta te dejaba encima del ala)
+local function groundBelow(plane: Plane, at: Vector3, height: number, depth: number): RaycastResult?
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = { plane.Model }
+	return Ground.cast(at + Vector3.new(0, height, 0), Vector3.new(0, -depth, 0), params)
+end
+
+-- De pie junto a la puerta del avión, en el suelo
+local function besidePlane(plane: Plane, player: Player)
+	local character = player.Character
+	if not character or not plane.Board then
+		return
+	end
+	local spot = plane.Board.Position
+	local hit = groundBelow(plane, spot, 8, 30)
+	character:PivotTo(CFrame.new(if hit then hit.Position + Vector3.new(0, 3, 0) else spot + Vector3.new(0, 2, 0)))
+end
+
 local function leavePassenger(player: Player, place: boolean?)
 	local plane = riding[player]
 	if not plane then
@@ -216,6 +255,7 @@ local function leavePassenger(player: Player, place: boolean?)
 	local seat = plane.Passengers[player]
 	plane.Passengers[player] = nil
 	riding[player] = nil
+	setLanding(player, false)
 	local humanoid = humanoidOf(player)
 	if humanoid and seat and humanoid.SeatPart == seat then
 		humanoid.Sit = false
@@ -226,10 +266,8 @@ local function leavePassenger(player: Player, place: boolean?)
 			weld:Destroy()
 		end
 	end
-	if place and plane.Board and player.Character then
-		local spot = plane.Board.Position
-		local hit = Ground.cast(spot + Vector3.new(0, 8, 0), Vector3.new(0, -30, 0))
-		player.Character:PivotTo(CFrame.new(if hit then hit.Position + Vector3.new(0, 3, 0) else spot + Vector3.new(0, 2, 0)))
+	if place then
+		besidePlane(plane, player)
 	end
 end
 
@@ -270,6 +308,7 @@ local function endPilot(plane: Plane, place: boolean?)
 	lastState[player] = nil
 	plane.Model:SetAttribute("Pilot", nil)
 	player:SetAttribute("Piloting", nil)
+	setLanding(player, false)
 	if plane.Lesson then
 		setActivity(player, nil, nil)
 	end
@@ -295,21 +334,21 @@ local function endPilot(plane: Plane, place: boolean?)
 	local look = Vector3.new(cf.LookVector.X, 0, cf.LookVector.Z)
 	if look.Magnitude > 0.1 then
 		local pose = CFrame.new(cf.Position - Vector3.new(0, Airport.Kinds[plane.Spec.Kind].FloorY - 0.3, 0)) * CFrame.Angles(0, math.atan2(-look.X, -look.Z), 0)
-		local hit = Ground.cast(pose.Position + Vector3.new(0, 4, 0), Vector3.new(0, -20, 0))
+		local hit = groundBelow(plane, pose.Position, 4, 20)
 		if hit then
 			pose = pose - pose.Position + hit.Position
 		end
 		anchorAt(plane, Airport.rootCFrame(plane.Spec.Kind, pose * CFrame.new(0, 0, -Airport.Kinds[plane.Spec.Kind].RootZ)))
 	end
 	setSolid(plane, true)
-	if place and player.Character and plane.Board then
-		local spot = plane.Board.Position
-		local hit = Ground.cast(spot + Vector3.new(0, 8, 0), Vector3.new(0, -30, 0))
-		player.Character:PivotTo(CFrame.new(if hit then hit.Position + Vector3.new(0, 3, 0) else spot + Vector3.new(0, 2, 0)))
+	if place then
+		besidePlane(plane, player)
 	end
 	plane.Lesson = nil
-	if atHome(plane) then
-		returnHome(plane) -- (lo ha dejado en el hangar: alquiler terminado)
+	if atHome(plane) or plane.Airborne then
+		-- (lo ha dejado en el hangar: alquiler terminado; o se ha quedado sin piloto en el aire porque a
+		-- él se lo han llevado a otro sitio: el avión vuelve solo a su sitio)
+		returnHome(plane)
 	else
 		plane.LeftAt = os.clock()
 	end
@@ -323,18 +362,13 @@ local function rescue(player: Player)
 	if humanoid and (humanoid.Health or 0) > 0 then
 		humanoid.Health = math.max(10, humanoid.Health - 40) -- se hace daño, pero nunca muere
 	end
-	local desk = nil
-	for _, d in CollectionService:GetTagged("Aeroclub") do
-		if d:IsA("BasePart") then
-			desk = d
-		end
-	end
+	local desk = deskPosition()
 	local character = player.Character
 	if desk and character and not held(player) then
 		pcall(function()
-			player:RequestStreamAroundAsync(desk.Position, 5)
+			player:RequestStreamAroundAsync(desk, 5)
 		end)
-		character:PivotTo(CFrame.new(desk.Position + Vector3.new(0, 1, 4)))
+		character:PivotTo(CFrame.new(desk + Vector3.new(0, 1, 4)))
 	end
 end
 
@@ -344,7 +378,7 @@ function AviationService.crash(plane: Plane, reason: string)
 	local boom = Instance.new("Explosion")
 	boom.Position = at
 	boom.BlastPressure = 0
-	boom.BlastRadius = 1
+	boom.BlastRadius = if plane.Spec.Kind == "Avion" then 24 else 12 -- (solo el tamaño de la llamarada)
 	boom.DestroyJointRadiusPercent = 0
 	boom.ExplosionType = Enum.ExplosionType.NoCraters
 	boom.Parent = workspace
@@ -510,6 +544,7 @@ function AviationService.pilot(player: Player, id: string, lesson: boolean?): bo
 	piloting[player] = plane
 	plane.Model:SetAttribute("Pilot", player.UserId)
 	player:SetAttribute("Piloting", plane.Spec.Id)
+	setLanding(player, true)
 	local startCF = plane.Root.CFrame -- (aparcado: su ordenador empieza de aquí, aunque al soltarlo caiga un poco)
 	setSolid(plane, false)
 	setEngine(plane, true)
@@ -584,6 +619,7 @@ function AviationService.board(player: Player, id: string): boolean
 	end
 	plane.Passengers[player] = seat
 	riding[player] = plane
+	setLanding(player, true)
 	Notify:FireClient(player, "Info", "💺 A bordo. Para bajarte, salta con el avión parado en tierra.")
 	return true
 end
@@ -781,7 +817,8 @@ function AviationService._validate(plane: Plane, dt: number)
 	end
 	local hit = solidHit(plane, last, pos)
 	if hit and moved / dt > spec.BumpSpeed * 1.5 then
-		AviationService.crash(plane, "Te has estrellado contra " .. (if hit.Instance.Parent and hit.Instance.Parent:IsA("Model") then hit.Instance.Parent.Name else hit.Instance.Name))
+		local model = hit.Instance:FindFirstAncestorOfClass("Model")
+		AviationService.crash(plane, "Te has estrellado contra " .. (if model and model ~= workspace then model.Name else hit.Instance.Name))
 		return
 	end
 	local B = Flight.Bounds

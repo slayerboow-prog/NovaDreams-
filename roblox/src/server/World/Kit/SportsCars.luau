@@ -705,10 +705,10 @@ local function motoWheel(z: number, front: boolean)
 	end
 	cyl("Hub", width + 0.12, 0.34, hub, DARK, METAL)
 	local alpha = if front then math.rad(40) else math.rad(-40)
-	local rc = rimD / 2 - 0.3
+	local rc = rimD / 2 - 0.36
 	local sides = if front then { -1, 1 } else { 1 }
 	for _, sx in sides do
-		local disc = cyl("BrakeDisc", 0.03, rimD - 0.3, hub * CFrame.new(sx * (width / 2 + 0.07), 0, 0), DISC, METAL)
+		local disc = cyl("BrakeDisc", 0.03, rimD - 0.5, hub * CFrame.new(sx * (width / 2 + 0.07), 0, 0), DISC, METAL)
 		local cal = box("Caliper", Vector3.new(0.12, 0.2, 0.42), hub * CFrame.new(sx * (width / 2 + 0.12), rc * math.cos(alpha), rc * math.sin(alpha)) * CFrame.Angles(alpha, 0, 0), caliper, METAL)
 		if not front then
 			asym(disc)
@@ -739,7 +739,7 @@ local function buildMoto()
 		tube("Fork", V(sx * 0.31, 2.2, wf + 0.42), head + V(sx * 0.31, 0, 0), 0.17, CHROME)
 	end)
 	box("Fork", V(0.9, 0.1, 0.38), CFrame.new(head + V(0, 0.02, 0)), ALLOY, METAL)
-	painted(box("FenderFront", V(0.58, 0.1, 1.3), at(0, 2.12, wf + 0.02) * CFrame.Angles(math.rad(8), 0, 0), paint))
+	painted(box("FenderFront", V(0.58, 0.1, 1.0), at(0, 2.1, wf + 0.05) * CFrame.Angles(math.rad(8), 0, 0), paint))
 
 	-- 2. Chasis, basculante, amortiguador
 	local pivot = 0.45
@@ -823,13 +823,15 @@ local function buildMoto()
 		mirror(function(sx)
 			box(if sx < 0 then "Headlight" else "HeadlightRight", V(0.3, 0.15, 0.06), at(sx * 0.27, 2.5, -2.22), LENS)
 			neon("DRL", V(0.36, 0.05, 0.05), at(sx * 0.27, 2.64, -2.22) * CFrame.Angles(0, 0, sx * math.rad(-14)))
-			-- Laterales del carenado con rejillas y franja
-			painted(box("Shield", V(0.1, 1.0, 1.6), at(sx * 0.56, 2.05, -1.0) * CFrame.Angles(math.rad(-8), 0, 0), paint))
-			painted(box("Shield", V(0.1, 0.6, 1.3), at(sx * 0.5, 1.25, -0.45), paint))
+			-- Laterales del carenado: arriba con el borde de ataque inclinado, en medio con rejillas y
+			-- franja, y abajo hasta la quilla
+			painted(wedge("Shield", V(0.1, 0.7, 1.25), at(sx * 0.56, 2.6, -1.3), paint))
+			painted(box("Shield", V(0.1, 0.8, 1.45), at(sx * 0.54, 1.85, -1.0), paint))
+			painted(box("Shield", V(0.1, 0.5, 1.2), at(sx * 0.5, 1.2, -0.45), paint))
 			for i = 0, 1 do
-				box("FairingVent", V(0.04, 0.1, 0.6), at(sx * 0.62, 1.85 + i * 0.22, -0.9) * CFrame.Angles(math.rad(-18), 0, 0), DARK)
+				box("FairingVent", V(0.04, 0.1, 0.6), at(sx * 0.6, 1.7 + i * 0.22, -0.85) * CFrame.Angles(math.rad(-18), 0, 0), DARK)
 			end
-			box("Livery", V(0.03, 0.09, 1.5), at(sx * 0.615, 2.3, -1.0) * CFrame.Angles(math.rad(-8), 0, 0), second)
+			box("Livery", V(0.03, 0.09, 1.4), at(sx * 0.595, 2.18, -1.0), second)
 			-- Retrovisores en el carenado con el intermitente dentro
 			tube("MirrorStalk", V(sx * 0.45, 3.0, -1.75), V(sx * 0.68, 3.22, -1.7), 0.06, DARK)
 			box("Mirror", V(0.38, 0.2, 0.3), at(sx * 0.78, 3.25, -1.7), paint)
@@ -842,7 +844,7 @@ local function buildMoto()
 				box("WingletPlate", V(0.04, 0.22, 0.45), at(sx * 0.97, 2.5, -1.55), second)
 			end
 			if spec.GlowLines then
-				neon("GlowLine", V(0.04, 0.05, 1.3), at(sx * 0.62, 2.55, -1.05) * CFrame.Angles(math.rad(-8), 0, 0))
+				neon("GlowLine", V(0.04, 0.05, 1.3), at(sx * 0.6, 1.5, -1.0))
 				neon("GlowLine", V(0.04, 0.05, 1.2), at(sx * 0.445, 2.62, 1.55))
 			end
 		end)

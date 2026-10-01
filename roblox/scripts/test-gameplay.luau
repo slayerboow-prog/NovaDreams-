@@ -3417,6 +3417,7 @@ do
 	AV:Fire(other, "State", { Air = true, Gear = false, Flaps = 1, Throttle = 0.8, Speed = 200 })
 	check(gears["EC-VLA"].Transparency == 1 and pmodels["EC-VLA"]:GetAttribute("GearDown") == false and JET.Flaps == 1, "subir el tren lo esconde para todos")
 	-- Vigilancia del servidor: un salto imposible vuelve atrás; atravesar un edificio es accidente
+	JET.LastPos, JET.LastGood = JET.Root.Position, JET.Root.CFrame -- (ya volando por ahí)
 	Aviation._validate(JET, 0.25)
 	local good = JET.Root.CFrame
 	JET.Root.CFrame = CFrame.new(4000, 200, -3000)

@@ -154,8 +154,8 @@ export type State = {
 	Warn: string?, -- "Perdida" | "Tren" | "Limite" | "Techo" (el panel lo enseña)
 	Event: string?, -- lo que ha pasado en este paso: "Despegue" | "Suave" | "Duro" | "Choque" | "Accidente"
 	--   | "TrenArriba" | "TrenAbajo" (el tren automático)
-	Sunk: number?, -- (con Event de aterrizaje) a qué velocidad caía al tocar el suelo
-	Bumped: string?, -- (con Event "Choque") con qué ha tocado rodando
+	Sunk: number?, -- a qué velocidad caía en el último aterrizaje
+	Bumped: string?, -- con qué ha tocado rodando la última vez (Event "Choque")
 	Climb: number, -- velocidad vertical (studs/s, + subiendo)
 	Airborne: number, -- segundos en el aire (0 en tierra)
 }
@@ -294,7 +294,7 @@ end
 
 -- Un paso de dt segundos. Cambia el estado y lo devuelve. (Se trocea en pasos de 1/60 s como mucho.)
 function Flight.step(s: State, input: Input, dt: number, env: Env): State
-	s.Event, s.Bumped, s.Sunk = nil, nil, nil
+	s.Event = nil -- (Sunk y Bumped se quedan con lo último que pasó: los lee quien llama)
 	if s.Crashed then
 		return s
 	end
