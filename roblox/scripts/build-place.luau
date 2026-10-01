@@ -47,10 +47,13 @@ local function node(path: string, parent: any?): any
 	})
 end
 
+local sharedTree = node("src/shared", nil)
+
 function requireModule(target: any): any
-	-- Módulos compartidos (ReplicatedStorage.Shared.X) -> src/shared/X.luau
+	-- Módulos compartidos (ReplicatedStorage.Shared.X) -> src/shared/X.luau (con su carpeta, para que
+	-- dentro funcione script.Parent.Y, p. ej. Pets -> NameFilter)
 	if type(target) ~= "table" then
-		target = { __path = "src/shared/" .. target.Name .. ".luau" }
+		target = rawget(sharedTree, target.Name) or { __path = "src/shared/" .. target.Name .. ".luau" }
 	end
 	local path = rawget(target, "__path")
 	if cache[path] ~= nil then
