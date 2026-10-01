@@ -956,8 +956,21 @@ phoneGui.Scrim.Activated:Fire()
 check(not CommandMenu.isPhoneOpen(), "Tocar fuera del teléfono lo guarda")
 CommandMenu.toggle()
 check(CommandMenu.isPhoneOpen(), "Tab (o Select del mando) lo abre…")
+do
+	-- Teclado / mando dentro: flechas para elegir app y Enter para abrirla
+	local PhoneUI = loadModule("src/client/UI/Phone")
+	PhoneUI.navigate(1, 0)
+	local first = appTile("Objetos")
+	check(first and first.Tile.Ring.Visible, "Las flechas (o la cruceta) eligen app: se ilumina la primera (Mochila)")
+	PhoneUI.navigate(1, 0)
+	check(first and not first.Tile.Ring.Visible, "…y se mueven a la siguiente")
+	PhoneUI.navigate(-1, 0)
+	PhoneUI.accept()
+	check(ran.Objetos == 1 and not CommandMenu.isPhoneOpen(), "Enter (o A) abre la elegida (la mochila) y guarda el teléfono")
+end
 CommandMenu.toggle()
-check(not CommandMenu.isPhoneOpen(), "…y lo guarda")
+CommandMenu.toggle()
+check(not CommandMenu.isPhoneOpen(), "…y Tab lo guarda")
 -- Un mensaje con el teléfono guardado: baja una notificación y la app enciende su punto
 local banner = phoneGui:FindFirstChild("PhoneBanner")
 PhoneInbox.push({ Icon = "📱", From = "Abu Rosa", Text = "Abu Rosa quiere hablar contigo — bájate para hablar", Open = "Misiones" })
@@ -986,6 +999,20 @@ check(strip and strip.AnchorPoint == roblox.Vector2.new(1, 1) and strip.Position
 check(strip and strip.Chip1.Key.Visible and strip.Chip1.Key.Text == "Enter", "La elegida va resaltada y dice su tecla («Enter»)")
 strip.Chip1.Activated:Fire()
 check(ran.Atacar == 1, "Hacer clic (o Enter) la hace")
+CommandRegistry.register({ Id = "Saludar", Label = "Saludar", Icon = "saludar", Priority = 5, Run = track("Saludar") })
+CommandMenu.refresh()
+do
+	local chipA, chipB = strip:FindFirstChild("Chip1"), strip:FindFirstChild("Chip2")
+	check(chipA and chipB and chipA.Label.Text == "Saludar" and chipB.Label.Text == "Atacar", "Varias acciones: una píldora cada una, la más importante abajo del todo")
+	if chipB then
+		chipB.MouseEnter:Fire()
+	end
+	check(chipB and chipB.Parent == strip and chipB.Key.Visible and not chipA.Key.Visible, "Al pasar el ratón se elige otra (sin rehacer la tira bajo el ratón)")
+	CommandRegistry.register({ Id = "Saludar", Label = "Saludar", Icon = "saludar", Priority = 5, When = function()
+		return false
+	end })
+	CommandMenu.refresh()
+end
 
 -- Ordenador: sin botones táctiles ni joystick; lista de teclas
 local touchGui = playerGui:FindFirstChild("TouchLayout")
@@ -1289,6 +1316,22 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 			vehicle()
 			check(not mods.CommandMenu.isPhoneOpen(), "Y si arrancas con él abierto, se guarda solo")
 			rawget(humanoid, "__props").SeatPart = nil
+			-- «Bajarse» como única acción de ahora: el botón Bajarse de siempre se queda en su sitio
+			local Registry = mods.CommandRegistry
+			Registry.register({ Id = "Atacar", Label = "Atacar", Icon = "espada", Priority = 7, When = function()
+				return false
+			end })
+			Registry.register({ Id = "BajarseCmd", Label = "Bajarse", Icon = "bajarse", Priority = 6, Run = function() end })
+			mods.CommandMenu.refresh()
+			TouchLayout.refresh()
+			local b = TouchLayout.buttons()
+			check(b.Bajarse and b.Bajarse.Visible and b.Bajarse:GetAttribute("Slot") == "Bajarse" and not (b.Contexto and b.Contexto.Visible), "Con «Bajarse» en las acciones, el botón Bajarse sigue en su sitio al volante (sin repetirlo)")
+			Registry.register({ Id = "BajarseCmd", Label = "Bajarse", Icon = "bajarse", Priority = 6, When = function()
+				return false
+			end })
+			Registry.register({ Id = "Atacar", Label = "Atacar", Icon = "espada", Priority = 7, Run = function() end })
+			mods.CommandMenu.refresh()
+			TouchLayout.refresh()
 		end
 		-- Mantener pulsado: varios dedos a la vez (acelerar y girar)
 		local gasTouch = { UserInputType = roblox.Enum.UserInputType.Touch, UserInputState = roblox.Enum.UserInputState.Begin }

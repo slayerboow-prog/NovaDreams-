@@ -142,7 +142,7 @@ lune run scripts/test-motion.luau      # andar fluido: arrancar y frenar, inclin
 lune run scripts/test-joints.luau      # articulaciones Motor6D y AnimationConstraint (las nuevas): cada postura hecha con código se ve con las dos
 lune run scripts/test-parkour.luau     # agacharse, tumbarse y parkour: qué salto toca, el camino del salto, cuestas e IK
 lune run scripts/test-gps.luau        # GPS: grafo de calles, ruta más corta (A*), recalcular e indicaciones de giro
-lune run scripts/test-hud.luau        # el HUD en ordenador, móvil y tableta: que nada se pise, comandos, joystick y botones
+lune run scripts/test-hud.luau        # el HUD en ordenador, móvil y tableta: que nada se pise, el ValPhone, la tira de acciones, joystick y botones
                                        # (y los primeros pasos, el botón ❓ «¿Qué hago ahora?», las pistas y los consejos)
 lune run scripts/test-onboarding.luau # primeros pasos: a quién le toca, qué se guarda, ideas de «¿Qué hago ahora?» y pistas
 lune run scripts/test-persistence.luau # la partida se guarda y vuelve igual en otro servidor: misión a medias, sitio, día de tu vida, valores que el DataStore rechaza, 4 MB, reintentos y aviso al tester

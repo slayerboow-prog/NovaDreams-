@@ -494,6 +494,9 @@ local function refresh()
 	noticeBadges()
 	-- La tira (sin mover lo que has elegido: MenuLogic.pickIndex)
 	local main = levels[1]
+	if TOUCH then
+		ContextDetector.setFocus(nil) -- (móvil: el foco es lo más cercano; la burbuja lleva lo demás)
+	end
 	local shown = touchList(actions)
 	local key = keyOf(shown)
 	if key ~= signature then
@@ -799,7 +802,9 @@ function CommandMenu.init()
 			Icon = "interactuar",
 			Label = "Acciones",
 			Slot = "Contexto",
-			Priority = 1.6,
+			-- (la última en caso de empate de texto: si su única acción ya tiene botón propio con el
+			-- mismo nombre —Bajarse al volante, Atacar…—, se queda ese botón en su sitio)
+			Priority = 60,
 			Visible = function()
 				local main = levels[1]
 				return not busy and main ~= nil and #main.Items > 0

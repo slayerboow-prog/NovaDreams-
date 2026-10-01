@@ -32,8 +32,8 @@ Diseño, reglas y contrato del **pase de temporada** de Real Life Simulator. La 
 **Lo que no existía** (y cómo se ha resuelto sin inventar un sistema incompatible):
 
 - **Barcos propios:** ya existen (`Services/BoatService`, `shared/Boats`). La recompensa «Lancha Gaviota» (`Boat = "Gaviota"`) pasa por `BoatAdapter` (en `BattlePassRewardService`) a `BoatService.grant(player, kind, def)`: se guarda en `data.Boats` (y en la colección, así vuelve sola después de «Vida nueva») y sale en el menú de la oficina «⚓ Barcos» del **puerto deportivo** (costa oeste). Allí se saca a un amarre del pantalán y se pilota con los mismos mandos que el coche; solo navega por el mar. La interfaz recibe `Usable = true` y `UsableText = "⚓ Se saca en el puerto deportivo"`. En el puerto deportivo también se compra la lancha normal (7.500 €), con las mismas prestaciones.
-- **Títulos, placas y temas del teléfono y del HUD:** no había. Se guardan en la colección y se publican como atributos del jugador (`BP_Title`, `BP_Nameplate`, `BP_PhoneTheme`, `BP_HudSkin`…) para que la interfaz los pinte. `BP_Title` y `BP_TitleColor` también los ven los demás jugadores. Solo el servidor los pone y solo con lo que tienes **y** llevas equipado. Se pintan así: título y placa en el cartel de nombre de siempre (`Controllers/NameTags`, sobre los demás jugadores); tema del HUD = color del filo de los paneles (`Theme.setAccent("Hud")`); tema del teléfono = color de la pestaña de COMANDOS (`Theme.setAccent("Phone")`). Lo lee `UI/BattlePassCosmetics`; con el pase apagado no se pinta nada.
-- **Gestos nuevos:** `Actions` tiene una lista fija. Los gestos del pase van en `BP_Emotes`, que es una lista de Ids con su `AnimationId`. `Controllers/Actions` los suma a sus gestos y salen en COMANDOS > «Gestos del pase». Ahora usan animaciones públicas de Roblox, algunas con otra velocidad; el dueño puede cambiarlas por animaciones propias en `Season1.luau`.
+- **Títulos, placas y temas del teléfono y del HUD:** no había. Se guardan en la colección y se publican como atributos del jugador (`BP_Title`, `BP_Nameplate`, `BP_PhoneTheme`, `BP_HudSkin`…) para que la interfaz los pinte. `BP_Title` y `BP_TitleColor` también los ven los demás jugadores. Solo el servidor los pone y solo con lo que tienes **y** llevas equipado. Se pintan así: título y placa en el cartel de nombre de siempre (`Controllers/NameTags`, sobre los demás jugadores); tema del HUD = color del filo de los paneles (`Theme.setAccent("Hud")`); tema del teléfono = fondo de pantalla del ValPhone (`Theme.setAccent("Phone")`, `UI/Phone`). Lo lee `UI/BattlePassCosmetics`; con el pase apagado no se pinta nada.
+- **Gestos nuevos:** `Actions` tiene una lista fija. Los gestos del pase van en `BP_Emotes`, que es una lista de Ids con su `AnimationId`. `Controllers/Actions` los suma a sus gestos y salen en la app «Gestos pase» del ValPhone. Ahora usan animaciones públicas de Roblox, algunas con otra velocidad; el dueño puede cambiarlas por animaciones propias en `Season1.luau`.
 - **Analítica:** no había. `server/BattlePass/Telemetry.luau` guarda contadores en memoria y, si se activa `Telemetry.UseAnalyticsService`, los manda a AnalyticsService.
 
 ## 3. Módulos nuevos
@@ -52,7 +52,7 @@ Diseño, reglas y contrato del **pase de temporada** de Real Life Simulator. La 
 | `Services/BattlePassService.luau` | Núcleo: niveles, reclamar, premium, remoto con límite, estado para la interfaz, modo pruebas y vistas previas 3D. |
 | `Services/BattlePassXPService.luau` | XP por jugar, con topes y anti-spam. Reenvía cada evento a las misiones. |
 | `src/client/Controllers/BattlePassClient.luau` | Envoltorio del remoto para la interfaz. No pinta nada. Al conectar pide el primer estado (`Get`). |
-| `src/client/UI/BattlePassUI.luau` | La ventana del pase y sus entradas (fila de COMANDOS, tecla N, aviso «RECOMPENSA DESBLOQUEADA»). Con el pase apagado no hace nada. |
+| `src/client/UI/BattlePassUI.luau` | La ventana del pase y sus entradas (app «Pase» del ValPhone, tecla N, aviso «RECOMPENSA DESBLOQUEADA»). Con el pase apagado no hace nada. |
 | `src/client/UI/BattlePassLayout.luau` | Medidas de la ventana en el ordenador y en el móvil (puro: lo prueba `test-battlepassui`). |
 | `src/client/UI/BattlePassView.luau` | Textos y cuentas de la interfaz (estados, días, siguiente recompensa, misión destacada…). |
 | `src/client/UI/BattlePassRewardCard.luau` | La tarjeta de cada recompensa de la fila 01…50. |
@@ -69,7 +69,7 @@ Los servicios se arrancan en `Main.server.luau` justo después de `CityErrandSer
 |---|---|---|---|
 | `DataService` | Añade `BattlePass`, `Cosmetics` y `SeasonArchive` a `DEFAULT_DATA`. `newLife` las conserva. | Guardar el pase en la misma partida. Lo conseguido no se pierde con una vida nueva. | Solo campos nuevos. `reconcile` ya los crea en las partidas viejas. |
 | `VehicleService` | Ganchos `PaintFor` (el color del acabado equipado) y `ModelFor` (el vehículo premium equipado) en `mount`. Cuenta la distancia de cada viaje (`ride.Driven`) y emite `VehicleTrip` al bajarse, solo si el pase está encendido. | Acabados exclusivos y misiones de km. | Sin gancho, el color sigue saliendo al azar. Los saltos de más de 200 studs (teletransportes) no cuentan. |
-| `AvatarService` | Gancho `OutfitFor`, mezclado con `Config.DefaultLook` dentro de `dress`. | Conjuntos de ropa. | Sin gancho, el aspecto no cambia. La piel no se toca. |
+| `AvatarService` | Gancho `OutfitFor` (devuelve la definición del conjunto). Los 30 de la hoja (`Outfit` = clave de `shared/Outfits`) los viste `shared/OutfitBuilder`; los de solo `Colors` se mezclan con `Config.DefaultLook`. | Conjuntos de ropa (ver «Conjuntos de ropa»). | Sin gancho, el aspecto no cambia. La piel no se toca. Bebé: pelele. De servicio con uniforme o en prisión: se guarda. |
 | `PropertyService` | Gancho `DecorateOwned` en `decorate` (solo viviendas con dueño), con `pcall`. | Tema de vivienda y decoración. | Solo cambia colores y añade piezas decorativas sin colisión. No toca el registro de dueños. |
 | `ArcadeService` | Nuevas `grantPrize` y `addTickets`. | Entregar accesorios y tickets. | Funciones nuevas: no cambian nada de lo que ya había. |
 | `LifeStoryService` | `discoverZone` emite `ZoneEntered` al cambiar de barrio, solo con el pase encendido. | Misiones de barrios y explorar. | El descubrimiento de siempre no cambia. |
@@ -301,7 +301,7 @@ Remoto: `ReplicatedStorage.Remotes.BattlePass` (RemoteEvent). El servidor lo cre
   Rewards = { -- 100, ordenadas por nivel (gratis antes que premium)
     { Id, Level, Track ("Free"|"Premium"), Type, TypeName, Name, Description, Icon, Rarity, RarityName, RarityColor,
       Amount?, Kind?, State ("LOCKED"|"AVAILABLE"|"CLAIMED"|"PREMIUM_LOCKED"), Milestone (cada 5), Owned,
-      Preview? = { Kind ("Vehicle"|"Decor"|"Outfit"|"Emote"|"HomeTheme"|"Boat"|<Type>), Model? ("BattlePassPreviews/<Id>"), Vehicle?, Color?, Colors?, Material?, AnimationId?, Speed?, Loop? },
+      Preview? = { Kind ("Vehicle"|"Decor"|"Outfit"|"Emote"|"HomeTheme"|"Boat"|<Type>), Model? ("BattlePassPreviews/<Id>"), Outfit? (clave de shared/Outfits), Vehicle?, Color?, Colors?, Material?, AnimationId?, Speed?, Loop? },
       Items? (Bundle: { {Id, Type, TypeName, Name, Icon, Preview} }), Usable?/UsableText? (Boat) } },
   Missions = {
     Daily = { ResetsAt, List = { Mission } }, Weekly = { ResetsAt, List }, Season = { List }, Event = { List (+ EventName, EndsAt) },
@@ -329,3 +329,20 @@ Remoto: `ReplicatedStorage.Remotes.BattlePass` (RemoteEvent). El servidor lo cre
 **Interfaz hecha (`UI/BattlePassUI`):** ventana compacta del estilo del HUD. Arriba «🏆 TEMPORADA 1 · LUCES DE VALMAR», los días que quedan, «NIVEL x / 50» con su barra de XP y tres secciones: **RECOMPENSAS** (la elegida en grande con vista previa 3D, rareza, tipo, nivel, pista, estado y RECLAMAR / EQUIPAR / PROBAR; carriles GRATIS y ⭐ PREMIUM; «RECLAMAR TODO»; la franja con la oferta sin presión o la siguiente recompensa; la fila 01…50 y, en el ordenador, la misión destacada), **MISIONES** (historia con su decisión, diarias con «CAMBIAR» si tienes la comodidad, evento, semanales y de temporada, con «📍 SEGUIR») y **FICHAS** (la tienda). Se entra por la fila «🏆 Pase de temporada» de COMANDOS (sale con la temporada en marcha o en el periodo para reclamar, con punto rojo si hay algo que reclamar; las «apps del teléfono» son esas filas, así que no hay otra ventana), con la tecla **N** en el ordenador (B es la piedra) y desde el panel de pruebas. En el móvil es una hoja de todo el alto, con botones y textos más grandes y sin la misión destacada. Solo se repinta al llegar un estado del servidor.
 
 **UX (§23–29):** panel compacto (no a pantalla completa), con título, «TEMPORADA 01», barra de XP, «NIVEL x/50», pestañas GRATIS / PREMIUM, la recompensa actual con [RECLAMAR], una fila de niveles y una misión destacada. La compra se presenta sin presión: «PASE PREMIUM · Temporada 1 · 50 recompensas · [Vista previa] [Comprar]». Si `ComingSoon`, «Próximamente». En móvil, botones grandes y desplazamiento táctil; en PC, hover, tooltips y una tecla rápida.
+
+
+## Conjuntos de ropa (los 30 de la hoja)
+
+- Datos: `src/shared/Outfits.luau` (clave `O01`…`O30`, rareza de la hoja, prendas, zapatos, peinado y
+  accesorios). En el pase: Id `S1_Oxx`; 24 sueltos en la pista premium, Neon dentro del conjunto del 20,
+  Ángel dentro del legendario del 50 y 4 raros en la gratis (niveles 9, 22, 35 y 41).
+- Vestir: `src/shared/OutfitBuilder.luau` (servidor y vista previa). Accesorios 3D con piezas soldadas
+  (R15 y R6). Con plantillas subidas (`src/shared/OutfitIds.luau`) pone `Shirt`/`Pants`; si no, colores
+  y piezas finas (nada se rompe).
+- Plantillas: `python3 scripts/outfits/gen.py` → `assets/outfits/oNN_shirt.png` / `oNN_pants.png`
+  (585×559). Subirlas: `bash scripts/upload-outfits.sh` (con `ROBLOX_API_KEY`; escribe `OutfitIds.luau`).
+- Edades: bebé con pelele; niño en «talla de niño» (sin ombligo al aire, sin tacones ni rejilla).
+- Oficios: «Estilo Bombero / Sanitaria / Policía» son solo ropa (sin rótulos oficiales, colores
+  distintos del uniforme). No tocan `Job`. De servicio en un oficio con uniforme
+  (`Outfits.SuspendJobs`) o en prisión, el conjunto se guarda y vuelve al acabar.
+- Prueba: `lune run scripts/test-outfits.luau`.
