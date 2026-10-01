@@ -157,7 +157,7 @@ class Canvas:
         rgb = self.img.convert("RGB")
         # (ruido con semilla: la misma plantilla cada vez que se genera, sin cambios falsos en git)
         raw = Image.frombytes("L", (W, H), self.rng.randbytes(W * H)).filter(ImageFilter.BoxBlur(1))
-        noise = raw.point(lambda v: max(0, min(255, int(128 + (v - 128) * 2.2)))).convert("RGB")
+        noise = raw.point(lambda v: max(0, min(255, int(128 + (v - 128) * 1.4)))).convert("RGB")
         textured = ImageChops.overlay(rgb, noise)
         rgb = Image.blend(rgb, textured, 0.35)
         shadow = self.shadow.filter(ImageFilter.GaussianBlur(3))
