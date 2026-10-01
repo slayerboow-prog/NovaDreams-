@@ -184,7 +184,7 @@ function CityDetail.roadWear(parent: Instance, axis: string, u0: number, u1: num
 		return CFrame.new(point(u, v, roadTop)) * CFrame.Angles(0, yaw0 + yaw, 0)
 	end
 	local u = u0 + 44
-	while u <= u1 - 12 do
+	while u <= u1 - 26 do -- (lo más adelantado, la mancha de aceite, llega a u + 22)
 		local p = point(u, 0, 0)
 		local r1, r2, r3 = hash(p.X, p.Z, 51), hash(p.X, p.Z, 52), hash(p.X, p.Z, 53)
 		if free(u) then
