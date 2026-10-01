@@ -441,6 +441,17 @@ do
 	check(S.current() == "Stand" and humanoid.Jump == false and not jumpEnabled, "Saltar agachado te levanta (sin saltar a la vez)")
 	flush()
 	check(jumpEnabled, "Y en cuanto estás de pie ya se puede saltar")
+	-- El botón Saltar del móvil (TouchLayout.onJump -> Stances.jumpUp): igual, sin pasar por Humanoid.Jump
+	check(S.jumpUp() == false, "De pie, el botón Saltar no es cosa de las posturas (salta normal)")
+	S.request("Crouch")
+	check(S.jumpUp() == true and S.current() == "Stand", "Agachado, el botón Saltar del móvil te levanta")
+	flush()
+	do
+		local stancesSrc = fs.readFile("src/client/Controllers/Stances.luau")
+		local parkourSrc = fs.readFile("src/client/Controllers/Parkour.luau")
+		check(stancesSrc:find("TouchLayout.onJump", 1, true) ~= nil and parkourSrc:find("TouchLayout.onJump", 1, true) ~= nil,
+			"Posturas y parkour se enteran del botón Saltar del móvil (no dispara JumpRequest)")
+	end
 	-- Bebé
 	attrs.LifeStage = "Bebe"
 	check(not S.request("Crouch", true) and S.current() == "Stand", "Un bebé no se agacha")

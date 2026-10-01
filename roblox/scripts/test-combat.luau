@@ -40,6 +40,13 @@ check(Combat.ready(1, 10, 10.4), "Tras la pausa, sí")
 check(not Combat.ready(3, 10, 10.4), "Tras el golpe fuerte la pausa es más larga")
 check(Combat.ready(3, 10, 10.7), "…y luego se puede volver a pegar")
 
+print("▶ Esquivar (voltereta)")
+check(Combat.dodging(10, 10.2) and not Combat.dodging(10, 10 + Combat.DodgeInvulnerable + 0.05), "Al empezar la voltereta los golpes no entran; un momento después, sí")
+check(Combat.DodgeCooldown > Combat.RollTime, "No se encadenan volteretas (la pausa es más larga que la voltereta)")
+check(Combat.rollSpeed(0) > Combat.rollSpeed(0.5) and Combat.rollSpeed(0.5) > Combat.rollSpeed(1) and Combat.rollSpeed(1) > 0, "Sale rodando con impulso y va frenando")
+local combatServer = fs.readFile("src/server/Services/CombatService.luau")
+check(combatServer:find("SetAttribute(\"Roll\"", 1, true) ~= nil, "El servidor avisa a todos de la voltereta (atributo Roll) cuando la acepta")
+
 print("▶ K.O.")
 local health, ko = Combat.apply(50, 8)
 check(health == 42 and not ko, "Con vida de sobra solo baja la vida")
