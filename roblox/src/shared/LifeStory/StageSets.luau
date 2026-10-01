@@ -45,6 +45,7 @@ StageSets.Defs = {
 		StateFor = {
 			{ If = { World = { ["Cielo.Crater.Parque"] = "Humeante" } }, State = "Humeante" },
 			{ If = { World = { ["Cielo.Crater.Parque"] = "Frio" } }, State = "Frio" },
+			{ If = { Completed = { "Saga_02_Grieta" } }, State = "Frio" }, -- (partidas de antes del motor)
 		},
 		States = { Humeante = { Smoke = true, Glow = true }, Frio = { Smoke = false, Glow = false } },
 	},
@@ -57,6 +58,7 @@ StageSets.Defs = {
 		StateFor = {
 			{ If = { World = { ["Cielo.Crater.Patio"] = "Humeante" } }, State = "Humeante" },
 			{ If = { World = { ["Cielo.Crater.Patio"] = "Frio" } }, State = "Frio" },
+			{ If = { Completed = { "Saga_02_Grieta" } }, State = "Frio" }, -- (partidas de antes del motor)
 		},
 		States = { Humeante = { Smoke = true, Glow = true }, Frio = { Smoke = false, Glow = false } },
 	},
@@ -69,6 +71,7 @@ StageSets.Defs = {
 		StateFor = {
 			{ If = { World = { ["Cielo.Crater.Camino"] = "Humeante" } }, State = "Humeante" },
 			{ If = { World = { ["Cielo.Crater.Camino"] = "Frio" } }, State = "Frio" },
+			{ If = { Completed = { "Saga_02_Grieta" } }, State = "Frio" }, -- (partidas de antes del motor)
 		},
 		States = { Humeante = { Smoke = true, Glow = true }, Frio = { Smoke = false, Glow = false } },
 	},
@@ -82,6 +85,7 @@ StageSets.Defs = {
 		Params = { Creature = "Chispa", Routine = { { 2.2, 0 }, { 0, 2.4 }, { -2.2, 0.4 }, { -0.4, -2.3 } }, Pause = 1.6 },
 		StateFor = {
 			{ If = { World = { ["Cielo.Chispa"] = "Parque" } }, State = "Vive" },
+			{ If = { Completed = { "Saga_02_Grieta" }, NotWorld = { "Cielo.Chispa" } }, State = "Vive" }, -- (partidas de antes)
 		},
 		States = { Vive = {} },
 	},

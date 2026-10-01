@@ -35,7 +35,8 @@ return {
 		Requires = after("Loco_N1_Cosme"),
 		Moment = "Viste la Grieta por primera vez",
 		Memory = "GrietaEnElCielo",
-		Rewards = { Items = { MonedaPerilla = 1 }, Flags = { "SabeDeCosimo" } },
+		-- Chispa (lo que trajo la estrella del parque) se queda a vivir en su cráter: memoria del mundo
+		Rewards = { Items = { MonedaPerilla = 1 }, Flags = { "SabeDeCosimo" }, World = { ["Cielo.Chispa"] = "Parque" } },
 		Props = {
 			Calcetin = { Kind = "Moco", Name = "Un calcetín que brilla… y habla", Prompt = "Coger el calcetín", Place = "FuenteParque", Offset = V(-3, 0, 3), Color = Color3.fromRGB(120, 255, 160), Dialogue = "Calcetin", Once = true },
 			Paraguas = { Kind = "Cristal", Name = "Un paraguas que llueve hacia arriba", Prompt = "Cerrar el paraguas", Place = "JuegosColegio", Offset = V(3, 0, 3), Color = Color3.fromRGB(150, 200, 255), Dialogue = "Paraguas", Once = true },
@@ -45,12 +46,19 @@ return {
 		Steps = {
 			{ Type = "Talk", Npc = "Cosme", Dialogue = "Medidor", Text = "Cosme quiere enseñarte su medidor de rarezas",
 				Actors = { COSME, PIP }, Props = { "Medidor" } },
+			-- ESCENA del motor (Happenings/Cielo): tres estrellas verdes caen de la Grieta; cada una deja un
+			-- cráter humeante que se queda (Cielo.Crater.*) y del parque sale Chispa, que huye asustada
+			{ Type = "Cinematic", Id = "Grieta_Caen", Actors = { COSME, PIP }, Props = { "Medidor" } },
 			{ Type = "Group", Text = "El medidor pita en tres sitios. Recoge lo que ha caído de la Grieta",
 				Actors = { { Npc = "Pip", Mode = "Follow" } },
 				Steps = {
-					{ Type = "Use", Prop = "Calcetin", Text = "Algo brilla junto a la fuente del parque" },
-					{ Type = "Use", Prop = "Paraguas", Text = "Algo raro en la zona de juegos del cole" },
-					{ Type = "Use", Prop = "Moneda", Text = "Algo quema en el camino al cole" },
+					-- Al recogerlo, una luz sube del cráter y el cráter se enfría (se queda, ya sin humo)
+					{ Type = "Use", Prop = "Calcetin", Text = "Un cráter humeante junto a la fuente del parque",
+						Effects = { World = { ["Cielo.Crater.Parque"] = "Frio" }, Scene = "Grieta_Recoger" } },
+					{ Type = "Use", Prop = "Paraguas", Text = "Un cráter humeante en la zona de juegos del cole",
+						Effects = { World = { ["Cielo.Crater.Patio"] = "Frio" }, Scene = "Grieta_Recoger" } },
+					{ Type = "Use", Prop = "Moneda", Text = "Un cráter humeante en el camino al cole",
+						Effects = { World = { ["Cielo.Crater.Camino"] = "Frio" }, Scene = "Grieta_Recoger" } },
 				} },
 			{ Type = "Talk", Npc = "Bigotes", Dialogue = "Bigotes", Text = "Bigotes te espera en el tejado del cole… bueno, en el patio",
 				Actors = { { Npc = "Bigotes", Place = "Patio", Offset = V(2, 0, 3), Scale = 0.35 } } },
