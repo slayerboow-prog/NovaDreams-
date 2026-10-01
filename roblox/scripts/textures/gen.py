@@ -5,6 +5,7 @@ las texturas son 100 % nuestras y se pueden subir a Roblox sin problemas de dere
 
 Uso (desde roblox/):   python3 scripts/textures/gen.py            (todas)
                        python3 scripts/textures/gen.py Asfalto Teja   (solo esas)
+                       python3 scripts/textures/gen.py --wet      (solo los wet.png del suelo mojado)
 Necesita:              pip install numpy pillow
 
 Cada material es un juego PBR para un MaterialVariant de Roblox (MaterialService):
@@ -14,6 +15,8 @@ Cada material es un juego PBR para un MaterialVariant de Roblox (MaterialService
   normal.png     NormalMap, formato OpenGL (verde = arriba), como pide Roblox.
   roughness.png  RoughnessMap (gris; blanco = mate). A media resolución: es suave y pesa poco.
   metalness.png  MetalnessMap, solo en los metales y la pintura de coche.
+  wet.png        Rugosidad del suelo MOJADO (solo Asfalto, AceraBaldosa y Bordillo): casi lisa y con
+                 charcos; el cliente la pone en lugar de roughness.png cuando llueve.
 
 Todas son ENLOSABLES (se repiten sin costura): el ruido se hace con la FFT (frecuencias enteras por
 baldosa), las celdas y trazos dan la vuelta por los bordes. scripts/textures/check_tiling.py lo
@@ -745,7 +748,37 @@ def save(name: str, data: dict, n: int) -> dict:
     }
 
 
+# Suelo mojado: rugosidad «mojada» (wet.png) de los materiales de la calle. Con lluvia el cliente
+# cambia el RoughnessMap por este (shared/Textures.WetSets, Controllers/MaterialDetail): la capa de
+# agua alisa todo (reflejos con la iluminación Future) y en las zonas bajas hay charcos casi espejo.
+# Sale de la rugosidad seca (roughness.png) para que las juntas y el árido sigan en su sitio.
+WET = {"Asfalto": 31, "AceraBaldosa": 32, "Bordillo": 33}
+
+
+def make_wet(name: str) -> bool:
+    folder = OUT / name
+    src = folder / "roughness.png"
+    if not src.exists():
+        print(f"  ⚠️  {name}: falta roughness.png (genera antes el material)")
+        return False
+    dry = np.asarray(Image.open(src)).astype(np.float64) / 255
+    n = dry.shape[0]
+    rng = np.random.default_rng(WET[name])
+    puddles = smooth(0.9, 1.6, spectral(rng, n, 3.2, fmin=1, fmax=10))  # manchas grandes y suaves
+    film = spectral(rng, n, 2.4, fmin=2, fmax=40) * 0.04  # la capa de agua no es perfecta
+    wet = 0.06 + dry * 0.3 + film
+    wet = wet * (1 - puddles) + (0.03 + dry * 0.05) * puddles
+    Image.fromarray(to8(np.clip(wet, 0.02, 1)), "L").save(folder / "wet.png", optimize=True)
+    return True
+
+
 def main(argv):
+    if argv and argv[0] == "--wet":
+        # Solo los mapas de suelo mojado (no toca las texturas que ya están subidas)
+        for name in argv[1:] or list(WET):
+            if make_wet(name):
+                print(f"  ✅ {name:15s} wet.png")
+        return 0
     names = argv or list(MATERIALS)
     manifest_path = OUT / "manifest.json"
     manifest = json.loads(manifest_path.read_text()) if manifest_path.exists() else {}
@@ -757,6 +790,8 @@ def main(argv):
         rng = np.random.default_rng(seed)
         data = fn(rng, n)
         manifest[name] = save(name, data, n)
+        if name in WET and make_wet(name):
+            manifest[name]["maps"] = sorted(p.stem for p in (OUT / name).glob("*.png"))
         kb = sum(p.stat().st_size for p in (OUT / name).glob("*.png")) / 1024
         print(f"  ✅ {name:15s} {n}²  {', '.join(manifest[name]['maps'])}  ({kb:.0f} KB)")
     manifest = {k: manifest[k] for k in MATERIALS if k in manifest}

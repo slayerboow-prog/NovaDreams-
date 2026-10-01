@@ -192,7 +192,7 @@
           0.3843
         ],
         "ExposureCompensation": 0,
-        "ShadowSoftness": 0.1,
+        "ShadowSoftness": 0.2,
         "GeographicLatitude": 38,
         "LightingStyle": "Realistic",
         "PrioritizeLightingQuality": false

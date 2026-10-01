@@ -58,7 +58,8 @@ end
 function Wetness.surface(material: Enum.Material, wet: number, snow: number, floor: boolean): (number, number, number)
 	local shiny = SHINY[material.Name] or 0.3
 	local darken = 0.22 * wet * (1 - 0.5 * snow)
-	local reflect = wet * shiny * (if floor then 0.32 else 0.08)
+	-- (el suelo mojado hace de espejo oscuro: con Future refleja el cielo, las fachadas y las farolas)
+	local reflect = wet * shiny * (if floor then 0.38 else 0.08)
 	-- La nieve se queda encima de las cosas (no en las paredes); en la calzada casi no cuaja
 	local whiten = 0
 	if floor and material.Name ~= "Asphalt" then

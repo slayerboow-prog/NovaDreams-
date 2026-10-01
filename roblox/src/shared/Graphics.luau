@@ -29,6 +29,10 @@ export type Tier = {
 	WetRadius: number, -- radio (studs) en el que el suelo se ve mojado
 	SignGlow: boolean, -- los carteles de las tiendas resplandecen de noche
 	NormalMaps: boolean, -- relieve (mapa normal) de las texturas PBR de los materiales
+	GrassBlades: boolean, -- briznas de césped 3D en el terreno (Terrain.Decoration)
+	LeafDetail: boolean, -- racimos de relleno de las copas y raíces de los árboles (etiqueta LeafDetail)
+	WetGloss: boolean, -- con lluvia, el asfalto y las aceras se vuelven lisos y reflejan (rugosidad mojada)
+	FarRange: boolean, -- sierra lejana al otro lado del mar (siluetas del horizonte, Controllers/Horizon)
 }
 
 Graphics.Order = { "Low", "Medium", "High" } :: { TierName }
@@ -53,6 +57,10 @@ Graphics.Tiers = {
 		WetRadius = 60,
 		SignGlow = false,
 		NormalMaps = false,
+		GrassBlades = false,
+		LeafDetail = false,
+		WetGloss = false,
+		FarRange = false,
 	},
 	Medium = {
 		LampLights = 18,
@@ -68,6 +76,10 @@ Graphics.Tiers = {
 		WetRadius = 80,
 		SignGlow = true,
 		NormalMaps = true,
+		GrassBlades = true,
+		LeafDetail = true,
+		WetGloss = true,
+		FarRange = true,
 	},
 	High = {
 		LampLights = 40,
@@ -83,6 +95,10 @@ Graphics.Tiers = {
 		WetRadius = 100,
 		SignGlow = true,
 		NormalMaps = true,
+		GrassBlades = true,
+		LeafDetail = true,
+		WetGloss = true,
+		FarRange = true,
 	},
 } :: { [TierName]: Tier }
 

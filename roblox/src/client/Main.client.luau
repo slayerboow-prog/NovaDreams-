@@ -116,6 +116,9 @@ safeInit("Perf", function()
 	require(script.Parent.UI.Perf).stripDetails() -- móvil: sin los detalles pequeños de la calle
 end)
 safeInit("DayLight", DayLight.init) -- luz realista según la hora (amanecer, mediodía, atardecer, noche)
+safeInit("Horizon", function()
+	require(script.Parent.Controllers.Horizon).init() -- montañas del fondo (siluetas lejanas y sierra al otro lado del mar)
+end)
 safeInit("StoryAudio", StoryAudio.init) -- música, efectos y voces de la historia
 task.spawn(SpeechBubbles.init) -- bocadillos encima de cada personaje que habla (lo que dice la gente del servidor)
 task.spawn(LifeStory.init) -- historia de vida (tarjeta "Tu vida", momentos, decisiones)

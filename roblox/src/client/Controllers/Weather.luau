@@ -102,7 +102,10 @@ local function repaint()
 	end
 	local terrain = workspace.Terrain
 	for material, base in terrainBase do
-		local color = base:Lerp(info.Grass, 0.6)
+		-- La hierba alta (LeafyGrass, las manchas del campo) algo más oscura y fresca que el césped:
+		-- así el suelo no es una alfombra de un solo verde
+		local target = if material == Enum.Material.LeafyGrass then info.Grass:Lerp(rgb(44, 78, 40), 0.3) else info.Grass
+		local color = base:Lerp(target, 0.6)
 		pcall(function()
 			terrain:SetMaterialColor(material, color:Lerp(SNOW_WHITE, snowCover * 0.9))
 		end)

@@ -43,6 +43,9 @@ function MaterialLook.setup(service: Instance?, ids: { [string]: string }?): { s
 			variant[prop] = maps[prop] or ""
 		end
 		variant:SetAttribute("NormalMapId", maps.NormalMap or "") -- (el cliente lo quita y lo vuelve a poner según el nivel gráfico)
+		-- Rugosidad seca y mojada: con lluvia el cliente pone la mojada (Controllers/MaterialDetail)
+		variant:SetAttribute("DryRoughnessId", maps.RoughnessMap or "")
+		variant:SetAttribute("WetRoughnessId", Textures.wetMap(name, source) or "")
 		variant.Parent = target
 		if def.Override then
 			local base = (Enum.Material :: any)[def.Base]

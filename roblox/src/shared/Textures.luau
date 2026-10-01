@@ -84,6 +84,31 @@ function Textures.maps(name: string, ids: { [string]: string }): { [string]: str
 	return out
 end
 
+-- Suelo mojado: estos materiales tienen además una rugosidad «mojada» (textures/<Set>/wet.png, casi
+-- lisa, con zonas encharcadas aún más lisas). Con lluvia el cliente cambia el RoughnessMap del
+-- variant por este (Controllers/MaterialDetail) y, con la iluminación Future, la calle refleja el
+-- cielo y las luces. Sin su id (aún no subida) no se cambia nada: solo brillan como siempre.
+Textures.WetSets = { Asfalto = true, AceraBaldosa = true, Bordillo = true }
+-- Desde qué nivel de mojado (workspace "Wet", 0..1) se pone la rugosidad mojada
+Textures.WetGlossFrom = 0.35
+
+function Textures.wetMap(name: string, ids: { [string]: string }): string?
+	local v = Textures.Variants[name]
+	if not v or not Textures.WetSets[v.Set] then
+		return nil
+	end
+	local id = ids[v.Set .. "_wet"]
+	return if validId(id) then id else nil
+end
+
+-- Qué rugosidad toca: la mojada si hay bastante agua, el nivel gráfico lo permite y existe
+function Textures.roughnessFor(dry: string, wetId: string?, wet: number, gloss: boolean): string
+	if gloss and wetId and wetId ~= "" and wet >= Textures.WetGlossFrom then
+		return wetId
+	end
+	return dry
+end
+
 -- Nombres de los variants que se pueden crear con estos ids (ordenados)
 function Textures.available(ids: { [string]: string }): { string }
 	local names = {}

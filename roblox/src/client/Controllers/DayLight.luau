@@ -3,7 +3,8 @@
 --   * 11 momentos del día (noche, antes del alba, amanecer, mañana dorada, mañana, mediodía, tarde,
 --     hora dorada, puesta de sol, hora azul) con la luz, el cielo, la bruma, las nubes y el color de cada uno.
 --     Entre uno y otro se pasa poco a poco.
---   * Cada día de juego trae más o menos nubes (igual para todos los jugadores del servidor).
+--   * Cada día de juego trae más o menos nubes (igual para todos los jugadores del servidor); el viento
+--     (según el tiempo) las hace pasar y el cielo se tapa y destapa un poco cada pocos minutos.
 --   * Los ojos se acostumbran: dentro de casa la imagen se aclara un poco, como una cámara de verdad.
 --   * En las cinemáticas, enfoque de cine (el fondo se desenfoca un poco) y algo más de contraste.
 --   * Según el nivel gráfico (UI/Perf, shared/Graphics): Bajo sin sombras del sol, desenfoque ni rayos
@@ -162,10 +163,19 @@ local function apply(k: Key, dt: number)
 	local clouds = find("Clouds")
 	if clouds then
 		local day = workspace:GetAttribute("Day") or 1
-		clouds.Cover = math.clamp(k.Cover + dailyClouds(day), 0.2, 0.8)
+		-- (además, el cielo «respira»: un poco más o menos tapado cada pocos minutos, nunca quieto)
+		local drift = 0.035 * math.sin(os.clock() / 75) + 0.02 * math.sin(os.clock() / 31 + 1.3)
+		clouds.Cover = math.clamp(k.Cover + dailyClouds(day) + drift, 0.2, 0.85)
 		clouds.Density = k.CloudDensity * tier.Clouds
 		clouds.Color = k.CloudColor
 	end
+	-- Viento: las nubes van pasando (y las briznas del césped se mecen); más fuerte con tormenta
+	local wind = DayGrade.wind(workspace:GetAttribute("Weather"), Lighting.ClockTime)
+	pcall(function()
+		if (workspace.GlobalWind - wind).Magnitude > 0.2 then
+			workspace.GlobalWind = wind
+		end
+	end)
 end
 
 -- La luz calculada para una hora (la usan las pruebas)
