@@ -1168,7 +1168,7 @@ local function build()
 		local tab = button(tabs, entry[1] .. "Tab", entry[2], T.Button)
 		tab.TextWrapped = false
 		place(tab, { X = (i - 1) * (L.TabWidth + 8), Y = 0, W = L.TabWidth, H = L.Button })
-		local dot = Theme.label({ Name = "Dot", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(1, -4, 0, 4), Size = UDim2.fromOffset(24, 24), BackgroundTransparency = 0, BackgroundColor3 = rgb(230, 60, 80), Text = "", Font = Theme.FontBold, TextSize = math.max(T.Small - 1, 13), TextXAlignment = Enum.TextXAlignment.Center, Visible = false, ZIndex = 3, Parent = tab })
+		local dot = Theme.label({ Name = "Dot", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(1, -4, 0, 4), Size = UDim2.fromOffset(24, 24), BackgroundTransparency = 0, BackgroundColor3 = rgb(230, 60, 80), Text = "", Font = Theme.FontBold, TextSize = T.Small, TextXAlignment = Enum.TextXAlignment.Center, Visible = false, ZIndex = 3, Parent = tab })
 		create("UICorner", { CornerRadius = UDim.new(1, 0), Parent = dot })
 		tab.Activated:Connect(function()
 			setSection(entry[1])

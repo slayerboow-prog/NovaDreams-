@@ -480,7 +480,7 @@ local function snapshot(opts: { [string]: any }): { [string]: any }
 		end
 		return a.Track == "Free" and b.Track ~= "Free"
 	end)
-	local now = 1791158400 + 40 * 86400
+	local now = 1791158400 + 40 * 86400 - 14 * 3600 -- (quedan 23 días y 14 horas)
 	local shop = {}
 	for _, item in Season1.TokenShop do
 		table.insert(shop, { Id = item.Id, Type = item.Type, TypeName = BPConfig.TypeNames[item.Type], Name = item.Name, Icon = item.Icon, Rarity = item.Rarity, Cost = item.Cost, Description = item.Description, Owned = item.Id == "S1_T_Phone", Preview = { Kind = item.Type } })
@@ -647,6 +647,10 @@ local function mount(touch: boolean, x: number, y: number, enabledFlag: boolean)
 	rawget(userInput, "__props").TouchEnabled = touch
 	rawget(userInput, "__props").KeyboardEnabled = not touch
 	localPlayer:SetAttribute("LifeStage", "Adulto")
+	localPlayer:SetAttribute("Tutorial", "Hecho")
+	localPlayer:SetAttribute("InPrologue", nil)
+	localPlayer:SetAttribute("InDialogue", nil)
+	localPlayer:SetAttribute("Money", 2450)
 	local config = loadModule("src/shared/BattlePass/Config")
 	config.Enabled = enabledFlag
 	-- (como el servidor: el remoto solo existe con el pase encendido o, apagado, para un tester)
@@ -718,6 +722,7 @@ local previews = newInstance("Folder")
 previews.Name = "BattlePassPreviews"
 previews.Parent = replicatedStorage
 fakeModel("S1_P05").Parent = previews
+fakeModel("S1_P50_Car").Parent = previews -- (el Aurora X «Faro de Valmar»: la recompensa estrella)
 
 ---------------------------------------------------------------------
 -- Comprobaciones de una ventana abierta (en cualquier tamaño)

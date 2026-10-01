@@ -34,6 +34,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Emotion = require(ReplicatedStorage.Shared.LifeStory.Emotion)
+local ActorMoods = require(ReplicatedStorage.Shared.LifeStory.ActorMoods)
 local Joints = require(ReplicatedStorage.Shared.Joints)
 local WorkAnim = require(script.Parent.WorkAnim)
 local SpeechBubbles = require(script.Parent.Parent.UI.SpeechBubbles)
@@ -547,7 +548,43 @@ end
 
 -- Adónde quiere mirar: (yaw relativo a la raíz, pitch, ¿está pendiente de alguien?). Si está pendiente
 -- (le hablan, habla, te mira de cerca, charla con otro) el cuerpo le acompaña cuando la cabeza no llega.
+-- Escenas de la historia: el servidor dice a quién mira un actor con su atributo LookAt (Vector3,
+-- "Player", el id del reparto o "Key:<clave de la escena>"). Lo que no sabe resolver aquí (la Grieta,
+-- los actores por clave) lo resuelve quien se registre (Controllers/HappeningClient).
+local lookResolver: ((any) -> Vector3?)? = nil
+function ActorLife.setLookResolver(fn: ((any) -> Vector3?)?)
+	lookResolver = fn
+end
+local function lookAtAttribute(rig: Rig): Vector3?
+	local target = rig.Model:GetAttribute("LookAt")
+	if target == nil then
+		return nil
+	end
+	if typeof(target) == "Vector3" then
+		return target
+	elseif target == "Player" then
+		return headPosition(player.Character)
+	end
+	if lookResolver then
+		local ok, point = pcall(lookResolver, target)
+		if ok and point then
+			return point
+		end
+	end
+	if type(target) == "string" then
+		return headPosition(ActorLife.find(target))
+	end
+	return nil
+end
+
 local function lookTarget(rig: Rig, t: number): (number, number, boolean)
+	local forced = not rig.Me and not (conversation and (listeners[rig.Model] or rig.Model == speaker)) and lookAtAttribute(rig)
+	if forced then
+		local yaw, pitch = aim(rig, forced)
+		if yaw then
+			return yaw, math.clamp(pitch :: number, -math.rad(35), math.rad(40)), true
+		end
+	end
 	local myHead = headPosition(player.Character)
 	-- En una conversación: quien habla te mira (o mira a quien le escucha); los demás miran a quien habla
 	if conversation and (listeners[rig.Model] or rig.Model == speaker) then
@@ -655,6 +692,7 @@ end
 local POSE_NAMES = {
 	"Happy", "Sad", "Angry", "Surprised", "Thinking", "Ask", "Shrug", "Nod", "No",
 	"ArmsCrossed", "HandsOnHips", "Facepalm", "Clap", "ThinkChin", "WaveLite", "Stretch",
+	"Scared", "Hurt", -- (las de las emociones que duran: atributo Mood, shared/LifeStory/ActorMoods)
 }
 -- Gestos cortos: duran esto (segundos) desde que empieza la frase o el gesto
 local SHORT = { Nod = 1.6, No = 1.6, Shrug = 1.6, Clap = 1.9, WaveLite = 1.8, Facepalm = 2.4 }
@@ -843,10 +881,18 @@ local function update(rig: Rig, t: number, dt: number)
 		and attrWork == nil
 		and rig.Partner == nil
 		and not rig.Model:GetAttribute("Chat")
+		and rig.Model:GetAttribute("Mood") == nil
 	updateIdleAct(rig, t, calm)
 
+	-- La emoción que dura (escenas: atributo Mood): su postura se queda puesta (algo menos al hablar)
+	local moodName = rig.Model:GetAttribute("Mood")
+	local mood = ActorMoods.get(moodName)
+	local moodPose = mood and mood.Pose
 	for _, name in POSE_NAMES do
 		local want = if rig.Emotion == name and (talking or sinceLine < 2.5) then 1 else 0
+		if moodPose == name then
+			want = math.max(want, if talking then 0.65 else 1)
+		end
 		-- Asentir, negar, encogerse de hombros, aplaudir… son un gesto corto
 		local short = SHORT[name]
 		if short and sinceLine > short then
@@ -930,6 +976,15 @@ local function update(rig: Rig, t: number, dt: number)
 	local waistYaw = rig.Yaw * 0.35 * lookMul + w.wy * W
 	local waistRoll = w.wr * W + sway * 0.035
 
+	-- Emociones que duran: miedo (encogido, temblando) y herido (doblado, la cabeza baja)
+	local scared = P.Scared or 0
+	local hurt = P.Hurt or 0
+	local shiver = ActorMoods.tremble(moodName, t, seed)
+	neckPitch += -scared * 0.18 - hurt * 0.26 + shiver
+	neckYaw += shiver * 0.6
+	waistPitch += scared * 0.1 + hurt * 0.16
+	waistRoll += hurt * 0.07 + shiver * 0.5
+
 	-- Brazos (solo si no están andando ni haciendo un gesto de animación)
 	local armWeight = if busyArms then 0 else 1
 	local g = talk * (GESTURE[rig.Gesture or rig.Emotion] or 0.7) * armWeight
@@ -1009,6 +1064,20 @@ local function update(rig: Rig, t: number, dt: number)
 		rX, rTwist, rZ, rElbow = mix(rX, 2.9, stretch), mix(rTwist, 0, stretch), mix(rZ, 0.05, stretch), mix(rElbow, 0.25, stretch)
 		lX, lTwist, lZ, lElbow = mix(lX, 2.9, stretch), mix(lTwist, 0, stretch), mix(lZ, 0.05, stretch), mix(lElbow, 0.25, stretch)
 		shoulderUp += stretch * 0.08
+	end
+	local cower = scared * armWeight
+	if cower > 0.001 then
+		-- Miedo: las manos delante de la cara, los hombros arriba
+		rX, rTwist, rZ, rElbow = mix(rX, 1.1, cower), mix(rTwist, 0.5, cower), mix(rZ, -0.35, cower), mix(rElbow, 1.9, cower)
+		lX, lTwist, lZ, lElbow = mix(lX, 1.1, cower), mix(lTwist, 0.5, cower), mix(lZ, -0.35, cower), mix(lElbow, 1.9, cower)
+		shoulderUp += cower * 0.16
+	end
+	local ache = hurt * armWeight
+	if ache > 0.001 then
+		-- Herido: una mano al costado, el otro brazo cuelga
+		rX, rTwist, rZ, rElbow = mix(rX, 0.35, ache), mix(rTwist, 0.9, ache), mix(rZ, -0.45, ache), mix(rElbow, 1.35, ache)
+		lX, lZ, lElbow = mix(lX, 0.05, ache), mix(lZ, 0.02, ache), mix(lElbow, 0.1, ache)
+		shoulderUp -= ache * 0.06
 	end
 	-- Tarea
 	rX += w.rx * W

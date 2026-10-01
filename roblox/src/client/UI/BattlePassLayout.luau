@@ -190,12 +190,15 @@ function BattlePassLayout.compute(viewport: Vector2, touch: boolean, scale: numb
 		local status = if touch then 22 else 22
 		local amountH = if touch then 18 else 18
 		local claimH = if touch then 22 else 24
-		local icon = math.max(24, math.min(cardW - 2 * pad, cardH - pad - amountH - 8))
+		local amountY = cardH - pad - 4 - amountH
+		local claimY = cardH - pad - 4 - claimH
+		-- (el icono, encima de la cantidad y de RECLAMAR; el candado o el ✔ van en su esquina, encima)
+		local icon = math.max(24, math.min(cardW - 2 * pad - 8, math.min(amountY, claimY) - pad - 2))
 		L.Card = {
 			Icon = rect(math.floor((cardW - icon) / 2), pad, icon, icon),
 			Status = rect(cardW - pad - status, pad, status, status),
-			Amount = rect(pad, cardH - pad - 4 - amountH, cardW - 2 * pad, amountH),
-			Claim = rect(pad, cardH - pad - 4 - claimH, cardW - 2 * pad, claimH),
+			Amount = rect(pad, amountY, cardW - 2 * pad, amountH),
+			Claim = rect(pad, claimY, cardW - 2 * pad, claimH),
 			Rarity = rect(8, cardH - 4, cardW - 16, 3),
 		}
 	end
