@@ -1207,6 +1207,99 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 		registerAll(TouchLayout)
 		check(joy and joy.Visible and TouchLayout.buttons().Ataque.Visible and TouchLayout.buttons().GiroIzq == nil, "Al bajarse vuelven el joystick y los botones de ir a pie")
 	end
+	-- A los mandos de un avión (móvil): el joystick sigue a la izquierda (es la palanca) y, a la derecha,
+	-- MOTOR + / −, FRENOS, timón ◀ ▶, tren, flaps, cámara y Bajarse (UI/FlyButtons en HudLayout.Fly); el
+	-- panel de instrumentos arriba en el centro (UI/FlightHud). Grande, al alcance del pulgar y sin pisar nada.
+	do
+		local FlyButtons = loadModule("src/client/UI/FlyButtons")
+		local FlightHud = loadModule("src/client/UI/FlightHud")
+		local flyHolds: { [string]: boolean } = {}
+		local toggled: { string } = {}
+		local status = { Throttle = 0.4, Gear = true, FixedGear = false, Flaps = 1, Brake = false, Camera = "Persecucion", CanExit = true }
+		FlyButtons.register(TouchLayout, {
+			Flying = function()
+				return true
+			end,
+			Hold = function(slot, down)
+				flyHolds[slot] = down
+			end,
+			Toggle = function(what)
+				table.insert(toggled, what)
+			end,
+			Status = function()
+				return status
+			end,
+		})
+		TouchLayout.setFlying(true)
+		local view = FlightHud.new(playerGui, true)
+		view.Gui.Enabled = true
+		local flyButtons = TouchLayout.buttons()
+		local slotOf = { MotorMas = "MotorMas", MotorMenos = "MotorMenos", TimonIzq = "TimonIzq", TimonDer = "TimonDer", Frenos = "Frenos", Tren = "Tren", Flaps = "Flaps", CamaraAvion = "Camara", BajarseAvion = "Bajarse" }
+		local missing = {}
+		for id, slot in slotOf do
+			local b = flyButtons[id]
+			if not (b and b.Visible and b:GetAttribute("Slot") == slot) then
+				table.insert(missing, id)
+			end
+		end
+		check(#missing == 0, "Volando: motor + / −, frenos, timón, tren, flaps, cámara y Bajarse en su sitio" .. (if #missing > 0 then " (faltan: " .. table.concat(missing, ", ") .. ")" else ""))
+		local walking = {}
+		for _, id in { "Ataque", "Interactuar", "Saltar", "Correr", "Linterna" } do
+			local b = flyButtons[id]
+			if b and b.Visible then
+				table.insert(walking, id)
+			end
+		end
+		check(#walking == 0, "Volando no salen los botones de ir a pie" .. (if #walking > 0 then " (salen: " .. table.concat(walking, ", ") .. ")" else ""))
+		local joyFly = playerGui:FindFirstChild("JoystickGui")
+		joyFly = joyFly and joyFly:FindFirstChild("Joystick")
+		check(joyFly and joyFly.Visible, "Volando el joystick sigue a la izquierda: es la palanca")
+		local fly = HudLayout.current()
+		fly.HudLayoutModule = HudLayout
+		local small = {}
+		for id in slotOf do
+			local r = rectOf(flyButtons[id], fly)
+			if math.min(r.W, r.H) * fly.Scale < 26 then
+				table.insert(small, ("%s %d px"):format(id, math.min(r.W, r.H) * fly.Scale))
+			end
+		end
+		for _, id in { "MotorMas", "MotorMenos", "Frenos", "TimonIzq", "TimonDer" } do
+			local r = rectOf(flyButtons[id], fly)
+			if math.min(r.W, r.H) * fly.Scale < 34 then
+				table.insert(small, ("%s %d px"):format(id, math.min(r.W, r.H) * fly.Scale))
+			end
+		end
+		check(#small == 0, "Mandos del avión grandes para el pulgar" .. (if #small > 0 then ": " .. table.concat(small, ", ") else ""))
+		local gasR = rectOf(flyButtons.MotorMas, fly)
+		check(fly.Canvas.X - (gasR.X + gasR.W) <= 16.5 and gasR.H > gasR.W, "MOTOR + alto, pegado a la derecha")
+		local list = hudRects(mods)
+		table.insert(list, { Name = "Instrumentos del avión", Rect = rectOf(view.Panel, fly) })
+		noOverlaps(list, HudLayout, ("%dx%d volando"):format(size[1], size[2]))
+		local panelRect = rectOf(view.Panel, fly)
+		check(panelRect.Y >= 0 and panelRect.Y + panelRect.H < fly.Canvas.Y * 0.5 and math.abs(panelRect.X + panelRect.W / 2 - fly.Canvas.X / 2) < 1, "Instrumentos arriba en el centro, dentro de la pantalla")
+		-- Mantener el motor y soltarlo; tocar el tren
+		local gasTouch = { UserInputType = roblox.Enum.UserInputType.Touch, UserInputState = roblox.Enum.UserInputState.Begin }
+		flyButtons.MotorMas.InputBegan:Fire(gasTouch)
+		check(flyHolds.ThrottleUp == true, "Mantener MOTOR + da gas")
+		userInput.InputEnded:Fire(gasTouch)
+		check(flyHolds.ThrottleUp == false, "Y al soltarlo deja de dar gas")
+		flyButtons.Tren.Activated:Fire()
+		flyButtons.Flaps.Activated:Fire()
+		check(toggled[1] == "Gear" and toggled[2] == "Flaps", "Tren y flaps responden al tocarlos")
+		check(flyButtons.MotorMas.Meter.Visible and flyButtons.Tren.Badge.Text == "Abajo" and flyButtons.Flaps.Badge.Text == "1", "Barrita del gas en MOTOR +, «Abajo» en el tren y el punto de flaps")
+		status.FixedGear, status.CanExit = true, false
+		TouchLayout.refresh()
+		check(not flyButtons.Tren.Visible and not flyButtons.BajarseAvion.Visible, "La avioneta (tren fijo) no tiene botón de tren; en vuelo no sale Bajarse")
+		FlightHud.set(view, { Speed = 120, Altitude = 84.4, Heading = 271, Compass = "O", Climb = -2.4, Throttle = 0.75, Gear = false, FixedGear = false, Flaps = 2, Brake = false, Health = 80, Warn = "Perdida", OnGround = false })
+		check(view.Values.Speed.Text == "120" and view.Values.Alt.Text == "84" and view.Values.Hdg.Text == "271°" and view.Values.Vs.Text == "▼ 2.4" and view.Values.Thr.Text == "75%", "Instrumentos: velocidad, altitud, rumbo, velocidad vertical y motor")
+		check(string.find(view.Status.Text, "TREN ARRIBA", 1, true) ~= nil and string.find(view.Status.Text, "FLAPS 2", 1, true) ~= nil and string.find(view.Status.Text, "DAÑOS 20%", 1, true) ~= nil and string.find(view.Warning.Text, "PÉRDIDA", 1, true) ~= nil, "Tren, flaps, daños y el aviso de PÉRDIDA")
+		-- Al bajarse vuelve todo
+		TouchLayout.setFlying(false)
+		FlyButtons.unregister(TouchLayout)
+		view.Gui:Destroy()
+		registerAll(TouchLayout)
+		check(TouchLayout.buttons().Ataque.Visible and TouchLayout.buttons().MotorMas == nil, "Al bajarse del avión vuelven los botones de ir a pie")
+	end
 	do
 		-- Las balas (arma en la mano): arriba a la derecha, a la izquierda del minimapa, dentro de la
 		-- pantalla y lejos de los botones de disparar (la captura: encima del minimapa)
