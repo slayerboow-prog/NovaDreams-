@@ -245,6 +245,23 @@ local function build()
 	end
 	note("La hora cambia para todo el servidor.")
 
+	-- La Grieta del cielo (Controllers/SkyRift): ver cada fase de la saga sin jugarla (solo tú)
+	section("GRIETA DEL CIELO")
+	local rift = grid()
+	for i, item in {
+		{ nil, "🌌 La de mi historia" },
+		{ "Rasguno", "Rasguño" },
+		{ "Crece", "Crece (misión 2)" },
+		{ "Abierta", "Abierta del todo" },
+		{ "Fusion", "Gran Fusión" },
+		{ "Cerrada", "Cerrada" },
+	} do
+		button(rift, item[2], function()
+			require(script.Parent.Parent.Controllers.SkyRift :: any).preview(item[1])
+		end, i)
+	end
+	note("Se abre o se cierra poco a poco (unos segundos). Mírala de noche: pon las 22:00.")
+
 	-- Vehículos premium del pase: sacar cada uno a tu lado y dártelos todos (TesterService)
 	local passVehicles = (state and state.PassVehicles) or {}
 	if #passVehicles > 0 then

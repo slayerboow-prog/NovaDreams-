@@ -68,6 +68,7 @@ local Memories = require(LifeStory.Memories)
 local StoryContext = require(LifeStory.StoryContext)
 local Log = require(ReplicatedStorage.Shared.Log)
 local RideState = require(ReplicatedStorage.Shared.RideState)
+local SkyRift = require(ReplicatedStorage.Shared.SkyRift)
 local Strings = require(LifeStory.Strings)
 
 local LifeStoryService = {}
@@ -869,6 +870,8 @@ local function publish(player: Player, force: boolean?)
 	end
 	player:SetAttribute("StoryNpc", needNpc)
 	player:SetAttribute("StoryNpcPlace", needPlace)
+	-- La Grieta del cielo: qué fase de la saga ve este jugador (la dibuja su cliente, Controllers/SkyRift)
+	player:SetAttribute("SkyRift", SkyRift.phaseFor(story))
 	local encoded = HttpService:JSONEncode(state)
 	if force or encoded ~= rt.LastPublished then
 		rt.LastPublished = encoded

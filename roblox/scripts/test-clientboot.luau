@@ -1637,6 +1637,21 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean })
 			-- Una misión canónica pendiente (LifeStoryService): su ❗ en el minimapa
 			localPlayer:SetAttribute("CanonMarks", '[{"Id":"Grieta01","Title":"La grieta","X":40,"Y":0,"Z":-60}]')
 		end,
+		[math.floor(3.5 * FPS)] = function()
+			-- La Grieta del cielo abierta (Controllers/SkyRift): se construye, se abre y late
+			localPlayer:SetAttribute("SkyRift", "Abierta")
+		end,
+		[math.floor(13.5 * FPS)] = function()
+			local folder = workspace:FindFirstChild("CieloGrieta")
+			local beams = 0
+			for _, d in (if folder then folder:GetDescendants() else {}) do
+				if d.ClassName == "Beam" then
+					beams += 1
+				end
+			end
+			table.insert(checks, { folder ~= nil and beams > 20, ("la Grieta del cielo se dibuja (%d beams)"):format(beams) })
+			localPlayer:SetAttribute("SkyRift", "Cerrada")
+		end,
 		[math.floor(23 * FPS)] = function()
 			-- Gráficos: DayLight pinta los efectos de imagen y el menú tiene «✨ Gráficos»
 			local lightingNow = game:GetService("Lighting")

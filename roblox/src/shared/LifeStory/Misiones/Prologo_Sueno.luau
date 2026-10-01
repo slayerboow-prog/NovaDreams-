@@ -1,6 +1,6 @@
 -- PRÓLOGO · «El sueño» (2-4 min, solo la primera vez; se puede volver a ver desde «Mi historia»).
 -- Es el tutorial de los controles contado como historia. La noche en que naces, sueñas con lo que
--- está por venir: ya eres un poco mayor, hay una línea verde en el cielo (la Grieta) y un inventor
+-- está por venir: ya eres un poco mayor, hay una raja de luz en el cielo (la Grieta) y un inventor
 -- con bata te espera junto a un garaje. Cada paso enseña un control con una tarjeta de ayuda (Hint):
 --   moverse → correr → saltar → hablar (con una decisión) → coger algo → seguir la línea → abrir el mapa
 -- Pasa en el «sueño» (una isla pequeña y segura en el cielo, World/Kit/DreamIsland) y después empieza
@@ -55,7 +55,7 @@ return {
 			{ S = "Narrador", T = "Es un sueño. En el sueño ya no eres un bebé: eres un poco mayor. Y alguien te está esperando." },
 			{ S = "Cosme", T = "¡Ah, criatura! Llegas pronto. O tarde. En los sueños nunca se sabe." },
 			{ S = "Cosme", T = "Soy Cosme. Inventor. Genio. Vecino. Todavía no nos conocemos… pero nos conoceremos." },
-			{ S = "Cosme", T = "¿Ves esa línea verde en el cielo? Se llama la Grieta. No debería estar ahí. Es… culpa mía. Un poco. Bastante.", A = "Sad" },
+			{ S = "Cosme", T = "¿Ves esa raja de luz en el cielo? Se llama la Grieta. No debería estar ahí. Es… culpa mía. Un poco. Bastante.", A = "Sad" },
 			{ Ask = "¿Qué le dices?", Options = {
 				{ T = "«¡Yo te ayudo a arreglarla!»", Effects = { Traits = { Valentia = 1 }, Choice = { Prologo = "Ayudar" } }, Then = {
 					{ S = "Cosme", T = "¿Ayudar? ¿Tú? Qué valiente. Me gusta. Ya verás: en Valmar, lo que eliges cambia tu historia." },

@@ -1,7 +1,7 @@
 -- SAGA DE LA GRIETA · ACTO I «La Grieta» (infancia). Misiones CANÓNICAS: siempre en el mapa hasta hacerlas.
 -- Plan completo y reglas de coherencia: docs/historia/13-saga-de-la-grieta.md
 --
---   1 Loco_N1_Cosme      «El vecino del garaje»       (en Loco_Nino.luau) el microondas temporal… y una línea verde en el cielo
+--   1 Loco_N1_Cosme      «El vecino del garaje»       (en Loco_Nino.luau) el microondas temporal… y una raja de luz en el cielo
 --   2 Saga_02_Grieta     «La grieta en el cielo»      cosas que caen del cielo; una moneda con la cara de Cosme… con perilla
 --   3 Saga_03_Pez        «El pez que sabía demasiado»  Don Escamas, los agentes grises del Consorcio y la palabra «Ancla»
 --   4 Saga_04_Ventanilla «La ventanilla 42»           la Aduana del Tiempo multa la Grieta: burocracia cósmica
@@ -26,7 +26,7 @@ return {
 		Kind = "Side",
 		Canon = true,
 		Title = "La grieta en el cielo",
-		Description = "La línea verde del cielo ha crecido. Esta noche han caído cosas. Cosas que no son de aquí.",
+		Description = "La raja de luz del cielo ha crecido. Esta noche han caído cosas. Cosas que no son de aquí.",
 		Type = "Saga de la Grieta · Acto I (2/6)",
 		Duration = { 25, 35 },
 		Npcs = { "Cosme", "Pip", "Bigotes", "Nico" },
@@ -59,7 +59,7 @@ return {
 		},
 		Dialogues = {
 			Medidor = { Lines = {
-				{ S = "Cosme", T = "¿Viste la línea verde del cielo? Ha crecido. Tres centímetros. En el cielo, tres centímetros son MUCHOS kilómetros." },
+				{ S = "Cosme", T = "¿Viste la raja del cielo? Ha crecido. Tres centímetros. En el cielo, tres centímetros son MUCHOS kilómetros." },
 				{ S = "Cosme", T = "Esto es un medidor de rarezas. Pita cuando algo no es de esta dimensión. Esta mañana ha pitado tanto que Pip se ha desmayado." },
 				{ S = "Pip", T = "No me he desmayado. Me he reiniciado con elegancia." },
 				{ S = "Cosme", T = "Esta noche han caído cosas de la grieta. Hay que recogerlas antes de que las encuentre alguien. O algo. Pip va contigo. Yo me quedo… calculando. Y un poco escondido." },
@@ -409,7 +409,7 @@ return {
 				} },
 			} },
 			Anclaje = { Lines = {
-				{ S = "Narrador", T = "Clavas el cristal en el suelo. Suena como una campana muy lejos. En el cielo, la línea verde tiembla." },
+				{ S = "Narrador", T = "Clavas el cristal en el suelo. Suena como una campana muy lejos. En el cielo, la Grieta tiembla." },
 			} },
 			Voz = { Lines = {
 				{ S = "Narrador", T = "La aguja sube como un cohete y cose el cielo, punto a punto, con hilo de luz. La grieta se cierra. Valmar entera se queda a oscuras un segundo… y vuelve la luz." },

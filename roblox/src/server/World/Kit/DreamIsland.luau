@@ -2,7 +2,7 @@
 -- lejos de la ciudad y en el cielo, donde un personaje nuevo aprende los controles jugando:
 --   inicio → círculo de luz (moverse) → pradera (correr) → valla de flores (saltar) → Cosme (hablar)
 --   → tornillo que brilla (coger) → cajas y árboles hasta la puerta del garaje (seguir la línea).
--- Arriba, la Grieta: una línea verde que cruza el cielo.
+-- Arriba, la Grieta: una raja de luz que cruza el cielo (la dibuja el cliente, Controllers/SkyRift).
 -- Muros invisibles alrededor (no se puede caer) y la valla ocupa todo el ancho (solo se pasa saltando).
 -- Deja las marcas StorySpot (Prologo_*) que usan Locations y las cinemáticas del prólogo.
 -- Se construye al arrancar el servidor (Main.server.luau); no está dentro del archivo del mapa.
@@ -112,13 +112,8 @@ function DreamIsland.build(): Model?
 	Builder.decor({ Name = "Tejado", Size = V(13, 1, 15), CFrame = CFrame.new(at(gx, 10.5, gz)), Color = rgb(90, 70, 70), Material = Enum.Material.Slate, Parent = model })
 	Builder.decor({ Name = "Puerta", Size = V(0.4, 7, 8), CFrame = CFrame.new(at(gx - 6.2, 3.5, gz)), Color = rgb(90, 255, 150), Material = Enum.Material.Neon, Transparency = 0.2, Parent = model })
 
-	-- La Grieta: una costura verde que cruza el cielo, encima de toda la isla
-	local crack = Builder.decor({ Name = "Grieta", Size = V(L + 60, 0.8, 1.6), CFrame = CFrame.new(at(L / 2, 70, 0)) * CFrame.Angles(0, math.rad(12), math.rad(4)), Color = rgb(90, 255, 140), Material = Enum.Material.Neon, Parent = model })
-	local glow = Instance.new("PointLight")
-	glow.Range = 60
-	glow.Brightness = 2
-	glow.Color = rgb(90, 255, 140)
-	glow.Parent = crack
+	-- La Grieta (encima de toda la isla) la dibuja el cliente: Controllers/SkyRift, fase «Sueno»
+	-- (shared/SkyRift.Placement.Dream). Antes era una barra de neón verde: ahora es una raja ramificada.
 
 	-- Nubes por debajo (se ve que es un sueño en el cielo)
 	for _, pos in { V(-30, -30, 40), V(60, -40, -60), V(150, -34, 50), V(200, -28, -20), V(20, -50, -30) } do

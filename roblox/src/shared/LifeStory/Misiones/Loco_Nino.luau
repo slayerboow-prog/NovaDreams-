@@ -111,7 +111,7 @@ return {
 						{ S = "Narrador", T = "Esa noche se lo cuentas a {familia}. Te dice que qué imaginación. Y te pone más puré." },
 					} },
 				} },
-				{ S = "Narrador", T = "Al salir del garaje, Cosme se queda mirando el cielo. Encima de Los Pinos hay una línea verde, finísima, como un rasguño en el aire." },
+				{ S = "Narrador", T = "Al salir del garaje, Cosme se queda mirando el cielo. Encima de Los Pinos hay una raja de luz, finísima, como un rasguño en el aire." },
 				{ S = "Cosme", T = "Criatura… ¿eso estaba ahí antes? …No. No estaba. Vete a casa. Mañana hablamos. Mañana… hablamos." },
 			} },
 		},
