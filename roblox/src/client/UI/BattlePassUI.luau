@@ -466,7 +466,7 @@ local function renderFeatured()
 			ui.PreviewHandle.destroy()
 		end
 		local T = ui.Layout.Text
-		ui.PreviewHandle = Preview.mount(F.Stage, reward, { Touch = ui.Layout.Touch, TextSize = T.Small, HintSize = T.Small - 1, Spin = 18, Hint = not ui.Layout.Touch })
+		ui.PreviewHandle = Preview.mount(F.Stage, reward, { Touch = ui.Layout.Touch, TextSize = T.Small, HintSize = T.Small, Spin = 18, Hint = not ui.Layout.Touch })
 		ui.PreviewFor = reward and reward.Id
 	end
 	if not reward then
@@ -720,9 +720,9 @@ function render()
 			renderRows()
 			renderFooter()
 		elseif section == "Missions" then
-			Pages.missions(ui.MissionsPage, ui.Layout, state, missionActions)
+			Pages.missions(ui.MissionsPage, ui.PagesLayout, state, missionActions)
 		elseif section == "Shop" then
-			Pages.shop(ui.ShopPage, ui.Layout, state, missionActions)
+			Pages.shop(ui.ShopPage, ui.PagesLayout, state, missionActions)
 		end
 		renderBenefits()
 	end)
@@ -1135,6 +1135,7 @@ local function build()
 	end
 	Theme.halo(frame, H.Glow, 8, 10)
 	local u: Ui = { Layout = L, Window = frame, Connections = {} }
+	u.PagesLayout = setmetatable({ Text = L.PagesText }, { __index = L })
 	ui = u
 	auto.Shown = true -- (si ya la has abierto, no se vuelve a abrir sola)
 	frame.Destroying:Connect(function()
@@ -1307,12 +1308,7 @@ function BattlePassUI._autoTick(now: number?): string
 	local busy = player:GetAttribute("InDialogue") == true or player:GetAttribute("InCinematic") == true
 	local startCard = startCardOnScreen()
 	local window = otherWindowOpen() or BattlePassUI.isOpen()
-	if busy or startCard or window then
-		auto.FreeSince = nil
-	else
-		auto.FreeSince = auto.FreeSince or t
-	end
-	local block = View.autoOpenBlock({
+	local info = {
 		Enabled = enabled,
 		Visible = View.rowVisible(enabled, state),
 		Shown = auto.Shown,
@@ -1323,8 +1319,17 @@ function BattlePassUI._autoTick(now: number?): string
 		StartCard = startCard,
 		OtherWindow = window,
 		Elapsed = t - (auto.StartedAt :: number),
-		FreeFor = if auto.FreeSince then t - auto.FreeSince else 0,
-	})
+		FreeFor = math.huge,
+	}
+	-- Primero, ¿hay algo en pantalla o algo pendiente? Entonces la calma vuelve a empezar de cero
+	local block = View.autoOpenBlock(info)
+	if block and block ~= "Settling" and block ~= "Loading" then
+		auto.FreeSince = nil
+		return block
+	end
+	auto.FreeSince = auto.FreeSince or t
+	info.FreeFor = t - auto.FreeSince
+	block = View.autoOpenBlock(info)
 	if block then
 		return block
 	end

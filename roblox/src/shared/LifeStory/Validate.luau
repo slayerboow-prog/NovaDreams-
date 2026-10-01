@@ -20,6 +20,7 @@ local Strings = require(script.Parent.Strings)
 local Roles = require(script.Parent.Parent.Roles)
 local Cinematics = require(script.Parent.Cinematics)
 local Emotion = require(script.Parent.Emotion)
+local HappeningIndex = require(script.Parent.HappeningIndex) -- escenas del motor (también valen como cinemática)
 
 -- Lo que puede estar haciendo un personaje en una escena (SceneService)
 local ACTOR_MODES = {
@@ -93,6 +94,8 @@ local EFFECTS = {
 	Flags = true, Unflags = true, Rel = true, Traits = true, Memory = true, Remember = true, Items = true, Take = true,
 	Needs = true, Money = true, Spend = true, Choice = true, Gesture = true, Say = true, Later = true, After = true,
 	OnlyIfUntouched = true, Degree = true, SetStage = true, Teleport = true, Conduct = true,
+	World = true, -- memoria del mundo (WorldMemoryService): { ["Cielo.Crater.Parque"] = "Frio" }
+	Scene = true, -- lanza una escena del motor sin parar la historia (HappeningService)
 }
 -- Una clave de texto es MAYÚSCULAS.CON.PUNTOS; cualquier otra cosa es un texto ya escrito
 local function isKey(value: string): boolean
@@ -325,6 +328,21 @@ function Validate.report(): Report
 		for key, value in e.Choice or {} do
 			produces(key, value)
 		end
+		if e.Scene ~= nil and not HappeningIndex.has(e.Scene) then
+			err("%s: escena desconocida '%s'", where, tostring(e.Scene))
+		end
+		if e.World ~= nil then
+			if type(e.World) ~= "table" then
+				err("%s: World debe ser { [clave] = valor }", where)
+			else
+				local WorldState = require(script.Parent.WorldState)
+				for key in e.World do
+					if not WorldState.validKey(key) then
+						err("%s: clave de la memoria del mundo no válida '%s'", where, tostring(key))
+					end
+				end
+			end
+		end
 		for _, field in { "Money", "Spend" } do
 			if e[field] ~= nil and (type(e[field]) ~= "number" or e[field] < 0 or e[field] ~= e[field]) then
 				err("%s: %s debe ser un número positivo", where, field)
@@ -456,10 +474,10 @@ function Validate.report(): Report
 				err("%s: modo de clase desconocido '%s'", where, tostring(s.Mode))
 			end
 		end
-		if s.Type == "Cinematic" and not Cinematics[s.Id] then
+		if s.Type == "Cinematic" and not Cinematics[s.Id] and not HappeningIndex.has(s.Id) then
 			err("%s: cinemática desconocida '%s'", where, tostring(s.Id))
 		end
-		if s.Cinematic and not Cinematics[s.Cinematic] then
+		if s.Cinematic and not Cinematics[s.Cinematic] and not HappeningIndex.has(s.Cinematic) then
 			err("%s: cinemática desconocida '%s'", where, tostring(s.Cinematic))
 		end
 		if s.Type == "Choice" then
@@ -833,6 +851,51 @@ function Validate.report(): Report
 		end
 		if cine.Sting and not Config.Audio.Stings[cine.Sting] then
 			err("%s: efecto desconocido '%s'", where, cine.Sting)
+		end
+	end
+
+	-- Escenas del motor (shared/LifeStory/Happenings) y decorados por fase (StageSets): pistas en orden,
+	-- anclas que existen, efectos del catálogo, emociones, criaturas y lugares
+	do
+		local ok, problem = pcall(function()
+			local Shared = script.Parent.Parent
+			local Sequencer = require(script.Parent.Sequencer)
+			local ctx = {
+				Fx = require(Shared.StoryFxCatalog).names(),
+				SkyMoods = require(Shared.SkyMoods).names(),
+				Moods = require(script.Parent.ActorMoods).names(),
+				Creatures = require(script.Parent.StoryCreatures).names(),
+				Places = Locations.Places,
+				Zones = Locations.Zones,
+				Cast = Cast.People,
+			}
+			for id, def in HappeningIndex.all() do
+				if Cinematics[id] then
+					err("escena %s: se llama igual que una cinemática", id)
+				end
+				for _, message in Sequencer.validate(id, def, ctx) do
+					err("%s", message)
+				end
+				if def.Music and not Config.Audio.Music[def.Music] then
+					err("escena %s: música desconocida '%s'", id, def.Music)
+				end
+				if def.Sting and not Config.Audio.Stings[def.Sting] then
+					err("escena %s: efecto desconocido '%s'", id, def.Sting)
+				end
+			end
+			local StageSets = require(script.Parent.StageSets)
+			local builders = require(Shared.StageBuilders).names()
+			for id, def in StageSets.Defs do
+				for _, message in StageSets.check(id, def, { Places = Locations.Places, Builders = builders }) do
+					err("%s", message)
+				end
+				for _, rule in def.StateFor or {} do
+					requirements("decorado " .. id, rule.If)
+				end
+			end
+		end)
+		if not ok then
+			err("escenas: no se pudieron revisar (%s)", tostring(problem))
 		end
 	end
 

@@ -59,6 +59,14 @@ function BattlePassLayout.compute(viewport: Vector2, touch: boolean, scale: numb
 		},
 	}
 	local T = L.Text
+	-- (MISIONES y FICHAS, listas con más texto pequeño, van con letra un poco mayor)
+	L.PagesText = {
+		Title = T.Title,
+		Big = if touch then 26 else 22,
+		Body = if touch then 20 else 15,
+		Small = if touch then 17 else 14,
+		Button = if touch then 18 else 14,
+	}
 
 	-- Barra de arriba (de derecha a izquierda: ✖, dinero, secciones y el título con lo que sobra)
 	local topH = if touch then 54 else 52

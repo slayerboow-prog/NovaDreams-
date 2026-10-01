@@ -233,6 +233,8 @@ local order = {
 	"HospitalService", -- morir: pantalla de HAS MUERTO y reaparecer en el hospital (factura)
 	"PrisonService", -- la vida en la cárcel: trabajos, deporte, estudios, comedor, túnel y aislamiento
 	"SceneService", -- actores y objetos de cada misión (solo para su jugador)
+	"WorldMemoryService", -- memoria del mundo de cada jugador (cráteres, quién vive dónde…) y decorados por fase
+	"HappeningService", -- escenas de la historia: planos, efectos, actores con emoción y consecuencias
 	"LifeStoryService", -- la historia de vida escucha a todos los anteriores
 	"CityErrandService", -- encargos de la ciudad: gente con ❗ por todo el mapa que te pide pequeños favores
 	-- Pase de temporada (en este orden: temporada, recompensas, misiones, núcleo y la XP que escucha a todos)

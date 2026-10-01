@@ -314,7 +314,8 @@ function BattlePassView.countdown(season: { [string]: any }?, now: number?): (st
 	end
 	local t = now or tonumber(season.Now) or 0
 	local function span(until_: any): string
-		local left = math.max(0, (tonumber(until_) or t) - t)
+		-- (redondeado al minuto de arriba: «14 horas» no pasa a «13» por una fracción de segundo)
+		local left = math.ceil(math.max(0, (tonumber(until_) or t) - t) / 60) * 60
 		local days = math.floor(left / 86400)
 		local hours = math.floor((left % 86400) / 3600)
 		if days >= 1 then

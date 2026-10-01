@@ -144,6 +144,7 @@ function RewardCard:set(reward: { [string]: any }?, flags: { [string]: any }?)
 	local claimed = state == "CLAIMED"
 	local locked = state == "LOCKED" or state == "PREMIUM_LOCKED"
 	self.Button:SetAttribute("State", state)
+	self.Button:SetAttribute("RewardId", reward.Id)
 	Theme.setText(self.Icon, tostring(reward.Icon or "🎁"))
 	self.RarityBar.BackgroundColor3 = rarity
 	-- Fondo: el color de la rareza sube desde abajo (más fuerte en las raras y mejores)

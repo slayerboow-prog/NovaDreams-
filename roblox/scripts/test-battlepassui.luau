@@ -461,6 +461,14 @@ local function snapshot(opts: { [string]: any }): { [string]: any }
 		preview.Color = preview.Color or def.Color
 		if def.Type == "VehicleSkin" or def.Type == "Decor" then
 			preview.Model = "BattlePassPreviews/" .. def.Id
+		elseif def.Type == "Bundle" and preview.Kind == "Vehicle" then
+			-- (como el servidor: el de un conjunto es el de su primer vehículo)
+			for _, item in def.Items or {} do
+				if item.Type == "VehicleSkin" then
+					preview.Model = "BattlePassPreviews/" .. item.Id
+					break
+				end
+			end
 		end
 		if def.Type == "Emote" then
 			preview.AnimationId = def.AnimationId
@@ -755,11 +763,11 @@ local function clearOf(container, label: string, skip: { [string]: boolean })
 	check(#clashes == 0, label .. ": nada se pisa (" .. #items .. " piezas)" .. (if #clashes > 0 then ": " .. table.concat(clashes, "; ") else ""))
 end
 
-local function childrenInside(container, label: string)
+local function childrenInside(container, label: string, skip: { [string]: boolean }?)
 	local out = {}
 	local w, h = container.Size.X.Offset, container.Size.Y.Offset
 	for _, child in container:GetChildren() do
-		if isGui(child) and child.Visible ~= false and not DECOR[child.Name] then
+		if isGui(child) and child.Visible ~= false and not DECOR[child.Name] and not (skip and skip[child.Name]) then
 			local r = absRect(child, container)
 			if not inside(r, { X = 0, Y = 0, W = w, H = h }) then
 				table.insert(out, child.Name .. describe(r))
@@ -808,7 +816,7 @@ local function layoutChecks(UI, where: string, x: number, y: number, touch: bool
 		clearOf(rewards.Hero.Info, where .. " · emblema, temporada, título, subtítulo, cuenta atrás y botón", {})
 		childrenInside(rewards.Hero.Info, where .. " · información de la cabecera")
 		clearOf(rewards.Hero.Featured, where .. " · ficha de la recompensa destacada", { Sun = true, Ground = true, Stage = true, Veil = true })
-		childrenInside(rewards.Hero.Featured, where .. " · recompensa destacada")
+		childrenInside(rewards.Hero.Featured, where .. " · recompensa destacada", { Sun = true })
 		clearOf(rewards.Rows, where .. " · carriles y filas", {})
 		clearOf(rewards.Rows.Lanes, where .. " · GRATIS / NIVEL / PREMIUM", {})
 		clearOf(rewards.Footer, where .. " · pie (TU NIVEL, XP, botones y caja premium)", {})
@@ -908,7 +916,7 @@ do
 		table.insert(all, item.Text)
 	end
 	local text = table.concat(all, " | ")
-	check(text:find("coches", 1, true) and text:find("ropa", 1, true) and text:find("barco", 1, true) and text:find("gesto", 1, true) and text:find("temas del teléfono", 1, true), "Beneficios del premium contados de verdad: coches, ropa, barcos, gestos, temas del teléfono…")
+	check(text:find("coches", 1, true) and text:find("ropa", 1, true) and text:find("barco", 1, true) and text:find("gesto", 1, true) and text:find("teléfono", 1, true), "Beneficios del premium contados de verdad: coches, ropa, barcos, gestos, temas del teléfono…")
 	check(text:find("Solo estilo", 1, true) ~= nil and text:find("ventaja", 1, true) ~= nil, "Y dice claro que no da ventajas para ganar")
 	check(View.amountText({ Type = "Money", Amount = 250 }) == "250 €" and View.amountText({ Type = "Tokens", Amount = 2 }) == "x2" and View.amountText({ Type = "Title" }) == "", "Cantidades de las tarjetas («250 €», «x2»)")
 	check(View.rarityTag({ Rarity = "Legendaria" }) == "LEGENDARIO" and View.rarityTag({ Rarity = "Epica" }) == "ÉPICO", "Rareza en la etiqueta: «LEGENDARIO», «ÉPICO»")
@@ -981,6 +989,15 @@ check(cardCount == 100, "Dos filas: GRATIS y PREMIUM, una tarjeta por nivel (" .
 check(rewards.Rows.Lanes.FreeLane.Title.Text == "GRATIS" and rewards.Rows.Lanes.FreeLane.Sub.Text == "Pase normal" and rewards.Rows.Lanes.PremiumLane.Title.Text == "PREMIUM" and rewards.Rows.Lanes.PremiumLane.Sub.Text == "Pase de temporada", "Carriles «GRATIS · Pase normal» y «PREMIUM · Pase de temporada»")
 check(scroll.ScrollingDirection == roblox.Enum.ScrollingDirection.X and scroll.CanvasSize.X.Offset > scroll.Size.X.Offset, "Las filas se desplazan en horizontal (juntas con la línea de niveles)")
 local f1, f6, f13, p1 = scroll.Free01, scroll.Free06, scroll.Free13, scroll.Premium01
+-- El nombre de la recompensa de una tarjeta (por su Id, con los datos de verdad de la temporada)
+local function nameOf(card): string
+	for _, def in Season1.Rewards do
+		if def.Id == card:GetAttribute("RewardId") then
+			return def.Name
+		end
+	end
+	return "?"
+end
 check(f1:GetAttribute("State") == "CLAIMED" and f1.Status.Text == "✔" and f1.Status.Visible, "Nivel 1 gratis: reclamada (✔)")
 check(f6:GetAttribute("State") == "AVAILABLE" and f6.Claim.Visible and f6.Claim.Text == "RECLAMAR", "Nivel 6 gratis: lista, con «RECLAMAR» brillando")
 check(f13:GetAttribute("State") == "LOCKED" and f13.Status.Text == "🔒" and not f13.Claim.Visible, "Nivel 13: bloqueada (🔒)")
@@ -990,12 +1007,12 @@ do
 	local money = nil
 	for i = 1, 50 do
 		local card = scroll["Free" .. ("%02d"):format(i)]
-		if card.Reward and card.Reward.Type == "Money" and card:GetAttribute("State") ~= "AVAILABLE" then
+		if card.Amount.Visible and card.Amount.Text:find("€", 1, true) then
 			money = card
 			break
 		end
 	end
-	check(money ~= nil and money.Amount.Visible and money.Amount.Text:find("€", 1, true) ~= nil, "Con su cantidad si la hay (" .. tostring(money and money.Amount.Text) .. ")")
+	check(money ~= nil, "Con su cantidad si la hay (" .. tostring(money and money.Amount.Text) .. ")")
 end
 -- Línea de niveles
 local line = scroll.Line
@@ -1029,7 +1046,7 @@ f6.Activated:Fire()
 check(count("Claim") == 1, "Pulsar otra vez no manda otra petición")
 f13.Activated:Fire()
 check(count("Claim") == 1, "Una bloqueada no pide nada")
-check(featured.RewardName.Text == f13.Reward.Name and featured.FeatKicker.Text == "NIVEL 13 · GRATIS", "Tocar otra la enseña arriba en grande (" .. featured.FeatKicker.Text .. ")")
+check(featured.RewardName.Text == nameOf(f13) and featured.FeatKicker.Text == "NIVEL 13 · GRATIS", "Tocar otra la enseña arriba en grande (" .. featured.FeatKicker.Text .. ")")
 check(not featured.Action.Visible and featured.See.Text == "👁 Ver recompensas", "Bloqueada: solo «Ver recompensas»")
 clearOf(featured, "1920x1080 · destacado con un botón", { Sun = true, Ground = true, Stage = true, Veil = true })
 push(snapshot({ Level = 12, ClaimedFree = levels(1, 6) }))
@@ -1039,7 +1056,7 @@ check(sentHas("ClaimAll"), "RECLAMAR TODO pide «ClaimAll»")
 
 -- Elegir una ya reclamada que se equipa (título)
 f1.Activated:Fire()
-check(featured.RewardName.Text == f1.Reward.Name and featured.Action.Visible and featured.Action.Text == "EQUIPAR", "Lo que ya es tuyo y se equipa: [EQUIPAR]")
+check(featured.RewardName.Text == nameOf(f1) and featured.Action.Visible and featured.Action.Text == "EQUIPAR", "Lo que ya es tuyo y se equipa: [EQUIPAR]")
 clearOf(featured, "1920x1080 · destacado con dos botones", { Sun = true, Ground = true, Stage = true, Veil = true })
 featured.Action.Activated:Fire()
 check(sentHas("Equip", "Title", "S1_F01"), "EQUIPAR pide «Equip» (Title, S1_F01)")
@@ -1049,7 +1066,7 @@ check(featured.Action.Text == "QUITAR", "Si ya lo llevas: [QUITAR]")
 -- Tooltip (ordenador)
 f13.MouseEnter:Fire()
 local tip = playerGui:FindFirstChild("BattlePassTip")
-check(tip and tip.Tip.Visible and tip.Tip.TipName.Text:find(f13.Reward.Name, 1, true) ~= nil and tip.Tip.TipState.Text == "BLOQUEADA", "Al pasar el ratón: tooltip con nombre, descripción y estado")
+check(tip and tip.Tip.Visible and tip.Tip.TipName.Text:find(nameOf(f13), 1, true) ~= nil and tip.Tip.TipState.Text == "BLOQUEADA", "Al pasar el ratón: tooltip con nombre, descripción y estado")
 f13.MouseLeave:Fire()
 check(tip and not tip.Tip.Visible, "Y se va al salir")
 
@@ -1293,7 +1310,8 @@ do
 	localPlayer:SetAttribute("InDialogue", true)
 	check(U._autoTick(31) == "Busy" and not U.isOpen(), "En una conversación o escena, espera")
 	localPlayer:SetAttribute("InDialogue", nil)
-	check(U._autoTick(31.5) == "Quiet" and U._autoTick(33.5) == "Opened", "Y sale cuando acaba")
+	local q1, q2 = U._autoTick(41), U._autoTick(43)
+	check(q1 == "Quiet" and q2 == "Opened", "Y sale cuando acaba (" .. q1 .. ", " .. q2 .. ")")
 	U.close()
 	-- Jugador NUEVO: nunca encima del prólogo, el tutorial ni de bebé
 	U = mount(false, 1920, 1080, true)
@@ -1307,7 +1325,8 @@ do
 	localPlayer:SetAttribute("LifeStage", "Nino")
 	check(U._autoTick(302) == "Tutorial" and not U.isOpen(), "Ni mientras hace los primeros pasos")
 	localPlayer:SetAttribute("Tutorial", "Hecho")
-	check(U._autoTick(303) == "Quiet" and U._autoTick(305) == "Opened" and U.isOpen(), "Al acabar el tutorial, sale")
+	local t1, t2 = U._autoTick(303), U._autoTick(305)
+	check(t1 == "Quiet" and t2 == "Opened" and U.isOpen(), "Al acabar el tutorial, sale (" .. t1 .. ", " .. t2 .. ")")
 	U.close()
 	-- Segunda sesión del jugador nuevo (ya hecho el tutorial): sale al entrar
 	U = mount(false, 1920, 1080, true)

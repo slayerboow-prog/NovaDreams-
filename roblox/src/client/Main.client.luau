@@ -147,6 +147,8 @@ task.spawn(DebugHud.init) -- panel de depuración del dueño (F8); a los demás 
 task.spawn(MiniGameUI.init) -- pase, canastas, partido de fútbol
 task.spawn(SceneClient.init) -- cada uno ve solo los personajes de su historia
 task.spawn(CanonMarkers.init) -- la saga: ❗ dorados en el mapa y pilares de luz hasta que haces cada misión canónica
+task.spawn(require(script.Parent.Controllers.HappeningClient).init) -- escenas de la historia: planos, efectos, actores, diálogo en el mundo
+task.spawn(require(script.Parent.Controllers.StageSetsClient).init) -- decorados por fase: lo que tu historia dejó en el mundo (cráteres…)
 task.spawn(CityErrands.init) -- encargos de la ciudad: cada uno ve solo los objetos y la gente de su encargo
 task.spawn(NameTags.init) -- el nombre encima de los personajes de la historia (legible y sin pisar los bocadillos)
 task.spawn(ActorLife.init) -- los personajes respiran, miran, gesticulan al hablar y andan con animación

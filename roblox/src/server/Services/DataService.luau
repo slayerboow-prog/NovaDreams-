@@ -104,6 +104,7 @@ local DEFAULT_DATA = {
 		PrologueResult = "", -- cómo acabó: "Done", "Skipped", "Error", "Timeout", "Left", "Veteran"…
 		LastSeen = 0, -- última vez que se le vio jugando (os.time): para «Anteriormente en tu vida…»
 		RecapAt = 0, -- cuándo se enseñó el último resumen
+		World = {}, -- memoria del mundo (WorldMemoryService): lo que tu historia dejó en el mundo
 	},
 	-- Primeros pasos (OnboardingService): el tutorial guiado ("" = sin decidir, "Pendiente", "Hecho",
 	-- "Saltado" o "Veterano"), los pasos ya hechos y los consejos de la primera vez ya vistos
