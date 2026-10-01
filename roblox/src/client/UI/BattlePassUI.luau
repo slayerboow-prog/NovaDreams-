@@ -624,7 +624,8 @@ local function renderFooter()
 	Theme.setText(ui.LevelNumber, tostring(level))
 	local xp, need = (progress and progress.Xp) or 0, (progress and progress.XpForNext) or 1
 	local multiplier = progress and tonumber(progress.EventMultiplier) or 1
-	local xpText = if progress and progress.IsMax then "NIVEL MÁXIMO" else ("%s / %s XP"):format(View.number(xp), View.number(need))
+	-- (en el móvil, sin « XP»: que quepa al lado de «TU NIVEL»)
+	local xpText = if progress and progress.IsMax then "NIVEL MÁXIMO" else ("%s / %s%s"):format(View.number(xp), View.number(need), if ui.Layout.Touch then "" else " XP")
 	if multiplier > 1 then
 		xpText = ("×%s · %s"):format((("%.2f"):format(multiplier):gsub("0+$", ""):gsub("%.$", ""):gsub("%.", ",")), xpText)
 	end
@@ -1058,8 +1059,8 @@ local function buildFooter(u: Ui, parent: Instance)
 	local xp = create("Frame", { Name = "Xp", BackgroundTransparency = 1, Parent = foot })
 	place(xp, Fo.Xp)
 	local half = math.floor(Fo.Xp.H / 2)
-	Theme.label({ Name = "Label", Position = UDim2.fromOffset(0, half - T.Small - 8), Size = UDim2.new(0.45, 0, 0, T.Small + 4), Text = "TU NIVEL", Font = Theme.FontBold, TextSize = T.Small, TextColor3 = C.Muted, Parent = xp })
-	u.XpText = Theme.label({ Name = "XpText", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 0, half - T.Small - 8), Size = UDim2.new(0.55, -4, 0, T.Small + 4), Text = "", Font = Theme.FontBold, TextSize = T.Small, TextXAlignment = Enum.TextXAlignment.Right, TextTruncate = Enum.TextTruncate.AtEnd, Parent = xp })
+	Theme.label({ Name = "Label", Position = UDim2.fromOffset(0, half - T.Small - 8), Size = UDim2.new(0.4, 0, 0, T.Small + 4), Text = "TU NIVEL", Font = Theme.FontBold, TextSize = T.Small, TextColor3 = C.Muted, Parent = xp })
+	u.XpText = Theme.label({ Name = "XpText", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 0, half - T.Small - 8), Size = UDim2.new(0.6, -4, 0, T.Small + 4), Text = "", Font = Theme.FontBold, TextSize = T.Small, TextXAlignment = Enum.TextXAlignment.Right, TextTruncate = Enum.TextTruncate.AtEnd, Parent = xp })
 	local bar = create("Frame", { Name = "XpBar", Position = UDim2.fromOffset(0, half + 2), Size = UDim2.new(1, 0, 0, 10), BackgroundColor3 = H.Track, BorderSizePixel = 0, Parent = xp }, {
 		create("UICorner", { CornerRadius = UDim.new(1, 0) }),
 		create("UIStroke", { Color = H.Edge, Transparency = 0.5, Thickness = 1 }),

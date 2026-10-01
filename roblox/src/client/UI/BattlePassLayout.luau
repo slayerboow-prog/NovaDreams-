@@ -127,7 +127,7 @@ function BattlePassLayout.compute(viewport: Vector2, touch: boolean, scale: numb
 			I.PassTitle = rect(tx, y, tw, 40)
 			y += 40 + 2
 		end
-		local titleH = if compact then (if touch then 30 else 34) else 52
+		local titleH = if compact then (if touch then 28 else 34) else 52
 		I.Name = rect(tx, y, tw, titleH)
 		y += titleH + 2
 		local buyH = if touch then L.Button else (if compact then 40 else 48)
@@ -176,7 +176,7 @@ function BattlePassLayout.compute(viewport: Vector2, touch: boolean, scale: numb
 	L.Hero = Hero
 
 	-- Filas
-	local laneW = if touch then 150 else 168
+	local laneW = if touch then 156 else 168
 	local rowsY = heroH + gap
 	local scrollX = laneW + gap
 	local Rows: { [string]: any } = {
@@ -229,7 +229,7 @@ function BattlePassLayout.compute(viewport: Vector2, touch: boolean, scale: numb
 		local xpX = hex + 10
 		if touch then
 			-- (móvil: la XP con su ancho justo y la caja del premium se queda con el resto)
-			Fo.Xp = rect(xpX, 0, 170, footH)
+			Fo.Xp = rect(xpX, 0, 200, footH)
 			Fo.Jump = rect(Fo.Xp.X + Fo.Xp.W + 12, by, jumpW, btn)
 			Fo.ClaimAll = rect(Fo.Jump.X + jumpW + 8, by, claimW, btn)
 			local px = Fo.ClaimAll.X + claimW + 10
