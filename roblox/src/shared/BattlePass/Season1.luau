@@ -387,8 +387,8 @@ return {
 	Name = "Luces de Valmar",
 	Subtitle = "Temporada 01",
 	Theme = "La ciudad que no se apaga: de la verbena de Playa Dorada a las torres del Distrito Financiero.",
-	-- Fechas en hora UTC (segundos desde 1970). 5-oct-2026 00:00 UTC → 7-dic-2026 00:00 UTC (9 semanas)
-	StartsAt = 1791158400,
+	-- Fechas en hora UTC (segundos desde 1970). 1-oct-2026 00:00 UTC (empieza ya, decisión del dueño) → 7-dic-2026 00:00 UTC
+	StartsAt = 1790812800,
 	EndsAt = 1796601600,
 	MaxLevel = 50,
 	-- XP para pasar del nivel n al n+1 = Base + Step × (n − 1). Total hasta el 50: 77.420 XP.
