@@ -202,7 +202,9 @@ Activación: tras `Loco_N1_Cosme`, etapa Niño; se ofrece en el patio.
 Activación: tras `Loco_N1_Cosme`, etapa Niño, se ofrece en el garaje de Cosme. Lugares: `Granja`, `GranjaGranero`
 (`Model Granja` → hijo `Granero`), `GranjaSilo`.
 
-**Estado actual en el mundo (por qué el dueño no ve nada)**
+**Estado actual en el mundo (por qué el dueño no ve nada)** — *en la versión con commit al hacer el análisis; otro agente
+está construyendo ya la granja de Julián (`Kit/GranjaJulian`, `Kit/GallinaGigante`, prop `HuevoGigante` de 7,2 studs,
+marcas `GranjaNido`/`GranjaPatio`/`GranjaComedero`): ver la nota de [`escenarios-pendientes.md`](escenarios-pendientes.md#diagnóstico-lo-que-se-repite-en-todas-las-misiones)*
 - Granero: `Civic.farm` (`Kit/Civic.luau:786-791`) construye un `Building` estilo casa de **26×20 studs y una planta
   de 10 studs** (≈7×5,6×2,8 m), rojo, con `Interior = false`: **no se puede entrar** y no cabe una gallina de 6 m
   (≈21 studs).
