@@ -1,202 +1,54 @@
--- Prueba de la Grieta del cielo (shared/SkyRift y Controllers/SkyRift) FUERA de Roblox, con Lune.
+-- Prueba de la Grieta del cielo (shared/SkyRift, shared/SkyRiftArt y Controllers/SkyRift) FUERA de
+-- Roblox, con Lune.
 --
 -- Uso (desde la carpeta roblox/):
 --   lune run scripts/test-skyrift.luau
 --
 -- Comprueba que:
---   * la forma: una raja principal dentada y larga en diagonal, de 6 a 14 ramas que nacen en la
---     principal y se estrechan hasta la punta, uniones brillantes; siempre la misma (semilla fija)
---   * las capas: núcleo claro (blanco-amarillo), fuego naranja/ámbar más ancho y halo verde-cian muy
---     ancho y transparente; el núcleo emite luz y pasa el umbral del resplandor
---   * abrirse: crece desde el centro, las ramas salen después, todo engorda; intensidad 0 = no se ve
---   * las fases de la saga (de la misión de Cosme al final) y que se abre/cierra poco a poco
---   * el nivel Bajo: sin halo ni partículas, y menos instancias (presupuesto del móvil)
---   * el cliente: lejos (en el cielo), sin colisión ni consultas, y sigue a la cámara
+--   * las 7 etapas del dueño (scripts/rift/etapas.png) y cómo la saga las recorre: la grieta CRECE
+--     (Rasguño 2 → Crece 3 → Grande 4 → Abierta 5 … Inminente 6 → Fusión 7), Cosida es una cicatriz
+--   * las texturas (textures/rift/, scripts/rift/gen.py) existen, con alfa y el tamaño pedido; la
+--     silueta (SkyRiftArt) es una rasgadura horizontal ancha y dentada con la galaxia dentro
+--   * con y sin ids (RiftTextureIds): sin ids se dibuja por código; con ids, con las imágenes
+--   * los rayos salen del borde hacia fuera/abajo y se regeneran con parpadeo; las rocas giran y
+--     flotan; hay partículas; el ambiente se tiñe (azul; violeta en la 7) y se quita al cerrar
+--   * el nivel Bajo: sin rocas 3D y la mitad de rayos y partículas; presupuesto de instancias
+--   * el cliente de verdad (cargado con dobles de Roblox): plano lejano de cara a la cámara, sin
+--     colisión, capas, rayos, rocas, partículas, ambiente, modo pruebas al instante
 
 local fs = require("@lune/fs")
-local luau = require("@lune/luau")
-local process = require("@lune/process")
+local roblox = require("@lune/roblox")
+local L = require("./lib/ModuleLoader")
 
-local failures = 0
-local function check(ok: any, what: string)
-	if ok then
-		print("  ✅ " .. what)
-	else
-		failures += 1
-		print("  ❌ " .. what)
-	end
-end
+local check = L.check
 
-local Rift = luau.load(fs.readFile("src/shared/SkyRift.luau"), { debugName = "SkyRift" })()
-
-local function dist(a, b): number
-	return math.sqrt((a.X - b.X) ^ 2 + (a.Y - b.Y) ^ 2)
-end
+local Rift = L.load("src/shared/SkyRift")
+local Art = L.load("src/shared/SkyRiftArt")
+local SkyMoods = L.load("src/shared/SkyMoods")
 
 ---------------------------------------------------------------------
-print("Forma (raja principal y ramas)")
+print("Las 7 etapas y las fases de la saga")
 ---------------------------------------------------------------------
-local shape = Rift.shape()
-local main = shape.Main
-local first, last = main.Points[1], main.Points[#main.Points]
-check(#main.Points >= 12, ("la principal tiene muchos puntos (%d): dentada, no una barra"):format(#main.Points))
-check(dist(first, last) > 1.6, "la principal es larga (cruza el cielo)")
-local slope = math.deg(math.atan2(last.Y - first.Y, last.X - first.X))
-check(slope > 15 and slope < 60, ("va en diagonal (%.0f°)"):format(slope))
+check(#Rift.Stages == 7, "7 etapas (como la imagen del dueño)")
+local names = {}
+for i, st in Rift.Stages do
+	names[i] = st.Name
+end
+check(names[1] == "Cielo normal" and names[2] == "Primera anomalía" and names[5] == "Portal dimensional" and names[7] == "Evento final", "con sus nombres: " .. table.concat(names, " · "))
+local S = Rift.Stages
+check(S[2].Width < S[3].Width and S[3].Width < S[4].Width, "de la anomalía a la gran fractura, cada vez más grande")
+check(S[5].Width < S[6].Width and S[6].Width < S[7].Width and S[7].Width >= 2000, "portal → colosal → evento final (tapa casi todo el cielo)")
+check(S[2].Star and S[2].Bolts == 0 and S[2].Rocks == 0, "2: solo el destello violeta y una raya fina (sin rayos ni rocas)")
+check(S[3].Bolts > 0 and S[3].Rocks == 0 and S[3].Ambient > 0, "3: rayos y el cielo empieza a oscurecerse (aún sin rocas)")
+check(S[4].Rocks > 0 and S[4].Draw.Fill and S[4].Draw.Roll ~= 0, "4: rocas, interior oscuro y en diagonal")
+check(S[5].Draw.Cosmos and S[6].Draw.Cosmos and S[7].Draw.Backdrop, "5-7: el espacio dentro (galaxia, planeta, estrellas); 7: casi todo el cielo")
+check(S[7].Mood == "GrietaFinal" and S[7].Ambient == 1, "7: la luz de toda la ciudad, violeta")
+local grows = true
+for i = 3, 7 do
+	grows = grows and S[i].Ambient >= S[i - 1].Ambient and S[i].Bolts >= S[i - 1].Bolts
+end
+check(grows, "cuanto más avanzada la etapa, más ambiente teñido y más rayos")
 
--- Dentada: el zigzag se ve en los giros bruscos entre tramos (la curva de fondo es suave)
-local turns = 0
-for i = 2, #main.Points - 1 do
-	local a, b, c = main.Points[i - 1], main.Points[i], main.Points[i + 1]
-	local t1 = math.atan2(b.Y - a.Y, b.X - a.X)
-	local t2 = math.atan2(c.Y - b.Y, c.X - b.X)
-	local d = math.abs((t2 - t1 + math.pi) % (2 * math.pi) - math.pi)
-	if d > math.rad(12) then
-		turns += 1
-	end
-end
-check(turns >= #main.Points / 3, ("borde dentado: %d giros bruscos entre tramos"):format(turns))
-
--- Más ancha en el centro que en las puntas
-local mid = main.Widths[math.ceil(#main.Widths / 2)]
-check(mid > main.Widths[1] * 3 and mid > main.Widths[#main.Widths] * 3, "la principal es más ancha en el centro y fina en las puntas")
-
-check(#shape.Branches >= 6 and #shape.Branches <= 14, ("%d ramas (de 6 a 14)"):format(#shape.Branches))
-local allBorn, allTaper, allThinner, allShort = true, true, true, true
-for _, b in shape.Branches do
-	-- Nace en un punto de la principal
-	local born = false
-	for _, p in main.Points do
-		if dist(p, b.Points[1]) < 1e-6 then
-			born = true
-		end
-	end
-	allBorn = allBorn and born
-	-- Se estrecha hasta la punta
-	for i = 2, #b.Widths do
-		if b.Widths[i] >= b.Widths[i - 1] then
-			allTaper = false
-		end
-	end
-	allTaper = allTaper and b.Widths[#b.Widths] < b.Widths[1] * 0.3
-	allThinner = allThinner and b.Widths[1] < mid
-	local reach = dist(b.Points[1], b.Points[#b.Points])
-	allShort = allShort and reach > 0.02 and reach < 0.8
-	allShort = allShort and #b.Points >= 3
-end
-check(allBorn, "cada rama nace en un punto de la principal")
-check(allTaper, "cada rama se estrecha hasta acabar en punta")
-check(allThinner, "las ramas son más finas que la principal")
-check(allShort, "las ramas son laterales (más cortas que la principal)")
-check(#shape.Joints >= 3 and #shape.Joints <= Rift.MaxJoints, ("%d uniones brillantes (como mucho %d)"):format(#shape.Joints, Rift.MaxJoints))
-
--- Determinista: la misma semilla, la misma grieta; otra semilla, otra
-local again = Rift.shape()
-local same = #again.Branches == #shape.Branches
-for i, p in main.Points do
-	same = same and math.abs(p.X - again.Main.Points[i].X) < 1e-12 and math.abs(p.Y - again.Main.Points[i].Y) < 1e-12
-end
-check(same, "determinista: con la semilla fija sale siempre la misma grieta")
-local other = Rift.shape(99)
-check(math.abs(other.Main.Points[5].Y - main.Points[5].Y) > 1e-6, "otra semilla, otra grieta")
-for seed = 1, 60 do
-	local s = Rift.shape(seed * 7919)
-	if #s.Branches < 6 or #s.Branches > 14 then
-		check(false, "semilla " .. seed .. ": ramas fuera de 6-14")
-	end
-end
-
----------------------------------------------------------------------
-print("Capas de color")
----------------------------------------------------------------------
-local L = Rift.Layers
-local function lum(c)
-	return 0.299 * c[1] + 0.587 * c[2] + 0.114 * c[3]
-end
-for _, key in { "Color", "Color2" } do
-	local core, fire, halo = L.Core[key], L.Fire[key], L.Halo[key]
-	check(core[1] >= 240 and core[2] >= 225 and core[3] >= 150 and lum(core) > 225, "núcleo claro, blanco-amarillo (" .. key .. ")")
-	check(fire[1] >= 240 and fire[2] >= 110 and fire[2] <= 200 and fire[3] <= 90, "fuego naranja/ámbar (" .. key .. ")")
-	check(halo[3] >= 180 and halo[2] >= 180 and halo[1] <= 120, "halo azul-cian/verde-cian (" .. key .. ")")
-end
-check(L.Core.WidthMul < L.Fire.WidthMul and L.Fire.WidthMul < L.Halo.WidthMul, "de dentro afuera, cada capa más ancha: núcleo < fuego < halo")
-check(L.Halo.WidthMul >= 4, "el halo es muy ancho")
-check(L.Core.Transparency < L.Fire.Transparency and L.Fire.Transparency < L.Halo.Transparency, "el núcleo opaco, el halo muy transparente")
-check(L.Core.LightEmission == 1 and L.Core.Brightness > 2.6, "el núcleo emite luz y pasa el umbral del resplandor (Bloom)")
-check(Rift.HaloTexture:find("^rbxasset://") ~= nil and Rift.SparkTexture:find("^rbxasset://") ~= nil, "texturas de Roblox (ninguna imagen de fuera)")
-
----------------------------------------------------------------------
-print("Abrirse (fases de crecimiento) e intensidad")
----------------------------------------------------------------------
-local function visibleLength(segs, path: number?): number
-	local total = 0
-	for _, s in segs do
-		if s.Visible and (path == nil or s.Path == path) then
-			total += dist(s.A, s.B)
-		end
-	end
-	return total
-end
-local function visibleCount(segs, branchesOnly: boolean): number
-	local n = 0
-	for _, s in segs do
-		if s.Visible and (not branchesOnly or s.Path > 0) then
-			n += 1
-		end
-	end
-	return n
-end
-local r0, r3, r6, r1 = Rift.reveal(shape, 0), Rift.reveal(shape, 0.3), Rift.reveal(shape, 0.6), Rift.reveal(shape, 1)
-check(#r0 == #r1 and #r3 == #r1, "siempre los mismos tramos (el cliente crea uno por tramo)")
-check(visibleCount(r0, false) == 0, "cerrada (0): no se ve nada")
-check(visibleLength(r3, 0) < visibleLength(r6, 0) and visibleLength(r6, 0) < visibleLength(r1, 0), "la principal crece al abrirse")
-check(visibleCount(r3, true) < visibleCount(r1, true), "las ramas van saliendo al abrirse")
-check(visibleCount(r1, true) >= #shape.Branches, "abierta del todo: se ven todas las ramas")
--- Crece desde el centro: el punto medio se ve ya con poca apertura
-local centre = Rift.reveal(shape, 0.1)
-check(visibleCount(centre, false) > 0 and visibleLength(centre, 0) < visibleLength(r1, 0) * 0.2, "empieza a abrirse por el centro")
-local wSmall, wBig = 0, 0
-for i, s in r3 do
-	if s.Visible and s.Path == 0 then
-		wSmall = math.max(wSmall, s.W0)
-		wBig = math.max(wBig, r1[i].W0)
-	end
-end
-check(wSmall < wBig, "al abrirse, la raja engorda")
-local h1 = Rift.halo(shape, 1)
-local haloVisible = 0
-for _, s in h1 do
-	if s.Visible then
-		haloVisible += 1
-	end
-end
-check(haloVisible > 0 and #h1 < #r1, "halo en pocos tramos largos")
-
-local t0 = Rift.layerLook("Core", 0, 1, 1)
-check(t0 == 1, "intensidad 0: transparente del todo")
-local tCoreHalf = Rift.layerLook("Core", 0.5, 1, 1)
-local tCoreFull, bCoreFull = Rift.layerLook("Core", 1, 1, 1)
-check(tCoreFull < tCoreHalf and tCoreHalf < 1, "más intensidad, más se ve")
-local _, bDay = Rift.layerLook("Core", 1, 1, Rift.skyFactor(13))
-check(bDay < bCoreFull and Rift.skyFactor(23) == 1 and Rift.skyFactor(13) < 0.7, "de noche se ve del todo; de día, menos")
-local lo, hi = math.huge, -math.huge
-for k = 1, 400 do
-	local p = Rift.pulse(k * 0.037, k % 9)
-	lo, hi = math.min(lo, p), math.max(hi, p)
-end
-check(hi - lo > 0.1 and lo > 0.65 and hi < 1.15, ("late y parpadea un poco (pulso %.2f-%.2f)"):format(lo, hi))
-
--- Se abre y se cierra poco a poco
-local o, secs = 0, 0
-while o < 1 and secs < 60 do
-	o = Rift.approach(o, 1, 0.1)
-	secs += 0.1
-end
-check(secs > 4 and secs < 15, ("se abre poco a poco (%.1f s de cerrada a abierta)"):format(secs))
-
----------------------------------------------------------------------
-print("Fases de la saga")
----------------------------------------------------------------------
 local function phase(active, completed, flags)
 	return Rift.phaseFor({ Active = active or {}, Completed = completed or {}, Flags = flags or {} })
 end
@@ -207,75 +59,466 @@ local function done(...)
 	end
 	return t
 end
+local P = Rift.Phases
+local function stageOf(name)
+	return P[name].Stage
+end
 local ACT1 = { "Loco_N1_Cosme", "Saga_02_Grieta", "Saga_03_Pez", "Saga_04_Ventanilla", "Saga_05_Perdidas" }
-check(phase() == "Ninguna", "sin saga: no hay grieta")
-check(phase({ Prologo_Sueno = {} }) == "Sueno", "prólogo: la grieta del sueño (encima de la isla)")
-check(Rift.phase("Sueno").Mode == "Dream" and Rift.phase("Crece").Mode == "Sky", "en el sueño, fija sobre la isla; en Valmar, en el cielo")
+check(phase() == "Ninguna" and stageOf("Ninguna") == 1, "sin saga: cielo normal (etapa 1)")
+check(phase({ Prologo_Sueno = {} }) == "Sueno" and P.Sueno.Mode == "Dream", "prólogo: la grieta del sueño (encima de la isla)")
 check(phase({ Loco_N1_Cosme = {} }) == "Ninguna", "mientras conoces a Cosme aún no está (sale al final)")
-check(phase({}, done("Loco_N1_Cosme"), { GrietaVista = true }) == "Rasguno", "tras conocer a Cosme: un rasguño de luz")
-check(phase({ Saga_02_Grieta = {} }, done("Loco_N1_Cosme")) == "Crece", "«La grieta en el cielo»: ha crecido")
-check(phase({ Saga_05_Perdidas = {} }, done("Loco_N1_Cosme", "Saga_02_Grieta", "Saga_03_Pez", "Saga_04_Ventanilla")) == "Grande", "la noche de las cosas perdidas: más grande")
-check(phase({ Saga_06_Coser = {} }, done(table.unpack(ACT1))) == "Abierta", "«Coser el cielo»: abierta del todo")
+check(phase({}, done("Loco_N1_Cosme"), { GrietaVista = true }) == "Rasguno" and stageOf("Rasguno") == 2, "tras conocer a Cosme: la primera anomalía (etapa 2)")
+check(phase({ Saga_02_Grieta = {} }, done("Loco_N1_Cosme")) == "Crece" and stageOf("Crece") == 3, "«La grieta en el cielo»: la grieta crece (etapa 3)")
+check(phase({ Saga_05_Perdidas = {} }, done("Loco_N1_Cosme", "Saga_02_Grieta", "Saga_03_Pez", "Saga_04_Ventanilla")) == "Grande" and stageOf("Grande") == 4, "la noche de las cosas perdidas: gran fractura (etapa 4)")
+check(phase({ Saga_06_Coser = {} }, done(table.unpack(ACT1))) == "Abierta" and stageOf("Abierta") == 5, "«Coser el cielo»: el portal abierto del todo (etapa 5, la referencia)")
 local c6 = done(table.unpack(ACT1))
 c6.Saga_06_Coser = 1
-check(phase({}, c6) == "Cosida", "cosida: solo una cicatriz")
-check(phase({ Saga_07_Costuras = {} }, c6) == "Hilachas", "Acto II: las costuras se sueltan")
+check(phase({}, c6) == "Cosida" and stageOf("Cosida") == 2 and P.Cosida.Intensity < 0.5, "cosida: solo una cicatriz (la raya fina, apagada)")
+check(phase({ Saga_07_Costuras = {} }, c6) == "Hilachas" and stageOf("Hilachas") == 3, "Acto II: las costuras se sueltan (etapa 3)")
 c6.Saga_12_Graduacion = 1
-check(phase({ Saga_13_SinCosme = {} }, c6) == "Rota", "Acto III: la costura rota")
+check(phase({ Saga_13_SinCosme = {} }, c6) == "Rota" and stageOf("Rota") == 5, "Acto III: la costura se rompe y vuelve el portal (etapa 5)")
 c6.Saga_18_Precio = 1
-check(phase({ Saga_19_Recuerdos = {} }, c6) == "Inminente", "Acto IV: la Gran Fusión se acerca")
-check(phase({ Saga_23_Fusion = {} }, c6) == "Fusion", "la batalla final: abierta del todo")
+check(phase({ Saga_19_Recuerdos = {} }, c6) == "Inminente" and stageOf("Inminente") == 6, "Acto IV: la Gran Fusión se acerca (grieta colosal, etapa 6)")
+check(phase({ Saga_23_Fusion = {} }, c6) == "Fusion" and stageOf("Fusion") == 7, "la batalla final: el evento final (etapa 7)")
 c6.Saga_23_Fusion = 1
-check(phase({ Saga_24_Final = {} }, c6) == "Ultima", "la última costura: se va cerrando")
+check(phase({ Saga_24_Final = {} }, c6) == "Ultima" and stageOf("Ultima") < 7, "la última costura: se va cerrando")
 c6.Saga_24_Final = 1
-check(phase({}, c6) == "Cerrada" and phase({}, {}, { SagaCompleta = true }) == "Cerrada", "fin de la saga: cerrada para siempre")
-local P = Rift.Phases
-check(P.Rasguno.Open < P.Crece.Open and P.Crece.Open < P.Grande.Open and P.Grande.Open < P.Abierta.Open, "Acto I: cada vez más abierta")
-check(P.Rasguno.Intensity < P.Crece.Intensity and P.Crece.Intensity <= P.Abierta.Intensity, "Acto I: cada vez más intensa")
-check(P.Cosida.Open < P.Hilachas.Open and P.Hilachas.Open < P.Rota.Open and P.Rota.Open < P.Fusion.Open, "se reabre por actos hasta la Gran Fusión")
-check(P.Fusion.Sparks >= P.Abierta.Sparks and P.Cerrada.Intensity == 0 and P.Ninguna.Open == 0, "la Fusión, con más chispas; cerrada, nada")
+check(phase({}, c6) == "Cerrada" and stageOf("Cerrada") == 1 and phase({}, {}, { SagaCompleta = true }) == "Cerrada", "fin de la saga: cerrada para siempre")
+check(stageOf("Rasguno") < stageOf("Crece") and stageOf("Crece") < stageOf("Grande") and stageOf("Grande") < stageOf("Abierta"), "Acto I: crece etapa a etapa (2 → 3 → 4 → 5)")
+check(stageOf("Hilachas") < stageOf("Rota") and stageOf("Rota") < stageOf("Inminente") and stageOf("Inminente") < stageOf("Fusion"), "de la cicatriz a la Gran Fusión vuelve a crecer hasta la 7")
 for name, p in P do
-	if p.Open < 0 or p.Open > 1 or p.Intensity < 0 or p.Intensity > 1 then
-		check(false, name .. ": Open e Intensity entre 0 y 1")
+	if p.Open < 0 or p.Open > 1 or p.Intensity < 0 or p.Intensity > 1 or p.Stage < 1 or p.Stage > 7 then
+		check(false, name .. ": Open, Intensity y Stage en su rango")
 	end
 end
+check(#Rift.StagePreview == 7, "modo pruebas: una fase de ejemplo por etapa")
+local okPreview = true
+for i, name in Rift.StagePreview do
+	okPreview = okPreview and P[name] and P[name].Stage == i
+end
+check(okPreview, "cada botón de etapa enseña esa etapa")
+local o, secs = 0, 0
+while o < 1 and secs < 60 do
+	o = Rift.approach(o, 1, 0.1)
+	secs += 0.1
+end
+check(secs > 4 and secs < 15, ("al nacer una etapa crece poco a poco (%.1f s)"):format(secs))
+local w0, h0 = Rift.size(0.05)
+local w1, h1 = Rift.size(1)
+check(w1 == 1 and h1 == 1 and h0 < 0.1 and w0 < 0.5, "al nacer es pequeña y fina; crecida, el marco entero")
 
 ---------------------------------------------------------------------
-print("Niveles gráficos (móvil)")
+print("Texturas (textures/rift) y silueta (SkyRiftArt)")
+---------------------------------------------------------------------
+-- PNG: ancho, alto y tipo de color (6 = RGBA) de la cabecera
+local function png(path: string): (number?, number?, number?)
+	if not fs.isFile(path) then
+		return nil
+	end
+	local data = fs.readFile(path)
+	local function u32(i)
+		local a, b, c, d = string.byte(data, i, i + 3)
+		return ((a * 256 + b) * 256 + c) * 256 + d
+	end
+	return u32(17), u32(21), string.byte(data, 26)
+end
+local iw, ih, ict = png("textures/rift/rift_interior.png")
+check(iw == 2048 and ih == 1024 and ict == 6, "rift_interior.png: 2048x1024 con canal alfa")
+local allPng = true
+for _, name in Rift.TextureNames do
+	local w, h, ct = png("textures/rift/" .. name .. ".png")
+	if not w or ct ~= 6 or w > 2048 or h > 2048 then
+		allPng = false
+		print("    falta o mal: " .. name)
+	end
+end
+check(allPng, ("las %d texturas existen, con alfa"):format(#Rift.TextureNames))
+local previews = 0
+for i = 1, 7 do
+	if fs.isFile(("textures/rift/preview-%d.png"):format(i)) then
+		previews += 1
+	end
+end
+check(fs.isFile("textures/rift/preview.png") and previews == 7, "vistas previas: preview.png y preview-1..7.png")
+check(fs.isFile("scripts/rift/gen.py") and fs.isFile("scripts/rift/referencia.png") and fs.isFile("scripts/rift/etapas.png"), "se rehacen con scripts/rift/gen.py desde las imágenes del dueño")
+
+local umin, umax, vmin, vmax = 1, 0, 1, 0
+for _, p in Art.Rim do
+	umin, umax = math.min(umin, p[1]), math.max(umax, p[1])
+	vmin, vmax = math.min(vmin, p[2]), math.max(vmax, p[2])
+end
+local ratio = (umax - umin) * Rift.Aspect / (vmax - vmin)
+check(#Art.Rim >= 40 and ratio > 2.2, ("la rasgadura es horizontal y ancha (%d puntos de borde, %.1f veces más ancha que alta)"):format(#Art.Rim, ratio))
+check(umax - umin > 0.6, ("ocupa gran parte del marco (%.0f %% del ancho)"):format((umax - umin) * 100))
+local turns = 0
+for i = 2, #Art.Rim - 1 do
+	local a, b, c = Art.Rim[i - 1], Art.Rim[i], Art.Rim[i + 1]
+	local t1 = math.atan2(b[2] - a[2], b[1] - a[1])
+	local t2 = math.atan2(c[2] - b[2], c[1] - b[1])
+	if math.abs((t2 - t1 + math.pi) % (2 * math.pi) - math.pi) > math.rad(25) then
+		turns += 1
+	end
+end
+check(turns > #Art.Rim / 3, ("bordes rotos y dentados (%d picos)"):format(turns))
+check(Rift.inside(Art, Art.Galaxy[1], Art.Galaxy[2]) and Art.Planet[1] < Art.Galaxy[1], "la galaxia dentro, el planeta a su izquierda")
+check(#Art.Columns >= 40, "relleno por columnas (para dibujarla sin textura)")
+local stagesArt = true
+for n = 2, 7 do
+	local a = Art.Stages[n]
+	stagesArt = stagesArt and a ~= nil and table.find(Rift.TextureNames, a.Texture) ~= nil and a.Aspect > 0.5 and a.Aspect < 3
+end
+check(stagesArt, "cada etapa 2-7 tiene su textura y su marco")
+check(Art.Stages[6].Galaxy and Art.Stages[7].Galaxy and Art.Stages[5].Galaxy, "las etapas 5-7 tienen galaxia que gira")
+check(Art.Stages[2].Star ~= nil, "la 2 sabe dónde está su destello")
+
+-- Con y sin ids
+check(Rift.textures({}, 5, Art) == nil, "sin ids (aún no subidas): se dibuja por código")
+local fullIds = {}
+for i, name in Rift.TextureNames do
+	fullIds[name] = "rbxassetid://" .. (1000 + i)
+end
+local t5 = Rift.textures(fullIds, 5, Art)
+check(t5 and t5.Main == fullIds.rift_interior and t5.Glow == fullIds.rift_glow and t5.Rays == fullIds.rift_rays and t5.Galaxy == fullIds.rift_galaxy and #t5.Bolts == 4, "etapa 5 con ids: interior, halo, rayos, galaxia y 4 rayos")
+local t3 = Rift.textures(fullIds, 3, Art)
+check(t3 and t3.Main == fullIds.rift_s3 and t3.Glow == nil and math.abs(t3.Aspect - Art.Stages[3].Aspect) < 1e-9, "etapa 3 con ids: su propia textura y su proporción")
+check(Rift.textures({ rift_interior = "rbxassetid://5" }, 3, Art) == nil, "si falta la de esa etapa, por código")
+local mapped = Rift.textures(fullIds, 7, Art, function(id)
+	return id .. "0"
+end)
+check(mapped and mapped.Main == fullIds.rift_s7 .. "0", "pasa por Images.of (del Decal a su imagen)")
+check(Rift.textures({ rift_interior = "nada" }, 5, Art) == nil, "un id raro no cuenta")
+
+---------------------------------------------------------------------
+print("Rayos, rocas y ambiente (cuentas)")
+---------------------------------------------------------------------
+local r = Rift.rng(5)
+local cu, cv = Rift.centroid(Art)
+local okBolts, downish, lifeOk = true, 0, true
+for _ = 1, 300 do
+	local b = Rift.newBolt(Art.Rim, r)
+	local fromRim = false
+	for _, p in Art.Rim do
+		if p[1] == b.U and p[2] == b.V then
+			fromRim = true
+		end
+	end
+	okBolts = okBolts and fromRim and b.Length > 0.05 and b.Length < 0.3 and b.Texture >= 1 and b.Texture <= 4
+	lifeOk = lifeOk and b.Life >= 0.1 and b.Life <= 0.6
+	-- hacia fuera: alejándose del centro
+	local ex, ey = b.U + math.cos(b.Angle) * 0.05, b.V + math.sin(b.Angle) * 0.05
+	if math.sin(b.Angle) > 0 then
+		downish += 1
+	end
+	if (ex - cu) ^ 2 + ((ey - cv) * 2) ^ 2 < (b.U - cu) ^ 2 + ((b.V - cv) * 2) ^ 2 - 0.02 then
+		okBolts = false
+	end
+end
+check(okBolts, "cada rayo sale de un punto del borde hacia fuera")
+check(lifeOk, "y dura entre 0,1 y 0,6 s (luego se regenera)")
+check(downish > 150, ("más bien hacia abajo (%d de 300)"):format(downish))
+local main, branch = Rift.boltPath(42, 7)
+check(#main == 8 and main[1][1] == 0 and main[#main][1] == 1 and #branch == 4, "sin textura: rayo quebrado de 7 tramos con una rama")
+local rocks = Rift.rocks(24)
+local again = Rift.rocks(24)
+check(#rocks == 24 and rocks[5].Orbit == again[5].Orbit, "rocas: siempre las mismas (semilla fija)")
+local x0, y0 = Rift.rockAt(rocks[1], 0, 1)
+local x1, y1 = Rift.rockAt(rocks[1], 30, 1)
+check(math.abs(x1 - x0) + math.abs(y1 - y0) > 1e-3, "las rocas se mueven (órbita lenta)")
+local bigRocks = 0
+for _, rk in rocks do
+	if rk.Size > 0.03 then
+		bigRocks += 1
+	end
+end
+check(bigRocks >= 2 and bigRocks < 12, "unas pocas grandes y muchas pequeñas")
+check(Rift.ambientWeight(1, 1, 1) == 0 and Rift.ambientWeight(7, 1, 1) == 1 and Rift.ambientWeight(5, 1, 1) > 0.6, "ambiente: nada sin grieta, mucho con el portal, del todo en la 7")
+check(Rift.ambientWeight(5, 0, 1) == 0 and Rift.ambientWeight(5, 1, 0) == 0, "y se quita al cerrarse")
+local azul, final = SkyMoods.List.GrietaAzul, SkyMoods.List.GrietaFinal
+check(azul and azul.CloudColor.B > azul.CloudColor.G and azul.AtmColor.B > azul.AtmColor.R, "GrietaAzul: nubes y bruma azul/morado")
+check(final and final.Tint.B > final.Tint.G and final.Outdoor.R > final.Outdoor.G and final.Outdoor.B > final.Outdoor.G, "GrietaFinal: la ciudad violeta")
+
+---------------------------------------------------------------------
+print("Niveles gráficos y presupuesto")
 ---------------------------------------------------------------------
 local low, med, high = Rift.tierLook("Low"), Rift.tierLook("Medium"), Rift.tierLook("High")
-check(not low.Halo and not low.Particles, "Bajo: sin halo ni partículas")
-check(table.find(low.Layers, "Core") ~= nil and table.find(low.Layers, "Fire") ~= nil, "Bajo: la raja sigue siendo naranja con núcleo claro")
-check(med.Halo and med.Particles and high.Halo and high.Particles, "Medio y Alto: con halo y partículas")
-local bl, bh = Rift.budget(shape, "Low"), Rift.budget(shape, "High")
-check(bl.Emitters == 0 and bl.Beams < bh.Beams, ("Bajo gasta menos (%d beams, 0 emisores; Alto: %d beams, %d emisores)"):format(bl.Beams, bh.Beams, bh.Emitters))
-check(bh.Beams <= 140 and bh.Emitters <= 12, "presupuesto: como mucho 140 beams y 12 emisores")
+check(low.Rocks == 0 and high.Rocks >= 15 and high.Rocks <= 30, "Bajo: sin rocas 3D; Alto: 15-30 rocas")
+check(low.Bolts <= high.Bolts / 2 + 1 and low.Emitters <= high.Emitters / 2 + 1, "Bajo: la mitad de rayos y partículas")
+check(not low.Halo and med.Halo, "Bajo: sin resplandor aditivo")
+for stage = 2, 7 do
+	local bh, bl = Rift.budget(Art, stage, "High", true), Rift.budget(Art, stage, "Low", true)
+	local ph = Rift.budget(Art, stage, "High", false)
+	if bh.Parts > 75 or bh.Gui > 40 or ph.Gui > 520 or bh.Emitters > 8 or bl.Parts > 1 or bl.Gui > bh.Gui then
+		check(false, ("presupuesto de la etapa %d (con textura: %d piezas, %d gui; sin: %d gui)"):format(stage, bh.Parts, bh.Gui, ph.Gui))
+	end
+end
+local b5 = Rift.budget(Art, 5, "High", true)
+local p5 = Rift.budget(Art, 5, "High", false)
+check(true, ("presupuesto (etapa 5, Alto): con textura %d piezas, %d gui, %d beams, %d emisores; sin textura %d gui"):format(b5.Parts, b5.Gui, b5.Beams, b5.Emitters, p5.Gui))
+check(Rift.budget(Art, 1, "High", false).Parts == 0, "etapa 1: nada")
 
 ---------------------------------------------------------------------
-print("Cliente (Controllers/SkyRift)")
+print("Cliente de verdad (Controllers/SkyRift con dobles de Roblox)")
+---------------------------------------------------------------------
+local Instance = roblox.Instance
+local dm = Instance.new("DataModel")
+local ws = dm:GetService("Workspace")
+local camera = Instance.new("Camera")
+camera.Parent = ws
+ws.CurrentCamera = camera
+camera.CFrame = roblox.CFrame.new(0, 20, 0)
+L.workspace = ws
+
+local attrs: { [string]: any } = {}
+local onAttr: { () -> () } = {}
+local localPlayer = {
+	Name = "Prueba",
+	GetAttribute = function(_, k)
+		return attrs[k]
+	end,
+	GetAttributeChangedSignal = function(_, _k)
+		return {
+			Connect = function(_, fn)
+				table.insert(onAttr, fn)
+			end,
+		}
+	end,
+}
+local function setPhase(name: string)
+	attrs.SkyRift = name
+	for _, fn in onAttr do
+		fn()
+	end
+end
+local stepFn: ((number) -> ())? = nil
+L.services.Players = { LocalPlayer = localPlayer }
+L.services.Lighting = { ClockTime = 14 }
+L.services.RunService.BindToRenderStep = function(_, _name, _prio, fn)
+	stepFn = fn
+end
+-- ReplicatedStorage.Shared con FindFirstChild (los ids se cambian con L.mock)
+local sharedNode = L.services.ReplicatedStorage.Shared
+local shared = setmetatable({
+	FindFirstChild = function(_, name)
+		if name == "RiftTextureIds" or name == "SoundIds" then
+			return sharedNode[name]
+		end
+		return if fs.isFile("src/shared/" .. name .. ".luau") then sharedNode[name] else nil
+	end,
+}, { __index = function(_, k)
+	return sharedNode[k]
+end })
+L.services.ReplicatedStorage = {
+	Shared = shared,
+	FindFirstChild = function()
+		return nil
+	end,
+}
+L.mock("src/shared/SoundIds", {}) -- (sin sonidos: el doble no los reproduce)
+local layers: { [string]: any } = {}
+local pops = 0
+L.mock("src/client/Controllers/DayLight", {
+	pushLayer = function(id, mood, _fade, weight)
+		layers[id] = { Mood = mood, W = weight }
+	end,
+	popLayer = function(id)
+		layers[id] = nil
+		pops += 1
+	end,
+})
+local tier = "Medium"
+L.mock("src/client/UI/Perf", {
+	tierName = function()
+		return tier
+	end,
+	onTier = function() end,
+})
+
+local CONTROLLER = "src/client/Controllers/SkyRift"
+local function fresh(ids: { [string]: string }?)
+	L.mock("src/shared/RiftTextureIds", ids or {})
+	L.reset(CONTROLLER)
+	L.reset("src/shared/Images")
+	attrs = {}
+	onAttr = {}
+	layers = {}
+	stepFn = nil
+	for _, c in ws:GetChildren() do
+		if c.Name == "CieloGrieta" then
+			c:Destroy()
+		end
+	end
+	local C = L.load(CONTROLLER)
+	C.init()
+	return C
+end
+local function run(seconds: number)
+	local fn = stepFn :: (number) -> ()
+	for _ = 1, math.floor(seconds * 20) do
+		fn(0.05)
+	end
+end
+local function count(root: Instance?, className: string, namePrefix: string?): number
+	local n = 0
+	if not root then
+		return 0
+	end
+	for _, d in root:GetDescendants() do
+		if d.ClassName == className and (not namePrefix or string.sub(d.Name, 1, #namePrefix) == namePrefix) then
+			n += 1
+		end
+	end
+	return n
+end
+
+-- Sin texturas (lo de ahora): Abierta, como la jugarías
+local Ctl = fresh()
+check(stepFn ~= nil, "se engancha al render (después de la cámara)")
+setPhase("Abierta")
+run(14)
+local folder = ws:FindFirstChild("CieloGrieta")
+local part = folder and folder:FindFirstChild("Grieta")
+local st = Ctl.debugState()
+check(folder ~= nil and st.Stage == 5 and st.Open > 0.99, "«Abierta»: la etapa 5 se abre del todo en unos segundos")
+check(part and part.CanCollide == false and part.CanQuery == false and part.CanTouch == false and part.CastShadow == false and part.Transparency == 1, "plano sin colisión, sin consultas ni sombra")
+if part then
+	local camPos = camera.CFrame.Position
+	local toCam = (camPos - part.CFrame.Position).Unit
+	local d = (part.CFrame.Position - camPos).Magnitude
+	check(part.CFrame.LookVector:Dot(toCam) > 0.99, "siempre de frente a la cámara (no se deforma)")
+	check(d > 600 and d < 1500, ("lejos, en el cielo (%d studs)"):format(math.floor(d)))
+	check((part.CFrame.Position - camPos).Unit.Y > 0.4, "por encima del horizonte")
+	camera.CFrame = roblox.CFrame.new(300, 50, -200)
+	run(0.1)
+	local d2 = (part.CFrame.Position - camera.CFrame.Position).Magnitude
+	check(math.abs(d2 - d) < 1, "sigue a la cámara (no se puede alcanzar)")
+end
+local gui = part and part:FindFirstChild("Lienzo")
+check(gui and gui.LightInfluence == 0 and gui.Brightness > 1.2 and gui.Face.Name == "Front", "lienzo (SurfaceGui) sin luz del mundo y con brillo > 1 (resplandece con el Bloom)")
+check(st.Textured == false and count(gui, "Frame", "Columna") >= 40 and count(gui, "Frame", "Borde") >= 40, "sin texturas: relleno oscuro por columnas y borde eléctrico")
+check(count(gui, "Frame", "Planeta") == 1 and count(gui, "Frame", "Galaxia") > 20 and count(gui, "Frame", "Estrella") > 10, "con planeta, galaxia y estrellas")
+check(st.Bolts == 14 and st.Rocks == 20 and st.Emitters == 6, ("Medio: %d rayos, %d rocas, %d emisores"):format(st.Bolts, st.Rocks, st.Emitters))
+local model = folder and folder:FindFirstChild("Rocas")
+local hl = model and model:FindFirstChild("BordeAzul")
+check(model and count(model, "Part") == 20 and count(model, "WedgePart") == 20 and hl and hl.ClassName == "Highlight", "rocas 3D (bloque + cuña) con borde azul (un solo Highlight)")
+local rock = model and model:FindFirstChild("Roca1")
+local rockCF = rock and rock.CFrame
+run(2)
+check(rock and rockCF and (rock.CFrame.Position - rockCF.Position).Magnitude > 0.01, "las rocas flotan y giran")
+check(rock and rock.CanCollide == false and rock.CastShadow == false and (rock.Material == roblox.Enum.Material.Rock or rock.Material == roblox.Enum.Material.Basalt), "rocas de roca/basalto, sin colisión ni sombra")
+local emit = count(part, "ParticleEmitter")
+local someRate = 0
+for _, d in (part and part:GetDescendants() or {}) do
+	if d.ClassName == "ParticleEmitter" then
+		someRate = math.max(someRate, d.Rate)
+	end
+end
+check(emit == 6 and someRate > 0, "chispas y polvo de energía en el borde")
+check(count(part, "Beam") == 2, "resplandor aditivo (2 Beams)")
+-- Los rayos se regeneran: una posición distinta cada poco
+local seen, changes, last = {}, 0, nil
+for _ = 1, 100 do
+	run(0.05)
+	local first = gui and gui:FindFirstChild("RayoTramo")
+	if first then
+		local key = tostring(first.Position)
+		if key ~= last then
+			changes += 1
+			last = key
+		end
+		seen[key] = true
+	end
+end
+check(changes >= 6, ("los rayos se regeneran (cambian %d veces en 5 s)"):format(changes))
+local lit = 0
+for _, d in (gui and gui:GetDescendants() or {}) do
+	if d.Name == "RayoTramo" and d.BackgroundTransparency < 0.9 then
+		lit += 1
+	end
+end
+check(lit > 0, "y parpadean encendidos")
+check(layers.GrietaCielo and layers.GrietaCielo.Mood == SkyMoods.List.GrietaAzul and layers.GrietaCielo.W > 0.6, "el ambiente se tiñe de azul/morado (DayLight)")
+local descendants = #folder:GetDescendants()
+check(descendants < 900, ("presupuesto sin texturas: %d instancias"):format(descendants))
+
+-- Cerrar: se apaga y se quita el tinte
+setPhase("Cerrada")
+run(12)
+check(Ctl.debugState().Stage == 1 and ws:FindFirstChild("CieloGrieta") == nil, "«Cerrada»: se apaga y desaparece")
+check(layers.GrietaCielo == nil and pops > 0, "y el tinte del ambiente se quita")
+
+-- Modo pruebas: cada etapa al instante
+Ctl.previewStage(7)
+run(0.5)
+st = Ctl.debugState()
+folder = ws:FindFirstChild("CieloGrieta")
+check(st.Stage == 7 and st.Open == 1 and folder ~= nil, "modo pruebas: la 7 al instante")
+check(layers.GrietaCielo and layers.GrietaCielo.Mood == SkyMoods.List.GrietaFinal and layers.GrietaCielo.W > 0.9, "7: toda la ciudad violeta")
+check(count(folder, "Frame", "Fondo") == 3, "7: casi todo el cielo es espacio")
+Ctl.previewStage(2)
+run(0.2)
+folder = ws:FindFirstChild("CieloGrieta")
+st = Ctl.debugState()
+check(st.Stage == 2 and st.Rocks == 0 and st.Bolts == 0 and count(folder, "Frame", "Destello") >= 2, "2: el destello violeta, sin rocas ni rayos")
+part = folder and folder:FindFirstChild("Grieta")
+check(part and part.Size.X < 400, "2: pequeña")
+Ctl.previewStage(4)
+run(0.2)
+part = ws:FindFirstChild("CieloGrieta") and ws.CieloGrieta:FindFirstChild("Grieta")
+check(part and math.abs(part.CFrame.RightVector.Y) > 0.3, "4 sin textura: la fractura va en diagonal")
+check(Ctl.debugState().Rocks > 0, "4: empiezan a flotar rocas")
+Ctl.preview(nil)
+run(12)
+check(Ctl.debugState().Stage == 1, "«La de mi historia» vuelve a la tuya (aquí, ninguna)")
+
+-- Nivel Bajo
+tier = "Low"
+Ctl = fresh()
+setPhase("Abierta")
+run(14)
+folder = ws:FindFirstChild("CieloGrieta")
+st = Ctl.debugState()
+check(st.Rocks == 0 and folder and folder:FindFirstChild("Rocas") == nil, "Bajo: sin rocas 3D")
+check(st.Bolts == 7 and st.Emitters == 3, ("Bajo: la mitad de rayos (%d) y partículas (%d)"):format(st.Bolts, st.Emitters))
+check(count(folder, "Beam") == 0, "Bajo: sin resplandor aditivo")
+
+-- Con texturas subidas
+tier = "High"
+Ctl = fresh(fullIds)
+setPhase("Abierta")
+run(14)
+folder = ws:FindFirstChild("CieloGrieta")
+gui = folder and folder.Grieta:FindFirstChild("Lienzo")
+st = Ctl.debugState()
+local interior = gui and gui:FindFirstChild("Interior")
+check(st.Textured and interior and interior.ClassName == "ImageLabel" and interior.Image == fullIds.rift_interior, "con ids: la textura del interior")
+check(gui and gui:FindFirstChild("Halo") and gui:FindFirstChild("Rayos") and gui:FindFirstChild("Galaxia"), "y las capas de halo, rayos del borde y galaxia")
+check(gui and gui.Halo.ZIndex < interior.ZIndex and interior.ZIndex < gui.Galaxia.ZIndex and gui.Galaxia.ZIndex < gui.Rayos.ZIndex, "en orden: halo, interior, galaxia, rayos")
+check(count(gui, "Frame", "Columna") == 0 and count(gui, "ImageLabel", "Rayo") >= 16, "sin el dibujo por código; los rayos, con su textura")
+local rot0 = gui and gui.Galaxia.Rotation
+run(3)
+check(gui and gui.Galaxia.Rotation ~= rot0, "la galaxia gira despacio")
+check(st.Rocks == 28 and #folder:GetDescendants() < 200, ("Alto con texturas: 28 rocas y %d instancias"):format(#folder:GetDescendants()))
+Ctl.previewStage(3)
+run(0.2)
+gui = ws.CieloGrieta.Grieta:FindFirstChild("Lienzo")
+check(gui and gui:FindFirstChild("Interior") and gui.Interior.Image == fullIds.rift_s3, "cada etapa con su textura (3: la fractura)")
+
+---------------------------------------------------------------------
+print("Lo que la rodea")
 ---------------------------------------------------------------------
 local src = fs.readFile("src/client/Controllers/SkyRift.luau")
-local sky = Rift.Placement.Sky
-check(sky.Distance >= 300 and sky.Scale >= 200, ("en el cielo: a %d studs de la cámara"):format(sky.Distance))
-local d = sky.Direction
-local elev = math.deg(math.atan2(d[2], math.sqrt(d[1] ^ 2 + d[3] ^ 2)))
-check(elev > 20 and elev < 60, ("a media altura en el cielo (%.0f° de elevación)"):format(elev))
-check(src:find("CanCollide = false") and src:find("CanQuery = false") and src:find("CanTouch = false") and src:find("CastShadow = false"), "sin colisión, sin consultas, sin toques ni sombra")
-check(src:find("camera.CFrame.Position") and src:find("BindToRenderStep"), "sigue a la cámara cada fotograma (no se puede alcanzar)")
-check(src:find("LockedToPart = true"), "las partículas van con la grieta")
-check(src:find("Segments = 1"), "beams de un solo tramo (baratos)")
 check(src:find('GetAttribute%("SkyRift"%)'), "lee la fase del atributo SkyRift (lo publica el servidor)")
 local service = fs.readFile("src/server/Services/LifeStoryService.luau")
 check(service:find('SetAttribute%("SkyRift", SkyRift.phaseFor%(story%)%)'), "el servidor publica la fase según la historia")
 local island = fs.readFile("src/server/World/Kit/DreamIsland.luau")
 check(island:find("Vector3.new%(%-3400, 700, %-3400%)") and Rift.Placement.Dream.Center[1] == -3400 + 82, "la del sueño está encima de la isla (DreamIsland.Origin)")
-check(not island:find('Name = "Grieta"'), "ya no está la barra de neón verde de antes")
-local main = fs.readFile("src/client/Main.client.luau")
-check(main:find("Controllers.SkyRift"), "Main.client arranca la Grieta")
+local mainClient = fs.readFile("src/client/Main.client.luau")
+check(mainClient:find("Controllers.SkyRift"), "Main.client arranca la Grieta")
+local server = fs.readFile("src/server/Main.server.luau")
+check(server:find("Images.resolve%(require%(Shared.RiftTextureIds%)%)"), "el servidor pasa los Decal de la grieta a imagen (shared/Images)")
+local tester = fs.readFile("src/client/UI/TesterPanel.luau")
+check(tester:find("previewStage") and tester:find("7 · Evento final") and tester:find("5 · Portal"), "panel de pruebas: las 7 etapas una a una")
+local upload = fs.readFile("scripts/upload-rift.sh")
+check(upload:find("RiftTextureIds.luau") and upload:find('"assetType":"Decal"') and upload:find("textures/rift"), "scripts/upload-rift.sh sube textures/rift como Decal y escribe RiftTextureIds")
 
-print("")
-if failures > 0 then
-	print(("❌ %d comprobaciones fallan"):format(failures))
-	process.exit(1)
-end
-print("✅ Grieta del cielo: todo correcto")
+L.finish("Grieta del cielo")

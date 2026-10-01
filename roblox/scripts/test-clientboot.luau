@@ -1643,13 +1643,15 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean })
 		end,
 		[math.floor(13.5 * FPS)] = function()
 			local folder = workspace:FindFirstChild("CieloGrieta")
-			local beams = 0
+			local drawn, rocks = 0, 0
 			for _, d in (if folder then folder:GetDescendants() else {}) do
-				if d.ClassName == "Beam" then
-					beams += 1
+				if d.ClassName == "Frame" or d.ClassName == "ImageLabel" then
+					drawn += 1
+				elseif d.ClassName == "WedgePart" then
+					rocks += 1
 				end
 			end
-			table.insert(checks, { folder ~= nil and beams > 20, ("la Grieta del cielo se dibuja (%d beams)"):format(beams) })
+			table.insert(checks, { folder ~= nil and drawn > 20, ("la Grieta del cielo se dibuja (%d capas/tramos en el lienzo, %d rocas)"):format(drawn, rocks) })
 			localPlayer:SetAttribute("SkyRift", "Cerrada")
 		end,
 		[math.floor(23 * FPS)] = function()

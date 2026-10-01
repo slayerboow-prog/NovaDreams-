@@ -14,7 +14,15 @@
 #   rift_glow.png      2048x1024 RGBA  halo azul/morado difuso con la misma silueta, más grande
 #   rift_galaxy.png    512x512   RGBA  la galaxia sola, con borde suave (el juego la hace girar)
 #   bolt_1..4.png      512x256   RGBA  rayos ramificados (azul-blanco y morado) para el parpadeo
-#   preview.png                        vista previa: todo junto sobre un cielo azul con nubes
+#   rift_s2/s3/s4/s6/s7.png  RGBA      las otras etapas de la grieta (scripts/rift/etapas.png, las 7
+#                                      etapas que encargó el dueño): 2 la primera anomalía (estrella y
+#                                      raya violeta), 3 la grieta crece, 4 la gran fractura, 6 la grieta
+#                                      colosal, 7 el evento final (la 5, el portal, es rift_interior)
+#   rift_s6_galaxy / rift_s7_galaxy    la galaxia de esas etapas, sola (gira)
+#   preview.png, preview-1..7.png      vistas previas sobre un cielo azul (todo junto y cada etapa)
+#
+# Y src/shared/SkyRiftArt.luau (generado): la silueta para dibujarla sin texturas y el marco de cada
+# etapa (proporción, de dónde salen los rayos, dónde está la galaxia).
 #
 # Las cuatro capas grandes (interior, rayos, halo) comparten el mismo marco (REGION de la referencia):
 # en el juego van una encima de otra en el mismo plano. GALAXY dice dónde va la galaxia (en fracciones
@@ -30,6 +38,7 @@ from scipy import ndimage
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 SRC = os.path.join(HERE, "referencia.png")
+STAGES_SRC = os.path.join(HERE, "etapas.png")
 OUT = os.path.join(ROOT, "textures", "rift")
 
 # Marco de la grieta en la referencia (x0, y0, x1, y1), proporción 2:1
@@ -213,10 +222,9 @@ def glow(f, mask):
     return rgba(big(crop(col)), big(crop(a)))
 
 
-def galaxy(f):
-    """La galaxia sola (512x512) con borde suave redondo: el juego la hace girar despacio."""
-    x, y = GALAXY_C
-    r = GALAXY_R
+def galaxy(f, center=GALAXY_C, r=GALAXY_R):
+    """Una galaxia sola (512x512) con borde suave redondo: el juego la hace girar despacio."""
+    x, y = center
     patch = f[y - r : y + r, x - r : x + r]
     patch = cv2.resize(saturate(patch, 1.1), (512, 512), interpolation=cv2.INTER_CUBIC)
     yy, xx = np.mgrid[0:512, 0:512].astype(np.float32)
@@ -281,15 +289,170 @@ def bolt(seed, core_bgr, glow_bgr, w=512, h=256):
 
 
 # ---------------------------------------------------------------------------
-# Silueta para el dibujo sin texturas (shared/SkyRiftOutline.luau, generado)
+# Las otras etapas (scripts/rift/etapas.png: las 7 etapas que encargó el dueño)
 # ---------------------------------------------------------------------------
-def outline_luau(mask_core):
+# Coordenadas en píxeles de etapas.png. crop: el trozo de cielo; textbox: el rótulo del panel (se
+# borra); kind: cómo se recorta (additive = solo lo que brilla, como la estrella; patch = un parche de
+# cielo con borde suave alrededor de la fractura; sky = casi todo el cielo del panel); ellipse: centro,
+# semiejes y ángulo del parche; spine: por dónde salen los rayos que parpadean; galaxy: centro y radio.
+STAGE_DEFS = {
+    2: dict(crop=(470, 40, 700, 300), kind="additive", textbox=(405, 12, 643, 92),
+            ellipse=((591, 175), (135, 120), -40), star=(591, 175), spine=[(505, 265), (591, 175), (673, 70)]),
+    3: dict(crop=(775, 40, 1150, 380), kind="patch", textbox=(770, 12, 1048, 108),
+            ellipse=((930, 192), (215, 95), -41), star=(948, 200), spine=[(790, 305), (870, 250), (948, 200), (1010, 140), (1060, 70)]),
+    4: dict(crop=(1160, 80, 1534, 360), kind="patch", textbox=(1176, 12, 1480, 108), exclude=[(1400, 255, 1536, 400)],
+            ellipse=((1340, 230), (235, 130), -30), spine=[(1196, 300), (1260, 270), (1321, 235), (1400, 190), (1486, 140), (1530, 105)]),
+    6: dict(crop=(514, 516, 1023, 848), kind="sky", textbox=(534, 506, 839, 571),
+            galaxy=((829, 758), 70), ring=((779, 726), (205, 150))),
+    7: dict(crop=(1026, 486, 1536, 856), kind="sky", textbox=(1046, 506, 1351, 561),
+            galaxy=((1331, 726), 95), ring=((1300, 720), (230, 175))),
+}
+
+
+def load_stages():
+    im = cv2.imread(STAGES_SRC, cv2.IMREAD_COLOR)
+    if im is None:
+        sys.exit("No encuentro " + STAGES_SRC)
+    return im
+
+
+def fix_textbox(im, box):
+    """Borra el rótulo de un panel: inpainting de las letras y se quita el oscurecido del recuadro."""
+    x0, y0, x1, y1 = box
+    f = im.astype(np.float32) / 255
+    region = f[y0:y1, x0:x1]
+    letters = (region.max(axis=2) > 0.55).astype(np.uint8)
+    letters = cv2.dilate(letters, np.ones((5, 5), np.uint8))
+    mask = np.zeros(im.shape[:2], np.uint8)
+    mask[y0:y1, x0:x1] = letters * 255
+    out = cv2.inpaint(im, mask, 4, cv2.INPAINT_TELEA).astype(np.float32) / 255
+    # El recuadro oscurece lo de detrás: se compara con la franja de justo debajo
+    inside = out[y1 - 10 : y1 - 2, x0:x1].mean()
+    below = out[y1 + 2 : y1 + 10, x0:x1].mean()
+    k = float(np.clip(below / max(inside, 1e-3), 1.0, 2.2))
+    gain = np.zeros(im.shape[:2], np.float32)
+    gain[y0:y1, x0:x1] = 1
+    gain = cv2.GaussianBlur(gain, (0, 0), 3)
+    out = out * (1 + (k - 1) * gain[..., None])
+    return (np.clip(out, 0, 1) * 255).astype(np.uint8)
+
+
+def ellipse_mask(shape, center, axes, angle, inner=0.55):
+    h, w = shape
+    yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
+    a = np.deg2rad(angle)
+    dx, dy = xx - center[0], yy - center[1]
+    u = (dx * np.cos(a) + dy * np.sin(a)) / axes[0]
+    v = (-dx * np.sin(a) + dy * np.cos(a)) / axes[1]
+    d = np.sqrt(u * u + v * v)
+    return smoothstep(1.0, inner, d)
+
+
+def excess(f, sigma=10):
+    v = f.max(axis=2)
+    return np.clip(v - cv2.GaussianBlur(v, (0, 0), sigma), 0, 1)
+
+
+def stage_size(cw, ch, longest=1024):
+    k = longest / max(cw, ch)
+    return int(round(cw * k / 4) * 4), int(round(ch * k / 4) * 4)
+
+
+def stage_texture(f, d):
+    x0, y0, x1, y1 = d["crop"]
+    h, w = f.shape[:2]
+    if d["kind"] == "additive":
+        e = excess(f, 8)
+        vig = ellipse_mask((h, w), *d["ellipse"], inner=0.35)
+        glowing = cv2.GaussianBlur(e, (0, 0), 5)
+        a = np.clip(smoothstep(0.02, 0.16, e) * 1.2 + glowing * 3.0, 0, 1) * vig
+        peak = np.maximum(f.max(axis=2, keepdims=True), 1e-3)
+        col = saturate(f / peak, 1.35)
+    elif d["kind"] == "patch":
+        vig = ellipse_mask((h, w), *d["ellipse"], inner=0.5)
+        wide = ellipse_mask((h, w), d["ellipse"][0], (d["ellipse"][1][0] * 1.35, d["ellipse"][1][1] * 1.7), d["ellipse"][2], inner=0.6)
+        e = electric(f)
+        a = np.clip(np.maximum(vig * 0.95, e * wide), 0, 1)
+        col = saturate(f, 1.12)
+    else:
+        yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
+        cw, ch = x1 - x0, y1 - y0
+        fx = np.minimum((xx - x0) / (cw * 0.16), (x1 - xx) / (cw * 0.16))
+        fy = np.minimum((yy - y0) / (ch * 0.14), (y1 - yy) / (ch * 0.26))
+        a = smoothstep(0, 1, np.clip(np.minimum(fx, fy), 0, 1)) * 0.97
+        col = saturate(f, 1.08)
+    for ex0, ey0, ex1, ey1 in d.get("exclude", []):
+        cut = np.ones((h, w), np.float32)
+        cut[ey0:ey1, ex0:ex1] = 0
+        a = a * cv2.GaussianBlur(cut, (0, 0), 10)
+    col, a = col[y0:y1, x0:x1], a[y0:y1, x0:x1]
+    # Nunca un corte recto en el borde del marco
+    ch_, cw_ = a.shape
+    yy, xx = np.mgrid[0:ch_, 0:cw_].astype(np.float32)
+    edge = np.minimum(np.minimum(xx, cw_ - 1 - xx) / (cw_ * 0.05), np.minimum(yy, ch_ - 1 - yy) / (ch_ * 0.05))
+    a = a * smoothstep(0, 1, np.clip(edge, 0, 1))
+    size = stage_size(x1 - x0, y1 - y0)
+    return rgba(cv2.resize(col, size, interpolation=cv2.INTER_CUBIC), cv2.resize(a, size, interpolation=cv2.INTER_CUBIC))
+
+
+def stage_uv(d, x, y):
+    x0, y0, x1, y1 = d["crop"]
+    return (x - x0) / (x1 - x0), (y - y0) / (y1 - y0)
+
+
+def stage_spawn(d):
+    """De dónde salen los rayos que parpadean (fracciones del marco de la etapa)."""
+    pts = []
+    if "spine" in d:
+        sp = d["spine"]
+        for p, q in zip(sp[:-1], sp[1:]):
+            for k in range(4):
+                t = k / 4
+                pts.append(stage_uv(d, p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t))
+        pts.append(stage_uv(d, *sp[-1]))
+    else:
+        (cx, cy), (rx, ry) = d["ring"]
+        for k in range(24):
+            a = k / 24 * 2 * np.pi
+            pts.append(stage_uv(d, cx + np.cos(a) * rx, cy + np.sin(a) * ry))
+    return pts
+
+
+def build_stages():
+    """Las texturas de las etapas 2, 3, 4, 6 y 7 (y sus galaxias)."""
+    im = load_stages()
+    for d in STAGE_DEFS.values():
+        im = fix_textbox(im, d["textbox"])
+    f = im.astype(np.float32) / 255
+    out = {}
+    for n, d in STAGE_DEFS.items():
+        tex = stage_texture(f, d)
+        write("rift_s%d.png" % n, tex)
+        info = {"Texture": "rift_s%d" % n, "Aspect": (d["crop"][2] - d["crop"][0]) / (d["crop"][3] - d["crop"][1]), "Spawn": stage_spawn(d), "Tex": tex}
+        if "galaxy" in d:
+            (gx, gy), gr = d["galaxy"]
+            g = galaxy(f, (gx, gy), gr)
+            write("rift_s%d_galaxy.png" % n, g)
+            gu, gv = stage_uv(d, gx, gy)
+            info["Galaxy"] = (gu, gv, gr / (d["crop"][2] - d["crop"][0]))
+            info["GalaxyTexture"] = "rift_s%d_galaxy" % n
+            info["GalaxyImg"] = g
+        if "star" in d:
+            info["Star"] = stage_uv(d, *d["star"])
+        out[n] = info
+    return out
+
+
+# ---------------------------------------------------------------------------
+# src/shared/SkyRiftArt.luau (generado): silueta y marcos de cada etapa
+# ---------------------------------------------------------------------------
+def art_luau(mask_core, stages):
     m = crop((mask_core > 0.5).astype(np.uint8))
     h, w = m.shape
     contours, _ = cv2.findContours(m, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     c = max(contours, key=cv2.contourArea)
     c = cv2.approxPolyDP(c, 2.2, True).reshape(-1, 2)
-    # Como mucho ~90 puntos (el borde brillante se dibuja con un tramo por cada uno)
+    # Como mucho ~90 puntos (sin textura, el borde brillante se dibuja con un tramo por cada uno)
     while len(c) > 90:
         c = c[::2]
     cols = []
@@ -307,31 +470,51 @@ def outline_luau(mask_core):
     gu, gv = frame_uv(*GALAXY_C)
     pu, pv = frame_uv(*PLANET_C)
     x0, y0, x1, y1 = REGION
-    lines = [
-        "-- SkyRiftOutline: GENERADO por scripts/rift/gen.py (no editar a mano).",
-        "-- La silueta de la rasgadura de la referencia, en fracciones del marco de las texturas",
-        "-- (0..1; U a la derecha, V hacia abajo). Controllers/SkyRift la dibuja así cuando aún no",
-        "-- están subidas las texturas (shared/RiftTextureIds vacío): relleno oscuro por columnas y",
-        "-- borde eléctrico por tramos.",
+    L = [
+        "-- SkyRiftArt: GENERADO por scripts/rift/gen.py (no editar a mano).",
+        "-- Lo que sale de las imágenes del dueño (scripts/rift/referencia.png y etapas.png) para",
+        "-- Controllers/SkyRift. Todo en fracciones del marco de cada textura (0..1; U a la derecha, V hacia",
+        "-- abajo).",
+        "--   * Rim / Columns: la silueta de la rasgadura (etapa 5, el portal). Sin texturas subidas",
+        "--     (shared/RiftTextureIds vacío) se dibuja así: relleno oscuro por columnas y borde eléctrico.",
+        "--   * Stages: el marco de cada etapa con textura: su proporción (ancho/alto), de dónde salen los",
+        "--     rayos que parpadean (Spawn; sin él, del borde Rim) y dónde está su galaxia (U, V, radio en",
+        "--     fracción del ancho) y su destello violeta (Star).",
         "return {",
-        "\t-- Contorno cerrado (puntos en orden)",
+        "\t-- Contorno cerrado de la rasgadura (puntos en orden)",
         "\tRim = {",
     ]
     for x, y in c:
-        lines.append("\t\t{ %.4f, %.4f }," % (x / w, y / h))
-    lines.append("\t},")
-    lines.append("\t-- Columnas de relleno: { U del centro, ancho, V de arriba, V de abajo }")
-    lines.append("\tColumns = {")
+        L.append("\t\t{ %.4f, %.4f }," % (x / w, y / h))
+    L.append("\t},")
+    L.append("\t-- Columnas de relleno: { U del centro, ancho, V de arriba, V de abajo }")
+    L.append("\tColumns = {")
     for u, cw, top, bot in cols:
-        lines.append("\t\t{ %.4f, %.4f, %.4f, %.4f }," % (u, cw, top, bot))
-    lines.append("\t},")
-    lines.append("\tGalaxy = { %.4f, %.4f, %.4f }, -- U, V y radio (en fracción del ancho)" % (gu, gv, GALAXY_R / (x1 - x0)))
-    lines.append("\tPlanet = { %.4f, %.4f, %.4f }," % (pu, pv, PLANET_R / (x1 - x0)))
-    lines.append("}")
-    path = os.path.join(ROOT, "src", "shared", "SkyRiftOutline.luau")
+        L.append("\t\t{ %.4f, %.4f, %.4f, %.4f }," % (u, cw, top, bot))
+    L.append("\t},")
+    L.append("\tGalaxy = { %.4f, %.4f, %.4f }," % (gu, gv, GALAXY_R / (x1 - x0)))
+    L.append("\tPlanet = { %.4f, %.4f, %.4f }," % (pu, pv, PLANET_R / (x1 - x0)))
+    L.append("\tStages = {")
+    for n in sorted(list(stages.keys()) + [5]):
+        if n == 5:
+            L.append('\t\t[5] = { Texture = "rift_interior", Aspect = 2, Galaxy = { %.4f, %.4f, %.4f }, GalaxyTexture = "rift_galaxy" },' % (gu, gv, GALAXY_R / (x1 - x0)))
+            continue
+        st = stages[n]
+        parts = ['Texture = "%s"' % st["Texture"], "Aspect = %.4f" % st["Aspect"]]
+        if "Galaxy" in st:
+            parts.append("Galaxy = { %.4f, %.4f, %.4f }" % st["Galaxy"])
+            parts.append('GalaxyTexture = "%s"' % st["GalaxyTexture"])
+        if "Star" in st:
+            parts.append("Star = { %.4f, %.4f }" % st["Star"])
+        spawn = ", ".join("{ %.3f, %.3f }" % p for p in st["Spawn"])
+        parts.append("Spawn = { %s }" % spawn)
+        L.append("\t\t[%d] = { %s }," % (n, ", ".join(parts)))
+    L.append("\t},")
+    L.append("}")
+    path = os.path.join(ROOT, "src", "shared", "SkyRiftArt.luau")
     with open(path, "w") as fh:
-        fh.write("\n".join(lines) + "\n")
-    print("  " + os.path.relpath(path, ROOT), len(c), "puntos de borde,", len(cols), "columnas")
+        fh.write("\n".join(L) + "\n")
+    print("  " + os.path.relpath(path, ROOT), len(c), "puntos de borde,", len(cols), "columnas,", len(stages) + 1, "etapas")
 
 
 # ---------------------------------------------------------------------------
@@ -373,31 +556,11 @@ def rotate(img, angle, scale=1.0):
     return cv2.warpAffine(img, M, (w, h), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT, borderValue=(0, 0, 0, 0))
 
 
-def preview(layers, bolts):
-    W, H = 1846, 852
-    dst = sky_background(W, H)
-    # El ambiente de la grieta abierta (DayLight.pushLayer con SkyMoods.GrietaAzul): más oscuro y
-    # azul-violeta (nubes teñidas)
-    dst = dst * np.array([0.92, 0.78, 0.74]) + np.array([0.04, 0.0, 0.02])
-    x0, y0, x1, y1 = REGION
-    fw, fh = x1 - x0, y1 - y0
-    small = {k: cv2.resize(v, (fw, fh), interpolation=cv2.INTER_AREA) for k, v in layers.items() if k != "galaxy"}
-    over(dst, small["glow"], x0, y0)
-    over(dst, small["interior"], x0, y0)
-    g = rotate(layers["galaxy"], 25)
-    gs = GALAXY_R * 2
-    over(dst, cv2.resize(g, (gs, gs), interpolation=cv2.INTER_AREA), GALAXY_C[0] - GALAXY_R, GALAXY_C[1] - GALAXY_R)
-    over(dst, small["rays"], x0, y0)
-    # Unos rayos que parpadean y rocas (como en el juego)
-    rng = np.random.default_rng(7)
-    spots = [(470, 300, 200), (1380, 300, -20), (560, 470, 140), (1200, 180, -50), (760, 190, -110), (1090, 470, 80)]
-    for i, (x, y, ang) in enumerate(spots):
-        b = bolts[i % len(bolts)]
-        b = rotate(np.pad(b, ((128, 128), (0, 0), (0, 0))), ang, 0.6)
-        over(dst, b, x - b.shape[1] // 2, y - b.shape[0] // 2)
-    for _ in range(26):
-        cx, cy = rng.uniform(380, 1450), rng.uniform(110, 560)
-        r = rng.uniform(5, 26)
+def draw_rocks(dst, rng, n, area, rmin, rmax):
+    x0, y0, x1, y1 = area
+    for _ in range(n):
+        cx, cy = rng.uniform(x0, x1), rng.uniform(y0, y1)
+        r = rng.uniform(rmin, rmax)
         pts = []
         for k in range(7):
             a = k / 7 * 2 * np.pi + rng.uniform(-0.3, 0.3)
@@ -408,12 +571,97 @@ def preview(layers, bolts):
         cv2.fillPoly(dst, [pts], (0.3, 0.22, 0.2), cv2.LINE_AA)
         # Cara iluminada por la grieta (arriba-izquierda, un poco más clara)
         cv2.fillPoly(dst, [((pts - pts.mean(0)) * 0.55 + pts.mean(0) - [r * 0.2, r * 0.2]).astype(np.int32)], (0.42, 0.3, 0.26), cv2.LINE_AA)
-    out = (np.clip(dst, 0, 1) * 255).astype(np.uint8)
-    write("preview.png", out)
+
+
+def draw_bolts(dst, bolts, spots, scale=0.6):
+    for i, (x, y, ang) in enumerate(spots):
+        b = bolts[i % len(bolts)]
+        b = rotate(np.pad(b, ((128, 128), (0, 0), (0, 0))), ang, scale)
+        over(dst, b, int(x - b.shape[1] // 2), int(y - b.shape[0] // 2))
+
+
+# Ambiente de cada etapa en la vista previa (lo que hace DayLight.pushLayer con SkyMoods): BGR
+AMBIENT = {
+    1: ((1, 1, 1), (0, 0, 0)),
+    2: ((0.97, 0.95, 0.95), (0.01, 0, 0.01)),
+    3: ((0.9, 0.8, 0.78), (0.03, 0, 0.02)),
+    4: ((0.85, 0.7, 0.7), (0.05, 0, 0.04)),
+    5: ((0.92, 0.78, 0.74), (0.04, 0.0, 0.02)),
+    6: ((0.85, 0.68, 0.68), (0.06, 0, 0.05)),
+    7: ((0.8, 0.5, 0.72), (0.1, 0.0, 0.1)),
+}
+
+
+def tinted_sky(W, H, stage):
+    mul, add = AMBIENT[stage]
+    return sky_background(W, H) * np.array(mul) + np.array(add)
+
+
+def preview(layers, bolts):
+    """Vista previa de la etapa 5 (el portal, la referencia principal) con todas sus capas."""
+    W, H = 1846, 852
+    dst = tinted_sky(W, H, 5)
+    x0, y0, x1, y1 = REGION
+    fw, fh = x1 - x0, y1 - y0
+    small = {k: cv2.resize(v, (fw, fh), interpolation=cv2.INTER_AREA) for k, v in layers.items() if k != "galaxy"}
+    over(dst, small["glow"], x0, y0)
+    over(dst, small["interior"], x0, y0)
+    g = rotate(layers["galaxy"], 25)
+    gs = GALAXY_R * 2
+    over(dst, cv2.resize(g, (gs, gs), interpolation=cv2.INTER_AREA), GALAXY_C[0] - GALAXY_R, GALAXY_C[1] - GALAXY_R)
+    over(dst, small["rays"], x0, y0)
+    draw_bolts(dst, bolts, [(470, 300, 200), (1380, 300, -20), (560, 470, 140), (1200, 180, -50), (760, 190, -110), (1090, 470, 80)])
+    draw_rocks(dst, np.random.default_rng(7), 26, (380, 110, 1450, 560), 5, 26)
+    write("preview.png", (np.clip(dst, 0, 1) * 255).astype(np.uint8))
+    return dst
+
+
+def stage_previews(layers, stages, bolts):
+    """preview-1..7.png: cada etapa sobre el cielo (1024x683, como un panel de etapas.png apaisado)."""
+    W, H = 1024, 683
+    # Ancho de la textura de cada etapa en la vista previa (fracción de la pantalla): como en el juego
+    # (shared/SkyRift.Stages: Width a Distance, con la cámara de 70°)
+    frac = {2: 0.3, 3: 0.75, 4: 0.95, 5: 0.92, 6: 1.25, 7: 1.7}
+    rng = np.random.default_rng(5)
+    for n in range(1, 8):
+        dst = tinted_sky(W, H, n)
+        cx, cy = W * 0.5, H * 0.42
+        if n == 5:
+            tw = int(W * frac[5])
+            th = tw // 2
+            x, y = int(cx - tw / 2), int(cy - th / 2)
+            for key in ("glow", "interior"):
+                over(dst, cv2.resize(layers[key], (tw, th), interpolation=cv2.INTER_AREA), x, y)
+            gu, gv = frame_uv(*GALAXY_C)
+            gs = int(tw * GALAXY_R * 2 / (REGION[2] - REGION[0]))
+            over(dst, cv2.resize(rotate(layers["galaxy"], 40), (gs, gs), interpolation=cv2.INTER_AREA), int(x + gu * tw - gs / 2), int(y + gv * th - gs / 2))
+            over(dst, cv2.resize(layers["rays"], (tw, th), interpolation=cv2.INTER_AREA), x, y)
+        elif n > 1:
+            st = stages[n]
+            tex = st["Tex"]
+            tw = int(W * frac[n])
+            th = int(tw / st["Aspect"])
+            x, y = int(cx - tw / 2), int(cy - th / 2)
+            over(dst, cv2.resize(tex, (tw, th), interpolation=cv2.INTER_AREA if tw < tex.shape[1] else cv2.INTER_CUBIC), x, y)
+            if "Galaxy" in st:
+                gu, gv, gr = st["Galaxy"]
+                gs = int(tw * gr * 2)
+                over(dst, cv2.resize(rotate(st["GalaxyImg"], 40), (gs, gs), interpolation=cv2.INTER_AREA), int(x + gu * tw - gs / 2), int(y + gv * th - gs / 2))
+        if n >= 3:
+            count = {3: 3, 4: 5, 5: 6, 6: 7, 7: 8}[n]
+            spots = [(rng.uniform(0.15, 0.85) * W, rng.uniform(0.2, 0.7) * H, rng.uniform(0, 360)) for _ in range(count)]
+            draw_bolts(dst, bolts, spots, 0.45)
+        if n >= 4:
+            size = {4: (3, 12), 5: (4, 16), 6: (5, 22), 7: (8, 34)}[n]
+            draw_rocks(dst, rng, {4: 14, 5: 18, 6: 20, 7: 16}[n], (60, 40, W - 60, H * 0.75), *size)
+        # La ciudad (una franja oscura abajo, para ver la luz de la etapa en el suelo)
+        city = np.array([0.18, 0.16, 0.14]) * np.array(AMBIENT[n][0]) + np.array(AMBIENT[n][1]) * 2
+        dst[int(H * 0.86) :] = dst[int(H * 0.86) :] * 0.25 + city
+        write("preview-%d.png" % n, (np.clip(dst, 0, 1) * 255).astype(np.uint8))
 
 
 if __name__ == "__main__":
-    print("Grieta del cielo: texturas desde " + os.path.relpath(SRC, ROOT))
+    print("Grieta del cielo: texturas desde " + os.path.relpath(SRC, ROOT) + " y " + os.path.relpath(STAGES_SRC, ROOT))
     im = clean_callouts(load())
     f = im.astype(np.float32) / 255
     mask = silhouette(im)
@@ -439,5 +687,7 @@ if __name__ == "__main__":
     ]
     for i, b in enumerate(bolts):
         write("bolt_%d.png" % (i + 1), b)
-    outline_luau(core)
+    stages = build_stages()
+    art_luau(core, stages)
     preview(layers, bolts)
+    stage_previews(layers, stages, bolts)

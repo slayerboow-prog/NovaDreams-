@@ -1,10 +1,14 @@
--- SkyRiftOutline: GENERADO por scripts/rift/gen.py (no editar a mano).
--- La silueta de la rasgadura de la referencia, en fracciones del marco de las texturas
--- (0..1; U a la derecha, V hacia abajo). Controllers/SkyRift la dibuja así cuando aún no
--- están subidas las texturas (shared/RiftTextureIds vacío): relleno oscuro por columnas y
--- borde eléctrico por tramos.
+-- SkyRiftArt: GENERADO por scripts/rift/gen.py (no editar a mano).
+-- Lo que sale de las imágenes del dueño (scripts/rift/referencia.png y etapas.png) para
+-- Controllers/SkyRift. Todo en fracciones del marco de cada textura (0..1; U a la derecha, V hacia
+-- abajo).
+--   * Rim / Columns: la silueta de la rasgadura (etapa 5, el portal). Sin texturas subidas
+--     (shared/RiftTextureIds vacío) se dibuja así: relleno oscuro por columnas y borde eléctrico.
+--   * Stages: el marco de cada etapa con textura: su proporción (ancho/alto), de dónde salen los
+--     rayos que parpadean (Spawn; sin él, del borde Rim) y dónde está su galaxia (U, V, radio en
+--     fracción del ancho) y su destello violeta (Star).
 return {
-	-- Contorno cerrado (puntos en orden)
+	-- Contorno cerrado de la rasgadura (puntos en orden)
 	Rim = {
 		{ 0.1952, 0.5355 },
 		{ 0.2048, 0.5581 },
@@ -156,6 +160,14 @@ return {
 		{ 0.8529, 0.0121, 0.5226, 0.5548 },
 		{ 0.8649, 0.0121, 0.5210, 0.5468 },
 	},
-	Galaxy = { 0.5605, 0.4903, 0.0847 }, -- U, V y radio (en fracción del ancho)
+	Galaxy = { 0.5605, 0.4903, 0.0847 },
 	Planet = { 0.4323, 0.4048, 0.0516 },
+	Stages = {
+		[2] = { Texture = "rift_s2", Aspect = 0.8846, Star = { 0.5261, 0.5192 }, Spawn = { { 0.152, 0.865 }, { 0.246, 0.779 }, { 0.339, 0.692 }, { 0.433, 0.606 }, { 0.526, 0.519 }, { 0.615, 0.418 }, { 0.704, 0.317 }, { 0.793, 0.216 }, { 0.883, 0.115 } } },
+		[3] = { Texture = "rift_s3", Aspect = 1.1029, Star = { 0.4613, 0.4706 }, Spawn = { { 0.040, 0.779 }, { 0.093, 0.739 }, { 0.147, 0.699 }, { 0.200, 0.658 }, { 0.253, 0.618 }, { 0.305, 0.581 }, { 0.357, 0.544 }, { 0.409, 0.507 }, { 0.461, 0.471 }, { 0.503, 0.426 }, { 0.544, 0.382 }, { 0.585, 0.338 }, { 0.627, 0.294 }, { 0.660, 0.243 }, { 0.693, 0.191 }, { 0.727, 0.140 }, { 0.760, 0.088 } } },
+		[4] = { Texture = "rift_s4", Aspect = 1.3357, Spawn = { { 0.096, 0.786 }, { 0.139, 0.759 }, { 0.182, 0.732 }, { 0.225, 0.705 }, { 0.267, 0.679 }, { 0.308, 0.647 }, { 0.349, 0.616 }, { 0.390, 0.585 }, { 0.430, 0.554 }, { 0.483, 0.513 }, { 0.536, 0.473 }, { 0.589, 0.433 }, { 0.642, 0.393 }, { 0.699, 0.348 }, { 0.757, 0.304 }, { 0.814, 0.259 }, { 0.872, 0.214 }, { 0.901, 0.183 }, { 0.930, 0.152 }, { 0.960, 0.121 }, { 0.989, 0.089 } } },
+		[5] = { Texture = "rift_interior", Aspect = 2, Galaxy = { 0.5605, 0.4903, 0.0847 }, GalaxyTexture = "rift_galaxy" },
+		[6] = { Texture = "rift_s6", Aspect = 1.5331, Galaxy = { 0.6189, 0.7289, 0.1375 }, GalaxyTexture = "rift_s6_galaxy", Spawn = { { 0.923, 0.633 }, { 0.910, 0.749 }, { 0.869, 0.858 }, { 0.805, 0.952 }, { 0.722, 1.024 }, { 0.625, 1.069 }, { 0.521, 1.084 }, { 0.416, 1.069 }, { 0.319, 1.024 }, { 0.236, 0.952 }, { 0.172, 0.858 }, { 0.132, 0.749 }, { 0.118, 0.633 }, { 0.132, 0.516 }, { 0.172, 0.407 }, { 0.236, 0.313 }, { 0.319, 0.241 }, { 0.416, 0.196 }, { 0.521, 0.181 }, { 0.625, 0.196 }, { 0.722, 0.241 }, { 0.805, 0.313 }, { 0.869, 0.407 }, { 0.910, 0.516 } } },
+		[7] = { Texture = "rift_s7", Aspect = 1.3784, Galaxy = { 0.5980, 0.6486, 0.1863 }, GalaxyTexture = "rift_s7_galaxy", Spawn = { { 0.988, 0.632 }, { 0.973, 0.755 }, { 0.928, 0.869 }, { 0.856, 0.967 }, { 0.763, 1.042 }, { 0.654, 1.089 }, { 0.537, 1.105 }, { 0.421, 1.089 }, { 0.312, 1.042 }, { 0.218, 0.967 }, { 0.147, 0.869 }, { 0.102, 0.755 }, { 0.086, 0.632 }, { 0.102, 0.510 }, { 0.147, 0.396 }, { 0.218, 0.298 }, { 0.312, 0.223 }, { 0.421, 0.176 }, { 0.537, 0.159 }, { 0.654, 0.176 }, { 0.763, 0.223 }, { 0.856, 0.298 }, { 0.928, 0.396 }, { 0.973, 0.510 } } },
+	},
 }

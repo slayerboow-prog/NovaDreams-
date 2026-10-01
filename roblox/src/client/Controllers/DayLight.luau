@@ -241,13 +241,16 @@ end
 -- StoryFx). Cada capa entra y sale con un fundido de `fade` segundos.
 type Layer = { Mood: { [string]: any }, W: number, Target: number, Rate: number }
 local layers: { [string]: Layer } = {}
-function DayLight.pushLayer(id: string, mood: { [string]: any }, fade: number?)
+-- weight (opcional, 0..1): hasta dónde entra la capa (la Grieta del cielo la sube según lo abierta que
+-- esté); sin él, del todo.
+function DayLight.pushLayer(id: string, mood: { [string]: any }, fade: number?, weight: number?)
 	local layer = layers[id]
 	local rate = 1 / math.max(fade or 1, 0.05)
+	local target = math.clamp(weight or 1, 0, 1)
 	if layer then
-		layer.Mood, layer.Target, layer.Rate = mood, 1, rate
+		layer.Mood, layer.Target, layer.Rate = mood, target, rate
 	else
-		layers[id] = { Mood = mood, W = 0, Target = 1, Rate = rate }
+		layers[id] = { Mood = mood, W = 0, Target = target, Rate = rate }
 	end
 end
 function DayLight.popLayer(id: string, fade: number?)

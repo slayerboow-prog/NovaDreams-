@@ -1,51 +1,100 @@
 -- SkyRift: la Grieta del cielo (Saga de la Grieta). Cuentas puras: se prueban fuera de Roblox
 -- (scripts/test-skyrift.luau). La dibuja el cliente (Controllers/SkyRift).
 --
---   * Cómo es (la imagen de referencia del dueño, scripts/rift/referencia.png): un AGUJERO enorme en
---     el cielo con forma de rasgadura horizontal de bordes rotos y dentados. Dentro se ve el espacio
---     (fondo azul-violeta oscuro, una galaxia espiral violeta-rosa en el centro, un planeta a la
---     izquierda, estrellas y nebulosa); del borde salen rayos azul eléctrico y morados hacia fuera y
---     hacia abajo; alrededor flotan y giran rocas con brillo azul en el borde, chispas de energía, y
---     las nubes y la luz se tiñen de azul y morado.
---   * Capas (de atrás adelante, en un mismo plano que siempre mira a la cámara): halo azul/morado,
---     interior (la textura de la rasgadura), galaxia que gira despacio, rayos del borde y rayos que
---     parpadean. Delante: rocas 3D, partículas y un resplandor aditivo (Beams) para el Bloom.
---   * Texturas (textures/rift/, hechas por scripts/rift/gen.py y subidas con scripts/upload-rift.sh
---     a shared/RiftTextureIds). Sin ids, la misma silueta (shared/SkyRiftOutline) se dibuja por código.
---   * Fases de la saga (phaseFor): cuánto está abierta (Open 0..1) y cuánto brilla (Intensity 0..1).
---     Rasguño = pequeña y fina; Abierta/Fusión = enorme, como la referencia; Cosida = una cicatriz.
+--   * Cómo es: las imágenes que encargó el dueño (scripts/rift/referencia.png, la grieta abierta, y
+--     scripts/rift/etapas.png, sus 7 ETAPAS). La grieta CRECE a lo largo de la saga:
+--       1 Cielo normal (nada)
+--       2 Primera anomalía: un punto violeta que brilla con destello y una raya violeta fina en diagonal
+--       3 La grieta crece: fractura en diagonal con rayos azul-blanco; el cielo se oscurece alrededor
+--       4 Gran fractura: grieta enorme en diagonal, interior oscuro-violeta, muchos rayos, rocas
+--       5 Portal dimensional: el AGUJERO con forma de rasgadura (la referencia principal): dentro el
+--         espacio (galaxia espiral, planeta, nebulosa, estrellas); rayos y rocas alrededor
+--       6 Grieta colosal: el agujero ocupa casi todo el cielo
+--       7 Evento final: el cielo está roto; casi todo es espacio violeta y TODA la ciudad se ve violeta
+--   * Capas (en un plano lejano que siempre mira a la cámara): halo, la textura de la etapa, galaxia
+--     que gira despacio, rayos del borde y rayos que parpadean (se regeneran cada 0,1-0,6 s). Delante:
+--     rocas 3D que flotan y giran, chispas y polvo de energía y un resplandor aditivo para el Bloom.
+--     El ambiente (luz, nubes, bruma) se tiñe de azul/morado (etapa 7: violeta) con DayLight.pushLayer.
+--   * Texturas: textures/rift/ (scripts/rift/gen.py) subidas con scripts/upload-rift.sh a
+--     shared/RiftTextureIds. Sin ids se dibuja por código con la misma silueta (shared/SkyRiftArt).
+--   * Fases de la saga (phaseFor, las publica LifeStoryService): cada una dice su etapa, cuánto ha
+--     crecido dentro de ella (Open 0..1) y cuánto brilla (Intensity). Cosida = una cicatriz.
 --   * Nivel gráfico Bajo: sin rocas 3D y la mitad de rayos y partículas, pero con la textura principal.
 
 local SkyRift = {}
 
--- Fases de la saga. Mode "Sky": en el cielo de Valmar (sigue a la cámara, muy lejos);
--- "Dream": sobre la isla del sueño del prólogo (fija en el mundo).
-export type Phase = { Open: number, Intensity: number, Sparks: number, Mode: string }
+-- Las 7 etapas. Width: ancho del marco en studs a la distancia de Placement (la cámara de 70° ve unos
+-- 900 studs de ancho a 650: la 2 es un puntito, la 5 media pantalla, la 7 tapa todo el cielo).
+-- Bolts/Rocks/Emitters: cuánto de lo del nivel gráfico (1 = todo). Ambient: peso máximo de la capa de
+-- luz Mood. Draw: cómo se dibuja sin textura (la silueta de la rasgadura a esa altura y girada Roll).
+export type Stage = {
+	Name: string,
+	Width: number,
+	Bolts: number,
+	Rocks: number,
+	RockScale: number,
+	Emitters: number,
+	Ambient: number,
+	Mood: string?,
+	Star: boolean, -- el destello violeta (etapa 2)
+	Draw: { Height: number, Roll: number, Fill: boolean, Cosmos: boolean, Backdrop: boolean },
+}
+SkyRift.Stages = {
+	{ Name = "Cielo normal", Width = 0, Bolts = 0, Rocks = 0, RockScale = 1, Emitters = 0, Ambient = 0, Star = false,
+		Draw = { Height = 0, Roll = 0, Fill = false, Cosmos = false, Backdrop = false } },
+	{ Name = "Primera anomalía", Width = 240, Bolts = 0, Rocks = 0, RockScale = 1, Emitters = 0.2, Ambient = 0.1, Mood = "GrietaAzul", Star = true,
+		Draw = { Height = 0.02, Roll = math.rad(-40), Fill = false, Cosmos = false, Backdrop = false } },
+	{ Name = "La grieta crece", Width = 600, Bolts = 0.5, Rocks = 0, RockScale = 1, Emitters = 0.5, Ambient = 0.35, Mood = "GrietaAzul", Star = true,
+		Draw = { Height = 0.07, Roll = math.rad(-38), Fill = false, Cosmos = false, Backdrop = false } },
+	{ Name = "Gran fractura", Width = 860, Bolts = 0.8, Rocks = 0.6, RockScale = 1, Emitters = 0.8, Ambient = 0.6, Mood = "GrietaAzul", Star = false,
+		Draw = { Height = 0.4, Roll = math.rad(-30), Fill = true, Cosmos = false, Backdrop = false } },
+	{ Name = "Portal dimensional", Width = 620, Bolts = 1, Rocks = 1, RockScale = 1, Emitters = 1, Ambient = 0.75, Mood = "GrietaAzul", Star = false,
+		Draw = { Height = 1, Roll = 0, Fill = true, Cosmos = true, Backdrop = false } },
+	{ Name = "Grieta colosal", Width = 1300, Bolts = 1.2, Rocks = 1, RockScale = 1.4, Emitters = 1, Ambient = 0.85, Mood = "GrietaAzul", Star = false,
+		Draw = { Height = 1.25, Roll = 0, Fill = true, Cosmos = true, Backdrop = false } },
+	{ Name = "Evento final", Width = 2300, Bolts = 1.2, Rocks = 1.2, RockScale = 2, Emitters = 1, Ambient = 1, Mood = "GrietaFinal", Star = false,
+		Draw = { Height = 1.5, Roll = 0, Fill = true, Cosmos = true, Backdrop = true } },
+} :: { Stage }
+
+-- Fases de la saga: Stage (1..7), cuánto ha crecido dentro de su etapa (Open) y cuánto brilla.
+-- Mode "Sky": en el cielo de Valmar (sigue a la cámara, muy lejos); "Dream": sobre la isla del sueño
+-- del prólogo (fija en el mundo).
+--   Acto I:   Rasguño 2 → Crece 3 → Grande 4 → Abierta 5 (el portal, «Coser el cielo»)
+--   Acto II:  Cosida (cicatriz: la 2, apagada) → Hilachas 3
+--   Acto III: Rota 5 (se rompe la costura)
+--   Acto IV:  Inminente 6 → Fusión 7 (el evento final) → Última costura 4 (se va cerrando) → Cerrada 1
+export type Phase = { Stage: number, Open: number, Intensity: number, Sparks: number, Mode: string }
 SkyRift.Phases = {
-	Ninguna = { Open = 0, Intensity = 0, Sparks = 0, Mode = "Sky" },
-	Sueno = { Open = 0.6, Intensity = 0.9, Sparks = 0.6, Mode = "Dream" }, -- prólogo (el sueño)
-	Rasguno = { Open = 0.28, Intensity = 0.55, Sparks = 0.3, Mode = "Sky" }, -- «un rasguño en el aire» (tras conocer a Cosme)
-	Crece = { Open = 0.55, Intensity = 0.8, Sparks = 1, Mode = "Sky" }, -- La grieta en el cielo: ha crecido y caen cosas
-	Grande = { Open = 0.8, Intensity = 0.9, Sparks = 1.2, Mode = "Sky" }, -- la noche de las cosas perdidas
-	Abierta = { Open = 1, Intensity = 1, Sparks = 1.4, Mode = "Sky" }, -- Coser el cielo (antes de coserla)
-	Cosida = { Open = 0.12, Intensity = 0.3, Sparks = 0, Mode = "Sky" }, -- una cicatriz finísima
-	Hilachas = { Open = 0.3, Intensity = 0.5, Sparks = 0.4, Mode = "Sky" }, -- Acto II: las costuras se sueltan
-	Rota = { Open = 0.75, Intensity = 0.9, Sparks = 1.2, Mode = "Sky" }, -- Acto III: la costura se rompió
-	Inminente = { Open = 0.9, Intensity = 0.95, Sparks = 1.4, Mode = "Sky" }, -- Acto IV: llega la Gran Fusión
-	Fusion = { Open = 1, Intensity = 1, Sparks = 2, Mode = "Sky" }, -- la batalla final
-	Ultima = { Open = 0.5, Intensity = 0.6, Sparks = 0.6, Mode = "Sky" }, -- la última costura
-	Cerrada = { Open = 0, Intensity = 0, Sparks = 0, Mode = "Sky" }, -- cerrada para siempre
+	Ninguna = { Stage = 1, Open = 0, Intensity = 0, Sparks = 0, Mode = "Sky" },
+	Sueno = { Stage = 5, Open = 0.8, Intensity = 0.9, Sparks = 0.6, Mode = "Dream" }, -- prólogo (el sueño)
+	Rasguno = { Stage = 2, Open = 1, Intensity = 0.85, Sparks = 0.3, Mode = "Sky" }, -- «un rasguño en el aire» (tras conocer a Cosme)
+	Crece = { Stage = 3, Open = 1, Intensity = 0.9, Sparks = 1, Mode = "Sky" }, -- La grieta en el cielo: ha crecido y caen cosas
+	Grande = { Stage = 4, Open = 1, Intensity = 0.95, Sparks = 1.2, Mode = "Sky" }, -- la noche de las cosas perdidas
+	Abierta = { Stage = 5, Open = 1, Intensity = 1, Sparks = 1.4, Mode = "Sky" }, -- Coser el cielo (antes de coserla)
+	Cosida = { Stage = 2, Open = 0.6, Intensity = 0.3, Sparks = 0, Mode = "Sky" }, -- una cicatriz finísima
+	Hilachas = { Stage = 3, Open = 0.8, Intensity = 0.7, Sparks = 0.6, Mode = "Sky" }, -- Acto II: las costuras se sueltan
+	Rota = { Stage = 5, Open = 1, Intensity = 1, Sparks = 1.4, Mode = "Sky" }, -- Acto III: la costura se rompió
+	Inminente = { Stage = 6, Open = 1, Intensity = 1, Sparks = 1.6, Mode = "Sky" }, -- Acto IV: llega la Gran Fusión
+	Fusion = { Stage = 7, Open = 1, Intensity = 1, Sparks = 2, Mode = "Sky" }, -- la batalla final: el cielo se rompe
+	Ultima = { Stage = 4, Open = 0.7, Intensity = 0.7, Sparks = 0.6, Mode = "Sky" }, -- la última costura: se va cerrando
+	Cerrada = { Stage = 1, Open = 0, Intensity = 0, Sparks = 0, Mode = "Sky" }, -- cerrada para siempre
 } :: { [string]: Phase }
 
--- Dónde se dibuja. Sky: dirección desde la cámara (hacia Los Pinos, al norte, a media altura),
--- distancia y ancho del marco en studs (el marco de las texturas es 2:1; la rasgadura ocupa ~85 %
--- del ancho: abierta del todo tapa ~45° del cielo, como en la referencia). Dream: encima de la isla
--- del sueño (World/Kit/DreamIsland: origen -3400, 700, -3400 y 164 de largo), fija.
+-- Una fase de ejemplo para ver cada etapa (modo pruebas)
+SkyRift.StagePreview = { "Cerrada", "Rasguno", "Crece", "Grande", "Abierta", "Inminente", "Fusion" }
+
+-- Dónde se dibuja. Sky: dirección desde la cámara (hacia Los Pinos, al norte, a media altura) y
+-- distancia. Dream: encima de la isla del sueño (World/Kit/DreamIsland: origen -3400, 700, -3400 y
+-- 164 de largo), fija; DreamWidth es el ancho del marco allí.
 SkyRift.Placement = {
-	Sky = { Direction = { 0.25, 0.78, -1 }, Distance = 650, Width = 620 },
-	Dream = { Center = { -3400 + 82, 700 + 80, -3400 - 6 }, Width = 300 },
+	Sky = { Direction = { 0.25, 0.78, -1 }, Distance = 650 },
+	Dream = { Center = { -3400 + 82, 700 + 80, -3400 - 6 }, DreamWidth = 300 },
 }
-SkyRift.Aspect = 2 -- ancho / alto del marco (las texturas son 2048x1024)
+SkyRift.Aspect = 2 -- ancho / alto del marco de la rasgadura (rift_interior es 2048x1024)
+
+function SkyRift.stage(n: number?): Stage
+	return SkyRift.Stages[math.clamp(math.floor(n or 1), 1, #SkyRift.Stages)]
+end
 
 -- Velocidad a la que se abre o se cierra (Open por segundo)
 SkyRift.OpenRate = 0.12
@@ -56,38 +105,48 @@ local PROLOGUE = "Prologo_Sueno" -- (StoryContext.PrologueId)
 ---------------------------------------------------------------------
 -- Texturas (shared/RiftTextureIds, las escribe scripts/upload-rift.sh)
 ---------------------------------------------------------------------
-SkyRift.TextureNames = { "rift_interior", "rift_glow", "rift_rays", "rift_galaxy", "bolt_1", "bolt_2", "bolt_3", "bolt_4" }
+SkyRift.TextureNames = {
+	"rift_interior", "rift_glow", "rift_rays", "rift_galaxy",
+	"rift_s2", "rift_s3", "rift_s4", "rift_s6", "rift_s6_galaxy", "rift_s7", "rift_s7_galaxy",
+	"bolt_1", "bolt_2", "bolt_3", "bolt_4",
+}
 SkyRift.BoltTextures = { "bolt_1", "bolt_2", "bolt_3", "bolt_4" }
 
+export type StageArt = { Texture: string, Aspect: number, Galaxy: { number }?, GalaxyTexture: string?, Spawn: { { number } }?, Star: { number }? }
 export type Textures = {
-	Interior: string,
-	Glow: string?,
-	Rays: string?,
-	Galaxy: string?,
+	Main: string, -- la textura de la etapa
+	Aspect: number,
+	Glow: string?, -- (etapa 5) halo
+	Rays: string?, -- (etapa 5) rayos del borde
+	Galaxy: string?, -- la galaxia que gira (si la etapa tiene)
 	Bolts: { string },
 }
 
-local function idOf(ids: { [string]: any }, name: string): string?
-	local v = ids[name]
+local function idOf(ids: { [string]: any }, name: string?): string?
+	local v = if name then ids[name] else nil
 	if type(v) == "string" and v:match("^rbxassetid://%d+$") then
 		return v
 	end
 	return nil
 end
 
--- Qué texturas hay. nil si falta la principal (el interior): entonces se dibuja por código.
--- map (opcional): del id del Decal al de su imagen (shared/Images.of)
-function SkyRift.textures(ids: { [string]: any }?, map: ((string) -> string)?): Textures?
-	ids = ids or {}
-	local conv = map or function(s: string): string
-		return s
+-- Qué texturas hay para la etapa n (art: shared/SkyRiftArt). nil si falta la principal de la etapa:
+-- entonces se dibuja por código. map (opcional): del id del Decal al de su imagen (shared/Images.of)
+function SkyRift.textures(ids: { [string]: any }?, stage: number, art: { Stages: { [number]: StageArt } }, map: ((string) -> string)?): Textures?
+	local all: { [string]: any } = ids or {}
+	local conv = map or function(x: string): string
+		return x
 	end
-	local interior = idOf(ids :: any, "rift_interior")
-	if not interior then
+	local spec = art.Stages[stage]
+	if not spec then
 		return nil
 	end
-	local function get(name: string): string?
-		local id = idOf(ids :: any, name)
+	local main = idOf(all, spec.Texture)
+	if not main then
+		return nil
+	end
+	local function get(name: string?): string?
+		local id = idOf(all, name)
 		return if id then conv(id) else nil
 	end
 	local bolts = {}
@@ -98,10 +157,11 @@ function SkyRift.textures(ids: { [string]: any }?, map: ((string) -> string)?): 
 		end
 	end
 	return {
-		Interior = conv(interior),
-		Glow = get("rift_glow"),
-		Rays = get("rift_rays"),
-		Galaxy = get("rift_galaxy"),
+		Main = conv(main),
+		Aspect = spec.Aspect,
+		Glow = if stage == 5 then get("rift_glow") else nil,
+		Rays = if stage == 5 then get("rift_rays") else nil,
+		Galaxy = get(spec.GalaxyTexture),
 		Bolts = bolts,
 	}
 end
@@ -128,8 +188,8 @@ end
 ---------------------------------------------------------------------
 -- Tamaño según la fase
 ---------------------------------------------------------------------
--- Cuánto del marco se ve con esta apertura: (ancho, alto) en fracción. Al principio es un rasguño
--- pequeño y fino (casi una línea); abierta del todo, el marco entero.
+-- Cuánto del marco se ve con esta apertura (dentro de su etapa): (ancho, alto) en fracción. Al nacer
+-- es pequeña y fina (casi una línea) y crece hasta el marco entero.
 function SkyRift.size(open: number): (number, number)
 	open = math.clamp(open, 0, 1)
 	local w = 0.3 + 0.7 * open
@@ -143,13 +203,14 @@ function SkyRift.toCanvas(u: number, v: number, cw: number, ch: number, w: numbe
 end
 
 ---------------------------------------------------------------------
--- Contorno (shared/SkyRiftOutline): centro y normales hacia fuera
+-- Contorno (shared/SkyRiftArt): centro y normales hacia fuera
 ---------------------------------------------------------------------
 export type Outline = {
 	Rim: { { number } },
 	Columns: { { number } },
 	Galaxy: { number },
 	Planet: { number },
+	Stages: { [number]: StageArt },
 }
 
 function SkyRift.centroid(outline: Outline): (number, number)
@@ -185,15 +246,20 @@ export type Bolt = {
 	Purple: boolean,
 }
 
--- Un rayo nuevo. k: número de rayo; r: aleatorio (0..1). Sale de un punto del borde hacia fuera,
--- más bien hacia abajo y a los lados (como en la referencia), y dura 0,1-0,6 s.
-function SkyRift.newBolt(outline: Outline, r: () -> number): Bolt
-	local rim = outline.Rim
-	local cu, cv = SkyRift.centroid(outline)
-	local p = rim[math.clamp(math.floor(r() * #rim) + 1, 1, #rim)]
+-- Un rayo nuevo. spawn: puntos de donde pueden salir (el borde de la rasgadura o la línea de la
+-- fractura, en fracciones del marco); r: aleatorio (0..1). Sale hacia fuera, más bien hacia abajo y a
+-- los lados (como en la referencia), y dura 0,1-0,6 s.
+function SkyRift.newBolt(spawn: { { number } }, r: () -> number): Bolt
+	local cu, cv = 0, 0
+	for _, p in spawn do
+		cu += p[1]
+		cv += p[2]
+	end
+	cu, cv = cu / #spawn, cv / #spawn
+	local p = spawn[math.clamp(math.floor(r() * #spawn) + 1, 1, #spawn)]
 	-- Hacia fuera desde el centro (aplastado: la grieta es mucho más ancha que alta)
 	local du, dv = (p[1] - cu), (p[2] - cv) * 2.6
-	local out = math.atan2(dv, du)
+	local out = if math.abs(du) + math.abs(dv) < 1e-4 then r() * 2 * math.pi else math.atan2(dv, du)
 	-- Un poco hacia abajo (caen hacia la ciudad) y con algo de azar
 	local down = math.pi / 2
 	local diff = (down - out + math.pi) % (2 * math.pi) - math.pi
@@ -368,7 +434,7 @@ function SkyRift.tierLook(tierName: string): TierLook
 	if tierName == "Low" then
 		return { Rocks = 0, Bolts = 7, BoltSegments = 5, Emitters = 3, Stars = 16, Halo = false, OuterRim = false }
 	elseif tierName == "High" then
-		return { Rocks = 28, Bolts = 16, BoltSegments = 7, Emitters = 8, Stars = 40, Halo = true, OuterRim = true }
+		return { Rocks = 28, Bolts = 16, BoltSegments = 6, Emitters = 8, Stars = 40, Halo = true, OuterRim = true }
 	end
 	return { Rocks = 20, Bolts = 14, BoltSegments = 6, Emitters = 6, Stars = 30, Halo = true, OuterRim = true }
 end
@@ -377,23 +443,52 @@ SkyRift.RockParts = 2 -- piezas por roca (un bloque y una cuña)
 SkyRift.GalaxyDots = 36 -- puntos de los brazos de la galaxia sin textura
 SkyRift.NebulaBlobs = 8
 
--- Cuántas instancias gasta (para el presupuesto del móvil). outline: la silueta; textured: con
--- texturas subidas o dibujada por código.
-function SkyRift.budget(outline: Outline, tierName: string, textured: boolean): { Parts: number, Gui: number, Beams: number, Emitters: number }
+-- Cuántos de cada cosa pone una etapa con este nivel gráfico
+function SkyRift.counts(stage: number, tierName: string): { Rocks: number, Bolts: number, Emitters: number, Stars: number }
 	local look = SkyRift.tierLook(tierName)
-	local gui
+	local st = SkyRift.stage(stage)
+	return {
+		Rocks = math.floor(look.Rocks * st.Rocks + 0.5),
+		Bolts = math.floor(look.Bolts * st.Bolts + 0.5),
+		Emitters = math.max(if st.Emitters > 0 then 1 else 0, math.floor(look.Emitters * st.Emitters + 0.5)),
+		Stars = if st.Draw.Cosmos then look.Stars else 0,
+	}
+end
+
+-- Cuántas instancias gasta (para el presupuesto del móvil). outline: la silueta (shared/SkyRiftArt);
+-- textured: con texturas subidas o dibujada por código.
+function SkyRift.budget(outline: Outline, stage: number, tierName: string, textured: boolean): { Parts: number, Gui: number, Beams: number, Emitters: number }
+	local look = SkyRift.tierLook(tierName)
+	local st = SkyRift.stage(stage)
+	local n = SkyRift.counts(stage, tierName)
+	if stage <= 1 then
+		return { Parts = 0, Gui = 0, Beams = 0, Emitters = 0 }
+	end
+	local gui = 0
 	if textured then
-		gui = 4 + look.Bolts -- halo, interior, galaxia, rayos + un ImageLabel por rayo
+		gui = 4 + n.Bolts -- halo, textura, galaxia, rayos + un ImageLabel por rayo
 	else
-		local rim = #outline.Rim * (if look.OuterRim then 2 else 1)
-		gui = #outline.Columns + rim + 1 + SkyRift.GalaxyDots + 1 + look.Stars + SkyRift.NebulaBlobs
-		gui += look.Bolts * (look.BoltSegments + 3)
+		local d = st.Draw
+		gui = #outline.Rim * (if look.OuterRim then 2 else 1)
+		if d.Fill then
+			gui += #outline.Columns + SkyRift.NebulaBlobs
+		end
+		if d.Cosmos then
+			gui += 1 + SkyRift.GalaxyDots + 1 + n.Stars
+		end
+		if d.Backdrop then
+			gui += 3
+		end
+		gui += n.Bolts * (look.BoltSegments + 3)
+	end
+	if st.Star then
+		gui += 3
 	end
 	return {
-		Parts = 1 + look.Rocks * SkyRift.RockParts,
+		Parts = 1 + n.Rocks * SkyRift.RockParts,
 		Gui = gui,
 		Beams = if look.Halo then 2 else 0,
-		Emitters = look.Emitters,
+		Emitters = n.Emitters,
 	}
 end
 
@@ -428,14 +523,14 @@ end
 
 -- Brillo del lienzo (SurfaceGui.Brightness): por encima de 1 el Bloom lo hace resplandecer
 function SkyRift.brightness(intensity: number, pulse: number, flare: number): number
-	return (1.15 + 0.9 * math.clamp(intensity, 0, 1)) * pulse * (1 + flare)
+	return (1.4 + 0.9 * math.clamp(intensity, 0, 1)) * pulse * (1 + flare)
 end
 
--- Cuánto tiñe el ambiente (DayLight.pushLayer con SkyMoods.GrietaAzul): nada con la grieta pequeña,
--- casi del todo con la grieta abierta
-function SkyRift.ambientWeight(open: number, intensity: number): number
-	local o = math.clamp((open - 0.2) / 0.6, 0, 1)
-	return math.clamp(o * intensity, 0, 1) * 0.85
+-- Cuánto tiñe el ambiente (DayLight.pushLayer con el Mood de la etapa): lo que diga la etapa, según
+-- lo crecida que esté y lo que brille
+function SkyRift.ambientWeight(stage: number, open: number, intensity: number): number
+	local st = SkyRift.stage(stage)
+	return math.clamp(st.Ambient * math.clamp(open, 0, 1) * math.clamp(intensity, 0, 1), 0, 1)
 end
 
 return SkyRift

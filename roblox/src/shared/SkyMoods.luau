@@ -24,6 +24,44 @@ SkyMoods.List = {
 		Haze = 2.2,
 		Bloom = 1.1,
 	},
+	-- La Grieta del cielo abierta (Controllers/SkyRift, etapas 3 a 6): el cielo se oscurece y se tiñe de
+	-- azul eléctrico y morado, las nubes de alrededor se iluminan en azul/morado y la luz de la ciudad
+	-- se enfría (sin romper el ciclo del día: la capa entra con el peso que diga la grieta)
+	GrietaAzul = {
+		Exposure = -0.06,
+		Outdoor = rgb(96, 100, 170),
+		Tint = rgb(208, 214, 255),
+		Saturation = 0.12,
+		Contrast = 0.2,
+		AtmColor = rgb(96, 104, 210),
+		Decay = rgb(70, 40, 150),
+		Haze = 2.1,
+		Cover = 0.66,
+		CloudDensity = 0.5,
+		CloudColor = rgb(132, 128, 236),
+		Bloom = 1.3,
+	},
+	-- Etapa 7 de la Grieta (el evento final): el cielo está roto y TODA la ciudad se ve violeta (el agua
+	-- refleja el violeta del cielo y la bruma)
+	GrietaFinal = {
+		Brightness = 1.5,
+		Exposure = -0.04,
+		Ambient = rgb(70, 40, 96),
+		Outdoor = rgb(132, 82, 196),
+		SunTint = rgb(60, 20, 90),
+		ShadeTint = rgb(20, 6, 40),
+		Tint = rgb(226, 196, 255),
+		Saturation = 0.2,
+		Contrast = 0.22,
+		Density = 0.4,
+		AtmColor = rgb(150, 80, 220),
+		Decay = rgb(90, 30, 150),
+		Haze = 2.4,
+		Cover = 0.72,
+		CloudDensity = 0.55,
+		CloudColor = rgb(150, 96, 230),
+		Bloom = 1.5,
+	},
 	-- Algo malo va a pasar: más oscuro, frío y apagado
 	Ominoso = {
 		Brightness = 1.4,

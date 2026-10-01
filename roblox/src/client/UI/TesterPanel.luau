@@ -263,22 +263,29 @@ local function build()
 	end
 	note("La hora cambia para todo el servidor.")
 
-	-- La Grieta del cielo (Controllers/SkyRift): ver cada fase de la saga sin jugarla (solo tú)
+	-- La Grieta del cielo (Controllers/SkyRift): ver cada una de sus 7 etapas al momento (solo tú)
 	section("GRIETA DEL CIELO")
 	local rift = grid()
-	for i, item in {
-		{ nil, "🌌 La de mi historia" },
-		{ "Rasguno", "Rasguño" },
-		{ "Crece", "Crece (misión 2)" },
-		{ "Abierta", "Abierta del todo" },
-		{ "Fusion", "Gran Fusión" },
-		{ "Cerrada", "Cerrada" },
-	} do
-		button(rift, item[2], function()
-			require(script.Parent.Parent.Controllers.SkyRift :: any).preview(item[1])
-		end, i)
+	local riftControl = function(): any
+		return require(script.Parent.Parent.Controllers.SkyRift :: any)
 	end
-	note("Se abre o se cierra poco a poco (unos segundos). Mírala de noche: pon las 22:00.")
+	button(rift, "🌌 La de mi historia", function()
+		riftControl().preview(nil)
+	end, 1).Name = "GrietaHistoria"
+	for i, label in {
+		"1 · Cielo normal",
+		"2 · Primera anomalía",
+		"3 · La grieta crece",
+		"4 · Gran fractura",
+		"5 · Portal (abierta del todo)",
+		"6 · Grieta colosal",
+		"7 · Evento final",
+	} do
+		button(rift, label, function()
+			riftControl().previewStage(i)
+		end, i + 1).Name = "GrietaEtapa" .. i
+	end
+	note("Cada etapa sale al instante, ya abierta del todo (la 5 es la de la imagen de referencia; la 7 tiñe de violeta toda la ciudad). Mírala hacia el norte, un poco hacia arriba. «La de mi historia» vuelve a la de tu partida.")
 
 	-- Vehículos premium del pase: sacar cada uno a tu lado y dártelos todos (TesterService)
 	local passVehicles = (state and state.PassVehicles) or {}
