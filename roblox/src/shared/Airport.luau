@@ -80,7 +80,7 @@ Airport.HalfStages = { Adolescente = true }
 Airport.MinStage = "Nino" -- los bebés no vuelan solos
 
 -- Cada avión repite sus rutas en orden. Board = segundos de embarque en la puerta.
--- Pilot: (más adelante) el oficio de piloto podrá llevar un avión; ahora vuelan solos.
+-- Estos vuelan solos (nadie los pilota). Los que pilotan los jugadores: Airport.PilotPlanes (abajo).
 Airport.Planes = {
 	{ Id = "VLM101", Kind = "Avion", Color = Color3.fromRGB(30, 90, 170), Routes = { "Vuelta" }, Board = 50, Pilot = nil },
 	{ Id = "VLM205", Kind = "Avioneta", Color = Color3.fromRGB(220, 60, 50), Routes = { "IdaGaviotas", "VueltaGaviotas" }, Board = 40, Pilot = nil },

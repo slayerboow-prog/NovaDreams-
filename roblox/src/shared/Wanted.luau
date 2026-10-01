@@ -29,7 +29,7 @@ Wanted.Crimes = {
 	Homicidio = { Stars = 3, Text = "Homicidio" },
 	Disparo = { Stars = 2, Text = "Disparar a una persona" }, -- (WeaponService)
 	Disparos = { Stars = 1, Text = "Disparos en la vía pública" },
-	Atropello = { Stars = 3, Text = "Atropellar a una persona" }, -- delito grave (KnockService: un vehículo contra alguien)
+	Atropello = { Stars = 3, Text = "Atropellar a una persona" }, -- delito grave (KnockService: solo si es culpa tuya —shared/Crossing— y lo ve la policía)
 	-- Romper cristales o tirar puertas (BreakService; Breakables.vandalCrime: solo si no te buscan ya,
 	-- no con balas —eso ya es «Disparos»— y como mucho cada 90 s; solo si lo ve alguien)
 	Danos = { Stars = 1, Text = "Daños (vandalismo)" },

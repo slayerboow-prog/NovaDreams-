@@ -14,6 +14,8 @@
 --     (Vstall, menor con flaps) el avión se cae, el morro baja solo y salta el aviso de PÉRDIDA.
 --     Subiendo se pierde velocidad y bajando se gana (la gravedad a lo largo de la trayectoria).
 --   * Tren y flaps frenan (más resistencia). Con flaps, la pérdida llega más tarde (vuela más lento).
+--     El tren del avión de línea es automático (sube al despegar, baja cerca del suelo) hasta que lo
+--     mueves tú (G): entonces es cosa tuya, y si bajas con él subido salta el aviso.
 --   * Aterrizar: con el tren bajado, las alas casi a nivel, el morro sin clavar y cayendo despacio.
 --     Suave (≤ SoftSink) bien; duro (≤ HardSink) daña el avión; más fuerte, sin tren, en el agua o
 --     con un ala: accidente.
@@ -143,13 +145,15 @@ export type State = {
 	Sink: number, -- caída extra (pérdida, virajes) (studs/s, + hacia abajo)
 	Throttle: number, -- 0..1
 	Gear: boolean, -- tren bajado
+	AutoGear: boolean, -- tren automático: sube al despegar y baja cerca del suelo (G lo pasa a mano)
 	Flaps: number,
 	OnGround: boolean,
 	Stalled: boolean,
 	Health: number, -- 0..100 (los aterrizajes duros lo bajan)
 	Crashed: string?, -- por qué se ha estrellado
-	Warn: string?, -- "Perdida" | "Limite" | "Techo" (el panel lo enseña)
+	Warn: string?, -- "Perdida" | "Tren" | "Limite" | "Techo" (el panel lo enseña)
 	Event: string?, -- lo que ha pasado en este paso: "Despegue" | "Suave" | "Duro" | "Choque" | "Accidente"
+	--   | "TrenArriba" | "TrenAbajo" (el tren automático)
 	Sunk: number?, -- (con Event de aterrizaje) a qué velocidad caía al tocar el suelo
 	Bumped: string?, -- (con Event "Choque") con qué ha tocado rodando
 	Climb: number, -- velocidad vertical (studs/s, + subiendo)
@@ -185,6 +189,7 @@ function Flight.new(kind: string, pose: CFrame): State
 		Sink = 0,
 		Throttle = 0,
 		Gear = true,
+		AutoGear = true,
 		Flaps = 0,
 		OnGround = true,
 		Stalled = false,
@@ -435,6 +440,20 @@ function Flight.step(s: State, input: Input, dt: number, env: Env): State
 			pos = Vector3.new(pos.X, gy, pos.Z)
 		end
 	elseif gy ~= nil then
+		-- Tren automático: sube al despegar (ya lejos del suelo) y baja al acercarse al suelo
+		local agl = pos.Y - gy
+		if not spec.FixedGear and s.AutoGear then
+			if s.Gear and s.Airborne > 2 and agl > 60 and s.Climb > 1 then
+				s.Gear = false
+				s.Event = s.Event or "TrenArriba"
+			elseif not s.Gear and agl < 40 and s.Climb < -0.5 then
+				s.Gear = true
+				s.Event = s.Event or "TrenAbajo"
+			end
+		end
+		if not s.Gear and agl < 90 and s.Climb < 0 then
+			s.Warn = s.Warn or "Tren"
+		end
 		local clear = if s.Gear then 0 else spec.BellyClear
 		if pos.Y - clear <= gy then
 			local sink = math.max(0, -vel.Y)

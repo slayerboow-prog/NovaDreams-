@@ -227,6 +227,7 @@ local function toggle(what: string)
 			return
 		end
 		sim.Gear = not sim.Gear
+		sim.AutoGear = false -- (desde ahora el tren es cosa tuya)
 		SoundFx.play("Clic", 0.6)
 	elseif what == "Flaps" then
 		sim.Flaps = (sim.Flaps + 1) % (a.Spec.Flaps + 1)
@@ -234,6 +235,7 @@ local function toggle(what: string)
 	elseif what == "Camera" then
 		a.Camera = if a.Camera == "Cabina" then "Persecucion" else "Cabina"
 		a.CamPos = nil
+		showSelf(a.Camera ~= "Cabina")
 	elseif what == "Exit" then
 		if canExit() then
 			a.ExitAt = os.clock()
@@ -272,6 +274,16 @@ end
 ---------------------------------------------------------------------
 -- Cámara: persecución (detrás y un poco arriba, suave) o cabina
 ---------------------------------------------------------------------
+-- En la cabina no se ve tu propio personaje (la cámara va en tu cabeza)
+local function showSelf(visible: boolean)
+	local character = player.Character
+	for _, d in if character then character:GetDescendants() else {} do
+		if d:IsA("BasePart") or d:IsA("Decal") then
+			(d :: any).LocalTransparencyModifier = if visible then 0 else 1
+		end
+	end
+end
+
 local function updateCamera(a: Active, rootCF: CFrame, dt: number)
 	local camera = workspace.CurrentCamera
 	if not camera then
@@ -279,6 +291,7 @@ local function updateCamera(a: Active, rootCF: CFrame, dt: number)
 	end
 	camera.CameraType = Enum.CameraType.Scriptable
 	if a.Camera == "Cabina" then
+		showSelf(false)
 		local head = a.Seat.CFrame * CFrame.new(0, 3.1, -0.2)
 		camera.CFrame = head * CFrame.Angles(math.rad(-6), 0, 0)
 		camera.FieldOfView = 80
@@ -344,6 +357,7 @@ local function stop()
 	end
 	TouchLayout.setFlying(false)
 	setJump(true)
+	showSelf(true)
 	local camera = workspace.CurrentCamera
 	local humanoid = humanoidOf()
 	if camera then
@@ -382,6 +396,8 @@ local function step(dt: number)
 					CameraShake.shake(0.6, 0.4)
 					SoundFx.play("ChoqueLeve", 0.6, nil, a.Root)
 				end
+			elseif e == "TrenArriba" or e == "TrenAbajo" then
+				Hud.toast("Info", if e == "TrenArriba" then "Tren arriba (automático)" else "🛬 Tren abajo (automático)")
 			elseif e == "Choque" then
 				SoundFx.crash(10, a.Root)
 				Hud.toast("Info", ("Cuidado: has tocado %s"):format(sim.Bumped or "algo"))
@@ -438,9 +454,11 @@ local function start(model: Model, seat: BasePart)
 		return
 	end
 	stop()
-	local sim = Flight.new(kind, poseOf(kind, root.CFrame))
 	local info = pending or {}
 	pending = nil
+	-- (de donde estaba aparcado: al soltarlo el servidor, puede haber caído un poco antes de llegar aquí)
+	local from = if typeof(info.Start) == "CFrame" then info.Start else root.CFrame
+	local sim = Flight.new(kind, poseOf(kind, from))
 	if typeof(info.Health) == "number" then
 		sim.Health = info.Health
 	end
@@ -490,11 +508,16 @@ local function start(model: Model, seat: BasePart)
 end
 
 -- ¿Estás sentado a los mandos? (el servidor dice Piloting y tu personaje está en el PilotSeat)
+local pilotingSince = 0
 local function watch()
 	local humanoid = humanoidOf()
 	local seat = humanoid and humanoid.SeatPart
 	local flying = player:GetAttribute("Piloting")
 	if active then
+		return
+	end
+	-- (se espera al aviso del servidor, que trae de dónde sale; si no llega, se empieza igual)
+	if not pending and os.clock() - pilotingSince < 0.6 then
 		return
 	end
 	if flying and seat and seat.Name == "PilotSeat" then
@@ -652,6 +675,7 @@ function Flying.init()
 		if player:GetAttribute("Piloting") == nil then
 			stop()
 		else
+			pilotingSince = os.clock()
 			task.defer(watch)
 		end
 	end)

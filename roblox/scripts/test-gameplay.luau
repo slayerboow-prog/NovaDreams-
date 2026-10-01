@@ -381,6 +381,7 @@ local remotes = {
 	Fishing = remote(),
 	Metro = remote(),
 	Flight = remote(),
+	Aviation = remote(),
 	Rail = remote(),
 	Bus = remote(),
 	Diving = remote(),
@@ -497,6 +498,12 @@ local services = {
 		Heartbeat = signal(),
 		IsStudio = function()
 			return false
+		end,
+	},
+	-- (lo que se quita solo al rato: en la prueba, al momento)
+	Debris = {
+		AddItem = function(_, item)
+			item:Destroy()
 		end,
 	},
 }
@@ -3265,6 +3272,176 @@ do
 	local d3 = (Vector3.new(otherRoot.Position.X, 0, otherRoot.Position.Z) - Vector3.new(arrivalV.Position.X, 0, arrivalV.Position.Z)).Magnitude
 	check(small.Phase == "Boarding" and small.Route.Id == "IdaGaviotas" and d3 < 8 and otherHum.SeatPart == nil, "vuelve a Valmar y baja en la sala de llegadas")
 	for _, p in { flyer, kid, teen, baby, poor, other } do
+		local i = table.find(playersList, p)
+		if i then
+			table.remove(playersList, i)
+		end
+	end
+end
+
+print("▶ Aeroclub: licencia de piloto, avionetas de alquiler, avión de línea, aterrizajes y accidentes")
+do
+	local Airport = loadModule(ROOT .. "/shared/Airport")
+	local AV = remotes.Aviation.OnServerEvent
+	local boards, pmodels, gears = {}, {}, {}
+	for _, spec in Airport.PilotPlanes do
+		local model = fakeInstance("Model")
+		model.Name = spec.Id
+		model:SetAttribute("PilotPlane", spec.Id)
+		model:SetAttribute("Kind", spec.Kind)
+		model:SetAttribute("NeedsWeld", true)
+		model:AddTag("PilotPlane")
+		model.Parent = worldRoot
+		local root = fakeInstance("Part")
+		root.Name = "Root"
+		root.Anchored = true
+		root.CanCollide = true
+		root.CFrame = Airport.rootCFrame(spec.Kind, spec.Pose)
+		root.Parent = model
+		model.PrimaryPart = root
+		local seat = fakeInstance("Seat")
+		seat.Name = "PilotSeat"
+		seat.CFrame = root.CFrame
+		seat.Parent = model
+		for i = 1, 2 do
+			local s2 = fakeInstance("Seat")
+			s2.Name = "Seat"
+			s2.CFrame = root.CFrame * CFrame.new(0, 0, i * 3)
+			s2:SetAttribute("SeatIndex", i)
+			s2.Parent = model
+		end
+		local wheel = fakeInstance("Part")
+		wheel.Name = "Wheel"
+		wheel:SetAttribute("Gear", true)
+		wheel.Parent = model
+		local board = fakeInstance("Part")
+		board.Name = "BoardPoint"
+		board.CFrame = root.CFrame * CFrame.new(-4, -2, 0)
+		board.Parent = model
+		boards[spec.Id], pmodels[spec.Id], gears[spec.Id] = board, model, wheel
+	end
+	local desk = part("AeroclubDesk", CFrame.new(Airport.Aeroclub.X, 4, 3194), { "Aeroclub" }, { Place = "Valmar" })
+	local Aviation = loadModule(S .. "AviationService")
+	Aviation.init()
+	local P = Aviation._planes
+	local A1, A2, JET = P["EC-VAL1"], P["EC-VAL2"], P["EC-VLA"]
+	check(A1 ~= nil and A2 ~= nil and JET ~= nil and pmodels["EC-VAL1"]:GetAttribute("NeedsWeld") == nil and A1.Root.Anchored, "las dos avionetas y el avión de línea del aeroclub esperan en su sitio (soldados y anclados)")
+	check(promptOf(boards["EC-VAL1"], "Pilotar") ~= nil and promptOf(boards["EC-VAL1"], "Subir a bordo") ~= nil and promptOf(desk, "Aeroclub") ~= nil, "carteles «Pilotar», «Subir a bordo» y el mostrador del aeroclub")
+	local teen = newPlayer(1990, "Adolescente", 1000)
+	local teenHum = teen.Character:FindFirstChildOfClass("Humanoid")
+	local pilot, pilotRoot, pilotHum = newPlayer(1991, "Adulto", 1000)
+	promptOf(boards["EC-VAL1"], "Pilotar").Triggered:Fire(teen)
+	check(notified(teen, "mayor de edad") and teenHum.SeatPart == nil, "para pilotar hay que ser mayor de edad")
+	promptOf(boards["EC-VAL1"], "Pilotar").Triggered:Fire(pilot)
+	check(notified(pilot, "licencia de piloto") and pilotHum.SeatPart == nil, "sin licencia de piloto no se pilota")
+	-- Curso: el teórico
+	promptOf(desk, "Aeroclub").Triggered:Fire(pilot)
+	local menu = lastMessage(pilot, "Menu")
+	check(menu ~= nil and type(menu[3]) == "table" and string.find(menu[3].Options[1], "Curso de piloto", 1, true) ~= nil, "el mostrador del aeroclub ofrece el curso de piloto")
+	AV:Fire(pilot, "Choose", menu[2], 1)
+	local theory = lastMessage(pilot, "Theory")
+	check(theory ~= nil and #theory[3].Questions == 5 and profiles[pilot].Money == 850, "el curso cuesta 150 € y empieza con un teórico de 5 preguntas")
+	AV:Fire(pilot, "Answers", theory[2], { 0, 0, 0, 0, 0 })
+	check(notified(pilot, "suspendido") and not (profiles[pilot].Aviation and profiles[pilot].Aviation.Theory), "con las respuestas mal, suspenso")
+	promptOf(desk, "Aeroclub").Triggered:Fire(pilot)
+	AV:Fire(pilot, "Choose", lastMessage(pilot, "Menu")[2], 1)
+	local token = lastMessage(pilot, "Theory")[2]
+	AV:Fire(pilot, "Answers", token, table.clone(Aviation._sessions[pilot].Correct))
+	check(profiles[pilot].Aviation.Theory == true and notified(pilot, "Teórico aprobado"), "con 4 o más bien, teórico aprobado")
+	-- Clase práctica (gratis): despegar, subir y aterrizar suave en la pista
+	promptOf(desk, "Aeroclub").Triggered:Fire(pilot)
+	menu = lastMessage(pilot, "Menu")
+	check(string.find(menu[3].Options[1], "Clase práctica", 1, true) ~= nil, "después, la clase práctica")
+	local money = profiles[pilot].Money
+	AV:Fire(pilot, "Choose", menu[2], 1)
+	check(pilotHum.SeatPart == A1.PilotSeat and pilot:GetAttribute("Piloting") == "EC-VAL1" and not A1.Root.Anchored and lastMessage(pilot, "Pilot") ~= nil and profiles[pilot].Money == money, "clase práctica gratis: a los mandos de la avioneta (su ordenador la vuela)")
+	check(pmodels["EC-VAL1"]:GetAttribute("EngineOn") == true and promptOf(boards["EC-VAL1"], "Pilotar").Enabled == false and pilot:GetAttribute("ActivityText") ~= nil, "motor en marcha, nadie más puede cogerla y el aviso de la clase")
+	A1.Root.CFrame = CFrame.new(-3000, 320, Airport.Runway.Z)
+	AV:Fire(pilot, "State", { Air = true, Gear = true, Flaps = 0, Throttle = 1, Speed = 90 })
+	check(A1.Airborne and pmodels["EC-VAL1"]:GetAttribute("Airborne") == true and notified(pilot, "aterriza suave") and promptOf(boards["EC-VAL1"], "Subir a bordo").Enabled == false, "por encima de 70 m: ahora a aterrizar (y en el aire no se sube nadie)")
+	AV:Fire(pilot, "Exit")
+	check(pilotHum.SeatPart == A1.PilotSeat and notified(pilot, "En el aire no se baja"), "en el aire no se baja nadie")
+	pilotHum.Sit = false
+	task.wait(0.05)
+	check(pilotHum.SeatPart == A1.PilotSeat and Aviation._piloting[pilot] == A1, "si se suelta en el aire, vuelve a su asiento")
+	-- Toca la pista
+	local runway = part("Runway", CFrame.new(-3200, -0.3, Airport.Runway.Z), {})
+	runway.CanCollide = true
+	local oldRaycast = Fake.Raycast
+	Fake.Raycast = function(_, origin)
+		return { Instance = runway, Position = Vector3.new(origin.X, Airport.GROUND, origin.Z), Normal = Vector3.new(0, 1, 0) }
+	end
+	A1.Root.CFrame = CFrame.new(-3200, Airport.GROUND + Airport.Kinds.Avioneta.FloorY - 0.3, Airport.Runway.Z)
+	AV:Fire(pilot, "Touchdown", { Sink = 4, Result = "Suave" })
+	check(profiles[pilot].Licenses and profiles[pilot].Licenses.Piloto == true and notified(pilot, "APROBADO") and pilot:GetAttribute("ActivityText") == nil, "aterrizaje suave en la pista: ¡licencia de piloto!")
+	AV:Fire(pilot, "Touchdown", { Sink = 4, Result = "Suave" })
+	check(profiles[pilot].Aviation.Landings == 1, "con licencia, cada aterrizaje suave en avioneta cuenta para la habilitación")
+	AV:Fire(pilot, "Touchdown", { Sink = 15, Result = "Duro" })
+	check(A1.Health < 100 and notified(pilot, "Aterrizaje duro") and profiles[pilot].Aviation.Landings == 1, "un aterrizaje duro daña el avión (y no cuenta)")
+	task.wait(0.1)
+	AV:Fire(pilot, "State", { Air = false, Gear = true, Flaps = 0, Throttle = 0, Speed = 0 })
+	AV:Fire(pilot, "Exit")
+	check(pilotHum.SeatPart == nil and pilot:GetAttribute("Piloting") == nil and A1.Root.Anchored and lastMessage(pilot, "Off") ~= nil and A1.Renter == pilot and A1.LeftAt ~= nil, "parado en tierra se baja: la avioneta queda aparcada (y sigue siendo suya)")
+	promptOf(boards["EC-VAL1"], "Pilotar").Triggered:Fire(pilot)
+	check(pilotHum.SeatPart == A1.PilotSeat and profiles[pilot].Money == money, "su avioneta alquilada la vuelve a coger sin pagar")
+	task.wait(0.1)
+	AV:Fire(pilot, "Exit")
+	-- Otro piloto: la avioneta alquilada no es suya; alquila la otra
+	local other, otherRoot, otherHum = newPlayer(1992, "Adulto", 1000)
+	profiles[other].Licenses = { Piloto = true }
+	promptOf(boards["EC-VAL1"], "Pilotar").Triggered:Fire(other)
+	check(otherHum.SeatPart == nil and notified(other, "alquilada por otra persona"), "la avioneta que ha alquilado otro no se puede coger")
+	promptOf(desk, "Aeroclub").Triggered:Fire(other)
+	AV:Fire(other, "Choose", lastMessage(other, "Menu")[2], 2)
+	check(otherHum.SeatPart == A2.PilotSeat and profiles[other].Money == 940 and A2.Renter == other and notified(other, "Avioneta alquilada"), "con licencia alquila la otra avioneta (60 €)")
+	-- Un pasajero (en tierra) y un accidente
+	promptOf(boards["EC-VAL2"], "Subir a bordo").Triggered:Fire(teen)
+	check(teenHum.SeatPart ~= nil and Aviation._riding[teen] == A2, "otro jugador sube de pasajero con el avión parado")
+	teenHum.Health = 100
+	A2.Root.CFrame = CFrame.new(-2000, 200, 3000)
+	AV:Fire(other, "Crash", { Reason = "Te has estrellado contra Torre" })
+	local home = Airport.rootCFrame("Avioneta", Airport.pilotPlane("EC-VAL2").Pose).Position
+	check(otherHum.SeatPart == nil and teenHum.SeatPart == nil and other:GetAttribute("Piloting") == nil and notified(other, "Accidente") and notified(teen, "Accidente"), "accidente: piloto y pasajero salen del avión (con aviso)")
+	check(teenHum.Health < 100 and teenHum.Health >= 10 and otherHum.Health >= 10, "se hacen daño pero nadie muere")
+	check((A2.Root.Position - home).Magnitude < 0.5 and A2.Root.Anchored and A2.Renter == nil and A2.DownUntil > os.clock(), "la avioneta vuelve al hangar y queda en revisión")
+	promptOf(boards["EC-VAL2"], "Pilotar").Triggered:Fire(other)
+	check(otherHum.SeatPart == nil and notified(other, "en revisión"), "en revisión no se puede volar")
+	-- El avión de línea: licencia y 3 aterrizajes suaves
+	promptOf(boards["EC-VLA"], "Pilotar").Triggered:Fire(other)
+	check(otherHum.SeatPart == nil and notified(other, "aterrizajes suaves"), "el avión de línea pide 3 aterrizajes suaves en avioneta")
+	profiles[other].Aviation.Landings = 3
+	promptOf(boards["EC-VLA"], "Pilotar").Triggered:Fire(other)
+	check(otherHum.SeatPart == JET.PilotSeat and other:GetAttribute("Piloting") == "EC-VLA" and profiles[other].Money == 940, "con la habilitación, a los mandos del avión de línea (sin alquiler)")
+	task.wait(0.1)
+	JET.Root.CFrame = CFrame.new(-3000, 200, 3400)
+	AV:Fire(other, "State", { Air = true, Gear = false, Flaps = 1, Throttle = 0.8, Speed = 200 })
+	check(gears["EC-VLA"].Transparency == 1 and pmodels["EC-VLA"]:GetAttribute("GearDown") == false and JET.Flaps == 1, "subir el tren lo esconde para todos")
+	-- Vigilancia del servidor: un salto imposible vuelve atrás; atravesar un edificio es accidente
+	Aviation._validate(JET, 0.25)
+	local good = JET.Root.CFrame
+	JET.Root.CFrame = CFrame.new(4000, 200, -3000)
+	Aviation._validate(JET, 0.25)
+	check((JET.Root.Position - good.Position).Magnitude < 0.5 and lastMessage(other, "Reset") ~= nil, "un salto imposible: vuelve al último sitio bueno")
+	local building = part("Edificio", CFrame.new(-3010, 200, 3400), {})
+	building.CanCollide = true
+	Fake.Raycast = function(_, origin, direction)
+		if origin.Y > 100 and direction.Magnitude > 1 then
+			return { Instance = building, Position = origin + direction / 2, Normal = Vector3.new(1, 0, 0) }
+		end
+		return nil
+	end
+	JET.Root.CFrame = CFrame.new(-3030, 200, 3400)
+	Aviation._validate(JET, 0.25)
+	Fake.Raycast = oldRaycast
+	check(other:GetAttribute("Piloting") == nil and notified(other, "Te has estrellado contra Edificio") and JET.Root.Anchored, "atravesar un edificio en vuelo: accidente (lo comprueba el servidor)")
+	-- La avioneta alquilada que se deja lejos vuelve sola al hangar
+	moveTo(pilotRoot, Vector3.new(0, 0, 0))
+	A1.LeftAt = os.clock() - Aviation.ReturnAfter - 1
+	Aviation._validate(A1, 0.25)
+	local home1 = Airport.rootCFrame("Avioneta", Airport.pilotPlane("EC-VAL1").Pose).Position
+	check((A1.Root.Position - home1).Magnitude < 0.5 and A1.Renter == nil and notified(pilot, "ha vuelto al hangar"), "la avioneta que se deja sola vuelve al hangar (y se acaba el alquiler)")
+	local _ = otherRoot
+	for _, p in { teen, pilot, other } do
 		local i = table.find(playersList, p)
 		if i then
 			table.remove(playersList, i)

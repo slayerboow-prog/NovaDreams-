@@ -348,6 +348,7 @@ function AviationService.crash(plane: Plane, reason: string)
 	boom.DestroyJointRadiusPercent = 0
 	boom.ExplosionType = Enum.ExplosionType.NoCraters
 	boom.Parent = workspace
+	Debris:AddItem(boom, 3)
 	local wreck = Builder.decor({ Name = "PlaneWreckSmoke", Size = Vector3.new(4, 4, 4), CFrame = CFrame.new(at), Transparency = 1, Parent = workspace })
 	local fire = Instance.new("Fire")
 	fire.Size = 14
@@ -386,9 +387,6 @@ function AviationService.crash(plane: Plane, reason: string)
 	end
 	returnHome(plane)
 	plane.DownUntil = os.clock() + AviationService.DownTime
-	if pilot then
-		StoryEvents.emit(pilot, "PlaneCrashed", { Plane = plane.Spec.Id })
-	end
 end
 
 ---------------------------------------------------------------------
@@ -512,6 +510,7 @@ function AviationService.pilot(player: Player, id: string, lesson: boolean?): bo
 	piloting[player] = plane
 	plane.Model:SetAttribute("Pilot", player.UserId)
 	player:SetAttribute("Piloting", plane.Spec.Id)
+	local startCF = plane.Root.CFrame -- (aparcado: su ordenador empieza de aquí, aunque al soltarlo caiga un poco)
 	setSolid(plane, false)
 	setEngine(plane, true)
 	plane.Root.Anchored = false
@@ -538,7 +537,7 @@ function AviationService.pilot(player: Player, id: string, lesson: boolean?): bo
 		end
 	end)
 	if Remote then
-		Remote:FireClient(player, "Pilot", { Plane = plane.Model, Id = plane.Spec.Id, Kind = plane.Spec.Kind, Lesson = lesson == true, Health = plane.Health })
+		Remote:FireClient(player, "Pilot", { Plane = plane.Model, Id = plane.Spec.Id, Kind = plane.Spec.Kind, Lesson = lesson == true, Health = plane.Health, Start = startCF })
 	end
 	if lesson then
 		setActivity(player, "🛩️ Clase práctica: rueda hasta la pista, despega y sube por encima de 70 m", Vector3.new(Airport.Runway.X1 - 70, Airport.GROUND, Airport.Runway.Z))

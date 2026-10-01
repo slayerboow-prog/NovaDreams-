@@ -211,10 +211,37 @@ do
 	check(dive.Crashed ~= nil and has(events, "Accidente"), "en picado contra el suelo: accidente")
 	-- Sin tren (el avión de línea con el tren subido)
 	local belly = airborne("Avion", 100, G + 6)
-	belly.Gear = false
+	belly.Gear, belly.AutoGear = false, false
 	belly.Pitch = math.rad(-3)
 	run(belly, input(), 5)
 	check(belly.Crashed ~= nil, "el avión de línea con el tren subido no puede aterrizar")
+	-- Tren automático: sube al despegar y baja al acercarse al suelo
+	local auto = Flight.new("Avion", CFrame.new(0, G, 0))
+	local up, down = false, false
+	for _ = 1, 30 * 40 do
+		Flight.advance(auto, input({ Throttle = 1, Pitch = if auto.Speed > Flight.Specs.Avion.Vr then 0.5 else 0 }), 1 / 30, flat())
+		up = up or (not auto.OnGround and not auto.Gear)
+		if auto.Pos.Y > G + 150 then
+			break
+		end
+	end
+	auto.Pitch = math.rad(-6)
+	local warnedGear = false
+	for _ = 1, 30 * 30 do
+		Flight.advance(auto, input({ Throttle = -0.2 }), 1 / 30, flat())
+		down = down or (auto.Gear and auto.Pos.Y < G + 40)
+		if auto.OnGround or auto.Crashed then
+			break
+		end
+	end
+	check(up and down, "tren automático del avión de línea: sube al despegar y baja cerca del suelo")
+	local manual = airborne("Avion", 150, G + 70)
+	manual.Gear, manual.AutoGear, manual.Pitch = false, false, math.rad(-4)
+	for _ = 1, 30 * 2 do
+		Flight.advance(manual, input(), 1 / 30, flat())
+		warnedGear = warnedGear or manual.Warn == "Tren"
+	end
+	check(warnedGear and not manual.Gear, "con el tren a mano (G) y subido, bajando cerca del suelo avisa: ¡BAJA EL TREN!")
 	-- Al agua
 	local sea = airborne("Avioneta", 60, G + 3)
 	sea.Pitch = math.rad(-2)

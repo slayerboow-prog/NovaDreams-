@@ -11,8 +11,9 @@
 --     la mitad. Con el billete, en la puerta (FlightGate) se embarca y te sientas. Al aterrizar se
 --     baja en la sala de llegadas (FlightArrival), siempre en suelo firme (Shared/Ground).
 --   * Paneles de salidas (FlightBoard) y megafonía en la terminal.
---   * Nadie pilota los aviones: vuelan solos. FlightService.canPilot queda para un futuro oficio de
---     piloto.
+--   * Nadie pilota estos aviones: vuelan solos (FlightService.canPilot siempre dice que no). Los que
+--     pilotan los jugadores son otros (avionetas del aeroclub y el avión de línea de prácticas:
+--     Services/AviationService y Shared/Airport.PilotPlanes).
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
@@ -520,7 +521,7 @@ local function onLeave(player: Player)
 	FlightService._step(plane, 0)
 end
 
--- (futuro oficio de piloto: de momento los aviones vuelan solos)
+-- (estos vuelan solos; los que se pilotan son los del aeroclub: AviationService)
 function FlightService.canPilot(_player: Player, _planeId: string): boolean
 	return false
 end

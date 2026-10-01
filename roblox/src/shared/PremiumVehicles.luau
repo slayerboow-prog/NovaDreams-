@@ -13,7 +13,8 @@
 --   * Premium = true: el sistema de ruedas y combustible (pinchazos, consumo) lo mira en esta tabla y
 --     en el atributo «Premium» del modelo (lo pone SportsCars al construirlo).
 --   * Nada de marcas reales: nombres, siluetas, parrillas y pilotos originales. Ni logos ni insignias
---     (la matrícula dice VALMAR). Por eso «Stratos RS» se llama «Strato RS» y «Viper GT», «Víbora GT».
+--     (la matrícula dice VALMAR). Por eso dos nombres de la hoja que coincidían con modelos de
+--     verdad se han cambiado: «Strato RS» y «Víbora GT».
 --
 -- Convención de todos los vehículos: centro a ras de suelo, el morro mira a −Z, el conductor va a
 -- la izquierda (−X). Medidas en studs. Los coches caben en la caja del coche de siempre
@@ -57,7 +58,7 @@ local SHAPES = {
 		Hood = { { -6.75, 2.6 }, { -6.4, 2.88 }, { -1.5, 3.15 } },
 		Deck = { { 3.45, 3.05 }, { 4.15, 3.36 }, { 6.75, 3.42 } },
 		Side = { Nose = 2.8, Peak = 3.22, DoorF = 3.2, DoorR = 3.25, RearPeak = 3.4, Tail = 3.38 },
-		Cabin = { Base = -1.5, Belt = 3.15, RoofFront = 0.3, RoofBack = 2.4, Roof = 4.8, Back = 4.15, BackY = 3.36, Half = 2.5, Style = "Notch" },
+		Cabin = { Base = -1.5, Belt = 3.15, RoofFront = 0.3, RoofBack = 2.6, Roof = 4.8, Back = 4.15, BackY = 3.36, Half = 2.5, Style = "Notch" },
 		CabBack = 3.45,
 	},
 	-- Superdeportivo de motor central: morro bajísimo, habitáculo adelantado, tapa del motor larga

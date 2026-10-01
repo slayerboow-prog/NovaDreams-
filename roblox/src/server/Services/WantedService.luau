@@ -9,8 +9,10 @@
 --     contra alguien buscado, no)
 -- Un delito solo suma estrellas si alguien lo ve: la policía (patrullas o jugadores policía de
 -- servicio), un testigo que llama o, en plena calle, a veces un transeúnte. En un atraco siempre
--- salta la alarma. Mientras te buscan: más estrellas = más patrullas (PoliceUnits). Si ningún
--- policía te ve durante Wanted.evadeSeconds, te libras. Si te alcanzan: detenido, multa y comisaría.
+-- salta la alarma. Atropellar a alguien (KnockService) solo cuenta si es culpa tuya (shared/Crossing)
+-- y lo ve la policía en ese momento (options.PoliceOnly): ni la víctima ni los testigos llaman.
+-- Mientras te buscan: más estrellas = más patrullas (PoliceUnits). Si ningún policía te ve durante
+-- Wanted.evadeSeconds, te libras. Si te alcanzan: detenido, multa y comisaría.
 -- Un policía jugador de servicio también puede detenerte (comando DETENER, junto a ti).
 -- Al detenerte pasas a disposición judicial (JusticeService): juicio o sentencia automática.
 -- Si eres menor (niño o adolescente), no: la policía te lleva a casa con tu familia (ConductService).
