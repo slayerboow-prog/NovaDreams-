@@ -27,11 +27,20 @@ Combat.SpawnProtection = 5 -- segundos sin poder recibir golpes al aparecer
 Combat.PerFuerza = 0.04
 Combat.PerMuscle = 0.002 -- por punto de Fuerza del gimnasio (Shared/Gym: +20 % a 100)
 Combat.MinStage = "Nino" -- a partir de niño (los bebés ni pegan ni reciben)
--- Esquivar: un paso rápido con un instante en que los golpes no te dan
-Combat.DodgeSpeed = 46 -- studs/s del paso
-Combat.DodgeTime = 0.18 -- lo que dura el empujón
-Combat.DodgeInvulnerable = 0.35 -- segundos sin recibir golpes
-Combat.DodgeCooldown = 0.9 -- pausa entre dos esquivas
+-- Esquivar: una voltereta por el suelo (hacia delante, o hacia donde empujas el joystick) con un
+-- instante en que los golpes no te dan. La postura la dibuja Controllers/RollMotion.
+Combat.RollTime = 0.7 -- lo que dura la voltereta (segundos)
+Combat.RollSpeed = 24 -- studs/s al empezar a rodar…
+Combat.RollEndSpeed = 0.35 -- …y al acabar va a esta parte (frena rodando)
+Combat.DodgeInvulnerable = 0.35 -- segundos sin recibir golpes (al principio de la voltereta)
+Combat.DodgeCooldown = 1.1 -- pausa entre dos esquivas (más que la voltereta: no se encadenan)
+
+-- Velocidad de la voltereta en el instante t (0..1): sale fuerte y frena suave hasta RollEndSpeed
+function Combat.rollSpeed(t: number): number
+	local x = math.clamp(t, 0, 1)
+	local k = 1 - x * x * (3 - 2 * x)
+	return Combat.RollSpeed * (Combat.RollEndSpeed + (1 - Combat.RollEndSpeed) * k)
+end
 
 -- ¿Esquiva este golpe? (dentro del instante de esquiva)
 function Combat.dodging(dodgeAt: number?, now: number): boolean

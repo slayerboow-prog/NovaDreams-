@@ -612,6 +612,16 @@ function Parkour.init()
 	UserInputService.JumpRequest:Connect(function()
 		wantJump = true
 	end)
+	-- El botón Saltar del móvil no dispara JumpRequest: avisa él (con un obstáculo delante, salta el parkour)
+	if TouchLayout.onJump then
+		TouchLayout.onJump(function(down: boolean)
+			if down then
+				wantJump = true
+				return candidate ~= nil
+			end
+			return nil
+		end)
+	end
 	task.spawn(function()
 		while true do
 			task.wait(0.1)
