@@ -204,6 +204,17 @@ function StreetLook.mainKindAt(x: number, z: number): (string?, number)
 	return kind, best
 end
 
+-- ¿Lejos de todos los pueblos y barrios de la historia (CityPlan.Towns, cuadrículas de 720)?
+StreetLook.TOWN_REACH = 650
+function StreetLook.farFromTowns(x: number, z: number): boolean
+	for _, p in CityPlan.Towns do
+		if math.abs(x - p[1]) < StreetLook.TOWN_REACH and math.abs(z - p[2]) < StreetLook.TOWN_REACH then
+			return false
+		end
+	end
+	return true
+end
+
 export type Line = { Axis: string, At: number, From: number, To: number }
 
 -- ¿Está en una de las calles grandes de la cuadrícula (World/Region.Highways)?
@@ -243,6 +254,12 @@ function StreetLook.classify(info: PartInfo, highways: { Line }?): string?
 		return nil
 	end
 	local zone = StreetLook.zoneAt(info.X, info.Z)
+	-- Carreteras secundarias lejos de los pueblos (Paseo de Poniente, Carretera de los Montes…): campo
+	-- aunque el distrito llegue hasta allí (el Oeste es casi todo parque natural y costa)
+	local mainKind = if info.Container == "MainRoads" then StreetLook.mainKindAt(info.X, info.Z) else nil
+	if mainKind == "Calle" and zone ~= "Casco" and StreetLook.farFromTowns(info.X, info.Z) then
+		zone = "Campo"
+	end
 	if surface == "Walk" then
 		if zone == "Casco" then
 			return "AceraCasco"
@@ -255,8 +272,7 @@ function StreetLook.classify(info: PartInfo, highways: { Line }?): string?
 	end
 	-- Calzada
 	if info.Container == "MainRoads" then
-		local kind = StreetLook.mainKindAt(info.X, info.Z)
-		if kind ~= "Calle" then
+		if mainKind ~= "Calle" then
 			return "Avenida" -- (autovía, avenidas y sus rotondas)
 		end
 	elseif StreetLook.onHighway(info.X, info.Z, highways) then

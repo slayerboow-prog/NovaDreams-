@@ -473,7 +473,7 @@ local Cinematics: { [string]: Cinematic } = {
 	},
 
 	-- PRÓLOGO (el sueño): qué es el juego y el gancho de la saga, antes de jugar el tutorial.
-	-- Pasa en la isla del sueño (World/Kit/DreamIsland). La línea verde del cielo es la Grieta.
+	-- Pasa en la isla del sueño (World/Kit/DreamIsland). La raja de luz del cielo es la Grieta (Controllers/SkyRift).
 	Prologo_Apertura = {
 		Duration = 19.5,
 		FadeIn = true,

@@ -52,7 +52,7 @@ saga: casi todo lo raro que pasa en ellas llega por la Grieta. En el final vuelv
 
 | # | Misión | Resumen | Enlaces |
 |---|---|---|---|
-| 1 | **El vecino del garaje** (`Loco_N1_Cosme`, canónica) | El microondas temporal explota. Tres piezas. Al final, en el cielo, una línea verde que «antes no estaba ahí». | Abre la saga. Sin ella no hay nada más. |
+| 1 | **El vecino del garaje** (`Loco_N1_Cosme`, canónica) | El microondas temporal explota. Tres piezas. Al final, en el cielo, una raja de luz que «antes no estaba ahí». | Abre la saga. Sin ella no hay nada más. |
 | 2 | **La grieta en el cielo** | Caen cosas de la Grieta: un calcetín que habla, una moneda con la cara de Cosme… con perilla. Cosme palidece: «Cósimo». | Primera pista del villano. |
 | 3 | **El pez que sabía demasiado** | Don Escamas, un pez de otra dimensión, huye de dos agentes de traje gris del Consorcio. Se le escapa: «¿el Ancla?». | Presenta al Consorcio y el misterio del Ancla. |
 | 4 | **La ventanilla 42** | La Aduana del Tiempo multa a Cosme por la Grieta. Tres ventanillas que te mandan a otra ventanilla. Cronos sella… y avisa. | Cronos, que vuelve en A1, U2 y el final. |

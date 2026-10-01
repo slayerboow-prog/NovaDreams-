@@ -177,7 +177,7 @@ function StreetDress.dress(root: Instance, resolved: { [string]: Resolved }, hig
 	for i, part in root:GetDescendants() do
 		pause(i, 20000)
 		if part:IsA("BasePart") and StreetLook.Names[part.Name] then
-			local p = part.Position
+			local p = part.CFrame.Position
 			local key = StreetLook.classify({
 				Name = part.Name,
 				Material = part.Material.Name,
@@ -266,11 +266,11 @@ end
 
 local function firstPosition(model: Instance): Vector3?
 	if model:IsA("BasePart") then
-		return model.Position
+		return model.CFrame.Position
 	end
 	for _, d in model:GetDescendants() do
 		if d:IsA("BasePart") then
-			return d.Position
+			return d.CFrame.Position
 		end
 	end
 	return nil
@@ -289,11 +289,11 @@ function StreetDress.scan(root: Instance): any
 		local name = item.Name
 		if item:IsA("BasePart") then
 			if (name == "Manhole" or name == "Drain") and containerOf(item, root) == "Streets" then
-				table.insert(if name == "Manhole" then found.Manholes else found.Drains, { Part = item, Position = item.Position })
+				table.insert(if name == "Manhole" then found.Manholes else found.Drains, { Part = item, Position = item.CFrame.Position })
 			elseif item:HasTag("BusStop") then
-				table.insert(found.Obstacles, { Position = item.Position, Radius = 6 })
-			elseif (string.find(name, "Door", 1, true) or string.find(name, "Puerta", 1, true) or string.find(name, "Entrance", 1, true)) and item.Position.Y < 20 then
-				table.insert(found.Obstacles, { Position = item.Position, Radius = 5 })
+				table.insert(found.Obstacles, { Position = item.CFrame.Position, Radius = 6 })
+			elseif (string.find(name, "Door", 1, true) or string.find(name, "Puerta", 1, true) or string.find(name, "Entrance", 1, true)) and item.CFrame.Position.Y < 20 then
+				table.insert(found.Obstacles, { Position = item.CFrame.Position, Radius = 5 })
 			end
 		elseif item:IsA("Model") then
 			if name == "PasoCebra" then
@@ -336,14 +336,16 @@ function StreetDress.crossingOf(model: Instance): StreetLook.Crossing?
 	local first = stripes[1]
 	local w = first.CFrame.RightVector
 	w = V3(w.X, 0, w.Z).Unit
-	local o = V3(first.Position.X, 0, first.Position.Z)
+	local o = V3(first.CFrame.Position.X, 0, first.CFrame.Position.Z)
 	local lo, hi = math.huge, -math.huge
 	for _, s in stripes do
-		local a = (V3(s.Position.X, 0, s.Position.Z) - o):Dot(w)
+		local q = s.CFrame.Position
+		local a = (V3(q.X, 0, q.Z) - o):Dot(w)
 		lo, hi = math.min(lo, a - 1.45), math.max(hi, a + 1.45)
 	end
 	for _, r in ramps do
-		local a = (V3(r.Position.X, 0, r.Position.Z) - o):Dot(w)
+		local q = r.CFrame.Position
+		local a = (V3(q.X, 0, q.Z) - o):Dot(w)
 		lo, hi = math.min(lo, a - 0.8), math.max(hi, a + 0.8)
 	end
 	return { Center = o + w * ((lo + hi) / 2), WalkDir = w, Length = hi - lo, Depth = first.Size.Z }
@@ -352,7 +354,7 @@ end
 -- Lámina con la imagen encima de una tapa o rejilla de Kit/StreetDetail
 local function coverPlate(parent: Instance, part: BasePart, template: Decal, round: boolean)
 	local size = if round then V3(part.Size.Y, 0.02, part.Size.Z) else V3(part.Size.X, 0.02, part.Size.Z)
-	local cf = if round then CFrame.new(part.Position) else part.CFrame
+	local cf = if round then CFrame.new(part.CFrame.Position) else part.CFrame
 	local plate = make("Part", { Name = if round then "TapaAlcantarilla" else "RejillaImagen", Size = size, CFrame = cf + V3(0, 0.045, 0), Transparency = 1, Parent = parent }, StreetDress.DetailTag)
 	decal(template, Enum.NormalId.Top, plate)
 end

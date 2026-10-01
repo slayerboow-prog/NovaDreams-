@@ -1140,11 +1140,13 @@ sol.Prefer = { "¡Te ayudo", "Será nuestro secreto", "Te saco de aquí", "Por f
 lighting.ClockTime = 17
 passTime(sol, 5)
 check(canonIds(sol).Loco_N1_Cosme and not canonIds(sol).Saga_02_Grieta, "Al empezar, el mapa marca la primera misión canónica (y solo esa)")
-check(playLoco(sol, "Loco_N1_Cosme") and solData.Story.Flags.GrietaVista, "1 · El vecino del garaje (canónica: empieza sola al llegar) y la línea verde del cielo")
+check(playLoco(sol, "Loco_N1_Cosme") and solData.Story.Flags.GrietaVista, "1 · El vecino del garaje (canónica: empieza sola al llegar) y la raja de luz del cielo")
+check(sol:GetAttribute("SkyRift") == "Rasguno", "La Grieta del cielo aparece (fase Rasguno: un rasguño de luz) tras conocer a Cosme")
 sol.At = "Parque" -- lejos del garaje (si no, la siguiente empieza sola y ya no tiene marca)
 passTime(sol, 5)
 check(canonIds(sol).Saga_02_Grieta and not canonIds(sol).Loco_N1_Cosme, "Hecha una, su marca desaparece y aparece la siguiente")
 check(playLoco(sol, "Saga_02_Grieta") and solData.Items.MonedaPerilla == 1 and said(sol, "…Cósimo."), "2 · La grieta en el cielo: la moneda con perilla y el nombre de Cósimo")
+check(sol:GetAttribute("SkyRift") == "Crece", "Tras «La grieta en el cielo», la Grieta ha crecido (fase Crece)")
 check(playLoco(sol, "Saga_03_Pez") and solData.Story.Flags.OyoAncla and said(sol, "He hablado de más"), "3 · El pez que sabía demasiado: el Consorcio y la palabra «Ancla»")
 check(playLoco(sol, "Saga_04_Ventanilla") and solData.Items.SelloAduana == 1 and said(sol, "Alguien del otro lado tira de ella"), "4 · La ventanilla 42: burocracia del tiempo y un aviso de Cronos")
 lighting.ClockTime = 21 -- «La noche de las cosas perdidas»: de noche
@@ -1154,6 +1156,7 @@ check(canonIds(sol).Saga_06_Coser, "El final del acto está marcado en el mapa (
 lighting.ClockTime = 21
 check(playLoco(sol, "Saga_06_Coser") and solData.Items.AgujaCuantica == 1 and solData.Story.Flags.SagaActo1 and said(sol, "Ya te he visto, Ancla"), "6 · Coser el cielo: los anclajes, los agentes grises y la voz de Cósimo")
 check(cinematic(sol, "Saga_Coser"), "Cinemática: la aguja cose el cielo")
+check(sol:GetAttribute("SkyRift") == "Cosida", "Cosida: en el cielo queda solo una cicatriz (fase Cosida)")
 
 print("\n▶ Saga de la Grieta · Actos II, III y IV (de la adolescencia a la vida adulta, hasta el final)")
 local nora = newPlayer("Nora", "Adolescente")
@@ -1254,6 +1257,7 @@ check(ConditionsMod.check({ MemoriesFewer = { N = 4, Of = { "BuzonPasado", "Piso
 check(noraData.Story.Flags.CosimoPerdonado or noraData.Story.Flags.CosimoArregla66B, "Decides qué pasa con Cósimo")
 lighting.ClockTime = 12
 check(playLoco(nora, "Saga_24_Final") and noraData.Items.AgujaDeOro == 1 and noraData.Story.Flags.SagaCompleta and cinematic(nora, "Saga_Final"), "24 · El final: la Grieta se cierra en el patio del cole")
+check(nora:GetAttribute("SkyRift") == "Cerrada", "Al final de la saga la Grieta del cielo se cierra para siempre (fase Cerrada)")
 passTime(nora, 5)
 local quedan = 0
 for _ in canonIds(nora) do

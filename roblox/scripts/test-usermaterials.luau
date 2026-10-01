@@ -330,12 +330,12 @@ do
 	-- Aclarar
 	local amounts = UserMaterials.amounts(applied)
 	local tinted = UserMaterials.tint(w.town, amounts, nil, w.terrain)
-	check(road.Color.R > 0.6 and lawn.Color.R > lawn.Color.G * 0.85, ("asfalto (%.2f) y césped aclarados: manda el color de la textura"):format(road.Color.R))
+	check(road.Color.R > 0.6 and lawn.Color.G > lawn.Color.R and lawn.Color.R > 0.45, ("asfalto (%.2f) aclarado y césped algo aclarado pero verde (no oliva)"):format(road.Color.R))
 	check(wall.Color.R > 0.9 and wall.Color.B < 0.7, "fachada de estuco apenas aclarada: sigue de su color")
 	check(pole.Color == Color3.fromRGB(58, 62, 68) and curb.Color == Color3.fromRGB(214, 211, 204) and door.Color == Color3.fromRGB(80, 60, 44), "metal y piezas con variant nuestro, sin tocar")
 	check(tinted == 3, ("%d piezas aclaradas (asfalto, estuco, césped)"):format(tinted))
 	local g = w.terrain:GetMaterialColor(Enum.Material.Grass)
-	check(g.R > grassBefore.R + 0.2, "el césped del terreno también se aclara")
+	check(g.R > grassBefore.R + 0.05 and g.G > g.R, "el césped del terreno también se aclara un poco, sin perder el verde")
 	local seen = setmetatable({}, { __mode = "k" })
 	UserMaterials.tint(w.town, amounts, seen)
 	local r1 = road.Color

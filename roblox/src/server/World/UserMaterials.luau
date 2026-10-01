@@ -20,6 +20,9 @@
 --   * Suelo mojado: lo sigue haciendo el cliente (Controllers/WetWorld oscurece y da reflejo a las
 --     piezas al aire, con cualquier material, y pone charcos). La rugosidad mojada de nuestras texturas
 --     (Controllers/MaterialDetail) queda en el bordillo de granito, que sigue siendo nuestro.
+--   * Después de las calles (World/StreetDress) viste las casas, el colegio, los edificios públicos y
+--     las naves pieza a pieza (World/HouseDress, shared/HouseLook): los overrides de Plaster y
+--     ClayRoofTiles no se pueden poner en un servidor real (sus variants vienen sobre otro material).
 --   * Si no carga ningún pack (o falla todo), no se cambia nada: siguen nuestras texturas.
 
 local AssetService = game:GetService("AssetService")
@@ -266,7 +269,9 @@ function UserMaterials.tint(root: Instance, amounts: { [string]: number }, seen:
 end
 
 -- Arranque (servidor, espera: llamar en un hilo aparte). load(id) se puede cambiar en las pruebas.
-function UserMaterials.start(load: ((number) -> Instance?)?)
+-- dress (opcional): lo que se hace con los packs ya cargados ANTES de aclarar (World/StreetDress: cada
+-- calle con su aspecto; lo que lleva variant propio no se aclara aquí).
+function UserMaterials.start(load: ((number) -> Instance?)?, dress: ((Instance, Instance, (number) -> Instance?, any) -> ())?)
 	local library = ServerStorage:FindFirstChild(LIBRARY)
 	if not library then
 		library = Instance.new("Folder")
@@ -297,6 +302,23 @@ function UserMaterials.start(load: ((number) -> Instance?)?)
 		table.insert(list, ("%s=%s"):format(pick.Material, pick.VariantName))
 	end
 	print(("[UserMaterials] %d/%d packs, %d materiales sustituidos: %s"):format(count, #Choice.Packs, #applied, table.concat(list, ", ")))
+	if dress then
+		local ok, err = pcall(dress, game:GetService("MaterialService"), library, load or download, UserMaterials.unpack)
+		if not ok then
+			warn("[UserMaterials] calles: " .. tostring(err))
+		end
+	end
+	-- Casas, colegio, edificios públicos y naves: cada parte con su textura realista, pieza a pieza
+	-- (World/HouseDress, tabla en shared/HouseLook). También antes de aclarar.
+	local houses = script and script.Parent and script.Parent:FindFirstChild("HouseDress")
+	if houses then
+		local ok, err = pcall(function()
+			require(houses :: any).start(game:GetService("MaterialService"), library)
+		end)
+		if not ok then
+			warn("[UserMaterials] edificios: " .. tostring(err))
+		end
+	end
 	if #applied == 0 then
 		return
 	end

@@ -18,6 +18,8 @@
 --   * presupuesto de farolas: de noche, cerca de la cámara nunca hay más luces encendidas que las del
 --     nivel (y de día ninguna); las sombras, solo las del nivel
 --   * el cristal de las fachadas refleja un poco (Kit/Polish.surfaces)
+--   * ambiente de cine: sol cálido con dirección, sombras azuladas, bruma que azula lo lejano,
+--     colores algo apagados con algo de contraste, nubes de día; y el cielo de fotos (SkyChoice/SkyLoader)
 
 local fs = require("@lune/fs")
 local luau = require("@lune/luau")
@@ -480,6 +482,113 @@ end
 check(fs.readFile("src/server/World/Kit/MaterialLook.luau"):find("WetRoughnessId", 1, true) ~= nil, "el servidor apunta en cada material su rugosidad seca y mojada")
 local wetFloor = select(2, Wetness.surface(Enum.Material.Asphalt, 1, 0, true))
 check(wetFloor >= 0.35 and wetFloor <= 0.45, ("asfalto empapado: reflejo de espejo oscuro (%.2f)"):format(wetFloor))
+
+---------------------------------------------------------------------
+print("Ambiente de cine (v82): luz con dirección, perspectiva aérea, etalonaje y cielo")
+---------------------------------------------------------------------
+local function lum(c: Color3): number
+	return c.R * 0.3 + c.G * 0.59 + c.B * 0.11
+end
+local morning, afternoon = DayGrade.sample(9.5), DayGrade.sample(15)
+-- Sombras con cuerpo: la luz de fuera de día baja (antes 92,94,98) y azulada como el cielo
+check(lum(noon.Outdoor) < 0.33 and noon.Outdoor.B > noon.Outdoor.R + 0.05, ("mediodía: sombras azuladas y marcadas (luz de fuera %d,%d,%d)"):format(noon.Outdoor.R * 255, noon.Outdoor.G * 255, noon.Outdoor.B * 255))
+-- Sol cálido con dirección (ColorShift_Top) que se apaga con el cielo tapado
+check(noon.SunTint and noon.SunTint.R > noon.SunTint.B * 1.8 and golden.SunTint.R > noon.SunTint.R * 2, "sol cálido (ColorShift_Top), mucho más en la hora dorada")
+check(night.SunTint.B > night.SunTint.R and lum(night.SunTint) < 0.05, "de noche, luz de luna fría y apenas tinte")
+check(lum(rainNoon.SunTint) < lum(noon.SunTint) * 0.3 and lum(DayGrade.weather(noon, W.Nublado, nil, 0, 0).SunTint) < lum(noon.SunTint) * 0.7, "con el cielo tapado o lluvia no hay sol cálido directo")
+-- Que no queme: menos brillo y exposición a mediodía que antes (3,6 / 0)
+check(noon.Brightness <= 3.3 and noon.Exposure <= -0.05 and noon.Exposure >= -0.25, ("mediodía sin quemar (Brightness %.2f, exposición %.2f)"):format(noon.Brightness, noon.Exposure))
+-- Perspectiva aérea: bruma que aclara y azula lo lejano a todas horas de sol, más al atardecer
+local airOk = true
+for h = 9, 15.5, 0.25 do -- (antes y después, la luz rasante la calienta: es la hora dorada)
+	local k = DayGrade.sample(h)
+	if k.Density < 0.33 or k.Haze < 1.3 or k.AtmColor.B < k.AtmColor.R or k.Decay.B < k.Decay.R then
+		airOk = false
+	end
+end
+check(airOk, "de día la bruma azula y aclara lo lejano (Density ≥ 0,33, Haze ≥ 1,3, color y decaimiento azulados)")
+check(golden.Haze > noon.Haze and DayGrade.sample(18).Haze > noon.Haze, "al atardecer la bruma se espesa (luz rasante)")
+check(noon.Density <= 0.45 and noon.Haze <= 2.5, ("pero sin niebla de día despejado (Density %.2f, Haze %.2f)"):format(noon.Density, noon.Haze))
+-- Etalonaje: colores algo apagados de día, algo más de contraste, sin pasarse
+check(noon.Saturation < 0 and morning.Saturation < 0 and afternoon.Saturation < 0 and noon.Saturation >= -0.15, ("de día colores algo apagados (saturación %.2f a mediodía)"):format(noon.Saturation))
+check(noon.Contrast >= 0.19 and noon.Contrast <= 0.25, ("algo de contraste de cine (%.2f)"):format(noon.Contrast))
+check(golden.Saturation > 0 and golden.Saturation <= 0.15, "la hora dorada recupera color, sin pasarse")
+check(noon.Bloom <= 0.3 and noon.Rays <= 0.05 and noon.Rays > 0, "de día resplandor contenido y rayos de sol sutiles")
+check(DayGrade.weather(noon, W.Tormenta, nil, 0, 1).Saturation >= -0.3, "la tormenta no deja la imagen en blanco y negro")
+-- Nubes: nunca cielo azul vacío de día
+local cloudOk = true
+for h = 8, 17, 0.25 do
+	local k = DayGrade.sample(h)
+	if k.Cover < 0.55 or k.CloudDensity < 0.45 then
+		cloudOk = false
+	end
+end
+check(cloudOk, "de día siempre hay nubes con cuerpo (cobertura ≥ 0,55, densidad ≥ 0,45)")
+local dayLightSrc = fs.readFile("src/client/Controllers/DayLight.luau")
+check(dayLightSrc:find("ColorShift_Top", 1, true) and dayLightSrc:find("ColorShift_Bottom", 1, true), "DayLight pinta el sol cálido y las sombras azuladas (ColorShift)")
+check(dayLightSrc:find("0.35, 0.88", 1, true) ~= nil, "DayLight no deja el cielo con menos de 0,35 de nubes")
+-- El archivo del juego empieza con el mismo ambiente (sin un salto al entrar)
+local P = L["$properties"]
+check(P.Brightness <= 3.3 and (P.ExposureCompensation or 0) < 0 and P.OutdoorAmbient[3] > P.OutdoorAmbient[1] and P.ColorShift_Top and P.ColorShift_Top[1] > P.ColorShift_Top[3], "archivo: sol cálido, sombras azuladas y sin quemar")
+local atm = classes.Atmosphere
+check(atm.Density >= 0.33 and atm.Haze >= 1.3, ("archivo: bruma de perspectiva aérea (Density %.2f, Haze %.2f)"):format(atm.Density, atm.Haze))
+check(classes.ColorCorrectionEffect.Saturation < 0 and classes.ColorCorrectionEffect.Contrast >= 0.19, "archivo: etalonaje con colores algo apagados y contraste")
+
+-- Cielo de fotos (shared/SkyChoice + World/SkyLoader)
+local SkyChoice = load("src/shared/SkyChoice.luau")
+check(SkyChoice.phase(13) == "Day" and SkyChoice.phase(18.8) == "Day" and SkyChoice.phase(20) == "Night" and SkyChoice.phase(2) == "Night" and SkyChoice.phase(5.5) == "Day", "cielo de noche de 19:30 a 5:12 (en lo más oscuro del crepúsculo)")
+check(SkyChoice.pick(13, {}) == nil and SkyChoice.pick(23, { Day = true }) == nil and SkyChoice.pick(23, { Night = true }) == "Night" and SkyChoice.pick(12, { Day = true, Night = true }) == "Day", "sin cielo cargado para esa hora, el de siempre")
+check(SkyChoice.valid(123) and not SkyChoice.valid(0) and not SkyChoice.valid(nil) and not SkyChoice.valid(1.5), "ids de cielo válidos")
+check(#SkyChoice.wanted() == (if SkyChoice.valid(SkyChoice.Day.Id) then 1 else 0) + (if SkyChoice.valid(SkyChoice.Night.Id) then 1 else 0), "solo se cargan los cielos con id")
+check(SkyChoice.Night.Id ~= 7485807340, "el cielo del Night Pack (bosque en las 6 caras) no se usa")
+local allFaces = {}
+for _, f in SkyChoice.Faces do
+	allFaces[f] = "rbxassetid://1"
+end
+local missing = table.clone(allFaces)
+missing.SkyboxUp = ""
+check(SkyChoice.complete(allFaces) and not SkyChoice.complete(missing), "un cielo sin sus 6 caras no vale")
+-- El cargador con un pack de mentira: un modelo con scripts, piezas y un Sky dentro
+local ReplicatedStub = { Shared = { SkyChoice = { __module = "SkyChoice" } } }
+local SkyLoader = load("src/server/World/SkyLoader.luau", {
+	game = { GetService = function(_, name)
+		return if name == "ReplicatedStorage" then ReplicatedStub else {}
+	end },
+	require = function()
+		return SkyChoice
+	end,
+	warn = print,
+	pcall = pcall,
+})
+local Instance = roblox.Instance
+local function fakePack(withSky: boolean): any
+	local model = Instance.new("Model")
+	local scriptA = Instance.new("Script")
+	scriptA.Parent = model
+	local part = Instance.new("Part")
+	part.Parent = model
+	if withSky then
+		local folder = Instance.new("Folder")
+		folder.Name = "PUT ME IN LIGHTING!"
+		folder.Parent = model
+		local skyItem = Instance.new("Sky")
+		for _, f in SkyChoice.Faces do
+			(skyItem :: any)[f] = "rbxassetid://83951719"
+		end
+		local inner = Instance.new("LocalScript")
+		inner.Parent = skyItem
+		skyItem.Parent = folder
+	end
+	return model
+end
+local skyLib = Instance.new("Folder")
+local got = SkyLoader.extract(fakePack(true), "Night", skyLib)
+check(got and got.Name == "Night" and got.Parent == skyLib and #got:GetChildren() == 0 and #skyLib:GetChildren() == 1, "cargador: deja solo el Sky (sin scripts ni piezas) en la biblioteca")
+check(SkyLoader.extract(fakePack(false), "Day", skyLib) == nil and skyLib:FindFirstChild("Day") == nil, "cargador: un pack sin Sky no cambia nada")
+local mainSrc = fs.readFile("src/server/Main.server.luau")
+local loaderSrc = fs.readFile("src/server/World/SkyLoader.luau")
+check(mainSrc:find("World.SkyLoader", 1, true) and loaderSrc:find("LoadAssetAsync", 1, true) and loaderSrc:find("pcall", 1, true), "el servidor carga los cielos en un hilo aparte y con pcall")
+check(dayLightSrc:find("SkyChoice.pick", 1, true) and dayLightSrc:find("originalFaces", 1, true), "el cliente pone el cielo de la hora y vuelve al de siempre si no hay")
 
 print("")
 if failures > 0 then

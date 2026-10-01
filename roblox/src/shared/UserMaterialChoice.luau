@@ -74,7 +74,9 @@ UserMaterialChoice.Table = {
 		-- los parques grandes y en el terreno no se ve la repetición. (Respaldo: el del pack de piedras.)
 		Candidates = { c("Cesped", "MaterialVariant 3", "Grass"), c("Real", "Grass", "Grass") },
 		Pattern = "Organic",
-		Whiten = 0.7,
+		-- 0,3 (antes 0,7): con 0,7 el verde de las piezas casi era blanco y el césped salía color oliva
+		-- seco (captura del dueño, v81); así conserva más verde y se ve fresco
+		Whiten = 0.3,
 		Why = "césped 2k del dueño, sin repetición visible",
 	},
 	{
