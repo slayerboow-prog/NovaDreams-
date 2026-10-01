@@ -8,6 +8,7 @@
 local Builder = require(script.Parent.Parent.Builder)
 local Palette = require(script.Parent.Palette)
 local StreetDetail = require(script.Parent.StreetDetail)
+local CityDetail = require(script.Parent.CityDetail)
 
 local Building = {}
 
@@ -514,6 +515,18 @@ function Building.build(spec: Spec): (Model, (number, number, number) -> CFrame,
 					Parent = model,
 				})
 			end
+			-- Tejas con relieve, tablas de remate y canalón con bajantes en las esquinas (Kit/CityDetail)
+			local roofColor = style.RoofColor or Color3.fromRGB(176, 86, 56)
+			local roofMaterial = style.RoofMaterial or Enum.Material.ClayRoofTiles
+			local size = Vector3.new(W + 2 * o, rh, depth)
+			CityDetail.tiles(model, cf, size, roofColor, roofMaterial)
+			CityDetail.verges(model, cf, size, style.Trim)
+			CityDetail.gutter(model, O * CFrame.new(0, top - 0.1, side * (D / 2 + o + 0.2)), W + 2 * o, top - 0.1, W / 2 + 0.3, -side * (o - 0.1))
+		end
+		CityDetail.ridge(model, O * CFrame.new(0, top + rh + 0.05, 0), W + 2 * o + 0.2, style.RoofColor or Color3.fromRGB(176, 86, 56), style.RoofMaterial or Enum.Material.ClayRoofTiles)
+		-- Cornisa bajo los aleros (delante y detrás)
+		for _, face in { faces[1], faces[2] } do
+			CityDetail.cornice(model, face.CF, W, top - 0.5, style.Trim, style.TrimMaterial)
 		end
 		Builder.part({
 			Name = "Chimney",

@@ -15,6 +15,7 @@ local Nature = require(script.Parent.Nature)
 local Props = require(script.Parent.Props)
 local HouseKit = require(script.Parent.HouseKit)
 local HotelLobby = require(script.Parent.HotelLobby)
+local CityDetail = require(script.Parent.CityDetail)
 
 local Lite = {}
 
@@ -123,14 +124,39 @@ function Lite.building(parent: Instance, cf: CFrame, w: number, d: number, floor
 	end
 	-- Cornisa y máquinas en la azotea
 	part(m, "Cornice", cf * CFrame.new(0, H + 0.6, 0), Vector3.new(w + 1, 1.2, d + 1), style.Trim, style.Material)
+	-- Los bloques bajos de estilo clásico, de ladrillo o de colores llevan casi siempre tejado de teja a
+	-- dos aguas (como los pueblos de verdad); los modernos y los altos, azotea. Se sortea con la
+	-- posición: math.random no se gasta de más y el resto del mapa sale igual.
+	local here = cf.Position
+	local pitched = floors <= 3 and style ~= Lite.Styles.Moderno and w <= 70 and d <= 46 and CityDetail.hash(here.X, here.Z, 81) < 0.8
 	if math.random() < 0.7 then
-		part(m, "RoofUnit", cf * CFrame.new((math.random() - 0.5) * w * 0.5, H + 2.7, (math.random() - 0.5) * d * 0.4), Vector3.new(6, 3, 5), rgb(150, 154, 160), Enum.Material.Metal, true)
+		local unit = cf * CFrame.new((math.random() - 0.5) * w * 0.5, H + 2.7, (math.random() - 0.5) * d * 0.4)
+		if not pitched then
+			part(m, "RoofUnit", unit, Vector3.new(6, 3, 5), rgb(150, 154, 160), Enum.Material.Metal, true)
+		end
 	end
+	if pitched then
+		local clay = { rgb(168, 76, 50), rgb(180, 92, 58), rgb(150, 70, 48), rgb(122, 74, 60) }
+		local roofColor = clay[math.floor(CityDetail.hash(here.X, here.Z, 82) * #clay) % #clay + 1]
+		CityDetail.pitchedRoof(m, cf * CFrame.new(0, H + 1.2, 0), w, d, H + 1.1, roofColor, wall, style.Material, style.Trim)
+	end
+	-- Fachada (Kit/CityDetail; el nivel Bajo lo esconde): zócalo de piedra alrededor, alféizar corrido
+	-- bajo cada franja de ventanas de la fachada y cornisa moldurada
+	local stone = CityDetail.stoneColor(here.X, here.Z)
+	CityDetail.bit(m, "StonePlinth", Vector3.new(w + 0.36, 1.4, d + 0.36), cf * CFrame.new(0, 0.7, 0), stone, Enum.Material.Cobblestone)
+	-- (alféizares solo en los bloques de hasta 6 plantas: en las torres no se ven y son muchas piezas)
+	for f = 1, if floors <= 6 then floors else 0 do
+		local y = ground + (f - 0.5) * FH + 0.5
+		CityDetail.bit(m, "Sill", Vector3.new(w - 3.4, 0.35, 0.8), cf * CFrame.new(0, y - FH * 0.26 - 0.18, -d / 2 - 0.4), style.Trim, Enum.Material.Limestone)
+	end
+	CityDetail.cornice(m, cf * CFrame.new(0, 0, -d / 2), w, H - 0.5, style.Trim, style.Material)
 	-- Planta baja: tienda o portal
 	if opts.Shop then
 		shopFront(m, cf, w, d, if type(opts.Shop) == "string" then opts.Shop elseif math.random() < 0.6 then pick(SHOPS) else nil)
 	else
 		part(m, "Door", cf * CFrame.new(0, 3.5, -d / 2 - 0.2), Vector3.new(4, 7, 0.4), rgb(80, 60, 44), Enum.Material.Wood, true)
+		-- Portal de piedra con escalón
+		CityDetail.portal(m, cf * CFrame.new(0, 0, -d / 2), 0, 4, 7, style.Trim, stone)
 	end
 	Builder.streamable(m)
 	return m

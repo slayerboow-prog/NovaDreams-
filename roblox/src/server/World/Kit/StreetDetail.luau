@@ -19,6 +19,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Builder = require(script.Parent.Parent.Builder)
 local MetroAccess = require(script.Parent.MetroAccess)
+local Props = require(script.Parent.Props)
 local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
 
 local StreetDetail = {}
@@ -208,6 +209,37 @@ Kinds.Works = function(parent, cf, _r)
 	Builder.part({ Name = "WorksBarrier", Size = V3(5.2, 3, 1.6), CFrame = cf * CFrame.new(0, 1.5, -0.2), Transparency = 1, CastShadow = false, Parent = m })
 end
 
+-- Banco de la calle de espaldas a la calzada (se puede sentar: etiqueta Bench)
+Kinds.Bench = function(parent, cf, r)
+	local m = item(parent, "BancoCalle")
+	m:AddTag("Bench")
+	local b = cf * CFrame.new(0, 0, 0.2) * CFrame.Angles(0, math.pi, 0) -- (mira a la acera)
+	local wood = if r < 0.5 then rgb(150, 104, 64) else rgb(120, 84, 54)
+	Builder.part({ ClassName = "Seat", Name = "Seat", Size = V3(5.4, 0.35, 1.7), CFrame = b * CFrame.new(0, 1.85, 0), Color = wood, Material = Enum.Material.WoodPlanks, CanTouch = false, CastShadow = false, Parent = m })
+	decor(m, "Back", V3(5.4, 1.4, 0.25), b * CFrame.new(0, 2.9, 0.85) * CFrame.Angles(math.rad(-10), 0, 0), wood, Enum.Material.WoodPlanks)
+	for _, x in { -2.3, 2.3 } do
+		decor(m, "Leg", V3(0.3, 1.7, 1.6), b * CFrame.new(x, 0.85, 0.1), DARK, Enum.Material.Metal)
+	end
+end
+
+-- Papelera (el basurero también la vacía: etiqueta Papelera, Kit/Props)
+Kinds.Litter = function(parent, cf, _r)
+	local m = item(parent, "PapeleraCalle")
+	Props.bin(m, cf * CFrame.new(0, 0, 0.2))
+end
+
+-- Buzón de correos amarillo sobre su pie
+Kinds.Mailbox = function(parent, cf, _r)
+	local m = item(parent, "BuzonCorreos")
+	local yellow = rgb(244, 196, 30)
+	local c = cf * CFrame.new(0, 0, 0.3)
+	decor(m, "MailFoot", V3(0.5, 1.4, 0.5), c * CFrame.new(0, 0.7, 0), METAL, Enum.Material.Metal)
+	solid(m, "MailBody", V3(1.8, 2.2, 1.4), c * CFrame.new(0, 2.5, 0), yellow, Enum.Material.Metal)
+	decor(m, "MailTop", V3(1.8, 1.4, 1.4), c * CFrame.new(0, 3.6, 0), yellow, Enum.Material.Metal, { Shape = Enum.PartType.Cylinder })
+	local plate = decor(m, "MailSlot", V3(1.4, 0.7, 0.06), c * CFrame.new(0, 2.9, -0.73), rgb(40, 50, 90))
+	Builder.sign(plate, "CARTAS", Enum.NormalId.Front, yellow)
+end
+
 -- Qué sale en cada distrito (peso relativo)
 local WEIGHTS = {
 	Centro = { Mupi = 3, Planter = 3, Kiosk = 1.2, BikeRack = 2, Bollards = 2, Hydrant = 1, Scooter = 2, Sign = 1.5, Cabinet = 0.6, Recycling = 0.6, Works = 0.4 },
@@ -217,6 +249,17 @@ local WEIGHTS = {
 	Universitario = { BikeRack = 4, Scooter = 3, Mupi = 2, Planter = 1.5, Cabinet = 1, Recycling = 1, Kiosk = 0.6, Sign = 1 },
 	Sur = { Recycling = 2.5, Cabinet = 2.5, Hydrant = 2, Works = 1.5, Sign = 2, Bollards = 1, Scooter = 1, Planter = 0.5 },
 	Campo = { Hydrant = 1, Cabinet = 1, Sign = 0.5 },
+}
+
+-- Segundo hueco entre farolas: bancos, papeleras, jardineras, buzones y bolardos (más vida en la calle)
+local WEIGHTS_2 = {
+	Centro = { Bench = 3, Litter = 2, Planter = 2, Mailbox = 1.2, Bollards = 1 },
+	Este = { Bench = 3, Litter = 2, Planter = 2.5, Mailbox = 0.8 },
+	Norte = { Bench = 2.5, Litter = 2, Planter = 2, Mailbox = 1, Hydrant = 0.6 },
+	Oeste = { Bench = 3, Planter = 3, Litter = 1.5, Mailbox = 1, Bollards = 1 },
+	Universitario = { Bench = 3, Litter = 2.5, Planter = 1.5, Mailbox = 0.8 },
+	Sur = { Litter = 2.5, Bench = 1.5, Hydrant = 1, Mailbox = 0.6, Bollards = 1 },
+	Campo = { Litter = 1 },
 }
 
 local function districtOf(x: number, z: number): string
@@ -278,6 +321,23 @@ function StreetDetail.segment(parent: Instance, road: any, u0: number, u1: numbe
 				local fn = kind and Kinds[kind]
 				if fn then
 					fn(holder(), Builder.facing(p, across(-s)), hash(p.X, p.Z, 3))
+				end
+			end
+		end
+		u += every
+	end
+	-- Segundo hueco: 9 studs después de cada farola (la papelera de la farola va a 3)
+	u = u0 + 21
+	while u <= u1 - 10 do
+		for _, s in { -1, 1 } do
+			local p = point(u, s * (RW / 2 + 2.2), walkTop)
+			local r = hash(p.X, p.Z, 4)
+			local fill = if rural then 0.04 else 0.3
+			if r < fill and not MetroAccess.blocked(p.X, p.Z) and (not free or (free(u, s) and free(u - 4, s) and free(u + 4, s))) then
+				local kind = choose(WEIGHTS_2[district] or WEIGHTS_2.Campo, hash(p.X, p.Z, 5))
+				local fn = kind and Kinds[kind]
+				if fn then
+					fn(holder(), Builder.facing(p, across(-s)), hash(p.X, p.Z, 6))
 				end
 			end
 		end

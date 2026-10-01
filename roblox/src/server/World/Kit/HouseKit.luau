@@ -13,6 +13,7 @@
 
 local Builder = require(script.Parent.Parent.Builder)
 local Nature = require(script.Parent.Nature)
+local CityDetail = require(script.Parent.CityDetail)
 
 local HouseKit = {}
 
@@ -118,6 +119,21 @@ function HouseKit.build(parent: Instance, cf: CFrame, w: number, d: number, opti
 	local roofColor = pick(style.Roof)
 	local shutter = if style.Shutters then pick(style.Shutters) else nil
 	local glass = rgb(70, 96, 120)
+	-- Casas de ladrillo: unas con teja roja y carpintería verde (como las casas de pueblo), otras con
+	-- pizarra. Se sortea con la posición (sin gastar math.random: el resto del mapa no cambia)
+	local roofMaterial = style.RoofMaterial
+	if styleName == "Ladrillo" then
+		local here = cf.Position
+		if CityDetail.hash(here.X, here.Z, 71) < 0.55 then
+			local clay = { rgb(166, 74, 48), rgb(178, 88, 56), rgb(150, 66, 44) }
+			roofColor = clay[math.floor(CityDetail.hash(here.X, here.Z, 73) * #clay) % #clay + 1]
+			roofMaterial = Enum.Material.ClayRoofTiles
+		end
+		if CityDetail.hash(here.X, here.Z, 72) < 0.5 then
+			style = table.clone(style)
+			style.Trim = rgb(46, 98, 66)
+		end
+	end
 
 	local m = Builder.model(opts.Name or "Casa", parent)
 	m:SetAttribute("Style", styleName)
@@ -139,7 +155,8 @@ function HouseKit.build(parent: Instance, cf: CFrame, w: number, d: number, opti
 	-- Volumen, zócalo, esquinas e impostas
 	---------------------------------------------------------------------
 	solid("Body", Vector3.new(w, h, d), at(0, h / 2, 0), wall, style.WallMaterial)
-	bit("Plinth", Vector3.new(w + 0.3, 1.4, d + 0.3), at(0, 0.7, 0), style.Plinth, Enum.Material.Concrete)
+	-- Zócalo de piedra (en la moderna, de hormigón liso)
+	bit("Plinth", Vector3.new(w + 0.3, 1.4, d + 0.3), at(0, 0.7, 0), style.Plinth, if styleName == "Moderna" then Enum.Material.Concrete else Enum.Material.Cobblestone)
 	if style.Quoins then
 		for _, sx in { -1, 1 } do
 			for _, sz in { -1, 1 } do
@@ -160,7 +177,7 @@ function HouseKit.build(parent: Instance, cf: CFrame, w: number, d: number, opti
 	---------------------------------------------------------------------
 	local flat = style.Flat
 	if flat then
-		solid("Roof", Vector3.new(w + 0.4, 0.6, d + 0.4), at(0, h + 0.3, 0), roofColor, style.RoofMaterial)
+		solid("Roof", Vector3.new(w + 0.4, 0.6, d + 0.4), at(0, h + 0.3, 0), roofColor, roofMaterial)
 		for _, sz in { -1, 1 } do
 			bit("Parapet", Vector3.new(w + 0.4, 1.2, 0.4), at(0, h + 1.2, sz * (d / 2)), wall, style.WallMaterial)
 		end
@@ -170,9 +187,28 @@ function HouseKit.build(parent: Instance, cf: CFrame, w: number, d: number, opti
 	else
 		local rh = math.min(w, d) * 0.32
 		local over = 0.9 -- alero
-		Builder.part({ ClassName = "WedgePart", Name = "Roof", Size = Vector3.new(w + 1.4, rh, d / 2 + over), CFrame = at(0, h + rh / 2, -d / 4 - over / 2), Color = roofColor, Material = style.RoofMaterial, Parent = m })
-		Builder.part({ ClassName = "WedgePart", Name = "Roof", Size = Vector3.new(w + 1.4, rh, d / 2 + over), CFrame = at(0, h + rh / 2, d / 4 + over / 2) * CFrame.Angles(0, math.pi, 0), Color = roofColor, Material = style.RoofMaterial, Parent = m })
-		bit("Ridge", Vector3.new(w + 1.6, 0.5, 0.8), at(0, h + rh + 0.1, 0), roofColor:Lerp(Color3.new(0, 0, 0), 0.25), style.RoofMaterial)
+		local roofSize = Vector3.new(w + 1.4, rh, d / 2 + over)
+		local frontRoof = at(0, h + rh / 2, -d / 4 - over / 2)
+		local backRoof = at(0, h + rh / 2, d / 4 + over / 2) * CFrame.Angles(0, math.pi, 0)
+		Builder.part({ ClassName = "WedgePart", Name = "Roof", Size = roofSize, CFrame = frontRoof, Color = roofColor, Material = roofMaterial, Parent = m })
+		Builder.part({ ClassName = "WedgePart", Name = "Roof", Size = roofSize, CFrame = backRoof, Color = roofColor, Material = roofMaterial, Parent = m })
+		-- Cumbrera de tejas redondas
+		Builder.decor({ Name = "Ridge", Shape = Enum.PartType.Cylinder, Size = Vector3.new(w + 1.6, 0.9, 0.9), CFrame = at(0, h + rh + 0.1, 0), Color = roofColor:Lerp(Color3.new(0, 0, 0), 0.25), Material = roofMaterial, Parent = m })
+		-- Tejas con relieve, hastiales del color de la pared con tablas de remate y cornisas bajo el
+		-- tejado (Kit/CityDetail: el nivel gráfico Bajo lo esconde y queda el tejado liso)
+		for _, roofCf in { frontRoof, backRoof } do
+			CityDetail.tiles(m, roofCf, roofSize, roofColor, roofMaterial)
+			CityDetail.verges(m, roofCf, roofSize, style.Trim)
+			for _, sx in { -1, 1 } do
+				CityDetail.gable(m, roofCf, roofSize, sx * (roofSize.X / 2 + 0.06), wall, style.WallMaterial)
+			end
+		end
+		for _, sx in { -1, 1 } do
+			CityDetail.bit(m, "GableBand", Vector3.new(0.9, 0.45, d + 2 * over), at(sx * (w / 2 + 0.4), h - 0.1, 0), style.Trim, Enum.Material.Limestone)
+		end
+		for _, faceCf in { at(0, 0, -d / 2), at(0, 0, d / 2) * CFrame.Angles(0, math.pi, 0) } do
+			CityDetail.cornice(m, faceCf, w, h - 0.55, style.Trim)
+		end
 		-- Aleros, canalones y bajantes (delante y detrás)
 		for _, sz in { -1, 1 } do
 			bit("Fascia", Vector3.new(w + 1.4, 0.45, 0.25), at(0, h + 0.15, sz * (d / 2 + over)), style.Trim)
@@ -188,7 +224,7 @@ function HouseKit.build(parent: Instance, cf: CFrame, w: number, d: number, opti
 		if math.random() < 0.3 then
 			-- Placas solares en el faldón de atrás
 			local slope = math.atan2(rh, d / 2 + over)
-			bit("SolarPanel", Vector3.new(w * 0.5, 0.15, d * 0.28), at(-w / 8, h + rh * 0.5 + 0.2, d / 4) * CFrame.Angles(slope, 0, 0), rgb(30, 40, 70), Enum.Material.Glass)
+			bit("SolarPanel", Vector3.new(w * 0.5, 0.15, d * 0.28), at(-w / 8, h + rh * 0.5 + 0.7, d / 4) * CFrame.Angles(slope, 0, 0), rgb(30, 40, 70), Enum.Material.Glass)
 		end
 	end
 
@@ -294,7 +330,7 @@ function HouseKit.build(parent: Instance, cf: CFrame, w: number, d: number, opti
 	end
 	if opts.Porch or (opts.Porch == nil and not flat and math.random() < 0.35) then
 		local p = front * CFrame.new(doorX, 0, -3)
-		bit("PorchRoof", Vector3.new(7, 0.5, 5), p * CFrame.new(0, 8.6, 0.5), roofColor, style.RoofMaterial)
+		bit("PorchRoof", Vector3.new(7, 0.5, 5), p * CFrame.new(0, 8.6, 0.5), roofColor, roofMaterial)
 		for _, x in { -3.1, 3.1 } do
 			bit("PorchPost", Vector3.new(0.5, 8.4, 0.5), p * CFrame.new(x, 4.2, -1.6), style.Trim, Enum.Material.Wood)
 		end
@@ -302,7 +338,7 @@ function HouseKit.build(parent: Instance, cf: CFrame, w: number, d: number, opti
 	if opts.Garage or (opts.Garage == nil and math.random() < 0.4) then
 		local g = at(w / 2 + 6.5, 0, -d * 0.1)
 		solid("Garage", Vector3.new(12, 9, d * 0.7), g * CFrame.new(0, 4.5, 0), wall, style.WallMaterial)
-		bit("GarageRoof", Vector3.new(12.6, 0.6, d * 0.7 + 0.6), g * CFrame.new(0, 9.3, 0), roofColor, style.RoofMaterial)
+		bit("GarageRoof", Vector3.new(12.6, 0.6, d * 0.7 + 0.6), g * CFrame.new(0, 9.3, 0), roofColor, roofMaterial)
 		local gd = g * CFrame.new(0, 0, -d * 0.35)
 		bit("GarageDoor", Vector3.new(10, 7.4, 0.25), gd * CFrame.new(0, 3.9, -0.12), rgb(226, 226, 222), Enum.Material.Metal)
 		for k = 1, 4 do

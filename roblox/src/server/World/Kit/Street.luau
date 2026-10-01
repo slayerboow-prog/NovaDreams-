@@ -12,6 +12,7 @@ local Palette = require(script.Parent.Palette)
 local Props = require(script.Parent.Props)
 local Nature = require(script.Parent.Nature)
 local StreetDetail = require(script.Parent.StreetDetail)
+local CityDetail = require(script.Parent.CityDetail)
 local Bocacalles = require(script.Parent.Bocacalles)
 local Roads = require(script.Parent.Roads)
 local CityPlan = require(game:GetService("ReplicatedStorage").Shared.CityPlan)
@@ -112,7 +113,7 @@ function Street.along(road: Road, sign: number): Vector3
 end
 
 -- Árboles de alineación ya plantados (para quitar luego los que caen dentro de una manzana)
-local streetTrees: { { Base: Vector3, Tree: Instance?, Pit: BasePart? } } = {}
+local streetTrees: { { Base: Vector3, Tree: Instance?, Pit: BasePart?, Grate: BasePart? } } = {}
 
 -- Quita los árboles de alineación cuyo tronco cae dentro (o casi en el borde) de una manzana:
 -- una calle que se pegó a otra con árboles metía su acera unos studs en la manzana y los árboles
@@ -130,6 +131,9 @@ function Street.pruneTrees(rects: { { X0: number, X1: number, Z0: number, Z1: nu
 				end
 				if t.Pit then
 					t.Pit:Destroy()
+				end
+				if t.Grate then
+					t.Grate:Destroy()
 				end
 				removed += 1
 				break
@@ -253,8 +257,10 @@ local function segment(parent: Instance, road: Road, u0: number, u1: number, lim
 				local pit = rbox(parent, road, tu - 1.8, tu + 1.8, v - 1.8, v + 1.8, WALK_TOP, WALK_TOP + 0.05, { Name = "TreePit", Color = Color3.fromRGB(84, 64, 46), Material = Enum.Material.Ground }, true)
 				local base = Street.point(road, tu, v, WALK_TOP)
 				local tree = Nature.tree(parent, base, 0.75 + math.random() * 0.2)
+				-- Rejilla de hierro sobre el alcorque (Kit/CityDetail)
+				local grate = CityDetail.treeGrate(parent, base, 3.6)
 				-- Se apunta: si luego cae dentro de una manzana, Street.pruneTrees lo quita
-				table.insert(streetTrees, { Base = base, Tree = tree, Pit = pit })
+				table.insert(streetTrees, { Base = base, Tree = tree, Pit = pit, Grate = grate })
 			end
 			tu += 36
 		end
@@ -266,6 +272,18 @@ local function segment(parent: Instance, road: Road, u0: number, u1: number, lim
 	end, function(sign)
 		return Street.across(road, sign)
 	end, RW, WALK_TOP, ROAD_TOP, freeAt)
+	-- Desgaste del asfalto: parches, manchas de aceite y grietas (Kit/CityDetail), lejos de las bocas
+	-- de otras calles y de sus pasos de cebra
+	CityDetail.roadWear(parent, road.Axis, u0, u1, function(u, v, y)
+		return Street.point(road, u, v, y)
+	end, RW, ROAD_TOP, function(u)
+		for _, du in { -18, 0, 24 } do
+			if not freeAt(u + du, -1) or not freeAt(u + du, 1) then
+				return false
+			end
+		end
+		return true
+	end)
 end
 
 ---------------------------------------------------------------------

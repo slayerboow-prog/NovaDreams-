@@ -5,6 +5,7 @@ local Builder = require(script.Parent.Parent.Builder)
 local Palette = require(script.Parent.Palette)
 local AssetLibrary = require(script.Parent.AssetLibrary)
 local Place = require(script.Parent.Place)
+local CityDetail = require(script.Parent.CityDetail)
 
 -- Luz invisible en lo alto de una farola importada (la enciende WorldService de noche)
 local function addLampLight(model: Instance)
@@ -53,6 +54,8 @@ function Props.lamp(parent: Instance, cf: CFrame)
 		Parent = m,
 	})
 	Builder.decor({ Name = "Arm", Size = Vector3.new(0.3, 0.3, 3.4), CFrame = cf * CFrame.new(0, 14.2, -1.5), Color = S.Metal, Material = Enum.Material.Metal, Parent = m })
+	-- Pie de fundición y tornapuntas bajo el brazo (Kit/CityDetail; el nivel Bajo lo esconde)
+	CityDetail.lamp(m, cf, S.Metal)
 	Builder.decor({ Name = "Head", Size = Vector3.new(1.4, 0.5, 2.4), CFrame = cf * CFrame.new(0, 14.2, -3.4), Color = S.Metal, Material = Enum.Material.Metal, Parent = m })
 	local lens = Builder.decor({
 		Name = "Lens",

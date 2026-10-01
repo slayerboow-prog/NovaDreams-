@@ -31,6 +31,7 @@ export type Tier = {
 	NormalMaps: boolean, -- relieve (mapa normal) de las texturas PBR de los materiales
 	GrassBlades: boolean, -- briznas de césped 3D en el terreno (Terrain.Decoration): apagadas en todos, asomaban por calles y aceras
 	LeafDetail: boolean, -- racimos de relleno de las copas y raíces de los árboles (etiqueta LeafDetail)
+	CityDetail: boolean, -- tejas con relieve, molduras, zócalos, desgaste del asfalto… (etiqueta CityDetail, Kit/CityDetail)
 	WetGloss: boolean, -- con lluvia, el asfalto y las aceras se vuelven lisos y reflejan (rugosidad mojada)
 	FarRange: boolean, -- sierra lejana al otro lado del mar (siluetas del horizonte, Controllers/Horizon)
 }
@@ -59,6 +60,7 @@ Graphics.Tiers = {
 		NormalMaps = false,
 		GrassBlades = false,
 		LeafDetail = false,
+		CityDetail = false,
 		WetGloss = false,
 		FarRange = false,
 	},
@@ -78,6 +80,7 @@ Graphics.Tiers = {
 		NormalMaps = true,
 		GrassBlades = false,
 		LeafDetail = true,
+		CityDetail = true,
 		WetGloss = true,
 		FarRange = true,
 	},
@@ -97,6 +100,7 @@ Graphics.Tiers = {
 		NormalMaps = true,
 		GrassBlades = false,
 		LeafDetail = true,
+		CityDetail = true,
 		WetGloss = true,
 		FarRange = true,
 	},

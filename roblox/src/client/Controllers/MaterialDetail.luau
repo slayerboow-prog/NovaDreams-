@@ -10,6 +10,9 @@
 --   * Césped 3D: las briznas del terreno (Terrain.Decoration) solo en Medio y Alto.
 --   * Árboles: los racimos de relleno de las copas y las raíces (etiqueta LeafDetail, Kit/Nature)
 --     se esconden en el nivel Bajo (no se pintan: la mitad de piezas por árbol).
+--   * Ciudad: las tejas con relieve, cornisas, zócalos, portales, el desgaste del asfalto y los
+--     adornos de las farolas (etiqueta CityDetail, Kit/CityDetail) también se esconden en Bajo:
+--     queda la ciudad lisa de antes.
 
 local CollectionService = game:GetService("CollectionService")
 local MaterialService = game:GetService("MaterialService")
@@ -60,11 +63,12 @@ local function applyGrass(tier: Graphics.Tier)
 	end)
 end
 
--- Racimos de relleno de los árboles: visibles o escondidos solo en esta pantalla
-local leafHidden = false
-local function applyLeaf(part: Instance)
+-- Detalle que el nivel Bajo esconde (solo en esta pantalla): etiqueta -> campo del nivel
+local DETAIL_TAGS = { LeafDetail = "LeafDetail", CityDetail = "CityDetail" }
+local hidden: { [string]: boolean } = { LeafDetail = false, CityDetail = false }
+local function applyDetail(part: Instance, hide: boolean)
 	if part:IsA("BasePart") then
-		part.LocalTransparencyModifier = if leafHidden then 1 else 0
+		part.LocalTransparencyModifier = if hide then 1 else 0
 	end
 end
 
@@ -74,11 +78,13 @@ function MaterialDetail.apply(tierName: Graphics.TierName)
 		applyTo(variant, tier)
 	end
 	applyGrass(tier)
-	local hide = not tier.LeafDetail
-	if hide ~= leafHidden then
-		leafHidden = hide
-		for _, part in CollectionService:GetTagged("LeafDetail") do
-			applyLeaf(part)
+	for tag, field in DETAIL_TAGS do
+		local hide = not (tier :: any)[field]
+		if hide ~= hidden[tag] then
+			hidden[tag] = hide
+			for _, part in CollectionService:GetTagged(tag) do
+				applyDetail(part, hide)
+			end
 		end
 	end
 end
@@ -96,12 +102,14 @@ function MaterialDetail.init()
 			applyTo(variant, tier)
 		end
 	end)
-	-- (los árboles llegan con la carga por zonas)
-	CollectionService:GetInstanceAddedSignal("LeafDetail"):Connect(function(part)
-		if leafHidden then
-			applyLeaf(part)
-		end
-	end)
+	-- (los árboles y los edificios llegan con la carga por zonas)
+	for tag in DETAIL_TAGS do
+		CollectionService:GetInstanceAddedSignal(tag):Connect(function(part)
+			if hidden[tag] then
+				applyDetail(part, true)
+			end
+		end)
+	end
 end
 
 return MaterialDetail
