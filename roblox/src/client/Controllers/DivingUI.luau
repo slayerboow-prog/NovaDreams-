@@ -257,6 +257,13 @@ function DivingUI.init()
 		Swimming.setJump(state == Enum.UserInputState.Begin)
 		return Enum.ContextActionResult.Pass
 	end, false, Enum.KeyCode.Space, Enum.KeyCode.ButtonA)
+	-- (y el botón Saltar del móvil, igual)
+	if TouchLayout.onJump then
+		TouchLayout.onJump(function(down: boolean)
+			Swimming.setJump(down)
+			return nil
+		end)
+	end
 	ContextActionService:BindAction("DiveShoot", function(_, state)
 		if state == Enum.UserInputState.Begin and (buttons.Visible or shootNow) and shootButton.Visible then
 			shoot()

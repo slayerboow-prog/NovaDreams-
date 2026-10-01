@@ -444,10 +444,22 @@ function InteractClient.init()
 	end)
 
 	player:GetAttributeChangedSignal("UsePose"):Connect(onPose)
-	UserInputService.JumpRequest:Connect(function()
+	local function jumpOut(): boolean
 		local pose = player:GetAttribute("UsePose")
 		if pose == "Lie" or STANDING[pose] then
 			stop()
+			return true
+		end
+		return false
+	end
+	UserInputService.JumpRequest:Connect(jumpOut)
+	-- (el botón Saltar del móvil no dispara JumpRequest: avisa él)
+	pcall(function()
+		local TouchLayout = require(script.Parent.Parent.UI.TouchLayout) :: any
+		if TouchLayout.onJump then
+			TouchLayout.onJump(function(down: boolean)
+				return down and jumpOut()
+			end)
 		end
 	end)
 	RunService.Heartbeat:Connect(function()
