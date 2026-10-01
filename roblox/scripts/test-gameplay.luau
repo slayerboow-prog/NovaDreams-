@@ -8166,6 +8166,34 @@ for _, p in othersBefore do
 	table.insert(playersList, p)
 end
 
+---------------------------------------------------------------------
+print("\n▶ Las partidas de todos los jugadores de la prueba se pueden guardar (DataStore/JSON)")
+---------------------------------------------------------------------
+-- Si una sola cosa no se puede guardar (un Vector3, un NaN, una tabla con claves numéricas
+-- sueltas…), Roblox rechaza el guardado ENTERO y al volver todo está como antes (scripts/test-persistence)
+do
+	local SaveCheck = loadModule(ROOT .. "/shared/SaveCheck")
+	local bad, biggest, count = {}, 0, 0
+	for _, profile in profiles do
+		count += 1
+		for _, problem in SaveCheck.scan(profile) do
+			bad[problem.Path .. ": " .. problem.Reason] = true
+		end
+		local clean = SaveCheck.sanitize(profile)
+		biggest = math.max(biggest, SaveCheck.size(clean))
+	end
+	local list = {}
+	for text in bad do
+		table.insert(list, text)
+	end
+	table.sort(list)
+	for _, text in list do
+		print("    · " .. text)
+	end
+	check(#list == 0, ("%d partidas sin nada que el DataStore rechace%s"):format(count, if #list > 0 then (" (%d problemas)"):format(#list) else ""))
+	check(biggest < SaveCheck.SOFT_CHARS, ("la mayor ocupa %d caracteres (límite %d)"):format(biggest, SaveCheck.MAX_CHARS))
+end
+
 end, debug.traceback)
 if not ok then
 	print("❌ Error en la prueba: " .. tostring(err))
