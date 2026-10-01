@@ -25,9 +25,6 @@ local CityPlan = require(script.Parent.CityPlan)
 
 local StreetLook = {}
 
--- Prefijo de los variants que pone este módulo (los demás usan "U_", sin prefijo…)
-StreetLook.Prefix = "C_"
-
 -- Packs que carga además de los de shared/UserMaterialChoice
 StreetLook.Packs = {
 	-- 27 MaterialVariant (docs/assets-usuario-3.md): el «Concrete Tile 1» de las aceras del campo y otro adoquín
@@ -303,11 +300,6 @@ function StreetLook.candidates(key: string, available: { [string]: { [string]: s
 		end
 	end
 	return out
-end
-
--- Nombre del variant de un aspecto en MaterialService
-function StreetLook.variantName(key: string): string
-	return StreetLook.Prefix .. key
 end
 
 ---------------------------------------------------------------------
