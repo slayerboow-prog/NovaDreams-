@@ -601,7 +601,8 @@ function MeshLibrary.collect(roots: { Instance }, segments: { Segment }?)
 				if d:FindFirstChild("Trunk") then
 					table.insert(trees, d)
 				end
-			elseif d:IsA("BasePart") and d.Name == "Bush" and d:GetAttribute("MeshVariant") == nil then
+			elseif d:IsA("BasePart") and d.Name == "Bush" and d.Material == Enum.Material.LeafyGrass and d:GetAttribute("MeshVariant") == nil then
+				-- (solo los de Kit/Nature, de LeafyGrass: no las plantas de los interiores)
 				table.insert(bushes, d)
 			elseif d:IsA("BasePart") and d.Name == "Flower" and d:GetAttribute("MeshVariant") == nil and insideFlowerBed(d) then
 				table.insert(flowers, d)
