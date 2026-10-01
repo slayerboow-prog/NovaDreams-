@@ -6,8 +6,11 @@
 -- pase lo que pase con el orden en que se animan las cosas. Se suma encima de la animación que esté sonando (andar,
 -- correr…) y, al acabar, cada articulación vuelve exactamente a su C0 de antes.
 --
---   Combo: 1 directo (derecha) · 2 cruzado (izquierda) · 3 patada (golpe fuerte, empuja)
---   Guardia: los dos antebrazos delante de la cara mientras se mantiene 🛡
+--   Ligeros: directo, cruzado, gancho, rodillazo, codazo y patada (el sexto, empuja)
+--   Finales: gancho de abajo arriba (lanzador), patada giratoria (empujón lejano), los dos puños al suelo
+--   (golpe al suelo y remate aéreo), golpe cargado y las dos manos delante (poderes de energía)
+--   Mantenidas: guardia 🛡, cargar el fuerte (Windup), cargar energía (Charge) y apuntar (Aim)
+--   PunchAnim.freeze: el golpe se congela un instante al impactar (hitstop)
 --
 -- Cada jugador ve los golpes de todos en su pantalla (CombatController: "Swing" y "Blocking").
 -- Las posturas son funciones puras: scripts/test-punch.luau. Solo R15 (el juego es MorphToR15).
@@ -111,9 +114,180 @@ PunchAnim.Moves = {
 	},
 }
 
+-- Golpes del combo largo y los finales (shared/Combat.Moves: Anim)
+PunchAnim.Moves.Hook = {
+	-- Gancho de izquierda: el brazo doblado barre de fuera hacia dentro con el giro de la cintura
+	Duration = 0.34,
+	Pose = function(t: number): Pose
+		local k = strike(t, 0.32, 0.55)
+		local g = bell(t)
+		return merge({
+			LeftShoulder = angles(1.15 * g, 0, -0.85 * g * (1 - k) - 0.2 * k),
+			LeftElbow = angles(1.45 * g, 0, 0),
+			Waist = angles(0, -0.7 * k + 0.2 * g * (1 - k), 0),
+			Neck = angles(0, 0.45 * k, 0),
+		}, guardArm("Right", g))
+	end,
+}
+PunchAnim.Moves.Knee = {
+	-- Rodillazo: la rodilla derecha sube hacia el pecho y las manos tiran hacia abajo
+	Duration = 0.36,
+	Pose = function(t: number): Pose
+		local k = strike(t, 0.3, 0.6)
+		local g = bell(t)
+		return {
+			RightHip = angles(1.55 * k, 0, 0),
+			RightKnee = angles(-1.9 * k, 0, 0),
+			LeftKnee = angles(-0.2 * g, 0, 0),
+			Waist = angles(-0.25 * k, 0, 0),
+			RightShoulder = angles(0.9 * g - 0.4 * k, 0, 0.15 * g),
+			LeftShoulder = angles(0.9 * g - 0.4 * k, 0, -0.15 * g),
+			RightElbow = angles(1.2 * g, 0, 0),
+			LeftElbow = angles(1.2 * g, 0, 0),
+		}
+	end,
+}
+PunchAnim.Moves.Elbow = {
+	-- Codazo de derecha: el brazo muy doblado y todo el torso gira detrás
+	Duration = 0.34,
+	Pose = function(t: number): Pose
+		local k = strike(t, 0.3, 0.55)
+		local g = bell(t)
+		return merge({
+			RightShoulder = angles(1.2 * g, 0, 0.35 * g),
+			RightElbow = angles(2.2 * g, 0, 0),
+			Waist = angles(0, 0.75 * k - 0.2 * g * (1 - k), 0),
+			Neck = angles(0, -0.5 * k, 0),
+		}, guardArm("Left", g))
+	end,
+}
+PunchAnim.Moves.Uppercut = {
+	-- Lanzador: se agacha y sube con el puño hacia el cielo, echándose atrás
+	Duration = 0.5,
+	Pose = function(t: number): Pose
+		local crouch = strike(t, 0.18, 0.3)
+		local k = strike((t - 0.2) / 0.8, 0.25, 0.5)
+		local g = bell(t)
+		return merge({
+			RightShoulder = angles(0.6 * crouch + 2.4 * k, 0, 0.1 * g),
+			RightElbow = angles(1.6 * crouch * (1 - k) + 0.35 * k, 0, 0),
+			RightKnee = angles(-0.7 * crouch, 0, 0),
+			LeftKnee = angles(-0.7 * crouch, 0, 0),
+			RightHip = angles(0.45 * crouch, 0, 0),
+			LeftHip = angles(0.45 * crouch, 0, 0),
+			Waist = angles(-0.25 * crouch + 0.3 * k, 0.35 * k, 0),
+			Neck = angles(0.35 * k, 0, 0),
+		}, guardArm("Left", g))
+	end,
+}
+PunchAnim.Moves.SpinKick = {
+	-- Patada giratoria (empujón lejano): la cintura gira y la pierna derecha barre alta
+	Duration = 0.6,
+	Pose = function(t: number): Pose
+		local turn = strike(t, 0.35, 0.6)
+		local leg = strike((t - 0.15) / 0.75, 0.35, 0.55)
+		local g = bell(t)
+		return merge({
+			Waist = angles(0.15 * leg, 1.25 * turn, 0),
+			RightHip = angles(1.7 * leg, 0, 0),
+			RightKnee = angles(-1.2 * g * (1 - leg), 0, 0),
+			LeftKnee = angles(-0.3 * g, 0, 0),
+			Neck = angles(0, -0.8 * turn, 0),
+		}, guardArm("Right", g), guardArm("Left", g))
+	end,
+}
+PunchAnim.Moves.Slam = {
+	-- Al suelo / remate: los dos puños suben por encima de la cabeza y bajan de golpe
+	Duration = 0.55,
+	Pose = function(t: number): Pose
+		local raise = strike(t, 0.3, 0.4)
+		local slam = strike((t - 0.35) / 0.65, 0.2, 0.55)
+		local up = raise * (1 - slam)
+		return {
+			RightShoulder = angles(2.7 * up + 1.0 * slam, 0, 0),
+			LeftShoulder = angles(2.7 * up + 1.0 * slam, 0, 0),
+			RightElbow = angles(0.6 * up, 0, 0),
+			LeftElbow = angles(0.6 * up, 0, 0),
+			Waist = angles(0.25 * up - 0.5 * slam, 0, 0),
+			RightKnee = angles(-0.6 * slam, 0, 0),
+			LeftKnee = angles(-0.6 * slam, 0, 0),
+			RightHip = angles(0.35 * slam, 0, 0),
+			LeftHip = angles(0.35 * slam, 0, 0),
+			Neck = angles(0.3 * up - 0.2 * slam, 0, 0),
+		}
+	end,
+}
+PunchAnim.Moves.Charged = {
+	-- Golpe cargado: el brazo sale desde muy atrás con todo el cuerpo
+	Duration = 0.45,
+	Pose = function(t: number): Pose
+		local k = strike(t, 0.22, 0.6)
+		local g = bell(t)
+		return merge({
+			RightShoulder = angles(1.6 * k, 0, 0.1 * g),
+			RightElbow = angles(0.6 * g * (1 - k), 0, 0),
+			Waist = angles(-0.15 * k, 0.8 * k, 0),
+			Neck = angles(0, -0.6 * k, 0),
+			LeftHip = angles(0.4 * k, 0, 0),
+			RightKnee = angles(-0.35 * k, 0, 0),
+		}, guardArm("Left", g))
+	end,
+}
+PunchAnim.Moves.Blast = {
+	-- Poder de energía: las dos manos hacia delante, abiertas
+	Duration = 0.55,
+	Pose = function(t: number): Pose
+		local k = strike(t, 0.2, 0.7)
+		return {
+			RightShoulder = angles(1.5 * k, 0.25 * k, 0),
+			LeftShoulder = angles(1.5 * k, -0.25 * k, 0),
+			RightElbow = angles(0.25 * k, 0, 0),
+			LeftElbow = angles(0.25 * k, 0, 0),
+			Waist = angles(0.12 * k, 0, 0),
+			RightHip = angles(0.3 * k, 0, 0),
+			LeftKnee = angles(-0.3 * k, 0, 0),
+		}
+	end,
+}
+
 PunchAnim.Holds = {
 	Guard = function(w: number): Pose
 		return merge(guardArm("Right", w), guardArm("Left", w), { Neck = angles(-0.15 * w, 0, 0), Waist = angles(-0.08 * w, 0, 0) })
+	end,
+	-- Cargando el golpe fuerte: el brazo derecho atrás y la cintura girada
+	Windup = function(w: number): Pose
+		return merge({
+			RightShoulder = angles(-0.55 * w, 0, 0.35 * w),
+			RightElbow = angles(1.6 * w, 0, 0),
+			Waist = angles(0, -0.55 * w, 0),
+			Neck = angles(0, 0.4 * w, 0),
+		}, guardArm("Left", w))
+	end,
+	-- Cargando energía: un poco agachado, brazos abajo y abiertos, puños apretados
+	Charge = function(w: number): Pose
+		return {
+			RightShoulder = angles(-0.2 * w, 0, 0.55 * w),
+			LeftShoulder = angles(-0.2 * w, 0, -0.55 * w),
+			RightElbow = angles(0.6 * w, 0, 0),
+			LeftElbow = angles(0.6 * w, 0, 0),
+			RightHip = angles(0.3 * w, 0, 0),
+			LeftHip = angles(0.3 * w, 0, 0),
+			RightKnee = angles(-0.5 * w, 0, 0),
+			LeftKnee = angles(-0.5 * w, 0, 0),
+			Waist = angles(-0.12 * w, 0, 0),
+			Neck = angles(0.15 * w, 0, 0),
+		}
+	end,
+	-- Apuntando la definitiva: las dos manos juntas delante
+	Aim = function(w: number): Pose
+		return {
+			RightShoulder = angles(1.45 * w, 0.35 * w, 0),
+			LeftShoulder = angles(1.45 * w, -0.35 * w, 0),
+			RightElbow = angles(0.35 * w, 0, 0),
+			LeftElbow = angles(0.35 * w, 0, 0),
+			RightHip = angles(0.35 * w, 0, 0),
+			LeftKnee = angles(-0.35 * w, 0, 0),
+		}
 	end,
 }
 
@@ -159,6 +333,8 @@ type Body = {
 	Duration: number,
 	Want: { [string]: boolean },
 	Holds: { [string]: number },
+	PauseAt: number?,
+	PauseUntil: number?,
 }
 
 local bodies: { [Model]: Body } = {}
@@ -225,6 +401,15 @@ local function step(dt: number)
 			w += (target - w) * math.min(1, dt * (if target > w then 14 else 8))
 			body.Holds[name] = if w > 0.01 or target > 0 then w else nil
 		end
+		-- Congelado del impacto (hitstop): el golpe se queda quieto un instante y luego sigue
+		if body.PauseUntil then
+			if now < body.PauseUntil then
+				now = body.PauseAt :: number
+			else
+				body.Start += body.PauseUntil - (body.PauseAt :: number)
+				body.PauseUntil, body.PauseAt = nil, nil
+			end
+		end
 		local t = if body.Move then (now - body.Start) / body.Duration else 2
 		if t > 1 then
 			body.Move = nil
@@ -258,7 +443,7 @@ local function start()
 	RunService.RenderStepped:Connect(step)
 end
 
--- Golpe en un personaje ("Jab", "Cross" o "Kick"). Devuelve false si no se puede (sin articulaciones).
+-- Golpe en un personaje (un nombre de PunchAnim.Moves: "Jab", "Cross", "Kick", "Uppercut"…). Devuelve false si no se puede (sin articulaciones).
 function PunchAnim.play(model: Model?, move: string): boolean
 	local def = PunchAnim.Moves[move]
 	local body = bodyOf(model)
@@ -269,10 +454,32 @@ function PunchAnim.play(model: Model?, move: string): boolean
 	body.Move = move
 	body.Start = os.clock()
 	body.Duration = def.Duration
+	body.PauseAt, body.PauseUntil = nil, nil
 	return true
 end
 
--- Postura mantenida ("Guard") encendida o apagada
+-- Congela el golpe en curso `seconds` (el impacto: hitstop). Devuelve false si no hay golpe.
+function PunchAnim.freeze(model: Model?, seconds: number): boolean
+	local body = model and bodies[model]
+	if not body or not body.Move or seconds <= 0 then
+		return false
+	end
+	local now = os.clock()
+	if body.PauseUntil and now < body.PauseUntil then
+		body.PauseUntil = math.max(body.PauseUntil, now + seconds)
+	else
+		body.PauseAt, body.PauseUntil = now, now + seconds
+	end
+	return true
+end
+
+-- ¿Está dando un golpe ahora?
+function PunchAnim.isPlaying(model: Model?): boolean
+	local body = model and bodies[model]
+	return body ~= nil and body.Move ~= nil
+end
+
+-- Postura mantenida ("Guard", "Windup", "Charge", "Aim") encendida o apagada
 function PunchAnim.hold(model: Model?, name: string, on: boolean): boolean
 	local body = if on then bodyOf(model) else (model and bodies[model])
 	if not body then
