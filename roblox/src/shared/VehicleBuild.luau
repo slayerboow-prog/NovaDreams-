@@ -435,7 +435,7 @@ end
 
 -- Una llanta de diseño en una rueda (≤ 8 piezas: aro, disco, radios y buje)
 local function buildRim(ctx: Ctx, center: Vector3, design: { [string]: any }, color: Color3, mat: Enum.Material)
-	local info = VehicleParts.Wheels[ctx.kind]
+	local info = VehicleParts.wheelsFor(ctx.kind, ctx.body) or VehicleParts.Wheels[ctx.kind]
 	local R = info.RimDiameter / 2
 	local w = info.Width
 	local base = CFrame.new(center)
@@ -475,7 +475,7 @@ end
 
 -- Bandas del neumático en el costado de fuera (coche)
 local function buildBand(ctx: Ctx, center: Vector3, band: { [string]: any })
-	local info = VehicleParts.Wheels[ctx.kind]
+	local info = VehicleParts.wheelsFor(ctx.kind, ctx.body) or VehicleParts.Wheels[ctx.kind]
 	local sx = if center.X > 0 then 1 elseif center.X < 0 then -1 else 0
 	if sx == 0 then
 		return
@@ -594,7 +594,7 @@ local function setPlate(part: BasePart, text: string, face: Enum.NormalId)
 end
 
 -- Dónde está el vehículo: con Chassis (ya preparado) o por su pieza de referencia
-local function locate(model: Model, kind: string, options: { [string]: any }): (CFrame?, BasePart?)
+local function locate(model: Model, kind: string, options: { [string]: any }, body: string?): (CFrame?, BasePart?)
 	local chassis = model:FindFirstChild("Chassis")
 	local prepared = if chassis and chassis:IsA("BasePart") then chassis else nil
 	if typeof(options.Origin) == "CFrame" then
@@ -603,7 +603,7 @@ local function locate(model: Model, kind: string, options: { [string]: any }): (
 	if prepared then
 		return prepared.CFrame * CFrame.new(0, -prepared.Size.Y / 2, 0), prepared
 	end
-	local ref = VehicleParts.Reference[kind]
+	local ref = VehicleParts.referenceFor(kind, body)
 	local part = ref and model:FindFirstChild(ref.Name)
 	if part and part:IsA("BasePart") then
 		local o = ref.Offset
@@ -665,13 +665,15 @@ function VehicleBuild.apply(model: Model, build: any, options: { [string]: any }
 	if type(build) ~= "table" then
 		return 0, warnings
 	end
-	local origin, chassis = locate(model, kind, opts)
+	-- Carrocería: la del coche de siempre, o el id del vehículo premium del pase (coche o moto)
+	local variant = model:GetAttribute("Variant")
+	local premium = VehicleParts.isPremiumBody(kind, variant)
+	local body = if premium then variant elseif kind == "Coche" then (if type(variant) == "string" and table.find(VehicleParts.Bodies, variant) then variant else "Berlina") else ""
+	local origin, chassis = locate(model, kind, opts, body)
 	if not origin then
 		table.insert(warnings, "No se encuentra la pieza de referencia del vehículo")
 		return 0, warnings
 	end
-	local variant = model:GetAttribute("Variant")
-	local body = if kind == "Coche" then (if type(variant) == "string" and table.find(VehicleParts.Bodies, variant) then variant else "Berlina") else ""
 	local ctx: Ctx = {
 		model = model,
 		kind = kind,
@@ -683,8 +685,8 @@ function VehicleBuild.apply(model: Model, build: any, options: { [string]: any }
 		warnings = warnings,
 		children = model:GetChildren(),
 	}
-	local zones = VehicleParts.Zones[kind]
-	local anchors = VehicleParts.anchorsFor(kind, if kind == "Coche" then body else nil) or {}
+	local zones = VehicleParts.zonesFor(kind, body) or VehicleParts.Zones[kind]
+	local anchors = VehicleParts.anchorsFor(kind, if kind == "Coche" or premium then body else nil) or {}
 	local function pick(field: string, slot: string): { [string]: any }?
 		local id = build[field]
 		if type(id) ~= "string" or id == "" then
@@ -772,7 +774,8 @@ function VehicleBuild.apply(model: Model, build: any, options: { [string]: any }
 	elseif rimColor then
 		-- llantas de serie: solo el color (el buje se queda)
 		for _, part in named(ctx, zones.Rim) do
-			if part.Name ~= "Hub" then
+			-- (el buje y, en los premium, el disco, la pinza y el fondo de la llanta se quedan como están)
+			if part.Name ~= "Hub" and part.Name ~= "BrakeDisc" and part.Name ~= "Caliper" and part.Name ~= "RimInner" then
 				paintPart(part, color, { Material = rimColor.Material or "Metal", Reflectance = part.Reflectance })
 			end
 		end

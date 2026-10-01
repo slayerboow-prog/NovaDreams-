@@ -653,7 +653,12 @@ for l = 1, 30 do
 	end
 end
 check(money(bob) == bobMoney + premiumMoney, ("el dinero premium del 1 al 30 llega una vez (+%d €)"):format(premiumMoney))
-check(table.find(granted.Vehicles, "Moto") ~= nil and Rewards.paintFor(bob, "Moto") == Season.reward(S1, 15, "Premium").Color, "la moto premium: vehículo normal + su acabado exclusivo al sacarla")
+-- (la Nexus R del 12 llega antes que el acabado del 15: un vehículo premium con modelo propio se
+-- equipa solo y un acabado de solo color no lo quita)
+local nexus = Season.reward(S1, 12, "Premium")
+check(table.find(granted.Vehicles, "Moto") ~= nil and Rewards.paintFor(bob, "Moto") == nexus.Color and Rewards.modelFor(bob, "Moto") == "NexusR", "la moto premium: vehículo normal + la Nexus R (su modelo y su color) al sacarla")
+check(profiles[bob].Cosmetics.Owned[Season.reward(S1, 15, "Premium").Id] ~= nil, "el acabado de la moto del 15 también es suyo (se equipa desde el pase)")
+check(Rewards.modelFor(bob, "Coche") == "VoltexGTR" and Rewards.modelFor(bob, "Patinete") == nil, "el coche premium del 4 (Voltex GT-R) sale con su modelo; el patinete, con el de siempre")
 check(saves > 0, "tras la compra se guarda enseguida")
 market.PromptGamePassPurchaseFinished:Fire(bob, 424242, true)
 BattlePass.checkOwnership(bob)

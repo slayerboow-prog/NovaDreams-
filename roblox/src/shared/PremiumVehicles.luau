@@ -332,13 +332,4 @@ function PremiumVehicles.zones(kind: string): { [string]: { string } }?
 	return nil
 end
 
--- Barras de la interfaz con texto: «Velocidad ■■■■□ · Manejo ■■■□□ · Estética ■■■■■»
-function PremiumVehicles.statsText(stats: { [string]: number }): string
-	local function bar(n: number): string
-		local k = math.clamp(math.floor(n + 0.5), 0, 5)
-		return string.rep("■", k) .. string.rep("□", 5 - k)
-	end
-	return ("Velocidad %s · Manejo %s · Estética %s"):format(bar(stats.Velocidad or 0), bar(stats.Manejo or 0), bar(stats.Estetica or 0))
-end
-
 return PremiumVehicles

@@ -46,7 +46,27 @@ local function carSeats(variant: string?)
 		{ Seat = CFrame.new(1.4, 1.6, z), Side = 1, Label = "Subir detrás", Pose = "Passenger" },
 	}
 end
+-- Vehículos premium del pase (Kit/SportsCars): se carga al usarlo (los modelos de siempre no lo
+-- necesitan, y así las pruebas que solo cargan Rides siguen igual). nil si no se puede cargar.
+local sportsCars: any = nil
+local function premium(kind: string, id: any): any
+	if type(id) ~= "string" or (kind ~= "Coche" and kind ~= "Moto") then
+		return nil
+	end
+	if sportsCars == nil then
+		local ok, mod = pcall(function()
+			return require((script.Parent :: any).SportsCars)
+		end)
+		sportsCars = if ok and type(mod) == "table" and type(mod.has) == "function" then mod else false
+	end
+	return if sportsCars and sportsCars.has(kind, id) then sportsCars else nil
+end
+
 function Rides.passengerSeats(kind: string, variant: string?): { { Seat: CFrame, Side: number, Label: string, Pose: string } }
+	local premiumKit = premium(kind, variant)
+	if premiumKit then
+		return premiumKit.passengerSeats(variant)
+	end
 	if kind == "Coche" or kind == "Patrulla" then
 		return carSeats(variant)
 	elseif kind == "Moto" then
@@ -996,9 +1016,17 @@ local COLORS = {
 }
 
 -- Crea el modelo del vehículo (anclado). kind: "Monopatin" | "Bici" | "Moto" | "Coche"
-function Rides.build(kind: string, parent: Instance?, cf: CFrame, color: Color3?): Model
+-- style.Model = vehículo premium del pase (shared/PremiumVehicles: coche o moto con su propio diseño;
+-- color nil = el suyo) y style.Accent = color de detalle. Sin style (o si no existe), el de siempre.
+function Rides.build(kind: string, parent: Instance?, cf: CFrame, color: Color3?, style: { Model: string?, Accent: Color3? }?): Model
 	local m = Instance.new("Model")
 	m.Name = kind
+	local model = if type(style) == "table" then style.Model else nil
+	local premiumKit = premium(kind, model)
+	if premiumKit and premiumKit.build(m, kind, model, cf, color, (style :: any).Accent) then
+		m.Parent = parent
+		return m
+	end
 	local paint = color or (if COLORS[kind] then Palette.pick(COLORS[kind]) else Palette.pick(Palette.CarColors))
 	BUILDERS[kind](m, cf, paint)
 	m.Parent = parent
@@ -1023,7 +1051,8 @@ function Rides.prepare(model: Model, kind: string, groundCf: CFrame): (BasePart,
 	local seat = Instance.new("VehicleSeat")
 	seat.Name = "DriverSeat"
 	seat.Size = Vector3.new(1.6, 0.2, 1.6)
-	seat.CFrame = groundCf * spec.Seat * CFrame.new(0, -0.1, 0)
+	local premiumKit = premium(kind, model:GetAttribute("Variant"))
+	seat.CFrame = groundCf * (if premiumKit then premiumKit.driverSeat(model:GetAttribute("Variant")) else spec.Seat) * CFrame.new(0, -0.1, 0)
 	seat.Transparency = 1
 	seat.CanCollide = false
 	seat.CanTouch = false -- nadie se sube al tocarlo: se sube con el cartel

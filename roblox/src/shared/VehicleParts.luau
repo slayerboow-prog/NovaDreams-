@@ -132,12 +132,54 @@ VehicleParts.Anchors = {
 		Default = { WheelFL = { -0.55, 0.22, -1.3 }, WheelFR = { 0.55, 0.22, -1.3 }, WheelRL = { -0.55, 0.22, 1.3 }, WheelRR = { 0.55, 0.22, 1.3 } },
 	},
 }
+-- Vehículos premium del pase (shared/PremiumVehicles): su «carrocería» es el id del modelo (atributo
+-- Variant) y traen sus propias anclas, ruedas, zonas y pieza de referencia. Se carga al usarlo.
+local premiumVehicles: any = nil
+local function premiumSpec(kind: string, body: string?): { [string]: any }?
+	if type(body) ~= "string" or body == "" then
+		return nil
+	end
+	if premiumVehicles == nil then
+		local ok, mod = pcall(function()
+			return require((script.Parent :: any).PremiumVehicles)
+		end)
+		premiumVehicles = if ok and type(mod) == "table" and type(mod.get) == "function" then mod else false
+	end
+	if not premiumVehicles then
+		return nil
+	end
+	local spec = premiumVehicles.get(body)
+	return if spec and spec.Kind == kind then spec else nil
+end
+-- ¿Es «body» (atributo Variant) un vehículo premium de este tipo?
+function VehicleParts.isPremiumBody(kind: string, body: any): boolean
+	return premiumSpec(kind, body) ~= nil
+end
+
 function VehicleParts.anchorsFor(kind: string, body: string?): { [string]: { number } }?
+	local premium = premiumSpec(kind, body)
+	if premium then
+		return premium.Anchors
+	end
 	local byKind = VehicleParts.Anchors[kind]
 	if not byKind then
 		return nil
 	end
 	return byKind[body or ""] or byKind.Default or byKind.Berlina
+end
+
+-- Ruedas, zonas y pieza de referencia de un tipo (y carrocería: las de un premium son las suyas)
+function VehicleParts.wheelsFor(kind: string, body: string?): { [string]: number }?
+	local premium = premiumSpec(kind, body)
+	return if premium then premium.WheelInfo else VehicleParts.Wheels[kind]
+end
+function VehicleParts.zonesFor(kind: string, body: string?): { [string]: { string } }?
+	local premium = premiumSpec(kind, body)
+	return if premium and premiumVehicles then premiumVehicles.zones(kind) else VehicleParts.Zones[kind]
+end
+function VehicleParts.referenceFor(kind: string, body: string?): { Name: string, Offset: { number } }?
+	local premium = premiumSpec(kind, body)
+	return if premium then premium.Reference else VehicleParts.Reference[kind]
 end
 
 -- Ruedas de cada tipo (para construir llantas y bandas): radio, ancho del neumático (a lo largo de

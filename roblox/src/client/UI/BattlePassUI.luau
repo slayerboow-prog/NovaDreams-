@@ -392,6 +392,10 @@ local function renderFeatured(reward: { [string]: any }?)
 		end
 		description ..= "\nIncluye: " .. table.concat(names, " · ")
 	end
+	local stats = View.statsText(reward.Stats)
+	if stats ~= "" then
+		description ..= "\n" .. stats
+	end
 	Theme.setText(F.Description, description)
 	-- Botones: principal según el estado; secundario (equipar / probar) solo con lo que ya es tuyo
 	local key = reward.Track .. ":" .. reward.Level

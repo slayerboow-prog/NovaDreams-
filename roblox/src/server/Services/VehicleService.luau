@@ -52,6 +52,10 @@ local VehicleService = {}
 -- Acabado de los vehículos propios (pase de temporada, BattlePassRewardService.paintFor): color con el
 -- que sale tu vehículo al sacarlo. Solo cambia el aspecto (mismas prestaciones). nil = color al azar.
 VehicleService.PaintFor = nil :: ((Player, string) -> Color3?)?
+-- Vehículo premium del pase equipado para ese tipo (BattlePassRewardService.modelFor): id del modelo
+-- de shared/PremiumVehicles y su color de detalle. Es un coche / una moto del juego con otro diseño:
+-- conduce igual (sin pagar para ganar). nil = el modelo de siempre.
+VehicleService.ModelFor = nil :: ((Player, string) -> (string?, Color3?))?
 
 -- Gasolineras de jugadores (BusinessService): precio y litros que quedan, y aviso de la venta
 VehicleService.FuelSeller = nil :: { quote: (BasePart) -> (number?, number?), sold: (BasePart, number, number) -> () }?
@@ -978,7 +982,8 @@ local function setupSeats(model: Model, kind: string)
 			local prompt = Instance.new("ProximityPrompt")
 			prompt.Name = "SeatPrompt"
 			prompt.ActionText = if typeof(label) == "string" then label else "Sentarse"
-			prompt.ObjectText = if vehicle then vehicle.Icon .. " " .. vehicle.Name else ""
+			local display = model:GetAttribute("DisplayName")
+			prompt.ObjectText = if vehicle then vehicle.Icon .. " " .. (if typeof(display) == "string" then display else vehicle.Name) else ""
 			prompt.MaxActivationDistance = if big then 10 else 7
 			prompt.RequiresLineOfSight = false
 			prompt.HoldDuration = 0.2
@@ -1222,7 +1227,9 @@ local function addDrivePrompt(model: Model, kind: string, owner: Player?)
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.Name = "DrivePrompt"
 	prompt.ActionText = if kind == "Coche" then "Conducir" elseif vehicle.Boat then "Pilotar" else "Montar"
-	prompt.ObjectText = if owner then vehicle.Icon .. " Tu " .. (if vehicle.Boat then vehicle.Name else string.lower(vehicle.Name)) else vehicle.Icon .. " " .. vehicle.Name
+	local display = model:GetAttribute("DisplayName") -- (los premium del pase: «Tu Voltex GT-R»)
+	local name = if typeof(display) == "string" then display elseif vehicle.Boat then vehicle.Name else string.lower(vehicle.Name)
+	prompt.ObjectText = if owner then vehicle.Icon .. " Tu " .. name else vehicle.Icon .. " " .. (if typeof(display) == "string" then display else vehicle.Name)
 	prompt.MaxActivationDistance = if kind == "Coche" then 8 elseif vehicle.Boat then 10 else 7 -- (de cerca y manteniendo: nadie se sube sin querer)
 	prompt.RequiresLineOfSight = false
 	prompt.HoldDuration = 0.5
@@ -1465,7 +1472,14 @@ function VehicleService.mount(player: Player, kind: string, opts: { Rented: bool
 		local okPaint, color = pcall(VehicleService.PaintFor, player, kind)
 		paint = if okPaint and typeof(color) == "Color3" then color else nil
 	end
-	local model = Rides.build(kind, nil, cf, paint)
+	local style: { Model: string?, Accent: Color3? }? = nil
+	if VehicleService.ModelFor and not options.Rented and not options.Exam then
+		local okModel, id, accent = pcall(VehicleService.ModelFor, player, kind)
+		if okModel and type(id) == "string" then
+			style = { Model = id, Accent = if typeof(accent) == "Color3" then accent else nil }
+		end
+	end
+	local model = Rides.build(kind, nil, cf, paint, style)
 	model:SetAttribute("OwnerId", player.UserId)
 	Rides.prepare(model, kind, cf)
 	addHeadlight(model)

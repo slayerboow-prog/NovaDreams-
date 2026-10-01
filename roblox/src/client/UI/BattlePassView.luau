@@ -288,4 +288,18 @@ function BattlePassView.rowVisible(enabled: boolean, state: { [string]: any }?):
 	return state.Season.Status == "Active" or state.Season.Status == "Grace"
 end
 
+-- Barras de un vehículo premium (Stats = { Velocidad, Manejo, Estetica } de 0 a 5) en una línea:
+-- «Velocidad ■■■■■ · Manejo ■■■□□ · Estética ■■■■■». Velocidad y Manejo son las del coche / la
+-- moto de siempre (mismas prestaciones); la Estética es lo que cambia. "" si no hay barras.
+function BattlePassView.statsText(stats: any): string
+	if type(stats) ~= "table" then
+		return ""
+	end
+	local function bar(n: any): string
+		local k = math.clamp(math.floor((tonumber(n) or 0) + 0.5), 0, 5)
+		return string.rep("■", k) .. string.rep("□", 5 - k)
+	end
+	return ("Velocidad %s · Manejo %s · Estética %s"):format(bar(stats.Velocidad), bar(stats.Manejo), bar(stats.Estetica))
+end
+
 return BattlePassView

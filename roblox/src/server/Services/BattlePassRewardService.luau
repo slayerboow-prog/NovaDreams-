@@ -5,6 +5,8 @@
 --   Vehicle      -> VehicleService.grant (el vehículo normal, mismas prestaciones)
 --   VehicleSkin  -> acabado exclusivo (color/material) de un vehículo normal: VehicleService lo pinta al
 --                   sacarlo (VehicleService.PaintFor). Mismas prestaciones. GrantsBase: da también el vehículo.
+--                   Con Model (los 13 premium de shared/PremiumVehicles), además sale con su propio
+--                   diseño (VehicleService.ModelFor): sigue siendo un coche / una moto del juego.
 --   Wearable     -> ArcadeService.grantPrize (gafas, gorra)
 --   Outfit       -> colores del aspecto de Valmar (AvatarService.OutfitFor)
 --   HomeTheme / Decor -> tu vivienda de siempre (PropertyService.DecorateOwned): colores de suelo y
@@ -146,7 +148,11 @@ local function autoEquip(player: Player, data: { [string]: any }, def: { [string
 	local c = cosmeticsOf(data)
 	local slot = EQUIP_SLOT[def.Type]
 	if slot == "VehicleSkin" then
-		if def.Kind and not c.Equipped.VehicleSkin[def.Kind] then
+		-- Lo primero se pone solo; y un vehículo premium nuevo (con su propio modelo) sustituye a un
+		-- acabado que es solo color (el que paga un deportivo lo quiere ver al sacar el coche)
+		local current = def.Kind and c.Equipped.VehicleSkin[def.Kind]
+		local currentDef = current and Catalog.get(current)
+		if def.Kind and (not current or (type(def.Model) == "string" and not (currentDef and type(currentDef.Model) == "string"))) then
 			c.Equipped.VehicleSkin[def.Kind] = def.Id
 		end
 	elseif slot then
@@ -381,6 +387,22 @@ function BattlePassRewardService.paintFor(player: Player, kind: string): Color3?
 	return if def and typeof(def.Color) == "Color3" then def.Color else nil
 end
 
+-- Modelo del vehículo al sacarlo (VehicleService.mount): el premium equipado para ese tipo (id de
+-- shared/PremiumVehicles) y su color de detalle (Trim). nil = el modelo de siempre.
+function BattlePassRewardService.modelFor(player: Player, kind: string): (string?, Color3?)
+	local data = DataService.get(player)
+	if not data then
+		return nil, nil
+	end
+	local c = cosmeticsOf(data)
+	local id = c.Equipped.VehicleSkin[kind]
+	local def = id and c.Owned[id] and Catalog.get(id)
+	if def and def.Kind == kind and type(def.Model) == "string" then
+		return def.Model, if typeof(def.Trim) == "Color3" then def.Trim else nil
+	end
+	return nil, nil
+end
+
 -- Colores del conjunto equipado (AvatarService: se mezclan con el aspecto de Valmar)
 function BattlePassRewardService.outfitFor(player: Player): { [string]: Color3 }?
 	local data = DataService.get(player)
@@ -480,6 +502,7 @@ function BattlePassRewardService.init()
 	local vehicles = service("VehicleService")
 	if vehicles then
 		vehicles.PaintFor = BattlePassRewardService.paintFor
+		vehicles.ModelFor = BattlePassRewardService.modelFor
 	end
 	local avatar = service("AvatarService")
 	if avatar then

@@ -211,6 +211,7 @@ local function rewardView(player: Player, bp: { [string]: any }, season: Season.
 		Milestone = def.Level % 5 == 0,
 		Preview = previewOf(def),
 		Owned = cosmetics.Owned[def.Id] ~= nil,
+		Stats = def.Stats, -- (vehículos premium: barras de Velocidad / Manejo / Estética)
 	}
 	if def.Type == "Boat" then
 		view.Usable = Rewards.BoatAdapter.available()
@@ -220,6 +221,7 @@ local function rewardView(player: Player, bp: { [string]: any }, season: Season.
 		local items = {}
 		for _, item in def.Items or {} do
 			table.insert(items, { Id = item.Id, Type = item.Type, TypeName = BPConfig.TypeNames[item.Type] or item.Type, Name = item.Name, Icon = item.Icon, Preview = previewOf(Catalog.get(item.Id) or item) })
+			view.Stats = view.Stats or item.Stats
 		end
 		view.Items = items
 	end
@@ -830,7 +832,9 @@ local function buildPreviews()
 	for _, def in Catalog.all() do
 		if def.Type == "VehicleSkin" and typeof(def.Color) == "Color3" then
 			pcall(function()
-				local model = Rides.build(def.Kind, nil, CFrame.new(), def.Color)
+				-- (los premium del pase: su propio modelo, el mismo que sale al sacarlo)
+				local style = if type(def.Model) == "string" then { Model = def.Model, Accent = if typeof(def.Trim) == "Color3" then def.Trim else nil } else nil
+				local model = Rides.build(def.Kind, nil, CFrame.new(), def.Color, style)
 				model.Name = def.Id
 				model:SetAttribute("RewardId", def.Id)
 				model.Parent = folder

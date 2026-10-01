@@ -420,6 +420,7 @@ end
 ---------------------------------------------------------------------
 local engine: Sound? = nil
 local vehicleKind: string? = nil
+local enginePitch = 1 -- tono propio del motor (vehículos premium del pase: atributo EnginePitch)
 local lastHorn = 0
 local horn: () -> () -- más abajo
 
@@ -450,8 +451,11 @@ function SoundFx.vehicleStart(kind: string, chassis: BasePart)
 	if kind == "Coche" or kind == "Moto" or kind == "Autobus" or kind == "Camion" or kind == "Patrulla" or kind == "Bomberos" or kind == "Lancha" or kind == "Gaviota" then
 		SoundFx.play("Arranque", 1, nil, chassis)
 		engine = SoundFx.loop("Motor", chassis)
-		if engine and kind == "Moto" then
-			engine.PlaybackSpeed *= 1.35
+		local model = chassis.Parent
+		local pitch = if model then model:GetAttribute("EnginePitch") else nil
+		enginePitch = if type(pitch) == "number" then math.clamp(pitch, 0.7, 1.4) else 1
+		if engine then
+			engine.PlaybackSpeed *= (if kind == "Moto" then 1.35 else 1) * enginePitch
 		end
 	end
 end
@@ -468,7 +472,7 @@ end
 -- Cada fotograma: el motor sube de tono con la velocidad (ratio 0..1)
 function SoundFx.vehicleSpeed(ratio: number)
 	if engine then
-		local base = if vehicleKind == "Moto" then 1.35 else 1
+		local base = (if vehicleKind == "Moto" then 1.35 else 1) * enginePitch
 		engine.PlaybackSpeed = base * (0.75 + ratio * 0.9)
 		engine.Volume = (SOUNDS.Motor.Volume or 0.45) * (0.7 + ratio * 0.5) -- (el silencio lo pone el grupo SFX)
 	end

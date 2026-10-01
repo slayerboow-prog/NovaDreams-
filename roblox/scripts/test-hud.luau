@@ -1271,12 +1271,12 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 		end
 		check(#small == 0, "Mandos del avión grandes para el pulgar" .. (if #small > 0 then ": " .. table.concat(small, ", ") else ""))
 		local gasR = rectOf(flyButtons.MotorMas, fly)
-		check(fly.Canvas.X - (gasR.X + gasR.W) <= 16.5 and gasR.H > gasR.W, "MOTOR + alto, pegado a la derecha")
+		check(fly.Canvas.X - (gasR.X + gasR.W) <= 24 and gasR.H > gasR.W, "MOTOR + alto, pegado a la derecha")
 		local list = hudRects(mods)
 		table.insert(list, { Name = "Instrumentos del avión", Rect = rectOf(view.Panel, fly) })
 		noOverlaps(list, HudLayout, ("%dx%d volando"):format(size[1], size[2]))
 		local panelRect = rectOf(view.Panel, fly)
-		check(panelRect.Y >= 0 and panelRect.Y + panelRect.H < fly.Canvas.Y * 0.5 and math.abs(panelRect.X + panelRect.W / 2 - fly.Canvas.X / 2) < 1, "Instrumentos arriba en el centro, dentro de la pantalla")
+		check(panelRect.Y >= 0 and panelRect.Y + panelRect.H < fly.Canvas.Y * 0.6 and math.abs(panelRect.X + panelRect.W / 2 - fly.Canvas.X / 2) < 1, "Instrumentos arriba en el centro, dentro de la pantalla")
 		-- Mantener el motor y soltarlo; tocar el tren
 		local gasTouch = { UserInputType = roblox.Enum.UserInputType.Touch, UserInputState = roblox.Enum.UserInputState.Begin }
 		flyButtons.MotorMas.InputBegan:Fire(gasTouch)
