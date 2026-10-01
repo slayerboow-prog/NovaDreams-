@@ -965,16 +965,25 @@ local function watch()
 	if not Movement.allowed(current, ctx) then
 		setCurrent("Stand")
 	elseif humanoid.Jump and os.clock() - changedAt > 0.2 then
-		-- Saltar estando agachado o tumbado: levantarse (de tumbado, primero agachado). Con el botón
-		-- aún pulsado no salta nada más levantarse: primero acaba de ponerse de pie.
 		humanoid.Jump = false
-		if Stances.request(if current == "Prone" then "Crouch" else "Stand") and current == "Stand" then
-			Stances.blockJump("StandUp", true)
-			task.delay(Movement.Transition.Crouch, function()
-				Stances.blockJump("StandUp", false)
-			end)
-		end
+		Stances.jumpUp()
 	end
+end
+
+-- Saltar estando agachado o tumbado: levantarse (de tumbado, primero agachado). Con el botón aún
+-- pulsado no salta nada más levantarse: primero acaba de ponerse de pie. Devuelve true si se ha
+-- encargado (no estabas de pie). Lo usan watch (Espacio, mando) y el botón Saltar del móvil.
+function Stances.jumpUp(): boolean
+	if current == "Stand" then
+		return false
+	end
+	if Stances.request(if current == "Prone" then "Crouch" else "Stand") and current == "Stand" then
+		Stances.blockJump("StandUp", true)
+		task.delay(Movement.Transition.Crouch, function()
+			Stances.blockJump("StandUp", false)
+		end)
+	end
+	return true
 end
 
 -- Personaje nuevo (reaparecer): de pie, sin nada pendiente
@@ -1027,6 +1036,16 @@ function Stances.init()
 	end)
 	local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
 	remote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Actions") :: RemoteEvent
+
+	-- El botón Saltar del móvil (no pasa por Humanoid.Jump a tiempo): agachado o tumbado, te levanta
+	if TouchLayout.onJump then
+		TouchLayout.onJump(function(down: boolean)
+			if down and os.clock() - changedAt > 0.2 then
+				return Stances.jumpUp()
+			end
+			return current ~= "Stand"
+		end)
+	end
 
 	-- El servidor contesta si no deja (y por qué)
 	(remote :: RemoteEvent).OnClientEvent:Connect(onServer)

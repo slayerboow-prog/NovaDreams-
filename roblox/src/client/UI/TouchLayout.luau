@@ -620,13 +620,105 @@ function TouchLayout.buttons(): { [string]: TextButton }
 	return out
 end
 
--- Saltar: el botón propio sustituye al de Roblox (se esconde, sin quitarle nada al personaje)
+-- Saltar: el botón propio sustituye al de Roblox (se esconde, sin quitarle nada al personaje).
+--
+-- Antes solo hacía Humanoid.Jump = true al pulsar (y cada 0,1 s mientras se mantenía). En el móvil eso
+-- casi nunca saltaba: Humanoid.Jump es una petición que el control de Roblox (ControlModule) vuelve a
+-- escribir en cada fotograma con lo que dice SU botón de saltar (que aquí está escondido, o no existe
+-- con el joystick propio), así que el true se borraba antes de llegar a la física; los reintentos
+-- llegaban en Heartbeat, ya pasada la física. Y como el botón no dispara UserInputService.JumpRequest,
+-- tampoco se enteraban el parkour ("Saltar valla"), levantarse de agachado ni dejar una pose (tumbado).
+-- Ahora, como la barra espaciadora:
+--   1) al pulsar se avisa a quien lo pida (TouchLayout.onJump: parkour, posturas, poses…); si alguno
+--      se encarga (devuelve true), ya está;
+--   2) si no, y estás de pie en el suelo (no sentado, ni en una conversación o una cinemática), salta
+--      ya: Humanoid:ChangeState(Jumping), que no depende de nadie más. Correr no lo impide y la
+--      carrera se conserva en el aire (la física del Humanoid mantiene la velocidad);
+--   3) mientras se mantiene, Humanoid.Jump = true en cada fotograma justo DESPUÉS del control de
+--      Roblox (BindToRenderStep, Input + 2), como si fuera su propio botón: sigue saltando al caer,
+--      sube nadando… Al soltar, Jump = false (no se queda un salto pendiente).
+-- No gasta ni pide energía ni estamina (con la energía a 0 se anda más despacio, pero se salta igual).
+local JUMP_STEP = "SaltarTactil"
+local jumpListeners: { (down: boolean, humanoid: Humanoid) -> boolean? } = {}
+
+-- Quien quiera enterarse del botón Saltar (pulsar y soltar). Devolver true al pulsar = "ya me encargo".
+function TouchLayout.onJump(listener: (down: boolean, humanoid: Humanoid) -> boolean?)
+	table.insert(jumpListeners, listener)
+end
+
+local JUMP_FROM: { [any]: boolean } = {
+	[Enum.HumanoidStateType.Running] = true,
+	[Enum.HumanoidStateType.RunningNoPhysics] = true,
+	[Enum.HumanoidStateType.Landed] = true,
+	[Enum.HumanoidStateType.GettingUp] = true,
+}
+
+-- ¿Puede saltar ahora mismo? (de pie en el suelo y sin nada que lo impida)
+function TouchLayout.canJump(h: Humanoid): boolean
+	local player = Players.LocalPlayer
+	if h.Health <= 0 or h.SeatPart ~= nil or h.Sit or h.PlatformStand or h.JumpHeight <= 0 then
+		return false
+	end
+	if player:GetAttribute("InDialogue") or player:GetAttribute("InCinematic") or player:GetAttribute("KO") then
+		return false
+	end
+	if not h:GetStateEnabled(Enum.HumanoidStateType.Jumping) then
+		return false -- (agachado, parkour delante, volando…: lo lleva otro sistema)
+	end
+	return h.FloorMaterial ~= Enum.Material.Air and JUMP_FROM[h:GetState()] == true
+end
+
+-- Pulsar (down = true) o soltar el botón Saltar. Devuelve true si se ha saltado (o alguien se ha encargado).
+function TouchLayout.jump(down: boolean): boolean
+	local player = Players.LocalPlayer
+	local character = player.Character
+	local h = character and character:FindFirstChildOfClass("Humanoid")
+	if not h then
+		return false
+	end
+	local handled = false
+	for _, listener in jumpListeners do
+		local ok, result = pcall(listener, down, h)
+		if not ok then
+			warn("[Saltar] " .. tostring(result))
+		elseif down and result == true then
+			handled = true
+		end
+	end
+	if not down then
+		h.Jump = false
+		return false
+	end
+	if handled then
+		return true
+	end
+	if player:GetAttribute("InDialogue") or player:GetAttribute("InCinematic") then
+		return false
+	end
+	h.Jump = true
+	if TouchLayout.canJump(h) then
+		h:ChangeState(Enum.HumanoidStateType.Jumping)
+		return true
+	end
+	return false
+end
+
 local function jumpSpec(): Spec
 	local player = Players.LocalPlayer
+	local RunService = game:GetService("RunService")
 	local holding = false
+	local bound = false
 	local function humanoid(): Humanoid?
 		local character = player.Character
 		return character and character:FindFirstChildOfClass("Humanoid")
+	end
+	local function unbind()
+		if bound then
+			bound = false
+			pcall(function()
+				RunService:UnbindFromRenderStep(JUMP_STEP)
+			end)
+		end
 	end
 	return {
 		Id = "Saltar",
@@ -642,18 +734,24 @@ local function jumpSpec(): Spec
 			return h == nil or h.SeatPart == nil
 		end,
 		Hold = function(down: boolean)
+			if down == holding then
+				return
+			end
 			holding = down
-			local h = humanoid()
-			if h and down then
-				h.Jump = true
-				-- mantener pulsado = seguir saltando (como el botón de Roblox)
-				task.spawn(function()
-					while holding do
-						task.wait(0.1)
-						local now = humanoid()
-						if holding and now then
-							now.Jump = true
-						end
+			TouchLayout.jump(down)
+			if not down then
+				unbind()
+				return
+			end
+			if not bound then
+				bound = true
+				-- Justo después del control de Roblox (Input) y del suavizado de Locomotion (Input + 1)
+				RunService:BindToRenderStep(JUMP_STEP, Enum.RenderPriority.Input.Value + 2, function()
+					local h = humanoid()
+					if not holding then
+						unbind()
+					elseif h and not player:GetAttribute("InDialogue") and not player:GetAttribute("InCinematic") then
+						h.Jump = true
 					end
 				end)
 			end
