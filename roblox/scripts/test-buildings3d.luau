@@ -110,14 +110,14 @@ local function prefab(parent: any, name: string, dims: { number }, front: string
 	-- Fachada: toldos, puerta y escaparate abajo; detrás, la escalera de incendios y el aire
 	local fx, fz = 0, -z / 2 + 1.5
 	local ax, az = 0, z / 2 - 1.5
-	local awningSize, doorSize = Vector3.new(x * 0.6, 1, 3), Vector3.new(4, 8, 1)
+	local awningSize, doorSize, escapeSize = Vector3.new(x * 0.6, 1, 3), Vector3.new(4, 8, 1), Vector3.new(6, y * 0.6, 2)
 	if front == "+X" then
 		fx, fz, ax, az = x / 2 - 1.5, 0, -x / 2 + 1.5, 0
-		awningSize, doorSize = Vector3.new(3, 1, z * 0.6), Vector3.new(1, 8, 4)
+		awningSize, doorSize, escapeSize = Vector3.new(3, 1, z * 0.6), Vector3.new(1, 8, 4), Vector3.new(2, y * 0.6, 6)
 	end
 	mesh(m, "Bldg_Addon_Awning_A", awningSize, OFFSET + Vector3.new(fx, 10, fz))
 	mesh(m, "Bldg_Door_A", doorSize, OFFSET + Vector3.new(fx, 4, fz))
-	mesh(m, "Bldg_Addon_FireEscape_A", Vector3.new(6, y * 0.6, 2), OFFSET + Vector3.new(ax, y * 0.4, az))
+	mesh(m, "Bldg_Addon_FireEscape_A", escapeSize, OFFSET + Vector3.new(ax, y * 0.4, az))
 	mesh(m, "Bldg_Addon_ACUnit_A", Vector3.new(3, 3, 2), OFFSET + Vector3.new(ax * 0.9, 20, az * 0.9))
 	-- Detalle pequeño (tornillería: sin sombra)
 	mesh(m, "Bldg_Trim_Small", Vector3.new(1, 1, 1), OFFSET + Vector3.new(0, y - 0.5, 0))
@@ -454,14 +454,14 @@ do
 	local side = liteBlock(manzana, CFrame.new(-400, 0, 50), 70, 56, 70)
 	local sideInfo = Buildings3D.info(side, nil)
 	Buildings3D.replace(side, templates, nil)
-	local rs = verify(side, (sideInfo :: any).CFrame, 70, 56, 0)
+	local rs = verify(side, (sideInfo :: any).CFrame, 70, 56)
 	check(side:GetAttribute("Prefab3D") == "C" and rs.Inside and rs.Front and rs.Ground, "prefab girado (C: fachada en +X) mirando a la calle del bloque, dentro y en el suelo")
 
 	-- Bloque largo: varios en fila
 	local long = liteBlock(manzana, CFrame.new(0, 0, -600) * CFrame.Angles(0, math.pi, 0), 120, 34, 60)
 	local longInfo = Buildings3D.info(long, nil)
 	local longPlan = Buildings3D.replace(long, templates, nil)
-	local rl = verify(long, (longInfo :: any).CFrame, 120, 34, 0)
+	local rl = verify(long, (longInfo :: any).CFrame, 120, 34)
 	check(longPlan and #longPlan >= 2 and rl.Inside and rl.Front and rl.Ground, ("bloque largo: %d prefabs en fila, dentro, de cara a la calle y en el suelo"):format(if longPlan then #longPlan else 0))
 end
 
@@ -585,9 +585,14 @@ if placePath then
 	local town = ws:FindFirstChild("Town")
 	local found = Buildings3D.collect({ town }, nil)
 	check(#found > 800, ("%d bloques que se pueden cambiar"):format(#found))
-	local planned, slots, parts = 0, 0, 0
+	local planned, slots, facing = 0, 0, 0
 	for _, b in found do
 		local info = Buildings3D.info(b, nil)
+		-- (Kit/Lite: el LookVector del bloque mira a la calle; la puerta tiene que decir lo mismo)
+		local body = b:FindFirstChild("Body") or b:FindFirstChild("Core")
+		if info and body and (info.CFrame.LookVector - body.CFrame.LookVector).Magnitude > 0.01 then
+			facing += 1
+		end
 		local plan = info and Buildings3D.plan(info, templates)
 		if plan then
 			planned += 1
@@ -596,6 +601,7 @@ if placePath then
 	end
 	print(("    con el kit falso encajan %d de %d (%d prefabs)"):format(planned, #found, slots))
 	check(planned > #found * 0.3, "una buena parte encaja con algún prefab")
+	check(facing == 0, ("la fachada sale la de la calle en todos (como el LookVector de Kit/Lite; %d al revés)"):format(facing))
 	local bad, n, sameKind = 0, 0, true
 	for i = 1, #found, 17 do
 		local b = found[i]
