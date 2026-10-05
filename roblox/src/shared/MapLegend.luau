@@ -41,7 +41,7 @@ MapLegend.Categories = {
 	{ Id = "Bus", Name = "Paradas de bus", Icon = "🚏", Models = { "ParadaBus", "EstacionAutobuses" } },
 	{ Id = "Tren", Name = "Metro y tren", Icon = "🚇", Models = { "BocaMetro", "EstacionCercanias", "EstacionCentral" } },
 	{ Id = "Aeropuertos", Name = "Aeropuertos", Icon = "✈️", Models = { "Aeropuerto", "Aerodromo" } },
-	{ Id = "Ciudad", Name = "Lugares de la ciudad", Icon = "🏛️", Models = { "Plaza", "PlazaFinanciera", "TorreValmar", "Ayuntamiento" } },
+	{ Id = "Ciudad", Name = "Lugares de la ciudad", Icon = "🏛️", Models = { "Plaza", "PlazaFinanciera", "TorreValmar", "Ayuntamiento", "CasaCosme" } },
 	{ Id = "Instituciones", Name = "Instituciones", Icon = "⚖️", Models = { "PalacioJusticia", "CentroPenitenciario", "CuartelEjercito", "AgenciaTributaria" } },
 } :: { Category }
 
