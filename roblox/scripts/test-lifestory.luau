@@ -1110,16 +1110,20 @@ check(said(kiko, "Todos los gatos hablamos"), "Bigotes, el gato del cole, habla 
 local hitsBefore = kiko.Hits or 0
 lighting.ClockTime = 12 -- Bigotes y los clones pasan en el cole: con el cole abierto
 -- En el combate, las cucarachas son enemigos: sin cartel de «Interactuar» (se las ataca) y la nave en el patio
-local roachSpecs, shipInFight = nil, nil
-H.Service.observe(function(kind, who, questId, info)
-	if kind == "StepEnter" and who == kiko and questId == "Loco_N2_Bigotes" and info and info.Type == "Fight" then
-		task.defer(function()
-			local scene = scenes[kiko] and scenes[kiko][questId]
-			roachSpecs = scene and scene.Actors
-			shipInFight = scene and scene.Props.Nave
-		end)
+local roachSpecs, shipInFight = {}, false
+local sceneMock = H.mocks[H.ROOT .. "/server/Services/SceneService"]
+local realSet = sceneMock.set
+sceneMock.set = function(player, questId, actors, props, ...)
+	if player == kiko and questId == "Loco_N2_Bigotes" then
+		for _, spec in actors do
+			if string.sub(spec.Npc, 1, 9) == "Cucaracha" then
+				roachSpecs[spec.Npc] = spec
+				shipInFight = shipInFight or table.find(props, "Nave") ~= nil
+			end
+		end
 	end
-end)
+	return realSet(player, questId, actors, props, ...)
+end
 check(playLoco(kiko, "Loco_N2_Bigotes") and kikoData.Items.CoronaBigotes == 1 and kikoData.Story.Flags.DuqueDeGatonia, "Bigotes, emperador de Gatonia: tres cucarachas espaciales a globazos y un título de nobleza")
 check((kiko.Hits or 0) - hitsBefore == 7, "Cada cucaracha aguanta sus globos (2 + 2 + 3)")
 do
@@ -1130,6 +1134,7 @@ do
 	end
 	check(ok, "En el combate las cucarachas son enemigos sin cartel de «Interactuar» (Enemy, Prompt = false): el botón es el de atacar")
 	check(shipInFight == true, "La nave de las cucarachas está en el patio durante el combate")
+	sceneMock.set = realSet
 end
 kiko.CaughtBy = "PolloGigante"
 -- El rayo encogedor: te lo dan al empezar el combate (en tu barra), se usa desde la barra y se

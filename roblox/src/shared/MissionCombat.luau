@@ -21,7 +21,7 @@ local MissionCombat = {}
 MissionCombat.ATTR = "MissionEnemy"
 MissionCombat.Range = 40 -- studs: el botón de atacar llega hasta aquí (un globo de agua se lanza lejos)
 MissionCombat.AimAngle = 9 -- grados: un disparo que pasa así de cerca del enemigo le da
-MissionCombat.HitGap = 0.3 -- segundos entre dos impactos que cuentan (la pistola de agua dispara 8/s)
+MissionCombat.HitGap = 0.25 -- segundos entre dos impactos que cuentan (la pistola de agua dispara 8/s)
 
 -- Marca (o desmarca, questId = nil) a un personaje como enemigo de un combate de misión
 function MissionCombat.mark(model: Instance, questId: string?, ownerId: number?)
