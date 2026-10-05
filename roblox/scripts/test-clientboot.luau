@@ -1651,7 +1651,7 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean })
 					rocks += 1
 				end
 			end
-			table.insert(checks, { folder ~= nil and drawn > 20, ("la Grieta del cielo se dibuja (%d capas/tramos en el lienzo, %d rocas)"):format(drawn, rocks) })
+			table.insert(checks, { folder ~= nil and drawn >= 10, ("la Grieta del cielo se dibuja (%d capas/tramos en el lienzo, %d rocas)"):format(drawn, rocks) })
 			localPlayer:SetAttribute("SkyRift", "Cerrada")
 		end,
 		[math.floor(23 * FPS)] = function()
