@@ -216,6 +216,8 @@ HouseLook.Looks = {
 			c("Real", "CorrodedMetal", "CorrodedMetal"),
 			c("RealMad", "Realistic Rusted Steel", "CorrodedMetal"),
 			c("Gen", "RealisticPattern", "CorrodedMetal"),
+			c("Tyler", "RustedMetal", "Metal"),
+			c("Tyler", "RustedMetal2", "Metal"),
 			c("PBR", "CorrodedMetal_PBR", "CorrodedMetal"),
 		},
 		Variety = 3,
@@ -230,7 +232,7 @@ HouseLook.Looks = {
 	},
 	NaveHormigon = {
 		-- Muelles de carga: hormigón industrial basto
-		Options = { c("Mega", "Concrete IndustrialGrittySturdyMaterial", "Concrete"), c("Tyler", "Concrete6", "Concrete"), c("Mega", "Patchy Cement", "Concrete"), c("Real", "Concrete", "Concrete") },
+		Options = { c("Mega", "Concrete IndustrialGrittySturdyMaterial", "Concrete"), c("Tyler", "Concrete6", "Concrete"), c("Mega", "Patchy Cement", "Concrete"), c("Tyler", "Concrete7", "Concrete"), c("Real", "Concrete", "Concrete") },
 		Variety = 3,
 		Whiten = 0.35,
 		Why = "hormigón industrial de los muelles de carga",

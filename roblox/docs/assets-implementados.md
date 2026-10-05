@@ -99,3 +99,46 @@ la de antes (`PropShell`), que sigue chocando y usándose igual. Prueba: `script
 
 No hay sistema de comida en 3D (la comida de la mochila son iconos): la comida va como decorado en
 restaurantes, tiendas y cocinas.
+
+## Materiales y texturas (shared/UserMaterialChoice, HouseLook, InteriorLook, StreetLook + World/UserMaterials y World/MaterialExtras)
+
+Las texturas de los MaterialVariant no se pueden leer desde un script y a un variant de la Tienda no se le
+puede cambiar el BaseMaterial en un servidor de verdad. Por eso todo se elige por NOMBRE y se usa pieza a
+pieza donde el material no encaja. Si un pack no carga (o da error), se usan los de respaldo y el juego sigue.
+
+| id | Pack | Dónde se usa |
+|---|---|---|
+| 9408271791 | PBR_Textures (20 MaterialVariant) | Respaldo de 13 materiales globales (ladrillo, hormigón, adoquín, pizarra, mármol, madera, tablas, arena, chapa estriada) y **primero en la grava (Pebble)**. Es respaldo de fachadas (ladrillo, zócalo, hormigón, madera, chapa de nave), interiores (parqué, mármol, moqueta, hormigón, pizarra, encimera de granito) y plazas de adoquín. No se usa como primero porque tiene 10 votos negativos y nadie lo ha visto en el juego. «Glass_PBR» va sobre Ice y no se usa. |
+| 12715816700 | ALL MATERIALS | No está en los docs: se busca por palabras y BaseMaterial («brick», «concrete», «marble», «carpet», «roof», «stucco», «sand»…). Respaldo de los globales, de las fachadas y de los interiores. |
+| 9268236860 | Realistic sand texture | **La arena de la playa y del terreno**: es el primer candidato para Sand si su variant viene sobre Sand. Si viene sobre otro material, se pone pieza a pieza en la arena de la playa (Kit/Civic, con la física de la arena). Si solo trae una textura, va como lámina sobre la playa. |
+| 12152263865 | Bronze PBR (SurfaceAppearance) | Placas de los cuadros del museo (bronce limpio) y escultura de la plaza del museo (bronce de estatua). Encima va un bloque de bronce de la misma talla. La pieza de antes sigue para chocar y solo se ve en gráficos Bajo. |
+| 12433695725 | Texture pack (realistic) | Texturas antiguas (`Texture`). Se usan sus losetas de techo («Ceiling A–L») como lámina en los techos de placas de parte de las oficinas, tiendas, colegio y hospital. Paredes, suelos, tejados, cristal y terreno no se usan: ahí ya hay PBR, que se ve mejor. |
+| 123159368741340 | Realistic Materials Pack (51 losetas) | Texturas antiguas. Las losetas se clasifican por nombre (papel pintado, moqueta, techo o arena) y se usan como lámina. Si sus nombres no dicen nada, no se usan. |
+| 11877329379 | Realistic Texture Pack | Texturas antiguas. «Wallpaper» va como papel pintado en la mitad de las salas con papel, «Carpet» como moqueta en el 40 % de las oficinas e «Interior Roofing» como techo de placas. Ladrillo, tejas, baldosas, cristal, metal, hormigón y paisaje no se usan (ya hay PBR). |
+| 3778526307 | Custom Material Pack 1 | Texturas antiguas. «Carpet» va como moqueta. Se borran sus 60 scripts del agua animada. Agua, lava, esponja, goma, porexpán y bambú no se usan: no encajan en una ciudad. |
+| 856287704 | Ultra HD texture pack (2017) | No está en los docs: sus losetas se clasifican por nombre, como las de los otros packs. Si no dicen papel pintado, moqueta, techo o arena, no se usan. |
+
+Las láminas (`Texture` «U_Lamina») van solo donde una textura plana se ve bien: papel pintado, moqueta y
+placas de techo. Cada sala lleva la misma lámina en todas sus piezas, siempre la misma, y el resto de
+salas se queda con su PBR. En gráficos Bajo se esconden (etiqueta TextureDetail). No se usa ninguna
+loseta que tenga en el nombre una marca, «logo», un juego (DOORS, Bloxburg, The Mimic, SCP) o sangre.
+
+### Packs de MaterialVariant que ya se usaban: cuántos se usan ahora
+
+«Usados» quiere decir que el variant está en alguna lista: en la variedad que se reparte por edificio,
+sala o zona, o como respaldo.
+
+| id | Pack | Variants | Usados (antes → ahora) | Sin usar y por qué |
+|---|---|---|---|---|
+| 11392874817 | Césped 2k | 1 | 1 → 1 | — |
+| 13277933714 | Realistic Materials (piedras) | 20 | 12 → 17 | Metal (el metal pintado es nuestro), Sandstone y Snow (en Valmar no hay arenisca ni nieve) |
+| 14527172541 | Realistic Materials (madera) | 6 | 4 → 5 | Realistic Snow (no hay nieve) |
+| 15221806045 | PBR Realistic Material Mega Pack | 524 (7 rotos) | 70 → 94 | El resto no encaja en una ciudad: 13 asfaltos «Lab» de colores, unos 60 metales de ciencia ficción, piel humana, carne, sangre, lava, calaveras, rocas de cueva y de otros planetas, vegetación y musgo. Los rotos (rbxtemp://) se borran al cargar. |
+| 15446413305 | Realistic Materials (generador) | 8 | 3 → 7 | RealisticGold (es oro sobre Sand: nunca en la playa) |
+| 92927007790601 | Tylers Realistic Materials | 68 | 19 → 64 | MetalGate, RustedMetalGate, RustedDiamondMetal (verjas y chapa oxidada: el metal pintado es nuestro) y TableCloth (mantel) |
+
+Variedad nueva:
+- **Fachadas**: 5 ladrillos, 5 piedras de zócalo, 5 hormigones de edificio público, 4 maderas, 3 tejas (antes 2), 3 chapas de nave, 3 hormigones de muelle y 2 entablados coloniales, fijos por edificio.
+- **Interiores**: 6 parqués, 5 hormigones, 4 baldosas de baño, 4 baldosas de local, 3 de cocina, 3 mármoles, 3 moquetas, 2 moquetas de cine, 3 granitos de suelo, 3 encimeras de granito, 3 encimeras de madera, 4 ladrillos vistos y 2 pintados, fijos por vivienda o local.
+- **Calles**: la mitad de las plazas son de adoquín hexagonal. Las aceras de barrio, centro y afueras, y el adoquín del casco antiguo, tienen dos suelos repartidos por zonas (siempre una zona entera con el mismo).
+- **Globales**: barro de granja (Mud) y grava (Pebble) nuevos, y más respaldos para césped, tierra, roca, pizarra, madera y chapa estriada. El terreno (montañas, campos) solo puede llevar un variant por material, así que ahí no puede haber variedad.

@@ -212,14 +212,14 @@ UserMaterialChoice.Table = {
 	{
 		Material = "Rock",
 		-- Montañas del terreno y rocas sueltas
-		Candidates = { c("Real", "Rock", "Rock"), c("Mega", "Rough Rock", "Rock"), c("Tyler", "Stone3", "Rock"), find("Todos", { "rock" }, "Rock") },
+		Candidates = { c("Real", "Rock", "Rock"), c("Mega", "Rough Rock", "Rock"), c("Tyler", "Stone3", "Rock"), c("Tyler", "Stone 2", "Rock"), c("Tyler", "Stone 4", "Rock"), c("Tyler", "Pebble2", "Rock"), find("Todos", { "rock" }, "Rock") },
 		Whiten = 0.5,
 		Why = "roca de las montañas del terreno",
 	},
 	{
 		Material = "Ground",
 		-- Claros de tierra del terreno y huertos. OJO: el «RealisticStone» del generador va sobre Ground.
-		Candidates = { c("Real", "Ground", "Ground"), c("Mega", "Dry Dirt", "Ground"), c("Gen", "RealisticStone", "Ground"), c("Tyler", "Ground2", "Ground"), find("Todos", { "ground" }, "Ground") },
+		Candidates = { c("Real", "Ground", "Ground"), c("Mega", "Dry Dirt", "Ground"), c("Gen", "RealisticStone", "Ground"), c("Tyler", "Ground2", "Ground"), c("Tyler", "Ground3", "Ground"), c("Tyler", "Ground4", "Ground"), find("Todos", { "ground" }, "Ground") },
 		Whiten = 0.5,
 		Why = "tierra del terreno y los huertos",
 	},
@@ -259,7 +259,7 @@ UserMaterialChoice.Table = {
 	{
 		Material = "Mud",
 		-- Barro de las granjas y corrales (Kit/AnimalKit): el del pack de piedras, el de Tyler y barro con musgo
-		Candidates = { c("Real", "Mud", "Mud"), c("Tyler", "Mud2", "Mud"), c("Mega", "Mossy Mud", "Mud") },
+		Candidates = { c("Real", "Mud", "Mud"), c("Tyler", "Mud2", "Mud"), c("Mega", "Mossy Mud", "Mud"), c("Tyler", "Mud3", "Mud"), c("Tyler", "Mud4", "Mud") },
 		Pattern = "Organic",
 		Whiten = 0.4,
 		Why = "barro de granjas y corrales (Mud del pack de piedras)",
