@@ -4,6 +4,10 @@
 -- Las posiciones (tu casa, tu ventanal, las zonas…) las manda el servidor ya resueltas.
 -- Si hay una conversación abierta, su cámara se aparta mientras dura la escena y retoma su plano al acabar
 -- (los controles se cuentan en Controls; el atributo InCinematic avisa a las armas sin require).
+-- Al acabar, la cámara vuelve SUAVE al juego (CineCamera.restore). Pase lo que pase (la escena falla,
+-- mueres, reapareces, te vas a otro lugar) vuelven los controles, la cámara y la interfaz: la escena
+-- se corta como si la saltaras y se avisa al servidor (CinematicDone). Mientras hay escena, el
+-- servidor recibe el latido (SceneClient) y marca InScene.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -19,6 +23,7 @@ local DayLight = require(script.Parent.DayLight)
 local ActorLife = require(script.Parent.ActorLife)
 local Controls = require(script.Parent.Controls)
 local CineCamera = require(script.Parent.CineCamera)
+local SceneClient = require(script.Parent.SceneClient)
 local Emotion = require(ReplicatedStorage.Shared.LifeStory.Emotion)
 
 local C = Theme.Colors
@@ -185,11 +190,17 @@ local function hideOtherGuis(except: ScreenGui): () -> ()
 	end
 end
 
+local playing = 0
+local pending = 0 -- escenas que ya han llegado pero esperan su turno (cola de momentos de LifeStory)
+
 local function setControls(enabled: boolean)
 	if enabled then
 		Controls.enable("Cinematica")
 	else
-		Controls.disable("Cinematica")
+		-- (con pregunta: si la escena se rompe sin devolverlo, Controls lo suelta solo)
+		Controls.disable("Cinematica", function()
+			return playing > 0
+		end)
 	end
 end
 
@@ -215,8 +226,9 @@ end
 -- Reproducir
 ---------------------------------------------------------------------
 
-local playing = 0
-local pending = 0 -- escenas que ya han llegado pero esperan su turno (cola de momentos de LifeStory)
+-- Se corta la escena en pantalla (morir, irte): cada corte sube este número
+local interruptions = 0
+local lastEnded = -math.huge -- cuándo acabó la última escena (os.clock)
 
 local function setPlaying(delta: number)
 	playing = math.max(0, playing + delta)
@@ -224,6 +236,15 @@ local function setPlaying(delta: number)
 	player:SetAttribute("InCinematic", if playing > 0 then true else nil)
 	-- Sin nombres ni iconos flotantes encima de nadie durante la escena
 	CineCamera.quietLabels("Cinematica", playing > 0)
+	if playing == 0 then
+		lastEnded = os.clock()
+		-- Red de seguridad: sin escena ni conversación, la cámara no se queda fija
+		task.defer(function()
+			if playing == 0 then
+				pcall(CineCamera.ensureReleased)
+			end
+		end)
+	end
 end
 
 -- ¿Se está viendo una escena, o hay una esperando? (los diálogos esperan a que termine)
@@ -234,6 +255,38 @@ end
 -- ¿Hay una escena en pantalla AHORA? (sin contar las que esperan su turno en la cola)
 function Cinematics.isOnScreen(): boolean
 	return playing > 0
+end
+
+-- Mientras hay escena (o una esperando), el servidor recibe el latido
+SceneClient.watchBusy(function()
+	return playing > 0 or pending > 0
+end)
+
+-- Al morir o irte a otro lugar, la escena en pantalla se corta (como al saltarla). Al reaparecer
+-- sin haber muerto (el servidor te cambia el cuerpo: edad, ropa) la escena sigue; si no hay escena,
+-- la cámara no se queda fija
+SceneClient.onInterrupt(function(reason: string)
+	if reason == "Reaparecer" then
+		-- (solo si la cámara fija podía ser nuestra: una escena acabó hace nada)
+		if playing == 0 and os.clock() - lastEnded < 5 then
+			task.delay(0.2, function()
+				if playing == 0 then
+					pcall(CineCamera.ensureReleased)
+				end
+			end)
+		end
+		return
+	end
+	if playing > 0 then
+		interruptions += 1
+	end
+end)
+
+-- Corta la escena en pantalla (como el botón Saltar). Para el modo pruebas y otros sistemas.
+function Cinematics.interrupt()
+	if playing > 0 then
+		interruptions += 1
+	end
 end
 
 -- Apunta una escena que acaba de llegar y aún no empieza; devuelve cómo soltarla (al acabar)
@@ -249,7 +302,7 @@ function Cinematics.hold(): () -> ()
 end
 
 -- Lo que hay que deshacer si una escena falla a medias (si no, la interfaz se quedaba escondida)
-type Cleanup = { Restore: (() -> ())?, Gui: Instance?, Counted: boolean }
+type Cleanup = { Restore: (() -> ())?, Gui: Instance?, Counted: boolean, Fov: number? }
 
 -- Espera hasta que termina (o hasta que el jugador la salta)
 local function playImpl(payload: { [string]: any }, cleanup: Cleanup)
@@ -257,8 +310,13 @@ local function playImpl(payload: { [string]: any }, cleanup: Cleanup)
 	if not def then
 		return
 	end
+	CineCamera.cancelRestore() -- (si la cámara volvía de otra escena, ahora manda esta)
 	setPlaying(1)
 	cleanup.Counted = true
+	local myInterruptions = interruptions
+	local function cut(): boolean
+		return interruptions ~= myInterruptions
+	end
 	local anchors = payload.Anchors or {}
 	local names = payload.Names or {}
 	local args = payload.Args or {}
@@ -407,6 +465,7 @@ local function playImpl(payload: { [string]: any }, cleanup: Cleanup)
 
 	local camera = workspace.CurrentCamera
 	local previousFov = camera.FieldOfView
+	cleanup.Fov = previousFov
 	local previousCFrame = camera.CFrame
 	camera.CameraType = Enum.CameraType.Scriptable
 
@@ -435,7 +494,7 @@ local function playImpl(payload: { [string]: any }, cleanup: Cleanup)
 	if first and not areaLoaded(first.Position) then
 		black.BackgroundTransparency = 0
 		local waited = 0
-		while waited < 2.5 and not skipped and not areaLoaded(first.Position) do
+		while waited < 2.5 and not skipped and not cut() and not areaLoaded(first.Position) do
 			waited += task.wait(0.1)
 		end
 		TweenService:Create(black, TweenInfo.new(0.6), { BackgroundTransparency = 1 }):Play()
@@ -445,6 +504,10 @@ local function playImpl(payload: { [string]: any }, cleanup: Cleanup)
 	local fadeOutStarted = false
 	local currentShot: { [string]: any }? = nil
 	while not skipped do
+		if cut() then
+			skipped = true -- (moriste, reapareciste o te fuiste: se corta como al saltarla)
+			break
+		end
 		local elapsed = os.clock() - start
 		if elapsed >= def.Duration then
 			break
@@ -538,11 +601,12 @@ local function playImpl(payload: { [string]: any }, cleanup: Cleanup)
 		TweenService:Create(black, TweenInfo.new(0.3), { BackgroundTransparency = 0 }):Play()
 		task.wait(0.35)
 	end
-	camera.FieldOfView = previousFov
 	DayLight.setFocus(nil)
-	-- La cámara vuelve donde estaba (o detrás de ti). Si hay una conversación abierta con su plano,
-	-- en el fotograma siguiente lo retoma ella (DialogueUI)
-	CineCamera.restore(previousCFrame)
+	-- La cámara vuelve donde estaba (o detrás de ti): suave si se ve la escena; de golpe si la
+	-- pantalla está en negro (se saltó o acaba fundiendo). Si hay una conversación abierta con su
+	-- plano, la retoma ella (DialogueUI) y la vuelta se aparta
+	local dark = def.FadeOut or skipped
+	CineCamera.restore(previousCFrame, { Instant = dark, Fov = previousFov })
 	restoreGuis()
 	setControls(true)
 	StoryAudio.cinematicEnd()
@@ -587,7 +651,7 @@ function Cinematics.play(payload: { [string]: any })
 	pcall(setControls, true)
 	pcall(StoryAudio.stopVoice)
 	pcall(function()
-		CineCamera.restore(nil)
+		CineCamera.restore(nil, { Instant = true, Fov = cleanup.Fov })
 		DayLight.setFocus(nil)
 		DayLight.setCinematic(false)
 		StoryAudio.cinematicEnd()
