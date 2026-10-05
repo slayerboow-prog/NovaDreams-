@@ -307,6 +307,33 @@ function SoundFx.loop(name: string, parent: Instance?, groupName: string?): Soun
 	return sound
 end
 
+-- Un golpe suelto del ambiente (tic-tac del reloj, pitido del monitor, una puerta lejos): suena "en la
+-- cabeza", en el grupo Ambience (lo calla «Sonidos: no») y sin contar como sonido de la interfaz (no
+-- quita el clic de los botones). volume y pitch multiplican los de Config.Sounds. nil si no hay audio.
+function SoundFx.ambient(name: string, volume: number?, pitch: number?): Sound?
+	local id = soundId(name)
+	if not id or muted then
+		return nil
+	end
+	local v, p = SoundFx.tune(name, id, math.min(volume or 1, 1), pitch)
+	local sound = Instance.new("Sound")
+	sound.SoundId = id
+	sound.Volume = v
+	sound.PlaybackSpeed = p * (0.97 + math.random() * 0.06)
+	sound.SoundGroup = SoundFx.group("Ambience")
+	sound.Parent = folder or SoundService
+	sound:Play()
+	sound.Ended:Connect(function()
+		sound:Destroy()
+	end)
+	task.delay(8, function()
+		if sound.Parent then
+			sound:Destroy()
+		end
+	end)
+	return sound
+end
+
 ---------------------------------------------------------------------
 -- Voces (voz sintetizada de Roblox)
 ---------------------------------------------------------------------
