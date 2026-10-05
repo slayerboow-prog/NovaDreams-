@@ -60,3 +60,42 @@ tormenta, el agua y casi todo el humo. Si algo no carga, se usa un respaldo o no
 | 5033818552 | Pasos realistas | Solo «Carpet Footstep» (133705377, público) para moqueta y tela. Los otros 20 no son públicos (y son de Garry's Mod / Black Mesa). |
 | 195181959 | Cielo Caldari | No: es de EVE Online. |
 | 93376997873263 | Mapa de bosque anime | No: trae dos puertas traseras (familias 3 y 5, docs/assets-usuario-4.md: `VFXParticles` y `Protocol` con `require` escondido). Su cielo es un azul con nubes normal: no aporta nada al sueño, que ya tiene la isla morada y el arcoíris. |
+
+## Interiores, muebles, comida y objetos (World/InteriorProps)
+
+Se cargan al arrancar el servidor y se copian **limpios**: solo piezas con su malla, SurfaceAppearance y
+Texture; fuera scripts, sonidos, luces, ProximityPrompt, constraints, Decal, SurfaceGui, valores,
+atributos y etiquetas (así no queda nada de los virus de la 4ª tanda aunque el asset los traiga). Sin
+marcas ni nombres de otros juegos; nombres en español; anclado y a talla real. Lo añadido lleva la
+etiqueta `DecorProp` (el nivel Bajo lo esconde); lo que sustituye a una pieza hecha por código esconde
+la de antes (`PropShell`), que sigue chocando y usándose igual. Prueba: `scripts/test-interiorprops.luau`.
+
+| id | Qué es | Dónde va |
+|---|---|---|
+| 8236576991 | Tele antigua | Encima de la cómoda del dormitorio (casas, pisos, residencia), en algunas. Escalada de 50 a 2,6 studs. |
+| 13395313510 | Estanterías de almacén | Naves por dentro (2): un tramo de 30 studs de una estantería, 13 de alto, junto a las de antes. |
+| 13262637537 | Muebles realistas y grunge | Solo aparador (salón), consola (recibidor), armario y sillón de cuadros (villas) y la alfombra persa (en lugar de la alfombra del salón de las villas). Fuera lo de miedo (huesos, cuervos, carteles de Drácula), los props de Half-Life 2, el StarterCharacter, cajones, luces y scripts. |
+| 5674029686 | Mueble | Casas y pisos, junto al comedor o el sofá. |
+| 5677783820 | Mesa de ordenador | Oficinas, inmobiliarias, seguros y copisterías. |
+| 8136205160 | Váter («t») | En lugar del váter hecho por código en los baños de las casas (el asiento de antes se sigue usando). |
+| 991205683 | Almohada | En lugar de las almohadas de todas las camas de casas, pisos, villas y residencia. |
+| 106442157390222 | Cómoda de hotel | Junto a la cama en la residencia y en algunas casas. Sin nada de DOORS: fuera los nombres Seek/Rush/Figure, sus sonidos (LSPLASH) y el virus. |
+| 123553303846741 | Pack de decoración «Bloxburg» | **No**: sus 65 texturas son las de Bloxburg (subidas por su creador) y trae virus; sin ellas no queda nada. |
+| 130817699186912 | Props japoneses | Restaurantes de sushi: bonsái en la barra, ramen en las mesas, farolillos y jardineras. Sin el torii ni nada de The Mimic (y sin su virus). |
+| 9802494780 | Small Realistic Mesh Pack | Naves industriales de la ciudad: la chimenea de malla en lugar de la de ladrillo y un depósito, tubos o caseta al lado de cada nave. La torre de alta tensión (93 studs) no: no hay tendido eléctrico donde ponerla. |
+| 9658188636 | REALISTIC PACK 1 | Sillas y mesas en oficinas, vestíbulos de oficinas, bancos y seguros. Su Lighting no (ya tenemos el nuestro). |
+| 12110426279 | REALISTIC PACK 2 | Nevera (bares, cafeterías, kebabs, hamburgueserías), sillas de cafetería, caseta de perro (tienda de mascotas), archivadores, sofá del vestíbulo, extintores, taquillas (cuartel, naves), papeleras. Sin coches, camiones, bidones de Half-Life 2 ni barriles explosivos. |
+| 17519952806 | Comida callejera | Pinchos en la barra de kebabs, bares y hamburgueserías. |
+| 4609898985 | Pack de comida | Platos en las mesas de bares, cafeterías, pizzerías, hamburgueserías, kebabs y sushi, y en la mesa o la encimera de las casas. Fuera las latas y la botella de cola (marcas), el logo del autor y las 3 texturas bloqueadas. |
+| 82460675146164 | Más comida | Montón de comida en el mostrador de ultramarinos y fruterías, y en la cocina de las villas (sin su virus). |
+| 95413639317338 | Huevo frito | En los platos de la mesa de las casas y de cafeterías y bares (sin su virus). |
+| 9766849655 | Magdalena | En el mostrador de panaderías, cafeterías y heladerías. |
+| 15666503758 | Comida de gato | Tienda de mascotas (mostrador y estantes), con la marca inventada **KESTREL** («comida para gatos»); la textura con la marca real se quita. |
+| 1305075170 | Fajos de billetes | En el mostrador de los bancos (sin el texto «$10,000»). |
+| 11329271645 | Portapapeles | Consultas y control de enfermería del hospital y centros de salud, mostrador de la comisaría, escritorios de oficinas, juzgado, Hacienda y cuartel. |
+| 11444948273 | Puerta de madera | La puerta de salida de casas, pisos y villas (la de antes sigue siendo la salida). |
+| 166379099 | Silla gigante | Escaparate de las tiendas de muebles (9 studs de alto). Asset sin revisar: se copian solo sus piezas; si no carga, la tienda queda igual. |
+| 123778443128832 | Cofre de recompensa | Solo el modelo (sin el script de grupo ni el virus): guardado en `ReplicatedStorage.ModelosPremio.CofreRecompensa` para el pase y los premios, y uno en las jugueterías. |
+
+No hay sistema de comida en 3D (la comida de la mochila son iconos): la comida va como decorado en
+restaurantes, tiendas y cocinas.
