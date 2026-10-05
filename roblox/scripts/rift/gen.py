@@ -251,39 +251,49 @@ def bolt_path(rng, a, b, rough, depth):
     return pts
 
 
-def bolt(seed, core_bgr, glow_bgr, w=512, h=256):
-    """Un rayo ramificado de izquierda a derecha: núcleo blanco fino, borde del color y halo."""
+def bolt(seed, core_bgr, glow_bgr, w=1024, h=512):
+    """Un rayo ramificado de izquierda a derecha, como los de la referencia: núcleo blanco muy fino,
+    borde fino del color, halo ancho y difuso, y ramas que se abren y se afinan (fractal).
+    Se dibuja al doble de tamaño y se reduce (bordes suaves)."""
     rng = np.random.default_rng(seed)
-    acc_core = np.zeros((h, w), np.float32)
-    acc_edge = np.zeros((h, w), np.float32)
-    acc_glow = np.zeros((h, w), np.float32)
+    S = 2
+    W, H = w * S, h * S
+    core = np.zeros((H, W), np.float32)
+    edge = np.zeros((H, W), np.float32)
+    halo = np.zeros((H, W), np.float32)
 
-    def draw(points, width):
-        pts = np.array(points, np.int32).reshape(-1, 1, 2)
-        cv2.polylines(acc_glow, [pts], False, 1.0, int(width * 5 + 4), cv2.LINE_AA)
-        cv2.polylines(acc_edge, [pts], False, 1.0, int(width * 2 + 1), cv2.LINE_AA)
-        cv2.polylines(acc_core, [pts], False, 1.0, max(1, int(width * 0.6)), cv2.LINE_AA)
+    def draw(points, width, energy):
+        pts = (np.array(points) * S).astype(np.int32).reshape(-1, 1, 2)
+        cv2.polylines(halo, [pts], False, energy, max(2, int(width * 7 * S)), cv2.LINE_AA)
+        cv2.polylines(edge, [pts], False, energy, max(1, int(width * 2.2 * S)), cv2.LINE_AA)
+        cv2.polylines(core, [pts], False, energy, max(1, int(width * 0.9 * S)), cv2.LINE_AA)
 
-    main = bolt_path(rng, (10, h / 2 + rng.uniform(-30, 30)), (w - 10, h / 2 + rng.uniform(-70, 70)), 0.38, 7)
-    draw(main, 2.2)
-    for _ in range(int(rng.integers(6, 10))):
-        i = int(rng.integers(len(main) // 8, len(main) * 4 // 5))
-        start = main[i]
-        ang = rng.uniform(-0.5, 0.5) + (0.65 if rng.random() < 0.5 else -0.65)
-        length = rng.uniform(50, 180)
-        end = np.clip(start + np.array([np.cos(ang), np.sin(ang)]) * length, 6, [w - 6, h - 6])
-        br = bolt_path(rng, start, end, 0.4, 6)
-        draw(br, 1.2)
-        for _ in range(int(rng.integers(0, 3))):
-            j = int(rng.integers(len(br) // 4, len(br) - 1))
-            a2 = ang + rng.uniform(-0.9, 0.9)
-            e2 = np.clip(br[j] + np.array([np.cos(a2), np.sin(a2)]) * rng.uniform(20, 70), 6, [w - 6, h - 6])
-            draw(bolt_path(rng, br[j], e2, 0.4, 5), 0.7)
-    core = np.clip(cv2.GaussianBlur(acc_core, (0, 0), 0.6) * 1.3, 0, 1)[..., None]
-    edge = np.clip(cv2.GaussianBlur(acc_edge, (0, 0), 1.0), 0, 1)[..., None]
-    gl = np.clip(cv2.GaussianBlur(acc_glow, (0, 0), 6) * 0.8, 0, 1)[..., None]
-    a = np.clip(core + edge * 0.9 + gl * 0.55, 0, 1)
-    col = np.ones(3) * core + np.array(core_bgr) * edge * (1 - core) + np.array(glow_bgr) * gl * (1 - edge)
+    def grow(a, b, width, energy, depth):
+        path = bolt_path(rng, a, b, 0.42, 7 if depth == 0 else 6)
+        draw(path, width, energy)
+        if depth >= 3 or width < 0.35:
+            return
+        n = int(rng.integers(3, 7)) if depth == 0 else int(rng.integers(1, 4))
+        d = np.array(b, np.float32) - np.array(a, np.float32)
+        base = np.arctan2(d[1], d[0])
+        length = np.hypot(d[0], d[1])
+        for _ in range(n):
+            i = int(rng.integers(len(path) // 8, len(path) * 7 // 8))
+            start = path[i]
+            ang = base + rng.choice([-1, 1]) * rng.uniform(0.35, 1.05)
+            l = length * rng.uniform(0.18, 0.45) * (1 - i / len(path) * 0.5)
+            end = np.clip(start + np.array([np.cos(ang), np.sin(ang)]) * l, 4, [w - 4, h - 4])
+            grow(start, end, width * rng.uniform(0.45, 0.65), energy * rng.uniform(0.55, 0.8), depth + 1)
+
+    grow((8, h / 2 + rng.uniform(-40, 40)), (w - 8, h / 2 + rng.uniform(-110, 110)), 2.2, 1.0, 0)
+    core = cv2.resize(cv2.GaussianBlur(core, (0, 0), 0.6), (w, h), interpolation=cv2.INTER_AREA)
+    edge = cv2.resize(cv2.GaussianBlur(edge, (0, 0), 1.6), (w, h), interpolation=cv2.INTER_AREA)
+    halo = cv2.resize(cv2.GaussianBlur(halo, (0, 0), 9 * S), (w, h), interpolation=cv2.INTER_AREA)
+    core = np.clip(core * 1.5, 0, 1)[..., None]
+    edge = np.clip(edge * 1.2, 0, 1)[..., None]
+    halo = np.clip(halo * 1.4, 0, 1)[..., None]
+    a = np.clip(core + edge * 0.85 + halo * 0.5, 0, 1)
+    col = np.ones(3) * core + np.array(core_bgr) * edge * (1 - core) + np.array(glow_bgr) * halo * 0.5 * (1 - edge)
     col = col / np.maximum(a, 1e-3)
     return rgba(np.clip(col, 0, 1), a[..., 0])
 
@@ -556,28 +566,101 @@ def rotate(img, angle, scale=1.0):
     return cv2.warpAffine(img, M, (w, h), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT, borderValue=(0, 0, 0, 0))
 
 
+def rock_sprite(rng, size):
+    """Una roca 3D (512 px → size): casco convexo de una bola abollada, caras con luz (arriba, cálida y
+    tenue), sombra profunda y un borde azul eléctrico que brilla del lado de la grieta (como en la
+    referencia). Devuelve RGBA."""
+    from scipy.spatial import ConvexHull
+
+    n = 38
+    v = rng.normal(size=(n, 3))
+    v /= np.linalg.norm(v, axis=1, keepdims=True)
+    v *= rng.uniform(0.55, 1.0, size=(n, 1)) * np.array([1.0, rng.uniform(0.6, 0.9), rng.uniform(0.7, 1.0)])
+    # Girada al azar
+    q = rng.normal(size=(3, 3))
+    R, _ = np.linalg.qr(q)
+    v = v @ R.T
+    hull = ConvexHull(v)
+    S = 512
+    img = np.zeros((S, S, 3), np.float32)
+    alpha = np.zeros((S, S), np.float32)
+    light = np.array([-0.4, -0.7, 0.6])
+    light /= np.linalg.norm(light)
+    rim_dir = np.array([0.2, -0.9, 0.0])  # la grieta, arriba
+    faces = []
+    for simplex in hull.simplices:
+        p = v[simplex]
+        nrm = np.cross(p[1] - p[0], p[2] - p[0])
+        nrm /= np.linalg.norm(nrm) + 1e-9
+        if np.dot(nrm, p.mean(0)) < 0:
+            nrm = -nrm
+        if nrm[2] <= 0:
+            continue  # de espaldas
+        faces.append((p[:, 2].mean(), p, nrm))
+    faces.sort(key=lambda t: t[0])
+    for _, p, nrm in faces:
+        pts = ((p[:, :2] * 0.45 + 0.5) * S).astype(np.int32)
+        diff = max(0.0, float(np.dot(nrm, light)))
+        fres = (1 - nrm[2]) ** 2.2
+        rim = max(0.0, float(np.dot(nrm, rim_dir)) + 0.15) * fres ** 0.8
+        base = np.array([0.2, 0.15, 0.16]) * (0.3 + 1.0 * diff)  # BGR: basalto oscuro
+        col = base + np.array([1.0, 0.75, 0.35]) * rim * 2.4 + np.array([0.8, 0.3, 0.6]) * fres * 0.3
+        cv2.fillPoly(img, [pts], tuple(float(c) for c in np.clip(col, 0, 1)), cv2.LINE_AA)
+        cv2.fillPoly(alpha, [pts], 1.0, cv2.LINE_AA)
+        # Aristas un poco más claras (se ven las caras)
+        cv2.polylines(img, [pts], True, tuple(float(c) for c in np.clip(col * 1.25 + 0.02, 0, 1)), 1, cv2.LINE_AA)
+    # Grietas/textura de roca
+    noise = cv2.GaussianBlur(rng.random((S, S)).astype(np.float32), (0, 0), 2)
+    img *= (0.8 + 0.4 * noise)[..., None]
+    # Borde brillante azul (por fuera, difuso) del lado de la grieta
+    edge = alpha - cv2.erode(alpha, np.ones((9, 9), np.uint8))
+    yy = np.linspace(1.3, 0.45, S)[:, None]
+    glow = cv2.GaussianBlur(edge * yy, (0, 0), 6) * 4.0 + cv2.GaussianBlur(edge * yy, (0, 0), 16) * 3.0
+    halo_a = np.clip(glow, 0, 1)
+    # La línea del borde, encendida (cian casi blanco arriba)
+    line = cv2.GaussianBlur(edge, (0, 0), 1.2) * yy
+    img = img + np.array([1.0, 0.92, 0.7]) * np.clip(line * 1.6, 0, 1)[..., None]
+    out_a = np.clip(alpha + halo_a * 0.85, 0, 1)
+    out = img * alpha[..., None] + np.array([1.0, 0.7, 0.35]) * halo_a[..., None] * (1 - alpha[..., None]) * 1.3
+    out = out / np.maximum(out_a[..., None], 1e-3)
+    small = cv2.resize(rgba(np.clip(out, 0, 1), out_a), (size, size), interpolation=cv2.INTER_AREA)
+    return small
+
+
 def draw_rocks(dst, rng, n, area, rmin, rmax):
     x0, y0, x1, y1 = area
     for _ in range(n):
-        cx, cy = rng.uniform(x0, x1), rng.uniform(y0, y1)
-        r = rng.uniform(rmin, rmax)
-        pts = []
-        for k in range(7):
-            a = k / 7 * 2 * np.pi + rng.uniform(-0.3, 0.3)
-            rr = r * rng.uniform(0.65, 1.15)
-            pts.append((cx + np.cos(a) * rr, cy + np.sin(a) * rr * 0.85))
-        pts = np.array(pts, np.int32)
-        cv2.polylines(dst, [pts], True, (1.0, 0.8, 0.45), 3, cv2.LINE_AA)
-        cv2.fillPoly(dst, [pts], (0.3, 0.22, 0.2), cv2.LINE_AA)
-        # Cara iluminada por la grieta (arriba-izquierda, un poco más clara)
-        cv2.fillPoly(dst, [((pts - pts.mean(0)) * 0.55 + pts.mean(0) - [r * 0.2, r * 0.2]).astype(np.int32)], (0.42, 0.3, 0.26), cv2.LINE_AA)
+        r = int(rng.uniform(rmin, rmax) * 2.6) + 4
+        sp = rock_sprite(rng, r)
+        over(dst, sp, int(rng.uniform(x0, x1)) - r // 2, int(rng.uniform(y0, y1)) - r // 2)
+
+
+def add(dst, src_rgba, x, y, gain=1.0):
+    """Suma src (luz) encima de dst: como un rayo con LightEmission o con el brillo del lienzo > 1."""
+    h, w = src_rgba.shape[:2]
+    H, W = dst.shape[:2]
+    xa, ya, xb, yb = max(x, 0), max(y, 0), min(x + w, W), min(y + h, H)
+    if xa >= xb or ya >= yb:
+        return
+    s = src_rgba[ya - y : yb - y, xa - x : xb - x].astype(np.float32) / 255
+    a = s[..., 3:4]
+    # Núcleo (casi opaco) encima; el halo, sumado
+    dst[ya:yb, xa:xb] = dst[ya:yb, xa:xb] * (1 - a * a) + s[..., :3] * a * gain
 
 
 def draw_bolts(dst, bolts, spots, scale=0.6):
     for i, (x, y, ang) in enumerate(spots):
         b = bolts[i % len(bolts)]
-        b = rotate(np.pad(b, ((128, 128), (0, 0), (0, 0))), ang, scale)
-        over(dst, b, int(x - b.shape[1] // 2), int(y - b.shape[0] // 2))
+        b = rotate(np.pad(b, ((256, 256), (0, 0), (0, 0))), ang, scale * 0.5)
+        add(dst, b, int(x - b.shape[1] // 2), int(y - b.shape[0] // 2))
+
+
+def bloom(dst, threshold=0.82, sigma=6, strength=0.35):
+    """El Bloom del juego: lo que pasa del umbral se derrama en un halo."""
+    lum = dst.max(axis=2)
+    bright = dst * np.clip((lum - threshold) / (1 - threshold), 0, 1)[..., None]
+    halo = cv2.GaussianBlur(bright, (0, 0), sigma) + cv2.GaussianBlur(bright, (0, 0), sigma * 3) * 0.6
+    return np.clip(dst + halo * strength, 0, 1)
 
 
 # Ambiente de cada etapa en la vista previa (lo que hace DayLight.pushLayer con SkyMoods): BGR
@@ -612,6 +695,7 @@ def preview(layers, bolts):
     over(dst, small["rays"], x0, y0)
     draw_bolts(dst, bolts, [(470, 300, 200), (1380, 300, -20), (560, 470, 140), (1200, 180, -50), (760, 190, -110), (1090, 470, 80)])
     draw_rocks(dst, np.random.default_rng(7), 26, (380, 110, 1450, 560), 5, 26)
+    dst = bloom(dst)
     write("preview.png", (np.clip(dst, 0, 1) * 255).astype(np.uint8))
     return dst
 
@@ -657,6 +741,7 @@ def stage_previews(layers, stages, bolts):
         # La ciudad (una franja oscura abajo, para ver la luz de la etapa en el suelo)
         city = np.array([0.18, 0.16, 0.14]) * np.array(AMBIENT[n][0]) + np.array(AMBIENT[n][1]) * 2
         dst[int(H * 0.86) :] = dst[int(H * 0.86) :] * 0.25 + city
+        dst = bloom(dst)
         write("preview-%d.png" % n, (np.clip(dst, 0, 1) * 255).astype(np.uint8))
 
 
