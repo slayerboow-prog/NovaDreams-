@@ -135,7 +135,7 @@ StreetLook.Looks = {
 		Surface = "Walk",
 		-- Losas de hormigón («Concrete Tile 1»), las de las aceras de las afueras. Respaldo: el mismo del
 		-- Mega Pack y el hormigón del pack de piedras.
-		Candidates = { c("RPacks", "Concrete Tile 1", "Concrete"), c("Mega", "Concrete Tile 1", "Concrete"), c("Real", "Concrete", "Concrete") },
+		Candidates = { c("RPacks", "Concrete Tile 1", "Concrete"), c("Mega", "Concrete Tile 1", "Concrete"), c("Tyler", "Concrete8", "Concrete"), c("Real", "Concrete", "Concrete") },
 		Whiten = 0.4,
 		Why = "losas de hormigón de las afueras (Concrete Tile 1)",
 	},
@@ -144,14 +144,14 @@ StreetLook.Looks = {
 		Surface = "Plaza",
 		-- Plazas de adoquín hexagonal («Hexagon Pavers», sobre Cobblestone: el suelo pasa a Cobblestone con
 		-- su física de antes). Respaldo: el camino de piedra gastada y «Cobblestone_PBR» de PBR_Textures.
-		Candidates = { c("Mega", "Hexagon Pavers", "Cobblestone"), c("Mega", "Worn Down Stone Path", "Cobblestone"), c("PBR", "Cobblestone_PBR", "Cobblestone") },
+		Candidates = { c("Mega", "Hexagon Pavers", "Cobblestone"), c("Mega", "Worn Down Stone Path", "Cobblestone"), c("Tyler", "Cobblestone2", "Cobblestone"), c("PBR", "Cobblestone_PBR", "Cobblestone") },
 		Whiten = 0.4,
 		Why = "adoquín hexagonal de plaza (Hexagon Pavers)",
 	},
 	AceraBarrioB = {
 		Surface = "Walk",
 		-- La otra acera de barrio: losa grande de Tyler (Pavement9) o losa de hormigón del Mega Pack
-		Candidates = { c("Tyler", "Pavement9", "Concrete"), c("Mega", "Concrete Tile 2", "Concrete") },
+		Candidates = { c("Tyler", "Pavement9", "Concrete"), c("Tyler", "Pavement5", "Concrete"), c("Mega", "Concrete Tile 2", "Concrete") },
 		Pattern = "Regular",
 		Whiten = 0.45,
 		Why = "losa grande de acera de barrio (Pavement9 de Tyler)",
@@ -159,15 +159,30 @@ StreetLook.Looks = {
 	AceraCentroB = {
 		Surface = "Walk",
 		-- La otra acera del centro: baldosa de Tyler (Pavement6) o adoquín hexagonal
-		Candidates = { c("Tyler", "Pavement6", "Concrete"), c("Mega", "Hexagon Pavers", "Cobblestone") },
+		Candidates = { c("Tyler", "Pavement6", "Concrete"), c("Tyler", "Pavement7", "Concrete"), c("Mega", "Hexagon Pavers", "Cobblestone") },
 		Pattern = "Regular",
 		Whiten = 0.45,
 		Why = "baldosa de acera del centro, segunda (Pavement6 de Tyler)",
 	},
+	AceraCampoB = {
+		Surface = "Walk",
+		-- La otra acera de las afueras: hormigón fratasado de Tyler (Concrete11) o losa con tacos
+		Candidates = { c("Tyler", "Concrete11", "Concrete"), c("Mega", "Concrete Tile (Studded)", "Concrete"), c("Tyler", "Concrete12", "Concrete") },
+		Whiten = 0.4,
+		Why = "acera de hormigón de las afueras, segunda (Concrete11 de Tyler)",
+	},
+	CascoB = {
+		Surface = "Road",
+		-- La otra calzada del casco antiguo: adoquín en abanico (segundo dibujo) o adoquín de Tyler
+		Candidates = { c("Mega", "Cobblestone Curved 2", "Cobblestone"), c("Tyler", "Cobblestone3", "Cobblestone"), c("Tyler", "Cobblestone2", "Cobblestone") },
+		Studs = 12,
+		Whiten = 0.62,
+		Why = "adoquín del casco antiguo, segundo (Cobblestone Curved 2)",
+	},
 	Plaza = {
 		Surface = "Plaza",
 		-- Plazas: las mismas losas de piedra que el casco (Stone Tiles); respaldo, las losas grandes de Tyler
-		Candidates = { c("Mega", "Stone Tiles", "Pavement"), c("Tyler", "Pavement4", "Concrete") },
+		Candidates = { c("Mega", "Stone Tiles", "Pavement"), c("Tyler", "Pavement4", "Concrete"), c("Tyler", "Pavement8", "Concrete") },
 		Whiten = 0.35,
 		Why = "losas de piedra de plaza (Stone Tiles)",
 	},
@@ -269,6 +284,8 @@ StreetLook.Split = {
 	Plaza = { Alt = "PlazaAdoquin", Cell = 96, Share = 0.5, Salt = 31 },
 	AceraBarrio = { Alt = "AceraBarrioB", Cell = 360, Share = 0.4, Salt = 32 },
 	AceraCentro = { Alt = "AceraCentroB", Cell = 360, Share = 0.3, Salt = 33 },
+	AceraCampo = { Alt = "AceraCampoB", Cell = 480, Share = 0.4, Salt = 34 },
+	Casco = { Alt = "CascoB", Cell = 240, Share = 0.4, Salt = 35 },
 } :: { [string]: { Alt: string, Cell: number, Share: number, Salt: number } }
 
 function StreetLook.split(key: string?, x: number, z: number): string?
