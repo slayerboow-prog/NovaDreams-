@@ -25,7 +25,9 @@
 
 local HouseLook = {}
 
-export type Candidate = { Pack: string, Name: string, From: string }
+-- Find: para los packs sin lista en los docs («ALL MATERIALS»): palabras que tiene que llevar el nombre
+-- (minúsculas); se queda el más corto que venga sobre From. Solo de respaldo, nunca el primero.
+export type Candidate = { Pack: string, Name: string, From: string, Find: { string }? }
 export type Look = {
 	Options: { Candidate }, -- en orden: los primeros Variety que carguen se reparten; el resto, respaldo
 	Variety: number,
@@ -37,6 +39,9 @@ export type Look = {
 
 local function c(pack: string, name: string, from: string): Candidate
 	return { Pack = pack, Name = name, From = from }
+end
+local function find(pack: string, words: { string }, from: string): Candidate
+	return { Pack = pack, Name = "", From = from, Find = words }
 end
 
 -- Material de la pieza -> BaseMaterial de los variants que puede llevar (además del suyo). Sonido y
@@ -70,6 +75,7 @@ HouseLook.Looks = {
 			c("Mega", "Stucco TexturedRoughPlasteredMaterial", "Concrete"),
 			c("Mega", "Grainy Stucco", "Concrete"),
 			c("Mega", "Fibrous Plaster", "Concrete"),
+			find("Todos", { "stucco" }, "Concrete"),
 		},
 		Variety = 3,
 		Pattern = "Organic",
@@ -86,10 +92,18 @@ HouseLook.Looks = {
 	Ladrillo = {
 		-- Ladrillo visto rojo con hiladas rectas: «Red Bricks» del Mega Pack y el «Realistic Bricks»
 		-- del pack de madera (el global). Respaldo: el del generador.
-		Options = { c("Mega", "Red Bricks", "Brick"), c("RealMad", "Realistic Bricks", "Brick"), c("Gen", "RealisticBricks", "Brick") },
-		Variety = 2,
+		-- 3 ladrillos repartidos por edificio (antes 2): que dos bloques de ladrillo vecinos no sean
+		-- iguales. Respaldo: «Brick_PBR» de PBR_Textures y el de ALL MATERIALS.
+		Options = {
+			c("Mega", "Red Bricks", "Brick"),
+			c("RealMad", "Realistic Bricks", "Brick"),
+			c("Gen", "RealisticBricks", "Brick"),
+			c("PBR", "Brick_PBR", "Brick"),
+			find("Todos", { "brick" }, "Brick"),
+		},
+		Variety = 3,
 		Whiten = 0.45,
-		Why = "ladrillo visto rojo (Red Bricks y Realistic Bricks)",
+		Why = "ladrillo visto rojo (Red Bricks, Realistic Bricks y el del generador)",
 	},
 	Colegio = {
 		-- Colegio: ladrillo cara vista moderno (el de los colegios públicos de verdad), a juego con su
@@ -101,23 +115,38 @@ HouseLook.Looks = {
 	},
 	Zocalo = {
 		-- Zócalo: sillares de piedra (no adoquín de calle): piedra labrada desgastada y muro de bloques
-		Options = { c("Mega", "Chipped Stonework", "Cobblestone"), c("Mega", "Stone Block Wall", "Brick"), c("Real", "Cobblestone", "Cobblestone") },
-		Variety = 2,
+		-- (3 repartidos: sillares labrados, muro de bloques y piedra cincelada; respaldo: PBR_Textures)
+		Options = {
+			c("Mega", "Chipped Stonework", "Cobblestone"),
+			c("Mega", "Stone Block Wall", "Brick"),
+			c("Mega", "Chisled Cobble", "Cobblestone"),
+			c("Real", "Cobblestone", "Cobblestone"),
+			c("PBR", "Cobblestone_PBR", "Cobblestone"),
+		},
+		Variety = 3,
 		Whiten = 0.35,
 		Why = "piedra de zócalo (Chipped Stonework, Stone Block Wall)",
 	},
 	Teja = {
 		-- Tejas de barro: «Clay Shingles» del Mega Pack (la más común) y «Roof1» de Tyler (cerámica).
 		-- Respaldo: Roof2 de Tyler. Las hiladas de Kit/CityDetail también.
-		Options = { c("Mega", "Clay Shingles", "Brick"), c("Tyler", "Roof1", "CeramicTiles"), c("Tyler", "Roof2", "CeramicTiles") },
-		Variety = 2,
-		Weights = { 2, 1 },
+		-- 3 tejas repartidas (antes 2): la árabe de barro manda (peso 3) y las cerámicas de Tyler dan
+		-- variedad. Respaldo: lo que traiga ALL MATERIALS de tejas.
+		Options = {
+			c("Mega", "Clay Shingles", "Brick"),
+			c("Tyler", "Roof1", "CeramicTiles"),
+			c("Tyler", "Roof2", "CeramicTiles"),
+			find("Todos", { "roof" }, "ClayRoofTiles"),
+			find("Todos", { "shingle" }, "ClayRoofTiles"),
+		},
+		Variety = 3,
+		Weights = { 3, 1, 1 },
 		Whiten = 0.45,
 		Why = "teja de barro/cerámica (Clay Shingles y Roof1)",
 	},
 	Contraventana = {
 		-- Contraventanas de tablas pintadas (de verdad son de madera pintada): «Worn Painted Wood Siding»
-		Options = { c("Mega", "Worn Painted Wood Siding", "WoodPlanks"), c("RealMad", "Realistic Wood Planks", "WoodPlanks") },
+		Options = { c("Mega", "Worn Painted Wood Siding", "WoodPlanks"), c("RealMad", "Realistic Wood Planks", "WoodPlanks"), c("PBR", "WoodPlanks_PBR", "WoodPlanks") },
 		Variety = 1,
 		Whiten = 0.3,
 		Why = "contraventanas de tablas pintadas (Worn Painted Wood Siding)",
@@ -131,15 +160,21 @@ HouseLook.Looks = {
 	},
 	Madera = {
 		-- Vigas, postes del porche, remates del tejado y paños de madera: roble
-		Options = { c("Mega", "Mature Oak", "Wood"), c("Mega", "Oak", "Wood"), c("RealMad", "Realistic Wood", "Wood") },
-		Variety = 2,
+		Options = { c("Mega", "Mature Oak", "Wood"), c("Mega", "Oak", "Wood"), c("RealMad", "Realistic Wood", "Wood"), c("PBR", "Wood_PBR", "Wood") },
+		Variety = 3,
 		Whiten = 0.3,
 		Why = "madera de roble de vigas y postes (Mature Oak, Oak)",
 	},
 	Hormigon = {
 		-- Edificios públicos y bloques modernos: hormigón fino arquitectónico. Respaldo: el global.
-		Options = { c("Mega", "Fine Particles Concrete", "Concrete"), c("Mega", "Concrete 1", "Concrete"), c("Real", "Concrete", "Concrete") },
-		Variety = 2,
+		Options = {
+			c("Mega", "Fine Particles Concrete", "Concrete"),
+			c("Mega", "Concrete 1", "Concrete"),
+			c("Real", "Concrete", "Concrete"),
+			c("PBR", "Concrete_PBR", "Concrete"),
+			find("Todos", { "concrete" }, "Concrete"),
+		},
+		Variety = 3,
 		Whiten = 0.35,
 		Why = "hormigón fino de edificios públicos (Fine Particles Concrete, Concrete 1)",
 	},
@@ -151,6 +186,7 @@ HouseLook.Looks = {
 			c("Mega", "Rigid Metal Siding", "Metal"),
 			c("Tyler", "ContainerSide", "Metal"),
 			c("Mega", "Old Sheet Metal", "CorrodedMetal"),
+			c("PBR", "CorrodedMetal_PBR", "CorrodedMetal"),
 		},
 		Variety = 2,
 		Whiten = 0.35,
@@ -294,17 +330,40 @@ function HouseLook.candidates(key: string, available: { [string]: { [string]: st
 	end
 	for _, cand in look.Options do
 		local pack = available[cand.Pack]
-		local base = pack and pack[cand.Name]
+		local name = cand.Name
+		if pack and cand.Find then
+			name = HouseLook.match(cand.Find, cand.From, pack) or ""
+		end
+		local base = pack and pack[name]
 		-- (el BaseMaterial de verdad: el del doc o, si el override global sí pudo cambiarlo, como en
 		-- Studio, el nuevo; cada pieza mira luego si lo puede llevar)
 		if base then
-			table.insert(out, { Pack = cand.Pack, Name = cand.Name, From = base })
+			table.insert(out, { Pack = cand.Pack, Name = name, From = base })
 			if #out >= look.Variety then
 				break
 			end
 		end
 	end
 	return out
+end
+
+-- El nombre más corto de pack (pack[nombre] = BaseMaterial) que lleva todas las palabras y viene sobre
+-- from (a igualdad, el primero por orden alfabético: siempre el mismo). nil = ninguno.
+function HouseLook.match(words: { string }, from: string, pack: { [string]: string }): string?
+	local best: string? = nil
+	for name, base in pack do
+		local lower = string.lower(name)
+		local ok = base == from
+		for _, word in words do
+			if ok and not string.find(lower, word, 1, true) then
+				ok = false
+			end
+		end
+		if ok and (best == nil or #name < #best or (#name == #best and name < (best :: string))) then
+			best = name
+		end
+	end
+	return best
 end
 
 -- Azar fijo según el sitio (0..1), el mismo de Kit/CityDetail

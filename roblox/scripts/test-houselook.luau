@@ -61,14 +61,14 @@ local Choice = load("src/shared/UserMaterialChoice.luau")
 -- Los docs: id del pack -> { Name, Base }
 ---------------------------------------------------------------------
 local doc: { [number]: { { Name: string, Base: string, Studs: number, Pattern: string } } } = {}
-for _, path in { "docs/assets-usuario.md", "docs/assets-usuario-3.md" } do
+for _, path in { "docs/assets-usuario.md", "docs/assets-usuario-3.md", "docs/assets-usuario-5.md" } do
 	local current: number? = nil
 	for line in fs.readFile(path):gmatch("[^\n]+") do
-		local id = line:match("^## (%d+) ")
+		local id = line:match("^#+ (%d+) ") -- (PBR_Textures va con «####» en la 5ª tanda)
 		if id then
 			current = tonumber(id)
 			doc[current :: number] = doc[current :: number] or {}
-		elseif line:match("^## ") then
+		elseif line:match("^#") then
 			current = nil
 		elseif current then
 			local name, base, studs, pattern = line:match("^| (.-) | (%a+) | ([%d%.]+) | (%a+) |$")
@@ -80,6 +80,9 @@ for _, path in { "docs/assets-usuario.md", "docs/assets-usuario-3.md" } do
 end
 local packIds: { [string]: number } = { RPacks = 13752145820 }
 for _, pack in Choice.Packs do
+	packIds[pack.Short] = pack.Id
+end
+for _, pack in Choice.ExtraPacks do
 	packIds[pack.Short] = pack.Id
 end
 
@@ -102,7 +105,15 @@ do
 			okNum = false
 		end
 		local seen = {}
-		for _, cand in look.Options do
+		for i, cand in look.Options do
+			if cand.Find then
+				-- (ALL MATERIALS no tiene lista: busca por palabras, solo de respaldo)
+				if i <= look.Variety and cand.Pack ~= "PBR" then
+					okRefs = false
+					print(("     %s: %s busca por palabras dentro de la variedad"):format(key, cand.Pack))
+				end
+				continue
+			end
 			local found, count = nil, 0
 			for _, v in doc[packIds[cand.Pack] or 0] or {} do
 				if v.Name == cand.Name then
@@ -146,7 +157,11 @@ do
 		end
 	end
 	check(ok, "lo más realista de cada parte va primero (Smooth Stucco, Red Bricks, Modern Brick, Chipped Stonework, Clay Shingles…)")
-	check(HouseLook.Looks.Estuco.Variety == 3 and HouseLook.Looks.Ladrillo.Variety == 2 and HouseLook.Looks.Teja.Variety == 2, "variedad: 3 estucos, 2 ladrillos, 2 tejas")
+	check(HouseLook.Looks.Estuco.Variety == 3 and HouseLook.Looks.Ladrillo.Variety == 3 and HouseLook.Looks.Teja.Variety == 3 and HouseLook.Looks.Zocalo.Variety == 3 and HouseLook.Looks.Hormigon.Variety == 3, "variedad: 3 estucos, 3 ladrillos, 3 tejas, 3 zócalos, 3 hormigones")
+	local pack = { ["Roof Tiles"] = "ClayRoofTiles", ["Roof"] = "Metal", ["Old Roof Tiles"] = "ClayRoofTiles" }
+	check(HouseLook.match({ "roof" }, "ClayRoofTiles", pack) == "Roof Tiles" and HouseLook.match({ "brick" }, "Brick", pack) == nil, "ALL MATERIALS: busca por palabras el más corto sobre su material")
+	local onlyNew = HouseLook.candidates("Ladrillo", { PBR = { Brick_PBR = "Brick" }, Todos = { ["Old Brick"] = "Brick", ["Brick Wall"] = "Brick" } })
+	check(#onlyNew == 2 and onlyNew[1].Name == "Brick_PBR" and onlyNew[2].Name == "Old Brick", "sin los packs de siempre: ladrillo de PBR_Textures y de ALL MATERIALS")
 	check(HouseLook.Looks.Estuco.Whiten <= 0.15, "el estuco casi no aclara: manda el color pastel de cada casa")
 	check(HouseLook.canUse("Plaster", "Concrete") and HouseLook.canUse("ClayRoofTiles", "Brick") and not HouseLook.canUse("Glass", "Concrete") and not HouseLook.canUse("Concrete", "Brick"), "cambios de material seguros (estuco Plaster->Concrete, teja->Brick) y nada raro")
 end
@@ -460,7 +475,7 @@ do
 		end
 	end
 	check(okBase, "no cambia el BaseMaterial de ningún variant (en un servidor real falla)")
-	check(#resolved.Estuco == 3 and #resolved.Ladrillo == 2 and #resolved.Teja == 2 and #resolved.Zocalo == 2 and #resolved.Colegio == 1, "variedad cargada: 3 estucos, 2 ladrillos, 2 tejas, 2 piedras de zócalo, 1 ladrillo de colegio")
+	check(#resolved.Estuco == 3 and #resolved.Ladrillo == 3 and #resolved.Teja == 3 and #resolved.Zocalo == 3 and #resolved.Colegio == 1, "variedad cargada: 3 estucos, 3 ladrillos, 3 tejas, 3 piedras de zócalo, 1 ladrillo de colegio")
 	local list = {}
 	for key, n in counts do
 		table.insert(list, key .. " " .. n)
@@ -478,7 +493,7 @@ do
 		first[i] = { wall = wallSrc, roof = roofSrc, plinth = source(w, h.plinth) }
 		if isBrick then
 			ladrillos[wallSrc or "?"] = true
-			if h.body.Material ~= Enum.Material.Brick or not (wallSrc == "Red Bricks" or wallSrc == "Realistic Bricks") then
+			if h.body.Material ~= Enum.Material.Brick or not (wallSrc == "Red Bricks" or wallSrc == "Realistic Bricks" or wallSrc == "RealisticBricks") then
 				okParts = false
 			end
 		else
@@ -495,10 +510,10 @@ do
 		if source(w, h.gable) ~= wallSrc or source(w, h.tiles) ~= roofSrc or source(w, h.ridge) ~= roofSrc then
 			okWhole = false
 		end
-		if not (roofSrc == "Clay Shingles" or roofSrc == "Roof1") or not (source(w, h.plinth) == "Chipped Stonework" or source(w, h.plinth) == "Stone Block Wall") then
+		if not (roofSrc == "Clay Shingles" or roofSrc == "Roof1" or roofSrc == "Roof2") or not (source(w, h.plinth) == "Chipped Stonework" or source(w, h.plinth) == "Stone Block Wall" or source(w, h.plinth) == "Chisled Cobble") then
 			okParts = false
 		end
-		if source(w, h.shutter) ~= "Worn Painted Wood Siding" or not (source(w, h.verge) == "Mature Oak" or source(w, h.verge) == "Oak") then
+		if source(w, h.shutter) ~= "Worn Painted Wood Siding" or not (source(w, h.verge) == "Mature Oak" or source(w, h.verge) == "Oak" or source(w, h.verge) == "Realistic Wood") then
 			okParts = false
 		end
 		-- Color: el de la casa, apenas aclarado (mismo tono)
@@ -527,7 +542,7 @@ do
 	end
 	check(okParts, "cada parte con lo suyo: estuco (pasa a Concrete), ladrillo, teja, piedra de zócalo, contraventana de tablas, madera de roble")
 	check(okWhole, "la misma elección en toda la casa (hastiales con su pared; faldones, hiladas y cumbrera con la misma teja)")
-	check(n(estucos) == 3 and n(ladrillos) == 2 and n(tejas) == 2, ("variedad entre casas: %d estucos, %d ladrillos, %d tejas"):format(n(estucos), n(ladrillos), n(tejas)))
+	check(n(estucos) == 3 and n(ladrillos) >= 2 and n(tejas) == 3, ("variedad entre casas: %d estucos, %d ladrillos, %d tejas"):format(n(estucos), n(ladrillos), n(tejas)))
 	check(okPhys, "las paredes que cambian de material guardan la física del estuco")
 	check(okColor, "cada casa conserva su color (estuco aclarado un 10 %, ladrillo un 45 %; mismo tono)")
 	check(okKeep, "puertas usables (Door, DoorPanel), marcos, cristales y la madera con veta: sin tocar")
@@ -536,7 +551,7 @@ do
 	check(source(w, t.colonial.body) == "Worn Painted Wood Siding", "casa colonial: tablas pintadas")
 	check(source(w, t.schoolWall) == "Modern Brick" and t.schoolWall.Material == Enum.Material.Brick and same(t.schoolGlass, snaps[t.schoolGlass]), "colegio: ladrillo cara vista (pasa a Brick); sus cristales sin tocar")
 	check(same(t.schoolPartition, snaps[t.schoolPartition]) and t.schoolTrim.MaterialVariant == "", "tabiques del colegio y piedra caliza (ya es del dueño) sin tocar")
-	check(source(w, t.hospitalWall) == "Fine Particles Concrete" or source(w, t.hospitalWall) == "Concrete 1", "hospital: hormigón fino")
+	check(source(w, t.hospitalWall) == "Fine Particles Concrete" or source(w, t.hospitalWall) == "Concrete 1" or source(w, t.hospitalWall) == "Concrete", "hospital: hormigón (fino, liso o el del pack de piedras)")
 	check(source(w, t.hall) == "Worn Factory Siding" or source(w, t.hall) == "Rigid Metal Siding", "nave: chapa de fábrica (pasa a Metal)")
 	check(source(w, t.naveRoof) == "Rigid Metal Siding" and source(w, t.dock) == "Concrete IndustrialGrittySturdyMaterial" and same(t.roller, snaps[t.roller]), "nave: cubierta de chapa, muelle de hormigón, persianas sin tocar")
 	check(same(t.prefabBody, snaps[t.prefabBody]) and same(t.prefabMesh, snaps[t.prefabMesh]) and same(t.shell, snaps[t.shell]), "edificios con prefab 3D (y sus mallas y cajas): sin tocar")

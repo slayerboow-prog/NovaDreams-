@@ -63,14 +63,14 @@ local Choice = load("src/shared/UserMaterialChoice.luau")
 -- Los docs: id del pack -> { Name, Base }
 ---------------------------------------------------------------------
 local doc: { [number]: { { Name: string, Base: string, Studs: number, Pattern: string } } } = {}
-for _, path in { "docs/assets-usuario.md", "docs/assets-usuario-3.md" } do
+for _, path in { "docs/assets-usuario.md", "docs/assets-usuario-3.md", "docs/assets-usuario-5.md" } do
 	local current: number? = nil
 	for line in fs.readFile(path):gmatch("[^\n]+") do
-		local id = line:match("^## (%d+) ")
+		local id = line:match("^#+ (%d+) ") -- (PBR_Textures va con «####» en la 5ª tanda)
 		if id then
 			current = tonumber(id)
 			doc[current :: number] = doc[current :: number] or {}
-		elseif line:match("^## ") then
+		elseif line:match("^#") then
 			current = nil
 		elseif current then
 			local name, base, studs, pattern = line:match("^| (.-) | (%a+) | ([%d%.]+) | (%a+) |$")
@@ -96,6 +96,9 @@ doc[13168345645] = {
 }
 local packIds: { [string]: number } = { RPacks = 13752145820 }
 for _, pack in Choice.Packs do
+	packIds[pack.Short] = pack.Id
+end
+for _, pack in Choice.ExtraPacks do
 	packIds[pack.Short] = pack.Id
 end
 for _, pack in InteriorLook.Packs do
