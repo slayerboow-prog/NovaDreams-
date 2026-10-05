@@ -1,22 +1,20 @@
 -- MaterialDetail: el detalle del mundo según el nivel gráfico (UI/Perf, shared/Graphics). Todo son
 -- cambios locales: no afectan a los demás jugadores.
 --
---   * Relieve de las texturas PBR (MaterialService, World/Kit/MaterialLook): en el nivel Bajo se quita
---     el mapa normal de cada material (menos memoria y GPU en el móvil; el color y el brillo se
---     quedan); en Medio y Alto se vuelve a poner. Sin texturas subidas no hace nada.
+--   * Relieve de las texturas PBR (MaterialService, World/Kit/MaterialLook): se pone o se quita el mapa
+--     normal según el nivel (Graphics.Tier.NormalMaps; hoy en todos, es barato). Sin texturas subidas
+--     no hace nada.
 --   * Suelo mojado: con lluvia (workspace "Wet") el asfalto, las aceras y los bordillos cambian su
 --     rugosidad por la «mojada» (shared/Textures.WetSets): casi lisos, y con la iluminación Future
 --     reflejan el cielo, las fachadas y las farolas. Al secarse vuelven a la normal. En Bajo no.
 --     (Solo en NUESTROS variants: los de los packs del dueño, World/UserMaterials, no dejan cambiar
 --     sus mapas; ahí el mojado lo pone Controllers/WetWorld: más oscuro, reflejo y charcos.)
---   * Césped 3D: las briznas del terreno (Terrain.Decoration) solo en Medio y Alto.
---   * Árboles: los racimos de relleno de las copas y las raíces (etiqueta LeafDetail, Kit/Nature)
---     se esconden en el nivel Bajo (no se pintan: la mitad de piezas por árbol).
---   * Ciudad: las tejas con relieve, cornisas, zócalos, portales, el desgaste del asfalto y los
---     adornos de las farolas (etiqueta CityDetail, Kit/CityDetail) también se esconden en Bajo:
---     queda la ciudad lisa de antes.
---   * Edificios 3D (World/Buildings3D): en Bajo se esconden sus mallas (etiqueta BuildingMesh) y se
---     enseña la caja de siempre (BuildingShell, invisible en Medio y Alto): no pesa más que antes.
+--   * Césped 3D: las briznas del terreno (Terrain.Decoration) según el nivel.
+--   * Etiquetas (Graphics.DetailTags dice qué campo del nivel manda en cada una). En Bajo se esconde
+--     SOLO lo pesado: el relleno de las copas (LeafDetail), las tejas y molduras de Kit/CityDetail y el
+--     skyline (CityDetail) y los edificios 3D (BuildingMesh: se ve la caja de antes, BuildingShell).
+--     Lo nuevo y barato (objetos de malla de la calle, naturaleza, muebles, señales, láminas:
+--     PropDetail, PropMesh, PropShell, DecorProp, StreetSign, TextureDetail) se ve en TODOS los niveles.
 
 local CollectionService = game:GetService("CollectionService")
 local MaterialService = game:GetService("MaterialService")
@@ -67,14 +65,17 @@ local function applyGrass(tier: Graphics.Tier)
 	end)
 end
 
--- Detalle que el nivel Bajo esconde (solo en esta pantalla): etiqueta -> campo del nivel
+-- Detalle que el nivel puede esconder (solo en esta pantalla): etiqueta -> campo del nivel
+-- (shared/Graphics.DetailTags). Casos especiales al esconder:
 -- (StreetSign: las señales de tráfico de World/StreetDress; su poste deja de chocar al esconderse)
--- (DecorProp / PropShell: los muebles y la comida de la Tienda en los interiores, World/InteriorProps;
--- PropShell es la pieza hecha por código que sustituyen, que solo se ve en Bajo)
--- (TextureDetail: papel pintado, moqueta, techos y arena de los packs de texturas, World/MaterialExtras:
--- en Bajo se esconde solo la lámina «U_Lamina», la pieza sigue)
-local DETAIL_TAGS = { LeafDetail = "LeafDetail", CityDetail = "CityDetail", BuildingMesh = "CityDetail", BuildingShell = "CityDetail", StreetSign = "CityDetail", DecorProp = "CityDetail", PropShell = "CityDetail", TextureDetail = "CityDetail" }
-local hidden: { [string]: boolean } = { LeafDetail = false, CityDetail = false, BuildingMesh = false, BuildingShell = false, StreetSign = false, DecorProp = false, PropShell = false, TextureDetail = false }
+-- (PropShell / BuildingShell: la pieza hecha por código que sustituye una malla; solo se ve cuando la
+-- malla se esconde)
+-- (TextureDetail: láminas de World/MaterialExtras: se esconde solo la lámina «U_Lamina», la pieza sigue)
+local DETAIL_TAGS = Graphics.DetailTags
+local hidden: { [string]: boolean } = {}
+for tag in DETAIL_TAGS do
+	hidden[tag] = false
+end
 local function applyDetail(part: Instance, hide: boolean, tag: string?)
 	if not part:IsA("BasePart") then
 		return
@@ -99,7 +100,7 @@ local function applyDetail(part: Instance, hide: boolean, tag: string?)
 				child.LocalTransparencyModifier = if hide then 1 else 0
 			end
 		end
-		if (tag == "StreetSign" or tag == "DecorProp") and part:GetAttribute("Solid") then
+		if (tag == "StreetSign" or tag == "DecorProp" or tag == "PropDetail") and part:GetAttribute("Solid") then
 			part.CanCollide = not hide -- (sin poste invisible con el que chocar)
 		end
 	end
@@ -111,8 +112,8 @@ function MaterialDetail.apply(tierName: Graphics.TierName)
 		applyTo(variant, tier)
 	end
 	applyGrass(tier)
-	for tag, field in DETAIL_TAGS do
-		local hide = not (tier :: any)[field]
+	for tag in DETAIL_TAGS do
+		local hide = Graphics.hides(tierName, tag)
 		if hide ~= hidden[tag] then
 			hidden[tag] = hide
 			for _, part in CollectionService:GetTagged(tag) do

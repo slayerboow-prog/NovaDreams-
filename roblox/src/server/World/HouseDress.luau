@@ -174,7 +174,7 @@ end
 
 -- ¿Pieza que nunca se toca? (prefabs 3D y sus cajas, mallas con textura, apariencias propias)
 local function untouchable(part: BasePart): boolean
-	if part:HasTag("BuildingShell") or part:HasTag("BuildingMesh") or part:GetAttribute("Collider") then
+	if part:HasTag("BuildingShell") or part:HasTag("BuildingMesh") or part:HasTag("PropMesh") or part:GetAttribute("Collider") then
 		return true
 	end
 	if part:IsA("MeshPart") and (part :: any).TextureID ~= "" then

@@ -76,8 +76,9 @@ function SettingsRows.build(toggles: { Toggle }, graphicsChoice: string?): ({ an
 			local choice = graphicsChoice or "Auto"
 			row.Segments = SettingsRows.GraphicsOptions
 			row.Selected = table.find(SettingsRows.GraphicsChoices, choice) or 1
-			local now = value and value:match("%((.-)%)")
-			row.Detail = if now then "Ahora: " .. now .. " (según tu dispositivo)" else "Más calidad o más fluidez"
+			local inside = value and value:match("%((.-)%)")
+			local now = inside and (inside:match("^ahora (.+)$") or (if inside == "fijo" then nil else inside))
+			row.Detail = if now then "Ahora: " .. now .. " (Auto, según tu dispositivo)" elseif choice ~= "Auto" then "Fijo en " .. ((value or ""):gsub(" %(fijo%)", "")) else "Más calidad o más fluidez"
 		elseif kind == "Look" then
 			row.Segments = SettingsRows.LookOptions
 			row.Selected = if value and value:find("avatar") then 2 else 1

@@ -26,8 +26,8 @@ local Choice = require(ReplicatedStorage.Shared.UserMaterialChoice)
 
 local StreetDress = {}
 
-StreetDress.DetailTag = "CityDetail" -- tapas: el nivel Bajo las esconde (como el resto del detalle)
-StreetDress.SignTag = "StreetSign" -- señales: el nivel Bajo las esconde y quita el choque del poste
+StreetDress.DetailTag = "PropDetail" -- tapas: imágenes baratas, se ven en todos los niveles gráficos
+StreetDress.SignTag = "StreetSign" -- señales: se ven en todos los niveles (si un nivel las escondiera, también quitaría el choque del poste)
 local FOLDER = "SenalesTrafico"
 
 local V3 = Vector3.new

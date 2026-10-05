@@ -21,9 +21,15 @@
 
 local CityAssetsKit = {}
 
-CityAssetsKit.DetailTag = "CityDetail" -- el nivel Bajo lo esconde
-CityAssetsKit.MeshTag = "BuildingMesh" -- malla encima de una pieza de bloques (Bajo: se esconde)
-CityAssetsKit.ShellTag = "BuildingShell" -- la pieza de bloques de debajo (Bajo: se vuelve a ver)
+-- Etiquetas para el nivel gráfico (shared/Graphics.DetailTags, Controllers/MaterialDetail). Solo lo
+-- PESADO se esconde en Bajo; los objetos sueltos (hidrantes, buzones, conos, palés, aires…) se ven
+-- en todos los niveles: son lo nuevo y cuestan poco.
+CityAssetsKit.DetailTag = "PropDetail" -- objeto suelto de malla (se ve también en Bajo)
+CityAssetsKit.HeavyTag = "CityDetail" -- lo pesado y lejano, como el skyline (Bajo lo esconde)
+CityAssetsKit.PropMeshTag = "PropMesh" -- malla pequeña encima de una pieza de bloques (se ve en todos)
+CityAssetsKit.PropShellTag = "PropShell" -- su pieza de bloques de debajo (invisible en todos)
+CityAssetsKit.MeshTag = "BuildingMesh" -- malla GRANDE encima de una pieza de bloques: estadio, instituto (Bajo: se esconde)
+CityAssetsKit.ShellTag = "BuildingShell" -- su pieza de bloques de debajo (Bajo: se vuelve a ver)
 CityAssetsKit.MaxTemplateParts = 450 -- plantillas más grandes no se usan (salvo que se pida más)
 
 -- Marcas reales, otros juegos y nombres prohibidos (en minúsculas; se busca dentro del nombre)
@@ -295,8 +301,10 @@ end
 
 export type Flags = {
 	Collide: boolean?, -- las piezas grandes chocan (las pequeñas nunca)
-	Detail: boolean?, -- etiqueta CityDetail (Bajo lo esconde)
-	Mesh: boolean?, -- etiqueta BuildingMesh (va encima de una pieza de bloques)
+	Detail: boolean?, -- etiqueta PropDetail (objeto suelto: se ve en todos los niveles)
+	Heavy: boolean?, -- etiqueta CityDetail (pesado, como el skyline: Bajo lo esconde)
+	Mesh: boolean?, -- etiqueta BuildingMesh (malla grande encima de una pieza de bloques: Bajo la esconde)
+	Prop: boolean?, -- etiqueta PropMesh (malla pequeña encima de una pieza de bloques: se ve en todos)
 	Shadow: number?, -- dan sombra las piezas de al menos esto (por defecto 4)
 	Name: string?,
 }
@@ -321,8 +329,14 @@ function CityAssetsKit.spawn(t: Template, at: CFrame, s: number, parent: Instanc
 		if f.Detail then
 			p:AddTag(CityAssetsKit.DetailTag)
 		end
+		if f.Heavy then
+			p:AddTag(CityAssetsKit.HeavyTag)
+		end
 		if f.Mesh then
 			p:AddTag(CityAssetsKit.MeshTag)
+		end
+		if f.Prop then
+			p:AddTag(CityAssetsKit.PropMeshTag)
 		end
 	end
 	model.Parent = parent
@@ -337,10 +351,11 @@ end
 CityAssetsKit.Knockable = { Bin = true, Cone = true, WorksBarrier = true, WorksFence = true, Papelera = true }
 
 -- Esconde la pieza de bloques (sigue chocando igual). Si KnockService la devuelve a su sitio con su
--- transparencia de antes, se vuelve a esconder.
-function CityAssetsKit.hide(part: BasePart)
+-- transparencia de antes, se vuelve a esconder. tag: ShellTag (por defecto: lo grande, en Bajo vuelve
+-- a verse) o PropShellTag (lo pequeño: invisible en todos los niveles)
+function CityAssetsKit.hide(part: BasePart, tag: string?)
 	part.Transparency = 1
-	part:AddTag(CityAssetsKit.ShellTag)
+	part:AddTag(tag or CityAssetsKit.ShellTag)
 	if CityAssetsKit.Knockable[part.Name] then
 		pcall(function()
 			part:GetPropertyChangedSignal("Transparency"):Connect(function()
@@ -382,7 +397,7 @@ function CityAssetsKit.overlay(orig: BasePart, t: Template, opts: OverlayOpts?):
 		end
 	end
 	local weld = o.Weld or CityAssetsKit.Knockable[orig.Name] == true
-	local model = CityAssetsKit.spawn(t, at, s, nil, { Mesh = true, Shadow = 6 })
+	local model = CityAssetsKit.spawn(t, at, s, nil, { Prop = true, Shadow = 6 })
 	model.Name = "Malla"
 	for _, p in CityAssetsKit.parts(model) do
 		p.Name = "Malla"
@@ -397,7 +412,7 @@ function CityAssetsKit.overlay(orig: BasePart, t: Template, opts: OverlayOpts?):
 	end
 	model.Parent = orig
 	if not o.KeepBase then
-		CityAssetsKit.hide(orig)
+		CityAssetsKit.hide(orig, CityAssetsKit.PropShellTag)
 	end
 	return model
 end

@@ -359,6 +359,9 @@ local function showAjustes()
 	local Hud = hud()
 	local Perf = perf()
 	local choice = if Perf and Perf.choice then Perf.choice() else nil
+	if Hud and Hud.syncMenuToggles then
+		pcall(Hud.syncMenuToggles) -- (el nivel de «Auto» puede haber cambiado solo)
+	end
 	local rows
 	rows, settings, settingKinds = SettingsRows.build((Hud and Hud.menuToggles and Hud.menuToggles()) or {}, choice)
 	Phone.showScreen("Ajustes", "Ajustes", rows, "Sin ajustes por ahora")

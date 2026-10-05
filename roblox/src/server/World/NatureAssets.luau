@@ -16,8 +16,9 @@
 --     lagos; piedras pequeñas en el césped de los parques; peces de verdad en el mostrador de las
 --     pescaderías; tiburones que nadan mar adentro; y los peces que nadan al bucear con fusil
 --     (DivingService, piezas SwimFish) pasan a verse con su malla.
---   * Lo pequeño lleva la etiqueta LeafDetail (el nivel gráfico Bajo lo esconde, Controllers/
---     MaterialDetail). Las rocas grandes chocan y no se esconden (son parte del paisaje).
+--   * Lo pequeño lleva la etiqueta PropDetail (shared/Graphics.DetailTags: se ve en TODOS los niveles
+--     gráficos, también en Bajo: son mallas sueltas y baratas). Las rocas grandes chocan y tampoco se
+--     esconden (son parte del paisaje).
 --   * Los packs con puerta trasera (docs/assets-usuario-4.md, familias 1, 3 y 5) no se cargan nunca
 --     (Blocked): van sus recambios limpios de docs/assets-reemplazos.md. Aun así, de todo lo cargado
 --     se borran TODOS los LuaSourceContainer nada más descargar, con lo cargado aún sin padre, ANTES
@@ -489,7 +490,7 @@ function NatureAssets.place(t: Template, parent: Instance, foot: Vector3, size: 
 	for _, p in meshesOf(copy) do
 		setFlags(p, o.Collide == true)
 		if o.Detail then
-			p:AddTag("LeafDetail") -- el nivel gráfico Bajo lo esconde
+			p:AddTag("PropDetail") -- (objeto suelto: se ve en todos los niveles gráficos)
 		end
 	end
 	copy.Parent = parent

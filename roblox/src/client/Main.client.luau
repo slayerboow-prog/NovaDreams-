@@ -323,6 +323,12 @@ do
 		Hud.toast("Info", Perf.choiceLabel())
 		return Perf.choiceLabel()
 	end, Perf.choiceLabel)
+	-- (en «Auto» el nivel cambia solo: el botón dice siempre el de ahora, «Auto (ahora Medio)»)
+	Perf.onTier(function()
+		if Hud.syncMenuToggles then
+			pcall(Hud.syncMenuToggles)
+		end
+	end)
 end
 
 -- Móvil: correr al empujar el joystick hasta el borde (sí por defecto)

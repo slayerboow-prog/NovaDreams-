@@ -24,8 +24,8 @@
 --   * Nombres genéricos en español: nada de nombres de armas reales, marcas ni SCP.
 --   * Las armas copiadas de otros juegos que vienen mezcladas en los packs (Apex, Half-Life 2, CoD) se
 --     descartan por nombre; también cuchillos, granadas, lanzacohetes…
---   * Piezas ancladas, sin choque las pequeñas y con la etiqueta CityDetail (el nivel gráfico Bajo las
---     esconde: Controllers/MaterialDetail). Topes de piezas por plantilla.
+--   * Piezas ancladas, sin choque las pequeñas y con la etiqueta PropDetail (objeto suelto: se ve en
+--     todos los niveles gráficos, shared/Graphics.DetailTags). Topes de piezas por plantilla.
 --   * Si algo no carga, el juego sigue igual (todo con pcall).
 
 local MeshLibrary = require(script.Parent.MeshLibrary)
@@ -402,7 +402,7 @@ function UserArsenal.scaleFor(t: Template, fit: { [string]: number }): number
 	return 1
 end
 
--- Pone una copia: el pivote de la plantilla en «at», escalada. opts.Detail: etiqueta CityDetail.
+-- Pone una copia: el pivote de la plantilla en «at», escalada. opts.Detail: etiqueta PropDetail.
 -- opts.Collide: las piezas grandes chocan.
 function UserArsenal.place(t: Template, parent: Instance, at: CFrame, fit: { [string]: number }?, opts: { [string]: any }?): Model
 	local o = opts or {}
@@ -421,7 +421,7 @@ function UserArsenal.place(t: Template, parent: Instance, at: CFrame, fit: { [st
 			d.CanQuery = o.Collide == true and big
 			d.CanTouch = false
 			if o.Detail then
-				d:AddTag("CityDetail")
+				d:AddTag("PropDetail") -- (objeto suelto: se ve en todos los niveles gráficos)
 			end
 		elseif d:IsA("SpecialMesh") then
 			-- (las mallas de archivo tienen escala absoluta; las de bloque y cilindro, relativa)
@@ -567,7 +567,7 @@ local function box(parent: Instance, name: string, size: Vector3, cf: CFrame, co
 	p.CanTouch = false
 	p.TopSurface = Enum.SurfaceType.Smooth
 	p.BottomSurface = Enum.SurfaceType.Smooth
-	p:AddTag("CityDetail")
+	p:AddTag("PropDetail")
 	p.Parent = parent
 	return p
 end

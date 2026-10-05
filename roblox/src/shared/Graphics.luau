@@ -31,7 +31,8 @@ export type Tier = {
 	NormalMaps: boolean, -- relieve (mapa normal) de las texturas PBR de los materiales
 	GrassBlades: boolean, -- briznas de césped 3D en el terreno (Terrain.Decoration): apagadas en todos, asomaban por calles y aceras
 	LeafDetail: boolean, -- racimos de relleno de las copas y raíces de los árboles (etiqueta LeafDetail)
-	CityDetail: boolean, -- tejas con relieve, molduras, zócalos, desgaste del asfalto… (etiqueta CityDetail, Kit/CityDetail)
+	CityDetail: boolean, -- lo PESADO: tejas con relieve, molduras, zócalos, desgaste del asfalto (Kit/CityDetail), el skyline lejano y los edificios 3D (etiquetas CityDetail, BuildingMesh/BuildingShell)
+	PropDetail: boolean, -- lo BARATO y nuevo: objetos de malla sueltos de la calle (hidrantes, buzones, jardineras, conos, palés, aires), muebles, láminas, señales (etiquetas PropDetail, PropMesh…): se ven en TODOS los niveles
 	WetGloss: boolean, -- con lluvia, el asfalto y las aceras se vuelven lisos y reflejan (rugosidad mojada)
 	FarRange: boolean, -- sierra lejana al otro lado del mar (siluetas del horizonte, Controllers/Horizon)
 }
@@ -57,10 +58,11 @@ Graphics.Tiers = {
 		Puddles = 4,
 		WetRadius = 60,
 		SignGlow = false,
-		NormalMaps = false,
+		NormalMaps = true, -- (el relieve es barato: lo pone una textura; sin él «todo se ve igual»)
 		GrassBlades = false,
 		LeafDetail = false,
 		CityDetail = false,
+		PropDetail = true, -- (en Bajo TAMBIÉN: es lo nuevo y cuesta poco)
 		WetGloss = false,
 		FarRange = false,
 	},
@@ -81,6 +83,7 @@ Graphics.Tiers = {
 		GrassBlades = false,
 		LeafDetail = true,
 		CityDetail = true,
+		PropDetail = true,
 		WetGloss = true,
 		FarRange = true,
 	},
@@ -101,18 +104,76 @@ Graphics.Tiers = {
 		GrassBlades = false,
 		LeafDetail = true,
 		CityDetail = true,
+		PropDetail = true,
 		WetGloss = true,
 		FarRange = true,
 	},
 } :: { [TierName]: Tier }
 
--- Cuándo cambia de nivel solo (en «Auto»)
+-- Qué etiqueta esconde cada nivel: etiqueta -> campo del nivel (si el campo es false, se esconde).
+-- Lo usa Controllers/MaterialDetail. Solo lo PESADO se esconde en Bajo; lo nuevo y barato se queda.
+--   * LeafDetail: racimos de relleno de las copas y raíces (Kit/Nature, hechos por código)
+--   * CityDetail: tejas, molduras y desgaste (Kit/CityDetail) y el skyline lejano (World/CityAssets)
+--   * BuildingMesh / BuildingShell: edificios 3D (World/Buildings3D), el estadio y el instituto de
+--     malla; en Bajo se ve la caja de bloques de antes
+--   * PropDetail / PropMesh / PropShell: los objetos de malla de la Tienda en la calle (World/
+--     CityAssets: hidrantes, buzones, jardineras, conos, palés, aires…), las plantillas de la naturaleza
+--     (World/NatureAssets) y las armas y objetos puestos (World/UserArsenal)
+--   * DecorProp / PropShell: los muebles de la Tienda en los interiores (World/InteriorProps)
+--   * StreetSign: las señales de tráfico (World/StreetDress); TextureDetail: papel pintado, moqueta y
+--     techos (World/MaterialExtras)
+Graphics.DetailTags = {
+	LeafDetail = "LeafDetail",
+	CityDetail = "CityDetail",
+	BuildingMesh = "CityDetail",
+	BuildingShell = "CityDetail",
+	PropDetail = "PropDetail",
+	PropMesh = "PropDetail",
+	PropShell = "PropDetail",
+	DecorProp = "PropDetail",
+	StreetSign = "PropDetail",
+	TextureDetail = "PropDetail",
+} :: { [string]: string }
+
+-- ¿Esconde este nivel las piezas con esta etiqueta?
+function Graphics.hides(name: TierName, tag: string): boolean
+	local field = Graphics.DetailTags[tag]
+	if not field then
+		return false
+	end
+	return (Graphics.tier(name) :: any)[field] == false
+end
+
+-- Modo ligero (móvil, UI/Perf.stripDetails): los objetos de la acera hechos por código (etiqueta
+-- LiteDetail, Kit/StreetDetail) que se quitan. Los que dan carácter a la acera y cuestan poco se quedan,
+-- y nunca se quita uno que ya lleva una malla nueva encima (World/CityAssets: «Malla»).
+Graphics.LiteKeep = {
+	Obras = true, -- (sus conos y vallas llevan malla de la Tienda)
+	ArmarioElectrico = true, -- (con grafiti)
+	Jardinera = true,
+	BuzonCorreos = true,
+	BancoCalle = true,
+	PapeleraCalle = true,
+	BocaRiego = true,
+}
+function Graphics.liteStrips(name: string, hasMesh: boolean): boolean
+	return not hasMesh and not Graphics.LiteKeep[name]
+end
+
+-- Cuándo cambia de nivel solo (en «Auto»). Pensado para que el móvil NO caiga a Bajo por un rato malo:
+--   * bajar pide pocos fps durante bastante rato (DownSeconds)
+--   * de Medio a Bajo solo si va de verdad mal (por debajo de LowFloor): un móvil que aguanta más de
+--     20 fps se queda en Medio
+--   * tras cada cambio, un rato sin cambiar (Hold) y para subir hacen falta muchos fps (Up): así no
+--     va y viene (histéresis)
 Graphics.Fps = {
 	Target = 30, -- lo mínimo que se quiere en un móvil medio
 	Down = 27, -- por debajo de esto…
-	DownSeconds = 6, -- …durante tantos segundos seguidos: un nivel menos
-	Up = 55, -- por encima de esto…
+	DownSeconds = 15, -- …durante tantos segundos seguidos: un nivel menos
+	LowFloor = 20, -- de Medio a Bajo, solo por debajo de esto (suelo de Medio)
+	Up = 50, -- por encima de esto…
 	UpSeconds = 25, -- …durante tantos segundos seguidos: un nivel más
+	Hold = 45, -- tras cambiar, tantos segundos sin volver a cambiar
 	RetrySeconds = 240, -- tras bajar, tanto tiempo sin volver a probar el nivel que fue lento
 	Smoothing = 0.1, -- (media móvil de los fps)
 }
@@ -140,6 +201,14 @@ function Graphics.detect(info: { Mobile: boolean, Quality: number? }): TierName
 	return if info.Mobile then "Medium" else "High"
 end
 
+-- Texto del botón «✨ Gráficos» del menú: en «Auto», también el nivel de ahora
+function Graphics.choiceLabel(choice: Choice, current: TierName): string
+	if choice == "Auto" then
+		return ("✨ Gráficos: Auto (ahora %s)"):format(Graphics.Labels[current] or "Medio")
+	end
+	return ("✨ Gráficos: %s (fijo)"):format(Graphics.Labels[choice] or "Medio")
+end
+
 -- La siguiente opción del botón del menú
 function Graphics.nextChoice(choice: Choice): Choice
 	local i = table.find(Graphics.Choices, choice) or 1
@@ -153,10 +222,11 @@ export type AutoState = {
 	Fast: number, -- segundos seguidos sobrados
 	Ceiling: number, -- nivel más alto al que se puede subir (baja cuando un nivel va lento)
 	Retry: number, -- segundos hasta que se puede volver a probar el nivel que fue lento
+	Hold: number, -- segundos sin cambiar tras el último cambio (histéresis)
 }
 
 function Graphics.newAuto(start: TierName): AutoState
-	return { Tier = start, Fps = 60, Slow = 0, Fast = 0, Ceiling = #Graphics.Order, Retry = 0 }
+	return { Tier = start, Fps = 60, Slow = 0, Fast = 0, Ceiling = #Graphics.Order, Retry = 0, Hold = 0 }
 end
 
 -- Un paso del modo «Auto»: dt = segundos del fotograma. Devuelve el nivel nuevo si cambia (o nil).
@@ -174,7 +244,9 @@ function Graphics.autoStep(state: AutoState, dt: number): TierName?
 			state.Ceiling = #Graphics.Order
 		end
 	end
-	if state.Fps < F.Down then
+	-- (de Medio a Bajo hace falta ir de verdad mal: suelo de Medio)
+	local down = if i == 2 then F.LowFloor else F.Down
+	if state.Fps < down then
 		state.Slow += dt
 		state.Fast = 0
 	elseif state.Fps > F.Up then
@@ -183,17 +255,23 @@ function Graphics.autoStep(state: AutoState, dt: number): TierName?
 	else
 		state.Slow, state.Fast = 0, 0
 	end
+	if (state.Hold or 0) > 0 then
+		state.Hold -= dt
+		return nil -- (recién cambiado: se espera)
+	end
 	if state.Slow >= F.DownSeconds and i > 1 then
 		-- Este nivel no aguanta: se baja y no se vuelve a probar en un rato
 		state.Ceiling = math.min(state.Ceiling, i - 1)
 		state.Retry = F.RetrySeconds
 		state.Tier = Graphics.Order[i - 1]
 		state.Slow, state.Fast = 0, 0
+		state.Hold = F.Hold
 		state.Fps = F.Target -- (se vuelve a medir desde cero)
 		return state.Tier
 	elseif state.Fast >= F.UpSeconds and i < state.Ceiling then
 		state.Tier = Graphics.Order[i + 1]
 		state.Slow, state.Fast = 0, 0
+		state.Hold = F.Hold
 		return state.Tier
 	end
 	return nil

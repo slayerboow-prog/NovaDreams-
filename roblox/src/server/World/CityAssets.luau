@@ -8,7 +8,7 @@
 -- las guarda en ServerStorage.ActivosCiudad (no se replica). Luego, por tandas:
 --
 --   1. Mallas encima de las piezas de bloques que ya había (la pieza queda invisible y sigue chocando;
---      en gráficos Bajo vuelve la de siempre):
+--      son pequeñas y baratas: se ven en todos los niveles gráficos, también en Bajo):
 --        * aires acondicionados de las fachadas de casas y pisos (ACUnit + ACGrille) -> aires de
 --          13465440856 (Funiki, sin logo), 6795368713 (los de la casa, sin marcas) y AC_Unit del
 --          99479110531330
@@ -45,8 +45,10 @@
 --      6432233485 encima de los parches de Kit/CityDetail (no se duplican marcas).
 --
 -- No se tocan coches, tráfico ni el tren de Cercanías ni el metro (los vagones y la locomotora van en
--- vías propias, aparte). Todo con topes de piezas, etiquetas para el nivel Bajo (CityDetail /
--- BuildingMesh / BuildingShell) y en pcall: si algo no carga, el juego sigue como estaba.
+-- vías propias, aparte). Todo con topes de piezas, etiquetas para el nivel gráfico (shared/Graphics.
+-- DetailTags: lo suelto y barato lleva PropDetail / PropMesh / PropShell y se ve también en Bajo; lo
+-- pesado, el skyline CityDetail y el estadio y el instituto BuildingMesh / BuildingShell, que Bajo
+-- esconde) y en pcall: si algo no carga, el juego sigue como estaba.
 
 local CityAssets = {}
 
@@ -572,7 +574,7 @@ function CityAssets.overlays(ctx: Ctx): { [string]: number }
 				end
 				local m = Kit.overlay(d, t, { Grow = 1.15, Facing = facing })
 				if m and grille then
-					Kit.hide(grille)
+					Kit.hide(grille, Kit.PropShellTag)
 				end
 				bump("AC", m)
 			end
@@ -589,7 +591,7 @@ function CityAssets.overlays(ctx: Ctx): { [string]: number }
 					for _, n in { "WorksFence", "WorksStripe" } do
 						local s = nearestSibling(d, n, 1.5)
 						if s then
-							Kit.hide(s)
+							Kit.hide(s, Kit.PropShellTag)
 						end
 					end
 				end
@@ -1241,7 +1243,7 @@ function CityAssets.skyline(ctx: Ctx): number
 	land.CanQuery = false
 	land.CanTouch = false
 	land.CastShadow = false
-	land:AddTag(Kit.DetailTag)
+	land:AddTag(Kit.HeavyTag)
 	land.Parent = m
 	local x, i, n = cfg.From, 0, 0
 	-- En medio, la ciudad grande de una malla (16524471626, con ventanas que brillan de noche)
@@ -1249,7 +1251,7 @@ function CityAssets.skyline(ctx: Ctx): number
 	if big then
 		local w = math.max(big.Size.X, big.Size.Z)
 		local yaw = if big.Size.X >= big.Size.Z then CFrame.new() else CFrame.Angles(0, math.pi / 2, 0)
-		local b = Kit.spawn(big, CFrame.new(0, CityAssets.SeaLevel + 1, cfg.Z + 120) * yaw, 1, m, { Collide = false, Detail = true, Shadow = 1e9 })
+		local b = Kit.spawn(big, CFrame.new(0, CityAssets.SeaLevel + 1, cfg.Z + 120) * yaw, 1, m, { Collide = false, Heavy = true, Shadow = 1e9 })
 		b.Name = "CiudadLejana"
 		for _, p in Kit.parts(b) do
 			p.CanQuery = false
@@ -1268,7 +1270,7 @@ function CityAssets.skyline(ctx: Ctx): number
 		local s = 1 + Kit.hash(Vector3.new(x, 0, cfg.Z), 81) * 0.6
 		local w = math.max(t.Size.X, t.Size.Z) * s
 		local z = cfg.Z + (Kit.hash(Vector3.new(x, 0, 0), 82) - 0.5) * 300
-		local b = Kit.spawn(t, CFrame.new(x + w / 2, CityAssets.SeaLevel + 1, z) * CFrame.Angles(0, math.pi * math.floor(Kit.hash(Vector3.new(x, 1, 0), 83) * 4) / 2, 0), s, m, { Collide = false, Detail = true, Shadow = 1e9 })
+		local b = Kit.spawn(t, CFrame.new(x + w / 2, CityAssets.SeaLevel + 1, z) * CFrame.Angles(0, math.pi * math.floor(Kit.hash(Vector3.new(x, 1, 0), 83) * 4) / 2, 0), s, m, { Collide = false, Heavy = true, Shadow = 1e9 })
 		for _, p in Kit.parts(b) do
 			p.CanQuery = false
 		end

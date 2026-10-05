@@ -32,9 +32,11 @@ Perf.lite = Perf.mobile or (q ~= nil and q <= 3)
 -- Cuánta vida en la calle (1 = todo; en modo ligero, la mitad)
 Perf.scale = if Perf.lite then 0.5 else 1
 
--- En modo ligero se quitan (solo en esta pantalla) los detalles pequeños de la calle: jardineras,
--- mupis, motos aparcadas, terrazas… (etiqueta LiteDetail, Kit/StreetDetail). Van llegando con la
--- carga por zonas, así que se quitan también al llegar.
+-- En modo ligero se quitan (solo en esta pantalla) algunos detalles hechos por código de la calle:
+-- mupis, motos aparcadas, aparcabicis, escaparates… (etiqueta LiteDetail, Kit/StreetDetail). Los que
+-- dan carácter a la acera y cuestan poco se quedan (Graphics.LiteKeep: obras, jardineras, buzones,
+-- bancos…), y nunca uno que ya lleva encima una malla nueva de la Tienda («Malla», World/CityAssets).
+-- Van llegando con la carga por zonas, así que se miran también al llegar.
 function Perf.stripDetails()
 	if not Perf.lite then
 		return
@@ -42,7 +44,7 @@ function Perf.stripDetails()
 	local CollectionService = game:GetService("CollectionService")
 	local function strip(instance: Instance)
 		task.defer(function()
-			if instance.Parent then
+			if instance.Parent and Graphics.liteStrips(instance.Name, instance:FindFirstChild("Malla", true) ~= nil) then
 				instance:Destroy()
 			end
 		end)
@@ -102,12 +104,9 @@ function Perf.setChoice(new: Graphics.Choice)
 	end
 end
 
--- Texto del botón del menú
+-- Texto del botón del menú: siempre dice el nivel que se está usando («Auto (ahora Medio)»)
 function Perf.choiceLabel(): string
-	if choice == "Auto" then
-		return ("✨ Gráficos: Auto (%s)"):format(Graphics.Labels[current])
-	end
-	return "✨ Gráficos: " .. Graphics.Labels[choice]
+	return Graphics.choiceLabel(choice, current)
 end
 
 -- Mide los fps y, en «Auto», sube o baja de nivel (una sola vez, desde Main)

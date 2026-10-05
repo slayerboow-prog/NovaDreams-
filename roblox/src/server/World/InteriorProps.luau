@@ -19,8 +19,9 @@
 --       Replace en lugar de una pieza hecha por código (almohadas, váter, puerta, alfombra, chimenea):
 --               la de antes se esconde (etiqueta PropShell) y la malla se pone en su sitio, del mismo
 --               tamaño; la de antes sigue chocando y se usa igual (sentarse, salir…).
---   * Nivel gráfico Bajo (Controllers/MaterialDetail): lo añadido lleva la etiqueta DecorProp y se
---     esconde (y deja de chocar); las piezas PropShell vuelven a verse.
+--   * Nivel gráfico (shared/Graphics.DetailTags, Controllers/MaterialDetail): lo añadido lleva la
+--     etiqueta DecorProp y la pieza de antes PropShell. Son muebles baratos: se ven en TODOS los
+--     niveles, también en Bajo (si un nivel los escondiera, volvería a verse la pieza PropShell).
 --   * Si un asset no carga, esa regla no hace nada. Si nada carga, todo se queda como estaba.
 
 local InteriorProps = {}

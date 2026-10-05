@@ -10,8 +10,8 @@
 --       Las imágenes de las categorías elegidas se pegan como lámina (`Texture` «U_Lamina») solo donde
 --       una textura plana se ve bien (el papel pintado, la moqueta y las placas del techo son planos de
 --       verdad) y solo en parte de las viviendas y locales (Share: variedad fija por sala), encima del
---       variant que ya puso World/InteriorDress. En gráficos Bajo la lámina se esconde (etiqueta
---       TextureDetail, Controllers/MaterialDetail); la pieza sigue igual.
+--       variant que ya puso World/InteriorDress. La lámina lleva la etiqueta TextureDetail
+--       (shared/Graphics.DetailTags: es barata y se ve en todos los niveles gráficos, también en Bajo).
 --   * La arena realista de la playa (9268236860): si su variant viene sobre Sand ya es el global de
 --     shared/UserMaterialChoice (playa y terreno). Si viene sobre otro material, aquí se pone pieza a
 --     pieza en la arena de la playa (pieza «Sand» de Kit/Civic, con la física de antes). Si solo trae
@@ -19,8 +19,8 @@
 --   * Bronce PBR (12152263865): no son variants sino MeshPart con SurfaceAppearance (bronce limpio, de
 --     estatua y gastado). Las placas de los cuadros del museo («Plaque») y la escultura de la plaza del
 --     museo («Sculpture») llevan encima un bloque de bronce de su misma talla y giro; la pieza de antes
---     se queda (choca igual) invisible y solo se ve en gráficos Bajo (BuildingShell / BuildingMesh,
---     como World/Buildings3D).
+--     se queda (choca igual) invisible (PropShell / PropMesh: son pocas mallas y se ven en todos los
+--     niveles gráficos, también en Bajo).
 --
 -- Siempre: fuera los scripts de los packs (algunos traen 60), fuera letreros y textos, nada con marca
 -- (Banned), topes de piezas. Todo en pcall: si un pack no carga o falla, el juego sigue sin él.
@@ -476,8 +476,8 @@ function MaterialExtras.bronze(part: BasePart, template: MeshPart): boolean
 		return false
 	end
 	pcall(function()
-		CollectionService:AddTag(mesh, "BuildingMesh") -- (gráficos Bajo: se esconde)
-		CollectionService:AddTag(part, "BuildingShell") -- (gráficos Bajo: se ve la de antes)
+		CollectionService:AddTag(mesh, "PropMesh") -- (barato: se ve en todos los niveles gráficos)
+		CollectionService:AddTag(part, "PropShell") -- (la de antes, invisible en todos)
 		part:SetAttribute("UserBronze", true)
 		part.Transparency = 1
 	end)
