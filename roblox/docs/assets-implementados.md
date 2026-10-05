@@ -227,3 +227,52 @@ hacen daño: si te alcanzan, te devuelven al vestíbulo.
 | 113349334619202, 107730003845316, 8043394685, 9342982592, 12061946559 | Animaciones | **No**: de otros creadores, no se pueden reproducir sin volver a subirlas. |
 | 132859014 | Trozo de mapa (2013) | **No**: una bandera y un cartel sin uso. |
 | 80741429 | Campo de fútbol (2012) | **No**: muy viejo (bloques, 60 decals) y la ciudad ya tiene estadio. |
+
+## Calles, ciudad y edificios por fuera (World/CityAssets + World/CityAssetsKit)
+
+Se cargan al arrancar el servidor y se limpian: **primero se borra todo script** (varios traen las
+puertas traseras de la 4ª tanda) y luego se queda solo lo que se ve (piezas, mallas, SurfaceAppearance;
+imágenes y luces solo donde hace falta). Fuera sonidos, GUIs con texto, ClickDetector, constraints,
+NumberPose, PlaneConstraint, ParticleEmitter, atributos y etiquetas; fuera cualquier pieza o imagen con
+marca real u otro juego. Nombres en español, anclado, a talla de Valmar y con topes de piezas. Lo que va
+encima de una pieza de bloques que ya había la esconde (`BuildingShell`, sigue chocando; la malla lleva
+`BuildingMesh`) y lo nuevo pequeño lleva `CityDetail`: en gráficos Bajo vuelve la ciudad de antes. Los
+conos y vallas que salen despedidos al chocar llevan su malla soldada. Si algo no carga, no se hace.
+Prueba: `lune run scripts/test-cityassets.luau`.
+
+| Id | Qué | Dónde / por qué no |
+|---|---|---|
+| 13465440856 | Aire acondicionado Funiki | Aires de las fachadas de casas y pisos (malla encima de cada ACUnit de bloques, con la rejilla escondida). **Sin el logo ni el nombre Funiki**, sin mando ni sonidos. |
+| 6795368713 | Casa con aires y ventiladores | Solo los aparatos de aire (sin Daikin/Panasonic/Mitsubishi: logos fuera, renombrados) para las fachadas. La casa y los ventiladores de techo no (5 491 piezas; los ventiladores son de interior). |
+| 99479110531330 | Realistic city pack | Bocas de riego, buzones, quioscos de prensa y jardineras PBR en la acera junto a las farolas (solo donde cabe entero sobre la acera); AC_Unit en fachadas; Garbage_Bin, barril y barreras de hormigón en patios y la obra; sus edificios lejanos en el skyline. Fuera la lata «Coke», la máquina de parodia, las cajas de Black Mesa/Half-Life y el autobús/vagón (otros agentes). |
+| 5411055653 | Construction Asset Pack | Conos y vallas de las obras de la calzada (malla encima, soldada: sigue saliendo despedida); andamios, contenedor y bidones en la obra del polígono. |
+| 99043731526992 | Area51: pared de chapa | Vallado de chapa de la obra del polígono. Familia 3 de virus: sus scripts y el ParticleEmitter se borran antes de usarla; solo queda la pieza con su textura. |
+| 11188629897 | Montacargas de obra | En la obra del polígono (una copia: pesa mucho). Quieto. |
+| 133967929770771 | Cartel «Out of order» | Junto al montacargas, con el texto en español: «⚠ ASCENSOR FUERA DE SERVICIO · Disculpen las molestias». Sin el logo de Consult lift services; familia 2 de virus borrada. |
+| 10396819700 | Palé PBR | Malla encima de los palés de bloques (supermercado…), y en patios y en la obra. |
+| 113264079562085 | Factory Props | En los patios del polígono (12 naves): carretilla elevadora, transpaleta, palés con film, cajas, cerca del muelle de carga. |
+| 9876129164 | Contenedor de basura | Patios del polígono, la obra, el desguace y los talleres. |
+| 82042358715900 | Enchufe | Enchufe en la pared de 8 naves (por fuera). Tenía virus: sin scripts ni PlaneConstraint ya no hace nada. |
+| 103449549978145 | Grafitis | Pintadas de los armarios eléctricos de la calle y una en la pared de cada nave. Solo los 24 permitidos: nada de CS:GO, Half-Life 2, Wu-Tang ni el cartel con teléfono. |
+| 124865259344404 | Camión abandonado | Desguace en un patio del polígono (2). **Sin su textura** (marca International): oxidado de color propio. |
+| 131247677717086 | Neumáticos | → Coches (lo usa el agente de coches). |
+| 82136423205151 | Plataforma de exposición | En 3 talleres, con su foco. Quieta (sin la bisagra). |
+| 2161748423 + 8386763665 | Vías de tren | Vías propias aparte del Cercanías y del metro: el apartadero de mercancías del polígono (con tope) y bajo la locomotora monumento. No se toca la vía del Cercanías. |
+| 8380605189 | Train pack | Solo el vagón cerrado y el furgón, parados en el apartadero. Sin logos (CN, Pullman…), sin scripts ni asientos: no se conducen. El resto (locomotoras, coches de pasajeros) pesa demasiado. |
+| 10887600145 | Locomotora de vapor de malla | Monumento en un parque, sobre su vía y una peana. |
+| 18777387875 | Barbados Gates | Solo la puerta: en cada villa, corrida a un lado por dentro (abierta, no cierra el paso). Fuera las jardineras de 448 piezas y los scripts. |
+| 898778590 | Pista de tenis | Una en un parque con hueco, con sus bancos (se puede sentar). |
+| 75541553 | Portería | Malla encima de las porterías del campo de fútbol (la de bloques sigue chocando para el balón), con la red hacia fuera. |
+| 120631576642977 | Armario de servidores | Dos en la esquina de cada oficina (salas Interior_Oficina) si está libre. |
+| 13728551087 | Barcos | Pesqueros amarrados al muelle del puerto y fondeados mar adentro, barcas varadas y el barco hundido en la playa. Sin el buque de guerra. Decorado (sin asientos). |
+| 79665094662717 | Japan City Pack | Sus 5 edificios en el skyline lejano «costa de enfrente», al sur, al otro lado del mar (no choca, carga persistente, Bajo lo esconde). Sin carreteras, farola ni palmeras. Virus (familias 3 y 4) borrado. |
+| 111283915226740 | Casa polaca | Casa de campo en un hueco de Villaverde. Sin scripts (familia 5), sin agua ni nombres en polaco. |
+| 15004077857 | Realistic road pack | Ya estaba: World/StreetDress (señales y alcantarillas). |
+| 12527638598 | Roads | **No**: planos con líneas pintadas; las calles ya tienen sus marcas hechas a medida del tráfico y se duplicarían. |
+| 16088161488 | Wessel road pack | **No**: texturas antiguas sin PBR, peores que los materiales que ya llevan calles y aceras. |
+| 11347783499 | City Pack Realistic City | **No**: ciudad de 2010 de bloques y Decals, sin ninguna malla; haría las calles más «cutres». |
+| 6430696462 | Túnel | **No**: ninguna carretera de Valmar atraviesa un monte; sería una caja de bloques en medio de la calle. |
+| 139484418601989 | Skyscraper city | **No**: no trae edificios, solo un cielo con una foto real de Tokio (y virus) que chocaría con el cielo de día/noche. El skyline lejano se hace con 79665094662717 y el city pack. |
+| 70353066 | Estadio de fútbol | **No**: 3 644 bloques y 1 812 Decals de 2012, NPCs que dejan sangre; ya hay estadios. |
+| 1119962617 | Colegio | **No**: copia del mapa de otro juego (Roblox High School). |
+| 26972564 | Búnker | **No**: 12 bloques de 2010, nada aprovechable. |
