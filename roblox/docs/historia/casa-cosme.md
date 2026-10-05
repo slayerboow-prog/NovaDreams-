@@ -1,6 +1,7 @@
 # Casa de Cosme — encargo de Sebastián
 
 Referencia visual: `docs/referencias/casa-cosme.png`.
+Plano del dueño (manda en la distribución): `docs/referencias/plano-casa-cosme.png`.
 
 Exterior: casa moderna de 2 plantas, con:
 - Torre redonda acristalada con observatorio.
@@ -147,3 +148,26 @@ Y comprobado que:
 - no hay habitaciones vacías, zonas inaccesibles, piezas flotando, colisiones mal hechas ni scripts con errores;
 - el rendimiento es bueno y funciona en móvil;
 - encaja con el juego.
+
+## Plano del dueño (octubre)
+
+El dueño mandó el plano completo (`docs/referencias/plano-casa-cosme.png`): manda en la distribución,
+y el render manda en el aspecto. El plano mide 48 × 40 studs, demasiado pequeño para los avatares (un
+vestíbulo de 6 × 5 no se puede jugar; el propio plano dice que las medidas se pueden ajustar), así
+que se hace **a escala ×2** (96 × 80, dentro de la manzana de 100 × 100) con la misma distribución,
+proporciones, vecindad entre salas y formas. Cada planta tiene 12 de alto.
+
+- Planta baja: vestíbulo (1) delante en el centro con escalones a la calle, salón (2) delante a la
+  izquierda, cocina y comedor (3), laboratorio de inventos (4) detrás con la máquina redonda, escalera (5)
+  en el centro y garaje (6) a la derecha a lo largo del fondo; jardín trasero y terraza-jardín lateral.
+- Planta alta: habitación de Cosme (7) a la izquierda, experimentos (8) a la derecha, sala de
+  observación de cristal (9) en un mirador semicircular detrás, terraza principal (10) delante y terraza
+  lateral (11) encima del garaje.
+- Sótano: garaje (12) a la derecha, portal (13) delante a la izquierda, taller (14) detrás a la
+  izquierda, almacén (15) detrás en el centro y la escalera en medio (la habitación secreta, detrás del
+  taller, no sale en el plano: es secreta).
+- Tejado: paneles solares (16) a la izquierda, cúpula de observación (19) en el centro (dos tambores de
+  cristal con el «platillo»), torre de experimentos (17) con el vórtice y antena (18) detrás a la
+  derecha, terraza chill (20) delante a la derecha.
+- Desde la calle, la izquierda del dibujo es +X local de la parcela (ver CosmeHouse/Layout).
+- El coche del garaje es un kit reutilizable: `World/Kit/FutureCar` (también el del garaje del sótano).
