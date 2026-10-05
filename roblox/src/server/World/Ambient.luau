@@ -268,6 +268,70 @@ function Ambient.publish(roads: { { [string]: any } }, segments: { { [string]: a
 	end
 
 	folder.Parent = ReplicatedStorage
+
+	-- Carrocerías de malla de verdad (Kit/CarBodies): se cargan en un hilo aparte (también cambian
+	-- los coches aparcados y el tuyo). Al estar listas, el tráfico tiene otras plantillas en
+	-- «CarsMesh» (las mismas de Cars con la malla; el cliente las usa salvo en gráficos Bajo).
+	local okBodies, CarBodies = pcall(function()
+		return require(script.Parent.Kit.CarBodies)
+	end)
+	if okBodies and type(CarBodies) == "table" and typeof(task) == "table" then
+		CarBodies.onReady(function()
+			Ambient.meshCars(folder, CarBodies)
+		end)
+		task.spawn(function()
+			local ok, err = pcall(CarBodies.start)
+			if not ok then
+				warn("[CarBodies] " .. tostring(err))
+			end
+		end)
+	end
+end
+
+-- Plantillas del tráfico con carrocería de malla (ReplicatedStorage.Ambient.CarsMesh)
+Ambient.MESH_CARS = 14
+function Ambient.meshCars(folder: Instance, CarBodies: any): number
+	local cars = folder:FindFirstChild("Cars")
+	if not cars or folder:FindFirstChild("CarsMesh") then
+		return 0
+	end
+	local boxes, taxis = {}, {}
+	for _, m in cars:GetChildren() do
+		if m:IsA("Model") then
+			table.insert(if string.sub(m.Name, 1, 4) == "Taxi" then taxis else boxes, m)
+		end
+	end
+	table.sort(boxes, function(a, b)
+		return a.Name < b.Name
+	end)
+	local out = Instance.new("Folder")
+	out.Name = "CarsMesh"
+	local n = 0
+	for i = 1, if #boxes > 0 then Ambient.MESH_CARS else 0 do
+		local copy = boxes[(i - 1) % #boxes + 1]:Clone()
+		copy.Name = "MeshCar" .. i
+		if CarBodies.dress(copy, CFrame.new(), { Role = "Traffic", Key = "trafico" .. i }) then
+			copy.Parent = out
+			n += 1
+		else
+			copy:Destroy()
+		end
+	end
+	for i, t in taxis do
+		local copy = t:Clone()
+		if CarBodies.dress(copy, CFrame.new(), { Role = "Taxi", Key = "taxi" .. i, Variant = "Berlina" }) then
+			copy.Parent = out
+			n += 1
+		else
+			copy:Destroy()
+		end
+	end
+	if n > 0 then
+		out.Parent = folder
+	else
+		out:Destroy()
+	end
+	return n
 end
 
 return Ambient

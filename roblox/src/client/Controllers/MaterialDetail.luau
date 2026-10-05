@@ -69,15 +69,28 @@ end
 
 -- Detalle que el nivel Bajo esconde (solo en esta pantalla): etiqueta -> campo del nivel
 -- (StreetSign: las señales de tráfico de World/StreetDress; su poste deja de chocar al esconderse)
-local DETAIL_TAGS = { LeafDetail = "LeafDetail", CityDetail = "CityDetail", BuildingMesh = "CityDetail", BuildingShell = "CityDetail", StreetSign = "CityDetail" }
-local hidden: { [string]: boolean } = { LeafDetail = false, CityDetail = false, BuildingMesh = false, BuildingShell = false, StreetSign = false }
+-- (DecorProp / PropShell: los muebles y la comida de la Tienda en los interiores, World/InteriorProps;
+-- PropShell es la pieza hecha por código que sustituyen, que solo se ve en Bajo)
+-- (TextureDetail: papel pintado, moqueta, techos y arena de los packs de texturas, World/MaterialExtras:
+-- en Bajo se esconde solo la lámina «U_Lamina», la pieza sigue)
+local DETAIL_TAGS = { LeafDetail = "LeafDetail", CityDetail = "CityDetail", BuildingMesh = "CityDetail", BuildingShell = "CityDetail", StreetSign = "CityDetail", DecorProp = "CityDetail", PropShell = "CityDetail", TextureDetail = "CityDetail" }
+local hidden: { [string]: boolean } = { LeafDetail = false, CityDetail = false, BuildingMesh = false, BuildingShell = false, StreetSign = false, DecorProp = false, PropShell = false, TextureDetail = false }
 local function applyDetail(part: Instance, hide: boolean, tag: string?)
 	if not part:IsA("BasePart") then
 		return
 	end
-	if tag == "BuildingShell" then
+	if tag == "TextureDetail" then
+		for _, child in part:GetChildren() do
+			if child:IsA("Texture") and child.Name == "U_Lamina" then
+				child.LocalTransparencyModifier = if hide then 1 else 0
+			end
+		end
+	elseif tag == "BuildingShell" then
 		-- (al revés: la caja de antes solo se ve cuando se esconde el detalle; cambio local)
 		part.Transparency = if hide then 0 else 1
+	elseif tag == "PropShell" then
+		local before = part:GetAttribute("ShellTransparency")
+		part.Transparency = if hide then (if type(before) == "number" then before else 0) else 1
 	else
 		part.LocalTransparencyModifier = if hide then 1 else 0
 		-- (las imágenes pegadas a la pieza, como las señales y las tapas del road pack, van aparte)
@@ -86,7 +99,7 @@ local function applyDetail(part: Instance, hide: boolean, tag: string?)
 				child.LocalTransparencyModifier = if hide then 1 else 0
 			end
 		end
-		if tag == "StreetSign" and part:GetAttribute("Solid") then
+		if (tag == "StreetSign" or tag == "DecorProp") and part:GetAttribute("Solid") then
 			part.CanCollide = not hide -- (sin poste invisible con el que chocar)
 		end
 	end

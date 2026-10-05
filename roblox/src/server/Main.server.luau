@@ -72,6 +72,7 @@ task.spawn(function()
 end)
 -- Cielo de fotos (skybox realista) de día y de noche (World/SkyLoader, ids en shared/SkyChoice):
 -- lo pone cada cliente según la hora (Controllers/DayLight). Sin ids o si falla, el cielo de siempre.
+task.spawn(function() local ok, err = pcall(function() require(World.SkyAssets).start() end) if not ok then warn("[SkyAssets] " .. tostring(err)) end end) -- cielos especiales, luna, fuego, lluvia, partículas (shared/SkyExtras)
 task.spawn(function()
 	local ok, err = pcall(function()
 		require(World.SkyLoader).start()
@@ -144,6 +145,16 @@ task.spawn(function()
 	end)
 	if not ok then
 		warn("[WorkshopProps] " .. tostring(err))
+	end
+end)
+-- 4b3) Muebles, comida y objetos de la Tienda de creadores en casas, tiendas, bares, oficinas, naves,
+--      hospital y comisaría (World/InteriorProps). Si no cargan, todo se queda como estaba.
+task.spawn(function()
+	local ok, err = pcall(function()
+		require(World.InteriorProps).start()
+	end)
+	if not ok then
+		warn("[InteriorProps] " .. tostring(err))
 	end
 end)
 -- 4c) Bloques de pisos y rascacielos con edificios 3D de verdad (Modular Building Kit – Modern City,

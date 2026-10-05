@@ -410,7 +410,10 @@ local function makeAgent(template: Model, kind: string): Agent
 		local body, volume = nil :: BasePart?, 0
 		for _, part in agent.Parts do
 			local v = part.Size.X * part.Size.Y * part.Size.Z
-			if part.Transparency < 0.5 and v > volume then
+			-- (con carrocería de malla, la caja «Body» es invisible y es la que choca)
+			if part.Name == "Body" and part:GetAttribute("CarHidden") then
+				body, volume = part, math.huge
+			elseif part.Transparency < 0.5 and v > volume and not part:GetAttribute("CarMesh") then
 				body, volume = part, v
 			end
 		end
@@ -1256,6 +1259,20 @@ function Traffic.init(data: Instance)
 			table.insert(byKind.Car, m)
 		end
 	end
+	-- Carrocerías de malla (servidor: Kit/CarBodies -> Ambient.CarsMesh): llegan después; los coches
+	-- se cambian al llegar, y vuelven a los de piezas en gráficos Bajo
+	local meshFolder = data:FindFirstChild("CarsMesh")
+	local meshCars: { Model } = {}
+	if meshFolder and Perf.tierName() ~= "Low" then
+		for _, m in meshFolder:GetChildren() do
+			if m:IsA("Model") then
+				table.insert(meshCars, m)
+			end
+		end
+		if #meshCars > 0 then
+			byKind.Car = meshCars
+		end
+	end
 	for _, m in if riders then riders:GetChildren() else {} do
 		local kind = m:GetAttribute("Kind")
 		if m:IsA("Model") and kind and KINDS[kind] then
@@ -1271,6 +1288,58 @@ function Traffic.init(data: Instance)
 			end
 		end
 	end
+
+	-- Cambia los coches de sitio a otra plantilla (malla o piezas) sin parar el tráfico
+	local usingMesh = #meshCars > 0
+	local function reskin(useMesh: boolean)
+		local folderNow = data:FindFirstChild("CarsMesh")
+		local list = {}
+		if useMesh and folderNow then
+			for _, m in folderNow:GetChildren() do
+				if m:IsA("Model") then
+					table.insert(list, m)
+				end
+			end
+		end
+		if useMesh and #list == 0 then
+			return
+		end
+		if not useMesh then
+			list = {}
+			for _, m in data:WaitForChild("Cars"):GetChildren() do
+				if m:IsA("Model") then
+					table.insert(list, m)
+				end
+			end
+		end
+		usingMesh = useMesh
+		local i = 0
+		for _, agent in agents do
+			if agent.Kind ~= "Car" then
+				continue
+			end
+			i += 1
+			local fresh = makeAgent(list[(i - 1) % #list + 1], "Car")
+			local old = agent.Model
+			for _, key in { "Model", "Parts", "Offsets", "Pedals", "Tails", "Indicators", "Wheels", "WheelLocal", "Steer" } do
+				(agent :: any)[key] = (fresh :: any)[key]
+			end
+			agent.Model.Parent = if agent.Active then folder else nil
+			old:Destroy()
+		end
+	end
+	data.ChildAdded:Connect(function(child)
+		if child.Name == "CarsMesh" and not usingMesh and Perf.tierName() ~= "Low" then
+			task.wait(1) -- (que lleguen todas las plantillas)
+			pcall(reskin, true)
+		end
+	end)
+	Perf.onTier(function(tier)
+		local want = tier ~= "Low" and data:FindFirstChild("CarsMesh") ~= nil
+		if want ~= usingMesh then
+			pcall(reskin, want)
+		end
+	end)
 
 	for _, model in CollectionService:GetTagged("TrafficLight") do
 		addLight(model)

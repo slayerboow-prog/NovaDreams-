@@ -50,6 +50,7 @@ local function carSeats(variant: string?)
 end
 -- Vehículos premium del pase (Kit/SportsCars): se carga al usarlo (los modelos de siempre no lo
 -- necesitan, y así las pruebas que solo cargan Rides siguen igual). nil si no se puede cargar.
+local carBodies
 local sportsCars: any = nil
 local function premium(kind: string, id: any): any
 	if type(id) ~= "string" or (kind ~= "Coche" and kind ~= "Moto") then
@@ -62,6 +63,22 @@ local function premium(kind: string, id: any): any
 		sportsCars = if ok and type(mod) == "table" and type(mod.has) == "function" then mod else false
 	end
 	return if sportsCars and sportsCars.has(kind, id) then sportsCars else nil
+end
+
+-- Carrocerías de malla (Kit/CarBodies): se carga al usarla. nil si no se puede cargar.
+local carBodiesMod: any = nil
+function carBodies(): any
+	if carBodiesMod == nil then
+		local ok, mod = pcall(function()
+			return require((script.Parent :: any).CarBodies)
+		end)
+		carBodiesMod = if ok and type(mod) == "table" and type(mod.dress) == "function" then mod else false
+	end
+	return carBodiesMod or nil
+end
+Rides.carBodies = carBodies
+local function colorKey(c: Color3): string
+	return string.format("%d_%d_%d", math.floor(c.R * 255), math.floor(c.G * 255), math.floor(c.B * 255))
 end
 
 function Rides.passengerSeats(kind: string, variant: string?): { { Seat: CFrame, Side: number, Label: string, Pose: string } }
@@ -1072,6 +1089,18 @@ function Rides.build(kind: string, parent: Instance?, cf: CFrame, color: Color3?
 	end
 	local paint = color or (if COLORS[kind] then Palette.pick(COLORS[kind]) else Palette.pick(Palette.CarColors))
 	BUILDERS[kind](m, cf, paint)
+	-- Coche y patrulla: carrocería de malla de verdad (Kit/CarBodies) si ya está cargada; si no,
+	-- se queda apuntado y se cambia al llegar. Si falla, el de piezas de siempre.
+	if kind == "Coche" or kind == "Patrulla" then
+		local bodies = carBodies()
+		if bodies then
+			pcall(bodies.dress, m, cf, {
+				Role = if kind == "Patrulla" then "Policia" else "Player",
+				Key = if kind == "Patrulla" then ("%d:%d"):format(math.floor(cf.X / 8), math.floor(cf.Z / 8)) else colorKey(paint),
+				Variant = "Berlina",
+			})
+		end
+	end
 	m.Parent = parent
 	return m
 end

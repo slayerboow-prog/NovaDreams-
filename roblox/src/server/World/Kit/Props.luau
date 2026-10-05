@@ -191,7 +191,13 @@ function Props.car(parent: Instance, cf: CFrame, color: Color3?, variant: string
 		return asset
 	end
 	-- Coche con todo detalle (Kit/CarModel): berlina, compacto o todoterreno
-	return require(script.Parent.CarModel).build(parent, cf, color or Palette.pick(Palette.CarColors), { Name = "ParkedCar", Variant = variant, Lite = true })
+	local car = require(script.Parent.CarModel).build(parent, cf, color or Palette.pick(Palette.CarColors), { Name = "ParkedCar", Variant = variant, Lite = true })
+	-- Carrocería de malla de verdad (Kit/CarBodies), elegida por el sitio; si no carga, la de piezas
+	pcall(function()
+		local p = cf.Position
+		require(script.Parent.CarBodies).dress(car, cf, { Role = "Parked", Key = ("%d:%d"):format(math.floor(p.X / 4), math.floor(p.Z / 4)) })
+	end)
+	return car
 end
 
 -- Tablón de empleo "SE BUSCA" (JobId debe existir en Config.Jobs)

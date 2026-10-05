@@ -37,7 +37,13 @@ CombatFx.Colors = {
 	Dust = rgb(170, 160, 145),
 }
 
-local SPARK = "rbxasset://textures/particles/sparkles_main.dds"
+local SPARK_DEFAULT = "rbxasset://textures/particles/sparkles_main.dds"
+-- La chispa del pack de partículas del dueño (13188926423, World/SkyAssets) si ha cargado
+local function spark(): string
+	local fx = game:GetService("ReplicatedStorage"):FindFirstChild("FxLibrary")
+	local image = fx and fx:GetAttribute("Img_Chispa")
+	return if type(image) == "string" and image ~= "" then image else SPARK_DEFAULT
+end
 local SMOKE = "rbxasset://textures/particles/smoke_main.dds"
 
 local folder: Folder? = nil
@@ -87,7 +93,7 @@ end
 local function sparks(at: Vector3, color: Color3, n: number, speed: number, size: number, texture: string?)
 	local anchor = part({ Name = "Chispas", Size = Vector3.new(0.2, 0.2, 0.2), Transparency = 1, CFrame = CFrame.new(at) })
 	local emitter = Instance.new("ParticleEmitter")
-	emitter.Texture = texture or SPARK
+	emitter.Texture = texture or spark()
 	emitter.Color = ColorSequence.new(color)
 	emitter.LightEmission = 1
 	emitter.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, size), NumberSequenceKeypoint.new(1, 0) })
@@ -243,7 +249,7 @@ function CombatFx.aura(model: Model?, on: boolean, big: boolean?)
 	table.insert(list, attachment)
 	for i, color in { CombatFx.Colors.EnergyGlow, CombatFx.Colors.EnergyCore } do
 		local e = Instance.new("ParticleEmitter")
-		e.Texture = if i == 1 then SMOKE else SPARK
+		e.Texture = if i == 1 then SMOKE else spark()
 		e.Color = ColorSequence.new(color)
 		e.LightEmission = 1
 		e.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, if i == 1 then 2.2 else 0.5), NumberSequenceKeypoint.new(1, 0) })
@@ -280,7 +286,7 @@ function CombatFx.windup(model: Model?, seconds: number?)
 	attachment.Name = "BrilloCarga"
 	attachment.Parent = hand
 	local e = Instance.new("ParticleEmitter")
-	e.Texture = SPARK
+	e.Texture = spark()
 	e.Color = ColorSequence.new(CombatFx.Colors.HitHeavy)
 	e.LightEmission = 1
 	e.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.7), NumberSequenceKeypoint.new(1, 0) })

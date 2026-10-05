@@ -35,6 +35,8 @@ local function download(id: number): Instance?
 	warn(("[Assets] InsertService:LoadAsset(%d) falló: %s"):format(id, tostring(result)))
 	return nil
 end
+-- (también la usan otros módulos que cargan assets sueltos de la Tienda: World/InteriorProps…)
+AssetLoader.download = download
 
 -- Devuelve cuántos packs hay disponibles (ya guardados en el archivo o descargados ahora)
 function AssetLoader.load(): number

@@ -265,6 +265,13 @@ function CarModel.upgrade(model: Model, groundCf: CFrame): boolean
 	end
 	full:Destroy()
 	model:SetAttribute("Lite", false)
+	-- Si tenía carrocería de malla (Kit/CarBodies), se le vuelve a poner la misma
+	local body = model:GetAttribute("CarBody")
+	if type(body) == "string" then
+		pcall(function()
+			require(script.Parent.CarBodies).dress(model, groundCf, { Template = body, Role = "Player" })
+		end)
+	end
 	return true
 end
 

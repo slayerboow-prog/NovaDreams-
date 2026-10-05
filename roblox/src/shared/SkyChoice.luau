@@ -12,7 +12,7 @@
 --     hora, vuelve a poner las caras de siempre.
 --   * El cambio de un cielo a otro se hace en la hora más oscura del crepúsculo (no se nota el salto).
 --
--- Pendiente: los ids de día y de noche se rellenan cuando acabe la revisión de cielos del dueño.
+-- Ids elegidos en la revisión de los assets del dueño (docs/assets-implementados.md).
 -- Candidato de noche revisado: 7485807340 (Hyper-Realistic Night Pack, docs/assets-usuario-3.md). NO
 -- se pone: su Sky lleva la MISMA imagen (83951719, un bosque oscuro) en las 6 caras, también arriba y
 -- sobre el mar: sobre Valmar se verían árboles en el cielo. (Sus scripts tampoco valen: primera persona
@@ -23,8 +23,12 @@ local SkyChoice = {}
 
 export type Slot = "Day" | "Night"
 
-SkyChoice.Day = { Id = 0, Note = "pendiente de la revisión de cielos del dueño" }
-SkyChoice.Night = { Id = 0, Note = "pendiente (7485807340 revisado: no vale, bosque en las 6 caras)" }
+-- Día: el cielo azul con nubes del «Simple Lighting Pack» (8294099223, limpio). Noche: la Vía Láctea
+-- de «Realistic Space Skybox» (136402262, limpio). Del Sky solo se copian las caras: el sol, la luna y
+-- las estrellas siguen siendo los nuestros. Los cielos especiales (tormenta, sueño, Grieta…) los pone
+-- Controllers/SkyExtras encima (shared/SkyExtras).
+SkyChoice.Day = { Id = 8294099223, Note = "Simple Lighting Pack: cielo azul con nubes" }
+SkyChoice.Night = { Id = 136402262, Note = "Realistic Space Skybox: la Vía Láctea (7485807340 no vale: bosque en las 6 caras)" }
 
 SkyChoice.Library = "SkyLibrary" -- carpeta en ReplicatedStorage con los Sky cargados
 SkyChoice.Faces = { "SkyboxBk", "SkyboxDn", "SkyboxFt", "SkyboxLf", "SkyboxRt", "SkyboxUp" }

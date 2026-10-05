@@ -332,7 +332,18 @@ local function named(ctx: Ctx, names: { string }?): { BasePart }
 		return found
 	end
 	for _, child in ctx.children do
-		if child:IsA("BasePart") and table.find(names, child.Name) and string.sub(child.Name, 1, #PREFIX) ~= PREFIX then
+		if child:IsA("BasePart") and table.find(names, child.Name) and string.sub(child.Name, 1, #PREFIX) ~= PREFIX and not child:GetAttribute("CarHidden") then
+			table.insert(found, child)
+		end
+	end
+	return found
+end
+
+-- Piezas de la carrocería de malla (Kit/CarBodies) de una zona («Primary», «Glass»)
+local function meshZone(ctx: Ctx, zone: string): { BasePart }
+	local found = {}
+	for _, child in ctx.children do
+		if child:IsA("BasePart") and child:GetAttribute("CarZone") == zone then
 			table.insert(found, child)
 		end
 	end
@@ -719,6 +730,9 @@ function VehicleBuild.apply(model: Model, build: any, options: { [string]: any }
 		for _, part in named(ctx, zones.Primary) do
 			paintPart(part, color, finish)
 		end
+		for _, part in meshZone(ctx, "Primary") do
+			paintPart(part, color, finish)
+		end
 	end
 	if paint2 then
 		for _, part in named(ctx, zones.Secondary) do
@@ -736,7 +750,11 @@ function VehicleBuild.apply(model: Model, build: any, options: { [string]: any }
 	local tint = build.Tint
 	if kind == "Coche" and type(tint) == "number" and tint >= 1 then
 		local level = VehicleParts.Tints[math.clamp(math.floor(tint), 0, VehicleParts.MaxTint)]
-		for _, part in named(ctx, zones.Glass) do
+		local glass = named(ctx, zones.Glass)
+		for _, part in meshZone(ctx, "Glass") do
+			table.insert(glass, part)
+		end
+		for _, part in glass do
 			if remember(part) then
 				local orig = part:GetAttribute("ModOrigColor")
 				local base = if typeof(orig) == "Color3" then orig else part.Color

@@ -46,6 +46,12 @@ end
 -- El sol, la luna y las estrellas no se tocan.
 local originalFaces: { [string]: string }? = nil
 local skyShown: string? = nil -- "Day" / "Night" / nil (= el de siempre)
+-- Cielo especial encima del de la hora (Controllers/SkyExtras: tormenta, sueño, Grieta…): el nombre de
+-- un Sky de SkyLibrary, "Original" (= el de siempre) o nil (= el de la hora)
+local skyOverride: string? = nil
+function DayLight.setSkyOverride(slot: string?)
+	skyOverride = slot
+end
 local function updateSky(hour: number)
 	local sky = Lighting:FindFirstChildOfClass("Sky")
 	local library = ReplicatedStorage:FindFirstChild(SkyChoice.Library)
@@ -60,7 +66,12 @@ local function updateSky(hour: number)
 			end
 		end
 	end
-	local want = SkyChoice.pick(hour, have)
+	local want: string? = SkyChoice.pick(hour, have)
+	if skyOverride == "Original" then
+		want = nil
+	elseif skyOverride and have[skyOverride] then
+		want = skyOverride
+	end
 	if want == skyShown then
 		return
 	end
@@ -259,6 +270,24 @@ function DayLight.popLayer(id: string, fade: number?)
 		layer.Target = 0
 		layer.Rate = 1 / math.max(fade or 1, 0.05)
 	end
+end
+-- Las capas de cielo puestas ahora mismo (las tablas de shared/SkyMoods, de la más fuerte a la más
+-- floja; solo las que ya se notan). Las usa Controllers/SkyExtras para cambiar también el cielo.
+function DayLight.activeMoods(): { { [string]: any } }
+	local list = {}
+	for _, layer in layers do
+		if layer.W > 0.25 and layer.Target > 0 then
+			table.insert(list, layer)
+		end
+	end
+	table.sort(list, function(a, b)
+		return a.W > b.W
+	end)
+	local out = {}
+	for _, layer in list do
+		table.insert(out, layer.Mood)
+	end
+	return out
 end
 function DayLight.layerWeight(id: string): number
 	local layer = layers[id]
