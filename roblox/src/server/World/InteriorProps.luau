@@ -198,6 +198,13 @@ local function textureOf(p: Instance): string
 	return ""
 end
 
+local function prop(inst: Instance, name: string): string
+	local ok, v = pcall(function()
+		return (inst :: any)[name]
+	end)
+	return if ok and type(v) == "string" then v else ""
+end
+
 local function denied(id: string): boolean
 	local digits = string.match(id or "", "(%d+)")
 	return digits ~= nil and InteriorProps.DenyTextures[digits] == true
@@ -293,7 +300,7 @@ local function keepChild(c: Instance): boolean
 		return true
 	end
 	if c:IsA("Texture") then
-		return not denied((c :: any).Texture)
+		return not denied(prop(c, "Texture"))
 	end
 	return false
 end
@@ -366,7 +373,7 @@ function InteriorProps.clean(source: Instance, name: string, opts: { [string]: a
 		local skip = p:IsA("SpawnLocation") or p.Transparency >= 0.98 or denied(textureOf(p)) or avoided(p, source, o.Avoid)
 		if not skip then
 			for _, c in p:GetChildren() do
-				if c:IsA("SpecialMesh") and denied((c :: any).TextureId) and not o.Rebrand then
+				if c:IsA("SpecialMesh") and denied(prop(c, "TextureId")) and not o.Rebrand then
 					skip = true
 				end
 			end
@@ -429,7 +436,7 @@ function InteriorProps.clean(source: Instance, name: string, opts: { [string]: a
 			end
 			clearExtras(clone)
 			for _, c in clone:GetChildren() do
-				if c:IsA("SpecialMesh") and denied((c :: any).TextureId) then
+				if c:IsA("SpecialMesh") and denied(prop(c, "TextureId")) then
 					(c :: any).TextureId = ""
 				end
 			end

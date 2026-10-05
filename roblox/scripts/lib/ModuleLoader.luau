@@ -131,6 +131,7 @@ local function env(path: string)
 		ColorSequence = roblox.ColorSequence,
 		ColorSequenceKeypoint = roblox.ColorSequenceKeypoint,
 		NumberRange = roblox.NumberRange,
+		Font = roblox.Font,
 		Random = TestRandom,
 		typeof = roblox.typeof or typeof,
 		warn = function(...)

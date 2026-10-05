@@ -445,6 +445,230 @@ do
 	check(overrideOf(w.service, "Asphalt") == "U_Real_Asphalt" and road.Color.R > 0.6 and w.storage:FindFirstChild("UserMaterials") ~= nil, "carga, sustituye, aclara y guarda la biblioteca en ServerStorage.UserMaterials")
 end
 
+print("Texturas antiguas, arena de playa y bronce (World/MaterialExtras)")
+do
+	local tags: { [any]: { [string]: boolean } } = {}
+	local fakeCS = {
+		AddTag = function(_, inst, tag)
+			tags[inst] = tags[inst] or {}
+			tags[inst][tag] = true
+		end,
+	}
+	local fakeGame = {
+		GetService = function(_, name)
+			return if name == "CollectionService" then fakeCS else {}
+		end,
+	}
+	local X = load("src/server/World/MaterialExtras.luau", { game = fakeGame, PhysicalProperties = roblox.PhysicalProperties, workspace = {} })
+	-- Categorías por nombre
+	check(X.categoryOf({ "Wallpaper 2", "Wallpaper" }) == "Papel" and X.categoryOf({ "Part", "Carpet" }) == "Moqueta" and X.categoryOf({ "Ceiling A" }) == "Techo" and X.categoryOf({ "Tile 3", "Interior Roofing" }) == "Techo", "losetas por nombre: papel pintado, moqueta, techo")
+	check(X.categoryOf({ "Sand" }) == "Arena" and X.categoryOf({ "Sandstone" }) == nil and X.categoryOf({ "Bricks" }) == nil and X.categoryOf({ "Wood Carpet" }) == nil, "arena sí, arenisca, ladrillo y madera no (ahí ya hay PBR)")
+	check(X.categoryOf({ "Carpet", "Roblox logo" }) == nil and X.categoryOf({ "Bloxburg Wallpaper" }) == nil, "nada con marca ni de otros juegos")
+	-- Un pack de muestra: carpetas con letrero, losetas con 6 Texture y scripts
+	local function swatchPack(): any
+		local model = Instance.new("Model")
+		local n = 7000
+		for _, folderName in { "Wallpaper", "Carpet", "Bricks", "Interior Roofing", "Logo Carpet" } do
+			local folder = Instance.new("Model")
+			folder.Name = folderName
+			folder.Parent = model
+			for k = 1, 3 do
+				local tile = Instance.new("Part")
+				tile.Name = "Part"
+				tile.Parent = folder
+				n += 1
+				for _, face in { "Top", "Bottom", "Front", "Back", "Left", "Right" } do
+					local t = Instance.new("Texture")
+					t.Texture = "rbxassetid://" .. n
+					t.Face = (Enum.NormalId :: any)[face]
+					t.Parent = tile
+				end
+				local s = Instance.new("Script")
+				s.Name = "TextureAnim"
+				s.Parent = tile
+			end
+		end
+		local readme = Instance.new("Script")
+		readme.Name = "READ ME"
+		readme.Parent = model
+		return model
+	end
+	local pack = swatchPack()
+	local scriptsInside = 0
+	for _, item in pack:GetDescendants() do
+		if item:IsA("LuaSourceContainer") then
+			scriptsInside += 1
+		end
+	end
+	local images = X.harvest(pack)
+	check(scriptsInside == 16 and #images.Papel == 3 and #images.Moqueta == 3 and #images.Techo == 3 and images.Bricks == nil, "de cada loseta, su imagen una vez (sin repetir las 6 caras); sin ladrillo ni la de logo; fuera los 16 scripts")
+	-- Láminas en las salas que vistió InteriorDress
+	local root = Instance.new("Folder")
+	root.Name = "Interiores"
+	local rooms, withPaper, sameRoom, facesOk = {}, 0, true, true
+	for r = 1, 60 do
+		local room = Instance.new("Model")
+		room.Name = "Interior_Casa"
+		room:SetAttribute("Key", "casa" .. r)
+		room.Parent = root
+		local walls = {}
+		for k, name in { "WallBack", "WallLeft" } do
+			local w = Instance.new("Part")
+			w.Name = name
+			w.Size = if k == 1 then roblox.Vector3.new(20, 10, 0.5) else roblox.Vector3.new(0.5, 10, 20)
+			w.MaterialVariant = "U_In_PapelPintado_" .. ((r % 3) + 1)
+			w.Parent = room
+			table.insert(walls, w)
+		end
+		local floor = Instance.new("Part")
+		floor.Name = "Floor"
+		floor.MaterialVariant = "U_In_Parquet_1"
+		floor.Parent = room
+		table.insert(rooms, { walls = walls, floor = floor })
+	end
+	X.dress(root, images, true)
+	for _, rm in rooms do
+		local a, b = rm.walls[1]:GetAttribute("UserLamina"), rm.walls[2]:GetAttribute("UserLamina")
+		if a then
+			withPaper += 1
+			local faces = {}
+			for _, t in rm.walls[1]:GetChildren() do
+				faces[t.Face.Name] = t.Name == "U_Lamina" and t.Texture == a
+			end
+			local side = {}
+			for _, t in rm.walls[2]:GetChildren() do
+				side[t.Face.Name] = true
+			end
+			if not (faces.Front and faces.Back and side.Left and side.Right) or not (tags[rm.walls[1]] and tags[rm.walls[1]].TextureDetail) then
+				facesOk = false
+			end
+		end
+		if a ~= b or #rm.floor:GetChildren() > 0 then
+			sameRoom = false
+		end
+	end
+	check(withPaper > 15 and withPaper < 45, ("papel pintado de los packs en parte de las casas (%d de 60), el resto con el PBR"):format(withPaper))
+	check(sameRoom and facesOk, "toda la sala con el mismo papel, en las dos caras grandes de cada pared, con etiqueta TextureDetail (Bajo: se esconde); el parqué sin lámina")
+	local before = #rooms[1].walls[1]:GetChildren() + #rooms[2].walls[1]:GetChildren() + #rooms[3].walls[1]:GetChildren()
+	X.dress(root, images, true)
+	check(before == #rooms[1].walls[1]:GetChildren() + #rooms[2].walls[1]:GetChildren() + #rooms[3].walls[1]:GetChildren(), "vestir dos veces no repite láminas")
+	check(X.laminaFor("U_In_Moqueta_2") == "Moqueta" and X.laminaFor("U_In_Placas_1") == "Techo" and X.laminaFor("U_In_Pintura_1") == nil and X.laminaFor("U_Mega_Carpet") == nil, "moqueta y placas de techo también; la pintura y lo de fuera, no")
+	-- Arena de la playa
+	local service = Instance.new("MaterialService")
+	local library = Instance.new("Folder")
+	local town = Instance.new("Model")
+	local beach = Instance.new("Part")
+	beach.Name = "Sand"
+	beach.Material = Enum.Material.Sand
+	beach.Parent = town
+	local croissant = Instance.new("Part")
+	croissant.Name = "Croissant"
+	croissant.Material = Enum.Material.Sand
+	croissant.Parent = town
+	local arena = Instance.new("Folder")
+	arena.Name = "Arena"
+	arena.Parent = library
+	local mv = Instance.new("MaterialVariant")
+	mv.Name = "U_Arena_SandReal"
+	mv.BaseMaterial = Enum.Material.Concrete
+	mv:SetAttribute("SourcePack", "Arena")
+	mv.Parent = arena
+	local n, how = X.beach(service, library, town, nil)
+	local sand = roblox.PhysicalProperties.new(Enum.Material.Sand)
+	local phys = beach.CustomPhysicalProperties
+	check(n == 1 and how == "variant" and beach.MaterialVariant == "U_Arena_SandReal" and beach.Material == Enum.Material.Concrete and mv.Parent == service, "arena del dueño sobre hormigón: pieza a pieza en la playa (en MaterialService)")
+	check(phys and math.abs(phys.Density - sand.Density) < 1e-3 and croissant.MaterialVariant == "", "la playa se pisa igual (física de arena); los cruasanes de arena, sin tocar")
+	local beach2 = beach:Clone()
+	beach2.Material = Enum.Material.Sand
+	beach2.MaterialVariant = ""
+	beach2.Parent = Instance.new("Model")
+	local n2, how2 = X.beach(Instance.new("MaterialService"), Instance.new("Folder"), beach2.Parent, { "rbxassetid://9268" })
+	check(n2 == 1 and how2 == "lamina" and beach2:FindFirstChild("U_Lamina") and beach2.U_Lamina.Face == Enum.NormalId.Top, "si la arena solo trae textura: lámina arriba")
+	local service3 = Instance.new("MaterialService")
+	service3:SetAttribute("UserOverride_Sand", "U_Arena_realisticsand")
+	local beach3 = beach2:Clone()
+	beach3.Parent = Instance.new("Model")
+	for _, c in beach3:GetChildren() do
+		c:Destroy()
+	end
+	beach3:SetAttribute("UserLamina", nil)
+	check(X.beach(service3, library, beach3.Parent, { "x" }) == 0 and beach3:FindFirstChild("U_Lamina") == nil, "si la arena del dueño ya es la de toda la ciudad, no se toca nada más")
+	-- Bronce
+	local function bronzePack(): any
+		local model = Instance.new("Model")
+		for _, folderName in { "Spheres", "Blocks" } do
+			local folder = Instance.new("Folder")
+			folder.Name = folderName
+			folder.Parent = model
+			for _, name in { "Bare Bronze", "Statue Bronze", "Clean Bronze" } do
+				local m = Instance.new("MeshPart")
+				m.Name = name
+				local sa = Instance.new("SurfaceAppearance")
+				sa.Parent = m
+				local s = Instance.new("Script")
+				s.Parent = m
+				m.Parent = folder
+			end
+		end
+		return model
+	end
+	local templates = X.bronzeTemplates(bronzePack())
+	local museum = Instance.new("Model")
+	local plaque = Instance.new("Part")
+	plaque.Name = "Plaque"
+	plaque.Size = roblox.Vector3.new(0.3, 0.6, 1.2)
+	plaque.CFrame = roblox.CFrame.new(5, 3.5, 2)
+	plaque.Parent = museum
+	local sculpture = Instance.new("Part")
+	sculpture.Name = "Sculpture"
+	sculpture.Size = roblox.Vector3.new(3, 12, 3)
+	sculpture.Parent = museum
+	local painting = Instance.new("Part")
+	painting.Name = "Painting"
+	painting.Parent = museum
+	local count = X.dressBronze(museum, templates)
+	local bronzes = {}
+	for _, item in museum:GetChildren() do
+		if item.Name == "Bronce" then
+			table.insert(bronzes, item)
+		end
+	end
+	local scripts = 0
+	for _, b in bronzes do
+		for _, item in b:GetDescendants() do
+			if item:IsA("LuaSourceContainer") then
+				scripts += 1
+			end
+		end
+	end
+	local plaqueMesh = nil
+	for _, b in bronzes do
+		if b.Size == plaque.Size and b.CFrame == plaque.CFrame then
+			plaqueMesh = b
+		end
+	end
+	check(#templates == 6 and count == 2 and #bronzes == 2 and scripts == 0, "placa y escultura con su bronce PBR (sin scripts); el cuadro no")
+	check(plaqueMesh and plaqueMesh.CanCollide == false and plaqueMesh:FindFirstChildWhichIsA("SurfaceAppearance") ~= nil and tags[plaqueMesh] and tags[plaqueMesh].BuildingMesh, "el bronce va con la talla y el sitio de la placa, sin chocar, y se esconde en Bajo")
+	check(plaque.Transparency == 1 and tags[plaque] and tags[plaque].BuildingShell and plaque.CanCollide, "la placa de antes se queda (choca igual) y solo se ve en Bajo")
+	check(X.pickBronze(templates, "Plaque").Name == "Clean Bronze" and X.pickBronze(templates, "Sculpture").Name == "Statue Bronze" and X.pickBronze(templates, "Plaque").Parent == nil, "placas de bronce limpio, escultura de bronce de estatua (bloques, no esferas)")
+	X.dressBronze(museum, templates)
+	local again = 0
+	for _, item in museum:GetChildren() do
+		if item.Name == "Bronce" then
+			again += 1
+		end
+	end
+	check(again == 2, "vestir dos veces no repite el bronce")
+	-- Fallos
+	local okFail = pcall(function()
+		local result = X.start(service, library, function()
+			error("HTTP 403")
+		end, function() end, { town })
+		assert(result and next(result.Images) == nil and #result.Templates == 0)
+	end)
+	check(okFail, "si no carga ningún pack (o da error), sigue sin errores y no pone nada")
+end
+
 print("Cableado")
 do
 	local main = fs.readFile("src/server/Main.server.luau")
@@ -452,6 +676,8 @@ do
 	check(fs.readFile("src/server/World/Kit/MaterialLook.luau"):find("UserMaterialChoice.attribute", 1, true) ~= nil, "MaterialLook respeta el atributo de los del dueño")
 	local src = fs.readFile("src/server/World/UserMaterials.luau")
 	check(src:find("LoadAssetAsync", 1, true) and src:find("InsertService:LoadAsset", 1, true), "carga con LoadAssetAsync y, si falla, InsertService")
+	check(src:find("MaterialExtras", 1, true) ~= nil, "UserMaterials arranca MaterialExtras después de los interiores")
+	check(fs.readFile("src/client/Controllers/MaterialDetail.luau"):find("TextureDetail", 1, true) ~= nil, "MaterialDetail esconde las láminas en gráficos Bajo")
 end
 
 print("")

@@ -24,6 +24,9 @@
 --     las naves pieza a pieza (World/HouseDress, shared/HouseLook): los overrides de Plaster y
 --     ClayRoofTiles no se pueden poner en un servidor real (sus variants vienen sobre otro material).
 --   * Y después, los interiores (suelos, paredes, techos…): World/InteriorDress, shared/InteriorLook.
+--   * Por último lo que no es MaterialVariant (texturas antiguas, arena, bronce): World/MaterialExtras.
+--   * Packs extra (UserMaterialChoice.ExtraPacks: PBR_Textures, ALL MATERIALS, la arena realista):
+--     respaldo y variedad de las fachadas, interiores y calles; la arena, primera en la playa.
 --   * Si no carga ningún pack (o falla todo), no se cambia nada: siguen nuestras texturas.
 
 local AssetService = game:GetService("AssetService")
@@ -356,6 +359,18 @@ function UserMaterials.start(load: ((number) -> Instance?)?, dress: ((Instance, 
 		end)
 		if not ok then
 			warn("[UserMaterials] interiores: " .. tostring(err))
+		end
+	end
+	-- Lo que no son MaterialVariant: láminas de los packs de texturas antiguas (papel pintado, moqueta,
+	-- techos), la arena de la playa pieza a pieza y el bronce PBR de placas y esculturas
+	-- (World/MaterialExtras). Después de los interiores: las láminas van sobre lo que ellos vistieron.
+	local extras = script and script.Parent and script.Parent:FindFirstChild("MaterialExtras")
+	if extras then
+		local ok, err = pcall(function()
+			require(extras :: any).start(game:GetService("MaterialService"), library, load or download)
+		end)
+		if not ok then
+			warn("[UserMaterials] extras: " .. tostring(err))
 		end
 	end
 	if #applied == 0 then
