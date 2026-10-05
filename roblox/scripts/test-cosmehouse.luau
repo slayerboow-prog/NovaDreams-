@@ -1,7 +1,8 @@
 -- Prueba de la casa de Cosme (World/CosmeHouse) FUERA de Roblox, con Lune.
 --
 -- Uso (desde la carpeta roblox/):
---   lune run scripts/test-cosmehouse.luau
+--   lune run scripts/test-cosmehouse.luau [mapa.rbxl]
+--   (con un mapa construido —rojo build + scripts/build-place.luau— mira también la casa de verdad)
 --
 -- Construye la casa entera en una carpeta (como scripts/build-place.luau) y comprueba:
 --   * están todas las habitaciones del encargo (docs/historia/casa-cosme.md) y ninguna está vacía
@@ -731,6 +732,36 @@ check(#oldSign == 0, "nadie construye ya el cartel «TALLER DE COSME»" .. (if #
 local region = fs.readFile("src/server/World/Region.luau")
 check(region:find("function Region.cosmeSite", 1, true) ~= nil and fs.readFile("src/server/World/TerrainBuilder.luau"):find("CosmeHouse.Exterior", 1, true) ~= nil, "la parcela sale de Region.cosmeSite y el terreno se vacía donde va el sótano")
 check(fs.readFile("src/server/Main.server.luau"):find("CosmeHouse.Start", 1, true) ~= nil, "el servidor pone en marcha la casa (CosmeHouse/Start)")
+
+-- Con un mapa construido (rojo build + scripts/build-place.luau): la casa de verdad del juego
+local placePath = process.args[1]
+if placePath then
+	print("\n▶ El mapa construido (" .. placePath .. ")")
+	local game = roblox.deserializePlace(fs.readFile(placePath))
+	local ws = game:GetService("Workspace")
+	local houses, oldGarage, oldSign = {}, 0, {}
+	for _, d in ws:GetDescendants() do
+		if d:IsA("Model") and d.Name == "CasaCosme" then
+			table.insert(houses, d)
+		elseif d:IsA("Model") and d.Name == "GarajeCosme" and d:FindFirstChild("StorySpot_GarajeCosme") then
+			oldGarage += 1
+		elseif d:IsA("TextLabel") and string.upper(d.Text):find("TALLER DE COSME", 1, true) then
+			table.insert(oldSign, d:GetFullName())
+		end
+	end
+	check(#houses == 1, ("una sola casa de Cosme en el mapa (%d)"):format(#houses))
+	check(oldGarage == 0 and #oldSign == 0, "ni rastro del garaje viejo en el mapa (ningún «TALLER DE COSME»)" .. (if #oldSign > 0 then ": " .. oldSign[1] else ""))
+	local h = houses[1]
+	if h then
+		local cars = 0
+		for _, d in h:GetDescendants() do
+			if d:IsA("Model") and d:HasTag("FutureCar") then
+				cars += 1
+			end
+		end
+		check(h:FindFirstChild("CupulaObservacion", true) ~= nil and h:FindFirstChild("TorrePortal", true) ~= nil and cars >= 2, ("la casa del mapa trae la torre redonda, la torre del vórtice y los coches (%d)"):format(cars))
+	end
+end
 
 print("")
 if L.failures > 0 then
