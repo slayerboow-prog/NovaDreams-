@@ -505,7 +505,8 @@ function BattlePassService.claimAll(player: Player, onlyTrack: string?): { { [st
 				if not set[tostring(level)] then
 					local ok, _, def = BattlePassService.claim(player, track, level)
 					if ok then
-						table.insert(given, { Level = level, Track = track, Id = if def then def.Id else nil, Name = if def then def.Name else nil, Icon = if def then def.Icon else nil })
+						table.insert(given, { Level = level, Track = track, Id = if def then def.Id else nil, Name = if def then def.Name else nil, Icon = if def then def.Icon else nil,
+							Rarity = if def then def.Rarity else nil, Type = if def then def.Type else nil, Amount = if def then def.Amount else nil })
 					end
 				end
 			end
@@ -788,14 +789,15 @@ function BattlePassService.handle(player: Player, action: any, a: any, b: any, c
 		BattlePassService.push(player, true)
 	elseif action == "Claim" then
 		local ok, code, def = BattlePassService.claim(player, a, b)
-		result(player, action, ok, code, { Track = a, Level = b, Reward = if def then { Id = def.Id, Name = def.Name, Icon = def.Icon, Rarity = def.Rarity } else nil })
-		if ok then
+		result(player, action, ok, code, { Track = a, Level = b, Reward = if def then { Id = def.Id, Name = def.Name, Icon = def.Icon, Rarity = def.Rarity, Type = def.Type, Amount = def.Amount, Track = a, Level = b } else nil })
+		-- (con la interfaz del pase abierta sale su cofre con la recompensa: aquí no hace falta el aviso)
+		if ok and not uiToasts[player] then
 			notify(player, "Success", ("🎁 ¡Recompensa: %s!"):format(if def then def.Name else "compensación"))
 		end
 	elseif action == "ClaimAll" then
 		local given = BattlePassService.claimAll(player)
 		result(player, action, #given > 0, if #given > 0 then nil else "Locked", { Given = given })
-		if #given > 0 then
+		if #given > 0 and not uiToasts[player] then
 			notify(player, "Success", ("🎁 %d recompensa%s reclamada%s"):format(#given, if #given == 1 then "" else "s", if #given == 1 then "" else "s"))
 		end
 	elseif action == "Buy" then
