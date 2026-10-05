@@ -214,6 +214,50 @@ local function euroCar(name: string, parent: Instance)
 	return car
 end
 
+-- Coche del importador 3D de Roblox: la carrocería es una MeshPart y lo demás cuelga DENTRO de ella
+-- (cristal, interior y ruedas). Así venían casi todos los del «mesh pack» en un servidor de verdad, y
+-- antes no se encontraban (salía 1 europeo de 11).
+local function euroImported(name: string, parent: Instance)
+	local body = mesh(name, Vector3.new(14, 4.2, 6.9), CFrame.new(0, 2.9, 0), WHITE, parent, { TextureID = "rbxassetid://9001" })
+	mesh("Object_2", Vector3.new(7, 1.6, 6.2), CFrame.new(1, 4.4, 0), Color3.fromRGB(20, 20, 20), body, { TextureID = "rbxassetid://9002", Transparency = 0.3 })
+	for _, x in { -3.4, 4.6 } do
+		for _, z in { -2.8, 2.8 } do
+			mesh("wheel.036_0", Vector3.new(2.3, 2.3, 1), CFrame.new(x, 1.15, z), Color3.fromRGB(20, 20, 20), body)
+		end
+	end
+	return body
+end
+
+-- A-Chassis metido en otra carpeta: el coche de dentro se llama «Chassis» y el nombre de verdad
+-- está fuera (así se perdía el Camry)
+local function aChassisNested(name: string, size: Vector3, parent: Instance)
+	local outer = mk("Model", { Name = name }, parent)
+	aChassis("Chassis", size, outer)
+	return outer
+end
+
+-- Pick-up cuyos paneles están en «Misc» y no en «Body» (en Body solo molduras y luces): con solo
+-- Body saldría una camioneta invisible
+local function pickupMisc(name: string, size: Vector3, parent: Instance)
+	local car = mk("Model", { Name = name }, parent)
+	local W, H, L = size.X, size.Y, size.Z
+	local body = mk("Model", { Name = "Body" }, car)
+	mesh("Trim", Vector3.new(W, 0.3, 0.4), CFrame.new(0, H * 0.3, -L / 2), Color3.fromRGB(200, 200, 205), body)
+	mesh("Lamp", Vector3.new(W * 0.8, 0.4, 0.3), CFrame.new(0, H * 0.45, -L / 2), Color3.fromRGB(250, 250, 240), body, { Material = Enum.Material.Neon })
+	mesh("Window", Vector3.new(W * 0.8, H * 0.25, L * 0.3), CFrame.new(0, H * 0.82, -L * 0.1), Color3.fromRGB(20, 30, 40), body, { Transparency = 0.5 })
+	local misc = mk("Model", { Name = "Misc" }, car)
+	mesh("Paint", Vector3.new(W, H * 0.5, L), CFrame.new(0, H * 0.4, 0), Color3.fromRGB(150, 30, 30), misc)
+	mesh("Paint", Vector3.new(W * 0.9, H * 0.35, L * 0.35), CFrame.new(0, H * 0.8, -L * 0.1), Color3.fromRGB(150, 30, 30), misc)
+	local wheels = mk("Model", { Name = "Wheels" }, car)
+	for _, wn in { { "FL", -1, -1 }, { "FR", 1, -1 }, { "RL", -1, 1 }, { "RR", 1, 1 } } do
+		local w = mk("Part", { Name = wn[1], Size = Vector3.new(1.2, 3, 3), CFrame = CFrame.new(wn[2] * (W / 2 - 0.6), 1.5, wn[3] * L * 0.32) }, wheels)
+		local parts = mk("Model", { Name = "Parts" }, w)
+		mesh("Rim", Vector3.new(1, 2, 2), w.CFrame, Color3.fromRGB(200, 200, 200), parts)
+	end
+	mk("VehicleSeat", { Name = "DriveSeat", CFrame = CFrame.new(-1.5, 2, -2) }, car)
+	return car
+end
+
 local function packs(): { [number]: Instance }
 	local out = {}
 	out[6418239833] = officialPack("Sedan", { { "Sedan (aqua)", AQUA }, { "Sedan (red)", RED } }, Vector3.new(8.6, 6.2, 20.6), 1)
@@ -223,17 +267,29 @@ local function packs(): { [number]: Instance }
 	out[6418230807] = officialPack("Police Car", { { "Police Car", WHITE } }, Vector3.new(9.4, 6.5, 21.1), 1)
 	local semi = mk("Model", { Name = "Semi-Realistic Car Pack" })
 	local folder = mk("Folder", { Name = "Cars" }, semi)
-	aChassis("2008 Toyota Camry LE", Vector3.new(8.6, 6.4, 21.3), folder)
+	aChassisNested("2008 Toyota Camry LE", Vector3.new(8.6, 6.4, 21.3), folder)
 	aChassis("1989 GMC Suburban", Vector3.new(8.8, 8.2, 22), folder)
-	aChassis("1998 Chevrolet Silverado C1500", Vector3.new(9.2, 8, 23), folder)
+	pickupMisc("1998 Chevrolet Silverado C1500", Vector3.new(9.2, 8, 23), folder)
+	-- Deportivos (para los coches del pase) y el de «Protector» que no se usa
+	aChassis("1998 Toyota Supra RZ Turbo", Vector3.new(8.1, 5.5, 18.6), folder)
+	aChassis("1995 Nissan Silvia S14 Zenki", Vector3.new(8.8, 5.6, 19.6), folder)
+	aChassis("2015 Dodge Challenger SRT Hellcat Redeye", Vector3.new(8.6, 5.3, 17.9), folder)
+	aChassis("2012 Dodge Challenger SRT-8", Vector3.new(8.7, 5.5, 20.6), folder)
+	aChassis("1969 Dodge Charger R/T", Vector3.new(8.8, 5.5, 20.8), folder)
+	aChassis("1969 Pontiac Firebird Formula 400", Vector3.new(8.8, 5.7, 20.5), folder)
+	aChassis("1991 Toyota Supra MK3 Turbo", Vector3.new(8.7, 5.4, 19.0), folder)
 	aChassis("1986 Toyota Corolla AE86 Sprinter Trueno", Vector3.new(8.5, 5.8, 17.8), folder)
 	aChassis("1958 Plymouth Fury", Vector3.new(9.4, 6.9, 22.3), folder)
 	aChassis("1999 Nissan Skyline R34 GT-R", Vector3.new(8.5, 5.4, 20.6), folder)
 	out[9432856072] = semi
+	-- (como en el servidor: 8 coches del importador sueltos y 3 modelos; uno sin nombre útil)
 	local euro = mk("Model", { Name = "mesh pack" })
-	for _, n in { "206_4", "Hiace_9", "Astra_19", "Golf_24" } do
-		euroCar(n, euro)
+	for _, n in { "206_4", "Hiace_9", "Astra_19", "Almera_39", "Avensis_14", "AClass_34", "Vectra_49", "Golf_24" } do
+		euroImported(n, euro)
 	end
+	euroCar("Volkswagen Sharan 1995", euro)
+	euroCar("Object_77", euro)
+	euroCar("nissan primera", euro)
 	out[97902046131324] = euro
 	local chp = mk("Model", { Name = "CHP pack" })
 	aChassis("CHP Charger", Vector3.new(9, 8.3, 19.9), chp)
@@ -402,7 +458,33 @@ end
 check(#lib >= 15, ("plantillas: %d (oficiales, Semi-Realistic, europeos y patrulla)"):format(#lib))
 check(names["Aurea Berlina"] and names["Kestrel Sierra"] and names["Toro Faena"] and names["Brisa Carga"] and names["Valmar Patrulla"], "las 5 oficiales (sedán, SUV, pick-up, furgoneta, policía)")
 check(names["Aurea Serena"] and names["Kestrel Ranchera"] and names["Toro Campo"] and names["Brisa Sprint"] and names["Valmar Clásico"], "las 5 del Semi-Realistic Car Pack")
-check(names["Brisa Uno"] and names["Toro Reparto"] and names["Aurea Nube"] and names["Brisa Ola"], "los europeos del «mesh pack»")
+local euroAll = true
+for _, n in { "Brisa Uno", "Toro Reparto", "Aurea Nube", "Kestrel Alba", "Aurea Paseo", "Valmar Mini", "Kestrel Vela", "Brisa Ola", "Toro Familia", "Toro Familia Plus", "Kestrel Lince" } do
+	if not names[n] then
+		euroAll = false
+		print("    falta " .. n)
+	end
+end
+check(euroAll, "los 11 europeos del «mesh pack» (también los del importador: malla dentro de malla, y nombres con marca)")
+check(names["Aurea Serena"] ~= nil, "el Camry metido en otra carpeta («…Camry LE/Chassis») se encuentra por el nombre de fuera")
+check(names["Toro Campo"] and names["Toro Campo"]:GetAttribute("Cover") >= CarBodies.MinCover, ("pick-up con los paneles fuera de «Body»: se mira el coche entero (tapa el %s)"):format(tostring(names["Toro Campo"] and names["Toro Campo"]:GetAttribute("Cover"))))
+local sports = 0
+for _, t in lib do
+	local roles = t:GetAttribute("Roles")
+	if roles == "Sport" then
+		sports += 1
+	end
+end
+check(sports == 6, ("6 deportivos para el pase (y no el de «Protector»): %d"):format(sports))
+do
+	local ghost = mk("Model", { Name = "Ghost Van" })
+	local gb = mk("Model", { Name = "Body" }, ghost)
+	mesh("Window", Vector3.new(7, 2, 8), CFrame.new(0, 5, 0), Color3.fromRGB(20, 30, 40), gb, { Transparency = 0.5 })
+	mesh("Lamp", Vector3.new(6, 0.4, 0.3), CFrame.new(0, 3, -9), WHITE, gb, { Material = Enum.Material.Neon })
+	mesh("Trim", Vector3.new(7, 0.3, 0.3), CFrame.new(0, 2, 9), WHITE, gb)
+	local gm, why = CarBodies.template(ghost, { Name = "Fantasma", Brand = "TORO", Type = "Furgoneta" }, 1)
+	check(gm == nil and type(why) == "string" and string.find(why, "invisible", 1, true) ~= nil, "una carrocería con solo cristales y luces no se usa (saldría una furgoneta invisible): " .. tostring(why))
+end
 check(names["Valmar Patrulla Clásica"] ~= nil, "la patrulla clásica (un solo coche del pack de policía)")
 local skylineUsed = false
 for _, t in lib do
@@ -813,6 +895,221 @@ for _, p in mine:GetChildren() do
 end
 check(mineTires == 12, ("tu coche: la rueda completa de malla en las 4 ruedas (%d piezas)"):format(mineTires))
 
+---------------------------------------------------------------------
+print("▶ Aparcamientos: TODOS los coches con malla y variados")
+local Props = load("src/server/World/Kit/Props")
+local town = Instance.new("Folder")
+town.Name = "Town"
+local lotM = Instance.new("Model")
+lotM.Name = "Parking"
+lotM.Parent = town
+for i = 0, 29 do
+	Props.car(lotM, CFrame.new(1000 + (i % 10) * 10, 0.4, 500 + math.floor(i / 10) * 18))
+end
+for r = 1, 50 do
+	local row = Instance.new("Folder")
+	row.Name = "Calle" .. r
+	row.Parent = town
+	for i = 1, 8 do
+		Props.car(row, CFrame.new(-2000 + r * 40, 0.4, i * 16) * CFrame.Angles(0, math.pi / 2, 0))
+	end
+end
+local parkedAll, parkedMesh, near, nearMesh = 0, 0, 0, 0
+local playerAt = Vector3.new(1050, 0, 520)
+local partsSum = 0
+for _, m in town:GetDescendants() do
+	if m:IsA("Model") and m.Name == "ParkedCar" then
+		parkedAll += 1
+		local has = m:GetAttribute("CarBody") ~= nil
+		if has then
+			parkedMesh += 1
+			local t = names[m:GetAttribute("CarBody")]
+			partsSum += t and t:GetAttribute("Parts") or 0
+		end
+		local body = m:FindFirstChild("Body")
+		if body and (body.CFrame.Position - playerAt).Magnitude < 768 then
+			near += 1
+			if has then
+				nearMesh += 1
+			end
+		end
+	end
+end
+check(parkedAll == 430 and parkedMesh == parkedAll, ("todos los aparcados con malla, sin tope de 320 (%d de %d)"):format(parkedMesh, parkedAll))
+check(near >= 30 and nearMesh == near, ("los aparcados cerca de un jugador (radio de StreamingEnabled): %d de %d con malla"):format(nearMesh, near))
+local lotBodies, lotPaints, lotN = {}, {}, 0
+for _, m in lotM:GetChildren() do
+	if m.Name == "ParkedCar" then
+		lotN += 1
+		lotBodies[m:GetAttribute("CarBody") or "?"] = true
+		lotPaints[tostring(m:GetAttribute("Paint"))] = true
+	end
+end
+local distinctLot, distinctPaint = 0, 0
+for _ in lotBodies do
+	distinctLot += 1
+end
+for _ in lotPaints do
+	distinctPaint += 1
+end
+check(distinctLot >= 8, ("variedad en un aparcamiento: %d carrocerías distintas en %d coches"):format(distinctLot, lotN))
+check(distinctPaint >= 6, ("y colores variados: %d"):format(distinctPaint))
+local allBodies = {}
+for _, m in town:GetDescendants() do
+	if m.Name == "ParkedCar" and m:GetAttribute("CarBody") then
+		allBodies[m:GetAttribute("CarBody")] = true
+	end
+end
+local civil, civilSeen = 0, 0
+for _, t in lib do
+	local roles = t:GetAttribute("Roles")
+	if type(roles) == "string" and table.find(string.split(roles, ","), "Parked") then
+		civil += 1
+		if allBodies[t.Name] then
+			civilSeen += 1
+		end
+	end
+end
+check(civilSeen == civil, ("en la ciudad salen todas las carrocerías de aparcado (%d de %d)"):format(civilSeen, civil))
+check(parkedMesh > 0 and partsSum / parkedMesh <= 22, ("los aparcados prefieren las ligeras: %.1f piezas por coche de media"):format(partsSum / math.max(parkedMesh, 1)))
+local anyParked = lotM:FindFirstChild("ParkedCar")
+check(anyParked:HasTag("CarMeshBody"), "los coches con malla llevan la etiqueta CarMeshBody (el cliente vigila que se vean)")
+check(#brandHits(town) == 0, "aparcados sin marcas")
+
+---------------------------------------------------------------------
+print("▶ Tráfico en gráficos Bajo: malla ligera, no cajas")
+local liteF = amb:FindFirstChild("CarsMeshLite")
+check(liteF and #liteF:GetChildren() == Ambient.LITE_CARS, "Ambient.CarsMeshLite: plantillas para gráficos Bajo")
+local lightest = CarBodies.lightest("Traffic")
+local liteOk, liteNames = true, {}
+for _, m in liteF and liteF:GetChildren() or {} do
+	local t = names[m:GetAttribute("CarBody") or ""]
+	liteNames[m:GetAttribute("CarBody") or "?"] = true
+	if not t or not table.find(lightest, t) or not m:FindFirstChild("CarShell") and not m:FindFirstChild("CarTrim") then
+		liteOk = false
+	end
+end
+check(liteOk and #lightest > 0, "en Bajo, solo las carrocerías más ligeras (y con malla)")
+check(string.find(traffic, "CarsMeshLite", 1, true) ~= nil, "el tráfico del cliente usa CarsMeshLite en gráficos Bajo")
+check(string.find(traffic, "CarMeshBody", 1, true) ~= nil and string.find(traffic, "showBox", 1, true) ~= nil, "el cliente vuelve a enseñar la caja si la malla de un coche no carga")
+
+---------------------------------------------------------------------
+print("▶ Coches del pase de temporada con malla de verdad")
+local PremiumVehicles = load("src/shared/PremiumVehicles")
+local premiumCars = {}
+for _, id in PremiumVehicles.List do
+	local v = PremiumVehicles.get(id)
+	if v.Kind ~= "Coche" then
+		continue
+	end
+	local t = CarBodies.premiumTemplate(v)
+	check(t ~= nil and t.Name == v.Bodies[1] and t:GetAttribute("Roles") == "Sport", ("%s -> %s"):format(v.Name, tostring(t and t.Name)))
+	local car = Rides.build("Coche", nil, CF, nil, { Model = id })
+	premiumCars[id] = car
+	check(car:GetAttribute("CarBody") == (t and t.Name) and car:GetAttribute("PremiumBody") == true and car:GetAttribute("PremiumModel") == id, v.Name .. ": Rides.build lleva la malla deportiva")
+	local paint = Color3.fromRGB(v.Paint[1], v.Paint[2], v.Paint[3])
+	local shells, painted = 0, 0
+	local procVisible = {}
+	local wheelsVisible, rims = 0, 0
+	for _, p in car:GetChildren() do
+		if p:IsA("BasePart") then
+			if p:GetAttribute("CarZone") == "Primary" then
+				shells += 1
+				if p.Color == paint then
+					painted += 1
+				end
+			end
+			if (p.Name == "Panel" or p.Name == "Wing" or p.Name == "Spoiler" or p.Name == "Roof" or p.Name == "Livery" or p.Name == "Windshield") and p.Transparency < 1 then
+				table.insert(procVisible, p.Name)
+			end
+			if p.Name == "Wheel" and p.Transparency == 0 then
+				wheelsVisible += 1
+			elseif p.Name == "Rim" then
+				rims += 1
+			end
+		end
+	end
+	check(shells > 0 and painted == shells, ("%s: pintura del pase en la malla (%d piezas)"):format(v.Name, shells))
+	check(#procVisible == 0, v.Name .. ": nada de la carrocería de piezas se ve " .. table.concat(procVisible, ","))
+	check(wheelsVisible == 4 and rims >= 4, v.Name .. ": sus ruedas con llantas de verdad")
+	local tier = PremiumVehicles.TierLook[v.Rarity]
+	local hasChrome, hasGlow, hasUnder = car:FindFirstChild("PremiumChrome") ~= nil, car:FindFirstChild("GlowLine") ~= nil, car:FindFirstChild("Underglow") ~= nil
+	check(hasChrome == (tier.Chrome == true) and (hasGlow or not tier.GlowLines) and (hasUnder or not tier.Underglow), ("%s (%s): cromo %s, líneas de luz %s, neón bajo %s"):format(v.Name, v.Rarity, tostring(hasChrome), tostring(hasGlow), tostring(hasUnder)))
+	local head = car:FindFirstChild("Headlight")
+	local plo = meshBounds(car, CF)
+	check(head and math.abs(localOf(head, CF).Z - plo.Z) < 1.2, v.Name .. ": faros en el morro de la malla")
+	check(#brandHits(car) == 0, v.Name .. ": sin marcas " .. table.concat(brandHits(car), " | "))
+end
+local voltex = premiumCars.VoltexGTR
+Rides.prepare(voltex, "Coche", CF)
+local loose = 0
+for _, p in voltex:GetChildren() do
+	if p:IsA("BasePart") and p:GetAttribute("CarMesh") and p.Anchored then
+		loose += 1
+	end
+end
+check(loose == 0, "el coche del pase preparado para conducir: la malla va soldada")
+local moto = Rides.build("Moto", nil, CF, nil, { Model = "Storm" })
+check(moto:GetAttribute("CarBody") == nil and moto:GetAttribute("PremiumModel") == "Storm", "las motos del pase siguen siendo de piezas")
+local bpService = fs.readFile("src/server/Services/BattlePassService.luau")
+check(string.find(bpService, "Rides.build(def.Kind", 1, true) ~= nil and string.find(bpService, "Model = def.Model", 1, true) ~= nil, "las vistas previas del pase (BattlePassPreviews) se hacen con Rides.build: el mismo coche con malla")
+
+---------------------------------------------------------------------
+print("▶ Ningún vehículo invisible")
+local function visibleMesh(m: Instance): boolean
+	local opaque = {}
+	for _, p in m:GetChildren() do
+		if p:IsA("BasePart") and p:GetAttribute("CarMesh") and p.Transparency < 0.5 and p:GetAttribute("CarZone") ~= "Glass" and p.Name ~= "TireMesh" and p.Name ~= "CarBadge" and p:GetAttribute("CarZone") ~= "Accent" then
+			table.insert(opaque, p)
+		end
+	end
+	return #opaque > 0 and CarBodies.coverage(opaque) >= CarBodies.MinCover
+end
+local function anyVisible(m: Instance): boolean
+	for _, p in m:GetDescendants() do
+		if p:IsA("BasePart") and p.Transparency < 0.5 and math.max(p.Size.X, p.Size.Y, p.Size.Z) >= 3 then
+			return true
+		end
+	end
+	return false
+end
+local invisible = {}
+local vehicles = {}
+for _, m in town:GetDescendants() do
+	if m.Name == "ParkedCar" then
+		table.insert(vehicles, m)
+	end
+end
+for _, f in { meshF, liteF, heavyF } do
+	for _, m in f and f:GetChildren() or {} do
+		table.insert(vehicles, m)
+	end
+end
+for _, m in { parked, mine, patrol, bus, up, euroCarModel } do
+	table.insert(vehicles, m)
+end
+for _, m in premiumCars do
+	table.insert(vehicles, m)
+end
+local origOk = true
+for _, m in vehicles do
+	if m:GetAttribute("CarBody") and not visibleMesh(m) then
+		table.insert(invisible, m.Name .. "(" .. tostring(m:GetAttribute("CarBody")) .. ")")
+	elseif not anyVisible(m) then
+		table.insert(invisible, m.Name)
+	end
+	for _, p in m:GetChildren() do
+		if p:IsA("BasePart") and p:GetAttribute("CarHidden") and m:GetAttribute("Kind") ~= "Pesado" and type(p:GetAttribute("CarOrigT")) ~= "number" then
+			origOk = false
+		end
+	end
+end
+check(#invisible == 0, ("cada vehículo tiene una carrocería que se ve (%d mirados) %s"):format(#vehicles, table.concat(invisible, ", "):sub(1, 200)))
+check(origOk, "cada pieza escondida guarda cómo era (CarOrigT) para volver a verse si la malla no carga")
+for _, t in lib do
+	check((t:GetAttribute("Cover") or 0) >= CarBodies.MinCover, ("%s: la carrocería tapa su silueta (%.2f)"):format(t.Name, t:GetAttribute("Cover") or 0))
+end
+
 print("▶ Rendimiento")
 local over = {}
 for _, t in lib do
@@ -836,7 +1133,7 @@ for _, t in lib do
 	end
 end
 check(shadows == 0, "sin sombras en las piezas pequeñas")
-check(string.find(traffic, "CarsMesh", 1, true) and string.find(traffic, '"Low"', 1, true), "el tráfico usa CarsMesh y vuelve a la carrocería simple en gráficos Bajo")
+check(string.find(traffic, "CarsMesh", 1, true) and string.find(traffic, '"Low"', 1, true), "el tráfico usa CarsMesh (y CarsMeshLite en gráficos Bajo)")
 local src = fs.readFile("src/server/World/Kit/CarBodies.luau")
 check(string.find(src, "pcall", 1, true) and string.find(src, "LoadAssetAsync", 1, true), "carga en vivo con pcall (AssetService)")
 for _, id in { 9432856072, 10935800149, 10897563593, 97902046131324, 4573650411, 15418880736, 18912826861, 16893586720, 130974691456028, 18577576400, 131247677717086, 16358361587, 95641562400547, 4128265113, 17601139281, 8448337398 } do

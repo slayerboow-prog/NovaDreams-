@@ -745,23 +745,13 @@ end
 -- Arranque en el servidor
 ---------------------------------------------------------------------
 
--- Carga un modelo: AssetService:LoadAssetAsync (también los de la comunidad) y, si falla,
--- InsertService:LoadAsset (solo los oficiales). nil si no hay manera.
+-- Carga un modelo con el cargador compartido (World/AssetLoader: AssetService:LoadAssetAsync, también
+-- los de la comunidad, y si falla InsertService:LoadAsset; con reintentos y cola). nil si no hay manera.
 function Buildings3D.loadAsset(id: number): Instance?
 	local ok, asset = pcall(function()
-		return (game:GetService("AssetService") :: any):LoadAssetAsync(id)
+		return require(script.Parent.AssetLoader).download(id)
 	end)
-	if ok and typeof(asset) == "Instance" then
-		return asset
-	end
-	local ok2, asset2 = pcall(function()
-		return game:GetService("InsertService"):LoadAsset(id)
-	end)
-	if ok2 and typeof(asset2) == "Instance" then
-		return asset2
-	end
-	warn(("[Buildings3D] No se pudo cargar %d: %s / %s"):format(id, tostring(asset), tostring(asset2)))
-	return nil
+	return if ok then asset else nil
 end
 
 -- Carga los packs, instala los materiales y deja las plantillas en ServerStorage.Buildings3D

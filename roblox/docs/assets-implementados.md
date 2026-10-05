@@ -199,14 +199,14 @@ hacen daño: si te alcanzan, te devuelven al vestíbulo.
 
 | id | Qué es | Dónde está / por qué no |
 |---|---|---|
-| 101748452 | Pistola dorada de bloques («Ban Gun») | Armerías, comisarías, cuartel (pistola). Su script echaba del juego: borrado. |
-| 117850698505269 | Pack de 4 armas | Armerías, comisarías, cuartel. Fuera los efectos de sangre/gore y los 59 scripts. |
+| 101748452 | Pistola dorada de bloques («Ban Gun») | **Quitado** (v90): en un servidor de verdad no carga nunca («not authorized» con `LoadAssetAsync` y con `InsertService`; `docs/diagnostico-v89.md`). |
+| 117850698505269 | Pack de 4 armas | **Quitado** (v90): carga, pero tras la limpieza (sangre/gore y 59 scripts fuera) no da ninguna malla (`docs/diagnostico-v89.md`). |
 | 100792423689137 | Pack de 4 armas de bloques | Igual. |
 | 115493232746766 | Pack de ~80 armas | Igual; las de Apex/HL2/CoD fuera por nombre; el escudo antidisturbios, al armero de la comisaría. |
 | 78033796632460 | Malla de fusil | Igual (su virus era un script/valor: borrados). |
 | 14800241387 | ~40 mallas de armas | **No**: mallas sacadas de otro juego (*Bad Business*). |
 | 1076538396 | ~60 mallas de armas | **No**: mallas sacadas de otro juego (*Counter-Strike*). |
-| 546753609 | Kit P90 | Se carga, pero solo trae GUI y scripts: no aporta ninguna malla (se borra todo). |
+| 546753609 | Kit P90 | **Quitado** (v90): carga, pero solo trae GUI y scripts: no da ninguna malla (`docs/diagnostico-v89.md`). |
 | 9700798278 | 5 fusiles | Armerías, cuartel. Sus 70 sonidos (de Tarkov) fuera. |
 | 480927087 | Mira de punto rojo | Armerías: dos en el panel de exposición y una montada sobre el fusil de arriba del armero. |
 | 124581242124664 | Pistola láser-gato | Parque de atracciones: premio de la «Caseta de premios» (no dispara). |

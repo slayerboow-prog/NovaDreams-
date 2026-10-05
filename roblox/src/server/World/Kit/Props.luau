@@ -183,6 +183,9 @@ function Props.busStop(parent: Instance, cf: CFrame)
 	return m
 end
 
+-- Coches aparcados de cada sitio (para que no se repitan las carrocerías en un mismo aparcamiento)
+local lots: { [Instance]: { Key: string, N: number } } = setmetatable({}, { __mode = "k" }) :: any
+
 -- Coche aparcado decorativo. El CFrame es el centro del coche a nivel de la calzada;
 -- LookVector = morro.
 function Props.car(parent: Instance, cf: CFrame, color: Color3?, variant: string?)
@@ -192,10 +195,21 @@ function Props.car(parent: Instance, cf: CFrame, color: Color3?, variant: string
 	end
 	-- Coche con todo detalle (Kit/CarModel): berlina, compacto o todoterreno
 	local car = require(script.Parent.CarModel).build(parent, cf, color or Palette.pick(Palette.CarColors), { Name = "ParkedCar", Variant = variant, Lite = true })
-	-- Carrocería de malla de verdad (Kit/CarBodies), elegida por el sitio; si no carga, la de piezas
+	-- Carrocería de malla de verdad (Kit/CarBodies) para TODOS los aparcados; si no carga, la de
+	-- piezas. Los coches del mismo sitio (un aparcamiento, una fila en la calle) van numerados: los
+	-- primeros salen todos distintos (CarBodies.chooseInLot) y el color va por la posición.
 	pcall(function()
 		local p = cf.Position
-		require(script.Parent.CarBodies).dress(car, cf, { Role = "Parked", Key = ("%d:%d"):format(math.floor(p.X / 4), math.floor(p.Z / 4)) })
+		local key = ("%d:%d"):format(math.floor(p.X / 4), math.floor(p.Z / 4))
+		local lot = if parent then lots[parent] else nil
+		if not lot then
+			lot = { Key = (if parent then parent.Name else "Suelto") .. "@" .. key, N = 0 }
+			if parent then
+				lots[parent] = lot
+			end
+		end
+		lot.N += 1
+		require(script.Parent.CarBodies).dress(car, cf, { Role = "Parked", Key = key, Lot = lot.Key, Index = lot.N })
 	end)
 	return car
 end

@@ -11,8 +11,10 @@
 --   6. Frases largas (parrafadas), monólogos (muchas seguidas del mismo), líneas repetidas entre misiones.
 --   7. Continuidad: marcas, recuerdos y decisiones que se ESCRIBEN y nadie LEE (en los datos).
 --   8. Voz de cada personaje: cuántas frases dice y en cuántas misiones.
+--   9. Acotaciones escritas en el texto («(desde lejos)…») y dobletes de género («encargado o encargada»).
 --
 -- Uso (desde roblox/):  lune run scripts/audit/narrativa.luau [resumen|todo]
+--                       lune run scripts/audit/narrativa.luau dialogos <IdMision>   (guion de una misión)
 -- Informe completo en docs/historia/auditoria-narrativa-cinematica.md (apartado de anexos).
 
 local process = require("@lune/process")
@@ -23,6 +25,42 @@ local Quests = H.Quests
 local Chapters = loadModule(ROOT .. "/shared/LifeStory/Chapters")
 local Cast = loadModule(ROOT .. "/shared/LifeStory/Cast")
 local FULL = process.args[1] == "todo"
+
+-- Modo guion: imprime todas las conversaciones de una misión (quién dice qué, preguntas y ramas)
+if process.args[1] == "dialogos" then
+	local quest = Quests[process.args[2] or ""]
+	if not quest then
+		print("Misión desconocida: " .. tostring(process.args[2]))
+		process.exit(1)
+	end
+	local function out(lines: any, indent: string)
+		for _, l in lines or {} do
+			if type(l) ~= "table" then
+				continue
+			end
+			if l.Ask then
+				print(indent .. "? " .. tostring(l.Ask))
+				for _, o in l.Options or {} do
+					print(indent .. "  > " .. tostring(o.T))
+					out(o.Then, indent .. "    ")
+				end
+			elseif l.T then
+				print(indent .. tostring(l.S or "Narrador") .. ": " .. l.T .. (if l.If then "  [If]" else ""))
+			end
+		end
+	end
+	local names = {}
+	for name in quest.Dialogues or {} do
+		table.insert(names, name)
+	end
+	table.sort(names)
+	for _, name in names do
+		print("## " .. name)
+		local d = quest.Dialogues[name]
+		out(d.Lines or d, "  ")
+	end
+	process.exit(0)
+end
 
 local LONG_LINE = 150 -- caracteres: más es una parrafada en un bocadillo
 local MONOLOGUE = 5 -- frases seguidas del mismo personaje
@@ -259,6 +297,7 @@ for _, id in ids do
 	local steps = quest.Steps or {}
 	local prev: any = nil
 	local prevWasScene = false
+	local prevCovers = false -- el paso anterior tapa la pantalla (Transition / Cinematic): el salto no se ve
 	for index, step in steps do
 		row.Steps += 1
 		totals.Steps += 1
@@ -267,7 +306,7 @@ for _, id in ids do
 		if step.Teleport then
 			row.Teleports += 1
 			totals.Teleports += 1
-			if prevWasScene or step.Type == "Scene" then
+			if (prevWasScene or step.Type == "Scene") and not prevCovers and step.Type ~= "Transition" then
 				table.insert(hardCuts, { Where = where, Type = step.Type, To = if type(step.Teleport) == "table" then step.Teleport.Place else step.Teleport })
 			end
 		end
@@ -321,6 +360,7 @@ for _, id in ids do
 			end
 		end
 		prevWasScene = step.Type == "Scene" or step.Type == "Talk"
+		prevCovers = step.Type == "Transition" or step.Type == "Cinematic"
 		if not inherits then
 			prev = step
 		end
@@ -403,7 +443,7 @@ for i, o in narratorOnly do
 	end
 end
 
-print(("\n## 4. Saltos del jugador pegados a una conversación (%d) — corte seco sin fundido\n"):format(#hardCuts))
+print(("\n## 4. Saltos del jugador pegados a una conversación sin pantalla que los tape (%d) — corte seco sin fundido\n"):format(#hardCuts))
 for _, o in hardCuts do
 	print(("- %s (%s) → %s"):format(o.Where, tostring(o.Type), tostring(o.To)))
 end
@@ -484,4 +524,54 @@ for i, p in people do
 			print("    > " .. sample)
 		end
 	end
+end
+
+print("\n## 9. Acotaciones escritas en el texto y dobletes de género\n")
+local directions, doublets = {}, {}
+for _, id in ids do
+	local seen = {}
+	local function scanLines(lines: any)
+		for _, line in lines or {} do
+			if type(line) ~= "table" or seen[line] then
+				continue
+			end
+			seen[line] = true
+			for _, option in line.Options or {} do
+				scanLines(option.Then)
+			end
+			local text = line.T
+			if type(text) == "string" then
+				if string.find(text, "^%(") or string.find(text, "%((desde[^)]*)%)") or string.find(text, "%((al teléfono)%)") then
+					table.insert(directions, ("%s · %s: %s"):format(id, tostring(line.S or "Narrador"), text))
+				end
+				-- Palabras seguidas: «encargado o encargada», «bienvenida, bienvenido» (raíz de 3 letras o más)
+				local words = {}
+				for raw in string.gmatch(text, "%S+") do
+					table.insert(words, (string.lower((string.gsub(raw, "[,.;:¡!¿?«»…()]", "")))))
+				end
+				for i = 1, #words - 1 do
+					local a, b, c = words[i], words[i + 1], words[i + 2]
+					local stemA = string.match(a, "^(...+)[oa]$")
+					if stemA and b == "o" and c and string.match(c, "^(...+)[oa]$") == stemA and c ~= a then
+						table.insert(doublets, ("%s · %s: «%s o %s»"):format(id, tostring(line.S or "Narrador"), a, c))
+					elseif stemA and string.match(b, "^(...+)[oa]$") == stemA and b ~= a then
+						table.insert(doublets, ("%s · %s: «%s, %s»"):format(id, tostring(line.S or "Narrador"), a, b))
+					end
+				end
+			end
+		end
+	end
+	for _, d in Quests[id].Dialogues or {} do
+		scanLines(if type(d) == "table" then (d.Lines or d) else nil)
+	end
+end
+print(("### Acotaciones (%d) — la acción va escrita en vez de hecha por el actor"):format(#directions))
+for i, line in directions do
+	if FULL or i <= 40 then
+		print("- " .. line)
+	end
+end
+print(("\n### Dobletes de género (%d)"):format(#doublets))
+for _, line in doublets do
+	print("- " .. line)
 end

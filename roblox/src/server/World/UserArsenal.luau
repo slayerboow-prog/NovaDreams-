@@ -33,15 +33,16 @@ local MeshLibrary = require(script.Parent.MeshLibrary)
 local UserArsenal = {}
 
 -- Packs de armas (solo mallas). El dead guy (7105428424) NO se carga: sangre (ver el doc).
+-- Quitados (docs/diagnostico-v89.md §1b, en un servidor de verdad): la pistola dorada (no autorizada
+-- con ninguno de los dos métodos) y el pack de 4 armas y el kit P90 (cargan, pero no dan ninguna malla).
 UserArsenal.WeaponPacks = {
-	{ Id = 101748452, Name = "PistolaDorada" }, -- pistola de bloques; su script echaba del juego
-	{ Id = 117850698505269, Name = "PackArmas1" }, -- 4 Tool; efectos de sangre (se borran)
 	{ Id = 100792423689137, Name = "PackArmas2" }, -- 4 Tool de bloques (2010)
 	{ Id = 115493232746766, Name = "PackArmas3" }, -- ~80 modelos (algunos de otros juegos: fuera)
 	{ Id = 78033796632460, Name = "PackArmas4" }, -- 1 malla de fusil
-	{ Id = 546753609, Name = "KitP90" }, -- solo GUI y scripts: suele no dar ninguna malla
 	{ Id = 9700798278, Name = "PackArmas7" }, -- 5 fusiles (sus 70 sonidos fuera)
 }
+-- Ids que nunca cargan en un servidor de verdad: no se piden (las pruebas lo comprueban)
+UserArsenal.Dropped = { 101748452, 117850698505269, 546753609 }
 
 UserArsenal.Props = {
 	MiraPuntoRojo = 480927087,
@@ -884,15 +885,12 @@ end
 -- Arranque
 ---------------------------------------------------------------------
 
+-- (el cargador compartido, World/AssetLoader: LoadAssetAsync, InsertService, reintentos y cola)
 local function download(id: number): Instance?
-	local AssetLoader = require(script.Parent.AssetLoader) :: any
-	if AssetLoader.download then
-		return AssetLoader.download(id)
-	end
-	local ok, result = pcall(function()
-		return (game:GetService("AssetService") :: any):LoadAssetAsync(id)
+	local ok, asset = pcall(function()
+		return require(script.Parent.AssetLoader).download(id)
 	end)
-	return if ok then result else nil
+	return if ok then asset else nil
 end
 
 -- Descarga (con pcall; nil si falla) y limpia los scripts nada más llegar

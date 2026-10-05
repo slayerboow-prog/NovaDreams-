@@ -216,15 +216,12 @@ function WorkshopProps.dress(room: Model, library: { [string]: { Model } }): num
 	return n
 end
 
+-- (el cargador compartido, World/AssetLoader: LoadAssetAsync, InsertService, reintentos y cola)
 local function download(id: number): Instance?
-	local ok, result = pcall(function()
-		return (game:GetService("AssetService") :: any):LoadAssetAsync(id)
+	local ok, asset = pcall(function()
+		return require(script.Parent.AssetLoader).download(id)
 	end)
-	if ok and result then
-		return result
-	end
-	warn(("[WorkshopProps] no carga %d: %s"):format(id, tostring(result)))
-	return nil
+	return if ok then asset else nil
 end
 
 function WorkshopProps.start()

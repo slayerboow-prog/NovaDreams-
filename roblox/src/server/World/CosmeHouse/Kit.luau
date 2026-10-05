@@ -160,6 +160,52 @@ function Kit.wedge(ctx: Ctx, parent: Instance, name: string, size: Vector3, cf: 
 	return Builder.part(props)
 end
 
+-- Elipsoide (una pieza con malla de esfera estirada a su tamaño): curvas suaves para cúpulas,
+-- carrocerías, copas de árbol… No choca.
+function Kit.ellipsoid(ctx: Ctx, parent: Instance, name: string, size: Vector3, cf: CFrame, color: Color3, material: Enum.Material?, transparency: number?, keep: boolean?): BasePart
+	local p = Kit.deco(ctx, parent, name, size, cf, color, material, transparency, keep or math.max(size.X, size.Y, size.Z) >= 3.5)
+	local mesh = Instance.new("SpecialMesh")
+	mesh.MeshType = Enum.MeshType.Sphere
+	mesh.Parent = p
+	return p
+end
+
+-- Medio disco (suelo o techo de un mirador semicircular): tiras paralelas a X que van de z = cz hacia
+-- +Z (dir = 1) o -Z (dir = -1). Sin pisar la losa de al lado (no parpadea).
+function Kit.halfDisc(ctx: Ctx, parent: Instance, name: string, cx: number, cz: number, r: number, yTop: number, thick: number, color: Color3, material: Enum.Material?, dir: number?, n: number?): { BasePart }
+	local made = {}
+	local count = n or 12
+	local d = dir or 1
+	local w = 2 * r / count
+	for i = 0, count - 1 do
+		local x0 = cx - r + i * w
+		local xm = math.max(math.abs(x0 - cx), math.abs(x0 + w - cx))
+		local inner = math.min(math.abs(x0 - cx), math.abs(x0 + w - cx))
+		local depth = math.sqrt(math.max(0, r * r - (inner * 0.5 + xm * 0.5) ^ 2))
+		if depth > 0.3 then
+			table.insert(made, Kit.box(ctx, parent, name, V(w + 0.02, thick, depth), CF(x0 + w / 2, yTop - thick / 2, cz + d * depth / 2), color, material, { CanQuery = true }))
+		end
+	end
+	return made
+end
+
+-- Contexto con el origen movido (y girado): lo de dentro se escribe en coordenadas de la sala. Las
+-- luces siguen contando en el contexto de la casa (el tope es de toda la casa).
+function Kit.sub(ctx: Ctx, offset: CFrame): Ctx
+	local root = ctx
+	local sub = setmetatable({ Site = ctx.Site * offset }, {
+		__index = root,
+		__newindex = function(t, k, v)
+			if k == "Lights" then
+				root.Lights = v
+			else
+				rawset(t, k, v)
+			end
+		end,
+	})
+	return sub :: any
+end
+
 -- Algo que flota a propósito (la prueba de piezas flotantes lo deja pasar)
 function Kit.anomaly(part: Instance): Instance
 	part:AddTag("Anomaly")

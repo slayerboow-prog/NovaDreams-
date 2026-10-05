@@ -331,7 +331,41 @@ function Ambient.meshCars(folder: Instance, CarBodies: any): number
 	else
 		out:Destroy()
 	end
+	Ambient.liteCars(folder, CarBodies, boxes)
 	Ambient.heavyCars(folder, CarBodies)
+	return n
+end
+
+-- Plantillas del tráfico para gráficos Bajo (ReplicatedStorage.Ambient.CarsMeshLite): también con
+-- malla (nunca las cajas de antes), pero solo con las carrocerías más ligeras (CarBodies.lightest).
+Ambient.LITE_CARS = 8
+function Ambient.liteCars(folder: Instance, CarBodies: any, boxes: { Model }): number
+	if folder:FindFirstChild("CarsMeshLite") or #boxes == 0 or type(CarBodies.lightest) ~= "function" then
+		return 0
+	end
+	local lite = CarBodies.lightest("Traffic")
+	if #lite == 0 then
+		return 0
+	end
+	local out = Instance.new("Folder")
+	out.Name = "CarsMeshLite"
+	local n = 0
+	for i = 1, Ambient.LITE_CARS do
+		local copy = boxes[(i - 1) % #boxes + 1]:Clone()
+		copy.Name = "LiteCar" .. i
+		local t = lite[(i - 1) % #lite + 1]
+		if CarBodies.dress(copy, CFrame.new(), { Role = "Traffic", Key = "ligero" .. i, Template = t.Name }) then
+			copy.Parent = out
+			n += 1
+		else
+			copy:Destroy()
+		end
+	end
+	if n > 0 then
+		out.Parent = folder
+	else
+		out:Destroy()
+	end
 	return n
 end
 

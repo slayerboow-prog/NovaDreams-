@@ -1672,12 +1672,22 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean })
 				end
 			end
 			table.insert(checks, { menuRow, "gráficos: el menú tiene la opción «✨ Gráficos»" })
-			-- (aquí el juego va a 20 fotogramas por segundo simulados: el modo «Auto» baja de nivel
-			-- solo, como en un móvil lento; las sombras del sol tienen que seguir al nivel que toque)
-			local tier = localPlayer:GetAttribute("GraphicsTier")
+		end,
+		[math.floor(41.5 * FPS)] = function()
+			-- (aquí el juego va a 20 fotogramas por segundo simulados, como un móvil justo: el modo
+			-- «Auto» baja de Alto a Medio, pero NO a Bajo (suelo de Medio con más de 20 fps); las sombras
+			-- del sol siguen al nivel y el botón del menú dice el nivel de ahora)
+			local lightingNow = game:GetService("Lighting")
+			local tier = localPlayer:GetAttribute("GraphicsTier") or "Medium"
+			local label = ""
+			for _, d in playerGui:GetDescendants() do
+				if rawget(d, "__class") == "TextButton" and string.find(tostring(d.Text), "Gráficos", 1, true) then
+					label = tostring(d.Text)
+				end
+			end
 			table.insert(checks, {
-				tier == "Low" and lightingNow.GlobalShadows == false,
-				("gráficos: con pocos fps el modo Auto baja a Bajo y quita las sombras del sol (%s, sombras %s)"):format(tostring(tier), tostring(lightingNow.GlobalShadows)),
+				tier == "Medium" and lightingNow.GlobalShadows == true and string.find(label, "ahora Medio", 1, true) ~= nil,
+				("gráficos: a 20 fps el Auto se queda en Medio (no cae a Bajo), con sombras, y el menú lo dice (%s, sombras %s, «%s»)"):format(tostring(tier), tostring(lightingNow.GlobalShadows), label),
 			})
 		end,
 		[math.floor(5 * FPS)] = function()

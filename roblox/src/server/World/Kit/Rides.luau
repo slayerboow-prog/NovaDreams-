@@ -1084,6 +1084,14 @@ function Rides.build(kind: string, parent: Instance?, cf: CFrame, color: Color3?
 	local model = if type(style) == "table" then style.Model else nil
 	local premiumKit = premium(kind, model)
 	if premiumKit and premiumKit.build(m, kind, model, cf, color, (style :: any).Accent) then
+		-- Coches del pase: carrocería de malla deportiva de verdad (Kit/CarBodies.dressPremium) con su
+		-- pintura, cromo y neón; si no hay mallas (o no cargan), el coche de piezas de siempre
+		if kind == "Coche" then
+			local bodies = carBodies()
+			if bodies and type(bodies.dressPremium) == "function" then
+				pcall(bodies.dressPremium, m, cf, { Model = model, Paint = color, Accent = (style :: any).Accent })
+			end
+		end
 		m.Parent = parent
 		return m
 	end

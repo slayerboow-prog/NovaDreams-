@@ -371,22 +371,12 @@ function NatureAssets.prepare(loaded: { [number]: Instance }): Library
 	return library
 end
 
+-- (el cargador compartido, World/AssetLoader: LoadAssetAsync, InsertService, reintentos y cola)
 local function download(id: number): Instance?
-	local ok, result = pcall(function()
-		return (game:GetService("AssetService") :: any):LoadAssetAsync(id)
+	local ok, asset = pcall(function()
+		return require(script.Parent.AssetLoader).download(id)
 	end)
-	if ok and result then
-		return result
-	end
-	local err = result
-	ok, result = pcall(function()
-		return game:GetService("InsertService"):LoadAsset(id)
-	end)
-	if ok and result then
-		return result
-	end
-	warn(("[NatureAssets] no carga %d: %s / %s"):format(id, tostring(err), tostring(result)))
-	return nil
+	return if ok then asset else nil
 end
 
 -- Registro de la limpieza (para las pruebas): { Id, Stripped (scripts borrados), Unparented }

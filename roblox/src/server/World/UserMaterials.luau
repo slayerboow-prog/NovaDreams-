@@ -29,8 +29,6 @@
 --     respaldo y variedad de las fachadas, interiores y calles; la arena, primera en la playa.
 --   * Si no carga ningún pack (o falla todo), no se cambia nada: siguen nuestras texturas.
 
-local AssetService = game:GetService("AssetService")
-local InsertService = game:GetService("InsertService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 
@@ -41,22 +39,12 @@ local UserMaterials = {}
 local LIBRARY = "UserMaterials"
 local TERRAIN = { Grass = true, LeafyGrass = true, Rock = true, Sand = true, Ground = true }
 
+-- (el cargador compartido, World/AssetLoader: LoadAssetAsync, InsertService, reintentos y cola)
 local function download(id: number): Instance?
-	local ok, result = pcall(function()
-		return (AssetService :: any):LoadAssetAsync(id)
+	local ok, asset = pcall(function()
+		return require(script.Parent.AssetLoader).download(id)
 	end)
-	if ok and result then
-		return result
-	end
-	local err = result
-	ok, result = pcall(function()
-		return InsertService:LoadAsset(id)
-	end)
-	if ok and result then
-		return result
-	end
-	warn(("[UserMaterials] no carga %d: %s / %s"):format(id, tostring(err), tostring(result)))
-	return nil
+	return if ok then asset else nil
 end
 
 -- Un pack ya descargado: fuera scripts y variants rotos, renombra y guarda en library/<short>.

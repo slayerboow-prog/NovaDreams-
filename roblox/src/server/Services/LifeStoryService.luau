@@ -125,6 +125,7 @@ type Runtime = {
 	OfferedAt: number,
 	Waiting: { QuestId: string, Reason: string, From: number?, To: number? }?,
 	LastPublished: string?,
+	WarnedStuckPrologue: boolean?, -- (ya se apuntó el prólogo atascado en el registro)
 	LastRemote: number,
 	Ready: boolean,
 	ClassFor: string?, -- paso de clase que se está jugando ahora
@@ -897,6 +898,11 @@ local function publish(player: Player, force: boolean?)
 	player:SetAttribute("StoryNpc", needNpc)
 	player:SetAttribute("StoryNpcPlace", needPlace)
 	-- La Grieta del cielo: qué fase de la saga ve este jugador (la dibuja su cliente, Controllers/SkyRift)
+	if SkyRift.stuckPrologue(story) and not rt.WarnedStuckPrologue then
+		-- (prólogo activo con misiones de después ya hechas: la grieta se ve en Valmar, no en el sueño)
+		rt.WarnedStuckPrologue = true
+		warn(("[LifeStory] %s tiene el prólogo activo con misiones de después hechas: la grieta hace como si no estuviera"):format(player.Name))
+	end
 	player:SetAttribute("SkyRift", SkyRift.phaseFor(story))
 	local encoded = HttpService:JSONEncode(state)
 	if force or encoded ~= rt.LastPublished then

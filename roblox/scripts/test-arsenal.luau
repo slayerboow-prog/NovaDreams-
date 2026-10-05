@@ -283,12 +283,12 @@ for _, m in shown:GetChildren() do
 		end
 	end
 	for _, d in m:GetDescendants() do
-		if d:IsA("BasePart") and not d:HasTag("CityDetail") then
+		if d:IsA("BasePart") and not d:HasTag("PropDetail") then
 			upright = false
 		end
 	end
 end
-check(onRack == 6 and upright, "6 armas largas en el armero, derechas y con la etiqueta CityDetail")
+check(onRack == 6 and upright, "6 armas largas en el armero, derechas y con la etiqueta PropDetail (se ven también en Bajo)")
 check(A.dressGunShop(shop, lib) == 0, "no se pone dos veces")
 
 -- Comisaría: W = 44, D = 30
@@ -392,7 +392,26 @@ local ok = pcall(function()
 	A.dressFeria(feria:Clone(), empty)
 end)
 check(ok, "sin mallas, las salas y tiendas se quedan como estaban (sin errores)")
-check(empty.Report[101748452] == "no carga", "el informe dice qué no cargó")
+check(empty.Report[100792423689137] == "no carga", "el informe dice qué no cargó")
+
+-- Ids que nunca cargan en un servidor de verdad (docs/diagnostico-v89.md): ya no se piden
+local dropped = true
+for _, id in { 101748452, 117850698505269, 546753609 } do
+	for _, p in A.WeaponPacks do
+		if p.Id == id then
+			dropped = false
+		end
+	end
+	for _, pid in A.Props do
+		if pid == id then
+			dropped = false
+		end
+	end
+	if not table.find(A.Dropped, id) then
+		dropped = false
+	end
+end
+check(dropped, "fuera la pistola dorada (no autorizada) y los dos packs que no dan mallas (117850698505269, 546753609)")
 
 print()
 if failures > 0 then

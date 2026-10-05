@@ -655,8 +655,8 @@ do
 		end
 	end
 	check(#templates == 6 and count == 2 and #bronzes == 2 and scripts == 0, "placa y escultura con su bronce PBR (sin scripts); el cuadro no")
-	check(plaqueMesh and plaqueMesh.CanCollide == false and plaqueMesh:FindFirstChildWhichIsA("SurfaceAppearance") ~= nil and tags[plaqueMesh] and tags[plaqueMesh].BuildingMesh, "el bronce va con la talla y el sitio de la placa, sin chocar, y se esconde en Bajo")
-	check(plaque.Transparency == 1 and tags[plaque] and tags[plaque].BuildingShell and plaque.CanCollide, "la placa de antes se queda (choca igual) y solo se ve en Bajo")
+	check(plaqueMesh and plaqueMesh.CanCollide == false and plaqueMesh:FindFirstChildWhichIsA("SurfaceAppearance") ~= nil and tags[plaqueMesh] and tags[plaqueMesh].PropMesh, "el bronce va con la talla y el sitio de la placa, sin chocar, y se ve en todos los niveles (PropMesh)")
+	check(plaque.Transparency == 1 and tags[plaque] and tags[plaque].PropShell and plaque.CanCollide, "la placa de antes se queda (choca igual), invisible (PropShell)")
 	check(X.pickBronze(templates, "Plaque").Name == "Clean Bronze" and X.pickBronze(templates, "Sculpture").Name == "Statue Bronze" and X.pickBronze(templates, "Plaque").Parent == nil, "placas de bronce limpio, escultura de bronce de estatua (bloques, no esferas)")
 	X.dressBronze(museum, templates)
 	local again = 0

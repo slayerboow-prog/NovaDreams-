@@ -31,22 +31,13 @@ local function folder(name: string): Instance
 	return found
 end
 
--- Descarga con AssetService (InsertService si falla). nil si no carga.
+-- Descarga con el cargador compartido (World/AssetLoader: LoadAssetAsync, InsertService, reintentos y
+-- cola). nil si no carga.
 local function download(id: number): Instance?
-	local ok, result = pcall(function()
-		return (game:GetService("AssetService") :: any):LoadAssetAsync(id)
+	local ok, asset = pcall(function()
+		return require(script.Parent.AssetLoader).download(id)
 	end)
-	if ok and result then
-		return result
-	end
-	ok, result = pcall(function()
-		return game:GetService("InsertService"):LoadAsset(id)
-	end)
-	if ok and result then
-		return result
-	end
-	warn(("[SkyAssets] no carga el asset %d"):format(id))
-	return nil
+	return if ok then asset else nil
 end
 
 -- Quita scripts, letreros y textos (marcas) de lo cargado. Devuelve cuántos scripts había.

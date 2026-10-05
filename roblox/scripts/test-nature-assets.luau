@@ -307,12 +307,12 @@ local okPeb = pebbles == 18
 for _, m in pf:GetChildren() do
 	for _, p in m:GetDescendants() do
 		if p:IsA("BasePart") then
-			okPeb = okPeb and not p.CanCollide and p:HasTag("LeafDetail")
+			okPeb = okPeb and not p.CanCollide and p:HasTag("PropDetail")
 				and math.abs(p.CFrame.Position.X - 1000) < 60 and math.abs(p.CFrame.Position.Z - 1000) < 40
 		end
 	end
 end
-check(okPeb, "18 piedrecitas dentro del césped, sin choque y con LeafDetail (Bajo las esconde)")
+check(okPeb, "18 piedrecitas dentro del césped, sin choque y con PropDetail (se ven también en Bajo)")
 check(NatureAssets.placePebbles(pf, library, lawn, nil, 2) == 2, "las piedrecitas respetan el tope")
 
 local counter = Instance.new("Part")

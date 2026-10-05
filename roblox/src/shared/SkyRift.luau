@@ -83,13 +83,63 @@ SkyRift.Phases = {
 -- Una fase de ejemplo para ver cada etapa (modo pruebas)
 SkyRift.StagePreview = { "Cerrada", "Rasguno", "Crece", "Grande", "Abierta", "Inminente", "Fusion" }
 
--- Dónde se dibuja. Sky: dirección desde la cámara (hacia Los Pinos, al norte, a media altura) y
--- distancia. Dream: encima de la isla del sueño (World/Kit/DreamIsland: origen -3400, 700, -3400 y
--- 164 de largo), fija; DreamWidth es el ancho del marco allí.
+-- Dónde se dibuja. Sky: a Distance studs de la cámara, en la dirección del cielo que MIRABA la cámara
+-- (su giro, yaw) cuando empezó la fase o entró el jugador, y fija después (Controllers/SkyRift), a
+-- Elevation grados sobre el horizonte: lo bastante alta para asomar por encima de los edificios y lo
+-- bastante baja para caber en la pantalla del móvil (la cámara de 70° mira casi siempre al frente o un
+-- poco hacia abajo). Direction: la de antes (hacia Los Pinos, al norte), solo si aún no hay cámara.
+-- Dream: encima de la isla del sueño (World/Kit/DreamIsland: origen -3400, 700, -3400 y 164 de
+-- largo), fija; DreamWidth es el ancho del marco allí.
 SkyRift.Placement = {
-	Sky = { Direction = { 0.25, 0.78, -1 }, Distance = 650 },
+	Sky = { Direction = { 0.25, 0.78, -1 }, Distance = 650, Elevation = 27 },
 	Dream = { Center = { -3400 + 82, 700 + 80, -3400 - 6 }, DreamWidth = 300 },
 }
+
+-- Giro (yaw, radianes) de una dirección horizontal: 0 = hacia -Z (norte), como CFrame.Angles(0, yaw, 0)
+function SkyRift.yawOf(lookX: number, lookZ: number): number
+	if math.abs(lookX) < 1e-6 and math.abs(lookZ) < 1e-6 then
+		local d = SkyRift.Placement.Sky.Direction
+		lookX, lookZ = d[1], d[3]
+	end
+	return math.atan2(-lookX, -lookZ)
+end
+
+-- Dirección (unitaria) del centro de la grieta en el cielo: hacia «yaw», a Elevation grados (o a los
+-- que se pidan). Sin yaw, la de siempre (hacia el norte).
+function SkyRift.skyDirection(yaw: number?, elevationDeg: number?): (number, number, number)
+	local d = SkyRift.Placement.Sky.Direction
+	local y = yaw or SkyRift.yawOf(d[1], d[3])
+	local e = math.rad(elevationDeg or SkyRift.Placement.Sky.Elevation)
+	return -math.sin(y) * math.cos(e), math.sin(e), -math.cos(y) * math.cos(e)
+end
+
+-- ¿Es de noche? (la primera noche en «Crece» o más se avisa de mirar al cielo)
+function SkyRift.isNight(clockTime: number): boolean
+	local h = clockTime % 24
+	return h >= 19 or h < 6
+end
+
+-- Aviso «¡Mira al cielo!» (con una flecha hacia la grieta): la primera vez que el jugador está en una
+-- fase con grieta en el cielo de Valmar (Rasguño o más) y la primera noche en «Crece» o más. memo
+-- guarda lo ya avisado (First / Night): cada aviso, UNA vez. Devuelve "First", "Night" o nil.
+function SkyRift.hintFor(memo: { [string]: boolean }, phaseName: string, clockTime: number): string?
+	local ph = SkyRift.Phases[phaseName]
+	if not ph or ph.Mode ~= "Sky" or ph.Stage < 2 or ph.Intensity <= 0 then
+		return nil
+	end
+	if not memo.First then
+		memo.First = true
+		if SkyRift.isNight(clockTime) and ph.Stage >= 3 then
+			memo.Night = true -- (ya es de noche: un solo aviso)
+		end
+		return "First"
+	end
+	if not memo.Night and ph.Stage >= 3 and SkyRift.isNight(clockTime) then
+		memo.Night = true
+		return "Night"
+	end
+	return nil
+end
 SkyRift.Aspect = 2 -- ancho / alto del marco de la rasgadura (rift_interior es 1024x512)
 
 function SkyRift.stage(n: number?): Stage
@@ -360,12 +410,37 @@ end
 
 export type StoryLike = { Active: { [string]: any }?, Completed: { [string]: any }?, Flags: { [string]: any }? }
 
+-- ¿Prólogo «atascado»? La historia tiene el prólogo del sueño activo pero ya hay misiones de después
+-- (de la saga o conocer a Cosme) hechas o en curso: el prólogo no se cerró bien. Para la grieta se
+-- hace como si no estuviera (el servidor lo apunta en el registro: LifeStoryService).
+function SkyRift.stuckPrologue(story: StoryLike): boolean
+	local A = story.Active or {}
+	if not A[PROLOGUE] then
+		return false
+	end
+	local C = story.Completed or {}
+	if C.Loco_N1_Cosme or C[PROLOGUE] then
+		return true
+	end
+	for id in C do
+		if type(id) == "string" and string.sub(id, 1, 5) == "Saga_" then
+			return true
+		end
+	end
+	for id in A do
+		if type(id) == "string" and string.sub(id, 1, 5) == "Saga_" then
+			return true
+		end
+	end
+	return false
+end
+
 -- Qué fase toca según la historia del jugador (lo publica el servidor en el atributo SkyRift)
 function SkyRift.phaseFor(story: StoryLike): string
 	local A = story.Active or {}
 	local C = story.Completed or {}
 	local F = story.Flags or {}
-	if A[PROLOGUE] then
+	if A[PROLOGUE] and not SkyRift.stuckPrologue(story) then
 		return "Sueno"
 	end
 	if C.Saga_24_Final or F.SagaCompleta then

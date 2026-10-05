@@ -178,6 +178,8 @@ check(Graphics.detect({ Mobile = false, Quality = 2 }) == "Low" and Graphics.det
 check(Graphics.nextChoice("Auto") == "Low" and Graphics.nextChoice("High") == "Auto", "el botón del menú pasa Auto → Bajo → Medio → Alto → Auto")
 
 -- Modo Auto con fps de mentira
+local F = Graphics.Fps
+check(F.DownSeconds >= 12 and F.LowFloor <= 20 and F.LowFloor < F.Down and F.Hold >= 30 and F.Up - F.Down >= 20, ("Auto sin prisas: baja tras %d s, suelo de Medio a %d fps, %d s sin cambiar tras un cambio, sube por encima de %d"):format(F.DownSeconds, F.LowFloor, F.Hold, F.Up))
 local state = Graphics.newAuto("Medium")
 local changes = {}
 local function run(fps: number, seconds: number)
@@ -190,16 +192,80 @@ local function run(fps: number, seconds: number)
 end
 run(60, 5)
 check(#changes == 0, "con fps normales no cambia")
-run(20, 10)
-check(state.Tier == "Low", ("con 20 fps baja a Bajo (%s)"):format(table.concat(changes, ",")))
+run(22, 10)
+check(state.Tier == "Medium", "10 s a 22 fps: sigue en Medio (no baja tan pronto)")
+run(22, 120)
+check(state.Tier == "Medium" and #changes == 0, "un móvil que aguanta más de 20 fps se queda en Medio (suelo de Medio)")
+run(15, 10)
+check(state.Tier == "Medium", "un rato malo (10 s a 15 fps) aún no baja")
+run(15, 10)
+check(state.Tier == "Low", ("si va de verdad mal (menos de 20 fps un buen rato), baja a Bajo (%s)"):format(table.concat(changes, ",")))
 run(60, 40)
 check(state.Tier == "Low", "y no vuelve enseguida al nivel que fue lento")
-run(60, Graphics.Fps.RetrySeconds)
+run(60, F.RetrySeconds)
 check(state.Tier ~= "Low", ("pasados unos minutos con fps de sobra, vuelve a probar (%s)"):format(state.Tier))
 run(25, 2) -- un tirón corto (2 s) no baja
 local before = state.Tier
 run(60, 1)
 check(state.Tier == before, "un tirón corto no cambia de nivel")
+-- Histéresis: con los fps bailando alrededor de los umbrales no va y viene
+local wobble = Graphics.newAuto("High")
+local flips = 0
+for i = 1, 600 do
+	local fps = if (i // 18) % 2 == 0 then 24 else 58 -- 18 s malos, 18 s buenos…
+	for _ = 1, fps do
+		if Graphics.autoStep(wobble, 1 / fps) then
+			flips += 1
+		end
+	end
+end
+check(flips >= 1 and flips <= 2, ("fps que bailan 10 minutos (18 s a 24, 18 s a 58): solo %d cambio(s) de nivel, no va y viene"):format(flips))
+local held = Graphics.newAuto("High")
+local heldChanges = {}
+for _ = 1, 20 * 60 do
+	local t = Graphics.autoStep(held, 1 / 20)
+	if t then
+		table.insert(heldChanges, t)
+	end
+end
+check(#heldChanges == 1 and heldChanges[1] == "Medium" and held.Tier == "Medium", ("un minuto a 20 fps en un ordenador: de Alto a Medio y ahí se queda (%s)"):format(table.concat(heldChanges, ",")))
+-- El botón del menú dice siempre el nivel de ahora
+check(Graphics.choiceLabel("Auto", "Medium") == "✨ Gráficos: Auto (ahora Medio)" and Graphics.choiceLabel("High", "High"):find("Alto", 1, true) ~= nil, ("menú: «%s» / «%s»"):format(Graphics.choiceLabel("Auto", "Medium"), Graphics.choiceLabel("High", "High")))
+local perfSrc = fs.readFile("src/client/UI/Perf.luau")
+local mainClientSrc = fs.readFile("src/client/Main.client.luau")
+check(perfSrc:find("Graphics.choiceLabel", 1, true) and mainClientSrc:find("syncMenuToggles", 1, true), "el botón se actualiza solo cuando el Auto cambia de nivel")
+
+---------------------------------------------------------------------
+print("Qué esconde cada nivel (shared/Graphics.DetailTags)")
+---------------------------------------------------------------------
+-- Lo nuevo y barato se ve también en Bajo; solo lo pesado se esconde
+local cheap = { "PropDetail", "PropMesh", "PropShell", "DecorProp", "StreetSign", "TextureDetail" }
+local cheapOk = true
+for _, tag in cheap do
+	for _, name in Graphics.Order do
+		if Graphics.hides(name, tag) then
+			cheapOk = false
+		end
+	end
+end
+check(cheapOk, "Bajo NO esconde lo nuevo y barato: objetos de malla de la calle, naturaleza, muebles, señales y láminas")
+check(Graphics.hides("Low", "CityDetail") and Graphics.hides("Low", "BuildingMesh") and Graphics.hides("Low", "LeafDetail") and not Graphics.hides("Medium", "BuildingMesh") and not Graphics.hides("High", "CityDetail"), "Bajo esconde solo lo pesado (skyline, edificios 3D, tejas y molduras, relleno de las copas)")
+check(T.Low.NormalMaps and T.Low.PropDetail and T.Medium.PropDetail and T.High.PropDetail, "Bajo conserva el relieve de los materiales (barato)")
+local detailSrc = fs.readFile("src/client/Controllers/MaterialDetail.luau")
+check(detailSrc:find("Graphics.DetailTags", 1, true) and detailSrc:find("Graphics.hides", 1, true), "MaterialDetail usa la tabla de etiquetas de shared/Graphics")
+-- Los módulos de assets etiquetan lo barato como barato
+local kitSrc = fs.readFile("src/server/World/CityAssetsKit.luau")
+local natureSrc = fs.readFile("src/server/World/NatureAssets.luau")
+local arsenalSrc = fs.readFile("src/server/World/UserArsenal.luau")
+local extrasSrc = fs.readFile("src/server/World/MaterialExtras.luau")
+check(kitSrc:find('DetailTag = "PropDetail"', 1, true) and kitSrc:find('HeavyTag = "CityDetail"', 1, true) and kitSrc:find("{ Prop = true, Shadow = 6 }", 1, true) and kitSrc:find("PropShellTag)", 1, true), "CityAssets: objetos sueltos y mallas encima (aires, conos, palés…) con PropDetail / PropMesh / PropShell; el skyline, CityDetail")
+check(natureSrc:find('AddTag("PropDetail")', 1, true) and not natureSrc:find('AddTag("LeafDetail")', 1, true), "NatureAssets: las plantillas de naturaleza no se esconden en Bajo")
+check(arsenalSrc:find('AddTag("PropDetail")', 1, true) and not arsenalSrc:find('AddTag("CityDetail")', 1, true), "UserArsenal: armas y objetos puestos, visibles en Bajo")
+check(extrasSrc:find('"PropMesh"', 1, true) and not extrasSrc:find('"BuildingMesh"', 1, true), "MaterialExtras: el bronce (pocas mallas) se ve en Bajo")
+-- Modo ligero del móvil (Perf.stripDetails): no quita lo nuevo de la acera
+check(not Graphics.liteStrips("Obras", false) and not Graphics.liteStrips("Jardinera", false) and not Graphics.liteStrips("BuzonCorreos", false), "modo ligero: se quedan las obras (con sus conos de malla), jardineras y buzones")
+check(Graphics.liteStrips("MotoAparcada", false) and not Graphics.liteStrips("MotoAparcada", true), "modo ligero: se quita lo que pesa, pero nunca algo que lleva una malla nueva encima")
+check(perfSrc:find("Graphics.liteStrips", 1, true) and perfSrc:find('FindFirstChild("Malla", true)', 1, true), "UI/Perf mira la lista y la malla antes de quitar")
 
 ---------------------------------------------------------------------
 print("Presupuesto de farolas (Controllers/NearShadows)")

@@ -1179,6 +1179,79 @@ function Traffic.hit(agent: Agent, vel: Vector3, spin: number, move: Vector3, cl
 	return false
 end
 
+---------------------------------------------------------------------
+-- Coches invisibles: la caja de piezas está escondida (Transparency 1, CarHidden) y la malla de
+-- verdad (CarMesh) no llega o no carga en este dispositivo. Se mira una vez por coche: si no hay
+-- malla o la pieza grande de la carrocería no carga, la caja se vuelve a ver (solo en esta pantalla).
+---------------------------------------------------------------------
+local guarded: { [Instance]: boolean } = setmetatable({}, { __mode = "k" }) :: any
+
+-- ¿Se ve la carrocería de malla? meshes = piezas CarMesh; failed = ids de malla que no cargan
+function Traffic.meshVisible(meshes: { BasePart }, failed: { [string]: boolean }): boolean
+	local best, volume = nil :: BasePart?, -1
+	for _, p in meshes do
+		if p:GetAttribute("CarZone") ~= "Glass" and p.Name ~= "TireMesh" and p.Name ~= "CarBadge" and p.Transparency < 0.5 then
+			local v = p.Size.X * p.Size.Y * p.Size.Z
+			if v > volume then
+				best, volume = p, v
+			end
+		end
+	end
+	if not best then
+		return false
+	end
+	local ok, id = pcall(function()
+		return (best :: any).MeshId
+	end)
+	return not (ok and type(id) == "string" and failed[id])
+end
+
+-- Vuelve a enseñar la caja de piezas de un coche (y esconde lo que quede de la malla)
+function Traffic.showBox(model: Instance)
+	for _, d in model:GetChildren() do
+		if d:IsA("BasePart") then
+			if d:GetAttribute("CarHidden") then
+				local t = d:GetAttribute("CarOrigT")
+				d.Transparency = if type(t) == "number" then t else 0
+			elseif d:GetAttribute("CarMesh") then
+				d.LocalTransparencyModifier = 1
+			end
+		end
+	end
+	model:SetAttribute("CarBoxShown", true)
+end
+
+function Traffic.guardBody(model: Instance)
+	if guarded[model] or not model:IsA("Model") or not model:IsDescendantOf(workspace) then
+		return
+	end
+	guarded[model] = true
+	task.delay(2, function()
+		if not model.Parent then
+			return
+		end
+		local meshes = {}
+		for _, d in model:GetChildren() do
+			if d:IsA("BasePart") and d:GetAttribute("CarMesh") then
+				table.insert(meshes, d)
+			end
+		end
+		local failed: { [string]: boolean } = {}
+		if #meshes > 0 then
+			pcall(function()
+				game:GetService("ContentProvider"):PreloadAsync(meshes, function(id: string, status: Enum.AssetFetchStatus)
+					if status == Enum.AssetFetchStatus.Failure then
+						failed[id] = true
+					end
+				end)
+			end)
+		end
+		if model.Parent and not Traffic.meshVisible(meshes, failed) then
+			Traffic.showBox(model)
+		end
+	end)
+end
+
 function Traffic.init(data: Instance)
 	local roads = {}
 	for _, config in data:WaitForChild("Roads"):GetChildren() do
@@ -1263,21 +1336,35 @@ function Traffic.init(data: Instance)
 		end
 	end
 	-- Carrocerías de malla (servidor: Kit/CarBodies -> Ambient.CarsMesh): llegan después; los coches
-	-- se cambian al llegar, y vuelven a los de piezas en gráficos Bajo
+	-- se cambian al llegar. En gráficos Bajo también llevan malla, pero de las ligeras
+	-- (Ambient.CarsMeshLite); las cajas de antes solo si no ha llegado ninguna malla.
 	local function lowTier(): boolean
 		return type(Perf.tierName) == "function" and Perf.tierName() == "Low"
 	end
-	local meshFolder = data:FindFirstChild("CarsMesh")
-	local meshCars: { Model } = {}
-	if meshFolder and not lowTier() then
-		for _, m in meshFolder:GetChildren() do
+	local SKIN_FOLDER = { Mesh = "CarsMesh", Lite = "CarsMeshLite", Box = "Cars" }
+	local function skinList(skin: string): { Model }
+		local list = {}
+		local f = data:FindFirstChild(SKIN_FOLDER[skin])
+		for _, m in if f then f:GetChildren() else {} do
 			if m:IsA("Model") then
-				table.insert(meshCars, m)
+				table.insert(list, m)
 			end
 		end
-		if #meshCars > 0 then
-			byKind.Car = meshCars
+		return list
+	end
+	-- La que toca en este nivel gráfico (y que ya ha llegado)
+	local function wantedSkin(): string
+		local order = if lowTier() then { "Lite", "Mesh" } else { "Mesh", "Lite" }
+		for _, skin in order do
+			if #skinList(skin) > 0 then
+				return skin
+			end
 		end
+		return "Box"
+	end
+	local skinNow = wantedSkin()
+	if skinNow ~= "Box" then
+		byKind.Car = skinList(skinNow)
 	end
 	for _, m in if riders then riders:GetChildren() else {} do
 		local kind = m:GetAttribute("Kind")
@@ -1295,30 +1382,13 @@ function Traffic.init(data: Instance)
 		end
 	end
 
-	-- Cambia los coches de sitio a otra plantilla (malla o piezas) sin parar el tráfico
-	local usingMesh = #meshCars > 0
-	local function reskin(useMesh: boolean)
-		local folderNow = data:FindFirstChild("CarsMesh")
-		local list = {}
-		if useMesh and folderNow then
-			for _, m in folderNow:GetChildren() do
-				if m:IsA("Model") then
-					table.insert(list, m)
-				end
-			end
-		end
-		if useMesh and #list == 0 then
+	-- Cambia los coches de sitio a otra plantilla (malla, malla ligera o piezas) sin parar el tráfico
+	local function reskin(skin: string)
+		local list = skinList(skin)
+		if #list == 0 then
 			return
 		end
-		if not useMesh then
-			list = {}
-			for _, m in data:WaitForChild("Cars"):GetChildren() do
-				if m:IsA("Model") then
-					table.insert(list, m)
-				end
-			end
-		end
-		usingMesh = useMesh
+		skinNow = skin
 		local i = 0
 		for _, agent in agents do
 			if agent.Kind ~= "Car" then
@@ -1336,9 +1406,12 @@ function Traffic.init(data: Instance)
 	end
 	if typeof(data.ChildAdded) == "RBXScriptSignal" then
 		data.ChildAdded:Connect(function(child)
-			if child.Name == "CarsMesh" and not usingMesh and not lowTier() then
+			if child.Name == "CarsMesh" or child.Name == "CarsMeshLite" then
 				task.wait(1) -- (que lleguen todas las plantillas)
-				pcall(reskin, true)
+				local want = wantedSkin()
+				if want ~= skinNow then
+					pcall(reskin, want)
+				end
 			end
 		end)
 	end
@@ -1389,8 +1462,8 @@ function Traffic.init(data: Instance)
 	end
 	if type(Perf.onTier) == "function" then
 		Perf.onTier(function(tier)
-			local want = tier ~= "Low" and data:FindFirstChild("CarsMesh") ~= nil
-			if want ~= usingMesh then
+			local want = wantedSkin()
+			if want ~= skinNow then
 				pcall(reskin, want)
 			end
 			if tier == "Low" then
@@ -1400,6 +1473,13 @@ function Traffic.init(data: Instance)
 			end
 		end)
 	end
+
+	-- Coches con malla (aparcados, el tuyo, patrullas, autobuses): si su malla no carga en este
+	-- dispositivo, se vuelve a enseñar la caja de piezas (nunca un coche invisible)
+	for _, model in CollectionService:GetTagged("CarMeshBody") do
+		Traffic.guardBody(model)
+	end
+	CollectionService:GetInstanceAddedSignal("CarMeshBody"):Connect(Traffic.guardBody)
 
 	for _, model in CollectionService:GetTagged("TrafficLight") do
 		addLight(model)

@@ -676,9 +676,9 @@ if acMesh then
 	local lo, hi = Kit.bounds(Kit.parts(acMesh))
 	local blo, bhi = aabb(ac.CFrame, ac.Size * 1.16)
 	check(lo.X >= blo.X - 0.01 and hi.X <= bhi.X + 0.01 and lo.Y >= blo.Y - 0.01 and hi.Y <= bhi.Y + 0.01 and lo.Z >= blo.Z - 0.01 and hi.Z <= bhi.Z + 0.01, "la malla del aire cabe en su sitio de la fachada")
-	check(Kit.parts(acMesh)[1]:HasTag("BuildingMesh"), "malla con BuildingMesh (Bajo la esconde)")
+	check(Kit.parts(acMesh)[1]:HasTag("PropMesh") and not Kit.parts(acMesh)[1]:HasTag("BuildingMesh"), "malla con PropMesh (pequeña y barata: se ve también en Bajo)")
 end
-check(ac.Transparency == 1 and ac:HasTag("BuildingShell"), "el aire de bloques queda invisible con BuildingShell (Bajo lo enseña)")
+check(ac.Transparency == 1 and ac:HasTag("PropShell") and not ac:HasTag("BuildingShell"), "el aire de bloques queda invisible con PropShell (en todos los niveles)")
 check(ac.Parent:FindFirstChild("ACGrille").Transparency == 1, "la rejilla de bloques también se esconde")
 
 -- Obras: el cono y la valla salen despedidos con su malla (soldada)
@@ -728,6 +728,17 @@ if calles then
 	end
 end
 check(nCalle > 0, "hay mobiliario de calle (" .. nCalle .. ")")
+-- Nivel gráfico: el mobiliario de calle (hidrantes, buzones, quioscos, jardineras) es barato y se ve
+-- también en Bajo (PropDetail; nada de CityDetail, que Bajo esconde)
+local cheapTags = nCalle > 0
+for _, m in (if calles then calles:GetChildren() else {}) do
+	for _, p in Kit.parts(m) do
+		if not p:HasTag("PropDetail") or p:HasTag("CityDetail") or p:HasTag("BuildingMesh") then
+			cheapTags = false
+		end
+	end
+end
+check(cheapTags, "mobiliario de calle con PropDetail: Bajo no lo esconde")
 check(onWalk == nCalle, "todo en la acera y apoyado en ella (" .. onWalk .. "/" .. nCalle .. ")")
 check(clash == 0, "nada pisa una farola")
 

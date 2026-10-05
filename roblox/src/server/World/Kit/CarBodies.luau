@@ -34,7 +34,17 @@ local CarBodies = {}
 
 CarBodies.MaxTris = 26000 -- triángulos por coche (los «Hero» tienen su propio tope y pocas copias)
 CarBodies.MaxHeavyTris = 40000 -- autobús, autocar y camión (pocos a la vez)
-CarBodies.MaxParked = 320 -- coches aparcados con malla como mucho (el resto, carrocería simple)
+-- Coches aparcados con malla: TODOS (antes 320, y en un aparcamiento grande casi todos salían de
+-- cajas). Es barato: cada uno es una copia de una plantilla compartida, sin colisión ni consultas,
+-- los aparcados prefieren las carrocerías ligeras (ParkedWeight) y con StreamingEnabled el cliente solo
+-- recibe los que tiene cerca (cada coche, entero: ModelStreamingMode Atomic). Esto es solo un tope de
+-- seguridad, muy por encima de los que hay en la ciudad.
+CarBodies.MaxParked = 6000
+-- Peso extra de cada carrocería en los aparcados según sus piezas: las ligeras salen más
+CarBodies.ParkedWeight = { { Parts = 14, Mult = 3 }, { Parts = 32, Mult = 1.5 }, { Parts = math.huge, Mult = 0.6 } }
+-- Plantillas de tráfico ligeras (gráficos Bajo): las de menos piezas
+CarBodies.LiteParts = 16
+CarBodies.MinCover = 0.3 -- la carrocería debe tapar al menos esto de su silueta (si no, se vería invisible)
 CarBodies.Batch = 12 -- coches que se cambian por tanda (luego task.wait)
 CarBodies.ShadowSize = 2.5 -- solo dan sombra las piezas que miden al menos esto
 CarBodies.TireParts = 6 -- piezas de malla por rueda como mucho (neumático, llanta, buje…)
@@ -85,6 +95,7 @@ CarBodies.Types = {
 	Pickup = { Length = 14.2, Roof = 6.0 },
 	Furgoneta = { Length = 14.2, Roof = 6.6 },
 	Policia = { Length = 13.8, Roof = 5.4 },
+	Deportivo = { Length = 13.5, Roof = 4.6 }, -- (los coches del pase: bajos)
 	-- Pesados (no son coches): autobús urbano (encima del nuestro, Rides «Autobus»), camión de reparto
 	-- y autocar (tráfico, Ambient.HeavyMesh)
 	Autobus = { Length = 34, Roof = 9.8, Width = 8.6 },
@@ -126,12 +137,21 @@ CarBodies.Sources = {
 			{ Match = "c1500", Name = "Toro Campo", Brand = "TORO", Type = "Pickup", Roles = CIVIL, Tris = 15000, MaxParts = 60 },
 			{ Match = "corolla", Name = "Brisa Sprint", Brand = "BRISA", Type = "Compacto", Roles = CIVIL, Tris = 12000, MaxParts = 60 },
 			{ Match = "fury", Name = "Valmar Clásico", Brand = "VALMAR MOTORS", Type = "Sedan", Roles = CIVIL, Tris = 9000, MaxParts = 60 },
+			-- Deportivos (solo para los coches del pase: papel «Sport», PremiumVehicles.MeshBodies). No
+			-- se usan los dos con «Protector» (el de 1991 y el R34): «rz turbo» es el de 1998.
+			{ Match = "rz turbo", Name = "Aurea Saeta", Brand = "AUREA", Type = "Deportivo", Roles = { "Sport" }, Tris = 14000, MaxParts = 70 },
+			{ Match = "silvia", Name = "Kestrel Kaze", Brand = "KESTREL", Type = "Deportivo", Roles = { "Sport" }, Tris = 13000, MaxParts = 70 },
+			{ Match = "redeye", Name = "Toro Bravo", Brand = "TORO", Type = "Deportivo", Roles = { "Sport" }, Tris = 15000, MaxParts = 70 },
+			{ Match = "srt-8", Name = "Toro Furia", Brand = "TORO", Type = "Deportivo", Roles = { "Sport" }, Tris = 9000, MaxParts = 70 },
+			{ Match = "charger r/t", Name = "Valmar Centella", Brand = "VALMAR MOTORS", Type = "Deportivo", Roles = { "Sport" }, Tris = 14000, MaxParts = 70 },
+			{ Match = "firebird", Name = "Valmar Fénix", Brand = "VALMAR MOTORS", Type = "Deportivo", Roles = { "Sport" }, Tris = 12000, MaxParts = 70 },
 		},
 	},
 	-- «mesh pack» de Teddy_FV: 11 coches europeos muy ligeros (~4 800 tris) con textura (no se pintan)
 	{
 		Id = 97902046131324,
 		Pack = "Europeos",
+		FillUnmatched = true,
 		Picks = {
 			{ Match = "206", Name = "Brisa Uno", Brand = "BRISA", Type = "Compacto", Roles = CIVIL, Tris = 4800, Weight = 2 },
 			{ Match = "hiace", Name = "Toro Reparto", Brand = "TORO", Type = "Furgoneta", Roles = CIVIL, Tris = 4800, Weight = 2 },
@@ -338,21 +358,62 @@ end
 -- Coches dentro de un pack
 ---------------------------------------------------------------------
 -- Un coche es un Model/Folder con un hijo «Body», un asiento de conductor o (pack de mallas) con al
--- menos 3 MeshPart sueltas. No se baja dentro de un coche ya encontrado.
-local function isCarRoot(x: Instance): boolean
+-- menos 3 mallas sueltas; o una MeshPart con otras mallas DENTRO (el importador 3D de Roblox guarda así
+-- la jerarquía: la carrocería y, colgando de ella, cristales, interior y ruedas). Una carpeta con dos o
+-- más coches dentro es una carpeta, no un coche. No se baja dentro de un coche ya encontrado.
+-- (En un servidor de verdad, el «mesh pack» europeo y el Camry del Semi-Realistic no se encontraban:
+-- de 26 carrocerías salían 15. Ver docs/diagnostico-v89.md y scripts/test-carbodies.luau.)
+local function nestedParts(x: Instance): number
+	local n = 0
+	for _, d in x:GetDescendants() do
+		if d:IsA("BasePart") then
+			n += 1
+		end
+	end
+	return n
+end
+
+local function meshCount(x: Instance): number
+	local n = 0
+	for _, c in x:GetChildren() do
+		if c:IsA("MeshPart") then
+			n += 1 + nestedParts(c)
+		end
+	end
+	return n
+end
+
+local function looksLikeCar(x: Instance): boolean
+	if x:IsA("MeshPart") then
+		return nestedParts(x) >= 2
+	end
 	if not (x:IsA("Model") or x:IsA("Folder")) or x.Name == "Body" then
 		return false
 	end
 	if x:FindFirstChild("Body") or x:FindFirstChildWhichIsA("VehicleSeat") or x:FindFirstChild("DriveSeat") then
 		return true
 	end
-	local meshes = 0
+	return meshCount(x) >= 3
+end
+
+local function isCarRoot(x: Instance): boolean
+	if not looksLikeCar(x) then
+		return false
+	end
+	if x:IsA("BasePart") then
+		return true
+	end
+	if x:FindFirstChild("Body") or x:FindFirstChildWhichIsA("VehicleSeat") or x:FindFirstChild("DriveSeat") then
+		return true
+	end
+	-- (carpeta de mallas con varios coches dentro: no es un coche)
+	local inner = 0
 	for _, c in x:GetChildren() do
-		if c:IsA("MeshPart") then
-			meshes += 1
+		if looksLikeCar(c) then
+			inner += 1
 		end
 	end
-	return meshes >= 3
+	return inner < 2
 end
 
 function CarBodies.findCars(pack: Instance): { Instance }
@@ -374,21 +435,37 @@ function CarBodies.findCars(pack: Instance): { Instance }
 	return out
 end
 
+-- Nombre «completo» de un coche del pack (el suyo y el de sus carpetas, en minúsculas): el nombre
+-- del coche a veces está en la carpeta de fuera («2008 … Camry LE/Chassis/Body…»)
+function CarBodies.label(car: Instance, pack: Instance?): string
+	local names = {}
+	local x: Instance? = car
+	while x and x ~= pack do
+		table.insert(names, x.Name)
+		x = x.Parent
+	end
+	return lower(table.concat(names, " / "))
+end
+
 -- Piezas de la carrocería, ruedas (para encajar) y asiento del conductor de un coche del pack
-local function carParts(car: Instance, keepWheels: boolean?): ({ BasePart }, { BasePart }, BasePart?)
+local function carParts(car: Instance, keepWheels: boolean?, wholeCar: boolean?): ({ BasePart }, { BasePart }, BasePart?)
 	local bodyRoot: Instance = car
 	local body = car:FindFirstChild("Body")
-	if body and not body:IsA("BasePart") then
+	if body and not body:IsA("BasePart") and not wholeCar then
 		bodyRoot = body
 	end
 	local shell, wheels = {}, {}
 	local seat: BasePart? = nil
-	for _, d in car:GetDescendants() do
+	local all = car:GetDescendants()
+	if car:IsA("BasePart") then
+		table.insert(all, 1, car) -- (coche del importador: la carrocería es la propia raíz)
+	end
+	for _, d in all do
 		if d:IsA("VehicleSeat") or (d:IsA("BasePart") and d.Name == "DriveSeat") then
 			seat = seat or d
 		end
 	end
-	for _, d in car:GetDescendants() do
+	for _, d in all do
 		if not d:IsA("BasePart") or d:IsA("Seat") or d:IsA("VehicleSeat") or d:IsA("Terrain") then
 			continue
 		end
@@ -404,7 +481,10 @@ local function carParts(car: Instance, keepWheels: boolean?): ({ BasePart }, { B
 		if bodyRoot ~= car and not d:IsDescendantOf(bodyRoot) and not (body and d == body) then
 			continue
 		end
-		if d.Transparency >= 0.98 or hasWord(d.Name, JUNK_WORDS) or CarBodies.isBrand(d.Name) then
+		-- (nombre con marca: fuera las placas y logos, pero no la carrocería misma, que en los coches del
+		-- importador se llama como el coche, p. ej. «Hiace_9»: se renombra igual)
+		local big = math.max(d.Size.X, d.Size.Y, d.Size.Z) >= 3
+		if d.Transparency >= 0.98 or (d ~= car and hasWord(d.Name, JUNK_WORDS)) or (CarBodies.isBrand(d.Name) and not (d == car or big)) then
 			continue
 		end
 		local s = d.Size
@@ -816,10 +896,48 @@ end
 
 -- Hace la plantilla de un coche del pack. pick = la entrada de Sources; other = otra versión de color
 -- del mismo coche (para saber qué es pintura). Devuelve el Model (sin padre) o nil y por qué.
+-- Cuánto tapa la carrocería (las piezas opacas, no los cristales) su propia silueta de lado, de 0 a 1
+-- (se mira de lado y de frente y vale lo mayor). Una carrocería que solo trae molduras, faros y
+-- cristales (los paneles se fueron a otra carpeta del pack) daría un coche «invisible»: la caja de
+-- piezas se esconde y casi no queda nada que ver.
+function CarBodies.coverage(shell: { BasePart }): number
+	if #shell == 0 then
+		return 0
+	end
+	local lo, hi = bounds(shell)
+	local size = hi - lo
+	local sumX, sumZ = 0, 0
+	for _, p in shell do
+		if isGlass(p) or p.Transparency >= 0.5 then
+			continue
+		end
+		local a, b = bounds({ p })
+		local s = b - a
+		sumX += s.X * s.Y -- (de frente, si el coche va a lo largo de Z)
+		sumZ += s.Z * s.Y -- (de lado)
+	end
+	local rz = sumZ / math.max(size.Z * size.Y, 0.01)
+	local rx = sumX / math.max(size.X * size.Y, 0.01)
+	-- (de lado si es más largo en Z; si no, al revés)
+	local side = if size.Z >= size.X then rz else rx
+	return math.min(side, 1)
+end
+
 function CarBodies.template(car: Instance, pick: { [string]: any }, sourceId: number, other: Instance?): (Model?, string?)
 	local shell, wheels, seat = carParts(car, pick.KeepWheels)
+	if CarBodies.coverage(shell) < CarBodies.MinCover then
+		-- (los paneles están fuera de «Body»: se mira el coche entero)
+		local s2, w2, seat2 = carParts(car, pick.KeepWheels, true)
+		if CarBodies.coverage(s2) > CarBodies.coverage(shell) then
+			shell, wheels, seat = s2, w2, seat2
+		end
+	end
 	if #shell == 0 then
 		return nil, "sin carrocería"
+	end
+	local cover = CarBodies.coverage(shell)
+	if cover < CarBodies.MinCover then
+		return nil, ("carrocería incompleta (tapa el %d%%): se vería invisible"):format(math.floor(cover * 100))
 	end
 	-- Las N piezas más grandes (las demás son tornillos, pegatinas…)
 	if pick.MaxParts and #shell > pick.MaxParts then
@@ -938,6 +1056,14 @@ function CarBodies.template(car: Instance, pick: { [string]: any }, sourceId: nu
 	model:SetAttribute("Forward", why)
 	model:SetAttribute("Length", fhi.Z - flo.Z)
 	model:SetAttribute("Width", fhi.X - flo.X)
+	model:SetAttribute("Cover", math.floor(cover * 100) / 100)
+	local count = 0 -- (piezas que pone cada copia: las de la malla y el neumático en las 4 ruedas)
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") then
+			count += if d.Parent and d.Parent.Name == "Tire" then 4 else 1
+		end
+	end
+	model:SetAttribute("Parts", count)
 	return model, nil
 end
 
@@ -1007,31 +1133,23 @@ function CarBodies.wheelFrom(pack: Instance, def: { [string]: any }): Folder?
 end
 
 -- Hace las plantillas de un pack ya cargado (según su entrada de Sources). Devuelve cuántas.
+-- Cada Pick busca su coche por el nombre (el del coche y el de sus carpetas). Con FillUnmatched (el
+-- «mesh pack», cuyos nombres no son de fiar), los Picks que no encuentran el suyo se quedan con los
+-- coches que sobran, en orden.
 function CarBodies.ingest(def: { [string]: any }, pack: Instance): number
 	local cars = CarBodies.findCars(pack)
+	local labels: { [Instance]: string } = {}
+	for _, car in cars do
+		labels[car] = CarBodies.label(car, pack)
+	end
 	local used: { [Instance]: boolean } = {}
 	local n = 0
-	for _, pick in def.Picks do
-		local chosen, other = nil, nil
-		for _, car in cars do
-			if not used[car] and (pick.Match == "" or string.find(lower(car.Name), pick.Match, 1, true)) then
-				if not chosen then
-					chosen = car
-				elseif not other then
-					other = car
-				end
-			end
-		end
-		if not chosen then
-			continue
-		end
+	local missing = {}
+	local function make(pick: { [string]: any }, chosen: Instance, other: Instance?)
 		used[chosen] = true
-		if pick.Match ~= "" and other then
-			other = nil -- (con nombre: solo ese coche; las versiones de color son de los oficiales)
-		end
 		local cap = if pick.Heavy then CarBodies.MaxHeavyTris else CarBodies.MaxTris
 		if pick.Hero ~= true and (pick.Tris or 0) > cap then
-			continue
+			return
 		end
 		local ok, model, why = pcall(CarBodies.template, chosen, pick, def.Id, other)
 		if ok and model then
@@ -1040,6 +1158,42 @@ function CarBodies.ingest(def: { [string]: any }, pack: Instance): number
 		else
 			warn(("[CarBodies] %s (%d): %s"):format(pick.Name, def.Id, tostring(if ok then why else model)))
 		end
+	end
+	for _, pick in def.Picks do
+		local chosen, other = nil, nil
+		for _, car in cars do
+			if not used[car] and (pick.Match == "" or string.find(labels[car], pick.Match, 1, true)) then
+				if not chosen then
+					chosen = car
+				elseif not other then
+					other = car
+				end
+			end
+		end
+		if not chosen then
+			table.insert(missing, pick)
+			continue
+		end
+		if pick.Match ~= "" and other then
+			other = nil -- (con nombre: solo ese coche; las versiones de color son de los oficiales)
+		end
+		make(pick, chosen, other)
+	end
+	if def.FillUnmatched then
+		for _, pick in missing do
+			for _, car in cars do
+				if not used[car] then
+					make(pick, car, nil)
+					break
+				end
+			end
+		end
+	elseif #missing > 0 then
+		local names = {}
+		for _, pick in missing do
+			table.insert(names, pick.Name)
+		end
+		warn(("[CarBodies] %d: no se encuentran %s"):format(def.Id, table.concat(names, ", ")))
 	end
 	return n
 end
@@ -1052,8 +1206,25 @@ local function hasRole(t: Model, role: string): boolean
 	return type(roles) == "string" and table.find(string.split(roles, ","), role) ~= nil
 end
 
--- Carrocería para un papel y una clave (determinista). types: lista de tipos que valen (o nil).
-function CarBodies.choose(role: string, key: any, types: { string }?): Model?
+-- Peso de una plantilla para un papel (los aparcados prefieren las ligeras: CarBodies.ParkedWeight)
+local function weightOf(t: Model, role: string): number
+	local w = t:GetAttribute("Weight")
+	w = if type(w) == "number" and w > 0 then w else 1
+	if role == "Parked" then
+		local parts = t:GetAttribute("Parts")
+		parts = if type(parts) == "number" then parts else 20
+		for _, step in CarBodies.ParkedWeight do
+			if parts <= step.Parts then
+				w *= step.Mult
+				break
+			end
+		end
+	end
+	return w
+end
+
+-- Plantillas que valen para un papel (ordenadas por nombre, con su peso)
+local function candidates(role: string, types: { string }?): ({ { T: Model, W: number } }, number)
 	local list, total = {}, 0
 	for _, t in library do
 		if not hasRole(t, role) then
@@ -1069,20 +1240,17 @@ function CarBodies.choose(role: string, key: any, types: { string }?): Model?
 		if type(max) == "number" and max > 0 and (copies[t.Name] or 0) >= max then
 			continue
 		end
-		local w = t:GetAttribute("Weight")
-		w = if type(w) == "number" and w > 0 then w else 1
+		local w = weightOf(t, role)
 		table.insert(list, { T = t, W = w })
 		total += w
-	end
-	if #list == 0 then
-		if types then
-			return CarBodies.choose(role, key, nil)
-		end
-		return nil
 	end
 	table.sort(list, function(a, b)
 		return a.T.Name < b.T.Name
 	end)
+	return list, total
+end
+
+local function weighted(list: { { T: Model, W: number } }, total: number, key: any): Model
 	local r = (CarBodies.hash(key) % 100000) / 100000 * total
 	for _, e in list do
 		r -= e.W
@@ -1091,6 +1259,70 @@ function CarBodies.choose(role: string, key: any, types: { string }?): Model?
 		end
 	end
 	return list[#list].T
+end
+
+-- Carrocería para un papel y una clave (determinista). types: lista de tipos que valen (o nil).
+function CarBodies.choose(role: string, key: any, types: { string }?): Model?
+	local list, total = candidates(role, types)
+	if #list == 0 then
+		if types then
+			return CarBodies.choose(role, key, nil)
+		end
+		return nil
+	end
+	return weighted(list, total, key)
+end
+
+-- Variedad en un aparcamiento (o una fila de coches en la calle): los LotVariety primeros coches de
+-- cada sitio son todos distintos (orden al azar ponderado, sin repetir, el mismo para la misma clave)
+-- y los demás, al azar ponderado. Así un aparcamiento grande tiene casi todas las carrocerías.
+CarBodies.LotVariety = 12
+function CarBodies.chooseInLot(role: string, lot: string, index: number): Model?
+	local list, total = candidates(role, nil)
+	if #list == 0 then
+		return nil
+	end
+	local keyed = {}
+	for _, e in list do
+		local u = ((CarBodies.hash(lot .. "|" .. e.T.Name) % 99991) + 0.5) / 99991
+		table.insert(keyed, { T = e.T, K = -math.log(u) / e.W })
+	end
+	table.sort(keyed, function(a, b)
+		return a.K < b.K
+	end)
+	local first = math.min(CarBodies.LotVariety, #keyed)
+	if index >= 1 and index <= first then
+		return keyed[index].T
+	end
+	return weighted(list, total, lot .. ":" .. tostring(index))
+end
+
+-- Las carrocerías más ligeras de un papel (por piezas que pone cada copia): las de LiteParts o
+-- menos; si no hay, las 4 más ligeras. Para el tráfico en gráficos Bajo (Ambient.CarsMeshLite).
+function CarBodies.lightest(role: string): { Model }
+	local list = {}
+	for _, t in library do
+		if hasRole(t, role) and t:GetAttribute("Hero") ~= true then
+			table.insert(list, t)
+		end
+	end
+	local function parts(t: Model): number
+		local n = t:GetAttribute("Parts")
+		return if type(n) == "number" then n else math.huge
+	end
+	table.sort(list, function(a, b)
+		if parts(a) ~= parts(b) then
+			return parts(a) < parts(b)
+		end
+		return a.Name < b.Name
+	end)
+	local out = {}
+	for _, t in list do
+		if parts(t) <= CarBodies.LiteParts or #out < 4 then
+			table.insert(out, t)
+		end
+	end
+	return out
 end
 
 function CarBodies.find(name: string): Model?
@@ -1169,6 +1401,9 @@ function CarBodies.dress(model: Model, cf: CFrame, opts: { [string]: any }?): bo
 	end
 	local variant = o.Variant or model:GetAttribute("Variant") or "Berlina"
 	local template = if o.Template then CarBodies.find(o.Template) else nil
+	if not template and type(o.Lot) == "string" and type(o.Index) == "number" then
+		template = CarBodies.chooseInLot(role, o.Lot, o.Index)
+	end
 	if not template then
 		local types = if role == "Player" or role == "Taxi" then CarBodies.VariantTypes[variant] else nil
 		template = CarBodies.choose(role, o.Key or model.Name, types)
@@ -1214,7 +1449,11 @@ function CarBodies.dress(model: Model, cf: CFrame, opts: { [string]: any }?): bo
 		elseif ROOF[name] then
 			part.CFrame = base * CFrame.new(0, roofY - boxRoof, 0) * (base:Inverse() * part.CFrame)
 		elseif part.CanCollide then
-			-- caja de choque de siempre: invisible, mismo nombre y misma colisión
+			-- caja de choque de siempre: invisible, mismo nombre y misma colisión (CarOrigT: cómo era,
+			-- por si la malla no carga en un dispositivo: Controllers/Traffic la vuelve a enseñar)
+			if part:GetAttribute("CarOrigT") == nil then
+				part:SetAttribute("CarOrigT", part.Transparency)
+			end
 			part.Transparency = 1
 			part.CastShadow = false
 			part:SetAttribute("CarHidden", true)
@@ -1299,6 +1538,9 @@ function CarBodies.dress(model: Model, cf: CFrame, opts: { [string]: any }?): bo
 		end
 		for _, w in model:GetChildren() do
 			if w:IsA("BasePart") and (w.Name == "Wheel" or (not keepRim and (w.Name == "Rim" or w.Name == "Spoke" or w.Name == "Hub"))) then
+				if w:GetAttribute("CarOrigT") == nil then
+					w:SetAttribute("CarOrigT", w.Transparency)
+				end
 				w.Transparency = 1
 				w:SetAttribute("CarHidden", true)
 				if w:GetAttribute("ModOrigTransparency") ~= nil then
@@ -1313,6 +1555,207 @@ function CarBodies.dress(model: Model, cf: CFrame, opts: { [string]: any }?): bo
 	if role == "Parked" then
 		parkedCount += 1
 	end
+	CarBodies.markStreaming(model)
+	return true
+end
+
+-- Coche con malla: llega al cliente ENTERO (la caja de choque invisible y la malla a la vez; con el
+-- modo por piezas a veces llegaba la caja escondida sin la malla y se veía un coche invisible) y con
+-- la etiqueta CarMeshBody (el cliente, Controllers/Traffic, vuelve a enseñar la caja de piezas si la
+-- malla no carga en ese dispositivo).
+function CarBodies.markStreaming(model: Model)
+	pcall(function()
+		(model :: any).ModelStreamingMode = Enum.ModelStreamingMode.Atomic
+	end)
+	pcall(function()
+		model:AddTag("CarMeshBody")
+	end)
+end
+
+---------------------------------------------------------------------
+-- Coches del pase de temporada (Kit/SportsCars + shared/PremiumVehicles): la malla deportiva que le
+-- toca (PremiumVehicles.MeshBodies) con SU pintura y acabado, cristal tintado, molduras cromadas y
+-- luces de neón según la rareza (PremiumVehicles.TierLook). Del coche de piezas se quedan las ruedas
+-- con sus llantas de verdad (radios, disco y pinza de color), el interior, las luces y las
+-- matrículas (llevadas al morro y la cola de la malla). La carrocería de piezas que choca se queda
+-- invisible (misma colisión) y la decoración (alerones, rejillas, franjas…) se quita.
+---------------------------------------------------------------------
+local PKEEP = {
+	Wheel = true, Rim = true, RimInner = true, Spoke = true, Hub = true, BrakeDisc = true, Caliper = true, Chassis = true,
+	Seat = true, SeatBack = true, SeatCushion = true, SeatHead = true, SeatStripe = true, RearSeat = true, RearSeatBack = true,
+	Steering = true, SteeringHub = true, Dash = true, DashGlow = true, DashHousing = true, Gauges = true, Screen = true,
+	Shifter = true, Console = true, Carpet = true,
+}
+local PFRONT = { Headlight = "Lamp", HeadlightRight = "Lamp", HeadlightSmall = "Lamp", IndicatorFront = "Lamp", PlateFront = "Mid" }
+local PREAR = { Taillight = "Lamp", ThirdBrake = "Lamp", Reverse = "Lamp", IndicatorRear = "Lamp", PlateRear = "Mid", Exhaust = "Low", ExhaustTip = "Low" }
+CarBodies.PremiumFinish = { Gloss = 0.18, Metallic = 0.3, Matte = 0.02 }
+local CHROME_COLOR = Color3.fromRGB(214, 218, 224)
+
+local function rgbOf(t: any, fallback: Color3): Color3
+	return if type(t) == "table" then Color3.fromRGB(t[1], t[2], t[3]) else fallback
+end
+
+-- La plantilla que toca a un coche del pase (o nil)
+function CarBodies.premiumTemplate(spec: { [string]: any }): Model?
+	for _, name in spec.Bodies or {} do
+		local t = CarBodies.find(name)
+		if t then
+			return t
+		end
+	end
+	return nil
+end
+
+-- opts: Model (id del coche del pase), Paint (Color3 o nil = el suyo), Accent (Color3 o nil)
+function CarBodies.dressPremium(model: Model, cf: CFrame, opts: { [string]: any }?): boolean
+	local o = opts or {}
+	if CarBodies.State == "loading" or CarBodies.State == "idle" then
+		table.insert(pending, { Model = model, Cf = cf, Opts = o, Fn = CarBodies.dressPremium })
+		return false
+	end
+	if not CarBodies.ready() or model:GetAttribute("CarBody") then
+		return false
+	end
+	local okSpec, PremiumVehicles = pcall(function()
+		return require(game:GetService("ReplicatedStorage").Shared.PremiumVehicles)
+	end)
+	local spec = if okSpec and type(PremiumVehicles) == "table" then PremiumVehicles.get(o.Model or model:GetAttribute("PremiumModel")) else nil
+	if not spec or spec.Kind ~= "Coche" then
+		return false
+	end
+	local template = CarBodies.premiumTemplate(spec)
+	if not template then
+		return false
+	end
+	local paint = if typeof(o.Paint) == "Color3" then o.Paint else rgbOf(spec.Paint, Color3.fromRGB(200, 200, 205))
+	local accent = if typeof(o.Accent) == "Color3" then o.Accent else rgbOf(spec.Accent, Color3.fromRGB(255, 200, 60))
+	local glow = rgbOf(spec.Glow, accent)
+	local tint = rgbOf(spec.Tint, CarBodies.Look.Glass.Color)
+	local reflect = CarBodies.PremiumFinish[spec.Finish] or 0.18
+	local tier = (PremiumVehicles.TierLook or {})[spec.Rarity] or { Chrome = true }
+	local base = groundOf(model, cf)
+	local chassis = model:FindFirstChild("Chassis") :: BasePart?
+	local frontLamp, frontMid = template:GetAttribute("FrontLampZ") :: number, template:GetAttribute("FrontMidZ") :: number
+	local rearLamp, rearMid = template:GetAttribute("RearLampZ") :: number, template:GetAttribute("RearMidZ") :: number
+	local sideX, roofY = template:GetAttribute("SideX") :: number, template:GetAttribute("RoofY") :: number
+	local _ = roofY
+
+	-- 1. Del coche de piezas: se queda lo de dentro, las ruedas y las luces; el resto se esconde o se quita
+	for _, part in model:GetChildren() do
+		if not part:IsA("BasePart") or part:IsA("Seat") or part:IsA("VehicleSeat") then
+			continue
+		end
+		local name = part.Name
+		local z = (base:Inverse() * part.CFrame).Position.Z
+		local front = PFRONT[name] or (name == "Indicator" and z < 0 and "Lamp") or nil
+		local rear = PREAR[name] or (name == "Indicator" and z >= 0 and "Lamp") or nil
+		if PKEEP[name] or string.sub(name, 1, 4) == "Mod_" then
+			continue
+		elseif front then
+			setZ(part, base, (if front == "Lamp" then frontLamp else frontMid) - 0.02 + part.Size.Z * 0.25, sideX)
+		elseif rear then
+			setZ(part, base, (if rear == "Mid" then rearMid elseif rear == "Low" then rearMid - 0.1 else rearLamp) + 0.02 - part.Size.Z * 0.25, sideX)
+		elseif part.CanCollide then
+			if part:GetAttribute("CarOrigT") == nil then
+				part:SetAttribute("CarOrigT", part.Transparency)
+			end
+			part.Transparency = 1
+			part.CastShadow = false
+			part:SetAttribute("CarHidden", true)
+			for _, d in part:GetChildren() do
+				if d:IsA("SurfaceGui") or d:IsA("Decal") then
+					d.Enabled = false
+				end
+			end
+		else
+			part:Destroy()
+		end
+	end
+
+	-- 2. La malla con la pintura del pase
+	local function place(p: BasePart)
+		if chassis then
+			p.Anchored = false
+			p:SetAttribute("Collide", false)
+			local weld = Instance.new("WeldConstraint")
+			weld.Part0 = chassis
+			weld.Part1 = p
+			weld.Parent = p
+		end
+		p.Parent = model
+	end
+	for _, src in template:GetChildren() do
+		if not src:IsA("BasePart") or src.Name == "CarBadge" then
+			continue -- (sin placas de marca: el pase lleva su matrícula VALMAR)
+		end
+		local p = src:Clone()
+		p.CFrame = base * src.CFrame
+		local zone = p:GetAttribute("CarZone")
+		if zone == "Primary" then
+			p.Color = paint
+			if not textured(p) then
+				p.Material = Enum.Material.SmoothPlastic
+			end
+			p.Reflectance = reflect
+			local sa = p:FindFirstChildWhichIsA("SurfaceAppearance")
+			if sa then
+				pcall(function()
+					(sa :: any).Color = paint
+				end)
+			end
+		elseif zone == "Glass" then
+			p.Color = tint
+			p.Reflectance = 0.4
+		elseif zone == "Chrome" then
+			p.Color = CHROME_COLOR
+			p.Reflectance = 0.5
+		end
+		place(p)
+	end
+
+	-- 3. Cromo y neón según la rareza
+	local length = (rearMid - frontMid)
+	local zMid = (rearMid + frontMid) / 2
+	local function accentPart(name: string, size: Vector3, at: CFrame, color: Color3, neon: boolean)
+		local p = Instance.new("Part")
+		p.Name = name
+		p.Size = size
+		p.CFrame = base * at
+		p.Color = color
+		p.Material = if neon then Enum.Material.Neon else Enum.Material.Metal
+		p.Reflectance = if neon then 0 else 0.5
+		p.Anchored = true
+		p.CanCollide = false
+		p.CanQuery = false
+		p.CanTouch = false
+		p.CastShadow = false
+		p.Massless = true
+		p.TopSurface = Enum.SurfaceType.Smooth
+		p.BottomSurface = Enum.SurfaceType.Smooth
+		p:SetAttribute("CarMesh", true)
+		p:SetAttribute("CarZone", "Accent")
+		place(p)
+	end
+	if tier.Chrome then
+		for _, sx in { -1, 1 } do
+			accentPart("PremiumChrome", Vector3.new(0.08, 0.16, length * 0.5), CFrame.new(sx * (sideX + 0.04), 1.15, zMid), CHROME_COLOR, false)
+		end
+	end
+	if tier.GlowLines or spec.GlowLines then
+		for _, sx in { -1, 1 } do
+			accentPart("GlowLine", Vector3.new(0.06, 0.1, length * 0.62), CFrame.new(sx * (sideX + 0.05), 1.42, zMid), glow, true)
+		end
+		accentPart("GlowLine", Vector3.new(sideX * 1.5, 0.08, 0.06), CFrame.new(0, 2.05, frontLamp - 0.05), glow, true)
+	end
+	if tier.Underglow or spec.Underglow then
+		accentPart("Underglow", Vector3.new(sideX * 2 - 1.2, 0.08, length - 3.2), CFrame.new(0, 0.36, zMid), accent, true)
+		accentPart("GlowLine", Vector3.new(sideX * 1.6, 0.1, 0.06), CFrame.new(0, 2.35, rearLamp + 0.05), Color3.fromRGB(220, 30, 40), true)
+	end
+	model:SetAttribute("CarBody", template.Name)
+	model:SetAttribute("CarBodySource", template:GetAttribute("Source"))
+	model:SetAttribute("PremiumBody", true)
+	copies[template.Name] = (copies[template.Name] or 0) + 1
+	CarBodies.markStreaming(model)
 	return true
 end
 
@@ -1368,6 +1811,9 @@ function CarBodies.dressBus(model: Model, cf: CFrame, opts: { [string]: any }?):
 			local sx = if p.X >= 0 then 1 else -1
 			part.CFrame = base * CFrame.new(sx * (sideX + 0.05), p.Y, p.Z) * (rel - p)
 		elseif part.CanCollide then
+			if part:GetAttribute("CarOrigT") == nil then
+				part:SetAttribute("CarOrigT", part.Transparency)
+			end
 			part.Transparency = 1
 			part.CastShadow = false
 			part:SetAttribute("CarHidden", true)
@@ -1398,6 +1844,7 @@ function CarBodies.dressBus(model: Model, cf: CFrame, opts: { [string]: any }?):
 	end
 	model:SetAttribute("CarBody", template.Name)
 	model:SetAttribute("CarBodySource", template:GetAttribute("Source"))
+	CarBodies.markStreaming(model)
 	return true
 end
 
@@ -1458,20 +1905,11 @@ end
 -- Carga en vivo
 ---------------------------------------------------------------------
 local function download(id: number): Instance?
-	local ok, result = pcall(function()
-		return (game:GetService("AssetService") :: any):LoadAssetAsync(id)
+	-- (el cargador compartido, World/AssetLoader: LoadAssetAsync, InsertService, reintentos y cola)
+	local ok, asset = pcall(function()
+		return require(script.Parent.Parent.AssetLoader).download(id)
 	end)
-	if ok and result then
-		return result
-	end
-	ok, result = pcall(function()
-		return game:GetService("InsertService"):LoadAsset(id)
-	end)
-	if ok and result then
-		return result
-	end
-	warn(("[CarBodies] no carga %d: %s"):format(id, tostring(result)))
-	return nil
+	return if ok then asset else nil
 end
 CarBodies.download = download
 

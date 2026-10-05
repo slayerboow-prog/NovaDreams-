@@ -203,6 +203,32 @@ PremiumVehicles.Vehicles = {
 	},
 }
 
+-- Carrocería de malla de verdad de cada coche del pase (World/Kit/CarBodies, plantillas «Sport» del
+-- Semi-Realistic Car Pack, sin marcas ni logos y con nombre inventado): la primera que esté cargada.
+-- Encima va la pintura del coche, cristal tintado, cromo y luces de neón según la rareza
+-- (CarBodies.dressPremium). Si no hay ninguna (o en Lune), el coche hecho de piezas (Kit/SportsCars).
+-- Las motos siguen siendo de piezas.
+PremiumVehicles.FallbackBodies = { "Aurea Saeta", "Kestrel Kaze", "Toro Bravo", "Aurea Berlina", "Aurea Serena" }
+PremiumVehicles.MeshBodies = {
+	VoltexGTR = { "Aurea Saeta", "Kestrel Kaze" }, -- deportivo 2+2 de morro largo
+	StratoRS = { "Kestrel Kaze", "Aurea Saeta" }, -- coupé de líneas redondas
+	KairoS = { "Valmar Fénix", "Aurea Saeta" }, -- clásico con franjas de carreras
+	RavenT7 = { "Toro Bravo", "Toro Furia", "Valmar Centella" }, -- muscle car
+	Zenith = { "Aurea Saeta", "Kestrel Kaze" },
+	ShadowF1 = { "Toro Furia", "Aurea Saeta" }, -- negro mate con neón cian
+	Inferno = { "Toro Bravo", "Kestrel Kaze" },
+	AuroraX = { "Kestrel Kaze", "Aurea Saeta" },
+	Obsidian = { "Toro Furia", "Toro Bravo" },
+	ViboraGT = { "Valmar Centella", "Valmar Fénix", "Toro Bravo" },
+}
+-- Accesorios de cada rareza sobre la malla: Chrome (molduras cromadas en los bajos), GlowLines (líneas
+-- de luz en los costados y barra de luz delante), Underglow (neón bajo el coche y barra detrás)
+PremiumVehicles.TierLook = {
+	Rara = { Chrome = true },
+	Epica = { Chrome = true, GlowLines = true },
+	Legendaria = { Chrome = true, GlowLines = true, Underglow = true },
+}
+
 -- Orden de la hoja del dueño (01..13)
 PremiumVehicles.List = {
 	"VoltexGTR", "StratoRS", "KairoS", "RavenT7", "Zenith",
@@ -288,6 +314,15 @@ for id, v in PremiumVehicles.Vehicles do
 		}
 		v.WheelInfo = { Radius = g.Wheels.Radius, Width = g.Wheels.Width, RimDiameter = g.Wheels.Rim }
 		v.Reference = { Name = "Body", Offset = g.Tank }
+	end
+	if v.Kind == "Coche" then
+		local bodies = table.clone(PremiumVehicles.MeshBodies[id] or {})
+		for _, name in PremiumVehicles.FallbackBodies do
+			if not table.find(bodies, name) then
+				table.insert(bodies, name)
+			end
+		end
+		v.Bodies = bodies
 	end
 	local base = PremiumVehicles.BaseStats[v.Kind]
 	v.Stats = { Velocidad = base.Velocidad, Manejo = base.Manejo, Estetica = AESTHETICS[v.Rarity] or base.Estetica }

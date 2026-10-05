@@ -6,8 +6,14 @@
 --     el cielo es espacio y la ciudad se ve violeta). La fase la publica el servidor en el atributo
 --     SkyRift del jugador (LifeStoryService); cada fase dice su etapa. Al cambiar de etapa, la de
 --     antes se apaga y la nueva nace pequeña y crece.
+--   * Dónde: se ve SIN buscarla. Cuando empieza una fase (o entra el jugador) se elige el lado del cielo
+--     hacia el que mira la cámara (su giro) y, a ~27° sobre el horizonte (shared/SkyRift.Placement:
+--     encima de los edificios y dentro de la pantalla del móvil), se queda fija ahí.
+--   * Aviso «¡Mira al cielo!» con una flecha hacia la grieta: la primera vez que hay grieta en el cielo
+--     de Valmar (Rasguño o más) y la primera noche en «Crece» o más (shared/SkyRift.hintFor). Al
+--     avisar, la grieta se vuelve a poner delante de la cámara.
 --   * Composición (de atrás adelante), en un plano lejano (a ~650 studs) que siempre mira a la cámara
---     (sin deformarse) y sigue la dirección del cielo (hacia Los Pinos, como la luna):
+--     (sin deformarse) y sigue a la cámara en la dirección elegida (como la luna):
 --       SurfaceGui (LightInfluence 0 y Brightness > 1: el Bloom la hace resplandecer):
 --         halo azul/morado · textura de la etapa · galaxia que gira despacio · rayos del borde ·
 --         rayos que parpadean (se regeneran cada 0,1-0,6 s) · destello violeta (etapas 2-3)
@@ -148,9 +154,23 @@ local function frameWidth(): number
 	return stageSpec().Width
 end
 
+-- La dirección del cielo: el giro (yaw) se elige mirando hacia donde mira la cámara al empezar la fase
+-- o al entrar, y luego se queda fijo (skyYaw); nil = elegirlo en el próximo fotograma
+local skyYaw: number? = nil
+local function aim()
+	local camera = workspace.CurrentCamera
+	if camera then
+		local look = camera.CFrame.LookVector
+		skyYaw = Rift.yawOf(look.X, look.Z)
+	end
+end
+
 local function skyDirection(): Vector3
-	local d = Rift.Placement.Sky.Direction
-	return Vector3.new(d[1], d[2], d[3]).Unit
+	if skyYaw == nil then
+		aim()
+	end
+	local x, y, z = Rift.skyDirection(skyYaw)
+	return Vector3.new(x, y, z)
 end
 
 -- El centro del plano: en el cielo, delante de la cámara; si es muy alto (etapas 6-7), se sube para
@@ -878,6 +898,106 @@ local function applyAmbient()
 	end
 end
 
+---------------------------------------------------------------------
+-- Aviso «¡Mira al cielo!» con una flecha hacia la grieta
+---------------------------------------------------------------------
+local HINT_SECONDS = 6
+local hintMemo: { [string]: boolean } = {} -- (lo ya avisado en esta partida: First / Night)
+local hintGui: ScreenGui? = nil
+local hintArrow: TextLabel? = nil
+local hintUntil = 0
+local hintCount = 0
+local hintKind: string? = nil
+local lastHintCheck = -1
+
+local function hideHint()
+	if hintGui then
+		hintGui:Destroy()
+	end
+	hintGui, hintArrow = nil, nil
+end
+
+local function showHint(kind: string)
+	hintKind = kind
+	hintCount += 1
+	hintUntil = clock + HINT_SECONDS
+	hideHint()
+	pcall(function()
+		local playerGui = player:FindFirstChildOfClass("PlayerGui")
+		if not playerGui then
+			return
+		end
+		local g = make("ScreenGui", { Name = "AvisoGrieta", ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = 6 })
+		make("TextLabel", {
+			Name = "Texto",
+			AnchorPoint = Vector2.new(0.5, 0),
+			Position = UDim2.new(0.5, 0, 0.16, 0),
+			Size = UDim2.new(0, 280, 0, 40),
+			BackgroundColor3 = Color3.fromRGB(24, 18, 52),
+			BackgroundTransparency = 0.25,
+			Text = if kind == "Night" then "🌌 ¡Mira al cielo! Esta noche la grieta brilla" else "🌌 ¡Mira al cielo!",
+			TextColor3 = Color3.fromRGB(215, 190, 255),
+			TextScaled = true,
+			Font = Enum.Font.GothamBold,
+		}, g)
+		hintArrow = make("TextLabel", {
+			Name = "Flecha",
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.new(0.5, 0, 0.16, 70),
+			Size = UDim2.new(0, 56, 0, 56),
+			BackgroundTransparency = 1,
+			Text = "➜",
+			TextColor3 = Color3.fromRGB(196, 120, 255),
+			TextScaled = true,
+			Font = Enum.Font.GothamBold,
+		}, g)
+		g.Parent = playerGui
+		hintGui = g
+	end)
+end
+
+-- La flecha apunta a la grieta en la pantalla (si está detrás, hacia arriba)
+local function updateHint()
+	if not hintGui then
+		return
+	end
+	if clock >= hintUntil then
+		hideHint()
+		return
+	end
+	local arrow = hintArrow
+	local part = anchor
+	local camera = workspace.CurrentCamera
+	if not arrow or not part or not camera then
+		return
+	end
+	pcall(function()
+		local screen, onScreen = camera:WorldToViewportPoint(part.CFrame.Position)
+		local view = camera.ViewportSize
+		local from = Vector2.new(view.X * 0.5, view.Y * 0.16 + 70)
+		local dx, dy = screen.X - from.X, screen.Y - from.Y
+		if screen.Z < 0 then
+			dx, dy = -dx, -dy -- (detrás de la cámara)
+		end
+		if not onScreen and math.abs(dx) + math.abs(dy) < 1 then
+			dx, dy = 0, -1
+		end
+		arrow.Rotation = math.deg(math.atan2(dy, dx))
+	end)
+end
+
+local function checkHint(now: number)
+	if preview or now - lastHintCheck < 0.5 then
+		return
+	end
+	lastHintCheck = now
+	local kind = Rift.hintFor(hintMemo, phaseName, Lighting.ClockTime)
+	if kind then
+		aim() -- (al avisar, delante de la cámara: se ve sin buscarla)
+		showHint(kind)
+	end
+end
+
 local function step(dt: number)
 	local phase = currentPhase()
 	clock += dt
@@ -925,6 +1045,10 @@ local function step(dt: number)
 		f.Parent = workspace
 	end
 	placeAnchor()
+	if mode == "Sky" then
+		checkHint(now)
+	end
+	updateHint()
 	if math.abs(open - appliedOpen) > 0.002 then
 		applyGeometry()
 	end
@@ -939,7 +1063,11 @@ end
 
 local function readPhase()
 	local value = player:GetAttribute("SkyRift")
+	local before = phaseName
 	phaseName = if type(value) == "string" and Rift.Phases[value] then value else "Ninguna"
+	if phaseName ~= before then
+		skyYaw = nil -- (empieza otra fase: se pone delante de la cámara de ahora)
+	end
 end
 
 ---------------------------------------------------------------------
@@ -949,6 +1077,7 @@ end
 -- a que crezca (para comprobarla al momento)
 function SkyRift.preview(name: string?, instant: boolean?)
 	preview = if name and Rift.Phases[name] then name else nil
+	skyYaw = nil -- (delante de la cámara)
 	if instant then
 		local phase = currentPhase()
 		mode = phase.Mode
@@ -995,6 +1124,10 @@ end
 -- (pruebas) qué hay dibujado ahora
 function SkyRift.debugState(): { [string]: any }
 	return {
+		Yaw = skyYaw,
+		Hints = hintCount,
+		HintKind = hintKind,
+		HintGui = hintGui,
 		Stage = shownStage,
 		Open = open,
 		Vis = vis,

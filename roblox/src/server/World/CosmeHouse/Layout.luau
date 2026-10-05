@@ -1,58 +1,84 @@
--- Layout: el plano de la casa de Cosme (docs/historia/casa-cosme.md) en datos puros, sin Instances.
+-- Layout: el plano de la casa de Cosme en datos puros, sin Instances. Sigue el PLANO del dueño
+-- (docs/referencias/plano-casa-cosme.png: 48 × 40 studs) a escala ×2 para que quepan los avatares
+-- (96 × 80), con el aspecto del render (docs/referencias/casa-cosme.png; encargo: docs/historia/casa-cosme.md).
 -- Lo usan los constructores (Exterior, Interior, Laboratory…), la rutina de Cosme (NPC) y la prueba
 -- scripts/test-cosmehouse.luau.
 --
 -- Coordenadas LOCALES de la parcela (studs): origen en el centro de la manzana a ras de suelo (y = 0),
--- la fachada mira a -Z (a la calle de las casas familiares). La parcela va de -50 a 50 en X y en Z.
+-- la fachada mira a -Z (a la calle). La parcela va de -50 a 50 en X y en Z.
+-- OJO: desde la calle, mirando la casa, +X queda a la IZQUIERDA y -X a la DERECHA. Así el plano
+-- (garaje a la derecha, salón y paneles solares a la izquierda) se ve igual que en el dibujo.
 --
---   Alturas (cara de arriba de cada suelo):
---     Sótano  FB = -24   (techo a -2: la losa del jardín, de -2 a 0, es su techo; 22 de alto)
---     Baja    F0 = 1     (techo a 15)
---     Alta    F1 = 16    (techo a 30)
---     Ático   F2 = 31    (azotea y ático acristalado; techo del ático a 43, cúpula encima)
+--   Alturas (cara de arriba de cada suelo; 12 de techo en cada planta):
+--     Sótano  FB = -14   (techo a -2: la losa del jardín, de -2 a 0)
+--     Baja    F0 = 1     (techo a 13)
+--     Alta    F1 = 14    (techo a 26)
+--     Tejado  F2 = 27    (azotea con la cúpula de observación encima)
 --
---   Planta baja (vista desde arriba, la calle abajo):
---     z=18 ┌──────────────┬─────────┬────────┐  terraza (z 18..26) y jardín trasero
---          │    SALÓN     │ COMEDOR │ COCINA │
---          │              │         ├────────┤
---     z=-6 ├────────┬─────┼─────────┤  ASEO  │┌───────────────┐
---      ( ) │DESPACHO│VEST.│ESCALERA │ SÓTANO ││    GARAJE     │ (escalera al sótano al fondo)
---   torre  │        │     │(4 tramos│(bajada)││  coche y      │
---     z=-32└────────┴─puerta───────┴────────┘└──portal───────┘
---         x=-34    -20   -12        0       12              46
+--   PLANTA BAJA (vista desde arriba, la calle abajo; izquierda del dibujo = +X):
+--          x=40           16    4          -22          -44
+--     z=24 ┌──────────────┬─────┬───────────┐ terraza lateral (jardín)
+--          │   COCINA     │ASEO │LABORATORIO│
+--          │  (y comedor  │     │ (máquina  ├───────────┐ z=12
+--      8.5 │   de diario) ├─────┤ redonda)  │           │
+--          │              │ESC. ├───────────┤  GARAJE   │
+--      -12 ├──────────────┤(5)  │  COMEDOR  │  (coche   │
+--          │    SALÓN     └─────┤           │ y portal) │
+--      -20 │                    ├───┬───────┤           │
+--          │                VEST│IBULO DESP.│           │
+--     z=-32└────────────────────┴puerta─────┴──abierto──┘
 --
---   El sótano ocupa casi toda la manzana (más grande que la casa: «¿cómo cabe todo esto aquí?»).
+--   PLANTA ALTA: habitación de Cosme (izq.), zona de experimentos (der.), núcleo de la escalera en
+--   el centro, la sala de observación de cristal en un mirador semicircular DETRÁS, la terraza
+--   principal delante (encima del salón) y la terraza lateral encima del garaje.
+--   SÓTANO: portal (izq. delante), taller (izq. detrás), almacén (centro detrás), garaje (der.) y la
+--   escalera en medio; detrás del taller, la habitación secreta (no sale en el plano: es secreta).
+--   TECHO: paneles solares (izq.), la cúpula de observación (torre redonda de dos tambores de cristal
+--   con el «platillo» encima), la torre de experimentos con el vórtice y la antena (atrás a la der.)
+--   y la terraza chill (delante a la der.).
 
 local Layout = {}
 
-Layout.FB = -24
+Layout.FB = -14
 Layout.F0 = 1
-Layout.F1 = 16
-Layout.F2 = 31
-Layout.CEIL = { B = -2, G = 15, U = 30, A = 43 }
-Layout.LevelY = { B = -24, G = 1, U = 16, A = 31 }
+Layout.F1 = 14
+Layout.F2 = 27
+Layout.CEIL = { B = -2, G = 13, U = 26, A = 38 }
+Layout.LevelY = { B = -14, G = 1, U = 14, A = 27 }
 
 Layout.Lot = { X0 = -50, X1 = 50, Z0 = -50, Z1 = 50 }
-Layout.House = { X0 = -34, X1 = 12, Z0 = -32, Z1 = 18 }
-Layout.Garage = { X0 = 12, X1 = 46, Z0 = -32, Z1 = 6 }
-Layout.Basement = { X0 = -48, X1 = 46, Z0 = -46, Z1 = 46 }
-Layout.Tower = { X = -40, Z = -22, R = 9 }
-Layout.PortalTower = { X = 29, Z = 27, R = 6 }
-Layout.Deck = { X0 = -34, X1 = 12, Z0 = 18, Z1 = 26 }
+-- La casa (sin el garaje) y el garaje (a la derecha, a todo el fondo de la planta baja delantera)
+Layout.House = { X0 = -22, X1 = 40, Z0 = -32, Z1 = 24 }
+Layout.Upper = { X0 = -22, X1 = 40, Z0 = -20, Z1 = 24 } -- planta alta (la terraza principal va delante)
+Layout.Garage = { X0 = -44, X1 = -22, Z0 = -32, Z1 = 12 }
+Layout.Basement = { X0 = -44, X1 = 44, Z0 = -32, Z1 = 46 }
+-- Mirador semicircular de cristal (sala de observación, planta alta) detrás de la casa
+Layout.Bay = { X = 4, Z = 24, R = 12 }
+-- Cúpula de observación del tejado: dos tambores de cristal y el «platillo»
+Layout.Dome = { X = 8, Z = -1, R = 13, Top = 38, DiscR = 17, UpperR = 7.5, UpperTop = 45 }
+-- Torre de experimentos (con el vórtice encima) y antena satélite, en el tejado atrás a la derecha
+Layout.PortalTower = { X = -14, Z = 17, R = 4.5 }
+Layout.Antenna = { X = -5, Z = 19 }
+Layout.Deck = { X0 = -22, X1 = 40, Z0 = 24, Z1 = 31 }
+Layout.Solar = { X0 = 22, X1 = 39, Z0 = -18, Z1 = 22 }
 
 -- Escaleras de ida y vuelta (dos tramos de 6 de ancho, rellano en cada vuelta).
 --   X0..X1: 12 de ancho (carril A = la mitad de +X, carril B = la de -X). Z0: lado del rellano cercano.
 --   Near: fondo del rellano cercano; Run: largo de cada tramo; Far: fondo del rellano del otro lado.
 --   Y0: altura de salida; Rise: lo que sube (o baja, negativo) cada tramo; Flights: número de tramos.
+--   Swap: empieza por el carril B. Las dos escaleras van en el MISMO núcleo (en el centro, como en el
+--   plano): la que sube empieza por el carril A y la que baja al sótano por el B, una debajo de otra.
 Layout.Stairs = {
-	Hall = { X0 = -12, X1 = 0, Z0 = -32, Near = 7, Run = 12.5, Far = 6.5, Y0 = 1, Rise = 7.5, Flights = 4 },
-	Sotano = { X0 = 0, X1 = 12, Z0 = -32, Near = 7, Run = 12.5, Far = 6.5, Y0 = 1, Rise = -6.25, Flights = 4 },
-	Garaje = { X0 = 34, X1 = 46, Z0 = -20, Near = 7, Run = 12.5, Far = 6.5, Y0 = 1, Rise = -6.25, Flights = 4 },
+	Hall = { X0 = 4, X1 = 16, Z0 = -12, Near = 4, Run = 12.5, Far = 4, Y0 = 1, Rise = 6.5, Flights = 4 },
+	Sotano = { X0 = 4, X1 = 16, Z0 = -12, Near = 4, Run = 12.5, Far = 4, Y0 = 1, Rise = -7.5, Flights = 2, Swap = true },
 }
+-- Núcleo de la escalera (de arriba abajo)
+Layout.Core = { X0 = 4, X1 = 16, Z0 = -12, Z1 = 8.5 }
 
 -- Peldaños de un tramo (para construirlos y para la prueba): { { x0, x1, z0, z1, top } }
 function Layout.flight(stair: { [string]: any }, k: number): { { number } }
-	local laneA = k % 2 == 1
+	local laneA = (k % 2 == 1) ~= (stair.Swap == true)
+	local forward = k % 2 == 1 -- los impares van de cerca a lejos
 	local x0 = if laneA then stair.X0 + 6 else stair.X0
 	local zNear, zFar = stair.Z0 + stair.Near, stair.Z0 + stair.Near + stair.Run
 	local yStart = stair.Y0 + (k - 1) * stair.Rise
@@ -61,12 +87,9 @@ function Layout.flight(stair: { [string]: any }, k: number): { { number } }
 	local d = stair.Run / n
 	local steps = {}
 	for i = 1, n do
-		-- Tramo A va de cerca a lejos; el B de lejos a cerca
-		local za = if laneA then zNear + (i - 1) * d else zFar - i * d
+		local za = if forward then zNear + (i - 1) * d else zFar - i * d
 		local zb = za + d
-		-- Al bajar, cada peldaño queda medio peldaño por debajo del anterior
-		local top = if stair.Rise > 0 then yStart + i * h else yStart + i * h
-		table.insert(steps, { x0, x0 + 6, za, zb, top })
+		table.insert(steps, { x0, x0 + 6, za, zb, yStart + i * h })
 	end
 	return steps
 end
@@ -85,46 +108,50 @@ function Layout.landings(stair: { [string]: any }): { { any } }
 end
 
 ---------------------------------------------------------------------
--- Habitaciones (Level: B sótano, G baja, U alta, A ático, O fuera). Rect en local. MinProps: lo
--- mínimo de piezas que tiene que tener dentro (la prueba comprueba que ninguna está vacía).
+-- Habitaciones (Level: B sótano, G baja, U alta, A tejado, O fuera). Rect en local. MinProps: lo
+-- mínimo de piezas que tiene que tener dentro (la prueba comprueba que ninguna está vacía). Plan: el
+-- número de la habitación en el plano del dueño.
 ---------------------------------------------------------------------
-export type Room = { Id: string, Name: string, Level: string, X0: number, X1: number, Z0: number, Z1: number, MinProps: number, Light: boolean? }
+export type Room = { Id: string, Name: string, Level: string, X0: number, X1: number, Z0: number, Z1: number, MinProps: number, Light: boolean?, Plan: number? }
 
 Layout.Rooms = {
 	-- Exterior
-	{ Id = "Jardin", Name = "Jardín delantero", Level = "O", X0 = -50, X1 = 12, Z0 = -50, Z1 = -33, MinProps = 40 },
-	{ Id = "JardinTrasero", Name = "Jardín trasero", Level = "O", X0 = -50, X1 = 50, Z0 = 27, Z1 = 50, MinProps = 60 },
-	{ Id = "Terraza", Name = "Terraza", Level = "O", X0 = -34, X1 = 12, Z0 = 18.5, Z1 = 26, MinProps = 15 },
+	{ Id = "Jardin", Name = "Jardín delantero", Level = "O", X0 = -50, X1 = 50, Z0 = -50, Z1 = -33, MinProps = 40 },
+	{ Id = "JardinTrasero", Name = "Jardín trasero", Level = "O", X0 = -50, X1 = 50, Z0 = 31.5, Z1 = 50, MinProps = 50 },
+	{ Id = "Terraza", Name = "Terraza trasera", Level = "O", X0 = -22, X1 = 40, Z0 = 24.5, Z1 = 31, MinProps = 15 },
+	{ Id = "JardinLateral", Name = "Terraza y jardín lateral", Level = "O", X0 = -50, X1 = -22.5, Z0 = 12.5, Z1 = 31, MinProps = 15 },
 	-- Planta baja
-	{ Id = "Vestibulo", Name = "Vestíbulo", Level = "G", X0 = -20, X1 = -12, Z0 = -32, Z1 = -6, MinProps = 20, Light = true },
-	{ Id = "Escalera", Name = "Escalera principal", Level = "G", X0 = -12, X1 = 0, Z0 = -32, Z1 = -6, MinProps = 30 },
-	{ Id = "Despacho", Name = "Despacho", Level = "G", X0 = -34, X1 = -20, Z0 = -32, Z1 = -6, MinProps = 40, Light = true },
-	{ Id = "Salon", Name = "Sala de estar", Level = "G", X0 = -34, X1 = -12, Z0 = -6, Z1 = 18, MinProps = 50, Light = true },
-	{ Id = "Comedor", Name = "Comedor", Level = "G", X0 = -12, X1 = 0, Z0 = -6, Z1 = 18, MinProps = 25, Light = true },
-	{ Id = "Cocina", Name = "Cocina", Level = "G", X0 = 0, X1 = 12, Z0 = 4, Z1 = 18, MinProps = 40, Light = true },
-	{ Id = "Aseo", Name = "Baño de abajo", Level = "G", X0 = 0, X1 = 12, Z0 = -6, Z1 = 4, MinProps = 10, Light = true },
-	{ Id = "BajadaSotano", Name = "Bajada al sótano", Level = "G", X0 = 0, X1 = 12, Z0 = -32, Z1 = -6, MinProps = 20 },
-	{ Id = "GarajeCosme", Name = "Garaje experimental", Level = "G", X0 = 12, X1 = 46, Z0 = -32, Z1 = 6, MinProps = 80, Light = true },
+	{ Id = "Vestibulo", Name = "Vestíbulo / Entrada", Level = "G", X0 = -10, X1 = 4, Z0 = -32, Z1 = -20, MinProps = 20, Light = true, Plan = 1 },
+	{ Id = "Salon", Name = "Salón / Estar", Level = "G", X0 = 4, X1 = 40, Z0 = -32, Z1 = -12, MinProps = 50, Light = true, Plan = 2 },
+	{ Id = "Despacho", Name = "Despacho", Level = "G", X0 = -22, X1 = -10, Z0 = -32, Z1 = -20, MinProps = 30, Light = true },
+	{ Id = "Comedor", Name = "Comedor", Level = "G", X0 = -22, X1 = 4, Z0 = -20, Z1 = 4, MinProps = 25, Light = true, Plan = 3 },
+	{ Id = "Escalera", Name = "Escalera / Acceso planta alta", Level = "G", X0 = 4, X1 = 16, Z0 = -12, Z1 = 8.5, MinProps = 20, Plan = 5 },
+	{ Id = "Cocina", Name = "Cocina", Level = "G", X0 = 16, X1 = 40, Z0 = -12, Z1 = 24, MinProps = 40, Light = true, Plan = 3 },
+	{ Id = "Aseo", Name = "Aseo", Level = "G", X0 = 4, X1 = 16, Z0 = 8.5, Z1 = 24, MinProps = 10, Light = true },
+	{ Id = "Laboratorio", Name = "Laboratorio de inventos", Level = "G", X0 = -22, X1 = 4, Z0 = 4, Z1 = 24, MinProps = 60, Light = true, Plan = 4 },
+	{ Id = "GarajeCosme", Name = "Garaje (vehículo experimental)", Level = "G", X0 = -44, X1 = -22, Z0 = -32, Z1 = 12, MinProps = 80, Light = true, Plan = 6 },
 	-- Planta alta
-	{ Id = "Pasillo", Name = "Pasillo", Level = "U", X0 = -20, X1 = -12, Z0 = -32, Z1 = 8, MinProps = 12, Light = true },
-	{ Id = "Biblioteca", Name = "Biblioteca científica", Level = "U", X0 = -34, X1 = -20, Z0 = -32, Z1 = -6, MinProps = 60, Light = true },
-	{ Id = "Ordenadores", Name = "Sala de ordenadores", Level = "U", X0 = 0, X1 = 12, Z0 = -32, Z1 = -6, MinProps = 60, Light = true },
-	{ Id = "Dormitorio", Name = "Habitación de Cosme", Level = "U", X0 = -34, X1 = -20, Z0 = -6, Z1 = 18, MinProps = 40, Light = true },
-	{ Id = "BanoArriba", Name = "Baño de arriba", Level = "U", X0 = -20, X1 = -12, Z0 = 8, Z1 = 18, MinProps = 10, Light = true },
-	{ Id = "Experimentos", Name = "Sala de experimentos", Level = "U", X0 = -12, X1 = 12, Z0 = -6, Z1 = 18, MinProps = 60, Light = true },
-	{ Id = "Balcon", Name = "Balcón", Level = "U", X0 = -34, X1 = 12, Z0 = 18.5, Z1 = 24, MinProps = 10 },
-	-- Ático
-	{ Id = "Control", Name = "Centro de control", Level = "A", X0 = -34, X1 = -12, Z0 = -32, Z1 = -6, MinProps = 40, Light = true },
-	{ Id = "Observatorio", Name = "Observatorio", Level = "A", X0 = -49, X1 = -34, Z0 = -31, Z1 = -13, MinProps = 15 },
-	{ Id = "Azotea", Name = "Azotea", Level = "A", X0 = -34, X1 = 12, Z0 = -6, Z1 = 18, MinProps = 30 },
+	{ Id = "Pasillo", Name = "Pasillo", Level = "U", X0 = 4, X1 = 16, Z0 = -20, Z1 = -12, MinProps = 8, Light = true },
+	{ Id = "Dormitorio", Name = "Habitación de Cosme", Level = "U", X0 = 16, X1 = 40, Z0 = -20, Z1 = 6, MinProps = 40, Light = true, Plan = 7 },
+	{ Id = "Biblioteca", Name = "Biblioteca científica", Level = "U", X0 = 16, X1 = 28, Z0 = 6, Z1 = 24, MinProps = 40, Light = true },
+	{ Id = "BanoArriba", Name = "Baño", Level = "U", X0 = 28, X1 = 40, Z0 = 6, Z1 = 24, MinProps = 10, Light = true },
+	{ Id = "Experimentos", Name = "Zona de trabajo / Experimentos", Level = "U", X0 = -22, X1 = 4, Z0 = -20, Z1 = 8.5, MinProps = 60, Light = true, Plan = 8 },
+	{ Id = "Ordenadores", Name = "Sala de ordenadores", Level = "U", X0 = -22, X1 = -8, Z0 = 8.5, Z1 = 24, MinProps = 50, Light = true },
+	{ Id = "Observacion", Name = "Habitación de observación (cristal)", Level = "U", X0 = -8, X1 = 16, Z0 = 8.5, Z1 = 36, MinProps = 15, Light = true, Plan = 9 },
+	{ Id = "TerrazaPrincipal", Name = "Terraza principal", Level = "U", X0 = -22, X1 = 40, Z0 = -31.5, Z1 = -20.5, MinProps = 15, Plan = 10 },
+	{ Id = "TerrazaLateral", Name = "Terraza lateral", Level = "U", X0 = -44, X1 = -22.5, Z0 = -32, Z1 = 12, MinProps = 15, Plan = 11 },
+	-- Tejado
+	{ Id = "Observatorio", Name = "Cúpula de observación", Level = "A", X0 = -5, X1 = 21, Z0 = -14, Z1 = 12, MinProps = 40, Light = true, Plan = 19 },
+	{ Id = "Azotea", Name = "Terraza / zona chill", Level = "A", X0 = -22, X1 = -5.5, Z0 = -20, Z1 = 10, MinProps = 25, Plan = 20 },
+	{ Id = "PanelesSolares", Name = "Paneles solares", Level = "A", X0 = 21.5, X1 = 40, Z0 = -20, Z1 = 24, MinProps = 20, Plan = 16 },
+	{ Id = "TorreExperimentos", Name = "Torre de experimentos y antena", Level = "A", X0 = -22, X1 = 0, Z0 = 12.5, Z1 = 24, MinProps = 15, Plan = 17 },
 	-- Sótano
-	{ Id = "PasilloSotano", Name = "Pasillo del sótano", Level = "B", X0 = -30, X1 = 0, Z0 = -34, Z1 = -24, MinProps = 15, Light = true },
-	{ Id = "Laboratorio", Name = "Laboratorio principal", Level = "B", X0 = -48, X1 = 0, Z0 = -24, Z1 = 24, MinProps = 150, Light = true },
-	{ Id = "Prototipos", Name = "Sala de prototipos", Level = "B", X0 = 0, X1 = 12, Z0 = -6, Z1 = 24, MinProps = 40, Light = true },
-	{ Id = "Almacen", Name = "Almacén", Level = "B", X0 = -48, X1 = 12, Z0 = 24, Z1 = 46, MinProps = 60, Light = true },
-	{ Id = "Energia", Name = "Sala de energía", Level = "B", X0 = 12, X1 = 46, Z0 = -34, Z1 = -20, MinProps = 40, Light = true },
-	{ Id = "Portales", Name = "Sala de portales", Level = "B", X0 = 13, X1 = 45, Z0 = 11, Z1 = 43, MinProps = 60, Light = true },
-	{ Id = "Secreta", Name = "Habitación secreta", Level = "B", X0 = -48, X1 = -30, Z0 = -46, Z1 = -24, MinProps = 40, Light = true },
+	{ Id = "PasilloSotano", Name = "Pasillo del sótano", Level = "B", X0 = -8, X1 = 16, Z0 = -32, Z1 = 8.5, MinProps = 15, Light = true },
+	{ Id = "Portales", Name = "Portal / Máquina de portales", Level = "B", X0 = 16, X1 = 44, Z0 = -32, Z1 = 8, MinProps = 60, Light = true, Plan = 13 },
+	{ Id = "Taller", Name = "Taller / Zona de trabajo", Level = "B", X0 = 16, X1 = 44, Z0 = 8, Z1 = 32, MinProps = 50, Light = true, Plan = 14 },
+	{ Id = "Almacen", Name = "Almacén / Depósito", Level = "B", X0 = -8, X1 = 16, Z0 = 8.5, Z1 = 32, MinProps = 40, Light = true, Plan = 15 },
+	{ Id = "GarajeSotano", Name = "Garaje del sótano (vehículo experimental)", Level = "B", X0 = -44, X1 = -8, Z0 = -32, Z1 = 32, MinProps = 50, Light = true, Plan = 12 },
+	{ Id = "Secreta", Name = "Habitación secreta", Level = "B", X0 = 16, X1 = 40, Z0 = 32, Z1 = 46, MinProps = 40, Light = true },
 } :: { Room }
 
 function Layout.room(id: string): Room?
@@ -147,7 +174,7 @@ function Layout.levelRange(level: string): (number, number)
 	elseif level == "A" then
 		return Layout.F2 - 0.5, Layout.CEIL.A + 12
 	end
-	return -0.5, 14
+	return -0.5, 13
 end
 
 ---------------------------------------------------------------------
@@ -155,177 +182,151 @@ end
 -- que se puede andar (la prueba comprueba que no atraviesa paredes ni muebles).
 ---------------------------------------------------------------------
 local P: { [string]: { number } } = {
-	-- Calle y jardín
-	Calle = { -16, 0, -47 },
-	Porche = { -16, 0.5, -36 },
-	Entrada = { -16, 1, -30 },
+	-- Calle, jardín y porche
+	Calle = { -3, 0, -47 },
+	Porche = { -3, 0.5, -35.5 },
+	Entrada = { -3, 1, -29 },
+	Acera = { -33, 0, -40 },
 	-- Planta baja
-	VestibuloMedio = { -16, 1, -19 },
-	VestibuloFondo = { -16, 1, -8 },
-	PieEscalera = { -6, 1, -28.5 },
-	EscaleraA1 = { -3, 1, -25.5 },
-	PuertaDespacho = { -20, 1, -19 },
-	Despacho = { -27, 1, -19 },
-	DespachoTorre = { -38, 1, -22 },
-	Salon = { -21, 1, 1 },
-	SalonSofa = { -19.5, 1, 5.4 },
-	SalonEste = { -14.5, 1, 2 },
-	SalonEsteFondo = { -14.5, 1, 13 },
-	SalonTerraza = { -26, 1, 15 },
-	Comedor = { -10.5, 1, 1 },
-	ComedorFondo = { -10.5, 1, 15.5 },
-	CocinaPaso = { -1, 1, 15.5 },
-	Cocina = { 5, 1, 11 },
-	AseoPuerta = { -2, 1, 0 },
-	Aseo = { 5, 1, -1 },
-	Terraza = { -26, 1, 22 },
-	TerrazaEste = { -6, 1, 22 },
-	JardinTrasero = { -26, 0, 34 },
-	JardinTorre = { 18, 0, 34 },
-	-- Escalera principal (vestíbulo): tramos de 7,5 y rellanos
-	EscaleraA1Arriba = { -3, 8.5, -12.5 },
-	RellanoA = { -6, 8.5, -9.5 },
-	EscaleraB1 = { -9, 8.5, -12.5 },
-	EscaleraB1Arriba = { -9, 16, -25 },
-	RellanoB = { -6, 16, -28.5 },
-	EscaleraA2 = { -3, 16, -25.5 },
-	EscaleraA2Arriba = { -3, 23.5, -12.5 },
-	RellanoC = { -6, 23.5, -9.5 },
-	EscaleraB2 = { -9, 23.5, -12.5 },
-	EscaleraB2Arriba = { -9, 31, -25 },
-	RellanoD = { -6, 31, -28.5 },
-	-- Bajada al sótano (núcleo de la derecha) y garaje
-	SotanoL0 = { 6, 1, -28.5 },
-	SotanoA1 = { 9, 1, -25.5 },
-	SotanoA1Abajo = { 9, -5.25, -12.5 },
-	SotanoL1 = { 6, -5.25, -9.5 },
-	SotanoB1 = { 3, -5.25, -12.5 },
-	SotanoB1Abajo = { 3, -11.5, -25 },
-	SotanoL2 = { 6, -11.5, -28.5 },
-	SotanoA2 = { 9, -11.5, -25.5 },
-	SotanoA2Abajo = { 9, -17.75, -12.5 },
-	SotanoL3 = { 6, -17.75, -9.5 },
-	SotanoB2 = { 3, -17.75, -12.5 },
-	SotanoB2Abajo = { 3, -24, -25 },
-	SotanoL4 = { 6, -24, -28.5 },
-	GarajeEntrada = { 17, 1, -28.5 },
-	Garaje = { 31, 1, -24 },
-	GarajeCoche = { 31, 1, -10 },
-	GarajeBanco = { 17, 1, -20 },
-	GarajeEscalera = { 40, 1, -16.5 },
-	GarajeA1 = { 43, 1, -13.5 },
-	GarajeA1Abajo = { 43, -5.25, -0.5 },
-	GarajeL1 = { 40, -5.25, 2.5 },
-	GarajeB1 = { 37, -5.25, -0.5 },
-	GarajeB1Abajo = { 37, -11.5, -13 },
-	GarajeL2 = { 40, -11.5, -16.5 },
-	GarajeA2 = { 43, -11.5, -13.5 },
-	GarajeA2Abajo = { 43, -17.75, -0.5 },
-	GarajeL3 = { 40, -17.75, 2.5 },
-	GarajeB2 = { 37, -17.75, -0.5 },
-	GarajeB2Abajo = { 37, -24, -13 },
-	GarajeL4 = { 40, -24, -16.5 },
-	Acera = { 29, 0, -42 },
+	Vestibulo = { -3, 1, -24 },
+	PuertaDespacho = { -10, 1, -27 },
+	Despacho = { -16, 1, -27 },
+	SalonPaso = { 4, 1, -27 },
+	Salon = { 14, 1, -23 },
+	SalonFondo = { 18, 1, -15 },
+	SalonSofa = { 30, 1, -15.5 },
+	ComedorPaso = { -3, 1, -17 },
+	Comedor = { -9, 1, -8 },
+	PieEscalera = { 0, 1, -10 },
+	RellanoBaja = { 10, 1, -10 },
+	CocinaPaso = { 28, 1, -9 },
+	Cocina = { 28, 1, 4 },
+	CocinaFondo = { 28, 1, 17 },
+	PuertaAseo = { 16, 1, 17 },
+	Aseo = { 10, 1, 17 },
+	PuertaTerraza = { 28, 1, 24 },
+	Terraza = { 28, 1, 27.5 },
+	TerrazaLab = { -4, 1, 27.5 },
+	JardinTrasero = { 20, 0, 40 },
+	JardinLateral = { -34, 0, 24 },
+	PuertaLab = { -9, 1, 4 },
+	Laboratorio = { -4, 1, 10 },
+	LabMaquina = { -4, 1, 17 },
+	PuertaLabFondo = { -4, 1, 24 },
+	PuertaGaraje = { -22, 1, -10 },
+	GarajeCoche = { -27, 1, -8 },
+	Garaje = { -30, 1, -24 },
+	-- Escalera principal (núcleo del centro): sube por el carril A
+	EscaleraA1 = { 13, 1, -8.5 },
+	EscaleraA1Arriba = { 13, 7.5, 4.5 },
+	RellanoA = { 10, 7.5, 6.5 },
+	EscaleraB1 = { 7, 7.5, 4.5 },
+	EscaleraB1Arriba = { 7, 14, -8 },
+	RellanoB = { 10, 14, -10 },
+	EscaleraA2 = { 13, 14, -8.5 },
+	EscaleraA2Arriba = { 13, 20.5, 4.5 },
+	RellanoC = { 10, 20.5, 6.5 },
+	EscaleraB2 = { 7, 20.5, 4.5 },
+	EscaleraB2Arriba = { 7, 27, -8 },
+	RellanoD = { 10, 27, -10 },
+	-- …y baja al sótano por el carril B, debajo
+	SotanoB1 = { 7, 1, -8.5 },
+	SotanoB1Abajo = { 7, -6.5, 4.5 },
+	SotanoL1 = { 10, -6.5, 6.5 },
+	SotanoA1 = { 13, -6.5, 4.5 },
+	SotanoA1Abajo = { 13, -14, -8 },
+	SotanoL2 = { 10, -14, -10 },
 	-- Planta alta
-	PasilloDelante = { -16, 16, -28.5 },
-	PasilloMedio = { -16, 16, -19 },
-	PasilloAtras = { -16, 16, -9 },
-	PasilloFondo = { -16, 16, 1 },
-	PasilloBano = { -16, 16, 6 },
-	Biblioteca = { -27, 16, -19 },
-	BibliotecaTorre = { -38, 16, -22 },
-	PuertaOrdenadores = { 2, 16, -28.5 },
-	Ordenadores = { 6, 16, -16 },
-	Dormitorio = { -27, 16, 1 },
-	DormitorioCama = { -24.5, 16, 6 },
-	BanoArriba = { -17, 16, 11 },
-	Experimentos = { -5, 16, 1 },
-	ExperimentosFondo = { 4, 16, 10 },
-	Balcon = { -26, 16, 20 },
-	BalconEste = { 4, 16, 20 },
-	-- Ático y azotea
-	Control = { -20, 31, -27 },
-	ControlOeste = { -30, 31, -24 },
-	Observatorio = { -37.5, 31, -22 },
-	AticoPuerta = { -24, 31, -8 },
-	Azotea = { -24, 31, 4 },
-	AzoteaMaquina = { 2, 31, 6 },
-	AticoOeste = { -16, 31, -28.5 },
-	AzoteaDelante = { 6, 31, -28.5 },
-	AzoteaEste = { 6, 31, -12 },
+	PasilloAlto = { 10, 14, -16 },
+	PuertaDormitorio = { 16, 14, -16 },
+	Dormitorio = { 24, 14, -11 },
+	DormitorioCama = { 28, 14, -3 },
+	PuertaBiblioteca = { 22, 14, 6 },
+	Biblioteca = { 22, 14, 14 },
+	PuertaBano = { 34, 14, 6 },
+	BanoArriba = { 34, 14, 12 },
+	PuertaExperimentos = { 4, 14, -16 },
+	Experimentos = { -9, 14, -9 },
+	ExperimentosFondo = { -2, 14, 3 },
+	PuertaObservacion = { -2, 14, 8.5 },
+	Observacion = { 4, 14, 15 },
+	ObservacionBahia = { 4, 14, 29 },
+	PuertaOrdenadores = { -15, 14, 8.5 },
+	Ordenadores = { -15, 14, 15 },
+	PuertaTerrazaAlta = { 10, 14, -20 },
+	TerrazaFrente = { 10, 14, -27 },
+	TerrazaIzquierda = { 30, 14, -27.5 },
+	TerrazaDerecha = { -30, 14, -27 },
+	TerrazaLateral = { -30, 14, -12 },
+	-- Tejado
+	Cupula = { -1, 27, -10 },
+	Observatorio = { -1, 27, 1 },
+	CupulaPuerta = { -5, 27, -1 },
+	Azotea = { -12, 27, -4 },
+	AzoteaMesa = { -12, 27, -12 },
+	AzoteaDelante = { -2, 27, -17.5 },
+	PanelesSolares = { 30, 27, -17.5 },
+	AzoteaTorre = { -12, 27, 9 },
 	-- Sótano
-	PasilloSotano = { -12, -24, -29 },
-	PasilloSotanoEste = { -1, -24, -28.5 },
-	PasilloSotanoOeste = { -26, -24, -29 },
-	Estanteria = { -28, -24, -28.5 },
-	SecretaEntrada = { -33, -24, -28.5 },
-	Secreta = { -40, -24, -29 },
-	SecretaPortal = { -40, -24, -38.5 },
-	LabEntrada = { -15, -24, -21 },
-	Laboratorio = { -8, -24, -6 },
-	LabSur = { -12, -24, -16 },
-	LabMaquina = { -26, -24, -14.5 },
-	LabEste = { -5, -24, 9 },
-	LabFondo = { -26, -24, 18 },
-	PuertaPrototipos = { 1, -24, 9 },
-	Prototipos = { 6, -24, 12 },
-	PrototiposNorte = { 6, -24, 0 },
-	PuertaEnergia = { 13, -24, -28.5 },
-	Energia = { 24, -24, -27 },
-	EnergiaEste = { 40, -24, -27 },
-	EnergiaNorte = { 23, -24, 0 },
-	PuertaPortales = { 29, -24, 8 },
-	Portales = { 29, -24, 16 },
-	PuertaAlmacen = { -26, -24, 25 },
-	Almacen = { -26, -24, 34 },
-	AlmacenEste = { 6, -24, 34 },
+	PasilloSotano = { 4, -14, -20 },
+	PuertaPortales = { 16, -14, -22 },
+	Portales = { 26, -14, -22 },
+	PortalDelante = { 30, -14, -14 },
+	PortalLado = { 41.5, -14, -12 },
+	PuertaTallerPortales = { 40, -14, 8 },
+	PuertaGarajeSotano = { -8, -14, -22 },
+	GarajeSotano = { -20, -14, -22 },
+	GarajeSotanoCoche = { -20, -14, 2 },
+	PasilloFondo = { -2, -14, 2 },
+	PuertaAlmacen = { -2, -14, 8.5 },
+	Almacen = { -2, -14, 18 },
+	PuertaTaller = { 16, -14, 20 },
+	Taller = { 26, -14, 20 },
+	Estanteria = { 30, -14, 29.5 },
+	SecretaEntrada = { 30, -14, 33 },
+	Secreta = { 30, -14, 38.5 },
+	SecretaPortal = { 30, -14, 41.5 },
 }
 Layout.Points = P
 
 local E = {
-	{ "Calle", "Porche" }, { "Porche", "Entrada" }, { "Entrada", "VestibuloMedio" }, { "VestibuloMedio", "VestibuloFondo" },
-	{ "Entrada", "PieEscalera" }, { "PieEscalera", "EscaleraA1" }, { "VestibuloMedio", "PuertaDespacho" },
-	{ "PuertaDespacho", "Despacho" }, { "Despacho", "DespachoTorre" }, { "VestibuloFondo", "Salon" },
-	{ "Salon", "SalonSofa" }, { "Salon", "SalonEste" }, { "SalonEste", "SalonEsteFondo" }, { "SalonEsteFondo", "SalonTerraza" }, { "Salon", "Comedor" }, { "Comedor", "ComedorFondo" },
-	{ "ComedorFondo", "CocinaPaso" }, { "CocinaPaso", "Cocina" }, { "Comedor", "AseoPuerta" }, { "AseoPuerta", "Aseo" },
-	{ "SalonTerraza", "Terraza" }, { "Terraza", "TerrazaEste" }, { "ComedorFondo", "TerrazaEste" },
-	{ "Terraza", "JardinTrasero" }, { "JardinTrasero", "JardinTorre" },
+	-- Calle, porche y planta baja
+	{ "Calle", "Porche" }, { "Porche", "Entrada" }, { "Entrada", "Vestibulo" }, { "Calle", "Acera" }, { "Acera", "Garaje" },
+	{ "Vestibulo", "PuertaDespacho" }, { "PuertaDespacho", "Despacho" },
+	{ "Vestibulo", "SalonPaso" }, { "SalonPaso", "Salon" }, { "Salon", "SalonFondo" }, { "SalonFondo", "SalonSofa" },
+	{ "Vestibulo", "ComedorPaso" }, { "ComedorPaso", "Comedor" }, { "Comedor", "PieEscalera" }, { "PieEscalera", "RellanoBaja" },
+	{ "SalonFondo", "RellanoBaja" }, { "RellanoBaja", "CocinaPaso" }, { "SalonFondo", "CocinaPaso" },
+	{ "CocinaPaso", "Cocina" }, { "Cocina", "CocinaFondo" }, { "CocinaFondo", "PuertaAseo" }, { "PuertaAseo", "Aseo" },
+	{ "CocinaFondo", "PuertaTerraza" }, { "PuertaTerraza", "Terraza" }, { "Terraza", "JardinTrasero" }, { "Terraza", "TerrazaLab" },
+	{ "TerrazaLab", "JardinLateral" }, { "TerrazaLab", "PuertaLabFondo" }, { "PuertaLabFondo", "LabMaquina" },
+	{ "Comedor", "PuertaLab" }, { "PuertaLab", "Laboratorio" }, { "Laboratorio", "LabMaquina" },
+	{ "Comedor", "PuertaGaraje" }, { "PuertaGaraje", "GarajeCoche" }, { "GarajeCoche", "Garaje" },
 	-- Escalera principal
-	{ "EscaleraA1", "EscaleraA1Arriba" }, { "EscaleraA1Arriba", "RellanoA" }, { "RellanoA", "EscaleraB1" },
+	{ "RellanoBaja", "EscaleraA1" }, { "EscaleraA1", "EscaleraA1Arriba" }, { "EscaleraA1Arriba", "RellanoA" }, { "RellanoA", "EscaleraB1" },
 	{ "EscaleraB1", "EscaleraB1Arriba" }, { "EscaleraB1Arriba", "RellanoB" }, { "RellanoB", "EscaleraA2" },
 	{ "EscaleraA2", "EscaleraA2Arriba" }, { "EscaleraA2Arriba", "RellanoC" }, { "RellanoC", "EscaleraB2" },
 	{ "EscaleraB2", "EscaleraB2Arriba" }, { "EscaleraB2Arriba", "RellanoD" },
-	-- Sótano por el núcleo de la derecha
-	{ "PieEscalera", "SotanoL0" }, { "SotanoL0", "SotanoA1" }, { "SotanoA1", "SotanoA1Abajo" }, { "SotanoA1Abajo", "SotanoL1" },
-	{ "SotanoL1", "SotanoB1" }, { "SotanoB1", "SotanoB1Abajo" }, { "SotanoB1Abajo", "SotanoL2" }, { "SotanoL2", "SotanoA2" },
-	{ "SotanoA2", "SotanoA2Abajo" }, { "SotanoA2Abajo", "SotanoL3" }, { "SotanoL3", "SotanoB2" }, { "SotanoB2", "SotanoB2Abajo" },
-	{ "SotanoB2Abajo", "SotanoL4" },
-	{ "SotanoL0", "GarajeEntrada" }, { "GarajeEntrada", "Garaje" }, { "Garaje", "GarajeCoche" }, { "GarajeEntrada", "GarajeBanco" },
-	{ "Garaje", "GarajeEscalera" }, { "Garaje", "Acera" },
-	{ "GarajeEscalera", "GarajeA1" }, { "GarajeA1", "GarajeA1Abajo" }, { "GarajeA1Abajo", "GarajeL1" }, { "GarajeL1", "GarajeB1" },
-	{ "GarajeB1", "GarajeB1Abajo" }, { "GarajeB1Abajo", "GarajeL2" }, { "GarajeL2", "GarajeA2" }, { "GarajeA2", "GarajeA2Abajo" },
-	{ "GarajeA2Abajo", "GarajeL3" }, { "GarajeL3", "GarajeB2" }, { "GarajeB2", "GarajeB2Abajo" }, { "GarajeB2Abajo", "GarajeL4" },
-	{ "GarajeL4", "EnergiaEste" },
+	-- Bajada al sótano
+	{ "RellanoBaja", "SotanoB1" }, { "SotanoB1", "SotanoB1Abajo" }, { "SotanoB1Abajo", "SotanoL1" }, { "SotanoL1", "SotanoA1" },
+	{ "SotanoA1", "SotanoA1Abajo" }, { "SotanoA1Abajo", "SotanoL2" },
 	-- Planta alta
-	{ "RellanoB", "PasilloDelante" }, { "PasilloDelante", "PasilloMedio" }, { "PasilloMedio", "PasilloAtras" },
-	{ "PasilloAtras", "PasilloFondo" }, { "PasilloFondo", "PasilloBano" }, { "PasilloBano", "BanoArriba" },
-	{ "PasilloMedio", "Biblioteca" }, { "Biblioteca", "BibliotecaTorre" }, { "RellanoB", "PuertaOrdenadores" },
-	{ "PuertaOrdenadores", "Ordenadores" }, { "PasilloFondo", "Dormitorio" }, { "Dormitorio", "DormitorioCama" },
-	{ "PasilloFondo", "Experimentos" }, { "Experimentos", "ExperimentosFondo" }, { "DormitorioCama", "Balcon" },
-	{ "Balcon", "BalconEste" }, { "BalconEste", "ExperimentosFondo" },
-	-- Ático y azotea
-	{ "RellanoD", "AticoOeste" }, { "AticoOeste", "Control" }, { "Control", "ControlOeste" }, { "ControlOeste", "Observatorio" },
-	{ "Control", "AticoPuerta" }, { "AticoPuerta", "Azotea" }, { "Azotea", "AzoteaMaquina" }, { "RellanoD", "AzoteaDelante" },
-	{ "AzoteaDelante", "AzoteaEste" }, { "AzoteaEste", "AzoteaMaquina" },
+	{ "RellanoB", "PasilloAlto" }, { "PasilloAlto", "PuertaDormitorio" }, { "PuertaDormitorio", "Dormitorio" }, { "Dormitorio", "DormitorioCama" },
+	{ "Dormitorio", "PuertaBiblioteca" }, { "PuertaBiblioteca", "Biblioteca" }, { "DormitorioCama", "PuertaBano" }, { "PuertaBano", "BanoArriba" },
+	{ "PasilloAlto", "PuertaExperimentos" }, { "PuertaExperimentos", "Experimentos" }, { "Experimentos", "ExperimentosFondo" },
+	{ "ExperimentosFondo", "PuertaObservacion" }, { "PuertaObservacion", "Observacion" }, { "Observacion", "ObservacionBahia" },
+	{ "Experimentos", "PuertaOrdenadores" }, { "PuertaOrdenadores", "Ordenadores" },
+	{ "PasilloAlto", "PuertaTerrazaAlta" }, { "PuertaTerrazaAlta", "TerrazaFrente" }, { "TerrazaFrente", "TerrazaIzquierda" },
+	{ "TerrazaFrente", "TerrazaDerecha" }, { "TerrazaDerecha", "TerrazaLateral" },
+	-- Tejado
+	{ "RellanoD", "Cupula" }, { "Cupula", "Observatorio" }, { "Cupula", "CupulaPuerta" }, { "CupulaPuerta", "Azotea" },
+	{ "Azotea", "AzoteaMesa" }, { "AzoteaMesa", "AzoteaDelante" }, { "AzoteaDelante", "PanelesSolares" }, { "Azotea", "AzoteaTorre" },
 	-- Sótano
-	{ "SotanoL4", "PasilloSotanoEste" }, { "PasilloSotanoEste", "PasilloSotano" }, { "PasilloSotano", "PasilloSotanoOeste" },
-	{ "PasilloSotanoOeste", "Estanteria" }, { "Estanteria", "SecretaEntrada" }, { "SecretaEntrada", "Secreta" }, { "Secreta", "SecretaPortal" },
-	{ "PasilloSotano", "LabEntrada" }, { "LabEntrada", "Laboratorio" }, { "Laboratorio", "LabSur" }, { "LabSur", "LabMaquina" },
-	{ "Laboratorio", "LabEste" }, { "LabEste", "LabFondo" }, { "LabEste", "PuertaPrototipos" },
-	{ "PuertaPrototipos", "Prototipos" }, { "Prototipos", "PrototiposNorte" },
-	{ "SotanoL4", "PuertaEnergia" }, { "PuertaEnergia", "Energia" }, { "Energia", "EnergiaEste" }, { "Energia", "EnergiaNorte" },
-	{ "EnergiaNorte", "PuertaPortales" }, { "PuertaPortales", "Portales" },
-	{ "LabFondo", "PuertaAlmacen" }, { "PuertaAlmacen", "Almacen" }, { "Almacen", "AlmacenEste" },
+	{ "SotanoL2", "PasilloSotano" }, { "PasilloSotano", "PuertaPortales" }, { "PuertaPortales", "Portales" }, { "Portales", "PortalDelante" },
+	{ "PortalDelante", "PortalLado" }, { "PortalLado", "PuertaTallerPortales" }, { "PuertaTallerPortales", "Taller" },
+	{ "PasilloSotano", "PuertaGarajeSotano" }, { "PuertaGarajeSotano", "GarajeSotano" }, { "GarajeSotano", "GarajeSotanoCoche" },
+	{ "PasilloSotano", "PasilloFondo" }, { "PasilloFondo", "PuertaAlmacen" }, { "PuertaAlmacen", "Almacen" },
+	{ "Almacen", "PuertaTaller" }, { "PuertaTaller", "Taller" }, { "Taller", "Estanteria" }, { "Estanteria", "SecretaEntrada" },
+	{ "SecretaEntrada", "Secreta" }, { "Secreta", "SecretaPortal" },
 }
 Layout.Edges = E
 
@@ -442,18 +443,18 @@ end
 -- con sitio libre alrededor para los actores (Offset de ±3 a 5 studs).
 ---------------------------------------------------------------------
 Layout.Spots = {
-	GarajeCosme = { 29, 0, -38, 0 },
-	CosmeCocina = { 5, 1, 11, 180 },
-	CosmeSalon = { -21, 1, 1, 0 },
-	CosmeDespacho = { -27, 1, -19, 90 },
-	CosmeLaboratorio = { -8, -24, -6, 0 },
-	CosmeMaquina = { -26, -24, -14.5, 180 },
-	CosmePortal = { 29, -24, 18, 180 },
-	CosmeObservatorio = { -37.5, 31, -22, 90 },
-	CosmeOrdenadores = { 6, 16, -16, 0 },
-	CosmeSecreta = { -40, -24, -29, 0 },
-	CosmeGarajeCoche = { 31, 1, -10, 90 },
-	CosmeJardin = { -26, 0, 34, 0 },
+	GarajeCosme = { -33, 0, -40, 0 },
+	CosmeCocina = { 28, 1, 4, 90 },
+	CosmeSalon = { 30, 1, -15.5, 0 },
+	CosmeDespacho = { -16, 1, -27, 0 },
+	CosmeLaboratorio = { -4, 1, 10, 90 },
+	CosmeMaquina = { -4, 1, 17, 90 },
+	CosmePortal = { 30, -14, -14, 180 },
+	CosmeObservatorio = { -1, 27, 1, 0 },
+	CosmeOrdenadores = { -15, 14, 15, 0 },
+	CosmeSecreta = { 30, -14, 38.5, 0 },
+	CosmeGarajeCoche = { -27, 1, -8, 90 },
+	CosmeJardin = { 20, 0, 40, 0 },
 }
 
 return Layout

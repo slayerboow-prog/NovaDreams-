@@ -8,30 +8,18 @@
 --     (fuera de Lighting un Sky no pinta nada: solo guarda las caras).
 --   * Sin ids, o si la carga falla, no se hace nada: se queda el cielo de siempre.
 
-local AssetService = game:GetService("AssetService")
-local InsertService = game:GetService("InsertService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local SkyChoice = require(ReplicatedStorage.Shared.SkyChoice)
 
 local SkyLoader = {}
 
+-- (el cargador compartido, World/AssetLoader: LoadAssetAsync, InsertService, reintentos y cola)
 local function download(id: number): Instance?
-	local ok, result = pcall(function()
-		return (AssetService :: any):LoadAssetAsync(id)
+	local ok, asset = pcall(function()
+		return require(script.Parent.AssetLoader).download(id)
 	end)
-	if ok and result then
-		return result
-	end
-	local err = result
-	ok, result = pcall(function()
-		return InsertService:LoadAsset(id)
-	end)
-	if ok and result then
-		return result
-	end
-	warn(("[SkyLoader] no carga el cielo %d: %s / %s"):format(id, tostring(err), tostring(result)))
-	return nil
+	return if ok then asset else nil
 end
 
 local function faces(sky: Instance): { [string]: string? }
