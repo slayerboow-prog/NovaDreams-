@@ -35,7 +35,7 @@ CityAssetsKit.BrandWords = {
 	"saints", "black mesa", "bms_", "c1a2c", "general technologies",
 }
 -- Siglas que solo cuentan como palabra suelta («CN», «PRR», «NYC»…)
-CityAssetsKit.BrandAcronyms = { "cn", "prr", "nyc", "up", "s&n", "ge" }
+CityAssetsKit.BrandAcronyms = { "cn", "prr", "nyc", "s&n" }
 
 local KEEP = { Model = true, Folder = true, SurfaceAppearance = true, SpecialMesh = true, BlockMesh = true, CylinderMesh = true }
 local LIGHTS = { SurfaceLight = true, SpotLight = true, PointLight = true }

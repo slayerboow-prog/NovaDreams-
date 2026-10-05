@@ -178,6 +178,8 @@ task.spawn(function()
 		warn("[Buildings3D] " .. tostring(err))
 	end
 end)
+-- 4d) Calles, ciudad y edificios por fuera con los modelos de la Tienda de Sebastián (World/CityAssets)
+task.spawn(function() local ok, err = pcall(function() require(World.CityAssets).start() end) if not ok then warn("[CityAssets] " .. tostring(err)) end end)
 
 local order = {
 	"DataService",
