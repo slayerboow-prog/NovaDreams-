@@ -201,6 +201,26 @@ local function npcBelongsTo(model: Model, player: Player): boolean
 	return true
 end
 
+-- Enemigos de un combate de misión (SceneService les pone MissionEnemy): un disparo (también la
+-- pistola de agua) o un golpe les cuenta como impacto de la misión (LifeStoryService pone el gancho
+-- CombatService.missionHit) en vez de quitarles vida. Devuelve nil si no es un enemigo de misión,
+-- true si el impacto cuenta y false si no (es de otro jugador o ya no está en combate).
+local function missionTarget(attacker: Player?, model: Model): boolean?
+	if model:GetAttribute("MissionEnemy") == nil then
+		return nil
+	end
+	if not attacker or not npcBelongsTo(model, attacker) then
+		return false
+	end
+	local hook = (CombatService :: any).missionHit
+	if not hook then
+		return false
+	end
+	local ok, counted = pcall(hook, attacker, model)
+	return ok and counted == true
+end
+CombatService.missionTarget = missionTarget
+
 -- Atributos para el cliente (solo si cambian, redondeados: no se manda nada cada fotograma)
 local function publish(state: State, key: string, value: any)
 	if state.Published[key] == value then
@@ -390,6 +410,10 @@ local function hitModel(att: State, attModel: Model, attRoot: BasePart, model: M
 	local targetHumanoid, targetRoot = parts(model)
 	if not targetHumanoid or targetHumanoid.Health <= 0 or not targetRoot or model == attModel then
 		return false
+	end
+	local mission = missionTarget(att.Player, model)
+	if mission ~= nil then
+		return mission -- (un enemigo de misión: el golpe cuenta en la misión, no le quita vida)
 	end
 	local attPlayer = att.Player
 	local ref = refOf(att)
@@ -1151,6 +1175,11 @@ function CombatService.applyHit(attacker: Player, model: Model, info: HitInfo): 
 	local targetHumanoid, targetRoot = parts(model)
 	if not targetHumanoid or targetHumanoid.Health <= 0 or not targetRoot or model == attacker.Character then
 		return none
+	end
+	local mission = missionTarget(attacker, model)
+	if mission ~= nil then
+		-- Un enemigo de misión (las cucarachas, Petra…): cada disparo cuenta como impacto de la misión
+		return if mission then { Hit = true, Amount = 0, KO = false, Killed = false, Player = nil } else none
 	end
 	local victim = Players:GetPlayerFromCharacter(model)
 	local heavy = info.Heavy == true

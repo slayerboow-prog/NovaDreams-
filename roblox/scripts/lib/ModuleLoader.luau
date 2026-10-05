@@ -109,6 +109,19 @@ L.workspace = roblox.Instance.new("Folder")
 local warnings: { string } = {}
 L.warnings = warnings
 
+-- Instance.new con dobles para las clases que Lune no sabe usar (sus eventos: ProximityPrompt.Triggered…):
+--   L.fakeClasses.ProximityPrompt = function() return { Triggered = señal } end
+L.fakeClasses = {} :: { [string]: () -> any }
+L.Instance = setmetatable({
+	new = function(class: string, ...)
+		local fake = L.fakeClasses[class]
+		if fake then
+			return fake()
+		end
+		return roblox.Instance.new(class, ...)
+	end,
+}, { __index = roblox.Instance })
+
 local function env(path: string)
 	return setmetatable({
 		script = node(path),
@@ -125,7 +138,7 @@ local function env(path: string)
 		UDim2 = roblox.UDim2,
 		UDim = roblox.UDim,
 		Enum = roblox.Enum,
-		Instance = roblox.Instance,
+		Instance = L.Instance,
 		NumberSequence = roblox.NumberSequence,
 		NumberSequenceKeypoint = roblox.NumberSequenceKeypoint,
 		ColorSequence = roblox.ColorSequence,

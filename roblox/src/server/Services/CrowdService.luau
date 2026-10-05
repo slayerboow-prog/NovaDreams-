@@ -158,6 +158,18 @@ local function playerNear(position: Vector3, radius: number): boolean
 	return false
 end
 
+-- ¿Hay alguien en plena conversación de la historia por aquí? Entonces la gente de alrededor no suelta
+-- frases sueltas (le pisaban la conversación)
+local function busyNear(position: Vector3, radius: number): boolean
+	for _, player in Players:GetPlayers() do
+		local root = rootOf(player)
+		if root and player:GetAttribute("InDialogue") and (root.Position - position).Magnitude <= radius then
+			return true
+		end
+	end
+	return false
+end
+
 local function clock(): number
 	local ok, t = pcall(function()
 		return game:GetService("Lighting").ClockTime
@@ -693,7 +705,9 @@ local function groundAt(p: Vector3, fallback: number): Vector3
 			break
 		end
 		local part = hit.Instance
-		local solid = part:IsA("Terrain") or (part:IsA("BasePart") and part.CanCollide and Ground.skipOf(part) == nil) -- (ni coches ni personas)
+		-- (ni coches ni personas, ni cajas de choque invisibles ni piezas escondidas por un recambio de malla:
+		-- encima de esas la gente se quedaba flotando)
+		local solid = part:IsA("Terrain") or (part:IsA("BasePart") and part.CanCollide and Ground.skipOf(part, true) == nil)
 		if solid and hit.Normal.Y > 0.8 and hit.Position.Y < fallback + 4 then
 			return hit.Position
 		end
@@ -753,6 +767,9 @@ local function spawnFeature(f: Feature)
 	end
 	if f.Kind == "Bench" and f.Part then
 		local seat = f.Part
+		if not Ground.seatOk(seat) then
+			return -- (el banco ya no está o lo ha escondido un recambio: nadie se sienta en el aire)
+		end
 		-- Se sienta en un lado del banco (el otro queda libre para el jugador)
 		local side = { CFrame = seat.CFrame * CFrame.new(seat.Size.X / 2 - 1.1, 0, 0), Size = seat.Size }
 		local npc = person("Park", parent, seat.CFrame * CFrame.new(0, 0, -2), "Park", pick({ "Book", "Phone", "Knit" }), nil, side)
@@ -859,6 +876,16 @@ function CrowdService.tickParks()
 				table.remove(f.Npcs, i)
 			end
 		end
+		if f.Kind == "Bench" and #f.Npcs > 0 and not Ground.seatOk(f.Part) then
+			-- Le han quitado el banco de debajo: se levanta (de pie en el suelo de verdad)
+			for _, npc in f.Npcs do
+				local root = npc.PrimaryPart
+				if root and npc:GetAttribute("Seated") then
+					pcall(Npc.stand, npc, groundAt(root.Position, f.Center.Y - 2))
+					npc:SetAttribute("Seated", nil)
+				end
+			end
+		end
 		local near = playerNear(f.Center, CrowdService.PARK_RADIUS)
 		local late = not OpeningHours.isOpen(FEATURE_HOURS[f.Kind], t)
 		if #f.Npcs > 0 and (late or not weatherOk(f.Kind)) then
@@ -939,12 +966,14 @@ function CrowdService.bark()
 	for _ = 1, 12 do
 		local p = people[math.random(1, #people)]
 		local root = p.Model.PrimaryPart
-		if root and playerNear(root.Position, 45) and not p.Model:GetAttribute("Talking") then
+		if root and playerNear(root.Position, 45) and not p.Model:GetAttribute("Talking") and not busyNear(root.Position, 45) then
 			local lines = LINES[p.Context] or LINES.Generic
 			local npc = p.Model
 			npc:SetAttribute("Talking", true)
 			local hour, weather = TimeContext.now()
-			pcall(Npc.say, npc, TimeContext.pick(lines, hour, weather) or lines[math.random(1, #lines)])
+			-- (con duración: es una frase suelta de la calle, que el cliente calla durante una conversación
+			-- o una escena; sin ella se colaba encima de la historia)
+			pcall(Npc.say, npc, TimeContext.pick(lines, hour, weather) or lines[math.random(1, #lines)], 3.5)
 			task.delay(3.5, function()
 				if npc.Parent then
 					pcall(Npc.say, npc, nil)

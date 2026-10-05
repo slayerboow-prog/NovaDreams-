@@ -72,6 +72,7 @@ local SkyRift = require(ReplicatedStorage.Shared.SkyRift)
 local Strings = require(LifeStory.Strings)
 local SafeGround = require(ReplicatedStorage.Shared.SafeGround)
 local Items = require(ReplicatedStorage.Shared.Items)
+local MissionCombat = require(ReplicatedStorage.Shared.MissionCombat)
 
 local LifeStoryService = {}
 
@@ -1191,6 +1192,9 @@ local function sceneFor(player: Player, data: Data, questId: string): ({ { [stri
 					local spec = table.clone(enemy)
 					spec.Mode = spec.Mode or "Hunt"
 					spec.Action = spec.Action or step.Action or "Atacar"
+					-- Enemigo: sin cartel de «Interactuar»; se le ataca (botón de atacar, arma, rayo de la barra)
+					spec.Enemy = true
+					spec.Prompt = false
 					spec.Place = spec.Place or step.Place
 					table.insert(enemies, spec)
 				end
@@ -1414,13 +1418,16 @@ function ensureWeapon(player: Player, data: Data, questId: string, prog: Progres
 		return
 	end
 	local story = storyOf(data)
-	if InventoryService.count(player, itemId) > 0 then
+	-- Idempotente: se llama al empezar el paso, en cada vuelta del combate, al reaparecer y al volver a
+	-- entrar; si ya lo tienes (prestado o tuyo), no te da otro
+	local has, given = InventoryService.ensure(player, itemId)
+	if has and not given then
 		if announce then
 			notifyPlayer(player, "Success", ("%s Tienes el %s en tu barra: tócalo (o pulsa «%s» cerca) para usarlo."):format(item.Icon, item.Name, step.Action or "Atacar"))
 		end
 		return
 	end
-	if InventoryService.add(player, itemId, 1) then
+	if given then
 		story.Loans = story.Loans or {}
 		story.Loans[itemId] = questId
 		notifyPlayer(player, "Success", ("%s Recibes el %s: está en tu barra. Tócalo (o pulsa «%s» cerca) para usarlo."):format(item.Icon, item.Name, step.Action or "Atacar"))
@@ -1428,6 +1435,68 @@ function ensureWeapon(player: Player, data: Data, questId: string, prog: Progres
 		-- Mochila llena: el botón sobre el enemigo sigue sirviendo
 		notifyPlayer(player, "Info", ("%s Tu mochila está llena: pulsa «%s» cerca para usar el %s."):format(item.Icon, step.Action or "Atacar", item.Name))
 	end
+end
+
+-- Vuelve a comprobar las armas prestadas de tus combates (lo mismo que al reaparecer o al volver a
+-- entrar). Idempotente: nunca da una segunda copia.
+function LifeStoryService.ensureLoans(player: Player)
+	local data = DataService.get(player)
+	if not data then
+		return
+	end
+	for questId, prog in storyOf(data).Active do
+		local step = stepsOf(questId, prog)[prog.Step]
+		if step and step.Type == "Fight" and step.Weapon then
+			ensureWeapon(player, data, questId, prog, step)
+		end
+	end
+end
+
+-- El enemigo de pie más cercano de un combate (a menos de range studs, en horizontal)
+local function nearestEnemy(player: Player, prog: Progress, step: { [string]: any }, range: number): { [string]: any }?
+	local me = LocationService.positionOf(player)
+	if not me then
+		return nil
+	end
+	local alive = {}
+	for _, enemy in step.Enemies or {} do
+		if not (prog.Sub and prog.Sub[enemy.Npc]) then
+			table.insert(alive, enemy)
+		end
+	end
+	local best = MissionCombat.nearest(alive, me, range, function(enemy)
+		local model = SceneService.actorOf(player, enemy.Npc)
+		return if model then model:GetPivot().Position else nil
+	end)
+	return best
+end
+
+-- El combate de misión en el que estás (questId: de esa misión; si no, el primero que haya)
+local function fightOf(story: Data, questId: string?): (string?, Progress?, { [string]: any }?)
+	for id, prog in story.Active do
+		if questId == nil or id == questId then
+			local step = stepsOf(id, prog)[prog.Step]
+			if step and step.Type == "Fight" then
+				return id, prog, step
+			end
+		end
+	end
+	return nil, nil, nil
+end
+
+-- Un impacto a un enemigo, con el ritmo máximo de MissionCombat (la pistola de agua dispara 8 veces por
+-- segundo: no puede tumbar a nadie en un parpadeo)
+local function strike(player: Player, data: Data, questId: string, prog: Progress, step: { [string]: any }, enemy: { [string]: any }): boolean
+	local rt = runtime[player]
+	if not rt then
+		return false
+	end
+	local now = os.clock()
+	if MissionCombat.ready(rt.LastHit, now) then
+		rt.LastHit = now
+		hitEnemy(player, data, questId, prog, step, enemy)
+	end
+	return true
 end
 
 -- Usar el arma prestada desde la barra: dispara al enemigo que quede más cerca (hasta 80 studs)
@@ -1444,29 +1513,76 @@ function LifeStoryService.useWeapon(player: Player, itemId: string): boolean
 	if not questId or not step or not prog then
 		return false
 	end
-	local me = LocationService.positionOf(player)
-	local best, bestDistance = nil, WEAPON_RANGE
-	for _, enemy in step.Enemies or {} do
-		if not (prog.Sub and prog.Sub[enemy.Npc]) then
-			local model = SceneService.actorOf(player, enemy.Npc)
-			if model and me then
-				local offset = model:GetPivot().Position - me
-				local d = Vector3.new(offset.X, 0, offset.Z).Magnitude
-				if d < bestDistance then
-					best, bestDistance = enemy, d
-				end
-			end
-		end
-	end
+	local best = nearestEnemy(player, prog, step, WEAPON_RANGE)
 	if not best then
 		notifyPlayer(player, "Info", "Acércate más para disparar.")
 		return true
 	end
-	if not rt.LastHit or os.clock() - rt.LastHit >= 0.25 then
-		rt.LastHit = os.clock()
-		hitEnemy(player, data, questId, prog, step, best)
-	end
+	strike(player, data, questId, prog, step, best)
 	return true
+end
+
+-- El botón de atacar (CombatController, hueco «Ataque»; también el clic): le da al enemigo más cercano
+-- del combate en el que estás. Devuelve false si no estás en ningún combate o no hay nadie a tiro.
+function LifeStoryService.missionAttack(player: Player): boolean
+	local data = DataService.get(player)
+	if not data or not runtime[player] or busy(player) or player:GetAttribute("Dead") then
+		return false
+	end
+	local story = storyOf(data)
+	local questId, prog, step = fightOf(story, nil)
+	if not questId or not prog or not step then
+		return false
+	end
+	local best = nearestEnemy(player, prog, step, MissionCombat.Range)
+	if not best then
+		return false
+	end
+	return strike(player, data, questId, prog, step, best)
+end
+
+-- Un disparo o un golpe que le ha tocado a un enemigo de misión (lo avisa CombatService)
+function LifeStoryService.hitModel(player: Player, model: Model): boolean
+	local data = DataService.get(player)
+	if not data or not runtime[player] then
+		return false
+	end
+	local questId = model:GetAttribute(MissionCombat.ATTR)
+	local npc = model:GetAttribute("NpcId")
+	if type(questId) ~= "string" or type(npc) ~= "string" then
+		return false
+	end
+	local id, prog, step = fightOf(storyOf(data), questId)
+	if not id or not prog or not step or (prog.Sub and prog.Sub[npc]) then
+		return false
+	end
+	for _, enemy in step.Enemies or {} do
+		if enemy.Npc == npc then
+			return strike(player, data, id, prog, step, enemy)
+		end
+	end
+	return false
+end
+
+-- Ayuda al apuntar (móvil): el enemigo de pie por el que pasa cerca un disparo
+function LifeStoryService.aimAssist(player: Player, origin: Vector3, direction: Vector3, range: number): Model?
+	local data = DataService.get(player)
+	if not data then
+		return nil
+	end
+	local questId, prog, step = fightOf(storyOf(data), nil)
+	if not questId or not prog or not step then
+		return nil
+	end
+	for _, enemy in step.Enemies or {} do
+		if not (prog.Sub and prog.Sub[enemy.Npc]) then
+			local model = SceneService.actorOf(player, enemy.Npc)
+			if model and MissionCombat.aimed(origin, direction, model:GetPivot().Position, range) then
+				return model
+			end
+		end
+	end
+	return nil
 end
 
 -- Prepara el paso actual de una misión. Los pasos "instantáneos" (Moment, Transition, If que no
@@ -3268,9 +3384,8 @@ function LifeStoryService.interact(player: Player, kind: string, questId: string
 	if step and step.Type == "Fight" then
 		for _, enemy in step.Enemies or {} do
 			if enemy.Npc == id then
-				if not (prog.Sub and prog.Sub[id]) and (not rt.LastHit or os.clock() - rt.LastHit >= 0.25) then
-					rt.LastHit = os.clock()
-					hitEnemy(player, data, questId, prog, step, enemy)
+				if not (prog.Sub and prog.Sub[id]) then
+					strike(player, data, questId, prog, step, enemy)
 				end
 				return
 			end
@@ -3607,6 +3722,11 @@ local function onRemote(player: Player, kind: any, questId: any, value: any)
 		end
 		return
 	end
+	if kind == "Attack" then
+		-- El botón de atacar en un combate de misión (tiene su propio ritmo: MissionCombat.HitGap)
+		LifeStoryService.missionAttack(player)
+		return
+	end
 	if os.clock() - rt.LastRemote < 0.25 then
 		if kind == "Choose" and type(questId) == "string" and story.Active[questId] then
 			rt.ChoiceSentAt[questId] = 0 -- el toque se ha perdido: la ventana vuelve a salir
@@ -3809,6 +3929,12 @@ function LifeStoryService.init()
 	-- El arma prestada de un combate, usada desde la barra, dispara al enemigo de la misión
 	pcall(function()
 		require(script.Parent.GadgetService).missionUse = LifeStoryService.useWeapon
+	end)
+	-- Disparos (también la pistola de agua) y golpes a un enemigo de misión cuentan en el combate
+	pcall(function()
+		local CombatService = require(script.Parent.CombatService) :: any
+		CombatService.missionHit = LifeStoryService.hitModel
+		CombatService.missionAim = LifeStoryService.aimAssist
 	end)
 	-- Frases sueltas: el bocadillo sale encima del actor de tu escena
 	DialogueService.setActorFinder(function(player, npc)

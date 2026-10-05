@@ -21,12 +21,22 @@ local CAR_LINES = { "¡Cuidado!", "¡Frena!", "¡Que me pillas!", "¡Eh, el coch
 local COOLDOWN = 2.5
 
 -- Bocadillo solo para ti encima de una pieza (la cabeza de alguien, un animal…): el mismo de todos
--- (UI/SpeechBubbles), así un "¡Eh!" sustituye a lo que estaba diciendo en vez de ponerse encima
-function Nudge.say(adornee: BasePart?, text: string, seconds: number?)
+-- (UI/SpeechBubbles), así un "¡Eh!" sustituye a lo que estaba diciendo en vez de ponerse encima.
+-- Es un comentario suelto (Ambient): no sale mientras estás en una conversación o una escena, ni
+-- encima de un actor de una misión, ni corta una frase de la historia (SpeechBubbles.barkAllowed).
+-- Devuelve si ha salido.
+function Nudge.say(adornee: BasePart?, text: string, seconds: number?): boolean
 	if not adornee or not adornee.Parent then
-		return
+		return false
 	end
-	SpeechBubbles.show(adornee, text, { Seconds = seconds or 1.6 })
+	return SpeechBubbles.show(adornee, text, { Seconds = seconds or 1.6, Ambient = true })
+end
+
+-- ¿Este NPC no debe reaccionar ahora a un empujón? (estás en una conversación o una escena, es actor
+-- de una misión, o está diciendo una frase de la historia): ni traspiés ni "¡Eh!"; antes se volvía a
+-- mirarte, soltaba "¡Oye, mira por dónde vas!" y dejaba de decir la frase de la misión
+function Nudge.quiet(model: Model): boolean
+	return not SpeechBubbles.barkAllowed(model)
 end
 
 -- Qué lado del NPC queda hacia ti (+1 su derecha, -1 su izquierda)
@@ -80,6 +90,10 @@ local function react(model: Model, me: Vector3, car: boolean)
 		return
 	end
 	recent[model] = now + COOLDOWN
+	if Nudge.quiet(model) then
+		letThrough(model, 1.1) -- (solo deja pasar: no se aparta, no te mira, no dice nada)
+		return
+	end
 	local side = Nudge.sideOf(root.CFrame, me)
 	local ReactMotion = require(script.Parent.ReactMotion)
 	ReactMotion.play(model, if car then "Dive" else "Bumped", { Side = side })

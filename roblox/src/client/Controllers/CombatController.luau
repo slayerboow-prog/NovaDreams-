@@ -31,6 +31,7 @@ local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
 local Combat = require(ReplicatedStorage.Shared.Combat)
+local MissionCombat = require(ReplicatedStorage.Shared.MissionCombat)
 local Powers = require(ReplicatedStorage.Shared.Powers)
 local Stages = require(ReplicatedStorage.Shared.LifeStory.Stages)
 local Theme = require(script.Parent.Parent.UI.Theme)
@@ -266,8 +267,37 @@ local function swing(kind: string, charged: boolean?): boolean
 	return true
 end
 
--- Golpe ligero (también el comando Atacar)
+-- Un enemigo de tu combate de misión a tiro (las cucarachas, Petra…: etiqueta MissionEnemy)
+function CombatController.missionTarget(): Model?
+	local _, root = parts()
+	if not root then
+		return nil
+	end
+	local mine = MissionCombat.mine(game:GetService("CollectionService"):GetTagged(MissionCombat.ATTR), player.UserId)
+	local best = MissionCombat.nearest(mine, root.Position, MissionCombat.Range, function(model: Model)
+		return model:GetPivot().Position
+	end)
+	return best
+end
+
+-- Golpe ligero (también el comando Atacar). En un combate de misión, el mismo botón le da al enemigo
+-- más cercano desde lejos (lanzar el globo de agua…): nunca hace falta un botón de «Interactuar»
+local lastMissionAttack = 0
 function CombatController.attack()
+	if CombatController.canAttack() and CombatController.missionTarget() then
+		local now = os.clock()
+		if now - lastMissionAttack < MissionCombat.HitGap then
+			return
+		end
+		lastMissionAttack = now
+		local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+		local remote = remotes and remotes:FindFirstChild("LifeStory")
+		if remote then
+			(remote :: RemoteEvent):FireServer("Attack")
+		end
+		ReactMotion.play(player.Character, "Throw")
+		return
+	end
 	swing("Light")
 end
 
@@ -1382,6 +1412,18 @@ function CombatController.init()
 		return canPunch() and not armed() and CombatController.inCombat()
 	end
 	TouchLayout.register({ Id = "Ataque", Icon = "espada", Label = "Ataque", Slot = "Ataque", Priority = 3, Key = "Clic / X", Pad = "RB", Visible = canPunch, Callback = CombatController.attack })
+	-- En un combate de misión el botón grande dice «Atacar» (le da al enemigo más cercano desde lejos)
+	task.spawn(function()
+		local shown: string? = nil
+		while true do
+			task.wait(0.4)
+			local label = if CombatController.missionTarget() then "Atacar" else nil
+			if label ~= shown then
+				shown = label
+				TouchLayout.setLabel("Ataque", label)
+			end
+		end
+	end)
 	TouchLayout.register({
 		Id = "Defender", Icon = "escudo", Label = "Defensa", Slot = "Defender", Priority = 4, Key = "F / Z", Pad = "LB",
 		Visible = canPunch,

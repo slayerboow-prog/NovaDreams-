@@ -484,7 +484,7 @@ local function showLine(run: ClientRun, line: { [string]: any })
 		end)
 		if line.Bubble ~= false then
 			pcall(function()
-				require(script.Parent.Parent.UI.SpeechBubbles).show(model, text, { Name = name, Seconds = math.max(2.5, #text * 0.06) })
+				require(script.Parent.Parent.UI.SpeechBubbles).show(model, text, { Name = name, Seconds = math.max(2.5, #text * 0.06), Story = true })
 			end)
 		end
 	end

@@ -21,6 +21,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
 local Joints = require(ReplicatedStorage.Shared.Joints)
+local Ground = require(ReplicatedStorage.Shared.Ground)
 local RoadGuard = require(script.Parent.RoadGuard)
 
 local Npc = {}
@@ -214,7 +215,9 @@ function Npc.feetAt(point: Vector3, depth: number?): Vector3
 		local part = hit.Instance
 		local model = part:FindFirstAncestorOfClass("Model")
 		local isPerson = model ~= nil and model:FindFirstChildOfClass("Humanoid") ~= nil
-		if not isPerson and hit.Normal.Y > 0.8 and (part:IsA("Terrain") or (part :: BasePart).CanCollide) then
+		-- (lo escondido no: una caja de choque invisible o la pieza de bloques que un recambio de malla
+		-- dejó debajo, que dejaban a la gente flotando)
+		if not isPerson and hit.Normal.Y > 0.8 and (part:IsA("Terrain") or ((part :: BasePart).CanCollide and not Ground.hidden(part))) then
 			return hit.Position
 		end
 		table.insert(skip, if isPerson then model :: Instance else part)

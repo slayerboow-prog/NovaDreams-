@@ -13,6 +13,7 @@ local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 
 local MenuLogic = require(script.Parent.MenuLogic)
+local MissionCombat = require(game:GetService("ReplicatedStorage").Shared.MissionCombat)
 
 local ContextDetector = {}
 
@@ -131,6 +132,11 @@ local function prepare(instance: Instance)
 	if instance:IsA("ProximityPrompt") then
 		-- Todos los carteles cercanos a la vez: el menú los lista y elige cuál va con la E
 		instance.Exclusivity = Enum.ProximityPromptExclusivity.AlwaysShow
+		-- Un enemigo de combate no se «interactúa»: se le ataca (MissionCombat). Su cartel, apagado: si
+		-- no, en el móvil el botón de Interactuar le quitaba el sitio al de atacar
+		if MissionCombat.blocksPrompt(instance) then
+			instance.Enabled = false
+		end
 	end
 end
 
@@ -147,7 +153,7 @@ function ContextDetector.targets(): { Target }
 		-- Solo lo que se puede usar de verdad: los carteles que se quedaron "a la vista" al apagarse los
 		-- carteles en una conversación (sin aviso de que se ocultaban), los de personajes que tu escena
 		-- oculta o los que ya están lejos no salen (antes salía "Hablar" con alguien lejano u oculto)
-		local ok = MenuLogic.usable({
+		local ok = not MissionCombat.blocksPrompt(prompt) and MenuLogic.usable({
 			Exists = prompt.Parent ~= nil and prompt:IsDescendantOf(workspace),
 			Enabled = prompt.Enabled,
 			ServiceEnabled = ProximityPromptService.Enabled,

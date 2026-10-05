@@ -2,7 +2,13 @@
 --
 -- Qué hace:
 --   * Da a cada bebé una casa familiar del mapa (tag FamilyHome) y lo hace aparecer junto a su cuna.
---   * Pone en casa a Abu y a otro familiar (NPC) en sus sitios (tag FamilySpot) y sus diálogos.
+--   * Pone en casa a toda la familia (NPC): Papá, Mamá y la abuela siempre (shared/LifeStory/Family:
+--     household), la pareja de la historia en sus sitios (tag FamilySpot) y los demás al lado. De
+--     noche se les enciende una luz suave para que se les vea por las ventanas.
+--   * TODOS los jugadores tienen casa familiar (no solo los bebés): al nacer les toca una libre al
+--     azar (Family.chooseHome) y se guarda (data.Life.FamilyHomeId). Al volver a entrar o reaparecer
+--     se comprueba: si ya no existe o vive en ella otro jugador del servidor, se da otra libre.
+--     Atributos: FamilyHomeId y FamilyHomePos (dónde está, para el 🏠 de los mapas).
 --   * Convierte lo que hace el bebé en eventos para la historia de vida (StoryEvents):
 --       BabyStood (se levanta), BabySteps (cada paso), Talk (habla con la familia),
 --       BabyInteract (juega con los bloques, mira la tele), LookedOutside (mira por el ventanal).
@@ -13,6 +19,7 @@
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Lighting = game:GetService("Lighting")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
@@ -50,6 +57,7 @@ type Home = {
 	Users: { [Player]: boolean },
 	Ready: boolean,
 	Npcs: { [string]: Model }, -- la familia de esa casa (para poner su bocadillo encima)
+	Lights: { PointLight }, -- luz suave de cada familiar (encendida de noche)
 }
 type Baby = {
 	HomeId: string,
@@ -62,6 +70,7 @@ type Baby = {
 
 local homes: { [string]: Home } = {}
 local babies: { [Player]: Baby } = {}
+local residents: { [Player]: string } = {} -- la casa familiar de cada jugador conectado
 
 ---------------------------------------------------------------------
 -- Utilidades
@@ -148,7 +157,9 @@ end
 -- La familia (NPC)
 ---------------------------------------------------------------------
 
-local function makeNpc(home: Home, spot: BasePart, nameKey: string, skin: Color3): Model
+local refreshLights: (Home) -> ()
+
+local function makeNpc(home: Home, feetAt: CFrame, nameKey: string, skin: Color3, longHair: boolean?): Model
 	local model: Model
 	local ok, result = pcall(function()
 		local description = Instance.new("HumanoidDescription")
@@ -173,7 +184,7 @@ local function makeNpc(home: Home, spot: BasePart, nameKey: string, skin: Color3
 		if root then
 			root.Anchored = true
 		end
-		Npc.dress(model, { Skin = skin, LongHair = nameKey == "NPC.MAMA" or nameKey == "NPC.ABU_ROSA", Hair = if string.find(nameKey, "ABU") then Color3.fromRGB(200, 200, 205) else nil })
+		Npc.dress(model, { Skin = skin, LongHair = if longHair ~= nil then longHair else (nameKey == "NPC.MAMA" or nameKey == "NPC.ABU_ROSA"), Hair = if string.find(nameKey, "ABU") then Color3.fromRGB(200, 200, 205) else nil })
 	else
 		-- Si no se puede crear un personaje de Roblox, una figura sencilla hace el papel
 		model = Instance.new("Model")
@@ -187,47 +198,96 @@ local function makeNpc(home: Home, spot: BasePart, nameKey: string, skin: Color3
 	end
 	model.Name = Strings.get(nameKey)
 	-- De pie sobre el suelo, en el sitio que marca el mapa
-	local floorY = spot.Position.Y - spot.Size.Y / 2
-	Npc.placeFeet(model, CFrame.new(spot.Position.X, floorY, spot.Position.Z) * spot.CFrame.Rotation)
+	Npc.placeFeet(model, feetAt)
 	model.Parent = home.Model
 	return model
 end
 
 local onTalk -- se define más abajo
 
+-- De noche (y al anochecer) la familia lleva una luz suave encima
+local function isNight(): boolean
+	local clock = Lighting.ClockTime
+	return clock >= 18.5 or clock < 7
+end
+
+refreshLights = function(home: Home)
+	local night = isNight()
+	for _, light in home.Lights do
+		if light.Parent and light.Enabled ~= night then
+			light.Enabled = night
+		end
+	end
+end
+
 local function setupHome(home: Home)
 	if home.Ready then
 		return
 	end
 	home.Ready = true
-	local familyKey, abuKey = Family.keysFor(home.Index)
-	-- Work: la abuela teje en el salón y papá/mamá cocina en la cocina (lo anima el cliente)
-	local people = {
-		{ Npc = "Familia_Abu", NameKey = abuKey, Skin = Color3.fromRGB(234, 196, 160), Work = "Knit" },
-		{ Npc = "Familia_Padre", NameKey = familyKey, Skin = Color3.fromRGB(198, 150, 112), Work = "Stir" },
+	-- Toda la familia (Family.household): la pareja de la historia en sus FamilySpot y los demás al
+	-- lado. Work: la abuela teje en el salón y papá/mamá cocina en la cocina (lo anima el cliente)
+	local skins = {
+		Familia_Abu = Color3.fromRGB(234, 196, 160),
+		Familia_Padre = Color3.fromRGB(198, 150, 112),
+		Familia_Pareja = Color3.fromRGB(214, 168, 128),
+		Familia_Abuela = Color3.fromRGB(230, 190, 156),
 	}
-	for _, person in people do
-		local spot = findTagged(home.Model, "FamilySpot", { Npc = person.Npc })
-		if spot then
-			local npc = makeNpc(home, spot, person.NameKey, person.Skin)
-			home.Npcs[person.Npc] = npc
-			-- Id del reparto (Cast): si una escena de la historia trae a este personaje, el fijo se oculta
-			npc:SetAttribute("NpcId", if person.Npc == "Familia_Abu" then "Abu" else "Familia")
-			Npc.work(npc, person.Work)
-			if person.Npc == "Familia_Abu" then
-				npc:SetAttribute("Age", "Mayor") -- anda encorvada (Controllers/AgeMotion)
-			end
-			CollectionService:AddTag(npc, "StaticNpc")
-			local root = npc:FindFirstChild("HumanoidRootPart") :: BasePart?
-			if root then
-				prompt(root, Strings.get("BABY.PROMPT.TALK"), Strings.get(person.NameKey), function(player)
-					onTalk(player, home, person.Npc, person.NameKey)
-				end)
-			end
-		else
-			warn("[BabyService] Falta FamilySpot", person.Npc, "en", home.Id)
+	local spots: { [string]: BasePart } = {}
+	for _, member in Family.household(home.Index) do
+		local anchorName = member.Anchor or member.Npc
+		local spot = spots[anchorName] or findTagged(home.Model, "FamilySpot", { Npc = anchorName })
+		if not spot then
+			warn("[BabyService] Falta FamilySpot", anchorName, "en", home.Id)
+			continue
+		end
+		spots[anchorName] = spot
+		-- De pie en el suelo del sitio (los extra, desplazados en los ejes de la casa)
+		local at = spot.CFrame.Position
+		local feetAt = CFrame.new(at.X, at.Y - spot.Size.Y / 2, at.Z) * spot.CFrame.Rotation
+		if member.Offset then
+			feetAt = feetAt * CFrame.new(member.Offset)
+		end
+		local npc = makeNpc(home, feetAt, member.NameKey, skins[member.Npc] or Color3.fromRGB(210, 166, 128), member.LongHair)
+		home.Npcs[member.Npc] = npc
+		-- Id del reparto (Cast): si una escena de la historia trae a este personaje, el fijo se oculta
+		npc:SetAttribute("NpcId", member.NpcId)
+		npc:SetAttribute("FamilyHomeId", home.Id)
+		if member.Work then
+			Npc.work(npc, member.Work)
+		end
+		if member.Old then
+			npc:SetAttribute("Age", "Mayor") -- anda encorvado (Controllers/AgeMotion)
+		end
+		CollectionService:AddTag(npc, "StaticNpc")
+		local root = npc:FindFirstChild("HumanoidRootPart") :: BasePart?
+		if root then
+			-- Luz suave de noche: que se vea a la familia en casa (por las ventanas)
+			local light = Instance.new("PointLight")
+			light.Name = "HomeGlow"
+			light.Range = 9
+			light.Brightness = 0.6
+			light.Color = Color3.fromRGB(255, 220, 170)
+			light.Shadows = false
+			light.Enabled = false
+			light.Parent = root
+			table.insert(home.Lights, light)
+			prompt(root, Strings.get("BABY.PROMPT.TALK"), Strings.get(member.NameKey), function(player)
+				if member.Story then
+					onTalk(player, home, member.Npc, member.NameKey)
+				else
+					-- Los demás de la casa: una frase de familia, con su bocadillo encima de él o ella
+					Remote:FireClient(player, "Say", {
+						SpeakerKey = member.NameKey,
+						TextKey = if member.Old then "DLG.ABU.BEBE.GENERICO" else "DLG.FAMILIA.GENERICO",
+						Role = if member.Old then "Abu" else "Familia",
+						Speaker = npc,
+					})
+				end
+			end)
 		end
 	end
+	refreshLights(home)
 
 	-- Cosas con las que juega el bebé
 	local toys = findNamed(home.Model, "ToyBlock")
@@ -322,6 +382,12 @@ end
 ---------------------------------------------------------------------
 
 local function indexHomes()
+	-- (una casa que ya no está en el mapa deja de valer: a quien viviera en ella se le da otra)
+	for id, home in homes do
+		if not home.Model.Parent then
+			homes[id] = nil
+		end
+	end
 	local list = CollectionService:GetTagged("FamilyHome")
 	table.sort(list, function(a, b)
 		return tostring(a:GetAttribute("HomeId")) < tostring(b:GetAttribute("HomeId"))
@@ -329,29 +395,55 @@ local function indexHomes()
 	for index, model in list do
 		local id = model:GetAttribute("HomeId")
 		if model:IsA("Model") and id and not homes[id] then
-			homes[id] = { Id = id, Model = model, Index = index, Users = {}, Ready = false, Npcs = {} }
+			homes[id] = { Id = id, Model = model, Index = index, Users = {}, Ready = false, Npcs = {}, Lights = {} }
 		end
 	end
 end
 
--- La casa guardada, o la que tenga menos bebés en este servidor
-local function chooseHome(saved: string?): Home?
+-- La casa familiar de un jugador (Family.chooseHome): la guardada si existe y no vive en ella otro
+-- jugador del servidor; si no, una libre al azar (o, si no queda ninguna, la menos llena)
+local rng = Random.new()
+local function chooseHome(player: Player, saved: string?): (Home?, string)
 	indexHomes()
-	if saved and homes[saved] then
-		return homes[saved]
+	local ids = {}
+	for id in homes do
+		table.insert(ids, id)
 	end
-	local best: Home? = nil
-	local bestCount = math.huge
-	for _, home in homes do
-		local count = 0
-		for _ in home.Users do
-			count += 1
-		end
-		if count < bestCount or (count == bestCount and best and home.Index < best.Index) then
-			best, bestCount = home, count
+	table.sort(ids)
+	local others: { [string]: number } = {}
+	for other, id in residents do
+		if other ~= player and other.Parent then
+			others[id] = (others[id] or 0) + 1
 		end
 	end
-	return best
+	local id, reason = Family.chooseHome(ids, saved, others, rng)
+	return if id then homes[id] else nil, reason
+end
+
+-- Dónde está la casa (para el 🏠 de los mapas): delante de la puerta, a ras de suelo
+local function homePosition(home: Home): Vector3
+	local door = findTagged(home.Model, "StorySpot", { SpotId = "SalirCasa" })
+	if door then
+		return door.CFrame.Position
+	end
+	local ok, cf = pcall(function()
+		return home.Model:GetBoundingBox()
+	end)
+	return if ok then (cf :: CFrame).Position else home.Model:GetPivot().Position
+end
+
+-- Le da (o le confirma) su casa: atributos, lo guardado y la familia montada
+local setFamily: (Player, { [string]: any }, Home) -> ()
+local function settle(player: Player, data: { [string]: any }, home: Home, reason: string)
+	local before = data.Life.FamilyHomeId
+	data.Life.FamilyHomeId = home.Id
+	residents[player] = home.Id
+	setupHome(home)
+	player:SetAttribute("FamilyHomeId", home.Id)
+	player:SetAttribute("FamilyHomePos", homePosition(home))
+	if before ~= nil and before ~= home.Id and (reason == "Taken" or reason == "Invalid") then
+		Notify:FireClient(player, "Info", "🏠 Tu familia vive ahora en otra casa de Los Pinos. Sale en el mapa como 🏠 Casa.")
+	end
 end
 
 local function spawnAtCrib(player: Player, baby: Baby)
@@ -384,7 +476,7 @@ end
 
 -- Los nombres de tu familia (atributos FamilyKey y AbuKey), sacados de la casa y guardados en
 -- data.Life: así los demás (escenas, historial de conducta) usan siempre la misma pareja
-local function setFamily(player: Player, data: { [string]: any }, home: Home)
+setFamily = function(player: Player, data: { [string]: any }, home: Home)
 	local familyKey, abuKey = Family.keysFor(home.Index)
 	data.Life.FamilyKey = familyKey
 	data.Life.AbuKey = abuKey
@@ -400,18 +492,16 @@ local function start(player: Player)
 	if not data then
 		return
 	end
-	local home = chooseHome(data.Life.FamilyHomeId)
+	local home, reason = chooseHome(player, data.Life.FamilyHomeId)
 	if not home then
 		warn("[BabyService] El mapa no tiene casas familiares (tag FamilyHome)")
 		return
 	end
-	data.Life.FamilyHomeId = home.Id
+	settle(player, data, home, reason)
 	home.Users[player] = true
-	setupHome(home)
 	local stood = data.Story.Flags.BebeDePie == true
 	local baby: Baby = { HomeId = home.Id, Stood = stood, Walked = 0, Busy = false, LastWarn = 0 }
 	babies[player] = baby
-	player:SetAttribute("FamilyHomeId", home.Id)
 	setFamily(player, data, home)
 	player:SetAttribute("Crawling", if stood then nil else true)
 	player:SetAttribute("BabyCanStand", if stood then nil else true)
@@ -432,22 +522,38 @@ local function start(player: Player)
 end
 
 -- Niños y adolescentes siguen viviendo con su familia: su casa y los nombres de su familia
--- (los usan las misiones del colegio: "Mamá te despierta", "Abu te da un consejo"…)
+-- (los usan las misiones del colegio: "Mamá te despierta", "Abu te da un consejo"…). Los adultos
+-- también conservan su casa familiar (sale en el mapa como 🏠 Casa familiar si tienen otra suya).
+-- Se mira al entrar, al cargar la partida, al cambiar de etapa y al reaparecer.
 local function ensureFamily(player: Player)
 	local stage = player:GetAttribute("LifeStage")
 	local data = DataService.get(player)
-	if stage == "Bebe" or not data or player:GetAttribute("FamilyHomeId") then
+	if not player.Parent or babies[player] or not data or type(data.Life) ~= "table" then
 		return
 	end
-	local home = chooseHome(data.Life.FamilyHomeId)
+	if stage == "Bebe" then
+		start(player)
+		return
+	end
+	local current = player:GetAttribute("FamilyHomeId")
+	local saved = data.Life.FamilyHomeId
+	if current ~= nil and current == saved and residents[player] == current and homes[current] and homes[current].Model.Parent then
+		return -- (todo en orden)
+	end
+	local home, reason = chooseHome(player, if type(saved) == "string" then saved else (if type(current) == "string" then current else nil))
 	if not home then
 		return
 	end
-	data.Life.FamilyHomeId = home.Id
-	setupHome(home)
-	player:SetAttribute("FamilyHomeId", home.Id)
+	settle(player, data, home, reason)
 	setFamily(player, data, home)
 end
+
+-- Para las pruebas y otros servicios: la casa familiar de un jugador (o nil)
+function BabyService.homeOf(player: Player): string?
+	return residents[player]
+end
+
+BabyService.ensureFamily = ensureFamily
 
 local function stand(player: Player)
 	local baby = babies[player]
@@ -534,6 +640,8 @@ function BabyService.init()
 			if baby then
 				task.wait(0.2) -- dejar que LifeService le dé el tamaño de bebé
 				spawnAtCrib(player, baby)
+			else
+				ensureFamily(player) -- al reaparecer: que siga teniendo casa (y que siga siendo válida)
 			end
 		end)
 		if player:GetAttribute("LifeStage") == "Bebe" then
@@ -549,6 +657,26 @@ function BabyService.init()
 	Players.PlayerRemoving:Connect(release)
 	Players.PlayerRemoving:Connect(function(player)
 		talkedAt[player] = nil
+		residents[player] = nil -- su casa queda libre para otros en este servidor
+	end)
+	-- Partida cargada (puede llegar después de entrar): su casa familiar, la guardada o una nueva
+	DataService.onLoaded(function(player)
+		task.defer(ensureFamily, player)
+	end)
+
+	-- Luces de la familia (de noche encendidas) y repaso de que todos siguen teniendo casa
+	task.spawn(function()
+		while true do
+			task.wait(5)
+			for _, home in homes do
+				if home.Ready then
+					pcall(refreshLights, home)
+				end
+			end
+			for _, player in Players:GetPlayers() do
+				pcall(ensureFamily, player)
+			end
+		end
 	end)
 
 	task.spawn(function()

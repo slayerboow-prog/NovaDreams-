@@ -128,6 +128,17 @@ function InventoryService.add(player: Player, id: string, count: number?): boole
 	return true
 end
 
+-- Que tenga UNO (idempotente: si ya lo tiene, no le da otro). Para lo que se presta o se devuelve
+-- solo (armas de un combate de misión…): se puede llamar en cada paso, al reaparecer o al volver a
+-- entrar sin repartir copias. Devuelve true si lo tiene (ya lo tenía o se le acaba de dar).
+function InventoryService.ensure(player: Player, id: string): (boolean, boolean)
+	if InventoryService.count(player, id) > 0 then
+		return true, false
+	end
+	local added = InventoryService.add(player, id, 1)
+	return added, added
+end
+
 function InventoryService.remove(player: Player, id: string, count: number?): boolean
 	if count ~= nil and not validCount(count) then
 		return false

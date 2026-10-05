@@ -663,6 +663,7 @@ function DataService.newLife(player: Player)
 	fresh.Properties = data.Properties
 	-- El tutorial y los consejos ya vistos no se repiten en la vida nueva
 	fresh.Onboarding = data.Onboarding
+	fresh.MapHidden = data.MapHidden -- (los filtros del mapa son preferencias: siguen igual)
 	fresh.Housing = data.Housing -- (su piso y su deuda del alquiler, Housing.Debt, siguen siendo suyos)
 	-- Hacienda tampoco se olvida: renacer no borra lo pendiente ni las declaraciones sin presentar
 	fresh.Tax = data.Tax

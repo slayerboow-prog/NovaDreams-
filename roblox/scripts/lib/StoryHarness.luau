@@ -284,6 +284,15 @@ mocks[ROOT .. "/server/Services/InventoryService"] = {
 	count = function(player, id)
 		return profiles[player].Items[id] or 0
 	end,
+	-- Como el de verdad: si ya lo tiene, no le da otro
+	ensure = function(player, id)
+		local items = profiles[player].Items
+		if (items[id] or 0) > 0 then
+			return true, false
+		end
+		items[id] = 1
+		return true, true
+	end,
 }
 
 -- Escenas: el doble recuerda qué actores y objetos hay (como los vería el jugador)

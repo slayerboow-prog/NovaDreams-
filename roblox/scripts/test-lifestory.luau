@@ -1109,18 +1109,43 @@ check(playLoco(kiko, "Loco_N1_Cosme") and kikoData.Items.PistolaBurbujas == 1 an
 check(said(kiko, "Todos los gatos hablamos"), "Bigotes, el gato del cole, habla (por el chip de la abuela de Cosme)")
 local hitsBefore = kiko.Hits or 0
 lighting.ClockTime = 12 -- Bigotes y los clones pasan en el cole: con el cole abierto
+-- En el combate, las cucarachas son enemigos: sin cartel de «Interactuar» (se las ataca) y la nave en el patio
+local roachSpecs, shipInFight = nil, nil
+H.Service.observe(function(kind, who, questId, info)
+	if kind == "StepEnter" and who == kiko and questId == "Loco_N2_Bigotes" and info and info.Type == "Fight" then
+		task.defer(function()
+			local scene = scenes[kiko] and scenes[kiko][questId]
+			roachSpecs = scene and scene.Actors
+			shipInFight = scene and scene.Props.Nave
+		end)
+	end
+end)
 check(playLoco(kiko, "Loco_N2_Bigotes") and kikoData.Items.CoronaBigotes == 1 and kikoData.Story.Flags.DuqueDeGatonia, "Bigotes, emperador de Gatonia: tres cucarachas espaciales a globazos y un título de nobleza")
 check((kiko.Hits or 0) - hitsBefore == 7, "Cada cucaracha aguanta sus globos (2 + 2 + 3)")
+do
+	local ok = roachSpecs ~= nil
+	for _, npc in { "Cucaracha1", "Cucaracha2", "Cucaracha3" } do
+		local spec = roachSpecs and roachSpecs[npc]
+		ok = ok and spec ~= nil and spec.Enemy == true and spec.Prompt == false and spec.Mode == "Hunt"
+	end
+	check(ok, "En el combate las cucarachas son enemigos sin cartel de «Interactuar» (Enemy, Prompt = false): el botón es el de atacar")
+	check(shipInFight == true, "La nave de las cucarachas está en el patio durante el combate")
+end
 kiko.CaughtBy = "PolloGigante"
 -- El rayo encogedor: te lo dan al empezar el combate (en tu barra), se usa desde la barra y se
 -- devuelve al acabar (y luego te lo quedas de recuerdo)
-local rayInFight, rayHits, loanedInFight = nil, nil, nil
+local rayInFight, rayHits, loanedInFight, rayAfterRepeats = nil, nil, nil, nil
 H.Service.observe(function(kind, who, questId, info)
 	if who == kiko and questId == "Loco_N3_Pollo" and info and info.Type == "Fight" then
 		if kind == "StepEnter" then
 			task.defer(function()
 				rayInFight = kikoData.Items.RayoEncogedor
 				loanedInFight = kikoData.Story.Loans and kikoData.Story.Loans.RayoEncogedor
+				-- Reaparecer / volver a entrar / cada vuelta del combate: nunca una segunda copia
+				for _ = 1, 4 do
+					H.Service.ensureLoans(kiko)
+				end
+				rayAfterRepeats = kikoData.Items.RayoEncogedor
 				local before = kiko.Hits or 0
 				H.Service.useWeapon(kiko, "RayoEncogedor")
 				rayHits = (kiko.Hits or 0) - before
@@ -1133,6 +1158,7 @@ check(said(kiko, "Te ha cogido con el pico") or kiko.CaughtBy == nil, "Si Petra 
 check((kiko.Catches or 0) >= 1 and kiko.CaughtWhere == "GranjaPatio", "La captura es la segura (SceneService.catch): te deja de pie en la puerta del granero")
 check(rayInFight == 1 and loanedInFight == "Loco_N3_Pollo", "Al empezar el combate tienes el rayo encogedor en tu barra (prestado por Cosme)")
 check(rayHits == 1, "Usarlo desde la barra dispara a Petra")
+check(rayAfterRepeats == 1, "Dar el arma prestada es idempotente: aunque se compruebe muchas veces, solo hay un rayo")
 check(kikoData.Story.Loans == nil, "Al acabar, el préstamo se devuelve (y el rayo se queda de recuerdo)")
 check(playLoco(kiko, "Loco_N4_Clones") and kikoData.Items.FotoClones == 1 and said(kiko, "por aula es el máximo legal"), "Deberes clónicos: tres clones en el cole y la foto de los cuatro")
 lighting.ClockTime = 23

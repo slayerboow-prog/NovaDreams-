@@ -86,7 +86,9 @@ local function ground(x: number, z: number, fromY: number, depth: number?): Rayc
 		end
 	end
 	rayParams.FilterDescendantsInstances = exclude
-	return Ground.cast(Vector3.new(x, fromY, z), Vector3.new(0, -(depth or 30), 0), rayParams)
+	-- (solo suelo que se ve: encima de una caja de choque invisible o de la pieza que esconde un
+	-- recambio de malla, la mascota se quedaba flotando)
+	return Ground.castVisible(Vector3.new(x, fromY, z), Vector3.new(0, -(depth or 30), 0), rayParams)
 end
 
 -- ¿Hay techo encima de esta posición? (tienda, portal, casa): la mascota no entra, espera fuera
@@ -459,11 +461,11 @@ local function stepPet(config: Configuration, t: number, dt: number, around: Vec
 	if target then
 		-- El suelo donde tiene que estar
 		local hit = ground(target.X, target.Z, target.Y + 4, 30)
-		local goal = if hit then hit.Position + Vector3.new(0, c.Stand, 0) else Vector3.new(target.X, f.Pos.Y, target.Z)
-		if f.Pos.Y < -400 then
-			f.Pos = goal
-		end
-		if f.Pos.Y > goal.Y + 20 then
+		-- Sin suelo debajo (el rayo no da con nada que se vea): a la altura de los pies de su dueño. Antes
+		-- se quedaba a la altura que tuviera, y al reaparecer a tu lado (50 studs más arriba) se quedaba
+		-- flotando en el aire
+		local goal = if hit then hit.Position + Vector3.new(0, c.Stand, 0) else Pets.fallbackGoal(target, ownerPos, c.Stand)
+		if f.Pos.Y < -400 or f.Pos.Y > goal.Y + 6 then
 			f.Pos = goal -- (aparece en el suelo, no cae del cielo)
 		end
 		local result = Pets.stepFollow(f, goal, dt)
@@ -551,7 +553,10 @@ local function stepStray(s: { [string]: any }, t: number, dt: number, around: Ve
 		local ff = f :: Pets.Follower
 		local target = Pets.heel(root.Position, root.CFrame.LookVector)
 		local hit = ground(target.X, target.Z, root.Position.Y + 2, 30)
-		local goal = if hit then hit.Position + Vector3.new(0, cc.Stand, 0) else ff.Pos
+		local goal = if hit then hit.Position + Vector3.new(0, cc.Stand, 0) else Pets.fallbackGoal(target, root.Position, cc.Stand)
+		if ff.Pos.Y > goal.Y + 6 then
+			ff.Pos = goal
+		end
 		local result = Pets.stepFollow(ff, goal, dt)
 		cc.Speed = math.max(ff.Speed, 1)
 		cc.State = if result == "walk" then "walk" else "idle"

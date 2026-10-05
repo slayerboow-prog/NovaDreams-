@@ -179,8 +179,16 @@ function Gps.follow()
 	Gps.setManual(nil)
 end
 
--- Ruta hasta tu casa familiar (la del atributo FamilyHomeId)
+-- Ruta hasta tu casa: la tuya (OwnHomePos) o la de tu familia (FamilyHomePos), las mismas del 🏠
+-- de los mapas (las pone el servidor: valen aunque la casa no esté cargada en tu dispositivo)
 function Gps.routeHome()
+	local own, family = player:GetAttribute("OwnHomePos"), player:GetAttribute("FamilyHomePos")
+	local at = if typeof(own) == "Vector3" then own elseif typeof(family) == "Vector3" then family else nil
+	if at then
+		Gps.setManual(at, "Tu casa")
+		Hud.toast("Info", "🧭 Ruta a tu casa marcada: sigue las flechas")
+		return
+	end
 	local homeId = player:GetAttribute("FamilyHomeId")
 	for _, home in CollectionService:GetTagged("FamilyHome") do
 		if homeId ~= nil and home:GetAttribute("HomeId") == homeId and home:IsA("Model") then

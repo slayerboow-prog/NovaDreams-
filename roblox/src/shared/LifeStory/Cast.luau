@@ -29,7 +29,9 @@ export type Person = {
 	LongSleeves: boolean?,
 	Backpack: Color3?, -- mochila a la espalda (los niños del cole)
 	Glow: Color3?, -- seres de otro mundo: brillan un poco (alienígenas, robots, fantasmas de lunes…)
-	Body: string?, -- no es una persona: "GallinaGigante" = Petra (SceneService le pone el cuerpo de World/Kit/GallinaGigante)
+	Body: string?, -- no es una persona: "GallinaGigante" = Petra (SceneService le pone el cuerpo de World/Kit/GallinaGigante);
+	-- "Cucaracha" = las cucarachas de Crujiente (World/Kit/Cucaracha: seis patas, antenas; Bug = { Gorra, Medallas })
+	Bug: { [string]: any }?,
 	Bio: string,
 }
 
@@ -271,9 +273,9 @@ local People: { [string]: Person } = {
 	PalomaRobot1 = { Name = "Paloma robot", Voice = "Nino", Kid = true, Glow = rgb(120, 200, 255), Skin = rgb(150, 155, 170), Shirt = rgb(120, 125, 140), Pants = rgb(90, 95, 110), Shoes = rgb(240, 140, 60), Bio = "Dron de Cosme con forma de paloma. Programado para «recoger migas». Ahora roba bocadillos enteros." },
 	PalomaRobot2 = { Name = "Paloma robot", Voice = "Nino", Kid = true, Glow = rgb(120, 200, 255), Skin = rgb(160, 160, 175), Shirt = rgb(110, 115, 130), Pants = rgb(90, 95, 110), Shoes = rgb(240, 140, 60), Bio = "Otra paloma robot. Dice «cucurrú» con voz de contestador automático." },
 	PalomaRobot3 = { Name = "Paloma robot jefa", Voice = "Profe", Kid = true, Glow = rgb(255, 120, 120), Skin = rgb(140, 145, 160), Shirt = rgb(200, 60, 60), Pants = rgb(90, 95, 110), Shoes = rgb(240, 140, 60), Bio = "La jefa de las palomas robot. Tiene un ojo rojo y un bocadillo de chorizo en el pico." },
-	Cucaracha1 = { Name = "Crujo", Voice = "Profe", Kid = true, Glow = rgb(200, 140, 60), Skin = rgb(110, 70, 40), Shirt = rgb(80, 50, 30), Pants = rgb(60, 40, 25), Bio = "Cazarrecompensas del planeta Crujiente. Cucaracha espacial. Muy chulito." },
-	Cucaracha2 = { Name = "Antenas", Voice = "Profe", Kid = true, Glow = rgb(200, 140, 60), Skin = rgb(120, 80, 45), Shirt = rgb(90, 55, 30), Pants = rgb(60, 40, 25), Bio = "Cazarrecompensas. Solo sabe decir cosas de antenas." },
-	Cucaracha3 = { Name = "Sargento Patitas", Voice = "Abu", Kid = true, Glow = rgb(200, 140, 60), Skin = rgb(100, 60, 35), Shirt = rgb(70, 90, 50), Pants = rgb(60, 40, 25), Bio = "Jefe de las cucarachas. Seis patas, seis medallas." },
+	Cucaracha1 = { Name = "Crujo", Voice = "Profe", Kid = true, Body = "Cucaracha", Glow = rgb(200, 140, 60), Skin = rgb(110, 70, 40), Shirt = rgb(80, 50, 30), Pants = rgb(60, 40, 25), Bio = "Cazarrecompensas del planeta Crujiente. Cucaracha espacial. Muy chulito." },
+	Cucaracha2 = { Name = "Antenas", Voice = "Profe", Kid = true, Body = "Cucaracha", Glow = rgb(200, 140, 60), Skin = rgb(120, 80, 45), Shirt = rgb(90, 55, 30), Pants = rgb(60, 40, 25), Bio = "Cazarrecompensas. Solo sabe decir cosas de antenas." },
+	Cucaracha3 = { Name = "Sargento Patitas", Voice = "Abu", Kid = true, Body = "Cucaracha", Bug = { Gorra = rgb(70, 90, 50), Medallas = 6 }, Glow = rgb(200, 140, 60), Skin = rgb(100, 60, 35), Shirt = rgb(70, 90, 50), Pants = rgb(60, 40, 25), Bio = "Jefe de las cucarachas. Seis patas, seis medallas." },
 	PolloGigante = { Name = "Gallina Petra (6 metros)", Voice = "Nino", Body = "GallinaGigante", Skin = rgb(250, 250, 245), Shirt = rgb(250, 250, 245), Pants = rgb(245, 200, 60), Shoes = rgb(245, 170, 40), Hair = rgb(220, 40, 40), Bio = "Una gallina de la granja de Villaverde alcanzada por el rayo agrandador de Cosme. Asustada y ENORME." },
 	Clon1 = { Name = "Tu clon (el hambriento)", Voice = "Nino", Kid = true, Glow = rgb(120, 255, 200), Skin = rgb(225, 185, 150), Shirt = rgb(70, 130, 220), Pants = rgb(50, 60, 90), Bio = "Clon 1. Se come los deberes. Literalmente." },
 	Clon2 = { Name = "Tu clon (el cantante)", Voice = "Nino", Kid = true, Glow = rgb(120, 255, 200), Skin = rgb(225, 185, 150), Shirt = rgb(70, 130, 220), Pants = rgb(50, 60, 90), Bio = "Clon 2. Todo lo dice cantando." },

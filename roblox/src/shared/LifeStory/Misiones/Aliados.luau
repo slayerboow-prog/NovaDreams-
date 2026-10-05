@@ -40,7 +40,8 @@ return {
 		Props = {
 			Portal = { Kind = "Portal", Name = "Portal a Gatonia", Place = "Parque", Offset = V(0, 0, 8), Prompt = false },
 			Manguera = { Kind = "Maquina", Name = "La manguera de los jardineros", Prompt = "Coger la manguera", Place = "JuegosParque", Offset = V(-3, 0, 2), Color = Color3.fromRGB(60, 160, 80), Dialogue = "Manguera", Once = true },
-			Nave = { Kind = "Nave", Name = "La nave de las cucarachas", Place = "Parque", Offset = V(0, 0, -14), Height = 14, Prompt = false },
+			-- Aterriza: posada en el suelo, con patas y la rampa abierta hacia ti (las cucarachas salen por ella)
+			Nave = { Kind = "Nave", Aterriza = true, Piloto = Color3.fromRGB(110, 70, 40), Name = "La nave de las cucarachas", Place = "Parque", Offset = V(0, 0, -21), Prompt = false },
 		},
 		Steps = {
 			{ Type = "Talk", Npc = "Bigotes", Dialogue = "Visita", Text = "El presidente Bigotes te espera al final de la alfombra",

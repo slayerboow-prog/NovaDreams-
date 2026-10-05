@@ -18,6 +18,7 @@ local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
 local Items = require(ReplicatedStorage.Shared.Items)
+local Weapons = require(ReplicatedStorage.Shared.Weapons)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Icons = require(script.Parent.Parent.UI.Icons)
 local HudLayout = require(script.Parent.Parent.UI.HudLayout)
@@ -91,6 +92,9 @@ local BAG_SLOT = 44
 local GAP = 4
 
 type SlotView = {
+	Tag: TextLabel?,
+	View: ViewportFrame?,
+	ViewRef: string?,
 	Button: TextButton,
 	Icon: TextLabel,
 	Count: TextLabel,
@@ -230,13 +234,93 @@ local function makeSlot(parent: Instance, size: number, order: number, zIndex: n
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 		Parent = button,
 	})
-	return { Button = button, Icon = icon, Count = count, Hover = hover, InUse = stroke }
+	-- Nombre corto (armas: «9 mm», «Fusil», «Agua»…), abajo: así se distinguen de un vistazo en el móvil
+	local tag = create("TextLabel", {
+		Name = "Tag",
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -2),
+		Size = UDim2.new(1, -4, 0, math.max(10, math.floor(size * 0.2))),
+		BackgroundTransparency = 1,
+		Font = Theme.FontBold,
+		TextScaled = true,
+		TextColor3 = Color3.new(1, 1, 1),
+		TextStrokeTransparency = 0.2,
+		TextStrokeColor3 = Color3.fromRGB(20, 20, 30),
+		Text = "",
+		ZIndex = zIndex + 3,
+		Parent = button,
+	})
+	-- Dibujo del arma de verdad (sus piezas de shared/Weapons), encima del icono
+	local view = create("ViewportFrame", {
+		Name = "Dibujo",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.44),
+		Size = UDim2.fromScale(0.9, 0.7),
+		BackgroundTransparency = 1,
+		Ambient = Color3.fromRGB(200, 200, 210),
+		LightColor = Color3.new(1, 1, 1),
+		LightDirection = Vector3.new(-1, -1, -0.5),
+		Visible = false,
+		ZIndex = zIndex + 2,
+		Parent = button,
+	})
+	return { Button = button, Icon = icon, Count = count, Hover = hover, InUse = stroke, Tag = tag, View = view, ViewRef = nil }
+end
+
+-- Dibuja un arma (sus piezas) en la casilla, de perfil y llenándola
+local function drawWeapon(view: SlotView, ref: string?)
+	local frame = view.View
+	if not frame or view.ViewRef == ref then
+		return
+	end
+	view.ViewRef = ref
+	frame:ClearAllChildren()
+	local w = ref and Weapons.get(ref)
+	if not w or not w.Parts then
+		frame.Visible = false
+		return
+	end
+	local lo, hi = Vector3.new(1e9, 1e9, 1e9), Vector3.new(-1e9, -1e9, -1e9)
+	for _, spec in w.Parts do
+		local part = Instance.new("Part")
+		part.Anchored = true
+		part.Size = spec.Size
+		part.CFrame = spec.At
+		part.Color = spec.Color
+		pcall(function()
+			part.Material = Enum.Material[spec.Material or "SmoothPlastic"]
+			if spec.Shape then
+				part.Shape = Enum.PartType[spec.Shape]
+			end
+		end)
+		part.Parent = frame
+		local h = spec.Size / 2
+		lo = lo:Min(spec.At.Position - h)
+		hi = hi:Max(spec.At.Position + h)
+	end
+	local center = (lo + hi) / 2
+	local extent = math.max(hi.Z - lo.Z, hi.Y - lo.Y, 0.5)
+	local camera = Instance.new("Camera")
+	camera.FieldOfView = 30
+	-- De perfil (el cañón hacia la izquierda: -Z del arma), a la distancia justa para que quepa
+	camera.CFrame = CFrame.new(center + Vector3.new(extent / (2 * math.tan(math.rad(15))) * 1.05, 0, 0), center)
+	camera.Parent = frame
+	frame.CurrentCamera = camera
+	frame.Visible = true
 end
 
 local function paint(view: SlotView, index: number)
 	local item, count = itemAt(index)
 	local hidden = held == index -- el que llevas en el ratón deja la casilla vacía
+	local weaponRef = if item and not hidden and item.Kind == "Weapon" then item.Ref else nil
+	drawWeapon(view, weaponRef)
+	-- (con el dibujo del arma, el icono se queda pequeño en la esquina)
 	view.Icon.Text = if item and not hidden then item.Icon else ""
+	view.Icon.Size = if weaponRef and view.View and view.View.Visible then UDim2.fromScale(0.34, 0.34) else UDim2.fromScale(0.72, 0.72)
+	view.Icon.Position = if weaponRef and view.View and view.View.Visible then UDim2.fromScale(0.78, 0.22) else UDim2.fromScale(0.5, 0.5)
+	if view.Tag then
+		view.Tag.Text = if item and not hidden and item.Tag then item.Tag else ""
+	end
 	view.Count.Text = if item and not hidden and count > 1 then tostring(count) else ""
 	local using = not hidden and inUse(item)
 	view.InUse.Color = if using then MC.InUse else MC.Light
@@ -265,6 +349,14 @@ local function showName(index: number)
 			TweenService:Create(nameLabel, TweenInfo.new(0.6), { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
 		end
 	end)
+end
+
+-- Qué hay en una casilla (mantener pulsado en el móvil): el nombre entero encima de la barra
+function InventoryUI.describe(index: number)
+	local item = itemAt(index)
+	if item then
+		showName(index)
+	end
 end
 
 local function refreshHotbar()
@@ -398,7 +490,32 @@ local function buildHotbar()
 		create("UICorner", { CornerRadius = UDim.new(0, 10), Parent = selectedFrame })
 		create("UIStroke", { Color = Theme.Hud.Glow, Thickness = 3, Parent = selectedFrame })
 		Theme.halo(selectedFrame, Theme.Hud.Glow, 8, 12)
+		-- Mantener pulsado (móvil): dice qué es, sin elegirla ni usarla
+		local pressedAt: number? = nil
+		local longPressed = false
+		view.Button.InputBegan:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+				local mine = os.clock()
+				pressedAt = mine
+				longPressed = false
+				task.delay(0.5, function()
+					if pressedAt == mine then
+						longPressed = true
+						InventoryUI.describe(i)
+					end
+				end)
+			end
+		end)
+		view.Button.InputEnded:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+				pressedAt = nil
+			end
+		end)
 		view.Button.Activated:Connect(function()
+			if longPressed then
+				longPressed = false
+				return
+			end
 			chooseSlot(i)
 		end)
 		view.Button.MouseButton2Click:Connect(function()

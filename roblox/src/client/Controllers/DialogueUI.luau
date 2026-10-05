@@ -441,6 +441,7 @@ local function showLine(line: { [string]: any })
 			Name = line.Name,
 			NameColor = if line.Me then NAME_COLORS.Me:Lerp(Color3.new(0, 0, 0), 0.35) else nil,
 			Hold = true,
+			Story = true, -- (encima de todo: las paredes no la tapan)
 			Typing = TYPE_SPEED,
 		})
 	end

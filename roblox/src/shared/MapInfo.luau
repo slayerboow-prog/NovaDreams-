@@ -99,6 +99,13 @@ MapInfo.Kinds = {
 	-- Animales: protectora (adopción) y campos con animales de granja (Kit/AnimalKit)
 	{ Model = "Protectora", Icon = "🐾", Name = "Protectora de animales", Important = true },
 	{ Model = "CampoAnimales", Icon = "🐴", Name = "Campos de Valmar (animales)", Important = true },
+	-- Comercios de la calle (InteriorService los publica según su cartel: MODA, BAR, FARMACIA…).
+	-- Nombres que no coinciden con ningún modelo del mapa (WorldService busca por nombre de modelo)
+	{ Model = "LocalRopa", Icon = "👕", Name = "Tienda de ropa" },
+	{ Model = "LocalComida", Icon = "🍔", Name = "Bar o cafetería" },
+	{ Model = "LocalGimnasio", Icon = "🏋️", Name = "Gimnasio de barrio" },
+	{ Model = "LocalSuper", Icon = "🛒", Name = "Tienda de alimentación" },
+	{ Model = "LocalFarmacia", Icon = "💊", Name = "Farmacia" },
 } :: { Kind }
 
 MapInfo.KindByModel = {} :: { [string]: Kind }
@@ -106,16 +113,8 @@ for _, kind in MapInfo.Kinds do
 	MapInfo.KindByModel[kind.Model] = kind
 end
 
--- Grupos de la leyenda (se pueden ocultar en el mapa grande)
-MapInfo.Legend = {
-	{ Name = "Salud y emergencias", Icon = "🏥", Models = { "Hospital", "CentroSalud", "Policia", "Bomberos" } },
-	{ Name = "Estudios", Icon = "🏫", Models = { "Colegio", "Facultad", "Autoescuela" } },
-	{ Name = "Tiendas y comida", Icon = "🛍️", Models = { "CentroComercial", "Supermercado", "Restaurante", "Gasolinera", "PlazaFinanciera", "TiendaPesca", "Armeria", "Hotel" } },
-	{ Name = "Ocio y naturaleza", Icon = "🌳", Models = { "Parque", "Estadio", "Playa", "Granja", "Recreativos", "Plaza", "Mirador", "Faro", "Puerto", "Feria", "Camping", "Marina", "Museo", "Teatro", "ZonaPesca", "GimnasioValmar", "Protectora", "CampoAnimales" } },
-	{ Name = "Ciudad y transporte", Icon = "🏛️", Models = { "TorreValmar", "Ayuntamiento", "EstacionCentral", "EstacionAutobuses", "GranCentroComercial", "ParadaBus", "Aeropuerto", "Aerodromo" } },
-	{ Name = "Metro y Cercanías", Icon = "🚇", Models = { "BocaMetro", "EstacionCercanias" } },
-	{ Name = "Instituciones", Icon = "⚖️", Models = { "PalacioJusticia", "CentroPenitenciario", "CuartelEjercito", "AgenciaTributaria" } },
-}
+-- La leyenda del mapa (categorías que se ocultan y se muestran juntas, con su número) está en
+-- shared/MapLegend: cada tipo de aquí va en una sola categoría.
 
 -- Distrito en el que cae una posición (o nil si es mar o montaña)
 function MapInfo.districtAt(x: number, z: number): District?

@@ -1739,6 +1739,44 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean })
 				end
 			end
 			table.insert(checks, { line == "¿Me ayudas con la compra?", "la frase de la conversación sale en el bocadillo de quien la dice (la nueva sustituye a la vieja)" })
+			-- La frase de la conversación va encima de todo (las paredes no la tapan); la de la calle, no
+			local onTop, streetOnTop = nil, nil
+			for _, child in playerGui:GetChildren() do
+				if child.Name == "SpeechBubble" and child.Adornee == (a and a.Head) then
+					onTop = child.AlwaysOnTop
+				elseif child.Name == "SpeechBubble" and child.Adornee == (b and b.Head) then
+					streetOnTop = child.AlwaysOnTop
+				end
+			end
+			table.insert(checks, { onTop == true and streetOnTop == false, "el bocadillo de la conversación va encima de todo (AlwaysOnTop) y el de la calle no" })
+			-- Un choque con quien te está hablando: ni «¡Eh!» ni se corta la frase
+			local nudgeModule = client:FindFirstChild("Controllers") and client.Controllers:FindFirstChild("Nudge")
+			local okNudge, Nudge = pcall(requireFn, nudgeModule)
+			if okNudge and Nudge and Nudge.say and a then
+				local said = Nudge.say(a.Head, "¡Oye, mira por dónde vas!", 1.8)
+				local after
+				for _, d in playerGui:GetDescendants() do
+					if d.Name == "Line" and d.Parent and d.Parent.Name == "Panel" and d.Parent.Parent.Adornee == a.Head then
+						after = d.Text
+					end
+				end
+				table.insert(checks, { said == false and after == "¿Me ayudas con la compra?", "un empujón no corta la frase de la conversación (ni sale «¡Oye…!»)" })
+				table.insert(checks, { Nudge.quiet(a) == true, "en plena conversación, quien te habla no reacciona a un empujón" })
+			else
+				table.insert(checks, { false, "no se pudo cargar Nudge (" .. tostring(Nudge) .. ")" })
+			end
+			-- Mientras hablas con alguien, la calle calla (frases sueltas del servidor)
+			local speech3 = remotes:FindFirstChild("Speech")
+			if speech3 and b and localPlayer:GetAttribute("InDialogue") then
+				speech3.OnClientEvent:Fire({ Speaker = b, Text = "¡Oferta de sandías!", Seconds = 3 })
+				local cut = false
+				for _, d in playerGui:GetDescendants() do
+					if d.Name == "Line" and d.Text == "¡Oferta de sandías!" then
+						cut = true
+					end
+				end
+				table.insert(checks, { not cut, "durante una conversación no salen las frases sueltas de la calle" })
+			end
 			local dialogueGui = playerGui:FindFirstChild("DialogueUI")
 			local box = dialogueGui and dialogueGui:FindFirstChild("Dialogue")
 			table.insert(checks, { box ~= nil and box.Visible, "la caja de la conversación sigue abajo (Toca para seguir / respuestas)" })

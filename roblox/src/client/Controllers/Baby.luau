@@ -169,7 +169,7 @@ local function say(line: Line)
 	local seconds = BubbleLayout.duration(text)
 	StoryAudio.speak(line.Role, line.TextKey)
 	sayingUntil = math.max(sayingUntil, now + seconds)
-	if line.Speaker and SpeechBubbles.show(line.Speaker, text, { Name = name, Seconds = seconds }) then
+	if line.Speaker and SpeechBubbles.show(line.Speaker, text, { Name = name, Seconds = seconds, Story = true }) then
 		return
 	end
 	showCaption(name, text, seconds)

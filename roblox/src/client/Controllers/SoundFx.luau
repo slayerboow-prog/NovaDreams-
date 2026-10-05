@@ -582,7 +582,7 @@ end
 
 -- Bocadillo solo para ti (comentarios sueltos de la gente)
 local function localBubble(npc: Model, text: string)
-	SpeechBubbles.show(npc, text, { Seconds = 3.5 })
+	SpeechBubbles.show(npc, text, { Seconds = 3.5, Ambient = true })
 end
 
 local function streetChatter()

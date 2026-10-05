@@ -110,7 +110,7 @@ local SKY_Y = 3000 -- por encima están las salas de los edificios (interiores, 
 
 local function groundAt(point: Vector3): Vector3
 	local ok, hit = pcall(function()
-		return Ground.cast(point + Vector3.new(0, 40, 0), Vector3.new(0, -90, 0))
+		return Ground.castVisible(point + Vector3.new(0, 40, 0), Vector3.new(0, -90, 0)) -- (ni cajas invisibles)
 	end)
 	if ok and hit then
 		return hit.Position

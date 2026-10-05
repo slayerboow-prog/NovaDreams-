@@ -242,6 +242,32 @@ function Pets.heel(ownerPos: Vector3, look: Vector3): Vector3
 	return ownerPos - flat * Pets.Follow.Behind + side * Pets.Follow.Side
 end
 
+-- Sin suelo visible bajo el sitio donde tiene que ir: a la altura de los pies de su dueño (la raíz de un
+-- personaje va unos 3 studs por encima del suelo), nunca a la altura que tuviera (se quedaba en el aire)
+Pets.OwnerHip = 3
+function Pets.fallbackGoal(target: Vector3, ownerPos: Vector3, stand: number): Vector3
+	return Vector3.new(target.X, ownerPos.Y - Pets.OwnerHip + stand, target.Z)
+end
+
+-- Perro de bloques pegado a un paseante (PlaceLifeService): dónde va cada pieza respecto a la raíz del
+-- dueño, con feet = la altura de sus pies respecto a la raíz (-(HipHeight + media raíz)). Las alturas
+-- salen de los pies: antes iban a ojo desde la raíz y el perro, sin patas, quedaba casi un stud por
+-- encima de la acera. Las patas (0,5 de alto) apoyan en el suelo.
+Pets.WalkerDogLeg = 0.5
+function Pets.walkerDog(feet: number): { [string]: CFrame }
+	local leg = Pets.WalkerDogLeg
+	local body = feet + leg + 0.45 -- (cuerpo de 0,9: la tripa justo encima de las patas)
+	return {
+		PerroCuerpo = CFrame.new(2.2, body, -1),
+		PerroCabeza = CFrame.new(2.2, body + 0.6, -2.3),
+		PerroCola = CFrame.new(2.2, body + 0.5, 0.2) * CFrame.Angles(math.rad(35), 0, 0),
+		PerroPataDI = CFrame.new(1.9, feet + leg / 2, -1.7),
+		PerroPataDD = CFrame.new(2.5, feet + leg / 2, -1.7),
+		PerroPataTI = CFrame.new(1.9, feet + leg / 2, -0.3),
+		PerroPataTD = CFrame.new(2.5, feet + leg / 2, -0.3),
+	}
+end
+
 export type Follower = { Pos: Vector3, Speed: number, Moving: boolean, Facing: Vector3 }
 
 -- Un paso de seguir: anda (o corre si se queda atrás) hacia "target". Devuelve "teleport", "walk" o "idle"

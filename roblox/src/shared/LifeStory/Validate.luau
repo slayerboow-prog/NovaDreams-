@@ -86,7 +86,7 @@ local PROP_KINDS = {
 	Balon = true, Armario = true, Espejo = true, Desayuno = true, Almohada = true, Perchero = true, Papelera = true,
 	Asiento = true, Canasta = true, Kiosco = true, Banco = true, Escarabajo = true, Mural = true, Gato = true,
 	Autobus = true, Caja = true, Marcador = true, Animal = true, Trofeo = true,
-	Nave = true, Portal = true, Maquina = true, Huevo = true, Cristal = true, Cohete = true, Moco = true, Pantalla = true,
+	Nave = true, Globos = true, Portal = true, Maquina = true, Huevo = true, Cristal = true, Cohete = true, Moco = true, Pantalla = true,
 	HuevoGigante = true, Gallina = true,
 }
 local TRAITS = { Humor = true, Empatia = true, Valentia = true, Responsabilidad = true, Curiosidad = true, Deportividad = true, Creatividad = true, Rebeldia = true }

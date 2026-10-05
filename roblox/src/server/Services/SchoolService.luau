@@ -109,7 +109,7 @@ local function groundAt(position: Vector3, ignore: { Instance }): Vector3
 	end
 	rayParams.FilterDescendantsInstances = list
 	-- (solo suelo de verdad: no la cabeza de otro niño de la fila, que dejaba a uno flotando todo el día)
-	local result = Ground.cast(position + V(0, 4, 0), V(0, -12, 0), rayParams)
+	local result = Ground.castVisible(position + V(0, 4, 0), V(0, -12, 0), rayParams) -- (ni cajas invisibles)
 	return if result then result.Position else position
 end
 

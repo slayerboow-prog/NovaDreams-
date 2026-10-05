@@ -34,6 +34,9 @@ local Locations = require(ReplicatedStorage.Shared.LifeStory.Locations)
 local LocationService = require(script.Parent.LocationService)
 local Npc = require(script.Parent.Parent.World.Npc) -- ropa, pelo y pies en el suelo (lo comparte todo el juego)
 local GallinaGigante = require(script.Parent.Parent.World.Kit.GallinaGigante) -- Petra (Cast: Body = "GallinaGigante")
+local Cucaracha = require(script.Parent.Parent.World.Kit.Cucaracha) -- las de Crujiente (Cast: Body = "Cucaracha")
+local Platillo = require(script.Parent.Parent.World.Kit.Platillo) -- la nave (objetos Kind = "Nave")
+local MissionCombat = require(ReplicatedStorage.Shared.MissionCombat)
 local RoadGuard = require(script.Parent.Parent.World.RoadGuard) -- no bajar a la calzada si viene alguien
 local Log = require(ReplicatedStorage.Shared.Log)
 local SafeGround = require(ReplicatedStorage.Shared.SafeGround) -- nunca bajo tierra ni dentro de algo
@@ -126,7 +129,7 @@ local function groundAt(position: Vector3, ignore: { Instance }): Vector3
 	params.IgnoreWater = true
 	-- Desde un poco por encima de los pies (no desde muy arriba: dentro de un edificio daría con el techo)
 	-- (solo suelo de verdad: ni el capó de un coche aparcado, ni un autobús, ni la cabeza de alguien)
-	local result = Ground.cast(position + V(0, 3.5, 0), V(0, -14, 0), params)
+	local result = Ground.castVisible(position + V(0, 3.5, 0), V(0, -14, 0), params) -- (ni cajas invisibles)
 	return if result then result.Position else position
 end
 
@@ -355,6 +358,13 @@ local function buildModel(npc: string, player: Player, forcedScale: number?): Mo
 	if ok and body == "GallinaGigante" then
 		-- Petra: el cuerpo de persona se esconde y se ve una gallina (anda, persigue y se encoge igual)
 		pcall(GallinaGigante.costume, model)
+	elseif ok and body == "Cucaracha" then
+		-- Las cucarachas de Crujiente: seis patas, antenas y élitros (el cuerpo de persona no se ve)
+		pcall(Cucaracha.costume, model, {
+			Color = person and person.Skin,
+			Gorra = person and person.Bug and person.Bug.Gorra,
+			Medallas = person and person.Bug and person.Bug.Medallas,
+		})
 	end
 	Npc.atomic(model) -- que llegue entero a tu pantalla (si no, a veces no se le podía animar)
 	local humanoid = model:FindFirstChildOfClass("Humanoid")
@@ -362,7 +372,7 @@ local function buildModel(npc: string, player: Player, forcedScale: number?): Mo
 		humanoid.DisplayName = name
 		-- El nombre lo pinta el cliente (Controllers/NameTags: más legible y se esconde mientras habla)
 		humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
-		if not body then
+		if body ~= "GallinaGigante" then
 			CollectionService:AddTag(model, "NamedActor") -- (a una gallina gigante se la reconoce sin cartel)
 		end
 		humanoid.WalkSpeed = if person and person.Kid then 15 else 13
@@ -477,8 +487,11 @@ local function makeActor(player: Player, questId: string, spec: { [string]: any 
 		light.Brightness = 1.5
 		light.Parent = root or model:FindFirstChildWhichIsA("BasePart")
 	end
+	-- Enemigo de un combate: se le ataca con el botón de atacar (o el arma), nunca con un cartel de
+	-- «Interactuar» (en el móvil le quitaba el sitio al botón de atacar). MissionCombat lo marca.
+	MissionCombat.mark(model, if spec.Enemy then questId else nil, player.UserId)
 	model.Parent = sceneFolder(player)
-	if root and spec.Prompt ~= false then
+	if root and MissionCombat.wantsPrompt(spec) then
 		local p = prompt(root, spec.Action or "Hablar", model.Name, player, function()
 			if SceneService.onInteract then
 				SceneService.onInteract(player, "Actor", questId, spec.Npc)
@@ -944,25 +957,52 @@ local BUILDERS: { [string]: (Model, { [string]: any }) -> () } = {
 	end,
 
 	-- Misiones locas ------------------------------------------------------
-	-- Platillo volante flotando, con su rayo tractor (spec.Height = a qué altura flota)
+	-- La nave (World/Kit/Platillo): un platillo de verdad con cúpula, luces, zumbido y, si Aterriza,
+	-- patas, rampa y aterrizaje con polvo (Controllers/Platillos). Si no, flota a spec.Height con su
+	-- rayo tractor. spec.Piloto: color del piloto que se ve en la cúpula.
 	Nave = function(m, spec)
-		local h = spec.Height or 18
-		part(m, V(2, 22, 22), C(0, h, 0) * CFrame.Angles(0, 0, math.rad(90)), rgb(170, 180, 195), Enum.Material.Metal, Enum.PartType.Cylinder)
-		part(m, V(9, 5, 9), C(0, h + 2, 0), rgb(120, 255, 190), Enum.Material.Glass, Enum.PartType.Ball).Transparency = 0.3
-		for i = 0, 7 do
-			local a = i * math.pi / 4
-			part(m, V(1, 1, 1), C(math.cos(a) * 10, h - 0.6, math.sin(a) * 10), rgb(255, 240, 120), Enum.Material.Neon, Enum.PartType.Ball)
+		local okIds, SoundIds = pcall(require, ReplicatedStorage.Shared.SoundIds)
+		local ship = Platillo.build({
+			Aterriza = spec.Aterriza,
+			Height = spec.Height,
+			Beam = spec.Beam,
+			Hum = if okIds and type(SoundIds) == "table" then SoundIds.motor else nil,
+			Pilot = spec.Piloto,
+		})
+		for _, child in ship:GetChildren() do
+			child.Parent = m
 		end
-		if spec.Beam ~= false then
-			local beam = part(m, V(h, 8, 8), C(0, h / 2, 0) * CFrame.Angles(0, 0, math.rad(90)), rgb(150, 255, 200), Enum.Material.Neon, Enum.PartType.Cylinder)
-			beam.Transparency = 0.75
-			local light = Instance.new("SpotLight")
-			light.Face = Enum.NormalId.Bottom
-			light.Color = rgb(150, 255, 200)
-			light.Range = h + 10
-			light.Brightness = 4
-			light.Parent = m:GetChildren()[1]
+		for name, value in ship:GetAttributes() do
+			m:SetAttribute(name, value)
 		end
+		CollectionService:AddTag(m, Platillo.TAG)
+		pcall(function()
+			m.ModelStreamingMode = Enum.ModelStreamingMode.Atomic -- (llega entera: el cliente la anima)
+		end)
+		ship:Destroy()
+	end,
+	-- Caja de globos de agua: caja de cartón abierta llena de globos de colores (antes, un cubo liso)
+	Globos = function(m, spec)
+		local box = spec.Color or rgb(190, 150, 95)
+		local cardboard = Enum.Material.Cardboard
+		part(m, V(2.6, 0.15, 2), C(0, 0.08, 0), box, cardboard)
+		for _, side in { { V(2.6, 1.4, 0.12), C(0, 0.7, -0.94) }, { V(2.6, 1.4, 0.12), C(0, 0.7, 0.94) }, { V(0.12, 1.4, 2), C(-1.24, 0.7, 0) }, { V(0.12, 1.4, 2), C(1.24, 0.7, 0) } } do
+			part(m, side[1], side[2], box, cardboard)
+		end
+		-- Solapas abiertas
+		part(m, V(2.6, 0.08, 0.9), C(0, 1.5, -1.25) * CFrame.Angles(math.rad(-35), 0, 0), box:Lerp(Color3.new(0, 0, 0), 0.1), cardboard)
+		part(m, V(2.6, 0.08, 0.9), C(0, 1.5, 1.25) * CFrame.Angles(math.rad(35), 0, 0), box:Lerp(Color3.new(0, 0, 0), 0.1), cardboard)
+		local colors = { rgb(80, 170, 255), rgb(255, 90, 120), rgb(255, 210, 60), rgb(110, 220, 120), rgb(190, 110, 255) }
+		local n = 0
+		for x = -1, 1 do
+			for z = -1, 1, 2 do
+				n += 1
+				local balloon = part(m, V(0.75, 0.75, 0.75), C(x * 0.72, 1.35 + (n % 2) * 0.2, z * 0.42), colors[(n - 1) % #colors + 1], Enum.Material.SmoothPlastic, Enum.PartType.Ball)
+				balloon.Reflectance = 0.15
+				balloon.Transparency = 0.1
+			end
+		end
+		part(m, V(0.7, 0.7, 0.7), C(0.2, 1.75, 0), colors[1], Enum.Material.SmoothPlastic, Enum.PartType.Ball).Reflectance = 0.15
 	end,
 	-- Portal a otra dimensión: anillo que brilla
 	Portal = function(m, spec)
@@ -1380,6 +1420,19 @@ function applySet(player: Player, questId: string, actors: { { [string]: any } }
 			created.Home = cf
 			if spec.Mode ~= "Wander" then
 				startWalk(created, cf)
+			end
+		end
+	end
+
+	-- Un actor que se queda pero ahora es enemigo (o deja de serlo): marca al día y sin cartel
+	for _, actor in scene.Actors do
+		local enemy = actor.Spec and actor.Spec.Enemy == true
+		MissionCombat.mark(actor.Model, if enemy then questId else nil, player.UserId)
+		if enemy and actor.Root then
+			for _, child in actor.Root:GetChildren() do
+				if child:IsA("ProximityPrompt") then
+					child:Destroy()
+				end
 			end
 		end
 	end

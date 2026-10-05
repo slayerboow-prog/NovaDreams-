@@ -120,7 +120,8 @@ local function ground(x: number, z: number, maxY: number): RaycastResult?
 	end
 	rayParams.FilterDescendantsInstances = exclude
 	-- (solo suelo de verdad: el perro no se sube al techo de un coche ni a una persona)
-	return Ground.cast(Vector3.new(x, maxY, z), Vector3.new(0, -maxY + -200, 0), rayParams)
+	-- (ni cajas de choque invisibles ni piezas escondidas por un recambio de malla: se quedaba flotando)
+	return Ground.castVisible(Vector3.new(x, maxY, z), Vector3.new(0, -maxY + -200, 0), rayParams)
 end
 
 local function playerPosition(): Vector3?

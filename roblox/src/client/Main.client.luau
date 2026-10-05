@@ -162,6 +162,8 @@ task.spawn(RideCamera.init) -- cámara en un vehículo, el autobús o el metro: 
 task.spawn(RidePose.init) -- postura en un vehículo: manos al volante o al manillar, pasajeros sentados
 task.spawn(ObjectMotion.init) -- árboles que se mecen, columpios, banderas, noria, carrusel, fuentes
 task.spawn(require(script.Parent.Controllers.GiantHen).init) -- las gallinas de código (Petra, la gigante) respiran, picotean y andan
+task.spawn(require(script.Parent.Controllers.Cucarachas).init) -- las cucarachas de Crujiente corretean y agitan las antenas
+task.spawn(require(script.Parent.Controllers.Platillos).init) -- las naves aterrizan (polvo, luz, rampa) y zumban
 task.spawn(WetWorld.init) -- con lluvia: suelo que brilla, charcos, gente y cosas mojadas; con nieve, todo blanco
 task.spawn(StoneThrow.init) -- coger piedras del suelo y lanzarlas (tecla B o botón 🥌)
 task.spawn(Ambient.init) -- tráfico y peatones

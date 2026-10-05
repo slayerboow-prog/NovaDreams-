@@ -48,6 +48,7 @@ export type Item = {
 	Hunger: number?,
 	Energy: number?,
 	Ref: string?, -- clave en su sistema (vehículo, premio, carnet…)
+	Tag: string?, -- (armas) nombre corto que sale en su casilla de la barra
 	Effect: string?, -- (Gadget) qué hace al usarlo
 	Color: { number }?,
 	Lines: string?,
@@ -310,7 +311,7 @@ for id, w in Weapons.List do
 	local desc = if w.Kind == "Toy" then "De juguete: no hace daño. Elígelo en la barra rápida para empuñarlo."
 		elseif w.Duty then "Arma de servicio de la policía. Se devuelve al acabar el turno."
 		else "Arma de fuego (necesita licencia). Elígela en la barra rápida para empuñarla; botón Apuntar (clic derecho) para apuntar."
-	list[itemId] = { Id = itemId, Name = w.Name, Icon = w.Icon, Kind = "Weapon", Desc = desc, Stack = 1, Ref = id }
+	list[itemId] = { Id = itemId, Name = w.Name, Icon = w.Icon, Tag = w.Tag, Kind = "Weapon", Desc = desc, Stack = 1, Ref = id }
 end
 for id, ammo in Weapons.AmmoTypes do
 	list[id] = { Id = id, Name = ammo.Name, Icon = ammo.Icon, Kind = "Ammo", Desc = ("Munición. Se gasta al recargar (caja de %d)."):format(ammo.Box), Stack = ammo.Stack }
@@ -442,7 +443,7 @@ local GADGETS = {
 	{ "MovilFuturo", "Móvil del futuro", "📱", "Recibe mensajes de ti dentro de 10 años. Casi todos son sobre qué no comer.", { Effect = "Message", Lines = "Futuro", Cooldown = 4 } },
 	{ "CascosAntiHipnosis", "Cascos anti-hipnosis", "🎧", "Suena una canción tan pegadiza que anula cualquier otra. Incluidas las de los alienígenas.", { Effect = "Sparkle", Color = { 255, 120, 220 }, Cooldown = 2 } },
 	{ "PipBolsillo", "Pip de bolsillo", "🤖", "Una copia pequeñita de Pip, el robot de Cosme. Ya ha encontrado su propósito: hablarte.", { Effect = "Message", Lines = "Pip", Cooldown = 4 } },
-	{ "PistolaRayos", "Pistola de rayos alienígena", "🔫", "Te la quedaste en el Monte del Silencio. Dispara un rayo verde que hace «piuuu». Los de la nave la echan de menos.", { Effect = "Beam", Color = { 90, 255, 120 }, Cooldown = 0.6 } },
+	{ "PistolaRayos", "Pistola de rayos alienígena", "🛸", "Te la quedaste en el Monte del Silencio. Dispara un rayo verde que hace «piuuu». Los de la nave la echan de menos.", { Effect = "Beam", Color = { 90, 255, 120 }, Cooldown = 0.6 } },
 	{ "MandoDimensiones", "Mando de dimensiones", "🌀", "Abre un portal y te lleva a otro sitio de la región. Cosme dice que «casi nunca» te lleva a una dimensión de gatos.", { Effect = "Teleport", Cooldown = 45 } },
 	{ "GafasImpostores", "Gafas de ver impostores", "🕶️", "Todo el que las mira se siente observado. Los cambiaformas, mucho más.", { Effect = "Sparkle", Color = { 120, 255, 255 }, Cooldown = 2 } },
 	{ "TazaTiempo", "Taza del tiempo", "☕", "El café nunca se enfría porque siempre es el mismo segundo dentro de la taza.", { Effect = "Message", Lines = "Taza", Cooldown = 4 } },

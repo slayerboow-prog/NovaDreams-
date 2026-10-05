@@ -6,6 +6,11 @@
 --   * Mapa grande (botón "Mapa", el botón del mapa del minimapa o la tecla M): toda la región con los distritos,
 --     la lista de distritos, los lugares importantes (pulsa uno para marcarlo) y la leyenda.
 --     Se mueve arrastrando y se acerca con la rueda del ratón o con los botones + y −.
+--   * 🏠 Casa: tu casa (y la de tu familia, «Casa familiar», si tienes otra tuya) sale SIEMPRE en los
+--     dos mapas, con cualquier filtro; en el minimapa, si está lejos, en el borde señalando hacia ella.
+--     Las posiciones las pone el servidor (atributos FamilyHomePos y OwnHomePos).
+--   * Leyenda por categorías (shared/MapLegend): «🏋️ Gimnasios (7)», «🛒 Supermercados (4)»… Tocar
+--     una oculta o muestra todos sus lugares en los dos mapas; se guarda con la partida (MapFilters).
 -- GPS (Controllers/Gps): la ruta hasta tu destino se dibuja en los dos mapas como una línea que brilla
 -- por las calles. En el mapa grande, mantén pulsado en cualquier sitio para "Ir aquí" y "Quitar ruta" la quita.
 -- Lee las calles de ReplicatedStorage.Ambient.Roads, las zonas de ReplicatedStorage.MapZones y los lugares
@@ -17,6 +22,7 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 local MapInfo = require(ReplicatedStorage.Shared.MapInfo)
+local MapLegend = require(ReplicatedStorage.Shared.MapLegend)
 local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
 local Airport = require(ReplicatedStorage.Shared.Airport)
 local Rail = require(ReplicatedStorage.Shared.Rail)
@@ -73,6 +79,7 @@ type Layer = {
 	Keep: number, -- la escala que llevan ahora los Scalers (según el zoom)
 	Labels: { Rect }, -- dónde ya hay un nombre de lugar (para no ponerlos unos encima de otros)
 	Canon: { [string]: TextLabel }, -- misiones canónicas pendientes (❗ dorado)
+	Homes: { [string]: Frame }, -- 🏠 tus casas (siempre visibles)
 }
 
 local roads: { Road } = {}
@@ -91,7 +98,8 @@ local holder: Frame
 local bigLayer: Layer?
 local bigOpen = false
 local bigScale: UIScale
-local hidden: { [string]: boolean } = {} -- tipos de lugar ocultos desde la leyenda
+local hidden: { [string]: boolean } = {} -- categorías (MapLegend) ocultas desde la leyenda
+local refreshLegendRows: () -> () = function() end
 
 local waypoint: { Position: Vector3, Name: string }? = nil
 local zoom = 1
@@ -241,6 +249,7 @@ local function setWaypoint(place: { Position: Vector3, Name: string }?)
 end
 
 local dragMoved = false
+local homeIcon: (Layer, string, boolean) -> Frame
 
 local function landmarkIcon(layer: Layer, place: Landmark, detailed: boolean)
 	local p = toPixel(layer, place.Position.X, place.Position.Z)
@@ -307,6 +316,56 @@ local function landmarkIcon(layer: Layer, place: Landmark, detailed: boolean)
 	table.insert(layer.Icons, { Holder = icon, Kind = place.Kind.Model })
 end
 
+-- 🏠 de una casa tuya: círculo blanco con borde naranja y, en el mapa grande, su nombre debajo
+local HOME_COLOR = rgb(255, 150, 40)
+homeIcon = function(layer: Layer, name: string, detailed: boolean): Frame
+	local size = if detailed then 34 else 24
+	local icon = create(if detailed then "TextButton" else "Frame", {
+		Name = "Home",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Size = UDim2.fromOffset(size, size),
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		BorderSizePixel = 0,
+		ZIndex = 8,
+		Parent = layer.Frame,
+	}, {
+		create("UICorner", { CornerRadius = UDim.new(1, 0) }),
+		create("UIStroke", { Color = HOME_COLOR, Thickness = if detailed then 3 else 2.5 }),
+	})
+	if icon:IsA("TextButton") then
+		icon.Text = ""
+		icon.Activated:Connect(function()
+			if not dragMoved then
+				local family = player:GetAttribute("FamilyHomePos")
+				local own = player:GetAttribute("OwnHomePos")
+				for _, home in MapLegend.homeMarkers(family, own) do
+					if home.Name == (icon:FindFirstChild("Title") :: TextLabel).Text then
+						setWaypoint({ Position = home.Position, Name = home.Name })
+					end
+				end
+			end
+		end)
+	end
+	Theme.label({ Size = UDim2.fromScale(1, 1), Text = MapLegend.Home.Icon, TextSize = math.floor(size * 0.66), TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 8, Parent = icon })
+	Theme.label({
+		Name = "Title",
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 1, 2),
+		Size = UDim2.fromOffset(120, 16),
+		Text = name,
+		TextSize = if detailed then 14 else 11,
+		Font = Theme.FontBold,
+		TextColor3 = rgb(255, 214, 150),
+		TextStrokeTransparency = 0.1,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Visible = detailed,
+		ZIndex = 8,
+		Parent = icon,
+	})
+	keepSize(layer, icon)
+	return icon
+end
+
 local function buildLayer(parent: Instance, scale: number, detailed: boolean): Layer
 	local extent = (boundsMax - boundsMin) / scale
 	local frame = create("Frame", {
@@ -329,6 +388,7 @@ local function buildLayer(parent: Instance, scale: number, detailed: boolean): L
 		Keep = 1,
 		Labels = {},
 		Canon = {},
+		Homes = {},
 	}
 	-- Isla: arena en la orilla y hierba dentro (franjas horizontales del polígono de la costa)
 	-- (en el minimapa, franjas más gruesas: menos piezas que redibujar al moverse)
@@ -783,6 +843,37 @@ local function updateLayer(layer: Layer, root: BasePart?, clampTo: number?)
 		end
 	end
 
+	-- 🏠 Tus casas: siempre (ningún filtro, misión ni ajuste las quita)
+	local seenHomes = {}
+	for _, home in MapLegend.homeMarkers(player:GetAttribute("FamilyHomePos"), player:GetAttribute("OwnHomePos")) do
+		seenHomes[home.Id] = true
+		local icon = layer.Homes[home.Id]
+		if not icon then
+			icon = homeIcon(layer, home.Name, clampTo == nil)
+			layer.Homes[home.Id] = icon
+		end
+		local title = icon:FindFirstChild("Title") :: TextLabel?
+		if title and title.Text ~= home.Name then
+			title.Text = home.Name
+		end
+		local p = toPixel(layer, home.Position.X, home.Position.Z)
+		if clampTo and root then
+			local me = toPixel(layer, root.Position.X, root.Position.Z)
+			local offset = p - me
+			if offset.Magnitude > clampTo then
+				p = me + offset.Unit * clampTo
+			end
+		end
+		icon.Position = UDim2.fromOffset(p.X, p.Y)
+		icon.Visible = true
+	end
+	for id, icon in layer.Homes do
+		if not seenHomes[id] then
+			icon:Destroy()
+			layer.Homes[id] = nil
+		end
+	end
+
 	-- Los demás jugadores (puntos azules)
 	local seen = {}
 	for _, other in Players:GetPlayers() do
@@ -874,11 +965,20 @@ local function refreshLegend()
 	local layer = bigLayer
 	if layer then
 		for _, icon in layer.Icons do
-			icon.Holder.Visible = not hidden[icon.Kind]
+			icon.Holder.Visible = MapLegend.visible(hidden, icon.Kind)
 		end
 	end
 	for _, icon in miniLayer.Icons do
-		icon.Holder.Visible = not hidden[icon.Kind]
+		icon.Holder.Visible = MapLegend.visible(hidden, icon.Kind)
+	end
+	refreshLegendRows()
+end
+
+-- Tocar una categoría de la leyenda: se ocultan (o vuelven) todos sus lugares, y se guarda
+local function saveFilters()
+	local remote = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("MapFilters")
+	if remote then
+		(remote :: RemoteEvent):FireServer(MapLegend.encode(hidden))
 	end
 end
 
@@ -1234,34 +1334,67 @@ local function buildBig()
 		end)
 	end
 
-	-- Columna derecha: lugares importantes y leyenda
+	-- Columna derecha: lugares importantes (un tipo que se repite sale UNA vez: «Hotel (3)», y lleva
+	-- al más cercano) y la leyenda por categorías
 	local right = column(big, "Places", UDim.new(1, -RIGHT_W), RIGHT_W)
 	sectionTitle(right, "Lugares importantes", 0)
-	local rows: { { Row: TextButton, Place: Landmark } } = {}
-	local important = {}
+	local rows: { { Row: TextButton, Places: { Landmark }, Sub: string } } = {}
+	local byKind: { [string]: { Landmark } } = {}
+	local kinds: { MapInfo.Kind } = {}
 	for _, placeInfo in landmarks do
 		if placeInfo.Kind.Important then
-			table.insert(important, placeInfo)
+			local list = byKind[placeInfo.Kind.Model]
+			if not list then
+				list = {}
+				byKind[placeInfo.Kind.Model] = list
+				table.insert(kinds, placeInfo.Kind)
+			end
+			table.insert(list, placeInfo)
 		end
 	end
-	table.sort(important, function(a, b)
-		return a.Kind.Name < b.Kind.Name
+	table.sort(kinds, function(a, b)
+		return a.Name < b.Name
 	end)
-	for i, placeInfo in important do
-		local district = MapInfo.districtAt(placeInfo.Position.X, placeInfo.Position.Z)
-		local row = listRow(right, i, placeInfo.Kind.Icon, if district then district.Color else rgb(40, 110, 190), placeInfo.Kind.Name, if placeInfo.District ~= "" then placeInfo.District else "Afueras de Valmar")
+	local function nearest(list: { Landmark }): Landmark
+		local root = mapRoot(player, player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?)
+		if not root or #list == 1 then
+			return list[1]
+		end
+		local best, bestDistance = list[1], math.huge
+		for _, candidate in list do
+			local d = Vector2.new(candidate.Position.X - root.Position.X, candidate.Position.Z - root.Position.Z).Magnitude
+			if d < bestDistance then
+				best, bestDistance = candidate, d
+			end
+		end
+		return best
+	end
+	for i, kind in kinds do
+		local list = byKind[kind.Model]
+		local first = list[1]
+		local district = MapInfo.districtAt(first.Position.X, first.Position.Z)
+		local single = #list == 1
+		local title = if single then kind.Name else ("%s (%d)"):format(kind.Name, #list)
+		local sub = if single then (if first.District ~= "" then first.District else "Afueras de Valmar") else "Toca: te marca el más cercano"
+		local row = listRow(right, i, kind.Icon, if district then district.Color else rgb(40, 110, 190), title, sub)
 		row.Activated:Connect(function()
-			setWaypoint({ Position = placeInfo.Position, Name = placeInfo.Kind.Name })
-			centerOn(placeInfo.Position, math.max(zoom, 2.2))
+			local target = nearest(list)
+			setWaypoint({ Position = target.Position, Name = kind.Name })
+			centerOn(target.Position, math.max(zoom, 2.2))
 		end)
-		table.insert(rows, { Row = row, Place = placeInfo })
+		table.insert(rows, { Row = row, Places = list, Sub = sub })
 	end
 	refreshWaypointList = function()
 		for _, entry in rows do
-			local marked = waypoint ~= nil and waypoint.Position == entry.Place.Position
+			local marked = false
+			for _, placeInfo in entry.Places do
+				if waypoint ~= nil and waypoint.Position == placeInfo.Position then
+					marked = true
+				end
+			end
 			entry.Row.BackgroundColor3 = if marked then rgb(150, 40, 60) else rgb(24, 38, 66)
 			local sub = entry.Row:FindFirstChild("Sub") :: TextLabel
-			sub.Text = if marked then "📍 Marcado · pulsa otra vez para quitarlo" else (if entry.Place.District ~= "" then entry.Place.District else "Afueras de Valmar")
+			sub.Text = if marked then "📍 Marcado · pulsa otra vez para quitarlo" else entry.Sub
 		end
 	end
 
@@ -1276,18 +1409,57 @@ local function buildBig()
 		ZIndex = 21,
 		Parent = right,
 	})
-	for i, group in MapInfo.Legend do
-		local row = listRow(right, 101 + i, group.Icon, rgb(40, 110, 190), group.Name, "Visible · pulsa para ocultar")
-		row.Activated:Connect(function()
-			local hide = not hidden[group.Models[1]]
-			for _, model in group.Models do
-				hidden[model] = hide or nil
-			end
-			(row:FindFirstChild("Sub") :: TextLabel).Text = if hide then "Oculto · pulsa para mostrar" else "Visible · pulsa para ocultar"
-			row.BackgroundTransparency = if hide then 0.6 else 0.2
-			refreshLegend()
-		end)
+	-- 🏠 Casa: fija (no se puede ocultar)
+	local homeRow = listRow(right, 102, MapLegend.Home.Icon, rgb(255, 150, 40), "Casa", "Siempre visible")
+	homeRow.Size = UDim2.new(1, -4, 0, 56)
+	homeRow.AutoButtonColor = false
+	homeRow.Activated:Connect(function()
+		local homes = MapLegend.homeMarkers(player:GetAttribute("FamilyHomePos"), player:GetAttribute("OwnHomePos"))
+		if homes[1] then
+			centerOn(homes[1].Position, math.max(zoom, 2.2))
+		end
+	end)
+	-- Categorías con cuántos lugares hay de cada una (las que no tienen ninguno no salen)
+	local models = {}
+	for _, placeInfo in landmarks do
+		table.insert(models, placeInfo.Kind.Model)
 	end
+	local legendRows: { { Row: TextButton, Id: string } } = {}
+	local allRow = listRow(right, 103, "👁", rgb(60, 80, 120), "Mostrar todo", "Toca para ocultar todos los lugares")
+	allRow.Size = UDim2.new(1, -4, 0, 56)
+	allRow.Activated:Connect(function()
+		MapLegend.setAll(hidden, next(hidden) == nil)
+		refreshLegend()
+		saveFilters()
+	end)
+	for i, entry in MapLegend.summary(models) do
+		local category = entry.Category
+		local row = listRow(right, 103 + i, category.Icon, rgb(40, 110, 190), MapLegend.title(category, entry.Count), "")
+		-- Filas grandes: se tocan bien con el dedo
+		row.Size = UDim2.new(1, -4, 0, 56)
+		local title = row:FindFirstChild("Title") :: TextLabel
+		title.TextSize = 16
+		title.Position = UDim2.fromOffset(46, 8)
+		local subLabel = row:FindFirstChild("Sub") :: TextLabel
+		subLabel.Position = UDim2.fromOffset(46, 30)
+		row.Activated:Connect(function()
+			MapLegend.toggle(hidden, category.Id)
+			refreshLegend()
+			saveFilters()
+		end)
+		table.insert(legendRows, { Row = row, Id = category.Id })
+	end
+	refreshLegendRows = function()
+		for _, entry in legendRows do
+			local hide = hidden[entry.Id] == true
+			(entry.Row:FindFirstChild("Sub") :: TextLabel).Text = if hide then "Oculto · toca para mostrar" else "Visible · toca para ocultar"
+			entry.Row.BackgroundTransparency = if hide then 0.65 else 0.2
+		end
+		local any = next(hidden) ~= nil
+		(allRow:FindFirstChild("Title") :: TextLabel).Text = if any then "Mostrar todo" else "Ocultar todo"
+		(allRow:FindFirstChild("Sub") :: TextLabel).Text = if any then "Toca para ver todos los lugares" else "Toca para ocultar todos los lugares (🏠 sigue)"
+	end
+	refreshLegendRows()
 
 	-- Centro: el mapa
 	holder = create("Frame", {
@@ -1430,8 +1602,18 @@ end
 
 function MapUI.init()
 	loadData()
+	-- Filtros guardados con la partida (HomeMapService): llegan en el atributo MapHidden
+	hidden = MapLegend.decode(player:GetAttribute("MapHidden"))
 	buildMini()
 	buildBig()
+	refreshLegend()
+	player:GetAttributeChangedSignal("MapHidden"):Connect(function()
+		local saved = MapLegend.decode(player:GetAttribute("MapHidden"))
+		if MapLegend.encode(saved) ~= MapLegend.encode(hidden) then
+			hidden = saved
+			refreshLegend()
+		end
+	end)
 	-- GPS: la línea de la ruta en los dos mapas, y el sitio marcado se quita al llegar
 	Gps.onChanged(function(path, full, index)
 		routePath = path

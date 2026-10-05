@@ -143,7 +143,9 @@ local function groundAt(a: Anchor, p: Vector3): Vector3?
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = { folder :: any }
-	local ok, hit = pcall(Ground.cast, Vector3.new(p.X, a.Level + 14, p.Z), Vector3.new(0, -40, 0), params)
+	-- (solo suelo que se ve: ni cajas de choque invisibles ni piezas escondidas por un recambio de malla,
+	-- que dejaban a la gente flotando encima de la acera)
+	local ok, hit = pcall(Ground.castVisible, Vector3.new(p.X, a.Level + 14, p.Z), Vector3.new(0, -40, 0), params)
 	if not ok then
 		return Vector3.new(p.X, a.Level, p.Z)
 	end
@@ -345,9 +347,16 @@ end
 -- Perro de bloques al lado de su dueño (pegado a él: anda con él sin coste)
 local function dogFor(npc: Model)
 	local fur = pick({ rgb(150, 100, 60), rgb(40, 36, 34), rgb(230, 220, 200), rgb(200, 160, 90) }) :: Color3
-	carry(npc, "PerroCuerpo", Vector3.new(0.9, 0.9, 2.1), CFrame.new(2.2, -1.7, -1), fur)
-	carry(npc, "PerroCabeza", Vector3.new(0.8, 0.8, 0.9), CFrame.new(2.2, -1.1, -2.3), fur)
-	carry(npc, "PerroCola", Vector3.new(0.18, 0.18, 0.8), CFrame.new(2.2, -1.2, 0.2) * CFrame.Angles(math.rad(35), 0, 0), fur)
+	local root = npc.PrimaryPart
+	local humanoid = npc:FindFirstChildOfClass("Humanoid")
+	local feet = if root and humanoid then -(humanoid.HipHeight + root.Size.Y / 2) else -3
+	local at = Pets.walkerDog(feet) -- (desde los pies del dueño: antes, sin patas, flotaba casi un stud)
+	carry(npc, "PerroCuerpo", Vector3.new(0.9, 0.9, 2.1), at.PerroCuerpo, fur)
+	carry(npc, "PerroCabeza", Vector3.new(0.8, 0.8, 0.9), at.PerroCabeza, fur)
+	carry(npc, "PerroCola", Vector3.new(0.18, 0.18, 0.8), at.PerroCola, fur)
+	for _, leg in { "PerroPataDI", "PerroPataDD", "PerroPataTI", "PerroPataTD" } do
+		carry(npc, leg, Vector3.new(0.28, 0.5, 0.28), at[leg], fur)
+	end
 	-- Correa de su mano al collar (shared/Pets.leash): ningún perro va suelto
 	local head = npc:FindFirstChild("PerroCabeza") :: BasePart?
 	local hand = (npc:FindFirstChild("RightHand") or npc:FindFirstChild("Right Arm")) :: BasePart?
@@ -497,7 +506,9 @@ local function build(a: Anchor, name: string, size: number, list, weather: strin
 	-- Sentado en un banco (en un lado: el otro queda libre para el jugador)
 	if activity.Pose == "Sit" then
 		local seat = a.Seat
-		if not seat or not pointOk(seat.Position, list) then
+		-- (solo en un banco que sigue ahí y se ve: si un recambio lo ha quitado o escondido, nadie se
+		-- sienta en el aire)
+		if not seat or not Ground.seatOk(seat) or not pointOk(seat.Position, list) then
 			return nil
 		end
 		local npc = person(g, seat.CFrame * CFrame.new(0, 0, -2), look())
@@ -885,7 +896,7 @@ function PlaceLifeService.addAnchor(kind: string, instance: Instance): Anchor?
 				table.insert(skip, parent) -- (la marquesina: ni su banco ni su techo son el suelo)
 			end
 			params.FilterDescendantsInstances = skip
-			return Ground.cast(center + Vector3.new(0, 1, 0), Vector3.new(0, -40, 0), params)
+			return Ground.castVisible(center + Vector3.new(0, 1, 0), Vector3.new(0, -40, 0), params)
 		end)
 		if ok and hit and hit.Position.Y <= center.Y + 1 then
 			level = hit.Position.Y
@@ -1109,11 +1120,16 @@ function PlaceLifeService.chatter(force: boolean?)
 		for _, g in a.Groups do
 			local root = g.Npcs[1] and g.Npcs[1].PrimaryPart
 			if root then
+				local hears, busy = false, false
 				for _, v in list do
 					if flatDistance(v.Pos, root.Position) < 45 then
-						table.insert(near, g)
-						break
+						hears = true
+						-- (quien está en una conversación de la historia no quiere frases sueltas encima)
+						busy = busy or v.Player:GetAttribute("InDialogue") == true
 					end
+				end
+				if hears and not busy then
+					table.insert(near, g)
 				end
 			end
 		end
@@ -1151,6 +1167,23 @@ function PlaceLifeService.chatter(force: boolean?)
 					pcall(Npc.say, other, TimeContext.adapt(reply :: string, hour, weather), 3)
 				end
 			end)
+		end
+	end
+end
+
+-- Si el banco donde estaba sentado ya no está (lo ha quitado o escondido un recambio de malla), se
+-- levanta y se queda de pie en el suelo de verdad: antes se quedaba sentado en el aire
+function PlaceLifeService.keepSeated(g: Group)
+	local seat = g.Anchor.Seat
+	if not seat or Ground.seatOk(seat) then
+		return
+	end
+	for _, npc in g.Npcs do
+		if npc.Parent and npc:GetAttribute("Seated") then
+			local root = npc.PrimaryPart
+			local feet = if root then groundAt(g.Anchor, root.Position) else nil
+			pcall(Npc.stand, npc, feet or Vector3.new(seat.Position.X, g.Anchor.Level, seat.Position.Z))
+			npc:SetAttribute("Seated", nil)
 		end
 	end
 end
@@ -1223,6 +1256,7 @@ function PlaceLifeService.tick()
 				table.insert(wanting, { Anchor = a, Distance = nearest, Want = want - have })
 			end
 			for _, g in a.Groups do
+				pcall(PlaceLifeService.keepSeated, g)
 				pcall(animate, g)
 			end
 		end

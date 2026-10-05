@@ -12,6 +12,15 @@
 --   * las conversaciones (Controllers/DialogueUI), los choques ("¡Eh!", Controllers/Nudge), los
 --     animales (Controllers/Wildlife), los peatones (Controllers/Ambient) y la gente de la calle (SoundFx).
 -- Las cuentas (quién habla, cuánto dura, cómo se apilan) están en UI/BubbleLayout.
+--
+-- Historia contra comentarios sueltos:
+--   * Los bocadillos de la historia y de las misiones (opts.Story; las conversaciones con Hold; los
+--     actores de una misión que hablan desde el servidor) se dibujan ENCIMA DE TODO (AlwaysOnTop: las
+--     paredes ya no los tapan), se ven desde más lejos y salen primero si hay muchos.
+--   * Los comentarios sueltos (opts.Ambient: los «¡Eh!» de un choque, las frases de la calle, los
+--     ladridos) no salen mientras estás en una conversación o una escena, ni encima de un actor de una
+--     misión, ni encima de alguien que está diciendo una frase de la historia (nunca la cortan).
+--     Lo decide SpeechBubbles.barkAllowed (las cuentas, BubbleLayout.barkAllowed).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -45,6 +54,7 @@ type Visual = {
 	TypeStart: number?,
 	TypeSpeed: number?,
 	Graphemes: number,
+	Story: boolean,
 }
 
 local book = BubbleLayout.book()
@@ -53,6 +63,7 @@ local listeners: { (Instance, string, string) -> () } = {}
 local loop: RBXScriptConnection? = nil
 local lastStep: number? = nil
 local held: { [Instance]: boolean } = {} -- frases de conversación (las mueve DialogueUI, no ActorLife)
+local story: { [Instance]: boolean } = {} -- bocadillos de la historia (encima de todo)
 
 ---------------------------------------------------------------------
 -- Quién habla y dónde se pone el bocadillo
@@ -106,6 +117,15 @@ local function measure(text: string, name: string?): (number, number)
 		return BubbleLayout.sizeFor(bounds.X + 4, bounds.Y + 2, name)
 	end
 	return BubbleLayout.estimate(text, name)
+end
+
+-- Encima de todo o no, hasta dónde se ve y cuánto sube, según sea de la historia o no
+local function restyle(v: Visual, isStory: boolean)
+	local st = BubbleLayout.style(isStory)
+	v.Story = isStory
+	v.Gui.AlwaysOnTop = st.AlwaysOnTop
+	v.Gui.MaxDistance = st.MaxDistance
+	v.Gui.StudsOffsetWorldSpace = Vector3.new(0, v.Offset + st.Lift, 0)
 end
 
 local function make(key: Instance, anchor: BasePart, offset: number): Visual
@@ -173,7 +193,7 @@ local function make(key: Instance, anchor: BasePart, offset: number): Visual
 	if not ok then
 		gui.Parent = nil
 	end
-	return {
+	local v: Visual = {
 		Gui = gui,
 		Panel = panel,
 		Stroke = stroke,
@@ -186,12 +206,16 @@ local function make(key: Instance, anchor: BasePart, offset: number): Visual
 		Lift = 0,
 		OnScreen = false,
 		Graphemes = -1,
+		Story = false,
 	}
+	restyle(v, story[key] == true)
+	return v
 end
 
 local function drop(key: Instance)
 	local v = visuals[key]
 	held[key] = nil
+	story[key] = nil
 	if v then
 		visuals[key] = nil
 		v.Gui:Destroy()
@@ -256,14 +280,15 @@ local function step()
 		if vv.Gui.Adornee ~= anchor then
 			vv.Gui.Adornee = anchor
 		end
-		if vv.Offset ~= offset then
+		local isStory = story[key] == true
+		if vv.Offset ~= offset or vv.Story ~= isStory then
 			vv.Offset = offset
-			vv.Gui.StudsOffsetWorldSpace = Vector3.new(0, offset, 0)
+			restyle(vv, isStory)
 		end
 		local point = anchor.Position + Vector3.new(0, offset, 0)
 		local distance = (point - eye).Magnitude
 		vv.OnScreen = false
-		if distance > BubbleLayout.MaxDistance then
+		if distance > BubbleLayout.style(isStory).MaxDistance then
 			vv.Gui.Enabled = false
 			continue
 		end
@@ -271,16 +296,14 @@ local function step()
 		local s = BubbleLayout.scale(distance, viewportHeight) * pop
 		local screen, visible = camera:WorldToViewportPoint(point)
 		if visible and screen.Z > 0 then
-			table.insert(items, { Id = key, X = screen.X, Y = screen.Y, W = vv.W * s, H = (vv.H + BubbleLayout.Tail) * s, Depth = distance })
+			table.insert(items, { Id = key, X = screen.X, Y = screen.Y, W = vv.W * s, H = (vv.H + BubbleLayout.Tail) * s, Depth = distance, Story = isStory })
 		else
 			vv.Gui.Enabled = false
 		end
 		state[key] = { S = s, A = a }
 	end
-	-- Solo los más cercanos (una plaza llena de gente no se llena de bocadillos)
-	table.sort(items, function(x, y)
-		return x.Depth < y.Depth
-	end)
+	-- Solo los más cercanos (una plaza llena de gente no se llena de bocadillos); los de la historia, siempre
+	table.sort(items, BubbleLayout.before)
 	while #items > BubbleLayout.MaxVisible do
 		local extra = table.remove(items) :: any
 		visuals[extra.Id].Gui.Enabled = false
@@ -337,8 +360,11 @@ end
 -- Alguien dice algo. speaker: su modelo, su cabeza o una pieza (un animal).
 -- opts: Name (nombre pequeño arriba), Seconds (duración; si no, según lo largo),
 --       Sticky (hasta que se quite, con tope), Hold (hasta que se quite, sin tope),
---       Typing (letras por segundo: se escribe poco a poco), NameColor, Source ("Server"/"Local").
--- Devuelve si se ha podido poner (false si el personaje no está en tu mundo).
+--       Typing (letras por segundo: se escribe poco a poco), NameColor, Source ("Server"/"Local"),
+--       Story (frase de la historia o de una misión: encima de todo; Hold ya lo es),
+--       Ambient (comentario suelto: no sale si SpeechBubbles.barkAllowed dice que no).
+-- Devuelve si se ha podido poner (false si el personaje no está en tu mundo o si es un comentario
+-- suelto que ahora no toca).
 function SpeechBubbles.show(speaker: Instance?, text: string, opts: { [string]: any }?): boolean
 	local key = SpeechBubbles.keyOf(speaker)
 	if not key or not key.Parent or text == nil or text == "" then
@@ -349,19 +375,28 @@ function SpeechBubbles.show(speaker: Instance?, text: string, opts: { [string]: 
 		return false
 	end
 	local o = opts or {}
+	if o.Ambient and not SpeechBubbles.barkAllowed(key) then
+		return false -- (un «¡Eh!» nunca corta la frase de una misión ni habla encima de una conversación)
+	end
+	local isStory = (o.Story == true or o.Hold == true) and not o.Ambient
 	local now = os.clock()
 	local entry, changed = BubbleLayout.put(book, key, text, now, {
 		Name = o.Name,
 		Seconds = if o.Hold then math.huge else o.Seconds,
 		Sticky = o.Sticky,
+		Story = isStory,
 	})
 	held[key] = if o.Hold then true else nil
+	story[key] = if isStory then true else nil
 	local v = visuals[key]
 	if not v or not v.Gui.Parent then
 		v = make(key, anchor, offset)
 		visuals[key] = v
 	end
 	local vv = v :: Visual
+	if vv.Story ~= isStory then
+		restyle(vv, isStory)
+	end
 	if changed or vv.TextLabel.Text ~= text then
 		vv.W, vv.H = measure(text, entry.Name)
 		vv.TextLabel.Text = text
@@ -429,6 +464,70 @@ function SpeechBubbles.onSpoken(fn: (Instance, string, string) -> ())
 	table.insert(listeners, fn)
 end
 
+-- ¿Es actor de una misión o de la historia? (los de las escenas, workspace.StoryScenes; los de un
+-- suceso, HappeningKey; los de tu encargo, ErrandOwner; con quien hablas ahora, TalkingTo; y a quien la
+-- historia te manda a hablar, StoryNpc)
+function SpeechBubbles.isStoryActor(speaker: Instance?): boolean
+	local key = SpeechBubbles.keyOf(speaker)
+	if not key then
+		return false
+	end
+	if held[key] then
+		return true
+	end
+	local scenes = workspace:FindFirstChild("StoryScenes")
+	if scenes and key:IsDescendantOf(scenes) then
+		return true
+	end
+	local model: Instance? = if key:IsA("Model") then key else key:FindFirstAncestorOfClass("Model")
+	local node: Instance? = key
+	while node and node ~= workspace do
+		if node:GetAttribute("HappeningKey") ~= nil or node:GetAttribute("StoryActor") == true then
+			return true
+		end
+		local owner = node:GetAttribute("ErrandOwner")
+		if owner ~= nil and owner == player.UserId then
+			return true
+		end
+		node = node.Parent
+	end
+	local id = model and model:GetAttribute("NpcId")
+	if type(id) == "string" and id ~= "" then
+		if player:GetAttribute("StoryNpc") == id then
+			return true
+		end
+		local talking = player:GetAttribute("TalkingTo")
+		if type(talking) == "string" then
+			for who in string.gmatch(talking, "[^,]+") do
+				if who == id then
+					return true
+				end
+			end
+		end
+	end
+	return false
+end
+
+-- ¿Puede salir ahora un comentario suelto encima de él? (las reglas: BubbleLayout.barkAllowed)
+function SpeechBubbles.barkAllowed(speaker: Instance?): boolean
+	local key = SpeechBubbles.keyOf(speaker)
+	if not key then
+		return true
+	end
+	return BubbleLayout.barkAllowed(book, key, os.clock(), {
+		InDialogue = player:GetAttribute("InDialogue") == true,
+		InCinematic = player:GetAttribute("InCinematic") == true,
+		StoryActor = SpeechBubbles.isStoryActor(key),
+		Held = held[key] == true,
+	})
+end
+
+-- ¿Su bocadillo de ahora es de la historia? (encima de todo)
+function SpeechBubbles.isStory(speaker: Instance?): boolean
+	local key = SpeechBubbles.keyOf(speaker)
+	return key ~= nil and story[key] == true
+end
+
 -- ¿Está cerca de la cámara? (las frases del servidor de gente lejana no se dibujan)
 local function near(key: Instance): boolean
 	local anchor = anchorOf(key)
@@ -456,17 +555,28 @@ function SpeechBubbles.init()
 		end
 		local text = payload.Text
 		if type(text) ~= "string" or text == "" then
-			SpeechBubbles.hide(key)
+			if not held[key] then -- (la frase de una conversación la quita DialogueUI, no el servidor)
+				SpeechBubbles.hide(key)
+			end
 			return
 		end
 		local seconds = tonumber(payload.Seconds)
+		-- Un actor de una misión o de la historia: su frase sale siempre, encima de todo
+		local isStory = SpeechBubbles.isStoryActor(key) and not held[key]
+		if held[key] then
+			return -- (está en plena conversación contigo: nada del servidor le pisa la frase)
+		end
 		-- Frase con duración: solo si está cerca. Sin duración (se queda): siempre, por si te acercas
-		if seconds and not near(key) then
+		if seconds and not isStory and not near(key) then
 			return
 		end
-		-- Durante una escena de cámara (cinemática), la calle calla: sus frases sueltas no se pisan
-		-- con la escena
-		if seconds and game:GetService("Players").LocalPlayer:GetAttribute("InCinematic") then
+		-- Durante una conversación o una escena de cámara (cinemática), la calle calla: sus frases
+		-- sueltas no se pisan con la historia (ni con la frase de historia que esté diciendo)
+		if seconds and not isStory and not SpeechBubbles.barkAllowed(key) then
+			return
+		end
+		-- (y una frase que se queda tampoco sustituye a una de la historia que aún se está leyendo)
+		if not isStory and not BubbleLayout.barkAllowed(book, key, os.clock(), nil) then
 			return
 		end
 		SpeechBubbles.show(key, text, {
@@ -474,6 +584,7 @@ function SpeechBubbles.init()
 			Seconds = seconds,
 			Sticky = seconds == nil,
 			Source = "Server",
+			Story = isStory,
 		})
 	end)
 end

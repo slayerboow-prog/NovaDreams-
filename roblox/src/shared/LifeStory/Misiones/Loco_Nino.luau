@@ -138,8 +138,9 @@ return {
 		Rewards = { Items = { CoronaBigotes = 1 } },
 		Props = {
 			Bigotes = { Kind = "Gato", Name = "Bigotes", Prompt = "Hablar con el gato", Place = "JuegosColegio", Offset = V(2, 0, 2), Dialogue = "Socorro", Once = true },
-			Globos = { Kind = "Caja", Name = "Una caja de globos de agua", Prompt = "Coger globos de agua", Place = "Patio", Offset = V(-4, 0, 3), Color = Color3.fromRGB(80, 160, 255), Dialogue = "Globos", Once = true },
-			Nave = { Kind = "Nave", Name = "La nave de las cucarachas", Place = "Patio", Offset = V(0, 0, -14), Height = 14, Prompt = false },
+			Globos = { Kind = "Globos", Name = "Una caja de globos de agua", Prompt = "Coger globos de agua", Place = "Patio", Offset = V(-4, 0, 3), Color = Color3.fromRGB(80, 160, 255), Dialogue = "Globos", Once = true },
+			-- Aterriza: posada en el suelo, con patas y la rampa abierta hacia ti (las cucarachas salen por ella)
+			Nave = { Kind = "Nave", Aterriza = true, Piloto = Color3.fromRGB(110, 70, 40), Name = "La nave de las cucarachas", Place = "Patio", Offset = V(0, 0, -21), Prompt = false },
 		},
 		Steps = {
 			{ Type = "Use", Prop = "Bigotes", Text = "Busca a Bigotes en la zona de juegos del cole" },

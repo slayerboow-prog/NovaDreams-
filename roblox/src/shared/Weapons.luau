@@ -33,7 +33,8 @@ export type Part = {
 export type Weapon = {
 	Id: string,
 	Name: string,
-	Icon: string,
+	Icon: string, -- cada arma el suyo (🔫 no: en el móvil se dibuja como una pistola de agua)
+	Tag: string, -- nombre corto que se ve en su casilla de la barra (para distinguirlas de un vistazo)
 	Class: string, -- Pistola, Revolver, Escopeta, Subfusil, Fusil, Francotirador, Taser, Agua, Paintball
 	Kind: string, -- "Real" | "Toy" | "Taser"
 	Hands: number, -- 1 = una mano (apuntando se ayuda con la otra), 2 = dos manos
@@ -204,7 +205,7 @@ end
 
 local LIST: { [string]: Weapon } = {
 	Pistola = {
-		Id = "Pistola", Name = "Pistola 9 mm", Icon = "🔫", Class = "Pistola", Kind = "Real", Hands = 1, Stock = false,
+		Id = "Pistola", Name = "Pistola 9 mm", Icon = "🎯", Tag = "9 mm", Class = "Pistola", Kind = "Real", Hands = 1, Stock = false,
 		Damage = 24, Pellets = 1, Head = 2, Limb = 0.75, RPM = 400, Modes = { "Semi" },
 		Magazine = 15, Chamber = true, Reload = { Tactical = 1.5, Empty = 2.0 },
 		Range = 300, Falloff = { Start = 60, End = 200, Min = 0.6 },
@@ -216,7 +217,7 @@ local LIST: { [string]: Weapon } = {
 		Parts = pistolParts(BLACK, DARK),
 	},
 	PistolaPolicia = {
-		Id = "PistolaPolicia", Name = "Pistola reglamentaria", Icon = "🔫", Class = "Pistola", Kind = "Real", Hands = 1, Stock = false,
+		Id = "PistolaPolicia", Name = "Pistola reglamentaria", Icon = "👮", Tag = "Policía", Class = "Pistola", Kind = "Real", Hands = 1, Stock = false,
 		Damage = 24, Pellets = 1, Head = 2, Limb = 0.75, RPM = 400, Modes = { "Semi" },
 		Magazine = 15, Chamber = true, Reload = { Tactical = 1.4, Empty = 1.9 },
 		Range = 300, Falloff = { Start = 60, End = 200, Min = 0.6 },
@@ -228,7 +229,7 @@ local LIST: { [string]: Weapon } = {
 		Parts = pistolParts(DARK, BLACK),
 	},
 	Revolver = {
-		Id = "Revolver", Name = "Revólver .357", Icon = "🔫", Class = "Revolver", Kind = "Real", Hands = 1, Stock = false,
+		Id = "Revolver", Name = "Revólver .357", Icon = "🤠", Tag = ".357", Class = "Revolver", Kind = "Real", Hands = 1, Stock = false,
 		Damage = 45, Pellets = 1, Head = 2, Limb = 0.75, RPM = 130, Modes = { "Semi" },
 		Magazine = 6, Chamber = false, Reload = { Tactical = 2.6, Empty = 2.6 },
 		Range = 320, Falloff = { Start = 70, End = 220, Min = 0.6 },
@@ -247,7 +248,7 @@ local LIST: { [string]: Weapon } = {
 		},
 	},
 	Escopeta = {
-		Id = "Escopeta", Name = "Escopeta de corredera", Icon = "🔫", Class = "Escopeta", Kind = "Real", Hands = 2, Stock = true,
+		Id = "Escopeta", Name = "Escopeta de corredera", Icon = "💥", Tag = "Escopeta", Class = "Escopeta", Kind = "Real", Hands = 2, Stock = true,
 		Damage = 11, Pellets = 8, Head = 1.5, Limb = 0.75, RPM = 70, Modes = { "Semi" },
 		Magazine = 6, Chamber = true, Reload = { Tactical = 0.5, Empty = 0.5, PerRound = 0.5, Start = 0.35 },
 		Range = 90, Falloff = { Start = 8, End = 45, Min = 0.2 },
@@ -271,7 +272,7 @@ local LIST: { [string]: Weapon } = {
 		end)(),
 	},
 	Subfusil = {
-		Id = "Subfusil", Name = "Subfusil 9 mm", Icon = "🔫", Class = "Subfusil", Kind = "Real", Hands = 2, Stock = true,
+		Id = "Subfusil", Name = "Subfusil 9 mm", Icon = "⚙️", Tag = "Subfusil", Class = "Subfusil", Kind = "Real", Hands = 2, Stock = true,
 		Damage = 18, Pellets = 1, Head = 1.8, Limb = 0.75, RPM = 800, Modes = { "Auto", "Semi" },
 		Magazine = 30, Chamber = true, Reload = { Tactical = 2.0, Empty = 2.6 },
 		Range = 200, Falloff = { Start = 30, End = 120, Min = 0.5 },
@@ -283,7 +284,7 @@ local LIST: { [string]: Weapon } = {
 		Parts = rifleParts(BLACK, DARK, 0.6, true),
 	},
 	Fusil = {
-		Id = "Fusil", Name = "Fusil de asalto", Icon = "🔫", Class = "Fusil", Kind = "Real", Hands = 2, Stock = true,
+		Id = "Fusil", Name = "Fusil de asalto", Icon = "🪖", Tag = "Fusil", Class = "Fusil", Kind = "Real", Hands = 2, Stock = true,
 		Damage = 32, Pellets = 1, Head = 2, Limb = 0.75, RPM = 700, Modes = { "Auto", "Semi" },
 		Magazine = 30, Chamber = true, Reload = { Tactical = 2.2, Empty = 2.9 },
 		Range = 600, Falloff = { Start = 150, End = 500, Min = 0.7 },
@@ -295,7 +296,7 @@ local LIST: { [string]: Weapon } = {
 		Parts = rifleParts(BLACK, DARK, 1.0, true),
 	},
 	Francotirador = {
-		Id = "Francotirador", Name = "Rifle de francotirador", Icon = "🔭", Class = "Francotirador", Kind = "Real", Hands = 2, Stock = true,
+		Id = "Francotirador", Name = "Rifle de francotirador", Icon = "🔭", Tag = "Franco", Class = "Francotirador", Kind = "Real", Hands = 2, Stock = true,
 		Damage = 95, Pellets = 1, Head = 2.5, Limb = 0.8, RPM = 42, Modes = { "Semi" },
 		Magazine = 5, Chamber = true, Reload = { Tactical = 3.0, Empty = 3.6 },
 		Range = 1200, Falloff = { Start = 400, End = 1200, Min = 0.85 },
@@ -319,7 +320,7 @@ local LIST: { [string]: Weapon } = {
 		end)(),
 	},
 	Taser = {
-		Id = "Taser", Name = "Táser", Icon = "⚡", Class = "Taser", Kind = "Taser", Hands = 1, Stock = false,
+		Id = "Taser", Name = "Táser", Icon = "⚡", Tag = "Táser", Class = "Taser", Kind = "Taser", Hands = 1, Stock = false,
 		Damage = 5, Pellets = 1, Head = 1, Limb = 1, RPM = 60, Modes = { "Semi" },
 		Magazine = 1, Chamber = false, Reload = { Tactical = 2.2, Empty = 2.2 },
 		Range = 25, Falloff = { Start = 25, End = 25, Min = 1 },
@@ -335,7 +336,7 @@ local LIST: { [string]: Weapon } = {
 		end)(),
 	},
 	PistolaAgua = {
-		Id = "PistolaAgua", Name = "Pistola de agua", Icon = "💦", Class = "Agua", Kind = "Toy", Hands = 2, Stock = false,
+		Id = "PistolaAgua", Name = "Pistola de agua", Icon = "💦", Tag = "Agua", Class = "Agua", Kind = "Toy", Hands = 2, Stock = false,
 		Damage = 0, Pellets = 1, Head = 1, Limb = 1, RPM = 480, Modes = { "Auto" },
 		Magazine = 40, Chamber = false, Reload = { Tactical = 1.4, Empty = 1.4 },
 		Range = 45, Falloff = { Start = 45, End = 45, Min = 1 },
@@ -353,7 +354,7 @@ local LIST: { [string]: Weapon } = {
 		},
 	},
 	Paintball = {
-		Id = "Paintball", Name = "Marcadora de paintball", Icon = "🎨", Class = "Paintball", Kind = "Toy", Hands = 2, Stock = true,
+		Id = "Paintball", Name = "Marcadora de paintball", Icon = "🎨", Tag = "Paintball", Class = "Paintball", Kind = "Toy", Hands = 2, Stock = true,
 		Damage = 0, Pellets = 1, Head = 1, Limb = 1, RPM = 300, Modes = { "Semi" },
 		Magazine = 20, Chamber = false, Reload = { Tactical = 1.8, Empty = 1.8 },
 		Range = 120, Falloff = { Start = 120, End = 120, Min = 1 },

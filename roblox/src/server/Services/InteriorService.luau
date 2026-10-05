@@ -1374,6 +1374,37 @@ local function publishLandmark(kind: string, position: Vector3)
 	end
 end
 
+-- Comercios de la calle en el mapa, según lo que pone su cartel (shared/MapLegend los agrupa:
+-- «Tiendas de ropa», «Restaurantes y bares», «Gimnasios»…). Dos del mismo tipo pegados, uno solo.
+local SHOP_LANDMARKS = {
+	Moda = "LocalRopa", Zapateria = "LocalRopa",
+	Bar = "LocalComida", Cafeteria = "LocalComida", Pizzeria = "LocalComida", Heladeria = "LocalComida",
+	Sushi = "LocalComida", Hamburgueseria = "LocalComida", Kebab = "LocalComida",
+	Estudio = "LocalGimnasio",
+	Ultramarinos = "LocalSuper", Fruteria = "LocalSuper", Panaderia = "LocalSuper",
+	Farmacia = "LocalFarmacia",
+}
+local function publishShops(list: { Building })
+	local placed: { { Kind: string, Position: Vector3 } } = {}
+	for _, b in list do
+		local profile = b.Kind == "Local" and b.Shop and Interiors.profileFor(b.Shop)
+		local kind = profile and SHOP_LANDMARKS[profile.Id]
+		if kind then
+			local near = false
+			for _, other in placed do
+				if other.Kind == kind and (other.Position - b.Door).Magnitude < 60 then
+					near = true
+					break
+				end
+			end
+			if not near then
+				table.insert(placed, { Kind = kind, Position = b.Door })
+				publishLandmark(kind, b.Door)
+			end
+		end
+	end
+end
+
 -- Instituciones dentro de edificios que ya existen (siempre los mismos: el mapa no cambia)
 local function hostInstitutions(list: { Building })
 	local center: { Building } = {}
@@ -1616,6 +1647,7 @@ function InteriorService.init()
 	local list = scan()
 	hostInstitutions(list)
 	hostResidences(list)
+	pcall(publishShops, list)
 	for _, building in list do
 		addDoor(building)
 		if building.Persistent then

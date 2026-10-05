@@ -19,6 +19,11 @@ BubbleLayout.FadeOut = 0.3
 BubbleLayout.Gap = 6 -- separación entre bocadillos apilados
 BubbleLayout.MaxDistance = 60 -- studs: más lejos no se ven
 BubbleLayout.MaxVisible = 8 -- como mucho, los más cercanos
+-- Frases de la historia y de las misiones (conversaciones, escenas, la familia): SIEMPRE se leen.
+-- Se dibujan encima de todo (AlwaysOnTop: antes las tapaban las paredes), se ven desde más lejos y
+-- van un poco más arriba (el pico no se mete en el techo bajo de una sala ni en el marco de una puerta)
+BubbleLayout.StoryMaxDistance = 140
+BubbleLayout.StoryLift = 0.45
 
 local function length(text: string): number
 	return utf8.len(text) or #text
@@ -85,6 +90,7 @@ export type Entry = {
 	Until: number, -- cuando empieza a irse
 	Sticky: boolean,
 	Serial: number,
+	Story: boolean?, -- frase de la historia o de una misión (nada suelto la pisa)
 }
 export type Book = { Entries: { [any]: Entry }, Serial: number }
 
@@ -104,6 +110,7 @@ function BubbleLayout.put(book: Book, key: any, text: string, now: number, opts:
 		entry.Text = text
 		entry.Name = o.Name or entry.Name
 		entry.Sticky = o.Sticky == true
+		entry.Story = o.Story == true
 		if changed then
 			entry.PopAt = now
 		end
@@ -125,6 +132,7 @@ function BubbleLayout.put(book: Book, key: any, text: string, now: number, opts:
 		Until = now + seconds,
 		Sticky = o.Sticky == true,
 		Serial = book.Serial,
+		Story = o.Story == true,
 	}
 	book.Entries[key] = fresh
 	return fresh, true
@@ -150,6 +158,45 @@ function BubbleLayout.sweep(book: Book, now: number): { any }
 		book.Entries[key] = nil
 	end
 	return gone
+end
+
+---------------------------------------------------------------------
+-- Historia contra comentarios sueltos
+---------------------------------------------------------------------
+
+-- Cómo se dibuja un bocadillo: los de la historia, encima de todo, desde más lejos y algo más arriba
+function BubbleLayout.style(story: boolean?): { AlwaysOnTop: boolean, MaxDistance: number, Lift: number }
+	if story then
+		return { AlwaysOnTop = true, MaxDistance = BubbleLayout.StoryMaxDistance, Lift = BubbleLayout.StoryLift }
+	end
+	return { AlwaysOnTop = false, MaxDistance = BubbleLayout.MaxDistance, Lift = 0 }
+end
+
+-- ¿Puede salir un comentario suelto (el «¡Eh!» de un choque, «¡Oye, disculpa!», una frase de la calle,
+-- un ladrido) encima de este personaje? Nunca si:
+--   * estás en una conversación o en una escena (InDialogue / InCinematic): nadie de alrededor te habla
+--     encima;
+--   * es actor de una misión o de la historia (StoryActor) o tiene la frase de una conversación (Held);
+--   * su bocadillo de ahora es una frase de la historia que aún se está leyendo: un choque nunca la
+--     sustituye ni la corta.
+function BubbleLayout.barkAllowed(book: Book, key: any, now: number, ctx: { [string]: any }?): boolean
+	local c = ctx or {}
+	if c.InDialogue or c.InCinematic or c.StoryActor or c.Held then
+		return false
+	end
+	local entry = book.Entries[key]
+	if entry and entry.Story and now < entry.Until then
+		return false
+	end
+	return true
+end
+
+-- Orden para elegir los que se ven si hay demasiados: los de la historia primero, luego los más cercanos
+function BubbleLayout.before(x: { [string]: any }, y: { [string]: any }): boolean
+	if (x.Story == true) ~= (y.Story == true) then
+		return x.Story == true
+	end
+	return (x.Depth or 0) < (y.Depth or 0)
 end
 
 -- ¿Está hablando (con su bocadillo a la vista)?
