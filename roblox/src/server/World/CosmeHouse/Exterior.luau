@@ -121,7 +121,7 @@ local function facades(ctx: Kit.Ctx, m: Instance)
 	Kit.wall(ctx, f, "X", H.Z1, H.X0 - 0.5, H.X1 + 0.5, y2, y3, p)
 	-- Lateral derecho (x = 12): la puerta del garaje y ventanas por encima de su tejado
 	Kit.wall(ctx, f, "Z", H.X1, H.Z0, H.Z1, y0, y1, band(g, { Openings = { op(-31.5, -25.5, 1, 10), op(8, 15, 5, 11, "window") } }))
-	Kit.wall(ctx, f, "Z", H.X1, H.Z0, H.Z1, y1, y2, band(u, { Openings = { op(-28, -16, 19, 27, "window"), op(0, 12, 18, 27, "window") } }))
+	Kit.wall(ctx, f, "Z", H.X1, H.Z0, H.Z1, y1, y2, band(u, { Openings = { op(0, 12, 18, 27, "window") } }))
 	Kit.wall(ctx, f, "Z", H.X1, H.Z0, H.Z1, y2, y3, p)
 	-- Revestimiento de madera en la planta alta (listones verticales) y franja oscura entre plantas
 	for _, x in { -33, -21.5, 10.8 } do
@@ -340,7 +340,7 @@ local function backGarden(ctx: Kit.Ctx, m: Instance)
 	local furn = Kit.furn(ctx, g, rgb(120, 84, 56), rgb(220, 220, 210), C.Orange)
 	local Furniture = require(script.Parent.Parent.Furniture)
 	Furniture.table(furn, Kit.at(ctx, -6, 1, 22.5), 5, 3.2, rgb(110, 80, 52))
-	for _, p in { { -9, 22.5, 90 }, { -3, 22.5, -90 } } do
+	for _, p in { { -9, 22.5, -90 }, { -3, 22.5, 90 } } do
 		Furniture.chair(furn, Kit.at(ctx, p[1], 1, p[2], p[3]), rgb(60, 60, 66))
 	end
 	local umbrella = Kit.group(g, "Sombrilla")
