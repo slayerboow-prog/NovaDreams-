@@ -20,7 +20,13 @@
 --   * los sitios de la historia: la marca GarajeCosme (y las nuevas Cosme*) existen, con sitio libre
 --     alrededor para los actores de las misiones; Locations las conoce
 --   * presupuesto de piezas y de luces; lo pequeño se esconde en el nivel gráfico Bajo (CityDetail)
---   * el garaje viejo ya no existe (Home.cosmeGarage, Blocks.cosmeGarage)
+--   * el plano del dueño (docs/referencias/plano-casa-cosme.png, a escala ×2): cada habitación numerada
+--     en su sitio (garaje a la derecha desde la calle, mirador de observación detrás, cúpula en el
+--     tejado, torre de experimentos detrás a la derecha…)
+--   * por fuera como el render: la torre redonda de dos tambores de cristal con el platillo, la
+--     parabólica y la antena; la torre con el vórtice encima; el cartel «NO ENTRAR»; los coches del
+--     kit FutureCar (curvos: elipsoides, ruedas con llanta, tiras de luz, pintura con reflejo)
+--   * el garaje viejo ya no existe (Home.cosmeGarage, Blocks.cosmeGarage, ningún «TALLER DE COSME»)
 
 local fs = require("@lune/fs")
 local process = require("@lune/process")
@@ -29,6 +35,7 @@ local L = require("./lib/ModuleLoader")
 local check = L.check
 
 local Vector3, CFrame = roblox.Vector3, L.CFrame
+local Enum = roblox.Enum
 
 local Layout = L.load("src/server/World/CosmeHouse/Layout")
 local Build = L.load("src/server/World/CosmeHouse/Build")
@@ -40,10 +47,10 @@ local Locations = L.load("src/shared/LifeStory/Locations")
 print("\n▶ El plano (Layout)")
 ---------------------------------------------------------------------
 local required = {
-	"Jardin", "JardinTrasero", "Terraza", "Vestibulo", "Escalera", "Despacho", "Salon", "Comedor", "Cocina", "Aseo",
-	"BajadaSotano", "GarajeCosme", "Pasillo", "Biblioteca", "Ordenadores", "Dormitorio", "BanoArriba", "Experimentos",
-	"Balcon", "Control", "Observatorio", "Azotea", "PasilloSotano", "Laboratorio", "Prototipos", "Almacen", "Energia",
-	"Portales", "Secreta",
+	"Jardin", "JardinTrasero", "Terraza", "JardinLateral", "Vestibulo", "Salon", "Despacho", "Comedor", "Escalera", "Cocina",
+	"Aseo", "Laboratorio", "GarajeCosme", "Pasillo", "Dormitorio", "Biblioteca", "BanoArriba", "Experimentos", "Ordenadores",
+	"Observacion", "TerrazaPrincipal", "TerrazaLateral", "Observatorio", "Azotea", "PanelesSolares", "TorreExperimentos",
+	"PasilloSotano", "Portales", "Taller", "Almacen", "GarajeSotano", "Secreta",
 }
 local missing = {}
 for _, id in required do
@@ -56,7 +63,7 @@ local levels = {}
 for _, r in Layout.Rooms do
 	levels[r.Level] = (levels[r.Level] or 0) + 1
 end
-check(levels.B and levels.G and levels.U and levels.A and levels.O, "hay sótano, planta baja, planta alta, ático y exterior")
+check(levels.B and levels.G and levels.U and levels.A and levels.O, "hay sótano, planta baja, planta alta, tejado y exterior")
 
 -- Grafo conectado
 local names = {}
@@ -112,7 +119,7 @@ for _, e in Layout.Edges do
 		end
 	end
 end
-check(climbs >= 12, ("las plantas se unen con tramos de escalera de pendiente suave (%d tramos)"):format(climbs))
+check(climbs >= 6, ("las plantas se unen con tramos de escalera de pendiente suave (%d tramos)"):format(climbs))
 for name, s in Layout.Stairs do
 	check(s.X1 - s.X0 >= 10 and math.abs(s.Rise) / s.Run <= 0.62, ("escalera %s: carriles de 6 de ancho y pendiente %.2f"):format(name, math.abs(s.Rise) / s.Run))
 end
@@ -141,7 +148,73 @@ end
 check(allReach, "de cada sitio de la rutina se llega andando a todos los demás")
 check(Layout.slotAt(8.5).Room == "Cocina" and Layout.slotAt(0.5).Room == "Salon" and Layout.slotAt(23).Room == "Salon" and Layout.slotAt(2).Room == "Secreta", "la hora decide la franja (con la vuelta de medianoche)")
 local plan = Layout.path("Cocina", "Secreta")
-check(plan ~= nil and table.find(plan, "Estanteria") ~= nil and table.find(plan, "SotanoL4") ~= nil, "a la 01:00 baja al sótano por la escalera y entra por la estantería")
+check(plan ~= nil and table.find(plan, "Estanteria") ~= nil and table.find(plan, "SotanoL2") ~= nil, "a la 01:00 baja al sótano por la escalera y entra por la estantería")
+
+---------------------------------------------------------------------
+print("\n▶ El plano del dueño (docs/referencias/plano-casa-cosme.png, a escala ×2)")
+---------------------------------------------------------------------
+-- Desde la calle (mirando la casa, hacia +Z local), la derecha es -X local: la cámara lo confirma
+do
+	local probe = Builder.facing(Vector3.new(0, 0, 0), Vector3.new(1, 0, 0))
+	local street = probe * CFrame.new(0, 5, -80)
+	local cam = CFrame.lookAt(street.Position, probe.Position + Vector3.new(0, 5, 0))
+	local right = probe:VectorToWorldSpace(Vector3.new(-1, 0, 0))
+	check(cam.RightVector:Dot(right) > 0.99, "desde la calle, -X local queda a la derecha (el garaje del plano)")
+end
+local function room(id: string): any
+	return Layout.room(id) :: any
+end
+local function cx(r: any): number
+	return (r.X0 + r.X1) / 2
+end
+local function cz(r: any): number
+	return (r.Z0 + r.Z1) / 2
+end
+local numbers = {}
+for _, r in Layout.Rooms do
+	if r.Plan then
+		numbers[r.Plan] = r.Id
+	end
+end
+local missingNumbers = {}
+for _, n in { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 19, 20 } do
+	if not numbers[n] then
+		table.insert(missingNumbers, tostring(n))
+	end
+end
+check(#missingNumbers == 0, "están todas las habitaciones numeradas del plano (1-20; la 18, la antena, va con la torre)" .. (if #missingNumbers > 0 then ": faltan " .. table.concat(missingNumbers, ", ") else ""))
+local H, Gar = Layout.House, Layout.Garage
+check(H.X1 - Gar.X0 <= 96 and H.X1 - Gar.X0 >= 80 and H.Z1 - H.Z0 <= 80, ("huella de la casa a escala ×2 del plano (48 × 40 → 96 × 80): %d de frente"):format(H.X1 - Gar.X0))
+check(Layout.CEIL.G - Layout.F0 >= 11 and Layout.CEIL.U - Layout.F1 >= 11 and Layout.CEIL.B - Layout.FB >= 11, "cada planta tiene al menos 11 de alto")
+-- Planta baja
+local vest, salon, cocina, comedor, lab = room("Vestibulo"), room("Salon"), room("Cocina"), room("Comedor"), room("Laboratorio")
+check(Gar.X1 <= H.X0 and Gar.Z0 == H.Z0 and Gar.Z1 - Gar.Z0 > 30, "garaje (6) a la derecha, a lo largo del fondo de la planta baja")
+check(vest.Z0 == H.Z0 and cx(vest) < cx(salon) and cx(vest) > Gar.X1, "vestíbulo (1) delante, entre el salón y el garaje, con la puerta a la calle")
+check(salon.Z0 == H.Z0 and cx(salon) > (H.X0 + H.X1) / 2, "salón (2) delante a la izquierda")
+check(cz(cocina) > cz(salon) and cx(cocina) > (H.X0 + H.X1) / 2 and cocina.Z1 == H.Z1, "cocina (3) detrás a la izquierda")
+check(cz(comedor) > vest.Z1 - 1 and cz(comedor) < cz(lab), "comedor (3) en el centro")
+check(lab.Z1 == H.Z1 and cz(lab) > cz(comedor) and cx(lab) < cx(cocina), "laboratorio de inventos (4) detrás, en el centro")
+local core = Layout.Core
+local w, d = H.X1 - Gar.X0, H.Z1 - H.Z0
+check((core.X0 + core.X1) / 2 > Gar.X0 + w / 3 and (core.X0 + core.X1) / 2 < Gar.X0 + w * 2 / 3 and (core.Z0 + core.Z1) / 2 > H.Z0 + d / 3 and (core.Z0 + core.Z1) / 2 < H.Z0 + d * 2 / 3, "escalera (5) en el centro (sube y baja al sótano en el mismo núcleo)")
+-- Planta alta
+local dorm, exper, obsr, terr, lat = room("Dormitorio"), room("Experimentos"), room("Observacion"), room("TerrazaPrincipal"), room("TerrazaLateral")
+check(cx(dorm) > cx(exper), "habitación de Cosme (7) a la izquierda y zona de experimentos (8) a la derecha")
+check(Layout.Bay.Z >= H.Z1 and obsr.Z1 > H.Z1 and math.abs(Layout.Bay.X - (H.X0 + H.X1) / 2) < 12, "sala de observación (9): mirador semicircular de cristal DETRÁS, en el centro")
+check(terr.Z1 <= Layout.Upper.Z0 and terr.Z0 <= H.Z0 + 1 and terr.X1 - terr.X0 > 40, "terraza principal (10) delante, encima del salón")
+check(lat.X1 <= H.X0 and lat.Level == "U", "terraza lateral (11) a la derecha (en el tejado del garaje)")
+-- Sótano
+local gs, pt, tl, al = room("GarajeSotano"), room("Portales"), room("Taller"), room("Almacen")
+check(gs.X1 <= pt.X0 and gs.X1 <= al.X1, "garaje del sótano (12) a la derecha")
+check(cz(pt) < cz(tl) and pt.X0 >= gs.X1 and cx(pt) > cx(al), "portal (13) delante a la izquierda y taller (14) detrás a la izquierda")
+check(cz(al) > cz(pt) and cx(al) < cx(tl) and cx(al) > cx(gs), "almacén (15) detrás, en el centro")
+-- Tejado
+local D, T = Layout.Dome, Layout.PortalTower
+local sol, chillR = Layout.Solar, room("Azotea")
+check(sol.X0 > D.X and (sol.X0 + sol.X1) / 2 > (H.X0 + H.X1) / 2, "paneles solares (16) a la izquierda del tejado")
+check(math.abs(D.X - (H.X0 + H.X1) / 2) < 12 and D.Top > Layout.F2 + 8 and D.DiscR > D.R and D.UpperTop > D.Top, "cúpula de observación (19) en el centro: dos tambores y el platillo encima")
+check(T.X < D.X and T.Z > D.Z and T.Z < H.Z1, "torre de experimentos (17) detrás a la derecha del tejado")
+check(cx(chillR) < D.X and cz(chillR) < T.Z, "terraza chill (20) delante a la derecha del tejado")
 
 ---------------------------------------------------------------------
 print("\n▶ Construir la casa")
@@ -542,12 +615,119 @@ end
 check(#unknown == 0, "todos los sitios de Cosme que usan las misiones existen en Locations" .. (if #unknown > 0 then ": faltan " .. table.concat(unknown, ", ") else ""))
 
 ---------------------------------------------------------------------
+print("\n▶ Por fuera como el render, y el coche")
+---------------------------------------------------------------------
+local texts = {}
+for _, d in house:GetDescendants() do
+	if d:IsA("TextLabel") then
+		table.insert(texts, string.upper(d.Text))
+	end
+end
+local badText = {}
+for _, t in texts do
+	if t:find("TALLER DE COSME", 1, true) or t:find("¡LABORATORIO!", 1, true) then
+		table.insert(badText, t)
+	end
+end
+check(#badText == 0, "ningún cartel del garaje viejo («TALLER DE COSME», «NO ENTRAR ¡LABORATORIO!»)" .. (if #badText > 0 then ": " .. table.concat(badText, " | ") else ""))
+local noEntrar = false
+for _, t in texts do
+	if t == "NO ENTRAR" then
+		noEntrar = true
+	end
+end
+check(noEntrar, "el cartel «NO ENTRAR» del tablón de madera")
+local function find(name: string): Instance?
+	return house:FindFirstChild(name, true)
+end
+local function countIn(root: Instance?, fn: (BasePart) -> boolean): number
+	local n = 0
+	if root then
+		for _, d in root:GetDescendants() do
+			if d:IsA("BasePart") and fn(d) then
+				n += 1
+			end
+		end
+	end
+	return n
+end
+local domeModel = find("CupulaObservacion")
+local drums = 0
+if domeModel then
+	for _, name in { "TamborBajo", "TamborAlto" } do
+		local drum = domeModel:FindFirstChild(name)
+		if drum and countIn(drum, function(p)
+			return p.Name == "WindowGlass"
+		end) >= 16 then
+			drums += 1
+		end
+	end
+end
+check(drums == 2, "torre redonda: dos tambores de cristal apilados")
+check(domeModel ~= nil and domeModel:FindFirstChild("Platillo", true) ~= nil and domeModel:FindFirstChild("Parabolica", true) ~= nil and domeModel:FindFirstChild("Antena", true) ~= nil, "con el platillo, la parabólica y la antena encima")
+local towerModel = find("TorrePortal")
+local vortex = towerModel and towerModel:FindFirstChild("Vortice")
+local vcenter = vortex and vortex:GetAttribute("Center")
+check(vortex ~= nil and vortex:HasTag("CosmePortal") and typeof(vcenter) == "CFrame" and localPos((vcenter :: CFrame).Position).Y > Layout.F2 + 15, "torre de experimentos con el vórtice flotando encima, por encima de la cúpula baja")
+check(countIn(towerModel, function(p)
+	return p.Name == "TuboLuz" and p.Material == Enum.Material.Neon
+end) >= 4, "la torre tiene tubos que brillan")
+local FutureCar = L.load("src/server/World/Kit/FutureCar")
+local cars = {}
+for _, d in house:GetDescendants() do
+	if d:IsA("Model") and FutureCar.is(d) then
+		table.insert(cars, d)
+	end
+end
+check(#cars >= 2, ("coches del kit FutureCar en la casa: %d (garaje y garaje de los portales)"):format(#cars))
+for _, car in cars do
+	local total, curved, wheels, strips, shiny, solidBody = 0, 0, 0, 0, 0, 0
+	for _, d in car:GetDescendants() do
+		if d:IsA("BasePart") then
+			total += 1
+			local mesh = d:FindFirstChildOfClass("SpecialMesh")
+			if mesh and mesh.MeshType == Enum.MeshType.Sphere then
+				curved += 1
+			end
+			if d:IsA("Part") and d.Shape == Enum.PartType.Cylinder then
+				wheels += 1
+			end
+			if d.Material == Enum.Material.Neon and d.Transparency < 1 then
+				strips += 1
+			end
+			if d.Reflectance > 0.1 then
+				shiny += 1
+			end
+			if d.CanCollide and d.Name ~= "CarHitbox" and not d:IsA("Seat") then
+				solidBody += 1
+			end
+		end
+	end
+	check(total >= 40 and curved >= 10 and wheels >= 12 and strips >= 8 and shiny >= 8 and solidBody == 0, ("%s: %d piezas, %d curvas (elipsoides), %d cilindros (ruedas y llantas), %d luces de neón, %d con reflejo"):format(car.Name, total, curved, wheels, strips, shiny))
+end
+local garageModel = house:FindFirstChild("GarajeCosme", true)
+check(garageModel ~= nil and garageModel:FindFirstChild("PortalGaraje") ~= nil and garageModel:FindFirstChild("CocheExperimental") ~= nil and garageModel:FindFirstChild("BancoTrabajo") ~= nil, "garaje: portal redondo al fondo, el coche y el banco con monitores")
+
+---------------------------------------------------------------------
 print("\n▶ El garaje viejo ya no está")
 ---------------------------------------------------------------------
 local home = fs.readFile("src/server/World/Kit/Home.luau")
 local blocks = fs.readFile("src/server/World/Kit/Blocks.luau")
 check(not home:find("cosmeGarage", 1, true) and not blocks:find("cosmeGarage", 1, true), "Home.cosmeGarage y Blocks.cosmeGarage quitados")
 check(blocks:find("CosmeHouse.Build", 1, true) ~= nil, "la manzana de Cosme se construye con World/CosmeHouse")
+local oldSign = {}
+local function scanSrc(dir: string)
+	for _, name in fs.readDir(dir) do
+		local path = dir .. "/" .. name
+		if fs.isDir(path) then
+			scanSrc(path)
+		elseif name:match("%.luau$") and fs.readFile(path):upper():find("TALLER DE COSME", 1, true) then
+			table.insert(oldSign, path)
+		end
+	end
+end
+scanSrc("src")
+check(#oldSign == 0, "nadie construye ya el cartel «TALLER DE COSME»" .. (if #oldSign > 0 then ": " .. table.concat(oldSign, ", ") else ""))
 local region = fs.readFile("src/server/World/Region.luau")
 check(region:find("function Region.cosmeSite", 1, true) ~= nil and fs.readFile("src/server/World/TerrainBuilder.luau"):find("CosmeHouse.Exterior", 1, true) ~= nil, "la parcela sale de Region.cosmeSite y el terreno se vacía donde va el sótano")
 check(fs.readFile("src/server/Main.server.luau"):find("CosmeHouse.Start", 1, true) ~= nil, "el servidor pone en marcha la casa (CosmeHouse/Start)")
