@@ -180,6 +180,8 @@ task.spawn(function()
 end)
 -- 4d) Calles, ciudad y edificios por fuera con los modelos de la Tienda de Sebastián (World/CityAssets)
 task.spawn(function() local ok, err = pcall(function() require(World.CityAssets).start() end) if not ok then warn("[CityAssets] " .. tostring(err)) end end)
+-- 4e) Zonas de misión fuera de la ciudad (mina, lava, cueva alienígena, cráteres) con los materiales exóticos del dueño (World/MissionZones)
+task.spawn(function() local ok, err = pcall(function() require(World.MissionZones).start() end) if not ok then warn("[MissionZones] " .. tostring(err)) end end)
 
 local order = {
 	"DataService",
