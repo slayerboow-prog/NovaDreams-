@@ -29,6 +29,8 @@ EventCatalog.Names = {
 	VehicleTrip = true, ZoneEntered = true, ErrandDone = true,
 	-- Conducta, crimen y justicia
 	Misbehaved = true, ConductNoted = true, Vandalism = true, Crime = true, HitSomeone = true, GotHit = true,
+	-- Combate (FighterService): ganar a un rival del torneo ({ Level, Model })
+	BeatRival = true,
 	ShotFired = true, KnockedOut = true, Died = true, Revived = true, Arrested = true, EvadedPolice = true,
 	Sentenced = true, Imprisoned = true, Released = true, PrisonWork = true, PrisonEscape = true, PrisonDegree = true,
 }
