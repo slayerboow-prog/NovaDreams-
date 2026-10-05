@@ -331,6 +331,35 @@ function Ambient.meshCars(folder: Instance, CarBodies: any): number
 	else
 		out:Destroy()
 	end
+	Ambient.heavyCars(folder, CarBodies)
+	return n
+end
+
+-- Pesados del tráfico con malla (ReplicatedStorage.Ambient.HeavyMesh): camiones de reparto y
+-- autocares (Kit/CarBodies.heavy). El cliente los pone en la calle (tipo «Pesado»), salvo en Bajo.
+Ambient.HEAVY = 4
+function Ambient.heavyCars(folder: Instance, CarBodies: any): number
+	if folder:FindFirstChild("HeavyMesh") or type(CarBodies.heavy) ~= "function" then
+		return 0
+	end
+	local out = Instance.new("Folder")
+	out.Name = "HeavyMesh"
+	local n = 0
+	for i = 1, Ambient.HEAVY do
+		local t = CarBodies.choose("Heavy", "pesado" .. i)
+		if t then
+			local ok, m = pcall(CarBodies.heavy, t, "Pesado" .. i)
+			if ok and m then
+				m.Parent = out
+				n += 1
+			end
+		end
+	end
+	if n > 0 then
+		out.Parent = folder
+	else
+		out:Destroy()
+	end
 	return n
 end
 

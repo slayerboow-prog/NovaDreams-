@@ -33,6 +33,7 @@
 local CarBodies = {}
 
 CarBodies.MaxTris = 26000 -- triángulos por coche (los «Hero» tienen su propio tope y pocas copias)
+CarBodies.MaxHeavyTris = 40000 -- autobús, autocar y camión (pocos a la vez)
 CarBodies.MaxParked = 320 -- coches aparcados con malla como mucho (el resto, carrocería simple)
 CarBodies.Batch = 12 -- coches que se cambian por tanda (luego task.wait)
 CarBodies.ShadowSize = 2.5 -- solo dan sombra las piezas que miden al menos esto
@@ -930,6 +931,7 @@ function CarBodies.template(car: Instance, pick: { [string]: any }, sourceId: nu
 	model:SetAttribute("Weight", pick.Weight or 1)
 	model:SetAttribute("MaxCopies", pick.MaxCopies or 0)
 	model:SetAttribute("Hero", pick.Hero == true)
+	model:SetAttribute("Heavy", pick.Heavy == true)
 	model:SetAttribute("Forward", why)
 	model:SetAttribute("Length", fhi.Z - flo.Z)
 	model:SetAttribute("Width", fhi.X - flo.X)
@@ -1024,7 +1026,8 @@ function CarBodies.ingest(def: { [string]: any }, pack: Instance): number
 		if pick.Match ~= "" and other then
 			other = nil -- (con nombre: solo ese coche; las versiones de color son de los oficiales)
 		end
-		if pick.Hero ~= true and (pick.Tris or 0) > CarBodies.MaxTris then
+		local cap = if pick.Heavy then CarBodies.MaxHeavyTris else CarBodies.MaxTris
+		if pick.Hero ~= true and (pick.Tris or 0) > cap then
 			continue
 		end
 		local ok, model, why = pcall(CarBodies.template, chosen, pick, def.Id, other)

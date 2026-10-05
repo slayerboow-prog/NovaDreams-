@@ -239,6 +239,42 @@ local function packs(): { [number]: Instance }
 	aChassis("CHP Charger", Vector3.new(9, 8.3, 19.9), chp)
 	aChassis("Crown Victoria V2", Vector3.new(8.9, 7, 21.3), chp)
 	out[4573650411] = chp
+	-- Reemplazos limpios (docs/assets-reemplazos.md): autobús urbano (5 mallas, una «Decals» con el
+	-- rótulo «CENTURY LINE 7701»), autocar (ruedas de malla y suciedad), camión caja y rueda
+	local bus = mk("Model", { Name = "City Bus" })
+	mesh("Body", Vector3.new(14, 12, 55), CFrame.new(0, 7, 0), WHITE, bus, { TextureID = "rbxassetid://7001" })
+	mesh("Glass", Vector3.new(13.6, 4, 50), CFrame.new(0, 9, 0), Color3.fromRGB(20, 30, 40), bus, { Transparency = 0.4 })
+	mesh("Glass2", Vector3.new(12, 5, 0.5), CFrame.new(0, 9, -27.4), Color3.fromRGB(20, 30, 40), bus, { Transparency = 0.4 })
+	mesh("Lights", Vector3.new(12, 1, 55.2), CFrame.new(0, 3, 0), Color3.fromRGB(250, 250, 240), bus)
+	local decals = mesh("Decals", Vector3.new(10, 1.5, 55.3), CFrame.new(0, 12, 0), Color3.fromRGB(250, 160, 30), bus)
+	local g = mk("SurfaceGui", {}, decals)
+	mk("TextLabel", { Text = "CENTURY LINE 7701" }, g)
+	out[16358361587] = bus
+	local coach = mk("Model", { Name = "Tour Bus Abandonned" })
+	mesh("Paint", Vector3.new(11, 10, 46), CFrame.new(0, 7, 0), Color3.fromRGB(200, 200, 205), coach, { TextureID = "rbxassetid://7002" })
+	mesh("Glass", Vector3.new(10.6, 3, 44), CFrame.new(0, 9.5, 0), Color3.fromRGB(20, 30, 40), coach, { Transparency = 0.3 })
+	mesh("Chrome", Vector3.new(11.2, 0.5, 46.2), CFrame.new(0, 3, 0), Color3.fromRGB(220, 220, 225), coach)
+	mk("Decal", { Name = "Dirt", Texture = "rbxassetid://5" }, coach:FindFirstChild("Paint"))
+	mk("Texture", { Name = "Rust", Texture = "rbxassetid://6" }, coach:FindFirstChild("Paint"))
+	mk("BoolValue", { Name = "Abandoned" }, coach)
+	-- morro a −Z: voladizo de delante 6, de detrás 9 (motor detrás)
+	for _, z in { -17, 14 } do
+		for _, x in { -4.6, 4.6 } do
+			mesh("Wheels", Vector3.new(1.4, 3.6, 3.6), CFrame.new(x, 1.8, z), Color3.fromRGB(25, 25, 25), coach)
+		end
+	end
+	out[95641562400547] = coach
+	local truck = mk("Model", { Name = "box truck mesh" })
+	-- a lo largo de X, cabina en +X
+	mesh("Box", Vector3.new(19, 11, 9), CFrame.new(-4, 6.5, 0), WHITE, truck, { TextureID = "rbxassetid://7003" })
+	mesh("Cab", Vector3.new(8, 9, 8.6), CFrame.new(10, 5, 0), WHITE, truck, { TextureID = "rbxassetid://7004" })
+	mesh("Glass", Vector3.new(0.4, 3, 7.6), CFrame.new(13.8, 7, 0), Color3.fromRGB(20, 30, 40), truck, { Transparency = 0.4 })
+	out[4128265113] = truck
+	local wheel = mk("Model", { Name = "Realistic Car Wheel" })
+	mesh("Tire", Vector3.new(1.5, 2.7, 2.7), CFrame.new(0, 0, 0), Color3.fromRGB(25, 25, 25), wheel)
+	mesh("Rim", Vector3.new(1.2, 2, 2), CFrame.new(0.1, 0, 0), Color3.fromRGB(200, 200, 205), wheel)
+	mesh("Bolts", Vector3.new(0.2, 0.8, 0.8), CFrame.new(0.6, 0, 0), Color3.fromRGB(150, 150, 150), wheel)
+	out[17601139281] = wheel
 	return out
 end
 
@@ -375,7 +411,10 @@ for _, t in lib do
 	end
 end
 check(not skylineUsed, "el coche con «Protector» que no está en la lista no se usa")
-check(table.find(asked, 15418880736) ~= nil and table.find(asked, 18912826861) == nil and table.find(asked, 130974691456028) == nil, "se pide la berlina pesada; ni el autobús ni el camión con virus")
+check(table.find(asked, 15418880736) ~= nil and table.find(asked, 18912826861) == nil and table.find(asked, 130974691456028) == nil and table.find(asked, 16893586720) == nil and table.find(asked, 18577576400) == nil and table.find(asked, 131247677717086) == nil, "se pide la berlina pesada; ni el autobús, autocar, camión, ruedas ni coches descartados")
+check(table.find(asked, 16358361587) and table.find(asked, 95641562400547) and table.find(asked, 4128265113) and table.find(asked, 17601139281) and table.find(asked, 8448337398) == nil, "los reemplazos limpios: autobús, autocar, camión y rueda (la de respaldo no hace falta)")
+check(names["Valmar Urbano"] and names["Toro Ruta"] and names["Kestrel Reparto"], "plantillas del autobús, el autocar y el camión")
+check(CarBodies.wheel() ~= nil and #CarBodies.wheel():GetChildren() == 3, "rueda de malla (neumático + llanta)")
 check(early:GetAttribute("CarBody") ~= nil, "el coche apuntado mientras cargaba ya tiene malla")
 
 ---------------------------------------------------------------------
@@ -450,6 +489,9 @@ check(badges == 2, "placas con la marca inventada delante y detrás (tapan el lo
 ---------------------------------------------------------------------
 print("▶ Encaje en la caja del coche")
 for _, t in lib do
+	if t:GetAttribute("Heavy") then
+		continue
+	end
 	local lo, hi = CarBodies.bounds(parts(t) :: any)
 	local typ = CarBodies.Types[t:GetAttribute("Type")]
 	local W, L = hi.X - lo.X, hi.Z - lo.Z
@@ -699,11 +741,84 @@ check(#brandHits(meshF) == 0, "tráfico sin marcas")
 check(#brandHits(world) == 0, "nada de lo construido tiene marcas")
 
 ---------------------------------------------------------------------
+local traffic = fs.readFile("src/client/Controllers/Traffic.luau")
+print("▶ Autobús, camiones y autocares")
+local urb = names["Valmar Urbano"]
+local hasCentury = false
+for _, d in urb:GetDescendants() do
+	if d:IsA("TextLabel") and string.find(d.Text, "CENTURY") then
+		hasCentury = true
+	end
+end
+check(not hasCentury, "el rótulo «CENTURY LINE 7701» del autobús no se copia")
+local ulo, uhi = CarBodies.bounds(parts(urb) :: any)
+check(math.abs(uhi.Z - ulo.Z - 34) < 3 and math.abs(uhi.X - ulo.X - 8.6) < 1.2, ("autobús escalado a nuestro autobús (%.1f × %.1f)"):format(uhi.X - ulo.X, uhi.Z - ulo.Z))
+local bus = Rides.build("Autobus", nil, CF, Color3.fromRGB(200, 40, 45))
+check(bus:GetAttribute("CarBody") == "Valmar Urbano", "Rides.build(Autobus): con la malla del autobús")
+local doors, seats, visibleDoors = 0, 0, 0
+for _, p in bus:GetChildren() do
+	if p.Name == "BusDoor" then
+		doors += 1
+		if p.Transparency < 1 then
+			visibleDoors += 1
+		end
+	elseif p:IsA("Seat") and p.Name == "PassengerSeat" then
+		seats += 1
+	end
+end
+check(doors == 4 and visibleDoors == 4, "las 4 hojas de puerta siguen (y se ven)")
+check(seats > 10, ("los asientos de pasajeros siguen (%d)"):format(seats))
+local dest = bus:FindFirstChild("DestinationSign")
+local destLabel = dest and dest:FindFirstChildWhichIsA("SurfaceGui") and dest:FindFirstChildWhichIsA("SurfaceGui"):FindFirstChildWhichIsA("TextLabel")
+local blo, bhi = meshBounds(bus, CF)
+check(destLabel and string.find(destLabel.Text, "VALMAR") and math.abs(localOf(dest, CF).Z - blo.Z) < 1, "letrero de línea de Valmar en el morro de la malla")
+check(bus:FindFirstChild("RearSign") and math.abs(localOf(bus:FindFirstChild("RearSign"), CF).Z - bhi.Z) < 1, "letrero de detrás en la cola de la malla")
+local busChassis = Rides.prepare(bus, "Autobus", CF)
+check(busChassis and bus:FindFirstChild("DriverSeat"), "Rides.prepare del autobús: base y asiento del conductor")
+check(#brandHits(bus) == 0, "autobús sin marcas")
+local truckT = names["Kestrel Reparto"]
+check(truckT:GetAttribute("Forward") == "cabina", "camión: el morro por la cabina")
+local cabZ
+for _, p in parts(truckT) do
+	if p.Name ~= "CarGlass" and p.Name ~= "CarBadge" and p.Size.Z < 9 then
+		cabZ = p.CFrame.Position.Z
+	end
+end
+check(cabZ and cabZ < -4, ("camión: la cabina queda delante (z %.1f)"):format(cabZ or 0))
+local dirt = 0
+for _, d in names["Toro Ruta"]:GetDescendants() do
+	if d:IsA("Decal") or d:IsA("Texture") or d:IsA("BoolValue") then
+		dirt += 1
+	end
+end
+check(dirt == 0, "autocar sin suciedad (Decals/Textures) ni BoolValue")
+local heavyF = amb:FindFirstChild("HeavyMesh")
+check(heavyF and #heavyF:GetChildren() == Ambient.HEAVY, "Ambient.HeavyMesh: camiones y autocares para el tráfico")
+local heavyOk, kinds = true, {}
+for _, m in heavyF:GetChildren() do
+	kinds[m:GetAttribute("CarBody")] = true
+	local b = m:FindFirstChild("Body")
+	if not (b and b.CanCollide and b.Transparency == 1 and m:FindFirstChild("Headlight") and m:FindFirstChild("Taillight") and m:GetAttribute("Kind") == "Pesado") then
+		heavyOk = false
+	end
+end
+check(heavyOk and kinds["Kestrel Reparto"] and kinds["Toro Ruta"], "pesados con caja de choque, faros y pilotos (camión y autocar)")
+check(#brandHits(heavyF) == 0, "pesados sin marcas")
+check(string.find(traffic, "HeavyMesh", 1, true) and string.find(traffic, "removeHeavy", 1, true), "el tráfico pone los pesados y los quita en Bajo")
+local mineTires = 0
+for _, p in mine:GetChildren() do
+	if p.Name == "TireMesh" then
+		mineTires += 1
+	end
+end
+check(mineTires == 12, ("tu coche: la rueda completa de malla en las 4 ruedas (%d piezas)"):format(mineTires))
+
 print("▶ Rendimiento")
 local over = {}
 for _, t in lib do
 	local tris = t:GetAttribute("Tris")
-	if t:GetAttribute("Hero") ~= true and (type(tris) ~= "number" or tris > CarBodies.MaxTris) then
+	local cap = if t:GetAttribute("Heavy") then CarBodies.MaxHeavyTris else CarBodies.MaxTris
+	if t:GetAttribute("Hero") ~= true and (type(tris) ~= "number" or tris > cap) then
 		table.insert(over, t.Name)
 	end
 	local maxC = t:GetAttribute("MaxCopies")
@@ -721,11 +836,10 @@ for _, t in lib do
 	end
 end
 check(shadows == 0, "sin sombras en las piezas pequeñas")
-local traffic = fs.readFile("src/client/Controllers/Traffic.luau")
 check(string.find(traffic, "CarsMesh", 1, true) and string.find(traffic, '"Low"', 1, true), "el tráfico usa CarsMesh y vuelve a la carrocería simple en gráficos Bajo")
 local src = fs.readFile("src/server/World/Kit/CarBodies.luau")
 check(string.find(src, "pcall", 1, true) and string.find(src, "LoadAssetAsync", 1, true), "carga en vivo con pcall (AssetService)")
-for _, id in { 9432856072, 10935800149, 10897563593, 97902046131324, 4573650411, 15418880736, 18912826861, 16893586720, 130974691456028, 18577576400 } do
+for _, id in { 9432856072, 10935800149, 10897563593, 97902046131324, 4573650411, 15418880736, 18912826861, 16893586720, 130974691456028, 18577576400, 131247677717086, 16358361587, 95641562400547, 4128265113, 17601139281, 8448337398 } do
 	check(string.find(src, tostring(id), 1, true) ~= nil, "el id " .. id .. " está (usado o descartado con su porqué)")
 end
 local doc = if fs.isFile("docs/assets-implementados.md") then fs.readFile("docs/assets-implementados.md") else ""

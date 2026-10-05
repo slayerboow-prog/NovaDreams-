@@ -1100,6 +1100,12 @@ function Rides.build(kind: string, parent: Instance?, cf: CFrame, color: Color3?
 				Variant = "Berlina",
 			})
 		end
+	elseif kind == "Autobus" then
+		-- Autobús urbano: la malla encima del nuestro (puertas, asientos y letreros siguen igual)
+		local bodies = carBodies()
+		if bodies and type(bodies.dressBus) == "function" then
+			pcall(bodies.dressBus, m, cf)
+		end
 	end
 	m.Parent = parent
 	return m

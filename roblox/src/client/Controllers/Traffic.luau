@@ -53,6 +53,9 @@ local KINDS = {
 	Moto = { Count = 4, Cruise = { 30, 42 }, Length = 6, Width = 2.2, Small = false },
 	Bici = { Count = 6, Cruise = { 11, 16 }, Length = 5, Width = 1.8, Small = true },
 	Patinete = { Count = 3, Cruise = { 12, 15 }, Length = 4, Width = 1.4, Small = true },
+	-- Camiones de reparto y autocares de malla (servidor: Ambient.HeavyMesh). Llegan más tarde y no
+	-- salen en gráficos Bajo.
+	Pesado = { Count = 3, Cruise = { 22, 30 }, Length = 30, Width = 8.4, Small = false },
 }
 
 local SKIN = { Color3.fromRGB(255, 219, 182), Color3.fromRGB(234, 184, 146), Color3.fromRGB(198, 140, 100), Color3.fromRGB(141, 94, 64), Color3.fromRGB(96, 64, 44) }
@@ -406,7 +409,7 @@ local function makeAgent(template: Model, kind: string): Agent
 	end
 	-- La carrocería (la pieza más grande) es sólida: a pie no se atraviesa un coche del tráfico.
 	-- (Tu vehículo choca con ellos con Traffic.blocking; siguen sin contar para los rayos: CanQuery.)
-	if kind == "Car" then
+	if kind == "Car" or kind == "Pesado" then
 		local body, volume = nil :: BasePart?, 0
 		for _, part in agent.Parts do
 			local v = part.Size.X * part.Size.Y * part.Size.Z
@@ -1339,11 +1342,61 @@ function Traffic.init(data: Instance)
 			end
 		end)
 	end
+	-- Pesados: se añaden al llegar (y no en Bajo); en Bajo se retiran
+	local heavyAdded = false
+	local function addHeavy()
+		local heavy = data:FindFirstChild("HeavyMesh")
+		if heavyAdded or not heavy or lowTier() then
+			return
+		end
+		local list = {}
+		for _, m in heavy:GetChildren() do
+			if m:IsA("Model") then
+				table.insert(list, m)
+			end
+		end
+		if #list == 0 then
+			return
+		end
+		heavyAdded = true
+		local center = focus() or Vector3.zero
+		for i = 1, Perf.count(KINDS.Pesado.Count) do
+			local agent = makeAgent(list[(i - 1) % #list + 1], "Pesado")
+			table.insert(agents, agent)
+			respawn(agent, center, 30)
+		end
+	end
+	local function removeHeavy()
+		if not heavyAdded then
+			return
+		end
+		heavyAdded = false
+		for i = #agents, 1, -1 do
+			if agents[i].Kind == "Pesado" then
+				agents[i].Model:Destroy()
+				table.remove(agents, i)
+			end
+		end
+	end
+	pcall(addHeavy)
+	if typeof(data.ChildAdded) == "RBXScriptSignal" then
+		data.ChildAdded:Connect(function(child)
+			if child.Name == "HeavyMesh" then
+				task.wait(1)
+				pcall(addHeavy)
+			end
+		end)
+	end
 	if type(Perf.onTier) == "function" then
 		Perf.onTier(function(tier)
 			local want = tier ~= "Low" and data:FindFirstChild("CarsMesh") ~= nil
 			if want ~= usingMesh then
 				pcall(reskin, want)
+			end
+			if tier == "Low" then
+				pcall(removeHeavy)
+			else
+				pcall(addHeavy)
 			end
 		end)
 	end
