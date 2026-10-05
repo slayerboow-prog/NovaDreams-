@@ -127,14 +127,23 @@ local function eave(ctx: Kit.Ctx, parent: Instance, axis: string, fixed: number,
 	Kit.neon(ctx, parent, "LuzCornisa", if axis == "X" then V(len - 1, 0.1, 0.2) else V(0.2, 0.1, len - 1), lcf, rgb(255, 214, 160), 0.2)
 end
 
--- Plantas que cuelgan (hiedra) por el borde de una terraza
+-- Plantas que cuelgan (hiedra) por el borde de una terraza: cada rama es un tallo con hojas
+-- (elipsoides pequeños) que se van haciendo más pequeñas hacia abajo
 local function vines(ctx: Kit.Ctx, parent: Instance, axis: string, fixed: number, out: number, a: number, b: number, yTop: number, n: number)
 	local R = ctx.Rand
 	for i = 0, n - 1 do
-		local u = a + (i + 0.5) * (b - a) / n + R.range(-0.6, 0.6)
-		local len = R.range(2.5, 6)
-		local cf = if axis == "X" then CF(u, yTop - len / 2, fixed + out * 1.95) else CF(fixed + out * 1.95, yTop - len / 2, u)
-		Kit.deco(ctx, parent, "Hiedra", if axis == "X" then V(R.range(1, 1.8), len, 0.4) else V(0.4, len, R.range(1, 1.8)), cf, LEAF:Lerp(rgb(110, 170, 70), R.next()), M.LeafyGrass, nil, len >= 3.5)
+		local u = a + (i + 0.5) * (b - a) / n + R.range(-0.8, 0.8)
+		local len = R.range(2.2, 4.6)
+		local function at(du: number, y: number, dz: number): CFrame
+			return if axis == "X" then CF(u + du, y, fixed + out * (1.95 + dz)) else CF(fixed + out * (1.95 + dz), y, u + du)
+		end
+		Kit.deco(ctx, parent, "Tallo", V(0.12, len, 0.12), at(0, yTop - len / 2, 0), rgb(70, 100, 50), M.Wood)
+		local leaves = math.max(2, math.floor(len / 1.1))
+		for k = 0, leaves - 1 do
+			local s = 1.5 - k * 0.8 / leaves
+			local leaf = Kit.ellipsoid(ctx, parent, "Hiedra", V(s * R.range(0.9, 1.3), s * 0.9, s * 0.7), at(R.range(-0.3, 0.3), yTop - 0.4 - k * len / leaves, 0.1), LEAF:Lerp(rgb(120, 180, 80), R.next()), M.LeafyGrass)
+			leaf:AddTag("CityDetail")
+		end
 	end
 end
 Exterior.vines = vines
