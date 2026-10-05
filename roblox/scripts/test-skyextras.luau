@@ -305,7 +305,7 @@ end
 check(scripts == 0, "no queda ni un script de los packs")
 check(labels == 0, "no queda ningún letrero, texto ni NumberPose (marcas y trucos del virus)")
 
-for _, id in { 113036863157630, 135266547724797, 92375378852064, 122782784244668, 4927992927, 195181959 } do
+for _, id in { 113036863157630, 135266547724797, 92375378852064, 122782784244668, 4927992927, 195181959, 93376997873263 } do
 	check(not table.find(loaded, id), ("el asset %d no se descarga (virus, daño o de otro juego)"):format(id))
 end
 for _, name in { "Verde", "Isla", "Arcoiris", "Asteroides", "Clasico_Invierno", "Clasico_Estrellas", "Clasico_Roto", "Clasico_Rojo", "Clasico_Otono" } do

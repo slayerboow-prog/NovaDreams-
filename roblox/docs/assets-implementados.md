@@ -59,3 +59,4 @@ tormenta, el agua y casi todo el humo. Si algo no carga, se usa un respaldo o no
 | 131772048424194 | Pasos según el suelo | **Pasos para ti, los demás jugadores y la gente**: duro, blando (hierba, arena, nieve), metal; tono distinto en madera, cristal… Audios públicos, de *SCP: Containment Breach* (CC BY-SA 3.0, crédito aquí); en el juego no sale ningún nombre. |
 | 5033818552 | Pasos realistas | Solo «Carpet Footstep» (133705377, público) para moqueta y tela. Los otros 20 no son públicos (y son de Garry's Mod / Black Mesa). |
 | 195181959 | Cielo Caldari | No: es de EVE Online. |
+| 93376997873263 | Mapa de bosque anime | No: trae dos puertas traseras (familias 3 y 5, docs/assets-usuario-4.md: `VFXParticles` y `Protocol` con `require` escondido). Su cielo es un azul con nubes normal: no aporta nada al sueño, que ya tiene la isla morada y el arcoíris. |
