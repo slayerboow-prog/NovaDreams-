@@ -133,6 +133,8 @@ task.spawn(function()
 		warn("[MeshLibrary] " .. tostring(err))
 	end
 end)
+-- 4b1) Naturaleza de los packs de Sebastián (World/NatureAssets): rocas, piedras, peces y tiburones
+task.spawn(function() local ok, err = pcall(function() require(World.NatureAssets).start() end) if not ok then warn("[NatureAssets] " .. tostring(err)) end end)
 -- 4b2) Talleres mecánicos con el «Realistic Autoservice Props Pack» (4ª tanda de Sebastián, revisado
 --      limpio: World/WorkshopProps): grúa de motor, gatos, caballetes, foco… en cada sala de taller.
 --      Si no carga, los talleres se quedan como estaban.

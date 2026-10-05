@@ -17,8 +17,11 @@
 --     Controllers/ObjectMotion). No lleva LeafDetail (no hay racimos de relleno que esconder) y es de
 --     material Plastic: las estaciones (Controllers/Weather) solo repintan las hojas LeafyGrass, así que
 --     no tocan las de malla (el SurfaceAppearance no se puede repintar) y no se rompe nada.
---   * Palmeras y cipreses se quedan procedurales (el Forest Pack no tiene; en Landscaping no hay nada
---     que encaje). Los setos también.
+--   * Palmeras y cipreses: el Forest Pack no tiene. Con los packs de naturaleza de Sebastián
+--     (World/NatureAssets) se añaden plantillas Palm (palmeras de verdad: playas, plazas, chalés),
+--     Conifer (abetos y pinos: los cipreses y parte de los árboles del monte) y más árboles de parque
+--     y arbustos. Todo pasa por aquí (una sola pasada: nada se planta dos veces). Las plantillas
+--     pesadas llevan MaxUses (cuántas copias como mucho). Los setos se quedan procedurales.
 --   * Si la carga falla (o en Lune, donde no hay InsertService), no se cambia nada: se queda la ciudad
 --     procedural tal cual.
 
@@ -82,7 +85,16 @@ export type Template = {
 	Foot: Vector3, -- pie del tronco (o centro de la base) en el espacio de la plantilla
 	Height: number,
 	Width: number,
+	MaxUses: number?, -- (plantillas pesadas de la comunidad: copias como mucho)
+	Uses: number?,
 }
+
+-- Altura de la malla respecto a la del árbol procedural, por tipo (las palmeras y los abetos de
+-- verdad son más altos que los nuestros) y tipos que no se recortan por la anchura (están en sitios
+-- abiertos: playa, monte)
+MeshLibrary.KindHeight = { Palm = 1.35, Conifer = 1.5 }
+MeshLibrary.Open = { Palm = true, Conifer = true }
+MeshLibrary.ConiferShare = 0.4 -- parte de los árboles del monte que pasan a abeto/pino (si hay plantillas)
 export type Library = { [string]: { Template } }
 
 ---------------------------------------------------------------------
@@ -279,8 +291,17 @@ end
 
 -- Variante para un sitio: según la posición (y, si se da, que no sea mucho más ancha que lo que había)
 function MeshLibrary.pick(library: Library, kind: string, pos: Vector3, aspect: number?): Template?
-	local list = library[kind]
-	if not list or #list == 0 then
+	local all = library[kind]
+	if not all or #all == 0 then
+		return nil
+	end
+	local list = {}
+	for _, t in all do
+		if not t.MaxUses or (t.Uses or 0) < t.MaxUses then
+			table.insert(list, t)
+		end
+	end
+	if #list == 0 then
 		return nil
 	end
 	local fits = list
@@ -391,7 +412,30 @@ function MeshLibrary.treeInfo(tree: Instance): TreeInfo?
 	return { Foot = root, Height = hi.Y - lo.Y, Width = math.max(hi.X - lo.X, hi.Z - lo.Z), Trunks = trunks }
 end
 
-local function kindOfTree(tree: Instance, info: TreeInfo): string
+local function isRemote(inst: Instance): boolean
+	local node = inst.Parent
+	for _ = 1, 4 do
+		if not node then
+			return false
+		end
+		if MeshLibrary.Remote[node.Name] then
+			return true
+		end
+		node = node.Parent
+	end
+	return false
+end
+
+local function kindOfTree(tree: Instance, info: TreeInfo, library: Library?): string
+	if tree.Name == "Palm" then
+		return "Palm"
+	elseif tree.Name == "Cypress" then
+		return "Conifer"
+	end
+	if library and library.Conifer and #library.Conifer > 0 and info.Height >= 12 and isRemote(tree)
+		and MeshLibrary.hash(info.Foot, 5) < MeshLibrary.ConiferShare then
+		return "Conifer"
+	end
 	if info.Height < 12 then
 		return "Young"
 	end
@@ -421,16 +465,24 @@ function MeshLibrary.replaceTree(tree: Instance, library: Library): Instance?
 	if not info or info.Height <= 0 then
 		return nil
 	end
-	local kind = kindOfTree(tree, info)
-	local template = MeshLibrary.pick(library, kind, info.Foot, info.Width / info.Height)
-		or MeshLibrary.pick(library, "Tree", info.Foot, info.Width / info.Height)
+	local kind = kindOfTree(tree, info, library)
+	local open = MeshLibrary.Open[kind] == true
+	local template = MeshLibrary.pick(library, kind, info.Foot, if open then nil else info.Width / info.Height)
+	if not template and (kind == "Palm" or kind == "Conifer") then
+		return nil -- (palmeras y cipreses sin plantilla: se quedan procedurales, no pasan a árbol de hoja ancha)
+	end
+	template = template or MeshLibrary.pick(library, "Tree", info.Foot, info.Width / info.Height)
 	if not template then
 		return nil
 	end
+	template.Uses = (template.Uses or 0) + 1
 	-- Altura del original con un poco de variación; sin pasar mucho de su anchura (no tapar fachadas)
-	local height = info.Height * (0.92 + MeshLibrary.hash(info.Foot, 2) * 0.18)
-	local factor = math.min(height / template.Height, info.Width * 1.3 / template.Width)
-	factor = math.max(factor, height * 0.7 / template.Height)
+	local height = info.Height * (0.92 + MeshLibrary.hash(info.Foot, 2) * 0.18) * (MeshLibrary.KindHeight[kind] or 1)
+	local factor = height / template.Height
+	if not open then
+		factor = math.min(factor, info.Width * 1.3 / template.Width)
+		factor = math.max(factor, height * 0.7 / template.Height)
+	end
 	local yaw = MeshLibrary.hash(info.Foot, 3) * math.pi * 2
 	-- (un pelín hundido: así las raíces de la malla no flotan en las cuestas)
 	local copy = placeCopy(template, info.Foot - Vector3.new(0, 0.25, 0), yaw, factor)
@@ -489,6 +541,7 @@ function MeshLibrary.replaceBush(bush: BasePart, library: Library): Instance?
 	if not template then
 		return nil
 	end
+	template.Uses = (template.Uses or 0) + 1
 	local height = (hi.Y - lo.Y) * (1.05 + MeshLibrary.hash(foot, 2) * 0.25)
 	local factor = math.min(height / template.Height, width * 1.4 / template.Width)
 	local copy = placeCopy(template, foot, MeshLibrary.hash(foot, 3) * math.pi * 2, factor)
@@ -571,34 +624,24 @@ local function roadDistance(grid: { [string]: { Vector3 } }, pos: Vector3): numb
 	return best
 end
 
-local function isRemote(inst: Instance): boolean
-	local node = inst.Parent
-	for _ = 1, 4 do
-		if not node then
-			return false
-		end
-		if MeshLibrary.Remote[node.Name] then
-			return true
-		end
-		node = node.Parent
-	end
-	return false
-end
-
 local function insideFlowerBed(part: Instance): boolean
 	local parent = part.Parent
 	return parent ~= nil and parent:IsA("Model") and parent.Name == "FlowerBed"
 end
 
 -- Busca lo que se puede cambiar y lo ordena: primero lo cercano a las calles, el monte al final.
--- Devuelve { Trees, Bushes, Flowers }, ya recortados a los topes.
-function MeshLibrary.collect(roots: { Instance }, segments: { Segment }?)
+-- Devuelve { Trees, Bushes, Flowers }, ya recortados a los topes. Con "library", también las palmeras
+-- (si hay plantillas Palm) y los cipreses del monte (si hay Conifer).
+function MeshLibrary.collect(roots: { Instance }, segments: { Segment }?, library: Library?)
+	local palms = library ~= nil and library.Palm ~= nil and #library.Palm > 0
+	local conifers = library ~= nil and library.Conifer ~= nil and #library.Conifer > 0
 	local grid = roadGrid(segments)
 	local hasRoads = next(grid) ~= nil
 	local trees, bushes, flowers = {}, {}, {}
 	for _, root in roots do
 		for _, d in root:GetDescendants() do
-			if d:IsA("Model") and (d.Name == "Tree" or d.Name == "Arbol") and d:GetAttribute("MeshVariant") == nil then
+			if d:IsA("Model") and d:GetAttribute("MeshVariant") == nil
+				and (d.Name == "Tree" or d.Name == "Arbol" or (palms and d.Name == "Palm") or (conifers and d.Name == "Cypress" and isRemote(d))) then
 				if d:FindFirstChild("Trunk") then
 					table.insert(trees, d)
 				end
@@ -646,7 +689,7 @@ function MeshLibrary.run(roots: { Instance }, library: Library, segments: { Segm
 	if MeshLibrary.count(library) == 0 then
 		return done
 	end
-	local found = MeshLibrary.collect(roots, segments)
+	local found = MeshLibrary.collect(roots, segments, library)
 	local step = 0
 	local function pace()
 		step += 1
@@ -729,8 +772,16 @@ end
 
 -- Main: carga y cambia la vegetación de la ciudad (llamar en un hilo aparte: espera)
 function MeshLibrary.start(segments: { Segment }?)
-	local library = MeshLibrary.load()
-	if not library or MeshLibrary.count(library) == 0 then
+	local library = MeshLibrary.load() or {}
+	-- Más plantillas con los packs de naturaleza de Sebastián (palmeras, abetos, árboles de parque,
+	-- arbustos: World/NatureAssets). Si no cargan, se sigue con las oficiales.
+	local extended, why = pcall(function()
+		require(script.Parent.NatureAssets).extend(library)
+	end)
+	if not extended then
+		warn("[MeshLibrary] NatureAssets: " .. tostring(why))
+	end
+	if MeshLibrary.count(library) == 0 then
 		warn("[MeshLibrary] Sin plantillas: se queda la vegetación procedural")
 		return
 	end
