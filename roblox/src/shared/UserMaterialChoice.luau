@@ -91,7 +91,7 @@ UserMaterialChoice.Table = {
 		Material = "Grass",
 		-- El césped 2k es el pack que eligió para el césped (se llama "MaterialVariant 3"). Orgánico: en
 		-- los parques grandes y en el terreno no se ve la repetición. (Respaldo: el del pack de piedras.)
-		Candidates = { c("Cesped", "MaterialVariant 3", "Grass"), c("Real", "Grass", "Grass") },
+		Candidates = { c("Cesped", "MaterialVariant 3", "Grass"), c("Real", "Grass", "Grass"), c("Gen", "RealisticGrass", "Grass"), c("Tyler", "Grass2", "Grass") },
 		Pattern = "Organic",
 		-- 0,3 (antes 0,7): con 0,7 el verde de las piezas casi era blanco y el césped salía color oliva
 		-- seco (captura del dueño, v81); así conserva más verde y se ve fresco
@@ -138,7 +138,7 @@ UserMaterialChoice.Table = {
 		Material = "Brick",
 		-- Ladrillo con patrón Regular (las hiladas no se rompen); el Brick del pack de piedras es
 		-- orgánico y torcería las juntas. Respaldo: «Red Bricks» del Mega Pack.
-		Candidates = { c("RealMad", "Realistic Bricks", "Brick"), c("Mega", "Red Bricks", "Brick"), c("Gen", "RealisticBricks", "Brick"), c("PBR", "Brick_PBR", "Brick"), find("Todos", { "brick" }, "Brick") },
+		Candidates = { c("RealMad", "Realistic Bricks", "Brick"), c("Mega", "Red Bricks", "Brick"), c("Gen", "RealisticBricks", "Brick"), c("Real", "Brick", "Brick"), c("PBR", "Brick_PBR", "Brick"), find("Todos", { "brick" }, "Brick") },
 		Pattern = "Regular",
 		Whiten = 0.45,
 		Why = "ladrillo rojo con hiladas rectas",
@@ -173,7 +173,7 @@ UserMaterialChoice.Table = {
 		Material = "Limestone",
 		-- Cornisas, jambas, plazas, fuentes y el muelle: piedra caliza clara («Flat Textured Limestone»,
 		-- sin dibujo de bloques que choque con piezas pequeñas).
-		Candidates = { c("Mega", "Flat Textured Limestone", "Limestone"), c("Mega", "Limestone 2", "Limestone") },
+		Candidates = { c("Mega", "Flat Textured Limestone", "Limestone"), c("Mega", "Limestone 2", "Limestone"), c("Mega", "Carved Limestone", "Limestone") },
 		Whiten = 0.25,
 		Why = "piedra caliza clara de cornisas, plazas y fuentes",
 	},
@@ -181,7 +181,7 @@ UserMaterialChoice.Table = {
 		Material = "Slate",
 		-- Peldaños, rompeolas, tejadillos y pizarras de clase: pizarra natural (sin baldosas: «Slate
 		-- Tiled» pondría juntas en las pizarras de las aulas).
-		Candidates = { c("Real", "Slate", "Slate"), c("Mega", "Slate Cliff Rock", "Slate"), c("PBR", "Slate_PBR", "Slate") },
+		Candidates = { c("Real", "Slate", "Slate"), c("Mega", "Slate Cliff Rock", "Slate"), c("Tyler", "Stone", "Slate"), c("PBR", "Slate_PBR", "Slate") },
 		Whiten = 0.2,
 		Why = "pizarra natural (peldaños, rompeolas, pizarras)",
 	},
@@ -212,14 +212,14 @@ UserMaterialChoice.Table = {
 	{
 		Material = "Rock",
 		-- Montañas del terreno y rocas sueltas
-		Candidates = { c("Real", "Rock", "Rock"), c("Mega", "Rough Rock", "Rock"), find("Todos", { "rock" }, "Rock") },
+		Candidates = { c("Real", "Rock", "Rock"), c("Mega", "Rough Rock", "Rock"), c("Tyler", "Stone3", "Rock"), find("Todos", { "rock" }, "Rock") },
 		Whiten = 0.5,
 		Why = "roca de las montañas del terreno",
 	},
 	{
 		Material = "Ground",
 		-- Claros de tierra del terreno y huertos. OJO: el «RealisticStone» del generador va sobre Ground.
-		Candidates = { c("Real", "Ground", "Ground"), c("Mega", "Dry Dirt", "Ground"), find("Todos", { "ground" }, "Ground") },
+		Candidates = { c("Real", "Ground", "Ground"), c("Mega", "Dry Dirt", "Ground"), c("Gen", "RealisticStone", "Ground"), c("Tyler", "Ground2", "Ground"), find("Todos", { "ground" }, "Ground") },
 		Whiten = 0.5,
 		Why = "tierra del terreno y los huertos",
 	},
@@ -235,7 +235,7 @@ UserMaterialChoice.Table = {
 		Material = "Wood",
 		-- La madera que no lleva nuestra «MaderaVeta» pieza a pieza (troncos, ramas y lo de fuera de
 		-- la ciudad): madera genérica del pack de madera. Los muebles y puertas siguen con MaderaVeta.
-		Candidates = { c("RealMad", "Realistic Wood", "Wood"), c("Real", "Wood", "Wood"), c("PBR", "Wood_PBR", "Wood") },
+		Candidates = { c("RealMad", "Realistic Wood", "Wood"), c("Real", "Wood", "Wood"), c("Gen", "RealisticWood", "Wood"), c("PBR", "Wood_PBR", "Wood") },
 		Whiten = 0.35,
 		Why = "madera genérica del pack de madera",
 	},
@@ -257,9 +257,17 @@ UserMaterialChoice.Table = {
 		Why = "grava de caminos (Pebble_PBR)",
 	},
 	{
+		Material = "Mud",
+		-- Barro de las granjas y corrales (Kit/AnimalKit): el del pack de piedras, el de Tyler y barro con musgo
+		Candidates = { c("Real", "Mud", "Mud"), c("Tyler", "Mud2", "Mud"), c("Mega", "Mossy Mud", "Mud") },
+		Pattern = "Organic",
+		Whiten = 0.4,
+		Why = "barro de granjas y corrales (Mud del pack de piedras)",
+	},
+	{
 		Material = "DiamondPlate",
 		-- Chapa estriada (rampas, escalones de camión, muelles): la del pack de madera, la de PBR_Textures
-		Candidates = { c("RealMad", "Realistic Metal Plate", "DiamondPlate"), c("PBR", "Diamondplate_PBR", "DiamondPlate") },
+		Candidates = { c("RealMad", "Realistic Metal Plate", "DiamondPlate"), c("Real", "DiamondPlate", "DiamondPlate"), c("PBR", "Diamondplate_PBR", "DiamondPlate") },
 		Whiten = 0.3,
 		Why = "chapa estriada de muelles y rampas (Realistic Metal Plate)",
 	},
