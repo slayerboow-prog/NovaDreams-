@@ -1318,7 +1318,8 @@ function CityAssets.loadAll(load: (number) -> Instance?, wait: (() -> ())?): (Po
 	local pools: Pools = {}
 	local report: { [number]: string } = {}
 	for _, entry in CityAssets.Catalog do
-		local asset = load(entry.Id)
+		local okLoad, loaded = pcall(load, entry.Id)
+		local asset = if okLoad and typeof(loaded) == "Instance" then loaded else nil
 		if asset then
 			local stats = CityAssets.extract(entry, asset, pools)
 			report[entry.Id] = if stats then ("ok (scripts %d, quitado %d, marcas %d)"):format(stats.Scripts, stats.Removed, stats.Brands) else "error"
