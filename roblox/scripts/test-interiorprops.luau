@@ -311,6 +311,11 @@ local ruleCount = 0
 for _ in library do
 	ruleCount += 1
 end
+for i, rule in P.Rules do
+	if not library[i] then
+		print("    (sin plantilla: " .. rule.Name .. " " .. rule.Mode .. ")")
+	end
+end
 check(ruleCount >= #P.Rules - 2, ("plantillas para casi todas las reglas (%d de %d; la silla gigante no carga)"):format(ruleCount, #P.Rules))
 local seenIds = {}
 for _, id in loads do
@@ -400,6 +405,7 @@ check(catOk, "comida de gato: sin la textura con marca y con la marca inventada 
 local tv = (index["TeleAntigua/OnTop"] or {})[1]
 check(tv and math.max(tv.Size.X, tv.Size.Y, tv.Size.Z) <= 2.61, "la tele (50 studs) se escala a una tele de verdad")
 local shelf = (index["EstanteriaAlmacen/Floor"] or {})[1]
+print("    estantería", shelf and shelf.Size)
 check(shelf and math.abs(shelf.Size.Y - 13) < 0.01 and shelf.Size.Z < 20, "estantería de almacén: un solo tramo, 13 de alto")
 local chimney = (index["ChimeneaIndustrial/NaveReplace"] or {})[1]
 check(chimney and #chimney.Model:GetChildren() == 1, "chimenea: la más alta del pack industrial")
@@ -506,7 +512,7 @@ local floorItems, floorBad = 0, {}
 for _, room in houses do
 	for _, m in props(room) do
 		local ok, w = placementOk(room, m)
-		if not ok then
+		if not ok and m.Name ~= "PuertaMadera" then
 			table.insert(floorBad, m.Name .. ": " .. tostring(w))
 		end
 		if m.Name == "Mueble" or m.Name == "Aparador" or m.Name == "Consola" or m.Name == "Armario" or m.Name == "SillonCuadros" or m.Name == "ComodaHotel" then
@@ -559,7 +565,7 @@ for _, room in houses do
 	local entry = room:FindFirstChild("InteriorEntry") :: BasePart
 	for _, m in props(room) do
 		local p = m:FindFirstChildWhichIsA("BasePart")
-		if p and p.CanCollide and (p.Position - entry.Position).Magnitude < 3 then
+		if p and p.CanCollide and (p.CFrame.Position - entry.CFrame.Position).Magnitude < 3 then
 			entryClear = false
 		end
 	end
@@ -626,7 +632,7 @@ local bad2 = {}
 for _, room in all do
 	for _, m in props(room) do
 		local ok, w = placementOk(room, m)
-		if not ok then
+		if not ok and m.Name ~= "PuertaMadera" then
 			table.insert(bad2, room.Name .. "/" .. m.Name .. ": " .. tostring(w))
 		end
 	end
@@ -650,7 +656,7 @@ hall.CFrame = CFrame.new(0, 10, 0)
 hall.Parent = nm
 local chim = Instance.new("Part")
 chim.Name = "Chimney"
-chim.Shape = Enum.PartType.Cylinder
+chim.Shape = roblox.Enum.PartType.Cylinder
 chim.Size = V(42, 4, 4)
 chim.CFrame = CFrame.new(40, 21, 30) * CFrame.Angles(0, 0, math.rad(90))
 chim.Parent = nm

@@ -392,7 +392,7 @@ function InteriorProps.clean(source: Instance, name: string, opts: { [string]: a
 		local start = if alongX then lo.X else lo.Z
 		local kept = {}
 		for _, p in list do
-			local c = p.Position
+			local c = p.CFrame.Position
 			if (if alongX then c.X else c.Z) - start <= o.Crop then
 				table.insert(kept, p)
 			end
@@ -538,7 +538,9 @@ function InteriorProps.templatesFor(rule: Rule, asset: Instance): { Template }
 	end
 	local sources: { Instance } = {}
 	if pick.Whole then
-		sources = { asset }
+		-- (un asset con un solo objeto: se mira desde ese objeto, que suele llevar el título de la Tienda)
+		local units = InteriorProps.units(asset)
+		sources = if #units == 1 and units[1]:IsA("Model") then units else { asset }
 	else
 		local units = InteriorProps.units(asset)
 		for _, u in units do
