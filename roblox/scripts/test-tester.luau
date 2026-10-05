@@ -558,13 +558,18 @@ do
 	local Season = load(S .. "BattlePassSeasonService")
 	local Rewards = load(S .. "BattlePassRewardService")
 	local S1 = BPConfig.Seasons[1]
-	check(BPConfig.Enabled == false, "(el pase sigue apagado para todos)")
+	-- (el pase ya está encendido para todos; antes de que empiece la temporada nadie lo tiene, salvo el tester)
+	check(type(BPConfig.Enabled) == "boolean", "(el pase tiene su interruptor)")
 	Season.setClock(function()
 		return S1.StartsAt - 4 * 86400 -- (antes de que empiece: «Próximamente»)
 	end)
 	local state = TesterService.state(owner)
 	check(type(state.BattlePass) == "table" and Season.activeFor(owner), "el panel del tester trae la sección del pase (premium simulado, nivel, reclamar…)")
-	check(not Season.activeFor(other) and BattlePassService.testerState(other) == nil, "un jugador normal no tiene pase")
+	if BPConfig.Enabled then
+		check(Season.activeFor(other) and Season.now(other) < S1.StartsAt, "un jugador normal tiene el pase encendido, pero sin adelantar la temporada (eso solo el tester)")
+	else
+		check(not Season.activeFor(other) and BattlePassService.testerState(other) == nil, "un jugador normal no tiene pase")
+	end
 	local ownerSnap = BattlePassService.snapshot(owner)
 	check(ownerSnap and ownerSnap.Season.Status == "Active" and Season.status(S1, Season.now(other)) == "Upcoming", "para el tester la temporada ya está en marcha (aunque empiece el 5 de octubre); para los demás no")
 	fire(owner, "Action", "BattlePass", { Op = "SetLevel", Value = 50 })

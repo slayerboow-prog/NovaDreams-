@@ -534,11 +534,42 @@ local placePath = process.args[1]
 if placePath then
 	print("El mapa construido")
 	local game = roblox.deserializePlace(fs.readFile(placePath))
+	-- (una pieza sin anclar unida con articulaciones a una anclada, como la gallina gigante, está quieta)
+	local links: { [any]: { any } } = {}
+	local function link(a: any, b: any)
+		links[a] = links[a] or {}
+		table.insert(links[a], b)
+	end
+	for _, d in game:GetService("Workspace"):GetDescendants() do
+		if d:IsA("JointInstance") or d.ClassName == "WeldConstraint" then
+			local p0, p1 = (d :: any).Part0, (d :: any).Part1
+			if p0 and p1 then
+				link(p0, p1)
+				link(p1, p0)
+			end
+		end
+	end
+	local function heldByAnchor(part: any): boolean
+		local seen, queue = { [part] = true }, { part }
+		while #queue > 0 do
+			local p = table.remove(queue)
+			if p.Anchored then
+				return true
+			end
+			for _, q in links[p] or {} do
+				if not seen[q] then
+					seen[q] = true
+					table.insert(queue, q)
+				end
+			end
+		end
+		return false
+	end
 	local loose, total = {}, 0
 	for _, d in game:GetService("Workspace"):GetDescendants() do
 		if d:IsA("BasePart") and d.ClassName ~= "Terrain" then
 			total += 1
-			if not d.Anchored then
+			if not d.Anchored and not heldByAnchor(d) then
 				table.insert(loose, d:GetFullName())
 			end
 		end
