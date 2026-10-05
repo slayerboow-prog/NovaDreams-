@@ -126,7 +126,7 @@ sobre el motor de escenas (`Sequencer` + `CameraShots` + `HappeningService`), **
 |---|---|
 | `validate-report` | 0 errores · 0 avisos · ninguna misión que no se active |
 | `test-playthrough` | 63 ✅ 0 ❌ · 3 vidas enteras (todas las opciones de todas las decisiones) · las 40 principales «rotas» a propósito |
-| `test-lifestory` | ver §2.5 (la prueba larga) |
+| `test-lifestory` | 487 ✅ 0 ❌ (33 min; todas las misiones y secundarias, la Saga entera, las dos ramas) |
 | `test-scenes` | 113 ✅ (motor de escenas, planos, posturas) |
 | `test-storycontext` | 134 ✅ (prólogo, resumen, tarjetas, diario) |
 | `test-worldmemory` | 53 ✅ |
@@ -193,7 +193,7 @@ y de tamaño correcto).
 
 ### 2.5 La prueba larga (`test-lifestory`)
 
-Se ha lanzado entera. Resultado: ver el apéndice de esta sección al final del documento (anexo E).
+Se ha lanzado entera: **487 ✅, 0 ❌**. Detalle en el anexo E.
 
 ---
 
@@ -560,3 +560,483 @@ por escena de la tabla §6.2.
 
 ## Anexos (generados con `lune run scripts/audit/narrativa.luau todo`)
 
+### Anexo A · Cadena de las 153 misiones
+
+Columnas: cómo empieza (capítulo, `Offer` por lugar o evento, `Later/Start` = la lanza otra misión, canon = siempre en el mapa) · pasos · escenas de conversación (Scene) · charlas (Talk) · cinemáticas · saltos del jugador · frases · frases con gesto marcado · frases que dependen de lo vivido (If) · parrafadas · monólogos · final (momento, premio, recuerdo).
+
+| Misión | Tipo | Capítulo | Empieza por | Pasos | Scene | Talk | Cine | Teleport | Frases | Gesto | If | Parraf. | Monól. | Final |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Adol_Jornada | Main | Adolescente_Instituto | capítulo+DayPlan | 0 | 0 | 0 | 0 | 0 | 18 | 0 | 0 | 0 | 0 | momento |
+| Adu01_PrimerContrato | Main | Adulto_VolarDelNido | capítulo | 18 | 6 | 0 | 0 | 0 | 29 | 0 | 15 | 0 | 1 | momento+premio+recuerdo |
+| Adu02_Atardecer | Main | Adulto_VolarDelNido | capítulo | 15 | 5 | 1 | 1 | 0 | 28 | 0 | 8 | 0 | 2 | momento+premio+recuerdo |
+| Adu03_Reencuentro | Main | Adulto_VolarDelNido | capítulo | 13 | 3 | 1 | 1 | 0 | 47 | 0 | 18 | 0 | 1 | momento+premio+recuerdo |
+| Adulto_ConoceLaRegion | Main | Adulto_NuevaVida | capítulo | 5 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | momento+premio |
+| Adulto_Jornada | Main | Adulto_TuVida | capítulo+DayPlan | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | momento |
+| Adulto_LlegadaValmar | Main | Adulto_NuevaVida | capítulo | 3 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | momento+premio |
+| Adulto_MirarAtras | Main | Adulto_TuVida | capítulo | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | momento |
+| Adulto_PrimerSueldo | Main | Adulto_NuevaVida | capítulo | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | momento+premio |
+| Aliado_Bigotes | Side | - | Offer:Parque | 4 | 1 | 1 | 0 | 0 | 12 | 0 | 1 | 0 | 0 | momento+premio+recuerdo |
+| Aliado_Cronos | Side | - | Offer:Correos | 4 | 1 | 1 | 0 | 0 | 15 | 0 | 3 | 2 | 0 | momento+premio+recuerdo |
+| Aliado_Gnomos | Side | - | Offer:Home | 4 | 1 | 1 | 0 | 0 | 11 | 0 | 3 | 0 | 0 | momento+premio+recuerdo |
+| Aliado_Malvado | Side | - | Offer:PlazaCentro | 4 | 1 | 1 | 0 | 0 | 15 | 0 | 5 | 1 | 1 | momento+premio+recuerdo |
+| Aliado_Noz | Side | - | Offer:MonteSilencio | 4 | 1 | 1 | 0 | 0 | 12 | 0 | 3 | 2 | 0 | momento+premio+recuerdo |
+| Aliado_Perez | Side | - | Offer:Home | 3 | 2 | 0 | 0 | 0 | 12 | 0 | 1 | 3 | 1 | momento+premio+recuerdo |
+| Aliado_Rex | Side | - | Offer:FacultadDerecho | 4 | 1 | 1 | 0 | 0 | 17 | 0 | 3 | 6 | 1 | momento+premio+recuerdo |
+| Bebe_AprendeACaminar | Main | Bebe_PrimerosPasos | capítulo | 4 | 0 | 1 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | momento |
+| Bebe_ExploraLaCasa | Main | Bebe_PrimerosPasos | capítulo | 2 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | momento |
+| Bebe_HoraDeSalir | Main | Bebe_PrimerosPasos | capítulo | 2 | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | momento |
+| Cole01_PrimerDia | Main | Nino_ElColegio | capítulo | 28 | 14 | 2 | 0 | 5 | 140 | 0 | 24 | 0 | 5 | momento+premio+recuerdo |
+| Cole02_Mochila | Main | Nino_ElColegio | capítulo | 21 | 8 | 2 | 0 | 0 | 94 | 0 | 25 | 0 | 1 | momento+premio+recuerdo |
+| Cole03_Grupo | Main | Nino_ElColegio | capítulo | 27 | 8 | 1 | 1 | 1 | 95 | 0 | 16 | 0 | 0 | momento+premio+recuerdo |
+| Cole04_Malotes | Main | Nino_ElColegio | capítulo | 24 | 12 | 3 | 0 | 0 | 76 | 0 | 6 | 0 | 1 | momento+premio+recuerdo |
+| Cole05_Venganza | Main | Nino_ElColegio | capítulo | 10 | 4 | 0 | 0 | 0 | 49 | 0 | 10 | 0 | 2 | momento+premio+recuerdo |
+| Cole06_Examen | Main | Nino_ElColegio | capítulo | 20 | 6 | 2 | 0 | 1 | 41 | 0 | 9 | 0 | 0 | momento+premio |
+| Cole06b_Recuperacion | Side | - | Later/Start | 5 | 2 | 0 | 0 | 0 | 5 | 0 | 2 | 0 | 0 | momento+recuerdo |
+| Cole07_Excursion | Main | Nino_ElColegio | capítulo | 16 | 7 | 0 | 2 | 1 | 50 | 0 | 8 | 0 | 0 | momento+premio+recuerdo |
+| Cole08_Torneo | Main | Nino_ElColegio | capítulo | 38 | 19 | 1 | 0 | 6 | 83 | 0 | 27 | 0 | 1 | momento+premio+recuerdo |
+| Cole09_Misterio | Main | Nino_ElColegio | capítulo | 18 | 6 | 1 | 0 | 1 | 81 | 0 | 9 | 0 | 1 | momento+premio+recuerdo |
+| Cole10_Festival | Main | Nino_ElColegio | capítulo | 25 | 7 | 0 | 1 | 0 | 63 | 0 | 14 | 0 | 0 | momento+premio+recuerdo |
+| Cole11_Proyecto | Main | Nino_ElColegio | capítulo | 19 | 6 | 0 | 0 | 1 | 69 | 0 | 27 | 0 | 4 | momento+premio+recuerdo |
+| Cole12_UltimoDia | Main | Nino_ElColegio | capítulo | 14 | 5 | 0 | 3 | 1 | 82 | 0 | 47 | 0 | 8 | momento+premio+recuerdo |
+| Eco_Camaras | Side | - | Later/Start | 2 | 0 | 1 | 0 | 0 | 5 | 0 | 0 | 0 | 0 | momento |
+| Eco_Carta | Side | - | Later/Start | 1 | 0 | 1 | 0 | 0 | 5 | 0 | 3 | 0 | 0 | momento |
+| Eco_Concierto | Side | - | Later/Start | 2 | 1 | 0 | 0 | 0 | 5 | 0 | 0 | 0 | 0 | momento |
+| Eco_Factura | Side | - | Later/Start | 2 | 0 | 1 | 0 | 0 | 2 | 0 | 0 | 0 | 0 | momento |
+| Eco_Hugo | Side | - | Later/Start | 1 | 0 | 1 | 0 | 0 | 8 | 0 | 5 | 0 | 1 | momento |
+| Eco_Leire | Side | - | Later/Start | 1 | 0 | 1 | 0 | 0 | 5 | 0 | 0 | 0 | 0 | momento |
+| Eco_LeireSola | Side | - | Later/Start | 1 | 0 | 1 | 0 | 0 | 4 | 0 | 0 | 0 | 0 | momento |
+| Eco_MateoDibujo | Side | - | Later/Start | 1 | 0 | 1 | 0 | 0 | 5 | 0 | 0 | 0 | 0 | momento |
+| Eco_MateoSolo | Side | - | Later/Start | 2 | 1 | 1 | 0 | 0 | 7 | 0 | 0 | 0 | 0 | momento |
+| Eco_Nico | Side | - | Later/Start | 1 | 0 | 1 | 0 | 0 | 6 | 0 | 2 | 0 | 1 | momento |
+| Eco_Periodico | Side | - | Later/Start | 1 | 0 | 1 | 0 | 0 | 6 | 0 | 4 | 0 | 1 | momento |
+| Eco_RayoAdulto | Side | - | Later/Start | 5 | 1 | 2 | 0 | 0 | 19 | 0 | 8 | 0 | 2 | momento |
+| Eco_Redada | Side | - | Later/Start | 1 | 0 | 1 | 0 | 0 | 5 | 0 | 1 | 0 | 1 | momento |
+| Eco_Ruben | Side | - | Later/Start | 1 | 0 | 1 | 0 | 0 | 13 | 0 | 8 | 0 | 1 | momento+recuerdo |
+| Ins01_NuevoInstituto | Main | Adolescente_Instituto | capítulo | 19 | 6 | 1 | 0 | 2 | 54 | 0 | 12 | 0 | 0 | momento+premio+recuerdo |
+| Ins02_Clubes | Main | Adolescente_Instituto | capítulo | 29 | 10 | 1 | 0 | 0 | 65 | 0 | 11 | 0 | 1 | momento+premio+recuerdo |
+| Ins03_QueQuieresSer | Main | Adolescente_Instituto | capítulo | 6 | 2 | 0 | 0 | 0 | 81 | 0 | 17 | 0 | 7 | momento+premio+recuerdo |
+| Ins04_PrimerEmpleo | Main | Adolescente_Instituto | capítulo | 21 | 6 | 0 | 0 | 2 | 64 | 0 | 30 | 0 | 5 | momento+premio+recuerdo |
+| Ins05_ElRumor | Main | Adolescente_Instituto | capítulo | 13 | 3 | 3 | 0 | 0 | 55 | 0 | 6 | 0 | 1 | momento+premio+recuerdo |
+| Ins06_LaGranDecision | Main | Adolescente_Instituto | capítulo | 27 | 5 | 1 | 1 | 1 | 50 | 0 | 20 | 1 | 1 | momento+premio+recuerdo |
+| Loco_A1_Futuro | Side | - | Offer:PatioInstituto | 4 | 2 | 1 | 0 | 0 | 17 | 0 | 0 | 1 | 1 | momento+premio+recuerdo |
+| Loco_A2_Lapices | Side | - | Offer:AulaInstituto | 4 | 1 | 0 | 0 | 1 | 10 | 0 | 0 | 0 | 1 | momento+premio+recuerdo |
+| Loco_A3_Concierto | Side | - | Offer:PlazaCentro | 5 | 1 | 2 | 0 | 0 | 13 | 0 | 0 | 1 | 0 | momento+premio+recuerdo |
+| Loco_A4_Pip | Side | - | Offer:GarajeCosme | 5 | 2 | 1 | 0 | 0 | 20 | 0 | 0 | 0 | 1 | momento+premio+recuerdo |
+| Loco_A5_Zoltan | Side | - | Offer:Ocio | 4 | 0 | 0 | 0 | 1 | 12 | 0 | 0 | 0 | 0 | momento+premio+recuerdo |
+| Loco_D1_Lunes | Side | - | Offer:OficinasFinanciero | 4 | 1 | 1 | 0 | 0 | 13 | 0 | 0 | 1 | 0 | momento+premio+recuerdo |
+| Loco_D2_Deuda | Side | - | Offer:Banco | 6 | 1 | 3 | 0 | 0 | 17 | 0 | 3 | 2 | 0 | momento+premio+recuerdo |
+| Loco_D3_Tostadora | Side | - | Offer:GarajeCosme | 5 | 1 | 1 | 0 | 0 | 14 | 0 | 0 | 3 | 0 | momento+premio+recuerdo |
+| Loco_D4_Gnomos | Side | - | Offer:Home | 5 | 1 | 2 | 0 | 0 | 11 | 0 | 0 | 2 | 1 | momento+premio+recuerdo |
+| Loco_D5_Malvado | Side | - | Offer:Home | 6 | 1 | 3 | 0 | 0 | 19 | 0 | 5 | 3 | 0 | momento+premio+recuerdo |
+| Loco_N1_Cosme | Side | - | Offer:GarajeCosme+canon | 4 | 1 | 1 | 0 | 0 | 27 | 2 | 0 | 1 | 1 | momento+premio+recuerdo |
+| Loco_N2_Bigotes | Side | - | Offer:Patio | 4 | 1 | 0 | 0 | 0 | 15 | 0 | 0 | 0 | 0 | momento+premio+recuerdo |
+| Loco_N3_Pollo | Side | - | Offer:GarajeCosme | 8 | 1 | 3 | 0 | 1 | 20 | 1 | 0 | 2 | 0 | momento+premio+recuerdo |
+| Loco_N4_Clones | Side | - | Offer:GarajeCosme | 5 | 1 | 2 | 0 | 0 | 18 | 1 | 0 | 1 | 0 | momento+premio+recuerdo |
+| Loco_N5_Perez | Side | - | Offer:HomeDormitorio | 3 | 2 | 0 | 0 | 0 | 17 | 0 | 0 | 0 | 0 | momento+premio+recuerdo |
+| Loco_N6_Tirachinas | Side | - | Offer:HomeSalon | 7 | 2 | 1 | 0 | 0 | 13 | 0 | 0 | 3 | 1 | momento+premio+recuerdo |
+| Loco_U1_Monte | Side | - | Offer:Universidad | 11 | 2 | 2 | 1 | 0 | 31 | 1 | 0 | 3 | 1 | momento+premio+recuerdo |
+| Loco_U2_Rex | Side | - | Offer:Home | 5 | 2 | 1 | 0 | 0 | 25 | 0 | 2 | 3 | 1 | momento+premio+recuerdo |
+| Loco_U3_Multiverso | Side | - | Offer:GarajeCosme | 5 | 2 | 1 | 0 | 0 | 24 | 1 | 7 | 9 | 1 | momento+premio+recuerdo |
+| Loco_U4_Fiesta | Side | - | Offer:Universidad | 6 | 2 | 1 | 0 | 0 | 18 | 0 | 3 | 2 | 0 | momento+premio+recuerdo |
+| Loco_U5_Examen | Side | - | Offer:Biblioteca | 5 | 1 | 2 | 0 | 0 | 13 | 0 | 0 | 1 | 1 | momento+premio+recuerdo |
+| MetroS_Cartera | Side | - | Offer:MetroBoca | 6 | 2 | 0 | 0 | 0 | 7 | 0 | 0 | 1 | 1 | momento+premio+recuerdo |
+| MetroS_PrimerDiaUni | Side | - | Offer:CasaFamiliar | 7 | 3 | 0 | 0 | 0 | 6 | 0 | 0 | 0 | 1 | momento+premio+recuerdo |
+| MetroS_PrimerTrabajo | Side | - | Offer:MetroBoca | 5 | 2 | 0 | 0 | 0 | 3 | 0 | 0 | 0 | 0 | momento+premio+recuerdo |
+| Nino_Jornada | Main | Nino_ElColegio | capítulo+DayPlan | 0 | 0 | 0 | 0 | 0 | 18 | 0 | 0 | 0 | 0 | momento |
+| Nino_Recados | Main | Nino_ElColegio | capítulo | 3 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | momento+premio |
+| Nino_TuBarrio | Main | Nino_Puente | capítulo | 4 | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | momento |
+| Pan1_MalasCompanias | Main | Adolescente_Instituto | capítulo | 15 | 5 | 1 | 0 | 1 | 34 | 0 | 5 | 0 | 0 | momento+recuerdo |
+| Pan2_LaNoche | Main | Adolescente_Instituto | capítulo | 15 | 6 | 1 | 0 | 1 | 39 | 0 | 9 | 0 | 1 | momento+premio+recuerdo |
+| Pan3_Cruce | Main | Adolescente_Instituto | capítulo | 16 | 3 | 4 | 0 | 1 | 40 | 0 | 12 | 0 | 1 | momento+premio+recuerdo |
+| Prologo_Sueno | Main | - | ¿? | 9 | 0 | 1 | 2 | 1 | 8 | 1 | 0 | 0 | 1 | recuerdo |
+| Rareza_Buzon | Side | - | Offer:Correos | 3 | 0 | 1 | 0 | 0 | 8 | 0 | 0 | 2 | 0 | momento+premio+recuerdo |
+| Rareza_Cafe | Side | - | Offer:Biblioteca | 4 | 1 | 1 | 0 | 0 | 6 | 0 | 2 | 0 | 0 | momento+premio+recuerdo |
+| Rareza_Cajero | Side | - | Offer:Banco | 3 | 0 | 1 | 0 | 0 | 6 | 0 | 3 | 1 | 0 | momento+premio+recuerdo |
+| Rareza_Cancion | Side | - | Offer:PatioInstituto | 4 | 1 | 1 | 0 | 0 | 7 | 0 | 2 | 3 | 0 | momento+premio+recuerdo |
+| Rareza_Charco | Side | - | Offer:Parque | 3 | 0 | 1 | 0 | 0 | 5 | 0 | 0 | 2 | 0 | momento+premio+recuerdo |
+| Rareza_Columpio | Side | - | Offer:ColumpiosParque | 4 | 0 | 1 | 0 | 1 | 5 | 0 | 0 | 1 | 0 | momento+premio+recuerdo |
+| Rareza_Contestador | Side | - | Offer:Home | 3 | 0 | 2 | 0 | 0 | 6 | 0 | 0 | 2 | 0 | momento+premio+recuerdo |
+| Rareza_Eco | Side | - | Offer:EstadioUniversitario | 3 | 1 | 1 | 0 | 0 | 6 | 0 | 0 | 0 | 0 | momento+premio+recuerdo |
+| Rareza_Espaguetis | Side | - | Offer:PlazaCentro | 4 | 1 | 1 | 0 | 0 | 6 | 0 | 0 | 1 | 0 | momento+premio+recuerdo |
+| Rareza_Espejo | Side | - | Offer:HomeDormitorio | 3 | 1 | 1 | 0 | 0 | 7 | 0 | 3 | 0 | 0 | momento+premio+recuerdo |
+| Rareza_Farola | Side | - | Offer:Parque | 3 | 1 | 1 | 0 | 0 | 6 | 0 | 2 | 1 | 0 | momento+premio+recuerdo |
+| Rareza_Fotocopiadora | Side | - | Offer:FacultadIngenieria | 4 | 1 | 1 | 0 | 0 | 7 | 0 | 0 | 4 | 0 | momento+premio+recuerdo |
+| Rareza_GatoCaja | Side | - | Offer:Supermercado | 3 | 1 | 1 | 0 | 0 | 5 | 0 | 0 | 2 | 0 | momento+premio+recuerdo |
+| Rareza_Helado | Side | - | Offer:Heladeria | 3 | 0 | 1 | 0 | 0 | 7 | 0 | 3 | 1 | 1 | momento+premio+recuerdo |
+| Rareza_Lavadora | Side | - | Offer:HomeCocina | 3 | 0 | 1 | 0 | 0 | 6 | 0 | 0 | 4 | 0 | momento+premio+recuerdo |
+| Rareza_Nube | Side | - | Offer:Home | 4 | 1 | 1 | 0 | 0 | 5 | 0 | 0 | 1 | 0 | momento+premio+recuerdo |
+| Rareza_Palomas | Side | - | Offer:Correos | 3 | 0 | 1 | 0 | 0 | 5 | 0 | 0 | 0 | 0 | momento+premio+recuerdo |
+| Rareza_Perro | Side | - | Offer:JuegosParque | 4 | 0 | 1 | 0 | 0 | 7 | 0 | 0 | 2 | 0 | momento+premio+recuerdo |
+| Rareza_Piso13 | Side | - | Offer:Biblioteca | 6 | 0 | 2 | 0 | 2 | 9 | 0 | 0 | 1 | 0 | momento+premio+recuerdo |
+| Rareza_Reloj | Side | - | Offer:Residencia | 4 | 1 | 1 | 0 | 0 | 7 | 0 | 0 | 1 | 0 | momento+premio+recuerdo |
+| Rareza_Semaforo | Side | - | Offer:PlazaFinanciera | 3 | 1 | 1 | 0 | 0 | 6 | 0 | 3 | 2 | 0 | momento+premio+recuerdo |
+| Rareza_Sombra | Side | - | Offer:Patio | 3 | 0 | 1 | 0 | 0 | 4 | 0 | 0 | 2 | 0 | momento+premio+recuerdo |
+| Rareza_Taquilla | Side | - | Offer:Instituto | 4 | 0 | 1 | 0 | 0 | 7 | 0 | 3 | 2 | 0 | momento+premio+recuerdo |
+| Rareza_Wifi | Side | - | Offer:Residencia | 4 | 1 | 1 | 0 | 0 | 6 | 0 | 2 | 4 | 0 | momento+premio+recuerdo |
+| Saga_02_Grieta | Side | - | Offer:GarajeCosme+canon | 6 | 1 | 2 | 1 | 0 | 21 | 1 | 2 | 4 | 0 | momento+premio+recuerdo |
+| Saga_03_Pez | Side | - | Offer:EstanqueParque+canon | 4 | 1 | 1 | 0 | 0 | 18 | 0 | 0 | 3 | 1 | momento+premio+recuerdo |
+| Saga_04_Ventanilla | Side | - | Offer:GarajeCosme+canon | 5 | 0 | 5 | 0 | 0 | 19 | 0 | 0 | 2 | 0 | momento+premio+recuerdo |
+| Saga_05_Perdidas | Side | - | Offer:EntradaColegio+canon | 5 | 1 | 1 | 0 | 0 | 15 | 0 | 0 | 3 | 0 | momento+premio+recuerdo |
+| Saga_06_Coser | Side | - | Offer:GarajeCosme+canon | 5 | 1 | 1 | 1 | 0 | 15 | 1 | 0 | 5 | 0 | momento+premio+recuerdo |
+| Saga_07_Costuras | Side | - | Offer:GarajeCosme+canon | 4 | 1 | 1 | 0 | 0 | 13 | 0 | 0 | 2 | 1 | momento+premio+recuerdo |
+| Saga_08_MegaVerso | Side | - | Offer:OficinasFinanciero+canon | 4 | 1 | 1 | 0 | 0 | 13 | 0 | 0 | 1 | 1 | momento+premio+recuerdo |
+| Saga_09_Archivo | Side | - | Offer:GarajeCosme+canon | 4 | 0 | 2 | 0 | 0 | 19 | 0 | 1 | 5 | 0 | momento+premio+recuerdo |
+| Saga_10_Fiesta | Side | - | Offer:PlazaCentro+canon | 4 | 1 | 1 | 0 | 0 | 10 | 0 | 0 | 3 | 0 | momento+premio+recuerdo |
+| Saga_11_Cronos | Side | - | Offer:PatioInstituto+canon | 5 | 1 | 2 | 0 | 0 | 13 | 0 | 0 | 3 | 0 | momento+premio+recuerdo |
+| Saga_12_Graduacion | Side | - | Offer:PatioInstituto+canon | 5 | 2 | 1 | 1 | 0 | 16 | 0 | 2 | 1 | 0 | momento+premio+recuerdo |
+| Saga_13_SinCosme | Side | - | Offer:GarajeCosme+canon | 4 | 1 | 2 | 0 | 0 | 13 | 0 | 0 | 2 | 0 | momento+premio+recuerdo |
+| Saga_14_Bigotes | Side | - | Offer:Parque+canon | 3 | 0 | 1 | 0 | 1 | 11 | 0 | 4 | 2 | 0 | momento+premio+recuerdo |
+| Saga_15_Reestreno | Side | - | Offer:MonteSilencio+canon | 3 | 1 | 1 | 0 | 0 | 10 | 0 | 2 | 2 | 0 | momento+premio+recuerdo |
+| Saga_16_66B | Side | - | Offer:GarajeCosme+canon | 5 | 0 | 1 | 0 | 1 | 11 | 0 | 0 | 2 | 0 | momento+premio+recuerdo |
+| Saga_17_Rescate | Side | - | Offer:Universidad+canon | 4 | 1 | 0 | 0 | 0 | 10 | 0 | 0 | 2 | 0 | momento+premio+recuerdo |
+| Saga_18_Precio | Side | - | Offer:GarajeCosme+canon | 2 | 1 | 1 | 0 | 0 | 9 | 0 | 0 | 2 | 0 | momento+premio+recuerdo |
+| Saga_19_Recuerdos | Side | - | Offer:GarajeCosme+canon | 3 | 1 | 1 | 0 | 0 | 17 | 0 | 1 | 4 | 0 | momento+premio+recuerdo |
+| Saga_20_Aliados | Side | - | Offer:GarajeCosme+canon | 3 | 1 | 1 | 0 | 0 | 19 | 0 | 7 | 2 | 0 | momento+premio+recuerdo |
+| Saga_21_Consorcio | Side | - | Offer:OficinasFinanciero+canon | 3 | 1 | 0 | 0 | 0 | 7 | 0 | 1 | 2 | 0 | momento+premio+recuerdo |
+| Saga_22_Ancla | Side | - | Offer:Home+canon | 3 | 1 | 1 | 0 | 0 | 8 | 0 | 2 | 3 | 0 | momento+recuerdo |
+| Saga_23_Fusion | Side | - | Offer:CimaMonte+canon | 8 | 3 | 0 | 1 | 0 | 14 | 0 | 3 | 1 | 0 | momento+premio+recuerdo |
+| Saga_24_Final | Side | - | Offer:GarajeCosme+canon | 4 | 2 | 0 | 1 | 0 | 13 | 0 | 0 | 2 | 0 | momento+premio+recuerdo |
+| Side_GatoDelCole | Side | - | Later/Start | 5 | 1 | 1 | 0 | 0 | 12 | 0 | 0 | 0 | 0 | momento+recuerdo |
+| Side_MedicinasUrgentes | Side | - | Offer:JobTaskDone | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | momento+premio |
+| Side_MochilaPerdida | Side | - | Offer:Colegio | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | momento+premio |
+| Side_TardeDePlaya | Side | - | Offer:Playa | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | momento+premio |
+| Uni01_PrimerDia | Main | Joven_Universidad | capítulo | 14 | 4 | 0 | 0 | 2 | 46 | 0 | 9 | 2 | 1 | momento+premio+recuerdo |
+| Uni01b_Residencia | Main | Joven_Universidad | capítulo | 9 | 2 | 1 | 0 | 1 | 21 | 0 | 3 | 1 | 1 | momento+premio+recuerdo |
+| Uni02_ElProyecto | Main | Joven_Universidad | capítulo | 17 | 4 | 0 | 0 | 0 | 51 | 0 | 12 | 0 | 2 | momento+premio+recuerdo |
+| Uni03_PrimerTrabajo | Main | Joven_Universidad | capítulo | 21 | 4 | 3 | 0 | 1 | 46 | 0 | 23 | 1 | 1 | momento+premio+recuerdo |
+| Uni04_Practicas | Main | Joven_Universidad | capítulo | 9 | 4 | 0 | 0 | 0 | 42 | 0 | 23 | 0 | 2 | momento+premio+recuerdo |
+| Uni05_PrimerPiso | Main | Joven_Universidad | capítulo | 11 | 4 | 1 | 0 | 1 | 36 | 0 | 13 | 0 | 1 | momento+premio+recuerdo |
+| Uni06_Graduacion | Main | Joven_Universidad | capítulo | 14 | 6 | 0 | 1 | 0 | 45 | 0 | 20 | 1 | 0 | momento+premio+recuerdo |
+| UniEx1_Enero | Main | Joven_Universidad | capítulo | 13 | 4 | 0 | 0 | 2 | 15 | 0 | 7 | 0 | 1 | momento+recuerdo |
+| UniEx2_Junio | Main | Joven_Universidad | capítulo | 11 | 2 | 0 | 0 | 2 | 5 | 0 | 0 | 0 | 0 | momento+premio+recuerdo |
+| UniEx3_Parcial | Main | Joven_Universidad | capítulo | 10 | 1 | 1 | 0 | 0 | 7 | 0 | 2 | 0 | 0 | momento+recuerdo |
+| UniEx4_TFG | Main | Joven_Universidad | capítulo | 8 | 2 | 0 | 0 | 0 | 7 | 0 | 1 | 0 | 0 | momento+premio+recuerdo |
+| UniS_Acampada | Side | - | Offer:HabitacionResidencia | 5 | 2 | 0 | 0 | 0 | 16 | 0 | 4 | 2 | 0 | momento+premio+recuerdo |
+| UniS_Cita | Side | - | Offer:HabitacionResidencia | 6 | 3 | 0 | 0 | 0 | 14 | 0 | 8 | 0 | 0 | momento+recuerdo |
+| UniS_Fiesta | Side | - | Offer:Universidad | 5 | 1 | 1 | 0 | 0 | 9 | 0 | 2 | 0 | 0 | momento+recuerdo |
+| UniS_Pabellon0 | Side | - | Offer:Biblioteca | 5 | 1 | 0 | 0 | 1 | 15 | 0 | 0 | 2 | 2 | momento+premio+recuerdo |
+| UniS_Playa | Side | - | Offer:Playa | 4 | 1 | 0 | 0 | 0 | 8 | 0 | 0 | 1 | 0 | momento+premio+recuerdo |
+| UniS_Tito | Side | - | Offer:HabitacionResidencia | 6 | 1 | 3 | 0 | 0 | 15 | 0 | 0 | 2 | 0 | momento+premio+recuerdo |
+| UniS_Zumo | Side | - | Offer:CocinaResidencia | 4 | 2 | 0 | 0 | 0 | 17 | 0 | 2 | 2 | 0 | momento+premio+recuerdo |
+| Uni_Jornada | Main | Joven_Universidad | capítulo+DayPlan | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | momento |
+
+### Anexo B · Actores que desaparecen de golpe al cambiar de paso
+
+Hay 259 casos. Aquí van los 79 en que el paso siguiente no tiene `Actors` y **se va todo el mundo a la vez** (misión#paso: quién). La lista entera sale con el script (apartado 5).
+
+- Adu01_PrimerContrato#14: Ernesto,Ignacio,Lola,Montse,Nuria,Paco,Sofia
+- Adu01_PrimerContrato#18: Ignacio
+- Adu02_Atardecer#6: Abu,Familia,Nuria
+- Adu03_Reencuentro#11: Bruno,Familia,Hugo,Leire,Lola,Lucia,Mateo,Nico,Omar,Sara
+- Aliado_Bigotes#2: Bigotes,GatoPolicia1
+- Aliado_Gnomos#2: Gnomo1
+- Aliado_Noz#2: Blorp,CapitanNoz
+- Aliado_Rex#2: Rex
+- Cole01_PrimerDia#27: Lucia
+- Cole02_Mochila#6: Ramon
+- Cole02_Mochila#11: Iker,Mateo,Nico,Omar,Sara
+- Cole02_Mochila#16: Alex,Mayor1,Mayor2
+- Cole03_Grupo#17: Alex,Andres,Bruno,Hugo,Mateo,Nico,Omar,Ruben,Sara
+- Cole04_Malotes#5: Lucia
+- Cole04_Malotes#24: Hugo
+- Cole05_Venganza#6: Ramon
+- Cole06_Examen#10: Iker,Marisa,Mateo,Sara
+- Cole06_Examen#13: Abu,Familia
+- Cole08_Torneo#16: Alex,Andres,Hugo,Mateo,Nico,Omar,Sara
+- Cole08_Torneo#23: Alex,Alumno1,Alumno2,Andres,Hugo,Mateo,Nico,Omar,Sara
+- Cole10_Festival#17: Hugo,Nico
+- Cole11_Proyecto#13: Hugo,Iker,Mateo,Nico,Omar,Sara
+- Cole11_Proyecto#15: Abu,Familia
+- Cole12_UltimoDia#14: Hugo,Iker,Mateo,Nico,Omar,Sara
+- Eco_Camaras#2: Familia,Ines
+- Eco_RayoAdulto#3: Rayo
+- Ins01_NuevoInstituto#18: Alumno1,Alumno4,Bruno,Iker,Javier,Leire,Nico,Omar
+- Ins02_Clubes#24: Nico,Omar
+- Ins02_Clubes#26: Alex,Hugo,Leire,Ruben,Sara
+- Ins02_Clubes#29: Familia,Leire,Nico,Omar,Sara
+- Ins04_PrimerEmpleo#7: Ernesto,Lola,Paco
+- Ins04_PrimerEmpleo#20: Ernesto,Lola,Paco
+- Ins05_ElRumor#11: Omar
+- Ins06_LaGranDecision#11: Javier
+- Ins06_LaGranDecision#27: Abu,Bruno,Carmen,Familia,Hugo,Iker,Javier,Leire,Mateo,Nico,Omar,Sara
+- Loco_A5_Zoltan#4: Seguidor1,Seguidor2,Seguidor3
+- Loco_D1_Lunes#3: Montse
+- Loco_D2_Deuda#5: Glub,Plof
+- Loco_D4_Gnomos#2: Vecino
+- Loco_D4_Gnomos#4: Gnomo3
+- Loco_N1_Cosme#2: Cosme
+- Loco_N4_Clones#2: Cosme
+- Loco_N4_Clones#4: Clon2,Lucia
+- Loco_U1_Monte#2: Luca
+- Loco_U1_Monte#9: Blorp,CapitanNoz,Zarg
+- Loco_U4_Fiesta#5: Impostor1,Impostor2,Julia
+- Pan1_MalasCompanias#13: Nerea
+- Pan2_LaNoche#4: Nerea,Rayo
+- Pan2_LaNoche#8: Nerea,Rayo
+- Pan2_LaNoche#13: Ines
+- Pan3_Cruce#6: Nerea
+- Pan3_Cruce#15: Rayo
+- Rareza_Cancion#2: Pip
+- Rareza_Eco#2: Ivan
+- Rareza_Espaguetis#2: Pip
+- Rareza_Fotocopiadora#2: Candela
+- Rareza_GatoCaja#2: Pip
+- Rareza_Lavadora#3: Pip
+- Rareza_Nube#2: Pip
+- Rareza_Palomas#3: Pip
+- Rareza_Piso13#2: Candela
+- Rareza_Reloj#2: Ivan,Portero
+- Rareza_Wifi#2: Ivan
+- Saga_07_Costuras#2: Cosme,DonEscamas,Pip
+- Saga_08_MegaVerso#4: AgenteGris1,RobotSeguridad
+- Uni01_PrimerDia#3: Abu,Familia
+- Uni01_PrimerDia#13: Adrian,Julia,Luca,Sara
+- Uni01b_Residencia#5: Candela,Ivan
+- Uni02_ElProyecto#14: Adrian,Carla,Julia,Pablo
+- Uni03_PrimerTrabajo#3: Familia
+- Uni03_PrimerTrabajo#16: Alba,Ernesto,Lola,Omar,Rocio
+- Uni05_PrimerPiso#10: Abu
+- Uni06_Graduacion#5: Beltran
+- UniEx1_Enero#7: Beltran,Candela,Ivan
+- UniEx2_Junio#5: Beltran,Candela,Ivan
+- UniEx2_Junio#8: Candela,Ivan
+- UniEx3_Parcial#3: Beltran
+- UniEx3_Parcial#6: Beltran,Candela,Ivan
+- UniS_Cita#3: Adrian,Carla,Julia,Luca
+
+### Anexo C · Hablan fuera de escena, conversaciones sin personajes y saltos secos
+
+**C.1 Hablan sin estar en la escena del paso** (su frase sale en la caja, sin cuerpo ni mirada):
+
+- Adu01_PrimerContrato#18 (Llamada): Familia
+- Adu02_Atardecer#2 (Llamada): Familia
+- Cole01_PrimerDia#26 (FinDeClases): Ramon
+- Cole03_Grupo#12 (FaltanJugadores): Mateo
+- Cole04_Malotes#22 (Rama_Grupo): Hugo
+- Cole06_Examen#17 (Aprobado): Iker,Mateo
+- Cole07_Excursion#16 (Vuelta): Andres
+- Cole08_Torneo#23 (TrasClasificacion): Alumno1,Andres
+- Cole08_Torneo#37 (Medallas): Abu,Familia
+- Loco_N2_Bigotes#4 (Gracias): Bigotes
+- Loco_U1_Monte#10 (Liberados): CapitanNoz
+- Pan2_LaNoche#14 (Mensajes): Nerea
+- Saga_06_Coser#1 (Plan): DonEscamas
+- Saga_06_Coser#5 (Voz): Cosimo
+- Saga_18_Precio#1 (Anuncio): Cosimo
+- Saga_23_Fusion#8 (Rendicion): TuMalvado
+- Uni01_PrimerDia#14 (Mensajes): Familia,Hugo,Leire
+- Uni03_PrimerTrabajo#14 (Clase2): Rocio
+- Uni05_PrimerPiso#8 (PrimeraNoche): Familia
+- Uni06_Graduacion#11 (Foto): Leire
+- UniS_Cita#3 (Invitacion): Adrian,Carla,Julia,Luca
+- UniS_Cita#6 (Atardecer): Adrian,Carla,Julia,Luca
+
+**C.2 Conversaciones solo de narrador o del jugador:**
+
+- Adu01_PrimerContrato#15 (Facturas): 4 frases
+- Cole01_PrimerDia#25 (MateoSolo): 2 frases
+- Cole02_Mochila#6 (NoEsta): 6 frases
+- Cole02_Mochila#11 (Deduccion): 9 frases
+- Cole02_Mochila#17 (Almacen_Entra): 2 frases
+- Cole04_Malotes#5 (SinCromo): 3 frases
+- Cole04_Malotes#6 (SinFoto): 3 frases
+- Cole04_Malotes#23 (Rama_Ignorar): 2 frases
+- Cole04_Malotes#24 (Cierre): 2 frases
+- Cole05_Venganza#6 (Deduccion): 7 frases
+- Eco_MateoSolo#1 (LoVes): 2 frases
+- Ins02_Clubes#25 (EventoClub): 6 frases
+- Ins02_Clubes#29 (TrasElClub): 1 frases
+- Loco_A1_Futuro#1 (Mensajes): 3 frases
+- MetroS_Cartera#1 (Sin): 2 frases
+- MetroS_Cartera#6 (Final): 1 frases
+- MetroS_PrimerDiaUni#1 (Salir): 2 frases
+- MetroS_PrimerDiaUni#6 (Puntual): 2 frases
+- MetroS_PrimerDiaUni#7 (Tarde): 2 frases
+- MetroS_PrimerTrabajo#1 (Cartel): 2 frases
+- MetroS_PrimerTrabajo#5 (Final): 1 frases
+- Rareza_Espejo#1 (Reflejo): 2 frases
+- Saga_08_MegaVerso#4 (Fuera): 2 frases
+- Uni04_Practicas#7 (Error): 6 frases
+- Uni06_Graduacion#14 (Final): 3 frases
+
+**C.3 Saltos del jugador justo antes de una conversación, sin pantalla que los tape:**
+
+- Cole01_PrimerDia#1 (Scene) → HomeDormitorio
+- Cole01_PrimerDia#15 (Scene) → PupitreA
+- Cole01_PrimerDia#16 (Scene) → PupitreA
+- Cole01_PrimerDia#17 (Scene) → PupitreA
+- Cole01_PrimerDia#28 (Scene) → HomeCocina
+- Cole03_Grupo#20 (Scene) → CasaSalida
+- Cole08_Torneo#19 (Scene) → CanchaColegio
+- Cole08_Torneo#21 (Scene) → Pista
+- Cole08_Torneo#27 (Scene) → CampoColegio
+- Cole08_Torneo#29 (Scene) → CanchaColegio
+- Cole08_Torneo#31 (Scene) → Pista
+- Cole09_Misterio#11 (Scene) → SalaCerrada
+- Pan2_LaNoche#10 (Scene) → Policia
+- Uni01b_Residencia#2 (Scene) → HabitacionResidencia
+- UniEx1_Enero#13 (Scene) → HabitacionResidencia
+- UniEx2_Junio#11 (Scene) → HabitacionResidencia
+- UniS_Pabellon0#5 (Scene) → HabitacionResidencia
+
+### Anexo D · Continuidad: se escribe y nadie lo lee
+
+Marcas, recuerdos y decisiones que pone alguna misión (entre paréntesis) y que **no lee ninguna condición de las misiones ni ningún archivo de código**. Los recuerdos salen en el diario, pero ningún personaje los cita. Cada uno es una ocasión de que alguien lo recuerde.
+
+**Marcas (80):** AliadoCompis (Saga_20_Aliados), AliadoCronos (Saga_20_Aliados), AliadosReunidos (Saga_20_Aliados), AmigoDeCosme (Loco_N1_Cosme), AmistadEspecial (UniS_Cita), Arrepentido (Eco_Redada), AyudaFamilia (Cole11_Proyecto), AyudanteOficial (Saga_07_Costuras), BuenEntreno (Cole08_Torneo), BuenRodaje (Saga_15_Reestreno), BuenTrabajo (Ins04_PrimerEmpleo), CalcetinViral (Loco_A1_Futuro), CancillerGatonia (Aliado_Bigotes), CharlaColegio (Adu03_Reencuentro), ClubSuplente (Ins02_Clubes), ClubTitular (Ins02_Clubes), Colaboraste (Eco_RayoAdulto), CompisSabenGrieta (Saga_13_SinCosme,UniS_Tito), ConoceConsorcio (Saga_03_Pez), ConsorcioCaido (Saga_21_Consorcio), CoordenadasCosimo (Saga_14_Bigotes), CosimoArregla66B (Saga_23_Fusion), CosimoPerdonado (Saga_23_Fusion), CosimoTeHaVisto (Saga_06_Coser), CosmeOriginal (Loco_U3_Multiverso), CosmeRecuerda (Saga_19_Recuerdos), CronosLimpio (Aliado_Cronos), CronosTeConoce (Saga_04_Ventanilla), DeclaracionAlien (Loco_U1_Monte), DejasteMochila (Cole02_Mochila), DeseoCaso (Loco_A5_Zoltan), DeseoDeberes (Loco_A5_Zoltan), DeseoFama (Loco_A5_Zoltan), DosCosmes (Loco_U3_Multiverso), EmpiezaATrabajar (Ins06_LaGranDecision), EnfadoConCosme (Saga_09_Archivo), EnsayoBien (Uni02_ElProyecto), EnsayoEspejo (Cole01_PrimerDia), EnseñasteCredencial (Saga_08_MegaVerso), EquipoRescate (Saga_13_SinCosme), Estudiaste (Cole06_Examen), EstudioParcial (UniEx3_Parcial), FiestaSaboteada (Saga_10_Fiesta), FusionDetenida (Saga_23_Fusion), GanasteVoley (UniS_Playa), GnomosEnPie (Aliado_Gnomos), GrabacionLaboratorio (Saga_15_Reestreno), JunioAprobado (UniEx2_Junio), LlegasTardeContrato (Adu01_PrimerContrato), LlegasTardeReunion (Uni02_ElProyecto), MalvadoAprendeBondad (Aliado_Malvado), MalvadoAyudo (Saga_16_66B), MentisteFamilia (Pan1_MalasCompanias), MontajeDario (Ins05_ElRumor), MorasDelMonte (UniS_Zumo), NaveEnElFinal (Aliado_Noz), ObjetoCromo (Cole04_Malotes), ObjetoFoto (Cole04_Malotes), OyoAncla (Saga_03_Pez), PatrullaRatones (Aliado_Perez), PerdonaACosme (Saga_09_Archivo), PistaHugo (Cole04_Malotes), PistaMochilaPaso (Cole02_Mochila), Prueba1Bien (Loco_U5_Examen), PunteriaDeCampeon (Loco_N6_Tirachinas), RexAbogado (Aliado_Rex), ReyDeLaPista (UniS_Fiesta), Ruben_Rival (Cole02_Mochila), SabeCocinar (Uni01b_Residencia), SabeDeCosimo (Saga_02_Grieta), SabeFusion (Saga_08_MegaVerso), SabeQueEsAncla (Saga_09_Archivo), SalvasteACosme (Loco_U5_Examen), SecretoCosme (Loco_N1_Cosme), SinCalcetin (Loco_A1_Futuro), SuspendisteExamen (Cole06_Examen), TienePareja (UniS_Cita), TitoDescubierto (UniS_Tito), TrampaCosimo (Saga_22_Ancla), VecinosNotanRarezas (Saga_05_Perdidas)
+
+**Recuerdos (79):** Abduccion (Loco_U1_Monte), AbogadoRex (Aliado_Rex), Acampada (UniS_Acampada), AtardecerConAbu (Adu02_Atardecer), AyudanteCosme (Saga_07_Costuras), CaidaConsorcio (Saga_21_Consorcio), ClasesDeBondad (Aliado_Malvado), CompaneroRex (Loco_U2_Rex), ConciertoHipnotico (Loco_A3_Concierto), ConociCosme (Loco_N1_Cosme), ConsejoGnomos (Aliado_Gnomos), CosasPerdidas (Saga_05_Perdidas), CoserElCielo (Saga_06_Coser), CosmeRecuerda (Saga_19_Recuerdos), CosmeTostadora (Loco_D3_Tostadora), CrisisDePip (Loco_A4_Pip), CronosAliado (Saga_11_Cronos), DeseoZoltan (Loco_A5_Zoltan), DeudaGalactica (Loco_D2_Deuda), DimensionExamen (Loco_A2_Lapices), ElCruce (Pan3_Cruce), ElProyectoUni (Uni02_ElProyecto), ElReencuentro (Adu03_Reencuentro), ElTrato (Saga_22_Ancla), EmperadorBigotes (Loco_N2_Bigotes), EpisodioEspecial (Saga_15_Reestreno), EquipoRescate (Saga_13_SinCosme), EresElAncla (Saga_09_Archivo), ExamenUniverso (Loco_U5_Examen), ExamenesEnero (UniEx1_Enero), ExpedienteCronos (Aliado_Cronos), FiestaAdrian (UniS_Fiesta), FiestaFinDelMundo (Saga_10_Fiesta), FiestaImpostores (Loco_U4_Fiesta), FinDeLaSaga (Saga_24_Final), GraduacionInterdimensional (Saga_12_Graduacion), GranFusion (Saga_23_Fusion), GrietaEnElCielo (Saga_02_Grieta), GuardiaGatuna (Aliado_Bigotes), GuerraGnomos (Loco_D4_Gnomos), LaCita (UniS_Cita), LaGranDecision (Ins06_LaGranDecision), LaNoche (Pan2_LaNoche), LosClones (Loco_N4_Clones), LunesEterno (Loco_D1_Lunes), MalasCompanias (Pan1_MalasCompanias), MensajeFuturo (Loco_A1_Futuro), MetroCartera (MetroS_Cartera), MetroPrimerDia (MetroS_PrimerDiaUni), MetroTrabajo (MetroS_PrimerTrabajo), MuelaDelJuicio (Aliado_Perez), Multiverso (Loco_U3_Multiverso), Pabellon0 (UniS_Pabellon0), ParcialImposible (UniEx3_Parcial), PlayaClase (UniS_Playa), Practicas (Uni04_Practicas), PresidenteBigotes (Saga_14_Bigotes), PrimerClub (Ins02_Clubes), PrimerContrato (Adu01_PrimerContrato), PrimerCurso (UniEx2_Junio), PrimerDiaInstituto (Ins01_NuevoInstituto), PrimerPartido (Cole03_Grupo), PrimerPiso (Uni05_PrimerPiso), PrimerTrabajoUni (Uni03_PrimerTrabajo), ProyectoFinal (Cole11_Proyecto), ProyectoFusion (Saga_08_MegaVerso), QueQuieresSer (Ins03_QueQuieresSer), ReencuentroRuben (Eco_Ruben), RescateCosme (Saga_17_Rescate), SuenoGrieta (Prologo_Sueno), TemporadaFinal (Aliado_Noz), TirachinasAbu (Loco_N6_Tirachinas), TitoEspia (UniS_Tito), TodosLosAliados (Saga_20_Aliados), TuNombre (Saga_18_Precio), TuYoMalvado (Loco_D5_Malvado), UltimoDiaCole (Cole12_UltimoDia), VentanillaAduana (Saga_04_Ventanilla), ZumoDeMora (UniS_Zumo)
+
+**Decisiones (25):** Candado (Cole09_Misterio), ComidaUni (Uni01_PrimerDia), Convivencia (Uni05_PrimerPiso), Discusion (Cole11_Proyecto), Estrategia (Cole08_Torneo), Gestion (Uni02_ElProyecto), IkerFinal (Cole05_Venganza), LookGraduacion (Uni06_Graduacion), NinaPerdida (Cole10_Festival), Organizacion (Uni02_ElProyecto), Orientacion (Ins03_QueQuieresSer), Posicion (Cole03_Grupo), PreFinal (Cole08_Torneo), PrimerCaso (Adu01_PrimerContrato), PrimerDiaIns (Ins01_NuevoInstituto), PromesaAbu (Adu02_Atardecer), PromesaAdulta (Adu03_Reencuentro), RecreoIns (Ins01_NuevoInstituto), Reportaje (Ins02_Clubes), Rescate (Cole07_Excursion), Sabado (Ins02_Clubes), SitioInstituto (Ins01_NuevoInstituto), Talento (Cole10_Festival), TemaTFG (UniEx4_TFG), TrasFinal (Cole08_Torneo)
+
+**Hechos de NPC (`Remember`):** Dani.SeConocen (Cole01_PrimerDia), Lucia.SeConocen (Cole01_PrimerDia), Marisa.SeConocen (Cole06_Examen), Ramon.SeConocen (Cole01_PrimerDia)
+
+
+### Anexo E · Resultado de `test-lifestory` (la prueba larga)
+
+`lune run scripts/test-lifestory.luau` (33 min): **487 ✅ · 0 ❌ en 59 bloques**.
+
+Recorre el validador, los días de cole generados (120 días por etapa, todos completables), las vidas enteras, cada
+misión del colegio, del instituto y de la universidad, la vida adulta, las dos ramas (estudiar o trabajar), el mal
+camino y sus consecuencias, las misiones locas de todas las etapas, la Saga entera (actos I–IV), las Rarezas, los
+Aliados, los gadgets y el guardado en DataStore. **Ninguna misión se queda sin terminar.** Confirma que los fallos de
+esta auditoría son de puesta en escena y continuidad, no de lógica.
+
+### Anexo F · Acotaciones escritas y dobletes de género
+
+**F.1 Acotaciones** (la acción va escrita en el texto; hay que convertirla en gesto, mirada o movimiento del actor):
+
+- Adu01_PrimerContrato · Familia: (al teléfono) ¿Qué tal el primer mes? ¿Has comido bien? ¿Has pagado las facturas? Perdona. No lo puedo evitar.
+- Adu01_PrimerContrato · Omar: (en la cocina) ¡Encargado o encargada! ¡Ya puedo decir que mi jefe es mi amigo! …Espera, eso no es bueno para mí.
+- Adu02_Atardecer · Abu: (aprieta tu mano) Ya. Ya lo sé. Tú siempre has dicho las cosas así.
+- Adu02_Atardecer · Familia: (al teléfono) No te asustes, ¿vale? {abu} se ha caído en la escalera. Está bien. En el hospital, para que le miren.
+- Cole01_PrimerDia · Ramon: (desde la puerta) ¡O que la pierde! ¡Jejeje!
+- Cole01_PrimerDia · Omar: (Omar levanta el pulgar sin dejar de dibujar)
+- Cole01_PrimerDia · Mateo: (Mateo sonríe por primera vez en todo el día) Vale.
+- Cole02_Mochila · Narrador: (Ya no la tienes.)
+- Cole03_Grupo · Ruben: (Rubén te guiña un ojo) Suerte. Pero no mucha, ¿eh?
+- Cole03_Grupo · Hugo: (Hugo pasa a tu lado y habla muy bajito) Buen partido. En serio.
+- Cole04_Malotes · Ruben: (Rubén os mira a los dos, sorprendido. Nunca había oído a Bruno pedir perdón.)
+- Cole04_Malotes · Ruben: (Rubén se ríe… pero bajito, y no te mira)
+- Cole04_Malotes · Bruno: (A Hugo, que se ha quedado con vosotros) ¿Tú no vienes?
+- Cole06_Examen · Marisa: (susurrando) Hola, cielo. ¿Vienes por los apuntes de Matemáticas? Todo el mundo viene hoy por lo mismo.
+- Cole07_Excursion · Mateo: (Mateo pega la nariz a la ventana. No dice nada. Pero sonríe todo el rato.)
+- Cole08_Torneo · Abu: (Abu no dice nada. Solo aplaude. Y se le escapa una lagrimilla.)
+- Cole08_Torneo · Ruben: (Rubén, bajito:) Buena suerte. De verdad.
+- Cole09_Misterio · Omar: (susurrando) Si nos pillan, yo solo pasaba por aquí. Buscando… un bocadillo.
+- Cole10_Festival · Ruben: (Rubén, bajito:) Es que Bruno grita «¡COMPRAD!» y la gente se asusta.
+- Cole10_Festival · Alumno2: (llorando) No encuentro a mi mamá… Había mucha gente y… y ahora no la veo.
+- Cole11_Proyecto · Omar: (al teléfono) Mi hermano pequeño… se ha sentado encima. Encima de la maqueta. Está bien. El hermano. La maqueta no.
+- Cole11_Proyecto · Familia: (desde el fondo) ¡Ánimo, {nombre}!
+- Cole11_Proyecto · Bruno: (Bruno, al pasar) Suerte. Yo he hecho un volcán. Otra vez. Es un clásico.
+- Cole12_UltimoDia · Ruben: (Rubén, por detrás) Adiós, {nombre}. Gracias por perdonarme lo de la mochila.
+- Cole12_UltimoDia · Marisa: (desde el mostrador) Venid a verme en el instituto. Los libros no se jubilan. Y yo tampoco.
+- Eco_MateoDibujo · Mateo: (Mateo se pone rojo como un tomate) Vale. Bien. Genial.
+- Ins01_NuevoInstituto · Omar: (desde lejos) ¡Es verdad! ¡Traigo de todo! ¡Hasta aceitunas!
+- Ins01_NuevoInstituto · Bruno: (desde el fondo) Eh, {nombre}. Aquí hay sitio. Si quieres. De cero, ¿no?
+- Ins03_QueQuieresSer · Sara: (Sara aparece por la puerta) ¡Sabía que acabarías aquí! Yo vengo todas las semanas. Sofía ya me conoce.
+- Ins03_QueQuieresSer · Omar: (Omar ya está aquí, con delantal) He llegado primero. Era una cuestión de prioridades.
+- Ins05_ElRumor · Dario: (Darío, desde la puerta) Omar… lo siento. De verdad. Era una tontería y no lo pensé.
+- Ins05_ElRumor · Javier: (más tarde) Gracias por contármelo. Esto no es una broma: es hacer daño en público. Me encargo. Y hablaré con toda la clase.
+- Loco_A3_Concierto · Omar: (Te guiña un ojo. Él lo sabe todo.)
+- Loco_D3_Tostadora · Cosme: (Desde la tostadora) ¡Criatura! ¡Ya no eres criatura, pero te lo sigo llamando! ¡Estoy en la tostadora! ¡Es muy estrecho! ¡Huele a pan del martes!
+- Loco_D3_Tostadora · Cosme: (Desde la tostadora) Escúchame bien: no tengo codos. Nunca valoras los codos hasta que eres una tostadora.
+- Loco_D3_Tostadora · Cosme: (Desde la tostadora) …Porque me hago mayor. Y tengo miedo de olvidarme de cosas. De la gallina. De los clones. De ti. Ya está. Lo he dicho. Qué vergüenza. Estoy tostando de la vergüenza.
+- Loco_D3_Tostadora · Cosme: (Desde la tostadora) Eso quería oír. Primero, los electrodomésticos. Van a por ti. El microondas es el cabecilla. Siempre lo supe.
+- Loco_U1_Monte · CapitanNoz: (Por el altavoz de la nave) ¡Está bien! ¡Está bien! ¡Devolvemos a los terrícolas! ¡Y cancelamos la temporada! …¡Pero te llevarás un premio a mejor actor o actriz revelación!
+- Loco_U2_Rex · Cosme: (Desde el fondo) Y si no vale, yo le hago unos papeles. Tengo una fotocopiadora que fotocopia en el pasado. Técnicamente, siempre tuvo visado.
+- Loco_U2_Rex · Cosme: (Desde el fondo) No sé quién es este dinosaurio. Tampoco sé quién soy yo, la verdad. Pero tengo una fotocopiadora rarísima en el garaje, y seguro que algo sabe hacer. Técnicamente, siempre tuvo visado.
+- Pan1_MalasCompanias · Nerea: (al pasar a tu lado, bajito) Javier ha llamado a sus casas. A la mía también. Hiciste bien.
+- Pan1_MalasCompanias · Nerea: (sin levantar la vista de su cuaderno) Yo voy porque no tengo nada mejor que hacer. Tú verás.
+- Pan1_MalasCompanias · Omar: (bajito) {nombre}… Esos se meten en líos. Todo el rato. Yo me vuelvo a clase. Tú haz lo que quieras, ¿eh?
+- Pan1_MalasCompanias · Rayo: (desde lejos) ¡Pringado! …Tú te lo pierdes.
+- Pan1_MalasCompanias · Abu: (desde el sillón, sin mirarte) Las mentiras pesan más que la mochila, cariño. Lo digo por experiencia.
+- Pan1_MalasCompanias · Nerea: (bajito) La primera vez también me lo pareció. Luego llegan las notas. Y las llamadas a casa.
+- Pan2_LaNoche · Nerea: (sin mirarte) Yo iré. Supongo. ¿Tú vas?
+- Pan2_LaNoche · Nerea: (mensaje) Al final han ido Rayo y dos más. Ha saltado la alarma. A Rayo le han pillado.
+- Pan2_LaNoche · Nerea: (mensaje) Me he quedado en casa. Rayo ha ido con dos más y le han pillado. Gracias por lo de esta tarde. En serio.
+- Pan2_LaNoche · Nerea: (mensaje) Rayo dice que alguien se ha chivado. No has sido tú, ¿no? Dime que no.
+- Pan2_LaNoche · Familia: (entra corriendo) ¿Estás bien? …Estás bien. Vale. Ahora sí: ¿EN QUÉ ESTABAS PENSANDO?
+- Pan2_LaNoche · Rayo: (susurrando) ¡Rápido! Coge lo que quieras y nos vamos.
+- Pan2_LaNoche · Nerea: (te alcanza en la calle) Espera. Yo tampoco quería. Me voy contigo.
+- Pan3_Cruce · Rayo: (se frota la cara) …Qué pesado o pesada. Vale. A las ocho. Y no se lo digas a nadie de la pandilla.
+- Rareza_Contestador · Narrador: (Una voz que conoces, pero más joven) «Hola, cosa pequeña. Esto es una prueba del contestador nuevo. Duermes en la cuna. Roncas. Muy fuerte para caber en una caja de zapatos.»
+- Rareza_Espejo · Narrador: (Tu reflejo, sonrojado) «…Tienes buena risa. Y ayudas a la gente aunque nadie mire. Y ese pelo… bueno, el pelo no. Pero lo demás, sí.»
+- Rareza_Espejo · Narrador: (Tu reflejo, llorando de la risa) «¡Para! ¡Para, que me meo! Vale, vale: tienes gracia. Lo admito.»
+- Rareza_Espejo · Narrador: (Desde debajo de la toalla, ofendido) «Muy maduro. Muy maduro.» …Al rato, flojito: «Perdona. Me he pasado.»
+- Rareza_Espejo · Narrador: (Tu reflejo) «Ese grano. Esa camiseta. Esa cara de sueño. Y lo de ayer en clase… Madre mía, lo de ayer.»
+- Rareza_Farola · Narrador: (La farola, muy bajito, afinadísima) «Fígaro… Fígaro…». Se apaga un momento. Cuando vuelve a encenderse, solo tararea. Los vecinos aplauden desde las ventanas.
+- Rareza_Farola · Narrador: (La farola, igual de desafinada, pero ahora a dúo contigo) Los vecinos cierran las ventanas. Alguien grita «¡bravo!». Con ironía, seguramente.
+- Rareza_Farola · Narrador: (La farola) «¡FÍÍÍGAROOO! ¡FÍGARO, FÍGARO, FÍGAROOOO!»
+- Rareza_Semaforo · Narrador: (El semáforo) «¡Por fin alguien sensato!». Se pone en verde. Los coches pasan. Te guiña el ámbar.
+- Rareza_Semaforo · Narrador: (El semáforo) «…Vale. Tu argumento sobre el dulce y el salado es sólido. Me lo pensaré.». Se pone en verde, pensativo.
+- Rareza_Semaforo · Narrador: (El semáforo, muy bajito) «…Nadie me había preguntado eso nunca. Me siento… solo. Todo el día aquí, en rojo, y todos con prisa.». Se pone en verde. Y se queda en ámbar un segundo más, como una sonrisa.
+- Rareza_Semaforo · Narrador: (El semáforo) «¡Ese coche necesita un lavado! ¡Ese señor debería llamar a su madre! ¡La piña en la pizza es un crimen!»
+- Saga_02_Grieta · Pip: (En voz baja, mientras te acompaña a la puerta) El señor Cosme no ha dormido desde que vio la línea del cielo. Cuide de él. Él lleva mucho tiempo cuidando de usted. Aunque usted no lo sepa.
+- Saga_04_Ventanilla · Funcionaria: (Desde detrás de Inés, sin que nadie la haya visto llegar) Ya estoy aquí.
+- Saga_06_Coser · DonEscamas: (Desde la pecera) Y el Consorcio lo sabe. Mis antiguos compañeros vigilan el parque y la plaza. Yo les he calculado la ruta: si no te ven, no te ven. Es contabilidad básica.
+- Saga_07_Costuras · DonEscamas: (Desde la pecera) Y hay más: MegaVerso ha pedido permiso para abrir una oficina en el Distrito Financiero. Lo sé porque todavía me llegan sus boletines. Soy de los que no se dan de baja.
+- Saga_09_Archivo · Cosme: (En la cinta, joven) Prueba número uno. Vamos a coser dos dimensiones un milímetro. Solo un milímetro. Para ver qué pasa.
+- Saga_09_Archivo · Cosimo: (En la cinta, joven, sin perilla) Un milímetro hoy. Un universo mañana. Imagínatelo, Cosme: dos Valmar en una. Todo lo mejor de las dos.
+- Saga_09_Archivo · Cosme: (En la cinta, solo, llorando) Mientras ese bebé esté en esta Valmar, la grieta no se abrirá del todo. Es… un ancla. Le vigilaré. Toda la vida. Sin que lo sepa. Se lo debo.
+- Saga_09_Archivo · DonEscamas: (Desde la pecera) Yo voto por contarlo todo. Aunque yo siempre voto por contarlo todo. Es mi problema.
+- Saga_13_SinCosme · DonEscamas: (Desde la pecera) He calculado nuestras posibilidades de rescatarle sin ayuda: un 3 %. Con ayuda: un 4 %. Pero con amigos, las matemáticas cambian.
+- Saga_16_66B · Ivan: (susurrando) ¿Yo soy su compañero de cuarto aquí? ¿Y tengo perilla? …Me pido no saberlo.
+- Saga_16_66B · Pip: (Por el comunicador) Coordenadas confirmadas. Descansen. Mañana, rescate. Y señor Iván: no se coma las plantas carnívoras. Otra vez.
+- Saga_17_Rescate · Cosimo: (Por los altavoces) ¡Qué momento más emocionante! ¡El reencuentro! Lástima que él no se acuerde de ti. Lo mejor de los recuerdos es que se pueden quitar.
+- Saga_18_Precio · Cosimo: (En todas las pantallas) ¡{Saludo}, Valmar! Tengo un anuncio. La Gran Fusión se celebrará en el Monte del Silencio. Cuando el Ancla ya no sea una criatura, sino una persona adulta con trabajo y facturas.
+- Saga_19_Recuerdos · DonEscamas: (Desde la pecera) Mirad también en los cacharros del garaje. Una mente se esconde donde menos te lo esperas… en una tostadora, por ejemplo. Yo nunca tiro una copia de seguridad.
+- Saga_20_Aliados · DonEscamas: (Desde la pecera) Y yo tengo lo más importante: las cuentas de MegaVerso. Para vencer a Cósimo, primero hay que dejarle sin dinero. Y yo sé dónde lo esconde.
+- Saga_23_Fusion · TuMalvado: (Desde atrás) Yo le ayudo. Ya sé cómo es ser bueno. Un poco. Tengo práctica.
+- Uni01_PrimerDia · Julia: (a tu lado, susurrando) He traído tres bolígrafos por si se me acaba la tinta. Y un cuarto por si acaso. ¿Quieres uno?
+- Uni01_PrimerDia · Adrian: (delante) Profesora, ¿habrá trabajos en grupo? Porque yo suelo coordinar.
+- Uni01_PrimerDia · Abu: (bajito) Ay… Venga, venga, que pierdes el autobús.
+- Uni01_PrimerDia · Omar: (mensaje) ¿QUÉ TAL EL PRIMER DÍA? Yo he pelado cuarenta kilos de patatas. Lola dice que tengo futuro.
+- Uni01_PrimerDia · Nico: (mensaje) Entreno con el juvenil de Altamar. Me han llamado «el nuevo». Tengo diecinueve años de «nuevo» por delante.
+- Uni01_PrimerDia · Leire: (mensaje) Primer día en la escuela de cine. Aquí todos hablan en planos. Me siento en casa. Os echo de menos.
+- Uni01_PrimerDia · Hugo: (mensaje) La facultad de Periodismo tiene una redacción de verdad. Ya he escrito mi primer artículo. Era sobre piratas.
+- Uni01_PrimerDia · Familia: (mensaje) ¿Qué tal ha ido? ¿Has comido? ¿Has hecho amigos? ¿Te has comido el táper del lunes? Cuéntamelo todo. Bueno, lo que quieras.
+- Uni03_PrimerTrabajo · Omar: (desde la cocina) ¡Vamos a trabajar juntos! ¡Como en el festival! ¡Pero con sueldo!
+- Uni05_PrimerPiso · Familia: (al teléfono) ¿Ya nos echas de menos? ¡Si te has ido esta mañana! …Nosotros también. Mucho.
+- Uni06_Graduacion · Beltran: (bajito) Y la empresa de tus prácticas ya me ha preguntado por ti. Tienes trabajo esperando.
+- Uni06_Graduacion · Familia: (desde la grada, muy fuerte) ¡BRAVO, {nombre}! ¡ES DE MI FAMILIA! ¡DE MI FAMILIA!
+- UniEx4_TFG · Ivan: (desde el público) ¡ESO ES! ¡ESE O ESA ES MI COMPAÑERO O COMPAÑERA DE CUARTO!
+- UniS_Fiesta · Pablo: (tocando la guitarra, bajito) Esta canción se llama «Fiesta en casa de Adrián». La acabo de inventar. Tiene tres acordes y un vecino.
+- UniS_Tito · Ivan: (susurrando) Yo creo que sí me acuerdo de él. Creo. Me suena. Como una canción que no has oído nunca.
+
+**F.2 Dobletes de género** (falta un token de género):
+
+- Adu01_PrimerContrato · Narrador: «tranquilo o tranquila»
+- Adu01_PrimerContrato · Nuria: «bienvenida, bienvenido»
+- Adu01_PrimerContrato · Lola: «encargado o encargada»
+- Adu01_PrimerContrato · Paco: «encargado o encargada»
+- Adu01_PrimerContrato · Omar: «encargado o encargada»
+- Adu03_Reencuentro · Narrador: «abogado o abogada»
+- Eco_RayoAdulto · Rayo: «socio o socia»
+- Ins03_QueQuieresSer · Narrador: «pequeño o pequeña»
+- Ins03_QueQuieresSer · Narrador: «pequeño o pequeña»
+- Ins04_PrimerEmpleo · Lola: «contratado o contratada»
+- Ins06_LaGranDecision · Sofia: «bienvenida, bienvenido»
+- Loco_D2_Deuda · Cosme: «adulto o adulta»
+- Loco_D5_Malvado · TuMalvado: «bienvenido o bienvenida»
+- Loco_U4_Fiesta · Julia: «bienvenido o bienvenida»
+- Pan2_LaNoche · Narrador: «sentado o sentada»
+- Pan3_Cruce · Familia: «rara o raro»
+- Pan3_Cruce · Rayo: «pesado o pesada»
+- Saga_08_MegaVerso · AgenteGris2: «bienvenido o bienvenida»
+- Saga_11_Cronos · Funcionaria: «hija, hijo»
+- Saga_15_Reestreno · CapitanNoz: «favorito o favorita»
+- Uni03_PrimerTrabajo · Rocio: «contratado o contratada»
+- Uni03_PrimerTrabajo · Narrador: «adulto o adulta»
+- Uni03_PrimerTrabajo · Lola: «contratado o contratada»
+- Uni03_PrimerTrabajo · Lola: «contratado o contratada»
+- Uni04_Practicas · Narrador: «helado o helada»
+- Uni04_Practicas · Nuria: «bienvenida, bienvenido»
+- Uni04_Practicas · Nuria: «bienvenida, bienvenido»
+- Uni04_Practicas · Sofia: «bienvenida, bienvenido»
+- Uni05_PrimerPiso · Narrador: «pequeño o pequeña»
+- Uni05_PrimerPiso · Narrador: «solo o sola»
+- Uni06_Graduacion · Familia: «guapísimo o guapísima»
+- Uni06_Graduacion · Familia: «solo o sola»
+- Uni06_Graduacion · Abu: «pequeño o pequeña»
+- UniEx4_TFG · Ivan: «compaÑero o compaÑera»
