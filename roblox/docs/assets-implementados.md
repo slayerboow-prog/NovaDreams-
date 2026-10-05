@@ -276,3 +276,27 @@ Prueba: `lune run scripts/test-cityassets.luau`.
 | 70353066 | Estadio de fútbol | **No**: 3 644 bloques y 1 812 Decals de 2012, NPCs que dejan sangre; ya hay estadios. |
 | 1119962617 | Colegio | **No**: copia del mapa de otro juego (Roblox High School). |
 | 26972564 | Búnker | **No**: 12 bloques de 2010, nada aprovechable. |
+
+## Zonas de misión con los materiales exóticos del Mega Pack (World/MissionZones)
+
+Los materiales del Mega Pack (15221806045) que no encajan en una ciudad ahora se usan FUERA de Valmar,
+en sitios preparados para las misiones cooperativas. Antes no había ninguna mina ni cueva. El terreno
+solo admite un variant por material, así que todo esto son piezas con su variant pieza a pieza (una
+copia «U_Zona_…» en MaterialService). Si el Mega Pack no carga, las piezas se quedan con el material de
+Roblox. Se usan 81 variants: los 14 asfaltos «Lab», 4 lavas, 3 rocas volcánicas, 11 de cueva y mina, 10
+de otros planetas y cristales, 14 metales de ciencia ficción, 6 orgánicos y 11 de riscos.
+
+| Sitio (etiqueta ZonaMision, atributo Zona) | Dónde | Qué lleva |
+|---|---|---|
+| Mina (Mina de los Montes) | Montaña de -800, -3250. La boca mira a la Carretera de los Montes. | Rampa de grava, boca con marco de madera y letrero, galería de 70 studs con vías, traviesas, entibado y lámparas. El terreno se vacía por dentro. Atributos `Entrada` y `Pie`. |
+| CamaraLava | Dentro de la mina | Dos pozas de lava (Hot Lava, Flowing Lava) con luz y brillo, rocas volcánicas, vetas de mineral (Ore, Peacock Ore), una vagoneta y una valla de aviso «PELIGRO · LAVA» que choca. `Peligro = "Lava"`, `Danio = false`. |
+| CuevaAlien | Al fondo de la segunda galería | Paredes de roca lunar y planetaria, cristales que brillan, rocas de azufre y de géiser, y restos de nave hechos con 10 metales de ciencia ficción, una caja y un chip. |
+| Laboratorio | Dentro de la cueva alienígena | Suelo de baldosas con los 14 asfaltos «Lab» de colores, una mesa y una pantalla que brilla. |
+| MuroOrganico | La pared del fondo, lo más hondo | La textura «Meat» teñida de morado como pared alienígena, bultos de hongo y cera, y charcos de ciénaga. Nada de sangre, calaveras, huesos ni piel humana. |
+| CraterLava | Cumbre de la montaña de -2600, -3150 | Poza de lava con luz, anillo de lava y roca, rocas volcánicas y valla de aviso. `Peligro = "Lava"`. |
+| Meteorito | Campo de -3100, -2900 | Cráter de tierra yerma, borde de roca agujereada, un meteorito que brilla y restos de chapa militar. |
+| RiscosMontes | Laderas de las montañas de roca | Riscos con estratos, acantilados, roca cortada y roca ígnea. |
+
+Cada sitio tiene los atributos `Zona` (id), `Nombre` (para enseñar), `Peligro` y `Danio`
+(`false`: aún no hace daño). Lo decorativo lleva CityDetail, así que en gráficos Bajo se esconde. Hay
+como mucho 24 luces. Prueba: `scripts/test-missionzones.luau`.

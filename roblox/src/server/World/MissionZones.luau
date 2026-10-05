@@ -245,7 +245,7 @@ local function room(m: Model, frame: CFrame, w: number, d: number, h: number, lo
 	piece(m, "TechoZona", V(w + 2 * t, t, d + 2 * t), frame * CFrame.new(0, h + t / 2, 0), look.Ceil, look.Color)
 	local walls = look.Walls
 	piece(m, "ParedZona", V(t, h, d), frame * CFrame.new(-w / 2 - t / 2, h / 2, 0), walls[1], look.Color)
-	piece(m, "ParedZona", V(t, h, d), frame * CFrame.new(w / 2 + t / 2, h / 2, 0), walls[2 % #walls + 1], look.Color)
+	piece(m, "ParedZona", V(t, h, d), frame * CFrame.new(w / 2 + t / 2, h / 2, 0), walls[1 % #walls + 1], look.Color)
 	for i, side in { { z = d / 2 + t / 2, gap = gapFront }, { z = -d / 2 - t / 2, gap = gapBack } } do
 		local gap = side.gap or 0
 		local variant = walls[(i + 1) % #walls + 1]
@@ -326,6 +326,16 @@ function MissionZones.buildMine(parent: Instance): (Model, { { CFrame: CFrame, S
 	local board = piece(mine, "LetreroMina", V(10, 2.2, 0.3), origin * CFrame.new(0, 15.2, 2.6), "Old Planks", wood)
 	sign(board, "MINA DE LOS MONTES", Enum.NormalId.Back, rgb(60, 42, 28), rgb(240, 220, 180))
 	light(lintel, rgb(255, 200, 140), 18, 1.4)
+	-- Rampa de grava desde el pie de la montaña (la ladera es muy empinada en la boca): baja hasta el
+	-- suelo (Y = -1) donde acaba la montaña; se vacía el terreno que la tapa
+	do
+		local drop, run = y0 + 1, mt.R - MissionZones.MineDepth
+		local len = math.sqrt(drop * drop + run * run)
+		local ramp = origin * CFrame.new(0, -drop / 2, run / 2) * CFrame.Angles(math.atan(drop / run), 0, 0)
+		piece(mine, "RampaMina", V(12, 1, len + 2), ramp * CFrame.new(0, -0.5, 0), "Gravel Path", rgb(140, 128, 110))
+		hole(ramp * CFrame.new(0, 7, 0), V(14, 12, len))
+		mine:SetAttribute("Pie", (origin * CFrame.new(0, -drop, run)).Position)
+	end
 	-- Galería 1 (70 de largo)
 	local g1 = origin * CFrame.new(0, 0, -35)
 	room(mine, g1, 12, 70, 12, caveLook, 12, 12)
@@ -474,8 +484,8 @@ function MissionZones.cliffSpots(): { { Position: Vector3, Index: number } }
 	local n = 0
 	for _, m in CityPlan.Mountains do
 		if m.Rock and not (m.X == MissionZones.Mountain.X and m.Z == MissionZones.Mountain.Z) then
-			for k = 0, 3 do
-				local a = k * math.pi / 2 + 0.6
+			for k = 0, 5 do
+				local a = k * math.pi / 3 + 0.6
 				local d = m.R * 0.62
 				local x, z = m.X + math.cos(a) * d, m.Z + math.sin(a) * d
 				if not CityPlan.districtAt(x, z) then
