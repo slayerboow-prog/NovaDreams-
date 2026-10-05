@@ -123,16 +123,16 @@ local function png(path: string): (number?, number?, number?)
 	return u32(17), u32(21), string.byte(data, 26)
 end
 local iw, ih, ict = png("textures/rift/rift_interior.png")
-check(iw == 2048 and ih == 1024 and ict == 6, "rift_interior.png: 2048x1024 con canal alfa")
+check(iw == 1024 and ih == 512 and ict == 6, "rift_interior.png: 1024x512 con canal alfa (Roblox no pasa de 1024)")
 local allPng = true
 for _, name in Rift.TextureNames do
 	local w, h, ct = png("textures/rift/" .. name .. ".png")
-	if not w or ct ~= 6 or w > 2048 or h > 2048 then
+	if not w or ct ~= 6 or w > 1024 or h > 1024 or bit32.band(w, w - 1) ~= 0 or bit32.band(h, h - 1) ~= 0 then
 		allPng = false
 		print("    falta o mal: " .. name)
 	end
 end
-check(allPng, ("las %d texturas existen, con alfa"):format(#Rift.TextureNames))
+check(allPng, ("las %d texturas existen, con alfa, potencia de 2 y ≤ 1024"):format(#Rift.TextureNames))
 local previews = 0
 for i = 1, 7 do
 	if fs.isFile(("textures/rift/preview-%d.png"):format(i)) then
