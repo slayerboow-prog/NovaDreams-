@@ -39,6 +39,10 @@
 --      79665094662717 y los edificios del city pack (solo se ven; carga persistente, Bajo los esconde).
 --   9. Oficinas (salas Interior_Oficina): un par de armarios de servidores 120631576642977.
 --  10. Villaverde: la casa de campo de 111283915226740 (sin scripts ni nombres en polaco) en un hueco.
+--  11. Reemplazos limpios (docs/assets-reemplazos.md): estadio de mallas 15569059562 encima de cada
+--      Estadio, colegio de ladrillo 76558120171446 por fuera junto a un colegio, skyline 16524471626 y
+--      edificios del City Building Pack 6418277837, y parches de asfalto PBR del City Road Pack
+--      6432233485 encima de los parches de Kit/CityDetail (no se duplican marcas).
 --
 -- No se tocan coches, tráfico ni el tren de Cercanías ni el metro (los vagones y la locomotora van en
 -- vías propias, aparte). Todo con topes de piezas, etiquetas para el nivel Bajo (CityDetail /
@@ -1215,8 +1219,9 @@ end
 CityAssets.Skyline = { Z = 6500, From = -3200, To = 3200, Max = 40 }
 
 function CityAssets.skyline(ctx: Ctx): number
-	local list = ctx.Pools.Skyline
-	if not list or #list == 0 then
+	local list = ctx.Pools.Skyline or {}
+	local big = ctx.Pools.SkylineGrande and ctx.Pools.SkylineGrande[1]
+	if #list == 0 and not big then
 		return 0
 	end
 	local m = Instance.new("Model")
@@ -1239,7 +1244,25 @@ function CityAssets.skyline(ctx: Ctx): number
 	land:AddTag(Kit.DetailTag)
 	land.Parent = m
 	local x, i, n = cfg.From, 0, 0
-	while x < cfg.To and n < cfg.Max and not full(ctx) do
+	-- En medio, la ciudad grande de una malla (16524471626, con ventanas que brillan de noche)
+	local gap0, gap1 = math.huge, -math.huge
+	if big then
+		local w = math.max(big.Size.X, big.Size.Z)
+		local yaw = if big.Size.X >= big.Size.Z then CFrame.new() else CFrame.Angles(0, math.pi / 2, 0)
+		local b = Kit.spawn(big, CFrame.new(0, CityAssets.SeaLevel + 1, cfg.Z + 120) * yaw, 1, m, { Collide = false, Detail = true, Shadow = 1e9 })
+		b.Name = "CiudadLejana"
+		for _, p in Kit.parts(b) do
+			p.CanQuery = false
+		end
+		count(ctx, "SkylineGrande", b)
+		gap0, gap1 = -w / 2 - 30, w / 2 + 30
+		n += 1
+	end
+	while #list > 0 and x < cfg.To and n < cfg.Max and not full(ctx) do
+		if x + 150 > gap0 and x < gap1 then
+			x = gap1
+			continue
+		end
 		i += 1
 		local t = list[1 + (i * 7) % #list]
 		local s = 1 + Kit.hash(Vector3.new(x, 0, cfg.Z), 81) * 0.6
@@ -1313,6 +1336,136 @@ function CityAssets.farmhouse(ctx: Ctx): boolean
 end
 
 ---------------------------------------------------------------------
+-- 11. Estadios: el «Mini Football stadium» (15569059562) encima de cada Estadio
+---------------------------------------------------------------------
+
+-- Lo nuestro que se esconde (sigue chocando lo que hace falta para el balón: postes, larguero, red)
+CityAssets.StadiumHide = { Pitch = true, Stripe = true, Line = true, CenterCircle = true, CenterCircleIn = true, Post = true, Crossbar = true, Net = true }
+CityAssets.StadiumReplace = { Stand = true, StandBack = true, Roof = true } -- (estos dejan de chocar: chocan las gradas de malla)
+
+function CityAssets.stadiums(ctx: Ctx): number
+	local t = ctx.Pools.EstadioMalla and ctx.Pools.EstadioMalla[1]
+	if not t then
+		return 0
+	end
+	local field: BasePart? = nil
+	for _, p in Kit.parts(t.Model) do
+		if p.Name == "Cesped" then
+			field = p
+		end
+	end
+	if not field then
+		return 0
+	end
+	local fieldLong = math.max(field.Size.X, field.Size.Z)
+	local fieldAlongX = field.Size.X >= field.Size.Z
+	local rel = t.Base:PointToObjectSpace(field.CFrame.Position + Vector3.new(0, field.Size.Y / 2, 0))
+	local out = folder(ctx.Parent, "Estadios")
+	local n = 0
+	for _, st in ctx.Town:GetDescendants() do
+		if st.Name ~= "Estadio" or not st:IsA("Model") or st:FindFirstChild("EstadioMalla") then
+			continue
+		end
+		local pitch = st:FindFirstChild("Pitch")
+		local esplanade = st:FindFirstChild("Esplanade")
+		if not (pitch and pitch:IsA("BasePart")) then
+			continue
+		end
+		local pitchAlongX = pitch.Size.X >= pitch.Size.Z
+		local s = math.max(pitch.Size.X, pitch.Size.Z) / fieldLong
+		-- que el estadio entero quepa en la explanada (si no, un poco más pequeño)
+		if esplanade and esplanade:IsA("BasePart") then
+			local long = math.max(t.Size.X, t.Size.Z) * s
+			local short = math.min(t.Size.X, t.Size.Z) * s
+			local eLong, eShort = math.max(esplanade.Size.X, esplanade.Size.Z), math.min(esplanade.Size.X, esplanade.Size.Z)
+			s *= math.min(1, eLong / long, eShort / short)
+		end
+		local yaw = if pitchAlongX == fieldAlongX then CFrame.new() else CFrame.Angles(0, math.pi / 2, 0)
+		local top = pitch.CFrame * CFrame.new(0, pitch.Size.Y / 2 + 0.04, 0)
+		local at = top * yaw * CFrame.new(-rel.X * s, -rel.Y * s, -rel.Z * s)
+		local m = Kit.spawn(t, at, s, nil, { Collide = true, Mesh = true, Shadow = 8 })
+		m.Name = "EstadioMalla"
+		for _, p in Kit.parts(m) do
+			if p.Name == "Cesped" then
+				p.CanCollide = false -- (el suelo sigue siendo nuestro campo)
+				p.CanQuery = false
+			end
+		end
+		for _, c in st:GetChildren() do
+			if c:IsA("BasePart") and (CityAssets.StadiumHide[c.Name] or CityAssets.StadiumReplace[c.Name]) then
+				Kit.hide(c)
+				if CityAssets.StadiumReplace[c.Name] then
+					c.CanCollide = false
+				end
+			end
+		end
+		m.Parent = st
+		count(ctx, "Estadio", m)
+		n += 1
+	end
+	local _ = out
+	return n
+end
+
+---------------------------------------------------------------------
+-- 12. Instituto: el colegio de ladrillo (76558120171446), solo por fuera
+---------------------------------------------------------------------
+-- Los colegios del juego se recorren por dentro (aulas, historia): no se tocan. El de ladrillo va al
+-- lado, en un hueco de una manzana de colegio (o del campus), como edificio que solo se ve por fuera,
+-- con una caja de choque invisible (en gráficos Bajo se ve la caja y se esconde la malla).
+
+CityAssets.SchoolScales = { 0.55, 0.45, 0.38 }
+
+function CityAssets.school(ctx: Ctx): boolean
+	local t = ctx.Pools.Instituto and ctx.Pools.Instituto[1]
+	if not t then
+		return false
+	end
+	local areas: { Kit.Area } = {}
+	for _, d in ctx.Town:GetDescendants() do
+		if d:IsA("Model") and string.sub(d.Name, 1, 15) == "Manzana_Colegio" then
+			local g = d:FindFirstChild("BlockGround")
+			if g and g:IsA("BasePart") then
+				table.insert(areas, Kit.areaOf(g))
+			end
+		end
+	end
+	local region = ctx.Town:FindFirstChild("Region")
+	for _, name in { "Campus Valmar" } do
+		local town = region and region:FindFirstChild(name)
+		for _, g in (town and town:GetChildren() or {}) do
+			if g.Name == "BlockGround" and g:IsA("BasePart") then
+				table.insert(areas, Kit.areaOf(g))
+			end
+		end
+	end
+	for _, s in CityAssets.SchoolScales do
+		for _, a in areas do
+			local foot = t.Size * s
+			local spot = Kit.findSpot(a, foot, { Query = ctx.Query, Margin = 4, Step = 8 })
+			if spot then
+				local m = Kit.spawn(t, spot, s, nil, { Collide = false, Mesh = true, Shadow = 6 })
+				m.Name = "Instituto"
+				local box = Instance.new("Part")
+				box.Name = "InstitutoChoque"
+				box.Size = foot
+				box.CFrame = spot * CFrame.new(0, foot.Y / 2, 0)
+				box.Color = Color3.fromRGB(150, 80, 60)
+				box.Material = Enum.Material.Brick
+				box.Anchored = true
+				box.Transparency = 1
+				box:AddTag(Kit.ShellTag)
+				box.Parent = m
+				m.Parent = folder(ctx.Parent, "Colegios")
+				count(ctx, "Instituto", m)
+				return true
+			end
+		end
+	end
+	return false
+end
+
+---------------------------------------------------------------------
 -- Todo junto
 ---------------------------------------------------------------------
 
@@ -1327,6 +1480,8 @@ function CityAssets.run(ctx: Ctx): { [string]: number }
 		{ "harbour", CityAssets.harbour },
 		{ "skyline", CityAssets.skyline },
 		{ "farmhouse", CityAssets.farmhouse },
+		{ "stadiums", CityAssets.stadiums },
+		{ "school", CityAssets.school },
 	}
 	for _, step in steps do
 		local ok, err = pcall(step[2], ctx)

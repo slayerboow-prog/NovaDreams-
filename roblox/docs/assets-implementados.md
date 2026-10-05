@@ -173,11 +173,16 @@ todo queda como antes. Prueba: `lune run scripts/test-carbodies.luau`.
 | 97902046131324 | mesh pack (11 coches europeos) | Los 11, ligeros y con su textura (no se pintan): «Brisa Uno», «Toro Reparto», «Aurea Nube», «Kestrel Alba», «Aurea Paseo», «Valmar Mini», «Kestrel Vela», «Brisa Ola», «Toro Familia», «Toro Familia Plus», «Kestrel Lince». Aparcados (el doble de a menudo) y tráfico. |
 | 4573650411 | Pack de policía (California) | Solo el sedán clásico, simplificado a sus 45 piezas más grandes: «Valmar Patrulla Clásica», 3 patrullas como mucho. Sin «CHP», sin marcas, sin sus 292 scripts. |
 | 15418880736 | Berlina importada (ex-marca) | «Aurea Lumen», sin marca, simplificada a 40 piezas: solo 4 aparcadas (pesa 280 000 tris). |
-| 18912826861 | Autobús urbano | **No**: 255 000 tris y 866 objetos por autobús, con el logo de una empresa real; nuestro autobús tiene puertas que se abren y asientos que se usan (BusService). |
-| 16893586720 | Autocar (ex-marca) | **No**: 1 804 piezas de bloques (no malla) y no hay líneas interurbanas donde ponerlo. |
-| 130974691456028 | Camión caja | **No**: trae puerta trasera (familia 3, docs/assets-usuario-4.md) y en el juego no hay camiones de reparto. |
+| 18912826861 | Autobús urbano | **Reemplazado por 16358361587** (no se usa: 255 000 tris y el logo de una empresa real). |
+| 16893586720 | Autocar (ex-marca) | **Reemplazado por 95641562400547** (no se usa: 1 804 piezas de bloques, no malla). |
+| 130974691456028 | Camión caja | **Reemplazado por 4128265113** (no se usa: trae puerta trasera, familia 3). |
 | 18577576400 | «Realistic Car Pack (NOT MINE!)» | **No**: robado (lo dice el título), todo deportivos de marca y con `Protector 2.0`. |
-| 131247677717086 | Realistic Tires | **No**: es UNA sola malla con 4 neumáticos apilados (no se puede separar en ruedas) y trae puertas traseras (familias 3 y 4). Los neumáticos de malla salen de cada pack de coches. |
+| 131247677717086 | Realistic Tires | **Reemplazado por 17601139281** (respaldo 8448337398). No se usa: una sola malla con 4 neumáticos apilados y puertas traseras (familias 3 y 4). |
+| 16358361587 | Autobús urbano (limpio) | «Valmar Urbano»: la malla encima de NUESTRO autobús (BusService), que sigue con sus puertas que se abren, asientos, barras, validadora y conductor; los letreros de línea de Valmar van al morro, la cola y el costado. Su malla «Decals» (el rótulo «CENTURY LINE 7701») no se copia. |
+| 95641562400547 | Autocar (limpio) | «Toro Ruta»: autocar del tráfico (tipo «Pesado»), sin su suciedad (Decals/Textures) ni el BoolValue; con sus ruedas de malla. No sale en gráficos Bajo. |
+| 4128265113 | Camión caja (limpio) | «Kestrel Reparto»: camión de reparto del tráfico (tipo «Pesado»), el morro por la cabina. No sale en gráficos Bajo. |
+| 17601139281 | Rueda completa (neumático + llanta) | Las ruedas de tu coche, las patrullas y los taxis (giran y viran con las nuestras). Los demás coches llevan el neumático de su pack (menos triángulos). |
+| 8448337398 | Neumático PBR | Respaldo de 17601139281 (con nuestra llanta) si esa no carga. |
 
 ## Armas, ejército y zonas de terror (World/UserArsenal + World/Kit/Pliegues)
 
@@ -268,13 +273,18 @@ Prueba: `lune run scripts/test-cityassets.luau`.
 | 79665094662717 | Japan City Pack | Sus 5 edificios en el skyline lejano «costa de enfrente», al sur, al otro lado del mar (no choca, carga persistente, Bajo lo esconde). Sin carreteras, farola ni palmeras. Virus (familias 3 y 4) borrado. |
 | 111283915226740 | Casa polaca | Casa de campo en un hueco de Villaverde. Sin scripts (familia 5), sin agua ni nombres en polaco. |
 | 15004077857 | Realistic road pack | Ya estaba: World/StreetDress (señales y alcantarillas). |
-| 12527638598 | Roads | **No**: planos con líneas pintadas; las calles ya tienen sus marcas hechas a medida del tráfico y se duplicarían. |
-| 16088161488 | Wessel road pack | **No**: texturas antiguas sin PBR, peores que los materiales que ya llevan calles y aceras. |
-| 11347783499 | City Pack Realistic City | **No**: ciudad de 2010 de bloques y Decals, sin ninguna malla; haría las calles más «cutres». |
+| 12527638598 | Roads | **Reemplazado por 6432233485** (City Road Pack). Este no: planos con líneas pintadas que duplicarían las marcas. |
+| 16088161488 | Wessel road pack | **Reemplazado por 6432233485** (City Road Pack). Este no: texturas antiguas sin PBR. |
+| 11347783499 | City Pack Realistic City | **Reemplazado por 6432233485 y 6418277837**. Este no: ciudad de 2010 de bloques y Decals, sin mallas. |
 | 6430696462 | Túnel | **No**: ninguna carretera de Valmar atraviesa un monte; sería una caja de bloques en medio de la calle. |
-| 139484418601989 | Skyscraper city | **No**: no trae edificios, solo un cielo con una foto real de Tokio (y virus) que chocaría con el cielo de día/noche. El skyline lejano se hace con 79665094662717 y el city pack. |
-| 70353066 | Estadio de fútbol | **No**: 3 644 bloques y 1 812 Decals de 2012, NPCs que dejan sangre; ya hay estadios. |
-| 1119962617 | Colegio | **No**: copia del mapa de otro juego (Roblox High School). |
+| 139484418601989 | Skyscraper city | **Reemplazado por 16524471626 + 6418277837**. Este no: solo un cielo con una foto real de Tokio (y virus). |
+| 70353066 | Estadio de fútbol | **Reemplazado por 15569059562**. Este no: 3 644 bloques y 1 812 Decals de 2012, NPCs que dejan sangre. |
+| 1119962617 | Colegio | **Reemplazado por 76558120171446**. Este no: copia del mapa de otro juego (Roblox High School). |
+| 16524471626 | City Background Night | Centro del skyline lejano «costa de enfrente» (una malla, ventanas que brillan de noche); no choca, Bajo lo esconde. |
+| 6418277837 | City Building Pack (Roblox) | Hasta 6 edificios (`building_NN`, sin secciones ni el cartel de Roblox) en el skyline lejano, escalados. |
+| 76558120171446 | Colegio de ladrillo | «Instituto» solo por fuera en un hueco de una manzana de colegio (o del campus), con caja de choque invisible (Bajo enseña la caja). Los colegios que se recorren por dentro no se tocan. Sin la Camera. |
+| 15569059562 | Mini Football stadium | Encima de cada Estadio: su césped encaja en nuestro campo (mismo largo, centrado); nuestras gradas y tejado se esconden y dejan de chocar (chocan las de malla); campo, postes, larguero y red de bloques siguen chocando invisibles (el balón y el minijuego igual). |
+| 6432233485 | City Road Pack (Roblox) | Solo sus parches de asfalto PBR, encima de los parches de Kit/CityDetail (mismo sitio: no duplica nada). Marcas viales y tapas no (ya están; las tapas las viste StreetDress). Sin scripts ni el cartel. |
 | 26972564 | Búnker | **No**: 12 bloques de 2010, nada aprovechable. |
 
 ## Zonas de misión con los materiales exóticos del Mega Pack (World/MissionZones)

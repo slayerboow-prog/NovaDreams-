@@ -369,6 +369,51 @@ PACKS[8380605189] = function()
 	end)
 end
 
+-- Reemplazos limpios (docs/assets-reemplazos.md)
+PACKS[16524471626] = function()
+	return pack("City Background Night", function(r)
+		box(r, "CityMesh", Vector3.new(617, 259, 545), "MeshPart")
+	end)
+end
+PACKS[6418277837] = function()
+	return pack("City Building Pack", function(r)
+		local f = Instance.new("Folder")
+		f.Name = "City Building Pack"
+		f.Parent = r
+		box(model(f, "building_01"), "Tower", Vector3.new(110, 290, 110))
+		box(model(f, "building_01_sections"), "ground_floor", Vector3.new(110, 20, 110))
+		box(model(f, "RobloxBillboard"), "Board", Vector3.new(129, 89, 47))
+	end)
+end
+PACKS[76558120171446] = function()
+	return pack("Modern Brick School", function(r)
+		box(r, "SchoolMesh", Vector3.new(414, 79, 108), "MeshPart")
+		for i = 1, 30 do
+			part(r, "Window", Vector3.new(4, 6, 0.3), CFrame.new(-200 + i * 12, 30, -54))
+		end
+		Instance.new("Camera").Parent = r
+	end)
+end
+PACKS[15569059562] = function()
+	return pack("Mini Football stadium", function(r)
+		part(r, "Field", Vector3.new(150, 0.5, 96), CFrame.new(0, 0.25, 0), "MeshPart")
+		part(r, "StandN", Vector3.new(228, 39, 16), CFrame.new(0, 19.5, 56), "MeshPart")
+		part(r, "StandS", Vector3.new(228, 20, 16), CFrame.new(0, 10, -56), "MeshPart")
+		part(r, "GoalA", Vector3.new(3, 8, 24), CFrame.new(-75, 4, 0), "MeshPart")
+	end)
+end
+PACKS[6432233485] = function()
+	return pack("City Road Pack", function(r)
+		local f = Instance.new("Folder")
+		f.Name = "City Road Pack"
+		f.Parent = r
+		box(model(f, "Road_Patch_02_A"), "Patch", Vector3.new(29.3, 0.05, 9.9), "MeshPart")
+		box(model(f, "Road_Patch_03_A"), "Patch", Vector3.new(7.9, 0.1, 12.9), "MeshPart")
+		box(model(f, "RobloxBillboard"), "Board", Vector3.new(129, 89, 47))
+		box(f, "Road_01_A", Vector3.new(40, 1, 40), "MeshPart")
+	end)
+end
+
 local loaded = {}
 local function loader(id: number): Instance?
 	local make = PACKS[id]
@@ -460,15 +505,19 @@ for _, list in { pools.Pesquero or {}, pools.Barca or {}, pools.Lancha or {} } d
 	end
 end
 local warship = false
-for _, list in pools do
-	for _, t in list do
-		if type(t) == "table" and t.Size and math.max(t.Size.X, t.Size.Z) > 250 then
+for _, key in { "Pesquero", "Barca", "Lancha", "LanchaRapida", "BarcoHundido" } do
+	for _, t in pools[key] or {} do
+		if math.max(t.Size.X, t.Size.Z) > 250 then
 			warship = true
 		end
 	end
 end
 check(not warship, "sin el buque de guerra")
-check(pools.Skyline and #pools.Skyline == 4, "skyline: 2 de Japón + 2 del city pack (sin la carretera)")
+check(pools.Skyline and #pools.Skyline == 5, "skyline: 2 de Japón + 2 del city pack + 1 del City Building Pack (sin secciones, carretera ni cartel)")
+check(pools.SkylineGrande and #pools.SkylineGrande == 1, "skyline grande de una malla (16524471626)")
+check(pools.Instituto and #pools.Instituto == 1, "colegio de ladrillo (sin la Camera)")
+check(pools.EstadioMalla and #pools.EstadioMalla == 1, "estadio de mallas con su césped reconocido")
+check(pools.Parche and #pools.Parche == 2, "parches del City Road Pack (sin tramos de calle ni cartel)")
 check(not pools.Coke and not pools.OnlyFantas, "sin lata de Coca-Cola ni la máquina de la parodia")
 
 ---------------------------------------------------------------------
@@ -546,6 +595,22 @@ local sand = part(playa, "Sand", Vector3.new(100, 0.6, 118), CFrame.new(3881, 0.
 local region = model(town, "Region")
 local vv = model(region, "Villaverde")
 part(vv, "BlockGround", Vector3.new(220, 1, 220), CFrame.new(-2700, -0.5, -1850))
+
+-- Parche de asfalto procedural (Kit/CityDetail) en la calzada
+local asphalt = part(streets, "AsphaltPatch", Vector3.new(8, 0.02, 4), CFrame.new(-100, -0.08, -20))
+-- Estadio (como Region/Distrito Financiero): explanada, campo, porterías y gradas de bloques
+local reg2 = model(town, "Distrito")
+local estadio = model(reg2, "Estadio")
+part(estadio, "Esplanade", Vector3.new(196, 1, 198), CFrame.new(120, 0.5, -681))
+local stPitch = part(estadio, "Pitch", Vector3.new(110, 0.3, 70), CFrame.new(120, 1.15, -680))
+local stPost = part(estadio, "Post", Vector3.new(0.4, 7.6, 0.4), CFrame.new(65, 4.8, -687))
+local stStand = part(estadio, "Stand", Vector3.new(124, 18, 24), CFrame.new(120, 10, -630))
+part(estadio, "Scoreboard", Vector3.new(26, 8, 0.6), CFrame.new(199, 21, -680))
+-- Manzana de colegio con el colegio que se recorre (ocupa el norte) y sitio libre al sur
+local mc = model(town, "Manzana_ColegioCentro")
+part(mc, "BlockGround", Vector3.new(260, 1, 260), CFrame.new(1000, -0.5, 4000))
+local colegio = model(mc, "Colegio")
+local colegioBody = part(colegio, "Wall", Vector3.new(140, 29, 40), CFrame.new(1000, 14.5, 3900))
 
 -- Consulta de huecos y rayo hacia abajo (como GetPartBoundsInBox y Raycast, con cajas)
 local function allParts(): { BasePart }
@@ -762,6 +827,54 @@ if sky then
 	check(allOff, "el skyline no choca y Bajo lo esconde")
 end
 check(parent:FindFirstChild("Campo") and parent.Campo:FindFirstChild("CasaCampo"), "casa de campo en Villaverde")
+
+-- Parches PBR encima de los parches de bloques (mismo sitio, sin duplicar)
+check(asphalt:FindFirstChild("Malla") and asphalt.Transparency == 1, "parche de asfalto con malla PBR; el de bloques escondido")
+if asphalt:FindFirstChild("Malla") then
+	local lo, hi = Kit.bounds(Kit.parts(asphalt.Malla))
+	check(hi.X - lo.X <= 8.01 and hi.Z - lo.Z <= 4.01, "el parche PBR no se sale del sitio del parche de antes")
+end
+-- Estadio: césped de malla encima de nuestro campo, mismo largo; lo de bloques escondido
+local em = estadio:FindFirstChild("EstadioMalla")
+check(em ~= nil, "estadio de mallas encima del estadio")
+if em then
+	local cesped
+	for _, p in Kit.parts(em) do
+		if p.Name == "Cesped" then
+			cesped = p
+		end
+	end
+	local lo, hi = Kit.bounds({ cesped })
+	check(math.abs((hi.X - lo.X) - 110) < 0.5 and math.abs((lo.X + hi.X) / 2 - 120) < 0.5 and math.abs((lo.Z + hi.Z) / 2 + 680) < 0.5, "el césped de malla encaja en nuestro campo (110 de largo, centrado)")
+	check(math.abs(hi.Y - (stPitch.CFrame.Position.Y + 0.15)) < 0.2, "a ras de nuestro campo")
+	check(not cesped.CanCollide, "el césped de malla no choca (el suelo sigue siendo el campo)")
+	local alo, ahi = Kit.bounds(Kit.parts(em))
+	check(ahi.X - alo.X <= 196.01 and ahi.Z - alo.Z <= 198.01, "el estadio de mallas cabe en la explanada")
+end
+check(stPitch.Transparency == 1 and stPitch.CanCollide ~= false, "nuestro campo escondido pero sigue de suelo")
+check(stPost.Transparency == 1 and stPost.CanCollide ~= false, "postes escondidos pero chocan (el balón)")
+check(stStand.Transparency == 1 and not stStand.CanCollide, "grada de bloques escondida (chocan las de malla)")
+-- Instituto: en la manzana del colegio, sin pisar el colegio que se recorre
+local inst = parent:FindFirstChild("Colegios") and parent.Colegios:FindFirstChild("Instituto")
+check(inst ~= nil, "colegio de ladrillo en la manzana del colegio")
+if inst then
+	local lo, hi = Kit.bounds(Kit.parts(inst))
+	local clo, chi = Kit.bounds({ colegioBody })
+	check(not overlaps(lo, hi, clo, chi, 0.01), "no se mete en el colegio que se recorre")
+	local g = mc.BlockGround
+	local glo, ghi = Kit.bounds({ g })
+	check(lo.X >= glo.X and hi.X <= ghi.X and lo.Z >= glo.Z and hi.Z <= ghi.Z, "dentro de su manzana")
+	local box = inst:FindFirstChild("InstitutoChoque")
+	check(box and box.CanCollide ~= false and box.Transparency == 1 and box:HasTag("BuildingShell"), "caja de choque invisible (Bajo la enseña)")
+	local meshCollide = false
+	for _, p in Kit.parts(inst) do
+		if p ~= box and p.CanCollide then
+			meshCollide = true
+		end
+	end
+	check(not meshCollide, "las mallas del instituto no chocan (choca la caja)")
+end
+check(sky and sky:FindFirstChild("CiudadLejana"), "ciudad lejana de una malla en medio del skyline")
 
 -- Oficina: dos armarios de servidores en la esquina libre
 local room = model(nil, "Interior_Oficina")
