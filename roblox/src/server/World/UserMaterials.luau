@@ -178,8 +178,22 @@ local function tryPick(service: any, library: Instance, choice: any, cand: any):
 	return variant
 end
 
+-- BaseMaterial de cada variant guardado de un pack (para los candidatos que buscan por palabras)
+local function basesOf(library: Instance, pack: string): { [string]: string }
+	local out = {}
+	local folder = library:FindFirstChild(pack)
+	for _, item in if folder then folder:GetChildren() else {} do
+		local name = item:GetAttribute("SourceName")
+		if item:IsA("MaterialVariant") and type(name) == "string" and out[name] == nil then
+			out[name] = (item :: any).BaseMaterial.Name
+		end
+	end
+	return out
+end
+
 function UserMaterials.apply(service: Instance, library: Instance, loaded: { [string]: { [string]: boolean } }): { any }
 	local applied = {}
+	local bases: { [string]: { [string]: string } } = {}
 	for _, choice in Choice.Table do
 		-- primero los que ya vienen sobre este material
 		local ordered = {}
@@ -195,14 +209,19 @@ function UserMaterials.apply(service: Instance, library: Instance, loaded: { [st
 		end
 		for _, cand in ordered do
 			local pack = loaded[cand.Pack]
-			if pack and pack[cand.Name] then
-				local variant = tryPick(service, library, choice, cand)
+			if pack and cand.Find and not bases[cand.Pack] then
+				bases[cand.Pack] = basesOf(library, cand.Pack)
+			end
+			local name = Choice.match(cand, pack, if cand.Find then bases[cand.Pack] else nil)
+			if name then
+				local found = { Pack = cand.Pack, Name = name, From = cand.From }
+				local variant = tryPick(service, library, choice, found)
 				if variant then
 					service:SetAttribute(Choice.attribute(choice.Material), variant.Name)
 					table.insert(applied, {
 						Material = choice.Material,
 						Pack = cand.Pack,
-						Name = cand.Name,
+						Name = name,
 						From = cand.From,
 						Studs = choice.Studs,
 						Pattern = choice.Pattern,
@@ -281,9 +300,16 @@ function UserMaterials.start(load: ((number) -> Instance?)?, dress: ((Instance, 
 	end
 	local loaded: { [string]: { [string]: boolean } } = {}
 	local count = 0
-	for _, pack in Choice.Packs do
-		local asset = (load or download)(pack.Id)
-		if asset then
+	local packs = table.clone(Choice.Packs)
+	for _, pack in Choice.ExtraPacks do
+		table.insert(packs, pack)
+	end
+	for _, pack in packs do
+		-- (en pcall: un pack que da error al cargar no para los demás)
+		local okLoad, asset = pcall(load or download, pack.Id)
+		if not okLoad then
+			warn(("[UserMaterials] %s: %s"):format(pack.Short, tostring(asset)))
+		elseif asset then
 			local ok, names = pcall(UserMaterials.unpack, asset, pack.Short, library)
 			if ok then
 				loaded[pack.Short] = names
@@ -302,7 +328,7 @@ function UserMaterials.start(load: ((number) -> Instance?)?, dress: ((Instance, 
 	for _, pick in applied do
 		table.insert(list, ("%s=%s"):format(pick.Material, pick.VariantName))
 	end
-	print(("[UserMaterials] %d/%d packs, %d materiales sustituidos: %s"):format(count, #Choice.Packs, #applied, table.concat(list, ", ")))
+	print(("[UserMaterials] %d/%d packs, %d materiales sustituidos: %s"):format(count, #packs, #applied, table.concat(list, ", ")))
 	if dress then
 		local ok, err = pcall(dress, game:GetService("MaterialService"), library, load or download, UserMaterials.unpack)
 		if not ok then

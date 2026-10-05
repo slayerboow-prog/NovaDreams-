@@ -38,6 +38,19 @@ UserMaterialChoice.Packs = {
 	{ Id = 92927007790601, Short = "Tyler", Title = "Tylers Realistic Materials (asfaltos)" },
 } :: { Pack }
 
+-- Packs de la 5ª y 6ª tanda (docs/assets-usuario-5.md y docs/assets-implementados.md). Se cargan
+-- después de los 6 de arriba y solo son RESPALDO o VARIEDAD (nunca el primero de una fila, salvo la
+-- arena de playa que eligió el dueño):
+--   * PBR: 20 MaterialVariant de IAmAGreenStickMan, uno por material de Roblox («Brick_PBR»…).
+--     Tiene 10 votos negativos y no se ha visto en el juego: van detrás de los que ya se han probado.
+--   * Todos: «ALL MATERIALS» (no está en los docs: se busca por palabras y por BaseMaterial).
+--   * Arena: «realistic sand texture» (no está en los docs: cualquier variant que venga sobre Sand).
+UserMaterialChoice.ExtraPacks = {
+	{ Id = 9408271791, Short = "PBR", Title = "PBR_Textures (20 MaterialVariant)" },
+	{ Id = 12715816700, Short = "Todos", Title = "ALL MATERIALS" },
+	{ Id = 9268236860, Short = "Arena", Title = "Realistic sand texture" },
+} :: { Pack }
+
 -- Variants rotos (texturas rbxtemp://, salen errores en la consola al cargar el Mega Pack): se borran
 UserMaterialChoice.Broken = {
 	Mega = {
@@ -51,7 +64,9 @@ UserMaterialChoice.Broken = {
 	},
 } :: { [string]: { [string]: boolean } }
 
-export type Candidate = { Pack: string, Name: string, From: string }
+-- Name: nombre exacto (de los docs). Find: si no se sabe el nombre (packs sin lista en los docs),
+-- palabras que tiene que llevar (minúsculas; {} = cualquiera); se queda el más corto.
+export type Candidate = { Pack: string, Name: string, From: string, Find: { string }? }
 export type Choice = {
 	Material: string, -- Enum.Material que se sustituye en todo el juego (piezas y terreno)
 	Candidates: { Candidate },
@@ -63,6 +78,10 @@ export type Choice = {
 
 local function c(pack: string, name: string, from: string): Candidate
 	return { Pack = pack, Name = name, From = from }
+end
+-- Buscar por palabras en un pack sin lista (Name = "" hasta que se encuentra)
+local function find(pack: string, words: { string }, from: string): Candidate
+	return { Pack = pack, Name = "", From = from, Find = words }
 end
 
 -- LA TABLA DE ELECCIÓN. Para cambiar el aspecto de un material: cambiar aquí su primer candidato
@@ -82,7 +101,7 @@ UserMaterialChoice.Table = {
 	{
 		Material = "LeafyGrass",
 		-- Hierba alta del mismo pack que el resto del suelo natural (mismo tono y escala que Ground/Rock)
-		Candidates = { c("Real", "LeafyGrass", "LeafyGrass"), c("Tyler", "LeaftGrass2", "LeafyGrass") },
+		Candidates = { c("Real", "LeafyGrass", "LeafyGrass"), c("Tyler", "LeaftGrass2", "LeafyGrass"), find("Todos", { "leafy" }, "LeafyGrass") },
 		Whiten = 0.7,
 		Why = "hierba alta del pack Realistic Materials, a juego con tierra y roca",
 	},
@@ -111,7 +130,7 @@ UserMaterialChoice.Table = {
 		Material = "Concrete",
 		-- Hormigón del pack de piedras (el juego coherente de suelos y muros). Respaldo: el del generador
 		-- y el Concrete2 de Tyler.
-		Candidates = { c("Real", "Concrete", "Concrete"), c("Gen", "RealisticConcrete", "Concrete"), c("Tyler", "Concrete2", "Concrete") },
+		Candidates = { c("Real", "Concrete", "Concrete"), c("Gen", "RealisticConcrete", "Concrete"), c("Tyler", "Concrete2", "Concrete"), c("PBR", "Concrete_PBR", "Concrete"), find("Todos", { "concrete" }, "Concrete") },
 		Whiten = 0.35,
 		Why = "hormigón genérico del pack Realistic Materials",
 	},
@@ -119,7 +138,7 @@ UserMaterialChoice.Table = {
 		Material = "Brick",
 		-- Ladrillo con patrón Regular (las hiladas no se rompen); el Brick del pack de piedras es
 		-- orgánico y torcería las juntas. Respaldo: «Red Bricks» del Mega Pack.
-		Candidates = { c("RealMad", "Realistic Bricks", "Brick"), c("Mega", "Red Bricks", "Brick"), c("Gen", "RealisticBricks", "Brick") },
+		Candidates = { c("RealMad", "Realistic Bricks", "Brick"), c("Mega", "Red Bricks", "Brick"), c("Gen", "RealisticBricks", "Brick"), c("PBR", "Brick_PBR", "Brick"), find("Todos", { "brick" }, "Brick") },
 		Pattern = "Regular",
 		Whiten = 0.45,
 		Why = "ladrillo rojo con hiladas rectas",
@@ -146,7 +165,7 @@ UserMaterialChoice.Table = {
 	{
 		Material = "Cobblestone",
 		-- Zócalos de piedra y bordes de estanques: adoquín del pack de piedras. Respaldo: el del generador.
-		Candidates = { c("Real", "Cobblestone", "Cobblestone"), c("Gen", "RealisticCobbleStone", "Cobblestone"), c("Mega", "Dusty Cobble", "Cobblestone") },
+		Candidates = { c("Real", "Cobblestone", "Cobblestone"), c("Gen", "RealisticCobbleStone", "Cobblestone"), c("Mega", "Dusty Cobble", "Cobblestone"), c("PBR", "Cobblestone_PBR", "Cobblestone") },
 		Whiten = 0.4,
 		Why = "adoquín/piedra de zócalo",
 	},
@@ -162,41 +181,52 @@ UserMaterialChoice.Table = {
 		Material = "Slate",
 		-- Peldaños, rompeolas, tejadillos y pizarras de clase: pizarra natural (sin baldosas: «Slate
 		-- Tiled» pondría juntas en las pizarras de las aulas).
-		Candidates = { c("Real", "Slate", "Slate"), c("Mega", "Slate Cliff Rock", "Slate") },
+		Candidates = { c("Real", "Slate", "Slate"), c("Mega", "Slate Cliff Rock", "Slate"), c("PBR", "Slate_PBR", "Slate") },
 		Whiten = 0.2,
 		Why = "pizarra natural (peldaños, rompeolas, pizarras)",
 	},
 	{
 		Material = "Marble",
-		Candidates = { c("Real", "Marble", "Marble"), c("Mega", "Marble SmoothPolishedElegantMaterial", "Marble") },
+		Candidates = { c("Real", "Marble", "Marble"), c("Mega", "Marble SmoothPolishedElegantMaterial", "Marble"), c("PBR", "Marble_PBR", "Marble"), find("Todos", { "marble" }, "Marble") },
 		Whiten = 0.25,
 		Why = "mármol de suelos y edificios nobles, del pack de piedras",
 	},
 	{
 		Material = "Sand",
-		-- Playas y fondo del mar (terreno). OJO: el «RealisticGold» del generador va sobre Sand y es oro.
-		Candidates = { c("Real", "Sand", "Sand"), c("Mega", "Sand 1", "Sand") },
+		-- Playas y fondo del mar (terreno). Primero la arena que eligió el dueño para la playa
+		-- («realistic sand texture», 9268236860: cualquier variant suyo que venga sobre Sand; si viene
+		-- sobre otro material, World/MaterialExtras lo pone pieza a pieza en la arena de la playa). Luego
+		-- la del pack de piedras, la del Mega Pack y la de PBR_Textures. OJO: el «RealisticGold» del
+		-- generador va sobre Sand y es oro (por eso Arena busca «sand» antes que cualquier otro nombre).
+		Candidates = {
+			find("Arena", { "sand" }, "Sand"),
+			find("Arena", {}, "Sand"),
+			c("Real", "Sand", "Sand"),
+			c("Mega", "Sand 1", "Sand"),
+			c("PBR", "Sand_PBR", "Sand"),
+			find("Todos", { "sand" }, "Sand"),
+		},
 		Whiten = 0.55,
-		Why = "arena de playa (terreno)",
+		Why = "arena de playa del dueño (realistic sand) o la del pack de piedras",
 	},
 	{
 		Material = "Rock",
 		-- Montañas del terreno y rocas sueltas
-		Candidates = { c("Real", "Rock", "Rock"), c("Mega", "Rough Rock", "Rock") },
+		Candidates = { c("Real", "Rock", "Rock"), c("Mega", "Rough Rock", "Rock"), find("Todos", { "rock" }, "Rock") },
 		Whiten = 0.5,
 		Why = "roca de las montañas del terreno",
 	},
 	{
 		Material = "Ground",
 		-- Claros de tierra del terreno y huertos. OJO: el «RealisticStone» del generador va sobre Ground.
-		Candidates = { c("Real", "Ground", "Ground"), c("Mega", "Dry Dirt", "Ground") },
+		Candidates = { c("Real", "Ground", "Ground"), c("Mega", "Dry Dirt", "Ground"), find("Todos", { "ground" }, "Ground") },
 		Whiten = 0.5,
 		Why = "tierra del terreno y los huertos",
 	},
 	{
 		Material = "WoodPlanks",
 		-- Suelos y tarimas de tablas: con patrón Regular (las tablas siguen rectas)
-		Candidates = { c("RealMad", "Realistic Wood Planks", "WoodPlanks"), c("Real", "WoodPlanks", "WoodPlanks") },
+		Candidates = { c("RealMad", "Realistic Wood Planks", "WoodPlanks"), c("Real", "WoodPlanks", "WoodPlanks"), c("PBR", "WoodPlanks_PBR", "WoodPlanks") },
 		Pattern = "Regular",
 		Whiten = 0.35,
 		Why = "tablas de madera rectas",
@@ -205,17 +235,33 @@ UserMaterialChoice.Table = {
 		Material = "Wood",
 		-- La madera que no lleva nuestra «MaderaVeta» pieza a pieza (troncos, ramas y lo de fuera de
 		-- la ciudad): madera genérica del pack de madera. Los muebles y puertas siguen con MaderaVeta.
-		Candidates = { c("RealMad", "Realistic Wood", "Wood"), c("Real", "Wood", "Wood") },
+		Candidates = { c("RealMad", "Realistic Wood", "Wood"), c("Real", "Wood", "Wood"), c("PBR", "Wood_PBR", "Wood") },
 		Whiten = 0.35,
 		Why = "madera genérica del pack de madera",
 	},
 	{
 		Material = "CeramicTiles",
 		-- Baños, cocinas y piscinas: los CeramicTiles de Tyler son los únicos sobre CeramicTiles
-		Candidates = { c("Tyler", "CeramicTiles1", "CeramicTiles"), c("Tyler", "CeramicTiles5", "CeramicTiles") },
+		Candidates = { c("Tyler", "CeramicTiles1", "CeramicTiles"), c("Tyler", "CeramicTiles5", "CeramicTiles"), find("Todos", { "ceramic" }, "CeramicTiles") },
 		Pattern = "Regular",
 		Whiten = 0.2,
 		Why = "azulejo cerámico de Tyler",
+	},
+	{
+		Material = "Pebble",
+		-- Grava de caminos y alcorques: la del pack de piedras no existe; «Pebble_PBR» de PBR_Textures
+		-- (sobre Pebble) y lo que traiga «ALL MATERIALS».
+		Candidates = { c("PBR", "Pebble_PBR", "Pebble"), find("Todos", { "pebble" }, "Pebble") },
+		Pattern = "Organic",
+		Whiten = 0.4,
+		Why = "grava de caminos (Pebble_PBR)",
+	},
+	{
+		Material = "DiamondPlate",
+		-- Chapa estriada (rampas, escalones de camión, muelles): la del pack de madera, la de PBR_Textures
+		Candidates = { c("RealMad", "Realistic Metal Plate", "DiamondPlate"), c("PBR", "Diamondplate_PBR", "DiamondPlate") },
+		Whiten = 0.3,
+		Why = "chapa estriada de muelles y rampas (Realistic Metal Plate)",
 	},
 } :: { Choice }
 
@@ -226,6 +272,36 @@ function UserMaterialChoice.variantName(short: string, name: string): string
 		clean = "Variant"
 	end
 	return UserMaterialChoice.Prefix .. short .. "_" .. clean
+end
+
+-- Nombre del pack que vale para un candidato: el exacto o, si busca por palabras, el más corto que
+-- las lleve todas (a igualdad, el primero por orden alfabético: siempre el mismo). nil = ninguno.
+-- names[nombre] = cualquier cosa (true o el BaseMaterial); bases (opcional) = BaseMaterial de cada uno,
+-- para quedarse solo con los que vienen sobre From.
+function UserMaterialChoice.match(cand: Candidate, names: { [string]: any }?, bases: { [string]: string }?): string?
+	if not names then
+		return nil
+	end
+	if cand.Name ~= "" and names[cand.Name] then
+		return cand.Name
+	end
+	if not cand.Find then
+		return nil
+	end
+	local best: string? = nil
+	for name in names do
+		local lower = string.lower(name)
+		local ok = not bases or bases[name] == nil or bases[name] == cand.From
+		for _, word in cand.Find do
+			if ok and not string.find(lower, word, 1, true) then
+				ok = false
+			end
+		end
+		if ok and (best == nil or #name < #best or (#name == #best and name < (best :: string))) then
+			best = name
+		end
+	end
+	return best
 end
 
 -- ¿Este variant es de los rotos?
@@ -241,12 +317,12 @@ function UserMaterialChoice.choose(loaded: { [string]: { [string]: boolean } }):
 	local picks = {}
 	for _, choice in UserMaterialChoice.Table do
 		for _, cand in choice.Candidates do
-			local pack = loaded[cand.Pack]
-			if pack and pack[cand.Name] then
+			local name = UserMaterialChoice.match(cand, loaded[cand.Pack])
+			if name then
 				table.insert(picks, {
 					Material = choice.Material,
 					Pack = cand.Pack,
-					Name = cand.Name,
+					Name = name,
 					From = cand.From,
 					Studs = choice.Studs,
 					Pattern = choice.Pattern,

@@ -50,14 +50,15 @@ local Textures = load("src/shared/Textures.luau")
 -- El doc: id del pack -> lista de { Name, Base, Studs, Pattern }
 ---------------------------------------------------------------------
 local doc: { [number]: { { Name: string, Base: string, Studs: number, Pattern: string } } } = {}
-do
+-- (PBR_Textures, de la 5ª tanda, está en docs/assets-usuario-5.md con un encabezado «####»)
+for _, path in { "docs/assets-usuario.md", "docs/assets-usuario-5.md" } do
 	local current: number? = nil
-	for line in fs.readFile("docs/assets-usuario.md"):gmatch("[^\n]+") do
-		local id = line:match("^## (%d+) ")
+	for line in fs.readFile(path):gmatch("[^\n]+") do
+		local id = line:match("^#+ (%d+) ")
 		if id then
 			current = tonumber(id)
-			doc[current :: number] = {}
-		elseif line:match("^## ") then
+			doc[current :: number] = doc[current :: number] or {}
+		elseif line:match("^#") then
 			current = nil
 		elseif current then
 			local name, base, studs, pattern = line:match("^| (.-) | (%a+) | ([%d%.]+) | (%a+) |$")
@@ -67,8 +68,22 @@ do
 		end
 	end
 end
+-- «ALL MATERIALS» y la arena de la 6ª tanda no tienen lista en los docs: nombres verosímiles (y uno
+-- de oro sobre Sand, como el «RealisticGold» del generador, que nunca debe salir en la playa)
+doc[12715816700] = {
+	{ Name = "Concrete Wall", Base = "Concrete", Studs = 10, Pattern = "Regular" },
+	{ Name = "Brick", Base = "Brick", Studs = 10, Pattern = "Regular" },
+	{ Name = "Pebble", Base = "Pebble", Studs = 10, Pattern = "Organic" },
+	{ Name = "Sand", Base = "Sand", Studs = 10, Pattern = "Organic" },
+	{ Name = "Gold", Base = "Sand", Studs = 10, Pattern = "Regular" },
+}
+doc[9268236860] = { { Name = "realistic sand", Base = "Sand", Studs = 12, Pattern = "Organic" } }
 local byShort: { [string]: { [string]: { Base: string, Count: number } } } = {}
-for _, pack in Choice.Packs do
+local allPacks = table.clone(Choice.Packs)
+for _, pack in Choice.ExtraPacks do
+	table.insert(allPacks, pack)
+end
+for _, pack in allPacks do
 	local list = doc[pack.Id]
 	byShort[pack.Short] = {}
 	for _, v in list or {} do
@@ -92,6 +107,12 @@ do
 		end
 	end
 	check(ok and #Choice.Packs == 6, "se leen los 6 packs del doc con todos sus variants (1, 20, 6, 524, 8, 68)")
+	check(doc[9408271791] and #doc[9408271791] == 19, ("PBR_Textures: 19 variants en el doc (el «Glass_PBR» va sobre Ice y no cuenta): %d"):format(if doc[9408271791] then #doc[9408271791] else -1))
+	local extra = {}
+	for _, pack in Choice.ExtraPacks do
+		extra[pack.Id] = pack.Short
+	end
+	check(#Choice.ExtraPacks == 3 and extra[9408271791] == "PBR" and extra[12715816700] == "Todos" and extra[9268236860] == "Arena", "packs extra: PBR_Textures, ALL MATERIALS y la arena realista")
 end
 
 print("La tabla de elección")
@@ -116,9 +137,15 @@ do
 			okNum = false
 		end
 		check(#choice.Candidates >= 2 and type(choice.Why) == "string" and #choice.Why > 5, ("%s: al menos un respaldo y su porqué (%s)"):format(choice.Material, choice.Why))
-		for _, cand in choice.Candidates do
+		for i, cand in choice.Candidates do
 			local entry = byShort[cand.Pack] and byShort[cand.Pack][cand.Name]
-			if not entry then
+			if cand.Find then
+				-- (packs sin lista: buscan por palabras; nunca el primero salvo la arena del dueño)
+				if cand.Name ~= "" or (i == 1 and cand.Pack ~= "Arena") then
+					okRefs = false
+					print(("     %s: %s busca por palabras y va el primero"):format(choice.Material, cand.Pack))
+				end
+			elseif not entry then
 				okRefs = false
 				print(("     %s: %s/%s no está en el doc"):format(choice.Material, cand.Pack, cand.Name))
 			else
@@ -272,7 +299,7 @@ do
 	local grassBefore = w.terrain:GetMaterialColor(Enum.Material.Grass)
 
 	local loaded = {}
-	for _, pack in Choice.Packs do
+	for _, pack in allPacks do
 		local asset = fakePack(pack.Id)
 		loaded[pack.Short] = UserMaterials.unpack(asset, pack.Short, w.storage)
 	end
@@ -320,6 +347,9 @@ do
 	check(asphalt and asphalt.BaseMaterial == Enum.Material.Asphalt and overrideOf(w.service, "Asphalt") == "U_Real_Asphalt" and asphalt.StudsPerTile == 17, "asfalto: el Asphalt del pack de piedras (ya es Asphalt), 17 studs")
 	check(overrideOf(w.service, "Pavement") == "U_Mega_StoneTiles" and overrideOf(w.service, "Plaster") == "U_Mega_SmoothStucco" and overrideOf(w.service, "ClayRoofTiles") == "U_Mega_ClayShingles", "acera de losas de piedra, estuco liso y tejas de barro del Mega Pack")
 	check(w.storage.Mega:FindFirstChild("U_Mega_RedBricks") ~= nil and w.service:FindFirstChild("U_Mega_RedBricks") == nil, "los no elegidos se quedan en ServerStorage (no se replican)")
+	check(overrideOf(w.service, "Sand") == "U_Arena_realisticsand", "arena de playa y terreno: la «realistic sand» que eligió el dueño (no el oro de ALL MATERIALS)")
+	check(overrideOf(w.service, "Pebble") == "U_PBR_PebblePBR" and overrideOf(w.service, "DiamondPlate") == "U_RealMad_RealisticMetalPlate", "grava de PBR_Textures; chapa estriada del pack de madera")
+	check(overrideOf(w.service, "Concrete") == "U_Real_Concrete" and overrideOf(w.service, "Brick") == "U_RealMad_RealisticBricks", "los de PBR_Textures y ALL MATERIALS van de respaldo: el hormigón y el ladrillo siguen siendo los probados")
 	-- Lo nuestro
 	check(overrideOf(w.service, "Metal") == "MetalPintado" and overrideOf(w.service, "Granite") == "Bordillo", "el metal pintado y el bordillo de granito siguen siendo nuestros")
 	check(w.service:FindFirstChild("Asfalto") ~= nil and w.service:FindFirstChild("PinturaVial") ~= nil, "nuestros variants siguen en MaterialService (pieza a pieza y respaldo)")
@@ -355,6 +385,50 @@ do
 	UserMaterials.apply(w.service, w.storage, loaded)
 	check(overrideOf(w.service, "Asphalt") == "U_Real_Asphalt" and overrideOf(w.service, "Grass") == "U_Real_Grass", "sin Tyler ni el césped 2k: asfalto y césped del pack de piedras")
 	check(overrideOf(w.service, "Pavement") == "U_Mega_StoneTiles" and w.service.U_Mega_StoneTiles.BaseMaterial == Enum.Material.Pavement, "acera: losas de piedra del Mega Pack")
+end
+
+print("Packs nuevos: respaldo, arena sobre otro material y fallos")
+do
+	-- Solo los packs nuevos (los 6 de siempre no cargan): sus variants hacen de respaldo
+	local UserMaterials, _, w = newModules()
+	local loaded = {}
+	for _, pack in Choice.ExtraPacks do
+		loaded[pack.Short] = UserMaterials.unpack(fakePack(pack.Id), pack.Short, w.storage)
+	end
+	local left = 0
+	for _, item in w.storage:GetDescendants() do
+		if item:IsA("LuaSourceContainer") then
+			left += 1
+		end
+	end
+	check(left == 0, "sin scripts en PBR_Textures, ALL MATERIALS ni la arena")
+	UserMaterials.apply(w.service, w.storage, loaded)
+	check(overrideOf(w.service, "Brick") == "U_PBR_BrickPBR" and overrideOf(w.service, "Marble") == "U_PBR_MarblePBR" and overrideOf(w.service, "WoodPlanks") == "U_PBR_WoodPlanksPBR", "sin los packs de siempre: ladrillo, mármol y tablas de PBR_Textures")
+	check(overrideOf(w.service, "Concrete") == "U_PBR_ConcretePBR", "hormigón: el de PBR_Textures antes que el de ALL MATERIALS")
+	-- Arena sobre otro material: no se usa como global (no se puede cambiar su BaseMaterial)
+	local U2, _, w2 = newModules()
+	local model = Instance.new("Model")
+	local mv = Instance.new("MaterialVariant")
+	mv.Name = "SandReal"
+	mv.BaseMaterial = Enum.Material.Concrete
+	mv.Parent = model
+	local loaded2 = { Arena = U2.unpack(model, "Arena", w2.storage) }
+	loaded2.Real = U2.unpack(fakePack(13277933714), "Real", w2.storage)
+	U2.apply(w2.service, w2.storage, loaded2)
+	check(overrideOf(w2.service, "Sand") == "U_Real_Sand" and w2.service:FindFirstChild("U_Arena_SandReal") == nil, "arena del dueño sobre hormigón: el terreno sigue con la del pack de piedras (va pieza a pieza en la playa)")
+	-- Fallan los packs nuevos: todo como antes
+	local U3, _, w3 = newModules()
+	local ids = {}
+	for _, pack in Choice.Packs do
+		ids[pack.Id] = true
+	end
+	U3.start(function(id)
+		if not ids[id] then
+			error("HTTP 403")
+		end
+		return fakePack(id)
+	end)
+	check(overrideOf(w3.service, "Sand") == "U_Real_Sand" and overrideOf(w3.service, "Asphalt") == "U_Real_Asphalt", "si PBR_Textures, ALL MATERIALS o la arena fallan (aunque den error), todo sigue como antes")
 end
 
 print("Arranque entero (start) con packs de mentira")
