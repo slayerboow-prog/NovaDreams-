@@ -1521,7 +1521,7 @@ function BattlePassUI.init()
 	started = true
 	BP = require(script.Parent.Parent.Controllers.BattlePassClient :: any)
 	BP.setLevelUpToasts(true) -- (el aviso de nivel lo enseña onUnlocked: el servidor no repite el suyo)
-	Dialog.registerBig(NAME, BattlePassUI.close)
+	Dialog.registerBig(NAME, BattlePassUI.close, BattlePassUI.isOpen)
 	registerRow()
 	-- Tu tema del HUD y del teléfono (solo colores; lo que llevas lo dice el servidor con atributos)
 	local okSkin, errSkin = pcall(function()

@@ -1989,6 +1989,62 @@ do
 	rootProps.Position = roblox.Vector3.new(0, 3, -10)
 	Guide.dismissNote()
 
+	-- La nota lleva ✕ (móvil: ≥ 44 px) y no sale encima de una ventana (Mis vehículos): espera a
+	-- que se cierre, con su «Toca para ir». Cerrada con la ✕, la misma no vuelve en un rato.
+	local Dialog = loadModule("src/client/UI/Dialog")
+	local plaza = "💡 Pista: Ve a la Plaza Mayor"
+	local wentThere = false
+	Guide.note("Hint", plaza, "🧭 Toca para ir", function()
+		wentThere = true
+	end)
+	Guide.tick(0.25)
+	local closeButton = noteView:FindFirstChild("Close")
+	check(noteView.Visible and closeButton ~= nil and closeButton.Visible and closeButton.Size.X.Offset >= 44 and closeButton.Size.Y.Offset >= 44, "La pista lleva una ✕ para cerrarla (≥ 44 px)")
+	check(closeButton ~= nil and closeButton.Text == "✕" and closeButton.ZIndex > noteView.Go.ZIndex - 5, "La ✕ se ve y se puede tocar")
+	local vehiclesWindow = Dialog.window("Vehicles", "🚲 Mis vehículos", roblox.Vector2.new(480, 520))
+	check(Dialog.anyOpen(), "Dialog.anyOpen(): Mis vehículos está abierta")
+	Guide.tick(0.25)
+	check(noteView.Visible == false and tcard.Visible == false, "Con Mis vehículos abierta, la pista no sale encima")
+	for _ = 1, 30 do
+		Guide.tick(1)
+	end
+	check(noteView.Visible == false and Guide.currentNote() ~= nil and Guide.currentNote().Text == plaza, "Espera (30 s) sin perderse ni irse sola")
+	Guide.note("Hint", plaza, "🧭 Toca para ir", function() end)
+	Guide.dismissNote()
+	check(Guide.currentNote() == nil, "La misma pista no se pone dos veces en la cola")
+	Guide.note("Hint", plaza, "🧭 Toca para ir", function()
+		wentThere = true
+	end)
+	vehiclesWindow:Destroy()
+	check(not Dialog.anyOpen(), "Al cerrar la ventana ya no hay ninguna abierta")
+	Guide.tick(0.25)
+	check(noteView.Visible and noteView.Text.Text == plaza and noteView.Go.Visible and noteView.Go.Text:find("Toca para ir", 1, true) ~= nil, "Al cerrarla, sale la pista con «Toca para ir»")
+	noteView.Go.Activated:Fire()
+	check(wentThere and noteView.Visible == false, "«Toca para ir» sigue funcionando")
+	Guide.note("Hint", plaza, "🧭 Toca para ir", function() end)
+	Guide.tick(0.25)
+	noteView.Close.Activated:Fire()
+	check(Guide.currentNote() == nil and noteView.Visible == false, "La ✕ la quita")
+	Guide.note("Hint", plaza, "🧭 Toca para ir", function() end)
+	Guide.tick(0.25)
+	check(Guide.currentNote() == nil, "Cerrada con la ✕, la misma pista no vuelve enseguida")
+	for _ = 1, 301 do
+		Guide.tick(1)
+	end
+	Guide.note("Hint", plaza, "🧭 Toca para ir", function() end)
+	Guide.tick(0.25)
+	check(Guide.currentNote() ~= nil and Guide.currentNote().Text == plaza, "Pasados 5 min, sí puede volver")
+	Guide.dismissNote()
+	-- (con el mapa abierto, igual)
+	fakeHooks.Map = true
+	Guide.note("Hint", "💡 Pista: Ve al colegio", "🧭 Toca para ir", function() end)
+	Guide.tick(0.25)
+	check(noteView.Visible == false, "Con el mapa abierto tampoco sale")
+	fakeHooks.Map = false
+	Guide.tick(0.25)
+	check(noteView.Visible, "Y sale al cerrarlo")
+	Guide.dismissNote()
+
 	-- Consejos de la primera vez (una sola vez cada uno; en el prólogo no)
 	table.clear(onboardingSent)
 	localPlayer:SetAttribute("Riding", "Bici")

@@ -27,6 +27,7 @@ local GameClock = require(ReplicatedStorage.Shared.GameClock)
 local Theme = require(script.Parent.Theme)
 local Icons = require(script.Parent.Icons)
 local HudLayout = require(script.Parent.HudLayout)
+local Dialog = require(script.Parent.Dialog)
 local PhoneApps = require(script.Parent.Parent.Commands.PhoneApps)
 
 local create = Theme.create
@@ -124,6 +125,9 @@ local rows: { Row } = {}
 local rowFocus = 0
 local bannerSerial = 0
 local bannerApp: string? = nil
+-- Notificación que llegó con una ventana abierta (Mis vehículos, la tienda…): baja al cerrarla
+local pendingBanner: { Data: any, At: number }? = nil
+local BANNER_WAIT = 60
 
 -- Lo que conecta Commands/CommandMenu
 Phone.LaunchCallback = nil :: ((string) -> ())? -- tocar una app (id)
@@ -517,8 +521,8 @@ local function buildBanner(parent: ScreenGui)
 	})
 	local holder = create("Frame", { Name = "IconHolder", Position = UDim2.fromOffset(14, 18), Size = UDim2.fromOffset(56, 56), BackgroundTransparency = 1, ZIndex = 6, Parent = banner })
 	local app = Theme.label({ Name = "App", Position = UDim2.fromOffset(82, 12), Size = UDim2.new(1, -150, 0, 18), Font = Theme.FontBold, TextSize = 13, TextColor3 = rgb(190, 205, 235), TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 6, Parent = banner })
-	Theme.label({ Name = "When", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -16, 0, 12), Size = UDim2.fromOffset(60, 18), TextSize = 12, Text = "ahora", TextColor3 = C.Muted, TextXAlignment = Enum.TextXAlignment.Right, ZIndex = 6, Parent = banner })
-	local text = Theme.label({ Name = "Text", Position = UDim2.fromOffset(82, 32), Size = UDim2.new(1, -96, 0, 50), Font = Theme.FontBold, TextSize = 15, TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 6, Parent = banner })
+	Theme.label({ Name = "When", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -58, 0, 12), Size = UDim2.fromOffset(60, 18), TextSize = 12, Text = "ahora", TextColor3 = C.Muted, TextXAlignment = Enum.TextXAlignment.Right, ZIndex = 6, Parent = banner })
+	local text = Theme.label({ Name = "Text", Position = UDim2.fromOffset(82, 32), Size = UDim2.new(1, -144, 0, 50), Font = Theme.FontBold, TextSize = 15, TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 6, Parent = banner })
 	local hit = create("TextButton", { Name = "Hit", Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "", ZIndex = 7, Parent = banner })
 	hit.Activated:Connect(function()
 		local target = bannerApp
@@ -530,6 +534,11 @@ local function buildBanner(parent: ScreenGui)
 		if target and Phone.LaunchCallback then
 			Phone.LaunchCallback(target)
 		end
+	end)
+	-- ✕: quitarla sin abrir el teléfono (móvil: 44 px)
+	local close = create("TextButton", { Name = "Close", AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -8, 0.5, 0), Size = UDim2.fromOffset(44, 44), BackgroundColor3 = rgb(50, 56, 76), BackgroundTransparency = 0.2, Text = "✕", TextSize = 20, Font = Theme.FontBold, TextColor3 = Color3.new(1, 1, 1), AutoButtonColor = true, ZIndex = 8, Parent = banner }, { corner(22) })
+	close.Activated:Connect(function()
+		Phone.hideBanner()
 	end)
 	parts.Banner = banner
 	parts.BannerIcon = holder
@@ -1168,6 +1177,13 @@ function Phone.notify(data: { Icon: string?, App: string?, Title: string?, Text:
 	if not parts.Banner or hidden or opened then
 		return
 	end
+	-- Con una ventana abierta no baja encima: espera a que se cierre (la última que llegue)
+	local okOpen, windowOpen = pcall(Dialog.anyOpen)
+	if okOpen and windowOpen then
+		pendingBanner = { Data = data, At = os.clock() }
+		return
+	end
+	pendingBanner = nil
 	bannerSerial += 1
 	local serial = bannerSerial
 	bannerApp = data.App
@@ -1195,6 +1211,23 @@ function Phone.notify(data: { Icon: string?, App: string?, Title: string?, Text:
 			Phone.hideBanner()
 		end
 	end)
+end
+
+-- La notificación que esperaba a que se cerrara una ventana (si no ha pasado mucho)
+function Phone.flushBanner()
+	local waiting = pendingBanner
+	if not waiting then
+		return
+	end
+	if os.clock() - waiting.At > BANNER_WAIT then
+		pendingBanner = nil
+		return
+	end
+	local okOpen, windowOpen = pcall(Dialog.anyOpen)
+	if okOpen and not windowOpen then
+		pendingBanner = nil
+		Phone.notify(waiting.Data)
+	end
 end
 
 function Phone.hideBanner()
@@ -1231,6 +1264,7 @@ function Phone.mount(parent: ScreenGui, isTouch: boolean)
 	local function tick()
 		local text = clockText()
 		Theme.setText(parts.PeekTime, text)
+		Phone.flushBanner()
 		if opened then
 			Theme.setText(parts.BigTime, text)
 			Theme.setText(parts.Date, dateText())
@@ -1252,6 +1286,7 @@ end
 
 function Phone._reset()
 	gui = nil
+	pendingBanner = nil
 	parts = {}
 	wallpapers = {}
 	apps = {}

@@ -12,6 +12,10 @@
 --      "💡 Pista: …" con «Toca para ir» (pone el GPS). Como mucho dos veces la misma.
 --   3. Consejos de la primera vez (shared/Onboarding.Tips): vehículo, tienda, máquina del gimnasio,
 --      parada de bus o metro, estrellas de búsqueda y hambre o cansancio. Uno solo y se guarda.
+--   Las notas (pistas, consejos, avisos de la ruta) llevan una ✕ (48 px) y se van solas. Con una
+--   ventana abierta (Mis vehículos, la tienda, la mochila, el mapa, el ValPhone, el pase…) no salen
+--   encima: esperan en la cola a que se cierre (y la pista de «atascado» no cuenta el tiempo). Una
+--   nota cerrada con la ✕ no vuelve en HINT_SNOOZE s (ni otra pista de «atascado» en HINT_QUIET s).
 --   Nada de esto sale en conversaciones, cinemáticas (Guide.setBusy), el prólogo, de bebé ni mientras abajo
 --   en el centro hay otra cosa (una decisión de la historia, la barra del gimnasio, el panel del autobús).
 
@@ -27,6 +31,8 @@ local Icons = require(script.Parent.Parent.UI.Icons)
 local HudLayout = require(script.Parent.Parent.UI.HudLayout)
 local Hud = require(script.Parent.Parent.UI.Hud)
 local Gps = require(script.Parent.Gps)
+local Dialog = require(script.Parent.Parent.UI.Dialog)
+local Phone = require(script.Parent.Parent.UI.Phone)
 
 local create = Theme.create
 local H = Theme.Hud
@@ -38,11 +44,16 @@ export type Hooks = {
 	mapOpen: (() -> boolean)?, -- ¿está abierto el mapa grande? (MapUI.isOpen)
 	bagOpen: (() -> boolean)?, -- ¿está abierta la mochila? (InventoryUI.isOpen)
 	dialogOpen: (() -> boolean)?, -- ¿hay una decisión de la historia en pantalla? (LifeStory.hasDialog)
+	windowOpen: (() -> boolean)?, -- ¿otra ventana abierta? (el ❓, el diario, el pase, una conversación…)
 }
 
 local player = Players.LocalPlayer
 local TOUCH = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 local NOTE_SECONDS = { Tip = 9, Hint = 10, Info = 5 }
+local HINT_SNOOZE = 300 -- una nota cerrada con la ✕: la misma no vuelve en 5 min (y ninguna pista de «atascado» en 3)
+local HINT_QUIET = 180
+local NOTE_STALE = 120 -- una pista que lleva tanto en la cola (detrás de una ventana) ya no sirve
+local CLOSE_SIZE = 48 -- la ✕ de la nota (móvil: ≥ 44 px)
 local MOVE_SECONDS = 1 -- andando este rato cuenta "muévete"
 local MISSION_APPROACH = 20 -- studs que hay que acercarse al objetivo para "sigue tu misión"
 local SHOP_KINDS = { Supermercado = 40, CentroComercial = 40, GranCentroComercial = 50, TiendaPesca = 25, Armeria = 25 }
@@ -62,10 +73,13 @@ local missionBest: number? = nil
 local stuck = Onboarding.newStuck()
 local promptedTips: { [string]: boolean } = {} -- consejos que ha pedido un cartel (PromptShown)
 
-type Note = { Kind: string, Text: string, Button: string?, Go: (() -> ())?, TipId: string? }
+type Note = { Kind: string, Text: string, Button: string?, Go: (() -> ())?, TipId: string?, At: number? }
 local queue: { Note } = {}
 local note: Note? = nil
 local noteLeft = 0
+local clock = 0 -- segundos de juego (Guide.tick)
+local snoozed: { [string]: number } = {} -- texto de la nota -> hasta cuándo no vuelve (cerrada con la ✕)
+local hintsQuietUntil = 0
 
 local gui: ScreenGui? = nil
 local card: Frame? = nil
@@ -149,6 +163,21 @@ local function inVehicle(): boolean
 	return model ~= nil and model:GetAttribute("Drivable") == true
 end
 
+-- ¿Hay una ventana abierta? (las notas y la tarjeta esperan: si no, tapaban la ventana —en el
+-- móvil, la pista «Toca para ir» se ponía encima de la lista de Mis vehículos—)
+local function windowOpen(): boolean
+	if safe(hooks.bagOpen) or safe(hooks.mapOpen) or safe(hooks.windowOpen) then
+		return true
+	end
+	local ok, open = pcall(function()
+		if Dialog.anyOpen() or Phone.isOpen() then print("DBG", Dialog.anyOpen(), Phone.isOpen()) end
+		return Dialog.anyOpen() or Phone.isOpen()
+	end)
+	if safe(hooks.windowOpen) then print("DBG hook") end
+	return ok and open == true
+end
+Guide.windowOpen = windowOpen
+
 local function tutorialActive(): boolean
 	return tutorial == Onboarding.Pending and not Onboarding.allDone(done)
 end
@@ -177,7 +206,14 @@ local function buildNote(parent: ScreenGui)
 	local panel = Theme.hudPanel({ Name = "GuideNote", BackgroundTransparency = 0.15, CornerRadius = 16, Visible = false, ZIndex = 20, Parent = parent })
 	-- Toda la nota se puede tocar (lo que hace su botón)
 	local hit = create("TextButton", { Name = "Hit", Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "", ZIndex = 21, Parent = panel })
-	noteParts.Text = Theme.label({ Name = "Text", Position = UDim2.fromOffset(22, 14), Size = UDim2.new(1, -44, 0, 76), TextSize = 21, TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top, ZIndex = 22, Parent = panel })
+	noteParts.Text = Theme.label({ Name = "Text", Position = UDim2.fromOffset(22, 14), Size = UDim2.new(1, -(44 + CLOSE_SIZE), 0, 76), TextSize = 21, TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top, ZIndex = 22, Parent = panel })
+	-- ✕: quitar la nota sin hacer nada (y que la misma no vuelva en un rato)
+	local close = Theme.button({ Name = "Close", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -8, 0, 8), Size = UDim2.fromOffset(CLOSE_SIZE, CLOSE_SIZE), Text = "✕", TextSize = 24, BackgroundColor3 = H.NavyLight, ZIndex = 24, Parent = panel })
+	Theme.pressable(close)
+	close.Activated:Connect(function()
+		Guide.closeNote()
+	end)
+	noteParts.Close = close
 	local button = Theme.button({ Name = "Go", AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -14, 1, -12), Size = UDim2.fromOffset(210, 44), TextSize = 19, BackgroundColor3 = rgb(30, 140, 90), ZIndex = 23, Parent = panel })
 	Theme.pressable(button)
 	local function act()
@@ -293,7 +329,7 @@ local function refresh()
 		return
 	end
 	-- Con la mochila o el mapa abiertos la tarjeta se aparta: si no, tapaba lo que estás mirando.
-	local blocked = quiet() or areaTaken() or safe(hooks.dialogOpen) or safe(hooks.bagOpen) or safe(hooks.mapOpen)
+	local blocked = quiet() or areaTaken() or safe(hooks.dialogOpen) or windowOpen()
 	local current = note
 	local driving = inVehicle()
 	if driving and not (current and current.TipId == "Vehiculo") then
@@ -330,18 +366,43 @@ Guide.refresh = refresh
 ---------------------------------------------------------------------
 local function nextNote()
 	note = table.remove(queue, 1)
+	-- (las pistas que se quedaron esperando detrás de una ventana mucho rato ya no valen)
+	while note and note.Kind == "Hint" and clock - (note.At or clock) > NOTE_STALE do
+		note = table.remove(queue, 1)
+	end
 	noteLeft = if note then NOTE_SECONDS[note.Kind] or 8 else 0
 	refresh()
 end
 
 function Guide.note(kind: string, text: string, button: string?, go: (() -> ())?, tipId: string?)
-	table.insert(queue, { Kind = kind, Text = text, Button = button, Go = go, TipId = tipId })
+	-- Ni repetida (ya en pantalla o en la cola) ni una que cerraste con la ✕ hace poco
+	if (snoozed[text] or -math.huge) > clock or (note and note.Text == text) then
+		return
+	end
+	for _, waiting in queue do
+		if waiting.Text == text then
+			return
+		end
+	end
+	table.insert(queue, { Kind = kind, Text = text, Button = button, Go = go, TipId = tipId, At = clock })
 	if not note then
 		nextNote()
 	end
 end
 
 function Guide.dismissNote()
+	nextNote()
+end
+
+-- La ✕: la nota se va y la misma no vuelve en HINT_SNOOZE s (ni otra pista de «atascado» en HINT_QUIET)
+function Guide.closeNote()
+	local current = note
+	if current then
+		snoozed[current.Text] = clock + HINT_SNOOZE
+		if current.Kind == "Hint" then
+			hintsQuietUntil = clock + HINT_QUIET
+		end
+	end
 	nextNote()
 end
 
@@ -565,7 +626,9 @@ local function checkStuck(dt: number)
 	local key = if objective and objective.Step ~= "" then objective.Key else nil
 	-- (siguiendo una ruta que has elegido tú —el aeropuerto, tu casa…— alejarse de la misión es lo
 	-- normal: ni «te estás alejando» ni «Toca para ir», que te quitaba tu ruta)
+	-- (con una ventana abierta, una nota en pantalla o recién cerrada una pista con la ✕, el tiempo de «atascado» no corre: no se amontonan ni salen una tras otra)
 	local blocked = quiet() or tutorialActive() or areaTaken() or safe(hooks.dialogOpen) or inVehicle() or Gps.manual() ~= nil
+		or windowOpen() or note ~= nil or clock < hintsQuietUntil
 	local kind = Onboarding.stuckStep(stuck, dt, key, distanceTo(objective and objective.Target), blocked)
 	if not kind or not objective then
 		return
@@ -585,6 +648,7 @@ local function checkStuck(dt: number)
 end
 
 function Guide.tick(dt: number)
+	clock += dt
 	detectSteps(dt)
 	if not quiet() then
 		checkTips()

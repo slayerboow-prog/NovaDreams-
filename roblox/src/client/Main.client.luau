@@ -132,7 +132,16 @@ task.spawn(ClassUI.init) -- clases y exámenes que se juegan
 task.spawn(Gps.init) -- GPS: ruta por las calles hasta tu destino (mapas, flechas en el suelo e indicación)
 task.spawn(HelpUI.init) -- botón ❓ "¿Qué hago ahora?" (tecla H): tu objetivo en claro y «Llévame»
 -- Primeros pasos del jugador nuevo, pistas si te atascas y consejos de la primera vez
-task.spawn(Guide.init, { mapOpen = MapUI.isOpen, bagOpen = InventoryUI.isOpen, dialogOpen = LifeStory.hasDialog })
+-- (con una ventana abierta las pistas esperan; Guide ya mira las de UI/Dialog, los paneles grandes y el ValPhone)
+local StoryJournal = require(script.Parent.Controllers.StoryJournal)
+task.spawn(Guide.init, {
+	mapOpen = MapUI.isOpen,
+	bagOpen = InventoryUI.isOpen,
+	dialogOpen = LifeStory.hasDialog,
+	windowOpen = function()
+		return HelpUI.isOpen() or DialogueUI.isOpen() or StoryJournal.isOpen() -- (el pase: Dialog.registerBig)
+	end,
+})
 -- Abrir el ❓ y usar «Llévame» también son pasos del tutorial
 HelpUI.onOpen(function()
 	Guide.mark("Ayuda")

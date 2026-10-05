@@ -255,7 +255,7 @@ local function buildCard(parent: ScreenGui)
 	Theme.bevel(panel, H.Gold)
 	Icons.new("ayuda", { Position = UDim2.fromOffset(18, 14), Size = UDim2.fromOffset(30, 30), ZIndex = 31, Parent = panel })
 	Theme.title({ Name = "Title", Position = UDim2.fromOffset(58, 12), Size = UDim2.new(1, -120, 0, 34), Text = "¿QUÉ HAGO AHORA?", TextSize = 24, ZIndex = 31, Parent = panel })
-	local close = create("TextButton", { Name = "Close", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -12, 0, 10), Size = UDim2.fromOffset(40, 40), BackgroundColor3 = H.NavyLight, Text = "", ZIndex = 32, Parent = panel }, {
+	local close = create("TextButton", { Name = "Close", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -10, 0, 8), Size = UDim2.fromOffset(48, 48), BackgroundColor3 = H.NavyLight, Text = "", ZIndex = 32, Parent = panel }, {
 		create("UICorner", { CornerRadius = UDim.new(1, 0) }),
 	})
 	Icons.plus({ AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(18, 18), Rotation = 45, ZIndex = 33, Parent = close })

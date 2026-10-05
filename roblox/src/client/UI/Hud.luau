@@ -1283,9 +1283,13 @@ local function buildMenu()
 	end
 	Dialog.registerBig("Menu", function()
 		menu.Visible = false
+	end, function()
+		return menu.Visible
 	end)
 	Dialog.registerBig("Controls", function()
 		controlsPanel.Visible = false
+	end, function()
+		return controlsPanel.Visible
 	end)
 	Dialog.registerBig("Quests", function()
 		if questWindow and questWindow.Parent then

@@ -394,7 +394,7 @@ function TesterPanel.toggle()
 end
 
 function TesterPanel.init()
-	Dialog.registerBig(NAME, TesterPanel.close)
+	Dialog.registerBig(NAME, TesterPanel.close, TesterPanel.isOpen)
 	task.spawn(function()
 		local remotes = ReplicatedStorage:WaitForChild("Remotes", 60)
 		local found = remotes and remotes:WaitForChild("Tester", 60)
