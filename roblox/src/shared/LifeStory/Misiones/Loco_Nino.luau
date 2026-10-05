@@ -225,8 +225,11 @@ return {
 				Props = { "Huevos" } },
 			{ Type = "Talk", Npc = "Cosme", Dialogue = "Rayo", Text = "¡Cosme está en el silo con algo en la mano!",
 				Actors = { { Npc = "Cosme", Place = "GranjaSilo", Offset = V(7, 0, -5) } } },
-			{ Type = "Fight", Place = "GranjaSilo", Respawn = "GranjaSilo", Action = "Disparar el rayo encogedor", HP = 5, BeamColor = Color3.fromRGB(190, 90, 255), Catch = 6,
-				Text = "Encoge a Petra con el rayo ({count}/{total})",
+			-- Weapon: Cosme te da el rayo encogedor al empezar el combate (sale en tu barra, también en el
+			-- móvil; y el botón «Disparar» sobre Petra). Si te pilla, te deja a unos pasos y descansa.
+			{ Type = "Fight", Place = "GranjaSilo", Respawn = "GranjaPatio", Action = "Disparar el rayo encogedor", HP = 5, BeamColor = Color3.fromRGB(190, 90, 255), Catch = 6,
+				Weapon = "RayoEncogedor",
+				Text = "Encoge a Petra con el rayo 🔬 de tu barra ({count}/{total})",
 				CaughtLine = "¡¡CLOC!! (Te ha dado un abrazo de ala. Pesa como un sofá.)",
 				Actors = { { Npc = "Cosme", Place = "GranjaSilo", Offset = V(7, 0, -5), Mode = "Cheer" } },
 				Enemies = {
@@ -258,6 +261,7 @@ return {
 				{ S = "Cosme", T = "¡Aquí! ¡Rápido! Rayo encogedor, recién montado. Tiene un solo defecto: apunta con los ojos cerrados." },
 				{ S = "Yo", T = "¿Por qué con los ojos cerrados?" },
 				{ S = "Cosme", T = "Porque si ves la cara de pena que pone Petra, no disparas. Venga. Varias veces. Es una gallina muy grande.", A = "Point" },
+				{ S = "Narrador", T = "Cosme te da el 🔬 Rayo encogedor. Está en tu barra: tócalo para disparar a Petra (o pulsa «Disparar» cuando estés cerca)." },
 			} },
 			Final = { Lines = {
 				{ S = "Julian", T = "Petra ya mide lo que tiene que medir. Y está en el gallinero, sentada encima de su huevo. Que ahora es normal. Gracias, chaval… gracias, criatura. Se me pega." },

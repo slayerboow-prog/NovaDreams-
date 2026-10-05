@@ -773,6 +773,42 @@ do
 	local _ = Service
 end
 
+---------------------------------------------------------------------
+print("\n▶ 7. Partidas rotas: un sitio guardado bajo tierra (o roto) se arregla solo al entrar")
+---------------------------------------------------------------------
+do
+	storeFailures = 0
+	local E = newServer("servidor-7")
+	local leo = newPlayer(E, 707, "Leo", Vector3.new(500, 3, 500))
+	check(join(E, leo) and leave(E, leo), "Leo juega y sale")
+	-- Como la partida de Sebastián: se guardó con el personaje BAJO el suelo de la granja
+	local raw = serde.decode("json", stored["Player_707"])
+	raw.Position = { X = 500, Y = -30, Z = 500, Yaw = 0 }
+	stored["Player_707"] = serde.encode("json", raw)
+	local F = newServer("servidor-8")
+	local leo2 = newPlayer(F, 707, "Leo")
+	check(join(F, leo2), "Leo vuelve a entrar")
+	check(leo2.PivotedTo ~= nil and leo2.PivotedTo.Y > 0 and math.abs(leo2.PivotedTo.X - 500) < 1, "Lo guardado estaba bajo tierra: aparece de pie encima del suelo, en el mismo sitio (no otra vez enterrado)")
+	check(leave(F, leo2), "Leo sale")
+	-- Un sitio guardado sin números (partida estropeada): se tira y aparece en la entrada
+	raw = serde.decode("json", stored["Player_707"])
+	raw.Position = { X = "roto", Y = 3, Z = 0 }
+	stored["Player_707"] = serde.encode("json", raw)
+	local G = newServer("servidor-9")
+	local leo3 = newPlayer(G, 707, "Leo")
+	check(join(G, leo3), "Con un sitio guardado roto también entra")
+	local now = G.DataService.get(leo3)
+	check(leo3.PivotedTo == nil and (now.Position == nil or type(now.Position.X) == "number"), "El sitio roto se descarta (aparece en la entrada) y no se vuelve a guardar roto")
+	-- Y si mientras juega está enterrado o en plena captura de una misión, no se apunta ese sitio
+	leo3.Root.Position = Vector3.new(510, 3, 510)
+	G.DataService.save(leo3)
+	leo3:SetAttribute("StoryCaught", true)
+	leo3.Root.Position = Vector3.new(600, 3, 600)
+	G.DataService.save(leo3)
+	check(G.DataService.get(leo3).Position.X == 510, "En plena captura (la gallina te ha pillado) no se apunta el sitio")
+	leo3:SetAttribute("StoryCaught", nil)
+end
+
 print()
 if failures > 0 then
 	print(("❌ %d fallo(s)"):format(failures))

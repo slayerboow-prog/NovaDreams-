@@ -70,8 +70,20 @@ local Log = require(ReplicatedStorage.Shared.Log)
 local RideState = require(ReplicatedStorage.Shared.RideState)
 local SkyRift = require(ReplicatedStorage.Shared.SkyRift)
 local Strings = require(LifeStory.Strings)
+local SafeGround = require(ReplicatedStorage.Shared.SafeGround)
+local Items = require(ReplicatedStorage.Shared.Items)
 
 local LifeStoryService = {}
+
+-- Un aviso en la pantalla del jugador (Notify: "Info", "Success", "Error"…)
+local function notifyPlayer(player: Player, kind: string, text: string)
+	pcall(function()
+		local remote = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("Notify")
+		if remote then
+			(remote :: RemoteEvent):FireClient(player, kind, text)
+		end
+	end)
+end
 
 -- Quien quiera enterarse de lo que pasa en la historia (registro de desarrollo, pruebas, panel de
 -- depuración): fn(kind, player, questId, info). kind = QuestStart, QuestDone, QuestInvalid,
@@ -898,6 +910,7 @@ end
 
 local completeQuest -- se define más abajo
 local advance -- se define más abajo
+local ensureWeapon -- se define más abajo (armas prestadas de un combate)
 local endPrologue -- se define más abajo
 
 local function sendChoice(player: Player, questId: string, step: { [string]: any })
@@ -1360,6 +1373,102 @@ local resumeAll -- se define más abajo
 local groupDone -- se define más abajo
 local hitEnemy -- se define más abajo
 
+---------------------------------------------------------------------
+-- Armas prestadas de un combate (Weapon = "RayoEncogedor" en un paso Fight): al empezar el paso
+-- aparece en tu mochila / barra rápida (con aviso), vuelve si la pierdes (reaparecer, volver a
+-- entrar) y se devuelve al acabar el paso o la misión. Se usa desde la barra (también en el móvil)
+-- o con el botón que sale sobre el enemigo. story.Loans = { [objeto] = misión } (se guarda: así se
+-- devuelve aunque la misión se cancele o salgas del juego a medias).
+---------------------------------------------------------------------
+local function loanStep(story: Data, itemId: string): (string?, { [string]: any }?)
+	for questId, prog in story.Active do
+		local step = stepsOf(questId, prog)[prog.Step]
+		if step and step.Type == "Fight" and step.Weapon == itemId then
+			return questId, step
+		end
+	end
+	return nil, nil
+end
+
+-- Devuelve lo prestado que ya no toca (la misión acabó, cambió de paso o ya no existe)
+local function returnLoans(player: Player, data: Data)
+	local story = storyOf(data)
+	for itemId in story.Loans or {} do
+		if not loanStep(story, itemId) then
+			story.Loans[itemId] = nil
+			if InventoryService.count(player, itemId) > 0 then
+				InventoryService.remove(player, itemId, 1)
+			end
+		end
+	end
+	if story.Loans and next(story.Loans) == nil then
+		story.Loans = nil
+	end
+end
+
+-- Que tengas el arma del combate (si ya era tuya, nada). announce: decirlo en pantalla
+function ensureWeapon(player: Player, data: Data, questId: string, prog: Progress, step: { [string]: any }, announce: boolean?)
+	local itemId = step.Weapon
+	local item = type(itemId) == "string" and Items.get(itemId) or nil
+	if not item then
+		return
+	end
+	local story = storyOf(data)
+	if InventoryService.count(player, itemId) > 0 then
+		if announce then
+			notifyPlayer(player, "Success", ("%s Tienes el %s en tu barra: tócalo (o pulsa «%s» cerca) para usarlo."):format(item.Icon, item.Name, step.Action or "Atacar"))
+		end
+		return
+	end
+	if InventoryService.add(player, itemId, 1) then
+		story.Loans = story.Loans or {}
+		story.Loans[itemId] = questId
+		notifyPlayer(player, "Success", ("%s Recibes el %s: está en tu barra. Tócalo (o pulsa «%s» cerca) para usarlo."):format(item.Icon, item.Name, step.Action or "Atacar"))
+	elseif announce then
+		-- Mochila llena: el botón sobre el enemigo sigue sirviendo
+		notifyPlayer(player, "Info", ("%s Tu mochila está llena: pulsa «%s» cerca para usar el %s."):format(item.Icon, step.Action or "Atacar", item.Name))
+	end
+end
+
+-- Usar el arma prestada desde la barra: dispara al enemigo que quede más cerca (hasta 80 studs)
+local WEAPON_RANGE = 80
+function LifeStoryService.useWeapon(player: Player, itemId: string): boolean
+	local data = DataService.get(player)
+	local rt = runtime[player]
+	if not data or not rt then
+		return false
+	end
+	local story = storyOf(data)
+	local questId, step = loanStep(story, itemId)
+	local prog = questId and story.Active[questId]
+	if not questId or not step or not prog then
+		return false
+	end
+	local me = LocationService.positionOf(player)
+	local best, bestDistance = nil, WEAPON_RANGE
+	for _, enemy in step.Enemies or {} do
+		if not (prog.Sub and prog.Sub[enemy.Npc]) then
+			local model = SceneService.actorOf(player, enemy.Npc)
+			if model and me then
+				local offset = model:GetPivot().Position - me
+				local d = Vector3.new(offset.X, 0, offset.Z).Magnitude
+				if d < bestDistance then
+					best, bestDistance = enemy, d
+				end
+			end
+		end
+	end
+	if not best then
+		notifyPlayer(player, "Info", "Acércate más para disparar.")
+		return true
+	end
+	if not rt.LastHit or os.clock() - rt.LastHit >= 0.25 then
+		rt.LastHit = os.clock()
+		hitEnemy(player, data, questId, prog, step, best)
+	end
+	return true
+end
+
 -- Prepara el paso actual de una misión. Los pasos "instantáneos" (Moment, Transition, If que no
 -- se cumple) se resuelven aquí mismo y se pasa al siguiente.
 local function enterStep(player: Player, data: Data, questId: string)
@@ -1430,6 +1539,8 @@ local function enterStep(player: Player, data: Data, questId: string)
 		elseif step.Type == "Fight" then
 			prog.Sub = {}
 			prog.Hits = {}
+			returnLoans(player, data)
+			ensureWeapon(player, data, questId, prog, step, true)
 		elseif step.Type == "Choice" then
 			if not worldChoice(step) then
 				autoChoice(player, data, questId, step)
@@ -1683,6 +1794,7 @@ function completeQuest(player: Player, data: Data, questId: string)
 	Log.info("MISSION", "completed %s (%s)", questId, player.Name)
 	notify("QuestDone", player, questId, nil)
 	SceneService.clear(player, questId)
+	returnLoans(player, data) -- (lo prestado se devuelve; si la recompensa es ese objeto, llega ahora)
 	giveRewards(player, data, quest.Rewards)
 	if quest.Memory then
 		LifeStoryService.addMemory(player, quest.Memory, questId)
@@ -2675,6 +2787,9 @@ local NOVILLOS_SECONDS = 150
 
 local function tickPlayer(player: Player, data: Data)
 	local story = storyOf(data)
+	if story.Loans then
+		returnLoans(player, data)
+	end
 	local ids = {}
 	for id in story.Active do
 		table.insert(ids, id)
@@ -2739,18 +2854,23 @@ local function tickPlayer(player: Player, data: Data)
 				advance(player, data, questId)
 			end
 		elseif step.Type == "Escape" or step.Type == "Fight" then
-			-- Te persiguen: si te atrapan, vuelves al punto de partida (y en una huida, a empezar)
+			-- Te persiguen: si te atrapan, una consecuencia corta y segura (SceneService.catch): en una
+			-- huida vuelves al punto de partida (a empezar); en un combate te deja a unos pasos, en el
+			-- suelo, y quien te atrapó descansa unos segundos (el Respawn de un combate suele ser un
+			-- modelo, el silo o un edificio: antes te metía DENTRO y te quedabas atascado bajo tierra)
 			local rt = runtime[player]
 			local busy = rt.Busy or DialogueService.isBusy(player)
-			if not busy and (not rt.CaughtAt or os.clock() - rt.CaughtAt > 3) then
+			if step.Type == "Fight" then
+				ensureWeapon(player, data, questId, prog, step)
+			end
+			if not busy and (not rt.CaughtAt or os.clock() - rt.CaughtAt > SafeGround.CatchCooldown) then
 				local by = SceneService.caught(player, questId, step.Catch or 3.5)
 				if by then
 					rt.CaughtAt = os.clock()
 					prog.Caught = (prog.Caught or 0) + 1
 					DialogueService.bark(player, by, step.CaughtLine or "¡Te tengo!")
-					if step.Respawn then
-						SceneService.teleport(player, step.Respawn)
-					end
+					notifyPlayer(player, "Info", if step.Type == "Escape" then "¡Te ha pillado! Vuelves a empezar la huida." else "¡Te ha pillado! Aléjate un poco y vuelve a intentarlo.")
+					SceneService.catch(player, questId, by, if step.Type == "Escape" then step.Respawn else nil)
 					if step.Type == "Escape" then
 						rt.StepStart[questId] = os.clock()
 					end
@@ -3623,6 +3743,8 @@ local function onLoaded(player: Player, data: Data)
 	-- y reiniciar esperas (el reloj del juego empieza de cero en cada servidor)
 	for id, prog in story.Active do
 		local quest = Quests[id]
+		-- Nada de una captura a medias sobrevive al guardado (no se vuelve a quedar atascado al entrar)
+		SafeGround.cleanProgress(prog)
 		if not quest then
 			story.Active[id] = nil
 		elseif stepsOf(id, prog)[prog.Step] and stepsOf(id, prog)[prog.Step].Type == "Wait" then
@@ -3684,6 +3806,10 @@ function LifeStoryService.init()
 	StoryEvents.connect(onStoryEvent)
 	DataService.onLoaded(onLoaded)
 	SceneService.onInteract = LifeStoryService.interact
+	-- El arma prestada de un combate, usada desde la barra, dispara al enemigo de la misión
+	pcall(function()
+		require(script.Parent.GadgetService).missionUse = LifeStoryService.useWeapon
+	end)
 	-- Frases sueltas: el bocadillo sale encima del actor de tu escena
 	DialogueService.setActorFinder(function(player, npc)
 		return SceneService.actorOf(player, npc)

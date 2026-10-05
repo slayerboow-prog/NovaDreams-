@@ -32,6 +32,10 @@ end
 
 local GadgetService = {}
 
+-- La historia (LifeStoryService.useWeapon): si el gadget es el arma de un combate de la misión que
+-- juegas (el rayo encogedor contra Petra), dispara al enemigo; devuelve true si lo ha usado ella
+GadgetService.missionUse = nil :: ((Player, string) -> boolean)?
+
 local lastUse: { [Player]: { [string]: number } } = {}
 
 -- Lo que dicen los gadgets que hablan
@@ -271,6 +275,14 @@ function GadgetService.use(player: Player, itemId: string)
 		return
 	end
 	mine[itemId] = now
+	if GadgetService.missionUse then
+		local ok, used = pcall(GadgetService.missionUse, player, itemId)
+		if ok and used then
+			return
+		elseif not ok then
+			warn("[GadgetService] " .. tostring(used))
+		end
+	end
 	local effect = EFFECTS[item.Effect or "Sparkle"] or EFFECTS.Sparkle
 	local ok, err = pcall(effect, player, item, root)
 	if not ok then

@@ -36,6 +36,8 @@ local Npc = require(script.Parent.Parent.World.Npc) -- ropa, pelo y pies en el s
 local GallinaGigante = require(script.Parent.Parent.World.Kit.GallinaGigante) -- Petra (Cast: Body = "GallinaGigante")
 local RoadGuard = require(script.Parent.Parent.World.RoadGuard) -- no bajar a la calzada si viene alguien
 local Log = require(ReplicatedStorage.Shared.Log)
+local SafeGround = require(ReplicatedStorage.Shared.SafeGround) -- nunca bajo tierra ni dentro de algo
+local SafeSpot = require(script.Parent.Parent.World.SafeSpot)
 
 local SceneService = {}
 
@@ -83,6 +85,8 @@ type Actor = {
 	StuckSince: number?, -- cuándo empezó a andar hasta su sitio
 	KerbSince: number?, -- esperando en el bordillo para cruzar desde entonces (World/RoadGuard)
 	StunnedUntil: number?, -- (Hunt) aturdido tras un impacto
+	RestUntil: number?, -- (Hunt) tras atraparte descansa y se aparta (no te persigue ni te atrapa)
+	GraceUntil: number?, -- (Hunt) recién aparecido: aún no puede atraparte
 	Walk: string?, -- nil (quieto o en su modo) · "Walk" (va a su sitio) · "Settle" (se coloca) · "Fade" (fundido)
 	WalkId: number, -- cambia con cada paseo: las tareas de uno viejo no tocan el nuevo
 	Path: { Vector3 }?, -- puntos del camino (PathfindingService) o solo el destino
@@ -449,6 +453,10 @@ local function makeActor(player: Player, questId: string, spec: { [string]: any 
 	if root then
 		root.Anchored = true
 	end
+	if spec.Mode == "Hunt" then
+		-- Al empezar la persecución (o al volver a entrar en el juego) da unos segundos de ventaja
+		actor.GraceUntil = os.clock() + SafeGround.StartGrace
+	end
 	if standing then
 		Npc.placeFeet(model, cf) -- (viene andando: de pie, aunque luego se siente)
 	else
@@ -471,11 +479,16 @@ local function makeActor(player: Player, questId: string, spec: { [string]: any 
 	end
 	model.Parent = sceneFolder(player)
 	if root and spec.Prompt ~= false then
-		prompt(root, spec.Action or "Hablar", model.Name, player, function()
+		local p = prompt(root, spec.Action or "Hablar", model.Name, player, function()
 			if SceneService.onInteract then
 				SceneService.onInteract(player, "Actor", questId, spec.Npc)
 			end
 		end)
+		if spec.Mode == "Hunt" then
+			-- Un enemigo grande (Petra, 6 m): el botón se alcanza desde lejos (su raíz está muy alta y
+			-- si te acercas tanto te atrapa); a uno normal, desde un poco más lejos que la captura
+			p.MaxActivationDistance = math.max(16, 12 * (spec.Scale or 1))
+		end
 	end
 	if standing and spec.Mode ~= "Wander" then
 		-- Viene andando: de pie hasta que llegue (sentarse, saludar, su tarea… al llegar)
@@ -1581,16 +1594,77 @@ function SceneService.caught(player: Player, questId: string, radius: number): s
 		return nil
 	end
 	for npc, actor in scene.Actors do
-		if actor.Spec.Mode == "Hunt" and actor.Root and not (actor.StunnedUntil and os.clock() < actor.StunnedUntil) then
+		local now = os.clock()
+		local calm = (actor.StunnedUntil and now < actor.StunnedUntil) or (actor.RestUntil and now < actor.RestUntil)
+			or (actor.GraceUntil and now < actor.GraceUntil)
+		if actor.Spec.Mode == "Hunt" and actor.Root and not calm then
 			local offset = actor.Root.Position - me.Position
-			if V(offset.X, 0, offset.Z).Magnitude <= radius and math.abs(offset.Y) < 8 then
-				-- Tras atraparte se queda un momento quieto (si no, te atraparía otra vez al reaparecer)
-				actor.StunnedUntil = os.clock() + 3
+			-- (de alto se mide desde los pies: una gallina de 6 m tiene la raíz muy por encima de ti)
+			if V(offset.X, 0, offset.Z).Magnitude <= radius and math.abs(offset.Y) < 8 * math.max(1, scaleOf(actor.Model)) then
+				-- Tras atraparte descansa un rato y se aparta (si no, te atraparía otra vez al reaparecer)
+				actor.StunnedUntil = now + SafeGround.CatchCooldown
+				actor.RestUntil = now + SafeGround.CatchCooldown
 				return npc
 			end
 		end
 	end
 	return nil
+end
+
+-- Te ha atrapado: una consecuencia corta y SEGURA. Quien te atrapa da un picotazo / abrazo, descansa
+-- unos segundos y se aparta; a ti te deja de pie en suelo libre (where = el punto de partida de la
+-- huida; si no, a unos studs, lejos de él), con tu velocidad y tu salto. Nunca bajo tierra, dentro de
+-- un modelo ni anclado: a los SafeGround.ReleaseSeconds se comprueba otra vez y, si hiciera falta,
+-- se te saca. Devuelve dónde te ha dejado.
+function SceneService.catch(player: Player, questId: string, npc: string, where: any?): Vector3?
+	local scene = scenes[player] and scenes[player][questId]
+	local actor = scene and scene.Actors[npc]
+	local now = os.clock()
+	if actor then
+		actor.StunnedUntil = math.max(actor.StunnedUntil or 0, now + SafeGround.CatchCooldown)
+		actor.RestUntil = math.max(actor.RestUntil or 0, now + SafeGround.CatchCooldown)
+		-- El picotazo (Controllers/GiantHen lo anima en la gallina) y se para un momento
+		pcall(function()
+			local costume = actor.Model:FindFirstChild("Disfraz")
+			;(costume or actor.Model):SetAttribute("Picotazo", workspace:GetServerTimeNow())
+			if actor.Humanoid and actor.Root and not actor.Root.Anchored then
+				actor.Humanoid:MoveTo(actor.Root.Position)
+			end
+		end)
+	end
+	local character = player.Character
+	local root = playerRoot(player)
+	if not character or not root then
+		return nil
+	end
+	player:SetAttribute("StoryCaught", true) -- (mientras, PositionService no apunta este sitio)
+	local target: Vector3? = nil
+	if where ~= nil then
+		local spot = if type(where) == "table"
+			then LocationService.resolve(player, where.Place, { Index = where.Index, Offset = where.Offset })
+			else LocationService.resolve(player, where)
+		target = spot and spot.Position
+	end
+	if not target then
+		local from = if actor and actor.Root then actor.Root.Position else root.Position
+		target = SafeGround.dropPoint(from, root.Position - V(0, 3, 0), SafeGround.DropDistance)
+	end
+	SceneService.teleportTo(player, target :: Vector3)
+	SafeSpot.release(character)
+	-- Seguro: pase lo que pase, a los pocos segundos estás libre y sobre el suelo
+	task.delay(SafeGround.ReleaseSeconds, function()
+		if player.Parent and player.Character == character and character.Parent then
+			SafeSpot.release(character)
+			if SafeSpot.buried(character) then
+				SafeSpot.rescue(player)
+			end
+		end
+		if player.Parent then
+			player:SetAttribute("StoryCaught", nil)
+		end
+	end)
+	local after = playerRoot(player)
+	return after and after.Position
 end
 
 -- Un rayo desde tu mano hasta el enemigo: destello, retrocede y se queda aturdido un momento.
@@ -1756,8 +1830,10 @@ function SceneService.teleportTo(player: Player, target: Vector3)
 	end)
 	local ok = pcall(function()
 		local position = groundAt(target + V(0, 1, 0), { player.Character :: Instance })
-		root.AssemblyLinearVelocity = Vector3.zero
-		;(player.Character :: Model):PivotTo(CFrame.new(position + V(0, 3, 0)) * root.CFrame.Rotation)
+		-- Nunca dentro de algo: si el sitio es un modelo (el silo, un edificio) o se queda bajo tierra,
+		-- al hueco libre más cercano con suelo debajo (antes te dejaba DENTRO del silo de la granja)
+		local feet = if SafeSpot.stuckAt(position) then (SafeSpot.find(position) or position) else position
+		SafeSpot.place(player.Character :: Model, feet)
 	end)
 	if mine and player.Parent then
 		player:SetAttribute("Teleporting", nil)
@@ -1940,25 +2016,48 @@ local function stepActor(player: Player, actor: Actor, index: number)
 			humanoid:MoveTo(root.Position)
 		end
 	elseif mode == "Hunt" and me then
-		-- Te persigue (enemigo): va a por ti, sin atravesarte; si se atasca, "salta" un poco hacia ti
-		humanoid.WalkSpeed = actor.Spec.Speed or 13
+		-- Te persigue (enemigo): va a por ti, sin meterse encima de ti. Tras atraparte descansa y se
+		-- aparta (no se queda esperándote donde reapareces); si se atasca, aparece un poco más cerca,
+		-- en el suelo y nunca encima de ti (antes saltaba ENCIMA y te hundía bajo tierra)
+		local speed = actor.Spec.Speed or 13
+		humanoid.WalkSpeed = speed
 		local offset = V(me.Position.X - root.Position.X, 0, me.Position.Z - root.Position.Z)
 		local distance = offset.Magnitude
-		if actor.StunnedUntil and os.clock() < actor.StunnedUntil then
+		local now = os.clock()
+		local size = scaleOf(actor.Model)
+		local keep = math.max(1.5, size * 1.5) -- hasta dónde se acerca (una gallina gigante, no encima)
+		if actor.RestUntil and now < actor.RestUntil then
+			-- Descansa: se aleja de ti despacio, hacia su sitio
+			humanoid.WalkSpeed = speed * 0.6
+			if distance < 30 then
+				local away = if distance > 0.1 then -offset.Unit else V(1, 0, 0)
+				humanoid:MoveTo(root.Position + away * 10)
+			else
+				humanoid:MoveTo(root.Position)
+			end
+			actor.LastProgress = now
+			actor.LastPosition = nil
+		elseif actor.StunnedUntil and now < actor.StunnedUntil then
 			humanoid:MoveTo(root.Position)
 		elseif distance > 120 then
-			-- Demasiado lejos (te has teletransportado): reaparece cerca
-			actor.Model:PivotTo(CFrame.new(me.Position - offset.Unit * 25 + V(0, 3, 0)))
-		elseif distance > 2 then
-			humanoid:MoveTo(me.Position - offset.Unit * 1.5)
+			-- Demasiado lejos (te has teletransportado): reaparece a 25 studs, en el suelo
+			local at = groundAt(me.Position - offset.Unit * 25 + V(0, 2, 0), { actor.Model })
+			Npc.placeFeet(actor.Model, CFrame.lookAt(at, at + offset.Unit))
+			actor.GraceUntil = now + 2
+			actor.LastProgress = now
+		elseif distance > keep then
+			humanoid:MoveTo(me.Position - offset.Unit * keep)
 			local moved = if actor.LastPosition then (root.Position - actor.LastPosition).Magnitude else 1
 			if moved > 0.3 then
-				actor.LastProgress = os.clock()
-			elseif os.clock() - actor.LastProgress > 3 then
-				actor.Model:PivotTo(CFrame.new(root.Position + offset.Unit * 6 + V(0, 3, 0)))
-				actor.LastProgress = os.clock()
+				actor.LastProgress = now
+			elseif now - actor.LastProgress > 3 and distance > 14 then
+				local at = groundAt(root.Position + offset.Unit * math.min(6, distance - 10) + V(0, 2, 0), { actor.Model })
+				Npc.placeFeet(actor.Model, CFrame.lookAt(at, at + offset.Unit))
+				actor.LastProgress = now
 			end
 			actor.LastPosition = root.Position
+		else
+			humanoid:MoveTo(root.Position)
 		end
 	elseif mode == "Follow" and me and not followsNow(player, actor) then
 		-- Acompañante de otra misión (no la que juegas ahora), o vas en coche, en metro o dentro de un

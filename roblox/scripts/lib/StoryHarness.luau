@@ -347,6 +347,15 @@ mocks[ROOT .. "/server/Services/SceneService"] = {
 		player.CaughtBy = nil
 		return by
 	end,
+	-- Te ha atrapado: en una huida vuelves al punto de partida (where); en un combate, a unos pasos
+	catch = function(player, questId, npc, where)
+		player.Catches = (player.Catches or 0) + 1
+		player.CaughtWhere = where
+		if where then
+			player.At = if type(where) == "table" then where.Place else where
+		end
+		return nil
+	end,
 	hit = function(player, questId, npc)
 		player.Hits = (player.Hits or 0) + 1
 	end,

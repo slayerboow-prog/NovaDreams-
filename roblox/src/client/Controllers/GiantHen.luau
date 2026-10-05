@@ -122,7 +122,7 @@ end
 -- En el juego
 ---------------------------------------------------------------------
 
-type Entry = { Model: Model, Root: BasePart, Motors: { [string]: Motor6D }, State: State, Thud: Sound? }
+type Entry = { Model: Model, Root: BasePart, Motors: { [string]: Motor6D }, State: State, Thud: Sound?, Peck: number? }
 
 local entries: { [Model]: Entry } = {}
 local seedCount = 0
@@ -206,6 +206,14 @@ function GiantHen.init()
 			local unit = scale * (if type(altura) == "number" then altura / 10.25 else 1)
 			local velocity = root.AssemblyLinearVelocity
 			local speed = Vector3.new(velocity.X, 0, velocity.Z).Magnitude
+			-- Te ha pillado (SceneService.catch): un picotazo fuerte
+			local peck = model:GetAttribute("Picotazo")
+			if type(peck) == "number" and peck ~= entry.Peck then
+				entry.Peck = peck
+				entry.State.PeckUntil = t + 0.45
+				entry.State.Goal = Vector3.new(0.95, 0, 0)
+				entry.State.NextJerk = t + 0.45
+			end
 			local poses, stepped = GiantHen.pose(entry.State, t, dt, speed, rnd)
 			for name, cf in poses do
 				local motor = entry.Motors[name]

@@ -180,6 +180,13 @@ function Validate.mission(id: string, quest: { [string]: any }, err: (string, ..
 			for i, enemy in s.Enemies or {} do
 				actor(where .. ".enemy" .. i, { Npc = enemy.Npc, Place = enemy.Place or s.Place, Mode = enemy.Mode or "Hunt" })
 			end
+			-- Weapon: el arma que se te presta para este combate (sale en tu barra): un gadget que exista
+			if s.Weapon ~= nil then
+				local weapon = Items.get(s.Weapon)
+				if not weapon or weapon.Kind ~= "Gadget" then
+					err("%s: arma prestada desconocida (Weapon = '%s'; tiene que ser un gadget)", where, tostring(s.Weapon))
+				end
+			end
 			if s.Respawn then
 				helpers.place(where .. ".Respawn", if type(s.Respawn) == "table" then s.Respawn.Place else s.Respawn)
 			end

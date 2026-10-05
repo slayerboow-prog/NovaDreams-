@@ -1112,8 +1112,28 @@ lighting.ClockTime = 12 -- Bigotes y los clones pasan en el cole: con el cole ab
 check(playLoco(kiko, "Loco_N2_Bigotes") and kikoData.Items.CoronaBigotes == 1 and kikoData.Story.Flags.DuqueDeGatonia, "Bigotes, emperador de Gatonia: tres cucarachas espaciales a globazos y un título de nobleza")
 check((kiko.Hits or 0) - hitsBefore == 7, "Cada cucaracha aguanta sus globos (2 + 2 + 3)")
 kiko.CaughtBy = "PolloGigante"
+-- El rayo encogedor: te lo dan al empezar el combate (en tu barra), se usa desde la barra y se
+-- devuelve al acabar (y luego te lo quedas de recuerdo)
+local rayInFight, rayHits, loanedInFight = nil, nil, nil
+H.Service.observe(function(kind, who, questId, info)
+	if who == kiko and questId == "Loco_N3_Pollo" and info and info.Type == "Fight" then
+		if kind == "StepEnter" then
+			task.defer(function()
+				rayInFight = kikoData.Items.RayoEncogedor
+				loanedInFight = kikoData.Story.Loans and kikoData.Story.Loans.RayoEncogedor
+				local before = kiko.Hits or 0
+				H.Service.useWeapon(kiko, "RayoEncogedor")
+				rayHits = (kiko.Hits or 0) - before
+			end)
+		end
+	end
+end)
 check(playLoco(kiko, "Loco_N3_Pollo") and kikoData.Items.RayoEncogedor == 1, "La gallina de seis metros: huir hasta el silo y encogerla con el rayo")
 check(said(kiko, "Te ha cogido con el pico") or kiko.CaughtBy == nil, "Si Petra te atrapa, vuelves al granero")
+check((kiko.Catches or 0) >= 1 and kiko.CaughtWhere == "GranjaPatio", "La captura es la segura (SceneService.catch): te deja de pie en la puerta del granero")
+check(rayInFight == 1 and loanedInFight == "Loco_N3_Pollo", "Al empezar el combate tienes el rayo encogedor en tu barra (prestado por Cosme)")
+check(rayHits == 1, "Usarlo desde la barra dispara a Petra")
+check(kikoData.Story.Loans == nil, "Al acabar, el préstamo se devuelve (y el rayo se queda de recuerdo)")
 check(playLoco(kiko, "Loco_N4_Clones") and kikoData.Items.FotoClones == 1 and said(kiko, "por aula es el máximo legal"), "Deberes clónicos: tres clones en el cole y la foto de los cuatro")
 lighting.ClockTime = 23
 check(playLoco(kiko, "Loco_N5_Perez") and kikoData.Items.MonedaPerez == 1 and kikoData.Story.Flags.RataContratada, "La huelga del Ratón Pérez: persecución nocturna y la moneda de 1702")
