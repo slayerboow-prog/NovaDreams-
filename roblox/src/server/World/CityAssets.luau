@@ -440,7 +440,7 @@ local function blocks(ctx: Ctx, kind: string, center: Vector3?): { { Model: Inst
 	end
 	local c = center or CityAssets.Center
 	table.sort(out, function(a, b)
-		return (a.Ground.Position - c).Magnitude < (b.Ground.Position - c).Magnitude
+		return (a.Ground.CFrame.Position - c).Magnitude < (b.Ground.CFrame.Position - c).Magnitude
 	end)
 	return out
 end
@@ -474,7 +474,7 @@ local function nearestSibling(part: BasePart, name: string, reach: number): Base
 	local best, bestD = nil, reach
 	for _, s in (part.Parent :: Instance):GetChildren() do
 		if s ~= part and s.Name == name and s:IsA("BasePart") then
-			local d = (s.Position - part.Position).Magnitude
+			local d = (s.CFrame.Position - part.CFrame.Position).Magnitude
 			if d <= bestD then
 				best, bestD = s, d
 			end
@@ -527,12 +527,12 @@ function CityAssets.overlays(ctx: Ctx): { [string]: number }
 			continue
 		end
 		local name = d.Name
-		local pos = d.Position
+		local pos = d.CFrame.Position
 		if name == "ACUnit" and cap("AC") then
 			local t = pick(ctx, "AC", pos, 1)
 			if t then
 				local grille = nearestSibling(d, "ACGrille", 2.5)
-				local facing = if grille then Vector3.new(pos.X - grille.Position.X, 0, pos.Z - grille.Position.Z) else nil
+				local facing = if grille then Vector3.new(pos.X - grille.CFrame.Position.X, 0, pos.Z - grille.CFrame.Position.Z) else nil
 				if facing and facing.Magnitude < 0.01 then
 					facing = nil
 				end
@@ -570,7 +570,7 @@ function CityAssets.overlays(ctx: Ctx): { [string]: number }
 			local t = pick(ctx, "Porteria", pos, 5)
 			local pitch = d.Parent:FindFirstChild("Pitch")
 			if t then
-				local away = if pitch and pitch:IsA("BasePart") then Vector3.new(pos.X - pitch.Position.X, 0, pos.Z - pitch.Position.Z) else nil
+				local away = if pitch and pitch:IsA("BasePart") then Vector3.new(pos.X - pitch.CFrame.Position.X, 0, pos.Z - pitch.CFrame.Position.Z) else nil
 				bump("Porteria", Kit.overlay(d, t, { Grow = 1.3, Facing = away }))
 			end
 		elseif name == "Graffiti" and cap("Grafiti") and ctx.Pools.Grafiti and #ctx.Pools.Grafiti > 0 then
@@ -611,7 +611,7 @@ function CityAssets.streetProps(ctx: Ctx): number
 		end
 	end
 	table.sort(lamps, function(a, b)
-		return (a.Position - CityAssets.Center).Magnitude < (b.Position - CityAssets.Center).Magnitude
+		return (a.CFrame.Position - CityAssets.Center).Magnitude < (b.CFrame.Position - CityAssets.Center).Magnitude
 	end)
 	local out = folder(ctx.Parent, "Calles")
 	local placed = 0
@@ -624,7 +624,7 @@ function CityAssets.streetProps(ctx: Ctx): number
 		if i % 60 == 0 and ctx.Wait then
 			ctx.Wait()
 		end
-		local r = Kit.hash(base.Position, 11)
+		local r = Kit.hash(base.CFrame.Position, 11)
 		local acc, key = 0, nil
 		for _, k in kinds do
 			acc += CityAssets.StreetChance[k]
@@ -636,24 +636,32 @@ function CityAssets.streetProps(ctx: Ctx): number
 		if not key or (done[key] or 0) >= CityAssets.StreetCaps[key] then
 			continue
 		end
-		local t = pick(ctx, key, base.Position, 12)
+		local t = pick(ctx, key, base.CFrame.Position, 12)
 		if not t then
 			continue
 		end
 		local s = CityAssets.scaleOf(t, key)
 		local foot = footOf(t, s)
-		local y0 = base.Position.Y - base.Size.Y / 2
+		local y0 = base.CFrame.Position.Y - base.Size.Y / 2
 		-- junto a la farola, a lo largo de la acera (4 lados; el primero que esté libre y sea acera)
 		for k, dir in { Vector3.new(1, 0, 0), Vector3.new(-1, 0, 0), Vector3.new(0, 0, 1), Vector3.new(0, 0, -1) } do
 			local off = 1.2 + math.max(foot.X, foot.Z) / 2 + 0.6
-			local p = Vector3.new(base.Position.X, y0, base.Position.Z) + dir * off
+			local p = Vector3.new(base.CFrame.Position.X, y0, base.CFrame.Position.Z) + dir * off
 			local cf = CFrame.lookAt(p, p + Vector3.new(dir.Z, 0, -dir.X))
 			local hits = (ctx.Query or Kit.defaultQuery)(cf * CFrame.new(0, 0.6 + foot.Y / 2, 0), foot + Vector3.new(1.6, 0, 1.6))
 			if #hits == 0 then
 				local ok = true
 				if ctx.Ground then
+					-- el centro y las cuatro esquinas, sobre la acera (nunca asomando a la calzada)
 					local gy, gp = ctx.Ground(p + Vector3.new(0, foot.Y + 1, 0))
 					ok = gy ~= nil and gp ~= nil and gp.Name == "Sidewalk" and math.abs(gy - y0) < 1
+					for _, c in { { 1, 1 }, { 1, -1 }, { -1, 1 }, { -1, -1 } } do
+						if ok then
+							local corner = (cf * CFrame.new(c[1] * (foot.X / 2 + 0.3), foot.Y + 1, c[2] * (foot.Z / 2 + 0.3))).Position
+							local cy, cp = ctx.Ground(corner)
+							ok = cy ~= nil and cp ~= nil and cp.Name == "Sidewalk" and math.abs(cy - (gy :: number)) < 0.3
+						end
+					end
 					if ok then
 						cf = cf + Vector3.new(0, (gy :: number) - y0, 0)
 					end
@@ -687,9 +695,9 @@ local function dockPoint(nave: Instance?): Vector3?
 	end
 	local dock, hall = nave:FindFirstChild("Dock"), nave:FindFirstChild("Hall")
 	if dock and hall and dock:IsA("BasePart") and hall:IsA("BasePart") then
-		local out = Vector3.new(dock.Position.X - hall.Position.X, 0, dock.Position.Z - hall.Position.Z)
+		local out = Vector3.new(dock.CFrame.Position.X - hall.CFrame.Position.X, 0, dock.CFrame.Position.Z - hall.CFrame.Position.Z)
 		if out.Magnitude > 0 then
-			return dock.Position + out.Unit * 14
+			return dock.CFrame.Position + out.Unit * 14
 		end
 	end
 	return nil
@@ -896,7 +904,7 @@ function CityAssets.industry(ctx: Ctx): number
 		local hall = nave and nave:FindFirstChild("Hall")
 		if hall and hall:IsA("BasePart") then
 			local face = hall.CFrame * CFrame.new(0, -hall.Size.Y / 2, hall.Size.Z / 2)
-			local enchufe = pick(ctx, "Enchufe", hall.Position, 47)
+			local enchufe = pick(ctx, "Enchufe", hall.CFrame.Position, 47)
 			if enchufe and i <= 8 then
 				local s = CityAssets.scaleOf(enchufe, "Enchufe")
 				local e = Kit.spawn(enchufe, face * CFrame.new(hall.Size.X / 4, 4, 0.05 + enchufe.Size.Z * s / 2), s, out, { Detail = true })
@@ -915,7 +923,7 @@ function CityAssets.industry(ctx: Ctx): number
 				wall.CanQuery = false
 				wall.CanTouch = false
 				wall:AddTag(Kit.DetailTag)
-				CityAssets.paintGraffiti(wall, images[1 + math.floor(Kit.hash(hall.Position, 48) * #images) % #images], { Enum.NormalId.Back })
+				CityAssets.paintGraffiti(wall, images[1 + math.floor(Kit.hash(hall.CFrame.Position, 48) * #images) % #images], { Enum.NormalId.Back })
 				wall.Parent = out
 				ctx.Counts.Grafiti = (ctx.Counts.Grafiti or 0) + 1
 			end
@@ -938,7 +946,7 @@ function CityAssets.workshops(ctx: Ctx): number
 		end
 		local taller = b.Model:FindFirstChild("Taller")
 		local near = taller and taller:FindFirstChildWhichIsA("BasePart")
-		local prefer = near and near.Position or nil
+		local prefer = near and near.CFrame.Position or nil
 		if i <= 3 then
 			if place(ctx, "Expositor", pick(ctx, "Expositor", b.Area.CFrame.Position, 51), b.Area, prefer, out, { Collide = true, Detail = true }) then
 				n += 1
@@ -980,7 +988,7 @@ function CityAssets.villaGates(ctx: Ctx): number
 		if #pillars ~= 2 or not body then
 			continue
 		end
-		local a, b = pillars[1].Position, pillars[2].Position
+		local a, b = pillars[1].CFrame.Position, pillars[2].CFrame.Position
 		local along = Vector3.new(b.X - a.X, 0, b.Z - a.Z)
 		local gap = along.Magnitude - pillars[1].Size.X
 		if gap < 3 then
@@ -988,7 +996,7 @@ function CityAssets.villaGates(ctx: Ctx): number
 		end
 		local dir = along.Unit
 		local mid = (a + b) / 2
-		local inward = Vector3.new(body.Position.X - mid.X, 0, body.Position.Z - mid.Z)
+		local inward = Vector3.new(body.CFrame.Position.X - mid.X, 0, body.CFrame.Position.Z - mid.Z)
 		inward = (inward - dir * inward:Dot(dir))
 		if inward.Magnitude < 0.01 then
 			continue
@@ -997,7 +1005,7 @@ function CityAssets.villaGates(ctx: Ctx): number
 		local t = pick(ctx, "Puerta", mid, 61) :: Template
 		local wide = math.max(t.Size.X, t.Size.Z)
 		local s = math.min(gap / wide, 4 / math.max(t.Size.Y, 0.01))
-		local y0 = pillars[1].Position.Y - pillars[1].Size.Y / 2
+		local y0 = pillars[1].CFrame.Position.Y - pillars[1].Size.Y / 2
 		-- (abierta: corrida detrás del muro de al lado, por dentro)
 		local center = Vector3.new(mid.X, y0, mid.Z) + dir * (gap + 0.4) + inward * 1.1
 		local cf = CFrame.lookAt(center, center + inward)
@@ -1108,11 +1116,11 @@ function CityAssets.harbour(ctx: Ctx): number
 				if moored >= 3 then
 					break
 				end
-				local t = pick(ctx, "Pesquero", pier.Position + along * d, 72) :: Template
+				local t = pick(ctx, "Pesquero", pier.CFrame.Position + along * d, 72) :: Template
 				local s = CityAssets.scaleOf(t, "Pesquero")
 				local beam = math.min(t.Size.X, t.Size.Z) * s
 				local len = math.max(t.Size.X, t.Size.Z) * s
-				local c = pier.Position + along * d + across * side * (width + beam / 2 + 2)
+				local c = pier.CFrame.Position + along * d + across * side * (width + beam / 2 + 2)
 				local draft = math.min(t.Size.Y * s * 0.18, 5)
 				local cf = CFrame.lookAt(Vector3.new(c.X, CityAssets.SeaLevel - draft, c.Z), Vector3.new(c.X, CityAssets.SeaLevel - draft, c.Z) + along)
 				local hits = query(CFrame.new(c.X, CityAssets.SeaLevel + 4, c.Z) * (cf - cf.Position), Vector3.new(beam + 2, 6, len + 4))
@@ -1148,10 +1156,10 @@ function CityAssets.harbour(ctx: Ctx): number
 		if d.Name == "Sand" and d:IsA("BasePart") and d.Size.X * d.Size.Z > 4000 then
 			local area = Kit.areaOf(d)
 			for _, key in { "Barca", if beached == 0 then "BarcoHundido" else "Barca" } do
-				local t = pick(ctx, key, d.Position, 74 + beached)
+				local t = pick(ctx, key, d.CFrame.Position, 74 + beached)
 				if t then
 					local s = CityAssets.scaleOf(t, key)
-					local prefer = d.Position + d.CFrame.RightVector * (d.Size.X / 2) -- hacia el agua
+					local prefer = d.CFrame.Position + d.CFrame.RightVector * (d.Size.X / 2) -- hacia el agua
 					local _, spot = place(ctx, key, t, area, prefer, out, { Collide = false, Detail = true }, s, { Margin = 2 })
 					if spot then
 						beached += 1
