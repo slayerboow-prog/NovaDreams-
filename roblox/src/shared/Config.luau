@@ -244,6 +244,19 @@ Config.Sounds = {
 	MetroAnden = { Id = 0, File = "metro_anden", Volume = 0.25, Pitch = 1 }, -- en bucle en los andenes (gente, anuncios de fondo)
 	-- Ascensor (LiftRide): "ding" al llegar a la planta
 	Ascensor = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.35, Pitch = 1.4 },
+	-- Ambiente por tipo de lugar (StoryAudio, Config.Audio.Ambience). Los Amb* son nuestros (audio/sfx/amb_*).
+	-- Mientras no estén subidos, cada capa usa la siguiente opción de su lista, que es un audio ya subido
+	-- (multitud, viento…). El volumen de las capas lo pone Config.Audio.Ambience (aquí no cuenta).
+	AmbSala = { Id = 0, File = "amb_sala" }, -- aire de una sala cerrada (base de los interiores)
+	AmbCasa = { Id = 0, File = "amb_casa" }, -- nevera, la calle por la ventana, crujidos
+	AmbColegio = { Id = 0, File = "amb_colegio" }, -- niños en el pasillo, pasos, puertas
+	AmbUniversidad = { Id = 0, File = "amb_universidad" }, -- estudiantes, vestíbulo, máquina expendedora
+	AmbHospital = { Id = 0, File = "amb_hospital" }, -- ventilación, murmullo, camilla que pasa
+	AmbCalle = { Id = 0, File = "amb_calle" }, -- tráfico lejano y gente a lo lejos
+	AmbAire = { Id = 0, File = "viento", Muffle = true }, -- (ya subido) el viento, apagado: aire de fondo
+	-- Golpes sueltos del ambiente (sonidos de Roblox: suenan siempre)
+	Reloj = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.05, Pitch = 1.7 }, -- tic-tac de la casa
+	Monitor = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.035, Pitch = 2.3 }, -- pitido del monitor del hospital
 }
 
 -- Voces de la gente de la ciudad (voz sintetizada de Roblox, como la de la historia)
@@ -266,6 +279,126 @@ Config.Audio = {
 		TemaValmar = { Id = 71915200549382, File = "tema_valmar.ogg", Volume = 0.45, Looped = true },
 		PasanLosAnos = { Id = 136669358482377, File = "pasan_los_anos.ogg", Volume = 0.5, Looped = false },
 		VidaAdulta = { Id = 90317690788724, File = "vida_adulta.ogg", Volume = 0.4, Looped = true },
+		-- Música por intensidad (Intensity, abajo). Id = 0: se busca File en shared/SoundIds
+		-- (scripts/upload-audio.sh --music) y en ReplicatedStorage > Musica. Si aún no está subida,
+		-- suena su Fallback (otra pieza de esta lista) o, sin Fallback, nada.
+		Descubrimiento = { Id = 0, File = "descubrimiento.ogg", Volume = 0.35, Looped = true, Fallback = "TemaValmar" },
+		Intima = { Id = 0, File = "intima.ogg", Volume = 0.38, Looped = true, Fallback = "Nacimiento" },
+		Tension = { Id = 0, File = "tension.ogg", Volume = 0.36, Looped = true }, -- (ninguna de antes sirve: sin ella, solo ambiente)
+		Resolucion = { Id = 0, File = "resolucion.ogg", Volume = 0.45, Looped = false, Fallback = "VidaAdulta" },
+		TemaFinal = { Id = 0, File = "tema_final.ogg", Volume = 0.48, Looped = false, Fallback = "TemaValmar" },
+	},
+	-- Intensidad de la música en una escena (StoryAudio.setIntensity; pista Music = { Intensity = … }).
+	-- Cue = pieza de Music (nil = sin música: queda el ambiente); Scale = volumen; Fade = segundos del cruce.
+	Intensity = {
+		Nada = { Fade = 3 }, -- momento normal: poca o ninguna música
+		Descubrimiento = { Cue = "Descubrimiento", Scale = 0.9, Fade = 2.5 },
+		Intima = { Cue = "Intima", Scale = 1, Fade = 3 },
+		Tension = { Cue = "Tension", Scale = 1, Fade = 1.2 },
+		Resolucion = { Cue = "Resolucion", Scale = 1, Fade = 1.5 },
+		Tema = { Cue = "TemaFinal", Scale = 1, Fade = 2 }, -- final de capítulo
+	},
+	-- Ambiente por tipo de lugar (StoryAudio.setAmbience; si ninguna escena lo pide, según dónde estás).
+	-- Cada tipo tiene capas en bucle (Layers) y golpes sueltos (Spots), todo en el grupo Ambience.
+	--   Layers: { Sounds = opciones, Volume, Hours = { desde, hasta }?, OffHours = volumen fuera de hora }
+	--     opciones: nombres de Config.Sounds por preferencia; suena la primera que tenga audio. Una opción
+	--     puede ser { Sound = "Multitud", Scale = 0.6, Pitch = 1.15 } (volumen y tono propios).
+	--   Spots: { Sound, Every = { min, max } segundos, Volume = multiplicador, Burst = { min, max }?, Gap?,
+	--            Alternate = tono de un golpe de cada dos (tic-tac)?, Hours? }
+	-- Nunca silencio absoluto: todos los tipos (menos el metro, que ya tiene su andén) tienen una capa base.
+	Ambience = {
+		Fade = 2.5, -- segundos del fundido al cambiar de ambiente
+		Every = 1, -- cada cuánto se mira dónde estás
+		Kinds = {
+			Calle = {
+				Layers = { { Sounds = { "AmbCalle", { Sound = "Multitud", Scale = 0.5 } }, Volume = 0.12, OffHours = 0.6, Hours = { 7, 23 } } },
+			},
+			Parque = { -- (pájaros y viento ya los pone Weather)
+				Layers = { { Sounds = { "AmbCalle", { Sound = "Multitud", Scale = 0.3 } }, Volume = 0.05 } },
+			},
+			Casa = {
+				Layers = { { Sounds = { "AmbCasa", "AmbSala", { Sound = "AmbAire", Scale = 1.4 } }, Volume = 0.13 } },
+				Spots = { { Sound = "Reloj", Every = { 1, 1 }, Volume = 1, Alternate = 0.85 } }, -- tic-tac
+			},
+			Colegio = {
+				Layers = {
+					{ Sounds = { "AmbSala", "AmbAire" }, Volume = 0.07 },
+					{ Sounds = { "AmbColegio", { Sound = "Multitud", Scale = 0.8, Pitch = 1.2 } }, Volume = 0.15, Hours = { 8, 18 }, OffHours = 0 },
+				},
+				Spots = { { Sound = "Puerta", Every = { 12, 30 }, Volume = 0.35 } },
+			},
+			Universidad = {
+				Layers = {
+					{ Sounds = { "AmbSala", "AmbAire" }, Volume = 0.07 },
+					{ Sounds = { "AmbUniversidad", { Sound = "Multitud", Scale = 0.7 } }, Volume = 0.14, Hours = { 8, 21 }, OffHours = 0.15 },
+				},
+				Spots = { { Sound = "Puerta", Every = { 15, 35 }, Volume = 0.3 } },
+			},
+			Hospital = {
+				Layers = { { Sounds = { "AmbHospital", "AmbSala", { Sound = "AmbAire", Scale = 1.4 } }, Volume = 0.14 } },
+				Spots = { { Sound = "Monitor", Every = { 1.05, 1.05 }, Volume = 1 }, { Sound = "Puerta", Every = { 18, 40 }, Volume = 0.25 } },
+			},
+			Oficina = {
+				Layers = { { Sounds = { "AmbSala", "AmbAire" }, Volume = 0.08 } },
+				Spots = { { Sound = "Tecla", Every = { 4, 10 }, Volume = 0.5, Burst = { 3, 9 }, Gap = 0.13 } },
+			},
+			Tienda = {
+				Layers = { { Sounds = { "AmbSala", "AmbAire" }, Volume = 0.07 }, { Sounds = { { Sound = "Multitud", Scale = 0.45 } }, Volume = 0.25 } },
+			},
+			Sala = { -- museo, teatro, juzgado, ayuntamiento: grande y callada
+				Layers = { { Sounds = { "AmbSala", "AmbAire" }, Volume = 0.08 }, { Sounds = { { Sound = "Multitud", Scale = 0.2 } }, Volume = 0.25 } },
+				Spots = { { Sound = "Puerta", Every = { 25, 50 }, Volume = 0.2 } },
+			},
+			Estacion = {
+				Layers = { { Sounds = { { Sound = "Multitud", Scale = 0.7 } }, Volume = 0.25 }, { Sounds = { "AmbCalle" }, Volume = 0.05 } },
+				Spots = { { Sound = "MetroGong", Every = { 45, 90 }, Volume = 0.5 } },
+			},
+			Nave = { -- naves, talleres, cuartel
+				Layers = { { Sounds = { "AmbSala", "AmbAire" }, Volume = 0.1 } },
+			},
+			Ocio = {
+				Layers = { { Sounds = { "AmbSala", "AmbAire" }, Volume = 0.06 }, { Sounds = { { Sound = "Tele", Scale = 0.8 }, { Sound = "Multitud", Scale = 0.5 } }, Volume = 0.25 } },
+			},
+			Portal = { -- escaleras y pasillos de los edificios
+				Layers = { { Sounds = { "AmbSala", "AmbAire" }, Volume = 0.07 } },
+				Spots = { { Sound = "Puerta", Every = { 15, 40 }, Volume = 0.2 } },
+			},
+			Interior = { -- cualquier otra sala
+				Layers = { { Sounds = { "AmbSala", "AmbAire" }, Volume = 0.08 } },
+			},
+			Metro = { Layers = {} }, -- (el andén y el tren ya suenan: MetroTrains)
+		},
+		-- Otros nombres que se aceptan en setAmbience (sin mayúsculas ni tildes)
+		Aliases = {
+			escuela = "Colegio", instituto = "Colegio", aula = "Colegio", hogar = "Casa", piso = "Casa",
+			exterior = "Calle", ciudad = "Calle", facultad = "Universidad", campus = "Universidad",
+			clinica = "Hospital", centrosalud = "Hospital", centrodesalud = "Hospital", tienda = "Tienda", comercio = "Tienda",
+			naturaleza = "Parque", playa = "Parque",
+		},
+		-- Salas de los edificios (modelo "Interior_<Nombre>" en workspace.Interiores) -> tipo
+		Rooms = {
+			Casa = "Casa", Villa = "Casa", Piso = "Casa", Dorm = "Casa",
+			Aula = "Universidad", -- (si la puerta está junto a un colegio, Colegio: Places)
+			Oficina = "Oficina", OficinaLobby = "Oficina", Hacienda = "Oficina",
+			Local = "Tienda", CentroComercial = "Tienda",
+			Museo = "Sala", Teatro = "Sala", Juzgado = "Sala", Ayuntamiento = "Sala",
+			Estacion = "Estacion", Nave = "Nave", Taller = "Nave", Cuartel = "Nave", Ocio = "Ocio",
+			Portal = "Portal", Tower = "Portal",
+		},
+		-- Lugares del mapa (ReplicatedStorage.MapLandmarks): a menos de Radius studs, ese tipo.
+		-- Outdoor = el tipo si estás al aire libre (sin techo encima; sin Outdoor, el mismo). Dentro de un
+		-- edificio, el lugar de su puerta manda en aulas, pasillos y oficinas (un aula junto al colegio es
+		-- Colegio); las casas, tiendas y demás salas se quedan con su tipo.
+		Places = {
+			Hospital = { Kind = "Hospital", Radius = 90, Outdoor = "Calle" },
+			CentroSalud = { Kind = "Hospital", Radius = 45, Outdoor = "Calle" },
+			Colegio = { Kind = "Colegio", Radius = 90 },
+			Facultad = { Kind = "Universidad", Radius = 140 },
+			Parque = { Kind = "Parque", Radius = 80, Outdoor = "Parque" },
+			Playa = { Kind = "Parque", Radius = 160, Outdoor = "Parque" },
+			Granja = { Kind = "Parque", Radius = 160, Outdoor = "Parque" },
+			Camping = { Kind = "Parque", Radius = 120, Outdoor = "Parque" },
+		},
 	},
 	Stings = {
 		Momento = { Id = 107278309519549, File = "sting_momento.ogg", Volume = 0.55 },
