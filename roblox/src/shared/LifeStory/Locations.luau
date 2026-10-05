@@ -233,6 +233,10 @@ Locations.Places = {
 	PrologoCosme = { NameKey = "El inventor de la bata", Tag = "StorySpot", Attribute = { SpotId = "Prologo_Cosme" }, Radius = 6 },
 	PrologoTornillo = { NameKey = "El tornillo que brilla", Tag = "StorySpot", Attribute = { SpotId = "Prologo_Tornillo" }, Radius = 4 },
 	PrologoPuerta = { NameKey = "La puerta del garaje", Tag = "StorySpot", Attribute = { SpotId = "Prologo_Puerta" }, Radius = 6 },
+
+	-- La Planta 13 de «El piso 13»: un pliegue de la Grieta lejos de la ciudad (World/Kit/Pliegues). Si no
+	-- se construyó, la misión pasa en la biblioteca, como antes.
+	Piso13 = { NameKey = "Planta 13", Tag = "StorySpot", Attribute = { SpotId = "Pliegue_Piso13" }, Radius = 10, Fallback = "Biblioteca" },
 } :: { [string]: Place }
 
 -- Las 8 zonas de la región (los nombres son los del mapa)

@@ -253,16 +253,18 @@ return {
 		Rewards = { Items = { BotonPiso13 = 1 } },
 		Props = {
 			Boton = { Kind = "Maquina", Name = "El botón del piso 13", Prompt = "Pulsar el 13", Place = "Biblioteca", Offset = V(0, 0, 4), Color = Color3.fromRGB(120, 255, 160), Dialogue = "Boton", Once = true },
-			Mesa = { Kind = "Libro", Name = "Una mesa llena de exámenes que nadie ha escrito", Prompt = "Mirar los exámenes", Place = "Biblioteca", Offset = V(-4, 0, 6), Dialogue = "Examenes", Once = true },
+			-- (en la Planta 13: el pasillo de World/Kit/Pliegues, 6 de ancho; Offset a lo largo del pasillo)
+			Mesa = { Kind = "Libro", Name = "Una mesa llena de exámenes que nadie ha escrito", Prompt = "Mirar los exámenes", Place = "Piso13", Offset = V(1.5, 0, 8), Dialogue = "Examenes", Once = true },
 		},
 		Steps = {
 			{ Type = "Talk", Npc = "Candela", Dialogue = "Candela", Text = "Candela también ha visto el botón",
 				Actors = { { Npc = "Candela", Place = "Biblioteca", Offset = V(3, 0, 3) } } },
 			{ Type = "Use", Prop = "Boton", Text = "Pulsa el botón del 13" },
-			{ Type = "Transition", Text = "El ascensor sube. Y sube. Y sube. Suena música de ascensor al revés. Se abren las puertas: una planta idéntica a la biblioteca, pero todo está en silencio. Muy en silencio.", Seconds = 4, Teleport = "Biblioteca" },
+			{ Type = "Transition", Text = "El ascensor sube. Y sube. Y sube. Suena música de ascensor al revés. Se abren las puertas: un pasillo de hormigón que no debería estar ahí. Todo está en silencio. Muy en silencio.", Seconds = 4, Teleport = "Piso13" },
 			{ Type = "Use", Prop = "Mesa", Text = "Investiga el piso 13" },
 			{ Type = "Talk", Npc = "CazadorTiempo", Dialogue = "Cronos", Text = "Alguien te espera junto a la ventana",
-				Actors = { { Npc = "CazadorTiempo", Place = "Biblioteca", Offset = V(4, 0, 8) }, { Npc = "Candela", Place = "Biblioteca", Offset = V(-3, 0, 3) } } },
+				Actors = { { Npc = "CazadorTiempo", Place = "Piso13", Offset = V(-1.2, 0, 12) }, { Npc = "Candela", Place = "Piso13", Offset = V(1.2, 0, 4) } } },
+			{ Type = "Transition", Text = "Cronos chasquea los dedos. El pasillo se dobla como una hoja de papel y vuelves a oír el zumbido de la biblioteca.", Seconds = 3, Teleport = "Biblioteca" },
 		},
 		Dialogues = {
 			Candela = { Lines = {
