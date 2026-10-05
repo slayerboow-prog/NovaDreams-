@@ -16,8 +16,22 @@
 -- Las misiones la lanzan como una cinemática (CinematicService.play delega aquí si el id es una escena)
 -- y la historia sigue cuando acaba (CinematicService.clientDone). También con el efecto Scene = "Id".
 --
+-- CINEMATIC_SCENE (formato en shared/LifeStory/Sequencer; auditoría §6.1):
+--   * VARIANTES y condiciones (If/IfNot con Conditions, Variants): se resuelven AQUÍ al empezar, con la
+--     partida del jugador (Flags, Rel, Memories…), más Late (opts.Late o el atributo StoryLate) e Items
+--     (la mochila). El cliente recibe el resultado (Variant, Gates) y ve exactamente lo mismo.
+--   * DIÁLOGO (pista Dialogue): las frases salen en su pantalla; aquí se giran las MIRADAS: todo el
+--     reparto mira a quien habla (Look = "Speaker", por defecto) y quien habla mira a quien le habla.
+--   * ENTRADAS y SALIDAS andando (Enter / Exit): aparecen en la puerta y andan a su marca; se van
+--     andando y desaparecen al llegar (al saltar: ya en su sitio / ya fuera).
+--   * Until = { Event }: la escena acaba con un aviso de StoryEvents (o se queda en el último plano
+--     esperándolo). OnSkip: lo que se da por hecho al saltarla.
+--   * Al MORIR o salir del juego, la escena se acaba (como saltarla: las consecuencias quedan) y su
+--     pantalla lo devuelve todo (cámara, controles, ambiente, luz).
+--
 -- API: has(id) · play(player, id, opts?) -> segundos · skip(player, id?) · isPlaying(player, id?)
---      onFinished(fn(player, id, skipped))
+--      onFinished(fn(player, id, skipped)) · onDied(player) · onStoryEvent(player, name, payload)
+--      opts = { Instant?, Late? (llegó tarde: condición Late) }
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -52,6 +66,15 @@ type Run = {
 	Instant: boolean,
 	Spectators: { Player },
 	PortalAt: number,
+	Choice: { [string]: any },
+	LookFixed: { [string]: boolean }, -- actores con una mirada propia (no siguen a quien habla)
+	Speaker: string?,
+	SpeakerTo: any,
+	LastSpeaker: string?,
+	Leaving: { [Model]: boolean }, -- actores que se van andando (Exit)
+	Holding: boolean, -- acabó y espera el aviso de Until
+	HoldSince: number,
+	UntilMet: boolean,
 }
 
 local runs: { [Player]: { [number]: Run } } = {}
@@ -127,12 +150,124 @@ local deps = {
 	wait = function(seconds: number)
 		task.wait(seconds)
 	end,
+	later = function(seconds: number, fn: () -> ())
+		task.delay(seconds, fn)
+	end,
+	-- La partida del jugador (para las condiciones de las variantes)
+	profile = function(player: Player): { [string]: any }?
+		return require(script.Parent.DataService).get(player)
+	end,
+	-- Las condiciones de las misiones (shared/LifeStory/Conditions) con la foto del jugador
+	context = function(player: Player, data: { [string]: any }): { [string]: any }
+		local story = data.Story or {}
+		local rel = {}
+		for npc, entry in story.NpcMemory or {} do
+			rel[npc] = if type(entry) == "table" then entry.Rel or 0 else 0
+		end
+		local clock, weekday = 12, 1
+		pcall(function()
+			local now = require(ReplicatedStorage.Shared.GameClock).now()
+			clock, weekday = now.ClockTime, now.Weekday
+		end)
+		local progress = 1
+		pcall(function()
+			local hours = require(ReplicatedStorage.Shared.Config).LifeStory.StageHours[data.Life.Stage]
+			if hours and hours > 0 then
+				progress = (data.Life.StageSeconds or 0) / (hours * 3600)
+			end
+		end)
+		return {
+			Rel = rel,
+			Traits = story.Traits or {},
+			Memories = story.Memories or {},
+			LastGrade = story.LastGrade,
+			Stage = (data.Life or {}).Stage or "Nino",
+			ClockTime = clock,
+			Weekday = weekday,
+			Completed = story.Completed or {},
+			Flags = story.Flags or {},
+			Choices = story.Choices or {},
+			Discovered = story.Discovered or {},
+			StageProgress = progress,
+			Season = workspace:GetAttribute("Season"),
+			Weather = workspace:GetAttribute("Weather"),
+			World = story.World,
+		}
+	end,
+	duties = function(player: Player): { [string]: boolean }?
+		local ok, duties = pcall(function()
+			return require(script.Parent.RoleService).dutiesOf(player)
+		end)
+		return if ok then duties else nil
+	end,
+	events = function(): any
+		return require(script.Parent.Parent.LifeStory.StoryEvents)
+	end,
 }
 HappeningService.deps = deps
 
 function HappeningService._inject(overrides: { [string]: any })
 	for k, v in overrides do
 		(deps :: any)[k] = v
+	end
+end
+
+---------------------------------------------------------------------
+-- Condiciones de las variantes (en el servidor, al empezar)
+---------------------------------------------------------------------
+-- Una función req -> boolean con la partida de este jugador. Late: opts.Late o el atributo StoryLate
+-- (lo pone la historia si llegó tarde al paso). Items = { Objeto = n }: tener al menos n en la mochila.
+function HappeningService.checker(player: Player, opts: { [string]: any }?): (req: { [string]: any }) -> boolean
+	local options = opts or {}
+	local data: { [string]: any }? = nil
+	pcall(function()
+		data = deps.profile(player)
+	end)
+	local ctx: { [string]: any }? = nil
+	return function(req: { [string]: any }): boolean
+		if type(req) ~= "table" then
+			return true
+		end
+		local rest = table.clone(req)
+		if rest.Late ~= nil then
+			local late = options.Late
+			if late == nil then
+				late = player:GetAttribute("StoryLate") == true
+			end
+			if (late == true) ~= (rest.Late == true) then
+				return false
+			end
+			rest.Late = nil
+		end
+		if rest.Items ~= nil then
+			local items = (data and data.Items) or {}
+			for id, n in rest.Items do
+				if ((items[id] or 0) :: number) < (tonumber(n) or 1) then
+					return false
+				end
+			end
+			rest.Items = nil
+		end
+		if next(rest) == nil then
+			return true
+		end
+		if not data or not data.Story then
+			return false -- (sin partida cargada: la escena de siempre)
+		end
+		if not ctx then
+			local ok, built = pcall(deps.context, player, data :: any)
+			ctx = if ok then built else nil
+		end
+		if not ctx then
+			return false
+		end
+		if rest.OnDuty and (ctx :: any).Duties == nil then
+			(ctx :: any).Duties = deps.duties(player) or {}
+		end
+		local ok, result = pcall(function()
+			return require(ReplicatedStorage.Shared.LifeStory.Conditions).check(rest, ctx :: any)
+		end)
+		return ok and result == true
 	end
 end
 
@@ -209,12 +344,25 @@ local function pointOf(run: Run, spec: any): Vector3?
 	return if spec[3] then base:PointToWorldSpace(offset) else base.Position + offset
 end
 
--- A quién mira un actor, dicho para el cliente (ActorLife / HappeningClient)
-local function lookTarget(run: Run, at: any): any
+-- A quién mira un actor, dicho para el cliente (ActorLife / HappeningClient). `model` (opcional) para
+-- las miradas que dependen de él: "Suelo" (vergüenza) y "Away" (piensa, aparta la mirada).
+local function lookTarget(run: Run, at: any, model: Model?): any
 	if at == nil or at == false then
 		return nil
 	end
-	if at == "Player" or run.Def.Anchors and run.Def.Anchors[at] == "Player" then
+	if (at == "Suelo" or at == "Floor" or at == "Away" or at == "Apartar") and model then
+		local ok, cf = pcall(function()
+			return model:GetPivot()
+		end)
+		if not ok or not cf then
+			return nil
+		end
+		if at == "Suelo" or at == "Floor" then
+			return cf.Position + cf.LookVector * 2.5 + Vector3.new(0, -3, 0)
+		end
+		return cf.Position + (cf.LookVector * 0.4 + cf.RightVector).Unit * 8 + Vector3.new(0, 0.8, 0)
+	end
+	if at == "Player" or at == "Yo" and not (run.Def.Anchors and run.Def.Anchors.Yo) or run.Def.Anchors and run.Def.Anchors[at] == "Player" then
 		return "Player"
 	end
 	if type(at) == "string" and at:sub(1, 6) == "Actor:" then
@@ -263,13 +411,20 @@ local function speakers(player: Player, def: { [string]: any }): ({ [string]: st
 	local StoryCreatures = require(ReplicatedStorage.Shared.LifeStory.StoryCreatures)
 	local spawnSpecs = {}
 	for _, d in (def.Tracks or {}).Actors or {} do
-		local spec = d.Spawn or d.Use
+		local spec = d.Spawn or d.Enter or d.Use
 		if type(spec) == "table" and spec.Key then
 			spawnSpecs[spec.Key] = spec
 		end
 	end
+	local all = {}
 	for _, line in (def.Tracks or {}).Lines or {} do
-		local who = line.Speaker
+		table.insert(all, line)
+	end
+	for _, line in (def.Tracks or {}).Dialogue or {} do
+		table.insert(all, line)
+	end
+	for _, line in all do
+		local who = line.Speaker or line.S
 		if type(who) == "string" and names[who] == nil then
 			if who == "Narrador" then
 				names[who] = ""
@@ -307,12 +462,26 @@ local function actorModel(run: Run, key: string): Model?
 	return entry and entry.Model or nil
 end
 
-local function spawnActor(run: Run, spec: { [string]: any }, instant: boolean?)
-	local key = spec.Key
+-- Dónde va un actor según su Anchor + Offset (su marca)
+local function markOf(run: Run, spec: { [string]: any }): (Vector3, CFrame)
 	local base = run.Anchors[spec.Anchor or ""] or (deps.root(run.Player) and (deps.root(run.Player) :: BasePart).CFrame) or CFrame.new()
-	local position = base.Position + (if typeof(spec.Offset) == "Vector3" then spec.Offset else Vector3.zero)
-	position = deps.ground(position)
-	local face = if spec.Face then pointOf(run, spec.Face) else nil
+	return base.Position + (if typeof(spec.Offset) == "Vector3" then spec.Offset else Vector3.zero), base
+end
+
+-- Un punto escrito como nombre de ancla ("Puerta") o como P = { "Ancla", offset?, local? }
+local function placeOf(run: Run, spec: any): Vector3?
+	if type(spec) == "string" then
+		return pointOf(run, { spec })
+	end
+	return pointOf(run, spec)
+end
+
+-- place (opcional) = { At = Vector3 (dónde aparece), Face = Vector3? (hacia dónde mira) }
+local function spawnActor(run: Run, spec: { [string]: any }, instant: boolean?, place: { [string]: any }?)
+	local key = spec.Key
+	local mark, base = markOf(run, spec)
+	local position = deps.ground(if place and place.At then place.At else mark)
+	local face = if place and place.Face then place.Face elseif spec.Face then pointOf(run, spec.Face) else nil
 	local cf = if face and (face - position).Magnitude > 0.1
 		then CFrame.lookAt(position, Vector3.new(face.X, position.Y, face.Z))
 		else CFrame.new(position) * base.Rotation
@@ -330,6 +499,46 @@ local function applyActor(run: Run, d: { [string]: any }, instant: boolean)
 	local A = deps.actors()
 	if d.Spawn then
 		spawnActor(run, d.Spawn, instant)
+	elseif d.Enter then
+		-- Entra andando: aparece en From (la puerta, la esquina) y anda hasta su marca
+		local spec = d.Enter
+		local mark = if spec.To ~= nil then placeOf(run, spec.To) else nil
+		mark = mark or (markOf(run, spec))
+		local from = if not instant and spec.Walk ~= false then placeOf(run, spec.From) else nil
+		if from then
+			spawnActor(run, spec, instant, { At = from, Face = mark })
+			local model = actorModel(run, spec.Key)
+			if model then
+				A.move(model, deps.ground(mark), spec.Run == true)
+			end
+		else
+			spawnActor(run, spec, instant, { At = mark })
+		end
+	elseif d.Exit then
+		-- Se va andando hasta To y desaparece al llegar (sin To, o al saltar: ya)
+		local spec = d.Exit
+		local entry = run.Actors[spec.Key]
+		run.Actors[spec.Key] = nil
+		run.LookFixed[spec.Key] = nil
+		if not entry or not entry.Model then
+			return
+		end
+		local model = entry.Model :: Model
+		if entry.Borrowed then
+			A.unbind(model) -- (a los de la misión los mueve su misión)
+			return
+		end
+		local to = if spec.To ~= nil then placeOf(run, spec.To) else nil
+		if instant or not to or spec.Walk == false then
+			A.despawn(model)
+		else
+			run.Leaving[model] = true
+			A.look(model, nil)
+			A.move(model, deps.ground(to), spec.Run == true, function()
+				run.Leaving[model] = nil
+				pcall(A.despawn, model)
+			end)
+		end
 	elseif d.Use then
 		local spec = d.Use
 		local model = nil
@@ -358,9 +567,23 @@ local function applyActor(run: Run, d: { [string]: any }, instant: boolean)
 			end
 		end
 	elseif d.Look then
-		local model = actorModel(run, d.Look.Key)
+		local key = d.Look.Key
+		local model = actorModel(run, key)
 		if model then
-			A.look(model, lookTarget(run, d.Look.At))
+			if d.Look.At == "Speaker" then
+				-- Vuelve a mirar a quien habla
+				run.LookFixed[key] = nil
+				local target = nil
+				if run.Speaker then
+					target = if key == run.Speaker then run.SpeakerTo elseif run.Speaker == "Yo" then "Player" else "Key:" .. run.Speaker
+				end
+				A.look(model, target)
+			else
+				if not d.Look.Beat then
+					run.LookFixed[key] = true -- (su propia mirada manda sobre «mirar a quien habla»)
+				end
+				A.look(model, lookTarget(run, d.Look.At, model))
+			end
 		end
 	elseif d.Mood then
 		local model = actorModel(run, d.Mood.Key)
@@ -407,8 +630,48 @@ local function applyActor(run: Run, d: { [string]: any }, instant: boolean)
 	end
 end
 
+-- Una frase (pista Dialogue, o Lines con Look = "Speaker"): las miradas. Todo el reparto que no tenga
+-- una mirada propia mira a quien habla; quien habla mira a To, a quien habló antes o a ti.
+local function applyDialogue(run: Run, line: { [string]: any })
+	if run.Def.Look == false then
+		return
+	end
+	local speaker = line.S or line.Speaker
+	if type(speaker) ~= "string" or speaker == "Narrador" then
+		return
+	end
+	local previous = run.LastSpeaker
+	local to = line.To
+	if to == nil then
+		to = if previous ~= nil and previous ~= speaker then previous else "Player"
+	end
+	run.Speaker = speaker
+	run.SpeakerTo = lookTarget(run, to)
+	run.LastSpeaker = speaker
+	local atSpeaker = if speaker == "Yo" then "Player" elseif run.Actors[speaker] then "Key:" .. speaker else nil
+	local A = deps.actors()
+	for key, entry in run.Actors do
+		if entry.Model and not run.LookFixed[key] then
+			if key == speaker then
+				A.look(entry.Model, run.SpeakerTo)
+			elseif atSpeaker then
+				A.look(entry.Model, atSpeaker)
+			end
+		end
+	end
+end
+
 local function applyEvent(run: Run, e: Sequencer.Event, instant: boolean)
 	if not Sequencer.passes(e.Data, run.Inputs) then
+		return
+	end
+	if e.Track == "Dialogue" or e.Track == "Lines" then
+		if not instant then
+			local ok, err = pcall(applyDialogue, run, e.Data)
+			if not ok then
+				warn(("[Happening] %s: diálogo: %s"):format(run.Id, tostring(err)))
+			end
+		end
 		return
 	end
 	if e.Track == "World" then
@@ -426,14 +689,29 @@ end
 ---------------------------------------------------------------------
 -- Correr una escena
 ---------------------------------------------------------------------
-local function finish(run: Run, skipped: boolean)
+-- skipped = la saltó (o murió, o se fue); complete = acabó por Until antes de tiempo. En los dos casos
+-- lo que faltaba de servidor se deja hecho (las consecuencias son las mismas que viéndola entera).
+local function finish(run: Run, skipped: boolean, complete: boolean?)
 	if run.Done then
 		return
 	end
-	if skipped then
-		-- Lo que faltaba de servidor, hecho de golpe (las consecuencias son las mismas)
+	if skipped or complete then
+		local onSkip = if skipped and type(run.Def.OnSkip) == "table" then run.Def.OnSkip else nil
+		if onSkip and type(onSkip.Inputs) == "table" then
+			-- Las esperas que no llegaron a pasar: lo que la escena da por hecho al saltarla
+			for name, value in onSkip.Inputs do
+				if run.Inputs[name] == nil then
+					run.Inputs[name] = value == true
+				end
+			end
+		end
 		for _, e in Sequencer.skipPlan(run.Timeline, run.Cursor, run.Inputs) do
 			applyEvent(run, e, true)
+		end
+		if onSkip and type(onSkip.World) == "table" then
+			pcall(function()
+				deps.world().apply(run.Player, onSkip.World)
+			end)
 		end
 	end
 	run.Done = true
@@ -453,6 +731,20 @@ local function finish(run: Run, skipped: boolean)
 		end
 		run.Actors[key] = nil
 	end
+	-- Los que se iban andando: se van al llegar (o ya, si se saltó o el jugador no está)
+	for model in run.Leaving do
+		if A then
+			if skipped or not run.Player.Parent then
+				pcall(A.despawn, model)
+			else
+				local actors = A
+				deps.later(25, function()
+					pcall(actors.despawn, model)
+				end)
+			end
+		end
+	end
+	table.clear(run.Leaving)
 	send(run, "Stop", { Skipped = skipped })
 	local list = runs[run.Player]
 	if list then
@@ -513,6 +805,17 @@ local function step(run: Run)
 	if now < run.StartAt then
 		return
 	end
+	-- Condición de final (Until): llegó el aviso, o se acabó la escena y ya no se espera más
+	if run.UntilMet then
+		finish(run, false, true)
+		return
+	end
+	if run.Holding then
+		if now - run.HoldSince >= Sequencer.untilTimeout(run.Def.Until or {}) then
+			finish(run, false, true)
+		end
+		return
+	end
 	if run.Waiting then
 		local w = run.Waiting
 		local met, result = waitMet(run, w.Data, now)
@@ -531,7 +834,12 @@ local function step(run: Run)
 		return
 	end
 	local t = Sequencer.sceneTime(run, now)
-	for _, e in Sequencer.due(run.Timeline, run.Cursor, t, "Server") do
+	local linesLook = run.Def.Look == "Speaker"
+	for _, e in Sequencer.due(run.Timeline, run.Cursor, t, nil) do
+		local side = Sequencer.sideOf(e.Track)
+		if side == "Client" and not (linesLook and e.Track == "Lines") then
+			continue
+		end
 		if e.Track == "Wait" then
 			run.Cursor = e.At
 			run.Waiting = e
@@ -545,6 +853,14 @@ local function step(run: Run)
 	end
 	run.Cursor = math.max(run.Cursor, t)
 	if t >= run.Timeline.Duration then
+		if type(run.Def.Until) == "table" then
+			-- Se queda en el último plano hasta que llegue el aviso (o el tope)
+			run.Holding = true
+			run.HoldSince = now
+			run.PausedAt = run.StartAt + run.Paused + run.Timeline.Duration
+			send(run, "Pause", { At = run.Timeline.Duration, Until = true })
+			return
+		end
 		finish(run, false)
 	end
 end
@@ -584,8 +900,17 @@ function HappeningService.play(player: Player, id: string, opts: { [string]: any
 		return 0
 	end
 	local options = opts or {}
-	local timeline = Sequencer.compile(id, def)
-	local light = def.Light == true or (def.Tracks or {}).Camera == nil
+	-- Variantes y condiciones: se eligen aquí, con la partida del jugador (el cliente recibe lo elegido)
+	local choice = { Variant = nil, Gates = {} }
+	local okChoice, resolved = pcall(Sequencer.resolve, def, HappeningService.checker(player, options))
+	if okChoice and type(resolved) == "table" then
+		choice = resolved
+	elseif not okChoice then
+		warn(("[Happening] %s: no se pudieron mirar las condiciones: %s"):format(id, tostring(resolved)))
+	end
+	local timeline = Sequencer.compile(id, def, choice)
+	def = timeline.Def or def
+	local light = Sequencer.isLight(def)
 	-- Una escena con cámara a la vez por jugador: si había otra, se salta (sus consecuencias quedan)
 	if not light then
 		for _, other in runs[player] or {} do
@@ -617,6 +942,15 @@ function HappeningService.play(player: Player, id: string, opts: { [string]: any
 		Instant = remote == nil or options.Instant == true,
 		Spectators = {},
 		PortalAt = 0,
+		Choice = choice,
+		LookFixed = {},
+		Speaker = nil,
+		SpeakerTo = nil,
+		LastSpeaker = nil,
+		Leaving = {},
+		Holding = false,
+		HoldSince = 0,
+		UntilMet = false,
 	}
 	runs[player] = runs[player] or {}
 	runs[player][run.Serial] = run
@@ -669,6 +1003,8 @@ function HappeningService.play(player: Player, id: string, opts: { [string]: any
 			Args = { nombre = player.DisplayName },
 			Light = light,
 			Skippable = def.Skippable ~= false,
+			Variant = choice.Variant,
+			Gates = choice.Gates,
 		}
 		send(run, "Play", payload)
 		for _, spectator in run.Spectators do
@@ -711,6 +1047,32 @@ end
 
 function HappeningService.onFinished(fn: (Player, string, boolean) -> ())
 	table.insert(finishedListeners, fn)
+end
+
+-- Murió: sus escenas se acaban YA (como saltarlas, aunque no se puedan saltar: las consecuencias
+-- quedan y su pantalla lo devuelve todo)
+function HappeningService.onDied(player: Player)
+	for _, run in runs[player] or {} do
+		finish(run, true)
+	end
+end
+
+-- Un aviso de StoryEvents: ¿acaba alguna escena con Until = { Event = name, Match? }?
+function HappeningService.onStoryEvent(player: Player, name: string, payload: { [string]: any }?)
+	for _, run in runs[player] or {} do
+		local spec = run.Def.Until
+		if type(spec) == "table" and spec.Event == name and not run.Done then
+			local matches = true
+			for k, v in (if type(spec.Match) == "table" then spec.Match else {}) do
+				if (payload or {})[k] ~= v then
+					matches = false
+				end
+			end
+			if matches then
+				run.UntilMet = true
+			end
+		end
+	end
 end
 
 -- (pruebas) avanzar todas las escenas a mano
@@ -810,8 +1172,31 @@ function HappeningService.init()
 		end
 		runs[player] = nil
 	end)
+	-- Condición de final de las escenas (Until = { Event })
+	pcall(function()
+		deps.events().connect(function(player, name, payload)
+			HappeningService.onStoryEvent(player, name, payload)
+		end)
+	end)
+	-- Al morir, la escena se acaba (y su pantalla lo devuelve todo)
+	local function hookDeath(player: Player, character: Model)
+		task.spawn(function()
+			local humanoid = character:WaitForChild("Humanoid", 15) :: Humanoid?
+			if humanoid and humanoid:IsA("Humanoid") then
+				humanoid.Died:Connect(function()
+					HappeningService.onDied(player)
+				end)
+			end
+		end)
+	end
 	-- Modo pruebas: «/escena Id» lanza una escena (solo el dueño y los testers)
 	local function watch(player: Player)
+		if player.Character then
+			hookDeath(player, player.Character)
+		end
+		player.CharacterAdded:Connect(function(character)
+			hookDeath(player, character)
+		end)
 		player.Chatted:Connect(function(message)
 			local id = message:match("^/escena%s+([%w_]+)")
 			if id and isTester(player) then

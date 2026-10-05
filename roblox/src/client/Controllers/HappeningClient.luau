@@ -14,9 +14,15 @@
 --   Titles  rótulos grandes · Fade fundidos a negro
 --   Wait    la escena se para: «¡Cúbrete!» (un botón o E/Espacio), o te devuelve el control con una
 --           pista («Cruza el portal»); sigue cuando el servidor lo dice
+--   Dialogue  diálogo con tiempos, pausas y planos por frase (como Lines; las miradas las gira el servidor)
+--   Ambience  capa de sonido ambiente (StoryAudio.setAmbience)  · Music también por intensidad
+--             (StoryAudio.setIntensity)   · Light  luz de cine (StoryFx.setLight)
+--           Las tres se deshacen SIEMPRE: al acabar, al saltar, al morir y si la escena falla.
 -- Bandas de cine, menús escondidos y controles parados mientras dura (salvo las escenas LIGERAS:
 -- solo efectos, sigues jugando). Botón «Saltar»: el servidor deja hechas las consecuencias.
 -- Si eres ESPECTADOR (estabas cerca de la escena de otro: Audience = "Nearby") solo ves los efectos.
+-- La escena llega ya resuelta del servidor (variante y condiciones: Variant, Gates) y se expande igual
+-- que allí (Sequencer.compile): los dos ven lo mismo.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -68,11 +74,32 @@ type ClientRun = {
 	Waiting: { [string]: any }?,
 	Free: boolean, -- en una espera con Control = "Player": mandas tú
 	Ui: { [string]: any }?,
-	ShotIndex: number?,
+	ShotIndex: any, -- el plano que se está viendo
+	ShotResolve: CameraShots.Resolver?, -- el de este plano (con Lock: anclas clavadas al empezar)
+	AmbienceOn: boolean,
+	IntensityOn: boolean,
+	LightId: string?,
+	Died: boolean,
 }
 
 local runs: { [number]: ClientRun } = {}
 local remote: RemoteEvent? = nil
+-- Quién puso el ambiente y la intensidad de música (si se solapan dos escenas, quita la suya la última)
+local ambienceOwner: number? = nil
+local intensityOwner: number? = nil
+
+-- StoryAudio (paquete de audio): llamada defensiva (si la función aún no existe, no pasa nada)
+local function audioCall(name: string, ...: any): boolean
+	local args = table.pack(...)
+	local ok = pcall(function()
+		local audio = require(script.Parent.StoryAudio) :: any
+		local fn = audio and audio[name]
+		if type(fn) == "function" then
+			fn(table.unpack(args, 1, args.n))
+		end
+	end)
+	return ok
+end
 
 local function serverNow(): number
 	local ok, t = pcall(function()
@@ -378,13 +405,18 @@ local function showInput(run: ClientRun, w: { [string]: any })
 	end
 end
 
+local onScreen = 0 -- escenas con cámara en tu pantalla ahora
+
 local function setControls(on: boolean)
 	pcall(function()
 		local Controls = require(script.Parent.Controls)
 		if on then
 			Controls.enable("Escena")
 		else
-			Controls.disable("Escena")
+			-- (con la comprobación: si la escena ya no está, el bloqueo se suelta solo)
+			Controls.disable("Escena", function()
+				return onScreen > 0
+			end)
 		end
 	end)
 end
@@ -396,7 +428,7 @@ local function pointFromSpec(run: ClientRun, spec: any): CFrame?
 	if type(spec) ~= "table" then
 		return nil
 	end
-	local base = resolver(run)(spec[1])
+	local base = CameraShots.composite(resolver(run))(spec[1])
 	if not base then
 		return nil
 	end
@@ -445,8 +477,8 @@ end
 
 local function showLine(run: ClientRun, line: { [string]: any })
 	local ui = run.Ui
-	local who = line.Speaker
-	local text = Strings.get(line.Text, run.Args)
+	local who = line.Speaker or line.S
+	local text = Strings.get(line.Text or line.T or "", run.Args)
 	local model: Model? = nil
 	if who == "Yo" then
 		model = player.Character
@@ -479,12 +511,13 @@ local function showLine(run: ClientRun, line: { [string]: any })
 	if model then
 		local mood = ActorMoods.get(line.Mood)
 		local emotion = line.A or (mood and mood.Pose) or Emotion.of({ S = who, T = text }, text)
+		local seconds = if line.S ~= nil and type(line.Duration) == "number" then line.Duration else nil
 		pcall(function()
-			require(script.Parent.ActorLife).speak(model, emotion, math.max(2, #text * 0.05), line.G)
+			require(script.Parent.ActorLife).speak(model, emotion, seconds or math.max(2, #text * 0.05), line.G)
 		end)
 		if line.Bubble ~= false then
 			pcall(function()
-				require(script.Parent.Parent.UI.SpeechBubbles).show(model, text, { Name = name, Seconds = math.max(2.5, #text * 0.06), Story = true })
+				require(script.Parent.Parent.UI.SpeechBubbles).show(model, text, { Name = name, Seconds = seconds or math.max(2.5, #text * 0.06), Story = true })
 			end)
 		end
 	end
@@ -569,6 +602,59 @@ local function applyFade(run: ClientRun, d: { [string]: any })
 	end
 end
 
+-- Ambiente (pista Ambience): Kind = capa o false (quitarla)
+local function applyAmbience(run: ClientRun, d: { [string]: any })
+	if d.Kind == false or d.Kind == nil then
+		if ambienceOwner == run.Serial then
+			audioCall("setAmbience", nil, d.Fade)
+			ambienceOwner = nil
+		end
+		run.AmbienceOn = false
+		return
+	end
+	audioCall("setAmbience", d.Kind, d.Fade)
+	run.AmbienceOn = true
+	ambienceOwner = run.Serial
+end
+
+-- Música por intensidad (pista Music con Intensity, o Intensity de la escena)
+local function applyIntensity(run: ClientRun, level: any, fade: number?)
+	audioCall("setIntensity", level, fade)
+	run.IntensityOn = true
+	intensityOwner = run.Serial
+end
+
+-- Luz de cine (pista Light): Preset o false
+local function applyLight(run: ClientRun, d: { [string]: any })
+	local id = "EscenaLuz" .. run.Serial
+	if StoryFx.setLight(id, d.Preset, d.Fade, d.Weight) then
+		run.LightId = id
+	else
+		run.LightId = nil
+	end
+end
+
+-- Deshace ambiente, intensidad y luz de esta escena (siempre: final, salto, muerte, fallo)
+local function undoMood(run: ClientRun, fade: number?)
+	if run.AmbienceOn or ambienceOwner == run.Serial then
+		run.AmbienceOn = false
+		if ambienceOwner == run.Serial or ambienceOwner == nil then
+			audioCall("setAmbience", nil, fade)
+			ambienceOwner = nil
+		end
+	end
+	if run.IntensityOn or intensityOwner == run.Serial then
+		run.IntensityOn = false
+		if intensityOwner == run.Serial or intensityOwner == nil then
+			audioCall("setIntensity", nil, fade)
+			intensityOwner = nil
+		end
+	end
+	-- (la capa de luz se quita aunque no se haya apuntado: quitar una que no está no hace nada)
+	StoryFx.clearLight(run.LightId or ("EscenaLuz" .. run.Serial), fade)
+	run.LightId = nil
+end
+
 local function startWait(run: ClientRun, w: { [string]: any })
 	run.Waiting = w
 	local ui = run.Ui
@@ -616,7 +702,6 @@ end
 ---------------------------------------------------------------------
 -- Reproducir
 ---------------------------------------------------------------------
-local onScreen = 0
 
 -- ¿Hay una escena con cámara en tu pantalla? (los diálogos esperan)
 function HappeningClient.isPlaying(): boolean
@@ -632,15 +717,26 @@ local function sceneTime(run: ClientRun): number
 end
 
 local function play(payload: { [string]: any })
-	local def = HappeningIndex.get(payload.Id)
-	if not def or type(payload.Run) ~= "number" then
+	local source = HappeningIndex.get(payload.Id)
+	if not source or type(payload.Run) ~= "number" then
 		return
 	end
+	-- La misma escena que en el servidor: su variante y sus condiciones ya resueltas
+	local okCompile, timeline = pcall(Sequencer.compile, payload.Id, source, {
+		Variant = if type(payload.Variant) == "number" then payload.Variant else nil,
+		Gates = if type(payload.Gates) == "table" then payload.Gates else nil,
+	})
+	if not okCompile then
+		warn("[HappeningClient] No se pudo preparar la escena " .. tostring(payload.Id) .. ": " .. tostring(timeline))
+		tell("Done", payload.Run)
+		return
+	end
+	local def = (timeline :: any).Def or source
 	local run: ClientRun = {
 		Serial = payload.Run,
 		Id = payload.Id,
 		Def = def,
-		Timeline = Sequencer.compile(payload.Id, def),
+		Timeline = timeline,
 		StartAt = payload.StartAt or serverNow(),
 		Paused = 0,
 		Hold = nil,
@@ -665,6 +761,11 @@ local function play(payload: { [string]: any })
 		Free = false,
 		Ui = nil,
 		ShotIndex = nil,
+		ShotResolve = nil,
+		AmbienceOn = false,
+		IntensityOn = false,
+		LightId = nil,
+		Died = false,
 	}
 	-- La Grieta: donde la ve tu pantalla ahora
 	for name, anchor in def.Anchors or {} do
@@ -703,12 +804,18 @@ local function play(payload: { [string]: any })
 			pcall(audio.cinematicStart, def.Music)
 			pcall(audio.sting, def.Sting)
 		end
+		if def.Intensity then
+			applyIntensity(run, def.Intensity)
+		end
 		StoryFx.setShakeSink(function(strength, seconds)
 			table.insert(run.Impulses, { At = sceneTime(run), Strength = strength, Seconds = seconds })
 		end)
 	end
-	local resolve = resolver(run)
+	local resolve = CameraShots.composite(resolver(run))
 	local clockStart = os.clock()
+	local endLimit = run.Timeline.Duration
+		+ 1.5
+		+ (if type(def.Until) == "table" then Sequencer.untilTimeout(def.Until) + 3 else 0)
 	local ok, err = pcall(function()
 		while not run.Stopped do
 			local t = sceneTime(run)
@@ -734,8 +841,12 @@ local function play(payload: { [string]: any })
 					if track == "Fx" then
 						local index = table.find((def.Tracks or {}).Fx or {}, d) or 0
 						playFx(run, d, index)
-					elseif track == "Lines" then
+					elseif track == "Lines" or track == "Dialogue" then
 						showLine(run, d)
+					elseif track == "Ambience" then
+						applyAmbience(run, d)
+					elseif track == "Light" then
+						applyLight(run, d)
 					elseif track == "Titles" then
 						showTitle(run, d)
 					elseif track == "Sky" then
@@ -743,7 +854,9 @@ local function play(payload: { [string]: any })
 					elseif track == "Sound" then
 						playSound(run, d)
 					elseif track == "Music" then
-						if audio and d.Play then
+						if d.Intensity ~= nil then
+							applyIntensity(run, d.Intensity, d.Fade)
+						elseif audio and d.Play then
 							pcall(audio.cinematicStart, d.Play)
 						end
 					elseif track == "Fade" then
@@ -758,11 +871,32 @@ local function play(payload: { [string]: any })
 			end
 			-- Cámara
 			if cinematic and not run.Free then
-				local shot, u, index = CameraShots.active(run.Timeline.Shots, t)
+				-- (los planos con If/IfNot = { Input } solo si pasan: la alternativa de una frase)
+				local shots = run.Timeline.Shots
+				local filtered = shots
+				for _, candidate in shots do
+					if candidate.If ~= nil or candidate.IfNot ~= nil then
+						filtered = {}
+						for _, s in shots do
+							if Sequencer.passes(s, run.Inputs) then
+								table.insert(filtered, s)
+							end
+						end
+						break
+					end
+				end
+				local shot, u = CameraShots.active(filtered, t)
 				if shot then
 					camera.CameraType = Enum.CameraType.Scriptable
-					if index ~= run.ShotIndex then
-						run.ShotIndex = index
+					if shot ~= run.ShotIndex then
+						run.ShotIndex = shot
+						-- Plano con Lock (los planos con nombre): las anclas se quedan donde estaban al empezar
+						run.ShotResolve = if shot.Lock
+							then CameraShots.composite(CameraShots.locked(resolver(run), function(name: string): boolean
+								local kind, value = name:match("^(%a+):(.+)$")
+								return kind ~= "Actor" or actorModel(value) ~= nil
+							end))
+							else nil
 						local cut = shot.Cut
 						local ui = run.Ui
 						if ui and (cut == "Dip" or cut == "Fade") then
@@ -773,10 +907,12 @@ local function play(payload: { [string]: any })
 						end
 					end
 					local impulse = math.max(CameraShots.impulse(run.Timeline.Shakes, t), CameraShots.impulse(run.Impulses, t))
-					local cf = CameraShots.cframe(shot, u, resolve, os.clock() - clockStart, impulse)
+					local shotResolve = run.ShotResolve or resolve
+					local cf = CameraShots.cframe(shot, u, shotResolve, os.clock() - clockStart, impulse)
 					if cf then
 						camera.CFrame = cf
-						local focus = CameraShots.point(resolve, shot.Look) or (if shot.Orbit then (resolve(shot.Orbit) :: any) and resolve(shot.Orbit).Position else nil)
+						local focus = CameraShots.point(shotResolve, shot.Look)
+							or (if shot.Orbit then (resolve(shot.Orbit) :: any) and resolve(shot.Orbit).Position else nil)
 						pcall(function()
 							require(script.Parent.DayLight).setFocus(if focus then (focus - cf.Position).Magnitude else nil)
 						end)
@@ -785,10 +921,11 @@ local function play(payload: { [string]: any })
 				end
 			end
 			-- Fin (si el servidor tarda en decir Stop, se espera un poco y se acaba igual)
-			if not run.Hold and t >= run.Timeline.Duration + 1.5 then
+			-- (con Until el servidor la deja parada en el último plano hasta el aviso: aquí solo un tope)
+			if not run.Hold and t >= endLimit then
 				break
 			end
-			if run.Def.FadeOut and run.Ui and not run.Ui.FadingOut and t >= run.Timeline.Duration - 1.1 then
+			if run.Def.FadeOut and run.Def.Until == nil and run.Ui and not run.Ui.FadingOut and t >= run.Timeline.Duration - 1.1 then
 				run.Ui.FadingOut = true
 				TweenService:Create(run.Ui.Black, TweenInfo.new(1), { BackgroundTransparency = 0 }):Play()
 			end
@@ -798,8 +935,9 @@ local function play(payload: { [string]: any })
 	if not ok then
 		warn("[HappeningClient] La escena falló; se devuelve el control: " .. tostring(err))
 	end
-	-- Recoger
-	endWait(run)
+	-- Recoger (ambiente, música y luz primero y por separado: si algo falla, se deshacen igual)
+	pcall(undoMood, run, if run.Died then 0.3 else 1.5)
+	pcall(endWait, run)
 	for _, handle in run.FxList do
 		StoryFx.stop(handle) -- (el portal se cierra, el orbe se apaga…)
 	end
@@ -863,6 +1001,42 @@ end
 function HappeningClient.init()
 	pcall(function()
 		require(script.Parent.ActorLife).setLookResolver(lookPoint)
+	end)
+	-- Al morir: la escena se acaba ya en tu pantalla (y el servidor la da por saltada). Ambiente, música
+	-- y luz se quitan en el acto; la cámara y los controles, en la recogida de play.
+	local function hookDeath(character: Model)
+		task.spawn(function()
+			local humanoid = character:WaitForChild("Humanoid", 15)
+			if humanoid and humanoid:IsA("Humanoid") then
+				(humanoid :: Humanoid).Died:Connect(function()
+					for _, run in runs do
+						run.Died = true
+						run.Stopped = true
+						pcall(undoMood, run, 0.3)
+					end
+				end)
+			end
+		end)
+	end
+	if player.Character then
+		hookDeath(player.Character)
+	end
+	player.CharacterAdded:Connect(hookDeath)
+	-- Y lo que avisa SceneClient (muerte, reaparecer, teletransporte): la escena se acaba y se devuelve todo
+	pcall(function()
+		local SceneClient = require(script.Parent.SceneClient) :: any
+		if type(SceneClient.onInterrupt) == "function" then
+			SceneClient.onInterrupt(function(reason)
+				for _, run in runs do
+					-- (un portal de la propia escena te teletransporta a propósito, mientras mandas tú)
+					if not run.Spectator and not (reason == "Teletransporte" and run.Free) then
+						run.Died = reason == "Muerte" or run.Died
+						run.Stopped = true
+						pcall(undoMood, run, 0.3)
+					end
+				end
+			end)
+		end
 	end)
 	local remotes = ReplicatedStorage:WaitForChild("Remotes", 30)
 	local found = remotes and remotes:WaitForChild("Happening", 30)

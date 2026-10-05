@@ -7,6 +7,8 @@
 --     extra = { To = CFrame?, Seconds = n?, Model = Model? (aura), OnEnter = fn? (portal atravesado),
 --               OnChain = fn(handle)? (el impacto que lanza un meteorito), Shake = fn(fuerza, s)? }
 --   StoryFx.stop(h) · StoryFx.clear()
+--   StoryFx.setLight(id, "Atardecer", fade?, weight?) · clearLight(id, fade?) · clearLights()
+--     luz de cine de las escenas (shared/CameraShots.Lights), capa de DayLight que se quita sola
 --
 -- Presupuesto según tu nivel gráfico (atributo GraphicsTier: Bajo = menos partículas, sin halos ni
 -- sombras de luces) y un tope global de partículas a la vez (shared/StoryFxCatalog.Budgets).
@@ -325,6 +327,55 @@ end
 
 function StoryFx.count(): number
 	return #active
+end
+
+---------------------------------------------------------------------
+-- Luz de cine de las escenas (pista Light): capas de shared/CameraShots.Lights sobre la luz de la hora
+-- (Controllers/DayLight). Solo en tu pantalla. Quien la pone la quita (clearLight); clearLights quita
+-- todas (al morir, por si acaso).
+---------------------------------------------------------------------
+local lightLayers: { [string]: boolean } = {}
+
+-- Pone (o cambia) la luz `preset` en la capa `id`. false/nil = quitarla. Devuelve si se puso.
+function StoryFx.setLight(id: string, preset: any, fade: number?, weight: number?): boolean
+	if preset == nil or preset == false then
+		StoryFx.clearLight(id, fade)
+		return false
+	end
+	local CameraShots = require(ReplicatedStorage.Shared.CameraShots)
+	local mood = CameraShots.light(preset)
+	if not mood then
+		warn("[StoryFx] Luz desconocida", preset)
+		return false
+	end
+	local ok = pcall(function()
+		require(script.Parent.DayLight).pushLayer(id, mood, fade or 1.2, weight)
+	end)
+	if ok then
+		lightLayers[id] = true
+	end
+	return ok
+end
+
+function StoryFx.clearLight(id: string, fade: number?)
+	lightLayers[id] = nil
+	pcall(function()
+		require(script.Parent.DayLight).popLayer(id, fade or 1.2)
+	end)
+end
+
+function StoryFx.clearLights(fade: number?)
+	for id in lightLayers do
+		StoryFx.clearLight(id, fade)
+	end
+end
+
+function StoryFx.lightsOn(): number
+	local n = 0
+	for _ in lightLayers do
+		n += 1
+	end
+	return n
 end
 
 return StoryFx
