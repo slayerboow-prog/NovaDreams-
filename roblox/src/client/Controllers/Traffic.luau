@@ -1261,9 +1261,12 @@ function Traffic.init(data: Instance)
 	end
 	-- Carrocerías de malla (servidor: Kit/CarBodies -> Ambient.CarsMesh): llegan después; los coches
 	-- se cambian al llegar, y vuelven a los de piezas en gráficos Bajo
+	local function lowTier(): boolean
+		return type(Perf.tierName) == "function" and Perf.tierName() == "Low"
+	end
 	local meshFolder = data:FindFirstChild("CarsMesh")
 	local meshCars: { Model } = {}
-	if meshFolder and Perf.tierName() ~= "Low" then
+	if meshFolder and not lowTier() then
 		for _, m in meshFolder:GetChildren() do
 			if m:IsA("Model") then
 				table.insert(meshCars, m)
@@ -1328,18 +1331,22 @@ function Traffic.init(data: Instance)
 			old:Destroy()
 		end
 	end
-	data.ChildAdded:Connect(function(child)
-		if child.Name == "CarsMesh" and not usingMesh and Perf.tierName() ~= "Low" then
-			task.wait(1) -- (que lleguen todas las plantillas)
-			pcall(reskin, true)
-		end
-	end)
-	Perf.onTier(function(tier)
-		local want = tier ~= "Low" and data:FindFirstChild("CarsMesh") ~= nil
-		if want ~= usingMesh then
-			pcall(reskin, want)
-		end
-	end)
+	if typeof(data.ChildAdded) == "RBXScriptSignal" then
+		data.ChildAdded:Connect(function(child)
+			if child.Name == "CarsMesh" and not usingMesh and not lowTier() then
+				task.wait(1) -- (que lleguen todas las plantillas)
+				pcall(reskin, true)
+			end
+		end)
+	end
+	if type(Perf.onTier) == "function" then
+		Perf.onTier(function(tier)
+			local want = tier ~= "Low" and data:FindFirstChild("CarsMesh") ~= nil
+			if want ~= usingMesh then
+				pcall(reskin, want)
+			end
+		end)
+	end
 
 	for _, model in CollectionService:GetTagged("TrafficLight") do
 		addLight(model)
