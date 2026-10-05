@@ -112,8 +112,11 @@ InteriorLook.Looks = {
 			c("Mega", "Mahogany Floor", "WoodPlanks"),
 			c("RPacks", "WoodenPlanks", "WoodPlanks"),
 			c("RealMad", "Realistic Wood Planks", "WoodPlanks"),
+			c("Mega", "Old Wood Flooring", "WoodPlanks"),
+			c("PBR", "WoodPlanks_PBR", "WoodPlanks"),
+			find("Todos", { "floor" }, { "tile" }),
 		},
-		Variety = 3,
+		Variety = 4,
 		Studs = 6,
 		Whiten = 0.5,
 		Why = "tarima/parqué de madera (Duvall Drive Wood Floor, Oak Floor, Mahogany Floor)",
@@ -128,8 +131,14 @@ InteriorLook.Looks = {
 	},
 	BaldosaCocina = {
 		-- Cocinas: baldosa hidráulica (la de las casas mediterráneas: «Vintage Tile») o cerámica lisa
-		Options = { c("Mega", "Vintage Tile", "Pavement"), c("Tyler", "CeramicTiles1", "CeramicTiles"), c("Mega", "Modern Tiles", "Pavement"), c("Mega", "Tile", "Pavement") },
-		Variety = 2,
+		Options = {
+			c("Mega", "Vintage Tile", "Pavement"),
+			c("Tyler", "CeramicTiles1", "CeramicTiles"),
+			c("Mega", "Diamond Inlay Tiles", "Pavement"),
+			c("Mega", "Modern Tiles", "Pavement"),
+			c("Mega", "Tile", "Pavement"),
+		},
+		Variety = 3,
 		Studs = 5,
 		Whiten = 0.3,
 		Why = "baldosa de cocina: hidráulica (Vintage Tile) o cerámica (CeramicTiles1)",
@@ -137,15 +146,21 @@ InteriorLook.Looks = {
 	BaldosaBano = {
 		-- Baños: gres moderno y cerámica pequeña
 		Options = { c("Mega", "Modern Tiles", "Pavement"), c("Tyler", "CeramicTiles2", "CeramicTiles"), c("Mega", "Spaced Tiles", "Pavement"), c("Mega", "Tile", "Pavement") },
-		Variety = 2,
+		Variety = 3,
 		Studs = 4,
 		Whiten = 0.3,
 		Why = "gres de baño (Modern Tiles, CeramicTiles2)",
 	},
 	BaldosaLocal = {
 		-- Tiendas, bares, súper, gasolinera: baldosa cerámica de local comercial
-		Options = { c("Mega", "Tile", "Pavement"), c("Tyler", "CeramicTiles5", "CeramicTiles"), c("Mega", "Industrial Tiles", "Pavement"), c("Mega", "Stone Tiles", "Pavement") },
-		Variety = 2,
+		Options = {
+			c("Mega", "Tile", "Pavement"),
+			c("Tyler", "CeramicTiles5", "CeramicTiles"),
+			c("Mega", "Rich Brown Tile", "Pavement"),
+			c("Mega", "Industrial Tiles", "Pavement"),
+			c("Mega", "Stone Tiles", "Pavement"),
+		},
+		Variety = 3,
 		Studs = 6,
 		Whiten = 0.35,
 		Why = "baldosa cerámica de local (Tile, CeramicTiles5)",
@@ -167,8 +182,10 @@ InteriorLook.Looks = {
 			c("Mega", "Streaked Marble", "Marble"),
 			c("Mega", "Marble SmoothPolishedElegantMaterial", "Marble"),
 			c("RPacks", "Marble Tile 1", "Marble"),
+			c("PBR", "Marble_PBR", "Marble"),
+			find("Todos", { "marble" }),
 		},
-		Variety = 2,
+		Variety = 3,
 		Studs = 8,
 		Whiten = 0.2,
 		Why = "mármol en losas (Marble Tile 1, Streaked Marble)",
@@ -184,8 +201,15 @@ InteriorLook.Looks = {
 	},
 	Moqueta = {
 		-- Oficinas: moqueta de oficina y moqueta de tejido apretado
-		Options = { c("Mega", "Office Carpet Fabric", "Fabric"), c("Mega", "Tight Weave Carpet", "Fabric"), c("Tyler", "Carpet2", "Fabric"), c("RPacks", "Carpet 1", "Fabric") },
-		Variety = 2,
+		Options = {
+			c("Mega", "Office Carpet Fabric", "Fabric"),
+			c("Mega", "Tight Weave Carpet", "Fabric"),
+			c("Tyler", "Carpet2", "Fabric"),
+			c("RPacks", "Carpet 1", "Fabric"),
+			c("PBR", "Fabric_PBR", "Fabric"),
+			find("Todos", { "carpet" }),
+		},
+		Variety = 3,
 		Studs = 6,
 		Whiten = 0.45,
 		Why = "moqueta de oficina (Office Carpet Fabric, Tight Weave Carpet)",
@@ -201,16 +225,16 @@ InteriorLook.Looks = {
 	},
 	Hormigon = {
 		-- Naves, talleres, cuartel, garajes y cárcel: hormigón pulido fino
-		Options = { c("Mega", "Fine Particles Concrete", "Concrete"), c("Tyler", "Concrete3", "Concrete"), c("Real", "Concrete", "Concrete") },
-		Variety = 2,
+		Options = { c("Mega", "Fine Particles Concrete", "Concrete"), c("Tyler", "Concrete3", "Concrete"), c("Real", "Concrete", "Concrete"), c("PBR", "Concrete_PBR", "Concrete") },
+		Variety = 3,
 		Studs = 12,
 		Whiten = 0.35,
 		Why = "hormigón pulido de naves y garajes (Fine Particles Concrete, Concrete3)",
 	},
 	Pizarra = {
 		-- Donde la sala ya traía pizarra (suelos de pisos y rellanos): losas de pizarra
-		Options = { c("Mega", "Slate Tiled", "Slate"), c("Tyler", "Stonetiles", "Slate") },
-		Variety = 1,
+		Options = { c("Mega", "Slate Tiled", "Slate"), c("Tyler", "Stonetiles", "Slate"), c("PBR", "Slate_PBR", "Slate") },
+		Variety = 2,
 		Studs = 6,
 		Whiten = 0.35,
 		Why = "losas de pizarra (Slate Tiled)",
@@ -259,7 +283,7 @@ InteriorLook.Looks = {
 			c("Tyler", "Ceramictiles3", "CeramicTiles"),
 			c("Mega", "Modern Tiles", "Pavement"),
 		},
-		Variety = 2,
+		Variety = 3,
 		Studs = 4,
 		Whiten = 0.3,
 		Why = "azulejo de cocina y baño (CeramicTiles4, CeramicTiles Glossy)",
@@ -300,8 +324,8 @@ InteriorLook.Looks = {
 	},
 	---------------------------------------------------------------- Encimeras, rodapiés
 	EncimeraGranito = {
-		Options = { c("Mega", "Speckled Countertop", "Granite"), c("Mega", "Smooth Granite", "Granite"), c("Mega", "Gray Granite Flecks", "Granite") },
-		Variety = 2,
+		Options = { c("Mega", "Speckled Countertop", "Granite"), c("Mega", "Smooth Granite", "Granite"), c("Mega", "Gray Granite Flecks", "Granite"), c("PBR", "Granite_PBR", "Granite") },
+		Variety = 3,
 		Studs = 4,
 		Whiten = 0.3,
 		Why = "encimera de granito (Speckled Countertop, Smooth Granite)",
