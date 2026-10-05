@@ -13,10 +13,30 @@ problemas de derechos.
 | `sting_capitulo.ogg` | Empieza un capítulo | `Stings.Capitulo` |
 | `sting_primeros_pasos.ogg` | ¡Primeros pasos! | `Stings.PrimerosPasos` |
 
+## Música por intensidad (escenas)
+
+Las escenas piden una **intensidad** (`StoryAudio.setIntensity`, `Config.Audio.Intensity`) y la música cruza
+suave a su pieza. Mientras una pieza nueva no esté subida (su `Id` es `0` y no está en `SoundIds`), suena su
+`Fallback`, una de las de arriba que ya está subida; si no tiene `Fallback`, solo suena el ambiente.
+
+| Intensidad | Archivo | Cómo es | Mientras no esté subida | En Config.Audio |
+|---|---|---|---|---|
+| Nada | — | Momento normal: sin música, solo ambiente | — | `Intensity.Nada` |
+| Descubrimiento | `descubrimiento.ogg` | Ligera y curiosa: pizzicato y caja de música (bucle de 46 s) | `tema_valmar` | `Music.Descubrimiento` |
+| Intima | `intima.ogg` | Piano solo, lento, con aire entre frases (bucle de 66 s) | `nacimiento` | `Music.Intima` |
+| Tension | `tension.ogg` | Ostinato grave, latido y disonancias, sin melodía (bucle de 38 s) | (solo ambiente) | `Music.Tension` |
+| Resolucion | `resolucion.ogg` | El éxito: sube y cierra en re mayor (41 s, no se repite) | `vida_adulta` | `Music.Resolucion` |
+| Tema | `tema_final.ogg` | Final de capítulo: el tema de Valmar orquestado (64 s, no se repite) | `tema_valmar` | `Music.TemaFinal` |
+
+Para subirlas: `bash scripts/upload-audio.sh --music` (sube las que faltan y escribe sus IDs en
+`src/shared/SoundIds.luau`; no hay que tocar Config). Solo estas cinco:
+`bash scripts/upload-audio.sh --music descubrimiento intima tension resolucion tema_final`.
+Para rehacerlas: `python3 scripts/audio/compose.py descubrimiento intima tension resolucion tema_final`.
+
 ## Cómo ponerla en el juego — forma fácil (sin copiar IDs)
 
 1. Abre el juego en Roblox Studio.
-2. **Window → Asset Manager → Bulk Import** y elige los 7 archivos `.ogg` de esta carpeta.
+2. **Window → Asset Manager → Bulk Import** y elige los 12 archivos `.ogg` de esta carpeta.
 3. En el Asset Manager, carpeta **Audio**, arrastra cada audio al **Explorer**, dentro de
    **ReplicatedStorage → Musica** (se crea un `Sound` con su ID).
 4. Guarda el juego. El juego reconoce cada audio por su nombre (`tema_valmar`, `nacimiento`…).
@@ -24,7 +44,7 @@ problemas de derechos.
 ## Cómo ponerla en el juego — con IDs (una sola vez)
 
 1. Abre el juego en Roblox Studio.
-2. **Ventana (Window) → Asset Manager** → botón **Bulk Import** (importar varios) y elige los 7 archivos `.ogg` de
+2. **Ventana (Window) → Asset Manager** → botón **Bulk Import** (importar varios) y elige los 12 archivos `.ogg` de
    esta carpeta. También se puede en create.roblox.com → *Creations* → *Development Items* → *Audio* → *Upload Asset*.
    (Roblox puede pedir verificar la cuenta o limitar cuántos audios subes al mes: es normal.)
 3. Cuando estén subidos, en el Asset Manager haz clic derecho en cada audio → **Copy ID**.
@@ -69,10 +89,28 @@ inventadas, sin palabras. Son cortos, en mono y ocupan poco. Los que van en bucl
 | `disparo_fusil.ogg` | Chasquido supersónico + estampido (0,7 s) | Fusil y (más lento) francotirador | `Sounds.DisparoFusil`, `Sounds.DisparoFrancotirador` |
 | `disparo_eco.ogg` | Eco del disparo en los edificios, apagado (1,1 s) | Detrás de cada disparo | `Sounds.EcoDisparo` |
 
+### Ambiente por tipo de lugar (`amb_*`)
+
+Capas en bucle de 8-10 s que `StoryAudio` pone muy bajas, con fundido, según dónde estás (o lo que pida la
+escena con `StoryAudio.setAmbience`). Ver `Config.Audio.Ambience`.
+
+| Archivo | Qué es | Tipo de lugar | En Config | Mientras no esté subido |
+|---|---|---|---|---|
+| `amb_sala.ogg` | Aire de sala cerrada: climatizador y zumbido flojo | Base de colegio, universidad, oficinas, tiendas, salas… | `Sounds.AmbSala` | `viento`, apagado (`AmbAire`) |
+| `amb_casa.ogg` | Nevera, la calle por la ventana, algún crujido | Casa (con el tic-tac del reloj aparte) | `Sounds.AmbCasa` | `viento`, apagado |
+| `amb_colegio.ogg` | Niños en el pasillo, pasos, puertas | Colegio (de 8 a 18 h) | `Sounds.AmbColegio` | `multitud`, más aguda |
+| `amb_universidad.ogg` | Estudiantes, vestíbulo, la máquina expendedora | Universidad | `Sounds.AmbUniversidad` | `multitud` |
+| `amb_hospital.ogg` | Ventilación, murmullo, una camilla que pasa | Hospital (con el pitido del monitor aparte) | `Sounds.AmbHospital` | `viento`, apagado |
+| `amb_calle.ogg` | Tráfico lejano que va y viene, gente a lo lejos | Calle, parques, estación | `Sounds.AmbCalle` | `multitud`, bajita |
+
+Los golpes sueltos (reloj, pitido del monitor, puertas, teclas, gong de la estación) son sonidos de Roblox:
+suenan siempre. Para subir los seis: `bash scripts/upload-audio.sh amb_sala amb_casa amb_colegio
+amb_universidad amb_hospital amb_calle`. Para rehacerlos: `python3 scripts/audio/sfx.py amb_sala amb_casa …`.
+
 Golpes, choques y disparos no tienen subgraves (nada de "bum" de bomba). Mientras no estén subidos suena su
 `Fallback` de Config (un sonido de Roblox agudo y flojo) y el eco no suena.
 
-Los de ambiente (multitud, andén, lluvia, trueno, pájaros, viento) van al grupo **Ambience**; los demás, a
+Los de ambiente (multitud, andén, lluvia, trueno, pájaros, viento y los `amb_*`) van al grupo **Ambience**; los demás, a
 **SFX**. El botón «Sonidos: no» los calla todos.
 
 ## Cómo ponerlos en el juego — forma fácil (Studio, sin copiar IDs)
@@ -92,7 +130,7 @@ Desde la carpeta `roblox/`:
 ```
 export ROBLOX_API_KEY=…            # clave de Open Cloud con permiso para subir audios (asset: read, write)
 bash scripts/upload-audio.sh       # sube los efectos de audio/sfx
-bash scripts/upload-audio.sh --music   # (opcional) también los 7 de música
+bash scripts/upload-audio.sh --music   # (opcional) también los 12 de música
 ```
 
 El script sube los audios y escribe sus IDs en `src/shared/SoundIds.luau`; luego solo hay que construir y
