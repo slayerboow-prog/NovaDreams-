@@ -6,6 +6,10 @@
 --   * Cuando te preguntan algo, tus respuestas aparecen como botones (teclas 1-4).
 --   * La cámara se acerca a quien habla (si está en la escena) y vuelve a su sitio al acabar.
 --   * Voz: la del perfil del personaje (StoryAudio). Mientras hay conversación, el personaje no anda.
+--   * Escenificación automática (shared/LifeStory/StageDirector): plano general de situación al
+--     empezar, planos de hombro o de dos según quién hable, plano de reacción en las preguntas,
+--     pausas por la puntuación y las escritas (Pause, Beat), todo el reparto mira a quien habla, las
+--     acotaciones («(susurrando)», «(al teléfono)») se hacen en vez de leerse y la cámara vuelve suave.
 -- Lo que se ve lo decide el servidor (DialogueService); aquí solo se muestra y se contesta.
 
 local ContextActionService = game:GetService("ContextActionService")
@@ -24,6 +28,12 @@ local SpeechBubbles = require(script.Parent.Parent.UI.SpeechBubbles)
 local Controls = require(script.Parent.Controls)
 local CineCamera = require(script.Parent.CineCamera)
 local RideState = require(ReplicatedStorage.Shared.RideState)
+local StageDirector = require(ReplicatedStorage.Shared.LifeStory.StageDirector)
+-- Presets de plano (CameraShots.preset, si existe); si no, la geometría de StageDirector
+local CameraShots: any = nil
+pcall(function()
+	CameraShots = require(ReplicatedStorage.Shared.CameraShots) :: any
+end)
 
 local create = Theme.create
 local C = Theme.Colors
@@ -66,6 +76,7 @@ local answeredKeys: { [string]: boolean } = {}
 local closedTokens: { [number]: boolean } = {}
 local currentAsk: BindableEvent? = nil -- la pregunta abierta (se cierra si el servidor corta)
 local currentToken: number? = nil -- la conversación que se está enseñando
+local currentApproach: { string }? = nil -- quién se acerca al empezar (lo dice el servidor)
 
 ---------------------------------------------------------------------
 -- Controles y cámara
@@ -220,6 +231,172 @@ local function frame(line: { [string]: any })
 	startCameraLoop()
 end
 
+---------------------------------------------------------------------
+-- Escenificación (StageDirector): planos con nombre, miradas, pausas
+---------------------------------------------------------------------
+
+local stage = StageDirector.newState() -- el director de la conversación que se enseña
+local stageToken: any = nil -- (de qué conversación es)
+local holding = false -- en una pausa, un tiempo de actuación o el plano de situación
+local skipHold = false -- el jugador ha tocado: la pausa se acaba ya
+
+local function modelId(model: Instance?): string?
+	if not model then
+		return nil
+	end
+	if model == player.Character then
+		return "Yo"
+	end
+	local id = model:GetAttribute("NpcId")
+	return if type(id) == "string" then id else nil
+end
+
+-- Las cabezas de todos los de la escena (y la tuya como "Yo"), por su id
+local function stagePositions(line: { [string]: any }?): { [string]: Vector3 }
+	local positions: { [string]: Vector3 } = {}
+	local me = headOf(player.Character)
+	if me then
+		positions.Yo = me
+	end
+	local ok, cast = pcall(ActorLife.cast)
+	for _, model in if ok and type(cast) == "table" then cast else {} do
+		local id = modelId(model)
+		local head = headOf(model)
+		if id and head and (not me or (head - me).Magnitude < 60) then
+			positions[id] = head
+		end
+	end
+	if line then
+		for _, pair in { { line.Id, line.Actor }, { line.To, line.ToActor } } do
+			local id, model = pair[1], pair[2]
+			local head = headOf(model)
+			if type(id) == "string" and id ~= "Yo" and head and (not me or (head - me).Magnitude < 60) then
+				positions[id] = head
+			end
+		end
+	end
+	return positions
+end
+
+-- Pone un plano con nombre ("Hombro:Yo>Nico"…). true si se ha podido (si falta alguien, la cámara se
+-- queda como está)
+local function frameShot(spec: string?, line: { [string]: any }?, from: string?): boolean
+	if not spec or RideState.inVehicle(player) then
+		return false
+	end
+	local positions = stagePositions(line)
+	if not positions.Yo then
+		return false
+	end
+	local ok, startCf, goalCf, seconds, focus = pcall(StageDirector.camera, spec, positions, CameraShots, { From = from or (line and line.Id) })
+	if not ok or not startCf or not goalCf then
+		return false
+	end
+	local camera = workspace.CurrentCamera
+	local center: Vector3 = focus or positions.Yo
+	-- Sin atravesar paredes (y más cerca dentro de los edificios, que son pequeños)
+	local function fit(cf: CFrame): CFrame
+		if CineCamera.inInterior() then
+			local toGoal = cf.Position - center
+			cf = CFrame.new(center + toGoal * 0.7) * cf.Rotation
+		end
+		return CineCamera.clampCFrame(cf, center)
+	end
+	local a, b = fit(startCf), fit(goalCf)
+	if not savedCamera then
+		savedCamera = { Type = camera.CameraType, CFrame = camera.CFrame }
+	end
+	camera.CameraType = Enum.CameraType.Scriptable
+	-- La primera vez la cámara viaja desde donde estaba; luego, corte (o travelling si el plano lo es)
+	local first = shot == nil
+	local travelling = seconds ~= nil and seconds > 0.05
+	shotCount += 1
+	shot = {
+		From = if first then camera.CFrame else a,
+		To = b,
+		Start = os.clock(),
+		Blend = if first then 0.6 elseif travelling then seconds :: number else 0.01,
+		Focus = center,
+	}
+	startCameraLoop()
+	return true
+end
+
+-- Miradas: todo el reparto mira a quien habla. Se pide con atributos del jugador (solo en este cliente:
+-- ActorLife los lee) y, mientras ActorLife no los use, con LookAt local en quien no tiene otro
+local gazeSet: { [Instance]: any } = {} -- a quién le hemos puesto LookAt (y qué)
+local function setGaze(line: { [string]: any }?, lookOverride: string?)
+	local speakerId = if line and not line.Narrator then (if line.Me then "Player" else line.Id) else nil
+	local to = line and line.To
+	if to == "Yo" then
+		to = "Player"
+	end
+	pcall(function()
+		player:SetAttribute("StageSpeaker", speakerId)
+		player:SetAttribute("StageTo", if type(to) == "string" then to else nil)
+		player:SetAttribute("StageGaze", lookOverride)
+	end)
+	if type((ActorLife :: any).stageGaze) == "function" then
+		pcall((ActorLife :: any).stageGaze, speakerId, to, lookOverride)
+		return
+	end
+	if not speakerId then
+		return
+	end
+	local speakerModel = line and line.Actor
+	local ok, cast = pcall(ActorLife.cast)
+	for _, model in if ok and type(cast) == "table" then cast else {} do
+		pcall(function()
+			local current = model:GetAttribute("LookAt")
+			if model == speakerModel then
+				if gazeSet[model] ~= nil and current == gazeSet[model] then
+					model:SetAttribute("LookAt", nil)
+				end
+				gazeSet[model] = nil
+			elseif current == nil or current == gazeSet[model] then
+				model:SetAttribute("LookAt", speakerId)
+				gazeSet[model] = speakerId
+			end
+		end)
+	end
+end
+
+local function clearGaze()
+	pcall(function()
+		player:SetAttribute("StageSpeaker", nil)
+		player:SetAttribute("StageTo", nil)
+		player:SetAttribute("StageGaze", nil)
+	end)
+	if type((ActorLife :: any).stageGaze) == "function" then
+		pcall((ActorLife :: any).stageGaze, nil, nil, nil)
+	end
+	for model, value in gazeSet do
+		pcall(function()
+			if model.Parent and model:GetAttribute("LookAt") == value then
+				model:SetAttribute("LookAt", nil)
+			end
+		end)
+	end
+	table.clear(gazeSet)
+end
+
+-- Espera `seconds` (una pausa, un tiempo de actuación): un toque la acaba; se corta si se cierra.
+-- done: además se acaba antes si eso se cumple
+local function hold(seconds: number, done: (() -> boolean)?)
+	if seconds <= 0 or closing then
+		return
+	end
+	holding, skipHold = true, false
+	local start = os.clock()
+	while os.clock() - start < seconds and not skipHold and not closing and not closedTokens[currentToken] do
+		if done and done() then
+			break
+		end
+		task.wait(0.05)
+	end
+	holding = false
+end
+
 -- Te vuelves hacia quien te habla, poco a poco (unos 0,3 s), si estás de pie y cerca
 local TURN_SECONDS = 0.3
 local turnSerial = 0
@@ -265,15 +442,74 @@ local function turnPlayerTowards(model: Instance?)
 	end)
 end
 
-local function restoreCamera()
+-- Vuelta suave de la cámara al juego (StageDirector.EXIT_SECONDS): se desliza desde el último plano
+-- hasta donde estaba (o detrás de ti) y entonces se devuelve. Morir, otra conversación o una escena de
+-- cámara la cortan (y la cámara se devuelve igual).
+local exitSerial = 0
+local exitTarget: CFrame? = nil
+
+local function exitGoal(saved: CFrame?): CFrame?
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if saved and root and (saved.Position - root.Position).Magnitude < 40 then
+		return CFrame.new(CineCamera.clamp(root.Position + Vector3.new(0, 1.5, 0), saved.Position)) * saved.Rotation
+	end
+	return CineCamera.behind()
+end
+
+-- Termina ya una vuelta suave a medias (la cámara queda en el juego)
+local function finishExit()
+	if exitTarget then
+		local target = exitTarget
+		exitTarget = nil
+		exitSerial += 1
+		if not Cinematics.isPlaying() then
+			pcall(CineCamera.restore, target)
+		end
+	end
+end
+
+local function restoreCamera(smooth: boolean?)
 	stopCameraLoop()
+	finishExit()
 	if savedCamera then
 		local saved = savedCamera
 		savedCamera = nil
 		-- Si hay una escena de cámara en marcha, ella devuelve la cámara al acabar
-		if not Cinematics.isPlaying() then
-			CineCamera.restore(saved.CFrame) -- (a donde estaba, sin atravesar paredes, o detrás de ti)
+		if Cinematics.isPlaying() then
+			return
 		end
+		local camera = workspace.CurrentCamera
+		local goal = if smooth then exitGoal(saved.CFrame) else nil
+		if not goal or not camera or camera.CameraType ~= Enum.CameraType.Scriptable then
+			CineCamera.restore(saved.CFrame) -- (a donde estaba, sin atravesar paredes, o detrás de ti)
+			return
+		end
+		exitSerial += 1
+		local serial = exitSerial
+		exitTarget = goal
+		local from = camera.CFrame
+		local start = os.clock()
+		task.spawn(function()
+			local ok = pcall(function()
+				while serial == exitSerial do
+					if Cinematics.isPlaying() or camera.CameraType ~= Enum.CameraType.Scriptable then
+						break -- (otro se ha quedado la cámara)
+					end
+					local t = (os.clock() - start) / StageDirector.EXIT_SECONDS
+					if t >= 1 then
+						break
+					end
+					camera.CFrame = from:Lerp(goal :: CFrame, smoothstep(t))
+					RunService.RenderStepped:Wait()
+				end
+			end)
+			if serial == exitSerial then
+				exitTarget = nil
+				if not ok or not Cinematics.isPlaying() then
+					pcall(CineCamera.restore, goal)
+				end
+			end
+		end)
 	end
 end
 
@@ -405,27 +641,99 @@ end
 
 -- Escribe una línea letra a letra; devuelve cuando el jugador pasa a la siguiente
 local function showLine(line: { [string]: any })
-	nameTag.Visible = line.Name ~= nil and not line.Narrator
-	nameTag.Text = line.Name or ""
+	local staged = line.Stage == true
+	local direction = if type(line.Direction) == "table" then line.Direction else {}
+	local remote = direction.Remote
+	local caption = direction.Whole == true -- la línea entera era una acotación: el actor la hace
+	local displayName = line.Name
+	if remote and displayName then
+		displayName = (StageDirector.RemoteIcons[remote] or "📱") .. " " .. displayName
+	end
+	nameTag.Visible = displayName ~= nil and not line.Narrator
+	nameTag.Text = displayName or ""
 	nameTag.TextColor3 = if line.Me then NAME_COLORS.Me else NAME_COLORS.Other
-	textLabel.TextColor3 = if line.Narrator then Color3.fromRGB(200, 205, 215) else C.Text
+	textLabel.TextColor3 = if line.Narrator or caption then Color3.fromRGB(200, 205, 215) else C.Text
 	local full = escapeRich(line.Text or "")
-	if line.Narrator then
+	if line.Narrator or caption or direction.Whisper then
 		full = "<i>" .. full .. "</i>"
 	end
 	StoryAudio.stopVoice() -- (una sola voz: la de la frase anterior se corta)
-	frame(line)
-	if line.Voice and not line.Me then
+	-- (quien habla por teléfono no está en la escena: su frase va en la caja)
+	local speakingModel = if line.Narrator or remote then nil else line.Actor
+	if staged then
+		-- Una conversación nueva: el director empieza de cero
+		if stageToken ~= currentToken then
+			stageToken = currentToken
+			stage = StageDirector.newState()
+		end
+		local shotSpec = StageDirector.shotFor(stage, line)
+		-- 1. Plano general de situación (y quien está lejos se acerca mientras)
+		if shotSpec and not stage.Established and headOf(speakingModel) then
+			local general = StageDirector.establish(stage)
+			if frameShot(general, line) then
+				local approach = currentApproach
+				hold(StageDirector.ESTABLISH)
+				if approach and #approach > 0 and not skipHold then
+					-- (un poco más, como mucho, hasta que lleguen)
+					hold(StageDirector.ESTABLISH_MAX - StageDirector.ESTABLISH, function()
+						local me = headOf(player.Character)
+						for _, id in approach do
+							local them = headOf(ActorLife.find(id))
+							if me and them and (them - me).Magnitude > StageDirector.APPROACH_STOP + 3 then
+								return false
+							end
+						end
+						return true
+					end)
+				end
+			end
+		end
+		-- 2. El plano de la línea (hombro, de dos, primer plano…); si no se puede, la cámara de siempre
+		local framed = shotSpec ~= nil and frameShot(shotSpec, line)
+		if not framed and not line.Narrator and not remote then
+			frame(line)
+		end
+		-- 3. Todo el reparto mira a quien habla
+		setGaze(line, direction.Look)
+		-- 4. Tiempo de actuación (respira, mira, piensa…) y pausa escrita, antes de hablar
+		local beat = line.Beat
+		if type(beat) == "table" and type(beat.Seconds) == "number" then
+			if speakingModel and beat.Gesture then
+				pcall(ActorLife.gesture, speakingModel, beat.Gesture, beat.Seconds)
+			end
+			if beat.Look then
+				setGaze(line, if beat.Look == "To" then nil else beat.Look)
+			end
+			hold(math.min(beat.Seconds, StageDirector.MAX_BEAT))
+			if beat.Look then
+				setGaze(line, direction.Look)
+			end
+		end
+		if type(line.Pause) == "number" then
+			hold(math.min(line.Pause, StageDirector.MAX_PAUSE))
+		end
+		if closing or closedTokens[currentToken] then
+			return
+		end
+	else
+		frame(line)
+	end
+	if line.Voice and not line.Me and not caption then
 		StoryAudio.speak(line.Voice, line.Text or "")
 	end
 	-- Quien habla se mueve al hablar (cabeza, manos, el gesto de la frase); los demás le miran
-	local speakingModel = if line.Narrator then nil else line.Actor
 	if not line.Me and not line.Narrator then
 		turnPlayerTowards(speakingModel) -- y tú te vuelves hacia quien te habla
 	end
 	local plainText = line.Text or ""
-	ActorLife.speak(speakingModel, line.Emotion, (utf8.len(plainText) or #plainText) / TYPE_SPEED + 0.8, line.Gesture)
+	local pauses, tail = {}, 0
+	if staged then
+		pauses, tail = StageDirector.pauses(plainText)
+	end
+	local typingSeconds = if staged then StageDirector.typingSeconds(plainText, TYPE_SPEED) else (utf8.len(plainText) or #plainText) / TYPE_SPEED
+	ActorLife.speak(speakingModel, line.Emotion, typingSeconds + 0.8, line.Gesture)
 	-- Bocadillo encima de quien habla (si está en la escena y cerca); si no, el texto va en la caja
+	-- (una acotación entera no lleva bocadillo: es el subtítulo de lo que hace)
 	lineSerial += 1
 	local serial = lineSerial
 	if bubbleOf and bubbleOf ~= speakingModel then
@@ -436,14 +744,18 @@ local function showLine(line: { [string]: any })
 	local head = headOf(speakingModel)
 	local camera = workspace.CurrentCamera
 	-- (lo que dices tú va en la caja de abajo: encima de tu cabeza lo taparía tu propio personaje)
-	if speakingModel and not line.Me and head and camera and (head - camera.CFrame.Position).Magnitude < BUBBLE_DISTANCE then
+	if speakingModel and not line.Me and not caption and head and camera and (head - camera.CFrame.Position).Magnitude < BUBBLE_DISTANCE then
 		bubbled = SpeechBubbles.show(speakingModel, plainText, {
 			Name = line.Name,
 			NameColor = if line.Me then NAME_COLORS.Me:Lerp(Color3.new(0, 0, 0), 0.35) else nil,
 			Hold = true,
 			Story = true, -- (encima de todo: las paredes no la tapan)
 			Typing = TYPE_SPEED,
+			Pauses = if #pauses > 0 then pauses else nil,
 		})
+	elseif caption and bubbleOf then
+		SpeechBubbles.hide(bubbleOf)
+		bubbleOf = nil
 	end
 	if bubbled then
 		bubbleOf = speakingModel
@@ -473,17 +785,18 @@ local function showLine(line: { [string]: any })
 			end
 		end)
 	end
-	-- Escribir
+	-- Escribir (si está escenificada, parándose en «…» y en los puntos)
 	skipTyping = false
 	typed = false
-	local plain = line.Text or ""
-	local total = utf8.len(plain) or #plain
+	local total = utf8.len(plainText) or #plainText
 	textLabel.MaxVisibleGraphemes = 0
 	textLabel.Text = full
 	hint.Visible = bubbled -- con bocadillo, la caja solo dice "Toca para seguir"
+	local started = os.clock()
 	local shown = 0
 	while shown < total and not skipTyping and not closing do
-		shown = math.min(total, shown + math.max(1, math.floor(TYPE_SPEED * task.wait())))
+		task.wait()
+		shown = StageDirector.revealed(os.clock() - started, TYPE_SPEED, total, pauses)
 		textLabel.MaxVisibleGraphemes = shown
 	end
 	textLabel.MaxVisibleGraphemes = -1
@@ -492,16 +805,39 @@ local function showLine(line: { [string]: any })
 	end
 	typed = true
 	hint.Visible = true
+	if staged and not closing then
+		-- 5. Tras la pausa del final («…» o el punto), si era una pregunta: plano de reacción
+		local reaction = StageDirector.reactionFor(line)
+		if reaction then
+			task.spawn(function()
+				local at = os.clock()
+				while os.clock() - at < tail and lineSerial == serial and not closing do
+					task.wait(0.05)
+				end
+				if lineSerial == serial and not closing and open then
+					pcall(frameShot, reaction, line, line.Id)
+				end
+			end)
+		end
+	end
 	-- (si se cerró mientras escribía, no se espera a un toque que nunca llega: antes la caja se quedaba
 	-- abierta, sin controles, hasta tocar la pantalla)
 	if not closing and not closedTokens[currentToken] then
 		advanceSignal.Event:Wait()
 	end
 	ActorLife.quiet(speakingModel)
+	-- Silencio después de la frase (Pause = { After = … })
+	if staged and type(line.After) == "number" then
+		hold(math.min(line.After, StageDirector.MAX_PAUSE))
+	end
 end
 
-local function ask(prompt: string?, options: { string }): number
+local function ask(prompt: string?, options: { string }, staged: boolean?): number
 	lineSerial += 1 -- (la frase de antes ya no mueve la caja)
+	if staged and stage.Last then
+		-- Te toca contestar: plano de reacción sobre ti, desde quien te ha hablado
+		pcall(frameShot, "Reaccion:Yo", nil, stage.Last)
+	end
 	setCompact(false) -- las respuestas van en la caja entera
 	for _, child in optionsFrame:GetChildren() do
 		if child:IsA("TextButton") then
@@ -579,6 +915,7 @@ local function setOpen(value: boolean)
 		pcall(StoryAudio.stopVoice)
 	end
 	if value then
+		finishExit() -- (si la cámara aún volvía de la conversación anterior, se queda en su sitio)
 		box.Visible = true
 		setControls(false)
 	else
@@ -589,7 +926,11 @@ local function setOpen(value: boolean)
 		end
 		textLabel.Visible = true
 		setCompact(false)
-		restoreCamera()
+		pcall(clearGaze)
+		holding, skipHold = false, false
+		currentApproach = nil
+		stageToken = nil
+		restoreCamera(true) -- (suave: la cámara se desliza de vuelta al juego)
 		setControls(true)
 		turnSerial += 1
 		turnedFor = nil
@@ -606,6 +947,7 @@ local function forceClose()
 	closing = true
 	table.clear(queue)
 	skipTyping = true
+	skipHold = true
 	advanceSignal:Fire()
 	if currentAsk then
 		currentAsk:Fire()
@@ -646,6 +988,9 @@ processQueue = function()
 		end
 		currentToken = payload.Token
 		closing = false
+		if payload.Approach then
+			currentApproach = payload.Approach
+		end
 		-- Una conversación nueva tampoco se abre encima de un momento o una pantalla de capítulo
 		-- (como mucho se espera un rato: la conversación nunca se queda sin salir)
 		local since = os.clock()
@@ -670,7 +1015,7 @@ processQueue = function()
 		end
 		if payload.Options then
 			askToken, askSeq = payload.Token, payload.Seq
-			local index = ask(payload.Ask, payload.Options)
+			local index = ask(payload.Ask, payload.Options, stageToken == payload.Token)
 			askToken, askSeq = nil, nil
 			if closedTokens[payload.Token] then
 				continue
@@ -778,7 +1123,9 @@ function DialogueUI.init()
 		local key = input.KeyCode
 		if key == Enum.KeyCode.Space or key == Enum.KeyCode.Return or key == Enum.KeyCode.E or key == Enum.KeyCode.ButtonA
 			or ((input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) and not processed) then
-			if typed then
+			if holding then
+				skipHold = true -- (una pausa o un tiempo de actuación: se acaba ya)
+			elseif typed then
 				advanceSignal:Fire()
 			else
 				skipTyping = true
@@ -790,7 +1137,9 @@ function DialogueUI.init()
 		if optionsFrame.Visible or Cinematics.isOnScreen() then
 			return
 		end
-		if typed then
+		if holding then
+			skipHold = true
+		elseif typed then
 			advanceSignal:Fire()
 		else
 			skipTyping = true

@@ -498,9 +498,32 @@ Strings.es = {
 
 -- Devuelve el texto de una clave con sus variables sustituidas. Si falta, devuelve la clave
 -- (así se ve enseguida qué texto falta en lugar de romper el juego).
+-- Token de género (StageDirector.genderize): «encargad{o/a}», «{él/ella}». El género del jugador llega
+-- en args.genero ("M"/"F"; DialogueService lo saca del atributo Gender). Sin saberlo, sale la forma
+-- corta con barra («encargado/a»), nunca el doblete «encargado o encargada».
+local StageDirector: any = nil
+local function genderize(text: string, args: { [string]: any }?): string
+	if not text:find("/", 1, true) or not text:find("{", 1, true) then
+		return text
+	end
+	if StageDirector == nil then
+		local ok, module = pcall(function()
+			return require(script.Parent.StageDirector) :: any
+		end)
+		StageDirector = if ok then module else false
+	end
+	if not StageDirector then
+		return text
+	end
+	local gender = args and StageDirector.gender(args.genero or args.Gender)
+	return StageDirector.genderize(text, gender)
+end
+Strings.genderize = genderize
+
 function Strings.get(key: string, args: { [string]: any }?): string
 	-- Si no es una clave, es un texto ya escrito (las misiones escriben sus textos directamente)
 	local text = Strings.es[key] or key
+	text = genderize(text, args)
 	if args then
 		text = text:gsub("{(%w+)}", function(name)
 			local value = args[name]
