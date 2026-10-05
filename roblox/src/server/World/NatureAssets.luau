@@ -18,12 +18,13 @@
 --     (DivingService, piezas SwimFish) pasan a verse con su malla.
 --   * Lo pequeño lleva la etiqueta LeafDetail (el nivel gráfico Bajo lo esconde, Controllers/
 --     MaterialDetail). Las rocas grandes chocan y no se esconden (son parte del paisaje).
---   * Packs con puerta trasera (docs/assets-usuario-4.md, familias 1, 3 y 5): lo que devuelve
---     LoadAssetAsync/LoadAsset no tiene padre y sus scripts no pueden correr así. Por eso se borran
---     TODOS los LuaSourceContainer nada más descargar, ANTES de meter nada en ningún sitio, y luego
---     solo se copian las mallas. Lo cargado no se mete nunca en el juego (se destruye).
---   * Rincón japonés en algunos parques: cerezo en flor con dos faroles de piedra. Hogueras junto a
---     las mesas de pícnic del parque natural (con fuego y luz nuestros).
+--   * Los packs con puerta trasera (docs/assets-usuario-4.md, familias 1, 3 y 5) no se cargan nunca
+--     (Blocked): van sus recambios limpios de docs/assets-reemplazos.md. Aun así, de todo lo cargado
+--     se borran TODOS los LuaSourceContainer nada más descargar, con lo cargado aún sin padre, ANTES
+--     de meter nada en ningún sitio, y luego solo se copian las mallas (Log lo apunta).
+--   * Rincón japonés en los parques más grandes: cerezo en flor, dos faroles de piedra y dos
+--     guardianes de piedra. Hogueras junto a las mesas de pícnic del parque natural (con fuego y
+--     luz nuestros).
 --   * Si algo no carga, el juego sigue con lo procedural, sin errores.
 
 local MeshLibrary = require(script.Parent.MeshLibrary)
@@ -69,34 +70,45 @@ NatureAssets.Packs = {
 		{ Kind = "Park", Match = { "^oak%-0%d%-0lod", "^mapletree%-01", "^elmtree%-01" }, MaxUses = 60 },
 		{ Kind = "Conifer", Match = { "^douglasfir%-0%d", "^oldsprucetree%-0%d", "^ponderosapine01" }, MaxUses = 60 },
 	} },
-	-- Packs con puerta trasera: scripts fuera antes de nada, solo mallas (ver arriba)
-	-- Foliage Pack (Ixcraz8397): 4 palmeras, sauce, arbustos y helechos
-	{ Id = 114397068371248, Name = "Follaje", Take = {
-		{ Kind = "Palm", Match = { "^palm tree$" }, MaxUses = 250 },
-		{ Kind = "Park", Match = { "^willow tree$" }, MaxUses = 40 },
-		{ Kind = "Bush", Match = { "^bush", "^fern" }, MaxUses = 250 },
+	-- Recambios limpios (docs/assets-reemplazos.md: sin virus, revisados uno a uno) de los packs
+	-- con puerta trasera, que no se cargan nunca (Blocked)
+	-- Palm Tree (Realistic): palmera de 3 mallas, muy ligera
+	{ Id = 10562894034, Name = "Palmera", Take = {
+		{ Kind = "Palm", Match = { "palm" }, MaxUses = 300, Whole = true },
 	} },
-	-- Trees / Foliage Tropical (Ixcraz8397): palmeras (malla con Texture antigua) y arbustos. Palm2 no
-	-- (su tronco es una UnionOperation, no una malla)
-	{ Id = 72475149726020, Name = "Tropical", Take = {
-		{ Kind = "Palm", Match = { "^palm tree$" }, MaxUses = 250, KeepTextures = true },
-		{ Kind = "Bush", Match = { "^bush1$", "^bush2$" }, MaxUses = 250, KeepTextures = true },
+	-- Tropical PBR Plants: solo las palmeras (sin el tocón, el maniquí «Scale» ni la cámara)
+	{ Id = 9501994254, Name = "Tropical", Take = {
+		{ Kind = "Palm", Match = { "^large palm$", "^curved palm$", "^straight palm$", "^dark palm$", "^thick palm$", "^small palm$" }, MaxUses = 200 },
 	} },
-	-- Cherry Blossom Tree: el cerezo del rincón japonés (sin pétalos ni su animación de otro creador)
-	{ Id = 109211499509239, Name = "Sakura", Take = {
+	-- Cherry Blossom Tree y Sakura Park Tree: cerezos del rincón japonés (sin pétalos ni StringValue)
+	{ Id = 10586979345, Name = "Cerezo", Take = {
 		{ Kind = "Sakura", Match = { "cherry", "blossom", "sakura" }, Whole = true },
 	} },
-	-- Realistic tree (Ixcraz8397): haya de parque
-	{ Id = 126164979250031, Name = "Haya", Take = {
-		{ Kind = "Park", Match = { "beechwood", "tree" }, MaxUses = 150, Whole = true },
+	{ Id = 15343255788, Name = "CerezoParque", Take = {
+		{ Kind = "Sakura", Match = { "cherry", "blossom", "sakura" }, Whole = true },
 	} },
-	-- Realistic Campfire: piedras y palos (el fuego y la luz los ponemos nosotros)
-	{ Id = 116641210728889, Name = "Hoguera", Take = {
-		{ Kind = "Campfire", Match = { "campfire", "fire" }, Whole = true },
+	-- PBR Bush
+	{ Id = 9522573337, Name = "ArbustoPBR", Take = {
+		{ Kind = "Bush", Match = { "bush" }, MaxUses = 250, Whole = true },
 	} },
-	-- japanese shrine lantern: farol de piedra del rincón japonés
-	{ Id = 78188971759943, Name = "Farol", Take = {
+	-- Landscaping Pack (Roblox): arbustos de la carpeta Bushes y la hoguera del FirePit
+	{ Id = 10840661513, Name = "Jardineria", Take = {
+		{ Kind = "Bush", Match = { "rhododendron", "laurel", "fern", "chinese_evergreen", "philodendron" }, MaxUses = 250 },
+		{ Kind = "Campfire", Match = { "^campfire$" } },
+	} },
+	-- Farol de piedra japonés
+	{ Id = 9854052347, Name = "Farol", Take = {
 		{ Kind = "Lantern", Match = { "lantern", "toro" }, Whole = true },
+	} },
+	-- Perro-león de piedra: los guardianes del rincón japonés (en lugar del Moai)
+	{ Id = 4698399766, Name = "Guardian", Take = {
+		{ Kind = "Guardian", Match = { "lion", "dog", "statue", "komainu" }, Whole = true },
+	} },
+	-- Forest Pack (Roblox): secuoyas para el monte, rocas grandes y piedras
+	{ Id = 6432306802, Name = "Bosque", Take = {
+		{ Kind = "Conifer", Match = { "redwood" }, MaxUses = 200 },
+		{ Kind = "Boulder", Match = { "boulder" } },
+		{ Kind = "Pebble", Match = { "smallrock", "small rock", "pebble" } },
 	} },
 	-- Realistic Pack (xXCHARLIE_BOlXx): solo los tiburones (las personas, el perro y el conejo no)
 	{ Id = 8649374407, Name = "Tiburones", Take = {
@@ -111,6 +123,13 @@ NatureAssets.Packs = {
 -- Nunca se cargan: mallas sacadas de otro juego (docs/assets-usuario-5.md)
 NatureAssets.Blocked = {
 	[11330013072] = "Moai: malla sacada de Splatoon 3",
+	-- Puerta trasera (docs/assets-usuario-4.md): Sebastián prefiere los recambios limpios
+	[114397068371248] = "Foliage Pack: puerta trasera (familia 1)",
+	[72475149726020] = "Palmeras tropicales: puerta trasera (familia 1)",
+	[109211499509239] = "Cerezo: puerta trasera (familia 1)",
+	[126164979250031] = "Haya: puerta trasera (familia 1)",
+	[116641210728889] = "Hoguera: puerta trasera (familia 5)",
+	[78188971759943] = "Farol japonés: puerta trasera (familias 3 y 5)",
 }
 
 -- Nombres (en español) y topes por tipo
@@ -126,6 +145,7 @@ NatureAssets.Kinds = {
 	Sakura = { Name = "Cerezo", MaxParts = 10, Tree = true },
 	Lantern = { Name = "FarolPiedra", MaxParts = 4, MaxSize = 20 },
 	Campfire = { Name = "Hoguera", MaxParts = 50, MaxSize = 15 },
+	Guardian = { Name = "Guardian", MaxParts = 10, MaxSize = 40 },
 }
 NatureAssets.JapaneseCorners = 4 -- parques con rincón japonés
 NatureAssets.Campfires = 8
@@ -567,6 +587,107 @@ function NatureAssets.placePebbles(parent: Instance, library: Library, lawn: Bas
 end
 
 -- Giro para que el largo de la plantilla (peces, tiburones) quede en el eje Z, como las piezas SwimFish
+-- Rincón japonés en una esquina libre del césped de un parque: cerezo en flor, dos faroles de piedra
+-- delante y dos guardianes de piedra a los lados, mirando al centro del parque. Prueba las cuatro
+-- esquinas y se queda con la primera donde todo cae en el césped. Devuelve si lo ha puesto.
+function NatureAssets.placeJapaneseCorner(parent: Instance, library: Library, lawn: BasePart, probe: Probe): boolean
+	local sakura, lanterns, guardians = library.Sakura, library.Lantern, library.Guardian
+	if not sakura or #sakura == 0 then
+		return false
+	end
+	local cf, size = lawn.CFrame, lawn.Size
+	if size.X < 40 or size.Z < 40 then
+		return false
+	end
+	local center = cf.Position
+	for k = 0, 3 do
+		local sx = if k % 2 == 0 then 1 else -1
+		local sz = if k < 2 then 1 else -1
+		local at = (cf * CFrame.new(sx * (size.X / 2 - 14), size.Y / 2, sz * (size.Z / 2 - 14))).Position
+		local inward = Vector3.new(center.X - at.X, 0, center.Z - at.Z)
+		if inward.Magnitude < 1 then
+			continue
+		end
+		inward = inward.Unit
+		local side = Vector3.new(-inward.Z, 0, inward.X)
+		local spots = {
+			{ Kind = "Sakura", Pos = at, Size = 18, Radius = 6 },
+			{ Kind = "Lantern", Pos = at + inward * 9 + side * 4, Size = 4.5, Radius = 1.5 },
+			{ Kind = "Lantern", Pos = at + inward * 9 - side * 4, Size = 4.5, Radius = 1.5 },
+			{ Kind = "Guardian", Pos = at + inward * 13 + side * 7, Size = 4, Radius = 1.5 },
+			{ Kind = "Guardian", Pos = at + inward * 13 - side * 7, Size = 4, Radius = 1.5 },
+		}
+		local ys = {}
+		local ok = true
+		for i, spot in spots do
+			ys[i] = probe(spot.Pos.X, spot.Pos.Z, spot.Radius)
+			if ys[i] == nil and spot.Kind == "Sakura" then
+				ok = false
+				break
+			end
+		end
+		if ok then
+			local face = math.atan2(-inward.X, -inward.Z)
+			for i, spot in spots do
+				local list = library[spot.Kind]
+				local y = ys[i]
+				if y and list and #list > 0 then
+					local t = list[(i - 1) % #list + 1]
+					NatureAssets.place(t, parent, Vector3.new(spot.Pos.X, y, spot.Pos.Z), spot.Size, face, {
+						Collide = spot.Kind ~= "Sakura",
+						Detail = spot.Kind ~= "Sakura",
+						Name = NatureAssets.Kinds[spot.Kind].Name,
+					})
+				end
+			end
+			return true
+		end
+	end
+	return false
+end
+
+-- Hogueras junto a las mesas de pícnic (una sí y otra no), con fuego y luz nuestros
+function NatureAssets.placeCampfires(parent: Instance, library: Library, tables: { BasePart }, probe: Probe): number
+	local list = library.Campfire
+	if not list or #list == 0 then
+		return 0
+	end
+	local n = 0
+	for i, t in tables do
+		if n >= NatureAssets.Campfires then
+			break
+		end
+		if i % 2 == 1 then
+			local p = (t.CFrame * CFrame.new(0, 0, -9)).Position
+			local y = probe(p.X, p.Z, 3)
+			if y then
+				local m = NatureAssets.place(list[(n % #list) + 1], parent, Vector3.new(p.X, y, p.Z), 4.5, i * 0.7, { Collide = true, Name = "Hoguera" })
+				local flame = Instance.new("Part")
+				flame.Name = "Llama"
+				flame.Anchored = true
+				flame.CanCollide = false
+				flame.CanQuery = false
+				flame.CanTouch = false
+				flame.Transparency = 1
+				flame.Size = Vector3.new(1, 1, 1)
+				flame.CFrame = CFrame.new(p.X, y + 1, p.Z)
+				local fire = Instance.new("Fire")
+				fire.Size = 4
+				fire.Heat = 6
+				fire.Parent = flame
+				local light = Instance.new("PointLight")
+				light.Color = Color3.fromRGB(255, 150, 60)
+				light.Range = 18
+				light.Brightness = 1.8
+				light.Parent = flame
+				flame.Parent = m
+				n += 1
+			end
+		end
+	end
+	return n
+end
+
 function NatureAssets.lengthYaw(t: Template): number
 	local lo, hi = bounds(meshesOf(t.Model))
 	return if hi.X - lo.X > hi.Z - lo.Z then math.pi / 2 else 0
@@ -759,6 +880,47 @@ function NatureAssets.start()
 		warn("[NatureAssets] piedras: " .. tostring(err))
 	end
 
+	-- Rincón japonés en los parques más grandes
+	local corners = 0
+	ok, err = pcall(function()
+		local town = workspace:FindFirstChild("Town") or workspace
+		local lawns = {}
+		for _, d in town:GetDescendants() do
+			if d:IsA("BasePart") and d.Name == "Lawn" and d.Parent and d.Parent.Name == "Parque" then
+				table.insert(lawns, d)
+			end
+		end
+		table.sort(lawns, function(a, b)
+			return a.Size.X * a.Size.Z > b.Size.X * b.Size.Z
+		end)
+		for _, lawn in lawns do
+			if corners >= NatureAssets.JapaneseCorners then
+				break
+			end
+			if NatureAssets.placeJapaneseCorner(folder, library, lawn, onLawn(lawn, folder)) then
+				corners += 1
+			end
+		end
+	end)
+	if not ok then
+		warn("[NatureAssets] rincón japonés: " .. tostring(err))
+	end
+
+	-- Hogueras junto a las mesas de pícnic del parque natural
+	local fires = 0
+	ok, err = pcall(function()
+		local tables = {}
+		for _, d in workspace:GetDescendants() do
+			if d:IsA("BasePart") and d.Name == "PicnicTable" then
+				table.insert(tables, d)
+			end
+		end
+		fires = NatureAssets.placeCampfires(folder, library, tables, ground(folder))
+	end)
+	if not ok then
+		warn("[NatureAssets] hogueras: " .. tostring(err))
+	end
+
 	-- Peces en las pescaderías (también las que se monten después)
 	local CollectionService = game:GetService("CollectionService")
 	local function counter(c: Instance)
@@ -813,7 +975,7 @@ function NatureAssets.start()
 	end
 	task.spawn(swimSharks, sharks)
 
-	print(("[NatureAssets] %d rocas, %d piedrecitas, %d tiburones"):format(rocks, pebbles, #sharks))
+	print(("[NatureAssets] %d rocas, %d piedrecitas, %d rincones japoneses, %d hogueras, %d tiburones"):format(rocks, pebbles, corners, fires, #sharks))
 end
 
 return NatureAssets

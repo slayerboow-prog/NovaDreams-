@@ -348,6 +348,101 @@ end
 check(sea and #NatureAssets.sharkSpots(CityPlan) == 4, "tiburones en el mar, bajo el agua")
 
 ---------------------------------------------------------------------
+print("Recambios limpios: rincón japonés y hogueras")
+NatureAssets.reset()
+local asked2: { number } = {}
+local function cleanPack(id: number): any
+	table.insert(asked2, id)
+	local root = Instance.new("Model")
+	local s = Instance.new("Script")
+	s.Parent = root
+	if id == 10586979345 then
+		treeModel(root, "Cherry Blossom Tree", 40, 44, "Blossom", "Trunk")
+	elseif id == 9854052347 then
+		single(root, "Stone Lantern", Vector3.new(2, 5, 2))
+	elseif id == 4698399766 then
+		single(root, "Lion Dog Statue", Vector3.new(2, 4, 3))
+	elseif id == 10840661513 then
+		local pit = Instance.new("Model")
+		pit.Name = "FirePit"
+		pit.Parent = root
+		local fire = Instance.new("Model")
+		fire.Name = "Campfire"
+		fire.Parent = pit
+		mesh(fire, "Stones", Vector3.new(5, 1, 5), Vector3.new(0, 0.5, 0))
+		mesh(fire, "Logs", Vector3.new(3, 1.5, 3), Vector3.new(0, 1, 0))
+		single(root, "Rhododendron", Vector3.new(5, 4, 5))
+	elseif id == 10562894034 then
+		treeModel(root, "Palm Tree (Realistic)", 20, 30, "Leaves", "Trunk")
+	else
+		return nil
+	end
+	return root
+end
+local lib2 = NatureAssets.load(cleanPack)
+local badAsked = false
+for _, id in asked2 do
+	badAsked = badAsked or NatureAssets.Blocked[id] ~= nil
+end
+check(not badAsked, "los recambios sustituyen a los packs con virus: esos ni se piden")
+local strippedFirst = #NatureAssets.Log > 0
+for _, entry in NatureAssets.Log do
+	strippedFirst = strippedFirst and entry.Unparented and entry.Stripped >= 1
+end
+check(strippedFirst, "a cada pack se le borran los scripts nada más cargarlo, aún sin padre")
+check(#lib2.Sakura == 1 and #lib2.Lantern == 1 and #lib2.Guardian == 1 and #lib2.Campfire == 1, "cerezo, farol, guardián y hoguera")
+check(#lib2.Palm == 1 and #lib2.Bush == 1, "palmera limpia y arbusto del pack de jardinería")
+local clean2 = true
+for _, list in lib2 do
+	for _, t in list do
+		clean2 = clean2 and onlyMeshes(t.Model)
+	end
+end
+check(clean2, "solo mallas, sin scripts ni carteles")
+
+local park = Instance.new("Part")
+park.Name = "Lawn"
+park.Size = Vector3.new(140, 0.3, 100)
+park.CFrame = CFrame.new(2000, 0.15, 2000)
+local jf = Instance.new("Folder")
+local placed = NatureAssets.placeJapaneseCorner(jf, lib2, park, function()
+	return 0.3
+end)
+local inLawn, kinds = true, {}
+for _, m in jf:GetChildren() do
+	kinds[m.Name] = (kinds[m.Name] or 0) + 1
+	for _, p in m:GetDescendants() do
+		if p:IsA("BasePart") then
+			inLawn = inLawn and math.abs(p.CFrame.Position.X - 2000) < 70 and math.abs(p.CFrame.Position.Z - 2000) < 50
+		end
+	end
+end
+check(placed and kinds.Cerezo == 1 and kinds.FarolPiedra == 2 and kinds.Guardian == 2, "rincón japonés: un cerezo, dos faroles y dos guardianes")
+check(inLawn, "todo dentro del césped del parque")
+check(not NatureAssets.placeJapaneseCorner(Instance.new("Folder"), lib2, park, function()
+	return nil
+end), "sin sitio libre, no se pone")
+
+local tables = {}
+for i = 1, 6 do
+	local t = Instance.new("Part")
+	t.Name = "PicnicTable"
+	t.CFrame = CFrame.new(i * 40, 3, 0)
+	table.insert(tables, t)
+end
+local ff = Instance.new("Folder")
+local fires = NatureAssets.placeCampfires(ff, lib2, tables, function()
+	return 1
+end)
+local lit = true
+for _, m in ff:GetChildren() do
+	local flame = m:FindFirstChild("Llama")
+	lit = lit and flame ~= nil and flame:FindFirstChildOfClass("Fire") ~= nil and flame:FindFirstChildOfClass("PointLight") ~= nil
+end
+check(fires == 3 and lit, "hogueras en una de cada dos mesas de pícnic, con fuego y luz")
+NatureAssets.reset()
+
+---------------------------------------------------------------------
 print("Si falla la carga")
 NatureAssets.reset()
 local empty = NatureAssets.load(function()

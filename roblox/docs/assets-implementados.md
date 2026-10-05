@@ -18,13 +18,13 @@ sola pasada (nada se planta dos veces). Prueba: `lune run scripts/test-nature-as
 | 13877830677 | Landscape Pack | Medium Moss Boulder (rocas) y Rhododendron (arbustos). El resto pesa demasiado. |
 | 9262569938 | 5 piedras pequeñas | Grupos de piedrecitas en el césped de los parques (360 como mucho, LeafDetail: el nivel Bajo las esconde). |
 | 8919681750 | Velvet's Nature Pack | Robles, arce y olmo en parques; abetos Douglas, píceas y pino ponderosa en el monte (60 copias c/u: pesados). |
-| 114397068371248 | Foliage Pack con palmeras | **No**: puerta trasera (familia 1, activa HttpEnabled). En su lugar, las palmeras de 8553512581 y 13388285234. |
-| 72475149726020 | Palmeras tropicales | **No**: puerta trasera (familia 1). |
-| 109211499509239 | Cerezo (sakura) | **No**: puerta trasera (familia 1). Hay cerezo limpio en 96924659951632 (CherryTree), que sí está. |
-| 126164979250031 | Arbusto/haya | **No**: puerta trasera (familia 1, HttpEnabled). |
-| 116641210728889 | Hoguera (Campfire Forest Pack) | **No**: puerta trasera (familia 5). |
-| 78188971759943 | Farol japonés de santuario | **No**: puerta trasera (familias 3 y 5). |
-| 11330013072 | Moai PBR | **No**: la malla está sacada de Splatoon 3 (IP de otro juego). |
+| 114397068371248 | Foliage Pack con palmeras | **No** (virus o malla de otro juego). Reemplazado por 10562894034 (palmera limpia) y 9501994254 (palmeras tropicales PBR). |
+| 72475149726020 | Palmeras tropicales | **No** (virus o malla de otro juego). Reemplazado por 9501994254 (palmeras tropicales PBR). |
+| 109211499509239 | Cerezo (sakura) | **No** (virus o malla de otro juego). Reemplazado por 10586979345 y 15343255788 (cerezos del rincón japonés). |
+| 126164979250031 | Arbusto/haya | **No** (virus o malla de otro juego). Reemplazado por 9522573337 (PBR Bush) y los arbustos del Landscaping Pack de Roblox 10840661513. |
+| 116641210728889 | Hoguera (Campfire Forest Pack) | **No** (virus o malla de otro juego). Reemplazado por la hoguera del Landscaping Pack de Roblox 10840661513 (junto a las mesas de pícnic). |
+| 78188971759943 | Farol japonés de santuario | **No** (virus o malla de otro juego). Reemplazado por 9854052347 (farol de piedra del rincón japonés). |
+| 11330013072 | Moai PBR | **No** (virus o malla de otro juego). Reemplazado por 4698399766 (guardianes de piedra del rincón japonés). |
 | 8649374407 | Animales marinos | Solo los tiburones: 4 nadan despacio mar adentro frente a las playas del este (se mueven solo si hay alguien a menos de 600 studs), y el tiburón del buceo/evento de playa se ve con su malla. Las estatuas de personas, el perro y el conejo no. |
 | 130843005739076 | Peces | Peces sueltos (bacalao, mero, barramundi…): 3 en cada mostrador de pescadería (SuperFish) y como malla de los peces que nadan al bucear (SwimFish). Sin kraken, cocodrilo, NPC, Sketchfab ni mosasaurio. |
 
@@ -336,3 +336,17 @@ Aún **no** están en el juego.
 
 Descartados en esta búsqueda: 17430288419 (Greyhound), 116752155328441 (rótulos de marcas),
 3098736664 (imágenes bloqueadas), 102795561208384 (origen dudoso), 5511084119 (mallas de pago de Unity).
+
+
+## Recambios limpios de naturaleza (docs/assets-reemplazos.md)
+
+| Id | Dónde |
+|---|---|
+| 10562894034 | Palmeras de playa, plaza y chalés (MeshLibrary cambia las procedurales) |
+| 9501994254 | Seis palmeras tropicales PBR (sin el tocón, el maniquí ni la cámara) |
+| 10586979345, 15343255788 | Cerezo en flor del rincón japonés (4 parques más grandes) |
+| 9522573337 | Arbustos de parques y jardines |
+| 10840661513 | Arbustos (rododendro, laurel, helecho…) y hogueras junto a las mesas de pícnic del lago, con fuego y luz nuestros |
+| 9854052347 | Dos faroles de piedra en cada rincón japonés |
+| 4698399766 | Dos guardianes de piedra en cada rincón japonés |
+| 6432306802 | Secuoyas en el monte (200 como mucho), rocas grandes y piedras |
