@@ -148,6 +148,7 @@ local function officialCar(name: string, paint: Color3, size: Vector3, forward: 
 	mesh("Hood", Vector3.new(W * 0.9, 0.3, L * 0.25), at(0, H * 0.58, -L * 0.36), paint, body)
 	mesh("Grille", Vector3.new(W * 0.5, 0.6, 0.3), at(0, H * 0.3, -L / 2 + 0.1), Color3.fromRGB(20, 20, 22), body)
 	mesh("Headlights", Vector3.new(W * 0.8, 0.5, 0.3), at(0, H * 0.4, -L / 2 + 0.2), Color3.fromRGB(250, 250, 240), body, { Material = Enum.Material.Neon })
+	mk("Decal", { Name = "Decal", Texture = "rbxassetid://289040701" }, body:FindFirstChild("Doors"))
 	local badge = mesh("Badge", Vector3.new(0.6, 0.4, 0.1), at(0, H * 0.3, -L / 2), Color3.fromRGB(200, 200, 200), body)
 	mk("Decal", { Name = "Logo", Texture = "rbxassetid://1" }, badge)
 	junk(body:FindFirstChild("Body"), "POLICE")
@@ -245,10 +246,11 @@ end
 -- Ayudas
 ---------------------------------------------------------------------
 local CF = CFrame.new(120, 0.4, -60) * CFrame.Angles(0, 0.7, 0)
-local function parts(model: Instance): { any }
+local function parts(model: Instance, all: boolean?): { any }
 	local out = {}
 	for _, d in model:GetDescendants() do
-		if d:IsA("BasePart") then
+		-- (la carpeta «Tire» de la plantilla: el neumático, centrado en su rueda; no cuenta)
+		if d:IsA("BasePart") and (all or not (d.Parent and d.Parent.Name == "Tire")) then
 			table.insert(out, d)
 		end
 	end
@@ -293,9 +295,13 @@ local BLOCKLIST = {
 -- Textos que se ven o se guardan en un modelo: nombres, textos, Decals y atributos de texto
 local function brandHits(root: Instance): { string }
 	local hits = {}
-	local function scan(text: string, where: string)
+	local function scan(text: string, where: string, isName: boolean?)
 		local t = string.lower(text)
 		for _, b in BLOCKLIST do
+			-- (nuestras piezas PoliceStripe / PoliceCheck se llaman así por dentro; no se ven)
+			if isName and b == "police" and (t == "policestripe" or t == "policecheck" or t == "policecar") then
+				continue
+			end
 			-- (POLICÍA sí; POLICE no)
 			if string.find(t, b, 1, true) and not (b == "police" and string.find(t, "policía", 1, true)) then
 				table.insert(hits, where .. ": " .. text)
@@ -303,7 +309,7 @@ local function brandHits(root: Instance): { string }
 		end
 	end
 	for _, d in { root, table.unpack(root:GetDescendants()) } do
-		scan(d.Name, d:GetFullName())
+		scan(d.Name, d:GetFullName(), true)
 		if d:IsA("TextLabel") or d:IsA("TextButton") then
 			scan(d.Text, "Text de " .. d:GetFullName())
 		end
@@ -375,10 +381,13 @@ check(early:GetAttribute("CarBody") ~= nil, "el coche apuntado mientras cargaba 
 ---------------------------------------------------------------------
 print("▶ Plantillas limpias y sin marcas")
 local dirty, badNames, attrs = {}, {}, {}
-local ALLOWED = { CarShell = true, CarGlass = true, CarTrim = true, CarBadge = true }
+local ALLOWED = { CarShell = true, CarGlass = true, CarTrim = true, CarBadge = true, TireMesh = true }
+local keptDecals = 0
 for _, t in lib do
 	for _, d in t:GetDescendants() do
-		if d:IsA("LuaSourceContainer") or d:IsA("Decal") or d:IsA("Texture") or d:IsA("Sound") or d:IsA("Seat") or d:IsA("VehicleSeat") then
+		if (d:IsA("Decal") or d:IsA("Texture")) and d.Name == "CarDecal" and not CarBodies.isLogo(d) then
+			keptDecals += 1
+		elseif d:IsA("LuaSourceContainer") or d:IsA("Decal") or d:IsA("Texture") or d:IsA("Sound") or d:IsA("Seat") or d:IsA("VehicleSeat") then
 			table.insert(dirty, t.Name .. "/" .. d.Name)
 		elseif (d:IsA("SurfaceGui") or d:IsA("TextLabel")) and not (d.Parent and (d.Parent.Name == "CarBadge" or (d.Parent.Parent and d.Parent.Parent.Name == "CarBadge"))) then
 			table.insert(dirty, t.Name .. "/" .. d.ClassName)
@@ -391,7 +400,7 @@ for _, t in lib do
 				table.insert(attrs, t.Name)
 			end
 			if d.CanCollide or d.CanTouch or d.CanQuery then
-				table.insert(dirty, t.Name .. "/" .. d.Name .. " choca")
+				table.insert(dirty, t.Name .. "/" .. d.Name .. " choca" .. tostring(d.CanCollide) .. tostring(d.CanTouch) .. tostring(d.CanQuery))
 			end
 		end
 	end
@@ -399,6 +408,14 @@ end
 check(#dirty == 0, "sin scripts, Decals, textos, sonidos, asientos ni colisión " .. table.concat(dirty, ", "):sub(1, 200))
 check(#badNames == 0, "piezas renombradas (CarShell/CarGlass/CarTrim/CarBadge) " .. table.concat(badNames, ", "):sub(1, 200))
 check(#attrs == 0, "sin los atributos raros del pack")
+check(keptDecals > 0, "los Decals que no son logos (detalles) se quedan")
+local textures = 0
+for _, p in parts(names["Brisa Uno"]) do
+	if p:IsA("MeshPart") and select(2, pcall(function() return p.TextureID end)) ~= "" then
+		textures += 1
+	end
+end
+check(textures >= 2, "las texturas (TextureID) de las mallas se quedan")
 local wheelsIn = 0
 for _, t in lib do
 	for _, p in parts(t) do
@@ -500,7 +517,35 @@ for _, p in parked:GetChildren() do
 		end
 	end
 end
-check(painted >= 2 and notPainted == 0, ("pintura del coche en la malla (%d piezas)"):format(painted))
+local chosenPaint = parked:GetAttribute("Paint")
+painted, notPainted = 0, 0
+for _, p in parked:GetChildren() do
+	if p:GetAttribute("CarZone") == "Primary" then
+		if p.Color == chosenPaint and p.Reflectance >= 0.15 then
+			painted += 1
+		else
+			notPainted += 1
+		end
+	end
+end
+check(painted >= 2 and notPainted == 0 and table.find(CarBodies.Paints, chosenPaint), ("pintura de coche de verdad, con brillo (%d piezas)"):format(painted))
+local glassOk, glassN = true, 0
+for _, p in parked:GetChildren() do
+	if p:GetAttribute("CarZone") == "Glass" then
+		glassN += 1
+		if not (p.Reflectance >= 0.25 and p.Transparency > 0.1 and p.Transparency < 0.6) then
+			glassOk = false
+		end
+	end
+end
+check(glassN > 0 and glassOk, "cristal oscuro, algo transparente y con reflejo")
+local tires = 0
+for _, p in parked:GetChildren() do
+	if p.Name == "TireMesh" then
+		tires += 1
+	end
+end
+check(tires >= 4 and parked:FindFirstChild("Wheel").Transparency == 1, ("neumáticos de malla en las 4 ruedas (%d piezas); los cilindros, invisibles"):format(tires))
 check(#brandHits(parked) == 0, "coche aparcado sin marcas " .. table.concat(brandHits(parked), " | "))
 local euroCarModel = CarModel.build(world, CF, RED, { Name = "ParkedCar", Variant = "Compacto", Lite = true })
 CarBodies.dress(euroCarModel, CF, { Role = "Parked", Template = "Brisa Uno" })
@@ -573,6 +618,15 @@ for _, p in parts(mine) do
 end
 local rig = WheelRig.find(infos, "Coche")
 check(#rig.Wheels == 4 and rig.Steers, "WheelRig: 4 ruedas, las de delante giran con el volante")
+local spinTires = 0
+for _, w in rig.Wheels do
+	for _, i in w.Spin do
+		if infos[i].Name == "TireMesh" then
+			spinTires += 1
+		end
+	end
+end
+check(spinTires >= 4, ("los neumáticos de malla giran con su rueda (%d)"):format(spinTires))
 local interior = mine:FindFirstChild("Dashboard") and mine:FindFirstChild("FrontSeat")
 check(interior, "el interior (salpicadero y asientos) se queda")
 -- Taller: pinta la malla y no enseña las lunas de piezas
@@ -660,7 +714,7 @@ end
 check(#over == 0, "tope de triángulos por coche (las pesadas, con pocas copias) " .. table.concat(over, ","))
 local shadows = 0
 for _, t in lib do
-	for _, p in parts(t) do
+	for _, p in parts(t, true) do
 		if p.CastShadow and math.max(p.Size.X, p.Size.Y, p.Size.Z) < CarBodies.ShadowSize then
 			shadows += 1
 		end

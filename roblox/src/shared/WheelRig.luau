@@ -52,6 +52,7 @@ WheelRig.SpinNames = {
 	RimInner = true,
 	Hub = true,
 	Spoke = true,
+	TireMesh = true, -- neumático de malla de las carrocerías de verdad (World/Kit/CarBodies)
 	Nut = true,
 	Bearing = true,
 	BrakeDisc = true,

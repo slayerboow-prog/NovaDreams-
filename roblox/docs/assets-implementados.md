@@ -142,3 +142,39 @@ Variedad nueva:
 - **Interiores**: 6 parqués, 5 hormigones, 4 baldosas de baño, 4 baldosas de local, 3 de cocina, 3 mármoles, 3 moquetas, 2 moquetas de cine, 3 granitos de suelo, 3 encimeras de granito, 3 encimeras de madera, 4 ladrillos vistos y 2 pintados, fijos por vivienda o local.
 - **Calles**: la mitad de las plazas son de adoquín hexagonal. Las aceras de barrio, centro y afueras, y el adoquín del casco antiguo, tienen dos suelos repartidos por zonas (siempre una zona entera con el mismo).
 - **Globales**: barro de granja (Mud) y grava (Pebble) nuevos, y más respaldos para césped, tierra, roca, pizarra, madera y chapa estriada. El terreno (montañas, campos) solo puede llevar un variant por material, así que ahí no puede haber variedad.
+
+## Coches (World/Kit/CarBodies)
+
+Los coches del tráfico, los aparcados, el tuyo, las patrullas y los taxis cambian su carrocería de piezas
+por una **malla de verdad**. Se carga al arrancar el servidor (Ambient.publish, con pcall); de cada coche
+solo se copian las piezas visibles de la carrocería con su **textura (TextureID) y su PBR
+(SurfaceAppearance)** y los Decals que no son logos; fuera scripts, sonidos, asientos, textos, logos,
+matrículas, atributos y etiquetas. **Sin marcas**: las piezas se renombran (CarShell, CarGlass, CarTrim),
+cada carrocería tiene nombre y marca inventados (Aurea, Kestrel, Brisa, Toro, Valmar Motors) y lleva
+dos placas con esa marca donde va el logo. Se gira (morro a −Z), se escala a la caja de nuestros coches
+con los pasos de rueda sobre nuestras ruedas, y nuestras ruedas (que giran y viran) llevan el
+**neumático de malla** del mismo pack. La caja de choque de siempre se queda invisible; luces, matrículas,
+rótulos de policía y taxi pasan al morro, cola, costado y techo de la malla (medidos con rayos).
+Aspecto: pintura con brillo (Reflectance 0,2, o el MaterialVariant de pintura de coche de Modern City si
+está en MaterialService) y colores de coche de verdad; cristal oscuro (Reflectance 0,3, transparencia
+0,35); molduras claras en cromo. En gráficos Bajo el tráfico usa la carrocería simple. Si no carga nada,
+todo queda como antes. Prueba: `lune run scripts/test-carbodies.luau`.
+
+| Id | Qué | Dónde / por qué no |
+|---|---|---|
+| 6418239833 | Sedan (oficial Roblox) | «Aurea Berlina»: tu coche, taxis, tráfico y aparcados (pintable). |
+| 6418234850 | SUV (oficial) | «Kestrel Sierra»: tu todoterreno, tráfico y aparcados. |
+| 6418225759 | Pickup Truck (oficial) | «Toro Faena»: tráfico, aparcados y tu todoterreno. |
+| 6433316269 | Van (oficial) | «Brisa Carga»: furgoneta del tráfico y aparcada. |
+| 6418230807 | Police Car (oficial) | «Valmar Patrulla»: las patrullas, rotuladas «POLICÍA» con nuestras sirenas. Sus textos «POLICE» fuera. |
+| 9432856072 | Semi-Realistic Car Pack | 5 coches sin marca: «Aurea Serena» (berlina, también tuya y taxi), «Kestrel Ranchera» (SUV), «Toro Campo» (pick-up), «Brisa Sprint» (compacto), «Valmar Clásico». Fuera logos, matrículas, radio y los 2 coches con `Protector 2.0`. |
+| 10935800149 | «Car Pack» (copia del anterior) | Mismo contenido que 9432856072: solo se carga si el original no carga. |
+| 10897563593 | «Car» (copia del anterior) | Igual: segundo respaldo de 9432856072. |
+| 97902046131324 | mesh pack (11 coches europeos) | Los 11, ligeros y con su textura (no se pintan): «Brisa Uno», «Toro Reparto», «Aurea Nube», «Kestrel Alba», «Aurea Paseo», «Valmar Mini», «Kestrel Vela», «Brisa Ola», «Toro Familia», «Toro Familia Plus», «Kestrel Lince». Aparcados (el doble de a menudo) y tráfico. |
+| 4573650411 | Pack de policía (California) | Solo el sedán clásico, simplificado a sus 45 piezas más grandes: «Valmar Patrulla Clásica», 3 patrullas como mucho. Sin «CHP», sin marcas, sin sus 292 scripts. |
+| 15418880736 | Berlina importada (ex-marca) | «Aurea Lumen», sin marca, simplificada a 40 piezas: solo 4 aparcadas (pesa 280 000 tris). |
+| 18912826861 | Autobús urbano | **No**: 255 000 tris y 866 objetos por autobús, con el logo de una empresa real; nuestro autobús tiene puertas que se abren y asientos que se usan (BusService). |
+| 16893586720 | Autocar (ex-marca) | **No**: 1 804 piezas de bloques (no malla) y no hay líneas interurbanas donde ponerlo. |
+| 130974691456028 | Camión caja | **No**: trae puerta trasera (familia 3, docs/assets-usuario-4.md) y en el juego no hay camiones de reparto. |
+| 18577576400 | «Realistic Car Pack (NOT MINE!)» | **No**: robado (lo dice el título), todo deportivos de marca y con `Protector 2.0`. |
+| 131247677717086 | Realistic Tires | **No**: es UNA sola malla con 4 neumáticos apilados (no se puede separar en ruedas) y trae puertas traseras (familias 3 y 4). Los neumáticos de malla salen de cada pack de coches. |
