@@ -36,6 +36,41 @@ CarBodies.MaxTris = 26000 -- triángulos por coche (los «Hero» tienen su propi
 CarBodies.MaxParked = 320 -- coches aparcados con malla como mucho (el resto, carrocería simple)
 CarBodies.Batch = 12 -- coches que se cambian por tanda (luego task.wait)
 CarBodies.ShadowSize = 2.5 -- solo dan sombra las piezas que miden al menos esto
+CarBodies.TireParts = 6 -- piezas de malla por rueda como mucho (neumático, llanta, buje…)
+
+-- Aspecto realista (no de plástico). Pintura: brillo de coche (Reflectance) o el MaterialVariant de
+-- pintura de coche de Modern City si está en MaterialService. Cristal: oscuro, algo transparente y
+-- con reflejo. Molduras claras: cromo. Las texturas (TextureID) y el PBR (SurfaceAppearance) de cada
+-- malla se quedan siempre.
+CarBodies.Look = {
+	Paint = { Material = "SmoothPlastic", Reflectance = 0.2, VariantReflectance = 0.08 },
+	Glass = { Color = Color3.fromRGB(22, 28, 34), Transparency = 0.35, Reflectance = 0.3 },
+	Chrome = { Material = "Metal", Reflectance = 0.35 },
+}
+-- Colores de verdad de coche (aparcados y tráfico): plata, blancos, negros, grafito, azules, rojos…
+CarBodies.Paints = {
+	Color3.fromRGB(196, 199, 204), -- plata
+	Color3.fromRGB(236, 236, 232), -- blanco
+	Color3.fromRGB(245, 243, 236), -- blanco perla
+	Color3.fromRGB(22, 23, 26), -- negro
+	Color3.fromRGB(78, 82, 88), -- grafito
+	Color3.fromRGB(128, 132, 138), -- gris
+	Color3.fromRGB(24, 44, 92), -- azul marino
+	Color3.fromRGB(46, 92, 160), -- azul
+	Color3.fromRGB(122, 20, 28), -- granate
+	Color3.fromRGB(176, 28, 32), -- rojo
+	Color3.fromRGB(32, 70, 52), -- verde inglés
+	Color3.fromRGB(176, 160, 132), -- beige
+	Color3.fromRGB(92, 64, 46), -- marrón
+	Color3.fromRGB(214, 160, 40), -- ocre
+}
+-- Decals que son logos de marca (vistos en los docs): se tiran. Los demás Decals (detalles) se quedan
+-- salvo que su nombre diga marca, logo, matrícula…
+CarBodies.LogoIds = {
+	[135553045] = true, [9006570790] = true, [249347085] = true, [463207748] = true, [105166659] = true,
+	[130853852] = true, [105170387] = true, [8242816677] = true, [9002939634] = true, [296460823] = true,
+	[15641588335] = true, [135513876] = true,
+}
 
 -- Nuestros coches (Kit/CarModel): ruedas en z = ±4,3, y = 1,3; caja 6,2 × 13,5
 local WHEEL_Z, WHEEL_Y, WHEEL_X = 4.3, 1.3, 2.8
@@ -135,6 +170,7 @@ CarBodies.RealBrands = {
 	"vectra", "avensis", "almera", "primera", "sharan", "charger", "challenger", "hellcat", "crown vic",
 	"explorer", "firebird", "trueno", "highway patrol", "california", "brembo", "vossen", "yokohama", "momo",
 }
+local LOGO_WORDS = { "badge", "logo", "emblem", "brand", "sticker", "plate", "license", "licence", "billboard", "text", "name", "police", "sheriff", "patrol" }
 local WHEEL_NAMES = { fl = true, fr = true, rl = true, rr = true, lf = true, rf = true, lr = true, rr2 = true }
 
 -- Partes de nuestro coche (CarModel) y qué se hace con ellas al ponerle malla
@@ -151,6 +187,7 @@ local ROOF = { LightBarBase = true, SirenBlue = true, SirenRed = true, Antenna =
 ---------------------------------------------------------------------
 -- Estado
 ---------------------------------------------------------------------
+local carPaintVariant
 local library: { Model } = {}
 local copies: { [string]: number } = {}
 local parkedCount = 0
@@ -348,9 +385,10 @@ local function wheelCenters(wheels: { BasePart }, frame: CFrame): { Vector3 }?
 	for _, w in wheels do
 		local p = (inv * w.CFrame).Position
 		local key = (if p.X < mid.X then "L" else "R") .. (if p.Z < mid.Z then "F" else "B")
-		local q = quads[key] or { Sum = Vector3.zero, N = 0, R = 0 }
+		local q = quads[key] or { Sum = Vector3.zero, N = 0, R = 0, Parts = {} }
 		q.Sum += p
 		q.N += 1
+		table.insert(q.Parts, w)
 		q.R = math.max(q.R, math.max(w.Size.X, w.Size.Y, w.Size.Z) / 2)
 		quads[key] = q
 	end
@@ -362,6 +400,7 @@ local function wheelCenters(wheels: { BasePart }, frame: CFrame): { Vector3 }?
 		end
 		table.insert(out, Vector3.new(q.Sum.X / q.N, q.Sum.Y / q.N, q.Sum.Z / q.N))
 		out[key] = q.R
+		out[key .. "Parts"] = q.Parts
 	end
 	return out
 end
@@ -417,8 +456,13 @@ local function isGlass(p: BasePart): boolean
 end
 
 local function textured(p: BasePart): boolean
-	if p:IsA("MeshPart") and (p :: MeshPart).TextureID ~= "" then
-		return true
+	if p:IsA("MeshPart") then
+		local ok, id = pcall(function()
+			return (p :: MeshPart).TextureID
+		end)
+		if ok and type(id) == "string" and id ~= "" then
+			return true
+		end
 	end
 	return p:FindFirstChildWhichIsA("SurfaceAppearance") ~= nil
 end
@@ -484,6 +528,15 @@ local function paintParts(shell: { BasePart }, other: { BasePart }?): { [BasePar
 	return out
 end
 
+-- ¿Es un logo? (por su nombre o porque su imagen es uno de los logos vistos en los docs)
+function CarBodies.isLogo(d: Decal): boolean
+	if hasWord(d.Name, LOGO_WORDS) or CarBodies.isBrand(d.Name) then
+		return true
+	end
+	local id = tonumber(string.match(tostring(d.Texture), "(%d+)%D*$") or "")
+	return id ~= nil and CarBodies.LogoIds[id] == true
+end
+
 -- Copia limpia de una pieza: sin hijos (salvo su aspecto: SurfaceAppearance o la malla), sin atributos
 local function cleanClone(p: BasePart): BasePart?
 	local ok, clone = pcall(function()
@@ -494,6 +547,10 @@ local function cleanClone(p: BasePart): BasePart?
 	end
 	for _, c in clone:GetDescendants() do
 		if c.Parent == clone and (c:IsA("SurfaceAppearance") or c:IsA("DataModelMesh")) then
+			continue
+		end
+		if c.Parent == clone and (c:IsA("Decal") or c:IsA("Texture")) and not CarBodies.isLogo(c :: any) then
+			c.Name = if c:IsA("Texture") then "CarTexture" else "CarDecal"
 			continue
 		end
 		if c.Parent then
@@ -552,6 +609,9 @@ local function calibrate(model: Model, lo: Vector3, hi: Vector3)
 	}
 	pcall(function()
 		local ws = workspace
+		if typeof(ws) ~= "Instance" then
+			return -- (Lune: sin rayos, se usa la caja)
+		end
 		local far = CFrame.new(0, 4000, 30000)
 		local parts = {}
 		for _, p in model:GetChildren() do
@@ -603,9 +663,81 @@ local function calibrate(model: Model, lo: Vector3, hi: Vector3)
 	end
 	-- (si un rayo dio en otra cosa: las piezas vuelven a su sitio igual)
 	for _, p in model:GetChildren() do
-		if p:IsA("BasePart") and p.CFrame.Position.Magnitude > 20000 then
-			p.CFrame = CFrame.new(0, -4000, -30000) * p.CFrame
+		if p:IsA("BasePart") then
+			if p.CFrame.Position.Magnitude > 20000 then
+				p.CFrame = CFrame.new(0, -4000, -30000) * p.CFrame
+			end
+			p.CanQuery = false
 		end
+	end
+end
+
+-- Aspecto de una pieza de la malla según su zona (solo si no trae textura ni PBR: esas se quedan)
+function CarBodies.finishLook(part: BasePart, zone: string?)
+	if textured(part) then
+		return
+	end
+	local look = CarBodies.Look
+	if zone == "Primary" then
+		part.Material = (Enum.Material :: any)[look.Paint.Material]
+		part.Reflectance = look.Paint.Reflectance
+	elseif zone == "Glass" then
+		part.Color = look.Glass.Color
+		part.Material = Enum.Material.Glass
+		part.Transparency = look.Glass.Transparency
+		part.Reflectance = look.Glass.Reflectance
+	elseif part.Material ~= Enum.Material.Neon then
+		local _, sat, v = part.Color:ToHSV()
+		if sat < 0.15 and v > 0.7 then
+			part.Material = (Enum.Material :: any)[look.Chrome.Material]
+			part.Reflectance = look.Chrome.Reflectance
+			part:SetAttribute("CarZone", "Chrome")
+		end
+	end
+end
+
+-- Neumáticos de malla: las piezas de la rueda delantera izquierda del pack, respecto a su centro y
+-- a la talla de nuestras ruedas (radio 1,3). Van en la carpeta «Tire» de la plantilla.
+local function tireTemplate(model: Model, wc: any, frame: CFrame)
+	local group = wc and wc.LFParts
+	local radius = wc and wc.LF
+	if type(group) ~= "table" or type(radius) ~= "number" or radius <= 0.1 then
+		return
+	end
+	local list = table.clone(group)
+	table.sort(list, function(a, b)
+		return a.Size.X * a.Size.Y * a.Size.Z > b.Size.X * b.Size.Y * b.Size.Z
+	end)
+	local hub = frame * CFrame.new(wc[1])
+	local k = WHEEL_Y / radius
+	local folder = Instance.new("Folder")
+	folder.Name = "Tire"
+	for i = 1, math.min(#list, CarBodies.TireParts) do
+		local p = list[i]
+		local clone = cleanClone(p)
+		if clone then
+			local rel = hub:Inverse() * p.CFrame
+			local pos = rel.Position
+			clone.Size = p.Size * k
+			clone.CFrame = CFrame.new(pos * k) * (rel - pos)
+			clone.Name = "TireMesh"
+			clone:SetAttribute("CarMesh", true)
+			clone.Anchored = true
+			clone.CanCollide = false
+			clone.CanQuery = false
+			clone.CanTouch = false
+			clone.Massless = true
+			clone.CastShadow = false
+			pcall(function()
+				(clone :: any).RenderFidelity = Enum.RenderFidelity.Automatic
+			end)
+			clone.Parent = folder
+		end
+	end
+	if #folder:GetChildren() > 0 then
+		folder.Parent = model
+	else
+		folder:Destroy()
 	end
 end
 
@@ -690,6 +822,7 @@ function CarBodies.template(car: Instance, pick: { [string]: any }, sourceId: nu
 		end
 		local zone = if paint[p] then "Primary" elseif isGlass(p) then "Glass" else nil
 		clone.Name = if zone == "Primary" then "CarShell" elseif zone == "Glass" then "CarGlass" else "CarTrim"
+		CarBodies.finishLook(clone, zone)
 		if zone then
 			clone:SetAttribute("CarZone", zone)
 		end
@@ -712,6 +845,7 @@ function CarBodies.template(car: Instance, pick: { [string]: any }, sourceId: nu
 	end
 	local flo, fhi = bounds(model:GetChildren() :: any)
 	calibrate(model, flo, fhi)
+	pcall(tireTemplate, model, wc, frame)
 	-- Placas con la marca inventada (tapan el sitio del logo de delante y de detrás)
 	local fz, rz = model:GetAttribute("FrontMidZ") :: number, model:GetAttribute("RearMidZ") :: number
 	badge(model, "CarBadge", CFrame.new(0, 2.45, fz - 0.03), pick.Brand or "VALMAR MOTORS", Enum.NormalId.Front)
@@ -826,6 +960,32 @@ function CarBodies.find(name: string): Model?
 	return nil
 end
 
+-- MaterialVariant de pintura de coche (Modern City Materials Pack, lo pone World/Buildings3D en
+-- MaterialService con su prefijo). Se busca de vez en cuando hasta que aparezca.
+local paintVariant: string? = nil
+local paintBase: Enum.Material? = nil
+local paintLookedAt = -math.huge
+function carPaintVariant(): string?
+	if paintVariant then
+		return paintVariant
+	end
+	local now = os.clock()
+	if now - paintLookedAt < 20 then
+		return nil
+	end
+	paintLookedAt = now
+	pcall(function()
+		for _, v in game:GetService("MaterialService"):GetDescendants() do
+			if v:IsA("MaterialVariant") and string.find(string.lower(v.Name), "carpaint", 1, true) then
+				paintVariant = v.Name
+				paintBase = (v :: any).BaseMaterial
+				return
+			end
+		end
+	end)
+	return paintVariant
+end
+
 -- Dónde está el coche (centro a ras de suelo): por su base si ya está preparado (Rides.prepare)
 local function groundOf(model: Model, cf: CFrame): CFrame
 	local chassis = model:FindFirstChild("Chassis")
@@ -878,6 +1038,15 @@ function CarBodies.dress(model: Model, cf: CFrame, opts: { [string]: any }?): bo
 	local chassis = model:FindFirstChild("Chassis") :: BasePart?
 	local bodyPart = model:FindFirstChild("Body")
 	local paint = if bodyPart and bodyPart:IsA("BasePart") then bodyPart.Color else model:GetAttribute("Paint")
+	if role == "Parked" or role == "Traffic" then
+		-- colores de coche de verdad (determinista por la clave)
+		paint = CarBodies.Paints[CarBodies.hash("pintura" .. tostring(o.Key or model.Name)) % #CarBodies.Paints + 1]
+		if bodyPart and bodyPart:IsA("BasePart") then
+			bodyPart.Color = paint
+		end
+		model:SetAttribute("Paint", paint)
+	end
+	local variantName = carPaintVariant()
 	local frontLamp, frontMid = template:GetAttribute("FrontLampZ") :: number, template:GetAttribute("FrontMidZ") :: number
 	local rearLamp, rearMid = template:GetAttribute("RearLampZ") :: number, template:GetAttribute("RearMidZ") :: number
 	local sideX, roofY = template:GetAttribute("SideX") :: number, template:GetAttribute("RoofY") :: number
@@ -929,6 +1098,15 @@ function CarBodies.dress(model: Model, cf: CFrame, opts: { [string]: any }?): bo
 		p.CFrame = base * src.CFrame
 		if typeof(paint) == "Color3" and p:GetAttribute("CarZone") == "Primary" then
 			p.Color = paint
+			if variantName and not textured(p) then
+				pcall(function()
+					if paintBase then
+						p.Material = paintBase
+					end
+					(p :: any).MaterialVariant = variantName
+					p.Reflectance = CarBodies.Look.Paint.VariantReflectance
+				end)
+			end
 			local sa = p:FindFirstChildWhichIsA("SurfaceAppearance")
 			if sa then
 				pcall(function()
@@ -945,6 +1123,42 @@ function CarBodies.dress(model: Model, cf: CFrame, opts: { [string]: any }?): bo
 			weld.Parent = p
 		end
 		p.Parent = model
+	end
+	-- 3. Neumáticos de malla del pack en nuestras ruedas (giran con ellas: WheelRig «TireMesh»);
+	-- nuestras ruedas de cilindro se quedan invisibles (las usa WheelRig para saber dónde están)
+	local tire = template:FindFirstChild("Tire")
+	if tire and #tire:GetChildren() > 0 then
+		for _, w in model:GetChildren() do
+			if w.Name ~= "Wheel" or not w:IsA("BasePart") then
+				continue
+			end
+			local right = (base:Inverse() * w.CFrame).Position.X > 0
+			local hub = w.CFrame * (if right then CFrame.Angles(0, math.pi, 0) else CFrame.new())
+			for _, src in tire:GetChildren() do
+				if src:IsA("BasePart") then
+					local t = src:Clone()
+					t.CFrame = hub * src.CFrame
+					if chassis then
+						t.Anchored = false
+						t:SetAttribute("Collide", false)
+						local weld = Instance.new("WeldConstraint")
+						weld.Part0 = chassis
+						weld.Part1 = t
+						weld.Parent = t
+					end
+					t.Parent = model
+				end
+			end
+		end
+		for _, w in model:GetChildren() do
+			if w:IsA("BasePart") and (w.Name == "Wheel" or w.Name == "Rim" or w.Name == "Spoke" or w.Name == "Hub") then
+				w.Transparency = 1
+				w:SetAttribute("CarHidden", true)
+				if w:GetAttribute("ModOrigTransparency") ~= nil then
+					w:SetAttribute("ModOrigTransparency", 1)
+				end
+			end
+		end
 	end
 	model:SetAttribute("CarBody", template.Name)
 	model:SetAttribute("CarBodySource", template:GetAttribute("Source"))

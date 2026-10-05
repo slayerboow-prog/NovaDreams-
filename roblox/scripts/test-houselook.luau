@@ -86,6 +86,24 @@ for _, pack in Choice.ExtraPacks do
 	packIds[pack.Short] = pack.Id
 end
 
+-- ¿Es uno de los que se reparten en ese aspecto? (los primeros Variety de su lista, sin los de por palabras)
+local function inVariety(key: string, src: string?): boolean
+	local look = HouseLook.Looks[key]
+	local n = 0
+	for _, cand in look.Options do
+		if not cand.Find then
+			n += 1
+			if cand.Name == src then
+				return true
+			end
+			if n >= look.Variety + 2 then
+				break -- (+2: algún pack de la prueba no trae todos)
+			end
+		end
+	end
+	return false
+end
+
 print("Los aspectos")
 do
 	check(doc[15221806045] and #doc[15221806045] == 524 and doc[92927007790601] and #doc[92927007790601] == 68, "se leen los packs (Mega 524, Tyler 68)")
@@ -157,7 +175,7 @@ do
 		end
 	end
 	check(ok, "lo más realista de cada parte va primero (Smooth Stucco, Red Bricks, Modern Brick, Chipped Stonework, Clay Shingles…)")
-	check(HouseLook.Looks.Estuco.Variety == 3 and HouseLook.Looks.Ladrillo.Variety == 3 and HouseLook.Looks.Teja.Variety == 3 and HouseLook.Looks.Zocalo.Variety == 3 and HouseLook.Looks.Hormigon.Variety == 3, "variedad: 3 estucos, 3 ladrillos, 3 tejas, 3 zócalos, 3 hormigones")
+	check(HouseLook.Looks.Estuco.Variety == 3 and HouseLook.Looks.Ladrillo.Variety == 5 and HouseLook.Looks.Teja.Variety == 3 and HouseLook.Looks.Zocalo.Variety == 5 and HouseLook.Looks.Hormigon.Variety == 5 and HouseLook.Looks.Madera.Variety == 4, "variedad: 3 estucos, 5 ladrillos, 3 tejas, 5 zócalos, 5 hormigones, 4 maderas")
 	local pack = { ["Roof Tiles"] = "ClayRoofTiles", ["Roof"] = "Metal", ["Old Roof Tiles"] = "ClayRoofTiles" }
 	check(HouseLook.match({ "roof" }, "ClayRoofTiles", pack) == "Roof Tiles" and HouseLook.match({ "brick" }, "Brick", pack) == nil, "ALL MATERIALS: busca por palabras el más corto sobre su material")
 	local onlyNew = HouseLook.candidates("Ladrillo", { PBR = { Brick_PBR = "Brick" }, Todos = { ["Old Brick"] = "Brick", ["Brick Wall"] = "Brick" } })
@@ -475,7 +493,7 @@ do
 		end
 	end
 	check(okBase, "no cambia el BaseMaterial de ningún variant (en un servidor real falla)")
-	check(#resolved.Estuco == 3 and #resolved.Ladrillo == 3 and #resolved.Teja == 3 and #resolved.Zocalo == 3 and #resolved.Colegio == 1, "variedad cargada: 3 estucos, 3 ladrillos, 3 tejas, 3 piedras de zócalo, 1 ladrillo de colegio")
+	check(#resolved.Estuco == 3 and #resolved.Ladrillo == 5 and #resolved.Teja == 3 and #resolved.Zocalo == 5 and #resolved.Colegio == 1 and #resolved.Madera == 4, "variedad cargada: 3 estucos, 5 ladrillos, 3 tejas, 5 piedras de zócalo, 4 maderas, 1 ladrillo de colegio")
 	local list = {}
 	for key, n in counts do
 		table.insert(list, key .. " " .. n)
@@ -493,7 +511,7 @@ do
 		first[i] = { wall = wallSrc, roof = roofSrc, plinth = source(w, h.plinth) }
 		if isBrick then
 			ladrillos[wallSrc or "?"] = true
-			if h.body.Material ~= Enum.Material.Brick or not (wallSrc == "Red Bricks" or wallSrc == "Realistic Bricks" or wallSrc == "RealisticBricks") then
+			if h.body.Material ~= Enum.Material.Brick or not inVariety("Ladrillo", wallSrc) then
 				okParts = false
 			end
 		else
@@ -510,10 +528,10 @@ do
 		if source(w, h.gable) ~= wallSrc or source(w, h.tiles) ~= roofSrc or source(w, h.ridge) ~= roofSrc then
 			okWhole = false
 		end
-		if not (roofSrc == "Clay Shingles" or roofSrc == "Roof1" or roofSrc == "Roof2") or not (source(w, h.plinth) == "Chipped Stonework" or source(w, h.plinth) == "Stone Block Wall" or source(w, h.plinth) == "Chisled Cobble") then
+		if not inVariety("Teja", roofSrc) or not inVariety("Zocalo", source(w, h.plinth)) then
 			okParts = false
 		end
-		if source(w, h.shutter) ~= "Worn Painted Wood Siding" or not (source(w, h.verge) == "Mature Oak" or source(w, h.verge) == "Oak" or source(w, h.verge) == "Realistic Wood") then
+		if source(w, h.shutter) ~= "Worn Painted Wood Siding" or not inVariety("Madera", source(w, h.verge)) then
 			okParts = false
 		end
 		-- Color: el de la casa, apenas aclarado (mismo tono)
@@ -551,9 +569,9 @@ do
 	check(source(w, t.colonial.body) == "Worn Painted Wood Siding", "casa colonial: tablas pintadas")
 	check(source(w, t.schoolWall) == "Modern Brick" and t.schoolWall.Material == Enum.Material.Brick and same(t.schoolGlass, snaps[t.schoolGlass]), "colegio: ladrillo cara vista (pasa a Brick); sus cristales sin tocar")
 	check(same(t.schoolPartition, snaps[t.schoolPartition]) and t.schoolTrim.MaterialVariant == "", "tabiques del colegio y piedra caliza (ya es del dueño) sin tocar")
-	check(source(w, t.hospitalWall) == "Fine Particles Concrete" or source(w, t.hospitalWall) == "Concrete 1" or source(w, t.hospitalWall) == "Concrete", "hospital: hormigón (fino, liso o el del pack de piedras)")
+	check(inVariety("Hormigon", source(w, t.hospitalWall)), "hospital: uno de los hormigones de edificio público")
 	check(source(w, t.hall) == "Worn Factory Siding" or source(w, t.hall) == "Rigid Metal Siding", "nave: chapa de fábrica (pasa a Metal)")
-	check(source(w, t.naveRoof) == "Rigid Metal Siding" and source(w, t.dock) == "Concrete IndustrialGrittySturdyMaterial" and same(t.roller, snaps[t.roller]), "nave: cubierta de chapa, muelle de hormigón, persianas sin tocar")
+	check(inVariety("NaveTecho", source(w, t.naveRoof)) and inVariety("NaveHormigon", source(w, t.dock)) and same(t.roller, snaps[t.roller]), "nave: cubierta de chapa, muelle de hormigón, persianas sin tocar")
 	check(same(t.prefabBody, snaps[t.prefabBody]) and same(t.prefabMesh, snaps[t.prefabMesh]) and same(t.shell, snaps[t.shell]), "edificios con prefab 3D (y sus mallas y cajas): sin tocar")
 	check(same(t.carBody, snaps[t.carBody]) and same(t.carRoof, snaps[t.carRoof]), "coches: sin tocar")
 	check(same(t.skyWall, snaps[t.skyWall]) and same(t.interiorWall, snaps[t.interiorWall]) and same(t.invisible, snaps[t.invisible]), "interiores (en el cielo y en la carpeta Interiores) y cajas invisibles: sin tocar")
@@ -612,7 +630,7 @@ do
 	check((r1 == "Roof1" or r1 == "Roof2") and t.houses[1].roof.Material == Enum.Material.CeramicTiles, "tejas: Roof1/Roof2 de Tyler (pasa a CeramicTiles)")
 	local brick = t.houses[61]
 	local b1 = source(w, brick.body)
-	check(b1 == "Realistic Bricks" or b1 == "RealisticBricks", "ladrillo: los de los packs de madera y del generador")
+	check(b1 ~= nil and b1 ~= "Red Bricks" and b1 ~= "Narrow Bricks" and inVariety("Ladrillo", b1), "ladrillo: los de los otros packs (madera, generador, Tyler)")
 	check(source(w, t.schoolWall) == "Realistic Bricks", "colegio: el ladrillo de respaldo")
 end
 

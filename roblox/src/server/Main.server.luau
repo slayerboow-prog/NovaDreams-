@@ -147,6 +147,16 @@ task.spawn(function()
 		warn("[WorkshopProps] " .. tostring(err))
 	end
 end)
+-- 4b2b) Armas, ejército y terror de Sebastián (World/UserArsenal): mallas en armerías, comisarías,
+--       cuartel, museo, teatro y feria; y los Pliegues de la Grieta (World/Kit/Pliegues). Si no cargan, nada cambia.
+task.spawn(function()
+	local ok, err = pcall(function()
+		require(World.UserArsenal).start()
+	end)
+	if not ok then
+		warn("[UserArsenal] " .. tostring(err))
+	end
+end)
 -- 4b3) Muebles, comida y objetos de la Tienda de creadores en casas, tiendas, bares, oficinas, naves,
 --      hospital y comisaría (World/InteriorProps). Si no cargan, todo se queda como estaba.
 task.spawn(function()
@@ -168,6 +178,8 @@ task.spawn(function()
 		warn("[Buildings3D] " .. tostring(err))
 	end
 end)
+-- 4d) Calles, ciudad y edificios por fuera con los modelos de la Tienda de Sebastián (World/CityAssets)
+task.spawn(function() local ok, err = pcall(function() require(World.CityAssets).start() end) if not ok then warn("[CityAssets] " .. tostring(err)) end end)
 
 local order = {
 	"DataService",

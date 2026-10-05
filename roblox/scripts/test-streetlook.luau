@@ -184,6 +184,7 @@ do
 			b += 1
 		end
 	end
+	check(StreetLook.Split.Casco.Alt == "CascoB" and StreetLook.Split.AceraCampo.Alt == "AceraCampoB", "casco antiguo con dos adoquines y afueras con dos hormigones, por zonas")
 	check(StreetLook.Split.AceraBarrio.Alt == "AceraBarrioB" and StreetLook.Split.AceraCentro.Alt == "AceraCentroB" and StreetLook.canUse("Pavement", "Cobblestone"), "aceras: dos baldosas de barrio y dos de centro repartidas por zonas; la plaza puede ser de adoquín")
 	local untouched = true
 	for _, n in { "Marking", "Zebra", "Curb", "RoadKerb", "RingCurb", "IslandCurb", "AsphaltPatch", "Manhole", "Drain", "Median", "BusLaneMark", "StopLine", "TreePit" } do
@@ -463,12 +464,12 @@ do
 	end
 	check(is(t.roadAv, "Real", "Asphalt") and is(t.junction, "Real", "Asphalt"), "avenida y rotonda: Asphalt del pack de piedras")
 	check(is(t.roadBarrio, "Mega", "Pebbled Asphalt") and is(t.roadCampo, "Mega", "Rocky Asphalt"), "barrio: Pebbled Asphalt; campo: Rocky Asphalt")
-	check(is(t.roadCasco, "Mega", "Cobblestone Curved") and t.roadCasco.Material == Enum.Material.Cobblestone, "casco: Cobblestone Curved (la calzada pasa a Cobblestone)")
+	check(is(t.roadCasco, "Mega", "Cobblestone Curved", "Casco") and t.roadCasco.Material == Enum.Material.Cobblestone, "casco: Cobblestone Curved (la calzada pasa a Cobblestone)")
 	local phys = t.roadCasco.CustomPhysicalProperties
 	local asphalt = roblox.PhysicalProperties.new(Enum.Material.Asphalt)
 	check(phys and math.abs(phys.Friction - asphalt.Friction) < 1e-3 and math.abs(phys.Density - asphalt.Density) < 1e-3, "el adoquín guarda la física del asfalto (los coches agarran igual)")
 	check(is(t.walkCentro, "Tyler", "Pavement2", "AceraCentro") and t.walkCentro.Material == Enum.Material.Concrete and t.walkCentro.CustomPhysicalProperties ~= nil, "acera del centro: Pavement2 de Tyler (pasa a Concrete con la física de Pavement)")
-	check(is(t.walkBarrio, "Tyler", "Pavement3", "AceraBarrio") and is(t.walkCasco, "Mega", "Stone Tiles") and is(t.walkCampo, "RPacks", "Concrete Tile 1") and is(t.plaza, "Mega", "Stone Tiles", "Plaza"), "aceras de barrio, casco y campo, y la plaza")
+	check(is(t.walkBarrio, "Tyler", "Pavement3", "AceraBarrio") and is(t.walkCasco, "Mega", "Stone Tiles") and is(t.walkCampo, "RPacks", "Concrete Tile 1", "AceraCampo") and is(t.plaza, "Mega", "Stone Tiles", "Plaza"), "aceras de barrio, casco y campo, y la plaza")
 	check(t.roadBarrio.Color.R > 0.6 and t.roadAv.Color.R < t.roadBarrio.Color.R and t.roadCampo.Color.R > t.roadBarrio.Color.R, "aclaradas según su aspecto: la avenida más oscura, el campo más claro")
 	check(w.service:GetAttribute("UserOverride_Asphalt") == "U_Real_Asphalt" and w.service.AsphaltName == "U_Real_Asphalt", "el asfalto global sigue siendo el del dueño")
 	local pebbled = w.service:FindFirstChild("U_Mega_PebbledAsphalt")

@@ -176,7 +176,7 @@ do
 	check(InteriorLook.match({ Pack = "Duvall", Find = { "marble" } }, pack) == nil and InteriorLook.match({ Pack = "X", Find = { "wood" } }, nil) == nil, "si no hay ninguno que encaje (o no cargó el pack), nada")
 	local onlyNew = InteriorLook.candidates("Moqueta", { PBR = { Fabric_PBR = "Fabric" }, Todos = { ["Carpet Red"] = "Fabric", Carpet = "Fabric" } })
 	check(#onlyNew == 2 and onlyNew[1].Name == "Fabric_PBR" and onlyNew[2].Name == "Carpet", "sin los packs de siempre: moqueta de PBR_Textures y de ALL MATERIALS (por palabras)")
-	check(InteriorLook.Looks.Parquet.Variety == 4 and InteriorLook.Looks.Marmol.Variety == 3 and InteriorLook.Looks.BaldosaCocina.Variety == 3 and InteriorLook.Looks.Moqueta.Variety == 3, "más variedad: 4 parqués, 3 mármoles, 3 baldosas de cocina, 3 moquetas")
+	check(InteriorLook.Looks.Parquet.Variety == 6 and InteriorLook.Looks.Marmol.Variety == 3 and InteriorLook.Looks.BaldosaCocina.Variety == 3 and InteriorLook.Looks.Moqueta.Variety == 3 and InteriorLook.Looks.Hormigon.Variety == 5, "más variedad: 6 parqués, 3 mármoles, 3 baldosas de cocina, 3 moquetas, 5 hormigones")
 end
 
 print("Elección por estancia y pieza")
@@ -498,7 +498,7 @@ do
 
 	check(resolved and resolved.Parquet and resolved.Pintura and resolved.Yeso and resolved.Placas and resolved.Azulejo and resolved.Marmol, "se resuelven los aspectos (parqué, pintura, yeso, placas, azulejo, mármol…)")
 	check(w.storage:FindFirstChild("Duvall") and w.storage:FindFirstChild("MCity"), "carga Duvall Drive y Modern City Materials")
-	check(resolved.Parquet[1].Source == "Wood Floor" and resolved.Parquet[1].Pack == "Duvall" and #resolved.Parquet == 4, "el parqué del oficial Duvall Drive va primero (y luego Oak/Mahogany Floor y otro más: 4 parqués)")
+	check(resolved.Parquet[1].Source == "Wood Floor" and resolved.Parquet[1].Pack == "Duvall" and #resolved.Parquet == 6, "el parqué del oficial Duvall Drive va primero (y luego Oak/Mahogany Floor y los de Tyler: 6 parqués)")
 	check(resolved.Pintura[1].Source == "Plaster_A" and resolved.LadrilloPintado[1].Source == "PaintedBrick", "pintura con Plaster_A y naves con PaintedBrick de Modern City")
 	-- Variants: ninguno de los packs cambia; las copias de interior llevan su escala
 	local okBase = true

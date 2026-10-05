@@ -7,11 +7,11 @@
 # Hace falta: pip install pillow numpy scipy opencv-python-headless
 #
 # Escribe en textures/rift/:
-#   rift_interior.png  2048x1024 RGBA  la rasgadura con el espacio dentro (galaxia, planeta, nebulosa,
+#   rift_interior.png  1024x512  RGBA  la rasgadura con el espacio dentro (galaxia, planeta, nebulosa,
 #                                      estrellas y el borde eléctrico); transparente fuera de la silueta
-#   rift_rays.png      2048x1024 RGBA  los rayos azul/morado que salen del borde (sacados de la
+#   rift_rays.png      1024x512  RGBA  los rayos azul/morado que salen del borde (sacados de la
 #                                      referencia sin el cielo de detrás: solo lo que brilla de más)
-#   rift_glow.png      2048x1024 RGBA  halo azul/morado difuso con la misma silueta, más grande
+#   rift_glow.png      1024x512  RGBA  halo azul/morado difuso con la misma silueta, más grande
 #   rift_galaxy.png    512x512   RGBA  la galaxia sola, con borde suave (el juego la hace girar)
 #   bolt_1..4.png      512x256   RGBA  rayos ramificados (azul-blanco y morado) para el parpadeo
 #   rift_s2/s3/s4/s6/s7.png  RGBA      las otras etapas de la grieta (scripts/rift/etapas.png, las 7
@@ -43,7 +43,7 @@ OUT = os.path.join(ROOT, "textures", "rift")
 
 # Marco de la grieta en la referencia (x0, y0, x1, y1), proporción 2:1
 REGION = (290, 22, 1530, 642)
-OUT_W, OUT_H = 2048, 1024
+OUT_W, OUT_H = 1024, 512  # (Roblox reduce todo a 1024 como mucho: así no se pierde nada)
 # Galaxia: centro (en píxeles de la referencia) y radio
 GALAXY_C = (985, 326)
 GALAXY_R = 105
@@ -123,7 +123,7 @@ def crop(a):
 
 
 def big(a):
-    """Del marco de la referencia (1240x620) al tamaño de salida (2048x1024)."""
+    """Del marco de la referencia (1240x620) al tamaño de salida (1024x512)."""
     return cv2.resize(a, (OUT_W, OUT_H), interpolation=cv2.INTER_CUBIC)
 
 
@@ -364,8 +364,14 @@ def excess(f, sigma=10):
 
 
 def stage_size(cw, ch, longest=1024):
+    """Potencia de 2 por lado (≤ 1024). La proporción de verdad va en SkyRiftArt (Aspect): el juego
+    la estira al marco."""
     k = longest / max(cw, ch)
-    return int(round(cw * k / 4) * 4), int(round(ch * k / 4) * 4)
+
+    def p2(x):
+        return int(2 ** round(np.log2(max(64, x))))
+
+    return min(1024, p2(cw * k)), min(1024, p2(ch * k))
 
 
 def stage_texture(f, d):

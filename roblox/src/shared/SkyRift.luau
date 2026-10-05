@@ -90,7 +90,7 @@ SkyRift.Placement = {
 	Sky = { Direction = { 0.25, 0.78, -1 }, Distance = 650 },
 	Dream = { Center = { -3400 + 82, 700 + 80, -3400 - 6 }, DreamWidth = 300 },
 }
-SkyRift.Aspect = 2 -- ancho / alto del marco de la rasgadura (rift_interior es 2048x1024)
+SkyRift.Aspect = 2 -- ancho / alto del marco de la rasgadura (rift_interior es 1024x512)
 
 function SkyRift.stage(n: number?): Stage
 	return SkyRift.Stages[math.clamp(math.floor(n or 1), 1, #SkyRift.Stages)]

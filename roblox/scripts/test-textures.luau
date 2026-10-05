@@ -73,7 +73,8 @@ local function fakeIds(): { [string]: string }
 	local ids = {}
 	local n = 1000
 	for _, folder in fs.readDir("textures") do
-		if fs.isDir("textures/" .. folder) then
+		-- (rift: arte de la Grieta del cielo, no un material; scripts/textures/check_tiling.py ART_FOLDERS)
+		if fs.isDir("textures/" .. folder) and folder ~= "rift" then
 			for _, file in fs.readDir("textures/" .. folder) do
 				local map = file:match("^(%a+)%.png$")
 				if map then

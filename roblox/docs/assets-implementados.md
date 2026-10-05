@@ -60,3 +60,170 @@ tormenta, el agua y casi todo el humo. Si algo no carga, se usa un respaldo o no
 | 5033818552 | Pasos realistas | Solo «Carpet Footstep» (133705377, público) para moqueta y tela. Los otros 20 no son públicos (y son de Garry's Mod / Black Mesa). |
 | 195181959 | Cielo Caldari | No: es de EVE Online. |
 | 93376997873263 | Mapa de bosque anime | No: trae dos puertas traseras (familias 3 y 5, docs/assets-usuario-4.md: `VFXParticles` y `Protocol` con `require` escondido). Su cielo es un azul con nubes normal: no aporta nada al sueño, que ya tiene la isla morada y el arcoíris. |
+
+## Interiores, muebles, comida y objetos (World/InteriorProps)
+
+Se cargan al arrancar el servidor y se copian **limpios**: solo piezas con su malla, SurfaceAppearance y
+Texture; fuera scripts, sonidos, luces, ProximityPrompt, constraints, Decal, SurfaceGui, valores,
+atributos y etiquetas (así no queda nada de los virus de la 4ª tanda aunque el asset los traiga). Sin
+marcas ni nombres de otros juegos; nombres en español; anclado y a talla real. Lo añadido lleva la
+etiqueta `DecorProp` (el nivel Bajo lo esconde); lo que sustituye a una pieza hecha por código esconde
+la de antes (`PropShell`), que sigue chocando y usándose igual. Prueba: `scripts/test-interiorprops.luau`.
+
+| id | Qué es | Dónde va |
+|---|---|---|
+| 8236576991 | Tele antigua | Encima de la cómoda del dormitorio (casas, pisos, residencia), en algunas. Escalada de 50 a 2,6 studs. |
+| 13395313510 | Estanterías de almacén | Naves por dentro (2): un tramo de 30 studs de una estantería, 13 de alto, junto a las de antes. |
+| 13262637537 | Muebles realistas y grunge | Solo aparador (salón), consola (recibidor), armario y sillón de cuadros (villas) y la alfombra persa (en lugar de la alfombra del salón de las villas). Fuera lo de miedo (huesos, cuervos, carteles de Drácula), los props de Half-Life 2, el StarterCharacter, cajones, luces y scripts. |
+| 5674029686 | Mueble | Casas y pisos, junto al comedor o el sofá. |
+| 5677783820 | Mesa de ordenador | Oficinas, inmobiliarias, seguros y copisterías. |
+| 8136205160 | Váter («t») | En lugar del váter hecho por código en los baños de las casas (el asiento de antes se sigue usando). |
+| 991205683 | Almohada | En lugar de las almohadas de todas las camas de casas, pisos, villas y residencia. |
+| 106442157390222 | Cómoda de hotel | Junto a la cama en la residencia y en algunas casas. Sin nada de DOORS: fuera los nombres Seek/Rush/Figure, sus sonidos (LSPLASH) y el virus. |
+| 123553303846741 | Pack de decoración «Bloxburg» | **No**: sus 65 texturas son las de Bloxburg (subidas por su creador) y trae virus; sin ellas no queda nada. |
+| 130817699186912 | Props japoneses | Restaurantes de sushi: bonsái en la barra, ramen en las mesas, farolillos y jardineras. Sin el torii ni nada de The Mimic (y sin su virus). |
+| 9802494780 | Small Realistic Mesh Pack | Naves industriales de la ciudad: la chimenea de malla en lugar de la de ladrillo y un depósito, tubos o caseta al lado de cada nave. La torre de alta tensión (93 studs) no: no hay tendido eléctrico donde ponerla. |
+| 9658188636 | REALISTIC PACK 1 | Sillas y mesas en oficinas, vestíbulos de oficinas, bancos y seguros. Su Lighting no (ya tenemos el nuestro). |
+| 12110426279 | REALISTIC PACK 2 | Nevera (bares, cafeterías, kebabs, hamburgueserías), sillas de cafetería, caseta de perro (tienda de mascotas), archivadores, sofá del vestíbulo, extintores, taquillas (cuartel, naves), papeleras. Sin coches, camiones, bidones de Half-Life 2 ni barriles explosivos. |
+| 17519952806 | Comida callejera | Pinchos en la barra de kebabs, bares y hamburgueserías. |
+| 4609898985 | Pack de comida | Platos en las mesas de bares, cafeterías, pizzerías, hamburgueserías, kebabs y sushi, y en la mesa o la encimera de las casas. Fuera las latas y la botella de cola (marcas), el logo del autor y las 3 texturas bloqueadas. |
+| 82460675146164 | Más comida | Montón de comida en el mostrador de ultramarinos y fruterías, y en la cocina de las villas (sin su virus). |
+| 95413639317338 | Huevo frito | En los platos de la mesa de las casas y de cafeterías y bares (sin su virus). |
+| 9766849655 | Magdalena | En el mostrador de panaderías, cafeterías y heladerías. |
+| 15666503758 | Comida de gato | Tienda de mascotas (mostrador y estantes), con la marca inventada **KESTREL** («comida para gatos»); la textura con la marca real se quita. |
+| 1305075170 | Fajos de billetes | En el mostrador de los bancos (sin el texto «$10,000»). |
+| 11329271645 | Portapapeles | Consultas y control de enfermería del hospital y centros de salud, mostrador de la comisaría, escritorios de oficinas, juzgado, Hacienda y cuartel. |
+| 11444948273 | Puerta de madera | La puerta de salida de casas, pisos y villas (la de antes sigue siendo la salida). |
+| 166379099 | Silla gigante | Escaparate de las tiendas de muebles (9 studs de alto). Asset sin revisar: se copian solo sus piezas; si no carga, la tienda queda igual. |
+| 123778443128832 | Cofre de recompensa | Solo el modelo (sin el script de grupo ni el virus): guardado en `ReplicatedStorage.ModelosPremio.CofreRecompensa` para el pase y los premios, y uno en las jugueterías. |
+
+No hay sistema de comida en 3D (la comida de la mochila son iconos): la comida va como decorado en
+restaurantes, tiendas y cocinas.
+
+## Materiales y texturas (shared/UserMaterialChoice, HouseLook, InteriorLook, StreetLook + World/UserMaterials y World/MaterialExtras)
+
+Las texturas de los MaterialVariant no se pueden leer desde un script y a un variant de la Tienda no se le
+puede cambiar el BaseMaterial en un servidor de verdad. Por eso todo se elige por NOMBRE y se usa pieza a
+pieza donde el material no encaja. Si un pack no carga (o da error), se usan los de respaldo y el juego sigue.
+
+| id | Pack | Dónde se usa |
+|---|---|---|
+| 9408271791 | PBR_Textures (20 MaterialVariant) | Respaldo de 13 materiales globales (ladrillo, hormigón, adoquín, pizarra, mármol, madera, tablas, arena, chapa estriada) y **primero en la grava (Pebble)**. Es respaldo de fachadas (ladrillo, zócalo, hormigón, madera, chapa de nave), interiores (parqué, mármol, moqueta, hormigón, pizarra, encimera de granito) y plazas de adoquín. No se usa como primero porque tiene 10 votos negativos y nadie lo ha visto en el juego. «Glass_PBR» va sobre Ice y no se usa. |
+| 12715816700 | ALL MATERIALS | No está en los docs: se busca por palabras y BaseMaterial («brick», «concrete», «marble», «carpet», «roof», «stucco», «sand»…). Respaldo de los globales, de las fachadas y de los interiores. |
+| 9268236860 | Realistic sand texture | **La arena de la playa y del terreno**: es el primer candidato para Sand si su variant viene sobre Sand. Si viene sobre otro material, se pone pieza a pieza en la arena de la playa (Kit/Civic, con la física de la arena). Si solo trae una textura, va como lámina sobre la playa. |
+| 12152263865 | Bronze PBR (SurfaceAppearance) | Placas de los cuadros del museo (bronce limpio) y escultura de la plaza del museo (bronce de estatua). Encima va un bloque de bronce de la misma talla. La pieza de antes sigue para chocar y solo se ve en gráficos Bajo. |
+| 12433695725 | Texture pack (realistic) | Texturas antiguas (`Texture`). Se usan sus losetas de techo («Ceiling A–L») como lámina en los techos de placas de parte de las oficinas, tiendas, colegio y hospital. Paredes, suelos, tejados, cristal y terreno no se usan: ahí ya hay PBR, que se ve mejor. |
+| 123159368741340 | Realistic Materials Pack (51 losetas) | Texturas antiguas. Las losetas se clasifican por nombre (papel pintado, moqueta, techo o arena) y se usan como lámina. Si sus nombres no dicen nada, no se usan. |
+| 11877329379 | Realistic Texture Pack | Texturas antiguas. «Wallpaper» va como papel pintado en la mitad de las salas con papel, «Carpet» como moqueta en el 40 % de las oficinas e «Interior Roofing» como techo de placas. Ladrillo, tejas, baldosas, cristal, metal, hormigón y paisaje no se usan (ya hay PBR). |
+| 3778526307 | Custom Material Pack 1 | Texturas antiguas. «Carpet» va como moqueta. Se borran sus 60 scripts del agua animada. Agua, lava, esponja, goma, porexpán y bambú no se usan: no encajan en una ciudad. |
+| 856287704 | Ultra HD texture pack (2017) | No está en los docs: sus losetas se clasifican por nombre, como las de los otros packs. Si no dicen papel pintado, moqueta, techo o arena, no se usan. |
+
+Las láminas (`Texture` «U_Lamina») van solo donde una textura plana se ve bien: papel pintado, moqueta y
+placas de techo. Cada sala lleva la misma lámina en todas sus piezas, siempre la misma, y el resto de
+salas se queda con su PBR. En gráficos Bajo se esconden (etiqueta TextureDetail). No se usa ninguna
+loseta que tenga en el nombre una marca, «logo», un juego (DOORS, Bloxburg, The Mimic, SCP) o sangre.
+
+### Packs de MaterialVariant que ya se usaban: cuántos se usan ahora
+
+«Usados» quiere decir que el variant está en alguna lista: en la variedad que se reparte por edificio,
+sala o zona, o como respaldo.
+
+| id | Pack | Variants | Usados (antes → ahora) | Sin usar y por qué |
+|---|---|---|---|---|
+| 11392874817 | Césped 2k | 1 | 1 → 1 | — |
+| 13277933714 | Realistic Materials (piedras) | 20 | 12 → 17 | Metal (el metal pintado es nuestro), Sandstone y Snow (en Valmar no hay arenisca ni nieve) |
+| 14527172541 | Realistic Materials (madera) | 6 | 4 → 5 | Realistic Snow (no hay nieve) |
+| 15221806045 | PBR Realistic Material Mega Pack | 524 (7 rotos) | 70 → 94 | El resto no encaja en una ciudad: 13 asfaltos «Lab» de colores, unos 60 metales de ciencia ficción, piel humana, carne, sangre, lava, calaveras, rocas de cueva y de otros planetas, vegetación y musgo. Los rotos (rbxtemp://) se borran al cargar. |
+| 15446413305 | Realistic Materials (generador) | 8 | 3 → 7 | RealisticGold (es oro sobre Sand: nunca en la playa) |
+| 92927007790601 | Tylers Realistic Materials | 68 | 19 → 64 | MetalGate, RustedMetalGate, RustedDiamondMetal (verjas y chapa oxidada: el metal pintado es nuestro) y TableCloth (mantel) |
+
+Variedad nueva:
+- **Fachadas**: 5 ladrillos, 5 piedras de zócalo, 5 hormigones de edificio público, 4 maderas, 3 tejas (antes 2), 3 chapas de nave, 3 hormigones de muelle y 2 entablados coloniales, fijos por edificio.
+- **Interiores**: 6 parqués, 5 hormigones, 4 baldosas de baño, 4 baldosas de local, 3 de cocina, 3 mármoles, 3 moquetas, 2 moquetas de cine, 3 granitos de suelo, 3 encimeras de granito, 3 encimeras de madera, 4 ladrillos vistos y 2 pintados, fijos por vivienda o local.
+- **Calles**: la mitad de las plazas son de adoquín hexagonal. Las aceras de barrio, centro y afueras, y el adoquín del casco antiguo, tienen dos suelos repartidos por zonas (siempre una zona entera con el mismo).
+- **Globales**: barro de granja (Mud) y grava (Pebble) nuevos, y más respaldos para césped, tierra, roca, pizarra, madera y chapa estriada. El terreno (montañas, campos) solo puede llevar un variant por material, así que ahí no puede haber variedad.
+
+## Coches (World/Kit/CarBodies)
+
+Los coches del tráfico, los aparcados, el tuyo, las patrullas y los taxis cambian su carrocería de piezas
+por una **malla de verdad**. Se carga al arrancar el servidor (Ambient.publish, con pcall); de cada coche
+solo se copian las piezas visibles de la carrocería con su **textura (TextureID) y su PBR
+(SurfaceAppearance)** y los Decals que no son logos; fuera scripts, sonidos, asientos, textos, logos,
+matrículas, atributos y etiquetas. **Sin marcas**: las piezas se renombran (CarShell, CarGlass, CarTrim),
+cada carrocería tiene nombre y marca inventados (Aurea, Kestrel, Brisa, Toro, Valmar Motors) y lleva
+dos placas con esa marca donde va el logo. Se gira (morro a −Z), se escala a la caja de nuestros coches
+con los pasos de rueda sobre nuestras ruedas, y nuestras ruedas (que giran y viran) llevan el
+**neumático de malla** del mismo pack. La caja de choque de siempre se queda invisible; luces, matrículas,
+rótulos de policía y taxi pasan al morro, cola, costado y techo de la malla (medidos con rayos).
+Aspecto: pintura con brillo (Reflectance 0,2, o el MaterialVariant de pintura de coche de Modern City si
+está en MaterialService) y colores de coche de verdad; cristal oscuro (Reflectance 0,3, transparencia
+0,35); molduras claras en cromo. En gráficos Bajo el tráfico usa la carrocería simple. Si no carga nada,
+todo queda como antes. Prueba: `lune run scripts/test-carbodies.luau`.
+
+| Id | Qué | Dónde / por qué no |
+|---|---|---|
+| 6418239833 | Sedan (oficial Roblox) | «Aurea Berlina»: tu coche, taxis, tráfico y aparcados (pintable). |
+| 6418234850 | SUV (oficial) | «Kestrel Sierra»: tu todoterreno, tráfico y aparcados. |
+| 6418225759 | Pickup Truck (oficial) | «Toro Faena»: tráfico, aparcados y tu todoterreno. |
+| 6433316269 | Van (oficial) | «Brisa Carga»: furgoneta del tráfico y aparcada. |
+| 6418230807 | Police Car (oficial) | «Valmar Patrulla»: las patrullas, rotuladas «POLICÍA» con nuestras sirenas. Sus textos «POLICE» fuera. |
+| 9432856072 | Semi-Realistic Car Pack | 5 coches sin marca: «Aurea Serena» (berlina, también tuya y taxi), «Kestrel Ranchera» (SUV), «Toro Campo» (pick-up), «Brisa Sprint» (compacto), «Valmar Clásico». Fuera logos, matrículas, radio y los 2 coches con `Protector 2.0`. |
+| 10935800149 | «Car Pack» (copia del anterior) | Mismo contenido que 9432856072: solo se carga si el original no carga. |
+| 10897563593 | «Car» (copia del anterior) | Igual: segundo respaldo de 9432856072. |
+| 97902046131324 | mesh pack (11 coches europeos) | Los 11, ligeros y con su textura (no se pintan): «Brisa Uno», «Toro Reparto», «Aurea Nube», «Kestrel Alba», «Aurea Paseo», «Valmar Mini», «Kestrel Vela», «Brisa Ola», «Toro Familia», «Toro Familia Plus», «Kestrel Lince». Aparcados (el doble de a menudo) y tráfico. |
+| 4573650411 | Pack de policía (California) | Solo el sedán clásico, simplificado a sus 45 piezas más grandes: «Valmar Patrulla Clásica», 3 patrullas como mucho. Sin «CHP», sin marcas, sin sus 292 scripts. |
+| 15418880736 | Berlina importada (ex-marca) | «Aurea Lumen», sin marca, simplificada a 40 piezas: solo 4 aparcadas (pesa 280 000 tris). |
+| 18912826861 | Autobús urbano | **No**: 255 000 tris y 866 objetos por autobús, con el logo de una empresa real; nuestro autobús tiene puertas que se abren y asientos que se usan (BusService). |
+| 16893586720 | Autocar (ex-marca) | **No**: 1 804 piezas de bloques (no malla) y no hay líneas interurbanas donde ponerlo. |
+| 130974691456028 | Camión caja | **No**: trae puerta trasera (familia 3, docs/assets-usuario-4.md) y en el juego no hay camiones de reparto. |
+| 18577576400 | «Realistic Car Pack (NOT MINE!)» | **No**: robado (lo dice el título), todo deportivos de marca y con `Protector 2.0`. |
+| 131247677717086 | Realistic Tires | **No**: es UNA sola malla con 4 neumáticos apilados (no se puede separar en ruedas) y trae puertas traseras (familias 3 y 4). Los neumáticos de malla salen de cada pack de coches. |
+
+## Armas, ejército y zonas de terror (World/UserArsenal + World/Kit/Pliegues)
+
+No hay un sistema de armas nuevo: las armas siguen siendo las de `shared/Weapons` (WeaponService, Armerías, policía,
+Cuartel). Los packs dan **solo mallas de exposición**: sin scripts, sin sonidos, sin GUIs, sin decals de sangre o de
+marcas, con nombres genéricos (`Arma_Fusil_3`, «Pieza»). Las armas sacadas de Apex, Half-Life 2 o CoD que vienen
+mezcladas, y cuchillos, granadas y lanzacohetes, se descartan por nombre. Todo lleva la etiqueta `CityDetail` (el nivel
+gráfico Bajo lo esconde). Prueba: `lune run scripts/test-arsenal.luau`.
+
+Las zonas de terror son **los Pliegues** de la Grieta (Cronos en «El piso 13»: «El piso 13 es un pliegue»): un
+vestíbulo lejos de la ciudad con cuatro arcos. Se llega por la misión `Rareza_Piso13` (que ahora pasa en la Planta 13;
+lugar `Piso13` con plan B en la biblioteca) o por una puerta vieja en el bosque junto al camping. Las criaturas no
+hacen daño: si te alcanzan, te devuelven al vestíbulo.
+
+| id | Qué es | Dónde está / por qué no |
+|---|---|---|
+| 101748452 | Pistola dorada de bloques («Ban Gun») | Armerías, comisarías, cuartel (pistola). Su script echaba del juego: borrado. |
+| 117850698505269 | Pack de 4 armas | Armerías, comisarías, cuartel. Fuera los efectos de sangre/gore y los 59 scripts. |
+| 100792423689137 | Pack de 4 armas de bloques | Igual. |
+| 115493232746766 | Pack de ~80 armas | Igual; las de Apex/HL2/CoD fuera por nombre; el escudo antidisturbios, al armero de la comisaría. |
+| 78033796632460 | Malla de fusil | Igual (su virus era un script/valor: borrados). |
+| 14800241387 | ~40 mallas de armas | Igual. ⚠ Mallas sacadas de *Bad Business* según el doc: si Sebastián prefiere no usarlas, borrar su línea de `UserArsenal.WeaponPacks`. |
+| 1076538396 | ~60 mallas de armas | Igual. ⚠ Mallas de *Counter-Strike* según el doc: misma nota. |
+| 546753609 | Kit P90 | Se carga, pero solo trae GUI y scripts: no aporta ninguna malla (se borra todo). |
+| 9700798278 | 5 fusiles | Armerías, cuartel. Sus 70 sonidos (de Tarkov) fuera. |
+| 480927087 | Mira de punto rojo | Armerías: dos en el panel de exposición y una montada sobre el fusil de arriba del armero. |
+| 124581242124664 | Pistola láser-gato | Parque de atracciones: premio de la «Caseta de premios» (no dispara). |
+| 114120925733217 | Mazo de goma | Parque de atracciones: junto al «martillo de fuerza». |
+| 9763579280 | Bate de béisbol | Tiendas de deportes (sala `Local` con Shop = Deportes): bidón con 4 bates. |
+| 11156149162 | Explosivo («Cee Four») | Comisarías: «PRUEBA 0451 · DESACTIVADO» sobre el mostrador. |
+| 5849304432 | Casco militar | Cuartel del Ejército: en las literas y en la mesa del mapa. |
+| 266515007 | Carro de combate | Museo: «Carro de combate antiguo», 22 studs, sin NINGUNA imagen (las 6 de la torreta no se podían revisar), sin asiento ni cañón que dispare, sin su nombre. |
+| 14887624955 | Horror Pack | Pliegues: texturas de pared en el vestíbulo, su puerta (vuelta a Valmar y la puerta del bosque) y su árbol seco en Valmar Gris. Su Lighting y la cámara que se balancea, no. |
+| 13583409363 | Escalera sin fin | Pliegues · Planta 13: «Bajar la escalera» al fondo del pasillo. Solo los últimos 70 studs (entera son 755 000 triángulos), sin decals ni números. |
+| 10491752124 | Pasillo en silencio | Pliegues · Planta 13: aquí pasa «El piso 13» (exámenes, Cronos). |
+| 13843689263 | Kit de pasillos amarillos | Pliegues · Pliegue Amarillo. |
+| 17536656565 | Kit de piscinas | Pliegues · Pliegue Azul (sin el script de flotación). |
+| 14062245022 | Criatura pálida | **El Pálido**, ronda el Pliegue Amarillo. Sin sus scripts (mataba), sonidos ni animaciones. |
+| 9879827254 | Criatura aulladora | **El Aullador**, ronda el Pliegue Azul. Igual. |
+| 522578234 | Cementerio | Pliegues · Valmar Gris (como mucho 90 studs de lado y 700 piezas). |
+| 16845477360 | Noria abandonada | Pliegues · Valmar Gris («la feria que cerró antes de abrir»). |
+| 891244647 | Cámara (personaje) | Teatro: grabando el escenario desde el pasillo. Sin la marca de la cámara. |
+| 7105428424 | Muerto | **No**: 11 decals de sangre y un charco; ni como escena del crimen. |
+| 13583409363 (repetido) | Escalera | Ver arriba. |
+| 83730474928094 | Moveset de un anime | **No**: personaje de otra franquicia. |
+| 95946642626421 | Generador de terreno | **No**: es un script. |
+| 113349334619202, 107730003845316, 8043394685, 9342982592, 12061946559 | Animaciones | **No**: de otros creadores, no se pueden reproducir sin volver a subirlas. |
+| 132859014 | Trozo de mapa (2013) | **No**: una bandera y un cartel sin uso. |
+| 80741429 | Campo de fútbol (2012) | **No**: muy viejo (bloques, 60 decals) y la ciudad ya tiene estadio. |
