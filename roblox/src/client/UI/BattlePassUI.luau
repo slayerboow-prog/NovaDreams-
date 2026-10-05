@@ -1465,6 +1465,18 @@ local function onState(new: { [string]: any })
 	render()
 end
 
+-- El cofre que se abre con lo que acabas de recibir (UI/BattlePassChest). Si falla, el aviso de siempre.
+local function showChest(rewards: { { [string]: any } })
+	local ok, err = pcall(function()
+		require(script.Parent.BattlePassChest :: any).show(rewards)
+	end)
+	if not ok then
+		warn("[BattlePassUI] Cofre: " .. tostring(err))
+		local first = rewards[1]
+		toast("Success", if #rewards == 1 and first then ("🎁 ¡Recompensa: %s!"):format(tostring(first.Name)) else ("🎁 %d recompensas reclamadas"):format(#rewards))
+	end
+end
+
 local function onResult(result: any)
 	if type(result) ~= "table" then
 		return
@@ -1475,6 +1487,11 @@ local function onResult(result: any)
 	elseif result.Action == "ClaimAll" then
 		claimAllPending = false
 		render()
+		if result.Ok and type(result.Given) == "table" then
+			showChest(result.Given)
+		end
+	elseif result.Action == "Claim" and result.Ok and type(result.Reward) == "table" then
+		showChest({ result.Reward })
 	elseif result.Action == "Claim" and not result.Ok and result.Track and result.Level then
 		pending[tostring(result.Track) .. ":" .. tostring(result.Level)] = nil
 		render()
