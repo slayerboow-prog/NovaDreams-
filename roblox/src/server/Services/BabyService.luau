@@ -87,16 +87,39 @@ local function familyModel(player: Player, role: string?): Model?
 	return if model and model.Parent then model else nil
 end
 
+-- ¿Está viendo una escena? (InScene lo pone el SERVIDOR, CinematicService; InCinematic es solo
+-- del cliente y aquí nunca llega: por eso antes Abu hablaba encima del nacimiento, M-04)
+local SAY_WAIT = 30
+local function inScene(player: Player): boolean
+	return player:GetAttribute("InScene") == true
+end
+
 -- Role: quién habla ("Abu", "Familia" o nil = narrador), para ponerle su voz
 local function say(player: Player, speakerKey: string?, textKey: string, delay: number?)
 	local role = if speakerKey == "NPC.ABU_ROSA" or speakerKey == "NPC.ABU_TOMAS"
 		then "Abu"
 		elseif speakerKey then "Familia"
 		else nil
-	local function fire()
+	local function send()
 		if player.Parent then
 			Remote:FireClient(player, "Say", { SpeakerKey = speakerKey, TextKey = textKey, Role = role, Speaker = familyModel(player, role) })
 		end
+	end
+	local function fire()
+		if not inScene(player) then
+			send()
+			return
+		end
+		-- En mitad de una escena (InScene, lo marca el servidor) la familia no habla encima: espera a
+		-- que acabe (con tope) y lo dice después
+		task.spawn(function()
+			local since = os.clock()
+			while player.Parent and inScene(player) and os.clock() - since < SAY_WAIT do
+				task.wait(0.5)
+			end
+			task.wait(0.8)
+			send()
+		end)
 	end
 	if delay then
 		task.delay(delay, fire)
@@ -508,12 +531,23 @@ local function start(player: Player)
 	spawnAtCrib(player, baby)
 	if not stood then
 		task.delay(3, function()
-			-- (espera a que acabe la escena del nacimiento o el sueño: antes Abu hablaba encima)
+			-- Espera a que acabe la escena del nacimiento o el sueño (antes Abu hablaba encima, M-04):
+			-- libre = sin escena (InScene, del servidor), sin sueño, sin conversación y con el primer
+			-- capítulo ya empezado (su escena del nacimiento se lanza al entrar en él), y así durante
+			-- un rato seguido. Con tope: nunca se queda sin decirlo.
 			local since = os.clock()
-			while player.Parent and (player:GetAttribute("InCinematic") or player:GetAttribute("InPrologue") or player:GetAttribute("InDialogue")) and os.clock() - since < 90 do
-				task.wait(1)
+			local freeFor = 0
+			while player.Parent and freeFor < 1.5 and os.clock() - since < 120 do
+				local story = data.Story
+				local waitingChapter = type(story) == "table" and story.Chapter == nil
+				local busy = inScene(player)
+					or player:GetAttribute("InPrologue")
+					or player:GetAttribute("InDialogue")
+					or player:GetAttribute("InCinematic")
+					or (waitingChapter and os.clock() - since < 30)
+				freeFor = if busy then 0 else freeFor + 0.5
+				task.wait(0.5)
 			end
-			task.wait(1.5)
 			if babies[player] == baby and not baby.Stood then
 				say(player, select(2, Family.keysFor(home.Index)), "DLG.ABU.BEBE.LEVANTATE")
 			end
