@@ -949,6 +949,9 @@ function BattlePassService.init()
 		if not ok then
 			warn("[BattlePassService] " .. tostring(err))
 		end
+		-- (el cliente pide el estado al entrar, pero si lo pidió antes de cargar la partida esa petición
+		-- se ignoró: se le manda ahora que ya hay datos, o la fila y la ventana del pase no salen nunca)
+		pcall(BattlePassService.push, player, true)
 		task.spawn(function()
 			pcall(BattlePassService.checkOwnership, player)
 		end)
