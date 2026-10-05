@@ -12,6 +12,9 @@
         "Notify": {
           "$className": "RemoteEvent"
         },
+        "MapFilters": {
+          "$className": "RemoteEvent"
+        },
         "Vandal": {
           "$className": "RemoteEvent"
         },
