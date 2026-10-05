@@ -76,6 +76,7 @@ MapInfo.Kinds = {
 	{ Model = "Teatro", Icon = "🎭", Name = "Teatro Principal", Important = true },
 	{ Model = "GranCentroComercial", Icon = "🛍️", Name = "Centro Comercial Valmar", Important = true },
 	{ Model = "Feria", Icon = "🎡", Name = "Parque de Atracciones", Important = true },
+	{ Model = "CasaCosme", Icon = "🔬", Name = "Casa de Cosme", Important = true },
 	{ Model = "Camping", Icon = "⛺", Name = "Camping Valmar", Important = true },
 	{ Model = "Marina", Icon = "⛵", Name = "Puerto Deportivo", Important = true },
 	{ Model = "Supermercado", Icon = "🛒", Name = "Supermercado", Important = true },
