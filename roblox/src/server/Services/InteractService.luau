@@ -63,7 +63,7 @@ end
 local function roomModel(part: Instance): Model?
 	local node: Instance? = part
 	while node and node ~= workspace do
-		if node:IsA("Model") and string.sub(node.Name, 1, 9) == "Interior_" then
+		if node:IsA("Model") and (string.sub(node.Name, 1, 9) == "Interior_" or node:GetAttribute("InteractRoot") == true) then
 			return node
 		end
 		node = node.Parent
@@ -847,6 +847,16 @@ function InteractService.setup(inst: InteriorService.Instance_)
 			continue
 		end
 		setupPart(part, inst)
+	end
+end
+
+-- Edificios del mapa con muebles que se usan (atributo InteractRoot en su Model, como la casa de
+-- Cosme: World/CosmeHouse): puertas, sillas, luces, grifos… igual que en los interiores (sala pública)
+function InteractService.setupWorld(root: Instance)
+	for _, part in root:GetDescendants() do
+		if part:IsA("BasePart") and part:HasTag("Interact") then
+			setupPart(part, nil)
+		end
 	end
 end
 

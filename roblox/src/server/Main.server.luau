@@ -291,4 +291,14 @@ for _, name in order do
 	end
 end
 
+-- La casa de Cosme por dentro: avisos, puertas, luces, el portal y Cosme con su rutina (World/CosmeHouse)
+task.spawn(function()
+	local ok, err = pcall(function()
+		require(World.CosmeHouse.Start).start()
+	end)
+	if not ok then
+		warn("[CasaCosme] " .. tostring(err))
+	end
+end)
+
 print("[Real Life Simulator] Servidor listo ✅")

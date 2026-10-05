@@ -12,6 +12,7 @@ local Props = require(script.Parent.Props)
 local Layout = require(script.Parent.Layout)
 local PortalSystem = require(script.Parent.PortalSystem)
 local Builder = require(script.Parent.Parent.Builder)
+local Furniture = require(script.Parent.Parent.Furniture)
 
 local Exterior = {}
 
@@ -120,7 +121,7 @@ local function facades(ctx: Kit.Ctx, m: Instance)
 	} }))
 	Kit.wall(ctx, f, "X", H.Z1, H.X0 - 0.5, H.X1 + 0.5, y2, y3, p)
 	-- Lateral derecho (x = 12): la puerta del garaje y ventanas por encima de su tejado
-	Kit.wall(ctx, f, "Z", H.X1, H.Z0, H.Z1, y0, y1, band(g, { Openings = { op(-31.5, -25.5, 1, 10), op(8, 15, 5, 11, "window") } }))
+	Kit.wall(ctx, f, "Z", H.X1, H.Z0, H.Z1, y0, y1, band(g, { Openings = { op(-31.5, -25.5, 1, 10) } }))
 	Kit.wall(ctx, f, "Z", H.X1, H.Z0, H.Z1, y1, y2, band(u, { Openings = { op(0, 12, 18, 27, "window") } }))
 	Kit.wall(ctx, f, "Z", H.X1, H.Z0, H.Z1, y2, y3, p)
 	-- Revestimiento de madera en la planta alta (listones verticales) y franja oscura entre plantas
@@ -276,11 +277,11 @@ local function frontYard(ctx: Kit.Ctx, m: Instance)
 	Kit.doc(mailbox:FindFirstChild("Cuerpo") :: BasePart, "Carta en el buzón", "«Estimado vecino Cosme: le rogamos que deje de abrir portales en el jardín. Firmado: la comunidad de vecinos.»\n\nDebajo, escrito a lápiz: «Las coordenadas del sábado son 66-B. Que no se entere el pez.»", "CosmeBuzon")
 	-- Cartel «NO ENTRAR» en un panel de madera, junto al vado (como en la imagen)
 	local board = Kit.group(y, "CartelNoEntrar")
-	for _, x in { 8.5, 11.5 } do
+	for _, x in { 45.5, 48.5 } do
 		Kit.box(ctx, board, "Poste", V(0.5, 6, 0.5), CF(x, 3, -45), rgb(120, 84, 56), M.Wood)
 	end
-	local panel = Kit.box(ctx, board, "Tablero", V(4.4, 3.6, 0.3), CF(10, 3.8, -45.2), rgb(150, 104, 68), M.WoodPlanks)
-	local red = Kit.deco(ctx, board, "Cartel", V(3.6, 2.4, 0.1), CF(10, 4, -45.4), rgb(200, 40, 40), M.SmoothPlastic, nil, true)
+	local panel = Kit.box(ctx, board, "Tablero", V(4.4, 3.6, 0.3), CF(47, 3.8, -45.2), rgb(150, 104, 68), M.WoodPlanks)
+	local red = Kit.deco(ctx, board, "Cartel", V(3.6, 2.4, 0.1), CF(47, 4, -45.4), rgb(200, 40, 40), M.SmoothPlastic, nil, true)
 	Kit.signText(red, "NO ENTRAR\n¡LABORATORIO!", Enum.NormalId.Front, rgb(255, 255, 255), rgb(200, 40, 40))
 	Kit.doc(panel, "Cartel «NO ENTRAR»", "NO ENTRAR. Peligro: portales, rayos, gallinas gigantes y matemáticas avanzadas.\n\n(Letra pequeña: «Si eres mi vecino, sí puedes entrar. Trae batido de apio.»)")
 	-- Caja «NO TOCAR», máquina medio desmontada, antena pequeña, cables y plantas
@@ -336,9 +337,26 @@ local function backGarden(ctx: Kit.Ctx, m: Instance)
 	Kit.railing(ctx, g, V(D.X0, Layout.F1, H.Z1 + 5.8), V(D.X1, Layout.F1, H.Z1 + 5.8))
 	Kit.railing(ctx, g, V(D.X0 + 0.2, Layout.F1, H.Z1 + 0.6), V(D.X0 + 0.2, Layout.F1, H.Z1 + 5.8))
 	Kit.railing(ctx, g, V(D.X1 - 0.2, Layout.F1, H.Z1 + 0.6), V(D.X1 - 0.2, Layout.F1, H.Z1 + 5.8))
+	-- En el balcón: macetas, dos sillas con mesita, un catalejo y una lámpara
+	local balcony = Kit.group(g, "Balcon")
+	for i = 0, 4 do
+		Props.make(ctx, balcony, "Plant", CF(-32.5 + i * 9.5, Layout.F1, H.Z1 + 5))
+	end
+	local bf = Kit.furn(ctx, balcony, rgb(60, 60, 66))
+	Furniture.chair(bf, Kit.at(ctx, -14, Layout.F1, 22.6, 90), rgb(60, 60, 66), balcony)
+	Furniture.chair(bf, Kit.at(ctx, -19, Layout.F1, 22.6, -90), rgb(60, 60, 66), balcony)
+	Kit.cyl(ctx, balcony, "Mesita", 2.6, 1.6, CF(-16.5, Layout.F1 + 1.3, 22.6), C.White, M.Metal, true)
+	Props.make(ctx, balcony, "Mug", CF(-16.5, Layout.F1 + 2.6, 22.6))
+	local scope = Kit.group(balcony, "Catalejo")
+	for k = 0, 2 do
+		local a = k / 3 * math.pi * 2
+		Kit.deco(ctx, scope, "Pata", V(0.15, 3.4, 0.15), CF(-6 + math.cos(a) * 0.5, Layout.F1 + 1.6, 22.6 + math.sin(a) * 0.5) * ANG(math.sin(a) * 0.15, 0, -math.cos(a) * 0.15), C.Dark, M.Metal)
+	end
+	Kit.cylX(ctx, scope, "Tubo", 2.6, 0.5, CF(-6, Layout.F1 + 3.5, 22.6) * ANG(0, math.pi / 2, 0) * ANG(0, 0, 0.5), C.Chrome, M.Metal)
+	local wl = Kit.neon(ctx, balcony, "Aplique", V(0.8, 1.2, 0.3), CF(-21.5, Layout.F1 + 6, H.Z1 + 0.65), rgb(255, 230, 180))
+	Kit.light(ctx, wl, 12, 0.8, rgb(255, 226, 180))
 	-- Muebles de la terraza: mesa con sombrilla y sillas, tumbonas y barbacoa
 	local furn = Kit.furn(ctx, g, rgb(120, 84, 56), rgb(220, 220, 210), C.Orange)
-	local Furniture = require(script.Parent.Parent.Furniture)
 	Furniture.table(furn, Kit.at(ctx, -6, 1, 22.5), 5, 3.2, rgb(110, 80, 52))
 	for _, p in { { -9, 22.5, -90 }, { -3, 22.5, 90 } } do
 		Furniture.chair(furn, Kit.at(ctx, p[1], 1, p[2], p[3]), rgb(60, 60, 66))
@@ -349,7 +367,7 @@ local function backGarden(ctx: Kit.Ctx, m: Instance)
 	cloth.CastShadow = true
 	Props.make(ctx, g, "Food", CF(-6.5, 4.15, 22.2))
 	Props.make(ctx, g, "Mug", CF(-4.8, 4.15, 23))
-	for _, x in { -30, -25 } do
+	for _, x in { -32, -29 } do
 		local lounger = Kit.group(g, "Tumbona")
 		Kit.box(ctx, lounger, "Base", V(2.6, 1, 6), CF(x, 1.5, 22), C.White, M.SmoothPlastic)
 		Kit.box(ctx, lounger, "Respaldo", V(2.6, 2.6, 0.5), CF(x, 2.8, 19.4) * ANG(math.rad(-25), 0, 0), C.White, M.SmoothPlastic)
@@ -376,7 +394,7 @@ local function backGarden(ctx: Kit.Ctx, m: Instance)
 	end
 	flowers(ctx, g, -36, -16, 28, 32, 24)
 	flowers(ctx, g, 2, 12, 40, 47, 12)
-	for _, p in { { -26, 42, 0 }, { 6, 36, 90 } } do
+	for _, p in { { -26, 42, 0 }, { 8, 42.5, 0 } } do
 		Furniture.bench(furn, Kit.at(ctx, p[1], 0, p[2], p[3]), 5, rgb(120, 84, 56))
 	end
 	-- Camino de losas hasta la torre-portal

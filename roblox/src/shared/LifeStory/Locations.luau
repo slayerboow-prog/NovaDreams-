@@ -157,8 +157,20 @@ Locations.Places = {
 	CocinaResidencia = { NameKey = "La cocina compartida", Tag = "StorySpot", Attribute = { SpotId = "CocinaResidencia" }, Zone = "Campus Valmar", Inside = true, Radius = 8, Fallback = "Residencia" },
 
 	-- Misiones locas (las de Cosme). Si el mapa todavía no tiene el sitio, se usa el Fallback.
-	-- El garaje de Cosme está en la manzana de casas de al lado de las casas familiares (Kit/Home.cosmeGarage)
+	-- La casa de Cosme ocupa la manzana de al lado de las casas familiares (World/CosmeHouse): la marca de
+	-- siempre está delante de su garaje, mirando a la calle; dentro hay una marca por sitio de la casa
 	GarajeCosme = { NameKey = "El garaje de Cosme", Tag = "StorySpot", Attribute = { SpotId = "GarajeCosme" }, Zone = "Home", Fallback = "CaminoAlGaraje", Radius = 10 },
+	CosmeCocina = { NameKey = "La cocina de Cosme", Tag = "StorySpot", Attribute = { SpotId = "CosmeCocina" }, Radius = 6, Fallback = "GarajeCosme" },
+	CosmeSalon = { NameKey = "El salón de Cosme", Tag = "StorySpot", Attribute = { SpotId = "CosmeSalon" }, Radius = 7, Fallback = "GarajeCosme" },
+	CosmeDespacho = { NameKey = "El despacho de Cosme", Tag = "StorySpot", Attribute = { SpotId = "CosmeDespacho" }, Radius = 6, Fallback = "GarajeCosme" },
+	CosmeLaboratorio = { NameKey = "El laboratorio de Cosme", Tag = "StorySpot", Attribute = { SpotId = "CosmeLaboratorio" }, Radius = 10, Fallback = "GarajeCosme" },
+	CosmeMaquina = { NameKey = "La máquina del espacio-tiempo", Tag = "StorySpot", Attribute = { SpotId = "CosmeMaquina" }, Radius = 6, Fallback = "CosmeLaboratorio" },
+	CosmePortal = { NameKey = "La sala de portales", Tag = "StorySpot", Attribute = { SpotId = "CosmePortal" }, Radius = 8, Fallback = "CosmeLaboratorio" },
+	CosmeObservatorio = { NameKey = "El observatorio de Cosme", Tag = "StorySpot", Attribute = { SpotId = "CosmeObservatorio" }, Radius = 6, Fallback = "GarajeCosme" },
+	CosmeOrdenadores = { NameKey = "La sala de ordenadores", Tag = "StorySpot", Attribute = { SpotId = "CosmeOrdenadores" }, Radius = 6, Fallback = "GarajeCosme" },
+	CosmeSecreta = { NameKey = "La habitación secreta", Tag = "StorySpot", Attribute = { SpotId = "CosmeSecreta" }, Radius = 6, Fallback = "CosmeLaboratorio" },
+	CosmeGarajeCoche = { NameKey = "El coche experimental", Tag = "StorySpot", Attribute = { SpotId = "CosmeGarajeCoche" }, Radius = 6, Fallback = "GarajeCosme" },
+	CosmeJardin = { NameKey = "El jardín de Cosme", Tag = "StorySpot", Attribute = { SpotId = "CosmeJardin" }, Radius = 8, Fallback = "GarajeCosme" },
 	CaminoAlGaraje = { NameKey = "El garaje de Cosme", Between = { "CasaFamiliar", "ParadaBus" }, At = 0.3, Radius = 12, Fallback = "CasaFamiliar" },
 	-- El monte y su cima los marca Kit/Wilds (la montaña alta más cercana a Villaverde)
 	MonteSilencio = { NameKey = "El Monte del Silencio", Tag = "StorySpot", Attribute = { SpotId = "MonteSilencio" }, Zone = "Villaverde", Radius = 30, Fallback = "LadoMonte" },

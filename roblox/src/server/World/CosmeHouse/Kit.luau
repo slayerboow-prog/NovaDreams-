@@ -24,7 +24,7 @@ local CF = CFrame.new
 local ANG = CFrame.Angles
 local M = Enum.Material
 
-Kit.MaxLights = 72
+Kit.MaxLights = 90
 Kit.Colors = {
 	Wall = rgb(236, 232, 224),
 	WallWarm = rgb(232, 222, 206),
@@ -485,7 +485,7 @@ function Kit.ringWall(ctx: Ctx, parent: Instance, cx: number, cz: number, r: num
 		local door = nil
 		for _, d in o.Doors or {} do
 			local diff = math.abs(((theta - d.Theta + math.pi) % (2 * math.pi)) - math.pi)
-			if diff < math.pi / n then
+			if diff <= (d.Width or 1) * math.pi / n + 1e-3 then
 				door = d
 			end
 		end

@@ -168,6 +168,12 @@ function TerrainBuilder.build()
 	-- 8) Bocas de metro: se vacía la roca por donde bajan las escaleras, el vestíbulo y el pozo de las
 	--    escaleras mecánicas (lo último, para que nada lo vuelva a rellenar)
 	require(script.Parent.Kit.MetroKit).terrain(terrain)
+
+	-- 9) El sótano de la casa de Cosme (laboratorio, sala de portales…): sin terreno dentro
+	local cosme = Region.cosmeSite()
+	if cosme then
+		require(script.Parent.CosmeHouse.Exterior).terrain(terrain, cosme.CFrame)
+	end
 end
 
 -- Quita el suelo y el mar de piezas (solo servían para verlo en Studio)

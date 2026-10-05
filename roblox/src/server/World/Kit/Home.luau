@@ -8,7 +8,7 @@
 -- Para la misión "El primer día" (StoryMarks, todas con HomeId):
 --   StoryProp PropId = "Cama" | "Armario" | "Espejo" | "Mochila" | "Desayuno"
 --   StorySpot SpotId = "Despertar" (junto a la cama) | "SalirCasa" (delante de la puerta)
--- Y el garaje de Cosme, el vecino (Home.cosmeGarage, en la manzana de casas de al lado): SpotId = "GarajeCosme"
+-- (La casa de Cosme, el vecino inventor, está en la manzana de al lado: World/CosmeHouse)
 --
 -- Distribución (vista desde arriba, la puerta al sur/frente):
 --   ┌───────────────────────────────┐  fondo: ventanal con vista
@@ -184,45 +184,6 @@ function Home.familyHouse(parent: Instance, cf: CFrame, homeId: string): Model
 
 	tagged({ Name = "BabySpawn", Size = Vector3.new(2, 1, 2), CFrame = at(-7, 0.6, -8) * CFrame.Angles(0, math.pi, 0), Tags = { "BabySpawn" }, Attributes = { HomeId = homeId }, Parent = model })
 
-	return model
-end
-
--- Garaje-taller de Cosme, el vecino inventor. cf = centro de la puerta, a ras de suelo, mirando a la
--- calle. Puerta enrollada (abierta), banco de trabajo, estanterías y chatarra.
--- StorySpot SpotId = "GarajeCosme": delante de la puerta, mirando a la calle (Cosme sale a recibirte)
-function Home.cosmeGarage(parent: Instance, cf: CFrame): Model
-	local model = Builder.model("GarajeCosme", parent)
-	local GW, GD, GH = 14, 16, 9 -- ancho (puerta), fondo y alto
-	local wall, roof, trim = rgb(214, 204, 186), rgb(96, 88, 84), rgb(70, 74, 80)
-	local function at(x: number, y: number, z: number): CFrame
-		return cf * CFrame.new(x, y, z)
-	end
-	box(model, "Floor", Vector3.new(GW, 0.4, GD), at(0, 0.2, GD / 2), rgb(150, 150, 146), Enum.Material.Concrete)
-	for _, side in { -1, 1 } do
-		box(model, "Wall", Vector3.new(0.8, GH, GD), at(side * (GW / 2 - 0.4), GH / 2, GD / 2), wall, Enum.Material.Brick)
-	end
-	box(model, "BackWall", Vector3.new(GW, GH, 0.8), at(0, GH / 2, GD - 0.4), wall, Enum.Material.Brick)
-	box(model, "Header", Vector3.new(GW, 1.6, 0.8), at(0, GH - 0.8, 0.4), wall, Enum.Material.Brick)
-	box(model, "Roof", Vector3.new(GW + 1, 0.6, GD + 1), at(0, GH + 0.3, GD / 2), roof, Enum.Material.Metal)
-	-- Puerta enrollada arriba y rampa hasta la acera
-	box(model, "DoorRoll", Vector3.new(GW - 2, 1, 1), at(0, GH - 2.1, 0.9), rgb(200, 200, 196), Enum.Material.Metal, true)
-	box(model, "Drive", Vector3.new(GW - 2, 0.2, 10), at(0, 0.1, -5), rgb(170, 168, 164), Enum.Material.Pavement)
-	local sign = box(model, "Sign", Vector3.new(8, 1.4, 0.2), at(0, GH - 0.8, -0.1), rgb(250, 214, 70), Enum.Material.SmoothPlastic, true)
-	Builder.sign(sign, "TALLER DE COSME", Enum.NormalId.Front, rgb(40, 30, 20), rgb(250, 214, 70))
-	-- Banco de trabajo al fondo, estanterías a un lado y un montón de inventos a medias
-	box(model, "Workbench", Vector3.new(8, 0.4, 2.6), at(0, 3.2, GD - 2.2), rgb(150, 108, 72), Enum.Material.Wood)
-	for _, x in { -3.6, 3.6 } do
-		box(model, "BenchLeg", Vector3.new(0.4, 3, 2.2), at(x, 1.5, GD - 2.2), rgb(90, 64, 42), Enum.Material.Wood, true)
-	end
-	box(model, "Vise", Vector3.new(0.8, 0.8, 0.8), at(-2.5, 3.8, GD - 2.2), trim, Enum.Material.Metal, true)
-	box(model, "Gadget", Vector3.new(1.4, 1.2, 1), at(1.5, 4, GD - 2.2), rgb(90, 200, 230), Enum.Material.Neon, true)
-	box(model, "Shelf", Vector3.new(1.6, 6, 6), at(-GW / 2 + 1.6, 3, GD - 5), trim, Enum.Material.Metal)
-	for k, color in { rgb(200, 60, 60), rgb(60, 140, 220), rgb(240, 180, 40) } do
-		box(model, "Box", Vector3.new(1.2, 1, 1.4), at(-GW / 2 + 1.6, k * 1.8 + 0.2, GD - 3.4 - k), color, Enum.Material.SmoothPlastic, true)
-	end
-	box(model, "Scrap", Vector3.new(2.4, 1.6, 2), at(GW / 2 - 2, 0.8, GD - 6), rgb(120, 120, 128), Enum.Material.CorrodedMetal)
-	box(model, "Lamp", Vector3.new(3, 0.2, 0.6), at(0, GH - 0.3, GD / 2), rgb(255, 244, 214), Enum.Material.Neon, true)
-	StoryMarks.spot(model, "GarajeCosme", at(0, 2.5, -6))
 	return model
 end
 

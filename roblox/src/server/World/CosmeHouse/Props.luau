@@ -196,16 +196,26 @@ P.Radio = function(ctx, m, cf)
 end
 
 -- Cosas que van en el suelo
+-- (Props.Solid = false: lo grande del suelo tampoco choca; Props.scatter lo pone así para no tapar el paso)
+Props.Solid = true
+
 P.Crate = function(ctx, m, cf)
 	local R = ctx.Rand
 	local s = R.range(1.6, 2.6)
-	Kit.box(ctx, m, "Caja", V(s, s * 0.8, s), cf * CF(0, s * 0.4, 0) * ANG(0, R.range(-0.4, 0.4), 0), R.pick({ rgb(170, 130, 80), rgb(150, 110, 70), rgb(120, 130, 140) }), M.WoodPlanks, { CanQuery = false })
+	local box = V(s, s * 0.8, s)
+	local where = cf * CF(0, s * 0.4, 0) * ANG(0, R.range(-0.4, 0.4), 0)
+	local color = R.pick({ rgb(170, 130, 80), rgb(150, 110, 70), rgb(120, 130, 140) })
+	if Props.Solid then
+		Kit.box(ctx, m, "Caja", box, where, color, M.WoodPlanks, { CanQuery = false })
+	else
+		Kit.deco(ctx, m, "Caja", box, where, color, M.WoodPlanks, nil, true)
+	end
 	Kit.deco(ctx, m, "Etiqueta", V(s * 0.5, s * 0.25, 0.05), cf * CF(0, s * 0.45, -s / 2 - 0.03), R.pick({ C.Yellow, C.White, C.Red }))
 end
 
 P.Barrel = function(ctx, m, cf)
 	local R = ctx.Rand
-	Kit.cyl(ctx, m, "Bidon", 2.6, 1.8, cf * CF(0, 1.3, 0), R.pick({ rgb(40, 90, 160), rgb(200, 140, 40), rgb(70, 120, 70) }), M.Metal, true)
+	Kit.cyl(ctx, m, "Bidon", 2.6, 1.8, cf * CF(0, 1.3, 0), R.pick({ rgb(40, 90, 160), rgb(200, 140, 40), rgb(70, 120, 70) }), M.Metal, Props.Solid)
 	Kit.neon(ctx, m, "Simbolo", V(0.6, 0.6, 0.05), cf * CF(0, 1.5, -0.92), R.pick({ C.Yellow, C.Green }), 0.1)
 end
 
@@ -249,6 +259,8 @@ function Props.scatter(ctx: any, parent: Instance, rect: { number }, y: number, 
 	local R = ctx.Rand
 	local list = kinds or Props.Small
 	local used: { [string]: boolean } = {}
+	local solidBefore = Props.Solid
+	Props.Solid = false
 	local cell = 1.3
 	local made = 0
 	for _ = 1, n * 4 do
@@ -264,6 +276,7 @@ function Props.scatter(ctx: any, parent: Instance, rect: { number }, y: number, 
 			made += 1
 		end
 	end
+	Props.Solid = solidBefore
 	return made
 end
 

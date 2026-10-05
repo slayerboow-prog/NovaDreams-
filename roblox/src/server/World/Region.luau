@@ -425,8 +425,36 @@ function Region.travelStop(parent: Instance, cf: CFrame, townName: string)
 	})
 end
 
+-- Parcela de la casa de Cosme, el vecino inventor (World/CosmeHouse): la primera manzana de casas que
+-- tiene al este una de casas familiares (en Los Pinos, la del noroeste). La casa ocupa la manzana
+-- entera y mira a la calle de las casas familiares. { CFrame (centro a ras de suelo, la fachada hacia
+-- -Z), Half (media anchura), Rect, Town }
+function Region.cosmeSite(): { [string]: any }?
+	for _, town in Region.Towns do
+		local c = town.Center
+		for j = 1, 4 do
+			for i = 1, 3 do
+				local cell, east = town.Plan[j][i], town.Plan[j][i + 1]
+				if cell.Kind == "Houses" and east and east.Kind == "FamilyHomes" then
+					local rect = { X0 = c.X + CELLS[i][1], X1 = c.X + CELLS[i][2], Z0 = c.Z + CELLS[j][1], Z1 = c.Z + CELLS[j][2] }
+					local center = Vector3.new((rect.X0 + rect.X1) / 2, 0, (rect.Z0 + rect.Z1) / 2)
+					return {
+						CFrame = Builder.facing(center, Vector3.new(1, 0, 0)),
+						Half = (rect.X1 - rect.X0) / 2,
+						Rect = rect,
+						Town = town.Name,
+						Cell = { i, j },
+					}
+				end
+			end
+		end
+	end
+	return nil
+end
+
 function Region.build(world: Instance)
 	local folder = Builder.model("Region", world)
+	local cosme = Region.cosmeSite()
 	for _, town in Region.Towns do
 		local c = town.Center
 		local model = Builder.model(town.Name, folder)
@@ -439,16 +467,14 @@ function Region.build(world: Instance)
 					Z0 = c.Z + CELLS[j][1],
 					Z1 = c.Z + CELLS[j][2],
 				}
-				Region.groundSlab(model, rect)
-				-- Casas junto a las casas familiares (misma fila): ahí vive Cosme, el vecino inventor,
-				-- con su garaje mirando a la calle que las separa
-				local west, east = town.Plan[j][i - 1], town.Plan[j][i + 1]
-				local cosmeGarage = if cell.Kind ~= "Houses" then nil
-					elseif east and east.Kind == "FamilyHomes" then "E"
-					elseif west and west.Kind == "FamilyHomes" then "W"
-					else nil
+				-- La manzana de Cosme, el vecino inventor: su casa entera (trae su propio suelo, con los
+				-- huecos de las escaleras del sótano)
+				local isCosme = cosme ~= nil and cosme.Town == town.Name and cosme.Cell[1] == i and cosme.Cell[2] == j
+				if not isCosme then
+					Region.groundSlab(model, rect)
+				end
 				Blocks.fill(model, rect, cell.Kind, {
-					CosmeGarage = cosmeGarage,
+					CosmeHouse = if isCosme then cosme else nil,
 					Side = cell.Side,
 					Sides = roadSides(i, j),
 					TownName = town.Name,

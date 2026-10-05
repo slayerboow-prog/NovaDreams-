@@ -15,6 +15,9 @@
         "MapFilters": {
           "$className": "RemoteEvent"
         },
+        "CosmeHouse": {
+          "$className": "RemoteEvent"
+        },
         "Vandal": {
           "$className": "RemoteEvent"
         },
