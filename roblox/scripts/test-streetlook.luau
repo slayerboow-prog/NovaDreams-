@@ -542,7 +542,7 @@ do
 			local kind = if item.Name == "TapaAlcantarilla" then "Manhole" else "Drain"
 			counts[kind] = (counts[kind] or 0) + 1
 			local dec = item:FindFirstChildWhichIsA("Decal")
-			if not dec or StreetLook.decalKind(dec.Texture) ~= kind or dec.Face ~= Enum.NormalId.Top or item.CanCollide or item.CanQuery or not item:HasTag("CityDetail") then
+			if not dec or StreetLook.decalKind(dec.Texture) ~= kind or dec.Face ~= Enum.NormalId.Top or item.CanCollide or item.CanQuery or not item:HasTag("PropDetail") then
 				okDecals = false
 			end
 			if StreetLook.inCrossing(item.CFrame.Position, crossings, 0) then
@@ -595,7 +595,8 @@ do
 	local a, b = um:find("pcall(dress", 1, true), um:find("UserMaterials.tint(workspace", 1, true)
 	check(a and b and a < b, "UserMaterials llama a las calles con pcall antes de aclarar")
 	local detail = fs.readFile("src/client/Controllers/MaterialDetail.luau")
-	check(detail:find('StreetSign = "CityDetail"', 1, true) and detail:find("CanCollide = not hide", 1, true) and detail:find('IsA("Decal")', 1, true), "MaterialDetail esconde las señales y las tapas en Bajo (también sus imágenes y el choque del poste)")
+	local graphicsSrc = fs.readFile("src/shared/Graphics.luau")
+	check(graphicsSrc:find('StreetSign = "PropDetail"', 1, true) and detail:find("CanCollide = not hide", 1, true) and detail:find('IsA("Decal")', 1, true), "señales y tapas: baratas, se ven en todos los niveles (si un nivel las escondiera, también sus imágenes y el choque del poste)")
 end
 
 print("")

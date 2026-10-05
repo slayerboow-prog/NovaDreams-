@@ -144,7 +144,7 @@ do
 	local medium = graphics:match("Medium = {(.-)\n\t}")
 	local high = graphics:match("High = {(.-)\n\t}")
 	check(low and low:find("CityDetail = false", 1, true) and medium and medium:find("CityDetail = true", 1, true) and high and high:find("CityDetail = true", 1, true), "Graphics: CityDetail apagado en Bajo y encendido en Medio y Alto")
-	check(detail:find('CityDetail = "CityDetail"', 1, true) and detail:find("GetInstanceAddedSignal(tag)", 1, true) and detail:find("LocalTransparencyModifier", 1, true), "MaterialDetail esconde las piezas CityDetail (también las que llegan después)")
+	check(graphics:find('CityDetail = "CityDetail"', 1, true) and detail:find("Graphics.DetailTags", 1, true) and detail:find("GetInstanceAddedSignal(tag)", 1, true) and detail:find("LocalTransparencyModifier", 1, true), "MaterialDetail esconde las piezas CityDetail (también las que llegan después)")
 end
 
 ---------------------------------------------------------------------

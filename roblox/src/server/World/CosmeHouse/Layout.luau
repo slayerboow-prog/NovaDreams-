@@ -144,7 +144,7 @@ Layout.Rooms = {
 	{ Id = "Observatorio", Name = "Cúpula de observación", Level = "A", X0 = -5, X1 = 21, Z0 = -14, Z1 = 12, MinProps = 40, Light = true, Plan = 19 },
 	{ Id = "Azotea", Name = "Terraza / zona chill", Level = "A", X0 = -22, X1 = -5.5, Z0 = -20, Z1 = 10, MinProps = 25, Plan = 20 },
 	{ Id = "PanelesSolares", Name = "Paneles solares", Level = "A", X0 = 21.5, X1 = 40, Z0 = -20, Z1 = 24, MinProps = 20, Plan = 16 },
-	{ Id = "TorreExperimentos", Name = "Torre de experimentos y antena", Level = "A", X0 = -22, X1 = 0, Z0 = 12.5, Z1 = 24, MinProps = 15, Plan = 17 },
+	{ Id = "TorreExperimentos", Name = "Torre de experimentos y antena", Level = "A", X0 = -22, X1 = 0, Z0 = 10.5, Z1 = 24, MinProps = 15, Plan = 17 },
 	-- Sótano
 	{ Id = "PasilloSotano", Name = "Pasillo del sótano", Level = "B", X0 = -8, X1 = 16, Z0 = -32, Z1 = 8.5, MinProps = 15, Light = true },
 	{ Id = "Portales", Name = "Portal / Máquina de portales", Level = "B", X0 = 16, X1 = 44, Z0 = -32, Z1 = 8, MinProps = 60, Light = true, Plan = 13 },
@@ -186,6 +186,7 @@ local P: { [string]: { number } } = {
 	Calle = { -3, 0, -47 },
 	Porche = { -3, 0.5, -35.5 },
 	Entrada = { -3, 1, -29 },
+	AceraFrente = { -33, 0, -47 },
 	Acera = { -33, 0, -40 },
 	-- Planta baja
 	Vestibulo = { -3, 1, -24 },
@@ -205,8 +206,8 @@ local P: { [string]: { number } } = {
 	PuertaAseo = { 16, 1, 17 },
 	Aseo = { 10, 1, 17 },
 	PuertaTerraza = { 28, 1, 24 },
-	Terraza = { 28, 1, 27.5 },
-	TerrazaLab = { -4, 1, 27.5 },
+	Terraza = { 28, 1, 29.5 },
+	TerrazaLab = { -4, 1, 29.5 },
 	JardinTrasero = { 20, 0, 40 },
 	JardinLateral = { -34, 0, 24 },
 	PuertaLab = { -9, 1, 4 },
@@ -259,14 +260,14 @@ local P: { [string]: { number } } = {
 	TerrazaDerecha = { -30, 14, -27 },
 	TerrazaLateral = { -30, 14, -12 },
 	-- Tejado
-	Cupula = { -1, 27, -10 },
+	Cupula = { 0, 27, -9 },
 	Observatorio = { -1, 27, 1 },
 	CupulaPuerta = { -5, 27, -1 },
 	Azotea = { -12, 27, -4 },
 	AzoteaMesa = { -12, 27, -12 },
 	AzoteaDelante = { -2, 27, -17.5 },
 	PanelesSolares = { 30, 27, -17.5 },
-	AzoteaTorre = { -12, 27, 9 },
+	AzoteaTorre = { -12, 27, 11 },
 	-- Sótano
 	PasilloSotano = { 4, -14, -20 },
 	PuertaPortales = { 16, -14, -22 },
@@ -291,7 +292,7 @@ Layout.Points = P
 
 local E = {
 	-- Calle, porche y planta baja
-	{ "Calle", "Porche" }, { "Porche", "Entrada" }, { "Entrada", "Vestibulo" }, { "Calle", "Acera" }, { "Acera", "Garaje" },
+	{ "Calle", "Porche" }, { "Porche", "Entrada" }, { "Entrada", "Vestibulo" }, { "Calle", "AceraFrente" }, { "AceraFrente", "Acera" }, { "Acera", "Garaje" },
 	{ "Vestibulo", "PuertaDespacho" }, { "PuertaDespacho", "Despacho" },
 	{ "Vestibulo", "SalonPaso" }, { "SalonPaso", "Salon" }, { "Salon", "SalonFondo" }, { "SalonFondo", "SalonSofa" },
 	{ "Vestibulo", "ComedorPaso" }, { "ComedorPaso", "Comedor" }, { "Comedor", "PieEscalera" }, { "PieEscalera", "RellanoBaja" },

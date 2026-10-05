@@ -2,6 +2,18 @@
 
 Una sección por tema. Solo se añade (no se borra lo de otros temas).
 
+**Carga (v90).** Todos los módulos descargan con el mismo cargador, `World/AssetLoader.download`:
+primero `AssetService:LoadAssetAsync` y, si falla, `InsertService:LoadAsset`; si fallan los dos, 3
+reintentos con espera de 2, 4 y 8 s (también con «not authorized», que en un servidor de verdad sale
+cuando todo pide a la vez: `docs/diagnostico-v89.md`), y como mucho 5 descargas a la vez en todo el
+servidor. Prueba: `lune run scripts/test-assetloader.luau`.
+
+**Nivel gráfico (v90).** Bajo ya no esconde lo nuevo y barato (objetos de malla de la calle, naturaleza,
+muebles, armas puestas, señales, láminas, bronce: etiquetas `PropDetail`, `PropMesh`, `PropShell`,
+`DecorProp`, `StreetSign`, `TextureDetail`). Solo esconde lo pesado: skyline (`CityDetail`), edificios 3D,
+estadio e instituto (`BuildingMesh`) y el detalle hecho por código (`CityDetail`, `LeafDetail`). La tabla
+está en `shared/Graphics.DetailTags`.
+
 ## Naturaleza y paisaje (World/NatureAssets + World/MeshLibrary)
 
 Se carga al arrancar el servidor; de cada pack solo se copian MeshPart + SurfaceAppearance (fuera scripts,
@@ -16,7 +28,7 @@ sola pasada (nada se planta dos veces). Prueba: `lune run scripts/test-nature-as
 | 16879341926 | Rocas con musgo | Rocas grandes en laderas, orillas del río y de los lagos (90 como mucho, chocan). |
 | 13388285234 | Terrain Asset Pack | Solo las 4 «Palm Tree» (palmeras). Lo demás no (recopilado de otros, mallas de Half-Life 2). |
 | 13877830677 | Landscape Pack | Medium Moss Boulder (rocas) y Rhododendron (arbustos). El resto pesa demasiado. |
-| 9262569938 | 5 piedras pequeñas | Grupos de piedrecitas en el césped de los parques (360 como mucho, LeafDetail: el nivel Bajo las esconde). |
+| 9262569938 | 5 piedras pequeñas | Grupos de piedrecitas en el césped de los parques (360 como mucho, PropDetail: se ven en todos los niveles gráficos). |
 | 8919681750 | Velvet's Nature Pack | Robles, arce y olmo en parques; abetos Douglas, píceas y pino ponderosa en el monte (60 copias c/u: pesados). |
 | 114397068371248 | Foliage Pack con palmeras | **No** (virus o malla de otro juego). Reemplazado por 10562894034 (palmera limpia) y 9501994254 (palmeras tropicales PBR). |
 | 72475149726020 | Palmeras tropicales | **No** (virus o malla de otro juego). Reemplazado por 9501994254 (palmeras tropicales PBR). |
@@ -67,7 +79,7 @@ Se cargan al arrancar el servidor y se copian **limpios**: solo piezas con su ma
 Texture; fuera scripts, sonidos, luces, ProximityPrompt, constraints, Decal, SurfaceGui, valores,
 atributos y etiquetas (así no queda nada de los virus de la 4ª tanda aunque el asset los traiga). Sin
 marcas ni nombres de otros juegos; nombres en español; anclado y a talla real. Lo añadido lleva la
-etiqueta `DecorProp` (el nivel Bajo lo esconde); lo que sustituye a una pieza hecha por código esconde
+etiqueta `DecorProp` (se ve en todos los niveles gráficos, también en Bajo); lo que sustituye a una pieza hecha por código esconde
 la de antes (`PropShell`), que sigue chocando y usándose igual. Prueba: `scripts/test-interiorprops.luau`.
 
 | id | Qué es | Dónde va |
@@ -111,7 +123,7 @@ pieza donde el material no encaja. Si un pack no carga (o da error), se usan los
 | 9408271791 | PBR_Textures (20 MaterialVariant) | Respaldo de 13 materiales globales (ladrillo, hormigón, adoquín, pizarra, mármol, madera, tablas, arena, chapa estriada) y **primero en la grava (Pebble)**. Es respaldo de fachadas (ladrillo, zócalo, hormigón, madera, chapa de nave), interiores (parqué, mármol, moqueta, hormigón, pizarra, encimera de granito) y plazas de adoquín. No se usa como primero porque tiene 10 votos negativos y nadie lo ha visto en el juego. «Glass_PBR» va sobre Ice y no se usa. |
 | 12715816700 | ALL MATERIALS | No está en los docs: se busca por palabras y BaseMaterial («brick», «concrete», «marble», «carpet», «roof», «stucco», «sand»…). Respaldo de los globales, de las fachadas y de los interiores. |
 | 9268236860 | Realistic sand texture | **La arena de la playa y del terreno**: es el primer candidato para Sand si su variant viene sobre Sand. Si viene sobre otro material, se pone pieza a pieza en la arena de la playa (Kit/Civic, con la física de la arena). Si solo trae una textura, va como lámina sobre la playa. |
-| 12152263865 | Bronze PBR (SurfaceAppearance) | Placas de los cuadros del museo (bronce limpio) y escultura de la plaza del museo (bronce de estatua). Encima va un bloque de bronce de la misma talla. La pieza de antes sigue para chocar y solo se ve en gráficos Bajo. |
+| 12152263865 | Bronze PBR (SurfaceAppearance) | Placas de los cuadros del museo (bronce limpio) y escultura de la plaza del museo (bronce de estatua). Encima va un bloque de bronce de la misma talla. La pieza de antes sigue para chocar, invisible (`PropShell`; el bronce, `PropMesh`, se ve en todos los niveles). |
 | 12433695725 | Texture pack (realistic) | Texturas antiguas (`Texture`). Se usan sus losetas de techo («Ceiling A–L») como lámina en los techos de placas de parte de las oficinas, tiendas, colegio y hospital. Paredes, suelos, tejados, cristal y terreno no se usan: ahí ya hay PBR, que se ve mejor. |
 | 123159368741340 | Realistic Materials Pack (51 losetas) | Texturas antiguas. Las losetas se clasifican por nombre (papel pintado, moqueta, techo o arena) y se usan como lámina. Si sus nombres no dicen nada, no se usan. |
 | 11877329379 | Realistic Texture Pack | Texturas antiguas. «Wallpaper» va como papel pintado en la mitad de las salas con papel, «Carpet» como moqueta en el 40 % de las oficinas e «Interior Roofing» como techo de placas. Ladrillo, tejas, baldosas, cristal, metal, hormigón y paisaje no se usan (ya hay PBR). |
@@ -120,7 +132,7 @@ pieza donde el material no encaja. Si un pack no carga (o da error), se usan los
 
 Las láminas (`Texture` «U_Lamina») van solo donde una textura plana se ve bien: papel pintado, moqueta y
 placas de techo. Cada sala lleva la misma lámina en todas sus piezas, siempre la misma, y el resto de
-salas se queda con su PBR. En gráficos Bajo se esconden (etiqueta TextureDetail). No se usa ninguna
+salas se queda con su PBR. Llevan la etiqueta TextureDetail (se ven en todos los niveles gráficos). No se usa ninguna
 loseta que tenga en el nombre una marca, «logo», un juego (DOORS, Bloxburg, The Mimic, SCP) o sangre.
 
 ### Packs de MaterialVariant que ya se usaban: cuántos se usan ahora
@@ -211,8 +223,8 @@ coches del pase «de LEGO»):
 No hay un sistema de armas nuevo: las armas siguen siendo las de `shared/Weapons` (WeaponService, Armerías, policía,
 Cuartel). Los packs dan **solo mallas de exposición**: sin scripts, sin sonidos, sin GUIs, sin decals de sangre o de
 marcas, con nombres genéricos (`Arma_Fusil_3`, «Pieza»). Las armas sacadas de Apex, Half-Life 2 o CoD que vienen
-mezcladas, y cuchillos, granadas y lanzacohetes, se descartan por nombre. Todo lleva la etiqueta `CityDetail` (el nivel
-gráfico Bajo lo esconde). Prueba: `lune run scripts/test-arsenal.luau`.
+mezcladas, y cuchillos, granadas y lanzacohetes, se descartan por nombre. Todo lleva la etiqueta `PropDetail` (se ve en
+todos los niveles gráficos). Prueba: `lune run scripts/test-arsenal.luau`.
 
 Las zonas de terror son **los Pliegues** de la Grieta (Cronos en «El piso 13»: «El piso 13 es un pliegue»): un
 vestíbulo lejos de la ciudad con cuatro arcos. Se llega por la misión `Rareza_Piso13` (que ahora pasa en la Planta 13;
@@ -262,8 +274,10 @@ puertas traseras de la 4ª tanda) y luego se queda solo lo que se ve (piezas, ma
 imágenes y luces solo donde hace falta). Fuera sonidos, GUIs con texto, ClickDetector, constraints,
 NumberPose, PlaneConstraint, ParticleEmitter, atributos y etiquetas; fuera cualquier pieza o imagen con
 marca real u otro juego. Nombres en español, anclado, a talla de Valmar y con topes de piezas. Lo que va
-encima de una pieza de bloques que ya había la esconde (`BuildingShell`, sigue chocando; la malla lleva
-`BuildingMesh`) y lo nuevo pequeño lleva `CityDetail`: en gráficos Bajo vuelve la ciudad de antes. Los
+encima de una pieza de bloques que ya había la esconde (`PropShell`, sigue chocando; la malla lleva
+`PropMesh`) y lo nuevo pequeño lleva `PropDetail`: se ve en todos los niveles gráficos, también en Bajo.
+Solo lo grande (estadio e instituto, `BuildingMesh` / `BuildingShell`) y el skyline (`CityDetail`) se
+esconden en Bajo. Los
 conos y vallas que salen despedidos al chocar llevan su malla soldada. Si algo no carga, no se hace.
 Prueba: `lune run scripts/test-cityassets.luau`.
 

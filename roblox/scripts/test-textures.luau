@@ -261,10 +261,10 @@ end
 
 print("Niveles gráficos")
 do
-	check(Graphics.Tiers.Low.NormalMaps == false and Graphics.Tiers.Medium.NormalMaps == true and Graphics.Tiers.High.NormalMaps == true, "Bajo sin relieve; Medio y Alto con relieve")
+	check(Graphics.Tiers.Low.NormalMaps == true and Graphics.Tiers.Medium.NormalMaps == true and Graphics.Tiers.High.NormalMaps == true, "relieve en todos los niveles (es barato; sin él, en el móvil «todo se ve igual»)")
 	local maps = Textures.maps("Ladrillo", FAKE) :: any
 	local low = Textures.mapsForTier(maps, false)
-	check(low.NormalMap == nil and low.ColorMap == maps.ColorMap and maps.NormalMap ~= nil, "en Bajo se quita solo el mapa normal")
+	check(low.NormalMap == nil and low.ColorMap == maps.ColorMap and maps.NormalMap ~= nil, "si un nivel no quiere relieve, se quita solo el mapa normal")
 	local client = fs.readFile("src/client/Controllers/MaterialDetail.luau")
 	check(client:find("NormalMapId", 1, true) and client:find("Perf.onTier", 1, true), "el cliente quita/pone el relieve al cambiar de nivel")
 end

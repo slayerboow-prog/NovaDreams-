@@ -526,23 +526,23 @@ end
 local function backGarden(ctx: Kit.Ctx, m: Instance)
 	local g = Kit.group(m, "JardinTrasero")
 	local D = Layout.Deck
-	-- En la terraza: barbacoa, tumbonas, macetas y luces
+	-- En la terraza: barbacoa y macetas; tumbonas en el césped
 	local furn = Kit.furn(ctx, g, rgb(120, 84, 56), rgb(220, 220, 210), C.Orange)
 	for _, x in { 34, 37.5 } do
 		local lounger = Kit.group(g, "Tumbona")
-		Kit.box(ctx, lounger, "Base", V(2.6, 1, 6), CF(x, 1.5, 28), C.White, M.SmoothPlastic)
-		Kit.box(ctx, lounger, "Respaldo", V(2.6, 2.6, 0.5), CF(x, 2.8, 25.4) * ANG(math.rad(-25), 0, 0), C.White, M.SmoothPlastic)
-		Furniture.usable(Furniture.seatPart(lounger, Kit.at(ctx, x, 2.2, 28)), "Sit")
+		Kit.box(ctx, lounger, "Base", V(2.6, 1, 6), CF(x, 0.5, 39), C.White, M.SmoothPlastic)
+		Kit.box(ctx, lounger, "Respaldo", V(2.6, 2.6, 0.5), CF(x, 1.8, 36.4) * ANG(math.rad(-25), 0, 0), C.White, M.SmoothPlastic)
+		Furniture.usable(Furniture.seatPart(lounger, Kit.at(ctx, x, 1.2, 39)), "Sit")
 	end
 	local bbq = Kit.group(g, "Barbacoa")
-	Kit.box(ctx, bbq, "Mueble", V(5, 3, 2.4), CF(14, 2.5, 29.6), rgb(80, 84, 92), M.Brick)
-	Kit.box(ctx, bbq, "Parrilla", V(3, 0.2, 1.8), CF(13.5, 4.1, 29.6), C.Dark, M.DiamondPlate)
-	local coals = Kit.neon(ctx, bbq, "Brasas", V(2.6, 0.1, 1.4), CF(13.5, 4.05, 29.6), C.Orange, 0.2)
+	Kit.box(ctx, bbq, "Mueble", V(5, 3, 2.4), CF(36, 2.5, 26.5), rgb(80, 84, 92), M.Brick)
+	Kit.box(ctx, bbq, "Parrilla", V(3, 0.2, 1.8), CF(35.5, 4.1, 26.5), C.Dark, M.DiamondPlate)
+	local coals = Kit.neon(ctx, bbq, "Brasas", V(2.6, 0.1, 1.4), CF(35.5, 4.05, 26.5), C.Orange, 0.2)
 	Kit.fx(coals, "Steam", 5)
-	Kit.box(ctx, bbq, "Chimenea", V(0.8, 4, 0.8), CF(15.8, 6, 30.2), C.Dark, M.Metal)
-	Props.make(ctx, bbq, "Food", CF(11.9, 4, 29.5))
-	for i = 0, 4 do
-		Props.make(ctx, g, "Plant", CF(D.X0 + 2 + i * 6, 1, D.Z1 - 1))
+	Kit.box(ctx, bbq, "Chimenea", V(0.8, 4, 0.8), CF(37.8, 6, 27.1), C.Dark, M.Metal)
+	Props.make(ctx, bbq, "Food", CF(33.9, 4, 26.4))
+	for _, x in { -20, -14, 8, 21 } do
+		Props.make(ctx, g, "Plant", CF(x, 1, 25.6))
 	end
 	-- Árboles, setos, flores, bancos y un camino de losas
 	tree(ctx, g, -40, 42, 17)
@@ -551,9 +551,9 @@ local function backGarden(ctx: Kit.Ctx, m: Instance)
 	for _, p in { { -46, 36 }, { 30, 47 }, { 47, 30 }, { 47, 20 }, { -20, 47 }, { 47, 0 }, { 47, 10 } } do
 		bush(ctx, g, p[1], p[2], 3.4)
 	end
-	flowers(ctx, g, 24, 40, 33, 37, 22)
+	flowers(ctx, g, 22, 32, 42, 47, 18)
 	flowers(ctx, g, -20, -8, 40, 46, 14)
-	Furniture.bench(furn, Kit.at(ctx, 30, 0, 42.5, 0), 5, rgb(120, 84, 56), g)
+	Furniture.bench(furn, Kit.at(ctx, 12, 0, 44, 0), 5, rgb(120, 84, 56), g)
 	for i = 0, 8 do
 		Kit.deco(ctx, g, "Losa", V(2.6, 0.06, 2), CF(-12 + i * 4, 0.03, 36 + math.sin(i) * 1.5), rgb(190, 180, 166), M.Slate)
 	end

@@ -66,6 +66,11 @@ end
 local ACT1 = { "Loco_N1_Cosme", "Saga_02_Grieta", "Saga_03_Pez", "Saga_04_Ventanilla", "Saga_05_Perdidas" }
 check(phase() == "Ninguna" and stageOf("Ninguna") == 1, "sin saga: cielo normal (etapa 1)")
 check(phase({ Prologo_Sueno = {} }) == "Sueno" and P.Sueno.Mode == "Dream", "prólogo: la grieta del sueño (encima de la isla)")
+-- Prólogo «atascado» (el HUD dice «La grieta en el cielo» pero el prólogo sigue activo): no es el sueño
+check(phase({ Prologo_Sueno = {}, Saga_02_Grieta = {} }, { Loco_N1_Cosme = 1 }) == "Crece" and Rift.stuckPrologue({ Active = { Prologo_Sueno = {} }, Completed = { Saga_01_Rasguno = 1 } }), "prólogo activo con misiones de después hechas: se hace como si no estuviera (Crece, no Sueno)")
+check(not Rift.stuckPrologue({ Active = { Prologo_Sueno = {} }, Completed = {} }) and not Rift.stuckPrologue({ Active = {}, Completed = { Saga_02_Grieta = 1 } }), "un prólogo de verdad (sin nada después) sigue siendo el sueño")
+local lifeSrc = fs.readFile("src/server/Services/LifeStoryService.luau")
+check(lifeSrc:find("SkyRift.stuckPrologue(story)", 1, true) and lifeSrc:find("warn(", 1, true), "el servidor apunta en el registro el prólogo atascado")
 check(phase({ Loco_N1_Cosme = {} }) == "Ninguna", "mientras conoces a Cosme aún no está (sale al final)")
 check(phase({}, done("Loco_N1_Cosme"), { GrietaVista = true }) == "Rasguno" and stageOf("Rasguno") == 2, "tras conocer a Cosme: la primera anomalía (etapa 2)")
 check(phase({ Saga_02_Grieta = {} }, done("Loco_N1_Cosme")) == "Crece" and stageOf("Crece") == 3, "«La grieta en el cielo»: la grieta crece (etapa 3)")
@@ -472,6 +477,89 @@ check(Ctl.debugState().Stage == 1, "«La de mi historia» vuelve a la tuya (aqu�
 
 -- Nivel Bajo
 tier = "Low"
+---------------------------------------------------------------------
+print("Se ve sin buscarla: delante de la cámara y aviso «¡Mira al cielo!»")
+---------------------------------------------------------------------
+-- Cono de visión de un móvil en horizontal (FieldOfView 70° en vertical, pantalla 16:9)
+local FOV_V = math.rad(70)
+local FOV_H = 2 * math.atan(math.tan(FOV_V / 2) * 16 / 9)
+local function inView(cf: any, point: any): (boolean, number, number)
+	local rel = cf:PointToObjectSpace(point)
+	if rel.Z >= 0 then
+		return false, 0, 0
+	end
+	local h = math.atan(math.abs(rel.X) / -rel.Z)
+	local v = math.atan(rel.Y / -rel.Z)
+	return h <= FOV_H / 2 and math.abs(v) <= FOV_V / 2, math.deg(h), math.deg(v)
+end
+check(Rift.Placement.Sky.Elevation >= 22 and Rift.Placement.Sky.Elevation <= 32, ("a %d° sobre el horizonte: encima de los edificios y dentro de la pantalla del móvil"):format(Rift.Placement.Sky.Elevation))
+local ex, ey, ez = Rift.skyDirection(Rift.yawOf(1, 0))
+check(ex > 0.8 and math.abs(ez) < 1e-6 and math.abs(math.deg(math.asin(ey)) - Rift.Placement.Sky.Elevation) < 0.01, "la dirección sigue el giro de la cámara (mirando a +X, la grieta a +X)")
+
+-- Un jugador que mira al ESTE (no al norte, donde estaba siempre)
+local playerGui = Instance.new("Folder")
+playerGui.Name = "PlayerGui"
+local lighting = L.services.Lighting
+lighting.ClockTime = 14
+Ctl = fresh()
+localPlayer.FindFirstChildOfClass = function(_, className)
+	return if className == "PlayerGui" then playerGui else nil
+end
+local east = roblox.CFrame.lookAt(roblox.Vector3.new(0, 20, 0), roblox.Vector3.new(100, 20, 0))
+camera.CFrame = east
+setPhase("Crece")
+run(2)
+local hintGui = playerGui:FindFirstChild("AvisoGrieta") -- (dura unos segundos: se mira ya)
+local hintTextObj = hintGui and hintGui:FindFirstChild("Texto")
+local hintText = if hintTextObj then hintTextObj.Text else ""
+local hintArrowOk = hintGui and hintGui:FindFirstChild("Flecha") ~= nil
+run(8)
+part = ws:FindFirstChild("CieloGrieta") and ws.CieloGrieta:FindFirstChild("Grieta")
+st = Ctl.debugState()
+local seen, hdeg, vdeg = false, 0, 0
+if part then
+	seen, hdeg, vdeg = inView(east, part.CFrame.Position)
+end
+check(part and seen and vdeg > 15, ("«Crece» con la cámara mirando al este: la grieta sale en pantalla, por encima de los edificios (%.0f° a un lado, %.0f° arriba)"):format(hdeg, vdeg))
+-- Con la cámara un poco hacia abajo (lo normal en el móvil), aún se ve su parte de abajo
+local down = east * roblox.CFrame.Angles(math.rad(-10), 0, 0)
+local lowEdge = if part then part.CFrame.Position - roblox.Vector3.new(0, Rift.stage(3).Width / Rift.Aspect * 0.3, 0) else roblox.Vector3.zero
+check(part and (inView(down, lowEdge)), "con la cámara 10° hacia abajo, se sigue viendo")
+-- Luego se queda fija: girar la cámara no la mueve de su lado del cielo
+local before = part and (part.CFrame.Position - camera.CFrame.Position).Unit
+camera.CFrame = roblox.CFrame.lookAt(roblox.Vector3.new(0, 20, 0), roblox.Vector3.new(0, 20, 100))
+run(1)
+local after = part and (part.CFrame.Position - camera.CFrame.Position).Unit
+check(before and after and before:Dot(after) > 0.999, "después se queda fija en ese lado del cielo (no persigue a la cámara al girar)")
+-- Aviso «¡Mira al cielo!» (la primera vez), con su flecha
+st = Ctl.debugState()
+check(st.Hints == 1 and st.HintKind == "First", ("la primera vez con grieta en el cielo: aviso «¡Mira al cielo!» (%s avisos)"):format(tostring(st.Hints)))
+check(string.find(hintText, "Mira al cielo", 1, true) and hintArrowOk, "con el texto y una flecha hacia la grieta")
+check(playerGui:FindFirstChild("AvisoGrieta") == nil, "el aviso dura poco")
+run(20)
+check(Ctl.debugState().Hints == 1, "y no se repite")
+-- La primera noche en «Crece»: otro aviso (uno solo) y la grieta se pone delante de la cámara de ahora
+local north = roblox.CFrame.lookAt(roblox.Vector3.new(0, 20, 0), roblox.Vector3.new(0, 20, -100))
+camera.CFrame = north
+lighting.ClockTime = 22
+run(1)
+st = Ctl.debugState()
+local nightSeen = part and (inView(north, part.CFrame.Position))
+check(st.Hints == 2 and st.HintKind == "Night" and nightSeen, "la primera noche en «Crece»: otro aviso y la grieta, delante")
+run(30)
+lighting.ClockTime = 23
+run(5)
+check(Ctl.debugState().Hints == 2, "cada aviso, una sola vez")
+-- Las cuentas del aviso
+local memo = {}
+check(Rift.hintFor(memo, "Ninguna", 22) == nil and Rift.hintFor(memo, "Sueno", 22) == nil, "sin grieta en Valmar (o en el sueño): sin aviso")
+check(Rift.hintFor(memo, "Rasguno", 12) == "First" and Rift.hintFor(memo, "Rasguno", 22) == nil and Rift.hintFor(memo, "Crece", 12) == nil and Rift.hintFor(memo, "Crece", 23) == "Night" and Rift.hintFor(memo, "Grande", 2) == nil, "Rasguño: el primero; la primera noche en Crece o más: el de la noche; luego, nada")
+local memo2 = {}
+check(Rift.hintFor(memo2, "Crece", 22) == "First" and Rift.hintFor(memo2, "Crece", 22) == nil, "si entra ya de noche en «Crece», un solo aviso")
+localPlayer.FindFirstChildOfClass = nil
+lighting.ClockTime = 14
+camera.CFrame = roblox.CFrame.new(0, 20, 0)
+
 Ctl = fresh()
 setPhase("Abierta")
 run(14)
