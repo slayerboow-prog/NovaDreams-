@@ -39,8 +39,6 @@ UserArsenal.WeaponPacks = {
 	{ Id = 100792423689137, Name = "PackArmas2" }, -- 4 Tool de bloques (2010)
 	{ Id = 115493232746766, Name = "PackArmas3" }, -- ~80 modelos (algunos de otros juegos: fuera)
 	{ Id = 78033796632460, Name = "PackArmas4" }, -- 1 malla de fusil
-	{ Id = 14800241387, Name = "PackArmas5" }, -- ~40 mallas
-	{ Id = 1076538396, Name = "PackArmas6" }, -- ~60 mallas
 	{ Id = 546753609, Name = "KitP90" }, -- solo GUI y scripts: suele no dar ninguna malla
 	{ Id = 9700798278, Name = "PackArmas7" }, -- 5 fusiles (sus 70 sonidos fuera)
 }

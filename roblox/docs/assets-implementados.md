@@ -199,8 +199,8 @@ hacen daño: si te alcanzan, te devuelven al vestíbulo.
 | 100792423689137 | Pack de 4 armas de bloques | Igual. |
 | 115493232746766 | Pack de ~80 armas | Igual; las de Apex/HL2/CoD fuera por nombre; el escudo antidisturbios, al armero de la comisaría. |
 | 78033796632460 | Malla de fusil | Igual (su virus era un script/valor: borrados). |
-| 14800241387 | ~40 mallas de armas | Igual. ⚠ Mallas sacadas de *Bad Business* según el doc: si Sebastián prefiere no usarlas, borrar su línea de `UserArsenal.WeaponPacks`. |
-| 1076538396 | ~60 mallas de armas | Igual. ⚠ Mallas de *Counter-Strike* según el doc: misma nota. |
+| 14800241387 | ~40 mallas de armas | **No**: mallas sacadas de otro juego (*Bad Business*). |
+| 1076538396 | ~60 mallas de armas | **No**: mallas sacadas de otro juego (*Counter-Strike*). |
 | 546753609 | Kit P90 | Se carga, pero solo trae GUI y scripts: no aporta ninguna malla (se borra todo). |
 | 9700798278 | 5 fusiles | Armerías, cuartel. Sus 70 sonidos (de Tarkov) fuera. |
 | 480927087 | Mira de punto rojo | Armerías: dos en el panel de exposición y una montada sobre el fusil de arriba del armero. |
