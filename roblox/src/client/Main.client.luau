@@ -139,7 +139,7 @@ task.spawn(Guide.init, {
 	bagOpen = InventoryUI.isOpen,
 	dialogOpen = LifeStory.hasDialog,
 	windowOpen = function()
-		return HelpUI.isOpen() or DialogueUI.isOpen() or StoryJournal.isOpen() -- (el pase: Dialog.registerBig)
+		return HelpUI.isOpen() or StoryJournal.isOpen() -- (el pase: Dialog.registerBig; las conversaciones: InDialogue)
 	end,
 })
 -- Abrir el ❓ y usar «Llévame» también son pasos del tutorial
