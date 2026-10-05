@@ -18,13 +18,19 @@
 --     (DivingService, piezas SwimFish) pasan a verse con su malla.
 --   * Lo pequeño lleva la etiqueta LeafDetail (el nivel gráfico Bajo lo esconde, Controllers/
 --     MaterialDetail). Las rocas grandes chocan y no se esconden (son parte del paisaje).
+--   * Packs con puerta trasera (docs/assets-usuario-4.md, familias 1, 3 y 5): lo que devuelve
+--     LoadAssetAsync/LoadAsset no tiene padre y sus scripts no pueden correr así. Por eso se borran
+--     TODOS los LuaSourceContainer nada más descargar, ANTES de meter nada en ningún sitio, y luego
+--     solo se copian las mallas. Lo cargado no se mete nunca en el juego (se destruye).
+--   * Rincón japonés en algunos parques: cerezo en flor con dos faroles de piedra. Hogueras junto a
+--     las mesas de pícnic del parque natural (con fuego y luz nuestros).
 --   * Si algo no carga, el juego sigue con lo procedural, sin errores.
 
 local MeshLibrary = require(script.Parent.MeshLibrary)
 
 local NatureAssets = {}
 
-type Take = { Kind: string, Match: { string }, MaxUses: number? }
+type Take = { Kind: string, Match: { string }, MaxUses: number?, Whole: boolean?, KeepTextures: boolean? }
 type Pack = { Id: number, Name: string, Take: { Take } }
 
 -- Qué se coge de cada pack (nombres tal cual vienen; se comparan en minúsculas)
@@ -63,6 +69,35 @@ NatureAssets.Packs = {
 		{ Kind = "Park", Match = { "^oak%-0%d%-0lod", "^mapletree%-01", "^elmtree%-01" }, MaxUses = 60 },
 		{ Kind = "Conifer", Match = { "^douglasfir%-0%d", "^oldsprucetree%-0%d", "^ponderosapine01" }, MaxUses = 60 },
 	} },
+	-- Packs con puerta trasera: scripts fuera antes de nada, solo mallas (ver arriba)
+	-- Foliage Pack (Ixcraz8397): 4 palmeras, sauce, arbustos y helechos
+	{ Id = 114397068371248, Name = "Follaje", Take = {
+		{ Kind = "Palm", Match = { "^palm tree$" }, MaxUses = 250 },
+		{ Kind = "Park", Match = { "^willow tree$" }, MaxUses = 40 },
+		{ Kind = "Bush", Match = { "^bush", "^fern" }, MaxUses = 250 },
+	} },
+	-- Trees / Foliage Tropical (Ixcraz8397): palmeras (malla con Texture antigua) y arbustos. Palm2 no
+	-- (su tronco es una UnionOperation, no una malla)
+	{ Id = 72475149726020, Name = "Tropical", Take = {
+		{ Kind = "Palm", Match = { "^palm tree$" }, MaxUses = 250, KeepTextures = true },
+		{ Kind = "Bush", Match = { "^bush1$", "^bush2$" }, MaxUses = 250, KeepTextures = true },
+	} },
+	-- Cherry Blossom Tree: el cerezo del rincón japonés (sin pétalos ni su animación de otro creador)
+	{ Id = 109211499509239, Name = "Sakura", Take = {
+		{ Kind = "Sakura", Match = { "cherry", "blossom", "sakura" }, Whole = true },
+	} },
+	-- Realistic tree (Ixcraz8397): haya de parque
+	{ Id = 126164979250031, Name = "Haya", Take = {
+		{ Kind = "Park", Match = { "beechwood", "tree" }, MaxUses = 150, Whole = true },
+	} },
+	-- Realistic Campfire: piedras y palos (el fuego y la luz los ponemos nosotros)
+	{ Id = 116641210728889, Name = "Hoguera", Take = {
+		{ Kind = "Campfire", Match = { "campfire", "fire" }, Whole = true },
+	} },
+	-- japanese shrine lantern: farol de piedra del rincón japonés
+	{ Id = 78188971759943, Name = "Farol", Take = {
+		{ Kind = "Lantern", Match = { "lantern", "toro" }, Whole = true },
+	} },
 	-- Realistic Pack (xXCHARLIE_BOlXx): solo los tiburones (las personas, el perro y el conejo no)
 	{ Id = 8649374407, Name = "Tiburones", Take = {
 		{ Kind = "Shark", Match = { "shark", "mako", "thresher", "hammerhead", "white tip" } },
@@ -73,16 +108,9 @@ NatureAssets.Packs = {
 	} },
 } :: { Pack }
 
--- Nunca se cargan (docs/assets-usuario-4.md y -5.md): puertas traseras (familias 1, 3 y 5) o mallas
--- sacadas de otro juego
+-- Nunca se cargan: mallas sacadas de otro juego (docs/assets-usuario-5.md)
 NatureAssets.Blocked = {
-	[114397068371248] = "puerta trasera (familia 1, activa HttpEnabled)",
-	[72475149726020] = "puerta trasera (familia 1)",
-	[109211499509239] = "puerta trasera (familia 1)",
-	[126164979250031] = "puerta trasera (familia 1, activa HttpEnabled)",
-	[116641210728889] = "puerta trasera (familia 5)",
-	[78188971759943] = "puerta trasera (familias 3 y 5)",
-	[11330013072] = "malla sacada de Splatoon 3",
+	[11330013072] = "Moai: malla sacada de Splatoon 3",
 }
 
 -- Nombres (en español) y topes por tipo
@@ -95,7 +123,12 @@ NatureAssets.Kinds = {
 	Pebble = { Name = "Piedrecita", MaxParts = 1, MaxSize = 6 },
 	Shark = { Name = "Tiburon", MaxParts = 4, MaxSize = 30 },
 	Fish = { Name = "Pez", MaxParts = 4, MaxSize = 26 },
+	Sakura = { Name = "Cerezo", MaxParts = 10, Tree = true },
+	Lantern = { Name = "FarolPiedra", MaxParts = 4, MaxSize = 20 },
+	Campfire = { Name = "Hoguera", MaxParts = 50, MaxSize = 15 },
 }
+NatureAssets.JapaneseCorners = 4 -- parques con rincón japonés
+NatureAssets.Campfires = 8
 NatureAssets.PerKind = 6 -- plantillas como mucho de un tipo en un mismo pack
 NatureAssets.MaxBoulders = 90
 NatureAssets.MaxPebbles = 360
@@ -152,11 +185,21 @@ local function has(name: string, words: { string }): boolean
 	return false
 end
 
--- Copia limpia de una MeshPart: solo con su SurfaceAppearance; sin atributos ni etiquetas
-local function cleanCopy(m: BasePart): BasePart
+-- Copia limpia de una MeshPart: solo con su SurfaceAppearance (o sus Texture de corteza y hojas, si
+-- se pide); sin atributos ni etiquetas, y sin nada colgando de esos hijos
+local function cleanCopy(m: BasePart, keepTextures: boolean?): BasePart
 	local clone = m:Clone()
 	for _, child in clone:GetChildren() do
-		if not child:IsA("SurfaceAppearance") then
+		if child:IsA("SurfaceAppearance") or (keepTextures and child.ClassName == "Texture") then
+			for _, sub in child:GetChildren() do
+				sub:Destroy()
+			end
+			pcall(function()
+				for key in child:GetAttributes() do
+					child:SetAttribute(key, nil)
+				end
+			end)
+		else
 			child:Destroy()
 		end
 	end
@@ -173,7 +216,7 @@ local function cleanCopy(m: BasePart): BasePart
 end
 
 -- Plantilla de un objeto del pack (Model o MeshPart). nil si no vale (sin mallas, demasiadas, enorme)
-function NatureAssets.template(source: Instance, kind: string, index: number, maxUses: number?): Template?
+function NatureAssets.template(source: Instance, kind: string, index: number, maxUses: number?, keepTextures: boolean?): Template?
 	local spec = NatureAssets.Kinds[kind]
 	local meshes = meshesOf(source)
 	if not spec or #meshes == 0 or #meshes > spec.MaxParts then
@@ -191,7 +234,7 @@ function NatureAssets.template(source: Instance, kind: string, index: number, ma
 	model.Name = spec.Name .. "_" .. index
 	local copies = {}
 	for _, m in meshes do
-		local c = cleanCopy(m)
+		local c = cleanCopy(m, keepTextures)
 		c.Parent = model
 		table.insert(copies, c)
 	end
@@ -287,11 +330,15 @@ function NatureAssets.prepare(loaded: { [number]: Instance }): Library
 			NatureAssets.stripScripts(root)
 			for _, take in pack.Take do
 				local n = 0
-				for _, source in matches(root, take.Match) do
+				local sources = matches(root, take.Match)
+				if #sources == 0 and take.Whole then
+					sources = { root } -- (nombre desconocido: el pack entero es el objeto)
+				end
+				for _, source in sources do
 					if n >= NatureAssets.PerKind then
 						break
 					end
-					local t = NatureAssets.template(source, take.Kind, #library[take.Kind] + 1, take.MaxUses)
+					local t = NatureAssets.template(source, take.Kind, #library[take.Kind] + 1, take.MaxUses, take.KeepTextures)
 					if t then
 						table.insert(library[take.Kind], t)
 						n += 1
@@ -321,6 +368,9 @@ local function download(id: number): Instance?
 	return nil
 end
 
+-- Registro de la limpieza (para las pruebas): { Id, Stripped (scripts borrados), Unparented }
+NatureAssets.Log = {} :: { { Id: number, Stripped: number, Unparented: boolean } }
+
 local cached: Library? = nil
 local loading = false
 
@@ -342,7 +392,18 @@ function NatureAssets.load(fetch: ((number) -> Instance?)?): Library
 		if not NatureAssets.Blocked[pack.Id] then
 			local ok, asset = pcall(get, pack.Id)
 			if ok and asset then
-				loaded[pack.Id] = asset
+				-- LO PRIMERO: fuera todos los scripts, con lo cargado aún sin padre (así no pueden
+				-- correr). Nada de este pack se mete en ningún sitio antes de esto.
+				local stripped = NatureAssets.stripScripts(asset)
+				table.insert(NatureAssets.Log, { Id = pack.Id, Stripped = stripped, Unparented = asset.Parent == nil })
+				if asset.Parent == nil then
+					loaded[pack.Id] = asset
+				else
+					warn(("[NatureAssets] %d llegó con padre: no se usa"):format(pack.Id))
+					pcall(function()
+						asset:Destroy()
+					end)
+				end
 			end
 		end
 	end
@@ -364,6 +425,7 @@ end
 
 function NatureAssets.reset()
 	cached, loading = nil, false
+	NatureAssets.Log = {}
 end
 
 -- MeshLibrary: añade a su biblioteca los árboles de parque (Tree), los abetos (Conifer), las palmeras
