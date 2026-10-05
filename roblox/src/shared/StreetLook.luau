@@ -54,7 +54,7 @@ end
 -- Material de la pieza -> materiales a los que se puede pasar sin romper nada (sonido parecido, la
 -- física se deja como estaba y ninguna prueba ni sistema mira el material de la calzada o la acera).
 StreetLook.Convertible = {
-	Pavement = { Concrete = true }, -- las «Pavement» de Tyler son aceras de exterior sobre Concrete
+	Pavement = { Concrete = true, Cobblestone = true }, -- las «Pavement» de Tyler son aceras de exterior sobre Concrete; adoquín de plaza
 	Asphalt = { Cobblestone = true }, -- adoquín del casco antiguo
 } :: { [string]: { [string]: boolean } }
 
@@ -138,6 +138,31 @@ StreetLook.Looks = {
 		Candidates = { c("RPacks", "Concrete Tile 1", "Concrete"), c("Mega", "Concrete Tile 1", "Concrete"), c("Real", "Concrete", "Concrete") },
 		Whiten = 0.4,
 		Why = "losas de hormigón de las afueras (Concrete Tile 1)",
+	},
+	-- Variedad (StreetLook.Split): parte de las plazas y de las aceras llevan otro suelo, fijo por zona
+	PlazaAdoquin = {
+		Surface = "Plaza",
+		-- Plazas de adoquín hexagonal («Hexagon Pavers», sobre Cobblestone: el suelo pasa a Cobblestone con
+		-- su física de antes). Respaldo: el camino de piedra gastada y «Cobblestone_PBR» de PBR_Textures.
+		Candidates = { c("Mega", "Hexagon Pavers", "Cobblestone"), c("Mega", "Worn Down Stone Path", "Cobblestone"), c("PBR", "Cobblestone_PBR", "Cobblestone") },
+		Whiten = 0.4,
+		Why = "adoquín hexagonal de plaza (Hexagon Pavers)",
+	},
+	AceraBarrioB = {
+		Surface = "Walk",
+		-- La otra acera de barrio: losa grande de Tyler (Pavement9) o losa de hormigón del Mega Pack
+		Candidates = { c("Tyler", "Pavement9", "Concrete"), c("Mega", "Concrete Tile 2", "Concrete") },
+		Pattern = "Regular",
+		Whiten = 0.45,
+		Why = "losa grande de acera de barrio (Pavement9 de Tyler)",
+	},
+	AceraCentroB = {
+		Surface = "Walk",
+		-- La otra acera del centro: baldosa de Tyler (Pavement6) o adoquín hexagonal
+		Candidates = { c("Tyler", "Pavement6", "Concrete"), c("Mega", "Hexagon Pavers", "Cobblestone") },
+		Pattern = "Regular",
+		Whiten = 0.45,
+		Why = "baldosa de acera del centro, segunda (Pavement6 de Tyler)",
 	},
 	Plaza = {
 		Surface = "Plaza",
@@ -238,8 +263,30 @@ export type PartInfo = {
 	Z: number,
 }
 
+-- Variedad por zona: aspecto -> otro aspecto que se lleva una parte (Share) de las celdas de Cell
+-- studs (toda una plaza o unas cuantas manzanas de acera con el mismo suelo, nunca a parches).
+StreetLook.Split = {
+	Plaza = { Alt = "PlazaAdoquin", Cell = 96, Share = 0.5, Salt = 31 },
+	AceraBarrio = { Alt = "AceraBarrioB", Cell = 360, Share = 0.4, Salt = 32 },
+	AceraCentro = { Alt = "AceraCentroB", Cell = 360, Share = 0.3, Salt = 33 },
+} :: { [string]: { Alt: string, Cell: number, Share: number, Salt: number } }
+
+function StreetLook.split(key: string?, x: number, z: number): string?
+	local rule = key and StreetLook.Split[key]
+	if not rule then
+		return key
+	end
+	local cx, cz = math.floor(x / rule.Cell), math.floor(z / rule.Cell)
+	return if StreetLook.hash(cx, cz, rule.Salt) < rule.Share then rule.Alt else key
+end
+
 -- Qué aspecto lleva una pieza (nil = no se toca)
 function StreetLook.classify(info: PartInfo, highways: { Line }?): string?
+	return StreetLook.split(StreetLook.baseClassify(info, highways), info.X, info.Z)
+end
+
+-- Lo mismo sin la variedad por zona
+function StreetLook.baseClassify(info: PartInfo, highways: { Line }?): string?
 	local surface = StreetLook.Names[info.Name]
 	if not surface or (info.Variant ~= nil and info.Variant ~= "") then
 		return nil

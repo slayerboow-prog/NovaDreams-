@@ -145,8 +145,9 @@ end
 print("Elección por tipo de calle")
 do
 	local HW = { { Axis = "X", At = 0, From = -1205, To = 1205 }, { Axis = "Z", At = 0, From = -1205, To = 1205 } }
+	-- (sin la variedad por zona, StreetLook.Split: esa se prueba aparte)
 	local function cl(name, material, container, x, z, variant)
-		return StreetLook.classify({ Name = name, Material = material, Container = container, X = x, Z = z, Variant = variant }, HW)
+		return StreetLook.baseClassify({ Name = name, Material = material, Container = container, X = x, Z = z, Variant = variant }, HW)
 	end
 	local sr, vv = CityPlan.Towns["San Roque"], CityPlan.Towns["Villaverde"]
 	check(cl("Road", "Asphalt", "MainRoads", 0, -1250) == "Avenida" and cl("Junction", "Asphalt", "MainRoads", 1250, 0) == "Avenida" and cl("Road", "Asphalt", "MainRoads", -2000, 0) == "Avenida", "Ronda, rotondas y avenidas: asfalto nuevo")
@@ -160,6 +161,30 @@ do
 	check(cl("Sidewalk", "Pavement", "Streets", sr[1], sr[2] + 20) == "AceraCasco" and cl("KerbRamp", "Pavement", "Streets", sr[1], sr[2] + 20) == "AceraCasco", "aceras y rampas del casco: losas")
 	check(cl("Sidewalk", "Pavement", "MainRoads", -3550, -1100) == "AceraCampo" and cl("Sidewalk", "Pavement", "MainRoads", -900, -2750) == "AceraCampo", "aceras del campo: hormigón")
 	check(cl("PlazaFloor", "Pavement", nil, 0, -60) == "Plaza" and cl("Plaza", "Pavement", "Distrito", 500, 500) == "Plaza", "plazas: losas de piedra")
+	-- Variedad por zona: parte de las plazas y de las aceras con otro suelo, fijo por celda
+	local seenKeys, okCell = {}, true
+	for i = 0, 39 do
+		for j = 0, 39 do
+			local x, z = i * 97 - 2000, j * 89 - 2000
+			local k = StreetLook.classify({ Name = "PlazaFloor", Material = "Pavement", X = x, Z = z }, HW)
+			seenKeys[k] = (seenKeys[k] or 0) + 1
+			local cell = StreetLook.Split.Plaza.Cell
+			local x2 = math.floor(x / cell) * cell + 1
+			local z2 = math.floor(z / cell) * cell + 1
+			if StreetLook.classify({ Name = "PlazaFloor", Material = "Pavement", X = x2, Z = z2 }, HW) ~= k then
+				okCell = false
+			end
+		end
+	end
+	check((seenKeys.Plaza or 0) > 400 and (seenKeys.PlazaAdoquin or 0) > 400, ("plazas: mitad losas de piedra (%d), mitad adoquín hexagonal (%d)"):format(seenKeys.Plaza or 0, seenKeys.PlazaAdoquin or 0))
+	check(okCell, "toda la celda de una plaza con el mismo suelo (nunca a parches)")
+	local b = 0
+	for i = 0, 29 do
+		if StreetLook.classify({ Name = "Sidewalk", Material = "Pavement", Container = "Streets", X = -700 + i * 400, Z = -1700 }, HW) == "AceraBarrioB" then
+			b += 1
+		end
+	end
+	check(StreetLook.Split.AceraBarrio.Alt == "AceraBarrioB" and StreetLook.Split.AceraCentro.Alt == "AceraCentroB" and StreetLook.canUse("Pavement", "Cobblestone"), "aceras: dos baldosas de barrio y dos de centro repartidas por zonas; la plaza puede ser de adoquín")
 	local untouched = true
 	for _, n in { "Marking", "Zebra", "Curb", "RoadKerb", "RingCurb", "IslandCurb", "AsphaltPatch", "Manhole", "Drain", "Median", "BusLaneMark", "StopLine", "TreePit" } do
 		if cl(n, "Asphalt", "Streets", 600, 600) or cl(n, "SmoothPlastic", "Streets", 600, 600) or cl(n, "Concrete", "Streets", 600, 600) then
@@ -426,7 +451,13 @@ do
 	local function variantOf(p: any): any
 		return w.service:FindFirstChild(p.MaterialVariant)
 	end
-	local function is(p: any, pack: string, name: string): boolean
+	local function is(p: any, pack: string, name: string, base: string?): boolean
+		-- (si la zona le da el otro suelo de StreetLook.Split, el primero de ese)
+		local alt = base and StreetLook.split(base, p.CFrame.Position.X, p.CFrame.Position.Z)
+		if alt and alt ~= base then
+			local first = StreetLook.Looks[alt].Candidates[1]
+			pack, name = first.Pack, first.Name
+		end
 		local v = variantOf(p)
 		return v ~= nil and v:GetAttribute("SourcePack") == pack and v:GetAttribute("SourceName") == name and v.BaseMaterial == p.Material
 	end
@@ -436,8 +467,8 @@ do
 	local phys = t.roadCasco.CustomPhysicalProperties
 	local asphalt = roblox.PhysicalProperties.new(Enum.Material.Asphalt)
 	check(phys and math.abs(phys.Friction - asphalt.Friction) < 1e-3 and math.abs(phys.Density - asphalt.Density) < 1e-3, "el adoquín guarda la física del asfalto (los coches agarran igual)")
-	check(is(t.walkCentro, "Tyler", "Pavement2") and t.walkCentro.Material == Enum.Material.Concrete and t.walkCentro.CustomPhysicalProperties ~= nil, "acera del centro: Pavement2 de Tyler (pasa a Concrete con la física de Pavement)")
-	check(is(t.walkBarrio, "Tyler", "Pavement3") and is(t.walkCasco, "Mega", "Stone Tiles") and is(t.walkCampo, "RPacks", "Concrete Tile 1") and is(t.plaza, "Mega", "Stone Tiles"), "aceras de barrio, casco y campo, y la plaza")
+	check(is(t.walkCentro, "Tyler", "Pavement2", "AceraCentro") and t.walkCentro.Material == Enum.Material.Concrete and t.walkCentro.CustomPhysicalProperties ~= nil, "acera del centro: Pavement2 de Tyler (pasa a Concrete con la física de Pavement)")
+	check(is(t.walkBarrio, "Tyler", "Pavement3", "AceraBarrio") and is(t.walkCasco, "Mega", "Stone Tiles") and is(t.walkCampo, "RPacks", "Concrete Tile 1") and is(t.plaza, "Mega", "Stone Tiles", "Plaza"), "aceras de barrio, casco y campo, y la plaza")
 	check(t.roadBarrio.Color.R > 0.6 and t.roadAv.Color.R < t.roadBarrio.Color.R and t.roadCampo.Color.R > t.roadBarrio.Color.R, "aclaradas según su aspecto: la avenida más oscura, el campo más claro")
 	check(w.service:GetAttribute("UserOverride_Asphalt") == "U_Real_Asphalt" and w.service.AsphaltName == "U_Real_Asphalt", "el asfalto global sigue siendo el del dueño")
 	local pebbled = w.service:FindFirstChild("U_Mega_PebbledAsphalt")
