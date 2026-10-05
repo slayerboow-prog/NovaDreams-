@@ -107,6 +107,13 @@ do
 		end
 	end
 	check(ok and #Choice.Packs == 6, "se leen los 6 packs del doc con todos sus variants (1, 20, 6, 524, 8, 68)")
+	local megaPack
+	for _, pack in Choice.Packs do
+		if pack.Short == "Mega" then
+			megaPack = pack
+		end
+	end
+	check(megaPack and megaPack.Id == 15221806045 and megaPack.Clean == 124901321113776, "el Mega Pack se carga de la copia limpia (124901321113776), sin los variants rotos")
 	check(doc[9408271791] and #doc[9408271791] == 19, ("PBR_Textures: 19 variants en el doc (el «Glass_PBR» va sobre Ice y no cuenta): %d"):format(if doc[9408271791] then #doc[9408271791] else -1))
 	local extra = {}
 	for _, pack in Choice.ExtraPacks do

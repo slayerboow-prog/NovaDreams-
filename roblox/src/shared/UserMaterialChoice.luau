@@ -26,14 +26,17 @@ local UserMaterialChoice = {}
 
 UserMaterialChoice.Prefix = "U_"
 
-export type Pack = { Id: number, Short: string, Title: string }
+-- Clean: copia limpia del pack subida a la cuenta del dueño (se carga primero; si falla, el original Id).
+-- Id sigue siendo el de la Tienda: es el que sale en los docs.
+export type Pack = { Id: number, Short: string, Title: string, Clean: number? }
 
 -- Packs (orden de carga). Short va en el nombre de cada variant.
 UserMaterialChoice.Packs = {
 	{ Id = 11392874817, Short = "Cesped", Title = "Césped 2k PBR" },
 	{ Id = 13277933714, Short = "Real", Title = "Realistic Materials (piedras)" },
 	{ Id = 14527172541, Short = "RealMad", Title = "Realistic Materials (madera)" },
-	{ Id = 15221806045, Short = "Mega", Title = "PBR Realistic Material Mega Pack" },
+	-- (Clean: el Mega Pack sin sus 6 variants rotos, que al cargarlo sacaban 13 errores rbxtemp:// en la consola)
+	{ Id = 15221806045, Short = "Mega", Title = "PBR Realistic Material Mega Pack", Clean = 124901321113776 },
 	{ Id = 15446413305, Short = "Gen", Title = "Realistic Materials MADE WITH MATERIAL GENERATOR" },
 	{ Id = 92927007790601, Short = "Tyler", Title = "Tylers Realistic Materials (asfaltos)" },
 } :: { Pack }
@@ -51,7 +54,8 @@ UserMaterialChoice.ExtraPacks = {
 	{ Id = 9268236860, Short = "Arena", Title = "Realistic sand texture" },
 } :: { Pack }
 
--- Variants rotos (texturas rbxtemp://, salen errores en la consola al cargar el Mega Pack): se borran
+-- Variants rotos (texturas rbxtemp://, salen errores en la consola al cargar el Mega Pack original): se
+-- borran. La copia limpia (Clean) ya no los trae; la lista queda por si se carga el original.
 UserMaterialChoice.Broken = {
 	Mega = {
 		["Circuitry"] = true,

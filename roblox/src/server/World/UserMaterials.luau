@@ -309,7 +309,14 @@ function UserMaterials.start(load: ((number) -> Instance?)?, dress: ((Instance, 
 	end
 	for _, pack in packs do
 		-- (en pcall: un pack que da error al cargar no para los demás)
-		local okLoad, asset = pcall(load or download, pack.Id)
+		-- (la copia limpia primero, si la hay: Choice.Packs[].Clean)
+		local okLoad, asset = false, nil
+		if (pack :: any).Clean then
+			okLoad, asset = pcall(load or download, (pack :: any).Clean)
+		end
+		if not (okLoad and asset) then
+			okLoad, asset = pcall(load or download, pack.Id)
+		end
 		if not okLoad then
 			warn(("[UserMaterials] %s: %s"):format(pack.Short, tostring(asset)))
 		elseif asset then
