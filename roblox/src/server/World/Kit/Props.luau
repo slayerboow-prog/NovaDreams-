@@ -188,7 +188,8 @@ local lots: { [Instance]: { Key: string, N: number } } = setmetatable({}, { __mo
 
 -- Coche aparcado decorativo. El CFrame es el centro del coche a nivel de la calzada;
 -- LookVector = morro.
-function Props.car(parent: Instance, cf: CFrame, color: Color3?, variant: string?)
+-- role: papel de la carrocería de malla («Parked» por defecto; «Policia» para la patrulla aparcada)
+function Props.car(parent: Instance, cf: CFrame, color: Color3?, variant: string?, role: string?)
 	local asset = AssetLibrary.spawn("Car", parent, cf)
 	if asset then
 		return asset
@@ -209,7 +210,11 @@ function Props.car(parent: Instance, cf: CFrame, color: Color3?, variant: string
 			end
 		end
 		lot.N += 1
-		require(script.Parent.CarBodies).dress(car, cf, { Role = "Parked", Key = key, Lot = lot.Key, Index = lot.N })
+		if role and role ~= "Parked" then
+			require(script.Parent.CarBodies).dress(car, cf, { Role = role, Key = key })
+		else
+			require(script.Parent.CarBodies).dress(car, cf, { Role = "Parked", Key = key, Lot = lot.Key, Index = lot.N })
+		end
 	end)
 	return car
 end
@@ -237,7 +242,7 @@ end
 -- Vehículos de servicio (decorativos, aparcados). kind: "Police" | "Ambulance" | "FireTruck" | "Bus"
 function Props.vehicle(parent: Instance, cf: CFrame, kind: string)
 	if kind == "Police" then
-		local car = Props.car(parent, cf, Color3.fromRGB(240, 242, 246), "Berlina")
+		local car = Props.car(parent, cf, Color3.fromRGB(240, 242, 246), "Berlina", "Policia")
 		if car and car:IsA("Model") and car.Name == "ParkedCar" then
 			Builder.decor({ Name = "Stripe", Size = Vector3.new(6.3, 0.7, 13.6), CFrame = cf * CFrame.new(0, 2.2, 0), Color = Color3.fromRGB(30, 70, 170), Parent = car })
 			Builder.decor({ Name = "LightBarRed", Size = Vector3.new(1.6, 0.5, 1), CFrame = cf * CFrame.new(-0.9, 5.6, 0.6), Color = Color3.fromRGB(230, 40, 40), Material = Enum.Material.Neon, Parent = car })

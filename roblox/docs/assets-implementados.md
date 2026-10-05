@@ -157,8 +157,30 @@ con los pasos de rueda sobre nuestras ruedas, y nuestras ruedas (que giran y vir
 rótulos de policía y taxi pasan al morro, cola, costado y techo de la malla (medidos con rayos).
 Aspecto: pintura con brillo (Reflectance 0,2, o el MaterialVariant de pintura de coche de Modern City si
 está en MaterialService) y colores de coche de verdad; cristal oscuro (Reflectance 0,3, transparencia
-0,35); molduras claras en cromo. En gráficos Bajo el tráfico usa la carrocería simple. Si no carga nada,
-todo queda como antes. Prueba: `lune run scripts/test-carbodies.luau`.
+0,35); molduras claras en cromo. Si no carga nada, todo queda como antes. Prueba:
+`lune run scripts/test-carbodies.luau`.
+
+Arreglos tras jugar la v89 en el móvil (aparcamientos de cajas, poca variedad, furgonetas invisibles y
+coches del pase «de LEGO»):
+
+- **Se encuentran las 26 carrocerías** (antes 15): los coches del importador 3D (una MeshPart con las
+  demás dentro, como casi todo el «mesh pack»), los nombres en la carpeta de fuera (el Camry) y las
+  carrocerías que se llaman como un coche de marca («Hiace_9»: se renombran igual; solo se tiran las
+  piezas pequeñas con marca, que son logos). En el «mesh pack» los que no casan por nombre se quedan con
+  los coches que sobran.
+- **Todos los aparcados llevan malla** (sin el tope de 320). Prefieren las carrocerías ligeras y en cada
+  aparcamiento o fila de la calle los 12 primeros son todos distintos (`CarBodies.chooseInLot`).
+- **Tráfico en gráficos Bajo**: también con malla, de las más ligeras (`Ambient.CarsMeshLite`).
+- **Ningún coche invisible**: una carrocería que no tapa al menos el 30 % de su silueta (solo cristales,
+  luces y molduras: los paneles estaban fuera de «Body») se busca en el coche entero o no se usa; los
+  coches con malla llegan enteros al cliente (`ModelStreamingMode` Atomic) y, si en un dispositivo la
+  malla no carga, el cliente vuelve a enseñar la caja de piezas (etiqueta `CarMeshBody`, Controllers/Traffic).
+- **Coches del pase**: malla deportiva del Semi-Realistic Car Pack (papel «Sport»: «Aurea Saeta»,
+  «Kestrel Kaze», «Toro Bravo», «Toro Furia», «Valmar Centella», «Valmar Fénix»; cuál lleva cada uno, en
+  `PremiumVehicles.MeshBodies`) con su pintura y acabado, cristal tintado y, según la rareza, cromo, líneas
+  de luz y neón bajo el coche (`CarBodies.dressPremium`). Se quedan sus ruedas con llantas, pinzas y
+  discos, el interior y las luces. Las vistas previas del pase salen de `Rides.build`: el mismo coche.
+  Las motos siguen siendo de piezas.
 
 | Id | Qué | Dónde / por qué no |
 |---|---|---|
@@ -167,10 +189,10 @@ todo queda como antes. Prueba: `lune run scripts/test-carbodies.luau`.
 | 6418225759 | Pickup Truck (oficial) | «Toro Faena»: tráfico, aparcados y tu todoterreno. |
 | 6433316269 | Van (oficial) | «Brisa Carga»: furgoneta del tráfico y aparcada. |
 | 6418230807 | Police Car (oficial) | «Valmar Patrulla»: las patrullas, rotuladas «POLICÍA» con nuestras sirenas. Sus textos «POLICE» fuera. |
-| 9432856072 | Semi-Realistic Car Pack | 5 coches sin marca: «Aurea Serena» (berlina, también tuya y taxi), «Kestrel Ranchera» (SUV), «Toro Campo» (pick-up), «Brisa Sprint» (compacto), «Valmar Clásico». Fuera logos, matrículas, radio y los 2 coches con `Protector 2.0`. |
+| 9432856072 | Semi-Realistic Car Pack | 5 coches sin marca: «Aurea Serena» (berlina, también tuya y taxi), «Kestrel Ranchera» (SUV), «Toro Campo» (pick-up), «Brisa Sprint» (compacto), «Valmar Clásico»; y 6 deportivos solo para los coches del pase: «Aurea Saeta», «Kestrel Kaze», «Toro Bravo», «Toro Furia», «Valmar Centella», «Valmar Fénix». Fuera logos, matrículas, radio y los 2 coches con `Protector 2.0`. |
 | 10935800149 | «Car Pack» (copia del anterior) | Mismo contenido que 9432856072: solo se carga si el original no carga. |
 | 10897563593 | «Car» (copia del anterior) | Igual: segundo respaldo de 9432856072. |
-| 97902046131324 | mesh pack (11 coches europeos) | Los 11, ligeros y con su textura (no se pintan): «Brisa Uno», «Toro Reparto», «Aurea Nube», «Kestrel Alba», «Aurea Paseo», «Valmar Mini», «Kestrel Vela», «Brisa Ola», «Toro Familia», «Toro Familia Plus», «Kestrel Lince». Aparcados (el doble de a menudo) y tráfico. |
+| 97902046131324 | mesh pack (11 coches europeos) | Los 11, ligeros y con su textura (no se pintan): «Brisa Uno», «Toro Reparto», «Aurea Nube», «Kestrel Alba», «Aurea Paseo», «Valmar Mini», «Kestrel Vela», «Brisa Ola», «Toro Familia», «Toro Familia Plus», «Kestrel Lince». Aparcados (los que más, por ligeros) y tráfico (también en gráficos Bajo). |
 | 4573650411 | Pack de policía (California) | Solo el sedán clásico, simplificado a sus 45 piezas más grandes: «Valmar Patrulla Clásica», 3 patrullas como mucho. Sin «CHP», sin marcas, sin sus 292 scripts. |
 | 15418880736 | Berlina importada (ex-marca) | «Aurea Lumen», sin marca, simplificada a 40 piezas: solo 4 aparcadas (pesa 280 000 tris). |
 | 18912826861 | Autobús urbano | **Reemplazado por 16358361587** (no se usa: 255 000 tris y el logo de una empresa real). |
