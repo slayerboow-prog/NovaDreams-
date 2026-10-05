@@ -178,3 +178,52 @@ todo queda como antes. Prueba: `lune run scripts/test-carbodies.luau`.
 | 130974691456028 | Camión caja | **No**: trae puerta trasera (familia 3, docs/assets-usuario-4.md) y en el juego no hay camiones de reparto. |
 | 18577576400 | «Realistic Car Pack (NOT MINE!)» | **No**: robado (lo dice el título), todo deportivos de marca y con `Protector 2.0`. |
 | 131247677717086 | Realistic Tires | **No**: es UNA sola malla con 4 neumáticos apilados (no se puede separar en ruedas) y trae puertas traseras (familias 3 y 4). Los neumáticos de malla salen de cada pack de coches. |
+
+## Armas, ejército y zonas de terror (World/UserArsenal + World/Kit/Pliegues)
+
+No hay un sistema de armas nuevo: las armas siguen siendo las de `shared/Weapons` (WeaponService, Armerías, policía,
+Cuartel). Los packs dan **solo mallas de exposición**: sin scripts, sin sonidos, sin GUIs, sin decals de sangre o de
+marcas, con nombres genéricos (`Arma_Fusil_3`, «Pieza»). Las armas sacadas de Apex, Half-Life 2 o CoD que vienen
+mezcladas, y cuchillos, granadas y lanzacohetes, se descartan por nombre. Todo lleva la etiqueta `CityDetail` (el nivel
+gráfico Bajo lo esconde). Prueba: `lune run scripts/test-arsenal.luau`.
+
+Las zonas de terror son **los Pliegues** de la Grieta (Cronos en «El piso 13»: «El piso 13 es un pliegue»): un
+vestíbulo lejos de la ciudad con cuatro arcos. Se llega por la misión `Rareza_Piso13` (que ahora pasa en la Planta 13;
+lugar `Piso13` con plan B en la biblioteca) o por una puerta vieja en el bosque junto al camping. Las criaturas no
+hacen daño: si te alcanzan, te devuelven al vestíbulo.
+
+| id | Qué es | Dónde está / por qué no |
+|---|---|---|
+| 101748452 | Pistola dorada de bloques («Ban Gun») | Armerías, comisarías, cuartel (pistola). Su script echaba del juego: borrado. |
+| 117850698505269 | Pack de 4 armas | Armerías, comisarías, cuartel. Fuera los efectos de sangre/gore y los 59 scripts. |
+| 100792423689137 | Pack de 4 armas de bloques | Igual. |
+| 115493232746766 | Pack de ~80 armas | Igual; las de Apex/HL2/CoD fuera por nombre; el escudo antidisturbios, al armero de la comisaría. |
+| 78033796632460 | Malla de fusil | Igual (su virus era un script/valor: borrados). |
+| 14800241387 | ~40 mallas de armas | Igual. ⚠ Mallas sacadas de *Bad Business* según el doc: si Sebastián prefiere no usarlas, borrar su línea de `UserArsenal.WeaponPacks`. |
+| 1076538396 | ~60 mallas de armas | Igual. ⚠ Mallas de *Counter-Strike* según el doc: misma nota. |
+| 546753609 | Kit P90 | Se carga, pero solo trae GUI y scripts: no aporta ninguna malla (se borra todo). |
+| 9700798278 | 5 fusiles | Armerías, cuartel. Sus 70 sonidos (de Tarkov) fuera. |
+| 480927087 | Mira de punto rojo | Armerías: dos en el panel de exposición y una montada sobre el fusil de arriba del armero. |
+| 124581242124664 | Pistola láser-gato | Parque de atracciones: premio de la «Caseta de premios» (no dispara). |
+| 114120925733217 | Mazo de goma | Parque de atracciones: junto al «martillo de fuerza». |
+| 9763579280 | Bate de béisbol | Tiendas de deportes (sala `Local` con Shop = Deportes): bidón con 4 bates. |
+| 11156149162 | Explosivo («Cee Four») | Comisarías: «PRUEBA 0451 · DESACTIVADO» sobre el mostrador. |
+| 5849304432 | Casco militar | Cuartel del Ejército: en las literas y en la mesa del mapa. |
+| 266515007 | Carro de combate | Museo: «Carro de combate antiguo», 22 studs, sin NINGUNA imagen (las 6 de la torreta no se podían revisar), sin asiento ni cañón que dispare, sin su nombre. |
+| 14887624955 | Horror Pack | Pliegues: texturas de pared en el vestíbulo, su puerta (vuelta a Valmar y la puerta del bosque) y su árbol seco en Valmar Gris. Su Lighting y la cámara que se balancea, no. |
+| 13583409363 | Escalera sin fin | Pliegues · Planta 13: «Bajar la escalera» al fondo del pasillo. Solo los últimos 70 studs (entera son 755 000 triángulos), sin decals ni números. |
+| 10491752124 | Pasillo en silencio | Pliegues · Planta 13: aquí pasa «El piso 13» (exámenes, Cronos). |
+| 13843689263 | Kit de pasillos amarillos | Pliegues · Pliegue Amarillo. |
+| 17536656565 | Kit de piscinas | Pliegues · Pliegue Azul (sin el script de flotación). |
+| 14062245022 | Criatura pálida | **El Pálido**, ronda el Pliegue Amarillo. Sin sus scripts (mataba), sonidos ni animaciones. |
+| 9879827254 | Criatura aulladora | **El Aullador**, ronda el Pliegue Azul. Igual. |
+| 522578234 | Cementerio | Pliegues · Valmar Gris (como mucho 90 studs de lado y 700 piezas). |
+| 16845477360 | Noria abandonada | Pliegues · Valmar Gris («la feria que cerró antes de abrir»). |
+| 891244647 | Cámara (personaje) | Teatro: grabando el escenario desde el pasillo. Sin la marca de la cámara. |
+| 7105428424 | Muerto | **No**: 11 decals de sangre y un charco; ni como escena del crimen. |
+| 13583409363 (repetido) | Escalera | Ver arriba. |
+| 83730474928094 | Moveset de un anime | **No**: personaje de otra franquicia. |
+| 95946642626421 | Generador de terreno | **No**: es un script. |
+| 113349334619202, 107730003845316, 8043394685, 9342982592, 12061946559 | Animaciones | **No**: de otros creadores, no se pueden reproducir sin volver a subirlas. |
+| 132859014 | Trozo de mapa (2013) | **No**: una bandera y un cartel sin uso. |
+| 80741429 | Campo de fútbol (2012) | **No**: muy viejo (bloques, 60 decals) y la ciudad ya tiene estadio. |
