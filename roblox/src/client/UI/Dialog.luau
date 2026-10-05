@@ -56,9 +56,32 @@ end
 -- Al abrir uno se cierran los demás, para que no se amontonen (en el móvil no se ve nada debajo).
 ---------------------------------------------------------------------
 local bigPanels: { [string]: () -> () } = {}
+local bigOpen: { [string]: () -> boolean } = {}
 
-function Dialog.registerBig(name: string, close: () -> ())
+-- isOpen (opcional): ¿está abierto ahora? (Dialog.anyOpen: las pistas no salen encima)
+function Dialog.registerBig(name: string, close: () -> (), isOpen: (() -> boolean)?)
 	bigPanels[name] = close
+	bigOpen[name] = isOpen
+end
+
+-- ¿Hay alguna ventana abierta? (una de aquí —Mis vehículos, una pregunta…— o un panel grande).
+-- Las pistas y avisos de la guía (Controllers/Guide) esperan a que se cierre: si no, la tapaban.
+function Dialog.anyOpen(): boolean
+	local g = gui
+	if g then
+		for _, child in g:GetChildren() do
+			if child:IsA("GuiObject") and child.Visible then
+				return true
+			end
+		end
+	end
+	for _, isOpen in bigOpen do
+		local ok, value = pcall(isOpen)
+		if ok and value == true then
+			return true
+		end
+	end
+	return false
 end
 
 -- Cierra todos los paneles grandes menos `except`
