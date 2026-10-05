@@ -161,10 +161,13 @@ table.insert(CarBodies.Sources, {
 	Picks = { { Match = "", Name = "Valmar Urbano", Brand = "VALMAR MOTORS", Type = "Autobus", Roles = { "Bus" }, Tris = 9062, Heavy = true } },
 })
 table.insert(CarBodies.Sources, {
-	-- Autocar (yiypoo1024): 19 mallas, sin logos; fuera sus Decals y Textures de suciedad
+	-- Autocar (yiypoo1024): 19 mallas, sin logos; fuera sus Decals y Textures de suciedad.
+	-- Morro fijo a −Z: ahí están sus faros («Headlight glass»), las ruedas FL/FR y el asiento del
+	-- conductor (mirado en un servidor de Roblox). Adivinarlo por los voladizos lo ponía al revés
+	-- (los dos miden casi lo mismo) y los autocares blancos iban marcha atrás.
 	Id = 95641562400547,
 	Pack = "Autocar",
-	Picks = { { Match = "", Name = "Toro Ruta", Brand = "TORO", Type = "Autocar", Roles = { "Heavy" }, Tris = 30649, Heavy = true, KeepWheels = true, NoDecals = true, FrontBy = "bus" } },
+	Picks = { { Match = "", Name = "Toro Ruta", Brand = "TORO", Type = "Autocar", Roles = { "Heavy" }, Tris = 30649, Heavy = true, KeepWheels = true, NoDecals = true, Front = "-Z" } },
 })
 table.insert(CarBodies.Sources, {
 	-- Camión caja (bearduckmonkey): cabina, caja y cristal, blanco y sin logos

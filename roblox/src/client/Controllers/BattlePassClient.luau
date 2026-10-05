@@ -62,8 +62,9 @@ function BattlePassClient.start()
 	end
 	started = true
 	task.spawn(function()
-		local remotes = ReplicatedStorage:WaitForChild("Remotes", 30)
-		local found = remotes and remotes:WaitForChild("BattlePass", 30)
+		-- (sin límite de tiempo: en un servidor recién abierto el remoto puede tardar en crearse)
+		local remotes = ReplicatedStorage:WaitForChild("Remotes")
+		local found = remotes:WaitForChild("BattlePass")
 		if not found or not found:IsA("RemoteEvent") then
 			return -- (servidor sin pase de temporada: no pasa nada)
 		end
@@ -75,9 +76,19 @@ function BattlePassClient.start()
 			end
 			fire(listeners[kind], payload)
 		end)
-		-- Primer estado: el servidor no lo manda solo al entrar (se pide)
+		-- Primer estado: se pide; si la partida aún no había cargado, se vuelve a pedir cada 3 s
+		-- (el servidor también lo manda solo al terminar de cargarla)
 		BattlePassClient.refresh()
 		fire(readyListeners :: any, nil)
+		for _ = 1, 40 do
+			if current then
+				break
+			end
+			task.wait(3)
+			if not current then
+				BattlePassClient.refresh()
+			end
+		end
 	end)
 end
 
