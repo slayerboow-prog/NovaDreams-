@@ -202,7 +202,10 @@ function UserArsenal.sanitize(root: Instance, opts: { NoDecals: boolean?, NoText
 			stats.Renamed += 1
 		end
 	end
-	if UserArsenal.isBanned(root.Name) then
+	if o.Generic and root:IsA("BasePart") then
+		root.Name = o.Generic
+		stats.Renamed += 1
+	elseif UserArsenal.isBanned(root.Name) then
 		root.Name = "Modelo"
 		stats.Renamed += 1
 	end
@@ -302,7 +305,7 @@ local function axesOf(list: { BasePart }, lo: Vector3, hi: Vector3): (Vector3, V
 	local sum, weight = 0, 0
 	for _, p in list do
 		local v = p.Size.X * p.Size.Y * p.Size.Z
-		sum += (p.Position - center):Dot(y) * v
+		sum += (p.CFrame.Position - center):Dot(y) * v
 		weight += v
 	end
 	if weight > 0 and sum < 0 then
@@ -316,9 +319,11 @@ function UserArsenal.weaponTemplate(item: Instance, kind: string, index: number,
 	local copy = item:Clone()
 	UserArsenal.sanitize(copy, { Generic = "Pieza" })
 	local model = asModel(copy, ("Arma_%s_%d"):format(kind, index))
-	pcall(function()
-		copy:Destroy()
-	end)
+	if not copy:IsA("BasePart") then -- (una pieza suelta ya está dentro del modelo)
+		pcall(function()
+			copy:Destroy()
+		end)
+	end
 	local list = partsOf(model)
 	if #list == 0 or #list > UserArsenal.MaxWeaponParts then
 		return nil

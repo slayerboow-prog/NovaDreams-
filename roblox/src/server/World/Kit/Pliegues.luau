@@ -169,7 +169,7 @@ local function boxOf(model: Instance, Arsenal: any): (Vector3, Vector3)
 	local hi = -lo
 	for _, p in list do
 		local half = p.Size / 2
-		local c = p.Position
+		local c = p.CFrame.Position
 		local r = math.max(half.X, half.Y, half.Z) -- (aprox. con giro: basta para el área de un pliegue)
 		lo = lo:Min(c - Vector3.new(r, r, r))
 		hi = hi:Max(c + Vector3.new(r, r, r))
@@ -252,11 +252,11 @@ function Pliegues.cropTop(asset: Instance, crop: number, Arsenal: any): number
 	local list = Arsenal.partsOf(asset)
 	local top = -math.huge
 	for _, p in list do
-		top = math.max(top, p.Position.Y + p.Size.Y / 2)
+		top = math.max(top, p.CFrame.Position.Y + p.Size.Y / 2)
 	end
 	local removed = 0
 	for _, p in list do
-		if p.Position.Y < top - crop then
+		if p.CFrame.Position.Y < top - crop then
 			p:Destroy()
 			removed += 1
 		end
