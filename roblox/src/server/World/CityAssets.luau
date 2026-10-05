@@ -348,19 +348,49 @@ CityAssets.Catalog = {
 	end, Extract = function(a, pools)
 		addNamed(pools, a, "Vagon", { "^vagonmercancias$", "^furgon$" }, { MaxParts = 200, Upright = true }, 2)
 	end },
+	-- Reemplazos limpios (docs/assets-reemplazos.md, filas 11–14)
+	{ Id = 16524471626, Name = "City Background Night (skyline)", Extract = function(a, pools)
+		whole(pools, a, "SkylineGrande")
+	end },
+	{ Id = 6418277837, Name = "City Building Pack (Roblox)", Extract = function(a, pools)
+		addNamed(pools, a, "Skyline", { "^building_%d+$" }, { MaxParts = 120 }, 6, { "section" })
+	end },
+	{ Id = 76558120171446, Name = "Modern Brick School Building", Extract = function(a, pools)
+		whole(pools, a, "Instituto", { MaxParts = 3300 })
+	end },
+	{ Id = 15569059562, Name = "Mini Football stadium", Extract = function(a, pools)
+		local t = Kit.template(a, "EstadioMalla", { MaxParts = 60 })
+		if t then
+			-- el césped: la pieza plana más grande (para encajarlo en nuestro campo)
+			local best, area = nil, 0
+			for _, p in Kit.parts(t.Model) do
+				local flat = p.Size.Y < 0.1 * math.max(p.Size.X, p.Size.Z)
+				if flat and p.Size.X * p.Size.Z > area then
+					best, area = p, p.Size.X * p.Size.Z
+				end
+			end
+			if best then
+				best.Name = "Cesped"
+				add(pools, "EstadioMalla", t)
+			end
+		end
+	end },
+	{ Id = 6432233485, Name = "City Road Pack (Roblox)", Extract = function(a, pools)
+		addNamed(pools, a, "Parche", { "^road_patch" }, nil, 3)
+	end },
 }
 
 -- Los que no se usan, y por qué (también en docs/assets-implementados.md)
 CityAssets.Skipped = {
-	[12527638598] = "planos con líneas pintadas: las calles ya tienen sus marcas viales hechas a medida del tráfico; encima se duplicarían",
+	[12527638598] = "Reemplazado por 6432233485 (planos con líneas pintadas: duplicarían las marcas viales)",
 	[15004077857] = "ya en el juego: World/StreetDress usa sus señales y alcantarillas",
-	[16088161488] = "texturas antiguas sin PBR: peores que los materiales PBR que ya llevan calles y aceras",
-	[11347783499] = "ciudad de 2010 de bloques con Decals: no tiene ninguna pieza de malla; haría la ciudad más «cutre»",
+	[16088161488] = "Reemplazado por 6432233485 (texturas antiguas sin PBR)",
+	[11347783499] = "Reemplazado por 6432233485 / 6418277837 (ciudad de 2010 de bloques con Decals, sin mallas)",
 	[6430696462] = "túnel de bloques de 97 studs: en Valmar ninguna carretera atraviesa un monte (quedaría una caja en medio de la calle)",
-	[139484418601989] = "no trae edificios: solo un cielo con una foto real de Tokio (y virus); chocaría con el cielo de día y noche del juego. El skyline lejano se hace con 79665094662717 y el city pack",
+	[139484418601989] = "Reemplazado por 16524471626 + 6418277837 (solo era un cielo con una foto real de Tokio, y virus)",
 	[131247677717086] = "→ Coches (ahora lo usa el agente de coches)",
-	[70353066] = "estadio de 2012 de 3 644 bloques y 1 812 Decals con NPCs que dejan sangre; ya hay estadios",
-	[1119962617] = "copia del mapa de otro juego (Roblox High School)",
+	[70353066] = "Reemplazado por 15569059562 (estadio de 2012, 3 644 bloques, NPCs que dejan sangre)",
+	[1119962617] = "Reemplazado por 76558120171446 (copia del mapa de otro juego: Roblox High School)",
 	[26972564] = "12 bloques de 2010, nada aprovechable",
 }
 
@@ -468,7 +498,7 @@ end
 -- 1. Mallas encima de las piezas de bloques
 ---------------------------------------------------------------------
 
-CityAssets.Caps = { AC = 420, Cono = 200, Valla = 80, Pale = 80, Porteria = 12, Grafiti = 120 }
+CityAssets.Caps = { AC = 420, Cono = 200, Valla = 80, Pale = 80, Porteria = 12, Grafiti = 120, Parche = 400 }
 
 local function nearestSibling(part: BasePart, name: string, reach: number): BasePart?
 	local best, bestD = nil, reach
@@ -560,6 +590,12 @@ function CityAssets.overlays(ctx: Ctx): { [string]: number }
 					end
 				end
 				bump("Valla", m)
+			end
+		elseif name == "AsphaltPatch" and cap("Parche") then
+			-- parches de asfalto de Kit/CityDetail -> parche PBR del City Road Pack (mismo sitio: no se duplica)
+			local t = pick(ctx, "Parche", pos, 7)
+			if t then
+				bump("Parche", Kit.overlay(d, t, { Flat = true }))
 			end
 		elseif name == "Pallet" and cap("Pale") then
 			local t = pick(ctx, "Pale", pos, 4)

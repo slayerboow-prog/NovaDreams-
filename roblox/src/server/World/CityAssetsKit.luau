@@ -358,6 +358,7 @@ export type OverlayOpts = {
 	Weld: boolean?, -- soldar a la pieza (si no, según Knockable)
 	Facing: Vector3?, -- la «parte de atrás» de la plantilla mira hacia aquí (mundo)
 	KeepBase: boolean?, -- no esconder la pieza de debajo
+	Flat: boolean?, -- cosas planas (parches): se ajusta solo en planta, no en alto
 }
 
 function CityAssetsKit.overlay(orig: BasePart, t: Template, opts: OverlayOpts?): Model?
@@ -366,7 +367,7 @@ function CityAssetsKit.overlay(orig: BasePart, t: Template, opts: OverlayOpts?):
 	local long = box.X >= box.Z
 	local rotate = long ~= (t.Size.X >= t.Size.Z)
 	local turned = if rotate then Vector3.new(t.Size.Z, t.Size.Y, t.Size.X) else t.Size
-	local s = CityAssetsKit.fit(turned, box)
+	local s = if o.Flat then math.min(box.X / math.max(turned.X, 0.01), box.Z / math.max(turned.Z, 0.01)) else CityAssetsKit.fit(turned, box)
 	if s <= 0 or s ~= s then
 		return nil
 	end

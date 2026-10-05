@@ -84,6 +84,11 @@ CarBodies.Types = {
 	Pickup = { Length = 14.2, Roof = 6.0 },
 	Furgoneta = { Length = 14.2, Roof = 6.6 },
 	Policia = { Length = 13.8, Roof = 5.4 },
+	-- Pesados (no son coches): autobús urbano (encima del nuestro, Rides «Autobus»), camión de reparto
+	-- y autocar (tráfico, Ambient.HeavyMesh)
+	Autobus = { Length = 34, Roof = 9.8, Width = 8.6 },
+	Reparto = { Length = 24, Roof = 10.5, Width = 7.8 },
+	Autocar = { Length = 30, Roof = 11.4, Width = 8.4 },
 }
 -- Carrocería de CarModel -> tipos de malla para el coche del jugador
 CarBodies.VariantTypes = { Berlina = { "Sedan" }, Compacto = { "Compacto", "Sedan" }, Todoterreno = { "SUV", "Pickup", "Sedan" } }
@@ -146,12 +151,41 @@ CarBodies.Sources = {
 	-- Berlina importada (dinhtrung3): muy pesada (280 000 tris): simplificada y solo 4 aparcadas
 	{ Id = 15418880736, Pack = "Berlina", Picks = { { Match = "", Name = "Aurea Lumen", Brand = "AUREA", Type = "Sedan", Roles = { "Parked" }, Tris = 90000, MaxParts = 40, MaxCopies = 4, Hero = true } } },
 }
+-- Reemplazos LIMPIOS (docs/assets-reemplazos.md, filas 7–10)
+table.insert(CarBodies.Sources, {
+	-- Autobús urbano (2races): 5 mallas, sin logos. Su malla «Decals» (el rótulo «CENTURY LINE 7701»)
+	-- no se copia: se ven nuestros letreros de línea de Valmar.
+	Id = 16358361587,
+	Pack = "Autobus",
+	Picks = { { Match = "", Name = "Valmar Urbano", Brand = "VALMAR MOTORS", Type = "Autobus", Roles = { "Bus" }, Tris = 9062, Heavy = true } },
+})
+table.insert(CarBodies.Sources, {
+	-- Autocar (yiypoo1024): 19 mallas, sin logos; fuera sus Decals y Textures de suciedad
+	Id = 95641562400547,
+	Pack = "Autocar",
+	Picks = { { Match = "", Name = "Toro Ruta", Brand = "TORO", Type = "Autocar", Roles = { "Heavy" }, Tris = 30649, Heavy = true, KeepWheels = true, NoDecals = true, FrontBy = "bus" } },
+})
+table.insert(CarBodies.Sources, {
+	-- Camión caja (bearduckmonkey): cabina, caja y cristal, blanco y sin logos
+	Id = 4128265113,
+	Pack = "Reparto",
+	Picks = { { Match = "", Name = "Kestrel Reparto", Brand = "KESTREL", Type = "Reparto", Roles = { "Heavy" }, Tris = 8771, Heavy = true, KeepWheels = true, NoDecals = true, FrontBy = "cab", Weight = 2 } },
+})
+-- Rueda completa (neumático + llanta) para el coche del jugador, la policía y los taxis; si no carga,
+-- el neumático solo (con nuestra llanta)
+CarBodies.WheelSources = {
+	{ Id = 17601139281, Name = "Rueda completa", KeepRim = false, Tris = 4392 },
+	{ Id = 8448337398, Name = "Neumático", KeepRim = true, Tris = 7200 },
+}
+CarBodies.WheelRoles = { Player = true, Policia = true, Taxi = true }
+
 -- Ids que se miraron y NO se usan (el porqué, en docs/assets-implementados.md)
 CarBodies.Skipped = {
-	[18912826861] = "autobús: 255 000 tris y 866 objetos; nuestro autobús tiene puertas y asientos que se usan",
-	[16893586720] = "autocar: 1 804 piezas de bloques; no hay líneas interurbanas",
-	[130974691456028] = "camión caja: puerta trasera (familia 3) y no hay camiones de reparto",
+	[18912826861] = "autobús: 255 000 tris y logo de empresa real; reemplazado por 16358361587",
+	[16893586720] = "autocar: 1 804 piezas de bloques; reemplazado por 95641562400547",
+	[130974691456028] = "camión caja: puerta trasera (familia 3); reemplazado por 4128265113",
 	[18577576400] = "«NOT MINE»: robado, todo deportivos de marca y Protector 2.0",
+	[131247677717086] = "neumáticos apilados en una malla y puertas traseras; reemplazado por 17601139281 / 8448337398",
 }
 
 -- Nombres que NUNCA se copian (marcas, logos, matrículas, ruedas…) — se mira en minúsculas
@@ -189,13 +223,15 @@ local ROOF = { LightBarBase = true, SirenBlue = true, SirenRed = true, Antenna =
 ---------------------------------------------------------------------
 local carPaintVariant
 local library: { Model } = {}
+local wheelTemplate: Folder? = nil -- rueda de malla (WheelSources), centrada y con el eje en X
 local copies: { [string]: number } = {}
 local parkedCount = 0
-local pending: { { Model: Model, Cf: CFrame, Opts: { [string]: any } } } = {}
+local pending: { { Model: Model, Cf: CFrame, Opts: { [string]: any }, Fn: any? } } = {}
 local readyCallbacks: { () -> () } = {}
 CarBodies.State = "idle" -- idle | loading | ready | failed
 
 function CarBodies.reset()
+	wheelTemplate = nil
 	library = {}
 	copies = {}
 	parkedCount = 0
@@ -206,6 +242,9 @@ end
 
 function CarBodies.library(): { Model }
 	return library
+end
+function CarBodies.wheel(): Folder?
+	return wheelTemplate
 end
 
 function CarBodies.ready(): boolean
@@ -332,7 +371,7 @@ function CarBodies.findCars(pack: Instance): { Instance }
 end
 
 -- Piezas de la carrocería, ruedas (para encajar) y asiento del conductor de un coche del pack
-local function carParts(car: Instance): ({ BasePart }, { BasePart }, BasePart?)
+local function carParts(car: Instance, keepWheels: boolean?): ({ BasePart }, { BasePart }, BasePart?)
 	local bodyRoot: Instance = car
 	local body = car:FindFirstChild("Body")
 	if body and not body:IsA("BasePart") then
@@ -352,6 +391,9 @@ local function carParts(car: Instance): ({ BasePart }, { BasePart }, BasePart?)
 		if isWheelPart(d, car) then
 			if d.Transparency < 0.98 then
 				table.insert(wheels, d)
+				if keepWheels and not CarBodies.isBrand(d.Name) then
+					table.insert(shell, d) -- (autocar: sus ruedas de malla se quedan, no lleva las nuestras)
+				end
 			end
 			continue
 		end
@@ -414,7 +456,7 @@ local function snapAxis(v: Vector3): Vector3
 	return Vector3.new(0, 0, if v.Z > 0 then 1 else -1)
 end
 
-local function forwardOf(shell: { BasePart }, wheels: { BasePart }, seat: BasePart?, front: string?): (Vector3, string)
+local function forwardOf(shell: { BasePart }, wheels: { BasePart }, seat: BasePart?, front: string?, mode: string?): (Vector3, string)
 	if front and AXES[front] then
 		return AXES[front], "config"
 	end
@@ -424,6 +466,29 @@ local function forwardOf(shell: { BasePart }, wheels: { BasePart }, seat: BasePa
 	local lo, hi = bounds(shell)
 	local size = hi - lo
 	local along = if size.X > size.Z then Vector3.new(1, 0, 0) else Vector3.new(0, 0, 1)
+	if mode == "cab" and #shell >= 2 then
+		-- Camión: la caja es la pieza más grande; la cabina (lo demás que no es cristal) va delante
+		local box, vol = nil, 0
+		for _, p in shell do
+			local v = p.Size.X * p.Size.Y * p.Size.Z
+			if v > vol then
+				box, vol = p, v
+			end
+		end
+		local sum, n = Vector3.zero, 0
+		for _, p in shell do
+			if p ~= box and not (p.Material == Enum.Material.Glass or p.Transparency > 0.1) then
+				sum += p.CFrame.Position
+				n += 1
+			end
+		end
+		if box and n > 0 then
+			local d = (sum / n - box.CFrame.Position):Dot(along)
+			if math.abs(d) > 0.5 then
+				return if d > 0 then along else -along, "cabina"
+			end
+		end
+	end
 	-- Voladizo: el de delante suele ser más largo que el de detrás
 	local frame = CFrame.new()
 	local centers = wheelCenters(wheels, frame)
@@ -435,6 +500,10 @@ local function forwardOf(shell: { BasePart }, wheels: { BasePart }, seat: BasePa
 		end
 		local minA, maxA = lo:Dot(along), hi:Dot(along)
 		local overNeg, overPos = a0 - minA, maxA - a1
+		if mode == "bus" then
+			-- autocar: el motor va detrás, el voladizo de atrás es el más largo
+			return if overNeg <= overPos then -along else along, "voladizo"
+		end
 		return if overNeg >= overPos then -along else along, "voladizo"
 	end
 	return -along, "por defecto"
@@ -538,7 +607,7 @@ function CarBodies.isLogo(d: Decal): boolean
 end
 
 -- Copia limpia de una pieza: sin hijos (salvo su aspecto: SurfaceAppearance o la malla), sin atributos
-local function cleanClone(p: BasePart): BasePart?
+local function cleanClone(p: BasePart, noDecals: boolean?): BasePart?
 	local ok, clone = pcall(function()
 		return p:Clone()
 	end)
@@ -549,7 +618,7 @@ local function cleanClone(p: BasePart): BasePart?
 		if c.Parent == clone and (c:IsA("SurfaceAppearance") or c:IsA("DataModelMesh")) then
 			continue
 		end
-		if c.Parent == clone and (c:IsA("Decal") or c:IsA("Texture")) and not CarBodies.isLogo(c :: any) then
+		if c.Parent == clone and not noDecals and (c:IsA("Decal") or c:IsA("Texture")) and not CarBodies.isLogo(c :: any) then
 			c.Name = if c:IsA("Texture") then "CarTexture" else "CarDecal"
 			continue
 		end
@@ -744,7 +813,7 @@ end
 -- Hace la plantilla de un coche del pack. pick = la entrada de Sources; other = otra versión de color
 -- del mismo coche (para saber qué es pintura). Devuelve el Model (sin padre) o nil y por qué.
 function CarBodies.template(car: Instance, pick: { [string]: any }, sourceId: number, other: Instance?): (Model?, string?)
-	local shell, wheels, seat = carParts(car)
+	local shell, wheels, seat = carParts(car, pick.KeepWheels)
 	if #shell == 0 then
 		return nil, "sin carrocería"
 	end
@@ -761,7 +830,7 @@ function CarBodies.template(car: Instance, pick: { [string]: any }, sourceId: nu
 	local paint = paintParts(shell, otherShell)
 
 	-- Giro: el morro a −Z
-	local fwd, why = forwardOf(shell, wheels, seat, pick.Front)
+	local fwd, why = forwardOf(shell, wheels, seat, pick.Front, pick.FrontBy)
 	local yaw = CFrame.Angles(0, math.atan2(-fwd.X, -fwd.Z), 0) -- su LookVector = fwd
 	local lo0, hi0 = bounds(shell, yaw)
 	local center0 = (lo0 + hi0) / 2
@@ -791,7 +860,7 @@ function CarBodies.template(car: Instance, pick: { [string]: any }, sourceId: nu
 		end
 		xc = (wc[1].X + wc[2].X + wc[3].X + wc[4].X) / 4
 	end
-	local sx = math.clamp(CAR_W / W, sz * 0.8, sz * 1.25)
+	local sx = math.clamp((typ.Width or CAR_W) / W, sz * 0.8, sz * 1.25)
 	local height = math.max(hi.Y - ground, 0.5)
 	local sy = math.clamp(typ.Roof / height, (sx + sz) / 2 * 0.85, (sx + sz) / 2 * 1.35)
 	local scale = Vector3.new(sx, sy, sz)
@@ -802,7 +871,7 @@ function CarBodies.template(car: Instance, pick: { [string]: any }, sourceId: nu
 	local tris = pick.Tris or 0
 	local kept = 0
 	for _, p in shell do
-		local clone = cleanClone(p)
+		local clone = cleanClone(p, pick.NoDecals)
 		if not clone then
 			continue
 		end
@@ -845,7 +914,9 @@ function CarBodies.template(car: Instance, pick: { [string]: any }, sourceId: nu
 	end
 	local flo, fhi = bounds(model:GetChildren() :: any)
 	calibrate(model, flo, fhi)
-	pcall(tireTemplate, model, wc, frame)
+	if not pick.Heavy then
+		pcall(tireTemplate, model, wc, frame)
+	end
 	-- Placas con la marca inventada (tapan el sitio del logo de delante y de detrás)
 	local fz, rz = model:GetAttribute("FrontMidZ") :: number, model:GetAttribute("RearMidZ") :: number
 	badge(model, "CarBadge", CFrame.new(0, 2.45, fz - 0.03), pick.Brand or "VALMAR MOTORS", Enum.NormalId.Front)
@@ -863,6 +934,71 @@ function CarBodies.template(car: Instance, pick: { [string]: any }, sourceId: nu
 	model:SetAttribute("Length", fhi.Z - flo.Z)
 	model:SetAttribute("Width", fhi.X - flo.X)
 	return model, nil
+end
+
+-- Rueda de malla suelta (WheelSources): sus piezas visibles, centradas, con el eje a lo largo de X y
+-- del tamaño de nuestras ruedas (radio 1,3). Devuelve la carpeta «Tire» o nil.
+function CarBodies.wheelFrom(pack: Instance, def: { [string]: any }): Folder?
+	local list = {}
+	for _, d in pack:GetDescendants() do
+		if d:IsA("BasePart") and d.Transparency < 0.98 and not CarBodies.isBrand(d.Name) then
+			table.insert(list, d)
+		end
+	end
+	if pack:IsA("BasePart") then
+		table.insert(list, pack)
+	end
+	if #list == 0 then
+		return nil
+	end
+	local lo, hi = bounds(list)
+	local size = hi - lo
+	local center = (lo + hi) / 2
+	-- eje = el lado más corto de la caja
+	local turn = CFrame.new()
+	local diameter = math.max(size.Y, size.Z)
+	if size.Y < size.X and size.Y <= size.Z then
+		turn = CFrame.Angles(0, 0, math.pi / 2)
+		diameter = math.max(size.X, size.Z)
+	elseif size.Z < size.X and size.Z < size.Y then
+		turn = CFrame.Angles(0, math.pi / 2, 0)
+		diameter = math.max(size.X, size.Y)
+	end
+	local k = 2 * WHEEL_Y / math.max(diameter, 0.1)
+	local folder = Instance.new("Folder")
+	folder.Name = "Tire"
+	table.sort(list, function(a, b)
+		return a.Size.X * a.Size.Y * a.Size.Z > b.Size.X * b.Size.Y * b.Size.Z
+	end)
+	for i = 1, math.min(#list, CarBodies.TireParts) do
+		local p = list[i]
+		local clone = cleanClone(p, true)
+		if clone then
+			local rel = turn * (CFrame.new(center):Inverse() * p.CFrame)
+			local pos = rel.Position
+			clone.Size = p.Size * k
+			clone.CFrame = CFrame.new(pos * k) * (rel - pos)
+			clone.Name = "TireMesh"
+			clone:SetAttribute("CarMesh", true)
+			clone.Anchored = true
+			clone.CanCollide = false
+			clone.CanQuery = false
+			clone.CanTouch = false
+			clone.Massless = true
+			clone.CastShadow = false
+			pcall(function()
+				(clone :: any).RenderFidelity = Enum.RenderFidelity.Automatic
+			end)
+			clone.Parent = folder
+		end
+	end
+	if #folder:GetChildren() == 0 then
+		return nil
+	end
+	folder:SetAttribute("KeepRim", def.KeepRim == true)
+	folder:SetAttribute("Source", def.Id)
+	folder:SetAttribute("Tris", def.Tris)
+	return folder
 end
 
 -- Hace las plantillas de un pack ya cargado (según su entrada de Sources). Devuelve cuántas.
@@ -1127,6 +1263,11 @@ function CarBodies.dress(model: Model, cf: CFrame, opts: { [string]: any }?): bo
 	-- 3. Neumáticos de malla del pack en nuestras ruedas (giran con ellas: WheelRig «TireMesh»);
 	-- nuestras ruedas de cilindro se quedan invisibles (las usa WheelRig para saber dónde están)
 	local tire = template:FindFirstChild("Tire")
+	local keepRim = false
+	if wheelTemplate and CarBodies.WheelRoles[role] then
+		tire = wheelTemplate
+		keepRim = wheelTemplate:GetAttribute("KeepRim") == true
+	end
 	if tire and #tire:GetChildren() > 0 then
 		for _, w in model:GetChildren() do
 			if w.Name ~= "Wheel" or not w:IsA("BasePart") then
@@ -1151,7 +1292,7 @@ function CarBodies.dress(model: Model, cf: CFrame, opts: { [string]: any }?): bo
 			end
 		end
 		for _, w in model:GetChildren() do
-			if w:IsA("BasePart") and (w.Name == "Wheel" or w.Name == "Rim" or w.Name == "Spoke" or w.Name == "Hub") then
+			if w:IsA("BasePart") and (w.Name == "Wheel" or (not keepRim and (w.Name == "Rim" or w.Name == "Spoke" or w.Name == "Hub"))) then
 				w.Transparency = 1
 				w:SetAttribute("CarHidden", true)
 				if w:GetAttribute("ModOrigTransparency") ~= nil then
@@ -1167,6 +1308,144 @@ function CarBodies.dress(model: Model, cf: CFrame, opts: { [string]: any }?): bo
 		parkedCount += 1
 	end
 	return true
+end
+
+---------------------------------------------------------------------
+-- Autobús urbano: la malla encima de NUESTRO autobús (Rides «Autobus»), que sigue funcionando igual:
+-- puertas que se abren (BusDoor), asientos, barras, validadora, conductor y letreros de la línea
+-- (llevados al morro, la cola y el costado de la malla). La caja de siempre choca, invisible.
+---------------------------------------------------------------------
+local BUS_KEEP = {
+	Floor = true, Ceiling = true, CeilingLight = true, GrabRail = true, Pole = true, StopButton = true,
+	SeatBack = true, SeatFrame = true, Handle = true, WheelchairArea = true, WheelchairSign = true,
+	ValidatorPost = true, Validator = true, ValidatorScreen = true, InfoScreen = true, DriverPartition = true,
+	Dashboard = true, DashScreen = true, SteeringWheel = true, SteeringColumn = true, DriverSeatBack = true,
+	DriverSeatBase = true, DoorFrame = true, DoorSeal = true, DoorStep = true, DoorStepEdge = true,
+	DoorLight = true, BusDoor = true, Frame = true, Chassis = true,
+}
+local BUS_FRONT = { DestinationSign = true, SignGlow = true, Logo = true, Headlight = true, HeadlightSmall = true, LedStrip = true }
+local BUS_REAR = { RearSign = true, Taillight = true, Reverse = true }
+local BUS_SIDE = { SideSign = true, Advert = true }
+
+function CarBodies.dressBus(model: Model, cf: CFrame, opts: { [string]: any }?): boolean
+	if CarBodies.State == "loading" or CarBodies.State == "idle" then
+		table.insert(pending, { Model = model, Cf = cf, Opts = opts or {}, Fn = CarBodies.dressBus })
+		return false
+	end
+	if not CarBodies.ready() or model:GetAttribute("CarBody") then
+		return false
+	end
+	local template = CarBodies.choose("Bus", model.Name)
+	if not template then
+		return false
+	end
+	local base = groundOf(model, cf)
+	local chassis = model:FindFirstChild("Chassis") :: BasePart?
+	local frontMid, rearMid = template:GetAttribute("FrontMidZ") :: number, template:GetAttribute("RearMidZ") :: number
+	local sideX = template:GetAttribute("SideX") :: number
+	for _, part in model:GetChildren() do
+		if not part:IsA("BasePart") or part:IsA("Seat") or part:IsA("VehicleSeat") then
+			continue
+		end
+		local name = part.Name
+		local rel = base:Inverse() * part.CFrame
+		local p = rel.Position
+		local front = BUS_FRONT[name] or ((name == "Plate" or name == "Indicator") and p.Z < 0)
+		local rear = BUS_REAR[name] or ((name == "Plate" or name == "Indicator") and p.Z > 0)
+		if BUS_KEEP[name] then
+			continue
+		elseif front then
+			part.CFrame = base * CFrame.new(p.X, p.Y, frontMid - 0.06) * (rel - p)
+		elseif rear then
+			part.CFrame = base * CFrame.new(p.X, p.Y, rearMid + 0.06) * (rel - p)
+		elseif BUS_SIDE[name] then
+			local sx = if p.X >= 0 then 1 else -1
+			part.CFrame = base * CFrame.new(sx * (sideX + 0.05), p.Y, p.Z) * (rel - p)
+		elseif part.CanCollide then
+			part.Transparency = 1
+			part.CastShadow = false
+			part:SetAttribute("CarHidden", true)
+			for _, d in part:GetChildren() do
+				if d:IsA("SurfaceGui") or d:IsA("Decal") then
+					d.Enabled = false
+				end
+			end
+		else
+			part:Destroy()
+		end
+	end
+	for _, src in template:GetChildren() do
+		if not src:IsA("BasePart") or src.Name == "CarBadge" then
+			continue
+		end
+		local q = src:Clone()
+		q.CFrame = base * src.CFrame
+		if chassis then
+			q.Anchored = false
+			q:SetAttribute("Collide", false)
+			local weld = Instance.new("WeldConstraint")
+			weld.Part0 = chassis
+			weld.Part1 = q
+			weld.Parent = q
+		end
+		q.Parent = model
+	end
+	model:SetAttribute("CarBody", template.Name)
+	model:SetAttribute("CarBodySource", template:GetAttribute("Source"))
+	return true
+end
+
+---------------------------------------------------------------------
+-- Pesados del tráfico (camión de reparto y autocar): un modelo nuevo con la malla, su caja de choque
+-- invisible «Body» y nuestras luces (faros, pilotos, intermitentes) en el morro y la cola de la malla.
+-- Centro a ras de suelo, morro a −Z (como las plantillas de Ambient.Cars).
+---------------------------------------------------------------------
+function CarBodies.heavy(template: Model, name: string): Model
+	local m = Instance.new("Model")
+	m.Name = name
+	for _, src in template:GetChildren() do
+		if src:IsA("BasePart") then
+			src:Clone().Parent = m
+		end
+	end
+	local typ = CarBodies.Types[template:GetAttribute("Type")] or CarBodies.Types.Reparto
+	local length, width = template:GetAttribute("Length") :: number, template:GetAttribute("Width") :: number
+	local body = Instance.new("Part")
+	body.Name = "Body"
+	body.Size = Vector3.new(width - 0.4, typ.Roof - 1.2, length - 0.4)
+	body.CFrame = CFrame.new(0, 0.9 + (typ.Roof - 1.2) / 2, 0)
+	body.Transparency = 1
+	body.Anchored = true
+	body.CanCollide = true
+	body.CastShadow = false
+	body:SetAttribute("CarHidden", true)
+	body.Parent = m
+	local fz, rz = template:GetAttribute("FrontLampZ") :: number, template:GetAttribute("RearLampZ") :: number
+	local hx = math.max(width / 2 - 1, 1)
+	local function lamp(n: string, x: number, y: number, z: number, color: Color3, size: Vector3)
+		local l = Instance.new("Part")
+		l.Name = n
+		l.Size = size
+		l.CFrame = CFrame.new(x, y, z)
+		l.Color = color
+		l.Material = Enum.Material.Neon
+		l.Anchored = true
+		l.CanCollide = false
+		l.CanQuery = false
+		l.CanTouch = false
+		l.CastShadow = false
+		l.Parent = m
+	end
+	for _, sx in { -1, 1 } do
+		lamp(if sx < 0 then "Headlight" else "HeadlightRight", sx * hx, 2.6, fz + 0.1, Color3.fromRGB(255, 250, 235), Vector3.new(1, 0.45, 0.25))
+		lamp("IndicatorFront", sx * (hx + 0.6), 2.6, fz + 0.1, Color3.fromRGB(255, 150, 20), Vector3.new(0.35, 0.3, 0.2))
+		lamp("Taillight", sx * hx, 2.6, rz - 0.1, Color3.fromRGB(200, 20, 30), Vector3.new(1, 0.5, 0.25))
+		lamp("IndicatorRear", sx * (hx + 0.6), 2.6, rz - 0.1, Color3.fromRGB(255, 150, 20), Vector3.new(0.35, 0.3, 0.2))
+	end
+	m:SetAttribute("Kind", "Pesado")
+	m:SetAttribute("CarBody", template.Name)
+	m:SetAttribute("Length", length)
+	return m
 end
 
 ---------------------------------------------------------------------
@@ -1196,7 +1475,7 @@ local function flush()
 	pending = {}
 	for i, item in list do
 		if item.Model.Parent ~= nil then
-			local ok, err = pcall(CarBodies.dress, item.Model, item.Cf, item.Opts)
+			local ok, err = pcall(item.Fn or CarBodies.dress, item.Model, item.Cf, item.Opts)
 			if not ok then
 				warn("[CarBodies] " .. tostring(err))
 			end
@@ -1263,6 +1542,19 @@ function CarBodies.start(loader: ((number) -> Instance?)?)
 			pcall(function()
 				pack:Destroy()
 			end)
+		end
+	end
+	for _, def in CarBodies.WheelSources do
+		local ok, pack = pcall(load, def.Id)
+		if ok and pack then
+			local okW, folder = pcall(CarBodies.wheelFrom, pack, def)
+			pcall(function()
+				pack:Destroy()
+			end)
+			if okW and folder then
+				wheelTemplate = folder
+				break
+			end
 		end
 	end
 	local names = {}
