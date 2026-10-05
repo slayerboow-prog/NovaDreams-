@@ -20,6 +20,8 @@
 -- Los errores que salen solo porque el doble no imita algo se arreglan aquí, en la prueba.
 
 local fs = require("@lune/fs")
+-- ¿Pase de temporada encendido para todos? (BattlePassConfig.Enabled)
+local BP_ON = string.find(fs.readFile("src/shared/BattlePass/Config.luau"), "BattlePassConfig.Enabled = true", 1, true) ~= nil
 local luau = require("@lune/luau")
 local process = require("@lune/process")
 local roblox = require("@lune/roblox")
@@ -2162,7 +2164,15 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean })
 			-- Pase de temporada apagado (BattlePassConfig.Enabled = false): ni app, ni ventana, ni remoto
 			local bpRemote = remotes:FindFirstChild("BattlePass")
 			local dialogs = playerGui:FindFirstChild("Dialogs")
-			table.insert(checks, { not labels.PaseTemporada and bpRemote == nil and (dialogs == nil or dialogs:FindFirstChild("BattlePass") == nil) and playerGui:FindFirstChild("BattlePassTip") == nil, "pase de temporada apagado: sin app «Pase», sin ventana y sin remoto" })
+			-- (ya encendido para todos: BattlePassConfig.Enabled = true; entonces sale su app)
+			local bpOn = BP_ON
+			if bpOn then
+				-- (la app sale cuando el servidor manda el estado de la temporada, que aquí no hay: eso lo
+				-- prueba test-battlepassui. Aquí: sin estado, ni app ni ventana abierta sola)
+				table.insert(checks, { not labels.PaseTemporada and (dialogs == nil or dialogs:FindFirstChild("BattlePass") == nil or not dialogs.BattlePass.Visible), "pase de temporada encendido: sin estado del servidor, ni app «Pase» ni ventana abierta (la app la prueba test-battlepassui)" })
+			else
+				table.insert(checks, { not labels.PaseTemporada and bpRemote == nil and (dialogs == nil or dialogs:FindFirstChild("BattlePass") == nil) and playerGui:FindFirstChild("BattlePassTip") == nil, "pase de temporada apagado: sin app «Pase», sin ventana y sin remoto" })
+			end
 			localPlayer:SetAttribute("Tester", true)
 			-- «📱 Abu Rosa quiere hablar contigo»: llega al ValPhone como mensaje
 			local story = remotes:FindFirstChild("LifeStory")
