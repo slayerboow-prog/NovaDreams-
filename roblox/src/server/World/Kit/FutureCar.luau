@@ -89,7 +89,7 @@ local function wheel(parent: Instance, c: CFrame, side: number, accent: Color3)
 	-- Cinco radios en la cara de fuera
 	for k = 0, 4 do
 		local a = k / 5 * math.pi * 2
-		local spoke = decor(m, "Radio", V(0.14, 1.55, 0.26), c * CF(side * 0.5, 0, 0) * ANG(a, 0, 0) * CF(0, 0.38, 0), rgb(214, 218, 226), M.Metal, true)
+		local spoke = decor(m, "Radio", V(0.14, 0.62, 0.24), c * CF(side * 0.5, 0, 0) * ANG(a, 0, 0) * CF(0, 0.42, 0), rgb(214, 218, 226), M.Metal, true)
 		spoke.Reflectance = 0.3
 	end
 	cylinderX(m, "Tapacubos", 1.2, 0.5, c, accent, M.Neon, true)

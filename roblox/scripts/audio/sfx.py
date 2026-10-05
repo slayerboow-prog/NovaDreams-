@@ -27,6 +27,15 @@ Archivos (mono, 44.1 kHz, ogg vorbis, pico a -3 dBFS):
                    + cuerpo del arma + sala corta), cada uno con su carácter        0.28-0.85 s
   disparo_eco.ogg  eco del disparo rebotando en los edificios (apagado)            1.1 s
 
+Ambiente por tipo de lugar (StoryAudio: Config.Audio.Ambience; nunca silencio absoluto):
+  amb_sala.ogg     aire de una sala cerrada: climatizador y zumbido muy flojo     · bucle 8 s
+  amb_casa.ogg     casa: nevera, la calle lejos por la ventana, algún crujido     · bucle 10 s
+  amb_colegio.ogg  colegio: niños en el pasillo o el patio, pasos, alguna puerta  · bucle 10 s
+  amb_universidad.ogg universidad: estudiantes, pasos en un vestíbulo grande, la máquina expendedora · bucle 10 s
+  amb_hospital.ogg hospital: ventilación, murmullo bajo, ruedas de camilla lejos  · bucle 10 s
+  amb_calle.ogg    calle: tráfico lejano que va y viene y gente a lo lejos         · bucle 10 s
+  (Los ambientes llevan su propia semilla: se pueden rehacer solos sin cambiar los demás.)
+
 Solo algunos:          python3 scripts/audio/sfx.py choque_leve choque_fuerte
 Golpes y disparos: sin subgraves (corte fuerte por debajo de 75-140 Hz) y colas cortas.
 
@@ -686,10 +695,185 @@ def disparo_eco():
 
 
 # ---------------------------------------------------------------------------
+# Ambiente por tipo de lugar (bucles largos y flojos: el juego los pone muy bajos, por capas)
+# Cada uno reinicia la semilla: se pueden rehacer solos sin cambiar los demás.
+# ---------------------------------------------------------------------------
+
+def _seed(n: int):
+    global RNG
+    RNG = np.random.default_rng(n)
+
+
+def unit_rms(x: np.ndarray) -> np.ndarray:
+    return x / (np.sqrt(np.mean(x**2)) + 1e-9)
+
+
+def hum(seconds: float, f0: float, parts: int = 6, wobble: float = 0.0) -> np.ndarray:
+    """Zumbido eléctrico (nevera, climatizador, máquina): f0 y sus armónicos, que van bajando."""
+    t = t_of(seconds)
+    sig = np.zeros(len(t))
+    for k in range(1, parts + 1):
+        sig += np.sin(2 * np.pi * f0 * k * t + RNG.uniform(0, 6.28)) / k**1.3
+    if wobble:
+        sig *= 1 + wobble * np.sin(2 * np.pi * 0.25 * t)
+    return sig
+
+
+def step(heavy: float = 0.5) -> np.ndarray:
+    """Un paso en suelo duro: chasquido de suela y un golpecito sordo."""
+    t = t_of(0.12)
+    tap = band(noise(0.12), 300, 3000) * np.exp(-t / 0.01)
+    thud = np.sin(2 * np.pi * RNG.uniform(85, 120) * t) * np.exp(-t / 0.03)
+    return unit_rms(tap) * 0.5 + unit_rms(thud) * heavy
+
+
+def footsteps(buf: np.ndarray, start: float, count: int, gap: float, amp: float):
+    for i in range(count):
+        add_at(buf, step() * amp * RNG.uniform(0.7, 1), start + i * gap * RNG.uniform(0.93, 1.07), wrap=True)
+
+
+def door(amp: float) -> np.ndarray:
+    """Una puerta que se cierra lejos: el pestillo y el golpe de madera, apagado."""
+    t = t_of(0.5)
+    latch = band(noise(0.5), 1500, 5000) * np.exp(-t / 0.004)
+    wood = band(noise(0.5), 70, 900) * np.exp(-np.maximum(t - 0.03, 0) / 0.07) * (t > 0.03)
+    body = np.sin(2 * np.pi * 95 * t) * np.exp(-np.maximum(t - 0.03, 0) / 0.09) * (t > 0.03)
+    sig = 0.25 * unit_rms(latch) + unit_rms(wood) + 0.6 * unit_rms(body)
+    return spectral(sig, lambda f: lowpass_gain(f, 1800, 2)) * amp
+
+
+def roll(seconds: float, amp: float) -> np.ndarray:
+    """Ruedas (camilla, carrito) que pasan por un pasillo: rumor con traqueteo, sube y baja."""
+    t = t_of(seconds)
+    bed = band(noise(seconds), 150, 1400)
+    rattle = 1 + 0.5 * np.sin(2 * np.pi * RNG.uniform(14, 20) * t) * np.sin(2 * np.pi * 3.1 * t)
+    env = np.sin(np.pi * t / seconds) ** 2
+    return unit_rms(bed) * rattle * env * amp
+
+
+def amb_sala():
+    """Aire de una sala cerrada (la base de todos los interiores): climatizador suave y un zumbido."""
+    _seed(401)
+    length, fade = 8.0, 0.8
+    total = length + fade
+    air = unit_rms(band(pink(total), 90, 1400, pad=False))
+    ac = unit_rms(hum(total, 60, 5, wobble=0.05))
+    sig = air + 0.12 * ac
+    sig = spectral(sig, lambda f: lowpass_gain(f, 1600, 2), pad=False)
+    write("amb_sala.ogg", make_loop(sig, length, fade), loop=True)
+
+
+def amb_casa():
+    """Casa: la nevera que zumba, la calle lejos (por la ventana) y algún crujido de la casa."""
+    _seed(402)
+    length, fade = 10.0, 0.8
+    total = length + fade
+    t = t_of(total)
+    fridge = unit_rms(hum(total, 50, 8, wobble=0.03)) * (0.9 + 0.1 * np.sin(2 * np.pi * t / 5))
+    street = unit_rms(band(brown(total), 40, 600, pad=False)) * (1 + 0.4 * np.sin(2 * np.pi * t / 10))
+    room = unit_rms(band(pink(total), 100, 1200, pad=False))
+    sig = 0.35 * fridge + 0.5 * street + 0.35 * room
+    events = np.zeros(len(t))
+    # un crujido de madera y, más tarde, algo que se deja en la cocina (lejos)
+    add_at(events, door(0.5) * 0.6, 2.7)
+    creak_t = t_of(0.35)
+    creak = np.sin(2 * np.pi * np.cumsum(180 + 60 * creak_t / 0.35) / SR) * np.exp(-creak_t / 0.12)
+    add_at(events, unit_rms(band(creak, 120, 900)) * 0.25, 7.1)
+    sig = sig + events * 0.6
+    sig = reverb(sig, 0.6, 0.2, bright=2500)
+    sig = spectral(sig, lambda f: lowpass_gain(f, 2200, 2))
+    write("amb_casa.ogg", make_loop(sig, length, fade), loop=True)
+
+
+def amb_colegio():
+    """Colegio: niños hablando y riendo en el pasillo o el patio (lejos), pasos y alguna puerta."""
+    _seed(403)
+    length, fade, pre = 10.0, 0.8, 1.0
+    total = pre + length + fade
+    kids = np.zeros(n_of(total))
+    for _ in range(10):
+        f0 = RNG.uniform(250, 340)  # voces de niño
+        v = voice(total, f0, talk=RNG.uniform(0.45, 0.8), bright=4200)
+        kids += unit_rms(v) * RNG.uniform(0.3, 1.0)
+    kids = unit_rms(kids)
+    hall = unit_rms(band(pink(total), 150, 2500))
+    events = np.zeros(n_of(total))
+    footsteps(events, pre + 0.8, 6, 0.32, 0.5)  # alguien corre por el pasillo
+    footsteps(events, pre + 5.6, 5, 0.45, 0.35)
+    add_at(events, door(0.8), pre + 3.9)
+    add_at(events, door(0.5), pre + 8.6)
+    sig = 0.9 * kids + 0.2 * hall + 0.5 * events
+    sig = reverb(sig, 1.3, 0.45, bright=3200)  # pasillo con eco
+    sig = spectral(sig, lambda f: highpass_gain(f, 110) * lowpass_gain(f, 3200, 2))
+    write("amb_colegio.ogg", make_loop(sig[n_of(pre):], length, fade), loop=True)
+
+
+def amb_universidad():
+    """Universidad: estudiantes (adultos) en un vestíbulo grande, pasos y la máquina expendedora."""
+    _seed(404)
+    length, fade, pre = 10.0, 0.8, 1.0
+    total = pre + length + fade
+    people = unit_rms(crowd(total, 9, bright=3000))
+    machine = unit_rms(hum(total, 120, 6) + 0.4 * band(pink(total), 300, 900))  # compresor de la máquina
+    events = np.zeros(n_of(total))
+    footsteps(events, pre + 1.4, 7, 0.5, 0.45)
+    footsteps(events, pre + 6.5, 6, 0.55, 0.3)
+    add_at(events, door(0.6), pre + 4.8)
+    # la lata cae en la máquina (golpe metálico apagado)
+    can_t = t_of(0.4)
+    can = sum(np.sin(2 * np.pi * f * can_t) * np.exp(-can_t / d) for f, d in ((420, 0.08), (1130, 0.05), (2470, 0.03)))
+    add_at(events, unit_rms(can) * 0.35, pre + 8.2)
+    sig = 0.75 * people + 0.12 * machine + 0.5 * events
+    sig = reverb(sig, 1.8, 0.5, bright=3000)  # vestíbulo alto
+    sig = spectral(sig, lambda f: highpass_gain(f, 90) * lowpass_gain(f, 3000, 2))
+    write("amb_universidad.ogg", make_loop(sig[n_of(pre):], length, fade), loop=True)
+
+
+def amb_hospital():
+    """Hospital: ventilación constante, murmullo bajo, una camilla que pasa lejos y pasos suaves.
+    (Los pitidos del monitor van aparte en el juego: Config.Sounds.Monitor, así se oyen nítidos.)"""
+    _seed(405)
+    length, fade, pre = 10.0, 0.8, 1.0
+    total = pre + length + fade
+    vent = unit_rms(band(pink(total), 120, 1800)) + 0.15 * unit_rms(hum(total, 100, 4))
+    people = unit_rms(crowd(total, 4, bright=2400))
+    events = np.zeros(n_of(total))
+    add_at(events, roll(3.2, 0.7), pre + 1.5)
+    footsteps(events, pre + 6.0, 6, 0.6, 0.25)
+    add_at(events, door(0.4), pre + 8.9)
+    sig = 0.55 * unit_rms(vent) + 0.35 * people + 0.5 * events
+    sig = reverb(sig, 1.1, 0.4, bright=2800)  # pasillo de azulejo
+    sig = spectral(sig, lambda f: highpass_gain(f, 90) * lowpass_gain(f, 2800, 2))
+    write("amb_hospital.ogg", make_loop(sig[n_of(pre):], length, fade), loop=True)
+
+
+def amb_calle():
+    """Calle: tráfico lejano (coches que pasan y se van, rumor de ciudad) y gente a lo lejos."""
+    _seed(406)
+    length, fade, pre = 10.0, 0.8, 1.0
+    total = pre + length + fade
+    t = t_of(total)
+    city = unit_rms(band(brown(total), 35, 700))
+    cars = np.zeros(len(t))
+    for start, dur, amp in ((0.5, 3.5, 1.0), (3.2, 4.2, 0.7), (6.4, 3.0, 0.9), (8.5, 3.8, 0.6)):
+        seg = t_of(dur)
+        whoosh = unit_rms(band(noise(dur), 80, 1600)) * np.exp(-((seg - dur / 2) / (dur / 4)) ** 2) * amp
+        add_at(cars, whoosh, pre + start - 1.0)
+    people = unit_rms(crowd(total, 5, bright=2000))
+    sig = 0.7 * city + 0.6 * cars + 0.25 * people
+    sig = reverb(sig, 1.0, 0.3, bright=2500)
+    sig = spectral(sig, lambda f: highpass_gain(f, 45) * lowpass_gain(f, 2400, 2))
+    write("amb_calle.ogg", make_loop(sig[n_of(pre):], length, fade), loop=True)
+
+
+AMBIENCE = (amb_sala, amb_casa, amb_colegio, amb_universidad, amb_hospital, amb_calle)
+
+
+# ---------------------------------------------------------------------------
 # Comprobación (no se puede escuchar aquí, así que se miran los números)
 # ---------------------------------------------------------------------------
 
-LOOPS = {"motor", "tele", "multitud", "metro_tren", "metro_anden", "lluvia", "pajaros", "viento"}
+LOOPS = {"motor", "tele", "multitud", "metro_tren", "metro_anden", "lluvia", "pajaros", "viento"} | {a.__name__ for a in AMBIENCE}
 
 
 def check():
@@ -712,7 +896,8 @@ def check():
 
 ALL = (motor, claxon, timbre, tele, multitud, metro_tren, metro_freno, metro_anden, lluvia, trueno, pajaros, viento,
        choque_leve, choque_fuerte, golpe_caida, golpe_choque,
-       disparo_pistola, disparo_revolver, disparo_escopeta, disparo_subfusil, disparo_fusil, disparo_eco)
+       disparo_pistola, disparo_revolver, disparo_escopeta, disparo_subfusil, disparo_fusil, disparo_eco) + AMBIENCE
+# (los ambientes, al final: reinician la semilla y así los de antes salen igual que siempre)
 
 
 if __name__ == "__main__":
