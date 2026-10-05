@@ -206,9 +206,9 @@ local P: { [string]: { number } } = {
 	SotanoB2Abajo = { 3, -24, -25 },
 	SotanoL4 = { 6, -24, -28.5 },
 	GarajeEntrada = { 17, 1, -28.5 },
-	Garaje = { 22, 1, -20 },
-	GarajeCoche = { 24, 1, -6 },
-	GarajeBanco = { 31, 1, -24 },
+	Garaje = { 31, 1, -24 },
+	GarajeCoche = { 31, 1, -10 },
+	GarajeBanco = { 17, 1, -20 },
 	GarajeEscalera = { 40, 1, -16.5 },
 	GarajeA1 = { 43, 1, -13.5 },
 	GarajeA1Abajo = { 43, -5.25, -0.5 },
@@ -247,8 +247,9 @@ local P: { [string]: { number } } = {
 	AticoPuerta = { -24, 31, -8 },
 	Azotea = { -24, 31, 4 },
 	AzoteaMaquina = { 2, 31, 6 },
-	AticoEste = { -3, 31, -15 },
-	AzoteaDelante = { 6, 31, -18 },
+	AticoOeste = { -16, 31, -28.5 },
+	AzoteaDelante = { 6, 31, -28.5 },
+	AzoteaEste = { 6, 31, -12 },
 	-- Sótano
 	PasilloSotano = { -12, -24, -29 },
 	PasilloSotanoEste = { -1, -24, -28.5 },
@@ -308,8 +309,9 @@ local E = {
 	{ "PasilloFondo", "Experimentos" }, { "Experimentos", "ExperimentosFondo" }, { "DormitorioCama", "Balcon" },
 	{ "Balcon", "BalconEste" }, { "BalconEste", "ExperimentosFondo" },
 	-- Ático y azotea
-	{ "RellanoD", "AticoEste" }, { "RellanoD", "Control" }, { "Control", "ControlOeste" }, { "ControlOeste", "Observatorio" },
-	{ "Control", "AticoPuerta" }, { "AticoPuerta", "Azotea" }, { "Azotea", "AzoteaMaquina" }, { "AticoEste", "AzoteaDelante" },
+	{ "RellanoD", "AticoOeste" }, { "AticoOeste", "Control" }, { "Control", "ControlOeste" }, { "ControlOeste", "Observatorio" },
+	{ "Control", "AticoPuerta" }, { "AticoPuerta", "Azotea" }, { "Azotea", "AzoteaMaquina" }, { "RellanoD", "AzoteaDelante" },
+	{ "AzoteaDelante", "AzoteaEste" }, { "AzoteaEste", "AzoteaMaquina" },
 	-- Sótano
 	{ "SotanoL4", "PasilloSotanoEste" }, { "PasilloSotanoEste", "PasilloSotano" }, { "PasilloSotano", "PasilloSotanoOeste" },
 	{ "PasilloSotanoOeste", "Estanteria" }, { "Estanteria", "Secreta" }, { "Secreta", "SecretaPortal" },
@@ -445,7 +447,7 @@ Layout.Spots = {
 	CosmeObservatorio = { -39, 31, -22, 0 },
 	CosmeOrdenadores = { 6, 16, -16, 0 },
 	CosmeSecreta = { -38, -24, -33, 0 },
-	CosmeGarajeCoche = { 24, 1, -6, 0 },
+	CosmeGarajeCoche = { 31, 1, -10, 90 },
 	CosmeJardin = { -26, 0, 34, 0 },
 }
 

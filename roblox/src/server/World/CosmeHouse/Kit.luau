@@ -461,6 +461,50 @@ function Kit.slab(ctx: Ctx, parent: Instance, name: string, rect: { [string]: nu
 	return made
 end
 
+-- Pared redonda (torre del observatorio, sala de portales, torre-portal): polígono de Segments lados
+-- alrededor de (cx, cz). opts: Skip(θ) -> true para dejar ese lado abierto, Window = { Bottom, Top,
+-- Kind = "glass" }, Doors = { { Theta, Top } } (hueco de puerta en el lado más cercano a Theta)
+function Kit.ringWall(ctx: Ctx, parent: Instance, cx: number, cz: number, r: number, y0: number, y1: number, opts: { [string]: any }?): Model
+	local o = opts or {}
+	local m = Kit.group(parent, o.Name or "ParedRedonda")
+	local n = o.Segments or 16
+	local thick = o.Thick or 1
+	local chord = 2 * r * math.sin(math.pi / n) + 0.35
+	for i = 0, n - 1 do
+		local theta = (i + 0.5) / n * math.pi * 2
+		if o.Skip and o.Skip(theta) then
+			continue
+		end
+		local x, z = cx + r * math.cos(theta), cz + r * math.sin(theta)
+		local yaw = -(theta + math.pi / 2)
+		local function piece(v0: number, v1: number, name: string?, color: Color3?, material: Enum.Material?)
+			if v1 - v0 > 0.05 then
+				Kit.box(ctx, m, name or o.PieceName or "Wall", V(chord, v1 - v0, thick), CF(x, (v0 + v1) / 2, z) * ANG(0, yaw, 0), color or o.Color or C.Wall, material or o.Material or M.SmoothPlastic, { CanQuery = true })
+			end
+		end
+		local door = nil
+		for _, d in o.Doors or {} do
+			local diff = math.abs(((theta - d.Theta + math.pi) % (2 * math.pi)) - math.pi)
+			if diff < math.pi / n then
+				door = d
+			end
+		end
+		if door then
+			piece(door.Top, y1)
+		elseif o.Window then
+			local w = o.Window
+			piece(y0, w.Bottom)
+			piece(w.Top, y1)
+			local glass = Kit.glass(ctx, m, "WindowGlass", V(chord - 0.3, w.Top - w.Bottom, 0.2), CF(x, (w.Bottom + w.Top) / 2, z) * ANG(0, yaw, 0), o.GlassColor, o.GlassTransparency or 0.45, true)
+			glass.Name = "WindowGlass"
+			Kit.deco(ctx, m, "Parteluz", V(0.3, w.Top - w.Bottom, thick + 0.2), CF(x, (w.Bottom + w.Top) / 2, z) * ANG(0, yaw, 0) * CF(chord / 2 - 0.1, 0, 0), o.Frame or C.Dark, M.Metal, nil, true)
+		else
+			piece(y0, y1)
+		end
+	end
+	return m
+end
+
 -- Disco (suelo redondo de la torre, plataformas)
 function Kit.disc(ctx: Ctx, parent: Instance, name: string, x: number, z: number, radius: number, yTop: number, thick: number, color: Color3, material: Enum.Material?): BasePart
 	local p = Kit.box(ctx, parent, name, V(thick, radius * 2, radius * 2), CF(x, yTop - thick / 2, z) * ANG(0, 0, math.pi / 2), color, material, { CanQuery = true })
