@@ -300,3 +300,29 @@ de otros planetas y cristales, 14 metales de ciencia ficción, 6 orgánicos y 11
 Cada sitio tiene los atributos `Zona` (id), `Nombre` (para enseñar), `Peligro` y `Danio`
 (`false`: aún no hace daño). Lo decorativo lleva CityDetail, así que en gráficos Bajo se esconde. Hay
 como mucho 24 luces. Prueba: `scripts/test-missionzones.luau`.
+
+## Reemplazos (candidatos limpios para los «No» de arriba)
+
+Revisados en un servidor de Roblox sin ninguna puerta trasera. Detalle y qué quitar: `docs/assets-reemplazos.md`.
+Aún **no** están en el juego.
+
+| Sustituye a | Hace falta | Elegido | Otras opciones |
+|---|---|---|---|
+| 114397068371248, 72475149726020 | Palmeras / tropical | 10562894034 | 7862261626, 9501994254 (por piezas) |
+| 109211499509239 | Cerezo | 10586979345 | 15343255788, 10964163041 |
+| 126164979250031 | Arbustos | Landscaping Pack 10840661513 (`Bushes`, Roblox) | 9522573337 |
+| 116641210728889 | Hoguera | Landscaping Pack 10840661513 (`FirePit`, Roblox) | 8839325037, 9769594863 (sin su sonido) |
+| 78188971759943 | Farol de piedra japonés | 9854052347 | 12521854808 (sin su sonido), 5242410723 |
+| 11330013072 | Estatua de piedra | 4698399766 | 98862949352791 (escalar), 16920341663 |
+| 18912826861 | Autobús urbano | 16358361587 (9 062 tris, sin logos) | 4128266372 (solo mallas) |
+| 16893586720 | Autocar | 95641562400547 (sin la suciedad) | 1743965400 (solo mallas) |
+| 130974691456028 | Camión caja | 4128265113 | 7170735914 |
+| 131247677717086 | Neumático | 8448337398 | 17601139281, 5250689014 |
+| 139484418601989 | Skyline lejano | 16524471626 (1 malla, 6 076 tris) | City Building Pack 6418277837 (Roblox) |
+| 1119962617 | Colegio | 76558120171446 | 10905662931 (pesado) |
+| 70353066, 80741429 | Estadio | 15569059562 | 112163108303427 (modular) |
+| 12527638598, 16088161488 | Carreteras PBR | City Road Pack 6432233485 (Roblox) | 12790045445 (`MaterialVariant`) |
+| — | Paisaje tropical / bosque | Forest Pack 6432306802 (Roblox) + 9501994254 | 17531535054, 8011666557 |
+
+Descartados en esta búsqueda: 17430288419 (Greyhound), 116752155328441 (rótulos de marcas),
+3098736664 (imágenes bloqueadas), 102795561208384 (origen dudoso), 5511084119 (mallas de pago de Unity).
