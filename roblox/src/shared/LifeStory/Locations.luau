@@ -153,8 +153,10 @@ Locations.Places = {
 	-- La residencia de estudiantes del campus (primer año de universidad)
 	Residencia = { NameKey = "Residencia de estudiantes", Tag = "StorySpot", Attribute = { SpotId = "Residencia" }, Zone = "Campus Valmar", Radius = 14, Fallback = "ResidenciaCampus" },
 	ResidenciaCampus = { NameKey = "Residencia de estudiantes", Between = { "Universidad", "EstadioUniversitario" }, At = 0.5, Radius = 14, Fallback = "Universidad" },
-	HabitacionResidencia = { NameKey = "Tu habitación de la residencia", Tag = "StorySpot", Attribute = { SpotId = "HabitacionResidencia" }, Zone = "Campus Valmar", Inside = true, Radius = 8, Fallback = "Residencia" },
-	CocinaResidencia = { NameKey = "La cocina compartida", Tag = "StorySpot", Attribute = { SpotId = "CocinaResidencia" }, Zone = "Campus Valmar", Inside = true, Radius = 8, Fallback = "Residencia" },
+	-- El cuarto de la historia (ResidenceService.buildStorySet): una sala fija en el cielo, como las de los
+	-- edificios; se sube desde la puerta de la residencia.
+	HabitacionResidencia = { NameKey = "Tu habitación de la residencia", Tag = "StoryArea", Attribute = { AreaId = "HabitacionResidencia" }, Zone = "Campus Valmar", Inside = true, Radius = 8, Fallback = "Residencia" },
+	CocinaResidencia = { NameKey = "La cocina compartida", Tag = "StoryArea", Attribute = { AreaId = "CocinaResidencia" }, Zone = "Campus Valmar", Inside = true, Radius = 8, Fallback = "Residencia" },
 
 	-- Misiones locas (las de Cosme). Si el mapa todavía no tiene el sitio, se usa el Fallback.
 	-- La casa de Cosme ocupa la manzana de al lado de las casas familiares (World/CosmeHouse): la marca de

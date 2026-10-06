@@ -232,8 +232,16 @@ local lastEnded = -math.huge -- cuándo acabó la última escena (os.clock)
 
 local function setPlaying(delta: number)
 	playing = math.max(0, playing + delta)
-	-- Para quien no puede requerir este módulo (las armas): mientras hay escena, no se apunta
-	player:SetAttribute("InCinematic", if playing > 0 then true else nil)
+	-- Para quien no puede requerir este módulo (las armas): mientras hay escena, no se apunta. Si al
+	-- acabar sigue una escena del motor nuevo en pantalla, la marca se queda (la quita HappeningClient)
+	local happening = false
+	if playing == 0 then
+		local ok, result = pcall(function()
+			return require(script.Parent.HappeningClient).isPlaying()
+		end)
+		happening = ok and result == true
+	end
+	player:SetAttribute("InCinematic", if playing > 0 or happening then true else nil)
 	-- Sin nombres ni iconos flotantes encima de nadie durante la escena
 	CineCamera.quietLabels("Cinematica", playing > 0)
 	if playing == 0 then
@@ -636,7 +644,28 @@ local function tellDone(id: any)
 	end)
 end
 
+-- Las cabeceras y finales de capítulo (AfterScene = true en shared/LifeStory/Cinematics): si hay una
+-- escena del motor en pantalla (el montaje de cambio de etapa, Happenings/Etapas), esperan a que acabe,
+-- como mucho WAIT_SCENE s. Las demás cinemáticas salen como siempre (también dentro de una escena).
+local WAIT_SCENE = 60
+local function waitForScene()
+	local ok, scenes = pcall(function()
+		return require(script.Parent.HappeningClient) :: any
+	end)
+	if not ok or type(scenes) ~= "table" or type(scenes.isPlaying) ~= "function" then
+		return
+	end
+	local deadline = os.clock() + WAIT_SCENE
+	while os.clock() < deadline and scenes.isPlaying() do
+		task.wait(0.25)
+	end
+end
+
 function Cinematics.play(payload: { [string]: any })
+	local def = type(payload) == "table" and Definitions[payload.Id]
+	if type(def) == "table" and def.AfterScene then
+		pcall(waitForScene)
+	end
 	local cleanup: Cleanup = { Counted = false }
 	local ok, err = pcall(playImpl, payload, cleanup)
 	tellDone(payload.Id)

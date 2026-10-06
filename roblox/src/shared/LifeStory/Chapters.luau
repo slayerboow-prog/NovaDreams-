@@ -8,7 +8,11 @@
 --   IntroKey/OutroKey-> texto al empezar y al terminar (pantalla de capítulo)
 --   Main             -> misiones principales, en orden
 --   Next             -> capítulo siguiente (si la etapa lo permite)
---   IntroCinematic / OutroCinematic -> escena de cámara en lugar de la pantalla de texto (Cinematics.luau)
+--   IntroCinematic / OutroCinematic -> escena de cámara en lugar de la pantalla de texto (Cinematics.luau).
+--                       Como una serie: cada capítulo tiene su cabecera y su final. Si el capítulo acaba
+--                       con un cambio de etapa, el final es el montaje (Happenings/Etapas, en el paso
+--                       Transition de su última misión) y aquí no hace falta Outro: la cabecera del
+--                       siguiente espera en la cola de la pantalla a que acabe el montaje.
 --   Music            -> música de fondo mientras dura el capítulo (Config.Audio.Music)
 
 export type Chapter = {
@@ -87,6 +91,8 @@ local Chapters: { [string]: Chapter } = {
 		Main = { "Ins01_NuevoInstituto", "Ins02_Clubes", "Ins03_QueQuieresSer", "Pan1_MalasCompanias", "Pan2_LaNoche", "Ins04_PrimerEmpleo", "Pan3_Cruce", "Ins05_ElRumor", "Ins06_LaGranDecision" },
 		Next = "Joven_Universidad",
 		Loop = "Adol_Jornada",
+		IntroCinematic = "Ins_Entrada", -- (el final: Montaje_Adolescente_Joven, en Ins06)
+		Music = "TemaValmar",
 	},
 
 	-- Adulto joven: la universidad (unas 5 horas), solo si elegiste una carrera.
@@ -107,6 +113,7 @@ local Chapters: { [string]: Chapter } = {
 		Next = "Adulto_VolarDelNido",
 		Loop = "Uni_Jornada",
 		IntroCinematic = "Uni_PrimerDia",
+		OutroCinematic = "Uni_FinCapitulo",
 		Music = "VidaAdulta",
 	},
 
@@ -136,6 +143,8 @@ local Chapters: { [string]: Chapter } = {
 		IntroKey = "Tu vida adulta empieza de verdad: trabajo, facturas… y la gente que te importa.",
 		OutroKey = "Has volado del nido. Y el nido sigue ahí cuando vuelves.",
 		Main = { "Adu01_PrimerContrato", "Adu02_Atardecer", "Adu03_Reencuentro" },
+		IntroCinematic = "Nido_Entrada",
+		OutroCinematic = "Nido_Fin", -- (después del Montaje_Joven_Adulto de Adu03)
 		Music = "VidaAdulta",
 	},
 	Adulto_NuevaVida = {
@@ -164,8 +173,9 @@ local Chapters: { [string]: Chapter } = {
 		TitleKey = "Tu vida",
 		IntroKey = "Ahora tu vida es tuya: trabaja, compra una casa, conoce la región… Y Cosme sigue en su garaje: la Saga de la Grieta y las misiones locas te esperan en el mapa.",
 		OutroKey = "Toda una vida en Valmar. Y la historia sigue: la ciudad no se para.",
-		Main = { "Adulto_MirarAtras" },
+		Main = { "Adulto_MirarAtras" }, -- el final de la vida: Vida_MirarAtras (Happenings/Etapas)
 		Loop = "Adulto_Jornada",
+		IntroCinematic = "TuVida_Entrada",
 		Music = "VidaAdulta",
 	},
 }
