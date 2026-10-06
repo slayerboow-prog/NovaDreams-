@@ -100,7 +100,11 @@ player.Attributes.LifeStage = "Nino"
 L.services.Players = { LocalPlayer = player }
 
 local Config = L.load("src/shared/Config")
-local SoundIds = L.load("src/shared/SoundIds")
+-- Las pruebas parten de antes de subir las piezas nuevas (luego las «suben» ellas mismas)
+local SoundIds = table.clone(L.load("src/shared/SoundIds"))
+for _, name in { "descubrimiento", "intima", "tension", "resolucion", "tema_final", "amb_sala", "amb_casa", "amb_colegio", "amb_universidad", "amb_hospital", "amb_calle" } do
+	SoundIds[name] = nil
+end
 
 -- Lo que hay subido: al principio, lo de SoundIds (como en el juego); las pruebas pueden añadir más
 local uploaded: { [string]: boolean } = {}
