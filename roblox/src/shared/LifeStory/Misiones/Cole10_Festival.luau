@@ -251,7 +251,7 @@ return {
 		} },
 		Imp_Bruno = { Lines = {
 			{ S = "Bruno", T = "¿Qué miras? Ya sé que no viene nadie. La limonada está buenísima. Pero nadie se acerca a mi puesto." },
-			{ S = "Ruben", T = "(Rubén, bajito:) Es que Bruno grita «¡COMPRAD!» y la gente se asusta." },
+			{ S = "Ruben", T = "Es que Bruno grita «¡COMPRAD!» y la gente se asusta.", To = "Yo", Beat = "Aparta" },
 			{ Ask = "¿Qué haces?", Options = {
 				{ T = "Le ayudas: «Déjame a mí, sonríe y ofrece probarla gratis»", Effects = { Rel = { Bruno = 8, Ruben = 4 }, Traits = { Empatia = 1 }, Choice = { FestivalBruno = "Ayudar" } }, Then = {
 					{ S = "Narrador", T = "Pruebas gratis, sonrisas… En cinco minutos hay cola en el puesto de Bruno." },

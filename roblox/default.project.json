@@ -15,6 +15,9 @@
         "MapFilters": {
           "$className": "RemoteEvent"
         },
+        "GraphicsChoice": {
+          "$className": "RemoteEvent"
+        },
         "CosmeHouse": {
           "$className": "RemoteEvent"
         },

@@ -2638,6 +2638,12 @@ local function onStoryEvent(player: Player, name: string, payload: { [string]: a
 		-- Al morir o al ser detenido se corta la conversación (no cuenta: se repetirá al volver,
 		-- no desde la celda); los controles vuelven solos
 		DialogueService.cancel(player, name)
+		-- Y el minijuego: no cuenta como perdido (no se llama a su final) y la historia no se queda
+		-- ocupada; el paso se vuelve a proponer al volver (stepTimers: startInteractive)
+		if MiniGameService.isRunning(player) then
+			pcall(MiniGameService.cancel, player)
+			runtime[player].Busy = false
+		end
 	end
 	if name == "Revived" and not payload.Jailed then
 		-- (se espera un poco: al avisar, el hospital aún no ha quitado "Dead" y puede detenerte justo después)

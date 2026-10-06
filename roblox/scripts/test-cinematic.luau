@@ -1341,8 +1341,7 @@ do
 		happeningRemote.OnClientEvent:Fire("Stop", { Run = run, Skipped = true })
 	end)
 	check(seconds > 0 and mid.Controls and mid.Camera, "Cinemática dentro de una escena: al acabar la cinemática, la escena sigue con su cámara y sin controles")
-	knownBug(mid.Flag, "…y sigue marcada InCinematic (las armas y las frases sueltas no se cuelan)",
-		"Cinematics.luau:236 (setPlaying) quita InCinematic sin mirar HappeningClient.isPlaying()")
+	check(mid.Flag, "…y sigue marcada InCinematic (las armas y las frases sueltas no se cuelan)")
 	restoredCheck("…y al acabar la escena todo vuelve")
 end
 
@@ -1357,8 +1356,7 @@ do
 		opened = DialogueUI.isOpen()
 		happeningRemote.OnClientEvent:Fire("Stop", { Run = run, Skipped = true })
 	end)
-	knownBug(not opened, "Una conversación no se abre encima de una escena del motor nuevo",
-		"DialogueUI.luau:641/654 solo espera a Cinematics.isPlaying(), no a HappeningClient.isPlaying()")
+	check(not opened, "Una conversación no se abre encima de una escena del motor nuevo")
 	readUntilClosed(6)
 	check(seconds > 0, "Escena + conversación: la escena termina")
 	restoredCheck("…y al final todo vuelve (cámara, controles, InDialogue, InCinematic)")
@@ -1508,8 +1506,7 @@ do
 	else
 		skip("Ocultar a los otros jugadores en plano aún no existe en el juego (paquete P2, C-16): se omite")
 	end
-	knownBug(namesStuck == 0, ("Al acabar, el NOMBRE flotante del otro jugador vuelve (no ha vuelto %d veces)"):format(namesStuck),
-		"CineCamera.luau:290-294 (restoreAll) no devuelve el nombre si la cabeza tiene LocalTransparencyModifier ≥ 1, y SceneClient (C-16) aún tiene al otro jugador oculto en ese momento; SceneClient.showOther no lo devuelve")
+	check(namesStuck == 0, ("Al acabar, el NOMBRE flotante del otro jugador vuelve (no ha vuelto %d veces)"):format(namesStuck))
 end
 
 frames = false

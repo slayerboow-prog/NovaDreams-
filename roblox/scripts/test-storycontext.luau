@@ -225,6 +225,10 @@ local story3 = H.profiles[habla].Story
 waitFor(function()
 	return story3.Active[PROLOGUE] ~= nil
 end, 3)
+-- (la escena de apertura sigue en pantalla un momento: mientras, la historia no abre nada encima)
+waitFor(function()
+	return habla:GetAttribute("InScene") ~= true
+end, 3)
 story3.Active[PROLOGUE].Step = 5 -- (directamente al paso de hablar)
 habla.Hold = true -- "está leyendo": la conversación se queda abierta
 Service.interact(habla, "Actor", PROLOGUE, "Cosme")
@@ -236,7 +240,11 @@ check(waitFor(function()
 end, 3), "saltar a media conversación la cierra (la caja se cierra y vuelven los controles)")
 H.release(habla)
 
--- Volver a jugarlo desde «Mi historia»
+-- Volver a jugarlo desde «Mi historia» (cuando acaba la escena del nacimiento que sale al saltarlo:
+-- encima de una escena no se empieza nada)
+waitFor(function()
+	return habla:GetAttribute("InScene") ~= true
+end, 3)
 H.fromClient(habla, "Prologue", "Replay")
 check(waitFor(function()
 	return story3.Active[PROLOGUE] ~= nil and habla:GetAttribute("InPrologue") == true

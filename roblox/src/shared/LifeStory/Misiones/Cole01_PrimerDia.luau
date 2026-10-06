@@ -112,7 +112,7 @@ return {
 		-----------------------------------------------------------------
 		-- ESCENA 1 · Casa: despertar
 		-----------------------------------------------------------------
-		{ Type = "Scene", Dialogue = "Despertar", Teleport = "HomeDormitorio", Text = "Despierta: hoy empiezas el cole",
+		{ Type = "Scene", Dialogue = "Despertar", Teleport = { Place = "HomeDormitorio", Fade = true }, Text = "Despierta: hoy empiezas el cole",
 			Actors = { FAMILIA_DORMITORIO, ABU_SALON } },
 
 		-----------------------------------------------------------------
@@ -179,7 +179,8 @@ return {
 		-----------------------------------------------------------------
 		-- ESCENA 6 · Primera clase
 		-----------------------------------------------------------------
-		{ Type = "Scene", Dialogue = "Bienvenida", Actors = CLASE },
+		-- (escena del motor: Lucía te presenta y la clase entera se gira a mirarte)
+		{ Type = "Cinematic", Id = "Cole01_Bienvenida", Actors = CLASE },
 		{ Type = "Choice", Key = "Asiento", Text = "Elige dónde sentarte (las sillas brillantes)",
 			Options = {
 				{ Id = "Sara", Prop = "AsientoSara", Text = "Delante, junto a Sara", Effects = { Rel = { Sara = 8 }, Traits = { Curiosidad = 1 } } },
@@ -188,11 +189,11 @@ return {
 			},
 			Actors = CLASE },
 		{ Type = "Scene", Dialogue = "Presentaciones", If = { Choices = { Asiento = "Sara" } },
-			Teleport = { Place = "PupitreA", Index = 3, Offset = V(2.4, 0, 0) }, Actors = CLASE },
+			Teleport = { Place = "PupitreA", Index = 3, Offset = V(2.4, 0, 0), Fade = true }, Actors = CLASE },
 		{ Type = "Scene", Dialogue = "Presentaciones", If = { Choices = { Asiento = "Nico" } },
-			Teleport = { Place = "PupitreA", Index = 14, Offset = V(2.4, 0, 0) }, Actors = CLASE },
+			Teleport = { Place = "PupitreA", Index = 14, Offset = V(2.4, 0, 0), Fade = true }, Actors = CLASE },
 		{ Type = "Scene", Dialogue = "Presentaciones", If = { Choices = { Asiento = "Mateo" } },
-			Teleport = { Place = "PupitreA", Index = 11, Offset = V(2.4, 0, 0) }, Actors = CLASE },
+			Teleport = { Place = "PupitreA", Index = 11, Offset = V(2.4, 0, 0), Fade = true }, Actors = CLASE },
 		{ Type = "Class", Subject = "Matematicas", Mode = "Clase", Place = "AulaA", Text = "Tu primera clase: Matemáticas", Actors = CLASE },
 
 		-----------------------------------------------------------------
@@ -214,7 +215,8 @@ return {
 		-----------------------------------------------------------------
 		-- ESCENA 8 · El problema: a Mateo se le caen los libros
 		-----------------------------------------------------------------
-		{ Type = "Scene", Dialogue = "LibrosCaen", Actors = with(RECREO, MATEO_PATIO),
+		-- (escena del motor: el golpe, la risa de Rubén, la cara de Mateo y sus cosas por el suelo)
+		{ Type = "Cinematic", Id = "Cole01_LibrosCaen", Actors = with(RECREO, MATEO_PATIO),
 			Props = { "Libro1", "Libro2", "Libro3", "Libro4" } },
 		{ Type = "Group", Text = "¿Ayudas a Mateo a recoger sus cosas?",
 			Steps = {
@@ -234,9 +236,9 @@ return {
 		-----------------------------------------------------------------
 		-- FINAL · Vuelta a casa y cena
 		-----------------------------------------------------------------
-		{ Type = "Scene", Dialogue = "FinDeClases", Actors = { { Npc = "Lucia", Place = "Patio", Offset = V(0, 0, -16) } } },
+		{ Type = "Scene", Dialogue = "FinDeClases", Actors = { { Npc = "Lucia", Place = "Patio", Offset = V(0, 0, -16) }, { Npc = "Ramon", Place = "Patio", Offset = V(7, 0, -19) } } },
 		{ Type = "Reach", Place = "CasaFamiliar", Text = "Vuelve a casa" },
-		{ Type = "Scene", Dialogue = "Cena", Teleport = "HomeCocina",
+		{ Type = "Scene", Dialogue = "Cena", Teleport = { Place = "HomeCocina", Fade = true },
 			Actors = { FAMILIA_COCINA, { Npc = "Abu", Place = "HomeCocina", Offset = V(1.5, 0, -3) } } },
 	},
 
@@ -377,17 +379,19 @@ return {
 		} },
 
 		ConoceLucia = { Lines = {
-			{ S = "Lucia", T = "¡Hola! Tú debes de ser {nombre}. Yo soy Lucía, tu tutora de 1.º A." },
-			{ S = "Lucia", T = "Ya estás aquí. Buena señal.", If = { NotFlags = { "LlegasTarde" } } },
-			{ S = "Lucia", T = "Un poquito tarde, ¿eh? Hoy te lo perdono. Mañana, un poco antes.", If = { Flags = { "LlegasTarde" } } },
-			{ S = "Lucia", T = "Antes de empezar, tengo una misión para ti: conoce el colegio: la biblioteca, el comedor, el patio, el gimnasio y el campo." },
-			{ S = "Lucia", T = "Por el camino encontrarás gente que te contará cosas. Y luego… encuentra por tu cuenta tu aula. Es la de 1.º A." },
+			{ S = "Lucia", T = "¡Hola! Tú debes de ser {nombre}. Yo soy Lucía, tu tutora de 1.º A.", To = "Yo", Shot = "Medio:Lucia", A = "Happy" },
+			{ S = "Lucia", T = "Ya estás aquí. Buena señal.", To = "Yo", If = { NotFlags = { "LlegasTarde" } } },
+			{ S = "Lucia", T = "Un poquito tarde, ¿eh? Hoy te lo perdono. Mañana, un poco antes.", To = "Yo", Beat = "Mira", Shot = "PrimerPlano:Lucia", If = { Flags = { "LlegasTarde" } } },
+			{ S = "Ramon", T = "Apuntado en mi libreta, Lucía. Jejeje.", To = "Lucia", If = { Flags = { "LlegasTarde" } } },
+			{ S = "Lucia", T = "Antes de empezar, una misión para ti: conoce el colegio.", To = "Yo", Pause = 0.4, Shot = "Hombro:Yo>Lucia" },
+			{ S = "Lucia", T = "La biblioteca, el comedor, el patio, el gimnasio y el campo. Todo.", G = "Point" },
+			{ S = "Lucia", T = "Por el camino encontrarás gente que te contará cosas. Y luego… encuentra tu aula tú solo. La de 1.º A.", Beat = "Sonrie" },
 			{ Ask = "¿Qué le dices?", Options = {
 				{ T = "¡Hecho! Me encanta explorar.", Effects = { Traits = { Valentia = 1 }, Rel = { Lucia = 3 } }, Then = {
 					{ S = "Lucia", T = "Eso quiero ver. ¡Suerte, y a explorar!" },
 				} },
 				{ T = "¿Y si me pierdo?", Effects = { Rel = { Lucia = 3 } }, Then = {
-					{ S = "Lucia", T = "Entonces preguntas. Preguntar no es de perdidos: es de listos." },
+					{ S = "Lucia", T = "Entonces preguntas. Preguntar no es de perdidos: es de listos.", Beat = "Piensa", Shot = "PrimerPlano:Lucia" },
 				} },
 			} },
 		}, Effects = { Remember = { { Npc = "Lucia", Fact = "SeConocen" } } } },
@@ -412,35 +416,29 @@ return {
 			{ S = "Ramon", T = "Y si alguna vez pierdes algo en este cole, pregúntame. Yo encuentro de todo." },
 		}, Effects = { Flags = { "SabeDelAlmacen" } } },
 
-		Bienvenida = { Lines = {
-			{ S = "Lucia", T = "¡Mirad quién ha encontrado el aula! Chicos, chicas: hoy tenemos a alguien nuevo en clase." },
-			{ S = "Nico", T = "¿Juegas al fútbol? Necesitamos uno para el recreo." },
-			{ S = "Sara", T = "Nico, déjale llegar. Hola. Soy Sara. Tengo ya los deberes de mañana hechos." },
-			{ S = "Bruno", T = "Otro más… Como si no fuéramos ya muchos." },
-			{ S = "Lucia", T = "Bruno. Eso no se dice. Buscad sitio, que empezamos." },
-		} },
-
 		Presentaciones = { Lines = {
 			{ S = "Sara", T = "Has elegido bien: aquí delante se entiende todo. Y la pizarra no tiene reflejos.", If = { Choices = { Asiento = "Sara" } } },
 			{ S = "Nico", T = "¡Bien! Desde aquí se ve la ventana y el campo. Si miras mucho, Lucía te pilla.", If = { Choices = { Asiento = "Nico" } } },
-			{ S = "Narrador", T = "El niño de al lado te mira un segundo y vuelve a su cuaderno. Tiene un álbum de cromos debajo del estuche.", If = { Choices = { Asiento = "Mateo" } } },
+			{ S = "Mateo", T = "…Hola.", Beat = "Baja", A = "Ashamed", Shot = "PrimerPlano:Mateo", If = { Choices = { Asiento = "Mateo" } } },
 			{ S = "Ruben", T = "Psst. Te has sentado en la fila de los guays. Jejeje.", If = { Choices = { Asiento = "Mateo" } } },
-			{ S = "Lucia", T = "Vamos a presentarnos. Cada uno dice su nombre y algo que le guste. {nombre}, empiezas tú." },
+			{ S = "Lucia", T = "Vamos a presentarnos. Cada uno dice su nombre y algo que le guste.", Shot = "Medio:Lucia" },
+			{ S = "Lucia", T = "{nombre}, empiezas tú.", To = "Yo", Pause = 0.5, Beat = "Mira" },
 			{ Ask = "Te toca. ¿Qué dices?", Options = {
 				{ T = "Soy {nombre} y me encanta el fútbol.", Effects = { Choice = { Gusto = "Futbol" } }, Then = {
 					{ S = "Nico", T = "¡LO SABÍA! ¡Recreo, partido, tú y yo!" },
 				} },
 				{ T = "Soy {nombre} y me gusta dibujar.", Effects = { Choice = { Gusto = "Dibujar" } }, Then = {
-					{ S = "Omar", T = "(Omar levanta el pulgar sin dejar de dibujar)" },
+					{ S = "Omar", T = "Mola.", A = "Nod", Shot = "Reaccion:Omar" },
 				} },
 				{ T = "Soy {nombre} y me encantan los experimentos.", Effects = { Choice = { Gusto = "Ciencia" } }, Then = {
 					{ S = "Sara", T = "¿Experimentos de verdad? ¿Con volcanes? Tenemos que hablar." },
 				} },
 				{ T = "Soy {nombre} y me gusta… dormir cinco minutitos más.", Effects = { Choice = { Gusto = "Dormir" }, Traits = { Humor = 1 } }, Then = {
-					{ S = "Narrador", T = "Toda la clase se ríe. Hasta Lucía." },
-					{ S = "Lucia", T = "Tomo nota para cuando llegues tarde." },
+					{ S = "Nico", T = "¡Jajajaja!", A = "Laugh" },
+					{ S = "Lucia", T = "Tomo nota para cuando llegues tarde.", A = "Laugh", Shot = "PrimerPlano:Lucia" },
 				} },
 			} },
+			{ S = "Lucia", T = "Se nota que lo traías ensayado. Así da gusto.", If = { Flags = { "EnsayoEspejo" } }, A = "Happy" },
 			{ S = "Lucia", T = "Muy bien. Y ahora… ¡matemáticas! Sin quejas, que se oyen desde aquí." },
 		} },
 
@@ -502,15 +500,8 @@ return {
 			{ S = "Iker", T = "¿Sabías que el recreo se inventó para que los cerebros descansen? Bueno, lo he leído en algún sitio." },
 		} },
 
-		LibrosCaen = { Lines = {
-			{ S = "Narrador", T = "¡PLAF! A tu lado, un niño tropieza y todo lo que llevaba sale volando: libros, un cuaderno y un álbum de cromos." },
-			{ S = "Ruben", T = "¡Jajajaja! ¡Mirad al nuevo número dos!" },
-			{ S = "Mateo", T = "…" },
-			{ S = "Narrador", T = "Es el niño callado de clase. Mateo. El hermano de Dani.", If = { Flags = { "PaseADani" } } },
-			{ S = "Narrador", T = "Puedes ayudarle a recogerlo todo… o seguir con tu recreo." },
-		} },
 		MateoGracias = { Lines = {
-			{ S = "Mateo", T = "G-gracias. Nadie… Bueno. Gracias." },
+			{ S = "Mateo", T = "G-gracias. Nadie… Bueno. Gracias.", Beat = "Baja", A = "Ashamed", Shot = "PrimerPlano:Mateo" },
 			{ S = "Mateo", T = "¿Fuiste tú quien le pasó el balón a mi hermano esta mañana? No para de hablar de ti.", If = { Flags = { "PaseADani" } } },
 			{ S = "Mateo", T = "Dani dice que alguien esta mañana casi le da a una farola con su balón. ¿Fuiste tú? Jeje.", If = { Flags = { "FallastePase" } } },
 			{ S = "Mateo", T = "Me llamo Mateo. Colecciono cromos. Tengo repetido el portero legendario, por si… por si lo quieres." },
@@ -518,7 +509,7 @@ return {
 			{ S = "Mateo", T = "¿En serio? Entonces… somos del mismo equipo.", If = { Flags = { "LlevaCromo" } } },
 			{ Ask = "¿Qué le dices?", Options = {
 				{ T = "¿Mañana te sientas conmigo?", Effects = { Rel = { Mateo = 8 } }, Then = {
-					{ S = "Mateo", T = "(Mateo sonríe por primera vez en todo el día) Vale." },
+					{ S = "Mateo", T = "Vale.", Beat = "Sonrie", A = "Happy", Shot = "PrimerPlano:Mateo" },
 				} },
 				{ T = "Tu hermano dice que te rías más.", Effects = { Rel = { Mateo = 5 }, Traits = { Humor = 1 } }, Then = {
 					{ S = "Mateo", T = "Jajaja… Dani siempre dice eso. Es un pesado. Pero tiene razón." },
@@ -526,22 +517,25 @@ return {
 			} },
 		} },
 		MateoSolo = { Lines = {
-			{ S = "Narrador", T = "Mateo recoge sus cosas él solo, sin levantar la vista. Rubén sigue riéndose." },
-			{ S = "Narrador", T = "Mateo se va a comer su bocadillo al rincón más lejano del patio." },
+			{ S = "Ruben", T = "Jejeje… El nuevo número dos. Jejeje.", A = "Laugh", Shot = "Reaccion:Ruben" },
+			{ S = "Mateo", T = "…", Beat = "Baja", A = "Ashamed", Shot = "PrimerPlano:Mateo" },
+			{ S = "Narrador", T = "Mateo recoge sus cosas él solo y se va a comer su bocadillo al rincón más lejano del patio." },
 		} },
 
 		FinDeClases = { Lines = {
 			{ S = "Narrador", T = "El resto del día pasa volando: más clases, más nombres nuevos, más ruido." },
 			{ S = "Lucia", T = "¡Hasta mañana! Y recordad: mañana, con la mochila. ¡Que siempre hay alguno que se la deja!" },
-			{ S = "Ramon", T = "(desde la puerta) ¡O que la pierde! ¡Jejeje!" },
+			{ S = "Ramon", T = "¡O que la pierde! ¡Jejeje!", To = "Lucia", A = "Laugh", Shot = "Reaccion:Ramon" },
 		} },
 
 		Cena = { Lines = {
-			{ S = "Familia", T = "¡Por fin! Siéntate, que he hecho macarrones. ¿Y bien? ¿Qué tal tu primer día?" },
-			{ S = "Abu", T = "Cuéntanoslo todo. Con detalles, que yo ya no me entero de nada." },
+			{ S = "Familia", T = "¡Por fin! Siéntate, que he hecho macarrones. ¿Y bien? ¿Qué tal tu primer día?", To = "Yo", Shot = "Hombro:Yo>Familia" },
+			{ S = "Abu", T = "Cuéntanoslo todo. Con detalles, que yo ya no me entero de nada.", To = "Yo", Shot = "PrimerPlano:Abu", A = "Happy" },
+			{ S = "Familia", T = "Y lo de llegar tarde… Mañana salimos cinco minutos antes. Los cinco minutitos, ya sabes.", To = "Yo", If = { Flags = { "LlegasTarde" } }, A = "Shrug" },
+			{ S = "Abu", T = "¿Y los dinosaurios de la camiseta? ¿Han causado sensación?", To = "Yo", If = { Choices = { Ropa = "Dinosaurios" } } },
 			{ Ask = "¿Qué les cuentas primero?", Options = {
 				{ T = "¡He hecho un amigo! Se llama Mateo.", If = { Flags = { "AyudasteAMateo" } }, Effects = { Rel = { Familia = 3 } }, Then = {
-					{ S = "Abu", T = "¿Ves? Lo que te dije: el que ayuda nunca está solo." },
+					{ S = "Abu", T = "¿Ves? Lo que te dije: el que ayuda nunca está solo.", Beat = "Sonrie", Shot = "PrimerPlano:Abu" },
 				} },
 				{ T = "Me he sentado con Sara. ¡Sabe muchísimo!", If = { Choices = { Asiento = "Sara" } }, Then = {
 					{ S = "Familia", T = "Una buena compañera de pupitre vale oro. Ya verás en los exámenes." },
@@ -559,8 +553,9 @@ return {
 					{ S = "Familia", T = "«No tanto» en idioma de niño significa «me lo he pasado genial». Lo sé." },
 				} },
 			} },
-			{ S = "Familia", T = "¿Y ese niño que se cayó? ¿Nadie le ayudó? Mañana, si le ves solo, ve con él.", If = { Flags = { "IgnorasteAMateo" } } },
-			{ S = "Familia", T = "Qué orgullo, de verdad. Primer día: superado." },
+			{ S = "Familia", T = "¿Y ese niño que se cayó? ¿Nadie le ayudó?", To = "Yo", If = { Flags = { "IgnorasteAMateo" } }, Beat = "Piensa" },
+			{ S = "Familia", T = "Mañana, si le ves solo, ve con él. ¿Vale?", To = "Yo", If = { Flags = { "IgnorasteAMateo" } } },
+			{ S = "Familia", T = "Qué orgullo, de verdad. Primer día: superado.", Pause = 0.6, Beat = "Sonrie", Shot = "Reaccion:Familia" },
 			{ S = "Narrador", T = "Primer día de colegio: completado. Pero esto… no ha hecho más que empezar." },
 		} },
 	},

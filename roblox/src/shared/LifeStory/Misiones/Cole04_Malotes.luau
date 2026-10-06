@@ -104,7 +104,8 @@ return {
 
 		-- ¡Ahí están! La persecución
 		{ Type = "Reach", Place = "PasilloColegio", Text = "Ve al pasillo", Actors = MALOTES_PATIO },
-		{ Type = "Scene", Dialogue = "LosVes", Actors = {
+		-- (escena del motor: los pillas con lo tuyo, les plantas cara y salen corriendo)
+		{ Type = "Cinematic", Id = "Cole04_LosVes", Actors = {
 			{ Npc = "Bruno", Place = "PasilloColegio", Offset = V(0, 0, 3) },
 			{ Npc = "Ruben", Place = "PasilloColegio", Offset = V(3, 0, 2) },
 			{ Npc = "Hugo", Place = "PasilloColegio", Offset = V(-3, 0, 2) },
@@ -142,19 +143,22 @@ return {
 				{ Npc = "Nico", Mode = "Follow" },
 				{ Npc = "Sara", Mode = "Follow" },
 				{ Npc = "Omar", Mode = "Follow" },
+				{ Npc = "Hugo", Mode = "Follow" },
 			} },
 		-- D) Dejarlo estar
 		{ Type = "Scene", Dialogue = "Rama_Ignorar", If = { Choices = { Malotes = "Ignorar" } }, Actors = { HUGO_ESCONDIDO } },
 
-		{ Type = "Scene", Dialogue = "Cierre" },
+		{ Type = "Scene", Dialogue = "Cierre", Actors = {
+			{ Npc = "Hugo", Place = "Patio", Offset = V(10, 0, -6), Mode = "Wave", If = { NotFlags = { "HugoSolo" } } },
+		} },
 	},
 
 	Dialogues = {
 		Burlas = { Lines = {
 			{ S = "Narrador", T = "Recreo. Tu grupo está en el banco de siempre. Hasta que llegan ellos." },
 			{ S = "Bruno", T = "Mira, mira. El grupito del banco. ¿Qué pasa, os habéis perdido?" },
-			{ S = "Bruno", T = "¿Seguís con ese nombre? «{grupo}». Suena a club de abuelos." },
-			{ S = "Ruben", T = "(Rubén se ríe… pero bajito, y no te mira)", If = { Flags = { "Ruben_Perdonado" } } },
+			{ S = "Bruno", T = "¿Seguís con ese nombre? «{grupo}». Suena a club de abuelos.", A = "HandsOnHips", Shot = "Hombro:Yo>Bruno" },
+			{ S = "Ruben", T = "Je… je.", Beat = "Aparta", A = "Ashamed", If = { Flags = { "Ruben_Perdonado" } } },
 			{ S = "Ruben", T = "¡Cuidado, que aquí hay quien se chiva! ¡Que viene Lucía! Jajaja.", If = { Flags = { "AvisasteALucia" } } },
 			{ S = "Bruno", T = "El otro día ganasteis de chiripa. La próxima os vais a enterar.", If = { Flags = { "PartidoGanado" } } },
 			{ S = "Hugo", T = "…Bruno, vámonos ya." },
@@ -208,12 +212,6 @@ return {
 			{ S = "Ramon", T = "Y cuando les pillan, salen corriendo hacia el gimnasio. Se creen que no lo sé. Lo sé todo." },
 		} },
 
-		LosVes = { Lines = {
-			{ S = "Narrador", T = "Ahí están, junto a las taquillas. Bruno tiene en la mano algo pequeño que brilla." },
-			{ S = "Yo", T = "¡Eh! ¡Eso es mío!" },
-			{ S = "Bruno", T = "¡Corred!" },
-			{ S = "Narrador", T = "Salen disparados hacia el patio. ¡Corre tras ellos! (Mantén Shift para correr; vigila tu estamina.)" },
-		} },
 		RamonAparece = { Lines = {
 			{ S = "Ramon", T = "¿QUIÉN ESTÁ CORRIENDO POR MI PATIO?" },
 			{ S = "Narrador", T = "¡Ramón! Si te ve corriendo, te toca charla. Rápido, ¡escóndete detrás de las cajas!" },
@@ -235,8 +233,10 @@ return {
 			{ S = "Narrador", T = "Detrás del gimnasio, Hugo se ha quedado sin aire. No sigue corriendo. Se sienta en el bordillo." },
 			{ S = "Hugo", T = "Vale… vale. Me rindo. No sé correr. Nunca he sabido." },
 			{ S = "Yo", T = "¿Por qué lo habéis hecho?" },
-			{ S = "Hugo", T = "Yo no quería. Bruno dijo «cógelo tú, que a ti no te vigilan». Y yo… no sé decir que no." },
-			{ S = "Hugo", T = "Bruno no es tan malo. Su hermano mayor se ríe de él todo el rato. Y él… hace lo mismo con los demás." },
+			{ S = "Yo", T = "Mateo te vio cogerlo. Dice que ponías cara de no querer.", If = { Flags = { "PistaHugo" } } },
+			{ S = "Hugo", T = "Yo no quería. Bruno dijo «cógelo tú, que a ti no te vigilan». Y yo… no sé decir que no.", Beat = "Baja", A = "Ashamed", Shot = "PrimerPlano:Hugo" },
+			{ S = "Hugo", T = "Bruno no es tan malo. Su hermano mayor se ríe de él todo el rato.", Pause = 0.4 },
+			{ S = "Hugo", T = "Y él… hace lo mismo con los demás.", Beat = "Piensa" },
 			{ S = "Yo", T = "El otro día vi tu libro de piratas en el almacén.", If = { Flags = { "SabeLibroHugo" } } },
 			{ S = "Hugo", T = "¿«La isla de las mil llaves»? ¿Lo has leído? …Nadie se fija en eso. Bruno dice que leer es de pringados.", If = { Flags = { "SabeLibroHugo" } } },
 		} },
@@ -269,27 +269,29 @@ return {
 			{ S = "Lucia", T = "Hablaré con Bruno. Y con su familia. Esto no es una broma: es hacer daño. Y hay que pararlo." },
 		}, Effects = { Flags = { "Bruno_Castigado" }, Rel = { Bruno = -8, Hugo = 5 } } },
 		Rama_Hablar = { Lines = {
-			{ S = "Bruno", T = "¿Qué quieres? ¿Vienes a chivarte?" },
-			{ S = "Yo", T = "No. Vengo a hablar contigo. Hugo me lo ha contado todo. Lo de tu hermano también." },
-			{ S = "Bruno", T = "…Hugo habla demasiado." },
-			{ S = "Bruno", T = "Mi hermano me llama enano. Delante de sus amigos. Todos los días. ¿Contento?" },
+			{ S = "Bruno", T = "¿Qué quieres? ¿Vienes a chivarte?", To = "Yo", A = "ArmsCrossed", Shot = "Hombro:Yo>Bruno" },
+			{ S = "Yo", T = "No. Vengo a hablar contigo. Hugo me lo ha contado todo. Lo de tu hermano también.", Shot = "Hombro:Bruno>Yo" },
+			{ S = "Bruno", T = "…Hugo habla demasiado.", Beat = "Aparta", Shot = "PrimerPlano:Bruno" },
+			{ S = "Bruno", T = "Mi hermano me llama enano. Delante de sus amigos. Todos los días.", Pause = 1, Beat = "Baja", A = "Sad", Shot = "PPP:Bruno" },
+			{ S = "Bruno", T = "¿Contento?", Beat = "Mira", A = "Angry" },
 			{ Ask = "¿Qué le dices?", Options = {
 				{ T = "Pues ya sabes lo que se siente. No se lo hagas a otros.", Effects = { Rel = { Bruno = 6 }, Traits = { Empatia = 2 } }, Then = {
-					{ S = "Bruno", T = "…Ya. Vale. Lo pillo. No te prometo nada. Pero lo pillo." },
+					{ S = "Bruno", T = "…Ya. Vale. Lo pillo. No te prometo nada. Pero lo pillo.", Beat = "Piensa", Shot = "PrimerPlano:Bruno" },
 				} },
 				{ T = "Eso no te da derecho a quitarme las cosas.", Effects = { Rel = { Bruno = 2 }, Traits = { Valentia = 1 } }, Then = {
-					{ S = "Bruno", T = "Ya lo sé. Ya lo SÉ. …Perdona. Ya está. No me hagas repetirlo." },
+					{ S = "Bruno", T = "Ya lo sé. Ya lo SÉ.", A = "Angry" },
+					{ S = "Bruno", T = "…Perdona. Ya está. No me hagas repetirlo.", Pause = 0.8, Beat = "Aparta", A = "Ashamed", Shot = "PPP:Bruno" },
 				} },
 			} },
-			{ S = "Ruben", T = "(Rubén os mira a los dos, sorprendido. Nunca había oído a Bruno pedir perdón.)" },
+			{ S = "Ruben", T = "¿Bruno pidiendo perdón? …Vale. Yo no he visto nada.", A = "Surprised", Shot = "Reaccion:Ruben" },
 		}, Effects = { Flags = { "Bruno_HablasteConEl" } } },
 		Rama_Grupo = { Lines = {
-			{ S = "Nico", T = "Bruno. Somos cinco. Y estamos hartos." },
+			{ S = "Nico", T = "Bruno. Somos {grupo}. Somos cinco. Y estamos hartos.", To = "Bruno", A = "HandsOnHips", Shot = "DosPlanos:Nico,Bruno" },
 			{ S = "Sara", T = "Tenemos pruebas: testigos, un dibujo de Omar y el horario. Si sigues, se lo contamos a Lucía." },
 			{ S = "Omar", T = "El dibujo es muy bueno, por cierto. Sales tú con cara de culpable." },
-			{ S = "Bruno", T = "…Vale, vale. Os dejamos en paz. Qué pesados." },
-			{ S = "Bruno", T = "(A Hugo, que se ha quedado con vosotros) ¿Tú no vienes?" },
-			{ S = "Hugo", T = "…No. Hoy no." },
+			{ S = "Bruno", T = "…Vale, vale. Os dejamos en paz. Qué pesados.", Beat = "Aparta" },
+			{ S = "Bruno", T = "¿Tú no vienes, Hugo?", To = "Hugo", Pause = 0.6, Shot = "Hombro:Bruno>Hugo" },
+			{ S = "Hugo", T = "…No. Hoy no.", To = "Bruno", Pause = 1, Beat = "Respira", Shot = "PrimerPlano:Hugo" },
 		}, Effects = { Flags = { "HugoConElGrupo" }, Rel = { Hugo = 8, Nico = 3, Sara = 3, Omar = 3 } } },
 		Rama_Ignorar = { Lines = {
 			{ S = "Narrador", T = "Te das la vuelta y te vas. Ya tienes lo tuyo." },
@@ -298,7 +300,7 @@ return {
 
 		Cierre = { Lines = {
 			{ S = "Narrador", T = "Ese día aprendiste algo: casi nadie es malo del todo. Y casi nadie es valiente del todo." },
-			{ S = "Narrador", T = "Hugo, desde la otra punta del patio, te saluda con la mano. Es la primera vez que le ves sonreír.", If = { NotFlags = { "HugoSolo" } } },
+			{ S = "Hugo", T = "¡{nombre}! …Gracias.", To = "Yo", Pause = 0.6, A = "WaveLite", Shot = "Reaccion:Hugo", If = { NotFlags = { "HugoSolo" } } },
 		} },
 	},
 }

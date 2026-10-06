@@ -152,7 +152,7 @@ return {
 		{ Type = "Reach", Place = "CasaFamiliar", Text = "Pide permiso en casa", If = { Choices = { Permiso = "Casa" } } },
 		{ Type = "Talk", Npc = "Familia", Dialogue = "Permiso", Text = "Habla con {familia}", If = { Choices = { Permiso = "Casa" } },
 			Actors = { { Npc = "Familia", Place = "HomeSalon", Offset = V(0, 0, -2) } } },
-		{ Type = "Scene", Dialogue = "Quedada", Teleport = "CasaSalida", Actors = AMIGOS_SIGUEN },
+		{ Type = "Scene", Dialogue = "Quedada", Teleport = { Place = "CasaSalida", Fade = true }, Actors = AMIGOS_SIGUEN },
 		{ Type = "Reach", Place = "Parque", Text = "Ve al parque con tus amigos (te siguen)", Actors = AMIGOS_SIGUEN },
 		{ Type = "Group", Text = "Pasa la tarde en el parque", Need = 3,
 			Steps = {
@@ -234,7 +234,7 @@ return {
 		PrePartido = { Lines = {
 			{ S = "Andres", T = "¡Bien! Partido amistoso. A-MIS-TO-SO. Sin empujones, sin trampas y dando la mano al final. ¿Entendido?" },
 			{ S = "Bruno", T = "Mirad quién viene. Quien se chiva a los profes.", If = { Flags = { "AvisasteALucia" } } },
-			{ S = "Ruben", T = "(Rubén te guiña un ojo) Suerte. Pero no mucha, ¿eh?", If = { Flags = { "Ruben_Perdonado" } } },
+			{ S = "Ruben", T = "Suerte. Pero no mucha, ¿eh?", To = "Yo", A = "WaveLite", If = { Flags = { "Ruben_Perdonado" } } },
 			{ S = "Ruben", T = "Hoy me toca ganar a mí. Por lo de la gorra.", If = { Flags = { "BromaDeVuelta" } } },
 			{ S = "Bruno", T = "Esto va a ser muy fácil. Cinco minutos y os vais llorando." },
 			{ S = "Hugo", T = "…Bruno, que es solo un partido." },
@@ -261,7 +261,7 @@ return {
 			{ S = "Sara", T = "He contado los pases: veintitrés. Somos un equipo con futuro. Los datos no mienten." },
 			{ S = "Omar", T = "Lo he dibujado todo. Toma, este es para ti. Sales tú marcando. Más o menos así fue." },
 			{ S = "Mateo", T = "Yo… he tocado el balón dos veces. Dos. Es mi récord.", If = MATEO_AMIGO },
-			{ S = "Hugo", T = "(Hugo pasa a tu lado y habla muy bajito) Buen partido. En serio." },
+			{ S = "Hugo", T = "Buen partido. En serio.", To = "Yo", Beat = "Baja", A = "Ashamed" },
 			{ Ask = "¿Qué dices al grupo?", Options = {
 				{ T = "¡Somos un equipazo!", Effects = { Traits = { Deportividad = 1 }, Rel = { Nico = 3, Sara = 3, Omar = 3 } } },
 				{ T = "Omar, casi te comes el bocadillo en plena jugada.", Effects = { Traits = { Humor = 1 }, Rel = { Omar = 4 } }, Then = {

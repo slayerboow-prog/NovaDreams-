@@ -69,7 +69,7 @@ return {
 
 		-- La noche antes
 		{ Type = "Transition", Text = "Esa noche, en casa…", Seconds = 3 },
-		{ Type = "Scene", Dialogue = "Noche", Teleport = "HomeSalon",
+		{ Type = "Scene", Dialogue = "Noche", Teleport = { Place = "HomeSalon", Fade = true },
 			Actors = { { Npc = "Familia", Place = "HomeSalon", Offset = V(-4, 0, 0) }, { Npc = "Abu", Place = "HomeSalon", Offset = V(10, 0, -2) } } },
 		{ Type = "Class", Subject = "Matematicas", Mode = "Estudio", Place = "HomeSalon", Text = "Repasa un poco más", If = { Flags = { "EstudiasteMas" } },
 			Actors = { { Npc = "Familia", Place = "HomeSalon", Offset = V(-4, 0, 0) }, { Npc = "Abu", Place = "HomeSalon", Offset = V(10, 0, -2) } } },
@@ -81,8 +81,14 @@ return {
 		{ Type = "Class", Subject = "Matematicas", Mode = "Examen", Place = "AulaA", Text = "El examen de Matemáticas",
 			Bonus = { If = { Flags = { "EstudiasteMas" } }, Seconds = 6 },
 			Actors = { { Npc = "Lucia", Place = "PizarraA", Look = V(1, 0, 0) } } },
-		{ Type = "Scene", Dialogue = "Aprobado", If = { LastGradeAtLeast = 5 }, Effects = { Memory = "PrimerExamen" },
-			Actors = { { Npc = "Lucia", Place = "PizarraA", Look = V(1, 0, 0) } } },
+		-- (escena del motor: Lucía reparte las notas; quien estudió contigo está en clase)
+		{ Type = "Cinematic", Id = "Cole06_LaNota", If = { LastGradeAtLeast = 5 }, Effects = { Memory = "PrimerExamen" },
+			Actors = {
+				{ Npc = "Lucia", Place = "PizarraA", Look = V(1, 0, 0) },
+				{ Npc = "Sara", Place = "AulaA", Offset = V(-2, 0, -3), If = { Choices = { CompaneroEstudio = "Sara" } } },
+				{ Npc = "Iker", Place = "AulaA", Offset = V(-4, 0, 2), If = { Choices = { CompaneroEstudio = "Iker" } } },
+				{ Npc = "Mateo", Place = "AulaA", Offset = V(3, 0, -2), If = { Choices = { CompaneroEstudio = "Mateo" } } },
+			} },
 		{ Type = "Scene", Dialogue = "Suspenso", If = { LastGradeBelow = 5 }, Effects = { Flags = { "SuspendisteExamen" }, Later = { { AfterMinutes = 1, Start = "Cole06b_Recuperacion" } } },
 			Actors = { { Npc = "Lucia", Place = "PizarraA", Look = V(1, 0, 0) } } },
 		{ Type = "Reach", Place = "BibliotecaColegio", Text = "Devuelve los apuntes a Marisa", Actors = { { Npc = "Marisa", Place = "SpotBibliotecaria" } } },
@@ -154,18 +160,13 @@ return {
 			{ S = "Lucia", T = "Tenéis tiempo. Leed bien cada pregunta. Y respirad." },
 			{ S = "Narrador", T = "Anoche repasaste. Te sientes con más calma: tendrás un poco más de tiempo para pensar.", If = { Flags = { "EstudiasteMas" } } },
 		} },
-		Aprobado = { Lines = {
-			{ S = "Lucia", T = "Ya tengo las notas. {nombre}… aprobado. Y se nota el trabajo." },
-			{ S = "Lucia", T = "Un sobresaliente. Estoy muy impresionada. De verdad.", If = { LastGradeAtLeast = 9 } },
-			{ S = "Sara", T = "¡Lo sabía! El plan de los veinte minutos funciona.", If = { Choices = { CompaneroEstudio = "Sara" } } },
-			{ S = "Mateo", T = "¡He aprobado yo también! ¡Por los pelos, pero aprobado!", If = { Choices = { CompaneroEstudio = "Mateo" } } },
-			{ S = "Iker", T = "Dato curioso: estudiar acompañado mejora la nota. Acabamos de demostrarlo.", If = { Choices = { CompaneroEstudio = "Iker" } } },
-		} },
 		Suspenso = { Lines = {
-			{ S = "Lucia", T = "{nombre}, ven un momento." },
-			{ S = "Lucia", T = "Esta vez no ha salido. Pero un examen no dice quién eres: dice lo que te falta por practicar." },
-			{ S = "Lucia", T = "Esta tarde hago clases de repaso. Si vienes, te doy otra oportunidad. ¿Trato?" },
-			{ S = "Yo", T = "…Trato." },
+			{ S = "Lucia", T = "{nombre}, ven un momento.", To = "Yo", Shot = "Medio:Lucia" },
+			{ S = "Lucia", T = "Esta vez no ha salido.", To = "Yo", Pause = 0.8, Beat = "Suspira", Shot = "PrimerPlano:Lucia" },
+			{ S = "Lucia", T = "Pero un examen no dice quién eres: dice lo que te falta por practicar.", Pause = 0.4 },
+			{ S = "Lucia", T = "Y sé que estudiaste. Por eso me fastidia más que a ti.", If = { Flags = { "Estudiaste" } }, A = "Sad" },
+			{ S = "Lucia", T = "Esta tarde hago clases de repaso. Si vienes, te doy otra oportunidad. ¿Trato?", Beat = "Sonrie" },
+			{ S = "Yo", T = "…Trato.", Pause = 1, Shot = "Reaccion:Lucia" },
 		} },
 		Devolver = { Lines = {
 			{ S = "Marisa", T = "¡Los apuntes! Enteros y sin manchas de chocolate. Te acabas de ganar un sitio en mi lista de favoritos. No se lo digas a nadie." },
