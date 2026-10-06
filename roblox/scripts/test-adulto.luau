@@ -10,8 +10,8 @@
 --      si todavía no, como conversación con las mismas frases (Adu_Escenas.paso, sin romper nada).
 --   3. Variantes: con cada carrera o trabajo solo habla TU jefe; llegar tarde, lo del verano, la promesa a
 --      Abu, la concha, el despido, el ascenso, la lluvia o el invierno cambian lo que se dice.
---   4. Misiones: los pasos nuevos en su sitio, el montaje de etapa (Transition en Adu03, sin
---      Rewards.SetStage), ascenso y despido enganchados con Later, la policía con Promoted, los veteranos
+--   4. Misiones: los pasos nuevos en su sitio, el montaje de etapa (Transition en Adu03 con
+--      Rewards.SetStage de red), ascenso y despido enganchados con Later, la policía con Promoted, los veteranos
 --      con Ernesto y Lola, el metro sin narrador, y que el validador las da por buenas.
 --   5. Escritura: sin dobletes «o encargada», sin {abu}/{grupo} en las escenas (allí no se rellenan).
 
@@ -135,11 +135,10 @@ for _, id in SCENES do
 	check(#Fallback.lineas(id).Lines > 0, id .. " tiene frases para jugarse como conversación")
 end
 check(cleanFallback, "como conversación: sin planos, sin Late/Items, pausas cortas y Beats de StageDirector")
-check(Fallback.montaje("Joven_Adulto") == nil, "sin el montaje de P7, Adu03 acaba con el rótulo solo")
 -- Registrado: escena de cine
 local fakeIndex = {
 	has = function(id)
-		return Escenas[id] ~= nil or id == "Joven_Adulto"
+		return Escenas[id] ~= nil
 	end,
 }
 L.mock(ROOT .. "/HappeningIndex", fakeIndex)
@@ -147,7 +146,6 @@ L.reset(ROOT .. "/Misiones/Adu_Escenas")
 local Real = L.load(ROOT .. "/Misiones/Adu_Escenas")
 local cine = Real.paso("Adu02_Hospital", { { Npc = "Abu" } }, { If = { Flags = { "X" } } })
 check(cine.Type == "Cinematic" and cine.Id == "Adu02_Hospital" and cine.If.Flags[1] == "X", "registrada: paso Cinematic con su Id, su reparto y lo que se le añada")
-check(Real.montaje("Joven_Adulto") == "Joven_Adulto", "con el montaje de P7: Transition.Cinematic = Joven_Adulto")
 L.mock(ROOT .. "/HappeningIndex", RealIndex)
 
 ---------------------------------------------------------------------
@@ -410,8 +408,8 @@ check(index("Adu02_Atardecer", function(s)
 end) ~= nil, "Adu02: el atardecer final sigue")
 local adu03 = Quests.Adu03_Reencuentro
 local last = adu03.Steps[#adu03.Steps]
-check(adu03.Rewards.SetStage == nil and last.Type == "Transition" and last.SetStage == "Adulto", "Adu03: la vida adulta llega con un paso Transition, no como premio")
-check(last.Cinematic == (if RealIndex.has("Joven_Adulto") then "Joven_Adulto" else nil), "Adu03: con el montaje Joven_Adulto de P7 si ya existe")
+check(last.Type == "Transition" and last.SetStage == "Adulto", "Adu03: la vida adulta llega con un paso Transition (el premio SetStage queda de red)")
+check(last.Cinematic == "Montaje_Joven_Adulto" and RealIndex.has("Montaje_Joven_Adulto"), "Adu03: con el montaje Montaje_Joven_Adulto de P7")
 check(stepWith("Adu03_Reencuentro", "Adu03_Banco") ~= nil, "Adu03: el banco del parque, escenificado")
 local asc2 = Quests.Adu_Ascenso
 check(asc2.Requires.NotFlags[1] == "Despedido" and stepWith("Adu_Ascenso", "Adu_Ascenso") ~= nil, "Adu_Ascenso: escena con tu jefe y respuesta")

@@ -9,8 +9,8 @@
 -- años, y una promesa nueva. Cierra el capítulo «Volar del nido».
 
 -- Escena escrita a mano (Happenings/Adulto): el banco del parque de noche (Adu03_Banco). Al final, el paso
--- a la vida adulta es un paso Transition con el montaje de etapa de P7 (Happenings/Etapas: Joven_Adulto)
--- en vez del premio SetStage; si el montaje aún no existe, sale solo el rótulo.
+-- a la vida adulta es un paso Transition con el montaje de etapa de P7 (Happenings/Etapas:
+-- Montaje_Joven_Adulto).
 
 local Comun = require(script.Parent.Adu_Escenas)
 
@@ -73,9 +73,10 @@ return {
 
 	Moment = "El reencuentro del grupo",
 	Memory = "ElReencuentro",
-	-- (la vida adulta de verdad empieza en el último paso: Transition con SetStage = "Adulto"; sin eso nunca
-	-- se llegaba a "Adulto" y el final de la saga, los locos D y las rarezas de adulto no salían nunca)
-	Rewards = { Items = { FotoReencuentro = 1 } },
+	-- (la vida adulta de verdad empieza en el último paso: Transition con SetStage = "Adulto" y el montaje;
+	-- el SetStage del premio queda de red. Sin esto nunca se llegaba a "Adulto" y el final de la saga, los
+	-- locos D y las rarezas de adulto no salían nunca)
+	Rewards = { Items = { FotoReencuentro = 1 }, SetStage = "Adulto" },
 
 	Steps = {
 		{ Type = "Transition", Text = "Unos meses después…", Seconds = 3 },
@@ -113,8 +114,8 @@ return {
 		{ Type = "Reach", Place = "Parque", Text = "Ve al banco del parque: el grupo te espera", Actors = BANCO },
 		Comun.paso("Adu03_Banco", BANCO),
 		{ Type = "Scene", Dialogue = "Banco", Actors = BANCO },
-		-- Adulto joven → adulto: el montaje de etapa (P7) mientras cambia la edad
-		{ Type = "Transition", SetStage = "Adulto", Seconds = 4, Cinematic = Comun.montaje("Joven_Adulto"),
+		-- Adulto joven → adulto: el montaje de etapa de P7 (Happenings/Etapas) mientras cambia la edad
+		{ Type = "Transition", SetStage = "Adulto", Seconds = 4, Cinematic = "Montaje_Joven_Adulto",
 			Text = "Os quedáis hasta tarde. Hablando de todo y de nada. Como siempre. Como nunca." },
 	},
 

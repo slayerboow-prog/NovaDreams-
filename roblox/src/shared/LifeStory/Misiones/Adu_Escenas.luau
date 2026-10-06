@@ -111,9 +111,4 @@ function C.paso(id: string, actors: { any }?, extra: { [string]: any }?): { [str
 	return step
 end
 
--- El montaje de etapa «adulto joven → adulto» de P7 (Happenings/Etapas: Joven_Adulto), si ya existe
-function C.montaje(id: string): string?
-	return if HappeningIndex.has(id) then id else nil
-end
-
 return C
