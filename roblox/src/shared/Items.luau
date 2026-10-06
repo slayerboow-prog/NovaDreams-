@@ -308,7 +308,7 @@ end
 -- Armas (de verdad, de la policía y de juguete), su munición y la licencia de armas
 for id, w in Weapons.List do
 	local itemId = Weapons.itemId(id)
-	local desc = if w.Kind == "Toy" then "De juguete: no hace daño. Elígelo en la barra rápida para empuñarlo."
+	local desc = if w.Kind == "Toy" then "De juguete: hace muy poco daño. Elígelo en la barra rápida para empuñarlo."
 		elseif w.Duty then "Arma de servicio de la policía. Se devuelve al acabar el turno."
 		else "Arma de fuego (necesita licencia). Elígela en la barra rápida para empuñarla; botón Apuntar (clic derecho) para apuntar."
 	list[itemId] = { Id = itemId, Name = w.Name, Icon = w.Icon, Tag = w.Tag, Kind = "Weapon", Desc = desc, Stack = 1, Ref = id }

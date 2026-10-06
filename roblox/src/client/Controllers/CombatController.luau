@@ -106,6 +106,11 @@ local powerHeld: { Id: string, At: number }? = nil
 local lastFight = -math.huge -- última vez que pegaste o te pegaron (para "en plena pelea")
 local lastDodge = -math.huge
 local lastHitAt = -math.huge -- última vez que te dieron (desvanecerse para escapar)
+-- Rodar tras un salto: Esquivar pulsado en el aire (cuándo y si era hacia atrás) y el aterrizaje
+local airRollAt: number? = nil
+local airRollBack = false
+local wasAirborne = false
+local landedAt: number? = nil
 local lockTarget: Model? = nil
 local lockMarker: BillboardGui? = nil
 local lockBar: Frame? = nil
@@ -396,6 +401,14 @@ function CombatController.dodge(backwards: boolean?)
 	local move = Vector3.new(humanoid.MoveDirection.X, 0, humanoid.MoveDirection.Z)
 	local look = Vector3.new(root.CFrame.LookVector.X, 0, root.CFrame.LookVector.Z)
 	local direction = if move.Magnitude > 0.1 then move.Unit elseif backwards then -look else look
+	-- En el aire tras un salto: la voltereta se guarda y sale al tocar el suelo (amortigua la caída).
+	-- (fijado o justo después de un golpe sigue siendo desvanecerse)
+	if humanoid.FloorMaterial == Enum.Material.Air and Combat.queueAirRoll(lockTarget ~= nil and not backwards, now - lastHitAt) then
+		airRollAt = now
+		airRollBack = backwards == true
+		player:SetAttribute("RollQueued", true) -- (Locomotion: al caer, sin traspiés)
+		return
+	end
 	-- ¿Desvanecerse? (con aguante: fijado, en el aire o justo después de recibir un golpe)
 	local kind = Combat.dodgeKind(stamina(), lockTarget ~= nil and not backwards, now - lastHitAt, HitReaction.airborne())
 	if kind == "Vanish" and now - lastDodge >= Combat.VanishCooldown then
@@ -412,15 +425,59 @@ function CombatController.dodge(backwards: boolean?)
 		return
 	end
 	if not RollMotion.roll(direction) then
-		return -- (en el aire, sentado, nadando…: ahora no se puede rodar)
+		return -- (sentado, nadando…: ahora no se puede rodar)
 	end
 	lastDodge = now
+	-- (Locomotion: rodando no hay traspiés de aterrizaje que frene; con arma ni la mira ni el fuego se tocan)
+	player:SetAttribute("RollQueued", true)
+	task.delay(Combat.RollTime, function()
+		if airRollAt == nil then
+			player:SetAttribute("RollQueued", nil)
+		end
+	end)
 	if blocking then
 		CombatController.setBlocking(false)
 	end
 	SoundFx.play("Salto", 0.6, 0.8, root)
 	send("Dodge", nil, direction)
 	TouchLayout.refresh()
+end
+
+-- Al tocar el suelo: si se pulsó Esquivar en el aire hace poco (Combat.RollBuffer), rueda YA, hacia
+-- donde empuja el joystick (o hacia delante). Lo llama cada fotograma el vigilante de init (y las pruebas).
+function CombatController.landingCheck(now: number?)
+	local humanoid = parts()
+	if not humanoid then
+		return
+	end
+	local t = now or os.clock()
+	local inAir = humanoid.FloorMaterial == Enum.Material.Air
+	if inAir then
+		wasAirborne = true
+		if airRollAt and t - airRollAt > Combat.RollBuffer then
+			-- (pulsado demasiado pronto: ya no cuenta)
+			airRollAt = nil
+			player:SetAttribute("RollQueued", nil)
+		end
+		return
+	end
+	if wasAirborne then
+		wasAirborne = false
+		landedAt = t
+		local pressed = airRollAt
+		airRollAt = nil
+		if Combat.rollOnLanding(pressed, t) then
+			CombatController.dodge(airRollBack)
+		end
+		task.delay(0.3, function()
+			player:SetAttribute("RollQueued", nil)
+		end)
+	end
+end
+
+-- (pruebas) cuándo aterrizó por última vez
+function CombatController._landedAt(): number?
+	return landedAt
 end
 
 -- Huir: esquivar hacia atrás y soltar al fijado
@@ -1400,6 +1457,17 @@ function CombatController.init()
 		task.spawn(watchSeat, player.Character)
 	end
 	player.CharacterAdded:Connect(watchSeat)
+	-- Rodar tras un salto: se mira cada fotograma si acabas de tocar el suelo
+	RunService.Heartbeat:Connect(function()
+		local ok, err = pcall(CombatController.landingCheck)
+		if not ok then
+			warn("[Combate] " .. tostring(err))
+		end
+	end)
+	player.CharacterAdded:Connect(function()
+		airRollAt, wasAirborne = nil, false
+		player:SetAttribute("RollQueued", nil)
+	end)
 
 	-- Botones del racimo (móvil) y pistas de teclas (ordenador): solo cuando se puede pelear
 	local function canFight(): boolean

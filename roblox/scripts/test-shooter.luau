@@ -82,6 +82,20 @@ do
 	check(math.abs(back) <= math.pi + 1e-6, "gira siempre por el camino corto")
 end
 
+print("▶ El dedo siempre manda")
+do
+	local a, used = AimAssist.amount({ Snap = true, Aiming = true, SinceDrag = 0, Dt = 1 / 60 })
+	check(a == 0 and used, "arrastrando el dedo: ni imán ni tirón (y el tirón pendiente se pierde)")
+	a = AimAssist.amount({ Aiming = true, SinceDrag = C.DragGrace * 0.5, Dt = 1 / 60 })
+	check(a == 0, ("hasta %.1f s después de soltar el dedo, tampoco"):format(C.DragGrace))
+	local snap, usedSnap = AimAssist.amount({ Snap = true, Aiming = true, SinceDrag = 5, Dt = 1 / 60 })
+	check(snap == C.Snap and usedSnap, "al pulsar Apuntar, un tirón")
+	local after, again = AimAssist.amount({ Snap = false, Aiming = true, SinceDrag = 5, Dt = 1 / 60 })
+	check(after < 0.05 and not again, ("y luego solo un imán suave (%.3f por fotograma)"):format(after))
+	check(AimAssist.amount({ SinceDrag = 5, Dt = 1 / 60 }) == 0, "sin apuntar ni disparar, nada")
+	check(C.AimSensitivity >= 0.6 and C.AimSensitivity <= 0.7, ("apuntando, la sensibilidad baja un poco (x%.2f), no casi a cero"):format(C.AimSensitivity))
+end
+
 print("▶ Solo con el dedo o el mando")
 check(AimAssist.enabled("Touch"), "con el dedo, sí")
 check(AimAssist.enabled("Gamepad1"), "con el mando, sí")
@@ -89,11 +103,13 @@ check(not AimAssist.enabled("MouseMovement") and not AimAssist.enabled("MouseBut
 check(not AimAssist.enabled(nil), "sin saberlo, nada")
 
 print("▶ Solo objetivos válidos para las armas")
-check(AimAssist.validTarget({ Alive = true, Player = true, CanFight = true }), "otro jugador con el que se puede pelear")
-check(not AimAssist.validTarget({ Alive = true, Player = true, CanFight = true, SameTeam = true }), "uno de tu equipo, no")
+check(AimAssist.validTarget({ Alive = true, Player = true, CanFight = true, Fighting = true }), "otro jugador con el que estás peleando (PvP de verdad)")
+check(not AimAssist.validTarget({ Alive = true, Player = true, CanFight = true }), "un jugador con el que NO estás peleando, no (la mira no se pega a la gente)")
+check(not AimAssist.validTarget({ Alive = true, Friendly = true, MissionEnemy = true }), "Pip y los compañeros, nunca")
+check(not AimAssist.validTarget({ Alive = true, Player = true, CanFight = true, Fighting = true, SameTeam = true }), "uno de tu equipo, no")
 check(not AimAssist.validTarget({ Alive = true, Player = true, CanFight = false }), "un bebé o alguien en una conversación, no")
-check(not AimAssist.validTarget({ Alive = true, Player = true, CanFight = true, Seated = true }), "sentado (en un coche), no")
-check(not AimAssist.validTarget({ Alive = true, Player = true, CanFight = true, Protected = true }), "en otro interior, no")
+check(not AimAssist.validTarget({ Alive = true, Player = true, CanFight = true, Fighting = true, Seated = true }), "sentado (en un coche), no")
+check(not AimAssist.validTarget({ Alive = true, Player = true, CanFight = true, Fighting = true, Protected = true }), "en otro interior, no")
 check(AimAssist.validTarget({ Alive = true, MissionEnemy = true }), "un enemigo de tu misión")
 check(AimAssist.validTarget({ Alive = true, Rival = true }), "tu rival de entrenamiento")
 check(not AimAssist.validTarget({ Alive = true, Npc = true }), "la gente de la calle, nunca")
@@ -121,6 +137,9 @@ end
 check(has("AimAssist.pick(") and has("canSee(") and has("AimAssist.validTarget(info)"), "WeaponController busca el objetivo válido con AimAssist.pick y la línea de visión")
 check(has("assistOn()") and has("AimAssist.enabled(name)"), "la ayuda solo con el dedo o el mando")
 check(has('Slot = "DispararIzq"') and has('Slot = "Disparar"') and has('Slot = "Apuntar"') and has('Slot = "Recargar"'), "botones del móvil: Disparar, el segundo Disparar, Apuntar y Recargar")
+check(has('Name = "WeaponReticle"') and has("DisplayOrder = -1") and has("WeaponController.menuOpen()"), "la mira va por debajo de los menús y con una ventana abierta ni se ve ni se dispara")
+local items = fs.readFile("src/shared/Items.luau")
+check(items:find("De juguete: hace muy poco daño", 1, true) ~= nil, "la pistola de agua dice «De juguete: hace muy poco daño»")
 check(has("Drag = WeaponController.drag"), "arrastrar el dedo de Disparar gira la cámara")
 check(has('holdTrigger("Izq"') and has('holdTrigger("Der"'), "cada Disparar con su dedo (soltar uno no corta el otro)")
 check(has("Airborne = humanoid.FloorMaterial == Enum.Material.Air"), "en el aire se puede disparar (con algo más de dispersión)")

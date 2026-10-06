@@ -302,6 +302,11 @@ local function update(body: Body, dt: number, now: number)
 	elseif v.Y > -3 and body.Fall > 0 then
 		local kind, strength = Locomotion.landing(body.Fall, speed)
 		body.Fall = 0
+		-- Esquivar pulsado en el aire (CombatController: rodar al caer): la voltereta amortigua la caída,
+		-- sin agacharse ni traspiés
+		if body.Player and body.Player:GetAttribute("RollQueued") then
+			kind = nil
+		end
 		if kind and ReactMotion then
 			ReactMotion.play(body.Model, kind, { Strength = strength })
 			if mine and kind == "Stumble" then
@@ -449,6 +454,10 @@ local function moveStep(dt: number)
 			local k = clamp((1 - stanceFactor) / math.max(1 - Movement.Speed.Crouch, 1e-3), 0, 1)
 			base = walk + (stageWalk - walk) * k
 		end
+	end
+	-- (rodando al caer no hay traspiés que frene)
+	if now < stumbleUntil and player:GetAttribute("RollQueued") then
+		stumbleUntil = 0
 	end
 	local factor = (if now < stumbleUntil then 0.35 else 1) * stanceFactor
 	local target = wanted * base * factor

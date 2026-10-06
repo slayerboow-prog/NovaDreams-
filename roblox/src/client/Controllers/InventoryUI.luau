@@ -584,7 +584,9 @@ local function refreshWindow()
 	end
 	local item = itemAt(held)
 	ghost.Text = if item then item.Icon else ""
-	ghost.Visible = item ~= nil
+	-- (en el móvil el icono no sigue al dedo: se quedaba donde tocaste, encima de «Guardar» / «Usar»;
+	-- la casilla elegida ya se ve marcada)
+	ghost.Visible = item ~= nil and not TOUCH
 	refreshDetails()
 end
 
@@ -808,6 +810,9 @@ local function buildWindow()
 	detailDesc.TextWrapped = true
 	detailDesc.TextYAlignment = Enum.TextYAlignment.Top
 	detailDesc.Size = UDim2.new(1, 0, 0, 58)
+	-- (un texto largo se corta con «…»: nunca se mete debajo de los botones Usar / Guardar)
+	detailDesc.TextTruncate = Enum.TextTruncate.AtEnd
+	detailDesc.ClipsDescendants = true
 	local buttons = create("Frame", { Size = UDim2.new(1, 0, 0, 28), BackgroundTransparency = 1, LayoutOrder = 4, ZIndex = 11, Parent = details })
 	create("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder, Parent = buttons })
 	useButton = mcButton("Usar", buttons, 1)

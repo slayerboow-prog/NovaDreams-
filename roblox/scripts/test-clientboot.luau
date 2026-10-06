@@ -2488,6 +2488,177 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean })
 					end
 					signalOf(aim, "Activated"):Fire()
 					table.insert(checks, { not WC.isAiming(), "tocar Apuntar otra vez deja de apuntar" })
+					-- Fallos de la v98: la ayuda de apuntado se pegaba a la gente y el dedo no podía girar
+					if zone then
+						-- (la cámara de Roblox recoloca la posición cada fotograma desde tu cabeza; aquí no hay: se
+						-- deja en su sitio y solo cuenta el giro)
+						local home = cam.CFrame.Position
+						local function frames(n: number)
+							for _ = 1, n do
+								rawget(cam, "__props").CFrame = roblox.CFrame.new(home) * cam.CFrame.Rotation
+								for _, f in renderSteps do
+									pcall(f, 1 / 60)
+								end
+							end
+						end
+						local function person(name: string, degrees: number, attrs: { [string]: any }?): any
+							local model = new("Model", name)
+							local hum = new("Humanoid", "Humanoid")
+							rawget(hum, "__props").Health = 100
+							rawget(hum, "__props").MaxHealth = 100
+							hum.Parent = model
+							local cf = roblox.CFrame.new(home) * cam.CFrame.Rotation
+							-- (girando la mira `degrees` hacia la derecha alrededor del eje vertical; +0,6: la ayuda apunta algo por debajo del centro del torso)
+							local lk = cf.LookVector
+							local yw = math.atan2(-lk.X, -lk.Z) - math.rad(degrees)
+							local pt = math.asin(math.clamp(lk.Y, -1, 1))
+							local dir = V3.new(-math.sin(yw) * math.cos(pt), math.sin(pt), -math.cos(yw) * math.cos(pt))
+							local at = cf.Position + dir * 20 + V3.new(0, 0.6, 0)
+							for _, partName in { "HumanoidRootPart", "UpperTorso", "Head" } do
+								local part = new("Part", partName)
+								rawget(part, "__props").Position = at
+								rawget(part, "__props").CFrame = roblox.CFrame.new(at)
+								part.Parent = model
+							end
+							for k, v in attrs or {} do
+								model:SetAttribute(k, v)
+							end
+							model.Parent = workspace
+							return model
+						end
+						local function turned(fn: () -> ()): number
+							local before = yaw()
+							fn()
+							local d = yaw() - before
+							if d > math.pi then
+								d -= 2 * math.pi
+							elseif d < -math.pi then
+								d += 2 * math.pi
+							end
+							return d
+						end
+						-- Un peatón delante (3° a la derecha) y ningún enemigo: apuntar no mueve la cámara sola
+						local walker = person("Peaton", 3)
+						WC._refreshTargets()
+						signalOf(aim, "Activated"):Fire()
+						local drift = turned(function()
+							frames(30)
+						end)
+						-- (solo el balanceo de la respiración apuntando, unas milésimas: el imán de antes movía décimas)
+						table.insert(checks, { WC.isAiming() and math.abs(drift) < 0.01 and WC.assistTarget() == nil,
+							("v98: con un peatón cerca y sin enemigos, apuntar no mueve la cámara sola (%.4f rad)"):format(drift) })
+						-- Con la mira puesta, arrastrar el dedo gira lo esperado (sensibilidad ~0,65, no casi 0)
+						local want = 80 * 0.0075 * 0.65
+						local dragged = math.abs(swipe(80))
+						table.insert(checks, { math.abs(dragged - want) < want * 0.15,
+							("v98: con la mira puesta, arrastrar 80 puntos gira %.2f rad (esperado %.2f)"):format(dragged, want) })
+						walker.Parent = nil
+						-- Un enemigo de tu misión a 4°: al pulsar Apuntar, UN tirón corto; luego el dedo manda
+						signalOf(aim, "Activated"):Fire() -- (deja de apuntar)
+						local enemy = person("Cucaracha", 4, { MissionEnemy = "Prueba", Owner = localPlayer.UserId })
+						enemy:AddTag("MissionEnemy")
+						WC._refreshTargets()
+						local snap = turned(function()
+							signalOf(aim, "Activated"):Fire()
+							frames(1)
+						end)
+						local target = WC.assistTarget()
+						table.insert(checks, { target == enemy and snap < -math.rad(1) and snap > -math.rad(3.9),
+							("v98: con un enemigo válido, al apuntar la mira da un tirón corto hacia él (%.2f°)"):format(math.deg(snap)) })
+						local soft = turned(function()
+							frames(1)
+						end)
+						table.insert(checks, { math.abs(soft) < math.abs(snap) * 0.25, ("v98: el tirón es uno solo; luego, solo un imán suave (%.3f°)"):format(math.deg(soft)) })
+						local away = swipe(-80) -- (hacia la izquierda: lejos del enemigo)
+						local hold = turned(function()
+							frames(10)
+						end)
+						table.insert(checks, { away > 0.2 and math.abs(hold) < 0.005,
+							("v98: arrastrando, el dedo manda (gira %.2f rad) y al soltar la ayuda no tira de vuelta enseguida (%.4f)"):format(away, hold) })
+						signalOf(aim, "Activated"):Fire()
+						enemy:RemoveTag("MissionEnemy")
+						enemy.Parent = nil
+						-- Con la mochila abierta: sin mira y sin disparar
+						local okInv, InventoryUI = pcall(requireFn, controllersF and controllersF:FindFirstChild("InventoryUI"))
+						local reticleGui = playerGui:FindFirstChild("WeaponReticle")
+						local mira = reticleGui and reticleGui:FindFirstChild("Mira")
+						frames(2)
+						table.insert(checks, { reticleGui and reticleGui.DisplayOrder < 0 and mira and mira.Visible, "la mira va en su pantalla, por debajo de los menús (DisplayOrder < 0), y se ve con el arma" })
+						if okInv and mira then
+							InventoryUI.open()
+							frames(2)
+							table.clear(serverLog)
+							local f = touch(300, 200)
+							signalOf(left, "InputBegan"):Fire(f)
+							frames(2)
+							lift(left, f)
+							table.insert(checks, { not mira.Visible and fires() == 0, ("v98: con la mochila abierta no se ve la mira ni se dispara (%d disparos)"):format(fires()) })
+							InventoryUI.close()
+							frames(2)
+							table.insert(checks, { mira.Visible, "al cerrar la mochila vuelve la mira" })
+						end
+					end
+					-- Rodar tras un salto (con el arma en la mano): Esquivar en el aire rueda al aterrizar; justo al
+					-- aterrizar también; sin pulsar, no. Con el gatillo pulsado, el fuego no se corta.
+					do
+						local okCc, CC = pcall(requireFn, controllersF and controllersF:FindFirstChild("CombatController"))
+						local hum = humanoid and rawget(humanoid, "__props")
+						-- (la voltereta de verdad: RollMotion empieza a rodar; el servidor la valida como siempre)
+						local okRm, RM = pcall(requireFn, controllersF and controllersF:FindFirstChild("RollMotion"))
+						local function rolled(): boolean
+							return okRm and RM.isLocalRolling()
+						end
+						local function waitCooldown()
+							local t0 = os.clock()
+							repeat
+							until os.clock() - t0 > 1.25 -- (la pausa entre esquivas es de verdad)
+							fakeTask.wait(1.3) -- (y la voltereta anterior termina)
+						end
+						if okCc and hum and CC.landingCheck then
+							local ground = hum.FloorMaterial
+							waitCooldown()
+							table.clear(serverLog)
+							-- Sin pulsar: saltar y caer no rueda
+							hum.FloorMaterial = Enum.Material.Air
+							CC.landingCheck()
+							hum.FloorMaterial = ground
+							CC.landingCheck()
+							table.insert(checks, { not rolled(), "saltar y caer sin pulsar Esquivar: no rueda" })
+							-- Justo al aterrizar
+							hum.FloorMaterial = Enum.Material.Air
+							CC.landingCheck()
+							hum.FloorMaterial = ground
+							CC.landingCheck()
+							CC.dodge()
+							table.insert(checks, { rolled(), "Esquivar justo al aterrizar rueda" })
+							waitCooldown()
+							-- En el aire: se guarda y rueda al tocar el suelo (con el gatillo pulsado: no se corta)
+							local f = touch(300, 200)
+							signalOf(left, "InputBegan"):Fire(f)
+							table.clear(serverLog)
+							hum.FloorMaterial = Enum.Material.Air
+							CC.landingCheck()
+							CC.dodge()
+							table.insert(checks, { not rolled() and localPlayer:GetAttribute("RollQueued") == true, "Esquivar en el aire: se guarda la voltereta (aún no rueda; sin traspiés al caer)" })
+							hum.FloorMaterial = ground
+							CC.landingCheck()
+							table.insert(checks, { rolled(), "al tocar el suelo rueda enseguida" })
+							table.insert(checks, { WC.triggerHeld(), "rodar al caer no corta el fuego" })
+							lift(left, f)
+							waitCooldown()
+							-- Pulsado demasiado pronto (más de RollBuffer antes de caer): no rueda
+							table.clear(serverLog)
+							hum.FloorMaterial = Enum.Material.Air
+							CC.landingCheck()
+							CC.dodge()
+							CC.landingCheck(os.clock() + 1)
+							hum.FloorMaterial = ground
+							CC.landingCheck(os.clock() + 1.1)
+							table.insert(checks, { not rolled(), "pulsado mucho antes de caer: ya no rueda" })
+						else
+							table.insert(checks, { false, "rodar tras un salto: no se pudo probar (CombatController)" })
+						end
+					end
 				else
 					table.insert(checks, { false, "móvil con arma: no se pudo probar el multitáctil (faltan módulos o botones)" })
 				end

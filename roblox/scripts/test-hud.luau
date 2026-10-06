@@ -1763,6 +1763,28 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 		TouchLayout.unregister("BucearSubir")
 	end
 
+	-- Con un arma en la mano los avisos (hambre, «arma de servicio…») suben bajo el reloj, más pequeños y
+	-- como mucho dos: no tapan la mira del centro
+	do
+		local toastsGui = playerGui:FindFirstChild("HudToasts")
+		local list = toastsGui and toastsGui:FindFirstChild("Toasts")
+		localPlayer:SetAttribute("Weapon", "PistolaAgua")
+		for i = 1, 3 do
+			mods.Hud.toast("Info", "Aviso con arma " .. i)
+		end
+		local shown = 0
+		for _, child in if list then list:GetChildren() else {} do
+			if child:IsA("Frame") then
+				shown += 1
+			end
+		end
+		local top = list and list.Position.Y.Offset or 0
+		local bottom = top + 2 * 46 * 0.8
+		check(list and shown <= 2 and top == now.Items.Activity.Position.Y.Offset and bottom < now.Canvas.Y / 2 - 60, ("Con arma, los avisos van arriba bajo el reloj (%d-%d de %d), como mucho dos (%d): no tapan la mira"):format(top, bottom, now.Canvas.Y, shown))
+		localPlayer:SetAttribute("Weapon", nil)
+		check(list and list.Position.Y.Offset > top, "Al guardar el arma vuelven a su sitio")
+	end
+
 	-- Ventanas del HUD en el móvil: más grandes que el HUD y con el ✖ de al menos ~36 px
 	do
 		mods.Hud.showQuests()
