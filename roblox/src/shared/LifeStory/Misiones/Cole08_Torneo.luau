@@ -59,6 +59,41 @@ local function con(list: { any }, extra: { any }): { any }
 	end
 	return out
 end
+-- Los mismos actores, solo si se cumple `cond` (se junta con el If que ya tuvieran: Choices y Flags
+-- se suman; si piden otra decisión distinta de la misma clave, ese actor no puede salir y se quita)
+local function soloSi(list: { any }, cond: { [string]: any }): { any }
+	local out = {}
+	for _, actor in list do
+		local req: { [string]: any } = {}
+		local possible = true
+		for _, source in { cond, actor.If or {} } do
+			for k, v in source do
+				if k == "Choices" then
+					req.Choices = req.Choices or {}
+					for key, value in v do
+						if req.Choices[key] ~= nil and req.Choices[key] ~= value then
+							possible = false
+						end
+						req.Choices[key] = value
+					end
+				elseif type(v) == "table" and v[1] ~= nil then
+					req[k] = table.clone(req[k] or {})
+					for _, item in v do
+						table.insert(req[k], item)
+					end
+				else
+					req[k] = v
+				end
+			end
+		end
+		if possible then
+			local copy = table.clone(actor)
+			copy.If = req
+			table.insert(out, copy)
+		end
+	end
+	return out
+end
 
 -- La grada: tu familia y Abu han venido a verte; Bruno calienta cerca
 local GRADA = {
@@ -152,21 +187,22 @@ return {
 
 		-- Clasificación contra 4.º B
 		{ Type = "Transition", Text = "El día del torneo…", Seconds = 3 },
-		{ Type = "Scene", Dialogue = "Clasificacion", If = FUTBOL, Teleport = "CampoColegio", Actors = con(EQUIPO_FUTBOL, rival1B("CampoColegio")) },
+		{ Type = "Scene", Dialogue = "Clasificacion", If = FUTBOL, Teleport = { Place = "CampoColegio", Fade = true }, Actors = con(EQUIPO_FUTBOL, rival1B("CampoColegio")) },
 		{ Type = "MiniGame", Game = "Futbol", Title = "Clasificación contra 4.º B", Icon = "⚽", Plays = 4, Rival = "4.º B",
 			PositionFrom = "Posicion", If = FUTBOL, Win = CLASIFICA_BIEN, Lose = { Traits = { Deportividad = 1 } },
 			Actors = con(EQUIPO_FUTBOL, rival1B("CampoColegio")) },
-		{ Type = "Scene", Dialogue = "Clasificacion", If = BALONCESTO, Teleport = "CanchaColegio", Actors = con(EQUIPO_BALONCESTO, rival1B("CanchaColegio")) },
+		{ Type = "Scene", Dialogue = "Clasificacion", If = BALONCESTO, Teleport = { Place = "CanchaColegio", Fade = true }, Actors = con(EQUIPO_BALONCESTO, rival1B("CanchaColegio")) },
 		{ Type = "MiniGame", Game = "Timing", Title = "Clasificación contra 4.º B", Icon = "🏀", Hint = "Cada canasta cuenta. Necesitáis 3.",
 			Rounds = 6, Need = 3, Zone = 0.24, Shrink = 0.02, Speed = 1.05, If = BALONCESTO,
 			Win = CLASIFICA_BIEN, Lose = { Traits = { Deportividad = 1 } },
 			Actors = con(EQUIPO_BALONCESTO, rival1B("CanchaColegio")) },
-		{ Type = "Scene", Dialogue = "Clasificacion", If = ATLETISMO, Teleport = "Pista", Actors = con(EQUIPO_ATLETISMO, rival1B("Pista")) },
+		{ Type = "Scene", Dialogue = "Clasificacion", If = ATLETISMO, Teleport = { Place = "Pista", Fade = true }, Actors = con(EQUIPO_ATLETISMO, rival1B("Pista")) },
 		{ Type = "MiniGame", Game = "Timing", Title = "Clasificación: ¡la salida!", Icon = "🏃", Hint = "Sal justo cuando la aguja esté en verde",
 			Rounds = 4, Need = 2, Zone = 0.22, Speed = 1.15, If = ATLETISMO,
 			Win = CLASIFICA_BIEN, Lose = { Traits = { Deportividad = 1 } },
 			Actors = con(EQUIPO_ATLETISMO, rival1B("Pista")) },
-		{ Type = "Scene", Dialogue = "TrasClasificacion" },
+		{ Type = "Scene", Dialogue = "TrasClasificacion", Actors = con(con(soloSi(con(EQUIPO_FUTBOL, rival1B("CampoColegio")), FUTBOL),
+			soloSi(con(EQUIPO_BALONCESTO, rival1B("CanchaColegio")), BALONCESTO)), soloSi(con(EQUIPO_ATLETISMO, rival1B("Pista")), ATLETISMO)) },
 
 		-- El descanso: la grada
 		{ Type = "Reach", Place = "Pista", Text = "Descanso: ve a la grada de la pista", Actors = GRADA },
@@ -179,20 +215,20 @@ return {
 			Props = { "Botella" }, Actors = GRADA },
 		{ Type = "Talk", Npc = "Bruno", Dialogue = "Bruno_PreFinal", Text = "Bruno te está mirando. Habla con él", Actors = GRADA },
 
-		-- La final contra el equipo de Bruno
-		{ Type = "Scene", Dialogue = "Final", If = FUTBOL, Teleport = "CampoColegio", Actors = FINAL_FUTBOL },
+		-- La final contra el equipo de Bruno (escena del motor: tu familia en la banda, el capitán, el plan)
+		{ Type = "Cinematic", Id = "Cole08_Final", If = FUTBOL, Teleport = { Place = "CampoColegio", Fade = true }, Actors = FINAL_FUTBOL },
 		{ Type = "MiniGame", Game = "Futbol", Title = "¡LA FINAL! Contra el equipo de Bruno", Icon = "🏆", Plays = 6, Rival = "el equipo de Bruno",
 			PositionFrom = "Posicion", If = FUTBOL,
 			Win = { Flags = { "TorneoGanado" }, Items = { MedallaOro = 1 }, Traits = { Deportividad = 1 }, Rel = { Nico = 5, Omar = 3 } },
 			Lose = { Flags = { "TorneoPerdido" }, Items = { MedallaPlata = 1 }, Rel = { Nico = 3, Omar = 3 } },
 			Actors = FINAL_FUTBOL },
-		{ Type = "Scene", Dialogue = "Final", If = BALONCESTO, Teleport = "CanchaColegio", Actors = FINAL_BALONCESTO },
+		{ Type = "Cinematic", Id = "Cole08_Final", If = BALONCESTO, Teleport = { Place = "CanchaColegio", Fade = true }, Actors = FINAL_BALONCESTO },
 		{ Type = "MiniGame", Game = "Timing", Title = "¡LA FINAL! Contra el equipo de Bruno", Icon = "🏆", Hint = "Cada vez más difícil. Necesitáis 4 canastas.",
 			Rounds = 8, Need = 4, Zone = 0.24, Shrink = 0.03, Speed = 1.1, If = BALONCESTO,
 			Win = { Flags = { "TorneoGanado" }, Items = { MedallaOro = 1 }, Traits = { Deportividad = 1 }, Rel = { Alex = 6, Omar = 3 } },
 			Lose = { Flags = { "TorneoPerdido" }, Items = { MedallaPlata = 1 }, Rel = { Alex = 4, Omar = 3 } },
 			Actors = FINAL_BALONCESTO },
-		{ Type = "Scene", Dialogue = "Final", If = ATLETISMO, Teleport = "Pista", Actors = FINAL_ATLETISMO },
+		{ Type = "Cinematic", Id = "Cole08_Final", If = ATLETISMO, Teleport = { Place = "Pista", Fade = true }, Actors = FINAL_ATLETISMO },
 		{ Type = "MiniGame", Game = "Timing", Title = "¡LA FINAL! El relevo contra el equipo de Bruno", Icon = "🏆", Hint = "Pasa el testigo en la zona verde. ¡No lo sueltes!",
 			Rounds = 6, Need = 4, Zone = 0.24, Shrink = 0.02, Speed = 1.15, If = ATLETISMO,
 			Win = { Flags = { "TorneoGanado" }, Items = { MedallaOro = 1 }, Traits = { Deportividad = 1 }, Rel = { Sara = 6, Omar = 3 } },
@@ -204,7 +240,11 @@ return {
 		{ Type = "Scene", Dialogue = "Resultado", If = BALONCESTO, Actors = FINAL_BALONCESTO },
 		{ Type = "Scene", Dialogue = "Resultado", If = ATLETISMO, Actors = FINAL_ATLETISMO },
 		{ Type = "Reach", Place = "Pista", Text = "Ve a la pista: ¡entrega de medallas!", Actors = PRESENTA },
-		{ Type = "Scene", Dialogue = "Medallas", Actors = PRESENTA },
+		-- (escena del motor: las medallas con tu familia delante)
+		{ Type = "Cinematic", Id = "Cole08_Medallas", Actors = con(PRESENTA, {
+			{ Npc = "Familia", Place = "Pista", Offset = V(-8, 0, 11), Mode = "Cheer" },
+			{ Npc = "Abu", Place = "Pista", Offset = V(-5, 0, 12) },
+		}) },
 		{ Type = "Scene", Dialogue = "Rumor", Actors = {
 			{ Npc = "Omar", Mode = "Follow" },
 			{ Npc = "Sara", Mode = "Follow" },
@@ -325,7 +365,7 @@ return {
 			{ S = "Bruno", T = "¿Vosotros en la final? Qué valor.", If = { NotFlags = { "Bruno_HablasteConEl", "AcusasteABruno" } } },
 			{ S = "Hugo", T = "Bruno. Juego con ellos. Y ya está. No pasa nada.", If = CON_HUGO },
 			{ S = "Bruno", T = "…Ya. Ya lo sé. Pues suerte. Pero poca.", If = CON_HUGO },
-			{ S = "Ruben", T = "(Rubén, bajito:) Buena suerte. De verdad.", If = { Flags = { "Ruben_Perdonado" } } },
+			{ S = "Ruben", T = "Buena suerte. De verdad.", To = "Yo", Beat = "Aparta", If = { Flags = { "Ruben_Perdonado" } } },
 			{ Ask = "¿Qué le contestas a Bruno?", Options = {
 				{ T = "«Que gane el mejor. Y que sea divertido.»", Effects = { Traits = { Deportividad = 2 }, Rel = { Bruno = 4 }, Choice = { PreFinal = "Deportivo" } }, Then = {
 					{ S = "Bruno", T = "…Vale. Que sea divertido. Pero que gane yo." },
@@ -339,19 +379,13 @@ return {
 			} },
 		} },
 
-		Final = { Lines = {
-			{ S = "Andres", T = "¡LA FINAL! 4.º A contra… 4.º A. El equipo de {nombre} contra el equipo de Bruno." },
-			{ S = "Familia", T = "¡VAMOS, {nombre}!" },
-			{ S = "Omar", T = "Capitán, unas palabras.", If = { Choices = { Capitan = "Yo" } } },
-			{ S = "Omar", T = "Soy el capitán. Unas palabras: ¡a por ellos! Con cariño.", If = { Choices = { Capitan = "Omar" } } },
-			{ S = "Andres", T = "Recordad el plan. ¡Y a disfrutar!" },
-		} },
-
 		Resultado = { Lines = {
-			{ S = "Andres", T = "¡Final! ¡Gana el equipo de {nombre}! ¡CAMPEONES DEL TORNEO!", If = GANADO },
-			{ S = "Andres", T = "¡Final! Gana el equipo de Bruno… ¡pero qué final! Subcampeones, y con la cabeza bien alta.", If = PERDIDO },
-			{ S = "Bruno", T = "…Bien jugado. De verdad. Lo odio, pero bien jugado.", If = GANADO },
-			{ S = "Bruno", T = "¡Lo sabía! …Aunque ha estado muy cerca. Muy cerca. Casi me da algo.", If = PERDIDO },
+			{ S = "Andres", T = "¡Final! ¡Gana el equipo de {nombre}! ¡CAMPEONES DEL TORNEO!", If = GANADO, A = "Cheer", Shot = "Medio:Andres" },
+			{ S = "Andres", T = "¡Final! Gana el equipo de Bruno… ¡pero qué final! Subcampeones, y con la cabeza bien alta.", If = PERDIDO, Shot = "Medio:Andres" },
+			{ S = "Familia", T = "¡¡ESE ES MI {nombre}!!", If = GANADO, A = "Cheer", Shot = "Reaccion:Familia" },
+			{ S = "Familia", T = "¡Muy bien jugado, {nombre}! ¡Muy bien!", If = PERDIDO, A = "Clap", Shot = "Reaccion:Familia" },
+			{ S = "Bruno", T = "…Bien jugado. De verdad. Lo odio, pero bien jugado.", If = GANADO, Pause = 0.6, Beat = "Aparta", Shot = "PrimerPlano:Bruno" },
+			{ S = "Bruno", T = "¡Lo sabía! …Aunque ha estado muy cerca. Muy cerca. Casi me da algo.", If = PERDIDO, A = "Cheer", Shot = "PrimerPlano:Bruno" },
 			{ Ask = "¿Qué haces ahora?", Options = {
 				{ T = "Dar la mano a todo el equipo de Bruno", Effects = { Traits = { Deportividad = 2 }, Rel = { Bruno = 5, Ruben = 3 }, Choice = { TrasFinal = "Mano" } }, Then = {
 					{ S = "Bruno", T = "¿La mano? Vale. Toma. Pero no se lo cuentes a nadie. Es broma. Cuéntaselo.", If = GANADO },
@@ -368,14 +402,6 @@ return {
 			} },
 		} },
 
-		Medallas = { Lines = {
-			{ S = "Andres", T = "Y ahora… ¡las medallas! Primero, los subcampeones." },
-			{ S = "Narrador", T = "Andrés te cuelga una medalla de ORO. Pesa más de lo que parece. O será la emoción.", If = GANADO },
-			{ S = "Narrador", T = "Andrés te cuelga una medalla de PLATA. Brilla muchísimo. Más que muchas de oro.", If = PERDIDO },
-			{ S = "Familia", T = "¡Mirad! ¡Es {nombre}! ¡Es de mi familia!" },
-			{ S = "Abu", T = "(Abu no dice nada. Solo aplaude. Y se le escapa una lagrimilla.)" },
-			{ S = "Andres", T = "Un último premio: el de deportividad del torneo. Es para… {nombre}. Por cómo has jugado. Y por cómo has tratado a todos.", If = { Traits = { Deportividad = 4 } } },
-		} },
 		Rumor = { Lines = {
 			{ S = "Omar", T = "Oye… ¿habéis oído lo que dicen los de sexto?" },
 			{ S = "Sara", T = "¿Lo de la puerta del fondo del pasillo? Esa que siempre está cerrada con un candado." },

@@ -469,10 +469,12 @@ do
 		steps(quest.Steps)
 	end
 	print(("     %d diálogos · %d pasos Scene · %d frases · %d con plano · %d acotaciones convertidas (%d enteras)"):format(dialogues, scenes, lineCount, framed, directions, whole))
-	check(scenes >= 290, ("están las escenas de conversación (%d)"):format(scenes))
+	-- (umbrales bajos a propósito: las escenas importantes pasan a escenas del motor, Happenings, y las
+	-- acotaciones a A/G/Beat; aquí solo se comprueba que se recorren los datos de verdad)
+	check(scenes >= 200, ("están las escenas de conversación (%d)"):format(scenes))
 	check(errors == 0, "ninguna frase rompe al director")
 	check(framed > lineCount * 0.5, "la mayoría de las frases tienen plano")
-	check(directions >= 80, ("las acotaciones escritas de los personajes se convierten en acción (%d)"):format(directions))
+	check(directions >= 30, ("las acotaciones escritas de los personajes se convierten en acción (%d)"):format(directions))
 end
 
 L.finish("test-stagedirector")

@@ -73,18 +73,20 @@ return {
 		},
 		Dialogues = {
 			Carta = { Lines = {
-				{ S = "Narrador", T = "«Hola, yo de ayer: soy tú, de hoy. Mañana, o sea hoy, ve a la fuente del parque. Allí hay algo que se nos olvidó. Firmado: tú. P. D.: No te comas el yogur de fresa. Está raro.»" },
+				{ S = "Narrador", T = "«Hola, yo de ayer: soy tú, de hoy. Mañana, o sea hoy, ve a la fuente del parque.»" },
+				{ S = "Narrador", T = "«Allí hay algo que se nos olvidó. Firmado: tú. P. D.: No te comas el yogur de fresa. Está raro.»" },
 				{ S = "Narrador", T = "La fecha del matasellos es la de ayer. La letra es la tuya. Tú no has escrito ninguna carta. Todavía." },
 			} },
 			Papel = { Lines = {
-				{ S = "Narrador", T = "Un papel doblado, mojado, pegado al borde de la fuente. Pone, con tu letra: «¿Ves? Ya lo has encontrado. Ahora escribe tú la carta de ayer, que si no, se rompe el tiempo»." },
+				{ S = "Narrador", T = "Un papel doblado, mojado, pegado al borde de la fuente." },
+				{ S = "Narrador", T = "Pone, con tu letra: «¿Ves? Ya lo has encontrado. Ahora escribe tú la carta de ayer, que si no, se rompe el tiempo»." },
 				{ S = "Narrador", T = "Dentro hay un sello. Brilla un poco verde. Como la línea del cielo." },
 			} },
 			Pip = { Lines = {
 				{ S = "Pip", T = "Un sello del ayer. Lo que cae por la Grieta a veces se queda enredado en el tiempo. El señor Cosme lo llama «pelusa temporal»." },
 				{ S = "Pip", T = "Consejo de robot: escriba la carta esta noche y échela al buzón. Así todo cuadra. Y no se coma el yogur de fresa." },
 				{ S = "Yo", T = "¿Tú sabes lo del yogur?" },
-				{ S = "Pip", T = "Yo lo sé todo sobre los yogures del barrio. Es mi única afición." },
+				{ S = "Pip", T = "Yo lo sé todo sobre los yogures del barrio. Es mi única afición.", Beat = "Sonrie", Shot = "PrimerPlano:Pip" },
 			} },
 		},
 	},
@@ -125,9 +127,12 @@ return {
 				{ S = "Pip", T = "No podemos apagarla: la Grieta la ha dejado con voluntad propia. Pero podemos afinarla. Usted cante con ella. Yo no puedo: mi altavoz solo hace «bip»." },
 			} },
 			Final = { Lines = {
-				{ S = "Narrador", T = "(La farola, muy bajito, afinadísima) «Fígaro… Fígaro…». Se apaga un momento. Cuando vuelve a encenderse, solo tararea. Los vecinos aplauden desde las ventanas.", If = { Flags = { "FarolaAfinada" } } },
+				{ S = "Narrador", T = "(La farola, muy bajito, afinadísima) «Fígaro… Fígaro…». Se apaga un momento.", If = { Flags = { "FarolaAfinada" } } },
+				{ S = "Narrador", T = "Cuando vuelve a encenderse, solo tararea. Los vecinos aplauden desde las ventanas.", If = { Flags = { "FarolaAfinada" } } },
 				{ S = "Narrador", T = "(La farola, igual de desafinada, pero ahora a dúo contigo) Los vecinos cierran las ventanas. Alguien grita «¡bravo!». Con ironía, seguramente.", If = { NotFlags = { "FarolaAfinada" } } },
 				{ S = "Pip", T = "Le ha regalado una bombilla de repuesto. Dice que es «para su futuro como artista». No sé qué significa. Suena caro." },
+				-- Desde la noche de las cosas perdidas (Saga_05), el barrio ya no se asusta de nada
+				{ S = "Pip", T = "Desde la noche de las cosas perdidas, los vecinos aplauden cualquier rareza. Es un barrio muy agradecido.", If = { Flags = { "VecinosNotanRarezas" } } },
 			} },
 		},
 	},
@@ -170,10 +175,12 @@ return {
 				{ S = "Narrador", T = "Alguien ha subrayado la tabla con rotulador verde. En el margen: «Para Pip. Por si algún día lo necesita. — C.»" },
 			} },
 			Caja = { Lines = {
-				{ S = "Narrador", T = "Una caja de metal. Dentro, un hueso de juguete que hace «bip», y una chapa con unos y ceros. El perro la mira, mueve la cola y se va. Misión cumplida, al parecer." },
+				{ S = "Narrador", T = "Una caja de metal. Dentro, un hueso de juguete que hace «bip», y una chapa con unos y ceros." },
+				{ S = "Narrador", T = "El perro la mira, mueve la cola y se va. Misión cumplida, al parecer." },
 			} },
 			Pip = { Lines = {
-				{ S = "Pip", T = "Esa chapa es mía. De cuando era un prototipo. El señor Cosme me la quitó para que no me escapara con los perros del parque. Yo quería ser perro. Es una etapa." },
+				{ S = "Pip", T = "Esa chapa es mía. De cuando era un prototipo." },
+				{ S = "Pip", T = "El señor Cosme me la quitó para que no me escapara con los perros del parque. Yo quería ser perro. Es una etapa." },
 				{ S = "Pip", T = "La Grieta despertó algo de código en ese perro. Y el código buscó a su dueño. …Qué raro me siento. Creo que esto es emoción. O un cortocircuito." },
 				{ S = "Pip", T = "Quédesela usted. Yo ya no quiero ser perro. Quiero ser lo que soy. Un robot con amigos." },
 			} },
@@ -219,7 +226,8 @@ return {
 		Dialogues = {
 			Pip = { Lines = {
 				{ S = "Pip", T = "Un agujerito de la Grieta se ha abierto justo encima de una dimensión donde todo es pasta. Allí llueve pasta. Aquí, por culpa del agujero, también." },
-				{ S = "Pip", T = "Plan: recoger los espaguetis antes de que se peguen, y enrollar el agujero como se enrolla la pasta. Con tenedor. Lo dice el manual del señor Cosme, página «emergencias italianas»." },
+				{ S = "Pip", T = "Plan: recoger los espaguetis antes de que se peguen, y enrollar el agujero como se enrolla la pasta." },
+				{ S = "Pip", T = "Con tenedor. Lo dice el manual del señor Cosme, página «emergencias italianas»." },
 			} },
 			Recoger = { Lines = {
 				{ S = "Narrador", T = "Espaguetis al dente. Perfectos. Un poco de tomate. Huelen a domingo en casa de {abu}." },
@@ -268,7 +276,9 @@ return {
 		},
 		Dialogues = {
 			Candela = { Lines = {
-				{ S = "Candela", T = "La biblioteca tiene tres plantas. Lo sé porque las he contado. Muchas veces. Me relaja contar plantas." },
+				{ S = "Candela", T = "La biblioteca tiene tres plantas. Lo sé porque las he contado. Muchas veces. Me relaja contar plantas.", Shot = "Medio:Candela" },
+				-- Ya le contaste lo de la Grieta (Saga_13)
+				{ S = "Candela", T = "¿Esto es cosa de tu Grieta? Abro pestaña nueva en el Excel: «Grieta, ascensores».", If = { Flags = { "CompisSabenGrieta" } }, To = "Yo" },
 				{ S = "Candela", T = "Y ahora hay un 13. Mi cerebro dice «no». Mi curiosidad dice «pulsa». Mi curiosidad siempre gana. Pulsa tú, que yo apunto." },
 			} },
 			Boton = { Lines = {
@@ -281,7 +291,8 @@ return {
 			Cronos = { Lines = {
 				{ S = "CazadorTiempo", T = "Ancla. El piso 13 es un pliegue. Aquí se guarda lo que todavía no ha pasado. Muy práctico para la Aduana. Muy mala idea para estudiantes." },
 				{ S = "CazadorTiempo", T = "No has leído tu examen. Bien. La mayoría lo lee. Luego suspenden igual, por los nervios. El tiempo es así de rencoroso." },
-				{ S = "CazadorTiempo", T = "Toma el botón. Sin él, el ascensor ya no subirá aquí. Y, por favor, no le cuentes a nadie que existe el piso 13. Hay una lista de espera de trescientos años." },
+				{ S = "CazadorTiempo", T = "Toma el botón. Sin él, el ascensor ya no subirá aquí." },
+				{ S = "CazadorTiempo", T = "Y, por favor, no le cuentes a nadie que existe el piso 13. Hay una lista de espera de trescientos años." },
 				{ S = "Candela", T = "Lo apunto en mi Excel de «cosas imposibles». Pestaña nueva: «Ascensores»." },
 			} },
 		},
@@ -325,8 +336,10 @@ return {
 		Dialogues = {
 			Pilar = { Lines = {
 				{ S = "Portero", T = "Cuarenta años con este reloj. Nunca se ha atrasado ni un minuto. Hoy se atrasa todo el rato. Y a propósito." },
-				{ S = "Ivan", T = "{nombre}. Tengo una duda. ¿Los cordones van por dentro o por fuera? ¿Y el zumo… se bebe o se come? Hace una hora lo sabía." },
-				{ S = "Portero", T = "Cada vez que el reloj da la hora hacia atrás, a alguien se le olvida algo que aprendió. Esta mañana, a la de la limpieza se le olvidó fregar. Está encantada." },
+				{ S = "Ivan", T = "{nombre}. Tengo una duda. ¿Los cordones van por dentro o por fuera? ¿Y el zumo… se bebe o se come? Hace una hora lo sabía.", A = "Ask" },
+				{ S = "Ivan", T = "¿Esto es lo de tu Grieta? …¿Qué Grieta? Ya no me acuerdo. Pero me suena que es culpa suya.", If = { Flags = { "CompisSabenGrieta" } }, Beat = "Piensa" },
+				{ S = "Portero", T = "Cada vez que el reloj da la hora hacia atrás, a alguien se le olvida algo que aprendió." },
+				{ S = "Portero", T = "Esta mañana, a la de la limpieza se le olvidó fregar. Está encantada." },
 			} },
 			Pieza = { Lines = {
 				{ S = "Narrador", T = "Un engranaje verde, girando solo. Al revés. Cuando lo coges, se para, como avergonzado." },
@@ -375,14 +388,17 @@ return {
 		},
 		Dialogues = {
 			Pip = { Lines = {
-				{ S = "Pip", T = "Una chispa de la Grieta le dio conciencia. Lleva cuarenta años mirando pasar coches sin poder decir nada. Ahora tiene muchas cosas que decir. Todas a la vez." },
+				{ S = "Pip", T = "Una chispa de la Grieta le dio conciencia. Lleva cuarenta años mirando pasar coches sin poder decir nada." },
+				{ S = "Pip", T = "Ahora tiene muchas cosas que decir. Todas a la vez." },
 				{ S = "Narrador", T = "(El semáforo) «¡Ese coche necesita un lavado! ¡Ese señor debería llamar a su madre! ¡La piña en la pizza es un crimen!»" },
 			} },
 			Final = { Lines = {
 				{ S = "Narrador", T = "(El semáforo) «¡Por fin alguien sensato!». Se pone en verde. Los coches pasan. Te guiña el ámbar.", If = { Choices = { Semaforo = "Razon" } } },
 				{ S = "Narrador", T = "(El semáforo) «…Vale. Tu argumento sobre el dulce y el salado es sólido. Me lo pensaré.». Se pone en verde, pensativo.", If = { Choices = { Semaforo = "Debate" } } },
-				{ S = "Narrador", T = "(El semáforo, muy bajito) «…Nadie me había preguntado eso nunca. Me siento… solo. Todo el día aquí, en rojo, y todos con prisa.». Se pone en verde. Y se queda en ámbar un segundo más, como una sonrisa.", If = { Choices = { Semaforo = "Escuchar" } } },
-				{ S = "Pip", T = "Le ha regalado su luz ámbar de repuesto. Es su forma de decir «gracias». O «precaución». En los semáforos es lo mismo." },
+				{ S = "Narrador", T = "(El semáforo, muy bajito) «…Nadie me había preguntado eso nunca. Me siento… solo. Todo el día aquí, en rojo, y todos con prisa.».", If = { Choices = { Semaforo = "Escuchar" } } },
+				{ S = "Narrador", T = "Se pone en verde. Y se queda en ámbar un segundo más, como una sonrisa.", If = { Choices = { Semaforo = "Escuchar" } } },
+				{ S = "Pip", T = "Le ha regalado su luz ámbar de repuesto.", Shot = "Medio:Pip", Pause = 0.5 },
+				{ S = "Pip", T = "Es su forma de decir «gracias». O «precaución». En los semáforos es lo mismo.", Beat = "Sonrie" },
 			} },
 		},
 	},
@@ -422,7 +438,8 @@ return {
 			Final = { Lines = {
 				{ S = "Narrador", T = "En la playa, la nubecita se para. Mira el mar. Sobre el horizonte hay un banco de nubes grandes. Una de ellas hace «¡plic!»." },
 				{ S = "Narrador", T = "La nubecita te llueve encima una última vez, flojito, y se va volando. Antes de irse, deja caer una gota que no se seca." },
-				{ S = "Pip", T = "Una gota de nube. Dicen que, si la tiene en la mano en un día triste, sale el sol. Yo no lo he probado. Yo no tengo días tristes. Solo actualizaciones." },
+				{ S = "Pip", T = "Una gota de nube. Dicen que, si la tiene en la mano en un día triste, sale el sol." },
+				{ S = "Pip", T = "Yo no lo he probado. Yo no tengo días tristes. Solo actualizaciones." },
 			} },
 		},
 	},
@@ -468,7 +485,8 @@ return {
 			} },
 			Abu = { Lines = {
 				{ S = "Abu", T = "¿Las iniciales del banco? ¡Claro que las hice yo! Tenía tu edad. Me castigaron una semana sin postre. Mereció la pena." },
-				{ S = "Abu", T = "¿Y tú cómo sabes lo de la navaja de juguete? Eso no se lo he contado nunca a nadie… Bueno. Da igual. Toma: la cadenita de aquel columpio. La guardé cuando lo cambiaron. Ahora es tuya." },
+				{ S = "Abu", T = "¿Y tú cómo sabes lo de la navaja de juguete? Eso no se lo he contado nunca a nadie… Bueno." },
+				{ S = "Abu", T = "Da igual. Toma: la cadenita de aquel columpio. La guardé cuando lo cambiaron. Ahora es tuya." },
 			} },
 		},
 	},
@@ -500,8 +518,10 @@ return {
 			Pip = { Lines = {
 				{ S = "Pip", T = "Su sombra estaba jugando al escondite con las sombras de los árboles. Iba ganando. Las sombras son muy buenas escondiéndose: es su trabajo." },
 				{ S = "Pip", T = "Un poco de Grieta le dio vida. No quería escaparse de usted: quería jugar con usted. Y usted estaba en clase." },
-				{ S = "Narrador", T = "Tu sombra se acerca, arrastrando los pies, como cuando te pillan. Se pega otra vez a tus zapatillas. Al principio va un segundo por detrás. Luego ya no." },
-				{ S = "Pip", T = "Consejo: juegue con ella de vez en cuando. Al atardecer se estira mucho. Le encanta. Tome, una tiza: dibuje su contorno en el suelo. Así sabrá dónde vive." },
+				{ S = "Narrador", T = "Tu sombra se acerca, arrastrando los pies, como cuando te pillan." },
+				{ S = "Narrador", T = "Se pega otra vez a tus zapatillas. Al principio va un segundo por detrás. Luego ya no." },
+				{ S = "Pip", T = "Consejo: juegue con ella de vez en cuando. Al atardecer se estira mucho." },
+				{ S = "Pip", T = "Le encanta. Tome, una tiza: dibuje su contorno en el suelo. Así sabrá dónde vive." },
 			} },
 		},
 	},
@@ -539,13 +559,16 @@ return {
 		},
 		Dialogues = {
 			Reflejo = { Lines = {
-				{ S = "Narrador", T = "(Tu reflejo) «Ese grano. Esa camiseta. Esa cara de sueño. Y lo de ayer en clase… Madre mía, lo de ayer.»" },
-				{ S = "Narrador", T = "Lo raro es que dice exactamente lo que piensas tú de ti mismo los días malos. Con tu voz. Pero en alto." },
+				-- (El reflejo habla con TU voz: lo dice «Yo», con la acotación de que es el espejo)
+				{ S = "Yo", T = "(Tu reflejo) «Ese grano. Esa camiseta. Esa cara de sueño. Y lo de ayer en clase… Madre mía, lo de ayer.»" },
+				{ S = "Narrador", T = "Lo raro es que dice exactamente lo que piensas tú de ti mism{o/a} los días malos. Con tu voz. Pero en alto." },
 			} },
 			Pip = { Lines = {
-				{ S = "Narrador", T = "(Tu reflejo, sonrojado) «…Tienes buena risa. Y ayudas a la gente aunque nadie mire. Y ese pelo… bueno, el pelo no. Pero lo demás, sí.»", If = { Choices = { Espejo = "Amable" } } },
-				{ S = "Narrador", T = "(Tu reflejo, llorando de la risa) «¡Para! ¡Para, que me meo! Vale, vale: tienes gracia. Lo admito.»", If = { Choices = { Espejo = "Humor" } } },
-				{ S = "Narrador", T = "(Desde debajo de la toalla, ofendido) «Muy maduro. Muy maduro.» …Al rato, flojito: «Perdona. Me he pasado.»", If = { Choices = { Espejo = "Tapar" } } },
+				{ S = "Yo", T = "(Tu reflejo, sonrojado) «…Tienes buena risa. Y ayudas a la gente aunque nadie mire.»", If = { Choices = { Espejo = "Amable" } } },
+				{ S = "Yo", T = "(Tu reflejo) «Y ese pelo… bueno, el pelo no. Pero lo demás, sí.»", If = { Choices = { Espejo = "Amable" } }, Pause = 0.6 },
+				{ S = "Yo", T = "(Tu reflejo, llorando de la risa) «¡Para! ¡Para, que me meo! Vale, vale: tienes gracia. Lo admito.»", If = { Choices = { Espejo = "Humor" } } },
+				{ S = "Yo", T = "(Tu reflejo, desde debajo de la toalla, ofendido) «Muy maduro. Muy maduro.»", If = { Choices = { Espejo = "Tapar" } } },
+				{ S = "Yo", T = "(Tu reflejo, al rato, flojito) «Perdona. Me he pasado.»", If = { Choices = { Espejo = "Tapar" } }, Pause = 1.2 },
 				{ S = "Pip", T = "Un reflejo con un poquito de Grieta dentro. Repite lo que usted piensa de sí mismo. Por eso decía cosas feas: usted se las dice a veces." },
 				{ S = "Pip", T = "Ya está arreglado. Se le ha caído un trocito de cristal. Si lo mira, verá su reflejo sonriendo. Aunque usted no sonría. Es un truco. Funciona." },
 			} },
@@ -713,8 +736,13 @@ return {
 		},
 		Dialogues = {
 			Mensaje = { Lines = {
-				{ S = "Narrador", T = "(Una voz que conoces, pero más joven) «Hola, cosa pequeña. Esto es una prueba del contestador nuevo. Duermes en la cuna. Roncas. Muy fuerte para caber en una caja de zapatos.»" },
-				{ S = "Narrador", T = "«No sé para qué te grabo esto, si no lo vas a oír. Bueno. Por si algún día… que sepas que eres lo mejor que nos ha pasado. Fin del mensaje. ¿Cómo se para esto? ¿Este botón?»" },
+				-- (Una voz que conoces, pero más joven: es tu familia, en un mensaje de hace muchos años)
+				{ S = "Narrador", T = "El móvil pita. Un mensaje de voz de 1999. Una voz que conoces, pero más joven:" },
+				{ S = "Familia", T = "(Mensaje de 1999) «Hola, cosa pequeña. Esto es una prueba del contestador nuevo.»" },
+				{ S = "Familia", T = "(Mensaje de 1999) «Duermes en la cuna. Roncas. Muy fuerte para caber en una caja de zapatos.»" },
+				{ S = "Familia", T = "(Mensaje de 1999) «No sé para qué te grabo esto, si no lo vas a oír. Bueno.»", Pause = 0.8 },
+				{ S = "Familia", T = "(Mensaje de 1999) «Por si algún día… que sepas que eres lo mejor que nos ha pasado.»", Pause = 1 },
+				{ S = "Familia", T = "(Mensaje de 1999) «Fin del mensaje. ¿Cómo se para esto? ¿Este botón?»" },
 			} },
 			Pip = { Lines = {
 				{ S = "Pip", T = "La Grieta a veces cruza cables de años distintos. Los mensajes que nadie escuchó se quedan flotando. Y un día encuentran a quien iban dirigidos." },
@@ -722,7 +750,8 @@ return {
 			} },
 			Familia = { Lines = {
 				{ S = "Familia", T = "¿Un mensaje de 1999? ¿Del contestador de la casa vieja? …Me acuerdo. Lo grabé una noche que no podía dormir. Pensé que se había borrado." },
-				{ S = "Familia", T = "…Lo que decía era verdad. Lo sigue siendo. No me hagas repetirlo, que me emociono. Anda, quédate a cenar." },
+				{ S = "Familia", T = "…Lo que decía era verdad. Lo sigue siendo.", Pause = 1, Shot = "PrimerPlano:Familia", A = "Sad" },
+				{ S = "Familia", T = "No me hagas repetirlo, que me emociono. Anda, quédate a cenar.", Beat = "Sonrie", To = "Yo" },
 			} },
 		},
 	},
@@ -756,14 +785,16 @@ return {
 		},
 		Dialogues = {
 			Pip = { Lines = {
-				{ S = "Pip", T = "Un gato de la Grieta. Está dentro y fuera de la caja a la vez hasta que alguien mira. En la dimensión de los gatos esto es normal. Aquí, el encargado ha llamado a tres veterinarios." },
+				{ S = "Pip", T = "Un gato de la Grieta. Está dentro y fuera de la caja a la vez hasta que alguien mira." },
+				{ S = "Pip", T = "En la dimensión de los gatos esto es normal. Aquí, el encargado ha llamado a tres veterinarios." },
 				{ S = "Pip", T = "Hay que abrir la caja. Cuando alguien mira, el gato tiene que decidir dónde está. Normalmente elige donde haya comida." },
 			} },
 			Abrir = { Lines = {
 				{ S = "Narrador", T = "Abres la caja. Por un segundo hay dos gatos. Se miran. Uno bosteza. El otro se ofende. Y… solo queda uno. Dentro de la caja. Como si nada." },
 			} },
 			Final = { Lines = {
-				{ S = "Pip", T = "Gato decidido. Caja ocupada. Encargado más tranquilo. Ha dejado un cascabel: a veces suena y a veces no. Aunque no lo muevas. Es cuántico. O está roto." },
+				{ S = "Pip", T = "Gato decidido. Caja ocupada. Encargado más tranquilo." },
+				{ S = "Pip", T = "Ha dejado un cascabel: a veces suena y a veces no. Aunque no lo muevas. Es cuántico. O está roto." },
 				{ S = "Pip", T = "Y he comprado los yogures. Los de fresa no: siguen raros." },
 			} },
 		},
@@ -806,11 +837,12 @@ return {
 		},
 		Dialogues = {
 			Bola = { Lines = {
-				{ S = "Narrador", T = "Das un lametazo. De repente estás otra vez en tu primer día de colegio: el olor a lápiz nuevo, los nervios en la barriga, la mochila que pesaba más que tú." },
+				{ S = "Narrador", T = "Das un lametazo. De repente estás otra vez en tu primer día de colegio." },
+				{ S = "Narrador", T = "El olor a lápiz nuevo, los nervios en la barriga, la mochila que pesaba más que tú.", Pause = 0.6 },
 				{ S = "Narrador", T = "Otro lametazo y vuelves a la heladería. Tienes la lengua verde y los ojos un poco húmedos. Es un helado muy fuerte." },
 			} },
 			Pip = { Lines = {
-				{ S = "Narrador", T = "Segunda bola: sabe a tarta, a velas, a una canción desafinada. Te ríes solo. La heladera también se ríe. No sabe por qué.", If = { Choices = { Sabor = "Cumple" } } },
+				{ S = "Narrador", T = "Segunda bola: sabe a tarta, a velas, a una canción desafinada. Te ríes sol{o/a}. La heladera también se ríe. No sabe por qué.", If = { Choices = { Sabor = "Cumple" } } },
 				{ S = "Narrador", T = "Segunda bola: sabe a un pueblo pequeño, a pan con chocolate y a un niño con gorra que se columpia muy alto. Es {abu}. Con tu edad.", If = { Choices = { Sabor = "Abu" } } },
 				{ S = "Narrador", T = "Segunda bola: no sabe a nada. Y luego, de golpe, a un bocadillo de chorizo que todavía no te has comido. Mañana, seguramente.", If = { Choices = { Sabor = "Manana" } } },
 				{ S = "Pip", T = "Leche de la Grieta. Una vaca de otra dimensión se asomó por un agujerito y la heladera la ordeñó sin preguntar. Así se hacen los negocios en Valmar." },
@@ -852,8 +884,10 @@ return {
 			} },
 			Pip = { Lines = {
 				{ S = "Narrador", T = "Dejas el patito en el estanque. Nada un poco. Luego, feliz, flota hacia arriba unos centímetros y se queda ahí, en el aire, sobre el agua." },
-				{ S = "Pip", T = "En su dimensión, las cosas caen hacia el cielo. Por eso allí los patos llevan piedras en los bolsillos. Este se cayó por un charco que conectaba con la Grieta." },
-				{ S = "Pip", T = "El charco ya se ha secado. El patito no puede volver. Pero dice «kiuc», que en su idioma es «aquí se está bien». Quédese uno de sus primos: vinieron tres." },
+				{ S = "Pip", T = "En su dimensión, las cosas caen hacia el cielo. Por eso allí los patos llevan piedras en los bolsillos." },
+				{ S = "Pip", T = "Este se cayó por un charco que conectaba con la Grieta." },
+				{ S = "Pip", T = "El charco ya se ha secado. El patito no puede volver." },
+				{ S = "Pip", T = "Pero dice «kiuc», que en su idioma es «aquí se está bien». Quédese uno de sus primos: vinieron tres." },
 			} },
 		},
 	},
@@ -897,15 +931,18 @@ return {
 		Dialogues = {
 			Pip = { Lines = {
 				{ S = "Pip", T = "Na-na-na-naaa… Perdón. Es una canción de la dimensión de los estribillos. Allí las canciones no tienen final. Se cantan hasta que alguien se desmaya." },
-				{ S = "Pip", T = "Se coló por la Grieta y se metió en los altavoces. Pero sin final. El final se quedó enganchado por ahí, a trozos. Si lo encontramos y lo cantamos, se acaba." },
+				{ S = "Pip", T = "Se coló por la Grieta y se metió en los altavoces. Pero sin final." },
+				{ S = "Pip", T = "El final se quedó enganchado por ahí, a trozos. Si lo encontramos y lo cantamos, se acaba." },
 				{ S = "Pip", T = "Dese prisa. El profesor de Matemáticas lleva dos horas cantando. Ha empezado a hacer coreografía." },
 			} },
 			Estrofa = { Lines = {
 				{ S = "Narrador", T = "Un trozo de partitura, con notas verdes. Al cogerlo, la canción se oye un poco más bajito. Como si se diera cuenta de que se acaba." },
 			} },
 			Final = { Lines = {
-				{ S = "Narrador", T = "Cantas la última nota. Perfecta. La canción termina con un «¡tachán!». Todo el patio se calla. Luego, un aplauso enorme. El profe de Matemáticas hace una reverencia.", If = { Flags = { "CancionAfinada" } } },
-				{ S = "Narrador", T = "Cantas la última nota. Fatal. Pero es una nota final, y la canción lo acepta. Se acaba con un «¿tachán?». Todo el patio respira. Alguien grita: «¡Gracias!».", If = { NotFlags = { "CancionAfinada" } } },
+				{ S = "Narrador", T = "Cantas la última nota. Perfecta. La canción termina con un «¡tachán!». Todo el patio se calla.", If = { Flags = { "CancionAfinada" } } },
+				{ S = "Narrador", T = "Luego, un aplauso enorme. El profe de Matemáticas hace una reverencia.", If = { Flags = { "CancionAfinada" } } },
+				{ S = "Narrador", T = "Cantas la última nota. Fatal. Pero es una nota final, y la canción lo acepta.", If = { NotFlags = { "CancionAfinada" } } },
+				{ S = "Narrador", T = "Se acaba con un «¿tachán?». Todo el patio respira. Alguien grita: «¡Gracias!».", If = { NotFlags = { "CancionAfinada" } } },
 				{ S = "Pip", T = "Aquí tiene la partitura completa. Guárdela bien. Y no la tararee nunca. Nunca. Ni en la ducha." },
 			} },
 		},
@@ -946,12 +983,14 @@ return {
 		},
 		Dialogues = {
 			Nota = { Lines = {
-				{ S = "Narrador", T = "«¿Tú también estás hasta el gorro de Matemáticas? Aquí nos las dan en verso. Rima todo. Hasta la raíz cuadrada. P. D.: ¿Tu taquilla también huele a bocadillo?»" },
+				{ S = "Narrador", T = "«¿Tú también estás hasta el gorro de Matemáticas? Aquí nos las dan en verso.»" },
+				{ S = "Narrador", T = "«Rima todo. Hasta la raíz cuadrada. P. D.: ¿Tu taquilla también huele a bocadillo?»" },
 				{ S = "Narrador", T = "La letra se parece a la tuya. Pero más inclinada. Como si la hubieras escrito corriendo. O en otra dimensión." },
 			} },
 			Respuesta = { Lines = {
 				{ S = "Narrador", T = "Nueva nota: «¡Sí! Me llamo como tú. Vivo en tu calle. Pero en mi Valmar el mar está arriba. Amigos para siempre. Y para todas las dimensiones.»", If = { Choices = { Taquilla = "Amigos" } } },
-				{ S = "Narrador", T = "Nueva nota: «Te paso los deberes. Pero aquí las Matemáticas son en verso: ‘Dos más dos, qué dolor, son cuatro, sí, señor’. Tu profe no lo va a entender.»", If = { Choices = { Taquilla = "Deberes" } } },
+				{ S = "Narrador", T = "Nueva nota: «Te paso los deberes.»", If = { Choices = { Taquilla = "Deberes" } } },
+				{ S = "Narrador", T = "«Pero aquí las Matemáticas son en verso: ‘Dos más dos, qué dolor, son cuatro, sí, señor’. Tu profe no lo va a entender.»", If = { Choices = { Taquilla = "Deberes" } } },
 				{ S = "Narrador", T = "Nueva nota: «JAJAJA. Aquí ese chiste es ilegal. Me lo voy a aprender. P. D.: ¿Tienes más?»", If = { Choices = { Taquilla = "Chiste" } } },
 			} },
 			Pip = { Lines = {
@@ -997,17 +1036,21 @@ return {
 		},
 		Dialogues = {
 			Candela = { Lines = {
-				{ S = "Candela", T = "Me apoyé en la fotocopiadora. Le di al botón con el codo. Salieron dos hojas. Las hojas eran yo. Se levantaron, me dijeron «hola» y se fueron. Muy educadas, eso sí." },
-				{ S = "Candela", T = "Son de papel. Si llueve, se estropean. Si hay viento, salen volando. Y lo peor: tienen mis contraseñas. Hay que traerlas antes de que hagan algo que yo no haría. O que sí haría." },
+				{ S = "Candela", T = "Me apoyé en la fotocopiadora. Le di al botón con el codo. Salieron dos hojas." },
+				{ S = "Candela", T = "Las hojas eran yo. Se levantaron, me dijeron «hola» y se fueron. Muy educadas, eso sí." },
+				{ S = "Candela", T = "Son de papel. Si llueve, se estropean. Si hay viento, salen volando. Y lo peor: tienen mis contraseñas." },
+				{ S = "Candela", T = "Hay que traerlas antes de que hagan algo que yo no haría. O que sí haría." },
 			} },
 			Copia1 = { Lines = {
-				{ S = "Narrador", T = "La Candela de papel está leyendo un libro de cuatrocientas páginas. Ya va por la trescientos. Cuando la doblas con cuidado, dice «gracias» con un crujido." },
+				{ S = "Narrador", T = "La Candela de papel está leyendo un libro de cuatrocientas páginas." },
+				{ S = "Narrador", T = "Ya va por la trescientos. Cuando la doblas con cuidado, dice «gracias» con un crujido." },
 			} },
 			Copia2 = { Lines = {
 				{ S = "Narrador", T = "La otra Candela de papel ha hecho un Excel de todas las nubes del cielo. Por tamaño. Y por forma. Se deja doblar, pero antes guarda el archivo." },
 			} },
 			Deshacer = { Lines = {
-				{ S = "Narrador", T = "Metes las dos copias por la bandeja y pulsas «Deshacer». La máquina ronronea, escupe un cartucho de tóner verde y se apaga. Las copias han vuelto a ser papel en blanco." },
+				{ S = "Narrador", T = "Metes las dos copias por la bandeja y pulsas «Deshacer»." },
+				{ S = "Narrador", T = "La máquina ronronea, escupe un cartucho de tóner verde y se apaga. Las copias han vuelto a ser papel en blanco." },
 			} },
 			Final = { Lines = {
 				{ S = "Candela", T = "Gracias. De verdad. Ha sido rarísimo verme desde fuera. Hablo muy rápido. Y hago mucho así con las manos. Me he caído bien, eso sí." },
@@ -1054,12 +1097,16 @@ return {
 				{ S = "Ivan", T = "Y hay un chat. Con letras verdes. Alguien pregunta «¿hay alguien ahí?». Yo no me atrevo. Tú eres más valiente. Y yo tengo el zumo en la mano." },
 			} },
 			Conexion = { Lines = {
-				{ S = "Narrador", T = "El módem hace «piiiii-krrrrr-chiiiii». Tarda. Mucho. La pantalla se pone verde. Un cursor parpadea. Alguien escribe: «Hola. Soy Marisa. Tengo 15 años. Es 1987. ¿Y tú?»" },
+				{ S = "Narrador", T = "El módem hace «piiiii-krrrrr-chiiiii». Tarda. Mucho. La pantalla se pone verde." },
+				{ S = "Narrador", T = "Un cursor parpadea. Alguien escribe: «Hola. Soy Marisa. Tengo 15 años. Es 1987. ¿Y tú?»" },
 			} },
 			Final = { Lines = {
-				{ S = "Narrador", T = "«¿Del futuro? ¡Qué guay! ¿Hay coches voladores? …¿No? ¿Y entonces para qué sirve el futuro?». Se ríe en mayúsculas. Os despedís. «Hasta el futuro», escribe.", If = { Choices = { Wifi = "Verdad" } } },
-				{ S = "Narrador", T = "«¿Los cómics? Vale… Me los guardaré. Por si acaso.» Se desconecta. Iván busca en el internet de hoy: una tal Marisa de Valmar tiene la colección de cómics más valiosa del país.", If = { Choices = { Wifi = "Consejo" } } },
-				{ S = "Ivan", T = "Se ha ido el wifi. Y ha dejado el módem. Pita cuando lo miras. Quédatelo tú: yo con los aparatos que pitan me pongo nervioso. Me recuerdan al microondas." },
+				{ S = "Narrador", T = "«¿Del futuro? ¡Qué guay! ¿Hay coches voladores? …¿No? ¿Y entonces para qué sirve el futuro?».", If = { Choices = { Wifi = "Verdad" } } },
+				{ S = "Narrador", T = "Se ríe en mayúsculas. Os despedís. «Hasta el futuro», escribe.", If = { Choices = { Wifi = "Verdad" } } },
+				{ S = "Narrador", T = "«¿Los cómics? Vale… Me los guardaré. Por si acaso.» Se desconecta.", If = { Choices = { Wifi = "Consejo" } } },
+				{ S = "Narrador", T = "Iván busca en el internet de hoy: una tal Marisa de Valmar tiene la colección de cómics más valiosa del país.", If = { Choices = { Wifi = "Consejo" } } },
+				{ S = "Ivan", T = "Se ha ido el wifi. Y ha dejado el módem. Pita cuando lo miras." },
+				{ S = "Ivan", T = "Quédatelo tú: yo con los aparatos que pitan me pongo nervioso. Me recuerdan al microondas." },
 			} },
 		},
 	},
@@ -1094,15 +1141,21 @@ return {
 		Dialogues = {
 			Ropa = { Lines = {
 				{ S = "Narrador", T = "Un calcetín negro con una perilla bordada. Un calcetín diminuto con cuatro dedos (de gato). Y uno de rayas que tararea algo parecido a la ópera." },
-				{ S = "Narrador", T = "Tus calcetines no están. En su lugar, pegada al tambor, hay una nota: «Perdón, nos hemos llevado los suyos. Son muy cómodos. Firmado: la dimensión de al lado»." },
+				{ S = "Narrador", T = "Tus calcetines no están. En su lugar, pegada al tambor, hay una nota: «Perdón, nos hemos llevado los suyos.»" },
+				{ S = "Narrador", T = "«Son muy cómodos. Firmado: la dimensión de al lado»." },
 			} },
 			Pip = { Lines = {
-				{ S = "Pip", T = "Su lavadora centrifuga tan fuerte que ha abierto un agujerito en la Grieta. Por ahí se pasan calcetines entre dimensiones. Es la causa de los calcetines desparejados de todo el universo." },
+				{ S = "Pip", T = "Su lavadora centrifuga tan fuerte que ha abierto un agujerito en la Grieta.", Shot = "Medio:Pip" },
+				-- El Monstruo de los Calcetines Desparejados de la infancia (Saga_05)
+				{ S = "Pip", T = "¿Recuerda el Monstruo de los Calcetines Desparejados? Ahora ya sabe de dónde salían tantos.", If = { Memories = { "CosasPerdidas" } }, To = "Yo" },
+				{ S = "Pip", T = "Por ahí se pasan calcetines entre dimensiones. Es la causa de los calcetines desparejados de todo el universo." },
 				{ S = "Pip", T = "Solución: el programa «Devolver». Está entre «Algodón» y «Delicado». Nadie lo usa porque nadie lo ve. Hay que haber visto la Grieta." },
 			} },
 			Devolver = { Lines = {
-				{ S = "Narrador", T = "Pones el programa «Devolver». La lavadora gira hacia el otro lado. Hace «¡flop!». Al abrirla, están tus calcetines. Todos. Hasta uno que perdiste hace diez años." },
-				{ S = "Narrador", T = "Y una pinza de tender verde, de regalo, con una nota: «Gracias por los calcetines. Os los devolvemos lavados. Esta pinza seca en tres dimensiones a la vez»." },
+				{ S = "Narrador", T = "Pones el programa «Devolver». La lavadora gira hacia el otro lado. Hace «¡flop!»." },
+				{ S = "Narrador", T = "Al abrirla, están tus calcetines. Todos. Hasta uno que perdiste hace diez años." },
+				{ S = "Narrador", T = "Y una pinza de tender verde, de regalo, con una nota: «Gracias por los calcetines.»" },
+				{ S = "Narrador", T = "«Os los devolvemos lavados. Esta pinza seca en tres dimensiones a la vez»." },
 			} },
 		},
 	},
@@ -1143,7 +1196,8 @@ return {
 				{ S = "Narrador", T = "Un billete verde que pone «10 minutos». Cuando lo tocas, el reloj del banco se para un momento, como esperando a ver qué haces." },
 			} },
 			Pip = { Lines = {
-				{ S = "Narrador", T = "Te sientas en un banco (de los de sentarse) y duermes diez minutos exactos. Te despiertas con energía de sobra. El reloj no se ha movido. Es la mejor siesta de tu vida.", If = { Choices = { Minutos = "Siesta" } } },
+				{ S = "Narrador", T = "Te sientas en un banco (de los de sentarse) y duermes diez minutos exactos.", If = { Choices = { Minutos = "Siesta" } } },
+				{ S = "Narrador", T = "Te despiertas con energía de sobra. El reloj no se ha movido. Es la mejor siesta de tu vida.", If = { Choices = { Minutos = "Siesta" } } },
 				{ S = "Narrador", T = "Llamas a {familia}. Habláis de todo y de nada. Al colgar, el reloj no se ha movido. Pero tú sí: te has movido por dentro.", If = { Choices = { Minutos = "Llamar" } } },
 				{ S = "Narrador", T = "Metes el billete otra vez en el cajero. La pantalla se pone roja de vergüenza: «Nadie había devuelto nunca un minuto». Escupe un billete de regalo.", If = { Choices = { Minutos = "Devolver" } } },
 				{ S = "Pip", T = "Un cable del cajero se enganchó en la Grieta, en la dimensión donde se guarda el tiempo que nadie usa. Por eso daba minutos. Ya está arreglado." },

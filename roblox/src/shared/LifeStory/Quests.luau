@@ -65,7 +65,7 @@ local Quests: { [string]: Quest } = {
 			{ Type = "Event", Event = "BabyStood", TextKey = "QUEST.BEBE_CAMINAR.S1" },
 			{ Type = "Event", Event = "BabySteps", Count = 5, TextKey = "QUEST.BEBE_CAMINAR.S2" },
 			{ Type = "Talk", Npc = "Familia_Abu", Place = "FamiliaAbu", TextKey = "QUEST.BEBE_CAMINAR.S3" },
-			{ Type = "Cinematic", Id = "Bebe_PrimerosPasos" },
+			{ Type = "Cinematic", Id = "Bebe_PrimerosPasosAbu" },
 		},
 		MomentKey = "MOMENT.PRIMEROS_PASOS",
 		MomentSting = false, -- la cinemática ya tiene su música

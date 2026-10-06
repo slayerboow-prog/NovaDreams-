@@ -59,6 +59,11 @@ for _, actor in {
 	table.insert(CEREMONIA, actor)
 end
 
+-- El final: el grupo en el patio y tu familia esperando, sin prisa
+local DESPEDIDA = grupoEn("Patio")
+table.insert(DESPEDIDA, { Npc = "Familia", Place = "Patio", Offset = V(-10, 0, 6) })
+table.insert(DESPEDIDA, { Npc = "Abu", Place = "Patio", Offset = V(-12, 0, 8) })
+
 -- Un recuerdo: el narrador lo cuenta como flashback
 local function recuerdo(text: string, cond: any?): any
 	return { S = "Narrador", T = "✨ " .. text, If = cond }
@@ -96,7 +101,7 @@ return {
 
 	Steps = {
 		{ Type = "Transition", Text = "El último día de colegio…", Seconds = 3 },
-		{ Type = "Scene", Dialogue = "Manana", Teleport = "HomeSalon",
+		{ Type = "Scene", Dialogue = "Manana", Teleport = { Place = "HomeSalon", Fade = true },
 			Actors = { { Npc = "Familia", Place = "HomeSalon", Offset = V(-4, 0, 0) }, { Npc = "Abu", Place = "HomeSalon", Offset = V(10, 0, -2) } } },
 		{ Type = "Reach", Place = "Vestibulo", Text = "Ve al colegio por última vez", TextHere = "Entra en el vestíbulo del cole por última vez", Actors = grupoEn("Vestibulo") },
 		{ Type = "Scene", Dialogue = "Llegada", Actors = grupoEn("Vestibulo") },
@@ -111,15 +116,17 @@ return {
 				{ Type = "Use", Prop = "RecAlmacen", Text = "El almacén del gimnasio" },
 				{ Type = "Use", Prop = "RecBanco", Text = "El banco del patio" },
 			},
-			Actors = AMIGOS },
+			Actors = { AMIGOS[1], AMIGOS[2], AMIGOS[3], { Npc = "Marisa", Place = "SpotBibliotecaria" } } },
 
 		-- La cápsula del tiempo
 		{ Type = "Reach", Place = "SalaCerrada", Text = "Ve a la sala del fondo: hoy se abre la cápsula", Actors = SALA },
-		{ Type = "Scene", Dialogue = "Capsula", Actors = SALA },
+		-- (escena del motor: Ramón abre el candado y Lucía lee lo que metiste)
+		{ Type = "Cinematic", Id = "Cole12_Capsula", Actors = SALA },
 
 		-- Foto, ceremonia y despedidas
 		{ Type = "Reach", Place = "Patio", Text = "Ve al patio: la ceremonia está a punto de empezar", Actors = CEREMONIA },
-		{ Type = "Cinematic", Id = "Cole12_Foto", Actors = CEREMONIA },
+		-- (escena del motor: tu familia hace la última foto de clase)
+		{ Type = "Cinematic", Id = "Cole12_FotoClase", Actors = CEREMONIA },
 		{ Type = "Scene", Dialogue = "Ceremonia", Actors = CEREMONIA },
 		{ Type = "Group", Text = "Despídete",
 			Steps = {
@@ -129,7 +136,9 @@ return {
 			},
 			Actors = CEREMONIA },
 		{ Type = "Scene", Dialogue = "Promesa", Actors = grupoEn("Patio") },
-		{ Type = "Cinematic", Id = "Nino_FinPrimaria" },
+		-- Final de episodio (escenas del motor): nadie quiere irse; el grito del grupo y la grúa
+		{ Type = "Cinematic", Id = "Cole12_Despedida", Actors = DESPEDIDA },
+		{ Type = "Cinematic", Id = "Cole12_FinDeEpisodio", Actors = DESPEDIDA },
 		{ Type = "Transition", SetStage = "Adolescente", TextKey = "TRANSITION.INSTITUTO", Cinematic = "Nino_AInstituto" },
 	},
 
@@ -157,6 +166,7 @@ return {
 		} },
 		Rec_Taquilla = { Lines = {
 			recuerdo("El día que desapareció tu mochila. Rubén, el mensajero de Bruno, y todo el colegio buscándola.", { Memories = { "MochilaPerdida" } }),
+			recuerdo("Aquel día te la dejaste en el banco. Desde entonces miras dos veces antes de irte.", { Flags = { "DejasteMochila" } }),
 			recuerdo("Y detrás de la chapa, una nota vieja: «NO ENTRES». La nota de una niña de 1998 que hoy es tu profe.", { Memories = { "MisterioColegio" } }),
 			{ S = "Omar", T = "Esta taquilla ha visto más aventuras que cualquier otra. Deberían ponerle una placa." },
 		} },
@@ -166,6 +176,7 @@ return {
 			recuerdo("Empatasteis tu primer partido. Nico dijo que un empate es una victoria compartida.", { Flags = { "PartidoEmpate" } }),
 			recuerdo("Y el torneo. La final. Medalla de oro, colgada al cuello delante de tu familia.", { Flags = { "TorneoGanado" } }),
 			recuerdo("Y el torneo. La final. Medalla de plata… y Abu diciendo que del resultado casi no se acuerda.", { Flags = { "TorneoPerdido" } }),
+			recuerdo("Te eligieron capitán. Omar te hizo el brazalete con cinta de carrocero. Todavía lo tienes.", { Choices = { Capitan = "Yo" } }),
 			{ S = "Nico", T = "Aquí he pasado la mitad de mi vida. La otra mitad, hablando de fútbol." },
 		} },
 		Rec_Biblioteca = { Lines = {
@@ -174,7 +185,9 @@ return {
 			recuerdo("Estudiaste con Sara. Te hizo un esquema con colores. Todavía lo tienes.", { Choices = { CompaneroEstudio = "Sara" } }),
 			recuerdo("Estudiaste con Iker. Tenía una tabla para todo. Hasta para los descansos.", { Choices = { CompaneroEstudio = "Iker" } }),
 			recuerdo("Estudiaste con Mateo, que explicaba los problemas con dibujos.", { Choices = { CompaneroEstudio = "Mateo" } }),
-			{ S = "Marisa", T = "(desde el mostrador) Venid a verme en el instituto. Los libros no se jubilan. Y yo tampoco." },
+			recuerdo("Y aquel suspenso. Y la clase de repaso de Lucía. Aprendiste que suspender no es el final de nada.", { Flags = { "SuspendisteExamen" } }),
+			recuerdo("Tu proyecto de fin de curso, entre cartulinas y pegamento. Lo presentasteis aquí al lado.", { Memories = { "ProyectoFinal" } }),
+			{ S = "Marisa", T = "Venid a verme en el instituto. Los libros no se jubilan. Y yo tampoco.", To = "Yo", A = "WaveLite" },
 		} },
 		Rec_Almacen = { Lines = {
 			recuerdo("Aquí encontraste el libro de Hugo, «La isla de las mil llaves». Nadie sabía que era suyo.", { Flags = { "SabeLibroHugo" } }),
@@ -192,36 +205,32 @@ return {
 			recuerdo("La tarde en el parque. Querías defender a la gente que no puede defenderse.", { Choices = { SuenoInfancia = "Derecho" } }),
 			recuerdo("La tarde en el parque. Querías tener tu propio negocio.", { Choices = { SuenoInfancia = "Economia" } }),
 			recuerdo("Y Bigotes, el gato del cole, durmiendo al sol justo aquí.", { Memories = { "GatoDelCole" } }),
+			recuerdo("Y la excursión a la granja. El autobús, el tractor que os adelantó… y volver todos juntos.", { Memories = { "PrimeraExcursion" } }),
 			{ S = "Sara", T = "¿Seguís queriendo ser lo que dijimos aquella tarde? Yo sí. Aunque ahora también quiero ser astronauta." },
 		} },
 
-		Capsula = { Lines = {
-			{ S = "Lucia", T = "Lo prometí: la cápsula se abre el último día de colegio. Y yo esta vez no me olvido." },
-			{ S = "Ramon", T = "Código secreto… clac. Abierta. Treinta años guardando llaves y esta es la que más me ha gustado abrir." },
-			{ S = "Narrador", T = "Dentro está todo lo que metió la clase: dibujos, predicciones, cromos… y lo tuyo." },
-			{ S = "Narrador", T = "Tu carta: «Hola, yo del último día: ¿has sido valiente? ¿Sigues con tus amigos? Espero que sí.»", If = { Choices = { Capsula = "Carta" } } },
-			{ S = "Narrador", T = "Tu dibujo del grupo. Omar sale con un bocadillo. Omar dice que es el retrato más realista de su vida.", If = { Choices = { Capsula = "Dibujo" } } },
-			{ S = "Narrador", T = "Tu predicción: «Nico será futbolista». Nico la lee tres veces y se la guarda en el bolsillo sin decir nada.", If = { Choices = { Capsula = "Prediccion" } } },
-			{ S = "Narrador", T = "Tu pregunta: «¿Seguimos siendo amigos?». Nadie contesta con palabras. Omar te da un abrazo. Luego todos.", If = { Choices = { Capsula = "Pregunta" } } },
-			{ S = "Lucia", T = "Mi clase de 1998 hizo esto mismo. Y aquí estoy, veintitantos años después, en la misma sala. Las cosas importantes vuelven." },
-		} },
 		Ceremonia = { Lines = {
-			{ S = "Lucia", T = "Familias, alumnos: hoy nuestra clase termina la primaria." },
+			{ S = "Lucia", T = "Familias, alumnos: hoy nuestra clase termina la primaria.", Shot = "Medio:Lucia" },
 			{ S = "Lucia", T = "Os he visto llegar con mochilas más grandes que vosotros. Os he visto perder mochilas, encontrar amigos, resolver misterios…" },
-			{ S = "Lucia", T = "…ganar torneos, perderlos, y aprender a dar la mano. Estoy muy orgullosa de cada uno." },
+			{ S = "Lucia", T = "…ganar torneos, perderlos, y aprender a dar la mano.", Pause = 0.4 },
+			{ S = "Lucia", T = "Estoy muy orgullosa de cada uno.", Pause = 0.8, Beat = "Respira", Shot = "PrimerPlano:Lucia" },
 			{ S = "Narrador", T = "Uno a uno, subís a recoger el diploma. Cuando dicen tu nombre, tu familia aplaude tan fuerte que Marta se ríe." },
 			{ S = "Andres", T = "¡Y el premio a la deportividad de todo el curso es para {nombre}!", If = { Traits = { Deportividad = 5 } } },
+			{ S = "Marta", T = "Y {nombre}, que en el festival cantó delante de todo el colegio, empieza. Sin miedo.", If = { Choices = { Talento = "Cantar" } }, To = "Yo" },
+			{ S = "Marta", T = "Y {nombre}, que en el festival contó chistes: hoy, por favor, solo canciones.", If = { Choices = { Talento = "Chistes" } }, To = "Yo", A = "Laugh" },
+			{ S = "Marta", T = "Y que nos anime {nombre}, como en el festival. Palmas todos.", If = { Choices = { Talento = "Animar" } }, To = "Yo", A = "Clap" },
 			{ S = "Marta", T = "♪ Y ahora, todos juntos, la canción del festival ♪" },
 		} },
 		Adios_Lucia = { Lines = {
-			{ S = "Lucia", T = "{nombre}. Ven aquí. Ha sido un placer ser tu profe." },
+			{ S = "Lucia", T = "{nombre}. Ven aquí. Ha sido un placer ser tu profe.", To = "Yo", Shot = "PrimerPlano:Lucia", A = "Happy" },
+			{ S = "Lucia", T = "Y aquel examen… lo recuperaste. Nunca lo dudé.", To = "Yo", If = { Memories = { "CasiSuspendo" } } },
 			{ S = "Lucia", T = "Y gracias por guardar mi secreto. La foto sigue en mi mesa.", If = { Flags = { "SecretoLucia" } } },
 			{ S = "Lucia", T = "Y gracias por devolverme la foto. Ya no me da vergüenza. Casi.", If = { Choices = { FotoLucia = "Devolver" } } },
 			{ S = "Lucia", T = "Toda la clase me llama ya «la de las coletas». Me encanta. No se lo digas.", If = { Choices = { FotoLucia = "Clase" } } },
 			{ S = "Lucia", T = "Cuando seas mayor, vuelve a visitarme. Los profes queremos saber cómo acaba cada historia." },
 		}, Effects = { Rel = { Lucia = 5 } } },
 		Adios_Bruno = { Lines = {
-			{ S = "Bruno", T = "Eh. Tú." },
+			{ S = "Bruno", T = "Eh. Tú.", To = "Yo", A = "ArmsCrossed", Shot = "Hombro:Yo>Bruno" },
 			{ S = "Bruno", T = "Cuando hablaste conmigo, cara a cara… nadie había hecho eso. Todos se chivaban o se callaban.", If = { Flags = { "Bruno_HablasteConEl" } } },
 			{ S = "Bruno", T = "Lo de la limonada del festival… eso estuvo bien. Muy bien.", If = { Choices = { FestivalBruno = "Ayudar" } } },
 			{ S = "Bruno", T = "Todavía me acuerdo de cuando me acusaste de lo de las bromas. No fui yo. Pero bueno. Ya pasó.", If = { Flags = { "AcusasteABruno" } } },
@@ -238,7 +247,8 @@ return {
 					{ S = "Bruno", T = "Ya nos veremos. Eso seguro." },
 				} },
 			} },
-			{ S = "Ruben", T = "(Rubén, por detrás) Adiós, {nombre}. Gracias por perdonarme lo de la mochila.", If = { Flags = { "Ruben_Perdonado" } } },
+			{ S = "Ruben", T = "Adiós, {nombre}. Gracias por perdonarme lo de la mochila.", To = "Yo", Beat = "Baja", If = { Flags = { "Ruben_Perdonado" } } },
+			{ S = "Ruben", T = "Lo de la mochila… Bueno. Que te vaya bien. Más o menos.", To = "Yo", Beat = "Aparta", If = { Flags = { "Ruben_Rival" } } },
 		} },
 		Adios_Ramon = { Lines = {
 			{ S = "Ramon", T = "Otro curso que se va. Y yo aquí, con mis llaves." },
@@ -247,7 +257,9 @@ return {
 		Promesa = { Lines = {
 			{ S = "Omar", T = "Bueno. ¿Y ahora qué? En el instituto habrá cientos de personas. Y no conoceremos a nadie." },
 			{ S = "Nico", T = "¡Nos conoceremos a nosotros! Eso ya es algo." },
-			{ S = "Sara", T = "Propongo una promesa. Formal. Con las manos juntas. {nombre}, tú la dices." },
+			{ S = "Sara", T = "Propongo una promesa. Formal. Con las manos juntas.", Shot = "Reaccion:Sara" },
+			{ S = "Nico", T = "Una promesa oficial de {grupo}.", If = { Memories = { "PrimerGrupo" } }, A = "HandsOnHips" },
+			{ S = "Sara", T = "{nombre}, tú la dices.", To = "Yo", Pause = 0.4 },
 			{ S = "Mateo", T = "Yo llegué sin conocer a nadie. Y ahora mirad. Así que el instituto… no me da miedo. Casi.", If = AMIGO_MATEO },
 			{ Ask = "¿Qué prometéis?", Options = {
 				{ T = "«Pase lo que pase, seguimos juntos.»", Effects = { Choice = { Promesa = "Juntos" }, Traits = { Empatia = 1 }, Rel = { Nico = 5, Sara = 5, Omar = 5 } }, Then = {
@@ -260,7 +272,6 @@ return {
 					{ S = "Nico", T = "¡Cada verano! ¡Y el que no venga, paga los helados!" },
 				} },
 			} },
-			{ S = "Narrador", T = "Os quedáis un rato más en el patio. Nadie quiere ser el primero en irse." },
 		} },
 	},
 }

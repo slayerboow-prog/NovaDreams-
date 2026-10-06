@@ -136,7 +136,7 @@ return {
 			Actors = PUERTA },
 
 		-- Dentro
-		{ Type = "Scene", Dialogue = "Dentro", Teleport = "SalaCerrada", Actors = DENTRO },
+		{ Type = "Scene", Dialogue = "Dentro", Teleport = { Place = "SalaCerrada", Fade = true }, Actors = DENTRO },
 		{ Type = "Group", Text = "Explora la sala", Need = 2,
 			Steps = {
 				{ Type = "Use", Prop = "Pupitre", Text = "Un pupitre viejo" },
@@ -145,6 +145,8 @@ return {
 			},
 			Actors = DENTRO },
 		{ Type = "Use", Prop = "Foto", Text = "En la pared hay una foto enmarcada", Actors = DENTRO },
+		-- (escena del motor: el descubrimiento de la foto, plano a plano)
+		{ Type = "Cinematic", Id = "Cole09_LaFoto", Actors = DENTRO, Props = { "Foto" } },
 		{ Type = "Scene", Dialogue = "LaFoto", Actors = DENTRO_FOTO, Props = { "Foto" } },
 
 		-- Lucía
@@ -257,18 +259,20 @@ return {
 			{ S = "Nico", T = "Nosotros tendríamos que tener uno de esos. «Al grupo más… algo»." },
 		} },
 		LaFoto = { Lines = {
-			{ S = "Narrador", T = "Es la foto que falta en el anuario: la clase de 4.º A de 1998, todos sonriendo delante de esta misma pizarra." },
-			{ S = "Narrador", T = "En la primera fila, una niña con jersey amarillo, coletas y una sonrisa que conoces muy bien." },
-			{ S = "Sara", T = "Es… ¡es LUCÍA! ¡Nuestra Lucía! ¡Fue a esta clase! ¡Fue a NUESTRO colegio!" },
-			{ S = "Ramon", T = "¡Ajá! ¡Os pillé! ¿Qué hacéis aquí dentro en el recreo?", If = COLARSE },
+			-- (el descubrimiento lo cuenta la escena Cole09_LaFoto; aquí, lo que pasa después)
+			{ S = "Sara", T = "Es la foto que falta en el anuario. Hay que enseñársela.", Pause = 0.4 },
+			{ S = "Ramon", T = "¡Ajá! ¡Os pillé! ¿Qué hacéis aquí dentro en el recreo?", If = COLARSE, A = "HandsOnHips", Shot = "Reaccion:Ramon" },
 			{ S = "Ramon", T = "…Ah. Habéis encontrado la foto. Bueno. Esta vez no digo nada. Pero la próxima, se pide permiso.", If = COLARSE, Effects = { Rel = { Ramon = -2 } } },
-			{ S = "Ramon", T = "Sí. La niña del jersey amarillo. La que me dio la llave 13. Y ahora es vuestra profe. Qué rápido pasa todo.", If = PERMISO },
+			{ S = "Ramon", T = "Sí. La niña del jersey amarillo. La que me dio la llave 13.", If = PERMISO, Beat = "Piensa", Shot = "PrimerPlano:Ramon" },
+			{ S = "Ramon", T = "Y ahora es vuestra profe. Qué rápido pasa todo.", If = PERMISO, Pause = 0.6 },
 			{ S = "Ramon", T = "Id a enseñársela. Creo que le va a hacer mucha ilusión. Aunque primero igual se pone roja." },
 		} },
 		Lucia_Foto = { Lines = {
-			{ S = "Lucia", T = "¿Qué traéis ahí, con esas caras? A ver…" },
-			{ S = "Lucia", T = "…" },
-			{ S = "Lucia", T = "¿De dónde habéis sacado esto? ¡Esa soy yo! ¡Con nueve años! ¡Y esas coletas!" },
+			{ S = "Lucia", T = "¿Qué traéis ahí, con esas caras? A ver…", Shot = "Hombro:Yo>Lucia" },
+			{ S = "Lucia", T = "…", Pause = 0.6, Beat = "Silencio", Shot = "PPP:Lucia" },
+			{ S = "Lucia", T = "¿De dónde habéis sacado esto? ¡Esa soy yo! ¡Con nueve años! ¡Y esas coletas!", A = "Surprised", Shot = "PrimerPlano:Lucia" },
+			{ S = "Lucia", T = "¿Y cómo habéis entrado? …No. No me lo digáis. Prefiero no saberlo.", If = COLARSE, A = "Facepalm" },
+			{ S = "Lucia", T = "¿Ramón os ha abierto? Ese hombre guarda los secretos mejor que nadie.", If = PERMISO, A = "Happy" },
 			{ S = "Lucia", T = "La nota de la taquilla también era mía. Esa taquilla era mía, ¿sabéis? Escondimos la sala para que nadie encontrara nuestra cápsula." },
 			{ S = "Lucia", T = "Y nos olvidamos de abrirla. Nos hicimos mayores y… se nos olvidó. Qué tonta." },
 			{ Ask = "¿Qué haces con la foto?", Options = {

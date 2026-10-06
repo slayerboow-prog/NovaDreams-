@@ -35,6 +35,14 @@ export type Tier = {
 	PropDetail: boolean, -- lo BARATO y nuevo: objetos de malla sueltos de la calle (hidrantes, buzones, jardineras, conos, palés, aires), muebles, láminas, señales (etiquetas PropDetail, PropMesh…): se ven en TODOS los niveles
 	WetGloss: boolean, -- con lluvia, el asfalto y las aceras se vuelven lisos y reflejan (rugosidad mojada)
 	FarRange: boolean, -- sierra lejana al otro lado del mar (siluetas del horizonte, Controllers/Horizon)
+	-- Lo que se nota TAMBIÉN en un móvil con la calidad de Roblox baja (allí Roblox ya quita sombras y
+	-- casi todos los efectos por su cuenta; esto lo pinta DayLight y funciona siempre):
+	Saturation: number, -- se suma a la saturación del color de la hora (Alto más vivo, Bajo más apagado)
+	Contrast: number, -- se suma al contraste de la hora
+	Haze: number, -- multiplica la niebla/bruma del aire (Atmosphere: Density y Haze)
+	Specular: number, -- multiplica los reflejos del entorno (EnvironmentSpecularScale): Bajo casi sin brillo
+	ShadowSharp: number, -- multiplica la suavidad de las sombras (ShadowSoftness): menos = sombras más nítidas
+	DetailRadius: number, -- hasta qué distancia de la cámara se ven las piezas pequeñas de CityDetail (tejas, molduras…)
 }
 
 Graphics.Order = { "Low", "Medium", "High" } :: { TierName }
@@ -53,7 +61,7 @@ Graphics.Tiers = {
 		GlobalShadows = false,
 		DepthOfField = false,
 		SunRays = false,
-		Bloom = 0.7,
+		Bloom = 0.5,
 		Clouds = 0.55,
 		Puddles = 4,
 		WetRadius = 60,
@@ -65,6 +73,12 @@ Graphics.Tiers = {
 		PropDetail = true, -- (en Bajo TAMBIÉN: es lo nuevo y cuesta poco)
 		WetGloss = false,
 		FarRange = false,
+		Saturation = -0.08,
+		Contrast = -0.04,
+		Haze = 0.5,
+		Specular = 0.15,
+		ShadowSharp = 1,
+		DetailRadius = 0, -- (en Bajo CityDetail ya va escondido)
 	},
 	Medium = {
 		LampLights = 18,
@@ -86,6 +100,12 @@ Graphics.Tiers = {
 		PropDetail = true,
 		WetGloss = true,
 		FarRange = true,
+		Saturation = 0,
+		Contrast = 0,
+		Haze = 1,
+		Specular = 0.8,
+		ShadowSharp = 1,
+		DetailRadius = 220,
 	},
 	High = {
 		LampLights = 40,
@@ -95,7 +115,7 @@ Graphics.Tiers = {
 		GlobalShadows = true,
 		DepthOfField = true,
 		SunRays = true,
-		Bloom = 1,
+		Bloom = 1.2,
 		Clouds = 1,
 		Puddles = 16,
 		WetRadius = 100,
@@ -107,8 +127,40 @@ Graphics.Tiers = {
 		PropDetail = true,
 		WetGloss = true,
 		FarRange = true,
+		Saturation = 0.09,
+		Contrast = 0.07,
+		Haze = 1.25,
+		Specular = 1,
+		ShadowSharp = 0.55,
+		DetailRadius = math.huge, -- (todo)
 	},
 } :: { [TierName]: Tier }
+
+-- Lo que cambia al elegir cada nivel (aviso corto del menú, Hud.toast)
+Graphics.Describe = {
+	Low = "Bajo: sin sombras ni reflejos, menos niebla y detalles: más fluido",
+	Medium = "Medio: sombras, reflejos, niebla y detalles cerca",
+	High = "Alto: sombras nítidas, reflejos, niebla, colores vivos y todos los detalles",
+} :: { [TierName]: string }
+function Graphics.describe(name: TierName): string
+	return Graphics.Describe[name] or Graphics.Describe.Medium
+end
+
+-- ¿Es una opción válida del menú? (lo guardado en la partida llega como texto)
+function Graphics.isChoice(value: any): boolean
+	return type(value) == "string" and table.find(Graphics.Choices, value :: any) ~= nil
+end
+
+-- En el móvil, la calidad gráfica de Roblox (menú de Roblox) manda mucho: con ella baja, Roblox
+-- quita sombras, distancia y efectos aunque el juego esté en Alto. quality = 1..10 o nil (Automático).
+Graphics.RobloxTip = "Para ver la calidad Alta, sube también los gráficos de Roblox en el menú de Roblox (Ajustes → Calidad de gráficos)"
+function Graphics.robloxQualityLow(quality: number?): boolean
+	return quality ~= nil and quality <= 4
+end
+-- El consejo sale una sola vez (se guarda) y solo si se pide Medio o Alto con la de Roblox baja
+function Graphics.wantsRobloxTip(choice: Choice, quality: number?, seen: boolean): boolean
+	return not seen and (choice == "High" or choice == "Medium") and Graphics.robloxQualityLow(quality)
+end
 
 -- Qué etiqueta esconde cada nivel: etiqueta -> campo del nivel (si el campo es false, se esconde).
 -- Lo usa Controllers/MaterialDetail. Solo lo PESADO se esconde en Bajo; lo nuevo y barato se queda.
@@ -187,9 +239,13 @@ function Graphics.tier(name: TierName?): Tier
 end
 
 -- El nivel de partida. quality = calidad gráfica guardada de Roblox (1..10) o nil si está en
--- «Automático». En móvil se empieza en Medio (los fps deciden si sube o baja).
+-- «Automático». En móvil se empieza SIEMPRE en Medio (los fps deciden si sube o baja): la calidad
+-- de Roblox suele estar baja en los teléfonos y antes eso lo dejaba en Bajo nada más entrar.
 function Graphics.detect(info: { Mobile: boolean, Quality: number? }): TierName
 	local q = info.Quality
+	if info.Mobile then
+		return "Medium"
+	end
 	if q then
 		if q <= 3 then
 			return "Low"

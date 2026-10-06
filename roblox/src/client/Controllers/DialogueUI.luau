@@ -695,7 +695,7 @@ local function showLine(line: { [string]: any })
 		pauses, tail = StageDirector.pauses(plainText)
 	end
 	local typingSeconds = if staged then StageDirector.typingSeconds(plainText, TYPE_SPEED) else (utf8.len(plainText) or #plainText) / TYPE_SPEED
-	ActorLife.speak(speakingModel, line.Emotion, typingSeconds + 0.8, line.Gesture)
+	ActorLife.speak(speakingModel, line.Emotion, typingSeconds + 0.8, line.Gesture, line.To, plainText)
 	-- Bocadillo encima de quien habla (si está en la escena y cerca); si no, el texto va en la caja
 	-- (una acotación entera no lleva bocadillo: es el subtítulo de lo que hace)
 	lineSerial += 1
@@ -940,11 +940,22 @@ local function process()
 	running = false
 end
 
+-- ¿Hay una escena en pantalla (o esperando)? Las cinemáticas viejas y las del motor nuevo
+local function sceneBusy(): boolean
+	if Cinematics.isPlaying() then
+		return true
+	end
+	local ok, playing = pcall(function()
+		return require(script.Parent.HappeningClient).isPlaying()
+	end)
+	return ok and playing == true
+end
+
 processQueue = function()
 	while #queue > 0 do
 		local payload = table.remove(queue, 1) :: { [string]: any }
 		-- Si hay una escena de cámara (o una esperando su turno), la conversación espera a que termine
-		while Cinematics.isPlaying() do
+		while sceneBusy() do
 			task.wait(0.2)
 		end
 		if closedTokens[payload.Token] then
@@ -960,7 +971,7 @@ processQueue = function()
 		local since = os.clock()
 		while not open and LifeStory.isShowing() and os.clock() - since < 15 do
 			task.wait(0.2)
-			while Cinematics.isPlaying() do
+			while sceneBusy() do
 				task.wait(0.2)
 			end
 		end
