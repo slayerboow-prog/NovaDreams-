@@ -6,6 +6,10 @@
 -- (hacerlo todo, repartir, hablar con la profesora, pedir cambiar de grupo —no se puede— o sentarlos a
 -- hablar) → conocer a cada uno por separado y descubrir qué le pasa → reorganizar el equipo → trabajar
 -- → ensayo → la presentación (bonus si el equipo está unido) → la nota. 3 h después: Eco_Concierto.
+--
+-- La primera reunión es una escena escrita a mano (Happenings/Universidad.luau, Uni02_Reunion): Carla no
+-- está al llegar; la escena la hace entrar corriendo hasta su sitio (el mismo del paso siguiente). Si
+-- llegaste tarde (LlegasTardeReunion), Adrián también te lo apunta a ti.
 
 local V = Vector3.new
 
@@ -21,11 +25,12 @@ local CLASE = {
 	{ Npc = "Adrian", Place = "$Carrera.Facultad", Offset = V(4, 0, 3) },
 	{ Npc = "Carla", Place = "$Carrera.Facultad", Offset = V(-6, 0, -1) },
 }
-local REUNION = {
+local ESPERANDO = {
 	{ Npc = "Julia", Place = "Biblioteca", Offset = V(-3, 0, 2) },
 	{ Npc = "Adrian", Place = "Biblioteca", Offset = V(3, 0, 2) },
-	{ Npc = "Carla", Place = "Biblioteca", Offset = V(0, 0, 5) },
 }
+local REUNION = table.clone(ESPERANDO)
+table.insert(REUNION, { Npc = "Carla", Place = "Biblioteca", Offset = V(0, 0, 5) })
 local EQUIPO_TODO = {
 	{ Npc = "Julia", Place = "Biblioteca", Offset = V(-3, 0, 2) },
 	{ Npc = "Adrian", Place = "Biblioteca", Offset = V(3, 0, 2) },
@@ -74,9 +79,9 @@ return {
 		{ Type = "Scene", Dialogue = "Encargo", Actors = CLASE },
 
 		-- La primera reunión
-		{ Type = "Reach", Place = "Biblioteca", Text = "Primera reunión del grupo en la biblioteca", Actors = REUNION,
+		{ Type = "Reach", Place = "Biblioteca", Text = "Primera reunión del grupo en la biblioteca", Actors = ESPERANDO,
 			Late = { After = 200, Flags = { "LlegasTardeReunion" } } },
-		{ Type = "Scene", Dialogue = "Reunion", Actors = REUNION },
+		{ Type = "Cinematic", Id = "Uni02_Reunion", Actors = ESPERANDO },
 		{ Type = "Choice", Key = "Gestion", Text = "El grupo es un desastre. ¿Qué haces?",
 			Options = {
 				{ Id = "Todo", Text = "Lo hago yo todo, así al menos sale bien", Flags = { "HacesTodo" }, Effects = { Traits = { Responsabilidad = 1 } } },
@@ -101,7 +106,7 @@ return {
 		{ Type = "Reach", Place = "Biblioteca", Text = "Reúne al grupo en la biblioteca: esta vez, los cinco", Actors = EQUIPO_TODO },
 		{ Type = "Scene", Dialogue = "Reorganizar", Actors = EQUIPO_TODO },
 		{ Type = "Class", Subject = "$Carrera.Asignatura2", Mode = "Estudio", Place = "Biblioteca", Text = "Trabajad en el proyecto", Actors = EQUIPO_TODO },
-		{ Type = "Class", Subject = "$Carrera.Asignatura2", Mode = "Estudio", Place = "Biblioteca", Text = "Otra noche de proyecto… tú sola o solo", If = HACES_TODO,
+		{ Type = "Class", Subject = "$Carrera.Asignatura2", Mode = "Estudio", Place = "Biblioteca", Text = "Otra noche de proyecto, a solas", If = HACES_TODO,
 			Effects = { Needs = { Energy = -25 } }, Actors = EQUIPO_TODO },
 		{ Type = "MiniGame", Game = "Timing", Title = "Ensayo de la presentación", Icon = "🎤", Hint = "Pasa cada diapositiva a su tiempo",
 			Rounds = 6, Need = 4, Zone = 0.25, Speed = 1,
@@ -127,14 +132,6 @@ return {
 			{ S = "Julia", T = "Yo puedo hacer la introducción. Y el desarrollo. Y las conclusiones. Por si acaso." },
 			{ S = "Beltran", T = "¿Pablo? ¿Alguien conoce a Pablo? …Lo que me temía." },
 		} },
-		Reunion = { Lines = {
-			{ S = "Narrador", T = "Primera reunión. Adrián ha traído un calendario plastificado. Julia, tres carpetas. Pablo no ha venido." },
-			{ S = "Adrian", T = "Esto se hace a mi manera o no se hace. No puedo sacar menos de un siete. No puedo." },
-			{ S = "Julia", T = "No os preocupéis, si no llegáis, lo hago yo. Esta noche. Y mañana. Duermo poco, no pasa nada." },
-			{ S = "Narrador", T = "Veinte minutos tarde, entra Carla corriendo, con la mochila abierta y la respiración entrecortada." },
-			{ S = "Carla", T = "¡Perdón, perdón! No he podido antes. De verdad. …¿Qué me he perdido?" },
-			{ S = "Narrador", T = "Tu móvil vibra. Un mensaje de Pablo: «voy luego 👍». No viene." },
-		} },
 		Gestion_Profesora = { Lines = {
 			{ S = "Beltran", T = "¿Problemas en el grupo? Qué sorpresa. Cada año, en cada grupo." },
 			{ S = "Beltran", T = "No voy a hacerlo por vosotros. Pero os voy a pedir un diario de grupo: quién hace qué, y cuándo. Lo leeré." },
@@ -153,7 +150,7 @@ return {
 					{ S = "Julia", T = "¿Y si no lo hacen bien? …Vale. Lo intento. Me quedo con la bibliografía. SOLO la bibliografía." },
 				} },
 				{ T = "«Genial, así acabamos antes.»", Effects = { Rel = { Julia = -2 } }, Then = {
-					{ S = "Julia", T = "Sí… claro. Así acabamos antes. (Se le nota el cansancio en la cara.)" },
+					{ S = "Julia", T = "Sí… claro. Así acabamos antes.", Beat = "Baja", Shot = "PrimerPlano:Julia" },
 				} },
 			} },
 		} },
@@ -217,10 +214,13 @@ return {
 			{ S = "Beltran", T = "Buen trabajo, grupo cuatro. Se nota un equipo detrás. Eso no se puede fingir. Un sobresaliente.", If = { LastGradeAtLeast = 8, Flags = { "EquipoUnido" } } },
 			{ S = "Beltran", T = "Buena nota. Aunque tengo la sensación de que aquí ha trabajado una persona más que las demás.", If = { LastGradeAtLeast = 6, Flags = { "HacesTodo" } } },
 			{ S = "Beltran", T = "Aprobado. El trabajo cumple. El equipo… está en construcción.", If = { LastGradeBelow = 8, NotFlags = { "HacesTodo" } } },
-			{ S = "Adrian", T = "¡Mantengo la beca! Gracias. En serio. A todos. Hasta a Pablo." },
+			{ S = "Beltran", T = "Y he leído vuestro diario de grupo. Entero. Hasta la página de las croquetas.", If = { Choices = { Gestion = "Profesora" } }, Beat = "Piensa" },
+			{ S = "Pablo", T = "¿Habéis visto? Ni una diapositiva fuera de tiempo. El ensayo sirvió. Lo apunto en la canción.", If = { Flags = { "EnsayoBien", "PabloMusica" } } },
+			{ S = "Adrian", T = "¡Mantengo la beca! Gracias. En serio. A todos. Hasta a Pablo.", Shot = "Medio:Adrian" },
 			{ S = "Julia", T = "He dormido ocho horas esta semana. Seguidas. Es la primera vez desde el instituto.", If = { Flags = { "JuliaDelega" } } },
 			{ S = "Narrador", T = "Acabas sin fuerzas. Has sacado el proyecto adelante, pero casi a solas. La próxima vez, quizá, pedirás ayuda antes.", If = HACES_TODO },
-			{ S = "Carla", T = "¿Una foto del grupo cuatro? Para el recuerdo. Pablo, deja la guitarra un segundo." },
+			{ S = "Carla", T = "Y esta vez he llegado la primera. A la presentación. Que conste.", If = { Flags = { "CarlaHorario" } }, Shot = "PrimerPlano:Carla" },
+			{ S = "Carla", T = "¿Una foto del grupo cuatro? Para el recuerdo. Pablo, deja la guitarra un segundo.", Shot = "DosPlanos:Carla,Pablo" },
 		} },
 	},
 }

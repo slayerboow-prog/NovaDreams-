@@ -26,6 +26,45 @@ table.insert(CASO, { Npc = "Paciente", Place = "$Carrera.LugarPracticas", Offset
 table.insert(CASO, { Npc = "Vecino", Place = "$Carrera.LugarPracticas", Offset = V(-5, 0, 3), If = DER })
 table.insert(CASO, { Npc = "Marcos", Place = "$Carrera.LugarPracticas", Offset = V(-5, 0, 3), If = ECO })
 
+-- Una frase de tu tutor, según tu carrera (Nuria, Sofía, Montse o Ignacio). extra: Shot/Beat/Pause…
+-- En los planos, "Tutor" se cambia por quien te toca.
+local TUTOR_DE = { Nuria = MED, Sofia = ING, Montse = DER, Ignacio = ECO }
+local function tutor(texts: { [string]: string }, extra: { [string]: any }?): any
+	local lines = {}
+	for npc, text in texts do
+		local line = { S = npc, T = text, If = TUTOR_DE[npc] }
+		for k, v in extra or {} do
+			line[k] = if type(v) == "string" then (v:gsub("Tutor", npc)) else v
+		end
+		table.insert(lines, line)
+	end
+	table.sort(lines, function(x, y)
+		return x.S < y.S
+	end)
+	return lines
+end
+
+-- Aplana una lista de frases en la que algunas entradas son grupos (lo que devuelve tutor), también
+-- dentro de las respuestas (Then) de las preguntas
+local function flat(list: { any }): { any }
+	local out = {}
+	for _, entry in list do
+		if entry.S == nil and entry.Ask == nil and entry[1] ~= nil then
+			for _, line in entry do
+				table.insert(out, line)
+			end
+		else
+			for _, option in entry.Options or {} do
+				if option.Then then
+					option.Then = flat(option.Then)
+				end
+			end
+			table.insert(out, entry)
+		end
+	end
+	return out
+end
+
 -- Tres tareas para cada carrera (objetos que solo existen en la tuya)
 local function tarea(name: string, prompt: string, offset: Vector3, dialogue: string, cond: any): any
 	return { Kind = "Marcador", Name = name, Prompt = prompt, Place = "$Carrera.LugarPracticas", Offset = offset, Dialogue = dialogue, Once = true, If = cond }
@@ -103,10 +142,10 @@ return {
 
 	Dialogues = {
 		Bienvenida = { Lines = {
-			{ S = "Nuria", T = "¡Anda! ¡La persona de la semana de las profesiones! Te dije que te guardaría el sitio. Bienvenida, bienvenido a urgencias.", If = { Flags = { "Interes_Medicina" }, Choices = { Estudios = "Medicina" } } },
-			{ S = "Nuria", T = "Bienvenida, bienvenido a urgencias. Soy Nuria. Aquí se aprende rápido o se aprende corriendo.", If = { NotFlags = { "Interes_Medicina" }, Choices = { Estudios = "Medicina" } } },
+			{ S = "Nuria", T = "¡Anda! ¡La persona de la semana de las profesiones! Te dije que te guardaría el sitio. {Bienvenido/Bienvenida} a urgencias.", If = { Flags = { "Interes_Medicina" }, Choices = { Estudios = "Medicina" } } },
+			{ S = "Nuria", T = "{Bienvenido/Bienvenida} a urgencias. Soy Nuria. Aquí se aprende rápido o se aprende corriendo.", If = { NotFlags = { "Interes_Medicina" }, Choices = { Estudios = "Medicina" } } },
 			{ S = "Sofia", T = "¡La persona de los triángulos! Ahora trabajo para TecnoVal, y adivina: eres mi estudiante en prácticas.", If = { Flags = { "Interes_Ingenieria" }, Choices = { Estudios = "Ingenieria" } } },
-			{ S = "Sofia", T = "Soy Sofía, ingeniera de TecnoVal. Aquí rompemos cosas para que no se rompan. Bienvenida, bienvenido.", If = { NotFlags = { "Interes_Ingenieria" }, Choices = { Estudios = "Ingenieria" } } },
+			{ S = "Sofia", T = "Soy Sofía, ingeniera de TecnoVal. Aquí rompemos cosas para que no se rompan. {Bienvenido/Bienvenida}.", If = { NotFlags = { "Interes_Ingenieria" }, Choices = { Estudios = "Ingenieria" } } },
 			{ S = "Montse", T = "Soy Montse. En este bufete la regla es sencilla: primero se escucha, luego se lee, y al final se habla.", If = DER },
 			{ S = "Ignacio", T = "Soy Ignacio, director de la oficina. Aquí los números cuentan historias. Tu trabajo es leerlas.", If = ECO },
 			{ S = "Narrador", T = "Llegas tarde el primer día. Te miran el reloj. Nadie dice nada.", If = { Flags = { "LlegasTardePracticas" } } },
@@ -146,19 +185,49 @@ return {
 			{ S = "Narrador", T = "Calculas el riesgo: bajo. La idea de alquilar bicis a turistas (¿te suena?) tiene sentido." },
 			{ S = "Ignacio", T = "Bien razonado. Los buenos préstamos no se dan por simpatía, pero tampoco se niegan por miedo." },
 		} },
-		Error = { Lines = {
-			{ S = "Narrador", T = "Esa noche, revisando tu informe, te quedas helado o helada: hay un error. Un número mal copiado." },
-			{ S = "Narrador", T = "Pusiste mal una dosis en la hoja del paciente. Nadie la ha usado todavía. Pero podría pasar.", If = MED },
-			{ S = "Narrador", T = "Un cálculo de carga está mal. Si alguien construyera con tus números, la pasarela vibraría el doble.", If = ING },
-			{ S = "Narrador", T = "Copiaste mal una hora en el recurso. Con esa hora, el vecino perdería el caso.", If = DER },
-			{ S = "Narrador", T = "Un cero de más en el informe. Con ese número, el préstamo de Marcos parecería un riesgo enorme.", If = ECO },
-			{ S = "Narrador", T = "Nadie lo ha visto todavía. Mañana entregas el informe." },
-			{ Ask = "¿Qué haces?", Options = {
-				{ T = "Decírselo a tu tutor mañana a primera hora y corregirlo", Effects = { Choice = { ErrorInforme = "Decir" }, Traits = { Responsabilidad = 2, Valentia = 1 } } },
-				{ T = "Corregirlo en silencio: nadie tiene por qué saberlo", Effects = { Choice = { ErrorInforme = "Silencio" }, Traits = { Responsabilidad = 1 } } },
-				{ T = "Dejarlo. Seguramente nadie lo note", Effects = { Choice = { ErrorInforme = "Dejar" } } },
+		-- El error: lo descubres delante de tu tutor, con el informe en la mano (antes era una noche contada
+		-- por el narrador). La confesión, si la eliges, se ve: tú lo dices y tu tutor reacciona.
+		Error = { Lines = flat({
+			tutor({
+				Nuria = "Buen turno. Déjame el informe en la mesa y mañana lo firmo. Vete a dormir, que se te nota.",
+				Sofia = "Buen trabajo. Déjame el informe en la mesa; mañana lo firmo y lo mandamos al ayuntamiento.",
+				Montse = "Bien. Deja el recurso en mi mesa. Mañana lo firmo y lo presentamos.",
+				Ignacio = "Buen análisis. El informe, en mi mesa. Mañana lo firmo y va al comité.",
+			}, { Shot = "Medio:Tutor" }),
+			{ S = "Yo", T = "Un segundo, que lo repaso.", Shot = "PrimerPlano:Yo" },
+			{ S = "Narrador", T = "Un número mal copiado.", Pause = 1 },
+			{ S = "Narrador", T = "Una dosis mal puesta en la hoja del paciente. Nadie la ha usado todavía. Pero podría pasar.", If = MED },
+			{ S = "Narrador", T = "Un cálculo de carga mal hecho. Con esos números, la pasarela vibraría el doble.", If = ING },
+			{ S = "Narrador", T = "Una hora mal copiada en el recurso. Con esa hora, el vecino perdería el caso.", If = DER },
+			{ S = "Narrador", T = "Un cero de más. Con ese número, el préstamo de Marcos parece un riesgo enorme.", If = ECO },
+			{ S = "Yo", T = "…No. No, no, no.", Beat = "Baja", Pause = 0.6 },
+			{ Ask = "Nadie lo ha visto todavía. ¿Qué haces?", Options = {
+				{ T = "Decírselo ahora, antes de que lo firme", Effects = { Choice = { ErrorInforme = "Decir" }, Traits = { Responsabilidad = 2, Valentia = 1 } }, Then = {
+					{ S = "Yo", T = "Espera. Antes de firmarlo… tengo que enseñarte algo.", Pause = 0.8, Shot = "Medio:Yo" },
+					{ S = "Yo", T = "Me he equivocado. Aquí. Este número está mal.", Beat = "Baja", Shot = "PrimerPlano:Yo" },
+					tutor({
+						Nuria = "…A ver. Sí. Esto, en un paciente de verdad, habría sido un susto serio.",
+						Sofia = "…A ver. Sí. Con esto, la pasarela habría bailado. Literalmente.",
+						Montse = "…A ver. Sí. Con esta hora, el caso estaba perdido.",
+						Ignacio = "…A ver. Sí. Con este cero, el comité habría dicho que no.",
+					}, { Pause = 1.2, Beat = "Piensa", Shot = "PrimerPlano:Tutor" }),
+					tutor({
+						Nuria = "Corrígelo delante de mí. Y gracias. Esto es lo más importante que vas a aprender aquí.",
+						Sofia = "Corrígelo delante de mí. Y gracias: los puentes se caen por los errores que nadie dice.",
+						Montse = "Corrígelo ahora. Y gracias. Decirlo antes es lo que separa a un buen abogado de uno peligroso.",
+						Ignacio = "Corrígelo ahora. Y gracias. En un banco, avisar a tiempo vale más que acertar.",
+					}, { Beat = "Asiente", Shot = "DosPlanos:Tutor,Yo" }),
+				} },
+				{ T = "Corregirlo en silencio: nadie tiene por qué saberlo", Effects = { Choice = { ErrorInforme = "Silencio" }, Traits = { Responsabilidad = 1 } }, Then = {
+					tutor({ Nuria = "¿Todo bien?", Sofia = "¿Todo bien?", Montse = "¿Todo bien?", Ignacio = "¿Todo bien?" }, { Shot = "Reaccion:Tutor" }),
+					{ S = "Yo", T = "Sí, sí. Todo bien. Una tilde.", Beat = "Aparta", Shot = "PrimerPlano:Yo" },
+				} },
+				{ T = "Dejarlo. Seguramente nadie lo note", Effects = { Choice = { ErrorInforme = "Dejar" } }, Then = {
+					{ S = "Yo", T = "Aquí tienes.", Beat = "Baja" },
+					{ S = "Narrador", T = "El informe se queda en la mesa. El número, también.", Pause = 0.8 },
+				} },
 			} },
-		} },
+		}) },
 		Evaluacion = { Lines = {
 			{ S = "Nuria", T = "Viniste a decirme tu propio error antes de que lo viera yo. ¿Sabes cuántos médicos no lo hacen? Esto vale más que acertar.", If = { Choices = { ErrorInforme = "Decir", Estudios = "Medicina" } } },
 			{ S = "Sofia", T = "Me contaste tu error sin que te lo pidiera. Así se construyen puentes que no se caen.", If = { Choices = { ErrorInforme = "Decir", Estudios = "Ingenieria" } } },

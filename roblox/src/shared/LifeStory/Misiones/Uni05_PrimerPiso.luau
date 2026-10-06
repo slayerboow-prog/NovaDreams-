@@ -6,6 +6,10 @@
 -- → la primera cena que te haces tú (Ate) → la primera noche: un problema de convivencia (o la soledad)
 -- → {abu} viene de visita → dormir por primera vez en tu casa (Slept). Deja la marca TieneHogar (la
 -- vida adulta ya no pide buscar casa otra vez).
+--
+-- La visita de {abu} es una escena escrita a mano (Happenings/Universidad.luau, Uni05_Visita): entra por
+-- la puerta, ve la caja de recuerdos y te pregunta por el reloj (con o sin el objeto RelojAbu), y quien
+-- vive contigo sale a saludar.
 
 local V = Vector3.new
 
@@ -36,7 +40,7 @@ return {
 	Difficulty = 2,
 	Type = "Historia · Vida adulta",
 	Requires = { Completed = { "UniEx3_Parcial" }, StageProgress = 0.63 },
-	Npcs = { "Familia", "Abu", "Sara", "Luca" },
+	Npcs = { "Familia", "Abu", "Sara", "Luca", "Ivan", "Candela" },
 	Locations = { "HomeSalon", "Universidad", "CercaDeTi" },
 	Next = { "UniEx4_TFG" },
 	Outcomes = { "Con quién vives", "La caja misteriosa", "Cómo resolvéis la convivencia" },
@@ -80,8 +84,7 @@ return {
 		{ Type = "Event", Event = "Ate", Text = "Primera cena en tu casa: compra algo y cómetelo", Actors = COMPIS,
 			Nudge = { After = 120, Every = 120, S = "Narrador", T = "La nevera sigue vacía. Hay sitios de comida por toda la ciudad." } },
 		{ Type = "Scene", Dialogue = "PrimeraNoche", Actors = COMPIS },
-		{ Type = "Talk", Npc = "Abu", Dialogue = "Visita", Text = "Llaman a la puerta: es {abu}",
-			Actors = { { Npc = "Abu", Place = "CercaDeTi", Offset = V(0, 0, -5), Mode = "Wave" } } },
+		{ Type = "Cinematic", Id = "Uni05_Visita", Text = "Llaman a la puerta: es {abu}", Actors = COMPIS, Effects = { Rel = { Abu = 6 } } },
 		{ Type = "Event", Event = "Slept", Text = "Duerme por primera vez en tu casa (tu cama)" },
 		{ Type = "Scene", Dialogue = "Manana", Actors = COMPIS },
 	},
@@ -120,12 +123,12 @@ return {
 			{ S = "Narrador", T = "La llave gira. La puerta se abre. Huele a pintura y a casa vacía. Es tuya." },
 			{ S = "Sara", T = "Técnicamente, las paredes son de un color llamado «hueso». Lo cambiaremos. Por el bien de todos.", If = SARA },
 			{ S = "Luca", T = "¡Mamma mia, qué luz! Aquí pongo la mesa grande. Para las cenas. Vendrá gente. Siempre viene gente.", If = LUCA },
-			{ S = "Narrador", T = "Dices «hola» en voz alta. El eco te contesta. Te ríes solo o sola. Qué raro. Qué bien.", If = SOLO },
+			{ S = "Narrador", T = "Dices «hola» en voz alta. El eco te contesta. Te ríes a solas. Qué raro. Qué bien.", If = SOLO },
 		} },
 		Caja_Cocina = { Lines = { { S = "Narrador", T = "Dos platos, dos vasos, una sartén y un tupper de croquetas con una nota: «Por si acaso. Te queremos»." } } },
 		Caja_Ropa = { Lines = { { S = "Narrador", T = "Ropa, más ropa… y al fondo, la sudadera de dinosaurios de cuando tenías seis años. ¿Quién ha metido esto aquí?" } } },
 		Caja_Recuerdos = { Lines = {
-			{ S = "Narrador", T = "Dentro: tu primera mochila del cole, dibujos tuyos de pequeño o pequeña, y una carta de tu familia." },
+			{ S = "Narrador", T = "Dentro: tu primera mochila del cole, dibujos tuyos de pequeñ{o/a}, y una carta de tu familia." },
 			{ S = "Narrador", T = "«Para cuando te vayas de casa. Aquí tienes todo lo que fuiste. Llévalo contigo a todo lo que vas a ser.»" },
 			{ S = "Narrador", T = "Debajo de la carta, el cromo de la suerte del primer día de colegio.", If = { Flags = { "LlevaCromo" } } },
 		}, Effects = { Rel = { Familia = 5 } } },
@@ -143,15 +146,11 @@ return {
 					{ S = "Narrador", T = "Hablas contigo: «¿Quién friega hoy?» «Yo.» «Vale.» Te ríes. Es un buen reparto.", If = SOLO },
 				} },
 				{ T = "Llamas a tu familia", Effects = { Rel = { Familia = 4 }, Choice = { Convivencia = "Llamar" } }, Then = {
-					{ S = "Familia", T = "(al teléfono) ¿Ya nos echas de menos? ¡Si te has ido esta mañana! …Nosotros también. Mucho." },
+					{ S = "Yo", T = "¿Hola? Soy yo. No, no pasa nada. Solo quería oíros.", Shot = "PrimerPlano:Yo" },
+					{ S = "Narrador", T = "Al otro lado: «¿Ya nos echas de menos? ¡Si te has ido esta mañana!». Una pausa. «…Nosotros también. Mucho.»", Pause = 0.6 },
 				} },
 			} },
 		} },
-		Visita = { Lines = {
-			{ S = "Abu", T = "¿Se puede? Traigo una planta. Toda casa necesita algo vivo. Riégala los lunes. Si no, te la regaño yo." },
-			{ S = "Abu", T = "¿Llevas el reloj? Muy bien. Ahora tienes tu casa y tu tiempo. Úsalos bien." },
-			{ S = "Abu", T = "Y esto… son unas croquetas. No son de Lola, son mías. Mejores. No se lo digas." },
-		}, Effects = { Rel = { Abu = 6 } } },
 		Manana = { Lines = {
 			{ S = "Narrador", T = "Te despiertas con la luz que entra por una ventana que todavía no tiene cortinas. Es tu casa. Es tu vida." },
 			{ S = "Sara", T = "{Saludo}. He hecho café. Y he etiquetado tu taza. Por si la confundías con la mía.", If = SARA },

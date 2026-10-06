@@ -6,17 +6,15 @@
 -- cinemática → la foto → la celebración en la Cafetería Central con todos los de siempre: un brindis
 -- donde cada uno recuerda algo que VIVISTE (desde el primer día de colegio) → «Has terminado tu etapa
 -- universitaria». Da el título de tu carrera (con tu nota media) y la marca Graduado.
+--
+-- El final de capítulo son tres escenas escritas a mano (Happenings/Universidad.luau): la ceremonia
+-- (Uni06_Ceremonia: subes tú a por el diploma), el brindis (Uni06_Brindis: cada recuerdo depende de lo
+-- que viviste) y el cierre (Uni06_Final: la cafetería se vacía, {abu} y el reloj, tu casa de noche).
 
 local V = Vector3.new
 
 local CON_LEIRE = { Flags = { "ConocesALeire" } }
 local AMIGO_MATEO = { Flags = { "AyudasteAMateo" } }
-local function m(id: string): any
-	return { Memories = { id } }
-end
-local function recuerdo(speaker: string, text: string, cond: any?): any
-	return { S = speaker, T = text, If = cond }
-end
 
 local GRUPO = {
 	{ Npc = "Julia", Place = "$Carrera.Facultad", Offset = V(-6, 0, 4) },
@@ -30,6 +28,8 @@ local CEREMONIA = {
 	{ Npc = "Familia", Place = "$Carrera.Facultad", Offset = V(-10, 0, 0), Mode = "Wave" },
 	{ Npc = "Abu", Place = "$Carrera.Facultad", Offset = V(-12, 0, 2) },
 	{ Npc = "Mateo", Place = "$Carrera.Facultad", Offset = V(10, 0, 6), If = { Flags = { "AyudasteAMateo" }, Choices = { Estudios = "Ingenieria" } } },
+	-- Leire hace la foto (la de la cámara de su abuelo); llega andando desde la entrada del campus
+	{ Npc = "Leire", Place = "$Carrera.Facultad", Offset = V(-8, 0, 8), If = CON_LEIRE, Enter = "Universidad" },
 }
 for _, actor in GRUPO do
 	table.insert(CEREMONIA, actor)
@@ -46,6 +46,20 @@ local FIESTA = {
 	{ Npc = "Familia", Place = "CafeteriaCentral", Offset = V(-8, 0, -2) },
 	{ Npc = "Abu", Place = "CafeteriaCentral", Offset = V(-9, 0, 1), Mode = "Sit" },
 	{ Npc = "Luca", Place = "CafeteriaCentral", Offset = V(2, 0, -4) },
+	-- Los de la universidad: tus compañeros de cuarto y el grupo cuatro
+	{ Npc = "Ivan", Place = "CafeteriaCentral", Offset = V(-2, 0, 7) },
+	{ Npc = "Candela", Place = "CafeteriaCentral", Offset = V(-4, 0, 6) },
+	{ Npc = "Julia", Place = "CafeteriaCentral", Offset = V(4, 0, 7) },
+	{ Npc = "Adrian", Place = "CafeteriaCentral", Offset = V(6, 0, 6) },
+	{ Npc = "Carla", Place = "CafeteriaCentral", Offset = V(7, 0, 3) },
+}
+-- El cierre: los demás se van andando (el paso ya no los necesita); se quedan {abu}, tu familia, Lola
+-- y Omar recogiendo
+local CIERRE = {
+	{ Npc = "Lola", Place = "CafeteriaCentral", Offset = V(0, 0, 6) },
+	{ Npc = "Omar", Place = "CafeteriaCentral", Offset = V(3, 0, 3) },
+	{ Npc = "Familia", Place = "CafeteriaCentral", Offset = V(-8, 0, -2) },
+	{ Npc = "Abu", Place = "CafeteriaCentral", Offset = V(-9, 0, 1), Mode = "Sit" },
 }
 
 return {
@@ -59,7 +73,7 @@ return {
 	Difficulty = 2,
 	Type = "Historia · Final de capítulo",
 	Requires = { Completed = { "UniEx4_TFG" }, StageProgress = 0.9 },
-	Npcs = { "Beltran", "Julia", "Adrian", "Carla", "Pablo", "Luca", "Familia", "Abu", "Mateo", "Lola", "Omar", "Sara", "Nico", "Leire", "Hugo", "Bruno" },
+	Npcs = { "Beltran", "Julia", "Adrian", "Carla", "Pablo", "Luca", "Familia", "Abu", "Mateo", "Lola", "Omar", "Sara", "Nico", "Leire", "Hugo", "Bruno", "Ivan", "Candela" },
 	Locations = { "Biblioteca", "$Carrera.Facultad", "CercaDeTi", "CafeteriaCentral" },
 	Next = { "Adu01_PrimerContrato" },
 	Outcomes = { "Tu nota media", "Qué te pones", "El brindis: los recuerdos de toda tu vida" },
@@ -91,14 +105,14 @@ return {
 				{ Type = "Talk", Npc = "Luca", Dialogue = "Adios_Luca", Text = "Luca" },
 			},
 			Actors = CEREMONIA },
-		{ Type = "Scene", Dialogue = "Ceremonia", Actors = CEREMONIA },
+		{ Type = "Cinematic", Id = "Uni06_Ceremonia", Actors = CEREMONIA },
 		{ Type = "Cinematic", Id = "Uni_Graduacion", Actors = CEREMONIA },
 		{ Type = "Scene", Dialogue = "Foto", Actors = CEREMONIA },
 
 		-- La celebración
 		{ Type = "Reach", Place = "CafeteriaCentral", Text = "Celebración en la Cafetería Central: Lola ha cerrado para vosotros", Actors = FIESTA },
-		{ Type = "Scene", Dialogue = "Brindis", Actors = FIESTA },
-		{ Type = "Scene", Dialogue = "Final", Actors = FIESTA },
+		{ Type = "Cinematic", Id = "Uni06_Brindis", Actors = FIESTA },
+		{ Type = "Cinematic", Id = "Uni06_Final", Actors = CIERRE },
 	},
 
 	Dialogues = {
@@ -108,7 +122,7 @@ return {
 			{ S = "Beltran", T = "Treinta años viendo entrar y salir gente. Algunos se me olvidan. Tú no. Y no pienso decir por qué." },
 		} },
 		Preparacion = { Lines = {
-			{ S = "Familia", T = "¡Toga y birrete! A ver, date la vuelta. …Estás guapísimo o guapísima. Perdón, es que me emociono." },
+			{ S = "Familia", T = "¡Toga y birrete! A ver, date la vuelta. …Estás guapísim{o/a}. Perdón, es que me emociono." },
 			{ Ask = "¿Qué llevas debajo de la toga?", Options = {
 				{ T = "Tu mejor ropa: hoy es un día importante", Effects = { Choice = { LookGraduacion = "Elegante" } }, Then = {
 					{ S = "Familia", T = "Impecable. Como para una foto que vas a enseñar el resto de tu vida." },
@@ -133,43 +147,11 @@ return {
 			{ S = "Luca", T = "Vine un año de Erasmus y me he quedado cinco. Es culpa de Valmar. Y de las croquetas. Y un poco tuya." },
 			{ S = "Luca", T = "Y después de vivir juntos, sé todos tus secretos. Como que nunca friegas los domingos.", If = { Choices = { CompiPiso = "Luca" } } },
 		} },
-		Ceremonia = { Lines = {
-			{ S = "Beltran", T = "Autoridades, familias, graduados. Me han pedido que diga unas palabras. Seré breve. Es mentira. Pero lo intentaré." },
-			{ S = "Beltran", T = "Hoy no os lleváis solo un título. Os lleváis los errores que confesasteis, los grupos que sobrevivisteis y lo que aprendisteis de gente distinta a vosotros." },
-			{ S = "Beltran", T = "Y el siguiente nombre: {nombre}." },
-			{ S = "Narrador", T = "Subes. Te tiemblan las piernas. Beltrán te da el diploma y, muy bajito, te dice: «Sabía que llegarías»." },
-			{ S = "Beltran", T = "(bajito) Y la empresa de tus prácticas ya me ha preguntado por ti. Tienes trabajo esperando.", If = { Flags = { "OfertaTrabajo" } } },
-			{ S = "Familia", T = "(desde la grada, muy fuerte) ¡BRAVO, {nombre}! ¡ES DE MI FAMILIA! ¡DE MI FAMILIA!" },
-		} },
 		Foto = { Lines = {
-			{ S = "Narrador", T = "Birretes al aire. Todos a la vez. El grupo cuatro, Luca, tu familia." },
-			{ S = "Leire", T = "¡Quietos! Esta la hago yo, con la cámara de mi abuelo. Nada de móviles. Como en la orla del instituto.", If = CON_LEIRE },
-			{ S = "Narrador", T = "Clic. Una foto que vas a enseñar muchas veces. Probablemente más de las necesarias." },
-		} },
-		Brindis = { Lines = {
-			{ S = "Lola", T = "¡Cerrado por graduación! Hoy invita la casa. Bueno, invita Omar. La casa supervisa." },
-			{ S = "Omar", T = "Propongo un brindis. Pero no uno cualquiera: cada uno tiene que decir algo de lo que se acuerde de {nombre}. Empiezo yo." },
-			recuerdo("Omar", "Me acuerdo del primer día de colegio. Tú no me conocías y ya me estabas guardando la mitad de todo. Bueno, eso era yo contigo.", m("PrimerDiaCole")),
-			recuerdo("Mateo", "Yo me acuerdo de mis libros por el suelo del pasillo. Y de alguien que se agachó a ayudarme. Todo empezó ahí.", m("PrimerAmigo")),
-			recuerdo("Sara", "Yo me acuerdo de la mochila desaparecida. Fue nuestra primera investigación. Técnicamente, la primera de muchas.", m("MochilaPerdida")),
-			recuerdo("Nico", "¡La final del torneo! Medalla de oro. Todavía la tengo colgada en mi cuarto. Bueno, la tuya no, la mía.", { Flags = { "TorneoGanado" } }),
-			recuerdo("Nico", "La final del torneo. Plata. Y aun así fue el mejor día de mi vida. No se lo digáis a mi entrenador actual.", { Flags = { "TorneoPerdido" } }),
-			recuerdo("Sara", "Y la sala cerrada. La foto de Lucía con coletas. Todavía me escribe por Navidad.", m("MisterioColegio")),
-			recuerdo("Omar", "El festival. Las magdalenas. El concurso de talentos. La purpurina de Vega, que sigo encontrando en mi ropa.", m("ElFestival")),
-			recuerdo("Familia", "Yo me acuerdo de aquel examen que casi suspendiste. Y de cómo lo arreglaste tú solo o sola, sin que nadie te obligara.", m("CasiSuspendo")),
-			recuerdo("Leire", "Yo me acuerdo de un banco del instituto. Yo comía sola y apareció alguien. Nunca se lo agradecí bien. Gracias.", { Flags = { "ConocesALeire" } }),
-			recuerdo("Omar", "Y la foto aquella del instituto. Tú plantaste cara. Yo nunca lo olvido. Por eso llevo todavía la pulsera.", m("ElRumor")),
-			recuerdo("Bruno", "Yo… me acuerdo de que empezamos de cero. Y de que salió bien. Ahora soy policía. ¿Quién lo iba a decir?", { Choices = { AdiosBruno = "DeCero" } }),
-			recuerdo("Bruno", "Yo me acuerdo de que éramos rivales. Ahora ya no me acuerdo de por qué. Enhorabuena, de verdad.", { NotChoices = { AdiosBruno = "DeCero" } }),
-			recuerdo("Lola", "Yo me acuerdo de un chaval o chavala tirando una bandeja entera en su primer día. Mírate ahora.", m("PrimerSueldo")),
-			recuerdo("Abu", "Y yo me acuerdo del día que naciste. Eras así de pequeño o pequeña. Y mírate. Con reloj y todo." ),
-			{ S = "Omar", T = "¡Por {nombre}! ¡Y por todos los que vamos a seguir acordándonos!" },
-			{ S = "Narrador", T = "Todos levantan el vaso. Omar llora. Dice que es por la cebolla de las croquetas. No hay cebolla." },
-		} },
-		Final = { Lines = {
-			{ S = "Narrador", T = "Esa noche, en tu casa, dejas el diploma encima de la mesa. Al lado, el reloj de {abu}. Y la foto de hoy." },
-			{ S = "Narrador", T = "Te acuerdas de cómo empezó tu vida: una mochila más grande que tú, un pasillo lleno de gente, alguien que te sonrió." },
-			{ S = "Narrador", T = "Has terminado tu etapa universitaria. Empieza la vida profesional." },
+			{ S = "Narrador", T = "Birretes al aire. Todos a la vez. El grupo cuatro, Luca, tu familia.", Shot = "General" },
+			{ S = "Leire", T = "¡Quietos! Esta la hago yo, con la cámara de mi abuelo. Nada de móviles. Como en la orla del instituto.", If = CON_LEIRE, Shot = "Medio:Leire" },
+			{ S = "Familia", T = "¿Salgo bien? No, espera. Ahora. ¡Ahora sí!", Shot = "Medio:Familia", Beat = "Sonrie" },
+			{ S = "Narrador", T = "Clic. Una foto que vas a enseñar muchas veces. Probablemente más de las necesarias.", Pause = 0.6 },
 		} },
 	},
 }

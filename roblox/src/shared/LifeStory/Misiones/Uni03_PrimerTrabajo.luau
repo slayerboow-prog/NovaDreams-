@@ -30,6 +30,9 @@ local TRABAJO = {
 local ALBA = {
 	{ Npc = "Alba", Place = "Biblioteca", Offset = V(2, 0, 3), Scale = 0.65 },
 }
+-- El día del examen de Alba viene también su madre (Rocío da las gracias en persona)
+local ALBA_Y_ROCIO = table.clone(ALBA)
+table.insert(ALBA_Y_ROCIO, { Npc = "Rocio", Place = "Biblioteca", Offset = V(-3, 0, 4), Enter = "Universidad" })
 
 return {
 	Id = "Uni03_PrimerTrabajo",
@@ -91,7 +94,7 @@ return {
 		{ Type = "MiniGame", Game = "Timing", Title = "Explica las fracciones con dinosaurios", Icon = "🦕", Hint = "Cada explicación, en su momento",
 			Rounds = 5, Need = 3, Zone = 0.26, Speed = 1, If = CLASES,
 			Win = { Flags = { "AlbaEntiende" }, Rel = { Alba = 6 } }, Lose = { Traits = { Humor = 1 } }, Actors = ALBA },
-		{ Type = "Talk", Npc = "Alba", Dialogue = "Clase2", Text = "Clase 2: el examen de Alba", If = CLASES, Actors = ALBA },
+		{ Type = "Talk", Npc = "Alba", Dialogue = "Clase2", Text = "Clase 2: el examen de Alba", If = CLASES, Actors = ALBA_Y_ROCIO },
 
 		-- El conflicto
 		{ Type = "Scene", Dialogue = "Conflicto", Actors = TRABAJO },
@@ -126,8 +129,8 @@ return {
 		Oferta_Clases = { Lines = { { S = "Narrador", T = "«Busco profe particular para mi hija Alba (9 años). Matemáticas. Mucha paciencia. Llamar a Rocío.» Hay dinosaurios dibujados en el papel." } } },
 
 		Entrevista_Lola = { Lines = {
-			{ S = "Lola", T = "¡{nombre}! ¡Mi mejor ayudante de verano! Bueno, la única persona que me ayudó aquel verano. ¿Buscas trabajo? Estás contratado o contratada. Esa es la entrevista.", If = { Choices = { Empleo = "Barista" } } },
-			{ S = "Lola", T = "¿Una carta de recomendación? A ver… ¡de Paco! Si Paco dice algo bueno de alguien, es que es un santo. Contratado o contratada.", If = { Flags = { "TieneCartaRecomendacion" }, Choices = { Empleo = "Reponedor" } } },
+			{ S = "Lola", T = "¡{nombre}! ¡Mi mejor ayudante de verano! Bueno, la única persona que me ayudó aquel verano. ¿Buscas trabajo? Estás contratad{o/a}. Esa es la entrevista.", If = { Choices = { Empleo = "Barista" } } },
+			{ S = "Lola", T = "¿Una carta de recomendación? A ver… ¡de Paco! Si Paco dice algo bueno de alguien, es que es un santo. Contratad{o/a}.", If = { Flags = { "TieneCartaRecomendacion" }, Choices = { Empleo = "Reponedor" } } },
 			{ S = "Lola", T = "Siéntate. ¿Sabes llevar tres cafés a la vez? No. Nadie sabe. Aprenderás. Empiezas el lunes." },
 			{ S = "Omar", T = "(desde la cocina) ¡Vamos a trabajar juntos! ¡Como en el festival! ¡Pero con sueldo!" },
 		} },
@@ -140,7 +143,7 @@ return {
 			{ S = "Rocio", T = "Alba odia las matemáticas. Pero adora los dinosaurios. Si consigues unir las dos cosas, eres un genio." },
 			{ Ask = "¿Qué le dices?", Options = {
 				{ T = "«Las fracciones con dinosaurios. Tengo un plan.»", Effects = { Traits = { Creatividad = 1 } }, Then = {
-					{ S = "Rocio", T = "¡Me encanta! Estás contratado o contratada. Martes y jueves en la biblioteca del campus." },
+					{ S = "Rocio", T = "¡Me encanta! Estás contratad{o/a}. Martes y jueves en la biblioteca del campus." },
 				} },
 				{ T = "«Con paciencia. Yo también odiaba algo y alguien me ayudó.»", Effects = { Traits = { Empatia = 1 } }, Then = {
 					{ S = "Rocio", T = "Eso es justo lo que necesita. Martes y jueves, en la biblioteca del campus." },
@@ -188,7 +191,7 @@ return {
 			{ S = "Narrador", T = "Una hora más de dinosaurios y pizzas. Alba sale sonriendo. Tú sales pensando en tu examen de mañana." },
 		} },
 		Nomina = { Lines = {
-			{ S = "Narrador", T = "Tu primera nómina de verdad. Con tu nombre, tus horas y hasta impuestos. Te sientes muy adulto o adulta. Un poco." },
+			{ S = "Narrador", T = "Tu primera nómina de verdad. Con tu nombre, tus horas y hasta impuestos. Te sientes muy adult{o/a}. Un poco." },
 			{ S = "Narrador", T = "El examen fue bien: habías repasado. Trabajar y estudiar a la vez se puede, si sabes decir que no a tiempo.", If = { NotFlags = { "CubristeTurno" }, LastGradeAtLeast = 6 } },
 			{ S = "Narrador", T = "El examen fue regular: llegaste sin repasar. El dinero extra está bien, pero la próxima vez quizá digas que no.", If = { Flags = { "CubristeTurno" }, LastGradeBelow = 6 } },
 			{ S = "Omar", T = "¡Primera nómina! Esto hay que celebrarlo. Invito yo a croquetas. Bueno, invita Lola. Pero se lo pido yo.", If = CAFE },

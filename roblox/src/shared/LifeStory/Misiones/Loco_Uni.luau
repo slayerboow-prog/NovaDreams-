@@ -391,7 +391,7 @@ return {
 		},
 		Dialogues = {
 			Julia = { Lines = {
-				{ S = "Julia", T = "¡Has venido! Bienvenido o bienvenida a la mejor fiesta de la facultad. Hay pizza, hay música… y hay dos personas que no ha invitado nadie." },
+				{ S = "Julia", T = "¡Has venido! {Bienvenido/Bienvenida} a la mejor fiesta de la facultad. Hay pizza, hay música… y hay dos personas que no ha invitado nadie." },
 				{ S = "Julia", T = "No sé. Son raros. Muy raros. Uno me ha dado la mano con el codo. La otra me ha preguntado «qué tal tu digestión humana». Habla con la gente, ¿vale? Tú tienes buen ojo." },
 			} },
 			Adrian = { Lines = {
