@@ -8,7 +8,9 @@
 --   * Los ojos se acostumbran: dentro de casa la imagen se aclara un poco, como una cámara de verdad.
 --   * En las cinemáticas, enfoque de cine (el fondo se desenfoca un poco) y algo más de contraste.
 --   * Según el nivel gráfico (UI/Perf, shared/Graphics): Bajo sin sombras del sol, desenfoque ni rayos
---     de sol y con menos nube; Medio con desenfoque solo en las cinemáticas; Alto con todo.
+--     de sol, con menos nube, niebla, reflejos y color; Medio con desenfoque solo en las cinemáticas;
+--     Alto con todo, sombras más nítidas, más niebla y colores más vivos (esto último se nota también
+--     en un móvil con la calidad de Roblox baja, que ya quita sombras y efectos por su cuenta).
 --   * Las curvas de luz y color (y lo que cambia el tiempo) están en shared/DayGrade: sol cálido con
 --     dirección (ColorShift_Top), sombras azuladas, bruma que azula lo lejano y etalonaje suave.
 --   * Cielo de fotos (skybox) de día y de noche si el servidor lo ha cargado (shared/SkyChoice,
@@ -153,8 +155,9 @@ local function apply(k: Key, dt: number)
 	Lighting.Brightness = k.Brightness
 	Lighting.ExposureCompensation = k.Exposure + 0.35 * indoor
 	Lighting.EnvironmentDiffuseScale = k.EnvDiffuse
-	Lighting.EnvironmentSpecularScale = k.EnvSpecular
-	Lighting.ShadowSoftness = k.Shadow
+	-- (por nivel: Bajo casi sin reflejos; Alto con sombras más nítidas. Se nota en segundos al cambiar)
+	Lighting.EnvironmentSpecularScale = k.EnvSpecular * (tier.Specular or 1)
+	Lighting.ShadowSoftness = math.clamp(k.Shadow * (tier.ShadowSharp or 1), 0, 1)
 	-- Sol cálido en las caras que mira (y un toque azul en las contrarias): luz con dirección
 	if k.SunTint then
 		Lighting.ColorShift_Top = k.SunTint
@@ -168,18 +171,21 @@ local function apply(k: Key, dt: number)
 
 	local atmosphere = find("Atmosphere")
 	if atmosphere then
-		atmosphere.Density = k.Density
+		-- (niebla del aire según el nivel: Alto más profunda, Bajo más plana; bajo el agua, la del mar)
+		local haze = if underwater > 0.01 then 1 else (tier.Haze or 1)
+		atmosphere.Density = math.clamp(k.Density * haze, 0, 1)
 		atmosphere.Offset = k.Offset
 		atmosphere.Color = k.AtmColor
 		atmosphere.Decay = k.Decay
-		atmosphere.Glare = k.Glare
-		atmosphere.Haze = k.Haze
+		atmosphere.Glare = k.Glare * math.min(haze, 1.2)
+		atmosphere.Haze = math.clamp(k.Haze * haze, 0, 10)
 	end
 	local cc = find("ColorCorrectionEffect")
 	if cc then
 		cc.TintColor = k.Tint
-		cc.Saturation = k.Saturation + 0.04 * cinematic
-		cc.Contrast = k.Contrast + 0.06 * cinematic
+		-- (el color del nivel: también se ve en un móvil con la calidad de Roblox baja)
+		cc.Saturation = k.Saturation + (tier.Saturation or 0) + 0.04 * cinematic
+		cc.Contrast = k.Contrast + (tier.Contrast or 0) + 0.06 * cinematic
 		cc.Brightness = k.CCBright
 	end
 	local bloom = find("BloomEffect")

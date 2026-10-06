@@ -175,6 +175,21 @@ check(not T.Medium.DepthOfField and T.High.DepthOfField and T.Medium.GlobalShado
 check(T.High.LampLights <= 48 and T.High.ShadowLights <= 8, "Alto: presupuestos con tope (no todas las farolas a la vez)")
 check(Graphics.detect({ Mobile = true }) == "Medium" and Graphics.detect({ Mobile = false }) == "High", "al entrar: móvil Medio, ordenador Alto")
 check(Graphics.detect({ Mobile = false, Quality = 2 }) == "Low" and Graphics.detect({ Mobile = true, Quality = 10 }) == "Medium", "con la calidad de Roblox baja, Bajo; un móvil no empieza en Alto")
+check(Graphics.detect({ Mobile = true, Quality = 1 }) == "Medium" and Graphics.detect({ Mobile = true, Quality = 3 }) == "Medium", "un móvil con la calidad de Roblox baja empieza en Medio (antes, en Bajo nada más entrar)")
+-- Los niveles se distinguen a simple vista (también en un móvil, donde Roblox ya quita sombras y efectos)
+check(T.Low.Saturation < T.Medium.Saturation and T.Medium.Saturation < T.High.Saturation and T.Low.Contrast < T.High.Contrast, "color: Bajo más apagado, Alto más vivo")
+check(T.Low.Haze < T.Medium.Haze and T.Medium.Haze < T.High.Haze and T.Low.Specular < T.Medium.Specular and T.Medium.Specular <= T.High.Specular, "niebla y reflejos: menos en Bajo, más en Alto")
+check(T.High.ShadowSharp < T.Medium.ShadowSharp and T.Low.Bloom < T.Medium.Bloom and T.Medium.Bloom < T.High.Bloom, "Alto: sombras más nítidas y más resplandor")
+check(T.Medium.DetailRadius > 0 and T.Medium.DetailRadius < T.High.DetailRadius, ("detalle pequeño de la ciudad: Medio hasta %d studs, Alto todo"):format(T.Medium.DetailRadius))
+check(Graphics.describe("High"):find("sombras", 1, true) ~= nil and Graphics.describe("High"):find("reflejos", 1, true) ~= nil and Graphics.describe("Low"):find("Bajo", 1, true) ~= nil, "aviso al cambiar: dice qué cambia («" .. Graphics.describe("High") .. "»)")
+check(Graphics.wantsRobloxTip("High", 2, false) and not Graphics.wantsRobloxTip("High", 2, true) and not Graphics.wantsRobloxTip("High", 8, false) and not Graphics.wantsRobloxTip("Low", 2, false) and not Graphics.wantsRobloxTip("High", nil, false), "consejo de subir la calidad de Roblox: una vez, solo con la de Roblox baja y pidiendo Medio/Alto")
+check(Graphics.isChoice("High") and Graphics.isChoice("Auto") and not Graphics.isChoice("Ultra") and not Graphics.isChoice(3), "lo guardado se comprueba (solo Auto/Bajo/Medio/Alto)")
+do
+	local dl = fs.readFile("src/client/Controllers/DayLight.luau")
+	check(dl:find("tier.Saturation", 1, true) and dl:find("tier.Haze", 1, true) and dl:find("tier.Specular", 1, true) and dl:find("tier.ShadowSharp", 1, true), "DayLight pinta el color, la niebla, los reflejos y la nitidez de las sombras de cada nivel")
+	local md = fs.readFile("src/client/Controllers/MaterialDetail.luau")
+	check(md:find("DetailRadius", 1, true) and md:find("MaterialDetail.sweep", 1, true), "MaterialDetail esconde el detalle pequeño lejano según el nivel")
+end
 check(Graphics.nextChoice("Auto") == "Low" and Graphics.nextChoice("High") == "Auto", "el botón del menú pasa Auto → Bajo → Medio → Alto → Auto")
 
 -- Modo Auto con fps de mentira
