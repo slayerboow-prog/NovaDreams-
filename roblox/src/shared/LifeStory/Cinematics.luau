@@ -22,6 +22,8 @@
 --            (quien habla en Lines también se mueve al hablar; A = "…" en la línea fija su gesto)
 --   Music    pieza de Config.Audio.Music que suena durante la escena; Sting = efecto al empezar
 --   FadeIn / FadeOut   empieza o acaba en negro
+--   AfterScene = true  (cabeceras y finales de capítulo) si hay una escena del motor en pantalla (el
+--                      montaje de cambio de etapa), espera a que acabe antes de empezar
 -- Toda escena se puede saltar (botón "Saltar"). La historia avanza igual.
 
 local V = Vector3.new
@@ -87,21 +89,6 @@ local Cinematics: { [string]: Cinematic } = {
 		},
 	},
 
-	-- Han pasado varios años: la cámara sube desde la casa hasta el cielo.
-	Bebe_AnosDespues = {
-		Duration = 9,
-		FadeOut = true,
-		Music = "PasanLosAnos",
-		Anchors = { Casa = "Place:CasaFamiliar" },
-		Shots = {
-			{ From = { "Casa", V(30, 18, 30) }, To = { "Casa", V(10, 260, 60) }, Look = { "Casa", V(0, 0, 0) }, Duration = 9, Easing = "In" },
-		},
-		Titles = {
-			{ At = 1, TextKey = "TRANSITION.ANOS_DESPUES", Duration = 3.5 },
-			{ At = 5, TextKey = "CINE.ANOS.RECUERDOS", Duration = 3.5 },
-		},
-	},
-
 	-- De niño a adulto: vuelo por la región (colegio, campus, rascacielos, centro).
 	Nino_Creces = {
 		Duration = 18,
@@ -147,6 +134,7 @@ local Cinematics: { [string]: Cinematic } = {
 
 	-- Primer día de cole: amanece en Los Pinos, la cámara baja hasta tu casa y entra por la ventana.
 	Cole01_Amanecer = {
+		AfterScene = true,
 		Duration = 10,
 		FadeIn = true,
 		Music = "TemaValmar",
@@ -260,40 +248,9 @@ local Cinematics: { [string]: Cinematic } = {
 		},
 	},
 
-	-- De niño a adolescente: vuelo de Los Pinos al Campus Valmar (el instituto).
-	Nino_AInstituto = {
-		Duration = 10,
-		FadeOut = true,
-		Music = "PasanLosAnos",
-		Anchors = { Pinos = "Zone:Los Pinos", Campus = "Zone:Campus Valmar" },
-		Shots = {
-			{ From = { "Pinos", V(-150, 80, 60) }, To = { "Pinos", V(0, 180, -300) }, Look = { "Pinos", V(0, 0, -150) }, Duration = 5 },
-			{ From = { "Campus", V(-200, 150, 150) }, To = { "Campus", V(-60, 60, 60) }, Look = { "Campus", V(0, 10, 0) }, Duration = 5 },
-		},
-		Titles = {
-			{ At = 0.8, TextKey = "TRANSITION.INSTITUTO", Duration = 4 },
-			{ At = 5.3, TextKey = "CINE.INSTITUTO.LLEGA", Duration = 4 },
-		},
-	},
-
-	-- Del instituto a los 18: elegir camino.
-	Adol_Selectividad = {
-		Duration = 10,
-		FadeOut = true,
-		Music = "PasanLosAnos",
-		Anchors = { Campus = "Zone:Campus Valmar", Centro = "Zone:Valmar Centro" },
-		Shots = {
-			{ Orbit = "Campus", Radius = 180, Height = 90, FromAngle = 120, ToAngle = 170, Duration = 5 },
-			{ From = { "Centro", V(150, 120, 200) }, To = { "Centro", V(40, 50, 80) }, Look = { "Centro", V(0, 5, 0) }, Duration = 5 },
-		},
-		Titles = {
-			{ At = 0.8, TextKey = "CINE.SELECTIVIDAD.ANOS", Duration = 4 },
-			{ At = 5.3, TextKey = "TRANSITION.MAYOR_EDAD", Duration = 4 },
-		},
-	},
-
 	-- Primer día de universidad: el campus y la rectora.
 	Uni_PrimerDia = {
+		AfterScene = true,
 		Duration = 11,
 		FadeIn = true,
 		Music = "VidaAdulta",
@@ -469,6 +426,90 @@ local Cinematics: { [string]: Cinematic } = {
 		},
 		Titles = {
 			{ At = 3, TextKey = "CHAPTER.NUEVA_VIDA.OUTRO", Duration = 5 },
+		},
+	},
+
+	-- ENTRADAS Y FINALES DE CAPÍTULO (Chapters.luau: IntroCinematic / OutroCinematic). Son escenas de cámara de
+	-- las de siempre a propósito: la pantalla las pone en cola y esperan a que acabe el montaje de cambio de
+	-- etapa (Happenings/Etapas), así nunca se pisan. Como en una serie: el final del episodio y, después,
+	-- la cabecera del siguiente.
+
+	-- Entrada · El instituto: el Campus Valmar desde el aire y bajada al patio.
+	Ins_Entrada = {
+		AfterScene = true,
+		Duration = 9,
+		FadeIn = true,
+		Music = "TemaValmar",
+		Anchors = { Patio = "Place:PatioInstituto", Campus = "Zone:Campus Valmar" },
+		Shots = {
+			{ From = { "Campus", V(-200, 120, 160) }, To = { "Patio", V(-40, 28, 44) }, Look = { "Patio", V(0, 4, 0) }, Duration = 5 },
+			{ Orbit = "Patio", Radius = 26, Height = 9, FromAngle = 40, ToAngle = 80, Duration = 4, LookHeight = 3, Dip = true },
+		},
+		Titles = {
+			{ At = 1, TextKey = "CHAPTER.INSTITUTO.TITLE", SubKey = "CHAPTER.INSTITUTO.INTRO", Duration = 5 },
+		},
+	},
+
+	-- Final · La universidad: vuelta alrededor de ti en el campus y la cámara se aleja.
+	Uni_FinCapitulo = {
+		AfterScene = true,
+		Duration = 8,
+		Music = "TemaValmar",
+		Anchors = { Yo = "Player", Uni = "Place:Universidad" },
+		Shots = {
+			{ Orbit = "Yo", Radius = 11, Height = 3, FromAngle = 200, ToAngle = 250, Duration = 4, Fov = { 60, 50 }, Shake = 0.12 },
+			{ From = { "Yo", V(8, 6, 10) }, To = { "Uni", V(50, 70, 100) }, Look = { "Yo", V(0, 2, 0) }, LookTo = { "Uni", V(0, 10, 0) }, Duration = 4 },
+		},
+		Titles = {
+			{ At = 1.2, TextKey = "CHAPTER.UNIVERSIDAD.TITLE", SubKey = "Fin del capítulo", Duration = 3.2 },
+			{ At = 4.6, TextKey = "CHAPTER.UNIVERSIDAD.OUTRO", SubKey = "Próximamente: Volar del nido", Duration = 3.2 },
+		},
+	},
+
+	-- Entrada · Volar del nido: de tu casa de Los Pinos al centro, donde empieza la vida adulta.
+	Nido_Entrada = {
+		AfterScene = true,
+		Duration = 9,
+		FadeIn = true,
+		Music = "VidaAdulta",
+		Anchors = { Casa = "Place:CasaFamiliar", Centro = "Zone:Valmar Centro" },
+		Shots = {
+			{ From = { "Casa", V(-30, 16, 34) }, To = { "Casa", V(-40, 90, 80) }, Look = { "Casa", V(0, 3, 0) }, LookTo = { "Centro", V(0, 20, 0) }, Duration = 4.5 },
+			{ From = { "Centro", V(140, 110, 180) }, To = { "Centro", V(40, 45, 70) }, Look = { "Centro", V(0, 5, 0) }, Duration = 4.5, Dip = true },
+		},
+		Titles = {
+			{ At = 1, TextKey = "Volar del nido", SubKey = "Trabajo, facturas… y la gente que te importa", Duration = 5 },
+		},
+	},
+
+	-- Final · Volar del nido: la cámara sube desde ti hasta el cielo de Valmar.
+	Nido_Fin = {
+		AfterScene = true,
+		Duration = 7,
+		Music = "TemaValmar",
+		Anchors = { Yo = "Player", Centro = "Zone:Valmar Centro" },
+		Shots = {
+			{ From = { "Yo", V(10, 5, 12) }, To = { "Yo", V(50, 80, 60) }, Look = { "Yo", V(0, 2, 0) }, LookTo = { "Centro", V(0, 20, 0) }, Duration = 7 },
+		},
+		Titles = {
+			{ At = 1, TextKey = "Volar del nido", SubKey = "Fin del capítulo", Duration = 2.6 },
+			{ At = 3.8, TextKey = "Has volado del nido. Y el nido sigue ahí cuando vuelves.", SubKey = "Próximamente: Tu vida", Duration = 3 },
+		},
+	},
+
+	-- Entrada · Tu vida: Valmar entera, de la plaza al mar.
+	TuVida_Entrada = {
+		AfterScene = true,
+		Duration = 9,
+		FadeIn = true,
+		Music = "VidaAdulta",
+		Anchors = { Plaza = "Place:PlazaCentro", Playa = "Zone:Playa Dorada" },
+		Shots = {
+			{ Orbit = "Plaza", Radius = 110, Height = 70, FromAngle = 260, ToAngle = 300, Duration = 5 },
+			{ From = { "Playa", V(-120, 60, 140) }, To = { "Playa", V(-40, 25, 60) }, Look = { "Playa", V(0, 2, 0) }, Duration = 4, Dip = true },
+		},
+		Titles = {
+			{ At = 1, TextKey = "Tu vida", SubKey = "Ahora tu vida es tuya", Duration = 5 },
 		},
 	},
 
