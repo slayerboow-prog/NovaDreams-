@@ -53,6 +53,7 @@ local SafeGround = require(ReplicatedStorage.Shared.SafeGround) -- nunca bajo ti
 local SafeSpot = require(script.Parent.Parent.World.SafeSpot)
 local ActorStaging = require(ReplicatedStorage.Shared.LifeStory.ActorStaging) -- entrar, salir, saltos
 local ActorMoods = require(ReplicatedStorage.Shared.LifeStory.ActorMoods) -- emociones que duran
+local StageDirector = require(ReplicatedStorage.Shared.LifeStory.StageDirector) -- adónde se acerca al hablar
 
 local SceneService = {}
 
@@ -119,6 +120,8 @@ type Actor = {
 	EnterAt: number?, -- (Enter.Delay) espera en la puerta hasta entonces
 	BaseSpeed: number?, -- su velocidad al andar sin emoción
 	MoodName: string?, -- la emoción que dura que tiene puesta
+	Approached: boolean?, -- (conversación) ya se ha acercado a ti en esta conversación
+	ApproachUntil: number?, -- se está acercando (andando) hasta entonces como mucho
 }
 type Prop = { Id: string, Key: string, Model: Model }
 type Scene = { Actors: { [string]: Actor }, Props: { [string]: Prop }, Last: { [string]: any }? }
@@ -2275,6 +2278,20 @@ local function faceSmooth(actor: Actor, target: Vector3)
 	end)
 end
 
+-- ¿Está este personaje en una lista del jugador? ("Nico,Sara": TalkingTo, StageApproach…)
+local function listed(player: Player, attribute: string, npc: string): boolean
+	local list = player:GetAttribute(attribute)
+	if type(list) ~= "string" then
+		return false
+	end
+	for id in list:gmatch("[^,]+") do
+		if id == npc then
+			return true
+		end
+	end
+	return false
+end
+
 -- ¿Habla ahora este personaje con el jugador? (DialogueService pone TalkingTo = "Nico,Sara")
 local function talkingWith(player: Player, npc: string): boolean
 	local list = player:GetAttribute("TalkingTo")
@@ -2338,6 +2355,34 @@ local function stepActor(player: Player, actor: Actor, index: number)
 			Log.info("NPC", "recovered %s (%s)", actor.Npc, player.Name)
 		end
 		return
+	end
+	-- Al empezar una conversación, quien está lejos se acerca andando (DialogueService: StageApproach)
+	-- hasta unos pasos de ti (StageDirector.approachSpot) y luego se gira hacia ti
+	local quiet = mode == "Idle" or mode == "Chat" or ONE_SHOT[mode] == true or mode == "Dance"
+	if me and quiet and not actor.Approached and listed(player, "StageApproach", actor.Npc) and actor.Walk == nil then
+		local distance = flatDistance(root.Position, me.Position)
+		if distance > StageDirector.APPROACH_MIN and distance <= StageDirector.APPROACH_MAX then
+			actor.Approached = true
+			local goal = StageDirector.approachSpot(root.Position, me.Position)
+			local toMe = V(me.Position.X - goal.X, 0, me.Position.Z - goal.Z)
+			local feet = groundAt(goal + V(0, 3, 0), { actor.Model })
+			startWalk(actor, if toMe.Magnitude > 0.5 then CFrame.lookAt(feet, feet + toMe) else CFrame.new(feet))
+			actor.ApproachUntil = os.clock() + 12
+			actor.Talking = true
+		end
+	end
+	if actor.ApproachUntil then
+		if (actor.Walk == "Walk" or actor.Walk == "Settle") and os.clock() < actor.ApproachUntil then
+			if actor.Walk == "Walk" then
+				stepWalk(actor)
+				animateMotion(actor)
+			end
+			return -- (andando hacia ti: no se le para)
+		end
+		actor.ApproachUntil = nil
+	end
+	if not listed(player, "StageApproach", actor.Npc) and not talkingWith(player, actor.Npc) then
+		actor.Approached = nil -- (la próxima conversación se puede volver a acercar)
 	end
 	-- Conversación: quien habla contigo se para y se vuelve hacia ti (sin meterse encima)
 	local talking = me ~= nil and talkingWith(player, actor.Npc) and mode ~= "Hunt" and mode ~= "Flee"

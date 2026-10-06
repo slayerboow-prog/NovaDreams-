@@ -44,7 +44,7 @@ ActorStaging.GroupRadius = 35 -- quien está a menos de esto de quien habla, le 
 ActorStaging.ReplyWindow = 10 -- segundos: contestar a la frase de otro (si no, ya es otra cosa)
 ActorStaging.AckSeconds = 1.2 -- al comentar lo que dijo otro, le mira esto antes de mirarte a ti
 
-local PLAYER_WORDS = { Player = true, Jugador = true, Tu = true, ["Tú"] = true, Me = true }
+local PLAYER_WORDS = { Player = true, Jugador = true, Tu = true, ["Tú"] = true, Me = true, Yo = true }
 
 local function number(value: any, default: number): number
 	return if type(value) == "number" and value == value then value else default

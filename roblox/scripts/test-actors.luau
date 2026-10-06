@@ -779,6 +779,25 @@ check(#modelsOf(player, "Omar") == 1 and liveOf(player, "Omar") == nil, "misión
 settle(2.5)
 check(#modelsOf(player, "Omar") == 0 and #modelsOf(player, "Nico") == 0, "y al rato ya no están")
 
+-- Conversación escenificada: quien está lejos se acerca andando (StageApproach) y no se le para
+SceneService.set(player, "Q1", { { Npc = "Nico", Place = "Pasillo" } }, {}, nil)
+waitQueue()
+local far = liveOf(player, "Nico")
+settle(1.2)
+character:PivotTo(CFrame.new(-20, 3, 0)) -- a 20 studs de Nico
+player:SetAttribute("StageApproach", "Nico")
+player:SetAttribute("TalkingTo", "Nico")
+settle(1.5)
+local gap = far and (far.HumanoidRootPart.Position - character.HumanoidRootPart.Position)
+check(gap and Vector3.new(gap.X, 0, gap.Z).Magnitude < 7 and Vector3.new(gap.X, 0, gap.Z).Magnitude > 3, "StageApproach: Nico se acerca andando hasta unos pasos de ti (no se queda clavado lejos)")
+player:SetAttribute("StageApproach", nil)
+player:SetAttribute("TalkingTo", nil)
+settle(0.4)
+character:PivotTo(CFrame.new(0, 3, 10))
+SceneService.set(player, "Q1", {}, {}, nil)
+waitQueue()
+settle(2.5)
+
 -- Dos jugadores: lo de uno no toca al otro
 local other = L.player("Otra", 202)
 other.Parent = true
@@ -836,6 +855,8 @@ check(has(life, "listenGlance(") and has(life, "rig.NodAt") and has(life, "moodA
 check(has(life, "\"Nervous\", \"Ashamed\"") and has(life, "P.Nervous") and has(life, "P.Ashamed"), "posturas de nervios y vergüenza")
 check(has(life, "GetAttributeChangedSignal(\"FadeOut\")") and has(life, "isLeaving(model)"), "los que se van se desvanecen y ya no cuentan (ni find ni cast)")
 check(has(life, "require(script.Parent.SceneDip).init()"), "ActorLife arranca SceneDip")
+check(has(life, "function ActorLife.stageGaze(speakerId: string?, to: string?, look: string?)") and has(life, "stageTo == \"Player\"") and has(life, "stageLook == \"Down\""), "ActorLife.stageGaze: quién habla, a quién (To) y una mirada de un momento (DialogueUI)")
+check(has(scene, "listed(player, \"StageApproach\", actor.Npc)") and has(scene, "StageDirector.approachSpot("), "SceneService: quien está lejos se acerca al empezar la conversación")
 check(has(dip, "ActorStaging.DipMax") and has(dip, "ResetOnSpawn = false") and has(dip, "CharacterAdded") and has(dip, "InCinematic"), "SceneDip: la pantalla vuelve siempre (tope de tiempo, al reaparecer) y no pisa una cinemática")
 check(not has(dip, "Controls"), "SceneDip no bloquea los controles (no hay nada que devolver)")
 check(not has(scene, "		if not wanted[npc] then\n			actor.Model:Destroy()"), "SceneService: ya no borra de golpe a quien sobra")

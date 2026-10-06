@@ -155,6 +155,11 @@ local addressee: Model? = nil -- nil = a ti
 local ackModel: Model? = nil
 local ackUntil = 0
 local lastLine: { Model: Model, Question: boolean, At: number, Me: boolean }? = nil
+-- Lo que pide la conversación escenificada (DialogueUI → ActorLife.stageGaze): a quién habla la línea
+-- (To: manda sobre lo deducido) y una mirada de un momento de quien habla ("Down" / "Away")
+local stageTo: any = nil -- nil (no lo dice) · "Player" · el modelo
+local stageLook: string? = nil
+local stageLookUntil = 0
 
 local function now(): number
 	return os.clock()
@@ -734,10 +739,24 @@ local function lookTarget(rig: Rig, t: number): (number, number, boolean)
 					end
 				end
 			else
-				if ackModel and t < ackUntil then
+				if stageTo == "Player" then
+					target = myHead -- (la línea dice que te habla a ti)
+				elseif typeof(stageTo) == "Instance" and stageTo ~= rig.Model then
+					target = headPosition(stageTo)
+				elseif ackModel and t < ackUntil then
 					target = headPosition(ackModel) -- (mira un momento al que acaba de hablar)
 				end
 				target = target or headPosition(addressee) or myHead
+				-- La línea pide una mirada de un momento: al suelo o a otro lado
+				if stageLook and t < stageLookUntil then
+					local yaw0, pitch0 = aim(rig, target)
+					if yaw0 then
+						if stageLook == "Down" then
+							return yaw0 * 0.5, -math.rad(28), true
+						end
+						return yaw0 + math.rad(35) * (if math.sin(rig.Seed) >= 0 then 1 else -1), -math.rad(4), true
+					end
+				end
 			end
 			-- Al hablar a veces se aparta la mirada un momento (pensando lo que dice); enfadado, no
 			if acting.Gaze ~= "Hold" and math.sin(t * 0.9 + rig.Seed) > 0.93 then
@@ -1465,6 +1484,7 @@ function ActorLife.conversation(on: boolean)
 	ackModel = nil
 	ackUntil = 0
 	lastLine = nil
+	stageTo, stageLook, stageLookUntil = nil, nil, 0
 end
 
 -- A quién habla una línea: To = modelo, id del reparto ("Sara") o "Player"/"Jugador" (a ti). nil si a ti.
@@ -1504,6 +1524,30 @@ local function noteLine(model: Model, emotion: string?, to: any, text: string?)
 		end
 	end
 	lastLine = { Model = model, Question = ActorStaging.isQuestion(emotion, text), At = t, Me = isMe }
+end
+
+-- La conversación escenificada (DialogueUI) dice quién habla, a quién y si mira un momento a otro
+-- sitio: speakerId = id del reparto o "Player" (todo el reparto cercano le mira); to = a quién habla
+-- ("Player"/"Yo" o un id); look = "Down" / "Away" (un momento). Todo nil: se acabó la conversación.
+-- (Los mismos datos van en los atributos del jugador StageSpeaker / StageTo / StageGaze.)
+function ActorLife.stageGaze(speakerId: string?, to: string?, look: string?)
+	if speakerId == nil and to == nil and look == nil then
+		stageTo, stageLook, stageLookUntil = nil, nil, 0
+		return
+	end
+	if conversation and type(speakerId) == "string" then
+		local model = if ActorStaging.isPlayer(speakerId) then player.Character else ActorLife.find(speakerId)
+		if model then
+			speaker = model
+			listeners[model] = true
+		end
+	end
+	stageTo = resolveTo(to)
+	if typeof(stageTo) == "Instance" then
+		listeners[stageTo] = true
+	end
+	stageLook = if look == "Down" or look == "Away" then look else nil
+	stageLookUntil = if stageLook then now() + 1.6 else 0
 end
 
 -- Alguien dice una frase: mueve la cabeza y las manos durante `seconds`, con la emoción de la frase.
