@@ -63,7 +63,11 @@ end
 -- Golpe en un personaje: PunchAnim (C0, se ve siempre) o, si no, ReactMotion (directo, cruzado o gancho)
 local FALLBACK = { Jab = "Jab", Cross = "Cross", Hook = "Hook", Knee = "Jab", Elbow = "Cross", Kick = "Hook", Uppercut = "Hook", SpinKick = "Hook", Slam = "Hook", Charged = "Hook", Blast = "Jab" }
 local function swingPose(character: Model?, anim: string): boolean
-	return PunchAnim.play(character, anim) or ReactMotion.play(character, FALLBACK[anim] or "Jab")
+	if PunchAnim.play(character, anim) then
+		CombatFx.swoosh(character, anim) -- la estela del puño o del pie
+		return true
+	end
+	return ReactMotion.play(character, FALLBACK[anim] or "Jab")
 end
 
 -- El nombre de la postura de un golpe (shared/Combat.Moves) o, en mensajes antiguos, un número
@@ -83,11 +87,6 @@ local function guardPose(character: Model?, on: boolean)
 	if not PunchAnim.hold(character, "Guard", on) then
 		ReactMotion.hold(character, "Guard", on)
 	end
-end
-
-local function isR15(model: Model?): boolean
-	local humanoid = model and model:FindFirstChildOfClass("Humanoid")
-	return humanoid ~= nil and humanoid.RigType == Enum.HumanoidRigType.R15
 end
 
 -- Animaciones de Roblox de golpear con herramienta (para cuerpos R6, donde PunchAnim no llega)
@@ -245,8 +244,9 @@ local function swing(kind: string, charged: boolean?): boolean
 	end
 	lastFight = now
 	local move = Combat.Moves[name]
-	-- Golpe hecho con código (R15); si este cuerpo no se puede mover así, animación de Roblox
-	if not (isR15(player.Character) and swingPose(player.Character, move.Anim)) then
+	-- Golpe hecho con código (R15, o la versión simple en R6); si este cuerpo no se puede mover así,
+	-- animación de Roblox
+	if not swingPose(player.Character, move.Anim) then
 		local anim = track(if move.Heavy then "Heavy" else "Punch")
 		if anim then
 			anim:Play(0.05, 1, if move.Heavy then 1.1 else 1.6)
@@ -1124,7 +1124,20 @@ function CombatController.init()
 	local function onEvent(kind: string, a: any, b: any, c: any)
 		local ok, err = pcall(function()
 			if kind == "Hit" then
-				onHit(a)
+				-- Lo que se ve del golpe (chispas, sonido, reacción, congelación) en el instante del
+				-- impacto de la animación del que pega: el servidor avisa del golpe y del impacto a la vez
+				local attacker = type(a) == "table" and not a.Weapon and (a.AttackerModel or modelOf(a.Attacker)) or nil
+				local wait = math.min(PunchAnim.untilImpact(attacker), 0.3)
+				if wait > 0.02 then
+					task.delay(wait, function()
+						local okLate, errLate = pcall(onHit, a)
+						if not okLate then
+							warn("[Combate] " .. tostring(errLate))
+						end
+					end)
+				else
+					onHit(a)
+				end
 			elseif kind == "Swing" and a ~= player then
 				onSwing(a, b)
 			elseif kind == "Miss" then

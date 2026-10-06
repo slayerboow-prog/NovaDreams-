@@ -55,7 +55,7 @@ export type Move = {
 	Duration: number,
 	Impact: number, -- fracción de Duration con la extensión máxima (el impacto)
 	Limb: string, -- la pieza que golpea (la estela y las pruebas)
-	Reach: string, -- hacia dónde llega: "Forward", "Up" o "Down"
+	Reach: string, -- hacia dónde llega: "Forward", "Up", "Down" o "Across" (barre hacia el otro lado)
 	Legs: boolean?, -- golpe de pierna: también se paran las piernas de la animación de andar
 	Pose: (t: number) -> Pose,
 }
@@ -197,7 +197,7 @@ Moves.Hook = {
 	Duration = 0.38,
 	Impact = 0.36,
 	Limb = "LeftHand",
-	Reach = "Forward",
+	Reach = "Across",
 	Pose = function(t: number): Pose
 		local a, k, g = phases(t, 0.18, 0.36, 0.58)
 		local turn = -0.75 * k + 0.35 * a -- carga girando a la izquierda y barre a la derecha
@@ -242,7 +242,7 @@ Moves.Knee = {
 Moves.Elbow = {
 	Duration = 0.38,
 	Impact = 0.34,
-	Limb = "RightLowerArm",
+	Limb = "RightUpperArm", -- (la punta del codo)
 	Reach = "Forward",
 	Pose = function(t: number): Pose
 		local a, k, g = phases(t, 0.16, 0.34, 0.58)
@@ -340,17 +340,17 @@ Moves.Slam = {
 		local slam = strike((t - 0.38) / 0.62, 0.27, 0.6) -- llega abajo en t = 0,55
 		local up = raise * (1 - slam)
 		return {
-			Root = step(0.4 * slam, 0, 0.35 * slam - 0.1 * up),
-			RightShoulder = angles(2.75 * up + 1.15 * slam, 0, -0.1 * up),
-			LeftShoulder = angles(2.75 * up + 1.15 * slam, 0, 0.1 * up),
+			Root = step(0.4 * slam, 0, 0.55 * slam - 0.1 * up),
+			RightShoulder = angles(2.75 * up + 1.1 * slam, 0, -0.1 * up),
+			LeftShoulder = angles(2.75 * up + 1.1 * slam, 0, 0.1 * up),
 			RightElbow = angles(0.6 * up, 0, 0),
 			LeftElbow = angles(0.6 * up, 0, 0),
-			Waist = angles(0.3 * up - 0.6 * slam, 0, 0),
-			RightKnee = angles(-0.75 * slam, 0, 0),
-			LeftKnee = angles(-0.75 * slam, 0, 0),
-			RightHip = angles(0.45 * slam, 0, 0),
-			LeftHip = angles(0.45 * slam, 0, 0),
-			Neck = angles(0.3 * up + 0.35 * slam, 0, 0),
+			Waist = angles(0.3 * up - 0.85 * slam, 0, 0),
+			RightKnee = angles(-1.05 * slam, 0, 0),
+			LeftKnee = angles(-1.05 * slam, 0, 0),
+			RightHip = angles(0.6 * slam, 0, 0),
+			LeftHip = angles(0.6 * slam, 0, 0),
+			Neck = angles(0.3 * up + 0.5 * slam, 0, 0),
 		}
 	end,
 }

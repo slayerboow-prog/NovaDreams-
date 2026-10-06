@@ -592,6 +592,25 @@ check(has("RollMotion.roll(direction)") and has('send("Dodge", "Vanish"'), "Esqu
 local fx = fs.readFile("src/client/Controllers/CombatFx.luau")
 check(fx:find("function CombatFx.hitstop", 1, true) and fx:find("PunchAnim.freeze", 1, true) and fx:find("AdjustSpeed(0)", 1, true), "congelación del impacto: el golpe y las animaciones se paran")
 check(fx:find("function CombatFx.impact", 1, true) and fx:find("ParticleEmitter", 1, true) and fx:find("ultimateCamera", 1, true), "partículas de impacto y mini-cinemática de la definitiva")
+-- Golpes que se sienten: estela, lo que se ve del golpe en el impacto de la animación, reacción del que
+-- recibe y temblor para los dos (las posturas, en scripts/test-punch.luau)
+check(fx:find("function CombatFx.swoosh", 1, true) and has("CombatFx.swoosh(character, anim)"), "cada golpe deja estela (también al aire)")
+check(has("PunchAnim.untilImpact(attacker)") and has('ReactMotion.play(model, "HitLight"') and has("shake("), "el impacto se ve al llegar el puño, con reacción y temblor")
+do
+	local punch = fs.readFile("src/client/Controllers/PunchAnim.luau")
+	local impacts = {}
+	for name, impact, duration in punch:gmatch("Moves%.(%w+) = {%s*Duration = ([%d%.]+),%s*Impact = ([%d%.]+)") do
+		impacts[name] = tonumber(impact) * tonumber(duration)
+	end
+	local late = {}
+	for name, move in Combat.Moves do
+		local at = impacts[move.Anim]
+		if not at or at > move.Recovery + 0.02 + Combat.ChainWindow then
+			table.insert(late, name)
+		end
+	end
+	check(next(impacts) ~= nil and #late == 0, "cada golpe del combo tiene su instante de impacto en la animación" .. (if #late > 0 then ": " .. table.concat(late, ", ") else ""))
+end
 local hitReaction = fs.readFile("src/client/Controllers/HitReaction.luau")
 check(hitReaction:find("watchWall", 1, true) and hitReaction:find("VectorForce", 1, true) and hitReaction:find("PlatformStand", 1, true), "empujón: vuela, flota en el aire, choca con las paredes y cae derribado")
 local swim = fs.readFile("src/shared/Swim.luau")
