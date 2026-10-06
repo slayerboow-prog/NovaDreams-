@@ -91,6 +91,20 @@ local TownBuilder = requireModule(world.TownBuilder)
 local town = TownBuilder.build()
 town.Parent = workspace
 
+-- MaterialVariant ya creados (con su BaseMaterial): en el servidor un Script no puede escribir
+-- BaseMaterial, así que World/Kit/MaterialLook solo les pone los mapas al arrancar
+local Textures = requireModule(rawget(sharedTree, "Textures"))
+local TextureIds = requireModule(rawget(sharedTree, "TextureIds"))
+local materialService = game:GetService("MaterialService")
+for _, name in Textures.available(TextureIds) do
+	local def = Textures.Variants[name]
+	local variant = materialService:FindFirstChild(name) or roblox.Instance.new("MaterialVariant")
+	variant.Name = name
+	variant.BaseMaterial = (roblox.Enum.Material :: any)[def.Base]
+	variant.StudsPerTile = def.Studs
+	variant.Parent = materialService
+end
+
 local count = 0
 for _, d in town:GetDescendants() do
 	if d:IsA("BasePart") then

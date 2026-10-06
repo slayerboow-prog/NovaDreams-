@@ -35,6 +35,7 @@ export type Options = {
 	Backoff: { number }?,
 	MaxConcurrent: number?,
 	Warn: ((string) -> ())?,
+	Print: ((string) -> ())?,
 	Tag: string?, -- prefijo de los avisos
 }
 
@@ -52,6 +53,7 @@ function AssetLoader.newDownloader(opts: Options?): Downloader
 		task.wait(s)
 	end
 	local say = o.Warn or warn
+	local note = o.Print or print -- (cargar al reintento es normal: no es un aviso)
 	local tag = o.Tag or "[Assets]"
 	local stats = { Active = 0, Peak = 0, Queued = 0, Attempts = 0, Retries = 0, Failed = 0 }
 	local waiting: { thread } = {}
@@ -114,7 +116,7 @@ function AssetLoader.newDownloader(opts: Options?): Downloader
 			release()
 			if okRun and asset then
 				if try > 0 then
-					say(("%s %d cargó al reintento %d"):format(tag, id, try))
+					note(("%s %d cargó al reintento %d"):format(tag, id, try))
 				end
 				return asset
 			end

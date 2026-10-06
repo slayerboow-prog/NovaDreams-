@@ -37,8 +37,24 @@ function MaterialLook.setup(service: Instance?, ids: { [string]: string }?): { s
 		local existing = target:FindFirstChild(name)
 		local variant: any = if existing and existing:IsA("MaterialVariant") then existing else Instance.new("MaterialVariant")
 		variant.Name = name
-		variant.BaseMaterial = (Enum.Material :: any)[def.Base]
-		variant.StudsPerTile = def.Studs
+		-- En un servidor de verdad un Script no puede escribir BaseMaterial (pide la capacidad Plugin):
+		-- por eso scripts/build-place.luau ya deja los variants creados en el archivo, y aquí solo se
+		-- escribe si cambia. Si no se puede, se salta este material y se sigue con los demás.
+		local base = (Enum.Material :: any)[def.Base]
+		if variant.BaseMaterial ~= base then
+			local ok = pcall(function()
+				variant.BaseMaterial = base
+			end)
+			if not ok or variant.BaseMaterial ~= base then
+				if not existing then
+					variant:Destroy()
+				end
+				continue
+			end
+		end
+		pcall(function()
+			variant.StudsPerTile = def.Studs
+		end)
 		pcall(function()
 			variant.MaterialPattern = (Enum.MaterialPattern :: any)[def.Pattern]
 		end)
@@ -152,7 +168,12 @@ function MaterialLook.start(town: Instance?)
 	if converted > 0 then
 		print(("[MaterialLook] %d texturas pasadas de Decal a imagen"):format(converted))
 	end
-	local made = MaterialLook.setup(nil, Images.map(TextureIds))
+	-- (si falla, la ciudad y los coches que salgan luego se repasan igual)
+	local okSetup, made = pcall(MaterialLook.setup, nil, Images.map(TextureIds))
+	if not okSetup then
+		warn("[MaterialLook] " .. tostring(made))
+		made = {}
+	end
 	if town and town:GetAttribute("TextureSet") ~= Textures.signature(TextureIds) then
 		MaterialLook.assign(town)
 	end
