@@ -15,7 +15,7 @@
 --      verdad siguen sin errores.
 --   8. DialogueService con un cliente de mentira: los campos llegan al cliente, la acotación se hace
 --      acción, {o/a} con el atributo Gender, StageApproach se pone y se quita, Staging = false.
---   9. Las 294 escenas de conversación (y las charlas) de verdad pasan por el director sin errores.
+--   9. Las escenas de conversación (y las charlas) de verdad pasan por el director sin errores.
 
 local roblox = require("@lune/roblox")
 local task = require("@lune/task")
@@ -395,6 +395,8 @@ do
 	local H = require("./lib/StoryHarness")
 	local Quests = H.loadModule(H.ROOT .. "/shared/LifeStory/Quests")
 	local dialogues, scenes, lineCount, framed, directions, whole, errors = 0, 0, 0, 0, 0, 0, 0
+	local HappeningIndex = H.loadModule(H.ROOT .. "/shared/LifeStory/HappeningIndex")
+	local engine = 0 -- pasos de cine que son escenas del motor (Happenings)
 	local function walkLines(list, st)
 		for _, line in list or {} do
 			if type(line) == "table" then
@@ -455,6 +457,9 @@ do
 		end
 		local function steps(list)
 			for _, s in list or {} do
+				if s.Type == "Cinematic" and HappeningIndex.has(s.Id) then
+					engine += 1 -- (una escena escrita a mano en el motor sustituye a una conversación)
+				end
 				if s.Type == "Scene" then
 					scenes += 1
 					if type(s.Dialogue) == "table" then
@@ -468,13 +473,16 @@ do
 		end
 		steps(quest.Steps)
 	end
-	print(("     %d diálogos · %d pasos Scene · %d frases · %d con plano · %d acotaciones convertidas (%d enteras)"):format(dialogues, scenes, lineCount, framed, directions, whole))
+	print(("     %d diálogos · %d pasos Scene (+%d del motor) · %d frases · %d con plano · %d acotaciones convertidas (%d enteras)"):format(dialogues, scenes, engine, lineCount, framed, directions, whole))
 	-- (umbrales bajos a propósito: las escenas importantes pasan a escenas del motor, Happenings, y las
 	-- acotaciones a A/G/Beat; aquí solo se comprueba que se recorren los datos de verdad)
-	check(scenes >= 200, ("están las escenas de conversación (%d)"):format(scenes))
+	-- Umbrales RELATIVOS: cada escena que pasa al motor (Happenings) quita un paso Scene a propósito; lo
+	-- que se mira es que, entre las dos formas, la historia sigue contada en escenas, y que las frases
+	-- que quedan pasan bien por el director.
+	check(scenes > 0 and scenes + engine >= 200, ("están las escenas de conversación (%d Scene + %d del motor)"):format(scenes, engine))
 	check(errors == 0, "ninguna frase rompe al director")
-	check(framed > lineCount * 0.5, "la mayoría de las frases tienen plano")
-	check(directions >= 30, ("las acotaciones escritas de los personajes se convierten en acción (%d)"):format(directions))
+	check(lineCount > 0 and framed > lineCount * 0.5, "la mayoría de las frases tienen plano")
+	check(directions > 0 and directions >= lineCount * 0.005, ("las acotaciones escritas de los personajes se convierten en acción (%d de %d frases)"):format(directions, lineCount))
 end
 
 L.finish("test-stagedirector")

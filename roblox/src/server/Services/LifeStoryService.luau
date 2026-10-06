@@ -150,6 +150,7 @@ type Runtime = {
 	-- «Anteriormente en tu vida…» y contexto de las misiones
 	AwaySeconds: number?, -- cuánto tiempo llevaba fuera al entrar
 	RecapPending: boolean?, -- toca enseñar el resumen en cuanto no esté ocupado
+	StagedScene: string?, -- "misión:paso" cuyo Stage (escena del motor) se está viendo
 	JustOffered: string?, -- misión que acaba de aceptar en una oferta (ya vio su contexto)
 	-- Escenas que esperan (conduces, o es una misión que no sigues): ver canAutoStart
 	Engaged: { [string]: number }?, -- misión -> la última vez que el jugador hizo algo en ella (os.clock)
@@ -1889,7 +1890,41 @@ function startInteractive(player: Player, data: Data, questId: string)
 			return
 		end
 	end
+	if step.Type == "Scene" and type(step.Stage) == "string" and rt.StagedScene ~= questId .. ":" .. index then
+		-- Stage = "IdDeEscena": la conversación la hace una escena del motor escrita a mano (Happenings)
+		-- en lugar de la conversación escenificada sola. Al acabar (o saltarla) se dan los efectos de
+		-- la conversación del paso y la historia sigue. Si la escena no puede empezar, se juega la
+		-- conversación de siempre.
+		local ok, HappeningService = pcall(function()
+			return require(script.Parent.HappeningService)
+		end)
+		if ok and HappeningService.has(step.Stage) then
+			rt.Busy = true
+			rt.BusySince = os.clock()
+			local playedOk, duration = pcall(CinematicService.play, player, step.Stage)
+			if playedOk and type(duration) == "number" and duration > 0 then
+				rt.StagedScene = questId .. ":" .. index
+				CinematicService.waitFor(player, step.Stage, duration, function()
+					rt.Busy = false
+					rt.StagedScene = nil
+					local current = DataService.get(player)
+					if current and stillHere() then
+						local dialogue = questDialogue(questId, step.Dialogue)
+						if dialogue and dialogue.Effects then
+							applyEffects(player, current, dialogue.Effects, questId)
+						end
+						advance(player, current, questId)
+					end
+				end)
+				return
+			end
+			rt.Busy = false
+		end
+	end
 	if step.Type == "Scene" then
+		if rt.StagedScene == questId .. ":" .. index then
+			return -- (su escena del motor está en marcha)
+		end
 		playDialogue(player, data, questId, step.Dialogue, function()
 			if stillHere() then
 				advance(player, data, questId)
@@ -1951,6 +1986,50 @@ function advance(player: Player, data: Data, questId: string)
 	end
 end
 
+-- Pasos añadidos a misiones que ya existían: el progreso se guarda como el NÚMERO de paso, así que a
+-- quien estaba a medias se le corre el número para que siga en el mismo paso (y no uno antes).
+-- STEP_INSERTS[misión][versión] = los números de paso NUEVOS de esa versión (en la lista nueva, de
+-- menor a mayor). prog.V guarda la versión de los pasos con la que se empezó (sin V: la 1).
+local STEP_INSERTS: { [string]: { [number]: { number } } } = {
+	-- Escenas escritas a mano de la vida adulta (P8d)
+	Adu01_PrimerContrato = { [2] = { 7, 9, 17 } }, -- Adu01_PrimerDia, Adu01_Firma, Adu01_Buzon
+	Adu02_Atardecer = { [2] = { 4, 13 } }, -- Adu02_Hospital, Adu02_Orilla
+	Adu03_Reencuentro = { [2] = { 13 } }, -- Adu03_Banco
+	Adulto_LlegadaValmar = { [2] = { 2 } }, -- Adulto_Bienvenida
+}
+local function stepsVersion(questId: string): number
+	local latest = 1
+	for version in STEP_INSERTS[questId] or {} do
+		latest = math.max(latest, version)
+	end
+	return latest
+end
+LifeStoryService.stepsVersion = stepsVersion
+
+-- Pone al día el número de paso de una partida guardada con pasos de una versión anterior
+local function migrateSteps(questId: string, prog: { [string]: any })
+	local inserts = STEP_INSERTS[questId]
+	local latest = stepsVersion(questId)
+	local version = tonumber(prog.V) or 1
+	if not inserts or version >= latest or type(prog.Step) ~= "number" then
+		if inserts then
+			prog.V = latest
+		end
+		return
+	end
+	local step = prog.Step
+	for v = version + 1, latest do
+		for _, index in inserts[v] or {} do
+			if index <= step then
+				step += 1
+			end
+		end
+	end
+	prog.Step = step
+	prog.V = latest
+end
+LifeStoryService.migrateSteps = migrateSteps
+
 local function startQuest(player: Player, data: Data, questId: string)
 	local story = storyOf(data)
 	if story.Active[questId] then
@@ -1964,7 +2043,7 @@ local function startQuest(player: Player, data: Data, questId: string)
 		return
 	end
 	Log.info("MISSION", "started %s (%s)", questId, player.Name)
-	local prog: any = { Step = 1, Count = 0, Started = os.time(), Kind = quest.Kind }
+	local prog: any = { Step = 1, Count = 0, Started = os.time(), Kind = quest.Kind, V = if STEP_INSERTS[questId] then stepsVersion(questId) else nil }
 	if quest.DayPlan then
 		-- Día generado: cada vez con asignaturas y sorpresas distintas
 		local plan = DayPlans.generate(quest.DayPlan, dayRng)
@@ -2462,7 +2541,26 @@ local function canOffer(player: Player, data: Data, questId: string): boolean
 	if routine and not Schedules.isOpen(Schedules.forQuest(quest), GameClock.now().ClockTime, GameClock.now().Weekday) then
 		return false
 	end
+	-- Ofertas de un oficio (Offer.Job = "Policia"): solo si de verdad trabajas en él (tu trabajo, estar de
+	-- servicio en ese rol o tener ya puntos de carrera en él). No se ofrece ascender en la policía a quien
+	-- solo pasa por delante de la comisaría.
+	if quest.Offer and type(quest.Offer.Job) == "string" and not LifeStoryService.hasJob(player, quest.Offer.Job) then
+		return false
+	end
 	return (Conditions.check(quest.Requires, contextFor(player, data)))
+end
+
+-- ¿Trabaja el jugador en ese oficio? (atributo Job, de servicio en RoleService o puntos de carrera)
+function LifeStoryService.hasJob(player: Player, jobId: string): boolean
+	if player:GetAttribute("Job") == jobId or player:GetAttribute("RankInst") == jobId then
+		return true
+	end
+	local points = player:GetAttribute("Career_" .. jobId)
+	if type(points) == "number" and points > 0 then
+		return true
+	end
+	local ok, duties = pcall(RoleService.dutiesOf, player)
+	return ok and type(duties) == "table" and duties[jobId] ~= nil
 end
 
 -- ¿Hay algo de la historia que impida que alguien de la calle te pida un favor ahora mismo? (los
@@ -4022,6 +4120,9 @@ local function onLoaded(player: Player, data: Data)
 		local quest = Quests[id]
 		-- Nada de una captura a medias sobrevive al guardado (no se vuelve a quedar atascado al entrar)
 		SafeGround.cleanProgress(prog)
+		if quest then
+			migrateSteps(id, prog)
+		end
 		if not quest then
 			story.Active[id] = nil
 		elseif stepsOf(id, prog)[prog.Step] and stepsOf(id, prog)[prog.Step].Type == "Wait" then

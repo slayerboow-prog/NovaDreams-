@@ -51,44 +51,6 @@ local Cinematics: { [string]: Cinematic } = {
 		},
 	},
 
-	-- ¡Primeros pasos! La cámara da una vuelta alrededor del bebé.
-	Bebe_PrimerosPasos = {
-		Duration = 6,
-		Sting = "PrimerosPasos",
-		Anchors = { Bebe = "Player" },
-		Shots = {
-			{ Orbit = "Bebe", Radius = 7, Height = 2.5, FromAngle = 0, ToAngle = 140, Duration = 6, Fov = { 65, 50 }, LookHeight = 0.5 },
-		},
-		Lines = {
-			{ At = 0.6, Speaker = "Abu", TextKey = "DLG.ABU.BEBE.PASOS" },
-		},
-		Titles = {
-			{ At = 3, TextKey = "MOMENT.PRIMEROS_PASOS", Duration = 2.6 },
-		},
-		Anims = {
-			{ At = 2.8, Who = "Todos", Play = "Cheer" },
-		},
-	},
-
-	-- Mirar por el ventanal: la cámara sale por la ventana y enseña Valmar.
-	Bebe_Ventanal = {
-		Duration = 10,
-		Music = "TemaValmar",
-		Anchors = { Ventana = "Place:Ventanal", Ciudad = "Zone:Valmar Centro", Casa = "Place:CasaFamiliar" },
-		Shots = {
-			-- (en coordenadas "Local" de Roblox, delante del ventanal es -Z)
-			{ From = { "Ventana", V(0, 0.5, 3), true }, To = { "Ventana", V(0, 1, -2), true }, Look = { "Ventana", V(0, 0.5, -30), true }, Duration = 2.5 },
-			{ From = { "Ventana", V(0, 1, -2), true }, To = { "Ventana", V(0, 30, -45), true }, Look = { "Ventana", V(0, 0.5, -30), true }, LookTo = { "Ciudad", V(0, 20, 0) }, Duration = 3.5 },
-			{ From = { "Ventana", V(0, 30, -45), true }, To = { "Casa", V(0, 170, 0) }, Look = { "Ciudad", V(0, 20, 0) }, Duration = 4 },
-		},
-		Lines = {
-			{ At = 1, Speaker = "Abu", TextKey = "DLG.ABU.BEBE.CIUDAD" },
-		},
-		Titles = {
-			{ At = 6.2, TextKey = "CINE.VALMAR.TITULO", SubKey = "CINE.VALMAR.LEMA", Duration = 3.5 },
-		},
-	},
-
 	-- De niño a adulto: vuelo por la región (colegio, campus, rascacielos, centro).
 	Nino_Creces = {
 		Duration = 18,
@@ -111,24 +73,6 @@ local Cinematics: { [string]: Cinematic } = {
 			{ At = 5.3, TextKey = "CINE.CRECES.ESTUDIOS", Duration = 3.4 },
 			{ At = 9.8, TextKey = "CINE.CRECES.SUENOS", Duration = 3.4 },
 			{ At = 14.2, TextKey = "CINE.CRECES.FINAL", Duration = 3.6 },
-		},
-	},
-
-	-- Primer día de colegio: el colegio desde el cielo y bajada hasta la entrada.
-	Nino_PrimerDia = {
-		Duration = 10,
-		FadeIn = true,
-		Music = "TemaValmar",
-		Anchors = { Colegio = "Place:Colegio", Entrada = "Place:EntradaColegio" },
-		Shots = {
-			{ From = { "Colegio", V(-120, 90, 120) }, To = { "Colegio", V(-40, 35, 60) }, Look = { "Colegio", V(0, 5, 0) }, Duration = 5.5 },
-			{ Orbit = "Entrada", Radius = 22, Height = 8, FromAngle = 60, ToAngle = 110, Duration = 4.5 },
-		},
-		Titles = {
-			{ At = 1, TextKey = "CHAPTER.NINO.TITLE", SubKey = "CHAPTER.NINO.INTRO", Duration = 4.5 },
-		},
-		Lines = {
-			{ At = 6, Speaker = "Profe", TextKey = "DLG.LUCIA.COLE1.01" },
 		},
 	},
 
@@ -212,42 +156,6 @@ local Cinematics: { [string]: Cinematic } = {
 		},
 	},
 
-	-- El último día: una foto con tu grupo antes de la ceremonia (misión 12)
-	Cole12_Foto = {
-		Duration = 7,
-		Sting = "Momento",
-		Anchors = { Yo = "Player" },
-		Shots = {
-			{ Orbit = "Yo", Radius = 14, Height = 4, FromAngle = -35, ToAngle = 35, Duration = 7, Fov = { 68, 52 }, Shake = 0.2 },
-		},
-		Titles = {
-			{ At = 2.5, TextKey = "📸 Una última foto con tu grupo", SubKey = "Último día de primaria", Duration = 4 },
-		},
-		Anims = {
-			{ At = 2.3, Who = "Todos", Play = "Cheer" },
-		},
-	},
-
-	-- Fin de primaria: fiesta en el patio, foto de clase.
-	Nino_FinPrimaria = {
-		Duration = 10,
-		Music = "TemaValmar",
-		Anchors = { Patio = "Place:Patio", Yo = "Player" },
-		Shots = {
-			{ Orbit = "Yo", Radius = 12, Height = 5, FromAngle = 0, ToAngle = 90, Duration = 5 },
-			{ From = { "Patio", V(0, 12, 30) }, To = { "Patio", V(0, 40, 60) }, Look = { "Patio", V(0, 2, 0) }, Duration = 5 },
-		},
-		Lines = {
-			{ At = 0.8, Speaker = "Profe", TextKey = "DLG.LUCIA.GRADUA.01" },
-		},
-		Titles = {
-			{ At = 5.5, TextKey = "CINE.FIN_PRIMARIA.TITULO", SubKey = "CINE.FIN_PRIMARIA.FOTO", Duration = 4 },
-		},
-		Anims = {
-			{ At = 5.4, Who = "Todos", Play = "Cheer" },
-		},
-	},
-
 	-- Primer día de universidad: el campus y la rectora.
 	Uni_PrimerDia = {
 		AfterScene = true,
@@ -315,72 +223,6 @@ local Cinematics: { [string]: Cinematic } = {
 		},
 		Anims = {
 			{ At = 7.3, Who = "Todos", Play = "Cheer" },
-		},
-	},
-
-	-- Saga de la Grieta, final del Acto I: la aguja cuántica sube y cose el cielo sobre el cole.
-	Saga_Coser = {
-		Duration = 10,
-		Sting = "Momento",
-		Music = "TemaValmar",
-		Anchors = { Patio = "Place:Patio", Yo = "Player" },
-		Shots = {
-			{ From = { "Yo", V(4, 2, 7) }, To = { "Yo", V(3, 1.5, 5) }, Look = { "Yo", V(0, 2, 0) }, LookTo = { "Patio", V(0, 40, 0) }, Duration = 3.5, Fov = { 60, 50 }, Shake = 0.3 },
-			{ From = { "Patio", V(0, 6, 30) }, To = { "Patio", V(0, 60, 20) }, Look = { "Patio", V(0, 10, 0) }, LookTo = { "Patio", V(0, 120, -40) }, Duration = 4, Shake = 0.5 },
-			{ Orbit = "Patio", Radius = 60, Height = 90, FromAngle = 90, ToAngle = 140, Duration = 2.5, LookHeight = 110, Dip = true },
-		},
-		Anims = {
-			{ At = 7.6, Who = "Todos", Play = "Cheer" },
-		},
-		Titles = {
-			{ At = 7.5, TextKey = "🪡 El cielo está cosido", SubKey = "Fin del Acto I · La Grieta", Duration = 2.4 },
-		},
-	},
-
-	-- Saga, final del Acto II: la costura se rompe sobre tu graduación y baja Cósimo.
-	Saga_Grieta2 = {
-		Duration = 9,
-		Sting = "Momento",
-		Music = "TemaValmar",
-		Anchors = { Patio = "Place:PatioInstituto", Yo = "Player" },
-		Shots = {
-			{ From = { "Yo", V(3, 2, 6) }, To = { "Yo", V(2, 1.5, 4) }, Look = { "Yo", V(0, 2, 0) }, LookTo = { "Patio", V(0, 50, 0) }, Duration = 3, Fov = { 60, 48 }, Shake = 0.4 },
-			{ From = { "Patio", V(0, 20, 40) }, To = { "Patio", V(0, 40, 30) }, Look = { "Patio", V(0, 60, 0) }, Duration = 3.5, Shake = 0.9, Roll = -4 },
-			{ Orbit = "Patio", Radius = 30, Height = 12, FromAngle = 60, ToAngle = 110, Duration = 2.5, LookHeight = 20, Dip = true },
-		},
-		Titles = {
-			{ At = 3.4, TextKey = "🌀 La costura se rompe", SubKey = "Tu graduación del instituto", Duration = 3 },
-		},
-	},
-
-	-- Saga, acto IV: la Gran Fusión se abre sobre la cima del Monte del Silencio.
-	Saga_Fusion = {
-		Duration = 10,
-		Sting = "Momento",
-		Music = "TemaValmar",
-		Anchors = { Cima = "Place:CimaMonte", Yo = "Player" },
-		Shots = {
-			{ From = { "Yo", V(3, 2, 6) }, To = { "Yo", V(2, 1.5, 4) }, Look = { "Yo", V(0, 2, 0) }, LookTo = { "Cima", V(0, 40, 0) }, Duration = 3.5, Fov = { 60, 45 }, Shake = 0.5 },
-			{ Orbit = "Cima", Radius = 45, Height = 18, FromAngle = 0, ToAngle = 90, Duration = 4, LookHeight = 30, Shake = 1, Roll = 5 },
-			{ From = { "Cima", V(0, 10, 30) }, To = { "Cima", V(0, 60, 20) }, Look = { "Cima", V(0, 50, 0) }, Duration = 2.5, Shake = 1.2, Dip = true },
-		},
-		Titles = {
-			{ At = 3.8, TextKey = "🌀 LA GRAN FUSIÓN", SubKey = "Todas las dimensiones, a la vez", Duration = 3.5 },
-		},
-	},
-
-	-- Saga, final: la última costura, en el patio del cole donde empezó todo.
-	Saga_Final = {
-		Duration = 11,
-		FadeIn = true,
-		Music = "TemaValmar",
-		Anchors = { Patio = "Place:Patio", Yo = "Player" },
-		Shots = {
-			{ From = { "Yo", V(4, 2, 7) }, To = { "Yo", V(2, 1.5, 4) }, Look = { "Yo", V(0, 2, 0) }, Duration = 4, Fov = { 55, 45 } },
-			{ Orbit = "Patio", Radius = 35, Height = 15, FromAngle = 120, ToAngle = 200, Duration = 7, LookHeight = 25 },
-		},
-		Titles = {
-			{ At = 4.5, TextKey = "🌅 La Grieta se cierra", SubKey = "Fin de la Saga de la Grieta", Duration = 5 },
 		},
 	},
 

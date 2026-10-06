@@ -11,7 +11,7 @@
 --     (solo queda el de tu jefe) y así la misma escena sirve para las siete profesiones.
 --   * Continuidad: llegar tarde (LlegasTardeContrato, LlegasTardePracticas), el primer caso, el TFG, lo
 --     que hiciste aquel verano (BuenTrabajo, MentisteEntrevista), la promesa a Abu, la concha, el grupo…
---   * Nada de {abu} ni {grupo} aquí (la escena solo rellena {nombre}); el género va con {o/a}.
+--   * Nada de {grupo} aquí (la escena rellena {nombre}, {abu}, {familia} y {Saludo}); el género va con {o/a}.
 --
 -- Anclas: "Yo" = tú al empezar. Los puntos { "Yo", V(x, y, z), true } van referidos a hacia dónde
 -- miras (z negativa = delante de ti).

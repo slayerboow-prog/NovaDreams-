@@ -99,6 +99,21 @@ print("\n▶ 3. Prólogo jugable: el sueño")
 local Service, StoryEvents = H.boot()
 local DialogueService = H.loadModule(ROOT .. "/server/Services/DialogueService")
 H.Config.LifeStory.Prologue = true
+-- Las escenas del motor (Happenings: el nacimiento en la cuna…) no llegan como "Cinematic": se apuntan
+-- al lanzarse
+local scenesPlayed: { [any]: { [string]: boolean } } = {}
+do
+	local Happening = H.loadModule(ROOT .. "/server/Services/HappeningService")
+	local realPlay = Happening.play
+	Happening.play = function(p, id, ...)
+		scenesPlayed[p] = scenesPlayed[p] or {}
+		scenesPlayed[p][id] = true
+		return realPlay(p, id, ...)
+	end
+end
+local function sceneOrCinematic(p, id: string): boolean
+	return H.cinematic(p, id) or (scenesPlayed[p] ~= nil and scenesPlayed[p][id] == true)
+end
 
 local nuevo = H.newPlayer("Nuevo")
 local story = H.profiles[nuevo].Story
@@ -112,7 +127,7 @@ end, 3), "un personaje nuevo empieza con el prólogo")
 check(nuevo:GetAttribute("InPrologue") == true, "mientras dura, el atributo InPrologue está puesto")
 check(nuevo:GetAttribute("LifeStage") == "Nino" and H.profiles[nuevo].Life.Stage == "Bebe",
 	"en el sueño es un poco mayor (LifeStage = Nino) pero lo guardado sigue siendo bebé")
-check(story.Chapter == nil and not H.cinematic(nuevo, "Bebe_Nacimiento"), "el primer capítulo (el nacimiento) espera a que acabe el sueño")
+check(story.Chapter == nil and not sceneOrCinematic(nuevo, "Bebe_NacimientoCuna"), "el primer capítulo (el nacimiento) espera a que acabe el sueño")
 check(H.cinematic(nuevo, "Prologo_Apertura"), "empieza con la escena que cuenta qué es el juego y la Grieta")
 check(nuevo.At == "PrologoInicio", "y le lleva a la isla del sueño")
 check(waitFor(function()
@@ -184,9 +199,11 @@ check(nuevo:GetAttribute("LifeStage") == "Bebe", "vuelve a ser bebé")
 check(nuevo.At == "Cuna", "y despierta en su cuna")
 check(story.PrologueDone ~= nil and story.PrologueDone ~= false and story.PrologueResult == "Done", "queda guardado que ya lo vio (DataService)")
 check(waitFor(function()
-	return story.Chapter == "Bebe_PrimerosPasos" and H.cinematic(nuevo, "Bebe_Nacimiento")
+	return story.Chapter == "Bebe_PrimerosPasos" and sceneOrCinematic(nuevo, "Bebe_NacimientoCuna")
 end, 3), "después empieza el primer capítulo con su escena del nacimiento")
-check(story.Active.Bebe_AprendeACaminar ~= nil, "y su primera misión (aprender a caminar)")
+check(waitFor(function()
+	return story.Active.Bebe_AprendeACaminar ~= nil
+end, 3), "y su primera misión (aprender a caminar)")
 check(story.Memories.SuenoGrieta ~= nil, "el sueño queda como recuerdo")
 local intro = nil
 for _, card in inbox(nuevo, "QuestIntro") do
@@ -216,7 +233,7 @@ end, 3), "el botón Saltar lo cierra en cualquier momento")
 check(salta:GetAttribute("InPrologue") == nil and salta:GetAttribute("LifeStage") == "Bebe", "al saltarlo se quita InPrologue y vuelve a ser bebé")
 check(story2.PrologueResult == "Skipped" and story2.PrologueDone, "queda guardado como visto (saltado)")
 check(waitFor(function()
-	return story2.Chapter == "Bebe_PrimerosPasos" and H.cinematic(salta, "Bebe_Nacimiento")
+	return story2.Chapter == "Bebe_PrimerosPasos" and sceneOrCinematic(salta, "Bebe_NacimientoCuna")
 end, 3), "y empieza el primer capítulo igual")
 
 -- Saltar en mitad de la conversación con Cosme: la conversación se corta (y los controles vuelven)
@@ -639,6 +656,33 @@ do
 		return H.said(adulto, "Toma las llaves del coche viejo")
 	end, 6), "aprobar el carnet sentado en el coche: su escena sale igual (paso pensado para el vehículo)")
 	adulto:SetAttribute("Riding", nil)
+end
+
+---------------------------------------------------------------------
+print("\n▶ 8. Partidas guardadas a medias cuando una misión gana pasos")
+---------------------------------------------------------------------
+do
+	-- Adu01 ganó tres escenas (pasos nuevos 7, 9 y 17): quien estaba en el paso 7 (el contrato) sigue en
+	-- el contrato (ahora el 8), y quien estaba en el 15 (las facturas) sigue en las facturas (el 18)
+	local contrato = { Step = 7 }
+	Service.migrateSteps("Adu01_PrimerContrato", contrato)
+	local facturas = { Step = 15 }
+	Service.migrateSteps("Adu01_PrimerContrato", facturas)
+	local antes = { Step = 3 }
+	Service.migrateSteps("Adu01_PrimerContrato", antes)
+	check(contrato.Step == 8 and facturas.Step == 18 and antes.Step == 3, ("Adu01: el paso guardado se corre a su sitio (%d, %d, %d)"):format(contrato.Step, facturas.Step, antes.Step))
+	check(Quests.Adu01_PrimerContrato.Steps[8].Dialogue == "Contrato" and Quests.Adu01_PrimerContrato.Steps[18].Dialogue == "Facturas", "y son los mismos pasos que antes")
+	local llegada = { Step = 2 }
+	Service.migrateSteps("Adulto_LlegadaValmar", llegada)
+	check(llegada.Step == 3 and llegada.V == 2, "Llegar a Valmar: el paso de la casa sigue siendo el de la casa")
+	Service.migrateSteps("Adulto_LlegadaValmar", llegada)
+	check(llegada.Step == 3, "y migrar dos veces no lo mueve otra vez")
+	local nueva = { Step = 2, V = Service.stepsVersion("Adu02_Atardecer") }
+	Service.migrateSteps("Adu02_Atardecer", nueva)
+	check(nueva.Step == 2, "una partida empezada con los pasos nuevos no se toca")
+	local otra = { Step = 4 }
+	Service.migrateSteps("Cole01_PrimerDia", otra)
+	check(otra.Step == 4 and otra.V == nil, "las misiones que no cambiaron, tampoco")
 end
 
 print("")

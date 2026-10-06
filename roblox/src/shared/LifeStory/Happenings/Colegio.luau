@@ -10,7 +10,7 @@
 --
 -- Recuerdos y decisiones (continuidad, W-05): las frases con If leen Flags, Choices, Memories, Rel… del
 -- jugador. El nombre del grupo (Choices.NombreGrupo, misión 03) sale con una frase por nombre posible:
--- las escenas del motor solo rellenan {nombre}.
+-- las escenas del motor rellenan {nombre}, {abu}, {familia}, {Saludo} y el género ({o/a}), no {grupo}.
 --
 -- Interiores (casa, aula, sala cerrada): planos cortos (PrimerPlano, PPP, Reaccion, Hombro, Inserto) o
 -- puntos a mano a pocos studs. Los planos largos (General, Medio, DosPlanos) solo en el patio, la pista y

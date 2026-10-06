@@ -81,7 +81,10 @@ function CinematicService.play(player: Player, id: string): number
 		end)
 		if ok and HappeningService.has(id) then
 			local duration = HappeningService.play(player, id)
-			if type(duration) == "number" and duration > 0 then
+			-- Solo si sigue en marcha: una escena que acaba en el acto (sin pantalla, Instant, un error al
+			-- empezar) ya avisó con clientDone ANTES de llegar aquí, y abrirla ahora la dejaba marcada como
+			-- «en escena» sin nadie que la cerrara (la historia no ofrecía nada hasta los relojes de tope)
+			if type(duration) == "number" and duration > 0 and (type(HappeningService.isPlaying) ~= "function" or HappeningService.isPlaying(player, id)) then
 				CinematicService.beginScene(player, id, duration)
 			end
 			return duration

@@ -171,6 +171,16 @@ end
 for id, chapter in Chapters do
 	walk("capítulo " .. id, chapter, false, {}, nil)
 end
+-- Las escenas del motor (Happenings) también leen (If/IfNot/Variants) y escriben (Effects) la partida
+local HappeningIndex = loadModule(ROOT .. "/shared/LifeStory/HappeningIndex")
+local sceneIds = {}
+for id in HappeningIndex.all() do
+	table.insert(sceneIds, id)
+end
+table.sort(sceneIds)
+for _, id in sceneIds do
+	walk("escena " .. id, HappeningIndex.get(id), false, {}, nil)
+end
 
 ---------------------------------------------------------------------
 -- Escenas: hablantes, saltos, actores

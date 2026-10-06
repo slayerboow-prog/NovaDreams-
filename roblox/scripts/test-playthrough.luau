@@ -789,6 +789,9 @@ end
 local function startSide(player, questId: string): boolean
 	local quest = Quests[questId]
 	local story = profiles[player].Story
+	if type(quest.Offer.Job) == "string" then
+		player:SetAttribute("Job", quest.Offer.Job) -- (ofertas de un oficio: trabaja en él)
+	end
 	for _ = 1, 10 do
 		if story.Active[questId] then
 			return true

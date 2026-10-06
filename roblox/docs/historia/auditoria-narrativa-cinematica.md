@@ -405,7 +405,7 @@ después, Bruno «de cero» en el instituto y los flashbacks del último día de
 | C-18 | Finales de capítulo con tarjeta de texto | grave | RECONSTRUIR |
 | C-12 | Escenas importantes como chat; motor nuevo casi sin usar | grave | RECONSTRUIR (las escenas clave) · MANTENER el motor |
 | C-09 | UniS_Cita sin la otra persona (grave). Hay otras 20 conversaciones en las que habla alguien que no está en la escena. Unas son a propósito, por teléfono o con una voz (mejor enseñarlas como móvil); otras no: Cole06 `Aprobado`, Cole08 `Medallas`, Cole07 `Vuelta`, Uni06 `Foto` (Leire)… (medio) | grave / medio | MODIFICAR |
-| W-05 | Continuidad: 80 marcas, 79 recuerdos y 25 decisiones sin leer | grave | MODIFICAR |
+| W-05 | Continuidad: 80 marcas, 79 recuerdos y 25 decisiones sin leer. **Ahora** (contando también lo que leen las escenas del motor, Happenings): 26 de 227 marcas, 42 de 131 recuerdos y 10 de 95 decisiones sin leer en los datos (21, 36 y 8 que no lee nadie, ni el código) | grave | MODIFICAR |
 | M-01 | «Esa noche…» de día en multijugador | medio | MODIFICAR |
 | M-02 | Al reaparecer te lleva a cualquier misión, sin fundido | medio | MODIFICAR |
 | M-03 | Lugar que falta: el paso se da por hecho en silencio; sin prueba contra el mapa | medio | MODIFICAR |

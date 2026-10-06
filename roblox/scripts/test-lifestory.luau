@@ -356,7 +356,7 @@ local leo = newPlayer("Leo") -- personaje nuevo
 task.wait(0.2)
 local leoData = profiles[leo]
 check(leoData.Life.Stage == "Bebe" and leo:GetAttribute("LifeStage") == "Bebe", "Un personaje nuevo nace bebé")
-check(cinematic(leo, "Bebe_Nacimiento"), "Empieza con la cinemática del nacimiento")
+check(cinematic(leo, "Bebe_NacimientoCuna"), "Empieza con la escena del nacimiento (la cuna)")
 check(lastState(leo).ChapterMusic == "Nacimiento", "Suena la nana de fondo en casa")
 check(leoData.Story.Active.Bebe_AprendeACaminar ~= nil, "Primera misión: aprende a caminar")
 StoryEvents.emit(leo, "BabyStood", {})

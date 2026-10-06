@@ -454,6 +454,31 @@ local function speakers(player: Player, def: { [string]: any }): ({ [string]: st
 	return names, voices
 end
 
+-- Variables de los textos de la escena, las mismas que en las conversaciones (DialogueService): {nombre},
+-- {abu}, {familia}, {Saludo} y el género del jugador (atributo Gender) para «{o/a}». Sin género conocido,
+-- Strings deja la forma neutra con barra («encargado/a»).
+local function textArgs(player: Player): { [string]: any }
+	local args: { [string]: any } = { nombre = player.DisplayName }
+	local gender = player:GetAttribute("Gender")
+	if gender ~= nil then
+		args.genero = gender
+	end
+	pcall(function()
+		local Cast = require(ReplicatedStorage.Shared.LifeStory.Cast)
+		local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
+		local attrs = { FamilyKey = player:GetAttribute("FamilyKey"), AbuKey = player:GetAttribute("AbuKey") }
+		args.abu = Strings.get(Cast.nameOf("Abu", attrs))
+		args.familia = Strings.get(Cast.nameOf("Familia", attrs))
+	end)
+	pcall(function()
+		local greeting = require(script.Parent.DialogueService).greeting()
+		args.Saludo = greeting
+		args.saludo = greeting:lower()
+	end)
+	return args
+end
+HappeningService._textArgs = textArgs
+
 ---------------------------------------------------------------------
 -- Pistas del servidor
 ---------------------------------------------------------------------
@@ -1000,7 +1025,7 @@ function HappeningService.play(player: Player, id: string, opts: { [string]: any
 			Anchors = run.Anchors,
 			Names = names,
 			Voices = voices,
-			Args = { nombre = player.DisplayName },
+			Args = textArgs(player),
 			Light = light,
 			Skippable = def.Skippable ~= false,
 			Variant = choice.Variant,

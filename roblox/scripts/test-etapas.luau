@@ -399,9 +399,9 @@ check(hasFinal and steps[1].Type == "Reach" and steps[1].Place == "CasaFamiliar"
 local MONTAGE_END = { Bebe_PrimerosPasos = true, Nino_ElColegio = true, Adolescente_Instituto = true }
 for id, chapter in Chapters do
 	if chapter.Enabled then
-		check(chapter.IntroCinematic ~= nil and Cinematics[chapter.IntroCinematic] ~= nil, ("capítulo %s: tiene cabecera (%s)"):format(id, tostring(chapter.IntroCinematic)))
+		check(chapter.IntroCinematic ~= nil and (Cinematics[chapter.IntroCinematic] ~= nil or HappeningIndex.has(chapter.IntroCinematic)), ("capítulo %s: tiene cabecera (%s)"):format(id, tostring(chapter.IntroCinematic)))
 		if id ~= "Adulto_TuVida" then
-			check((chapter.OutroCinematic ~= nil and Cinematics[chapter.OutroCinematic] ~= nil) or MONTAGE_END[id], ("capítulo %s: tiene final de episodio"):format(id))
+			check((chapter.OutroCinematic ~= nil and (Cinematics[chapter.OutroCinematic] ~= nil or HappeningIndex.has(chapter.OutroCinematic))) or MONTAGE_END[id], ("capítulo %s: tiene final de episodio"):format(id))
 		end
 	end
 end

@@ -8,7 +8,8 @@
 --   IntroKey/OutroKey-> texto al empezar y al terminar (pantalla de capítulo)
 --   Main             -> misiones principales, en orden
 --   Next             -> capítulo siguiente (si la etapa lo permite)
---   IntroCinematic / OutroCinematic -> escena de cámara en lugar de la pantalla de texto (Cinematics.luau).
+--   IntroCinematic / OutroCinematic -> escena de cámara en lugar de la pantalla de texto (Cinematics.luau o
+--                                      una escena del motor de Happenings).
 --                       Como una serie: cada capítulo tiene su cabecera y su final. Si el capítulo acaba
 --                       con un cambio de etapa, el final es el montaje (Happenings/Etapas, en el paso
 --                       Transition de su última misión) y aquí no hace falta Outro: la cabecera del
@@ -44,7 +45,7 @@ local Chapters: { [string]: Chapter } = {
 		OutroKey = "CHAPTER.BEBE.OUTRO",
 		Main = { "Bebe_AprendeACaminar", "Bebe_ExploraLaCasa", "Bebe_HoraDeSalir" },
 		Next = "Nino_ElColegio",
-		IntroCinematic = "Bebe_Nacimiento",
+		IntroCinematic = "Bebe_NacimientoCuna", -- (escena del motor: Happenings/Colegio)
 		Music = "Nacimiento",
 	},
 

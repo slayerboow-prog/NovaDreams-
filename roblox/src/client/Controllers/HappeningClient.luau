@@ -38,6 +38,7 @@ local ActorMoods = require(ReplicatedStorage.Shared.LifeStory.ActorMoods)
 local Emotion = require(ReplicatedStorage.Shared.LifeStory.Emotion)
 local SkyMoods = require(ReplicatedStorage.Shared.SkyMoods)
 local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
+local StageDirector = require(ReplicatedStorage.Shared.LifeStory.StageDirector)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local StoryFx = require(script.Parent.StoryFx)
 
@@ -480,6 +481,17 @@ local function showLine(run: ClientRun, line: { [string]: any })
 	local ui = run.Ui
 	local who = line.Speaker or line.S
 	local text = Strings.get(line.Text or line.T or "", run.Args)
+	-- La acotación del principio («(susurrando) …», «(se ríe) …») se convierte en acción, como en las
+	-- conversaciones (StageDirector): sale del texto y, si era la línea entera, queda como subtítulo en
+	-- cursiva sin bocadillo ni voz. Las del narrador son su forma de contar: se quedan.
+	local direction = nil
+	if who ~= nil and who ~= "Narrador" then
+		local ok, clean, d = pcall(StageDirector.direction, text)
+		if ok and d then
+			text, direction = clean, d
+		end
+	end
+	local whole = direction ~= nil and direction.Whole == true
 	local model: Model? = nil
 	if who == "Yo" then
 		model = player.Character
@@ -493,7 +505,8 @@ local function showLine(run: ClientRun, line: { [string]: any })
 	end
 	local name = run.Names[who or ""]
 	if ui then
-		ui.Caption.Text = if name and name ~= "" then ('<font color="#FFC43C"><b>%s:</b></font> %s'):format(name, text) else text
+		local shown = if whole then ("<i>%s</i>"):format(text) else text
+		ui.Caption.Text = if name and name ~= "" and not whole then ('<font color="#FFC43C"><b>%s:</b></font> %s'):format(name, shown) else shown
 		fadeText(ui.Caption, true, 0.25)
 		ui.CaptionToken = (ui.CaptionToken or 0) + 1
 		local token = ui.CaptionToken
@@ -504,19 +517,19 @@ local function showLine(run: ClientRun, line: { [string]: any })
 		end)
 	end
 	local voice = run.Voices[who or ""]
-	if voice then
+	if voice and not whole then
 		pcall(function()
 			require(script.Parent.StoryAudio).speak(voice, text)
 		end)
 	end
 	if model then
 		local mood = ActorMoods.get(line.Mood)
-		local emotion = line.A or (mood and mood.Pose) or Emotion.of({ S = who, T = text }, text)
+		local emotion = line.A or (mood and mood.Pose) or (direction and direction.Gesture) or Emotion.of({ S = who, T = text }, text)
 		local seconds = if line.S ~= nil and type(line.Duration) == "number" then line.Duration else nil
 		pcall(function()
 			require(script.Parent.ActorLife).speak(model, emotion, seconds or math.max(2, #text * 0.05), line.G)
 		end)
-		if line.Bubble ~= false then
+		if line.Bubble ~= false and not whole then
 			pcall(function()
 				require(script.Parent.Parent.UI.SpeechBubbles).show(model, text, { Name = name, Seconds = seconds or math.max(2.5, #text * 0.06), Story = true })
 			end)

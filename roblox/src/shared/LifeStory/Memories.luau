@@ -46,6 +46,9 @@ local Memories: { [string]: Memory } = {
 	PrimerContrato = { Text = "Tu primer contrato de verdad (y tus primeras facturas)", Icon = "✍️" },
 	AtardecerConAbu = { Text = "El atardecer junto al mar con tu abu", Icon = "🌅" },
 	ElReencuentro = { Text = "La inauguración de Omar y la noche en el banco del parque", Icon = "💺" },
+	ElAscenso = { Text = "El día que tu jefe te llamó a su mesa para ofrecerte un ascenso", Icon = "📈" },
+	ElDespido = { Text = "La carta del lunes: te despidieron… y volviste a empezar", Icon = "📦" },
+	AscensoPolicia = { Text = "Tu placa nueva: ascendiste en la policía", Icon = "🚓" },
 	-- Universidad de verdad
 	Residencia = { Text = "Tu primera semana en la residencia con Iván y Candela", Icon = "🏠" },
 	ExamenesEnero = { Text = "Tus primeros exámenes de universidad (y la prueba física)", Icon = "📚" },

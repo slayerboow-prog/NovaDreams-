@@ -364,6 +364,24 @@ end
 local momentQueue: { { Show: () -> (), Blocking: boolean } } = {}
 local showingMoment = false
 
+-- ¿Hay una escena del motor (Happenings: montajes, escenas escritas a mano) en pantalla? Lo de la cola
+-- espera a que acabe: antes el texto de un momento salía encima del montaje
+local HappeningClientRef: any = nil
+local function happeningOnScreen(): boolean
+	if HappeningClientRef == nil then
+		local ok, module = pcall(function()
+			return require(script.Parent.HappeningClient) :: any
+		end)
+		HappeningClientRef = if ok and type(module) == "table" then module else false
+	end
+	if not HappeningClientRef then
+		return false
+	end
+	local ok, playing = pcall(HappeningClientRef.isPlaying)
+	return ok and playing == true
+end
+local HAPPENING_WAIT_MAX = 120 -- (si la escena no avisa de que acabó, la cola no se queda parada)
+
 -- blocking = pantalla que tapa el juego (capítulo, transición, escena de cine, resumen, tarjeta de
 -- misión): mientras vas en un vehículo espera a que te bajes (nunca tapa la carretera). Los momentos
 -- pequeños (frases que se desvanecen) salen igual, adelantándose a lo que espera.
@@ -374,7 +392,15 @@ local function queue(show: () -> (), blocking: boolean?)
 	end
 	showingMoment = true
 	task.spawn(function()
+		local waitedScene = 0
 		while #momentQueue > 0 do
+			if not happeningOnScreen() then
+				waitedScene = 0
+			elseif waitedScene < HAPPENING_WAIT_MAX then
+				task.wait(0.5)
+				waitedScene += 0.5
+				continue
+			end
 			local index = 1
 			if RideState.inVehicle(player) then
 				index = 0

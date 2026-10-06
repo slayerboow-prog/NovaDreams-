@@ -57,6 +57,7 @@ return {
 		Npcs = { "Nuria", "Sofia", "Montse", "Ignacio", "Lola", "Paco", "Ernesto" },
 		Requires = { Stage = { Min = "AdultoJoven" }, Completed = { "Adu01_PrimerContrato" }, NotFlags = { "Despedido" } },
 		Moment = "Te ofrecieron un ascenso",
+		Memory = "ElAscenso",
 		Steps = juntar(Comun.irAlTrabajo("Tu jefe quiere verte: ve a tu trabajo"), {
 			Comun.paso("Adu_Ascenso", JEFE),
 			{ Type = "Scene", Dialogue = "Respuesta", Actors = JEFE },
@@ -90,6 +91,7 @@ return {
 		Npcs = { "Nuria", "Sofia", "Montse", "Ignacio", "Lola", "Paco", "Ernesto", "Familia", "Beltran" },
 		Requires = { Stage = { Min = "AdultoJoven" }, Completed = { "Adu01_PrimerContrato" } },
 		Moment = "Te despidieron… y volviste a empezar",
+		Memory = "ElDespido",
 		Steps = juntar(
 			{ { Type = "Transition", Text = "Un lunes, a primera hora, un mensaje: «Pásate por mi despacho».", Seconds = 3 } },
 			Comun.irAlTrabajo("Tu jefe quiere verte a primera hora"),
@@ -140,10 +142,11 @@ return {
 		Type = "Profesión · Policía",
 		Duration = { 10, 30 },
 		Npcs = { "Ines", "Bruno" },
-		Offer = { Place = "Policia" },
+		Offer = { Place = "Policia", Job = "Policia" }, -- (solo si trabajas en la policía)
 		OfferKey = "La agente Inés te hace una seña desde la puerta de la comisaría: «¿Te veo de uniforme? Si haces carrera aquí, hablamos».",
 		Requires = { Stage = { Min = "AdultoJoven" } },
 		Moment = "Ascendiste en la policía",
+		Memory = "AscensoPolicia",
 		Steps = {
 			{ Type = "Event", Event = "Promoted", Match = { Institution = "Policia" }, Text = "Gánate un ascenso en la policía: patrulla, ayuda a los vecinos y resuelve casos" },
 			{ Type = "Reach", Place = "Policia", Text = "Inés quiere verte en la comisaría", Actors = INES },

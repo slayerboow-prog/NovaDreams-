@@ -793,7 +793,8 @@ function Validate.report(): Report
 			err("capítulo %s: Loop debe ser una misión con DayPlan ('%s')", id, chapter.Loop)
 		end
 		for _, field in { "IntroCinematic", "OutroCinematic" } do
-			if chapter[field] and not Cinematics[chapter[field]] then
+			-- (una cinemática de las de siempre o una escena del motor: Happenings)
+			if chapter[field] and not Cinematics[chapter[field]] and not HappeningIndex.has(chapter[field]) then
 				err("capítulo %s: %s desconocida '%s'", id, field, chapter[field])
 			end
 		end
