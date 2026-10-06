@@ -592,7 +592,10 @@ local calleId = SoundFx.id("AmbCalle") :: string
 failing[calleId] = true
 L.services.ContentProvider = {
 	PreloadAsync = function(_, list, callback)
-		for _, id in list do
+		for _, item in list do
+			-- (StoryAudio le pasa el Sound, no el id en texto: con el texto Roblox dice Failure siempre)
+			assert(typeof(item) ~= "string", "PreloadAsync con el id en texto: Roblox dice Failure con todos los audios")
+			local id = if type(item) == "table" or typeof(item) == "Instance" then item.SoundId else item
 			callback(id, if failing[id] then "Enum.AssetFetchStatus.Failure" else "Enum.AssetFetchStatus.Success")
 		end
 	end,

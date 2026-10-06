@@ -72,13 +72,18 @@ table.sort(ids, function(a, b)
 end)
 line(("%d audios con id"):format(#ids))
 
+-- (Se le pasa un Sound, no el id en texto: con «rbxassetid://…» en texto PreloadAsync dice Failure con
+-- todos los audios, también los de Roblox. Comprobado en un servidor de verdad.)
 local function preload(id: string): string
 	local status = "?"
+	local probe = Instance.new("Sound")
+	probe.SoundId = id
 	local ok, err = pcall(function()
-		ContentProvider:PreloadAsync({ id }, function(_, s)
+		ContentProvider:PreloadAsync({ probe }, function(_, s)
 			status = tostring(s):match("%.(%w+)$") or tostring(s)
 		end)
 	end)
+	probe:Destroy()
 	return if ok then status else ("error: " .. tostring(err))
 end
 

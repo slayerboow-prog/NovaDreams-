@@ -150,13 +150,15 @@ local function waitLoaded(sound: Sound, seconds: number): boolean
 	return loaded or sound.IsLoaded
 end
 
--- ¿Se puede descargar este audio? true / false (no: privado, de otro dueño, rechazado…) / nil (no se
--- sabe). Lo pregunta a ContentProvider, que contesta en cuanto Roblox lo sabe (sin esperar 15 s).
-local function fetchStatus(id: string): boolean?
+-- ¿Se puede descargar el audio de este Sound? true / false (no: privado, de otro dueño, rechazado…) /
+-- nil (no se sabe). Lo pregunta a ContentProvider, que contesta en cuanto Roblox lo sabe (sin esperar
+-- 15 s). Se le pasa el Sound, NO el id en texto: con el texto «rbxassetid://…» PreloadAsync contesta
+-- Failure con TODOS los audios (también los de Roblox), y la música se quedaba siempre callada.
+local function fetchStatus(sound: Sound): boolean?
 	local result: boolean? = nil
 	pcall(function()
 		local provider = game:GetService("ContentProvider")
-		provider:PreloadAsync({ id }, function(_, status)
+		provider:PreloadAsync({ sound }, function(_, status)
 			local name = tostring(status)
 			if string.find(name, "Success", 1, true) then
 				result = true
@@ -170,7 +172,7 @@ end
 
 -- ¿Suena este Sound con este audio? (false = no carga: hay que probar otra copia)
 local function loads(sound: Sound, id: string): boolean
-	if fetchStatus(id) == false then
+	if sound.SoundId == id and fetchStatus(sound) == false then
 		return false
 	end
 	return waitLoaded(sound, LOAD_TIMEOUT)
