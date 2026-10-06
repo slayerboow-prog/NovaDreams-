@@ -8,7 +8,7 @@ local EventCatalog = {}
 
 EventCatalog.Names = {
 	-- Historia y escenas
-	Talk = true, TalkDone = true, PropUsed = true, EnemyDefeated = true, Caught = true,
+	Talk = true, TalkDone = true, PropUsed = true, EnemyDefeated = true, Caught = true, FightRetry = true,
 	-- Prólogo (tutorial de controles): empezar a correr (ProgressionService) y abrir el mapa (LifeStoryService)
 	Sprinted = true, MapOpened = true,
 	-- Bebé y casa familiar (BabyService)
