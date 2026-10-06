@@ -469,7 +469,8 @@ do
 		steps(quest.Steps)
 	end
 	print(("     %d diálogos · %d pasos Scene · %d frases · %d con plano · %d acotaciones convertidas (%d enteras)"):format(dialogues, scenes, lineCount, framed, directions, whole))
-	check(scenes >= 290, ("están las escenas de conversación (%d)"):format(scenes))
+	-- (las más importantes pasan a ser escenas escritas a mano, pasos Cinematic: por eso el margen)
+	check(scenes >= 250, ("están las escenas de conversación (%d)"):format(scenes))
 	check(errors == 0, "ninguna frase rompe al director")
 	check(framed > lineCount * 0.5, "la mayoría de las frases tienen plano")
 	check(directions >= 80, ("las acotaciones escritas de los personajes se convierten en acción (%d)"):format(directions))

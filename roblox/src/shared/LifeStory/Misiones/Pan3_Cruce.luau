@@ -41,7 +41,8 @@ return {
 	Steps = {
 		{ Type = "Transition", Text = "Unos meses después. Tercero de la ESO.", Seconds = 3 },
 		{ Type = "Reach", Place = "Parque", Text = "Rayo está en el parque, solo", Actors = { { Npc = "Rayo", Place = "Parque", Offset = V(-12, 0, 8), Mode = "Sit" } } },
-		{ Type = "Talk", Npc = "Rayo", Dialogue = "Oferta", Text = "Habla con Rayo", Actors = { { Npc = "Rayo", Place = "Parque", Offset = V(-12, 0, 8), Mode = "Sit" } } },
+		-- La oferta: escena escrita a mano (Happenings/Instituto · Pan3_Oferta)
+		{ Type = "Cinematic", Id = "Pan3_Oferta", Actors = { { Npc = "Rayo", Place = "Parque", Offset = V(-12, 0, 8), Mode = "Sit" } } },
 		{ Type = "Reach", Place = "PatioInstituto", Text = "Nerea quiere hablar contigo en el patio", Actors = { { Npc = "Nerea", Place = "PatioInstituto", Offset = V(4, 0, 4), Mode = "Sit" } } },
 		{ Type = "Talk", Npc = "Nerea", Dialogue = "Nerea", Text = "Siéntate con Nerea", Actors = { { Npc = "Nerea", Place = "PatioInstituto", Offset = V(4, 0, 4), Mode = "Sit" } } },
 
@@ -78,26 +79,22 @@ return {
 	},
 
 	Dialogues = {
-		Oferta = { Lines = {
-			{ S = "Rayo", T = "Tres días de expulsión. Mi madre ni se ha enterado. Trabaja de noche. Duerme de día. Somos compañeros de piso, más o menos." },
-			{ S = "Rayo", T = "Por lo del súper. Y tú… tú no dijiste nada. Eso no se me olvida.", If = { Flags = { "Pillado" } } },
-			{ S = "Rayo", T = "Tú no viniste. Da igual. Te voy a dar otra oportunidad. Porque me caes bien. No sé por qué.", If = { NotFlags = { "Hurto" } } },
-			{ S = "Rayo", T = "Tengo un negocio. Camisetas del Altamar. Iguales que las de verdad, a una cuarta parte del precio. Las vendemos a la salida del estadio." },
-			{ S = "Rayo", T = "Cincuenta pavos por tarde. Nadie sale herido. El club tiene millones. ¿Qué me dices?" },
-			{ S = "Narrador", T = "Cincuenta. Por una tarde. Piensas en todo lo que se puede hacer con cincuenta." },
-		} },
 		Nerea = { Lines = {
-			{ S = "Nerea", T = "Me voy de la pandilla. Ya está. Estoy harta de correr, de mentir en casa y de que Rayo decida por mí." },
-			{ S = "Nerea", T = "Pero me da miedo. Si me voy, no tengo a nadie. En mi clase soy «la de la pandilla de Rayo». Nadie se me acerca." },
+			{ S = "Nerea", T = "Me voy de la pandilla. Ya está. Estoy harta de correr, de mentir en casa y de que Rayo decida por mí.", A = "ArmsCrossed", Shot = "Medio:Nerea" },
+			{ S = "Nerea", T = "Desde la noche del súper no he vuelto a dormir bien. ¿Tú sí?", Pause = 0.8, Beat = "Mira", To = "Yo", If = { Memories = { "LaNoche" }, Flags = { "Hurto" } } },
+			{ S = "Nerea", T = "Pero me da miedo.", Pause = 1.2, Beat = "Baja", A = "Nervous", Shot = "PrimerPlano:Nerea" },
+			{ S = "Nerea", T = "Si me voy, no tengo a nadie. En mi clase soy «la de la pandilla de Rayo». Nadie se me acerca.", A = "Sad" },
 			{ S = "Nerea", T = "Tú me dijiste que mis dibujos eran buenos. Nadie me había dicho eso. Nunca.", If = { Flags = { "AmigaNerea" } } },
-			{ S = "Nerea", T = "Rayo te ha ofrecido lo de las camisetas, ¿no? A mí también. ¿Qué vas a hacer?" },
+			{ S = "Nerea", T = "Rayo te ha ofrecido lo de las camisetas, ¿no? A mí también.", Pause = 0.6 },
+			{ S = "Nerea", T = "¿Qué vas a hacer?", Pause = 1, Beat = "Mira", To = "Yo", Shot = "Hombro:Yo>Nerea" },
 		} },
 		Estadio = { Lines = {
 			{ S = "Narrador", T = "A la salida del partido, cientos de personas. Rayo abre una bolsa: camisetas del Altamar. Iguales. Casi." },
 			{ S = "Rayo", T = "Tú grita: «¡Camisetas, a diez!». Yo cobro. Si ves a un policía, silba." },
 			{ S = "Narrador", T = "Vendes una. Dos. Cinco. Es fácil. Demasiado fácil." },
 			{ S = "Narrador", T = "Y entonces, entre la gente, alguien se para delante de ti con la bolsa de deporte del juvenil del Altamar. Es Nico." },
-			{ S = "Nico", T = "¿{nombre}? ¿Qué haces con… esas camisetas? Son falsas. Son de MI equipo. ¿En serio?" },
+			{ S = "Nico", T = "¿{nombre}?", Pause = 0.6, A = "Surprised", Shot = "PrimerPlano:Nico" },
+			{ S = "Nico", T = "¿Qué haces con… esas camisetas? Son falsas. Son de MI equipo. ¿En serio?", Pause = 0.6, Beat = "Niega", A = "Angry", Shot = "Hombro:Yo>Nico" },
 			{ Ask = "¿Qué haces?", Options = {
 				{ T = "«Es solo un negocio. No te metas.»", Effects = { Rel = { Nico = -15 }, Money = 50, Traits = { Rebeldia = 1 } }, Then = {
 					{ S = "Nico", T = "…Vale. No me meto. Pero no me hables en el recreo. No sé quién eres." },
@@ -130,16 +127,16 @@ return {
 					{ S = "Narrador", T = "No se pira. Al día siguiente llega a las ocho menos cuarto." },
 				} },
 				{ T = "«Porque eres mi amigo. Aunque a veces no lo parezca.»", Effects = { Flags = { "RayoCambia" }, Rel = { Rayo = 12 }, Traits = { Empatia = 1 } }, Then = {
-					{ S = "Rayo", T = "(se frota la cara) …Qué pesado o pesada. Vale. A las ocho. Y no se lo digas a nadie de la pandilla." },
+					{ S = "Rayo", T = "(se frota la cara) …Qué pesad{o/a}. Vale. A las ocho. Y no se lo digas a nadie de la pandilla." },
 				} },
 			} },
 		} },
 		Espejo = { Lines = {
 			{ S = "Narrador", T = "Esa noche te miras en el espejo del baño. Quince años. Te preguntas quién estás siendo." },
 			{ S = "Narrador", T = "Tienes cincuenta euros escondidos en un calcetín. Y un mensaje de Nico sin contestar.", If = { Flags = { "Camino_Delincuente" } } },
-			{ S = "Familia", T = "Te noto rara o raro últimamente. Llegas tarde, no hablas… Sabes que puedes contarme lo que sea, ¿verdad? Lo que sea.", If = { Flags = { "Camino_Delincuente" } } },
+			{ S = "Familia", T = "Te noto rar{o/a} últimamente. Llegas tarde, no hablas… Sabes que puedes contarme lo que sea, ¿verdad? Lo que sea.", If = { Flags = { "Camino_Delincuente" } } },
 			{ S = "Abu", T = "Yo también tuve malas compañías a tu edad. Lo difícil no es entrar. Es salir. Pero se sale. Siempre se sale.", If = { Flags = { "Camino_Delincuente" } } },
-			{ S = "Narrador", T = "Hiciste cosas de las que no estás orgulloso u orgullosa. Pero hoy has elegido otra cosa. Y eso también cuenta. Mucho.",
+			{ S = "Narrador", T = "Hiciste cosas de las que no estás orgullos{o/a}. Pero hoy has elegido otra cosa. Y eso también cuenta. Mucho.",
 				If = { Flags = { "Camino_Trabajador" }, Traits = { Rebeldia = 2 } }, Effects = { Flags = { "Redimido" } } },
 			{ S = "Narrador", T = "Nunca te dejaste arrastrar. Y hoy, además, has tendido la mano a alguien. Así se construye una persona.", If = { Flags = { "Camino_Trabajador" }, TraitsBelow = { Rebeldia = 2 } } },
 			{ S = "Familia", T = "Me ha llamado la madre de Nerea. Dice que su hija ha vuelto a dibujar. Que ha sido gracias a ti. …Ven aquí. Abrazo. No te escapes.", If = ALEJARSE },

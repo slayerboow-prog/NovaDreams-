@@ -71,7 +71,9 @@ local function lunch(steps: { Step }, friend: string, school: string)
 		Type = "Event", Event = "SchoolMeal", Place = if instituto then "BarraInstituto" else "BarraComedor",
 		TextKey = "QUEST.COLE.BANDEJA", Actors = actors, Timeout = { After = 75 },
 	})
-	table.insert(steps, { Type = "Talk", Npc = friend, Dialogue = "Comida_" .. friend, TextKey = LUNCH_TEXT[friend], Actors = actors })
+	-- (en el instituto, sus propias conversaciones: SchoolLife.Dialogues, Ins_Comida_<amigo>)
+	local talk = (if instituto then "Ins_Comida_" else "Comida_") .. friend
+	table.insert(steps, { Type = "Talk", Npc = friend, Dialogue = talk, TextKey = LUNCH_TEXT[friend], Actors = actors })
 	table.insert(steps, { Type = "Wait", UntilHour = SCHOOL.LunchTo, GameMinutes = 20, MaxSeconds = 60, TextKey = "QUEST.COLE.COMIENDO", Actors = actors })
 end
 
@@ -81,8 +83,9 @@ local function recess(steps: { Step }, friend: string, school: string, reach: bo
 	if reach then
 		table.insert(steps, { Type = "Reach", Place = patio, TextKey = "QUEST.PRIMER_DIA.RECREO", Actors = SchoolLife.recessActors(friend, school) })
 	end
+	local talk = (if school == "Instituto" then "Ins_Recreo_" else "Recreo_") .. friend
 	table.insert(steps, {
-		Type = "Talk", Npc = friend, Place = patio, Dialogue = "Recreo_" .. friend, TextKey = FRIEND_TEXT[friend],
+		Type = "Talk", Npc = friend, Place = patio, Dialogue = talk, TextKey = FRIEND_TEXT[friend],
 		Actors = SchoolLife.recessActors(friend, school),
 	})
 end

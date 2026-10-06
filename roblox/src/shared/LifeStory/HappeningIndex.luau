@@ -13,6 +13,11 @@ local HappeningIndex = {}
 
 local GROUPS = { "Cielo" }
 
+-- El instituto (escenas de la etapa adolescente, paquete P8b)
+if not table.find(GROUPS, "Instituto") then
+	table.insert(GROUPS, "Instituto")
+end
+
 local all: { [string]: { [string]: any } } = {}
 local groupOf: { [string]: string } = {}
 for _, group in GROUPS do

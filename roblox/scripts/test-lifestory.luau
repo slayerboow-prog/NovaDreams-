@@ -20,6 +20,25 @@ local lighting, profiles, scenes, classCalls = H.lighting, H.profiles, H.scenes,
 local Config = H.Config
 local check, newPlayer, received, cinematic, momentSting, lastState, fromClient = H.check, H.newPlayer, H.received, H.cinematic, H.momentSting, H.lastState, H.fromClient
 
+-- Las escenas escritas a mano (Happenings: la parada, la graduación…) también «se dicen»: al acabar,
+-- sus frases (las que tocan a ese jugador, con sus variantes) van a lo que ha oído (said)
+do
+	local Happening = loadModule(ROOT .. "/server/Services/HappeningService")
+	local Sequencer = loadModule(ROOT .. "/shared/LifeStory/Sequencer")
+	local Index = loadModule(ROOT .. "/shared/LifeStory/HappeningIndex")
+	Happening.onFinished(function(player, id)
+		local def = Index.get(id)
+		if def and type(player.Said) == "table" then
+			local ok, tl = pcall(function()
+				return Sequencer.compile(id, def, Sequencer.resolve(def, Happening.checker(player)))
+			end)
+			for _, line in (ok and tl.Def.Tracks.Dialogue) or {} do
+				table.insert(player.Said, line.T)
+			end
+		end
+	end)
+end
+
 ---------------------------------------------------------------------
 -- Pruebas
 ---------------------------------------------------------------------
@@ -114,8 +133,8 @@ do
 					if not (meal and meal.Type == "Event" and meal.Event == "SchoolMeal" and talk and talk.Type == "Talk" and talk.Dialogue and rest and rest.Type == "Wait") then
 						problem(entry.Plan .. ": la comida no es «bandeja → charla → terminar»")
 					end
-				elseif step.Type == "Talk" and step.Dialogue and step.Dialogue:find("^Recreo_") then
-					recesses += 1
+				elseif step.Type == "Talk" and step.Dialogue and step.Dialogue:find("^Ins_Recreo_") or (step.Type == "Talk" and step.Dialogue and step.Dialogue:find("^Recreo_")) then
+					recesses += 1 -- (Ins_Recreo_*: las del instituto)
 				end
 			end
 		end

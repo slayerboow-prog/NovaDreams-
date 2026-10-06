@@ -154,18 +154,25 @@ SchoolLife.LunchBarks = {
 	Sara = "Mastica despacio: el estómago tarda veinte minutos en saber que está lleno.",
 	Omar = "Está bueno… pero yo le pondría un poco de pimentón.",
 }
+-- En el comedor del instituto ya no son niños (auditoría M-09: antes decían lo mismo que en el cole)
+SchoolLife.LunchBarksInstituto = {
+	Nico = "Lentejas. El entrenador dice que esto es gasolina. Pues a repostar.",
+	Sara = "No me hables, que estoy repasando Química con la boca llena. Es eficiencia.",
+	Omar = "Le falta comino. Siempre le falta comino. Algún día se lo diré a la cocinera.",
+}
 
 -- Actores de la escena del comedor: el amigo del día y los otros dos compañeros, sentados comiendo
 -- (Work = "Eat": se llevan la cuchara a la boca), y la profe de guardia vigilando de pie.
 -- (Solo textos y números: los pasos de un día generado se guardan con la partida.)
 function SchoolLife.lunchActors(friend: string, school: string?): { { [string]: any } }
 	local where = LUNCH_PLACES[school or "Colegio"] or LUNCH_PLACES.Colegio
-	local actors = { { Npc = friend, Place = where.Seats[1], Mode = "Sit", Work = "Eat", Bark = SchoolLife.LunchBarks[friend] } }
+	local barks = if school == "Instituto" then SchoolLife.LunchBarksInstituto else SchoolLife.LunchBarks
+	local actors = { { Npc = friend, Place = where.Seats[1], Mode = "Sit", Work = "Eat", Bark = barks[friend] } }
 	local k = 1
 	for _, kid in SchoolLife.Kids do
 		if kid ~= friend then
 			k += 1
-			table.insert(actors, { Npc = kid, Place = where.Seats[k], Mode = "Sit", Work = "Eat", Bark = SchoolLife.LunchBarks[kid] })
+			table.insert(actors, { Npc = kid, Place = where.Seats[k], Mode = "Sit", Work = "Eat", Bark = barks[kid] })
 		end
 	end
 	local teacher = SchoolLife.Teachers[school or "Colegio"] or SchoolLife.Teacher
@@ -178,7 +185,11 @@ function SchoolLife.recessActors(friend: string, school: string?): { { [string]:
 	return { { Npc = friend, Place = if school == "Instituto" then "PatioInstituto" else "Patio", Mode = "Wander", Radius = 5 } }
 end
 
--- Conversaciones (Quests: Nino_Jornada y Adol_Jornada las comparten)
+-- Conversaciones (Quests: Nino_Jornada y Adol_Jornada comparten la tabla). Las del colegio se llaman
+-- Comida_<amigo> y Recreo_<amigo>; las del instituto, Ins_Comida_<amigo> e Ins_Recreo_<amigo> (DayPlans
+-- elige unas u otras): con quince años ya no se habla igual que con ocho, y lo que has vivido sale.
+local INS03 = { Completed = { "Ins03_QueQuieresSer" } }
+local RUMOR = { Memories = { "ElRumor" } }
 SchoolLife.Dialogues = {
 	Comida_Nico = { Lines = {
 		{ S = "Nico", T = "¡Aquí, aquí! Te he guardado sitio. ¿Qué te ha tocado?" },
@@ -227,6 +238,65 @@ SchoolLife.Dialogues = {
 	Recreo_Omar = { Lines = {
 		{ S = "Omar", T = "DLG.OMAR.MERIENDA" },
 		{ S = "Omar", T = "¡Mitad para ti, mitad para mí! Así se hacen los amigos." },
+	} },
+
+	-- Instituto (Adol_Jornada)
+	Ins_Comida_Nico = { Lines = {
+		{ S = "Nico", T = "¡Aquí! Te he guardado sitio. Lentejas: proteína. El entrenador dice que todo es proteína." },
+		{ S = "Nico", T = "Oye, ¿tú ya sabes qué vas a hacer después del instituto? Yo, fútbol. O entrenar a gente que juegue al fútbol.", Pause = 0.6 },
+		{ S = "Nico", T = "Y si un día me cruzo con Darío en un partido, le hago un caño. Por Omar.", If = RUMOR },
+		{ Ask = "¿Qué le dices?", Options = {
+			{ T = "Tú vas a llegar lejos.", Effects = { Rel = { Nico = 2 } }, Then = {
+				{ S = "Nico", T = "¡Eso! Firmo autógrafos a partir de mañana. A ti, gratis." },
+			} },
+			{ T = "¿Y si no sale?", Effects = { Rel = { Nico = 1 } }, Then = {
+				{ S = "Nico", T = "Pues lo intento otra vez. Como los penaltis: el que falla, repite.", Beat = "Piensa" },
+			} },
+		} },
+	} },
+	Ins_Comida_Sara = { Lines = {
+		{ S = "Sara", T = "Siéntate. Estoy calculando cuánto azúcar lleva el flan. No quieras saberlo." },
+		{ S = "Sara", T = "El cerebro gasta la quinta parte de lo que comes. Hoy el mío va a tope: examen de Química." },
+		{ S = "Sara", T = "El robot del club ya sube escaleras. Bueno, una. Y luego se cae. Pero sube.", If = { Choices = { Club = "Robotica" } } },
+		{ Ask = "¿Qué le dices?", Options = {
+			{ T = "Te ayudo a repasar después.", Effects = { Rel = { Sara = 2 } }, Then = {
+				{ S = "Sara", T = "¿En serio? Te hago un esquema. Con colores. Con tres colores." },
+			} },
+			{ T = "¿Te vas a comer el flan?", Effects = { Rel = { Sara = 1 } }, Then = {
+				{ S = "Sara", T = "…Toma. Es un gesto de amistad, no de nutrición.", Pause = 0.8 },
+			} },
+		} },
+	} },
+	Ins_Comida_Omar = { Lines = {
+		{ S = "Omar", T = "Este guiso tiene potencial. Le falta comino y le sobra prisa." },
+		{ S = "Omar", T = "Lola me deja ayudar los sábados. Bueno, pelo patatas. Pero las pelo profesionalmente.", If = INS03 },
+		{ S = "Omar", T = "Algún día tendré un restaurante. Y tú tendrás mesa los martes. Solo los martes.", If = { NotCompleted = { "Ins03_QueQuieresSer" } } },
+		{ Ask = "¿Qué le dices?", Options = {
+			{ T = "Contrátame de pinche.", Effects = { Rel = { Omar = 2 } }, Then = {
+				{ S = "Omar", T = "Hecho. Sueldo: las sobras. Las mejores sobras de Valmar." },
+			} },
+			{ T = "Pues a mí me gusta así.", Effects = { Rel = { Omar = 1 } }, Then = {
+				{ S = "Omar", T = "Gustar no basta. Yo aspiro a inolvidable.", Beat = "Piensa" },
+			} },
+		} },
+	} },
+	Ins_Recreo_Nico = { Lines = {
+		{ S = "Nico", T = "¡{nombre}! ¿Viste el partido del Altamar? Jugaron fatal. Yo lo habría hecho mejor. Bueno, parecido." },
+		{ S = "Nico", T = "Y tú, a ver si me ganas un uno contra uno. Que ahora eres de baloncesto.", If = { Choices = { Club = "Baloncesto" } } },
+		{ S = "Nico", T = "Lo de ser suplente no significa nada, ¿eh? Yo también lo fui. Un día entero.", If = { Choices = { Club = "Baloncesto" }, Flags = { "ClubSuplente" } } },
+		{ S = "Nico", T = "Titular desde el primer día. Ya sabía yo que tenías algo.", If = { Choices = { Club = "Baloncesto" }, Flags = { "ClubTitular" } } },
+		{ S = "Nico", T = "Me llaman. Mañana, pachanga en la pista. Sin excusas." },
+	} },
+	Ins_Recreo_Sara = { Lines = {
+		{ S = "Sara", T = "Estoy repasando Biología. No porque haya examen. Porque me apetece. Ya lo sé." },
+		{ S = "Sara", T = "Carmen dice que no hace falta decidir nada todavía. Yo ya tengo tres planes. Y uno de reserva.", If = INS03 },
+		{ S = "Sara", T = "Te dejo, que tengo que pasar los apuntes a limpio. Los limpios, a más limpio." },
+	} },
+	Ins_Recreo_Omar = { Lines = {
+		{ S = "Omar", T = "He traído empanada de mi tía. No te ofrezco. …Vale. Un trozo. Uno.", Pause = { Before = 0, After = 0.4 } },
+		{ S = "Omar", T = "Todavía llevo la pulsera, ¿eh? No me la quito ni para ducharme. Bueno, sí.", If = RUMOR },
+		{ S = "Omar", T = "Me voy a dibujar a la grada. Hoy hay buena luz. Eso lo dice Leire, no yo.", If = { Flags = { "ConocesALeire" } } },
+		{ S = "Omar", T = "Me voy a dibujar a la grada. Hoy hay buena luz.", If = { NotFlags = { "ConocesALeire" } } },
 	} },
 }
 
