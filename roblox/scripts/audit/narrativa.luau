@@ -575,3 +575,230 @@ print(("\n### Dobletes de género (%d)"):format(#doublets))
 for _, line in doublets do
 	print("- " .. line)
 end
+
+---------------------------------------------------------------------
+-- 10. Continuidad leída por el CÓDIGO (no por los datos)
+---------------------------------------------------------------------
+-- El apartado 7 solo mira los datos de las misiones. Una marca o un recuerdo puede leerlo el código
+-- (StoryContext, SchoolLife, el diario…): aquí se separa lo que de verdad nadie lee.
+print("\n## 10. Continuidad: lo «sin leer» del apartado 7, separando lo que sí lee el código\n")
+do
+	local DATA_DIRS = { [ROOT .. "/shared/LifeStory/Misiones"] = true }
+	local DATA_FILES = { [ROOT .. "/shared/LifeStory/Quests.luau"] = true }
+	local sources: { { Path: string, Text: string } } = {}
+	local fs = require("@lune/fs")
+	local function collect(dir: string)
+		if DATA_DIRS[dir] then
+			return
+		end
+		for _, name in fs.readDir(dir) do
+			local path = dir .. "/" .. name
+			if fs.isDir(path) then
+				collect(path)
+			elseif name:match("%.luau$") and not DATA_FILES[path] then
+				table.insert(sources, { Path = path:gsub("^" .. ROOT .. "/", ""), Text = fs.readFile(path) })
+			end
+		end
+	end
+	collect(ROOT)
+	local function readByCode(key: string): string?
+		local quoted, dotted = '"' .. key .. '"', "." .. key
+		for _, source in sources do
+			local text = source.Text
+			local at = text:find(quoted, 1, true)
+			if not at then
+				local dot = text:find(dotted, 1, true)
+				-- (.Clave seguida de algo que no sea letra: Flags.Clave, Memories.Clave)
+				if dot then
+					local after = text:sub(dot + #dotted, dot + #dotted)
+					if not after:match("[%w_]") then
+						at = dot
+					end
+				end
+			end
+			if at then
+				return source.Path
+			end
+		end
+		return nil
+	end
+	for _, kind in { "Flags", "Memories", "Choices" } do
+		local nobody, byCode = {}, {}
+		for key, owners in written[kind] do
+			if not read[kind][key] then
+				local where = readByCode(key)
+				if where then
+					table.insert(byCode, ("%s (→ %s)"):format(key, where))
+				else
+					table.insert(nobody, key .. " (" .. table.concat(owners, ",") .. ")")
+				end
+			end
+		end
+		table.sort(nobody)
+		table.sort(byCode)
+		print(("### %s: %d no los lee nadie · %d solo el código"):format(kind, #nobody, #byCode))
+		for i, line in nobody do
+			if FULL or i <= 60 then
+				print("- " .. line)
+			end
+		end
+		if FULL then
+			for _, line in byCode do
+				print("- (código) " .. line)
+			end
+		end
+	end
+end
+
+---------------------------------------------------------------------
+-- 11. Progreso de la cinematización (fase 2, §6.1 de la auditoría)
+---------------------------------------------------------------------
+-- Cuenta los campos NUEVOS (todos opcionales) del formato congelado en la §6.1, por etapa, para ver
+-- cuánto se ha escenificado: escenas escritas a mano (Stage), líneas con interlocutor (To), pausa (Pause,
+-- Beat), plano pedido (Shot), gesto/emoción marcados (A/G), entradas y salidas andando (Enter/Exit),
+-- saltos tapados (Teleport con Fade) y cinemáticas del motor nuevo (Happenings) frente a las viejas.
+-- Y los problemas que deberían BAJAR: hablan fuera de escena, actores que desaparecen, cortes secos.
+print("\n## 11. Progreso de la cinematización por etapa (campos nuevos de la §6.1)\n")
+do
+	local HappeningIndex = loadModule(ROOT .. "/shared/LifeStory/HappeningIndex")
+	local Cinematics = loadModule(ROOT .. "/shared/LifeStory/Cinematics")
+	local STAGES = { "Bebe", "Nino", "Adolescente", "AdultoJoven", "Adulto", "-" }
+	local function stageOf(id: string): string
+		local chapter = chapterOf[id] and Chapters[chapterOf[id]]
+		local stage = chapter and chapter.Stage and chapter.Stage.Min
+		if not stage then
+			local req = Quests[id].Requires
+			stage = req and req.Stage and req.Stage.Min
+		end
+		return if stage and table.find(STAGES, stage) then stage else "-"
+	end
+	local function bucket()
+		return {
+			Scenes = 0, Staged = 0, Lines = 0, Narrator = 0, To = 0, Pause = 0, Shot = 0, Acted = 0,
+			Enter = 0, Exit = 0, Teleports = 0, Faded = 0, CineNew = 0, CineOld = 0, OffScreen = 0, PopOuts = 0, HardCuts = 0,
+		}
+	end
+	local byStage: { [string]: any } = {}
+	for _, stage in STAGES do
+		byStage[stage] = bucket()
+	end
+	local total = bucket()
+	local function add(stage: string, key: string, n: number?)
+		byStage[stage][key] += n or 1
+		total[key] += n or 1
+	end
+	local function countLines(stage: string, lines: any, seen: { [any]: boolean })
+		for _, line in lines or {} do
+			if type(line) ~= "table" or seen[line] then
+				continue
+			end
+			seen[line] = true
+			for _, option in line.Options or {} do
+				countLines(stage, option.Then, seen)
+			end
+			if line.T then
+				add(stage, "Lines")
+				if (line.S or "Narrador") == "Narrador" then
+					add(stage, "Narrator")
+				end
+				if line.To then
+					add(stage, "To")
+				end
+				if line.Pause or line.Beat then
+					add(stage, "Pause")
+				end
+				if line.Shot then
+					add(stage, "Shot")
+				end
+				if line.A or line.G then
+					add(stage, "Acted")
+				end
+			end
+		end
+	end
+	for _, id in ids do
+		local quest = Quests[id]
+		local stage = stageOf(id)
+		local seen = {}
+		for _, d in quest.Dialogues or {} do
+			countLines(stage, if type(d) == "table" then (d.Lines or d) else nil, seen)
+		end
+		local function scanSteps(steps: any)
+			for _, step in steps or {} do
+				if type(step) ~= "table" then
+					continue
+				end
+				if step.Type == "Scene" then
+					add(stage, "Scenes")
+					if step.Stage then
+						add(stage, "Staged")
+					end
+				end
+				if step.Teleport then
+					add(stage, "Teleports")
+					if type(step.Teleport) == "table" and (step.Teleport.Fade or step.Teleport.Walk) then
+						add(stage, "Faded")
+					end
+				end
+				if step.Type == "Cinematic" or step.Cinematic then
+					local cid = step.Id or step.Cinematic
+					if type(cid) == "string" and HappeningIndex.has(cid) then
+						add(stage, "CineNew")
+					elseif type(cid) == "string" and Cinematics[cid] then
+						add(stage, "CineOld")
+					end
+				end
+				for _, actor in step.Actors or {} do
+					if type(actor) == "table" then
+						if actor.Enter then
+							add(stage, "Enter")
+						end
+						if actor.Exit then
+							add(stage, "Exit")
+						end
+					end
+				end
+				scanSteps(step.Steps)
+			end
+		end
+		scanSteps(quest.Steps)
+	end
+	local function questOf(where: string): string
+		return (where:match("^(.-)#"))
+	end
+	for _, o in offScreen do
+		add(stageOf(questOf(o.Where)), "OffScreen")
+	end
+	for _, o in popOuts do
+		add(stageOf(questOf(o.Where)), "PopOuts")
+	end
+	for _, o in hardCuts do
+		add(stageOf(questOf(o.Where)), "HardCuts")
+	end
+	print("| Etapa | Scene | a mano (Stage) | Frases | Narrador | To | Pausa | Shot | A/G | Enter | Exit | Saltos (tapados) | Cine nuevo/viejo | Fuera de escena ↓ | Desaparecen ↓ | Cortes secos ↓ |")
+	print("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
+	local function row(name: string, b: any)
+		print(("| %s | %d | %d | %d | %d%% | %d | %d | %d | %d (%d%%) | %d | %d | %d (%d) | %d/%d | %d | %d | %d |"):format(
+			name, b.Scenes, b.Staged, b.Lines, pct(b.Narrator, b.Lines), b.To, b.Pause, b.Shot, b.Acted, pct(b.Acted, b.Lines),
+			b.Enter, b.Exit, b.Teleports, b.Faded, b.CineNew, b.CineOld, b.OffScreen, b.PopOuts, b.HardCuts))
+	end
+	for _, stage in STAGES do
+		if byStage[stage].Lines > 0 or byStage[stage].Scenes > 0 then
+			row(if stage == "-" then "(sin etapa)" else stage, byStage[stage])
+		end
+	end
+	row("**Total**", total)
+	local happenings = 0
+	for _ in HappeningIndex.all() do
+		happenings += 1
+	end
+	print(("\nEscenas del motor nuevo escritas: %d (grupos: %s) · cinemáticas viejas: %d"):format(happenings, table.concat(HappeningIndex.Groups or {}, ", "), (function()
+		local n = 0
+		for _, def in Cinematics do
+			if type(def) == "table" and def.Duration then
+				n += 1
+			end
+		end
+		return n
+	end)()))
+end

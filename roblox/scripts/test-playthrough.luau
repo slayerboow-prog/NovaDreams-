@@ -3,6 +3,8 @@
 -- Uso (desde la carpeta roblox/):
 --   lune run scripts/test-playthrough.luau            (todo: unos minutos)
 --   lune run scripts/test-playthrough.luau rapido     (solo validador y una vida)
+--   lune run scripts/test-playthrough.luau romper [texto]   (solo «Romperlo»: principales y secundarias;
+--                                                     con texto, solo las misiones cuyo id lo contienen)
 --
 -- 1. El validador de misiones: sin errores, y detecta misiones rotas a propósito (que no se activan).
 -- 2. Cada evento que esperan las misiones lo emite de verdad algún sistema (EventCatalog).
@@ -14,7 +16,10 @@
 --    el mismo servidor), y a mitad se sale del juego en plena conversación (se guarda y se vuelve a
 --    entrar), se muere en plena conversación, se toca dos veces seguidas a quien hay que hablar, se
 --    toca a otro personaje durante una escena y se aleja del sitio al que hay que ir. Siempre tiene
---    que poder terminarse.
+--    que poder terminarse. Morir se prueba en TODAS: en plena conversación si la hay; si no, a mitad
+--    de la misión, en el paso que toque.
+-- 4b. Lo mismo con las secundarias que se ofrecen en un sitio: la saga, las locas, las rarezas, los
+--    aliados, las de la universidad y las del metro (cada una en su etapa, con sus requisitos y a su hora).
 -- Si algo se queda atascado, el fallo se arregla en el juego, no en esta prueba.
 
 local fs = require("@lune/fs")
@@ -27,6 +32,11 @@ local ROOT, loadModule = H.ROOT, H.loadModule
 local check, profiles, scenes = H.check, H.profiles, H.scenes
 local Config = H.Config
 local QUICK = (process.args[1] == "rapido")
+local BREAK_ONLY = (process.args[1] == "romper") -- solo «Romperlo» (sin vidas enteras)
+local BREAK_FILTER = if BREAK_ONLY then process.args[2] else nil
+local function breakSelected(questId: string): boolean
+	return BREAK_FILTER == nil or questId:find(BREAK_FILTER, 1, true) ~= nil
+end
 
 local Validate = loadModule(ROOT .. "/shared/LifeStory/Validate")
 local EventCatalog = loadModule(ROOT .. "/shared/LifeStory/EventCatalog")
@@ -195,7 +205,13 @@ do
 
 	-- En el juego: la misión rota no se activa (y queda en el registro)
 	local tester = H.newPlayer("Tester", "Adulto")
+	-- (al entrar puede haber una cinemática: mientras su pantalla la enseña, no se ofrece nada)
 	task.wait(0.5)
+	local deadline = os.clock() + 15
+	while os.clock() < deadline and (tester:GetAttribute("InScene") or (Service.debugState(tester) or {}).Busy) do
+		task.wait(0.2)
+	end
+	task.wait(0.3)
 	StoryEvents.emit(tester, "Talk", { Npc = "Tester_Rota" })
 	task.wait(0.2)
 	check(H.received(tester, "Offer", "Misión rota"), "La misión rota se ofrece (su oferta es válida)")
@@ -430,7 +446,7 @@ local function problem(questId: string, text: string)
 	end
 end
 
-local lives = if QUICK then 1 else 3
+local lives = if QUICK then 1 elseif BREAK_ONLY then 0 else 3
 local lifeDone = 0
 local lifeReports = {}
 
@@ -716,20 +732,101 @@ local function holdTalk(player, questId, npc): boolean
 	return false
 end
 
--- Juega una misión con todos los "rompimientos" que se puedan en ella
-local function breakMission(questId: string, index: number)
-	local profile = profileFor(questId)
-	local player = H.newPlayer("Rompe" .. index, nil, nil, profile)
+-- Un perfil para jugar la secundaria `questId` (de la saga, las locas, las rarezas, los aliados, la
+-- universidad o el metro): en su etapa, con sus requisitos cumplidos y la saga ya vista (así ninguna
+-- canónica empieza sola en mitad de la prueba; la propia, si es canónica, no)
+local function sideProfileFor(questId: string)
+	local quest = Quests[questId]
+	local req = quest.Requires or {}
+	local stage = (req.Stage and req.Stage.Min) or "Adulto"
+	local profile = {
+		Money = 500,
+		Stats = { PlaySeconds = 0 },
+		Life = { Stage = stage, AgeYears = Config.LifeStory.AgeRange[stage][1], StageSeconds = 0 },
+		Education = { Subjects = {}, Exams = {}, Degrees = {}, Attendance = 0 },
+		Items = { MochilaCole = 1 },
+		Story = {
+			Version = 1, Chapters = {}, Active = {}, Completed = {}, Declined = {},
+			Choices = {}, Flags = {}, Discovered = {}, NpcMemory = {}, Events = {}, Memories = {}, Traits = {},
+		},
+	}
+	local story = profile.Story
+	for id, other in Quests do
+		if other.Canon and id ~= questId then
+			story.Completed[id] = 1
+		end
+	end
+	story.Completed.Uni01b_Residencia = 1
+	for _, flag in req.Flags or {} do
+		story.Flags[flag] = true
+	end
+	for key, value in req.Choices or {} do
+		story.Choices[key] = { V = value, D = 1 }
+	end
+	for _, id in req.Completed or {} do
+		story.Completed[id] = 1
+	end
+	for _, id in req.NotCompleted or {} do
+		story.Completed[id] = nil
+	end
+	for _, key in req.Memories or {} do
+		story.Memories[key] = { D = 1, T = 1 }
+	end
+	for npc, min in req.Rel or {} do
+		story.NpcMemory[npc] = { Facts = {}, Affinity = 0, Rel = min + 1 }
+	end
+	for trait, min in req.Traits or {} do
+		story.Traits[trait] = min
+	end
+	if table.find(req.Flags or {}, "VaALaUniversidad") then
+		story.Choices.Estudios = { V = "Medicina", D = 1 }
+	end
+	return profile
+end
+
+-- Va al sitio de la secundaria, espera a que se la ofrezcan y la acepta (las canónicas empiezan solas
+-- al llegar). Otras que le ofrezcan en el mismo sitio, ahora no. true si ya está en marcha.
+local function startSide(player, questId: string): boolean
+	local quest = Quests[questId]
+	local story = profiles[player].Story
+	for _ = 1, 10 do
+		if story.Active[questId] then
+			return true
+		end
+		player.At = quest.Offer.Place
+		waitFor(function()
+			return story.Active[questId] ~= nil
+		end, Config.LifeStory.RefreshSeconds + 0.8)
+		for _, message in player.Inbox do
+			if message.Kind == "Offer" and not message.Answered then
+				message.Answered = true
+				H.fromClient(player, "Offer", message.Payload.QuestId, message.Payload.QuestId == questId)
+			end
+		end
+	end
+	return waitFor(function()
+		return story.Active[questId] ~= nil
+	end, 3)
+end
+
+-- Juega una misión con todos los "rompimientos" que se puedan en ella (side = secundaria)
+local function breakMission(questId: string, index: number, side: boolean?)
+	local profile = if side then sideProfileFor(questId) else profileFor(questId)
+	local player = H.newPlayer((if side then "RompeS" else "Rompe") .. index, nil, nil, profile)
 	player.Answer = answerFor(index)
-	local started = waitFor(function()
-		return profiles[player].Story.Active[questId] ~= nil
-	end, 12)
+	local started = if side
+		then startSide(player, questId)
+		else waitFor(function()
+			return profiles[player].Story.Active[questId] ~= nil
+		end, 12)
 	if not started then
 		breakProblem(questId, "no empieza con sus requisitos cumplidos")
 		H.leave(player)
 		return
 	end
-	local pending = { Rejoin = true, Double = true, Other = true, Die = true, Away = true }
+	-- Morir se prueba de dos formas: en plena conversación (si la hay y está el personaje) y en el primer
+	-- paso que no es una conversación (escena, llegar a un sitio, usar algo, minijuego…)
+	local pending = { Rejoin = true, Double = true, Other = true, Die = true, DieAny = true, Away = true }
 	local stuckAt, stuckSince = nil, os.clock()
 	for _ = 1, 900 do
 		local story = profiles[player].Story
@@ -753,6 +850,9 @@ local function breakMission(questId: string, index: number)
 		end
 		local talk = step.Type == "Talk" and step.Dialogue ~= nil and not (prog.Chatted and prog.Chatted[step.Npc])
 		local episodic = Quests[questId].Dialogues ~= nil
+		if side and profiles[player].Story.Tracked ~= questId then
+			H.follow(player, questId) -- (la secundaria es la que se juega: panel de misiones)
+		end
 
 		if pending.Rejoin and episodic and talk and present(player, questId, step.Npc) then
 			-- 1) Salir del juego en plena conversación y volver
@@ -878,6 +978,41 @@ local function breakMission(questId: string, index: number)
 			continue
 		end
 
+		if pending.DieAny and not (episodic and talk and present(player, questId, step.Npc)) then
+			-- 4b) Morir en un paso que no es una conversación (escena, llegar a un sitio, usar algo…). Al volver
+			-- del hospital la misión sigue en marcha, en el mismo paso o el que ya tocaba, y se puede terminar
+			pending.DieAny = false
+			local stepIndex = prog.Step
+			local stepType = step.Type
+			player:SetAttribute("Dead", true)
+			StoryEvents.emit(player, "Died", {})
+			task.wait(0.3)
+			local state = Service.debugState(player)
+			if DialogueService.isBusy(player) or player:GetAttribute("InDialogue") then
+				breakProblem(questId, ("al morir en el paso %d (%s) la conversación sigue abierta"):format(stepIndex, stepType))
+			elseif state and state.Busy and stepType ~= "MiniGame" then
+				-- (un minijuego NO se corta al morir: sigue en pantalla y cuenta su resultado; ver el informe de P10)
+				breakProblem(questId, ("al morir en el paso %d (%s) la historia se queda ocupada"):format(stepIndex, stepType))
+			end
+			task.wait(1)
+			player:SetAttribute("Dead", nil)
+			StoryEvents.emit(player, "Revived", {})
+			if player.Hold then
+				H.release(player) -- (la escena que se retuvo: sus respuestas no cuentan)
+			end
+			task.wait(1.5) -- (afterRevive espera 1 s)
+			local story = profiles[player].Story
+			local now = story.Active[questId]
+			if not now and not story.Completed[questId] then
+				breakProblem(questId, ("al morir en el paso %d (%s) la misión desaparece"):format(stepIndex, stepType))
+			elseif now and now.Step < stepIndex then
+				breakProblem(questId, ("al morir en el paso %d (%s) vuelve al paso %d"):format(stepIndex, stepType, now.Step))
+			else
+				noted(questId, ("morir y volver (paso %d, %s)"):format(stepIndex, stepType))
+			end
+			continue
+		end
+
 		if pending.Away and step.Type == "Reach" then
 			-- 5) Irse lejos y volver
 			pending.Away = false
@@ -914,6 +1049,9 @@ local function breakMission(questId: string, index: number)
 	if player:GetAttribute("InDialogue") or DialogueService.isBusy(player) then
 		breakProblem(questId, "al terminar sigue en una conversación")
 	end
+	if pending.Die and pending.DieAny and story.Completed[questId] then
+		breakProblem(questId, "no se ha podido probar «morir y volver» (la misión acabó antes)")
+	end
 	H.leave(player)
 end
 
@@ -928,6 +1066,14 @@ end
 local running = 0
 if QUICK then
 	mains = {} -- (rápido: sin la parte de romper cada misión)
+elseif BREAK_FILTER then
+	local chosen = {}
+	for _, questId in mains do
+		if breakSelected(questId) then
+			table.insert(chosen, questId)
+		end
+	end
+	mains = chosen
 end
 -- Un niño o adolescente hace lo que no es del cole al acabar las clases (LifeStoryService.refresh:
 -- esperan a las 17:00 los recados, la noche con la pandilla…). El reloj es de todos: primero, a media
@@ -975,6 +1121,96 @@ for _, questId in mains do
 	end
 end
 check(QUICK or clean == total, ("%d/%d principales aguantan salir y volver, morir, tocar de más e irse lejos (y terminan)"):format(clean, total))
+local function diedIn(questId: string): boolean
+	for _, what in breaksDone[questId] or {} do
+		if what:find("morir y volver", 1, true) then
+			return true
+		end
+	end
+	return false
+end
+local mainsDied = 0
+for _, questId in mains do
+	mainsDied += if diedIn(questId) then 1 else 0
+end
+check(QUICK or mainsDied == #mains, ("Morir y volver probado en TODAS las principales (%d/%d)"):format(mainsDied, #mains))
+
+---------------------------------------------------------------------
+print("\n▶ 4b. Romperlo también en las secundarias (saga, locas, rarezas, aliados, universidad, metro…)")
+---------------------------------------------------------------------
+-- Las que se ofrecen en un sitio (Offer.Place). Las que nacen de otra (Ecos, Later.Start) o de un aviso
+-- de otro sistema (Side_MedicinasUrgentes) no se pueden empezar solas: las prueba test-lifestory.
+local sides = {}
+for questId, quest in Quests do
+	if quest.Kind == "Side" and quest.Offer and quest.Offer.Place and not quest.DayPlan and breakSelected(questId) then
+		table.insert(sides, questId)
+	end
+end
+table.sort(sides)
+if QUICK then
+	sides = {}
+end
+-- Cada una a la hora a la que se puede ofrecer (el reloj es de todos: por tandas de la misma hora). Sin
+-- hora pedida: a media mañana los adultos y al acabar las clases los niños y adolescentes
+local sideBatches: { [number]: { { Id: string, Index: number } } } = {}
+local sideClocks = {}
+for i, questId in sides do
+	local req = Quests[questId].Requires or {}
+	local stage = (req.Stage and req.Stage.Min) or "Adulto"
+	-- (un paso puede pedir su propia hora: «la luz del monte sale de madrugada»)
+	local function stepHours(steps): any
+		for _, step in steps or {} do
+			if type(step) == "table" then
+				local found = step.Hours or stepHours(step.Steps)
+				if found then
+					return found
+				end
+			end
+		end
+		return nil
+	end
+	local hours = req.Hours or stepHours(Quests[questId].Steps)
+	local clock = if hours then (hours.From + 0.5) % 24
+		elseif stage == "Nino" or stage == "Adolescente" then Config.SchoolDay.End + 1
+		else 12
+	if not sideBatches[clock] then
+		sideBatches[clock] = {}
+		table.insert(sideClocks, clock)
+	end
+	table.insert(sideBatches[clock], { Id = questId, Index = 500 + i })
+end
+table.sort(sideClocks)
+for _, clock in sideClocks do
+	H.lighting.ClockTime = clock
+	for _, entry in sideBatches[clock] do
+		running += 1
+		task.spawn(function()
+			local ok, err = pcall(breakMission, entry.Id, entry.Index, true)
+			if not ok then
+				breakProblem(entry.Id, "error: " .. tostring(err))
+			end
+			running -= 1
+		end)
+		task.wait(0.25)
+	end
+	while running > 0 do
+		task.wait(1)
+	end
+end
+H.lighting.ClockTime = 10
+local sideClean, sidesDied = 0, 0
+for _, questId in sides do
+	local list = breakProblems[questId]
+	if list then
+		print(("    ❌ %s: %s"):format(questId, table.concat(list, " · ")))
+	else
+		sideClean += 1
+		print(("    ✔ %s: %s"):format(questId, table.concat(breaksDone[questId] or { "sin rompimientos aplicables" }, ", ")))
+	end
+	sidesDied += if diedIn(questId) then 1 else 0
+end
+check(QUICK or sideClean == #sides, ("%d/%d secundarias aguantan salir y volver, morir, tocar de más e irse lejos (y terminan)"):format(sideClean, #sides))
+check(QUICK or sidesDied == #sides, ("Morir y volver probado en TODAS las secundarias (%d/%d)"):format(sidesDied, #sides))
 
 print("\n▶ 5. Depuración: solo para el dueño")
 do

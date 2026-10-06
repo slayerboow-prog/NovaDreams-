@@ -104,8 +104,33 @@ local function signal()
 end
 
 local remote = { OnServerEvent = signal() }
+-- Latido de las escenas (SceneClient → Remotes.Scene "Beat"; lo escuchan CinematicService y LifeStoryService)
+local sceneRemote = { OnServerEvent = signal() }
+function sceneRemote:FireClient() end
+function sceneRemote:IsA(class)
+	return class == "RemoteEvent"
+end
 function remote:FireClient(player, kind, payload)
 	table.insert(player.Inbox, { Kind = kind, Payload = payload })
+	-- La pantalla de mentira «ve» la cinemática: latido mientras dura y CinematicDone al acabar (como
+	-- Cinematics + SceneClient). player.SilentScreen = true: no contesta (una pantalla colgada);
+	-- player.CinematicSeconds: cuánto tarda en verla (0,6 s si no)
+	if kind == "Cinematic" and type(payload) == "table" and type(payload.Id) == "string" and not player.SilentScreen then
+		task.spawn(function()
+			local seconds = player.CinematicSeconds or 0.6
+			local start = os.clock()
+			repeat
+				if not player.Parent then
+					return
+				end
+				sceneRemote.OnServerEvent:Fire(player, "Beat")
+				task.wait(math.min(0.5, seconds))
+			until os.clock() - start >= seconds
+			if player.Parent then
+				remote.OnServerEvent:Fire(player, "CinematicDone", payload.Id)
+			end
+		end)
+	end
 end
 
 -- Cliente de mentira para las conversaciones: "lee" cada trozo y contesta (player.Answer elige)
@@ -160,7 +185,7 @@ function debugRemote:FireClient(player, kind, payload)
 	player.DebugInbox = player.DebugInbox or {}
 	table.insert(player.DebugInbox, { Kind = kind, Payload = payload })
 end
-local remotes = { LifeStory = remote, Dialogue = dialogueRemote, MiniGame = miniGameRemote, Baby = sayRemote, Debug = debugRemote }
+local remotes = { LifeStory = remote, Dialogue = dialogueRemote, MiniGame = miniGameRemote, Baby = sayRemote, Debug = debugRemote, Scene = sceneRemote }
 function remotes:FindFirstChild(name)
 	return self[name]
 end
@@ -575,6 +600,16 @@ function H.boot()
 	RoleService.init()
 	loadModule(ROOT .. "/server/Services/DialogueService").init()
 	loadModule(ROOT .. "/server/Services/MiniGameService").init()
+	-- InScene y el latido de las escenas (Remotes.Scene "Beat")
+	local ok, err = pcall(function()
+		local CinematicService = loadModule(ROOT .. "/server/Services/CinematicService")
+		if CinematicService.init then
+			CinematicService.init()
+		end
+	end)
+	if not ok then
+		print("[StoryHarness] CinematicService.init: " .. tostring(err))
+	end
 	Service.init()
 	H.Service, H.StoryEvents, H.RoleService = Service, StoryEvents, RoleService
 	return Service, StoryEvents, RoleService
