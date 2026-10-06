@@ -10,6 +10,10 @@
 -- recuerda), aplica los efectos y manda al cliente trozos de conversación hasta cada pregunta.
 -- El cliente (DialogueUI) los enseña con cámara y voz, y devuelve la respuesta elegida.
 --
+-- Escenificación automática (StageDirector, auditoría §6.1): cada línea lleva además a quién habla (To),
+-- el plano que pide (Shot), pausas (Pause), tiempos de actuación (Beat) y la acotación del principio
+-- («(susurrando) …») convertida en acción. Al empezar, quien está lejos se acerca (atributo StageApproach).
+--
 -- Además: DialogueService.bark = una frase suelta en un bocadillo encima de quien la dice, sin parar el juego ("¡Vas a llegar tarde!").
 
 local Players = game:GetService("Players")
@@ -21,6 +25,7 @@ local Emotion = require(ReplicatedStorage.Shared.LifeStory.Emotion)
 local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 local TimeContext = require(ReplicatedStorage.Shared.LifeStory.TimeContext)
 local GameClock = require(ReplicatedStorage.Shared.GameClock)
+local StageDirector = require(ReplicatedStorage.Shared.LifeStory.StageDirector)
 
 local DialogueService = {}
 
@@ -58,6 +63,9 @@ type Session = {
 	LastSent: number,
 	Resends: number,
 	Speakers: { [string]: boolean }, -- quién habla (para girarse hacia el jugador)
+	Staged: boolean, -- con escenificación automática (StageDirector); Staging = false en el diálogo la quita
+	Approach: { string }?, -- quién se acerca al empezar (se manda en el primer trozo)
+	Name: string?,
 }
 
 local sessions: { [Player]: Session } = {}
@@ -96,6 +104,7 @@ local function argsFor(player: Player, extra: any): { [string]: any }
 		abu = Strings.get(Cast.nameOf("Abu", attributesOf(player))),
 		Saludo = greeting(),
 		saludo = greeting():lower(),
+		genero = player:GetAttribute("Gender"), -- token {o/a} (Strings/StageDirector)
 	}
 	for key, value in extra or {} do
 		args[key] = value
@@ -130,19 +139,81 @@ local function lineFor(player: Player, session: Session, line: Line): { [string]
 		actor = session.Context.actorOf(line.S)
 	end
 	local text = Strings.get(line.T or "", argsFor(player, session.Context.args))
-	if line.S ~= nil and line.S ~= "Narrador" then
+	local narrator = line.S == nil or line.S == "Narrador"
+	if not narrator then
 		text = TimeContext.adapt(text, TimeContext.now()) -- el saludo de la hora que es
 	end
-	return {
+	-- La acotación del principio («(susurrando) …», «(al teléfono) …») se convierte en acción: sale del
+	-- texto y va aparte (Direction). Las del narrador son su forma de contar: se quedan.
+	local direction = nil
+	if not narrator then
+		local ok, clean, d = pcall(StageDirector.direction, text)
+		if ok and d then
+			text, direction = clean, d
+		end
+	end
+	local gesture = Emotion.gesture(line)
+	local emotion = Emotion.of(line, text) -- con qué gesto lo dice (el cliente anima a quien habla)
+	if direction and direction.Gesture then
+		if gesture == nil then
+			gesture = direction.Gesture
+		end
+		if line.A == nil and (emotion == "Calm" or direction.Whole) then
+			emotion = direction.Gesture
+		end
+	end
+	local result: { [string]: any } = {
 		Name = name,
 		Voice = voice,
 		Text = text,
-		Emotion = Emotion.of(line, text), -- con qué gesto lo dice (el cliente anima a quien habla)
-		Gesture = Emotion.gesture(line), -- gesto de encima (G = "Clap"…), a la vez que la frase
+		Emotion = emotion,
+		Gesture = gesture, -- gesto de encima (G = "Clap"…), a la vez que la frase
 		Actor = actor,
 		Me = line.S == "Yo",
-		Narrator = line.S == nil or line.S == "Narrador",
+		Narrator = narrator,
+		-- Escenificación (StageDirector): todo opcional, el cliente viejo lo ignora
+		Id = if narrator then nil else line.S,
+		Direction = direction,
 	}
+	if session.Staged then
+		result.Stage = true
+		local before, after = StageDirector.pauseOf(line)
+		result.Pause = if before > 0 then before else nil
+		result.After = if after > 0 then after else nil
+		result.Beat = StageDirector.beat(line.Beat)
+		if type(line.Shot) == "string" and StageDirector.parseShot(line.Shot) then
+			result.Shot = line.Shot
+		end
+		if type(line.To) == "string" then
+			result.To = line.To
+			if line.To ~= "Yo" and line.To ~= "Player" and session.Context.actorOf then
+				local ok, model = pcall(session.Context.actorOf, line.To)
+				result.ToActor = if ok then model else nil
+			end
+		end
+	end
+	return result
+end
+
+-- Quién del reparto de la conversación está lejos y se acerca al empezar (los de la escena, a
+-- entre APPROACH_MIN y APPROACH_MAX studs). Lo hace SceneService al ver el atributo StageApproach.
+local function approachersOf(player: Player, session: Session, lines: { any }): { string }
+	local ok, list = pcall(function()
+		local character = player.Character
+		local root = character and character:FindFirstChild("HumanoidRootPart")
+		if not root or not session.Context.actorOf then
+			return {}
+		end
+		local distances = {}
+		for _, id in StageDirector.castOf(lines) do
+			local model = session.Context.actorOf(id)
+			if model and model:IsA("Model") and model.Parent then
+				distances[id] = (model:GetPivot().Position - (root :: BasePart).Position).Magnitude
+			end
+		end
+		return StageDirector.approach(distances)
+	end)
+	return if ok and type(list) == "table" then list else {}
 end
 
 ---------------------------------------------------------------------
@@ -153,6 +224,8 @@ end
 -- abrir otras cosas) y los personajes que hablan se paran y te miran (TalkingTo)
 local function setTalking(player: Player, session: Session?)
 	player:SetAttribute("InDialogue", if session then true else nil)
+	local approach = session and session.Approach
+	player:SetAttribute("StageApproach", if approach and #approach > 0 then table.concat(approach, ",") else nil)
 	local who = {}
 	for npc in (session and session.Speakers) or {} do
 		table.insert(who, npc)
@@ -179,6 +252,10 @@ local function send(player: Player, session: Session, payload: { [string]: any }
 	session.LastPayload = payload
 	session.LastSent = os.clock()
 	session.Resends = 0
+	if session.Seq == 1 and session.Staged then
+		payload.Stage = true
+		payload.Approach = session.Approach -- (el cliente aguanta el plano general mientras se acercan)
+	end
 	Remote:FireClient(player, "Show", payload)
 end
 
@@ -312,7 +389,11 @@ function DialogueService.play(player: Player, dialogue: { [string]: any }, conte
 		LastSent = os.clock(),
 		Resends = 0,
 		Speakers = {},
+		Staged = dialogue.Staging ~= false,
 	}
+	if session.Staged then
+		session.Approach = approachersOf(player, session, dialogue.Lines or dialogue)
+	end
 	local first = (dialogue.Lines or dialogue)[1]
 	session.Name = first and (first.S or "Narrador") or "?"
 	sessions[player] = session

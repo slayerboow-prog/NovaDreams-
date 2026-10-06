@@ -28,6 +28,11 @@ local RunService = game:GetService("RunService")
 local TextService = game:GetService("TextService")
 
 local BubbleLayout = require(script.Parent.BubbleLayout)
+-- Pausas al escribir («…» y puntos): las cuentas son del director de escena (si no está, sin pausas)
+local StageDirector: any = nil
+pcall(function()
+	StageDirector = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("LifeStory"):WaitForChild("StageDirector") :: any) :: any
+end)
 
 local SpeechBubbles = {}
 
@@ -53,6 +58,7 @@ type Visual = {
 	OnScreen: boolean,
 	TypeStart: number?,
 	TypeSpeed: number?,
+	TypePauses: { { At: number, Seconds: number } }?,
 	Graphemes: number,
 	Story: boolean,
 }
@@ -324,8 +330,13 @@ local function step()
 		-- Escribiéndose letra a letra (conversaciones)
 		local shown = -1
 		if v.TypeStart and v.TypeSpeed then
-			shown = math.floor((now - v.TypeStart) * v.TypeSpeed)
-			if shown >= (utf8.len(entry.Text) or #entry.Text) then
+			local total = utf8.len(entry.Text) or #entry.Text
+			if v.TypePauses and StageDirector then
+				shown = StageDirector.revealed(now - v.TypeStart, v.TypeSpeed, total, v.TypePauses)
+			else
+				shown = math.floor((now - v.TypeStart) * v.TypeSpeed)
+			end
+			if shown >= total then
 				shown = -1
 				v.TypeStart = nil
 			end
@@ -360,7 +371,8 @@ end
 -- Alguien dice algo. speaker: su modelo, su cabeza o una pieza (un animal).
 -- opts: Name (nombre pequeño arriba), Seconds (duración; si no, según lo largo),
 --       Sticky (hasta que se quite, con tope), Hold (hasta que se quite, sin tope),
---       Typing (letras por segundo: se escribe poco a poco), NameColor, Source ("Server"/"Local"),
+--       Typing (letras por segundo: se escribe poco a poco), Pauses (con Typing: { { At, Seconds } }, se
+--       para al llegar a esas letras: StageDirector.pauses), NameColor, Source ("Server"/"Local"),
 --       Story (frase de la historia o de una misión: encima de todo; Hold ya lo es),
 --       Ambient (comentario suelto: no sale si SpeechBubbles.barkAllowed dice que no).
 -- Devuelve si se ha podido poner (false si el personaje no está en tu mundo o si es un comentario
@@ -405,6 +417,7 @@ function SpeechBubbles.show(speaker: Instance?, text: string, opts: { [string]: 
 	vv.NameLabel.TextColor3 = o.NameColor or NAME_COLOR
 	if o.Typing and changed then
 		vv.TypeStart, vv.TypeSpeed = now, o.Typing
+		vv.TypePauses = if type(o.Pauses) == "table" then o.Pauses else nil
 		vv.Graphemes = 0
 		vv.TextLabel.MaxVisibleGraphemes = 0
 	elseif changed then
