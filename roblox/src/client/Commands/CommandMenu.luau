@@ -805,6 +805,7 @@ function CommandMenu.init()
 	Phone.RowCallback = onRow
 	Phone.SegmentCallback = onSegment
 	Phone.OpenedCallback = function(open: boolean)
+		TouchLayout.setPhoneOpen(open)
 		if open then
 			UiAudio.open()
 			closeStrip()
@@ -837,6 +838,34 @@ function CommandMenu.init()
 		Pad = "X",
 		Callback = CommandMenu.interact,
 	})
+	-- Móvil: el ValPhone lo abre el botón «Teléfono» de debajo del joystick (con el globito rojo de los
+	-- avisos sin leer); al volante o volando vuelve a asomar debajo de tu estado (ahí no hay botón)
+	if TOUCH then
+		TouchLayout.register({
+			Id = "Telefono",
+			Icon = "telefono",
+			Label = "Teléfono",
+			Slot = "Telefono",
+			Shape = "Side",
+			Priority = 2,
+			BadgeColor = Color3.fromRGB(255, 59, 48),
+			Visible = function()
+				-- (lo mismo que mira vehicleState: montado, al volante o volando asoma el teléfono)
+				local atWheel = player:GetAttribute("Riding") ~= nil or TouchLayout.isFlying() or TouchLayout.isDriving()
+				return not busy and Phone.available() and not atWheel
+			end,
+			Active = function()
+				return Phone.isOpen()
+			end,
+			Badge = function()
+				local count = Phone.badges()
+				return if count > 0 then (if count > 9 then "9+" else tostring(count)) else nil
+			end,
+			Callback = function()
+				Phone.toggle()
+			end,
+		})
+	end
 	-- La burbuja «Acciones» (móvil): el resto de lo de ahora, a la izquierda de Interactuar
 	if TOUCH then
 		TouchLayout.register({

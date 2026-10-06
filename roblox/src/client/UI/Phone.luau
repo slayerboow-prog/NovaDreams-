@@ -560,14 +560,15 @@ local function placeAll(layout: HudLayout.Layout?)
 	parts.Body.Size = UDim2.fromOffset(open.Size.X, open.Size.Y)
 	parts.Body.AnchorPoint = open.Anchor
 	parts.Body.Position = if opened then open.Position else open.Position + UDim2.fromOffset(0, open.Size.Y + 40)
-	HudLayout.apply(parts.Banner, now.Items.PhoneBanner)
+	HudLayout.apply(parts.Banner, if driving and touch then now.Items.PhoneBannerDrive else now.Items.PhoneBanner)
 end
 
 local function refreshPeek()
 	if not parts.Peek then
 		return
 	end
-	parts.Peek.Visible = not hidden and not opened and #apps > 0
+	-- (en el móvil, a pie, lo abre el botón «Teléfono» de debajo del joystick: no asoma)
+	parts.Peek.Visible = not hidden and not opened and #apps > 0 and (not touch or driving)
 	parts.Peek.BackgroundTransparency = if moving then 0.45 else 0
 	local screenFrame = parts.Peek:FindFirstChild("Screen") :: Frame?
 	if screenFrame then
@@ -721,6 +722,16 @@ end
 
 function Phone.apps(): { App }
 	return apps
+end
+
+-- Avisos sin leer de todas las apps (el globito rojo del botón «Teléfono» del móvil)
+function Phone.badges(): number
+	return PhoneApps.totalBadges(apps)
+end
+
+-- ¿Se puede abrir ahora? (el botón «Teléfono» del móvil sale solo entonces)
+function Phone.available(): boolean
+	return parts.Body ~= nil and not hidden and #apps > 0
 end
 
 ---------------------------------------------------------------------
@@ -1197,7 +1208,8 @@ function Phone.notify(data: { Icon: string?, App: string?, Title: string?, Text:
 	Theme.setText(parts.BannerApp, string.upper(data.Title or (meta and meta.Name) or PhoneApps.Brand))
 	Theme.setText(parts.BannerText, data.Text)
 	banner:SetAttribute("App", data.App)
-	local spot = HudLayout.current().Items.PhoneBanner
+	local items = HudLayout.current().Items
+	local spot = if driving and touch then items.PhoneBannerDrive else items.PhoneBanner
 	banner.Visible = true
 	banner.GroupTransparency = 1
 	banner.Position = spot.Position + UDim2.fromOffset(0, 30)

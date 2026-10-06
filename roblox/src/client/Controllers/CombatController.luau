@@ -1413,7 +1413,12 @@ function CombatController.init()
 	local function fighting(): boolean
 		return canPunch() and not armed() and CombatController.inCombat()
 	end
-	TouchLayout.register({ Id = "Ataque", Icon = "espada", Label = "Ataque", Slot = "Ataque", Priority = 3, Key = "Clic / X", Pad = "RB", Visible = canPunch, Callback = CombatController.attack })
+	-- Móvil: Fijar objetivo ya no está en el racimo (docs/referencias/hud-movil-botones.jpg): sale en la
+	-- columna pequeña de contexto solo en plena pelea
+	local function canLock(): boolean
+		return canPunch() and (not TouchLayout.isTouch() or CombatController.inCombat() or CombatController.isLocked())
+	end
+	TouchLayout.register({ Id = "Ataque", Icon = "espada", Label = "Atacar", Slot = "Ataque", Priority = 3, Key = "Clic / X", Pad = "RB", Visible = canPunch, Callback = CombatController.attack })
 	-- En un combate de misión el botón grande dice «Atacar» (le da al enemigo más cercano desde lejos)
 	task.spawn(function()
 		local shown: string? = nil
@@ -1439,7 +1444,7 @@ function CombatController.init()
 			return if CombatController.inCombat() then stamina() / Combat.StaminaMax else nil
 		end,
 	})
-	TouchLayout.register({ Id = "Fijar", Icon = "objetivo", Label = "Fijar", Slot = "Fijar", Priority = 6, Key = "V", Pad = "R3", Visible = canPunch, Active = CombatController.isLocked, Callback = CombatController.toggleLock })
+	TouchLayout.register({ Id = "Fijar", Icon = "objetivo", Label = "Fijar", Slot = "Fijar", Priority = 6, Key = "V", Pad = "R3", Visible = canLock, Active = CombatController.isLocked, Callback = CombatController.toggleLock })
 	-- Fuerte: en plena pelea ocupa el hueco de Gestos (mantener = golpe cargado)
 	TouchLayout.register({
 		Id = "Fuerte", Icon = "espada", Label = "Fuerte", Slot = "Gestos", Priority = 6.5, Key = "Clic dcho / C", Pad = "RT",

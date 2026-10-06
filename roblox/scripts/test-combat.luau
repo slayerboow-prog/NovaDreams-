@@ -115,6 +115,31 @@ local okRun, runError = pcall(function()
 	task.wait(wait)
 	check(burst:GetAttribute("Wanted") == Wanted.Crimes.Disparo.Stars, "dos disparos seguidos a la misma víctima: una denuncia")
 
+	-- Estilo shooter móvil: se dispara andando, saltando y apuntando a la vez; el servidor no lo rechaza
+	-- (sigue mirando cadencia, munición y lo demás), solo abre algo más la dispersión en el aire
+	print("▶ Disparar moviéndose, saltando y apuntando a la vez")
+	local runner = H.player("Corredor", 5004, "Adulto", V(1200, 0, 0))
+	H.licence(runner)
+	H.give(runner, "Pistola")
+	check(H.WeaponService.equip(runner, "Pistola"), "empuña su pistola")
+	local runnerHum = runner.Character:FindFirstChildOfClass("Humanoid")
+	local runnerRoot = runner.Character:FindFirstChild("HumanoidRootPart")
+	local dummy = H.npc("Paseante4", V(1200, 0, -20))
+	runnerRoot.AssemblyLinearVelocity = V(16, 0, 0)
+	check(H.shoot(runner, dummy), "andando (16 studs/s): el disparo cuenta")
+	runner:SetAttribute("Aiming", true)
+	check(H.shoot(runner, dummy), "andando y apuntando: cuenta")
+	runnerHum.FloorMaterial = roblox.Enum.Material.Air
+	runnerRoot.AssemblyLinearVelocity = V(16, 30, 0)
+	check(H.shoot(runner, dummy), "saltando, andando y apuntando a la vez: cuenta")
+	runner:SetAttribute("Aiming", nil)
+	check(H.shoot(runner, dummy), "en el aire sin apuntar: cuenta")
+	local before = runner:GetAttribute("WeaponMag")
+	check(not H.WeaponService.fire(runner, dummy:FindFirstChild("UpperTorso").Position), "pero la cadencia se sigue respetando (dos tiros sin pausa: el segundo no)")
+	check(runner:GetAttribute("WeaponMag") == before, "y ese tiro de más no gasta munición")
+	runnerHum.FloorMaterial = roblox.Enum.Material.Plastic
+	runnerRoot.AssemblyLinearVelocity = V(0, 0, 0)
+
 	print("▶ Disparar a un agente de policía")
 	local cop = H.officer(V(300, 0, 25))
 	local before = adult:GetAttribute("Wanted") or 0

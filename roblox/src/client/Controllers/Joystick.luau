@@ -156,13 +156,14 @@ local function build(parent: Instance)
 		Name = "Joystick",
 		Active = true, -- los toques que empiezan aquí no mueven la cámara
 		BackgroundColor3 = H.Navy,
-		BackgroundTransparency = 0.45,
+		BackgroundTransparency = 0.5,
 		Parent = gui,
 	}, {
 		create("UICorner", { CornerRadius = UDim.new(1, 0) }),
-		create("UIGradient", { Rotation = 90, Color = ColorSequence.new(rgb(120, 170, 255), rgb(30, 50, 110)) }),
+		-- (cristal oscuro con el aro claro, como docs/referencias/hud-movil-joystick.jpg)
+		create("UIGradient", { Rotation = 90, Color = ColorSequence.new(rgb(70, 100, 150), rgb(12, 22, 44)) }),
 	})
-	Theme.edge(base :: Frame, nil, 3)
+	Theme.edge(base :: Frame, rgb(170, 225, 255), 3)
 	Theme.halo(base :: Frame, H.Glow, 12, 999)
 	-- Aro interior fino
 	create("Frame", {
@@ -182,7 +183,7 @@ local function build(parent: Instance)
 			Position = UDim2.fromScale(arrow[1], arrow[2]),
 			Size = UDim2.fromScale(0.1, 0.1),
 			Rotation = arrow[3],
-			Color = H.Glow,
+			Color = rgb(200, 235, 255),
 			Thickness = 3,
 			Parent = base,
 		})
@@ -193,11 +194,12 @@ local function build(parent: Instance)
 		Position = UDim2.fromScale(0.5, 0.5),
 		Size = UDim2.fromScale(KNOB, KNOB),
 		BackgroundColor3 = Color3.new(1, 1, 1),
+		BackgroundTransparency = 0.3,
 		Parent = base,
 	}, {
 		create("UICorner", { CornerRadius = UDim.new(1, 0) }),
-		create("UIGradient", { Rotation = 90, Color = ColorSequence.new(rgb(120, 210, 255), rgb(20, 90, 230)) }),
-		create("UIStroke", { Color = H.Glow, Thickness = 2, Transparency = 0.1 }),
+		create("UIGradient", { Rotation = 90, Color = ColorSequence.new(rgb(170, 215, 240), rgb(50, 100, 150)) }),
+		create("UIStroke", { Color = rgb(190, 235, 255), Thickness = 2, Transparency = 0.1 }),
 	})
 
 	base.InputBegan:Connect(function(input)

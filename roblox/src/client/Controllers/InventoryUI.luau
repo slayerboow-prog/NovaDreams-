@@ -1138,6 +1138,27 @@ function InventoryUI.init()
 	GuiService.MenuOpened:Connect(function()
 		InventoryUI.close()
 	end)
+
+	-- Móvil: botón «Inventario» debajo del joystick, junto a «Teléfono» (abre la mochila). En el
+	-- ordenador la mochila es la tecla E (no hace falta botón ni pista)
+	if TouchLayout.isTouch() then
+		TouchLayout.register({
+			Id = "Inventario",
+			Icon = "mochila",
+			Label = "Inventario",
+			Slot = "Inventario",
+			Shape = "Side",
+			Priority = 2,
+			Visible = function()
+				local atWheel = player:GetAttribute("Riding") ~= nil or TouchLayout.isFlying() or TouchLayout.isDriving()
+				return player:GetAttribute("LifeStage") ~= "Bebe" and not atWheel
+			end,
+			Active = function()
+				return isOpen
+			end,
+			Callback = InventoryUI.toggle,
+		})
+	end
 end
 
 return InventoryUI

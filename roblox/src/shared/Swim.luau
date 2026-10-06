@@ -153,6 +153,7 @@ Swim.HiddenButtons = {
 	Esquivar = true,
 	Fijar = true,
 	Disparar = true,
+	DispararIzq = true, -- (el segundo Disparar, junto al joystick)
 	Apuntar = true,
 	Recargar = true,
 	Gestos = true,

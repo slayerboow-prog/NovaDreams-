@@ -1099,6 +1099,7 @@ function Stances.init()
 		Id = "Agacharse",
 		Icon = "agacharse",
 		Label = "Agacharse",
+		Slot = "Agacharse", -- (abajo a la izquierda del Atacar, como en la referencia)
 		Priority = 15,
 		Key = "Ctrl",
 		Pad = "Abajo",
