@@ -729,7 +729,8 @@ if placePath then
 			if p.Name == "Wall" or p.Name == "Body" or p.Name == "Roof" or p.Name == "Partition" then
 				facade += 1
 			end
-			if not InteriorLook.TownRoles[p.Name] then
+			-- (las salas del cielo dentro de Town y la casa de Cosme, que se recorre por dentro, son interiores)
+			if not InteriorLook.TownRoles[p.Name] and p.CFrame.Position.Y < InteriorLook.SKY_Y and not p:FindFirstAncestor("CasaCosme") then
 				table.insert(wrong, p.Name)
 			end
 		end
