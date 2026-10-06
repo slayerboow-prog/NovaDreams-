@@ -21,6 +21,7 @@ local Roles = require(script.Parent.Parent.Roles)
 local Cinematics = require(script.Parent.Cinematics)
 local Emotion = require(script.Parent.Emotion)
 local HappeningIndex = require(script.Parent.HappeningIndex) -- escenas del motor (también valen como cinemática)
+local StageDirector = require(script.Parent.StageDirector) -- escenificación de las conversaciones (Pause, Beat, To, Shot)
 
 -- Lo que puede estar haciendo un personaje en una escena (SceneService)
 local ACTOR_MODES = {
@@ -133,9 +134,24 @@ function Validate.mission(id: string, quest: { [string]: any }, err: (string, ..
 			err("%s: objeto inexistente '%s'", where, propId)
 		end
 	end
+	-- Escenificación: Staging = false (sin escenificar) y las líneas de un diálogo escrito en el paso
+	local function staging(where: string, d: any)
+		if type(d) ~= "table" then
+			return
+		end
+		if d.Staging ~= nil and type(d.Staging) ~= "boolean" then
+			err("%s: Staging tiene que ser true o false", where)
+		end
+		if helpers.stageLines then
+			helpers.stageLines(where, d.Lines or d)
+		end
+	end
 	for name, d in dialogues do
 		helpers.lines(id .. ".dlg." .. name, d.Lines)
 		helpers.effects(id .. ".dlg." .. name, d.Effects)
+		if d.Staging ~= nil and type(d.Staging) ~= "boolean" then
+			err("%s: Staging tiene que ser true o false", id .. ".dlg." .. name)
+		end
 	end
 	for propId, def in props do
 		local where = id .. ".prop." .. propId
@@ -157,6 +173,13 @@ function Validate.mission(id: string, quest: { [string]: any }, err: (string, ..
 			prop(where, propId)
 		end
 		dialogue(where, s.Dialogue)
+		if type(s.Dialogue) == "table" then
+			staging(where .. ".dlg", s.Dialogue)
+		end
+		-- Stage = "IdDeEscena": la conversación la hace una escena del motor escrita a mano
+		if s.Stage ~= nil and not HappeningIndex.has(s.Stage) then
+			err("%s: Stage = '%s' no es una escena del motor (Happenings)", where, tostring(s.Stage))
+		end
 		if s.Type == "Use" then
 			prop(where, s.Prop)
 		elseif (s.Type == "Talk" or s.Type == "Chase") and not Cast.People[s.Npc] then
@@ -387,6 +410,22 @@ function Validate.report(): Report
 			err("%s: lugar desconocido '%s'", where, tostring(id))
 		end
 	end
+	local function knownCast(id: string): boolean
+		return Cast.People[id] ~= nil
+	end
+	-- Solo los campos de escenificación (diálogos escritos en el paso, que no pasan por lines)
+	local function stageLines(where: string, list: { any }?)
+		for i, line in list or {} do
+			if type(line) == "table" then
+				for _, problem in StageDirector.problems(line, knownCast) do
+					err("%s.l%d: %s", where, i, problem)
+				end
+				for j, option in line.Options or {} do
+					stageLines(("%s.l%d.o%d"):format(where, i, j), option.Then)
+				end
+			end
+		end
+	end
 	-- Diálogos: quién habla, preguntas con opciones, ramas
 	local function lines(where: string, list: { any }?)
 		for i, line in list or {} do
@@ -399,6 +438,10 @@ function Validate.report(): Report
 			end
 			if line.G ~= nil and not Emotion.valid(line.G) then
 				err("%s: gesto desconocido G = '%s' (mal escrito: no se haría)", w, tostring(line.G))
+			end
+			-- Escenificación (StageDirector): Pause, Beat, To, Shot
+			for _, problem in StageDirector.problems(line, knownCast) do
+				err("%s: %s", w, problem)
 			end
 			if type(line.T) == "string" then
 				text(w, line.T)
@@ -696,6 +739,7 @@ function Validate.report(): Report
 			Validate.mission(id, quest, err, {
 				place = checkPlace,
 				lines = lines,
+				stageLines = stageLines,
 				effects = effects,
 				requirements = requirements,
 			}, generated)
