@@ -239,3 +239,18 @@ pasan en local). Probada con `bash scripts/cloud-test.sh --version 97 -v diag-ar
   como está previsto; «Asfalto» se usa en las piezas a las que MaterialLook se lo asigna.
 - `diag-arranque-completo` ahora enseña también el «Recuento Asfalto» (BaseMaterial, mapas si se pueden leer
   y el override del asfalto).
+
+## Verificación v98
+
+Publicada la **versión 98** (commit `869abfc`, con `bash scripts/publish.sh`; `test-compile` pasa: 573 archivos).
+Probada en el servidor real con `bash scripts/cloud-test.sh --version 98 -v diag-arranque-completo`:
+**14 bien, 0 mal, 1 aviso** (BusinessService tarda 6,5 s), 1 sin comprobar (empezar una historia necesita un
+jugador), arranque completo en 168,6 s.
+
+- ✅ **Servicios (97): todos bien**, incluidos los que han cambiado: `DamageService`, `CombatService`,
+  `SceneService` y `LifeStoryService` arrancan sin error (ninguno aparece en la consola ni entre los lentos).
+- ✅ **0 errores y 0 avisos** distintos en la consola.
+- ✅ Historia: `Validate.report()` sin errores (8 capítulos, 156 misiones, ninguna que no se active).
+- ✅ Lo de v97 sigue igual: `[MaterialLook] 17 materiales con textura`, 233 `MaterialVariant`, override de
+  `Asphalt` = `U_Real_Asphalt`.
+- No hizo falta ningún arreglo.
