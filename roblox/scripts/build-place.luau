@@ -95,13 +95,37 @@ town.Parent = workspace
 -- BaseMaterial, así que World/Kit/MaterialLook solo les pone los mapas al arrancar
 local Textures = requireModule(rawget(sharedTree, "Textures"))
 local TextureIds = requireModule(rawget(sharedTree, "TextureIds"))
+-- (con los mapas ya puestos: el id de imagen de cada Decal sale de shared/TextureImageIds)
+local imageOf: { [string]: string } = {}
+if fs.isFile("src/shared/TextureImageIds.luau") then
+	for decal, image in requireModule(rawget(sharedTree, "TextureImageIds")) do
+		imageOf[tostring(decal)] = image
+	end
+end
+local ids = {}
+for key, value in TextureIds do
+	local n = type(value) == "string" and (value:match("(%d+)%s*$") or value:match("id=(%d+)"))
+	ids[key] = n and imageOf[n] or value
+end
 local materialService = game:GetService("MaterialService")
-for _, name in Textures.available(TextureIds) do
+for _, name in Textures.available(ids) do
 	local def = Textures.Variants[name]
+	local maps = Textures.maps(name, ids)
 	local variant = materialService:FindFirstChild(name) or roblox.Instance.new("MaterialVariant")
 	variant.Name = name
 	variant.BaseMaterial = (roblox.Enum.Material :: any)[def.Base]
 	variant.StudsPerTile = def.Studs
+	pcall(function()
+		variant.MaterialPattern = (roblox.Enum.MaterialPattern :: any)[def.Pattern]
+	end)
+	if next(imageOf) then
+		for _, prop in Textures.MapProperty do
+			variant[prop] = maps[prop] or ""
+		end
+		variant:SetAttribute("NormalMapId", maps.NormalMap or "")
+		variant:SetAttribute("DryRoughnessId", maps.RoughnessMap or "")
+		variant:SetAttribute("WetRoughnessId", Textures.wetMap(name, ids) or "")
+	end
 	variant.Parent = materialService
 end
 

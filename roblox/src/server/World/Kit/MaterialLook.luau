@@ -58,8 +58,18 @@ function MaterialLook.setup(service: Instance?, ids: { [string]: string }?): { s
 		pcall(function()
 			variant.MaterialPattern = (Enum.MaterialPattern :: any)[def.Pattern]
 		end)
+		-- (los mapas tampoco se pueden escribir en un servidor de verdad: vienen ya puestos desde
+		-- scripts/build-place.luau con shared/TextureImageIds, y aquí solo se escriben si cambian)
 		for _, prop in Textures.MapProperty do
-			variant[prop] = maps[prop] or ""
+			local want = maps[prop] or ""
+			local okRead, have = pcall(function()
+				return variant[prop]
+			end)
+			if not okRead or have ~= want then
+				pcall(function()
+					variant[prop] = want
+				end)
+			end
 		end
 		variant:SetAttribute("NormalMapId", maps.NormalMap or "") -- (el cliente lo quita y lo vuelve a poner según el nivel gráfico)
 		-- Rugosidad seca y mojada: con lluvia el cliente pone la mojada (Controllers/MaterialDetail)

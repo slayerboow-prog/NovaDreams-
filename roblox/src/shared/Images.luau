@@ -19,7 +19,20 @@ local Images = {}
 local FOLDER = "ImageIds"
 local PARALLEL = 6
 
+-- Parejas ya conocidas (shared/TextureImageIds, generado en la nube): así el archivo del juego trae
+-- las texturas puestas y el servidor no tiene que escribirlas (no puede, pide la capacidad Plugin)
 local cache: { [string]: string } = {}
+do
+	local ok, known = pcall(function()
+		local module = script.Parent:FindFirstChild("TextureImageIds")
+		return if module then require(module :: any) else nil
+	end)
+	if ok and type(known) == "table" then
+		for decal, image in known do
+			cache[tostring(decal)] = image
+		end
+	end
+end
 
 local function numberOf(content: any): string?
 	if type(content) ~= "string" then
