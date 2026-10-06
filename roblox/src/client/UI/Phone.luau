@@ -567,7 +567,8 @@ local function refreshPeek()
 	if not parts.Peek then
 		return
 	end
-	parts.Peek.Visible = not hidden and not opened and #apps > 0
+	-- (en el móvil, a pie, lo abre el botón «Teléfono» de debajo del joystick: no asoma)
+	parts.Peek.Visible = not hidden and not opened and #apps > 0 and (not touch or driving)
 	parts.Peek.BackgroundTransparency = if moving then 0.45 else 0
 	local screenFrame = parts.Peek:FindFirstChild("Screen") :: Frame?
 	if screenFrame then
@@ -721,6 +722,16 @@ end
 
 function Phone.apps(): { App }
 	return apps
+end
+
+-- Avisos sin leer de todas las apps (el globito rojo del botón «Teléfono» del móvil)
+function Phone.badges(): number
+	return PhoneApps.totalBadges(apps)
+end
+
+-- ¿Se puede abrir ahora? (el botón «Teléfono» del móvil sale solo entonces)
+function Phone.available(): boolean
+	return parts.Body ~= nil and not hidden and #apps > 0
 end
 
 ---------------------------------------------------------------------

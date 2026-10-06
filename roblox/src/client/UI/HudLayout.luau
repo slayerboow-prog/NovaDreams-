@@ -7,8 +7,9 @@
 --   Junto al minimapa      -> con un arma en la mano, las balas («6 / 120», el arma y SEMI/AUTO), a su
 --                             izquierda, arriba: ni encima del minimapa ni de los botones de disparar
 --   Derecha                -> la misión, justo debajo del minimapa
---   Abajo a la izquierda   -> el ValPhone (UI/Phone): asoma pegado a la esquina (a la izquierda del
---                             joystick en el móvil) y al tocarlo (Tab / Select) sube entero con todas
+--   Abajo a la izquierda   -> el ValPhone (UI/Phone): en el ordenador asoma pegado a la esquina; en el
+--                             móvil lo abre el botón «Teléfono», debajo del joystick, junto a
+--                             «Inventario» (HudLayout.Left). Al tocarlo (Tab / Select) sube entero con todas
 --                             las apps (Items.Phone, Items.PhoneOpen). Al volante o a los mandos de un
 --                             avión asoma debajo de tu estado (Items.PhoneDrive: abajo van las flechas).
 --                             Sus notificaciones bajan encima (Items.PhoneBanner). El resto de la
@@ -56,7 +57,7 @@ HudLayout.Sizes = {
 	Minimap = 210, -- diámetro del círculo
 	MinimapLabel = 24, -- el nombre de la zona, debajo
 	Mission = Vector2.new(440, 110),
-	LeftColumn = 340, -- columna izquierda que no usan los paneles de trabajo en el móvil (jobArea)
+	LeftColumn = 410, -- columna izquierda que no usan los paneles de trabajo en el móvil (jobArea)
 	PhonePeek = Vector2.new(112, 140), -- el ValPhone cerrado, asomando en la esquina
 	PhoneBanner = Vector2.new(340, 92), -- la notificación que baja del teléfono (cabe en la columna izquierda)
 	ContextWidth = 300, -- la tira de acciones
@@ -73,26 +74,40 @@ HudLayout.Sizes = {
 }
 
 -- Racimo de botones táctiles (abajo a la derecha): centro de cada hueco respecto al de Ataque y su radio.
--- Igual que la imagen de referencia: Interactuar arriba; Correr, Defensa y Saltar en fila; Gestos a la
--- izquierda del Ataque grande; Esquivar abajo a la izquierda y Fijar objetivo a la derecha, un poco más abajo.
--- Los botones de contexto (linterna, foto, piedra, bajarse…) van en una columna a la izquierda, pegada al
--- racimo y llenándose DESDE ABAJO (Extra1 es el de abajo del todo): así, con pocos, quedan en la esquina.
+-- Igual que la imagen de referencia (docs/referencias/hud-movil-botones.jpg): arriba a la derecha
+-- Interactuar; en la fila del medio Correr, Defensa y Saltar; abajo Agacharse, el Atacar grande en el
+-- centro y Esquivar. Nada más en el racimo: lo que no sale en la referencia (Gestos, Foto) va en el
+-- ValPhone, y lo de contexto (linterna, piedra, fijar en una pelea, bajarse…) en una columna pequeña a
+-- la izquierda, pegada al racimo y llenándose DESDE ABAJO (Extra1 es el de abajo del todo).
 -- Contexto: la burbuja «Acciones» de la tira de acciones (Commands/ContextStrip), a la izquierda de
--- Interactuar, por encima de Correr y sin tocar la misión.
+-- Interactuar, encima de Defensa y sin tocar la misión.
+-- Con un arma de fuego (estilo shooter móvil): Disparar en el hueco del Atacar, Apuntar en el de Defensa
+-- (justo encima del disparo) y Recargar, con las balas, en el de Interactuar (TouchLayout: alias).
 HudLayout.Cluster = {
 	Ataque = { 0, 0, 64 },
-	Interactuar = { -60, -225, 44 },
-	Contexto = { -150, -235, 34 },
-	Correr = { -178, -128, 44 },
-	Defender = { -62, -128, 44 },
-	Saltar = { 62, -128, 46 },
-	Gestos = { -175, -12, 44 },
-	Esquivar = { -120, 82, 44 },
-	Fijar = { 96, 72, 32 },
+	Agacharse = { -140, -4, 46 },
+	Esquivar = { 136, -4, 46 },
+	Correr = { -122, -130, 46 },
+	Defender = { 0, -130, 46 },
+	Saltar = { 122, -130, 48 },
+	Interactuar = { 112, -240, 46 },
+	Contexto = { -6, -244, 34 },
 }
 HudLayout.ExtraSlots = 5
-local EXTRA_X, EXTRA_R, EXTRA_STEP, EXTRA_FIRST = -270, 32, 72, 92
+local EXTRA_X, EXTRA_R, EXTRA_STEP, EXTRA_FIRST = -238, 30, 66, 34
 
+-- Lado izquierdo (móvil, a pie): el joystick y, debajo, Teléfono e Inventario (botón redondo con el
+-- texto al lado, docs/referencias/hud-movil-joystick.jpg). Con un arma de fuego, el segundo Disparar a
+-- la derecha del joystick, un poco por encima de su centro (el pulgar izquierdo dispara mientras el
+-- derecho mueve la cámara). { x, y, ancho, alto } del centro respecto a la esquina de abajo a la
+-- izquierda (menos el margen).
+HudLayout.Left = {
+	Telefono = { 88, -34, 176, 68 },
+	Inventario = { 286, -34, 196, 68 },
+	DispararIzq = { 356, -252, 92, 92 },
+}
+local LEFT_ROW = 68 -- alto de la fila de Teléfono e Inventario
+local STICK_X = 82 -- borde izquierdo del joystick (desde el margen)
 -- Conduciendo (móvil, al volante): otra colocación (TouchLayout.setDriving). { x, y, ancho, alto } del
 -- centro de cada hueco respecto a la esquina de abajo a la derecha (menos el margen):
 --   abajo, los pedales: FRENO y el ACELERAR alto pegado a la esquina (el pulgar derecho los pisa sin
@@ -137,8 +152,8 @@ HudLayout.Fly = {
 	Bajarse = { -405, -255, 72, 72 },
 }
 local CONTEXT_CAPTION = 24 -- el título «ACCIONES» encima de la tira
-local CLUSTER_RIGHT = 128 -- lo que sobresale el racimo a la derecha del centro del Ataque
-local CLUSTER_BOTTOM = 124 -- y por debajo
+local CLUSTER_RIGHT = 182 -- lo que sobresale el racimo a la derecha del centro del Ataque
+local CLUSTER_BOTTOM = 64 -- y por debajo
 
 function HudLayout.scaleFor(viewport: Vector2): number
 	-- Suelo 0.36: en móviles 16:9 pequeños (640x360) el lienzo sigue midiendo 1700 de ancho;
@@ -215,10 +230,13 @@ function HudLayout.compute(viewport: Vector2, options: Options?): Layout
 	items.Phone = place(Vector2.new(0, 1), UDim2.new(0, MARGIN, 1, -MARGIN), s.PhonePeek)
 	items.PhoneOpen = place(Vector2.new(0, 1), UDim2.new(0, MARGIN, 1, -MARGIN), HudLayout.phoneSize(H))
 	if touch then
+		-- El joystick encima de la fila Teléfono / Inventario (el ValPhone ya no asoma: lo abre el botón
+		-- Teléfono); el aviso del teléfono baja encima del joystick
 		local stick = s.Joystick
-		items.Joystick = place(Vector2.new(0, 1), UDim2.new(0, 145, 1, -20), Vector2.new(stick, stick))
+		local stickBottom = MARGIN + LEFT_ROW + 10
+		items.Joystick = place(Vector2.new(0, 1), UDim2.new(0, MARGIN + STICK_X, 1, -stickBottom), Vector2.new(stick, stick))
 		items.PhoneDrive = place(Vector2.new(0, 0), UDim2.new(0, MARGIN, 0, statusBottom + 12), s.PhonePeek)
-		items.PhoneBanner = place(Vector2.new(0, 1), UDim2.new(0, MARGIN, 1, -(20 + stick + 12)), s.PhoneBanner)
+		items.PhoneBanner = place(Vector2.new(0, 1), UDim2.new(0, MARGIN, 1, -(stickBottom + stick + 12)), s.PhoneBanner)
 	else
 		items.PhoneDrive = items.Phone
 		items.PhoneBanner = place(Vector2.new(0, 1), UDim2.new(0, MARGIN, 1, -(MARGIN + s.PhonePeek.Y + 12)), s.PhoneBanner)
@@ -252,6 +270,10 @@ function HudLayout.compute(viewport: Vector2, options: Options?): Layout
 		end
 		-- El botón ❓ también es un hueco (TouchLayout lo dibuja como los demás botones redondos)
 		slots.Ayuda = items.Help
+		-- Lado izquierdo: Teléfono, Inventario y el segundo Disparar
+		for id, def in HudLayout.Left do
+			slots[id] = place(Vector2.new(0.5, 0.5), UDim2.new(0, MARGIN + def[1], 1, -MARGIN + def[2]), Vector2.new(def[3], def[4]))
+		end
 		for i = 1, HudLayout.ExtraSlots do
 			local y = ay + EXTRA_FIRST - (i - 1) * EXTRA_STEP
 			slots["Extra" .. i] = place(Vector2.new(0.5, 0.5), UDim2.new(1, -(W - (ax + EXTRA_X)), 1, -(H - y)), Vector2.new(EXTRA_R * 2, EXTRA_R * 2))

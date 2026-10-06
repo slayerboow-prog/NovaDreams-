@@ -1185,6 +1185,7 @@ local APP_ICONS = {
 	["Tienda"] = "tienda",
 	["Vehículos"] = "coche",
 	["Gestos"] = "gestos",
+	["Foto"] = "camara",
 	["Mercadillo"] = "mercadillo",
 	["Guía de pesca"] = "pesca",
 	["Ruta a casa"] = "lugar",

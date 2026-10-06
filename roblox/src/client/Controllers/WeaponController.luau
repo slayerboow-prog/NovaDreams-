@@ -5,8 +5,13 @@
 --   Ordenador: clic derecho (mantener) apuntar · clic izquierdo disparar · R recargar · T semi/auto
 --              · Mayús apuntando con mira telescópica = contener la respiración
 --   Mando:     LT apuntar · RT disparar · cruceta izquierda recargar · cruceta arriba semi/auto
---   Móvil:     botones Apuntar (toca para apuntar / dejar de apuntar), Disparar (mantener = ráfaga) y
---              Recargar (TouchLayout), y arrastrar en la derecha de la pantalla sigue moviendo la cámara.
+--   Móvil (estilo shooter móvil): el Atacar grande pasa a ser Disparar (mantener = ráfaga en las
+--              automáticas, tocar = un tiro en las semiautomáticas), Apuntar encima (toca para apuntar /
+--              dejar de apuntar), Recargar con las balas «12/90» y un SEGUNDO Disparar a la derecha del
+--              joystick (pulgar izquierdo). Todo a la vez: andar + disparar + apuntar + saltar, cada
+--              botón con su dedo. Arrastrar en la mitad derecha gira la cámara siempre (también con un
+--              Disparar pulsado y arrastrando ESE dedo); apuntando gira más despacio. Ayuda de apuntado
+--              suave hacia el objetivo válido más cercano a la mira (shared/AimAssist: solo dedo o mando).
 --   Menú de comandos: Disparar, Apuntar, Recargar, Objetos, Defensa, Huir.
 --
 -- Con el arma en la mano la cámara va al hombro derecho (shoulderCamera: la mira del centro queda al
@@ -29,6 +34,10 @@ local UserInputService = game:GetService("UserInputService")
 
 local Weapons = require(ReplicatedStorage.Shared.Weapons)
 local Format = require(ReplicatedStorage.Shared.Format)
+local AimAssist = require(ReplicatedStorage.Shared.AimAssist)
+local Combat = require(ReplicatedStorage.Shared.Combat)
+local MissionCombat = require(ReplicatedStorage.Shared.MissionCombat)
+local Stages = require(ReplicatedStorage.Shared.LifeStory.Stages)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
 local HudLayout = require(script.Parent.Parent.UI.HudLayout)
@@ -78,6 +87,19 @@ local aimOffset: Vector2? = nil
 local shoulderReach = 1
 local baseDistance: number? = nil -- de la cámara de Roblox a tu cabeza, sin el hombro
 local WALL_GAP = 0.6
+-- Móvil: cada dedo que tiene el gatillo (los dos botones de Disparar, el ratón, el mando…). Se dispara
+-- mientras haya alguno: soltar uno no corta la ráfaga del otro
+local holds: { [string]: boolean } = {}
+-- Giro de cámara pendiente (arrastre del dedo y ayuda de apuntado), en radianes: se aplica en frame()
+local pendingYaw, pendingPitch = 0, 0
+local snapPending = false -- al pulsar Apuntar: tirón corto hacia el objetivo
+local onTargetNow = false -- la mira está encima de un objetivo válido (fricción)
+local assistTarget: Model? = nil
+local candidates: { Model } = {}
+local candidatesAt = -math.huge
+local dragGui: ScreenGui? = nil
+local dragZone: Frame? = nil
+local dragInputs: { [InputObject]: Vector3 } = {}
 
 -- Interfaz
 local gui: ScreenGui
@@ -166,6 +188,7 @@ function WeaponController.setAim(on: boolean)
 		-- (la distancia de la cámara de Roblox, sin contar el hombro: si no, crecería cada vez)
 		startDistance = baseDistance or (camera.CFrame.Position - camera.Focus.Position).Magnitude
 		savedMax = savedMax or player.CameraMaxZoomDistance
+		snapPending = true -- (la ayuda de apuntado da un tirón corto si hay alguien en el cono)
 	end
 	if Remote then
 		Remote:FireServer("Aim", want)
@@ -302,7 +325,7 @@ function WeaponController.fire()
 	local shotCf = CFrame.lookAt(muzzle.Position, shown)
 	WeaponFx.muzzle(shotCf, w)
 	for _ = 1, math.min(w.Pellets, 4) do
-		local spread = Weapons.spread(w, { Aiming = aimAlpha > 0.5, Speed = Vector3.new(root.AssemblyLinearVelocity.X, 0, root.AssemblyLinearVelocity.Z).Magnitude, Stance = st, Bloom = bloom })
+		local spread = Weapons.spread(w, { Aiming = aimAlpha > 0.5, Speed = Vector3.new(root.AssemblyLinearVelocity.X, 0, root.AssemblyLinearVelocity.Z).Magnitude, Airborne = humanoid.FloorMaterial == Enum.Material.Air, Stance = st, Bloom = bloom })
 		local d = Weapons.scatter((shown - muzzle.Position).Unit, spread, math.random(), math.random())
 		WeaponFx.tracer(muzzle.Position, muzzle.Position + d * (shown - muzzle.Position).Magnitude, w)
 	end
@@ -337,11 +360,16 @@ function WeaponController.cycleMode()
 	end
 end
 
-local function setTrigger(down: boolean)
-	trigger = down
+-- El gatillo de un dedo (o del ratón / mando: "Main"). Se dispara mientras alguno lo mantenga: con dos
+-- botones de Disparar, soltar uno no corta la ráfaga del otro. Pulsar uno nuevo con el otro ya
+-- pulsado no dispara de más (la cadencia manda).
+local function holdTrigger(source: string, down: boolean)
+	local was = trigger
+	holds[source] = if down then true else nil
+	trigger = next(holds) ~= nil
 	if down then
 		WeaponController.fire()
-	else
+	elseif was and not trigger then
 		if burst > 0 then
 			local w = weapon()
 			if w then
@@ -350,7 +378,231 @@ local function setTrigger(down: boolean)
 		end
 	end
 end
+WeaponController.holdTrigger = holdTrigger
+
+local function setTrigger(down: boolean)
+	holdTrigger("Main", down)
+end
 WeaponController.setTrigger = setTrigger
+
+local function dropTrigger()
+	table.clear(holds)
+	trigger = false
+end
+
+-- ¿Está el gatillo pulsado? (pruebas y la mira)
+function WeaponController.triggerHeld(): boolean
+	return trigger
+end
+
+---------------------------------------------------------------------
+-- Cámara con el dedo y ayuda de apuntado (móvil y mando; con ratón no)
+---------------------------------------------------------------------
+
+local function assistOn(): boolean
+	local ok, last = pcall(function()
+		return UserInputService:GetLastInputType()
+	end)
+	local name = if ok and last then last.Name else nil
+	if TouchLayout.isTouch() and (name == nil or name == "None" or string.find(name, "Mouse", 1, true) == nil and name ~= "Keyboard") then
+		name = "Touch"
+	end
+	return AimAssist.enabled(name)
+end
+WeaponController.assistOn = assistOn
+
+-- Arrastrar el dedo (en puntos de pantalla): gira la cámara. Apuntando, más despacio; con la mira
+-- encima de un objetivo, un poco menos (fricción)
+function WeaponController.drag(delta: Vector2)
+	local yaw, pitch = AimAssist.dragTurn(delta, aimAlpha, onTargetNow and assistOn())
+	pendingYaw += yaw
+	pendingPitch += pitch
+end
+
+-- Gira la cámara de Roblox (justo después de que la coloque: la próxima vez parte de aquí)
+local function applyTurn(camera: Camera)
+	if pendingYaw == 0 and pendingPitch == 0 then
+		return
+	end
+	local cf = camera.CFrame
+	local look = cf.LookVector
+	local pitchNow = math.asin(math.clamp(look.Y, -1, 1))
+	local limit = math.rad(AimAssist.Config.PitchLimit)
+	local pitch = math.clamp(pitchNow + pendingPitch, -limit, limit) - pitchNow
+	camera.CFrame = CFrame.new(cf.Position) * CFrame.Angles(0, pendingYaw, 0) * cf.Rotation * CFrame.Angles(pitch, 0, 0)
+	pendingYaw, pendingPitch = 0, 0
+end
+
+-- Personas a las que se puede apuntar (las que el sistema de armas da por válidas): se repasa unas
+-- veces por segundo; cada fotograma solo se miran ángulos y la línea de visión del mejor
+local function torsoOf(model: Model): BasePart?
+	return (model:FindFirstChild("UpperTorso") or model:FindFirstChild("Torso") or model:FindFirstChild("HumanoidRootPart")) :: BasePart?
+end
+
+local function refreshCandidates(root: BasePart)
+	local now = os.clock()
+	if now - candidatesAt < 0.3 then
+		return
+	end
+	candidatesAt = now
+	local list: { Model } = {}
+	local seen: { [Model]: boolean } = {}
+	local function add(model: Model, info: { [string]: any })
+		local humanoid = model:FindFirstChildOfClass("Humanoid")
+		info.Alive = humanoid ~= nil and humanoid.Health > 0
+		info.IsSelf = model == player.Character
+		if not seen[model] and AimAssist.validTarget(info) and torsoOf(model) then
+			seen[model] = true
+			table.insert(list, model)
+		end
+	end
+	-- Otros jugadores con los que se puede pelear (ni bebés, ni en una conversación, ni sentados,
+	-- ni de tu equipo)
+	for _, other in Players:GetPlayers() do
+		local character = other.Character
+		if other ~= player and character then
+			local humanoid = character:FindFirstChildOfClass("Humanoid")
+			local stage = other:GetAttribute("LifeStage")
+			add(character, {
+				Player = true,
+				CanFight = (stage == nil or Stages.inRange(stage, Combat.MinStage, nil)) and not other:GetAttribute("InDialogue") and not other:GetAttribute("Training") and not other:GetAttribute("KO"),
+				Seated = humanoid ~= nil and humanoid.SeatPart ~= nil,
+				SameTeam = player.Team ~= nil and other.Team == player.Team,
+				Protected = other:GetAttribute("InteriorKey") ~= player:GetAttribute("InteriorKey"),
+			})
+		end
+	end
+	-- Los enemigos de TU combate de misión
+	for _, model in MissionCombat.mine(game:GetService("CollectionService"):GetTagged(MissionCombat.ATTR), player.UserId) do
+		add(model, { MissionEnemy = true })
+	end
+	-- Tu rival de entrenamiento (FighterService), cerca
+	local params = OverlapParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = ignore()
+	local ok, near = pcall(function()
+		return workspace:GetPartBoundsInRadius(root.Position, 80, params)
+	end)
+	if ok and type(near) == "table" then
+		for _, part in near do
+			local model = part.Parent
+			if part.Name == "HumanoidRootPart" and model and model:IsA("Model") and model:GetAttribute("Fighter") ~= nil then
+				local owner = model:GetAttribute("Owner")
+				add(model, { Rival = owner == nil or owner == player.UserId })
+			end
+		end
+	end
+	candidates = list
+end
+
+-- ¿Se ve ese punto desde la cámara sin nada en medio? (nunca a través de paredes)
+local function canSee(from: Vector3, model: Model, point: Vector3): boolean
+	local path = point - from
+	if path.Magnitude < 0.5 then
+		return true
+	end
+	local list = ignore()
+	table.insert(list, model)
+	rayParams.FilterDescendantsInstances = list
+	return workspace:Raycast(from, path, rayParams) == nil
+end
+
+-- Ayuda de apuntado de este fotograma: busca el objetivo y deja el giro pendiente
+local function assist(dt: number, w: Weapons.Weapon, root: BasePart, camera: Camera)
+	onTargetNow = false
+	assistTarget = nil
+	if not assistOn() then
+		snapPending = false
+		return
+	end
+	refreshCandidates(root)
+	local origin = camera.CFrame.Position
+	local look = camera.CFrame.LookVector
+	local list = {}
+	for _, model in candidates do
+		local torso = model.Parent and torsoOf(model)
+		if torso then
+			table.insert(list, { Point = AimAssist.bodyPoint(torso.Position), Model = model })
+		end
+	end
+	local best, angle = AimAssist.pick(origin, look, list, function(c)
+		return canSee(origin, c.Model, c.Point)
+	end, w.Range)
+	if not best then
+		snapPending = false
+		return
+	end
+	assistTarget = best.Model
+	onTargetNow = angle <= AimAssist.Config.FrictionCone
+	local aiming = aimAlpha > 0.5 or wantAim
+	local amount = 0
+	if snapPending then
+		amount = AimAssist.Config.Snap
+		snapPending = false
+	elseif aiming or trigger then
+		amount = AimAssist.pullFraction(aiming, dt)
+	end
+	if amount > 0 then
+		local yaw, pitch = AimAssist.turn(look, best.Point - origin, amount)
+		pendingYaw += yaw
+		pendingPitch += pitch
+	end
+end
+
+-- (pruebas) a quién ayuda a apuntar ahora
+function WeaponController.assistTarget(): Model?
+	return assistTarget
+end
+
+-- Zona de la cámara (móvil, con el arma en la mano): la mitad derecha de la pantalla. Arrastrar ahí
+-- gira la cámara siempre, también con el otro pulgar en el Disparar de la izquierda y apuntando
+-- (cada dedo por separado). Los botones van encima (otra pantalla, más arriba) y se tocan igual.
+local function buildDragZone()
+	if not TouchLayout.isTouch() then
+		return
+	end
+	dragGui = create("ScreenGui", { Name = "CamaraTactil", ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = 0, Parent = player:WaitForChild("PlayerGui") })
+	local zone = create("Frame", {
+		Name = "ZonaCamara",
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.fromScale(1, 0),
+		Size = UDim2.fromScale(0.5, 1),
+		BackgroundTransparency = 1,
+		Active = true, -- (los toques de aquí los gira esta zona, no la cámara de Roblox)
+		Visible = false,
+		Parent = dragGui,
+	})
+	dragZone = zone
+	zone.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.Touch and typeof(input.Position) == "Vector3" then
+			dragInputs[input] = input.Position
+		end
+	end)
+	UserInputService.InputChanged:Connect(function(input)
+		local from = dragInputs[input]
+		if from and typeof(input.Position) == "Vector3" then
+			dragInputs[input] = input.Position
+			WeaponController.drag(Vector2.new(input.Position.X - from.X, input.Position.Y - from.Y))
+		end
+	end)
+	UserInputService.InputEnded:Connect(function(input)
+		dragInputs[input] = nil
+	end)
+end
+
+local function showDragZone(on: boolean)
+	if dragZone and dragZone.Visible ~= on then
+		dragZone.Visible = on
+		if not on then
+			table.clear(dragInputs)
+		end
+	end
+end
+
+-- (pruebas) la zona de la cámara
+function WeaponController._dragZone(): Frame?
+	return dragZone
+end
 
 ---------------------------------------------------------------------
 -- Lo que llega del servidor
@@ -515,7 +767,7 @@ local function refreshAmmo()
 	ammoInfo.Text = ("%s %s · %s"):format(w.Icon, w.Name, if mode == "Auto" then "AUTO" else "SEMI")
 end
 
-local function updateReticle(w: Weapons.Weapon?, speed: number)
+local function updateReticle(w: Weapons.Weapon?, speed: number, airborne: boolean?)
 	local camera = workspace.CurrentCamera
 	local show = w ~= nil and not (w.Scope and aimAlpha > 0.9)
 	reticle.Visible = show
@@ -524,7 +776,8 @@ local function updateReticle(w: Weapons.Weapon?, speed: number)
 		marker.Visible = false
 		return
 	end
-	local spread = Weapons.spread(w, { Aiming = aimAlpha > 0.5, Speed = speed, Stance = stance(), Bloom = math.max(0, bloom - (os.clock() - lastShot) * w.Spread.MaxBloom * 2.5), Sprinting = lowered() })
+	-- (se abre al moverte, saltar y disparar seguido; se cierra quieto, apuntando o agachado)
+	local spread = Weapons.spread(w, { Aiming = aimAlpha > 0.5, Speed = speed, Airborne = airborne, Stance = stance(), Bloom = math.max(0, bloom - (os.clock() - lastShot) * w.Spread.MaxBloom * 2.5), Sprinting = lowered() })
 	local radius = math.clamp(Weapons.reticleRadius(spread, camera.FieldOfView, camera.ViewportSize.Y), 6, 140)
 	if w.Pellets > 1 then
 		radius = math.max(radius, 22)
@@ -781,7 +1034,9 @@ local function frame(dt: number)
 			aimAlpha = 0
 			releaseCamera()
 		end
-		trigger = false
+		dropTrigger()
+		showDragZone(false)
+		pendingYaw, pendingPitch, snapPending = 0, 0, false
 		lastKick = CFrame.identity
 		updateReticle(nil, 0)
 		WeaponMotion.setLocal(0, 0, 0, 0, 0)
@@ -826,6 +1081,15 @@ local function frame(dt: number)
 		releaseCamera()
 	end
 
+	-- Móvil: la zona de la cámara (mitad derecha) mientras llevas el arma a pie; el arrastre del dedo y
+	-- la ayuda de apuntado giran la cámara antes del retroceso
+	local onSeat = humanoid.SeatPart ~= nil or player:GetAttribute("Riding") ~= nil or player:GetAttribute("Passenger") ~= nil
+	showDragZone(not onSeat and camera.CameraType == Enum.CameraType.Custom)
+	if not onSeat and not player:GetAttribute("KO") then
+		assist(dt, w, root, camera)
+	end
+	applyTurn(camera)
+
 	-- Retroceso de la cámara (muelle) y balanceo apuntando
 	camPitch, camPitchV = Weapons.spring(camPitch, camPitchV, w.Recoil.Return * 12, dt)
 	camYaw, camYawV = Weapons.spring(camYaw, camYawV, w.Recoil.Return * 12, dt)
@@ -866,7 +1130,7 @@ local function frame(dt: number)
 		WeaponController.fire()
 	end
 	local v = root.AssemblyLinearVelocity
-	updateReticle(w, Vector3.new(v.X, 0, v.Z).Magnitude)
+	updateReticle(w, Vector3.new(v.X, 0, v.Z).Magnitude, humanoid.FloorMaterial == Enum.Material.Air)
 end
 
 ---------------------------------------------------------------------
@@ -927,14 +1191,15 @@ function WeaponController.init()
 			end
 			if attribute == "Weapon" and not weapon() then
 				WeaponController.setAim(false)
-				trigger = false
+				dropTrigger()
 			end
 			refreshAmmo()
 			TouchLayout.refresh()
 		end)
 	end
 	player.CharacterAdded:Connect(function()
-		wantAim, aimAlpha, trigger = false, 0, false
+		wantAim, aimAlpha = false, 0
+		dropTrigger()
 		lastKick = CFrame.identity
 		autoRotateSaved = nil
 		savedMax = nil
@@ -979,18 +1244,45 @@ function WeaponController.init()
 		end
 	end)
 
-	-- Botones del móvil (y pistas de teclas en el ordenador): en los huecos de golpear, defender y fijar
+	-- Botones del móvil (y pistas de teclas en el ordenador), estilo shooter móvil: Disparar en el hueco
+	-- grande del Atacar, Apuntar encima, Recargar (con las balas) en el de Interactuar y un segundo
+	-- Disparar a la derecha del joystick. Agacharse, Saltar, Esquivar y Correr siguen en su sitio.
 	local armed = WeaponController.armed
+	local function ammoText(): string?
+		local w = weapon()
+		if not w then
+			return nil
+		end
+		local reserve = tonumber(player:GetAttribute("WeaponAmmo")) or 0
+		return ("%d/%s"):format(mag(), if reserve < 0 then "∞" else tostring(reserve))
+	end
+	WeaponController.ammoText = ammoText
 	TouchLayout.register({
 		Id = "Disparar", Icon = "disparar", Label = "Disparar", Slot = "Disparar", Priority = 1, Key = "Clic", Pad = "RT",
 		Visible = armed,
 		Hold = function(down: boolean)
-			setTrigger(down)
+			holdTrigger("Der", down)
 		end,
-		Badge = function()
-			return if weapon() then tostring(mag()) else nil
+		-- (arrastrar el dedo del disparo gira la cámara, como en los shooters del móvil)
+		Drag = WeaponController.drag,
+		Active = function()
+			return holds.Der == true
 		end,
 	})
+	TouchLayout.register({
+		Id = "DispararIzq", Icon = "disparar", Label = "Disparar", Slot = "DispararIzq", Priority = 1,
+		Twin = true, -- (el mismo texto que el grande: los dos se ven a la vez)
+		Visible = function()
+			return armed() and TouchLayout.isTouch()
+		end,
+		Hold = function(down: boolean)
+			holdTrigger("Izq", down)
+		end,
+		Drag = WeaponController.drag,
+		Active = function()
+			return holds.Izq == true
+		end,
+	} :: any)
 	TouchLayout.register({
 		Id = "Apuntar", Icon = "objetivo", Label = "Apuntar", Slot = "Apuntar", Priority = 1, Key = "Clic dcho", Pad = "LT",
 		Visible = armed,
@@ -998,11 +1290,17 @@ function WeaponController.init()
 		Callback = WeaponController.toggleAim,
 	})
 	TouchLayout.register({
-		Id = "Recargar", Icon = "recargar", Label = "Recargar", Slot = "Recargar", Priority = 1, Key = "R",
+		Id = "Recargar", Icon = "recargar", Label = "Recargar", Slot = "Recargar", Priority = 0.5, Key = "R",
+		-- En el móvil siempre con el arma (con las balas «12/90» encima: el racimo no baila); en el
+		-- ordenador, la pista de la tecla solo cuando hace falta
 		Visible = function()
 			local w = weapon()
-			return w ~= nil and mag() < Weapons.capacity(w, mag()) and (tonumber(player:GetAttribute("WeaponAmmo")) or 0) ~= 0
+			if not w then
+				return false
+			end
+			return TouchLayout.isTouch() or (mag() < Weapons.capacity(w, mag()) and (tonumber(player:GetAttribute("WeaponAmmo")) or 0) ~= 0)
 		end,
+		Badge = ammoText,
 		Active = function()
 			return if os.clock() < reloadingUntil then "wait" else false
 		end,
@@ -1032,6 +1330,7 @@ function WeaponController.init()
 			holdBreath = down
 		end,
 	})
+	buildDragZone()
 
 	RunService:BindToRenderStep("WeaponCamera", Enum.RenderPriority.Camera.Value + 1, function(dt)
 		local ok, err = pcall(frame, dt)

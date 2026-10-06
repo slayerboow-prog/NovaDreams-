@@ -28,16 +28,25 @@
 -- lugar de círculo; "Arrow" dibuja una flecha grande), Chevron (giro de la flecha: 180 = ◀, 0 = ▶) y
 -- Tint (color del disco interior cuando no está encendido: verde el acelerador, rojo el freno…).
 --
--- Móvil y tableta: botones redondos con icono y texto, en racimo pegado a la esquina de abajo a la
--- derecha (HudLayout.Cluster): Interactuar arriba; Correr, Defensa y Saltar; Gestos y el Ataque grande;
--- Esquivar y Fijar objetivo. Los de contexto (linterna, foto, piedra, bajarse, sirena…) en una columna a
--- la izquierda que se llena desde abajo, solo cuando sirven. Nunca salen dos botones con el mismo texto. Ordenador y mando: sin botones; en su lugar, una lista pequeña de teclas abajo a la derecha.
--- Si hay un mando conectado, debajo de cada botón redondo sale su letra (Y, A, X, RB…).
+-- Móvil y tableta: botones redondos oscuros con borde azul, icono y texto, en racimo pegado a la esquina
+-- de abajo a la derecha (HudLayout.Cluster, como docs/referencias/hud-movil-botones.jpg): Interactuar
+-- arriba a la derecha; Correr, Defensa y Saltar; Agacharse, el Atacar grande y Esquivar. Los de
+-- contexto (linterna, piedra, fijar, bajarse, sirena…) en una columna pequeña a la izquierda que se
+-- llena desde abajo, solo cuando sirven. A la izquierda, debajo del joystick, Teléfono e Inventario
+-- (Shape = "Side": botón redondo con el texto al lado) y, con un arma, el segundo Disparar.
+-- Nunca salen dos botones con el mismo texto. Ordenador y mando: sin botones; en su lugar, una lista
+-- pequeña de teclas abajo a la derecha. Si hay un mando conectado, debajo de cada botón redondo sale su
+-- letra (Y, A, X, RB…).
 --
--- Huecos: Ataque, Interactuar, Correr, Defender, Saltar, Gestos, Esquivar, Fijar (y Extra1-5).
+-- Huecos: Ataque, Interactuar, Correr, Defender, Saltar, Agacharse, Esquivar, Contexto, Telefono,
+-- Inventario, DispararIzq (y Extra1-5). Un Slot que no existe (Gestos, Fijar) = columna de contexto.
 -- Si dos botones visibles piden el mismo hueco, se lo queda el de Priority más baja y el otro pasa
--- a la columna de contexto. Alias para las armas: Slot = "Disparar" usa el hueco del Ataque,
--- "Apuntar" el de Defender y "Recargar" el de Fijar (con Priority < 3 se quedan con el hueco).
+-- a la columna de contexto. Alias para las armas (estilo shooter móvil): Slot = "Disparar" usa el hueco
+-- del Ataque, "Apuntar" el de Defender (encima del disparo) y "Recargar" el de Interactuar.
+-- Más campos: BadgeColor (color del numerito: rojo en Teléfono) y Drag = function(delta: Vector2)
+-- (mientras se mantiene un botón con Hold, arrastrar ESE dedo llama a Drag con lo que se ha movido:
+-- Disparar gira la cámara, como en los shooters del móvil). Cada botón sigue a SU dedo: varios a la
+-- vez (joystick + Disparar + Apuntar + Saltar) no se estorban.
 --
 -- Compatibilidad (API anterior de este módulo): TouchLayout.slot(nombre), place(botón, nombre),
 -- placeAction(ContextActionService, acción, nombre), riding() y showWhen(botón, "Pie"|"Vehiculo").
@@ -75,6 +84,8 @@ export type Spec = {
 	Shape: string?,
 	Chevron: number?,
 	Tint: Color3?,
+	BadgeColor: Color3?,
+	Drag: ((Vector2) -> ())?,
 }
 
 type View = { Button: TextButton, Label: TextLabel, Icon: Frame, Badge: TextLabel, Stroke: UIStroke, Fill: Frame, Meter: Frame, MeterFill: Frame, Active: any, Tint: Color3? }
@@ -99,7 +110,12 @@ local extraPage = 1
 local moreBadge: string? = nil
 
 -- Huecos con otro nombre (armas: van donde los golpes)
-local SLOT_ALIAS = { Disparar = "Ataque", Apuntar = "Defender", Recargar = "Fijar" }
+local SLOT_ALIAS = { Disparar = "Ataque", Apuntar = "Defender", Recargar = "Interactuar" }
+
+-- Colores del racimo (la referencia: disco azul marino oscuro, borde azul brillante, icono blanco)
+local DISC_TOP = rgb(34, 52, 96)
+local DISC_BOTTOM = rgb(8, 14, 34)
+local RIM = rgb(80, 185, 255)
 
 local function safe(fn: (() -> any)?, default: any): any
 	if not fn then
@@ -115,7 +131,111 @@ end
 ---------------------------------------------------------------------
 -- Botón redondo: icono arriba y el texto debajo, dentro del círculo
 ---------------------------------------------------------------------
+local function runCallback(spec: Spec)
+	if spec.Callback then
+		local ok, err = pcall(spec.Callback)
+		if not ok then
+			warn("[Botones] " .. tostring(err))
+		end
+	end
+	task.defer(TouchLayout.refresh)
+end
+
+-- Botón redondo con el texto AL LADO (Teléfono, Inventario: docs/referencias/hud-movil-joystick.jpg).
+-- El botón ocupa todo el hueco (disco + texto): los toques en el texto también cuentan.
+local function buildSideView(spec: Spec): View
+	local button = create("TextButton", {
+		Name = spec.Id,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Size = UDim2.fromOffset(176, 68),
+		BackgroundTransparency = 1,
+		AutoButtonColor = false,
+		Text = "",
+		Visible = false,
+		Parent = gui,
+	})
+	-- El texto, en una pastilla oscura que sale de detrás del disco
+	create("Frame", {
+		Name = "Pill",
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.fromScale(1, 0.5),
+		Size = UDim2.fromScale(0.8, 0.6),
+		BackgroundColor3 = DISC_BOTTOM,
+		BackgroundTransparency = 0.4,
+		BorderSizePixel = 0,
+		Parent = button,
+	}, { create("UICorner", { CornerRadius = UDim.new(1, 0) }) })
+	local disc = create("Frame", {
+		Name = "Disc",
+		Size = UDim2.fromScale(1, 1),
+		SizeConstraint = Enum.SizeConstraint.RelativeYY,
+		BackgroundColor3 = H.Navy,
+		BackgroundTransparency = 0.2,
+		Parent = button,
+	}, {
+		create("UICorner", { CornerRadius = UDim.new(1, 0) }),
+		create("UIGradient", { Rotation = 90, Color = ColorSequence.new(DISC_TOP, DISC_BOTTOM) }),
+	})
+	local stroke = Theme.edge(disc, RIM, 2.5)
+	Theme.halo(disc, H.Glow, 6, 999)
+	local fill = create("Frame", {
+		Name = "Fill",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(0.84, 0.84),
+		BackgroundColor3 = H.Navy,
+		BackgroundTransparency = 0.45,
+		BorderSizePixel = 0,
+		Parent = disc,
+	}, { create("UICorner", { CornerRadius = UDim.new(1, 0) }) })
+	local icon = Icons.new(spec.Icon, {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(0.5, 0.5),
+		Parent = disc,
+	})
+	local label = Theme.label({
+		Name = "Caption",
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.fromScale(0.44, 0.5),
+		Size = UDim2.fromScale(0.54, 0.38),
+		Text = spec.Label,
+		Font = Theme.FontBold,
+		TextScaled = true,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextStrokeTransparency = 0.5,
+		Parent = button,
+	})
+	-- Globito (rojo en Teléfono: los avisos sin leer del ValPhone)
+	local badge = Theme.label({
+		Name = "Badge",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.86, 0.12),
+		Size = UDim2.fromScale(0.42, 0.42),
+		BackgroundColor3 = spec.BadgeColor or H.Gold,
+		BackgroundTransparency = 0,
+		Font = Theme.FontBold,
+		TextScaled = true,
+		TextColor3 = if spec.BadgeColor then Color3.new(1, 1, 1) else Theme.Colors.Ink,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Visible = false,
+		ZIndex = 3,
+		Parent = disc,
+	})
+	create("UICorner", { CornerRadius = UDim.new(1, 0), Parent = badge })
+	local meter = create("Frame", { Name = "Meter", Visible = false, BackgroundTransparency = 1, Parent = disc })
+	local meterFill = create("Frame", { Name = "MeterFill", BackgroundTransparency = 1, Parent = meter })
+	Theme.pressable(button)
+	button.Activated:Connect(function()
+		runCallback(spec)
+	end)
+	return { Button = button, Label = label, Icon = icon, Badge = badge, Stroke = stroke, Fill = fill, Meter = meter, MeterFill = meterFill, Tint = spec.Tint }
+end
+
 local function buildView(spec: Spec): View
+	if spec.Shape == "Side" then
+		return buildSideView(spec)
+	end
 	local big = spec.Slot ~= nil and (SLOT_ALIAS[spec.Slot] or spec.Slot) == "Ataque"
 	-- Pedales y flechas: rectángulos redondeados (el resto, círculos)
 	local boxy = spec.Shape == "Pedal" or spec.Shape == "Arrow"
@@ -125,16 +245,16 @@ local function buildView(spec: Spec): View
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Size = UDim2.fromOffset(88, 88),
 		BackgroundColor3 = H.Navy,
-		BackgroundTransparency = 0.28,
+		BackgroundTransparency = 0.2,
 		AutoButtonColor = false,
 		Text = "",
 		Visible = false,
 		Parent = gui,
 	}, {
 		create("UICorner", { CornerRadius = round }),
-		create("UIGradient", { Rotation = 90, Color = ColorSequence.new(rgb(120, 170, 255), rgb(40, 60, 120)) }),
+		create("UIGradient", { Rotation = 90, Color = if boxy then ColorSequence.new(rgb(120, 170, 255), rgb(40, 60, 120)) else ColorSequence.new(DISC_TOP, DISC_BOTTOM) }),
 	})
-	local stroke = Theme.edge(button, nil, if big or boxy then 4 else 2.5)
+	local stroke = Theme.edge(button, if boxy then nil else RIM, if big or boxy then 4 else 2.5)
 	Theme.halo(button, H.Glow, if big then 10 else 6, if boxy then 18 else 999)
 	-- Disco interior más oscuro (da relieve de botón)
 	local fill = create("Frame", {
@@ -188,11 +308,11 @@ local function buildView(spec: Spec): View
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.fromScale(1.02, -0.02),
 		Size = UDim2.fromScale(0.42, 0.26),
-		BackgroundColor3 = H.Gold,
+		BackgroundColor3 = spec.BadgeColor or H.Gold,
 		BackgroundTransparency = 0,
 		Font = Theme.FontBold,
 		TextScaled = true,
-		TextColor3 = Theme.Colors.Ink,
+		TextColor3 = if spec.BadgeColor then Color3.new(1, 1, 1) else Theme.Colors.Ink,
 		TextXAlignment = Enum.TextXAlignment.Center,
 		Visible = false,
 		Parent = button,
@@ -235,32 +355,48 @@ local function buildView(spec: Spec): View
 	Theme.pressable(button)
 
 	button.Activated:Connect(function()
-		if spec.Callback then
-			local ok, err = pcall(spec.Callback)
-			if not ok then
-				warn("[Botones] " .. tostring(err))
-			end
-		end
-		task.defer(TouchLayout.refresh)
+		runCallback(spec)
 	end)
 	if spec.Hold then
+		-- Cada botón sigue a SU dedo: otro dedo (joystick, Apuntar, Saltar…) ni lo suelta ni lo cambia
 		local holding: InputObject? = nil
+		local lastAt: Vector3? = nil
 		button.InputBegan:Connect(function(input)
 			local kind = input.UserInputType
+			if holding and holding ~= input and kind == Enum.UserInputType.Touch then
+				return -- (ya hay un dedo en este botón)
+			end
 			if kind == Enum.UserInputType.Touch or kind == Enum.UserInputType.MouseButton1 then
 				holding = input
+				lastAt = if typeof(input.Position) == "Vector3" then input.Position else nil
 				pcall(spec.Hold :: any, true)
 			end
 		end)
 		local function release(input: InputObject)
-			if holding and (input == holding or input.UserInputType == Enum.UserInputType.MouseButton1) then
+			local mouse = input.UserInputType == Enum.UserInputType.MouseButton1
+			if holding and (input == holding or (mouse and holding.UserInputType == Enum.UserInputType.MouseButton1)) then
 				holding = nil
+				lastAt = nil
 				pcall(spec.Hold :: any, false)
 			end
 		end
 		button.InputEnded:Connect(release)
 		-- (si el dedo sale del botón, InputEnded llega igual a UserInputService)
 		UserInputService.InputEnded:Connect(release)
+		-- Arrastrar el dedo que mantiene el botón (Disparar: gira la cámara sin soltar el gatillo)
+		if spec.Drag then
+			UserInputService.InputChanged:Connect(function(input)
+				if holding ~= nil and input == holding and typeof(input.Position) == "Vector3" then
+					local at = input.Position
+					local from = lastAt or at
+					lastAt = at
+					local delta = Vector2.new(at.X - from.X, at.Y - from.Y)
+					if delta.Magnitude > 0 then
+						pcall(spec.Drag :: any, delta)
+					end
+				end
+			end)
+		end
 	end
 	return { Button = button, Label = label, Icon = icon, Badge = badge, Stroke = stroke, Fill = fill, Meter = meter, MeterFill = meterFill, Tint = spec.Tint }
 end
@@ -406,7 +542,8 @@ function TouchLayout.refresh()
 	local captions: { [string]: boolean } = {}
 	for _, spec in visible do
 		local caption = labels[spec.Id] or spec.Label
-		if captions[caption] then
+		-- (Twin: el segundo Disparar de la izquierda dice lo mismo que el grande a propósito)
+		if captions[caption] and not (spec :: any).Twin then
 			continue
 		end
 		captions[caption] = true
@@ -488,6 +625,11 @@ function placeButton(id: string, slot: string?, slots: { [string]: any })
 			view.Badge.Visible = type(badge) == "string" and badge ~= ""
 			if view.Badge.Visible then
 				Theme.setText(view.Badge, badge)
+				-- (las balas «12/90» necesitan una pastilla más ancha que un número)
+				if spec.Shape ~= "Side" then
+					local long = (utf8.len(badge) or #badge) > 3
+					view.Badge.Size = if long then UDim2.fromScale(0.9, 0.26) else UDim2.fromScale(0.42, 0.26)
+				end
 			end
 			Theme.setText(view.Label, labels[id] or spec.Label)
 		end

@@ -350,7 +350,12 @@ function Actions.init()
 	local function onFoot(): boolean
 		return player:GetAttribute("LifeStage") ~= "Bebe" and not busy() and not TouchLayout.riding()
 	end
-	TouchLayout.register({ Id = "Gestos", Icon = "gestos", Label = "Gestos", Slot = "Gestos", Priority = 7, Visible = onFoot, Callback = Actions.openEmotes })
+	-- Móvil: Gestos y Foto no van en el racimo (docs/referencias/hud-movil-botones.jpg): son apps del
+	-- ValPhone (botón Teléfono). En el ordenador siguen en la lista de teclas.
+	local function onFootKeys(): boolean
+		return onFoot() and not TouchLayout.isTouch()
+	end
+	TouchLayout.register({ Id = "Gestos", Icon = "gestos", Label = "Gestos", Slot = "Gestos", Priority = 7, Visible = onFootKeys, Callback = Actions.openEmotes })
 	-- Linterna: de noche o bajo techo (o si ya la llevas encendida, para poder apagarla)
 	TouchLayout.register({
 		Id = "Linterna", Icon = "linterna", Label = "Linterna", Priority = 20, Key = "L", Pad = "R3",
@@ -366,7 +371,10 @@ function Actions.init()
 	})
 	TouchLayout.register({
 		Id = "Foto", Icon = "camara", Label = "Foto", Priority = 40, Key = "P", Pad = "LT",
-		Visible = onFoot,
+		-- (en el móvil, mientras haces la foto el botón sigue a mano para salir)
+		Visible = function()
+			return onFootKeys() or (photo and onFoot())
+		end,
 		Callback = function()
 			setPhoto(not photo)
 		end,
@@ -398,6 +406,10 @@ function Actions.init()
 		return Enum.ContextActionResult.Pass
 	end, false, Enum.KeyCode.F, Enum.KeyCode.ButtonB) -- (B: la pista del mando dice "B")
 	Hud.addButton("😀 Gestos", Color3.fromRGB(200, 140, 20), 4, Actions.openEmotes)
+	-- La cámara de fotos, como app del ValPhone (en el móvil ya no es un botón suelto)
+	Hud.addButton("📷 Foto", Color3.fromRGB(90, 90, 110), 4.25, function()
+		setPhoto(not photo)
+	end)
 	local _ = gui
 
 	-- Cada personaje nuevo empieza sin animaciones cargadas
