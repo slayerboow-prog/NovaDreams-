@@ -751,6 +751,15 @@ local function impact(stone: Stone, result: RaycastResult, velocity: Vector3)
 	end
 	if part:IsA("BasePart") then
 		local model, victim = personOf(part)
+		if model and model:GetAttribute("MissionEnemy") ~= nil then
+			-- Un enemigo de tu misión (una cucaracha…): la piedra le quita vida (DamageService)
+			pcall(function()
+				local DamageService = require(script.Parent.DamageService) :: any
+				DamageService.apply(stone.Player, model, nil, "Stone", part, { At = result.Position, Direction = velocity.Unit })
+			end)
+			sound(result.Position, "rbxasset://sounds/collide.wav", 0.5, 1.3)
+			return
+		end
 		if victim then
 			Notify:FireClient(victim, "Error", "🥌 ¡Te han tirado una piedra!")
 		elseif model and model:FindFirstChild("Head") then

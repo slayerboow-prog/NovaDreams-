@@ -754,7 +754,7 @@ local function damageNumber(model: Model, amount: number, blocked: boolean, heav
 		Text = if shot then (if zone == "Head" then "✦" else "") .. tostring(amount) else (if blocked then "🛡 " else "") .. "-" .. tostring(amount),
 		TextSize = if shot and zone == "Head" then 32 elseif heavy then 30 else 24,
 		TextColor3 = if blocked then rgb(160, 200, 255)
-			elseif shot and zone == "Head" then rgb(255, 90, 70)
+			elseif shot and zone == "Head" then rgb(255, 220, 60)
 			elseif shot then rgb(255, 255, 255)
 			elseif heavy then rgb(255, 120, 60)
 			else rgb(255, 230, 90),
@@ -803,7 +803,9 @@ local function showKnockOut(on: boolean)
 		koGui:Destroy()
 		koGui = nil
 	end
-	if not on then
+	-- Sin vida (Fallen): la pantalla es la de HAS CAÍDO EN COMBATE (Controllers/DeathUI); esta, solo el
+	-- K.O. del táser
+	if not on or player:GetAttribute("Fallen") ~= nil then
 		return
 	end
 	local gui = create("ScreenGui", { Name = "KnockOut", ResetOnSpawn = true, IgnoreGuiInset = true, DisplayOrder = 8, Parent = player:WaitForChild("PlayerGui") })

@@ -42,6 +42,8 @@ local MiniGameService = require(script.Parent.MiniGameService)
 local DataService = require(script.Parent.DataService)
 local TesterService = require(script.Parent.TesterService)
 local PoliceUnits = require(script.Parent.Parent.World.PoliceUnits)
+local DamageService = require(script.Parent.DamageService) -- el daño por puntos (enemigos de misión)
+local EnemyStats = require(ReplicatedStorage.Shared.EnemyStats)
 
 local CombatService = {}
 
@@ -174,8 +176,8 @@ local function canFight(player: Player): boolean
 	if stage and not Stages.inRange(stage, Combat.MinStage, nil) then
 		return false
 	end
-	if player:GetAttribute("InDialogue") or player:GetAttribute("Training") then
-		return false -- (en una conversación o entrenando en el gimnasio no se pelea)
+	if player:GetAttribute("InDialogue") or player:GetAttribute("Training") or player:GetAttribute("Fallen") == "Mission" then
+		return false -- (en una conversación, entrenando en el gimnasio o caído en un combate de misión no se pelea)
 	end
 	local okClass, inClass = pcall(ClassService.isRunning, player)
 	local okGame, inGame = pcall(MiniGameService.isRunning, player)
@@ -202,22 +204,23 @@ local function npcBelongsTo(model: Model, player: Player): boolean
 end
 
 -- Enemigos de un combate de misión (SceneService les pone MissionEnemy): un disparo (también la
--- pistola de agua) o un golpe les cuenta como impacto de la misión (LifeStoryService pone el gancho
--- CombatService.missionHit) en vez de quitarles vida. Devuelve nil si no es un enemigo de misión,
--- true si el impacto cuenta y false si no (es de otro jugador o ya no está en combate).
-local function missionTarget(attacker: Player?, model: Model): boolean?
+-- pistola de agua contra los «de juguete»), un golpe o un poder les quita VIDA por puntos con
+-- DamageService (la función central del daño; la vida la lleva la misión: LifeStoryService).
+-- Devuelve nil si no es un enemigo de misión, true si el daño cuenta y false si no (es de otro
+-- jugador, ya ha caído o ya no está en combate); y el resultado de DamageService.
+local function missionTarget(attacker: Player?, model: Model, kind: string?, amount: number?, info: { [string]: any }?): (boolean?, { [string]: any }?)
 	if model:GetAttribute("MissionEnemy") == nil then
-		return nil
+		return nil, nil
 	end
 	if not attacker or not npcBelongsTo(model, attacker) then
-		return false
+		return false, nil
 	end
-	local hook = (CombatService :: any).missionHit
-	if not hook then
-		return false
+	local ok, result = pcall(DamageService.apply, attacker, model, amount or 0, kind or "Attack", nil, info)
+	if not ok then
+		warn("[Combate] " .. tostring(result))
+		return false, nil
 	end
-	local ok, counted = pcall(hook, attacker, model)
-	return ok and counted == true
+	return result.Hit == true, result
 end
 CombatService.missionTarget = missionTarget
 
@@ -279,10 +282,18 @@ local function knockOut(victim: Player, humanoid: Humanoid, seconds: number?)
 	state.Stunned = seconds ~= nil
 	setBlocking(state, false)
 	setCharging(state, false)
+	-- Sin vida (no el táser): «HAS CAÍDO EN COMBATE» (Controllers/DeathUI). Te levantas a los
+	-- KOSeconds con parte de la vida… salvo que alguien te remate (muerte y hospital)
+	if seconds == nil then
+		victim:SetAttribute("Fallen", "Combat")
+	end
 	victim:SetAttribute("KO", true)
 	StoryEvents.emit(victim, "KnockedOut", {})
 	task.delay(duration, function()
 		if victim.Parent and os.clock() >= state.KOUntil - 0.05 then
+			if victim:GetAttribute("Fallen") == "Combat" then
+				victim:SetAttribute("Fallen", nil)
+			end
 			victim:SetAttribute("KO", nil)
 		end
 		if humanoid.Parent and humanoid.Health > 0 then
@@ -411,9 +422,14 @@ local function hitModel(att: State, attModel: Model, attRoot: BasePart, model: M
 	if not targetHumanoid or targetHumanoid.Health <= 0 or not targetRoot or model == attModel then
 		return false
 	end
-	local mission = missionTarget(att.Player, model)
-	if mission ~= nil then
-		return mission -- (un enemigo de misión: el golpe cuenta en la misión, no le quita vida)
+	if model:GetAttribute("MissionEnemy") ~= nil then
+		-- Un enemigo de misión: le quita vida por puntos (cuerpo a cuerpo: EnemyStats.Sources; un
+		-- poder: su daño). DamageService decide; el número y la barra los pinta el cliente que pega.
+		local heavyMove = move.Heavy == true or move.Energy == true
+		local kind = if o.Power then "Power" elseif heavyMove then "MeleeHeavy" else "Melee"
+		local amount = if o.Power then (o.Amount or EnemyStats.Sources.MeleeHeavy) * att.DamageMul else nil
+		local counted = missionTarget(att.Player, model, kind, amount, { At = o.At, Direction = direction })
+		return counted == true
 	end
 	local attPlayer = att.Player
 	local ref = refOf(att)
@@ -1176,10 +1192,15 @@ function CombatService.applyHit(attacker: Player, model: Model, info: HitInfo): 
 	if not targetHumanoid or targetHumanoid.Health <= 0 or not targetRoot or model == attacker.Character then
 		return none
 	end
-	local mission = missionTarget(attacker, model)
-	if mission ~= nil then
-		-- Un enemigo de misión (las cucarachas, Petra…): cada disparo cuenta como impacto de la misión
-		return if mission then { Hit = true, Amount = 0, KO = false, Killed = false, Player = nil } else none
+	if model:GetAttribute("MissionEnemy") ~= nil then
+		-- Un enemigo de misión (las cucarachas, Petra…): cada bala le quita su daño (cabeza, miembros y
+		-- distancia ya van en info.Amount); las de juguete, solo a los enemigos «de juguete»
+		local kind = if info.Toy then "Toy" else "Bullet"
+		local counted, result = missionTarget(attacker, model, kind, info.Amount, { Zone = info.Zone, At = info.At, Weapon = info.Weapon, Direction = info.Direction })
+		if counted and result then
+			return { Hit = true, Amount = result.Amount or 0, KO = result.Down == true, Killed = false, Player = nil }
+		end
+		return none
 	end
 	local victim = Players:GetPlayerFromCharacter(model)
 	local heavy = info.Heavy == true
@@ -1330,6 +1351,11 @@ function CombatService.registerFighter(model: Model, opts: { DamageMul: number?,
 	state.DamageMul = (opts and opts.DamageMul) or 1
 	npcStates[model] = state
 	publishBars(state)
+	-- Su barra de vida (Controllers/HealthBars) la ve solo quien pelea con él
+	pcall(function()
+		model:SetAttribute("CombatOwner", state.OwnerId)
+		model:AddTag("HostileNpc")
+	end)
 	return state
 end
 
@@ -1455,6 +1481,7 @@ function CombatService.init()
 			setBlocking(state, false)
 			setCharging(state, false)
 			player:SetAttribute("KO", nil)
+			player:SetAttribute("Fallen", nil)
 			player:SetAttribute("Blocking", nil)
 			publishBars(state)
 		end)

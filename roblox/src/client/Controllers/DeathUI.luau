@@ -1,6 +1,10 @@
 -- DeathUI (cliente): la pantalla de HAS MUERTO y el aviso al despertar en el hospital
 -- (HospitalService). La pantalla se tiñe de rojo, sale la cuenta atrás y, al reaparecer,
 -- se aclara con el aviso de la factura.
+-- También la de HAS CAÍDO EN COMBATE (atributo Fallen del jugador, lo pone el servidor: CombatService
+-- al quedarte sin vida en una pelea, DamageService en un combate de misión): en el suelo unos
+-- segundos; en una pelea te levantas (o, si te rematan, HAS MUERTO y al hospital); en una misión,
+-- el combate vuelve a empezar desde el principio del paso.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -9,6 +13,8 @@ local TweenService = game:GetService("TweenService")
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Hud = require(script.Parent.Parent.UI.Hud)
 local Format = require(ReplicatedStorage.Shared.Format)
+local Combat = require(ReplicatedStorage.Shared.Combat)
+local EnemyStats = require(ReplicatedStorage.Shared.EnemyStats)
 
 local DeathUI = {}
 
@@ -22,9 +28,14 @@ local title: TextLabel
 local subtitle: TextLabel
 local showing = 0
 
+local DEAD_TITLE = "HAS MUERTO"
+local FALLEN_TITLE = "HAS CAÍDO EN COMBATE"
+
 local function show(seconds: number, jailed: boolean)
 	showing += 1
 	local id = showing
+	title.Text = DEAD_TITLE
+	title.TextColor3 = rgb(230, 40, 40)
 	gui.Enabled = true
 	shade.BackgroundTransparency = 1
 	title.TextTransparency = 1
@@ -42,6 +53,30 @@ local function show(seconds: number, jailed: boolean)
 		end
 		subtitle.Text = ("Despertarás %s en %d…"):format(place, left)
 		task.wait(1)
+	end
+end
+
+-- Caído en combate: más suave que HAS MUERTO (no es morir) y con su cuenta atrás
+local function showFallen(how: string)
+	showing += 1
+	local id = showing
+	title.Text = FALLEN_TITLE
+	title.TextColor3 = rgb(255, 150, 90)
+	gui.Enabled = true
+	shade.BackgroundTransparency = 1
+	title.TextTransparency = 1
+	subtitle.TextTransparency = 1
+	TweenService:Create(shade, TweenInfo.new(0.6), { BackgroundTransparency = 0.5 }):Play()
+	TweenService:Create(title, TweenInfo.new(0.5), { TextTransparency = 0 }):Play()
+	TweenService:Create(subtitle, TweenInfo.new(0.5), { TextTransparency = 0 }):Play()
+	local scale = title:FindFirstChildOfClass("UIScale") :: UIScale
+	scale.Scale = 1.2
+	TweenService:Create(scale, TweenInfo.new(0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Scale = 1 }):Play()
+	local mission = how == "Mission"
+	local left = if mission then EnemyStats.PlayerFallSeconds else Combat.KOSeconds
+	while left > 0 and showing == id do
+		subtitle.Text = if mission then ("El combate vuelve a empezar en %d…"):format(math.ceil(left)) else ("Te levantarás en %d…"):format(math.ceil(left))
+		left -= task.wait(0.2)
 	end
 end
 
@@ -86,6 +121,21 @@ function DeathUI.init()
 		TextXAlignment = Enum.TextXAlignment.Center,
 		Parent = gui,
 	})
+
+	-- Caer en combate (el servidor pone y quita el atributo Fallen)
+	local fallenShown = false
+	player:GetAttributeChangedSignal("Fallen"):Connect(function()
+		local how = player:GetAttribute("Fallen")
+		if type(how) == "string" then
+			fallenShown = true
+			task.spawn(showFallen, how)
+		elseif fallenShown then
+			fallenShown = false
+			if title.Text == FALLEN_TITLE then
+				hide()
+			end
+		end
+	end)
 
 	local remote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Hospital", 30) :: RemoteEvent?
 	if not remote then

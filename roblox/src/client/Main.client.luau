@@ -77,6 +77,7 @@ local CombatController = require(script.Parent.Controllers.CombatController)
 local WeaponController = require(script.Parent.Controllers.WeaponController)
 local WantedUI = require(script.Parent.Controllers.WantedUI)
 local DeathUI = require(script.Parent.Controllers.DeathUI)
+local HealthBars = require(script.Parent.Controllers.HealthBars)
 local InstitutionsUI = require(script.Parent.Controllers.InstitutionsUI)
 local InteriorUI = require(script.Parent.Controllers.InteriorUI)
 local EconomyUI = require(script.Parent.Controllers.EconomyUI)
@@ -225,7 +226,8 @@ task.spawn(Actions.init) -- gestos y bailes, linterna (L) y modo foto (P)
 task.spawn(CombatController.init) -- pelear: combos de ligeros y fuertes con sus finales, guardia, esquivar/desvanecerse, fijar, poderes de la Grieta
 task.spawn(WeaponController.init) -- armas: clic dcho/LT apuntar, clic/RT disparar, R recargar; Armerías y licencia
 task.spawn(WantedUI.init) -- estrellas de búsqueda bajo el reloj, avisos de delito, DETENIDO y hélices
-task.spawn(DeathUI.init) -- pantalla de HAS MUERTO y despertar en el hospital
+task.spawn(DeathUI.init) -- pantallas de HAS MUERTO (hospital) y HAS CAÍDO EN COMBATE
+task.spawn(HealthBars.init) -- daño por puntos: barras de vida de los enemigos, números flotantes y borde rojo al recibir daño
 -- Versión nueva del juego: aviso antes de pasar a un servidor nuevo (UpdateService)
 task.spawn(function()
 	local remote = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Update", 60) :: RemoteEvent?

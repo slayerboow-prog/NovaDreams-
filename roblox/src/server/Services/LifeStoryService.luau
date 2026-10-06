@@ -73,6 +73,8 @@ local Strings = require(LifeStory.Strings)
 local SafeGround = require(ReplicatedStorage.Shared.SafeGround)
 local Items = require(ReplicatedStorage.Shared.Items)
 local MissionCombat = require(ReplicatedStorage.Shared.MissionCombat)
+local EnemyStats = require(ReplicatedStorage.Shared.EnemyStats)
+local DamageService = require(script.Parent.DamageService)
 
 local LifeStoryService = {}
 
@@ -110,8 +112,9 @@ type Progress = {
 	Step: number,
 	Count: number,
 	Sub: { [string]: boolean }?,
-	Hits: { [string]: number }?, -- (Fight) impactos a cada enemigo
+	Hp: { [string]: number }?, -- (Fight) vida (puntos) que le queda a cada enemigo (shared/EnemyStats)
 	Caught: number?, -- (Escape/Fight) cuántas veces te han atrapado en este paso
+	Retries: number?, -- (Fight) cuántas veces has caído en este combate y ha vuelto a empezar
 	WaitUntil: number?,
 	Started: number,
 	Kind: string,
@@ -1273,6 +1276,9 @@ local function sceneFor(player: Player, data: Data, questId: string): ({ { [stri
 					spec.Enemy = true
 					spec.Prompt = false
 					spec.Place = spec.Place or step.Place
+					-- Vida por puntos: el modelo la lleva en EnemyHealth / EnemyMaxHealth (su barra)
+					spec.MaxHealth = EnemyStats.maxHealth(enemy, step)
+					spec.Health = if prog.Hp and type(prog.Hp[enemy.Npc]) == "number" then prog.Hp[enemy.Npc] else spec.MaxHealth
 					table.insert(enemies, spec)
 				end
 			end
@@ -1570,7 +1576,7 @@ end
 
 -- Un impacto a un enemigo, con el ritmo máximo de MissionCombat (la pistola de agua dispara 8 veces por
 -- segundo: no puede tumbar a nadie en un parpadeo)
-local function strike(player: Player, data: Data, questId: string, prog: Progress, step: { [string]: any }, enemy: { [string]: any }): boolean
+local function strike(player: Player, data: Data, questId: string, prog: Progress, step: { [string]: any }, enemy: { [string]: any }, kind: string?): boolean
 	local rt = runtime[player]
 	if not rt then
 		return false
@@ -1578,7 +1584,12 @@ local function strike(player: Player, data: Data, questId: string, prog: Progres
 	local now = os.clock()
 	if MissionCombat.ready(rt.LastHit, now) then
 		rt.LastHit = now
-		hitEnemy(player, data, questId, prog, step, enemy)
+		local how = kind or "Attack"
+		local counted, dealt, health, max, down, immune = hitEnemy(player, data, questId, prog, step, enemy, how, EnemyStats.Sources[how] or EnemyStats.HitDamage, {})
+		if counted then
+			-- El número que sale encima (Controllers/HealthBars): como cualquier otro daño
+			DamageService.notify(player, SceneService.actorOf(player, enemy.Npc), { Amount = dealt, Health = health, Max = max, Down = down, Immune = immune, Kind = how })
+		end
 	end
 	return true
 end
@@ -1602,7 +1613,7 @@ function LifeStoryService.useWeapon(player: Player, itemId: string): boolean
 		notifyPlayer(player, "Info", "Acércate más para disparar.")
 		return true
 	end
-	strike(player, data, questId, prog, step, best)
+	strike(player, data, questId, prog, step, best, "Gadget")
 	return true
 end
 
@@ -1610,7 +1621,7 @@ end
 -- del combate en el que estás. Devuelve false si no estás en ningún combate o no hay nadie a tiro.
 function LifeStoryService.missionAttack(player: Player): boolean
 	local data = DataService.get(player)
-	if not data or not runtime[player] or busy(player) or player:GetAttribute("Dead") then
+	if not data or not runtime[player] or busy(player) or player:GetAttribute("Dead") or player:GetAttribute("Fallen") then
 		return false
 	end
 	local story = storyOf(data)
@@ -1625,8 +1636,9 @@ function LifeStoryService.missionAttack(player: Player): boolean
 	return strike(player, data, questId, prog, step, best)
 end
 
--- Un disparo o un golpe que le ha tocado a un enemigo de misión (lo avisa CombatService)
-function LifeStoryService.hitModel(player: Player, model: Model): boolean
+-- Daño a un enemigo de misión (lo manda DamageService: balas, golpes, poderes, piedras). Devuelve
+-- (cuenta, daño hecho, vida que le queda, vida máxima, ¿ha caído?, ¿inmune?)
+function LifeStoryService.enemyHit(player: Player, model: Model, kind: string, amount: number, info: { [string]: any }?): (boolean, number?, number?, number?, boolean?, boolean?)
 	local data = DataService.get(player)
 	if not data or not runtime[player] then
 		return false
@@ -1642,10 +1654,24 @@ function LifeStoryService.hitModel(player: Player, model: Model): boolean
 	end
 	for _, enemy in step.Enemies or {} do
 		if enemy.Npc == npc then
-			return strike(player, data, id, prog, step, enemy)
+			if kind == "Attack" or kind == "Gadget" then
+				-- (el botón tiene su ritmo máximo, como siempre)
+				local rt = runtime[player]
+				local now = os.clock()
+				if not MissionCombat.ready(rt.LastHit, now) then
+					return false
+				end
+				rt.LastHit = now
+			end
+			return hitEnemy(player, data, id, prog, step, enemy, kind, amount, info or {})
 		end
 	end
 	return false
+end
+
+-- (de antes) Un impacto del botón de atacar a un enemigo de misión
+function LifeStoryService.hitModel(player: Player, model: Model): boolean
+	return (LifeStoryService.enemyHit(player, model, "Attack", EnemyStats.Sources.Attack, {}))
 end
 
 -- Ayuda al apuntar (móvil): el enemigo de pie por el que pasa cerca un disparo
@@ -1727,7 +1753,7 @@ local function enterStep(player: Player, data: Data, questId: string)
 		end
 		prog.Count = 0
 		prog.Sub = nil
-		prog.Hits = nil
+		prog.Hp = nil
 		prog.WaitUntil = nil
 		prog.Chatted = nil -- con quién se ha charlado ya en este paso (no se repite la conversación)
 		prog.DlgApplied = nil -- efectos de conversaciones ya aplicados en este paso
@@ -1793,7 +1819,7 @@ local function enterStep(player: Player, data: Data, questId: string)
 			prog.Sub = {}
 		elseif step.Type == "Fight" then
 			prog.Sub = {}
-			prog.Hits = {}
+			prog.Hp = {}
 			returnLoans(player, data)
 			ensureWeapon(player, data, questId, prog, step, true)
 		elseif step.Type == "Choice" then
@@ -3233,13 +3259,32 @@ local function tickPlayer(player: Player, data: Data)
 			if step.Type == "Fight" then
 				ensureWeapon(player, data, questId, prog, step)
 			end
-			if not busy and (not rt.CaughtAt or os.clock() - rt.CaughtAt > SafeGround.CatchCooldown) then
+			local fallen = player:GetAttribute("Fallen") ~= nil
+			if not busy and not fallen and (not rt.CaughtAt or os.clock() - rt.CaughtAt > SafeGround.CatchCooldown) then
 				local by = SceneService.caught(player, questId, step.Catch or 3.5)
 				if by then
 					rt.CaughtAt = os.clock()
 					prog.Caught = (prog.Caught or 0) + 1
 					DialogueService.bark(player, by, step.CaughtLine or "¡Te tengo!")
-					notifyPlayer(player, "Info", if step.Type == "Escape" then "¡Te ha pillado! Vuelves a empezar la huida." else "¡Te ha pillado! Aléjate un poco y vuelve a intentarlo.")
+					-- En un combate, el que te atrapa te quita vida (su daño: shared/EnemyStats); sin vida,
+					-- caes en combate y el paso vuelve a empezar (fightFell)
+					local hurt, fell = 0, false
+					if step.Type == "Fight" then
+						for _, enemy in step.Enemies or {} do
+							if enemy.Npc == by then
+								hurt = EnemyStats.damageToPlayer(enemy)
+							end
+						end
+						if hurt > 0 then
+							local okHurt, down = pcall(DamageService.hurtPlayer, player, hurt)
+							fell = okHurt and down == true
+						end
+					end
+					if not fell then -- (si has caído, ya lo dice fightFell)
+						notifyPlayer(player, "Info", if step.Type == "Escape" then "¡Te ha pillado! Vuelves a empezar la huida."
+							elseif hurt > 0 then ("¡Te ha pillado! −%d ❤️ Aléjate un poco y vuelve a intentarlo."):format(hurt)
+							else "¡Te ha pillado! Aléjate un poco y vuelve a intentarlo.")
+					end
 					SceneService.catch(player, questId, by, if step.Type == "Escape" then step.Respawn else nil)
 					if step.Type == "Escape" then
 						rt.StepStart[questId] = os.clock()
@@ -3553,26 +3598,58 @@ function LifeStoryService.Guard.bark(rt: { [string]: any }, npc: string, now: nu
 end
 
 -- El jugador ha hablado con un actor o usado un objeto de una escena (lo avisa SceneService)
--- Un golpe (rayo, globo de agua, lo que diga la misión) a un enemigo del combate
-function hitEnemy(player: Player, data: Data, questId: string, prog: Progress, step: { [string]: any }, enemy: { [string]: any })
-	local hits = prog.Hits or {}
-	prog.Hits = hits
-	hits[enemy.Npc] = (hits[enemy.Npc] or 0) + 1
-	local hp = enemy.HP or step.HP or 3
-	-- Shrink = 0.4: el rayo encogedor lo deja en el 40 % de su tamaño en el último disparo
-	local shrinkTo = if enemy.Shrink then (enemy.Scale or 1) * (1 - (1 - enemy.Shrink) * math.min(hits[enemy.Npc], hp) / hp) else nil
-	SceneService.hit(player, questId, enemy.Npc, step.BeamColor, shrinkTo)
-	if hits[enemy.Npc] < hp then
-		if enemy.Hurt and hits[enemy.Npc] == 1 then
+-- Daño por puntos a un enemigo del combate (rayo, globo de agua, bala, golpe, piedra…). La vida va
+-- en prog.Hp (se guarda con la misión) y en los atributos del modelo (su barra de vida). A los 0
+-- puntos CAE: se cae al suelo y se desvanece (SceneService.defeat) y cuenta para el paso; cuando
+-- caen todos, el paso está hecho. Devuelve (cuenta, daño hecho, vida, vida máxima, caído, inmune).
+local function setEnemyHealth(player: Player, npc: string, health: number, max: number)
+	pcall(function()
+		local model = SceneService.actorOf(player, npc)
+		if model and (model :: any).SetAttribute then
+			model:SetAttribute("EnemyMaxHealth", max)
+			model:SetAttribute("EnemyHealth", health)
+		end
+	end)
+end
+
+function hitEnemy(player: Player, data: Data, questId: string, prog: Progress, step: { [string]: any }, enemy: { [string]: any }, kind: string?, amount: number?, info: { [string]: any }?): (boolean, number?, number?, number?, boolean?, boolean?)
+	local how = kind or "Attack"
+	local max = EnemyStats.maxHealth(enemy, step)
+	local hp = prog.Hp or {}
+	prog.Hp = hp
+	local before = if type(hp[enemy.Npc]) == "number" then hp[enemy.Npc] else max
+	if before <= 0 or (prog.Sub and prog.Sub[enemy.Npc]) then
+		return false
+	end
+	local dealt, immune = EnemyStats.damageFrom(how, amount, info and info.Weapon, EnemyStats.toyHurts(enemy))
+	if dealt <= 0 then
+		-- (el agua no le hace nada a un robot: se ve, pero no quita vida)
+		return true, 0, before, max, false, immune
+	end
+	local after, down = EnemyStats.apply(before, dealt)
+	hp[enemy.Npc] = after
+	-- Shrink = 0.4: el rayo encogedor lo deja en el 40 % de su tamaño cuando cae
+	local shrinkTo = if enemy.Shrink then (enemy.Scale or 1) * (1 - (1 - enemy.Shrink) * EnemyStats.lost(after, max)) else nil
+	-- (el rayo desde la mano solo con el botón de la misión o su arma; las balas y los golpes ya se ven)
+	SceneService.hit(player, questId, enemy.Npc, step.BeamColor, shrinkTo, { Beam = how == "Attack" or how == "Gadget" })
+	setEnemyHealth(player, enemy.Npc, after, max)
+	if not down then
+		if enemy.Hurt and before >= max then
 			DialogueService.bark(player, enemy.Npc, enemy.Hurt)
 		end
-		return
+		return true, dealt, after, max, false, false
 	end
 	local sub = prog.Sub or {}
 	prog.Sub = sub
 	sub[enemy.Npc] = true
 	prog.Count += 1
-	SceneService.defeat(player, questId, enemy.Npc, if enemy.Shrink then "Shrink" else nil)
+	pcall(function()
+		local model = SceneService.actorOf(player, enemy.Npc)
+		if model and (model :: any).SetAttribute then
+			model:SetAttribute("EnemyDown", true)
+		end
+	end)
+	SceneService.defeat(player, questId, enemy.Npc, if enemy.Shrink then "Shrink" else "Fall")
 	if enemy.Bye then
 		DialogueService.bark(player, enemy.Npc, enemy.Bye)
 	end
@@ -3582,6 +3659,65 @@ function hitEnemy(player: Player, data: Data, questId: string, prog: Progress, s
 	else
 		publish(player)
 	end
+	return true, dealt, after, max, true, false
+end
+
+---------------------------------------------------------------------
+-- Caer en combate (misión): te quedas sin vida -> en el suelo unos segundos (pantalla «HAS CAÍDO
+-- EN COMBATE») y el combate vuelve a empezar desde el principio del paso, sin perder la misión:
+-- los enemigos vuelven con la vida entera y tú con la tuya, en el sitio de salida del combate.
+---------------------------------------------------------------------
+function LifeStoryService.retryFight(player: Player, data: Data, questId: string)
+	local story = storyOf(data)
+	local prog = story.Active[questId]
+	local step = prog and stepsOf(questId, prog)[prog.Step]
+	if not prog or not step or step.Type ~= "Fight" then
+		return
+	end
+	prog.Sub = {}
+	prog.Hp = {}
+	prog.Count = 0
+	prog.Retries = (prog.Retries or 0) + 1
+	local rt = runtime[player]
+	if rt then
+		rt.StepStart[questId] = os.clock()
+		rt.CaughtAt = os.clock()
+	end
+	for _, enemy in step.Enemies or {} do
+		local max = EnemyStats.maxHealth(enemy, step)
+		setEnemyHealth(player, enemy.Npc, max, max)
+	end
+	updateScene(player, data, questId) -- (los que habían caído vuelven)
+	if step.Respawn or step.Place then
+		LifeStoryService.teleportStep(player, step.Respawn or step.Place)
+	end
+	ensureWeapon(player, data, questId, prog, step)
+	notifyPlayer(player, "Info", "🔁 ¡Otra vez! El combate vuelve a empezar.")
+	notify("FightRetry", player, questId, { Step = prog.Step, Type = "Fight" })
+	StoryEvents.emit(player, "FightRetry", { Quest = questId })
+	publish(player)
+end
+
+-- (DamageService) Has caído en combate: si es el de una misión, se reintenta el paso al levantarte
+function LifeStoryService.fightFell(player: Player)
+	local data = DataService.get(player)
+	local questId, prog = nil, nil
+	if data then
+		questId, prog = fightOf(storyOf(data), nil)
+	end
+	local stepIndex = prog and prog.Step
+	notifyPlayer(player, "Error", if questId then "💫 Has caído en combate. Vuelves a intentarlo enseguida…" else "💫 Has caído en combate.")
+	task.delay(EnemyStats.PlayerFallSeconds, function()
+		if not player.Parent then
+			return
+		end
+		DamageService.getUp(player, true)
+		local current = DataService.get(player)
+		local now = current and questId and storyOf(current).Active[questId]
+		if current and questId and now and now.Step == stepIndex then
+			LifeStoryService.retryFight(player, current, questId)
+		end
+	end)
 end
 
 -- La hora que pide el texto de una transición (o nil si no dice ninguna)
@@ -3623,7 +3759,7 @@ end
 function LifeStoryService.interact(player: Player, kind: string, questId: string, id: string)
 	local data = DataService.get(player)
 	local rt = runtime[player]
-	if not data or not rt or busy(player) or player:GetAttribute("Dead") then
+	if not data or not rt or busy(player) or player:GetAttribute("Dead") or player:GetAttribute("Fallen") then
 		return
 	end
 	local story = storyOf(data)
@@ -4204,8 +4340,13 @@ function LifeStoryService.init()
 	-- Disparos (también la pistola de agua) y golpes a un enemigo de misión cuentan en el combate
 	pcall(function()
 		local CombatService = require(script.Parent.CombatService) :: any
-		CombatService.missionHit = LifeStoryService.hitModel
 		CombatService.missionAim = LifeStoryService.aimAssist
+	end)
+	-- El daño por puntos (DamageService): la vida de los enemigos la lleva la misión; si caes en un
+	-- combate de misión, se reintenta el paso
+	pcall(function()
+		DamageService.enemyHit = LifeStoryService.enemyHit
+		DamageService.playerFell = LifeStoryService.fightFell
 	end)
 	-- Frases sueltas: el bocadillo sale encima del actor de tu escena
 	DialogueService.setActorFinder(function(player, npc)

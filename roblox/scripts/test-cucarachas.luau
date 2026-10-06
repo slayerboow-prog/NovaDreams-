@@ -331,10 +331,11 @@ local story = read("src/server/Services/LifeStoryService.luau")
 check(string.find(scene, "MissionCombat.wantsPrompt(spec)", 1, true) ~= nil, "SceneService: el cartel solo si MissionCombat.wantsPrompt (nunca en un enemigo)")
 check(string.find(story, "spec.Enemy = true", 1, true) ~= nil and string.find(story, "spec.Prompt = false", 1, true) ~= nil, "LifeStoryService: los enemigos de un paso Fight van sin cartel")
 check(string.find(detector, "MissionCombat.blocksPrompt(instance)", 1, true) ~= nil and string.find(detector, "not MissionCombat.blocksPrompt(prompt)", 1, true) ~= nil, "El botón de Interactuar nunca ofrece a un enemigo")
-check(string.find(combat, "local mission = missionTarget(attacker, model)", 1, true) ~= nil and string.find(combat, "local mission = missionTarget(att.Player, model)", 1, true) ~= nil, "Disparos y golpes a un enemigo de misión cuentan en el combate (CombatService)")
+check(string.find(combat, "missionTarget(attacker, model, kind, info.Amount", 1, true) ~= nil and string.find(combat, "missionTarget(att.Player, model, kind, amount", 1, true) ~= nil
+	and string.find(combat, "pcall(DamageService.apply, attacker, model", 1, true) ~= nil, "Disparos y golpes a un enemigo de misión le quitan vida por puntos (CombatService -> DamageService)")
 check(string.find(weapon, "missionAim", 1, true) ~= nil, "Las armas (también la pistola de agua) tienen ayuda al apuntar a los enemigos de misión")
 check(string.find(ctrl, 'FireServer("Attack")', 1, true) ~= nil and string.find(ctrl, 'TouchLayout.setLabel("Ataque"', 1, true) ~= nil, "El botón grande de atacar le da al enemigo (y dice «Atacar»)")
-check(string.find(story, 'kind == "Attack"', 1, true) ~= nil and string.find(story, "CombatService.missionHit = LifeStoryService.hitModel", 1, true) ~= nil, "El servidor atiende el botón de atacar y los impactos")
+check(string.find(story, 'kind == "Attack"', 1, true) ~= nil and string.find(story, "DamageService.enemyHit = LifeStoryService.enemyHit", 1, true) ~= nil, "El servidor atiende el botón de atacar y el daño de las balas y los golpes (DamageService)")
 
 ---------------------------------------------------------------------
 print("\n▶ Préstamos idempotentes (InventoryService.ensure)")

@@ -602,13 +602,13 @@ function WeaponService.fire(player: Player, target: any): boolean
 	end
 
 	-- Ayuda al apuntar en un combate de misión (móvil): si el disparo pasa rozando a una cucaracha o a
-	-- Petra, le da (cuenta en la misión: CombatService.missionTarget)
+	-- Petra, le da en el cuerpo (su daño a esa distancia: DamageService le quita la vida)
 	local assist = (CombatService :: any).missionAim
 	if #order == 0 and assist then
 		local okAim, aimedAt = pcall(assist, player, origin, direction, w.Range)
 		if okAim and typeof(aimedAt) == "Instance" and aimedAt:IsA("Model") then
 			local at = aimedAt:GetPivot().Position
-			hitModels[aimedAt] = { Amount = 0, At = at, Zone = "Torso" }
+			hitModels[aimedAt] = { Amount = Weapons.damageAt(w, (at - origin).Magnitude, "Torso"), At = at, Zone = "Torso" }
 			table.insert(order, aimedAt)
 			table.insert(fx, { P = at, K = "Char" })
 		end

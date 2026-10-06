@@ -47,6 +47,7 @@ local GallinaGigante = require(script.Parent.Parent.World.Kit.GallinaGigante) --
 local Cucaracha = require(script.Parent.Parent.World.Kit.Cucaracha) -- las de Crujiente (Cast: Body = "Cucaracha")
 local Platillo = require(script.Parent.Parent.World.Kit.Platillo) -- la nave (objetos Kind = "Nave")
 local MissionCombat = require(ReplicatedStorage.Shared.MissionCombat)
+local EnemyStats = require(ReplicatedStorage.Shared.EnemyStats)
 local RoadGuard = require(script.Parent.Parent.World.RoadGuard) -- no bajar a la calzada si viene alguien
 local Log = require(ReplicatedStorage.Shared.Log)
 local SafeGround = require(ReplicatedStorage.Shared.SafeGround) -- nunca bajo tierra ni dentro de algo
@@ -563,7 +564,7 @@ local function makeActor(player: Player, questId: string, spec: { [string]: any 
 	end
 	-- Enemigo de un combate: se le ataca con el botón de atacar (o el arma), nunca con un cartel de
 	-- «Interactuar» (en el móvil le quitaba el sitio al botón de atacar). MissionCombat lo marca.
-	MissionCombat.mark(model, if spec.Enemy then questId else nil, player.UserId)
+	MissionCombat.mark(model, if spec.Enemy then questId else nil, player.UserId, spec)
 	model.Parent = sceneFolder(player)
 	actor.BaseSpeed = humanoid and humanoid.WalkSpeed or nil
 	attachPrompt(player, questId, actor)
@@ -1743,7 +1744,7 @@ function applySet(player: Player, questId: string, actors: { { [string]: any } }
 	-- Un actor que se queda pero ahora es enemigo (o deja de serlo): marca al día y sin cartel
 	for _, actor in scene.Actors do
 		local enemy = actor.Spec and actor.Spec.Enemy == true
-		MissionCombat.mark(actor.Model, if enemy then questId else nil, player.UserId)
+		MissionCombat.mark(actor.Model, if enemy then questId else nil, player.UserId, actor.Spec)
 		if enemy and actor.Root then
 			for _, child in actor.Root:GetChildren() do
 				if child:IsA("ProximityPrompt") then
@@ -2040,8 +2041,9 @@ function SceneService.catch(player: Player, questId: string, npc: string, where:
 end
 
 -- Un rayo desde tu mano hasta el enemigo: destello, retrocede y se queda aturdido un momento.
--- scale: si se da, el enemigo cambia a ese tamaño (el rayo encogedor: Petra mengua a cada disparo)
-function SceneService.hit(player: Player, questId: string, npc: string, color: Color3?, scale: number?)
+-- scale: si se da, el enemigo cambia a ese tamaño (el rayo encogedor: Petra mengua a cada disparo).
+-- opts.Beam = false: sin rayo (una bala o un golpe ya se ven solos; el destello lo pinta el cliente)
+function SceneService.hit(player: Player, questId: string, npc: string, color: Color3?, scale: number?, opts: { Beam: boolean? }?)
 	local scene = scenes[player] and scenes[player][questId]
 	local actor = scene and scene.Actors[npc]
 	local character = player.Character
@@ -2051,7 +2053,8 @@ function SceneService.hit(player: Player, questId: string, npc: string, color: C
 	end
 	local target = actor.Root.Position + V(0, 1, 0)
 	local beamColor = color or rgb(90, 255, 120)
-	if hand then
+	local withBeam = not (opts and opts.Beam == false)
+	if hand and withBeam then
 		local from = hand.Position
 		local length = (target - from).Magnitude
 		local beam = Instance.new("Part")
@@ -2069,15 +2072,18 @@ function SceneService.hit(player: Player, questId: string, npc: string, color: C
 			beam:Destroy()
 		end)
 	end
-	local flash = Instance.new("Highlight")
-	flash.FillColor = Color3.new(1, 1, 1)
-	flash.FillTransparency = 0.1
-	flash.OutlineTransparency = 1
-	flash.Parent = actor.Model
-	task.delay(0.15, function()
-		flash:Destroy()
-	end)
-	actor.StunnedUntil = os.clock() + 1.2
+	if withBeam then
+		local flash = Instance.new("Highlight")
+		flash.FillColor = Color3.new(1, 1, 1)
+		flash.FillTransparency = 0.1
+		flash.OutlineTransparency = 1
+		flash.Parent = actor.Model
+		task.delay(0.15, function()
+			flash:Destroy()
+		end)
+	end
+	-- Aturdido un momento (las ráfagas no lo dejan quieto para siempre: como mucho 1,2 s seguidos)
+	actor.StunnedUntil = math.max(actor.StunnedUntil or 0, os.clock() + (if withBeam then 1.2 else 0.35))
 	if scale and scale > 0 then
 		pcall(function()
 			-- Encoge sin hundirse ni flotar: los pies se quedan donde estaban
@@ -2093,13 +2099,15 @@ function SceneService.hit(player: Player, questId: string, npc: string, color: C
 	if me and not actor.Root.Anchored then
 		local away = V(actor.Root.Position.X - me.Position.X, 0, actor.Root.Position.Z - me.Position.Z)
 		if away.Magnitude > 0.1 then
-			actor.Model:PivotTo(actor.Model:GetPivot() + away.Unit * 3)
+			actor.Model:PivotTo(actor.Model:GetPivot() + away.Unit * (if withBeam then 3 else 0.8))
 		end
 	end
 end
 
--- Derrotado: chispas, sube flotando y desaparece (vuelve teletransportado a su nave / su dimensión).
--- style = "Shrink": en vez de flotar, se encoge hasta su tamaño de verdad y se va (Petra al gallinero)
+-- Derrotado (ha caído: sin vida): chispas y CAE al suelo de lado; se queda ahí unos segundos
+-- (EnemyStats.FallSeconds) y se desvanece. Sin sangre ni nada feo: solo cae y se va.
+-- style = "Shrink": se encoge hasta su tamaño de verdad y se va (Petra al gallinero)
+-- style = "Float": sube flotando y desaparece (vuelve teletransportado a su nave / su dimensión)
 function SceneService.defeat(player: Player, questId: string, npc: string, style: string?)
 	local scene = scenes[player] and scenes[player][questId]
 	local actor = scene and scene.Actors[npc]
@@ -2127,7 +2135,41 @@ function SceneService.defeat(player: Player, questId: string, npc: string, style
 			prompt.Enabled = false
 		end
 	end
+	model:SetAttribute("EnemyDown", true)
+	model:SetAttribute("EnemyHealth", 0)
 	task.spawn(function()
+		if style ~= "Shrink" and style ~= "Float" then
+			-- Cae de lado (gira sobre los pies) y se queda en el suelo
+			local start = model:GetPivot()
+			local size = model:GetExtentsSize()
+			local feet = start.Position - V(0, size.Y / 2, 0)
+			local side = if math.random() < 0.5 then 1 else -1
+			for i = 1, 10 do
+				if not model.Parent then
+					return
+				end
+				local a = math.rad(88) * (i / 10) ^ 2 * side
+				pcall(function()
+					local lift = math.min(size.X, size.Z) / 2 * math.abs(math.sin(a)) -- (tumbado, no medio enterrado)
+					model:PivotTo(CFrame.new(feet + V(0, lift, 0)) * CFrame.Angles(0, 0, a) * CFrame.new(0, size.Y / 2, 0) * start.Rotation)
+				end)
+				task.wait(0.03)
+			end
+			task.wait(EnemyStats.FallSeconds)
+			for i = 1, 12 do
+				if not model.Parent then
+					return
+				end
+				for _, piece in model:GetDescendants() do
+					if piece:IsA("BasePart") and piece.Name ~= "HumanoidRootPart" then
+						piece.Transparency = math.max(piece.Transparency, i / 12)
+					end
+				end
+				task.wait(0.06)
+			end
+			model:Destroy()
+			return
+		end
 		if style == "Shrink" then
 			-- Mengua del todo (de pie en el suelo) y luego se desvanece
 			for _ = 1, 10 do
