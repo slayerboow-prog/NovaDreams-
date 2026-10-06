@@ -27,6 +27,11 @@ local DayLight = require(script.Parent.DayLight)
 local SpeechBubbles = require(script.Parent.Parent.UI.SpeechBubbles)
 local Controls = require(script.Parent.Controls)
 local CineCamera = require(script.Parent.CineCamera)
+-- Cortes de escena (morir, reaparecer, irte a otro lugar): SceneClient avisa (si existe)
+local SceneClient: any = nil
+pcall(function()
+	SceneClient = require(script.Parent.SceneClient) :: any
+end)
 local RideState = require(ReplicatedStorage.Shared.RideState)
 local StageDirector = require(ReplicatedStorage.Shared.LifeStory.StageDirector)
 -- Presets de plano (CameraShots.preset, si existe); si no, la geometría de StageDirector
@@ -89,7 +94,10 @@ local function setControls(enabled: boolean)
 		if enabled then
 			Controls.enable("Dialogo")
 		else
-			Controls.disable("Dialogo")
+			-- (se suelta solo si la conversación ya no está abierta: nunca te quedas sin control)
+			Controls.disable("Dialogo", function()
+				return open
+			end)
 		end
 	end)
 end
@@ -442,35 +450,17 @@ local function turnPlayerTowards(model: Instance?)
 	end)
 end
 
--- Vuelta suave de la cámara al juego (StageDirector.EXIT_SECONDS): se desliza desde el último plano
--- hasta donde estaba (o detrás de ti) y entonces se devuelve. Morir, otra conversación o una escena de
--- cámara la cortan (y la cámara se devuelve igual).
-local exitSerial = 0
-local exitTarget: CFrame? = nil
-
-local function exitGoal(saved: CFrame?): CFrame?
-	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
-	if saved and root and (saved.Position - root.Position).Magnitude < 40 then
-		return CFrame.new(CineCamera.clamp(root.Position + Vector3.new(0, 1.5, 0), saved.Position)) * saved.Rotation
-	end
-	return CineCamera.behind()
-end
-
--- Termina ya una vuelta suave a medias (la cámara queda en el juego)
+-- Vuelta de la cámara al juego. smooth: se desliza (StageDirector.EXIT_SECONDS) hasta donde estaba
+-- (o detrás de ti); si no, de golpe (al morir o irte a otro lugar). Lo hace CineCamera.restore.
 local function finishExit()
-	if exitTarget then
-		local target = exitTarget
-		exitTarget = nil
-		exitSerial += 1
-		if not Cinematics.isPlaying() then
-			pcall(CineCamera.restore, target)
-		end
+	-- (una conversación nueva coge la cámara: la vuelta de la anterior se corta)
+	if type((CineCamera :: any).cancelRestore) == "function" then
+		pcall((CineCamera :: any).cancelRestore)
 	end
 end
 
 local function restoreCamera(smooth: boolean?)
 	stopCameraLoop()
-	finishExit()
 	if savedCamera then
 		local saved = savedCamera
 		savedCamera = nil
@@ -478,38 +468,12 @@ local function restoreCamera(smooth: boolean?)
 		if Cinematics.isPlaying() then
 			return
 		end
-		local camera = workspace.CurrentCamera
-		local goal = if smooth then exitGoal(saved.CFrame) else nil
-		if not goal or not camera or camera.CameraType ~= Enum.CameraType.Scriptable then
-			CineCamera.restore(saved.CFrame) -- (a donde estaba, sin atravesar paredes, o detrás de ti)
-			return
-		end
-		exitSerial += 1
-		local serial = exitSerial
-		exitTarget = goal
-		local from = camera.CFrame
-		local start = os.clock()
-		task.spawn(function()
-			local ok = pcall(function()
-				while serial == exitSerial do
-					if Cinematics.isPlaying() or camera.CameraType ~= Enum.CameraType.Scriptable then
-						break -- (otro se ha quedado la cámara)
-					end
-					local t = (os.clock() - start) / StageDirector.EXIT_SECONDS
-					if t >= 1 then
-						break
-					end
-					camera.CFrame = from:Lerp(goal :: CFrame, smoothstep(t))
-					RunService.RenderStepped:Wait()
-				end
-			end)
-			if serial == exitSerial then
-				exitTarget = nil
-				if not ok or not Cinematics.isPlaying() then
-					pcall(CineCamera.restore, goal)
-				end
-			end
+		local ok = pcall(function()
+			CineCamera.restore(saved.CFrame, if smooth then { Seconds = StageDirector.EXIT_SECONDS } else { Instant = true } :: any)
 		end)
+		if not ok then
+			CineCamera.restore(saved.CFrame) -- (a donde estaba, sin atravesar paredes, o detrás de ti)
+		end
 	end
 end
 
@@ -1096,6 +1060,20 @@ function DialogueUI.init()
 		task.spawn(watchCharacter, player.Character)
 	end
 	player.CharacterAdded:Connect(watchCharacter)
+	-- Muerte, reaparecer o teletransporte (SceneClient): se cierra y todo vuelve
+	if SceneClient and type(SceneClient.onInterrupt) == "function" then
+		pcall(SceneClient.onInterrupt, function(_reason: string)
+			if open then
+				if currentToken then
+					closedTokens[currentToken] = true
+				end
+				for _, pending in queue do
+					closedTokens[pending.Token] = true
+				end
+				forceClose()
+			end
+		end)
+	end
 	-- (si se quita el personaje sin morir —cambio de aspecto, reaparecer— también se cierra)
 	player.CharacterRemoving:Connect(function()
 		if open then
