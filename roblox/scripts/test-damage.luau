@@ -7,12 +7,14 @@
 --   * cada bala quita el daño de su arma (Weapons.damageAt): más en la cabeza, menos en brazos y
 --     piernas y menos de lejos; los golpes, las piedras y el botón de atacar, el suyo (EnemyStats)
 --   * los enemigos de misión tienen vida por puntos (las misiones de antes: HP = N golpes -> N × 25);
---     la pistola de agua les hace daño a los «de juguete» (cucarachas) y nada a un robot
+--     las armas de fuego les hacen su daño × FirearmMultiplier (la mejor opción); la pistola de agua
+--     les hace su daño a los «de juguete» (cucarachas) y muy poco a los demás (robots, jefes)
 --   * todo pasa por el SERVIDOR (DamageService.apply): solo el dueño del combate daña a sus enemigos,
 --     el daño se limita, y el cliente no tiene forma de aplicar daño (el remoto Damage solo avisa)
 --   * el enemigo cae al llegar a 0 (y ya no recibe más) y el paso Fight se completa cuando caen todos
---   * el jugador cae en combate al quedarse sin vida: en una pelea, K.O. (Fallen = "Combat"); en una
---     misión, el combate vuelve a empezar desde el principio del paso sin perder la misión
+--   * el jugador cae en combate al quedarse sin vida: en una pelea, K.O. (Fallen = "Combat") y luego
+--     siempre al hospital (salvo detenido); en una misión, el combate vuelve a empezar desde el
+--     principio del paso sin perder la misión
 --   * el cliente pinta barras de vida, números (amarillos en la cabeza, agrupados) y el borde rojo
 
 local fs = require("@lune/fs")
@@ -59,8 +61,18 @@ check(EnemyStats.hitsToDown(50, EnemyStats.Sources.Attack) == 2 and EnemyStats.h
 local dealt, immune = EnemyStats.damageFrom("Toy", 0, "PistolaAgua", EnemyStats.toyHurts({ Npc = "Cucaracha1" }))
 check(dealt == EnemyStats.ToyDamage.PistolaAgua and not immune, "La pistola de agua sí le hace daño a una cucaracha")
 dealt, immune = EnemyStats.damageFrom("Toy", 0, "PistolaAgua", EnemyStats.toyHurts({ Npc = "RobotSeguridad" }))
-check(dealt == 0 and immune, "…pero a un robot no le hace nada (inmune)")
-check(EnemyStats.damageFrom("Bullet", 24, "Pistola", false) == 24, "Una bala quita lo que diga su arma")
+check(dealt == EnemyStats.ToyWeakDamage.PistolaAgua and dealt > 0 and dealt <= 4 and not immune, "…y a un robot, muy poco (" .. dealt .. "), pero algo: nadie es inmune")
+check(EnemyStats.damageFrom("Toy", 0, "Paintball", EnemyStats.toyHurts({ Npc = "Cosimo" })) == EnemyStats.ToyWeakDamage.Paintball, "el paintball contra un jefe: " .. EnemyStats.ToyWeakDamage.Paintball)
+local mult = EnemyStats.FirearmMultiplier
+check(EnemyStats.damageFrom("Bullet", 24, "Pistola", false) == math.floor(24 * mult + 0.5), ("Una bala de arma de fuego contra un enemigo de misión: su daño × %.1f (24 -> %d)"):format(mult, math.floor(24 * mult + 0.5)))
+local pistolShot = EnemyStats.damageFrom("Bullet", Weapons.damageAt(pistol, 10, "Torso"), "Pistola", true)
+check(EnemyStats.hitsToDown(50, pistolShot) == 1 and EnemyStats.hitsToDown(75, pistolShot) == 2, "La pistola tumba una cucaracha de 1-2 tiros")
+local shell = EnemyStats.damageFrom("Bullet", Weapons.damageAt(Weapons.get("Escopeta"), 5, "Torso") * Weapons.get("Escopeta").Pellets, "Escopeta", false)
+local rifle = EnemyStats.damageFrom("Bullet", Weapons.damageAt(Weapons.get("Fusil"), 20, "Torso"), "Fusil", false)
+local bossHp = EnemyStats.maxHealth({ Npc = "Cosimo", HP = 10 }, nil)
+check(EnemyStats.hitsToDown(bossHp, shell) <= 2 and EnemyStats.hitsToDown(bossHp, rifle) <= 4, ("Un jefe de %d: 2 cartuchos de escopeta (%d) o 4 balas de fusil (%d)"):format(bossHp, shell, rifle))
+check(EnemyStats.hitsToDown(bossHp, EnemyStats.Sources.Attack) == 10 and EnemyStats.hitsToDown(bossHp, EnemyStats.Sources.Attack) > EnemyStats.hitsToDown(bossHp, pistolShot), "Sin arma, el botón de atacar también lo acaba (más lento: 10 golpes)")
+check(Weapons.damageAt(pistol, 10, "Torso") == 24, "Entre jugadores, la pistola sigue haciendo lo de siempre (24)")
 check(EnemyStats.damageFrom("Melee", nil, nil, true) == EnemyStats.Sources.Melee and EnemyStats.damageFrom("Stone", nil, nil, true) == EnemyStats.Sources.Stone, "Golpes y piedras: su propio daño (datos)")
 check(EnemyStats.damageFrom("Bullet", 1e9, nil, true) == EnemyStats.MaxPerHit, "Ningún impacto quita más del tope")
 local hp, down = EnemyStats.apply(30, 24)
@@ -120,17 +132,17 @@ local okServer, serverError = pcall(function()
 	H.licence(shooter)
 	H.give(shooter, "Pistola")
 	check(H.WeaponService.equip(shooter, "Pistola"), "empuña la pistola")
-	local bug = enemy("Cucaracha1", 1001, V(0, 0, -20), 50)
+	local bug = enemy("Cucaracha1", 1001, V(0, 0, -20), 75)
 	local torso = bug:FindFirstChild("UpperTorso")
-	local expected = W.damageAt(W.get("Pistola"), (torso.Position - V(0, 1.5, 0)).Magnitude, "Torso")
+	local base = W.damageAt(W.get("Pistola"), (torso.Position - V(0, 1.5, 0)).Magnitude, "Torso")
+	local expected = math.floor(base * ES.FirearmMultiplier + 0.5)
 	local mark = #H.sent
 	H.shoot(shooter, bug)
-	check(bug:GetAttribute("EnemyHealth") == 50 - expected, ("un disparo al cuerpo: 50 - %d = %d"):format(expected, 50 - expected))
+	check(bug:GetAttribute("EnemyHealth") == 75 - expected, ("un disparo al cuerpo: %d × %.1f = %d; 75 - %d = %d"):format(base, ES.FirearmMultiplier, expected, expected, 75 - expected))
 	local msg = lastDamage(shooter, mark)
-	check(msg ~= nil and msg.Amount == expected and msg.Target == bug and msg.Max == 50, "el cliente que dispara recibe el número de daño y la vida (remoto Damage)")
+	check(msg ~= nil and msg.Amount == expected and msg.Target == bug and msg.Max == 75, "el cliente que dispara recibe el número de daño y la vida (remoto Damage)")
 	H.shoot(shooter, bug)
-	H.shoot(shooter, bug)
-	check(bug:GetAttribute("EnemyHealth") == 0 and bug:GetAttribute("EnemyDown") == true, "a los 0 puntos cae")
+	check(bug:GetAttribute("EnemyHealth") == 0 and bug:GetAttribute("EnemyDown") == true, "al segundo tiro llega a 0 y cae")
 	mark = #H.sent
 	H.shoot(shooter, bug)
 	check(bug:GetAttribute("EnemyHealth") == 0 and lastDamage(shooter, mark) == nil, "caído, ya no recibe más daño")
@@ -138,18 +150,18 @@ local okServer, serverError = pcall(function()
 	print("\n▶ Cabeza, miembros y distancia (DamageService.apply con la pieza que toca)")
 	local boss = enemy("Cosimo", 1001, V(0, 0, -10), 400)
 	local r = Damage.apply(shooter, boss, W.damageAt(W.get("Pistola"), 10, "Head"), "Bullet", boss:FindFirstChild("Head"), { Weapon = "Pistola" })
-	check(r.Hit and r.Amount == 48 and boss:GetAttribute("EnemyHealth") == 352, "en la cabeza: 48 (24 × 2)")
+	check(r.Hit and r.Amount == 120 and boss:GetAttribute("EnemyHealth") == 280, "en la cabeza: 120 (24 × 2 × 2,5)")
 	r = Damage.apply(shooter, boss, W.damageAt(W.get("Pistola"), 10, "Limb"), "Bullet", nil, { Weapon = "Pistola", Zone = "Limb" })
-	check(r.Amount == 18, "en una pierna: 18 (24 × 0,75)")
+	check(r.Amount == 45, "en una pierna: 45 (18 × 2,5)")
 	r = Damage.apply(shooter, boss, W.damageAt(W.get("Pistola"), 200, "Torso"), "Bullet", nil, { Weapon = "Pistola" })
-	check(r.Amount > 0 and r.Amount < 24, ("de lejos (200 studs): %d"):format(r.Amount))
+	check(r.Amount > 0 and r.Amount < 60, ("de lejos (200 studs): %d (menos que 60 de cerca)"):format(r.Amount))
 	local before = boss:GetAttribute("EnemyHealth")
 	r = Damage.apply(shooter, boss, nil, "Melee")
 	check(r.Amount == ES.Sources.Melee and boss:GetAttribute("EnemyHealth") == before - ES.Sources.Melee, "un puñetazo: " .. ES.Sources.Melee)
 	r = Damage.apply(shooter, boss, nil, "Stone")
 	check(r.Amount == ES.Sources.Stone, "una pedrada: " .. ES.Sources.Stone)
 
-	print("\n▶ Juguetes: la pistola de agua contra una cucaracha y contra un robot")
+	print("\n▶ Juguetes: la pistola de agua contra una cucaracha (su daño) y contra un robot (muy poco)")
 	local kid = H.player("Peque", 1002, "Nino", V(50, 0, 0))
 	H.give(kid, "PistolaAgua")
 	check(H.WeaponService.equip(kid, "PistolaAgua"), "empuña la pistola de agua")
@@ -159,8 +171,8 @@ local okServer, serverError = pcall(function()
 	local robot = enemy("RobotSeguridad", 1002, V(50, 0, -14), 125)
 	mark = #H.sent
 	H.shoot(kid, robot)
-	local immuneMsg = lastDamage(kid, mark)
-	check(robot:GetAttribute("EnemyHealth") == 125 and immuneMsg ~= nil and immuneMsg.Immune == true, "al robot no le hace nada (sale «Inmune»)")
+	local weakMsg = lastDamage(kid, mark)
+	check(robot:GetAttribute("EnemyHealth") == 125 - ES.ToyWeakDamage.PistolaAgua and weakMsg ~= nil and weakMsg.Amount == ES.ToyWeakDamage.PistolaAgua and weakMsg.Immune == nil, "al robot le quita muy poco (" .. ES.ToyWeakDamage.PistolaAgua .. "), sin «Inmune»")
 
 	print("\n▶ Solo el servidor aplica daño")
 	local other = enemy("Cucaracha3", 9999, V(0, 0, -25), 75)
@@ -198,7 +210,17 @@ local okServer, serverError = pcall(function()
 	local rivalHum = rival.Character:FindFirstChildOfClass("Humanoid")
 	rivalHum.Health = 5
 	H.shoot(shooter, rival.Character)
-	check(rival:GetAttribute("KO") == true and rival:GetAttribute("Fallen") == "Combat", "en una pelea, sin vida: K.O. y «HAS CAÍDO EN COMBATE» (luego te levantas o te rematan: hospital)")
+	check(rival:GetAttribute("KO") == true and rival:GetAttribute("Fallen") == "Combat" and rivalHum.Health > 0, "en una pelea, sin vida: K.O. en el suelo y «HAS CAÍDO EN COMBATE»")
+	-- Otro, K.O. a la vez, al que detiene la policía mientras está en el suelo
+	local caught = H.player("Detenido", 1005, "Adulto", V(3, 0, -15))
+	local caughtHum = caught.Character:FindFirstChildOfClass("Humanoid")
+	caughtHum.Health = 5
+	H.shoot(shooter, caught.Character)
+	check(caught:GetAttribute("Fallen") == "Combat", "(otro jugador K.O.)")
+	H.load("src/server/LifeStory/StoryEvents").emit(caught, "Arrested", { Stars = 2 })
+	task.wait(H.load("src/shared/Combat").KOSeconds + 0.5)
+	check(rivalHum.Health == 0 and rival:GetAttribute("Fallen") == nil, "a los segundos en el suelo, SIEMPRE al hospital (muere: HospitalService)")
+	check(caughtHum.Health > 0 and caught:GetAttribute("KO") == nil, "…salvo si la policía te ha detenido estando K.O.: vas detenido, no al hospital")
 end)
 check(okServer, "las pruebas del servidor terminan sin errores" .. (if okServer then "" else ": " .. tostring(serverError)))
 
@@ -252,7 +274,7 @@ local okStory, storyError = pcall(function()
 				Service.interact(kiko, "Actor", quest, "Cucaracha1")
 				results.AfterStrike = prog.Hp and prog.Hp.Cucaracha1
 				results.StrikeHits = (kiko.Hits or 0) - hitsBefore
-				local okHit, counted, dealtHead = pcall(Service.enemyHit, kiko, fakeEnemy("Cucaracha3"), "Bullet", 48, { Zone = "Head", Weapon = "Pistola" })
+				local okHit, counted, dealtHead = pcall(Service.enemyHit, kiko, fakeEnemy("Cucaracha3"), "Bullet", 24, { Zone = "Torso", Weapon = "Pistola" })
 				results.Bullet = okHit and counted and dealtHead
 				results.AfterBullet = prog.Hp and prog.Hp.Cucaracha3
 				Service.enemyHit(kiko, fakeEnemy("Cucaracha3"), "Toy", 0, { Weapon = "PistolaAgua" })
@@ -293,8 +315,9 @@ local okStory, storyError = pcall(function()
 	local done = SH.playQuest(kiko, quest, 200)
 	check(results.Entered == true, "llega el combate (paso Fight)")
 	check(results.AfterStrike == 25 and results.StrikeHits == 1, "un globo de agua (botón de atacar) quita 25: la cucaracha de «2 golpes» se queda en 25 de 50")
-	check(results.Bullet == 48 and results.AfterBullet == 75 - 48, "una bala en la cabeza (48) a la cucaracha de «3 golpes» (75): le quedan 27")
-	check(results.AfterToy == 75 - 48 - ES.ToyDamage.PistolaAgua, "la pistola de agua también le quita (" .. ES.ToyDamage.PistolaAgua .. ")")
+	local shot = math.floor(24 * ES.FirearmMultiplier + 0.5)
+	check(results.Bullet == shot and results.AfterBullet == 75 - shot, ("una bala de pistola (%d) a la cucaracha de «3 golpes» (75): le quedan %d"):format(shot, 75 - shot))
+	check(results.AfterToy == 75 - shot - ES.ToyDamage.PistolaAgua, "la pistola de agua también le quita (" .. ES.ToyDamage.PistolaAgua .. ")")
 	check(results.Fell == true and results.FallenAttr == "Mission", "sin vida en el combate: caes (Fallen = Mission)")
 	check(results.WhileFallen == 25, "caído no puedes atacar")
 	local retry = results.Retry

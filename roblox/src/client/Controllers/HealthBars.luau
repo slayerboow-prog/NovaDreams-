@@ -27,7 +27,6 @@ local rgb = Color3.fromRGB
 
 local WHITE = rgb(255, 255, 255)
 local YELLOW = rgb(255, 220, 60)
-local IMMUNE = rgb(170, 190, 210)
 local HOSTILE_TAG = "HostileNpc"
 
 type Bar = { Gui: BillboardGui, Fill: Frame, Model: Model, LastHit: number?, Shown: number }
@@ -144,7 +143,7 @@ local function flash(model: Model, color: Color3?)
 end
 
 -- Número de daño flotante (se agrupa si llegan muy seguidos)
-local function popNumber(model: Model, amount: number, head: boolean, immune: boolean)
+local function popNumber(model: Model, amount: number, head: boolean)
 	local anchor = anchorOf(model)
 	local parent = playerGui()
 	if not anchor or not parent then
@@ -152,7 +151,7 @@ local function popNumber(model: Model, amount: number, head: boolean, immune: bo
 	end
 	local now = os.clock()
 	local current = numbers[model]
-	if current and current.Label.Parent and not immune then
+	if current and current.Label.Parent then
 		local group, grouped = EnemyStats.group(current.Group, amount, head, now)
 		if grouped then
 			current.Label.Text = tostring(group.Amount)
@@ -177,9 +176,9 @@ local function popNumber(model: Model, amount: number, head: boolean, immune: bo
 	local label = Theme.label({
 		Size = UDim2.fromScale(1, 1),
 		FontFace = Theme.TitleFace,
-		Text = if immune then "Inmune" else tostring(amount),
-		TextSize = if head then 30 elseif immune then 18 else 24,
-		TextColor3 = if immune then IMMUNE elseif head then YELLOW else WHITE,
+		Text = tostring(amount),
+		TextSize = if head then 30 else 24,
+		TextColor3 = if head then YELLOW else WHITE,
 		TextStrokeTransparency = 0.15,
 		TextXAlignment = Enum.TextXAlignment.Center,
 		Parent = gui,
@@ -187,9 +186,7 @@ local function popNumber(model: Model, amount: number, head: boolean, immune: bo
 	local scale = create("UIScale", { Scale = 1.4, Parent = label })
 	TweenService:Create(scale, TweenInfo.new(0.15, Enum.EasingStyle.Back), { Scale = 1 }):Play()
 	local entry = { Group = { Amount = amount, At = now, Head = head }, Label = label, Gui = gui }
-	if not immune then
-		numbers[model] = entry
-	end
+	numbers[model] = entry
 	task.spawn(function()
 		-- Sube y se desvanece (si le siguen llegando golpes, espera a que paren)
 		local waited = 0
@@ -212,9 +209,8 @@ local function onDamage(data: { [string]: any })
 		return
 	end
 	local amount = tonumber(data.Amount) or 0
-	local immune = data.Immune == true
-	if amount > 0 or immune then
-		popNumber(model, math.floor(amount + 0.5), data.Zone == "Head", immune)
+	if amount > 0 then
+		popNumber(model, math.floor(amount + 0.5), data.Zone == "Head")
 	end
 	if amount > 0 then
 		flash(model, if data.Zone == "Head" then YELLOW else nil)

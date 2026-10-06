@@ -1585,10 +1585,10 @@ local function strike(player: Player, data: Data, questId: string, prog: Progres
 	if MissionCombat.ready(rt.LastHit, now) then
 		rt.LastHit = now
 		local how = kind or "Attack"
-		local counted, dealt, health, max, down, immune = hitEnemy(player, data, questId, prog, step, enemy, how, EnemyStats.Sources[how] or EnemyStats.HitDamage, {})
+		local counted, dealt, health, max, down = hitEnemy(player, data, questId, prog, step, enemy, how, EnemyStats.Sources[how] or EnemyStats.HitDamage, {})
 		if counted then
 			-- El número que sale encima (Controllers/HealthBars): como cualquier otro daño
-			DamageService.notify(player, SceneService.actorOf(player, enemy.Npc), { Amount = dealt, Health = health, Max = max, Down = down, Immune = immune, Kind = how })
+			DamageService.notify(player, SceneService.actorOf(player, enemy.Npc), { Amount = dealt, Health = health, Max = max, Down = down, Kind = how })
 		end
 	end
 	return true
@@ -1637,8 +1637,8 @@ function LifeStoryService.missionAttack(player: Player): boolean
 end
 
 -- Daño a un enemigo de misión (lo manda DamageService: balas, golpes, poderes, piedras). Devuelve
--- (cuenta, daño hecho, vida que le queda, vida máxima, ¿ha caído?, ¿inmune?)
-function LifeStoryService.enemyHit(player: Player, model: Model, kind: string, amount: number, info: { [string]: any }?): (boolean, number?, number?, number?, boolean?, boolean?)
+-- (cuenta, daño hecho, vida que le queda, vida máxima, ¿ha caído?)
+function LifeStoryService.enemyHit(player: Player, model: Model, kind: string, amount: number, info: { [string]: any }?): (boolean, number?, number?, number?, boolean?)
 	local data = DataService.get(player)
 	if not data or not runtime[player] then
 		return false
@@ -3601,7 +3601,7 @@ end
 -- Daño por puntos a un enemigo del combate (rayo, globo de agua, bala, golpe, piedra…). La vida va
 -- en prog.Hp (se guarda con la misión) y en los atributos del modelo (su barra de vida). A los 0
 -- puntos CAE: se cae al suelo y se desvanece (SceneService.defeat) y cuenta para el paso; cuando
--- caen todos, el paso está hecho. Devuelve (cuenta, daño hecho, vida, vida máxima, caído, inmune).
+-- caen todos, el paso está hecho. Devuelve (cuenta, daño hecho, vida, vida máxima, caído).
 local function setEnemyHealth(player: Player, npc: string, health: number, max: number)
 	pcall(function()
 		local model = SceneService.actorOf(player, npc)
@@ -3612,7 +3612,7 @@ local function setEnemyHealth(player: Player, npc: string, health: number, max: 
 	end)
 end
 
-function hitEnemy(player: Player, data: Data, questId: string, prog: Progress, step: { [string]: any }, enemy: { [string]: any }, kind: string?, amount: number?, info: { [string]: any }?): (boolean, number?, number?, number?, boolean?, boolean?)
+function hitEnemy(player: Player, data: Data, questId: string, prog: Progress, step: { [string]: any }, enemy: { [string]: any }, kind: string?, amount: number?, info: { [string]: any }?): (boolean, number?, number?, number?, boolean?)
 	local how = kind or "Attack"
 	local max = EnemyStats.maxHealth(enemy, step)
 	local hp = prog.Hp or {}
@@ -3621,10 +3621,10 @@ function hitEnemy(player: Player, data: Data, questId: string, prog: Progress, s
 	if before <= 0 or (prog.Sub and prog.Sub[enemy.Npc]) then
 		return false
 	end
-	local dealt, immune = EnemyStats.damageFrom(how, amount, info and info.Weapon, EnemyStats.toyHurts(enemy))
+	local dealt = EnemyStats.damageFrom(how, amount, info and info.Weapon, EnemyStats.toyHurts(enemy))
 	if dealt <= 0 then
-		-- (el agua no le hace nada a un robot: se ve, pero no quita vida)
-		return true, 0, before, max, false, immune
+		-- (un daño de 0: no quita vida)
+		return true, 0, before, max, false
 	end
 	local after, down = EnemyStats.apply(before, dealt)
 	hp[enemy.Npc] = after
@@ -3637,7 +3637,7 @@ function hitEnemy(player: Player, data: Data, questId: string, prog: Progress, s
 		if enemy.Hurt and before >= max then
 			DialogueService.bark(player, enemy.Npc, enemy.Hurt)
 		end
-		return true, dealt, after, max, false, false
+		return true, dealt, after, max, false
 	end
 	local sub = prog.Sub or {}
 	prog.Sub = sub
@@ -3659,7 +3659,7 @@ function hitEnemy(player: Player, data: Data, questId: string, prog: Progress, s
 	else
 		publish(player)
 	end
-	return true, dealt, after, max, true, false
+	return true, dealt, after, max, true
 end
 
 ---------------------------------------------------------------------
