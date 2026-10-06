@@ -90,7 +90,7 @@ return {
 		{ Type = "Cinematic", Id = "Cole07_Viaje", Effects = { Teleport = "Granja" } },
 
 		-- La granja
-		{ Type = "Scene", Dialogue = "Llegada", Teleport = "Granja", Actors = GRANJA },
+		{ Type = "Scene", Dialogue = "Llegada", Teleport = { Place = "Granja", Fade = true }, Actors = GRANJA },
 		{ Type = "Group", Text = "Descubre la granja", Need = 3,
 			Steps = {
 				{ Type = "Use", Prop = "Gallinas", Text = "Dar de comer a las gallinas" },
@@ -150,7 +150,7 @@ return {
 			{ S = "Omar", T = "Ya me he comido el bocadillo. Estamos en el primer kilómetro." },
 			{ S = "Sara", T = "Técnicamente, en el kilómetro cero coma ocho." },
 			{ S = "Nico", T = "¡VACA! ¡Siete! ¡Voy ganando!", If = { Choices = { AsientoBus = "Nico" } } },
-			{ S = "Mateo", T = "(Mateo pega la nariz a la ventana. No dice nada. Pero sonríe todo el rato.)", If = { Choices = { AsientoBus = "Mateo" } } },
+			{ S = "Mateo", T = "…", Beat = "Sonrie", A = "Happy", If = { Choices = { AsientoBus = "Mateo" } } },
 			{ S = "Lucia", T = "¡Ya llegamos! Villaverde, la Granja escuela. Recordad: los animales no son juguetes." },
 		} },
 		Llegada = { Lines = {

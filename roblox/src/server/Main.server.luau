@@ -190,6 +190,7 @@ local order = {
 	"RoleService",
 	"LifeService",
 	"AvatarService", -- aspecto por defecto del protagonista (sudadera, cargo, mochila…)
+	"SettingsService", -- ajustes guardados con la partida (✨ Gráficos: Auto/Bajo/Medio/Alto)
 	"PositionService", -- al volver a entrar apareces donde lo dejaste
 	"NeedsService",
 	"WorldService",

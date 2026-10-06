@@ -232,8 +232,16 @@ local lastEnded = -math.huge -- cuándo acabó la última escena (os.clock)
 
 local function setPlaying(delta: number)
 	playing = math.max(0, playing + delta)
-	-- Para quien no puede requerir este módulo (las armas): mientras hay escena, no se apunta
-	player:SetAttribute("InCinematic", if playing > 0 then true else nil)
+	-- Para quien no puede requerir este módulo (las armas): mientras hay escena, no se apunta. Si al
+	-- acabar sigue una escena del motor nuevo en pantalla, la marca se queda (la quita HappeningClient)
+	local happening = false
+	if playing == 0 then
+		local ok, result = pcall(function()
+			return require(script.Parent.HappeningClient).isPlaying()
+		end)
+		happening = ok and result == true
+	end
+	player:SetAttribute("InCinematic", if playing > 0 or happening then true else nil)
 	-- Sin nombres ni iconos flotantes encima de nadie durante la escena
 	CineCamera.quietLabels("Cinematica", playing > 0)
 	if playing == 0 then

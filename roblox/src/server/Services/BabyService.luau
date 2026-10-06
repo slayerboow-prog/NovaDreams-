@@ -340,7 +340,7 @@ local function setupHome(home: Home)
 			end
 			baby.Busy = true
 			-- Escena de cámara: sale por el ventanal y enseña Valmar (Cinematics.Bebe_Ventanal)
-			local duration = CinematicService.play(player, "Bebe_Ventanal")
+			local duration = CinematicService.play(player, "Bebe_VentanalFamilia")
 			task.delay(duration, function()
 				if babies[player] then
 					babies[player].Busy = false

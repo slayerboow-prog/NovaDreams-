@@ -238,6 +238,9 @@ local QUIET_GUIS = { Bubble = true, Icon = true }
 local quietHolders: { [string]: boolean } = {}
 local savedHumanoids: { [Humanoid]: Enum.HumanoidDisplayDistanceType } = {}
 local savedGuis: { [BillboardGui]: boolean } = {}
+-- Nombres que no se pudieron devolver al acabar porque SceneClient aún tenía oculto a ese jugador:
+-- vuelven cuando SceneClient lo enseña (CineCamera.releaseNames)
+local pendingNames: { [Humanoid]: Enum.HumanoidDisplayDistanceType } = {}
 local addedConnection: RBXScriptConnection? = nil
 
 local function quiet(instance: Instance)
@@ -290,8 +293,12 @@ local function restoreAll()
 		-- porque es de la historia de otro jugador, sigue sin nombre)
 		local head = humanoid.Parent and humanoid.Parent:FindFirstChild("Head")
 		local hidden = head and head:IsA("BasePart") and head.LocalTransparencyModifier >= 1
-		if humanoid.Parent and not hidden and humanoid.DisplayDistanceType == Enum.HumanoidDisplayDistanceType.None then
-			humanoid.DisplayDistanceType = value
+		if humanoid.Parent and humanoid.DisplayDistanceType == Enum.HumanoidDisplayDistanceType.None then
+			if hidden then
+				pendingNames[humanoid] = value
+			else
+				humanoid.DisplayDistanceType = value
+			end
 		end
 	end
 	for gui in savedGuis do
@@ -303,6 +310,25 @@ local function restoreAll()
 	end
 	table.clear(savedHumanoids)
 	table.clear(savedGuis)
+end
+
+-- SceneClient enseña otra vez a un jugador que tenía oculto: si su nombre se quedó pendiente al acabar
+-- la escena, vuelve ahora (o, si ya hay otra escena, se guarda para devolverlo al acabar esa)
+function CineCamera.releaseNames(character: Instance)
+	for humanoid, value in pendingNames do
+		if humanoid.Parent == nil then
+			pendingNames[humanoid] = nil
+		elseif humanoid.Parent == character then
+			pendingNames[humanoid] = nil
+			if next(quietHolders) ~= nil then
+				if savedHumanoids[humanoid] == nil then
+					savedHumanoids[humanoid] = value
+				end
+			elseif humanoid.DisplayDistanceType == Enum.HumanoidDisplayDistanceType.None then
+				humanoid.DisplayDistanceType = value
+			end
+		end
+	end
 end
 
 function CineCamera.quietLabels(reason: string, on: boolean)
