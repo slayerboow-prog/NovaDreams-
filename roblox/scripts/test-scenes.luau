@@ -745,6 +745,28 @@ end, function()
 end)
 notYet("Actor:X")
 check(notYet("Actor:X") ~= nil, "Lock: lo que aún no ha aparecido no se clava (se vuelve a buscar)")
+-- Las conversaciones (StageDirector, paquete P5) piden los planos con las cabezas de cada uno
+local heads = { Yo = CFrame.lookAt(V(0, 4.5, -10), V(0, 4.5, 0)), Lucia = CFrame.lookAt(V(0, 4.5, 0), V(0, 4.5, -10)) }
+heads.Player = heads.Yo
+local baked = CameraShots.preset("Hombro:Yo>Lucia", heads)
+local bakedFrom = baked and CameraShots.base(baked, 0, function(name)
+	return heads[name]
+end)
+check(baked and baked.From[1] == "Player" and baked.Duration == CameraShots.BAKED_SECONDS, "con cabezas (StageDirector): el plano llega calculado, referido a ti y con duración")
+check(bakedFrom and bakedFrom.Position.Z < -11 and looksAt(bakedFrom, V(0, 4.4, 0)), "…y sigue siendo un plano de hombro: detrás de ti mirando a Lucía")
+local StageDirector = L.load("src/shared/LifeStory/StageDirector")
+local positions = { Yo = V(0, 4.5, -10), Lucia = V(0, 4.5, 0), Mateo = V(4, 4.5, 0) }
+local directorOk = true
+for _, spec in { "General", "Medio:Lucia", "PrimerPlano:Lucia", "PPP:Lucia", "Hombro:Yo>Lucia", "DosPlanos:Lucia,Mateo", "Lateral:Lucia", "Reaccion:Mateo", "Seguir:Lucia" } do
+	local ok, a, b = pcall(StageDirector.camera, spec, positions, CameraShots)
+	if not ok or typeof(a) ~= "CFrame" or typeof(b) ~= "CFrame" then
+		directorOk = false
+		print("     StageDirector no saca el plano " .. spec .. ": " .. tostring(a))
+	end
+end
+check(directorOk, "StageDirector saca todos sus planos con CameraShots.preset")
+local _, _, dollySeconds = StageDirector.camera("Medio:Lucia", positions, CameraShots)
+check(dollySeconds == CameraShots.BAKED_SECONDS, "…usando de verdad los planos de aquí (con su movimiento de dolly)")
 -- Luces de cine
 local DayGrade = L.load("src/shared/DayGrade")
 local gradeKeys = DayGrade.Keys[1].Key

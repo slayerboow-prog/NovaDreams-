@@ -1022,6 +1022,25 @@ function HappeningClient.init()
 		hookDeath(player.Character)
 	end
 	player.CharacterAdded:Connect(hookDeath)
+	-- Hora de la historia solo en tu pantalla (atributo StoryClock que pone LifeStoryService cuando hay más
+	-- jugadores: «esa noche…»): la luz de esa hora como capa de DayLight, con fundido; se quita al
+	-- borrarse el atributo. (Lighting.ClockTime no se toca: es del servidor.)
+	local function applyStoryClock()
+		local hour = player:GetAttribute("StoryClock")
+		pcall(function()
+			local DayLight = require(script.Parent.DayLight) :: any
+			if type(hour) == "number" then
+				local key = DayLight.sample(hour % 24)
+				if type(key) == "table" then
+					DayLight.pushLayer("StoryClock", key, 2.5)
+				end
+			else
+				DayLight.popLayer("StoryClock", 2.5)
+			end
+		end)
+	end
+	player:GetAttributeChangedSignal("StoryClock"):Connect(applyStoryClock)
+	applyStoryClock()
 	-- Y lo que avisa SceneClient (muerte, reaparecer, teletransporte): la escena se acaba y se devuelve todo
 	pcall(function()
 		local SceneClient = require(script.Parent.SceneClient) :: any

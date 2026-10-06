@@ -384,7 +384,7 @@ local function refOf(name: string, refs: any): string
 		if r then
 			return r
 		end
-	elseif type(refs) == "table" and refs[name] then
+	elseif type(refs) == "table" and type(refs[name]) == "string" then
 		return refs[name]
 	end
 	return "Actor:" .. name
@@ -402,7 +402,7 @@ function CameraShots.preset(spec: any, refs: any): (Shot?, string?)
 		return nil, ("el plano %s pide %d personaje(s)"):format(kind, arity[1])
 	end
 	local function center(): string
-		if type(refs) == "table" and refs["*"] then
+		if type(refs) == "table" and type(refs["*"]) == "string" then
 			return refs["*"]
 		end
 		return "Player"
@@ -448,7 +448,60 @@ function CameraShots.preset(spec: any, refs: any): (Shot?, string?)
 	if kind ~= "Seguir" then
 		shot.Lock = true
 	end
+	-- Con las posiciones a mano ({ [id] = CFrame en la cabeza }, como las pasa StageDirector en las
+	-- conversaciones): el plano ya calculado, con puntos relativos a "Player" que entiende cualquier
+	-- resolver sencillo (sin Mid/Toward) y un Duration para que se vea como un dolly.
+	if type(refs) == "table" then
+		local heads: { [string]: CFrame } = {}
+		local origin: string? = nil
+		for id, cf in refs do
+			if type(id) == "string" and typeof(cf) == "CFrame" then
+				heads[id] = cf
+				origin = origin or id
+			end
+		end
+		if heads.Player or heads.Yo then
+			origin = "Player"
+		end
+		if origin then
+			return CameraShots.bake(shot, heads, origin :: string)
+		end
+	end
 	return shot
+end
+
+-- Un plano con nombre calculado con las cabezas de cada uno (ver preset). origin = el ancla a la que van
+-- referidos los puntos ("Player" o una clave).
+CameraShots.BAKED_SECONDS = 3.5
+function CameraShots.bake(shot: Shot, heads: { [string]: CFrame }, origin: string): (Shot?, string?)
+	local function head(name: string): CFrame?
+		local id = name:match("^Actor:(.+)$") or name
+		if id == "Player" or id == "Yo" then
+			return heads.Player or heads.Yo
+		end
+		return heads[id]
+	end
+	-- Los planos están pensados desde el centro del cuerpo (1,5 por debajo de la cabeza)
+	local body = CameraShots.composite(function(name: string): CFrame?
+		local cf = head(name)
+		return if cf then CFrame.new(cf.Position - Vector3.new(0, 1.5, 0)) * cf.Rotation else nil
+	end)
+	local a, b = CameraShots.base(shot, 0, body), CameraShots.base(shot, 1, body)
+	local base = head(origin)
+	if not a or not b or not base then
+		return nil, "faltan personajes para el plano"
+	end
+	local o = base.Position
+	return {
+		From = { origin, a.Position - o },
+		To = { origin, b.Position - o },
+		Look = { origin, a.Position + a.LookVector * 10 - o },
+		LookTo = { origin, b.Position + b.LookVector * 10 - o },
+		Fov = if type(shot.Fov) == "number" then shot.Fov else nil,
+		Cut = shot.Cut,
+		Duration = CameraShots.BAKED_SECONDS,
+		Preset = shot.Preset,
+	}
 end
 
 -- Un plano de la escena con Shot = "…" ya traducido (lo demás del suceso manda: At, Duration, Cut, Fov,
