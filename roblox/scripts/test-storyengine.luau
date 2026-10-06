@@ -1,5 +1,5 @@
 -- Prueba del motor de la historia (paquete P3 de la auditoría narrativa, LifeStoryService):
---   1. busy() cuenta las escenas de cámara (atributos InScene del servidor e InCinematic): no empieza
+--   1. busy() cuenta las escenas de cámara (CinematicService.inScene / atributo InScene, e InCinematic): no empieza
 --      una conversación, no se ofrece nada, no salen encargos encima; al acabar la escena, sigue sola.
 --      Un InScene olvidado no para la historia para siempre (SceneMaxSeconds).
 --   2. M-01: un Transition que dice una hora («Esa noche…») con más gente en el servidor no toca el
@@ -94,6 +94,18 @@ local function accept(player, id: string): boolean
 	end, 2)
 end
 
+-- Un jugador recién llegado, sin la escena de llegada abierta (en la prueba no hay pantalla que
+-- avise de que ha terminado: se cierra a mano, como haría CinematicDone)
+local Cine = H.loadModule(ROOT .. "/server/Services/CinematicService")
+local function newPlayer(name: string)
+	local player = H.newPlayer(name, "Adulto", 3600)
+	task.wait(0.5)
+	if Cine.endScene then
+		Cine.endScene(player)
+	end
+	return player
+end
+
 testQuest("Test_Escena", {
 	{ Type = "Reach", Place = "PlazaCentro", Text = "Ve a la plaza" },
 	{ Type = "Scene", Dialogue = "Charla" },
@@ -138,31 +150,77 @@ end
 print("\n▶ 1. busy() cuenta las escenas de cámara")
 ---------------------------------------------------------------------
 do
-	local ana = H.newPlayer("Ana", "Adulto", 3600)
+	local ana = newPlayer("Ana")
 	task.wait(0.5)
+	-- Las escenas se abren y cierran como en el juego: CinematicService (P2) lleva la lista y pone
+	-- InScene/SceneId. (sin latidos de pantalla en la prueba: se le da margen para que no caduquen)
+	check(type(Cine.inScene) == "function", "CinematicService.inScene existe (la respuesta buena)")
+	local grace = Cine.Timing and Cine.Timing.StartGrace
+	if Cine.Timing then
+		Cine.Timing.StartGrace = 600
+	end
+	-- La pantalla late cada segundo mientras enseña la escena (SceneClient → Remotes.Scene "Beat")
+	local beating = false
+	task.spawn(function()
+		while ana.Parent do
+			if beating then
+				Service.sceneBeat(ana)
+			end
+			task.wait(1)
+		end
+	end)
+	local function scene(id: string)
+		Cine.beginScene(ana, id, 600)
+		Service.sceneBeat(ana)
+		beating = true
+	end
+	local function noScene()
+		beating = false
+		Cine.endScene(ana)
+	end
+
 	check(Service.errandBlock(ana) == nil, "Sin escena, nada bloquea los encargos")
-	ana:SetAttribute("InScene", true)
-	check(Service.errandBlock(ana) == "Busy", "Con InScene (lo pone el servidor), los encargos esperan")
-	ana:SetAttribute("InScene", nil)
+	scene("Bebe_Nacimiento")
+	check(ana:GetAttribute("InScene") == true, "Al abrir la escena, el servidor pone InScene")
+	check(Service.errandBlock(ana) == "Busy", "Con una escena abierta, los encargos esperan")
+	noScene()
+	check(Service.errandBlock(ana) == nil, "Al cerrarla, ya no")
+	Cine.beginScene(ana, "SinPantalla", 600)
+	task.wait(Service.SceneAckSeconds + 1.2)
+	check(Service.errandBlock(ana) == nil, "Una escena lanzada que ninguna pantalla confirma (sin latido) no para la historia")
+	H.fromClient(ana, "CinematicSeen", "SinPantalla")
+	check(Service.errandBlock(ana) == "Busy", "…en cuanto la pantalla dice que la ve (CinematicSeen), sí")
+	Cine.endScene(ana)
 	ana:SetAttribute("InCinematic", true)
 	check(Service.errandBlock(ana) == "Busy", "Con InCinematic, también")
 	ana:SetAttribute("InCinematic", nil)
+	ana:SetAttribute("InScene", true)
+	check(Service.errandBlock(ana) == nil, "Un InScene suelto que CinematicService no conoce no cuenta (manda inScene)")
+	ana:SetAttribute("InScene", nil)
+
+	-- Sin CinematicService.inScene (versión vieja): se mira el atributo, defensivamente
+	local fn = Cine.inScene
+	Cine.inScene = nil
+	ana:SetAttribute("InScene", true)
+	check(Service.errandBlock(ana) == "Busy", "Sin inScene, el atributo InScene cuenta")
 	ana:SetAttribute("InScene", "Bebe_Nacimiento")
-	check(Service.errandBlock(ana) == "Busy", "InScene con el nombre de la escena cuenta como encendido")
+	check(Service.errandBlock(ana) == "Busy", "…también con el nombre de la escena")
 	ana:SetAttribute("InScene", false)
-	check(Service.errandBlock(ana) == nil, "InScene = false no cuenta")
+	check(Service.errandBlock(ana) == nil, "…y InScene = false no cuenta")
+	ana:SetAttribute("InScene", nil)
+	Cine.inScene = fn
 
 	-- No se ofrece nada en mitad de una escena
-	ana:SetAttribute("InScene", true)
+	scene("Escena")
 	local offersBefore = #inbox(ana, "Offer")
 	StoryEvents.emit(ana, "Talk", { Npc = "Tester_Test_Escena" })
 	task.wait(0.3)
 	check(#inbox(ana, "Offer") == offersBefore, "Durante la escena no sale ninguna oferta de misión")
-	ana:SetAttribute("InScene", nil)
+	noScene()
 
 	-- La conversación del paso siguiente espera a que acabe la escena… y luego empieza sola
 	check(accept(ana, "Test_Escena"), "Sin escena, la misión se ofrece y se acepta")
-	ana:SetAttribute("InScene", true)
+	scene("Escena")
 	ana.At = "PlazaCentro"
 	local stepped = waitFor(function()
 		local prog = profiles[ana].Story.Active.Test_Escena
@@ -172,23 +230,26 @@ do
 	task.wait(2)
 	check(not said(ana, "La plaza está tranquila"), "La conversación NO empieza encima de la escena")
 	check(profiles[ana].Story.Active.Test_Escena ~= nil, "…y la misión sigue esperando")
-	ana:SetAttribute("InScene", nil)
+	noScene()
 	check(waitFor(function()
 		return profiles[ana].Story.Completed.Test_Escena ~= nil
 	end, 4), "Al acabar la escena, la conversación empieza sola y la misión termina")
 	check(said(ana, "La plaza está tranquila"), "…con su frase")
 
-	-- Un InScene olvidado no bloquea la historia para siempre
+	-- Una escena olvidada no bloquea la historia para siempre (además del tope de CinematicService)
 	local old = Service.SceneMaxSeconds
 	Service.SceneMaxSeconds = 1
-	ana:SetAttribute("InScene", true)
+	scene("Colgada")
 	check(Service.errandBlock(ana) == "Busy", "Escena recién puesta: ocupado")
 	task.wait(1.3)
 	check(Service.errandBlock(ana) == nil, "Una escena colgada más de SceneMaxSeconds deja de contar")
-	ana:SetAttribute("InScene", "OtraEscena")
+	scene("OtraEscena")
 	check(Service.errandBlock(ana) == "Busy", "Otra escena distinta vuelve a contar desde cero")
-	ana:SetAttribute("InScene", nil)
+	noScene()
 	Service.SceneMaxSeconds = old
+	if Cine.Timing then
+		Cine.Timing.StartGrace = grace
+	end
 	H.leave(ana)
 end
 
@@ -196,8 +257,8 @@ end
 print("\n▶ 2. Hora de una Transition: local con más gente (M-01)")
 ---------------------------------------------------------------------
 do
-	local bea = H.newPlayer("Bea", "Adulto", 3600)
-	local carlos = H.newPlayer("Carlos", "Adulto", 3600)
+	local bea = newPlayer("Bea")
+	local carlos = newPlayer("Carlos")
 	task.wait(0.5)
 	local skipsBefore = #skips
 	check(accept(bea, "Test_Noche"), "La misión de la noche empieza")
@@ -260,7 +321,7 @@ end
 print("\n▶ 3. Reaparecer: solo la misión que sigues (M-02)")
 ---------------------------------------------------------------------
 do
-	local dani = H.newPlayer("Dani", "Adulto", 3600)
+	local dani = newPlayer("Dani")
 	task.wait(0.5)
 	check(accept(dani, "Test_Lejos"), "Secundaria con Teleport en marcha")
 	check(accept(dani, "Test_Aqui"), "Otra secundaria sin sitio en marcha")
@@ -309,7 +370,7 @@ do
 	local oldMissing, oldEvery = W.MissingPlace, W.Every
 	W.MissingPlace, W.Every = 1, 0.5
 
-	local eva = H.newPlayer("Eva", "Adulto", 3600)
+	local eva = newPlayer("Eva")
 	task.wait(0.5)
 	check(accept(eva, "Test_Falta"), "Misión con un lugar que no está en el mapa")
 	H.fromClient(eva, "Track", "Test_Falta")

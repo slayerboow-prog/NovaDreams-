@@ -157,6 +157,7 @@ type Runtime = {
 	CineHeld: { [string]: number }?, -- misión -> paso de escena de cine que espera a poder verse
 	UntrackedPingAt: number?, -- último aviso de una misión que no sigues (como mucho uno por minuto)
 	SceneSeen: { [string]: any }?, -- (inScene) valor de InScene/InCinematic visto y desde cuándo
+	SceneAck: number?, -- (inScene) último latido de escena o CinematicSeen de su pantalla (os.clock)
 	LocalClock: { Quest: string, Until: number }?, -- hora de una Transition puesta solo para ti (StoryClock)
 }
 local runtime: { [Player]: Runtime } = {}
@@ -283,7 +284,20 @@ end
 -- lo pone el cliente (en el servidor solo se ve si alguien lo copia). Vale cualquier valor «encendido»
 -- (true, el nombre de la escena, un número). Por si alguien se olvida de quitarlo, pasado
 -- SceneMaxSeconds seguido con el mismo valor deja de contar: la historia nunca se queda parada.
+-- Con CinematicService.inScene (la respuesta buena), la escena cuenta cuando la pantalla CONFIRMA que
+-- la está enseñando: su latido (Remotes.Scene "Beat", cada segundo) o CinematicSeen, en los últimos
+-- SceneAckSeconds. Una escena que el servidor ha lanzado pero ninguna pantalla enseña (aún cargando,
+-- o sin cliente) no para la historia.
 LifeStoryService.SceneMaxSeconds = 180
+LifeStoryService.SceneAckSeconds = 5
+
+-- La pantalla del jugador dice que tiene una escena delante (latido o CinematicSeen)
+function LifeStoryService.sceneBeat(player: Player)
+	local rt = runtime[player]
+	if rt then
+		rt.SceneAck = os.clock()
+	end
+end
 local function sceneFlag(value: any): boolean
 	return value ~= nil and value ~= false and value ~= "" and value ~= 0
 end
@@ -299,7 +313,9 @@ local function inScene(player: Player): boolean
 		return fn(player) == true
 	end)
 	if ok and authoritative ~= nil then
-		scene = if authoritative then "InScene" else nil
+		local rt0 = runtime[player]
+		local confirmed = rt0 ~= nil and rt0.SceneAck ~= nil and os.clock() - rt0.SceneAck <= LifeStoryService.SceneAckSeconds
+		scene = if authoritative and confirmed then (player:GetAttribute("SceneId") or "InScene") else nil
 	else
 		scene = player:GetAttribute("InScene")
 	end
@@ -3851,6 +3867,7 @@ local function onRemote(player: Player, kind: any, questId: any, value: any)
 			if kind == "CinematicDone" then
 				CinematicService.clientDone(player, questId)
 			else
+				LifeStoryService.sceneBeat(player)
 				CinematicService.clientSeen(player, questId)
 			end
 		end
@@ -4056,6 +4073,19 @@ function LifeStoryService.init()
 		Remote.Parent = remotes
 	end
 	Remote.OnServerEvent:Connect(onRemote)
+	-- El latido de las escenas (SceneClient → Remotes.Scene "Beat"; el remoto lo crea CinematicService)
+	task.spawn(function()
+		pcall(function()
+			local scene = remotes:WaitForChild("Scene", 15)
+			if scene and scene:IsA("RemoteEvent") then
+				(scene :: RemoteEvent).OnServerEvent:Connect(function(player: Player, kind: any)
+					if kind == "Beat" then
+						LifeStoryService.sceneBeat(player)
+					end
+				end)
+			end
+		end)
+	end)
 
 	StoryEvents.connect(onStoryEvent)
 	DataService.onLoaded(onLoaded)
