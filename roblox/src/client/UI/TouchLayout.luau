@@ -103,6 +103,7 @@ local touch = false
 local started = false
 local driving = false -- al volante (móvil): colocación de conducir
 local flying = false -- a los mandos de un avión: colocación de volar (manda sobre la de conducir)
+local phoneOpen = false -- el ValPhone abierto tapa la esquina de abajo a la izquierda
 
 -- Botón «⋯» (móvil): cuando hay más botones de contexto que huecos, pasa de página
 local MORE_ID = "MasBotones"
@@ -543,11 +544,17 @@ function TouchLayout.refresh()
 	for _, spec in visible do
 		local caption = labels[spec.Id] or spec.Label
 		-- (Twin: el segundo Disparar de la izquierda dice lo mismo que el grande a propósito)
-		if captions[caption] and not (spec :: any).Twin then
+		local twin = (spec :: any).Twin == true
+		if captions[caption] and not twin then
 			continue
 		end
-		captions[caption] = true
+		if not twin then
+			captions[caption] = true
+		end
 		local slot = if flying then spec.FlySlot elseif driving then spec.DriveSlot elseif spec.Slot then (SLOT_ALIAS[spec.Slot] or spec.Slot) else nil
+		if phoneOpen and slot and HudLayout.Left[slot] then
+			continue -- (el ValPhone abierto tapa la esquina: Teléfono, Inventario y el Disparar de la izquierda se esconden)
+		end
 		if slot and slots[slot] and not taken[slot] then
 			taken[slot] = true
 			placed[spec.Id] = slot
@@ -684,6 +691,15 @@ function TouchLayout.setDim(id: string, dim: boolean)
 	if view then
 		view.Button.BackgroundTransparency = if dim then 0.6 else 0.28
 		view.Label.TextTransparency = if dim then 0.45 else 0
+	end
+end
+
+-- El ValPhone abierto (Commands/CommandMenu): los botones de la esquina de abajo a la izquierda se
+-- esconden (el teléfono los taparía); se cierra tocando fuera o con su barra de inicio
+function TouchLayout.setPhoneOpen(value: boolean)
+	if phoneOpen ~= value then
+		phoneOpen = value
+		TouchLayout.refresh()
 	end
 end
 
@@ -1128,6 +1144,7 @@ function TouchLayout._reset()
 	busy, gui, hintsPanel, started = false, nil, nil, false
 	driving = false
 	flying = false
+	phoneOpen = false
 	swimHidden = nil
 	extraPage, moreBadge = 1, nil
 end

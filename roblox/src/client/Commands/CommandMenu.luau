@@ -805,6 +805,7 @@ function CommandMenu.init()
 	Phone.RowCallback = onRow
 	Phone.SegmentCallback = onSegment
 	Phone.OpenedCallback = function(open: boolean)
+		TouchLayout.setPhoneOpen(open)
 		if open then
 			UiAudio.open()
 			closeStrip()

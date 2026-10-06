@@ -102,11 +102,11 @@ local EXTRA_X, EXTRA_R, EXTRA_STEP, EXTRA_FIRST = -238, 30, 66, 34
 -- derecho mueve la cámara). { x, y, ancho, alto } del centro respecto a la esquina de abajo a la
 -- izquierda (menos el margen).
 HudLayout.Left = {
-	Telefono = { 88, -34, 176, 68 },
-	Inventario = { 286, -34, 196, 68 },
+	Telefono = { 96, -42, 192, 84 },
+	Inventario = { 312, -42, 212, 84 },
 	DispararIzq = { 356, -252, 92, 92 },
 }
-local LEFT_ROW = 68 -- alto de la fila de Teléfono e Inventario
+local LEFT_ROW = 84 -- alto de la fila de Teléfono e Inventario
 local STICK_X = 82 -- borde izquierdo del joystick (desde el margen)
 -- Conduciendo (móvil, al volante): otra colocación (TouchLayout.setDriving). { x, y, ancho, alto } del
 -- centro de cada hueco respecto a la esquina de abajo a la derecha (menos el margen):
@@ -237,8 +237,12 @@ function HudLayout.compute(viewport: Vector2, options: Options?): Layout
 		items.Joystick = place(Vector2.new(0, 1), UDim2.new(0, MARGIN + STICK_X, 1, -stickBottom), Vector2.new(stick, stick))
 		items.PhoneDrive = place(Vector2.new(0, 0), UDim2.new(0, MARGIN, 0, statusBottom + 12), s.PhonePeek)
 		items.PhoneBanner = place(Vector2.new(0, 1), UDim2.new(0, MARGIN, 1, -(stickBottom + stick + 12)), s.PhoneBanner)
+		-- Al volante o volando el aviso baja a la derecha del teléfono que asoma (debajo de tu estado:
+		-- abajo van las flechas o, volando, el joystick)
+		items.PhoneBannerDrive = place(Vector2.new(0, 0), UDim2.new(0, MARGIN + s.PhonePeek.X + 12, 0, statusBottom + 12), s.PhoneBanner)
 	else
 		items.PhoneDrive = items.Phone
+		items.PhoneBannerDrive = place(Vector2.new(0, 1), UDim2.new(0, MARGIN, 1, -(MARGIN + s.PhonePeek.Y + 12)), s.PhoneBanner)
 		items.PhoneBanner = place(Vector2.new(0, 1), UDim2.new(0, MARGIN, 1, -(MARGIN + s.PhonePeek.Y + 12)), s.PhoneBanner)
 	end
 	-- La tira de acciones de AHORA (Commands/ContextStrip)

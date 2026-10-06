@@ -560,7 +560,7 @@ local function placeAll(layout: HudLayout.Layout?)
 	parts.Body.Size = UDim2.fromOffset(open.Size.X, open.Size.Y)
 	parts.Body.AnchorPoint = open.Anchor
 	parts.Body.Position = if opened then open.Position else open.Position + UDim2.fromOffset(0, open.Size.Y + 40)
-	HudLayout.apply(parts.Banner, now.Items.PhoneBanner)
+	HudLayout.apply(parts.Banner, if driving and touch then now.Items.PhoneBannerDrive else now.Items.PhoneBanner)
 end
 
 local function refreshPeek()
@@ -1208,7 +1208,8 @@ function Phone.notify(data: { Icon: string?, App: string?, Title: string?, Text:
 	Theme.setText(parts.BannerApp, string.upper(data.Title or (meta and meta.Name) or PhoneApps.Brand))
 	Theme.setText(parts.BannerText, data.Text)
 	banner:SetAttribute("App", data.App)
-	local spot = HudLayout.current().Items.PhoneBanner
+	local items = HudLayout.current().Items
+	local spot = if driving and touch then items.PhoneBannerDrive else items.PhoneBanner
 	banner.Visible = true
 	banner.GroupTransparency = 1
 	banner.Position = spot.Position + UDim2.fromOffset(0, 30)

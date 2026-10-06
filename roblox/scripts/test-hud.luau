@@ -678,7 +678,9 @@ local function hudRects(mods)
 	-- de la tira de acciones (en el móvil es la burbuja del racimo y su lista se abre encima)
 	local phoneGui = playerGui:FindFirstChild("PhoneGui")
 	add("ValPhone", phoneGui and phoneGui:FindFirstChild("PhonePeek"))
-	table.insert(list, { Name = "Aviso del ValPhone", Rect = HudLayout.rect(layout.Items.PhoneBanner, layout.Canvas) })
+	-- (al volante o volando, el aviso baja debajo del teléfono que asoma: Items.PhoneBannerDrive)
+	local atWheel = layout.Touch and mods.TouchLayout and (mods.TouchLayout.isDriving() or mods.TouchLayout.isFlying())
+	table.insert(list, { Name = "Aviso del ValPhone", Rect = HudLayout.rect(if atWheel then layout.Items.PhoneBannerDrive else layout.Items.PhoneBanner, layout.Canvas) })
 	if not layout.Touch then
 		table.insert(list, { Name = "Tira de acciones", Rect = HudLayout.rect(layout.Items.Context, layout.Canvas) })
 	end
@@ -1101,16 +1103,47 @@ end
 ---------------------------------------------------------------------
 -- Móvil y tableta
 ---------------------------------------------------------------------
+local bagToggles = 0 -- (veces que el botón Inventario abre la mochila)
+-- Los textos de verdad de los botones del racimo (CombatController, Character, Stances…)
+local CLUSTER_LABELS = { Ataque = "Atacar", Defender = "Defensa", Correr = "Correr", Agacharse = "Agacharse", Esquivar = "Esquivar" }
 local function registerAll(TL)
-	-- Los botones de siempre (los registran Combate, Correr, Gestos…) y cinco de contexto a la vez
-	for _, id in { "Ataque", "Defender", "Correr", "Gestos", "Esquivar", "Fijar" } do
-		TL.register({ Id = id, Icon = "espada", Label = id, Slot = id, Priority = 5, Callback = function() end })
+	-- Los botones de siempre del racimo (los registran Combate, Correr, Stances…) y cinco de contexto a la vez
+	for _, id in { "Ataque", "Defender", "Correr", "Agacharse", "Esquivar" } do
+		TL.register({ Id = id, Icon = "espada", Label = CLUSTER_LABELS[id], Slot = id, Priority = 5, Callback = function() end })
 	end
 	for i, id in { "Linterna", "Foto", "Piedra", "Bajarse", "Sirena" } do
 		TL.register({ Id = id, Icon = "linterna", Label = id, Priority = 10 + i, Callback = function() end, Badge = if id == "Piedra" then function()
 			return "×3"
 		end else nil })
 	end
+	-- Inventario, como lo registra Controllers/InventoryUI (aquí no se monta la mochila)
+	TL.register({
+		Id = "Inventario", Icon = "mochila", Label = "Inventario", Slot = "Inventario", Shape = "Side", Priority = 2,
+		Visible = function()
+			return not TL.isDriving() and not TL.isFlying()
+		end,
+		Callback = function()
+			bagToggles += 1
+		end,
+	})
+end
+
+-- El centro y el rectángulo (en el lienzo) de un botón
+local function centerOf(button, layout)
+	local r = rectOf(button, layout)
+	return r.X + r.W / 2, r.Y + r.H / 2, r
+end
+
+-- Comprueba que los botones visibles caben en la pantalla
+local function insideScreen(list, layout, where: string)
+	local out = {}
+	for _, item in list do
+		local r = item.Rect
+		if r.X < -0.5 or r.Y < -0.5 or r.X + r.W > layout.Canvas.X + 0.5 or r.Y + r.H > layout.Canvas.Y + 0.5 then
+			table.insert(out, item.Name .. describe(r))
+		end
+	end
+	check(#out == 0, where .. ": nada se sale de la pantalla" .. (if #out > 0 then ": " .. table.concat(out, ", ") else ""))
 end
 
 for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334, 750 }, { 1846, 852 }, { 2400, 1080 }, { 1024, 768 } } do
@@ -1120,6 +1153,7 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 	HudLayout, TouchLayout, CommandMenu, CommandRegistry = mods.HudLayout, mods.TouchLayout, mods.CommandMenu, mods.CommandRegistry
 	check(ok, "Se monta sin errores" .. (if ok then "" else ": " .. tostring(err)))
 	check(#badWrites == 0, "Todas las propiedades existen en Roblox" .. (if #badWrites > 0 then ": " .. table.concat(badWrites, ", ") else ""))
+	bagToggles = 0
 	registerAll(TouchLayout)
 	local ranTouch: { [string]: number } = {}
 	local function trackTouch(id: string)
@@ -1130,6 +1164,8 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 	for name, priority in { Atacar = 7, Objetos = 50, Mapa = 51, Mas = 60 } do
 		CommandRegistry.register({ Id = name, Label = name, Icon = "espada", Priority = priority, Run = trackTouch(name) })
 	end
+	-- Mensajes con 3 sin leer (el globito rojo del botón Teléfono)
+	CommandRegistry.register({ Id = "Mensajes", Label = "Mensajes", Icon = "hablar", Priority = 50.2, Screen = "Mensajes", Badge = 3 } :: any)
 	CommandMenu.refresh()
 	TouchLayout.refresh()
 	local buttons = TouchLayout.buttons()
@@ -1139,35 +1175,100 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 			visible += 1
 		end
 	end
-	check(visible == 15, "Racimo con Interactuar, la burbuja «Acciones», Saltar, los 6 de siempre, 5 de contexto y el ❓ (" .. visible .. ")")
+	check(visible == 15, "Racimo de 7 (Interactuar, Correr, Defensa, Saltar, Agacharse, Atacar, Esquivar), 5 de contexto, el ❓, Teléfono e Inventario (" .. visible .. ")")
 	check(buttons.Ayuda and buttons.Ayuda.Visible and buttons.Ayuda:FindFirstChild("Caption").Text == "¿Qué hago?", "Botón ❓ «¿Qué hago?» junto a la misión")
 	local guideCard = playerGui:FindFirstChild("GuideGui") and playerGui.GuideGui:FindFirstChild("TutorialCard")
 	check(guideCard and guideCard.Visible, "Jugador nuevo: la tarjeta de los primeros pasos se ve (y entra en la prueba de que nada se pisa)")
 	check(buttons.Saltar and buttons.Saltar.Visible and buttons.Saltar:FindFirstChild("Caption").Text == "Saltar", "Botón Saltar propio (icono y texto)")
-	check(buttons.Ataque and buttons.Ataque.Size.X.Offset > buttons.Correr.Size.X.Offset, "El Ataque es el botón grande")
+	check(buttons.Ataque and buttons.Ataque.Size.X.Offset > buttons.Correr.Size.X.Offset, "El Atacar es el botón grande")
 	check(buttons.Piedra and buttons.Piedra.Badge.Visible and buttons.Piedra.Badge.Text == "×3", "Numerito en la esquina (piedras «×3»)")
 	local now = HudLayout.current()
+	now.HudLayoutModule = HudLayout
 	local stick = playerGui:FindFirstChild("JoystickGui")
 	stick = stick and stick:FindFirstChild("Joystick")
 	check(stick and stick.Visible and localPlayer.DevTouchMovementMode == roblox.Enum.DevTouchMovementMode.Scriptable, "Joystick propio (en lugar del de Roblox)")
-	local stickRect = stick and rectOf(stick, (function()
-		now.HudLayoutModule = HudLayout
-		return now
-	end)())
-	check(stickRect and stickRect.X < now.Canvas.X * 0.3 and stickRect.Y + stickRect.H > now.Canvas.Y * 0.9, "El joystick abajo a la izquierda")
-	-- El ValPhone asoma en la esquina, a la izquierda del joystick (sin taparlo)
+	local stickRect = stick and rectOf(stick, now)
+	check(stickRect and stickRect.X < now.Canvas.X * 0.3 and stickRect.Y + stickRect.H > now.Canvas.Y * 0.8, "El joystick abajo a la izquierda")
+	check(stick and #stick:GetChildren() > 0 and stick:FindFirstChild("Knob") ~= nil, "Joystick redondo con flechas y pomo en el centro")
+
+	-- El racimo SIN arma, como la referencia (docs/referencias/hud-movil-botones.jpg): exactamente 7
+	-- botones; arriba a la derecha Interactuar; en medio Correr, Defensa y Saltar; abajo Agacharse, el
+	-- Atacar grande en el centro y Esquivar
+	do
+		local want = { Interactuar = "Interactuar", Correr = "Correr", Defender = "Defensa", Saltar = "Saltar", Agacharse = "Agacharse", Ataque = "Atacar", Esquivar = "Esquivar" }
+		local inCluster = {}
+		for id, button in buttons do
+			local slot = button:GetAttribute("Slot")
+			if button.Visible and slot and HudLayout.Cluster[slot] and slot ~= "Contexto" then
+				table.insert(inCluster, id)
+			end
+		end
+		table.sort(inCluster)
+		local wrong = {}
+		for id, caption in want do
+			local b = buttons[id]
+			if not (b and b.Visible and b:GetAttribute("Slot") == id and b.Caption.Text == caption) then
+				table.insert(wrong, id)
+			end
+		end
+		check(#inCluster == 7 and #wrong == 0, ("Sin arma, el racimo tiene exactamente los 7 de la referencia (%s)%s"):format(table.concat(inCluster, ", "), if #wrong > 0 then "; mal: " .. table.concat(wrong, ", ") else ""))
+		local c = {}
+		for id in want do
+			local x, y, r = centerOf(buttons[id], now)
+			c[id] = { X = x, Y = y, R = r.W / 2 }
+		end
+		local tol = 6
+		local middle = math.abs(c.Correr.Y - c.Defender.Y) < tol and math.abs(c.Defender.Y - c.Saltar.Y) < tol and c.Correr.X < c.Defender.X and c.Defender.X < c.Saltar.X
+		local bottom = c.Agacharse.X < c.Ataque.X and c.Ataque.X < c.Esquivar.X and math.abs(c.Agacharse.Y - c.Esquivar.Y) < tol and math.abs(c.Agacharse.Y - c.Ataque.Y) < c.Ataque.R
+		local order = c.Interactuar.Y < c.Saltar.Y and c.Saltar.Y < c.Ataque.Y and c.Interactuar.X > c.Defender.X
+		local centered = math.abs(c.Defender.X - c.Ataque.X) < tol
+		local biggest = true
+		for id in want do
+			if id ~= "Ataque" and c[id].R >= c.Ataque.R then
+				biggest = false
+			end
+		end
+		check(middle, "Fila del medio: Correr, Defensa y Saltar, a la misma altura y en ese orden")
+		check(bottom, "Fila de abajo: Agacharse, el Atacar y Esquivar, en ese orden")
+		check(order and centered, "Interactuar arriba a la derecha; la Defensa encima del Atacar")
+		check(biggest, "El Atacar es el más grande")
+		check(not buttons.Gestos and not buttons.Fijar, "Ni Gestos ni Fijar en el racimo (Gestos y Foto son apps del ValPhone)")
+	end
+
+	-- Abajo a la izquierda: Teléfono e Inventario debajo del joystick, con el texto al lado
 	local phoneGui = playerGui:FindFirstChild("PhoneGui")
 	local peek = phoneGui and phoneGui:FindFirstChild("PhonePeek")
-	local peekRect = peek and rectOf(peek, now)
-	check(peek and peek.Visible and peekRect and stickRect and peekRect.X + peekRect.W <= stickRect.X and now.Canvas.Y - (peekRect.Y + peekRect.H) <= 16.5 and peekRect.X <= 16.5, "El ValPhone asoma abajo a la izquierda, sin tapar el joystick")
-	check(peekRect and math.min(peekRect.W, peekRect.H) * now.Scale >= 40, ("Y se toca bien con el pulgar (%d px)"):format(if peekRect then math.min(peekRect.W, peekRect.H) * now.Scale else 0))
-	-- La burbuja «Acciones», a la izquierda de Interactuar: con una acción la hace al momento
+	do
+		local tel, bag = buttons.Telefono, buttons.Inventario
+		check(peek and not peek.Visible, "En el móvil el ValPhone ya no asoma: lo abre el botón Teléfono")
+		check(tel and tel.Visible and tel.Caption.Text == "Teléfono" and bag and bag.Visible and bag.Caption.Text == "Inventario", "Botones «Teléfono» e «Inventario» con su texto")
+		if tel and bag and stickRect then
+			local tr, br = rectOf(tel, now), rectOf(bag, now)
+			check(tr.Y >= stickRect.Y + stickRect.H - 0.5 and br.Y >= stickRect.Y + stickRect.H - 0.5 and tr.X < br.X and math.abs(tr.Y - br.Y) < 1, "Debajo del joystick, uno al lado del otro (Teléfono a la izquierda)")
+			check(tr.X <= 16.5 and now.Canvas.Y - (tr.Y + tr.H) <= 16.5, "Pegados a la esquina de abajo a la izquierda")
+			check(math.min(tr.W, tr.H) * now.Scale >= 30, ("Se tocan bien con el pulgar (%d px)"):format(math.min(tr.W, tr.H) * now.Scale))
+			local disc = tel:FindFirstChild("Disc")
+			check(disc and disc.Badge.Visible and disc.Badge.Text == "3" and disc.Badge.BackgroundColor3 == roblox.Color3.fromRGB(255, 59, 48), "Teléfono con el globito rojo de avisos sin leer («3»)")
+			bag.Activated:Fire()
+			check(bagToggles == 1, "Inventario abre la mochila")
+		end
+	end
+	-- La burbuja «Acciones», a la izquierda de Interactuar. «Atacar» ya es el botón grande: no sale dos veces
 	local bubble = buttons.Contexto
-	check(bubble and bubble.Visible and bubble:GetAttribute("Slot") == "Contexto" and bubble.Caption.Text == "Atacar" and not bubble.Badge.Visible, "La burbuja de acciones junto a Interactuar, con la acción de ahora («Atacar»)")
+	check(bubble == nil or not bubble.Visible, "Sin duplicados: con «Atacar» como única acción, no sale otro «Atacar» pequeño")
+	CommandRegistry.register({ Id = "Atacar", Label = "Atacar", Icon = "espada", Priority = 7, When = function()
+		return false
+	end })
+	CommandRegistry.register({ Id = "Lanzar", Label = "Lanzar", Icon = "espada", Priority = 7, Run = trackTouch("Lanzar") })
+	CommandMenu.refresh()
+	TouchLayout.refresh()
+	bubble = TouchLayout.buttons().Contexto
+	check(bubble and bubble.Visible and bubble:GetAttribute("Slot") == "Contexto" and bubble.Caption.Text == "Lanzar" and not bubble.Badge.Visible, "La burbuja de acciones junto a Interactuar, con la acción de ahora («Lanzar»)")
 	if bubble then
 		bubble.Activated:Fire()
 	end
-	check(ranTouch.Atacar == 1, "Con una sola acción, un toque la hace")
+	check(ranTouch.Lanzar == 1, "Con una sola acción, un toque la hace")
+
 	CommandRegistry.register({ Id = "Saludar", Label = "Saludar", Icon = "saludar", Priority = 5, Run = trackTouch("Saludar") })
 	CommandMenu.refresh()
 	TouchLayout.refresh()
@@ -1198,14 +1299,16 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 	end })
 	CommandMenu.refresh()
 	-- El teléfono: sube por la izquierda sin tapar los botones ni la barra rápida
-	if peek then
-		peek.Activated:Fire()
+	if buttons.Telefono then
+		buttons.Telefono.Activated:Fire()
 	end
 	do
 		local openRect = HudLayout.rect(now.Items.PhoneOpen, now.Canvas)
 		local covers = {}
+		local tl = TouchLayout.buttons()
+		check(not tl.Telefono.Visible and not tl.Inventario.Visible, "Abierto, Teléfono e Inventario se esconden debajo (se cierra tocando fuera)")
 		for name, slot in now.Slots do
-			if name ~= "Ayuda" and HudLayout.overlaps(openRect, HudLayout.rect(slot, now.Canvas)) then
+			if name ~= "Ayuda" and not HudLayout.Left[name] and HudLayout.overlaps(openRect, HudLayout.rect(slot, now.Canvas)) then
 				table.insert(covers, name)
 			end
 		end
@@ -1220,6 +1323,8 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 			tienda.Activated:Fire()
 		end
 		check(touchStore and touchStore() and not CommandMenu.isPhoneOpen(), "Y la app Tienda abre la tienda, como el botón de antes")
+		local back = TouchLayout.buttons()
+		check(back.Telefono.Visible and back.Inventario.Visible, "Al cerrarse vuelven Teléfono e Inventario")
 	end
 	local popupsGui = playerGui:FindFirstChild("HudPopups")
 	check(popupsGui:FindFirstChild("Phone") == nil and popupsGui:FindFirstChild("PhoneButton") == nil, "Sin el menú rápido ni su botón junto al minimapa")
@@ -1244,6 +1349,57 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 	end
 	local list = hudRects(mods)
 	noOverlaps(list, HudLayout, ("%dx%d"):format(size[1], size[2]))
+	insideScreen(list, now, ("%dx%d"):format(size[1], size[2]))
+	-- Con un arma de fuego (estilo shooter móvil, como los registra Controllers/WeaponController): el
+	-- Atacar grande pasa a ser Disparar, Apuntar encima, Recargar con las balas en el hueco de
+	-- Interactuar y un segundo Disparar a la derecha del joystick. Agacharse, Saltar y Esquivar siguen.
+	do
+		local armedNow = true
+		local function armedFn()
+			return armedNow
+		end
+		-- (CombatController esconde Atacar y Defensa con el arma en la mano en el móvil)
+		TouchLayout.register({ Id = "Ataque", Icon = "espada", Label = "Atacar", Slot = "Ataque", Priority = 3, Visible = function()
+			return not armedNow
+		end, Callback = function() end })
+		TouchLayout.register({ Id = "Defender", Icon = "escudo", Label = "Defensa", Slot = "Defender", Priority = 4, Visible = function()
+			return not armedNow
+		end, Hold = function() end })
+		TouchLayout.register({ Id = "Disparar", Icon = "disparar", Label = "Disparar", Slot = "Disparar", Priority = 1, Visible = armedFn, Hold = function() end, Drag = function() end })
+		TouchLayout.register({ Id = "DispararIzq", Icon = "disparar", Label = "Disparar", Slot = "DispararIzq", Priority = 1, Twin = true, Visible = armedFn, Hold = function() end, Drag = function() end } :: any)
+		TouchLayout.register({ Id = "Apuntar", Icon = "objetivo", Label = "Apuntar", Slot = "Apuntar", Priority = 1, Visible = armedFn, Callback = function() end })
+		TouchLayout.register({ Id = "Recargar", Icon = "recargar", Label = "Recargar", Slot = "Recargar", Priority = 0.5, Visible = armedFn, Badge = function()
+			return "12/90"
+		end, Callback = function() end })
+		TouchLayout.refresh()
+		local tl = TouchLayout.buttons()
+		local function at(id: string, slot: string): boolean
+			return tl[id] ~= nil and tl[id].Visible and tl[id]:GetAttribute("Slot") == slot
+		end
+		check(at("Disparar", "Ataque") and tl.Disparar.Caption.Text == "Disparar" and (tl.Ataque == nil or not tl.Ataque.Visible), "Con arma: el botón grande pasa a ser «Disparar»")
+		check(at("Apuntar", "Defender") and (tl.Defender == nil or not tl.Defender.Visible), "Apuntar encima del disparo (en el sitio de Defensa)")
+		check(at("Recargar", "Interactuar") and tl.Recargar.Badge.Visible and tl.Recargar.Badge.Text == "12/90", "Recargar con las balas («12/90») en el sitio de Interactuar")
+		check(at("DispararIzq", "DispararIzq") and tl.DispararIzq.Caption.Text == "Disparar", "Segundo «Disparar» en el lado izquierdo")
+		check(at("Agacharse", "Agacharse") and at("Saltar", "Saltar") and at("Esquivar", "Esquivar") and at("Correr", "Correr"), "Agacharse, Saltar, Esquivar y Correr siguen en el racimo")
+		check(tl.Interactuar.Visible and string.sub(tostring(tl.Interactuar:GetAttribute("Slot")), 1, 5) == "Extra", "Interactuar no se pierde: pasa a la columna pequeña")
+		if stickRect then
+			local x, y, r = centerOf(tl.DispararIzq, now)
+			local sx, sy = stickRect.X + stickRect.W / 2, stickRect.Y + stickRect.H / 2
+			check(x > sx and y < sy and not HudLayout.overlaps(r, stickRect) and r.X + r.W < now.Canvas.X / 2, "El Disparar de la izquierda, arriba a la derecha del joystick (pulgar izquierdo)")
+		end
+		local armedList = hudRects(mods)
+		noOverlaps(armedList, HudLayout, ("%dx%d con arma"):format(size[1], size[2]))
+		insideScreen(armedList, now, ("%dx%d con arma"):format(size[1], size[2]))
+		-- Al guardar el arma vuelve el racimo normal
+		armedNow = false
+		TouchLayout.refresh()
+		tl = TouchLayout.buttons()
+		check(at("Ataque", "Ataque") and at("Defender", "Defender") and at("Interactuar", "Interactuar") and not tl.Disparar.Visible and not tl.DispararIzq.Visible and not tl.Apuntar.Visible and not tl.Recargar.Visible, "Al guardar el arma vuelve el racimo normal")
+		for _, id in { "Disparar", "DispararIzq", "Apuntar", "Recargar" } do
+			TouchLayout.unregister(id)
+		end
+		registerAll(TouchLayout)
+	end
 	-- Al volante (móvil): flechas ◀ ▶ a la izquierda (sin joystick) y, a la derecha, ACELERAR, FRENO,
 	-- freno de mano, luces, intermitentes, emergencia, Bajarse y el claxon (UI/DriveButtons y
 	-- HudLayout.Drive). Todo grande, al alcance del pulgar y sin pisar nada.
@@ -1276,7 +1432,7 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 		TouchLayout.register({ Id = "Bajarse", Icon = "bajarse", Label = "Bajarse", Slot = "Correr", DriveSlot = "Bajarse", Priority = 4, Callback = function() end })
 		TouchLayout.register({ Id = "Claxon", Icon = "claxon", Label = "Claxon", Slot = "Gestos", DriveSlot = "Claxon", Priority = 2.5, Callback = function() end })
 		-- (los botones de ir a pie se esconden solos en un vehículo: aquí se quitan)
-		for _, id in { "Ataque", "Defender", "Correr", "Gestos", "Esquivar", "Fijar" } do
+		for _, id in { "Ataque", "Defender", "Correr", "Agacharse", "Esquivar" } do
 			TouchLayout.unregister(id)
 		end
 		mods.Joystick.setDriving(true)
@@ -1576,8 +1732,8 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 		swimming = true
 		TouchLayout.setSwimming(true, Swim.HiddenButtons)
 		local tl = TouchLayout.buttons()
-		local combatGone = not tl.Ataque.Visible and not tl.Defender.Visible and not tl.Esquivar.Visible and not tl.Fijar.Visible and not tl.Gestos.Visible
-		check(combatGone and tl.Saltar.Visible and tl.Correr.Visible, "Nadando: fuera Ataque, Defensa, Esquivar, Fijar y Gestos; quedan Saltar y Correr")
+		local combatGone = not tl.Ataque.Visible and not tl.Defender.Visible and not tl.Esquivar.Visible and (tl.Agacharse == nil or not tl.Agacharse.Visible)
+		check(combatGone and tl.Saltar.Visible and tl.Correr.Visible, "Nadando: fuera Ataque, Defensa, Esquivar y Agacharse; quedan Saltar y Correr")
 		check(tl.BucearBajar.Visible and tl.BucearBajar:GetAttribute("Slot") == "Ataque" and tl.BucearSubir.Visible and tl.BucearSubir:GetAttribute("Slot") == "Defender", "Bucear en el hueco grande y Subir al lado")
 		swimming = false
 		TouchLayout.setSwimming(false)
