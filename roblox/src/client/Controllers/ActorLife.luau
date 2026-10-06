@@ -51,6 +51,16 @@ local Joints = require(ReplicatedStorage.Shared.Joints)
 local WorkAnim = require(script.Parent.WorkAnim)
 local SpeechBubbles = require(script.Parent.Parent.UI.SpeechBubbles)
 
+-- ¿Está PunchAnim moviendo este cuerpo (golpe o guardia)? (se pide al usarlo: en las pruebas puede no estar)
+local PunchAnim: any = false
+local function punchBusy(model: Model): boolean
+	if PunchAnim == false then
+		local ok, mod = pcall(require, script.Parent.PunchAnim)
+		PunchAnim = if ok and type(mod) == "table" then mod else nil
+	end
+	return PunchAnim ~= nil and PunchAnim.busy(model)
+end
+
 local ActorLife = {}
 
 local player = Players.LocalPlayer
@@ -1308,7 +1318,12 @@ local function update(rig: Rig, t: number, dt: number)
 	lTwist += w.lt * W
 	lElbow += w.le * W
 
-	-- Aplicar (encima de la animación: C0 es la postura base de cada articulación)
+	-- Aplicar (encima de la animación: C0 es la postura base de cada articulación). Mientras da un
+	-- golpe o tiene la guardia puesta, esas C0 las mueve PunchAnim: si las escribiéramos aquí también,
+	-- según el orden del frame se borraba el puñetazo (en tu pantalla casi no se veían tus golpes)
+	if punchBusy(rig.Model) then
+		return
+	end
 	local J, B = rig.Joints, rig.Base
 	Joints.setC0(J.Neck, B.Neck * CFrame.Angles(neckPitch, neckYaw, neckRoll))
 	if J.Waist then
