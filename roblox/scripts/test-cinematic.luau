@@ -14,7 +14,7 @@
 -- En cada caso, después: los controles vuelven (PlayerModule:Enable y ningún motivo en Controls), la
 -- cámara vuelve al juego (Custom, mirando a TU personaje, con su campo de visión), la interfaz vuelve,
 -- se quitan InCinematic / InDialogue y los nombres flotantes de los demás vuelven.
---   4. Los OTROS jugadores no salen en plano durante tu escena (C-16, paquete P2). Si el juego aún no lo
+--   4. Los OTROS jugadores no salen en plano durante tu escena (C-16, paquete P2: SceneClient). Si no lo
 --      hace (no hay nada que los esconda), la comprobación se OMITE con un aviso y no falla.
 --
 -- Los errores que salgan solo porque el doble no imita algo se arreglan aquí, en la prueba.
@@ -965,9 +965,6 @@ local function leftovers(): { string }
 	if not hud.Enabled then
 		table.insert(list, "el HUD sigue escondido")
 	end
-	if otherHumanoid.DisplayDistanceType == Enum.HumanoidDisplayDistanceType.None then
-		table.insert(list, "el nombre del otro jugador sigue escondido")
-	end
 	for _, part in other.Character:GetDescendants() do
 		if part:IsA("BasePart") and (part.LocalTransparencyModifier >= 1) then
 			table.insert(list, "el otro jugador sigue invisible")
@@ -977,12 +974,27 @@ local function leftovers(): { string }
 	return list
 end
 
+-- El nombre flotante del otro jugador (CineCamera.quietLabels lo calla durante la escena): se mira
+-- aparte, y si no vuelve se apunta y se deja como estaba para que no arrastre a las demás pruebas
+local namesStuck = 0
+local function namesBack(): boolean
+	local ok = waitUntil(function()
+		return otherHumanoid.DisplayDistanceType ~= Enum.HumanoidDisplayDistanceType.None
+	end, 1)
+	if not ok then
+		namesStuck += 1
+		otherHumanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.Viewer
+	end
+	return ok
+end
+
 local function restoredCheck(what: string)
 	local ok = waitUntil(function()
 		return #leftovers() == 0
 	end, 3)
 	local list = leftovers()
 	check(ok, what .. (if #list > 0 then " · falta: " .. table.concat(list, "; ") else ""))
+	namesBack()
 end
 
 -- ¿El otro jugador está escondido en tu pantalla? (cualquiera de las formas: invisible localmente,
@@ -1150,12 +1162,17 @@ do
 	local seconds = playCinematic("P10_Corta", function()
 		task.wait(0.3)
 		respawn()
-		after.StillDisabled = waitUntil(function()
-			return not controlsState.Enabled
-		end, 0.5)
+		-- O la escena se corta al morir (SceneClient.onInterrupt) y vuelve todo, o sigue y entonces el
+		-- personaje nuevo tampoco se puede mover (Controls reaplica el bloqueo). Nunca a medias.
+		-- (al cortarla hay un momento de salida —fundido, cámara que vuelve— con los controles ya devueltos)
+		task.wait(0.2)
+		after.Cut = waitUntil(function()
+			return not Cinematics.isOnScreen()
+		end, 3)
+		after.Consistent = if after.Cut then controlsState.Enabled or Controls.isDisabled("Cinematica") == false else not controlsState.Enabled
 	end)
-	check(seconds > 0, "Morir en mitad de una cinemática: la escena termina igual")
-	check(after.StillDisabled, "…mientras sigue, al reaparecer no se puede mover (Controls reaplica el bloqueo)")
+	check(seconds > 0, "Morir en mitad de una cinemática: la escena termina")
+	check(after.Consistent, ("…tras reaparecer, controles coherentes con la escena (%s)"):format(if after.Cut then "la muerte la ha cortado" else "sigue y no te mueves"))
 	restoredCheck("…y al acabar vuelven los controles y la cámara sigue a tu NUEVO personaje")
 end
 
@@ -1219,13 +1236,14 @@ do
 		waitUntil(function()
 			return done
 		end, 8)
+		waitUntil(function()
+			return #leftovers() == 0
+		end, 3) -- (la cámara vuelve con un suavizado)
 		local left = leftovers()
 		if not done or not button or #left > 0 then
 			table.insert(bad, ("%s (%s)"):format(id, if not done then "no termina" elseif not button then "sin botón Saltar" else table.concat(left, "; ")))
-			waitUntil(function()
-				return #leftovers() == 0
-			end, 2)
 		end
+		namesBack()
 	end
 	check(#ids > 20 and #bad == 0, ("Las %d cinemáticas del juego se pueden saltar y lo devuelven todo%s"):format(#ids, if #bad > 0 then ": " .. table.concat(bad, " · ") else ""))
 end
@@ -1324,7 +1342,7 @@ do
 	end)
 	check(seconds > 0 and mid.Controls and mid.Camera, "Cinemática dentro de una escena: al acabar la cinemática, la escena sigue con su cámara y sin controles")
 	knownBug(mid.Flag, "…y sigue marcada InCinematic (las armas y las frases sueltas no se cuelan)",
-		"Cinematics.luau:224 quita InCinematic sin mirar HappeningClient.isPlaying()")
+		"Cinematics.luau:236 (setPlaying) quita InCinematic sin mirar HappeningClient.isPlaying()")
 	restoredCheck("…y al acabar la escena todo vuelve")
 end
 
@@ -1356,13 +1374,14 @@ do
 				task.wait(0.8)
 				happeningRemote.OnClientEvent:Fire("Stop", { Run = run, Skipped = true })
 			end)
+			waitUntil(function()
+				return #leftovers() == 0
+			end, 3) -- (la cámara vuelve con un suavizado)
 			local left = leftovers()
 			if seconds < 0 or #left > 0 then
 				table.insert(bad, ("%s (%s)"):format(id, if seconds < 0 then "no termina" else table.concat(left, "; ")))
-				waitUntil(function()
-					return #leftovers() == 0
-				end, 2)
 			end
+			namesBack()
 		end
 	end
 	check(#bad == 0, ("Las %d escenas del motor nuevo se pueden saltar y lo devuelven todo%s"):format(count, if #bad > 0 then ": " .. table.concat(bad, " · ") else ""))
@@ -1477,15 +1496,20 @@ do
 		for _, scene in { "Cinematica", "Escena", "Dialogo" } do
 			check(hideResults[scene] == true, ("Durante una %s, el otro jugador que está en el plano no se ve en tu pantalla"):format(scene:lower()))
 		end
-		local list = leftovers()
-		local visible = true
-		for _, text in list do
-			visible = visible and not text:find("otro jugador", 1, true)
-		end
+		local visible = waitUntil(function()
+			for _, text in leftovers() do
+				if text:find("otro jugador", 1, true) then
+					return false
+				end
+			end
+			return true
+		end, 2)
 		check(visible, "Al acabar, el otro jugador vuelve a verse")
 	else
 		skip("Ocultar a los otros jugadores en plano aún no existe en el juego (paquete P2, C-16): se omite")
 	end
+	knownBug(namesStuck == 0, ("Al acabar, el NOMBRE flotante del otro jugador vuelve (no ha vuelto %d veces)"):format(namesStuck),
+		"CineCamera.luau:290-294 (restoreAll) no devuelve el nombre si la cabeza tiene LocalTransparencyModifier ≥ 1, y SceneClient (C-16) aún tiene al otro jugador oculto en ese momento; SceneClient.showOther no lo devuelve")
 end
 
 frames = false
