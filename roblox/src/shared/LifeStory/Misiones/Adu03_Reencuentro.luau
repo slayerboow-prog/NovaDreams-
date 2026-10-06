@@ -106,6 +106,7 @@ return {
 		{ Type = "Transition", Text = "Esa noche…", Seconds = 3 },
 		{ Type = "Reach", Place = "Parque", Text = "Ve al banco del parque: el grupo te espera", Actors = BANCO },
 		{ Type = "Scene", Dialogue = "Banco", Actors = BANCO },
+		{ Type = "Transition", SetStage = "Adulto", Cinematic = "Montaje_Joven_Adulto" }, -- (P7: montaje adulto joven → adulto; Rewards.SetStage queda de red)
 	},
 
 	Dialogues = {

@@ -97,7 +97,9 @@ local Quests: { [string]: Quest } = {
 		Steps = {
 			{ Type = "Event", Event = "LookedOutside", Place = "Ventanal", TextKey = "QUEST.BEBE_SALIR.S1" },
 			-- (amanece: el primer día de cole empieza por la mañana, sin esperar a que abra el colegio)
-			{ Type = "Transition", Seconds = 5, SetStage = "Nino", TextKey = "TRANSITION.ANOS_DESPUES", Cinematic = "Bebe_AnosDespues", Clock = 7.5 },
+			-- Montaje de cambio de etapa (Happenings/Etapas): la cuna, tus primeros recuerdos, el colegio
+			-- que te espera y tú, con seis años. Creces fuera de plano.
+			{ Type = "Transition", Seconds = 5, SetStage = "Nino", TextKey = "TRANSITION.ANOS_DESPUES", Cinematic = "Montaje_Bebe_Nino", Clock = 7.5 },
 		},
 		MomentKey = "MOMENT.YA_ERES_NINO",
 	},
@@ -175,6 +177,9 @@ local Quests: { [string]: Quest } = {
 		MomentKey = "Otro día de tu vida en Valmar",
 		MomentSting = false,
 	},
+	-- El final de la vida (M-07): la casa de Los Pinos, tu familia, el álbum de tus recuerdos (una foto
+	-- viva por etapa, elegida de lo que viviste) y la gente que conociste llegando por la calle.
+	-- La escena es Vida_MirarAtras (Happenings/Etapas); la historia sigue cuando acaba (o la saltas).
 	Adulto_MirarAtras = {
 		Kind = "Main",
 		TitleKey = "Mirar atrás",
@@ -182,6 +187,7 @@ local Quests: { [string]: Quest } = {
 		Requires = { StageProgress = 0.95 },
 		Steps = {
 			{ Type = "Reach", Place = "CasaFamiliar", Text = "Vuelve a la casa donde creciste" },
+			{ Type = "Cinematic", Id = "Vida_MirarAtras" },
 			{ Type = "Moment", Text = "Toda una vida en Valmar. Y todavía queda mucho por vivir." },
 		},
 		MomentKey = "Miraste atrás: toda una vida en Valmar",

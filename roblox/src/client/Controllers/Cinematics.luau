@@ -644,7 +644,28 @@ local function tellDone(id: any)
 	end)
 end
 
+-- Las cabeceras y finales de capítulo (AfterScene = true en shared/LifeStory/Cinematics): si hay una
+-- escena del motor en pantalla (el montaje de cambio de etapa, Happenings/Etapas), esperan a que acabe,
+-- como mucho WAIT_SCENE s. Las demás cinemáticas salen como siempre (también dentro de una escena).
+local WAIT_SCENE = 60
+local function waitForScene()
+	local ok, scenes = pcall(function()
+		return require(script.Parent.HappeningClient) :: any
+	end)
+	if not ok or type(scenes) ~= "table" or type(scenes.isPlaying) ~= "function" then
+		return
+	end
+	local deadline = os.clock() + WAIT_SCENE
+	while os.clock() < deadline and scenes.isPlaying() do
+		task.wait(0.25)
+	end
+end
+
 function Cinematics.play(payload: { [string]: any })
+	local def = type(payload) == "table" and Definitions[payload.Id]
+	if type(def) == "table" and def.AfterScene then
+		pcall(waitForScene)
+	end
 	local cleanup: Cleanup = { Counted = false }
 	local ok, err = pcall(playImpl, payload, cleanup)
 	tellDone(payload.Id)
