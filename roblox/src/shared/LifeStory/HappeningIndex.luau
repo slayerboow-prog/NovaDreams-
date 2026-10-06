@@ -11,7 +11,7 @@
 
 local HappeningIndex = {}
 
-local GROUPS = { "Cielo", "Etapas" }
+local GROUPS = { "Cielo", "Etapas", "Colegio", "Universidad" }
 
 -- El instituto (escenas de la etapa adolescente, paquete P8b)
 if not table.find(GROUPS, "Instituto") then

@@ -384,7 +384,9 @@ local function onSegment(screen: string, index: number, option: number, row: any
 		if Hud and Hud.syncMenuToggles then
 			Hud.syncMenuToggles()
 		end
-		if Hud and Hud.toast and Perf.choiceLabel then
+		if Hud and Hud.toast and Perf.announce then
+			Perf.announce(Hud.toast) -- (qué cambia y, una vez, el consejo de la calidad de Roblox)
+		elseif Hud and Hud.toast and Perf.choiceLabel then
 			Hud.toast("Info", Perf.choiceLabel())
 		end
 	else

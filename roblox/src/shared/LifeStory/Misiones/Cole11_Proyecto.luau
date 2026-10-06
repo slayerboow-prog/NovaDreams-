@@ -142,7 +142,7 @@ return {
 
 		-- La noche antes
 		{ Type = "Transition", Text = "La noche antes de la presentación…", Seconds = 3 },
-		{ Type = "Scene", Dialogue = "Desastre", Teleport = "HomeSalon", Actors = CASA },
+		{ Type = "Scene", Dialogue = "Desastre", Teleport = { Place = "HomeSalon", Fade = true }, Actors = CASA },
 
 		-- La presentación
 		{ Type = "Transition", Text = "El día de la presentación…", Seconds = 3 },
@@ -271,7 +271,7 @@ return {
 			{ S = "Lucia", T = "Bienvenidas, familias. Hoy cada equipo presenta su invento para Valmar. Después, el jurado hará algunas preguntas." },
 			{ S = "Familia", T = "(desde el fondo) ¡Ánimo, {nombre}!" },
 			{ S = "Omar", T = "Me tiemblan las rodillas. ¿A ti te tiemblan? A mí las dos." },
-			{ S = "Bruno", T = "(Bruno, al pasar) Suerte. Yo he hecho un volcán. Otra vez. Es un clásico." },
+			{ S = "Bruno", T = "Suerte. Yo he hecho un volcán. Otra vez. Es un clásico.", To = "Yo", A = "Shrug" },
 		} },
 		Resultado = { Lines = {
 			{ S = "Narrador", T = "Explicas vuestro huerto: dónde iría, qué plantaríais, quién lo regaría. Ramón levanta el pulgar desde la puerta.", If = HUERTO },

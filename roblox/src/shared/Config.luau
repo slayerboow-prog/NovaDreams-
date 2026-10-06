@@ -275,10 +275,14 @@ Config.StreetVoices = {
 
 Config.Audio = {
 	Music = {
-		Nacimiento = { Id = 99685990275611, File = "nacimiento.ogg", Volume = 0.4, Looped = true },
-		TemaValmar = { Id = 71915200549382, File = "tema_valmar.ogg", Volume = 0.45, Looped = true },
-		PasanLosAnos = { Id = 136669358482377, File = "pasan_los_anos.ogg", Volume = 0.5, Looped = false },
-		VidaAdulta = { Id = 90317690788724, File = "vida_adulta.ogg", Volume = 0.4, Looped = true },
+		-- Si una pieza no carga en el juego (audio privado, de otro dueño o en revisión), StoryAudio prueba
+		-- sus otras copias (SoundIds, ReplicatedStorage > Musica) y después su Fallback: nunca silencio
+		-- mientras quede alguna pieza que cargue. Comprobar los audios de verdad:
+		-- bash scripts/cloud-test.sh -v audio
+		Nacimiento = { Id = 99685990275611, File = "nacimiento.ogg", Volume = 0.4, Looped = true, Fallback = "Intima" },
+		TemaValmar = { Id = 71915200549382, File = "tema_valmar.ogg", Volume = 0.45, Looped = true, Fallback = "Descubrimiento" },
+		PasanLosAnos = { Id = 136669358482377, File = "pasan_los_anos.ogg", Volume = 0.5, Looped = false, Fallback = "Resolucion" },
+		VidaAdulta = { Id = 90317690788724, File = "vida_adulta.ogg", Volume = 0.4, Looped = true, Fallback = "Descubrimiento" },
 		-- Música por intensidad (Intensity, abajo). Id = 0: se busca File en shared/SoundIds
 		-- (scripts/upload-audio.sh --music) y en ReplicatedStorage > Musica. Si aún no está subida,
 		-- suena su Fallback (otra pieza de esta lista) o, sin Fallback, nada.
@@ -405,7 +409,8 @@ Config.Audio = {
 		Capitulo = { Id = 99594760388393, File = "sting_capitulo.ogg", Volume = 0.55 },
 		PrimerosPasos = { Id = 129269798599195, File = "sting_primeros_pasos.ogg", Volume = 0.6 },
 	},
-	AmbientVolume = 0.2, -- música de fondo de un capítulo (más baja que en las cinemáticas)
+	AmbientVolume = 0.3, -- música de fondo de un capítulo (más baja que en las cinemáticas; con 0.2 casi no se oía en el móvil)
+	BootDelay = 2, -- segundos desde que arranca el cliente hasta que empieza la música de fondo
 	DuckVolume = 0.45, -- la música baja a este porcentaje mientras alguien habla
 	Voices = {
 		-- Voz sintetizada de Roblox (AudioTextToSpeech) para los personajes, si el motor la tiene.

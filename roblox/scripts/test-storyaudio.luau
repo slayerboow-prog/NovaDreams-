@@ -13,6 +13,12 @@
 --     que ya están subidos, de día y de noche), las capas que siguen no se cortan, golpes sueltos.
 --   * clear y cinematicEnd: nada de lo que pidió la escena sigue sonando.
 --   * kindFor: el ambiente automático según dónde estás (casa, salas, colegio, hospital, calle…).
+--   * IDs: SoundIds y Config.Audio bien formados («rbxassetid://<número>»), y cada pieza de fondo con
+--     una reserva subida por otro camino.
+--   * Arranque: con Música: sí por defecto, la música de tu etapa suena a los BootDelay s (sin esperar a
+--     ningún capítulo), en bucle, en el grupo Music y con volumen que se oye; el ambiente también.
+--   * Si un audio no carga (ContentProvider: Failure), suena su reserva y no se vuelve a pedir; una capa
+--     del ambiente que no carga pasa a su opción siguiente.
 
 local fs = require("@lune/fs")
 local roblox = require("@lune/roblox")
@@ -484,4 +490,143 @@ for _, case in cases do
 	check(got == case[3], ("%s: %s (sale %s)"):format(case[1], case[3], tostring(got)))
 end
 
+---------------------------------------------------------------------
+print("\n▶ IDs de audio bien formados (SoundIds y Config.Audio)")
+---------------------------------------------------------------------
+-- (el SoundIds de verdad, no la copia recortada de arriba)
+local realIds = L.load("src/shared/SoundIds")
+local function wellFormedNumber(id: any): boolean
+	return type(id) == "number" and id == math.floor(id) and id >= 1e8 and id < 1e17
+end
+local badIds = {}
+for name, value in realIds do
+	local digits = type(value) == "string" and string.match(value, "^rbxassetid://(%d+)$")
+	if not digits or #digits < 9 or #digits > 17 then
+		table.insert(badIds, name .. "=" .. tostring(value))
+	end
+	if not fs.isFile("audio/" .. name .. ".ogg") and not fs.isFile("audio/sfx/" .. name .. ".ogg") then
+		table.insert(badIds, name .. " (sin archivo en audio/)")
+	end
+end
+check(#badIds == 0, ("SoundIds: cada id es «rbxassetid://<número>» de un archivo de audio/ (%s)"):format(table.concat(badIds, ", ")))
+for group, list in { Music = AUDIO.Music, Stings = AUDIO.Stings } do
+	for cue, track in list do
+		check(track.Id == 0 or wellFormedNumber(track.Id), ("Config.Audio.%s.%s: Id es 0 o un número de asset (%s)"):format(group, cue, tostring(track.Id)))
+	end
+end
+-- Cada pieza tiene algún audio subido (su Id, su copia en SoundIds) o una pieza de reserva que lo tiene
+local function hasCopy(track): boolean
+	return (type(track.Id) == "number" and track.Id > 0) or realIds[(string.gsub(track.File, "%.ogg$", ""))] ~= nil
+end
+for cue, track in AUDIO.Music do
+	local seen, at, ok = {}, cue, false
+	while at and not seen[at] do
+		seen[at] = true
+		if hasCopy(AUDIO.Music[at]) then
+			ok = true
+			break
+		end
+		at = AUDIO.Music[at].Fallback
+	end
+	if cue ~= "Tension" then -- (la tensión sin subir se queda solo con el ambiente, a propósito)
+		check(ok, ("%s: tiene audio subido o una pieza de reserva con audio"):format(cue))
+	end
+end
+-- La música de fondo de cada etapa tiene una reserva subida por otro camino (si su Id no carga en el
+-- juego, suena la reserva en vez de nada)
+for _, cue in { "Nacimiento", "TemaValmar", "VidaAdulta" } do
+	local fallback = AUDIO.Music[cue].Fallback
+	local backup = fallback and AUDIO.Music[fallback]
+	check(backup ~= nil and realIds[(string.gsub(backup.File, "%.ogg$", ""))] ~= nil,
+		("%s: su reserva (%s) está en SoundIds"):format(cue, tostring(fallback)))
+end
+
+---------------------------------------------------------------------
+print("\n▶ Al arrancar suena la música de fondo (Música: sí, sin esperar a ningún capítulo)")
+---------------------------------------------------------------------
+-- Un StoryAudio nuevo (como al entrar al juego), con un jugador que tiene PlayerGui y señales
+uploaded.descubrimiento = true
+uploaded.intima = true
+uploaded.resolucion = true
+player.WaitForChild = function()
+	return {}
+end
+player.GetAttributeChangedSignal = function()
+	return signal()
+end
+player.CharacterAdded = signal()
+player.Attributes.LifeStage = "Adulto"
+local before = #sounds
+local Boot = loadStoryAudio()
+check(Boot.isMusicOn(), "Música: sí por defecto")
+Boot.init()
+task.wait((AUDIO.BootDelay or 2) + 2.5)
+local bootMusic = nil
+for i = before + 1, #sounds do
+	local s = sounds[i]
+	if not s.Destroyed and string.sub(s.Name, 1, 6) == "Music_" then
+		bootMusic = s
+	end
+end
+check(bootMusic ~= nil, ("a los %s s de arrancar ya suena música (sin capítulo: la de tu etapa)"):format(tostring(AUDIO.BootDelay or 2)))
+if bootMusic then
+	check(bootMusic.Name == "Music_VidaAdulta", ("de adulto suena VidaAdulta (suena %s)"):format(bootMusic.Name))
+	check(bootMusic.Playing, "la pieza se ha mandado tocar (Play)")
+	check(bootMusic.Looped, "la música de fondo se repite")
+	check(string.match(bootMusic.SoundId, "^rbxassetid://%d+$") ~= nil, ("su SoundId es rbxassetid://<número> (%s)"):format(bootMusic.SoundId))
+	check(bootMusic.Volume >= 0.25, ("se oye (volumen %.2f, antes 0,2: casi nada en el móvil)"):format(bootMusic.Volume))
+	check(bootMusic.SoundGroup and bootMusic.SoundGroup.Name == "Music", "va en el grupo Music (lo calla «Música: no»)")
+	check(bootMusic.Parent ~= nil, "está colgada de SoundService (se oye en todo el mapa)")
+end
+check(Boot.state().Ambience ~= nil and #Boot.state().Layers > 0, "y el ambiente también suena desde el principio")
+
+---------------------------------------------------------------------
+print("\n▶ Si un audio no carga (privado, de otro dueño, en revisión), suena la reserva")
+---------------------------------------------------------------------
+-- ContentProvider dice que el Id de Config de VidaAdulta y el de AmbCalle no se pueden descargar
+local failing = {
+	["rbxassetid://" .. string.format("%d", AUDIO.Music.VidaAdulta.Id)] = true,
+}
+uploaded.amb_calle = true
+local calleId = SoundFx.id("AmbCalle") :: string
+failing[calleId] = true
+L.services.ContentProvider = {
+	PreloadAsync = function(_, list, callback)
+		for _, item in list do
+			-- (StoryAudio le pasa el Sound, no el id en texto: con el texto Roblox dice Failure siempre)
+			assert(typeof(item) ~= "string", "PreloadAsync con el id en texto: Roblox dice Failure con todos los audios")
+			local id = if type(item) == "table" or typeof(item) == "Instance" then item.SoundId else item
+			callback(id, if failing[id] then "Enum.AssetFetchStatus.Failure" else "Enum.AssetFetchStatus.Success")
+		end
+	end,
+}
+local Fail = loadStoryAudio()
+local mark = #sounds
+Fail.setAmbient("VidaAdulta")
+task.wait(1.5)
+local live = {}
+for i = mark + 1, #sounds do
+	local s = sounds[i]
+	if not s.Destroyed and string.sub(s.Name, 1, 6) == "Music_" then
+		table.insert(live, s)
+	end
+end
+check(#live == 1, ("queda una sola pieza sonando (hay %d)"):format(#live))
+if live[1] then
+	check(not failing[live[1].SoundId], ("ya no es el audio que no carga (%s)"):format(live[1].SoundId))
+	check(live[1].Name == "Music_Descubrimiento", ("suena la reserva de VidaAdulta: Descubrimiento (suena %s)"):format(live[1].Name))
+end
+check(Fail.state().Music == "Descubrimiento", "StoryAudio.state() dice que suena la reserva")
+-- Se vuelve a pedir: no se reintenta el audio roto
+Fail.setAmbient("TemaValmar")
+Fail.setAmbient("VidaAdulta")
+task.wait(0.3)
+check(Fail.state().Music == "Descubrimiento", "al volver a pedir VidaAdulta va directa a la reserva")
+-- El ambiente de la calle: si su audio no carga, la capa pasa a la opción siguiente (el murmullo)
+Fail.setAmbience("Calle")
+task.wait(0.5)
+local layerNames = table.concat(Fail.state().Layers, ",")
+check(string.find(layerNames, "Multitud", 1, true) ~= nil and string.find(layerNames, "AmbCalle", 1, true) == nil,
+	("la calle suena con el murmullo si AmbCalle no carga (capas: %s)"):format(layerNames))
 L.finish("test-storyaudio")
+require("@lune/process").exit(0) -- (el bucle del ambiente de init no acaba solo)
