@@ -26,12 +26,12 @@ local MissionCombat = require(ReplicatedStorage.Shared.MissionCombat)
 
 local DamageService = {}
 
-export type Result = { Hit: boolean, Amount: number, Down: boolean, Health: number?, Max: number?, Immune: boolean? }
+export type Result = { Hit: boolean, Amount: number, Down: boolean, Health: number?, Max: number? }
 export type Info = { Zone: string?, At: Vector3?, Weapon: string?, Direction: Vector3? }
 
 -- Ganchos que pone LifeStoryService (los enemigos son de la misión)
---   enemyHit(attacker, model, kind, amount, info) -> (contado, daño hecho, vida, máx, caído, inmune)
-DamageService.enemyHit = nil :: ((Player, Model, string, number, Info) -> (boolean, number?, number?, number?, boolean?, boolean?))?
+--   enemyHit(attacker, model, kind, amount, info) -> (contado, daño hecho, vida, máx, caído)
+DamageService.enemyHit = nil :: ((Player, Model, string, number, Info) -> (boolean, number?, number?, number?, boolean?))?
 
 local Remote: RemoteEvent? = nil
 local NONE: Result = { Hit = false, Amount = 0, Down = false }
@@ -82,7 +82,7 @@ local function hitEnemy(attacker: Player?, model: Model, amount: number, kind: s
 	if not hook then
 		return NONE
 	end
-	local ok, counted, dealtRaw, health, max, down, immune = pcall(hook, attacker, model, kind, amount, info)
+	local ok, counted, dealtRaw, health, max, down = pcall(hook, attacker, model, kind, amount, info)
 	if not ok then
 		warn("[Daño] " .. tostring(counted))
 		return NONE
@@ -99,10 +99,9 @@ local function hitEnemy(attacker: Player?, model: Model, amount: number, kind: s
 		Health = health,
 		Max = max,
 		Down = down == true,
-		Immune = immune == true,
 		Kind = kind,
 	})
-	return { Hit = true, Amount = dealt, Down = down == true, Health = health, Max = max, Immune = immune == true }
+	return { Hit = true, Amount = dealt, Down = down == true, Health = health, Max = max }
 end
 
 -- La función central: alguien (o algo) hace `amount` puntos de daño de tipo `kind` a `target`

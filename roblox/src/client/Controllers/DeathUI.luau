@@ -3,8 +3,9 @@
 -- se aclara con el aviso de la factura.
 -- También la de HAS CAÍDO EN COMBATE (atributo Fallen del jugador, lo pone el servidor: CombatService
 -- al quedarte sin vida en una pelea, DamageService en un combate de misión): en el suelo unos
--- segundos; en una pelea te levantas (o, si te rematan, HAS MUERTO y al hospital); en una misión,
--- el combate vuelve a empezar desde el principio del paso.
+-- segundos; en una pelea, luego HAS MUERTO y despiertas en el hospital (si te detiene la policía
+-- estando en el suelo, vas detenido); en una misión, el combate vuelve a empezar desde el
+-- principio del paso.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -75,7 +76,7 @@ local function showFallen(how: string)
 	local mission = how == "Mission"
 	local left = if mission then EnemyStats.PlayerFallSeconds else Combat.KOSeconds
 	while left > 0 and showing == id do
-		subtitle.Text = if mission then ("El combate vuelve a empezar en %d…"):format(math.ceil(left)) else ("Te levantarás en %d…"):format(math.ceil(left))
+		subtitle.Text = if mission then ("El combate vuelve a empezar en %d…"):format(math.ceil(left)) else ("Despertarás en el hospital en %d…"):format(math.ceil(left))
 		left -= task.wait(0.2)
 	end
 end

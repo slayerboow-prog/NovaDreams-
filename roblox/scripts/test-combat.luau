@@ -59,7 +59,7 @@ local health, ko = Combat.apply(50, 8)
 check(health == 42 and not ko, "Con vida de sobra solo baja la vida")
 health, ko = Combat.apply(5, 8)
 check(health == 1 and ko, "Al quedarte sin vida no mueres: K.O. con 1 de vida")
-check(Combat.KOHealth > 0 and Combat.KOHealth < 1, "Te levantas con parte de la vida")
+check(Combat.KOHealth > 0 and Combat.KOHealth < 1, "Tras el táser te levantas con parte de la vida")
 
 print("▶ Morir y el hospital")
 local Hospital = luau.load(fs.readFile("src/shared/Hospital.luau"), { debugName = "Hospital" })()
