@@ -32,7 +32,7 @@ return {
 		Tornillo = { Kind = "Cristal", Name = "Un tornillo que brilla", Prompt = "Recoger", Place = "PrologoTornillo", Color = Color3.fromRGB(120, 255, 160), Dialogue = "Tornillo", Once = true },
 	},
 	Steps = {
-		{ Type = "Cinematic", Id = "Prologo_Apertura", Teleport = "PrologoInicio" },
+		{ Type = "Cinematic", Id = "Prologo_Apertura", Teleport = { Place = "PrologoInicio", Fade = true } },
 		{ Type = "Reach", Place = "PrologoCamino", Beat = "Move", Text = "Camina hasta el círculo de luz",
 			Hint = { Pc = "Muévete con W A S D (o con las flechas)", Touch = "Mueve el joystick de abajo a la izquierda" } },
 		{ Type = "Event", Event = "Sprinted", Beat = "Run", Text = "¡Corre! Algo brilla al fondo",
@@ -53,9 +53,11 @@ return {
 	Dialogues = {
 		Sueno = { Lines = {
 			{ S = "Narrador", T = "Es un sueño. En el sueño ya no eres un bebé: eres un poco mayor. Y alguien te está esperando." },
-			{ S = "Cosme", T = "¡Ah, criatura! Llegas pronto. O tarde. En los sueños nunca se sabe." },
-			{ S = "Cosme", T = "Soy Cosme. Inventor. Genio. Vecino. Todavía no nos conocemos… pero nos conoceremos." },
-			{ S = "Cosme", T = "¿Ves esa raja de luz en el cielo? Se llama la Grieta. No debería estar ahí. Es… culpa mía. Un poco. Bastante.", A = "Sad" },
+			{ S = "Cosme", T = "¡Ah, criatura! Llegas pronto. O tarde. En los sueños nunca se sabe.", To = "Yo", A = "Happy", Shot = "Medio:Cosme" },
+			{ S = "Cosme", T = "Soy Cosme. Inventor. Genio. Vecino.", Pause = 0.3 },
+			{ S = "Cosme", T = "Todavía no nos conocemos… pero nos conoceremos.", Beat = "Piensa", Shot = "PrimerPlano:Cosme" },
+			{ S = "Cosme", T = "¿Ves esa raja de luz en el cielo? Se llama la Grieta.", G = "Point", Pause = 0.4 },
+			{ S = "Cosme", T = "No debería estar ahí. Es… culpa mía. Un poco. Bastante.", A = "Sad", Beat = "Baja", Shot = "PPP:Cosme" },
 			{ Ask = "¿Qué le dices?", Options = {
 				{ T = "«¡Yo te ayudo a arreglarla!»", Effects = { Traits = { Valentia = 1 }, Choice = { Prologo = "Ayudar" } }, Then = {
 					{ S = "Cosme", T = "¿Ayudar? ¿Tú? Qué valiente. Me gusta. Ya verás: en Valmar, lo que eliges cambia tu historia." },
