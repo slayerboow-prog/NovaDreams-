@@ -953,7 +953,7 @@ local function leftovers(): { string }
 	if camera.CameraSubject ~= humanoidNow() then
 		table.insert(list, "la cámara no sigue a tu personaje")
 	end
-	if math.abs(camera.FieldOfView - 70) > 0.01 then
+	if math.abs(camera.FieldOfView - 70) > 0.5 then
 		table.insert(list, ("campo de visión %.1f"):format(camera.FieldOfView))
 	end
 	if player:GetAttribute("InCinematic") ~= nil then

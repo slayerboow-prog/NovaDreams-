@@ -205,7 +205,13 @@ do
 
 	-- En el juego: la misión rota no se activa (y queda en el registro)
 	local tester = H.newPlayer("Tester", "Adulto")
+	-- (al entrar puede haber una cinemática: mientras su pantalla la enseña, no se ofrece nada)
 	task.wait(0.5)
+	local deadline = os.clock() + 15
+	while os.clock() < deadline and (tester:GetAttribute("InScene") or (Service.debugState(tester) or {}).Busy) do
+		task.wait(0.2)
+	end
+	task.wait(0.3)
 	StoryEvents.emit(tester, "Talk", { Npc = "Tester_Rota" })
 	task.wait(0.2)
 	check(H.received(tester, "Offer", "Misión rota"), "La misión rota se ofrece (su oferta es válida)")
