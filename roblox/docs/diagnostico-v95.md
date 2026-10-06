@@ -195,3 +195,24 @@ y 28 efectos y ambientes. Todos son del dueño (`TheSibuastian`), de tipo Audio 
    bordillos, estuco, tejas y metal, y la laca y el cristal de los coches.
 2. `BusinessService.init` en segundo plano (§3), para ganar 4 s de arranque.
 3. Opcional: el aviso de reintento como `print` (§2).
+
+---
+
+## Verificación tras publicar
+
+Publicada la **versión 96** (commit `49ca0cb`, con `bash scripts/publish.sh`). Probada en el servidor real con
+`bash scripts/cloud-test.sh --version 96 -v diag-arranque-completo`: **12 bien, 0 mal, 2 avisos**, y
+arranque completo en 31,4 s.
+
+- ✅ Ya **no** sale `The current thread cannot write 'BaseMaterial'`. `MaterialService` tiene **233**
+  `MaterialVariant` (en v95 eran 216): los 17 de MaterialLook vienen ya creados en el archivo.
+- ❌ **No** se imprime `[MaterialLook] N materiales con textura`. Ahora sale otro aviso:
+  `[MaterialLook] The current thread cannot write 'ColorMap' (lacking capability Plugin)`. Escribir los
+  mapas (`ColorMap`, `NormalMap`…) también pide la capacidad Plugin. La línea
+  `variant[prop] = maps[prop] or ""` de `MaterialLook.setup` no tiene `pcall`, así que `setup` se corta,
+  `start` lo recoge y `made` queda vacío. Además, `build-place.luau` solo pone `BaseMaterial` y
+  `StudsPerTile`, así que **los 17 variants están en el archivo pero sin texturas**, y tampoco se aplica
+  `SetBaseMaterialOverride`.
+- Siguiente paso: que `scripts/build-place.luau` escriba en el archivo los mapas (con los ids de imagen
+  ya convertidos, como `Images.map`), los atributos y el override. Y que `MaterialLook.setup` solo
+  escriba los mapas si cambian, dentro de un `pcall`.
