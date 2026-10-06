@@ -17,6 +17,16 @@
 -- pasos y se gira poco a poco (sin saltos). Si no hay camino o se atasca, se desvanece y aparece en su
 -- sitio (atributo Fade: el fundido lo hace el cliente, Controllers/ActorLife).
 -- Lo que pasa al hablar o usar algo lo decide la historia (SceneService.onInteract).
+--
+-- Entrar, salir y saltar (shared/LifeStory/ActorStaging):
+--   * Nadie desaparece de golpe. Quien deja la escena se va: andando hasta su sitio de siempre en el
+--     mapa (si lo tiene cerca), hasta el lugar de su Exit, o unos pasos lejos de ti, y se desvanece al
+--     llegar; si está lejos de ti (no lo ves), se desvanece. Si se van varios, no salen todos a la vez.
+--     Si el paso siguiente lo vuelve a necesitar mientras se va, se da la vuelta (no sale otro).
+--   * Enter = { From = lugar }: entra andando desde allí (una puerta, el pasillo…) hasta su sitio.
+--   * Mood = "Nervios"…: emoción que dura (atributo Mood: ActorLife; sorpresa = un paso atrás).
+--   * SceneService.teleport (saltos de la historia) tapa el salto con un fundido rápido en tu
+--     pantalla (atributo SceneDip del jugador: Controllers/SceneDip) y la cámara se recoloca detrás.
 
 local CollectionService = game:GetService("CollectionService")
 local PathfindingService = game:GetService("PathfindingService")
@@ -41,6 +51,8 @@ local RoadGuard = require(script.Parent.Parent.World.RoadGuard) -- no bajar a la
 local Log = require(ReplicatedStorage.Shared.Log)
 local SafeGround = require(ReplicatedStorage.Shared.SafeGround) -- nunca bajo tierra ni dentro de algo
 local SafeSpot = require(script.Parent.Parent.World.SafeSpot)
+local ActorStaging = require(ReplicatedStorage.Shared.LifeStory.ActorStaging) -- entrar, salir, saltos
+local ActorMoods = require(ReplicatedStorage.Shared.LifeStory.ActorMoods) -- emociones que duran
 
 local SceneService = {}
 
@@ -102,6 +114,11 @@ type Actor = {
 	Facing: boolean?, -- está girándose hacia quien le habla
 	Talking: boolean?, -- está en una conversación contigo (quieto, mirándote)
 	Recovered: number?, -- (vigilante) última vez que se le devolvió a su sitio
+	Leaving: { [string]: any }?, -- se está yendo de la escena (ya no es del reparto): su salida
+	Vanishing: boolean?, -- desvaneciéndose (se borra al acabar el fundido)
+	EnterAt: number?, -- (Enter.Delay) espera en la puerta hasta entonces
+	BaseSpeed: number?, -- su velocidad al andar sin emoción
+	MoodName: string?, -- la emoción que dura que tiene puesta
 }
 type Prop = { Id: string, Key: string, Model: Model }
 type Scene = { Actors: { [string]: Actor }, Props: { [string]: Prop }, Last: { [string]: any }? }
@@ -414,6 +431,33 @@ local function standAt(actor: Actor, cf: CFrame)
 	end
 end
 
+-- La emoción que dura (Mood = "Nervios", "Tristeza"…: shared/LifeStory/ActorMoods). El cliente
+-- (ActorLife) le pone la postura, el ritmo y la mirada; aquí, la velocidad al andar y, con la sorpresa,
+-- un paso atrás al empezar a sentirla (y se para).
+local function applyMood(actor: Actor)
+	local name = ActorMoods.name(actor.Spec.Mood)
+	if name == actor.MoodName then
+		-- (si una escena de Happenings se la quitó al soltarle, se le vuelve a poner; sin Mood no se toca:
+		-- la que le ponga una escena es suya)
+		if name ~= nil and actor.Model:GetAttribute("Mood") == nil then
+			actor.Model:SetAttribute("Mood", name)
+		end
+		return
+	end
+	actor.MoodName = name
+	actor.Model:SetAttribute("Mood", name)
+	local humanoid, root = actor.Humanoid, actor.Root
+	local mode = actor.Spec.Mode or "Idle"
+	if humanoid and actor.BaseSpeed and mode ~= "Hunt" and mode ~= "Flee" and mode ~= "Follow" then
+		humanoid.WalkSpeed = ActorMoods.walkSpeed(actor.BaseSpeed, name)
+	end
+	local recoil = ActorMoods.acting(name).Recoil
+	if recoil > 0 and root and root.Anchored and mode ~= "Sit" and actor.Walk == nil then
+		local back = root.CFrame * CFrame.new(0, 0, recoil)
+		TweenService:Create(root, TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { CFrame = back }):Play()
+	end
+end
+
 local function applyMode(actor: Actor)
 	local mode = actor.Spec.Mode or "Idle"
 	local moving = mode == "Wander" or mode == "Follow" or mode == "Flee" or mode == "Hunt"
@@ -434,6 +478,33 @@ local function applyMode(actor: Actor)
 		actor.NextWander = os.clock() + math.random(40, 70) / 10
 	else
 		play(actor, "Idle")
+	end
+end
+
+-- El botón de hablar (o de lo que diga Action) de un actor: se quita el que tuviera y se pone el de su
+-- misión (al volver a la escena tras irse, o al pasar a la escena de otra misión tuya)
+local function attachPrompt(player: Player, questId: string, actor: Actor)
+	local root, spec, model = actor.Root, actor.Spec, actor.Model
+	if not root then
+		return
+	end
+	for _, child in root:GetChildren() do
+		if child:IsA("ProximityPrompt") then
+			child:Destroy()
+		end
+	end
+	if not MissionCombat.wantsPrompt(spec) then
+		return
+	end
+	local p = prompt(root, spec.Action or "Hablar", model.Name, player, function()
+		if SceneService.onInteract then
+			SceneService.onInteract(player, "Actor", questId, spec.Npc)
+		end
+	end)
+	if spec.Mode == "Hunt" then
+		-- Un enemigo grande (Petra, 6 m): el botón se alcanza desde lejos (su raíz está muy alta y
+		-- si te acercas tanto te atrapa); a uno normal, desde un poco más lejos que la captura
+		p.MaxActivationDistance = math.max(16, 12 * (spec.Scale or 1))
 	end
 end
 
@@ -491,24 +562,15 @@ local function makeActor(player: Player, questId: string, spec: { [string]: any 
 	-- «Interactuar» (en el móvil le quitaba el sitio al botón de atacar). MissionCombat lo marca.
 	MissionCombat.mark(model, if spec.Enemy then questId else nil, player.UserId)
 	model.Parent = sceneFolder(player)
-	if root and MissionCombat.wantsPrompt(spec) then
-		local p = prompt(root, spec.Action or "Hablar", model.Name, player, function()
-			if SceneService.onInteract then
-				SceneService.onInteract(player, "Actor", questId, spec.Npc)
-			end
-		end)
-		if spec.Mode == "Hunt" then
-			-- Un enemigo grande (Petra, 6 m): el botón se alcanza desde lejos (su raíz está muy alta y
-			-- si te acercas tanto te atrapa); a uno normal, desde un poco más lejos que la captura
-			p.MaxActivationDistance = math.max(16, 12 * (spec.Scale or 1))
-		end
-	end
+	actor.BaseSpeed = humanoid and humanoid.WalkSpeed or nil
+	attachPrompt(player, questId, actor)
 	if standing and spec.Mode ~= "Wander" then
 		-- Viene andando: de pie hasta que llegue (sentarse, saludar, su tarea… al llegar)
 		play(actor, "Idle")
 	else
 		applyMode(actor)
 	end
+	applyMood(actor)
 	return actor
 end
 
@@ -558,8 +620,14 @@ local function rootGoal(actor: Actor, cf: CFrame): CFrame?
 	return cf * CFrame.new(0, humanoid.HipHeight + root.Size.Y / 2, 0)
 end
 
+local vanish: (Actor) -> () -- (se define más abajo, con las salidas)
+
 -- Se desvanece y aparece en su sitio (no hay camino, se ha atascado…). El fundido lo hace el cliente.
 local function fadeTo(actor: Actor)
+	if actor.Leaving then
+		vanish(actor) -- (se estaba yendo y no puede seguir andando: se desvanece y ya)
+		return
+	end
 	stopPath(actor)
 	actor.WalkId += 1
 	local id = actor.WalkId
@@ -775,6 +843,209 @@ local function stepWalk(actor: Actor)
 		end
 	end
 end
+
+---------------------------------------------------------------------
+-- Salir de la escena (nunca de golpe: shared/LifeStory/ActorStaging)
+---------------------------------------------------------------------
+
+-- Los que se están yendo, por jugador (ya no son del reparto: nadie les habla ni les busca)
+local leaving: { [Player]: { [Model]: Actor } } = {}
+
+-- Se desvanece donde está (el fundido lo hace el cliente: atributo FadeOut) y se borra al acabar
+vanish = function(actor: Actor)
+	if actor.Vanishing then
+		return
+	end
+	actor.Vanishing = true
+	stopPath(actor)
+	actor.WalkId += 1
+	actor.Walk = nil
+	local model = actor.Model
+	if actor.Humanoid and actor.Root and not actor.Root.Anchored then
+		actor.Humanoid:MoveTo(actor.Root.Position) -- se para
+	end
+	model:SetAttribute("FadeOut", true)
+	task.delay(ActorStaging.FadeSeconds + 0.15, function()
+		if actor.Vanishing and model.Parent then
+			model:Destroy()
+		end
+	end)
+end
+
+-- Deja la escena: se va andando (o se desvanece) según su Exit y dónde estás tú. opts:
+--   Index = n (el n-ésimo de los que se van a la vez), Relocate = true (va a aparecer en otro sitio
+--   lejano: se desvanece), Instant = true (se borra ya: el jugador se ha ido del juego)
+local function dismiss(player: Player, actor: Actor, opts: { [string]: any }?)
+	local model = actor.Model
+	if opts and opts.Instant then
+		model:Destroy()
+		return
+	end
+	if not model.Parent or actor.Leaving then
+		return
+	end
+	local root = actor.Root
+	local me = playerRoot(player)
+	local spec = actor.Spec or {}
+	local plan = ActorStaging.exit(spec)
+	-- Su sitio de siempre en el mapa (Nico en el patio…): vuelve allí y SceneClient lo deja a la vista
+	local home: CFrame? = nil
+	if root and not plan.To and not plan.Fade and not plan.Stay then
+		home = SceneService.ambientStart(actor.Npc, root.Position, ActorStaging.HomeRange)
+	end
+	local distance = if root and me then (root.Position - me.Position).Magnitude else nil
+	local mode = ActorStaging.exitMode(plan, {
+		Distance = distance,
+		Mode = spec.Mode,
+		Enemy = spec.Enemy == true,
+		HasHome = home ~= nil,
+		Relocate = opts ~= nil and opts.Relocate == true,
+	})
+	local index = (opts and opts.Index) or 1
+	actor.Leaving = { Mode = mode, Relocate = opts ~= nil and opts.Relocate == true, Since = os.clock() }
+	leaving[player] = leaving[player] or {}
+	leaving[player][model] = actor
+	-- Ya no es de la escena: sin botón, sin combate, sin tarea ni charla, sin mirar a nadie a la fuerza
+	model:SetAttribute("Leaving", true)
+	model:SetAttribute("Chat", nil)
+	model:SetAttribute("Work", nil)
+	model:SetAttribute("LookAt", nil)
+	MissionCombat.mark(model, nil, player.UserId)
+	if root then
+		for _, child in root:GetChildren() do
+			if child:IsA("ProximityPrompt") then
+				child:Destroy()
+			end
+		end
+	end
+	if mode == "Fade" or not root or not actor.Humanoid then
+		vanish(actor)
+		return
+	end
+	-- Andando (de pie: si estaba sentado se levanta al echar a andar)
+	local leaveSpec = table.clone(spec)
+	leaveSpec.Mode = "Idle"
+	leaveSpec.Look = nil
+	actor.Spec = leaveSpec
+	if mode == "Stay" then
+		actor.Leaving.Until = os.clock() + ActorStaging.StaySeconds
+		return
+	end
+	local target: CFrame? = nil
+	if mode == "WalkTo" then
+		target = placement(player, { Place = plan.To, Index = plan.Index, Offset = plan.Offset })
+	elseif mode == "Home" then
+		target = home
+	end
+	if not target then
+		local point = ActorStaging.awayPoint(root.Position, me and me.Position, index)
+		local feet = groundAt(point + V(0, 3, 0), { model })
+		local away = V(feet.X - root.Position.X, 0, feet.Z - root.Position.Z)
+		target = if away.Magnitude > 0.5 then CFrame.lookAt(feet, feet + away) else CFrame.new(feet)
+	end
+	actor.Leaving.Target = target
+	actor.Leaving.StartAt = os.clock() + ActorStaging.stagger(index)
+	actor.Leaving.Until = actor.Leaving.StartAt + ActorStaging.leaveSeconds(mode)
+end
+
+-- Vuelve a la escena uno que se estaba yendo (el paso siguiente le necesita otra vez): se da la vuelta
+-- en vez de que salga otro igual
+local function rescue(player: Player, actor: Actor, questId: string): Actor
+	local model = actor.Model
+	if leaving[player] then
+		leaving[player][model] = nil
+	end
+	actor.Leaving = nil
+	actor.Vanishing = nil
+	actor.Quest = questId
+	actor.Key = "" -- (vuelve a su sitio nuevo)
+	stopPath(actor)
+	actor.WalkId += 1
+	actor.Walk = nil
+	model:SetAttribute("Leaving", nil)
+	model:SetAttribute("FadeOut", nil)
+	return actor
+end
+
+-- ¿Se está yendo este personaje (de tus escenas) y se puede recuperar?
+local function leaverOf(player: Player, npc: string): Actor?
+	for _, actor in leaving[player] or {} do
+		if actor.Npc == npc and actor.Leaving and not actor.Leaving.Relocate and actor.Model.Parent then
+			return actor
+		end
+	end
+	return nil
+end
+
+-- Andar, correr o estar quieto (la animación va al paso de sus pies, y a su tamaño: un niño da
+-- más pasos para ir igual de rápido)
+local function animateMotion(actor: Actor)
+	local root = actor.Root
+	if not root or root.Anchored then
+		return
+	end
+	local speed = V(root.AssemblyLinearVelocity.X, 0, root.AssemblyLinearVelocity.Z).Magnitude
+	local name = if speed > 17 then "Run" elseif speed > 1 then "Walk" else "Idle"
+	play(actor, name)
+	local track = actor.Tracks[name]
+	if track and name ~= "Idle" then
+		local stride = (if name == "Run" then 20 else 12) * scaleOf(actor.Model)
+		track:AdjustSpeed(math.clamp(speed / stride, 0.6, 1.8))
+	end
+end
+
+-- Un paso (cada 0,3 s) de uno que se va
+local function stepLeaver(player: Player, actor: Actor)
+	local info = actor.Leaving
+	local model = actor.Model
+	if not model.Parent then
+		if leaving[player] then
+			leaving[player][model] = nil
+		end
+		return
+	end
+	if not info or actor.Vanishing then
+		return
+	end
+	local now = os.clock()
+	local root = actor.Root
+	local me = playerRoot(player)
+	if info.Mode == "Stay" then
+		-- Se queda hasta que te alejas (o un buen rato)
+		local far = not me or not root or (me.Position - root.Position).Magnitude > ActorStaging.StayFar
+		if far or now > (info.Until or 0) then
+			vanish(actor)
+		end
+		return
+	end
+	if not info.Started then
+		if now < (info.StartAt or 0) then
+			return
+		end
+		info.Started = true
+		startWalk(actor, info.Target)
+		return
+	end
+	if now > (info.Until or 0) or actor.Walk == "Fade" then
+		vanish(actor) -- no llega (o no hay camino): se desvanece donde está
+	elseif actor.Walk == nil then
+		if info.Mode == "Home" then
+			-- Ha vuelto a su sitio de siempre: ahí ya está el de siempre (SceneClient lo deja a la vista
+			-- en cuanto este se quita), así que se quita sin fundido: no se ve ningún parpadeo
+			if leaving[player] then
+				leaving[player][model] = nil
+			end
+			model:Destroy()
+		else
+			vanish(actor) -- ha llegado
+		end
+	elseif actor.Walk == "Walk" then
+		stepWalk(actor)
+		animateMotion(actor)
+	end
+end
+
+SceneService._leaving = leaving -- (pruebas)
 
 ---------------------------------------------------------------------
 -- Objetos (formas sencillas con color; no hace falta nada del catálogo)
@@ -1294,10 +1565,13 @@ function applySet(player: Player, questId: string, actors: { { [string]: any } }
 	for _, spec in actors do
 		wanted[spec.Npc] = spec
 	end
+	-- Quien sobra se va (andando o desvaneciéndose: nunca de golpe), cada uno un poco después
+	local goingNow = 0
 	for npc, actor in scene.Actors do
 		if not wanted[npc] then
-			actor.Model:Destroy()
 			scene.Actors[npc] = nil
+			goingNow += 1
+			dismiss(player, actor, { Index = goingNow })
 		end
 	end
 	-- Los que se quedan donde están también ocupan su hueco (si no, uno nuevo podía salir encima)
@@ -1316,6 +1590,7 @@ function applySet(player: Player, questId: string, actors: { { [string]: any } }
 			if not (actor.Spec and actor.Spec.SitDowngraded and spec.Mode == "Sit") then
 				actor.Spec = spec
 			end
+			applyMood(actor)
 			continue
 		end
 		-- ¿Ya sale en la escena de otra misión tuya? Nunca dos Ivanes: se lo queda la misión que juegas
@@ -1332,8 +1607,24 @@ function applySet(player: Player, questId: string, actors: { { [string]: any } }
 				if player:GetAttribute("StoryFocus") ~= questId then
 					continue
 				end
-				elsewhere.Actors[npc].Model:Destroy()
+				-- Se lo queda esta misión: el mismo personaje (si está cerca va andando a su sitio nuevo; si
+				-- no, se desvanece allí y aparece aquí). Antes se borraba y se creaba otro.
+				actor = elsewhere.Actors[npc]
 				elsewhere.Actors[npc] = nil
+				actor.Quest = questId
+				actor.Key = ""
+				actor.Spec = spec
+				scene.Actors[npc] = actor
+				attachPrompt(player, questId, actor)
+			else
+				-- ¿Se estaba yendo de una escena tuya? Se da la vuelta y vuelve (no sale otro igual)
+				local back = leaverOf(player, npc)
+				if back then
+					actor = rescue(player, back, questId)
+					actor.Spec = spec
+					scene.Actors[npc] = actor
+					attachPrompt(player, questId, actor)
+				end
 			end
 		end
 		-- Acompañante: aparece a tu lado solo si su misión es la que juegas ahora y vas a pie (si no,
@@ -1367,8 +1658,8 @@ function applySet(player: Player, questId: string, actors: { { [string]: any } }
 		end
 		if not cf then
 			if actor then
-				actor.Model:Destroy()
 				scene.Actors[npc] = nil
+				dismiss(player, actor)
 			end
 			continue
 		end
@@ -1381,6 +1672,8 @@ function applySet(player: Player, questId: string, actors: { { [string]: any } }
 			-- Camina hasta su nuevo sitio
 			actor.Spec = spec
 			actor.Key = key
+			actor.EnterAt = nil
+			applyMood(actor)
 			local mode = spec.Mode or "Idle"
 			if mode == "Follow" or mode == "Wander" or mode == "Flee" or mode == "Hunt" then
 				-- Se mueve por su cuenta (stepActor): desde donde está
@@ -1403,12 +1696,28 @@ function applySet(player: Player, questId: string, actors: { { [string]: any } }
 			continue
 		end
 		if actor then
-			actor.Model:Destroy()
+			-- Tiene que estar lejos de donde está: allí se desvanece y aquí aparece (o entra)
+			scene.Actors[npc] = nil
+			dismiss(player, actor, { Relocate = true })
+		end
+		-- Enter = { From = lugar }: entra andando desde allí (la puerta, el pasillo…) hasta su sitio
+		local enter = if spec.Mode ~= "Follow" and spec.Mode ~= "Flee" and spec.Mode ~= "Hunt" then ActorStaging.enter(spec) else nil
+		local from: CFrame? = nil
+		if enter then
+			local door = placement(player, { Place = enter.From, Index = enter.Index, Offset = enter.Offset })
+			if door and flatDistance(door.Position, cf.Position) > 2 then
+				local toward = V(cf.Position.X - door.Position.X, 0, cf.Position.Z - door.Position.Z)
+				from = CFrame.lookAt(door.Position, door.Position + toward)
+			elseif not door then
+				Log.warn("SCENE", "%s (%s): %s no puede entrar desde %s (no está en el mapa): aparece en su sitio", questId, player.Name, npc, tostring(enter.From))
+			end
 		end
 		-- ¿Está ese personaje por aquí cerca (Nico en el patio, la profe en su aula…)? Entonces sale de
 		-- donde está y va andando hasta su sitio de la escena, en vez de aparecer de la nada. (Tu pantalla
 		-- oculta al de siempre en cuanto llega el de tu escena: nunca se ven dos.)
-		local from = if actor == nil and spec.Mode ~= "Follow" and spec.Mode ~= "Flee" then SceneService.ambientStart(spec.Npc, cf.Position) else nil
+		if not from and actor == nil and spec.Mode ~= "Follow" and spec.Mode ~= "Flee" then
+			from = SceneService.ambientStart(spec.Npc, cf.Position)
+		end
 		local created = makeActor(player, questId, spec, from or cf, from ~= nil)
 		if gone() then
 			created.Model:Destroy()
@@ -1419,7 +1728,11 @@ function applySet(player: Player, questId: string, actors: { { [string]: any } }
 		if from then
 			created.Home = cf
 			if spec.Mode ~= "Wander" then
-				startWalk(created, cf)
+				if enter and enter.Delay > 0 then
+					created.EnterAt = os.clock() + enter.Delay -- espera en la puerta y luego entra
+				else
+					startWalk(created, cf)
+				end
 			end
 		end
 	end
@@ -1521,14 +1834,17 @@ function SceneService.clear(player: Player, questId: string)
 	enqueue(player, { QuestId = questId, Clear = true })
 end
 
-function applyClear(player: Player, questId: string)
+-- (instant: el jugador se ha ido del juego; si no, se van como al cambiar de paso: andando o desvaneciéndose)
+function applyClear(player: Player, questId: string, instant: boolean?)
 	local byQuest = scenes[player]
 	local scene = byQuest and byQuest[questId]
 	if not scene then
 		return
 	end
+	local index = 0
 	for _, actor in scene.Actors do
-		actor.Model:Destroy()
+		index += 1
+		dismiss(player, actor, { Index = index, Instant = instant })
 	end
 	for _, prop in scene.Props do
 		prop.Model:Destroy()
@@ -1842,9 +2158,18 @@ function SceneService.defeat(player: Player, questId: string, npc: string, style
 	end)
 end
 
+-- Fundido rápido en la pantalla del jugador (tapa un salto: Controllers/SceneDip). lead: segundos de
+-- fundido a negro ANTES del salto (0 = el salto es ya: negro al instante y vuelve la imagen poco a poco)
+function SceneService.dip(player: Player, lead: number?)
+	player:SetAttribute("SceneDipLead", if lead and lead > 0 then lead else nil)
+	player:SetAttribute("SceneDip", ((player:GetAttribute("SceneDip") :: number?) or 0) + 1)
+end
+
 -- Pone al jugador en un lugar (principio de una escena: despertar en la cama…)
 -- where = "HomeDormitorio" o { Place, Index?, Offset? } (un pupitre concreto…)
-function SceneService.teleport(player: Player, where: any)
+-- Los saltos de la historia llevan un fundido rápido que los tapa (nada de cortes secos): opts.Dip = false
+-- lo quita; opts.Lead = s oscurece primero y salta después (sin esperar: la llamada vuelve enseguida).
+function SceneService.teleport(player: Player, where: any, opts: { [string]: any }?)
 	local root = playerRoot(player)
 	local spot = if type(where) == "table"
 		then LocationService.resolve(player, where.Place, { Index = where.Index, Offset = where.Offset })
@@ -1852,14 +2177,30 @@ function SceneService.teleport(player: Player, where: any)
 	if not root or not spot then
 		return
 	end
-	SceneService.teleportTo(player, spot.Position)
+	SceneService.teleportTo(player, spot.Position, {
+		Dip = not (opts and opts.Dip == false),
+		Lead = opts and opts.Lead,
+	})
 end
 
--- Pone al jugador en un punto concreto del mapa (apoyado en el suelo)
-function SceneService.teleportTo(player: Player, target: Vector3)
+-- Pone al jugador en un punto concreto del mapa (apoyado en el suelo). opts.Dip = true: con fundido
+-- (si el salto es largo: ActorStaging.needsDip); opts.Lead = s: primero se oscurece y luego salta.
+function SceneService.teleportTo(player: Player, target: Vector3, opts: { [string]: any }?)
 	local root = playerRoot(player)
 	if not root then
 		return
+	end
+	if opts and opts.Dip and ActorStaging.needsDip(root.Position, target) then
+		local lead = tonumber(opts.Lead)
+		SceneService.dip(player, lead)
+		if lead and lead > 0 then
+			task.delay(lead, function()
+				if player.Parent then
+					SceneService.teleportTo(player, target)
+				end
+			end)
+			return
+		end
 	end
 	-- Mientras dura el salto lleva "Teleporting" (el mismo que pone InteriorService): así el autobús
 	-- o el avión no lo vuelven a sentar al levantarse. Solo se quita si lo ha puesto aquí.
@@ -2029,6 +2370,14 @@ local function stepActor(player: Player, actor: Actor, index: number)
 		if mode ~= "Sit" and actor.Spec.Look ~= nil and root.Anchored then
 			faceSmooth(actor, actor.Model:GetPivot().Position + actor.Home.LookVector * 10)
 		end
+	end
+	-- (Enter.Delay) Esperando en la puerta: cuando toca, entra andando hasta su sitio
+	if actor.EnterAt then
+		if os.clock() >= actor.EnterAt then
+			actor.EnterAt = nil
+			startWalk(actor, actor.Home)
+		end
+		return
 	end
 	if mode == "Flee" then
 		-- Huye por su ruta (pasillo → patio → gimnasio…). Si se atasca en una pared, "atajo": aparece en el
@@ -2203,16 +2552,34 @@ local function stepActor(player: Player, actor: Actor, index: number)
 			end
 		end
 	end
-	-- Andar, correr o estar quieto (la animación va al paso de sus pies, y a su tamaño: un niño da
-	-- más pasos para ir igual de rápido)
-	if not root.Anchored then
-		local speed = V(root.AssemblyLinearVelocity.X, 0, root.AssemblyLinearVelocity.Z).Magnitude
-		local name = if speed > 17 then "Run" elseif speed > 1 then "Walk" else "Idle"
-		play(actor, name)
-		local track = actor.Tracks[name]
-		if track and name ~= "Idle" then
-			local stride = (if name == "Run" then 20 else 12) * scaleOf(actor.Model)
-			track:AdjustSpeed(math.clamp(speed / stride, 0.6, 1.8))
+	animateMotion(actor)
+end
+
+-- Un paso de todos los personajes de las escenas (cada 0,3 s: SceneService.init; las pruebas lo llaman)
+function SceneService.tick()
+	for player, list in leaving do
+		for _, actor in list do
+			local ok, err = pcall(stepLeaver, player, actor)
+			if not ok then
+				warn("[SceneService] " .. tostring(err))
+				list[actor.Model] = nil
+				pcall(vanish, actor)
+			end
+		end
+		if next(list) == nil then
+			leaving[player] = nil
+		end
+	end
+	for player, byQuest in scenes do
+		for _, scene in byQuest do
+			local index = 0
+			for _, actor in scene.Actors do
+				index += 1
+				local ok, err = pcall(stepActor, player, actor, index)
+				if not ok then
+					warn("[SceneService] " .. tostring(err))
+				end
+			end
 		end
 	end
 end
@@ -2227,9 +2594,13 @@ function SceneService.init()
 	Players.PlayerRemoving:Connect(function(player)
 		requests[player] = nil
 		for questId in scenes[player] or {} do
-			applyClear(player, questId)
+			applyClear(player, questId, true)
 		end
 		scenes[player] = nil
+		for model in leaving[player] or {} do
+			model:Destroy()
+		end
+		leaving[player] = nil
 		local f = folder:FindFirstChild("Scene_" .. player.UserId)
 		if f then
 			f:Destroy()
@@ -2238,18 +2609,7 @@ function SceneService.init()
 	task.spawn(function()
 		while true do
 			task.wait(0.3)
-			for player, byQuest in scenes do
-				for _, scene in byQuest do
-					local index = 0
-					for _, actor in scene.Actors do
-						index += 1
-						local ok, err = pcall(stepActor, player, actor, index)
-						if not ok then
-							warn("[SceneService] " .. tostring(err))
-						end
-					end
-				end
-			end
+			SceneService.tick()
 		end
 	end)
 end

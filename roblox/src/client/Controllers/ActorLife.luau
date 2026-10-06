@@ -21,7 +21,18 @@
 --     pantalla, con la articulación Root: el servidor no se entera y no hay tirones).
 --   * Fundidos: si un actor de tu escena no puede llegar andando, el servidor sube su atributo Fade y
 --     aquí se desvanece y reaparece (los fijos del mapa ya los funde SceneClient). La gente de los
---     sitios (PlaceLifeService: atributos FadeIn / FadeOut) aparece y se va fundiéndose.
+--     sitios (PlaceLifeService: atributos FadeIn / FadeOut) aparece y se va fundiéndose. Los actores
+--     que dejan tu escena (SceneService: atributo FadeOut, al llegar a donde se iban) se desvanecen.
+--   * Miradas en grupo: en una conversación TODO el reparto de tu escena que está cerca mira a quien
+--     habla (no solo quien ya ha hablado). Quien habla mira a quien le habla: la línea puede decirlo
+--     (To = "Sara"); si no, quien contesta a la pregunta de otro personaje le mira a él, y quien
+--     comenta lo que dijo otro le mira un momento y luego te mira a ti (shared/LifeStory/ActorStaging).
+--   * Escuchando no son estatuas: asienten un poco de vez en cuando, cargan el peso, apartan la vista
+--     un instante… y según su emoción (ActorMoods: Nervous mira alrededor y se toca las manos, Shame
+--     baja la cabeza y evita la mirada, Sad mira al suelo, Angry sostiene la mirada).
+--   * Emociones (alegría, tristeza, enfado, sorpresa, nervios, vergüenza): postura, ritmo de los
+--     gestos y mirada, sin exagerar (shared/LifeStory/ActorMoods: Tempo, Head, Open, Gaze, Fidget,
+--     Recoil). La sorpresa da un paso atrás y se para.
 --
 -- Solo se calculan los 32 más cercanos a la cámara; los fijos del mapa algo más lejos siguen con su
 -- animación de andar o de estar de pie (medio segundo a medio segundo, barato), para que nadie se deslice.
@@ -35,6 +46,7 @@ local RunService = game:GetService("RunService")
 
 local Emotion = require(ReplicatedStorage.Shared.LifeStory.Emotion)
 local ActorMoods = require(ReplicatedStorage.Shared.LifeStory.ActorMoods)
+local ActorStaging = require(ReplicatedStorage.Shared.LifeStory.ActorStaging)
 local Joints = require(ReplicatedStorage.Shared.Joints)
 local WorkAnim = require(script.Parent.WorkAnim)
 local SpeechBubbles = require(script.Parent.Parent.UI.SpeechBubbles)
@@ -120,6 +132,13 @@ type Rig = {
 	IdleActAt: number, -- cuándo se le ocurre la próxima
 	IdleActUntil: number,
 	IdleWork: string?, -- (Phone) el móvil en la mano, hasta que acaba de guardarlo
+	NodAt: number, -- (escuchando) cuándo asiente la próxima vez
+	NodStart: number, -- cuándo empezó el último asentimiento
+	ListenGlanceAt: number, -- (escuchando) cuándo aparta la vista un instante
+	ListenGlanceUntil: number,
+	ListenGlance: Vector2?,
+	Recoil: number, -- 0..1: paso atrás de la sorpresa (suave)
+	Phase: number, -- reloj de los gestos al hablar (va al ritmo de la emoción)
 }
 
 local rigs: { [Model]: Rig } = {}
@@ -130,6 +149,12 @@ local waiting: { [Model]: boolean } = setmetatable({}, { __mode = "k" }) :: any 
 local conversation = false
 local speaker: Model? = nil
 local listeners: { [Model]: boolean } = {}
+-- A quién habla quien habla ahora (To de la línea o lo que se deduce: ActorStaging.addressee) y a quién
+-- mira un momento al empezar (al que acaba de hablar)
+local addressee: Model? = nil -- nil = a ti
+local ackModel: Model? = nil
+local ackUntil = 0
+local lastLine: { Model: Model, Question: boolean, At: number, Me: boolean }? = nil
 
 local function now(): number
 	return os.clock()
@@ -181,18 +206,24 @@ end
 -- Fundidos (actores de tu escena que no pueden llegar andando: atributo Fade)
 ---------------------------------------------------------------------
 
-type Fade = { Parts: { Instance }, From: number, To: number, Start: number, Seconds: number, Done: (() -> ())? }
+type Fade = { Model: Model, Parts: { Instance }, From: number, To: number, Start: number, Seconds: number, Done: (() -> ())? }
 local fades: { Fade } = {}
 local fadeWatched: { [Model]: boolean } = setmetatable({}, { __mode = "k" }) :: any
 
 local function fadeModel(model: Model, from: number, to: number, seconds: number, onDone: (() -> ())?)
+	-- Un fundido nuevo sustituye al que tuviera a medias (se iba y vuelve: no se pelean)
+	for i = #fades, 1, -1 do
+		if fades[i].Model == model then
+			table.remove(fades, i)
+		end
+	end
 	local parts = {}
 	for _, d in model:GetDescendants() do
 		if d:IsA("BasePart") or d:IsA("Decal") then
 			table.insert(parts, d)
 		end
 	end
-	table.insert(fades, { Parts = parts, From = from, To = to, Start = os.clock(), Seconds = seconds, Done = onDone })
+	table.insert(fades, { Model = model, Parts = parts, From = from, To = to, Start = os.clock(), Seconds = seconds, Done = onDone })
 end
 
 local function stepFades(t: number)
@@ -219,14 +250,34 @@ local function watchFade(model: Model)
 	end
 	fadeWatched[model] = true
 	model:GetAttributeChangedSignal("Fade"):Connect(function()
+		if model:GetAttribute("FadeOut") then
+			return -- (se está yendo: ya se desvanece)
+		end
 		fadeModel(model, 0, 1, 0.3, function()
 			task.delay(0.1, function()
-				if model.Parent then
+				if model.Parent and not model:GetAttribute("FadeOut") then
 					fadeModel(model, 1, 0, 0.4)
 				end
 			end)
 		end)
 	end)
+	-- Deja tu escena (SceneService): se desvanece donde está y el servidor lo quita. Si el paso siguiente
+	-- le vuelve a necesitar mientras tanto, reaparece
+	model:GetAttributeChangedSignal("FadeOut"):Connect(function()
+		if model:GetAttribute("FadeOut") then
+			fadeModel(model, 0, 1, ActorStaging.FadeSeconds)
+		else
+			fadeModel(model, 1, 0, 0.4)
+		end
+	end)
+	if model:GetAttribute("FadeOut") then
+		fadeModel(model, 0, 1, 0.2) -- (llegó a tu pantalla cuando ya se iba)
+	end
+end
+
+-- ¿Se está yendo de tu escena? (ya no es del reparto: ni habla ni le miran)
+local function isLeaving(model: Instance?): boolean
+	return model ~= nil and model:GetAttribute("Leaving") == true
 end
 
 -- Sus articulaciones: Motor6D o AnimationConstraint (las articulaciones nuevas de Roblox: su C0 es el
@@ -347,6 +398,13 @@ local function register(model: Model): string
 		IdleActAt = t + 6 + math.random() * 14,
 		IdleActUntil = 0,
 		IdleWork = nil,
+		NodAt = t + 2 + math.random() * 3,
+		NodStart = -10,
+		ListenGlanceAt = t + 4 + math.random() * 5,
+		ListenGlanceUntil = 0,
+		ListenGlance = nil,
+		Recoil = 0,
+		Phase = t,
 	}
 	WorkAnim.clear(rig.WorkPose)
 	rigs[model] = rig
@@ -577,8 +635,80 @@ local function lookAtAttribute(rig: Rig): Vector3?
 	return nil
 end
 
+-- ¿Es de TU escena? (los actores de tu historia)
+local function isMine(model: Instance): boolean
+	local scenes = workspace:FindFirstChild("StoryScenes")
+	local mine = scenes and scenes:FindFirstChild("Scene_" .. player.UserId)
+	return mine ~= nil and model:IsDescendantOf(mine)
+end
+
+-- ¿Está en la conversación? Quien habla, quien ya ha hablado (y tú) y, además, todo el reparto de tu
+-- escena que esté cerca de quien habla: en una conversación todos miran a quien habla
+local function inTalk(rig: Rig): boolean
+	if not conversation then
+		return false
+	end
+	if rig.Model == speaker or listeners[rig.Model] then
+		return true
+	end
+	if rig.Me or not speaker or not speaker.Parent or isLeaving(rig.Model) or not isMine(rig.Model) then
+		return false
+	end
+	local at = headPosition(speaker)
+	return at ~= nil and (at - rig.Head.Position).Magnitude < ActorStaging.GroupRadius
+end
+
+-- La emoción con la que actúa ahora: la que dura (atributo Mood) o, mientras dice su frase, la de la frase
+local function actingOf(rig: Rig, t: number): ActorMoods.Acting
+	local mood = rig.Model:GetAttribute("Mood")
+	if mood == nil and t < rig.TalkUntil + 0.5 then
+		mood = ActorMoods.fromPose(rig.Gesture) or ActorMoods.fromPose(rig.Emotion)
+	end
+	return ActorMoods.acting(mood)
+end
+
+-- Cómo cambia la mirada con la emoción (mirando a alguien): devuelve (yaw extra, pitch extra)
+local function moodGaze(rig: Rig, acting: ActorMoods.Acting, t: number): (number, number)
+	local side = if math.sin(rig.Seed * 7.3) >= 0 then 1 else -1
+	local gaze = acting.Gaze
+	local yaw, pitch = 0, acting.Head
+	if gaze == "Avoid" then
+		-- Vergüenza: aparta la mirada y baja la cabeza; de vez en cuando levanta los ojos un instante
+		if math.sin(t * 0.8 + rig.Seed) < 0.8 then
+			yaw += math.rad(24) * side
+			pitch -= 0.12
+		end
+	elseif gaze == "Down" then
+		if math.sin(t * 0.6 + rig.Seed) < 0.5 then
+			pitch -= 0.08
+		end
+	end
+	return yaw, pitch
+end
+
+-- Escuchando: de vez en cuando aparta la vista un instante (con nervios, a menudo y alrededor)
+local function listenGlance(rig: Rig, acting: ActorMoods.Acting, t: number): Vector2?
+	if acting.Gaze == "Hold" then
+		return nil -- (enfadado: sostiene la mirada)
+	end
+	if t > rig.ListenGlanceAt then
+		local around = acting.Gaze == "Around"
+		rig.ListenGlanceAt = t + (if around then 1.2 + math.random() * 1.6 else 4 + math.random() * 6)
+		if around or math.random() < 0.6 then
+			local spread = if around then math.random(25, 60) else math.random(12, 30)
+			rig.ListenGlance = Vector2.new(math.rad(spread) * (if math.random() < 0.5 then -1 else 1), math.rad(math.random(-8, 4)))
+			rig.ListenGlanceUntil = t + (if around then 0.45 + math.random() * 0.4 else 0.6 + math.random() * 0.5)
+		end
+	end
+	if t < rig.ListenGlanceUntil then
+		return rig.ListenGlance
+	end
+	return nil
+end
+
 local function lookTarget(rig: Rig, t: number): (number, number, boolean)
-	local forced = not rig.Me and not (conversation and (listeners[rig.Model] or rig.Model == speaker)) and lookAtAttribute(rig)
+	local talkingHere = inTalk(rig)
+	local forced = not rig.Me and not talkingHere and lookAtAttribute(rig)
 	if forced then
 		local yaw, pitch = aim(rig, forced)
 		if yaw then
@@ -586,22 +716,31 @@ local function lookTarget(rig: Rig, t: number): (number, number, boolean)
 		end
 	end
 	local myHead = headPosition(player.Character)
-	-- En una conversación: quien habla te mira (o mira a quien le escucha); los demás miran a quien habla
-	if conversation and (listeners[rig.Model] or rig.Model == speaker) then
+	-- En una conversación: quien habla mira a quien le habla (a ti, o al personaje al que contesta);
+	-- todos los demás miran a quien habla
+	if talkingHere then
 		local target: Vector3? = nil
+		local acting = actingOf(rig, t)
 		if rig.Model == speaker then
 			if rig.Me then
-				for other in listeners do
-					if other ~= rig.Model then
-						target = headPosition(other)
-						break
+				-- Tú contestas a quien te ha hablado (o al primero que escucha)
+				target = headPosition(addressee)
+				if not target then
+					for other in listeners do
+						if other ~= rig.Model then
+							target = headPosition(other)
+							break
+						end
 					end
 				end
 			else
-				target = myHead
+				if ackModel and t < ackUntil then
+					target = headPosition(ackModel) -- (mira un momento al que acaba de hablar)
+				end
+				target = target or headPosition(addressee) or myHead
 			end
-			-- Al hablar a veces se aparta la mirada un momento (pensando lo que dice)
-			if math.sin(t * 0.9 + rig.Seed) > 0.93 then
+			-- Al hablar a veces se aparta la mirada un momento (pensando lo que dice); enfadado, no
+			if acting.Gaze ~= "Hold" and math.sin(t * 0.9 + rig.Seed) > 0.93 then
 				return rig.BodyYaw + math.rad(18) * math.sign(math.sin(rig.Seed)), math.rad(6), true
 			end
 		else
@@ -610,7 +749,18 @@ local function lookTarget(rig: Rig, t: number): (number, number, boolean)
 		if target then
 			local yaw, pitch = aim(rig, target)
 			if yaw then
-				return yaw, pitch :: number, true
+				local yawMood, pitchMood = 0, 0
+				if not rig.Me then
+					yawMood, pitchMood = moodGaze(rig, acting, t)
+					if rig.Model ~= speaker then
+						local glance = listenGlance(rig, acting, t)
+						if glance then
+							yawMood += glance.X
+							pitchMood += glance.Y
+						end
+					end
+				end
+				return yaw + yawMood, math.clamp((pitch :: number) + pitchMood, -math.rad(35), math.rad(30)), true
 			end
 		end
 		return rig.BodyYaw, 0, true
@@ -693,6 +843,7 @@ local POSE_NAMES = {
 	"Happy", "Sad", "Angry", "Surprised", "Thinking", "Ask", "Shrug", "Nod", "No",
 	"ArmsCrossed", "HandsOnHips", "Facepalm", "Clap", "ThinkChin", "WaveLite", "Stretch",
 	"Scared", "Hurt", -- (las de las emociones que duran: atributo Mood, shared/LifeStory/ActorMoods)
+	"Nervous", "Ashamed", -- (nervios y vergüenza: frase o emoción que dura)
 }
 -- Gestos cortos: duran esto (segundos) desde que empieza la frase o el gesto
 local SHORT = { Nod = 1.6, No = 1.6, Shrug = 1.6, Clap = 1.9, WaveLite = 1.8, Facepalm = 2.4 }
@@ -701,6 +852,7 @@ local SHORT = { Nod = 1.6, No = 1.6, Shrug = 1.6, Clap = 1.9, WaveLite = 1.8, Fa
 local GESTURE = {
 	Calm = 0.7, Happy = 1, Sad = 0.3, Angry = 1.3, Surprised = 0.8, Thinking = 0.25, Ask = 0.8, Shrug = 0.6, Nod = 0.5, No = 0.7,
 	ArmsCrossed = 0.15, HandsOnHips = 0.2, Facepalm = 0.2, Clap = 0.2, ThinkChin = 0.2, WaveLite = 0.5,
+	Nervous = 0.35, Ashamed = 0.2,
 }
 
 -- Charlas entre ellos (modo Chat): con qué ánimo dice cada uno lo suyo
@@ -867,7 +1019,9 @@ local function update(rig: Rig, t: number, dt: number)
 	end
 	local talk = rig.Talk
 	local acting = actionPlaying(rig)
-	local inConversation = conversation and (listeners[rig.Model] or rig.Model == speaker)
+	local inConversation = inTalk(rig)
+	-- Escuchando (en la conversación sin ser quien habla): asiente de vez en cuando, poco
+	local listening = inConversation and rig.Model ~= speaker and not rig.Me and not talking
 	local attrWork = rig.Model:GetAttribute("Work")
 
 	-- Lo que hace mientras espera (solo de pie, parado, sin tarea ni charla)
@@ -888,6 +1042,12 @@ local function update(rig: Rig, t: number, dt: number)
 	local moodName = rig.Model:GetAttribute("Mood")
 	local mood = ActorMoods.get(moodName)
 	local moodPose = mood and mood.Pose
+	-- Cómo actúa con su emoción (la que dura o la de la frase): ritmo, postura abierta o cerrada, inquietud
+	local moodActing = actingOf(rig, t)
+	-- El ritmo de cabeza y manos al hablar: un reloj propio que corre más o menos deprisa según la
+	-- emoción (sin saltos al cambiar de frase)
+	rig.Phase += dt * moodActing.Tempo
+	local tg = rig.Phase
 	for _, name in POSE_NAMES do
 		local want = if rig.Emotion == name and (talking or sinceLine < 2.5) then 1 else 0
 		if moodPose == name then
@@ -948,13 +1108,24 @@ local function update(rig: Rig, t: number, dt: number)
 	-- De pie sin hacer nada: carga el peso de un pie a otro (el torso se mece un poco, despacio)
 	rig.Still = smooth(rig.Still, if rig.Speed < 0.3 and not seated and not rig.Me then 1 - talk * 0.6 else 0, 2, dt)
 	local sway = math.sin(t * (TAU / (8 + seed % 4)) + seed) * rig.Still
+	-- Nervios: cambia el peso de pierna más a menudo
+	sway += moodActing.Fidget * math.sin(t * 1.9 + seed * 3) * 0.6 * rig.Still
 
 	-- Cabeza
 	local neckPitch = rig.Pitch * 0.8 * lookMul + w.np * workNeck + rig.SacPitch
 	local neckYaw = rig.Yaw * 0.65 * lookMul + w.ny * workNeck + rig.SacYaw
 	local neckRoll = w.nr * workNeck - sway * 0.02
-	neckPitch += talk * (math.sin(t * 7.3 + seed) * 0.035 + math.sin(t * 11.1 + seed * 2) * 0.015)
-	neckYaw += talk * math.sin(t * 3.4 + seed) * 0.045
+	neckPitch += talk * (math.sin(tg * 7.3 + seed) * 0.035 + math.sin(tg * 11.1 + seed * 2) * 0.015)
+	neckYaw += talk * math.sin(tg * 3.4 + seed) * 0.045
+	-- Escuchando: un asentimiento pequeño de vez en cuando (enfadado no; triste, más despacio)
+	if listening and moodActing.Gaze ~= "Hold" and t > rig.NodAt then
+		rig.NodStart = t
+		rig.NodAt = t + (3 + math.random() * 4) / math.max(0.5, moodActing.Tempo)
+	end
+	local nodT = t - rig.NodStart
+	if nodT < 0.8 then
+		neckPitch -= math.sin(nodT / 0.8 * math.pi * 2) ^ 2 * 0.06
+	end
 	neckPitch += (P.Happy or 0) * (0.07 + math.abs(math.sin(t * 6)) * 0.04)
 	neckPitch -= (P.Sad or 0) * 0.32
 	neckPitch -= (P.Angry or 0) * 0.1
@@ -976,6 +1147,17 @@ local function update(rig: Rig, t: number, dt: number)
 	local waistYaw = rig.Yaw * 0.35 * lookMul + w.wy * W
 	local waistRoll = w.wr * W + sway * 0.035
 
+	-- Nervios (se toca las manos, hombros algo subidos) y vergüenza (cabeza baja, mirada a un lado,
+	-- encogido): poco, sin exagerar
+	local nervous = P.Nervous or 0
+	local ashamed = P.Ashamed or 0
+	local shameSide = if math.sin(seed * 7.3) >= 0 then 1 else -1
+	neckPitch -= nervous * 0.04 + ashamed * 0.2
+	neckYaw += ashamed * 0.12 * shameSide
+	waistPitch += ashamed * 0.04 + nervous * 0.015
+	-- Postura abierta (alegría, sorpresa) o cerrada (tristeza, vergüenza, nervios)
+	waistPitch -= moodActing.Open * 0.025
+
 	-- Emociones que duran: miedo (encogido, temblando) y herido (doblado, la cabeza baja)
 	local scared = P.Scared or 0
 	local hurt = P.Hurt or 0
@@ -988,12 +1170,15 @@ local function update(rig: Rig, t: number, dt: number)
 	-- Brazos (solo si no están andando ni haciendo un gesto de animación)
 	local armWeight = if busyArms then 0 else 1
 	local g = talk * (GESTURE[rig.Gesture or rig.Emotion] or 0.7) * armWeight
-	local rX = g * (0.22 + 0.2 * math.sin(t * 2.1 + seed)) -- adelante
-	local rZ = g * (0.1 + 0.08 * math.sin(t * 1.7 + seed)) -- hacia fuera
-	local rElbow = g * (0.45 + 0.35 * math.sin(t * 2.6 + seed))
-	local lX = g * (0.12 + 0.14 * math.sin(t * 1.9 + seed + 2))
-	local lZ = g * (0.06 + 0.06 * math.sin(t * 1.3 + seed + 1))
-	local lElbow = g * (0.3 + 0.25 * math.sin(t * 2.3 + seed + 2))
+	local rX = g * (0.22 + 0.2 * math.sin(tg * 2.1 + seed)) -- adelante
+	local rZ = g * (0.1 + 0.08 * math.sin(tg * 1.7 + seed)) -- hacia fuera
+	local rElbow = g * (0.45 + 0.35 * math.sin(tg * 2.6 + seed))
+	local lX = g * (0.12 + 0.14 * math.sin(tg * 1.9 + seed + 2))
+	local lZ = g * (0.06 + 0.06 * math.sin(tg * 1.3 + seed + 1))
+	local lElbow = g * (0.3 + 0.25 * math.sin(tg * 2.3 + seed + 2))
+	-- Abierta: los brazos algo separados del cuerpo; cerrada: pegados
+	rZ += moodActing.Open * 0.05 * armWeight
+	lZ += moodActing.Open * 0.05 * armWeight
 	local rTwist, lTwist = 0, 0
 	local shoulderUp = breath * 0.015
 	-- Posturas
@@ -1079,6 +1264,21 @@ local function update(rig: Rig, t: number, dt: number)
 		lX, lZ, lElbow = mix(lX, 0.05, ache), mix(lZ, 0.02, ache), mix(lElbow, 0.1, ache)
 		shoulderUp -= ache * 0.06
 	end
+	local fidget = nervous * armWeight
+	if fidget > 0.001 then
+		-- Nervios: las manos juntas delante, frotándose un poco
+		local rub = math.sin(t * 6 + seed) * 0.06
+		rX, rTwist, rZ, rElbow = mix(rX, 0.55, fidget), mix(rTwist, 0.9, fidget), mix(rZ, -0.45 + rub, fidget), mix(rElbow, 1.25, fidget)
+		lX, lTwist, lZ, lElbow = mix(lX, 0.55, fidget), mix(lTwist, 0.9, fidget), mix(lZ, -0.45 - rub, fidget), mix(lElbow, 1.25, fidget)
+		shoulderUp += fidget * 0.04
+	end
+	local shy = ashamed * armWeight
+	if shy > 0.001 then
+		-- Vergüenza: los brazos pegados al cuerpo, los hombros caídos
+		rZ -= shy * 0.08
+		lZ -= shy * 0.08
+		shoulderUp -= shy * 0.04
+	end
 	-- Tarea
 	rX += w.rx * W
 	rZ += w.rz * W
@@ -1096,7 +1296,9 @@ local function update(rig: Rig, t: number, dt: number)
 		Joints.setC0(J.Waist, B.Waist * CFrame.Angles(waistPitch, waistYaw, waistRoll))
 	end
 	if J.Root and not rig.Me then
-		Joints.setC0(J.Root, B.Root * CFrame.Angles(0, rig.BodyYaw, 0))
+		-- Sorpresa: retrocede un poco y se para (solo en tu pantalla; poco)
+		rig.Recoil = smooth(rig.Recoil, if (P.Surprised or 0) > 0.3 and not seated then 1 else 0, if (P.Surprised or 0) > 0.3 then 9 else 2, dt)
+		Joints.setC0(J.Root, B.Root * CFrame.new(0, 0, rig.Recoil * 0.3 * rig.Scale) * CFrame.Angles(0, rig.BodyYaw, 0))
 	end
 	if J.RightShoulder then
 		Joints.setC0(J.RightShoulder, B.RightShoulder * CFrame.new(0, shoulderUp, 0) * CFrame.Angles(rX, rTwist, rZ))
@@ -1151,7 +1353,7 @@ function ActorLife.find(npcId: string): Model?
 	local mine = scenes and scenes:FindFirstChild("Scene_" .. player.UserId)
 	if mine then
 		for _, model in mine:GetChildren() do
-			if model:IsA("Model") and model:GetAttribute("NpcId") == npcId then
+			if model:IsA("Model") and model:GetAttribute("NpcId") == npcId and not isLeaving(model) then
 				return model
 			end
 		end
@@ -1170,7 +1372,7 @@ function ActorLife.cast(): { Model }
 	local scenes = workspace:FindFirstChild("StoryScenes")
 	local mine = scenes and scenes:FindFirstChild("Scene_" .. player.UserId)
 	for _, model in if mine then mine:GetChildren() else {} do
-		if model:IsA("Model") and model:FindFirstChildOfClass("Humanoid") then
+		if model:IsA("Model") and model:FindFirstChildOfClass("Humanoid") and not isLeaving(model) then
 			table.insert(list, model)
 		end
 	end
@@ -1259,11 +1461,56 @@ function ActorLife.conversation(on: boolean)
 	-- Siempre de cero: quien habló en una escena de cámara o en otra charla no cuenta en esta
 	speaker = nil
 	table.clear(listeners)
+	addressee = nil
+	ackModel = nil
+	ackUntil = 0
+	lastLine = nil
+end
+
+-- A quién habla una línea: To = modelo, id del reparto ("Sara") o "Player"/"Jugador" (a ti). nil si a ti.
+local function resolveTo(to: any): any
+	if typeof(to) == "Instance" then
+		return if to == player.Character then "Player" else to
+	end
+	if type(to) ~= "string" or to == "" then
+		return nil
+	end
+	if ActorStaging.isPlayer(to) then
+		return "Player"
+	end
+	return ActorLife.find(to) or "Player"
+end
+
+-- Apunta quién habla y a quién (ActorStaging.addressee): la mirada de todos se ordena con esto
+local function noteLine(model: Model, emotion: string?, to: any, text: string?)
+	local t = now()
+	local me = player.Character
+	local isMe = model == me
+	local prev = if lastLine and lastLine.Model.Parent
+		then { Speaker = lastLine.Model, Question = lastLine.Question, IsPlayer = lastLine.Me, Since = t - lastLine.At }
+		else nil
+	addressee, ackModel, ackUntil = nil, nil, 0
+	if isMe then
+		-- Tú le contestas a quien te ha hablado
+		local target = resolveTo(to)
+		addressee = if typeof(target) == "Instance" then target elseif prev and not prev.IsPlayer then prev.Speaker else nil
+	else
+		local target, ack, ackSeconds = ActorStaging.addressee({ Speaker = model, To = resolveTo(to) }, prev)
+		if typeof(target) == "Instance" and target ~= model then
+			addressee = target
+		end
+		if typeof(ack) == "Instance" and ack ~= model then
+			ackModel, ackUntil = ack, t + ackSeconds
+		end
+	end
+	lastLine = { Model = model, Question = ActorStaging.isQuestion(emotion, text), At = t, Me = isMe }
 end
 
 -- Alguien dice una frase: mueve la cabeza y las manos durante `seconds`, con la emoción de la frase.
 -- gesture (opcional): un gesto de encima a la vez (el campo Gesture de la línea, G en la misión)
-function ActorLife.speak(model: Instance?, emotion: string?, seconds: number, gesture: string?)
+-- to (opcional): a quién le habla (To de la línea: "Sara", "Player"…; si no, se deduce)
+-- text (opcional): la frase (para saber si es una pregunta: quien conteste mirará a quien pregunta)
+function ActorLife.speak(model: Instance?, emotion: string?, seconds: number, gesture: string?, to: any?, text: string?)
 	if not model or not model:IsA("Model") then
 		return
 	end
@@ -1278,6 +1525,10 @@ function ActorLife.speak(model: Instance?, emotion: string?, seconds: number, ge
 		if me then
 			listeners[me] = true
 			register(me)
+		end
+		pcall(noteLine, model, emotion, to, text)
+		if addressee then
+			listeners[addressee] = true
 		end
 	end
 	if not rig then
@@ -1305,6 +1556,40 @@ function ActorLife.quiet(model: Instance?)
 end
 
 function ActorLife.init()
+	-- Los saltos del jugador de la historia, tapados con un fundido (Controllers/SceneDip)
+	task.spawn(function()
+		local ok, err = pcall(function()
+			require(script.Parent.SceneDip).init()
+		end)
+		if not ok then
+			warn("[ActorLife] SceneDip: " .. tostring(err))
+		end
+	end)
+	-- Los actores de tu escena (también los que no se animan: lejos, sin cuerpo R15) se desvanecen al irse
+	task.spawn(function()
+		local scenes = workspace:WaitForChild("StoryScenes", 60)
+		if not scenes then
+			return
+		end
+		local function watch(child: Instance)
+			if child:IsA("Model") then
+				watchFade(child)
+			end
+		end
+		local function watchFolder(folder: Instance)
+			if folder.Name ~= "Scene_" .. player.UserId then
+				return
+			end
+			for _, child in folder:GetChildren() do
+				watch(child)
+			end
+			folder.ChildAdded:Connect(watch)
+		end
+		for _, folder in scenes:GetChildren() do
+			watchFolder(folder)
+		end
+		scenes.ChildAdded:Connect(watchFolder)
+	end)
 	for _, descendant in workspace:GetDescendants() do
 		if descendant:IsA("Humanoid") then
 			consider(descendant)

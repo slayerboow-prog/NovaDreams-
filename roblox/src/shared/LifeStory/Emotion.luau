@@ -11,6 +11,8 @@
 --   · Nod (asentir) · No (negar con la cabeza) · Calm (hablar tranquilo, lo normal)
 --   · ArmsCrossed (brazos cruzados) · HandsOnHips (brazos en jarra) · Facepalm (mano a la frente)
 --   · Clap (aplaudir) · ThinkChin (mano en la barbilla) · WaveLite (saludo corto con la mano)
+--   · Nervous (nervios: se toca las manos, mira alrededor) · Ashamed (vergüenza: baja la cabeza y
+--     aparta la mirada). Las dos son también emociones que duran (ActorMoods: Nervous, Shame).
 --
 -- Además de su emoción, una línea puede llevar un gesto encima con G = "…" (una postura o una animación
 -- de las de arriba): { S = "Abu", T = "Ay, este niño…", A = "Sad", G = "Facepalm" }. El servidor lo manda
@@ -36,6 +38,8 @@ Emotion.Poses = {
 	Clap = true,
 	ThinkChin = true,
 	WaveLite = true,
+	Nervous = true,
+	Ashamed = true,
 }
 
 function Emotion.valid(name: any): boolean
@@ -51,6 +55,8 @@ local RULES: { { any } } = {
 	{ "Wave", { "^¡hola", "^hola", "^¡eh!", "^¡eh,", "^¡buenos días", "^buenos días", "^¡buenas", "^buenas", "^¡adiós", "^adiós", "^¡hasta luego", "^hasta luego", "^¡hasta mañana", "^¡nos vemos" } },
 	{ "Cheer", { "^¡bien", "^¡sí!", "^¡sí,", "^¡sííí", "^¡toma", "^¡lo hemos", "^¡lo has", "^¡lo conseguimos", "^¡enhorabuena", "^¡felicidades", "^¡genial", "^¡olé", "^¡bravo", "^¡hemos ganado", "^¡ganamos", "^¡gol" } },
 	{ "Point", { "^mira", "^¡mira", "^allí", "^¡allí", "^ahí", "^¡ahí", "^por allí", "^es por ahí" } },
+	{ "Ashamed", { "me da vergüenza", "me da mucha vergüenza", "qué corte", "culpa mía", "^me he equivocado", "^no debí", "^no tendría que haber" } },
+	{ "Nervous", { "^es que…", "^es que...", "^em…", "^em...", "^ehm", "^eh…", "^eh...", "^uf…", "^uf...", "^no sé si es buena idea", "^no sé si esto", "^estoy nervios" } },
 	{ "Sad", { "lo siento", "perdón", "perdona", "lo echo de menos", "la echo de menos", "le echo de menos", "me duele", "qué pena", "triste", "llorar", "lloro", "^…" } },
 	{ "HandsOnHips", { "^¿se puede saber", "^¿qué horas son estas", "^¿qué haces aquí", "^¿dónde te habías metido", "^¿dónde estabas" } },
 	{ "ArmsCrossed", { "^¡ni se te ocurra", "^ni se te ocurra", "^ya te lo dije", "^te lo dije", "^¡te lo dije", "^estoy esperando", "^¿y bien?", "^no pienso" } },
@@ -100,6 +106,11 @@ function Emotion.of(line: { [string]: any }, text: string?): string?
 		return line.A
 	end
 	local s = plain(text or line.T or "")
+	-- Tartamudea («Y-yo…», «N-no sé…»): nervios
+	local first = s:match("^(%a)%-")
+	if first and s:sub(3, 3) == first then
+		return "Nervous"
+	end
 	for _, rule in RULES do
 		for _, pattern in rule[2] do
 			if matches(s, pattern) then
