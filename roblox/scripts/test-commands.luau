@@ -167,7 +167,7 @@ local function cmd(id: string, priority: number, extra: { [string]: any }?)
 	end
 	return out
 end
-local APPS = { "AppIr a casa", "AppRuta a casa", "AppTienda", "AppVehículos", "AppGestos", "AppMetro", "AppMercadillo", "AppGuía de pesca", "AppMascotas" }
+local APPS = { "AppIr a casa", "AppRuta a casa", "AppTienda", "AppVehículos", "AppGestos", "AppMetro", "AppMercadillo", "AppGuía de pesca", "AppMascotas", "AppFoto" }
 local function sorted(list)
 	table.sort(list, function(a, b)
 		return a.Priority < b.Priority
