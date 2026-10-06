@@ -1,8 +1,10 @@
 -- Consecuencias de la vida adulta: misiones pequeñas que nacen de lo que hiciste (Later), horas después.
+-- Al final se suman las de la carrera (Adu_Profesion: ascenso, despido, ascenso en la policía y la
+-- llegada de los veteranos con Ernesto y Lola).
 
 local V = Vector3.new
 
-return {
+local list = {
 	{
 		Id = "Eco_Factura",
 		Kind = "Side",
@@ -27,3 +29,9 @@ return {
 		},
 	},
 }
+
+for _, mission in require(script.Parent.Adu_Profesion) do
+	table.insert(list, mission)
+end
+
+return list

@@ -6,6 +6,11 @@
 -- a tu familia, o en autobús como hacía {abu} (Traveled a Playa Dorada) → la playa: {abu} te cuenta su
 -- historia y te pide una promesa → el atardecer (cinemática). Un capítulo tranquilo, sin prisa.
 
+-- Escenas escritas a mano (Happenings/Adulto): la llegada al hospital (Adu02_Hospital) y la orilla
+-- (Adu02_Orilla); el atardecer final sigue siendo la cinemática Adu02_Atardecer.
+
+local Comun = require(script.Parent.Adu_Escenas)
+
 local V = Vector3.new
 
 local COCHE = { Choices = { ViajeAbu = "Coche" } }
@@ -35,7 +40,8 @@ return {
 
 	Moment = "El atardecer con {abu}",
 	Memory = "AtardecerConAbu",
-	Rewards = { Items = { ConchaAbu = 1 } },
+	-- (y un tiempo después, tu jefe quiere verte: Adu_Ascenso, si no te han despedido)
+	Rewards = { Items = { ConchaAbu = 1 }, Later = { { AfterHours = 2, Start = "Adu_Ascenso", If = { NotFlags = { "Despedido" } } } } },
 
 	Props = {
 		Concha = { Kind = "Marcador", Name = "Una concha en la arena", Prompt = "Cogerla", Place = "Playa", Offset = V(3, 0, -2), Dialogue = "Concha", Once = true },
@@ -45,6 +51,7 @@ return {
 		{ Type = "Transition", Text = "Un sábado por la mañana, suena el teléfono.", Seconds = 3 },
 		{ Type = "Scene", Dialogue = "Llamada" },
 		{ Type = "Reach", Place = "Hospital", Text = "Ve al hospital: {abu} está allí", Actors = HOSPITAL },
+		Comun.paso("Adu02_Hospital", HOSPITAL),
 		{ Type = "Talk", Npc = "Abu", Dialogue = "Hospital", Text = "Siéntate con {abu}", Actors = HOSPITAL },
 		{ Type = "Choice", Key = "ViajeAbu", Text = "¿Cómo vas a llevar a {abu} a ver el mar?",
 			Options = {
@@ -69,6 +76,7 @@ return {
 		{ Type = "Reach", Place = "Playa", Text = "Llega a la playa con {abu}", Actors = { { Npc = "Abu", Mode = "Follow" } } },
 
 		-- La playa
+		Comun.paso("Adu02_Orilla", { { Npc = "Abu", Place = "Playa", Offset = V(0, 0, 3), Mode = "Sit" } }),
 		{ Type = "Scene", Dialogue = "Mar", Actors = { { Npc = "Abu", Place = "Playa", Offset = V(0, 0, 3), Mode = "Sit" } } },
 		{ Type = "Use", Prop = "Concha", Text = "Coge una concha para {abu}", Actors = { { Npc = "Abu", Place = "Playa", Offset = V(0, 0, 3), Mode = "Sit" } } },
 		{ Type = "Scene", Dialogue = "Promesa", Actors = { { Npc = "Abu", Place = "Playa", Offset = V(0, 0, 3), Mode = "Sit" } } },
@@ -93,7 +101,7 @@ return {
 					{ S = "Abu", T = "Trato hecho. Y no me lleves corriendo, que ya no estoy para sustos." },
 				} },
 				{ T = "Le coges la mano sin decir nada", Effects = { Rel = { Abu = 10 }, Traits = { Empatia = 1 } }, Then = {
-					{ S = "Abu", T = "(aprieta tu mano) Ya. Ya lo sé. Tú siempre has dicho las cosas así." },
+					{ S = "Abu", T = "Ya. Ya lo sé. Tú siempre has dicho las cosas así.", Beat = "Mira", A = "Happy" },
 				} },
 			} },
 		} },
@@ -105,16 +113,13 @@ return {
 			{ S = "Abu", T = "El autobús de Playa Dorada. Hace cincuenta años lo cogía con mis amigos. Íbamos cantando. El conductor nos odiaba." },
 		} },
 		Mar = { Lines = {
-			{ S = "Narrador", T = "El mar. {abu} se descalza y mete los pies en la arena despacito. Cierra los ojos. Respira hondo." },
-			{ S = "Narrador", T = "Llueve un poco sobre el mar. A {abu} no le importa: «el mar con lluvia también es el mar».", If = { Weather = { "Lluvia", "Tormenta" } } },
-			{ S = "Narrador", T = "Hace frío y el viento sopla. Le pones tu chaqueta por encima. {abu} protesta, pero no se la quita.", If = { Season = "Invierno" } },
 			{ S = "Abu", T = "Aquí conocí a la persona más importante de mi vida. Y aquí vine el día que naciste, a contárselo al mar." },
 			{ S = "Abu", T = "¿Sabes qué le dije? «Hoy ha nacido alguien que va a hacer cosas bonitas». Y mira. No me equivoqué." },
 			{ S = "Abu", T = "Me acuerdo de tu primer día de colegio. Te agarrabas a mi mano como si te fueras a otro planeta.", If = { Memories = { "PrimerDiaCole" } } },
 			{ S = "Abu", T = "Y de tu graduación. Lloré tanto que se me empañaron las gafas y no vi el diploma. No se lo digas a nadie.", If = { Memories = { "Graduacion" } } },
 		} },
 		Concha = { Lines = {
-			{ S = "Narrador", T = "Una concha blanca, perfecta. Se la das a {abu}. {abu} te la devuelve." },
+			{ S = "Yo", T = "Mira, abu. Una concha blanca. Perfecta. Para ti." },
 			{ S = "Abu", T = "No, no. Esta es para ti. Para que vuelvas aquí. Con quien tú quieras." },
 		} },
 		Promesa = { Lines = {
@@ -130,7 +135,6 @@ return {
 					{ S = "Abu", T = "Eso ya lo sé. Lo sé desde que me diste la mitad de tu bocadillo con cinco años." },
 				} },
 			} },
-			{ S = "Narrador", T = "El sol baja despacio. Os quedáis callados, mirando el mar. No hace falta decir nada más." },
 		} },
 	},
 }

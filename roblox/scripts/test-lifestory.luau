@@ -228,7 +228,15 @@ check(state and state.Tracked and state.Tracked.TextKey == "QUEST.LLEGADA.PLAZA"
 
 ana.At = "PlazaCentro"
 task.wait(0.7)
-check(data.Story.Active.Adulto_LlegadaValmar.Step == 2, "Llegar a la plaza avanza al siguiente paso")
+check(data.Story.Active.Adulto_LlegadaValmar.Step >= 2, "Llegar a la plaza avanza al siguiente paso")
+-- (en la plaza, Ernesto y Lola te dan la bienvenida: escena Adulto_Bienvenida)
+for _ = 1, 40 do
+	if data.Story.Active.Adulto_LlegadaValmar.Step >= 3 then
+		break
+	end
+	task.wait(0.2)
+end
+check(data.Story.Active.Adulto_LlegadaValmar.Step == 3, "Ernesto y Lola te dan la bienvenida en la plaza")
 StoryEvents.emit(ana, "HomeClaimed", {})
 StoryEvents.emit(ana, "Ate", {})
 task.wait(0.1)
@@ -1036,7 +1044,7 @@ check(evaData.Story.Active.Uni01_PrimerDia == nil and evaData.Story.Active.Adu01
 check(playUntil(eva, function()
 	return evaData.Story.Completed.Adu01_PrimerContrato ~= nil
 end), "Sin carrera: busca casa y su jefe del primer verano le hace encargado o encargada")
-check(said(eva, "Encargado o encargada. ¿Te atreves?") and evaData.Story.Flags.TieneHogar, "Lola le ofrece llevar la cafetería; ya tiene casa propia")
+check(said(eva, "Encargad") and said(eva, "¿Te atreves?") and evaData.Story.Flags.TieneHogar, "Lola le ofrece llevar la cafetería; ya tiene casa propia")
 
 print("\n▶ El mal camino: pellas, pintada, el súper, las camisetas falsas… y las consecuencias")
 check(evaData.Story.Flags.HicistePellas and evaData.Story.Flags.Pintada and evaData.Story.Flags.MentisteFamilia, "Hace pellas, pinta el muro y miente en casa")

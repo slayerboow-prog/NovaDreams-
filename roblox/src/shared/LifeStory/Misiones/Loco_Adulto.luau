@@ -137,7 +137,7 @@ return {
 			Culpable = { Lines = {
 				{ S = "Cosme", T = "¿Yo? ¿Una deuda? ¿En Plutón? Eso es… ¡Ah! El bocadillo de calamares. 1987. Estaba de viaje de estudios. Tenía hambre. Tenía una tarjeta. No tenía cabeza." },
 				{ S = "Cosme", T = "¿Y me cobran la Tierra entera? ¡Por un bocadillo! Bueno. Era un bocadillo muy bueno. Con alioli de nebulosa." },
-				{ S = "Cosme", T = "Criatura… bueno, ya no eres una criatura. Adulto o adulta hecho y derecho. ¿Me ayudas? Otra vez. Como siempre." },
+				{ S = "Cosme", T = "Criatura… bueno, ya no eres una criatura. Adult{o/a} hech{o/a} y derech{o/a}. ¿Me ayudas? Otra vez. Como siempre." },
 			} },
 			LetraPequena = { Lines = {
 				{ S = "Narrador", T = "El contrato tiene 3.000 páginas. Glub te mira con cara de que nadie las ha leído nunca. En la página 2.847, en letra diminuta:" },
@@ -202,13 +202,13 @@ return {
 			} },
 			Tostadora = { Lines = {
 				{ S = "Cosme", T = "(Desde la tostadora) ¡Criatura! ¡Ya no eres criatura, pero te lo sigo llamando! ¡Estoy en la tostadora! ¡Es muy estrecho! ¡Huele a pan del martes!" },
-				{ S = "Cosme", T = "(Desde la tostadora) Escúchame bien: no tengo codos. Nunca valoras los codos hasta que eres una tostadora." },
+				{ S = "Cosme", T = "Escúchame bien: no tengo codos. Nunca valoras los codos hasta que eres una tostadora." },
 				{ Ask = "¿Qué le dices?", Options = {
 					{ T = "«¿Por qué querías guardarte, Cosme?»", Effects = { Traits = { Empatia = 2 } }, Then = {
-						{ S = "Cosme", T = "(Desde la tostadora) …Porque me hago mayor. Y tengo miedo de olvidarme de cosas. De la gallina. De los clones. De ti. Ya está. Lo he dicho. Qué vergüenza. Estoy tostando de la vergüenza." },
+						{ S = "Cosme", T = "…Porque me hago mayor. Y tengo miedo de olvidarme de cosas. De la gallina. De los clones. De ti. Ya está. Lo he dicho. Qué vergüenza. Estoy tostando de la vergüenza." },
 					} },
 					{ T = "«Tranquilo. Te saco de ahí.»", Effects = { Traits = { Valentia = 1 }, Rel = { Cosme = 4 } }, Then = {
-						{ S = "Cosme", T = "(Desde la tostadora) Eso quería oír. Primero, los electrodomésticos. Van a por ti. El microondas es el cabecilla. Siempre lo supe." },
+						{ S = "Cosme", T = "Eso quería oír. Primero, los electrodomésticos. Van a por ti. El microondas es el cabecilla. Siempre lo supe." },
 					} },
 				} },
 				{ S = "Narrador", T = "¡DING! Del fondo del garaje salen una batidora, una aspiradora y un microondas. Con brazos. Con piernas. Con muy mala cara." },
@@ -342,7 +342,7 @@ return {
 		},
 		Dialogues = {
 			Puerta = { Lines = {
-				{ S = "TuMalvado", T = "Vaya, vaya. El «yo» bueno. Bienvenido o bienvenida a MI casa. Porque ahora es mía. Y tu trabajo. Y tu sofá. Muahaha." },
+				{ S = "TuMalvado", T = "Vaya, vaya. El «yo» bueno. Bienvenid{o/a} a MI casa. Porque ahora es mía. Y tu trabajo. Y tu sofá. Muahaha." },
 				{ S = "Yo", T = "¿Quién eres? ¿Y por qué llevas perilla?", If = { NotFlags = { "ConoceTuMalvado" } } },
 				{ S = "TuMalvado", T = "Soy tú. De la dimensión 66-B. Allí soy malvado. Los malvados llevamos perilla. Es la norma. Hay un reglamento.", If = { NotFlags = { "ConoceTuMalvado" } } },
 				{ S = "TuMalvado", T = "Mi vida allí es un desastre. Me echaron del trabajo por malvado. Mi gato se fue con otro. Así que me quedo con la tuya. Tú puedes quedarte la mía. Tiene deudas. Muchas.", If = { NotFlags = { "ConoceTuMalvado" } } },

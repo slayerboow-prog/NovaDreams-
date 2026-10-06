@@ -8,6 +8,12 @@
 -- la inauguración, el discurso de Lola, la foto → por la noche, el banco del parque, como a los diez
 -- años, y una promesa nueva. Cierra el capítulo «Volar del nido».
 
+-- Escena escrita a mano (Happenings/Adulto): el banco del parque de noche (Adu03_Banco). Al final, el paso
+-- a la vida adulta es un paso Transition con el montaje de etapa de P7 (Happenings/Etapas: Joven_Adulto)
+-- en vez del premio SetStage; si el montaje aún no existe, sale solo el rótulo.
+
+local Comun = require(script.Parent.Adu_Escenas)
+
 local V = Vector3.new
 
 local CON_LEIRE = { Flags = { "ConocesALeire" } }
@@ -67,9 +73,9 @@ return {
 
 	Moment = "El reencuentro del grupo",
 	Memory = "ElReencuentro",
-	-- (aquí empieza la vida adulta de verdad: sin esto nunca se llegaba a "Adulto" y el final de la
-	-- saga, los locos D y las rarezas de adulto no salían nunca)
-	Rewards = { Items = { FotoReencuentro = 1 }, SetStage = "Adulto" },
+	-- (la vida adulta de verdad empieza en el último paso: Transition con SetStage = "Adulto"; sin eso nunca
+	-- se llegaba a "Adulto" y el final de la saga, los locos D y las rarezas de adulto no salían nunca)
+	Rewards = { Items = { FotoReencuentro = 1 } },
 
 	Steps = {
 		{ Type = "Transition", Text = "Unos meses después…", Seconds = 3 },
@@ -105,14 +111,18 @@ return {
 		-- El banco del parque
 		{ Type = "Transition", Text = "Esa noche…", Seconds = 3 },
 		{ Type = "Reach", Place = "Parque", Text = "Ve al banco del parque: el grupo te espera", Actors = BANCO },
+		Comun.paso("Adu03_Banco", BANCO),
 		{ Type = "Scene", Dialogue = "Banco", Actors = BANCO },
+		-- Adulto joven → adulto: el montaje de etapa (P7) mientras cambia la edad
+		{ Type = "Transition", SetStage = "Adulto", Seconds = 4, Cinematic = Comun.montaje("Joven_Adulto"),
+			Text = "Os quedáis hasta tarde. Hablando de todo y de nada. Como siempre. Como nunca." },
 	},
 
 	Dialogues = {
 		Noticia = { Lines = {
 			{ S = "Lola", T = "Me jubilo. Cuarenta años detrás de esta barra. Ya está. Me voy a la playa a no hacer nada. Lo he decidido." },
 			{ S = "Omar", T = "Y… me la deja a mí. ¡A MÍ! La cafetería. Se va a llamar «La Cafetería de Omar». Bueno, se llama igual, pero con mi nombre." },
-			{ S = "Omar", T = "Reabro el sábado. Y quiero a todo el grupo. A TODO. Como en el colegio. Tú eres el encargado o la encargada de invitarles." },
+			{ S = "Omar", T = "Reabro el sábado. Y quiero a todo el grupo. A TODO. Como en el colegio. Y tú te encargas de invitarles." },
 			{ S = "Lola", T = "Primero, la mejor ayuda de verano. Ahora, quien mejor me sucede. Qué bien lo he hecho todo.", If = { Choices = { Empleo = "Barista" } } },
 		} },
 		Nico = { Lines = {
@@ -148,7 +158,7 @@ return {
 			{ S = "Lucia", T = "Cuéntame: ¿qué ha sido de tu vida?" },
 			{ S = "Narrador", T = "Le cuentas que querías salvar vidas… y que ahora trabajas en el hospital. Lucía se queda callada un momento.", If = sueno("Medicina", "Medicina") },
 			{ S = "Narrador", T = "Le cuentas que querías inventar cosas que no existen… y que ahora las diseñas en TecnoVal. Lucía sonríe.", If = sueno("Ingenieria", "Ingenieria") },
-			{ S = "Narrador", T = "Le cuentas que querías defender a quien no puede defenderse… y que ahora eres abogado o abogada.", If = sueno("Derecho", "Derecho") },
+			{ S = "Narrador", T = "Le cuentas que querías defender a quien no puede defenderse… y que ahora eres abogad{o/a}.", If = sueno("Derecho", "Derecho") },
 			{ S = "Narrador", T = "Le cuentas que querías tener tu propio negocio… y que ahora ayudas a otros a abrir el suyo.", If = sueno("Economia", "Economia") },
 			{ S = "Lucia", T = "Lo dijiste a los diez años en un banco del parque. Y lo has cumplido. Eso, {nombre}, es lo más bonito que puede oír una profesora.", If = { Flags = { "Graduado" } } },
 			{ S = "Lucia", T = "Lo importante no es si se cumple lo que dijiste con diez años. Es si eres feliz con lo que has hecho. Y se te ve feliz." },
@@ -163,7 +173,7 @@ return {
 			{ S = "Lucia", T = "¿Y la fiesta de Omar? Claro que voy. Ese niño se comía mi bocadillo de la mesa cuando no miraba." },
 		} },
 		Inauguracion = { Lines = {
-			{ S = "Narrador", T = "La cafetería está llena. Todos. Como en el patio del colegio, pero más altos." },
+			{ S = "Lola", T = "Mirad esto. Llena. Todos. Como en el patio del colegio, pero más altos." },
 			{ S = "Lola", T = "Unas palabras, que me lo ha pedido Omar. Cuarenta años aquí. He visto crecer a medio Valmar. Y a este grupo, entero." },
 			{ S = "Lola", T = "Omar: cuida la cafetería. Y cuida a esta gente. Que la gente es lo único que no se puede comprar con la caja registradora." },
 			{ S = "Omar", T = "La tortilla de hoy la ha hecho {nombre}. Perfecta. Bueno, casi. Perfecta según mis estándares, que son altísimos.", If = { Flags = { "TortillaPerfecta" } } },
@@ -172,11 +182,11 @@ return {
 			{ S = "Sara", T = "Técnicamente, hoy no hay cebolla en el menú." },
 		} },
 		Banco = { Lines = {
-			{ S = "Narrador", T = "El banco del parque. El mismo. Os sentáis como a los diez años, apretados. Ahora ya no cabéis." },
 			{ S = "Nico", T = "Prometimos quedar aquí cada verano. Y lo hemos cumplido. Casi siempre. Vale, algunos veranos no.", If = { Choices = { Promesa = "Banco" } } },
 			{ S = "Omar", T = "Prometimos seguir juntos pasara lo que pasara. Y aquí estamos. Con trabajos, con casas… y juntos.", If = { Choices = { Promesa = "Juntos" } } },
 			{ S = "Sara", T = "Prometimos conocer gente nueva sin olvidarnos. Técnicamente, lo hemos cumplido al cien por cien.", If = { Choices = { Promesa = "Nuevos" } } },
-			{ S = "Narrador", T = "Nico pregunta: «¿Os acordáis del nombre del grupo?». Y todos lo decís a la vez: «{grupo}». Os reís como tontos.", If = { Memories = { "PrimerGrupo" } } },
+			{ S = "Nico", T = "¿Os acordáis del nombre del grupo? A la de tres. Una, dos… ¡«{grupo}»!", If = { Memories = { "PrimerGrupo" } } },
+			{ S = "Sara", T = "Lo hemos dicho todos a la vez. Estadísticamente, eso es amistad.", If = { Memories = { "PrimerGrupo" } } },
 			{ Ask = "¿Qué promesa nueva hacéis?", Options = {
 				{ T = "«Cuando tengamos hijos, que sean amigos como nosotros.»", Effects = { Choice = { PromesaAdulta = "Hijos" } }, Then = {
 					{ S = "Omar", T = "Y que se sienten en este banco. Y que tampoco quepan." },
@@ -188,7 +198,6 @@ return {
 					{ S = "Nico", T = "…Eso ha sido muy bonito. Que nadie diga nada. Que nadie diga NADA." },
 				} },
 			} },
-			{ S = "Narrador", T = "Os quedáis hasta tarde. Hablando de todo y de nada. Como siempre. Como nunca." },
 		} },
 	},
 }
