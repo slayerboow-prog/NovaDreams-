@@ -2372,6 +2372,128 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean })
 			local touchGui = playerGui:FindFirstChild("TouchLayout")
 			local shoot = touchGui and touchGui:FindFirstChild("Disparar")
 			table.insert(checks, { shoot ~= nil and shoot.Visible, "móvil con el revólver: salen los botones del arma (Disparar)" })
+			-- Estilo shooter móvil, con el WeaponController de verdad: Disparar en el hueco grande, Apuntar
+			-- encima, Recargar con las balas, el segundo Disparar a la izquierda; y todo a la vez (multitáctil):
+			-- joystick + disparar + apuntar + saltar, sin que ningún botón corte a otro
+			do
+				local okWc, WC = pcall(requireFn, controllersF and controllersF:FindFirstChild("WeaponController"))
+				local okJoy, Joystick = pcall(requireFn, controllersF and controllersF:FindFirstChild("Joystick"))
+				localPlayer:SetAttribute("WeaponMag", 6)
+				localPlayer:SetAttribute("WeaponAmmo", 18)
+				fakeTask.wait(1)
+				local function button(id: string): any
+					local b = touchGui and touchGui:FindFirstChild(id)
+					return if b and b.Visible then b else nil
+				end
+				local fire, left, aim, reload, jump = button("Disparar"), button("DispararIzq"), button("Apuntar"), button("Recargar"), button("Saltar")
+				table.insert(checks, { fire and fire:GetAttribute("Slot") == "Ataque" and aim and aim:GetAttribute("Slot") == "Defender" and reload and reload:GetAttribute("Slot") == "Interactuar" and left and left:GetAttribute("Slot") == "DispararIzq",
+					"móvil con arma: Disparar en el hueco grande, Apuntar encima, Recargar en el de Interactuar y el segundo Disparar a la izquierda" })
+				local badge = reload and reload:FindFirstChild("Badge")
+				table.insert(checks, { badge and badge.Visible and tostring(badge.Text) == "6/18", ("móvil con arma: Recargar con las balas «6/18» (%s)"):format(if badge then tostring(badge.Text) else "?") })
+				local defend = touchGui and touchGui:FindFirstChild("Defender")
+				table.insert(checks, { (defend == nil or not defend.Visible) and button("Agacharse") ~= nil and jump ~= nil and button("Esquivar") ~= nil,
+					"móvil con arma: fuera Defensa; Agacharse, Saltar y Esquivar siguen" })
+				if okWc and okJoy and fire and left and aim and jump then
+					local function touch(x: number, y: number): any
+						local input = new("InputObject", "InputObject")
+						local p = rawget(input, "__props")
+						p.UserInputType = Enum.UserInputType.Touch
+						p.UserInputState = Enum.UserInputState.Begin
+						p.Position = V3.new(x, y, 0)
+						return input
+					end
+					local function lift(b: any?, input: any)
+						rawget(input, "__props").UserInputState = Enum.UserInputState.End
+						if b then
+							signalOf(b, "InputEnded"):Fire(input)
+						end
+						signalOf(uis, "InputEnded"):Fire(input, true)
+					end
+					local function fires(): number
+						local n = 0
+						for _, call in serverLog do
+							if call.Remote == "Weapons" and call.Args[1] == "Fire" then
+								n += 1
+							end
+						end
+						return n
+					end
+					table.clear(serverLog)
+					-- Pulgar izquierdo en el Disparar de la izquierda
+					local leftFinger = touch(300, 200)
+					signalOf(left, "InputBegan"):Fire(leftFinger)
+					table.insert(checks, { WC.triggerHeld() and fires() >= 1, ("multitáctil: el Disparar de la izquierda dispara (%d disparos al servidor)"):format(fires()) })
+					-- Otro dedo en el joystick: se anda sin soltar el gatillo
+					local stickBase = Joystick._state().Base
+					local stickFinger = touch(80, 300)
+					if stickBase then
+						signalOf(stickBase, "InputBegan"):Fire(stickFinger)
+					end
+					table.insert(checks, { WC.triggerHeld() and Joystick.push() > 0, "multitáctil: joystick + disparar a la vez (el joystick no suelta el gatillo)" })
+					-- Apuntar con el otro pulgar: sigue disparando
+					signalOf(aim, "Activated"):Fire()
+					table.insert(checks, { WC.isAiming() and WC.triggerHeld(), "multitáctil: apuntar y disparar a la vez" })
+					-- Saltar (pulsar y soltar): ni la mira ni el fuego se cortan
+					local jumpFinger = touch(700, 300)
+					signalOf(jump, "InputBegan"):Fire(jumpFinger)
+					lift(jump, jumpFinger)
+					table.insert(checks, { WC.isAiming() and WC.triggerHeld(), "multitáctil: saltar no quita la mira ni corta el fuego" })
+					-- Soltar el joystick tampoco
+					lift(nil, stickFinger)
+					table.insert(checks, { WC.triggerHeld() and Joystick.push() == 0, "multitáctil: soltar el joystick no corta el fuego" })
+					-- Los dos Disparar a la vez: soltar uno no corta el otro
+					local rightFinger = touch(760, 300)
+					signalOf(fire, "InputBegan"):Fire(rightFinger)
+					lift(left, leftFinger)
+					table.insert(checks, { WC.triggerHeld(), "multitáctil: con los dos Disparar, soltar uno no corta la ráfaga del otro" })
+					lift(fire, rightFinger)
+					table.insert(checks, { not WC.triggerHeld(), "al soltar los dos, deja de disparar" })
+					-- La cámara con el dedo: zona de la mitad derecha (siempre gira, también disparando)
+					local zone = WC._dragZone()
+					table.insert(checks, { zone ~= nil and zone.Active == true and zone.Size.X.Scale == 0.5 and zone.Position.X.Scale == 1, "móvil con arma: zona de la cámara en la mitad derecha de la pantalla" })
+					-- Arrastrar en la zona gira la cámara, también con el pulgar izquierdo disparando; apuntando, menos
+					local cam = workspace.CurrentCamera
+					local function yaw(): number
+						local look = cam.CFrame.LookVector
+						return math.atan2(-look.X, -look.Z)
+					end
+					local function swipe(dx: number): number
+						local before = yaw()
+						local finger = touch(600, 200)
+						signalOf(zone, "InputBegan"):Fire(finger)
+						rawget(finger, "__props").Position = V3.new(600 + dx, 200, 0)
+						signalOf(uis, "InputChanged"):Fire(finger, false)
+						for _, f in renderSteps do
+							pcall(f, 1 / 60)
+						end
+						lift(nil, finger)
+						local d = yaw() - before
+						if d > math.pi then
+							d -= 2 * math.pi
+						elseif d < -math.pi then
+							d += 2 * math.pi
+						end
+						return math.abs(d)
+					end
+					if zone then
+						signalOf(aim, "Activated"):Fire() -- (deja de apuntar: primero sin mira)
+						local hold = touch(300, 200)
+						signalOf(left, "InputBegan"):Fire(hold)
+						local free = swipe(80)
+						table.insert(checks, { free > 0.2 and WC.triggerHeld(), ("multitáctil: con el pulgar izquierdo disparando, arrastrar en la derecha gira la cámara (%.2f rad)"):format(free) })
+						signalOf(aim, "Activated"):Fire()
+						local aimed = swipe(80)
+						table.insert(checks, { WC.isAiming() and aimed > 0.05 and aimed < free * 0.95, ("apuntando, el mismo arrastre gira menos (%.2f < %.2f rad)"):format(aimed, free) })
+						lift(left, hold)
+					end
+					signalOf(aim, "Activated"):Fire()
+					table.insert(checks, { not WC.isAiming(), "tocar Apuntar otra vez deja de apuntar" })
+				else
+					table.insert(checks, { false, "móvil con arma: no se pudo probar el multitáctil (faltan módulos o botones)" })
+				end
+				localPlayer:SetAttribute("WeaponMag", nil)
+				localPlayer:SetAttribute("WeaponAmmo", nil)
+			end
 			probe("con el revólver")
 			localPlayer:SetAttribute("Weapon", nil)
 			-- Al volante de un coche (articulaciones nuevas de Roblox, AnimationConstraint): RidePose pone

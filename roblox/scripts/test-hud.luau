@@ -1365,7 +1365,12 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 		TouchLayout.register({ Id = "Defender", Icon = "escudo", Label = "Defensa", Slot = "Defender", Priority = 4, Visible = function()
 			return not armedNow
 		end, Hold = function() end })
-		TouchLayout.register({ Id = "Disparar", Icon = "disparar", Label = "Disparar", Slot = "Disparar", Priority = 1, Visible = armedFn, Hold = function() end, Drag = function() end })
+		local held, dragged = 0, roblox.Vector2.new(0, 0)
+		TouchLayout.register({ Id = "Disparar", Icon = "disparar", Label = "Disparar", Slot = "Disparar", Priority = 1, Visible = armedFn, Hold = function(down)
+			held += if down then 1 else -1
+		end, Drag = function(delta)
+			dragged += delta
+		end })
 		TouchLayout.register({ Id = "DispararIzq", Icon = "disparar", Label = "Disparar", Slot = "DispararIzq", Priority = 1, Twin = true, Visible = armedFn, Hold = function() end, Drag = function() end } :: any)
 		TouchLayout.register({ Id = "Apuntar", Icon = "objetivo", Label = "Apuntar", Slot = "Apuntar", Priority = 1, Visible = armedFn, Callback = function() end })
 		TouchLayout.register({ Id = "Recargar", Icon = "recargar", Label = "Recargar", Slot = "Recargar", Priority = 0.5, Visible = armedFn, Badge = function()
@@ -1386,6 +1391,21 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 			local x, y, r = centerOf(tl.DispararIzq, now)
 			local sx, sy = stickRect.X + stickRect.W / 2, stickRect.Y + stickRect.H / 2
 			check(x > sx and y < sy and not HudLayout.overlaps(r, stickRect) and r.X + r.W < now.Canvas.X / 2, "El Disparar de la izquierda, arriba a la derecha del joystick (pulgar izquierdo)")
+		end
+		-- Arrastrar el dedo que mantiene Disparar gira la cámara (Drag); otro dedo (el joystick) no
+		do
+			local E = roblox.Enum
+			local finger = { UserInputType = E.UserInputType.Touch, Position = roblox.Vector3.new(700, 300, 0) }
+			local other = { UserInputType = E.UserInputType.Touch, Position = roblox.Vector3.new(80, 300, 0) }
+			tl.Disparar.InputBegan:Fire(finger)
+			finger.Position = roblox.Vector3.new(730, 290, 0)
+			userInput.InputChanged:Fire(finger)
+			other.Position = roblox.Vector3.new(120, 300, 0)
+			userInput.InputChanged:Fire(other)
+			userInput.InputEnded:Fire(other)
+			check(held == 1 and dragged == roblox.Vector2.new(30, -10), "Arrastrar el dedo de Disparar gira la cámara (sin soltar el gatillo); otro dedo no lo suelta ni lo mueve")
+			userInput.InputEnded:Fire(finger)
+			check(held == 0, "Al levantar ese dedo se suelta el gatillo")
 		end
 		local armedList = hudRects(mods)
 		noOverlaps(armedList, HudLayout, ("%dx%d con arma"):format(size[1], size[2]))

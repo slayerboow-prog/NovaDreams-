@@ -414,7 +414,7 @@ WeaponController.assistOn = assistOn
 -- Arrastrar el dedo (en puntos de pantalla): gira la cámara. Apuntando, más despacio; con la mira
 -- encima de un objetivo, un poco menos (fricción)
 function WeaponController.drag(delta: Vector2)
-	local yaw, pitch = AimAssist.dragTurn(delta, aimAlpha, onTargetNow and assistOn())
+	local yaw, pitch = AimAssist.dragTurn(delta, if wantAim then 1 else aimAlpha, onTargetNow and assistOn())
 	pendingYaw += yaw
 	pendingPitch += pitch
 end
