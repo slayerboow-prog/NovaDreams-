@@ -218,6 +218,9 @@ local JUNK_WORDS = {
 	"wheel", "tire", "tyre", "rim", "brake", "caliper", "hub", "axle", "spring", "susp", "hitbox", "collision",
 	"seat", "steer", "driver", "passenger", "exhaustflame", "smoke", "radio",
 }
+-- Palabras que llevan dentro una de JUNK_WORDS sin serlo: se quitan antes de mirar (en el Nissan
+-- Primera todo se llama «Primera…», y «p-rim-era» tiraba la carrocería entera: «sin carrocería»)
+local NOT_JUNK = { "primera" }
 -- Marcas reales (también lo mira scripts/test-carbodies.luau en todo lo construido)
 CarBodies.RealBrands = {
 	"hyundai", "toyota", "ford", "chevrolet", "chevy", "bmw", "mercedes", "audi", "honda", "nissan", "tesla",
@@ -299,6 +302,14 @@ local function hasWord(name: string, words: { string }): boolean
 		end
 	end
 	return false
+end
+
+local function isJunk(name: string): boolean
+	local n = lower(name)
+	for _, w in NOT_JUNK do
+		n = table.concat(string.split(n, w), " ")
+	end
+	return hasWord(n, JUNK_WORDS)
 end
 
 function CarBodies.isBrand(text: string): boolean
@@ -504,7 +515,7 @@ local function carParts(car: Instance, keepWheels: boolean?, wholeCar: boolean?)
 		-- (nombre con marca: fuera las placas y logos, pero no la carrocería misma, que en los coches del
 		-- importador se llama como el coche, p. ej. «Hiace_9»: se renombra igual)
 		local big = math.max(d.Size.X, d.Size.Y, d.Size.Z) >= 3
-		if d.Transparency >= 0.98 or (d ~= car and hasWord(d.Name, JUNK_WORDS)) or (CarBodies.isBrand(d.Name) and not (d == car or big)) then
+		if d.Transparency >= 0.98 or (d ~= car and isJunk(d.Name)) or (CarBodies.isBrand(d.Name) and not (d == car or big)) then
 			continue
 		end
 		local s = d.Size
@@ -1179,11 +1190,18 @@ function CarBodies.ingest(def: { [string]: any }, pack: Instance): number
 			warn(("[CarBodies] %s (%d): %s"):format(pick.Name, def.Id, tostring(if ok then why else model)))
 		end
 	end
+	-- (el Camry trae dos «coches» con su nombre: «Drivetrain», solo ejes casi invisibles, y «Chassis», el
+	-- de verdad: se prefiere el que tiene Body o asiento; si no, salía «tapa el 0%»)
+	local function real(car: Instance): boolean
+		return car:FindFirstChild("Body") ~= nil or car:FindFirstChildWhichIsA("VehicleSeat") ~= nil or car:FindFirstChild("DriveSeat") ~= nil
+	end
 	for _, pick in def.Picks do
 		local chosen, other = nil, nil
 		for _, car in cars do
 			if not used[car] and (pick.Match == "" or string.find(labels[car], pick.Match, 1, true)) then
 				if not chosen then
+					chosen = car
+				elseif real(car) and not real(chosen) then
 					chosen = car
 				elseif not other then
 					other = car
