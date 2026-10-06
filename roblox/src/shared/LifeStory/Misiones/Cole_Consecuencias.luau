@@ -29,7 +29,7 @@ return {
 				{ S = "Mateo", T = "Dani dice que es el dibujo más bonito que he hecho. Dani dice muchas cosas." },
 				{ Ask = "¿Qué le dices?", Options = {
 					{ T = "¡Lo voy a colgar en mi cuarto!", Effects = { Rel = { Mateo = 6 } }, Then = {
-						{ S = "Mateo", T = "(Mateo se pone rojo como un tomate) Vale. Bien. Genial." },
+						{ S = "Mateo", T = "Vale. Bien. Genial.", Beat = "Baja", A = "Ashamed" },
 					} },
 					{ T = "Pues ahora te hago yo uno a ti.", Effects = { Rel = { Mateo = 6 }, Traits = { Creatividad = 1 } }, Then = {
 						{ S = "Mateo", T = "¿De verdad? Nadie me ha regalado nunca un dibujo." },
@@ -57,7 +57,7 @@ return {
 		Dialogues = {
 			LoVes = { Lines = {
 				{ S = "Narrador", T = "Ahí está Mateo, el del primer día. Comiendo su bocadillo solo. Otra vez." },
-				{ S = "Narrador", T = "Nadie se ha sentado con él en toda la semana." },
+				{ S = "Mateo", T = "…", Beat = "Baja", A = "Sad" },
 			} },
 			Sentarte = { Lines = {
 				{ S = "Yo", T = "¿Puedo sentarme?" },
@@ -245,6 +245,8 @@ return {
 			Resultado = { Lines = {
 				{ S = "Lucia", T = "¡Aprobado! ¿Ves? No era que no pudieras. Es que aún no habías practicado lo suficiente.", If = { LastGradeAtLeast = 5 } },
 				{ S = "Lucia", T = "Todavía no… pero has mejorado muchísimo. Seguiremos practicando juntos. Eso también cuenta.", If = { LastGradeBelow = 5 } },
+				{ S = "Lucia", T = "Y dale las gracias a Sara de mi parte. Sus esquemas de colores se notan.", If = { LastGradeAtLeast = 5, Choices = { CompaneroEstudio = "Sara" } } },
+				{ S = "Lucia", T = "Mateo también ha venido al repaso, ¿sabes? Le has contagiado.", If = { Choices = { CompaneroEstudio = "Mateo" } } },
 				{ S = "Narrador", T = "Aquel día aprendiste que suspender no es el final de nada." },
 			} },
 		},

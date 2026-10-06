@@ -15,6 +15,8 @@
 --     skyline (CityDetail) y los edificios 3D (BuildingMesh: se ve la caja de antes, BuildingShell).
 --     Lo nuevo y barato (objetos de malla de la calle, naturaleza, muebles, señales, láminas:
 --     PropDetail, PropMesh, PropShell, DecorProp, StreetSign, TextureDetail) se ve en TODOS los niveles.
+--   * Distancia de detalle (Tier.DetailRadius): en Medio las piezas pequeñas de CityDetail solo cerca
+--     de la cámara; en Alto hasta donde llegue la vista.
 
 local CollectionService = game:GetService("CollectionService")
 local MaterialService = game:GetService("MaterialService")
@@ -106,8 +108,58 @@ local function applyDetail(part: Instance, hide: boolean, tag: string?)
 	end
 end
 
+-- Distancia de detalle (Graphics.Tier.DetailRadius): en Medio las piezas PEQUEÑAS de CityDetail
+-- (tejas, molduras, desgaste…) solo se ven cerca de la cámara; en Alto, todas. Se repasan poco a
+-- poco (unas cientas cada vez) para no dar tirones. El skyline y lo grande no se tocan.
+local SMALL = 16 -- (studs: lo más grande de una pieza «pequeña»)
+local SWEEP_BATCH = 600
+local farHidden: { [Instance]: boolean } = {}
+local radius = math.huge
+local function setFar(part: BasePart, far: boolean)
+	if far then
+		farHidden[part] = true
+	else
+		farHidden[part] = nil
+	end
+	part.LocalTransparencyModifier = if far then 1 else 0
+end
+local function clearFar()
+	for part in farHidden do
+		if (part :: any).Parent then
+			setFar(part :: any, false)
+		end
+	end
+	table.clear(farHidden)
+end
+MaterialDetail._farHidden = farHidden -- (pruebas)
+
+function MaterialDetail.sweep(eye: Vector3, parts: { Instance }, from: number, count: number): number
+	if hidden.CityDetail or radius == math.huge or radius <= 0 then
+		return #parts + 1
+	end
+	local last = math.min(#parts, from + count - 1)
+	for i = from, last do
+		local part = parts[i]
+		if part:IsA("BasePart") and part.Parent then
+			local size = part.Size
+			if math.max(size.X, size.Y, size.Z) < SMALL then
+				local far = (part.Position - eye).Magnitude > radius
+				if far ~= (farHidden[part] == true) then
+					setFar(part, far)
+				end
+			end
+		end
+	end
+	return last + 1
+end
+
 function MaterialDetail.apply(tierName: Graphics.TierName)
 	local tier = Graphics.tier(tierName)
+	local newRadius = if tier.DetailRadius and tier.DetailRadius > 0 then tier.DetailRadius else math.huge
+	if newRadius ~= radius then
+		radius = newRadius
+		clearFar() -- (el repaso vuelve a esconder lo lejano con la distancia nueva)
+	end
 	for _, variant in MaterialService:GetChildren() do
 		applyTo(variant, tier)
 	end
@@ -134,6 +186,24 @@ function MaterialDetail.init()
 		local tier = Graphics.tier(Perf.tierName())
 		for _, variant in MaterialService:GetChildren() do
 			applyTo(variant, tier)
+		end
+	end)
+	-- Distancia de detalle: un repaso continuo, a trozos
+	task.spawn(function()
+		local parts: { Instance } = {}
+		local index = 1
+		while true do
+			task.wait(0.25)
+			pcall(function()
+				if index > #parts then
+					parts = CollectionService:GetTagged("CityDetail")
+					index = 1
+				end
+				local camera = workspace.CurrentCamera
+				if camera then
+					index = MaterialDetail.sweep(camera.CFrame.Position, parts, index, SWEEP_BATCH)
+				end
+			end)
 		end
 	end)
 	-- (los árboles y los edificios llegan con la carga por zonas)

@@ -320,9 +320,14 @@ do
 	safeInit("PerfAuto", Perf.startAuto)
 	Hud.addMenuToggle(Perf.choiceLabel(), 3.3, function()
 		Perf.setChoice(Graphics.nextChoice(Perf.choice()))
-		Hud.toast("Info", Perf.choiceLabel())
+		Perf.announce(Hud.toast) -- (qué cambia: «Alto: sombras nítidas, reflejos…»)
 		return Perf.choiceLabel()
 	end, Perf.choiceLabel)
+	-- Lo guardado en la partida ya ha vuelto: si es Medio/Alto y la calidad de Roblox está baja,
+	-- el consejo de subirla (una sola vez)
+	task.delay(25, function()
+		Perf.tipIfNeeded(Hud.toast)
+	end)
 	-- (en «Auto» el nivel cambia solo: el botón dice siempre el de ahora, «Auto (ahora Medio)»)
 	Perf.onTier(function()
 		if Hud.syncMenuToggles then
