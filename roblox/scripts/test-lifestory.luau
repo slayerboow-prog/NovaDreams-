@@ -20,6 +20,18 @@ local lighting, profiles, scenes, classCalls = H.lighting, H.profiles, H.scenes,
 local Config = H.Config
 local check, newPlayer, received, cinematic, momentSting, lastState, fromClient = H.check, H.newPlayer, H.received, H.cinematic, H.momentSting, H.lastState, H.fromClient
 
+-- Las escenas del motor (Happenings: los montajes de cambio de etapa, el final de la vida) no llegan
+-- como "Cinematic" a la pantalla: se apuntan al acabar (HappeningService.onFinished)
+local scenesPlayed: { [any]: { [string]: boolean } } = {}
+loadModule(ROOT .. "/server/Services/HappeningService").onFinished(function(p, id)
+	scenesPlayed[p] = scenesPlayed[p] or {}
+	scenesPlayed[p][id] = true
+end)
+local screenCinematic = cinematic
+cinematic = function(p, id: string): boolean
+	return screenCinematic(p, id) or (scenesPlayed[p] ~= nil and scenesPlayed[p][id] == true)
+end
+
 ---------------------------------------------------------------------
 -- Pruebas
 ---------------------------------------------------------------------
@@ -321,7 +333,7 @@ task.wait(0.1)
 check(leoData.Story.Completed.Bebe_ExploraLaCasa ~= nil, "Casa explorada y familia conocida")
 StoryEvents.emit(leo, "LookedOutside", {})
 task.wait(0.3)
-check(cinematic(leo, "Bebe_AnosDespues"), "Mirar por el ventanal lleva a la cinemática 'Han pasado varios años…'")
+check(cinematic(leo, "Montaje_Bebe_Nino"), "Mirar por el ventanal lleva al montaje de cambio de etapa (bebé → niño)")
 check(leoData.Life.Stage == "Nino" and leo:GetAttribute("LifeStage") == "Nino", "Ahora es niño")
 check(leoData.Story.Chapters.Bebe_PrimerosPasos ~= nil, "Capítulo de bebé terminado")
 check(cinematic(leo, "Cole01_Amanecer") and leoData.Story.Active.Cole01_PrimerDia ~= nil, "Empieza el colegio con la misión «El primer día» (amanece en Los Pinos)")
@@ -1030,6 +1042,7 @@ check(said(leo, "Perfecta según mis estándares") and said(leo, "Y aquí estamo
 check(leoData.Story.Choices.PromesaAdulta.V == "Siempre" and cinematic(leo, "Adu03_Foto") and leoData.Items.FotoReencuentro == 1 and leoData.Story.Memories.ElReencuentro ~= nil, "Promesa nueva, foto y recuerdo")
 task.wait(1)
 check(leoData.Story.Chapters.Adulto_VolarDelNido ~= nil and leoData.Story.Chapters.Adulto_NuevaVida == nil, "Capítulo «Volar del nido» terminado (el de los veteranos no se repite)")
+check(cinematic(leo, "Montaje_Joven_Adulto") and leoData.Life.Stage == "Adulto" and cinematic(leo, "Nido_Fin") and cinematic(leo, "TuVida_Entrada"), "Montaje adulto joven → adulto, final del capítulo y cabecera de «Tu vida»")
 passTime(leo, 13 * 3600)
 check(leoData.Story.Active.Eco_RayoAdulto ~= nil and playQuest(leo, "Eco_RayoAdulto") and said(leo, "«Taller Rayo». Mío."), "Años después, Rayo tiene su propio taller gracias a ti")
 check(pcall(serde.encode, "json", leoData), "Toda una vida se puede guardar (JSON válido)")
