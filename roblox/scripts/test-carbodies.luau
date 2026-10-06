@@ -228,6 +228,28 @@ local function euroImported(name: string, parent: Instance)
 	return body
 end
 
+-- Lo que de verdad llega al servidor (v90, scripts/cloud): cada malla en su propio Model
+-- («206_4/Object_4/Object_0») y las ruedas dos niveles abajo («wheel.036_0/Object_72/Object_2»).
+-- Contando solo mallas sueltas no se encontraba ninguno (salían 21 carrocerías de 32).
+local function euroWrapped(name: string, parent: Instance)
+	local car = mk("Model", { Name = name }, parent)
+	local function wrap(mname: string, size: Vector3, cf: CFrame, color: Color3, depth: number, props: { [string]: any }?)
+		local at: Instance = car
+		for i = 1, depth do
+			at = mk("Model", { Name = if i == 1 then mname else "Object_" .. i }, at)
+		end
+		mesh("Object_0", size, cf, color, at, props)
+	end
+	wrap("Object_4", Vector3.new(14, 4.2, 6.9), CFrame.new(0, 2.9, 0), WHITE, 1, { TextureID = "rbxassetid://9001" })
+	wrap("Object_5", Vector3.new(7, 1.6, 6.2), CFrame.new(1, 4.4, 0), Color3.fromRGB(20, 20, 20), 1, { TextureID = "rbxassetid://9002", Transparency = 0.3 })
+	for i, x in { -3.4, 4.6 } do
+		for j, z in { -2.8, 2.8 } do
+			wrap(("wheel.03%d_%d"):format(i * 2 + j, i * 2 + j), Vector3.new(2.3, 2.3, 1), CFrame.new(x, 1.15, z), Color3.fromRGB(20, 20, 20), 2)
+		end
+	end
+	return car
+end
+
 -- A-Chassis metido en otra carpeta: el coche de dentro se llama «Chassis» y el nombre de verdad
 -- está fuera (así se perdía el Camry)
 local function aChassisNested(name: string, size: Vector3, parent: Instance)
@@ -284,7 +306,10 @@ local function packs(): { [number]: Instance }
 	out[9432856072] = semi
 	-- (como en el servidor: 8 coches del importador sueltos y 3 modelos; uno sin nombre útil)
 	local euro = mk("Model", { Name = "mesh pack" })
-	for _, n in { "206_4", "Hiace_9", "Astra_19", "Almera_39", "Avensis_14", "AClass_34", "Vectra_49", "Golf_24" } do
+	for _, n in { "206_4", "Hiace_9", "Astra_19", "Almera_39", "Avensis_14", "AClass_34" } do
+		euroWrapped(n, euro)
+	end
+	for _, n in { "Vectra_49", "Golf_24" } do
 		euroImported(n, euro)
 	end
 	euroCar("Volkswagen Sharan 1995", euro)
