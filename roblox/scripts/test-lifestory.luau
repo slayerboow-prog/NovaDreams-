@@ -1177,6 +1177,16 @@ check(ItemsDataEarly.get("Tirachinas").Kind == "Gadget" and ItemsDataEarly.get("
 check(kikoData.Story.Memories.ConociCosme ~= nil and kikoData.Story.Memories.GallinaGigante ~= nil and kikoData.Story.Memories.RatonPerez ~= nil, "Los recuerdos de las misiones locas quedan en su vida")
 
 print("\n▶ Saga de la Grieta · Acto I (misiones canónicas: siempre en el mapa)")
+-- Escenas del motor (Happenings) que ha visto cada jugador: las de la Saga sustituyen a las cinemáticas
+-- viejas en el mismo paso (Grieta_Coser, Grieta_Rota, Grieta_Fusion, Grieta_Final)
+local seenScenes = {}
+loadModule(ROOT .. "/server/Services/HappeningService").onFinished(function(player, id)
+	seenScenes[player] = seenScenes[player] or {}
+	seenScenes[player][id] = true
+end)
+local function scene(player, id: string): boolean
+	return seenScenes[player] ~= nil and seenScenes[player][id] == true
+end
 local function canonIds(player)
 	local raw = player:GetAttribute("CanonMarks") or "[]"
 	local ids = {}
@@ -1206,7 +1216,7 @@ passTime(sol, 5)
 check(canonIds(sol).Saga_06_Coser, "El final del acto está marcado en el mapa (aunque sea de día: pide la noche)")
 lighting.ClockTime = 21
 check(playLoco(sol, "Saga_06_Coser") and solData.Items.AgujaCuantica == 1 and solData.Story.Flags.SagaActo1 and said(sol, "Ya te he visto, Ancla"), "6 · Coser el cielo: los anclajes, los agentes grises y la voz de Cósimo")
-check(cinematic(sol, "Saga_Coser"), "Cinemática: la aguja cose el cielo")
+check(scene(sol, "Grieta_Coser"), "Escena: la aguja cose el cielo (Grieta_Coser)")
 check(sol:GetAttribute("SkyRift") == "Cosida", "Cosida: en el cielo queda solo una cicatriz (fase Cosida)")
 
 print("\n▶ Saga de la Grieta · Actos II, III y IV (de la adolescencia a la vida adulta, hasta el final)")
@@ -1232,7 +1242,7 @@ lighting.ClockTime = 20
 check(playLoco(nora, "Saga_10_Fiesta"), "10 · La fiesta del fin del mundo")
 lighting.ClockTime = 12
 check(playLoco(nora, "Saga_11_Cronos") and noraData.Items.RelojArena == 1, "11 · Cronos se pasa a tu bando")
-check(playLoco(nora, "Saga_12_Graduacion") and noraData.Story.Flags.SagaActo2 and noraData.Story.Flags.CosmeSecuestrado and cinematic(nora, "Saga_Grieta2"), "12 · La graduación: Cósimo se lleva a Cosme (cinemática)")
+check(playLoco(nora, "Saga_12_Graduacion") and noraData.Story.Flags.SagaActo2 and noraData.Story.Flags.CosmeSecuestrado and scene(nora, "Grieta_Rota"), "12 · La graduación: la costura se rompe y Cósimo se lleva a Cosme (escena Grieta_Rota)")
 
 sagaStage("AdultoJoven")
 passTime(nora, 5)
@@ -1290,7 +1300,7 @@ noraData.Story.Memories = noraData.Story.Memories or {}
 for _, key in { "BuzonPasado", "PerroBinario", "Piso13", "NubePerdida" } do
 	noraData.Story.Memories[key] = os.time()
 end
-check(playLoco(nora, "Saga_23_Fusion") and noraData.Story.Flags.FusionDetenida and cinematic(nora, "Saga_Fusion"), "23 · La Gran Fusión: aguantar, la oleada y Cósimo se rinde")
+check(playLoco(nora, "Saga_23_Fusion") and noraData.Story.Flags.FusionDetenida and scene(nora, "Grieta_Fusion"), "23 · La Gran Fusión: el cielo se rompe (Grieta_Fusion), aguantar, la oleada y Cósimo se rinde")
 check(said(nora, "¿Por qué me pesan las piernas?"), "Con 4 Restos de la Grieta, la colección brilla y Cósimo llega debilitado")
 local ConditionsMod = loadModule(ROOT .. "/shared/LifeStory/Conditions")
 local fusionSteps = QuestsData.Saga_23_Fusion.Steps
@@ -1307,7 +1317,7 @@ local ctxPocos = { Stage = "Adulto", ClockTime = 12, Weekday = 1, Completed = {}
 check(ConditionsMod.check({ MemoriesFewer = { N = 4, Of = { "BuzonPasado", "Piso13" } } }, ctxPocos) and not ConditionsMod.check({ MemoriesAtLeast = { N = 2, Of = { "BuzonPasado", "Piso13" } } }, ctxPocos), "Las condiciones cuentan recuerdos de una colección")
 check(noraData.Story.Flags.CosimoPerdonado or noraData.Story.Flags.CosimoArregla66B, "Decides qué pasa con Cósimo")
 lighting.ClockTime = 12
-check(playLoco(nora, "Saga_24_Final") and noraData.Items.AgujaDeOro == 1 and noraData.Story.Flags.SagaCompleta and cinematic(nora, "Saga_Final"), "24 · El final: la Grieta se cierra en el patio del cole")
+check(playLoco(nora, "Saga_24_Final") and noraData.Items.AgujaDeOro == 1 and noraData.Story.Flags.SagaCompleta and scene(nora, "Grieta_Final"), "24 · El final: la Grieta se cierra en el patio del cole (Grieta_Final)")
 check(nora:GetAttribute("SkyRift") == "Cerrada", "Al final de la saga la Grieta del cielo se cierra para siempre (fase Cerrada)")
 passTime(nora, 5)
 local quedan = 0
@@ -1425,7 +1435,7 @@ albaData.Story.Flags.CronosAliado = true
 albaData.Story.Flags.RataContratada = true
 albaData.Story.Flags.CosmeSecuestrado = true -- Cosme aún no ha vuelto: nadie da por hecho que está
 lighting.ClockTime = 12
-check(playLoco(alba, "Aliado_Bigotes") and albaData.Items.BandaCanciller == 1 and albaData.Story.Memories.GuardiaGatuna ~= nil and said(alba, "Duque o Duquesa del Cojín"), "Bigotes: la visita de Estado, las cucarachas a manguerazos y la Guardia Gatuna")
+check(playLoco(alba, "Aliado_Bigotes") and albaData.Items.BandaCanciller == 1 and albaData.Story.Memories.GuardiaGatuna ~= nil and said(alba, "del Cojín: tu título sigue en vigor"), "Bigotes: la visita de Estado, las cucarachas a manguerazos y la Guardia Gatuna")
 alba.Picks = { Alegato = "Letra" }
 check(playLoco(alba, "Aliado_Rex") and albaData.Items.TarjetaRex == 1 and albaData.Story.Memories.AbogadoRex ~= nil and said(alba, "Lees la letra pequeña"), "Rex: las pruebas, la letra pequeña y su primer juicio ganado")
 alba.Picks = { Declaracion = "Verdad" }

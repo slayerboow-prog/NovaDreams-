@@ -16,6 +16,7 @@ end
 
 local COSME = { Npc = "Cosme", Place = "GarajeCosme", Offset = V(0, 0, 3) }
 local PIP = { Npc = "Pip", Place = "GarajeCosme", Offset = V(3, 0, 2) }
+local ESCAMAS = { Npc = "DonEscamas", Place = "GarajeCosme", Offset = V(-3, 0, 1), Scale = 0.35 }
 
 return {
 	---------------------------------------------------------------------
@@ -67,36 +68,52 @@ return {
 		},
 		Dialogues = {
 			Medidor = { Lines = {
-				{ S = "Cosme", T = "¿Viste la raja del cielo? Ha crecido. Tres centímetros. En el cielo, tres centímetros son MUCHOS kilómetros." },
-				{ S = "Cosme", T = "Esto es un medidor de rarezas. Pita cuando algo no es de esta dimensión. Esta mañana ha pitado tanto que Pip se ha desmayado." },
-				{ S = "Pip", T = "No me he desmayado. Me he reiniciado con elegancia." },
-				{ S = "Cosme", T = "Esta noche han caído cosas de la grieta. Hay que recogerlas antes de que las encuentre alguien. O algo. Pip va contigo. Yo me quedo… calculando. Y un poco escondido." },
+				{ S = "Cosme", T = "¡Mi vecin{o/a} favorit{o/a}! Ven, ven. Corre. Despacio. Pero corre.", If = { Flags = { "AmigoDeCosme" } }, G = "Wave" },
+				{ S = "Cosme", T = "¿Viste la raja del cielo? Ha crecido. Tres centímetros. En el cielo, tres centímetros son MUCHOS kilómetros.", G = "Point" },
+				-- Guardaste su secreto (Loco_N1_Cosme): solo a ti te lo enseña
+				{ S = "Cosme", T = "Y como sabes guardar un secreto, eres la única persona a la que se lo puedo enseñar.", If = { Flags = { "SecretoCosme" } }, To = "Yo" },
+				{ S = "Cosme", T = "Esto es un medidor de rarezas. Pita cuando algo no es de esta dimensión.", Shot = "Medio:Cosme" },
+				{ S = "Cosme", T = "Esta mañana ha pitado tanto que Pip se ha desmayado.", To = "Pip" },
+				{ S = "Pip", T = "No me he desmayado. Me he reiniciado con elegancia.", To = "Cosme", A = "ArmsCrossed" },
+				{ S = "Cosme", T = "Esta noche han caído cosas de la grieta. Hay que recogerlas antes de que las encuentre alguien. O algo.", Beat = "Respira" },
+				{ S = "Cosme", T = "Pip va contigo. Yo me quedo… calculando. Y un poco escondido.", A = "Nervous" },
 			} },
 			Calcetin = { Lines = {
 				{ S = "Narrador", T = "Un calcetín verde. Cuando lo coges, dice con vocecita: «¿Has visto a mi pareja? Es igual que yo, pero del pie izquierdo»." },
 				{ S = "Pip", T = "Calcetín de otra dimensión. Allí los calcetines hablan. Y se pierden igual. Algunas cosas son universales." },
 			} },
 			Paraguas = { Lines = {
-				{ S = "Narrador", T = "Un paraguas abierto. Debajo, la lluvia cae hacia ARRIBA. Tres niños de primero lo miran con la boca abierta. Lo cierras. Los niños aplauden." },
+				{ S = "Narrador", T = "Un paraguas abierto. Debajo, la lluvia cae hacia ARRIBA. Tres niños de primero lo miran con la boca abierta." },
+				{ S = "Narrador", T = "Lo cierras. Los niños aplauden." },
 			} },
 			Moneda = { Lines = {
 				{ S = "Narrador", T = "Una moneda caliente, como recién salida de un horno. En una cara pone «66-B». En la otra hay una cara. Es la cara de Cosme." },
 				{ S = "Narrador", T = "…Pero con perilla. Y una sonrisa que no es la de Cosme. Una sonrisa de anuncio de la tele." },
-				{ S = "Pip", T = "…Oh, no. Oh, no, no, no. Mejor que esto lo vea el señor Cosme. Mejor que no lo vea. Mejor que lo vea. Tengo un conflicto de programación." },
+				{ S = "Pip", T = "…Oh, no. Oh, no, no, no. Mejor que esto lo vea el señor Cosme.", Shot = "PrimerPlano:Pip", A = "Nervous" },
+				{ S = "Pip", T = "Mejor que no lo vea. Mejor que lo vea. Tengo un conflicto de programación.", Beat = "Piensa" },
 			} },
 			Bigotes = { Lines = {
 				{ S = "Bigotes", T = "Cría humana. Deja de hacer como que no me oyes hablar. Tengo información imperial.", If = { Flags = { "BigotesHabla" } } },
 				{ S = "Bigotes", T = "Miau. …Vale. Sé que sabes que hablamos. Escucha.", If = { NotFlags = { "BigotesHabla" } } },
-				{ S = "Bigotes", T = "Esa grieta del cielo ya la vi una vez. En Gatonia la llamamos «La Puerta Mal Cerrada». Por ahí entran los problemas. Las cucarachas. Los cobradores. Los que venden cosas." },
-				{ S = "Bigotes", T = "Y esta noche he oído algo al otro lado. Una voz de hombre. Muy elegante. Decía tu nombre, humano. Varias veces. Como quien cuenta monedas." },
+				-- Le salvaste de las cucarachas (Loco_N2_Bigotes): habla como el emperador que es
+				{ S = "Bigotes", T = "Te habla Bigotes XVII. Emperador. Exiliado. Deudor tuyo, por lo de las cucarachas. No te acostumbres.", If = { Memories = { "EmperadorBigotes" } } },
+				{ S = "Bigotes", T = "Esa grieta del cielo ya la vi una vez. En Gatonia la llamamos «La Puerta Mal Cerrada».", Shot = "Medio:Bigotes" },
+				{ S = "Bigotes", T = "Por ahí entran los problemas. Las cucarachas. Los cobradores. Los que venden cosas.", A = "ArmsCrossed" },
+				{ S = "Bigotes", T = "Y esta noche he oído algo al otro lado. Una voz de hombre. Muy elegante.", Pause = 0.6, Beat = "Aparta" },
+				{ S = "Bigotes", T = "Decía tu nombre, humano. Varias veces. Como quien cuenta monedas.", Shot = "PrimerPlano:Bigotes", To = "Yo" },
 			} },
 			Perilla = { Lines = {
-				{ S = "Cosme", T = "Un calcetín parlante, un paraguas al revés… normal. Todo normal. Ciencia. ¿Qué más traes? ¿Una moneda? A ver…" },
-				{ S = "Narrador", T = "Cosme mira la moneda. Se queda muy quieto. Se le cae el batido de apio. Pip lo recoge antes de que toque el suelo." },
-				{ S = "Cosme", T = "…Cósimo." },
+				{ S = "Cosme", T = "Un calcetín parlante, un paraguas al revés… normal. Todo normal. Ciencia. ¿Qué más traes? ¿Una moneda? A ver…", Shot = "Medio:Cosme" },
+				-- (Descubrimiento: su cara, la moneda, el batido que cae… y Pip que lo recoge)
+				{ S = "Cosme", T = "(Mira la moneda. Se queda muy quieto. Se le cae el batido de apio.)", Shot = "PrimerPlano:Cosme", A = "Surprised", Pause = 0.5 },
+				{ S = "Pip", T = "(Lo recoge antes de que toque el suelo.)", Shot = "Reaccion:Pip" },
+				{ S = "Cosme", T = "…Cósimo.", Pause = 1.2, Shot = "PPP:Cosme" },
 				{ S = "Yo", T = "¿Quién es Cósimo?" },
-				{ S = "Cosme", T = "Nadie. Un viejo… conocido. Un socio. Hace años. Muchos años. Tantos como tú tienes, más o menos. No importa. No importa nada. Ciencia. Vete a cenar, criatura.", A = "Sad" },
-				{ S = "Pip", T = "(En voz baja, mientras te acompaña a la puerta) El señor Cosme no ha dormido desde que vio la línea del cielo. Cuide de él. Él lleva mucho tiempo cuidando de usted. Aunque usted no lo sepa." },
+				{ S = "Cosme", T = "Nadie. Un viejo… conocido. Un socio. Hace años.", Beat = "Aparta", A = "Sad" },
+				{ S = "Cosme", T = "Muchos años. Tantos como tú tienes, más o menos.", Pause = 0.6 },
+				{ S = "Cosme", T = "No importa. No importa nada. Ciencia. Vete a cenar, criatura.", A = "Sad", Beat = "Baja" },
+				{ S = "Pip", T = "(Bajito) El señor Cosme no ha dormido desde que vio la línea del cielo. Cuide de él.", Shot = "PPP:Pip" },
+				{ S = "Pip", T = "Él lleva mucho tiempo cuidando de usted. Aunque usted no lo sepa.", Beat = "Mira", To = "Yo" },
 				{ S = "Narrador", T = "Te quedas la moneda. Cosme no quiere tenerla cerca. Recibes 🪙 la Moneda de la 66-B." },
 			} },
 		},
@@ -147,9 +164,12 @@ return {
 		},
 		Dialogues = {
 			Auxilio = { Lines = {
-				{ S = "DonEscamas", T = "¡Gracias a Neptuno! Un humano con cara de buena persona. Me presento: Don Escamas. Contable. Pez. Refugiado dimensional." },
-				{ S = "DonEscamas", T = "Me colé por esa grieta del cielo huyendo de mi antiguo jefe: el Consorcio MegaVerso Sociedad Anónima. Venden vacaciones a otras dimensiones. Y cosas peores. Mucho peores." },
-				{ S = "DonEscamas", T = "Yo llevaba sus cuentas. Vi cosas en las cuentas. Cosas que un pez no debería ver. Y ahora me buscan dos agentes de gris. Con gafas de sol. De noche. Eso nunca es buena señal." },
+				{ S = "DonEscamas", T = "¡Gracias a Neptuno! Un humano con cara de buena persona.", Shot = "Medio:DonEscamas", A = "Happy" },
+				{ S = "DonEscamas", T = "Me presento: Don Escamas. Contable. Pez. Refugiado dimensional." },
+				{ S = "DonEscamas", T = "Me colé por esa grieta del cielo huyendo de mi antiguo jefe: el Consorcio MegaVerso Sociedad Anónima.", G = "Point" },
+				{ S = "DonEscamas", T = "Venden vacaciones a otras dimensiones. Y cosas peores. Mucho peores.", Beat = "Respira" },
+				{ S = "DonEscamas", T = "Yo llevaba sus cuentas. Vi cosas en las cuentas. Cosas que un pez no debería ver.", A = "Nervous" },
+				{ S = "DonEscamas", T = "Y ahora me buscan dos agentes de gris. Con gafas de sol. De noche. Eso nunca es buena señal.", Shot = "PrimerPlano:DonEscamas" },
 				{ Ask = "¿Qué haces?", Options = {
 					{ T = "«Te saco de aquí. Conozco a alguien.»", Effects = { Traits = { Valentia = 1 }, Rel = { DonEscamas = 8 } }, Then = {
 						{ S = "DonEscamas", T = "¡Un humano con contactos! Esto es lo que yo llamo un activo." },
@@ -163,20 +183,29 @@ return {
 				{ S = "Narrador", T = "Un cubo con agua del estanque. Don Escamas salta dentro con un «¡hop!» muy digno y se ajusta la corbata." },
 			} },
 			Tarjeta = { Lines = {
-				{ S = "Narrador", T = "Una tarjeta gris: «MegaVerso S.A. — Tu vida, en mil dimensiones. Delegación Valmar: PRÓXIMAMENTE». Por detrás, escrito a mano: «Localizar al Ancla»." },
+				{ S = "Narrador", T = "Una tarjeta gris: «MegaVerso S.A. — Tu vida, en mil dimensiones. Delegación Valmar: PRÓXIMAMENTE»." },
+				{ S = "Narrador", T = "Por detrás, escrito a mano: «Localizar al Ancla».", Pause = 0.6 },
 				{ S = "Narrador", T = "Dos hombres de traje gris aparecen entre los árboles. Sonríen a la vez. Exactamente a la vez." },
-				{ S = "AgenteGris1", T = "{Saludo}. ¿Ha visto usted un pez? Contable. Traidor. Con corbata. Hay recompensa: un fin de semana en la dimensión de los helados." },
+				{ S = "AgenteGris1", T = "{Saludo}. ¿Ha visto usted un pez? Contable. Traidor. Con corbata.", A = "Happy" },
+				{ S = "AgenteGris1", T = "Hay recompensa: un fin de semana en la dimensión de los helados." },
 			} },
 			Pecera = { Lines = {
-				{ S = "Cosme", T = "¿Un pez? ¿En mi garaje? ¿Contable? Siempre he querido un contable. Pip, la pecera buena. La que no explota." },
-				{ S = "DonEscamas", T = "Doctor Cosme. Por fin. En el Consorcio su nombre sale mucho. Bueno, el de su socio. El de la perilla." },
-				{ S = "Cosme", T = "…No sé de qué me habla. Pez." },
-				{ S = "DonEscamas", T = "Su socio, Cósimo, está en la dimensión 66-B. El Consorcio le paga el laboratorio. Y le buscan algo aquí: el Ancla. Por eso la grieta no se abre del todo. Por el Ancla." },
+				{ S = "Cosme", T = "¿Un pez? ¿En mi garaje? ¿Contable? Siempre he querido un contable.", A = "Happy" },
+				{ S = "Cosme", T = "Pip, la pecera buena. La que no explota.", To = "Pip" },
+				{ S = "DonEscamas", T = "Doctor Cosme. Por fin. En el Consorcio su nombre sale mucho. Bueno, el de su socio. El de la perilla.", To = "Cosme" },
+				-- Viste la moneda con su cara (Saga_02): ese nombre ya lo has oído
+				{ S = "Yo", T = "¿El de la moneda? ¿Cósimo?", If = { Flags = { "SabeDeCosimo" } } },
+				{ S = "Cosme", T = "…No sé de qué me habla. Pez.", Beat = "Aparta", To = "DonEscamas" },
+				{ S = "DonEscamas", T = "Su socio, Cósimo, está en la dimensión 66-B. El Consorcio le paga el laboratorio.", Shot = "Medio:DonEscamas" },
+				{ S = "DonEscamas", T = "Y le buscan algo aquí: el Ancla. Por eso la grieta no se abre del todo. Por el Ancla." },
 				{ S = "Yo", T = "¿Qué es el Ancla?" },
-				{ S = "DonEscamas", T = "…Uy. He hablado de más. Es un tic de contable: lo cuento todo. Me callo. Me callo muy fuerte. Glu." },
-				{ S = "Narrador", T = "Cosme y Pip se miran. No te miran a ti. Te miran mucho, pero sin mirarte." },
-				{ S = "Cosme", T = "Nadie ha dicho nada de anclas. Ni de barcos. El pez se queda aquí. Tú vete a casa. Y, criatura… si ves a alguien de gris, corre. Siempre." },
-				{ S = "Narrador", T = "Antes de irte, Don Escamas te da una escama que brilla. «Por si necesitas un contable. O un amigo. Soy las dos cosas.» Recibes ✨ una Escama brillante." },
+				{ S = "DonEscamas", T = "…Uy. He hablado de más. Es un tic de contable: lo cuento todo. Me callo. Me callo muy fuerte. Glu.", A = "Ashamed" },
+				-- (Antes lo contaba el narrador: ahora se ve en un plano de los dos)
+				{ S = "Cosme", T = "(Cosme y Pip se miran. No te miran a ti. Te miran mucho, pero sin mirarte.)", Shot = "DosPlanos:Cosme,Pip", A = "Nervous", Pause = 0.5 },
+				{ S = "Cosme", T = "Nadie ha dicho nada de anclas. Ni de barcos. El pez se queda aquí. Tú vete a casa.", Beat = "Respira" },
+				{ S = "Cosme", T = "Y, criatura… si ves a alguien de gris, corre. Siempre.", Shot = "PrimerPlano:Cosme", To = "Yo" },
+				{ S = "DonEscamas", T = "Toma: una escama. Por si necesitas un contable. O un amigo. Soy las dos cosas.", To = "Yo", A = "Happy" },
+				{ S = "Narrador", T = "Recibes ✨ una Escama brillante." },
 			} },
 		},
 	},
@@ -213,10 +242,14 @@ return {
 		},
 		Dialogues = {
 			Multa = { Lines = {
-				{ S = "CazadorTiempo", T = "Agente Cronos, Aduana del Tiempo. El señor Cosme tiene en su barrio una grieta dimensional sin licencia. Multa. Formulario 42. Tres ventanillas." },
-				{ S = "Cosme", T = "¡Esa grieta no es mía! Bueno. Es un poco mía. Un cincuenta por ciento. El otro cincuenta es de un señor con perilla que no está." },
-				{ S = "CazadorTiempo", T = "Ya. Todos dicen que la grieta es del de la perilla. Formulario 42. El pequeño humano puede hacer el trámite; el señor Cosme tiene prohibidas las ventanillas desde 1994." },
-				{ S = "Cosme", T = "¡Fue un accidente! ¡La ventanilla estaba así cuando llegué! …Ve tú, criatura. Y no discutas con nadie que lleve un sello. Nunca." },
+				{ S = "CazadorTiempo", T = "Agente Cronos, Aduana del Tiempo. El señor Cosme tiene en su barrio una grieta dimensional sin licencia.", Shot = "Medio:CazadorTiempo" },
+				{ S = "CazadorTiempo", T = "Multa. Formulario 42. Tres ventanillas.", Pause = 0.4 },
+				{ S = "Cosme", T = "¡Esa grieta no es mía! Bueno. Es un poco mía. Un cincuenta por ciento.", A = "Angry", To = "CazadorTiempo" },
+				{ S = "Cosme", T = "El otro cincuenta es de un señor con perilla que no está.", Beat = "Aparta" },
+				{ S = "CazadorTiempo", T = "Ya. Todos dicen que la grieta es del de la perilla. Formulario 42.", To = "Cosme" },
+				{ S = "CazadorTiempo", T = "El pequeño humano puede hacer el trámite; el señor Cosme tiene prohibidas las ventanillas desde 1994.", To = "Yo" },
+				{ S = "Cosme", T = "¡Fue un accidente! ¡La ventanilla estaba así cuando llegué!", A = "Facepalm" },
+				{ S = "Cosme", T = "…Ve tú, criatura. Y no discutas con nadie que lleve un sello. Nunca.", Pause = 0.5, To = "Yo" },
 			} },
 			Ventanilla1 = { Lines = {
 				{ S = "Funcionaria", T = "Formulario 42. Muy bien. Le falta la fotocopia del formulario 42." },
@@ -241,10 +274,14 @@ return {
 				} },
 			} },
 			Sello = { Lines = {
-				{ S = "CazadorTiempo", T = "Formulario 42, fotocopia, sello de la fotocopia. Perfecto. En cuatrocientos años, nadie lo había conseguido en el mismo día. Me ha impresionado." },
-				{ S = "CazadorTiempo", T = "Le daré un consejo, pequeño humano, gratis, que en la Aduana es rarísimo. Esa grieta no es un accidente. Alguien del otro lado tira de ella. Tira fuerte. Hacia usted." },
-				{ S = "CazadorTiempo", T = "Por qué hacia usted, no lo sé. No tengo el formulario de eso. Pero volveremos a vernos. Muchas veces. Lo pone en mi agenda. Mi agenda es del futuro." },
-				{ S = "Cosme", T = "…Gracias, criatura. De verdad. Nunca nadie había hecho un trámite por mí. Es lo más bonito que me han hecho desde que Pip me planchó los calcetines." },
+				{ S = "CazadorTiempo", T = "Formulario 42, fotocopia, sello de la fotocopia. Perfecto.", Shot = "Medio:CazadorTiempo" },
+				{ S = "CazadorTiempo", T = "En cuatrocientos años, nadie lo había conseguido en el mismo día. Me ha impresionado.", A = "Surprised" },
+				{ S = "CazadorTiempo", T = "Le daré un consejo, pequeño humano, gratis, que en la Aduana es rarísimo.", Beat = "Mira", To = "Yo" },
+				{ S = "CazadorTiempo", T = "Esa grieta no es un accidente. Alguien del otro lado tira de ella. Tira fuerte. Hacia usted.", Shot = "PrimerPlano:CazadorTiempo", Pause = 0.5 },
+				{ S = "CazadorTiempo", T = "Por qué hacia usted, no lo sé. No tengo el formulario de eso.", Beat = "Piensa" },
+				{ S = "CazadorTiempo", T = "Pero volveremos a vernos. Muchas veces. Lo pone en mi agenda. Mi agenda es del futuro." },
+				{ S = "Cosme", T = "…Gracias, criatura. De verdad. Nunca nadie había hecho un trámite por mí.", Shot = "Reaccion:Cosme", A = "Happy" },
+				{ S = "Cosme", T = "Es lo más bonito que me han hecho desde que Pip me planchó los calcetines." },
 				{ S = "Narrador", T = "Recibes 📄 el Sello de la Aduana del Tiempo. Cronos te lo regala: «Uno de repuesto. Nunca se sabe cuándo hay que sellar algo»." },
 			} },
 		},
@@ -313,39 +350,46 @@ return {
 		},
 		Dialogues = {
 			Ramon = { Lines = {
-				{ S = "Ramon", T = "Treinta años de conserje. Treinta. He visto de todo. Pero esto… El gimnasio está lleno de cosas perdidas. De todo Valmar. De todas las épocas." },
-				{ S = "Ramon", T = "Hay un bolso de 1950. Una dentadura de 1972. Y un pato de goma que no deja de mirarme." },
-				{ S = "Pip", T = "La Grieta absorbe todo lo que se pierde y lo devuelve donde le da la gana. El señor Cosme dice que es «un fallo de la papelera cósmica». Sugiere devolver lo importante primero." },
-			} },
+				{ S = "Ramon", T = "Treinta años de conserje. Treinta. He visto de todo.", Shot = "Medio:Ramon" },
+				{ S = "Ramon", T = "Pero esto… El gimnasio está lleno de cosas perdidas. De todo Valmar. De todas las épocas.", Beat = "Respira", G = "Point" },
+				{ S = "Ramon", T = "Hay un bolso de 1950. Una dentadura de 1972. Y un pato de goma que no deja de mirarme.", A = "Nervous" },
+				{ S = "Pip", T = "La Grieta absorbe todo lo que se pierde y lo devuelve donde le da la gana.", To = "Ramon" },
+				{ S = "Pip", T = "El señor Cosme dice que es «un fallo de la papelera cósmica». Sugiere devolver lo importante primero.", To = "Yo" },
+			}, Effects = { Scene = "Grieta_Grande" } }, -- (al acabar, la Grieta late sobre el cole: etapa 4)
 			Llaves = { Lines = {
-				{ S = "Narrador", T = "Un manojo de llaves oxidadas con una etiqueta: «Conserjería, 1994». Ramón las lleva buscando treinta años. Siempre dijo que las tenía «en algún sitio»." },
+				{ S = "Narrador", T = "Un manojo de llaves oxidadas con una etiqueta: «Conserjería, 1994»." },
+				{ S = "Narrador", T = "Ramón las lleva buscando treinta años. Siempre dijo que las tenía «en algún sitio»." },
 			} },
 			Balon = { Lines = {
-				{ S = "Narrador", T = "Un balón firmado por todo un equipo de fútbol. Con rotulador infantil, pone: «De Nico. NO TOCAR». Es el que perdió en el torneo." },
+				{ S = "Narrador", T = "Un balón firmado por todo un equipo de fútbol. Con rotulador infantil: «De Nico. NO TOCAR». Es el que perdió en el torneo." },
 			} },
 			Diario = { Lines = {
 				{ S = "Narrador", T = "Un diario amarillo con candado. En la portada: «Lucía, 3.º B, 1998. PRIVADO. Si lo lees, eres un cotilla»." },
 				{ Ask = "¿Lo abres?", Options = {
 					{ T = "No. Es de Lucía.", Effects = { Traits = { Responsabilidad = 1 }, Rel = { Lucia = 3 } } },
 					{ T = "Solo la primera página…", Effects = { Traits = { Curiosidad = 1 } }, Then = {
-						{ S = "Narrador", T = "Primera página: «Hoy he decidido que de mayor seré profe. Y que no le leeré el diario a nadie. Ni a los cotillas». …Cierras el diario muy despacio." },
+						{ S = "Narrador", T = "Primera página: «Hoy he decidido que de mayor seré profe. Y que no le leeré el diario a nadie. Ni a los cotillas»." },
+						{ S = "Narrador", T = "…Cierras el diario muy despacio.", Pause = 0.6 },
 					} },
 				} },
 			} },
 			DevolverLlaves = { Lines = {
-				{ S = "Ramon", T = "¡Mis llaves de 1994! ¡Con estas se abre la sala del reloj! Nadie ha entrado ahí desde entonces. …Otro día te cuento. O no. Gracias, de verdad." },
+				{ S = "Ramon", T = "¡Mis llaves de 1994! ¡Con estas se abre la sala del reloj! Nadie ha entrado ahí desde entonces.", A = "Surprised" },
+				{ S = "Ramon", T = "…Otro día te cuento. O no. Gracias, de verdad.", Beat = "Piensa" },
 			} },
 			DevolverBalon = { Lines = {
 				{ S = "Nico", T = "¡MI BALÓN! ¡El del torneo! ¡Lo busqué por todas partes! ¿Dónde estaba? ¿En el cielo? …¿Cómo que en el cielo?" },
 			} },
 			DevolverDiario = { Lines = {
 				{ S = "Lucia", T = "Mi diario… de cuando tenía tu edad. Lo perdí en una excursión. ¿Lo has leído?" },
-				{ S = "Lucia", T = "No me contestes. Tu cara ya me ha contestado. …Gracias. De verdad. Hay cosas que perdemos y no sabemos que las echábamos de menos." },
+				{ S = "Lucia", T = "No me contestes. Tu cara ya me ha contestado.", Beat = "Mira", A = "ArmsCrossed" },
+				{ S = "Lucia", T = "…Gracias. De verdad. Hay cosas que perdemos y no sabemos que las echábamos de menos.", Pause = 0.6, A = "Happy" },
 				{ S = "Narrador", T = "Del gimnasio sale un ruido enorme. Como si mil pies arrastraran calcetines a la vez." },
 			} },
 			Final = { Lines = {
-				{ S = "Pip", T = "Monstruo emparejado. El señor Cosme estará orgulloso. Bueno, dirá que es lo mínimo. Pero estará orgulloso." },
-				{ S = "Pip", T = "Hay un problema: esta vez lo ha visto todo el barrio. Ramón, Lucía, Nico. Los vecinos hablan. Y la Grieta crece. El señor Cosme dice que hay que coserla. Ya." },
+				{ S = "Pip", T = "Monstruo emparejado. El señor Cosme estará orgulloso. Bueno, dirá que es lo mínimo. Pero estará orgulloso.", A = "Happy" },
+				{ S = "Pip", T = "Hay un problema: esta vez lo ha visto todo el barrio. Ramón, Lucía, Nico. Los vecinos hablan.", Beat = "Piensa" },
+				{ S = "Pip", T = "Y la Grieta crece. El señor Cosme dice que hay que coserla. Ya.", Shot = "PrimerPlano:Pip" },
 				{ S = "Narrador", T = "En el suelo queda un único calcetín. Verde. Sin pareja. Te mira. Te lo quedas. Recibes 🧦 el Calcetín solitario." },
 			} },
 		},
@@ -379,7 +423,7 @@ return {
 			Aguja = { Kind = "Cohete", Name = "La aguja cuántica", Place = "Patio", Offset = V(0, 0, -6), Color = Color3.fromRGB(200, 255, 220), Prompt = false },
 		},
 		Steps = {
-			{ Type = "Talk", Npc = "Cosme", Dialogue = "Plan", Text = "Cosme te explica el plan", Actors = { COSME, PIP } },
+			{ Type = "Talk", Npc = "Cosme", Dialogue = "Plan", Text = "Cosme te explica el plan", Actors = { COSME, PIP, ESCAMAS } },
 			{ Type = "Group", Text = "Clava los tres anclajes (cuidado: el Consorcio vigila)",
 				Actors = {
 					{ Npc = "AgenteGris1", Place = "Parque", Offset = V(-10, 0, 10), Mode = "Wander", Prompt = false },
@@ -398,21 +442,32 @@ return {
 					{ Npc = "AgenteGris1", Offset = V(-10, 0, 6), Speed = 12, Hurt = "¡Esto no está en nuestro plan de negocio!", Bye = "¡Nos vamos! ¡Pero el Consorcio siempre vuelve! ¡Es nuestro eslogan! (Chispas grises. Fuera.)" },
 					{ Npc = "AgenteGris2", Offset = V(10, 0, 6), Speed = 12, Hurt = "¡Mi comunicador de edición limitada!", Bye = "¡Hablaremos con su superior! (No tienes superior. Se van igual.)" },
 				} },
-			{ Type = "Cinematic", Id = "Saga_Coser", Props = { "Aguja" } },
+			-- ESCENA del motor (Happenings/Cielo): la aguja sube y cose el portal abierto (etapa 5)
+			{ Type = "Cinematic", Id = "Grieta_Coser", Props = { "Aguja" },
+				Actors = { { Npc = "Cosme", Place = "Patio", Offset = V(4, 0, -3) }, { Npc = "Pip", Place = "Patio", Offset = V(6, 0, -1) } } },
 			{ Type = "Scene", Dialogue = "Voz", Props = { "Aguja" },
 				Actors = { { Npc = "Cosme", Place = "Patio", Offset = V(4, 0, -3) }, { Npc = "Pip", Place = "Patio", Offset = V(6, 0, -1) } } },
 		},
 		Dialogues = {
 			Plan = { Lines = {
-				{ S = "Cosme", T = "La aguja cuántica. Mi obra maestra. Bueno, la tercera: la primera fue el microondas y la segunda, un peine que peina hacia el pasado. No preguntes." },
-				{ S = "Cosme", T = "Plan: tres anclajes en tres sitios de Valmar. Forman un triángulo. La aguja, en el centro, cose la grieta. Como un botón. Un botón del tamaño del cielo." },
-				{ S = "DonEscamas", T = "(Desde la pecera) Y el Consorcio lo sabe. Mis antiguos compañeros vigilan el parque y la plaza. Yo les he calculado la ruta: si no te ven, no te ven. Es contabilidad básica." },
+				{ S = "Cosme", T = "La aguja cuántica. Mi obra maestra.", Shot = "Medio:Cosme", A = "Happy" },
+				{ S = "Cosme", T = "Bueno, la tercera: la primera fue el microondas y la segunda, un peine que peina hacia el pasado. No preguntes.", A = "Shrug" },
+				{ S = "Cosme", T = "Plan: tres anclajes en tres sitios de Valmar. Forman un triángulo.", G = "Point" },
+				{ S = "Cosme", T = "La aguja, en el centro, cose la grieta. Como un botón. Un botón del tamaño del cielo.", Beat = "Respira" },
+				{ S = "DonEscamas", T = "Y el Consorcio lo sabe. Mis antiguos compañeros vigilan el parque y la plaza.", If = { Flags = { "ConoceConsorcio" } }, Shot = "Medio:DonEscamas" },
+				{ S = "DonEscamas", T = "Yo les he calculado la ruta: si no te ven, no te ven. Es contabilidad básica." },
+				-- Viste la moneda con su cara (Saga_02): Cosme sabe que no se te ha olvidado
+				{ S = "Cosme", T = "Y sí. Sé que no se te ha olvidado la moneda. Ni el nombre.", If = { Flags = { "SabeDeCosimo" } }, Beat = "Baja", To = "Yo" },
 				{ Ask = "Antes de salir, le preguntas a Cosme:", Options = {
 					{ T = "«¿Quién es Cósimo de verdad?»", Effects = { Traits = { Curiosidad = 1 } }, Then = {
-						{ S = "Cosme", T = "Mi mejor amigo. Hace mucho. Construimos juntos la máquina que abrió esto. Una noche salió mal y él… se cayó. Al otro lado. Por mi culpa. O por la suya. Llevo años sin saberlo.", A = "Sad" },
+						{ S = "Cosme", T = "Mi mejor amigo. Hace mucho. Construimos juntos la máquina que abrió esto.", A = "Sad", Beat = "Aparta" },
+						{ S = "Cosme", T = "Una noche salió mal y él… se cayó. Al otro lado.", Pause = 0.6 },
+						{ S = "Cosme", T = "Por mi culpa. O por la suya. Llevo años sin saberlo.", Shot = "PrimerPlano:Cosme", A = "Sad" },
 					} },
 					{ T = "«¿Por qué la Grieta tira hacia mí?»", Effects = { Traits = { Valentia = 1 } }, Then = {
-						{ S = "Cosme", T = "…Porque eres importante. Para mí, desde luego. Para el universo, un poquito también. Te lo contaré cuando seas mayor. Te lo juro por mi batido." },
+						{ S = "Cosme", T = "…Porque eres importante. Para mí, desde luego. Para el universo, un poquito también.", Beat = "Piensa" },
+						{ S = "Cosme", T = "Y no le hagas caso al pez cuando habla de anclas. Los peces exageran.", If = { Flags = { "OyoAncla" } } },
+						{ S = "Cosme", T = "Te lo contaré cuando seas mayor. Te lo juro por mi batido." },
 					} },
 				} },
 			} },
@@ -420,14 +475,19 @@ return {
 				{ S = "Narrador", T = "Clavas el cristal en el suelo. Suena como una campana muy lejos. En el cielo, la Grieta tiembla." },
 			} },
 			Voz = { Lines = {
-				{ S = "Narrador", T = "La aguja sube como un cohete y cose el cielo, punto a punto, con hilo de luz. La grieta se cierra. Valmar entera se queda a oscuras un segundo… y vuelve la luz." },
-				{ S = "Cosme", T = "¡LO HEMOS HECHO! ¡Cosido! ¡Como un calcetín! ¡Soy un genio! ¡Somos unos genios! ¡Tú eres un genio en miniatura, yo uno grande!" },
-				{ S = "Narrador", T = "Entonces, del último punto de la costura sale una voz. Elegante. Tranquila. Como un presentador de concursos a medianoche." },
-				{ S = "Cosimo", T = "Bravo, Cosme. Precioso trabajo de costura. Siempre fuiste el de las manualidades." },
-				{ S = "Cosimo", T = "Y tú… hola. Por fin te veo la cara. Qué grande estás. La última vez eras así de chiquitín o chiquitina. Ya te he visto, Ancla. Nos veremos pronto. Las costuras… siempre se sueltan." },
-				{ S = "Narrador", T = "Silencio. La costura brilla un momento y se apaga. Cosme está blanco como su bata." },
-				{ S = "Pip", T = "Señor. Tiene que contárselo. Algún día." },
-				{ S = "Cosme", T = "Algún día, Pip. No hoy. Hoy hemos cosido el cielo. Hoy… a cenar. Criatura: te quedas la aguja. Tú la has hecho funcionar. Siempre has sido tú." },
+				-- (La aguja, las puntadas y el apagón ya se han VISTO en Grieta_Coser)
+				{ S = "Cosme", T = "¡LO HEMOS HECHO! ¡Cosido! ¡Como un calcetín! ¡Soy un genio! ¡Somos unos genios!", G = "Cheer", Shot = "Medio:Cosme" },
+				{ S = "Cosme", T = "¡Tú eres un genio en miniatura, yo uno grande!", To = "Yo", A = "Laugh" },
+				{ S = "Narrador", T = "Entonces, del último punto de la costura sale una voz. Elegante. Tranquila. Como un presentador de concursos a medianoche.", Pause = 1 },
+				-- (La voz no tiene cuerpo: la cámara se queda en las caras de quien la oye)
+				{ S = "Cosimo", T = "Bravo, Cosme. Precioso trabajo de costura. Siempre fuiste el de las manualidades.", Shot = "Reaccion:Cosme" },
+				{ S = "Cosimo", T = "Y tú… hola. Por fin te veo la cara. Qué grande estás.", Shot = "Reaccion:Yo", Pause = 0.6 },
+				{ S = "Cosimo", T = "La última vez eras así de {chiquitín/chiquitina}. Ya te he visto, Ancla.", Shot = "Reaccion:Yo" },
+				{ S = "Cosimo", T = "Nos veremos pronto. Las costuras… siempre se sueltan.", Shot = "Reaccion:Pip" },
+				{ S = "Cosme", T = "(Silencio. La costura brilla un momento y se apaga. Cosme se ha quedado blanco como su bata.)", Shot = "PrimerPlano:Cosme", A = "Surprised", Pause = 1.2 },
+				{ S = "Pip", T = "Señor. Tiene que contárselo. Algún día.", To = "Cosme", Beat = "Mira" },
+				{ S = "Cosme", T = "Algún día, Pip. No hoy. Hoy hemos cosido el cielo. Hoy… a cenar.", Beat = "Respira", To = "Pip" },
+				{ S = "Cosme", T = "Criatura: te quedas la aguja. Tú la has hecho funcionar. Siempre has sido tú.", To = "Yo", A = "Happy", Shot = "DosPlanos:Cosme,Yo" },
 				{ S = "Narrador", T = "Recibes 🪡 la Aguja cuántica. FIN DEL ACTO I. La Grieta está cosida… por ahora." },
 			} },
 		},
