@@ -25,6 +25,8 @@ local DEFAULT_DATA = {
 	Money = Config.StartingMoney,
 	HouseTier = 1,
 	OwnAvatar = false, -- true = usa su avatar de Roblox en vez del aspecto de Valmar (AvatarService)
+	Graphics = "Auto", -- ✨ Gráficos elegidos: Auto, Low, Medium o High (SettingsService)
+	GraphicsTipSeen = false, -- ya vio el consejo de subir la calidad de Roblox (SettingsService)
 	Hunger = Config.Needs.Max,
 	Energy = Config.Needs.Max,
 	Stats = {
@@ -664,6 +666,8 @@ function DataService.newLife(player: Player)
 	-- El tutorial y los consejos ya vistos no se repiten en la vida nueva
 	fresh.Onboarding = data.Onboarding
 	fresh.MapHidden = data.MapHidden -- (los filtros del mapa son preferencias: siguen igual)
+	fresh.Graphics = data.Graphics -- (los gráficos también: son del jugador, no de la vida)
+	fresh.GraphicsTipSeen = data.GraphicsTipSeen
 	fresh.Housing = data.Housing -- (su piso y su deuda del alquiler, Housing.Debt, siguen siendo suyos)
 	-- Hacienda tampoco se olvida: renacer no borra lo pendiente ni las declaraciones sin presentar
 	fresh.Tax = data.Tax
