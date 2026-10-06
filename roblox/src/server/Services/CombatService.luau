@@ -19,9 +19,10 @@
 -- Atributos para el cliente (jugador; en los rivales, en su modelo): Aguante, Energia, Guardia,
 -- Powers ("Energia,Esferas,…"), Charging, Blocking, KO, Roll, StunUntil/DownUntil (hora del servidor).
 --
--- K.O.: al quedarte sin vida caes Combat.KOSeconds segundos (sin poder pegar) y te levantas con
--- parte de la vida. Si alguien te golpea mientras estás K.O., te remata: mueres y reapareces en el
--- hospital (HospitalService). HitSomeone lleva Killed = true (homicidio para WantedService).
+-- K.O.: al quedarte sin vida caes Combat.KOSeconds segundos (sin poder pegar, «HAS CAÍDO EN COMBATE»)
+-- y luego SIEMPRE despiertas en el hospital (HospitalService); si alguien te golpea mientras estás
+-- K.O., te remata antes (homicidio). Si te detiene la policía estando K.O., vas detenido (no al
+-- hospital). El táser solo te tumba unos segundos con tu vida (parte de una detención). HitSomeone lleva Killed = true (homicidio para WantedService).
 -- Para las misiones y la policía: StoryEvents "HitSomeone" (Target/Npc/Model/KO, Melee, Street, Rival,
 -- Power), "GotHit" y "KnockedOut". Los agentes de policía (Officer) sí reciben daño y caen
 -- (WantedService lo castiga). Pegar a un paseante (Crowd) es agresión (WantedService); a un rival de
@@ -90,6 +91,7 @@ export type State = {
 	Defeated: boolean?,
 	OwnerId: number?, -- (rivales: el jugador con el que pelean)
 	WallAt: number?, -- (último aviso de «contra la pared»: no se repite enseguida)
+	ArrestedInKO: boolean?, -- (te han detenido estando K.O.: no vas al hospital)
 }
 
 local states: { [Player]: State } = {}
@@ -280,23 +282,33 @@ local function knockOut(victim: Player, humanoid: Humanoid, seconds: number?)
 	state.KOUntil = os.clock() + duration
 	-- En el suelo por el táser (con vida) no es lo mismo que K.O. sin vida: a ese no se le remata
 	state.Stunned = seconds ~= nil
+	state.ArrestedInKO = nil
 	setBlocking(state, false)
 	setCharging(state, false)
-	-- Sin vida (no el táser): «HAS CAÍDO EN COMBATE» (Controllers/DeathUI). Te levantas a los
-	-- KOSeconds con parte de la vida… salvo que alguien te remate (muerte y hospital)
+	-- Sin vida (no el táser): «HAS CAÍDO EN COMBATE» (Controllers/DeathUI). A los KOSeconds en el
+	-- suelo (o antes, si alguien te remata) mueres y despiertas en el hospital (HospitalService).
+	-- Si mientras estás K.O. te detiene la policía, la detención manda: vas a comisaría, no al hospital.
+	-- El táser (seconds) solo te tumba unos segundos con tu vida: es parte de una detención.
 	if seconds == nil then
 		victim:SetAttribute("Fallen", "Combat")
 	end
 	victim:SetAttribute("KO", true)
 	StoryEvents.emit(victim, "KnockedOut", {})
 	task.delay(duration, function()
-		if victim.Parent and os.clock() >= state.KOUntil - 0.05 then
-			if victim:GetAttribute("Fallen") == "Combat" then
-				victim:SetAttribute("Fallen", nil)
-			end
-			victim:SetAttribute("KO", nil)
+		if not (victim.Parent and os.clock() >= state.KOUntil - 0.05) then
+			return -- (otro K.O. más reciente manda)
 		end
-		if humanoid.Parent and humanoid.Health > 0 then
+		local fallen = victim:GetAttribute("Fallen") == "Combat"
+		if fallen then
+			victim:SetAttribute("Fallen", nil)
+		end
+		victim:SetAttribute("KO", nil)
+		if not humanoid.Parent or humanoid.Health <= 0 then
+			return
+		end
+		if fallen and not state.Stunned and not state.ArrestedInKO then
+			humanoid.Health = 0 -- (al hospital: HospitalService)
+		else
 			humanoid.Health = math.max(humanoid.Health, humanoid.MaxHealth * Combat.KOHealth)
 		end
 	end)
@@ -1460,6 +1472,12 @@ function CombatService.init()
 		Remote.Parent = remotes
 	end
 	Notify = remotes:FindFirstChild("Notify") :: RemoteEvent?
+	-- Detenido estando K.O.: a comisaría, no al hospital
+	StoryEvents.connect(function(player: Player, name: string)
+		if name == "Arrested" and states[player] and os.clock() < states[player].KOUntil then
+			states[player].ArrestedInKO = true
+		end
+	end)
 	Remote.OnServerEvent:Connect(function(player: Player, kind: any, value: any, extra: any)
 		local ok, err = pcall(CombatService.handle, player, kind, value, extra)
 		if not ok then

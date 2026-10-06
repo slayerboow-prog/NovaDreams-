@@ -10,9 +10,13 @@
 --     vida es N × HitDamage y el botón de atacar (globo de agua, rayo, aguja…) quita HitDamage, así
 --     que con el botón el combate dura lo mismo que antes. Un enemigo puede llevar su propia vida en
 --     puntos (Health = 180) y, si no dice nada, usa la de su tipo (Types).
---   * Cada bala quita lo de su arma (Weapons.damageAt: cabeza, brazos/piernas y distancia). Las
---     armas de juguete (pistola de agua, paintball) no hacen daño a las personas (Damage = 0), pero
---     sí a los enemigos de misión «de juguete» (Toy: las cucarachas, Petra, los electrodomésticos…).
+--   * Las armas de fuego son la mejor opción: cada bala quita lo de su arma (Weapons.damageAt: cabeza,
+--     brazos/piernas y distancia) × FirearmMultiplier contra los enemigos de misión (entre jugadores,
+--     el daño de siempre). Una pistola tumba una cucaracha de 1-2 tiros; una escopeta o un fusil
+--     bajan mucho a un jefe. El botón de atacar sin arma sigue pudiendo acabar cualquier combate.
+--   * Las armas de juguete (pistola de agua, paintball) no hacen daño a las personas (Damage = 0);
+--     a los enemigos de misión «de juguete» (Toy: cucarachas, Petra, electrodomésticos…) sí, y a
+--     todos los demás (robots, drones, jefes) MUY poco (ToyWeakDamage).
 --   * Cuerpo a cuerpo y lo que se lanza (piedras) tienen su propio daño (Sources).
 --   * Cuando te atrapa un enemigo te quita su Damage. Si te quedas sin vida en un combate de misión,
 --     caes en combate y, a los PlayerFallSeconds, el combate vuelve a empezar desde el principio del
@@ -34,16 +38,25 @@ EnemyStats.Sources = {
 	Stone = 25, -- piedra lanzada
 }
 
+-- Armas de fuego contra enemigos de misión: su daño (Weapons.damageAt) por esto (configurable)
+EnemyStats.FirearmMultiplier = 2.5
+
 -- Armas de juguete contra enemigos «de juguete» (por gota / por bola: Weapons.Damage es 0)
 EnemyStats.ToyDamage = {
 	PistolaAgua = 10, -- 8 disparos por segundo
 	Paintball = 22,
 }
+-- …y contra los que no son de juguete (robots, drones, jefes, monstruos): muy poco
+EnemyStats.ToyWeakDamage = {
+	PistolaAgua = 2,
+	Paintball = 4,
+}
+EnemyStats.ToyWeakDefault = 3
 
 export type EnemyType = {
 	Health: number, -- vida si la misión no dice nada (puntos)
 	Damage: number, -- lo que te quita cuando te atrapa
-	Toy: boolean, -- ¿le hacen daño las armas de juguete?
+	Toy: boolean, -- ¿es «de juguete»? (las armas de juguete le hacen su daño entero; si no, muy poco)
 	Boss: boolean?,
 	Name: string,
 }
@@ -113,7 +126,7 @@ function EnemyStats.damageToPlayer(enemy: { [string]: any }, body: string?): num
 	return EnemyStats.typeOf(enemy.Npc, body).Damage
 end
 
--- ¿Le hacen daño las armas de juguete?
+-- ¿Es «de juguete»? (las armas de juguete le hacen su daño entero)
 function EnemyStats.toyHurts(enemy: { [string]: any }, body: string?): boolean
 	if type(enemy.Toy) == "boolean" then
 		return enemy.Toy
@@ -121,17 +134,21 @@ function EnemyStats.toyHurts(enemy: { [string]: any }, body: string?): boolean
 	return EnemyStats.typeOf(enemy.Npc, body).Toy
 end
 
--- Daño que llega a un enemigo de misión. kind: "Bullet" (amount = Weapons.damageAt), "Toy"
--- (weaponId: la de juguete), "Attack", "Gadget", "Melee", "MeleeHeavy", "Stone", "Power" (amount).
--- Devuelve el daño (0 = no le hace nada) y si es inmune a eso (agua contra un robot).
+-- Daño que llega a un enemigo de misión. kind: "Bullet" (amount = Weapons.damageAt; con weaponId,
+-- un arma de fuego: × FirearmMultiplier), "Toy" (weaponId: la de juguete), "Attack", "Gadget",
+-- "Melee", "MeleeHeavy", "Stone", "Power" (amount). toyOk: ¿es un enemigo «de juguete»?
+-- Devuelve el daño y false (ya no hay inmunes: todo le hace algo).
 function EnemyStats.damageFrom(kind: string, amount: number?, weaponId: string?, toyOk: boolean): (number, boolean)
 	local n: number
 	if kind == "Toy" then
-		if not toyOk then
-			return 0, true
+		if toyOk then
+			n = EnemyStats.ToyDamage[weaponId or ""] or EnemyStats.ToyWeakDefault
+		else
+			n = EnemyStats.ToyWeakDamage[weaponId or ""] or EnemyStats.ToyWeakDefault
 		end
-		n = EnemyStats.ToyDamage[weaponId or ""] or 0
-	elseif kind == "Bullet" or kind == "Power" then
+	elseif kind == "Bullet" then
+		n = (amount or 0) * (if weaponId then EnemyStats.FirearmMultiplier else 1)
+	elseif kind == "Power" then
 		n = amount or 0
 	else
 		n = EnemyStats.Sources[kind] or amount or 0
