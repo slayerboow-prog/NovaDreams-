@@ -415,7 +415,7 @@ local function setControls(on: boolean)
 		else
 			-- (con la comprobación: si la escena ya no está, el bloqueo se suelta solo)
 			Controls.disable("Escena", function()
-				return onScreen > 0
+				return HappeningClient.isPlaying()
 			end)
 		end
 	end)
@@ -703,9 +703,20 @@ end
 -- Reproducir
 ---------------------------------------------------------------------
 
--- ¿Hay una escena con cámara en tu pantalla? (los diálogos esperan)
+-- ¿Hay una escena con cámara en tu pantalla? (los diálogos esperan). Se mira en las escenas vivas, no
+-- en un contador: una escena parada, ligera o de espectador no cuenta, y ninguna cuenta pasado su tope
+-- (lo más que puede durar con todas sus esperas + 10 s), así nadie se queda esperando para siempre.
 function HappeningClient.isPlaying(): boolean
-	return onScreen > 0
+	local now = serverNow()
+	for _, run in runs do
+		if not run.Stopped and not run.Light and not run.Spectator then
+			local ok, limit = pcall(Sequencer.maxDuration, run.Timeline)
+			if now < run.StartAt + run.Paused + (if ok then limit else 0) + 10 then
+				return true
+			end
+		end
+	end
+	return false
 end
 
 local function sceneTime(run: ClientRun): number
