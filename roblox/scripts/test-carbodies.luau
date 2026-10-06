@@ -228,10 +228,38 @@ local function euroImported(name: string, parent: Instance)
 	return body
 end
 
+-- Lo que de verdad llega al servidor (v90, scripts/cloud): cada malla en su propio Model
+-- («206_4/Object_4/Object_0») y las ruedas dos niveles abajo («wheel.036_0/Object_72/Object_2»).
+-- Contando solo mallas sueltas no se encontraba ninguno (salían 21 carrocerías de 32).
+local function euroWrapped(name: string, parent: Instance)
+	local car = mk("Model", { Name = name }, parent)
+	local function wrap(mname: string, size: Vector3, cf: CFrame, color: Color3, depth: number, props: { [string]: any }?)
+		local at: Instance = car
+		for i = 1, depth do
+			at = mk("Model", { Name = if i == 1 then mname else "Object_" .. i }, at)
+		end
+		mesh("Object_0", size, cf, color, at, props)
+	end
+	wrap("Object_4", Vector3.new(14, 4.2, 6.9), CFrame.new(0, 2.9, 0), WHITE, 1, { TextureID = "rbxassetid://9001" })
+	wrap("Object_5", Vector3.new(7, 1.6, 6.2), CFrame.new(1, 4.4, 0), Color3.fromRGB(20, 20, 20), 1, { TextureID = "rbxassetid://9002", Transparency = 0.3 })
+	for i, x in { -3.4, 4.6 } do
+		for j, z in { -2.8, 2.8 } do
+			wrap(("wheel.03%d_%d"):format(i * 2 + j, i * 2 + j), Vector3.new(2.3, 2.3, 1), CFrame.new(x, 1.15, z), Color3.fromRGB(20, 20, 20), 2)
+		end
+	end
+	return car
+end
+
 -- A-Chassis metido en otra carpeta: el coche de dentro se llama «Chassis» y el nombre de verdad
 -- está fuera (así se perdía el Camry)
+-- (en el servidor, v91: delante del «Chassis» viene «Drivetrain», solo ejes y diferencial de cristal,
+-- que también parece un coche; se cogía ese y salía «tapa el 0%»)
 local function aChassisNested(name: string, size: Vector3, parent: Instance)
 	local outer = mk("Model", { Name = name }, parent)
+	local drive = mk("Model", { Name = "Drivetrain" }, outer)
+	for i, x in { -1.5, 1.5, -1.5, 1.5 } do
+		mesh(if i <= 2 then "Axle" else "Shaft", Vector3.new(0.6, 0.5, 0.5), CFrame.new(x, 1, if i <= 2 then -6 else 6), WHITE, drive, { Material = Enum.Material.Glass })
+	end
 	aChassis("Chassis", size, outer)
 	return outer
 end
@@ -284,12 +312,27 @@ local function packs(): { [number]: Instance }
 	out[9432856072] = semi
 	-- (como en el servidor: 8 coches del importador sueltos y 3 modelos; uno sin nombre útil)
 	local euro = mk("Model", { Name = "mesh pack" })
-	for _, n in { "206_4", "Hiace_9", "Astra_19", "Almera_39", "Avensis_14", "AClass_34", "Vectra_49", "Golf_24" } do
+	for _, n in { "206_4", "Hiace_9", "Astra_19", "Almera_39", "Avensis_14", "AClass_34" } do
+		euroWrapped(n, euro)
+	end
+	for _, n in { "Vectra_49", "Golf_24" } do
 		euroImported(n, euro)
 	end
 	euroCar("Volkswagen Sharan 1995", euro)
 	euroCar("Object_77", euro)
-	euroCar("nissan primera", euro)
+	-- (el Primera del servidor: todo se llama «Primera…», y «p-rim-era» lo tiraba todo)
+	local primera = mk("Model", { Name = "nissan primera" }, euro)
+	local at: Instance = primera
+	for _, n in { "Sketchfab_model", "nissan primera.fbx", "RootNode", "nissan_primera", "Primerabody_4" } do
+		at = mk("Model", { Name = n }, at)
+	end
+	local function node(n: string, size: Vector3, cf: CFrame, color: Color3, extra: { [string]: any }?)
+		mesh("Primerabody_4_" .. n .. "_0", size, cf, color, mk("Model", { Name = "Primerabody_4_" .. n .. "_0_Node" }, at), extra)
+	end
+	node("PrimeraBody", Vector3.new(14, 4.2, 6.4), CFrame.new(0, 2.9, 0), WHITE, { TextureID = "rbxassetid://9001" })
+	node("PrimeraArches", Vector3.new(13.6, 2, 6.4), CFrame.new(0, 1.6, 0), WHITE)
+	node("PrimeraGlass", Vector3.new(7, 1.6, 5.6), CFrame.new(1, 4.4, 0), Color3.fromRGB(20, 20, 20), { Transparency = 0.3 })
+	node("PrimeraTyre", Vector3.new(10.3, 2.2, 6.4), CFrame.new(0.6, 1.1, 0), Color3.fromRGB(20, 20, 20))
 	out[97902046131324] = euro
 	local chp = mk("Model", { Name = "CHP pack" })
 	aChassis("CHP Charger", Vector3.new(9, 8.3, 19.9), chp)
