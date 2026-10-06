@@ -35,15 +35,17 @@ local PISTA = {
 local BANCO = {
 	{ Npc = "Omar", Place = "Parque", Offset = V(-6, 0, 6), Mode = "Sit" },
 }
+-- El día después: la clase ya está; Omar entra contigo (andando, por la puerta) y Darío, si se lo
+-- contaste a Javier, entra a pedir perdón y se va (lo hace la escena: Happenings/Instituto · Ins05_DiaDespues)
 local DIA_DESPUES = {
 	{ Npc = "Javier", Place = "AulaInstituto", Offset = V(0, 0, -6) },
-	{ Npc = "Omar", Place = "AulaInstituto", Offset = V(3, 0, 0) },
 	{ Npc = "Nico", Place = "AulaInstituto", Offset = V(-4, 0, 2) },
 	{ Npc = "Sara", Place = "AulaInstituto", Offset = V(-2, 0, 2) },
 	{ Npc = "Leire", Place = "AulaInstituto", Offset = V(6, 0, 3) },
 	{ Npc = "Bruno", Place = "AulaInstituto", Offset = V(-6, 0, -1) },
-	{ Npc = "Dario", Place = "AulaInstituto", Offset = V(8, 0, -4), If = { Choices = { Dario = "Javier" } } },
 }
+local CON_OMAR = table.clone(DIA_DESPUES)
+table.insert(CON_OMAR, { Npc = "Omar", Place = "AulaInstituto", Offset = V(3, 0, 0), Mood = "Nervios", Enter = { From = "AulaInstituto", Offset = V(7, 0, -9), Delay = 1 } })
 
 return {
 	Id = "Ins05_ElRumor",
@@ -98,15 +100,16 @@ return {
 		-- El día después
 		{ Type = "Transition", Text = "Al día siguiente…", Seconds = 3 },
 		{ Type = "Reach", Place = "AulaInstituto", Text = "Ve a clase", Actors = DIA_DESPUES },
-		{ Type = "Scene", Dialogue = "DiaDespues", Actors = DIA_DESPUES },
+		{ Type = "Cinematic", Id = "Ins05_DiaDespues", Actors = CON_OMAR },
 	},
 
 	Dialogues = {
 		LaFoto = { Lines = {
 			{ S = "Narrador", T = "Toda la clase mira el móvil. Risitas. Alguien dice «qué bueno» y otro «pobre»." },
-			{ S = "Sara", T = "{nombre}, mira. Está en el grupo de la clase desde anoche." },
+			{ S = "Sara", T = "{nombre}, mira. Está en el grupo de la clase desde anoche.", To = "Yo", A = "Nervous", Shot = "Hombro:Yo>Sara" },
 			{ S = "Narrador", T = "Es una foto de Omar comiendo, trucada: la cabeza es un bocadillo gigante. Debajo pone «OMAR EL TRAGÓN». Tiene cuarenta reacciones." },
-			{ S = "Sara", T = "Omar no ha venido hoy. Omar no falta nunca. Ni con fiebre." },
+			{ S = "Sara", T = "Omar no ha venido hoy.", Pause = 1, Beat = "Baja", Shot = "PrimerPlano:Sara" },
+			{ S = "Sara", T = "Omar no falta nunca. Ni con fiebre.", Pause = 0.5 },
 			{ Ask = "¿Qué haces con la foto?", Options = {
 				{ T = "Escribes en el grupo: «Borradla. No tiene gracia.»", Effects = { Choice = { Foto = "Frenar" }, Traits = { Valentia = 2 }, Rel = { Omar = 5, Sara = 3 } }, Then = {
 					{ S = "Narrador", T = "Durante un minuto nadie contesta. Luego Leire escribe «+1». Luego Sara. Luego tres más. La foto deja de moverse." },
@@ -155,18 +158,21 @@ return {
 			{ S = "Sara", T = "Y Nico… Nico la compartió primero. Eso es lo que más me duele." },
 		} },
 		Nico = { Lines = {
-			{ S = "Nico", T = "¡{nombre}! ¿Vienes a ver el entreno? …¿Por qué me miras así?" },
+			{ S = "Nico", T = "¡{nombre}! ¿Vienes a ver el entreno?", A = "Happy", Shot = "Medio:Nico" },
+			{ S = "Nico", T = "…¿Por qué me miras así?", Pause = 1.2, Beat = "Mira", To = "Yo", A = "Nervous", Shot = "PrimerPlano:Nico" },
 			{ Ask = "¿Cómo hablas con Nico?", Options = {
 				{ T = "Te lo llevas aparte: «¿Por qué la compartiste?»", Effects = { Choice = { HablasNico = "Privado" }, Traits = { Empatia = 1 }, Rel = { Nico = 3 } }, Then = {
-					{ S = "Nico", T = "Yo… Darío me la pasó y todos se reían. Quería que se rieran conmigo. Que me vieran como uno de ellos." },
-					{ S = "Nico", T = "No pensé que Omar la vería. No pensé nada. Qué idiota. Omar es… Omar." },
+					{ S = "Nico", T = "Yo… Darío me la pasó y todos se reían. Quería que se rieran conmigo. Que me vieran como uno de ellos.", Beat = "Baja", A = "Ashamed", Shot = "PrimerPlano:Nico" },
+					{ S = "Nico", T = "No pensé que Omar la vería. No pensé nada. Qué idiota.", Pause = 0.8, A = "Facepalm" },
+					{ S = "Nico", T = "Omar es… Omar.", Pause = 1.2, Beat = "Aparta", A = "Sad", Shot = "PPP:Nico" },
 				} },
 				{ T = "Se lo dices delante de todo el equipo", Effects = { Choice = { HablasNico = "Publico" }, Traits = { Valentia = 1 }, Rel = { Nico = -6 } }, Then = {
-					{ S = "Nico", T = "¿Delante de todos? Vale, vale, me lo merezco. Pero podías haberme dicho algo a mí primero." },
-					{ S = "Narrador", T = "El equipo se queda en silencio. Nico mira al suelo." },
+					{ S = "Nico", T = "¿Delante de todos? Vale, vale, me lo merezco.", A = "Angry", Shot = "PrimerPlano:Nico" },
+					{ S = "Nico", T = "Pero podías haberme dicho algo a mí primero.", Pause = 0.8, Beat = "Baja", A = "Ashamed" },
+					{ S = "Narrador", T = "El equipo se queda en silencio. Nico mira al suelo.", Pause = 0.6 },
 				} },
 			} },
-			{ S = "Nico", T = "Voy a hablar con Omar. Hoy. Te lo prometo." },
+			{ S = "Nico", T = "Voy a hablar con Omar. Hoy. Te lo prometo.", Pause = 1, Beat = "Mira", To = "Yo", Shot = "Hombro:Yo>Nico" },
 		} },
 		Dario = { Lines = {
 			{ S = "Dario", T = "¿Qué pasa? Era una broma. Se ha hecho viral, eso es bueno, ¿no? Omar es famoso." },
@@ -187,7 +193,8 @@ return {
 			{ S = "Narrador", T = "Omar está en el banco del parque. El mismo banco de siempre. Con la capucha puesta." },
 			{ S = "Omar", T = "El banco del verano. Prometimos quedar aquí. No pensaba que lo usaría para esconderme.", If = { Choices = { Promesa = "Banco" } } },
 			{ S = "Omar", T = "Hola. Ya has visto la foto, ¿no? Todo el mundo la ha visto. «Omar el Tragón». Ja." },
-			{ S = "Omar", T = "Lo peor no es la foto. Lo peor es que Nico la compartió. Nico." },
+			{ S = "Omar", T = "Lo peor no es la foto. Lo peor es que Nico la compartió.", Beat = "Aparta", A = "Sad", Shot = "PrimerPlano:Omar" },
+			{ S = "Omar", T = "Nico.", Pause = 1.2, Beat = "Baja" },
 			{ Ask = "¿Qué le dices?", Options = {
 				{ T = "Te sientas a su lado sin decir nada. Solo estar", Effects = { Traits = { Empatia = 2 }, Rel = { Omar = 8 } }, Then = {
 					{ S = "Narrador", T = "Os quedáis un rato largo en silencio. Al final, Omar te da la mitad de su bocadillo. «Toma. Tragones los dos.» Y se ríe. Un poco." },
@@ -203,17 +210,6 @@ return {
 				} },
 			} },
 			{ S = "Omar", T = "Mañana vuelvo a clase. Si vienes a buscarme. Por la mañana. A la parada." },
-		} },
-		DiaDespues = { Lines = {
-			{ S = "Narrador", T = "Pasas a buscar a Omar a la parada. Entráis juntos en clase. Nadie dice nada. Alguien le choca la mano." },
-			{ S = "Javier", T = "Antes de empezar: el grupo de clase es un sitio de esta clase. Lo que no diríais a la cara, no se escribe ahí.", If = { Choices = { Dario = "Javier" } } },
-			{ S = "Javier", T = "Y si alguna vez os pasa algo así, contadlo a un adulto. A mí, a vuestra familia. Siempre. No es chivarse: es cuidarse." },
-			{ S = "Dario", T = "(Darío, desde la puerta) Omar… lo siento. De verdad. Era una tontería y no lo pensé.", If = { Choices = { Dario = "Javier" } } },
-			{ S = "Narrador", T = "Darío ha escrito a Omar por privado. Omar te enseña el mensaje: «Perdón. La he borrado. Fue una idiotez.»", If = { Choices = { Dario = "Perdon" } } },
-			{ S = "Narrador", T = "La guerra de montajes ha terminado porque Javier ha borrado el grupo entero. Nadie sale bien parado. Tú tampoco.", If = { Choices = { Dario = "Venganza" } } },
-			{ S = "Nico", T = "Omar. Yo… lo siento. No hay excusa. Me pasé. Te echo de menos en el recreo." },
-			{ S = "Omar", T = "…Vale. Pero me debes diez bocadillos. Y los eliges tú, que así sufres." },
-			{ S = "Omar", T = "He hecho pulseras para todos. Del grupo. Por si se nos olvida quiénes somos." },
 		} },
 	},
 }

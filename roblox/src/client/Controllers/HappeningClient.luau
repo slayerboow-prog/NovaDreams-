@@ -78,6 +78,7 @@ type ClientRun = {
 	ShotResolve: CameraShots.Resolver?, -- el de este plano (con Lock: anclas clavadas al empezar)
 	AmbienceOn: boolean,
 	IntensityOn: boolean,
+	MusicPlayed: boolean?, -- (escena sin cine que pidió una pieza con Play: al acabar se cierra)
 	LightId: string?,
 	Died: boolean,
 }
@@ -869,6 +870,9 @@ local function play(payload: { [string]: any })
 							applyIntensity(run, d.Intensity, d.Fade)
 						elseif audio and d.Play then
 							pcall(audio.cinematicStart, d.Play)
+							-- (una escena sin pantalla de cine también la cierra al acabar: si no, la
+							-- música de fondo no volvía nunca)
+							run.MusicPlayed = true
 						end
 					elseif track == "Fade" then
 						applyFade(run, d)
@@ -948,6 +952,9 @@ local function play(payload: { [string]: any })
 	end
 	-- Recoger (ambiente, música y luz primero y por separado: si algo falla, se deshacen igual)
 	pcall(undoMood, run, if run.Died then 0.3 else 1.5)
+	if not cinematic and run.MusicPlayed and audio then
+		pcall(audio.cinematicEnd)
+	end
 	pcall(endWait, run)
 	for _, handle in run.FxList do
 		StoryFx.stop(handle) -- (el portal se cierra, el orbe se apaga…)

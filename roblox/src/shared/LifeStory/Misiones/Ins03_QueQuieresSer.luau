@@ -35,14 +35,23 @@ local PROFESIONALES = {
 	{ Npc = "Toni", Place = "Ocio", Offset = V(0, 0, 4) },
 }
 
-local CLASE = {
-	{ Npc = "Carmen", Place = "AulaInstituto", Offset = V(0, 0, -6) },
+local ALUMNOS = {
 	{ Npc = "Javier", Place = "AulaInstituto", Offset = V(4, 0, -6) },
 	{ Npc = "Omar", Place = "AulaInstituto", Offset = V(3, 0, 0) },
 	{ Npc = "Leire", Place = "AulaInstituto", Offset = V(6, 0, 3), If = { Flags = { "ConocesALeire" } } },
 	{ Npc = "Bruno", Place = "AulaInstituto", Offset = V(-6, 0, -1) },
 	{ Npc = "Nico", Place = "AulaInstituto", Offset = V(-4, 0, 2) },
 }
+local function conCarmen(spec: { [string]: any }): { any }
+	local list = { spec }
+	for _, actor in ALUMNOS do
+		table.insert(list, actor)
+	end
+	return list
+end
+local CLASE = conCarmen({ Npc = "Carmen", Place = "AulaInstituto", Offset = V(0, 0, -6) })
+-- El primer día Carmen no está: entra andando por la puerta del aula (Happenings/Instituto · Ins03_Carmen)
+local LLEGA_CARMEN = conCarmen({ Npc = "Carmen", Place = "AulaInstituto", Offset = V(0, 0, -6), Enter = { From = "AulaInstituto", Offset = V(7, 0, -9), Delay = 1 } })
 
 return {
 	Id = "Ins03_QueQuieresSer",
@@ -66,8 +75,8 @@ return {
 
 	Steps = {
 		{ Type = "Transition", Text = "Antes de las vacaciones de invierno…", Seconds = 3 },
-		{ Type = "Reach", Place = "AulaInstituto", Text = "Ve a clase: hoy viene la orientadora", Actors = CLASE },
-		{ Type = "Scene", Dialogue = "Carmen", Actors = CLASE },
+		{ Type = "Reach", Place = "AulaInstituto", Text = "Ve a clase: hoy viene la orientadora", Actors = ALUMNOS },
+		{ Type = "Cinematic", Id = "Ins03_Carmen", Actors = LLEGA_CARMEN },
 		{ Type = "Group", Text = "Visita al menos cuatro profesiones (en cualquier orden)", Need = 4,
 			Steps = {
 				{ Type = "Talk", Npc = "Nuria", Dialogue = "Hospital", Text = "Medicina: el hospital" },
@@ -85,15 +94,6 @@ return {
 	},
 
 	Dialogues = {
-		Carmen = { Lines = {
-			{ S = "Carmen", T = "Hola, 1.º C. Soy Carmen, la orientadora. Esta semana no hay clase normal: es la semana de las profesiones." },
-			{ S = "Carmen", T = "Hay ocho sitios de Valmar que os abren las puertas. Visitad al menos cuatro. Preguntad, probad, meted las manos." },
-			{ S = "Carmen", T = "Y una cosa importante: nadie tiene que decidir su futuro esta semana. Ni este año. Solo mirar. Mirar mucho." },
-			{ S = "Bruno", T = "¿Y si ya sé lo que quiero ser?" },
-			{ S = "Carmen", T = "Entonces visita también algo que no tenga nada que ver. A veces uno se sorprende." },
-			{ S = "Omar", T = "Yo voy a visitar el restaurante primero. Por investigación. Y por la hora que es." },
-		} },
-
 		Hospital = { Lines = {
 			{ S = "Nuria", T = "¡Bienvenida la cantera! Soy Nuria, médica de urgencias. Aquí nunca sabes qué va a entrar por esa puerta." },
 			{ S = "Narrador", T = "✨ Cuando tenías diez años, en un banco del parque, dijiste que querías salvar vidas. Aquí se hace cada día.", If = sueno("Medicina") },
@@ -111,7 +111,7 @@ return {
 		} },
 		Laboratorio = { Lines = {
 			{ S = "Sofia", T = "¡Pasa, pasa! Esto es el laboratorio de ingeniería. Aquí se rompen cosas… para que luego no se rompan." },
-			{ S = "Narrador", T = "✨ De pequeño o pequeña querías «inventar cosas que no existen». Este sitio huele a eso.", If = sueno("Ingenieria") },
+			{ S = "Narrador", T = "✨ De pequeñ{o/a} querías «inventar cosas que no existen». Este sitio huele a eso.", If = sueno("Ingenieria") },
 			{ S = "Sofia", T = "Este puente de palillos tiene que aguantar dos kilos. Ahora mismo aguanta… uno y medio. ¿Qué harías tú?" },
 			{ Ask = "¿Cómo lo arreglas?", Options = {
 				{ T = "Añadir triángulos: son más fuertes", Effects = { Traits = { Curiosidad = 1 } }, Then = {
@@ -198,7 +198,7 @@ return {
 		} },
 		Estudio = { Lines = {
 			{ S = "Toni", T = "¡Hola! Soy Toni, el tío de Leire. Hacemos documentales. Hoy grabamos una entrevista en la sala del cine." },
-			{ S = "Narrador", T = "✨ De pequeño o pequeña querías pintar cosas que la gente no olvidara. Aquí se pinta con luz.", If = sueno("Arte") },
+			{ S = "Narrador", T = "✨ De pequeñ{o/a} querías pintar cosas que la gente no olvidara. Aquí se pinta con luz.", If = sueno("Arte") },
 			{ S = "Toni", T = "Tú eres la cámara. ¿Dónde pones al entrevistado?" },
 			{ Ask = "¿Dónde le pones?", Options = {
 				{ T = "Junto a la ventana, con luz natural", Effects = { Traits = { Creatividad = 1 } }, Then = {
@@ -213,15 +213,20 @@ return {
 		} },
 
 		Reflexion = { Lines = {
-			{ S = "Carmen", T = "Bueno, {nombre}. ¿Qué has descubierto esta semana?" },
+			{ S = "Carmen", T = "Bueno, {nombre}. ¿Qué has descubierto esta semana?", Beat = "Mira", To = "Yo", Shot = "Medio:Carmen" },
 			{ S = "Carmen", T = "Veo que el hospital te ha removido algo.", If = { Flags = { "Interes_Medicina" } } },
+			{ S = "Nico", T = "¿Médico? Te dejo mi rodilla. Está de prácticas.", A = "Happy", If = { Flags = { "Interes_Medicina" } } },
 			{ S = "Carmen", T = "Sofía me ha dicho que tus puentes aguantan más que los suyos. Eso no lo dice nunca.", If = { Flags = { "Interes_Ingenieria" } } },
 			{ S = "Carmen", T = "Inés dice que escuchas a las dos partes. Eso vale para la policía y para el derecho.", If = { Flags = { "Interes_Derecho" } } },
+			{ S = "Bruno", T = "¿Policía tú también? Ya veremos quién llega antes.", A = "ArmsCrossed", If = { Flags = { "Interes_Derecho" } } },
 			{ S = "Carmen", T = "Marcos va a pintar las bicis de azul. Por tu culpa. Está encantado.", If = { Flags = { "Interes_Economia" } } },
 			{ S = "Carmen", T = "Tobías pregunta si vas a volver al taller. Eso con Tobías es casi una oferta de trabajo.", If = { Flags = { "Interes_Oficio" } } },
 			{ S = "Carmen", T = "Lola dice que tienes cabeza de cocina. No sé qué significa, pero suena a piropo.", If = { Flags = { "Interes_Cocina" } } },
+			{ S = "Omar", T = "¡Lo sabía! Socios. Tú cortas, yo pruebo.", A = "Happy", If = { Flags = { "Interes_Cocina" } } },
 			{ S = "Carmen", T = "Irene te ha visto cuidar a alguien antes que a una medalla. Eso es saber entrenar.", If = { Flags = { "Interes_Deporte" } } },
 			{ S = "Carmen", T = "Toni ya te llama «la cámara». Viniendo de él, es un título.", If = { Flags = { "Interes_Audiovisual" } } },
+			{ S = "Leire", T = "Mi tío no se lo dice a cualquiera. Bueno, sí. Pero esta vez lo dice en serio.", If = { Flags = { "Interes_Audiovisual", "ConocesALeire" } } },
+			{ S = "Carmen", T = "Y ahora lo importante.", Pause = 0.8, Beat = "Respira", Shot = "PrimerPlano:Carmen" },
 			{ Ask = "¿Cómo te sientes con tu futuro?", Options = {
 				{ T = "Creo que ya sé lo que me gusta", Effects = { Choice = { Orientacion = "Claro" }, Traits = { Responsabilidad = 1 } }, Then = {
 					{ S = "Carmen", T = "Qué bien. Aun así, déjate sorprender. Las mejores decisiones se toman sabiendo qué más había." },

@@ -88,8 +88,10 @@ return {
 		{ Type = "Transition", Text = "Tres meses después. Septiembre.", Seconds = 3 },
 		{ Type = "Scene", Dialogue = "Manana", Teleport = "HomeSalon", Actors = CASA },
 		{ Type = "Reach", Place = "ParadaBus", Text = "Ve a la parada del autobús: tus amigos te esperan", Actors = PARADA,
+			Late = { After = 180, Flags = { "LlegasTardeParada" } },
 			Nudge = { After = 120, Every = 90, S = "Omar", T = "(mensaje) ¿Dónde estás? El bus pasa en nada. Te guardo sitio. Y medio cruasán." } },
-		{ Type = "Scene", Dialogue = "Parada", Actors = PARADA },
+		-- La parada: escena escrita a mano (Happenings/Instituto · Ins01_Parada)
+		{ Type = "Cinematic", Id = "Ins01_Parada", Actors = PARADA },
 		{ Type = "Event", Event = "Traveled", Match = { Town = "Campus Valmar" }, Place = "ParadaBus", Text = "Coge el autobús al Campus Valmar", Actors = PARADA },
 
 		-- Un instituto enorme
@@ -141,16 +143,6 @@ return {
 			} },
 			{ S = "Abu", T = "Un consejo de los de antes: el primer día, sonríe a una persona que no conozcas. Solo a una. Ya verás." },
 		} },
-		Parada = { Lines = {
-			{ S = "Narrador", T = "En la parada os miráis como si no os conocierais. Todos habéis crecido este verano. Omar, sobre todo: ahora es el más alto." },
-			{ S = "Omar", T = "Lo sé. Me he chocado dos veces con el marco de la puerta. Mi madre dice que es la edad." },
-			{ S = "Sara", T = "Me han puesto en el grupo bilingüe. No vamos a estar en la misma clase. Lo he comprobado tres veces." },
-			{ S = "Nico", T = "Pero en el recreo sí. ¡Lo prometimos!", If = { Choices = { Promesa = "Juntos" } } },
-			{ S = "Nico", T = "Prometimos conocer gente nueva sin olvidarnos. Pues hoy empieza la parte de «gente nueva».", If = { Choices = { Promesa = "Nuevos" } } },
-			{ S = "Nico", T = "Y el banco del parque en verano sigue en pie. Eso no lo cambia ningún instituto.", If = { Choices = { Promesa = "Banco" } } },
-			{ S = "Hugo", T = "He traído un libro por si nadie me habla. Pero espero no tener que leerlo.", If = CON_HUGO },
-			{ S = "Omar", T = "¡El autobús! Ese que pone «Campus Valmar». Vamos, que yo me mareo si voy de pie." },
-		} },
 		Entrada = { Lines = {
 			{ S = "Narrador", T = "El instituto es tres veces el colegio. Pasillos, escaleras, gente que parece adulta. Nadie os mira. O eso parece." },
 			{ S = "Veterano", T = "¿Los de primero? Uy, qué pequeños. El aula de primero está en el tercer piso. Coged el ascensor de alumnos, ahí a la izquierda." },
@@ -175,17 +167,19 @@ return {
 			{ S = "Javier", T = "Buenos días, 1.º C. Soy Javier, vuestro tutor. Os daré Historia. Y alguna charla que no me habéis pedido.", If = { NotFlags = { "LlegasTardeInstituto" } } },
 			{ S = "Javier", T = "Ah, llega {nombre}. El primer día, perdonado. Se pierde todo el mundo. Yo me perdí mi primer año de profe.", If = { Flags = { "LlegasTardeInstituto" } } },
 			{ S = "Javier", T = "Aquí nadie os va a llevar de la mano. Pero si os perdéis, preguntad. Preguntar no es de pequeños: es de listos." },
-			{ S = "Javier", T = "Tenemos una alumna nueva: Leire, que viene del norte. Leire, ¿quieres decir algo?" },
-			{ S = "Leire", T = "No." },
-			{ S = "Javier", T = "Directa. Me gusta. Sentaos donde queráis. El sitio de hoy suele ser el de todo el año, así que pensadlo." },
+			{ S = "Javier", T = "Tenemos una alumna nueva: Leire, que viene del norte. Leire, ¿quieres decir algo?", To = "Leire", Shot = "Medio:Javier" },
+			{ S = "Leire", T = "No.", Pause = 1, Beat = "Mira", To = "Javier", A = "ArmsCrossed", Shot = "PrimerPlano:Leire" },
+			{ S = "Javier", T = "Directa. Me gusta.", Pause = 0.8, Beat = "Sonrie", Shot = "Medio:Javier" },
+			{ S = "Javier", T = "Sentaos donde queráis. El sitio de hoy suele ser el de todo el año, así que pensadlo." },
 			{ S = "Bruno", T = "(desde el fondo) Eh, {nombre}. Aquí hay sitio. Si quieres. De cero, ¿no?", If = BRUNO_DE_CERO },
 		} },
 		Sit_Omar = { Lines = {
 			{ S = "Omar", T = "Lo sabía. Te he guardado el sitio desde las ocho menos cuarto. Sabía que vendrías." },
 		} },
 		Sit_Leire = { Lines = {
-			{ S = "Leire", T = "…Vale. Siéntate. Pero no me preguntes por la cámara. Todo el mundo me pregunta por la cámara." },
-			{ S = "Leire", T = "…Es de mi abuelo. Es de carrete. Hace fotos de verdad. Bueno, ya te lo he contado. Qué rabia." },
+			{ S = "Leire", T = "…Vale. Siéntate. Pero no me preguntes por la cámara. Todo el mundo me pregunta por la cámara.", Beat = "Mira", To = "Yo", Shot = "PrimerPlano:Leire" },
+			{ S = "Leire", T = "…Es de mi abuelo. Es de carrete. Hace fotos de verdad.", Pause = 1.2, Beat = "Baja" },
+			{ S = "Leire", T = "Bueno, ya te lo he contado. Qué rabia.", Pause = 0.5, A = "Facepalm" },
 		} },
 		Sit_Bruno = { Lines = {
 			{ S = "Bruno", T = "¿En serio? Vale. Normas: no me copies en los exámenes. Y yo tampoco a ti. Eso lo añado ahora." },
@@ -211,8 +205,10 @@ return {
 			} },
 		} },
 		Leire_Recreo = { Lines = {
-			{ S = "Leire", T = "¿Qué? Estoy bien sola. …Vale, no mucho." },
-			{ S = "Leire", T = "En mi otra ciudad tenía un grupo. Ahora tengo una cámara y un bocadillo de chorizo. El bocadillo es buena compañía, pero no habla." },
+			{ S = "Leire", T = "¿Qué? Estoy bien sola.", Beat = "Aparta", A = "ArmsCrossed", Shot = "Medio:Leire" },
+			{ S = "Leire", T = "…Vale, no mucho.", Pause = 1.2, Beat = "Baja", A = "Ashamed", Shot = "PrimerPlano:Leire" },
+			{ S = "Leire", T = "En mi otra ciudad tenía un grupo. Ahora tengo una cámara y un bocadillo de chorizo.", Beat = "Mira", To = "Yo", Shot = "Hombro:Yo>Leire" },
+			{ S = "Leire", T = "El bocadillo es buena compañía. Pero no habla.", Pause = 0.6, A = "Shrug" },
 			{ Ask = "¿Qué le dices?", Options = {
 				{ T = "«Vente con nosotros. Omar trae comida para todos.»", Effects = { Flags = { "ConocesALeire" }, Rel = { Leire = 10, Omar = 2 }, Traits = { Empatia = 2 } }, Then = {
 					{ S = "Omar", T = "(desde lejos) ¡Es verdad! ¡Traigo de todo! ¡Hasta aceitunas!" },

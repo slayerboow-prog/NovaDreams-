@@ -102,10 +102,12 @@ return {
 				{ S = "Portero", T = "Llevo cuarenta años aquí. He visto entrar a chavales que no sabían freír un huevo. Y salir… sin saber freír un huevo, la mayoría. Tú intenta ser la excepción." },
 			} },
 			Compis = { Lines = {
-				{ S = "Ivan", T = "¡Hombre! ¡El o la de la cama de la ventana! Soy Iván. De Villaverde. Estamos en la misma clase, te vi en la matrícula." },
-				{ S = "Candela", T = "Candela. También de tu clase. Os he hecho un horario de limpieza plastificado. Tenéis colores. El tuyo es el verde. No se negocia." },
-				{ S = "Ivan", T = "Aviso importante: en la nevera hay tres botellas de zumo de mora. Casero. De mi abuela. Son sagradas. Podéis tocar todo menos eso. Todo. Menos. Eso." },
-				{ S = "Candela", T = "Y mis tápers llevan etiqueta con fecha. Si falta uno, lo sabré. Siempre lo sé." },
+				{ S = "Ivan", T = "¡Hombre! ¡La persona de la cama de la ventana! Soy Iván. De Villaverde. Estamos en la misma clase, te vi en la matrícula.", Shot = "Medio:Ivan" },
+				{ S = "Candela", T = "Candela. También de tu clase. Os he hecho un horario de limpieza plastificado.", Shot = "Medio:Candela" },
+				{ S = "Candela", T = "Tenéis colores. El tuyo es el verde. No se negocia.", Beat = "Mira", To = "Yo" },
+				{ S = "Ivan", T = "Aviso importante: en la nevera hay tres botellas de zumo de mora. Casero. De mi abuela. Son sagradas.", Shot = "DosPlanos:Ivan,Yo" },
+				{ S = "Ivan", T = "Podéis tocar todo menos eso. Todo. Menos. Eso.", Pause = 0.4, Shot = "PrimerPlano:Ivan" },
+				{ S = "Candela", T = "Y mis tápers llevan etiqueta con fecha. Si falta uno, lo sabré. Siempre lo sé.", To = "Ivan", Shot = "Hombro:Ivan>Candela" },
 				{ S = "Narrador", T = "Tienes la sensación de que este año va a ser muy largo. Y muy divertido." },
 			} },
 			Maleta = { Lines = {
@@ -120,14 +122,21 @@ return {
 				{ S = "Narrador", T = "Ahora comer depende de ti: si no compras, no hay. Si no cocinas, no hay. Si Iván tiene hambre, tampoco hay." },
 			} },
 			Cena = { Lines = {
-				{ S = "Ivan", T = "¡Primera cena de independientes! Yo he hecho… cereales. Con zumo de mora. No me juzguéis." },
-				{ S = "Candela", T = "Yo, arroz con verduras. Pesado en gramos. Hay para tres. …No me miréis así. Hay para tres." },
+				{ S = "Ivan", T = "¡Primera cena de independientes! Yo he hecho…", Shot = "Medio:Ivan" },
+				{ S = "Ivan", T = "…cereales. Con zumo de mora. No me juzguéis.", Pause = 0.6, Beat = "Aparta" },
+				{ S = "Candela", T = "Yo, arroz con verduras. Pesado en gramos. Hay para tres.", Shot = "Medio:Candela" },
+				{ S = "Candela", T = "…No me miréis así. Hay para tres.", Pause = 0.5, Beat = "Baja" },
+				{ S = "Candela", T = "Y la sal también está etiquetada. Por la norma de la balda.", If = { Choices = { Normas = "Etiquetas" } }, Shot = "PrimerPlano:Candela" },
+				{ S = "Ivan", T = "Todo es de todos, ¿no? Por eso me he comido tu yogur. Por la norma.", If = { Choices = { Normas = "Compartida" } }, Shot = "PrimerPlano:Ivan" },
+				{ S = "Candela", T = "Y como esta semana compras tú: has comprado bien. Lo digo poco. Apúntalo.", If = { Choices = { Normas = "Turnos" } }, Shot = "PrimerPlano:Candela" },
 				{ Ask = "¿Qué aportas a la cena?", Options = {
 					{ T = "La tortilla que te enseñó tu familia", Effects = { Rel = { Ivan = 4, Candela = 4 }, Flags = { "SabeCocinar" } }, Then = {
-						{ S = "Ivan", T = "…¿Esto lo has hecho TÚ? Me caso con esta tortilla. Bueno, no. Pero casi." },
+						{ S = "Ivan", T = "…¿Esto lo has hecho TÚ?", Pause = 1, Beat = "Piensa", Shot = "PrimerPlano:Ivan" },
+						{ S = "Ivan", T = "Me caso con esta tortilla. Bueno, no. Pero casi." },
 					} },
 					{ T = "Tu último táper de casa, para compartir", Effects = { Rel = { Ivan = 3, Candela = 3 }, Traits = { Empatia = 1 } }, Then = {
-						{ S = "Candela", T = "Sabe a casa. …Perdón. Me he emocionado con unas lentejas. Es el primer día." },
+						{ S = "Candela", T = "Sabe a casa.", Pause = 0.8, Shot = "PrimerPlano:Candela" },
+						{ S = "Candela", T = "…Perdón. Me he emocionado con unas lentejas. Es el primer día.", Beat = "Baja" },
 					} },
 					{ T = "Pan con pan. Es lo que hay", Effects = { Traits = { Humor = 1 } }, Then = {
 						{ S = "Ivan", T = "El famoso bocadillo de pan. Clásico de primero. El año que viene serás un chef. O no." },
@@ -371,7 +380,7 @@ return {
 			Tribunal = { Lines = {
 				{ S = "Beltran", T = "El tribunal ha deliberado. Trabajo sólido, defensa clara, y ha respondido bien a la pregunta trampa. Aprobado." },
 				{ S = "Beltran", T = "«Fenómenos inexplicables en Los Pinos». Nunca había leído un TFG con un capítulo sobre una gallina gigante. Tiene bibliografía. Muy seria. …Aprobado.", If = flags("TFGRaro") },
-				{ S = "Ivan", T = "(desde el público) ¡ESO ES! ¡ESE O ESA ES MI COMPAÑERO O COMPAÑERA DE CUARTO!" },
+				{ S = "Ivan", T = "(desde el público) ¡ESO ES! ¡ESA PERSONA ES MI COMPI DE CUARTO! ¡CUATRO AÑOS! ¡SIN TOCARME EL ZUMO!" },
 				{ S = "Narrador", T = "Recibes 📘 tu Trabajo de Fin de Grado, encuadernado. Solo falta la graduación." },
 			} },
 		},

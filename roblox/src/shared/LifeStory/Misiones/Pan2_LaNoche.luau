@@ -22,6 +22,12 @@ local SUPER = {
 	{ Npc = "Rayo", Place = "Supermercado", Offset = V(-8, 0, -10) },
 	{ Npc = "Nerea", Place = "Supermercado", Offset = V(-10, 0, -8) },
 }
+-- La alarma: Rayo y Nerea, con miedo; al acabar la escena salen corriendo hacia el parque
+-- (Happenings/Instituto · Pan2_Alarma)
+local HUIDA = {
+	{ Npc = "Rayo", Place = "Supermercado", Offset = V(-8, 0, -10), Mood = "Miedo", Exit = "Parque" },
+	{ Npc = "Nerea", Place = "Supermercado", Offset = V(-10, 0, -8), Mood = "Miedo", Exit = "Parque" },
+}
 local COMISARIA = {
 	{ Npc = "Ines", Place = "Policia", Offset = V(0, 0, 5) },
 	{ Npc = "Familia", Place = "Policia", Offset = V(-4, 0, 4) },
@@ -62,7 +68,7 @@ return {
 		{ Type = "Transition", Text = "Esa noche, a las diez y media…", Seconds = 3, If = VAS },
 		{ Type = "Reach", Place = "Supermercado", Text = "El súper de Paco ya ha cerrado. Rayo espera en la parte de atrás", If = VAS, Actors = SUPER },
 		{ Type = "Use", Prop = "PuertaAlmacen", Text = "La puerta del almacén", If = VAS, Actors = SUPER },
-		{ Type = "Scene", Dialogue = "Alarma", If = HURTO, Actors = SUPER },
+		{ Type = "Cinematic", Id = "Pan2_Alarma", If = HURTO, Actors = HUIDA },
 		{ Type = "Reach", Place = "Parque", Text = "¡CORRE! ¡Llega al parque antes de que llegue la policía!", If = HURTO,
 			Timeout = { After = 35, Flags = { "Pillado" } } },
 		{ Type = "Scene", Dialogue = "Escapaste", If = { Flags = { "Hurto" }, NotFlags = { "Pillado" } },
@@ -117,22 +123,23 @@ return {
 				} },
 			} },
 		} },
-		Alarma = { Lines = {
-			{ S = "Narrador", T = "¡UUUUUUUUH! La alarma. Luces rojas. Un perro ladra en la calle de al lado." },
-			{ S = "Rayo", T = "¡CORRED! ¡Cada uno por un lado! ¡Nos vemos en el parque!" },
-		} },
 		Escapaste = { Lines = {
 			{ S = "Narrador", T = "Llegas al parque sin aliento. El corazón te va a salir por la boca. Nadie te ha seguido. Eso crees." },
 			{ S = "Rayo", T = "¡JA! ¿Has visto? ¡Nadie nos pilla! Mañana nos comemos las chuches a la salud de Paco." },
 			{ S = "Narrador", T = "Tienes una lata en la mano. No sabe a nada." },
 		} },
 		Comisaria = { Lines = {
-			{ S = "Narrador", T = "No llegas. Una patrulla te para a dos calles. Media hora después estás en la comisaría, sentado o sentada en un banco de plástico." },
+			{ S = "Narrador", T = "No llegas. Una patrulla te para a dos calles. Media hora después estás en la comisaría, sentad{o/a} en un banco de plástico.", Shot = "General" },
 			{ S = "Ines", T = "Hola otra vez. Nos conocimos en la semana de las profesiones. No pensé que volveríamos a vernos así.", If = { Flags = { "Interes_Derecho" } } },
-			{ S = "Ines", T = "Soy la agente Inés. Tranquilidad: nadie va a ir a la cárcel por unas latas. Pero esto tiene consecuencias." },
-			{ S = "Familia", T = "(entra corriendo) ¿Estás bien? …Estás bien. Vale. Ahora sí: ¿EN QUÉ ESTABAS PENSANDO?" },
-			{ S = "Paco", T = "Hmm. Treinta años con el súper abierto. Nunca me habían entrado. Y has sido tú. No me lo esperaba." },
-			{ S = "Ines", T = "Como sois menores y es la primera vez: servicio a la comunidad. Tres turnos limpiando en el Punto Limpio. Y pedir perdón a Paco." },
+			{ S = "Ines", T = "Soy la agente Inés. Tranquilidad: nadie va a ir a la cárcel por unas latas.", Shot = "Medio:Ines" },
+			{ S = "Ines", T = "Pero esto tiene consecuencias.", Pause = 1, Beat = "Mira", To = "Yo", Shot = "PrimerPlano:Ines" },
+			{ S = "Familia", T = "(entra corriendo) ¿Estás bien? …Estás bien. Vale.", A = "Nervous", Shot = "Medio:Familia" },
+			{ S = "Familia", T = "Ahora sí: ¿EN QUÉ ESTABAS PENSANDO?", Pause = 1.2, Beat = "Respira", A = "Angry", Shot = "PrimerPlano:Familia" },
+			{ S = "Familia", T = "Y no es la primera vez que me mientes. Lo del día que «te encontrabas mal» tampoco me lo creí.", A = "Sad", If = { Flags = { "MentisteFamilia" } } },
+			{ S = "Paco", T = "Hmm.", Pause = 1.4, Beat = "Silencio", Shot = "PrimerPlano:Paco" },
+			{ S = "Paco", T = "Treinta años con el súper abierto. Nunca me habían entrado. Y has sido tú. No me lo esperaba.", A = "Sad" },
+			{ S = "Rayo", T = "(desde el banco, sin mirarte) Yo no he dicho nada. Que conste.", If = { Rel = { Rayo = 5 } } },
+			{ S = "Ines", T = "Como sois menores y es la primera vez: servicio a la comunidad. Tres turnos limpiando en el Punto Limpio. Y pedir perdón a Paco.", Shot = "Medio:Ines" },
 			{ Ask = "¿Qué le dices a Paco?", Options = {
 				{ T = "«Lo siento. De verdad. Te devuelvo todo y te lo pago.»", Effects = { Rel = { Paco = 3, Familia = 3 }, Traits = { Responsabilidad = 1 }, Flags = { "PerdonPaco" } }, Then = {
 					{ S = "Paco", T = "Hmm. Pedir perdón mirando a los ojos. Eso ya es algo. Ya veremos." },

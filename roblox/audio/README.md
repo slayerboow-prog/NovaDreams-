@@ -59,6 +59,38 @@ Para cambiar la música: edita `scripts/audio/compose.py` y ejecuta `python3 scr
 
 ---
 
+## Si la música no suena
+
+Desde que entras suena la música de fondo de tu etapa (**🔊 Música: sí** por defecto), a los 2 s,
+con fundidos. Si una pieza no carga en el juego, `StoryAudio` prueba sus otras copias (su `Id` de
+`Config.Audio`, su id en `SoundIds`, un `Sound` en **ReplicatedStorage → Musica**) y luego su
+`Fallback` (TemaValmar y VidaAdulta → Descubrimiento, Nacimiento → Intima, PasanLosAnos → Resolucion).
+En la ventana Salida (F9) sale `[Música] No se ha podido cargar …` con el id que falla.
+
+Un audio de Roblox **solo suena en juegos de su mismo creador** (o con permiso dado a este juego):
+si se subió con otra cuenta o a nombre de un grupo, y el juego es de un usuario (o al revés), no suena.
+Tampoco suena mientras está **en revisión** o si Roblox lo ha rechazado.
+
+Para saber qué pasa con cada id, en un servidor de verdad (clave con «luau-execution-sessions»):
+
+```
+bash scripts/cloud-test.sh -v audio
+```
+
+Dice para cada audio si es de tipo Audio (`AssetTypeId = 3`), si es del dueño del juego y si se puede
+descargar. Si las cuatro piezas de `Config.Audio.Music` con `Id` fallan, súbelas otra vez a nombre del
+dueño del juego (quedan en `SoundIds` y entran solas como copia):
+
+```
+bash scripts/upload-audio.sh --music nacimiento tema_valmar pasan_los_anos vida_adulta sting_momento sting_capitulo sting_primeros_pasos
+```
+
+Si un audio es tuyo pero el juego es de un grupo (o es de otra cuenta tuya), también vale darle permiso:
+create.roblox.com → *Creations* → *Development Items* → *Audio* → el audio → *Permissions* → añade este
+juego (Real Life Simulator).
+
+---
+
 # Efectos de sonido (`audio/sfx`)
 
 También **originales** y hechos por código (`scripts/audio/sfx.py`): ruido filtrado, tonos y voces

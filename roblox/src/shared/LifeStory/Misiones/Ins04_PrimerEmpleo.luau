@@ -145,7 +145,8 @@ return {
 					{ S = "Carmen", T = "Muy bien. Y ponlo con un ejemplo: tu club, un proyecto…" },
 				} },
 			} },
-			{ S = "Carmen", T = "Tu club también cuenta. Y lo que hiciste en la semana de las profesiones. Todo lo que has vivido es experiencia." },
+			{ S = "Carmen", T = "Tu club también cuenta. Y lo que hiciste en la semana de las profesiones. Todo lo que has vivido es experiencia.", If = { Memories = { "QueQuieresSer" } } },
+			{ S = "Carmen", T = "Tu club también cuenta. Todo lo que has vivido es experiencia.", If = { NotMemories = { "QueQuieresSer" } } },
 			{ S = "Carmen", T = "Ahora a buscar. Hay carteles de «Se busca» en la cafetería del centro, en el supermercado y en Correos." },
 		} },
 		Oferta_Cafe = { Lines = { { S = "Narrador", T = "«Se busca ayudante de verano. Mañanas. Buena sonrisa y pulso firme con las bandejas. Preguntar por Lola.»" } } },
@@ -155,6 +156,8 @@ return {
 		Entrevista_Lola = { Lines = {
 			{ S = "Lola", T = "¡Anda, si es mi visita de la semana de las profesiones! Siéntate. Entrevista rápida, que tengo cruasanes en el horno.", If = { Flags = { "Interes_Cocina" } } },
 			{ S = "Lola", T = "Siéntate. Entrevista rápida, que tengo cruasanes en el horno.", If = { NotFlags = { "Interes_Cocina" } } },
+			{ S = "Lola", T = "Carmen me ha mandado tu perfil. «Trato bien a la gente». Aquí eso vale más que saber hacer café.", Beat = "Asiente", Shot = "PrimerPlano:Lola", If = { Choices = { Perfil = "Gente" } } },
+			{ S = "Lola", T = "Primera pregunta.", Pause = 0.6, Beat = "Mira", To = "Yo", Shot = "Hombro:Yo>Lola" },
 			{ Ask = "«¿Has trabajado antes en una cafetería?»", Options = {
 				{ T = "«No, pero aprendo rápido y tengo ganas»", Effects = { Traits = { Responsabilidad = 1 } }, Then = {
 					{ S = "Lola", T = "La verdad. Me gusta. Aquí todos empezamos sin saber. Yo quemé tres cafeteras." },
@@ -163,7 +166,7 @@ return {
 					{ S = "Lola", T = "¿Ah, sí? Estupendo. Entonces mañana no te explico nada." },
 				} },
 			} },
-			{ S = "Lola", T = "Última pregunta: un cliente te grita porque su café está frío. ¿Qué haces?" },
+			{ S = "Lola", T = "Última pregunta: un cliente te grita porque su café está frío. ¿Qué haces?", Pause = 0.8, Beat = "Piensa", Shot = "PrimerPlano:Lola" },
 			{ Ask = "¿Qué contestas?", Options = {
 				{ T = "«Le pido perdón y le hago otro»", Effects = { Traits = { Empatia = 1 } }, Then = {
 					{ S = "Lola", T = "Correcto. Aunque tenga la culpa él. Luego, en la cocina, te quejas conmigo." },
@@ -172,12 +175,15 @@ return {
 					{ S = "Lola", T = "Con calma, vale. Pero la próxima vez, hazle otro. Es más rápido." },
 				} },
 			} },
-			{ S = "Lola", T = "Contratado o contratada, lo que te toque. Lunes, nueve en punto. Ni nueve y cinco." },
+			{ S = "Lola", T = "Contratad{o/a}.", Pause = 1, Beat = "Sonrie", Shot = "PrimerPlano:Lola" },
+			{ S = "Lola", T = "Lunes, nueve en punto. Ni nueve y cinco.", A = "HandsOnHips" },
 		} },
 		Entrevista_Paco = { Lines = {
 			{ S = "Paco", T = "Hmm. Joven. Siéntate. No, ahí no, que es una caja de tomates.", If = { NotFlags = { "Hurto" } } },
 			{ S = "Paco", T = "Hmm. Tú. Te conozco: lo del almacén. Me pediste perdón mirando a los ojos. Todo el mundo merece una segunda oportunidad. Una.", If = { Flags = { "Hurto", "PerdonPaco" } } },
 			{ S = "Paco", T = "Hmm. Tú. Te llevaste mis latas y ni pediste perdón. …Te contrato igual, porque no encuentro a nadie. Pero te vigilo. Mucho.", If = { Flags = { "Hurto" }, NotFlags = { "PerdonPaco" } } },
+			{ S = "Paco", T = "Hmm. Aquí pone «responsable». Eso lo dice todo el mundo. Ya veremos.", Beat = "Piensa", Shot = "PrimerPlano:Paco", If = { Choices = { Perfil = "Responsable" } } },
+			{ S = "Paco", T = "Hmm.", Pause = 1, Beat = "Mira", To = "Yo", Shot = "Hombro:Yo>Paco" },
 			{ Ask = "«¿Has trabajado antes?»", Options = {
 				{ T = "«No, pero soy de fiar»", Effects = { Traits = { Responsabilidad = 1 } }, Then = {
 					{ S = "Paco", T = "Hmm. De fiar. Eso ya lo veremos. Pero me gusta que no me cuentes historias." },
@@ -187,12 +193,14 @@ return {
 				} },
 			} },
 			{ S = "Paco", T = "Aquí la regla es una: lo pesado abajo, lo frágil arriba. Si lo haces al revés, lo pagan los huevos." },
-			{ S = "Paco", T = "Lunes a las nueve. Con zapatillas cómodas. Hmm." },
+			{ S = "Paco", T = "Lunes a las nueve. Con zapatillas cómodas.", Pause = 0.6, Shot = "PrimerPlano:Paco" },
+			{ S = "Paco", T = "Hmm.", Pause = 0.8, Beat = "Asiente" },
 		} },
 		Entrevista_Ernesto = { Lines = {
-			{ S = "Ernesto", T = "¿Conoces Valmar? Te pongo a prueba: ¿dónde está la farmacia?" },
+			{ S = "Ernesto", T = "«Aprendo rápido», pone en tu perfil. Perfecto: hoy aprendes las calles.", Shot = "Medio:Ernesto", If = { Choices = { Perfil = "Aprendo" } } },
+			{ S = "Ernesto", T = "¿Conoces Valmar? Te pongo a prueba: ¿dónde está la farmacia?", Pause = 0.5, Beat = "Mira", To = "Yo", Shot = "Hombro:Yo>Ernesto" },
 			{ Ask = "¿Qué contestas?", Options = {
-				{ T = "«Al lado de la librería, donde hacía los recados de pequeño o pequeña»", Effects = { Traits = { Curiosidad = 1 } }, Then = {
+				{ T = "«Al lado de la librería, donde hacía los recados de pequeñ{o/a}»", Effects = { Traits = { Curiosidad = 1 } }, Then = {
 					{ S = "Ernesto", T = "¡Exacto! Los recados de niño son la mejor escuela de repartidor." },
 				} },
 				{ T = "«Ni idea, pero tengo mapa en el móvil»", Effects = { Traits = { Humor = 1 } }, Then = {
@@ -207,7 +215,8 @@ return {
 					{ S = "Ernesto", T = "¿Muchísimo? Qué bien. Entonces el lunes te doy la ruta difícil." },
 				} },
 			} },
-			{ S = "Ernesto", T = "Lunes a las nueve. Y un consejo: el perro del número 12 ladra, pero no muerde. El del 14, al revés." },
+			{ S = "Ernesto", T = "Lunes a las nueve.", Pause = 0.6, Shot = "PrimerPlano:Ernesto" },
+			{ S = "Ernesto", T = "Y un consejo: el perro del número 12 ladra, pero no muerde. El del 14, al revés.", Pause = 0.8, Beat = "Piensa" },
 		} },
 
 		PrimerDia = { Lines = {
@@ -245,7 +254,7 @@ return {
 			{ S = "Lola", T = "Toma. Tu primer sobre. Te lo has ganado. Bueno, casi todo: la bandeja la descuento en abrazos.", If = CAFETERIA },
 			{ S = "Paco", T = "Tu paga. Hmm. Has trabajado bien. Para ser la primera vez. No te acostumbres a que lo diga.", If = SUPER },
 			{ S = "Ernesto", T = "Tu primer sueldo de repartidor. Ni un paquete perdido. Y el perro del 14 te ha cogido cariño.", If = CORREOS },
-			{ S = "Narrador", T = "Un sobre con tu nombre. Dentro, el primer dinero que has ganado tú. Pesa poco. Parece que pesa mucho." },
+			{ S = "Narrador", T = "Un sobre con tu nombre. Dentro, el primer dinero que has ganado tú. Pesa poco. Parece que pesa mucho.", Pause = 1, Shot = "PPP:Yo" },
 			{ Ask = "¿Qué haces con él?", Options = {
 				{ T = "Guardarlo para lo que querías", Effects = { Choice = { Sueldo = "Meta" }, Traits = { Responsabilidad = 1 } } },
 				{ T = "Invitar a tu familia a cenar fuera", Effects = { Choice = { Sueldo = "Familia" }, Rel = { Familia = 8, Abu = 6 }, Traits = { Empatia = 1 } } },

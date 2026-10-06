@@ -108,7 +108,7 @@ return {
 				{ S = "Rayo", T = "Llegué a las ocho menos cuarto aquel día. Y todos los días después. Si alguna vez se te rompe el coche, es gratis. Para siempre.", If = CAMBIO },
 				{ S = "Rayo", T = "Nunca te lo dije: me salvaste. Así, tal cual. Ya está. No me hagas repetirlo.", If = CAMBIO },
 				-- Sigues en el mal camino
-				{ S = "Rayo", T = "Cuánto tiempo, socio o socia. Sigo con mis negocios. Más grandes. Y tengo algo para ti.", If = DELINCUENTE },
+				{ S = "Rayo", T = "Cuánto tiempo, soci{o/a}. Sigo con mis negocios. Más grandes. Y tengo algo para ti.", If = DELINCUENTE },
 				{ S = "Rayo", T = "Una furgoneta. La llevas a San Roque, la dejas en un aparcamiento y te vas. No preguntes qué lleva. Doscientos por un viaje.", If = DELINCUENTE },
 				-- Nunca entraste del todo, o saliste
 				{ S = "Rayo", T = "Hola… Supongo que me recuerdas. El del muro, el del súper. Te debo una disculpa. Te arrastré a cosas.", If = { NotFlags = { "RayoCambia", "Camino_Delincuente" }, Flags = { "HicistePellas" } } },

@@ -33,6 +33,12 @@ local CASA = {
 	{ Npc = "Familia", Place = "HomeSalon", Offset = V(-4, 0, 0) },
 	{ Npc = "Abu", Place = "HomeSalon", Offset = V(10, 0, -2), Mode = "Sit" },
 }
+-- La noche: Abu ya está en su sillón; tu familia baja un poco después desde la cocina, andando
+-- (Happenings/Instituto · Ins06_Noche)
+local NOCHE = {
+	{ Npc = "Familia", Place = "HomeSalon", Offset = V(-4, 0, 0), Enter = { From = "HomeCocina", Delay = 14 } },
+	{ Npc = "Abu", Place = "HomeSalon", Offset = V(10, 0, -2), Mode = "Sit" },
+}
 local GRADUACION = {
 	{ Npc = "Javier", Place = "PatioInstituto", Offset = V(0, 0, 10) },
 	{ Npc = "Carmen", Place = "PatioInstituto", Offset = V(4, 0, 10) },
@@ -122,7 +128,7 @@ return {
 
 		-- La decisión
 		{ Type = "Transition", Text = "La noche antes de entregar la solicitud…", Seconds = 3 },
-		{ Type = "Scene", Dialogue = "Noche", Teleport = "HomeSalon", Actors = CASA },
+		{ Type = "Cinematic", Id = "Ins06_Noche", Teleport = "HomeSalon", Actors = NOCHE },
 		-- La carrera se elige el primer día, en la secretaría de la universidad (Uni01). Aquí: ¿universidad o trabajar?
 		{ Type = "Choice", Key = "Futuro", PromptKey = "QUEST.FUTURO.PREGUNTA", Text = "Decide qué quieres hacer al terminar el instituto",
 			Options = {
@@ -134,14 +140,15 @@ return {
 
 		-- Graduación del instituto
 		{ Type = "Reach", Place = "PatioInstituto", Text = "Ve a la graduación del instituto", Actors = GRADUACION },
-		{ Type = "Scene", Dialogue = "Graduacion", Actors = GRADUACION },
+		{ Type = "Cinematic", Id = "Ins06_Graduacion", Actors = GRADUACION },
 		{ Type = "Transition", SetStage = "AdultoJoven", TextKey = "TRANSITION.MAYOR_EDAD", Cinematic = "Adol_Selectividad" },
 	},
 
 	Dialogues = {
 		Plan_Sara = { Lines = {
 			{ S = "Sara", T = "Biología. Luego un doctorado. Luego descubrir una especie nueva de hongo y ponerle mi nombre. Lo tengo en una hoja de cálculo." },
-			{ S = "Sara", T = "¿Y tú? No me digas «no sé». Bueno, si no lo sabes, dilo. Es un dato válido." },
+			{ S = "Sara", T = "¿Te acuerdas del primer día? Me había aprendido el plano entero y aun así me perdí. Ahora me pierdo menos.", If = { Memories = { "PrimerDiaInstituto" } } },
+			{ S = "Sara", T = "¿Y tú? No me digas «no sé». Bueno, si no lo sabes, dilo. Es un dato válido.", Pause = 0.6, Beat = "Mira", To = "Yo" },
 		} },
 		Plan_Omar = { Lines = {
 			{ S = "Omar", T = "Cocina. FP de cocina. Lola me ha dicho que si termino, me coge. Voy a hacer la mejor tortilla de Valmar. Lola dice que eso es imposible." },
@@ -149,7 +156,9 @@ return {
 		} },
 		Plan_Nico = { Lines = {
 			{ S = "Nico", T = "Me han llamado de las pruebas del club de Altamar. Juvenil. Si no sale, estudio para ser entrenador. Como Andrés." },
-			{ S = "Nico", T = "Oye… nunca te lo he dicho bien: gracias por lo de Omar. Por decírmelo a la cara, aparte.", If = { Choices = { HablasNico = "Privado" } } },
+			{ S = "Nico", T = "Y aquel sábado viniste a mi cumple en vez de ir al club. Eso tampoco se me olvida.", If = { Choices = { Sabado = "Cumple" } } },
+			{ S = "Nico", T = "Oye… nunca te lo he dicho bien: gracias por lo de Omar. Por decírmelo a la cara, aparte.", Pause = 0.8, Beat = "Baja", If = { Choices = { HablasNico = "Privado" } } },
+			{ S = "Nico", T = "Y aquel día en el estadio, cuando soltaste la bolsa de camisetas… Ese día supe que seguías siendo tú.", Pause = 0.6, Beat = "Mira", To = "Yo", If = { Memories = { "ElCruce" }, Choices = { Camino = "Negocio" }, Flags = { "Redimido" } } },
 		} },
 		Plan_Bruno = { Lines = {
 			{ S = "Bruno", T = "¿Yo? Policía. No te rías. Inés, la de la comisaría, dice que se me da bien que la gente me haga caso." },
@@ -163,6 +172,9 @@ return {
 		} },
 		Plan_Hugo = { Lines = {
 			{ S = "Hugo", T = "Periodismo. O escribir novelas. O las dos cosas. Mi primera novela será de piratas. La segunda, también." },
+			{ S = "Hugo", T = "Mi primer reportaje de verdad fue el de los murales de Vega. Contigo. Lo tengo enmarcado.", If = { Choices = { Reportaje = "Permiso" } } },
+			{ S = "Hugo", T = "«El artista misterioso». Todavía nadie sabe que era Vega. Eso también es periodismo: saber callar.", If = { Choices = { Reportaje = "Anonimo" } } },
+			{ S = "Hugo", T = "Lo de publicar el nombre de Vega… Tenías razón en que era verdad. Pero aprendí que la verdad también duele.", If = { Choices = { Reportaje = "Nombre" } } },
 		} },
 		Plan_Mateo = { Lines = {
 			{ S = "Mateo", T = "Ingeniería. Mi padre es fontanero y siempre dice que hay que entender cómo funcionan las cosas. Pues quiero entenderlas todas." },
@@ -173,7 +185,9 @@ return {
 		} },
 
 		Carmen = { Lines = {
-			{ S = "Carmen", T = "Pasa, {nombre}. ¿Te acuerdas de la semana de las profesiones? Tengo tu cuaderno apuntado aquí." },
+			{ S = "Carmen", T = "Pasa, {nombre}. ¿Te acuerdas de la semana de las profesiones? Tengo tu cuaderno apuntado aquí.", If = { Memories = { "QueQuieresSer" } } },
+			{ S = "Carmen", T = "Pasa, {nombre}. Último curso. Vamos a ver qué te ronda la cabeza.", If = { NotMemories = { "QueQuieresSer" } } },
+			{ S = "Carmen", T = "En primero saliste de mi clase con más dudas que antes. ¿Te acuerdas? Te dije que era buena señal.", Pause = 0.6, If = { Choices = { Orientacion = "Dudas" } } },
 			{ S = "Carmen", T = "Te vi con la doctora Nuria. Dijiste que te veías en un hospital.", If = interes("Interes_Medicina") },
 			{ S = "Carmen", T = "Sofía todavía habla de tu puente de palillos. Eso es ingeniería pura.", If = interes("Interes_Ingenieria") },
 			{ S = "Carmen", T = "Inés dijo que escuchabas a las dos partes. Eso es derecho, o policía, o mediación.", If = interes("Interes_Derecho") },
@@ -182,11 +196,12 @@ return {
 			{ S = "Carmen", T = "Y tu primer trabajo de verano. Eso también dice mucho de ti.", If = { Memories = { "PrimerSueldo" } } },
 			{ S = "Carmen", T = "Sé lo del estadio y lo de Rayo. No te voy a sermonear. Solo te digo una cosa: todavía puedes elegir otro camino. Siempre se puede.", If = { Flags = { "Camino_Delincuente" } } },
 			{ S = "Carmen", T = "Y sé que saliste de algo difícil hace unos años. Eso dice más de ti que cualquier nota.", If = { Flags = { "Redimido" } } },
-			{ S = "Carmen", T = "Pero te voy a decir lo mismo que hace años: no tienes que acertar. Tienes que elegir. Y si te equivocas, se cambia." },
+			{ S = "Carmen", T = "Pero te voy a decir lo mismo que hace años: no tienes que acertar. Tienes que elegir.", Pause = 0.8, Beat = "Mira", To = "Yo", Shot = "PrimerPlano:Carmen" },
+			{ S = "Carmen", T = "Y si te equivocas, se cambia.", Pause = 0.8 },
 			{ S = "Carmen", T = "Nadie se queda donde empieza. Ni siquiera yo: empecé estudiando química. Mírame." },
 		}, Effects = { Rel = { Carmen = 5 } } },
 		PuertasAbiertas = { Lines = {
-			{ S = "Sofia", T = "¡Anda! ¡La persona de los triángulos! Bienvenida, bienvenido a la jornada de puertas abiertas.", If = interes("Interes_Ingenieria") },
+			{ S = "Sofia", T = "¡Anda! ¡La persona de los triángulos! Bienvenid{o/a} a la jornada de puertas abiertas.", If = interes("Interes_Ingenieria") },
 			{ S = "Sofia", T = "¡Bienvenidos a la jornada de puertas abiertas! Aquí están todas las facultades: Medicina, Ingeniería, Derecho, Economía.", If = { NotFlags = { "Interes_Ingenieria" } } },
 			{ S = "Narrador", T = "El campus es enorme. Gente con carpetas, bicicletas, un chico durmiendo en el césped con un libro en la cara." },
 			{ S = "Sara", T = "Aquí vamos a estar el año que viene. O no. Pero da igual: hoy da gusto." },
@@ -195,28 +210,14 @@ return {
 			{ S = "Omar", T = "Me he aprendido todo. Y lo he olvidado todo en el pasillo. ¿Es normal?" },
 			{ S = "Javier", T = "Es normal. Respirad. Nadie es su nota. Pero hoy, por si acaso, haced buena letra." },
 		} },
-		Noche = { Lines = {
-			{ S = "Narrador", T = "Tu cuarto está lleno de cosas de todas las épocas: la foto del grupo, el diploma de primaria, la insignia del club…" },
-			{ S = "Familia", T = "¿No puedes dormir? Yo tampoco dormía la noche antes de decidir. Ven, que hay leche con cacao." },
-			{ S = "Abu", T = "Mira, cariño. A tu edad yo quería enseñar en una escuela, y en casa dijeron que no. Acabé en un taller de costura. Fui feliz. Pero me quedé con las ganas." },
-			{ S = "Abu", T = "Haz lo que te haga feliz. Y si no sale, vuelve a intentarlo. Aquí vamos a estar." },
-			{ S = "Familia", T = "Y con el dinero que ahorraste en aquel verano, algo te ayudará.", If = { Choices = { Meta = "Ahorro" } } },
-			{ S = "Narrador", T = "Cuando tenías diez años, en un banco del parque, dijiste qué querías ser. Te acuerdas perfectamente." },
-		} },
 		Decidido = { Lines = {
-			{ S = "Familia", T = "¡A la universidad! Y a vivir en la residencia del campus… Te voy a echar de menos. Y a tu ropa sucia, no tanto.", If = { Choices = { Futuro = "Universidad" } } },
+			{ S = "Familia", T = "¡A la universidad! Y a vivir en la residencia del campus… Te voy a echar de menos. Y a tu ropa sucia, no tanto.", A = "Happy", Shot = "Medio:Familia", If = { Choices = { Futuro = "Universidad" } } },
 			{ S = "Familia", T = "Allí tendrás que hacerte la compra, la comida, la cama… Todo. Mañana te enseño a hacer una tortilla. Por si acaso. Por si acaso, dos.", If = { Choices = { Futuro = "Universidad" } } },
 			{ S = "Familia", T = "Con tu nota puedes elegir cualquier carrera. ¡Cualquiera! Piénsalo bien antes de matricularte.", If = { Choices = { Futuro = "Universidad" }, Flags = { "Acceso8" } } },
-			{ S = "Familia", T = "¿Trabajar ya? Es una decisión valiente. Y si algún día quieres estudiar, siempre estás a tiempo.", If = { Choices = { Futuro = "Trabajar" } } },
-			{ S = "Abu", T = "Sea lo que sea, lo has elegido tú. Eso es lo que importa." },
-		} },
-		Graduacion = { Lines = {
-			{ S = "Javier", T = "Promoción de este año: cuando llegasteis, no sabíais ni dónde estaba el aula. Algunos esperasteis un ascensor que no existe." },
-			{ S = "Javier", T = "Hoy os vais sabiendo algo más importante: quiénes sois. Más o menos. Que ya es mucho." },
-			{ S = "Narrador", T = "Os hacéis la foto de la orla. Omar con los ojos cerrados. Nico saltando. Sara en su sitio exacto. Tú, en medio." },
-			{ S = "Leire", T = "Esta foto la hago yo. Con la cámara de mi abuelo. Nada de móviles.", If = CON_LEIRE },
-			{ S = "Familia", T = "¡{nombre}! ¡Mírame! ¡Una más! ¡La última! ¡Bueno, otra!" },
-			{ S = "Narrador", T = "El instituto se acaba. Empieza todo lo demás." },
+			{ S = "Familia", T = "¿Trabajar ya?", Pause = 0.8, Beat = "Respira", A = "Surprised", Shot = "PrimerPlano:Familia", If = { Choices = { Futuro = "Trabajar" } } },
+			{ S = "Familia", T = "Es una decisión valiente. Y si algún día quieres estudiar, siempre estás a tiempo.", Pause = 0.6, If = { Choices = { Futuro = "Trabajar" } } },
+			{ S = "Familia", T = "Y quien te contrató aquel verano siempre dice que eres de fiar. Algo de eso habrá.", A = "Happy", If = { Flags = { "EmpiezaATrabajar", "BuenTrabajo" } } },
+			{ S = "Abu", T = "Sea lo que sea, lo has elegido tú. Eso es lo que importa.", Pause = 1, Beat = "Mira", To = "Yo", Shot = "PrimerPlano:Abu" },
 		} },
 	},
 }

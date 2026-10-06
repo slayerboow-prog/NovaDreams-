@@ -27,6 +27,28 @@ local COCINA = {
 	{ Npc = "Candela", Place = "CocinaResidencia", Offset = V(3, 0, 2) },
 }
 
+-- UniS_Cita: la persona invitada está EN la escena (antes hablaba desde ninguna parte, C-09). Mismo
+-- sitio que en la elección (así no se mueve al empezar la invitación); luego te acompaña a la heladería
+-- y a la playa, y en el atardecer está a tu lado.
+local CITA_SITIO = { Julia = V(-8, 0, 4), Adrian = V(-4, 0, 6), Luca = V(4, 0, 6), Carla = V(8, 0, 4) }
+local CITA_ORDEN = { "Julia", "Adrian", "Luca", "Carla" }
+local function citaCon(npc: string): any
+	return { Choices = { Cita = npc } }
+end
+local function citaActores(kind: string): { any }
+	local list = {}
+	for _, npc in CITA_ORDEN do
+		if kind == "Campus" then
+			table.insert(list, { Npc = npc, Place = "Universidad", Offset = CITA_SITIO[npc], If = citaCon(npc) })
+		elseif kind == "Contigo" then
+			table.insert(list, { Npc = npc, Mode = "Follow", If = citaCon(npc) })
+		else
+			table.insert(list, { Npc = npc, Place = "Playa", Offset = V(2, 0, 3), If = citaCon(npc), Mood = "Nervios" })
+		end
+	end
+	return list
+end
+
 return {
 	---------------------------------------------------------------------
 	-- La guerra del zumo de mora
@@ -430,41 +452,44 @@ return {
 					{ Id = "Carla", Npc = "Carla", Text = "Carla" },
 				},
 				Actors = {
-					{ Npc = "Julia", Place = "Universidad", Offset = V(-8, 0, 4) },
-					{ Npc = "Adrian", Place = "Universidad", Offset = V(-4, 0, 6) },
-					{ Npc = "Luca", Place = "Universidad", Offset = V(4, 0, 6) },
-					{ Npc = "Carla", Place = "Universidad", Offset = V(8, 0, 4) },
+					{ Npc = "Julia", Place = "Universidad", Offset = CITA_SITIO.Julia },
+					{ Npc = "Adrian", Place = "Universidad", Offset = CITA_SITIO.Adrian },
+					{ Npc = "Luca", Place = "Universidad", Offset = CITA_SITIO.Luca },
+					{ Npc = "Carla", Place = "Universidad", Offset = CITA_SITIO.Carla },
 				} },
-			{ Type = "Scene", Dialogue = "Invitacion" },
-			{ Type = "Event", Event = "BoughtItem", Match = { ShopId = "Heladeria" }, Place = "Heladeria", Text = "Compra dos helados en la heladería" },
-			{ Type = "Reach", Place = "Playa", Hours = { From = 18, To = 22 }, Text = "Id a ver el atardecer a Playa Dorada (entre las 18:00 y las 22:00)" },
-			{ Type = "Scene", Dialogue = "Atardecer" },
+			-- La invitación: escena escrita a mano, una variante por persona (Happenings/Universidad.luau)
+			{ Type = "Cinematic", Id = "UniS_Cita_Invitacion", Actors = citaActores("Campus") },
+			{ Type = "Event", Event = "BoughtItem", Match = { ShopId = "Heladeria" }, Place = "Heladeria", Text = "Compra dos helados en la heladería", Actors = citaActores("Contigo") },
+			{ Type = "Reach", Place = "Playa", Hours = { From = 18, To = 22 }, Text = "Id a ver el atardecer a Playa Dorada (entre las 18:00 y las 22:00)", Actors = citaActores("Contigo") },
+			{ Type = "Scene", Dialogue = "Atardecer", Actors = citaActores("Playa") },
 		},
 		Dialogues = {
 			Consejo = { Lines = {
 				{ S = "Ivan", T = "Mira. Lo sabe toda la residencia. Cada vez que hablas de clase dices su nombre tres veces. Lo ha contado Candela." },
 				{ S = "Candela", T = "Cuatro coma dos veces de media. Tengo un gráfico. Mi consejo profesional: invítale a un helado. Si sale mal, siempre te queda el helado." },
 			} },
-			Invitacion = { Lines = {
-				{ S = "Julia", T = "¿Un helado? ¿Conmigo? …Vale. Pero yo elijo el sabor. Y no se lo digas a Adrián, que me pregunta todo.", If = { Choices = { Cita = "Julia" } } },
-				{ S = "Adrian", T = "¿Un helado? ¿Tú y yo? …Sí. O sea, sí. Claro. Tengo un hueco a las seis. Lo tenía libre, no es que lo haya quitado ahora mismo.", If = { Choices = { Cita = "Adrian" } } },
-				{ S = "Luca", T = "¿Gelato? ¿Conmigo? Mamma mia. En Bolonia esto es casi un compromiso. Aquí… también un poquito. Sí. Sí, sí.", If = { Choices = { Cita = "Luca" } } },
-				{ S = "Carla", T = "¿Un helado? …¡Llego a tiempo! ¡Te lo prometo! Por primera vez en mi vida, llego a tiempo. Me pongo tres alarmas.", If = { Choices = { Cita = "Carla" } } },
-			} },
 			Atardecer = { Lines = {
-				{ S = "Narrador", T = "Playa Dorada. El sol se esconde detrás del mar. Dos helados, un poco derretidos. Y un silencio que no es incómodo." },
-				{ S = "Julia", T = "¿Sabes? El primer día de clase pensé que eras la persona más despistada del campus. …Sigo pensándolo. Pero me gusta.", If = { Choices = { Cita = "Julia" } } },
-				{ S = "Adrian", T = "Siempre quiero mandar en todo. Contigo no me pasa. No sé si eso es bueno o malo. Creo que bueno.", If = { Choices = { Cita = "Adrian" } } },
-				{ S = "Luca", T = "Cuando llegué aquí no conocía a nadie. Ahora hay alguien con quien quiero ver atardeceres. Eso es mejor que la pasta. Casi.", If = { Choices = { Cita = "Luca" } } },
-				{ S = "Carla", T = "He llegado a tiempo. Y el atardecer también. Es la primera vez que no me pierdo nada importante. Gracias por invitarme.", If = { Choices = { Cita = "Carla" } } },
+				{ S = "Narrador", T = "Playa Dorada. El sol se esconde detrás del mar. Dos helados, un poco derretidos. Y un silencio que no es incómodo.", Shot = "General" },
+				{ S = "Julia", T = "¿Sabes? El primer día de clase pensé que eras la persona más despistada del campus.", If = citaCon("Julia"), Shot = "DosPlanos:Julia,Yo", Pause = 0.8 },
+				{ S = "Julia", T = "…Sigo pensándolo. Pero me gusta.", If = citaCon("Julia"), Beat = "Sonrie", Shot = "PrimerPlano:Julia" },
+				{ S = "Adrian", T = "Siempre quiero mandar en todo. Contigo no me pasa.", If = citaCon("Adrian"), Shot = "DosPlanos:Adrian,Yo", Pause = 0.8 },
+				{ S = "Adrian", T = "No sé si eso es bueno o malo. …Creo que bueno.", If = citaCon("Adrian"), Beat = "Piensa", Shot = "PrimerPlano:Adrian" },
+				{ S = "Luca", T = "Cuando llegué aquí no conocía a nadie. Ahora hay alguien con quien quiero ver atardeceres.", If = citaCon("Luca"), Shot = "DosPlanos:Luca,Yo", Pause = 0.8 },
+				{ S = "Luca", T = "Eso es mejor que la pasta. Casi.", If = citaCon("Luca"), Beat = "Sonrie", Shot = "PrimerPlano:Luca" },
+				{ S = "Carla", T = "He llegado a tiempo. Y el atardecer también.", If = citaCon("Carla"), Shot = "DosPlanos:Carla,Yo", Pause = 0.8 },
+				{ S = "Carla", T = "Es la primera vez que no me pierdo nada importante. Gracias por invitarme.", If = citaCon("Carla"), Beat = "Baja", Shot = "PrimerPlano:Carla" },
 				{ Ask = "¿Qué le dices?", Options = {
 					{ T = "«Me gustas. Me gustas mucho.»", Effects = { Flags = { "TienePareja" }, Traits = { Valentia = 2 } }, Then = {
-						{ S = "Narrador", T = "Te mira. Sonríe. Te coge de la mano. No hace falta decir nada más. El sol termina de esconderse." },
+						{ S = "Julia", T = "…Lo sabía. Desde lo del bolígrafo. Tenía una lista de pruebas.", If = citaCon("Julia"), Pause = 1, Beat = "Sonrie" },
+						{ S = "Adrian", T = "Yo también. Y esto no lo había planeado. Es la primera vez que algo me sale bien sin planearlo.", If = citaCon("Adrian"), Pause = 1, Beat = "Sonrie" },
+						{ S = "Luca", T = "Anche tu. Tú también. En los dos idiomas.", If = citaCon("Luca"), Pause = 1, Beat = "Sonrie" },
+						{ S = "Carla", T = "¿De verdad? …Pues menos mal que he llegado a tiempo.", If = citaCon("Carla"), Pause = 1, Beat = "Sonrie" },
+						{ S = "Narrador", T = "Te coge de la mano. No hace falta decir nada más. El sol termina de esconderse." },
 					} },
 					{ T = "«Eres de las mejores personas que he conocido aquí.»", Effects = { Flags = { "AmistadEspecial" }, Traits = { Empatia = 1 } }, Then = {
 						{ S = "Narrador", T = "Sonríe. «Tú también». Chocáis los helados como si fueran copas. Una amistad así también es un tesoro." },
 					} },
-					{ T = "Te pones tan nervioso o nerviosa que se te cae el helado", Effects = { Traits = { Humor = 2 } }, Then = {
+					{ T = "Te pones tan nervios{o/a} que se te cae el helado", Effects = { Traits = { Humor = 2 } }, Then = {
 						{ S = "Narrador", T = "El helado aterriza en tu zapatilla. Os da un ataque de risa que dura cinco minutos. Te ofrece la mitad del suyo. Eso ya es una respuesta." },
 					} },
 				} },
