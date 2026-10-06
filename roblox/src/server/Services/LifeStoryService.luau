@@ -88,7 +88,7 @@ end
 
 -- Quien quiera enterarse de lo que pasa en la historia (registro de desarrollo, pruebas, panel de
 -- depuración): fn(kind, player, questId, info). kind = QuestStart, QuestDone, QuestInvalid,
--- StepEnter, StepDone, StepSkip, StepTimeout, Dialogue, Recover.
+-- StepEnter, StepDone, StepSkip, StepTimeout, Dialogue, Recover, PlaceSkipped (lugar que falta: { Place, Text }).
 local observers: { (string, Player, string?, { [string]: any }?) -> () } = {}
 function LifeStoryService.observe(fn: (string, Player, string?, { [string]: any }?) -> ())
 	table.insert(observers, fn)
@@ -156,6 +156,9 @@ type Runtime = {
 	HeldNotice: { [string]: boolean }?, -- avisos «📱 … quiere hablar contigo» ya mandados (misión:paso:motivo)
 	CineHeld: { [string]: number }?, -- misión -> paso de escena de cine que espera a poder verse
 	UntrackedPingAt: number?, -- último aviso de una misión que no sigues (como mucho uno por minuto)
+	SceneSeen: { [string]: any }?, -- (inScene) valor de InScene/InCinematic visto y desde cuándo
+	SceneAck: number?, -- (inScene) último latido de escena o CinematicSeen de su pantalla (os.clock)
+	LocalClock: { Quest: string, Until: number }?, -- hora de una Transition puesta solo para ti (StoryClock)
 }
 local runtime: { [Player]: Runtime } = {}
 local PROLOGUE = StoryContext.PrologueId
@@ -276,13 +279,80 @@ local function moment(player: Player, key: string, args: { [string]: any }?, sti
 	LifeStoryService.logEvent(player, key, args, "Moment")
 end
 
--- ¿Está ya ocupado el jugador? (una conversación, un minijuego o una clase: no se empieza otra cosa encima)
+-- ¿Está viendo una escena de cámara (cinemática o escena del motor)? Lo dicen los atributos del jugador:
+-- InScene lo pone el SERVIDOR al lanzar la escena y lo quita al acabar (CinematicService); InCinematic
+-- lo pone el cliente (en el servidor solo se ve si alguien lo copia). Vale cualquier valor «encendido»
+-- (true, el nombre de la escena, un número). Por si alguien se olvida de quitarlo, pasado
+-- SceneMaxSeconds seguido con el mismo valor deja de contar: la historia nunca se queda parada.
+-- Con CinematicService.inScene (la respuesta buena), la escena cuenta cuando la pantalla CONFIRMA que
+-- la está enseñando: su latido (Remotes.Scene "Beat", cada segundo) o CinematicSeen, en los últimos
+-- SceneAckSeconds. Una escena que el servidor ha lanzado pero ninguna pantalla enseña (aún cargando,
+-- o sin cliente) no para la historia.
+LifeStoryService.SceneMaxSeconds = 180
+LifeStoryService.SceneAckSeconds = 5
+
+-- La pantalla del jugador dice que tiene una escena delante (latido o CinematicSeen)
+function LifeStoryService.sceneBeat(player: Player)
+	local rt = runtime[player]
+	if rt then
+		rt.SceneAck = os.clock()
+	end
+end
+local function sceneFlag(value: any): boolean
+	return value ~= nil and value ~= false and value ~= "" and value ~= 0
+end
+local function inScene(player: Player): boolean
+	-- La respuesta buena es la de CinematicService.inScene (el mismo InScene, pero caduca las escenas
+	-- colgadas). Si existe, manda para InScene; InCinematic se sigue mirando en el atributo
+	local scene = nil
+	local ok, authoritative = pcall(function()
+		local fn = (CinematicService :: any).inScene
+		if type(fn) ~= "function" then
+			return nil
+		end
+		return fn(player) == true
+	end)
+	if ok and authoritative ~= nil then
+		local rt0 = runtime[player]
+		local confirmed = rt0 ~= nil and rt0.SceneAck ~= nil and os.clock() - rt0.SceneAck <= LifeStoryService.SceneAckSeconds
+		scene = if authoritative and confirmed then (player:GetAttribute("SceneId") or "InScene") else nil
+	else
+		scene = player:GetAttribute("InScene")
+	end
+	local cine = player:GetAttribute("InCinematic")
+	local rt = runtime[player]
+	if not sceneFlag(scene) and not sceneFlag(cine) then
+		if rt then
+			rt.SceneSeen = nil
+		end
+		return false
+	end
+	if rt then
+		local key = tostring(scene) .. "|" .. tostring(cine)
+		local seen = rt.SceneSeen
+		if not seen or seen.Key ~= key then
+			seen = { Key = key, Since = os.clock() }
+			rt.SceneSeen = seen
+		end
+		if os.clock() - seen.Since > LifeStoryService.SceneMaxSeconds then
+			if not seen.Warned then
+				seen.Warned = true
+				Log.warn("WATCHDOG", "%s: la escena (%s) lleva más de %d s puesta; la historia sigue sin esperarla", player.Name, key, LifeStoryService.SceneMaxSeconds)
+			end
+			return false
+		end
+	end
+	return true
+end
+
+-- ¿Está ya ocupado el jugador? (una conversación, un minijuego, una clase o una escena de cámara: no
+-- se empieza otra cosa encima, ni salen avisos, ofertas o decisiones tapándola)
 local function busy(player: Player): boolean
 	local rt = runtime[player]
 	if rt and (rt.Busy or rt.ClassFor ~= nil) then
 		return true
 	end
-	return DialogueService.isBusy(player) or MiniGameService.isRunning(player) or ClassService.isRunning(player)
+	return DialogueService.isBusy(player) or MiniGameService.isRunning(player) or ClassService.isRunning(player) or inScene(player)
 end
 
 -- ¿Muerto (esperando a reaparecer en el hospital), detenido o en un juicio? Entonces la historia no
@@ -1331,20 +1401,27 @@ local function sceneAnchor(player: Player, data: Data, questId: string): Vector3
 	return nil
 end
 
--- Si la misión que estabas jugando pasa en otro sitio, te lleva allí (una sola vez, al entrar)
-local function returnToScene(player: Player, data: Data)
+-- Si la misión que estabas jugando pasa en otro sitio, te lleva allí (una sola vez, al entrar).
+-- only = solo mira esa misión (al reaparecer: la que sigues)
+local function returnToScene(player: Player, data: Data, only: string?)
 	local story = storyOf(data)
 	local root = LocationService.positionOf(player)
 	if not root or held(player) then
 		return -- (muerto o detenido: se queda donde está)
 	end
 	local ids = {}
-	if story.Tracked and story.Active[story.Tracked] then
-		table.insert(ids, story.Tracked)
-	end
-	for id in story.Active do
-		if id ~= story.Tracked then
-			table.insert(ids, id)
+	if only then
+		if story.Active[only] then
+			table.insert(ids, only)
+		end
+	else
+		if story.Tracked and story.Active[story.Tracked] then
+			table.insert(ids, story.Tracked)
+		end
+		for id in story.Active do
+			if id ~= story.Tracked then
+				table.insert(ids, id)
+			end
 		end
 	end
 	for _, questId in ids do
@@ -1593,6 +1670,46 @@ end
 
 -- Prepara el paso actual de una misión. Los pasos "instantáneos" (Moment, Transition, If que no
 -- se cumple) se resuelven aquí mismo y se pasa al siguiente.
+---------------------------------------------------------------------
+-- Hora solo para ti (M-01). Un paso Transition que dice una hora («Esa noche…», «Al día siguiente…»,
+-- Clock = 7.5) mueve el reloj del servidor si juegas solo. Con más gente el reloj es de todos y no se
+-- toca: el servidor pone en el jugador el atributo StoryClock (hora 0-24) y el cliente pinta la luz
+-- de esa hora solo en su pantalla, con fundido, hasta que el atributo se quita (nil). Se quita al
+-- acabar (o quitarse) la misión que lo pidió, con otra Transition de esa misión que no dice hora,
+-- y como mucho a los LocalClockSeconds (luego manda otra vez el reloj de todos).
+---------------------------------------------------------------------
+LifeStoryService.LocalClockSeconds = 300
+
+local function setLocalClock(player: Player, questId: string, clock: number)
+	local rt = runtime[player]
+	player:SetAttribute("StoryClock", clock % 24)
+	if rt then
+		rt.LocalClock = { Quest = questId, Until = os.clock() + LifeStoryService.LocalClockSeconds }
+	end
+end
+
+local function clearLocalClock(player: Player)
+	local rt = runtime[player]
+	if rt then
+		rt.LocalClock = nil
+	end
+	if player:GetAttribute("StoryClock") ~= nil then
+		player:SetAttribute("StoryClock", nil)
+	end
+end
+
+-- (en cada vuelta) ¿Sigue valiendo la hora local?
+local function checkLocalClock(player: Player, data: Data)
+	local rt = runtime[player]
+	local lc = rt and rt.LocalClock
+	if not lc then
+		return
+	end
+	if os.clock() > lc.Until or not storyOf(data).Active[lc.Quest] then
+		clearLocalClock(player)
+	end
+end
+
 local function enterStep(player: Player, data: Data, questId: string)
 	local story = storyOf(data)
 	local quest = Quests[questId]
@@ -1636,16 +1753,31 @@ local function enterStep(player: Player, data: Data, questId: string)
 		elseif step.Type == "Transition" then
 			-- La hora del día va con lo que dice («Esa noche…», «Al día siguiente…»): si juegas solo
 			-- en el servidor, el reloj salta (como al dormir); con más gente, el reloj es de todos
+			-- Con más gente, la hora cambia SOLO en tu pantalla (atributo StoryClock, ver setLocalClock):
+			-- antes salía «Esa noche…» con el cielo de día
 			local clock = step.Clock or LifeStoryService.clockFor(step.Text or step.TextKey)
+			local localClock = false
 			if clock and #Players:GetPlayers() <= 1 then
+				clearLocalClock(player)
 				pcall(function()
 					require(script.Parent.WorldService).skipTo(clock)
 				end)
+			elseif clock then
+				localClock = true
+				setLocalClock(player, questId, clock)
+			elseif rt and rt.LocalClock and rt.LocalClock.Quest == questId then
+				-- «Un mes después…»: la noche de antes ya no vale
+				clearLocalClock(player)
 			end
 			if step.Cinematic then
 				CinematicService.play(player, step.Cinematic)
 			else
-				send(player, "Transition", { TextKey = step.Text or step.TextKey, Seconds = step.Seconds or 4 })
+				send(player, "Transition", {
+					TextKey = step.Text or step.TextKey,
+					Seconds = step.Seconds or 4,
+					Clock = clock, -- (la hora de la que habla el texto, si dice una)
+					LocalClock = if localClock then true else nil, -- solo en tu pantalla (StoryClock)
+				})
 			end
 			if step.SetStage then
 				LifeStoryService.setStage(player, step.SetStage)
@@ -2309,7 +2441,7 @@ local function canOffer(player: Player, data: Data, questId: string): boolean
 		return false
 	end
 	-- Nada se ofrece en mitad de una conversación, una escena o una clase (el aviso taparía lo que pasa)
-	if rt.Busy or DialogueService.isBusy(player) or player:GetAttribute("InDialogue") then
+	if rt.Busy or DialogueService.isBusy(player) or player:GetAttribute("InDialogue") or inScene(player) then
 		return false
 	end
 	-- Las canónicas (la saga) no esperan: no cuentan para el límite de secundarias ni se pueden rechazar
@@ -2479,25 +2611,21 @@ local function afterRevive(player: Player)
 	if not data or not rt or not rt.Ready or not player.Parent or held(player) then
 		return
 	end
+	-- Solo la misión que SIGUES (la del panel y el GPS): antes valía el Teleport del paso de cualquier
+	-- misión activa, y una secundaria que no seguías te llevaba a la otra punta de la ciudad (M-02).
+	-- (el fundido lo pone SceneService.teleport/teleportTo)
+	local questId = trackedQuest(data)
+	if not questId then
+		return
+	end
 	local story = storyOf(data)
-	local ids = {}
-	if story.Tracked and story.Active[story.Tracked] then
-		table.insert(ids, story.Tracked)
+	local prog = story.Active[questId]
+	local step = prog and stepsOf(questId, prog)[prog.Step]
+	if step and step.Teleport then
+		SceneService.teleport(player, step.Teleport)
+		return
 	end
-	for id in story.Active do
-		if id ~= story.Tracked then
-			table.insert(ids, id)
-		end
-	end
-	for _, questId in ids do
-		local prog = story.Active[questId]
-		local step = prog and stepsOf(questId, prog)[prog.Step]
-		if step and step.Teleport then
-			SceneService.teleport(player, step.Teleport)
-			return
-		end
-	end
-	returnToScene(player, data)
+	returnToScene(player, data, questId)
 end
 
 local function onStoryEvent(player: Player, name: string, payload: { [string]: any })
@@ -2740,6 +2868,18 @@ local function recover(player: Player, questId: string, what: string, fmt: strin
 	notify("Recover", player, questId, { What = what })
 end
 
+-- El sitio del paso no está en el mapa y el vigilante lo da por hecho (M-03): antes la historia
+-- seguía en silencio y el jugador no sabía por qué. Ahora se le dice, como parte de la historia
+LifeStoryService.MissingPlaceText = "Al final no hace falta ir a {place}. La historia sigue."
+local function missingPlaceNotice(player: Player, questId: string, placeId: string?)
+	local place = placeId and Locations.Places[placeId]
+	local name = if place and place.NameKey then Strings.get(place.NameKey) else "ese sitio"
+	local text = Strings.get(LifeStoryService.MissingPlaceText, { place = name })
+	notifyPlayer(player, "Info", text)
+	Log.warn("MISSION", "%s · %s: falta el lugar '%s' en el mapa; paso saltado con aviso", player.Name, questId, tostring(placeId))
+	notify("PlaceSkipped", player, questId, { Place = placeId, Text = text })
+end
+
 -- ¿Qué personajes y objetos necesita el paso para poder cumplirse?
 local function neededBy(step: { [string]: any }, prog: Progress): ({ string }, { string })
 	local npcs, props = {}, {}
@@ -2805,7 +2945,8 @@ local function watchdog(player: Player, data: Data, questId: string, prog: Progr
 		rt.Busy = false
 		recover(player, questId, "Busy", "la historia estaba ocupada sin conversación ni minijuego: liberada")
 	end
-	local busy = rt.Busy or DialogueService.isBusy(player) or MiniGameService.isRunning(player) or ClassService.isRunning(player)
+	-- (durante una escena de cámara tampoco: la decisión no se reenvía encima de la escena)
+	local busy = rt.Busy or DialogueService.isBusy(player) or MiniGameService.isRunning(player) or ClassService.isRunning(player) or inScene(player)
 	if busy then
 		return false
 	end
@@ -2866,6 +3007,7 @@ local function watchdog(player: Player, data: Data, questId: string, prog: Progr
 	end
 	if (step.Type == "Reach" or (step.Type == "Escape" and step.Place)) and stalled > W.MissingPlace and not step.Hours and placeMissing(step) then
 		recover(player, questId, "Place", "el sitio '%s' no está en el mapa: paso dado por hecho", tostring(step.Place))
+		missingPlaceNotice(player, questId, stepPlace(step, storyOf(data)))
 		advance(player, data, questId)
 		return true
 	elseif step.Type == "Group" and stalled > W.MissingPlace then
@@ -2877,6 +3019,7 @@ local function watchdog(player: Player, data: Data, questId: string, prog: Progr
 				prog.Sub[k] = true
 				changed = true
 				recover(player, questId, "Place", "el sitio '%s' no está en el mapa: tarea dada por hecha", tostring(child.Place))
+				missingPlaceNotice(player, questId, stepPlace(child, storyOf(data)))
 			end
 		end
 		if changed and groupDone(step, prog.Sub or {}, contextFor(player, data)) then
@@ -2912,6 +3055,7 @@ local function tickPlayer(player: Player, data: Data)
 	if story.Loans then
 		returnLoans(player, data)
 	end
+	checkLocalClock(player, data)
 	local ids = {}
 	for id in story.Active do
 		table.insert(ids, id)
@@ -3723,6 +3867,7 @@ local function onRemote(player: Player, kind: any, questId: any, value: any)
 			if kind == "CinematicDone" then
 				CinematicService.clientDone(player, questId)
 			else
+				LifeStoryService.sceneBeat(player)
 				CinematicService.clientSeen(player, questId)
 			end
 		end
@@ -3928,6 +4073,19 @@ function LifeStoryService.init()
 		Remote.Parent = remotes
 	end
 	Remote.OnServerEvent:Connect(onRemote)
+	-- El latido de las escenas (SceneClient → Remotes.Scene "Beat"; el remoto lo crea CinematicService)
+	task.spawn(function()
+		pcall(function()
+			local scene = remotes:WaitForChild("Scene", 15)
+			if scene and scene:IsA("RemoteEvent") then
+				(scene :: RemoteEvent).OnServerEvent:Connect(function(player: Player, kind: any)
+					if kind == "Beat" then
+						LifeStoryService.sceneBeat(player)
+					end
+				end)
+			end
+		end)
+	end)
 
 	StoryEvents.connect(onStoryEvent)
 	DataService.onLoaded(onLoaded)

@@ -373,11 +373,31 @@ local function nestedParts(x: Instance): number
 	return n
 end
 
+-- Un Model/Folder que solo envuelve UNA malla (así llega casi todo el «mesh pack» europeo en un servidor
+-- de verdad: «206_4/Object_4/Object_0», ruedas «wheel.036_0/Object_72/Object_2») cuenta como esa malla
+local function wrappedMesh(x: Instance): boolean
+	if not (x:IsA("Model") or x:IsA("Folder")) then
+		return false
+	end
+	local only: BasePart? = nil
+	for _, d in x:GetDescendants() do
+		if d:IsA("BasePart") then
+			if only then
+				return false
+			end
+			only = d
+		end
+	end
+	return only ~= nil and only:IsA("MeshPart")
+end
+
 local function meshCount(x: Instance): number
 	local n = 0
 	for _, c in x:GetChildren() do
 		if c:IsA("MeshPart") then
 			n += 1 + nestedParts(c)
+		elseif wrappedMesh(c) then
+			n += 1
 		end
 	end
 	return n
