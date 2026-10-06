@@ -263,6 +263,19 @@ end)
 pcall(function()
 	local MaterialService = game:GetService("MaterialService")
 	recuento.MaterialService = ("%d MaterialVariant"):format(contar(MaterialService, function(d) return d:IsA("MaterialVariant") end))
+	-- (los mapas de MaterialLook vienen puestos en el archivo: aquí se ve el del asfalto)
+	local asfalto = MaterialService:FindFirstChild("Asfalto") :: any
+	local function leer(prop: string): string
+		local ok, v = pcall(function()
+			return asfalto[prop]
+		end)
+		return if ok then tostring(v) else "(no se puede leer)"
+	end
+	recuento.Asfalto = if asfalto
+		then ("BaseMaterial=%s; ColorMap=%s; ColorMapContent=%s; NormalMap=%s; override Asphalt=%s"):format(
+			leer("BaseMaterial"), leer("ColorMap"), leer("ColorMapContent"), leer("NormalMap"),
+			tostring(MaterialService:GetBaseMaterialOverride(Enum.Material.Asphalt)))
+		else "no hay variant «Asfalto»"
 end)
 recuento.Workspace = ("%d descendientes"):format(#workspace:GetDescendants())
 

@@ -216,3 +216,26 @@ arranque completo en 31,4 s.
 - Siguiente paso: que `scripts/build-place.luau` escriba en el archivo los mapas (con los ids de imagen
   ya convertidos, como `Images.map`), los atributos y el override. Y que `MaterialLook.setup` solo
   escriba los mapas si cambian, dentro de un `pcall`.
+
+## Verificación v97
+
+Generado `src/shared/TextureImageIds.luau` en un servidor real (`bash scripts/textures/image-ids.sh`, que lanza
+`scripts/cloud/imagenes-texturas.luau`): **54 de 54** Decals de `shared/TextureIds` dan su id de imagen.
+Publicada la **versión 97** (commit `609cc3e`, con `bash scripts/publish.sh`; `test-compile` y `test-textures`
+pasan en local). Probada con `bash scripts/cloud-test.sh --version 97 -v diag-arranque-completo`:
+**14 bien, 0 mal, 1 aviso** (BusinessService tarda 4,2 s), arranque completo en 162,8 s.
+
+- ✅ **0 errores y 0 avisos** en la consola. Ya no sale ningún `lacking capability Plugin` de MaterialLook.
+- ✅ Se imprime `[MaterialLook] 17 materiales con textura: AceraBaldosa, Arena, Asfalto, Azulejo, Bordillo,
+  CespedSuelo, Estuco, Hormigon, Ladrillo, Madera, MaderaVeta, Marmol, MetalCepillado, MetalPintado,
+  PinturaCoche, PinturaVial, Teja`. `MaterialService` tiene 233 `MaterialVariant`.
+- ✅ El variant **«Asfalto»** tiene `BaseMaterial=Asphalt` y su textura: un Script del servidor tampoco puede
+  **leer** `ColorMap`/`ColorMapContent`/`NormalMap` (`cannot read 'ColorMap' (lacking capability Plugin)`), así
+  que se comprobó serializándolo con `SerializationService:SerializeInstancesAsync` en el servidor de la
+  versión 97 y leyendo el resultado: `ColorMap = rbxassetid://132300826230680` (la imagen del Decal
+  `Asfalto_color` 103492487753097, igual que en `TextureImageIds`), `NormalMap = rbxassetid://90463016255606`
+  y `RoughnessMap = rbxassetid://79269159699824`.
+- ℹ️ El override de `Asphalt` es `U_Real_Asphalt`: el pack de materiales del dueño (World/UserMaterials) gana,
+  como está previsto; «Asfalto» se usa en las piezas a las que MaterialLook se lo asigna.
+- `diag-arranque-completo` ahora enseña también el «Recuento Asfalto» (BaseMaterial, mapas si se pueden leer
+  y el override del asfalto).
