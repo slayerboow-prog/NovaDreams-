@@ -97,13 +97,30 @@ local function fromFolder(file: string?): string?
 	return nil
 end
 
--- Por orden: el Id de Config.Audio, el de shared/SoundIds (scripts/upload-audio.sh --music, por el
--- nombre del archivo) y la copia de ReplicatedStorage.Musica
-local function assetId(id: number?, file: string?): string?
-	if id and id > 0 then
-		return "rbxassetid://" .. id
+-- Audios que en esta partida no han cargado (privados, de otro dueño, en revisión, borrados…):
+-- no se vuelven a pedir y se usa la copia siguiente o la pieza de reserva (Fallback)
+local broken: { [string]: boolean } = {}
+
+-- Las copias de un audio que se pueden probar, por orden: el Id de Config.Audio, el de shared/SoundIds
+-- (scripts/upload-audio.sh, por el nombre del archivo) y la de ReplicatedStorage.Musica. Sin repetir y
+-- sin las que ya han fallado.
+local function copiesOf(id: number?, file: string?): { string }
+	local list = {}
+	local function add(candidate: string?)
+		if type(candidate) == "string" and candidate ~= "" and not broken[candidate] and not table.find(list, candidate) then
+			table.insert(list, candidate)
+		end
 	end
-	return SoundFx.uploaded(file) or fromFolder(file)
+	if type(id) == "number" and id > 0 then
+		add("rbxassetid://" .. string.format("%d", id))
+	end
+	add(SoundFx.uploaded(file))
+	add(fromFolder(file))
+	return list
+end
+
+local function assetId(id: number?, file: string?): string?
+	return copiesOf(id, file)[1]
 end
 
 local function targetVolume(base: number): number
@@ -133,6 +150,32 @@ local function waitLoaded(sound: Sound, seconds: number): boolean
 	return loaded or sound.IsLoaded
 end
 
+-- ¿Se puede descargar este audio? true / false (no: privado, de otro dueño, rechazado…) / nil (no se
+-- sabe). Lo pregunta a ContentProvider, que contesta en cuanto Roblox lo sabe (sin esperar 15 s).
+local function fetchStatus(id: string): boolean?
+	local result: boolean? = nil
+	pcall(function()
+		local provider = game:GetService("ContentProvider")
+		provider:PreloadAsync({ id }, function(_, status)
+			local name = tostring(status)
+			if string.find(name, "Success", 1, true) then
+				result = true
+			elseif string.find(name, "Failure", 1, true) then
+				result = false
+			end
+		end)
+	end)
+	return result
+end
+
+-- ¿Suena este Sound con este audio? (false = no carga: hay que probar otra copia)
+local function loads(sound: Sound, id: string): boolean
+	if fetchStatus(id) == false then
+		return false
+	end
+	return waitLoaded(sound, LOAD_TIMEOUT)
+end
+
 local function fadeTo(sound: Sound, volume: number, seconds: number)
 	TweenService:Create(sound, TweenInfo.new(seconds), { Volume = volume }):Play()
 end
@@ -141,9 +184,10 @@ end
 -- Música
 ---------------------------------------------------------------------
 
--- La pieza que suena de verdad para una pieza pedida: ella si tiene audio; si no, su Fallback
--- (otra pieza de Config.Audio.Music), y así. nil = ninguna tiene audio (silencio).
-local function resolveTrack(cue: string?): (string?, { [string]: any }?, string?)
+-- La pieza que suena de verdad para una pieza pedida: ella si tiene alguna copia que no haya fallado;
+-- si no, su Fallback (otra pieza de Config.Audio.Music), y así. Devuelve también sus copias, por orden.
+-- nil = ninguna tiene audio (silencio).
+local function resolveTrack(cue: string?): (string?, { [string]: any }?, { string }?)
 	local seen = {}
 	while cue and not seen[cue] do
 		seen[cue] = true
@@ -151,9 +195,9 @@ local function resolveTrack(cue: string?): (string?, { [string]: any }?, string?
 		if not track then
 			return nil, nil, nil
 		end
-		local id = assetId(track.Id, track.File)
-		if id then
-			return cue, track, id
+		local ids = copiesOf(track.Id, track.File)
+		if #ids > 0 then
+			return cue, track, ids
 		end
 		cue = track.Fallback
 	end
@@ -172,7 +216,7 @@ end
 -- Cambia la música con un fundido cruzado. cue = nil para quedarse sin música.
 function playMusic(cue: string?, volumeScale: number, fade: number?)
 	local seconds = fade or 2
-	local playing, track, id = resolveTrack(cue)
+	local playing, track, ids = resolveTrack(cue)
 	if current and playing and current.Cue == playing then
 		-- (la misma pieza: solo cambia el volumen; p. ej. una intensidad cuyo Fallback ya suena)
 		current.Volume = ((track :: any).Volume or 0.4) * volumeScale
@@ -187,37 +231,45 @@ function playMusic(cue: string?, volumeScale: number, fade: number?)
 		end)
 		current = nil
 	end
-	if not playing or not track or not id then
+	if not playing or not track or not ids then
 		return
 	end
 	local sound = Instance.new("Sound")
 	sound.Name = "Music_" .. playing
-	sound.SoundId = id
+	sound.SoundId = ids[1]
 	sound.Looped = track.Looped == true
 	sound.Volume = 0
 	sound.SoundGroup = SoundFx.group("Music")
 	sound.Parent = holder()
 	sound:Play()
-	-- Si Roblox no deja cargar el audio (permisos o revisión), se prueba la copia de
-	-- ReplicatedStorage.Musica; si tampoco hay, se queda en silencio (aviso solo en la ventana Salida)
-	task.spawn(function()
-		if waitLoaded(sound, LOAD_TIMEOUT) or not sound.Parent then
-			return
-		end
-		-- (otra copia: la subida con scripts/upload-audio.sh --music o la de ReplicatedStorage.Musica)
-		local fallback = SoundFx.uploaded(track.File) or fromFolder(track.File)
-		if fallback == id then
-			fallback = fromFolder(track.File)
-		end
-		if fallback and fallback ~= id then
-			warn(("[Música] No se ha podido cargar «%s» (%s): se usa otra copia (%s)."):format(playing :: string, id, fallback))
-			sound.SoundId = fallback
-			sound:Play()
-			if waitLoaded(sound, LOAD_TIMEOUT) or not sound.Parent then
+	-- Si Roblox no deja cargar el audio (privado, de otro dueño, en revisión), se prueba la copia
+	-- siguiente (SoundIds, ReplicatedStorage.Musica); si ninguna carga, la pieza de reserva (Fallback).
+	-- Antes se quedaba en silencio para siempre. El aviso sale en la ventana Salida (F9).
+	-- (task.defer: la comprobación empieza cuando esta pieza ya es la que suena)
+	task.defer(function()
+		for i, id in ids do
+			if not sound.Parent then
 				return
 			end
+			if i > 1 then
+				warn(("[Música] No se ha podido cargar «%s» (%s): se prueba otra copia (%s)."):format(playing :: string, ids[i - 1], id))
+				sound.SoundId = id
+				sound:Play()
+			end
+			if loads(sound, id) then
+				return
+			end
+			if not sound.Parent then
+				return -- (la escena ya ha cambiado de música: no es que falle)
+			end
+			broken[id] = true
 		end
-		warn(("[Música] No se ha podido cargar «%s» (%s). ¿Sigue en revisión o el juego no es del mismo dueño que el audio?"):format(playing :: string, sound.SoundId))
+		warn(("[Música] No se ha podido cargar «%s» (%s). ¿Sigue en revisión o el audio no es del dueño del juego? Se usa la pieza de reserva."):format(playing :: string, table.concat(ids, ", ")))
+		if current and current.Sound == sound then
+			current = nil
+			sound:Destroy()
+			playMusic(cue, volumeScale, 1) -- (ya sin las copias rotas: su Fallback, o nada)
+		end
 	end)
 	current = { Cue = playing :: string, Sound = sound, Volume = (track.Volume or 0.4) * volumeScale }
 	fadeTo(sound, targetVolume(current.Volume), seconds)
@@ -379,7 +431,7 @@ local function pickOption(layer: { [string]: any }): (string?, string?, number, 
 			name, scale, pitch = option.Sound, option.Scale or 1, option.Pitch or 1
 		end
 		local id = type(name) == "string" and SoundFx.id(name) or nil
-		if id then
+		if id and not broken[id] then
 			return name, id, scale, pitch
 		end
 	end
@@ -407,6 +459,8 @@ local function updateLayers(fade: number)
 	end
 end
 
+local applyAmbience: (kind: string, fade: number?) -> ()
+
 local function newLayer(name: string, id: string, pitch: number): Sound
 	local sound = Instance.new("Sound")
 	sound.Name = "Ambience_" .. name
@@ -426,6 +480,20 @@ local function newLayer(name: string, id: string, pitch: number): Sound
 	end
 	sound.Parent = holder()
 	sound:Play()
+	-- Si este audio no carga, la capa pasa a su opción siguiente (p. ej. el murmullo en vez de la calle).
+	-- (task.defer: cuando la capa ya está puesta)
+	task.defer(function()
+		if loads(sound, id) or not sound.Parent then
+			return
+		end
+		broken[id] = true
+		warn(("[Ambiente] No se ha podido cargar «%s» (%s): se usa otro sonido."):format(name, id))
+		local kind = ambKind
+		if kind then
+			ambKind = nil
+			pcall(applyAmbience, kind, 1)
+		end
+	end)
 	return sound
 end
 
@@ -459,7 +527,7 @@ end
 
 -- Pone el ambiente de un tipo con un fundido cruzado. Las capas que siguen (p. ej. el aire de sala de
 -- un interior a otro) no se cortan: solo cambian de volumen.
-local function applyAmbience(kind: string, fade: number?)
+function applyAmbience(kind: string, fade: number?)
 	if kind == ambKind then
 		return
 	end
@@ -931,8 +999,9 @@ function StoryAudio.init()
 		ResetOnSpawn = false,
 		Parent = player:WaitForChild("PlayerGui"),
 	})
-	-- Música de fondo siempre: si la historia no ha puesto la de su capítulo, suena la de tu etapa
-	task.delay(6, function()
+	-- Música de fondo siempre, desde que apareces (Música: sí por defecto): si la historia no ha puesto
+	-- la de su capítulo, suena la de tu etapa
+	task.delay(AUDIO.BootDelay or 2, function()
 		if not ambientCue then
 			StoryAudio.setAmbient(chapterCue)
 		end
