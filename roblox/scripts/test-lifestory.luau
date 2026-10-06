@@ -31,6 +31,40 @@ local screenCinematic = cinematic
 cinematic = function(p, id: string): boolean
 	return screenCinematic(p, id) or (scenesPlayed[p] ~= nil and scenesPlayed[p][id] == true)
 end
+-- Lo que se dice en esas escenas (pista Dialogue/Lines) también cuenta para «said»: al lanzarse, se
+-- resuelven sus variantes y condiciones con la partida del jugador (lo mismo que hace el servidor)
+local HappeningServiceT = loadModule(ROOT .. "/server/Services/HappeningService")
+local HappeningIndexT = loadModule(ROOT .. "/shared/LifeStory/HappeningIndex")
+local SequencerT = loadModule(ROOT .. "/shared/LifeStory/Sequencer")
+local sceneTexts: { [any]: { string } } = {}
+local realPlay = HappeningServiceT.play
+HappeningServiceT.play = function(p, id, opts)
+	pcall(function()
+		local def = HappeningIndexT.get(id)
+		if def then
+			local expanded = SequencerT.expand(def, SequencerT.resolve(def, HappeningServiceT.checker(p, opts)))
+			sceneTexts[p] = sceneTexts[p] or {}
+			for _, track in { "Dialogue", "Lines" } do
+				for _, line in expanded.Tracks[track] or {} do
+					table.insert(sceneTexts[p], line.T or line.Text or "")
+				end
+			end
+		end
+	end)
+	return realPlay(p, id, opts)
+end
+local screenSaid = H.said
+local function sceneSaid(p, fragment: string): boolean
+	for _, text in sceneTexts[p] or {} do
+		if text:find(fragment, 1, true) then
+			return true
+		end
+	end
+	return false
+end
+H.said = function(p, fragment: string): boolean
+	return screenSaid(p, fragment) or sceneSaid(p, fragment)
+end
 
 ---------------------------------------------------------------------
 -- Pruebas
@@ -898,7 +932,7 @@ check(playUntil(leo, function()
 end), "Universidad 01 completa")
 check(said(leo, "te da un reloj viejo") and leoData.Items.RelojAbu == 1, "{abu} te regala su reloj")
 check(leoData.Story.Choices.Estudios and leoData.Story.Choices.Estudios.V == "Ingenieria", "Elige Ingeniería el primer día, en la matrícula (su nota se lo permite)")
-check(said(leo, "Tus compañeros de cuarto llegan mañana"), "Su primera noche es en la residencia de estudiantes")
+check(said(leo, "Dos camas más, todavía vacías"), "Su primera noche es en la residencia de estudiantes")
 
 print("\n▶ Universidad · La residencia (compañeros de cuarto, la compra, la nevera, la primera cena)")
 check(playUntil(leo, function()
@@ -906,9 +940,9 @@ check(playUntil(leo, function()
 end), "La residencia completa")
 check(said(leo, "Son sagradas") and leoData.Items.LlaveResidencia == 1 and leoData.Story.Choices.Normas ~= nil, "Iván y Candela (de su clase), las normas de la nevera y la llave de la 214")
 check(said(leo, "Facultad de Ingeniería. Física el primer día") and table.find(classesOf(leo), "Fisica") ~= nil, "El horario y la clase son los de tu carrera (Ingeniería)")
-check(said(leo, "Juntos otra vez."), "Mateo (tu primer amigo) estudia Ingeniería contigo")
+check(said(leo, "Otra vez juntos."), "Mateo (tu primer amigo) estudia Ingeniería contigo")
 check(said(leo, "me ha dado croquetas gratis") and said(leo, "Por eso me hice voluntario"), "Descubres el campus y comes con Luca")
-check(said(leo, "Me han llamado «el nuevo»") and leoData.Items.CarnetUniversitario == 1 and leoData.Story.Memories.PrimerDiaUni ~= nil, "Por la noche, el grupo de siempre por mensajes; carnet y recuerdo")
+check(said(leo, "Me llaman «el nuevo»") and leoData.Items.CarnetUniversitario == 1 and leoData.Story.Memories.PrimerDiaUni ~= nil, "Por la noche, el grupo de siempre por mensajes; carnet y recuerdo")
 
 print("\n▶ Universidad 02 «El proyecto» (un grupo con personalidades)")
 leo.Prefer = { "No tienes que cargar", "Coordinar no es mandar", "Hacemos las reuniones por la mañana", "¿Y si haces la música", "Cada uno en lo que se le da bien" }
@@ -972,8 +1006,8 @@ check(playUntil(leo, function()
 	return leoData.Story.Completed.Uni06_Graduacion ~= nil
 end), "Universidad 06 completa")
 check(leoData.Story.Choices.LookGraduacion.V == "Dinosaurios" and said(leo, "Tienes trabajo esperando"), "La sudadera de dinosaurios bajo la toga, y la oferta de las prácticas")
-check(said(leo, "Todo empezó ahí.") and said(leo, "La final del torneo. Plata.") and said(leo, "Nunca se lo agradecí bien"), "El brindis recuerda lo que viviste: Mateo, el torneo, Leire")
-check(said(leo, "me acuerdo de que empezamos de cero") and not said(leo, "Ahora ya no me acuerdo de por qué"), "Bruno recuerda que empezasteis de cero")
+check(said(leo, "Todo empezó ahí.") and said(leo, "La final del torneo. Plata.") and said(leo, "Nunca te lo agradecí bien"), "El brindis recuerda lo que viviste: Mateo, el torneo, Leire")
+check(said(leo, "que empezamos de cero") and not said(leo, "Ya ni me acuerdo de por qué"), "Bruno recuerda que empezasteis de cero")
 local degreeSubjects = Subjects.Degrees.Ingenieria
 local uniClasses = {}
 for _, subject in classesOf(leo) do
