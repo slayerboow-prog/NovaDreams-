@@ -169,7 +169,7 @@ SceneClient.DialogueRadius = 50 -- en una conversación (planos cortos)
 SceneClient.HideEvery = 0.15
 
 local othersHolders: { [string]: boolean } = {}
-type Hidden = { Parts: { [Instance]: boolean }, Guis: { [BillboardGui]: boolean }, Added: RBXScriptConnection? }
+type Hidden = { Parts: { [Instance]: boolean }, Guis: { [BillboardGui]: boolean }, Names: { [Humanoid]: Enum.HumanoidDisplayDistanceType }, Added: RBXScriptConnection? }
 local hiddenOthers: { [Instance]: Hidden } = {}
 
 -- ¿Ese punto sale en el plano? (pura geometría: delante de la cámara, dentro del ángulo de visión
@@ -200,6 +200,12 @@ local function hideInstance(entry: Hidden, d: Instance)
 			(d :: any).LocalTransparencyModifier = 1
 			entry.Parts[d] = true
 		end
+	elseif d:IsA("Humanoid") then
+		-- (normalmente CineCamera.quietLabels ya lo ha callado; si no, aquí también sin nombre)
+		if d.DisplayDistanceType ~= Enum.HumanoidDisplayDistanceType.None then
+			entry.Names[d] = d.DisplayDistanceType
+			d.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+		end
 	elseif d:IsA("BillboardGui") and d.Name ~= "Bubble" and d.Name ~= "Icon" then
 		-- (Bubble e Icon los calla CineCamera.quietLabels; aquí los demás carteles del jugador)
 		if d.Enabled then
@@ -213,7 +219,7 @@ local function hideOther(character: Instance)
 	if hiddenOthers[character] then
 		return
 	end
-	local entry: Hidden = { Parts = {}, Guis = {} }
+	local entry: Hidden = { Parts = {}, Guis = {}, Names = {} }
 	hiddenOthers[character] = entry
 	for _, d in character:GetDescendants() do
 		hideInstance(entry, d)
@@ -247,6 +253,18 @@ local function showOther(character: Instance)
 		if gui.Parent and not gui.Enabled then
 			gui.Enabled = true
 		end
+	end
+	for humanoid, value in entry.Names do
+		if humanoid.Parent and humanoid.DisplayDistanceType == Enum.HumanoidDisplayDistanceType.None then
+			humanoid.DisplayDistanceType = value
+		end
+	end
+	-- El nombre que CineCamera dejó pendiente al acabar la escena (seguía oculto entonces)
+	local ok, err = pcall(function()
+		require(script.Parent.CineCamera).releaseNames(character)
+	end)
+	if not ok then
+		warn("[SceneClient] " .. tostring(err))
 	end
 end
 

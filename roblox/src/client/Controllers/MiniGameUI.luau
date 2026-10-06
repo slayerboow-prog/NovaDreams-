@@ -436,6 +436,13 @@ local function run(payload: { [string]: any })
 	end
 end
 
+-- Corta el minijuego en pantalla (sin mandar resultado)
+local function stop()
+	cancelled = true
+	panel.Visible = false
+	player:SetAttribute("InMiniGame", nil)
+end
+
 function MiniGameUI.init()
 	pressed = Instance.new("BindableEvent")
 	build()
@@ -444,9 +451,29 @@ function MiniGameUI.init()
 		if kind == "Start" then
 			task.spawn(run, payload)
 		elseif kind == "Cancel" and payload.Token == token then
-			cancelled = true
-			panel.Visible = false
-			player:SetAttribute("InMiniGame", nil)
+			stop()
+		end
+	end)
+	-- Al morir se corta en el acto (el servidor también lo cancela, sin contar como perdido, y la
+	-- misión lo vuelve a proponer al volver del hospital): no se manda resultado
+	local function hookDeath(character: Model)
+		local humanoid = character:WaitForChild("Humanoid", 15)
+		if humanoid and humanoid:IsA("Humanoid") then
+			humanoid.Died:Connect(function()
+				if panel.Visible or player:GetAttribute("InMiniGame") then
+					stop()
+				end
+			end)
+		end
+	end
+	if player.Character then
+		task.spawn(hookDeath, player.Character)
+	end
+	player.CharacterAdded:Connect(function(character)
+		task.spawn(hookDeath, character)
+		-- (por si acaso: un personaje nuevo nunca empieza con el minijuego de antes en pantalla)
+		if panel.Visible then
+			stop()
 		end
 	end)
 	-- Teclado: Espacio/clic = ¡ya!; flechas o A/W/D = direcciones. Solo mientras hay minijuego.
