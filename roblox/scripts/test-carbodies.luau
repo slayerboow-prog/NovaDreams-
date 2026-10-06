@@ -252,8 +252,14 @@ end
 
 -- A-Chassis metido en otra carpeta: el coche de dentro se llama «Chassis» y el nombre de verdad
 -- está fuera (así se perdía el Camry)
+-- (en el servidor, v91: delante del «Chassis» viene «Drivetrain», solo ejes y diferencial de cristal,
+-- que también parece un coche; se cogía ese y salía «tapa el 0%»)
 local function aChassisNested(name: string, size: Vector3, parent: Instance)
 	local outer = mk("Model", { Name = name }, parent)
+	local drive = mk("Model", { Name = "Drivetrain" }, outer)
+	for i, x in { -1.5, 1.5, -1.5, 1.5 } do
+		mesh(if i <= 2 then "Axle" else "Shaft", Vector3.new(0.6, 0.5, 0.5), CFrame.new(x, 1, if i <= 2 then -6 else 6), WHITE, drive, { Material = Enum.Material.Glass })
+	end
 	aChassis("Chassis", size, outer)
 	return outer
 end
@@ -314,7 +320,19 @@ local function packs(): { [number]: Instance }
 	end
 	euroCar("Volkswagen Sharan 1995", euro)
 	euroCar("Object_77", euro)
-	euroCar("nissan primera", euro)
+	-- (el Primera del servidor: todo se llama «Primera…», y «p-rim-era» lo tiraba todo)
+	local primera = mk("Model", { Name = "nissan primera" }, euro)
+	local at: Instance = primera
+	for _, n in { "Sketchfab_model", "nissan primera.fbx", "RootNode", "nissan_primera", "Primerabody_4" } do
+		at = mk("Model", { Name = n }, at)
+	end
+	local function node(n: string, size: Vector3, cf: CFrame, color: Color3, extra: { [string]: any }?)
+		mesh("Primerabody_4_" .. n .. "_0", size, cf, color, mk("Model", { Name = "Primerabody_4_" .. n .. "_0_Node" }, at), extra)
+	end
+	node("PrimeraBody", Vector3.new(14, 4.2, 6.4), CFrame.new(0, 2.9, 0), WHITE, { TextureID = "rbxassetid://9001" })
+	node("PrimeraArches", Vector3.new(13.6, 2, 6.4), CFrame.new(0, 1.6, 0), WHITE)
+	node("PrimeraGlass", Vector3.new(7, 1.6, 5.6), CFrame.new(1, 4.4, 0), Color3.fromRGB(20, 20, 20), { Transparency = 0.3 })
+	node("PrimeraTyre", Vector3.new(10.3, 2.2, 6.4), CFrame.new(0.6, 1.1, 0), Color3.fromRGB(20, 20, 20))
 	out[97902046131324] = euro
 	local chp = mk("Model", { Name = "CHP pack" })
 	aChassis("CHP Charger", Vector3.new(9, 8.3, 19.9), chp)
