@@ -1,0 +1,211 @@
+-- Prueba de los GUIONES REESCRITOS (docs/historia/reescritura → shared/LifeStory/Guiones, GuionOverlay).
+--
+-- Uso (desde roblox/): lune run scripts/test-reescritura.luau
+--
+-- 1. Cada guion generado está al día con su .md (la herramienta lo regenera igual) y sin errores.
+-- 2. Las misiones reescritas usan las frases nuevas, sin perder la mecánica de sus pasos (mismos tipos,
+--    sitios, eventos y objetos que la misión original).
+-- 3. El prólogo se juega entero con la respuesta A («¡Yo te ayudo a arreglarla!») y con la B
+--    («¿Y eso es peligroso?»): cada paso se cumple con su acción, salen las frases nuevas de Cosme y se
+--    guardan la decisión y el rasgo de cada rama.
+
+local fs = require("@lune/fs")
+local process = require("@lune/process")
+local roblox = require("@lune/roblox")
+local task = require("@lune/task")
+
+local H = require("./lib/StoryHarness")
+local L = require("./lib/ModuleLoader")
+local Reescritura = require("./lib/Reescritura")
+local ROOT, check = H.ROOT, H.check
+local Quests = H.Quests
+local GuionOverlay = H.loadModule(ROOT .. "/shared/LifeStory/GuionOverlay")
+
+---------------------------------------------------------------------
+print("\n▶ 1. Los guiones generados están al día")
+---------------------------------------------------------------------
+-- La misión original (sin guion) para comparar la mecánica
+L.mock("src/shared/LifeStory/GuionOverlay", { List = {}, apply = function() end, scenes = function()
+	return {}
+end, all = function()
+	return {}
+end })
+local BaseQuests = L.load("src/shared/LifeStory/Quests")
+
+check(#GuionOverlay.List > 0, ("hay guiones reescritos aplicados (%d)"):format(#GuionOverlay.List))
+for _, id in GuionOverlay.List do
+	check(fs.isFile(("src/shared/LifeStory/Guiones/%s.luau"):format(id)) and fs.isFile(("docs/historia/reescritura/%s.md"):format(id)), id .. ": tiene su guion (.md) y sus datos generados")
+	check(fs.isFile(("docs/historia/reescritura/%s.informe.md"):format(id)), id .. ": tiene su informe")
+	-- (la herramienta en modo --check: sin errores)
+	local result = process.exec("lune", { "run", "scripts/audit/aplicar-reescritura.luau", id, "--check" })
+	check(result.ok, id .. ": el guion se valida sin errores (aplicar-reescritura --check)")
+	if not result.ok then
+		print(result.stdout)
+	end
+end
+
+---------------------------------------------------------------------
+print("\n▶ 2. Frases nuevas, misma mecánica")
+---------------------------------------------------------------------
+local MECHANICS = { "Type", "Place", "Event", "Match", "Count", "Prop", "Npc", "Key", "Game", "Subject", "Teleport", "Beat", "Hint", "If", "Late", "Options" }
+local function same(a: any, b: any): boolean
+	if type(a) ~= type(b) then
+		return false
+	end
+	if type(a) ~= "table" then
+		return a == b
+	end
+	for k, v in a do
+		if not same(v, b[k]) then
+			return false
+		end
+	end
+	for k in b do
+		if a[k] == nil then
+			return false
+		end
+	end
+	return true
+end
+for _, id in GuionOverlay.List do
+	local now, base = Quests[id], BaseQuests[id]
+	check(now and base and #now.Steps == #base.Steps, id .. ": mismos pasos que la misión original")
+	local broken = {}
+	for i, step in (base and base.Steps) or {} do
+		for _, field in MECHANICS do
+			if not same(step[field], now.Steps[i] and now.Steps[i][field]) then
+				table.insert(broken, ("paso %d.%s"):format(i, field))
+			end
+		end
+		for j, child in step.Steps or {} do
+			for _, field in MECHANICS do
+				if not same(child[field], now.Steps[i].Steps[j][field]) then
+					table.insert(broken, ("paso %d.%d.%s"):format(i, j, field))
+				end
+			end
+		end
+	end
+	check(#broken == 0, id .. ": la mecánica de cada paso no cambia" .. (if #broken > 0 then " (" .. table.concat(broken, ", ") .. ")" else ""))
+	check(now.Guion ~= nil, id .. ": la misión lleva su guion aplicado")
+end
+
+local PROLOGUE = "Prologo_Sueno"
+local prologue = Quests[PROLOGUE]
+local sueno = prologue.Dialogues.Sueno.Lines
+local function hasLine(lines: { any }, text: string): boolean
+	for _, line in lines do
+		if line.T == text then
+			return true
+		end
+		for _, option in line.Options or {} do
+			if hasLine(option.Then or {}, text) then
+				return true
+			end
+		end
+	end
+	return false
+end
+check(hasLine(sueno, "En los sueños nunca se sabe.") and hasLine(sueno, "Se llama la Grieta.") and hasLine(sueno, "Bastante."), "prólogo: Cosme dice las frases nuevas del guion")
+check(not hasLine(sueno, "Soy Cosme. Inventor. Genio. Vecino."), "prólogo: ya no dice las de antes")
+check(hasLine(sueno, "Eso sí que no me lo esperaba.") and hasLine(sueno, "Bueno… depende de cuánto te guste estar entero."), "prólogo: cada respuesta tiene su réplica nueva")
+check(prologue.Steps[1].Id ~= "Prologo_Apertura" and H.loadModule(ROOT .. "/shared/LifeStory/HappeningIndex").has(prologue.Steps[1].Id), "prólogo: la apertura es la cinemática nueva (escena del motor)")
+check(hasLine(prologue.Dialogues.Tornillo.Lines, "Eso no estaba previsto."), "prólogo: al coger el tornillo, la reacción nueva de Cosme")
+
+---------------------------------------------------------------------
+print("\n▶ 3. El prólogo se completa con cada respuesta")
+---------------------------------------------------------------------
+local Service, StoryEvents = H.boot()
+H.Config.LifeStory.Prologue = true
+local played: { [any]: { [string]: boolean } } = {}
+do
+	local Happening = H.loadModule(ROOT .. "/server/Services/HappeningService")
+	local realPlay = Happening.play
+	Happening.play = function(p, id, ...)
+		played[p] = played[p] or {}
+		played[p][id] = true
+		return realPlay(p, id, ...)
+	end
+end
+local function waitFor(condition: () -> boolean, seconds: number): boolean
+	local t = 0
+	while t < seconds do
+		if condition() then
+			return true
+		end
+		task.wait(0.25)
+		t += 0.25
+	end
+	return condition()
+end
+
+local function playPrologue(name: string, prefer: string, choice: string, trait: string, reply: string)
+	local p = H.newPlayer(name)
+	p.Prefer = { prefer }
+	p.Answer = H.preferAnswer(p)
+	local story = H.profiles[p].Story
+	local function step(): number?
+		local prog = story.Active[PROLOGUE]
+		return prog and prog.Step
+	end
+	check(waitFor(function()
+		return step() ~= nil
+	end, 3), ("[%s] empieza el prólogo"):format(name))
+	check(waitFor(function()
+		return step() == 2
+	end, 90), ("[%s] la cinemática de apertura termina y empieza el primer paso"):format(name))
+	local actions = {
+		function()
+			p.At = "PrologoCamino"
+		end,
+		function()
+			StoryEvents.emit(p, "Sprinted", {})
+		end,
+		function()
+			p.At = "PrologoSalto"
+		end,
+		function()
+			Service.interact(p, "Actor", PROLOGUE, "Cosme")
+		end,
+		function()
+			Service.interact(p, "Prop", PROLOGUE, "Tornillo")
+		end,
+		function()
+			p.At = "PrologoPuerta"
+		end,
+		function()
+			H.fromClient(p, "Prologue", "MapOpened")
+		end,
+	}
+	for i, act in actions do
+		task.wait(1.2) -- (como un jugador: un momento después de que empiece el paso)
+		act()
+		check(waitFor(function()
+			return step() == i + 2 or story.Active[PROLOGUE] == nil
+		end, 40), ("[%s] paso %d cumplido con su acción"):format(name, i + 1))
+	end
+	check(waitFor(function()
+		return story.Active[PROLOGUE] == nil
+	end, 90), ("[%s] el prólogo termina entero"):format(name))
+	check(story.PrologueResult == "Done", ("[%s] queda como visto y terminado"):format(name))
+	check(story.Choices.Prologo and story.Choices.Prologo.V == choice, ("[%s] decisión del prólogo = %s"):format(name, choice))
+	check((story.Traits[trait] or 0) >= 1, ("[%s] rasgo %s +1"):format(name, trait))
+	check(H.said(p, "Llegas pronto.") and H.said(p, "Se llama la Grieta."), ("[%s] Cosme dice las frases nuevas"):format(name))
+	check(H.said(p, reply), ("[%s] y la réplica de su rama: «%s»"):format(name, reply))
+	check(H.said(p, "Eso no estaba previsto."), ("[%s] la reacción al coger el tornillo"):format(name))
+	local scenes = played[p] or {}
+	check(scenes[prologue.Steps[1].Id] and scenes[prologue.Steps[#prologue.Steps].Id], ("[%s] se ven la apertura y el cierre nuevos"):format(name))
+	local light = 0
+	for id in scenes do
+		if id:find("_Entra$") or id:find("_Fin$") then
+			light += 1
+		end
+	end
+	check(light >= 4, ("[%s] las frases de los pasos jugables suenan en escenas ligeras (%d)"):format(name, light))
+end
+
+playPrologue("Ayuda", "ayudo", "Ayudar", "Valentia", "Eso sí que no me lo esperaba.")
+playPrologue("Pregunta", "peligroso", "Preguntar", "Curiosidad", "Bueno… depende de cuánto te guste estar entero.")
+
+local _ = roblox
+print(("\n%s Reescritura: %d fallos"):format(if H.failures == 0 then "✅" else "❌", H.failures))
+process.exit(if H.failures == 0 then 0 else 1)

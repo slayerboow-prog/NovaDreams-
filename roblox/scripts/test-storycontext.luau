@@ -128,7 +128,7 @@ check(nuevo:GetAttribute("InPrologue") == true, "mientras dura, el atributo InPr
 check(nuevo:GetAttribute("LifeStage") == "Nino" and H.profiles[nuevo].Life.Stage == "Bebe",
 	"en el sueño es un poco mayor (LifeStage = Nino) pero lo guardado sigue siendo bebé")
 check(story.Chapter == nil and not sceneOrCinematic(nuevo, "Bebe_NacimientoCuna"), "el primer capítulo (el nacimiento) espera a que acabe el sueño")
-check(H.cinematic(nuevo, "Prologo_Apertura"), "empieza con la escena que cuenta qué es el juego y la Grieta")
+check(sceneOrCinematic(nuevo, Quests[PROLOGUE].Steps[1].Id), "empieza con la escena que cuenta qué es el juego y la Grieta")
 check(nuevo.At == "PrologoInicio", "y le lleva a la isla del sueño")
 check(waitFor(function()
 	return step() == 2
@@ -189,7 +189,7 @@ beat("abrir el mapa", function()
 end, function()
 	H.fromClient(nuevo, "Prologue", "MapOpened")
 end, 9)
-check(H.cinematic(nuevo, "Prologo_Cierre"), "acaba con la escena que explica los tipos de misión")
+check(sceneOrCinematic(nuevo, Quests[PROLOGUE].Steps[#Quests[PROLOGUE].Steps].Id), "acaba con la escena que explica los tipos de misión")
 check(waitFor(function()
 	return story.Active[PROLOGUE] == nil
 end, 25), "el prólogo termina")
@@ -217,7 +217,7 @@ check(intro ~= nil and intro.Description and intro.Icon == "⭐", "la primera mi
 local saved = H.leave(nuevo)
 local vuelve = H.rejoin(nuevo, saved)
 task.wait(1)
-check(H.profiles[vuelve].Story.Active[PROLOGUE] == nil and vuelve:GetAttribute("InPrologue") == nil and not H.cinematic(vuelve, "Prologo_Apertura"),
+check(H.profiles[vuelve].Story.Active[PROLOGUE] == nil and vuelve:GetAttribute("InPrologue") == nil and not sceneOrCinematic(vuelve, Quests[PROLOGUE].Steps[1].Id),
 	"al volver a entrar, el prólogo no sale otra vez")
 
 -- Saltar
