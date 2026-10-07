@@ -438,6 +438,15 @@ end
 check(carsOk, ("el tren tiene %d coches (se sueldan al arrancar) y espera en %s"):format(Rail.Cars, Rail.Stations[Rail.Line.Stations[1]].Name))
 check(seats >= Rail.Cars * 8 and doorsL >= Rail.Cars * 2 and doorsR >= Rail.Cars * 2, ("asientos (%d) y puertas a los dos lados (%d y %d)"):format(seats, doorsL, doorsR))
 
+do
+	local svc = fs.readFile("src/server/Services/RailService.luau")
+	check(svc:find("Vector3.new(q.X, 3.5, q.Z)", 1, true) == nil and svc:find("groundBelow(to,", 1, true) ~= nil and svc:find("ground + 3", 1, true) ~= nil,
+		"quien se aparta de la vía queda de pie en el suelo que haya (encima del andén), no a una altura fija metido dentro")
+	-- (la prueba: al apartarse se cae dentro del andén, que está más alto que la altura fija de antes)
+	check(Rail.Clearance + 2 > Rail.PlatformGap and Rail.Deck > 3.5 - 3, "apartarse junto a una estación cae encima del andén (por eso hay que buscar el suelo)")
+	check(svc:find("RideState.downed(player)", 1, true) ~= nil, "K.O., caído o muerto no se sube al tren")
+end
+
 print("")
 if failures == 0 then
 	print("✅ Cercanías: todo correcto")

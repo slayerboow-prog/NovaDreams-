@@ -260,8 +260,14 @@ local function onArrive(data: { [string]: any })
 	if not lineInfo then
 		return
 	end
-	rideTitle.Text = ("🚇 %s · <b>%s</b> · puertas abiertas"):format(lineInfo.LineName, data.Station)
 	drawStrip(data.Station, data.Next)
+	if data.Closed then
+		-- Estación cerrada: el tren no abre las puertas (aquí no se baja nadie)
+		rideTitle.Text = ("🚇 %s · <b>%s</b> · estación cerrada"):format(lineInfo.LineName, data.Station)
+		alightButton.Visible = false
+		return
+	end
+	rideTitle.Text = ("🚇 %s · <b>%s</b> · puertas abiertas"):format(lineInfo.LineName, data.Station)
 	alightButton.Visible = true
 	alightButton.Text = "Bajar en " .. data.Station
 end
@@ -479,11 +485,16 @@ local function busk(data: { [string]: any })
 	local hit = Theme.button({ Position = UDim2.fromOffset(0, 124), Size = UDim2.new(1, 0, 0, 48), Text = "🎸 ¡Toca!", TextSize = 20, BackgroundColor3 = C.Accent, Parent = content })
 	local notes, hits, pos, speed, dir, zoneStart = 0, 0, 0, 0.9, 1, 0.4
 	local finished = false
+	-- Las zonas las elige el servidor (Metro.buskZones) y se le mandan los tiempos de cada toque: él
+	-- cuenta los aciertos (Metro.buskScore)
+	local zones = if type(data.Zones) == "table" then data.Zones else Metro.buskZones(math.random(1, 2 ^ 30))
+	local times: { number } = {}
+	local started = os.clock()
 	local function newNote()
 		notes += 1
-		zoneStart = 0.08 + math.random() * 0.76
+		zoneStart = zones[notes] or (0.08 + math.random() * 0.76)
 		zone.Position = UDim2.fromScale(zoneStart, 0)
-		speed = 0.8 + notes * 0.06
+		speed = Metro.buskSpeed(notes)
 		score.Text = ("Nota %d de %d · aciertos: %d"):format(notes, data.Notes, hits)
 	end
 	local function finish()
@@ -492,7 +503,7 @@ local function busk(data: { [string]: any })
 		end
 		finished = true
 		ContextActionService:UnbindAction("MetroBusk")
-		Remote:FireServer("BuskEnd", data.Token, hits)
+		Remote:FireServer("BuskEnd", data.Token, times)
 		score.Text = ("¡Bravo! %d de %d notas"):format(hits, data.Notes)
 		info.Text = "La gente está echando monedas en la funda de la guitarra…"
 		hit.Visible = false
@@ -508,7 +519,8 @@ local function busk(data: { [string]: any })
 			return
 		end
 		lastPress = os.clock()
-		if pos >= zoneStart and pos <= zoneStart + 0.16 then
+		table.insert(times, os.clock() - started)
+		if pos >= zoneStart and pos <= zoneStart + Metro.Busk.Zone then
 			hits += 1
 			zone.BackgroundColor3 = rgb(120, 255, 150)
 		else
@@ -535,18 +547,19 @@ local function busk(data: { [string]: any })
 		window:Destroy()
 	end)
 	newNote()
-	local started = os.clock()
+	started = os.clock()
 	local conn
 	conn = RunService.RenderStepped:Connect(function(dt)
 		if finished or not window.Parent then
 			conn:Disconnect()
 			return
 		end
+		-- (rebota en los extremos sin perder lo que se pasa: igual que Metro.buskMark en el servidor)
 		pos += dir * speed * dt
 		if pos > 1 then
-			pos, dir = 1, -1
+			pos, dir = 2 - pos, -1
 		elseif pos < 0 then
-			pos, dir = 0, 1
+			pos, dir = -pos, 1
 		end
 		mark.Position = UDim2.new(pos, 0, 0, -4)
 		-- Si tardas mucho en una nota, cuenta como fallo

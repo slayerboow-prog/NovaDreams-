@@ -2448,155 +2448,109 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean })
 					table.insert(checks, { WC.triggerHeld(), "multitáctil: con los dos Disparar, soltar uno no corta la ráfaga del otro" })
 					lift(fire, rightFinger)
 					table.insert(checks, { not WC.triggerHeld(), "al soltar los dos, deja de disparar" })
-					-- La cámara con el dedo: zona de la mitad derecha (siempre gira, también disparando)
-					local zone = WC._dragZone()
-					table.insert(checks, { zone ~= nil and zone.Active == true and zone.Size.X.Scale == 0.5 and zone.Position.X.Scale == 1, "móvil con arma: zona de la cámara en la mitad derecha de la pantalla" })
-					-- Arrastrar en la zona gira la cámara, también con el pulgar izquierdo disparando; apuntando, menos
+					-- La cámara con el arma es la de Roblox (la gira el jugador con el dedo): ni zona de arrastre
+					-- propia (CamaraTactil), ni ayuda de apuntado, ni nada que la mueva sola
+					table.insert(checks, { playerGui:FindFirstChild("CamaraTactil") == nil and WC._dragZone == nil and WC.drag == nil and WC.assistTarget == nil,
+						"móvil con arma: sin zona de cámara propia (CamaraTactil) ni ayuda de apuntado: la cámara es la de Roblox" })
 					local cam = workspace.CurrentCamera
-					local function yaw(): number
-						local look = cam.CFrame.LookVector
-						return math.atan2(-look.X, -look.Z)
+					local function frames(n: number)
+						for _ = 1, n do
+							for _, f in renderSteps do
+								pcall(f, 1 / 60)
+							end
+						end
 					end
-					local function swipe(dx: number): number
-						local before = yaw()
-						local finger = touch(600, 200)
-						signalOf(zone, "InputBegan"):Fire(finger)
-						rawget(finger, "__props").Position = V3.new(600 + dx, 200, 0)
-						signalOf(uis, "InputChanged"):Fire(finger, false)
-						for _, f in renderSteps do
-							pcall(f, 1 / 60)
-						end
-						lift(nil, finger)
-						local d = yaw() - before
-						if d > math.pi then
-							d -= 2 * math.pi
-						elseif d < -math.pi then
-							d += 2 * math.pi
-						end
-						return math.abs(d)
+					local function same(a: any, b: any): boolean
+						return (a.Position - b.Position).Magnitude < 1e-6 and (a.LookVector - b.LookVector).Magnitude < 1e-6 and (a.UpVector - b.UpVector).Magnitude < 1e-6
 					end
-					if zone then
-						signalOf(aim, "Activated"):Fire() -- (deja de apuntar: primero sin mira)
-						local hold = touch(300, 200)
-						signalOf(left, "InputBegan"):Fire(hold)
-						local free = swipe(80)
-						table.insert(checks, { free > 0.2 and WC.triggerHeld(), ("multitáctil: con el pulgar izquierdo disparando, arrastrar en la derecha gira la cámara (%.2f rad)"):format(free) })
-						signalOf(aim, "Activated"):Fire()
-						local aimed = swipe(80)
-						table.insert(checks, { WC.isAiming() and aimed > 0.05 and aimed < free * 0.95, ("apuntando, el mismo arrastre gira menos (%.2f < %.2f rad)"):format(aimed, free) })
-						lift(left, hold)
+					-- Arrastrar el dedo que mantiene Disparar: dispara, pero la cámara no gira
+					do
+						local before = cam.CFrame
+						local finger = touch(760, 300)
+						signalOf(fire, "InputBegan"):Fire(finger)
+						rawget(finger, "__props").Position = V3.new(880, 240, 0)
+						signalOf(uis, "InputChanged"):Fire(finger, true)
+						frames(3)
+						table.insert(checks, { WC.triggerHeld() and same(before, cam.CFrame), "arrastrar el dedo de Disparar no gira la cámara (sigue disparando)" })
+						lift(fire, finger)
 					end
-					signalOf(aim, "Activated"):Fire()
-					table.insert(checks, { not WC.isAiming(), "tocar Apuntar otra vez deja de apuntar" })
-					-- Fallos de la v98: la ayuda de apuntado se pegaba a la gente y el dedo no podía girar
-					if zone then
-						-- (la cámara de Roblox recoloca la posición cada fotograma desde tu cabeza; aquí no hay: se
-						-- deja en su sitio y solo cuenta el giro)
-						local home = cam.CFrame.Position
-						local function frames(n: number)
-							for _ = 1, n do
-								rawget(cam, "__props").CFrame = roblox.CFrame.new(home) * cam.CFrame.Rotation
-								for _, f in renderSteps do
-									pcall(f, 1 / 60)
-								end
-							end
+					-- Un enemigo de tu misión justo al lado de la mira: apuntar, disparar, andar y saltar a la vez
+					-- y la cámara no se mueve sola (ni tirón, ni imán, ni retroceso, ni balanceo)
+					do
+						local home = cam.CFrame
+						local enemy = new("Model", "Cucaracha")
+						local hum = new("Humanoid", "Humanoid")
+						rawget(hum, "__props").Health = 100
+						rawget(hum, "__props").MaxHealth = 100
+						hum.Parent = enemy
+						local at = home.Position + (home.LookVector + home.RightVector * 0.07).Unit * 20
+						for _, partName in { "HumanoidRootPart", "UpperTorso", "Head" } do
+							local part = new("Part", partName)
+							rawget(part, "__props").Position = at
+							rawget(part, "__props").CFrame = roblox.CFrame.new(at)
+							rawget(part, "__props").Size = V3.new(2, 2, 1)
+							part.Parent = enemy
 						end
-						local function person(name: string, degrees: number, attrs: { [string]: any }?): any
-							local model = new("Model", name)
-							local hum = new("Humanoid", "Humanoid")
-							rawget(hum, "__props").Health = 100
-							rawget(hum, "__props").MaxHealth = 100
-							hum.Parent = model
-							local cf = roblox.CFrame.new(home) * cam.CFrame.Rotation
-							-- (girando la mira `degrees` hacia la derecha alrededor del eje vertical; +0,6: la ayuda apunta algo por debajo del centro del torso)
-							local lk = cf.LookVector
-							local yw = math.atan2(-lk.X, -lk.Z) - math.rad(degrees)
-							local pt = math.asin(math.clamp(lk.Y, -1, 1))
-							local dir = V3.new(-math.sin(yw) * math.cos(pt), math.sin(pt), -math.cos(yw) * math.cos(pt))
-							local at = cf.Position + dir * 20 + V3.new(0, 0.6, 0)
-							for _, partName in { "HumanoidRootPart", "UpperTorso", "Head" } do
-								local part = new("Part", partName)
-								rawget(part, "__props").Position = at
-								rawget(part, "__props").CFrame = roblox.CFrame.new(at)
-								part.Parent = model
-							end
-							for k, v in attrs or {} do
-								model:SetAttribute(k, v)
-							end
-							model.Parent = workspace
-							return model
-						end
-						local function turned(fn: () -> ()): number
-							local before = yaw()
-							fn()
-							local d = yaw() - before
-							if d > math.pi then
-								d -= 2 * math.pi
-							elseif d < -math.pi then
-								d += 2 * math.pi
-							end
-							return d
-						end
-						-- Un peatón delante (3° a la derecha) y ningún enemigo: apuntar no mueve la cámara sola
-						local walker = person("Peaton", 3)
-						WC._refreshTargets()
-						signalOf(aim, "Activated"):Fire()
-						local drift = turned(function()
-							frames(30)
-						end)
-						-- (solo el balanceo de la respiración apuntando, unas milésimas: el imán de antes movía décimas)
-						table.insert(checks, { WC.isAiming() and math.abs(drift) < 0.01 and WC.assistTarget() == nil,
-							("v98: con un peatón cerca y sin enemigos, apuntar no mueve la cámara sola (%.4f rad)"):format(drift) })
-						-- Con la mira puesta, arrastrar el dedo gira lo esperado (sensibilidad ~0,65, no casi 0)
-						local want = 80 * 0.0075 * 0.65
-						local dragged = math.abs(swipe(80))
-						table.insert(checks, { math.abs(dragged - want) < want * 0.15,
-							("v98: con la mira puesta, arrastrar 80 puntos gira %.2f rad (esperado %.2f)"):format(dragged, want) })
-						walker.Parent = nil
-						-- Un enemigo de tu misión a 4°: al pulsar Apuntar, UN tirón corto; luego el dedo manda
-						signalOf(aim, "Activated"):Fire() -- (deja de apuntar)
-						local enemy = person("Cucaracha", 4, { MissionEnemy = "Prueba", Owner = localPlayer.UserId })
+						enemy:SetAttribute("MissionEnemy", "Prueba")
+						enemy:SetAttribute("Owner", localPlayer.UserId)
+						enemy.Parent = workspace
 						enemy:AddTag("MissionEnemy")
-						WC._refreshTargets()
-						local snap = turned(function()
-							signalOf(aim, "Activated"):Fire()
-							frames(1)
-						end)
-						local target = WC.assistTarget()
-						table.insert(checks, { target == enemy and snap < -math.rad(1) and snap > -math.rad(3.9),
-							("v98: con un enemigo válido, al apuntar la mira da un tirón corto hacia él (%.2f°)"):format(math.deg(snap)) })
-						local soft = turned(function()
-							frames(1)
-						end)
-						table.insert(checks, { math.abs(soft) < math.abs(snap) * 0.25, ("v98: el tirón es uno solo; luego, solo un imán suave (%.3f°)"):format(math.deg(soft)) })
-						local away = swipe(-80) -- (hacia la izquierda: lejos del enemigo)
-						local hold = turned(function()
-							frames(10)
-						end)
-						table.insert(checks, { away > 0.2 and math.abs(hold) < 0.005,
-							("v98: arrastrando, el dedo manda (gira %.2f rad) y al soltar la ayuda no tira de vuelta enseguida (%.4f)"):format(away, hold) })
+						if WC.isAiming() then
+							signalOf(aim, "Activated"):Fire() -- (primero sin mira)
+						end
+						-- (balas y la pausa entre tiros del revólver, que es de verdad)
+						localPlayer:SetAttribute("WeaponMag", 5)
+						localPlayer:SetAttribute("WeaponMag", 6)
+						fakeTask.wait(1)
+						table.clear(serverLog)
+						local leftFinger2 = touch(300, 200)
+						signalOf(left, "InputBegan"):Fire(leftFinger2)
+						local stickBase = Joystick._state().Base
+						local stickFinger2 = touch(80, 300)
+						if stickBase then
+							signalOf(stickBase, "InputBegan"):Fire(stickFinger2)
+						end
 						signalOf(aim, "Activated"):Fire()
+						local jumpFinger2 = touch(700, 300)
+						signalOf(jump, "InputBegan"):Fire(jumpFinger2)
+						frames(30)
+						lift(jump, jumpFinger2)
+						frames(5)
+						table.insert(checks, { WC.isAiming() and WC.triggerHeld() and Joystick.push() > 0 and fires() >= 1,
+							("con arma: apuntar + disparar + andar + saltar a la vez (%d disparos)"):format(fires()) })
+						table.insert(checks, { same(home, cam.CFrame), "con un enemigo junto a la mira, apuntando y disparando, la cámara no se mueve sola" })
+						table.insert(checks, { cam.CameraType == Enum.CameraType.Custom, ("con arma la cámara sigue en Custom (%s)"):format(tostring(cam.CameraType)) })
+						lift(nil, stickFinger2)
+						lift(left, leftFinger2)
+						signalOf(aim, "Activated"):Fire()
+						frames(2)
+						table.insert(checks, { not WC.isAiming() and not WC.triggerHeld() and same(home, cam.CFrame) and cam.CameraType == Enum.CameraType.Custom,
+							"al soltar todo: sin mira, sin fuego y la cámara donde la dejó el jugador (Custom)" })
 						enemy:RemoveTag("MissionEnemy")
 						enemy.Parent = nil
-						-- Con la mochila abierta: sin mira y sin disparar
-						local okInv, InventoryUI = pcall(requireFn, controllersF and controllersF:FindFirstChild("InventoryUI"))
-						local reticleGui = playerGui:FindFirstChild("WeaponReticle")
-						local mira = reticleGui and reticleGui:FindFirstChild("Mira")
+					end
+					signalOf(aim, "Activated"):Fire()
+					table.insert(checks, { WC.isAiming(), "tocar Apuntar apunta" })
+					signalOf(aim, "Activated"):Fire()
+					table.insert(checks, { not WC.isAiming(), "tocar Apuntar otra vez deja de apuntar" })
+					-- Con la mochila abierta: sin mira y sin disparar
+					local okInv, InventoryUI = pcall(requireFn, controllersF and controllersF:FindFirstChild("InventoryUI"))
+					local reticleGui = playerGui:FindFirstChild("WeaponReticle")
+					local mira = reticleGui and reticleGui:FindFirstChild("Mira")
+					frames(2)
+					table.insert(checks, { reticleGui and reticleGui.DisplayOrder < 0 and mira and mira.Visible, "la mira va en su pantalla, por debajo de los menús (DisplayOrder < 0), y se ve con el arma" })
+					if okInv and mira then
+						InventoryUI.open()
 						frames(2)
-						table.insert(checks, { reticleGui and reticleGui.DisplayOrder < 0 and mira and mira.Visible, "la mira va en su pantalla, por debajo de los menús (DisplayOrder < 0), y se ve con el arma" })
-						if okInv and mira then
-							InventoryUI.open()
-							frames(2)
-							table.clear(serverLog)
-							local f = touch(300, 200)
-							signalOf(left, "InputBegan"):Fire(f)
-							frames(2)
-							lift(left, f)
-							table.insert(checks, { not mira.Visible and fires() == 0, ("v98: con la mochila abierta no se ve la mira ni se dispara (%d disparos)"):format(fires()) })
-							InventoryUI.close()
-							frames(2)
-							table.insert(checks, { mira.Visible, "al cerrar la mochila vuelve la mira" })
-						end
+						table.clear(serverLog)
+						local f = touch(300, 200)
+						signalOf(left, "InputBegan"):Fire(f)
+						frames(2)
+						lift(left, f)
+						table.insert(checks, { not mira.Visible and fires() == 0, ("v98: con la mochila abierta no se ve la mira ni se dispara (%d disparos)"):format(fires()) })
+						InventoryUI.close()
+						frames(2)
+						table.insert(checks, { mira.Visible, "al cerrar la mochila vuelve la mira" })
 					end
 					-- Rodar tras un salto (con el arma en la mano): Esquivar en el aire rueda al aterrizar; justo al
 					-- aterrizar también; sin pulsar, no. Con el gatillo pulsado, el fuego no se corta.

@@ -226,7 +226,61 @@ Metro.Busk = {
 	MaxTips = 30,
 	Cooldown = 45, -- segundos entre actuaciones
 	MinSeconds = 10, -- una actuación dura al menos esto
+	MaxSeconds = 120, -- (más que esto: la ventana se quedó abierta; no cuenta)
+	Zone = 0.16, -- ancho de la zona verde (de 0 a 1 en la barra)
+	Slack = 0.04, -- margen a cada lado de la zona (lo que se desvía la marca entre fotogramas)
+	MinGap = 0.25, -- segundos entre dos toques (el botón no admite más deprisa)
+	Late = 2, -- segundos de más que se le perdonan a los tiempos del cliente (la red)
 }
+
+-- Minijuego de guitarra, igual en el servidor y en el cliente. El servidor elige las zonas verdes
+-- (buskZones, con una semilla) y el cliente le devuelve CUÁNDO tocó cada nota (segundos desde que
+-- empezó); el servidor rehace la marca y cuenta los aciertos (buskScore). Antes el cliente decía
+-- cuántas acertó y siempre se cobraba la propina máxima.
+function Metro.buskZones(seed: number): { number }
+	local x = math.floor(math.abs(seed)) % 2147483647 + 1
+	local zones = {}
+	for _ = 1, Metro.Busk.Notes do
+		x = (x * 16807) % 2147483647
+		table.insert(zones, 0.08 + (x / 2147483647) * 0.76)
+	end
+	return zones
+end
+
+-- Lo rápido que va la marca en la nota n (de la barra entera por segundo)
+function Metro.buskSpeed(n: number): number
+	return 0.8 + n * 0.06
+end
+
+-- Dónde está la marca (0 a 1) tras recorrer «dist» (va y vuelve: rebota en los extremos)
+function Metro.buskMark(dist: number): number
+	local m = dist % 2
+	return if m <= 1 then m else 2 - m
+end
+
+-- Aciertos de verdad: rehace la marca con los tiempos de cada toque. Toques imposibles (fuera de
+-- orden, más seguidos que MinGap, después de lo que ha durado la actuación de verdad «elapsed») no
+-- cuentan, y como mucho Notes.
+function Metro.buskScore(zones: { number }, times: any, elapsed: number): number
+	if type(times) ~= "table" or type(zones) ~= "table" then
+		return 0
+	end
+	local B = Metro.Busk
+	local hits, dist, last = 0, 0, 0
+	for n = 1, math.min(#times, B.Notes, #zones) do
+		local t = times[n]
+		if type(t) ~= "number" or t ~= t or t < last or t > elapsed + B.Late or (n > 1 and t - last < B.MinGap - 0.05) then
+			break
+		end
+		dist += Metro.buskSpeed(n) * (t - last)
+		last = t
+		local pos = Metro.buskMark(dist)
+		if pos >= zones[n] - B.Slack and pos <= zones[n] + B.Zone + B.Slack then
+			hits += 1
+		end
+	end
+	return hits
+end
 
 -- Encargos del tablón (galería de Plaza Mayor)
 Metro.Missions = {
@@ -329,6 +383,79 @@ function Metro.path(line: Line): ({ Vector3 }, { number }, { [number]: boolean }
 		lastDir = d
 	end
 	return points, centers, platform
+end
+
+-- Vía, coche y andén, de lado (en el marco de la estación: X = 0 en el eje de la vía, hacia el andén).
+-- El suelo del coche llega a 4,5 del eje y el andén empieza en 5: la vía se vigila solo hasta
+-- TrackHalf, y el coche cuenta por dentro hasta CarHalf (quien está en el umbral de la puerta va
+-- dentro). Antes la vía llegaba a 4,6 y el coche solo a 4,4: en el umbral de la puerta o al borde del
+-- andén te devolvían al andén con «¡No se puede andar por la vía!».
+Metro.TrackHalf = 4.4
+Metro.CarHalf = 4.6
+Metro.PlatformEdge = 5
+Metro.PlatformDepth = 12 -- (el andén va de PlatformEdge a PlatformEdge + PlatformDepth)
+
+-- ¿Este punto (en el sitio del coche: X de lado, Y desde el suelo del coche, Z a lo largo) está
+-- dentro del coche? (MetroService.carAt: quién va en el tren, aunque sea de pie)
+function Metro.inCar(q: Vector3): boolean
+	return math.abs(q.X) < Metro.CarHalf and q.Y > -1 and q.Y < 9 and math.abs(q.Z) < Metro.CarLength / 2 + 1
+end
+
+-- ¿Está este punto sobre el andén de una estación (o en su borde)? Devuelve la estación y la línea.
+-- Las curvas del túnel salen pegadas a las esquinas de algunos andenes (Villaverde): sin esto, la
+-- esquina del andén caía dentro de la zona de vía.
+function Metro.onPlatform(position: Vector3): (string?, Line?)
+	local half = Metro.PlatformLength / 2
+	for _, line in Metro.Lines do
+		if position.Y > line.Y - 3 and position.Y < line.Y + 7 then
+			for _, id in line.Stations do
+				local q = Metro.frame(id, line):PointToObjectSpace(position)
+				if q.X >= Metro.TrackHalf and q.X <= Metro.PlatformEdge + Metro.PlatformDepth + 1 and math.abs(q.Z) <= half then
+					return id, line
+				end
+			end
+		end
+	end
+	return nil, nil
+end
+
+-- ¿Está este punto (los pies) en la vía o en un túnel? Devuelve la línea y el tramo del recorrido.
+-- El recorrido se alarga 60 studs por cada punta (los fondos de saco tras la primera y la última
+-- estación). El andén nunca cuenta como vía.
+local trackCache: { [string]: { Vector3 } } = {}
+function Metro.trackAt(position: Vector3): (Line?, number)
+	for _, line in Metro.Lines do
+		if position.Y > line.Y - 3 and position.Y < line.Y + 7 then
+			local points = trackCache[line.Id]
+			if not points then
+				points = Metro.path(line)
+				local first, last = points[1], points[#points]
+				table.insert(points, 1, first + (first - points[2]).Unit * 60)
+				table.insert(points, last + (last - points[#points - 1]).Unit * 60)
+				trackCache[line.Id] = points
+			end
+			for i = 1, #points - 1 do
+				local a, b = points[i], points[i + 1]
+				local ab = Vector3.new(b.X - a.X, 0, b.Z - a.Z)
+				local ap = Vector3.new(position.X - a.X, 0, position.Z - a.Z)
+				local t = math.clamp(ap:Dot(ab) / math.max(ab:Dot(ab), 1e-6), 0, 1)
+				if (ap - ab * t).Magnitude < Metro.TrackHalf then
+					if Metro.onPlatform(position) then
+						return nil, 0
+					end
+					return line, i
+				end
+			end
+		end
+	end
+	return nil, 0
+end
+
+-- ¿Está este punto junto al andén de esa estación (a lo largo del andén, del lado de la vía)? Con el
+-- tren parado ahí, no se vigila la vía: el tren la ocupa y se sube y se baja por las puertas.
+function Metro.alongPlatform(stationId: string, line: Line, position: Vector3): boolean
+	local q = Metro.frame(stationId, line):PointToObjectSpace(position)
+	return math.abs(q.Z) <= Metro.PlatformLength / 2 and q.X > -6 and q.Y > -3 and q.Y < 7
 end
 
 ---------------------------------------------------------------------

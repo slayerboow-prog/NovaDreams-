@@ -92,10 +92,15 @@ local function record(player: Player, data: { [string]: any })
 	local door = player:GetAttribute("InteriorDoor")
 	-- Volando (FlightService): se guarda la sala de llegadas del vuelo, en el suelo
 	local landing = player:GetAttribute("FlightLanding")
+	-- En el metro (MetroService): el andén de la última estación en la que paró su tren (desconectarse
+	-- en el túnel no le deja aparecer en mitad de la vía)
+	local metro = player:GetAttribute("MetroLanding")
 	if typeof(door) == "Vector3" then
 		position = door
 	elseif typeof(landing) == "Vector3" then
 		position = landing
+	elseif typeof(metro) == "Vector3" then
+		position = metro
 	elseif not safeSpot(humanoid) then
 		return -- nadando, en un barco o en el aire: se queda el último sitio seguro que se apuntó
 	elseif player:GetAttribute("StoryCaught") or SafeSpot.buried(character :: Model) then

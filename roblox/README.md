@@ -144,7 +144,7 @@ lune run scripts/test-parkour.luau     # agacharse, tumbarse y parkour: qué sal
 lune run scripts/test-gps.luau        # GPS: grafo de calles, ruta más corta (A*), recalcular e indicaciones de giro
 lune run scripts/test-hud.luau        # el HUD en ordenador, móvil y tableta: que nada se pise, el ValPhone, la tira de acciones, joystick y botones
                                        # (el racimo de docs/referencias, Teléfono e Inventario bajo el joystick y el racimo con arma)
-lune run scripts/test-shooter.luau    # armas en el móvil: ayuda de apuntado (cono, paredes, solo dedo/mando), fricción y cámara con el dedo
+lune run scripts/test-shooter.luau    # armas en el móvil: sin ayuda de apuntado y con la cámara de Roblox (nada la gira sola)
 lune run scripts/test-graphicsprefs.luau # ✨ Gráficos: lo elegido se guarda con la partida, vuelve al entrar y el Auto no pisa un nivel fijo
                                        # (y los primeros pasos, el botón ❓ «¿Qué hago ahora?», las pistas y los consejos)
 lune run scripts/test-onboarding.luau # primeros pasos: a quién le toca, qué se guarda, ideas de «¿Qué hago ahora?» y pistas

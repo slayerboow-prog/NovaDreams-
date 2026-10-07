@@ -39,6 +39,8 @@ local VehicleControls = require(ReplicatedStorage.Shared.VehicleControls)
 local Format = require(ReplicatedStorage.Shared.Format)
 local Tyres = require(ReplicatedStorage.Shared.Tyres)
 local Stages = require(ReplicatedStorage.Shared.LifeStory.Stages)
+local RideState = require(ReplicatedStorage.Shared.RideState)
+local Metro = require(ReplicatedStorage.Shared.Metro)
 local Builder = require(script.Parent.Parent.World.Builder)
 local Rides = require(script.Parent.Parent.World.Kit.Rides)
 local DataService = require(script.Parent.DataService)
@@ -613,6 +615,11 @@ local function refuel(player: Player, pump: BasePart)
 	end
 	local data = DataService.get(player)
 	local money = data and data.Money or 0
+	if left < 0.1 then
+		-- (gasolinera de un jugador sin gasolina: no es que no tengas dinero)
+		Notify:FireClient(player, "Error", "⛽ Esta gasolinera está sin existencias. Prueba en otra.")
+		return
+	end
 	local amount = math.min(missing, math.floor(money / price), left)
 	if amount < 0.1 then
 		Notify:FireClient(player, "Error", "No tienes dinero para repostar.")
@@ -858,7 +865,12 @@ local function parkOrphans()
 		local chassis = model:IsA("Model") and model.PrimaryPart
 		-- (Knocked: ha salido despedido de un golpe y aún vuela; CrashService lo suelta al pararse)
 		if chassis and not chassis.Anchored and not driven[model :: Model] and not model:GetAttribute("Knocked") then
-			pcall(park, model :: Model)
+			if chassis.Position.Y < VehicleService.LostY then
+				-- Se ha caído al vacío: aparcado ahí se quedaba anclado bajo el mapa para siempre
+				pcall(VehicleService.retireLost, model :: Model)
+			else
+				pcall(park, model :: Model)
+			end
 		end
 	end
 end
@@ -949,6 +961,9 @@ function VehicleService.board(player: Player, seat: Seat): boolean
 	end
 	if player:GetAttribute("Sleeping") or player:GetAttribute("Crawling") or player:GetAttribute("JailUntil") or player:GetAttribute("OnTrial") then
 		return false
+	end
+	if RideState.downed(player) then
+		return false -- K.O., caído o muerto: no se escapa del remate ni de la detención subiéndose
 	end
 	if not LifeService.allows(player, "Travel") then
 		return false
@@ -1098,7 +1113,7 @@ local function allowed(player: Player, kind: string, exam: boolean?): boolean
 	if not vehicle then
 		return false
 	end
-	if player:GetAttribute("Sleeping") or player:GetAttribute("Crawling") then
+	if player:GetAttribute("Sleeping") or player:GetAttribute("Crawling") or RideState.downed(player) then
 		return false
 	end
 	if not stageAllows(player, Gameplay.DriveMinStage) then
@@ -1142,6 +1157,9 @@ local function drive(player: Player, model: Model, kind: string, opts: { Rented:
 	local chassis = model.PrimaryPart
 	if not humanoid or not root or humanoid.Health <= 0 or not seat or not chassis then
 		return false
+	end
+	if RideState.downed(player) then
+		return false -- K.O., caído o muerto
 	end
 	if seat.Occupant and seat.Occupant ~= humanoid then
 		Notify:FireClient(player, "Error", "Ya hay alguien conduciendo.")
@@ -1370,6 +1388,26 @@ end
 -- Tu vehículo aparcado (solo uno a la vez: al sacar otro, el anterior desaparece)
 local parked: { [Player]: Model } = {}
 
+-- Por debajo de esto, un vehículo se ha caído del mapa (el metro más hondo está a -66)
+VehicleService.LostY = -200
+
+-- Un vehículo sin conductor que se ha caído al vacío (lo lanzó un golpe, se hundió…): se retira y deja
+-- de ser «tu vehículo aparcado» (puedes sacarlo otra vez del menú). Antes se quedaba anclado bajo el mapa.
+function VehicleService.retireLost(model: Model)
+	if VehicleService.emptyPassengers then
+		pcall(VehicleService.emptyPassengers, model)
+	end
+	for owner, m in parked do
+		if m == model then
+			parked[owner] = nil
+			if owner.Parent then
+				Notify:FireClient(owner, "Info", "🚗 Tu vehículo aparcado se ha perdido. Sácalo otra vez desde «Mis vehículos».")
+			end
+		end
+	end
+	model:Destroy()
+end
+
 -- Surtidor: repara las ruedas pinchadas del vehículo en el que vas (o el tuyo, aparcado al lado)
 function repairTyres(player: Player, pump: BasePart)
 	local ride = riding[player]
@@ -1475,6 +1513,11 @@ function VehicleService.mount(player: Player, kind: string, opts: { Rented: bool
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	if not root or not allowed(player, kind, options.Exam) then
+		return false
+	end
+	if VehicleService.underground(root.Position) then
+		-- (ni el tuyo, ni uno de alquiler o de servicio: en el metro no se conduce)
+		Notify:FireClient(player, "Error", "🚇 Aquí abajo no se puede sacar un vehículo.")
 		return false
 	end
 	switchOut(player)
@@ -1639,10 +1682,15 @@ function VehicleService.buy(player: Player, kind: string)
 	StoryEvents.emit(player, "VehicleBought", { Vehicle = kind })
 end
 
+-- ¿Está bajo tierra (en el metro)? Ahí no se sacan vehículos (shared/Metro.Underground)
+function VehicleService.underground(position: Vector3): boolean
+	return position.Y < Metro.Underground
+end
+
 -- ¿Puede sacar ahora un vehículo? No en la cárcel, en un juicio, muerto, KO, dentro de un edificio
 -- ni sentado en algo que no sea su vehículo (el autobús, un banco, de pasajero…)
 local function canSpawn(player: Player): boolean
-	for _, attribute in { "JailUntil", "OnTrial", "Dead", "KO", "InteriorKey" } do
+	for _, attribute in { "JailUntil", "OnTrial", "Dead", "KO", "Fallen", "InteriorKey" } do
 		if player:GetAttribute(attribute) then
 			return false
 		end
@@ -1650,6 +1698,12 @@ local function canSpawn(player: Player): boolean
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	if not humanoid or humanoid.Health <= 0 or (humanoid.SeatPart and not riding[player]) then
+		return false
+	end
+	-- Bajo tierra (el metro: vestíbulos, andenes, túneles) no se saca ningún vehículo
+	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if root and VehicleService.underground(root.Position) then
+		Notify:FireClient(player, "Error", "🚇 Aquí abajo no se puede sacar un vehículo.")
 		return false
 	end
 	return true
