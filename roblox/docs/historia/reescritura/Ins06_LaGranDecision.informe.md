@@ -54,22 +54,22 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 2 → paso 2 del juego (Reach): 3 frases al empezar el paso (escena ligera «Ins06_G2_Entra», la lanza el paso 1 al cumplirse; el jugador no pierde el control)
-- PASO 3.1 → paso 3.1 del juego (Talk «Plan_Sara»): conversación «Plan_Sara» con 13 frases nuevas
-- PASO 3.2 → paso 3.2 del juego (Talk «Plan_Omar»): conversación «Plan_Omar» con 8 frases nuevas
-- PASO 3.3 → paso 3.3 del juego (Talk «Plan_Nico»): conversación «Plan_Nico» con 13 frases nuevas
-- PASO 3.4 → paso 3.4 del juego (Talk «Plan_Bruno»): conversación «Plan_Bruno» con 14 frases nuevas
-- PASO 3.5 → paso 3.5 del juego (Talk «Plan_Leire»): conversación «Plan_Leire» con 6 frases nuevas
-- PASO 3.6 → paso 3.6 del juego (Talk «Plan_Hugo»): conversación «Plan_Hugo» con 16 frases nuevas
-- PASO 3.7 → paso 3.7 del juego (Talk «Plan_Mateo»): conversación «Plan_Mateo» con 7 frases nuevas
-- PASO 3.8 → paso 3.8 del juego (Talk «Plan_Iker»): conversación «Plan_Iker» con 4 frases nuevas
-- PASO 4 → paso 4 del juego (Reach): 3 frases al empezar el paso (escena ligera «Ins06_G4_Entra», la lanza el paso 3 al cumplirse; el jugador no pierde el control)
-- PASO 5 → paso 5 del juego (Talk «Carmen»): conversación «Carmen» con 40 frases nuevas
-- PASO 7 → paso 7 del juego (Scene «PuertasAbiertas»): conversación «PuertasAbiertas» con 9 frases nuevas
-- PASO 9 → paso 9 del juego (Scene «Nervios»): conversación «Nervios» con 8 frases nuevas
+- PASO 2 → paso 2 del juego (Reach): 1 frases al empezar el paso (escena ligera «Ins06_G2_Entra», la lanza el paso 1 al cumplirse; el jugador no pierde el control)
+- PASO 3.1 → paso 3.1 del juego (Talk «Plan_Sara»): conversación «Plan_Sara» con 4 frases nuevas
+- PASO 3.2 → paso 3.2 del juego (Talk «Plan_Omar»): conversación «Plan_Omar» con 5 frases nuevas
+- PASO 3.3 → paso 3.3 del juego (Talk «Plan_Nico»): conversación «Plan_Nico» con 9 frases nuevas
+- PASO 3.4 → paso 3.4 del juego (Talk «Plan_Bruno»): conversación «Plan_Bruno» con 9 frases nuevas
+- PASO 3.5 → paso 3.5 del juego (Talk «Plan_Leire»): conversación «Plan_Leire» con 4 frases nuevas
+- PASO 3.6 → paso 3.6 del juego (Talk «Plan_Hugo»): conversación «Plan_Hugo» con 9 frases nuevas
+- PASO 3.7 → paso 3.7 del juego (Talk «Plan_Mateo»): conversación «Plan_Mateo» con 4 frases nuevas
+- PASO 3.8 → paso 3.8 del juego (Talk «Plan_Iker»): conversación «Plan_Iker» con 2 frases nuevas
+- PASO 4 → paso 4 del juego (Reach): 1 frases al empezar el paso (escena ligera «Ins06_G4_Entra», la lanza el paso 3 al cumplirse; el jugador no pierde el control)
+- PASO 5 → paso 5 del juego (Talk «Carmen»): conversación «Carmen» con 25 frases nuevas
+- PASO 7 → paso 7 del juego (Scene «PuertasAbiertas»): conversación «PuertasAbiertas» con 4 frases nuevas
+- PASO 9 → paso 9 del juego (Scene «Nervios»): conversación «Nervios» con 4 frases nuevas
 - PASO 17 → paso 17 del juego (Class): 2 frases al empezar el paso (escena ligera «Ins06_G17_Entra», la lanza el paso 16 al cumplirse; el jugador no pierde el control)
-- PASO 23 → paso 23 del juego (Choice): 3 frases al empezar el paso (escena ligera «Ins06_G23_Entra», la lanza el paso 22 al cumplirse; el jugador no pierde el control)
-- PASO 24 → paso 24 del juego (Scene «Decidido»): conversación «Decidido» con 23 frases nuevas
+- PASO 23 → paso 23 del juego (Choice): 1 frases al empezar el paso (escena ligera «Ins06_G23_Entra», la lanza el paso 22 al cumplirse; el jugador no pierde el control)
+- PASO 24 → paso 24 del juego (Scene «Decidido»): conversación «Decidido» con 13 frases nuevas
 
 ## Adaptado (y por qué)
 

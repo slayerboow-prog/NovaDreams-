@@ -24,13 +24,13 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso 1 del juego (Transition): 17 frases al cumplirlo (escena ligera «Saga_16_G1_Fin», sin quitar el control)
-- PASO 2 → paso 2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Cartel» (7 frases)
+- PASO 1 → paso 1 del juego (Transition): 12 frases al cumplirlo (escena ligera «Saga_16_G1_Fin», sin quitar el control)
+- PASO 2 → paso 2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Cartel» (4 frases)
 - PASO 2 → paso 2 del juego (Use): objetivo «investigar la Plaza Mayor.»
-- PASO 3 → paso 3 del juego (Talk «Malvado»): conversación «Malvado» con 6 frases nuevas
+- PASO 3 → paso 3 del juego (Talk «Malvado»): conversación «Malvado» con 2 frases nuevas
 - PASO 4 → paso 4 del juego (Escape): objetivo «llegar a la universidad 66-B.»
-- PASO 4 → paso 4 del juego (Escape): 10 frases al empezar el paso (escena ligera «Saga_16_G4_Entra», la lanza el paso 3 al cumplirse; el jugador no pierde el control)
-- PASO 5 → paso 5 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Rejilla» (24 frases)
+- PASO 4 → paso 4 del juego (Escape): 5 frases al empezar el paso (escena ligera «Saga_16_G4_Entra», la lanza el paso 3 al cumplirse; el jugador no pierde el control)
+- PASO 5 → paso 5 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Rejilla» (19 frases)
 
 ## Adaptado (y por qué)
 

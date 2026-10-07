@@ -24,7 +24,7 @@ _Ninguno._
 
 - PASO 1 → paso 1 del juego (Event): 21 frases al cumplirlo (escena ligera «Nino_Recados_G1_Fin», sin quitar el control)
 - PASO 2 → paso 2 del juego (Event): 14 frases al empezar el paso (van detrás de las del final del paso 1, en su escena «Nino_Recados_G1_Fin»)
-- PASO 3 → paso 3 del juego (Reach): 22 frases al empezar el paso (escena ligera «Nino_Recados_G3_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
+- PASO 3 → paso 3 del juego (Reach): 18 frases al empezar el paso (escena ligera «Nino_Recados_G3_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
 - Momento de la biografía: «Mis primeros recados» (texto nuevo de MOMENT.PRIMEROS_RECADOS; antes «Has hecho tus primeros recados sin ayuda.»)
 
 ## Adaptado (y por qué)

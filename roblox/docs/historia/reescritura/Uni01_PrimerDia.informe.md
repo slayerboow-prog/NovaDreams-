@@ -27,7 +27,7 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 6+7 → paso 14 del juego (Cinematic «Uni01_Mensajes»): escena nueva «Uni01_G6_7» (1 planos, 16 frases, 46.8 s) justo después de «Uni01_Mensajes», que se queda como estaba
+- PASO 6+7 → paso 14 del juego (Cinematic «Uni01_Mensajes»): escena nueva «Uni01_G6_7» (1 planos, 10 frases, 36.0 s) justo después de «Uni01_Mensajes», que se queda como estaba
 
 ## Adaptado (y por qué)
 

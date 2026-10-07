@@ -43,30 +43,30 @@ _Ninguno._
 - PASO 1 → paso 1 del juego (Transition): 4 frases al cumplirlo (escena ligera «Cole06_G1_Fin», sin quitar el control)
 - PASO 2 → paso 2 del juego (Reach): objetivo «Ve a clase»
 - PASO 2 → paso 2 del juego (Reach): 4 frases al empezar el paso (van detrás de las del final del paso 1, en su escena «Cole06_G1_Fin»)
-- PASO 3 → paso 3 del juego (Scene «Anuncio»): conversación «Anuncio» con 19 frases nuevas (música Tension→Descubrimiento)
+- PASO 3 → paso 3 del juego (Scene «Anuncio»): conversación «Anuncio» con 17 frases nuevas (música Tension→Descubrimiento)
 - PASO 4 → paso 4 del juego (Reach): objetivo «Ve a la biblioteca a por los apuntes»
 - PASO 4 → paso 4 del juego (Reach): 5 frases al empezar el paso (escena ligera «Cole06_G4_Entra», la lanza el paso 3 al cumplirse; el jugador no pierde el control)
-- PASO 5 → paso 5 del juego (Talk «Marisa»): conversación «Marisa» con 11 frases nuevas
+- PASO 5 → paso 5 del juego (Talk «Marisa»): conversación «Marisa» con 9 frases nuevas
 - PASO 6 → paso 6 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «CogerApuntes» (6 frases)
 - PASO 6 → paso 6 del juego (Use): objetivo «Coge los apuntes de la mesa»
 - PASO 7 → paso 7 del juego (Choice): objetivo «¿Con quién estudias?»
 - PASO 8 → paso 8 del juego (Class): objetivo «Estudia en la biblioteca»
-- PASO 9 → paso 9 del juego (Scene «TrasEstudiar»): conversación «TrasEstudiar» con 18 frases nuevas
+- PASO 9 → paso 9 del juego (Scene «TrasEstudiar»): conversación «TrasEstudiar» con 15 frases nuevas
 - PASO 10 → paso 10 del juego (Transition): objetivo «Esa noche, en casa…»
-- PASO 11 → paso 11 del juego (Scene «Noche»): conversación «Noche» con 21 frases nuevas
+- PASO 11 → paso 11 del juego (Scene «Noche»): conversación «Noche» con 19 frases nuevas
 - PASO 12 → paso 12 del juego (Class): objetivo «Repasa un poco más»
 - PASO 12 → paso 12 del juego (Class): 2 frases al empezar el paso (escena ligera «Cole06_G12_Entra», la lanza el paso 11 al cumplirse; el jugador no pierde el control)
 - PASO 13 → paso 13 del juego (Transition): objetivo «El día del examen…»
 - PASO 13 → paso 13 del juego (Transition): 1 frases al cumplirlo (escena ligera «Cole06_G13_Fin», sin quitar el control)
 - PASO 14 → paso 14 del juego (Reach): objetivo «Ve a clase: hoy es el examen»
-- PASO 15 → paso 15 del juego (Scene «Nervios»): conversación «Nervios» con 7 frases nuevas (música Tension)
+- PASO 15 → paso 15 del juego (Scene «Nervios»): conversación «Nervios» con 5 frases nuevas (música Tension)
 - PASO 16 → paso 16 del juego (Class): objetivo «El examen de Matemáticas»
-- PASO 16 → paso 16 del juego (Class): 6 frases al empezar el paso (escena ligera «Cole06_G16_Entra», la lanza el paso 15 al cumplirse; el jugador no pierde el control)
-- PASO 17 → paso 17 del juego (Cinematic «Cole06_LaNota»): la escena «Cole06_LaNota» se cuenta con el guion nuevo (misma escena, 9 planos, 19 frases, 56.1 s, música Intima)
-- PASO 18 → paso 18 del juego (Scene «Suspenso»): conversación «Suspenso» con 19 frases nuevas (música Intima→Descubrimiento)
+- PASO 16 → paso 16 del juego (Class): 5 frases al empezar el paso (escena ligera «Cole06_G16_Entra», la lanza el paso 15 al cumplirse; el jugador no pierde el control)
+- PASO 17 → paso 17 del juego (Cinematic «Cole06_LaNota»): la escena «Cole06_LaNota» se cuenta con el guion nuevo (misma escena, 9 planos, 14 frases, 47.8 s, música Intima)
+- PASO 18 → paso 18 del juego (Scene «Suspenso»): conversación «Suspenso» con 16 frases nuevas (música Intima→Descubrimiento)
 - PASO 19 → paso 19 del juego (Reach): objetivo «Devuelve los apuntes a Marisa»
 - PASO 19 → paso 19 del juego (Reach): 2 frases al empezar el paso (escena ligera «Cole06_G19_Entra», la lanza el paso 18 al cumplirse; el jugador no pierde el control)
-- PASO 20 → paso 20 del juego (Talk «Devolver»): conversación «Devolver» con 13 frases nuevas (música Intima)
+- PASO 20 → paso 20 del juego (Talk «Devolver»): conversación «Devolver» con 12 frases nuevas (música Intima)
 
 ## Adaptado (y por qué)
 

@@ -40,28 +40,29 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso 1 del juego (Transition): 2 frases al cumplirlo (escena ligera «Adu03_G1_Fin», sin quitar el control)
-- PASO 2 → paso 2 del juego (Reach): 4 frases al empezar el paso (van detrás de las del final del paso 1, en su escena «Adu03_G1_Fin»)
-- PASO 3 → paso 3 del juego (Scene «Noticia»): conversación «Noticia» con 17 frases nuevas
-- PASO 4.1 → paso 4.1 del juego (Talk «Nico»): conversación «Nico» con 13 frases nuevas
-- PASO 4.2 → paso 4.2 del juego (Talk «Sara»): conversación «Sara» con 12 frases nuevas
-- PASO 4.3 → paso 4.3 del juego (Talk «Bruno»): conversación «Bruno» con 12 frases nuevas
-- PASO 4.4 → paso 4.4 del juego (Talk «Leire»): conversación «Leire» con 12 frases nuevas
-- PASO 4.5 → paso 4.5 del juego (Talk «Hugo»): conversación «Hugo» con 7 frases nuevas
-- PASO 4.6 → paso 4.6 del juego (Talk «Mateo»): conversación «Mateo» con 10 frases nuevas
-- PASO 6 → paso 6 del juego (Talk «Lucia»): conversación «Lucia» con 24 frases nuevas
-- PASO 7 → paso 7 del juego (Reach): 5 frases al empezar el paso (escena ligera «Adu03_G7_Entra», la lanza el paso 6 al cumplirse; el jugador no pierde el control)
-- PASO 8 → paso 8 del juego (MiniGame): 7 frases al empezar el paso (escena ligera «Adu03_G8_Entra», la lanza el paso 7 al cumplirse; el jugador no pierde el control)
-- PASO 9 → paso 9 del juego (Scene «Inauguracion»): conversación «Inauguracion» con 25 frases nuevas
-- PASO 10 → paso 10 del juego (Cinematic «Adu03_Foto»): escena nueva «Adu03_G10» (1 planos, 2 frases, 5.1 s) justo después de «Adu03_Foto», que se queda como estaba
+- PASO 1 → paso 1 del juego (Transition): 1 frases al cumplirlo (escena ligera «Adu03_G1_Fin», sin quitar el control)
+- PASO 2 → paso 2 del juego (Reach): 3 frases al empezar el paso (van detrás de las del final del paso 1, en su escena «Adu03_G1_Fin»)
+- PASO 3 → paso 3 del juego (Scene «Noticia»): conversación «Noticia» con 13 frases nuevas
+- PASO 4.1 → paso 4.1 del juego (Talk «Nico»): conversación «Nico» con 5 frases nuevas
+- PASO 4.2 → paso 4.2 del juego (Talk «Sara»): conversación «Sara» con 5 frases nuevas
+- PASO 4.3 → paso 4.3 del juego (Talk «Bruno»): conversación «Bruno» con 8 frases nuevas
+- PASO 4.4 → paso 4.4 del juego (Talk «Leire»): conversación «Leire» con 5 frases nuevas
+- PASO 4.5 → paso 4.5 del juego (Talk «Hugo»): conversación «Hugo» con 1 frases nuevas
+- PASO 4.6 → paso 4.6 del juego (Talk «Mateo»): conversación «Mateo» con 5 frases nuevas
+- PASO 6 → paso 6 del juego (Talk «Lucia»): conversación «Lucia» con 15 frases nuevas
+- PASO 7 → paso 7 del juego (Reach): 1 frases al empezar el paso (escena ligera «Adu03_G7_Entra», la lanza el paso 6 al cumplirse; el jugador no pierde el control)
+- PASO 8 → paso 8 del juego (MiniGame): 2 frases al empezar el paso (escena ligera «Adu03_G8_Entra», la lanza el paso 7 al cumplirse; el jugador no pierde el control)
+- PASO 9 → paso 9 del juego (Scene «Inauguracion»): conversación «Inauguracion» con 12 frases nuevas
+- PASO 10 → paso 10 del juego (Cinematic «Adu03_Foto»): escena nueva «Adu03_G10» (1 planos, 1 frases, 3.1 s) justo después de «Adu03_Foto», que se queda como estaba
 - PASO 11 → paso 11 del juego (Transition): 3 frases al cumplirlo (escena ligera «Adu03_G11_Fin», sin quitar el control)
-- PASO 12 → paso 12 del juego (Reach): 4 frases al empezar el paso (van detrás de las del final del paso 11, en su escena «Adu03_G11_Fin»)
-- PASO 13 → paso 13 del juego (Cinematic «Adu03_Banco»): la escena «Adu03_Banco» se cuenta con el guion nuevo (misma escena, 1 planos, 10 frases, 28.0 s)
-- PASO 14 → paso 14 del juego (Scene «Banco»): conversación «Banco» con 20 frases nuevas
+- PASO 12 → paso 12 del juego (Reach): 1 frases al empezar el paso (van detrás de las del final del paso 11, en su escena «Adu03_G11_Fin»)
+- PASO 13 → paso 13 del juego (Cinematic «Adu03_Banco»): la escena «Adu03_Banco» se cuenta con el guion nuevo (misma escena, 1 planos, 5 frases, 18.5 s)
+- PASO 14 → paso 14 del juego (Scene «Banco»): conversación «Banco» con 13 frases nuevas
 
 ## Adaptado (y por qué)
 
 - PASO 15 [] @ : no corresponde a ningún paso del juego: no se aplica
+- frase quitada (es una acotación, no se dice): «Música»
 - PASO 1: el guion lo escribe como [] y en el juego es transición (Transition): se conserva el tipo del juego y su mecánica
 - PASO 3: el guion lo escribe como [] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
 - PASO 4 → paso 4 del juego (Group): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican

@@ -55,48 +55,48 @@ _Ninguno._
 
 - PASO 1 → paso 1 del juego (Transition): 3 frases al cumplirlo (escena ligera «Cole03_G1_Fin», sin quitar el control)
 - PASO 2 → paso 2 del juego (Reach): objetivo «Ve a clase»
-- PASO 2 → paso 2 del juego (Reach): 3 frases al empezar el paso (van detrás de las del final del paso 1, en su escena «Cole03_G1_Fin»)
+- PASO 2 → paso 2 del juego (Reach): 2 frases al empezar el paso (van detrás de las del final del paso 1, en su escena «Cole03_G1_Fin»)
 - PASO 3 → paso 3 del juego (Class): 9 frases al empezar el paso (escena ligera «Cole03_G3_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
-- PASO 4 → paso 4 del juego (Scene «Timbre»): conversación «Timbre» con 8 frases nuevas (música Descubrimiento)
+- PASO 4 → paso 4 del juego (Scene «Timbre»): conversación «Timbre» con 7 frases nuevas (música Descubrimiento)
 - PASO 5 → paso 5 del juego (Reach): objetivo «Sal al recreo»
-- PASO 5 → paso 5 del juego (Reach): 6 frases al empezar el paso (escena ligera «Cole03_G5_Entra», la lanza el paso 4 al cumplirse; el jugador no pierde el control)
+- PASO 5 → paso 5 del juego (Reach): 4 frases al empezar el paso (escena ligera «Cole03_G5_Entra», la lanza el paso 4 al cumplirse; el jugador no pierde el control)
 - PASO 6 → paso 6 del juego (Choice): objetivo «¿Con quién vas?»
-- PASO 6 → paso 6 del juego (Choice): 30 frases al empezar el paso (escena ligera «Cole03_G6_Entra», la lanza el paso 5 al cumplirse; el jugador no pierde el control)
+- PASO 6 → paso 6 del juego (Choice): 18 frases al empezar el paso (escena ligera «Cole03_G6_Entra», la lanza el paso 5 al cumplirse; el jugador no pierde el control)
 - PASO 7 → paso 7 del juego (MiniGame): objetivo «Calienta: tres penaltis»
-- PASO 7 → paso 7 del juego (MiniGame): 7 frases al empezar el paso (escena ligera «Cole03_G7_Entra», la lanza el paso 6 al cumplirse; el jugador no pierde el control)
+- PASO 7 → paso 7 del juego (MiniGame): 3 frases al empezar el paso (escena ligera «Cole03_G7_Entra», la lanza el paso 6 al cumplirse; el jugador no pierde el control)
 - PASO 8 → paso 8 del juego (Group): objetivo «Pinta el mural con Omar»
-- PASO 8.1 → paso 8.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Mural_Cielo» (9 frases)
-- PASO 8.2 → paso 8.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Mural_Colegio» (6 frases)
-- PASO 8.3 → paso 8.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Mural_Nosotros» (9 frases)
-- PASO 9 → paso 9 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Bicho1» (8 frases)
+- PASO 8.1 → paso 8.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Mural_Cielo» (5 frases)
+- PASO 8.2 → paso 8.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Mural_Colegio» (4 frases)
+- PASO 8.3 → paso 8.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Mural_Nosotros» (5 frases)
+- PASO 9 → paso 9 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Bicho1» (4 frases)
 - PASO 9 → paso 9 del juego (Use): objetivo «Sigue al escarabajo»
-- PASO 10 → paso 10 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Bicho2» (11 frases)
+- PASO 10 → paso 10 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Bicho2» (6 frases)
 - PASO 10 → paso 10 del juego (Use): objetivo «¡Se ha ido volando hacia la cancha!»
-- PASO 11 → paso 11 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Bicho3» (9 frases)
+- PASO 11 → paso 11 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Bicho3» (5 frases)
 - PASO 11 → paso 11 del juego (Use): objetivo «¡Ahora está junto al edificio!»
-- PASO 12 → paso 12 del juego (Scene «FaltanJugadores»): conversación «FaltanJugadores» con 17 frases nuevas (música Intima)
+- PASO 12 → paso 12 del juego (Scene «FaltanJugadores»): conversación «FaltanJugadores» con 11 frases nuevas (música Intima)
 - PASO 13 → paso 13 del juego (Reach): objetivo «Ve al campo de fútbol»
-- PASO 13 → paso 13 del juego (Reach): 2 frases al cumplirlo (escena ligera «Cole03_G13_Fin», sin quitar el control)
-- PASO 14 → paso 14 del juego (Scene «PrePartido»): conversación «PrePartido» con 35 frases nuevas (música Tension)
+- PASO 13 → paso 13 del juego (Reach): 1 frases al cumplirlo (escena ligera «Cole03_G13_Fin», sin quitar el control)
+- PASO 14 → paso 14 del juego (Scene «PrePartido»): conversación «PrePartido» con 21 frases nuevas (música Tension)
 - PASO 15 → paso 15 del juego (MiniGame): objetivo «¡Partido contra el equipo de Bruno!»
-- PASO 15 → paso 15 del juego (MiniGame): 8 frases al empezar el paso (escena ligera «Cole03_G15_Entra», la lanza el paso 14 al cumplirse; el jugador no pierde el control)
-- PASO 16 → paso 16 del juego (Scene «Banquillo»): conversación «Banquillo» con 37 frases nuevas (música Intima)
-- PASO 17 → paso 17 del juego (Transition): 6 frases al cumplirlo (escena ligera «Cole03_G17_Fin», sin quitar el control)
+- PASO 15 → paso 15 del juego (MiniGame): 7 frases al empezar el paso (escena ligera «Cole03_G15_Entra», la lanza el paso 14 al cumplirse; el jugador no pierde el control)
+- PASO 16 → paso 16 del juego (Scene «Banquillo»): conversación «Banquillo» con 20 frases nuevas (música Intima)
+- PASO 17 → paso 17 del juego (Transition): 2 frases al cumplirlo (escena ligera «Cole03_G17_Fin», sin quitar el control)
 - PASO 18 → paso 18 del juego (Reach): objetivo «Pide permiso en casa»
-- PASO 19 → paso 19 del juego (Talk «Permiso»): conversación «Permiso» con 11 frases nuevas (música Intima)
-- PASO 20 → paso 20 del juego (Scene «Quedada»): conversación «Quedada» con 8 frases nuevas (música Descubrimiento)
+- PASO 19 → paso 19 del juego (Talk «Permiso»): conversación «Permiso» con 8 frases nuevas (música Intima)
+- PASO 20 → paso 20 del juego (Scene «Quedada»): conversación «Quedada» con 6 frases nuevas (música Descubrimiento)
 - PASO 21 → paso 21 del juego (Reach): objetivo «Ve al parque con tus amigos»
 - PASO 21 → paso 21 del juego (Reach): 6 frases al empezar el paso (escena ligera «Cole03_G21_Entra», la lanza el paso 20 al cumplirse; el jugador no pierde el control)
 - PASO 22 → paso 22 del juego (Group): objetivo «Pasa la tarde en el parque»
-- PASO 22.1 → paso 22.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Parque_Canasta» (9 frases)
-- PASO 22.2 → paso 22.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Parque_Columpio» (8 frases)
-- PASO 22.3 → paso 22.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Parque_Estanque» (11 frases)
-- PASO 22.4 → paso 22.4 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Parque_Kiosco» (14 frases)
+- PASO 22.1 → paso 22.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Parque_Canasta» (5 frases)
+- PASO 22.2 → paso 22.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Parque_Columpio» (7 frases)
+- PASO 22.3 → paso 22.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Parque_Estanque» (9 frases)
+- PASO 22.4 → paso 22.4 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Parque_Kiosco» (9 frases)
 - PASO 23 → paso 23 del juego (Use): objetivo «Siéntate con tus amigos»
-- PASO 24 → paso 24 del juego (Scene «Suenos»): conversación «Suenos» con 35 frases nuevas (música Intima)
-- PASO 25 → paso 25 del juego (Scene «ElGato»): conversación «ElGato» con 16 frases nuevas (música Descubrimiento)
-- PASO 26 → paso 26 del juego (Scene «NombreGrupo»): conversación «NombreGrupo» con 14 frases nuevas (música Intima)
-- PASO 27 → paso 27 del juego (Cinematic «Cole03_Foto»): cinemática nueva «Cole03_G27» (17 planos, 17 frases, 75.9 s, música Intima) en lugar de «Cole03_Foto»
+- PASO 24 → paso 24 del juego (Scene «Suenos»): conversación «Suenos» con 24 frases nuevas (música Intima)
+- PASO 25 → paso 25 del juego (Scene «ElGato»): conversación «ElGato» con 10 frases nuevas (música Descubrimiento)
+- PASO 26 → paso 26 del juego (Scene «NombreGrupo»): conversación «NombreGrupo» con 8 frases nuevas (música Intima)
+- PASO 27 → paso 27 del juego (Cinematic «Cole03_Foto»): cinemática nueva «Cole03_G27» (17 planos, 9 frases, 60.3 s, música Intima) en lugar de «Cole03_Foto»
 - Momento de la biografía: «Ya tienes tu grupo de amigos.»
 
 ## Adaptado (y por qué)

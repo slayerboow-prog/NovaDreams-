@@ -57,32 +57,32 @@ _Ninguno._
 ## Aplicado
 
 - PASO 1 → paso 1 del juego (Transition): 1 frases al cumplirlo (escena ligera «Cole10_G1_Fin», sin quitar el control)
-- PASO 3 → paso 3 del juego (Scene «Anuncio»): conversación «Anuncio» con 16 frases nuevas (música Descubrimiento→Intima)
-- PASO 4 → paso 4 del juego (Choice): 13 frases al empezar el paso (escena ligera «Cole10_G4_Entra», la lanza el paso 3 al cumplirse; el jugador no pierde el control)
-- PASO 6.1 → paso 6.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Deco_Guirnalda» (3 frases)
+- PASO 3 → paso 3 del juego (Scene «Anuncio»): conversación «Anuncio» con 13 frases nuevas (música Descubrimiento→Intima)
+- PASO 4 → paso 4 del juego (Choice): 8 frases al empezar el paso (escena ligera «Cole10_G4_Entra», la lanza el paso 3 al cumplirse; el jugador no pierde el control)
+- PASO 6.1 → paso 6.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Deco_Guirnalda» (1 frases)
 - PASO 6.2 → paso 6.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Deco_Farolillos» (1 frases)
 - PASO 6.3 → paso 6.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Deco_Cartel» (1 frases)
-- PASO 8 → paso 8 del juego (Scene «Ensayo_Musica»): conversación «Ensayo_Musica» con 3 frases nuevas (música Descubrimiento)
-- PASO 9 → paso 9 del juego (MiniGame): 3 frases al empezar el paso (escena ligera «Cole10_G9_Entra», la lanza el paso 8 al cumplirse; el jugador no pierde el control)
-- PASO 10 → paso 10 del juego (Reach): 2 frases al empezar el paso (escena ligera «Cole10_G10_Entra», la lanza el paso 9 al cumplirse; el jugador no pierde el control)
+- PASO 8 → paso 8 del juego (Scene «Ensayo_Musica»): conversación «Ensayo_Musica» con 1 frases nuevas (música Descubrimiento)
+- PASO 9 → paso 9 del juego (MiniGame): 1 frases al empezar el paso (escena ligera «Cole10_G9_Entra», la lanza el paso 8 al cumplirse; el jugador no pierde el control)
+- PASO 10 → paso 10 del juego (Reach): 1 frases al empezar el paso (escena ligera «Cole10_G10_Entra», la lanza el paso 9 al cumplirse; el jugador no pierde el control)
 - PASO 11.1 → paso 11.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Comida_Harina» (1 frases)
 - PASO 11.2 → paso 11.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Comida_Huevos» (1 frases)
-- PASO 12 → paso 12 del juego (MiniGame): 2 frases al empezar el paso (escena ligera «Cole10_G12_Entra», la lanza el paso 11 al cumplirse; el jugador no pierde el control)
-- PASO 13.1 → paso 13.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Foto_Escenario» (2 frases)
-- PASO 13.2 → paso 13.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Foto_Columpios» (3 frases)
-- PASO 13.3 → paso 13.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Foto_Entrada» (2 frases)
-- PASO 15 → paso 15 del juego (Scene «Ensayo_Teatro»): conversación «Ensayo_Teatro» con 9 frases nuevas
-- PASO 16 → paso 16 del juego (MiniGame): 4 frases al empezar el paso (escena ligera «Cole10_G16_Entra», la lanza el paso 15 al cumplirse; el jugador no pierde el control)
+- PASO 12 → paso 12 del juego (MiniGame): 1 frases al empezar el paso (escena ligera «Cole10_G12_Entra», la lanza el paso 11 al cumplirse; el jugador no pierde el control)
+- PASO 13.1 → paso 13.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Foto_Escenario» (1 frases)
+- PASO 13.2 → paso 13.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Foto_Columpios» (1 frases)
+- PASO 13.3 → paso 13.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Foto_Entrada» (1 frases)
+- PASO 15 → paso 15 del juego (Scene «Ensayo_Teatro»): conversación «Ensayo_Teatro» con 6 frases nuevas
+- PASO 16 → paso 16 del juego (MiniGame): 2 frases al empezar el paso (escena ligera «Cole10_G16_Entra», la lanza el paso 15 al cumplirse; el jugador no pierde el control)
 - PASO 18 → paso 18 del juego (Reach): 4 frases al empezar el paso (escena ligera «Cole10_G18_Entra», la lanza el paso 17 al cumplirse; el jugador no pierde el control)
-- PASO 19 → paso 19 del juego (Scene «Apertura»): conversación «Apertura» con 6 frases nuevas (música Intima)
-- PASO 20.1 → paso 20.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Imp_Farolillos» (2 frases)
-- PASO 20.2 → paso 20.2 del juego (Talk «Imp_Altavoz»): conversación «Imp_Altavoz» con 5 frases nuevas
-- PASO 20.3 → paso 20.3 del juego (Talk «Imp_Perdida»): conversación «Imp_Perdida» con 5 frases nuevas
-- PASO 20.4 → paso 20.4 del juego (Talk «Imp_Bruno»): conversación «Imp_Bruno» con 6 frases nuevas
-- PASO 21 → paso 21 del juego (Scene «TuParte»): conversación «TuParte» con 12 frases nuevas
-- PASO 22 → paso 22 del juego (Scene «Talentos»): conversación «Talentos» con 10 frases nuevas (música Intima)
+- PASO 19 → paso 19 del juego (Scene «Apertura»): conversación «Apertura» con 4 frases nuevas (música Intima)
+- PASO 20.1 → paso 20.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Imp_Farolillos» (1 frases)
+- PASO 20.2 → paso 20.2 del juego (Talk «Imp_Altavoz»): conversación «Imp_Altavoz» con 3 frases nuevas
+- PASO 20.3 → paso 20.3 del juego (Talk «Imp_Perdida»): conversación «Imp_Perdida» con 4 frases nuevas
+- PASO 20.4 → paso 20.4 del juego (Talk «Imp_Bruno»): conversación «Imp_Bruno» con 3 frases nuevas
+- PASO 21 → paso 21 del juego (Scene «TuParte»): conversación «TuParte» con 11 frases nuevas
+- PASO 22 → paso 22 del juego (Scene «Talentos»): conversación «Talentos» con 6 frases nuevas (música Intima)
 - PASO 24 → paso 24 del juego (Scene «Cierre»): conversación «Cierre» con 7 frases nuevas (música Intima)
-- PASO 25 → paso 25 del juego (Cinematic «Cole10_Festival»): cinemática nueva «Cole10_G25» (10 planos, 6 frases, 33.8 s, música Intima) en lugar de «Cole10_Festival»
+- PASO 25 → paso 25 del juego (Cinematic «Cole10_Festival»): cinemática nueva «Cole10_G25» (10 planos, 4 frases, 29.9 s, música Intima) en lugar de «Cole10_Festival»
 
 ## Adaptado (y por qué)
 

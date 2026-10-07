@@ -42,21 +42,21 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 3 → paso 3 del juego (Class): 11 frases al empezar el paso (escena ligera «Cole11_G3_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
-- PASO 4 → paso 4 del juego (Scene «Anuncio»): conversación «Anuncio» con 3 frases nuevas
-- PASO 5 → paso 5 del juego (Choice): 14 frases al empezar el paso (escena ligera «Cole11_G5_Entra», la lanza el paso 4 al cumplirse; el jugador no pierde el control)
-- PASO 6 → paso 6 del juego (Scene «TemaYRol»): conversación «TemaYRol» con 11 frases nuevas
-- PASO 7.1 → paso 7.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Inv_Biblioteca» (4 frases)
+- PASO 3 → paso 3 del juego (Class): 8 frases al empezar el paso (escena ligera «Cole11_G3_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
+- PASO 4 → paso 4 del juego (Scene «Anuncio»): conversación «Anuncio» con 1 frases nuevas
+- PASO 5 → paso 5 del juego (Choice): 6 frases al empezar el paso (escena ligera «Cole11_G5_Entra», la lanza el paso 4 al cumplirse; el jugador no pierde el control)
+- PASO 6 → paso 6 del juego (Scene «TemaYRol»): conversación «TemaYRol» con 3 frases nuevas
+- PASO 7.1 → paso 7.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Inv_Biblioteca» (2 frases)
 - PASO 7.2 → paso 7.2 del juego (Talk «Inv_Ramon»): conversación «Inv_Ramon» con 1 frases nuevas
-- PASO 7.4 → paso 7.4 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Inv_Fuente» (3 frases)
-- PASO 8 → paso 8 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Mat_Carton» (6 frases)
-- PASO 9 → paso 9 del juego (Event): 2 frases al empezar el paso (escena ligera «Cole11_G9_Entra», la lanza el paso 8 al cumplirse; el jugador no pierde el control)
-- PASO 11 → paso 11 del juego (Scene «Discusion»): conversación «Discusion» con 18 frases nuevas (música Tension)
+- PASO 7.4 → paso 7.4 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Inv_Fuente» (1 frases)
+- PASO 8 → paso 8 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Mat_Carton» (4 frases)
+- PASO 9 → paso 9 del juego (Event): 1 frases al empezar el paso (escena ligera «Cole11_G9_Entra», la lanza el paso 8 al cumplirse; el jugador no pierde el control)
+- PASO 11 → paso 11 del juego (Scene «Discusion»): conversación «Discusion» con 15 frases nuevas (música Tension)
 - PASO 12 → paso 12 del juego (MiniGame): 1 frases al empezar el paso (escena ligera «Cole11_G12_Entra», la lanza el paso 11 al cumplirse; el jugador no pierde el control)
-- PASO 14 → paso 14 del juego (Scene «Desastre»): conversación «Desastre» con 4 frases nuevas (música Intima)
-- PASO 16 → paso 16 del juego (Reach): 6 frases al empezar el paso (escena ligera «Cole11_G16_Entra», la lanza el paso 15 al cumplirse; el jugador no pierde el control)
-- PASO 18 → paso 18 del juego (Class): 3 frases al empezar el paso (escena ligera «Cole11_G18_Entra», la lanza el paso 17 al cumplirse; el jugador no pierde el control)
-- PASO 19 → paso 19 del juego (Scene «Resultado»): conversación «Resultado» con 19 frases nuevas (música Intima→Descubrimiento)
+- PASO 14 → paso 14 del juego (Scene «Desastre»): conversación «Desastre» con 3 frases nuevas (música Intima)
+- PASO 16 → paso 16 del juego (Reach): 3 frases al empezar el paso (escena ligera «Cole11_G16_Entra», la lanza el paso 15 al cumplirse; el jugador no pierde el control)
+- PASO 18 → paso 18 del juego (Class): 2 frases al empezar el paso (escena ligera «Cole11_G18_Entra», la lanza el paso 17 al cumplirse; el jugador no pierde el control)
+- PASO 19 → paso 19 del juego (Scene «Resultado»): conversación «Resultado» con 16 frases nuevas (música Intima→Descubrimiento)
 
 ## Adaptado (y por qué)
 

@@ -49,42 +49,41 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso 1 del juego (Transition): 3 frases al cumplirlo (escena ligera «Cole04_G1_Fin», sin quitar el control)
+- PASO 1 → paso 1 del juego (Transition): 2 frases al cumplirlo (escena ligera «Cole04_G1_Fin», sin quitar el control)
 - PASO 2 → paso 2 del juego (Reach): objetivo «Es la hora del recreo: busca a tu grupo»
 - PASO 2 → paso 2 del juego (Reach): 5 frases al empezar el paso (van detrás de las del final del paso 1, en su escena «Cole04_G1_Fin»)
-- PASO 3 → paso 3 del juego (Scene «Burlas»): conversación «Burlas» con 34 frases nuevas (música Tension)
+- PASO 3 → paso 3 del juego (Scene «Burlas»): conversación «Burlas» con 22 frases nuevas (música Tension)
 - PASO 4 → paso 4 del juego (Reach): objetivo «Vuelve a clase»
-- PASO 4 → paso 4 del juego (Reach): 2 frases al empezar el paso (escena ligera «Cole04_G4_Entra», la lanza el paso 3 al cumplirse; el jugador no pierde el control)
-- PASO 5 → paso 5 del juego (Scene «SinCromo»): conversación «SinCromo» con 7 frases nuevas (música Tension)
-- PASO 6 → paso 6 del juego (Scene «SinFoto»): conversación «SinFoto» con 5 frases nuevas (música Tension)
+- PASO 4 → paso 4 del juego (Reach): 1 frases al empezar el paso (escena ligera «Cole04_G4_Entra», la lanza el paso 3 al cumplirse; el jugador no pierde el control)
+- PASO 5 → paso 5 del juego (Scene «SinCromo»): conversación «SinCromo» con 5 frases nuevas (música Tension)
+- PASO 6 → paso 6 del juego (Scene «SinFoto»): conversación «SinFoto» con 3 frases nuevas (música Tension)
 - PASO 7 → paso 7 del juego (Group): objetivo «Averigua qué ha pasado»
-- PASO 7.1 → paso 7.1 del juego (Talk «Pista_Mateo»): conversación «Pista_Mateo» con 9 frases nuevas
-- PASO 7.2 → paso 7.2 del juego (Talk «Pista_Nico»): conversación «Pista_Nico» con 11 frases nuevas
-- PASO 7.3 → paso 7.3 del juego (Talk «Pista_Sara»): conversación «Pista_Sara» con 8 frases nuevas
-- PASO 7.4 → paso 7.4 del juego (Talk «Pista_Omar»): conversación «Pista_Omar» con 9 frases nuevas
-- PASO 7.5 → paso 7.5 del juego (Talk «Pista_Lucia»): conversación «Pista_Lucia» con 11 frases nuevas
-- PASO 7.6 → paso 7.6 del juego (Talk «Pista_Ramon»): conversación «Pista_Ramon» con 9 frases nuevas
+- PASO 7.1 → paso 7.1 del juego (Talk «Pista_Mateo»): conversación «Pista_Mateo» con 5 frases nuevas
+- PASO 7.2 → paso 7.2 del juego (Talk «Pista_Nico»): conversación «Pista_Nico» con 5 frases nuevas
+- PASO 7.3 → paso 7.3 del juego (Talk «Pista_Sara»): conversación «Pista_Sara» con 6 frases nuevas
+- PASO 7.4 → paso 7.4 del juego (Talk «Pista_Omar»): conversación «Pista_Omar» con 5 frases nuevas
+- PASO 7.5 → paso 7.5 del juego (Talk «Pista_Lucia»): conversación «Pista_Lucia» con 8 frases nuevas
+- PASO 7.6 → paso 7.6 del juego (Talk «Pista_Ramon»): conversación «Pista_Ramon» con 4 frases nuevas
 - PASO 8 → paso 8 del juego (Reach): objetivo «Ve al pasillo»
-- PASO 8 → paso 8 del juego (Reach): 2 frases al empezar el paso (escena ligera «Cole04_G8_Entra», la lanza el paso 7 al cumplirse; el jugador no pierde el control)
-- PASO 9 → paso 9 del juego (Cinematic «Cole04_LosVes»): la escena «Cole04_LosVes» se cuenta con el guion nuevo (misma escena, 11 planos, 21 frases, 53.7 s, música Tension)
+- PASO 9 → paso 9 del juego (Cinematic «Cole04_LosVes»): la escena «Cole04_LosVes» se cuenta con el guion nuevo (misma escena, 11 planos, 9 frases, 34.3 s, música Tension)
 - PASO 10 → paso 10 del juego (Reach): objetivo «¡Síguelos! Corre hacia el patio»
 - PASO 10 → paso 10 del juego (Reach): 2 frases al empezar el paso (escena ligera «Cole04_G10_Entra», la lanza el paso 9 al cumplirse; el jugador no pierde el control)
-- PASO 11 → paso 11 del juego (Scene «RamonAparece»): conversación «RamonAparece» con 4 frases nuevas (música Tension)
-- PASO 12 → paso 12 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Escondido» (5 frases)
+- PASO 11 → paso 11 del juego (Scene «RamonAparece»): conversación «RamonAparece» con 2 frases nuevas (música Tension)
+- PASO 12 → paso 12 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Escondido» (3 frases)
 - PASO 12 → paso 12 del juego (Use): objetivo «¡Escóndete detrás de las cajas!»
-- PASO 13 → paso 13 del juego (Scene «Pillado»): conversación «Pillado» con 13 frases nuevas (música Tension)
+- PASO 13 → paso 13 del juego (Scene «Pillado»): conversación «Pillado» con 7 frases nuevas (música Tension)
 - PASO 14 → paso 14 del juego (Chase): objetivo «¡Alcanza a Hugo!»
 - PASO 14 → paso 14 del juego (Chase): 1 frases al empezar el paso (escena ligera «Cole04_G14_Entra», la lanza el paso 13 al cumplirse; el jugador no pierde el control)
-- PASO 15 → paso 15 del juego (Scene «Hugo»): conversación «Hugo» con 28 frases nuevas (música Intima)
-- PASO 16+17 → paso 16 del juego (Scene «Devuelve»): conversación «Devuelve» con 13 frases nuevas (música Intima)
-- PASO 18 → paso 18 del juego (Scene «Decision»): conversación «Decision» con 18 frases nuevas (música Tension)
-- PASO 19 → paso 19 del juego (Talk «Rama_Lucia»): conversación «Rama_Lucia» con 16 frases nuevas (música Intima)
-- PASO 20 → paso 20 del juego (Talk «Rama_Hablar»): conversación «Rama_Hablar» con 27 frases nuevas (música Intima)
+- PASO 15 → paso 15 del juego (Scene «Hugo»): conversación «Hugo» con 18 frases nuevas (música Intima)
+- PASO 16+17 → paso 16 del juego (Scene «Devuelve»): conversación «Devuelve» con 7 frases nuevas (música Intima)
+- PASO 18 → paso 18 del juego (Scene «Decision»): conversación «Decision» con 8 frases nuevas (música Tension)
+- PASO 19 → paso 19 del juego (Talk «Rama_Lucia»): conversación «Rama_Lucia» con 6 frases nuevas (música Intima)
+- PASO 20 → paso 20 del juego (Talk «Rama_Hablar»): conversación «Rama_Hablar» con 13 frases nuevas (música Intima)
 - PASO 21 → paso 21 del juego (Reach): objetivo «Ve a buscar a tu grupo»
-- PASO 21 → paso 21 del juego (Reach): 10 frases al empezar el paso (escena ligera «Cole04_G21_Entra», la lanza el paso 20 al cumplirse; el jugador no pierde el control)
-- PASO 22 → paso 22 del juego (Talk «Rama_Grupo»): conversación «Rama_Grupo» con 19 frases nuevas (música Tension)
-- PASO 23 → paso 23 del juego (Scene «Rama_Ignorar»): conversación «Rama_Ignorar» con 6 frases nuevas (música Intima)
-- PASO 24 → paso 24 del juego (Scene «Cierre»): conversación «Cierre» con 14 frases nuevas (música Intima)
+- PASO 21 → paso 21 del juego (Reach): 8 frases al empezar el paso (escena ligera «Cole04_G21_Entra», la lanza el paso 20 al cumplirse; el jugador no pierde el control)
+- PASO 22 → paso 22 del juego (Talk «Rama_Grupo»): conversación «Rama_Grupo» con 8 frases nuevas (música Tension)
+- PASO 23 → paso 23 del juego (Scene «Rama_Ignorar»): conversación «Rama_Ignorar» con 5 frases nuevas (música Intima)
+- PASO 24 → paso 24 del juego (Scene «Cierre»): conversación «Cierre» con 13 frases nuevas (música Intima)
 - Momento de la biografía: «Recuperaste lo que era tuyo… y conociste de verdad a Hugo.»
 
 ## Adaptado (y por qué)
@@ -104,15 +103,26 @@ _Ninguno._
 - PASO 7.5: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 7.6: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 7.6: «pista_gimnasio = true» no la lee ninguna misión: no se crea
+- frase quitada (es una acotación, no se dice): «…»
+- frase quitada (es una acotación, no se dice): «…»
 - PASO 8: 1 PLANO de un paso jugable (Reach) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
+- frase quitada (es una acotación, no se dice): «…»
 - PASO 9: el plano Inserto de «Cromo» no se encuentra en la escena: plano General del lugar
 - PASO 9: el plano Inserto de «Fotografía» no se encuentra en la escena: plano General del lugar
 - PASO 10: 4 PLANO de un paso jugable (Reach) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
 - PASO 12: 4 PLANO de un paso jugable (Use) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
+- frase quitada (es una acotación, no se dice): «…»
 - PASO 14: 2 PLANO de un paso jugable (Chase) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
 - PASO 15: el guion lo escribe como [Cinematic] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
+- frase quitada (es una acotación, no se dice): «…»
 - PASO 18: el guion lo escribe como [Choice] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
+- frase quitada (es una acotación, no se dice): «…»
+- frase quitada (es una acotación, no se dice): «…»
+- frase quitada (es una acotación, no se dice): «…»
 - PASO 21: 3 PLANO de un paso jugable (Reach) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
+- frase quitada (es una acotación, no se dice): «…»
+- frase quitada (es una acotación, no se dice): «…»
+- frase quitada (es una acotación, no se dice): «…»
 - PASO 24: el guion lo escribe como [Cinematic] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
 - PASO 24: «Condición: malotes != Ignorar» — el paso del juego no tiene condición: el paso sigue saliendo siempre (su mecánica no cambia) y la condición se pone en sus frases
 

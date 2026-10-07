@@ -46,8 +46,7 @@ return {
 		Empresa = {
 			Effects = { Traits = { Creatividad = 1, Curiosidad = 1 } },
 			Lines = {
-				{ S = "Marcos", T = "Tengo una empresa.", To = "Yo" },
-				{ S = "Marcos", T = "Bueno…", To = "Yo" },
+				{ S = "Marcos", T = "Tengo una empresa. Bueno…", To = "Yo" },
 				{ S = "Marcos", T = "La empresa me tiene a mí.", To = "Yo" },
 				{
 					Ask = "¿Tu idea?",
@@ -83,10 +82,8 @@ return {
 		Estadio = {
 			Effects = { Traits = { Empatia = 1, Responsabilidad = 1 } },
 			Lines = {
-				{ S = "Irene", T = "¡Al trote!", To = "Yo" },
-				{ S = "Irene", T = "Soy Irene. Entrenadora y fisioterapeuta.", To = "Yo" },
-				{ S = "Irene", T = "Tu medalla del torneo del colegio…", To = "Yo", If = { Memories = { "PrimerTorneo" } } },
-				{ S = "Irene", T = "Yo empecé igual.", To = "Yo", If = { Memories = { "PrimerTorneo" } } },
+				{ S = "Irene", T = "¡Al trote! Soy Irene. Entrenadora y fisioterapeuta.", To = "Yo" },
+				{ S = "Irene", T = "Tu medalla del torneo del colegio… Yo empecé igual.", To = "Yo", If = { Memories = { "PrimerTorneo" } } },
 				{
 					Ask = "¿Qué le dices?",
 					Options = {
@@ -121,14 +118,11 @@ return {
 		Estudio = {
 			Effects = { Traits = { Creatividad = 2 } },
 			Lines = {
-				{ S = "Toni", T = "Hola.", To = "Yo" },
-				{ S = "Toni", T = "Tú debes de ser {nombre}.", To = "Yo" },
+				{ S = "Toni", T = "Hola. Tú debes de ser {nombre}.", To = "Yo" },
 				{ S = "Leire", T = "Te dije que mi tío habla en planos.", To = "Yo", If = { Flags = { "ConocesALeire" } } },
 				{ S = "Toni", T = "Es una enfermedad.", To = "Yo", If = { Flags = { "ConocesALeire" } } },
-				{ S = "Yo", T = "Quiero hacer cosas que la gente no olvide.", If = { Choices = { SuenoInfancia = "Arte" } } },
-				{ S = "Yo", T = "Volvemos al cine.", If = { Choices = { SuenoInfancia = "Arte" } } },
-				{ S = "Yo", T = "Junto a la ventana." },
-				{ S = "Yo", T = "Delante de las butacas vacías." },
+				{ S = "Yo", T = "Quiero hacer cosas que la gente no olvide. Volvemos al cine.", If = { Choices = { SuenoInfancia = "Arte" } } },
+				{ S = "Yo", T = "Junto a la ventana. Delante de las butacas vacías." },
 				{ S = "Toni", T = "Cuenta algo.", To = "Yo", Pause = 0.9 },
 				{
 					Ask = "¿Dónde le pones?",
@@ -165,15 +159,11 @@ return {
 			Lines = {
 				{ S = "Nuria", T = "¡Bienvenida la cantera!", To = "Yo" },
 				{ S = "Nuria", T = "Soy Nuria. Medicina de urgencias.", To = "Yo" },
-				{ S = "Yo", T = "Quiero salvar vidas.", If = { Choices = { SuenoInfancia = "Medicina" } } },
-				{ S = "Yo", T = "Volvemos al hospital.", If = { Choices = { SuenoInfancia = "Medicina" } } },
-				{ S = "Nuria", T = "¿Qué harías primero?", To = "Yo" },
-				{ S = "Nuria", T = "A — Tranquilizarlo.", To = "Yo" },
-				{ S = "Nuria", T = "B — Observar el brazo sin moverlo.", To = "Yo" },
-				{ S = "Nuria", T = "Exacto.", To = "Yo" },
+				{ S = "Yo", T = "Quiero salvar vidas. Volvemos al hospital.", If = { Choices = { SuenoInfancia = "Medicina" } } },
+				{ S = "Nuria", T = "¿Qué harías primero? A — Tranquilizarlo.", To = "Yo" },
+				{ S = "Nuria", T = "B — Observar el brazo sin moverlo. Exacto.", To = "Yo" },
 				{ S = "Nuria", T = "Antes de ayudar a alguien, tienes que conseguir que se sienta segur{o/a}.", To = "Yo", Pause = 0.9 },
-				{ S = "Nuria", T = "¿Te ves trabajando aquí?", To = "Yo" },
-				{ S = "Nuria", T = "Perfecto.", To = "Yo" },
+				{ S = "Nuria", T = "¿Te ves trabajando aquí? Perfecto.", To = "Yo" },
 				{ S = "Nuria", T = "Saber lo que no quieres también es avanzar.", To = "Yo" },
 				{
 					Ask = "¿Qué haces primero?",
@@ -206,8 +196,7 @@ return {
 		Laboratorio = {
 			Effects = { Traits = { Curiosidad = 1, Valentia = 1 } },
 			Lines = {
-				{ S = "Sofia", T = "¡Pasa!", To = "Yo" },
-				{ S = "Sofia", T = "Aquí rompemos cosas para aprender por qué se rompen.", To = "Yo" },
+				{ S = "Sofia", T = "¡Pasa! Aquí rompemos cosas para aprender por qué se rompen.", To = "Yo" },
 				{ S = "Yo", T = "Quiero inventar cosas que no existen.", If = { Choices = { SuenoInfancia = "Ingenieria" } } },
 				{ S = "Sara", T = "Sabía que acabarías aquí.", To = "Yo", If = { Choices = { Club = "Robotica" } } },
 				{ S = "Sara", T = "Aunque yo habría puesto otra pieza.", To = "Yo", If = { Choices = { Club = "Robotica" } } },
@@ -248,20 +237,16 @@ return {
 		},
 		Reflexion = {
 			Lines = {
-				{ S = "Carmen", T = "Bueno, {nombre}.", To = "Yo", Effects = { Scene = "Ins03_G6_Musica" } },
-				{ S = "Carmen", T = "¿Qué has descubierto?", To = "Yo", Pause = 0.9 },
+				{ S = "Carmen", T = "Bueno, {nombre}. ¿Qué has descubierto?", To = "Yo", Effects = { Scene = "Ins03_G6_Musica" } },
 				{ S = "Carmen", T = "El hospital te removió algo.", To = "Yo", If = { Flags = { "Interes_Medicina" } } },
-				{ S = "Nico", T = "¿Médico?", To = "Yo", If = { Flags = { "Interes_Medicina" } } },
-				{ S = "Nico", T = "Te dejo practicar conmigo.", To = "Yo", If = { Flags = { "Interes_Medicina" } } },
+				{ S = "Nico", T = "¿Médico? Te dejo practicar conmigo.", To = "Yo", If = { Flags = { "Interes_Medicina" } } },
 				{ S = "Carmen", T = "Sofía me ha dicho que tus puentes aguantan más de lo esperado.", To = "Yo", If = { Flags = { "Interes_Ingenieria" } } },
 				{ S = "Carmen", T = "Inés dice que sabes escuchar a las dos partes.", To = "Yo", If = { Flags = { "Interes_Derecho" } } },
-				{ S = "Carmen", T = "Marcos va a cambiar el color de sus bicicletas.", To = "Yo", If = { Flags = { "Interes_Economia" } } },
-				{ S = "Carmen", T = "Por tu culpa.", To = "Yo", Pause = 0.9, If = { Flags = { "Interes_Economia" } } },
+				{ S = "Carmen", T = "Marcos va a cambiar el color de sus bicicletas. Por tu culpa.", To = "Yo", If = { Flags = { "Interes_Economia" } } },
 				{ S = "Carmen", T = "Tobías pregunta si vas a volver al taller.", To = "Yo", If = { Flags = { "Interes_Oficio" } } },
 				{ S = "Carmen", T = "Con Tobías, eso casi es una oferta de trabajo.", To = "Yo", Pause = 0.9, If = { Flags = { "Interes_Oficio" } } },
 				{ S = "Carmen", T = "Lola dice que tienes cabeza de cocina.", To = "Yo", If = { Flags = { "Interes_Cocina" } } },
-				{ S = "Omar", T = "Lo sabía.", To = "Yo", If = { Flags = { "Interes_Cocina" } } },
-				{ S = "Omar", T = "Socios.", To = "Yo", Pause = 0.9, If = { Flags = { "Interes_Cocina" } } },
+				{ S = "Omar", T = "Lo sabía. Socios.", To = "Yo", If = { Flags = { "Interes_Cocina" } } },
 				{
 					S = "Carmen",
 					T = "Irene se fijó en que cuidaste primero a una persona y después pensaste en ganar.",
@@ -270,11 +255,9 @@ return {
 				},
 				{ S = "Carmen", T = "Toni ya te llama “la cámara”.", To = "Yo", If = { Flags = { "Interes_Audiovisual" } } },
 				{ S = "Carmen", T = "Viniendo de él, es casi un título.", To = "Yo", Pause = 0.9, If = { Flags = { "Interes_Audiovisual" } } },
-				{ S = "Leire", T = "Mi tío no se lo dice a cualquiera.", To = "Yo", If = { Flags = { "ConocesALeire" } } },
-				{ S = "Leire", T = "Bueno… sí.", To = "Yo", Pause = 0.9, If = { Flags = { "ConocesALeire" } } },
+				{ S = "Leire", T = "Mi tío no se lo dice a cualquiera. Bueno… sí.", To = "Yo", If = { Flags = { "ConocesALeire" } } },
 				{ S = "Leire", T = "Pero esta vez lo dice en serio.", To = "Yo", If = { Flags = { "ConocesALeire" } } },
-				{ S = "Carmen", T = "Y ahora quiero preguntarte algo distinto.", To = "Yo" },
-				{ S = "Carmen", T = "No qué quieres ser.", To = "Yo", Pause = 0.9 },
+				{ S = "Carmen", T = "Y ahora quiero preguntarte algo distinto. No qué quieres ser.", To = "Yo" },
 				{ S = "Carmen", T = "¿Cómo te sientes con tu futuro?", To = "Yo", Pause = 0.9 },
 				{
 					Ask = "¿Cómo te sientes con tu futuro?",
@@ -282,10 +265,7 @@ return {
 						{
 							T = "«Creo que ya sé lo que me gusta.»",
 							Effects = { Choice = { Orientacion = "Claro" }, Traits = { Responsabilidad = 1 } },
-							Then = {
-								{ S = "Carmen", T = "Eso está bien.", To = "Yo" },
-								{ S = "Carmen", T = "Pero no cierres ninguna puerta demasiado pronto.", To = "Yo", Pause = 0.9 },
-							},
+							Then = { { S = "Carmen", T = "Eso está bien. Pero no cierres ninguna puerta demasiado pronto.", To = "Yo" } },
 						},
 						{
 							T = "«Tengo más dudas que antes.»",
@@ -299,31 +279,26 @@ return {
 							T = "«Me gustan muchas cosas a la vez.»",
 							Effects = { Choice = { Orientacion = "Muchas" }, Traits = { Creatividad = 1 } },
 							Then = {
-								{ S = "Carmen", T = "A mí también me pasaba.", To = "Yo" },
-								{ S = "Carmen", T = "Y mírame.", To = "Yo", Pause = 0.9 },
+								{ S = "Carmen", T = "A mí también me pasaba. Y mírame.", To = "Yo" },
 								{ S = "Carmen", T = "Ahora ayudo a otros a descubrir lo suyo.", To = "Yo" },
 							},
 						},
 					},
 				},
-				{ S = "Omar", T = "Yo ya lo tengo claro.", To = "Yo" },
-				{ S = "Omar", T = "Quiero trabajar con Lola.", To = "Yo" },
+				{ S = "Omar", T = "Yo ya lo tengo claro. Quiero trabajar con Lola.", To = "Yo" },
 				{ S = "Omar", T = "O comer donde trabaje Lola.", To = "Yo", Pause = 0.9 },
-				{ S = "Carmen", T = "Guárdalo.", To = "Yo" },
-				{ S = "Carmen", T = "Dentro de unos años lo vas a volver a leer.", To = "Yo" },
+				{ S = "Carmen", T = "Guárdalo. Dentro de unos años lo vas a volver a leer.", To = "Yo" },
 				{ S = "Carmen", T = "Y probablemente te vas a reír.", To = "Yo", Pause = 0.9 },
 				{ S = "Carmen", T = "O quizá descubras que ya lo sabías.", To = "Yo" },
 				{ S = "Javier", T = "¿Y?", To = "Yo" },
-				{ S = "Carmen", T = "Todavía no lo saben.", To = "Yo" },
-				{ S = "Carmen", T = "Y eso es exactamente como tiene que ser.", To = "Yo", Pause = 0.9 },
+				{ S = "Carmen", T = "Todavía no lo saben. Y eso es exactamente como tiene que ser.", To = "Yo" },
 				{ S = "Javier", T = "Entonces ha salido bien.", To = "Yo" },
 			},
 		},
 		Restaurante = {
 			Effects = { Rel = { Omar = 3 }, Traits = { Empatia = 1, Responsabilidad = 1 } },
 			Lines = {
-				{ S = "Omar", T = "He llegado primero.", To = "Yo" },
-				{ S = "Omar", T = "Era una cuestión de prioridades.", To = "Yo" },
+				{ S = "Omar", T = "He llegado primero. Era una cuestión de prioridades.", To = "Yo" },
 				{ S = "Lola", T = "Que no quieras trabajar aquí no significa que no puedas aprender a cocinar.", To = "Yo" },
 				{
 					Ask = "¿Qué haces?",
@@ -359,9 +334,7 @@ return {
 		Taller = {
 			Effects = { Traits = { Curiosidad = 1, Humor = 1 } },
 			Lines = {
-				{ S = "Tomas", T = "Pasa.", To = "Yo" },
-				{ S = "Tomas", T = "No muerdo.", To = "Yo" },
-				{ S = "Tomas", T = "El coche sí, si metes la mano donde no debes.", To = "Yo", Pause = 0.9 },
+				{ S = "Tomas", T = "Pasa. No muerdo. El coche sí, si metes la mano donde no debes.", To = "Yo" },
 				{ S = "Tomas", T = "Aquí no hace falta saberlo todo.", To = "Yo" },
 				{ S = "Tomas", T = "Hace falta querer aprender.", To = "Yo", Pause = 0.9 },
 				{
@@ -403,7 +376,7 @@ return {
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = { Actors = { { At = 0, Use = { Key = "Nico", Npc = "Nico" } } }, Dialogue = { { At = 0.4, S = "Nico", T = "¡{nombre}! Aquí.", To = "Yo" } } },
 		},
-		Ins03_G6_Musica = { Light = true, Duration = 110.8, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
+		Ins03_G6_Musica = { Light = true, Duration = 95.5, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
 	},
 	Steps = { ["1"] = { Effects = { Scene = "Ins03_G2_Entra" } } },
 }

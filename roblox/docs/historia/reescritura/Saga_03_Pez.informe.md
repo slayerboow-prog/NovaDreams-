@@ -25,20 +25,21 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso 1 del juego (Talk «Auxilio»): conversación «Auxilio» con 43 frases nuevas (música Descubrimiento→Tension)
+- PASO 1 → paso 1 del juego (Talk «Auxilio»): conversación «Auxilio» con 24 frases nuevas (música Descubrimiento→Tension)
 - PASO 2 → paso 2 del juego (Group): objetivo «Prepara la huida de Don Escamas.»
-- PASO 2.1 → paso 2.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Cubo» (5 frases)
+- PASO 2.1 → paso 2.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Cubo» (1 frases)
 - PASO 2.1 → paso 2.1 del juego (Use): objetivo «Consigue algo donde Don Escamas pueda viajar.»
-- PASO 2.2 → paso 2.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Tarjeta» (10 frases)
+- PASO 2.2 → paso 2.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Tarjeta» (4 frases)
 - PASO 2.2 → paso 2.2 del juego (Use): objetivo «Busca algo que hayan dejado los agentes.»
 - PASO 3 → paso 3 del juego (Escape): objetivo «Lleva a Don Escamas al garaje de Cosme sin que te atrapen.»
-- PASO 3 → paso 3 del juego (Escape): 5 frases al empezar el paso (escena ligera «Saga_03_G3_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
-- PASO 4 → paso 4 del juego (Scene «Pecera»): conversación «Pecera» con 62 frases nuevas (música Descubrimiento)
+- PASO 3 → paso 3 del juego (Escape): 2 frases al empezar el paso (escena ligera «Saga_03_G3_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
+- PASO 4 → paso 4 del juego (Scene «Pecera»): conversación «Pecera» con 32 frases nuevas (música Descubrimiento)
 
 ## Adaptado (y por qué)
 
 - PASO 1 · opción A: marca nueva «DonEscamasConfia» (don_escamas_confia = true)
 - PASO 1: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
+- frase quitada (es una acotación, no se dice): «…»
 - PASO 4: el guion lo escribe como [] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
 - PASO 4: «don_escamas_aliado = true» no la lee ninguna misión: no se crea
 - PASO 4: «saga_03_pez_completada = true» no la lee ninguna misión: no se crea

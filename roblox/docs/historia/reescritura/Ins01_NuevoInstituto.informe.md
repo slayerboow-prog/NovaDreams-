@@ -38,21 +38,21 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 2 → paso 2 del juego (Scene «Manana»): conversación «Manana» con 19 frases nuevas
+- PASO 2 → paso 2 del juego (Scene «Manana»): conversación «Manana» con 9 frases nuevas
 - PASO 3 → paso 3 del juego (Reach): 2 frases al empezar el paso (escena ligera «Ins01_G3_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
-- PASO 7 → paso 7 del juego (Scene «Entrada»): conversación «Entrada» con 4 frases nuevas
-- PASO 8 → paso 8 del juego (Choice): «OPCIÓN B · «Preguntar a la delegada»» es la conversación de la opción Dudar («Delegada», 4 frases)
-- PASO 8 → paso 8 del juego (Choice): 6 frases al empezar el paso (escena ligera «Ins01_G8_Entra», la lanza el paso 7 al cumplirse; el jugador no pierde el control)
-- PASO 9 → paso 9 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Tablon» (4 frases)
-- PASO 11 → paso 11 del juego (Scene «Tutor»): conversación «Tutor» con 17 frases nuevas
-- PASO 12 → paso 12 del juego (Choice): «OPCIÓN A · OMAR» es la conversación de la opción Omar («Sit_Omar», 3 frases)
-- PASO 12 → paso 12 del juego (Choice): «OPCIÓN B · LEIRE» es la conversación de la opción Leire («Sit_Leire», 6 frases)
-- PASO 12 → paso 12 del juego (Choice): «OPCIÓN C · BRUNO» es la conversación de la opción Bruno («Sit_Bruno», 9 frases)
-- PASO 13 → paso 13 del juego (Class): 4 frases al empezar el paso (escena ligera «Ins01_G13_Entra», la lanza el paso 12 al cumplirse; el jugador no pierde el control)
-- PASO 15 → paso 15 del juego (Scene «Recreo»): conversación «Recreo» con 6 frases nuevas
-- PASO 16 → paso 16 del juego (Talk «Leire_Recreo»): conversación «Leire_Recreo» con 19 frases nuevas
+- PASO 7 → paso 7 del juego (Scene «Entrada»): conversación «Entrada» con 3 frases nuevas
+- PASO 8 → paso 8 del juego (Choice): «OPCIÓN B · «Preguntar a la delegada»» es la conversación de la opción Dudar («Delegada», 2 frases)
+- PASO 8 → paso 8 del juego (Choice): 4 frases al empezar el paso (escena ligera «Ins01_G8_Entra», la lanza el paso 7 al cumplirse; el jugador no pierde el control)
+- PASO 9 → paso 9 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Tablon» (3 frases)
+- PASO 11 → paso 11 del juego (Scene «Tutor»): conversación «Tutor» con 8 frases nuevas
+- PASO 12 → paso 12 del juego (Choice): «OPCIÓN A · OMAR» es la conversación de la opción Omar («Sit_Omar», 1 frases)
+- PASO 12 → paso 12 del juego (Choice): «OPCIÓN B · LEIRE» es la conversación de la opción Leire («Sit_Leire», 1 frases)
+- PASO 12 → paso 12 del juego (Choice): «OPCIÓN C · BRUNO» es la conversación de la opción Bruno («Sit_Bruno», 4 frases)
+- PASO 13 → paso 13 del juego (Class): 2 frases al empezar el paso (escena ligera «Ins01_G13_Entra», la lanza el paso 12 al cumplirse; el jugador no pierde el control)
+- PASO 15 → paso 15 del juego (Scene «Recreo»): conversación «Recreo» con 4 frases nuevas
+- PASO 16 → paso 16 del juego (Talk «Leire_Recreo»): conversación «Leire_Recreo» con 7 frases nuevas
 - PASO 17 → paso 17 del juego (Class): 2 frases al empezar el paso (escena ligera «Ins01_G17_Entra», la lanza el paso 16 al cumplirse; el jugador no pierde el control)
-- PASO 19 → paso 19 del juego (Scene «Cena»): conversación «Cena» con 23 frases nuevas
+- PASO 19 → paso 19 del juego (Scene «Cena»): conversación «Cena» con 13 frases nuevas
 
 ## Adaptado (y por qué)
 
@@ -65,6 +65,7 @@ _Ninguno._
 - PASO 12 → paso 12 del juego (Choice): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - PASO 14 → paso 14 del juego (Reach): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - PASO 15: la conversación del juego tenía 1 preguntas y el guion 0: las que faltan se conservan tal cual al final (guardan decisiones que usa la historia)
+- frase quitada (es una acotación, no se dice): «…»
 - PASO 16: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 16: la conversación del juego tenía 1 preguntas y el guion 0: las que faltan se conservan tal cual al final (guardan decisiones que usa la historia)
 - PASO 18 → paso 18 del juego (Transition): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican

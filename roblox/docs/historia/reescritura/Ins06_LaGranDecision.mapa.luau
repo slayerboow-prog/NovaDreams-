@@ -26,6 +26,8 @@ return {
 	Informe = "Es la transición de etapa (Adolescente → Adulto): la estructura es la de siempre (los planes de los amigos, Carmen, las puertas abiertas, la selectividad y sus notas, la convocatoria de julio, la noche de la decisión, la decisión Futuro, la graduación y la transición Adol_Selectividad, que no se cambia: el montaje de cambio de etapa tiene un diseño fijo comprobado por test-etapas). Las variantes van con lo que ya guarda el juego: los recuerdos PrimerDiaInstituto, QueQuieresSer y PrimerSueldo, ConocesALeire, las decisiones de la etapa (Veterano, RecreoIns, SitioInstituto, Camino, Reportaje, Orientacion, Empleo, Meta, Futuro…) y el nombre del grupo (Choices.NombreGrupo). No se crean marcas nuevas: si el guion pide una que nada pone, la frase no sale. «Si el jugador se distrae» en la biblioteca no es una mecánica: esas frases no salen.",
 	-- (notas de diseño del guion que no son frases de nadie: no salen)
 	SiTexto = {
+		-- (opciones de la elección y notas que se colaban como frases del jugador: no salen)
+		{ "Siempre disponible", { Nunca = true } },
 		-- (Nico: lo de Omar solo si se lo dijiste aparte, Ins05; lo del estadio solo si viviste el cruce y te redimiste, Pan3)
 		{ "Oye…", { Choices = { HablasNico = "Privado" } } },
 		{ "Nunca te lo he dicho bien.", { Choices = { HablasNico = "Privado" } } },
